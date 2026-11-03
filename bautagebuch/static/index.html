@@ -15,6 +15,8 @@
 html[data-theme="hell"]{--bg:#f3f2ef;--card:#ffffff;--line:#d9d8d3;--ink:#232427;--mute:#686a6d;--red:#c8372a;--inp:#ffffff;--pan:#ffffff;--hov:#ecebe7;color-scheme:light}
 html[data-theme="hell"] #tabs{background:#e7e5e0}
 html[data-theme="hell"] .menu{background:#ffffff}
+html[data-theme="hell"] .tab.on{color:var(--ink)}
+html[data-theme="hell"] .swb.on{border-color:var(--ink)}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overscroll-behavior:none}
 html,body{position:fixed;inset:0;width:100%;overflow:hidden}   /* die Seite selbst scrollt nie; gescrollt wird nur im Inhaltsbereich (#detail) – sonst rutscht am iPhone die ganze App weg */
@@ -108,7 +110,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .cform>*{min-width:0}.sugc .pi{overflow:hidden}.sugc{border:1px solid var(--line);border-radius:10px;overflow:hidden}.sugc .pi:last-child{border-bottom:0}
 .rnb{margin:0 0 1rem;padding:.8rem 1rem;border:1px solid var(--y);border-radius:10px;font-size:.9rem;display:grid;gap:.6rem}.rnb .acts{display:flex;gap:.5rem;flex-wrap:wrap}.rnb .acts button{border:1px solid var(--line);border-radius:8px;padding:.45rem .8rem;color:var(--y);font-weight:700}.rnb .acts .pri{background:var(--y);color:var(--on);border-color:var(--y)}
 .pi.arch{color:var(--mute);justify-content:flex-start;align-items:center;font-size:.9rem}.pi.old b{color:var(--mute)}
-.pi.on{color:#fff;box-shadow:inset 3px 0 var(--y)}
+.pi.on{color:var(--ink);box-shadow:inset 3px 0 var(--y);background:var(--hov)}
 .pi .l{min-width:0;display:flex;flex-direction:column}
 .pi .l b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pi .l small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.8rem}
@@ -255,7 +257,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .cview dt{color:var(--mute);font-size:.8rem}
 .cview dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .cview a{color:var(--y)}
-.cform .cback{display:none;grid-column:1/-1;justify-self:start;color:#fff;font-weight:700}
+.cform .cback{display:none;grid-column:1/-1;justify-self:start;color:var(--ink);font-weight:700}
 
 /* Kontakte: Liste links, Details rechts */
 .split{flex:1;min-height:0;display:grid;grid-template-columns:300px 1fr;grid-template-rows:minmax(0,1fr);gap:.8rem;width:100%;max-width:1100px;margin:0 auto}

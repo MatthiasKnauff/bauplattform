@@ -197,6 +197,43 @@ def ask(provider, system, user, max_tokens=900, c=None, json_mode=False):
     raise AIError("Für „Intern“ gibt es keine KI-Anfrage")
 
 
+VISION = ("claude", "gemini", "chatgpt")   # können Bilder (Pläne) lesen; das lokale Standardmodell von Ollama nicht
+
+
+def ask_image(provider, system, user, png, max_tokens=2500, c=None):
+    """Frage mit Bild (z. B. Grundriss als PNG). Antwort als Text."""
+    import base64
+    b64 = base64.b64encode(png).decode()
+    if provider == "claude":
+        k = claude_conf(c)
+        if not k["key"]:
+            raise AIError("Kein Claude-Schlüssel hinterlegt")
+        base = _env("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
+        d = _post(base + "/v1/messages", {"model": k["model"], "max_tokens": max_tokens, "system": system, "messages": [{"role": "user", "content": [
+            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}}, {"type": "text", "text": user}]}]},
+                  {"x-api-key": k["key"], "anthropic-version": "2023-06-01"}, timeout=180)
+        return "".join(x.get("text", "") for x in d.get("content") or [] if x.get("type") == "text")
+    if provider == "gemini":
+        g = ext_conf(c, "gemini")
+        if not g["key"]:
+            raise AIError("Kein Gemini-Schlüssel hinterlegt")
+        d = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{g['model']}:generateContent",
+                  {"systemInstruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"inline_data": {"mime_type": "image/png", "data": b64}}, {"text": user}]}],
+                   "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0, "responseMimeType": "application/json"}}, {"x-goog-api-key": g["key"]}, timeout=180)
+        cand = (d.get("candidates") or [{}])[0]
+        return "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts") or [])
+    if provider == "chatgpt":
+        o = ext_conf(c, "chatgpt")
+        if not o["key"]:
+            raise AIError("Kein OpenAI-Schlüssel hinterlegt")
+        d = _post("https://api.openai.com/v1/chat/completions", {"model": o["model"], "max_completion_tokens": max_tokens, "response_format": {"type": "json_object"},
+                  "messages": [{"role": "system", "content": system}, {"role": "user", "content": [{"type": "text", "text": user},
+                                                                                                   {"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}}]}]},
+                  {"authorization": "Bearer " + o["key"]}, timeout=180)
+        return ((d.get("choices") or [{}])[0].get("message") or {}).get("content", "")
+    raise AIError("Diese KI kann keine Pläne (Bilder) lesen – oben Claude, Gemini oder ChatGPT wählen")
+
+
 def ask_json(provider, system, user, max_tokens=900, c=None):
     """Wie ask(), Antwort als JSON-Objekt (Codeblöcke und Text drumherum werden entfernt)."""
     import re

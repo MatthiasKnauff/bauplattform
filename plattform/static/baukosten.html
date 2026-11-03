@@ -272,11 +272,11 @@ function vPlaene() {
   const open = rooms.filter((r) => !r.ok).length;
   return `<div class="layout"><aside class="side"><span class="hint" style="text-transform:uppercase;letter-spacing:.04em">Pläne</span><div class="files">${B.files.map((x) => `
     <div class="card fc ${x.id === selFile ? 'on' : ''}" data-file="${x.id}" tabindex="0" role="button" aria-pressed="${x.id === selFile}"><b>${esc(x.meta.kind ? x.meta.kind + ' · ' : '')}${esc(x.name)}</b><small>${esc(x.meta.note || '')}</small>
-      <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" target="_blank" rel="noopener">PDF</a><button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
+      <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" target="_blank" rel="noopener">PDF</a>${x.meta.kind !== 'Ansicht' && x.meta.kind !== 'Schnitt' ? `<button class="btn sm${x.meta.found ? '' : ' pri'}" data-kiroom="${x.id}" title="Räume mit der oben gewählten KI aus dem Planbild lesen – für Pläne, deren Beschriftung nicht als Text vorliegt">Räume mit KI lesen</button>` : ''}${x.meta.found ? '' : `<button class="btn sm" data-reread="${x.id}" title="Plan mit der aktuellen Erkennung erneut auswerten">Neu einlesen</button>`}<button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
     <div class="drop" id="drop" role="button" tabindex="0">+ PDF hinzufügen<br><small>Grundrisse, Ansichten, Schnitte – Vektor-PDF aus dem CAD</small></div></div>
     <p class="hint">Raumstempel (Nummer, Name, m²) werden aus Vektor-PDFs exakt gelesen. Der Raumtyp ist ein Vorschlag – bitte jeden Raum bestätigen.</p></aside>
   <div class="main">${f ? `<div class="plan card" style="padding:0"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr)}</span>`).join('')}</div>` : ''}
-    <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} Räume · ${m2(B.calc.area)} m²${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="addRoom">+ Raum</button></div>
+    <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'} · ${m2(B.calc.area)} m²${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="addRoom">+ Raum</button></div>
     <div class="tbl"><table><thead><tr><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
       <tr data-row="${i}" class="${r.id === selRoom ? 'sel' : ''} ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : ''}"><td><input class="n" style="width:64px;text-align:left" value="${esc(r.nr)}" data-f="nr" aria-label="Nummer"></td>
       <td><input class="w" value="${esc(r.name)}" data-f="name" aria-label="Raumname">${dup[r.floor + '|' + r.nr] > 1 ? '<span class="wn">Raumnummer doppelt</span>' : ''}${r.floor ? `<span class="hint" style="font-size:.75rem">${esc(r.floor)}</span>` : ''}</td>
@@ -402,9 +402,9 @@ const STEPS = [
     txt: () => 'Lade die Grundrisse <b>aller Geschosse</b> als PDF aus dem CAD hoch, dazu Ansichten und Schnitte. Aus Grundrissen werden Raumnummer, Name und Fläche exakt gelesen.',
     st: () => B.files.length ? `${B.files.length} Pläne, ${B.data.rooms.length} Räume gelesen.` : 'Noch keine Pläne.',
     acts: [['PDF auswählen', 'pdf'], ['Zu „Pläne & Mengen“', 'tab:plaene']] },
-  { k: 'raeume', t: 'Räume prüfen', done: () => B.data.rooms.length > 0 && B.data.rooms.every((r) => r.ok),
+  { k: 'raeume', t: 'Räume prüfen', done: () => B.data.rooms.some((r) => r.area > 0) && B.data.rooms.every((r) => r.ok && r.area > 0 && r.name),
     txt: () => 'Prüfe Raumtyp und Fläche je Raum. Die Typen sind Vorschläge. Rote Markierungen im Plan zeigen doppelte Raumnummern.',
-    st: () => { const o = B.data.rooms.filter((r) => !r.ok).length; return B.data.rooms.length ? (o ? `${o} von ${B.data.rooms.length} Räumen noch offen.` : 'Alle Räume bestätigt.') : 'Noch keine Räume.'; },
+    st: () => { const o = B.data.rooms.filter((r) => !r.ok || !(r.area > 0) || !r.name).length; return B.data.rooms.length ? (o ? `${o} von ${B.data.rooms.length} Räumen noch offen oder ohne Name/Fläche.` : 'Alle Räume bestätigt.') : 'Noch keine Räume – Grundriss hochladen oder „Räume mit KI lesen“.'; },
     acts: [['Zu den Räumen', 'tab:plaene'], ['Alle bestätigen', 'okAll']] },
   { k: 'kennwerte', t: 'Kennwerte', done: () => AS.kw || !(B.acc && B.acc.faktoren.some((f) => /Beispiel-Kennwerte/.test(f.text))),
     txt: () => 'Die vorgegebenen €/m² sind Beispielwerte. Mit Kennwerten aus euren abgerechneten Projekten wird die Schätzung deutlich genauer. Einmal als eigene Werte gespeichert, gelten sie für alle neuen Kostenermittlungen.',
@@ -500,6 +500,22 @@ document.addEventListener('click', async (e) => {
   }
   const tk2 = e.target.closest('[data-takekg2]'); if (tk2) { B.data.kg2 = { ...EST.kg2[+tk2.dataset.takekg2].werte }; toast('Aufteilung übernommen – unter „Kosten“ änderbar.'); changed(); return; }
   const ok = e.target.closest('[data-ok]'); if (ok) { const r = B.data.rooms[+ok.dataset.ok]; r.ok = !r.ok; changed(); return; }
+  const rr = e.target.closest('[data-reread]');
+  if (rr) {
+    rr.disabled = true; rr.textContent = 'lese …';
+    try { clearTimeout(saveT); await saveNow(); const r = await api(`api/bk/${B.id}/files/${rr.dataset.reread}/neu-lesen`, 'POST', {}); B = r.bk; toast(`${r.note}${r.added ? ` – ${r.added} Räume übernommen` : ''}`); render(); }
+    catch (er) { toast(er.message, true); rr.disabled = false; rr.textContent = 'Neu einlesen'; }
+    return;
+  }
+  const kr = e.target.closest('[data-kiroom]');
+  if (kr) {
+    const ki = window.BPHead ? BPHead.provider() : { key: 'intern' };
+    if (!['claude', 'gemini', 'chatgpt'].includes(ki.key)) { toast('Zum Lesen von Plänen oben in der Kopfleiste Claude, Gemini oder ChatGPT wählen – Intern und das Ollama-Standardmodell können keine Bilder lesen.', true); return; }
+    kr.disabled = true; kr.textContent = 'KI liest den Plan …';
+    try { clearTimeout(saveT); await saveNow(); const r = await api(`api/bk/${B.id}/files/${kr.dataset.kiroom}/ki-raeume`, 'POST', {}); B = r.bk; toast(`${ki.label}: ${r.found} Räume gelesen, ${r.added} neu übernommen – bitte prüfen.${r.hinweis ? ' ' + r.hinweis : ''}`); render(); }
+    catch (er) { toast(er.message, true); kr.disabled = false; kr.textContent = 'Räume mit KI lesen'; }
+    return;
+  }
   const dr = e.target.closest('[data-delroom]'); if (dr) { B.data.rooms.splice(+dr.dataset.delroom, 1); changed(); return; }
   const di = e.target.closest('[data-delit]'); if (di) { B.data.items.splice(+di.dataset.delit, 1); changed(); return; }
   const df = e.target.closest('[data-delfile]');

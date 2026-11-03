@@ -237,9 +237,11 @@ und beendet sich dann. Bis dahin steht in der Auswahl „Modell wird noch gelade
 
 Kostenermittlung nach DIN 276, gekoppelt an Bautagebuch-Projekt und Bauzeitenplan.
 
-- **Pläne & Mengen:** PDF hochladen. Aus Vektor-PDFs (aus dem CAD) werden Raumstempel – Nummer, Name, Fläche – exakt gelesen,
-  dazu Maßstab und Planart. Der Raumtyp wird vorgeschlagen; jeder Raum wird bestätigt. Eingescannte Pläne enthalten keinen Text –
-  dann Räume von Hand eintragen.
+- **Pläne & Mengen:** PDF hochladen. Aus Vektor-PDFs (aus dem CAD) werden Räume exakt gelesen – Raumstempel mit Nummer
+  („0.12 Büro 14,20 m²“) ebenso wie Beschriftungen nur aus Name und Fläche; Geschoss-Überschriften („Kellergeschoss“,
+  „Erdgeschoss“ …) ordnen die Räume dem Geschoss zu. „Neu einlesen“ wertet einen früher hochgeladenen Plan mit der
+  aktuellen Erkennung erneut aus. Enthält das PDF keinen Text (Scan, Bild), liest „Räume mit KI lesen“ die Räume aus dem
+  Planbild (Claude, Gemini oder ChatGPT in der Kopfleiste wählen) – die Vorschläge müssen bestätigt werden. Sonst Räume von Hand eintragen.
 - **Kosten:** Fläche × Kennwert je Raumtyp, Aufteilung auf KG 300/400, eigene Positionen (KG 200, 394 Rückbau, 500 …),
   Nebenkosten KG 700. Die mitgelieferten Kennwerte sind **Beispielwerte**; eigene Werte lassen sich als Vorgabe für neue Kostenermittlungen speichern.
 - **Mittelabfluss:** Kosten werden über die Leistungen des verknüpften Bauzeitenplans verteilt (Gewicht = Dauer, änderbar), je Monat,

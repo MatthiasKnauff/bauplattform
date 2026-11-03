@@ -389,8 +389,103 @@ def read_plan(data):
                     name.append(t)
                 if area is not None and name:
                     out["rooms"].append({"nr": n["text"], "name": " ".join(name), "area": area, "page": pi,
-                                         "pos": [round(n["x0"] / pg.width, 4), round(n["top"] / pg.height, 4)]})
+                                         "pos": [round(n["x0"] / pg.width, 4), round(n["top"] / pg.height, 4)], "_y": n["top"], "_x": n["x0"]})
+            _rooms_ohne_nummer(W, pg, pi, out["rooms"])
+            _geschosse(W, [r for r in out["rooms"] if r["page"] == pi])
+    for r in out["rooms"]:
+        r.pop("_y", None); r.pop("_x", None)
     return out
+
+
+NUMW = re.compile(r"^(\d{1,4}[.,]\d{1,2})(?:\s*m(?:²|2)?)?$")
+UNIT = re.compile(r"^(m²|m2|qm|m)$")
+NRW = re.compile(r"^([A-Z]{0,2}\d{1,2}[.\-]?\d{0,3}|\d\.\d{2})$")
+NOISE = re.compile(r"^(f|nf|ngf|wf|bgf|fläche|flaeche|a)[:=]?$|^[=:]$|^ca\.?$", re.I)
+GESCHOSS = re.compile(r"^(keller|unter|erd|ober|dach|souterrain|spitzboden|\d\.?\s*ober|staffel)", re.I)
+
+
+def _rooms_ohne_nummer(W, pg, pi, rooms):
+    """Zweiter Durchgang für Pläne ohne Raumnummer: jede Flächenangabe (z. B. „10,70 m²“) mit dem Raumnamen darüber oder davor.
+    Bereits über Raumstempel gelesene Räume werden nicht doppelt aufgenommen."""
+    def h_of(w):
+        return max(3.0, w["bottom"] - w["top"])
+
+    def same_line(w, ws):
+        h = h_of(w)
+        return [x for x in ws if abs((x["top"] + x["bottom"]) / 2 - (w["top"] + w["bottom"]) / 2) < h * 0.6]
+
+    for w in W:
+        m = NUMW.match(w["text"])
+        if not m:
+            continue
+        h = h_of(w)
+        line = sorted(same_line(w, W), key=lambda x: x["x0"])
+        has_unit = w["text"].lower().endswith(("m²", "m2"))
+        if not has_unit:   # Einheit als eigenes Wort direkt dahinter („10,70“ „m²“, auch „m“ „2“ hochgestellt)
+            nxt = [x for x in W if 0 <= x["x0"] - w["x1"] < h * 1.6 and abs(x["top"] - w["top"]) < h * 0.9 and UNIT.match(x["text"].lower())]
+            has_unit = bool(nxt)
+        if not has_unit:
+            continue
+        area = float(m.group(1).replace(",", "."))
+        if not (0.5 <= area <= 5000):
+            continue
+        if any(abs(r.get("area", 0) - area) < 0.005 and abs(r.get("_y", -1e9) - w["top"]) < h * 6 and abs(r.get("_x", -1e9) - w["x0"]) < h * 12 for r in rooms):
+            continue   # schon als Raumstempel mit Nummer erkannt
+        # 1) Name in derselben Zeile davor („Küche 12,46 m²“)
+        left, x1 = [], w["x0"]
+        for x in reversed([x for x in line if x["x1"] <= w["x0"] + 0.5]):
+            if x1 - x["x1"] > h * 1.8:
+                break
+            left.insert(0, x); x1 = x["x0"]
+        name = " ".join(x["text"] for x in left if not NOISE.match(x["text"]))
+        anchor = left[0] if left else w
+        # 2) sonst die Zeile direkt darüber, die waagerecht über der Fläche liegt
+        if not re.search(r"[A-Za-zÄÖÜäöüß]{2}", name):
+            cx = (w["x0"] + w["x1"]) / 2
+            cands = [x for x in W if x is not w and 0 <= w["top"] - x["bottom"] < h * 2.4 and x["x0"] < w["x1"] + h * 4 and x["x1"] > w["x0"] - h * 4
+                     and re.search(r"[A-Za-zÄÖÜäöüß]", x["text"])]
+            if not cands:
+                continue
+            best = min(cands, key=lambda x: (round((w["top"] - x["bottom"]) / (h * 0.8)), abs((x["x0"] + x["x1"]) / 2 - cx)))
+            row = sorted(same_line(best, W), key=lambda x: x["x0"])
+            i = row.index(best)
+            a, b = i, i   # zusammenhängende Wörter um das gefundene Wort
+            while a > 0 and row[a]["x0"] - row[a - 1]["x1"] < h * 1.2:
+                a -= 1
+            while b < len(row) - 1 and row[b + 1]["x0"] - row[b]["x1"] < h * 1.2:
+                b += 1
+            words = [x for x in row[a:b + 1] if not NOISE.match(x["text"])]
+            name = " ".join(x["text"] for x in words)
+            anchor = words[0] if words else best
+            if not re.search(r"[A-Za-zÄÖÜäöüß]{2}", name) or GESCHOSS.match(name):
+                continue
+        name = name.strip(" :-–")
+        if not name or len(name) > 60:
+            continue
+        # Raumnummer darüber (optional)
+        nr = ""
+        above = [x for x in W if 0 <= anchor["top"] - x["bottom"] < h * 1.6 and abs(x["x0"] - anchor["x0"]) < h * 1.5 and NRW.match(x["text"])]
+        if above:
+            nr = above[0]["text"]
+        rooms.append({"nr": nr, "name": name, "area": area, "page": pi,
+                      "pos": [round(anchor["x0"] / pg.width, 4), round(anchor["top"] / pg.height, 4)], "_y": anchor["top"], "_x": anchor["x0"]})
+
+
+def _geschosse(W, rooms):
+    """Geschoss je Raum aus den Planüberschriften („Kellergeschoss“, „Erdgeschoss“ …): die nächstgelegene Überschrift."""
+    heads = []
+    for w in W:
+        t = w["text"]
+        if re.match(r"^(keller|unter|erd|ober|dach|staffel)geschoss$|^spitzboden$|^souterrain$", t, re.I):
+            pre = [x for x in W if abs(x["top"] - w["top"]) < 2 and 0 < w["x0"] - x["x1"] < 8 and re.match(r"^\d+\.?$", x["text"])]
+            heads.append(((w["x0"] + w["x1"]) / 2, (w["top"] + w["bottom"]) / 2, (pre[0]["text"] + " " if pre else "") + t))
+    if len(heads) < 1:
+        return
+    for r in rooms:
+        if r.get("floor"):
+            continue
+        x, y = r["_x"], r["_y"]
+        r["floor"] = min(heads, key=lambda hd: abs(hd[0] - x) + 0.3 * abs(hd[1] - y))[2]
 
 
 def preview_png(data, page=0, width=1400):
@@ -420,7 +515,7 @@ def file_add(i):
     meta["found"] = len(found)
     meta["note"] = ("Vektor-PDF · " if meta["vector"] else "Kein Text im PDF (eingescannt?) – Räume bitte von Hand eintragen · ") + \
                    (f"Maßstab 1:{meta['scale']} erkannt" if meta["scale"] else "kein Maßstab erkannt") + \
-                   (f" · {len(found)} Raumstempel gelesen" if found else " · keine Raumstempel (Ansicht/Schnitt?)")
+                   (f" · {len(found)} Räume gelesen" if found else " · keine Raumbeschriftung gefunden – „Räume mit KI lesen“ probieren" if meta["kind"] == "Grundriss" else " · keine Räume (Ansicht/Schnitt)")
     with db.tx() as c:
         r = _row(c, i)
         if not r:
@@ -428,19 +523,109 @@ def file_add(i):
         fid = c.execute("INSERT INTO bk_files(bk_id, name, mime, size, data, meta, created, user_name) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
                         (i, name, "application/pdf", len(data), data, json.dumps(meta), _now(), g.user["name"])).fetchone()["id"]
         d = clean_data(_j(r["data"], {}), c)
-        have = {(x["nr"], x["name"]) for x in d["rooms"]}
+        d["rooms"] = [x for x in d["rooms"] if x["name"] or x["nr"] or x["area"]]   # leere Zeilen (z. B. „+ Raum“ ohne Eingabe) entfernen
+        have = {(x["floor"], x["nr"], x["name"], round(x["area"], 2)) for x in d["rooms"]}
         added = 0
-        floor = re.sub(r"\.pdf$", "", name, flags=re.I)[:40]
+        floor0 = re.sub(r"\.pdf$", "", name, flags=re.I)[:40]
         for k, x in enumerate(found):
-            if (x["nr"], x["name"]) in have:
+            fl = (x.get("floor") or floor0)[:40]
+            key = (fl, x["nr"], x["name"], round(x["area"], 2))
+            if key in have:
                 continue
+            have.add(key)
             d["rooms"].append({"id": f"f{fid}-{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"]),
-                               "ok": False, "src": f"pdf:{fid}", "floor": floor, "pos": x["pos"]})
+                               "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": x["pos"]})
             added += 1
         c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
         out = _out(c, _row(c, i))
     C.audit(g.user["name"], "baukosten", "Plan hochgeladen", f"{name} · {added} Räume übernommen · {r['name']}")
     return jsonify(added=added, found=len(found), note=meta["note"], bk=out)
+
+
+@app.post("/api/bk/<int:i>/files/<int:fid>/neu-lesen")
+def file_reread(i, fid):
+    """Plan erneut auswerten (z. B. nach einer verbesserten Erkennung) – neue Räume werden ergänzt, vorhandene bleiben."""
+    with db.tx() as c:
+        f = c.execute("SELECT name, data, meta FROM bk_files WHERE id=? AND bk_id=?", (fid, i)).fetchone()
+        if not f:
+            return jsonify(error="Nicht gefunden"), 404
+        meta = read_plan(bytes(f["data"]))
+        found = meta.pop("rooms")
+        meta["found"] = len(found)
+        meta["note"] = ("Vektor-PDF · " if meta["vector"] else "Kein Text im PDF (eingescannt?) · ") + \
+                       (f"Maßstab 1:{meta['scale']} erkannt" if meta["scale"] else "kein Maßstab erkannt") + \
+                       (f" · {len(found)} Räume gelesen" if found else " · keine Raumbeschriftung gefunden – „Räume mit KI lesen“ probieren" if meta["kind"] == "Grundriss" else " · keine Räume (Ansicht/Schnitt)")
+        c.execute("UPDATE bk_files SET meta=? WHERE id=?", (json.dumps(meta), fid))
+        r = _row(c, i)
+        d = clean_data(_j(r["data"], {}), c)
+        d["rooms"] = [x for x in d["rooms"] if x["name"] or x["nr"] or x["area"]]
+        have = {(x["floor"], x["nr"], x["name"], round(x["area"], 2)) for x in d["rooms"]}
+        added = 0
+        for k, x in enumerate(found):
+            fl = (x.get("floor") or re.sub(r"\.pdf$", "", f["name"], flags=re.I))[:40]
+            key = (fl, x["nr"], x["name"], round(x["area"], 2))
+            if key in have:
+                continue
+            have.add(key)
+            d["rooms"].append({"id": f"f{fid}-r{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"]),
+                               "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": x["pos"]})
+            added += 1
+        c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
+        out = _out(c, _row(c, i))
+    return jsonify(added=added, found=len(found), note=meta["note"], bk=out)
+
+
+PLAN_SYS = """Du liest Bauzeichnungen (Grundrisse) aus. Gib ausschließlich die Räume wieder, deren Bezeichnung UND Fläche im Plan
+lesbar beschriftet sind – nichts schätzen, nichts erfinden. Fläche in m² wie im Plan (Dezimalpunkt). Geschoss aus der Überschrift
+der jeweiligen Zeichnung (z. B. Kellergeschoss, Erdgeschoss). Antworte nur mit JSON:
+{"raeume":[{"geschoss":"Erdgeschoss","nr":"","name":"Küche","flaeche":12.46}],"hinweis":"…"}"""
+
+
+@app.post("/api/bk/<int:i>/files/<int:fid>/ki-raeume")
+def file_ki_rooms(i, fid):
+    """Räume mit der gewählten KI aus dem Planbild lesen (für Pläne ohne lesbaren Text, z. B. Scans)."""
+    ki = ai.choice_of(g.user)
+    if ki not in ai.VISION:
+        return jsonify(error="Zum Lesen von Plänen oben in der Kopfleiste Claude, Gemini oder ChatGPT wählen (das Ollama-Standardmodell kann keine Bilder lesen)."), 400
+    with db.tx() as c:
+        f = c.execute("SELECT name, data FROM bk_files WHERE id=? AND bk_id=?", (fid, i)).fetchone()
+        if not f:
+            return jsonify(error="Nicht gefunden"), 404
+        try:
+            png = preview_png(bytes(f["data"]), width=2200)
+            txt = ai.ask_image(ki, PLAN_SYS, "Lies alle beschrifteten Räume aus diesem Plan.", png, 3000, c)
+        except ai.AIError as e:
+            return jsonify(error=str(e)), 502
+        m = re.search(r"\{[\s\S]*\}", txt or "")
+        try:
+            o = json.loads(m.group(0)) if m else {}
+        except ValueError:
+            o = {}
+        found = []
+        for x in (o.get("raeume") or [])[:300]:
+            if not isinstance(x, dict):
+                continue
+            a = _num(x.get("flaeche"), -1)
+            nm = _s(x.get("name"), 120)
+            if nm and 0.3 <= a <= 5000:
+                found.append({"nr": _s(x.get("nr"), 20), "name": nm, "area": round(a, 2), "floor": _s(x.get("geschoss"), 40), "pos": None})
+        r = _row(c, i)
+        d = clean_data(_j(r["data"], {}), c)
+        have = {(x["floor"], x["nr"], x["name"], round(x["area"], 2)) for x in d["rooms"]}
+        added = 0
+        for k, x in enumerate(found):
+            fl = x["floor"] or re.sub(r"\.pdf$", "", f["name"], flags=re.I)[:40]
+            key = (fl, x["nr"], x["name"], x["area"])
+            if key in have:
+                continue
+            have.add(key)
+            d["rooms"].append({"id": f"k{fid}-{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"]),
+                               "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": None})
+            added += 1
+        c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
+        out = _out(c, _row(c, i))
+    C.audit(g.user["name"], "baukosten", "Räume mit KI aus dem Plan gelesen", f"{f['name']} · {added} Räume · {ki}")
+    return jsonify(added=added, found=len(found), hinweis=_s(o.get("hinweis"), 300), bk=out)
 
 
 @app.get("/api/bk/<int:i>/files/<int:fid>")
@@ -617,7 +802,7 @@ def genauigkeit(c, r, d, cal, kinds):
     if est:
         v = min(8, 2 * len(est)); lo += v / 2; hi += v
         F.append({"text": f"{len(est)} Positionen nur geschätzt", "plus": v, "tipp": "Durch Angebote oder eigene Mengen ersetzen."})
-    floors = {x["nr"].split(".")[0] for x in d["rooms"] if x["nr"]}
+    floors = _floors(d["rooms"])
     if len(floors) == 1 and "Ansicht" in kinds:
         hi += 15
         F.append({"text": "Nur ein Geschoss im Raumbuch, Ansichten zeigen evtl. mehr", "plus": 15, "tipp": "Grundrisse aller Geschosse hochladen.", "oben": True})
@@ -733,10 +918,9 @@ def rules(c, r, d, cal, files):
     for it in d["items"]:
         if it["amount"] is None:
             add("mittel" if it["kg"] == "394" else "info", f"KG {it['kg']} {it['name']} offen", "Noch kein Betrag eingetragen – die Summe ist dafür zu niedrig.")
-    floors = {x["nr"].split(".")[0] for x in d["rooms"] if x["nr"]}
+    floors = _floors(d["rooms"])
     if len(floors) == 1 and d["rooms"]:
-        f = next(iter(floors))
-        add("mittel", "Nur ein Geschoss im Raumbuch", f"Alle Raumnummern beginnen mit {f}. – fehlen Grundrisse weiterer Geschosse (OG, KG)?")
+        add("mittel", "Nur ein Geschoss im Raumbuch", f"Alle Räume gehören zu „{next(iter(floors))}“ – fehlen Grundrisse weiterer Geschosse (OG, KG)?")
     kinds = {(_j(f["meta"], {}) or {}).get("kind") for f in files}
     if "Ansicht" in kinds:
         add("info", "Fassade aus Ansichten noch nicht bewertet", "Die Ansichten sind hochgeladen. Fassaden-, Fenster- und Dachflächen bitte als eigene Positionen ergänzen; Höhen stehen in Ansichten meist nicht als Zahl.")
@@ -793,6 +977,19 @@ def check(i):
 
 
 # ---------------------------------------------------------------- PDF für den Bauherrn
+def _floors(rooms):
+    """Geschosse im Raumbuch: aus der Planüberschrift (floor) bzw. dem Vorsatz der Raumnummer („0.12“ → 0)."""
+    out = set()
+    for x in rooms:
+        if x["floor"] and re.search(r"geschoss|boden|souterrain", x["floor"], re.I):
+            out.add(x["floor"])
+        elif x["nr"] and "." in x["nr"]:
+            out.add("Geschoss " + x["nr"].split(".")[0])
+        elif x["floor"]:
+            out.add(x["floor"])
+    return out
+
+
 def kg_rows(d, cal, depth):
     """Kosten nach DIN 276 bis zur gewählten Gliederungstiefe (1 = 100er, 2 = 10er, 3 = Einzelpositionen).
     Ergebnis: Liste von (Ebene, KG, Bezeichnung, Betrag oder None = offen)."""

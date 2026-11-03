@@ -730,7 +730,14 @@
 
       function cformHtml(cfg, items) {
         const f = cform, sug = core.dinSuggest(f.n);
-        const opts = (v, none) => `<option value="">${none}</option>` + items.filter((i) => i.id !== f.edit).map((i) => `<option value="${i.id}"${v === i.id ? ' selected' : ''}>${esc(phaseName(i.ph).split(' ')[0])} · ${esc(core.name(i.id, cfg))}</option>`).join('');
+        // Auswahl „Folgt auf“ / „Muss fertig sein vor“: nur verwendete Leistungen, ganz unten „alle anzeigen“
+        const { sel: used } = state();
+        const opts = (v, none, k) => {
+          const all = !!f['all_' + k] || !used.size;
+          const list = items.filter((i) => i.id !== f.edit && (all || used.has(i.id) || i.id === v));
+          return `<option value="">${none}</option>` + list.map((i) => `<option value="${i.id}"${v === i.id ? ' selected' : ''}>${esc(phaseName(i.ph).split(' ')[0])} · ${esc(core.name(i.id, cfg))}</option>`).join('')
+            + (used.size ? `<option disabled>──────────</option><option value="__toggle">${all ? '▲ nur verwendete Leistungen anzeigen' : '▼ alle Leistungen anzeigen …'}</option>` : '');
+        };
         return `<div class="as-cf" data-cfbox="1"><div class="as-cfh">${f.edit ? 'Eigene Leistung bearbeiten' : 'Eigene Leistung in „' + esc(phaseName(f.ph)) + '“'}</div>
           <input data-cf="n" value="${esc(f.n)}" placeholder="Bezeichnung, z. B. Brandschutzklappen montieren">
           ${core.aiLabel() && core.sugBar() ? core.sugBar().html(f.sg || (f.sg = core.sugBar().state(null)), 'as-sg') : ''}
@@ -741,8 +748,8 @@
             <label>Abschnitt</label><select data-cf="ph">${core.catalog().phases.map((p) => `<option value="${p.k}"${f.ph === p.k ? ' selected' : ''}>${esc(p.n)}</option>`).join('')}</select>
             <label>Bezug</label><select data-cf="sc"><option value="we"${f.sc === 'we' ? ' selected' : ''}>je Einheit / Wohnung</option><option value="bau"${f.sc === 'bau' ? ' selected' : ''}>einmal für das Gebäude</option></select>
             <label>Dauer</label><div class="as-in"><input data-cf="d" type="number" min="1" value="${esc(f.d)}"><span>AT</span></div>
-            <label>Folgt auf</label><select data-cf="a">${opts(f.a, 'automatisch – nach der letzten gewählten Leistung im Abschnitt')}</select>
-            <label>Muss fertig sein vor</label><select data-cf="b">${opts(f.b, '– keine Vorgabe –')}</select>
+            <label>Folgt auf</label><select data-cf="a">${opts(f.a, 'automatisch – nach der letzten gewählten Leistung im Abschnitt', 'a')}</select>
+            <label>Muss fertig sein vor</label><select data-cf="b">${opts(f.b, '– keine Vorgabe –', 'b')}</select>
           </div>${f.edit ? '' : `<label class="cb" style="margin-top:6px"><input type="checkbox" data-cf="tolib"${f.tolib ? ' checked' : ''}> auch im Leistungskatalog speichern – für alle Projekte</label>`}
           <div class="as-btns"><button class="btn primary sm" data-a="cf-ok">${f.edit ? 'Übernehmen' : 'Hinzufügen'}</button><button class="btn sm" data-a="cf-no">Abbrechen</button></div>
           <datalist id="asGwList">${core.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist></div>`;
@@ -1132,6 +1139,11 @@
           render(); return;
         }
         if (t.dataset.mvsel && moved) { setMovedChoice(t.value === 'cat' || t.value === 'start' ? t.value : t.value); render(); return; }
+        if (t.dataset.cf && cform && t.value === '__toggle') {
+          const k = t.dataset.cf; cform['all_' + k] = !cform['all_' + k]; render();
+          const el = root.querySelector(`[data-cf="${k}"]`); if (el) { el.focus(); if (el.showPicker) try { el.showPicker(); } catch { /* nicht überall erlaubt */ } }
+          return;
+        }
         if (t.dataset.cf && cform) { cform[t.dataset.cf] = t.type === 'checkbox' ? t.checked : t.value; if (t.dataset.cf === 'ph') { render(); return; } if (t.dataset.cf === 'sc' || t.dataset.cf === 'a' || t.dataset.cf === 'b') return; return; }
         if (t.dataset.pf && pform) { if (t.dataset.pf === 'scope') { pform.scope = t.value; render(); } return; }
         if (t.dataset.pfph && pform) { if (t.checked) pform.phases.add(t.dataset.pfph); else pform.phases.delete(t.dataset.pfph); return; }
@@ -1174,7 +1186,7 @@
         const t = e.target;
         if (t.dataset.a === 'pname') projName = t.value;
         if (t.dataset.pf === 'name' && pform) pform.name = t.value;
-        if (t.dataset.cf && cform && t.type !== 'checkbox') {
+        if (t.dataset.cf && cform && t.type !== 'checkbox' && t.value !== '__toggle') {
           cform[t.dataset.cf] = t.value;
           if (t.dataset.cf === 'n') { const box = root.querySelector('#asSug'); if (box) box.innerHTML = sugHtml(core.dinSuggest(t.value)); }
         }

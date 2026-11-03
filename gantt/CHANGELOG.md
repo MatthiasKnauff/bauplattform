@@ -1,5 +1,8 @@
 # Änderungsprotokoll – Gantt-App (Bauzeitenplan)
 
+## 3.3.1 – 03.11.2026
+- Planungsassistent, eigene Leistung: „Folgt auf“ und „Muss fertig sein vor“ zeigen nur noch die im Plan verwendeten Leistungen. Ganz unten in der Liste „▼ alle Leistungen anzeigen …“ blendet den ganzen Katalog ein (und wieder aus).
+
 ## 3.3.0 – 03.11.2026
 - **Leistungskatalog → Projekt: Abschnitt, Gewerk und Firma direkt änderbar.** Die Felder sind jetzt als Eingabefelder erkennbar.
   - **Abschnitt:** Leistungen aus dem Planungsassistenten werden wie beim Verschieben im Assistenten in den gewählten Abschnitt gesetzt (in allen Wohnungen, Daten bleiben). Andere Leistungen wandern unter den gleichnamigen Abschnitt im selben Gebäude-/Wohnungsblock.

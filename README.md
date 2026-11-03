@@ -244,6 +244,12 @@ Kostenermittlung nach DIN 276, gekoppelt an Bautagebuch-Projekt und Bauzeitenpla
   Planbild (Claude, Gemini oder ChatGPT in der Kopfleiste wählen) – die Vorschläge müssen bestätigt werden. Sonst Räume von Hand eintragen.
 - **Kosten:** Fläche × Kennwert je Raumtyp, Aufteilung auf KG 300/400, eigene Positionen (KG 200, 394 Rückbau, 500 …),
   Nebenkosten KG 700. Die mitgelieferten Kennwerte sind **Beispielwerte**; eigene Werte lassen sich als Vorgabe für neue Kostenermittlungen speichern.
+- **Bauteile & Material** (Kostenberechnung): Bauteile mit Kostengruppe (3. Ebene), Material/Ausführung (Auswahl mit
+  Beispielpreisen oder eigenes), Ermittlung als Rechnung („12,5 × 2,75 + 3“ ergibt die Menge), Menge, Einheit, Einheitspreis.
+  „Vorschläge aus Raumbuch & Plänen“ legt die Liste aus Flächen, Geschossen und Höhen an (Bodenbeläge je Raumtyp, Wände,
+  Decken, Dach, Fenster, Technik); ✨ KI prüft und ergänzt. Hat eine Gruppe der 2. Ebene Bauteile, ersetzen sie dort den
+  Kennwert-Anteil; die Genauigkeit steigt entsprechend.
+- **Höhen:** aus Schnitten mit Höhenkoten (OKFF) je Geschoss, sonst gilt die erste eingetragene Raumhöhe für alle.
 - **⚙ Raumtypen** (Einstellung der App): Raumtypen des Büros mit Stichwörtern und Kennwerten – umbenennen, ergänzen (z. B. Tierbereich,
   Labor, Klassenraum), entfernen, Reihenfolge = Vorrang beim Zuordnen. Mitgeliefert sind allgemeine Typen (Wohnen, Küche, Bad/WC, Büro,
   Aufenthalt, Flur, Abstell/Technik, Garage, Sonstige). Raumtypen nur eines Projekts bleiben dort erhalten.

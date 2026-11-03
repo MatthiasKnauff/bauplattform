@@ -60,6 +60,9 @@
 .card.h.go{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .15s,transform .15s}
 .card.h.go:hover,.card.h.go:focus-visible{border-color:var(--y);transform:translateX(2px)}
 .card.h.go .src i{font-style:normal;margin-left:.5rem;color:var(--y)}
+.bt td{vertical-align:top}
+.bt select{max-width:260px}
+.bt tr.bt-g td{background:var(--hov);padding-top:.55rem;padding-bottom:.45rem}
 .btn.ki{border-color:color-mix(in srgb,var(--y) 60%,var(--line))}
 #histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #histBar[hidden]{display:none}
@@ -173,7 +176,7 @@ body.as-open .wrap{padding-bottom:45vh}
 <input type="file" id="pdfIn" accept="application/pdf,.pdf" multiple class="hidden">
 <script src="static/bp.js"></script>
 <script>
-const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Mengen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
+const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Mengen'], ['bauteile', 'Bauteile & Material'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
 // Was die Stufe bedeutet und bewirkt (Genauigkeit, Gliederungstiefe im PDF, zusätzliche Prüfregeln)
 const STUFE_INFO = {
   rahmen: { lph: 'LPH 1 · Grundlagen', ebene: 1, genau: 35, txt: 'Gesamtkosten aus Fläche × Kennwert, Gliederung nach der 1. Ebene.' },
@@ -191,12 +194,30 @@ const pnum = (s) => { const v = parseFloat(String(s).replace(/\./g, '').replace(
 const ym = (s) => { const [y, m] = s.split('-'); return ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][+m - 1] + ' ' + y.slice(2); };
 
 /* ---------- Rechnen (wie auf dem Server, damit Eingaben sofort wirken) ---------- */
+const btBetrag = (b) => Math.round((+b.menge || 0) * (+b.ep || 0) * 100) / 100;
 function calc(d) {
   const by = {}; d.rooms.forEach((r) => { const t = by[r.typ] ||= { area: 0, n: 0 }; t.area += +r.area || 0; t.n++; });
   let bau = 0; const types = Object.entries(d.types).map(([k, t]) => { const a = by[k] || { area: 0, n: 0 }; const s = a.area * t.kw; bau += s; return { typ: k, label: t.label, n: a.n, area: a.area, kw: t.kw, sum: s }; });
+  const bauKw = bau; let k300 = bau * d.kg['300'] / 100, k400 = bau * d.kg['400'] / 100; const kg2 = {};
+  const bts = (d.bauteile || []).filter((b) => /^[34]\d\d$/.test(b.kg || ''));
+  if (bts.length) {   // Bauteile ersetzen in ihrer Gruppe der 2. Ebene den Kennwert-Anteil (wie auf dem Server)
+    const sums = {}; bts.forEach((b) => { const k = b.kg.slice(0, 2) + '0', x = sums[k] ||= { wert: 0, n: 0 }; x.wert += btBetrag(b); x.n++; });
+    const tot = { 3: 0, 4: 0 }, std = (B && B.kg2_std) || {};
+    for (const [main, base] of [['3', k300], ['4', k400]]) {
+      let src = Object.fromEntries(Object.entries(Object.keys(d.kg2 || {}).length ? d.kg2 : std).filter(([k]) => k[0] === main));
+      if (!Object.keys(src).length) src = Object.fromEntries(Object.entries(std).filter(([k]) => k[0] === main));
+      const ssum = Object.values(src).reduce((a, x) => a + +x, 0) || 1;
+      for (const k of [...new Set([...Object.keys(src), ...Object.keys(sums).filter((x) => x[0] === main)])].sort()) {
+        const kw = base * (src[k] || 0) / ssum;
+        kg2[k] = sums[k] ? { wert: sums[k].wert, quelle: 'bauteile', n: sums[k].n, kennwert: kw } : { wert: kw, quelle: 'kennwerte', n: 0, kennwert: kw };
+        tot[main] += kg2[k].wert;
+      }
+    }
+    k300 = tot[3]; k400 = tot[4]; bau = k300 + k400;
+  }
   const extra = d.items.reduce((s, i) => s + (i.kg !== '700' && i.amount != null ? +i.amount : 0), 0);
   const nk = (bau + extra) * d.nk / 100, area = d.rooms.reduce((s, r) => s + (+r.area || 0), 0);
-  return { types, bauwerk: bau, kg300: bau * d.kg['300'] / 100, kg400: bau * d.kg['400'] / 100, extra, nk, total: bau + extra + nk, area, kw: area ? bau / area : 0 };
+  return { types, bauwerk: bau, bauwerk_kw: bauKw, kg2, kg300: k300, kg400: k400, extra, nk, total: bau + extra + nk, area, kw: area ? bau / area : 0 };
 }
 
 /* ---------- Laden / Speichern ---------- */
@@ -262,7 +283,7 @@ function render() {
   $('#stufen').innerHTML = STUFEN.map(([k, l]) => `<button type="button" data-stufe="${k}" class="${B && B.stufe === k ? 'on' : ''}" aria-pressed="${B && B.stufe === k}"${B ? '' : ' disabled'}>${l}</button>`).join('');
   const v = $('#view'), sig = sigOf(document.activeElement);
   if (!B) { v.innerHTML = `<div class="card empty"><p>Noch keine Kostenermittlung.</p><button class="btn pri" data-act="new">Erste Kostenermittlung anlegen</button></div>`; return; }
-  v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
+  v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, bauteile: vBauteile, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
   if (sig) { const n = document.querySelector(sig); if (n) n.focus(); }
   histTrack();
   zmInit();
@@ -296,7 +317,7 @@ function accHtml() {
     (−${pct(a.lo_pct)} / +${pct(a.hi_pct)}) – <b style="color:var(--ink)">${esc(a.urteil)}</b>. Nach oben größer, weil Offenes die Kosten eher erhöht.</p>
     <div class="band" aria-hidden="true"><i style="left:0;right:0"></i><b style="left:calc(${x(t)}% - 1px)"></b></div>
     <div class="legend" style="justify-content:space-between;margin:0 0 .6rem"><span>${eur(lo)}</span><span>Summe ${eur(t)}</span><span>${eur(hi)}</span></div>
-    <div class="acc">${a.faktoren.map((f) => `<div class="fx"><span>${esc(f.text)}${f.tipp ? `<small>${esc(f.tipp)}</small>` : ''}</span><span class="num" style="white-space:nowrap">${f.oben ? '+' : '±'} ${pct(f.plus)}</span></div>`).join('')}</div>`;
+    <div class="acc">${a.faktoren.map((f) => `<div class="fx"><span>${esc(f.text)}${f.tipp ? `<small>${esc(f.tipp)}</small>` : ''}</span><span class="num" style="white-space:nowrap${f.plus < 0 ? ';color:var(--ok)' : ''}">${f.plus < 0 ? '− ' + pct(-f.plus) : (f.oben ? '+' : '±') + ' ' + pct(f.plus)}</span></div>`).join('')}</div>`;
 }
 function flowCols(mini) {
   if (!B.gantt_id) return '<p class="hint">Unter „Mittelabfluss“ einen Bauzeitenplan wählen.</p>';
@@ -391,7 +412,8 @@ async function runEstimate(ki) {
 }
 function vKosten() {
   const c = B.calc, d = B.data;
-  const kgRows = [['300', 'Bauwerk – Baukonstruktionen', `${pct(d.kg['300'])} der Raumtyp-Summe`, c.kg300], ['400', 'Bauwerk – Technische Anlagen', `${pct(d.kg['400'])} der Raumtyp-Summe`, c.kg400]]
+  const viaBt = c.kg2 && Object.keys(c.kg2).length;
+  const kgRows = [['300', 'Bauwerk – Baukonstruktionen', viaBt ? 'aus Bauteilen und Kennwert-Anteilen' : `${pct(d.kg['300'])} der Raumtyp-Summe`, c.kg300], ['400', 'Bauwerk – Technische Anlagen', viaBt ? 'aus Bauteilen und Kennwert-Anteilen' : `${pct(d.kg['400'])} der Raumtyp-Summe`, c.kg400]]
     .concat(d.items.map((i) => [i.kg, i.name, 'eigene Position', i.amount])).concat([['700', 'Baunebenkosten', `${pct(d.nk)} auf alle Kosten`, c.nk]]).sort((a, b) => a[0].localeCompare(b[0]));
   return `${estHtml()}<section class="card" style="margin-bottom:1.2rem"><h2>Raumtypen und Kennwerte</h2><p class="sub">Kennwerte in € je m² Raumfläche (KG 300 + 400, netto). Die vorgegebenen Werte sind Beispiele – eigene Werte aus abgerechneten Projekten eintragen. Raumtypen ergänzen oder umbenennen: <a href="#" data-act="raumtypen">⚙ Raumtypen</a>.</p>
     <div class="tbl"><table><thead><tr><th>Raumtyp</th><th class="r">Räume</th><th class="r">Fläche m²</th><th class="r">€ / m²</th><th class="r">Summe</th></tr></thead><tbody>${c.types.map((t) => `
@@ -439,6 +461,51 @@ function vPruefung() {
   return `<div class="row" style="margin-bottom:1rem"><div style="flex:1"><h2 style="margin:0">Plausibilitätsprüfung</h2><p class="hint" style="margin:.2rem 0 0">Feste Regeln${ki.key && ki.key !== 'intern' ? ' und ' + esc(ki.label) : ''} · KI oben in der Kopfleiste wählen</p></div><button class="btn pri" data-act="check">${CHECK ? 'Erneut prüfen' : 'Jetzt prüfen'}</button><button class="btn ki" data-act="checkKi" title="Zusätzlich mit KI prüfen (oben gewählte KI, sonst die erste eingerichtete)">✨ mit KI</button></div>
     ${CHECK && CHECK.note ? `<p class="hint" style="color:#e07b3a">${esc(CHECK.note)}</p>` : ''}
     <div class="list">${CHECK ? CHECK.hinweise.map((h, k) => `<button type="button" class="card h go" data-hint="${k}" title="Zur Stelle springen"><span class="d ${h.lvl}" aria-label="${h.lvl}"></span><div><b>${esc(h.title)}</b><p>${esc(h.text)}</p></div><span class="src">${esc(h.src)}<i aria-hidden="true">→</i></span></button>`).join('') || '<div class="card empty">Keine Auffälligkeiten.</div>' : '<div class="card empty">Noch nicht geprüft.</div>'}</div>`;
+}
+/* ---------- Bauteile & Material: Kostenberechnung mit Mengen, Materialien und Einheitspreisen ---------- */
+let btBusy = false;
+const KG2N = { 310: 'Baugrube / Erdbau', 320: 'Gründung, Unterbau', 330: 'Außenwände', 340: 'Innenwände', 350: 'Decken / Böden', 360: 'Dächer', 370: 'Infrastrukturanlagen', 380: 'Baukonstruktive Einbauten', 390: 'Sonstiges KG 300',
+  410: 'Abwasser, Wasser, Gas', 420: 'Wärmeversorgung', 430: 'Raumlufttechnik', 440: 'Elektrische Anlagen', 450: 'Kommunikation', 460: 'Förderanlagen', 470: 'Nutzungsspezifische Anlagen', 480: 'Gebäudeautomation', 490: 'Sonstiges KG 400' };
+const num1 = (v) => (v == null || v === '' ? '' : String(Math.round(+v * 1000) / 1000).replace('.', ','));
+function evalFormel(t) {   // „12,5 * 2,75 + 3“ → Zahl; sonst null (Text ist dann nur eine Beschreibung)
+  const x = String(t || '').replace(/,/g, '.').replace(/[x×]/gi, '*').replace(/\s/g, '');
+  if (!x || !/^[\d.+\-*/()]+$/.test(x) || !/\d/.test(x)) return null;
+  try { const v = Function('"use strict";return (' + x + ')')(); return isFinite(v) && v >= 0 ? Math.round(v * 1000) / 1000 : null; } catch { return null; }
+}
+function vBauteile() {
+  const d = B.data, c = B.calc, bt = d.bauteile || [], M = B.mat || {};
+  const matSel = (b, i) => { const m = M[b.kg]; const opts = m ? m.opts : []; const own = b.mat && !opts.some((o) => o.n === b.mat);
+    return `<select data-bf="mat" data-bi="${i}" aria-label="Material">${opts.map((o) => `<option value="${esc(o.n)}"${o.n === b.mat ? ' selected' : ''}>${esc(o.n)} · ${eur(o.ep)}</option>`).join('')}${own || !opts.length ? `<option value="${esc(b.mat)}" selected>${esc(b.mat || '– eigenes –')}</option>` : ''}<option value="__eigen">eigenes Material …</option></select>`; };
+  const groups = {}; bt.forEach((b, i) => { const k = (b.kg || '').slice(0, 2) + '0'; (groups[k] ||= []).push([b, i]); });
+  const row = ([b, i]) => `<tr data-bi="${i}"><td><input class="n" style="width:52px;text-align:left" data-bf="kg" data-bi="${i}" value="${esc(b.kg)}" aria-label="KG"></td>
+      <td><input data-bf="name" data-bi="${i}" value="${esc(b.name)}" style="min-width:170px" aria-label="Bauteil">${b.src ? `<div class="hint" style="font-size:.7rem">${esc(b.src)}${b.notiz ? ' · ' + esc(b.notiz) : ''}</div>` : ''}</td>
+      <td>${matSel(b, i)}</td>
+      <td><input data-bf="formel" data-bi="${i}" value="${esc(b.formel)}" placeholder="z. B. 12,5 × 2,75" style="min-width:150px" title="Rechnung (z. B. 12,5 × 2,75 + 3) – ergibt die Menge; oder eine Beschreibung" aria-label="Ermittlung"></td>
+      <td class="r"><input class="n" style="width:80px" data-bf="menge" data-bi="${i}" value="${num1(b.menge)}" inputmode="decimal" aria-label="Menge"></td>
+      <td><input style="width:48px" data-bf="einheit" data-bi="${i}" value="${esc(b.einheit)}" aria-label="Einheit"></td>
+      <td class="r"><input class="n" style="width:84px" data-bf="ep" data-bi="${i}" value="${num1(b.ep)}" inputmode="decimal" aria-label="Einheitspreis"></td>
+      <td class="r num">${eur(btBetrag(b))}</td>
+      <td style="white-space:nowrap"><button class="btn sm" data-btdup="${i}" title="Zeile kopieren" aria-label="kopieren">⧉</button><button class="btn sm" data-btdel="${i}" title="Zeile löschen" aria-label="löschen">✕</button></td></tr>`;
+  const kgOpts = Object.entries(M).map(([k, m]) => `<option value="${k}">${k} ${esc(m.name)}</option>`).join('');
+  const sumBt = bt.reduce((a, b) => a + btBetrag(b), 0);
+  return `<section class="card" style="margin-bottom:1rem"><div class="row" style="align-items:flex-start;gap:1rem;flex-wrap:wrap"><div style="flex:1 1 380px"><h2 style="margin:0">Bauteile & Material</h2>
+      <p class="sub" style="margin:.3rem 0 0">Für die Kostenberechnung: Bauteile mit Menge, Material und Einheitspreis. Hat eine Kostengruppe der 2. Ebene (z. B. 350 Decken) Bauteile, ersetzen sie dort den Anteil aus den Kennwerten – die übrigen Gruppen bleiben beim Kennwert.</p></div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap"><button class="btn sm pri" data-act="btVor"${btBusy ? ' disabled' : ''}>${bt.length ? 'Vorschläge neu aus dem Raumbuch' : 'Vorschläge aus Raumbuch & Plänen'}</button><button class="btn sm ki" data-act="btKi"${btBusy ? ' disabled' : ''} title="Mengen, Materialien und Preise von der KI prüfen und ergänzen lassen">${btBusy ? '✨ rechnet …' : '✨ Mit KI prüfen & ergänzen'}</button></div></div>
+    <div class="kpis" style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:.8rem"><span><span class="hint">Bauteile</span><br><b>${eur(sumBt)}</b></span><span><span class="hint">Bauwerk KG 300 + 400</span><br><b>${eur(c.bauwerk)}</b></span><span><span class="hint">nur aus Kennwerten wäre</span><br><b>${eur(c.bauwerk_kw)}</b></span>${c.area ? `<span><span class="hint">je m² Raumfläche</span><br><b>${eur(c.bauwerk / c.area)}</b></span>` : ''}</div></section>
+    ${bt.length ? `<div class="tbl"><table class="bt"><thead><tr><th>KG</th><th>Bauteil</th><th>Material / Ausführung</th><th>Ermittlung</th><th class="r">Menge</th><th>Einh.</th><th class="r">€ / Einh.</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
+      ${Object.keys(groups).sort().map((k) => { const g = c.kg2[k] || {}; return `<tr class="bt-g"><td>${k}</td><td colspan="6"><b>${esc(KG2N[k] || 'KG ' + k)}</b>${g.kennwert ? ` <span class="hint">· Kennwert-Anteil wäre ${eur(g.kennwert)}</span>` : ''}</td><td class="r num"><b>${eur(groups[k].reduce((a, [b]) => a + btBetrag(b), 0))}</b></td><td></td></tr>` + groups[k].map(row).join(''); }).join('')}
+      </tbody></table></div>` : '<div class="card empty"><p>Noch keine Bauteile. „Vorschläge aus Raumbuch & Plänen“ legt eine Liste mit Mengen aus Flächen, Geschossen und Höhen an – Material und Preis wählst du je Zeile.</p></div>'}
+    <div class="row" style="margin-top:.7rem;gap:.4rem"><select id="btNewKg" aria-label="Kostengruppe für neues Bauteil">${kgOpts}</select><button class="btn sm" data-act="btAdd">+ Bauteil</button>${bt.length ? '<span style="flex:1"></span><button class="btn sm danger" data-act="btClear">Alle Bauteile entfernen</button>' : ''}</div>
+    ${c.kg2 && Object.keys(c.kg2).length ? `<section class="card" style="margin-top:1rem"><h2 style="margin:0 0 .5rem">Kostengruppen der 2. Ebene</h2><div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th>Quelle</th><th class="r">Betrag</th></tr></thead><tbody>
+      ${Object.entries(c.kg2).sort().map(([k, x]) => `<tr><td>${k}</td><td>${esc(KG2N[k] || '')}</td><td>${x.quelle === 'bauteile' ? `${x.n} Bauteile` : '<span class="hint">Kennwert-Anteil</span>'}</td><td class="r num">${eur(x.wert)}</td></tr>`).join('')}</tbody></table></div></section>` : ''}`;
+}
+async function btSuggest(ki) {
+  if (btBusy) return;
+  if ((B.data.bauteile || []).length && !confirm(ki ? 'Die KI prüft die Liste und schlägt eine neue vor. Die bisherige Bauteilliste wird ersetzt (mit ↶ Rückgängig zurückholbar). Weiter?' : 'Die Bauteilliste wird durch neue Vorschläge aus dem Raumbuch ersetzt (mit ↶ Rückgängig zurückholbar). Weiter?')) return;
+  btBusy = true; render();
+  try { clearTimeout(saveT); await saveNow(); const r = await api(`api/bk/${B.id}/bauteile/vorschlag`, 'POST', ki ? { ki: true } : {}); B.data.bauteile = r.rows; toast(r.note); changed(); }
+  catch (e) { toast(e.message, true); }
+  btBusy = false; render();
 }
 async function loadSources() { try { SRC = await api('api/sources'); } catch { SRC = { projects: [], plans: [] }; } if (tab === 'mittel') render(); }
 async function runCheck(ki) {
@@ -737,6 +804,10 @@ document.addEventListener('click', async (e) => {
     else if (act === 'firstRoom') { tab = 'plaene'; history.replaceState(null, '', '#plaene'); B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'openAssist') { AS.open = true; AS.step = null; asSave(); assist(); }
     else if (act === 'hstdClear') { e.preventDefault(); const v = prompt('Standardhöhe für alle Räume ohne eigene Höhe (m):', String(B.data.hoehe_std || '').replace('.', ',')); if (v != null) { const n = pnum(v); B.data.hoehe_std = n >= 1.5 && n <= 20 ? Math.round(n * 100) / 100 : null; changed(); } }
+    else if (act === 'btVor') btSuggest(false);
+    else if (act === 'btKi') btSuggest(true);
+    else if (act === 'btAdd') { const k = $('#btNewKg').value, m = (B.mat || {})[k]; (B.data.bauteile ||= []).push({ id: 'h' + Date.now(), kg: k, name: m ? m.name : '', mat: m && m.opts[0] ? m.opts[0].n : '', formel: '', menge: 0, einheit: m ? m.einheit : 'm²', ep: m && m.opts[0] ? m.opts[0].ep : 0, src: '', notiz: '', geschoss: '' }); changed(); setTimeout(() => { const ins = document.querySelectorAll('[data-bf="formel"]'); const x = [...ins].find((e) => +e.dataset.bi === B.data.bauteile.length - 1); if (x) x.focus(); }, 50); }
+    else if (act === 'btClear') { if (confirm('Alle Bauteile entfernen? Die Kosten kommen dann wieder ganz aus den Kennwerten (mit ↶ Rückgängig zurückholbar).')) { B.data.bauteile = []; changed(); } }
     else if (act === 'raumtypen') { e.preventDefault(); typesDialog(); }
     else if (act === 'saveKw') { try { const o = {}; Object.entries(B.data.types).forEach(([k, v]) => { o[k] = v.kw; }); await api('api/kennwerte', 'PUT', o); toast('Eigene Kennwerte gespeichert – gelten für neue Kostenermittlungen.'); } catch (er) { toast(er.message, true); } }
     return;
@@ -767,6 +838,8 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const dr = e.target.closest('[data-delroom]'); if (dr) { B.data.rooms.splice(+dr.dataset.delroom, 1); changed(); return; }
+  const bdl = e.target.closest('[data-btdel]'); if (bdl) { B.data.bauteile.splice(+bdl.dataset.btdel, 1); changed(); return; }
+  const bdu = e.target.closest('[data-btdup]'); if (bdu) { const i = +bdu.dataset.btdup; B.data.bauteile.splice(i + 1, 0, { ...B.data.bauteile[i], id: 'h' + Date.now(), src: '' }); changed(); return; }
   const di = e.target.closest('[data-delit]'); if (di) { B.data.items.splice(+di.dataset.delit, 1); changed(); return; }
   const df = e.target.closest('[data-delfile]');
   if (df) {
@@ -784,6 +857,17 @@ document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'pdfIn') { if (el.files.length) upload([...el.files]); el.value = ''; return; }
   const row = el.closest('[data-row]');
+  if (el.dataset.bf) {   // Bauteile & Material
+    const b = B.data.bauteile[+el.dataset.bi], f = el.dataset.bf; if (!b) return;
+    if (f === 'mat') {
+      if (el.value === '__eigen') { const v = prompt('Material / Ausführung:', b.mat || ''); if (v != null && v.trim()) b.mat = v.trim(); changed(); return; }
+      const o = ((B.mat || {})[b.kg] || { opts: [] }).opts.find((x) => x.n === el.value); b.mat = el.value; if (o) b.ep = o.ep; changed(); return;
+    }
+    if (f === 'formel') { b.formel = el.value; const v = evalFormel(el.value); if (v != null) b.menge = v; changed(); return; }
+    if (f === 'menge' || f === 'ep') { b[f] = pnum(el.value); changed(); return; }
+    if (f === 'kg') { b.kg = el.value.replace(/\D/g, '').slice(0, 3); const m = (B.mat || {})[b.kg]; if (m && !b.name) b.name = m.name; changed(); return; }
+    b[f] = el.value; changed(); return;
+  }
   if (el.dataset.h != null) {
     const r = B.data.rooms[+el.dataset.h], v = el.value.trim() === '' ? null : Math.round(pnum(el.value) * 100) / 100;
     if (v != null && (v < 1.5 || v > 20)) { toast('Bitte eine Höhe in Metern eintragen, z. B. 2,75.', true); el.value = r.h || ''; return; }

@@ -13,8 +13,8 @@
 .bph-sl{color:var(--bph-mute)}
 .bph-app{font-weight:600;color:var(--bph-acc)}
 .bph-proj{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;line-height:1.25}
-.bph-proj small{font-size:.76rem;color:var(--bph-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bph-proj span{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bph-proj small{order:2;font-size:.76rem;color:var(--bph-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bph-proj span{order:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bph-fill{display:none;flex:1 1 auto}
 .bph-ki{display:flex;align-items:center;gap:.35rem;flex:none}
 .bph-lbl{font-size:.78rem;color:var(--bph-mute);margin-right:.15rem}

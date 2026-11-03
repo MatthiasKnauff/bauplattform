@@ -166,12 +166,31 @@ def clean_data(d, c):
     return {"rooms": rooms, "types": types, "kg": {"300": k300, "400": round(100 - k300, 2)},
             "nk": _num(d.get("nk"), 20, 0, 60), "rate": _num(d.get("rate"), 3, 0, 20), "items": items, "shares": shares,
             "kg2": kg2, "notes": _s(d.get("notes"), 8000),
+            "bauteile": _clean_bt(d.get("bauteile")),
             "hoehe_std": round(_num(d.get("hoehe_std"), 0, 0, 20), 2) or None,   # erste eingetragene Raumhöhe gilt für alle ohne eigene
             "hoehen": {str(k)[:8]: round(_num(v, 0, 0, 20), 2) for k, v in list((d.get("hoehen") if isinstance(d.get("hoehen"), dict) else {}).items())[:20] if _num(v, 0, 0, 20)}}
 
 
+def _bt_betrag(b):
+    return round((b.get("menge") or 0) * (b.get("ep") or 0), 2)
+
+
+def _clean_bt(v):
+    out = []
+    for b in (v if isinstance(v, list) else [])[:1500]:
+        if not isinstance(b, dict):
+            continue
+        out.append({"id": _s(b.get("id"), 40) or f"b{len(out) + 1}", "kg": re.sub(r"\D", "", str(b.get("kg") or ""))[:3], "name": _s(b.get("name"), 200),
+                    "mat": _s(b.get("mat"), 200), "formel": _s(b.get("formel"), 200), "menge": round(_num(b.get("menge"), 0, 0, 1e7), 3),
+                    "einheit": _s(b.get("einheit"), 10) or "m²", "ep": round(_num(b.get("ep"), 0, 0, 1e7), 2), "notiz": _s(b.get("notiz"), 500),
+                    "src": _s(b.get("src"), 40), "geschoss": _s(b.get("geschoss"), 40)})
+    return out
+
+
 def calc(d):
-    """Kosten aus Raumbuch und Kennwerten (alle Beträge netto)."""
+    """Kosten aus Raumbuch und Kennwerten (alle Beträge netto).
+    Gibt es Bauteile mit Menge und Einheitspreis (Kostenberechnung), ersetzen sie in ihrer Kostengruppe der 2. Ebene
+    (z. B. 350 Decken) den Anteil aus den Kennwerten; die übrigen Gruppen bleiben beim Kennwert-Anteil."""
     by = {}
     for r in d["rooms"]:
         t = by.setdefault(r["typ"], {"area": 0.0, "n": 0})
@@ -181,10 +200,31 @@ def calc(d):
         a = by.get(k, {"area": 0.0, "n": 0})
         s = a["area"] * t["kw"]; bau += s
         rows.append({"typ": k, "label": t["label"], "n": a["n"], "area": round(a["area"], 2), "kw": t["kw"], "sum": round(s, 2)})
+    bau_kw = bau
+    k300, k400 = bau * d["kg"]["300"] / 100, bau * d["kg"]["400"] / 100
+    kg2 = {}
+    bts = [b for b in d.get("bauteile") or [] if len(b.get("kg") or "") == 3 and b["kg"][0] in "34"]
+    if bts:
+        sums = {}
+        for b in bts:
+            k = b["kg"][:2] + "0"
+            x = sums.setdefault(k, {"wert": 0.0, "n": 0}); x["wert"] += _bt_betrag(b); x["n"] += 1
+        tot = {"3": 0.0, "4": 0.0}
+        for main, base in (("3", k300), ("4", k400)):
+            src = {k: v for k, v in (d["kg2"] or KG2_FAUST).items() if k[0] == main} or {k: v for k, v in KG2_FAUST.items() if k[0] == main}
+            ssum = sum(src.values()) or 1
+            for k in sorted(set(src) | {k for k in sums if k[0] == main}):
+                if k in sums:
+                    kg2[k] = {"wert": round(sums[k]["wert"], 2), "quelle": "bauteile", "n": sums[k]["n"], "kennwert": round(base * src.get(k, 0) / ssum, 2)}
+                else:
+                    kg2[k] = {"wert": round(base * src.get(k, 0) / ssum, 2), "quelle": "kennwerte", "n": 0, "kennwert": round(base * src.get(k, 0) / ssum, 2)}
+                tot[main] += kg2[k]["wert"]
+        k300, k400 = tot["3"], tot["4"]
+        bau = k300 + k400
     extra = sum(i["amount"] or 0 for i in d["items"] if i["kg"] not in ("700",))
     nk = (bau + extra) * d["nk"] / 100
     area = sum(r["area"] for r in d["rooms"])
-    return {"types": rows, "bauwerk": round(bau, 2), "kg300": round(bau * d["kg"]["300"] / 100, 2), "kg400": round(bau * d["kg"]["400"] / 100, 2),
+    return {"types": rows, "bauwerk": round(bau, 2), "bauwerk_kw": round(bau_kw, 2), "kg300": round(k300, 2), "kg400": round(k400, 2), "kg2": kg2,
             "extra": round(extra, 2), "nk": round(nk, 2), "total": round(bau + extra + nk, 2), "area": round(area, 2),
             "kw": round(bau / area, 2) if area else 0}
 
@@ -209,6 +249,8 @@ def _out(c, r, full=True):
         o["files"] = [{"id": f["id"], "name": f["name"], "size": f["size"], "created": f["created"], "meta": _j(f["meta"], {})}
                       for f in c.execute("SELECT id, name, size, created, meta FROM bk_files WHERE bk_id=? ORDER BY id", (r["id"],))]
         o["acc"] = genauigkeit(c, r, d, o["calc"], [f["meta"].get("kind", "") for f in o["files"]])
+        o["kg2_std"] = KG2_FAUST
+        o["mat"] = {k: {"name": n, "einheit": e, "opts": [{"n": a, "ep": b} for a, b in opts]} for k, (n, e, opts) in MAT.items()}
     else:
         o["total"] = calc(clean_data(_j(r["data"], {}), c))["total"]
     return o
@@ -846,11 +888,16 @@ def genauigkeit(c, r, d, cal, kinds):
     base = STUFE_GENAU.get(r["stufe"], 25)
     lo, hi, F = float(base), float(base), []
     F.append({"text": f"{STUFE_NAME.get(r['stufe'], '')}: üblich ± {base} %", "plus": base, "tipp": ""})
+    btw = sum(x["wert"] for x in (cal.get("kg2") or {}).values() if x["quelle"] == "bauteile")
+    if btw and cal["bauwerk"]:
+        share = btw / cal["bauwerk"]
+        v = round(base * 0.45 * share, 1); lo -= v; hi -= v
+        F.append({"text": f"{round(share * 100)} % des Bauwerks aus Bauteilen mit Mengen und Einheitspreisen", "plus": -v, "tipp": "Weitere Kostengruppen unter „Bauteile & Material“ erfassen."})
     own = kennwerte(c)
     used = [t for t in cal["types"] if t["area"]]
     ex = [t for t in used if t["typ"] in own and own[t["typ"]]["beispiel"] is not None and abs(t["kw"] - own[t["typ"]]["beispiel"]) < 0.5]
-    if ex:
-        share = sum(t["sum"] for t in ex) / (cal["bauwerk"] or 1)
+    if ex and (not btw or btw < cal["bauwerk"] * 0.95):
+        share = sum(t["sum"] for t in ex) / (cal["bauwerk_kw"] or cal["bauwerk"] or 1) * (1 - (btw / cal["bauwerk"] if btw and cal["bauwerk"] else 0))
         v = round(8 * share, 1); lo += v; hi += v
         F.append({"text": f"Beispiel-Kennwerte bei {len(ex)} Raumtypen", "plus": v, "tipp": "Eigene Kennwerte aus abgerechneten Projekten eintragen."})
     if d["rooms"]:
@@ -876,7 +923,7 @@ def genauigkeit(c, r, d, cal, kinds):
     if any(re.sub(r"\D", "", i["kg"]).startswith("39") for i in d["items"]) or r["stufe"] in ("rahmen", "schaetzung") and "Ansicht" in kinds:
         hi += 5
         F.append({"text": "Umbau im Bestand: Überraschungen beim Rückbau", "plus": 5, "tipp": "Bestandsuntersuchung / Schadstoffgutachten.", "oben": True})
-    lo, hi = min(lo, 60), min(hi, 120)
+    lo, hi = max(1, min(lo, 60)), max(1, min(hi, 120))
     t = cal["total"]
     note = "gut belastbar" if hi <= 15 else "brauchbar für Entscheidungen" if hi <= 30 else "grobe Größenordnung" if hi <= 50 else "noch sehr unsicher"
     return {"low": round(t * (1 - lo / 100), 2), "high": round(t * (1 + hi / 100), 2), "lo_pct": round(lo, 1), "hi_pct": round(hi, 1), "urteil": note, "faktoren": F}
@@ -897,6 +944,145 @@ def schaetzen_intern(d, cal):
     if not d["kg2"]:
         kg2 = {"werte": KG2_FAUST, "basis": "übliche Verteilung bei Umbau eines Verwaltungs-/Sozialgebäudes (Faustwerte)", "src": "Intern", "sicher": "gering"}
     return out, kg2
+
+
+# ---------------------------------------------------------------- Mengen & Material (Kostenberechnung nach Bauteilen)
+# Beispiel-Einheitspreise (netto, Stand Vorlage) – in der App je Zeile änderbar
+MAT = {
+    "322": ("Bodenplatte / Gründung", "m²", [("Stahlbeton-Bodenplatte 25 cm mit Dämmung", 165), ("Streifenfundamente + Bodenplatte", 145), ("WU-Bodenplatte", 210)]),
+    "331": ("Tragende Außenwände", "m²", [("Kalksandstein 17,5 cm", 115), ("Ziegel 36,5 cm monolithisch", 145), ("Porenbeton 36,5 cm", 130), ("Stahlbeton 25 cm", 185), ("Holzrahmenwand", 160)]),
+    "334": ("Fenster und Außentüren", "m²", [("Kunststofffenster 3-fach", 650), ("Holz-Alu-Fenster 3-fach", 950), ("Aluminiumfenster", 1100), ("Hebe-Schiebe-Tür", 1300)]),
+    "335": ("Außenwandbekleidung außen", "m²", [("WDVS 16 cm mit Putz", 155), ("Mineralputz auf Mauerwerk", 55), ("Klinker-Vormauerschale", 240), ("Holzfassade hinterlüftet", 210), ("Faserzementplatten hinterlüftet", 230)]),
+    "336": ("Außenwandbekleidung innen", "m²", [("Innenputz + Anstrich", 38), ("Gipskarton-Vorsatzschale", 65)]),
+    "338": ("Sonnenschutz", "m²", [("Rollladen elektrisch", 280), ("Raffstore elektrisch", 420)]),
+    "341": ("Tragende Innenwände", "m²", [("Kalksandstein 17,5 cm", 110), ("Stahlbeton 20 cm", 170)]),
+    "342": ("Nichttragende Innenwände", "m²", [("Trockenbau Metallständer 10 cm", 75), ("Kalksandstein 11,5 cm", 85), ("Porenbeton 10 cm", 80)]),
+    "344": ("Innentüren", "Stk", [("Röhrenspantür mit Zarge", 650), ("Stahlzarge + Holztür", 780), ("Ganzglastür", 1100), ("Brandschutztür T30", 1600)]),
+    "345": ("Innenwandbekleidung", "m²", [("Innenputz + Anstrich", 35), ("Wandfliesen", 95), ("Tapete + Anstrich", 28)]),
+    "351": ("Deckenkonstruktion", "m²", [("Stahlbeton-Decke 20 cm", 175), ("Filigrandecke", 160), ("Holzbalkendecke", 140), ("Brettsperrholz-Decke", 190)]),
+    "352": ("Bodenbeläge (mit Estrich)", "m²", [("Fliesen auf Zementestrich", 115), ("Parkett auf Estrich", 125), ("Designbelag / Vinyl auf Estrich", 85), ("Linoleum auf Estrich", 90), ("Beschichtung auf Estrich", 70), ("Teppich auf Estrich", 70)]),
+    "353": ("Deckenbekleidung", "m²", [("Deckenputz + Anstrich", 32), ("Abgehängte Gipskartondecke", 70), ("Akustikdecke", 95)]),
+    "361": ("Dachkonstruktion", "m²", [("Holzdachstuhl Sparrendach", 115), ("Stahlbeton-Flachdach", 180), ("Holzbalken-Flachdach", 140)]),
+    "363": ("Dachbeläge", "m²", [("Dachziegel mit Dämmung", 165), ("Betondachstein mit Dämmung", 145), ("Flachdachabdichtung mit Dämmung", 175), ("Metalldeckung (Stehfalz)", 210), ("Gründach extensiv", 195)]),
+    "364": ("Dachbekleidung innen", "m²", [("Gipskarton unter Sparren", 60)]),
+    "411": ("Abwasseranlagen", "Stk", [("Anschluss je Sanitärobjekt", 650)]),
+    "412": ("Wasseranlagen", "Stk", [("Sanitärobjekt inkl. Armatur", 1400)]),
+    "421": ("Wärmeerzeugung", "Stk", [("Luft-Wasser-Wärmepumpe", 22000), ("Gas-Brennwerttherme", 9000), ("Pelletkessel", 26000)]),
+    "422": ("Wärmeverteilung / Heizflächen", "m²", [("Fußbodenheizung", 65), ("Heizkörper", 45)]),
+    "431": ("Lüftungsanlagen", "m²", [("Zentrale Lüftung mit WRG", 75), ("Dezentrale Lüfter", 35), ("Abluft Bad/WC", 15)]),
+    "444": ("Niederspannungsinstallation", "m²", [("Elektro Standard", 75), ("Elektro gehoben", 110)]),
+    "445": ("Beleuchtung", "m²", [("LED-Grundbeleuchtung", 30)]),
+    "451": ("Telekommunikation / Netzwerk", "m²", [("Netzwerk + Telefon", 18)]),
+    "461": ("Aufzugsanlagen", "Stk", [("Personenaufzug 4 Haltestellen", 85000)]),
+}
+BELAG = {"sanitaer": "Fliesen auf Zementestrich", "kueche": "Fliesen auf Zementestrich", "neben": "Beschichtung auf Estrich", "garage": "Beschichtung auf Estrich",
+         "wohnen": "Parkett auf Estrich", "buero": "Linoleum auf Estrich", "verkehr": "Designbelag / Vinyl auf Estrich", "aufenthalt": "Linoleum auf Estrich"}
+
+
+def bauteile_intern(d, cal):
+    """Bauteilliste aus Raumbuch, Geschossen und Höhen – Mengen grob, Material und Preise als Startwerte."""
+    G = _geo(d, cal)
+    if not cal["area"]:
+        return []
+    A, fl, gh = cal["area"], G["geschosse"], G["geschosshoehe"]
+    rooms = d["rooms"]
+    wand = sum(4 * (r["area"] ** 0.5) * ((r.get("h") or 0) or gh) for r in rooms if r["area"]) / 2   # Wandflächen der Räume, je Wand zwei Räume
+    innen = max(0.0, wand - G["fassade_netto"] * 0.5)
+    sani = [r for r in rooms if r["typ"] == "sanitaer"]
+    out, n = [], 0
+
+    def add(kg, menge, mat=None, formel="", name=None, geschoss=""):
+        nonlocal n
+        nm, eh, opts = MAT[kg]
+        m = next((o for o in opts if o[0] == mat), opts[0])
+        n += 1
+        out.append({"id": f"v{n}", "kg": kg, "name": name or nm, "mat": m[0], "formel": formel, "menge": round(menge, 1), "einheit": eh, "ep": m[1], "src": "Vorschlag", "geschoss": geschoss, "notiz": ""})
+    add("322", G["grundflaeche"], formel=f"Grundfläche ≈ {G['grundflaeche']} m²")
+    add("331", G["fassade_netto"], formel=f"Umfang {G['umfang']} m × {fl} Geschoss(e) × {str(gh).replace('.', ',')} m − Fenster")
+    add("334", G["fenster"], formel="≈ 20 % der Fassade")
+    add("335", G["fassade_netto"])
+    add("336", G["fassade_netto"])
+    add("342", innen * 0.7, formel="Wandflächen der Räume ÷ 2, davon 70 % nichttragend")
+    add("341", innen * 0.3, formel="davon 30 % tragend")
+    add("344", max(1, len([r for r in rooms if r["typ"] not in ("verkehr",)])), formel="je Raum eine Tür")
+    add("345", innen * 2 - sum(4 * (r["area"] ** 0.5) * gh for r in sani) * 0.6, formel="beide Seiten der Innenwände")
+    if sani:
+        add("345", sum(4 * (r["area"] ** 0.5) * min(gh, 2.0) for r in sani), "Wandfliesen", name="Wandfliesen Bad/WC", formel="Umfang Sanitärräume × 2,0 m")
+    add("351", A * (fl - 1) / fl if fl > 1 else 0, formel="Geschossdecken (ohne Bodenplatte)") if fl > 1 else None
+    by = {}
+    for r in rooms:
+        by.setdefault(r["typ"], 0.0)
+        by[r["typ"]] += r["area"]
+    for t, a in by.items():
+        if a:
+            add("352", a, BELAG.get(t), name=f"Bodenbelag {d['types'].get(t, {}).get('label', t)}", formel=f"Raumfläche {str(round(a, 1)).replace('.', ',')} m²")
+    add("353", A)
+    add("361", G["dach"])
+    add("363", G["dach"])
+    if sani:
+        add("411", len(sani) * 3, formel="je Sanitärraum ≈ 3 Objekte")
+        add("412", len(sani) * 3, formel="je Sanitärraum ≈ 3 Objekte")
+    add("421", 1)
+    add("422", A)
+    add("431", sum(r["area"] for r in sani) or A * 0.1, "Abluft Bad/WC", formel="Sanitärräume")
+    add("444", A)
+    add("445", A)
+    add("451", A)
+    return out
+
+
+@app.post("/api/bk/<int:i>/bauteile/vorschlag")
+def bauteile_vorschlag(i):
+    """Bauteile vorschlagen – intern aus dem Raumbuch oder mit KI (ki=true)."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        r = _row(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        d = clean_data(_j(r["data"], {}), c)
+        cal = calc(d)
+        rows = bauteile_intern(d, cal)
+        if not rows:
+            return jsonify(error="Erst Räume mit Flächen erfassen (Pläne & Mengen) – daraus werden die Mengen abgeleitet."), 400
+        note = "Mengen grob aus Raumbuch, Geschossen und Höhen; Materialien und Preise sind Beispiele – bitte je Zeile prüfen."
+        if b.get("ki"):
+            ki = ai.choice_of(g.user)
+            prov = {p["key"]: p for p in ai.providers(c)}
+            if ki == "intern" or not prov.get(ki, {}).get("ok"):
+                ki = next((k for k in ("claude", "gemini", "chatgpt", "ollama") if prov.get(k, {}).get("ok")), None)
+            if not ki:
+                return jsonify(error="Keine KI eingerichtet – in der Verwaltung unter Einstellungen → KI einen Schlüssel hinterlegen."), 400
+            info = {"maßnahme": r["name"], "stufe": STUFE_NAME.get(r["stufe"]), "geometrie": _geo(d, cal), "raumflaeche_m2": cal["area"],
+                    "raeume": [f"{x['floor']} {x['nr']} {x['name']} {x['area']} m² ({d['types'].get(x['typ'], {}).get('label', '')})" for x in d["rooms"][:150]],
+                    "pläne": [f["name"] for f in c.execute("SELECT name FROM bk_files WHERE bk_id=?", (i,))],
+                    "entwurf": [{k: x[k] for k in ("kg", "name", "mat", "menge", "einheit", "ep")} for x in rows]}
+            try:
+                o = ai.ask_json(ki, BT_SYS, json.dumps(info, ensure_ascii=False), 3500, c)
+            except ai.AIError as e:
+                return jsonify(error=f"{prov[ki]['label']}: {e}"), 502
+            krows = []
+            for k, e in enumerate((o.get("bauteile") or o.get("_objekte") or [])[:80]):
+                if not isinstance(e, dict):
+                    continue
+                kg = re.sub(r"\D", "", str(e.get("kg") or ""))[:3]
+                if len(kg) != 3 or kg[0] not in "34" or not _s(e.get("name"), 200):
+                    continue
+                krows.append({"id": f"k{k}", "kg": kg, "name": _s(e.get("name"), 200), "mat": _s(e.get("material"), 200), "formel": _s(e.get("ermittlung"), 200),
+                              "menge": round(_num(e.get("menge"), 0, 0, 1e6), 1), "einheit": _s(e.get("einheit"), 10) or "m²", "ep": round(_num(e.get("ep"), 0, 0, 1e6), 2),
+                              "src": "KI · " + prov[ki]["label"], "geschoss": "", "notiz": _s(e.get("hinweis"), 300)})
+            if not krows:
+                return jsonify(error="Die KI hat keine verwertbaren Bauteile geliefert."), 502
+            tot = sum(_bt_betrag(x) for x in krows)
+            if cal["bauwerk_kw"] and tot > cal["bauwerk_kw"] * 4:
+                return jsonify(error="Die Vorschläge der KI sind unplausibel hoch und wurden verworfen."), 502
+            rows, note = krows, _s(o.get("hinweis"), 400) or "Vorschlag der KI – Mengen, Materialien und Preise bitte prüfen."
+    return jsonify(rows=rows, note=note)
+
+
+BT_SYS = """Du bist erfahrener Kostenplaner (DIN 276, Kostenberechnung nach Bauteilen) in Deutschland.
+Prüfe und verbessere den Entwurf einer Bauteilliste für die beschriebene Maßnahme: Mengen aus Raumbuch und Geometrie, passende Materialien,
+realistische Einheitspreise (netto, aktuelles Preisniveau), fehlende Bauteile ergänzen. Kostengruppen dreistellig (3xx/4xx).
+Antworte ausschließlich mit JSON: {"bauteile":[{"kg":"352","name":"…","material":"…","menge":0,"einheit":"m²","ep":0,"ermittlung":"wie die Menge entsteht","hinweis":"…"}],"hinweis":"…"}"""
 
 
 # ---------------------------------------------------------------- Positionen vorschlagen (Klick auf einen Prüfhinweis)
@@ -1176,7 +1362,15 @@ def kg_rows(d, cal, depth):
     """Kosten nach DIN 276 bis zur gewählten Gliederungstiefe (1 = 100er, 2 = 10er, 3 = Einzelpositionen).
     Ergebnis: Liste von (Ebene, KG, Bezeichnung, Betrag oder None = offen)."""
     leaves = []   # (KG dreistellig, Bezeichnung, Betrag | None)
-    for main, total in (("300", cal["kg300"]), ("400", cal["kg400"])):
+    if cal.get("kg2"):   # Kostenberechnung mit Bauteilen: je Gruppe der 2. Ebene Bauteile oder Kennwert-Anteil
+        for k, x in sorted(cal["kg2"].items()):
+            if x["quelle"] == "bauteile":
+                for b in d["bauteile"]:
+                    if b["kg"][:2] + "0" == k:
+                        leaves.append((b["kg"], b["name"] + (f" – {b['mat']}" if b["mat"] else "") + f" ({str(round(b['menge'], 2)).replace('.', ',')} {b['einheit']})", _bt_betrag(b)))
+            elif x["wert"]:
+                leaves.append((k, "aus Kennwerten (noch ohne Bauteile)", x["wert"]))
+    for main, total in ((("300", cal["kg300"]), ("400", cal["kg400"])) if not cal.get("kg2") else ()):
         rest = 100.0
         for k in KG2:
             if k[0] == main[0] and d["kg2"].get(k):

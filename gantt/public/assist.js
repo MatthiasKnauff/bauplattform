@@ -51,13 +51,38 @@
     holz: [(l) => 'Montage Wände ' + l, (l) => 'Montage Decke über ' + l, 'Montage Drempel und Giebel DG'],
     bsp: [(l) => 'Montage BSP-Wände ' + l, (l) => 'Montage BSP-Decke über ' + l, 'Montage Drempel und Giebel DG'],
   };
+  // Bauweise je Geschoss bei „gemischt“: Vorgabe EG massiv, darüber Holz
+  function floorTw(cfg, L) { const f = cfg.flTw || {}; return L.map((l, k) => (['massiv', 'stb', 'holz', 'bsp'].includes(f[l]) ? f[l] : k === 0 ? 'massiv' : 'holz')); }
   function expandFloors(list, cfg) {
-    if (!cfg || !cfg.flDetail || !cfg.type) return list;
+    const tw = cfg && cfg.type && CHM.tragwerk && chVisible(CHM.tragwerk, cfg) ? choiceOf(cfg, 'tragwerk') : 'massiv';
+    if (!cfg || !cfg.type || (!cfg.flDetail && tw !== 'misch')) return list;
     const { L, dg, flach, kg } = levelsOf(cfg);
-    const tw = CHM.tragwerk && chVisible(CHM.tragwerk, cfg) ? choiceOf(cfg, 'tragwerk') : 'massiv';
     const out = [];
+    let mixDone = false;
     for (const it of list) {
-      if (it.id === 'mauer' || it.id === 'holz_mont') {
+      if (tw === 'misch' && (it.id === 'mauer' || it.id === 'holz_mont')) {   // ein Strang über alle Geschosse, je Geschoss Mauerwerk oder Holz
+        if (mixDone) continue; mixDone = true;
+        const IT = { m: list.find((x) => x.id === 'mauer'), h: list.find((x) => x.id === 'holz_mont') }, FT = floorTw(cfg, L);
+        const parts = [];
+        L.forEach((l, k) => {
+          const t = FT[k], base = t === 'holz' || t === 'bsp' ? IT.h : IT.m, nm = NAMES[t], top = k === L.length - 1 && dg === 'none';
+          if (!base) return;
+          parts.push({ it: base, s: 'w' + k, n: nm[0](l), w: 0.6 }, { it: base, s: 'd' + k, n: top && flach ? (base.id === 'holz_mont' ? 'Montage Dachdecke über ' : 'Dachdecke über ') + l : nm[1](l) + (top ? ' – oberste Geschossdecke' : ''), w: 0.4 });
+        });
+        const tt = FT[FT.length - 1], tb = tt === 'holz' || tt === 'bsp' ? IT.h : IT.m;
+        if (tb && dg === 'aus') parts.push({ it: tb, s: 'w' + L.length, n: NAMES[tt][2], w: 0.35 });
+        if (tb && dg === 'staffel') parts.push({ it: tb, s: 'w' + L.length, n: NAMES[tt][0]('Staffelgeschoss'), w: 0.42 }, { it: tb, s: 'd' + L.length, n: 'Dachdecke über Staffelgeschoss', w: 0.28 });
+        const W = L.length + (dg === 'aus' ? 0.35 : dg === 'staffel' ? 0.7 : 0);
+        let holzSeen = false;   // erst das erste Holz-Geschoss wartet auf die Vorfertigung im Werk
+        parts.forEach((x, k) => {
+          const isH = x.it.id === 'holz_mont', a0 = k ? [parts[k - 1].it.id + '~' + parts[k - 1].s] : (x.it.a || []).filter((y) => y !== 'mauer' && y !== 'holz_mont');
+          if (isH && !holzSeen && k && (x.it.a || []).includes('abbund')) a0.push('abbund');
+          if (isH) holzSeen = true;
+          out.push({ ...x.it, id: x.it.id + '~' + x.s, vb: x.it.id, n: x.n, d: (x.it.d * x.w) / W, a: a0 });
+        });
+        continue;
+      }
+      if (cfg.flDetail && (it.id === 'mauer' || it.id === 'holz_mont')) {
         const nm = NAMES[it.id === 'holz_mont' ? (tw === 'bsp' ? 'bsp' : 'holz') : (tw === 'stb' ? 'stb' : 'massiv')];
         const parts = [];
         L.forEach((l, k) => {
@@ -68,7 +93,7 @@
         if (dg === 'staffel') parts.push({ s: 'w' + L.length, n: nm[0]('Staffelgeschoss'), w: 0.42 }, { s: 'd' + L.length, n: (it.id === 'holz_mont' ? 'Montage Dachdecke' : 'Dachdecke') + ' über Staffelgeschoss', w: 0.28 });
         const W = parts.reduce((a, x) => a + x.w, 0);
         parts.forEach((x, k) => out.push({ ...it, id: it.id + '~' + x.s, vb: it.id, n: x.n, d: (it.d * x.w) / W, a: k ? [it.id + '~' + parts[k - 1].s] : (it.a || []).slice() }));
-      } else if (it.id === 'treppe') {
+      } else if (it.id === 'treppe' && cfg.flDetail) {
         const lv = [...(kg ? ['KG'] : []), ...L, ...(dg === 'aus' ? ['DG'] : dg === 'staffel' ? ['Staffelgeschoss'] : [])];
         if (lv.length < 2) { out.push(it); continue; }
         for (let k = 0; k < lv.length - 1; k++) {
@@ -97,7 +122,7 @@
   let CTX = { cfg: undefined, n: -1, map: {}, ord: {} };
   function ctx(cfg) {
     const n = cfg && Array.isArray(cfg.custom) ? cfg.custom.length : 0;
-    const fk = cfg ? [cfg.flDetail, cfg.floors, cfg.dg, cfg.type, JSON.stringify(cfg.choice || {})].join('|') : '';
+    const fk = cfg ? [cfg.flDetail, cfg.floors, cfg.dg, cfg.type, JSON.stringify(cfg.choice || {}), JSON.stringify(cfg.flTw || {})].join('|') : '';
     if (cfg !== undefined && CTX.cfg === cfg && CTX.n === n && CTX.arr === (cfg && cfg.custom) && CTX.o === (cfg && cfg.order) && CTX.p === (cfg && cfg.phase) && CTX.bz === (cfg && cfg.bezug) && CTX.l === window.LIBRARY && CTX.fk === fk) return;
     const list = itemsOf(cfg);
     CTX = { cfg, n, fk, l: window.LIBRARY, arr: cfg && cfg.custom, o: cfg && cfg.order, p: cfg && cfg.phase, bz: cfg && cfg.bezug, map: Object.fromEntries(list.map((i) => [i.id, i])), ord: Object.fromEntries(list.map((i, k) => [i.id, k])) };
@@ -450,6 +475,7 @@
     },
     roofFlat: (cfg) => { cfg = clone(cfg); return !!(CHM.dachform && chVisible(CHM.dachform, cfg) && choiceOf(cfg, 'dachform') === 'flach'); },
     roofKnown: (cfg) => { cfg = clone(cfg); return !!(CHM.dachform && chVisible(CHM.dachform, cfg)); },
+    floorTw: (cfg) => { cfg = clone(cfg); const { L } = levelsOf(cfg); const F = floorTw(cfg, L); return L.map((l, k) => [l, F[k]]); },
     setFloors(k, v) {
       if (!isLive()) return false;
       const old = clone(P.assist);
@@ -716,6 +742,63 @@
       let pform = null;          // Formular „Vorlage speichern“: { name, scope, phases:Set }
       let presets = [], presetsErr = '', presetsOpen = LSx.get('assistPresetsOpen', true);
       const saveDraft = () => LSx.set('assistDraft', draft);
+      // Schritt-für-Schritt-Abfrage: jederzeit pausieren, später an derselben Stelle weitermachen
+      let WZ = LSx.get('assistWz', { on: false, i: 0 });
+      const saveWz = () => LSx.set('assistWz', WZ);
+      function wzSteps(cfg, live) {
+        const S = [{ k: 'type', t: 'Was wird gebaut?' }];
+        if (!cfg) return S;
+        S.push({ k: 'eck', t: 'Größe des Gebäudes' });
+        const PH = core.catalog().phases.map((p) => p.k);
+        core.choiceGroups(cfg).slice().sort((a, b) => (b.k === 'erweiterung') - (a.k === 'erweiterung') || PH.indexOf(a.ph) - PH.indexOf(b.ph)).forEach((g) => {   // „Erweiterung“ zuerst – davon hängt der Rest ab
+          if (g.opts.length > 1) S.push({ k: 'ch:' + g.k, t: g.n, g });
+          if (g.k === 'tragwerk' && g.val === 'misch') S.push({ k: 'fltw', t: 'Bauweise je Geschoss' });
+          if (g.k === 'dachform') S.push({ k: 'dg', t: 'Was liegt über dem obersten Geschoss?' });
+        });
+        if (!S.some((x) => x.k === 'dg')) S.push({ k: 'dg', t: 'Was liegt über dem obersten Geschoss?' });
+        S.push({ k: 'start', t: 'Wann ist Baubeginn?' }, { k: 'fertig', t: live ? 'Fertig – der Plan ist aktualisiert' : 'Fertig – Plan erzeugen' });
+        return S;
+      }
+      function dgOpts(cfg) {
+        const flat = core.roofFlat(cfg), known = core.roofKnown(cfg);
+        return flat ? [['kalt', 'nichts – Flachdach direkt auf dem obersten Vollgeschoss'], ['staffel', 'Staffelgeschoss (zurückgesetzt, eigenes Flachdach)']]
+          : known ? [['kalt', 'Dachraum nicht ausgebaut (Spitzboden)'], ['aus', 'Dachgeschoss ausgebaut (Wohnraum im Dach)']]
+            : [['kalt', 'nichts / Dachraum nicht ausgebaut'], ['aus', 'Dachgeschoss ausgebaut'], ['staffel', 'Staffelgeschoss']];
+      }
+      function wizardHtml(cfg, live, st, sel) {
+        const S = wzSteps(cfg, live); WZ.i = Math.max(0, Math.min(S.length - 1, WZ.i || 0));
+        const x = S[WZ.i], CC = core.catalog();
+        const big = (attr, on, title, sub, ic) => `<button class="wz-o${on ? ' on' : ''}" ${attr}>${ic ? `<span class="ic">${ic}</span>` : ''}<span><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
+        let b = '';
+        if (x.k === 'type') b = `<div class="wz-g">${CC.profiles.map((p) => big(`data-type="${p.k}" data-wznext="1"`, cfg && cfg.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
+        else if (x.k === 'eck') b = `<div class="as-form wz-f"><label>Wohnfläche gesamt</label><div class="as-in"><input type="number" min="5" max="100000" data-p="area" value="${esc(cfg.area)}"><span>m²</span></div>
+            <label>Einheiten</label><div class="as-in"><input type="number" min="1" max="40" data-p="units" value="${esc(cfg.units)}"><span>Wohnungen / Abschnitte</span></div>
+            <label>Geschosse</label><div class="as-in"><input type="number" min="1" max="30" data-p="floors" value="${esc(cfg.floors || 1)}"><span>Vollgeschosse: EG, 1.OG … (ohne Keller und Dach)</span></div>
+            <label></label><label class="cb"><input type="checkbox" data-p="flDetail"${cfg.flDetail ? ' checked' : ''}> Rohbau und Treppen geschossweise aufteilen</label></div>`;
+        else if (x.k.startsWith('ch:')) b = `<div class="wz-g">${x.g.opts.map((o) => big(`data-wzch="${x.g.k}" data-v="${o.k}"`, o.k === x.g.val, o.n)).join('')}</div>`;
+        else if (x.k === 'fltw') b = `<div class="as-form wz-f">${core.floorTw(cfg).map(([l, t]) => `<label>${esc(l)}</label><select data-fltw="${esc(l)}">${[['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']].map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${n}</option>`).join('')}</select>`).join('')}</div>`;
+        else if (x.k === 'dg') { const O = dgOpts(cfg), cur = O.some(([v]) => v === cfg.dg) ? cfg.dg : 'kalt'; b = `<div class="wz-g">${O.map(([v, l]) => big(`data-wzdg="${v}"`, v === cur, l)).join('')}</div><div class="as-hint">Gebäude: <b>${esc(core.buildingDesc(cfg))}</b></div>`; }
+        else if (x.k === 'start') b = `<div class="as-form wz-f"><label>Baubeginn</label><input type="date" data-p="start" value="${core.iso(cfg.start)}"></div>`;
+        else if (x.k === 'fertig') {
+          const e = !live && sel.size ? core.estimate(cfg, [...sel]) : null;
+          b = `<p class="wz-p">${live ? `Projektende <b>${esc(st.end)}</b> · ${st.nTasks} Leistungen.` : e ? `Vorschau: Ende ca. <b>${esc(e.end)}</b> · ${e.wd} Arbeitstage · ${e.n} Leistungen.` : 'Noch keine Leistungen gewählt.'}</p>
+            <p class="wz-p">Die einzelnen Leistungen kannst du in der Liste prüfen, ab- oder zuwählen und Dauern anpassen.</p>
+            <div class="wz-g">${big('data-wz="exit"', false, 'Leistungen in der Liste ansehen und anpassen', 'beendet die Schritt-für-Schritt-Abfrage')}${!live && sel.size ? big('data-a="create"', true, 'Neues Projekt erstellen', projName || core.defName(cfg)) : ''}</div>`;
+        }
+        return `<div class="wz"><div class="wz-dots">${S.map((y, k) => `<button class="${k === WZ.i ? 'cur' : k < WZ.i ? 'ok' : ''}" data-wzgo="${k}" title="${esc(y.t)}" aria-label="${esc(y.t)}"></button>`).join('')}</div>
+          <div class="wz-n">Schritt ${WZ.i + 1} von ${S.length}</div><h3>${esc(x.t)}</h3>${b}
+          <div class="wz-nav"><button class="btn" data-wz="prev"${WZ.i ? '' : ' disabled'}>Zurück</button><button class="btn" data-wz="pause" title="Abfrage anhalten – später an derselben Stelle weitermachen">Pausieren</button><span style="flex:1"></span>${WZ.i < S.length - 1 ? '<button class="btn primary" data-wz="next">Weiter</button>' : ''}</div></div>`;
+      }
+      function applyChoice(g, k, label) {   // wie die Auswahl in der Liste (Leistungen werden angepasst)
+        const { live, cfg } = state(), gn = (core.choiceGroups(cfg).find((x) => x.k === g) || {}).n || g; say('');
+        if (live) { if (core.setChoice(g, k) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); else say(`${gn}: ${label} – Leistungen angepasst.`); }
+        else {
+          const old = cl(draft.cfg); draft.cfg.choice = { ...core.choiceAll(old), [g]: k };
+          draft.cfg.choice = core.choiceAll(draft.cfg);
+          draft.sel = core.selForChoices(draft.sel, old, draft.cfg); saveDraft();
+          say(`${gn}: ${label} – Leistungen angepasst.`);
+        }
+      }
       const say = (m, err = false) => { msg = m; msgErr = err; };
       const newId = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const loadPresets = async () => { try { presets = await core.presets(); presetsErr = ''; } catch (e) { presetsErr = 'Vorlagen konnten nicht geladen werden: ' + e.message; } render(); };
@@ -836,6 +919,8 @@
             ? `<b>Entwurf</b> für ein neues Projekt. „${esc(st.name)}“ wurde nicht mit dem Assistenten erstellt – einzelne Leistungen kannst du dort mit <b>＋</b> an der markierten Zeile einfügen.`
             : '<b>Entwurf</b> – Maßnahme oder Vorlage wählen, Leistungen anpassen, Plan erzeugen.') + '</div>';
         h += '<div class="as-body">';
+        const bodyAt = h.length;
+        if (!WZ.on) h += `<div class="wz-bar"><button class="btn" data-wz="start">${WZ.i > 0 && cfg ? `▶ Schritt-für-Schritt-Abfrage fortsetzen (Schritt ${WZ.i + 1})` : '▶ Schritt für Schritt abfragen'}</button><small>Fragt nacheinander alles Wichtige ab – jederzeit pausieren.</small></div>`;
         h += `<section><h4><span>1</span>Maßnahme / Gebäudetyp</h4><div class="as-types">${CC.profiles.map((p) => `<button class="as-type${cfg && cfg.type === p.k ? ' on' : ''}" data-type="${p.k}"><span class="ic">${p.ic}</span><b>${esc(p.n)}</b><small>${esc(p.desc)}</small></button>`).join('')}</div>`;
         // Meine Vorlagen
         h += `<details class="as-pre"${presetsOpen ? ' open' : ''}><summary>Meine Vorlagen (${presets.length})</summary>`;
@@ -852,7 +937,12 @@
             <label>Geschosse</label><div class="as-in"><input type="number" min="1" max="30" data-p="floors" value="${esc(cfg.floors || 1)}"><span>Vollgeschosse: EG, 1.OG … (ohne Keller und Dach)</span></div>
 `
             // Keller und Dachform gehören zur Gebäudegeometrie – hier zusätzlich zur Auswahl im jeweiligen Abschnitt
-            + core.choiceGroups(cfg).filter((g) => g.k === 'keller' || g.k === 'dachform').sort((a, b) => (a.k === 'keller' ? -1 : 1)).map((g) => `<label>${g.k === 'keller' ? 'Keller' : 'Dachform'}</label><select data-choice="${g.k}">${g.opts.map((o) => `<option value="${o.k}"${o.k === g.val ? ' selected' : ''}>${esc(o.n)}</option>`).join('')}</select>`).join('')
+            + (() => {   // Keller, Bauweise und Dachform gehören zur Gebäudegeometrie
+              const EK = { keller: 'Keller', anbaukeller: 'Neuer Keller', tragwerk: 'Bauweise', dachform: 'Dachform' }, ord = Object.keys(EK);
+              const gs = core.choiceGroups(cfg).filter((g) => EK[g.k]).sort((a, b) => ord.indexOf(a.k) - ord.indexOf(b.k));
+              return gs.map((g) => `<label>${EK[g.k]}</label><select data-choice="${g.k}">${g.opts.map((o) => `<option value="${o.k}"${o.k === g.val ? ' selected' : ''}>${esc(o.n)}</option>`).join('')}</select>`
+                + (g.k === 'tragwerk' && g.val === 'misch' ? core.floorTw(cfg).map(([l, t]) => `<label class="as-sub">${esc(l)}</label><select data-fltw="${esc(l)}">${[['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']].map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${n}</option>`).join('')}</select>`).join('') : '')).join('');
+            })()
             + (() => {   // was über dem obersten Vollgeschoss liegt – abhängig von der Dachform
               const flat = core.roofFlat(cfg), known = core.roofKnown(cfg);
               const O = flat ? [['kalt', 'nichts – Flachdach direkt auf dem obersten Vollgeschoss'], ['staffel', 'Staffelgeschoss (zurückgesetzt, eigenes Flachdach)']]
@@ -911,6 +1001,7 @@
         } else {
           h += '<div class="as-hint" style="margin-top:12px">Wähle oben eine Maßnahme oder eine eigene Vorlage – der Assistent schlägt die typischen Leistungen mit Gewerk, Reihenfolge und Dauer vor.</div>';
         }
+        if (WZ.on) h = h.slice(0, bodyAt) + wizardHtml(cfg, live, st, sel);
         h += '</div><div class="as-foot">';
         if (askRm && cfg) {
           h += askRmHtml(cfg);
@@ -1074,6 +1165,26 @@
           await loadPresets(); return;
         }
         if (t.closest('label') && t.closest('label').querySelector('[data-pf]')) return;
+        const wz = t.closest('[data-wz],[data-wzgo],[data-wzch],[data-wzdg]');
+        if (wz) {
+          const { live, cfg } = state(), n = wzSteps(cfg, live).length;
+          if (wz.dataset.wzgo != null) WZ.i = +wz.dataset.wzgo;
+          else if (wz.dataset.wzch) { applyChoice(wz.dataset.wzch, wz.dataset.v, wz.textContent.trim()); WZ.i++; }
+          else if (wz.dataset.wzdg) {
+            const v = wz.dataset.wzdg;
+            if (live) { if (core.setFloors('dg', v) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); }
+            else { draft.cfg.dg = v; draft.sel = core.normSel(core.baseSel(draft.sel), draft.cfg); saveDraft(); }
+            WZ.i++;
+          } else {
+            const a = wz.dataset.wz;
+            if (a === 'start') { WZ.on = true; if (!cfg) WZ.i = 0; }
+            else if (a === 'pause') { WZ.on = false; say('Abfrage pausiert – oben geht es an derselben Stelle weiter.'); }
+            else if (a === 'exit') { WZ.on = false; WZ.i = 0; }
+            else if (a === 'next') WZ.i = Math.min(n - 1, WZ.i + 1);
+            else if (a === 'prev') WZ.i = Math.max(0, WZ.i - 1);
+          }
+          saveWz(); render(); return;
+        }
         const ty = t.closest('[data-type]');
         if (ty) {
           const k = ty.dataset.type, { st, live, cfg } = state(); say(''); cform = null;
@@ -1087,6 +1198,7 @@
             if (draft && draft.cfg && draft.cfg.custom && draft.cfg.custom.length) c.custom = draft.cfg.custom;   // eigene Leistungen behalten
             draft = { cfg: c, sel: core.recFor(c) }; projName = ''; saveDraft();
           }
+          if (WZ.on && ty.dataset.wznext && !pending) { WZ.i = 1; saveWz(); }
           render(); return;
         }
         const b = t.closest('[data-a]'); if (!b || b.tagName === 'INPUT') return;
@@ -1129,14 +1241,7 @@
         const t = e.target, { live, cfg } = state();
         if (t.dataset.dur) { setDurFor(t.dataset.dur, t.value); render(); return; }
         if (t.dataset.choice) {
-          const g = t.dataset.choice, k = t.value, gn = (core.choiceGroups(cfg).find((x) => x.k === g) || {}).n || g; say('');
-          if (live) { if (core.setChoice(g, k) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); else say(`${gn}: ${t.selectedOptions[0].text} – Leistungen angepasst.`); }
-          else {
-            const old = cl(draft.cfg); draft.cfg.choice = { ...core.choiceAll(old), [g]: k };
-            draft.cfg.choice = core.choiceAll(draft.cfg);
-            draft.sel = core.selForChoices(draft.sel, old, draft.cfg); saveDraft();
-            say(`${gn}: ${t.selectedOptions[0].text} – Leistungen angepasst.`);
-          }
+          applyChoice(t.dataset.choice, t.value, t.selectedOptions[0].text);
           render(); return;
         }
         if (t.dataset.mvsel && moved) { setMovedChoice(t.value === 'cat' || t.value === 'start' ? t.value : t.value); render(); return; }
@@ -1154,6 +1259,12 @@
           if (!on) { removeItem(id, false); render(); return; }
           if (live) { if (core.toggle(id, on) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); }
           else { draft.sel = core.withReq(draft.sel, id, on, draft.cfg); saveDraft(); }
+          render(); return;
+        }
+        if (t.dataset.fltw) {   // Bauweise eines Geschosses (bei „gemischt“)
+          const ft = { ...(cfg.flTw || {}), [t.dataset.fltw]: t.value }; say('');
+          if (live) { if (core.setFloors('flTw', ft) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); }
+          else { draft.cfg.flTw = ft; draft.sel = core.normSel(core.baseSel(draft.sel), draft.cfg); saveDraft(); }
           render(); return;
         }
         const k = t.dataset.p; if (!k) return;

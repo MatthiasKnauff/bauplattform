@@ -658,3 +658,25 @@ html:not([data-theme="-"]) .bp-menu a:hover,html:not([data-theme="-"]) .bp-menu 
 html:not([data-theme="-"]) .bp-menu a::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--bp-accent,#ff5fb3);flex:none}
 html:not([data-theme="-"]) .bp-menu .bp-sep{border-top:1px solid #3b3e42;margin:4px 0}
 @media print{.bp-chip,.bp-pres,#bpApps,.bp-menu{display:none!important}}
+.as-form label.as-sub{padding-left:1rem;color:#777;font-size:.92em}
+/* Schritt-für-Schritt-Abfrage im Planungsassistenten */
+.wz-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px;padding:8px 10px;border:1px dashed var(--accent);border-radius:8px}
+.wz-bar small{color:#666;font-size:12px}
+.wz{padding:6px 2px}
+.wz-dots{display:flex;gap:3px;margin-bottom:8px}
+.wz-dots button{flex:1;height:6px;border-radius:3px;border:0;padding:0;background:#ddd;cursor:pointer}
+.wz-dots button.ok{background:var(--green)}.wz-dots button.cur{background:var(--accent);outline:2px solid var(--accent);outline-offset:1px}
+.wz-n{font-size:12px;color:#777}
+.wz h3{margin:2px 0 12px;font-size:17px}
+.wz-g{display:flex;flex-direction:column;gap:6px}
+.wz-o{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border:1px solid #d6d6d6;border-radius:8px;background:#fff;cursor:pointer;color:inherit;font:inherit}
+.wz-o:hover{border-color:var(--accent)}
+.wz-o.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent);background:color-mix(in srgb,var(--accent) 7%,#fff)}
+.wz-o .ic{font-size:22px}
+.wz-o span{display:flex;flex-direction:column}
+.wz-o small{color:#666;font-size:12px}
+.wz-f{margin-top:4px}
+.wz-p{margin:0 0 10px;color:#444}
+.wz-nav{display:flex;gap:8px;margin-top:16px;align-items:center}
+html[data-theme="dunkel"] .wz-o{background:#2a2a28;border-color:#46443f}
+html[data-theme="dunkel"] .wz-o small,html[data-theme="dunkel"] .wz-bar small,html[data-theme="dunkel"] .wz-p{color:#b9b4aa}

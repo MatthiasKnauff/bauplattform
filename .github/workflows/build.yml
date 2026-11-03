@@ -1,8 +1,8 @@
 name: Build & Publish
 
-# Push auf main -> alle Images bauen, neue Versionsnummer in server/docker-compose.yml
-#                  eintragen. Portainer (Polling) erkennt die Änderung und aktualisiert.
-# Tag v*        -> zusätzlich Tag "stable" (für den späteren Produktivserver)
+# Push auf main -> alle Images bauen, Stand in server/test.yml eintragen (Testserver)
+# Tag v*        -> Images bauen, Version in server/docker-compose.yml eintragen (Produktiv)
+#                  Portainer (Polling) erkennt die Änderung und spielt sie ein.
 on:
   push:
     branches: [main]
@@ -63,19 +63,26 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
 
-  testserver:
+  # Push auf main  -> server/test.yml (Testserver) bekommt den neuen Stand
+  # Tag v…         -> server/docker-compose.yml (Produktiv, Docker 2) bekommt die freigegebene Version
+  version-eintragen:
     needs: build
-    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Neue Version in server/docker-compose.yml eintragen
+        with:
+          ref: main
+      - name: Version eintragen
         run: |
-          SHORT="${GITHUB_SHA::7}"
-          sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${SHORT}#" server/docker-compose.yml
-          grep -n "image: ${REGISTRY}" server/docker-compose.yml
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            FILE=server/docker-compose.yml; TAG="${GITHUB_REF_NAME}"; MSG="Produktiv: Bauplattform ${TAG} freigegeben"
+          else
+            FILE=server/test.yml; TAG="${GITHUB_SHA::7}"; MSG="Testserver: Bauplattform auf ${TAG}"
+          fi
+          sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${TAG}#" "$FILE"
+          grep -n "image: ${REGISTRY}" "$FILE"
           if git diff --quiet; then echo "Keine Änderung"; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Testserver: Bauplattform auf ${SHORT}"
-          for i in 1 2 3; do git pull --rebase -q origin main && git push && break; sleep 3; done
+          git commit -am "$MSG"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push origin HEAD:main && break; sleep 3; done

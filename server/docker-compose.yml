@@ -1,12 +1,12 @@
 # =============================================================================
-# Bauplattform – Fassung für Portainer (Stack aus dem GitHub-Repository)
+# Bauplattform – PRODUKTIV (Docker 2)
 #
-# Die Images baut GitHub Actions. Die Versionsnummer hinter dem Doppelpunkt trägt der
-# Workflow nach jedem Build selbst ein; Portainer bemerkt die Änderung (Polling) und
-# spielt die neue Version ein.
+# Bekommt NUR freigegebene Versionen: Wird auf GitHub ein Tag v… gesetzt (z. B. v2026.11.2),
+# baut GitHub Actions die Images und trägt die Version hier ein. Portainer bemerkt die
+# Änderung (Polling) und spielt sie ein. Zwischenstände von main landen in server/test.yml.
 #
 # Einstellungen kommen aus den Umgebungsvariablen des Stacks in Portainer
-# (mindestens DB_PASSWORD, siehe README → „Testserver mit Portainer“).
+# (mindestens DB_PASSWORD, siehe README → „Server mit Portainer“).
 # Für die Installation per Skript (update.sh) gilt die docker-compose.yml im Hauptordner.
 # =============================================================================
 name: bauplattform

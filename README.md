@@ -101,17 +101,24 @@ Die Testdaten umfassen:
 Der Befehl bricht ab, wenn die Datenbank schon Tagesberichte enthält. Das schützt das Echtsystem. Nur auf einem Testsystem
 lässt er sich mit `bash update.sh --testdaten --force` erzwingen.
 
-## Testserver mit Portainer (automatische Updates über GitHub)
+## Server mit Portainer (automatische Updates über GitHub)
 
-Auf dem Testserver läuft die Bauplattform als Portainer-Stack direkt aus diesem Repository:
+Die Bauplattform läuft als Portainer-Stack direkt aus diesem Repository:
 
-1. Jeder Push auf `main` baut die drei Images (`bautagebuch`, `gantt`, `plattform`) und legt sie unter
-   `ghcr.io/matthiasknauff/bauplattform/…` ab.
-2. Danach trägt GitHub Actions die neue Versionsnummer in `server/docker-compose.yml` ein.
-3. Portainer prüft die Quelle alle 5 Minuten (Polling), bemerkt die Änderung und spielt die neue Version ein.
+| Datei | Server | bekommt |
+|---|---|---|
+| `server/docker-compose.yml` | Produktiv (Docker 2) | nur freigegebene Versionen (Git-Tag `v…`, z. B. `v2026.11.2`) |
+| `server/test.yml` | Testserver (optional) | jeden Stand von `main` |
+
+1. GitHub Actions baut die drei Images (`bautagebuch`, `gantt`, `plattform`) unter `ghcr.io/matthiasknauff/bauplattform/…`.
+2. Danach trägt der Workflow die Version in die passende Datei ein.
+3. Portainer prüft die Quelle regelmäßig (Polling), bemerkt die Änderung und spielt die neue Version ein.
+
+**Version freigeben:** Tag `v<VERSION>` auf den gewünschten Stand setzen und pushen
+(`git tag v2026.11.3 && git push origin v2026.11.3`). Vorher einen Proxmox-Snapshot anlegen.
 
 Stack in Portainer: Build method *Repository*, Source `bauplattform`, Reference `refs/heads/main`,
-Compose path `server/docker-compose.yml`. Unter *Environment variables* mindestens `DB_PASSWORD` (Kennwort der
+Compose path `server/docker-compose.yml` (Testserver: `server/test.yml`). Unter *Environment variables* mindestens `DB_PASSWORD` (Kennwort der
 vorhandenen Datenbank) eintragen, sinnvollerweise auch `SECRET_KEY` aus dem bisherigen Bautagebuch-Container.
 
 Die Volumes `bautagebuch_data`, `bautagebuch_pgdata` und `gantt-app_gantt-data` müssen schon vorhanden sein

@@ -43,8 +43,11 @@ tr.off td:last-child{opacity:1}
 <main class="wrap" id="main"></main>
 <script src="static/bp.js"></script>
 <script>
-const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer'], ['sessions', 'Angemeldet'], ['status', 'Zustand'], ['audit', 'Protokoll']];
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer'], ['sessions', 'Angemeldet'], ['system', 'System']];
 let tab = (location.hash || '#projekte').slice(1), me = null, data = {};
+if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
+const SYS = [['health', 'Server-Status'], ['protokoll', 'Protokoll']];
+const sysNav = () => `<div class="bar" style="margin-bottom:1.2rem">${SYS.map(([k, l]) => `<button class="btn sm ${k === (data.sys || 'health') ? 'pri' : ''}" data-a="sys" data-sys="${k}">${l}</button>`).join('')}</div>`;
 const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
 function renderTabs() { $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}</button>`).join(''); }
 $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; history.replaceState(null, '', '#' + tab); renderTabs(); load(); };
@@ -55,7 +58,7 @@ async function load() {
     if (tab === 'projekte') { data.p = await api('api/projects'); renderProjects(); }
     else if (tab === 'users') { data.u = await api('api/users'); renderUsers(); }
     else if (tab === 'sessions') { data.s = await api('api/sessions'); renderSessions(); }
-    else if (tab === 'status') { m.innerHTML = '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
+    else if ((data.sys || 'health') === 'health') { m.innerHTML = sysNav() + '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
     else { data.a = await api('api/audit?cat=' + (data.cat || '')); renderAudit(); }
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
@@ -206,6 +209,7 @@ $('#main').addEventListener('click', (e) => {
   else if (b.dataset.a === 'end') api('api/sessions/' + b.dataset.id, 'DELETE').then(() => { toast('Sitzung beendet.'); load(); }).catch(e => toast(e.message, true));
   else if (b.dataset.a === 'cat') { data.cat = b.dataset.cat; load(); }
   else if (b.dataset.a === 'reload') load();
+  else if (b.dataset.a === 'sys') { data.sys = b.dataset.sys; load(); }
   else if (b.dataset.a === 'pf') renderProjects(data.pq, b.dataset.f);
   else if (b.dataset.a === 'popen') openDlg(projOf(b));
   else if (b.dataset.a === 'pdel') delDlg(projOf(b));
@@ -223,10 +227,10 @@ function renderSessions() {
     <div class="note">Eine Anmeldung gilt 30 Tage ab der letzten Nutzung und für alle Apps. „Beenden“ meldet das Gerät in allen Apps ab.</div>`;
 }
 
-/* ---------- Zustand ---------- */
+/* ---------- System: Server-Status ---------- */
 function renderStatus() {
   const s = data.st;
-  $('#main').innerHTML = `<div class="bar"><h1 style="margin:0">Zustand</h1><span class="fill"></span><button class="btn sm" data-a="reload">Aktualisieren</button></div>
+  $('#main').innerHTML = `${sysNav()}<div class="bar"><h1 style="margin:0">Server-Status</h1><span class="fill"></span><button class="btn sm" data-a="reload">Aktualisieren</button></div>
     <div class="grid">
       <div class="card"><h2 style="margin-top:0">Dienste</h2>${s.services.map(x => `<div class="kv"><span class="svc"><span class="dot ${x.ok ? '' : 'bad'}"></span>${esc(x.name)}</span><small>${x.ok ? (x.version ? 'v' + esc(x.version) + ' · ' : '') + x.ms + ' ms' : esc(x.error || 'nicht erreichbar')}</small></div>`).join('')}</div>
       <div class="card"><h2 style="margin-top:0">Datenbank</h2>
@@ -240,7 +244,7 @@ function renderStatus() {
 /* ---------- Protokoll ---------- */
 function renderAudit() {
   const c = data.cat || '';
-  $('#main').innerHTML = `<h1>Protokoll</h1>
+  $('#main').innerHTML = `${sysNav()}<h1>Protokoll</h1>
     <div class="bar">${[['', 'Alles'], ['konto', 'Anmeldungen'], ['verwaltung', 'Verwaltung']].map(([k, l]) => `<button class="btn sm ${k === c ? 'pri' : ''}" data-a="cat" data-cat="${k}">${l}</button>`).join('')}</div>
     <div class="tbl"><table><thead><tr><th>Zeit</th><th>Benutzer</th><th>Aktion</th><th class="hide-s">Details</th></tr></thead><tbody>
     ${data.a.map(r => `<tr><td style="white-space:nowrap">${esc(r.ts.slice(0, 16).replace(/^(\d+)-(\d+)-(\d+)/, '$3.$2.$1'))}</td><td>${esc(r.user_name)}</td><td>${esc(r.action)}</td><td class="hide-s mute">${esc([r.project, r.detail].filter(Boolean).join(' · '))}</td></tr>`).join('') || '<tr><td colspan="4" class="mute">Keine Einträge.</td></tr>'}

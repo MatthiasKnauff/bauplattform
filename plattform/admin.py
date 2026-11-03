@@ -22,6 +22,8 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("adressen", "Adressen", os.environ.get("ADRESSEN_INTERNAL", "http://adressen:8093") + "/api/health"),
     ("baukosten", "Baukosten", os.environ.get("BAUKOSTEN_INTERNAL", "http://baukosten:8094") + "/api/health"),
 ]
+if os.environ.get("OLLAMA_URL"):   # eigene KI im Büro
+    SERVICES.append(("ollama", "KI im Büro (Ollama)", os.environ["OLLAMA_URL"].rstrip("/") + "/api/version"))
 
 
 @app.before_request
@@ -260,6 +262,14 @@ def _probe(url):
 def status():
     svc = [{"key": k, "name": n, **_probe(u)} for k, n, u in SERVICES]
     svc.append({"key": "admin", "name": "Verwaltung", "ok": True, "ms": 0, "version": platform.version()})
+    for x in svc:
+        if x["key"] == "ollama" and x["ok"]:   # läuft – aber ist das Modell schon geladen?
+            from bpcore import ai
+            st = ai.ollama_state()
+            x["version"] = (x["version"] + " · " if x["version"] else "") + st["hint"]
+            x["ok"] = st["ok"]
+            if not st["ok"]:
+                x["error"] = st["hint"]
     with db.tx() as c:
         dbinfo = {
             "schema": c.execute("SELECT COALESCE(MAX(version),0) FROM schema_migrations").fetchone()[0],

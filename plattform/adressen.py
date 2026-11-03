@@ -16,6 +16,7 @@ from datetime import datetime
 from flask import Response, g, jsonify, redirect, request
 
 from bpcore import db, platform, sso
+from bpcore import contacts as shared_contacts
 import common as C
 
 app = C.make_app(__name__)
@@ -184,11 +185,9 @@ def delete_contact(i):
         r = c.execute("SELECT * FROM contacts WHERE id=?", (i,)).fetchone()
         if not r:
             return jsonify(ok=True)
-        used, site = _usage(c)
-        if used.get(i):
-            return jsonify(error=f"„{r['name']}“ kommt in Berichten des Bautagebuchs vor und bleibt deshalb erhalten."), 409
-        if i in site:
-            return jsonify(error=f"„{r['name']}“ ist die Baustellenadresse des Projekts „{site[i]}“ und bleibt deshalb erhalten."), 409
+        why = shared_contacts.usage(c, i)   # gleiche Regel wie im Bautagebuch und im Bauzeitenplan
+        if why:
+            return jsonify(error=shared_contacts.blocked_message(r["name"], why)), 409
         c.execute("DELETE FROM contacts WHERE id=?", (i,))
     C.audit(g.user["name"], "kontakte", "Kontakt gelöscht", f"{r['name']} · Adressen")
     return jsonify(ok=True)

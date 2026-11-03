@@ -1,5 +1,8 @@
 # Änderungsprotokoll – Gantt-App (Bauzeitenplan)
 
+## 3.1.1 – 03.11.2026
+- **Firmen löschen nur, wenn nirgends verwendet** – gleiche Regel wie im Bautagebuch und in der Adressen-App: nicht in Berichten, nicht als Baustellenadresse, in keinem Bauzeitenplan einem Gewerk zugeordnet. Ist die Firma im geöffneten Plan eingetragen, zuerst beim Gewerk entfernen.
+
 ## 3.1.0 – 03.11.2026
 - **Baustellenadressen nicht mehr als Firmen**: Im Bautagebuch beim Projekt gespeicherte Baustellenadressen (Gewerk „Baustelle“) erscheinen nicht mehr in der Firmenauswahl und im Adressbuch.
 - **Farbschema zentral**: wird jetzt auf der Startseite unter „Darstellung“ eingestellt und gilt für alle Apps; in den Programmeinstellungen steht nur noch der Hinweis dorthin.

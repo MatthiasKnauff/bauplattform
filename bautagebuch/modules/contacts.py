@@ -78,7 +78,16 @@ def update_contact(i):
 
 @bp.delete("/api/contacts/<int:i>")
 def delete_contact(i):
-    with db.tx() as c:  # items.contact_id wird per ON DELETE SET NULL automatisch gelöst
+    """Löschen nur, wenn der Kontakt nirgends verwendet wird (Bautagebuch, Baustellenadresse, Bauzeitenplan) –
+    gleiche Regel in allen Apps der Bauplattform (bpcore/contacts.py)."""
+    from bpcore import contacts as shared
+    with db.tx() as c:
+        row = c.execute("SELECT name FROM contacts WHERE id=?", (i,)).fetchone()
+        if not row:
+            return jsonify(ok=True)
+        why = shared.usage(c, i)
+        if why:
+            return jsonify(error=shared.blocked_message(row["name"], why)), 409
         c.execute("DELETE FROM contacts WHERE id=?", (i,))
     return jsonify(ok=True)
 

@@ -44,6 +44,15 @@
 .info{color:var(--mute);font-size:.86rem;margin-top:.8rem}
 .mf{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
 .mf .fill{flex:1}
+/* PDF-Ansicht wie im Bautagebuch: Schließen, Zoom, Drucken, Teilen */
+#pv{position:fixed;inset:0;z-index:200;background:#2b2c30;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.pvb{display:flex;gap:.5rem;align-items:center;padding:.5rem .7rem;background:#17181a;border-bottom:1px solid #3b3e42}
+.pvb span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9a9c9e;font-size:.8rem}
+.pvb button{border:1px solid #3b3e42;border-radius:10px;padding:.45rem .8rem;color:var(--y);font-weight:600;white-space:nowrap}
+.pvb .pvc{background:var(--y);color:var(--on);border-color:var(--y)}
+.pvs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:.6rem .6rem calc(.6rem + env(safe-area-inset-bottom))}
+.pvw{width:max-content;min-width:100%}.pvw canvas{display:block;margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}
+@media (max-width:560px){.pvb{flex-wrap:wrap}.pvb span{order:9;flex-basis:100%}}
 @media (max-width:560px){
   .wrap{padding:1rem .75rem 3rem}
   .fm{grid-template-columns:1fr}
@@ -155,7 +164,64 @@ function exportQS() {
   if (f) p.set('filter', f);
   const s = p.toString(); return s ? '?' + s : '';
 }
-$('#pdf').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); window.open('/api/contacts/export.pdf' + exportQS(), '_blank'); };
+$('#pdf').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); openPdf('/api/contacts/export.pdf' + exportQS()); };
+
+/* ---------- PDF-Ansicht (wie im Bautagebuch): funktioniert auch auf dem Handy und als Startbildschirm-App ---------- */
+let pv = null;
+const loadScript = (src) => new Promise((ok, no) => { const e = document.createElement('script'); e.src = src; e.onload = ok; e.onerror = no; document.head.appendChild(e); });
+async function pvRender() {
+  const box = pv.el.querySelector('.pvw'), W = pv.el.querySelector('.pvs').clientWidth - 20, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  box.innerHTML = '';
+  for (let n = 1; n <= pv.doc.numPages; n++) {
+    const pg = await pv.doc.getPage(n), v1 = pg.getViewport({ scale: 1 }), cssW = Math.min(W, 1100) * pv.zoom, sc = cssW / v1.width, vp = pg.getViewport({ scale: sc * dpr });
+    const c = document.createElement('canvas'); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+    c.style.width = cssW + 'px'; c.style.height = (cssW * v1.height / v1.width) + 'px'; box.appendChild(c);
+    await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    if (!pv) return;
+  }
+}
+async function openPdf(url) {
+  toast('PDF wird erzeugt …');
+  let name = 'Adressen.pdf';
+  try {
+    const r = await fetch(url);
+    if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) location.href = j.login; return; }
+    if (!r.ok) { const j = await r.json().catch(() => ({})); toast(j.error || 'Das PDF konnte nicht erzeugt werden.', true); return; }
+    const m = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get('Content-Disposition') || ''); if (m) name = decodeURIComponent(m[1]);
+    const blob = await r.blob();
+    if (!window.pdfjsLib) { await loadScript('/static/vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdfjs/pdf.worker.js'; }
+    const doc = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
+    const el = document.createElement('div'); el.id = 'pv';
+    el.innerHTML = `<div class="pvb"><button class="pvc" data-pv="close">✕ Schließen</button><span>${esc(name)}</span><button data-pv="zoom" data-d="-1" aria-label="Verkleinern">−</button><button data-pv="zoom" data-d="1" aria-label="Vergrößern">+</button><button data-pv="print">Drucken</button><button data-pv="share">Teilen</button></div><div class="pvs"><div class="pvw"></div></div>`;
+    document.body.appendChild(el); pv = { el, doc, blob, name, zoom: 1 };
+    el.addEventListener('click', pvClick);
+    history.pushState({ pv: 1 }, '');   // Wischgeste „zurück“ schließt die Ansicht ebenfalls
+    await pvRender();
+  } catch (e) { toast('Das PDF konnte nicht angezeigt werden.', true); closePv(); }
+}
+function closePv() { if (pv) { if (pv.url) URL.revokeObjectURL(pv.url); pv.el.remove(); pv = null; } }
+window.addEventListener('popstate', closePv);
+async function pvShare() {
+  const f = new File([pv.blob], pv.name, { type: 'application/pdf' });
+  try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(pv.blob); a.download = pv.name; document.body.appendChild(a); a.click(); a.remove();
+}
+function pvPrint() {   // Rechner: Druckdialog des Browsers; Handy: über „Teilen“ → Drucken
+  if (matchMedia('(pointer:coarse)').matches) { pvShare(); return; }
+  pv.url = pv.url || URL.createObjectURL(pv.blob);
+  let fr = document.getElementById('pvFrame');
+  if (!fr) { fr = document.createElement('iframe'); fr.id = 'pvFrame'; fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(fr); }
+  fr.onload = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch { window.open(pv.url, '_blank'); } };
+  fr.src = pv.url;
+}
+function pvClick(e) {
+  const b = e.target.closest('[data-pv]'); if (!b || !pv) return;
+  if (b.dataset.pv === 'close') { if (history.state && history.state.pv) history.back(); else closePv(); }
+  else if (b.dataset.pv === 'zoom') { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * 0.6).toFixed(1))); pvRender(); }
+  else if (b.dataset.pv === 'print') pvPrint();
+  else if (b.dataset.pv === 'share') pvShare();
+}
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && pv) { if (history.state && history.state.pv) history.back(); else closePv(); } });
 $('#xlsx').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); location.assign('/api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
 
 (async () => {

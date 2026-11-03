@@ -16,6 +16,7 @@ from urllib.parse import quote, urlsplit
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
 from bpcore import SCHEMA, db, platform, sso
+from bpcore import contacts as shared_contacts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PUB = os.path.join(HERE, "public")
@@ -710,8 +711,8 @@ def firms():
             r = by_id.get(d)
             if r is None or d in ids_in_list:
                 continue
-            if c.execute("SELECT 1 FROM items WHERE contact_id=? LIMIT 1", (r["id"],)).fetchone():
-                kept.append(r["name"])   # im Bautagebuch verwendet → bleibt
+            if shared_contacts.usage(c, r["id"]):
+                kept.append(r["name"])   # noch verwendet (Bautagebuch, Baustelle, anderer Bauzeitenplan) → bleibt
                 continue
             c.execute("DELETE FROM contacts WHERE id=?", (r["id"],))
         resp = jsonify(all_firms(c))

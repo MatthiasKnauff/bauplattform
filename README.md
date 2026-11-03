@@ -150,8 +150,9 @@ deshalb muss man sich dort einmal getrennt anmelden. Hat ein Browser noch ein al
 
 Dieselben Kontakte wie im Bautagebuch und im Adressbuch des Bauzeitenplans (Tabelle `contacts`), als eigene App fürs
 Handy und den Rechner: suchen, nach Firmen/Bauherren/Baustellen und Gewerk filtern, anlegen, ändern, anrufen, E-Mail,
-Karte, Visitenkarte ins Handy (vCard), Drucken (PDF, wie im Bautagebuch) und Export als Excel. Löschen geht nur, wenn der Kontakt im Bautagebuch nirgends
-verwendet wird. Baustellenadressen (im Bautagebuch beim Projekt gespeichert) erscheinen nicht als Firmen im Bauzeitenplan.
+Karte, Visitenkarte ins Handy (vCard), Drucken (PDF, wie im Bautagebuch) und Export als Excel. Gelöscht wird in allen Apps (Bautagebuch, Bauzeitenplan, Adressen) nur ein Kontakt, der nirgends
+verwendet wird: nicht in Berichten, nicht als Baustellenadresse, in keinem Bauzeitenplan als Firma (`shared/bpcore/contacts.py`).
+PDFs öffnen wie im Bautagebuch in einer eigenen Ansicht (Zoom, Drucken, Teilen). Baustellenadressen (im Bautagebuch beim Projekt gespeichert) erscheinen nicht als Firmen im Bauzeitenplan.
 
 Läuft zunächst ohne Nginx über Port 8093. Damit die anderen Apps richtig dorthin verlinken, in Portainer `SERVER_HOST`
 auf die IP von Docker 2 setzen. Später im Nginx Proxy Manager eine Adresse eintragen (Ziel `bauplattform_adressen:8093`

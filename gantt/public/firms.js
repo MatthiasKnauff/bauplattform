@@ -71,7 +71,7 @@ function saveFirmsSoon() {
         const known = new Set(FIRMS.map((f) => f.id)), added = list.filter((f) => !known.has(f.id) && !FIRMS_DEL.includes(f.id));
         if (added.length) { FIRMS.push(...added); if (fvVisible() && !$('#firmView').contains(document.activeElement)) renderFirms(); }
         const kept = r.headers.get('X-Kept');
-        if (kept) toast(`Nicht gelöscht, weil im Bautagebuch verwendet: ${decodeURIComponent(kept)}`, true);
+        if (kept) toast(`Nicht gelöscht, weil noch verwendet (Bautagebuch, Baustelle oder ein anderer Bauzeitenplan): ${decodeURIComponent(kept)}`, true);
         setSave('Adressbuch gespeichert');
       }).catch((e) => toast('Adressbuch: Speichern fehlgeschlagen – ' + e.message, true));
   }, 400);
@@ -280,8 +280,11 @@ $('#firmView').addEventListener('click', (e) => {
   if (t.dataset.rm) { const gw = t.dataset.rm; act(() => { P.trades = { ...(P.trades || {}) }; delete P.trades[gw]; }); renderFirms(); return; }
   if (t.dataset.del) {
     if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Löschen?'; t.classList.add('sure'); setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = '✕'; t.classList.remove('sure'); } }, 3000); return; }
-    const id = t.dataset.del; FIRMS = FIRMS.filter((f) => f.id !== id); FIRMS_DEL.push(id); saveFirmsSoon();
-    if (Object.values(P.trades || {}).some((x) => x.firm === id)) act(() => { P.trades = Object.fromEntries(Object.entries(P.trades).map(([k, v]) => [k, v.firm === id ? { ...v, firm: '' } : v])); });
+    const id = t.dataset.del;
+    // gleiche Regel in allen Apps: nur löschen, was nirgends verwendet wird – hier im Plan zuerst beim Gewerk entfernen
+    const inPlan = Object.entries(P.trades || {}).filter(([, x]) => x.firm === id).map(([k]) => k);
+    if (inPlan.length) { toast(`Die Firma ist in diesem Plan bei ${inPlan.join(', ')} eingetragen – dort zuerst entfernen, dann löschen.`, true); renderFirms(); return; }
+    FIRMS = FIRMS.filter((f) => f.id !== id); FIRMS_DEL.push(id); saveFirmsSoon();
     renderFirms(); return;
   }
   if (t.dataset.a === 'firm-new') { fvBookOpen = true; FIRMS.push({ id: newFirmId(), name: 'Neue Firma', gewerke: [], contact: '', phone: '', mobile: '', mail: '', address: '', note: '' }); saveFirmsSoon(); fvQuery = ''; renderFirms(); const inp = $('#firmView').querySelector(`tr[data-fid="${FIRMS[FIRMS.length - 1].id}"] input`); if (inp) { inp.focus(); inp.select(); } }

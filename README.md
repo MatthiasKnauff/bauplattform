@@ -206,6 +206,9 @@ in der Verwaltung (App „Adressen“; wer „alle Apps“ hat, bekommt sie auto
 
 ## Kopfleiste (alle Apps)
 
+Projektnamen: Jedes Feld „Projektname“ (Bauzeitenplan, Baukosten, Verwaltung, Bautagebuch) schlägt beim Tippen Projekte aus dem
+Bautagebuch und Ordner auf dem Server (Ablage) vor; im Bauzeitenplan wird ein gewähltes Bautagebuch-Projekt gleich verknüpft.
+
 Alle Apps haben oben dieselbe dunkle Leiste: **Bauportal / App** (Klick führt zur Startseite) · aktuelles Projekt ·
 **KI-Auswahl** · Benutzer mit App-Umschalter, Darstellung und Abmelden. Im Bautagebuch und im Bauzeitenplan sitzt sie über der
 bisherigen Leiste – deren Bedienung bleibt unverändert. Code: `shared/bpcore/head.py` und `shared/bpcore/head/` (jede App liefert

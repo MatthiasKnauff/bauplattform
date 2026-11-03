@@ -44,4 +44,11 @@
 @media (max-width:900px){.bph-ki{display:none}.bph-kim{display:inline-flex;align-items:center}.bph-nm{display:none}}
 @media (max-width:640px){.bph{gap:.6rem;padding:.3rem .6rem;min-height:46px}.bph-proj{display:none}.bph-fill{display:block}}
 @media (max-width:420px){.bph-plat,.bph-sl{display:none}}
-@media print{.bph{display:none!important}}
+.bph-sug{position:fixed;z-index:4000;background:#fff;color:#1c1c1a;border:1px solid #cfcbc2;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.25);
+  max-height:320px;overflow:auto;padding:.25rem;font:14px/1.35 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;box-sizing:border-box}
+.bph-sug-g{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b675f;padding:.5rem .6rem .2rem}
+.bph-sug-o{display:block;width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:.45rem .6rem;cursor:pointer;color:inherit;font:inherit}
+.bph-sug-o b{font-weight:600}
+.bph-sug-o small{display:block;color:#6b675f;font-size:12px}
+.bph-sug-o:hover,.bph-sug-o.on{background:#f1efea}
+@media print{.bph{display:none!important}.bph-sug{display:none!important}}

@@ -1611,7 +1611,7 @@ function projectDialog() {
       <td style="width:30px;text-align:center"><button type="button" class="btn sm" data-frdel="${k}" title="Entfernen">✕</button></td></tr>`).join('')
     || '<tr><td colspan="5" style="color:var(--mut);padding:6px">Keine eigenen freien Tage</td></tr>';
   const body = `<div class="form">
-      <label>Projektname</label><input id="pName" class="full" value="${esc(P.name)}">
+      <label>Projektname</label><input id="pName" class="full" value="${esc(P.name)}" data-bp-projekt autocomplete="off">
       <label>Projektanfang</label><input id="pStart" type="date" class="full" value="${isoD(P.start)}">
       <label>Projektende</label><div class="ro full">${fmtD(CAL.peDay)} (berechnet)</div>
     </div>
@@ -1699,7 +1699,7 @@ function gwDialog() {
 // Dialogen vor (z. B. Projektnamen = Bauvorhabenadressen beim Anlegen eines Gewerks).
 function promptDialog(title, label, value, onOk, suggest) {
   const dl = suggest && suggest.length ? `<datalist id="pvList">${suggest.map((s) => `<option value="${esc(s)}">`).join('')}</datalist>` : '';
-  modal(title, `<div class="form"><label>${esc(label)}</label><input id="pv" class="full" value="${esc(value)}" autocomplete="off"${dl ? ' list="pvList"' : ''}>${dl}</div>`,
+  modal(title, `<div class="form"><label>${esc(label)}</label><input id="pv" class="full" value="${esc(value)}" autocomplete="off"${dl ? ' list="pvList"' : ''}${label === 'Projektname' ? ' data-bp-projekt' : ''}>${dl}</div>`,
     [{ label: 'OK', cls: 'primary', primary: true, fn: (bg) => { const v = bg.querySelector('#pv').value.trim(); if (!v) return false; onOk(v); } }, { label: 'Abbrechen' }]);
 }
 function confirmDialog(title, text, onOk, okLabel = 'Löschen') {
@@ -2409,14 +2409,18 @@ function fileNew() {
   modal('Neu', `<div class="nw-opts">
       <button class="nw-opt" data-nw="empty"><b>Leeres Projekt</b><small>Leistungen selbst eintragen</small></button>
       <button class="nw-opt" data-nw="assist"><b>Mit Planungsassistent</b><small>Gebäudetyp wählen, Leistungen vorschlagen lassen</small></button>
-    </div><div class="form" style="margin-top:10px"><label>Projektname</label><input id="nwName" class="full" value="Neues Projekt"><label>Projektanfang</label><input id="nwStart" type="date" class="full" value="${isoD(startOf('week', todayN() + 7))}"></div>`, [{ label: 'Abbrechen' }]);
+    </div><div class="form" style="margin-top:10px"><label>Projektname</label><input id="nwName" class="full" value="" placeholder="Projektnummer oder Name – Vorschläge aus Bautagebuch und Server" data-bp-projekt autocomplete="off"><label>Projektanfang</label><input id="nwStart" type="date" class="full" value="${isoD(startOf('week', todayN() + 7))}"></div>`, [{ label: 'Abbrechen' }]);
   const bg = [...document.querySelectorAll('.modal-bg')].pop();
   bg.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-nw]'); if (!b) return;
-    const name = bg.querySelector('#nwName').value.trim() || 'Neues Projekt', st = parseDate(bg.querySelector('#nwStart').value) ?? todayN();
+    const nw = bg.querySelector('#nwName'), name = nw.value.trim() || 'Neues Projekt', st = parseDate(bg.querySelector('#nwStart').value) ?? todayN();
+    const btId = nw.dataset.btId ? +nw.dataset.btId : null;   // Vorschlag „Projekt im Bautagebuch“ gewählt → gleich verknüpfen
     bg.remove();
     if (!(await leaveProjectOk())) return;
-    const p = await api.create({ name, start: snapWork(st), tasks: [], cal: P ? P.cal : null }); await openProject(p.id); await refreshProjectList();
+    const p = await api.create({ name, start: snapWork(st), tasks: [], cal: P ? P.cal : null });
+    if (btId) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: btId }) }).catch(() => {});
+    await openProject(p.id); await refreshProjectList();
+    if (btId) toast('Mit dem Bautagebuch-Projekt verknüpft.');
     if (b.dataset.nw === 'assist') { setAssistOpen(true); toast('Wähle rechts im Planungsassistenten die Maßnahme – „In … erzeugen“ füllt das neue Projekt.'); }
   });
 }

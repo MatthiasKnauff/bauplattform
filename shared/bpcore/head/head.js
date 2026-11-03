@@ -134,6 +134,66 @@
     })();
     return H.ready;
   };
+
+  /* ---------- Projektnamen vorschlagen: Projekte im Bautagebuch und Ordner auf dem Server ----------
+     Jedes Eingabefeld mit data-bp-projekt bekommt beim Tippen eine Vorschlagsliste. Wird ein Bautagebuch-Projekt
+     gewählt, steht dessen Nummer danach in input.dataset.btId (z. B. zum Verknüpfen). */
+  let sugBox = null, sugFor = null, sugT = 0, sugItems = [], sugIdx = -1;
+  function sugClose() { if (sugBox) sugBox.remove(); sugBox = null; sugFor = null; sugItems = []; sugIdx = -1; }
+  function sugPlace() {
+    if (!sugBox || !sugFor) return;
+    const r = sugFor.getBoundingClientRect();
+    Object.assign(sugBox.style, { left: r.left + 'px', top: r.bottom + 2 + 'px', width: Math.max(r.width, 300) + 'px' });
+  }
+  function sugRender() {
+    if (!sugFor) return;
+    if (!sugItems.length) { if (sugBox) sugBox.remove(); sugBox = null; return; }
+    if (!sugBox) { sugBox = document.createElement('div'); sugBox.className = 'bph-sug'; sugBox.setAttribute('role', 'listbox'); document.body.appendChild(sugBox); }
+    let last = '';
+    sugBox.innerHTML = sugItems.map((x, i) => {
+      const grp = x.kind !== last ? `<div class="bph-sug-g">${x.kind === 'bt' ? 'Projekte im Bautagebuch' : 'Ordner auf dem Server'}</div>` : ''; last = x.kind;
+      return grp + `<button type="button" role="option" class="bph-sug-o${i === sugIdx ? ' on' : ''}" data-i="${i}" aria-selected="${i === sugIdx}"><b>${esc(x.name)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</button>`;
+    }).join('');
+    sugPlace();
+  }
+  function sugPick(i) {
+    const x = sugItems[i]; if (!x || !sugFor) return;
+    const inp = sugFor;
+    inp.value = x.name;
+    if (x.kind === 'bt') inp.dataset.btId = x.id; else delete inp.dataset.btId;
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+    sugClose(); inp.focus();
+  }
+  async function sugLoad(inp) {
+    const q = inp.value.trim();
+    if (q.length < 2) { sugItems = []; sugRender(); return; }
+    let d = null;
+    try { d = await getJ('api/bp/projektnamen?q=' + encodeURIComponent(q)); } catch { return; }
+    if (sugFor !== inp || inp.value.trim() !== q) return;
+    const seen = new Set();
+    sugItems = [...(d.projects || []).map((p) => ({ kind: 'bt', id: p.id, name: p.name, sub: [p.address, p.archived ? 'archiviert' : ''].filter(Boolean).join(' · ') })),
+      ...(d.folders || []).map((f) => ({ kind: 'dir', name: f, sub: '' }))].filter((x) => { const k = x.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 25);
+    sugIdx = -1; sugRender();
+  }
+  document.addEventListener('input', (e) => {
+    const inp = e.target; if (!inp.matches || !inp.matches('input[data-bp-projekt]')) return;
+    delete inp.dataset.btId; sugFor = inp; clearTimeout(sugT); sugT = setTimeout(() => sugLoad(inp), 220);
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (!sugBox || e.target !== sugFor) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sugIdx = (sugIdx + (e.key === 'ArrowDown' ? 1 : -1) + sugItems.length) % sugItems.length; sugRender(); }
+    else if (e.key === 'Enter' && sugIdx >= 0) { e.preventDefault(); e.stopPropagation(); sugPick(sugIdx); }
+    else if (e.key === 'Escape') { e.stopPropagation(); sugClose(); }
+  }, true);
+  document.addEventListener('mousedown', (e) => {
+    if (!sugBox) return;
+    const o = e.target.closest && e.target.closest('.bph-sug-o');
+    if (o) { e.preventDefault(); sugPick(+o.dataset.i); return; }
+    if (!sugBox.contains(e.target) && e.target !== sugFor) sugClose();
+  }, true);
+  window.addEventListener('resize', sugPlace); document.addEventListener('scroll', sugPlace, true);
+  H.projektFeld = (inp) => { if (inp) { inp.setAttribute('data-bp-projekt', ''); inp.setAttribute('autocomplete', 'off'); } };
+
   H.setProject = function (p) {
     if (!band) return;
     const box = band.querySelector('.bph-proj');

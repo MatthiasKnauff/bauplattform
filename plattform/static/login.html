@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#26282b">
+<title>Anmelden – Bauplattform</title>
+<link rel="icon" href="/logo.png">
+<link rel="stylesheet" href="/static/bp.css">
+<style>
+body{display:flex;min-height:100vh;align-items:flex-start;justify-content:center}
+#box{width:100%;max-width:360px;margin:14vh 1.25rem 2rem}
+.logo{display:flex;align-items:center;gap:.8rem;margin-bottom:1.4rem}
+.logo img{width:52px;height:52px;border-radius:10px;background:#fff;object-fit:contain}
+.logo [hidden]{display:none}
+.logo .mk{width:52px;height:52px;border-radius:10px;background:var(--bar);display:grid;place-items:center;color:#fff}
+.logo b{font-size:1.05rem;display:block}
+.logo small{color:var(--mute)}
+h1{font-size:2rem;margin:0 0 1rem}
+form input{width:100%;margin-bottom:.6rem;padding:.75rem}
+form .btn{width:100%;justify-content:center;padding:.75rem;margin-top:.2rem}
+p{color:var(--mute);margin:0 0 .9rem}
+.lnks{margin-top:1rem;text-align:center}
+.apps{display:flex;gap:.5rem;justify-content:center;margin-top:2.2rem;color:var(--mute);font-size:.85rem;flex-wrap:wrap}
+.apps span{border:1px solid var(--line);border-radius:999px;padding:.15rem .6rem}
+</style>
+</head>
+<body>
+<main id="box">
+  <div class="logo"><img alt="" src="/logo.png" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="mk" hidden><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span><span><b id="office">Bauplattform</b><small>Gemeinsame Anmeldung</small></span></div>
+  <section id="vLogin">
+    <h1>Anmelden</h1>
+    <form id="fLogin" autocomplete="on">
+      <input id="un" name="username" placeholder="Name" autocomplete="username" autocapitalize="off" required>
+      <input id="pw" name="password" type="password" placeholder="Kennwort" autocomplete="current-password" required>
+      <div class="err" id="err"></div>
+      <button class="btn pri" type="submit">Anmelden</button>
+    </form>
+    <div class="lnks"><a href="#" id="forgot">Kennwort vergessen?</a></div>
+    <div class="apps"><span>Bautagebuch</span><span>Bauzeitenplan</span><span>Verwaltung</span></div>
+  </section>
+  <section id="vChange" class="hidden">
+    <h1>Kennwort ändern</h1>
+    <p>Bitte vergib jetzt dein eigenes Kennwort (mindestens 8 Zeichen). Es gilt für alle Apps.</p>
+    <form id="fChange">
+      <input id="pw0" type="password" placeholder="Bisheriges Kennwort" autocomplete="current-password" required>
+      <input id="pw1" type="password" placeholder="Neues Kennwort" autocomplete="new-password" required>
+      <input id="pw2" type="password" placeholder="Kennwort wiederholen" autocomplete="new-password" required>
+      <input id="em" type="email" placeholder="E-Mail-Adresse (für „Kennwort vergessen“)" autocomplete="email" class="hidden">
+      <div class="err" id="err2"></div>
+      <button class="btn pri" type="submit">Speichern</button>
+    </form>
+    <div class="lnks"><a href="#" id="out">Abmelden</a></div>
+  </section>
+</main>
+<script src="/static/bp.js"></script>
+<script>
+const next = new URLSearchParams(location.search).get('next') || '';
+fetch('/api/brand').then(r => r.json()).then(b => { if (b.office) { $('#office').textContent = b.office; document.title = 'Anmelden – ' + b.office; } }).catch(() => {});
+fetch('/api/links').then(r => r.json()).then(l => { $('#forgot').href = l.forgot; }).catch(() => {});
+let me = null;
+function go(dest) { location.href = dest || next || '/'; }
+function showChange() { $('#vLogin').classList.add('hidden'); $('#vChange').classList.remove('hidden'); $('#em').classList.toggle('hidden', !!(me && me.email)); $('#pw0').focus(); }
+$('#fLogin').onsubmit = async (e) => {
+  e.preventDefault(); $('#err').textContent = '';
+  try {
+    const r = await api('/api/login', 'POST', { name: $('#un').value, password: $('#pw').value, next });
+    me = r; applyAccent(r.accent);
+    if (r.must_change) { $('#pw0').value = $('#pw').value; showChange(); $('#pw1').focus(); return; }
+    go(r.next);
+  } catch (err) { $('#err').textContent = err.message; $('#pw').select(); }
+};
+$('#fChange').onsubmit = async (e) => {
+  e.preventDefault(); $('#err2').textContent = '';
+  if ($('#pw1').value !== $('#pw2').value) { $('#err2').textContent = 'Die beiden neuen Kennwörter sind nicht gleich.'; return; }
+  try { await api('/api/password', 'POST', { old: $('#pw0').value, new: $('#pw1').value, email: $('#em').value }); go(); }
+  catch (err) { $('#err2').textContent = err.message; }
+};
+$('#out').onclick = async (e) => { e.preventDefault(); await fetch('/api/logout', { method: 'POST' }); location.reload(); };
+// schon angemeldet? → direkt weiter (oder Kennwort ändern)
+api('/api/me').then(r => { if (!r.ok) { $('#un').focus(); return; } me = r; applyAccent(r.accent); if (r.must_change) showChange(); else go(); }).catch(() => {});
+</script>
+</body>
+</html>

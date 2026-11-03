@@ -1,0 +1,111 @@
+# =============================================================================
+# Bauplattform: Bautagebuch + Bauzeitenplan + Startseite (gemeinsame Anmeldung) + Verwaltung
+# Alle Einstellungen stehen in der Datei .env (wird von update.sh beim ersten Mal angelegt).
+# Starten/Aktualisieren:  bash update.sh      (sichert vorher die Datenbank)
+# =============================================================================
+name: bauplattform
+
+x-env: &env
+  TZ: ${TZ:-Europe/Berlin}
+  DATABASE_URL: "postgresql://bautagebuch@bautagebuch_db:5432/bautagebuch"
+  PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt in .env}   # Kennwort getrennt von der Adresse (Sonderzeichen erlaubt)
+  TRUST_PROXY: ${TRUST_PROXY:-0}          # "1" hinter einem Reverse Proxy (HTTPS)
+  COOKIE_SECURE: ${COOKIE_SECURE:-0}      # "1" = Anmelde-Cookies nur über HTTPS
+  SSO_COOKIE_DOMAIN: ${SSO_COOKIE_DOMAIN:-}
+  # Adressen der Apps (leer = gleicher Rechnername wie im Browser, nur anderer Port)
+  BAUTAGEBUCH_PORT: ${BAUTAGEBUCH_PORT:-8080}
+  GANTT_PORT: ${GANTT_PORT:-8082}
+  PORTAL_PORT: ${PORTAL_PORT:-8090}
+  ADMIN_PORT: ${ADMIN_PORT:-8091}
+  BAUTAGEBUCH_URL: ${BAUTAGEBUCH_URL:-}
+  GANTT_URL: ${GANTT_URL:-}
+  PORTAL_URL: ${PORTAL_URL:-}
+  ADMIN_URL: ${ADMIN_URL:-}
+  BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
+  GANTT_INTERNAL: http://gantt:8082
+  PORTAL_INTERNAL: http://portal:8090
+
+services:
+  bautagebuch_db:
+    image: postgres:15
+    container_name: Bautagebuch_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bautagebuch
+      POSTGRES_DB: bautagebuch
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt in .env}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - bautagebuch_pgdata:/var/lib/postgresql/data     # alle Daten (Bautagebuch, Bauzeitenpläne, Benutzer)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bautagebuch -d bautagebuch"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    # keine veröffentlichten Ports: nur die Apps im selben Docker-Netz erreichen die Datenbank
+
+  bautagebuch:
+    build: { context: ., dockerfile: bautagebuch/Dockerfile }
+    image: bauplattform/bautagebuch:latest
+    container_name: bautagebuch
+    restart: unless-stopped
+    depends_on:
+      bautagebuch_db: { condition: service_healthy }
+    ports:
+      - "${BAUTAGEBUCH_PUBLISH:-8080}:8000"
+    environment:
+      <<: *env
+      SECRET_KEY: ${SECRET_KEY:-}
+    volumes:
+      - bautagebuch_data:/data          # Fotos, Logo, Sicherungen, Einstellungen
+
+  gantt:
+    build: { context: ., dockerfile: gantt/Dockerfile }
+    image: bauplattform/gantt:latest
+    container_name: bauzeitenplan
+    restart: unless-stopped
+    depends_on:
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${GANTT_PUBLISH:-8082}:8082"
+    environment:
+      <<: *env
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - gantt_legacy:/legacy:ro         # Daten der früheren Gantt-App – werden beim ersten Start übernommen
+
+  portal:
+    build: { context: ., dockerfile: plattform/Dockerfile }
+    image: bauplattform/plattform:latest
+    container_name: bauplattform_portal
+    restart: unless-stopped
+    depends_on:
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${PORTAL_PUBLISH:-8090}:8090"
+    environment:
+      <<: *env
+      APP_MODULE: portal
+      APP_PORT: "8090"
+
+  admin:
+    image: bauplattform/plattform:latest
+    container_name: bauplattform_admin
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${ADMIN_PUBLISH:-8091}:8091"
+    environment:
+      <<: *env
+      APP_MODULE: admin
+      APP_PORT: "8091"
+
+volumes:
+  bautagebuch_data:
+    name: bautagebuch_data            # gleiche Volumes wie bisher – die Daten bleiben erhalten
+  bautagebuch_pgdata:
+    name: bautagebuch_pgdata
+  gantt_legacy:
+    name: ${GANTT_LEGACY_VOLUME:-gantt-app_gantt-data}   # Volume der bisherigen Gantt-App (nur lesend)

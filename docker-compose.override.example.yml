@@ -1,0 +1,15 @@
+# Beispiel: zusätzliche Laufwerke für das Bautagebuch (z. B. Windows-Freigabe als Ablage-Ordner, Modus „Ordner im Container“, Pfad /ablage).
+# Als docker-compose.override.yml speichern, anpassen, dann: bash update.sh
+# (update.sh legt diese Datei beim Umstieg automatisch an, wenn der bisherige Container schon Zusatz-Laufwerke hatte.)
+services:
+  bautagebuch:
+    volumes:
+      - baustelle:/ablage
+volumes:
+  baustelle:
+    name: baustelle
+    driver: local
+    driver_opts:
+      type: cifs
+      device: "//fileserver/Projekte"
+      o: "username=BENUTZER,password=KENNWORT,domain=FIRMA,uid=1000,vers=3.0"

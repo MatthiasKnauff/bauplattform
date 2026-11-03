@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planungsassistent – Gantt</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+</head>
+<body class="as-window">
+<div id="assistRoot"></div>
+<script src="catalog.js"></script>
+<script>
+  // Hilfsfunktionen, die assist.js beim Laden erwartet (die Logik läuft im Hauptfenster)
+  var GW_DEFAULT = {};
+</script>
+<script src="assist.js"></script>
+<script>
+(function () {
+  const root = document.getElementById('assistRoot');
+  let ui = null, host = null;
+  const getHost = () => { try { return window.opener && !window.opener.closed ? window.opener.AssistCore : null; } catch (e) { return null; } };
+  function connect() {
+    const h = getHost();
+    if (h === host) return;
+    if (ui) { ui.destroy(); ui = null; }
+    host = h;
+    if (!host) {
+      root.innerHTML = '<div class="as-nohost"><b>Keine Verbindung zur Gantt-App.</b><br>Öffne den Assistenten aus der App heraus: Reiter <i>Projekt</i> → <i>Eigenes Fenster</i>. Ist das Hauptfenster geschlossen oder neu geladen, verbindet sich dieses Fenster automatisch wieder, sobald die App da ist.</div>';
+      return;
+    }
+    ui = AssistUI.mount(root, host, { docked: false });
+  }
+  connect();
+  setInterval(connect, 1500);   // Hauptfenster neu geladen oder geschlossen?
+  window.addEventListener('pagehide', () => { if (ui) ui.destroy(); });
+})();
+</script>
+</body>
+</html>

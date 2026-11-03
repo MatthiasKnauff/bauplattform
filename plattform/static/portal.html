@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#84827c">
+<title>Bauplattform</title>
+<link rel="icon" href="/logo.png">
+<link rel="stylesheet" href="/static/bp.css">
+<style>
+.hello{margin:.4rem 0 1.4rem}
+.hello h1{margin:0}
+.hello p{margin:.3rem 0 0;color:var(--mute)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
+.tile{display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.2rem 1.2rem 1.1rem;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s;min-height:168px}
+.tile:hover,.tile:focus-visible{border-color:var(--y);transform:translateY(-2px)}
+.tile .ic{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.05);color:var(--y)}
+.tile b{font-size:1.15rem}
+.tile span{color:var(--mute);font-size:.92rem}
+.tile .go{margin-top:auto;color:var(--y);font-weight:600;font-size:.92rem}
+.tile.off{opacity:.45;pointer-events:none}
+.foot{margin-top:2.4rem;color:var(--mute);font-size:.82rem;display:flex;gap:1rem;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="foot"><span id="ver"></span></div>
+</main>
+<script src="/static/bp.js"></script>
+<script>
+const DESC = {
+  bautagebuch: ['Bautagebuch', 'Tagesberichte, Wetter, Anwesende, Fotos, Mängel und Weisungen – mit PDF.'],
+  gantt: ['Bauzeitenplan', 'Terminplanung mit Gewerken, Firmen, kritischem Weg und Versionen.'],
+  admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
+};
+(async () => {
+  const me = await api('/api/me'); if (!me.ok) { location.href = '/login'; return; }
+  applyAccent(me.accent);
+  const conf = await api('/api/platform');
+  await header('Startseite', me, conf);
+  const h = new Date().getHours();
+  $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.name}`;
+  $('#tiles').innerHTML = conf.apps.filter(a => DESC[a.key] && (a.allowed || a.key !== 'admin')).map(a => `
+    <a class="tile ${a.allowed ? '' : 'off'}" href="${esc(appUrl(a))}/"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'}>
+      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span>${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span>
+      ${a.allowed ? '<span class="go">Öffnen →</span>' : ''}</a>`).join('');
+  $('#ver').textContent = 'Version ' + conf.version;
+})().catch(e => toast(e.message, true));
+</script>
+</body>
+</html>

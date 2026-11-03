@@ -1,0 +1,1009 @@
+{
+  "name": "Renovierung & Umbau 2 Wohnungen (Takt EG → 1.OG)",
+  "start": 20773,
+  "startDate": "2026-11-16",
+  "nextUid": 64,
+  "gwColors": {
+    "Abbruch": "#a1887f",
+    "Rohbau": "#78909c",
+    "Sanitär": "#42a5f5",
+    "Elektro": "#ffca28",
+    "Fenster": "#26a69a",
+    "Putz": "#d7b36a",
+    "Estrich": "#9575cd",
+    "Fliesen": "#4dd0e1",
+    "Maler": "#66bb6a",
+    "Bodenbelag": "#c27c4e"
+  },
+  "tasks": [
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 0,
+      "cons": null,
+      "collapsed": false,
+      "uid": 1,
+      "name": "Projektstart / Baubeginn",
+      "dur": 0
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 0,
+      "cons": null,
+      "collapsed": false,
+      "uid": 5,
+      "name": "Wohnung EG",
+      "dur": 0
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 6,
+      "name": "Abbrucharbeiten",
+      "dur": 0
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "Abbruchfirma",
+      "gw": "Abbruch",
+      "notes": "Nichttragende Wände gem. Plan, inkl. Bodenbeläge im Bad.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 7,
+      "name": "Wände abbrechen",
+      "dur": 4
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 9,
+      "name": "Durchbrüche",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 7,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Rohbau",
+      "gw": "Rohbau",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 11,
+      "name": "Durchbrüche herstellen",
+      "dur": 2
+    },
+    {
+      "preds": [
+        {
+          "uid": 11,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Rohbau",
+      "gw": "Rohbau",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 12,
+      "name": "Abfangung einbauen (Stahlträger, Auflager untermauern)",
+      "dur": 3
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 14,
+      "name": "Haustechnik Rohinstallation",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 12,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Sanitär (SHK)",
+      "gw": "Sanitär",
+      "notes": "Vorwandinstallation, Zu-/Abwasser, Druckprobe.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 15,
+      "name": "Sanitärrohinstallation (Bad, Küche)",
+      "dur": 6
+    },
+    {
+      "preds": [
+        {
+          "uid": 12,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Elektro",
+      "gw": "Elektro",
+      "notes": "Schlitze, Leerrohre, Dosen, Leitungen nach Elektroplan.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 16,
+      "name": "Restliche Elektrorohinstallation",
+      "dur": 5
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 17,
+      "name": "Fenster",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 7,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Fensterbauer",
+      "gw": "Fenster",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 18,
+      "name": "Fenster ausbauen und entsorgen",
+      "dur": 1
+    },
+    {
+      "preds": [
+        {
+          "uid": 18,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Fensterbauer",
+      "gw": "Fenster",
+      "notes": "RAL-Montage innen dampfdicht, außen schlagregendicht.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 19,
+      "name": "Neue Fenster einbauen und abdichten",
+      "dur": 3
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 20,
+      "name": "Putz und Estrich",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 15,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 16,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 19,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Stuckateur",
+      "gw": "Putz",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 21,
+      "name": "Putzarbeiten (Wände, Laibungen, Schlitze)",
+      "dur": 6
+    },
+    {
+      "preds": [
+        {
+          "uid": 21,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Estrichleger",
+      "gw": "Estrich",
+      "notes": "Zementestrich auf Trittschalldämmung, Randdämmstreifen.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 23,
+      "name": "Estricharbeiten Bad",
+      "dur": 1
+    },
+    {
+      "preds": [
+        {
+          "uid": 23,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "",
+      "gw": "Estrich",
+      "notes": "Kleine Badfläche: verkürzte Trocknung 1 Woche, vor dem Fliesen CM-Messung.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 24,
+      "name": "Estrich trocknen (Belegreife, CM-Messung)",
+      "dur": 5
+    },
+    {
+      "preds": [
+        {
+          "uid": 23,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Fliesenleger",
+      "gw": "Fliesen",
+      "notes": "Läuft parallel zur Estrich-Trocknung.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 62,
+      "name": "Wände für Fliesen vorbereiten (Ausgleich, Abdichtung, Grundierung)",
+      "dur": 3
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 25,
+      "name": "Ausbau",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 21,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Maler",
+      "gw": "Maler",
+      "notes": "Grundieren, Spachteln Q3, zweimal Anstrich.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 26,
+      "name": "Malerarbeiten",
+      "dur": 5
+    },
+    {
+      "preds": [
+        {
+          "uid": 24,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 62,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Fliesenleger",
+      "gw": "Fliesen",
+      "notes": "Erst nach Belegreife des Estrichs (CM-Messung).",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 55,
+      "name": "Fliesenarbeiten Bad (Boden und Wände)",
+      "dur": 5
+    },
+    {
+      "preds": [
+        {
+          "uid": 26,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Bodenleger",
+      "gw": "Bodenbelag",
+      "notes": "Untergrund prüfen/ausgleichen, Parkett verlegen; nach den Malerarbeiten.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 52,
+      "name": "Parkett verlegen (inkl. Untergrund vorbereiten)",
+      "dur": 4
+    },
+    {
+      "preds": [
+        {
+          "uid": 52,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Bodenleger",
+      "gw": "Bodenbelag",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 56,
+      "name": "Sockelleisten montieren",
+      "dur": 1
+    },
+    {
+      "preds": [
+        {
+          "uid": 55,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 26,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Sanitär (SHK)",
+      "gw": "Sanitär",
+      "notes": "Endmontage der Objekte nach Fliesen- und Malerarbeiten, Dichtheits-/Funktionsprüfung.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 57,
+      "name": "Sanitär-Feininstallation (WC, Waschtisch, Dusche, Armaturen)",
+      "dur": 2
+    },
+    {
+      "preds": [
+        {
+          "uid": 26,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 56,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 57,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 27,
+      "name": "Wohnung EG fertiggestellt",
+      "dur": 0
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 0,
+      "cons": null,
+      "collapsed": false,
+      "uid": 28,
+      "name": "Wohnung 1.OG",
+      "dur": 0
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 29,
+      "name": "Abbrucharbeiten",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 7,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Abbruchfirma",
+      "gw": "Abbruch",
+      "notes": "Nichttragende Wände gem. Plan, inkl. Bodenbeläge im Bad.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 30,
+      "name": "Wände abbrechen",
+      "dur": 4
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 32,
+      "name": "Durchbrüche",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 30,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 11,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Rohbau",
+      "gw": "Rohbau",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 34,
+      "name": "Durchbrüche herstellen",
+      "dur": 2
+    },
+    {
+      "preds": [
+        {
+          "uid": 34,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 12,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Rohbau",
+      "gw": "Rohbau",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 35,
+      "name": "Abfangung einbauen (Stahlträger, Auflager untermauern)",
+      "dur": 3
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 37,
+      "name": "Haustechnik Rohinstallation",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 35,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 15,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Sanitär (SHK)",
+      "gw": "Sanitär",
+      "notes": "Vorwandinstallation, Zu-/Abwasser, Druckprobe.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 38,
+      "name": "Sanitärrohinstallation (Bad, Küche)",
+      "dur": 6
+    },
+    {
+      "preds": [
+        {
+          "uid": 35,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 16,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Elektro",
+      "gw": "Elektro",
+      "notes": "Schlitze, Leerrohre, Dosen, Leitungen nach Elektroplan.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 39,
+      "name": "Restliche Elektrorohinstallation",
+      "dur": 5
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 40,
+      "name": "Fenster",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 30,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 18,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Fensterbauer",
+      "gw": "Fenster",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 41,
+      "name": "Fenster ausbauen und entsorgen",
+      "dur": 1
+    },
+    {
+      "preds": [
+        {
+          "uid": 41,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 19,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Fensterbauer",
+      "gw": "Fenster",
+      "notes": "RAL-Montage innen dampfdicht, außen schlagregendicht.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 42,
+      "name": "Neue Fenster einbauen und abdichten",
+      "dur": 3
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 43,
+      "name": "Putz und Estrich",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 38,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 39,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 42,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 21,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Stuckateur",
+      "gw": "Putz",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 44,
+      "name": "Putzarbeiten (Wände, Laibungen, Schlitze)",
+      "dur": 6
+    },
+    {
+      "preds": [
+        {
+          "uid": 44,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 23,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Estrichleger",
+      "gw": "Estrich",
+      "notes": "Zementestrich auf Trittschalldämmung, Randdämmstreifen.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 46,
+      "name": "Estricharbeiten Bad",
+      "dur": 1
+    },
+    {
+      "preds": [
+        {
+          "uid": 46,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "",
+      "gw": "Estrich",
+      "notes": "Kleine Badfläche: verkürzte Trocknung 1 Woche, vor dem Fliesen CM-Messung.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 58,
+      "name": "Estrich trocknen (Belegreife, CM-Messung)",
+      "dur": 5
+    },
+    {
+      "preds": [
+        {
+          "uid": 46,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 55,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Fliesenleger",
+      "gw": "Fliesen",
+      "notes": "Läuft parallel zur Estrich-Trocknung.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 63,
+      "name": "Wände für Fliesen vorbereiten (Ausgleich, Abdichtung, Grundierung)",
+      "dur": 3
+    },
+    {
+      "preds": [],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 48,
+      "name": "Ausbau",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 44,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 26,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Maler",
+      "gw": "Maler",
+      "notes": "Grundieren, Spachteln Q3, zweimal Anstrich.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 49,
+      "name": "Malerarbeiten",
+      "dur": 5
+    },
+    {
+      "preds": [
+        {
+          "uid": 55,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 58,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 63,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Fliesenleger",
+      "gw": "Fliesen",
+      "notes": "Erst nach Belegreife des Estrichs (CM-Messung).",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 59,
+      "name": "Fliesenarbeiten Bad (Boden und Wände)",
+      "dur": 5
+    },
+    {
+      "preds": [
+        {
+          "uid": 49,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 52,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Bodenleger",
+      "gw": "Bodenbelag",
+      "notes": "Untergrund prüfen/ausgleichen, Parkett verlegen; nach den Malerarbeiten.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 53,
+      "name": "Parkett verlegen (inkl. Untergrund vorbereiten)",
+      "dur": 4
+    },
+    {
+      "preds": [
+        {
+          "uid": 53,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 56,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Bodenleger",
+      "gw": "Bodenbelag",
+      "notes": "",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 60,
+      "name": "Sockelleisten montieren",
+      "dur": 1
+    },
+    {
+      "preds": [
+        {
+          "uid": 59,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 49,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 57,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Sanitär (SHK)",
+      "gw": "Sanitär",
+      "notes": "Endmontage der Objekte nach Fliesen- und Malerarbeiten, Dichtheits-/Funktionsprüfung.",
+      "lvl": 2,
+      "cons": null,
+      "collapsed": false,
+      "uid": 61,
+      "name": "Sanitär-Feininstallation (WC, Waschtisch, Dusche, Armaturen)",
+      "dur": 2
+    },
+    {
+      "preds": [
+        {
+          "uid": 49,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 60,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 61,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "",
+      "gw": "",
+      "notes": "",
+      "lvl": 1,
+      "cons": null,
+      "collapsed": false,
+      "uid": 50,
+      "name": "Wohnung 1.OG fertiggestellt",
+      "dur": 0
+    },
+    {
+      "preds": [
+        {
+          "uid": 27,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "uid": 50,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "pct": 0,
+      "res": "Bauleitung",
+      "gw": "",
+      "notes": "",
+      "lvl": 0,
+      "cons": null,
+      "collapsed": false,
+      "uid": 51,
+      "name": "Gesamtabnahme / Übergabe",
+      "dur": 0
+    }
+  ]
+}

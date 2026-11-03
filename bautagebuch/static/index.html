@@ -1,0 +1,1667 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#84827c">
+<title>Bautagebuch</title>
+<link rel="icon" type="image/png" href="/api/favicon">
+<link rel="apple-touch-icon" href="/api/favicon?s=180">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+:root{--bar:#84827c;--bg:#26282b;--card:#252729;--line:#3b3e42;--ink:#f3f3f1;--mute:#9a9c9e;--y:#ff5fb3;--on:#111;--red:#ff7a6b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overscroll-behavior:none}
+html,body{position:fixed;inset:0;width:100%;overflow:hidden}   /* die Seite selbst scrollt nie; gescrollt wird nur im Inhaltsbereich (#detail) – sonst rutscht am iPhone die ganze App weg */
+body{background:var(--bg);color:var(--ink);font:16px/1.4 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;color:var(--y);padding:.45rem;border-radius:6px;display:inline-flex;align-items:center;justify-content:center}
+input,select,textarea{background:#1d1f21;border:1px solid var(--line);border-radius:6px;padding:.45rem .6rem;min-width:0}
+textarea{width:100%;min-height:90px;resize:vertical}
+input[type=checkbox]{width:1.15rem;height:1.15rem;accent-color:var(--y);padding:0}
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}   /* unter 16 px zoomt Safari am iPhone beim Antippen hinein und zoomt nicht zurück */
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--y);outline-offset:1px}
+.hidden{display:none!important}
+svg{display:block}
+.bd{border:1px solid var(--y);padding:.6rem 1rem;color:var(--y);font-weight:700;border-radius:8px}
+.empty{color:var(--mute);padding:1.5rem 1rem;text-align:left}
+
+#login{max-width:340px;margin:18vh auto;padding:0 1.25rem}
+#login h1{margin:0 0 1rem;font-size:2rem}
+#login input{width:100%;margin-bottom:.6rem;padding:.7rem}
+#login p{color:var(--mute);margin:0 0 .8rem}
+#login .lnks{margin-top:.9rem;text-align:center}
+.lnk{color:var(--y)}
+#err{color:#ff8a80;min-height:1.2rem;margin-bottom:.6rem}
+.chips{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.chip{padding:.25rem .6rem;border:1px solid var(--y);border-radius:999px;color:var(--y);background:transparent}
+.chk{display:flex;align-items:center;gap:.5rem}
+.chk input{width:auto}
+label.chk{display:flex;flex-direction:row;align-items:flex-start;gap:.6rem;text-align:left}
+label.chk input{flex:none;margin:.15rem 0 0}
+.sugh{padding:.7rem .9rem .3rem;color:var(--mute);font-size:.8rem}
+.who{padding:.4rem .8rem;color:#aaa;font-size:.85rem}
+.stabs{display:flex;flex-wrap:wrap;gap:.4rem;max-width:640px;margin:0 auto;padding:.4rem 1rem 0}
+.stabs button{border:1px solid var(--line);border-radius:999px;padding:.35rem .9rem;color:var(--mute);font-weight:600}
+.stabs button.on{background:var(--y);border-color:var(--y);color:var(--on)}
+.cform h4{grid-column:1/-1;margin:.8rem 0 0;font-size:1.05rem}
+.usr{border:1px solid var(--line);border-radius:10px;margin:.5rem 0;overflow:hidden}
+.uhead{width:100%;display:flex;align-items:center;gap:.6rem;padding:.65rem .8rem;color:var(--ink);text-align:left;border-radius:0;justify-content:flex-start}
+.uhead:disabled{opacity:1;cursor:default}
+.uhead .l{flex:1;min-width:0;display:flex;flex-direction:column}
+.uhead small{color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{border:1px solid var(--y);color:var(--y);border-radius:999px;padding:.05rem .55rem;font-size:.75rem;white-space:nowrap}
+.usr.open .uchev{transform:rotate(180deg)}
+.ubody{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;padding:.2rem .8rem .8rem;border-top:1px solid var(--line)}
+.ubody .w,.ubody .acts{grid-column:1/-1}
+.usr:not(.open) .ubody{display:none}
+.usr.open .ubody{display:grid}
+@media(max-width:720px){.ubody{grid-template-columns:1fr}}
+#login .go{background:var(--y);color:var(--on);width:100%;padding:.7rem;font-weight:700}
+#err{color:var(--red);min-height:1.3em}
+
+/* Rahmen: Kopfleiste, Tabs, Inhalt */
+#app{display:flex;flex-direction:column;height:100%}
+#hdr{background:var(--bar);display:flex;align-items:center;gap:.2rem;padding:.4rem .6rem;flex:none;position:relative;min-height:58px}
+#projBtn,#repBtn{justify-content:flex-start;gap:.6rem;color:#fff;text-align:left;padding:.35rem .7rem;background:rgba(0,0,0,.16);border-radius:10px}
+#projBtn{flex:1;min-width:0;max-width:560px}
+#repBtn{flex:none;margin-right:auto;min-width:110px;max-width:200px}
+#repBtn.hidden{display:none}
+#projBtn .t,#repBtn .t{min-width:0;flex:1;display:flex;flex-direction:column;line-height:1.2}
+#projBtn b,#repBtn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:1.02rem}
+#projBtn small,#repBtn small{color:#ecebe7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.78rem}
+#tabs{display:flex;background:#303236;border-bottom:1px solid var(--line);flex:none;gap:.2rem;padding:0 .6rem}
+.tab{color:var(--mute);padding:.7rem 1rem;border-radius:0;gap:.5rem;border-bottom:3px solid transparent;font-weight:600}
+.tab.on{color:#fff;border-bottom-color:var(--y)}
+#detail{flex:1;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:.8rem;min-height:0}
+#detail.fill{display:flex;flex-direction:column;overflow:hidden}
+.wrap{max-width:900px;margin:0 auto}
+.menu{position:absolute;right:.5rem;top:54px;z-index:25;background:#34363a;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-width:210px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.menu button{color:var(--ink);justify-content:flex-start;padding:.7rem 1rem;border-radius:0;gap:.7rem}
+.menu a.mapp{color:var(--ink);display:flex;align-items:center;padding:.7rem 1rem;gap:.7rem;text-decoration:none}
+.menu a.mapp:hover,.menu a.mapp:focus-visible{background:rgba(255,255,255,.06)}
+.menu a.mapp svg{color:var(--y)}
+.menu .msep{border-top:1px solid var(--line);margin:.2rem 0}
+
+/* Projektauswahl */
+#sheet{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;justify-content:center;align-items:flex-start}
+#sheet .panel{background:#2b2d30;border:1px solid var(--line);border-radius:0 0 14px 14px;width:min(560px,100%);max-height:88vh;display:flex;flex-direction:column}
+#sheet .ph{display:flex;gap:.4rem;padding:.6rem;border-bottom:1px solid var(--line)}
+#sheet .ph input{flex:1}
+#sheet .pl{overflow:auto;flex:1}
+#sheet .pf{display:flex;gap:.5rem;padding:.6rem;border-top:1px solid var(--line);flex-wrap:wrap}
+#sheet .pf .bd{flex:1;white-space:nowrap}
+.pi{display:flex;width:100%;justify-content:space-between;gap:.6rem;text-align:left;color:var(--mute);border-radius:0;border-bottom:1px solid var(--line);padding:.8rem 1rem}
+.cx{display:flex;flex-wrap:wrap;gap:.4rem;padding:.3rem .6rem .5rem;align-items:center}.cx select{flex:1 1 40%;min-width:0}.cx button{border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem;color:var(--y);font-weight:700;font-size:.85rem}
+.hgrid .checks input{flex:none}
+.pconly{display:none}@media(hover:hover) and (pointer:fine) and (min-width:900px){.pconly{display:inline-flex}.pconly.hidden{display:none}}
+.hgrid{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:1rem;align-items:start}.hgrid>h3{grid-column:1;grid-row:1}.hgrid>.meta,.hgrid>.wgrid{grid-column:1;grid-row:2}.hgrid>.checks{grid-column:1;grid-row:3}.hgrid>*{min-width:0}
+.hmap{grid-column:2;grid-row:1/4;display:block;line-height:0}.hmap img{width:280px;height:94px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;opacity:.95}
+@media(max-width:640px){.hgrid>h3{grid-column:1/-1}.hmap{grid-row:2/4;margin-top:.3rem}.hmap img{width:96px;height:96px}}
+.mapb{grid-column:1/-1;border:1px solid var(--line);border-radius:10px;overflow:hidden}.mapb iframe{display:block;width:100%;height:210px;border:0;background:#2a2c30}.mapb.sm iframe{height:150px}@media(max-width:640px){.mapb iframe{height:130px}.mapb.sm iframe{height:90px}.mapr{padding:.45rem .8rem;font-size:.85rem}}
+.mapr{display:block;color:var(--y);text-decoration:none;padding:.6rem .9rem;font-weight:700;border-top:1px solid var(--line)}
+.cform>*{min-width:0}.sugc .pi{overflow:hidden}.sugc{border:1px solid var(--line);border-radius:10px;overflow:hidden}.sugc .pi:last-child{border-bottom:0}
+.rnb{margin:0 0 1rem;padding:.8rem 1rem;border:1px solid var(--y);border-radius:10px;font-size:.9rem;display:grid;gap:.6rem}.rnb .acts{display:flex;gap:.5rem;flex-wrap:wrap}.rnb .acts button{border:1px solid var(--line);border-radius:8px;padding:.45rem .8rem;color:var(--y);font-weight:700}.rnb .acts .pri{background:var(--y);color:var(--on);border-color:var(--y)}
+.pi.arch{color:var(--mute);justify-content:flex-start;align-items:center;font-size:.9rem}.pi.old b{color:var(--mute)}
+.pi.on{color:#fff;box-shadow:inset 3px 0 var(--y)}
+.pi .l{min-width:0;display:flex;flex-direction:column}
+.pi .l b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi .l small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.8rem}
+.pi .dist{color:var(--y);white-space:nowrap;font-size:.85rem;align-self:center}
+
+/* Bericht-Karten */
+#app{position:relative}
+#fab{position:absolute;right:1rem;bottom:1.2rem;z-index:15;width:60px;height:60px;border-radius:50%;background:var(--y);color:var(--on);box-shadow:0 4px 16px rgba(0,0,0,.55);padding:0}
+#detail .wrap{padding-bottom:5.5rem}
+#qs{position:absolute;inset:0;z-index:25;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+#qs.typing .qadd textarea{min-height:4.5rem}#qs.typing{align-items:flex-start;padding-top:calc(env(safe-area-inset-top,0px) + 3.6rem)}#qs.typing .qp{border-radius:16px;max-height:55%}
+#qs .qp{background:#2b2d30;border:1px solid var(--line);border-radius:16px 16px 0 0;width:min(560px,100%);max-height:100%;overflow:auto;padding:.9rem 1rem 1.1rem;text-align:left}
+#qs h4{margin:0 0 .7rem;font-size:1.15rem;display:flex;justify-content:space-between;align-items:center}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.qgrid button{border:1px solid var(--line);border-radius:12px;padding:.9rem .5rem;color:var(--ink);flex-direction:column;gap:.35rem;font-weight:600;min-height:78px}
+.qgrid button svg{color:var(--y)}
+.padd{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.padd>button{border:1px solid var(--line);border-radius:8px;padding:.45rem .7rem;color:var(--ink);gap:.4rem}
+.apv{display:flex;gap:.4rem;flex-wrap:wrap;flex:1 1 100%}
+.apv span{position:relative;display:inline-block}
+.apv img{width:54px;height:54px;object-fit:cover;border-radius:6px;display:block}
+.apv .rm{position:absolute;top:-4px;right:-4px;background:rgba(0,0,0,.8);color:#fff;border-radius:50%;width:20px;height:20px;padding:0;font-size:.7rem}
+.apv .nf{display:inline-flex;width:54px;height:54px;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:6px;color:var(--mute)}
+.qadd{display:flex;flex-wrap:wrap;gap:.5rem}
+.qadd textarea{flex:1 1 100%;min-height:7rem}
+.qadd [data-add-act]{flex:1 1 150px}.qadd [data-add-cnt]{flex:0 0 80px}
+.qadd .qact{flex:1 1 100%;display:flex;gap:.5rem}
+.qadd .qact .ok{flex:1;background:var(--y);color:var(--on);font-weight:700;padding:.8rem;border-radius:10px;font-size:1.05rem}
+.qadd .qact .bd{padding:.8rem 1rem}
+.qpick{display:flex;flex-direction:column;gap:.4rem;max-height:50vh;overflow:auto}
+.qpick button{justify-content:flex-start;text-align:left;border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;color:var(--ink)}
+.qpick small{color:var(--mute);margin-right:.5rem}
+.sec h3.tg{display:flex;align-items:center;gap:.5rem;cursor:pointer;-webkit-user-select:none;user-select:none}
+.tg .cn{font-size:.85rem;font-weight:700;background:var(--y);color:var(--on);border-radius:999px;padding:.05rem .55rem;line-height:1.4}
+.tg .cv{margin-left:auto;color:var(--mute);transition:transform .15s;transform:rotate(-90deg)}
+.tg .cv.o{transform:rotate(0)}
+.sec.col{min-height:0}.sec.col .main{padding:.8rem 1rem}.sec.col .main h3{margin:0}.sec.col .side{margin:.4rem 0}
+.sec{display:grid;grid-template-columns:1fr auto;border:1px solid var(--line);border-radius:12px;background:var(--card);min-height:122px;margin:0 0 .6rem}
+.main{position:relative;padding:1rem 1rem 1.1rem;text-align:left;min-width:0}
+.main h3{margin:.1rem 0 .1rem;font-size:1.85rem;font-weight:700;text-transform:uppercase;line-height:1.15}
+.meta{line-height:1.35}
+.side{margin:.8rem 0;border-left:1px solid var(--line);width:58px;display:flex;align-items:center;justify-content:center}
+.side.q4{width:116px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.q4 button{border-radius:0;height:100%}
+.q4 button:nth-child(2),.q4 button:nth-child(4){border-left:1px solid var(--line)}
+.q4 button:nth-child(1),.q4 button:nth-child(2){border-bottom:1px solid var(--line)}
+.side.wx{width:150px;flex-direction:column;gap:.2rem;border-left:0;color:var(--ink);font-size:.95rem}
+.side.wx .cl{color:var(--y)}
+.mini{margin-top:.5rem;padding:.25rem .5rem;font-size:.85rem;color:var(--mute)}
+.lines{max-width:660px;margin:.3rem 0 0}
+.ln{display:flex;justify-content:flex-start;gap:.5rem;align-items:flex-start;padding:.15rem 0;overflow-wrap:anywhere}
+.ln.done span{text-decoration:line-through;color:var(--mute)}
+.ln .x{color:var(--mute);padding:0 .3rem;font-size:.9rem}
+.ln.firm{display:grid;grid-template-columns:1fr 1.3fr 74px auto;gap:.5rem;align-items:center;text-align:left}
+.due{font-size:.8rem;color:var(--y);border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem;white-space:nowrap;align-self:center}
+.due.late{color:#ff8a80;border-color:#ff8a80}
+.dueb{color:var(--mute);padding:0 .3rem;align-self:center}
+.dueinp{width:9.5rem;align-self:center}
+.ln:has(.duepanel){flex-wrap:wrap}
+@media(max-width:640px){.ln:has(.due){flex-wrap:wrap}.ln:has(.due) .ed{flex:1 1 9rem;min-width:9rem}.ln:has(.due) .x{order:3}.ln:has(.due) .due{order:4;margin-left:1.9rem}}
+.ln:has(.duepanel) .ed{flex:1 1 10rem}
+.duepanel{margin-top:.2rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;flex:1 1 100%}
+.duepanel input[type=date]{width:9.5rem}.duepanel select,.duepanel input[type=time]{width:5.6rem}
+.duepanel .chips{display:flex;gap:.3rem}
+.dueinp.dt{width:13rem}
+.dl{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .5rem;flex:1 1 100%;color:var(--mute);font-size:.85rem}
+.dl .dlt{flex:1 1 100%}
+.dl input[type=date]{flex:1 1 9rem;min-width:9rem}.dl select,.dl input[type=time]{flex:0 0 5.8rem}
+.ln.firm input{width:100%;background:transparent;border:1px solid transparent;padding:.25rem .4rem}
+.ln.firm .act{margin-left:-.45rem;width:calc(100% + .45rem)}
+.ln.firm textarea.act{padding:.25rem .4rem;font:inherit;color:inherit;min-height:0}.ln.firm textarea.act:hover,.ln.firm textarea.act:focus{border-color:var(--line);background:#1d1f21}
+.addrow textarea[data-add-act],.qadd textarea[data-add-act]{min-height:0;resize:none;overflow:hidden;line-height:1.4;margin:0;padding:.45rem .6rem}
+.ln.firm input:hover,.ln.firm input:focus{border-color:var(--line);background:#1d1f21}
+.ln.firm input[type=number]{appearance:textfield;-moz-appearance:textfield}
+.ln.firm input[type=number]::-webkit-inner-spin-button{display:none}
+.addrow{display:flex;flex-wrap:wrap;gap:.4rem;max-width:520px;margin:.6rem 0 0}
+.sgw{position:relative;flex:1 1 180px}.sgw>input{width:100%}
+.sug{position:absolute;left:0;right:0;top:100%;z-index:20;background:#1d1f21;border:1px solid var(--line);border-radius:8px;margin-top:2px;max-height:14rem;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.sug button{display:block;width:100%;text-align:left;justify-content:flex-start;color:var(--ink);padding:.55rem .7rem;border-radius:0;border-bottom:1px solid var(--line)}
+.sug button:last-child{border-bottom:0}
+.sug button:hover{background:#2a2d30}
+.addrow [data-add]{flex:1 1 180px}.addrow [data-add-act]{flex:1 1 150px}.addrow [data-add-cnt]{flex:0 0 74px}
+.addrow .ok{background:var(--y);color:var(--on);font-weight:700;padding:.4rem .9rem}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.5rem;max-width:560px;margin:.7rem 0 0;text-align:left}
+.wgrid label{font-size:.8rem;color:var(--mute);display:grid;gap:.2rem}
+.vbox{margin:.2rem .2rem .9rem;text-align:left}.vline{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;justify-content:space-between;font-size:.85rem}
+.vs.ok{color:#8fcf9b}.vs.chg{color:#e0b060}.vs.no{color:var(--mute)}.vbtn{display:inline-flex;gap:.35rem;align-items:center;padding:.3rem .7rem;font-size:.85rem}
+.vlist{margin-top:.5rem;border:1px solid var(--line);border-radius:10px;max-height:22rem;overflow:auto}
+.vrow{padding:.55rem .7rem;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:.3rem .6rem;align-items:center;font-size:.85rem}.vrow:last-child{border-bottom:0}
+.vrow .vt{display:flex;flex-direction:column;gap:.1rem}.vrow .vt span:first-child{color:var(--mute);font-size:.78rem}.vrow.export{background:rgba(255,255,255,.03)}
+.vrow .va{display:flex;gap:.35rem;flex-wrap:wrap;justify-content:flex-end}.vrow .va button{padding:.25rem .55rem;font-size:.8rem}
+.vsum{grid-column:1/-1;color:var(--mute);font-size:.82rem;line-height:1.4;padding:.3rem 0}.vsum ul{margin:.1rem 0 .4rem 1.1rem;padding:0}.vsum b{color:var(--ink)}.vsum small{display:block}
+.ar.sr{width:100%;color:var(--ink);background:transparent;border-radius:0;justify-content:flex-start}.ar.sr:hover{background:#2a2d30}mark{background:var(--y);color:var(--on);border-radius:3px;padding:0 .15rem}
+.cow{flex:1 1 100%;order:-1}.cow .co{width:100%;font-size:.85rem;color:var(--mute);padding:.15rem .4rem;margin-left:-.45rem}.ln:has(.cow){flex-wrap:wrap}
+.chip.on{background:var(--y);color:var(--on)}
+.info a{color:var(--y)}
+#pnames summary{cursor:pointer;-webkit-user-select:none;user-select:none}#pnames div{margin:.2rem 0;word-break:break-word}#pnames code{font-size:.85em;color:var(--ink)}#pnames small{display:block;margin-top:.4rem;color:var(--mute)}
+.audf{display:flex;gap:.5rem}.audf input{flex:1 1 auto;min-width:0}.audf select{flex:0 0 auto;max-width:40%}
+.audl{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.ar{display:grid;grid-template-columns:8.5rem 1fr;gap:.6rem;padding:.55rem .7rem;border-bottom:1px solid var(--line);font-size:.85rem;text-align:left}.ar:last-child{border-bottom:0}
+.ar .at{color:var(--mute);font-size:.78rem}.ar .aa{display:flex;flex-direction:column;gap:.1rem;min-width:0}.ar .ad{color:var(--ink);overflow-wrap:anywhere}.ar small{color:var(--mute)}
+.ar.konto b{color:#9db8e0}.ar.export b{color:#e0b060}
+.cr{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:center;padding:.5rem .3rem;border-bottom:1px solid var(--line);text-align:left;font-size:.85rem}.cr .cn{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.cr small{color:var(--mute)}.cr .cs{text-align:right;white-space:nowrap}
+#cln h4{margin:1rem 0 .1rem;text-align:left}#cln h5{margin:.5rem 0 .1rem;text-align:left;color:var(--mute);font-weight:600}#cln .info.bad{color:#e08080}
+@media (max-width:520px){.ar{grid-template-columns:1fr;gap:.1rem}}
+.checks{display:flex;flex-wrap:wrap;gap:.5rem 1.3rem;justify-content:flex-start;margin-top:.8rem}
+.checks label{display:flex;gap:.45rem;align-items:center;font-size:.9rem}
+.imgs{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:flex-start;margin-top:.6rem}
+.imgs>div{position:relative;width:104px}
+.imgs img{width:104px;height:84px;object-fit:cover;border-radius:6px;display:block}
+.imgs .cap{width:100%;margin-top:.2rem;padding:.2rem .3rem;font-size:.78rem;border-radius:6px;background:transparent;border:1px solid transparent}
+.imgs .cap:hover,.imgs .cap:focus{border-color:var(--line);background:#1d1f21}
+.imgs .cap::placeholder{color:var(--mute);opacity:.6}
+.imgs .rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);color:#fff;padding:0 .4rem;font-size:.8rem}
+.lbl{font-size:.8rem;color:var(--mute);margin-bottom:.4rem}
+.sw{display:flex;flex-wrap:wrap;gap:.5rem}
+.swb{width:34px;height:34px;border-radius:50%;padding:0;border:2px solid transparent;position:relative;cursor:pointer}
+.swb.on{border-color:#fff;box-shadow:0 0 0 2px var(--bg) inset}
+.swb.cust{background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);overflow:hidden}
+.swb.cust input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.ith{display:flex;gap:3px;align-items:center;flex:none}
+.ith img{width:30px;height:30px;object-fit:cover;border-radius:4px;display:block}
+.ph{padding:.25rem .4rem;color:var(--mute)}
+.morei{display:block;width:100%;margin-top:.6rem}
+.more{position:absolute;right:.7rem;top:.5rem;color:var(--mute);font-weight:700;padding:.1rem .3rem}
+.side.q3{flex-direction:column;align-items:stretch;justify-content:stretch}.q3 button{flex:1;border-radius:0}.q3 button+button{border-top:1px solid var(--line)}
+.vh{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.lnk{color:inherit;padding:0;font:inherit;display:inline;text-decoration:underline dotted;text-underline-offset:3px}
+
+/* Formulare (Projekt, Kontakte, Profil) */
+.cform{max-width:640px;margin:0 auto;padding:1.2rem 1rem 2rem;display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.cform h3{grid-column:1/-1;margin:0;text-align:left;font-size:1.6rem;overflow-wrap:anywhere}
+.cform label{display:grid;gap:.25rem;font-size:.8rem;color:var(--mute)}
+.cform label.w,.cform .info,.cform .acts,.cform .w{grid-column:1/-1}
+.leaders small.lnote{display:block;color:var(--mute);margin-top:.35rem}
+.cform .info{color:var(--mute);font-size:.85rem}
+.cform .acts{display:flex;gap:.6rem;flex-wrap:wrap}
+.cform .acts a,.cform .acts button{border:1px solid var(--line);border-radius:8px;padding:.5rem .9rem;color:var(--y);text-decoration:none;font-weight:700}
+.cform .acts .bad{color:var(--red)}
+.cform .logo{max-height:80px;max-width:100%;background:#fff;padding:8px;border-radius:6px}
+.cform .chead{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.cform .cback.show{display:inline-flex}
+.cview{grid-column:1/-1;margin:0;display:grid;gap:.7rem}
+.cview dt{color:var(--mute);font-size:.8rem}
+.cview dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.cview a{color:var(--y)}
+.cform .cback{display:none;grid-column:1/-1;justify-self:start;color:#fff;font-weight:700}
+
+/* Kontakte: Liste links, Details rechts */
+.split{flex:1;min-height:0;display:grid;grid-template-columns:300px 1fr;grid-template-rows:minmax(0,1fr);gap:.8rem;width:100%;max-width:1100px;margin:0 auto}
+.clist,.cdet{background:var(--card);border:1px solid var(--line);border-radius:12px;min-width:0;min-height:0}
+.clist{display:flex;flex-direction:column;overflow:hidden}
+.clist .ch{display:flex;gap:.4rem;padding:.5rem;border-bottom:1px solid var(--line)}
+.clist .ch input{flex:1}
+.clist .cb{overflow:auto;flex:1}
+.cdet{overflow:auto}
+
+#toasts{position:fixed;left:50%;bottom:calc(1rem + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:.4rem;align-items:center;max-width:92vw;pointer-events:none}
+.toast .undo{margin-left:.8rem;padding:.25rem .7rem;font-weight:600;color:var(--y);background:transparent;border:1px solid var(--y);border-radius:6px}
+.toast{pointer-events:auto;background:#1d1f21;border:1px solid var(--y);border-radius:8px;padding:.6rem 1rem;text-align:center}
+
+@media (max-width:720px){#fab{bottom:4.8rem}}
+body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem}
+@media (min-width:721px){#sheet .panel{margin-top:64px;border-radius:14px}}
+@media (max-width:720px){
+  #repBtn{min-width:0;padding:.35rem .5rem;gap:.2rem}
+  #projBtn{padding:.35rem .5rem;gap:.2rem}
+  #chev,#rchev{display:none}
+  #tabs{order:3;border-bottom:0;border-top:1px solid var(--line);justify-content:space-around;padding:0}
+  #detail{order:2;padding:.5rem}
+  .tab{flex:1;flex-direction:column;gap:.1rem;font-size:.72rem;padding:.45rem .2rem;border-bottom:0;border-top:3px solid transparent}
+  .tab.on{border-top-color:var(--y)}
+  .split{grid-template-columns:1fr}
+  .split.has .clist{display:none}
+  .split:not(.has) .cdet{display:none}
+  .cform .cback{display:inline-flex}
+  #toasts{bottom:calc(4.8rem + env(safe-area-inset-bottom))}
+}
+@media (max-width:520px){.main h3{font-size:1.45rem}.side{width:50px}.side.q4{width:100px}.side.wx{width:110px}.cform{grid-template-columns:1fr}
+  .ln.firm{grid-template-columns:1fr 70px auto}.ln.firm .act{grid-column:1/3;grid-row:2}}
+/* mehrzeilige Einträge, Bearbeiten direkt auf der Seite */
+.ln:not(.firm){justify-content:flex-start;text-align:left}
+.ed{flex:1;width:auto;min-height:0;resize:none;overflow:hidden;background:transparent;border:1px solid transparent;padding:.25rem .4rem;margin-left:-.45rem;line-height:1.4;text-align:left}
+.ed:hover,.ed:focus{border-color:var(--line);background:#1d1f21}
+.ln.done .ed{text-decoration:line-through;color:var(--mute)}
+.addrow textarea{flex:1 1 100%;min-height:5.5rem}
+.hint{flex:1 1 100%;font-size:.78rem;color:var(--mute);text-align:left}
+.cform .acts .pri{background:var(--y);color:var(--on);border-color:var(--y)}
+.armed{background:var(--red)!important;color:#111!important;border-color:var(--red)!important}
+
+/* PDF-Ansicht in der App (iPhone-Startbildschirm hat keine Zurück-Taste) */
+#pv{position:fixed;inset:0;z-index:200;background:#2b2c30;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.pvb{display:flex;gap:.5rem;align-items:center;padding:.5rem .7rem;background:#17181a;border-bottom:1px solid var(--line)}
+.pvb span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute);font-size:.8rem}
+.pvb button{border:1px solid var(--line);border-radius:10px;padding:.45rem .8rem;color:var(--y);font-weight:600;white-space:nowrap}.pvb .pvc{background:var(--y);color:#111;border-color:var(--y)}
+.pvs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:.6rem .6rem calc(.6rem + env(safe-area-inset-bottom))}
+.pvw{width:max-content;min-width:100%}.pvw canvas{display:block;margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}
+</style>
+</head>
+<body>
+<section id="login" class="hidden"></section>
+
+<div id="app" class="hidden">
+  <header id="hdr">
+    <button id="projBtn" data-act="projPicker" aria-haspopup="dialog" title="Projekt wählen"><span class="t"><b id="pname"></b><small id="paddr"></small></span><span id="chev"></span></button>
+    <button id="repBtn" data-act="repPicker" aria-haspopup="dialog" title="Tagesbericht wählen"><span class="t"><b id="rname"></b><small id="rdate"></small></span><span id="rchev"></span></button>
+    <button data-act="nearest" id="i-n" title="Projekt nach Standort wählen"></button>
+    <button data-act="openPath" id="i-fp" class="pconly" title="Ordnerpfad auf dem Server kopieren (im Explorer einfügen)"></button>
+    <button data-act="print" id="i-pdf" title="PDF erstellen"></button>
+    <button data-act="menu" id="i-g" title="Menü"></button>
+    <div class="menu hidden" id="menu"></div>
+  </header>
+  <nav id="tabs" aria-label="Bereiche"></nav>
+  <main id="detail"></main>
+  <button id="fab" class="hidden" data-act="qOpen" aria-label="Hinzufügen" title="Foto, Notiz, Mangel … hinzufügen"></button>
+  <div id="qs" class="hidden"></div>
+  <input type="file" id="acam" class="vh" accept="image/*" capture="environment">
+  <input type="file" id="alib" class="vh" accept="image/*,.heic,.heif" multiple>
+  <input type="file" id="qcam" class="vh" accept="image/*" capture="environment">
+  <input type="file" id="qlib" class="vh" accept="image/*,.heic,.heif" multiple>
+</div>
+
+<div id="sheet" class="hidden">
+  <div class="panel" role="dialog" aria-label="Projekt wählen">
+    <div class="ph"><input id="sq" type="search" placeholder="Projekt suchen (Name oder Adresse)" autocomplete="off"><button data-act="closeSheet" title="Schließen">✕</button></div>
+    <div class="pl" id="pl"></div>
+    <div class="pf" id="pfp"><button class="bd" data-act="newProject">＋ Neues Projekt</button><button class="bd" data-act="nearest" id="i-n2">Nach Standort wählen</button><button class="bd" data-act="editProject">Projekt bearbeiten</button></div>
+    <div class="pf hidden" id="pfr"><button class="bd" data-act="addReport">＋ Neuer Tagesbericht</button></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = d => d ? new Date(d + 'T12:00').toLocaleDateString('de-DE') : '';
+const IC = {
+  plus:'<path d="M12 5v14M5 12h14"/>', refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', pencil:'<path fill="currentColor" d="M4 20l1-4L16 5l3 3L8 19z"/>',
+  folder:'<path d="M3 6h6l2 2h10v11H3z"/>', cal:'<path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/>', pdf:'<path d="M6 3h9l4 4v14H6zM14 3v5h5"/>',
+  cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>',
+  gear:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  cloud:'<path fill="currentColor" stroke="none" d="M7 19a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5 4.8 4.8 0 0 1 17.5 19z"/>',
+  doc:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/>', home:'<path d="M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6"/>',
+  users:'<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-4 3-6 6-6s6 2 6 6M17 11a2.5 2.5 0 1 0 0-5M17 14c3 0 4 2 4 5"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 3.5-7 8-7s8 2.5 8 7"/>',
+  archive:'<path d="M3 5h18v4H3zM5 9v10h14V9M10 13h4"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  out:'<path d="M10 4H4v16h6M14 8l5 4-5 4M19 12H9"/>', chev:'<path d="M6 9l6 6 6-6"/>',
+  pin:'<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'
+};
+const ic = (n, s = 22, w = 2.4) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
+const TABS = [['bericht','Bericht','doc'],['kontakte','Kontakte','users'],['suche','Suche','search']];
+const WX = ['Heiter','Sonnig','Wolkig','Bedeckt','Regen','Gewitter','Schnee','Nebel'];
+const PRECIP = ['trocken','leichter Regen','Regen','Starkregen','Schnee'];
+const CHECKS = [['chk_tidy','Baustelle aufgeräumt'],['chk_measure','Maßkontrolle'],['chk_photos','Fotodokumentation'],['chk_firms','Alle Firmen angesprochen']];
+const NEAR_M = 600;   // so nah (Meter) muss man an einem Projekt sein, damit es automatisch gewählt wird
+const favicon = () => document.querySelectorAll('link[rel=icon],link[rel=apple-touch-icon]').forEach(l => { l.href = l.href.split('?')[0] + (l.href.includes('s=180') ? '?s=180&' : '?') + 'v=' + Date.now(); });
+let settings = {}, logoV = 1, saving = new Set(), here = null, cq = '', cTrade = '', cProj = '', sheetQ = '';
+const track = pr => { saving.add(pr); pr.finally(() => saving.delete(pr)); return pr; };
+let draft = null, newC = false, cedit = false, cfrom = null, armedKey = null, armedTimer = null;
+let itemPhotoFor = null, meta = {sections: []}, contacts = [], cid = null, projects = [], pid = null, reports = [], rid = null, tab = 'bericht', wxEdit = false, headEdit = false, adding = null, allImgs = false, dueEditId = null, leaderUsers = [];
+const addr = p => [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+const curProject = () => projects.find(x => x.id === pid);
+const curReport = () => reports.find(x => x.id === rid);
+const hasPos = p => p.lat != null && p.lon != null;
+const dist = (a, b, c, d) => { const r = Math.PI / 180, h = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(h)); };
+const fmtDist = m => m < 1000 ? Math.max(10, Math.round(m / 10) * 10) + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km';
+
+
+// ---------- PDF-Ansicht in der App (Standalone/Startbildschirm: kein Zurück-Knopf des Browsers) ----------
+const isStandalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const loadScript = src => new Promise((ok, no) => { const e = document.createElement('script'); e.src = src; e.onload = ok; e.onerror = no; document.head.appendChild(e); });
+let pv = null;
+async function pvRender() {
+  const box = pv.el.querySelector('.pvw'), W = pv.el.querySelector('.pvs').clientWidth - 20, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  box.innerHTML = '';
+  for (let n = 1; n <= pv.doc.numPages; n++) {
+    const pg = await pv.doc.getPage(n), v1 = pg.getViewport({scale: 1}), cssW = W * pv.zoom, sc = cssW / v1.width, vp = pg.getViewport({scale: sc * dpr});
+    const c = document.createElement('canvas'); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+    c.style.width = cssW + 'px'; c.style.height = (cssW * v1.height / v1.width) + 'px'; box.appendChild(c);
+    await pg.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
+    if (!pv) return;
+  }
+}
+async function openPdf(url) {
+  toast('PDF wird erzeugt …');
+  let blob, name = 'Bautagebuch.pdf';
+  try {
+    const r = await fetch(url);
+    if (!r.ok) { const j = await r.json().catch(() => ({})); toast(j.error || 'Das PDF konnte nicht erzeugt werden.'); return; }
+    const m = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get('Content-Disposition') || ''); if (m) name = decodeURIComponent(m[1]);
+    blob = await r.blob();
+    if (!window.pdfjsLib) { await loadScript('/vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.js'; }
+    const doc = await pdfjsLib.getDocument({data: await blob.arrayBuffer()}).promise;
+    const el = document.createElement('div'); el.id = 'pv';
+    el.innerHTML = `<div class="pvb"><button class="pvc" data-act="pvClose">✕ Schließen</button><span>${esc(name)}</span><button data-act="pvZoom" data-d="-1" aria-label="Verkleinern">−</button><button data-act="pvZoom" data-d="1" aria-label="Vergrößern">+</button><button data-act="pvShare">Teilen</button></div><div class="pvs"><div class="pvw"></div></div>`;
+    document.body.appendChild(el); pv = {el, doc, blob, name, zoom: 1};
+    history.pushState({pv: 1}, '');   // Wischgeste „zurück“ schließt die Ansicht ebenfalls
+    await pvRender();
+  } catch (e) { toast('Das PDF konnte nicht angezeigt werden.'); closePv(); }
+}
+function closePv() { if (pv) { pv.el.remove(); pv = null; } }
+window.addEventListener('popstate', closePv);
+async function pvShare() {
+  const f = new File([pv.blob], pv.name, {type: 'application/pdf'});
+  try { if (navigator.canShare && navigator.canShare({files: [f]})) { await navigator.share({files: [f]}); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(pv.blob); a.download = pv.name; document.body.appendChild(a); a.click(); a.remove();
+}
+async function api(u, m = 'GET', d, form) {
+  const r = await fetch(u, {method: m, headers: d ? {'Content-Type':'application/json'} : {}, body: form || (d ? JSON.stringify(d) : undefined)});
+  if (r.status === 401 && u !== '/api/login') { showLogin(); throw 0; }
+  const j = await r.json();
+  if (r.status === 403 && j.must_change) { authView('change'); throw 0; }
+  return j;
+}
+function toast(msg, undo) {   // höchstens zwei Meldungen gleichzeitig; mit undo gibt es einen "Rückgängig"-Knopf
+  let box = $('#toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }
+  while (box.children.length >= 2) box.firstChild.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; box.appendChild(t);
+  if (undo) {
+    const b = document.createElement('button'); b.className = 'undo'; b.textContent = 'Rückgängig';
+    b.onclick = async () => { b.disabled = true; t.remove(); await undo(); };
+    t.appendChild(b);
+  }
+  setTimeout(() => t.remove(), undo ? 8000 : 5000);
+}
+
+const DANGER = new Set(['bkRestore', 'bkDel', 'clnDel', 'restoreVer', 'delUser', 'userMail', 'delProject', 'delReport', 'delContact', 'delImg', 'delLogo']);
+function disarm() { clearTimeout(armedTimer); armedKey = null; document.querySelectorAll('.armed').forEach(el => { el.classList.remove('armed'); if (el._orig != null) { el.innerHTML = el._orig; el._orig = null; } }); }
+function arm(b, key) {   // erster Tipp = scharf stellen, zweiter Tipp = ausführen
+  if (armedKey === key) { disarm(); return true; }
+  disarm(); armedKey = key; b.classList.add('armed');
+  if (b.textContent.trim().length > 1) { b._orig = b.innerHTML; b.textContent = b.dataset.arm || 'Wirklich löschen? Nochmal tippen'; } else toast('Zum Löschen nochmals tippen.');
+  armedTimer = setTimeout(disarm, 4000); return false;
+}
+const grow = t => { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; };
+const growAll = () => document.querySelectorAll('textarea.ed').forEach(grow);
+function chrome() {
+  const p = curProject();
+  $('#pname').textContent = p ? p.name : 'Projekt wählen';
+  $('#paddr').textContent = p ? (addr(p) || 'Keine Adresse hinterlegt – über die Projektauswahl → „Projekt bearbeiten“ eintragen') : 'Tippe hier, um ein Projekt zu wählen';
+  $('#chev').innerHTML = ic('chev', 20, 3); $('#rchev').innerHTML = ic('chev', 20, 3);
+  const r = p ? curReport() : null;
+  $('#repBtn').classList.toggle('hidden', !p);
+  $('#rname').textContent = r ? `Nr. ${r.number}` : 'Kein Bericht';
+  $('#rdate').textContent = r ? fmt(r.date) + (r.time ? ' · ' + r.time : '') : 'Tippen zum Anlegen';
+  $('#i-n').innerHTML = ic('pin', 22); $('#i-pdf').innerHTML = ic('pdf', 22); $('#i-fp').innerHTML = ic('folder', 22); $('#i-fp').classList.toggle('hidden', !p); $('#i-g').innerHTML = ic('gear', 22);
+  $('#i-pdf').classList.toggle('hidden', !rid);
+  $('#tabs').innerHTML = TABS.concat(me.is_admin ? [['audit', 'Protokoll', 'clock']] : []).map(([k, l, i]) => `<button class="tab ${k === tab ? 'on' : ''}" data-act="tab" data-t="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ic(i, 20, 2)}<span>${l}</span></button>`).join('');
+  const apps = (PLATFORM.apps || []).filter(a => a.allowed && a.key !== 'bautagebuch');   // Bauplattform: andere Apps (gleiche Anmeldung)
+  $('#menu').innerHTML = `<div class="who">Angemeldet: ${esc(me.name)}</div><button data-act="tab" data-t="profil">${ic('gear', 18)}Einstellungen</button>`
+    + (apps.length ? '<div class="msep"></div>' + apps.map(a => `<a class="mapp" href="${esc(appUrl(a))}">${ic({ gantt: 'cal', admin: 'users', portal: 'home' }[a.key] || 'doc', 18)}${esc(a.name)}</a>`).join('') + '<div class="msep"></div>' : '')
+    + `<button data-act="logout">${ic('out', 18)}Abmelden</button>`;
+}
+let PLATFORM = {};
+const appUrl = a => a.url || `${location.protocol}//${location.hostname}:${a.port}`;
+const showApp = async () => {
+  $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  try { PLATFORM = await api('/api/platform'); } catch { PLATFORM = {}; }
+  try { meta = await api('/api/meta'); contacts = await api('/api/contacts'); settings = await api('/api/settings'); people = await api('/api/people'); leaderUsers = await api('/api/leaders'); await loadProjects(); } catch { return; }
+  const start = projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
+  if (start) await openProject(start.id); else renderDetail();
+  autoPick(true);   // Projekt per GPS wählen, wenn man vor Ort ist
+  if (await backfillAddresses()) autoPick(true);
+};
+async function loadProjects() {
+  projects = await api('/api/projects');
+  if (pid && !curProject()) { pid = null; rid = null; reports = []; }
+}
+async function openProject(id, keep) {
+  pid = id; try { localStorage.setItem('pid', id); } catch {}
+  reports = await api(`/api/projects/${id}/reports`);
+  if (!keep || !curReport()) { rid = reports[0]?.id ?? null; wxEdit = headEdit = false; adding = null; }
+  await loadProjects(); renderDetail(); autoWx(); checkRename(id);
+}
+async function checkRename(id) {   // Wurden abgelegte Dateien auf dem Server von Hand umbenannt? Dann Rückfrage im Bericht
+  if (renameSeen[id]) return; renameSeen[id] = true; renameOffer = null;
+  try { const r = await api('/api/store/rename-check?project_id=' + id); if (r && r.count && pid === id) { renameOffer = {...r, pid: id}; if (tab === 'bericht' && !draft) renderDetail(); } } catch {}
+}
+const renameBanner = () => !renameOffer || renameOffer.pid !== pid ? '' : `<div class="rnb"><b>Auf dem Server wurden Dateien von Hand umbenannt.</b>
+  <div>Die App hat dein Namensschema erkannt${renameOffer.example_pdf ? ' – PDF z. B. „' + esc(renameOffer.example_pdf) + '“' : ''}${renameOffer.example_dir ? ', Fotoordner z. B. „' + esc(renameOffer.example_dir) + '“' : ''}.
+  ${renameOffer.count} Datei${renameOffer.count === 1 ? '' : 'en'}/Ordner trag${renameOffer.count === 1 ? 't' : 'en'} noch den Namen der App (z. B. „${esc(renameOffer.examples[0].from)}“ → „${esc(renameOffer.examples[0].to)}“). Soll die App diese jetzt automatisch umbenennen und künftig selbst so benennen?</div>
+  <div class="acts"><button class="pri" data-act="renameYes">Ja, umbenennen</button><button data-act="renameNo">Nein, nicht mehr fragen</button><button data-act="renameLater">Später</button></div></div>`;
+async function backfillAddresses() {   // einmal pro Projekt ohne Adresse: aus dem Projektnamen im Internet suchen
+  const todo = projects.filter(p => !addr(p) && !hasPos(p) && !(p.extra && p.extra.addr_tried));
+  if (!todo.length) return false;
+  let n = 0;
+  for (const p of todo) { try { const r = await api(`/api/projects/${p.id}/autoaddress`, 'POST'); if (r.error) return false; if (r.found) n++; } catch { return false; } }
+  await loadProjects(); chrome();
+  if (!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && (tab === 'projekt' || n)) renderDetail();
+  if (n) toast(`Für ${n} Projekt${n === 1 ? '' : 'e'} wurde die Adresse aus dem Projektnamen ermittelt – bitte über die Projektauswahl → „Projekt bearbeiten“ prüfen.`);
+  return n > 0;
+}
+async function pickProject(id) { draft = null; closeSheet(); if (tab !== 'projekt') tab = 'bericht'; await openProject(id); }
+
+/* ---------- Projektauswahl ---------- */
+let sheetMode = 'proj', sheetArch = false, sheetForeign = false, renameOffer = null, renameSeen = {};
+function openSheet(mode = 'proj') {
+  sheetMode = mode; sheetQ = ''; sheetSug = []; $('#sq').value = '';
+  $('#sq').placeholder = mode === 'rep' ? 'Bericht suchen (Nummer oder Datum)' : 'Projekt suchen (Name oder Adresse)';
+  $('#sheet .panel').setAttribute('aria-label', mode === 'rep' ? 'Tagesbericht wählen' : 'Projekt wählen');
+  $('#pfp').classList.toggle('hidden', mode === 'rep'); $('#pfr').classList.toggle('hidden', mode !== 'rep');
+  $('#sheet').classList.remove('hidden'); renderSheet(); $('#sq').focus();
+}
+function closeSheet() { $('#sheet').classList.add('hidden'); }
+let sheetSug = [], sheetSugT = 0;
+function sheetSuggest() {   // Ordner vom Server, die noch kein Projekt sind (Tippen im Auswahlfenster)
+  clearTimeout(sheetSugT); const q = sheetQ.trim();
+  if (!q) { sheetSug = []; return renderSheet(); }
+  sheetSugT = setTimeout(async () => {
+    try { const r = await api('/api/store/folders?q=' + encodeURIComponent(q)); if (q === sheetQ.trim() && Array.isArray(r)) { sheetSug = r; renderSheet(); } } catch {}
+  }, 250);
+}
+function renderSheet() {
+  if (sheetMode === 'rep') {
+    const q = sheetQ.toLowerCase().trim(), cur = curReport();
+    const list = [...reports].sort((a, b) => (b.date + String(b.number).padStart(6, '0')).localeCompare(a.date + String(a.number).padStart(6, '0')))
+      .filter(x => !q || `nr. ${x.number} ${x.number} ${fmt(x.date)} ${x.date} ${x.site_manager || ''}`.toLowerCase().includes(q));
+    $('#pl').innerHTML = list.length ? list.map(x => `<button class="pi ${cur && x.id === cur.id ? 'on' : ''}" data-act="pickReport" data-id="${x.id}"><span class="l"><b>Nr. ${x.number} – ${fmt(x.date)}</b>${[x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).length ? `<small>${esc([x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).join(' · '))}</small>` : ''}</span></button>`).join('')
+      : `<div class="empty">${reports.length ? 'Keine Treffer.' : 'Noch kein Tagesbericht.'}</div>`;
+    return;
+  }
+  const q = sheetQ.toLowerCase(), d = p => here && hasPos(p) ? dist(here.lat, here.lon, p.lat, p.lon) : null;
+  const match = p => [p.name, p.street, p.zip, p.city, p.client].join(' ').toLowerCase().includes(q);
+  const foreignP = p => me.is_admin && (p.leaders || []).length > 0 && !(p.leaders || []).includes(me.id);   // nur Administratoren sehen Projekte anderer Bauleiter
+  const mine = projects.filter(p => !foreignP(p)), foreign = projects.filter(foreignP);
+  const list = mine.filter(p => !p.archived && match(p));
+  const arch = mine.filter(p => p.archived && match(p)), archAll = mine.filter(p => p.archived).length;
+  const fMatch = foreign.filter(match), showF = sheetForeign || (q.trim() && fMatch.length);
+  if (here) list.sort((a, b) => (d(a) ?? 1e12) - (d(b) ?? 1e12) || b.id - a.id);
+  $('#pl').innerHTML = list.length ? list.map(p => `<button class="pi ${p.id === pid ? 'on' : ''}" data-act="pickProject" data-id="${p.id}"><span class="l"><b>${esc(p.name)}</b>${addr(p) ? `<small>${esc(addr(p))}</small>` : ''}</span>${d(p) != null ? `<span class="dist">${fmtDist(d(p))}</span>` : ''}</button>`).join('')
+    : (sheetSug.length || arch.length ? '' : `<div class="empty">${projects.length ? 'Keine Treffer.' : 'Noch keine Projekte.'}</div>`);
+  const showA = sheetArch || (q.trim() && arch.length);   // Archiv: per Knopf oder automatisch, wenn die Suche dort etwas findet
+  if (archAll) $('#pl').innerHTML += `<button class="pi arch" data-act="toggleArch">${ic('archive', 16, 2.4)} Archiv (${archAll}) ${showA && !q.trim() ? '– ausblenden' : (showA ? '' : '– anzeigen')}</button>`;
+  if (showA) $('#pl').innerHTML += arch.map(p => `<button class="pi old ${p.id === pid ? 'on' : ''}" data-act="pickProject" data-id="${p.id}"><span class="l"><b>${esc(p.name)}</b>${addr(p) ? `<small>${esc(addr(p))}</small>` : ''}</span><span class="dist">archiviert</span></button>`).join('');
+  if (foreign.length) {
+    const lname = p => (p.leaders || []).map(i => (leaderUsers.find(u => u.id === i) || {}).name).filter(Boolean).join(', ');
+    $('#pl').innerHTML = `<div class="sugh">Eigene Projekte</div>` + $('#pl').innerHTML;
+    $('#pl').innerHTML += `<button class="pi arch" data-act="toggleForeign">${ic('users', 16, 2.4)} Fremde Projekte (${foreign.length}) ${showF && !q.trim() ? '– ausblenden' : (showF ? '' : '– anzeigen')}</button>`;
+    if (showF) $('#pl').innerHTML += fMatch.map(p => `<button class="pi old ${p.id === pid ? 'on' : ''}" data-act="pickProject" data-id="${p.id}"><span class="l"><b>${esc(p.name)}</b><small>${esc([lname(p) && 'Bauleiter: ' + lname(p), p.archived && 'archiviert'].filter(Boolean).join(' · ') || addr(p))}</small></span></button>`).join('');
+  }
+  if (sheetQ.trim() && sheetSug.length) $('#pl').innerHTML += `<div class="sugh">Ordner auf dem Server – antippen legt das Projekt an</div>` +
+    sheetSug.map(n => `<button class="pi" data-act="createFromFolder" data-name="${esc(n)}"><span class="l"><b>${ic('plus', 16, 3)} ${esc(n)}</b></span></button>`).join('');
+}
+function newProject() {   // Eingabe direkt im Reiter „Projekt“, kein Popup
+  closeSheet(); $('#menu').classList.add('hidden');
+  draft = {name: '', client: '', street: '', zip: '', city: '', leaders: me.is_admin ? [] : [me.id]}; tab = 'projekt'; renderDetail();
+  document.querySelector('[data-dp=name]')?.focus();
+}
+async function createProject() {
+  const d = draft; if (!d) return;
+  if (!d.name.trim()) { toast('Bitte einen Projektnamen eingeben.'); document.querySelector('[data-dp=name]')?.focus(); return; }
+  const r = await api('/api/projects', 'POST', Object.fromEntries(Object.entries(d).map(([k, v]) => [k, typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : v])));
+  draft = null; tab = 'projekt'; await openProject(r.id);
+  toast(r.auto_address ? 'Projekt angelegt. Adresse und PLZ wurden aus dem Projektnamen ermittelt – bitte prüfen.' : r.geocoded === true ? 'Projekt angelegt, Standort aus der Adresse ermittelt.' : r.geocoded === false ? 'Projekt angelegt, aber die Adresse wurde nicht gefunden – bitte prüfen.' : 'Projekt angelegt. Im Projektnamen wurde keine Adresse gefunden – trage sie ein oder übernimm den aktuellen Standort.');
+}
+
+/* ---------- Standort ---------- */
+const HTTP_GPS = 'Der Browser (nicht die App) sperrt GPS bei Adressen mit http://. Mit https:// über den Reverse Proxy geht es. Zum Testen: Chrome/Edge → chrome://flags bzw. edge://flags → „Insecure origins treated as secure“ → diese Adresse eintragen.';
+async function locate(silent) {
+  const say = m => { if (!silent) toast(m); };
+  if (!navigator.geolocation) { say(window.isSecureContext ? 'Dieser Browser unterstützt keine Standortbestimmung.' : HTTP_GPS); return null; }
+  if (!silent) toast('Standort wird ermittelt …');
+  const pos = await new Promise(ok => navigator.geolocation.getCurrentPosition(ok, e => ok(e), {timeout: silent ? 8000 : 15000, maximumAge: 120000, enableHighAccuracy: true}));
+  if (!pos.coords) { say(pos.code === 1 ? (window.isSecureContext ? 'Standortzugriff wurde nicht erlaubt.' : HTTP_GPS) : 'Standort konnte nicht ermittelt werden.'); return null; }
+  return here = {lat: pos.coords.latitude, lon: pos.coords.longitude};
+}
+async function autoPick(silent) {
+  if (!projects.some(p => hasPos(p) && !p.archived)) { if (!silent) toast('Noch kein Projekt hat einen Standort. Trage über die Projektauswahl → „Projekt bearbeiten“ eine Adresse ein.'); return; }
+  const h = await locate(silent); if (!h) return;
+  let best = null;
+  for (const p of projects) if (hasPos(p) && !p.archived) { const m = dist(h.lat, h.lon, p.lat, p.lon); if (!best || m < best.m) best = {p, m}; }
+  if (best.m > NEAR_M) { if (!silent) toast(`Kein Projekt in der Nähe. Am nächsten: ${best.p.name} (${fmtDist(best.m)}).`); return; }
+  if (best.p.id === pid) { if (!silent) toast(`Du bist bei „${best.p.name}“ (${fmtDist(best.m)}).`); return; }
+  if (silent && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;   // nichts umschalten, während getippt wird
+  closeSheet(); if (tab !== 'projekt') tab = 'bericht'; await openProject(best.p.id);
+  toast(`Projekt nach Standort gewählt: ${best.p.name} (${fmtDist(best.m)})`);
+}
+// Wetter + Ort per GPS in den aktuellen Bericht. silent = automatischer Versuch ohne Fehlermeldungen.
+const WXK = ['weather', 'precip', 'temp', 'humidity', 'wind'], wxTried = new Set();
+function autoWx() {   // Bericht ohne Wetter (z. B. nachträglich angelegt): Wetter zum Berichtsdatum automatisch eintragen
+  const r = curReport(); if (!r || wxTried.has(r.id) || WXK.some(k => r[k]) || !r.date) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
+  wxTried.add(r.id); fillGeo(true);
+}
+async function fillGeo(silent, force) {   // Wetter für die ADRESSE DES PROJEKTS zum DATUM/zur Uhrzeit des Berichts (nicht GPS des Geräts)
+  const r = curReport(), p = curProject(); if (!r || !p) return;
+  let lat = p.lat, lon = p.lon;
+  if (lat == null || lon == null) {   // noch keine Koordinaten am Projekt: aus der Adresse ermitteln
+    const addr = [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    if (addr) { try { const h = await api('/api/geocode?q=' + encodeURIComponent(addr)); if (h.found) { lat = h.lat; lon = h.lon; } } catch {} }
+  }
+  if (lat == null || lon == null) { if (!silent) toast('Für das Wetter bitte zuerst die Adresse im Projekt eintragen.'); return; }
+  const rid0 = r.id, needAddr = !(p.zip && p.city);
+  let g; try { g = await api(`/api/geo?lat=${lat}&lon=${lon}&date=${encodeURIComponent(r.date || '')}&time=${encodeURIComponent(r.time || '')}${needAddr ? '' : '&noaddr=1'}`); } catch { return; }
+  if (g.error) { if (!silent) toast(g.error); return; }
+  if (rid0 !== (curReport() || {}).id) return;   // inzwischen anderer Bericht geöffnet
+  const upd = {};
+  WXK.forEach(k => { if (g[k] && (!silent || force || !r[k])) upd[k] = g[k]; });
+  const plz = p.zip || g.plz, place = [p.street, p.city].filter(Boolean).join(', ') || g.place;
+  if (plz) upd.plz = plz;
+  upd.extra = {...(place ? {place} : {}), wx_auto: 1};
+  if (!Object.keys(upd).length) { if (!silent) toast('Keine Daten erhalten.'); return; }
+  await api('/api/reports/' + r.id, 'PUT', upd);
+  if (!silent) toast(`Wetter für die Projektadresse am ${fmt(r.date)} übernommen` + (g.partial.length ? ` (${g.partial.join(', ')} nicht verfügbar)` : '') + '.');
+  await openProject(pid, true);
+}
+
+/* ---------- Bericht ---------- */
+const todayISO = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+const timeSelect = (val, attrs, blank) => {   // Uhrzeit als Auswahlliste (am iPhone ein Rad), Viertelstunden-Schritte
+  const opts = []; for (let h = 5; h <= 21; h++) for (const m of [0, 15, 30, 45]) opts.push(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'));
+  if (val && !opts.includes(val)) { opts.push(val); opts.sort(); }
+  return `<select ${attrs} aria-label="Uhrzeit">${blank ? `<option value="" ${val ? '' : 'selected'}>–</option>` : ''}${opts.map(o => `<option ${o === (val || (blank ? '' : '09:00')) ? 'selected' : ''}>${o}</option>`).join('')}<option value="__x">Andere Zeit …</option></select>`;
+};
+function dueUi(i, s) {   // Erledigungsdatum mit E-Mail-Erinnerung (nur Abschnitte mit extra.due)
+  if (!(s.extra && s.extra.due)) return '';
+  if (dueEditId === i.id) {   // Datum (Kalender) + Uhrzeit (Rad) + Schnellwahl; speichert bei jeder Änderung, „Fertig“ schließt
+    const tomorrow = new Date(Date.now() + 864e5), tm = new Date(tomorrow - tomorrow.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+    return `<div class="duepanel" data-it="${i.id}"><input type="date" id="dueinp" data-dp="date" value="${esc(i.due || tm)}" aria-label="Erinnerung am">${timeSelect(i.due_time, 'data-dp="time"')}
+      <span class="chips"><button class="chip" data-act="dueQuick" data-d="0">Heute</button><button class="chip" data-act="dueQuick" data-d="1">Morgen</button><button class="chip" data-act="dueQuick" data-d="7">+1 Woche</button></span>
+      <button class="dueb" data-act="dueDone" title="Fertig">✓ Fertig</button><button class="dueb" data-act="dueClear" data-id="${i.id}" title="Erledigungsdatum entfernen">Datum löschen</button></div>`;
+  }
+  if (i.due) return `<button class="due ${!i.done && i.due < todayISO() ? 'late' : ''}" data-act="dueEdit" data-id="${i.id}" title="Erinnerung per E-Mail am ${esc(fmt(i.due))} um ${esc(i.due_time || '09:00')} Uhr – antippen zum Ändern">⏰ ${esc(fmt(i.due))} ${esc(i.due_time || '09:00')}</button>`;
+  return `<button class="dueb" data-act="dueEdit" data-id="${i.id}" title="Erledigungsdatum mit E-Mail-Erinnerung">${ic('cal', 18)}</button>`;
+}
+function photoUi(i, s, r) {   // kleine Fotos am Eintrag (Mangel, Notiz); das große Bild liegt unter „Bilder“
+  if (!(s.extra && s.extra.photos)) return '';
+  const th = r.images.filter(x => x.item_id === i.id).map(x => `<a href="/uploads/${esc(x.file)}" target="_blank" title="${esc(x.caption || 'Foto')}"><img loading="lazy" src="/api/thumb/96/${esc(x.file)}" alt="${esc(x.caption || 'Foto')}"></a>`).join('');
+  return `<span class="ith">${th}<button class="ph" data-act="itemPhoto" data-id="${i.id}" title="Foto zu diesem Eintrag">${ic('cam', 18)}</button></span>`;
+}
+let secOpen = {}; try { secOpen = JSON.parse(localStorage.getItem('secOpen') || '{}'); } catch {}
+const secIsOpen = (k, n) => (k in secOpen ? secOpen[k] : n > 0);
+const setSecOpen = (k, v) => { secOpen[k] = v; try { localStorage.setItem('secOpen', JSON.stringify(secOpen)); } catch {} };
+const secHead = (s, n, open) => `<h3 class="tg" data-act="secToggle" data-key="${esc(s.key)}" data-open="${open ? 1 : 0}" role="button" aria-expanded="${open}">${esc(s.title)}${n ? `<span class="cn">${n}</span>` : ''}<span class="cv ${open ? 'o' : ''}">${ic('chev', 20, 3)}</span></h3>`;
+let addFiles = [];   // Fotos, die beim Anlegen eines Eintrags gleich mitgeschickt werden
+const photoAdd = s => (s.extra && s.extra.photos) ? `<div class="padd"><button type="button" data-act="aCam">${ic('cam', 20)} Foto aufnehmen</button><button type="button" data-act="aLib">${ic('pdf', 20)} Aus Mediathek</button><div id="apv" class="apv"></div></div>` : '';
+function renderApv() {
+  const box = $('#apv'); if (!box) return; box.innerHTML = '';
+  addFiles.forEach((f, i) => {
+    const sp = document.createElement('span'), im = new Image(); im.alt = f.name; im.src = URL.createObjectURL(f);
+    im.onerror = () => { const n = document.createElement('span'); n.className = 'nf'; n.textContent = '📷'; n.title = f.name; im.replaceWith(n); };
+    const rm = document.createElement('button'); rm.className = 'rm'; rm.type = 'button'; rm.dataset.act = 'aRm'; rm.dataset.i = i; rm.textContent = '✕'; rm.title = 'Foto entfernen';
+    sp.append(im, rm); box.append(sp);
+  });
+}
+const SGATTR = 'data-sg="1" autocomplete="nope" name="bt-co" autocorrect="off" spellcheck="false"';
+const coAdd = s => s.extra && s.extra.company ? `<div class="sgw" style="flex:1 1 100%"><input data-add-co ${SGATTR} placeholder="Firma (optional, frei eintragen oder aus Kontakten wählen)" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : '';
+function listSec(s, r) {
+  const k = s.key, lk = s.extra && s.extra.link_contacts;
+  const link = i => i.contact_id ? `<button class="lnk" data-act="gotoContact" data-id="${i.contact_id}" title="Kontakt öffnen">${esc(i.text)}</button>` : esc(i.text);
+  const rows = r.items.filter(i => i.kind === k).map(i => lk ? `<div class="ln firm"><span>${link(i)}</span>
+    <textarea class="act ed" rows="1" data-it="${i.id}" data-k="activity" placeholder="Art der Tätigkeit" aria-label="Art der Tätigkeit">${esc(i.activity)}</textarea>
+    <input class="cnt" data-it="${i.id}" data-k="headcount" type="number" min="0" placeholder="Anz." value="${i.headcount ?? ''}" aria-label="Anzahl Mitarbeiter">
+    <button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>` : `<div class="ln ${i.done ? 'done' : ''}">
+    ${s.checkable ? `<input type="checkbox" data-act="toggle" data-id="${i.id}" ${i.done ? 'checked' : ''} aria-label="Erledigt">` : ''}
+    ${s.extra && s.extra.company ? `<div class="sgw cow"><input class="co" data-it="${i.id}" data-k="company" ${SGATTR} placeholder="Firma" value="${esc(i.company)}" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : ''}<textarea class="ed" data-it="${i.id}" data-k="text" rows="1" aria-label="Eintrag bearbeiten">${esc(i.text)}</textarea>${photoUi(i, s, r)}${dueUi(i, s)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>`).join('');
+  const field = lk ? `<div class="sgw"><input data-add="${esc(k)}" data-sg="1" placeholder="${esc(s.placeholder)}" autocomplete="nope" name="bt-add" autocorrect="off" spellcheck="false" enterkeyhint="next"><div class="sug hidden" role="listbox"></div></div>`
+    : `<textarea data-add="${esc(k)}" rows="3" placeholder="${esc(s.placeholder)}"></textarea>`;
+  const extra = lk ? `<textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter">`
+    : '<div class="hint">Enter = neue Zeile · Strg+Enter = hinzufügen</div>';
+  const add = adding === k ? `<div class="addrow">${lk ? '' : coAdd(s)}${field}${extra}${s.extra && s.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}${photoAdd(s)}<button class="ok" data-act="addItem" data-kind="${esc(k)}">Hinzufügen</button></div>` : '';
+  const n = r.items.filter(i => i.kind === k).length, open = secIsOpen(k, n) || adding === k;
+  return `<div class="sec ${open ? '' : 'col'}"><div class="main">${secHead(s, n, open)}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
+    <div class="side"><button data-act="adding" data-kind="${esc(k)}" title="${esc(s.title)} hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
+}
+function imgSec(s, r) {
+  const shown = allImgs ? r.images : r.images.slice(0, 6), rest = r.images.length - shown.length;
+  const open = secIsOpen(s.key, r.images.length);
+  return `<div class="sec ${open ? '' : 'col'}"><div class="main">${secHead(s, r.images.length, open)}
+    <div class="imgs" ${open ? '' : 'style="display:none"'}>${shown.map(i => `<div><a href="/uploads/${esc(i.file)}" target="_blank"><img loading="lazy" src="/api/thumb/240/${esc(i.file)}" alt="${esc(i.caption || 'Baustellenfoto')}"></a><button class="rm" data-act="delImg" data-id="${i.id}" title="Bild löschen">✕</button><input class="cap" data-img="${i.id}" value="${esc(i.caption)}" placeholder="Beschreibung" maxlength="120" autocomplete="off" aria-label="Fotobeschreibung (wird der Dateiname)"></div>`).join('')}</div>
+    ${open && rest > 0 ? `<button class="bd morei" data-act="moreImgs">Alle ${r.images.length} Bilder anzeigen (+${rest})</button>` : ''}${open && allImgs && r.images.length > 6 ? `<button class="bd morei" data-act="lessImgs">Weniger anzeigen</button>` : ''}
+    <input type="file" id="file" class="vh" accept="image/*,.heic,.heif" multiple></div>
+    <div class="side"><button data-act="pickFile" title="Bilder hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
+}
+function wxSec(s, r) {
+  const body = wxEdit ? `<div class="wgrid">
+      <label>Wetter<select data-f="weather"><option value=""></option>${WX.map(w => `<option ${w === r.weather ? 'selected' : ''}>${w}</option>`).join('')}</select></label>
+      <label>Niederschlag<select data-f="precip"><option value=""></option>${PRECIP.map(w => `<option ${w === r.precip ? 'selected' : ''}>${w}</option>`).join('')}</select></label>
+      <label>Temperatur (°C)<input data-f="temp" inputmode="decimal" value="${esc(r.temp)}"></label>
+      <label>Luftfeuchtigkeit (%)<input data-f="humidity" inputmode="decimal" value="${esc(r.humidity)}"></label>
+      <label>Wind (km/h)<input data-f="wind" inputmode="decimal" value="${esc(r.wind)}"></label>
+      <label>PLZ<input data-f="plz" inputmode="numeric" value="${esc(r.plz)}"></label></div>`
+    : `<div class="meta">${r.weather || r.precip ? [r.weather, r.precip].filter(Boolean).map(esc).join(' / ') + '<br>' : ''}Temperatur: ${r.temp ? esc(r.temp) + ' °C' : '–'}<br>Luftfeuchtigkeit: ${r.humidity ? esc(r.humidity) + ' %' : '–'}<br>Wind: ${r.wind ? esc(r.wind) + ' km/h' : '–'}</div>`;
+  return `<div class="sec"><div class="main"><h3>${esc(s.title)}</h3>${body}</div>
+    <div class="side wx"><span class="cl">${ic('cloud', 64)}</span><span>PLZ: ${esc(r.plz) || '–'}</span><span style="display:flex"><button data-act="gps" title="Wetter für die Projektadresse laden">${ic('pin', 20)}</button><button data-act="wxEdit" title="${wxEdit ? 'Fertig' : 'Wetter bearbeiten'}">${wxEdit ? '✓' : ic('pencil', 18)}</button></span>${r.extra && r.extra.place ? `<small style="color:var(--mute);text-align:center;padding:0 .4rem">${esc(r.extra.place)}</small>` : ''}</div></div>`;
+}
+const headMap = p => {   // dieselbe abgeflachte Karte wie in der PDF; Antippen = Route
+  if (!p || !hasPos(p)) return '';
+  const d = encodeURIComponent((addr(p) || p.lat + ',' + p.lon));
+  return `<a class="hmap" href="https://www.google.com/maps/dir/?api=1&destination=${d}&travelmode=driving" target="_blank" rel="noopener" title="Route zur Baustelle planen"><img src="/api/projects/${p.id}/map.jpg?v=${String(p.lat).slice(0, 7)}_${String(p.lon).slice(0, 6)}" alt="Karte" onerror="this.parentNode.remove()"></a>`;
+};
+function headSec(s, r) {
+  const p = curProject();
+  const info = headEdit ? `<div class="wgrid">
+      <label>Nummer<input data-f="number" type="number" min="1" value="${esc(r.number)}"></label>
+      <label>Datum<input data-f="date" type="date" value="${esc(r.date)}"></label>
+      <label>Uhrzeit${timeSelect(r.time, 'data-f="time"', true)}</label>
+      <label>Bauleitung vor Ort<input data-f="site_manager" value="${esc(r.site_manager)}"></label>
+      <div class="chips">${people.filter(n => !(r.site_manager || '').toLowerCase().includes(n.toLowerCase())).map(n => `<button class="chip" data-act="addPerson" data-name="${esc(n)}">+ ${esc(n)}</button>`).join('')}<small>Mehrere Personen mit Komma trennen oder oben antippen.</small></div></div>`
+    : `<div class="meta">Nummer: ${r.number}<br>Datum: ${fmt(r.date)}${r.time ? ' · ' + esc(r.time) + ' Uhr' : ''}${r.site_manager ? '<br>Bauleitung vor Ort: ' + esc(r.site_manager) : ''}${p && p.client ? '<br>Bauherrschaft: ' + esc(p.client) : ''}</div>`;
+  return `<div class="sec"><div class="main"><div class="hgrid">${headMap(p)}<h3>${esc(s.title)}</h3>${info}
+      <div class="checks">${CHECKS.map(([k, l]) => `<label><input type="checkbox" data-f="${k}" ${r[k] ? 'checked' : ''}>${l}</label>`).join('')}</div></div></div>
+    <div class="side q3"><button data-act="addReport" title="Neuer Bericht">${ic('plus', 24, 3)}</button>
+      <button data-act="editHead" title="${headEdit ? 'Fertig' : 'Bericht bearbeiten (Datum, Uhrzeit, Bauleitung)'}">${headEdit ? '✓' : ic('pencil', 20)}</button><button data-act="delReport" title="Bericht löschen">${ic('trash', 20)}</button></div></div><div id="vbox" class="vbox"></div>`;
+}
+// Register: neuer Abschnitts-Typ = ein Eintrag hier + eine Zeile in der Tabelle "sections". Unbekannte Typen werden übersprungen.
+const RENDER = {header: headSec, weather: wxSec, list: listSec, images: imgSec};
+function renderReport(box) {
+  const p = curProject();
+  if (!p) { box.innerHTML = `<div class="empty">Noch kein Projekt gewählt.<br><br><button class="bd" data-act="projPicker">Projekt wählen</button> <button class="bd" data-act="newProject">Neues Projekt</button></div>`; return; }
+  const r = curReport();
+  if (!r) { box.innerHTML = `<div class="empty">Noch kein Tagesbericht.<br><br><button class="bd" data-act="addReport">Ersten Tagesbericht anlegen</button></div>`; return; }
+  box.innerHTML = `<div class="wrap">` + renameBanner() + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('') + `</div>`;
+  box.insertAdjacentHTML('beforeend', '<input type="file" id="ifile" class="vh" accept="image/*,.heic,.heif" multiple>');
+  $('#ifile').onchange = async e => {
+    const fd = new FormData(); [...e.target.files].forEach(x => fd.append('files', x)); fd.append('item_id', itemPhotoFor);
+    e.target.value = ''; const up = await api(`/api/reports/${rid}/images`, 'POST', null, fd); await openProject(pid, true);
+    if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
+  };
+  const f = $('#file'); if (f) f.onchange = async e => {
+    const fd = new FormData(); [...e.target.files].forEach(x => fd.append('files', x));
+    const up = await api(`/api/reports/${rid}/images`, 'POST', null, fd); openProject(pid, true);
+    if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
+  };
+  document.querySelector('[data-add]')?.focus(); growAll(); loadVer();
+}
+
+/* ---------- Volltextsuche ---------- */
+let sr = {q: '', scope: 'all', res: null, T: 0};
+const mark = parts => parts.map(([t, h]) => h ? `<mark>${esc(t)}</mark>` : esc(t)).join('');
+function renderSearch(box) {
+  const p = curProject();
+  box.innerHTML = `<div class="wrap"><div class="cform" style="max-width:760px"><h3>Suche</h3>
+    <input class="w" id="fq" type="search" placeholder="Stichwörter, z. B. Riss Fenster oder Häser Elektro" value="${esc(sr.q)}" autocomplete="off" enterkeyhint="search">
+    <div class="chips w"><button class="chip ${sr.scope === 'all' ? 'on' : ''}" data-act="srScope" data-k="all">Alle Projekte</button>${p ? `<button class="chip ${sr.scope === 'one' ? 'on' : ''}" data-act="srScope" data-k="one">Nur ${esc(p.name)}</button>` : ''}</div>
+    <div class="info w">Durchsucht Projekte, Berichte (Datum, Bauleitung, Wetter), Mängel, Notizen, Anwesende, Weisungen, Zu erledigen, Fotobeschreibungen und Kontakte. Alle Wörter müssen vorkommen; Groß-/Kleinschreibung und Umlaute spielen keine Rolle („haeser“ findet „Häser“).</div>
+    <div id="srl" class="w audl"></div></div></div>`;
+  fillSearch(); if (!sr.q) $('#fq').focus();
+}
+async function doSearch() {
+  const q = sr.q.trim(); if (!q) { sr.res = null; return fillSearch(); }
+  const r = await api('/api/search?q=' + encodeURIComponent(q) + (sr.scope === 'one' && pid ? '&project_id=' + pid : ''));
+  if (q !== sr.q.trim()) return; sr.res = r.results || []; sr.trunc = r.truncated; fillSearch();
+}
+function fillSearch() {
+  const b = $('#srl'); if (!b) return;
+  if (sr.res === null) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  b.innerHTML = sr.res.length ? sr.res.map(x => `<button class="ar sr" data-act="goHit" data-p="${x.project_id || ''}" data-r="${x.report_id || ''}" data-c="${x.contact_id || ''}"><div class="at">${esc(x.type)}${x.date ? '<br>' + fmt(x.date) : ''}</div><div class="aa"><span class="ad">${mark(x.snip)}</span><small>${esc([x.project && x.project + (x.archived ? ' (archiviert)' : ''), x.report].filter(Boolean).join(' · '))}</small></div></button>`).join('')
+    + (sr.trunc ? '<div class="empty">Es werden nur die ersten 150 Treffer gezeigt – bitte genauer suchen.</div>' : '') : '<div class="empty">Nichts gefunden.</div>';
+}
+async function goHit(b) {
+  if (b.dataset.c) { cid = +b.dataset.c; newC = false; cedit = false; cfrom = null; tab = 'kontakte'; return renderDetail(); }
+  if (!b.dataset.p) return;
+  tab = 'bericht'; await openProject(+b.dataset.p);
+  if (b.dataset.r && reports.some(x => x.id === +b.dataset.r)) { rid = +b.dataset.r; wxEdit = headEdit = false; renderDetail(); }
+}
+/* ---------- Datensicherung (Datenbankversionen) ---------- */
+let bk = null;
+const backupCard = () => `<div class="cform"><h3>Datensicherung</h3>
+  <div class="info">Die App sichert die Datenbank (alle Projekte, Berichte, Einträge, Kontakte, Einstellungen, Protokoll) täglich automatisch – die letzten 30 bleiben. Zusätzlich entsteht vor jeder Migration und vor jeder Wiederherstellung eine Sicherung. Fotodateien liegen separat im Datenordner und sind nicht Teil dieser Sicherungen.</div>
+  <div class="acts"><button data-act="bkNew">Jetzt sichern</button></div><div id="bkl" class="w"></div></div>`;
+async function loadBackups() { const r = await api('/api/backups'); bk = r.items || []; fillBackups(); }
+function fillBackups() {
+  const b = $('#bkl'); if (!b || !bk) return;
+  const lab = k => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k.startsWith('vor') ? 'Sicherung ' + k.replace(/-/g, ' ') : k;
+  b.innerHTML = bk.length ? `<div class="audl">${bk.map(x => `<div class="vrow"><div class="vt"><span>${dt(x.created)} · ${esc(lab(x.kind))}</span><span>${esc(x.name)} · ${fsize(x.size)}</span></div>
+    <div class="va"><a class="bd" href="/api/backups/${encodeURIComponent(x.name)}/download" download>Laden</a><button data-act="bkRestore" data-id="${esc(x.name)}" data-arm="Wirklich zurückspielen? Nochmal tippen">Wiederherstellen</button><button data-act="bkDel" data-id="${esc(x.name)}" class="bad">✕</button></div></div>`).join('')}</div>
+    <div class="info">„Wiederherstellen“ ersetzt den gesamten Datenbestand durch den Stand der Version (davor wird automatisch gesichert). Danach wird die Seite neu geladen.</div>` : '<div class="info">Noch keine Version vorhanden.</div>';
+}
+/* ---------- Auditprotokoll + Aufräumen auf dem Projektserver (nur Administrator) ---------- */
+let aud = {cat: '', q: '', user: '', rows: [], more: false, users: [], loaded: false}, cln = null, clnScope = 'one';   // cln: null = noch nicht gesucht
+const CATS = [['', 'Alles'], ['inhalt', 'Inhalte'], ['export', 'PDF & Server'], ['konto', 'Konto']];
+const fsize = b => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+async function loadAudit(more) {
+  const a = new URLSearchParams({cat: aud.cat, q: aud.q, user: aud.user}); if (more && aud.rows.length) a.set('before', aud.rows[aud.rows.length - 1].id);
+  const r = await api('/api/audit?' + a); if (r.error) { toast(r.error); return; }
+  aud.rows = more ? aud.rows.concat(r.rows) : r.rows; aud.more = r.more; aud.users = r.users; aud.loaded = true; fillAudit();
+}
+function renderAudit(box) {
+  const p = curProject();
+  box.innerHTML = `<div class="wrap"><div class="cform" style="max-width:760px"><h3>Alte Versionen auf dem Projektserver</h3>
+    <div class="info w">Beim erneuten PDF-Export benennt die App das bisherige PDF und den Fotoordner des Tages in „…_old1“, „…_old2“ um. Hier findest du diese Kopien in den Projektordnern auf dem Server und kannst sie löschen.</div>
+    <div class="chips w">${[['one', p ? 'Aktuelles Projekt' : ''], ['active', 'Alle aktiven Projekte'], ['archived', 'Archivierte Projekte'], ['all', 'Alle Projekte']].filter(x => x[1]).map(([k, l]) => `<button class="chip ${clnScope === k ? 'on' : ''}" data-act="clnScope" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="acts w"><button data-act="clnScan">${cln ? 'Neu suchen' : 'Alte Versionen suchen'}</button></div><div id="cln" class="w"></div></div>
+    <div class="cform" style="max-width:760px;padding-top:0"><h3>Protokoll</h3>
+    <div class="chips w">${CATS.map(([k, l]) => `<button class="chip ${aud.cat === k ? 'on' : ''}" data-act="audCat" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="w audf"><input id="audq" type="search" placeholder="Suchen: Aktion, Projekt, Bericht, Dateiname …" value="${esc(aud.q)}" autocomplete="off"><select id="audu" aria-label="Benutzer"></select></div>
+    <div class="info w" id="audh"></div>
+    <div id="audl" class="w audl"></div></div></div>`;
+  fillCleanup(); if (aud.loaded) fillAudit(); else loadAudit();
+}
+function fillAudit() {
+  const b = $('#audl'); if (!b) return;
+  const u = $('#audu'); if (u) u.innerHTML = `<option value="">Alle Benutzer</option>` + [...new Set([...aud.users, aud.user].filter(Boolean))].map(n => `<option ${n === aud.user ? 'selected' : ''}>${esc(n)}</option>`).join('');
+  const act = [aud.cat && CATS.find(c => c[0] === aud.cat)[1], aud.user && 'Benutzer ' + aud.user, aud.q && '„' + aud.q + '“'].filter(Boolean);
+  $('#audh').innerHTML = act.length ? `Filter: ${esc(act.join(' + '))} – <a href="#" data-act="audReset">zurücksetzen</a>` : 'Zeigt die letzten Aktionen aller Benutzer. Mit den Knöpfen, der Suche und dem Benutzer lässt sich eingrenzen (alles gleichzeitig).';
+  b.innerHTML = aud.rows.length ? aud.rows.map(r => `<div class="ar ${r.cat}"><div class="at">${dt(r.ts)} · ${esc(r.user_name || '–')}</div><div class="aa"><b>${esc(r.action)}</b>${r.detail ? `<span class="ad">${esc(r.detail)}</span>` : ''}${r.project || r.report ? `<small>${esc([r.project, r.report].filter(Boolean).join(' · '))}</small>` : ''}</div></div>`).join('')
+    + (aud.more ? '<button class="bd" data-act="audMore">Ältere Einträge laden</button>' : '') : '<div class="empty">Keine Einträge.</div>';
+}
+async function clnLoad(btn) {
+  if (btn) btn.disabled = true; cln = null;
+  const r = await api(`/api/audit/cleanup?scope=${clnScope}&project_id=${pid || ''}`);
+  cln = r.error ? {error: r.error} : {items: r.items, projects: r.projects, errors: r.errors, sel: new Set()}; renderAudit($('#detail'));
+}
+function fillCleanup() {
+  const b = $('#cln'); if (!b) return;
+  if (!cln) { b.innerHTML = ''; return; }
+  if (cln.error) { b.innerHTML = `<div class="info bad">${esc(cln.error)}</div>`; return; }
+  const key = i => i.project_id + '|' + i.path;
+  const sel = cln.items.filter(i => cln.sel.has(key(i))), tot = sel.reduce((n, i) => n + i.size, 0);
+  const row = i => `<label class="cr"><input type="checkbox" data-cl="${esc(key(i))}" ${cln.sel.has(key(i)) ? 'checked' : ''}><span class="cn"><b>${esc(i.name)}</b><small>${esc(i.dir)}</small></span><span class="cs">${i.kind === 'photos' ? i.files + ' Foto(s) · ' : ''}${fsize(i.size)}<br><small>${dt(new Date(i.mtime * 1000).toISOString())}</small></span></label>`;
+  const grp = (pj, k, t) => { const l = cln.items.filter(i => i.project_id === pj && i.kind === k); return l.length ? `<h5>${t} (${l.length})</h5>${l.map(row).join('')}` : ''; };
+  const projs = [...new Map(cln.items.map(i => [i.project_id, i])).values()];
+  b.innerHTML = cln.items.length ? `<div class="info">${cln.items.length} alte Version(en) in ${projs.length} Projekt(en) (${cln.projects} durchsucht${cln.errors ? ', ' + cln.errors + ' nicht erreichbar' : ''}).</div>`
+    + projs.map(i => `<h4>${esc(i.project)}${i.archived ? ' <small>(archiviert)</small>' : ''}</h4>${grp(i.project_id, 'pdf', 'PDF-Dateien')}${grp(i.project_id, 'photos', 'Fotoordner')}`).join('') + `
+    <div class="acts"><button data-act="clnAll">${sel.length === cln.items.length ? 'Alle abwählen' : 'Alle markieren'}</button>
+    <button class="bad" data-act="clnDel" data-arm="${sel.length} Element(e) endgültig löschen? Nochmal tippen" ${sel.length ? '' : 'disabled'}>Ausgewählte löschen${sel.length ? ` (${sel.length}, ${fsize(tot)})` : ''}</button></div>
+    <div class="info">Gelöscht wird nur auf dem Projektserver, endgültig. Das aktuelle PDF und die aktuellen Fotos bleiben unberührt. Jede Löschung steht im Protokoll.</div>`
+    : `<div class="info">Keine alten Versionen auf dem Server gefunden (${cln.projects} Projekt(e) durchsucht).</div>`;
+}
+/* ---------- Versionsverlauf der Berichte ---------- */
+let verOpen = false, verData = null, verView = null, verSnap = null;
+const dt = iso => { const d = new Date(String(iso).replace(' ', 'T')); return isNaN(d) ? '' : d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'}) + ' ' + d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}); };
+async function loadVer() {
+  const my = rid; if (!my) return;
+  try { const v = await api(`/api/reports/${my}/versions`); if (my !== rid) return; verData = v; } catch { return; }
+  fillVer();
+}
+function verSummary(snap) {
+  const r = snap.report, byKind = {};
+  snap.items.forEach(i => (byKind[i.kind] = byKind[i.kind] || []).push(i));
+  const head = [['Datum', fmt(r.date)], ['Uhrzeit', r.time], ['Bauleitung', r.site_manager], ['Wetter', [r.weather, r.precip, r.temp && r.temp + ' °C'].filter(Boolean).join(', ')]].filter(x => x[1]).map(x => `${x[0]}: ${esc(x[1])}`).join(' · ');
+  const secs = meta.sections.filter(x => x.type === 'list' && byKind[x.key]).map(x => `<b>${esc(x.title)}</b><ul>${byKind[x.key].map(i => `<li>${esc(i.text)}${i.activity ? ' – ' + esc(i.activity) : ''}${i.headcount != null && i.headcount !== '' ? ' (' + esc(i.headcount) + ')' : ''}</li>`).join('')}</ul>`).join('');
+  return `<div class="vsum">${head}<br>${secs}<small>${snap.images.length} Foto(s)</small></div>`;
+}
+function fillVer() {
+  const box = $('#vbox'); if (!box || !verData) return;
+  const v = verData, ex = v.last_export, n = v.versions.length;
+  const stat = v.status === 'never' ? `<span class="vs no">Noch nicht als PDF exportiert</span>`
+    : v.status === 'exported' ? `<span class="vs ok">✓ Als PDF exportiert: ${esc(ex.pdf_name)} · ${dt(ex.created)}</span>`
+    : `<span class="vs chg">Seit dem Export geändert – letzter Export: ${esc(ex.pdf_name)} · ${dt(ex.created)}</span>`;
+  const label = x => x.reason === 'export' ? `PDF exportiert: <b>${esc(x.pdf_name)}</b>` : x.reason === 'before_restore' ? 'Stand vor einer Wiederherstellung' : 'Änderung gespeichert';
+  const list = verOpen ? `<div class="vlist">${n ? v.versions.map(x => `<div class="vrow ${x.reason}"><div class="vt"><span>${dt(x.created)}${x.user_name ? ' · ' + esc(x.user_name) : ''}</span><span>${label(x)}</span></div>
+      <div class="va"><button data-act="verView" data-id="${x.id}">${verView === x.id ? 'Zuklappen' : 'Ansehen'}</button><button data-act="restoreVer" data-id="${x.id}" data-arm="Wiederherstellen? Nochmal tippen" title="Bericht auf diesen Stand zurücksetzen (Fotos bleiben)">Wiederherstellen</button></div>
+      ${verView === x.id ? (verSnap ? verSummary(verSnap) : '<div class="vsum">lädt …</div>') : ''}</div>`).join('') : '<div class="vsum">Noch keine Versionen. Sie entstehen automatisch nach Änderungen und bei jedem PDF-Export.</div>'}</div>` : '';
+  box.innerHTML = `<div class="vline">${stat}<button data-act="verToggle" class="vbtn">${ic('clock', 16, 2.4)} Verlauf (${n})</button></div>${list}`;
+}
+/* ---------- Projekt (Stammdaten) ---------- */
+const clientOpts = () => contacts.filter(c => /bauherr/i.test(c.trade || '')).map(c => [c.name, [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(', '));   // Kontakte mit Gewerk „Bauherr/Bauherrin“
+const clientList = () => `<datalist id="dl-client">${clientOpts().map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
+const tradeOpts = () => {   // Gewerke aus dem Verlauf: bereits vergebene, häufigste zuerst (Schreibweise der ersten Verwendung)
+  const m = new Map();
+  for (const c of contacts) { const t = (c.trade || '').trim(); if (!t) continue; const k = t.toLowerCase(), e = m.get(k); e ? e.n++ : m.set(k, {t, n: 1}); }
+  return [...m.values()].sort((a, b) => b.n - a.n || a.t.localeCompare(b.t, 'de')).map(e => e.t);
+};
+const tradeList = () => `<datalist id="dl-trade">${tradeOpts().map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
+const listAttr = k => ({client: ' list="dl-client"', trade: ' list="dl-trade"', zip: ' list="dl-zip"', city: ' list="dl-city"', co_zip: ' list="dl-zip"', co_city: ' list="dl-city"'})[k] || '';
+const addrLists = () => {   // Orte und PLZ aus dem Verlauf (Kontakte, Projekte, Firmendaten), häufigste zuerst – funktioniert offline
+  const cnt = (arr) => { const m = new Map(); for (const v of arr) { const t = (v || '').trim(); if (t) m.set(t, (m.get(t) || 0) + 1); } return [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de')).map(x => x[0]); };
+  const all = [...contacts, ...projects, {zip: settings.co_zip, city: settings.co_city}];
+  return `<datalist id="dl-zip">${cnt(all.map(x => x.zip)).map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist><datalist id="dl-city">${cnt(all.map(x => x.city)).map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
+};
+let addrBusy = false;
+async function addrComplete(el) {   // PLZ ↔ Ort und Straße → PLZ/Ort ergänzen (nur leere Felder): erst Verlauf, dann Netz
+  const key = (el.dataset.dp || el.dataset.pf || el.dataset.cf || el.dataset.st || '').replace(/^co_/, '');
+  if (!['street', 'zip', 'city'].includes(key) || addrBusy) return;
+  const root = el.closest('.cform'); if (!root) return;
+  const f = k => root.querySelector(`[data-dp="${k}"],[data-pf="${k}"],[data-cf="${k}"],[data-st="co_${k}"]`);
+  const st = f('street'), zp = f('zip'), ct = f('city'); if (!zp || !ct) return;
+  const v = x => (x?.value || '').trim();
+  if ((v(zp) && v(ct)) || (!v(zp) && !v(ct))) return;
+  addrBusy = true;
+  try {
+    const r = await api('/api/address/complete?street=' + encodeURIComponent(v(st)) + '&zip=' + encodeURIComponent(v(zp)) + '&city=' + encodeURIComponent(v(ct)));
+    const done = [];
+    for (const [k, inp] of [['zip', zp], ['city', ct]]) {
+      if (r && r[k] && !v(inp)) { inp.value = r[k]; inp.dispatchEvent(new Event('input', {bubbles: true})); inp.dispatchEvent(new Event('change', {bubbles: true})); done.push(k === 'zip' ? 'PLZ ' + r[k] : r[k]); }
+    }
+    if (done.length) toast('Ergänzt: ' + done.join(', ') + (r.source === 'netz' ? ' (aus dem Netz – bitte prüfen)' : ' (aus deinen Daten)'));
+  } catch {} finally { addrBusy = false; }
+}
+document.addEventListener('change', e => { if (e.target.matches && e.target.matches('input')) setTimeout(() => addrComplete(e.target), 300); });
+/* ---------- Adressvorschläge beim Tippen in „Straße“ (wie bei Paketdiensten) ---------- */
+let adrT = 0, adrQ = '';
+const adrKey = el => (el.dataset.dp || el.dataset.pf || el.dataset.cf || el.dataset.st || '').replace(/^co_/, '');
+function adrClose() { document.querySelectorAll('.adrsug').forEach(n => n.remove()); }
+function adrSuggest(el) {
+  clearTimeout(adrT); const root = el.closest('.cform'), q = el.value.trim();
+  if (q.length < 3 || !root) return adrClose();
+  const f = k => root.querySelector(`[data-dp="${k}"],[data-pf="${k}"],[data-cf="${k}"],[data-st="co_${k}"]`);
+  const full = [q, (f('zip')?.value || '').trim(), (f('city')?.value || '').trim()].filter(Boolean).join(' '); adrQ = full;
+  adrT = setTimeout(async () => {
+    const p = typeof curProject === 'function' ? curProject() : null, ref = p && hasPos(p) ? p : here, near = ref ? `&lat=${ref.lat}&lon=${ref.lon}` : '';
+    let items = []; try { const r = await api('/api/address/suggest?q=' + encodeURIComponent(full) + near); items = Array.isArray(r.items) ? r.items : []; } catch {}
+    if (full !== adrQ || document.activeElement !== el) return;
+    adrClose(); if (!items.length) return;
+    sugC = items;
+    const box = document.createElement('div'); box.className = 'adrsug sugc w';
+    box.innerHTML = items.map((x, i) => `<button type="button" class="pi" data-act="adrPick" data-i="${i}"><span class="l"><b>${esc(x.street)}</b><small>${esc([x.zip, x.city].filter(Boolean).join(' ') + (x.km != null ? ' · ' + (x.km < 1 ? '< 1' : Math.round(x.km)) + ' km' : ''))}</small></span></button>`).join('');
+    (el.closest('label') || el).insertAdjacentElement('afterend', box);
+  }, 300);
+}
+function adrPick(i) {
+  const x = sugC[i]; if (!x) return; const el = document.activeElement && document.activeElement.matches('input') ? document.activeElement : document.querySelector('[data-dp=street],[data-pf=street],[data-cf=street],[data-st=co_street]');
+  const root = (el && el.closest('.cform')) || document;
+  const set = (k, v) => { const inp = root.querySelector(`[data-dp="${k}"],[data-pf="${k}"],[data-cf="${k}"],[data-st="co_${k}"]`); if (inp && v != null) { inp.value = v; inp.dispatchEvent(new Event('input', {bubbles: true})); inp.dispatchEvent(new Event('change', {bubbles: true})); } };
+  adrClose(); set('street', x.street); set('zip', x.zip); set('city', x.city);
+}
+document.addEventListener('input', e => { const el = e.target; if (el.matches && el.matches('input') && adrKey(el) === 'street' && el.closest('.cform')) adrSuggest(el); });
+document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('input') && adrKey(e.target) === 'street') setTimeout(adrClose, 200); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') adrClose(); });
+
+const leaderUi = (ids, act) => `<div class="w leaders"><div class="lbl">Zuständige Bauleiter</div><div class="chips">${leaderUsers.map(u => `<button type="button" class="chip ${ids.includes(u.id) ? 'on' : ''}" data-act="${act}" data-id="${u.id}" aria-pressed="${ids.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Noch keine Benutzer angelegt.</small>'}</div>
+  <small class="lnote">${ids.length ? 'Nur die ausgewählten Bauleiter und die Administratoren sehen dieses Projekt in der Projektauswahl. Alle Ausgewählten dürfen weitere Bauleiter ergänzen oder entfernen.' : 'Niemand ausgewählt: alle Benutzer sehen dieses Projekt.'}</small></div>`;
+const PFIELDS = [['name','Bauvorhaben *','text','w'],['client','Bauherrschaft (Name und Anschrift)','text','w'],['street','Straße und Hausnummer','text','w'],['zip','PLZ'],['city','Ort']];
+function posInfo(p) {
+  const auto = p.extra && p.extra.addr_auto ? 'Adresse und PLZ wurden automatisch aus dem Projektnamen ermittelt – bitte prüfen. ' : '';
+  return auto + (hasPos(p) ? `Standort gespeichert (${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}). Damit wählt die App dieses Projekt automatisch, wenn du vor Ort bist.`
+    : 'Noch kein Standort. Ohne Standort kann die App dieses Projekt nicht automatisch per GPS wählen. Adresse eintragen oder „Aktuellen Standort übernehmen“ drücken.');
+}
+let sugT = 0;
+function suggestProjects(q) {   // Vorschläge aus den Serverordnern (native Auswahlliste des Browsers)
+  clearTimeout(sugT);
+  sugT = setTimeout(async () => {
+    const dl = $('#dl-proj'); if (!dl || !q.trim()) return;
+    const r = await api('/api/store/folders?q=' + encodeURIComponent(q.trim()));
+    if (Array.isArray(r) && $('#dl-proj') && draft && draft.name === q) $('#dl-proj').innerHTML = r.map(n => `<option value="${esc(n)}"></option>`).join('');
+  }, 250);
+}
+function renderDraft(box) {
+  box.innerHTML = `<div class="wrap"><div class="cform"><h3>Neues Projekt</h3>
+    ${PFIELDS.map(([k, l, t = 'text', w]) => `<label class="${w ? 'w' : ''}">${l}<input data-dp="${k}" type="${t}" value="${esc(draft[k])}" autocomplete="off"${k === 'name' ? ' list="dl-proj"' : ''}${listAttr(k)}></label>`).join('')}
+    <datalist id="dl-proj"></datalist>${clientList()}${addrLists()}${leaderUi(draft.leaders || [], 'ldrDraft')}
+    <div class="info">Beim Tippen des Namens werden vorhandene Projektordner vom Server vorgeschlagen (wenn die Ablage eingerichtet ist). Bei „Bauherrschaft“ schlägt die App Kontakte mit dem Gewerk „Bauherr“ bzw. „Bauherrin“ vor. Mit einer Adresse bestimmt die App den Standort automatisch und wählt das Projekt später per GPS, wenn du vor Ort bist.</div>
+    <div class="acts"><button class="pri" data-act="createProject">Projekt anlegen</button><button data-act="cancelDraft">Abbrechen</button></div></div></div>`;
+}
+function projContactUi(p) {   // Baustellenadresse auch in die Kontakte (Adressdatenbank) – Name wird abgefragt
+  const e = p.extra || {}, linked = e.contact_id && contacts.find(c => c.id === e.contact_id);
+  if (linked) return `<div class="info w">In den Kontakten gespeichert als <button type="button" data-act="gotoContact" data-id="${linked.id}" style="display:inline;padding:0;color:var(--y);font-weight:700">${esc(linked.name)}</button>. Änderungen der Adresse werden dort mitgeführt.</div>`;
+  if (e.contact_declined || !addr(p)) return '';
+  return `<div class="rnb w"><b>Baustellenadresse auch in den Kontakten speichern?</b>
+    <label>Name des Kontakts<input id="pcName" value="${esc(p.name)}" autocomplete="off"></label>
+    <div class="acts"><button class="pri" data-act="pcSave">In Kontakte speichern</button><button data-act="pcNo">Nein, nicht mehr fragen</button></div></div>`;
+}
+function renderProject(box) {
+  if (draft) { renderDraft(box); return; }
+  const p = curProject();
+  if (!p) { renderReport(box); return; }
+  box.innerHTML = `<div class="wrap"><div class="cform"><h3>Projekt</h3>
+    ${PFIELDS.map(([k, l, t = 'text', w]) => `<label class="${w ? 'w' : ''}">${l}<input data-pf="${k}" type="${t}" value="${esc(p[k])}" autocomplete="off"${listAttr(k)}></label>`).join('')}${clientList()}${addrLists()}${leaderUi(p.leaders || [], 'ldrEdit')}${projContactUi(p)}
+    <label class="w">Projektordner auf dem Server (leer = automatisch über das Kürzel suchen; Unterordner mit / trennen, z. B. A450 Haupt/A450.22 Unter)<input data-pf="folder" value="${esc(p.folder)}" autocomplete="off"></label>
+    <div class="info w" id="pnames">Namenskonventionen werden geladen …</div>
+    <div class="info" id="pinfo">${esc(posInfo(p))}</div>
+    ${mapBlock(hasPos(p) ? p.lat + ',' + p.lon : [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), true)}
+    <div class="acts"><button data-act="geoSearch">Adresse suchen</button><button data-act="geoHere">Aktuellen Standort übernehmen</button><button data-act="archProject">${p.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button><button class="bad" data-act="delProject">Projekt löschen</button></div>
+    ${p.archived ? '<div class="info">Dieses Projekt ist archiviert: Es erscheint nicht in der Projektauswahl und wird nicht per GPS gewählt. Wiederfinden: Projektauswahl → „Archiv“ oder dort einfach suchen.</div>' : ''}
+    <div class="info">„Adresse suchen“ nutzt die eingetragene Adresse, ohne Eintrag den Projektnamen (ohne Kürzel wie A481); die PLZ wird im Internet nachgeschlagen.</div></div></div>`;
+  loadNames(p.id);
+}
+async function loadNames(id) {   // im Projekt aktive Namenskonventionen (Ordner, PDF-Name, Fotoordner)
+  const box = $('#pnames'); if (!box) return;
+  try {
+    const n = await api('/api/store/names?project_id=' + id); if (!$('#pnames') || id !== pid) return;
+    const row = (l, v) => `<div><b>${l}:</b> <code>${esc(v)}</code></div>`;
+    let open = true; try { open = localStorage.getItem('namesOpen') !== '0'; } catch {}
+    box.innerHTML = `<details ${open ? 'open' : ''}><summary><b>Aktive Namenskonventionen</b> (${n.scheme ? 'Schema dieses Projekts' : 'Standard der App'})</summary>`
+      + row('PDF-Datei', n.pdf_name) + row('PDF-Ordner', n.pdf_dir) + row('Fototag-Ordner', n.photo_dir.replace('{Tagesordner}', n.photo_name))
+      + (n.scheme ? row('Muster PDF', n.pdf_tpl) + row('Muster Fotoordner', n.dir_tpl) : '')
+      + `<small>Beispiele mit Datum ${esc(fmt(n.date))}. ${n.scheme ? 'Das Schema wurde von vorhandenen Namen auf dem Server übernommen.' : 'Werden Dateien auf dem Server von Hand umbenannt, fragt die App beim Öffnen, ob sie das Schema übernehmen soll.'}</small></details>`;
+    box.querySelector('details').addEventListener('toggle', e => { try { localStorage.setItem('namesOpen', e.target.open ? '1' : '0'); } catch {} });
+  } catch { box.remove(); }
+}
+async function saveProjectField(t) {
+  const p = curProject(), k = t.dataset.pf; let v = t.value.trim().replace(/\s+/g, ' ');
+  if (k === 'name' && !v) { toast('Der Name darf nicht leer sein.'); t.value = p.name; return; }
+  const res = await api('/api/projects/' + pid, 'PUT', {[k]: v});
+  if (res.error) { toast(res.error); t.value = p[k]; return; }
+  t.value = v; await loadProjects(); chrome();
+  const q = curProject(); $('#pinfo').textContent = posInfo(q);
+  if (res.geocoded === true) toast('Standort aus der Adresse ermittelt.');
+  else if (res.geocoded === false) toast('Adresse nicht gefunden – bitte prüfen (oder „Aktuellen Standort übernehmen“).');
+}
+async function geoSearch() {
+  const p = curProject(), a = [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  toast('Adresse wird gesucht …');
+  const g = await api('/api/geocode?q=' + encodeURIComponent(a || p.name) + (a ? '' : '&from_name=1'));
+  if (!g.found) { toast('Adresse nicht gefunden. Bitte Straße, PLZ und Ort eintragen.'); return; }
+  await api('/api/projects/' + pid, 'PUT', {street: g.street, zip: g.zip, city: g.city, lat: g.lat, lon: g.lon, extra: {addr_auto: !a}});
+  await loadProjects(); renderDetail(); toast('Adresse und Standort übernommen. Bitte kurz prüfen.');
+}
+async function geoHere() {
+  const h = await locate(false); if (!h) return;
+  let g; try { g = await api(`/api/geo?lat=${h.lat}&lon=${h.lon}`); } catch { return; }
+  const upd = {lat: h.lat, lon: h.lon}; if (!g.error) Object.assign(upd, {street: g.street || '', zip: g.plz || '', city: g.city || ''});
+  await api('/api/projects/' + pid, 'PUT', upd);
+  await loadProjects(); renderDetail(); toast(g.error ? 'Standort gespeichert (Adresse nicht abrufbar).' : 'Adresse und Standort vom aktuellen Standort übernommen.');
+}
+async function archProject(flag) {
+  const id = pid, on = flag ?? !curProject().archived, name = curProject().name;
+  await api('/api/projects/' + id, 'PUT', {archived: on ? 1 : 0}); await loadProjects();
+  if (on) { const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
+  else renderDetail();
+  toast(on ? `„${name}“ archiviert – zu finden unter Projektauswahl → Archiv.` : `„${name}“ ist wieder aktiv.`, async () => { pid = id; await archProject(!on); if (!on) await openProject(id); else renderDetail(); });
+}
+async function delProject() {
+  await api('/api/projects/' + pid, 'DELETE'); pid = null; rid = null; reports = []; await loadProjects();
+  if (projects[0]) { tab = 'bericht'; await openProject(projects[0].id); } else renderDetail();
+}
+
+/* ---------- Kontakte ---------- */
+const CFIELDS = [['name','Firma / Name *','text','w'],['trade','Gewerk'],['contact_person','Ansprechpartner'],['role','Funktion'],['phone','Telefon','tel'],['mobile','Mobil','tel'],['email','E-Mail','email'],['website','Internet','text','w'],['street','Straße','text','w'],['zip','PLZ'],['city','Ort']];
+function renderContacts(box) {
+  box.innerHTML = `<div class="split"><div class="clist"><div class="ch"><input id="cq" type="search" placeholder="Kontakte filtern" value="${esc(cq)}"><button data-act="addContact" title="Kontakt anlegen">${ic('plus', 22, 3)}</button></div><div class="cx"><select id="ctr" aria-label="Nach Gewerk filtern"></select><select id="cpr" aria-label="Nach Projekt filtern"></select><button data-act="cxXlsx" title="Liste als Excel-Datei laden">Excel</button><button data-act="cxPdf" title="Liste drucken (PDF)">Drucken</button></div><div class="cb" id="cb"></div></div><div class="cdet" id="cdet"></div></div>`;
+  fillContactList(); fillContactDetail(); $('#ncName')?.focus();
+}
+const cxQS = () => '?q=' + encodeURIComponent(cq.trim()) + '&trade=' + encodeURIComponent(cTrade) + (cProj ? '&project=' + cProj : '');
+function fillContactList() {
+  const sel = $('#ctr'); if (sel) { const ts = tradeOpts(); if (cTrade && !ts.some(t => t.toLowerCase() === cTrade.toLowerCase())) cTrade = ''; sel.innerHTML = '<option value="">Alle Gewerke</option>' + ts.map(t => `<option ${t.toLowerCase() === cTrade.toLowerCase() ? 'selected' : ''}>${esc(t)}</option>`).join(''); }
+  const sp = $('#cpr'); if (sp) { if (cProj && !projects.some(p => String(p.id) === cProj)) cProj = ''; sp.innerHTML = '<option value="">Alle Projekte</option>' + projects.map(p => `<option value="${p.id}" ${String(p.id) === cProj ? 'selected' : ''}>${esc(p.name)}</option>`).join(''); }
+  const q = cq.toLowerCase(), list = contacts.filter(c => (!cProj || (c.projects || []).includes(+cProj)) && (!cTrade || (c.trade || '').trim().toLowerCase() === cTrade.toLowerCase()) && [c.name, c.trade, c.contact_person, c.city].join(' ').toLowerCase().includes(q));
+  $('#cb').innerHTML = list.length ? list.map(c => `<button class="pi ${c.id === cid ? 'on' : ''}" data-act="openContact" data-id="${c.id}"><span class="l"><b>${esc(c.name)}</b>${c.trade || c.contact_person ? `<small>${esc([c.trade, c.contact_person].filter(Boolean).join(' · '))}</small>` : ''}</span></button>`).join('')
+    : `<div class="empty">${contacts.length ? 'Keine Treffer.' : 'Noch keine Kontakte. Firmen aus „Anwesende“ erscheinen hier automatisch.'}</div>`;
+}
+const mapBlock = (q, small) => {   // kleine Google-Karte (ohne Schlüssel, eingebettet) mit Link zur Routenplanung
+  q = (q || '').trim(); if (!q) return ''; const e = encodeURIComponent(q);
+  return `<div class="mapb${small ? ' sm' : ''}"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${e}&hl=de&z=15&output=embed"></iframe><a class="mapr" href="https://www.google.com/maps/dir/?api=1&destination=${e}&travelmode=driving" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>`;
+};
+function fillContactDetail() {
+  const c = contacts.find(x => x.id === cid), box = $('#cdet');
+  $('.split').classList.toggle('has', !!c || newC);
+  if (newC) {
+    box.innerHTML = `<div class="cform"><button class="cback" data-act="cback">‹ Kontakte</button><h3>Neuer Kontakt</h3>
+      <label class="w">Firma / Name *<input id="ncName" autocomplete="off"></label>
+      <div class="w" id="ncSug"></div>
+      <div class="info">Beim Tippen schlägt die App Firmen aus dem Netz (OpenStreetMap) mit Adresse und – falls vorhanden – Telefon und E-Mail vor; ein Tipp legt den Kontakt damit an. Alles Weitere trägst du danach ein.</div>
+      <div class="acts"><button class="pri" data-act="createContact">Anlegen</button><button data-act="cancelNew">Abbrechen</button></div></div>`;
+    return;
+  }
+  if (!c) { box.innerHTML = '<div class="empty">Wähle einen Kontakt oder lege mit ＋ einen neuen an.</div>'; return; }
+  const back = cfrom ? '<button class="cback show" data-act="backReport">‹ Zurück zum Tagesbericht</button>' : '<button class="cback" data-act="cback">‹ Kontakte</button>';
+  const tel = (c.mobile || c.phone || '').replace(/[^+\d]/g, '');
+  const pen = `<button data-act="editContact" title="${cedit ? 'Fertig' : 'Bearbeiten'}" aria-label="${cedit ? 'Fertig' : 'Bearbeiten'}">${cedit ? '✓' : ic('pencil', 22)}</button>`;
+  if (cedit) {
+    const fields = CFIELDS.map(([k, label, type = 'text', w]) => `<label class="${w ? 'w' : ''}">${label}<input data-cf="${k}" type="${type}" value="${esc(c[k])}" autocomplete="off"${listAttr(k)}></label>`).join('') + tradeList() + addrLists();
+    box.innerHTML = `<div class="cform">${back}<div class="chead"><h3>${esc(c.name)}</h3>${pen}</div>${fields}
+      <label class="w">Notizen<textarea data-cf="notes">${esc(c.notes)}</textarea></label>
+      <div class="info">In ${c.used} Berichtseintrag${c.used === 1 ? '' : 'en'} verwendet. Bestehende Tagesberichte behalten den Namen, wie er damals eingetragen wurde.</div>
+      <div class="w" id="csug"></div>
+      <div class="acts"><button data-act="sugEdit">Aus dem Netz ergänzen</button><button class="bad" data-act="delContact">Kontakt löschen</button></div></div>`;
+    return;
+  }
+  const tl = v => v ? `<a href="tel:${esc(v.replace(/[^+\d]/g, ''))}">${esc(v)}</a>` : '';
+  const rows = [['Gewerk', esc(c.trade)], ['Ansprechpartner', esc([c.contact_person, c.role].filter(Boolean).join(', '))], ['Telefon', tl(c.phone)], ['Mobil', tl(c.mobile)],
+    ['E-Mail', c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''],
+    ['Internet', c.website ? `<a href="${esc(/^https?:/i.test(c.website) ? c.website : 'https://' + c.website)}" target="_blank" rel="noopener">${esc(c.website)}</a>` : ''],
+    ['Adresse', esc([c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))], ['Notizen', esc(c.notes)]].filter(r => r[1]);
+  box.innerHTML = `<div class="cform">${back}<div class="chead"><h3>${esc(c.name)}</h3>${pen}</div>
+    ${rows.length ? `<dl class="cview">${rows.map(([l, v]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '<div class="info">Noch keine Daten. Mit dem Stift oben rechts kannst du sie ergänzen.</div>'}
+    ${mapBlock([c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}
+    <div class="info">In ${c.used} Berichtseintrag${c.used === 1 ? '' : 'en'} verwendet.</div></div>`;
+}
+async function saveContactField(t) {
+  const c = contacts.find(x => x.id === cid), k = t.dataset.cf; let v = t.value.trim();
+  if (k === 'name') v = v.replace(/\s+/g, ' ');
+  if (k === 'name' && !v) { toast('Der Name darf nicht leer sein.'); t.value = c.name; return; }
+  const res = await api('/api/contacts/' + cid, 'PUT', {[k]: v});
+  if (res.error) { toast(res.error); t.value = c[k]; return; }
+  t.value = v;
+  if (k === 'name') document.querySelector('.cform h3').textContent = v;
+  contacts = await api('/api/contacts'); fillContactList();
+}
+
+/* ---------- Kontakt-Vorschläge aus dem Netz (OpenStreetMap, über den Server) ---------- */
+let sugC = [], sugCT = 0, sugCQ = '';
+const sugLine = x => [x.street, [x.zip, x.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+function sugHtml(list, act, msg) {
+  return list.length ? `<div class="sugc"><div class="sugh">Vorschläge aus dem Netz, nächste zuerst – antippen zum Übernehmen</div>${list.map((x, i) => `<button type="button" class="pi" data-act="${act}" data-i="${i}"><span class="l"><b>${esc(x.name)}</b><small>${esc([x.km != null && (x.km < 1 ? '< 1 km' : Math.round(x.km) + ' km'), x.trade, sugLine(x), x.phone, x.email].filter(Boolean).join(' · '))}</small></span></button>`).join('')}</div>` : (msg ? `<div class="info">${msg}</div>` : '');
+}
+async function fetchSug(q) {
+  const p = curProject(), ref = p && hasPos(p) ? p : here, near = ref ? `&lat=${ref.lat}&lon=${ref.lon}` : '';   // Bezug: Projektstandort, sonst dein Standort
+  const r = await api('/api/contacts/suggest?q=' + encodeURIComponent(q) + near);
+  return Array.isArray(r.items) ? r.items : [];
+}
+function suggestContacts(q) {   // beim Tippen im Feld „Neuer Kontakt“
+  clearTimeout(sugCT); sugCQ = q.trim();
+  if (sugCQ.length < 3) { sugC = []; const b = $('#ncSug'); if (b) b.innerHTML = ''; return; }
+  sugCT = setTimeout(async () => {
+    const q0 = sugCQ, list = await fetchSug(q0).catch(() => []);
+    if (q0 !== sugCQ || !$('#ncSug')) return;
+    sugC = list; $('#ncSug').innerHTML = sugHtml(list, 'sugNew');
+  }, 350);
+}
+async function sugDetail(x) {   // Telefon/E-Mail/Internet erst beim Antippen holen (eine Abfrage)
+  if (x.osm_id && !x._d) { try { Object.assign(x, await api(`/api/contacts/suggest/detail?type=${encodeURIComponent(x.osm_type)}&id=${x.osm_id}`)); } catch {} x._d = 1; }
+  return x;
+}
+const sugFields = x => ({name: x.name, trade: tradeOpts().find(t => t.toLowerCase() === (x.trade || '').toLowerCase()) || x.trade, street: x.street, zip: x.zip, city: x.city, phone: x.phone, email: x.email, website: x.website || ''});
+function addContact() { newC = true; cid = null; fillContactList(); fillContactDetail(); $('#ncName')?.focus(); }
+async function createContact() {
+  const name = ($('#ncName')?.value || '').trim().replace(/\s+/g, ' ');
+  if (!name) { toast('Bitte einen Namen eingeben.'); $('#ncName')?.focus(); return; }
+  const r = await api('/api/contacts', 'POST', {name});
+  if (r.error && !r.id) { toast(r.error); return; }
+  if (r.error) toast('Diesen Kontakt gibt es schon – er wird geöffnet.');
+  newC = false; cedit = true; cid = r.id; contacts = await api('/api/contacts'); renderDetail();
+}
+
+/* ---------- Anmeldung (Anmelden, Kennwort vergessen/zurücksetzen, erzwungene Änderung) ---------- */
+const ACCENTS = [['#ff5fb3', 'Pink'], ['#ffd200', 'Gelb'], ['#ff9a2e', 'Orange'], ['#ff6b5e', 'Rot'], ['#3ddc84', 'Grün'], ['#2fd6c9', 'Türkis'], ['#4da3ff', 'Blau'], ['#b18cff', 'Violett'], ['#f3f3f1', 'Weiß']];
+function applyAccent(c) {   // Akzentfarbe der Oberfläche; Schriftfarbe auf der Farbe je nach Helligkeit
+  c = /^#[0-9a-f]{6}$/i.test(c || '') ? c : ACCENTS[0][0];
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  document.documentElement.style.setProperty('--y', c); document.documentElement.style.setProperty('--on', lum > 0.55 ? '#111' : '#fff');
+  try { localStorage.setItem('accent', c); } catch {}
+}
+try { applyAccent(localStorage.getItem('accent')); } catch { applyAccent(); }   // schon auf der Anmeldeseite die zuletzt gewählte Farbe
+let me = {}, users = null, people = [];
+function authView(v, msg = '') {
+  $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
+  const inp = (id, ph, type = 'password', ac = 'new-password') => `<input id="${id}" type="${type}" placeholder="${ph}" autocomplete="${ac}" autocapitalize="none">`;
+  const V = {
+    login: ['Bautagebuch', '', inp('un', 'Name', 'text', 'username') + inp('pw', 'Kennwort', 'password', 'current-password'), 'Anmelden', '<a href="#" class="lnk" data-auth="forgot">Kennwort vergessen?</a>'],
+    forgot: ['Kennwort vergessen', '<p>Gib deinen Namen oder deine E-Mail-Adresse ein. Du bekommst einen Link zum Zurücksetzen per E-Mail.</p>', inp('un', 'Name oder E-Mail', 'text', 'username'), 'Link senden', '<a href="#" class="lnk" data-auth="login">Zurück zur Anmeldung</a>'],
+    reset: ['Neues Kennwort', '<p>Vergib ein neues Kennwort (mindestens 8 Zeichen).</p>', inp('pw', 'Neues Kennwort') + inp('pw2', 'Kennwort wiederholen'), 'Kennwort speichern', '<a href="#" class="lnk" data-auth="login">Zur Anmeldung</a>'],
+    change: ['Kennwort ändern', '<p>Bitte vergib jetzt dein eigenes Kennwort (mindestens 8 Zeichen).</p>', inp('pw0', 'Bisheriges Kennwort', 'password', 'current-password') + inp('pw', 'Neues Kennwort') + inp('pw2', 'Kennwort wiederholen') + (me.email ? '' : inp('em', 'E-Mail-Adresse (für „Kennwort vergessen“)', 'email', 'email')), 'Speichern', '<a href="#" class="lnk" data-auth="logout">Abmelden</a>'],
+  }[v];
+  const s = $('#login'); s.dataset.v = v;
+  s.innerHTML = `<h1>${V[0]}</h1>${V[1]}${V[2]}<div id="err" role="alert">${esc(msg)}</div><button class="go" id="go">${V[3]}</button><div class="lnks">${V[4]}</div>`;
+  (s.querySelector('input'))?.focus();
+}
+const showLogin = () => authView('login');
+async function authGo() {
+  const v = $('#login').dataset.v, val = id => $('#' + id)?.value || '', err = m => { $('#err').textContent = m; };
+  try {
+    if (v === 'login') {
+      const r = await api('/api/login', 'POST', {name: val('un'), password: val('pw')});
+      if (!r.ok) return err(r.error || 'Fehler');
+      me = r; applyAccent(r.accent); r.must_change ? authView('change') : showApp();
+    } else if (v === 'forgot') {
+      const r = await api('/api/forgot', 'POST', {ident: val('un')});
+      authView('login', r.message || r.error || '');
+    } else {
+      if (val('pw') !== val('pw2')) return err('Die beiden Kennwörter sind nicht gleich.');
+      const r = v === 'reset' ? await api('/api/reset', 'POST', {token: location.hash.slice(7), password: val('pw')})
+                              : await api('/api/password', 'POST', {old: val('pw0'), new: val('pw'), email: val('em')});
+      if (!r.ok) return err(r.error || 'Fehler');
+      if (v === 'reset') { history.replaceState(null, '', location.pathname); authView('login', 'Kennwort geändert. Bitte anmelden.'); }
+      else { me.must_change = false; showApp(); }
+    }
+  } catch {}
+}
+$('#login').onclick = async e => {
+  if (e.target.id === 'go') authGo();
+  const a = e.target.dataset.auth; if (!a) return; e.preventDefault();
+  if (a === 'logout') { await api('/api/logout', 'POST'); authView('login'); } else authView(a);
+};
+$('#login').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') authGo(); };
+
+/* ---------- Einstellungen: Mein Konto, Benutzer, Mailserver ---------- */
+let uopen = null, unew = false;
+const usersCard = () => `<div class="cform"><h3>${me.is_admin ? 'Benutzer' : 'Mein Konto'}</h3>
+  <div class="info">${me.is_admin ? 'Hier verwaltest du alle Benutzer – auch dich selbst: E-Mail-Adresse für „Kennwort vergessen“ und Erinnerungen, Kennwort, Administrator-Rechte.' : 'Deine E-Mail-Adresse brauchst du für „Kennwort vergessen“ und für Erinnerungen.'}</div>
+  ${me.is_admin ? `<div class="acts"><button data-act="userNew">${unew ? 'Abbrechen' : '＋ Benutzer anlegen'}</button></div>` : ''}
+  <div class="w" id="ulist" style="grid-column:1/-1">Lade …</div></div>`;
+async function setAccent(c) {
+  const r = await api('/api/account', 'PUT', {accent: c}); if (r.error) return toast(r.error);
+  me.accent = c; applyAccent(c); fillUsers();
+}
+async function fillUsers() {
+  const el = $('#ulist'); if (!el) return;
+  users = me.is_admin ? await api('/api/users') : [me];
+  const form = unew ? `<div class="usr open"><div class="ubody">
+      <label>Name<input id="nuName" autocomplete="off"></label><label>E-Mail *<input id="nuMail" type="email" autocomplete="off"></label>
+      <div class="info w">Die App erzeugt ein zufälliges Startkennwort und schickt es mit den Zugangsdaten an diese E-Mail-Adresse. Beim ersten Anmelden muss der Benutzer ein eigenes Kennwort vergeben.</div>
+      <div class="acts"><button class="pri" data-act="addUser">Benutzer anlegen</button></div></div></div>` : '';
+  el.innerHTML = form + users.map(u => {
+    const self = u.id === me.id, open = (uopen === u.id || !me.is_admin) && true, builtin = u.name.toLowerCase() === 'admin';
+    return `<div class="usr ${open ? 'open' : ''}"><button class="uhead" data-act="userOpen" data-id="${u.id}" ${me.is_admin ? '' : 'disabled'}>
+      <span class="l"><b>${esc(u.name)}${self ? ' (du)' : ''}</b><small>${esc(u.email || 'keine E-Mail-Adresse')}${u.must_change ? ' · muss Kennwort noch ändern' : ''}</small></span>
+      ${u.is_admin ? '<span class="badge">Administrator</span>' : ''}${me.is_admin ? '<span class="uchev">' + ic('chev', 18, 3) + '</span>' : ''}</button>
+      ${open && self ? `<div class="ubody">
+        <label class="w">E-Mail-Adresse<input data-acc="email" type="email" value="${esc(me.email)}" autocomplete="email"></label>
+        <div class="w" style="grid-column:1/-1"><div class="lbl">Farbe der Oberfläche (nur für dich)</div><div class="sw">${ACCENTS.map(([c, n]) => `<button class="swb ${(me.accent || ACCENTS[0][0]) === c ? 'on' : ''}" style="background:${c}" data-act="accent" data-c="${c}" title="${n}" aria-label="${n}"></button>`).join('')}<label class="swb cust ${ACCENTS.some(a => a[0] === (me.accent || ACCENTS[0][0])) ? '' : 'on'}" title="Eigene Farbe"><input type="color" data-accent-custom value="${esc(me.accent || ACCENTS[0][0])}"></label></div></div>
+        <h4>Kennwort ändern</h4>
+        <label>Neues Kennwort (mind. 8 Zeichen)<input id="pwNew" type="password" autocomplete="new-password"></label>
+        <label>Wiederholen<input id="pwNew2" type="password" autocomplete="new-password"></label>
+        <div class="acts"><button data-act="changePw">Kennwort ändern</button></div></div>` : open ? `<div class="ubody">
+        ${builtin ? '' : `<label>Name<input data-uf="name" data-id="${u.id}" value="${esc(u.name)}" autocomplete="off"></label>`}
+        <label>E-Mail<input data-uf="email" data-id="${u.id}" type="email" value="${esc(u.email)}" autocomplete="off"></label>
+        <label class="chk w"><input type="checkbox" data-uf="is_admin" data-id="${u.id}" ${u.is_admin ? 'checked' : ''}> Administrator (darf Benutzer, Mailserver, Firma und Ablage verwalten)</label>
+        <div class="info w">Das bisherige Kennwort kann nicht erneut gesendet werden – es ist nur verschlüsselt gespeichert. „Zugang per E-Mail senden“ erzeugt stattdessen ein neues Startkennwort und schickt es im Klartext an die hinterlegte Adresse; der Benutzer ändert es beim nächsten Anmelden.</div><label class="w">Neues Kennwort setzen (der Benutzer ändert es beim nächsten Anmelden)<input data-upw="${u.id}" autocomplete="off" placeholder="mindestens 8 Zeichen"></label>
+        <div class="acts"><button data-act="userPw" data-id="${u.id}">Kennwort setzen</button>${u.email && !self ? `<button data-act="userMail" data-id="${u.id}" data-arm="Wirklich senden? Nochmal tippen" title="Erzeugt ein neues Startkennwort und schickt es dem Benutzer per E-Mail">Zugang per E-Mail senden</button>` : ''}${builtin ? '' : `<button class="bad" data-act="delUser" data-id="${u.id}">Benutzer löschen</button>`}</div></div>` : ''}</div>`;
+  }).join('');
+}
+const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
+  <div class="info">Mit diesem Postfach verschickt die App E-Mails: „Kennwort vergessen“ und Erinnerungen zu Erledigungsterminen.</div>
+  <label class="w">Anbieter<select data-st="mail_provider"><option value="gmail" ${(settings.mail_provider || 'gmail') === 'gmail' ? 'selected' : ''}>Gmail</option><option value="o365" ${settings.mail_provider === 'o365' ? 'selected' : ''}>Office 365</option></select></label>
+  ${stIn('mail_user', 'Postfach (Benutzername = Absenderadresse)', 1, {ph: 'bautagebuch@firma.de'})}
+  <label class="w">Kennwort des Postfachs<input data-st="mail_pass" type="password" value="" placeholder="${settings.mail_pass_set ? '•••••••• (gespeichert – zum Ändern neu eingeben)' : ''}" autocomplete="new-password"></label>
+  ${stIn('app_url', 'Adresse der App in den Links (optional)', 1, {ph: 'https://bau.firma.de'})}
+  <div class="acts"><button data-act="mailTest">Testmail an mich senden</button>${settings.mail_pass_set ? '<button class="bad" data-act="mailPassClear">Gespeichertes Kennwort löschen</button>' : ''}</div>
+  <div class="info"><b>Gmail:</b> Google-Konto mit Bestätigung in zwei Schritten und dort ein „App-Passwort“ erzeugen; dieses hier eintragen. <b>Office 365:</b> Im Microsoft-365-Admincenter muss für das Postfach „Authentifizierter SMTP-Versand“ erlaubt sein; Microsoft schaltet das teils standardmäßig ab. Die Testmail geht an die E-Mail-Adresse unter „Benutzer“ (bei deinem Namen).</div></div>`;
+
+/* ---------- Einstellungen: Firma, Logo, Ablage ---------- */
+const CO = [['office_name','Firmenname (erscheint im PDF, z. B. „Zu erledigen von GK3“)',1],['co_street','Straße und Hausnummer',1],['co_zip','PLZ'],['co_city','Ort'],['co_phone','Telefon'],['co_email','E-Mail'],['co_web','Internet',1],['co_extra','Weitere Angabe (z. B. Steuernummer, Handelsregister)',1]];
+const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="text" value="${esc(settings[k] || o.def || '')}" placeholder="${esc(o.ph || '')}" autocomplete="off"${listAttr(k)}></label>`;
+const STABS = [['benutzer', 'Benutzer'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['sicherung', 'Datensicherung']];
+let stab = 'benutzer';
+function renderProfile(box) {
+  const m = settings.store_mode || 'off', adm = me.is_admin;
+  if (!adm) stab = 'benutzer';
+  const firm = `  <div class="cform"><h3>Firmendaten</h3>
+    ${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}${addrLists()}
+    <div class="info">Diese Angaben erscheinen in der Fußzeile jeder PDF-Seite.</div>
+    <div class="info">Logo für die PDF-Kopfzeile (rechts oben). PNG, JPG oder WEBP.</div>
+    ${settings.has_logo ? `<div class="w" style="grid-column:1/-1"><img class="logo" src="/api/logo?v=${logoV}" alt="Logo"></div>` : ''}
+    <div class="acts"><button data-act="pickLogo">${settings.has_logo ? 'Logo ersetzen' : 'Logo hochladen'}</button>${settings.has_logo ? '<button class="bad" data-act="delLogo">Logo entfernen</button>' : ''}</div>
+    <input type="file" id="logoFile" class="vh" accept="image/png,image/jpeg,image/webp"></div>
+`;
+  const store = `  <div class="cform"><h3>Ablage auf dem Server</h3>
+    <label class="w">Fotos und PDFs automatisch ablegen
+      <select data-st="store_mode"><option value="off" ${m === 'off' ? 'selected' : ''}>Aus</option><option value="smb" ${m === 'smb' ? 'selected' : ''}>Windows-Server (Netzwerkfreigabe mit Zugangsdaten)</option><option value="folder" ${m === 'folder' ? 'selected' : ''}>Ordner im Container (z. B. eingebundenes Laufwerk)</option></select></label>
+    ${m === 'smb' ? `
+      ${stIn('store_server', 'Server (Name oder IP)', 0, {ph: 'z. B. fileserver oder 192.168.1.10'})}
+      ${stIn('store_share', 'Freigabename', 0, {ph: 'z. B. Projekte'})}
+      ${stIn('store_path', 'Gemeinsamer Ordner in der Freigabe (optional)', 1, {ph: 'z. B. Baustellen/2026'})}
+      ${stIn('store_domain', 'Domäne (optional)', 0)}
+      ${stIn('store_user', 'Benutzer', 0)}
+      <label class="w">Kennwort<input data-st="store_pass" type="password" value="" placeholder="${settings.store_pass_set ? '•••••••• (gespeichert – zum Ändern neu eingeben)' : ''}" autocomplete="new-password"></label>` : ''}
+    ${m === 'folder' ? stIn('store_dir', 'Ordner im Container', 1, {ph: '/ablage'}) : ''}
+    ${m !== 'off' ? `
+      ${stIn('store_tpl_photos', 'Ordner für Fotos', 1, {def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Fotos/{datum}'})}
+      <label class="w">Name des Fototag-Ordners<select data-st="store_folder_desc"><option value="1" ${(settings.store_folder_desc || '1') === '1' ? 'selected' : ''}>beschreibend: Datum + Gewerke der Anwesenden + erste drei Fotonamen</option><option value="0" ${settings.store_folder_desc === '0' ? 'selected' : ''}>nur das Datum</option></select></label>
+      ${stIn('store_tpl_pdf', 'Ordner für Bautagebuch-PDFs', 1, {def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Bautagebuch'})}
+      <label class="w">Alte Fototag-Ordner („…_old1“, „…_old2“) behalten<input data-st="store_keep_old_photos" inputmode="numeric" value="${esc(settings.store_keep_old_photos || '0')}" placeholder="0"></label>
+      <label class="w">Alte Bautagebuch-PDFs („…_old1.pdf“ …) behalten<input data-st="store_keep_old_pdf" inputmode="numeric" value="${esc(settings.store_keep_old_pdf || '0')}" placeholder="0"></label>
+      <div class="info">Bei jedem erneuten PDF-Export benennt die App die bisherige Version in „_old1“, „_old2“ … um. Hier legst du fest, wie viele davon je Bericht auf dem Server bleiben; die ältesten werden danach automatisch gelöscht. <b>0 = alle behalten</b> (nichts wird automatisch gelöscht).</div>
+      <div class="info">Platzhalter: <b>{projekt}</b> (Projektordner: der im Projekt eingetragene Ordnername, sonst ein vorhandener Ordner auf dem Server, der mit dem Kürzel beginnt, sonst der Projektname), <b>{kuerzel}</b> (erstes Wort des Projektnamens, z. B. A483), <b>{datum}</b> (2026-10-28), <b>{jahr}</b>, <b>{monat}</b>. Mit „/“ trennst du Unterordner.</div>
+      <div class="acts"><button data-act="storeTest">Verbindung testen</button><button data-act="storeRun">Jetzt übertragen</button><button data-act="storeBackfill">Vorhandene Fotos nachträglich übertragen</button></div>
+      <div class="info" id="sstat"></div>` : `<div class="info">Aus: Fotos und PDFs bleiben nur in der App.</div>`}
+    ${settings.store_pass_set && m === 'smb' ? `<div class="acts"><button class="bad" data-act="storePassClear">Gespeichertes Kennwort löschen</button></div>` : ''}
+    <div class="info">Alle Fotos (auch iPhone-HEIC, PNG, WEBP) werden beim Hochladen als JPG gespeichert und liegen auf dem Server in voller Auflösung; nur im PDF sind sie verkleinert. Das Kennwort wird nur auf dem Server der App gespeichert und nie an den Browser zurückgegeben; am besten ein eigenes Konto nur mit Schreibrecht auf diese Freigabe verwenden.</div>
+  </div>`;
+  const bar = adm ? `<div class="stabs">${STABS.map(([k, l]) => `<button class="${k === stab ? 'on' : ''}" data-act="stab" data-s="${k}">${l}</button>`).join('')}</div>` : '';
+  box.innerHTML = `<div class="wrap">${bar}${{benutzer: usersCard, firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
+  if (stab === 'benutzer') fillUsers();
+  if (stab === 'sicherung') loadBackups();
+
+  const lf = $('#logoFile'); if (lf) lf.onchange = async e => {
+    const fd = new FormData(); fd.append('file', e.target.files[0]);
+    const r = await api('/api/logo', 'POST', null, fd);
+    if (r.error) { toast(r.error); return; }
+    logoV++; settings = await api('/api/settings'); favicon(); renderDetail();
+  };
+  if (adm && stab === 'ablage' && m !== 'off') storeStatus();
+}
+async function storeStatus() {
+  const el = $('#sstat'); if (!el) return;
+  const s = await api('/api/store/status');
+  el.textContent = (s.pending ? `Wartet auf Übertragung: ${s.pending}.` : 'Alles übertragen.') + (s.error ? ` Letzter Fehler: ${s.error}` : '');
+}
+
+function renderDetail() {
+  chrome();
+  const box = $('#detail'); box.classList.toggle('fill', tab === 'kontakte');
+  $('#fab').classList.toggle('hidden', !(tab === 'bericht' && curProject() && curReport())); $('#fab').innerHTML = ic('plus', 30, 3);
+  ({bericht: renderReport, projekt: renderProject, kontakte: renderContacts, profil: renderProfile, audit: renderAudit, suche: renderSearch}[tab])(box);
+}
+
+async function saveDue(pan, close) {   // Datum + Uhrzeit des Erinnerungs-Panels speichern
+  const id = +pan.dataset.it, d = pan.querySelector('[data-dp=date]').value, tm = pan.querySelector('[data-dp=time]').value || '09:00';
+  if (!d) return;
+  const it = curReport().items.find(x => x.id === id); if (it) { it.due = d; it.due_time = tm; }
+  await track(api('/api/items/' + id, 'PUT', {due: d, due_time: tm}));
+  if (!me.email) toast('Für die Erinnerung bitte unter Einstellungen → Benutzer eine E-Mail-Adresse eintragen.');
+  else toast('Erinnerung per E-Mail am ' + fmt(d) + ' um ' + tm + ' Uhr eingetragen.');
+  if (close) { dueEditId = null; renderDetail(); }
+}
+async function addItem(kind) {
+  const inp = (q && document.querySelector(`#qs [data-add="${kind}"]`)) || document.querySelector(`[data-add="${kind}"]`), t = inp?.value.trim();
+  if (!t) return;
+  const row = inp.closest('.addrow,.qadd'), body = {kind, text: t};
+  if (row.querySelector('[data-add-act]')) {
+    body.activity = row.querySelector('[data-add-act]').value.trim();
+    const n = row.querySelector('[data-add-cnt]').value; body.headcount = n === '' ? null : +n;
+  }
+  const co = row.querySelector('[data-add-co]'); if (co) body.company = co.value.trim();
+  const dd = row.querySelector('[data-add-due]'); if (dd && dd.value) { body.due = dd.value; body.due_time = row.querySelector('[data-add-time]').value || '09:00'; }
+  const res = await api(`/api/reports/${rid}/items`, 'POST', body);
+  if (body.due && !me.email) toast('Für die Erinnerung bitte unter Einstellungen → Benutzer eine E-Mail-Adresse eintragen.');
+  if (res.error) { toast(res.error); return; }
+  if (addFiles.length && res.id) { const fs = addFiles; addFiles = []; await uploadPhotos(fs, res.id); }
+  if (res.contact_created) toast(`„${res.name}“ wurde zu den Kontakten hinzugefügt.`);
+  if (res.contact_id) contacts = await api('/api/contacts');
+  adding = null; q = null; renderQ(); setSecOpen(kind, true); document.activeElement?.blur();   // Eingabezeile und iPhone-Tastatur schließen sich nach dem Hinzufügen
+  await openProject(pid, true);
+}
+// iPhone: Am Anfang/Ende einer Liste „gummiert“ Safari sonst die ganze App mit (Kopf verschwindet, leere Fläche). Solche Wischer werden gestoppt.
+(() => {
+  let y0 = 0;
+  const scroller = el => { for (; el && el !== document.body; el = el.parentElement) { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return el; } return null; };
+  document.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 1) return;
+    const dy = e.touches[0].clientY - y0, el = scroller(e.target);
+    if (!el || (dy > 0 && el.scrollTop <= 0) || (dy < 0 && el.scrollTop + el.clientHeight >= el.scrollHeight - 1)) { if (e.cancelable) e.preventDefault(); }
+  }, {passive: false});
+})();
+/* ---------- Schnell hinzufügen (runder Knopf + Fenster von unten) ---------- */
+let q = null, qFiles = [], qTyping = false;   // q: {step: 'menu' | 'add' | 'assign', kind}
+const listSecs = () => meta.sections.filter(x => x.type === 'list');
+function renderQ() {
+  const box = $('#qs'); if (!q) { qTyping = false; box.classList.remove('typing'); box.classList.add('hidden'); box.innerHTML = ''; return; }
+  box.classList.remove('hidden');
+  const close = `<button data-act="qClose" aria-label="Schließen">${ic('x', 20, 2.4)}</button>`;
+  let h = '';
+  if (q.step === 'menu') {
+    h = `<h4>Hinzufügen${close}</h4><div class="qgrid"><button data-act="qCam">${ic('cam', 28)}Foto aufnehmen</button><button data-act="qLib">${ic('pdf', 28)}Foto aus Mediathek</button>
+      ${listSecs().map(x => `<button data-act="qAdd" data-kind="${esc(x.key)}">${ic('plus', 28, 2.6)}${esc(x.title)}</button>`).join('')}<button data-act="addReport">${ic('doc', 28)}Neuer Bericht</button></div>`;
+  } else if (q.step === 'add') {
+    const x = listSecs().find(t => t.key === q.kind), lk = x.extra && x.extra.link_contacts;
+    const first = lk ? `<div class="sgw" style="flex:1 1 100%"><input data-add="${esc(x.key)}" data-sg="1" placeholder="${esc(x.placeholder)}" autocomplete="nope" name="bt-add" autocorrect="off" spellcheck="false" enterkeyhint="next"><div class="sug hidden"></div></div>
+        <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter">`
+      : `<textarea data-add="${esc(x.key)}" rows="4" placeholder="${esc(x.placeholder)}"></textarea>`;
+    const due = x.extra && x.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}
+        <span class="chips"><button class="chip" data-act="qDate" data-d="0">Heute</button><button class="chip" data-act="qDate" data-d="1">Morgen</button><button class="chip" data-act="qDate" data-d="7">+1 Woche</button></span></label>` : '';
+    h = `<h4>${esc(x.title)}${close}</h4><div class="qadd">${lk ? '' : coAdd(x)}${first}${due}${photoAdd(x)}<div class="qact"><button class="ok" data-act="addItem" data-kind="${esc(x.key)}">Hinzufügen</button></div></div>`;
+  } else if (q.step === 'assign') {
+    const cands = listSecs().filter(t => t.extra && t.extra.photos).flatMap(t => curReport().items.filter(i => i.kind === t.key).map((i, n) => ({id: i.id, label: (t.extra.photo_label || t.title) + ' ' + (n + 1), text: i.text})));
+    h = `<h4>Foto zuordnen${close}</h4><div class="qpick"><button data-act="qAssign" data-id="">Nur unter „Bilder“ ablegen</button>
+      ${cands.map(c => `<button data-act="qAssign" data-id="${c.id}"><small>${esc(c.label)}</small>${esc(c.text.slice(0, 60))}</button>`).join('')}</div>`;
+  }
+  box.innerHTML = `<div class="qp" role="dialog">${h}</div>`;
+  box.classList.toggle('typing', qTyping);
+  const f = box.querySelector('textarea,input[data-add]'); if (f && q.step === 'add') setTimeout(() => f.focus(), 50);
+}
+async function uploadPhotos(files, itemId) {
+  const fd = new FormData(); [...files].forEach(x => fd.append('files', x)); if (itemId) fd.append('item_id', itemId);
+  const up = await api(`/api/reports/${rid}/images`, 'POST', null, fd); setSecOpen('bilder', true); await openProject(pid, true);
+  if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
+}
+function photoPicked(e) {
+  qFiles = [...e.target.files]; e.target.value = ''; if (!qFiles.length) return;
+  const has = listSecs().some(t => t.extra && t.extra.photos && curReport().items.some(i => i.kind === t.key));
+  if (!has) { q = null; renderQ(); uploadPhotos(qFiles, null); } else { q = {step: 'assign'}; renderQ(); }
+}
+const addPicked = e => { addFiles.push(...e.target.files); e.target.value = ''; renderApv(); };
+$('#acam').onchange = addPicked; $('#alib').onchange = addPicked;
+$('#qcam').onchange = photoPicked; $('#qlib').onchange = photoPicked;
+function showSug(inp) {   // eigene Kontaktliste statt <datalist>: erscheint bei jedem Antippen/Tippen, nicht nur beim ersten Mal
+  const box = inp.parentElement.querySelector('.sug'); if (!box) return;
+  const q = inp.value.trim().toLowerCase(), hits = contacts.filter(c => (c.trade || '').trim().toLowerCase() !== 'baustelle').filter(c => !q || c.name.toLowerCase().includes(q)).filter(c => c.name.toLowerCase() !== q).slice(0, 8);
+  box.innerHTML = hits.map(c => `<button type="button" data-act="pickContact" data-name="${esc(c.name)}">${esc(c.name)}</button>`).join('');
+  box.classList.toggle('hidden', !hits.length);
+}
+const hideSug = () => document.querySelectorAll('.sug').forEach(b => b.classList.add('hidden'));
+document.addEventListener('focusin', e => { if (e.target.dataset && e.target.dataset.sg) showSug(e.target); });
+document.addEventListener('click', e => { if (e.target.dataset && e.target.dataset.sg) showSug(e.target); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'fq') { sr.q = e.target.value; clearTimeout(sr.T); sr.T = setTimeout(doSearch, 250); return; }
+  if (e.target.id === 'audq') { clearTimeout(window._audT); window._audT = setTimeout(() => { aud.q = e.target.value.trim(); loadAudit(); }, 300); return; } if (e.target.dataset && e.target.dataset.sg) showSug(e.target); });
+document.addEventListener('focusout', e => { if (e.target.dataset && e.target.dataset.sg) setTimeout(hideSug, 200); });
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.sug, .adrsug')) e.preventDefault(); });   // Eingabefeld behält den Fokus
+// Schnell-Fenster: Beim Tippen rückt es nach OBEN unter die Kopfzeile, damit die iPhone-Tastatur es nie verdeckt (Safari verschiebt sonst die Seite)
+document.addEventListener('focusin', e => { if (e.target.closest && e.target.closest('#qs') && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { qTyping = true; $('#qs').classList.add('typing'); } });
+document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('#qs')) setTimeout(() => { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest('#qs') || !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) { qTyping = false; $('#qs').classList.remove('typing'); } }, 200); });
+const fitApp = () => {   // App-Höhe = sichtbarer Bereich (mit Tastatur kleiner, ohne wieder voll)
+  const vv = window.visualViewport, a = $('#app'); if (!vv || !a) return;
+  if (qTyping) { a.style.height = ''; if (vv.offsetTop || vv.pageTop) window.scrollTo(0, 0); return; }   // Schnell-Fenster sitzt oben: keine Höhenanpassung nötig
+  a.style.height = Math.abs(vv.height - innerHeight) < 2 ? '' : vv.height + 'px';
+  const kb = vv.height < innerHeight - 120 && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+  document.body.classList.toggle('kb', kb);   // Tastatur offen: Tab-Leiste und + ausblenden, mehr Platz zum Tippen
+  if (kb) setTimeout(() => document.activeElement?.scrollIntoView?.({block: 'center'}), 80);
+  if (vv.offsetTop || vv.pageTop) window.scrollTo(0, 0);
+};
+if (window.visualViewport) { visualViewport.addEventListener('resize', fitApp); visualViewport.addEventListener('scroll', fitApp); }
+const resetView = () => { if (!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) { window.scrollTo(0, 0); document.body.scrollTop = 0; document.documentElement.scrollTop = 0; } };   // iPhone: nach der Tastatur sitzt die Seite sonst verschoben
+document.addEventListener('focusout', () => { setTimeout(() => { resetView(); fitApp(); }, 120); setTimeout(() => { resetView(); fitApp(); }, 450); });
+if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (visualViewport.height > innerHeight - 80) setTimeout(resetView, 60); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.img) e.target.blur(); });   // Beschreibung mit Enter abschließen
+document.addEventListener('focusout', e => {   // leere Eingabezeile schließt sich, sobald man woanders hintippt
+  const row = e.target.closest && e.target.closest('.addrow'); if (!row || row.classList.contains('qadd')) return;
+  setTimeout(() => {
+    if (!row.isConnected || row.contains(document.activeElement)) return;
+    if ([...row.querySelectorAll('input,textarea')].some(x => x.value.trim())) return;
+    adding = null; renderDetail();
+  }, 200);
+});
+
+document.addEventListener('click', async e => {
+  if (e.target.matches && e.target.matches('input[type=date],input[type=time],input[type=datetime-local]')) { try { e.target.showPicker(); } catch {} }   // Auswahl-Dialog direkt öffnen
+  if (!e.target.closest('.menu') && !e.target.closest('#i-g')) $('#menu').classList.add('hidden');
+  if (e.target.id === 'sheet') closeSheet();
+  if (e.target.id === 'qs') { q = null; renderQ(); }
+  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT') return;
+  const a = b.dataset.act, id = +b.dataset.id;
+  if (DANGER.has(a) && !arm(b, a + (b.dataset.id || ''))) return;
+  if (a === 'logout') { await api('/api/logout', 'POST'); showLogin(); }
+  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if (tab !== 'projekt') draft = null; newC = false; cfrom = null; cedit = false; renderDetail(); }
+  else if (a === 'menu') $('#menu').classList.toggle('hidden');
+  else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('/api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
+  else if (a === 'projPicker') openSheet('proj');
+  else if (a === 'repPicker') openSheet('rep');
+  else if (a === 'pickReport') { closeSheet(); rid = id; wxEdit = headEdit = false; tab = 'bericht'; renderDetail(); }
+  else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); draft = null; tab = 'projekt'; renderDetail(); }
+  else if (a === 'closeSheet') closeSheet();
+  else if (a === 'pickProject') pickProject(id);
+  else if (a === 'dueEdit') { dueEditId = id; renderDetail(); }
+  else if (a === 'dueDone') { dueEditId = null; renderDetail(); }
+  else if (a === 'dueQuick') {
+    const pan = b.closest('.duepanel'), d = new Date(Date.now() + +b.dataset.d * 864e5);
+    pan.querySelector('[data-dp=date]').value = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); saveDue(pan, false);
+  }
+  else if (a === 'dueClear') { dueEditId = null; await api('/api/items/' + id, 'PUT', {due: ''}); openProject(pid, true); }
+  else if (a === 'addPerson') {
+    const r = curReport(), v = r.site_manager ? r.site_manager.replace(/[,\s]+$/, '') + ', ' + b.dataset.name : b.dataset.name;
+    r.site_manager = v; await api('/api/reports/' + r.id, 'PUT', {site_manager: v}); renderDetail();
+  }
+  else if (a === 'createFromFolder') {
+    const r = await api('/api/projects', 'POST', {name: b.dataset.name}); await loadProjects(); await pickProject(r.id);
+    toast(r.auto_address ? 'Projekt angelegt. Adresse und PLZ wurden aus dem Projektnamen ermittelt – bitte prüfen.' : 'Projekt angelegt. Die Adresse kannst du im Reiter „Projekt“ eintragen.');
+  }
+  else if (a === 'newProject') newProject();
+  else if (a === 'openPath') {   // nur am PC: Netzwerkpfad des Projektordners in die Zwischenablage
+    try {
+      const r = await api('/api/store/path?project_id=' + pid), t = r.path;
+      if (!t) return toast('Kein Serverpfad: Ablage ist nicht als Windows-Server eingerichtet.');
+      let ok = false;
+      try { await navigator.clipboard.writeText(t); ok = true; } catch { const x = document.createElement('textarea'); x.value = t; document.body.append(x); x.select(); try { ok = document.execCommand('copy'); } catch {} x.remove(); }
+      toast(ok ? `Pfad kopiert – im Explorer einfügen (Strg+L): ${t}` : t);
+    } catch (e) { toast('Pfad nicht ermittelbar: ' + (e.message || e)); }
+  }
+  else if (a === 'nearest') { closeSheet(); await autoPick(false); if (!$('#sheet').classList.contains('hidden')) renderSheet(); }
+  else if (a === 'geoSearch') geoSearch();
+  else if (a === 'geoHere') geoHere();
+  else if (a === 'delProject') delProject();
+  else if (a === 'archProject') archProject();
+  else if (a === 'srScope') { sr.scope = b.dataset.k; renderSearch($('#detail')); doSearch(); }
+  else if (a === 'goHit') goHit(b);
+  else if (a === 'bkNew') { b.disabled = true; await api('/api/backups', 'POST'); toast('Datenbankversion angelegt.'); await loadBackups(); }
+  else if (a === 'bkDel') { const r = await api('/api/backups/' + encodeURIComponent(b.dataset.id), 'DELETE'); if (r.error) toast(r.error); await loadBackups(); }
+  else if (a === 'bkRestore') { const r = await api(`/api/backups/${encodeURIComponent(b.dataset.id)}/restore`, 'POST'); if (r.error) toast(r.error); else { toast('Wiederhergestellt – lade neu …'); setTimeout(() => location.reload(), 800); } }
+  else if (a === 'audCat') { aud.cat = b.dataset.k; aud.loaded = false; renderAudit($('#detail')); }
+  else if (a === 'audMore') loadAudit(true);
+  else if (a === 'audReset') { e.preventDefault?.(); aud.cat = aud.q = aud.user = ''; aud.loaded = false; renderAudit($('#detail')); }
+  else if (a === 'clnScope') { clnScope = b.dataset.k; cln = null; renderAudit($('#detail')); }
+  else if (a === 'clnScan') { await clnLoad(b); }
+  else if (a === 'clnAll') { cln.sel = cln.sel.size === cln.items.length ? new Set() : new Set(cln.items.map(i => i.project_id + '|' + i.path)); fillCleanup(); }
+  else if (a === 'clnDel') {
+    const r = await api('/api/audit/cleanup', 'POST', {entries: [...cln.sel].map(k => { const n = k.indexOf('|'); return {project_id: +k.slice(0, n), path: k.slice(n + 1)}; })});
+    if (r.error) toast(r.error); else toast(`${r.deleted.length} gelöscht` + (r.failed.length ? `, ${r.failed.length} fehlgeschlagen (${r.failed[0].error})` : '') + '.');
+    await clnLoad(); aud.loaded = false;
+  }
+  else if (a === 'verToggle') { verOpen = !verOpen; if (verOpen) await loadVer(); else fillVer(); }
+  else if (a === 'verView') { if (verView === id) { verView = verSnap = null; } else { verView = id; verSnap = null; fillVer(); verSnap = (await api('/api/versions/' + id)).data; } fillVer(); }
+  else if (a === 'restoreVer') { const r = await api(`/api/versions/${id}/restore`, 'POST'); if (r.error) toast(r.error); else { verView = verSnap = null; toast('Bericht auf die gewählte Version zurückgesetzt (der vorherige Stand steht im Verlauf).'); await openProject(pid, true); } }
+  else if (a === 'toggleArch') { sheetArch = !sheetArch; renderSheet(); }
+  else if (a === 'toggleForeign') { sheetForeign = !sheetForeign; renderSheet(); }
+  else if (a === 'pcSave') {
+    const r = await api('/api/projects/' + pid + '/contact', 'POST', {accept: true, name: $('#pcName')?.value || ''});
+    if (r.error) return toast(r.error);
+    contacts = await api('/api/contacts'); await loadProjects(); renderDetail(); toast('In den Kontakten gespeichert.');
+  }
+  else if (a === 'pcNo') { await api('/api/projects/' + pid + '/contact', 'POST', {accept: false}); await loadProjects(); renderDetail(); }
+  else if (a === 'adrPick') adrPick(+b.dataset.i);
+  else if (a === 'cxXlsx') { location.assign('/api/contacts/export.xlsx' + cxQS()); toast('Excel-Datei wird geladen …'); }
+  else if (a === 'cxPdf') { const u = '/api/contacts/export.pdf' + cxQS(); isStandalone() ? openPdf(u) : window.open(u, '_blank'); }
+  else if (a === 'sugNew') {
+    const x = sugC[+b.dataset.i]; if (!x) return; await sugDetail(x);
+    const r = await api('/api/contacts', 'POST', Object.fromEntries(Object.entries(sugFields(x)).filter(([, v]) => v)));
+    if (r.error && !r.id) return toast(r.error);
+    if (r.error) toast('Diesen Kontakt gibt es schon – er wird geöffnet.');
+    newC = false; cedit = true; cid = r.id; contacts = await api('/api/contacts'); renderDetail();
+  }
+  else if (a === 'sugEdit') {
+    const c = contacts.find(x => x.id === cid); if (!c) return;
+    $('#csug').innerHTML = '<div class="info">Suche …</div>';
+    sugC = await fetchSug([c.name, c.city].filter(Boolean).join(' ')).catch(() => []);
+    $('#csug').innerHTML = sugHtml(sugC, 'sugFill', 'Nichts gefunden (oder keine Verbindung zum Internet). Kleine Betriebe fehlen in OpenStreetMap oft.');
+  }
+  else if (a === 'sugFill') {
+    const c = contacts.find(x => x.id === cid), x = sugC[+b.dataset.i]; if (!c || !x) return; await sugDetail(x);
+    const add = Object.fromEntries(Object.entries(sugFields(x)).filter(([k, v]) => k !== 'name' && v && !c[k]));   // nur leere Felder füllen
+    if (!Object.keys(add).length) return toast('Es gibt nichts Neues zu ergänzen.');
+    const r = await api('/api/contacts/' + cid, 'PUT', add); if (r.error) return toast(r.error);
+    contacts = await api('/api/contacts'); toast(Object.keys(add).length + ' Feld' + (Object.keys(add).length === 1 ? '' : 'er') + ' ergänzt.'); fillContactList(); fillContactDetail();
+  }
+  else if (a === 'renameLater') { renameOffer = null; renderDetail(); }
+  else if (a === 'renameYes' || a === 'renameNo') {
+    const o = renameOffer; if (!o) return; renameOffer = null; renderDetail();
+    const r = await api('/api/store/rename-apply', 'POST', {project_id: o.pid, accept: a === 'renameYes'});
+    toast(r.error || (a === 'renameYes' ? `${r.renamed} umbenannt. Die App benennt künftig im selben Schema.` : 'Gut, die App fragt für dieses Projekt nicht mehr nach.'));
+  }
+  else if (a === 'openContact') { cid = id; newC = false; cedit = false; cfrom = null; fillContactList(); fillContactDetail(); }
+  else if (a === 'cback' || a === 'cancelNew') { cid = null; newC = false; cedit = false; cfrom = null; fillContactList(); fillContactDetail(); }
+  else if (a === 'createContact') createContact();
+  else if (a === 'ldrDraft') { const i = +b.dataset.id, l = draft.leaders || (draft.leaders = []); l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i); renderDetail(); }
+  else if (a === 'ldrEdit') {
+    const p = curProject(), i = +b.dataset.id, l = (p.leaders || []).slice(), self = me.id;
+    l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i);
+    const res = await api('/api/projects/' + pid, 'PUT', {leaders: l});
+    if (res.error) { toast(res.error); return; }
+    await loadProjects();
+    if (!curProject()) { toast('Du bist bei diesem Projekt nicht mehr eingetragen – es erscheint nicht mehr in deiner Projektauswahl.'); const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
+    else renderDetail();
+  }
+  else if (a === 'createProject') createProject();
+  else if (a === 'cancelDraft') { draft = null; renderDetail(); }
+  else if (a === 'gotoContact') { cid = id; newC = false; cedit = false; cfrom = 'bericht'; tab = 'kontakte'; renderDetail(); }
+  else if (a === 'backReport') { cfrom = null; cedit = false; tab = 'bericht'; renderDetail(); }
+  else if (a === 'editContact') { cedit = !cedit; fillContactDetail(); }
+  else if (a === 'addContact') addContact();
+  else if (a === 'delContact') { await api('/api/contacts/' + cid, 'DELETE'); cid = null; contacts = await api('/api/contacts'); renderDetail(); }
+  else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`/api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); }
+  else if (a === 'delReport') { await api('/api/reports/' + rid, 'DELETE'); openProject(pid); }
+  else if (a === 'editHead') { headEdit = !headEdit; renderDetail(); }
+  else if (a === 'gps') fillGeo(false);
+  else if (a === 'wxEdit') { wxEdit = !wxEdit; renderDetail(); }
+  else if (a === 'adding') { adding = adding === b.dataset.kind ? null : b.dataset.kind; addFiles = []; if (adding) setSecOpen(adding, true); renderDetail(); renderApv(); }
+  else if (a === 'secToggle') { setSecOpen(b.dataset.key, b.dataset.open !== '1'); renderDetail(); }
+  else if (a === 'addItem') addItem(b.dataset.kind);
+  else if (a === 'delItem') {
+    const r = await api('/api/items/' + id, 'DELETE'); await openProject(pid, true);
+    if (r.item) toast('Eintrag gelöscht.', async () => {
+      const x = await api('/api/items/restore', 'POST', r.item);
+      if (x.error) toast(x.error); else await openProject(pid, true);
+    });
+  }
+  else if (a === 'pickFile') $('#file').click();
+  else if (a === 'itemPhoto') { itemPhotoFor = id; $('#ifile').click(); }
+  else if (a === 'moreImgs') { allImgs = true; renderDetail(); }
+  else if (a === 'lessImgs') { allImgs = false; renderDetail(); }
+  else if (a === 'delImg') { await api('/api/images/' + id, 'DELETE'); openProject(pid, true); }
+  else if (a === 'print') {
+    if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }
+    if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('/api/reports/' + rid + '/pdf'); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf
+    const w = window.open('', '_blank'); await Promise.allSettled([...saving]);  // erst fertig speichern, dann PDF laden
+    if (w) w.location = '/api/reports/' + rid + '/pdf'; else location.href = '/api/reports/' + rid + '/pdf';
+  }
+  else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
+  else if (a === 'pvZoom') { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }
+  else if (a === 'pvShare') pvShare();
+  else if (a === 'pickLogo') $('#logoFile').click();
+  else if (a === 'storeTest') { toast('Verbindung wird getestet …'); const r = await api('/api/store/test', 'POST'); toast(r.ok ? 'Verbindung funktioniert, Schreiben ist möglich.' : 'Fehlgeschlagen: ' + (r.error || 'unbekannt')); }
+  else if (a === 'storeRun') { toast('Übertragung läuft …'); const r = await api('/api/store/run', 'POST'); await storeStatus(); toast(r.error && r.pending ? 'Server nicht erreichbar – wird später erneut versucht.' : `${r.sent} Datei(en) übertragen.`); }
+  else if (a === 'storeBackfill') { const r = await api('/api/store/backfill', 'POST'); toast(r.error || `${r.queued} Foto(s) werden übertragen.`); setTimeout(storeStatus, 2500); }
+  else if (a === 'stab') { stab = b.dataset.s; renderDetail(); }
+  else if (a === 'pickContact') {
+    const inp = b.closest('.sgw').querySelector('input'); inp.value = b.dataset.name; hideSug();
+    const row = b.closest('.addrow,.qadd');
+    if (!row) inp.dispatchEvent(new Event('change', {bubbles: true}));   // bestehende Zeile: gleich speichern
+    else (row.querySelector('[data-add-act]') || (inp.matches('[data-add-co]') && row.querySelector('[data-add]')) || inp).focus();
+  }
+  else if (a === 'qOpen') { adding = null; q = {step: 'menu'}; renderQ(); }
+  else if (a === 'qClose') { q = null; renderQ(); }
+  else if (a === 'qCam') { $('#qcam').click(); }
+  else if (a === 'qLib') { $('#qlib').click(); }
+  else if (a === 'qAdd') { adding = null; addFiles = []; renderDetail(); setSecOpen(b.dataset.kind, true); q = {step: 'add', kind: b.dataset.kind}; renderQ(); renderApv(); }
+  else if (a === 'aCam') { $('#acam').click(); }
+  else if (a === 'aLib') { $('#alib').click(); }
+  else if (a === 'aRm') { addFiles.splice(+b.dataset.i, 1); renderApv(); }
+  else if (a === 'qDate') { const d = new Date(Date.now() + +b.dataset.d * 864e5); b.closest('.qadd').querySelector('[data-add-due]').value = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+  else if (a === 'qAssign') { const fs = qFiles; q = null; renderQ(); await uploadPhotos(fs, b.dataset.id || null); }
+  else if (a === 'accent') { await setAccent(b.dataset.c); }
+  else if (a === 'userOpen') { uopen = uopen === id ? null : id; fillUsers(); }
+  else if (a === 'userNew') { unew = !unew; fillUsers(); }
+  else if (a === 'changePw') {
+    if ($('#pwNew').value !== $('#pwNew2').value) return toast('Die beiden Kennwörter sind nicht gleich.');
+    const r = await api('/api/password', 'POST', {new: $('#pwNew').value});
+    toast(r.ok ? 'Kennwort geändert.' : r.error); if (r.ok) ['#pwNew', '#pwNew2'].forEach(x => $(x).value = '');
+  }
+  else if (a === 'addUser') {
+    const r = await api('/api/users', 'POST', {name: $('#nuName').value, email: $('#nuMail').value});
+    if (r.error) return toast(r.error);
+    unew = false; uopen = r.id; toast('Benutzer angelegt. Das Startkennwort wurde an ' + r.to + ' geschickt.'); fillUsers();
+  }
+  else if (a === 'userPw') {
+    const el = document.querySelector(`[data-upw="${id}"]`), r = await api('/api/users/' + id, 'PUT', {password: el.value});
+    toast(r.error || 'Kennwort gesetzt – der Benutzer muss es beim nächsten Anmelden ändern.'); if (!r.error) { el.value = ''; fillUsers(); }
+  }
+  else if (a === 'userMail') { toast('E-Mail wird gesendet …'); const r = await api('/api/users/' + id + '/access', 'POST'); toast(r.error || 'Zugangsdaten an ' + r.to + ' gesendet.'); if (!r.error) fillUsers(); }
+  else if (a === 'delUser') { const r = await api('/api/users/' + id, 'DELETE'); toast(r.error || 'Benutzer gelöscht.'); fillUsers(); }
+  else if (a === 'mailTest') { toast('Testmail wird gesendet …'); const r = await api('/api/mail/test', 'POST'); toast(r.ok ? 'Testmail an ' + r.to + ' gesendet.' : 'Fehlgeschlagen: ' + r.error); }
+  else if (a === 'mailPassClear') { await api('/api/settings', 'PUT', {mail_pass_clear: '1'}); settings = await api('/api/settings'); renderDetail(); }
+  else if (a === 'storePassClear') { await api('/api/settings', 'PUT', {store_pass_clear: '1'}); settings = await api('/api/settings'); renderDetail(); }
+  else if (a === 'delLogo') { await api('/api/logo', 'DELETE'); settings = await api('/api/settings'); favicon(); renderDetail(); }
+});
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.tagName === 'SELECT' && t.value === '__x') {   // „Andere Zeit …“: Auswahlliste wird zum freien Zeitfeld (Minutengenau)
+    const prev = [...t.options].find(o => o.defaultSelected)?.value || '09:00', n = document.createElement('input');
+    n.type = 'time'; n.value = prev; n.step = 60; n.setAttribute('aria-label', 'Uhrzeit');
+    for (const a of ['data-dp', 'data-add-time', 'data-f']) if (t.hasAttribute(a)) n.setAttribute(a, t.getAttribute(a));
+    t.replaceWith(n); n.focus(); try { n.showPicker?.(); } catch (_) {} return;
+  }
+  if (t.dataset.act === 'pick') { rid = +t.value; wxEdit = headEdit = false; renderDetail(); }
+  else if (t.dataset.act === 'toggle') { await api('/api/items/' + t.dataset.id, 'PUT', {done: t.checked}); openProject(pid, true); }
+  else if (t.dataset.img) { const r = await api('/api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
+  else if (t.dataset.pf) saveProjectField(t);
+  else if (t.dataset.cf) saveContactField(t);
+  else if ('accentCustom' in t.dataset) setAccent(t.value);
+  else if (t.dataset.acc) { const r = await api('/api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); if (me.is_admin) fillUsers(); } }
+  else if (t.dataset.uf) { const r = await api('/api/users/' + t.dataset.id, 'PUT', {[t.dataset.uf]: t.type === 'checkbox' ? t.checked : t.value}); if (r.error) toast(r.error); else toast('Gespeichert.'); fillUsers(); }
+  else if (t.dataset.st) {
+    const k = t.dataset.st, sec = /_pass$/.test(k); if (sec && !t.value) return;
+    if (!sec) settings[k] = t.value;
+    await track(api('/api/settings', 'PUT', {[k]: t.value}));
+    if (sec || k === 'store_mode') { settings = await api('/api/settings'); renderDetail(); }
+    else if (k.startsWith('store_')) storeStatus();
+  }
+  else if (t.dataset.cl !== undefined) { cln.sel[t.checked ? 'add' : 'delete'](t.dataset.cl); fillCleanup(); }
+  else if (t.id === 'audu') { aud.user = t.value; loadAudit(); }
+  else if (t.dataset.dp && t.closest('.duepanel')) saveDue(t.closest('.duepanel'), t.dataset.dp === 'time');
+  else if (t.dataset.it) {
+    const v = t.dataset.k === 'headcount' ? (t.value === '' ? null : +t.value) : t.value.trim();
+    const it = curReport().items.find(x => x.id === +t.dataset.it);
+    if (t.dataset.k === 'text' && !v) { toast('Der Eintrag darf nicht leer sein. Zum Entfernen ✕ tippen.'); if (it) t.value = it.text; grow(t); return; }
+    if (it) it[t.dataset.k] = v;
+    await track(api('/api/items/' + t.dataset.it, 'PUT', {[t.dataset.k]: v}));
+
+  }
+  else if (t.dataset.f) {
+    const r = curReport(), v = t.type === 'checkbox' ? (t.checked ? 1 : 0) : t.value; r[t.dataset.f] = v;
+    const manualWx = WXK.includes(t.dataset.f);   // von Hand geändert: nicht mehr automatisch überschreiben
+    await track(api('/api/reports/' + r.id, 'PUT', manualWx ? {[t.dataset.f]: v, extra: {wx_auto: 0}} : {[t.dataset.f]: v}));
+    if (manualWx) r.extra = {...(r.extra || {}), wx_auto: 0};
+    if (['date', 'time'].includes(t.dataset.f) && r.extra && r.extra.wx_auto) { await fillGeo(true, true); openProject(pid, true); return; }   // Datum/Uhrzeit geändert: automatisches Wetter nachziehen
+    if (['date', 'number'].includes(t.dataset.f)) openProject(pid, true);
+  }
+});
+document.addEventListener('change', e => { if (e.target.id === 'ctr') { cTrade = e.target.value; fillContactList(); } if (e.target.id === 'cpr') { cProj = e.target.value; fillContactList(); } });
+document.addEventListener('input', e => {
+  if (e.target.classList.contains('ed')) grow(e.target);
+  else if (e.target.dataset.dp && draft) {
+    draft[e.target.dataset.dp] = e.target.value;
+    if (e.target.dataset.dp === 'name') suggestProjects(e.target.value);
+  }
+  else if (e.target.id === 'sq') { sheetQ = e.target.value; renderSheet(); if (sheetMode === 'proj') sheetSuggest(); }
+  else if (e.target.id === 'cq') { cq = e.target.value; fillContactList(); }
+  else if (e.target.id === 'ncName') suggestContacts(e.target.value);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeSheet(); $('#menu').classList.add('hidden'); }
+  const row = e.target.closest && e.target.closest('.addrow');
+  const ta = e.target.tagName === 'TEXTAREA';
+  if (e.key === 'Enter' && row && (!ta || e.ctrlKey || e.metaKey)) { e.preventDefault(); addItem(row.querySelector('[data-add]').dataset.add); }
+  else if (e.key === 'Enter' && e.target.dataset && e.target.dataset.dp) createProject();
+  else if (e.key === 'Enter' && e.target.id === 'ncName') createContact();
+});
+window.addEventListener('resize', growAll);
+if (location.hash.startsWith('#reset=')) authView('reset');
+else if (location.hash === '#forgot') { history.replaceState(null, '', location.pathname); authView('forgot'); }   // Link „Kennwort vergessen“ der Startseite
+else api('/api/me').then(r => { if (!r.ok) return authView('login'); me = r; applyAccent(r.accent); r.must_change ? authView('change') : showApp(); });
+</script>
+</body>
+</html>

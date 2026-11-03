@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gantt – Projektplanung</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2384827c'/%3E%3Crect x='6' y='8' width='12' height='4' fill='%23fff'/%3E%3Crect x='12' y='14' width='14' height='4' fill='%23fff'/%3E%3Crect x='8' y='20' width='9' height='4' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <span class="logo" title="Gantt – Bauzeitenplan"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="6" class="lg-bg"/><rect x="6" y="8" width="12" height="4" class="lg-f"/><rect x="12" y="14" width="14" height="4" class="lg-f"/><rect x="8" y="20" width="9" height="4" class="lg-f"/></svg></span>
+    <button class="tcard" id="projCard" data-act="projMenu" title="Projekt wechseln, öffnen, neu anlegen oder schließen"><span class="tc-txt"><span class="tc-t" id="projTitle">Projekt</span><span class="tc-s" id="projSub">&nbsp;</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+    <button class="tcard" id="verCard" data-act="versionHistory" title="Versionshistorie"><span class="tc-txt"><span class="tc-t">Versionen</span><span class="tc-s" id="saveState">&nbsp;</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+    <span class="tb-fill"></span>
+    <button class="ticon" data-act="toggleAssist" title="Planungsassistent ein-/ausblenden"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M18.5 14.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/></svg></button>
+    <button class="ticon" data-act="printDialog" title="Drucken / PDF (Strg+P)"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M7 14h10v7H7z"/></svg></button>
+    <button class="ticon" data-act="settings" title="Programmeinstellungen – Farbschema"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.5 17.3a1.8 1.8 0 0 0 2.5 2.5l5.8-5.8a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.3-.5-.5-2.3z"/></svg></button>
+  </header>
+
+  <nav id="tabs">
+    <button class="tab" data-tab="datei"><svg viewBox="0 0 24 24"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5"/></svg>Datei</button>
+    <button class="tab active" data-tab="vorgang"><svg viewBox="0 0 24 24"><path d="M4 6h9M7 12h11M5 18h7"/></svg>Leistung</button>
+    <button class="tab" data-tab="projekt"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>Projekt</button>
+    <button class="tab" data-tab="ansicht"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Ansicht</button>
+    <button class="tab" data-tab="firmen"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg>Gewerke &amp; Firmen</button>
+    <button class="tab" data-tab="katalog"><svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M10 4h8.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H10"/><path d="M13 8h4M13 12h4M13 16h3"/></svg>Leistungskatalog</button>
+  </nav>
+
+  <div id="ribbon">
+    <!-- Datei -->
+    <div class="grp" data-tab="datei">
+      <div class="btns">
+        <button class="rb" data-act="fileNew" data-ico="newfile" title="Neues Projekt">Neu</button>
+        <button class="rb" data-act="fileOpen" data-ico="open" title="Projekt öffnen (Strg+O)">Öffnen</button>
+        <button class="rb" data-act="fileClose" data-ico="close" title="Projekt schließen (Strg+W)">Schließen</button>
+        <button class="rb" data-act="fileSave" data-ico="vsave" title="Speichern (Strg+S)">Speichern</button>
+        <button class="rb" data-act="fileSaveAs" data-ico="saveas" title="Speichern unter – neuer Name oder als Datei auf diesem Computer (Strg+Umschalt+S)">Speichern<br>unter …</button>
+        <button class="rb" data-act="fileExport" data-ico="export" title="Speichern als – anderes Dateiformat (.gantt, Excel/CSV, MS Project, PDF)">Speichern<br>als …</button>
+      </div><div class="gl">Datei</div>
+    </div>
+    <div class="grp" data-tab="datei">
+      <div class="btns">
+        <div class="rcol"><label>Zuletzt geöffnet / wechseln</label><select id="projSelect"></select>
+          <label class="cb rsw"><input type="checkbox" id="autoSaveChk"> Automatisch speichern</label></div>
+        <button class="rb" data-act="renameProject" data-ico="pencil">Umbe-<br>nennen</button>
+        <button class="rb" data-act="deleteProject" data-ico="trash">Projekt<br>löschen</button>
+      </div><div class="gl">Projekt</div>
+    </div>
+    <div class="grp" data-tab="datei">
+      <div class="btns">
+        <button class="rb" data-act="saveVersion" data-ico="vsave" title="Aktuellen Plan als benannte Version speichern">Version<br>speichern</button>
+        <button class="rb" data-act="versionHistory" data-ico="history" title="Gespeicherte Planstände vergleichen und wiederherstellen">Versions-<br>historie</button>
+      </div><div class="gl">Versionen</div>
+    </div>
+    <div class="grp" data-tab="datei">
+      <div class="btns">
+        <button class="rb" data-act="printDialog" data-ico="printer" title="Drucken / PDF (Strg+P)">Drucken<br>/ PDF</button>
+      </div><div class="gl">Ausgabe</div>
+    </div>
+    <div class="grp" data-tab="datei">
+      <div class="btns">
+        <button class="rb" data-act="settings" data-ico="settings" title="Programmeinstellungen – Farbschema">Einstel-<br>lungen</button>
+      </div><div class="gl">Programm</div>
+    </div>
+
+    <!-- Gewerke & Firmen -->
+    <div class="grp" data-tab="firmen">
+      <div class="btns">
+        <button class="rb" data-act="tradeAdd" data-ico="task" title="Gewerk ergänzen, das (noch) keine Leistung im Plan hat – z. B. Statiker, Vermesser">Gewerk<br>hinzufügen</button>
+        <button class="rb" data-act="tradeAssignAll" data-ico="link" title="Für alle Gewerke mit Firma: Firma als Unternehmer bei allen Leistungen des Gewerks eintragen">Firmen den<br>Leistungen zuweisen</button>
+      </div><div class="gl">Projekt</div>
+    </div>
+    <div class="grp" data-tab="firmen">
+      <div class="btns">
+        <button class="rb" data-act="tradeCsv" data-ico="table" title="Tabelle als Excel/CSV speichern">Export<br>(CSV)</button>
+        <button class="rb" data-act="tradeMail" data-ico="mail" title="E-Mail an alle Firmen dieses Projekts (Bcc)">E-Mail<br>an alle</button>
+        <button class="rb" data-act="tradePrint" data-ico="printer" title="Firmenliste drucken / als PDF">Liste<br>drucken</button>
+      </div><div class="gl">Ausgabe</div>
+    </div>
+
+    <!-- Leistungskatalog -->
+    <div class="grp" data-tab="katalog">
+      <div class="btns">
+        <button class="rb" data-act="libNew" data-ico="task" title="Neue eigene Leistung im Katalog anlegen">Neue<br>Leistung</button>
+        <button class="rb" data-act="libFromProjects" data-ico="import" title="Leistungen aus vorhandenen Projekten übernehmen">Aus Projekten<br>übernehmen</button>
+      </div><div class="gl">Katalog</div>
+    </div>
+    <div class="grp" data-tab="katalog">
+      <div class="btns">
+        <button class="rb" data-act="libStd" data-ico="table" id="btnLibStd" title="Leistungen des Standardkatalogs zum Nachschlagen und Kopieren einblenden">Standard-<br>katalog</button>
+      </div><div class="gl">Ansicht</div>
+    </div>
+    <div class="grp" data-tab="katalog">
+      <div class="btns">
+        <button class="rb" data-act="libExport" data-ico="export" title="Leistungskatalog als Datei sichern (.json)">Export</button>
+        <button class="rb" data-act="libImport" data-ico="open" title="Leistungskatalog aus Datei laden und ergänzen">Import</button>
+      </div><div class="gl">Datei</div>
+    </div>
+
+    <!-- Vorgang -->
+    <div class="grp" data-tab="vorgang">
+      <div class="btns">
+        <button class="rb" data-act="undo" data-ico="undo" title="Rückgängig (Strg+Z)">Rück-<br>gängig</button>
+        <button class="rb" data-act="redo" data-ico="redo" title="Wiederholen (Strg+Y)">Wieder-<br>holen</button>
+      </div><div class="gl">Rückgängig</div>
+    </div>
+    <div class="grp" data-tab="vorgang">
+      <div class="btns">
+        <button class="rb" data-act="insertTask" data-ico="task" title="Leistung einfügen (Einfg)">Leistung</button>
+        <button class="rb" data-act="insertSummary" data-ico="summary" title="Leistungsgruppe über den markierten Leistungen einfügen">Leistungs-<br>gruppe</button>
+        <button class="rb" data-act="insertMilestone" data-ico="milestone">Meilen-<br>stein</button>
+        <button class="rb" data-act="deleteSel" data-ico="del" title="Leistung löschen (Entf)">Löschen</button>
+      </div><div class="gl">Einfügen</div>
+    </div>
+    <div class="grp" data-tab="vorgang">
+      <div class="btns">
+        <button class="rb" data-act="outdent" data-ico="outdent" title="Höher stufen (Alt+Umschalt+←)">Höher<br>stufen</button>
+        <button class="rb" data-act="indent" data-ico="indent" title="Tiefer stufen (Alt+Umschalt+→)">Tiefer<br>stufen</button>
+        <button class="rb" data-act="moveUp" data-ico="up" title="Nach oben (Alt+Umschalt+↑)">Nach<br>oben</button>
+        <button class="rb" data-act="moveDown" data-ico="down" title="Nach unten (Alt+Umschalt+↓)">Nach<br>unten</button>
+      </div><div class="gl">Gliederung</div>
+    </div>
+    <div class="grp" data-tab="vorgang">
+      <div class="btns">
+        <button class="rb" data-act="linkSel" data-ico="link" title="Leistungen verknüpfen (Strg+F2)">Verknüpfen</button>
+        <button class="rb" data-act="tidyLinks" data-ico="tidy" title="Verknüpfungen entfernen, die schon über andere Leistungen abgedeckt sind – die Termine ändern sich nicht">Pfeile<br>aufräumen</button>
+        <button class="rb" data-act="splitMode" data-ico="scissors" title="Balken unterbrechen: danach auf die Stelle im Balken klicken (Esc bricht ab)">Unter-<br>brechen</button>
+        <button class="rb" data-act="unlinkSel" data-ico="unlink" title="Verknüpfung lösen (Strg+Umschalt+F2)">Lösen</button>
+        <button class="rb" data-act="toggleAutoLink" data-ico="autolink" id="btnAuto" title="Beim Einfügen und Löschen von Leistungen Verknüpfungen automatisch anpassen">Autom.<br>verknüpfen</button>
+      </div><div class="gl">Planen</div>
+    </div>
+    <div class="grp" data-tab="vorgang">
+      <div class="btns">
+        <button class="rb pctb" data-act="pct" data-pct="0">0%</button>
+        <button class="rb pctb" data-act="pct" data-pct="25">25%</button>
+        <button class="rb pctb" data-act="pct" data-pct="50">50%</button>
+        <button class="rb pctb" data-act="pct" data-pct="75">75%</button>
+        <button class="rb pctb" data-act="pct" data-pct="100">100%</button>
+      </div><div class="gl">Fortschritt</div>
+    </div>
+    <div class="grp" data-tab="vorgang">
+      <div class="btns">
+        <button class="rb" data-act="taskInfo" data-ico="info" title="Leistungsinformationen (Umschalt+F2)">Informa-<br>tionen</button>
+        <button class="rb" data-act="scrollToTask" data-ico="scrollto">Zur Leistung<br>scrollen</button>
+      </div><div class="gl">Eigenschaften</div>
+    </div>
+
+    <!-- Projekt -->
+    <div class="grp" data-tab="projekt">
+      <div class="btns">
+        <button class="rb" data-act="toggleAssist" data-ico="assist" id="btnAssist" title="Planungsassistent rechts ein-/ausblenden">Planungs-<br>assistent</button>
+        <button class="rb" data-act="popoutAssist" data-ico="popout" title="Planungsassistent in eigenem Browserfenster öffnen (z. B. für einen zweiten Bildschirm)">Eigenes<br>Fenster</button>
+      </div><div class="gl">Planung</div>
+    </div>
+    <div class="grp" data-tab="projekt">
+      <div class="btns">
+        <button class="rb" data-act="projectInfo" data-ico="info">Projekt-<br>informationen</button>
+        <button class="rb" data-act="projectInfo" data-ico="today" title="Arbeitswoche, Feiertage und eigene freie Tage">Arbeitszeit &amp;<br>Feiertage</button>
+        <div class="rcol"><label>Projektanfang</label><input type="date" id="projStart"></div>
+      </div><div class="gl">Eigenschaften</div>
+    </div>
+    <div class="grp" data-tab="projekt">
+      <div class="btns">
+        <button class="rb" data-act="toggleCrit" data-ico="crit" id="btnCrit">Kritischer<br>Weg</button>
+      </div><div class="gl">Analyse</div>
+    </div>
+    <div class="grp" data-tab="projekt">
+      <div class="btns">
+        <button class="rb" data-act="gwDialog" data-ico="palette">Gewerke &amp;<br>Farben</button>
+        <button class="rb" data-act="gwAuto" data-ico="magic">Gewerke<br>zuordnen</button>
+      </div><div class="gl">Gewerke</div>
+    </div>
+
+    <!-- Ansicht -->
+    <div class="grp" data-tab="ansicht">
+      <div class="btns">
+        <button class="rb" data-act="zoomIn" data-ico="zoomin" title="Strg+Mausrad">Vergrößern</button>
+        <button class="rb" data-act="zoomOut" data-ico="zoomout" title="Strg+Mausrad">Verkleinern</button>
+        <button class="rb" data-act="fitProject" data-ico="fit">Gesamtes<br>Projekt</button>
+        <button class="rb" data-act="goToday" data-ico="today">Heute</button>
+      </div><div class="gl">Zoom</div>
+    </div>
+    <div class="grp" data-tab="ansicht">
+      <div class="btns">
+        <button class="rb" data-act="expandAll" data-ico="expand">Alle<br>einblenden</button>
+        <button class="rb" data-act="collapseAll" data-ico="collapse">Alle<br>ausblenden</button>
+      </div><div class="gl">Gliederung</div>
+    </div>
+    <div class="grp" data-tab="ansicht">
+      <div class="btns">
+        <div class="rcol rsm"><label>Links</label><select data-lbl="l"></select></div>
+        <div class="rcol rsm"><label>Im Balken</label><select data-lbl="m"></select></div>
+        <div class="rcol rsm"><label>Rechts</label><select data-lbl="r"></select></div>
+      </div><div class="gl">Balkenbeschriftung</div>
+    </div>
+    <div class="grp" data-tab="ansicht">
+      <div class="btns">
+        <div class="rcol rsm"><label>Verknüpfungspfeile</label><select id="linkModeSel">
+          <option value="all">alle anzeigen</option><option value="sel">nur bei markierten Leistungen</option><option value="crit">nur kritischer Weg</option><option value="none">keine anzeigen</option></select>
+          <span class="rhint">Die Terminrechnung bleibt gleich.</span></div>
+      </div><div class="gl">Pfeile</div>
+    </div>
+    <div class="grp" data-tab="ansicht">
+      <div class="btns">
+        <div class="rcol rsm"><label>Dauer von Leistungsgruppen</label><select id="sumModeSel">
+          <option value="span">Zeitspanne (wie MS Project)</option><option value="sum">Summe der Leistungen</option><option value="both">Summe und Zeitspanne</option></select>
+          <span class="rhint">Der Gruppenbalken zeigt immer die Zeitspanne.</span></div>
+      </div><div class="gl">Leistungsgruppen</div>
+    </div>
+  </div>
+
+  <div id="work">
+  <main id="main">
+    <section id="gridPane">
+      <div id="gridHead"></div>
+      <div id="gridBody" tabindex="0"></div>
+    </section>
+    <div id="split" title="Ziehen, um die Breite zu ändern"></div>
+    <section id="chartPane">
+      <div id="chartHead"></div>
+      <div id="chartBody"></div>
+    </section>
+  </main>
+  <section id="firmView" hidden></section>
+  <section id="libView" hidden></section>
+  <section id="startView" hidden></section>
+  <div id="split2" title="Ziehen, um die Breite zu ändern"></div>
+  <section id="assistPane"></section>
+  </div>
+
+  <footer id="status">
+    <span>Bereit</span>
+    <span class="st-sep"></span>
+    <span>Neue Leistungen: automatisch geplant</span>
+    <span class="st-sep"></span>
+    <span id="stInfo"></span>
+    <span class="st-sep"></span>
+    <span title="Version der App – siehe CHANGELOG.md">App 3.0.0</span>
+    <span class="st-fill"></span>
+    <span class="zoomctl">
+      <button data-act="zoomOut" title="Verkleinern">−</button>
+      <input type="range" id="zoomRange" min="0" max="5" step="1">
+      <button data-act="zoomIn" title="Vergrößern">+</button>
+    </span>
+  </footer>
+</div>
+
+<div id="tip"></div>
+<input type="file" id="fileInput" accept=".gantt,.json,application/json" hidden>
+<script src="platform.js"></script>
+<script src="catalog.js"></script>
+<script src="print.js"></script>
+<script src="app.js"></script>
+<script src="tablex.js"></script>
+<script src="assist.js"></script>
+<script src="firms.js"></script>
+<script src="library.js"></script>
+<script src="ai.js"></script>
+</body>
+</html>

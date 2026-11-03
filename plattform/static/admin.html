@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#84827c">
+<title>Verwaltung – Bauplattform</title>
+<link rel="icon" href="/logo.png">
+<link rel="stylesheet" href="/static/bp.css">
+<style>
+.bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.9rem}
+.bar .fill{flex:1}
+.bar input[type=search]{min-width:220px}
+td .acts{display:flex;gap:.35rem;flex-wrap:wrap;justify-content:flex-end}
+td.r{text-align:right}
+tr.off td{opacity:.55}
+tr.off td:last-child{opacity:1}
+.appchk{display:flex;gap:.8rem;flex-wrap:wrap}
+.appchk label{display:flex;gap:.35rem;align-items:center;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.8rem}
+.kv{display:flex;justify-content:space-between;gap:1rem;padding:.35rem 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.kv b{font-weight:600;text-align:right}
+.kv small{text-align:right;white-space:nowrap}
+.svc{display:flex;align-items:center;gap:.2rem}
+.dot{flex:none}
+.svc small{color:var(--mute)}
+.note{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:.8rem 1rem;color:var(--mute);margin-top:1rem;font-size:.92rem}
+@media (max-width:760px){.hide-s{display:none}}
+</style>
+</head>
+<body>
+<nav class="tabs" id="tabs"></nav>
+<main class="wrap" id="main"></main>
+<script src="/static/bp.js"></script>
+<script>
+const TABS = [['users', 'Benutzer'], ['sessions', 'Angemeldet'], ['status', 'Zustand'], ['audit', 'Protokoll']];
+let tab = (location.hash || '#users').slice(1), me = null, data = {};
+const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
+function renderTabs() { $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}</button>`).join(''); }
+$('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; history.replaceState(null, '', '#' + tab); renderTabs(); load(); };
+
+async function load() {
+  const m = $('#main');
+  try {
+    if (tab === 'users') { data.u = await api('/api/users'); renderUsers(); }
+    else if (tab === 'sessions') { data.s = await api('/api/sessions'); renderSessions(); }
+    else if (tab === 'status') { m.innerHTML = '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('/api/status'); renderStatus(); }
+    else { data.a = await api('/api/audit?cat=' + (data.cat || '')); renderAudit(); }
+  } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+
+/* ---------- Benutzer ---------- */
+function renderUsers(q = data.q || '') {
+  const { users, apps } = data.u;
+  const list = users.filter(u => !q || (u.name + ' ' + u.email).toLowerCase().includes(q.toLowerCase()));
+  $('#main').innerHTML = `<h1>Benutzer</h1>
+    <div class="bar"><input type="search" id="q" placeholder="Suchen …" value="${esc(q)}"><span class="fill"></span><button class="btn pri" data-a="new">+ Benutzer anlegen</button></div>
+    <div class="tbl"><table><thead><tr><th>Name</th><th class="hide-s">E-Mail</th><th>Apps</th><th class="hide-s">Zuletzt aktiv</th><th></th></tr></thead><tbody>
+    ${list.map(u => `<tr class="${u.active ? '' : 'off'}" data-id="${u.id}">
+      <td><b>${esc(u.name)}</b> ${u.is_admin ? '<span class="pill y">Admin</span>' : ''} ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
+      <td class="hide-s">${esc(u.email) || '<span class="mute">–</span>'}</td>
+      <td>${u.is_admin ? '<span class="mute">alle</span>' : apps.map(a => `<span class="pill ${u.apps.includes(a.key) ? 'ok' : ''}">${u.apps.includes(a.key) ? '' : '<s>'}${esc(a.name)}${u.apps.includes(a.key) ? '' : '</s>'}</span>`).join(' ')}</td>
+      <td class="hide-s">${ago(u.last_seen)}${u.sessions ? ` <span class="mute">· ${u.sessions} Sitzung${u.sessions > 1 ? 'en' : ''}</span>` : ''}</td>
+      <td class="r"><div class="acts"><button class="btn sm" data-a="edit">Bearbeiten</button></div></td></tr>`).join('') || '<tr><td colspan="5" class="mute">Keine Treffer.</td></tr>'}
+    </tbody></table></div>
+    <div class="note">Die Benutzer sind dieselben wie im Bautagebuch. Ein Konto mit Häkchen bei einer App kann sie nach der Anmeldung auf der Startseite ohne erneute Anmeldung öffnen. Administratoren dürfen immer alle Apps nutzen. Gesperrte Konten werden sofort überall abgemeldet.</div>`;
+  $('#q').oninput = (e) => { data.q = e.target.value; const pos = e.target.selectionStart; renderUsers(data.q); $('#q').focus(); $('#q').setSelectionRange(pos, pos); };
+}
+function userForm(u) {
+  const { apps } = data.u, isNew = !u;
+  u = u || { name: '', email: '', is_admin: false, active: true, apps: apps.map(a => a.key) };
+  const self = me && u.id === me.id;
+  modalBox(`<h3>${isNew ? 'Benutzer anlegen' : esc(u.name)}</h3>
+    <div class="row"><label for="fN">Name (für die Anmeldung)</label><input id="fN" value="${esc(u.name)}" ${!isNew && u.name.toLowerCase() === 'admin' ? 'disabled' : ''}></div>
+    <div class="row"><label for="fE">E-Mail (für „Kennwort vergessen“ und Erinnerungen)</label><input id="fE" type="email" value="${esc(u.email)}"></div>
+    <div class="row"><label>Apps</label><div class="appchk">${apps.map(a => `<label><input type="checkbox" data-app="${a.key}" ${u.apps.includes(a.key) ? 'checked' : ''}> ${esc(a.name)}</label>`).join('')}</div></div>
+    <label class="chk"><input type="checkbox" id="fA" ${u.is_admin ? 'checked' : ''} ${self ? 'disabled' : ''}> Administrator (alle Apps, Verwaltung, Einstellungen des Bautagebuchs)</label>
+    ${isNew ? '' : `<label class="chk"><input type="checkbox" id="fX" ${u.active ? '' : 'checked'} ${self ? 'disabled' : ''}> Konto gesperrt</label>`}
+    <div class="err" id="fErr"></div>
+    <div class="acts">
+      ${isNew ? '' : `<button class="btn sm" data-m="pw" style="margin-right:auto">Kennwort zurücksetzen</button>${u.sessions ? '<button class="btn sm" data-m="out">Überall abmelden</button>' : ''}${self || u.name.toLowerCase() === 'admin' ? '' : '<button class="btn sm danger" data-m="del">Löschen</button>'}`}
+      <button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">${isNew ? 'Anlegen' : 'Speichern'}</button></div>`,
+  async (m, bg, close, btn) => {
+    const err = (e) => { bg.querySelector('#fErr').textContent = e.message || e; };
+    const body = () => ({ name: bg.querySelector('#fN').value, email: bg.querySelector('#fE').value, is_admin: bg.querySelector('#fA').checked,
+      apps: [...bg.querySelectorAll('[data-app]')].filter(x => x.checked).map(x => x.dataset.app), ...(isNew ? {} : { active: !bg.querySelector('#fX').checked }) });
+    try {
+      if (m === 'x') close();
+      else if (m === 'ok') {
+        if (isNew) { const r = await api('/api/users', 'POST', body()); close(); showPw(body().name, r.password, true); }
+        else { await api('/api/users/' + u.id, 'PUT', body()); close(); toast('Gespeichert.'); }
+        load();
+      } else if (m === 'pw') {
+        if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = 'Wirklich zurücksetzen?'; return; }
+        const r = await api(`/api/users/${u.id}/password`, 'POST'); close(); showPw(u.name, r.password, false); load();
+      } else if (m === 'out') { await api(`/api/users/${u.id}/logout`, 'POST'); close(); toast(`${u.name} ist überall abgemeldet.`); load(); }
+      else if (m === 'del') {
+        if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = 'Wirklich löschen?'; return; }
+        await api('/api/users/' + u.id, 'DELETE'); close(); toast(`${u.name} gelöscht.`); load();
+      }
+    } catch (e) { err(e); }
+  });
+}
+function showPw(name, pw, isNew) {
+  modalBox(`<h3>${isNew ? 'Benutzer angelegt' : 'Kennwort zurückgesetzt'}</h3>
+    <p>Startkennwort für <b>${esc(name)}</b> – wird nur jetzt angezeigt. ${esc(name)} vergibt beim ersten Anmelden ein eigenes Kennwort.</p>
+    <div class="secret">${esc(pw)}</div>
+    <div class="acts"><button class="btn" data-m="copy">Kopieren</button><button class="btn pri" data-m="x">Fertig</button></div>`,
+  async (m, bg, close) => { if (m === 'copy') { try { await navigator.clipboard.writeText(pw); toast('Kopiert.'); } catch { toast('Bitte markieren und kopieren.', true); } } else close(); });
+}
+$('#main').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  if (b.dataset.a === 'new') userForm(null);
+  else if (b.dataset.a === 'edit') userForm(data.u.users.find(u => u.id === +b.closest('tr').dataset.id));
+  else if (b.dataset.a === 'end') api('/api/sessions/' + b.dataset.id, 'DELETE').then(() => { toast('Sitzung beendet.'); load(); }).catch(e => toast(e.message, true));
+  else if (b.dataset.a === 'cat') { data.cat = b.dataset.cat; load(); }
+  else if (b.dataset.a === 'reload') load();
+});
+
+/* ---------- Sitzungen ---------- */
+function renderSessions() {
+  const APPN = { bautagebuch: 'Bautagebuch', portal: 'Startseite', gantt: 'Bauzeitenplan' };
+  $('#main').innerHTML = `<h1>Angemeldet</h1>
+    <div class="tbl"><table><thead><tr><th>Benutzer</th><th>Gerät</th><th class="hide-s">Angemeldet über</th><th>Zuletzt aktiv</th><th class="hide-s">Adresse</th><th></th></tr></thead><tbody>
+    ${data.s.map(s => `<tr><td><b>${esc(s.name)}</b>${s.mine ? ' <span class="pill y">dieses Gerät</span>' : ''}</td><td>${esc(s.agent)}</td><td class="hide-s">${esc(APPN[s.app] || s.app || '–')}</td>
+      <td>${ago(s.seen)}</td><td class="hide-s">${esc(s.ip)}</td><td class="r">${s.mine ? '' : `<button class="btn sm" data-a="end" data-id="${s.id}">Beenden</button>`}</td></tr>`).join('') || '<tr><td colspan="6" class="mute">Niemand angemeldet.</td></tr>'}
+    </tbody></table></div>
+    <div class="note">Eine Anmeldung gilt 30 Tage ab der letzten Nutzung und für alle Apps. „Beenden“ meldet das Gerät in allen Apps ab.</div>`;
+}
+
+/* ---------- Zustand ---------- */
+function renderStatus() {
+  const s = data.st;
+  $('#main').innerHTML = `<div class="bar"><h1 style="margin:0">Zustand</h1><span class="fill"></span><button class="btn sm" data-a="reload">Aktualisieren</button></div>
+    <div class="grid">
+      <div class="card"><h2 style="margin-top:0">Dienste</h2>${s.services.map(x => `<div class="kv"><span class="svc"><span class="dot ${x.ok ? '' : 'bad'}"></span>${esc(x.name)}</span><small>${x.ok ? (x.version ? 'v' + esc(x.version) + ' · ' : '') + x.ms + ' ms' : esc(x.error || 'nicht erreichbar')}</small></div>`).join('')}</div>
+      <div class="card"><h2 style="margin-top:0">Datenbank</h2>
+        <div class="kv"><span>PostgreSQL</span><b>${esc(s.db.server)}</b></div><div class="kv"><span>Schema-Version</span><b>${s.db.schema}</b></div><div class="kv"><span>Größe</span><b>${esc(s.db.size)}</b></div></div>
+      <div class="card"><h2 style="margin-top:0">Inhalt</h2>${Object.entries(s.counts).map(([k, v]) => `<div class="kv"><span>${esc(k)}</span><b>${v}</b></div>`).join('')}</div>
+    </div>
+    ${s.gantt_init ? `<div class="note">Bauzeitenplan eingerichtet am ${esc(new Date(s.gantt_init.at).toLocaleString('de-DE'))}: ${s.gantt_init.imported} Pläne aus der bisherigen Gantt-App übernommen${s.gantt_init.samples ? `, ${s.gantt_init.samples} Beispielpläne angelegt` : ''}.</div>` : ''}
+    <div class="note">Plattform-Version ${esc(s.version)} · Stand ${esc(new Date(s.time).toLocaleString('de-DE'))}. Sicherungen der Datenbank verwaltest du im Bautagebuch unter Einstellungen → Datensicherung; vor jedem Update legt das Update-Skript zusätzlich eine Sicherung an.</div>`;
+}
+
+/* ---------- Protokoll ---------- */
+function renderAudit() {
+  const c = data.cat || '';
+  $('#main').innerHTML = `<h1>Protokoll</h1>
+    <div class="bar">${[['', 'Alles'], ['konto', 'Anmeldungen'], ['verwaltung', 'Verwaltung']].map(([k, l]) => `<button class="btn sm ${k === c ? 'pri' : ''}" data-a="cat" data-cat="${k}">${l}</button>`).join('')}</div>
+    <div class="tbl"><table><thead><tr><th>Zeit</th><th>Benutzer</th><th>Aktion</th><th class="hide-s">Details</th></tr></thead><tbody>
+    ${data.a.map(r => `<tr><td style="white-space:nowrap">${esc(r.ts.slice(0, 16).replace(/^(\d+)-(\d+)-(\d+)/, '$3.$2.$1'))}</td><td>${esc(r.user_name)}</td><td>${esc(r.action)}</td><td class="hide-s mute">${esc([r.project, r.detail].filter(Boolean).join(' · '))}</td></tr>`).join('') || '<tr><td colspan="4" class="mute">Keine Einträge.</td></tr>'}
+    </tbody></table></div>
+    <div class="note">Die letzten 300 Einträge. Das vollständige Protokoll mit Filtern nach Projekt steht im Bautagebuch im Reiter „Protokoll“.</div>`;
+}
+
+(async () => {
+  me = await api('/api/me'); applyAccent(me.accent);
+  const conf = await api('/api/platform');
+  await header('Verwaltung', me, conf);
+  renderTabs(); load();
+})().catch(e => toast(e.message, true));
+</script>
+</body>
+</html>

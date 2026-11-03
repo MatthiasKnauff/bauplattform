@@ -15,7 +15,7 @@ from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
-from bpcore import SCHEMA, db, platform, sso
+from bpcore import SCHEMA, ai as bpai, db, head, platform, sso
 from bpcore import contacts as shared_contacts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -27,6 +27,7 @@ ID_OK = re.compile(r"^[a-z0-9-]{1,64}$")
 PRESENCE_TTL = 45   # Sekunden ohne Herzschlag → gilt als nicht mehr im Plan
 
 app = Flask(__name__, static_folder=None)
+app.register_blueprint(head.blueprint(lambda: g.get("user")))   # gemeinsame Kopfleiste (/bp/head.js, /api/bp/ki)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 app.json.sort_keys = False   # Reihenfolge der Schlüssel erhalten (z. B. Gewerke in P.trades)
 if os.environ.get("TRUST_PROXY") == "1":   # hinter einem Reverse Proxy: X-Forwarded-* übernehmen
@@ -179,7 +180,22 @@ def sanitize(inp, pid):
         "start": int(inp["start"]) if is_int(inp.get("start")) else monday_of_this_week(),
         "nextUid": int(nu) if float(nu).is_integer() else nu,
         "tasks": clean, "cal": cal, "trades": trades, "assist": assist, "gwColors": gw_colors,
+        "sched": _sched(inp.get("sched"), {t["uid"] for t in clean}),
     }
+
+
+def _sched(v, uids):
+    """Berechnete Termine je Leistung (vom Browser beim Speichern mitgeschickt) – für den Mittelabfluss der Baukosten."""
+    if not isinstance(v, list):
+        return None
+    out = []
+    for x in v[:5000]:
+        if not isinstance(x, dict) or not is_int(x.get("uid")) or int(x["uid"]) not in uids:
+            continue
+        s_, f_ = jstr(x.get("s"))[:10], jstr(x.get("f"))[:10]
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s_) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", f_):
+            out.append({"uid": int(x["uid"]), "s": s_, "f": f_, "g": 1 if x.get("g") else 0})
+    return out or None
 
 
 # ---------------------------------------------------------------- Anmeldung, Rechte, Schutz vor fremden Seiten
@@ -958,9 +974,9 @@ PLACE_TOOL = {
 def ai_place():
     with db.tx() as c:
         k = ai_conf(c)
-    if not k["key"]:
-        return jsonify(error="Kein API-Schlüssel hinterlegt (Programmeinstellungen)."), 400
     b = body()
+    if not k["key"] and jstr(b.get("provider") or "") not in ("ollama", "gemini", "chatgpt"):
+        return jsonify(error="Kein API-Schlüssel hinterlegt (Programmeinstellungen)."), 400
     text = jstr(b.get("text") or "")[:300]
     if len(text.strip()) < 3:
         return jsonify(error="Bezeichnung fehlt"), 400
@@ -968,6 +984,16 @@ def ai_place():
     its = "\n".join(" | ".join(jstr(i.get(x) or "")[:90] for x in ("id", "ph", "gw", "n")) for i in (b.get("items") if isinstance(b.get("items"), list) else [])[:400] if isinstance(i, dict))
     user = (f"Gebäudetyp: {jstr(b.get('type') or 'unbekannt')[:60]}\nAbschnitt, in dem der Nutzer gerade arbeitet: {jstr(b.get('ph') or '–')[:40]}\n\n"
             f"Abschnitte (Schlüssel = Name, in Bauablauf-Reihenfolge):\n{phs}\n\nVorhandene Leistungen (ID | Abschnitt | Gewerk | Bezeichnung):\n{its}\n\nNeue Leistung: \"{text}\"")
+    prov = jstr(b.get("provider") or "")
+    if prov in ("ollama", "gemini", "chatgpt"):   # Auswahl in der Kopfleiste: anderer Anbieter, Antwort als JSON
+        sys_json = PLACE_SYS.replace("Antworte ausschließlich über das Werkzeug „leistung_einordnen“.",
+                                     "Antworte ausschließlich mit einem JSON-Objekt mit den Feldern ph, gw, din, sc, d, a, b, craft, why.")
+        try:
+            with db.tx() as c:
+                out = bpai.ask_json(prov, sys_json, user, 700, c)
+            return jsonify({**out, "model": prov})
+        except bpai.AIError as e:
+            return jsonify(error=str(e)), 502
     try:
         out = call_claude(k, PLACE_SYS, user, 1024, PLACE_TOOL)
         if isinstance(out, str):

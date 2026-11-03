@@ -55,7 +55,7 @@
     return a < 1 ? `rgba(${parseInt(out.slice(1, 3), 16)},${parseInt(out.slice(3, 5), 16)},${parseInt(out.slice(5, 7), 16)},${a})` : out;
   }
   const COLRE = /#[0-9a-f]{3,6}\b|rgba?\([^)]*\)|\bwhite\b|\bblack\b/gi;
-  const SKIP = /data-theme|pr-page|ppage|printRoot|\.pr-prev|\.pr-pages/;
+  const SKIP = /data-theme|pr-page|ppage|printRoot|\.pr-prev|\.pr-pages|\.bph/;   // .bph = gemeinsame Kopfleiste, bleibt immer dunkel
   function scopeSel(sel, t) {
     const pre = `html[data-theme="${t}"]`;
     return sel.split(',').map((x) => {

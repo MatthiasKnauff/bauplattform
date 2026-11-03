@@ -63,6 +63,7 @@ const DESC = {
   bautagebuch: ['Bautagebuch', 'Tagesberichte, Wetter, Anwesende, Fotos, Mängel und Weisungen – mit PDF.'],
   gantt: ['Bauzeitenplan', 'Terminplanung mit Gewerken, Firmen, kritischem Weg und Versionen.'],
   adressen: ['Adressen', 'Firmen, Bauherren und Baustellen – dieselben Kontakte wie im Bautagebuch und Bauzeitenplan.'],
+  baukosten: ['Baukosten', 'Kosten nach DIN 276 aus Plänen (PDF) und Bauzeitenplan – mit Mittelabfluss und KI-Prüfung.'],
   admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
 };
 function renderLook(me) {
@@ -90,6 +91,7 @@ function renderLook(me) {
       ${a.allowed ? '<span class="go">Öffnen →</span>' : ''}</a>`).join('');
   $('#ver').textContent = 'Version ' + conf.version;
   renderLook(me);
+  if (location.hash === '#darstellung') { $('#look').open = true; $('#look').scrollIntoView({ block: 'center' }); }
 })().catch(e => toast(e.message, true));
 </script>
 </body>

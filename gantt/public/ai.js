@@ -8,6 +8,7 @@
 window.AI_SETTINGS = { mode: 'builtin', model: 'claude-haiku-5-5', models: {}, hasKey: false, keyHint: '' };
 async function loadAiSettings() {
   try { const s = await fetch('/api/settings').then(j); if (s && s.ai) window.AI_SETTINGS = s.ai; } catch { /* Standard bleibt */ }
+  if (window.bpApplyKi) window.bpApplyKi();   // KI-Auswahl der Kopfleiste (gilt in allen Apps)
   if (window.AssistCore) AssistCore.notifySoon();
   if (!$('#libView').hidden && typeof renderLib === 'function') renderLib();
 }
@@ -71,7 +72,7 @@ function builtinPlace(text, items, curPh) {
 async function aiServerPlace(text, items, cfg, curPh, phases) {
   phases = phases || CATALOG.phases.map((p) => ({ k: p.k, n: p.n }));
   const r = await fetch('/api/ai/place', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, ph: curPh || '', type: (cfg && cfg.type) || '', phases, items: items.filter((i) => !i.ms).map((i) => ({ id: i.id, n: i.n, ph: i.ph, gw: i.gw })) }) });
+    body: JSON.stringify({ provider: window.AI_SETTINGS.provider || '', text, ph: curPh || '', type: (cfg && cfg.type) || '', phases, items: items.filter((i) => !i.ms).map((i) => ({ id: i.id, n: i.n, ph: i.ph, gw: i.gw })) }) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || r.statusText);
   const ids = new Set(items.map((i) => i.id)), phs = new Set(phases.map((p) => p.k));

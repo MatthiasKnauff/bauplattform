@@ -5,7 +5,7 @@ from urllib.parse import quote, urlsplit
 from flask import Flask, g, jsonify, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from bpcore import SCHEMA, db, platform, sso
+from bpcore import SCHEMA, db, head, platform, sso
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "static")
@@ -17,6 +17,7 @@ _DUMMY = generate_password_hash("kein-benutzer")
 def make_app(name):
     app = Flask(name, static_folder=None)
     app.json.sort_keys = False
+    app.register_blueprint(head.blueprint())   # gemeinsame Kopfleiste (/bp/head.js, /api/bp/ki)
     if os.environ.get("TRUST_PROXY") == "1":   # hinter einem Reverse Proxy: X-Forwarded-* übernehmen
         from werkzeug.middleware.proxy_fix import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)

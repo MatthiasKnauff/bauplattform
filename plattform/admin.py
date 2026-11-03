@@ -19,6 +19,7 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("gantt", "Bauzeitenplan", os.environ.get("GANTT_INTERNAL", "http://gantt:8082") + "/api/health"),
     ("portal", "Startseite / Anmeldung", os.environ.get("PORTAL_INTERNAL", "http://portal:8090") + "/api/health"),
     ("adressen", "Adressen", os.environ.get("ADRESSEN_INTERNAL", "http://adressen:8093") + "/api/health"),
+    ("baukosten", "Baukosten", os.environ.get("BAUKOSTEN_INTERNAL", "http://baukosten:8094") + "/api/health"),
 ]
 
 

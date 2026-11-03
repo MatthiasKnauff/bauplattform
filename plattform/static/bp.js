@@ -60,31 +60,19 @@ const ICONS = {
   bautagebuch: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 12h7M9 16h5"/></svg>',
   gantt: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M7 13h6M10 17h7"/></svg>',
   adressen: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="15" height="18" rx="2"/><path d="M19 7h2M19 12h2M19 17h2"/><circle cx="11.5" cy="10" r="2.5"/><path d="M7.5 17a4 4 0 0 1 8 0"/></svg>',
+  baukosten: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2M8 18h6"/></svg>',
   admin: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/></svg>',
   portal: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>',
 };
-/* Kopfleiste mit Logo/Büroname und Benutzermenü (Startseite, Verwaltung) */
-async function header(current, me, conf) {
+/* Kopfleiste: gemeinsame Kopfleiste aller Apps (Bauportal / App · Projekt · KI · Benutzer), aus /bp/head.js */
+function _loadHead() {
+  if (window.BPHead) return Promise.resolve();
+  if (!document.querySelector('link[href="/bp/head.css"]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/bp/head.css'; document.head.appendChild(l); }
+  return new Promise((ok, bad) => { const s = document.createElement('script'); s.src = '/bp/head.js'; s.onload = ok; s.onerror = () => bad(new Error('Kopfleiste nicht geladen')); document.head.appendChild(s); });
+}
+async function header(current, me, conf, opt = {}) {
   BP_PROXIED = conf.proxied || null; BP_DOMAIN = conf.domain || '';
-  const brand = await fetch('/api/brand').then((r) => r.json()).catch(() => ({}));
-  const portal = conf.apps.find((a) => a.key === 'portal');
-  const logo = '/logo.png';
-  const h = document.createElement('header'); h.className = 'hdr';
-  h.innerHTML = `<a class="brand" href="${esc(portal ? appUrl(portal) + '/' : '/')}"><img alt="" src="${esc(logo)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mk',innerHTML:ICONS.portal}))">
-      <span><b>${esc(brand.office || 'Bauplattform')}</b><small>${esc(current)}</small></span></a><span class="fill"></span>
-      <button class="who" id="whoBtn" aria-haspopup="menu"><span class="av">${esc((me.name || '?').slice(0, 1).toUpperCase())}</span><span class="nm">${esc(me.name)}</span></button>`;
-  document.body.prepend(h);
-  $('#whoBtn').onclick = (e) => {
-    e.stopPropagation(); let m = $('#uMenu'); if (m) { m.remove(); return; }
-    m = document.createElement('div'); m.className = 'menu'; m.id = 'uMenu';
-    m.innerHTML = `<div class="info">Angemeldet als <b style="color:var(--ink)">${esc(me.name)}</b></div>`
-      + conf.apps.filter((a) => a.allowed).map((a) => `<a href="${esc(appUrl(a))}/">${ICONS[a.key] ? ICONS[a.key].replace(/width="30" height="30"/, 'width="18" height="18"') : ''}${esc(a.name)}</a>`).join('')
-      + '<div class="sep"></div><button data-out>Abmelden</button>';
-    m.querySelector('[data-out]').onclick = async () => {
-      const r = await fetch('/api/logout', { method: 'POST' }).then((x) => x.json()).catch(() => ({}));
-      location.href = r.login || '/login';
-    };
-    h.appendChild(m);
-  };
-  document.addEventListener('click', (e) => { const m = $('#uMenu'); if (m && !m.contains(e.target)) m.remove(); });
+  await _loadHead();
+  const key = { Startseite: 'portal', Verwaltung: 'admin', Adressen: 'adressen', Baukosten: 'baukosten' }[current] || '';
+  await BPHead.mount({ app: key, name: current, me, sticky: true, project: opt.project });
 }

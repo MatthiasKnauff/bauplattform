@@ -120,7 +120,7 @@ $('#main').addEventListener('click', (e) => {
 
 /* ---------- Sitzungen ---------- */
 function renderSessions() {
-  const APPN = { bautagebuch: 'Bautagebuch', portal: 'Startseite', gantt: 'Bauzeitenplan', adressen: 'Adressen' };
+  const APPN = { bautagebuch: 'Bautagebuch', portal: 'Startseite', gantt: 'Bauzeitenplan', adressen: 'Adressen', baukosten: 'Baukosten' };
   $('#main').innerHTML = `<h1>Angemeldet</h1>
     <div class="tbl"><table><thead><tr><th>Benutzer</th><th>Gerät</th><th class="hide-s">Angemeldet über</th><th>Zuletzt aktiv</th><th class="hide-s">Adresse</th><th></th></tr></thead><tbody>
     ${data.s.map(s => `<tr><td><b>${esc(s.name)}</b>${s.mine ? ' <span class="pill y">dieses Gerät</span>' : ''}</td><td>${esc(s.agent)}</td><td class="hide-s">${esc(APPN[s.app] || s.app || '–')}</td>

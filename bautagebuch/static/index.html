@@ -309,6 +309,8 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 .pvs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:.6rem .6rem calc(.6rem + env(safe-area-inset-bottom))}
 .pvw{width:max-content;min-width:100%}.pvw canvas{display:block;margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}
 </style>
+<link rel="stylesheet" href="/bp/head.css">
+<script src="/bp/head.js"></script>
 </head>
 <body>
 <section id="login" class="hidden"></section>
@@ -453,6 +455,7 @@ const growAll = () => document.querySelectorAll('textarea.ed').forEach(grow);
 function chrome() {
   const p = curProject();
   $('#pname').textContent = p ? p.name : 'Projekt wählen';
+  if (window.BPHead) BPHead.setProject(p ? { sub: addr(p) || 'Bautagebuch', title: p.name } : { sub: '', title: '' });
   $('#paddr').textContent = p ? (addr(p) || 'Keine Adresse hinterlegt – über die Projektauswahl → „Projekt bearbeiten“ eintragen') : 'Tippe hier, um ein Projekt zu wählen';
   $('#chev').innerHTML = ic('chev', 20, 3); $('#rchev').innerHTML = ic('chev', 20, 3);
   const r = p ? curReport() : null;
@@ -472,6 +475,7 @@ const appUrl = a => a.url || `${location.protocol}//${location.hostname}:${a.por
 const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
   try { PLATFORM = await api('/api/platform'); } catch { PLATFORM = {}; }
+  if (window.BPHead) BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });   // gemeinsame Kopfleiste
   try { meta = await api('/api/meta'); contacts = await api('/api/contacts'); settings = await api('/api/settings'); people = await api('/api/people'); leaderUsers = await api('/api/leaders'); await loadProjects(); } catch { return; }
   const start = projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
   if (start) await openProject(start.id); else renderDetail();

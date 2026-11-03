@@ -18,7 +18,7 @@ cd "$(dirname "$0")"
 VER=$(cat VERSION 2>/dev/null || echo "?")
 DB_NEW=bauportal_db      # Datenbank-Container (früher „Bautagebuch_db“)
 DB_OLD=Bautagebuch_db
-APPS="bautagebuch gantt portal admin adressen"
+APPS="bautagebuch gantt portal admin adressen baukosten"
 
 say()  { printf '\n\033[1m▶ %s\033[0m\n' "$*"; }
 info() { printf '  %s\n' "$*"; }
@@ -70,6 +70,8 @@ status() {
     info "Bauzeitenplan:           http://$ip:$(getenv_file GANTT_PORT)"
     info "Verwaltung:              http://$ip:$(getenv_file ADMIN_PORT)"
     info "Adressen:                http://$ip:$(p=$(getenv_file ADRESSEN_PORT); echo "${p:-8093}")"
+    info "Baukosten:               http://$ip:$(p=$(getenv_file BAUKOSTEN_PORT); echo "${p:-8094}")"
+    info "KI (Ollama):             nur intern im Docker-Netz, Modell $(m=$(getenv_file OLLAMA_MODEL); echo "${m:-qwen2.5:3b}")"
   }
 }
 

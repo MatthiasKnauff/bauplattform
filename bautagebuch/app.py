@@ -5,7 +5,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import modules
 from core import access, audit, auth, backups, db, reminders, storage, sync, versions
-from bpcore import platform, sso   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
+from bpcore import head, platform, sso   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
 
 OPEN = ("/api/login", "/api/me", "/api/forgot", "/api/reset", "/api/favicon", "/api/platform")   # favicon: auch auf der Anmeldeseite
 NO_SSO = ("/api/login", "/api/forgot", "/api/reset", "/api/favicon", "/api/platform", "/api/logout")   # hier keine Sitzung übernehmen/anlegen
@@ -60,6 +60,7 @@ def create_app():
     if os.environ.get("TRUST_PROXY") == "1":   # hinter einem Reverse Proxy: X-Forwarded-Proto/-Host/-For auswerten
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     app.config["SESSION_COOKIE_SECURE"] = os.environ.get("COOKIE_SECURE") == "1"   # Cookie nur über HTTPS (Produktion)
+    app.register_blueprint(head.blueprint(lambda: g.get("user")))   # gemeinsame Kopfleiste der Bauplattform (/bp/head.js, /api/bp/ki)
 
     def sso_adopt():
         """Gemeinsame Anmeldung: Flask-Sitzung des Bautagebuchs und SSO-Sitzung der Plattform abgleichen.

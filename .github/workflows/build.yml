@@ -79,12 +79,18 @@ jobs:
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             FILE=server/docker-compose.yml; TAG="${GITHUB_REF_NAME}"; MSG="Produktiv: Bauplattform ${TAG} freigegeben"
+            # neue Dienste (z. B. Baukosten, Ollama) kommen erst mit der Freigabe auf den Produktivserver
+            if [ -f server/produktiv-naechste.yml ]; then
+              git mv -f server/produktiv-naechste.yml "$FILE"
+              sed -i '/^# NÄCHSTE PRODUKTIV-FASSUNG/,/^# Neu: /d' "$FILE"
+              sed -i '1{/^# =\+$/d}' "$FILE"
+            fi
           else
             FILE=server/test.yml; TAG="${GITHUB_SHA::7}"; MSG="Testserver: Bauplattform auf ${TAG}"
           fi
           sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${TAG}#" "$FILE"
           grep -n "image: ${REGISTRY}" "$FILE"
-          if git diff --quiet; then echo "Keine Änderung"; exit 0; fi
+          if git diff --quiet && git diff --cached --quiet; then echo "Keine Änderung"; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git commit -am "$MSG"

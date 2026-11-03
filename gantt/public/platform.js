@@ -48,16 +48,28 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
   const ICON_APPS = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="4" height="4" rx="1"/><rect x="10" y="4" width="4" height="4" rx="1"/><rect x="16" y="4" width="4" height="4" rx="1"/><rect x="4" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="16" y="10" width="4" height="4" rx="1"/><rect x="4" y="16" width="4" height="4" rx="1"/><rect x="10" y="16" width="4" height="4" rx="1"/><rect x="16" y="16" width="4" height="4" rx="1"/></svg>';
   const ICON_LINK = '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
   function mountBar() {
-    const tb = $('#topbar'); if (!tb || $('#bpApps')) return;
+    const tb = $('#topbar'); if (!tb || $('#bpLink')) return;
+    // gemeinsame Kopfleiste der Bauplattform über der Leiste des Bauzeitenplans (App-Umschalter, KI, Abmelden)
+    if (window.BPHead) {
+      BPHead.mount({ app: 'gantt', name: 'Bauzeitenplan', parent: $('#app'), before: tb });
+      BPHead.ready.then(() => window.bpApplyKi && window.bpApplyKi());
+      BPHead.onKi(() => window.bpApplyKi && window.bpApplyKi());
+      const logo = tb.querySelector('.logo'); if (logo) logo.style.display = 'none';
+    }
     const fill = tb.querySelector('.tb-fill');
     const link = document.createElement('button'); link.className = 'bp-chip'; link.id = 'bpLink'; link.hidden = true;
     link.onclick = linkDialog;
     const pres = document.createElement('span'); pres.className = 'bp-pres'; pres.id = 'bpPres'; pres.hidden = true;
     fill.after(link, pres);
-    const btn = document.createElement('button'); btn.className = 'ticon'; btn.id = 'bpApps'; btn.title = 'Apps der Bauplattform'; btn.innerHTML = ICON_APPS;
-    btn.onclick = (e) => { e.stopPropagation(); toggleMenu(); };
-    tb.appendChild(btn);
   }
+  /* KI-Auswahl der Kopfleiste auf den Positionsvorschlag übertragen (Intern = eingebauter Vorschlag) */
+  window.bpApplyKi = function () {
+    const S = window.AI_SETTINGS; if (!S || !window.BPHead || S.mode === 'off') return;
+    const k = BPHead.ki, pv = BPHead.provider();
+    if (k === 'intern' || !pv.ok) { S.mode = 'builtin'; S.provider = ''; }
+    else { S.mode = 'ai'; S.hasKey = true; S.provider = k; }
+    if (window.AssistCore && AssistCore.notifySoon) AssistCore.notifySoon();
+  };
   function toggleMenu(force) {
     let m = $('#bpMenu');
     if (m && force !== true) { m.remove(); return; }
@@ -85,9 +97,12 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
 
   function showLink() {
     const el = $('#bpLink'); if (!el) return;
-    const bt = typeof P !== 'undefined' && P ? P._bt : null;
-    el.hidden = !bt;
+    const p = typeof P !== 'undefined' && P ? P : null, bt = p ? p._bt : null;
+    el.hidden = !p;
+    if (window.BPHead) BPHead.setProject(p ? { sub: bt ? 'Bautagebuch-Projekt: ' + bt.name + (bt.address ? ' · ' + bt.address : '') : 'Bauzeitenplan', title: p.name } : { sub: '', title: '' });
+    if (!p) return;
     if (bt) { el.innerHTML = ICON_LINK + '<span>' + escH(bt.name) + '</span>'; el.title = `Verknüpft mit dem Bautagebuch-Projekt „${bt.name}“${bt.address ? ' (' + bt.address + ')' : ''} – klicken zum Ändern`; }
+    else { el.innerHTML = ICON_LINK + '<span>Mit Projekt verknüpfen</span>'; el.title = 'Plan mit einem Projekt des Bautagebuchs verknüpfen'; }
   }
   function showPresence() {
     const el = $('#bpPres'); if (!el) return;
@@ -154,7 +169,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     setTimeout(beat, 1500);
     // Verknüpfung nach jedem Öffnen eines Plans anzeigen
     let seen = null;
-    setInterval(() => { const id = typeof P !== 'undefined' && P ? P.id + ':' + (P._bt ? P._bt.id : '') : null; if (id !== seen) { seen = id; showLink(); if (P) beat(); } }, 700);
+    setInterval(() => { const id = typeof P !== 'undefined' && P ? P.id + ':' + P.name + ':' + (P._bt ? P._bt.id : '') : null; if (id !== seen) { seen = id; showLink(); if (P) beat(); } }, 700);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

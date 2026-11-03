@@ -1,6 +1,6 @@
 # Bauplattform
 
-Bautagebuch und Bauzeitenplan (Gantt-App) auf einer gemeinsamen Datenbasis, mit einer Anmeldung für alle Apps,
+Bautagebuch, Bauzeitenplan (Gantt-App), Adressen und Baukosten auf einer gemeinsamen Datenbasis, mit einer Anmeldung für alle Apps,
 einem eigenen Container für die Verwaltung und einem Skript, das neue Versionen mit einem Befehl einspielt.
 
 | App | Adresse (Standard) | Container |
@@ -9,7 +9,9 @@ einem eigenen Container für die Verwaltung und einem Skript, das neue Versionen
 | Bautagebuch | `http://server:8080` (wie bisher) | `bautagebuch` |
 | Bauzeitenplan | `http://server:8082` (wie bisher) | `bauzeitenplan` |
 | Adressen (Firmen, Bauherren, Baustellen) | `http://server:8093` | `bauplattform_adressen` |
+| Baukosten (DIN 276, Mittelabfluss) | `http://server:8094` | `bauplattform_baukosten` |
 | Verwaltung (nur Administratoren) | `http://server:8091` | `bauplattform_admin` |
+| KI im Büro (Ollama) | nur intern (`http://ollama:11434`) | `bauplattform_ollama` (+ `bauplattform_ollama_modell` lädt das Modell) |
 | Datenbank (PostgreSQL 15) für alle Apps | nur intern | `bauportal_db` (früher `Bautagebuch_db`), Volume `bauportal_pgdata` (früher `bautagebuch_pgdata`) |
 
 ```
@@ -115,6 +117,9 @@ Die Bauplattform läuft als Portainer-Stack direkt aus diesem Repository:
 2. Danach trägt der Workflow die Version in die passende Datei ein.
 3. Portainer prüft die Quelle regelmäßig (Polling), bemerkt die Änderung und spielt die neue Version ein.
 
+**Neue Dienste:** Liegt `server/produktiv-naechste.yml` im Repository (z. B. mit Baukosten und Ollama), ersetzt der Workflow bei der
+nächsten Freigabe damit `server/docker-compose.yml`. Bis dahin bleibt der Produktivserver unverändert.
+
 **Version freigeben:** Vorher einen Proxmox-Snapshot anlegen. Dann auf GitHub *Releases → Draft a new release*,
 bei *Choose a tag* einen neuen Tag `v<VERSION>` eingeben (z. B. `v2026.11.3`, Ziel `main`) und *Publish release* klicken.
 
@@ -176,6 +181,49 @@ Ohne Nginx (z. B. Testserver) direkt über Port 8093; dann in Portainer `SERVER_
 damit die anderen Apps dorthin verlinken. Freischalten je Benutzer
 in der Verwaltung (App „Adressen“; wer „alle Apps“ hat, bekommt sie automatisch).
 
+## Kopfleiste (alle Apps)
+
+Alle Apps haben oben dieselbe dunkle Leiste: **Bauportal / App** (Klick führt zur Startseite) · aktuelles Projekt ·
+**KI-Auswahl** · Benutzer mit App-Umschalter, Darstellung und Abmelden. Im Bautagebuch und im Bauzeitenplan sitzt sie über der
+bisherigen Leiste – deren Bedienung bleibt unverändert. Code: `shared/bpcore/head.py` und `shared/bpcore/head/` (jede App liefert
+`/bp/head.js`, `/bp/head.css` und `/api/bp/ki` aus).
+
+## KI für alle Apps
+
+Die Auswahl in der Kopfleiste gilt für den Benutzer in allen Apps und auf allen Geräten (Spalte `users.ai`):
+
+| Auswahl | Was | Einrichten |
+|---|---|---|
+| Intern | feste Regeln und Kennwerte der App, ohne Internet | – |
+| Ollama | eigene KI im Büro (Container `bauplattform_ollama`), Daten bleiben intern | läuft automatisch mit; Modell über `OLLAMA_MODEL` (Standard `qwen2.5:3b`, ≈ 3 GB RAM) |
+| Claude | Anthropic | Schlüssel im Bauzeitenplan → Einstellungen oder `ANTHROPIC_API_KEY` |
+| Gemini | Google | `GEMINI_API_KEY` (optional `GEMINI_MODEL`) |
+| ChatGPT | OpenAI | `OPENAI_API_KEY` (optional `OPENAI_MODEL`) |
+
+Nicht eingerichtete Anbieter sind ausgegraut; ein Klick zeigt, was fehlt. Genutzt wird die KI im Bauzeitenplan
+(Positionsvorschlag für neue Leistungen) und in den Baukosten (Plausibilitätsprüfung). Kostenpflichtige Anbieter sind als solche gekennzeichnet.
+
+**Ollama:** Beim ersten Start lädt `bauplattform_ollama_modell` das Modell herunter (einige GB, dauert je nach Leitung ein paar Minuten)
+und beendet sich dann. Bis dahin steht in der Auswahl „Modell wird noch geladen“. Ohne Grafikkarte antwortet das Modell langsamer
+(eine Prüfung kann 30–90 Sekunden dauern). Der Container hat keinen Port nach außen. Größeres Modell: `OLLAMA_MODEL=qwen2.5:7b` (≈ 6 GB RAM).
+
+## Baukosten (eigener Container)
+
+Kostenermittlung nach DIN 276, gekoppelt an Bautagebuch-Projekt und Bauzeitenplan.
+
+- **Pläne & Mengen:** PDF hochladen. Aus Vektor-PDFs (aus dem CAD) werden Raumstempel – Nummer, Name, Fläche – exakt gelesen,
+  dazu Maßstab und Planart. Der Raumtyp wird vorgeschlagen; jeder Raum wird bestätigt. Eingescannte Pläne enthalten keinen Text –
+  dann Räume von Hand eintragen.
+- **Kosten:** Fläche × Kennwert je Raumtyp, Aufteilung auf KG 300/400, eigene Positionen (KG 200, 394 Rückbau, 500 …),
+  Nebenkosten KG 700. Die mitgelieferten Kennwerte sind **Beispielwerte**; eigene Werte lassen sich als Vorgabe für neue Kostenermittlungen speichern.
+- **Mittelabfluss:** Kosten werden über die Leistungen des verknüpften Bauzeitenplans verteilt (Gewicht = Dauer, änderbar), je Monat,
+  mit Baupreisindex. Der Bauzeitenplan speichert dafür seine berechneten Termine mit; ältere Pläne einmal öffnen und speichern.
+- **Prüfung:** feste Regeln (doppelte Raumnummern, offene Kostengruppen, auffällige Kennwerte, fehlende Geschosse …) und – je nach
+  KI-Auswahl – zusätzliche Hinweise der KI.
+
+Auf Docker 2 unter `https://baukosten.gk3-architektur.de`: im Nginx Proxy Manager einen Eintrag → Docker-2-IP, Port 8094 anlegen
+(wie bei den anderen Apps). Freischalten je Benutzer in der Verwaltung (App „Baukosten“; „alle Apps“ schließt sie ein).
+
 ## Verwaltung (eigener Container)
 
 Nur für Administratoren. Die Benutzer sind dieselben wie im Bautagebuch.
@@ -198,7 +246,9 @@ Die Benutzerverwaltung im Bautagebuch (Einstellungen) funktioniert weiter. Beide
 | Kontakte / Firmen | `contacts` | Bautagebuch (Kontakte) und Bauzeitenplan (Adressbuch) |
 | Bauzeitenpläne, Versionen | `gantt_projects`, `gantt_versions` | Bauzeitenplan |
 | Vorlagen, Katalog, Abschnitte … | `gantt_store` | Bauzeitenplan |
-| Protokoll | `audit_log` | Bautagebuch, Startseite, Verwaltung |
+| Protokoll | `audit_log` | Bautagebuch, Startseite, Verwaltung, Baukosten |
+| Kostenermittlungen, Pläne, eigene Kennwerte | `bk_projects`, `bk_files`, `bk_store` | Baukosten |
+| KI-Auswahl je Benutzer | `users.ai` | alle (Kopfleiste) |
 
 Das Schema gehört dem Bautagebuch (`bautagebuch/pg_migrations/`). Die anderen Dienste warten beim Start, bis die
 benötigte Version da ist. Neue Tabellen kommen immer als neue Migration dazu (nur ergänzen, nie ändern).
@@ -219,7 +269,7 @@ bauplattform/
 ├── shared/bpcore/         gemeinsamer Kern: Datenbankzugriff, Anmeldung (sso.py), App-Adressen
 ├── bautagebuch/           Bautagebuch (Flask) – besitzt das Datenbankschema
 ├── gantt/                 Bauzeitenplan: Server (app.py, Flask) + Oberfläche (public/)
-└── plattform/             Startseite (portal.py) und Verwaltung (admin.py), ein Image für zwei Container
+└── plattform/             Startseite, Verwaltung, Adressen, Baukosten – ein Image für vier Container
 ```
 
 ## Direkt von Claude installieren lassen

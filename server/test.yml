@@ -23,16 +23,25 @@ x-env: &env
   PORTAL_PORT: ${PORTAL_PORT:-8090}
   ADMIN_PORT: ${ADMIN_PORT:-8091}
   ADRESSEN_PORT: ${ADRESSEN_PORT:-8093}
+  BAUKOSTEN_PORT: ${BAUKOSTEN_PORT:-8094}
   BAUTAGEBUCH_URL: ${BAUTAGEBUCH_URL:-}
   GANTT_URL: ${GANTT_URL:-}
   PORTAL_URL: ${PORTAL_URL:-}
   ADMIN_URL: ${ADMIN_URL:-}
   ADRESSEN_URL: ${ADRESSEN_URL:-}
+  BAUKOSTEN_URL: ${BAUKOSTEN_URL:-}
   SERVER_HOST: ${SERVER_HOST:-}   # IP/Name des Servers – für Links zu Apps ohne eigene Adresse (optional)
   BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
   GANTT_INTERNAL: http://gantt:8082
   PORTAL_INTERNAL: http://portal:8090
   ADRESSEN_INTERNAL: http://adressen:8093
+  BAUKOSTEN_INTERNAL: http://baukosten:8094
+  # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
+  OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
 services:
   bautagebuch_db:
@@ -121,6 +130,50 @@ services:
       APP_MODULE: adressen
       APP_PORT: "8093"
 
+
+  baukosten:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:df964d6
+    container_name: bauplattform_baukosten
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${BAUKOSTEN_PUBLISH:-8094}:8094"
+    environment:
+      <<: *env
+      APP_MODULE: baukosten
+      APP_PORT: "8094"
+
+  # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
+  # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB freien Arbeitsspeicher; ohne Grafikkarte antwortet es langsamer.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: bauplattform_ollama
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: 30m          # Modell 30 Minuten im Speicher halten
+      OLLAMA_NUM_PARALLEL: "1"
+    volumes:
+      - ollama_data:/root/.ollama     # heruntergeladene Modelle
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # lädt einmal beim Start das Modell (OLLAMA_MODEL) herunter und beendet sich dann – vorhandene Modelle werden nur geprüft
+  ollama_modell:
+    image: ollama/ollama:latest
+    container_name: bauplattform_ollama_modell
+    restart: "no"
+    depends_on:
+      ollama: { condition: service_healthy }
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c", "ollama pull \"${OLLAMA_MODEL:-qwen2.5:3b}\" && echo \"Modell ${OLLAMA_MODEL:-qwen2.5:3b} bereit\""]
+
 volumes:
   bautagebuch_data:
     name: bautagebuch_data
@@ -132,3 +185,5 @@ volumes:
   gantt_legacy:
     name: ${GANTT_LEGACY_VOLUME:-gantt-app_gantt-data}
     external: true
+  ollama_data:
+    name: bauplattform_ollama           # Modelle der eigenen KI

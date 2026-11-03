@@ -42,6 +42,7 @@ x-env: &env
   ADMIN_INTERNAL: http://admin:8091
   ADRESSEN_INTERNAL: http://adressen:8093
   BAUKOSTEN_INTERNAL: http://baukosten:8094
+  AUFGABEN_INTERNAL: http://aufgaben:8095
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -68,7 +69,7 @@ services:
       retries: 30
 
   bautagebuch:
-    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:v2026.11.32
+    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:v2026.11.35
     container_name: bautagebuch
     restart: unless-stopped
     depends_on:
@@ -82,7 +83,7 @@ services:
       - bautagebuch_data:/data
 
   gantt:
-    image: ghcr.io/matthiasknauff/bauplattform/gantt:v2026.11.32
+    image: ghcr.io/matthiasknauff/bauplattform/gantt:v2026.11.35
     container_name: bauzeitenplan
     restart: unless-stopped
     depends_on:
@@ -96,7 +97,7 @@ services:
       - gantt_legacy:/legacy:ro
 
   portal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.32
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.35
     container_name: bauplattform_portal
     restart: unless-stopped
     depends_on:
@@ -108,7 +109,7 @@ services:
       APP_PORT: "8090"
 
   admin:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.32
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.35
     container_name: bauplattform_admin
     restart: unless-stopped
     depends_on:
@@ -122,7 +123,7 @@ services:
       APP_PORT: "8091"
 
   adressen:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.32
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.35
     container_name: bauplattform_adressen
     restart: unless-stopped
     depends_on:
@@ -139,7 +140,7 @@ services:
 
   # Verteiler: alle Apps unter einer Adresse (Pfad statt Port/Subdomain), siehe plattform/router.py
   bauportal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.32
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.35
     container_name: bauplattform_verteiler
     restart: unless-stopped
     depends_on:
@@ -153,7 +154,7 @@ services:
       APP_THREADS: "32"
       APP_TIMEOUT: "320"
   baukosten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.32
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.35
     container_name: bauplattform_baukosten
     restart: unless-stopped
     depends_on:
@@ -166,6 +167,21 @@ services:
       APP_MODULE: baukosten
       APP_PORT: "8094"
       APP_TIMEOUT: "300"
+
+  # Mängel & Erinnerungen: Mängelverfolgung aus den Bautagesberichten, Erinnerungen aus Bautagebuch, Bauzeitenplänen und eigene
+  aufgaben:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.35
+    container_name: bauplattform_aufgaben
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${AUFGABEN_PUBLISH:-8095}:8095"
+    environment:
+      <<: *env
+      APP_MODULE: aufgaben
+      APP_PORT: "8095"
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB freien Arbeitsspeicher; ohne Grafikkarte antwortet es langsamer.

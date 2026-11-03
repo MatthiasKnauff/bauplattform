@@ -585,6 +585,147 @@ def presets(pid=None):
         return jsonify(lst[k])
 
 
+# ---- Einrichtung des Planungsassistenten (Gebäudetypen, Bauweisen) – Abweichungen vom eingebauten Katalog
+AKEY = re.compile(r"^[a-z0-9_]{1,40}$")
+IKEY = re.compile(r"^[\w~.-]{1,60}$")
+
+
+def _ids(v, n=600):
+    return [x for x in (v if isinstance(v, list) else [])[:n] if isinstance(x, str) and IKEY.match(x)]
+
+
+def clean_prof(x, own=False):
+    if not isinstance(x, dict):
+        return None
+    o = {}
+    for k in ("n", "ic", "desc"):
+        if k in x:
+            o[k] = jstr(x[k])[:{"n": 80, "ic": 8, "desc": 160}[k]]
+    for k, lo, hi in (("area", 1, 100000), ("units", 1, 200), ("floors", 1, 30)):
+        if k in x and num(x[k]):
+            v = max(lo, min(hi, num(x[k])))
+            o[k] = v if k == "area" else int(round(v))
+    if x.get("dg") in ("none", "kalt", "aus", "staffel"):
+        o["dg"] = x["dg"]
+    if x.get("takt") in ("parallel", "versetzt"):
+        o["takt"] = x["takt"]
+    if x.get("naming") in ("whg", "gesch", "ge", "ba", "haus", "custom"):
+        o["naming"] = x["naming"]
+    if isinstance(x.get("choice"), dict):
+        o["choice"] = {k: jstr(v)[:40] for k, v in list(x["choice"].items())[:60] if AKEY.match(k) and AKEY.match(jstr(v))}
+    for k in ("rec", "opt"):
+        if k in x:
+            o[k] = _ids(x[k])
+    if isinstance(x.get("ovr"), dict):
+        ov = {}
+        for k, v in list(x["ovr"].items())[:600]:
+            if IKEY.match(k) and isinstance(v, dict):
+                e = {}
+                if v.get("n"):
+                    e["n"] = jstr(v["n"])[:200]
+                if num(v.get("d")):
+                    e["d"] = max(0, min(999, num(v["d"])))
+                if e:
+                    ov[k] = e
+        o["ovr"] = ov
+    if "hidden" in x:
+        o["hidden"] = bool(x.get("hidden"))
+    if "ord" in x and num(x.get("ord")) is not None:
+        o["ord"] = num(x.get("ord"))
+    if own:
+        if not AKEY.match(jstr(x.get("k"))) or not AKEY.match(jstr(x.get("base"))):
+            return None
+        o["k"], o["base"] = x["k"], x["base"]
+        o.setdefault("n", "Eigener Gebäudetyp")
+    return o
+
+
+def clean_assistcfg(b):
+    if not isinstance(b, dict):
+        return None
+    out = {"v": 1, "profiles": {}, "own": [], "choices": {}}
+    for k, v in list((b.get("profiles") or {}).items())[:60] if isinstance(b.get("profiles"), dict) else []:
+        if AKEY.match(k):
+            pv = clean_prof(v)
+            if pv:
+                out["profiles"][k] = pv
+    seen = set()
+    for v in (b.get("own") if isinstance(b.get("own"), list) else [])[:40]:
+        pv = clean_prof(v, own=True)
+        if pv and pv["k"] not in seen:
+            seen.add(pv["k"]); out["own"].append(pv)
+    for g, v in list((b.get("choices") or {}).items())[:60] if isinstance(b.get("choices"), dict) else []:
+        if not AKEY.match(g) or not isinstance(v, dict):
+            continue
+        e = {}
+        if v.get("n"):
+            e["n"] = jstr(v["n"])[:80]
+        opts = {}
+        for ok, ov in list((v.get("opts") or {}).items())[:40] if isinstance(v.get("opts"), dict) else []:
+            if AKEY.match(ok) and isinstance(ov, dict):
+                x = {}
+                if ov.get("n"):
+                    x["n"] = jstr(ov["n"])[:120]
+                if "on" in ov:
+                    x["on"] = _ids(ov["on"], 80)
+                if "hidden" in ov:
+                    x["hidden"] = bool(ov["hidden"])
+                if x:
+                    opts[ok] = x
+        if opts:
+            e["opts"] = opts
+        own = []
+        for ov in (v.get("own") if isinstance(v.get("own"), list) else [])[:20]:
+            if isinstance(ov, dict) and AKEY.match(jstr(ov.get("k"))):
+                own.append({"k": ov["k"], "n": jstr(ov.get("n") or "Eigene Ausführung")[:120], "on": _ids(ov.get("on"), 80)})
+        if own:
+            e["own"] = own
+        if e:
+            out["choices"][g] = e
+    return out if len(json.dumps(out)) < 600000 else None
+
+
+@app.route("/api/assistcfg", methods=["GET", "PUT"])
+def assistcfg():
+    with db.tx() as c:
+        if request.method == "GET":
+            v = store_get(c, "assistcfg", {})
+            return jsonify(v if isinstance(v, dict) else {})
+        v = clean_assistcfg(body())
+        if v is None:
+            return jsonify(error="Ungültige Einrichtung"), 400
+        store_put(c, "assistcfg", v, uname())
+        return jsonify(v)
+
+
+@app.route("/api/assistcfg/vorlagen", methods=["GET", "POST"])
+@app.route("/api/assistcfg/vorlagen/<pid>", methods=["DELETE"])
+def assistcfg_vorlagen(pid=None):
+    """Benannte Stände der Einrichtung – speichern, später wieder laden."""
+    if pid is not None and not ID_OK.match(pid):
+        return jsonify(error="Ungültige ID"), 400
+    with db.tx() as c:
+        c.execute("SELECT pg_advisory_xact_lock(hashtext('gantt:assistcfg'))")
+        lst = store_get(c, "assistcfg_vorlagen", [])
+        lst = lst if isinstance(lst, list) else []
+        if request.method == "GET":
+            return jsonify(lst)
+        if request.method == "DELETE":
+            lst = [x for x in lst if x.get("id") != pid]
+            store_put(c, "assistcfg_vorlagen", lst, uname())
+            return jsonify(ok=True)
+        b = body() or {}
+        data = clean_assistcfg(b.get("data"))
+        if data is None:
+            return jsonify(error="Ungültige Einrichtung"), 400
+        name = jstr(b.get("name")).strip()[:120] or "Einrichtung"
+        lst = [x for x in lst if x.get("name") != name][:49]   # gleicher Name = überschreiben
+        pr = {"id": new_id(), "name": name, "data": data, "created": now_iso(), "by": uname()}
+        lst.insert(0, pr)
+        store_put(c, "assistcfg_vorlagen", lst, uname())
+        return jsonify(pr), 201
+
+
 # ---- Firmen-Adressbuch = Kontakte des Bautagebuchs
 FIRM_FIELDS = ["name", "contact", "phone", "mobile", "mail", "address", "note"]
 ZIPRX = re.compile(r"^(\d{4,5})\s+(.*)$")

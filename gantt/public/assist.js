@@ -52,7 +52,12 @@
     bsp: [(l) => 'Montage BSP-Wände ' + l, (l) => 'Montage BSP-Decke über ' + l, 'Montage Drempel und Giebel DG'],
   };
   // Bauweise je Geschoss bei „gemischt“: Vorgabe EG massiv, darüber Holz
-  function floorTw(cfg, L) { const f = cfg.flTw || {}; return L.map((l, k) => (['massiv', 'stb', 'holz', 'bsp'].includes(f[l]) ? f[l] : k === 0 ? 'massiv' : 'holz')); }
+  function floorTw(cfg, L) {
+    const f = cfg.flTw || {}, TW = ['massiv', 'stb', 'holz', 'bsp'];
+    const tw = CHM.tragwerk && chVisible(CHM.tragwerk, cfg) ? choiceOf(cfg, 'tragwerk') : 'massiv';
+    if (tw !== 'misch') return L.map(() => (TW.includes(tw) ? tw : 'massiv'));   // einheitlich: Angaben je Geschoss gelten nur bei „gemischt“
+    return L.map((l, k) => (TW.includes(f[l]) ? f[l] : k === 0 ? 'massiv' : 'holz'));
+  }
   function expandFloors(list, cfg) {
     const tw = cfg && cfg.type && CHM.tragwerk && chVisible(CHM.tragwerk, cfg) ? choiceOf(cfg, 'tragwerk') : 'massiv';
     if (!cfg || !cfg.type || (!cfg.flDetail && tw !== 'misch')) return list;
@@ -100,10 +105,23 @@
         if (lv.length < 2) { out.push(it); continue; }
         for (let k = 0; k < lv.length - 1; k++) {
           const lo = lv[k], fi = L.indexOf(lo);   // Decke über dem unteren Geschoss muss fertig sein
-          const a = lo === 'KG' ? ['keller'] : ['mauer~d' + fi, 'holz_mont~d' + fi];
+          const a = lo === 'KG' ? ['keller'] : ['mauer~d' + fi, 'holz_mont~d' + fi, ...(UMBT.includes(cfg.type) ? ['durchbr'] : [])];   // Umbau: Treppe im Bestand nach den Durchbrüchen
           out.push({ ...it, id: 'treppe~' + k, vb: 'treppe', n: `Treppe ${lo} – ${lv[k + 1]}`, d: Math.max(1, it.d / (lv.length - 1)), a });
         }
       } else out.push(it);
+    }
+    // Rohbau Geschoss für Geschoss: Wände, Decke, dann die Treppe darauf – Mauerwerk und Holz je Geschoss gemeinsam (KG-Treppe vor dem EG)
+    const RB = new Set(['mauer', 'holz_mont', 'treppe']);
+    const rank = (x) => {
+      if (x.vb === 'treppe') { const a0 = (x.a || [])[0]; if (a0 === 'keller') return -5; const m = /~d(\d+)$/.exec(a0 || ''); return m ? +m[1] * 10 + 5 : 999; }
+      const m = /~([wd])(\d+)$/.exec(x.id); return m ? +m[2] * 10 + (m[1] === 'w' ? 1 : 3) : 999;
+    };
+    const parts = out.filter((x) => RB.has(x.vb));
+    if (parts.length) {
+      const at = out.findIndex((x) => RB.has(x.vb)), rest = out.filter((x) => !RB.has(x.vb));
+      const sorted = parts.map((x, i) => [rank(x), i, x]).sort((p, q) => p[0] - q[0] || p[1] - q[1]).map((x) => x[2]);
+      rest.splice(at, 0, ...sorted);
+      return rest;
     }
     return out;
   }
@@ -135,15 +153,25 @@
   // Abschnitte können im Leistungskatalog ergänzt und umsortiert werden – daher immer aktuell nachschlagen
   const PHO = new Proxy({}, { get: (_, k) => { const i = C.phases.findIndex((p) => p.k === k); return i < 0 ? 999 : i; } });
   const PHN = new Proxy({}, { get: (_, k) => (C.phases.find((p) => p.k === k) || {}).n || String(k) });
-  const PROF = Object.fromEntries(C.profiles.map((p) => [p.k, p]));
+  // Gebäudetypen immer aktuell nachschlagen – die Einrichtung (assistedit.js) kann sie ändern und eigene ergänzen
+  const PROF = new Proxy({}, { get: (_, k) => C.profiles.find((p) => p.k === k), has: (_, k) => C.profiles.some((p) => p.k === k) });
   const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 
   /* ---------- Bauweisen (Auswahl je Bereich) ---------- */
   const CHS = C.choices || [];
   const CHM = Object.fromEntries(CHS.map((g) => [g.k, g]));
-  const chVisible = (g, cfg) => !!(cfg && cfg.type && (cfg.type === 'frei' || !PROF[cfg.type] || g.types.includes(cfg.type)));
+  // „Individuell“: je nach „Art der Maßnahme“ nur die Fragen für Neubau oder für den Bestand
+  const NBT = ['neubau_efh', 'neubau_mfh'], UMBT = ['umbau_efh', 'umbau_mfh'];
+  function freiVis(g, cfg) {
+    if (g.k === 'massnahme') return true;
+    const m = choiceOf(cfg, 'massnahme'), nb = g.types.some((t) => NBT.includes(t)), best = g.types.some((t) => !NBT.includes(t) && t !== 'frei');
+    if (m === 'neu') return nb;
+    if (m === 'bestand') return best && !g.types.every((t) => UMBT.includes(t) || t === 'frei');
+    return best;
+  }
+  const chVisible = (g, cfg) => !!(cfg && cfg.type && (cfg.type === 'frei' ? freiVis(g, cfg) : (!PROF[cfg.type] || g.types.includes(cfg.type))));
   function chOpts(g, cfg, depth = 0) {
-    return g.opts.filter((o) => !o.if || depth > 3 || Object.entries(o.if).every(([k, l]) => !CHM[k] || !chVisible(CHM[k], cfg) || l.includes(choiceOf(cfg, k, depth + 1))));
+    return g.opts.filter((o) => !o.hidden).filter((o) => !o.if || depth > 3 || Object.entries(o.if).every(([k, l]) => !CHM[k] || !chVisible(CHM[k], cfg) || l.includes(choiceOf(cfg, k, depth + 1))));
   }
   function choiceOf(cfg, gk, depth = 0) {
     const g = CHM[gk]; if (!g) return null;
@@ -161,7 +189,7 @@
       const ko = choiceOf(oldCfg, g.k), kn = choiceOf(newCfg, g.k);
       if (ko === kn && chVisible(g, oldCfg)) continue;
       // onTypes: Leistungen nur bei diesen Gebäudetypen an-/abwählen (sonst nur Namen, Dauern, abhängige Auswahl)
-      const sw = !g.onTypes || g.onTypes.includes(newCfg.type);
+      const sw = !g.onTypes || g.onTypes.includes(newCfg.type) || newCfg.type === 'frei';
       const all = new Set(sw ? g.opts.flatMap((o) => o.on) : []), on = sw ? g.opts.find((o) => o.k === kn).on : [];
       s = s.filter((id) => !all.has(baseOf(id)));   // auch geschossweise Teile (mauer~w0) erfassen
       for (const id of on) s = withReq(s, id, true, newCfg);
@@ -171,7 +199,7 @@
   // empfohlene Leistungen des Gebäudetyps passend zur gewählten Bauweise
   const recFor = (cfg) => {
     const r = selForChoices((PROF[cfg.type] || {}).rec || [], cfg.type === 'frei' ? { type: cfg.type, choice: {} } : null, cfg);   // null: alle Bauweisen-Gruppen anwenden – auch die Standardwahl (z. B. Anbau → Gründung, Rohbau)
-    const S = new Set([...r, ...libList().filter((x) => (x.rec || []).includes(cfg.type)).map((x) => x.id)]);
+    const S = new Set([...r, ...libList().filter((x) => (x.rec || []).includes(cfg.type) || (PROF[cfg.type] && PROF[cfg.type].base && (x.rec || []).includes(PROF[cfg.type].base))).map((x) => x.id)]);
     return normSel([...S], cfg);
   };
   // gewählte Katalog-Leistungen als Kopie ins Projekt übernehmen (das Projekt bleibt unabhängig vom Katalog)
@@ -464,6 +492,7 @@
   const listeners = new Set();
   const core = {
     catalog: () => C,
+    openSetup: () => { if (window.AssistEdit) { try { window.focus(); } catch (e) { /* Zweitfenster */ } window.AssistEdit.open(); } },
     profSets, withReq, unitNames, defName,
     choiceGroups: (cfg) => CHS.filter((g) => chVisible(g, cfg)).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })).filter((g) => g.opts.length > 1),   // nur echte Auswahl zeigen (z. B. „Neuer Keller“ nur bei Anbau)
     choiceAll: (cfg) => choiceAll(clone(cfg)),
@@ -752,9 +781,9 @@
         if (!cfg) return S;
         S.push({ k: 'eck', t: 'Größe des Gebäudes' });
         const PH = core.catalog().phases.map((p) => p.k);
-        core.choiceGroups(cfg).slice().sort((a, b) => (b.k === 'erweiterung') - (a.k === 'erweiterung') || PH.indexOf(a.ph) - PH.indexOf(b.ph)).forEach((g) => {   // „Erweiterung“ zuerst – davon hängt der Rest ab
+        core.choiceGroups(cfg).slice().sort((a, b) => (b.k === 'massnahme') - (a.k === 'massnahme') || (b.k === 'erweiterung') - (a.k === 'erweiterung') || PH.indexOf(a.ph) - PH.indexOf(b.ph)).forEach((g) => {   // „Erweiterung“ zuerst – davon hängt der Rest ab
           if (g.opts.length > 1) S.push({ k: 'ch:' + g.k, t: g.n, g });
-          if (g.k === 'tragwerk' && g.val === 'misch') S.push({ k: 'fltw', t: 'Bauweise je Geschoss' });
+          if (g.k === 'tragwerk' && core.floorTw(cfg).length > 1) S.push({ k: 'fltw', t: 'Bauweise je Geschoss' });   // jedes Geschoss einzeln festlegen
           if (g.k === 'dachform') S.push({ k: 'dg', t: 'Was liegt über dem obersten Geschoss?' });
         });
         if (!S.some((x) => x.k === 'dg')) S.push({ k: 'dg', t: 'Was liegt über dem obersten Geschoss?' });
@@ -772,7 +801,7 @@
         const x = S[WZ.i], CC = core.catalog();
         const big = (attr, on, title, sub, ic) => `<button class="wz-o${on ? ' on' : ''}" ${attr}>${ic ? `<span class="ic">${ic}</span>` : ''}<span><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
         let b = '';
-        if (x.k === 'type') b = `<div class="wz-g">${CC.profiles.map((p) => big(`data-type="${p.k}" data-wznext="1"`, cfg && cfg.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
+        if (x.k === 'type') b = `<div class="wz-g">${CC.profiles.filter((p) => !p.hidden).map((p) => big(`data-type="${p.k}" data-wznext="1"`, cfg && cfg.type === p.k, p.n, p.desc, p.ic)).join('')}</div>`;
         else if (x.k === 'eck') b = `<div class="as-form wz-f"><label>Wohnfläche gesamt</label><div class="as-in"><input type="number" min="5" max="100000" data-p="area" value="${esc(cfg.area)}"><span>m²</span></div>
             <label>Einheiten</label><div class="as-in"><input type="number" min="1" max="40" data-p="units" value="${esc(cfg.units)}"><span>Wohnungen / Abschnitte</span></div>
             <label>Geschosse</label><div class="as-in"><input type="number" min="1" max="30" data-p="floors" value="${esc(cfg.floors || 1)}"><span>Vollgeschosse: EG, 1.OG … (ohne Keller und Dach)</span></div>
@@ -913,6 +942,7 @@
         const focus = document.activeElement && root.contains(document.activeElement) ? { sel: document.activeElement.dataset.dur ? `[data-dur="${document.activeElement.dataset.dur}"]` : null } : null;
         if (!opt.docked) document.title = 'Planungsassistent' + (st.name ? ' – ' + st.name : '');
         let h = `<div class="as"><div class="as-head"><span class="as-t">Planungsassistent</span>`
+          + `<button class="as-ib" data-a="setup" title="Assistent einrichten: Gebäudetypen, Bauweisen, Empfehlungen, Vorlagen">⚙</button>`
           + (opt.docked ? `<button class="as-ib" data-a="popout" title="In eigenem Browserfenster öffnen">⧉</button><button class="as-ib" data-a="close" title="Schließen">×</button>` : '')
           + '</div>';
         h += `<div class="as-mode${live ? ' live' : ''}">` + (live
@@ -923,7 +953,7 @@
         h += '<div class="as-body">';
         const bodyAt = h.length;
         if (!WZ.on) h += `<div class="wz-bar"><button class="btn" data-wz="start">${WZ.i > 0 && cfg ? `▶ Schritt-für-Schritt-Abfrage fortsetzen (Schritt ${WZ.i + 1})` : '▶ Schritt für Schritt abfragen'}</button><small>Fragt nacheinander alles Wichtige ab – jederzeit pausieren.</small></div>`;
-        h += `<section><h4><span>1</span>Maßnahme / Gebäudetyp</h4><div class="as-types">${CC.profiles.map((p) => `<button class="as-type${cfg && cfg.type === p.k ? ' on' : ''}" data-type="${p.k}"><span class="ic">${p.ic}</span><b>${esc(p.n)}</b><small>${esc(p.desc)}</small></button>`).join('')}</div>`;
+        h += `<section><h4><span>1</span>Maßnahme / Gebäudetyp</h4><div class="as-types">${CC.profiles.filter((p) => !p.hidden).map((p) => `<button class="as-type${cfg && cfg.type === p.k ? ' on' : ''}" data-type="${p.k}"><span class="ic">${p.ic}</span><b>${esc(p.n)}</b><small>${esc(p.desc)}</small></button>`).join('')}</div>`;
         // Meine Vorlagen
         h += `<details class="as-pre"${presetsOpen ? ' open' : ''}><summary>Meine Vorlagen (${presets.length})</summary>`;
         if (presetsErr) h += `<div class="as-msg err">${esc(presetsErr)}</div>`;
@@ -943,7 +973,7 @@
               const EK = { keller: 'Keller', anbaukeller: 'Neuer Keller', tragwerk: 'Bauweise', dachform: 'Dachform' }, ord = Object.keys(EK);
               const gs = core.choiceGroups(cfg).filter((g) => EK[g.k]).sort((a, b) => ord.indexOf(a.k) - ord.indexOf(b.k));
               return gs.map((g) => `<label>${EK[g.k]}</label><select data-choice="${g.k}">${g.opts.map((o) => `<option value="${o.k}"${o.k === g.val ? ' selected' : ''}>${esc(o.n)}</option>`).join('')}</select>`
-                + (g.k === 'tragwerk' && g.val === 'misch' ? core.floorTw(cfg).map(([l, t]) => `<label class="as-sub">${esc(l)}</label><select data-fltw="${esc(l)}">${[['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']].map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${n}</option>`).join('')}</select>`).join('') : '')).join('');
+                + (g.k === 'tragwerk' && core.floorTw(cfg).length > 1 ? core.floorTw(cfg).map(([l, t]) => `<label class="as-sub">${esc(l)}</label><select data-fltw="${esc(l)}">${[['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']].map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${n}</option>`).join('')}</select>`).join('') : '')).join('');
             })()
             + (() => {   // was über dem obersten Vollgeschoss liegt – abhängig von der Dachform
               const flat = core.roofFlat(cfg), known = core.roofKnown(cfg);
@@ -1206,6 +1236,7 @@
         const b = t.closest('[data-a]'); if (!b || b.tagName === 'INPUT') return;
         const a = b.dataset.a, { live, cfg, sel } = state();
         switch (a) {
+          case 'setup': core.openSetup && core.openSetup(); return;
           case 'popout': opt.onPopout && opt.onPopout(); return;
           case 'close': opt.onClose && opt.onClose(); return;
           case 'rec': say(''); if (live) { if (core.setSelection([...core.recFor(cfg), ...[...sel].filter((id) => (cfg.custom || []).some((c) => c.id === id))]) === false) say('Änderung nicht möglich.', true); } else { draft.sel = [...core.recFor(cfg), ...draft.sel.filter((id) => (draft.cfg.custom || []).some((c) => c.id === id))]; saveDraft(); } break;
@@ -1263,10 +1294,17 @@
           else { draft.sel = core.withReq(draft.sel, id, on, draft.cfg); saveDraft(); }
           render(); return;
         }
-        if (t.dataset.fltw) {   // Bauweise eines Geschosses (bei „gemischt“)
-          const ft = { ...(cfg.flTw || {}), [t.dataset.fltw]: t.value }; say('');
-          if (live) { if (core.setFloors('flTw', ft) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); }
-          else { draft.cfg.flTw = ft; draft.sel = core.normSel(core.baseSel(draft.sel), draft.cfg); saveDraft(); }
+        if (t.dataset.fltw) {   // Bauweise eines Geschosses: alle gleich → diese Bauweise, sonst „gemischt“ mit Angabe je Geschoss
+          const cur = Object.fromEntries(core.floorTw(cfg)), ft = { ...cur, [t.dataset.fltw]: t.value }, vals = [...new Set(Object.values(ft))];
+          const tw = vals.length === 1 ? vals[0] : 'misch', twName = { massiv: 'Massivbau', stb: 'Stahlbeton', holz: 'Holzrahmenbau', bsp: 'Massivholz', misch: 'gemischt' }[tw]; say('');
+          if (live) {
+            if (tw === 'misch' && core.setFloors('flTw', ft) === false) { say('Änderung nicht möglich – siehe Hinweis im Plan.', true); render(); return; }
+            if ((core.choiceAll(cfg).tragwerk || '') !== tw) applyChoice('tragwerk', tw, twName);
+          } else {
+            draft.cfg.flTw = tw === 'misch' ? ft : {};
+            if ((core.choiceAll(draft.cfg).tragwerk || '') !== tw) applyChoice('tragwerk', tw, twName);
+            else { draft.sel = core.normSel(core.baseSel(draft.sel), draft.cfg); saveDraft(); }
+          }
           render(); return;
         }
         const k = t.dataset.p; if (!k) return;

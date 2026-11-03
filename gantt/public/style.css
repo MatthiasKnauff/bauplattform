@@ -681,3 +681,63 @@ html:not([data-theme="-"]) .bp-menu .bp-sep{border-top:1px solid #3b3e42;margin:
 html[data-theme="dunkel"] .wz-o{background:#2a2a28;border-color:#46443f}
 html[data-theme="dunkel"] .wz-o small,html[data-theme="dunkel"] .wz-bar small,html[data-theme="dunkel"] .wz-p{color:#b9b4aa}
 .lv-same{font-size:11.5px;color:#2e7d4f}.lv-act .fv-x[disabled]{opacity:.4;cursor:default}
+
+/* Assistent einrichten (assistedit.js) */
+.ae{width:min(1180px,96vw);height:86vh;max-height:none}
+.ae .ae-tabs{display:flex;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--bd);background:var(--hdr);align-items:flex-end}
+.ae .ae-tabs button{border:1px solid transparent;border-bottom:0;background:none;padding:6px 14px;cursor:pointer;color:var(--mut);border-radius:4px 4px 0 0}
+.ae .ae-tabs button.on{background:#fff;border-color:var(--bd);color:var(--text);font-weight:600;margin-bottom:-1px}
+.ae .ae-sp{flex:1}
+.ae .ae-link{border:0;background:none;color:var(--green);cursor:pointer;text-decoration:underline;padding:6px}
+.ae .ae-body{flex:1;padding:0;display:flex;min-height:0}
+.ae-two{display:flex;flex:1;min-height:0;width:100%}
+.ae-side{width:270px;flex:none;border-right:1px solid var(--bd);display:flex;flex-direction:column;gap:6px;padding:8px;min-height:0}
+.ae-list{overflow:auto;flex:1}
+.ae-li{display:flex;align-items:center;gap:6px;padding:6px 6px;border-radius:4px;cursor:pointer}
+.ae-li:hover{background:var(--hdr)}
+.ae-li.on{background:var(--sel)}
+.ae-li.off .nm{opacity:.55}
+.ae-li .ic{width:22px;text-align:center;font-size:15px}
+.ae-li .nm{flex:1;line-height:1.25}
+.ae-li .nm small{display:block;color:var(--mut)}
+.ae-ib{border:1px solid var(--bd);background:#fff;border-radius:3px;width:22px;height:22px;padding:0;cursor:pointer;color:var(--mut)}
+.ae-ib:disabled{opacity:.3}
+.ae i.t{font-style:normal;font-size:10px;border:1px solid var(--bd);border-radius:8px;padding:0 5px;color:var(--mut);white-space:nowrap}
+.ae i.t.m{border-color:var(--green);color:var(--green)}
+.ae i.t.bw{border-color:#c79a2b;color:#9a7416}
+.ae-main{flex:1;overflow:auto;padding:12px 16px;min-width:0}
+.ae-full{max-width:820px}
+.ae-main h4{margin:16px 0 6px;font-size:13px}
+.ae-main label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mut);margin-bottom:8px}
+.ae-main label.chk{flex-direction:row;align-items:center;gap:6px;color:var(--text);font-size:12px}
+.ae-main input:not([type=checkbox]):not([type=file]),.ae-main select{font:inherit;padding:5px 7px;border:1px solid var(--bd);border-radius:4px;color:var(--text);background:#fff;min-width:0}
+.ae-main input.n{width:84px;text-align:right}
+.ae-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ae-row .ae-g{flex:1;min-width:220px}
+.ae-ic input{width:56px;text-align:center;font-size:16px}
+.ae-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px 12px}
+.ae-mut{color:var(--mut);font-size:11px}
+.ae-flt{margin-bottom:6px}
+.ae-flt input[type=search]{width:230px}
+.ae-seg{display:inline-flex;border:1px solid var(--bd);border-radius:4px;overflow:hidden}
+.ae-seg button{border:0;background:#fff;padding:4px 9px;cursor:pointer;color:var(--mut);border-right:1px solid var(--bd)}
+.ae-seg button:last-child{border-right:0}
+.ae-seg button.on{background:var(--green);color:#fff}
+.ae-seg.sm button{padding:2px 7px;font-size:11px}
+.ae-seg button.on.opt{background:#8a8f96}
+.ae-seg button.on.off{background:#d9d9d9;color:#444}
+.ae-tbl{width:100%;border-collapse:collapse}
+.ae-tbl td,.ae-tbl th{padding:3px 6px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:middle}
+.ae-tbl th{font-weight:600;color:var(--mut);font-size:11px;position:sticky;top:-12px;background:#fff;z-index:1}
+.ae-tbl .c{text-align:center;white-space:nowrap}.ae-tbl .r{text-align:right;white-space:nowrap}
+.ae-tbl tr.ae-ph td{font-weight:600;color:var(--green);padding-top:10px}
+.ae-tbl td input{width:100%}
+.ae-opt{border:1px solid var(--grid);border-radius:6px;padding:8px 10px;margin-bottom:8px}
+.ae-opt.off{opacity:.6}
+.ae-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ae-chip{display:inline-flex;align-items:center;gap:4px;background:var(--hdr);border:1px solid var(--bd);border-radius:10px;padding:1px 4px 1px 8px}
+.ae-chip button{border:0;background:none;cursor:pointer;color:var(--mut);font-size:13px;line-height:1;padding:0 2px}
+.ae-chips .ae-add{width:240px}
+.ae .mf{align-items:center}
+.ae-hint{margin-right:auto;color:var(--mut);font-size:11px}
+.ae-dirty{color:#c0392b;font-size:11px}

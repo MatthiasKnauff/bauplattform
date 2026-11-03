@@ -239,18 +239,20 @@ async function ruegeDialog(id) {
     <label>z. Hd.</label><input id="rP" value="${esc(E.person)}" placeholder="Ansprechpartner (optional)">
     <label>Straße</label><input id="rS" value="${esc(E.strasse)}">
     <label>PLZ Ort</label><input id="rO" value="${esc(E.ort)}">
-    <label>Grundlage</label><select id="rG"><option value="vob4">VOB/B § 4 Abs. 7 – vor der Abnahme</option><option value="vob13">VOB/B § 13 Abs. 5 – nach der Abnahme</option><option value="bgb">BGB §§ 634 ff. – Werkvertrag nach BGB</option></select>
+    <label>Nach VOB/B</label><select id="rG"><option value="vob4">§ 4 Abs. 7 – vor der Abnahme (während der Ausführung)</option><option value="vob13">§ 13 Abs. 5 – nach der Abnahme (Mängelansprüche)</option></select>
+    <label>Auftrag</label><input id="rA" placeholder="z. B. Nr. 12/2026 vom 03.03.2026 (optional)">
+    <label></label><label class="chk" style="color:var(--ink)" id="rKw"><input type="checkbox" id="rK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
     <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="rF" value="${plus(14)}">${[[7, '1 Woche'], [14, '2 Wochen'], [21, '3 Wochen']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
     <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">${ms()}</div>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>
-    <p class="w mute" style="font-size:.82rem;margin:0">Das PDF hat ausfüllbare Felder: Empfänger, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich vor dem Drucken oder Versenden am Bildschirm ändern. Der Mustertext ersetzt keine Rechtsberatung.</p></div>
+    <p class="w mute" style="font-size:.82rem;margin:0">Das PDF hat ausfüllbare Felder: Empfänger, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich vor dem Drucken oder Versenden am Bildschirm ändern. Der Mustertext folgt der VOB/B und ersetzt keine Rechtsberatung – die VOB/B muss im Vertrag vereinbart sein.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erzeugen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#rF').value = plus(+m.slice(1)); return; }
     if (m === 'ok') {
       const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm); if (!ids.length) { toast('Bitte mindestens einen Mangel wählen.', true); return; }
-      const body = { ids, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
+      const body = { ids, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
         empfaenger: { name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
       const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Mängelrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Mängelrüge wird erstellt …</body>');
       try {
@@ -264,6 +266,8 @@ async function ruegeDialog(id) {
     }
   });
   bg.querySelector('.modal').style.width = 'min(720px,100%)';
+  const rg = bg.querySelector('#rG'), kw = () => { bg.querySelector('#rKw').style.display = rg.value === 'vob4' ? '' : 'none'; };
+  rg.addEventListener('change', kw); kw();
 }
 
 /* ---------- Neue Erinnerung ---------- */

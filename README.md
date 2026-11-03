@@ -273,7 +273,7 @@ Auf Docker 2 unter `https://baukosten.gk3-architektur.de`: im Nginx Proxy Manage
 Adresse: `/maengel` (Container `bauplattform_aufgaben`, Port 8095). Oben „Meine Projekte“ (im Bautagebuch als zuständig
 eingetragen) oder „Alle Projekte“.
 
-- **Mängel:** alle Mängel aus den Bautagesberichten (✉ Mängelrüge: am Bildschirm ausfüllbares PDF an die Firma mit Frist, Rechtsgrundlage VOB/B oder BGB, Fotos als Anlage) (umschaltbar: Zu erledigen, Weisungen) mit Foto, Projekt, Bericht,
+- **Mängel:** alle Mängel aus den Bautagesberichten (✉ Mängelrüge: am Bildschirm ausfüllbares PDF an die Firma mit Frist, nach VOB/B § 4 Abs. 7 vor bzw. § 13 Abs. 5 nach der Abnahme, auf Wunsch mit Androhung der Auftragsentziehung, Fotos als Anlage) (umschaltbar: Zu erledigen, Weisungen) mit Foto, Projekt, Bericht,
   Firma und Frist. Abhaken, Frist verschieben (+1/+2 Wochen), Firma eintragen – gespeichert wird im Bautagebuch.
   Filter nach Projekt, Firma, Status; „Mängelliste drucken“ als PDF (z. B. für eine Firma).
 - **Erinnerungen:** aus dem Bautagebuch (Erledigungsdatum – Mail verschickt das Bautagebuch am Fälligkeitstag), aus den

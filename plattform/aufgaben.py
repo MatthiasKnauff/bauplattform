@@ -238,11 +238,32 @@ def maengel_all():
 
 
 # ---------------------------------------------------------------- Mängelrüge (am Bildschirm ausfüllbares PDF)
-GRUND = {
-    "vob4": ("VOB/B § 4 Abs. 7", "vor der Abnahme"),
-    "vob13": ("VOB/B § 13 Abs. 5", "nach der Abnahme (Gewährleistung)"),
-    "bgb": ("BGB §§ 634 ff.", "Werkvertrag nach BGB"),
+GRUND = {   # Mängelrüge immer nach VOB/B – vor oder nach der Abnahme
+    "vob4": ("§ 4 Abs. 7 VOB/B", "vor der Abnahme"),
+    "vob13": ("§ 13 Abs. 5 VOB/B", "nach der Abnahme (Mängelansprüche)"),
 }
+
+
+def ruege_text(grund, frist, kuendigung=True, auftrag=""):
+    """Mustertext nach VOB/B; frist als TT.MM.JJJJ."""
+    f = frist or "[Datum]"
+    bez = f" (Auftrag {auftrag})" if auftrag else ""
+    if grund == "vob13":
+        return ("Sehr geehrte Damen und Herren,\n\nan den von Ihnen ausgeführten und abgenommenen Leistungen" + bez + " sind die nachfolgend aufgeführten Mängel aufgetreten. "
+                "Gemäß § 13 Abs. 5 Nr. 1 VOB/B verlangen wir hiermit schriftlich die Beseitigung dieser Mängel auf Ihre Kosten. "
+                f"Wir setzen Ihnen hierzu eine Frist bis zum {f}. Bitte teilen Sie uns umgehend mit, wann Sie mit den Arbeiten beginnen, und zeigen Sie uns die Beseitigung schriftlich an, damit wir sie gemeinsam abnehmen können.\n\n"
+                "Kommen Sie dieser Aufforderung nicht innerhalb der Frist nach, werden wir die Mängel gemäß § 13 Abs. 5 Nr. 2 VOB/B auf Ihre Kosten durch ein anderes Unternehmen beseitigen lassen. "
+                "Wir weisen darauf hin, dass der Anspruch auf Beseitigung der gerügten Mängel mit Zugang dieses Schreibens neu zu verjähren beginnt (§ 13 Abs. 5 Nr. 1 Satz 2 VOB/B). "
+                "Weitere Ansprüche, insbesondere nach § 13 Abs. 6 und 7 VOB/B, bleiben vorbehalten.")
+    t = ("Sehr geehrte Damen und Herren,\n\nbei der Ausführung Ihrer Leistungen" + bez + " wurden die nachfolgend aufgeführten Mängel festgestellt. "
+         "Gemäß § 4 Abs. 7 Satz 1 VOB/B sind Sie verpflichtet, mangelhafte Leistungen auf eigene Kosten durch mangelfreie zu ersetzen. "
+         f"Wir fordern Sie auf, die Mängel bis zum {f} vollständig zu beseitigen und uns die Beseitigung schriftlich anzuzeigen.\n\n")
+    if kuendigung:
+        t += ("Wir erklären bereits jetzt, dass wir Ihnen nach fruchtlosem Ablauf dieser Frist den Auftrag für die betroffenen Leistungen gemäß § 4 Abs. 7 Satz 3 "
+              "i. V. m. § 8 Abs. 3 VOB/B entziehen und die Mängel auf Ihre Kosten durch ein anderes Unternehmen beseitigen lassen werden. ")
+    else:
+        t += "Nach fruchtlosem Ablauf der Frist behalten wir uns die Rechte aus § 4 Abs. 7 VOB/B vor. "
+    return t + "Ansprüche auf Ersatz eines entstehenden Schadens (§ 4 Abs. 7 Satz 2 VOB/B) und weitere Rechte bleiben vorbehalten."
 
 
 @app.get("/api/maengelruege/vorlage")
@@ -290,12 +311,8 @@ def ruege_pdf():
     bv = p["name"] + (", " + ", ".join(v for v in (p["street"], " ".join(x for x in (p["zip"], p["city"]) if x)) if v) if p and (p["street"] or p["city"]) else "") if p else ms[0]["projekt"]
     adr = "\n".join(v for v in (E.get("name"), ("z. Hd. " + E["person"]) if E.get("person") else "", E.get("strasse"), E.get("ort")) if v)
     liste = "\n".join(f"{n}. {m['text'].strip()}" + (f"  (festgestellt am {de(m['datum'])})" if m["datum"] else "") for n, m in enumerate(ms, 1))
-    text = (b.get("text") or "").strip() or (
-        f"Sehr geehrte Damen und Herren,\n\nbei der Ausführung Ihrer Leistungen am oben genannten Bauvorhaben wurden die nachfolgend aufgeführten Mängel festgestellt. "
-        f"Wir fordern Sie gemäß {grund} auf, diese Mängel bis spätestens {de(frist) or '[Datum]'} fachgerecht und für den Auftraggeber kostenfrei zu beseitigen "
-        f"und uns die Beseitigung schriftlich anzuzeigen.\n\nSollten die Mängel nicht innerhalb der gesetzten Frist beseitigt sein, behalten wir uns vor, "
-        f"die Mängel auf Ihre Kosten durch ein anderes Unternehmen beseitigen zu lassen{' und den Vertrag zu kündigen (§ 4 Abs. 7 i. V. m. § 8 Abs. 3 VOB/B)' if b.get('grund', 'vob4') == 'vob4' else ''}. "
-        f"Weitere Ansprüche bleiben vorbehalten.")
+    auftrag = str(b.get("auftrag") or "").strip()[:80]
+    text = (b.get("text") or "").strip() or ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", de(frist), b.get("kuendigung", True) is not False, auftrag)
     gruss = "Mit freundlichen Grüßen"
     name = C.full_name(g.user)
     buf = io.BytesIO()
@@ -334,12 +351,12 @@ def ruege_pdf():
     feld("Datum", R - 62 * mm, H - 61 * mm, 62 * mm, 7 * mm, datetime.now().strftime("%d.%m.%Y"), 10)
     cv.drawString(R - 62 * mm, H - 66 * mm, "Bearbeitet von")
     feld("Bearbeiter", R - 62 * mm, H - 75 * mm, 62 * mm, 7 * mm, name, 10)
-    cv.setFillColor(ink); cv.setFont("Helvetica-Bold", 13); cv.drawString(L, H - 92 * mm, "Mängelrüge")
-    feld("Betreff", L, H - 102 * mm, R - L, 8 * mm, f"Bauvorhaben: {bv}", 10, tip="Betreff / Bauvorhaben")
-    cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, f"Rechtsgrundlage: {grund} ({grund_n})")
-    feld("Text", L, H - 160 * mm, R - L, 52 * mm, text, 9.5, True, "Anschreiben")
-    cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, H - 166 * mm, "Festgestellte Mängel")
-    feld("Maengel", L, H - 226 * mm, R - L, 57 * mm, liste, 9.5, True, "Mängel (Liste ergänzbar)")
+    cv.setFillColor(ink); cv.setFont("Helvetica-Bold", 13); cv.drawString(L, H - 92 * mm, "Mängelrüge nach VOB/B")
+    feld("Betreff", L, H - 102 * mm, R - L, 8 * mm, f"Bauvorhaben: {bv}" + (f", Auftrag {auftrag}" if auftrag else ""), 10, tip="Betreff / Bauvorhaben")
+    cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, f"Grundlage: {grund} – {grund_n}. Bitte nachweisbar zustellen (Einschreiben, Bote).")
+    feld("Text", L, H - 172 * mm, R - L, 64 * mm, text, 9.5, True, "Anschreiben")
+    cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, H - 178 * mm, "Festgestellte Mängel")
+    feld("Maengel", L, H - 226 * mm, R - L, 45 * mm, liste, 9.5, True, "Mängel (Liste ergänzbar)")
     cv.setFont("Helvetica-Bold", 10); cv.drawString(L, H - 234 * mm, "Frist zur Beseitigung:")
     feld("Frist", L + 42 * mm, H - 236 * mm, 40 * mm, 7 * mm, de(frist), 10, tip="Frist")
     feld("Gruss", L, H - 262 * mm, 90 * mm, 20 * mm, f"{gruss}\n\n\n{name}" + (f"\n{office}" if office else ""), 9.5, True, "Gruß und Unterschrift")

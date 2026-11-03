@@ -307,6 +307,11 @@ async function ensureFlow() {
   try { FLOW = await api(`api/bk/${B.id}/flow`); } catch (e) { FLOW = { ok: false, why: e.message }; }
   if (tab === 'uebersicht') { const el = $('#miniFlow'); if (el) el.innerHTML = flowCols(true); } else if (tab === 'mittel') render();
 }
+// Bauzeitenplan geändert (z. B. in einem anderen Tab)? Beim Zurückkommen und alle 2 Minuten neu rechnen
+const flowRefresh = () => { if (!B || !B.gantt_id || document.hidden || !['mittel', 'uebersicht'].includes(tab)) return; FLOW = null; ensureFlow(); };
+document.addEventListener('visibilitychange', flowRefresh);
+addEventListener('focus', flowRefresh);
+setInterval(flowRefresh, 120000);
 function vPlaene() {
   const f = B.files.find((x) => x.id === selFile), rooms = B.data.rooms;
   const dup = {}; rooms.forEach((r) => { if (r.nr) { const k = r.floor + '|' + r.nr; dup[k] = (dup[k] || 0) + 1; } });

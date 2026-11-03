@@ -41,6 +41,8 @@ window.CATALOG = (() => {
     { id: 'schad', m: 'entk', ph: 'abbruch', n: 'Schadstoffsanierung (Asbest, KMF, PAK)', gw: 'Abbruch', din: '18459', sc: 'we', d: 3, a: ['schutz', 'be'] },
     { id: 'entk', ph: 'abbruch', n: 'Entkernung (Beläge, Bekleidungen, Altinstallation)', gw: 'Abbruch', din: '18459', sc: 'we', d: 4, a: ['schad', 'schutz', 'be'] },
     { id: 'wand_ab', ph: 'abbruch', n: 'Wände abbrechen', gw: 'Abbruch', din: '18459', sc: 'we', d: 3, a: ['entk', 'schad', 'schutz', 'be'] },
+    { id: 'dach_ab', ph: 'abbruch', n: 'Dach abtragen, Bestand für die Aufstockung vorbereiten', gw: 'Abbruch', din: '18459', sc: 'bau', d: 4, ch: 'erweiterung', a: ['geruest', 'statik', 'schutz', 'be'] },
+    { id: 'notdach', m: 'dach_ab', ph: 'abbruch', n: 'Notdach / Witterungsschutz für den Bestand', gw: 'Zimmerer', din: '18334', sc: 'bau', d: 1, fix: 1, ch: 'erweiterung', a: ['dach_ab'] },
     { id: 'durchbr', m: 'wand_ab', ph: 'abbruch', n: 'Durchbrüche herstellen und abfangen', gw: 'Rohbau', din: '18330', sc: 'we', d: 4, a: ['wand_ab', 'entk', 'statik'] },
     // Erd- und Gründungsarbeiten
     { id: 'aushub', ph: 'erd', n: 'Baugrube ausheben', gw: 'Erdbau', din: '18300', sc: 'bau', d: 4, nb: 1, a: ['verm', 'be'] },
@@ -55,6 +57,7 @@ window.CATALOG = (() => {
     { id: 'mauer', ph: 'rohbau', n: 'Rohbau Geschosse (Mauerwerk, Decken)', gw: 'Rohbau', din: '18330 / 18331', sc: 'bau', d: 25, nb: 1, a: ['keller', 'grund'] },
     { id: 'abbund', ph: 'rohbau', n: 'Vorfertigung Holzbauelemente (Werk)', gw: 'Zimmerer', din: '18334', sc: 'bau', d: 20, nb: 1, ch: 'tragwerk', a: ['statik', 'be'] },
     { id: 'holz_mont', ph: 'rohbau', n: 'Montage Holzrahmenbau (Wände, Decken)', gw: 'Zimmerer', din: '18334', sc: 'bau', d: 6, nb: 1, ch: 'tragwerk', a: ['abbund', 'keller', 'grund'] },
+    { id: 'anschluss', ph: 'rohbau', n: 'Anschluss an den Bestand (Wandöffnung, Abfangung, Bauwerksfuge)', gw: 'Rohbau', din: '18330', sc: 'bau', d: 4, ch: 'erweiterung', a: ['mauer', 'holz_mont', 'durchbr', 'statik'] },
     { id: 'treppe', ph: 'rohbau', n: 'Treppen', gw: 'Rohbau', din: '18331', sc: 'bau', d: 2, nb: 1, a: ['mauer', 'holz_mont'] },
     { id: 'schornstein', m: 'mauer', ph: 'rohbau', n: 'Schornstein / Abgasanlage', gw: 'Rohbau', din: '18330', sc: 'bau', d: 2, fix: 1, a: ['mauer', 'holz_mont'] },
     { id: 'balkon', ph: 'rohbau', n: 'Balkone / Loggien (Platten, Konsolen)', gw: 'Rohbau', din: '18331', sc: 'bau', d: 4, a: ['mauer', 'holz_mont'] },
@@ -148,6 +151,14 @@ window.CATALOG = (() => {
     { k: 'san_mfh', floors: 3, dg: 'kalt', choice: { dachdeckung: 'ziegel', fassade: 'wdvs', fenster: 'kunststoff', pv: 'none', heizung: 'wp_luft', lueftung: 'fenster', waermevert: 'hk', estrichart: 'ze', bodenbelag: 'parkett' }, n: 'Sanierung Mehrfamilienhaus', ic: '🏘️', desc: 'Hülle, Technik, Wohnungen im Takt', area: 400, units: 4, naming: 'whg', takt: 'versetzt',
       rec: ['be', 'schutz', 'statik', 'entk', 'durchbr', 'geruest', 'dach_deck', 'dach_daemm', 'klempner', 'fenster', 'wdvs', 'aussenputz', 'geruest_ab', 'waermeerz', 'san_roh', 'hz_roh', 'el_roh', 'trocken', 'putz', 'estrich', 'estr_tr', 'fliesen', 'maler', 'tischler', 'boden', 'sockel', 'san_fein', 'hz_fein', 'el_fein', 'reinig', 'spachtel_wd', 'boden_vorb', 'fensterbank_a', 'silikon'],
       opt: ['schad', 'wand_ab', 'zimmer', 'lueft', 'lueft_fein', 'fliesen_vb', 'aufzug', 'aussenanl', 'tapete', 'decke_abh', 'fensterbank_i', 'gel_aus', 'balkon', 'sonnenschutz', 'bad_moebel', 'dusche_glas', 'bad_acc', 'gelaender', 'treppe_belag', 'briefk', 'blitzschutz', 'dach_zub', 'vordach'] },
+    { k: 'umbau_efh', floors: 2, dg: 'kalt', choice: { erweiterung: 'anbau', dachdeckung: 'ziegel', fassade: 'putz', fenster: 'kunststoff', pv: 'none', heizung: 'wp_luft', lueftung: 'fenster', waermevert: 'hk', estrichart: 'ze', innenwand: 'both', bodenbelag: 'parkett' }, n: 'Umbau und Erweiterung Einfamilienhaus', ic: '🏗️', desc: 'Bestand umbauen, Anbau oder Aufstockung', area: 170, units: 1, takt: 'parallel',
+      rec: ['be', 'schutz', 'statik', 'entk', 'wand_ab', 'durchbr', 'geruest', 'zimmer', 'dach_deck', 'klempner', 'fenster_neu', 'fenster', 'dicht', 'aussenputz', 'geruest_ab', 'hak', 'san_roh', 'hz_roh', 'el_roh', 'trocken', 'putz', 'estrich', 'estr_tr', 'fliesen', 'maler', 'tischler', 'boden', 'sockel', 'san_fein', 'hz_fein', 'el_fein', 'spachtel_wd', 'boden_vorb', 'fensterbank_i', 'fensterbank_a', 'silikon', 'aussenanl', 'reinig', 'zufahrt', 'terrasse'],
+      opt: ['schad', 'keller', 'keller_abd', 'verfuell', 'erder', 'dach_daemm', 'wdvs', 'waermeerz', 'lueft', 'lueft_fein', 'fliesen_vb', 'treppe', 'treppe_belag', 'gelaender', 'tapete', 'decke_abh', 'parkett_alt', 'bad_moebel', 'dusche_glas', 'bad_acc', 'kueche', 'einbau', 'sonnenschutz', 'dachfenster', 'dach_zub', 'vordach', 'pv', 'balkon', 'gel_aus', 'blitzschutz', 'garten', 'markise', 'zaun', 'garage', 'aussenlicht'],
+      ovr: { fenster: { n: 'Fenster im Bestand erneuern' }, fenster_neu: { n: 'Fenster und Außentüren Erweiterung' }, aussenputz: { n: 'Außenputz Erweiterung, Anschluss an die Bestandsfassade' }, dicht: { n: 'Erweiterung dicht (Dach und Fenster)' } } },
+    { k: 'umbau_mfh', floors: 3, dg: 'kalt', choice: { erweiterung: 'aufstock', dachdeckung: 'ziegel', fassade: 'wdvs', fenster: 'kunststoff', pv: 'none', heizung: 'wp_luft', lueftung: 'fenster', waermevert: 'hk', estrichart: 'ze', innenwand: 'both', bodenbelag: 'parkett' }, n: 'Umbau und Erweiterung Mehrfamilienhaus', ic: '🏗️', desc: 'Bestand im Takt umbauen, Aufstockung oder Anbau', area: 480, units: 5, naming: 'whg', takt: 'versetzt',
+      rec: ['be', 'schutz', 'statik', 'entk', 'wand_ab', 'durchbr', 'geruest', 'zimmer', 'dach_deck', 'klempner', 'fenster_neu', 'fenster', 'dicht', 'aussenputz', 'geruest_ab', 'hak', 'san_roh', 'hz_roh', 'el_roh', 'trocken', 'putz', 'estrich', 'estr_tr', 'fliesen', 'maler', 'tischler', 'boden', 'sockel', 'san_fein', 'hz_fein', 'el_fein', 'spachtel_wd', 'boden_vorb', 'fensterbank_i', 'fensterbank_a', 'silikon', 'aussenanl', 'reinig', 'wdvs', 'treppe', 'treppe_belag', 'gelaender', 'briefk', 'blitzschutz'],
+      opt: ['schad', 'keller', 'keller_abd', 'verfuell', 'erder', 'dach_daemm', 'waermeerz', 'lueft', 'lueft_fein', 'fliesen_vb', 'tapete', 'decke_abh', 'parkett_alt', 'bad_moebel', 'dusche_glas', 'bad_acc', 'kueche', 'einbau', 'sonnenschutz', 'dachfenster', 'dach_zub', 'vordach', 'pv', 'balkon', 'gel_aus', 'aufzug', 'zufahrt', 'garten', 'aussenlicht'],
+      ovr: { fenster: { n: 'Fenster im Bestand erneuern' }, fenster_neu: { n: 'Fenster und Außentüren Erweiterung' }, aussenputz: { n: 'Außenputz Erweiterung, Anschluss an die Bestandsfassade' }, dicht: { n: 'Erweiterung dicht (Dach und Fenster)' } } },
     { k: 'whg_reno', floors: 2, dg: 'kalt', choice: { fenster: 'kunststoff', estrichart: 'ze', bodenbelag: 'parkett' }, n: 'Umbau / Renovierung Wohnungen', ic: '🚪', desc: 'Wände, Durchbrüche, Bad, Oberflächen', area: 160, units: 2, naming: 'gesch', takt: 'versetzt',
       rec: ['be', 'schutz', 'statik', 'wand_ab', 'durchbr', 'fenster', 'san_roh', 'el_roh', 'putz', 'estrich', 'estr_tr', 'fliesen_vb', 'fliesen', 'maler', 'boden', 'sockel', 'san_fein', 'el_fein', 'spachtel_wd', 'boden_vorb', 'silikon'],
       opt: ['schad', 'entk', 'hz_roh', 'hz_fein', 'trocken', 'tischler', 'reinig', 'tapete', 'decke_abh', 'parkett_alt', 'fensterbank_i', 'bad_moebel', 'dusche_glas', 'bad_acc', 'kueche', 'einbau'],
@@ -172,7 +183,18 @@ window.CATALOG = (() => {
      (alle anderen „on“-Leistungen der Gruppe werden abgewählt), ovr = Name/DIN/Gewerk/Dauer/Vorgänger,
      mul = Faktor auf die Richtdauer, if = nur sichtbar bei bestimmter Wahl einer anderen Gruppe. */
   const NB = ['neubau_efh', 'neubau_mfh'];
+  const UMB = ['umbau_efh', 'umbau_mfh'];
+  const AUFST = { holz_mont: { n: 'Aufstockung in Holzrahmenbau (Wände, Decke)', a: ['dach_ab', 'notdach', 'abbund'] }, abbund: { n: 'Vorfertigung Holzbauelemente Aufstockung (Werk)', a: ['statik', 'be'] },
+    zimmer: { n: 'Dachstuhl / Dach der Aufstockung' }, dach_deck: { n: 'Dacheindeckung / Dachabdichtung Aufstockung' }, geruest: { a: ['schutz', 'be'] }, fenster_neu: { n: 'Fenster und Außentüren Aufstockung' } };
+  const ANB = { verm: { n: 'Vermessung Anbau' }, aushub: { n: 'Baugrube Anbau', d: 2 }, grundl: { n: 'Grundleitungen Anbau, Anschluss an den Bestand' }, grund: { n: 'Fundamente und Bodenplatte Anbau', d: 4 },
+    mauer: { n: 'Rohbau Anbau (Mauerwerk, Decken)', d: 12 }, zimmer: { n: 'Dachstuhl Anbau / Anschluss an das Bestandsdach' }, dach_deck: { n: 'Dacheindeckung Anbau, Anschluss an das Bestandsdach' } };
   const choices = [
+    { k: 'erweiterung', ph: 'rohbau', n: 'Erweiterung', types: UMB, opts: [
+      { k: 'anbau', n: 'Anbau (seitlich, neue Gründung)', on: ['verm', 'aushub', 'grundl', 'grund', 'mauer', 'anschluss'], ovr: ANB },
+      { k: 'aufstock', n: 'Aufstockung (Holzrahmenbau auf den Bestand)', on: ['dach_ab', 'notdach', 'abbund', 'holz_mont', 'anschluss'], ovr: { ...AUFST, anschluss: { n: 'Anschluss der Aufstockung an den Bestand (Ringbalken, Abdichtung)' } } },
+      { k: 'beides', n: 'Anbau und Aufstockung', on: ['verm', 'aushub', 'grundl', 'grund', 'mauer', 'dach_ab', 'notdach', 'abbund', 'holz_mont', 'anschluss'],
+        ovr: { ...ANB, ...AUFST, zimmer: { n: 'Dachstühle Anbau und Aufstockung' }, dach_deck: { n: 'Dacheindeckung Anbau und Aufstockung' }, fenster_neu: { n: 'Fenster und Außentüren Anbau und Aufstockung' } } },
+      { k: 'keine', n: 'nur Umbau im Bestand', on: [], ovr: { zimmer: { n: 'Dachstuhl ertüchtigen' }, dach_deck: { n: 'Dacheindeckung erneuern' } } } ] },
     { k: 'keller', ph: 'erd', n: 'Keller / Gründung', types: NB, opts: [
       { k: 'none', n: 'kein Keller – Bodenplatte', on: [] },
       { k: 'wu', n: 'Betonkeller WU-Beton (weiße Wanne)', on: ['keller', 'verfuell'], ovr: { keller: { n: 'Kellergeschoss WU-Beton (weiße Wanne)', d: 12, din: '18331' } } },
@@ -183,56 +205,56 @@ window.CATALOG = (() => {
       { k: 'stb', n: 'Stahlbeton (Wände und Decken)', on: ['mauer'], ovr: { mauer: { n: 'Rohbau Stahlbeton (Wände, Decken)', din: '18331' } }, mul: { mauer: 1.1 } },
       { k: 'holz', n: 'Holzrahmenbau / Fertigbau', on: ['abbund', 'holz_mont'] },
       { k: 'bsp', n: 'Massivholz (Brettsperrholz)', on: ['abbund', 'holz_mont'], ovr: { abbund: { n: 'Vorfertigung Brettsperrholz-Elemente (Werk)' }, holz_mont: { n: 'Montage Brettsperrholz-Wände und -Decken' } } } ] },
-    { k: 'dachform', ph: 'huelle', n: 'Dachform', types: [...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], onTypes: NB, opts: [
+    { k: 'dachform', ph: 'huelle', n: 'Dachform', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], onTypes: NB, opts: [
       { k: 'sattel', n: 'Satteldach', on: ['zimmer'] },
       { k: 'walm', n: 'Walmdach', on: ['zimmer'], mul: { zimmer: 1.3, dach_deck: 1.25, klempner: 1.2 } },
       { k: 'pult', n: 'Pultdach', on: ['zimmer'], mul: { zimmer: 0.8, dach_deck: 0.85 } },
       { k: 'flach', n: 'Flachdach', on: [], ovr: { dach_deck: { n: 'Flachdach: Wärmedämmung und Abdichtung', din: '18338 / 18336' }, klempner: { n: 'Klempnerarbeiten (Attika, Abläufe)' } } } ] },
-    { k: 'dachdeckung', ph: 'huelle', n: 'Dachdeckung', types: [...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], opts: [
+    { k: 'dachdeckung', ph: 'huelle', n: 'Dachdeckung', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], opts: [
       { k: 'ziegel', n: 'Dachziegel / Betondachstein', on: [], if: { dachform: ['sattel', 'walm', 'pult'] } },
       { k: 'schiefer', n: 'Schiefer', on: [], if: { dachform: ['sattel', 'walm', 'pult'] }, ovr: { dach_deck: { n: 'Schieferdeckung' } }, mul: { dach_deck: 1.6 } },
       { k: 'bitumen', n: 'Bitumenbahnen', on: [], if: { dachform: ['flach'] } },
       { k: 'kunststoff', n: 'Kunststoff-/Elastomerbahnen', on: [], if: { dachform: ['flach'] } },
       { k: 'gruen', n: 'Gründach (extensiv)', on: ['gruendach'], if: { dachform: ['flach'] } },
       { k: 'metall', n: 'Metall (Stehfalz)', on: [], ovr: { dach_deck: { n: 'Metalldach (Stehfalzdeckung)', gw: 'Klempner', din: '18339' } } } ] },
-    { k: 'fassade', ph: 'huelle', n: 'Fassade', types: [...NB, 'kern_efh', 'san_mfh', 'energ'], opts: [
+    { k: 'fassade', ph: 'huelle', n: 'Fassade', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ'], opts: [
       { k: 'putz', n: 'Putzfassade (monolithisches Mauerwerk)', on: ['aussenputz'] },
       { k: 'wdvs', n: 'WDVS mit Putz', on: ['wdvs', 'aussenputz'] },
       { k: 'klinker', n: 'Klinker / Verblendmauerwerk', on: ['klinker'] },
       { k: 'vhf', n: 'Vorgehängte hinterlüftete Fassade', on: ['vhf'] },
       { k: 'holz', n: 'Holzfassade', on: ['holzfassade'] },
       { k: 'keine', n: 'keine Fassadenarbeiten', on: [] } ] },
-    { k: 'fenster', ph: 'huelle', n: 'Fenster', types: [...NB, 'kern_efh', 'san_mfh', 'energ', 'whg_reno', 'dg'], opts: [
+    { k: 'fenster', ph: 'huelle', n: 'Fenster', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'whg_reno', 'dg'], opts: [
       { k: 'kunststoff', n: 'Kunststofffenster', on: [] },
       { k: 'holz', n: 'Holzfenster', on: [], ovr: { fenster_neu: { n: 'Holzfenster und Außentüren einbauen' }, fenster: { n: 'Holzfenster erneuern' } } },
       { k: 'holzalu', n: 'Holz-Alu-Fenster', on: [], ovr: { fenster_neu: { n: 'Holz-Alu-Fenster und Außentüren einbauen' }, fenster: { n: 'Holz-Alu-Fenster erneuern' } } },
       { k: 'alu', n: 'Aluminiumfenster', on: [], ovr: { fenster_neu: { n: 'Aluminiumfenster und Außentüren einbauen', din: '18360' }, fenster: { n: 'Aluminiumfenster erneuern', din: '18360' } } } ] },
-    { k: 'pv', ph: 'huelle', n: 'Photovoltaik', types: [...NB, 'kern_efh', 'san_mfh', 'energ'], opts: [
+    { k: 'pv', ph: 'huelle', n: 'Photovoltaik', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ'], opts: [
       { k: 'none', n: 'keine PV-Anlage', on: [] },
       { k: 'pv', n: 'PV-Anlage', on: ['pv'] },
       { k: 'pvs', n: 'PV-Anlage mit Batteriespeicher', on: ['pv'], ovr: { pv: { n: 'Photovoltaikanlage mit Batteriespeicher montieren' } }, mul: { pv: 1.35 } } ] },
-    { k: 'heizung', ph: 'tga_roh', n: 'Wärmeerzeuger', types: [...NB, 'kern_efh', 'san_mfh', 'energ'], opts: [
+    { k: 'heizung', ph: 'tga_roh', n: 'Wärmeerzeuger', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ'], opts: [
       { k: 'wp_luft', n: 'Luft-Wasser-Wärmepumpe', on: [], ovr: { waermeerz: { n: 'Luft-Wasser-Wärmepumpe aufstellen' } } },
       { k: 'wp_sole', n: 'Sole-Wärmepumpe mit Erdsonden', on: ['erdsonde'], ovr: { waermeerz: { n: 'Sole-Wasser-Wärmepumpe montieren', a: ['erdsonde', 'dicht', 'hak', 'entk', 'be'] } } },
       { k: 'gas', n: 'Gas-Brennwerttherme', on: [], ovr: { waermeerz: { n: 'Gas-Brennwerttherme montieren', d: 2 } } },
       { k: 'fern', n: 'Fernwärme', on: [], ovr: { waermeerz: { n: 'Fernwärme-Übergabestation', d: 2 } } },
       { k: 'pellet', n: 'Pelletkessel', on: [], ovr: { waermeerz: { n: 'Pelletkessel und Pelletlager', d: 5 } } } ] },
-    { k: 'lueftung', ph: 'tga_roh', n: 'Lüftung', types: [...NB, 'kern_efh', 'san_mfh'], opts: [
+    { k: 'lueftung', ph: 'tga_roh', n: 'Lüftung', types: [...UMB, ...NB, 'kern_efh', 'san_mfh'], opts: [
       { k: 'fenster', n: 'Fensterlüftung', on: [] },
       { k: 'dez', n: 'Dezentrale Lüftungsgeräte', on: ['lueft', 'lueft_fein'], ovr: { lueft: { n: 'Dezentrale Lüftung: Wanddurchführungen, Rohmontage', d: 2 }, lueft_fein: { n: 'Dezentrale Lüftungsgeräte montieren' } } },
       { k: 'kwl', n: 'Zentrale Lüftung mit Wärmerückgewinnung', on: ['lueft', 'lueft_fein'] } ] },
-    { k: 'waermevert', ph: 'ausbau', n: 'Wärmeverteilung', types: [...NB, 'kern_efh', 'san_mfh', 'dg'], opts: [
+    { k: 'waermevert', ph: 'ausbau', n: 'Wärmeverteilung', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'dg'], opts: [
       { k: 'fbh', n: 'Fußbodenheizung', on: ['fbh'], ovr: { hz_fein: { n: 'Heizkreisverteiler, Inbetriebnahme Heizung' } } },
       { k: 'hk', n: 'Heizkörper', on: [], ovr: { hz_fein: { n: 'Heizkörper montieren, Inbetriebnahme Heizung' } } } ] },
-    { k: 'estrichart', ph: 'ausbau', n: 'Estrich', types: [...NB, 'kern_efh', 'san_mfh', 'whg_reno', 'bad', 'dg'], opts: [
+    { k: 'estrichart', ph: 'ausbau', n: 'Estrich', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'whg_reno', 'bad', 'dg'], opts: [
       { k: 'ze', n: 'Zementestrich', on: ['estr_tr'] },
       { k: 'ca', n: 'Calciumsulfat-Fließestrich', on: ['estr_tr'], ovr: { estrich: { n: 'Calciumsulfat-Fließestrich einbringen' } }, mul: { estr_tr: 0.75 } },
       { k: 'te', n: 'Trockenestrich – ohne Trocknungszeit', on: [], ovr: { estrich: { n: 'Trockenestrich verlegen' } }, mul: { estrich: 1.5 } } ] },
-    { k: 'innenwand', ph: 'ausbau', n: 'Wände und Decken innen', types: [...NB, 'kern_efh', 'dg'], opts: [
+    { k: 'innenwand', ph: 'ausbau', n: 'Wände und Decken innen', types: [...UMB, ...NB, 'kern_efh', 'dg'], opts: [
       { k: 'putz', n: 'Innenputz (Massivwände)', on: ['putz'] },
       { k: 'tb', n: 'Trockenbau (Gipskarton)', on: ['trocken'] },
       { k: 'both', n: 'Innenputz und Trockenbau', on: ['putz', 'trocken'] } ] },
-    { k: 'bodenbelag', ph: 'ausbau', n: 'Bodenbelag', types: [...NB, 'kern_efh', 'san_mfh', 'whg_reno', 'dg'], opts: [
+    { k: 'bodenbelag', ph: 'ausbau', n: 'Bodenbelag', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'whg_reno', 'dg'], opts: [
       { k: 'parkett', n: 'Parkett', on: ['boden', 'sockel'], ovr: { boden: { n: 'Parkett verlegen', din: '18356' } } },
       { k: 'massiv', n: 'Massivparkett (vor Ort geschliffen, geölt)', on: ['boden', 'parkett_ob', 'sockel'], ovr: { boden: { n: 'Massivparkett verlegen', din: '18356' } } },
       { k: 'vinyl', n: 'Vinyl / Designbelag', on: ['boden', 'sockel'], ovr: { boden: { n: 'Vinyl-/Designbelag verlegen', din: '18365' } }, mul: { boden: 0.7 } },

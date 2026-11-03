@@ -2764,6 +2764,8 @@ async function boot() {
   try {
     projects = await api.list();
     let id = LS.get('last', null);
+    const hp = /^#plan=([\w-]+)/.exec(location.hash);   // Link aus der Verwaltung: diesen Plan öffnen
+    if (hp && projects.some((p) => p.id === hp[1])) { id = hp[1]; history.replaceState(null, '', location.pathname); }
     if (id === '__geschlossen__' && projects.length) { await refreshProjectList(); $('#projTitle').textContent = 'Kein Projekt geöffnet'; $('#projSub').textContent = 'Klicken zum Öffnen oder Anlegen'; setNoProject(true); renderStart(); if (LS.get('assistOpen', false)) setAssistOpen(true); return; }
     if (!projects.some((p) => p.id === id)) id = projects[0]?.id;
     if (!id) { const p = await api.create({ name: 'Neues Projekt', start: snapWork(todayN()), tasks: [] }); id = p.id; }

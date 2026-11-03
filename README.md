@@ -235,6 +235,11 @@ Auf Docker 2 unter `https://baukosten.gk3-architektur.de`: im Nginx Proxy Manage
 
 Nur für Administratoren. Die Benutzer sind dieselben wie im Bautagebuch.
 
+- **Projekte:** alle Projekte über alle Apps – je Projekt Bautagebuch, verknüpfte Bauzeitenpläne und Kostenermittlungen.
+  „Öffnen in …“ springt direkt in die gewählte App. Fehlt das Bautagebuch-Projekt, wird angeboten, es anzulegen und zu verknüpfen.
+  „Löschen …“ löscht nur die angekreuzten Teile (z. B. nur den Bauzeitenplan); das Bautagebuch-Projekt erst nach Eintippen des Namens,
+  das Bautagebuch löscht dabei selbst Berichte und Fotos.
+
 - **Benutzer:** anlegen (das Startkennwort wird einmal angezeigt), Apps je Benutzer freischalten (Bautagebuch, Bauzeitenplan),
   Administrator, sperren (meldet sofort überall ab), Kennwort zurücksetzen, überall abmelden, löschen.
 - **Angemeldet:** alle Geräte mit aktiver Anmeldung, einzeln beendbar.

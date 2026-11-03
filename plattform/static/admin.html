@@ -26,6 +26,15 @@ tr.off td:last-child{opacity:1}
 .dot{flex:none}
 .svc small{color:var(--mute)}
 .note{background:var(--hov);border:1px solid var(--line);border-radius:10px;padding:.8rem 1rem;color:var(--mute);margin-top:1rem;font-size:.92rem}
+.pc{display:flex;flex-wrap:wrap;gap:.3rem}
+.pc .pill{cursor:default}
+.pc .pill.no{border-style:dashed}
+.pn small{display:block;color:var(--mute);font-size:.82rem}
+.lk{display:flex;flex-direction:column;gap:.4rem;margin:.4rem 0}
+.lk a,.lk button{justify-content:flex-start}
+.dl{display:flex;flex-direction:column;gap:.5rem;margin:.6rem 0}
+.dl label{display:flex;gap:.6rem;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem;cursor:pointer}
+.dl label small{display:block;color:var(--mute)}
 @media (max-width:760px){.hide-s{display:none}}
 </style>
 </head>
@@ -34,8 +43,8 @@ tr.off td:last-child{opacity:1}
 <main class="wrap" id="main"></main>
 <script src="/static/bp.js"></script>
 <script>
-const TABS = [['users', 'Benutzer'], ['sessions', 'Angemeldet'], ['status', 'Zustand'], ['audit', 'Protokoll']];
-let tab = (location.hash || '#users').slice(1), me = null, data = {};
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer'], ['sessions', 'Angemeldet'], ['status', 'Zustand'], ['audit', 'Protokoll']];
+let tab = (location.hash || '#projekte').slice(1), me = null, data = {};
 const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
 function renderTabs() { $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}</button>`).join(''); }
 $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; history.replaceState(null, '', '#' + tab); renderTabs(); load(); };
@@ -43,11 +52,81 @@ $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) 
 async function load() {
   const m = $('#main');
   try {
-    if (tab === 'users') { data.u = await api('/api/users'); renderUsers(); }
+    if (tab === 'projekte') { data.p = await api('/api/projects'); renderProjects(); }
+    else if (tab === 'users') { data.u = await api('/api/users'); renderUsers(); }
     else if (tab === 'sessions') { data.s = await api('/api/sessions'); renderSessions(); }
     else if (tab === 'status') { m.innerHTML = '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('/api/status'); renderStatus(); }
     else { data.a = await api('/api/audit?cat=' + (data.cat || '')); renderAudit(); }
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+
+
+/* ---------- Projekte über alle Apps ---------- */
+const appOf = (k) => (data.conf.apps || []).find((a) => a.key === k);
+const linkTo = (k, frag) => { const a = appOf(k); return a ? appUrl(a) + '/' + frag : '#'; };
+function renderProjects(q = data.pq || '', f = data.pf || '') {
+  data.pq = q; data.pf = f;
+  const all = data.p, noBt = all.filter((p) => !p.bt).length;
+  const list = all.filter((p) => (!q || (p.name + ' ' + p.client + ' ' + p.address + ' ' + p.plans.map((x) => x.name).join(' ') + ' ' + p.bks.map((x) => x.name).join(' ')).toLowerCase().includes(q.toLowerCase()))
+    && (f !== 'nobt' || !p.bt) && (f !== 'arch' || p.archived) && (f === 'arch' || !p.archived || f === 'alle'));
+  $('#main').innerHTML = `<h1>Projekte</h1>
+    <div class="bar"><input type="search" id="pq" placeholder="Projekt, Bauherr, Plan suchen …" value="${esc(q)}"><span class="fill"></span>
+      ${[['', 'Aktiv'], ['nobt', `Ohne Bautagebuch${noBt ? ' (' + noBt + ')' : ''}`], ['arch', 'Archiviert'], ['alle', 'Alle']].map(([k, l]) => `<button class="btn sm ${k === f ? 'pri' : ''}" data-a="pf" data-f="${k}">${l}</button>`).join('')}</div>
+    <div class="tbl"><table><thead><tr><th>Projekt</th><th>In den Apps</th><th></th></tr></thead><tbody>
+    ${list.map((p) => `<tr data-key="${p.key}"><td class="pn"><b>${esc(p.name)}</b>${p.client || p.address ? `<small>${esc([p.client, p.address].filter(Boolean).join(' · '))}</small>` : ''}${p.archived ? '<small>archiviert</small>' : ''}</td>
+      <td><div class="pc">${p.bt ? `<span class="pill ok" title="Bautagebuch">Bautagebuch · ${p.bt.reports} Berichte</span>` : '<button class="pill bad no" data-a="mkbt" title="Für dieses Projekt gibt es noch kein Bautagebuch">kein Bautagebuch – anlegen?</button>'}
+        ${p.plans.map((x) => `<span class="pill y" title="Bauzeitenplan">Plan · ${esc(x.name)}</span>`).join('')}${p.bks.map((x) => `<span class="pill y" title="Baukosten">Kosten · ${esc(x.name)}</span>`).join('')}</div></td>
+      <td><div class="acts"><button class="btn sm" data-a="popen">Öffnen in …</button><button class="btn sm danger" data-a="pdel">Löschen …</button></div></td></tr>`).join('') || '<tr><td colspan="3" class="mute">Keine Projekte.</td></tr>'}
+    </tbody></table></div>
+    <div class="note">Ein Projekt fasst zusammen, was in den Apps dazugehört: das Bautagebuch-Projekt, die damit verknüpften Bauzeitenpläne und Kostenermittlungen. Gelöscht wird nur, was du im Dialog ankreuzt – z. B. nur der Bauzeitenplan, das Bautagebuch bleibt.</div>`;
+  const inp = $('#pq'); inp.oninput = () => { const pos = inp.selectionStart; renderProjects(inp.value, f); const n = $('#pq'); n.focus(); n.setSelectionRange(pos, pos); };
+}
+const projOf = (el) => data.p.find((p) => p.key === el.closest('tr').dataset.key);
+function mkBt(p, then) {
+  modalBox(`<h3>Bautagebuch-Projekt anlegen</h3><p>„${esc(p.name)}“ hat noch kein Projekt im Bautagebuch. Anlegen und ${p.plans.length + p.bks.length > 1 ? 'Plan und Kostenermittlung damit verknüpfen' : 'damit verknüpfen'}?</p>
+    <div class="row"><label for="btName">Projektname im Bautagebuch</label><input id="btName" value="${esc(p.name)}"></div>
+    <div class="acts"><button class="btn" data-m="x">Nein, später</button><button class="btn pri" data-m="ok">Anlegen und verknüpfen</button></div>`,
+  async (m, bg, close) => {
+    if (m !== 'ok') { close(); return; }
+    try { const r = await api('/api/projects/bautagebuch', 'POST', { name: bg.querySelector('#btName').value, plans: p.plans.map((x) => x.id), bks: p.bks.map((x) => x.id) }); close(); toast('Bautagebuch-Projekt angelegt und verknüpft.'); await load(); if (then) then(r.id); }
+    catch (e) { toast(e.message, true); }
+  });
+}
+function openDlg(p) {
+  const L = [];
+  if (p.bt) L.push(`<a class="btn" href="${esc(linkTo('bautagebuch', '#projekt=' + p.bt.id))}" target="_blank" rel="noopener">Bautagebuch · ${p.bt.reports} Berichte</a>`);
+  else L.push('<button class="btn" data-m="mkbt">Bautagebuch – noch keins, anlegen …</button>');
+  p.plans.forEach((x) => L.push(`<a class="btn" href="${esc(linkTo('gantt', '#plan=' + encodeURIComponent(x.id)))}" target="_blank" rel="noopener">Bauzeitenplan · ${esc(x.name)}</a>`));
+  if (!p.plans.length) L.push(`<a class="btn" href="${esc(linkTo('gantt', ''))}" target="_blank" rel="noopener">Bauzeitenplan – noch keiner, in der App anlegen</a>`);
+  p.bks.forEach((x) => L.push(`<a class="btn" href="${esc(linkTo('baukosten', '#bk=' + x.id))}" target="_blank" rel="noopener">Baukosten · ${esc(x.name)}</a>`));
+  if (!p.bks.length) L.push(`<a class="btn" href="${esc(linkTo('baukosten', ''))}" target="_blank" rel="noopener">Baukosten – noch keine, in der App anlegen</a>`);
+  modalBox(`<h3>${esc(p.name)} öffnen in …</h3><div class="lk">${L.join('')}</div><div class="acts"><button class="btn" data-m="x">Schließen</button></div>`,
+    (m, bg, close) => { close(); if (m === 'mkbt') mkBt(p, (id) => window.open(linkTo('bautagebuch', '#projekt=' + id), '_blank', 'noopener')); });
+}
+function delDlg(p) {
+  const opts = [];
+  if (p.bt) opts.push(['bt', p.bt.id, `<b>Bautagebuch-Projekt</b><small>mit ${p.bt.reports} Tagesberichten und ${p.bt.images} Fotos – endgültig</small>`]);
+  p.plans.forEach((x) => opts.push(['plan', x.id, `<b>Bauzeitenplan „${esc(x.name)}“</b><small>mit ${x.versions} gespeicherten Versionen</small>`]));
+  p.bks.forEach((x) => opts.push(['bk', x.id, `<b>Kostenermittlung „${esc(x.name)}“</b><small>mit Raumbuch, Schätzungen und ${x.files} Plänen (PDF)</small>`]));
+  const bg = modalBox(`<h3>Aus welchen Apps löschen?</h3><p class="mute">„${esc(p.name)}“ – angekreuzte Teile werden endgültig gelöscht, alles andere bleibt.</p>
+    <div class="dl">${opts.map(([t, id, l], n) => `<label><input type="checkbox" data-n="${n}"><span>${l}</span></label>`).join('')}</div>
+    <div class="row hidden" id="cfRow"><label for="cf">Bautagebuch-Projekt löschen: zur Bestätigung den Projektnamen eintippen</label><input id="cf" autocomplete="off"></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="del" disabled>Angekreuzte löschen</button></div>`,
+  async (m, bg, close, btn) => {
+    if (m === 'x') { close(); return; }
+    const sel = [...bg.querySelectorAll('[data-n]:checked')].map((c) => opts[+c.dataset.n]);
+    if (sel.some((o) => o[0] === 'bt') && bg.querySelector('#cf').value.trim() !== p.name.trim()) { toast('Der Projektname stimmt nicht – nichts gelöscht.', true); return; }
+    btn.disabled = true; btn.textContent = 'Lösche …';
+    try {
+      const r = await api('/api/projects/delete', 'POST', { bt: (sel.find((o) => o[0] === 'bt') || [])[1] ?? null, plans: sel.filter((o) => o[0] === 'plan').map((o) => o[1]), bks: sel.filter((o) => o[0] === 'bk').map((o) => o[1]) });
+      close(); toast('Gelöscht: ' + r.done.join(', ') + (r.errors.length ? ' – Fehler: ' + r.errors.join('; ') : ''), !!r.errors.length); load();
+    } catch (e) { btn.disabled = false; btn.textContent = 'Angekreuzte löschen'; toast(e.message, true); }
+  });
+  bg.addEventListener('change', () => {
+    const sel = [...bg.querySelectorAll('[data-n]:checked')].map((c) => opts[+c.dataset.n]);
+    bg.querySelector('#cfRow').classList.toggle('hidden', !sel.some((o) => o[0] === 'bt'));
+    bg.querySelector('[data-m="del"]').disabled = !sel.length;
+  });
 }
 
 /* ---------- Benutzer ---------- */
@@ -116,6 +195,10 @@ $('#main').addEventListener('click', (e) => {
   else if (b.dataset.a === 'end') api('/api/sessions/' + b.dataset.id, 'DELETE').then(() => { toast('Sitzung beendet.'); load(); }).catch(e => toast(e.message, true));
   else if (b.dataset.a === 'cat') { data.cat = b.dataset.cat; load(); }
   else if (b.dataset.a === 'reload') load();
+  else if (b.dataset.a === 'pf') renderProjects(data.pq, b.dataset.f);
+  else if (b.dataset.a === 'popen') openDlg(projOf(b));
+  else if (b.dataset.a === 'pdel') delDlg(projOf(b));
+  else if (b.dataset.a === 'mkbt') mkBt(projOf(b));
 });
 
 /* ---------- Sitzungen ---------- */
@@ -156,7 +239,7 @@ function renderAudit() {
 
 (async () => {
   me = await api('/api/me'); applyLook(me);
-  const conf = await api('/api/platform');
+  const conf = await api('/api/platform'); data.conf = conf;
   await header('Verwaltung', me, conf);
   renderTabs(); load();
 })().catch(e => toast(e.message, true));

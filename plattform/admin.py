@@ -3,7 +3,7 @@
 Benutzer und ihre App-Rechte, Sperren, Kennwort zurücksetzen, angemeldete Sitzungen, Zustand der Dienste und der
 Datenbank, Protokoll. Die Benutzer sind dieselben wie im Bautagebuch (gemeinsame Tabelle users).
 """
-import json, os, re, secrets, time, urllib.request
+import json, os, re, secrets, time, urllib.error, urllib.request
 from datetime import datetime
 
 from flask import g, jsonify, redirect, request
@@ -288,6 +288,121 @@ def audit_log():
             args = (cat,)
         rows = c.execute(q + " ORDER BY id DESC LIMIT 300", args).fetchall()
     return jsonify([r.dict() for r in rows])
+
+
+# ---------------------------------------------------------------- Projekte (über alle Apps)
+def _bt(method, path, body=None):
+    """Bautagebuch im Docker-Netz aufrufen – mit der Anmeldung des Administrators (gemeinsame Sitzung).
+    So löscht das Bautagebuch selbst, inklusive seiner Fotos und Dateien im eigenen Laufwerk."""
+    with db.tx() as c:
+        tok = sso.current_token(request, c)
+    req = urllib.request.Request(C.BT_INTERNAL + path, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode() or "{}")
+    except urllib.error.HTTPError as e:
+        try:
+            msg = json.loads(e.read().decode() or "{}").get("error")
+        except ValueError:
+            msg = None
+        raise RuntimeError(msg or f"Bautagebuch antwortet mit Fehler {e.code}")
+    except Exception as e:
+        raise RuntimeError("Bautagebuch nicht erreichbar: " + str(e)[:120])
+
+
+def _addr(r):
+    return ", ".join(x for x in (r["street"], " ".join(y for y in (r["zip"], r["city"]) if y)) if x)
+
+
+@app.get("/api/projects")
+def projects_all():
+    """Projekte über alle Apps: je Bautagebuch-Projekt die verknüpften Bauzeitenpläne und Kostenermittlungen,
+    dazu Pläne und Kostenermittlungen ohne Bautagebuch-Projekt."""
+    with db.tx() as c:
+        bt = c.execute("""SELECT p.id, p.name, p.client, p.street, p.zip, p.city, p.archived, p.created,
+                                 (SELECT COUNT(*) FROM reports r WHERE r.project_id=p.id) AS reports,
+                                 (SELECT COUNT(*) FROM images i JOIN reports r ON r.id=i.report_id WHERE r.project_id=p.id) AS images
+                          FROM projects p ORDER BY p.archived, p.name""").fetchall()
+        plans = c.execute("SELECT id, name, project_id, updated, (SELECT COUNT(*) FROM gantt_versions v WHERE v.gantt_id=g.id) AS versions FROM gantt_projects g ORDER BY name").fetchall()
+        bks = c.execute("SELECT id, name, project_id, gantt_id, stufe, archived, updated, (SELECT COUNT(*) FROM bk_files f WHERE f.bk_id=b.id) AS files FROM bk_projects b ORDER BY name").fetchall()
+    P = lambda x: {"id": x["id"], "name": x["name"], "updated": x["updated"], "versions": x["versions"]}
+    K = lambda x: {"id": x["id"], "name": x["name"], "stufe": x["stufe"], "archived": bool(x["archived"]), "files": x["files"]}
+    out, used_p, used_k = [], set(), set()
+    for p in bt:
+        ps = [x for x in plans if x["project_id"] == p["id"]]
+        pids = {x["id"] for x in ps}
+        ks = [x for x in bks if x["project_id"] == p["id"] or (x["project_id"] is None and x["gantt_id"] in pids)]
+        used_p |= pids; used_k |= {x["id"] for x in ks}
+        out.append({"key": f"bt{p['id']}", "name": p["name"], "client": p["client"], "address": _addr(p), "archived": bool(p["archived"]),
+                    "bt": {"id": p["id"], "reports": p["reports"], "images": p["images"]}, "plans": [P(x) for x in ps], "bks": [K(x) for x in ks]})
+    for x in plans:   # Bauzeitenpläne ohne Bautagebuch-Projekt (mit ihren Kostenermittlungen)
+        if x["id"] in used_p:
+            continue
+        ks = [k for k in bks if k["id"] not in used_k and k["gantt_id"] == x["id"]]
+        used_k |= {k["id"] for k in ks}
+        out.append({"key": f"g{x['id']}", "name": x["name"], "client": "", "address": "", "archived": False, "bt": None, "plans": [P(x)], "bks": [K(k) for k in ks]})
+    for k in bks:
+        if k["id"] not in used_k:
+            out.append({"key": f"k{k['id']}", "name": k["name"], "client": "", "address": "", "archived": bool(k["archived"]), "bt": None, "plans": [], "bks": [K(k)]})
+    return jsonify(out)
+
+
+@app.post("/api/projects/bautagebuch")
+def project_create_bt():
+    """Für einen Bauzeitenplan / eine Kostenermittlung ohne Bautagebuch das Projekt im Bautagebuch anlegen und verknüpfen."""
+    b = request.get_json(silent=True) or {}
+    name = " ".join(str(b.get("name") or "").split())[:200]
+    if not name:
+        return jsonify(error="Bitte einen Projektnamen eingeben."), 400
+    plans = [str(x)[:80] for x in (b.get("plans") or [])][:50]
+    bks = [int(x) for x in (b.get("bks") or []) if isinstance(x, int)][:200]
+    try:
+        r = _bt("POST", "/api/projects", {"name": name})
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    pid = r.get("id")
+    with db.tx() as c:
+        for x in plans:
+            c.execute("UPDATE gantt_projects SET project_id=? WHERE id=?", (pid, x))
+        for x in bks:
+            c.execute("UPDATE bk_projects SET project_id=? WHERE id=?", (pid, x))
+    C.audit(g.user["name"], "verwaltung", "Bautagebuch-Projekt angelegt", f"{name} · verknüpft: {len(plans)} Pläne, {len(bks)} Kostenermittlungen")
+    return jsonify(ok=True, id=pid)
+
+
+@app.post("/api/projects/delete")
+def project_delete():
+    """Teile eines Projekts löschen – je App getrennt wählbar."""
+    b = request.get_json(silent=True) or {}
+    done, errors = [], []
+    with db.tx() as c:
+        for x in [str(v)[:80] for v in (b.get("plans") or [])][:50]:
+            r = c.execute("SELECT name FROM gantt_projects WHERE id=?", (x,)).fetchone()
+            if r:
+                c.execute("DELETE FROM gantt_presence WHERE gantt_id=?", (x,))
+                c.execute("DELETE FROM gantt_projects WHERE id=?", (x,))   # Versionen werden mitgelöscht
+                done.append(f"Bauzeitenplan „{r['name']}“")
+        for x in [int(v) for v in (b.get("bks") or []) if isinstance(v, int)][:200]:
+            r = c.execute("SELECT name FROM bk_projects WHERE id=?", (x,)).fetchone()
+            if r:
+                c.execute("DELETE FROM bk_projects WHERE id=?", (x,))   # Pläne (PDF) werden mitgelöscht
+                done.append(f"Kostenermittlung „{r['name']}“")
+    bt = b.get("bt")
+    if isinstance(bt, int):
+        with db.tx() as c:
+            r = c.execute("SELECT name FROM projects WHERE id=?", (bt,)).fetchone()
+        if r:
+            try:
+                _bt("DELETE", f"/api/projects/{bt}")
+                done.append(f"Bautagebuch-Projekt „{r['name']}“ mit Berichten und Fotos")
+            except RuntimeError as e:
+                errors.append(str(e))
+    for d in done:
+        C.audit(g.user["name"], "verwaltung", "Gelöscht", d)
+    if errors and not done:
+        return jsonify(error="; ".join(errors)), 502
+    return jsonify(ok=True, done=done, errors=errors)
 
 
 C.wait_schema()

@@ -603,8 +603,10 @@ async function newDialog() {
   const conf = await api('/api/platform');
   await header('Baukosten', me, conf);
   BPHead.onKi(() => { CHECK = null; if (tab === 'pruefung') render(); });
+  const hb = /^#bk=(\d+)/.exec(location.hash);   // Link aus der Verwaltung: diese Kostenermittlung öffnen
   if (!TABS.some((t) => t[0] === tab)) tab = 'uebersicht';
-  await loadList();
+  if (hb) history.replaceState(null, '', location.pathname + '#' + tab);
+  await loadList(hb ? +hb[1] : undefined);
 })().catch((e) => toast(e.message, true));
 </script>
 </body>

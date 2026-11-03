@@ -329,15 +329,35 @@ function vPlaene() {
     <p class="hint">Räume (Name und m², mit oder ohne Nummer) werden aus Vektor-PDFs exakt gelesen. Der Raumtyp ist ein Vorschlag – bitte jeden Raum bestätigen. Plan: Mausrad zoomt, ziehen verschiebt.</p></aside>
   <div class="main">${f ? `<div class="plan card" id="planBox" style="padding:0" title="Mausrad oder zwei Finger: zoomen · ziehen: verschieben · Doppelklick: vergrößern"><div class="pz" id="pz"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}" draggable="false">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr || '•')}</span>`).join('')}</div>
     <div class="pzc"><button type="button" data-zm="-" aria-label="Verkleinern">−</button><span id="pzp">100 %</span><button type="button" data-zm="+" aria-label="Vergrößern">+</button><button type="button" data-zm="0" aria-label="Ganzer Plan" title="Ganzer Plan">⤢</button></div></div>` : ''}
-    <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'} · ${m2(B.calc.area)} m²${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="addRoom">+ Raum</button></div>
-    <div class="tbl"><table><thead><tr><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
+    <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'} · ${m2(B.calc.area)} m²${volume() ? ` · ${m2(volume()).replace(/,\d+$/, '')} m³` : ''}${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="addRoom">+ Raum</button></div>
+    ${hoehenInfo()}
+    <div class="tbl"><table><thead><tr><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th class="r" title="Geschosshöhe (Fertigfußboden bis Fertigfußboden) – aus dem Schnitt oder eingetragen">Höhe m</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
       <tr data-row="${i}" class="${r.id === selRoom ? 'sel' : ''} ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : ''}"><td><input class="n" style="width:64px;text-align:left" value="${esc(r.nr)}" data-f="nr" aria-label="Nummer"></td>
       <td><input class="w" value="${esc(r.name)}" data-f="name" aria-label="Raumname">${dup[r.floor + '|' + r.nr] > 1 ? '<span class="wn">Raumnummer doppelt</span>' : ''}${r.floor ? `<span class="hint" style="font-size:.75rem">${esc(r.floor)}</span>` : ''}</td>
       <td><select data-f="typ" aria-label="Raumtyp">${typeOpts(r.typ)}</select></td>
       <td class="r"><input class="n" value="${m2(r.area)}" data-f="area" inputmode="decimal" aria-label="Fläche"></td>
+      <td class="r">${(() => { const a = hAuto(r); return `<input class="n" style="width:64px" value="${r.h ? String(r.h).replace('.', ',') : ''}" placeholder="${a.v ? String(a.v).replace('.', ',') : '–'}" title="${esc(r.h ? 'eigener Wert – leeren übernimmt wieder ' + (a.v ? String(a.v).replace('.', ',') + ' m (' + a.src + ')' : 'den Standard') : a.v ? a.src : 'Höhe eintragen – der erste Wert gilt für alle Räume, bis du ihn änderst')}" data-h="${i}" inputmode="decimal" aria-label="Höhe">`; })()}</td>
       <td><button class="okb ${r.ok ? 'on' : ''}" data-ok="${i}">${r.ok ? '✓ Bestätigt' : 'Prüfen'}</button></td>
       <td><button class="btn sm" data-delroom="${i}" aria-label="Raum löschen" title="Raum löschen">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">Noch keine Räume.</td></tr>'}</tbody>
-      <tfoot><tr><td></td><td>Summe</td><td></td><td class="r num">${m2(B.calc.area)}</td><td colspan="2"></td></tr></tfoot></table></div></div></div>`;
+      <tfoot><tr><td></td><td>Summe</td><td></td><td class="r num">${m2(B.calc.area)}</td><td class="r num" title="Raumvolumen (Fläche × Höhe)">${volume() ? m2(volume()).replace(/,\d+$/, '') + ' m³' : ''}</td><td colspan="2"></td></tr></tfoot></table></div></div></div>`;
+}
+// Höhen: eigener Wert am Raum, sonst Geschosshöhe aus dem Schnitt, sonst die zuerst eingetragene Höhe (gilt für alle)
+function floorKey(n) {
+  n = String(n || '').toLowerCase();
+  for (const [k, rx] of [['SB', /spitzboden|\bsb\b/], ['DG', /dach|\bdg\b/], ['SG', /staffel|\bsg\b/], ['2.OG', /2\.?\s*(og|ober)/], ['3.OG', /3\.?\s*(og|ober)/], ['OG', /ober|\bog\b|1\.?\s*og/], ['EG', /erd|\beg\b/], ['KG', /keller|\bkg\b/], ['UG', /unter|\bug\b|souterrain/]]) if (rx.test(n)) return k;
+  return '';
+}
+function hAuto(r) {
+  const H = B.data.hoehen || {}, k = floorKey(r.floor);
+  if (k && H[k]) return { v: H[k], src: `Geschosshöhe ${k} aus dem Schnitt` };
+  if (B.data.hoehe_std) return { v: B.data.hoehe_std, src: 'Standard (zuerst eingetragene Höhe)' };
+  return { v: 0, src: '' };
+}
+const hOf = (r) => r.h || hAuto(r).v || 0;
+const volume = () => B.data.rooms.reduce((a, r) => a + (+r.area || 0) * hOf(r), 0);
+function hoehenInfo() {
+  const H = B.data.hoehen || {}, ks = Object.keys(H);
+  return `<p class="hint" style="margin:.2rem 0 .6rem">${ks.length ? 'Geschosshöhen aus dem Schnitt: ' + ks.map((k) => `<b>${esc(k)}</b> ${String(H[k]).replace('.', ',')} m`).join(' · ') + '. ' : 'Keine Höhen aus einem Schnitt – Schnitt mit Höhenkoten (z. B. „OKFF EG = +0,70“) hochladen oder Höhe eintragen. '}${B.data.hoehe_std ? `Standard für alle übrigen Räume: <b>${String(B.data.hoehe_std).replace('.', ',')} m</b> <a href="#" data-act="hstdClear">ändern</a>.` : 'Die erste eingetragene Höhe gilt für alle Räume, bis du sie änderst.'}</p>`;
 }
 const KG2 = [['310', 'Baugrube / Erdbau'], ['320', 'Gründung, Unterbau'], ['330', 'Außenwände / Vertikale Baukonstruktionen, außen'], ['340', 'Innenwände / Vertikale Baukonstruktionen, innen'],
   ['350', 'Decken / Horizontale Baukonstruktionen'], ['360', 'Dächer'], ['370', 'Infrastrukturanlagen'], ['380', 'Baukonstruktive Einbauten'], ['390', 'Sonstige Maßnahmen für Baukonstruktionen'],
@@ -716,6 +736,7 @@ document.addEventListener('click', async (e) => {
     else if (act === 'firstPdf') $('#pdfIn').click();
     else if (act === 'firstRoom') { tab = 'plaene'; history.replaceState(null, '', '#plaene'); B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'openAssist') { AS.open = true; AS.step = null; asSave(); assist(); }
+    else if (act === 'hstdClear') { e.preventDefault(); const v = prompt('Standardhöhe für alle Räume ohne eigene Höhe (m):', String(B.data.hoehe_std || '').replace('.', ',')); if (v != null) { const n = pnum(v); B.data.hoehe_std = n >= 1.5 && n <= 20 ? Math.round(n * 100) / 100 : null; changed(); } }
     else if (act === 'raumtypen') { e.preventDefault(); typesDialog(); }
     else if (act === 'saveKw') { try { const o = {}; Object.entries(B.data.types).forEach(([k, v]) => { o[k] = v.kw; }); await api('api/kennwerte', 'PUT', o); toast('Eigene Kennwerte gespeichert – gelten für neue Kostenermittlungen.'); } catch (er) { toast(er.message, true); } }
     return;
@@ -763,6 +784,13 @@ document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'pdfIn') { if (el.files.length) upload([...el.files]); el.value = ''; return; }
   const row = el.closest('[data-row]');
+  if (el.dataset.h != null) {
+    const r = B.data.rooms[+el.dataset.h], v = el.value.trim() === '' ? null : Math.round(pnum(el.value) * 100) / 100;
+    if (v != null && (v < 1.5 || v > 20)) { toast('Bitte eine Höhe in Metern eintragen, z. B. 2,75.', true); el.value = r.h || ''; return; }
+    if (v != null && !B.data.hoehe_std && !hAuto(r).v) { B.data.hoehe_std = v; r.h = null; toast(`${String(v).replace('.', ',')} m gilt jetzt für alle Räume ohne eigene Höhe – einzelne Räume kannst du danach ändern.`); }
+    else r.h = v;
+    changed(); return;
+  }
   if (row && el.dataset.f) { const r = B.data.rooms[+row.dataset.row]; r[el.dataset.f] = el.dataset.f === 'area' ? pnum(el.value) : el.value; changed(); return; }
   if (el.dataset.kw) { B.data.types[el.dataset.kw].kw = pnum(el.value); changed(); return; }
   if (el.dataset.it) { const it = B.data.items[+el.dataset.it]; if (el.dataset.f === 'amount') delete it.est; it[el.dataset.f] = el.dataset.f === 'amount' ? (el.value.trim() === '' ? null : pnum(el.value)) : el.value; changed(); return; }

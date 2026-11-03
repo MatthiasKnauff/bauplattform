@@ -144,7 +144,8 @@ def clean_data(d, c):
         rooms.append({"id": _s(r.get("id"), 40) or f"r{len(rooms) + 1}", "nr": _s(r.get("nr"), 20), "name": _s(r.get("name"), 200),
                       "area": round(_num(r.get("area"), 0, 0, 1e6), 2), "typ": r.get("typ") if r.get("typ") in types else "sonst",
                       "ok": bool(r.get("ok")), "src": _s(r.get("src"), 40), "floor": _s(r.get("floor"), 40),
-                      "pos": r.get("pos") if isinstance(r.get("pos"), list) and len(r["pos"]) == 2 else None})
+                      "pos": r.get("pos") if isinstance(r.get("pos"), list) and len(r["pos"]) == 2 else None,
+                      "h": round(_num(r.get("h"), 0, 0, 20), 2) or None})
     kg = d.get("kg") if isinstance(d.get("kg"), dict) else {}
     k300 = _num(kg.get("300"), 70, 0, 100)
     items = []
@@ -164,7 +165,9 @@ def clean_data(d, c):
     shares = {str(k): _num(v, 0, 0, 1e6) for k, v in list((d.get("shares") if isinstance(d.get("shares"), dict) else {}).items())[:5000] if re.fullmatch(r"\d{1,9}", str(k))}
     return {"rooms": rooms, "types": types, "kg": {"300": k300, "400": round(100 - k300, 2)},
             "nk": _num(d.get("nk"), 20, 0, 60), "rate": _num(d.get("rate"), 3, 0, 20), "items": items, "shares": shares,
-            "kg2": kg2, "notes": _s(d.get("notes"), 8000)}
+            "kg2": kg2, "notes": _s(d.get("notes"), 8000),
+            "hoehe_std": round(_num(d.get("hoehe_std"), 0, 0, 20), 2) or None,   # erste eingetragene Raumhöhe gilt für alle ohne eigene
+            "hoehen": {str(k)[:8]: round(_num(v, 0, 0, 20), 2) for k, v in list((d.get("hoehen") if isinstance(d.get("hoehen"), dict) else {}).items())[:20] if _num(v, 0, 0, 20)}}
 
 
 def calc(d):
@@ -345,7 +348,7 @@ def kennwerte_api():
 def read_plan(data):
     """Raumstempel (Nummer, Name, Fläche) aus einem Vektor-PDF lesen, dazu Maßstab, Blattgröße und Planart."""
     import pdfplumber
-    out = {"pages": [], "rooms": [], "scale": None, "kind": "", "vector": False}
+    out = {"pages": [], "rooms": [], "scale": None, "kind": "", "vector": False, "niveaus": []}
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         for pi, pg in enumerate(pdf.pages[:20]):
             W = pg.extract_words(x_tolerance=1.5, y_tolerance=2)
@@ -391,11 +394,71 @@ def read_plan(data):
                 if area is not None and name:
                     out["rooms"].append({"nr": n["text"], "name": " ".join(name), "area": area, "page": pi,
                                          "pos": [round(n["x0"] / pg.width, 4), round(n["top"] / pg.height, 4)], "_y": n["top"], "_x": n["x0"]})
+            out["niveaus"] += _niveaus(W)
             _rooms_ohne_nummer(W, pg, pi, out["rooms"])
             _geschosse(W, [r for r in out["rooms"] if r["page"] == pi])
     for r in out["rooms"]:
         r.pop("_y", None); r.pop("_x", None)
+    out["hoehen"] = geschosshoehen(out["niveaus"])
+    if not out["niveaus"]:
+        out.pop("niveaus")
     return out
+
+
+def _hnote(meta):
+    h = meta.get("hoehen") or {}
+    if h:
+        return " · Geschosshöhen: " + ", ".join(f"{k} {str(v).replace('.', ',')} m" for k, v in h.items())
+    return " · keine Höhenkoten (z. B. „OKFF EG = +0,70“) gefunden" if meta.get("kind") == "Schnitt" else ""
+
+
+# ---------------------------------------------------------------- Höhen aus Schnitten (Höhenkoten)
+KOTE = re.compile(r"\b(OK\s?FF?B?|OKFF|OKRF|OK\s?RF|FFB|FOK|RFB|OKF|OKG|OKT|OKRD)\s*([A-Za-z]{1,3}|\d\.?\s?OG)?\s*[=:]\s*([+\-±]?\s?\d{1,2}[.,]\d{1,3})", re.I)
+FLOORS = ["UG", "KG", "EG", "OG", "1.OG", "2.OG", "3.OG", "4.OG", "DG", "SG", "SB"]
+
+
+def floor_key(name):
+    """Geschoss-Kurzname aus einer Bezeichnung (Raumbuch: „Erdgeschoss“, Dateiname „KG+EG_40“, Kote „OKFF EG“)."""
+    n = (name or "").lower()
+    for k, rx in (("SB", r"spitzboden|\bsb\b"), ("DG", r"dach|\bdg\b"), ("SG", r"staffel|\bsg\b"), ("2.OG", r"2\.?\s*(og|ober)"), ("3.OG", r"3\.?\s*(og|ober)"),
+                  ("OG", r"ober|\bog\b|1\.?\s*og"), ("EG", r"erd|\beg\b"), ("KG", r"keller|\bkg\b"), ("UG", r"unter|\bug\b|souterrain")):
+        if re.search(rx, n):
+            return k
+    return ""
+
+
+def _niveaus(W):
+    """Höhenkoten wie „OKFF EG = +0.70“ aus den Wörtern einer Seite (Zeile für Zeile)."""
+    lines = {}
+    for w in W:
+        lines.setdefault(round(w["top"] / 3), []).append(w)
+    out = []
+    for ws in lines.values():
+        t = " ".join(w["text"] for w in sorted(ws, key=lambda w: w["x0"]))
+        for m in KOTE.finditer(t):
+            z = float(m.group(3).replace("±", "").replace(" ", "").replace(",", "."))
+            out.append({"art": re.sub(r"\s", "", m.group(1)).upper(), "geschoss": (m.group(2) or "").upper().replace(" ", ""), "z": round(z, 3)})
+    return out
+
+
+def geschosshoehen(niv):
+    """Geschosshöhe je Geschoss = Abstand der Fertigfußböden (OKFF) übereinander. {„EG“: 3.05, …}"""
+    ff = {}
+    for n in niv:
+        if n["art"] in ("OKG", "OKT") or not n["geschoss"]:
+            continue
+        if "R" in n["art"] and any("R" not in x["art"] for x in niv if x["geschoss"]):
+            continue   # Rohfußboden nur, wenn kein Fertigfußboden angegeben ist
+        ff.setdefault(n["z"], n["geschoss"])
+    lv = sorted(ff.items())
+    names = []
+    for z, g_ in reversed(lv):   # von oben nach unten: gleiche Bezeichnung zweimal (Tippfehler im Plan) → die untere ist das Geschoss darunter
+        k = floor_key(g_) or g_
+        if k in names and k in FLOORS and FLOORS.index(k) > 0:
+            k = "KG" if k == "EG" else FLOORS[FLOORS.index(k) - 1]
+        names.append(k)
+    names.reverse()
+    return {names[i]: round(lv[i + 1][0] - lv[i][0], 2) for i in range(len(lv) - 1) if 1.8 <= lv[i + 1][0] - lv[i][0] <= 8}
 
 
 NUMW = re.compile(r"^(\d{1,4}[.,]\d{1,2})(?:\s*m(?:²|2)?)?$")
@@ -516,7 +579,7 @@ def file_add(i):
     meta["found"] = len(found)
     meta["note"] = ("Vektor-PDF · " if meta["vector"] else "Kein Text im PDF (eingescannt?) – Räume bitte von Hand eintragen · ") + \
                    (f"Maßstab 1:{meta['scale']} erkannt" if meta["scale"] else "kein Maßstab erkannt") + \
-                   (f" · {len(found)} Räume gelesen" if found else " · keine Raumbeschriftung gefunden – „Räume mit KI lesen“ probieren" if meta["kind"] == "Grundriss" else " · keine Räume (Ansicht/Schnitt)")
+                   (f" · {len(found)} Räume gelesen" if found else " · keine Raumbeschriftung gefunden – „Räume mit KI lesen“ probieren" if meta["kind"] == "Grundriss" else " · keine Räume (Ansicht/Schnitt)") + _hnote(meta)
     with db.tx() as c:
         r = _row(c, i)
         if not r:
@@ -525,6 +588,8 @@ def file_add(i):
                         (i, name, "application/pdf", len(data), data, json.dumps(meta), _now(), g.user["name"])).fetchone()["id"]
         d = clean_data(_j(r["data"], {}), c)
         d["rooms"] = [x for x in d["rooms"] if x["name"] or x["nr"] or x["area"]]   # leere Zeilen (z. B. „+ Raum“ ohne Eingabe) entfernen
+        if meta.get("hoehen"):
+            d["hoehen"] = {**d.get("hoehen", {}), **meta["hoehen"]}
         have = {(x["floor"], x["nr"], x["name"], round(x["area"], 2)) for x in d["rooms"]}
         added = 0
         floor0 = re.sub(r"\.pdf$", "", name, flags=re.I)[:40]
@@ -555,11 +620,13 @@ def file_reread(i, fid):
         meta["found"] = len(found)
         meta["note"] = ("Vektor-PDF · " if meta["vector"] else "Kein Text im PDF (eingescannt?) · ") + \
                        (f"Maßstab 1:{meta['scale']} erkannt" if meta["scale"] else "kein Maßstab erkannt") + \
-                       (f" · {len(found)} Räume gelesen" if found else " · keine Raumbeschriftung gefunden – „Räume mit KI lesen“ probieren" if meta["kind"] == "Grundriss" else " · keine Räume (Ansicht/Schnitt)")
+                       (f" · {len(found)} Räume gelesen" if found else " · keine Raumbeschriftung gefunden – „Räume mit KI lesen“ probieren" if meta["kind"] == "Grundriss" else " · keine Räume (Ansicht/Schnitt)") + _hnote(meta)
         c.execute("UPDATE bk_files SET meta=? WHERE id=?", (json.dumps(meta), fid))
         r = _row(c, i)
         d = clean_data(_j(r["data"], {}), c)
         d["rooms"] = [x for x in d["rooms"] if x["name"] or x["nr"] or x["area"]]
+        if meta.get("hoehen"):
+            d["hoehen"] = {**d.get("hoehen", {}), **meta["hoehen"]}
         have = {(x["floor"], x["nr"], x["name"], round(x["area"], 2)) for x in d["rooms"]}
         added = 0
         for k, x in enumerate(found):
@@ -855,8 +922,10 @@ def _geo(d, cal):
     a = cal["area"] or 0
     foot = a / fl * 1.15 if a else 0   # Brutto-Grundfläche je Geschoss ≈ Raumfläche × 1,15
     per = 4 * (foot ** 0.5) * 1.1 if foot else 0
-    fac = per * fl * 2.9
-    return {"geschosse": fl, "grundflaeche": round(foot), "umfang": round(per), "fassade_brutto": round(fac), "fenster": round(fac * 0.2),
+    hs = list((d.get("hoehen") or {}).values()) or ([d["hoehe_std"]] if d.get("hoehe_std") else [])
+    gh = sum(hs) / len(hs) if hs else 2.9   # Geschosshöhe aus dem Schnitt, sonst eingetragen, sonst üblich
+    fac = per * fl * gh
+    return {"geschosse": fl, "geschosshoehe": round(gh, 2), "grundflaeche": round(foot), "umfang": round(per), "fassade_brutto": round(fac), "fenster": round(fac * 0.2),
             "fassade_netto": round(fac * 0.8), "dach": round(foot * 1.25)}
 
 

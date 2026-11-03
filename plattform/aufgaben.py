@@ -280,7 +280,7 @@ def ruege_vorlage():
             return jsonify(error="Nicht gefunden"), 404
         firma = x["company"] or x["contact"] or ""
         k = c.execute("SELECT * FROM contacts WHERE lower(name)=lower(?) ORDER BY id LIMIT 1", (firma,)).fetchone() if firma else None
-    alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"]]
+    alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"] and m["art"] == "maengel"]
     return jsonify(firma=firma, empfaenger={"name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
                                            "email": k["email"] or ""} if k else {"name": firma, "person": "", "strasse": "", "ort": "", "email": ""},
                    maengel=alle, gewaehlt=[m["id"] for m in alle if m["id"] == i or (firma and m["firma"] == firma)])
@@ -296,7 +296,7 @@ def ruege_pdf():
     from reportlab.pdfgen import canvas
     b = request.get_json(silent=True) or {}
     ids = [int(x) for x in b.get("ids") or [] if str(x).isdigit()]
-    ms = [m for m in maengel("all").get_json() if m["id"] in ids]
+    ms = [m for m in maengel("all").get_json() if m["id"] in ids and m["art"] == "maengel"]
     if not ms:
         return jsonify(error="Bitte mindestens einen Mangel wählen."), 400
     E = b.get("empfaenger") if isinstance(b.get("empfaenger"), dict) else {}

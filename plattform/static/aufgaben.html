@@ -142,7 +142,7 @@ function renderM() {
       <div class="tx"><p>${esc(m.text)}</p><small><span class="st ${m.status}">${m.done ? 'erledigt' : m.status === 'ueberfaellig' ? 'überfällig' : 'offen'}</span> · ${esc(m.art_n)} festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''} · ${appLink('bautagebuch', '') ? `<a href="${esc(appLink('bautagebuch', `#projekt=${m.pid}&bericht=${m.rid}`))}" target="_blank" rel="noopener">Bericht öffnen ↗</a>` : ''}</small></div>
       <div class="ed"><label><span>Firma</span><input data-f="firma" value="${esc(m.firma)}" list="firmList" placeholder="wer behebt?"></label>
         <label><span>Frist</span><input type="date" data-f="frist" value="${esc(m.frist)}"></label>
-        <div style="display:flex;gap:.3rem;justify-content:flex-end">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}</div></div></div>`;
+        <div style="display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}${m.done ? '' : '<button class="btn sm" data-ruege title="Mängelrüge an die Firma als ausfüllbares PDF">✉ Mängelrüge</button>'}</div></div></div>`;
   $('#view').innerHTML = `<div class="kpi">${[['offen', 'Offen'], ['ueberfaellig', 'Überfällig'], ['erledigt', 'Erledigt'], ['alle', 'Alle']].map(([k, l]) => `<button class="${F.status === k ? 'on' : ''}" data-st="${k}">${l}<b>${n[k]}</b></button>`).join('')}</div>
     <div class="flt"><input type="search" id="mq" placeholder="Suchen: Text, Firma, Projekt …" value="${esc(F.q)}">
       <select id="mart"><option value="maengel"${F.art === 'maengel' ? ' selected' : ''}>Mängel</option><option value="zu_erledigen"${F.art === 'zu_erledigen' ? ' selected' : ''}>Zu erledigen</option><option value="weisungen"${F.art === 'weisungen' ? ' selected' : ''}>Weisungen</option><option value=""${!F.art ? ' selected' : ''}>alles</option></select>
@@ -200,6 +200,7 @@ document.addEventListener('click', async (e) => {
   const mr = e.target.closest('[data-m]');
   if (mr) {
     const id = +mr.dataset.m, m = M.find((x) => x.id === id);
+    if (e.target.closest('[data-ruege]')) { ruegeDialog(id); return; }
     const pl = e.target.closest('[data-plus]'); if (pl) { const old = m.frist, nf = plus(+pl.dataset.plus, m.frist && m.frist > iso(new Date()) ? m.frist : null); mSave(id, { frist: nf }, { frist: old }, 'Frist ändern'); return; }
     return;
   }
@@ -227,6 +228,43 @@ document.addEventListener('change', (e) => {
   if (el.dataset.f === 'firma') { const v = el.value.trim(); if (v !== m.firma) mSave(id, { firma: v }, { firma: m.firma }, 'Firma ändern'); }
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'mq') { F.q = e.target.value; LS.set('filter', F); clearTimeout(window._mqT); window._mqT = setTimeout(() => { renderM(); const q = $('#mq'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); } });
+
+/* ---------- Mängelrüge: Dialog → am Bildschirm ausfüllbares PDF ---------- */
+async function ruegeDialog(id) {
+  let V; try { V = await api('api/maengelruege/vorlage?id=' + id); } catch (e) { toast(e.message, true); return; }
+  const E = V.empfaenger, sel = new Set(V.gewaehlt);
+  const ms = () => V.maengel.map((m) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-rm="${m.id}"${sel.has(m.id) ? ' checked' : ''}><span>${esc(m.text)}<small class="mute" style="display:block">${esc(m.firma || 'ohne Firma')} · festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''}</small></span></label>`).join('');
+  const bg = modalBox(`<h3>Mängelrüge</h3><div class="fm">
+    <label>An</label><input id="rN" value="${esc(E.name)}" placeholder="Firma">
+    <label>z. Hd.</label><input id="rP" value="${esc(E.person)}" placeholder="Ansprechpartner (optional)">
+    <label>Straße</label><input id="rS" value="${esc(E.strasse)}">
+    <label>PLZ Ort</label><input id="rO" value="${esc(E.ort)}">
+    <label>Grundlage</label><select id="rG"><option value="vob4">VOB/B § 4 Abs. 7 – vor der Abnahme</option><option value="vob13">VOB/B § 13 Abs. 5 – nach der Abnahme</option><option value="bgb">BGB §§ 634 ff. – Werkvertrag nach BGB</option></select>
+    <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="rF" value="${plus(14)}">${[[7, '1 Woche'], [14, '2 Wochen'], [21, '3 Wochen']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
+    <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">${ms()}</div>
+    <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
+    <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>
+    <p class="w mute" style="font-size:.82rem;margin:0">Das PDF hat ausfüllbare Felder: Empfänger, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich vor dem Drucken oder Versenden am Bildschirm ändern. Der Mustertext ersetzt keine Rechtsberatung.</p></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erzeugen</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m.startsWith('f')) { bg.querySelector('#rF').value = plus(+m.slice(1)); return; }
+    if (m === 'ok') {
+      const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm); if (!ids.length) { toast('Bitte mindestens einen Mangel wählen.', true); return; }
+      const body = { ids, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
+        empfaenger: { name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
+      const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Mängelrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Mängelrüge wird erstellt …</body>');
+      try {
+        const r = await fetch('api/maengelruege', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
+        const href = URL.createObjectURL(await r.blob());
+        if (w && !w.closed) w.location.href = href; else { const a = document.createElement('a'); a.href = href; a.download = 'Mängelrüge.pdf'; document.body.appendChild(a); a.click(); a.remove(); }
+        close(); toast('Mängelrüge erstellt' + (body.frist_eintragen ? ' – Frist bei den Mängeln eingetragen.' : '.'));
+        if (body.frist_eintragen) reload();
+      } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+    }
+  });
+  bg.querySelector('.modal').style.width = 'min(720px,100%)';
+}
 
 /* ---------- Neue Erinnerung ---------- */
 let PRJ = null, USERS = null, CFG = null;

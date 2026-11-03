@@ -237,6 +237,147 @@ def maengel_all():
     return maengel("all").get_json()   # Auswahl kommt als ids; sichtbar ist trotzdem nur, was der Benutzer sehen darf
 
 
+# ---------------------------------------------------------------- Mängelrüge (am Bildschirm ausfüllbares PDF)
+GRUND = {
+    "vob4": ("VOB/B § 4 Abs. 7", "vor der Abnahme"),
+    "vob13": ("VOB/B § 13 Abs. 5", "nach der Abnahme (Gewährleistung)"),
+    "bgb": ("BGB §§ 634 ff.", "Werkvertrag nach BGB"),
+}
+
+
+@app.get("/api/maengelruege/vorlage")
+def ruege_vorlage():
+    """Daten für den Dialog: Empfänger (aus den Kontakten), Projekt, offene Mängel derselben Firma im Projekt."""
+    i = request.args.get("id", type=int)
+    with db.tx() as c:
+        x = c.execute("""SELECT i.id, i.company, r.project_id AS pid, ct.name AS contact FROM items i JOIN reports r ON r.id=i.report_id
+                         LEFT JOIN contacts ct ON ct.id=i.contact_id WHERE i.id=?""", (i,)).fetchone()
+        if not x:
+            return jsonify(error="Nicht gefunden"), 404
+        P = _projects(c)
+        if not _sees(g.user, P.get(x["pid"], {"leaders": []})):
+            return jsonify(error="Nicht gefunden"), 404
+        firma = x["company"] or x["contact"] or ""
+        k = c.execute("SELECT * FROM contacts WHERE lower(name)=lower(?) ORDER BY id LIMIT 1", (firma,)).fetchone() if firma else None
+    alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"]]
+    return jsonify(firma=firma, empfaenger={"name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
+                                           "email": k["email"] or ""} if k else {"name": firma, "person": "", "strasse": "", "ort": "", "email": ""},
+                   maengel=alle, gewaehlt=[m["id"] for m in alle if m["id"] == i or (firma and m["firma"] == firma)])
+
+
+@app.post("/api/maengelruege")
+def ruege_pdf():
+    """Mängelrüge als PDF mit ausfüllbaren Feldern (Empfänger, Datum, Betreff, Text, Mängel, Frist, Unterschrift)."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+    b = request.get_json(silent=True) or {}
+    ids = [int(x) for x in b.get("ids") or [] if str(x).isdigit()]
+    ms = [m for m in maengel("all").get_json() if m["id"] in ids]
+    if not ms:
+        return jsonify(error="Bitte mindestens einen Mangel wählen."), 400
+    E = b.get("empfaenger") if isinstance(b.get("empfaenger"), dict) else {}
+    frist = str(b.get("frist") or "").strip()
+    grund, grund_n = GRUND.get(b.get("grund"), GRUND["vob4"])
+    with db.tx() as c:
+        S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'")}
+        p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (ms[0]["pid"],)).fetchone()
+    de = lambda d: f"{d[8:10]}.{d[5:7]}.{d[:4]}" if d and len(d) >= 10 else ""
+    office = S.get("office_name") or ""
+    absender = ", ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v)
+    bv = p["name"] + (", " + ", ".join(v for v in (p["street"], " ".join(x for x in (p["zip"], p["city"]) if x)) if v) if p and (p["street"] or p["city"]) else "") if p else ms[0]["projekt"]
+    adr = "\n".join(v for v in (E.get("name"), ("z. Hd. " + E["person"]) if E.get("person") else "", E.get("strasse"), E.get("ort")) if v)
+    liste = "\n".join(f"{n}. {m['text'].strip()}" + (f"  (festgestellt am {de(m['datum'])})" if m["datum"] else "") for n, m in enumerate(ms, 1))
+    text = (b.get("text") or "").strip() or (
+        f"Sehr geehrte Damen und Herren,\n\nbei der Ausführung Ihrer Leistungen am oben genannten Bauvorhaben wurden die nachfolgend aufgeführten Mängel festgestellt. "
+        f"Wir fordern Sie gemäß {grund} auf, diese Mängel bis spätestens {de(frist) or '[Datum]'} fachgerecht und für den Auftraggeber kostenfrei zu beseitigen "
+        f"und uns die Beseitigung schriftlich anzuzeigen.\n\nSollten die Mängel nicht innerhalb der gesetzten Frist beseitigt sein, behalten wir uns vor, "
+        f"die Mängel auf Ihre Kosten durch ein anderes Unternehmen beseitigen zu lassen{' und den Vertrag zu kündigen (§ 4 Abs. 7 i. V. m. § 8 Abs. 3 VOB/B)' if b.get('grund', 'vob4') == 'vob4' else ''}. "
+        f"Weitere Ansprüche bleiben vorbehalten.")
+    gruss = "Mit freundlichen Grüßen"
+    name = C.full_name(g.user)
+    buf = io.BytesIO()
+    cv = canvas.Canvas(buf, pagesize=A4)
+    cv.setTitle(f"Mängelrüge – {ms[0]['projekt']}"); cv.setAuthor(office or name)
+    W, H = A4
+    L, R = 22 * mm, W - 18 * mm
+    form = cv.acroForm
+    ink, mute, line = colors.HexColor("#1e1e1e"), colors.HexColor("#6b6f76"), colors.HexColor("#c9cdd3")
+
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    def umbruch(t, w, size):   # Zeilen vorab umbrechen – sonst zeigen manche Betrachter lange Zeilen abgeschnitten
+        out = []
+        for para in t.split("\n"):
+            cur = ""
+            for word in para.split(" "):
+                tryl = (cur + " " + word).strip()
+                if stringWidth(tryl, "Helvetica", size) <= w - 6 or not cur:
+                    cur = tryl
+                else:
+                    out.append(cur); cur = word
+            out.append(cur)
+        return "\n".join(out)
+
+    def feld(nm, x, y, w, h, val, size=10, multi=False, tip=""):
+        if multi:
+            val = umbruch(val, w, size)
+        form.textfield(name=nm, tooltip=tip or nm, x=x, y=y, width=w, height=h, value=val, fontName="Helvetica", fontSize=size, borderWidth=0.5,
+                       borderColor=line, fillColor=colors.HexColor("#f6f8fb"), textColor=ink, fieldFlags="multiline" if multi else "", maxlen=100000, forceBorder=True)
+
+    C.draw_logo(cv, R, H - 12 * mm, 16 * mm, 60 * mm)
+    cv.setFont("Helvetica", 7); cv.setFillColor(mute); cv.drawString(L, H - 48 * mm, absender[:120])
+    feld("Empfaenger", L, H - 80 * mm, 85 * mm, 30 * mm, adr, 10, True, "Empfänger")
+    cv.setFont("Helvetica", 8); cv.drawString(R - 62 * mm, H - 52 * mm, "Datum")
+    feld("Datum", R - 62 * mm, H - 61 * mm, 62 * mm, 7 * mm, datetime.now().strftime("%d.%m.%Y"), 10)
+    cv.drawString(R - 62 * mm, H - 66 * mm, "Bearbeitet von")
+    feld("Bearbeiter", R - 62 * mm, H - 75 * mm, 62 * mm, 7 * mm, name, 10)
+    cv.setFillColor(ink); cv.setFont("Helvetica-Bold", 13); cv.drawString(L, H - 92 * mm, "Mängelrüge")
+    feld("Betreff", L, H - 102 * mm, R - L, 8 * mm, f"Bauvorhaben: {bv}", 10, tip="Betreff / Bauvorhaben")
+    cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, f"Rechtsgrundlage: {grund} ({grund_n})")
+    feld("Text", L, H - 160 * mm, R - L, 52 * mm, text, 9.5, True, "Anschreiben")
+    cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, H - 166 * mm, "Festgestellte Mängel")
+    feld("Maengel", L, H - 226 * mm, R - L, 57 * mm, liste, 9.5, True, "Mängel (Liste ergänzbar)")
+    cv.setFont("Helvetica-Bold", 10); cv.drawString(L, H - 234 * mm, "Frist zur Beseitigung:")
+    feld("Frist", L + 42 * mm, H - 236 * mm, 40 * mm, 7 * mm, de(frist), 10, tip="Frist")
+    feld("Gruss", L, H - 262 * mm, 90 * mm, 20 * mm, f"{gruss}\n\n\n{name}" + (f"\n{office}" if office else ""), 9.5, True, "Gruß und Unterschrift")
+    cv.setFont("Helvetica", 7); cv.setFillColor(mute)
+    foot = " · ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
+    cv.drawCentredString(W / 2, 10 * mm, foot[:180])
+    if b.get("fotos"):   # Anlage: Fotos zu den Mängeln
+        with db.tx() as c:
+            tok = sso.current_token(request, c)
+            imgs = c.execute(f"SELECT item_id, file FROM images WHERE item_id IN ({','.join('?' * len(ms))}) ORDER BY item_id, id", tuple(m["id"] for m in ms)).fetchall()
+        pos, nr = 0, {m["id"]: n for n, m in enumerate(ms, 1)}
+        for im in imgs:
+            try:
+                req = urllib.request.Request(C.BT_INTERNAL + "/uploads/" + urllib.parse.quote(im["file"]), headers={"Cookie": f"{sso.COOKIE}={tok}"})
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    ir = ImageReader(io.BytesIO(r.read()))
+            except Exception:
+                continue
+            if pos % 2 == 0:
+                cv.showPage(); cv.setFont("Helvetica-Bold", 11); cv.setFillColor(ink); cv.drawString(L, H - 18 * mm, "Anlage – Fotos zu den Mängeln")
+            iw, ih = ir.getSize(); bw, bh = R - L, (H - 50 * mm) / 2 - 12 * mm
+            sc = min(bw / iw, bh / ih); y0 = H - 28 * mm - (pos % 2) * (bh + 14 * mm)
+            cv.drawImage(ir, L, y0 - ih * sc, iw * sc, ih * sc)
+            cv.setFont("Helvetica", 8.5); cv.drawString(L, y0 - ih * sc - 5 * mm, f"Mangel {nr[im['item_id']]}")
+            pos += 1
+    cv.save()
+    if b.get("frist_eintragen") and frist:
+        for m in ms:
+            if m["frist"] != frist:
+                try:
+                    C.bt_api("PUT", f"/api/items/{m['id']}", {"due": frist})
+                except RuntimeError:
+                    pass
+    C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{ms[0]['projekt']} · {E.get('name') or ''} · {len(ms)} Mängel")
+    fn = urllib.parse.quote(re.sub(r"[\\/:*?\"<>|]+", "_", f"Mängelrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf")
+    return Response(buf.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{fn}"})
+
+
 # ---------------------------------------------------------------- Bauzeitenpläne → „Firma kommt zur Baustelle“
 def _firm_names(c):
     out = {}

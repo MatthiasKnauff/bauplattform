@@ -40,7 +40,14 @@
     let t = band.querySelector('.bph-tip'); if (!t) { t = document.createElement('div'); t.className = 'bph-tip'; t.setAttribute('role', 'status'); band.appendChild(t); }
     t.textContent = msg; clearTimeout(tipT); tipT = setTimeout(() => t.remove(), 5000);
   }
-  function closeMenus() { if (band) band.querySelectorAll('.bph-menu').forEach((m) => m.remove()); }
+  function closeMenus() {
+    if (!band) return;
+    band.querySelectorAll('.bph-menu').forEach((m) => m.remove());
+    if (lookDirty) {   // Apps mit eigener Farbsteuerung (Bautagebuch, Bauzeitenplan) übernehmen die neuen Farben beim Neuladen
+      lookDirty = false;
+      Promise.resolve(typeof window.flushSave === 'function' ? window.flushSave() : null).catch(() => null).then(() => location.reload());
+    }
+  }
   const prov = (k) => H.providers.find((p) => p.key === k) || { key: k, label: k, ok: k === 'intern', hint: '' };
 
   function renderKi() {
@@ -80,10 +87,40 @@
     m.innerHTML = `<div class="bph-info">Angemeldet als <b>${esc(me.name || '')}</b></div>`
       + apps.map((a) => `<a role="menuitem" href="${esc(appUrl(a))}/"${a.key === H.app ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}${esc(a.key === 'portal' ? 'Startseite' : a.name)}</a>`).join('')
       + '<div class="bph-sep"></div>'
-      + (portal ? `<a role="menuitem" href="${esc(appUrl(portal))}/#darstellung">${IC.look}Darstellung (Farben)</a>` : '')
+      + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung (Farben)</button>`
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
     band.appendChild(m);
   }
+  /* Darstellung: Farbschema und Akzentfarbe des Benutzers – kleines Fenster direkt an der Kopfleiste, gilt in allen Apps */
+  const THEMES = [['dunkel', 'Dunkel'], ['hell', 'Hell'], ['auto', 'Automatisch'], ['klassisch', 'Klassisch Grün']];
+  const ACCENTS = [['#ff5fb3', 'Pink'], ['#ffd200', 'Gelb'], ['#ff9a2e', 'Orange'], ['#ff6b5e', 'Rot'], ['#3ddc84', 'Grün'], ['#2fd6c9', 'Türkis'], ['#4da3ff', 'Blau'], ['#b18cff', 'Violett'], ['#f3f3f1', 'Weiß']];
+  let lookDirty = false;
+  function lookMenu() {
+    band.querySelectorAll('.bph-menu').forEach((x) => x.remove());
+    const me = H.me || {}, t = me.theme || 'dunkel', a = String(me.accent || ACCENTS[0][0]).toLowerCase();
+    const m = document.createElement('div'); m.className = 'bph-menu bph-look'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', 'Darstellung');
+    m.innerHTML = `<div class="bph-info"><b>Darstellung</b> – gilt für dich in allen Apps</div>
+      <div class="bph-lk">${THEMES.map(([k, n]) => `<button type="button" class="bph-th${k === t ? ' on' : ''}" data-th="${k}">${esc(n)}</button>`).join('')}</div>
+      <div class="bph-sw">${ACCENTS.map(([c, n]) => `<button type="button" class="${c === a ? 'on' : ''}" style="background:${c}" data-acc="${c}" title="${n}" aria-label="${n}"></button>`).join('')}
+        <label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}" data-accc></label></div>`;
+    band.appendChild(m);
+    m.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const th = e.target.closest('[data-th]'), ac = e.target.closest('[data-acc]');
+      if (th) saveLook({ theme: th.dataset.th }); else if (ac) saveLook({ accent: ac.dataset.acc });
+    });
+    m.querySelector('[data-accc]').addEventListener('change', (e) => saveLook({ accent: e.target.value }));
+  }
+  async function saveLook(d) {
+    try {
+      const r = await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then((x) => x.json());
+      if (r.error) throw new Error(r.error);
+      H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent });
+      if (typeof window.applyLook === 'function') { window.applyLook(H.me); lookMenu(); } else { lookDirty = true; lookMenu(); }
+      try { localStorage.setItem('bpTheme', r.theme); if (r.accent) localStorage.setItem('accent', r.accent); } catch { /* egal */ }
+    } catch (e) { alert('Darstellung konnte nicht gespeichert werden: ' + e.message); }
+  }
+  H.look = lookMenu;
   async function logout() {
     if (typeof window.flushSave === 'function') { try { await window.flushSave(); } catch { /* weiter */ } }
     const r = await fetch('api/logout', { method: 'POST', credentials: 'same-origin' }).then((x) => x.json()).catch(() => ({}));
@@ -109,6 +146,7 @@
       const k = e.target.closest('[data-ki]');
       if (k) { e.preventDefault(); closeMenus(); setKi(k.dataset.ki); return; }
       if (e.target.closest('[data-out]')) { logout(); return; }
+      if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('.bph-kim')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else kiMenu(); return; }
       if (e.target.closest('.bph-who')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else userMenu(); }
     });

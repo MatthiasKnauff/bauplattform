@@ -19,17 +19,6 @@
 .tile span{color:var(--mute);font-size:.92rem}
 .tile .go{margin-top:auto;color:var(--y);font-weight:600;font-size:.92rem}
 .tile.off{opacity:.45;pointer-events:none}
-.look{margin-top:2.4rem;border-top:1px solid var(--line);padding-top:.7rem;font-size:.86rem;color:var(--mute)}
-.look summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:.45rem;user-select:none}
-.look summary::-webkit-details-marker{display:none}
-.look summary::before{content:"›";display:inline-block;transition:transform .15s;font-size:1.05rem;line-height:1}
-.look[open] summary::before{transform:rotate(90deg)}
-.look summary:hover{color:var(--ink)}
-.look .dot{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px var(--line)}
-.look-in{margin:.7rem 0 0 1rem;display:flex;flex-direction:column;gap:.6rem}
-.look-in p{margin:0;font-size:.8rem}
-.look-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
-.look-row>span{min-width:5.5rem}
 .th{display:flex;gap:.35rem;flex-wrap:wrap}
 .th label{border:1px solid var(--line);border-radius:999px;padding:.2rem .7rem;cursor:pointer;color:var(--mute);background:transparent}
 .th label:hover{color:var(--ink)}
@@ -47,14 +36,6 @@
 <main class="wrap">
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
   <div class="tiles" id="tiles"></div>
-  <details class="look" id="look">
-    <summary>Darstellung <span id="lookSum"></span></summary>
-    <div class="look-in">
-      <div class="look-row"><span>Farbschema</span><div class="th" id="th"></div></div>
-      <div class="look-row"><span>Akzentfarbe</span><div class="sw" id="sw"></div></div>
-      <p>Gilt für dich in allen Apps und auf allen Geräten.</p>
-    </div>
-  </details>
   <div class="foot"><span id="ver"></span></div>
 </main>
 <script src="static/bp.js"></script>
@@ -66,18 +47,6 @@ const DESC = {
   baukosten: ['Baukosten', 'Kosten nach DIN 276 aus Plänen (PDF) und Bauzeitenplan – mit Mittelabfluss und KI-Prüfung.'],
   admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
 };
-function renderLook(me) {
-  const t = me.theme || 'dunkel', a = (me.accent || ACCENTS[0][0]).toLowerCase();
-  $('#th').innerHTML = THEMES.map(([k, n, d]) => `<label class="${t === k ? 'on' : ''}" title="${esc(d)}"><input type="radio" name="th" value="${k}"${t === k ? ' checked' : ''}>${esc(n)}</label>`).join('');
-  const tn = (THEMES.find((x) => x[0] === t) || [t, t])[1];
-  $('#lookSum').innerHTML = `· ${esc(tn)} <i class="dot" style="background:${esc(a)}"></i>`;
-  $('#sw').innerHTML = ACCENTS.map(([c, n]) => `<button class="${a === c ? 'on' : ''}" style="background:${c}" data-c="${c}" title="${n}" aria-label="${n}"></button>`).join('')
-    + `<label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}"></label>`;
-  const save = async (d) => { try { const r = await api('api/appearance', 'PUT', d); applyLook(r); renderLook(r); toast('Darstellung gespeichert – gilt in allen Apps.'); } catch (e) { toast(e.message, true); } };
-  $('#th').onchange = (e) => { if (e.target.name === 'th') save({ theme: e.target.value }); };
-  $('#sw').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b) save({ accent: b.dataset.c }); };
-  $('#sw').querySelector('input[type=color]').onchange = (e) => save({ accent: e.target.value });
-}
 (async () => {
   const me = await api('api/me'); if (!me.ok) { location.href = '/login'; return; }
   applyLook(me);
@@ -90,8 +59,7 @@ function renderLook(me) {
       <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span>${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span>
       ${a.allowed ? '<span class="go">Öffnen →</span>' : ''}</a>`).join('');
   $('#ver').textContent = 'Version ' + conf.version;
-  renderLook(me);
-  if (location.hash === '#darstellung') { $('#look').open = true; $('#look').scrollIntoView({ block: 'center' }); }
+  if (/^#(darstellung|look)$/.test(location.hash) && window.BPHead && BPHead.look) BPHead.ready.then(() => BPHead.look());   // alte Lesezeichen
 })().catch(e => toast(e.message, true));
 </script>
 </body>

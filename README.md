@@ -150,7 +150,7 @@ deshalb muss man sich dort einmal getrennt anmelden. Hat ein Browser noch ein al
 
 Dieselben Kontakte wie im Bautagebuch und im Adressbuch des Bauzeitenplans (Tabelle `contacts`), als eigene App fürs
 Handy und den Rechner: suchen, nach Firmen/Bauherren/Baustellen und Gewerk filtern, anlegen, ändern, anrufen, E-Mail,
-Karte, Visitenkarte ins Handy (vCard), Export als CSV. Löschen geht nur, wenn der Kontakt im Bautagebuch nirgends
+Karte, Visitenkarte ins Handy (vCard), Drucken (PDF, wie im Bautagebuch) und Export als Excel. Löschen geht nur, wenn der Kontakt im Bautagebuch nirgends
 verwendet wird. Baustellenadressen (im Bautagebuch beim Projekt gespeichert) erscheinen nicht als Firmen im Bauzeitenplan.
 
 Läuft zunächst ohne Nginx über Port 8093. Damit die anderen Apps richtig dorthin verlinken, in Portainer `SERVER_HOST`

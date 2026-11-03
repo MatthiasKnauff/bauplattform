@@ -56,7 +56,8 @@
 <body>
 <main class="wrap">
   <div class="bar"><h1>Adressen</h1><span class="fill"></span>
-    <button class="btn sm" id="csv" title="Gefilterte Liste als CSV (Excel)">Export</button>
+    <button class="btn sm" id="pdf" title="Gefilterte Liste drucken (PDF)">Drucken</button>
+    <button class="btn sm" id="xlsx" title="Gefilterte Liste als Excel-Datei">Excel</button>
     <button class="btn pri" id="neu">+ Neu</button></div>
   <div class="flt">
     <input type="search" id="q" placeholder="Suchen: Name, Gewerk, Person, Ort, Telefon …" autocomplete="off">
@@ -146,7 +147,16 @@ $('#kinds').addEventListener('click', (e) => { const b = e.target.closest('[data
 $('#list').addEventListener('click', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) edit(ALL.find((c) => c.id === +el.dataset.id)); });
 $('#list').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('ct')) edit(ALL.find((c) => c.id === +e.target.dataset.id)); });
 $('#neu').onclick = () => edit(null);
-$('#csv').onclick = () => { const r = shown(); location.href = '/api/contacts.csv' + (r.length === ALL.length ? '' : '?ids=' + r.map((c) => c.id).join(',')); };
+// Export wie in der Liste gefiltert; die Beschreibung des Filters steht im Ausdruck oben
+function exportQS() {
+  const r = shown(), p = new URLSearchParams();
+  if (r.length !== ALL.length) p.set('ids', r.map((c) => c.id).join(','));
+  const f = [kind && KINDS.find((k) => k[0] === kind)[1], gw && 'Gewerk: ' + gw, q.trim() && `Suche: „${q.trim()}“`].filter(Boolean).join(', ');
+  if (f) p.set('filter', f);
+  const s = p.toString(); return s ? '?' + s : '';
+}
+$('#pdf').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); window.open('/api/contacts/export.pdf' + exportQS(), '_blank'); };
+$('#xlsx').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); location.assign('/api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
 
 (async () => {
   const me = await api('/api/me'); applyLook(me);

@@ -501,6 +501,9 @@ html[data-theme="dunkel"] .selband{fill:#2c3647}
 .lv-hint{color:#888;font-size:11px;max-width:520px}
 .lv-dim{color:#777}
 .lv-fown{font-weight:600}
+.lv-pt td input,.lv-pt td select{border-color:#dcdcdc;background:#fff}
+.lv-pt td select[data-psec]{min-width:190px;max-width:320px}
+.lv-pt td input[data-pgw]{min-width:110px}
 .fv-t td input.lv-miss{background:#fff4f2;border-color:#f0c4bc}
 .fv-t td input.lv-diff{background:#fff8e1}
 .lv-sub{display:flex;gap:2px;padding:8px 16px 0;background:var(--hdr);border-bottom:1px solid var(--bd);flex:none}

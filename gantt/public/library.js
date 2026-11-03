@@ -254,7 +254,7 @@ function libProjectHtml() {
   for (const g of list) {
     const f = firmOf(g), d = libDefaultFor(g), cur = f && !isCraftName(f, g.gw) ? f : '', book = cur && typeof firmByName === 'function' ? firmByName(cur) : null;
     const same = d.name && cur === d.name;
-    h += `<tr data-lpk="${esc(g.key)}"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(g.gw) || '#9e9e9e'}"></span><span>${esc(g.name)}</span></div></td><td class="lv-dim">${esc(g.sec)}</td><td>${esc(g.gw)}</td><td class="num">${g.idx.length}</td>
+    h += `<tr data-lpk="${esc(g.key)}"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(g.gw) || '#9e9e9e'}"></span><span>${esc(g.name)}</span></div></td><td>${libSecSelect(g)}</td><td><input data-pgw="1" list="lvGwList" value="${esc(g.gw)}" placeholder="Gewerk"></td><td class="num">${g.idx.length}</td>
       <td class="lv-dim" style="white-space:nowrap" data-sort="${isFinite(g.sd) ? String(g.sd).padStart(8, '0') : ''}">${isFinite(g.sd) ? (g.sd === g.fd ? fmtD(g.sd) : fmtShort(g.sd) + ' – ' + fmtD(g.fd)) : ''}</td>
       <td><input data-pfirm="1" list="fvFirmList2" value="${esc(f === null ? '' : cur)}" placeholder="${f === null ? 'verschieden – neu setzen' : 'keine Firma'}" class="${!cur ? 'lv-miss' : same ? '' : d.name ? 'lv-diff' : ''}"></td>
       <td class="lv-dim">${d.name ? esc(d.name) + (d.own ? '' : ' <small>(Gewerk)</small>') : '–'}</td>
@@ -263,6 +263,36 @@ function libProjectHtml() {
   }
   if (!list.length) h += `<tr><td colspan="9" class="fv-empty">${rows.length ? 'Alle Leistungen haben eine Firma.' : 'Das Projekt hat noch keine Leistungen.'}</td></tr>`;
   return h + '</tbody></table></div>';
+}
+// Abschnitt im Projekt: Assistenten-Leistungen über den Planungsassistenten (Abschnitt = Phase),
+// sonst Verschieben unter einen gleichnamigen Abschnitt im selben Gebäude-/Wohnungsblock
+const libLiveAssist = () => !!(window.AssistCore && P && P.assist && AssistCore.status().live);
+function libSecSelect(g) {
+  const T = P.tasks, t0 = T[g.idx[0]];
+  if (g.cat && libLiveAssist()) {
+    const it = AssistCore.items(P.assist).find((x) => x.id === g.cat), cur = it ? it.ph : '';
+    if (cur) return `<select data-psec="ph">${libPhases().map((p) => `<option value="${p.k}"${p.k === cur ? ' selected' : ''}>${esc(p.n)}</option>`).join('')}</select>`;
+  }
+  const L = (t0.lvl || 0) - 1; if (L < 0) return `<span class="lv-dim">${esc(g.sec)}</span>`;
+  const names = [...new Set(T.filter((t, i) => (t.lvl || 0) === L && i + 1 < T.length && (T[i + 1].lvl || 0) > L).map((t) => t.name))];
+  if (!names.includes(g.sec)) names.unshift(g.sec);
+  return `<select data-psec="name">${names.map((n) => `<option${n === g.sec ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+}
+function libMoveSection(g, name) {
+  const uids = g.idx.map((i) => P.tasks[i].uid); let moved = 0, miss = 0;
+  act(() => {
+    for (const u of uids) {
+      const T = P.tasks, i = T.findIndex((t) => t.uid === u); if (i < 0) continue;
+      const L = T[i].lvl || 0; let p = i - 1; while (p >= 0 && (T[p].lvl || 0) >= L) p--;
+      if (p < 0 || T[p].name === name) continue;
+      const pl = T[p].lvl || 0; let gp = p - 1; while (gp >= 0 && (T[gp].lvl || 0) >= pl) gp--;
+      const from = gp < 0 ? 0 : gp + 1, to = gp < 0 ? T.length - 1 : blockEnd(gp);
+      let j = -1; for (let k = from; k <= to; k++) if ((T[k].lvl || 0) === pl && k !== p && T[k].name === name && k + 1 < T.length && (T[k + 1].lvl || 0) > pl) { j = k; break; }
+      if (j < 0) { miss++; continue; }
+      const tgt = T[j], [t] = T.splice(i, 1), jj = T.indexOf(tgt); T.splice(blockEnd(jj) + 1, 0, t); moved++;
+    }
+  });
+  toast(miss ? `${moved} verschoben · ${miss}× gibt es „${name}“ im selben Block nicht – dort im Plan unter „Leistung“ verschieben.` : `„${g.name}“ nach „${name}“ verschoben.`, !!miss && !moved);
 }
 function libSetProjectFirm(keys, nameOf) {
   const rows = libProjectRows().filter((g) => keys.includes(g.key)); let n = 0;
@@ -306,6 +336,16 @@ $('#libView').addEventListener('change', (e) => {
   }
   if (t.dataset.sfirm) { const v = t.value.trim(); libBook(v, (CATALOG.items.find((i) => i.id === t.dataset.sfirm) || {}).gw); if (v) CATFIRMS[t.dataset.sfirm] = v; else delete CATFIRMS[t.dataset.sfirm]; CATFIRMS = { ...CATFIRMS }; saveCatFirms(); if (window.AssistCore) AssistCore.notifySoon(); renderLib(); return; }
   if (t.dataset.pfirm) { const k = t.closest('tr').dataset.lpk; libSetProjectFirm([k], () => t.value); renderLib(); return; }
+  if (t.dataset.pgw || t.dataset.psec) {
+    const k = t.closest('tr').dataset.lpk, g = libProjectRows().find((x) => x.key === k); if (!g) return;
+    if (t.dataset.pgw) {
+      const v = t.value.trim(); if (!v || v === g.gw) { renderLib(); return; }
+      gwColor(v); act(() => { for (const i of g.idx) P.tasks[i].gw = v; }); toast(`Gewerk von „${g.name}“: ${v}`);
+    } else if (t.dataset.psec === 'ph') {
+      if (AssistCore.movePhase(g.cat, t.value) === false) toast('Abschnitt nicht änderbar – siehe Hinweis im Plan.', true); else toast(`„${g.name}“ nach „${libPhName(t.value)}“ verschoben.`);
+    } else libMoveSection(g, t.value);
+    renderLib(); return;
+  }
   const tr = t.closest('tr[data-lid]'); if (!tr || !t.dataset.k) return;
   const id = tr.dataset.lid, k = t.dataset.k, x = window.LIBRARY.find((y) => y.id === id); if (!x) return;
   let v = t.value; const f = {};

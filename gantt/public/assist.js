@@ -591,6 +591,17 @@
         applySel(had ? (pres) => [...pres, id] : null, (c) => { const b = { ...(c.bezug || {}) }; if (sc === base) delete b[id]; else b[id] = sc; c.bezug = b; });
       });
     },
+    // Abschnitt einer Assistenten-Leistung in diesem Projekt ändern (wie Verschieben im Assistenten); Daten der Zeilen bleiben
+    movePhase(id, ph) {
+      if (!isLive()) return false;
+      const base = id.split('~')[0], cfg = P.assist;
+      const orig = (C.items.find((i) => i.id === base) || (cfg.custom || []).find((c) => c.id === base) || libList().find((x) => x.id === base) || {}).ph;
+      if (!orig) return false;
+      const phase = { ...(cfg.phase || {}) }; if (ph === orig) delete phase[base]; else phase[base] = ph;
+      return act(() => applySel(null, (c) => { c.phase = phase; }, null, (cfg2) => {
+        for (const cid of [...new Set(P.tasks.filter((t) => t.cat && t.cat.split('~')[0] === base).map((t) => t.cat))]) reposition(cid, cfg2);
+      }));
+    },
     patchCfg(patch, movedId) {
       if (!isLive()) return false; patch = clone(patch);
       return act(() => applySel(null, (c) => { Object.assign(c, patch); }, null, movedId ? (cfg) => reposition(movedId, cfg) : null));

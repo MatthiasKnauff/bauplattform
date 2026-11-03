@@ -1,5 +1,11 @@
 # Änderungsprotokoll – Gantt-App (Bauzeitenplan)
 
+## 3.3.0 – 03.11.2026
+- **Leistungskatalog → Projekt: Abschnitt, Gewerk und Firma direkt änderbar.** Die Felder sind jetzt als Eingabefelder erkennbar.
+  - **Abschnitt:** Leistungen aus dem Planungsassistenten werden wie beim Verschieben im Assistenten in den gewählten Abschnitt gesetzt (in allen Wohnungen, Daten bleiben). Andere Leistungen wandern unter den gleichnamigen Abschnitt im selben Gebäude-/Wohnungsblock.
+  - **Gewerk:** gilt für alle Zeilen dieser Leistung im Plan (z. B. alle Wohnungen).
+  - Alles mit Strg+Z rückgängig.
+
 ## 3.2.0 – 03.11.2026
 - **Bezug umstellbar (Gebäude ↔ je Wohnung)**, auch bei Leistungen aus dem Standardkatalog:
   - **Im Planungsassistenten je Projekt:** Bei mehreren Einheiten steht an jeder Leistung „Gebäude“ bzw. „je Whg.“ – anklicken stellt um. Im laufenden Plan wird die Leistung dabei neu angelegt (z. B. Rollläden: statt einer Zeile unter „Gebäude / Allgemein“ je eine Zeile in jeder Wohnung); eigene Dauer bleibt, mit Strg+Z rückgängig. Gestrichelt umrandet = in diesem Projekt geändert.

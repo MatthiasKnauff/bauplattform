@@ -59,6 +59,32 @@ def blueprint(get_user=None):
             prov = ai.providers(c)
         return jsonify(choice=k, providers=prov)
 
+    @bp.put("/api/bp/darstellung")
+    def darstellung():
+        """Farbschema und Akzentfarbe des angemeldeten Benutzers (gilt in allen Apps)."""
+        import re
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        d = request.get_json(silent=True) or {}
+        sets, args = [], []
+        if "theme" in d:
+            t = str(d.get("theme") or "").strip().lower()
+            t = "" if t == "dunkel" else t
+            if t not in sso.THEMES:
+                return jsonify(error="Unbekanntes Farbschema."), 400
+            sets.append("theme=?"); args.append(t)
+        if "accent" in d:
+            a = str(d.get("accent") or "").strip().lower()
+            if a and not re.fullmatch(r"#[0-9a-f]{6}", a):
+                return jsonify(error="Ungültige Farbe."), 400
+            sets.append("accent=?"); args.append(a)
+        with db.tx() as c:
+            if sets:
+                c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, u["id"]))
+            r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
+        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "")
+
     @bp.get("/api/bp/projektnamen")
     def projektnamen():
         """Namensvorschläge für jedes Eingabefeld „Projektname“ in allen Apps."""

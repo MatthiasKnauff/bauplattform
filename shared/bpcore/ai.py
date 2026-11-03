@@ -60,6 +60,32 @@ def ollama_state():
         return {"ok": _oll["ok"], "hint": _oll["hint"], "models": list(_oll["models"])}
 
 
+CLAUDE_MODELS = {"claude-haiku-5-5": "Claude Haiku 5.5 – schnell, günstig", "claude-sonnet-5-5": "Claude Sonnet 5.5 – genauer",
+                 "claude-opus-5-5": "Claude Opus 5.5 – am gründlichsten"}
+
+
+def store(c, key):
+    """Einstellungen aus der Datenbank (Verwaltung → Einstellungen). 'settings' = Bauzeitenplan/Claude, 'plattform' = übrige KI."""
+    if c is None:
+        return {}
+    try:
+        r = c.execute("SELECT data FROM gantt_store WHERE key=?", (key,)).fetchone()
+        v = json.loads(r["data"]) if r else {}
+        return v if isinstance(v, dict) else {}
+    except Exception:
+        return {}
+
+
+def ext_conf(c, prov):
+    """Schlüssel/Modell für Gemini bzw. ChatGPT: in der Verwaltung hinterlegt, sonst Umgebungsvariable."""
+    k = (store(c, "plattform").get("ki") or {}).get(prov) or {}
+    if prov == "gemini":
+        return {"key": k.get("key") or _env("GEMINI_API_KEY"), "model": k.get("model") or _env("GEMINI_MODEL", "gemini-2.5-flash"),
+                "fromEnv": not k.get("key") and bool(_env("GEMINI_API_KEY"))}
+    return {"key": k.get("key") or _env("OPENAI_API_KEY"), "model": k.get("model") or _env("OPENAI_MODEL", "gpt-4.1-mini"),
+            "fromEnv": not k.get("key") and bool(_env("OPENAI_API_KEY"))}
+
+
 def claude_conf(c=None):
     """Schlüssel/Modell wie im Bauzeitenplan (Programmeinstellungen), sonst ANTHROPIC_API_KEY."""
     a = {}
@@ -85,13 +111,13 @@ def providers(c=None):
             ok, hint = st["ok"], (desc + " · " + st["hint"]) if st["ok"] else st["hint"]
         elif k == "claude":
             ok = bool(claude_conf(c)["key"])
-            hint = desc if ok else "nicht eingerichtet (Schlüssel im Bauzeitenplan → Einstellungen oder ANTHROPIC_API_KEY)"
+            hint = desc if ok else "nicht eingerichtet (Verwaltung → Einstellungen → KI)"
         elif k == "gemini":
-            ok = bool(_env("GEMINI_API_KEY"))
-            hint = desc if ok else "nicht eingerichtet (GEMINI_API_KEY)"
+            ok = bool(ext_conf(c, "gemini")["key"])
+            hint = desc if ok else "nicht eingerichtet (Verwaltung → Einstellungen → KI)"
         else:
-            ok = bool(_env("OPENAI_API_KEY"))
-            hint = desc if ok else "nicht eingerichtet (OPENAI_API_KEY)"
+            ok = bool(ext_conf(c, "chatgpt")["key"])
+            hint = desc if ok else "nicht eingerichtet (Verwaltung → Einstellungen → KI)"
         out.append({"key": k, "label": label, "ok": ok, "hint": hint, "paid": k in ("claude", "gemini", "chatgpt")})
     return out
 
@@ -145,10 +171,10 @@ def ask(provider, system, user, max_tokens=900, c=None, json_mode=False):
                   {"x-api-key": k["key"], "anthropic-version": "2023-06-01"})
         return "".join(x.get("text", "") for x in d.get("content") or [] if x.get("type") == "text")
     if provider == "gemini":
-        key = _env("GEMINI_API_KEY")
+        g = ext_conf(c, "gemini")
+        key, model = g["key"], g["model"]
         if not key:
             raise AIError("Kein Gemini-Schlüssel hinterlegt")
-        model = _env("GEMINI_MODEL", "gemini-2.5-flash")
         cfg = {"maxOutputTokens": max_tokens, "temperature": 0.2}
         if json_mode:
             cfg["responseMimeType"] = "application/json"
@@ -158,10 +184,11 @@ def ask(provider, system, user, max_tokens=900, c=None, json_mode=False):
         cand = (d.get("candidates") or [{}])[0]
         return "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts") or [])
     if provider == "chatgpt":
-        key = _env("OPENAI_API_KEY")
+        o = ext_conf(c, "chatgpt")
+        key = o["key"]
         if not key:
             raise AIError("Kein OpenAI-Schlüssel hinterlegt")
-        p = {"model": _env("OPENAI_MODEL", "gpt-4.1-mini"), "max_completion_tokens": max_tokens,
+        p = {"model": o["model"], "max_completion_tokens": max_tokens,
              "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
         if json_mode:
             p["response_format"] = {"type": "json_object"}

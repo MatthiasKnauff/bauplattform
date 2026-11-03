@@ -896,6 +896,8 @@ def settings():
     with db.tx() as c:
         if request.method == "GET":
             return jsonify(ai=ai_public(c))
+        if not g.user["is_admin"]:
+            return jsonify(error="KI-Einstellungen ändert die Verwaltung (Einstellungen → KI)."), 403
         b = body()
         st = store_get(c, "settings", {}) or {}
         a = dict(st.get("ai") or {})

@@ -259,6 +259,10 @@ Auf Docker 2 unter `https://baukosten.gk3-architektur.de`: im Nginx Proxy Manage
 
 ## Verwaltung (eigener Container)
 
+**Einstellungen** (Reiter in der Verwaltung, zentral für alle Apps): eigene Darstellung (Farbschema, Akzentfarbe), KI (Positionsvorschlag
+an/aus, Schlüssel und Modelle für Claude, Gemini, ChatGPT, Zustand von Ollama mit Verbindungstest) und eigene Kennwerte der Baukosten.
+Büro, Logo, E-Mail, Ablage und Sicherung bleiben im Bautagebuch. „Beim Löschen fragen“ schaltet jeder im Bauzeitenplan im Reiter „Leistung“.
+
 Nur für Administratoren. Die Benutzer sind dieselben wie im Bautagebuch.
 
 - **Projekte anlegen, bearbeiten, archivieren:** Bauvorhaben, Bauherrschaft, Adresse, Projektordner und „Sichtbar für“ (zuständige

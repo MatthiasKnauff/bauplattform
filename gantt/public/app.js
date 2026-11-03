@@ -451,17 +451,15 @@ function updateProjSub() {
   el.textContent = n && CAL ? `${fmtD(P.start)} – ${fmtD(CAL.peDay)} · ${n} Leistungen` : 'Noch keine Leistungen';
 }
 
-/* ---------- Programmeinstellungen ---------- */
+/* ---------- Einstellungen: zentral in der Verwaltung (KI, Farben …); „Beim Löschen fragen“ im Reiter Leistung ---------- */
 function settingsDialog() {
-  // Farbschema und Akzentfarbe werden zentral auf der Startseite der Bauplattform eingestellt (gilt für alle Apps)
-  const portal = window.BP && BP.conf && (BP.conf.apps || []).find((a) => a.key === 'portal');
-  const pUrl = portal ? (portal.url || `${location.protocol}//${location.hostname}:${portal.port}`) + '/#look' : '';
-  const bg = modal('Programmeinstellungen', `<div class="sec" style="margin-top:0">Farbschema</div>
-    <div class="hint">Farbschema und Akzentfarbe stellst du jetzt zentral auf der Startseite ein – sie gelten dann in allen Apps und auf allen Geräten.${pUrl ? ` <a href="${esc(pUrl)}">Startseite → Darstellung</a>` : ''} Druck und PDF bleiben immer hell.</div>
-    <div class="sec">Löschen</div><label class="cb"><input type="checkbox" id="setDelAsk"${LS.get('delAsk', true) ? ' checked' : ''}> Beim Löschen von Leistungen fragen, ob die Dauer auf eine Hauptleistung umgelegt wird</label>${typeof aiSettingsHtml === 'function' ? aiSettingsHtml() : ''}`,
-  [{ label: 'OK', cls: 'primary', primary: true, fn: (b2) => { LS.set('delAsk', b2.querySelector('#setDelAsk').checked); if (saveAi) saveAi(); } }, { label: 'Abbrechen' }]);
-  const saveAi = typeof aiSettingsWire === 'function' ? aiSettingsWire(bg) : null;
-  bg.querySelector('.modal').style.width = 'min(640px,94vw)';
+  const conf = window.BP && BP.conf, me = window.BP && BP.me;
+  const admin = conf && (conf.apps || []).find((a) => a.key === 'admin' && a.allowed);
+  if (admin && window.BPHead) { window.open(BPHead.appUrl(admin) + '/#einstellungen', '_blank', 'noopener'); return; }
+  const portal = conf && (conf.apps || []).find((a) => a.key === 'portal');
+  modal('Einstellungen', `<div style="max-width:440px;line-height:1.5">Die Einstellungen der Bauplattform (KI, Kennwerte …) nimmt die Verwaltung vor${me ? '' : ''}.<br><br>
+    Deine Farben stellst du auf der Startseite unter <b>Darstellung</b> ein${portal && window.BPHead ? ` – <a href="${esc(BPHead.appUrl(portal))}/#darstellung">zur Startseite</a>` : ''}.<br>
+    Ob beim Löschen von Leistungen nachgefragt wird, schaltest du im Reiter <b>Leistung</b> um.</div>`, [{ label: 'OK', cls: 'primary', primary: true }]);
 }
 function renderAfterTheme() { if (P) render(); }
 
@@ -771,6 +769,7 @@ function updateRibbon() {
   b('undo').disabled = !undoS.length; b('redo').disabled = !redoS.length;
   $('#btnCrit').classList.toggle('on', showCrit);
   $('#btnAuto').classList.toggle('on', !!autoLink);
+  { const da = $('#btnDelAsk'); if (da) da.classList.toggle('on', !!LS.get('delAsk', true)); }
   $('#btnAssist').classList.toggle('on', document.body.classList.contains('assist-open'));
   const has = selIdx().length > 0;
   ['deleteSel', 'indent', 'outdent', 'unlinkSel', 'taskInfo', 'scrollToTask', 'moveUp', 'moveDown', 'insertSummary'].forEach((a) => { b(a).disabled = !has; });
@@ -1091,7 +1090,7 @@ function deleteSel(mode) {
     const tot = cand.reduce((a, c) => a + P.tasks[c.k].dur, 0);
     const bg = modal('Leistungen löschen', `<div style="margin-bottom:8px">${del.size === 1 ? 'Die Leistung wird' : del.size + ' Leistungen werden'} gelöscht – zusammen <b>${fmtDur(tot)}</b> Arbeit. Soll sich die Gesamtzeit verkürzen oder wird die Dauer auf die Hauptleistung umgelegt?</div>
       <table class="ptab"><thead><tr><th>Gelöschte Leistung</th><th style="width:80px">Dauer</th><th>Dauer umlegen auf</th></tr></thead><tbody>${cand.map((c) => `<tr><td>${esc(P.tasks[c.k].name)}</td><td>${fmtDur(P.tasks[c.k].dur)}</td><td><select data-mk="${P.tasks[c.k].uid}">${leafOpts(c.to)}</select></td></tr>`).join('')}</tbody></table>
-      <label class="cb" style="margin-top:8px"><input type="checkbox" id="delAskOff"> nicht mehr fragen (immer verkürzen) – wieder einschalten unter Programmeinstellungen</label>`,
+      <label class="cb" style="margin-top:8px"><input type="checkbox" id="delAskOff"> nicht mehr fragen (immer verkürzen) – wieder einschalten im Reiter „Leistung“ → „Beim Löschen fragen“</label>`,
       [{ label: 'Gesamtzeit verkürzen', fn: (b2) => { if (b2.querySelector('#delAskOff').checked) LS.set('delAsk', false); setTimeout(() => deleteSel('cut'), 0); } },
         { label: 'Dauer umlegen', cls: 'primary', primary: true, fn: (b2) => { const m = {}; b2.querySelectorAll('[data-mk]').forEach((s2) => { if (s2.value) m[s2.dataset.mk] = +s2.value; }); setTimeout(() => deleteSel(m), 0); } },
         { label: 'Abbrechen', left: true }]);
@@ -2296,6 +2295,7 @@ const ACTIONS = {
   splitMode: () => setSplitMode(!splitMode),
   toggleAssist: () => setAssistOpen(!document.body.classList.contains('assist-open')),
   popoutAssist: () => popoutAssist(),
+  toggleDelAsk: () => { const v = !LS.get('delAsk', true); LS.set('delAsk', v); updateRibbon(); toast(v ? 'Beim Löschen fragen: EIN – du wählst, ob die Dauer auf eine Hauptleistung umgelegt wird.' : 'Beim Löschen fragen: AUS – die Gesamtzeit verkürzt sich.'); },
   toggleAutoLink: () => { autoLink = !autoLink; LS.set('autolink', autoLink); updateRibbon(); toast(autoLink ? 'Automatisch verknüpfen: EIN – beim Einfügen und Löschen werden Verknüpfungen angepasst.' : 'Automatisch verknüpfen: AUS'); },
   gwDialog, gwAuto,
   settings: () => settingsDialog(),

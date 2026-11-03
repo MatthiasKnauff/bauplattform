@@ -472,4 +472,104 @@ def project_delete():
     return jsonify(ok=True, done=done, errors=errors)
 
 
+# ---------------------------------------------------------------- Einstellungen (zentral für alle Apps)
+def _put_store(c, key, val):
+    c.execute("INSERT INTO gantt_store(key, data, updated, updated_by) VALUES(?,?,?,?) "
+              "ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by",
+              (key, json.dumps(val, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), g.user["name"]))
+
+
+def _hint(k):
+    return ("…" + k[-4:]) if k else ""
+
+
+def _einst(c):
+    from bpcore import ai, kosten
+    st = ai.store(c, "settings").get("ai") or {}
+    cl = ai.claude_conf(c)
+    gm, oa = ai.ext_conf(c, "gemini"), ai.ext_conf(c, "chatgpt")
+    oll = ai.ollama_state()
+    r = c.execute("SELECT data FROM bk_store WHERE key='kennwerte'").fetchone()
+    own = json.loads(r["data"]) if r and r["data"] else {}
+    own = own if isinstance(own, dict) else {}
+    return {
+        "ki": {
+            "vorschlag": st.get("mode") if st.get("mode") in ("off", "builtin", "ai") else "builtin",
+            "claude": {"hasKey": bool(cl["key"]), "hint": _hint(cl["key"]), "fromEnv": not st.get("key") and bool(os.environ.get("ANTHROPIC_API_KEY")),
+                       "model": cl["model"], "models": ai.CLAUDE_MODELS},
+            "gemini": {"hasKey": bool(gm["key"]), "hint": _hint(gm["key"]), "fromEnv": gm["fromEnv"], "model": gm["model"]},
+            "chatgpt": {"hasKey": bool(oa["key"]), "hint": _hint(oa["key"]), "fromEnv": oa["fromEnv"], "model": oa["model"]},
+            "ollama": {"url": bool(ai.ollama_url()), "model": ai.ollama_model(), "ok": oll["ok"], "hint": oll["hint"], "models": oll["models"]},
+        },
+        "kennwerte": [{"key": k, "label": lab, "beispiel": kw, "eigen": own.get(k)} for k, lab, kw, _ in kosten.TYPES],
+    }
+
+
+@app.route("/api/einstellungen", methods=["GET", "PUT"])
+def einstellungen():
+    with db.tx() as c:
+        if request.method == "PUT":
+            from bpcore import ai, kosten
+            b = request.get_json(silent=True) or {}
+            ki = b.get("ki") if isinstance(b.get("ki"), dict) else None
+            changed = []
+            if ki:
+                st = ai.store(c, "settings")
+                a = dict(st.get("ai") or {})
+                if ki.get("vorschlag") in ("off", "builtin", "ai"):
+                    a["mode"] = ki["vorschlag"]
+                cl = ki.get("claude") if isinstance(ki.get("claude"), dict) else {}
+                if cl.get("model") in ai.CLAUDE_MODELS:
+                    a["model"] = cl["model"]
+                if cl.get("clearKey"):
+                    a.pop("key", None); changed.append("Claude-Schlüssel entfernt")
+                elif isinstance(cl.get("key"), str) and cl["key"].strip():
+                    a["key"] = cl["key"].strip()[:300]; changed.append("Claude-Schlüssel")
+                st["ai"] = a
+                _put_store(c, "settings", st)
+                pl = ai.store(c, "plattform")
+                pk = dict(pl.get("ki") or {})
+                for prov in ("gemini", "chatgpt"):
+                    x = ki.get(prov) if isinstance(ki.get(prov), dict) else {}
+                    cur = dict(pk.get(prov) or {})
+                    if isinstance(x.get("model"), str) and x["model"].strip():
+                        cur["model"] = x["model"].strip()[:80]
+                    if x.get("clearKey"):
+                        cur.pop("key", None); changed.append(f"{prov}-Schlüssel entfernt")
+                    elif isinstance(x.get("key"), str) and x["key"].strip():
+                        cur["key"] = x["key"].strip()[:300]; changed.append(f"{prov}-Schlüssel")
+                    pk[prov] = cur
+                pl["ki"] = pk
+                _put_store(c, "plattform", pl)
+            if isinstance(b.get("kennwerte"), dict):
+                keys = {k for k, _, _, _ in kosten.TYPES}
+                own = {}
+                for k, v in b["kennwerte"].items():
+                    if k in keys and v not in (None, ""):
+                        try:
+                            own[k] = max(0.0, min(50000.0, float(str(v).replace(",", "."))))
+                        except ValueError:
+                            pass
+                c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('kennwerte',?,?,?) "
+                          "ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated=excluded.updated, updated_by=excluded.updated_by",
+                          (json.dumps(own), datetime.now().isoformat(timespec="seconds"), g.user["name"]))
+                changed.append("Kennwerte Baukosten")
+            C.audit(g.user["name"], "verwaltung", "Einstellungen geändert", ", ".join(changed) or "KI")
+        return jsonify(_einst(c))
+
+
+@app.post("/api/einstellungen/ki-test")
+def ki_test():
+    from bpcore import ai
+    prov = str((request.get_json(silent=True) or {}).get("provider") or "")
+    if prov not in ("claude", "gemini", "chatgpt", "ollama"):
+        return jsonify(error="Unbekannter Anbieter"), 400
+    try:
+        with db.tx() as c:
+            t = ai.ask(prov, "Antworte nur mit dem Wort OK.", "Test", 20, c)
+        return jsonify(ok=True, answer=(t or "").strip()[:40])
+    except ai.AIError as e:
+        return jsonify(error=str(e)), 502
+
+
 C.wait_schema()

@@ -35,6 +35,24 @@ tr.off td:last-child{opacity:1}
 .dl{display:flex;flex-direction:column;gap:.5rem;margin:.6rem 0}
 .dl label{display:flex;gap:.6rem;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem;cursor:pointer}
 .dl label small{display:block;color:var(--mute)}
+.st{margin-bottom:1rem}
+.st h2{margin:0 0 .3rem}
+.st>p.mute{margin:0 0 .9rem;font-size:.9rem}
+.st-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.45rem 0}
+.st-row>span{min-width:220px;font-weight:500}
+.sw{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.sw button,.sw label{width:26px;height:26px;border-radius:50%;border:2px solid transparent;padding:0;box-shadow:0 0 0 1px var(--line);position:relative;overflow:hidden;cursor:pointer}
+.sw .on{border-color:var(--ink)}
+.sw label{background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)}
+.sw input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.st-k{border:1px solid var(--line);border-radius:10px;padding:.8rem 1rem;margin-top:.7rem}
+.st-kh{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.st-g{display:grid;grid-template-columns:1.4fr 1fr;gap:.6rem 1rem;margin-top:.6rem}
+.st-g label{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--mute)}
+.st-g input,.st-g select{color:var(--ink);font-size:.95rem}
+.st-a{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.6rem}
+.st-r{font-size:.85rem}
+@media (max-width:640px){.st-g{grid-template-columns:1fr}.st-row>span{min-width:0}}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--card)}
 .seg button{border-radius:999px;padding:.35rem .9rem;color:var(--mute);font-size:.9rem;white-space:nowrap}
 .seg button.on{background:var(--y);color:var(--on);font-weight:600}
@@ -75,7 +93,7 @@ tr.off td:last-child{opacity:1}
 <main class="wrap" id="main"></main>
 <script src="static/bp.js"></script>
 <script>
-const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer'], ['sessions', 'Angemeldet'], ['system', 'System']];
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer'], ['sessions', 'Angemeldet'], ['einstellungen', 'Einstellungen'], ['system', 'System']];
 let tab = (location.hash || '#projekte').slice(1), me = null, data = {};
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
 const SYS = [['health', 'Server-Status'], ['protokoll', 'Protokoll']];
@@ -90,6 +108,7 @@ async function load() {
     if (tab === 'projekte') { data.p = await api('api/projects'); renderProjects(); }
     else if (tab === 'users') { data.u = await api('api/users'); renderUsers(); }
     else if (tab === 'sessions') { data.s = await api('api/sessions'); renderSessions(); }
+    else if (tab === 'einstellungen') { data.e = await api('api/einstellungen'); renderSettings(); }
     else if ((data.sys || 'health') === 'health') { m.innerHTML = sysNav() + '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
     else { data.a = await api('api/audit?cat=' + (data.cat || '')); renderAudit(); }
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
@@ -230,6 +249,65 @@ function delDlg(p) {
     bg.querySelector('[data-m="del"]').disabled = !sel.length;
   });
 }
+
+
+/* ---------- Einstellungen: Darstellung, KI, Baukosten – zentral für alle Apps ---------- */
+function renderSettings() {
+  const E = data.e, K = E.ki, me0 = me || {};
+  const t = me0.theme || 'dunkel', a = (me0.accent || ACCENTS[0][0]).toLowerCase();
+  const keyRow = (prov, label, x, extra = '') => `<div class="st-k"><div class="st-kh"><b>${label}</b><span class="pill ${x.hasKey ? 'ok' : ''}">${x.hasKey ? 'eingerichtet' + (x.fromEnv ? ' (Portainer)' : '') : 'nicht eingerichtet'}</span></div>
+    <div class="st-g"><label>API-Schlüssel<input type="password" data-k="${prov}.key" autocomplete="off" placeholder="${x.hasKey ? 'hinterlegt (' + esc(x.hint) + ') – zum Ändern neu eingeben' : 'Schlüssel einfügen'}"></label>
+    <label>Modell${extra || `<input data-k="${prov}.model" value="${esc(x.model)}" autocomplete="off">`}</label></div>
+    <div class="st-a">${x.hasKey && !x.fromEnv ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div></div>`;
+  $('#main').innerHTML = `<h1>Einstellungen</h1>
+  <section class="card st"><h2>Darstellung</h2><p class="mute">Deine Farben – gelten für dich in allen Apps und auf allen Geräten. Jeder Benutzer kann sie auch auf der Startseite unter „Darstellung“ selbst einstellen.</p>
+    <div class="st-row"><span>Farbschema</span><div class="seg" id="stTheme">${THEMES.map(([k, n, d]) => `<button class="${t === k ? 'on' : ''}" data-th="${k}" title="${esc(d)}">${esc(n)}</button>`).join('')}</div></div>
+    <div class="st-row"><span>Akzentfarbe</span><div class="sw" id="stAcc">${ACCENTS.map(([c, n]) => `<button class="${a === c ? 'on' : ''}" style="background:${c}" data-c="${c}" title="${n}" aria-label="${n}"></button>`).join('')}<label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}" id="stAccC"></label></div></div></section>
+  <section class="card st"><h2>KI</h2><p class="mute">Welche KI jemand nutzt, wählt jeder oben in der Kopfleiste. Hier wird eingerichtet, welche zur Verfügung stehen. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
+    <div class="st-row"><span>Positionsvorschlag im Bauzeitenplan</span><div class="seg" id="stVor">${[['builtin', 'An'], ['off', 'Aus']].map(([k, l]) => `<button class="${(K.vorschlag === 'off' ? 'off' : 'builtin') === k ? 'on' : ''}" data-vor="${k}">${l}</button>`).join('')}</div></div>
+    <div class="st-k"><div class="st-kh"><b>Ollama – KI im Büro</b><span class="pill ${K.ollama.ok ? 'ok' : 'bad'}">${K.ollama.ok ? 'bereit' : esc(K.ollama.hint)}</span></div>
+      <p class="mute" style="margin:.2rem 0 .5rem">Modell <b>${esc(K.ollama.model)}</b>${K.ollama.models.length ? ' · vorhanden: ' + esc(K.ollama.models.join(', ')) : ''}. Das Modell wird in Portainer über <code>OLLAMA_MODEL</code> festgelegt und beim Start geladen.</p>
+      <div class="st-a"><button class="btn sm" data-sa="test" data-p="ollama">Verbindung testen</button><span class="mute st-r" id="tr-ollama"></span></div></div>
+    ${keyRow('claude', 'Claude (Anthropic)', K.claude, `<select data-k="claude.model">${Object.entries(K.claude.models).map(([k, n]) => `<option value="${k}"${K.claude.model === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`)}
+    ${keyRow('gemini', 'Gemini (Google)', K.gemini)}
+    ${keyRow('chatgpt', 'ChatGPT (OpenAI)', K.chatgpt)}
+    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-sa="saveki">KI-Einstellungen speichern</button></div></section>
+  <section class="card st"><h2>Baukosten – eigene Kennwerte</h2><p class="mute">€ je m² Raumfläche (KG 300 + 400, netto). Gelten für neue Kostenermittlungen; leer = Beispielwert.</p>
+    <div class="tbl"><table><thead><tr><th>Raumtyp</th><th class="r">Beispielwert</th><th class="r">Eigener Wert</th></tr></thead><tbody>${E.kennwerte.map((k) => `<tr><td>${esc(k.label)}</td><td class="r mute">${Math.round(k.beispiel).toLocaleString('de-DE')} €</td>
+      <td class="r"><input data-kw="${k.key}" value="${k.eigen == null ? '' : Math.round(k.eigen)}" inputmode="numeric" style="width:120px;text-align:right" placeholder="–"></td></tr>`).join('')}</tbody></table></div>
+    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-sa="savekw">Kennwerte speichern</button></div></section>
+  <section class="card st"><h2>Weitere Einstellungen</h2><p class="mute">Büroname und Logo, E-Mail-Versand, Ablage auf dem Server und Datensicherung liegen beim Bautagebuch, weil es diese Daten verwaltet.</p>
+    <a class="btn" href="${esc(linkTo('bautagebuch', '#einstellungen'))}" target="_blank" rel="noopener">Im Bautagebuch öffnen</a>
+    <p class="mute" style="margin:.8rem 0 0">Das Nachfragen beim Löschen von Leistungen stellt jeder direkt im Bauzeitenplan im Reiter „Leistung“ ein.</p></section>`;
+  const saveLook = async (d) => { try { const r = await api('api/bp/darstellung', 'PUT', d); me.theme = r.theme; me.accent = r.accent; applyLook(me); renderSettings(); toast('Darstellung gespeichert – gilt in allen Apps.'); } catch (e) { toast(e.message, true); } };
+  $('#stTheme').onclick = (e) => { const b = e.target.closest('[data-th]'); if (b) saveLook({ theme: b.dataset.th }); };
+  $('#stAcc').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b) saveLook({ accent: b.dataset.c }); };
+  $('#stAccC').onchange = (e) => saveLook({ accent: e.target.value });
+  $('#stVor').onclick = (e) => { const b = e.target.closest('[data-vor]'); if (!b) return; data.vor = b.dataset.vor; $('#stVor').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
+}
+$('#main').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-sa]'); if (!b) return;
+  const act = b.dataset.sa, p = b.dataset.p;
+  if (act === 'clear') { data.clear = { ...(data.clear || {}), [p]: true }; b.textContent = 'wird beim Speichern entfernt'; b.disabled = true; return; }
+  if (act === 'test') {
+    const out = $('#tr-' + p); out.textContent = p === 'ollama' ? 'teste … (beim ersten Mal bis zu einer Minute)' : 'teste …'; out.style.color = '';
+    try { const r = await api('api/einstellungen/ki-test', 'POST', { provider: p }); out.textContent = '✔ Antwort erhalten: ' + r.answer; out.style.color = 'var(--ok)'; }
+    catch (er) { out.textContent = '✖ ' + er.message + (p !== 'ollama' ? ' – Schlüssel vorher speichern' : ''); out.style.color = 'var(--red)'; }
+    return;
+  }
+  if (act === 'saveki') {
+    const ki = { claude: {}, gemini: {}, chatgpt: {} };
+    document.querySelectorAll('[data-k]').forEach((el) => { const [pv, f] = el.dataset.k.split('.'); if (el.value.trim() || f === 'model') ki[pv][f] = el.value.trim(); });
+    Object.keys(data.clear || {}).forEach((pv) => { ki[pv].clearKey = true; });
+    if (data.vor) ki.vorschlag = data.vor;
+    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.vor = null; renderSettings(); toast('KI-Einstellungen gespeichert.'); } catch (er) { toast(er.message, true); }
+    return;
+  }
+  if (act === 'savekw') {
+    const kw = {}; document.querySelectorAll('[data-kw]').forEach((el) => { kw[el.dataset.kw] = el.value.trim().replace(/\./g, ''); });
+    try { data.e = await api('api/einstellungen', 'PUT', { kennwerte: kw }); renderSettings(); toast('Kennwerte gespeichert – gelten für neue Kostenermittlungen.'); } catch (er) { toast(er.message, true); }
+  }
+});
 
 /* ---------- Benutzer ---------- */
 function renderUsers(q = data.q || '') {

@@ -24,16 +24,7 @@ import common as C
 app = C.make_app(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024
 
-# Raumtypen mit Beispiel-Kennwerten (€/m² Raumfläche, KG 300 + 400, netto). Beispielwerte – durch eigene ersetzen.
-TYPES = [
-    ("buero", "Büro / Besprechung", 1450, r"büro|buero|besprech|leitung|vorstand|buchhalt|sekretar|lehrer|empfang|schulung|seminar"),
-    ("sanitaer", "Sanitär / Umkleiden", 2600, r"\bwc\b|^wc|bad\b|dusch|umkleide|sanitär|sanitaer|toilette"),
-    ("aufenthalt", "Eingang / Aufenthalt", 1350, r"eingang|foyer|pause|aufenthalt|multifunk|caf[eé]|küche|kueche|teeküche|halle|warte"),
-    ("verkehr", "Flur / Windfang / Treppe", 950, r"flur|windfang|treppe|^th$|diele|\bgang\b|aufzug|vorraum"),
-    ("neben", "Lager / Technik / Archiv", 800, r"lager|putz|server|technik|archiv|material|abstell|hausanschluss|heizung|müll|muell"),
-    ("tier", "Tierbereich", 3200, r"katze|hund|\btier|zwinger|quarant|auslauf|kleintier|stall|voliere"),
-    ("sonst", "Sonstige Räume", 1300, r""),
-]
+from bpcore.kosten import TYPES   # Raumtypen mit Beispiel-Kennwerten (auch in der Verwaltung → Einstellungen)
 STUFEN = ("rahmen", "schaetzung", "berechnung", "anschlag", "feststellung")
 STUFE_NAME = {"rahmen": "Kostenrahmen", "schaetzung": "Kostenschätzung", "berechnung": "Kostenberechnung", "anschlag": "Kostenanschlag", "feststellung": "Kostenfeststellung"}
 # DIN 276 (2018), 1. und 2. Ebene

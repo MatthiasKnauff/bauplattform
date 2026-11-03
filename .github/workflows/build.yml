@@ -1,9 +1,12 @@
 name: Build & Publish
 
 # Push auf main -> alle Images bauen, Stand in server/test.yml eintragen (Testserver)
-# Tag v*        -> Images bauen, Version in server/docker-compose.yml eintragen (Produktiv)
+# Release v…    -> Images bauen, Version in server/docker-compose.yml eintragen (Produktiv)
+#                  (auf GitHub: Releases → Draft a new release → Tag v… → Publish release)
 #                  Portainer (Polling) erkennt die Änderung und spielt sie ein.
 on:
+  release:
+    types: [published]
   push:
     branches: [main]
     tags: ['v*']

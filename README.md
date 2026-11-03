@@ -107,15 +107,15 @@ Die Bauplattform läuft als Portainer-Stack direkt aus diesem Repository:
 
 | Datei | Server | bekommt |
 |---|---|---|
-| `server/docker-compose.yml` | Produktiv (Docker 2) | nur freigegebene Versionen (Git-Tag `v…`, z. B. `v2026.11.2`) |
+| `server/docker-compose.yml` | Produktiv (Docker 2) | nur freigegebene Versionen (GitHub-Release `v…`, z. B. `v2026.11.2`) |
 | `server/test.yml` | Testserver (optional) | jeden Stand von `main` |
 
 1. GitHub Actions baut die drei Images (`bautagebuch`, `gantt`, `plattform`) unter `ghcr.io/matthiasknauff/bauplattform/…`.
 2. Danach trägt der Workflow die Version in die passende Datei ein.
 3. Portainer prüft die Quelle regelmäßig (Polling), bemerkt die Änderung und spielt die neue Version ein.
 
-**Version freigeben:** Tag `v<VERSION>` auf den gewünschten Stand setzen und pushen
-(`git tag v2026.11.3 && git push origin v2026.11.3`). Vorher einen Proxmox-Snapshot anlegen.
+**Version freigeben:** Vorher einen Proxmox-Snapshot anlegen. Dann auf GitHub *Releases → Draft a new release*,
+bei *Choose a tag* einen neuen Tag `v<VERSION>` eingeben (z. B. `v2026.11.3`, Ziel `main`) und *Publish release* klicken.
 
 Stack in Portainer: Build method *Repository*, Source `bauplattform`, Reference `refs/heads/main`,
 Compose path `server/docker-compose.yml` (Testserver: `server/test.yml`). Unter *Environment variables* mindestens `DB_PASSWORD` (Kennwort der

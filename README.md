@@ -218,6 +218,10 @@ Kostenermittlung nach DIN 276, gekoppelt an Bautagebuch-Projekt und Bauzeitenpla
   Nebenkosten KG 700. Die mitgelieferten Kennwerte sind **Beispielwerte**; eigene Werte lassen sich als Vorgabe für neue Kostenermittlungen speichern.
 - **Mittelabfluss:** Kosten werden über die Leistungen des verknüpften Bauzeitenplans verteilt (Gewicht = Dauer, änderbar), je Monat,
   mit Baupreisindex. Der Bauzeitenplan speichert dafür seine berechneten Termine mit; ältere Pläne einmal öffnen und speichern.
+- **Schätzen und Genauigkeit:** Offene Kostengruppen (KG 200, 394 Rückbau, 500 …) und die Aufteilung auf die 2. Ebene lassen sich
+  schätzen – ohne KI mit Faustwerten, mit KI zusätzlich als Vergleich; jede Schätzung mit Spanne und Sicherheit. Die Übersicht zeigt,
+  zwischen welchen Beträgen die Summe wahrscheinlich liegt und was die Spanne verkleinern würde (eigene Kennwerte, bestätigte Räume …).
+- **Assistent:** führt in acht Schritten von der Verknüpfung bis zum PDF; jederzeit „Später weiter“, Fortschritt bleibt je Kostenermittlung erhalten.
 - **PDF für den Bauherrn:** frei wählbar, was ins Paket kommt (Deckblatt, Zusammenfassung, Kosten nach DIN 276 in 1., 2. oder 3.
   Gliederungsebene, Kosten nach Nutzung, Raumbuch, Mittelabfluss mit Diagramm, Erläuterungen, Pläne als Anlage), netto oder brutto, Rundung.
   Für die 2. Ebene lassen sich die Kosten aus den Kennwerten prozentual auf KG 310 … 490 aufteilen.

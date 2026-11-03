@@ -83,6 +83,40 @@
 input[data-own]{border-color:var(--y)}
 .gbar{position:relative;height:22px;background:var(--hov);border-radius:4px;min-width:120px}
 .gbar i{position:absolute;top:3px;bottom:3px;border-radius:3px;background:var(--y)}
+.acc{display:flex;flex-direction:column;gap:.6rem}
+.band{position:relative;height:14px;border-radius:7px;background:var(--hov);margin:.4rem 0 .2rem}
+.band i{position:absolute;top:0;bottom:0;border-radius:7px;background:linear-gradient(90deg,transparent,var(--y) 30%,var(--y) 45%,transparent)}
+.band b{position:absolute;top:-4px;width:3px;height:22px;background:var(--ink);border-radius:2px}
+.fx{display:flex;gap:.8rem;justify-content:space-between;font-size:.9rem;padding:.35rem 0;border-bottom:1px solid var(--line)}
+.fx:last-child{border-bottom:0}
+.fx small{display:block;color:var(--mute);font-size:.8rem}
+.est{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem}
+.ec{display:flex;flex-direction:column;gap:.35rem}
+.ec .v{font-size:1.25rem;font-weight:600}
+.ec .sp{font-size:.82rem;color:var(--mute)}
+.ec .src{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--y);font-weight:600}
+.badge{display:inline-block;font-size:.72rem;border:1px solid var(--y);color:var(--y);border-radius:999px;padding:0 .45rem;margin-left:.3rem;white-space:nowrap}
+.sich{font-size:.72rem;border-radius:999px;padding:.05rem .5rem;border:1px solid var(--line);color:var(--mute)}
+.sich.hoch{border-color:var(--ok);color:var(--ok)}.sich.mittel{border-color:#e0a030;color:#e0a030}.sich.gering{border-color:#e07b3a;color:#e07b3a}
+#asst{position:fixed;right:16px;bottom:16px;width:min(380px,calc(100vw - 32px));max-height:min(72vh,640px);display:flex;flex-direction:column;z-index:45;
+  background:var(--card2);border:1px solid var(--y);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+#asst .ah{display:flex;align-items:center;gap:.5rem;padding:.7rem .9rem;border-bottom:1px solid var(--line)}
+#asst .ah b{flex:1}
+#asst .ab{overflow:auto;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.7rem}
+#asst .steps{display:flex;gap:4px}
+#asst .steps button{flex:1;height:6px;border-radius:3px;padding:0;background:var(--line)}
+#asst .steps button.ok{background:var(--ok)}
+#asst .steps button.cur{background:var(--y)}
+#asst h3{margin:0;font-size:1.05rem}
+#asst p{margin:0;color:var(--mute);font-size:.92rem;line-height:1.45}
+#asst .st{font-size:.85rem;padding:.5rem .7rem;border-radius:8px;background:var(--hov)}
+#asst .st.ok{color:var(--ok)}
+#asst .acts{display:flex;gap:.45rem;flex-wrap:wrap}
+#asst .af{display:flex;gap:.45rem;padding:.6rem .9rem;border-top:1px solid var(--line);align-items:center}
+#asst .af .fill{flex:1;font-size:.8rem;color:var(--mute)}
+#asstFab{position:fixed;right:16px;bottom:16px;z-index:44;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+body.as-open .wrap{padding-bottom:45vh}
+@media (max-width:640px){#asst{right:0;bottom:0;width:100vw;border-radius:14px 14px 0 0;max-height:58vh}.wrap{padding-bottom:8rem}}
 @media (max-width:640px){.tabs{margin:0 -.8rem 1rem}.kpi b{font-size:1.3rem}}
 </style>
 </head>
@@ -129,7 +163,8 @@ async function loadList(keep) {
   if (LIST.some((x) => x.id === want)) await open(want); else { B = null; render(); }
 }
 async function open(id) {
-  B = await api('/api/bk/' + id); FLOW = null; CHECK = null; selFile = B.files[0] ? B.files[0].id : null;
+  B = await api('/api/bk/' + id); FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
+  asLoad(); if (localStorage.getItem(AS_KEY()) == null) { AS.open = true; asSave(); }   // beim ersten Öffnen startet der Assistent
   try { localStorage.setItem('bk.cur', id); } catch { /* egal */ }
   head(); render();
 }
@@ -154,7 +189,7 @@ async function saveNow(extra = {}) {
   if (!B || saving) return; saving = true;
   try {
     const r = await api('/api/bk/' + B.id, 'PUT', { rev: B.rev, data: B.data, ...extra });
-    B.rev = r.rev; B.updated_by = r.updated_by; if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.name) { Object.assign(B, r); head(); }
+    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.name) { Object.assign(B, r); head(); }
     const d = new Date(); $('#save').textContent = `Gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) {
     $('#save').textContent = 'Nicht gespeichert';
@@ -171,13 +206,14 @@ function render() {
   if (!B) { v.innerHTML = `<div class="card empty"><p>Noch keine Kostenermittlung.</p><button class="btn pri" data-act="new">Erste Kostenermittlung anlegen</button></div>`; return; }
   v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
   if (sig) { const n = document.querySelector(sig); if (n) n.focus(); }
+  assist();
   if (tab === 'mittel' || tab === 'uebersicht') ensureFlow();
 }
 function vUebersicht() {
   const c = B.calc, max = Math.max(1, ...c.types.map((t) => t.sum));
   return `<div class="kpis">
     <div class="card kpi"><span class="lbl">Bauwerk KG 300 + 400</span><b class="num">${eur(c.bauwerk)}</b><span>${B.data.rooms.length} Räume × Kennwerte</span></div>
-    <div class="card kpi"><span class="lbl">Gesamt netto</span><b class="num">${eur(c.total)}</b><span>inkl. Positionen und ${pct(B.data.nk)} Nebenkosten</span></div>
+    <div class="card kpi"><span class="lbl">Gesamt netto</span><b class="num">${eur(c.total)}</b><span>${B.acc ? `wahrscheinlich ${eur(B.acc.low)} – ${eur(B.acc.high)}` : 'inkl. Positionen und ' + pct(B.data.nk) + ' Nebenkosten'}</span></div>
     <div class="card kpi"><span class="lbl">Raumfläche</span><b class="num">${m2(c.area)} m²</b><span>${B.files.length} Pläne</span></div>
     <div class="card kpi"><span class="lbl">Kennwert</span><b class="num">${eur(c.kw)}</b><span>je m² Raumfläche, KG 300 + 400</span></div></div>
   <div class="two">
@@ -185,7 +221,17 @@ function vUebersicht() {
       <div class="bar"><div class="t"><span>${esc(t.label)} <span class="mute">· ${m2(t.area)} m²</span></span><span class="num">${eur(t.sum)}</span></div><div class="tr"><div class="f" style="width:${(t.sum / max * 100).toFixed(1)}%"></div></div></div>`).join('') || '<p class="hint">Noch keine Räume – unter „Pläne & Mengen“ einen Grundriss hochladen.</p>'}</div></section>
     <section class="card"><h2>Mittelabfluss je Monat</h2><p class="sub">${B.gantt ? 'aus dem Bauzeitenplan „' + esc(B.gantt.name) + '“' : 'kein Bauzeitenplan verknüpft'}</p><div id="miniFlow">${flowCols(true)}</div></section>
   </div>
+  <section class="card" style="margin-top:1.2rem" id="accBox">${accHtml()}</section>
   <section class="card alert"><b>Plausibilitätsprüfung</b><span class="fill">${CHECK ? CHECK.hinweise.length + ' Hinweise' : 'Regeln und – je nach KI-Auswahl oben – Hinweise der KI'}</span><button class="btn" data-act="goCheck">Prüfen</button></section>`;
+}
+function accHtml() {
+  const a = B.acc; if (!a) return '';
+  const t = B.calc.total, lo = a.low, hi = a.high, span = hi - lo || 1, x = (v) => Math.max(0, Math.min(100, (v - lo) / span * 100));
+  return `<h2>Wie genau ist die Summe?</h2><p class="sub">Wahrscheinlich zwischen <b class="num" style="color:var(--ink)">${eur(lo)}</b> und <b class="num" style="color:var(--ink)">${eur(hi)}</b>
+    (−${pct(a.lo_pct)} / +${pct(a.hi_pct)}) – <b style="color:var(--ink)">${esc(a.urteil)}</b>. Nach oben größer, weil Offenes die Kosten eher erhöht.</p>
+    <div class="band" aria-hidden="true"><i style="left:0;right:0"></i><b style="left:calc(${x(t)}% - 1px)"></b></div>
+    <div class="legend" style="justify-content:space-between;margin:0 0 .6rem"><span>${eur(lo)}</span><span>Summe ${eur(t)}</span><span>${eur(hi)}</span></div>
+    <div class="acc">${a.faktoren.map((f) => `<div class="fx"><span>${esc(f.text)}${f.tipp ? `<small>${esc(f.tipp)}</small>` : ''}</span><span class="num" style="white-space:nowrap">${f.oben ? '+' : '±'} ${pct(f.plus)}</span></div>`).join('')}</div>`;
 }
 function flowCols(mini) {
   if (!B.gantt_id) return '<p class="hint">Unter „Mittelabfluss“ einen Bauzeitenplan wählen.</p>';
@@ -228,11 +274,35 @@ const KG2 = [['310', 'Baugrube / Erdbau'], ['320', 'Gründung, Unterbau'], ['330
   ['450', 'Kommunikations-, sicherheits- und informationstechnische Anlagen'], ['460', 'Förderanlagen'], ['470', 'Nutzungsspezifische und verfahrenstechnische Anlagen'],
   ['480', 'Gebäude- und Anlagenautomation'], ['490', 'Sonstige Maßnahmen für technische Anlagen']];
 const sum2 = (g) => Object.entries(B.data.kg2 || {}).filter(([k]) => k[0] === g).reduce((a, [, v]) => a + (+v || 0), 0);
+let EST = null, estBusy = false;
+function estHtml() {
+  const open = B.data.items.filter((i) => i.amount == null).length, ki = window.BPHead ? BPHead.provider() : { key: 'intern', label: 'Intern' };
+  let h = `<section class="card" style="margin-bottom:1.2rem" id="estBox"><div class="row"><div style="flex:1;min-width:240px"><h2>Fehlendes schätzen</h2>
+    <p class="sub" style="margin:0">${open ? open + ' Kostengruppen sind noch offen.' : 'Keine offenen Kostengruppen.'} Faustwerte (Intern)${ki.key !== 'intern' ? ' und ' + esc(ki.label) + ' im Vergleich' : ' – für einen Vergleich oben eine KI wählen'}, jeweils mit Spanne.</p></div>
+    <button class="btn pri" data-act="estimate"${estBusy ? ' disabled' : ''}>${estBusy ? 'Schätze …' : EST ? 'Neu schätzen' : 'Jetzt schätzen'}</button></div>`;
+  if (EST) {
+    if (EST.note) h += `<p class="hint" style="color:#e07b3a">${esc(EST.note)}</p>`;
+    const by = {}; EST.vorschlaege.forEach((v, n) => { (by[v.kg] ||= []).push([v, n]); });
+    h += Object.entries(by).map(([kg, vs]) => `<h3 style="margin:1rem 0 .5rem;font-size:.95rem">KG ${esc(kg)} ${esc(vs[0][0].name)}</h3><div class="est">${vs.map(([v, n]) => `
+      <div class="card ec"><span class="src">${esc(v.src)}</span><span class="v num">${eur(v.value)}</span><span class="sp">Spanne ${eur(v.low)} – ${eur(v.high)} <span class="sich ${v.sicher}">Sicherheit ${esc(v.sicher)}</span></span>
+      <p class="hint" style="margin:.2rem 0">${esc(v.basis)}</p><div><button class="btn sm" data-take="${n}">Übernehmen</button></div></div>`).join('')}</div>`).join('');
+    h += EST.kg2.map((k, n) => `<h3 style="margin:1rem 0 .5rem;font-size:.95rem">Aufteilung auf die 2. Ebene · <span class="src" style="color:var(--y)">${esc(k.src)}</span></h3>
+      <p class="hint" style="margin:0 0 .4rem">${esc(k.basis)}: ${Object.entries(k.werte).map(([a, b]) => a + ' ' + b + ' %').join(' · ')}</p><button class="btn sm" data-takekg2="${n}">Aufteilung übernehmen</button>`).join('');
+    h += `<div class="card" style="margin-top:1rem;background:var(--hov)"><b>Wie gut ist welche Schätzung?</b>${Object.entries(EST.guete).map(([k, t]) => `<p class="hint" style="margin:.35rem 0 0"><b style="color:var(--ink)">${k === 'intern' ? 'Ohne KI (Intern)' : esc((BPHead.providers.find((p) => p.key === k) || {}).label || k)}:</b> ${esc(t)}</p>`).join('')}
+      <p class="hint" style="margin:.5rem 0 0">Die Gesamtspanne hängt vor allem an den Daten (Kennwerte, bestätigte Flächen, offene Positionen), nicht an der KI. Eine KI kann Lücken finden, macht Zahlen aber nicht genauer als die Grundlagen.</p></div>`;
+  }
+  return h + '</section>';
+}
+async function runEstimate() {
+  estBusy = true; if (tab === 'kosten') render();
+  try { clearTimeout(saveT); await saveNow(); EST = await api(`/api/bk/${B.id}/schaetzen`, 'POST', {}); B.acc = EST.acc; } catch (e) { toast(e.message, true); }
+  estBusy = false; render();
+}
 function vKosten() {
   const c = B.calc, d = B.data;
   const kgRows = [['300', 'Bauwerk – Baukonstruktionen', `${pct(d.kg['300'])} der Raumtyp-Summe`, c.kg300], ['400', 'Bauwerk – Technische Anlagen', `${pct(d.kg['400'])} der Raumtyp-Summe`, c.kg400]]
     .concat(d.items.map((i) => [i.kg, i.name, 'eigene Position', i.amount])).concat([['700', 'Baunebenkosten', `${pct(d.nk)} auf alle Kosten`, c.nk]]).sort((a, b) => a[0].localeCompare(b[0]));
-  return `<section class="card" style="margin-bottom:1.2rem"><h2>Raumtypen und Kennwerte</h2><p class="sub">Kennwerte in € je m² Raumfläche (KG 300 + 400, netto). Die vorgegebenen Werte sind Beispiele – eigene Werte aus abgerechneten Projekten eintragen.</p>
+  return `${estHtml()}<section class="card" style="margin-bottom:1.2rem"><h2>Raumtypen und Kennwerte</h2><p class="sub">Kennwerte in € je m² Raumfläche (KG 300 + 400, netto). Die vorgegebenen Werte sind Beispiele – eigene Werte aus abgerechneten Projekten eintragen.</p>
     <div class="tbl"><table><thead><tr><th>Raumtyp</th><th class="r">Räume</th><th class="r">Fläche m²</th><th class="r">€ / m²</th><th class="r">Summe</th></tr></thead><tbody>${c.types.map((t) => `
       <tr><td>${esc(t.label)}</td><td class="r num">${t.n}</td><td class="r num">${m2(t.area)}</td><td class="r"><input class="n" value="${Math.round(t.kw)}" data-kw="${t.typ}" inputmode="numeric" aria-label="Kennwert ${esc(t.label)}"></td><td class="r num">${eur(t.sum)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td>Summe</td><td></td><td class="r num">${m2(c.area)}</td><td class="r num">${eur(c.kw)}</td><td class="r num">${eur(c.bauwerk)}</td></tr></tfoot></table></div>
@@ -243,7 +313,7 @@ function vKosten() {
     <h2 style="margin-top:1.4rem">Eigene Positionen</h2><p class="sub">z. B. KG 200, Rückbau (394), Fassade aus den Ansichten, Außenanlagen (500). Leer = noch offen.</p>
     <div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th class="r">Betrag €</th><th></th></tr></thead><tbody>${d.items.map((i, k) => `
       <tr><td><input class="n" style="width:70px;text-align:left" value="${esc(i.kg)}" data-it="${k}" data-f="kg" aria-label="Kostengruppe"></td><td><input class="w" value="${esc(i.name)}" data-it="${k}" data-f="name" aria-label="Bezeichnung"></td>
-      <td class="r"><input class="n" style="width:130px" value="${i.amount == null ? '' : Math.round(i.amount)}" placeholder="offen" data-it="${k}" data-f="amount" inputmode="numeric" aria-label="Betrag"></td><td><button class="btn sm" data-delit="${k}" aria-label="Position löschen">✕</button></td></tr>`).join('')}</tbody></table></div>
+      <td class="r"><input class="n" style="width:130px" value="${i.amount == null ? '' : Math.round(i.amount)}" placeholder="offen" data-it="${k}" data-f="amount" inputmode="numeric" aria-label="Betrag">${i.est ? `<div class="hint" style="font-size:.75rem;white-space:nowrap" title="${esc(i.est.basis)}">geschätzt · ${esc(i.est.src)}<br>${eur(i.est.low)} – ${eur(i.est.high)}</div>` : ''}</td><td><button class="btn sm" data-delit="${k}" aria-label="Position löschen">✕</button></td></tr>`).join('')}</tbody></table></div>
     <div class="row" style="margin-top:.6rem"><button class="btn sm" data-act="addItem">+ Position</button></div>
     <h2 style="margin-top:1.4rem">Aufteilung auf die 2. Ebene (für das PDF)</h2><p class="sub">Anteil der Raumtyp-Kosten in % von KG 300 bzw. 400. Leer = nicht aufgeteilt; der Rest erscheint als „nicht zugeordnet“.</p>
     <div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th class="r">%</th></tr></thead><tbody>${KG2.map(([k, n]) => `${k === '410' ? `<tr><td colspan="3" class="hint">Summe KG 300: ${pct(sum2('3'))}</td></tr>` : ''}
@@ -300,6 +370,89 @@ async function upload(files) {
   render();
 }
 
+/* ---------- Assistent: führt Schritt für Schritt, jederzeit verlassen und später fortsetzen ---------- */
+const AS_KEY = () => 'bk.assist.' + (B ? B.id : 0);
+let AS = { open: false, step: null, skip: [], kw: false, pdf: false };
+function asLoad() { try { AS = Object.assign({ open: false, step: null, skip: [], kw: false, pdf: false }, JSON.parse(localStorage.getItem(AS_KEY())) || {}); } catch { AS = { open: false, step: null, skip: [], kw: false, pdf: false }; } }
+function asSave() { try { localStorage.setItem(AS_KEY(), JSON.stringify(AS)); } catch { /* egal */ } }
+const STEPS = [
+  { k: 'projekt', t: 'Projekt und Stufe', done: () => !!B.project_id,
+    txt: () => `Verknüpfe die Kostenermittlung mit dem Projekt aus dem Bautagebuch und wähle oben die Stufe nach DIN 276. Im Vorentwurf ist das meist die <b>Kostenschätzung</b>.`,
+    st: () => B.project ? `Projekt: ${esc(B.project.name)} · Stufe: ${esc((STUFEN.find((x) => x[0] === B.stufe) || [, ''])[1])}` : 'Noch kein Projekt verknüpft.',
+    acts: [['Zur Verknüpfung', 'tab:mittel']] },
+  { k: 'plaene', t: 'Pläne hochladen', done: () => B.files.length > 0,
+    txt: () => 'Lade die Grundrisse <b>aller Geschosse</b> als PDF aus dem CAD hoch, dazu Ansichten und Schnitte. Aus Grundrissen werden Raumnummer, Name und Fläche exakt gelesen.',
+    st: () => B.files.length ? `${B.files.length} Pläne, ${B.data.rooms.length} Räume gelesen.` : 'Noch keine Pläne.',
+    acts: [['PDF auswählen', 'pdf'], ['Zu „Pläne & Mengen“', 'tab:plaene']] },
+  { k: 'raeume', t: 'Räume prüfen', done: () => B.data.rooms.length > 0 && B.data.rooms.every((r) => r.ok),
+    txt: () => 'Prüfe Raumtyp und Fläche je Raum. Die Typen sind Vorschläge. Rote Markierungen im Plan zeigen doppelte Raumnummern.',
+    st: () => { const o = B.data.rooms.filter((r) => !r.ok).length; return B.data.rooms.length ? (o ? `${o} von ${B.data.rooms.length} Räumen noch offen.` : 'Alle Räume bestätigt.') : 'Noch keine Räume.'; },
+    acts: [['Zu den Räumen', 'tab:plaene'], ['Alle bestätigen', 'okAll']] },
+  { k: 'kennwerte', t: 'Kennwerte', done: () => AS.kw || !(B.acc && B.acc.faktoren.some((f) => /Beispiel-Kennwerte/.test(f.text))),
+    txt: () => 'Die vorgegebenen €/m² sind Beispielwerte. Mit Kennwerten aus euren abgerechneten Projekten wird die Schätzung deutlich genauer. Einmal als eigene Werte gespeichert, gelten sie für alle neuen Kostenermittlungen.',
+    st: () => (B.acc && B.acc.faktoren.some((f) => /Beispiel-Kennwerte/.test(f.text))) ? 'Es werden noch Beispiel-Kennwerte verwendet.' : 'Eigene Kennwerte in Verwendung.',
+    acts: [['Zu den Kennwerten', 'tab:kosten'], ['Beispielwerte sind ok', 'kwok']] },
+  { k: 'schaetzen', t: 'Fehlendes schätzen', done: () => !B.data.items.some((i) => i.amount == null),
+    txt: () => 'Offene Kostengruppen (z. B. Rückbau, Außenanlagen) fehlen in der Summe. Lass sie schätzen – ohne KI mit Faustwerten oder zusätzlich mit der gewählten KI – und übernimm, was passt. Jede Schätzung hat eine Spanne.',
+    st: () => { const o = B.data.items.filter((i) => i.amount == null).length; return o ? `${o} Kostengruppen offen.` : 'Keine offenen Kostengruppen.'; },
+    acts: [['Jetzt schätzen', 'estimate']] },
+  { k: 'mittel', t: 'Bauzeitenplan', done: () => !!B.gantt_id,
+    txt: () => 'Mit dem Bauzeitenplan werden die Kosten auf Monate verteilt (Mittelabfluss) – das braucht der Bauherr für die Finanzierung.',
+    st: () => B.gantt ? `Verknüpft: ${esc(B.gantt.name)}` : 'Kein Bauzeitenplan verknüpft.',
+    acts: [['Zum Mittelabfluss', 'tab:mittel']] },
+  { k: 'pruefung', t: 'Prüfen', done: () => !!CHECK,
+    txt: () => 'Die Prüfung findet doppelte Raumnummern, fehlende Geschosse, auffällige Kennwerte und offene Kostengruppen – mit KI zusätzlich nutzungsspezifische Hinweise.',
+    st: () => CHECK ? `${CHECK.hinweise.length} Hinweise.` : 'Noch nicht geprüft.',
+    acts: [['Jetzt prüfen', 'check']] },
+  { k: 'pdf', t: 'PDF für den Bauherrn', done: () => AS.pdf,
+    txt: () => `Wähle, was ins PDF-Paket soll und in welcher Gliederungstiefe. Aktuell: <b>${eur(B.calc.total)}</b>${B.acc ? `, wahrscheinlich ${eur(B.acc.low)} – ${eur(B.acc.high)} (${esc(B.acc.urteil)})` : ''}.`,
+    st: () => AS.pdf ? 'PDF erstellt.' : '',
+    acts: [['PDF erstellen …', 'pdf-dlg']] },
+];
+function asCur() {
+  const i = AS.step != null ? STEPS.findIndex((x) => x.k === AS.step) : -1;
+  return i >= 0 ? i : Math.max(0, STEPS.findIndex((x) => !x.done() && !AS.skip.includes(x.k)));
+}
+function assist() {
+  let box = $('#asst'), fab = $('#asstFab');
+  if (!B) { if (box) box.remove(); if (fab) fab.remove(); return; }
+  const n = STEPS.filter((x) => x.done()).length;
+  if (!AS.open) {
+    document.body.classList.remove('as-open');
+    if (box) box.remove();
+    if (!fab) { fab = document.createElement('button'); fab.id = 'asstFab'; fab.className = 'btn pri'; fab.onclick = () => { AS.open = true; AS.step = null; asSave(); assist(); }; document.body.appendChild(fab); }
+    fab.textContent = n === STEPS.length ? 'Assistent ✓' : `Assistent · ${n}/${STEPS.length}`;
+    return;
+  }
+  if (fab) fab.remove();
+  document.body.classList.add('as-open');
+  if (!box) { box = document.createElement('aside'); box.id = 'asst'; box.setAttribute('aria-label', 'Assistent'); document.body.appendChild(box); }
+  const i = asCur(), S = STEPS[i], st = S.st();
+  box.innerHTML = `<div class="ah"><b>Assistent · Schritt ${i + 1} von ${STEPS.length}</b><button class="btn sm" data-as="close" title="Assistent schließen – später über den Knopf unten rechts weitermachen">Später weiter</button></div>
+    <div class="ab"><div class="steps">${STEPS.map((x, k) => `<button type="button" class="${k === i ? 'cur' : x.done() ? 'ok' : ''}" data-as="go:${x.k}" title="${esc(x.t)}${x.done() ? ' ✓' : ''}" aria-label="${esc(x.t)}"></button>`).join('')}</div>
+    <h3>${S.done() ? '✓ ' : ''}${esc(S.t)}</h3><p>${S.txt()}</p>${st ? `<div class="st ${S.done() ? 'ok' : ''}">${st}</div>` : ''}
+    <div class="acts">${S.acts.map(([l, a]) => `<button class="btn sm" data-as="${a}">${esc(l)}</button>`).join('')}</div></div>
+    <div class="af"><button class="btn sm" data-as="prev"${i ? '' : ' disabled'}>Zurück</button><span class="fill">${n} von ${STEPS.length} erledigt</span>
+    ${S.done() || i === STEPS.length - 1 ? '' : '<button class="btn sm" data-as="skip">Überspringen</button>'}<button class="btn sm pri" data-as="next"${i === STEPS.length - 1 ? ' disabled' : ''}>Weiter</button></div>`;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-as]'); if (!b || !B) return;
+  const a = b.dataset.as, i = asCur();
+  if (a === 'close') { AS.open = false; asSave(); toast('Assistent pausiert – unten rechts geht es weiter.'); }
+  else if (a === 'next') AS.step = STEPS[Math.min(STEPS.length - 1, i + 1)].k;
+  else if (a === 'prev') AS.step = STEPS[Math.max(0, i - 1)].k;
+  else if (a === 'skip') { AS.skip = [...new Set([...AS.skip, STEPS[i].k])]; AS.step = (STEPS.slice(i + 1).find((x) => !x.done()) || STEPS[STEPS.length - 1]).k; }
+  else if (a.startsWith('go:')) AS.step = a.slice(3);
+  else if (a.startsWith('tab:')) { tab = a.slice(4); history.replaceState(null, '', '#' + tab); render(); }
+  else if (a === 'pdf') $('#pdfIn').click();
+  else if (a === 'okAll') { B.data.rooms.forEach((r) => { r.ok = true; }); changed(); }
+  else if (a === 'kwok') { AS.kw = true; }
+  else if (a === 'estimate') { tab = 'kosten'; history.replaceState(null, '', '#kosten'); runEstimate(); }
+  else if (a === 'check') { tab = 'pruefung'; history.replaceState(null, '', '#pruefung'); render(); runCheck().then(assist); }
+  else if (a === 'pdf-dlg') pdfDialog();
+  asSave(); assist();
+});
+
 /* ---------- Bedienung ---------- */
 document.addEventListener('click', async (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab; history.replaceState(null, '', '#' + tab); render(); return; }
@@ -313,9 +466,18 @@ document.addEventListener('click', async (e) => {
     else if (act === 'okAll') { B.data.rooms.forEach((r) => { r.ok = true; }); changed(); }
     else if (act === 'addRoom') { B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'addItem') { B.data.items.push({ kg: '', name: '', amount: null }); changed(); }
+    else if (act === 'estimate') runEstimate();
     else if (act === 'saveKw') { try { const o = {}; Object.entries(B.data.types).forEach(([k, v]) => { o[k] = v.kw; }); await api('/api/kennwerte', 'PUT', o); toast('Eigene Kennwerte gespeichert – gelten für neue Kostenermittlungen.'); } catch (er) { toast(er.message, true); } }
     return;
   }
+  const tk = e.target.closest('[data-take]');
+  if (tk) {
+    const v = EST.vorschlaege[+tk.dataset.take], it = B.data.items.find((i) => i.kg.replace(/\D/g, '').slice(0, 3) === v.kg);
+    const val = { amount: v.value, est: { src: v.src, low: v.low, high: v.high, basis: v.basis } };
+    if (it) Object.assign(it, val); else B.data.items.push({ kg: v.kg, name: v.name, ...val });
+    toast(`KG ${v.kg} mit ${eur(v.value)} übernommen (${v.src}).`); changed(); return;
+  }
+  const tk2 = e.target.closest('[data-takekg2]'); if (tk2) { B.data.kg2 = { ...EST.kg2[+tk2.dataset.takekg2].werte }; toast('Aufteilung übernommen – unter „Kosten“ änderbar.'); changed(); return; }
   const ok = e.target.closest('[data-ok]'); if (ok) { const r = B.data.rooms[+ok.dataset.ok]; r.ok = !r.ok; changed(); return; }
   const dr = e.target.closest('[data-delroom]'); if (dr) { B.data.rooms.splice(+dr.dataset.delroom, 1); changed(); return; }
   const di = e.target.closest('[data-delit]'); if (di) { B.data.items.splice(+di.dataset.delit, 1); changed(); return; }
@@ -338,7 +500,7 @@ document.addEventListener('change', (e) => {
   const row = el.closest('[data-row]');
   if (row && el.dataset.f) { const r = B.data.rooms[+row.dataset.row]; r[el.dataset.f] = el.dataset.f === 'area' ? pnum(el.value) : el.value; changed(); return; }
   if (el.dataset.kw) { B.data.types[el.dataset.kw].kw = pnum(el.value); changed(); return; }
-  if (el.dataset.it) { const it = B.data.items[+el.dataset.it]; it[el.dataset.f] = el.dataset.f === 'amount' ? (el.value.trim() === '' ? null : pnum(el.value)) : el.value; changed(); return; }
+  if (el.dataset.it) { const it = B.data.items[+el.dataset.it]; if (el.dataset.f === 'amount') delete it.est; it[el.dataset.f] = el.dataset.f === 'amount' ? (el.value.trim() === '' ? null : pnum(el.value)) : el.value; changed(); return; }
   if (el.dataset.kg2) { B.data.kg2 ||= {}; if (el.value.trim() === '') delete B.data.kg2[el.dataset.kg2]; else B.data.kg2[el.dataset.kg2] = pnum(el.value); changed(); return; }
   if (el.dataset.notes) { B.data.notes = el.value; changed(false); return; }
   if (el.dataset.share) { B.data.shares[el.dataset.share] = pnum(el.value); changed(); return; }
@@ -364,14 +526,14 @@ document.addEventListener('change', (e) => {
 document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-file],#drop')) { e.preventDefault(); e.target.click(); } });
 $('#newBtn').onclick = () => newDialog();
 $('#pdfBtn').onclick = () => pdfDialog();
-const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr, Stand, Gesamtkosten'], ['zusammenfassung', 'Zusammenfassung', 'Bauwerk, weitere KG, Nebenkosten, MwSt.'],
+const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr, Stand, Gesamtkosten'], ['zusammenfassung', 'Zusammenfassung', 'Bauwerk, weitere KG, Nebenkosten, MwSt.'], ['genauigkeit', 'Genauigkeit', 'wahrscheinliche Spanne und was sie beeinflusst'],
   ['kosten', 'Kosten nach DIN 276', 'in der gewählten Gliederungstiefe'], ['raumtypen', 'Kosten nach Nutzung', 'Raumtypen mit Fläche und Kennwert'],
   ['raumbuch', 'Raumbuch', 'alle Räume mit Nutzung und Fläche'], ['mittelabfluss', 'Mittelabfluss', 'Diagramm und Monatstabelle aus dem Bauzeitenplan'],
   ['erlaeuterungen', 'Erläuterungen und Annahmen', 'eigener Text und offene Positionen'], ['plaene', 'Planunterlagen', 'hochgeladene Pläne als Anlage']];
 function pdfDialog() {
   if (!B) return;
   let o; try { o = JSON.parse(localStorage.getItem('bk.pdf')) || {}; } catch { o = {}; }
-  o = { teile: o.teile || ['deckblatt', 'zusammenfassung', 'kosten', 'mittelabfluss', 'erlaeuterungen'], tiefe: o.tiefe || 2, brutto: o.brutto ?? true, mwst: o.mwst ?? 19, runden: o.runden ?? 100 };
+  o = { teile: o.teile || ['deckblatt', 'zusammenfassung', 'genauigkeit', 'kosten', 'mittelabfluss', 'erlaeuterungen'], tiefe: o.tiefe || 2, brutto: o.brutto ?? true, mwst: o.mwst ?? 19, runden: o.runden ?? 100 };
   modalBox(`<h3>PDF für den Bauherrn</h3><p class="hint" style="margin-top:0">Was soll ins PDF-Paket? Die Auswahl wird gemerkt.</p>
     <div style="display:flex;flex-direction:column;gap:.15rem;margin-bottom:.9rem">${PARTS.map(([k, n, h]) => `<label class="chk"><input type="checkbox" data-part="${k}"${o.teile.includes(k) ? ' checked' : ''}><span><b>${n}</b> <span class="hint">– ${h}</span></span></label>`).join('')}</div>
     <div class="row" style="flex-direction:column;align-items:stretch;gap:.6rem">
@@ -386,6 +548,7 @@ function pdfDialog() {
     if (!n.teile.length) { toast('Bitte mindestens einen Teil wählen.', true); return; }
     try { localStorage.setItem('bk.pdf', JSON.stringify(n)); } catch { /* egal */ }
     close(); clearTimeout(saveT); await saveNow();
+    AS.pdf = true; asSave(); assist();
     window.open(`/api/bk/${B.id}/bericht.pdf?teile=${n.teile.join(',')}&tiefe=${n.tiefe}&brutto=${n.brutto ? 1 : 0}&mwst=${n.mwst}&runden=${n.runden}`, '_blank', 'noopener');
   });
 }

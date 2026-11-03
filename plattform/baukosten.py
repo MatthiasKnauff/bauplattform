@@ -165,8 +165,13 @@ def clean_data(d, c):
         if not isinstance(it, dict):
             continue
         amt = it.get("amount")
-        items.append({"kg": _s(it.get("kg"), 10), "name": _s(it.get("name"), 200),
-                      "amount": None if amt in (None, "") else round(_num(amt, 0, 0, 1e10), 2)})
+        x = {"kg": _s(it.get("kg"), 10), "name": _s(it.get("name"), 200),
+             "amount": None if amt in (None, "") else round(_num(amt, 0, 0, 1e10), 2)}
+        e = it.get("est")
+        if isinstance(e, dict) and x["amount"] is not None:   # Betrag ist eine Schätzung (mit Spanne und Quelle)
+            x["est"] = {"src": _s(e.get("src"), 40), "low": round(_num(e.get("low"), 0, 0, 1e10), 2), "high": round(_num(e.get("high"), 0, 0, 1e10), 2),
+                        "basis": _s(e.get("basis"), 300)}
+        items.append(x)
     k2 = d.get("kg2") if isinstance(d.get("kg2"), dict) else {}
     kg2 = {k: _num(k2.get(k), 0, 0, 100) for k in KG2 if k2.get(k) not in (None, "")}
     shares = {str(k): _num(v, 0, 0, 1e6) for k, v in list((d.get("shares") if isinstance(d.get("shares"), dict) else {}).items())[:5000] if re.fullmatch(r"\d{1,9}", str(k))}
@@ -213,6 +218,7 @@ def _out(c, r, full=True):
         o["calc"] = calc(d)
         o["files"] = [{"id": f["id"], "name": f["name"], "size": f["size"], "created": f["created"], "meta": _j(f["meta"], {})}
                       for f in c.execute("SELECT id, name, size, created, meta FROM bk_files WHERE bk_id=? ORDER BY id", (r["id"],))]
+        o["acc"] = genauigkeit(c, r, d, o["calc"], [f["meta"].get("kind", "") for f in o["files"]])
     else:
         o["total"] = calc(clean_data(_j(r["data"], {}), c))["total"]
     return o
@@ -541,6 +547,147 @@ def flow_api(i):
         return jsonify(flow(c, r, d, calc(d)))
 
 
+# ---------------------------------------------------------------- Schätzen und Genauigkeit
+# Übliche Genauigkeit je Stufe (± in % der Gesamtkosten, Erfahrungswerte aus der Kostenplanung, keine Norm)
+STUFE_GENAU = {"rahmen": 35, "schaetzung": 25, "berechnung": 15, "anschlag": 8, "feststellung": 2}
+# Faustwerte für fehlende Kostengruppen bei Umbau/Sanierung, in % der Bauwerkskosten (KG 300+400): (Wert, von, bis)
+FAUST = {
+    "200": ("Vorbereitende Maßnahmen", 1.0, 0.5, 2.5, "Herrichten, Baustelleneinrichtung im Bestand, Leitungsumlegungen"),
+    "394": ("Rückbau (Abbruch im Bestand)", 5.0, 3.0, 9.0, "Umbau im Bestand: Abbruch von Wänden, Belägen, Installationen, Entsorgung"),
+    "500": ("Außenanlagen", 4.0, 2.0, 8.0, "Wege, Zufahrt, Anpassungen am Gebäude; ohne große Neugestaltung"),
+    "600": ("Ausstattung", 2.0, 0.0, 5.0, "nur wenn feste Ausstattung beauftragt wird (z. B. Küche, Möblierung)"),
+}
+# Faustwerte für die Aufteilung auf die 2. Ebene (Umbau eines Verwaltungs-/Sozialgebäudes), % von KG 300 bzw. 400
+KG2_FAUST = {"310": 1, "320": 3, "330": 30, "340": 22, "350": 18, "360": 14, "380": 5, "390": 7,
+             "410": 22, "420": 18, "430": 14, "440": 30, "450": 8, "470": 3, "480": 3, "490": 2}
+KI_GUETE = {
+    "intern": "Feste Faustwerte und Regeln: nachvollziehbar und immer gleich, kennt aber weder Ort noch Marktlage.",
+    "ollama": "Kleines Modell im Büro: gut für Hinweise auf Lücken, bei Zahlen unsicher. Vorschläge außerhalb sinnvoller Spannen werden verworfen.",
+    "claude": "Großes Modell: erkennt fehlende Kostengruppen und Risiken zuverlässiger. Zahlen bleiben Schätzwerte ohne aktuelle Marktpreise.",
+    "gemini": "Großes Modell: erkennt fehlende Kostengruppen und Risiken zuverlässiger. Zahlen bleiben Schätzwerte ohne aktuelle Marktpreise.",
+    "chatgpt": "Großes Modell: erkennt fehlende Kostengruppen und Risiken zuverlässiger. Zahlen bleiben Schätzwerte ohne aktuelle Marktpreise.",
+}
+
+
+def genauigkeit(c, r, d, cal, kinds):
+    """Wie genau ist die Summe wahrscheinlich? Spanne nach Stufe plus Zuschläge für fehlende oder geschätzte Daten.
+    Kosten weichen in der Praxis eher nach oben ab – offene und unsichere Punkte erweitern vor allem die obere Grenze."""
+    base = STUFE_GENAU.get(r["stufe"], 25)
+    lo, hi, F = float(base), float(base), []
+    F.append({"text": f"{STUFE_NAME.get(r['stufe'], '')}: üblich ± {base} %", "plus": base, "tipp": ""})
+    own = kennwerte(c)
+    used = [t for t in cal["types"] if t["area"]]
+    ex = [t for t in used if not own[t["typ"]]["own"] and abs(t["kw"] - next(x[2] for x in TYPES if x[0] == t["typ"])) < 0.5]
+    if ex:
+        share = sum(t["sum"] for t in ex) / (cal["bauwerk"] or 1)
+        v = round(8 * share, 1); lo += v; hi += v
+        F.append({"text": f"Beispiel-Kennwerte bei {len(ex)} Raumtypen", "plus": v, "tipp": "Eigene Kennwerte aus abgerechneten Projekten eintragen."})
+    if d["rooms"]:
+        open_share = sum(x["area"] for x in d["rooms"] if not x["ok"]) / (cal["area"] or 1)
+        if open_share > 0:
+            v = round(5 * open_share, 1); lo += v; hi += v
+            F.append({"text": f"{round(open_share * 100)} % der Fläche nicht bestätigt", "plus": v, "tipp": "Räume unter „Pläne & Mengen“ bestätigen."})
+    else:
+        hi += 40; lo += 20
+        F.append({"text": "Noch keine Räume", "plus": 40, "tipp": "Grundriss hochladen."})
+    offen = [i for i in d["items"] if i["amount"] is None]
+    if offen:
+        v = min(15, 4 * len(offen)); hi += v
+        F.append({"text": f"{len(offen)} Kostengruppen offen (fehlen in der Summe)", "plus": v, "tipp": "Unter „Kosten“ schätzen lassen oder Beträge eintragen.", "oben": True})
+    est = [i for i in d["items"] if i.get("est")]
+    if est:
+        v = min(8, 2 * len(est)); lo += v / 2; hi += v
+        F.append({"text": f"{len(est)} Positionen nur geschätzt", "plus": v, "tipp": "Durch Angebote oder eigene Mengen ersetzen."})
+    floors = {x["nr"].split(".")[0] for x in d["rooms"] if x["nr"]}
+    if len(floors) == 1 and "Ansicht" in kinds:
+        hi += 15
+        F.append({"text": "Nur ein Geschoss im Raumbuch, Ansichten zeigen evtl. mehr", "plus": 15, "tipp": "Grundrisse aller Geschosse hochladen.", "oben": True})
+    if any(re.sub(r"\D", "", i["kg"]).startswith("39") for i in d["items"]) or r["stufe"] in ("rahmen", "schaetzung") and "Ansicht" in kinds:
+        hi += 5
+        F.append({"text": "Umbau im Bestand: Überraschungen beim Rückbau", "plus": 5, "tipp": "Bestandsuntersuchung / Schadstoffgutachten.", "oben": True})
+    lo, hi = min(lo, 60), min(hi, 120)
+    t = cal["total"]
+    note = "gut belastbar" if hi <= 15 else "brauchbar für Entscheidungen" if hi <= 30 else "grobe Größenordnung" if hi <= 50 else "noch sehr unsicher"
+    return {"low": round(t * (1 - lo / 100), 2), "high": round(t * (1 + hi / 100), 2), "lo_pct": round(lo, 1), "hi_pct": round(hi, 1), "urteil": note, "faktoren": F}
+
+
+def schaetzen_intern(d, cal):
+    out = []
+    bau = cal["bauwerk"]
+    have = {re.sub(r"\D", "", i["kg"])[:3]: i for i in d["items"]}
+    for kg, (name, v, lo, hi, why) in FAUST.items():
+        it = have.get(kg)
+        if kg == "600" and not it:
+            continue   # Ausstattung nur, wenn als Position angelegt
+        if it is None or it["amount"] is None or it.get("est"):
+            out.append({"kg": kg, "name": name, "value": round(bau * v / 100, -2), "low": round(bau * lo / 100, -2), "high": round(bau * hi / 100, -2),
+                        "basis": f"{v:g} % der Bauwerkskosten (üblich {lo:g}–{hi:g} %)".replace(".", ",") + f": {why}", "src": "Intern", "sicher": "gering" if hi / max(lo, 0.1) > 2.5 else "mittel"})
+    kg2 = None
+    if not d["kg2"]:
+        kg2 = {"werte": KG2_FAUST, "basis": "übliche Verteilung bei Umbau eines Verwaltungs-/Sozialgebäudes (Faustwerte)", "src": "Intern", "sicher": "gering"}
+    return out, kg2
+
+
+EST_SYS = """Du bist erfahrener Kostenplaner (DIN 276) in Deutschland. Schätze fehlende Kostengruppen für die beschriebene Maßnahme.
+Gib je Kostengruppe einen wahrscheinlichen Betrag in Euro netto und eine realistische Spanne an (von/bis), dazu eine kurze Begründung.
+Antworte ausschließlich mit JSON: {"schaetzungen":[{"kg":"394","betrag":0,"von":0,"bis":0,"begruendung":"…","sicherheit":"hoch|mittel|gering"}],
+"aufteilung_300":{"330":30,…},"aufteilung_400":{"440":30,…},"hinweis":"…"}
+Die Aufteilungen sind Prozentanteile, die sich je auf 100 summieren. Nur Kostengruppen aus der Liste „offen“ schätzen."""
+
+
+@app.post("/api/bk/<int:i>/schaetzen")
+def schaetzen(i):
+    with db.tx() as c:
+        r = _row(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        d = clean_data(_j(r["data"], {}), c)
+        cal = calc(d)
+        kinds = [(_j(f["meta"], {}) or {}).get("kind", "") for f in c.execute("SELECT meta FROM bk_files WHERE bk_id=?", (i,))]
+        vs, kg2 = schaetzen_intern(d, cal)
+        ki = ai.choice_of(g.user)
+        prov = {p["key"]: p for p in ai.providers(c)}
+        note, ki_vs, ki_kg2 = "", [], None
+        if ki != "intern" and prov.get(ki, {}).get("ok") and cal["bauwerk"]:
+            offen = [v["kg"] + " " + v["name"] for v in vs]
+            info = {"maßnahme": r["name"], "stufe": STUFE_NAME.get(r["stufe"]), "planarten": kinds,
+                    "raumtypen": [{"typ": t["label"], "m2": t["area"], "eur_m2": t["kw"]} for t in cal["types"] if t["area"]],
+                    "bauwerk_kg300_400_netto": cal["bauwerk"], "flaeche_m2": cal["area"], "offen": offen,
+                    "vorhandene_positionen": [{"kg": x["kg"], "name": x["name"], "betrag": x["amount"]} for x in d["items"] if x["amount"] is not None and not x.get("est")]}
+            try:
+                o = ai.ask_json(ki, EST_SYS, json.dumps(info, ensure_ascii=False), 1200, c)
+                bau = cal["bauwerk"]
+                for e in (o.get("schaetzungen") or [])[:8]:
+                    if not isinstance(e, dict):
+                        continue
+                    kg = re.sub(r"\D", "", str(e.get("kg") or ""))[:3]
+                    v, lo, hi = _num(e.get("betrag"), -1), _num(e.get("von"), -1), _num(e.get("bis"), -1)
+                    # Plausibilität: zwischen 0 und 30 % der Bauwerkskosten, Spanne geordnet – sonst verwerfen
+                    if len(kg) != 3 or not (0 <= lo <= v <= hi <= bau * 0.3) or hi == 0:
+                        note += f" KI-Wert für KG {kg or '?'} verworfen (außerhalb plausibler Spanne)."
+                        continue
+                    ki_vs.append({"kg": kg, "name": DIN.get(kg) or next((x["name"] for x in vs if x["kg"] == kg), f"KG {kg}"), "value": round(v, -2), "low": round(lo, -2), "high": round(hi, -2),
+                                  "basis": _s(e.get("begruendung"), 300), "src": "KI · " + prov[ki]["label"],
+                                  "sicher": e.get("sicherheit") if e.get("sicherheit") in ("hoch", "mittel", "gering") else "gering"})
+                w = {}
+                for key in ("aufteilung_300", "aufteilung_400"):
+                    a = o.get(key) if isinstance(o.get(key), dict) else {}
+                    a = {k: _num(v, 0, 0, 100) for k, v in a.items() if k in KG2 and k[0] == key[-3]}
+                    if a and abs(sum(a.values()) - 100) <= 5:
+                        w.update(a)
+                if w:
+                    ki_kg2 = {"werte": w, "basis": "Vorschlag der KI für diese Maßnahme", "src": "KI · " + prov[ki]["label"], "sicher": "gering"}
+                if o.get("hinweis"):
+                    note = (_s(o["hinweis"], 300) + note).strip()
+            except ai.AIError as e:
+                note = f"{prov[ki]['label']}: {e}"
+        elif ki != "intern":
+            note = f"{prov.get(ki, {}).get('label', ki)} ist nicht eingerichtet – nur Faustwerte (Intern)."
+        acc = genauigkeit(c, r, d, cal, kinds)
+    return jsonify(vorschlaege=vs + ki_vs, kg2=[x for x in (kg2, ki_kg2) if x], ki=ki, note=note.strip(), acc=acc,
+                   guete={k: KI_GUETE[k] for k in ("intern", ki) if k in KI_GUETE})
+
+
 # ---------------------------------------------------------------- Prüfung
 def rules(c, r, d, cal, files):
     H = []
@@ -641,7 +788,7 @@ def kg_rows(d, cal, depth):
     for it in d["items"]:
         kg = re.sub(r"\D", "", it["kg"])[:3]
         if len(kg) == 3 and kg != "700":
-            leaves.append((kg, it["name"] or DIN.get(kg, ""), it["amount"]))
+            leaves.append((kg, (it["name"] or DIN.get(kg, "")) + (" (geschätzt)" if it.get("est") else ""), it["amount"]))
     leaves.append(("700", "Baunebenkosten", cal["nk"]))
 
     def tot(xs):
@@ -692,11 +839,11 @@ def build_report(c, r, opt):
     rnd = opt["runden"]
     basis = f"brutto inkl. {opt['mwst']:g} % MwSt." if opt["brutto"] else "netto zzgl. MwSt."
 
-    def eur(v, raw=False):
+    def eur(v, raw=False, kw=False):
         if v is None:
             return "offen"
         v = v * (1 if raw else fac)
-        if rnd:
+        if rnd and not kw:   # Kennwerte je m² nicht runden
             v = round(v / rnd) * rnd
         return f"{v:,.0f} €".replace(",", ".")
 
@@ -757,7 +904,12 @@ def build_report(c, r, opt):
         t.setStyle(TableStyle([("FONT", (0, 0), (0, -1), "Helvetica", 9), ("TEXTCOLOR", (0, 0), (0, -1), MUTE), ("FONT", (1, 0), (1, -1), "Helvetica-Bold", 10),
                                ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
         story += [t, Spacer(1, 14 * mm), Paragraph("Gesamtkosten", S["m"]), Paragraph(eur(cal["total"]), S["big"]),
-                  Paragraph(basis + (f", gerundet auf {rnd:,} €".replace(",", ".") if rnd else ""), S["m"]), PageBreak()]
+                  Paragraph(basis + (f", gerundet auf {rnd:,} €".replace(",", ".") if rnd else ""), S["m"])]
+        if "genauigkeit" in parts:
+            kinds = [(_j(f["meta"], {}) or {}).get("kind", "") for f in c.execute("SELECT meta FROM bk_files WHERE bk_id=?", (r["id"],))]
+            acc = genauigkeit(c, r, d, cal, kinds)
+            story += [Spacer(1, 4), Paragraph(f"wahrscheinlich zwischen {eur(acc['low'])} und {eur(acc['high'])}", S["m"])]
+        story.append(PageBreak())
 
     # Zusammenfassung
     if "zusammenfassung" in parts:
@@ -769,7 +921,19 @@ def build_report(c, r, opt):
         else:
             rows += [["Gesamt netto", eur(cal["total"])]]
         story.append(table(rows, [W - 50 * mm, 50 * mm], num_cols=(1,), bold_rows=(len(rows) - 1,)))
-        story += [Spacer(1, 8), Paragraph(f"Raumfläche {m2(cal['area'])} m² · Kennwert Bauwerk {eur(cal['kw'])} je m² Raumfläche ({'brutto' if opt['brutto'] else 'netto'})", S["m"]), Spacer(1, 14)]
+        story += [Spacer(1, 8), Paragraph(f"Raumfläche {m2(cal['area'])} m² · Kennwert Bauwerk {eur(cal['kw'], kw=True)} je m² Raumfläche ({'brutto' if opt['brutto'] else 'netto'})", S["m"]), Spacer(1, 14)]
+
+    # Genauigkeit
+    if "genauigkeit" in parts:
+        kinds = [(_j(f["meta"], {}) or {}).get("kind", "") for f in c.execute("SELECT meta FROM bk_files WHERE bk_id=?", (r["id"],))]
+        acc = genauigkeit(c, r, d, cal, kinds)
+        rows = [["Einfluss", "Spanne"]] + [[Paragraph(X(f["text"]) + (f"<br/><font color='#5e5b55' size='8'>{X(f['tipp'])}</font>" if f["tipp"] else ""), S["cell"]),
+                                            ("nur nach oben " if f.get("oben") else "± ") + f"{f['plus']:g} %"] for f in acc["faktoren"]]
+        story += [KeepTogether([Paragraph("Genauigkeit der Kostenermittlung", S["h2"]),
+                                Paragraph(f"Die Gesamtkosten liegen nach heutigem Stand wahrscheinlich zwischen <b>{eur(acc['low'])}</b> und <b>{eur(acc['high'])}</b> "
+                                          f"(−{acc['lo_pct']:g} % / +{acc['hi_pct']:g} %, {X(acc['urteil'])}). Die Spanne ist nach oben größer, weil offene und unsichere Punkte "
+                                          "die Kosten eher erhöhen als senken.", S["p"]), Spacer(1, 6),
+                                table(rows, [W - 40 * mm, 40 * mm], num_cols=(1,))]), Spacer(1, 14)]
 
     # Kostengruppen
     if "kosten" in parts:
@@ -790,8 +954,8 @@ def build_report(c, r, opt):
         rows = [["Raumtyp", "Räume", "Fläche m²", "€ / m²", "Kosten"]]
         for t in cal["types"]:
             if t["n"]:
-                rows.append([t["label"], str(t["n"]), m2(t["area"]), eur(t["kw"]), eur(t["sum"])])
-        rows.append(["Summe Bauwerk", str(len(d["rooms"])), m2(cal["area"]), eur(cal["kw"]), eur(cal["bauwerk"])])
+                rows.append([t["label"], str(t["n"]), m2(t["area"]), eur(t["kw"], kw=True), eur(t["sum"])])
+        rows.append(["Summe Bauwerk", str(len(d["rooms"])), m2(cal["area"]), eur(cal["kw"], kw=True), eur(cal["bauwerk"])])
         story += [KeepTogether([Paragraph("Kosten nach Nutzung (Kennwerte)", S["h2"]), table(rows, [W - 110 * mm, 18 * mm, 28 * mm, 28 * mm, 36 * mm], num_cols=(1, 2, 3, 4), bold_rows=(len(rows) - 1,))]), Spacer(1, 14)]
 
     # Raumbuch
@@ -838,6 +1002,9 @@ def build_report(c, r, opt):
         if offen:
             auto.append("Noch nicht ermittelt und in der Summe nicht enthalten: " + ", ".join(offen) + ".")
         auto.append(f"Baunebenkosten pauschal mit {d['nk']:g} % angesetzt.")
+        for it in d["items"]:
+            if it.get("est"):
+                auto.append(f"KG {it['kg']} {it['name']} geschätzt ({it['est']['src']}): Spanne {eur(it['est']['low'])} bis {eur(it['est']['high'])}. {it['est']['basis']}")
         kinds = [(_j(f["meta"], {}) or {}).get("kind") for f in c.execute("SELECT meta FROM bk_files WHERE bk_id=?", (r["id"],))]
         if "Grundriss" in kinds:
             auto.append("Flächen aus den Raumstempeln der Grundrisse (Vorentwurf) übernommen.")
@@ -876,7 +1043,7 @@ def build_report(c, r, opt):
     return buf.getvalue()
 
 
-TEILE = ("deckblatt", "zusammenfassung", "kosten", "raumtypen", "raumbuch", "mittelabfluss", "erlaeuterungen", "plaene")
+TEILE = ("deckblatt", "zusammenfassung", "genauigkeit", "kosten", "raumtypen", "raumbuch", "mittelabfluss", "erlaeuterungen", "plaene")
 
 
 @app.get("/api/bk/<int:i>/bericht.pdf")

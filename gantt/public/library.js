@@ -105,7 +105,7 @@ function renderLib() {
   const sub = libSub === 'abs' ? 'abs' : P && libSub === 'prj' ? 'prj' : 'alle';
   let h = `<div class="fv"><nav class="lv-sub"><button class="lv-st${sub === 'alle' ? ' on' : ''}" data-lsub="alle">Vorgaben für alle Projekte</button>${P ? `<button class="lv-st${sub === 'prj' ? ' on' : ''}" data-lsub="prj">Projekt: ${esc(P.name)}</button>` : ''}<button class="lv-st${sub === 'abs' ? ' on' : ''}" data-lsub="abs">Abschnitte</button></nav>`;
   if (sub === 'abs') { box.innerHTML = h + libPhasesHtml() + '</div>'; libAfter(box, st); return; }
-  if (sub === 'prj') { box.innerHTML = h + `<div class="fv-head"><div><h3>Firmen im Projekt</h3><span>${esc(P.name)}</span></div><input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}"><span class="fv-hint">Gilt nur für dieses Projekt. „← Vorgabe“ trägt die Firma aus dem Katalog ein, „↑ als Vorgabe“ macht die Projekt-Firma zur Vorgabe für alle Projekte.</span></div><div class="fv-scroll">${libProjectHtml()}</div></div>` + libLists(); libAfter(box, st); return; }
+  if (sub === 'prj') { box.innerHTML = h + `<div class="fv-head"><div><h3>Firmen im Projekt</h3><span>${esc(P.name)}</span></div><input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}"><span class="fv-hint">Gilt nur für dieses Projekt. Rechts in jeder Zeile: „← Vorgabe übernehmen“ trägt die Firma aus der Vorgabe ein, „↑ als Vorgabe speichern“ macht die Projekt-Firma zur Vorgabe für alle Projekte.</span></div><div class="fv-scroll">${libProjectHtml()}</div></div>` + libLists(); libAfter(box, st); return; }
   h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${L.length} eigene Leistungen · Firmen-Vorgaben für alle Projekte</span></div>
     <input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}">
     <span class="fv-hint"><b>Firma</b>: Vorgabe für alle neuen Planungen – grau = Stammfirma des Gewerks aus dem Adressbuch, eigener Eintrag gilt nur für diese Leistung. Eigene Leistungen erscheinen im Planungsassistenten im gewählten Abschnitt – unter „Weitere Leistungen“ oder, wenn unter <b>Vorausgewählt bei</b> die Projektart markiert ist, dort gleich angekreuzt. Gewerk, Unternehmer und Firma werden beim Einfügen wie im Reiter „Gewerke &amp; Firmen“ übernommen.</span></div>
@@ -250,7 +250,7 @@ function libProjectHtml() {
       <button class="btn sm" data-lpall="empty" title="Bei allen Leistungen ohne Firma die Vorgabe eintragen">Vorgaben für Leistungen ohne Firma übernehmen</button>
       <button class="btn sm" data-lpall="all" title="Bei allen Leistungen die Vorgabe eintragen (auch wo schon eine Firma steht)">Alle auf Vorgabe setzen</button>
 </div>
-    <table class="fv-t lv-t lv-pt" data-tk="lv-prj"><thead><tr><th style="min-width:260px">Leistung</th><th>Abschnitt</th><th>Gewerk</th><th class="num">Anz.</th><th>Zeitraum</th><th style="min-width:190px">Firma im Projekt</th><th style="min-width:170px">Vorgabe (alle Projekte)</th><th>Telefon</th><th></th></tr></thead><tbody>`;
+    <table class="fv-t lv-t lv-pt" data-tk="lv-prj"><thead><tr><th style="min-width:260px">Leistung</th><th>Abschnitt</th><th>Gewerk</th><th class="num">Anz.</th><th>Zeitraum</th><th style="min-width:190px">Firma im Projekt</th><th style="min-width:170px">Vorgabe (alle Projekte)</th><th>Telefon</th><th>Vorgabe</th></tr></thead><tbody>`;
   for (const g of list) {
     const f = firmOf(g), d = libDefaultFor(g), cur = f && !isCraftName(f, g.gw) ? f : '', book = cur && typeof firmByName === 'function' ? firmByName(cur) : null;
     const same = d.name && cur === d.name;
@@ -259,7 +259,7 @@ function libProjectHtml() {
       <td><input data-pfirm="1" list="fvFirmList2" value="${esc(f === null ? '' : cur)}" placeholder="${f === null ? 'verschieden – neu setzen' : 'keine Firma'}" class="${!cur ? 'lv-miss' : same ? '' : d.name ? 'lv-diff' : ''}"></td>
       <td class="lv-dim">${d.name ? esc(d.name) + (d.own ? '' : ' <small>(Gewerk)</small>') : '–'}</td>
       <td class="lv-dim">${book && (book.phone || book.mobile) ? esc(book.phone || book.mobile) : ''}</td>
-      <td class="lv-act">${d.name && !same ? `<button class="fv-x" data-lptake="1" title="Vorgabe „${esc(d.name)}“ im Projekt eintragen">← Vorgabe</button>` : ''}${cur && !same ? `<button class="fv-x" data-lpup="1" title="„${esc(cur)}“ als Vorgabe für alle Projekte speichern">↑ als Vorgabe</button>` : ''}</td></tr>`;
+      <td class="lv-act">${same ? '<span class="lv-same" title="Projekt-Firma und Vorgabe stimmen überein">✓ wie Vorgabe</span>' : `<button class="fv-x" data-lptake="1"${d.name ? ` title="Vorgabe „${esc(d.name)}“ im Projekt eintragen"` : ' disabled title="Keine Vorgabe für dieses Gewerk"'}>← Vorgabe übernehmen</button><button class="fv-x" data-lpup="1"${cur ? ` title="„${esc(cur)}“ als Vorgabe für alle Projekte speichern"` : ' disabled title="Im Projekt ist keine Firma eingetragen"'}>↑ als Vorgabe speichern</button>`}</td></tr>`;
   }
   if (!list.length) h += `<tr><td colspan="9" class="fv-empty">${rows.length ? 'Alle Leistungen haben eine Firma.' : 'Das Projekt hat noch keine Leistungen.'}</td></tr>`;
   return h + '</tbody></table></div>';

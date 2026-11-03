@@ -60,6 +60,10 @@
 .card.h.go{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .15s,transform .15s}
 .card.h.go:hover,.card.h.go:focus-visible{border-color:var(--y);transform:translateX(2px)}
 .card.h.go .src i{font-style:normal;margin-left:.5rem;color:var(--y)}
+.btn.ki{border-color:color-mix(in srgb,var(--y) 60%,var(--line))}
+#histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#histBar[hidden]{display:none}
+#histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flash{animation:flash 1.8s ease-out}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--y);background:color-mix(in srgb,var(--y) 18%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
 .plan.drag{cursor:grabbing}
@@ -260,6 +264,7 @@ function render() {
   if (!B) { v.innerHTML = `<div class="card empty"><p>Noch keine Kostenermittlung.</p><button class="btn pri" data-act="new">Erste Kostenermittlung anlegen</button></div>`; return; }
   v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
   if (sig) { const n = document.querySelector(sig); if (n) n.focus(); }
+  histTrack();
   zmInit();
   assist();
   if (tab === 'mittel' || tab === 'uebersicht') ensureFlow();
@@ -345,7 +350,7 @@ function estHtml() {
   const open = B.data.items.filter((i) => i.amount == null).length, ki = window.BPHead ? BPHead.provider() : { key: 'intern', label: 'Intern' };
   let h = `<section class="card" style="margin-bottom:1.2rem" id="estBox"><div class="row"><div style="flex:1;min-width:240px"><h2>Fehlendes schätzen</h2>
     <p class="sub" style="margin:0">${open ? open + ' Kostengruppen sind noch offen.' : 'Keine offenen Kostengruppen.'} Faustwerte (Intern)${ki.key !== 'intern' ? ' und ' + esc(ki.label) + ' im Vergleich' : ' – für einen Vergleich oben eine KI wählen'}, jeweils mit Spanne.</p></div>
-    <button class="btn pri" data-act="estimate"${estBusy ? ' disabled' : ''}>${estBusy ? 'Schätze …' : EST ? 'Neu schätzen' : 'Jetzt schätzen'}</button></div>`;
+    <button class="btn pri" data-act="estimate"${estBusy ? ' disabled' : ''}>${estBusy ? 'Schätze …' : EST ? 'Neu schätzen' : 'Jetzt schätzen'}</button><button class="btn ki" data-act="estimateKi"${estBusy ? ' disabled' : ''} title="Zusätzlich mit KI schätzen">✨ mit KI</button></div>`;
   if (EST) {
     if (EST.note) h += `<p class="hint" style="color:#e07b3a">${esc(EST.note)}</p>`;
     const by = {}; EST.vorschlaege.forEach((v, n) => { (by[v.kg] ||= []).push([v, n]); });
@@ -359,9 +364,9 @@ function estHtml() {
   }
   return h + '</section>';
 }
-async function runEstimate() {
+async function runEstimate(ki) {
   estBusy = true; if (tab === 'kosten') render();
-  try { clearTimeout(saveT); await saveNow(); EST = await api(`api/bk/${B.id}/schaetzen`, 'POST', {}); B.acc = EST.acc; } catch (e) { toast(e.message, true); }
+  try { clearTimeout(saveT); await saveNow(); EST = await api(`api/bk/${B.id}/schaetzen`, 'POST', ki ? { ki: true } : {}); B.acc = EST.acc; } catch (e) { toast(e.message, true); }
   estBusy = false; render();
 }
 function vKosten() {
@@ -411,14 +416,14 @@ function vMittel() {
 }
 function vPruefung() {
   const ki = window.BPHead ? BPHead.provider() : { label: 'Intern' };
-  return `<div class="row" style="margin-bottom:1rem"><div style="flex:1"><h2 style="margin:0">Plausibilitätsprüfung</h2><p class="hint" style="margin:.2rem 0 0">Feste Regeln${ki.key && ki.key !== 'intern' ? ' und ' + esc(ki.label) : ''} · KI oben in der Kopfleiste wählen</p></div><button class="btn pri" data-act="check">${CHECK ? 'Erneut prüfen' : 'Jetzt prüfen'}</button></div>
+  return `<div class="row" style="margin-bottom:1rem"><div style="flex:1"><h2 style="margin:0">Plausibilitätsprüfung</h2><p class="hint" style="margin:.2rem 0 0">Feste Regeln${ki.key && ki.key !== 'intern' ? ' und ' + esc(ki.label) : ''} · KI oben in der Kopfleiste wählen</p></div><button class="btn pri" data-act="check">${CHECK ? 'Erneut prüfen' : 'Jetzt prüfen'}</button><button class="btn ki" data-act="checkKi" title="Zusätzlich mit KI prüfen (oben gewählte KI, sonst die erste eingerichtete)">✨ mit KI</button></div>
     ${CHECK && CHECK.note ? `<p class="hint" style="color:#e07b3a">${esc(CHECK.note)}</p>` : ''}
     <div class="list">${CHECK ? CHECK.hinweise.map((h, k) => `<button type="button" class="card h go" data-hint="${k}" title="Zur Stelle springen"><span class="d ${h.lvl}" aria-label="${h.lvl}"></span><div><b>${esc(h.title)}</b><p>${esc(h.text)}</p></div><span class="src">${esc(h.src)}<i aria-hidden="true">→</i></span></button>`).join('') || '<div class="card empty">Keine Auffälligkeiten.</div>' : '<div class="card empty">Noch nicht geprüft.</div>'}</div>`;
 }
 async function loadSources() { try { SRC = await api('api/sources'); } catch { SRC = { projects: [], plans: [] }; } if (tab === 'mittel') render(); }
-async function runCheck() {
-  const b = document.querySelector('[data-act="check"]'); if (b) { b.disabled = true; b.textContent = 'Prüfe …'; }
-  try { clearTimeout(saveT); await saveNow(); CHECK = await api(`api/bk/${B.id}/check`, 'POST', {}); } catch (e) { toast(e.message, true); }
+async function runCheck(ki) {
+  const b = document.querySelector(ki ? '[data-act="checkKi"]' : '[data-act="check"]'); if (b) { b.disabled = true; b.textContent = 'Prüfe …'; }
+  try { clearTimeout(saveT); await saveNow(); CHECK = await api(`api/bk/${B.id}/check`, 'POST', ki ? { ki: true } : {}); } catch (e) { toast(e.message, true); }
   render();
 }
 async function upload(files) {
@@ -502,9 +507,102 @@ function assist() {
     ${S.done() || i === STEPS.length - 1 ? '' : '<button class="btn sm" data-as="skip">Überspringen</button>'}<button class="btn sm pri" data-as="next"${i === STEPS.length - 1 ? ' disabled' : ''}>Weiter</button></div>`;
   asPlace();
 }
+/* ---------- Nachfragen: Positionen mit Menge und Preis vorschlagen (intern oder ✨ KI) ---------- */
+async function askDialog(ask) {
+  if (document.querySelector('.modal-bg')) return;
+  let R; try { clearTimeout(saveT); await saveNow(); R = await api(`api/bk/${B.id}/vorschlag`, 'POST', ask); } catch (e) { toast(e.message, true); return; }
+  let rows = R.rows.map((x) => ({ ...x, on: true }));
+  const sum = () => rows.filter((x) => x.on).reduce((a, x) => a + (+x.betrag || 0), 0);
+  const tbl = () => `<div class="tbl"><table><thead><tr><th></th><th>KG</th><th>Bezeichnung</th><th class="r">Menge</th><th>Einheit</th><th class="r">€ / Einheit</th><th class="r">Betrag €</th></tr></thead><tbody>${rows.map((x, i) => `
+    <tr data-r="${i}"><td><input type="checkbox" data-q="on"${x.on ? ' checked' : ''} aria-label="übernehmen"></td><td><input class="n" style="width:56px;text-align:left" data-q="kg" value="${esc(x.kg)}"></td>
+    <td><input data-q="name" value="${esc(x.name)}" style="min-width:220px"><div class="hint" style="font-size:.72rem">${esc(x.src)}${x.basis ? ' · ' + esc(x.basis) : ''}</div></td>
+    <td class="r"><input class="n" style="width:80px" data-q="menge" value="${x.menge == null ? '' : String(x.menge).replace('.', ',')}" inputmode="decimal"></td><td><input style="width:56px" data-q="einheit" value="${esc(x.einheit || '')}"></td>
+    <td class="r"><input class="n" style="width:90px" data-q="ep" value="${x.ep == null ? '' : String(x.ep).replace('.', ',')}" inputmode="decimal"></td>
+    <td class="r"><input class="n" style="width:110px" data-q="betrag" value="${Math.round(+x.betrag || 0)}" inputmode="numeric"></td></tr>`).join('')}</tbody>
+    <tfoot><tr><td></td><td></td><td>Summe der gewählten Positionen</td><td></td><td></td><td></td><td class="r num" id="askSum">${eur(sum())}</td></tr></tfoot></table></div>`;
+  const html = () => `<h3>${esc(R.title)}</h3><p class="hint" style="margin-top:0">${esc(R.note || '')}</p><div id="askT">${tbl()}</div>
+    <div class="acts" style="justify-content:space-between"><button class="btn ki" data-m="ki" title="Positionen, Mengen und Preise von der KI vorschlagen lassen">✨ Mit KI vorschlagen</button>
+    <span><button class="btn" data-m="x">Abbrechen</button> <button class="btn pri" data-m="ok">Übernehmen</button></span></div>`;
+  const bg = modalBox(html(), async (m, bg, close, b) => {
+    if (m === 'x') { close(); return; }
+    if (m === 'ki') {
+      b.disabled = true; b.textContent = '✨ KI rechnet …';
+      try { const K = await api(`api/bk/${B.id}/vorschlag`, 'POST', { ...ask, ki: true }); R = { ...R, note: K.note, title: K.title }; rows = K.rows.map((x) => ({ ...x, on: true })); bg.querySelector('.modal').innerHTML = html(); }
+      catch (e) { toast(e.message, true); b.disabled = false; b.textContent = '✨ Mit KI vorschlagen'; }
+      return;
+    }
+    if (m === 'ok') {
+      const take = rows.filter((x) => x.on && x.name.trim() && (+x.betrag || 0) > 0);
+      if (!take.length) { toast('Keine Position mit Betrag gewählt.', true); return; }
+      const it = ask.item != null ? B.data.items[ask.item] : null;
+      if (it && it.amount == null) B.data.items.splice(ask.item, 1);   // offene Sammelposition wird durch die Einzelpositionen ersetzt
+      take.forEach((x) => B.data.items.push({ kg: x.kg, name: x.name.trim(), amount: Math.round(+x.betrag),
+        est: { src: x.src || 'Vorschlag', low: Math.round(x.betrag * 0.8), high: Math.round(x.betrag * 1.3), basis: [x.menge ? `${String(x.menge).replace('.', ',')} ${x.einheit || ''} × ${eur(+x.ep || 0)}` : '', x.basis || ''].filter(Boolean).join(' · ').slice(0, 300) } }));
+      close(); CHECK = null; tab = 'kosten'; history.replaceState(null, '', '#kosten');
+      changed(); toast(`${take.length} Positionen übernommen – mit ↶ Rückgängig zurücknehmbar.`);
+    }
+  });
+  bg.querySelector('.modal').style.width = 'min(980px,100%)';
+  bg.addEventListener('input', (e) => {
+    const el = e.target, tr = el.closest('[data-r]'); if (!tr || !el.dataset.q) return;
+    const x = rows[+tr.dataset.r], q = el.dataset.q;
+    if (q === 'on') return;
+    x[q] = ['menge', 'ep', 'betrag'].includes(q) ? (el.value.trim() === '' ? null : pnum(el.value)) : el.value;
+    if ((q === 'menge' || q === 'ep') && x.menge != null && x.ep != null) { x.betrag = Math.round(x.menge * x.ep); tr.querySelector('[data-q="betrag"]').value = x.betrag; }
+    bg.querySelector('#askSum').textContent = eur(sum());
+  });
+  bg.addEventListener('change', (e) => { const el = e.target, tr = el.closest('[data-r]'); if (tr && el.dataset.q === 'on') { rows[+tr.dataset.r].on = el.checked; bg.querySelector('#askSum').textContent = eur(sum()); } });
+}
+
+/* ---------- Rückgängig / Wiederholen: eigene Eingaben, Löschen und automatische Übernahmen ---------- */
+let HIST = { id: null, last: null, undo: [], redo: [] };
+const histLabel = (a, b) => {
+  try {
+    const A = JSON.parse(a), Bd = JSON.parse(b);
+    if (Bd.rooms.length < A.rooms.length) return `${A.rooms.length - Bd.rooms.length === 1 ? 'Raum' : (A.rooms.length - Bd.rooms.length) + ' Räume'} gelöscht`;
+    if (Bd.rooms.length > A.rooms.length) return `${Bd.rooms.length - A.rooms.length} Räume hinzugefügt`;
+    if (Bd.items.length < A.items.length) return 'Position gelöscht';
+    if (Bd.items.length > A.items.length) return 'Positionen hinzugefügt';
+    if (JSON.stringify(A.rooms.map((r) => r.ok)) !== JSON.stringify(Bd.rooms.map((r) => r.ok))) return 'Bestätigung geändert';
+  } catch { /* egal */ }
+  return 'Änderung';
+};
+function histTrack() {   // nach jeder Änderung aufrufen: alten Stand merken
+  if (!B) return;
+  const cur = JSON.stringify(B.data);
+  if (HIST.id !== B.id) { HIST = { id: B.id, last: cur, undo: [], redo: [] }; histUi(); return; }
+  if (cur === HIST.last) return;
+  HIST.undo.push({ data: HIST.last, label: histLabel(HIST.last, cur) }); if (HIST.undo.length > 60) HIST.undo.shift();
+  HIST.redo = []; HIST.last = cur; histUi();
+}
+function histGo(dir) {
+  histTrack();
+  const from = dir < 0 ? HIST.undo : HIST.redo, to = dir < 0 ? HIST.redo : HIST.undo, s = from.pop(); if (!s) return;
+  to.push({ data: HIST.last, label: s.label });
+  B.data = JSON.parse(s.data); HIST.last = s.data; CHECK = null;
+  changed(); histUi(); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${s.label}`);
+}
+function histUi() {
+  let el = $('#histBar');
+  if (!el) { el = document.createElement('div'); el.id = 'histBar'; el.innerHTML = '<button class="btn" data-hist="-1">↶ Rückgängig</button><button class="btn" data-hist="1" title="Wiederholen (Strg+Y)">↷</button>'; document.body.appendChild(el);
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (b) histGo(+b.dataset.hist); }); }
+  const u = HIST.undo[HIST.undo.length - 1], r = HIST.redo[HIST.redo.length - 1];
+  el.hidden = !B || (!u && !r);
+  const bu = el.querySelector('[data-hist="-1"]'), br = el.querySelector('[data-hist="1"]');
+  bu.disabled = !u; bu.title = u ? `Rückgängig: ${u.label} (Strg+Z)` : 'Nichts rückgängig zu machen'; bu.textContent = u ? `↶ ${u.label}` : '↶ Rückgängig';
+  br.disabled = !r; br.title = r ? `Wiederholen: ${r.label} (Strg+Y)` : 'Nichts zu wiederholen';
+}
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg')) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;   // im Feld macht der Browser selbst rückgängig
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); histGo(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); histGo(1); }
+});
+
 /* ---------- Prüfung: Hinweis anklicken → zur Stelle springen ---------- */
 function goHint(h) {
   const g = h.go || { tab: 'kosten' };
+  if (g.ask) { askDialog(g.ask); return; }
   if (g.room) selRoom = g.room;
   tab = g.tab || 'kosten'; history.replaceState(null, '', '#' + tab); render();
   requestAnimationFrame(() => {
@@ -609,6 +707,8 @@ document.addEventListener('click', async (e) => {
     if (act === 'new') newDialog();
     else if (act === 'goCheck') { tab = 'pruefung'; history.replaceState(null, '', '#pruefung'); render(); runCheck(); }
     else if (act === 'check') runCheck();
+    else if (act === 'checkKi') runCheck(true);
+    else if (act === 'estimateKi') runEstimate(true);
     else if (act === 'okAll') { B.data.rooms.forEach((r) => { r.ok = true; }); changed(); }
     else if (act === 'addRoom') { B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'addItem') { B.data.items.push({ kg: '', name: '', amount: null }); changed(); }

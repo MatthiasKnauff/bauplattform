@@ -832,6 +832,102 @@ def schaetzen_intern(d, cal):
     return out, kg2
 
 
+# ---------------------------------------------------------------- Positionen vorschlagen (Klick auf einen Prüfhinweis)
+# Unterpositionen je offener Kostengruppe: (KG, Bezeichnung, Einheit, Anteil am Faustwert)
+SUB = {
+    "200": [("210", "Herrichten (Baustelleneinrichtung im Bestand, Schutz, Sicherung)", "psch", 0.6), ("230", "Nichtöffentliche Erschließung (Leitungen umlegen, Anschlüsse)", "psch", 0.4)],
+    "394": [("394", "Abbruch nichttragender Innenwände", "m²", 0.3), ("394", "Abbruch Beläge, Bekleidungen, Estrich", "m²", 0.3),
+            ("394", "Rückbau Installationen (Heizung, Sanitär, Elektro)", "psch", 0.2), ("394", "Entsorgung, Container, Schadstoffe nach Gutachten", "psch", 0.2)],
+    "500": [("510", "Erdbau, Geländeanpassung", "m²", 0.15), ("530", "Oberbau: Wege, Zufahrt, Stellplätze", "m²", 0.45),
+            ("540", "Baukonstruktionen in Außenanlagen (Einfriedung, Mauern)", "m", 0.15), ("570", "Vegetationsflächen, Pflanzen", "m²", 0.25)],
+}
+EP_HUELLE = {"335": ("Fassade: Außenwandbekleidung / Putz / WDVS", "m²", 180), "334": ("Fenster und Außentüren", "m²", 750), "363": ("Dachbeläge, Dachabdichtung, Dämmung", "m²", 165)}
+
+VOR_SYS = """Du bist erfahrener Kostenplaner (DIN 276) in Deutschland. Schlage für das genannte Thema Kostenpositionen vor:
+je Position Kostengruppe (3-stellig), Bezeichnung, Menge, Einheit, Einheitspreis in Euro netto und eine kurze Begründung.
+Nutze die Angaben zur Maßnahme (Flächen, Geschosse, Pläne). Antworte ausschließlich mit JSON:
+{"positionen":[{"kg":"335","name":"…","menge":0,"einheit":"m²","ep":0,"begruendung":"…"}],"hinweis":"…"} – höchstens 8 Positionen."""
+
+
+def _geo(d, cal):
+    """Grobe Gebäudegeometrie aus dem Raumbuch: Geschosse, Grundfläche, Umfang, Fassaden- und Dachfläche."""
+    fl = max(1, len(_floors(d["rooms"])) or 1)
+    a = cal["area"] or 0
+    foot = a / fl * 1.15 if a else 0   # Brutto-Grundfläche je Geschoss ≈ Raumfläche × 1,15
+    per = 4 * (foot ** 0.5) * 1.1 if foot else 0
+    fac = per * fl * 2.9
+    return {"geschosse": fl, "grundflaeche": round(foot), "umfang": round(per), "fassade_brutto": round(fac), "fenster": round(fac * 0.2),
+            "fassade_netto": round(fac * 0.8), "dach": round(foot * 1.25)}
+
+
+@app.post("/api/bk/<int:i>/vorschlag")
+def vorschlag(i):
+    """Positionen mit Menge und Preis vorschlagen – intern (Faustwerte, Geometrie) oder mit der gewählten KI (ki=true)."""
+    b = request.get_json(silent=True) or {}
+    thema, kg = b.get("thema"), re.sub(r"\D", "", str(b.get("kg") or ""))[:3]
+    with db.tx() as c:
+        r = _row(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        d = clean_data(_j(r["data"], {}), c)
+        cal = calc(d)
+        G = _geo(d, cal)
+        rows, note = [], ""
+        if thema == "huelle":
+            title = "Gebäudehülle aus den Ansichten"
+            m = {"335": G["fassade_netto"], "334": G["fenster"], "363": G["dach"]}
+            for k, (n, e, ep) in EP_HUELLE.items():
+                rows.append({"kg": k, "name": n, "menge": m[k], "einheit": e, "ep": ep, "src": "Intern",
+                             "basis": f"aus {cal['area']:.0f} m² Raumfläche, {G['geschosse']} Geschoss(e): Umfang ≈ {G['umfang']} m".replace(".", ",")})
+            note = "Mengen grob aus dem Raumbuch abgeleitet – bitte mit den Ansichten abgleichen (Fassadenfläche, Fensteranteil, Dachfläche)."
+        elif thema == "kg" and kg in FAUST:
+            name, v, lo, hi, why = FAUST[kg]
+            title = f"KG {kg} {name}"
+            total = cal["bauwerk"] * v / 100
+            for k, n, e, share in SUB.get(kg, [(kg, name, "psch", 1.0)]):
+                amt = round(total * share, -2)
+                rows.append({"kg": k, "name": n, "menge": 1 if e == "psch" else None, "einheit": e, "ep": amt if e == "psch" else None, "betrag": amt, "src": "Intern",
+                             "basis": f"{v:g} % der Bauwerkskosten × Anteil {share * 100:.0f} %".replace(".", ",")})
+            pz = lambda x: f"{x:g}".replace(".", ",")
+            note = f"Faustwert {pz(v)} % der Bauwerkskosten (üblich {pz(lo)}–{pz(hi)} %): {why}. Mengen eintragen, wenn bekannt – der Betrag rechnet mit."
+        else:
+            return jsonify(error="Unbekanntes Thema"), 400
+        if b.get("ki"):
+            ki = ai.choice_of(g.user)
+            prov = {p["key"]: p for p in ai.providers(c)}
+            if ki == "intern" or not prov.get(ki, {}).get("ok"):
+                ki = next((k for k in ("claude", "gemini", "chatgpt", "ollama") if prov.get(k, {}).get("ok")), None)
+            if not ki:
+                return jsonify(error="Keine KI eingerichtet – in der Verwaltung unter Einstellungen → KI einen Schlüssel hinterlegen."), 400
+            info = {"thema": title, "maßnahme": r["name"], "stufe": STUFE_NAME.get(r["stufe"]), "raumflaeche_m2": cal["area"], "geometrie_grob": G,
+                    "raumtypen": [{"typ": t["label"], "m2": t["area"]} for t in cal["types"] if t["area"]], "bauwerk_kg300_400_netto": cal["bauwerk"],
+                    "pläne": [f["name"] for f in c.execute("SELECT name FROM bk_files WHERE bk_id=?", (i,))]}
+            try:
+                o = ai.ask_json(ki, VOR_SYS, json.dumps(info, ensure_ascii=False), 2000, c)
+            except ai.AIError as e:
+                return jsonify(error=f"{prov[ki]['label']}: {e}"), 502
+            krows = []
+            for e in (o.get("positionen") or o.get("_objekte") or [])[:8]:
+                if not isinstance(e, dict):
+                    continue
+                k = re.sub(r"\D", "", str(e.get("kg") or ""))[:3]
+                menge, ep = _num(e.get("menge"), 0, 0, 1e6), _num(e.get("ep"), 0, 0, 1e6)
+                if len(k) != 3 or not _s(e.get("name"), 120):
+                    continue
+                krows.append({"kg": k, "name": _s(e.get("name"), 120), "menge": round(menge, 1), "einheit": _s(e.get("einheit"), 10) or "psch", "ep": round(ep, 2),
+                              "src": "KI · " + prov[ki]["label"], "basis": _s(e.get("begruendung"), 300)})
+            tot = sum((x["menge"] or 0) * (x["ep"] or 0) for x in krows)
+            if not krows:
+                return jsonify(error="Die KI hat keine verwertbaren Positionen geliefert."), 502
+            if cal["bauwerk"] and tot > cal["bauwerk"] * 0.6:
+                return jsonify(error="Die Vorschläge der KI sind unplausibel hoch (über 60 % der Bauwerkskosten) und wurden verworfen."), 502
+            rows, note = krows, _s(o.get("hinweis"), 300) or "Vorschlag der KI – Mengen und Preise bitte prüfen."
+    for x in rows:
+        if x.get("betrag") is None:
+            x["betrag"] = round((x.get("menge") or 0) * (x.get("ep") or 0), 2)
+    return jsonify(title=title, rows=rows, note=note, geo=G)
+
+
 EST_SYS = """Du bist erfahrener Kostenplaner (DIN 276) in Deutschland. Schätze fehlende Kostengruppen für die beschriebene Maßnahme.
 Gib je Kostengruppe einen wahrscheinlichen Betrag in Euro netto und eine realistische Spanne an (von/bis), dazu eine kurze Begründung.
 Antworte ausschließlich mit JSON: {"schaetzungen":[{"kg":"394","betrag":0,"von":0,"bis":0,"begruendung":"…","sicherheit":"hoch|mittel|gering"}],
@@ -851,6 +947,8 @@ def schaetzen(i):
         vs, kg2 = schaetzen_intern(d, cal)
         ki = ai.choice_of(g.user)
         prov = {p["key"]: p for p in ai.providers(c)}
+        if (request.get_json(silent=True) or {}).get("ki") and (ki == "intern" or not prov.get(ki, {}).get("ok")):   # ✨-Knopf: KI auch bei „Intern“
+            ki = next((k for k in ("claude", "gemini", "chatgpt", "ollama") if prov.get(k, {}).get("ok")), ki)
         note, ki_vs, ki_kg2 = "", [], None
         if ki != "intern" and prov.get(ki, {}).get("ok") and cal["bauwerk"]:
             offen = [v["kg"] + " " + v["name"] for v in vs]
@@ -919,8 +1017,8 @@ def rules(c, r, d, cal, files):
             add("mittel", f"Kennwert {t['label']} ungewöhnlich", f"{t['kw']:,.0f} €/m² liegt außerhalb von 300–6.000 €/m². Tippfehler?".replace(",", "."), go={"tab": "kosten", "sel": f'[data-kw="{t["typ"]}"]'})
     for k, it in enumerate(d["items"]):
         if it["amount"] is None:
-            add("mittel" if it["kg"] == "394" else "info", f"KG {it['kg']} {it['name']} offen", "Noch kein Betrag eingetragen – die Summe ist dafür zu niedrig.",
-                go={"tab": "kosten", "sel": f'[data-it="{k}"][data-f="amount"]'})
+            add("mittel" if it["kg"] == "394" else "info", f"KG {it['kg']} {it['name']} offen", "Noch kein Betrag eingetragen – die Summe ist dafür zu niedrig. Anklicken: Positionen und Kosten vorschlagen lassen.",
+                go={"tab": "kosten", "sel": f'[data-it="{k}"][data-f="amount"]', "ask": {"thema": "kg", "kg": re.sub(r"\D", "", it["kg"])[:3], "item": k}})
     if spaet and not d.get("kg2") and cal["bauwerk"]:
         add("mittel", f"{STUFE_NAME[r['stufe']]}: Aufteilung auf die 2. Ebene fehlt",
             "Ab der Kostenberechnung gehören KG 300/400 in die 2. Ebene (z. B. 330 Außenwände, 440 Elektro). Anteile unter „Kosten“ eintragen oder schätzen lassen.",
@@ -936,7 +1034,7 @@ def rules(c, r, d, cal, files):
         add("mittel", "Nur ein Geschoss im Raumbuch", f"Alle Räume gehören zu „{next(iter(floors))}“ – fehlen Grundrisse weiterer Geschosse (OG, KG)?", go={"tab": "plaene", "sel": "#drop"})
     kinds = {(_j(f["meta"], {}) or {}).get("kind") for f in files}
     if "Ansicht" in kinds:
-        add("info", "Fassade aus Ansichten noch nicht bewertet", "Die Ansichten sind hochgeladen. Fassaden-, Fenster- und Dachflächen bitte als eigene Positionen ergänzen; Höhen stehen in Ansichten meist nicht als Zahl.", go={"tab": "kosten", "sel": '[data-act="addItem"]'})
+        add("info", "Fassade aus Ansichten noch nicht bewertet", "Die Ansichten sind hochgeladen. Fassaden-, Fenster- und Dachflächen als eigene Positionen ergänzen – anklicken: Flächen und Kosten vorschlagen lassen.", go={"tab": "kosten", "sel": '[data-act="addItem"]', "ask": {"thema": "huelle"}})
     if not r["gantt_id"]:
         add("info", "Kein Bauzeitenplan verknüpft", "Ohne Bauzeitenplan kann der Mittelabfluss nicht berechnet werden.", go={"tab": "mittel", "sel": '[data-link="gantt_id"]'})
     if cal["area"] and cal["kw"] and not (800 <= cal["kw"] <= 4500):
@@ -963,6 +1061,8 @@ def check(i):
         H = rules(c, r, d, cal, files)
         ki = ai.choice_of(g.user)
         prov = {p["key"]: p for p in ai.providers(c)}
+        if (request.get_json(silent=True) or {}).get("ki") and (ki == "intern" or not prov.get(ki, {}).get("ok")):   # ✨-Knopf: KI auch bei „Intern“
+            ki = next((k for k in ("claude", "gemini", "chatgpt", "ollama") if prov.get(k, {}).get("ok")), ki)
         note = ""
         if ki != "intern" and prov.get(ki, {}).get("ok"):
             summary = {

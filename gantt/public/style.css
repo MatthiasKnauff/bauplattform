@@ -680,3 +680,4 @@ html:not([data-theme="-"]) .bp-menu .bp-sep{border-top:1px solid #3b3e42;margin:
 .wz-nav{display:flex;gap:8px;margin-top:16px;align-items:center}
 html[data-theme="dunkel"] .wz-o{background:#2a2a28;border-color:#46443f}
 html[data-theme="dunkel"] .wz-o small,html[data-theme="dunkel"] .wz-bar small,html[data-theme="dunkel"] .wz-p{color:#b9b4aa}
+.lv-same{font-size:11.5px;color:#2e7d4f}.lv-act .fv-x[disabled]{opacity:.4;cursor:default}

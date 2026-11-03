@@ -167,8 +167,17 @@ def clean_data(d, c):
             "nk": _num(d.get("nk"), 20, 0, 60), "rate": _num(d.get("rate"), 3, 0, 20), "items": items, "shares": shares,
             "kg2": kg2, "notes": _s(d.get("notes"), 8000),
             "bauteile": _clean_bt(d.get("bauteile")),
+            "justage": _clean_ju(d.get("justage")),
             "hoehe_std": round(_num(d.get("hoehe_std"), 0, 0, 20), 2) or None,   # erste eingetragene Raumhöhe gilt für alle ohne eigene
             "hoehen": {str(k)[:8]: round(_num(v, 0, 0, 20), 2) for k, v in list((d.get("hoehen") if isinstance(d.get("hoehen"), dict) else {}).items())[:20] if _num(v, 0, 0, 20)}}
+
+
+def _clean_ju(v):
+    """Justage der Kennwerte: Regionalfaktor, Preisstand und wie Gruppen ohne Bauteile neben Bauteilen gerechnet werden."""
+    v = v if isinstance(v, dict) else {}
+    rest = v.get("rest") if v.get("rest") in ("kw", "angl", "eigen") else "kw"
+    return {"region": round(_num(v.get("region"), 100, 30, 300), 1), "preis": round(_num(v.get("preis"), 100, 30, 400), 1),
+            "rest": rest, "f": round(_num(v.get("f"), 1, 0.2, 5), 3)}
 
 
 def _bt_betrag(b):
@@ -189,43 +198,61 @@ def _clean_bt(v):
 
 def calc(d):
     """Kosten aus Raumbuch und Kennwerten (alle Beträge netto).
+    Justage: Kennwerte × Regionalfaktor × Preisstand.
     Gibt es Bauteile mit Menge und Einheitspreis (Kostenberechnung), ersetzen sie in ihrer Kostengruppe der 2. Ebene
-    (z. B. 350 Decken) den Anteil aus den Kennwerten; die übrigen Gruppen bleiben beim Kennwert-Anteil."""
+    (z. B. 350 Decken) den Kennwert-Anteil. Die übrigen Gruppen bleiben beim Kennwert-Anteil – oder werden auf Wunsch
+    mit dem Verhältnis Bauteile ÷ Kennwert-Anteil der bepreisten Gruppen angeglichen (bzw. mit einem eigenen Faktor)."""
+    ju = d.get("justage") or _clean_ju(None)
+    jf = ju["region"] / 100 * ju["preis"] / 100
     by = {}
     for r in d["rooms"]:
         t = by.setdefault(r["typ"], {"area": 0.0, "n": 0})
         t["area"] += r["area"]; t["n"] += 1
-    rows, bau = [], 0.0
+    rows, raw = [], 0.0
     for k, t in d["types"].items():
         a = by.get(k, {"area": 0.0, "n": 0})
-        s = a["area"] * t["kw"]; bau += s
+        s = a["area"] * t["kw"]; raw += s
         rows.append({"typ": k, "label": t["label"], "n": a["n"], "area": round(a["area"], 2), "kw": t["kw"], "sum": round(s, 2)})
-    bau_kw = bau
+    bau = bau_kw = raw * jf
     k300, k400 = bau * d["kg"]["300"] / 100, bau * d["kg"]["400"] / 100
     kg2 = {}
+    J = {"region": ju["region"], "preis": ju["preis"], "faktor": round(jf, 4), "rest": ju["rest"], "rest_f": 1.0, "k": None,
+         "bt_wert": 0.0, "bt_kw": 0.0, "rest_kw": 0.0, "rest_wert": 0.0}
     bts = [b for b in d.get("bauteile") or [] if len(b.get("kg") or "") == 3 and b["kg"][0] in "34"]
     if bts:
         sums = {}
         for b in bts:
             k = b["kg"][:2] + "0"
             x = sums.setdefault(k, {"wert": 0.0, "n": 0}); x["wert"] += _bt_betrag(b); x["n"] += 1
-        tot = {"3": 0.0, "4": 0.0}
+        anteil = {}
         for main, base in (("3", k300), ("4", k400)):
             src = {k: v for k, v in (d["kg2"] or KG2_FAUST).items() if k[0] == main} or {k: v for k, v in KG2_FAUST.items() if k[0] == main}
             ssum = sum(src.values()) or 1
             for k in sorted(set(src) | {k for k in sums if k[0] == main}):
-                if k in sums:
-                    kg2[k] = {"wert": round(sums[k]["wert"], 2), "quelle": "bauteile", "n": sums[k]["n"], "kennwert": round(base * src.get(k, 0) / ssum, 2)}
-                else:
-                    kg2[k] = {"wert": round(base * src.get(k, 0) / ssum, 2), "quelle": "kennwerte", "n": 0, "kennwert": round(base * src.get(k, 0) / ssum, 2)}
-                tot[main] += kg2[k]["wert"]
+                anteil[k] = base * src.get(k, 0) / ssum
+        J["bt_wert"] = sum(v["wert"] for v in sums.values())
+        J["bt_kw"] = sum(anteil.get(k, 0) for k in sums)
+        kk = J["bt_wert"] / J["bt_kw"] if J["bt_kw"] else None
+        J["k"] = round(kk, 3) if kk else None
+        J["rest_f"] = (kk or 1.0) if ju["rest"] == "angl" else ju["f"] if ju["rest"] == "eigen" else 1.0
+        tot = {"3": 0.0, "4": 0.0}
+        for k in sorted(anteil):
+            if k in sums:
+                kg2[k] = {"wert": round(sums[k]["wert"], 2), "quelle": "bauteile", "n": sums[k]["n"], "kennwert": round(anteil[k], 2)}
+            else:
+                kg2[k] = {"wert": round(anteil[k] * J["rest_f"], 2), "quelle": "kennwerte", "n": 0, "kennwert": round(anteil[k], 2)}
+                J["rest_kw"] += anteil[k]; J["rest_wert"] += kg2[k]["wert"]
+            tot[k[0]] += kg2[k]["wert"]
         k300, k400 = tot["3"], tot["4"]
         bau = k300 + k400
+    J["rest_f"] = round(J["rest_f"], 4)
+    for x in ("bt_wert", "bt_kw", "rest_kw", "rest_wert"):
+        J[x] = round(J[x], 2)
     extra = sum(i["amount"] or 0 for i in d["items"] if i["kg"] not in ("700",))
     nk = (bau + extra) * d["nk"] / 100
     area = sum(r["area"] for r in d["rooms"])
-    return {"types": rows, "bauwerk": round(bau, 2), "bauwerk_kw": round(bau_kw, 2), "kg300": round(k300, 2), "kg400": round(k400, 2), "kg2": kg2,
-            "extra": round(extra, 2), "nk": round(nk, 2), "total": round(bau + extra + nk, 2), "area": round(area, 2),
+    return {"types": rows, "kw_summe": round(raw, 2), "bauwerk": round(bau, 2), "bauwerk_kw": round(bau_kw, 2), "kg300": round(k300, 2), "kg400": round(k400, 2),
+            "kg2": kg2, "justage": J, "extra": round(extra, 2), "nk": round(nk, 2), "total": round(bau + extra + nk, 2), "area": round(area, 2),
             "kw": round(bau / area, 2) if area else 0}
 
 
@@ -897,7 +924,7 @@ def genauigkeit(c, r, d, cal, kinds):
     used = [t for t in cal["types"] if t["area"]]
     ex = [t for t in used if t["typ"] in own and own[t["typ"]]["beispiel"] is not None and abs(t["kw"] - own[t["typ"]]["beispiel"]) < 0.5]
     if ex and (not btw or btw < cal["bauwerk"] * 0.95):
-        share = sum(t["sum"] for t in ex) / (cal["bauwerk_kw"] or cal["bauwerk"] or 1) * (1 - (btw / cal["bauwerk"] if btw and cal["bauwerk"] else 0))
+        share = sum(t["sum"] for t in ex) / (cal["kw_summe"] or cal["bauwerk"] or 1) * (1 - (btw / cal["bauwerk"] if btw and cal["bauwerk"] else 0))
         v = round(8 * share, 1); lo += v; hi += v
         F.append({"text": f"Beispiel-Kennwerte bei {len(ex)} Raumtypen", "plus": v, "tipp": "Eigene Kennwerte aus abgerechneten Projekten eintragen."})
     if d["rooms"]:
@@ -1265,6 +1292,13 @@ def rules(c, r, d, cal, files):
     spaet = r["stufe"] in ("berechnung", "anschlag", "feststellung")
     if open_:
         add("hoch" if spaet else "mittel", f"{len(open_)} Räume noch nicht bestätigt", "Aus dem Plan gelesene Räume bitte unter „Pläne & Mengen“ prüfen und bestätigen.", go={"tab": "plaene", "room": open_[0]["id"]})
+    J = cal.get("justage") or {}
+    if J.get("k") and (J["k"] > 1.4 or J["k"] < 0.7):
+        add("mittel", f"Bauteile und Kennwerte passen nicht zusammen (Faktor {J['k']:.2f})".replace(".", ","),
+            f"Die Bauteile ergeben {J['bt_wert']:,.0f} €, der Kennwert-Anteil derselben Kostengruppen wäre {J['bt_kw']:,.0f} €. ".replace(",", ".")
+            + ("Die übrigen Gruppen stehen noch unverändert beim Kennwert. " if J.get("rest") == "kw" else "")
+            + "Mengen und Einheitspreise prüfen – oder unter „Justage“ die Kennwerte (Region, Preisstand) bzw. die übrigen Gruppen angleichen.",
+            go={"tab": "bauteile", "sel": "#justage"})
     if not d["rooms"]:
         add("hoch", "Noch kein Raumbuch", "Grundriss als PDF hochladen oder Räume von Hand anlegen.", go={"tab": "plaene"})
     for t in cal["types"]:
@@ -1549,7 +1583,13 @@ def build_report(c, r, opt):
         for t in cal["types"]:
             if t["n"]:
                 rows.append([t["label"], str(t["n"]), m2(t["area"]), eur(t["kw"], kw=True), eur(t["sum"])])
-        rows.append(["Summe Bauwerk", str(len(d["rooms"])), m2(cal["area"]), eur(cal["kw"], kw=True), eur(cal["bauwerk"])])
+        J = cal["justage"]
+        ar = cal["area"] or 1
+        rows.append(["Summe Kennwerte", str(len(d["rooms"])), m2(cal["area"]), eur(cal["kw_summe"] / ar, kw=True), eur(cal["kw_summe"])])
+        if abs(J["faktor"] - 1) > 1e-6:
+            rows.append([f"Justage: Regionalfaktor {J['region']:g} % × Preisstand {J['preis']:g} %".replace(".", ","), "", "", f"× {J['faktor']:.3f}".replace(".", ","), eur(cal["bauwerk_kw"])])
+        if cal["kg2"]:
+            rows.append(["Bauwerk mit Bauteilen (Kostenberechnung)", "", "", eur(cal["bauwerk"] / ar, kw=True), eur(cal["bauwerk"])])
         story += [KeepTogether([Paragraph("Kosten nach Nutzung (Kennwerte)", S["h2"]), table(rows, [W - 110 * mm, 18 * mm, 28 * mm, 28 * mm, 36 * mm], num_cols=(1, 2, 3, 4), bold_rows=(len(rows) - 1,))]), Spacer(1, 14)]
 
     # Raumbuch

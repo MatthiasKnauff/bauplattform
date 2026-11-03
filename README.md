@@ -244,6 +244,10 @@ Kostenermittlung nach DIN 276, gekoppelt an Bautagebuch-Projekt und Bauzeitenpla
   Planbild (Claude, Gemini oder ChatGPT in der Kopfleiste wählen) – die Vorschläge müssen bestätigt werden. Sonst Räume von Hand eintragen.
 - **Kosten:** Fläche × Kennwert je Raumtyp, Aufteilung auf KG 300/400, eigene Positionen (KG 200, 394 Rückbau, 500 …),
   Nebenkosten KG 700. Die mitgelieferten Kennwerte sind **Beispielwerte**; eigene Werte lassen sich als Vorgabe für neue Kostenermittlungen speichern.
+- **Justage**: Kennwerte × Regionalfaktor × Preisstand (Baupreisindex heute ÷ Index der Kennwerte). Neben Bauteilen wählbar,
+  wie die Kostengruppen ohne Bauteile gerechnet werden: Kennwert-Anteil unverändert, an die Bauteile angeglichen
+  (Verhältnis Bauteile ÷ Kennwert-Anteil der bepreisten Gruppen) oder eigener Faktor. Die Prüfung meldet, wenn Bauteile und
+  Kennwerte um mehr als −30 / +40 % auseinanderliegen.
 - **Bauteile & Material** (Kostenberechnung): Bauteile mit Kostengruppe (3. Ebene), Material/Ausführung (Auswahl mit
   Beispielpreisen oder eigenes), Ermittlung als Rechnung („12,5 × 2,75 + 3“ ergibt die Menge), Menge, Einheit, Einheitspreis.
   „Vorschläge aus Raumbuch & Plänen“ legt die Liste aus Flächen, Geschossen und Höhen an (Bodenbeläge je Raumtyp, Wände,

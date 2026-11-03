@@ -837,7 +837,7 @@ function resGroups(gw, cur) {
   const book = typeof FIRMS !== 'undefined' ? FIRMS.slice().sort((a, b) => a.name.localeCompare(b.name, 'de')) : [];
   if (gw) {
     const tr = P && P.trades && P.trades[gw], f = tr && tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null;
-    add('Firmen für ' + gw, [...(f ? [f.name] : []), ...book.filter((x) => (x.gewerke || []).some((y) => y.toLowerCase() === gw.toLowerCase())).map((x) => x.name)]);
+    add('Firmen für ' + gw, [...(f ? [f.name] : []), ...book.map((x) => [x, typeof firmGwScore === 'function' ? firmGwScore(x, gw) : 0]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]).map((x) => x[0].name)]);
     add('Unternehmerbezeichnung', [typeof craftOf === 'function' ? craftOf(gw) : '']);
   }
   if (P) add('Im Projekt verwendet', [...new Set(P.tasks.map((t) => t.res).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')));

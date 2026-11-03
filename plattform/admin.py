@@ -3,10 +3,10 @@
 Benutzer und ihre App-Rechte, Sperren, Kennwort zurücksetzen, angemeldete Sitzungen, Zustand der Dienste und der
 Datenbank, Protokoll. Die Benutzer sind dieselben wie im Bautagebuch (gemeinsame Tabelle users).
 """
-import json, os, re, secrets, time, urllib.error, urllib.request
+import json, os, re, secrets, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime
 
-from flask import g, jsonify, redirect, request
+from flask import Response, g, jsonify, redirect, request
 
 from bpcore import db, platform, sso
 import common as C
@@ -484,14 +484,11 @@ def _hint(k):
 
 
 def _einst(c):
-    from bpcore import ai, kosten
+    from bpcore import ai
     st = ai.store(c, "settings").get("ai") or {}
     cl = ai.claude_conf(c)
     gm, oa = ai.ext_conf(c, "gemini"), ai.ext_conf(c, "chatgpt")
     oll = ai.ollama_state()
-    r = c.execute("SELECT data FROM bk_store WHERE key='kennwerte'").fetchone()
-    own = json.loads(r["data"]) if r and r["data"] else {}
-    own = own if isinstance(own, dict) else {}
     return {
         "ki": {
             "vorschlag": st.get("mode") if st.get("mode") in ("off", "builtin", "ai") else "builtin",
@@ -501,7 +498,6 @@ def _einst(c):
             "chatgpt": {"hasKey": bool(oa["key"]), "hint": _hint(oa["key"]), "fromEnv": oa["fromEnv"], "model": oa["model"]},
             "ollama": {"url": bool(ai.ollama_url()), "model": ai.ollama_model(), "ok": oll["ok"], "hint": oll["hint"], "models": oll["models"]},
         },
-        "kennwerte": [{"key": k, "label": lab, "beispiel": kw, "eigen": own.get(k)} for k, lab, kw, _ in kosten.TYPES],
     }
 
 
@@ -509,7 +505,7 @@ def _einst(c):
 def einstellungen():
     with db.tx() as c:
         if request.method == "PUT":
-            from bpcore import ai, kosten
+            from bpcore import ai
             b = request.get_json(silent=True) or {}
             ki = b.get("ki") if isinstance(b.get("ki"), dict) else None
             changed = []
@@ -541,19 +537,6 @@ def einstellungen():
                     pk[prov] = cur
                 pl["ki"] = pk
                 _put_store(c, "plattform", pl)
-            if isinstance(b.get("kennwerte"), dict):
-                keys = {k for k, _, _, _ in kosten.TYPES}
-                own = {}
-                for k, v in b["kennwerte"].items():
-                    if k in keys and v not in (None, ""):
-                        try:
-                            own[k] = max(0.0, min(50000.0, float(str(v).replace(",", "."))))
-                        except ValueError:
-                            pass
-                c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('kennwerte',?,?,?) "
-                          "ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated=excluded.updated, updated_by=excluded.updated_by",
-                          (json.dumps(own), datetime.now().isoformat(timespec="seconds"), g.user["name"]))
-                changed.append("Kennwerte Baukosten")
             C.audit(g.user["name"], "verwaltung", "Einstellungen geändert", ", ".join(changed) or "KI")
         return jsonify(_einst(c))
 
@@ -570,6 +553,39 @@ def ki_test():
         return jsonify(ok=True, answer=(t or "").strip()[:40])
     except ai.AIError as e:
         return jsonify(error=str(e)), 502
+
+
+# ---------------------------------------------------------------- Allgemeine Einstellungen des Bautagebuchs
+# Firma & Logo, Ablage, Mailserver und Datensicherung gehören dem Bautagebuch (es verschickt die Mails, legt die Fotos ab und
+# sichert die Datenbank). Die Verwaltung zeigt dieselben Einstellungen und reicht die Aufrufe mit der Anmeldung des Benutzers
+# an das Bautagebuch weiter – beide Stellen bearbeiten also dieselben Daten.
+BT_PASS = re.compile(r"^(settings|logo|mail/test|store/(test|run|backfill|status)|backups(/[^/]+(/(download|restore))?)?)$")
+
+
+@app.route("/api/bt/<path:p>", methods=["GET", "POST", "PUT", "DELETE"])
+def bt_pass(p):
+    if not BT_PASS.match(p):
+        return jsonify(error="Nicht vorgesehen"), 404
+    with db.tx() as c:
+        tok = sso.current_token(request, c)
+    data = request.get_data() if request.method in ("POST", "PUT") else None
+    h = {"Cookie": f"{sso.COOKIE}={tok}"}
+    if request.content_type:
+        h["Content-Type"] = request.content_type
+    q = request.query_string.decode()
+    req = urllib.request.Request(C.BT_INTERNAL + "/api/" + urllib.parse.quote(p) + ("?" + q if q else ""), method=request.method, data=data, headers=h)
+    try:
+        r = urllib.request.urlopen(req, timeout=300)
+        code = r.status
+    except urllib.error.HTTPError as e:
+        r, code = e, e.code
+    except Exception as e:
+        return jsonify(error="Bautagebuch nicht erreichbar: " + str(e)[:120]), 502
+    body = r.read()
+    keep = {k: v for k, v in r.headers.items() if k.lower() in ("content-type", "content-disposition")}
+    if request.method != "GET" and code < 400:
+        C.audit(g.user["name"], "verwaltung", "Bautagebuch-Einstellung", f"{request.method} {p.split('/')[0]}")
+    return Response(body, status=code, headers=keep)
 
 
 C.wait_schema()

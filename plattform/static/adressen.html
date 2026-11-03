@@ -55,6 +55,22 @@
 .colmenu .cm-a{display:flex;gap:.4rem;border-top:1px solid var(--line);margin-top:.3rem;padding-top:.5rem}
 .empty{color:var(--mute);padding:2rem 0;text-align:center}
 .cnt{color:var(--mute);font-size:.88rem;margin:-.4rem 0 .8rem}
+.af{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin:-.4rem 0 .8rem}
+.af[hidden]{display:none}
+.af .fc{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--y);color:var(--ink);border-radius:999px;padding:.2rem .35rem .2rem .7rem;font-size:.85rem;background:var(--hov)}
+.af .fc b{font-weight:600;color:var(--mute)}
+.af .fc span{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;background:var(--line)}
+.af .fc:hover span{background:var(--red);color:#fff}
+.kb{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:-.3rem 0 .8rem}
+.kb[hidden]{display:none}
+.kb select{width:auto}
+.kf{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.5rem .8rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;margin:-.2rem 0 1rem}
+.kf[hidden]{display:none}
+.kf label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}
+.fx{position:relative;display:block}
+.fx input,.fx select{width:100%;padding-right:1.6rem}
+.fx button{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;padding:0;font-size:.72rem;line-height:1;color:var(--mute);background:var(--hov)}
+.fx button:hover{background:var(--red);color:#fff}
 .modal{width:min(640px,100%);max-height:92vh;overflow:auto}
 .fm{display:grid;grid-template-columns:1fr 1fr;gap:.55rem .7rem}
 .fm label{display:flex;flex-direction:column;gap:.2rem;font-size:.85rem;color:var(--mute)}
@@ -101,6 +117,9 @@
   </div>
   <div class="chips" id="kinds" style="margin:-.3rem 0 1rem"></div>
   <div class="cnt" id="cnt"></div>
+  <div class="af" id="af" hidden></div>
+  <div class="kb" id="kb" hidden><label for="ksort" class="mute" style="font-size:.88rem">Sortieren</label><select id="ksort"></select><button class="btn sm" id="kdir" title="Reihenfolge umkehren"></button><button class="btn sm" id="kflt" aria-expanded="false">Filter je Feld ▾</button></div>
+  <div class="kf" id="kf" hidden></div>
   <div class="list" id="list"></div>
   <div class="tw" id="tw" hidden></div>
 </main>
@@ -132,8 +151,9 @@ function render() {
     renderTable(); return; }
   const n = {}; ALL.forEach((c) => { n[c.kind] = (n[c.kind] || 0) + 1; });
   $('#kinds').innerHTML = KINDS.map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${k}">${l}<small>${k ? n[k] || 0 : ALL.length}</small></button>`).join('');
-  const rows = shown();
+  const rows = tableRows();
   $('#cnt').textContent = rows.length === ALL.length ? `${ALL.length} Kontakte` : `${rows.length} von ${ALL.length} Kontakten`;
+  renderActive(); renderKbar();
   $('#list').innerHTML = rows.map((c) => `<div class="ct" tabindex="0" data-id="${c.id}">
       <div class="hd"><b>${esc(c.name)}</b>${c.kind !== 'firma' ? `<span class="pill">${c.kind === 'baustelle' ? 'Baustelle' : 'Bauherr'}</span>` : ''}</div>
       ${c.trade ? `<div class="sub">${esc(c.trade)}</div>` : ''}
@@ -203,10 +223,10 @@ function tableRows() {
 function renderTable() {
   const cols = COLS.filter(([k]) => !TV.hide.includes(k)), rows = tableRows(), ae = document.activeElement, keep = ae && ae.dataset && ae.dataset.fk;
   $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes`;
+  renderActive();
   $('#tw').innerHTML = `<table class="tt"><colgroup>${cols.map(([, , w]) => `<col style="width:${w}px">`).join('')}<col style="width:120px"></colgroup>
     <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" title="Sortieren">${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}<th></th></tr>
-    <tr class="f">${cols.map(([k, l]) => `<th>${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${Object.entries(KINDN).map(([v, n]) => `<option value="${v}"${TV.flt.kind === v ? ' selected' : ''}>${n}</option>`).join('')}</select>`
-      : `<input data-flt="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}</th>`).join('')}<th></th></tr></thead>
+    <tr class="f">${cols.map(([k, l]) => `<th>${fltField(k, l)}</th>`).join('')}<th>${anyFlt() ? '<button class="btn sm" data-clr="*" title="Alle Filter und die Suche löschen">✕ Alle</button>' : ''}</th></tr></thead>
     <tbody>${rows.map((c) => `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
       : `<td><input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' list="gwAll"' : ''}></td>`).join('')}
       <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" title="E-Mail">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`).join('')
@@ -214,10 +234,49 @@ function renderTable() {
     <datalist id="gwAll">${[...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de')).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
 }
+/* ---------- Filter: gelten in Tabelle UND Karten; einzeln oder alle löschen ---------- */
+const fltField = (k, l) => `<span class="fx">${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${Object.entries(KINDN).map(([v, n]) => `<option value="${v}"${TV.flt.kind === v ? ' selected' : ''}>${n}</option>`).join('')}</select>`
+  : `<input data-flt="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;
+function activeFilters() {
+  const a = [];
+  if (q.trim()) a.push(['q', 'Suche', q.trim()]);
+  if (gw) a.push(['gw', 'Gewerk', gw]);
+  if (kind) a.push(['kind', 'Art', KINDS.find((x) => x[0] === kind)[1]]);
+  Object.entries(TV.flt).filter(([, v]) => v).forEach(([k, v]) => a.push(['f:' + k, COLS.find((c) => c[0] === k)[1], k === 'kind' ? KINDN[v] : v]));
+  return a;
+}
+const anyFlt = () => activeFilters().length > 0;
+function renderActive() {
+  const a = activeFilters(), el = $('#af'); el.hidden = !a.length;
+  el.innerHTML = a.map(([k, l, v]) => `<button class="fc" data-clr="${esc(k)}" title="Diesen Filter löschen">${esc(l)}: ${esc(v)} <span aria-hidden="true">✕</span></button>`).join('')
+    + '<button class="btn sm" data-clr="*">Alle Filter löschen</button>';
+}
+function clearFilter(k) {
+  if (k === '*' || k === 'q') { q = ''; $('#q').value = ''; }
+  if (k === '*' || k === 'gw') { gw = ''; $('#gw').value = ''; }
+  if (k === '*' || k === 'kind') { kind = ''; try { sessionStorage.setItem('adrKind', ''); } catch { /* egal */ } }
+  if (k === '*') TV.flt = {}; else if (k.startsWith('f:')) delete TV.flt[k.slice(2)];
+  if (TV.view === 'tabelle') render(); else { render(); renderKf(); }
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-clr]'); if (!b) return; e.preventDefault(); clearFilter(b.dataset.clr); });
+// Karten: Sortieren und Filter je Feld wie in der Tabelle
+function renderKbar() {
+  $('#ksort').innerHTML = '<option value="">wie angelegt</option>' + COLS.filter(([k]) => k !== 'used').map(([k, l]) => `<option value="${k}"${TV.sort.k === k ? ' selected' : ''}>${l}</option>`).join('');
+  $('#kdir').textContent = TV.sort.d > 0 ? '▲ A–Z' : '▼ Z–A'; $('#kdir').disabled = !TV.sort.k;
+  const n = Object.values(TV.flt).filter(Boolean).length; $('#kflt').textContent = `Filter je Feld${n ? ' (' + n + ')' : ''} ${$('#kf').hidden ? '▾' : '▴'}`;
+}
+function renderKf() { if (!$('#kf').hidden) $('#kf').innerHTML = COLS.filter(([k]) => k !== 'used').map(([k, l]) => `<label>${l}${fltField(k, l)}</label>`).join(''); }
+$('#ksort').onchange = (e) => { TV.sort = { k: e.target.value, d: 1 }; tvSave(); render(); };
+$('#kdir').onclick = () => { TV.sort = { ...TV.sort, d: -TV.sort.d }; tvSave(); render(); };
+$('#kflt').onclick = () => { const f = $('#kf'); f.hidden = !f.hidden; $('#kflt').setAttribute('aria-expanded', String(!f.hidden)); renderKf(); renderKbar(); if (!f.hidden) f.querySelector('input')?.focus(); };
+$('#kf').addEventListener('input', (e) => { const f = e.target.dataset.flt; if (f == null) return; TV.flt[f] = e.target.value; render();
+  const has = !!e.target.value, btn = e.target.parentElement.querySelector('[data-clr]');   // ✕ im Feld ein-/ausblenden, ohne den Fokus zu verlieren
+  if (has && !btn) e.target.insertAdjacentHTML('afterend', `<button type="button" data-clr="f:${f}" title="Filter löschen" aria-label="Filter löschen">✕</button>`); else if (!has && btn) btn.remove(); });
+$('#kf').addEventListener('change', (e) => { if (e.target.dataset.flt === 'kind') { TV.flt.kind = e.target.value; render(); renderKf(); } });
 function setView(v) {
   TV.view = v; tvSave();
   document.querySelectorAll('#view button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  $('#list').hidden = v === 'tabelle'; $('#tw').hidden = v !== 'tabelle'; $('#cols').hidden = v !== 'tabelle';
+  $('#list').hidden = v === 'tabelle'; $('#tw').hidden = v !== 'tabelle'; $('#cols').hidden = v !== 'tabelle'; $('#kb').hidden = v === 'tabelle'; if (v === 'tabelle') $('#kf').hidden = true;
   document.querySelector('main.wrap').classList.toggle('wide', v === 'tabelle');
   if (v === 'tabelle') renderTable(); else render();
 }
@@ -268,13 +327,13 @@ $('#list').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.targe
 $('#neu').onclick = () => edit(null);
 // Export wie in der Liste gefiltert; die Beschreibung des Filters steht im Ausdruck oben
 function exportQS() {
-  const r = shown(), p = new URLSearchParams();
-  if (r.length !== ALL.length) p.set('ids', r.map((c) => c.id).join(','));
-  const f = [kind && KINDS.find((k) => k[0] === kind)[1], gw && 'Gewerk: ' + gw, q.trim() && `Suche: „${q.trim()}“`].filter(Boolean).join(', ');
+  const r = tableRows(), p = new URLSearchParams();
+  if (r.length !== ALL.length || TV.sort.k) p.set('ids', r.map((c) => c.id).join(','));
+  const f = activeFilters().map(([, l, v]) => `${l}: ${v}`).join(', ');
   if (f) p.set('filter', f);
   const s = p.toString(); return s ? '?' + s : '';
 }
-$('#pdf').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); openPdf('api/contacts/export.pdf' + exportQS()); };
+$('#pdf').onclick = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); openPdf('api/contacts/export.pdf' + exportQS()); };
 
 /* ---------- PDF-Ansicht (wie im Bautagebuch): funktioniert auch auf dem Handy und als Startbildschirm-App ---------- */
 let pv = null;
@@ -332,7 +391,7 @@ function pvClick(e) {
   else if (b.dataset.pv === 'share') pvShare();
 }
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && pv) { if (history.state && history.state.pv) history.back(); else closePv(); } });
-$('#xlsx').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); location.assign('api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
+$('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontakte in der Liste.', true); location.assign('api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
 
 (async () => {
   const me = await api('api/me'); applyLook(me);

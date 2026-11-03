@@ -24,7 +24,7 @@ import common as C
 app = C.make_app(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024
 
-from bpcore.kosten import TYPES   # Raumtypen mit Beispiel-Kennwerten (auch in der Verwaltung → Einstellungen)
+from bpcore import kosten   # Raumtypen des Büros mit Kennwerten (⚙ Einstellungen in dieser App)
 STUFEN = ("rahmen", "schaetzung", "berechnung", "anschlag", "feststellung")
 STUFE_NAME = {"rahmen": "Kostenrahmen", "schaetzung": "Kostenschätzung", "berechnung": "Kostenberechnung", "anschlag": "Kostenanschlag", "feststellung": "Kostenfeststellung"}
 # DIN 276 (2018), 1. und 2. Ebene
@@ -108,19 +108,12 @@ def _s(v, n):
 
 
 def kennwerte(c):
-    """Kennwerte je Raumtyp: eigene (Tabelle bk_store) vor den Beispielwerten."""
-    r = c.execute("SELECT data FROM bk_store WHERE key='kennwerte'").fetchone()
-    own = _j(r["data"], {}) if r else {}
-    own = own if isinstance(own, dict) else {}
-    return {k: {"label": lab, "kw": _num(own.get(k), kw, 0, 50000), "own": k in own} for k, lab, kw, _ in TYPES}
+    """Raumtypen des Büros: {key: {label, kw, beispiel}} – beispiel = vorgegebener Wert (None bei eigenen Typen)."""
+    return {t["key"]: {"label": t["label"], "kw": t["kw"], "beispiel": t["beispiel"]} for t in kosten.catalog(c)}
 
 
-def guess_type(name):
-    n = (name or "").lower().strip()
-    for k, _, _, rx in TYPES:
-        if rx and re.search(rx, n):
-            return k
-    return "sonst"
+def guess_type(name, c):
+    return kosten.guess(name, kosten.catalog(c))
 
 
 def default_data(c):
@@ -141,6 +134,9 @@ def clean_data(d, c):
     for k, v in base["types"].items():
         o = src.get(k) if isinstance(src.get(k), dict) else {}
         types[k] = {"label": v["label"], "kw": _num(o.get("kw"), v["kw"], 0, 50000)}
+    for k, o in list(src.items())[:60]:   # Raumtypen nur dieses Projekts (oder inzwischen aus der Büroliste entfernt)
+        if k not in types and isinstance(o, dict) and re.fullmatch(r"[a-z0-9_]{1,40}", str(k)) and _s(o.get("label"), 60):
+            types[k] = {"label": _s(o.get("label"), 60), "kw": _num(o.get("kw"), 1300, 0, 50000), "eigen": True}
     rooms = []
     for r in (d.get("rooms") if isinstance(d.get("rooms"), list) else [])[:2000]:
         if not isinstance(r, dict):
@@ -332,12 +328,17 @@ def kennwerte_api():
     with db.tx() as c:
         if request.method == "PUT":
             b = request.get_json(silent=True) or {}
-            own = {k: _num(b.get(k), 0, 0, 50000) for k, _, _, _ in TYPES if b.get(k) not in (None, "")}
-            c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('kennwerte',?,?,?) "
+            if isinstance(b.get("raumtypen"), list):   # ganze Liste aus ⚙ Einstellungen
+                cat = kosten.clean_catalog(b["raumtypen"])
+                note = f"{len(cat)} Raumtypen"
+            else:                                      # nur Kennwerte (Kosten → „als eigene Kennwerte speichern“)
+                cat = [dict(t, kw=_num(b.get(t["key"]), t["kw"], 0, 50000)) for t in kosten.catalog(c)]
+                note = "Kennwerte"
+            c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('raumtypen',?,?,?) "
                       "ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated=excluded.updated, updated_by=excluded.updated_by",
-                      (json.dumps(own), _now(), g.user["name"]))
-            C.audit(g.user["name"], "baukosten", "Eigene Kennwerte gespeichert", f"{len(own)} Raumtypen")
-        return jsonify(kennwerte(c))
+                      (json.dumps([{k: t[k] for k in ("key", "label", "kw", "worte")} for t in cat], ensure_ascii=False), _now(), g.user["name"]))
+            C.audit(g.user["name"], "baukosten", "Raumtypen gespeichert", note)
+        return jsonify(raumtypen=kosten.catalog(c), standard=[{"key": k, "label": l, "kw": kw, "worte": w} for k, l, kw, w in kosten.TYPES])
 
 
 # ---------------------------------------------------------------- Pläne (PDF)
@@ -533,7 +534,7 @@ def file_add(i):
             if key in have:
                 continue
             have.add(key)
-            d["rooms"].append({"id": f"f{fid}-{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"]),
+            d["rooms"].append({"id": f"f{fid}-{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"], c),
                                "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": x["pos"]})
             added += 1
         c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
@@ -567,7 +568,7 @@ def file_reread(i, fid):
             if key in have:
                 continue
             have.add(key)
-            d["rooms"].append({"id": f"f{fid}-r{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"]),
+            d["rooms"].append({"id": f"f{fid}-r{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"], c),
                                "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": x["pos"]})
             added += 1
         c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
@@ -619,7 +620,7 @@ def file_ki_rooms(i, fid):
             if key in have:
                 continue
             have.add(key)
-            d["rooms"].append({"id": f"k{fid}-{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"]),
+            d["rooms"].append({"id": f"k{fid}-{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"], c),
                                "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": None})
             added += 1
         c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
@@ -781,7 +782,7 @@ def genauigkeit(c, r, d, cal, kinds):
     F.append({"text": f"{STUFE_NAME.get(r['stufe'], '')}: üblich ± {base} %", "plus": base, "tipp": ""})
     own = kennwerte(c)
     used = [t for t in cal["types"] if t["area"]]
-    ex = [t for t in used if not own[t["typ"]]["own"] and abs(t["kw"] - next(x[2] for x in TYPES if x[0] == t["typ"])) < 0.5]
+    ex = [t for t in used if t["typ"] in own and own[t["typ"]]["beispiel"] is not None and abs(t["kw"] - own[t["typ"]]["beispiel"]) < 0.5]
     if ex:
         share = sum(t["sum"] for t in ex) / (cal["bauwerk"] or 1)
         v = round(8 * share, 1); lo += v; hi += v
@@ -1097,7 +1098,7 @@ def build_report(c, r, opt):
         return t
 
     story = []
-    logo = C._logo_bytes()
+    logo = C.print_logo()
 
     # Deckblatt
     if "deckblatt" in parts:
@@ -1248,10 +1249,13 @@ def build_report(c, r, opt):
         cv.setFont("Helvetica", 7.5); cv.setFillColor(MUTE)
         cv.drawString(18 * mm, 10 * mm, f"{proj.get('name') or title} · {stufe} · Stand {today}")
         cv.drawRightString(A4[0] - 18 * mm, 10 * mm, (office + " · " if office else "") + f"Seite {doc.page}")
-        cv.setStrokeColor(ACC); cv.setLineWidth(1.2); cv.line(18 * mm, A4[1] - 12 * mm, A4[0] - 18 * mm, A4[1] - 12 * mm)
+        cover = doc.page == 1 and "deckblatt" in parts
+        if not cover:   # Logo in der Kopfzeile jeder Seite (das Deckblatt zeigt es groß)
+            C.draw_logo(cv, A4[0] - 18 * mm, A4[1] - 6 * mm, 11 * mm, 45 * mm)
+        cv.setStrokeColor(ACC); cv.setLineWidth(1.2); cv.line(18 * mm, A4[1] - 19 * mm, A4[0] - 18 * mm, A4[1] - 19 * mm)
         cv.restoreState()
 
-    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=18 * mm, bottomMargin=18 * mm,
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=24 * mm, bottomMargin=18 * mm,
                             title=f"{stufe} – {proj.get('name') or title}", author=office or "Bauplattform")
     if not story:
         story = [Paragraph("Keine Inhalte gewählt.", S["p"])]

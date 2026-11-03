@@ -264,7 +264,7 @@ def export_pdf():
     rows, label = _sel()
     office = _office()
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=14 * mm, bottomMargin=14 * mm,
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=22 * mm, bottomMargin=14 * mm,
                             title="Adressverzeichnis", author=office)
     st = ParagraphStyle("c", fontName="Helvetica", fontSize=8, leading=10)
     sh = ParagraphStyle("h", parent=st, fontName="Helvetica-Bold", textColor=colors.white)
@@ -290,6 +290,7 @@ def export_pdf():
     def foot(cv, d):
         cv.setFont("Helvetica", 7.5); cv.setFillColor(colors.HexColor("#6b6f76"))
         cv.drawString(12 * mm, 8 * mm, "Adressen – Adressverzeichnis"); cv.drawRightString(landscape(A4)[0] - 12 * mm, 8 * mm, f"Seite {d.page}")
+        C.draw_logo(cv, landscape(A4)[0] - 12 * mm, landscape(A4)[1] - 6 * mm, 12 * mm, 50 * mm)
     doc.build(story, onFirstPage=foot, onLaterPages=foot)
     C.audit(g.user["name"], "export", "Adressverzeichnis als PDF exportiert", f"{len(rows)} Kontakte · {label} · Adressen")
     return Response(buf.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="Adressen_{datetime.now():%Y-%m-%d}.pdf"'})

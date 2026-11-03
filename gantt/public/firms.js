@@ -290,12 +290,36 @@ $('#firmView').addEventListener('click', (e) => {
   if (t.dataset.a === 'firm-new') { fvBookOpen = true; FIRMS.push({ id: newFirmId(), name: 'Neue Firma', gewerke: [], contact: '', phone: '', mobile: '', mail: '', address: '', note: '' }); saveFirmsSoon(); fvQuery = ''; renderFirms(); const inp = $('#firmView').querySelector(`tr[data-fid="${FIRMS[FIRMS.length - 1].id}"] input`); if (inp) { inp.focus(); inp.select(); } }
 });
 
-// Unternehmer-Spalte: Firmen als Vorschläge (passendes Gewerk zuerst)
+// Firmenvorschläge: Firmen mit passendem Gewerk aus dem Adressbuch zuerst (auch „Heizung“ ↔ „Heizung Sanitär“)
+const gwNorm = (s) => String(s || '').toLowerCase().replace(/[^a-zäöüß0-9]+/g, ' ').trim();
+function firmGwScore(f, gw) {
+  const g = gwNorm(gw); if (!g) return 0;
+  let best = 0;
+  for (const x of (f.gewerke || [])) {
+    const n = gwNorm(x); if (!n) continue;
+    if (n === g) return 3;
+    if (n.split(' ').includes(g) || g.split(' ').includes(n)) best = Math.max(best, 2);
+    else if (n.includes(g) || g.includes(n)) best = Math.max(best, 1);
+  }
+  return best;
+}
+function firmOptions(gw) {
+  const fs = FIRMS.map((f) => [f, firmGwScore(f, gw)]).sort((a, b) => (b[1] - a[1]) || a[0].name.localeCompare(b[0].name, 'de'));
+  return fs.map(([f, sc]) => `<option value="${esc(f.name)}">${sc ? '★ ' : ''}${esc((f.gewerke || []).join(', '))}</option>`).join('');
+}
 function updateResList(i) {
   let dl = document.getElementById('resList');
   if (!dl) { dl = document.createElement('datalist'); dl.id = 'resList'; document.body.appendChild(dl); }
-  const gw = P.tasks[i] ? P.tasks[i].gw : '';
-  const fs = FIRMS.slice().sort((a, b) => ((b.gewerke || []).includes(gw) - (a.gewerke || []).includes(gw)) || a.name.localeCompare(b.name, 'de'));
-  dl.innerHTML = fs.map((f) => `<option value="${esc(f.name)}">${esc((f.gewerke || []).join(', '))}</option>`).join('');
+  dl.innerHTML = firmOptions(P.tasks[i] ? P.tasks[i].gw : '');
 }
+// Alle anderen Firmenfelder (Katalog, Projekt-Firmen, Gewerke-Liste): Gewerk der Zeile ermitteln und die Liste danach ordnen
+const FIRM_LISTS = ['fvFirmList', 'fvFirmList2', 'firmSugList'];
+document.addEventListener('focusin', (e) => {
+  const el = e.target; if (!el.matches || !el.matches('input[list]') || !FIRM_LISTS.includes(el.getAttribute('list'))) return;
+  const tr = el.closest('tr');
+  const gw = el.dataset.gw || (tr && (tr.dataset.gw || tr.querySelector('[data-pgw],[data-k="gw"],[data-f="gw"]')?.value)) || '';
+  let dl = document.getElementById('firmSugList');
+  if (!dl) { dl = document.createElement('datalist'); dl.id = 'firmSugList'; document.body.appendChild(dl); }
+  dl.innerHTML = firmOptions(gw); el.setAttribute('list', 'firmSugList');
+});
 loadFirms();

@@ -210,6 +210,16 @@ function printChart(L) {
 }
 
 /* ---------- Seiten zusammensetzen ---------- */
+// Büro-Logo für die Kopfzeile (einmal laden, als data-URL – so landet es sicher im Druck/PDF)
+let PRINT_LOGO = null;
+(async () => {
+  try {
+    const r = await fetch('api/logo'); if (!r.ok) return;
+    const b = await r.blob(); if (!/^image\//.test(b.type)) return;
+    const url = await new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); f.readAsDataURL(b); });
+    const im = new Image(); im.onload = () => { PRINT_LOGO = { url, ar: im.naturalWidth / im.naturalHeight || 1 }; }; im.src = url;
+  } catch { /* ohne Logo drucken */ }
+})();
 function printPages(L) {
   const { o, s, pw, ph, m, slices, bands, tableW } = L, { u, hb, fb } = L.hdr;
   const tab = printTable(L), ch = printChart(L);
@@ -240,8 +250,10 @@ function printPages(L) {
       const sw = sl.x1 - sl.x0;
       let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${pw} ${ph}" width="${pw}mm" height="${ph}mm" font-family="Segoe UI, system-ui, -apple-system, Roboto, Arial, sans-serif">${defs}<rect width="${pw}" height="${ph}" fill="#fff"/>`;
       if (o.header) {
+        const lh = u * 2.3, lw = PRINT_LOGO ? Math.min(lh * PRINT_LOGO.ar, u * 12) : 0;
+        if (PRINT_LOGO) svg += `<image href="${PRINT_LOGO.url}" x="${pw - m - lw}" y="${m}" width="${lw}" height="${lh}" preserveAspectRatio="xMaxYMid meet"/>`;
         svg += `<text x="${m}" y="${m + u * 1.6}" font-size="${u * 1.45}" font-weight="700" fill="#1e1e1e">${esc(title)}</text>`
-          + `<text x="${pw - m}" y="${m + u * 1.6}" font-size="${u * 0.95}" fill="#555" text-anchor="end">${esc(span)}</text>`
+          + `<text x="${pw - m - (lw ? lw + u * 1.2 : 0)}" y="${m + u * 1.6}" font-size="${u * 0.95}" fill="#555" text-anchor="end">${esc(span)}</text>`
           + `<line x1="${m}" y1="${m + hb - u * 0.9}" x2="${pw - m}" y2="${m + hb - u * 0.9}" stroke="#2f6f3e" stroke-width="${u * 0.12}"/>`;
       }
       svg += `<clipPath id="${id}t"><rect x="0" y="0" width="${sl.tw}" height="${HH}"/></clipPath><clipPath id="${id}tb"><rect x="0" y="${HH}" width="${sl.tw}" height="${nr * RH}"/></clipPath>`

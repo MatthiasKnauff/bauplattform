@@ -1,5 +1,5 @@
 """Gemeinsame Bausteine von Startseite (portal.py) und Verwaltung (admin.py)."""
-import json, os, threading, time, urllib.error, urllib.request
+import io, json, os, threading, time, urllib.error, urllib.request
 from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, request, send_from_directory
@@ -97,6 +97,41 @@ def _logo_bytes():
                 _logo["data"] = None
             _logo["t"] = time.time()
         return _logo["data"]
+
+
+_plogo = {"t": 0, "data": None}
+
+
+def print_logo():
+    """Das Büro-Logo in voller Größe für Ausdrucke (Kopfzeile jeder PDF-Seite). Ohne Logo: None."""
+    with _llock:
+        if time.time() - _plogo["t"] > 300:
+            data = None
+            try:
+                req = urllib.request.Request(BT_INTERNAL + "/api/logo", headers={"Cookie": f"{sso.COOKIE}={request.cookies.get(sso.COOKIE, '')}"})
+                with urllib.request.urlopen(req, timeout=3) as r:
+                    data = r.read() if r.status == 200 else None
+            except Exception:
+                data = None
+            _plogo["data"] = data
+            _plogo["t"] = time.time() if data else time.time() - 240   # ohne Logo bald erneut versuchen
+        return _plogo["data"] or _logo_bytes()
+
+
+def draw_logo(cv, right, top, h, max_w):
+    """Logo rechtsbündig in die Kopfzeile einer PDF-Seite setzen (reportlab-Canvas). right/top in Punkt."""
+    data = print_logo()
+    if not data:
+        return False
+    try:
+        from reportlab.lib.utils import ImageReader
+        img = ImageReader(io.BytesIO(data))
+        iw, ih = img.getSize()
+        w = min(max_w, h * iw / ih); hh = w * ih / iw
+        cv.drawImage(img, right - w, top - hh, w, hh, mask="auto")
+        return True
+    except Exception:
+        return False
 
 
 def bt_api(method, path, body=None):

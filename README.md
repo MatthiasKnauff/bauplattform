@@ -244,6 +244,9 @@ Kostenermittlung nach DIN 276, gekoppelt an Bautagebuch-Projekt und Bauzeitenpla
   Planbild (Claude, Gemini oder ChatGPT in der Kopfleiste wählen) – die Vorschläge müssen bestätigt werden. Sonst Räume von Hand eintragen.
 - **Kosten:** Fläche × Kennwert je Raumtyp, Aufteilung auf KG 300/400, eigene Positionen (KG 200, 394 Rückbau, 500 …),
   Nebenkosten KG 700. Die mitgelieferten Kennwerte sind **Beispielwerte**; eigene Werte lassen sich als Vorgabe für neue Kostenermittlungen speichern.
+- **⚙ Raumtypen** (Einstellung der App): Raumtypen des Büros mit Stichwörtern und Kennwerten – umbenennen, ergänzen (z. B. Tierbereich,
+  Labor, Klassenraum), entfernen, Reihenfolge = Vorrang beim Zuordnen. Mitgeliefert sind allgemeine Typen (Wohnen, Küche, Bad/WC, Büro,
+  Aufenthalt, Flur, Abstell/Technik, Garage, Sonstige). Raumtypen nur eines Projekts bleiben dort erhalten.
 - **Mittelabfluss:** Kosten werden über die Leistungen des verknüpften Bauzeitenplans verteilt (Gewicht = Dauer, änderbar), je Monat,
   mit Baupreisindex. Der Bauzeitenplan speichert dafür seine berechneten Termine mit; ältere Pläne einmal öffnen und speichern.
 - **Schätzen und Genauigkeit:** Offene Kostengruppen (KG 200, 394 Rückbau, 500 …) und die Aufteilung auf die 2. Ebene lassen sich
@@ -261,9 +264,11 @@ Auf Docker 2 unter `https://baukosten.gk3-architektur.de`: im Nginx Proxy Manage
 
 ## Verwaltung (eigener Container)
 
-**Einstellungen** (Reiter in der Verwaltung, zentral für alle Apps): eigene Darstellung (Farbschema, Akzentfarbe), KI (Positionsvorschlag
-an/aus, Schlüssel und Modelle für Claude, Gemini, ChatGPT, Zustand von Ollama mit Verbindungstest) und eigene Kennwerte der Baukosten.
-Büro, Logo, E-Mail, Ablage und Sicherung bleiben im Bautagebuch. „Beim Löschen fragen“ schaltet jeder im Bauzeitenplan im Reiter „Leistung“.
+**Einstellungen** (Reiter in der Verwaltung, alles was für alle Apps gilt): Darstellung (Farbschema, Akzentfarbe), KI (Positionsvorschlag
+an/aus, Schlüssel und Modelle für Claude, Gemini, ChatGPT, Zustand von Ollama mit Verbindungstest), Firma & Logo, Ablage, Mailserver und
+Datensicherung. Die letzten vier gehören technisch zum Bautagebuch – die Verwaltung bearbeitet dieselben Daten, im Bautagebuch bleiben sie
+wie gewohnt erreichbar. Einstellungen einer einzelnen App stehen in der App: Baukosten → ⚙ Raumtypen, Bauzeitenplan → Reiter „Leistung“
+(Nachfragen beim Löschen). Das Büro-Logo steht in der Kopfzeile aller Ausdrucke (Bautagebuch, Baukosten, Adressverzeichnis, Bauzeitenplan).
 
 Nur für Administratoren. Die Benutzer sind dieselben wie im Bautagebuch.
 

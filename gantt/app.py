@@ -344,6 +344,18 @@ def list_projects(c):
     return out
 
 
+@app.get("/api/logo")
+def logo():
+    """Büro-Logo (aus dem Bautagebuch) für die Kopfzeile der Ausdrucke."""
+    try:
+        req = urllib.request.Request(os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/") + "/api/logo",
+                                     headers={"Cookie": request.headers.get("Cookie", "")})
+        with urllib.request.urlopen(req, timeout=4) as r:
+            return r.read(), 200, {"Content-Type": r.headers.get("Content-Type", "image/png"), "Cache-Control": "private, max-age=300"}
+    except Exception:
+        return jsonify(error="Kein Logo"), 404
+
+
 @app.get("/api/health")
 def health():
     return jsonify(ok=True, version=platform.version())

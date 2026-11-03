@@ -140,6 +140,7 @@ body.as-open .wrap{padding-bottom:45vh}
     <button class="btn sm" id="newBtn">+ Neue Kostenermittlung</button>
     <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
     <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
+    <button class="btn sm" id="setBtn" aria-haspopup="dialog" title="Einstellungen der Baukosten: Raumtypen und Kennwerte des Büros">⚙ Raumtypen</button>
     <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
   </div>
@@ -320,7 +321,7 @@ function vKosten() {
   const c = B.calc, d = B.data;
   const kgRows = [['300', 'Bauwerk – Baukonstruktionen', `${pct(d.kg['300'])} der Raumtyp-Summe`, c.kg300], ['400', 'Bauwerk – Technische Anlagen', `${pct(d.kg['400'])} der Raumtyp-Summe`, c.kg400]]
     .concat(d.items.map((i) => [i.kg, i.name, 'eigene Position', i.amount])).concat([['700', 'Baunebenkosten', `${pct(d.nk)} auf alle Kosten`, c.nk]]).sort((a, b) => a[0].localeCompare(b[0]));
-  return `${estHtml()}<section class="card" style="margin-bottom:1.2rem"><h2>Raumtypen und Kennwerte</h2><p class="sub">Kennwerte in € je m² Raumfläche (KG 300 + 400, netto). Die vorgegebenen Werte sind Beispiele – eigene Werte aus abgerechneten Projekten eintragen.</p>
+  return `${estHtml()}<section class="card" style="margin-bottom:1.2rem"><h2>Raumtypen und Kennwerte</h2><p class="sub">Kennwerte in € je m² Raumfläche (KG 300 + 400, netto). Die vorgegebenen Werte sind Beispiele – eigene Werte aus abgerechneten Projekten eintragen. Raumtypen ergänzen oder umbenennen: <a href="#" data-act="raumtypen">⚙ Raumtypen</a>.</p>
     <div class="tbl"><table><thead><tr><th>Raumtyp</th><th class="r">Räume</th><th class="r">Fläche m²</th><th class="r">€ / m²</th><th class="r">Summe</th></tr></thead><tbody>${c.types.map((t) => `
       <tr><td>${esc(t.label)}</td><td class="r num">${t.n}</td><td class="r num">${m2(t.area)}</td><td class="r"><input class="n" value="${Math.round(t.kw)}" data-kw="${t.typ}" inputmode="numeric" aria-label="Kennwert ${esc(t.label)}"></td><td class="r num">${eur(t.sum)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td>Summe</td><td></td><td class="r num">${m2(c.area)}</td><td class="r num">${eur(c.kw)}</td><td class="r num">${eur(c.bauwerk)}</td></tr></tfoot></table></div>
@@ -488,6 +489,7 @@ document.addEventListener('click', async (e) => {
     else if (act === 'firstPdf') $('#pdfIn').click();
     else if (act === 'firstRoom') { tab = 'plaene'; history.replaceState(null, '', '#plaene'); B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'openAssist') { AS.open = true; AS.step = null; asSave(); assist(); }
+    else if (act === 'raumtypen') { e.preventDefault(); typesDialog(); }
     else if (act === 'saveKw') { try { const o = {}; Object.entries(B.data.types).forEach(([k, v]) => { o[k] = v.kw; }); await api('api/kennwerte', 'PUT', o); toast('Eigene Kennwerte gespeichert – gelten für neue Kostenermittlungen.'); } catch (er) { toast(er.message, true); } }
     return;
   }
@@ -563,6 +565,46 @@ document.addEventListener('change', (e) => {
 document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-file],#drop')) { e.preventDefault(); e.target.click(); } });
 $('#newBtn').onclick = () => newDialog();
 $('#pdfBtn').onclick = () => pdfDialog();
+/* ---------- ⚙ Raumtypen: Liste des Büros (gilt für alle Kostenermittlungen) ---------- */
+const guessTyp = (name, cat) => { const n = (name || '').toLowerCase().trim(); if (n) for (const t of cat) for (const w of (t.worte || '').split(',')) { const x = w.trim(); if (x && n.includes(x)) return t.key; } return 'sonst'; };
+async function typesDialog() {
+  let R; try { R = await api('api/kennwerte'); } catch (e) { toast(e.message, true); return; }
+  let L = R.raumtypen.map((t) => ({ ...t }));
+  const row = (t, i) => `<tr data-i="${i}"><td><input data-tf="label" value="${esc(t.label)}" aria-label="Bezeichnung" style="width:100%"></td>
+    <td><input data-tf="worte" value="${esc(t.worte)}" placeholder="${t.key === 'sonst' ? 'alles andere' : 'z. B. labor, werkstatt'}" aria-label="Stichwörter" style="width:100%"${t.key === 'sonst' ? ' disabled' : ''}></td>
+    <td class="r"><input class="n" data-tf="kw" value="${Math.round(t.kw)}" inputmode="numeric" style="width:90px" aria-label="Kennwert €/m²">${t.beispiel != null && Math.round(t.beispiel) !== Math.round(t.kw) ? `<div class="hint" style="font-size:.72rem">Beispiel ${Math.round(t.beispiel).toLocaleString('de-DE')} €</div>` : ''}</td>
+    <td style="white-space:nowrap"><button class="btn sm" data-m="up" data-i="${i}" title="nach oben (Vorrang beim Zuordnen)" aria-label="nach oben"${i ? '' : ' disabled'}>↑</button>${t.key === 'sonst' ? '' : `<button class="btn sm" data-m="rm" data-i="${i}" aria-label="Raumtyp entfernen">✕</button>`}</td></tr>`;
+  const html = () => `<h3>Raumtypen und Kennwerte des Büros</h3>
+    <p class="hint" style="margin:0 0 .8rem">Gelten für alle Kostenermittlungen. Beim Einlesen eines Plans bekommt jeder Raum den ersten Raumtyp, dessen Stichwort im Raumnamen vorkommt (auch in Zusammensetzungen: „lager“ trifft „Stuhllager“). Eigene Typen für besondere Bauaufgaben ergänzen – z. B. Tierbereich, Labor, Klassenraum, Werkstatt.</p>
+    <div class="tbl"><table><thead><tr><th>Raumtyp</th><th>Stichwörter (mit Komma)</th><th class="r">€ / m²</th><th></th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>
+    <div class="acts" style="justify-content:flex-start;margin-top:.6rem"><button class="btn sm" data-m="add">＋ Raumtyp</button><button class="btn sm" data-m="std">Vorgaben wiederherstellen</button></div>
+    ${B ? `<label class="chk" style="margin-top:.8rem"><input type="checkbox" id="tyRe" checked><span>In „${esc(B.name)}“ nicht bestätigte Räume neu zuordnen</span></label>` : ''}
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>`;
+  const read = (bg) => bg.querySelectorAll('tr[data-i]').forEach((tr) => { const t = L[+tr.dataset.i]; tr.querySelectorAll('[data-tf]').forEach((el) => { t[el.dataset.tf] = el.dataset.tf === 'kw' ? pnum(el.value) : el.value; }); });
+  const bg = modalBox(html(), async (m, bg, close, b) => {
+    if (m === 'x') { close(); return; }
+    read(bg);
+    const redraw = () => { bg.querySelector('.modal').innerHTML = html(); };
+    if (m === 'add') { L.splice(Math.max(0, L.length - 1), 0, { key: '', label: '', worte: '', kw: 1300, beispiel: null }); redraw(); const ins = bg.querySelectorAll('[data-tf=label]'); ins[ins.length - 2]?.focus(); return; }
+    if (m === 'rm') { L.splice(+b.dataset.i, 1); redraw(); return; }
+    if (m === 'up') { const i = +b.dataset.i; [L[i - 1], L[i]] = [L[i], L[i - 1]]; redraw(); return; }
+    if (m === 'std') { L = R.standard.map((t) => ({ ...t, beispiel: t.kw })).concat(L.filter((t) => !R.standard.some((s) => s.key === t.key) && t.label.trim()).map((t) => ({ ...t }))); const so = L.findIndex((t) => t.key === 'sonst'); if (so >= 0) L.push(L.splice(so, 1)[0]); redraw(); return; }
+    if (m === 'save') {
+      const re = bg.querySelector('#tyRe')?.checked;
+      try {
+        const r = await api('api/kennwerte', 'PUT', { raumtypen: L.filter((t) => t.label.trim()) });
+        close(); toast('Raumtypen gespeichert – gelten für alle Kostenermittlungen.');
+        if (B) {
+          clearTimeout(saveT); await saveNow(); B = await api('api/bk/' + B.id);
+          if (re) { let n = 0; B.data.rooms.forEach((x) => { if (!x.ok) { const k = guessTyp(x.name, r.raumtypen); if (k !== x.typ && B.data.types[k]) { x.typ = k; n++; } } }); if (n) { toast(`${n} Räume neu zugeordnet.`); changed(); return; } }
+          render();
+        }
+      } catch (er) { toast(er.message, true); }
+    }
+  });
+  bg.querySelector('.modal').style.width = 'min(760px,100%)';
+}
+$('#setBtn').onclick = () => typesDialog();
 $('#moreBtn').onclick = () => {
   if (!B) return;
   modalBox(`<h3>„${esc(B.name)}“</h3>

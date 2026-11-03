@@ -127,6 +127,7 @@ body.as-open .wrap{padding-bottom:45vh}
     <select id="sel" aria-label="Kostenermittlung wählen"></select>
     <button class="btn sm" id="newBtn">+ Neue Kostenermittlung</button>
     <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
+    <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
     <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
   </div>
@@ -189,7 +190,7 @@ async function saveNow(extra = {}) {
   if (!B || saving) return; saving = true;
   try {
     const r = await api('/api/bk/' + B.id, 'PUT', { rev: B.rev, data: B.data, ...extra });
-    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.name) { Object.assign(B, r); head(); }
+    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
     const d = new Date(); $('#save').textContent = `Gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) {
     $('#save').textContent = 'Nicht gespeichert';
@@ -526,6 +527,35 @@ document.addEventListener('change', (e) => {
 document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-file],#drop')) { e.preventDefault(); e.target.click(); } });
 $('#newBtn').onclick = () => newDialog();
 $('#pdfBtn').onclick = () => pdfDialog();
+$('#moreBtn').onclick = () => {
+  if (!B) return;
+  modalBox(`<h3>„${esc(B.name)}“</h3>
+    <p><b>Archivieren</b> blendet die Kostenermittlung in der Auswahl nach unten aus; sie bleibt erhalten und lässt sich jederzeit zurückholen.</p>
+    <p><b>Löschen</b> entfernt sie endgültig – mit Raumbuch, Schätzungen und hochgeladenen Plänen. Das lässt sich nicht rückgängig machen.</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${B.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del">Endgültig löschen …</button></div>`,
+  async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m === 'arch') {
+      close(); clearTimeout(saveT); await saveNow({ archived: !B.archived });
+      toast(B.archived ? 'Aus dem Archiv geholt.' : 'Archiviert.'); await loadList(B.id); return;
+    }
+    if (m === 'del') {   // zweite Sicherheitsabfrage: Namen eintippen
+      bg.querySelector('.modal').innerHTML = `<h3>Endgültig löschen</h3><p>Zur Bestätigung den Namen eintippen:<br><b>${esc(B.name)}</b></p>
+        <div class="row" style="flex-direction:column;align-items:stretch"><input id="delName" autocomplete="off" aria-label="Name zur Bestätigung"></div>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="del2">Löschen</button></div>`;
+      bg.querySelector('#delName').focus(); return;
+    }
+    if (m === 'del2') {
+      if (bg.querySelector('#delName').value.trim() !== B.name.trim()) { toast('Der Name stimmt nicht – nichts gelöscht.', true); return; }
+      try {
+        clearTimeout(saveT); const id = B.id, name = B.name;
+        await api('/api/bk/' + id, 'DELETE'); close();
+        try { localStorage.removeItem('bk.assist.' + id); localStorage.removeItem('bk.cur'); } catch { /* egal */ }
+        B = null; toast(`„${name}“ gelöscht.`); await loadList();
+      } catch (e) { toast('Löschen fehlgeschlagen: ' + e.message, true); }
+    }
+  });
+};
 const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr, Stand, Gesamtkosten'], ['zusammenfassung', 'Zusammenfassung', 'Bauwerk, weitere KG, Nebenkosten, MwSt.'], ['genauigkeit', 'Genauigkeit', 'wahrscheinliche Spanne und was sie beeinflusst'],
   ['kosten', 'Kosten nach DIN 276', 'in der gewählten Gliederungstiefe'], ['raumtypen', 'Kosten nach Nutzung', 'Raumtypen mit Fläche und Kennwert'],
   ['raumbuch', 'Raumbuch', 'alle Räume mit Nutzung und Fläche'], ['mittelabfluss', 'Mittelabfluss', 'Diagramm und Monatstabelle aus dem Bauzeitenplan'],

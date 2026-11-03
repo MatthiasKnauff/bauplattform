@@ -34,10 +34,10 @@
 .wrap.wide{max-width:none}
 .list[hidden],.tw[hidden],#cols[hidden]{display:none!important}
 .tw{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);max-height:calc(100vh - 240px)}
-.tt{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:.9rem}
+.tt{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:.9rem}
 .tt th,.tt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;vertical-align:middle}
 .tt thead th{position:sticky;z-index:2;background:var(--card2);text-align:left}
-.tt thead tr.h th{top:0;padding:.5rem .6rem;font-size:.8rem;color:var(--mute);white-space:nowrap;cursor:pointer;user-select:none}
+.tt thead tr.h th{top:0;padding:.5rem .6rem;position:sticky;overflow:hidden;text-overflow:ellipsis;font-size:.8rem;color:var(--mute);white-space:nowrap;cursor:pointer;user-select:none}
 .tt thead tr.h th:hover{color:var(--ink)}
 .tt thead tr.h th .ar{color:var(--y);margin-left:.25rem}
 .tt thead tr.f th{top:33px;padding:.25rem}
@@ -45,7 +45,17 @@
 .tt td input{width:100%;border:0;border-radius:0;background:transparent;padding:.42rem .55rem;font-size:.9rem;color:var(--ink);min-width:0}
 .tt td input:focus{outline:2px solid var(--y);outline-offset:-2px;background:var(--inp)}
 .tt td input.saving{background:color-mix(in srgb,var(--y) 12%,transparent)}
-.tt td.ro{padding:.42rem .55rem;white-space:nowrap;color:var(--mute)}
+.tt td.ro{padding:.42rem .55rem;white-space:nowrap;color:var(--mute);overflow:hidden;text-overflow:ellipsis}
+.tt .rz{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:3}
+.tt .rz::after{content:"";position:absolute;left:4px;top:25%;bottom:25%;border-left:2px solid transparent}
+.tt th:hover .rz::after,.tt .rz.on::after{border-color:var(--y)}
+.tt td.act,.tt thead th:last-child{position:sticky;right:0;background:var(--card);box-shadow:-1px 0 0 var(--line);z-index:1}
+.tt thead th:last-child{background:var(--card2);z-index:3}
+.tt tbody tr:hover td.act{background:var(--hov)}
+.tw{scrollbar-gutter:stable}
+.tw::-webkit-scrollbar{height:12px;width:12px}
+.tw::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mute) 55%,transparent);border-radius:6px;border:2px solid var(--card)}
+.tw::-webkit-scrollbar-track{background:var(--hov)}
 .tt td.act{padding:.2rem .3rem;white-space:nowrap}
 .tt td.act a,.tt td.act button{padding:.2rem .4rem;font-size:.85rem;text-decoration:none}
 .tt tbody tr:hover td{background:var(--hov)}
@@ -206,13 +216,14 @@ function edit(c) {
 const COLS = [
   ['name', 'Firma / Name', 220], ['kind', 'Art', 100, 'ro'], ['trade', 'Gewerk', 160], ['contact_person', 'Ansprechpartner', 170], ['role', 'Funktion', 130],
   ['phone', 'Telefon', 140], ['mobile', 'Mobil', 140], ['email', 'E-Mail', 210], ['website', 'Internet', 180],
-  ['street', 'Straße', 190], ['zip', 'PLZ', 70], ['city', 'Ort', 140], ['notes', 'Notizen', 240], ['used', 'Verwendet', 100, 'ro']];
+  ['street', 'Straße', 190], ['zip', 'PLZ', 70], ['city', 'Ort', 140], ['notes', 'Notizen', 240], ['used', 'Im Bautagebuch', 200, 'ro']];
 const KINDN = { firma: 'Firma', bauherr: 'Bauherr', baustelle: 'Baustelle' };
 let TV;
 try { TV = JSON.parse(localStorage.getItem('adr.tabelle')) || {}; } catch { TV = {}; }
-TV = { view: TV.view || (matchMedia('(pointer:fine)').matches && innerWidth > 900 ? 'tabelle' : 'karten'), hide: TV.hide || ['role', 'website', 'notes', 'used'], sort: TV.sort || { k: 'name', d: 1 }, flt: {} };
-const tvSave = () => { try { localStorage.setItem('adr.tabelle', JSON.stringify({ view: TV.view, hide: TV.hide, sort: TV.sort })); } catch { /* egal */ } };
-const cellVal = (c, k) => (k === 'kind' ? KINDN[c.kind] || c.kind : k === 'used' ? (c.used ? `${c.used} × ${c.projects.join(', ')}` : c.site_of ? 'Baustelle' : '') : c[k] || '');
+const TVW = TV.w || {};
+TV = { w: TVW, view: TV.view || (matchMedia('(pointer:fine)').matches && innerWidth > 900 ? 'tabelle' : 'karten'), hide: TV.hide || ['role', 'website', 'notes', 'used'], sort: TV.sort || { k: 'name', d: 1 }, flt: {} };
+const tvSave = () => { try { localStorage.setItem('adr.tabelle', JSON.stringify({ view: TV.view, hide: TV.hide, sort: TV.sort, w: TV.w })); } catch { /* egal */ } };
+const cellVal = (c, k) => (k === 'kind' ? KINDN[c.kind] || c.kind : k === 'used' ? (c.used ? `${c.used} × ${c.projects.join(', ')}` : '') : c[k] || '');
 function tableRows() {
   const fl = Object.entries(TV.flt).filter(([, v]) => v);
   let r = shown().filter((c) => fl.every(([k, v]) => (k === 'kind' ? c.kind === v : String(cellVal(c, k)).toLowerCase().includes(v.toLowerCase()))));
@@ -224,8 +235,9 @@ function renderTable() {
   const cols = COLS.filter(([k]) => !TV.hide.includes(k)), rows = tableRows(), ae = document.activeElement, keep = ae && ae.dataset && ae.dataset.fk;
   $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes`;
   renderActive();
-  $('#tw').innerHTML = `<table class="tt"><colgroup>${cols.map(([, , w]) => `<col style="width:${w}px">`).join('')}<col style="width:120px"></colgroup>
-    <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" title="Sortieren">${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}<th></th></tr>
+  const cw = (k, w) => TV.w[k] || w, total = cols.reduce((a, [k, , w]) => a + cw(k, w), 0) + 130;
+  $('#tw').innerHTML = `<table class="tt" style="width:${total}px"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col style="width:130px"></colgroup>
+    <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" title="Sortieren · Rand ziehen: Breite ändern">${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}<span class="rz" data-rz="${k}" title="Ziehen: Spaltenbreite · Doppelklick: Standardbreite"></span></th>`).join('')}<th></th></tr>
     <tr class="f">${cols.map(([k, l]) => `<th>${fltField(k, l)}</th>`).join('')}<th>${anyFlt() ? '<button class="btn sm" data-clr="*" title="Alle Filter und die Suche löschen">✕ Alle</button>' : ''}</th></tr></thead>
     <tbody>${rows.map((c) => `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
       : `<td><input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' list="gwAll"' : ''}></td>`).join('')}
@@ -233,7 +245,22 @@ function renderTable() {
       || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer.</td></tr>`}</tbody></table>
     <datalist id="gwAll">${[...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de')).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
+  fitTw();
 }
+// Tabelle reicht bis zum Fensterrand – so ist der waagerechte Rollbalken immer sichtbar
+function fitTw() { const t = $('#tw'); if (!t || t.hidden) return; t.style.maxHeight = Math.max(260, innerHeight - t.getBoundingClientRect().top - 14) + 'px'; }
+addEventListener('resize', fitTw);
+// Spaltenbreite mit der Maus ändern (Rand rechts im Spaltenkopf)
+$('#tw').addEventListener('pointerdown', (e) => {
+  const h = e.target.closest('[data-rz]'); if (!h) return;
+  e.preventDefault(); e.stopPropagation();
+  const k = h.dataset.rz, col = document.querySelector(`col[data-col="${k}"]`), tbl = document.querySelector('.tt'), x0 = e.clientX, w0 = col.getBoundingClientRect().width || parseFloat(col.style.width), t0 = tbl.getBoundingClientRect().width;
+  h.classList.add('on'); h.setPointerCapture(e.pointerId);
+  const mv = (ev) => { const w = Math.max(50, Math.round(w0 + ev.clientX - x0)); col.style.width = w + 'px'; tbl.style.width = (t0 + w - w0) + 'px'; TV.w[k] = w; };
+  const up = () => { h.classList.remove('on'); h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); tvSave(); TV.rzT = Date.now(); };
+  h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+});
+$('#tw').addEventListener('dblclick', (e) => { const h = e.target.closest('[data-rz]'); if (!h) return; delete TV.w[h.dataset.rz]; tvSave(); renderTable(); });
 /* ---------- Filter: gelten in Tabelle UND Karten; einzeln oder alle löschen ---------- */
 const fltField = (k, l) => `<span class="fx">${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${Object.entries(KINDN).map(([v, n]) => `<option value="${v}"${TV.flt.kind === v ? ' selected' : ''}>${n}</option>`).join('')}</select>`
   : `<input data-flt="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;
@@ -282,6 +309,7 @@ function setView(v) {
 }
 $('#view').addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b) setView(b.dataset.v); });
 $('#tw').addEventListener('click', (e) => {
+  if (e.target.closest('[data-rz]') || Date.now() - (TV.rzT || 0) < 300) return;   // Ziehen an der Spaltenbreite ist kein Sortierklick
   const th = e.target.closest('[data-sort]');
   if (th) { const k = th.dataset.sort; TV.sort = TV.sort.k !== k ? { k, d: 1 } : TV.sort.d > 0 ? { k, d: -1 } : { k: '', d: 1 }; tvSave(); renderTable(); return; }
   const o = e.target.closest('[data-open]'); if (o) edit(ALL.find((c) => c.id === +o.dataset.open));

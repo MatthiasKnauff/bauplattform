@@ -84,7 +84,7 @@ def make_app(name):
 
 BT_INTERNAL = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/")
 _logo = {"t": 0, "data": None}
-_llock = threading.Lock()
+_llock = threading.RLock()
 
 
 def _logo_bytes():
@@ -111,11 +111,18 @@ def print_logo():
                 req = urllib.request.Request(BT_INTERNAL + "/api/logo", headers={"Cookie": f"{sso.COOKIE}={request.cookies.get(sso.COOKIE, '')}"})
                 with urllib.request.urlopen(req, timeout=3) as r:
                     data = r.read() if r.status == 200 else None
+                if data:   # einheitlich als PNG (WEBP, CMYK-JPG, riesige Dateien machen reportlab sonst Probleme)
+                    from PIL import Image
+                    im = Image.open(io.BytesIO(data)); im.load()
+                    im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") else "RGB")
+                    im.thumbnail((900, 900))
+                    out = io.BytesIO(); im.save(out, "PNG"); data = out.getvalue()
             except Exception:
                 data = None
             _plogo["data"] = data
             _plogo["t"] = time.time() if data else time.time() - 240   # ohne Logo bald erneut versuchen
-        return _plogo["data"] or _logo_bytes()
+        data = _plogo["data"]
+    return data or _logo_bytes()   # außerhalb der Sperre: _logo_bytes() sperrt selbst
 
 
 def draw_logo(cv, right, top, h, max_w):

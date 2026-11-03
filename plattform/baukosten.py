@@ -909,8 +909,9 @@ def rules(c, r, d, cal, files):
     if zero:
         add("hoch", f"{len(zero)} Räume ohne Fläche", ", ".join(x["name"] or x["nr"] for x in zero[:6]) + " – Fläche fehlt in der Summe.", go={"tab": "plaene", "room": zero[0]["id"], "f": "area"})
     open_ = [x for x in d["rooms"] if not x["ok"]]
+    spaet = r["stufe"] in ("berechnung", "anschlag", "feststellung")
     if open_:
-        add("mittel", f"{len(open_)} Räume noch nicht bestätigt", "Aus dem Plan gelesene Räume bitte unter „Pläne & Mengen“ prüfen und bestätigen.", go={"tab": "plaene", "room": open_[0]["id"]})
+        add("hoch" if spaet else "mittel", f"{len(open_)} Räume noch nicht bestätigt", "Aus dem Plan gelesene Räume bitte unter „Pläne & Mengen“ prüfen und bestätigen.", go={"tab": "plaene", "room": open_[0]["id"]})
     if not d["rooms"]:
         add("hoch", "Noch kein Raumbuch", "Grundriss als PDF hochladen oder Räume von Hand anlegen.", go={"tab": "plaene"})
     for t in cal["types"]:
@@ -920,6 +921,16 @@ def rules(c, r, d, cal, files):
         if it["amount"] is None:
             add("mittel" if it["kg"] == "394" else "info", f"KG {it['kg']} {it['name']} offen", "Noch kein Betrag eingetragen – die Summe ist dafür zu niedrig.",
                 go={"tab": "kosten", "sel": f'[data-it="{k}"][data-f="amount"]'})
+    if spaet and not d.get("kg2") and cal["bauwerk"]:
+        add("mittel", f"{STUFE_NAME[r['stufe']]}: Aufteilung auf die 2. Ebene fehlt",
+            "Ab der Kostenberechnung gehören KG 300/400 in die 2. Ebene (z. B. 330 Außenwände, 440 Elektro). Anteile unter „Kosten“ eintragen oder schätzen lassen.",
+            go={"tab": "kosten", "sel": "[data-kg2]"})
+    if r["stufe"] in ("anschlag", "feststellung"):
+        quelle = "Angebots- bzw. Auftragspreise" if r["stufe"] == "anschlag" else "abgerechnete Beträge aus den Schlussrechnungen"
+        for k, it in enumerate(d["items"]):
+            if it.get("est"):
+                add("mittel", f"KG {it['kg']} {it['name']} nur geschätzt", f"Für den {STUFE_NAME[r['stufe']]} hier {quelle} eintragen.",
+                    go={"tab": "kosten", "sel": f'[data-it="{k}"][data-f="amount"]'})
     floors = _floors(d["rooms"])
     if len(floors) == 1 and d["rooms"]:
         add("mittel", "Nur ein Geschoss im Raumbuch", f"Alle Räume gehören zu „{next(iter(floors))}“ – fehlen Grundrisse weiterer Geschosse (OG, KG)?", go={"tab": "plaene", "sel": "#drop"})
@@ -1105,6 +1116,8 @@ def build_report(c, r, opt):
     if "deckblatt" in parts:
         if logo:
             try:
+                from reportlab.lib.utils import ImageReader
+                ImageReader(io.BytesIO(logo)).getSize()   # nicht lesbares Logo erst beim Bauen des PDFs zu bemerken, ließe alles scheitern
                 story += [Image(io.BytesIO(logo), width=28 * mm, height=28 * mm, kind="proportional"), Spacer(1, 18 * mm)]
             except Exception:
                 story.append(Spacer(1, 46 * mm))
@@ -1277,7 +1290,11 @@ def bericht(i):
         r = _row(c, i)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
-        pdf = build_report(c, r, opt)
+        try:
+            pdf = build_report(c, r, opt)
+        except Exception as e:   # Grund anzeigen statt stillem Fehler 500
+            app.logger.exception("Kosten-PDF")
+            return jsonify(error=f"{type(e).__name__}: {str(e)[:200]}"), 500
     C.audit(g.user["name"], "export", "Kosten-PDF erstellt", f"{r['name']} · Ebene {opt['tiefe']} · {', '.join(opt['teile'])}")
     from urllib.parse import quote
     fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"{STUFE_NAME.get(r['stufe'], 'Kosten')} {r['name']}.pdf")

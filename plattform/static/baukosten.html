@@ -16,6 +16,8 @@
 .top .fill{flex:1}
 .save{color:var(--mute);font-size:.85rem}
 .stufen{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin:0 0 1rem}
+.stinfo{margin:-.5rem 0 1rem;font-size:.85rem;color:var(--mute)}
+.stinfo b{color:var(--ink);font-weight:600}
 .stufen .lbl{font-size:.8rem;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin-right:.3rem}
 .pills button{border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:.35rem .85rem;font-size:.88rem;min-height:36px}
 .pills button.on{border-color:var(--y);color:var(--ink);background:var(--hov);font-weight:600}
@@ -44,6 +46,8 @@
 .alert{border-left:4px solid var(--y);display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1.2rem}
 .alert .fill{flex:1 1 280px;color:var(--mute);font-size:.92rem}
 .files{display:flex;flex-direction:column;gap:.6rem}
+.files .acts{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.files .acts .btn{white-space:nowrap;flex:0 0 auto;min-width:0}
 .fc{display:flex;flex-direction:column;gap:.25rem;cursor:pointer;text-align:left;color:var(--ink)}
 .fc.on{border-color:var(--y);box-shadow:0 0 0 1px var(--y)}
 .fc small{color:var(--mute)}
@@ -158,6 +162,7 @@ body.as-open .wrap{padding-bottom:45vh}
     <span class="save" id="save" role="status"></span>
   </div>
   <div class="stufen"><span class="lbl">Stufe DIN 276</span><div class="pills" id="stufen" style="display:flex;gap:.35rem;flex-wrap:wrap"></div></div>
+  <p class="stinfo" id="stinfo"></p>
   <nav class="tabs" id="tabs" aria-label="Bereiche"></nav>
   <div id="view"></div>
 </main>
@@ -165,6 +170,14 @@ body.as-open .wrap{padding-bottom:45vh}
 <script src="static/bp.js"></script>
 <script>
 const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Mengen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
+// Was die Stufe bedeutet und bewirkt (Genauigkeit, Gliederungstiefe im PDF, zusätzliche Prüfregeln)
+const STUFE_INFO = {
+  rahmen: { lph: 'LPH 1 · Grundlagen', ebene: 1, genau: 35, txt: 'Gesamtkosten aus Fläche × Kennwert, Gliederung nach der 1. Ebene.' },
+  schaetzung: { lph: 'LPH 2 · Vorplanung', ebene: 2, genau: 25, txt: 'Gliederung mindestens bis zur 2. Ebene (z. B. 330 Außenwände).' },
+  berechnung: { lph: 'LPH 3 · Entwurf', ebene: 3, genau: 15, txt: 'Gliederung bis zur 3. Ebene; alle Räume bestätigt, Aufteilung auf die 2. Ebene nötig.' },
+  anschlag: { lph: 'LPH 6–7 · Vergabe', ebene: 3, genau: 8, txt: 'Angebots- und Auftragspreise statt Kennwerte – geschätzte Positionen werden in der Prüfung gemeldet.' },
+  feststellung: { lph: 'LPH 8 · Abrechnung', ebene: 3, genau: 2, txt: 'Abgerechnete Kosten aus den Schlussrechnungen – geschätzte Positionen werden in der Prüfung gemeldet.' },
+};
 const STUFEN = [['rahmen', 'Kostenrahmen'], ['schaetzung', 'Kostenschätzung'], ['berechnung', 'Kostenberechnung'], ['anschlag', 'Kostenanschlag'], ['feststellung', 'Kostenfeststellung']];
 let LIST = [], B = null, FLOW = null, CHECK = null, SRC = null, tab = (location.hash || '').slice(1) || 'uebersicht', selFile = null, selRoom = null, saveT = 0, saving = false;
 const eur = (v) => (v == null ? '–' : Math.round(v).toLocaleString('de-DE') + ' €');
@@ -187,9 +200,9 @@ async function loadList(keep) {
   LIST = await api('api/bk');
   const want = keep || +localStorage.getItem('bk.cur') || (LIST[0] && LIST[0].id);
   $('#sel').innerHTML = LIST.length ? LIST.map((x) => `<option value="${x.id}"${x.id === want ? ' selected' : ''}>${esc(x.name)}${x.project ? ' · ' + esc(x.project.name) : ''}${x.archived ? ' (archiviert)' : ''}</option>`).join('') : '<option value="">– noch keine Kostenermittlung –</option>';
-  if (LIST.some((x) => x.id === want)) await open(want); else { B = null; render(); }
+  if (LIST.some((x) => x.id === want)) await openBk(want); else { B = null; render(); }
 }
-async function open(id) {
+async function openBk(id) {   // nicht „open“ nennen: das überschriebe window.open (PDF-Fenster)
   B = await api('api/bk/' + id); FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
   asLoad(); if (localStorage.getItem(AS_KEY()) == null) { AS.open = true; asSave(); }   // beim ersten Öffnen startet der Assistent
   try { localStorage.setItem('bk.cur', id); } catch { /* egal */ }
@@ -220,7 +233,7 @@ async function saveNow(extra = {}) {
     const d = new Date(); $('#save').textContent = `Gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) {
     $('#save').textContent = 'Nicht gespeichert';
-    if (/geändert/.test(e.message)) { toast(e.message + ' Der neue Stand wird geladen.', true); await open(B.id); }
+    if (/geändert/.test(e.message)) { toast(e.message + ' Der neue Stand wird geladen.', true); await openBk(B.id); }
     else toast('Speichern fehlgeschlagen: ' + e.message, true);
   } finally { saving = false; }
 }
@@ -228,6 +241,7 @@ async function saveNow(extra = {}) {
 /* ---------- Oberfläche ---------- */
 function render() {
   $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}"${k === tab ? ' aria-current="page"' : ''}>${l}${k === 'pruefung' && CHECK ? ` <span class="pill y">${CHECK.hinweise.length}</span>` : ''}</button>`).join('');
+  const SI = B && STUFE_INFO[B.stufe]; $('#stinfo').innerHTML = SI ? `<b>${esc(SI.lph)}</b> · übliche Genauigkeit ± ${SI.genau} % · ${esc(SI.txt)}` : '';
   $('#stufen').innerHTML = STUFEN.map(([k, l]) => `<button type="button" data-stufe="${k}" class="${B && B.stufe === k ? 'on' : ''}" aria-pressed="${B && B.stufe === k}"${B ? '' : ' disabled'}>${l}</button>`).join('');
   const v = $('#view'), sig = sigOf(document.activeElement);
   if (!B) { v.innerHTML = `<div class="card empty"><p>Noch keine Kostenermittlung.</p><button class="btn pri" data-act="new">Erste Kostenermittlung anlegen</button></div>`; return; }
@@ -287,7 +301,7 @@ function vPlaene() {
   const open = rooms.filter((r) => !r.ok).length;
   return `<div class="layout"><aside class="side"><span class="hint" style="text-transform:uppercase;letter-spacing:.04em">Pläne</span><div class="files">${B.files.map((x) => `
     <div class="card fc ${x.id === selFile ? 'on' : ''}" data-file="${x.id}" tabindex="0" role="button" aria-pressed="${x.id === selFile}"><b>${esc(x.meta.kind ? x.meta.kind + ' · ' : '')}${esc(x.name)}</b><small>${esc(x.meta.note || '')}</small>
-      <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" target="_blank" rel="noopener">PDF</a>${x.meta.kind !== 'Ansicht' && x.meta.kind !== 'Schnitt' ? `<button class="btn sm${x.meta.found ? '' : ' pri'}" data-kiroom="${x.id}" title="Räume mit der oben gewählten KI aus dem Planbild lesen – für Pläne, deren Beschriftung nicht als Text vorliegt">Räume mit KI lesen</button>` : ''}${x.meta.found ? '' : `<button class="btn sm" data-reread="${x.id}" title="Plan mit der aktuellen Erkennung erneut auswerten">Neu einlesen</button>`}<button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
+      <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" target="_blank" rel="noopener">PDF</a>${x.meta.kind !== 'Ansicht' && x.meta.kind !== 'Schnitt' ? `<button class="btn sm${x.meta.found ? '' : ' pri'}" data-kiroom="${x.id}" title="Räume mit der oben gewählten KI aus dem Planbild lesen – für Pläne, deren Beschriftung nicht als Text vorliegt">✨ KI lesen</button>` : ''}${x.meta.found ? '' : `<button class="btn sm" data-reread="${x.id}" title="Plan mit der aktuellen Erkennung erneut auswerten">Neu einlesen</button>`}<button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
     <div class="drop" id="drop" role="button" tabindex="0">+ PDF hinzufügen<br><small>Grundrisse, Ansichten, Schnitte – Vektor-PDF aus dem CAD</small></div></div>
     <p class="hint">Räume (Name und m², mit oder ohne Nummer) werden aus Vektor-PDFs exakt gelesen. Der Raumtyp ist ein Vorschlag – bitte jeden Raum bestätigen. Plan: Mausrad zoomt, ziehen verschiebt.</p></aside>
   <div class="main">${f ? `<div class="plan card" id="planBox" style="padding:0" title="Mausrad oder zwei Finger: zoomen · ziehen: verschieben · Doppelklick: vergrößern"><div class="pz" id="pz"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}" draggable="false">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr || '•')}</span>`).join('')}</div>
@@ -563,7 +577,14 @@ document.addEventListener('click', (e) => {
 /* ---------- Bedienung ---------- */
 document.addEventListener('click', async (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab; history.replaceState(null, '', '#' + tab); render(); return; }
-  const s = e.target.closest('[data-stufe]'); if (s && B) { B.stufe = s.dataset.stufe; render(); clearTimeout(saveT); saveNow({ stufe: B.stufe }); return; }
+  const s = e.target.closest('[data-stufe]');
+  if (s && B) {
+    if (B.stufe === s.dataset.stufe) return;
+    B.stufe = s.dataset.stufe; CHECK = null; render(); clearTimeout(saveT);
+    const I = STUFE_INFO[B.stufe], n = STUFEN.find((x) => x[0] === B.stufe)[1];
+    saveNow({ stufe: B.stufe }).then(() => { toast(`${n}: übliche Genauigkeit ± ${I.genau} %, PDF in der ${I.ebene}. Ebene.`); if (tab === 'pruefung') runCheck(); else render(); });
+    return;
+  }
   const a = e.target.closest('[data-act]');
   if (a) {
     const act = a.dataset.act;
@@ -603,7 +624,7 @@ document.addEventListener('click', async (e) => {
     if (!['claude', 'gemini', 'chatgpt'].includes(ki.key)) { toast('Zum Lesen von Plänen oben in der Kopfleiste Claude, Gemini oder ChatGPT wählen – Intern und das Ollama-Standardmodell können keine Bilder lesen.', true); return; }
     kr.disabled = true; kr.textContent = 'KI liest den Plan …';
     try { clearTimeout(saveT); await saveNow(); const r = await api(`api/bk/${B.id}/files/${kr.dataset.kiroom}/ki-raeume`, 'POST', {}); B = r.bk; toast(`${ki.label}: ${r.found} Räume gelesen, ${r.added} neu übernommen – bitte prüfen.${r.hinweis ? ' ' + r.hinweis : ''}`); render(); }
-    catch (er) { toast(er.message, true); kr.disabled = false; kr.textContent = 'Räume mit KI lesen'; }
+    catch (er) { toast(er.message, true); kr.disabled = false; kr.textContent = '✨ KI lesen'; }
     return;
   }
   const dr = e.target.closest('[data-delroom]'); if (dr) { B.data.rooms.splice(+dr.dataset.delroom, 1); changed(); return; }
@@ -623,7 +644,7 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'pdfIn') { if (el.files.length) upload([...el.files]); el.value = ''; return; }
-  if (el.id === 'sel') { if (el.value) { clearTimeout(saveT); saveNow().then(() => open(+el.value)); } return; }
+  if (el.id === 'sel') { if (el.value) { clearTimeout(saveT); saveNow().then(() => openBk(+el.value)); } return; }
   const row = el.closest('[data-row]');
   if (row && el.dataset.f) { const r = B.data.rooms[+row.dataset.row]; r[el.dataset.f] = el.dataset.f === 'area' ? pnum(el.value) : el.value; changed(); return; }
   if (el.dataset.kw) { B.data.types[el.dataset.kw].kw = pnum(el.value); changed(); return; }
@@ -666,7 +687,7 @@ async function typesDialog() {
     <p class="hint" style="margin:0 0 .8rem">Gelten für alle Kostenermittlungen. Beim Einlesen eines Plans bekommt jeder Raum den ersten Raumtyp, dessen Stichwort im Raumnamen vorkommt (auch in Zusammensetzungen: „lager“ trifft „Stuhllager“). Eigene Typen für besondere Bauaufgaben ergänzen – z. B. Tierbereich, Labor, Klassenraum, Werkstatt.</p>
     <div class="tbl"><table><thead><tr><th>Raumtyp</th><th>Stichwörter (mit Komma)</th><th class="r">€ / m²</th><th></th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>
     <div class="acts" style="justify-content:flex-start;margin-top:.6rem"><button class="btn sm" data-m="add">＋ Raumtyp</button><button class="btn sm" data-m="std">Vorgaben wiederherstellen</button></div>
-    ${B ? `<label class="chk" style="margin-top:.8rem"><input type="checkbox" id="tyRe" checked><span>In „${esc(B.name)}“ nicht bestätigte Räume neu zuordnen</span></label>` : ''}
+    ${B ? `<label class="chk" style="margin-top:.8rem"><input type="checkbox" id="tyRe" checked><span><b>Raumtypen neu vorschlagen</b> – in der geöffneten Kostenermittlung „${esc(B.name)}“ bekommen alle Räume, die du noch <b>nicht bestätigt</b> hast, ihren Raumtyp nach den Stichwörtern oben neu. Bestätigte Räume bleiben unverändert.</span></label>` : ''}
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>`;
   const read = (bg) => bg.querySelectorAll('tr[data-i]').forEach((tr) => { const t = L[+tr.dataset.i]; tr.querySelectorAll('[data-tf]').forEach((el) => { t[el.dataset.tf] = el.dataset.tf === 'kw' ? pnum(el.value) : el.value; }); });
   const bg = modalBox(html(), async (m, bg, close, b) => {
@@ -729,7 +750,8 @@ const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr, Stand, Gesamtkosten
 function pdfDialog() {
   if (!B) return;
   let o; try { o = JSON.parse(localStorage.getItem('bk.pdf')) || {}; } catch { o = {}; }
-  o = { teile: o.teile || ['deckblatt', 'zusammenfassung', 'genauigkeit', 'kosten', 'mittelabfluss', 'erlaeuterungen'], tiefe: o.tiefe || 2, brutto: o.brutto ?? true, mwst: o.mwst ?? 19, runden: o.runden ?? 100 };
+  const tb = o.tiefeBy || {};
+  o = { teile: o.teile || ['deckblatt', 'zusammenfassung', 'genauigkeit', 'kosten', 'mittelabfluss', 'erlaeuterungen'], tiefe: tb[B.stufe] || (STUFE_INFO[B.stufe] || {}).ebene || 2, tiefeBy: tb, brutto: o.brutto ?? true, mwst: o.mwst ?? 19, runden: o.runden ?? 100 };
   modalBox(`<h3>PDF für den Bauherrn</h3><p class="hint" style="margin-top:0">Was soll ins PDF-Paket? Die Auswahl wird gemerkt.</p>
     <div style="display:flex;flex-direction:column;gap:.15rem;margin-bottom:.9rem">${PARTS.map(([k, n, h]) => `<label class="chk"><input type="checkbox" data-part="${k}"${o.teile.includes(k) ? ' checked' : ''}><span><b>${n}</b> <span class="hint">– ${h}</span></span></label>`).join('')}</div>
     <div class="row" style="flex-direction:column;align-items:stretch;gap:.6rem">
@@ -742,10 +764,22 @@ function pdfDialog() {
     if (m !== 'ok') { close(); return; }
     const n = { teile: [...bg.querySelectorAll('[data-part]:checked')].map((x) => x.dataset.part), tiefe: +bg.querySelector('#pTiefe').value, brutto: bg.querySelector('#pBrutto').value === '1', mwst: pnum(bg.querySelector('#pMwst').value), runden: +bg.querySelector('#pRund').value };
     if (!n.teile.length) { toast('Bitte mindestens einen Teil wählen.', true); return; }
-    try { localStorage.setItem('bk.pdf', JSON.stringify(n)); } catch { /* egal */ }
+    try { localStorage.setItem('bk.pdf', JSON.stringify({ ...n, tiefeBy: { ...o.tiefeBy, [B.stufe]: n.tiefe } })); } catch { /* egal */ }
+    // Fenster SOFORT öffnen (noch im Klick) – nach dem Speichern würde der Browser es als Popup blockieren
+    const w = window.open('', '_blank');
+    if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>PDF wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">PDF wird erstellt …</body>');
     close(); clearTimeout(saveT); await saveNow();
     AS.pdf = true; asSave(); assist();
-    window.open(`api/bk/${B.id}/bericht.pdf?teile=${n.teile.join(',')}&tiefe=${n.tiefe}&brutto=${n.brutto ? 1 : 0}&mwst=${n.mwst}&runden=${n.runden}`, '_blank', 'noopener');
+    const url = `api/bk/${B.id}/bericht.pdf?teile=${n.teile.join(',')}&tiefe=${n.tiefe}&brutto=${n.brutto ? 1 : 0}&mwst=${n.mwst}&runden=${n.runden}`;
+    toast('PDF wird erstellt …');
+    try {
+      const r = await fetch(url);
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || `Fehler ${r.status}`); }
+      const blob = await r.blob(), href = URL.createObjectURL(blob);
+      if (w && !w.closed) w.location.href = href;
+      else { const a = document.createElement('a'); a.href = href; a.download = `${STUFEN.find((x) => x[0] === B.stufe)?.[1] || 'Kosten'} ${B.name}.pdf`; document.body.appendChild(a); a.click(); a.remove(); }
+      setTimeout(() => URL.revokeObjectURL(href), 120000);
+    } catch (er) { if (w && !w.closed) w.close(); toast('Das PDF konnte nicht erstellt werden: ' + er.message, true); }
   });
 }
 async function newDialog() {

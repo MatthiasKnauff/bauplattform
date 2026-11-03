@@ -314,7 +314,8 @@ def projects_all():
     """Projekte über alle Apps: je Bautagebuch-Projekt die verknüpften Bauzeitenpläne und Kostenermittlungen,
     dazu Pläne und Kostenermittlungen ohne Bautagebuch-Projekt."""
     with db.tx() as c:
-        bt = c.execute("""SELECT p.id, p.name, p.client, p.street, p.zip, p.city, p.archived, p.created,
+        names = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM users")}
+        bt = c.execute("""SELECT p.id, p.name, p.client, p.street, p.zip, p.city, p.folder, p.archived, p.created, p.leaders,
                                  (SELECT COUNT(*) FROM reports r WHERE r.project_id=p.id) AS reports,
                                  (SELECT COUNT(*) FROM images i JOIN reports r ON r.id=i.report_id WHERE r.project_id=p.id) AS images
                           FROM projects p ORDER BY p.archived, p.name""").fetchall()
@@ -328,7 +329,12 @@ def projects_all():
         pids = {x["id"] for x in ps}
         ks = [x for x in bks if x["project_id"] == p["id"] or (x["project_id"] is None and x["gantt_id"] in pids)]
         used_p |= pids; used_k |= {x["id"] for x in ks}
+        try:
+            lead = [int(x) for x in json.loads(p["leaders"] or "[]") if int(x) in names]
+        except (ValueError, TypeError):
+            lead = []
         out.append({"key": f"bt{p['id']}", "name": p["name"], "client": p["client"], "address": _addr(p), "archived": bool(p["archived"]),
+                    "street": p["street"], "zip": p["zip"], "city": p["city"], "folder": p["folder"], "leaders": lead, "leader_names": [names[x] for x in lead],
                     "bt": {"id": p["id"], "reports": p["reports"], "images": p["images"]}, "plans": [P(x) for x in ps], "bks": [K(x) for x in ks]})
     for x in plans:   # Bauzeitenpläne ohne Bautagebuch-Projekt (mit ihren Kostenermittlungen)
         if x["id"] in used_p:
@@ -354,6 +360,59 @@ def folders():
         return jsonify(r if isinstance(r, list) else [])
     except RuntimeError:
         return jsonify([])
+
+
+@app.get("/api/leaders")
+def leaders():
+    """Benutzer, für die ein Projekt freigegeben werden kann (wie „Zuständige Bauleiter“ im Bautagebuch)."""
+    with db.tx() as c:
+        rows = c.execute("SELECT * FROM users WHERE lower(name)!='admin' ORDER BY name").fetchall()
+    return jsonify([{"id": r["id"], "name": r["name"], "active": bool(r["active"]), "bt": sso.has_app(r, "bautagebuch"), "admin": bool(r["is_admin"])} for r in rows])
+
+
+PFIELDS = ("name", "client", "street", "zip", "city", "folder")
+
+
+def _pbody(b):
+    d = {k: " ".join(str(b.get(k) or "").split())[:300] for k in PFIELDS if k in b}
+    if "leaders" in b and isinstance(b["leaders"], list):
+        d["leaders"] = [int(x) for x in b["leaders"] if str(x).isdigit()][:200]
+    if "archived" in b:
+        d["archived"] = 1 if b["archived"] else 0
+    return d
+
+
+@app.post("/api/projects/neu")
+def project_new():
+    """Projekt im Bautagebuch anlegen (das Bautagebuch ermittelt dabei Standort und Adresse wie gewohnt)."""
+    d = _pbody(request.get_json(silent=True) or {})
+    if not d.get("name"):
+        return jsonify(error="Bitte einen Namen für das Bauvorhaben eingeben."), 400
+    try:
+        r = _bt("POST", "/api/projects", d)
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    C.audit(g.user["name"], "verwaltung", "Projekt angelegt", d["name"])
+    return jsonify(ok=True, id=r.get("id"), auto_address=r.get("auto_address"))
+
+
+@app.put("/api/projects/<int:pid>")
+def project_edit(pid):
+    """Projekt ändern: Name, Bauherr, Adresse, freigegebene Benutzer, archivieren – über das Bautagebuch."""
+    d = _pbody(request.get_json(silent=True) or {})
+    if "name" in d and not d["name"]:
+        return jsonify(error="Der Name darf nicht leer sein."), 400
+    with db.tx() as c:
+        r = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()
+    if not r:
+        return jsonify(error="Projekt nicht gefunden"), 404
+    try:
+        _bt("PUT", f"/api/projects/{pid}", d)
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    what = "archiviert" if d.get("archived") == 1 else "aus dem Archiv geholt" if d.get("archived") == 0 and len(d) == 1 else "geändert"
+    C.audit(g.user["name"], "verwaltung", f"Projekt {what}", d.get("name") or r["name"])
+    return jsonify(ok=True)
 
 
 @app.post("/api/projects/bautagebuch")

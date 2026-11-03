@@ -28,6 +28,31 @@
 .ct .acts{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem}
 .ct .acts a{font-size:.88rem;border:1px solid var(--line);border-radius:6px;padding:.25rem .55rem;text-decoration:none;color:var(--ink);white-space:nowrap}
 .ct .acts a:hover{border-color:var(--y);color:var(--y)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--card)}
+.seg button{border-radius:999px;padding:.3rem .85rem;color:var(--mute);font-size:.88rem}
+.seg button.on{background:var(--y);color:var(--on);font-weight:600}
+.wrap.wide{max-width:none}
+.list[hidden],.tw[hidden],#cols[hidden]{display:none!important}
+.tw{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);max-height:calc(100vh - 240px)}
+.tt{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:.9rem}
+.tt th,.tt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;vertical-align:middle}
+.tt thead th{position:sticky;z-index:2;background:var(--card2);text-align:left}
+.tt thead tr.h th{top:0;padding:.5rem .6rem;font-size:.8rem;color:var(--mute);white-space:nowrap;cursor:pointer;user-select:none}
+.tt thead tr.h th:hover{color:var(--ink)}
+.tt thead tr.h th .ar{color:var(--y);margin-left:.25rem}
+.tt thead tr.f th{top:33px;padding:.25rem}
+.tt thead tr.f input,.tt thead tr.f select{width:100%;padding:.25rem .4rem;font-size:.82rem;border-radius:4px}
+.tt td input{width:100%;border:0;border-radius:0;background:transparent;padding:.42rem .55rem;font-size:.9rem;color:var(--ink);min-width:0}
+.tt td input:focus{outline:2px solid var(--y);outline-offset:-2px;background:var(--inp)}
+.tt td input.saving{background:color-mix(in srgb,var(--y) 12%,transparent)}
+.tt td.ro{padding:.42rem .55rem;white-space:nowrap;color:var(--mute)}
+.tt td.act{padding:.2rem .3rem;white-space:nowrap}
+.tt td.act a,.tt td.act button{padding:.2rem .4rem;font-size:.85rem;text-decoration:none}
+.tt tbody tr:hover td{background:var(--hov)}
+.tt tbody tr.cur td{background:color-mix(in srgb,var(--y) 8%,transparent)}
+.colmenu{position:fixed;z-index:95;background:var(--card2);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:.5rem .7rem;display:flex;flex-direction:column;gap:.15rem;max-height:70vh;overflow:auto}
+.colmenu label{display:flex;gap:.5rem;align-items:center;padding:.25rem 0;white-space:nowrap}
+.colmenu .cm-a{display:flex;gap:.4rem;border-top:1px solid var(--line);margin-top:.3rem;padding-top:.5rem}
 .empty{color:var(--mute);padding:2rem 0;text-align:center}
 .cnt{color:var(--mute);font-size:.88rem;margin:-.4rem 0 .8rem}
 .modal{width:min(640px,100%);max-height:92vh;overflow:auto}
@@ -65,6 +90,8 @@
 <body>
 <main class="wrap">
   <div class="bar"><h1>Adressen</h1><span class="fill"></span>
+    <div class="seg" id="view" role="group" aria-label="Ansicht"><button data-v="karten">Karten</button><button data-v="tabelle">Tabelle</button></div>
+    <button class="btn sm" id="cols" aria-haspopup="true" hidden>Spalten</button>
     <button class="btn sm" id="pdf" title="Gefilterte Liste drucken (PDF)">Drucken</button>
     <button class="btn sm" id="xlsx" title="Gefilterte Liste als Excel-Datei">Excel</button>
     <button class="btn pri" id="neu">+ Neu</button></div>
@@ -75,6 +102,7 @@
   <div class="chips" id="kinds" style="margin:-.3rem 0 1rem"></div>
   <div class="cnt" id="cnt"></div>
   <div class="list" id="list"></div>
+  <div class="tw" id="tw" hidden></div>
 </main>
 <script src="static/bp.js"></script>
 <script>
@@ -99,6 +127,9 @@ function shown() {
     && (!s || [c.name, c.trade, c.contact_person, c.role, c.city, c.street, c.phone, c.mobile, c.email, c.notes].join(' ').toLowerCase().includes(s)));
 }
 function render() {
+  if (typeof TV !== 'undefined' && TV.view === 'tabelle') { const n2 = {}; ALL.forEach((c) => { n2[c.kind] = (n2[c.kind] || 0) + 1; });
+    $('#kinds').innerHTML = KINDS.map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${k}">${l}<small>${k ? n2[k] || 0 : ALL.length}</small></button>`).join('');
+    renderTable(); return; }
   const n = {}; ALL.forEach((c) => { n[c.kind] = (n[c.kind] || 0) + 1; });
   $('#kinds').innerHTML = KINDS.map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${k}">${l}<small>${k ? n[k] || 0 : ALL.length}</small></button>`).join('');
   const rows = shown();
@@ -150,6 +181,85 @@ function edit(c) {
   const first = document.querySelector('.modal [data-f="name"]'); if (first && isNew) first.focus();
 }
 
+
+/* ---------- Tabellenansicht: direkt bearbeiten, sortieren, Spalten ein-/ausblenden, je Spalte filtern ---------- */
+const COLS = [
+  ['name', 'Firma / Name', 220], ['kind', 'Art', 100, 'ro'], ['trade', 'Gewerk', 160], ['contact_person', 'Ansprechpartner', 170], ['role', 'Funktion', 130],
+  ['phone', 'Telefon', 140], ['mobile', 'Mobil', 140], ['email', 'E-Mail', 210], ['website', 'Internet', 180],
+  ['street', 'Straße', 190], ['zip', 'PLZ', 70], ['city', 'Ort', 140], ['notes', 'Notizen', 240], ['used', 'Verwendet', 100, 'ro']];
+const KINDN = { firma: 'Firma', bauherr: 'Bauherr', baustelle: 'Baustelle' };
+let TV;
+try { TV = JSON.parse(localStorage.getItem('adr.tabelle')) || {}; } catch { TV = {}; }
+TV = { view: TV.view || (matchMedia('(pointer:fine)').matches && innerWidth > 900 ? 'tabelle' : 'karten'), hide: TV.hide || ['role', 'website', 'notes', 'used'], sort: TV.sort || { k: 'name', d: 1 }, flt: {} };
+const tvSave = () => { try { localStorage.setItem('adr.tabelle', JSON.stringify({ view: TV.view, hide: TV.hide, sort: TV.sort })); } catch { /* egal */ } };
+const cellVal = (c, k) => (k === 'kind' ? KINDN[c.kind] || c.kind : k === 'used' ? (c.used ? `${c.used} × ${c.projects.join(', ')}` : c.site_of ? 'Baustelle' : '') : c[k] || '');
+function tableRows() {
+  const fl = Object.entries(TV.flt).filter(([, v]) => v);
+  let r = shown().filter((c) => fl.every(([k, v]) => (k === 'kind' ? c.kind === v : String(cellVal(c, k)).toLowerCase().includes(v.toLowerCase()))));
+  const { k, d } = TV.sort;
+  if (k) r = r.slice().sort((a, b) => { const x = String(cellVal(a, k)), y = String(cellVal(b, k)); if (!x !== !y) return x ? -1 : 1; return d * x.localeCompare(y, 'de', { numeric: true, sensitivity: 'base' }); });
+  return r;
+}
+function renderTable() {
+  const cols = COLS.filter(([k]) => !TV.hide.includes(k)), rows = tableRows(), ae = document.activeElement, keep = ae && ae.dataset && ae.dataset.fk;
+  $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes`;
+  $('#tw').innerHTML = `<table class="tt"><colgroup>${cols.map(([, , w]) => `<col style="width:${w}px">`).join('')}<col style="width:120px"></colgroup>
+    <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" title="Sortieren">${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}<th></th></tr>
+    <tr class="f">${cols.map(([k, l]) => `<th>${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${Object.entries(KINDN).map(([v, n]) => `<option value="${v}"${TV.flt.kind === v ? ' selected' : ''}>${n}</option>`).join('')}</select>`
+      : `<input data-flt="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${rows.map((c) => `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
+      : `<td><input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' list="gwAll"' : ''}></td>`).join('')}
+      <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" title="E-Mail">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`).join('')
+      || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer.</td></tr>`}</tbody></table>
+    <datalist id="gwAll">${[...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de')).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>`;
+  if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
+}
+function setView(v) {
+  TV.view = v; tvSave();
+  document.querySelectorAll('#view button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+  $('#list').hidden = v === 'tabelle'; $('#tw').hidden = v !== 'tabelle'; $('#cols').hidden = v !== 'tabelle';
+  document.querySelector('main.wrap').classList.toggle('wide', v === 'tabelle');
+  if (v === 'tabelle') renderTable(); else render();
+}
+$('#view').addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b) setView(b.dataset.v); });
+$('#tw').addEventListener('click', (e) => {
+  const th = e.target.closest('[data-sort]');
+  if (th) { const k = th.dataset.sort; TV.sort = TV.sort.k !== k ? { k, d: 1 } : TV.sort.d > 0 ? { k, d: -1 } : { k: '', d: 1 }; tvSave(); renderTable(); return; }
+  const o = e.target.closest('[data-open]'); if (o) edit(ALL.find((c) => c.id === +o.dataset.open));
+});
+$('#tw').addEventListener('input', (e) => { const f = e.target.dataset.flt; if (f == null) return; TV.flt[f] = e.target.value; const pos = e.target.selectionStart; renderTable(); const n = document.querySelector(`[data-flt="${f}"]`); if (n && n.setSelectionRange) { n.focus(); n.setSelectionRange(pos, pos); } });
+$('#tw').addEventListener('change', async (e) => {
+  const el = e.target;
+  if (el.dataset.flt === 'kind') { TV.flt.kind = el.value; renderTable(); return; }
+  if (!el.dataset.fk) return;
+  const [id, k] = el.dataset.fk.split(':'), c = ALL.find((x) => x.id === +id); if (!c) return;
+  const v = el.value.trim(); if ((c[k] || '') === v) return;
+  el.classList.add('saving');
+  try { await api('api/contacts/' + id, 'PUT', { [k]: v }); c[k] = k === 'website' && v && !/^https?:\/\//i.test(v) ? 'https://' + v : v; el.value = c[k]; toast(`${COLS.find((x) => x[0] === k)[1]} gespeichert.`); }
+  catch (er) { el.value = c[k] || ''; toast(er.message, true); }
+  el.classList.remove('saving');
+});
+$('#tw').addEventListener('keydown', (e) => {
+  const el = e.target; if (!el.dataset || !el.dataset.fk) return;
+  const [id, k] = el.dataset.fk.split(':');
+  if (e.key === 'Escape') { const c = ALL.find((x) => x.id === +id); el.value = c ? c[k] || '' : el.value; el.blur(); }
+  else if (e.key === 'Enter' || ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !e.altKey)) {   // Zeile wechseln wie in Excel
+    e.preventDefault();
+    const tr = el.closest('tr'), nx = (e.key === 'ArrowUp' || (e.key === 'Enter' && e.shiftKey)) ? tr.previousElementSibling : tr.nextElementSibling;
+    const t = nx && nx.querySelector(`[data-fk$=":${k}"]`); el.blur(); if (t) { t.focus(); t.select(); }
+  }
+});
+$('#cols').addEventListener('click', (e) => {
+  e.stopPropagation(); let m = document.querySelector('.colmenu'); if (m) { m.remove(); return; }
+  m = document.createElement('div'); m.className = 'colmenu';
+  m.innerHTML = COLS.map(([k, l]) => `<label><input type="checkbox" data-col="${k}"${TV.hide.includes(k) ? '' : ' checked'}${k === 'name' ? ' disabled' : ''}>${l}</label>`).join('')
+    + '<div class="cm-a"><button class="btn sm" data-cm="all">Alle</button><button class="btn sm" data-cm="std">Standard</button></div>';
+  document.body.appendChild(m);
+  const r = $('#cols').getBoundingClientRect(); Object.assign(m.style, { top: r.bottom + 4 + 'px', left: Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px' });
+  m.addEventListener('change', (ev) => { const k = ev.target.dataset.col; TV.hide = ev.target.checked ? TV.hide.filter((x) => x !== k) : [...TV.hide, k]; tvSave(); renderTable(); });
+  m.addEventListener('click', (ev) => { const b = ev.target.closest('[data-cm]'); if (!b) return; TV.hide = b.dataset.cm === 'all' ? [] : ['role', 'website', 'notes', 'used']; tvSave(); m.querySelectorAll('[data-col]').forEach((c) => { c.checked = !TV.hide.includes(c.dataset.col); }); renderTable(); });
+  setTimeout(() => document.addEventListener('click', function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', off); } }), 0);
+});
 $('#q').addEventListener('input', (e) => { q = e.target.value; render(); });
 $('#gw').addEventListener('change', (e) => { gw = e.target.value; render(); });
 $('#kinds').addEventListener('click', (e) => { const b = e.target.closest('[data-k]'); if (!b) return; kind = b.dataset.k; try { sessionStorage.setItem('adrKind', kind); } catch { /* egal */ } render(); });
@@ -229,6 +339,7 @@ $('#xlsx').onclick = () => { if (!shown().length) return toast('Keine Kontakte i
   const conf = await api('api/platform');
   await header('Adressen', me, conf);
   await load();
+  setView(TV.view);
   if (matchMedia('(pointer:fine)').matches) $('#q').focus({ preventScroll: true });
 })().catch((e) => toast(e.message, true));
 </script>

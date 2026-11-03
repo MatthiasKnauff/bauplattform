@@ -194,7 +194,7 @@ deshalb muss man sich dort einmal getrennt anmelden. Hat ein Browser noch ein al
 ## Adressen (eigener Container)
 
 Dieselben Kontakte wie im Bautagebuch und im Adressbuch des Bauzeitenplans (Tabelle `contacts`), als eigene App fürs
-Handy und den Rechner: suchen, nach Firmen/Bauherren/Baustellen und Gewerk filtern, anlegen, ändern, anrufen, E-Mail,
+Handy und den Rechner. Ansicht als Karten oder als **Tabelle** (direkt bearbeiten, sortieren, Spalten ein-/ausblenden, je Spalte filtern): suchen, nach Firmen/Bauherren/Baustellen und Gewerk filtern, anlegen, ändern, anrufen, E-Mail,
 Karte, Visitenkarte ins Handy (vCard), Drucken (PDF, wie im Bautagebuch) und Export als Excel. Gelöscht wird in allen Apps (Bautagebuch, Bauzeitenplan, Adressen) nur ein Kontakt, der nirgends
 verwendet wird: nicht in Berichten, nicht als Baustellenadresse, in keinem Bauzeitenplan als Firma (`shared/bpcore/contacts.py`).
 PDFs öffnen wie im Bautagebuch in einer eigenen Ansicht (Zoom, Drucken, Teilen). Baustellenadressen (im Bautagebuch beim Projekt gespeichert) erscheinen nicht als Firmen im Bauzeitenplan.
@@ -261,6 +261,8 @@ Auf Docker 2 unter `https://baukosten.gk3-architektur.de`: im Nginx Proxy Manage
 
 Nur für Administratoren. Die Benutzer sind dieselben wie im Bautagebuch.
 
+- **Projekte anlegen, bearbeiten, archivieren:** Bauvorhaben, Bauherrschaft, Adresse, Projektordner und „Sichtbar für“ (zuständige
+  Bauleiter, wie im Bautagebuch) – gespeichert über das Bautagebuch, gilt für alle Apps.
 - **Projekte:** alle Projekte über alle Apps – je Projekt Bautagebuch, verknüpfte Bauzeitenpläne und Kostenermittlungen.
   „Öffnen in …“ springt direkt in die gewählte App. Fehlt das Bautagebuch-Projekt, wird angeboten, es anzulegen und zu verknüpfen.
   „Löschen …“ löscht nur die angekreuzten Teile (z. B. nur den Bauzeitenplan); das Bautagebuch-Projekt erst nach Eintippen des Namens,

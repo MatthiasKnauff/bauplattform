@@ -1703,8 +1703,11 @@ function gwDialog() {
     } }, { label: 'Abbrechen' }]);
 }
 
-function promptDialog(title, label, value, onOk) {
-  modal(title, `<div class="form"><label>${esc(label)}</label><input id="pv" class="full" value="${esc(value)}"></div>`,
+// suggest: optionale Vorschlagsliste. autocomplete="off": sonst schlägt der Browser Einträge aus anderen
+// Dialogen vor (z. B. Projektnamen = Bauvorhabenadressen beim Anlegen eines Gewerks).
+function promptDialog(title, label, value, onOk, suggest) {
+  const dl = suggest && suggest.length ? `<datalist id="pvList">${suggest.map((s) => `<option value="${esc(s)}">`).join('')}</datalist>` : '';
+  modal(title, `<div class="form"><label>${esc(label)}</label><input id="pv" class="full" value="${esc(value)}" autocomplete="off"${dl ? ' list="pvList"' : ''}>${dl}</div>`,
     [{ label: 'OK', cls: 'primary', primary: true, fn: (bg) => { const v = bg.querySelector('#pv').value.trim(); if (!v) return false; onOk(v); } }, { label: 'Abbrechen' }]);
 }
 function confirmDialog(title, text, onOk, okLabel = 'Löschen') {
@@ -2292,7 +2295,7 @@ const ACTIONS = {
   exportCsv,
   exportXml,
   printDialog,
-  tradeAdd: () => promptDialog('Gewerk hinzufügen', 'Gewerk', '', (g) => { act(() => { P.trades = { ...(P.trades || {}) }; P.trades[g] = { ...(P.trades[g] || {}), extra: true }; }); gwColor(g); renderFirms(); }),
+  tradeAdd: () => promptDialog('Gewerk hinzufügen', 'Gewerk', '', (g) => { act(() => { P.trades = { ...(P.trades || {}) }; P.trades[g] = { ...(P.trades[g] || {}), extra: true }; }); gwColor(g); renderFirms(); }, tradeSuggestions()),
   tradeAssignAll: () => assignAllFirms(), tradeCsv: () => tradeCsv(), tradeMail: () => tradeMail(), tradePrint: () => tradePrint(),
   fileNew, fileOpen: () => fileOpen(), fileSave: () => fileSave(), fileSaveAs, fileExport,
   tidyLinks: () => tidyLinks(),

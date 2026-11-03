@@ -1,5 +1,8 @@
 # Änderungsprotokoll – Gantt-App (Bauzeitenplan)
 
+## 3.0.1 – 03.11.2026
+- „Gewerk hinzufügen“: Der Browser schlägt keine Projektnamen/Bauvorhabenadressen mehr vor. Stattdessen Vorschlagsliste mit üblichen Gewerken und Gewerken aus dem Adressbuch (ohne die schon im Projekt vorhandenen).
+
 ## 3.0.0 – 03.11.2026 · Teil der Bauplattform
 - **Gemeinsame Datenbank** mit dem Bautagebuch (PostgreSQL) statt JSON-Dateien. Beim ersten Start werden alle bisherigen Pläne, Versionen, Vorlagen, der Leistungskatalog, Abschnitte, Firmen-Vorgaben und Einstellungen aus dem alten Docker-Volume übernommen (nur gelesen, das alte Volume bleibt unverändert).
 - **Gemeinsame Anmeldung (SSO)**: Anmeldung über die Startseite der Bauplattform; wer im Bautagebuch angemeldet ist, ist es auch hier. Abmelden gilt für alle Apps.

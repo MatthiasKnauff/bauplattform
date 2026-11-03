@@ -101,6 +101,14 @@ function tradeRows() {
   return [...map.values()].sort((a, b) => (a.sd - b.sd) || a.gw.localeCompare(b.gw, 'de'));
 }
 const tradeOf = (gw) => (P.trades && P.trades[gw]) || {};
+// Vorschläge für „Gewerk hinzufügen“: übliche Gewerke und Gewerke aus dem Adressbuch, ohne die schon im Projekt vorhandenen
+function tradeSuggestions() {
+  const have = new Set(tradeRows().map((r) => r.gw.toLowerCase())), out = new Map();
+  for (const g of [...Object.keys(CRAFT), ...FIRMS.flatMap((f) => f.gewerke || [])]) {
+    const k = String(g || '').trim(); if (k && !have.has(k.toLowerCase()) && !out.has(k.toLowerCase())) out.set(k.toLowerCase(), k);
+  }
+  return [...out.values()].sort((a, b) => a.localeCompare(b, 'de'));
+}
 
 function renderFirms() {
   const box = $('#firmView'); if (!P || !CAL) { box.innerHTML = ''; return; }

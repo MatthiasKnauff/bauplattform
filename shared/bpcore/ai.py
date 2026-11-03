@@ -238,8 +238,34 @@ def ask_json(provider, system, user, max_tokens=900, c=None):
     """Wie ask(), Antwort als JSON-Objekt (Codeblöcke und Text drumherum werden entfernt)."""
     import re
     t = ask(provider, system, user, max_tokens, c, json_mode=True) or ""
+    return parse_json(t)
+
+
+def parse_json(t):
+    """JSON aus einer KI-Antwort lesen – auch wenn Text drumherum steht oder die Antwort abgeschnitten wurde.
+    Notfalls werden die vollständigen Einzelobjekte gerettet und unter „_objekte“ zurückgegeben."""
+    import re
+    t = re.sub(r"```(?:json)?", "", t or "").strip()
+    i = t.find("{")
+    if i >= 0:
+        try:
+            return json.JSONDecoder().raw_decode(t[i:])[0]
+        except ValueError:
+            pass
     m = re.search(r"\{[\s\S]*\}", t)
-    try:
-        return json.loads(m.group(0) if m else t)
-    except ValueError:
-        raise AIError("Antwort der KI nicht lesbar")
+    if m:
+        try:
+            return json.loads(m.group(0))
+        except ValueError:
+            pass
+    objs = []
+    for x in re.findall(r"\{[^{}]*\}", t):   # abgeschnittene Antwort: vollständige Einträge retten
+        try:
+            o = json.loads(x)
+            if isinstance(o, dict):
+                objs.append(o)
+        except ValueError:
+            pass
+    if objs:
+        return {"_objekte": objs}
+    raise AIError("Antwort der KI nicht lesbar")

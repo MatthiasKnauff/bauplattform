@@ -597,13 +597,12 @@ def file_ki_rooms(i, fid):
             txt = ai.ask_image(ki, PLAN_SYS, "Lies alle beschrifteten Räume aus diesem Plan.", png, 3000, c)
         except ai.AIError as e:
             return jsonify(error=str(e)), 502
-        m = re.search(r"\{[\s\S]*\}", txt or "")
         try:
-            o = json.loads(m.group(0)) if m else {}
-        except ValueError:
+            o = ai.parse_json(txt)
+        except ai.AIError:
             o = {}
         found = []
-        for x in (o.get("raeume") or [])[:300]:
+        for x in (o.get("raeume") or o.get("_objekte") or [])[:300]:
             if not isinstance(x, dict):
                 continue
             a = _num(x.get("flaeche"), -1)
@@ -860,9 +859,9 @@ def schaetzen(i):
                     "bauwerk_kg300_400_netto": cal["bauwerk"], "flaeche_m2": cal["area"], "offen": offen,
                     "vorhandene_positionen": [{"kg": x["kg"], "name": x["name"], "betrag": x["amount"]} for x in d["items"] if x["amount"] is not None and not x.get("est")]}
             try:
-                o = ai.ask_json(ki, EST_SYS, json.dumps(info, ensure_ascii=False), 1200, c)
+                o = ai.ask_json(ki, EST_SYS, json.dumps(info, ensure_ascii=False), 2000, c)
                 bau = cal["bauwerk"]
-                for e in (o.get("schaetzungen") or [])[:8]:
+                for e in (o.get("schaetzungen") or o.get("_objekte") or [])[:8]:
                     if not isinstance(e, dict):
                         continue
                     kg = re.sub(r"\D", "", str(e.get("kg") or ""))[:3]
@@ -896,7 +895,8 @@ def schaetzen(i):
 # ---------------------------------------------------------------- Prüfung
 def rules(c, r, d, cal, files):
     H = []
-    add = lambda lvl, title, text, src="Intern": H.append({"lvl": lvl, "title": title, "text": text, "src": src})
+    # go: wohin ein Klick auf den Hinweis führt (Reiter + Feld)
+    add = lambda lvl, title, text, src="Intern", go=None: H.append({"lvl": lvl, "title": title, "text": text, "src": src, "go": go or {"tab": "kosten"}})
     seen = {}
     for x in d["rooms"]:
         if x["nr"]:
@@ -904,29 +904,30 @@ def rules(c, r, d, cal, files):
     for (fl, nr), xs in seen.items():
         if len(xs) > 1:
             add("hoch", f"Raumnummer {nr} mehrfach vergeben", " und ".join(f"{x['name']} ({x['area']:.2f} m²)".replace(".", ",") for x in xs)
-                + " tragen dieselbe Nummer. Bitte im Plan klären.")
+                + " tragen dieselbe Nummer. Bitte im Plan klären.", go={"tab": "plaene", "room": xs[0]["id"]})
     zero = [x for x in d["rooms"] if not x["area"]]
     if zero:
-        add("hoch", f"{len(zero)} Räume ohne Fläche", ", ".join(x["name"] or x["nr"] for x in zero[:6]) + " – Fläche fehlt in der Summe.")
+        add("hoch", f"{len(zero)} Räume ohne Fläche", ", ".join(x["name"] or x["nr"] for x in zero[:6]) + " – Fläche fehlt in der Summe.", go={"tab": "plaene", "room": zero[0]["id"], "f": "area"})
     open_ = [x for x in d["rooms"] if not x["ok"]]
     if open_:
-        add("mittel", f"{len(open_)} Räume noch nicht bestätigt", "Aus dem Plan gelesene Räume bitte unter „Pläne & Mengen“ prüfen und bestätigen.")
+        add("mittel", f"{len(open_)} Räume noch nicht bestätigt", "Aus dem Plan gelesene Räume bitte unter „Pläne & Mengen“ prüfen und bestätigen.", go={"tab": "plaene", "room": open_[0]["id"]})
     if not d["rooms"]:
-        add("hoch", "Noch kein Raumbuch", "Grundriss als PDF hochladen oder Räume von Hand anlegen.")
+        add("hoch", "Noch kein Raumbuch", "Grundriss als PDF hochladen oder Räume von Hand anlegen.", go={"tab": "plaene"})
     for t in cal["types"]:
         if t["area"] and not (300 <= t["kw"] <= 6000):
-            add("mittel", f"Kennwert {t['label']} ungewöhnlich", f"{t['kw']:,.0f} €/m² liegt außerhalb von 300–6.000 €/m². Tippfehler?".replace(",", "."))
-    for it in d["items"]:
+            add("mittel", f"Kennwert {t['label']} ungewöhnlich", f"{t['kw']:,.0f} €/m² liegt außerhalb von 300–6.000 €/m². Tippfehler?".replace(",", "."), go={"tab": "kosten", "sel": f'[data-kw="{t["typ"]}"]'})
+    for k, it in enumerate(d["items"]):
         if it["amount"] is None:
-            add("mittel" if it["kg"] == "394" else "info", f"KG {it['kg']} {it['name']} offen", "Noch kein Betrag eingetragen – die Summe ist dafür zu niedrig.")
+            add("mittel" if it["kg"] == "394" else "info", f"KG {it['kg']} {it['name']} offen", "Noch kein Betrag eingetragen – die Summe ist dafür zu niedrig.",
+                go={"tab": "kosten", "sel": f'[data-it="{k}"][data-f="amount"]'})
     floors = _floors(d["rooms"])
     if len(floors) == 1 and d["rooms"]:
-        add("mittel", "Nur ein Geschoss im Raumbuch", f"Alle Räume gehören zu „{next(iter(floors))}“ – fehlen Grundrisse weiterer Geschosse (OG, KG)?")
+        add("mittel", "Nur ein Geschoss im Raumbuch", f"Alle Räume gehören zu „{next(iter(floors))}“ – fehlen Grundrisse weiterer Geschosse (OG, KG)?", go={"tab": "plaene", "sel": "#drop"})
     kinds = {(_j(f["meta"], {}) or {}).get("kind") for f in files}
     if "Ansicht" in kinds:
-        add("info", "Fassade aus Ansichten noch nicht bewertet", "Die Ansichten sind hochgeladen. Fassaden-, Fenster- und Dachflächen bitte als eigene Positionen ergänzen; Höhen stehen in Ansichten meist nicht als Zahl.")
+        add("info", "Fassade aus Ansichten noch nicht bewertet", "Die Ansichten sind hochgeladen. Fassaden-, Fenster- und Dachflächen bitte als eigene Positionen ergänzen; Höhen stehen in Ansichten meist nicht als Zahl.", go={"tab": "kosten", "sel": '[data-act="addItem"]'})
     if not r["gantt_id"]:
-        add("info", "Kein Bauzeitenplan verknüpft", "Ohne Bauzeitenplan kann der Mittelabfluss nicht berechnet werden.")
+        add("info", "Kein Bauzeitenplan verknüpft", "Ohne Bauzeitenplan kann der Mittelabfluss nicht berechnet werden.", go={"tab": "mittel", "sel": '[data-link="gantt_id"]'})
     if cal["area"] and cal["kw"] and not (800 <= cal["kw"] <= 4500):
         add("mittel", "Durchschnittlicher Kennwert auffällig", f"{cal['kw']:,.0f} € je m² Raumfläche (KG 300+400) – bitte mit Vergleichsprojekten abgleichen.".replace(",", "."))
     return H
@@ -963,11 +964,11 @@ def check(i):
                 "bereits_genannt": [h["title"] for h in H],
             }
             try:
-                out = ai.ask_json(ki, CHECK_SYS, json.dumps(summary, ensure_ascii=False), 900, c)
-                for h in (out.get("hinweise") or [])[:6]:
+                out = ai.ask_json(ki, CHECK_SYS, json.dumps(summary, ensure_ascii=False), 2000, c)
+                for h in (out.get("hinweise") or out.get("_objekte") or [])[:6]:
                     if isinstance(h, dict) and h.get("titel"):
                         lvl = h.get("stufe") if h.get("stufe") in ("hoch", "mittel", "info") else "info"
-                        H.append({"lvl": lvl, "title": _s(h["titel"], 120), "text": _s(h.get("text"), 400), "src": "KI · " + prov[ki]["label"]})
+                        H.append({"lvl": lvl, "title": _s(h["titel"], 120), "text": _s(h.get("text"), 400), "src": "KI · " + prov[ki]["label"], "go": {"tab": "kosten"}})
             except ai.AIError as e:
                 note = f"{prov[ki]['label']}: {e}"
         elif ki != "intern":

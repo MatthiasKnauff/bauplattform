@@ -61,7 +61,7 @@ def platform_conf():
 
 # ---------------------------------------------------------------- Benutzer
 def _user_out(r, seen):
-    return {"id": r["id"], "name": r["name"], "email": r["email"], "is_admin": bool(r["is_admin"]), "active": bool(r["active"]),
+    return {"id": r["id"], "name": r["name"], "vorname": C._col(r, "vorname"), "nachname": C._col(r, "nachname"), "full": C.full_name(r), "email": r["email"], "is_admin": bool(r["is_admin"]), "active": bool(r["active"]),
             "must_change": bool(r["must_change"]), "apps": sso.apps_of(r), "apps_all": not (r["apps"] or "").strip(),
             "last_seen": seen.get(r["id"], (0, 0))[0], "sessions": seen.get(r["id"], (0, 0))[1], "created": r["created"]}
 
@@ -109,8 +109,9 @@ def create_user():
     pw = _gen_pw()
     try:
         with db.tx() as c:
-            uid = c.execute("INSERT INTO users(name, email, pass_hash, is_admin, must_change, apps) VALUES(?,?,?,?,1,?) RETURNING id",
-                            (name, email, C.hash_pw(pw), 1 if d.get("is_admin") else 0, _apps_value(d))).fetchone()[0]
+            uid = c.execute("INSERT INTO users(name, vorname, nachname, email, pass_hash, is_admin, must_change, apps) VALUES(?,?,?,?,?,?,1,?) RETURNING id",
+                            (name, _clean_name(d.get("vorname") or "")[:60], _clean_name(d.get("nachname") or "")[:60], email, C.hash_pw(pw),
+                             1 if d.get("is_admin") else 0, _apps_value(d))).fetchone()[0]
     except db.IntegrityError:
         return jsonify(error=f"Den Namen „{name}“ gibt es schon."), 400
     C.audit(g.user["name"], "verwaltung", "Benutzer angelegt", name)
@@ -134,6 +135,12 @@ def update_user(uid):
                     return jsonify(error="Der Benutzer „admin“ kann nicht umbenannt werden."), 400
                 sets["name"] = n
                 notes.append(f"Name → {n}")
+        for k in ("vorname", "nachname"):
+            if k in d:
+                v = _clean_name(d[k] or "")[:60]
+                if v != C._col(u, k):
+                    sets[k] = v
+                    notes.append(f"{'Vorname' if k == 'vorname' else 'Nachname'} → {v or '–'}")
         if "email" in d:
             e = str(d["email"] or "").strip()
             if e and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", e):
@@ -311,41 +318,9 @@ def _addr(r):
 
 @app.get("/api/projects")
 def projects_all():
-    """Projekte über alle Apps: je Bautagebuch-Projekt die verknüpften Bauzeitenpläne und Kostenermittlungen,
-    dazu Pläne und Kostenermittlungen ohne Bautagebuch-Projekt."""
+    """Projekte über alle Apps (siehe common.projects_overview)."""
     with db.tx() as c:
-        names = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM users")}
-        bt = c.execute("""SELECT p.id, p.name, p.client, p.street, p.zip, p.city, p.folder, p.archived, p.created, p.leaders,
-                                 (SELECT COUNT(*) FROM reports r WHERE r.project_id=p.id) AS reports,
-                                 (SELECT COUNT(*) FROM images i JOIN reports r ON r.id=i.report_id WHERE r.project_id=p.id) AS images
-                          FROM projects p ORDER BY p.archived, p.name""").fetchall()
-        plans = c.execute("SELECT id, name, project_id, updated, (SELECT COUNT(*) FROM gantt_versions v WHERE v.gantt_id=g.id) AS versions FROM gantt_projects g ORDER BY name").fetchall()
-        bks = c.execute("SELECT id, name, project_id, gantt_id, stufe, archived, updated, (SELECT COUNT(*) FROM bk_files f WHERE f.bk_id=b.id) AS files FROM bk_projects b ORDER BY name").fetchall()
-    P = lambda x: {"id": x["id"], "name": x["name"], "updated": x["updated"], "versions": x["versions"]}
-    K = lambda x: {"id": x["id"], "name": x["name"], "stufe": x["stufe"], "archived": bool(x["archived"]), "files": x["files"]}
-    out, used_p, used_k = [], set(), set()
-    for p in bt:
-        ps = [x for x in plans if x["project_id"] == p["id"]]
-        pids = {x["id"] for x in ps}
-        ks = [x for x in bks if x["project_id"] == p["id"] or (x["project_id"] is None and x["gantt_id"] in pids)]
-        used_p |= pids; used_k |= {x["id"] for x in ks}
-        try:
-            lead = [int(x) for x in json.loads(p["leaders"] or "[]") if int(x) in names]
-        except (ValueError, TypeError):
-            lead = []
-        out.append({"key": f"bt{p['id']}", "name": p["name"], "client": p["client"], "address": _addr(p), "archived": bool(p["archived"]),
-                    "street": p["street"], "zip": p["zip"], "city": p["city"], "folder": p["folder"], "leaders": lead, "leader_names": [names[x] for x in lead],
-                    "bt": {"id": p["id"], "reports": p["reports"], "images": p["images"]}, "plans": [P(x) for x in ps], "bks": [K(x) for x in ks]})
-    for x in plans:   # Bauzeitenpläne ohne Bautagebuch-Projekt (mit ihren Kostenermittlungen)
-        if x["id"] in used_p:
-            continue
-        ks = [k for k in bks if k["id"] not in used_k and k["gantt_id"] == x["id"]]
-        used_k |= {k["id"] for k in ks}
-        out.append({"key": f"g{x['id']}", "name": x["name"], "client": "", "address": "", "archived": False, "bt": None, "plans": [P(x)], "bks": [K(k) for k in ks]})
-    for k in bks:
-        if k["id"] not in used_k:
-            out.append({"key": f"k{k['id']}", "name": k["name"], "client": "", "address": "", "archived": bool(k["archived"]), "bt": None, "plans": [], "bks": [K(k)]})
-    return jsonify(out)
+        return jsonify(C.projects_overview(c))
 
 
 @app.get("/api/folders")
@@ -367,7 +342,7 @@ def leaders():
     """Benutzer, für die ein Projekt freigegeben werden kann (wie „Zuständige Bauleiter“ im Bautagebuch)."""
     with db.tx() as c:
         rows = c.execute("SELECT * FROM users WHERE lower(name)!='admin' ORDER BY name").fetchall()
-    return jsonify([{"id": r["id"], "name": r["name"], "active": bool(r["active"]), "bt": sso.has_app(r, "bautagebuch"), "admin": bool(r["is_admin"])} for r in rows])
+    return jsonify([{"id": r["id"], "name": C.full_name(r), "login": r["name"], "active": bool(r["active"]), "bt": sso.has_app(r, "bautagebuch"), "admin": bool(r["is_admin"])} for r in rows])
 
 
 PFIELDS = ("name", "client", "street", "zip", "city", "folder")

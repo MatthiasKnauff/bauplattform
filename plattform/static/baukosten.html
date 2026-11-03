@@ -12,7 +12,7 @@
 .num{white-space:nowrap;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
 .r{text-align:right}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.9rem}
-.top select{flex:1 1 280px;max-width:520px;font-weight:600}
+.top .pick{flex:1 1 280px;max-width:520px}
 .top .fill{flex:1}
 .save{color:var(--mute);font-size:.85rem}
 .stufen{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin:0 0 1rem}
@@ -153,7 +153,7 @@ body.as-open .wrap{padding-bottom:45vh}
 <main class="wrap">
   <div class="top">
     <label for="sel" class="hidden">Kostenermittlung</label>
-    <select id="sel" aria-label="Kostenermittlung wählen"></select>
+    <button type="button" id="sel" aria-label="Kostenermittlung wählen" title="Kostenermittlung wechseln, neu anlegen"></button>
     <button class="btn sm" id="newBtn">+ Neue Kostenermittlung</button>
     <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
     <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
@@ -199,8 +199,7 @@ function calc(d) {
 async function loadList(keep) {
   LIST = await api('api/bk');
   const want = keep || +localStorage.getItem('bk.cur') || (LIST[0] && LIST[0].id);
-  $('#sel').innerHTML = LIST.length ? LIST.map((x) => `<option value="${x.id}"${x.id === want ? ' selected' : ''}>${esc(x.name)}${x.project ? ' · ' + esc(x.project.name) : ''}${x.archived ? ' (archiviert)' : ''}</option>`).join('') : '<option value="">– noch keine Kostenermittlung –</option>';
-  if (LIST.some((x) => x.id === want)) await openBk(want); else { B = null; render(); }
+  if (LIST.some((x) => x.id === want)) await openBk(want); else { B = null; selBtn(); render(); }
 }
 async function openBk(id) {   // nicht „open“ nennen: das überschriebe window.open (PDF-Fenster)
   B = await api('api/bk/' + id); FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
@@ -208,7 +207,21 @@ async function openBk(id) {   // nicht „open“ nennen: das überschriebe wind
   try { localStorage.setItem('bk.cur', id); } catch { /* egal */ }
   head(); render();
 }
+const STUFE_N = (k) => (STUFEN.find((x) => x[0] === k) || [k, ''])[1];
+const bkSub = (x) => [STUFE_N(x.stufe), x.project ? [x.project.client, x.project.address].filter(Boolean).join(' · ') : '', x.archived ? 'archiviert' : ''].filter(Boolean).join(' · ');
+function selBtn() {   // Auswahlknopf wie im Bauzeitenplan: Name + Stufe/Bauherr
+  const x = B && LIST.find((y) => y.id === B.id);
+  pickButton($('#sel'), B ? { title: B.name, sub: bkSub({ ...x, ...B }) + (B.calc && B.calc.total ? ' · ' + eur(B.calc.total) : '') } : { title: LIST.length ? 'Kostenermittlung wählen' : 'Noch keine Kostenermittlung', sub: LIST.length ? `${LIST.length} vorhanden` : 'Mit „+ Neue Kostenermittlung“ anlegen' });
+}
+$('#sel').addEventListener('click', () => pickMenu($('#sel'), {
+  search: 'Suchen: Name, Projekt, Bauherr …', empty: 'Keine Kostenermittlung gefunden.',
+  items: LIST.map((x) => ({ group: x.archived ? 'Archiv' : 'Kostenermittlungen', title: x.name, sub: bkSub(x), find: x.project ? x.project.name : '', value: x.id, on: B && x.id === B.id })),
+  footer: '<button type="button" class="btn sm" data-pnew>+ Neue Kostenermittlung</button>',
+  onFooter: (e, close) => { if (e.target.closest('[data-pnew]')) { close(); newDialog(); } },
+  onPick: (id) => { if (B && id === B.id) return; clearTimeout(saveT); saveNow().then(() => openBk(id)); },
+}));
 function head() {
+  if (B || LIST) selBtn();
   if (!window.BPHead) return;
   BPHead.setProject(B ? { sub: B.project ? [B.project.client, B.project.address].filter(Boolean).join(' · ') || 'Bautagebuch-Projekt' : 'Baukosten', title: B.name } : { sub: '', title: '' });
 }
@@ -644,7 +657,6 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'pdfIn') { if (el.files.length) upload([...el.files]); el.value = ''; return; }
-  if (el.id === 'sel') { if (el.value) { clearTimeout(saveT); saveNow().then(() => openBk(+el.value)); } return; }
   const row = el.closest('[data-row]');
   if (row && el.dataset.f) { const r = B.data.rooms[+row.dataset.row]; r[el.dataset.f] = el.dataset.f === 'area' ? pnum(el.value) : el.value; changed(); return; }
   if (el.dataset.kw) { B.data.types[el.dataset.kw].kw = pnum(el.value); changed(); return; }

@@ -70,3 +70,25 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .toast{background:#111;color:#fff;padding:.6rem 1rem;border-radius:8px;border-left:4px solid var(--y);box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:90vw}
 .toast.bad{border-left-color:var(--red)}
 @media (max-width:640px){.hdr .who span.nm{display:none}.wrap{padding:1rem .8rem 2rem}}
+
+/* Auswahlknopf wie im Bauzeitenplan (Titel + Unterzeile + Pfeil) mit aufklappender Liste und Suche */
+.pick{display:inline-flex;align-items:center;gap:.7rem;min-height:48px;padding:.35rem .7rem .35rem .9rem;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--ink);cursor:pointer;text-align:left;max-width:min(520px,100%);min-width:0;font:inherit}
+.pick:hover,.pick[aria-expanded="true"]{border-color:var(--y)}
+.pick .pk-t{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.pick .pk-t b{font-weight:600;font-size:.98rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick .pk-t small{font-size:.78rem;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick svg{width:18px;height:18px;flex:none;margin-left:auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pickm{position:fixed;z-index:80;background:var(--card2);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;max-height:min(70vh,560px);width:min(520px,calc(100vw - 16px));overflow:hidden}
+.pickm .pm-q{padding:.6rem;border-bottom:1px solid var(--line)}
+.pickm .pm-q input{width:100%}
+.pickm .pm-l{overflow:auto;padding:.3rem}
+.pickm .pm-g{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);padding:.55rem .6rem .25rem}
+.pickm .pm-o{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;border-radius:8px;padding:.5rem .6rem;color:var(--ink);background:none;border:0;cursor:pointer;font:inherit}
+.pickm .pm-o span{display:flex;flex-direction:column;min-width:0;flex:1}
+.pickm .pm-o b{font-weight:500}
+.pickm .pm-o small{color:var(--mute);font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pickm .pm-o:hover,.pickm .pm-o.act{background:var(--hov)}
+.pickm .pm-o.on b{color:var(--y);font-weight:600}
+.pickm .pm-o .pm-x{flex:0 1 auto;display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.pickm .pm-e{padding:.8rem .6rem;color:var(--mute);font-size:.9rem}
+.pickm .pm-f{border-top:1px solid var(--line);padding:.5rem;display:flex;gap:.4rem;flex-wrap:wrap}

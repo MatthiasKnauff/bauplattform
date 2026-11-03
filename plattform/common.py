@@ -170,9 +170,22 @@ def page(name):
     return send_from_directory(STATIC, name, max_age=0)
 
 
+def _col(u, k):
+    try:
+        return (u[k] or "").strip()
+    except (KeyError, IndexError):
+        return ""
+
+
+def full_name(u):
+    """„Vorname Nachname“ für die Anzeige – sonst der Anmeldename (der bleibt z. B. im Bautagebuch-PDF)."""
+    return " ".join(x for x in (_col(u, "vorname"), _col(u, "nachname")) if x) or u["name"]
+
+
 def public(u):
     return {"id": u["id"], "name": u["name"], "email": u["email"], "is_admin": bool(u["is_admin"]), "must_change": bool(u["must_change"]),
-            "accent": u["accent"] or "", "theme": sso.theme_of(u) or "dunkel", "apps": sso.apps_of(u)}
+            "accent": u["accent"] or "", "theme": sso.theme_of(u) or "dunkel", "apps": sso.apps_of(u),
+            "vorname": _col(u, "vorname"), "nachname": _col(u, "nachname"), "full": full_name(u)}
 
 
 # ---- Kennwörter (gleiches Verfahren wie im Bautagebuch: werkzeug-Hash)
@@ -252,3 +265,50 @@ def login_url(nxt=""):
 
 def wait_schema():
     db.wait_for_schema(SCHEMA, log=lambda m: print(m, flush=True))
+
+
+def _addr(r):
+    return ", ".join(x for x in (r["street"], " ".join(y for y in (r["zip"], r["city"]) if y)) if x)
+
+
+def projects_overview(c, user=None):
+    """Projekte über alle Apps: je Bautagebuch-Projekt die verknüpften Bauzeitenpläne und Kostenermittlungen,
+    dazu Pläne und Kostenermittlungen ohne Bautagebuch-Projekt. Mit user: nur Bautagebuch-Projekte, die er sehen darf."""
+    names = {r["id"]: full_name(r) for r in c.execute("SELECT * FROM users")}
+    bt = c.execute("""SELECT p.id, p.name, p.client, p.street, p.zip, p.city, p.folder, p.archived, p.created, p.leaders,
+                             (SELECT COUNT(*) FROM reports r WHERE r.project_id=p.id) AS reports,
+                             (SELECT COUNT(*) FROM images i JOIN reports r ON r.id=i.report_id WHERE r.project_id=p.id) AS images
+                      FROM projects p ORDER BY p.archived, p.name""").fetchall()
+    plans = c.execute("SELECT id, name, project_id, updated, (SELECT COUNT(*) FROM gantt_versions v WHERE v.gantt_id=g.id) AS versions FROM gantt_projects g ORDER BY name").fetchall()
+    bks = c.execute("SELECT id, name, project_id, gantt_id, stufe, archived, updated, (SELECT COUNT(*) FROM bk_files f WHERE f.bk_id=b.id) AS files FROM bk_projects b ORDER BY name").fetchall()
+    P = lambda x: {"id": x["id"], "name": x["name"], "updated": x["updated"], "versions": x["versions"]}
+    K = lambda x: {"id": x["id"], "name": x["name"], "stufe": x["stufe"], "archived": bool(x["archived"]), "files": x["files"]}
+    out, used_p, used_k = [], set(), set()
+    for p in bt:
+        try:
+            lead_all = [int(x) for x in json.loads(p["leaders"] or "[]")]
+        except (ValueError, TypeError):
+            lead_all = []
+        if user is not None and not (user["is_admin"] or not lead_all or user["id"] in lead_all):
+            continue   # wie im Bautagebuch: nur freigegebene Projekte
+        ps = [x for x in plans if x["project_id"] == p["id"]]
+        pids = {x["id"] for x in ps}
+        ks = [x for x in bks if x["project_id"] == p["id"] or (x["project_id"] is None and x["gantt_id"] in pids)]
+        used_p |= pids; used_k |= {x["id"] for x in ks}
+        try:
+            lead = [int(x) for x in json.loads(p["leaders"] or "[]") if int(x) in names]
+        except (ValueError, TypeError):
+            lead = []
+        out.append({"key": f"bt{p['id']}", "name": p["name"], "client": p["client"], "address": _addr(p), "archived": bool(p["archived"]),
+                    "street": p["street"], "zip": p["zip"], "city": p["city"], "folder": p["folder"], "leaders": lead, "leader_names": [names[x] for x in lead],
+                    "bt": {"id": p["id"], "reports": p["reports"], "images": p["images"]}, "plans": [P(x) for x in ps], "bks": [K(x) for x in ks]})
+    for x in plans:   # Bauzeitenpläne ohne Bautagebuch-Projekt (mit ihren Kostenermittlungen)
+        if x["id"] in used_p:
+            continue
+        ks = [k for k in bks if k["id"] not in used_k and k["gantt_id"] == x["id"]]
+        used_k |= {k["id"] for k in ks}
+        out.append({"key": f"g{x['id']}", "name": x["name"], "client": "", "address": "", "archived": False, "bt": None, "plans": [P(x)], "bks": [K(k) for k in ks]})
+    for k in bks:
+        if k["id"] not in used_k:
+            out.append({"key": f"k{k['id']}", "name": k["name"], "client": "", "address": "", "archived": bool(k["archived"]), "bt": None, "plans": [], "bks": [K(k)]})
+    return out

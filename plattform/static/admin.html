@@ -389,12 +389,12 @@ function confirmTwice(b, txt = 'Wirklich? Nochmal klicken') {   // zweiter Klick
 /* ---------- Benutzer ---------- */
 function renderUsers(q = data.q || '') {
   const { users, apps } = data.u;
-  const list = users.filter(u => !q || (u.name + ' ' + u.email).toLowerCase().includes(q.toLowerCase()));
+  const list = users.filter(u => !q || (u.name + ' ' + (u.full || '') + ' ' + u.email).toLowerCase().includes(q.toLowerCase()));
   $('#main').innerHTML = `<h1>Benutzer</h1>
     <div class="bar"><input type="search" id="q" placeholder="Suchen …" value="${esc(q)}"><span class="fill"></span><button class="btn pri" data-a="new">+ Benutzer anlegen</button></div>
     <div class="tbl"><table><thead><tr><th>Name</th><th class="hide-s">E-Mail</th><th>Apps</th><th class="hide-s">Zuletzt aktiv</th><th></th></tr></thead><tbody>
     ${list.map(u => `<tr class="${u.active ? '' : 'off'}" data-id="${u.id}">
-      <td><b>${esc(u.name)}</b> ${u.is_admin ? '<span class="pill y">Admin</span>' : ''} ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
+      <td><b>${esc(u.full || u.name)}</b>${u.full && u.full !== u.name ? ` <small class="mute">· ${esc(u.name)}</small>` : ''} ${u.is_admin ? '<span class="pill y">Admin</span>' : ''} ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
       <td class="hide-s">${esc(u.email) || '<span class="mute">–</span>'}</td>
       <td>${u.is_admin ? '<span class="mute">alle</span>' : apps.map(a => `<span class="pill ${u.apps.includes(a.key) ? 'ok' : ''}">${u.apps.includes(a.key) ? '' : '<s>'}${esc(a.name)}${u.apps.includes(a.key) ? '' : '</s>'}</span>`).join(' ')}</td>
       <td class="hide-s">${ago(u.last_seen)}${u.sessions ? ` <span class="mute">· ${u.sessions} Sitzung${u.sessions > 1 ? 'en' : ''}</span>` : ''}</td>
@@ -405,10 +405,11 @@ function renderUsers(q = data.q || '') {
 }
 function userForm(u) {
   const { apps } = data.u, isNew = !u;
-  u = u || { name: '', email: '', is_admin: false, active: true, apps: apps.map(a => a.key) };
+  u = u || { name: '', vorname: '', nachname: '', email: '', is_admin: false, active: true, apps: apps.map(a => a.key) };
   const self = me && u.id === me.id;
-  modalBox(`<h3>${isNew ? 'Benutzer anlegen' : esc(u.name)}</h3>
-    <div class="row"><label for="fN">Name (für die Anmeldung)</label><input id="fN" value="${esc(u.name)}" ${!isNew && u.name.toLowerCase() === 'admin' ? 'disabled' : ''}></div>
+  modalBox(`<h3>${isNew ? 'Benutzer anlegen' : esc(u.full || u.name)}</h3>
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem"><label>Vorname<input id="fV" value="${esc(u.vorname || '')}" autocomplete="off"></label><label>Nachname<input id="fNN" value="${esc(u.nachname || '')}" autocomplete="off"></label></div>
+    <div class="row"><label for="fN">Anmeldename (kurz, z. B. „Knauff“ – erscheint auch im Bautagebuch-PDF)</label><input id="fN" value="${esc(u.name)}" ${!isNew && u.name.toLowerCase() === 'admin' ? 'disabled' : ''}></div>
     <div class="row"><label for="fE">E-Mail (für „Kennwort vergessen“ und Erinnerungen)</label><input id="fE" type="email" value="${esc(u.email)}"></div>
     <div class="row"><label>Apps</label><div class="appchk">${apps.map(a => `<label><input type="checkbox" data-app="${a.key}" ${u.apps.includes(a.key) ? 'checked' : ''}> ${esc(a.name)}</label>`).join('')}</div></div>
     <label class="chk"><input type="checkbox" id="fA" ${u.is_admin ? 'checked' : ''} ${self ? 'disabled' : ''}> Administrator (alle Apps, Verwaltung, Einstellungen des Bautagebuchs)</label>
@@ -419,7 +420,7 @@ function userForm(u) {
       <button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">${isNew ? 'Anlegen' : 'Speichern'}</button></div>`,
   async (m, bg, close, btn) => {
     const err = (e) => { bg.querySelector('#fErr').textContent = e.message || e; };
-    const body = () => ({ name: bg.querySelector('#fN').value, email: bg.querySelector('#fE').value, is_admin: bg.querySelector('#fA').checked,
+    const body = () => ({ vorname: bg.querySelector('#fV').value, nachname: bg.querySelector('#fNN').value, name: bg.querySelector('#fN').value, email: bg.querySelector('#fE').value, is_admin: bg.querySelector('#fA').checked,
       apps: [...bg.querySelectorAll('[data-app]')].filter(x => x.checked).map(x => x.dataset.app), ...(isNew ? {} : { active: !bg.querySelector('#fX').checked }) });
     try {
       if (m === 'x') close();

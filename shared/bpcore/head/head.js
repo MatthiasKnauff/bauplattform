@@ -84,7 +84,7 @@
     const me = H.me || {}, apps = ((H.conf || {}).apps || []).filter((a) => a.allowed);
     const portal = apps.find((a) => a.key === 'portal');
     const m = document.createElement('div'); m.className = 'bph-menu'; m.setAttribute('role', 'menu');
-    m.innerHTML = `<div class="bph-info">Angemeldet als <b>${esc(me.name || '')}</b></div>`
+    m.innerHTML = `<div class="bph-info">Angemeldet als <b>${esc(me.full || me.name || '')}</b>${me.full && me.full !== me.name ? ` <small>(${esc(me.name)})</small>` : ''}</div>`
       + apps.map((a) => `<a role="menuitem" href="${esc(appUrl(a))}/"${a.key === H.app ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}${esc(a.key === 'portal' ? 'Startseite' : a.name)}</a>`).join('')
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung (Farben)</button>`
@@ -164,8 +164,8 @@
         const n = parseInt(acc.slice(1), 16), lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
         band.style.setProperty('--bph-acc', lum < 0.3 ? '#e8a57e' : acc);   // sehr dunkle Farben wären auf der dunklen Leiste unsichtbar
         band.style.setProperty('--bph-on', lum > 0.55 ? '#111' : '#fff');
-        band.querySelector('.bph-av').textContent = (H.me.name || '?').slice(0, 1).toUpperCase();
-        band.querySelector('.bph-nm').textContent = H.me.name || '';
+        band.querySelector('.bph-av').textContent = (H.me.vorname || H.me.name || '?').slice(0, 1).toUpperCase();
+        band.querySelector('.bph-nm').textContent = H.me.full || H.me.name || '';
       }
       renderKi();
       return H;

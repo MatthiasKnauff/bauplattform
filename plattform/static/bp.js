@@ -76,3 +76,43 @@ async function header(current, me, conf, opt = {}) {
   const key = { Startseite: 'portal', Verwaltung: 'admin', Adressen: 'adressen', Baukosten: 'baukosten' }[current] || '';
   await BPHead.mount({ app: key, name: current, me, sticky: true, project: opt.project });
 }
+
+/* Auswahlknopf + aufklappende Liste (wie die Projektauswahl im Bauzeitenplan).
+   pickButton(el, {title, sub}) zeichnet den Knopf; pickMenu(anchor, opt) öffnet die Liste:
+   opt.items: [{group, title, sub, value, on, extra}], opt.onPick(value, item), opt.search (Platzhalter), opt.footer (HTML), opt.onFooter(e, close) */
+const PICK_CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+function pickButton(el, o) { el.classList.add('pick'); el.setAttribute('aria-haspopup', 'listbox'); el.innerHTML = `<span class="pk-t"><b>${esc(o.title || '')}</b><small>${esc(o.sub || '') || '&nbsp;'}</small></span>${PICK_CHEV}`; }
+function pickMenu(anchor, opt) {
+  const old = document.querySelector('.pickm'); if (old) { old.remove(); anchor.setAttribute('aria-expanded', 'false'); return; }
+  const m = document.createElement('div'); m.className = 'pickm'; m.setAttribute('role', 'listbox');
+  m.innerHTML = (opt.search ? `<div class="pm-q"><input type="search" placeholder="${esc(opt.search)}" autocomplete="off" aria-label="Suchen"></div>` : '') + '<div class="pm-l"></div>' + (opt.footer ? `<div class="pm-f">${opt.footer}</div>` : '');
+  document.body.appendChild(m); anchor.setAttribute('aria-expanded', 'true');
+  const place = () => { const r = anchor.getBoundingClientRect(); m.style.top = Math.min(r.bottom + 6, innerHeight - 120) + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px'; };
+  let act = -1, shown = [];
+  const close = () => { m.remove(); anchor.setAttribute('aria-expanded', 'false'); document.removeEventListener('pointerdown', off, true); removeEventListener('resize', place); };
+  const off = (e) => { if (!m.contains(e.target) && !anchor.contains(e.target)) close(); };
+  const draw = () => {
+    const q = (m.querySelector('.pm-q input')?.value || '').trim().toLowerCase();
+    shown = opt.items.filter((x) => !q || [x.title, x.sub, x.find].join(' ').toLowerCase().includes(q));
+    let g = null; const L = m.querySelector('.pm-l');
+    L.innerHTML = shown.map((x, i) => { const h = x.group && x.group !== g ? `<div class="pm-g">${esc(x.group)}</div>` : ''; g = x.group;
+      return h + `<div class="pm-o${x.on ? ' on' : ''}${i === act ? ' act' : ''}" data-i="${i}" role="option" aria-selected="${!!x.on}"><span><b>${esc(x.title)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>${x.extra ? `<span class="pm-x">${x.extra}</span>` : ''}</div>`; }).join('')
+      || `<div class="pm-e">${esc(opt.empty || 'Nichts gefunden.')}</div>`;
+    const a = L.querySelector('.act'); if (a) a.scrollIntoView({ block: 'nearest' });
+  };
+  draw(); place(); addEventListener('resize', place);
+  setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
+  const inp = m.querySelector('.pm-q input'); if (inp) { inp.focus(); inp.addEventListener('input', () => { act = -1; draw(); }); }
+  m.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { close(); anchor.focus(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); act = Math.min(shown.length - 1, act + 1); draw(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); act = Math.max(0, act - 1); draw(); }
+    else if (e.key === 'Enter' && shown[Math.max(0, act)]) { e.preventDefault(); const x = shown[Math.max(0, act)]; close(); opt.onPick(x.value, x, e); }
+  });
+  m.addEventListener('click', (e) => {
+    const f = e.target.closest('.pm-f'); if (f && opt.onFooter) { opt.onFooter(e, close); return; }
+    if (e.target.closest('.pm-x a')) { close(); return; }
+    const b = e.target.closest('[data-i]'); if (!b) return; const x = shown[+b.dataset.i]; close(); opt.onPick(x.value, x, e);
+  });
+  return { close };
+}

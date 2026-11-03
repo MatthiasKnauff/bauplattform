@@ -1,0 +1,8 @@
+services:
+  hello:
+    # :latest = jeder Stand von main, :stable = nur freigegebene Versionen (Tag v*)
+    image: ghcr.io/matthiasknauff/bauplattform/hello:${CHANNEL:-latest}
+    container_name: bauplattform-hello
+    restart: unless-stopped
+    ports:
+      - "8099:80"

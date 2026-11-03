@@ -17,7 +17,13 @@
   const libToItem = (x) => ({ id: x.id, n: x.n, ph: x.ph, gw: x.gw || '', din: x.din || '', sc: x.sc === 'bau' ? 'bau' : 'we', d: Math.max(1, +x.d || 1), fix: 1, lib: 1,
     a: x.a && x.a.length ? x.a.slice() : [LASTPH[x.ph] || 'start'], b: (x.b || []).slice(), info: x.info || '', craft: x.craft || '', firm: x.firm || '', rec: (x.rec || []).slice() });
   const libList = () => (Array.isArray(window.LIBRARY) ? window.LIBRARY : []);
+  // Bezug je Projekt abweichend vom Katalog: cfg.bezug = { id: 'bau' | 'we' } (Meilensteine ausgenommen)
   function itemsOf(cfg) {
+    const list = itemsOf0(cfg), bz = cfg && cfg.bezug;
+    if (!bz || !Object.keys(bz).length) return list;
+    return list.map((i) => (bz[i.id] && bz[i.id] !== i.sc && !i.ms ? { ...i, sc: bz[i.id], scBase: i.sc } : i));
+  }
+  function itemsOf0(cfg) {
     const cus = cfg && Array.isArray(cfg.custom) ? cfg.custom : [];
     const phO = cfg && cfg.phase, ord = cfg && Array.isArray(cfg.order) ? cfg.order : null;
     const cid = new Set(cus.map((c) => c.id)), lib = libList().filter((x) => !cid.has(x.id)).map(libToItem);
@@ -92,9 +98,9 @@
   function ctx(cfg) {
     const n = cfg && Array.isArray(cfg.custom) ? cfg.custom.length : 0;
     const fk = cfg ? [cfg.flDetail, cfg.floors, cfg.dg, cfg.type, JSON.stringify(cfg.choice || {})].join('|') : '';
-    if (cfg !== undefined && CTX.cfg === cfg && CTX.n === n && CTX.arr === (cfg && cfg.custom) && CTX.o === (cfg && cfg.order) && CTX.p === (cfg && cfg.phase) && CTX.l === window.LIBRARY && CTX.fk === fk) return;
+    if (cfg !== undefined && CTX.cfg === cfg && CTX.n === n && CTX.arr === (cfg && cfg.custom) && CTX.o === (cfg && cfg.order) && CTX.p === (cfg && cfg.phase) && CTX.bz === (cfg && cfg.bezug) && CTX.l === window.LIBRARY && CTX.fk === fk) return;
     const list = itemsOf(cfg);
-    CTX = { cfg, n, fk, l: window.LIBRARY, arr: cfg && cfg.custom, o: cfg && cfg.order, p: cfg && cfg.phase, map: Object.fromEntries(list.map((i) => [i.id, i])), ord: Object.fromEntries(list.map((i, k) => [i.id, k])) };
+    CTX = { cfg, n, fk, l: window.LIBRARY, arr: cfg && cfg.custom, o: cfg && cfg.order, p: cfg && cfg.phase, bz: cfg && cfg.bezug, map: Object.fromEntries(list.map((i) => [i.id, i])), ord: Object.fromEntries(list.map((i, k) => [i.id, k])) };
   }
   ctx(null);
   const B = (id) => CTX.map[id];
@@ -473,7 +479,9 @@
       const p = PROF[type] || PROF.frei;
       const c = { type: p.k, area: p.area, units: p.units, naming: p.naming || 'whg', names: '', takt: p.takt || 'versetzt', start: startOf('week', todayN() + 7) };
       c.floors = p.floors || 1; c.dg = p.dg || 'kalt'; c.flDetail = true;
-      c.choice = choiceAll(c); return c;
+      c.choice = choiceAll(c);
+      const vs = window.CATSCOPE || {}; if (Object.keys(vs).length) c.bezug = { ...vs };   // Vorgabe aus dem Leistungskatalog
+      return c;
     },
     status() {
       if (typeof P === 'undefined' || !P) return { hasProject: false, live: false, nTasks: 0, pres: {}, name: '' };
@@ -572,6 +580,17 @@
     },
     items: (cfg) => itemsOf(clone(cfg)),
     effA: (id, cfg) => { const it = item(id, clone(cfg)); return it ? (it.a || []).map((x) => (Array.isArray(x) ? x[0] : x)) : []; },
+    // Bezug einer Leistung in diesem Projekt umstellen (Gebäude <-> je Einheit). Die Leistung wird dafür neu angelegt:
+    // aus einer Zeile für das Gebäude werden Zeilen je Einheit und umgekehrt (eigene Dauer bleibt erhalten).
+    setBezug(id, sc) {
+      if (!isLive()) return false;
+      const base = (itemsOf0(clone(P.assist)).find((i) => i.id === id) || {}).sc; if (!base) return false;
+      const had = P.tasks.some((t) => t.cat === id);
+      return act(() => {
+        if (had) applySel((pres) => pres.filter((x) => x !== id));
+        applySel(had ? (pres) => [...pres, id] : null, (c) => { const b = { ...(c.bezug || {}) }; if (sc === base) delete b[id]; else b[id] = sc; c.bezug = b; });
+      });
+    },
     patchCfg(patch, movedId) {
       if (!isLive()) return false; patch = clone(patch);
       return act(() => applySel(null, (c) => { Object.assign(c, patch); }, null, movedId ? (cfg) => reposition(movedId, cfg) : null));
@@ -843,13 +862,14 @@
             const on = sel.has(it.id), cnt = live ? st.pres[it.id] || 0 : 0, of = it.sc === 'bau' ? 1 : nU, part = live && cnt > 0 && cnt < of;
             const tag = it.custom ? (it.lib ? '<i class="t lib" title="aus dem Leistungskatalog">Katalog</i>' : '<i class="t own">eigene</i>') : it.lib ? '<i class="t lib">Katalog</i>' : it.ch && sel.has(it.id) ? '<i class="t bw">Bauweise</i>' : R.has(it.id) ? '<i class="t rec">empfohlen</i>' : O.has(it.id) ? '<i class="t opt">optional</i>' : '';
             const st2 = live ? (part ? `<i class="t part" title="nur in ${cnt} von ${of} Einheiten">${cnt}/${of}</i>` : on ? '<i class="t in">im Plan</i>' : '') : '';
-            const meta = [it.gw, it.din ? 'DIN ' + it.din : '', it.sc === 'bau' && m ? 'Gebäude' : ''].filter(Boolean).join(' · ');
+            const meta = [it.gw, it.din ? 'DIN ' + it.din : ''].filter(Boolean).join(' · ');
+            const bzBtn = m && !it.ms && !it.custom ? `<button class="as-bz${it.sc === 'bau' ? ' bau' : ''}${it.scBase ? ' mod' : ''}" data-bz="${it.id}" title="${it.sc === 'bau' ? 'Einmal für das ganze Gebäude' : 'Für jede Einheit / Wohnung einzeln'}${it.scBase ? ' (in diesem Projekt geändert)' : ''} – klicken zum Umstellen">${it.sc === 'bau' ? 'Gebäude' : 'je Whg.'}</button>` : '';
             const isMod = ovr[it.id] != null && ovr[it.id] !== '';
             if (where === 'rest') return `<div class="as-it rest"><button class="as-mv" data-up="${it.id}" title="In „${esc(phaseName(it.ph))}“ übernehmen und auswählen">↑</button>`
               + `<span class="gwdot" style="background:${core.color(it.gw)}"></span><span class="as-n">${esc(core.name(it.id, cfg))}<small>${esc(phaseName(it.ph))} · ${esc(meta)}</small></span>`
               + (it.ms ? '<span class="as-d">◆</span>' : `<span class="as-d">${core.dur(it.id, cfg)} AT</span>`) + '</div>';
             return `<label class="as-it${on ? ' on' : ''}${moved && moved.id === it.id ? ' moved' : ''}" data-row="${it.id}"><span class="as-grip" data-grip="${it.id}" title="Ziehen, um die Reihenfolge zu ändern">⠿</span><input type="checkbox" data-id="${it.id}"${on ? ' checked' : ''}${part ? ' data-part="1"' : ''}>`
-              + `<span class="gwdot" style="background:${core.color(it.gw)}"></span><span class="as-n">${esc(core.name(it.id, cfg))}<small>${esc(meta)}</small></span>`
+              + `<span class="gwdot" style="background:${core.color(it.gw)}"></span><span class="as-n">${esc(core.name(it.id, cfg))}<small>${esc(meta)}${bzBtn}</small></span>`
               + (it.ms ? '<span class="as-d">◆</span>' : `<span class="as-d"><input class="as-dur${isMod ? ' mod' : ''}" type="number" min="1" max="999" data-dur="${it.id}" value="${core.dur(it.id, cfg)}" title="${isMod ? 'Eigener Wert – Feld leeren für Richtwert' : 'Richtwert – zum Ändern überschreiben'}"> AT</span>`)
               + (st2 || tag) + (st2 && it.ch ? '<i class="t bw" title="durch die gewählte Bauweise">Bauweise</i>' : '')
               + (isExtra(it.id) && !it.custom && !it.ch ? `<button class="as-mv" data-down="${it.id}" title="Abwählen und zurück zu „Weitere Leistungen“">↓</button>` : '')
@@ -931,7 +951,7 @@
         const custom = (cfg.custom || []).filter((c) => scope === 'all' || ph.has(c.ph));
         const s2 = [...sel].filter(inScope);
         const chAll = core.choiceAll(cfg);
-        if (scope === 'all') return { cfg: { choice: chAll, type: cfg.type, area: cfg.area, units: cfg.units, naming: cfg.naming, names: cfg.names, takt: cfg.takt, dur, custom, order: cfg.order, phase: cfg.phase, after: cfg.after }, sel: s2 };
+        if (scope === 'all') return { cfg: { choice: chAll, type: cfg.type, area: cfg.area, units: cfg.units, naming: cfg.naming, names: cfg.names, takt: cfg.takt, dur, custom, order: cfg.order, phase: cfg.phase, after: cfg.after, bezug: cfg.bezug }, sel: s2 };
         const choice = {}; for (const g of core.choiceGroups(cfg)) if (ph.has(g.ph)) choice[g.k] = chAll[g.k];
         return { phases: [...ph], sel: s2, dur, custom, choice };
       }
@@ -1002,6 +1022,14 @@
           SH.add(id); setShown(live, SH);
           if (live) { if (core.toggle(id, !!mvU) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); else say(mvU ? `„${core.name(id, cfg)}“ übernommen.` : `„${core.name(id, cfg)}“ zurück zu „Weitere Leistungen“.`); }
           else { draft.sel = core.withReq(draft.sel, id, !!mvU, draft.cfg); saveDraft(); say(mvU ? `„${core.name(id, cfg)}“ in „${phaseName(core.items(cfg).find((i) => i.id === id).ph)}“ übernommen.` : `„${core.name(id, cfg)}“ zurück zu „Weitere Leistungen“.`); }
+          render(); return;
+        }
+        const bzb = t.closest('[data-bz]');
+        if (bzb) {
+          e.preventDefault(); const { live, cfg } = state(); const id = bzb.dataset.bz, it = core.items(cfg).find((i) => i.id === id); if (!it) return;
+          const to = it.sc === 'bau' ? 'we' : 'bau', base = it.scBase || it.sc, nm = core.name(id, cfg), txt = to === 'bau' ? 'einmal für das Gebäude' : 'je Einheit / Wohnung';
+          if (live) { if (core.setBezug(id, to) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); else say(`„${nm}“ jetzt ${txt}. Mit Strg+Z im Plan rückgängig.`); }
+          else { const b = { ...(draft.cfg.bezug || {}) }; if (to === base) delete b[id]; else b[id] = to; draft.cfg.bezug = b; saveDraft(); say(`„${nm}“ jetzt ${txt}.`); }
           render(); return;
         }
         const ins = t.closest('[data-ins]');

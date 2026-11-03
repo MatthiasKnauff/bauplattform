@@ -839,6 +839,21 @@ def catfirms():
         return jsonify(o)
 
 
+@app.route("/api/catscope", methods=["GET", "PUT"])
+def catscope():
+    """Bezug (Gebäude / je Einheit) abweichend vom Standardkatalog – Vorgabe für neue Planungen."""
+    with db.tx() as c:
+        if request.method == "GET":
+            v = store_get(c, "catscope", {})
+            return jsonify(v if isinstance(v, dict) else {})
+        b = body()
+        if not isinstance(b, dict):
+            return jsonify(error="Ungültig"), 400
+        o = {k: v for k, v in list(b.items())[:5000] if re.fullmatch(r"[\w~.-]{1,60}", k) and v in ("bau", "we")}
+        store_put(c, "catscope", o, uname())
+        return jsonify(o)
+
+
 # ---- Programmeinstellungen und KI-Vorschläge
 AI_MODELS = {"claude-haiku-5-5": "Claude Haiku 5.5 – schnell, günstig", "claude-sonnet-5-5": "Claude Sonnet 5.5 – genauer",
              "claude-opus-5-5": "Claude Opus 5.5 – am gründlichsten"}

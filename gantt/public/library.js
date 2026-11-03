@@ -31,7 +31,7 @@ function savePhases() {
   if (window.AssistCore) AssistCore.notifySoon();
 }
 async function loadLibrary() {
-  try { const [a, b, ph] = await Promise.all([fetch('/api/library').then(j), fetch('/api/catfirms').then(j), fetch('/api/phases').then(j)]); window.LIBRARY = a; CATFIRMS = b || {}; applyPhaseList(ph); libLoaded = true; }
+  try { const [a, b, ph, sc] = await Promise.all([fetch('/api/library').then(j), fetch('/api/catfirms').then(j), fetch('/api/phases').then(j), fetch('/api/catscope').then(j).catch(() => ({}))]); window.LIBRARY = a; CATFIRMS = b || {}; window.CATSCOPE = sc || {}; applyPhaseList(ph); libLoaded = true; }
   catch (e) { toast('Leistungskatalog konnte nicht geladen werden: ' + e.message, true); }
   if (window.AssistCore) AssistCore.notifySoon();
   if (!$('#libView').hidden) renderLib();
@@ -45,6 +45,14 @@ function libSet(list, now) {
   if (now) return run();
   libSaveT = setTimeout(run, 500); return Promise.resolve();
 }
+// Bezug der Standardleistungen (Gebäude / je Einheit) – Vorgabe für neue Planungen im Assistenten
+let catsSaveT = null;
+function saveCatScope() {
+  clearTimeout(catsSaveT);
+  catsSaveT = setTimeout(() => fetch('/api/catscope', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.CATSCOPE || {}) }).then(j)
+    .catch((e) => toast('Bezug nicht gespeichert: ' + e.message, true)), 300);
+}
+const stdScope = (i) => ((window.CATSCOPE || {})[i.id] || i.sc);
 function saveCatFirms() {
   clearTimeout(catfSaveT);
   catfSaveT = setTimeout(() => fetch('/api/catfirms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATFIRMS) }).then(j)
@@ -127,7 +135,7 @@ function renderLib() {
     }
     for (const i of std) {
       h += `<tr class="lv-std"><td><div class="lv-n"><span class="gwdot" style="background:${gwColor(i.gw) || '#9e9e9e'}"></span><span>${esc(i.n)}</span></div></td><td>${esc(ph.n.split(' (')[0])}</td><td>${esc(i.gw)}</td><td>${esc(i.din || '')}</td>
-        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><input data-sfirm="${i.id}" list="fvFirmList2" value="${esc(CATFIRMS[i.id] || '')}" placeholder="${esc(gwFirm(i.gw) ? gwFirm(i.gw) + ' (Gewerk)' : '–')}" class="${CATFIRMS[i.id] ? 'lv-fown' : ''}"></td><td>${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}</td><td class="num">${i.d}</td><td colspan="3" class="lv-stdh">Standardkatalog</td>
+        <td>${esc((typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '')}</td><td><input data-sfirm="${i.id}" list="fvFirmList2" value="${esc(CATFIRMS[i.id] || '')}" placeholder="${esc(gwFirm(i.gw) ? gwFirm(i.gw) + ' (Gewerk)' : '–')}" class="${CATFIRMS[i.id] ? 'lv-fown' : ''}"></td><td><select data-sscope="${i.id}" class="${stdScope(i) !== i.sc ? 'lv-fown' : ''}" title="Vorgabe für neue Planungen. Standard: ${i.sc === 'bau' ? 'Gebäude' : 'je Einheit'}. In bestehenden Plänen im Planungsassistenten je Projekt umstellbar."><option value="we"${stdScope(i) === 'we' ? ' selected' : ''}>je Einheit</option><option value="bau"${stdScope(i) === 'bau' ? ' selected' : ''}>Gebäude</option></select></td><td class="num">${i.d}</td><td colspan="3" class="lv-stdh">Standardkatalog</td>
         <td class="lv-act"><button class="fv-x" data-lcopy="${i.id}" title="Als eigene Leistung kopieren und anpassen">⧉ kopieren</button></td></tr>`;
     }
   }
@@ -289,6 +297,13 @@ $('#libView').addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'lvPrjEmpty') { libPrjEmpty = t.checked; renderLib(); return; }
   if (t.dataset.phn) { const p = CATALOG.phases.find((x) => x.k === t.dataset.phn); const v = t.value.trim(); if (p && v) { p.n = v; savePhases(); } renderLib(); return; }
+  if (t.dataset.sscope) {
+    const i = CATALOG.items.find((y) => y.id === t.dataset.sscope); if (!i) return;
+    const m = { ...(window.CATSCOPE || {}) }; if (t.value === i.sc) delete m[i.id]; else m[i.id] = t.value;
+    window.CATSCOPE = m; saveCatScope(); if (window.AssistCore) AssistCore.notifySoon(); renderLib();
+    toast(`„${i.n}“: neue Planungen ${t.value === 'bau' ? 'einmal für das Gebäude' : 'je Einheit / Wohnung'}.`);
+    return;
+  }
   if (t.dataset.sfirm) { const v = t.value.trim(); libBook(v, (CATALOG.items.find((i) => i.id === t.dataset.sfirm) || {}).gw); if (v) CATFIRMS[t.dataset.sfirm] = v; else delete CATFIRMS[t.dataset.sfirm]; CATFIRMS = { ...CATFIRMS }; saveCatFirms(); if (window.AssistCore) AssistCore.notifySoon(); renderLib(); return; }
   if (t.dataset.pfirm) { const k = t.closest('tr').dataset.lpk; libSetProjectFirm([k], () => t.value); renderLib(); return; }
   const tr = t.closest('tr[data-lid]'); if (!tr || !t.dataset.k) return;

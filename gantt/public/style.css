@@ -341,6 +341,10 @@ body.as-window{background:#fafafa}
 .as-phs.dis{opacity:.5}
 .as-mv{flex:none;width:22px;height:20px;padding:0;border:1px solid #b9cfe6;background:#fff;color:#2e6db4;border-radius:3px;cursor:pointer;font:600 13px/1 inherit}
 .as-mv:hover{background:#e3f0fb;border-color:#2e6db4}
+.as-bz{margin-left:6px;padding:0 6px;height:16px;border:1px solid #c9d3de;background:#fff;color:#55606e;border-radius:8px;cursor:pointer;font:600 10px/14px inherit;vertical-align:1px}
+.as-bz.bau{border-color:#b9cfe6;color:#2e6db4;background:#eef5fc}
+.as-bz.mod{border-style:dashed;border-color:#e08a00;color:#a35f00}
+.as-bz:hover{border-color:#2e6db4;background:#e3f0fb}
 .as-it.rest{cursor:default}
 .as-it.rest .as-n{color:#555}
 /* Nach dem Verschieben: Vorgänger wählen */

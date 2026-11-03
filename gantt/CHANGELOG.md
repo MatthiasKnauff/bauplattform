@@ -1,5 +1,11 @@
 # Änderungsprotokoll – Gantt-App (Bauzeitenplan)
 
+## 3.2.0 – 03.11.2026
+- **Bezug umstellbar (Gebäude ↔ je Wohnung)**, auch bei Leistungen aus dem Standardkatalog:
+  - **Im Planungsassistenten je Projekt:** Bei mehreren Einheiten steht an jeder Leistung „Gebäude“ bzw. „je Whg.“ – anklicken stellt um. Im laufenden Plan wird die Leistung dabei neu angelegt (z. B. Rollläden: statt einer Zeile unter „Gebäude / Allgemein“ je eine Zeile in jeder Wohnung); eigene Dauer bleibt, mit Strg+Z rückgängig. Gestrichelt umrandet = in diesem Projekt geändert.
+  - **Im Leistungskatalog als Vorgabe:** In der Spalte „Bezug“ lässt sich jetzt auch bei Standardleistungen „Gebäude“ / „je Einheit“ wählen. Gilt für neue Planungen; bestehende Pläne bleiben unverändert.
+  - Vorlagen „Ganzes Gebäude“ speichern die Bezüge mit.
+
 ## 3.1.1 – 03.11.2026
 - **Firmen löschen nur, wenn nirgends verwendet** – gleiche Regel wie im Bautagebuch und in der Adressen-App: nicht in Berichten, nicht als Baustellenadresse, in keinem Bauzeitenplan einem Gewerk zugeordnet. Ist die Firma im geöffneten Plan eingetragen, zuerst beim Gewerk entfernen.
 

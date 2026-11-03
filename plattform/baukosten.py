@@ -248,7 +248,7 @@ def bk_new():
             return jsonify(error="Bitte einen Namen eingeben."), 400
         now = _now()
         r = c.execute("INSERT INTO bk_projects(name, project_id, gantt_id, stufe, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
-                      (name, pid, gid, "schaetzung", json.dumps(default_data(c)), now, now, g.user["name"])).fetchone()
+                      (name, pid, gid, b.get("stufe") if b.get("stufe") in STUFEN else "schaetzung", json.dumps(default_data(c)), now, now, g.user["name"])).fetchone()
         out = _out(c, _row(c, r["id"]))
     C.audit(g.user["name"], "baukosten", "Kostenermittlung angelegt", name)
     return jsonify(out)
@@ -306,6 +306,34 @@ def sources():
         gp = [{"id": r["id"], "name": r["name"], "project_id": r["project_id"], "updated": r["updated"]}
               for r in c.execute("SELECT id, name, project_id, updated FROM gantt_projects ORDER BY updated DESC")]
     return jsonify(projects=pr, plans=gp)
+
+
+@app.get("/api/folders")
+def folders():
+    """Ordner auf dem Server (Ablage des Bautagebuchs), die zur Eingabe passen und noch kein Projekt sind."""
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    try:
+        from urllib.parse import quote
+        r = C.bt_api("GET", "/api/store/folders?q=" + quote(q))
+        return jsonify(r if isinstance(r, list) else [])
+    except RuntimeError:
+        return jsonify([])   # Bautagebuch ohne Ablage oder ohne Recht: einfach keine Vorschläge
+
+
+@app.post("/api/bautagebuch-projekt")
+def bt_project():
+    """Projekt im Bautagebuch anlegen (z. B. aus einem Ordner auf dem Server)."""
+    name = " ".join(str((request.get_json(silent=True) or {}).get("name") or "").split())[:200]
+    if not name:
+        return jsonify(error="Name fehlt"), 400
+    try:
+        r = C.bt_api("POST", "/api/projects", {"name": name})
+    except RuntimeError as e:
+        return jsonify(error="Projekt im Bautagebuch konnte nicht angelegt werden: " + str(e)), 502
+    C.audit(g.user["name"], "baukosten", "Bautagebuch-Projekt angelegt", name)
+    return jsonify(id=r.get("id"), name=name)
 
 
 @app.route("/api/kennwerte", methods=["GET", "PUT"])

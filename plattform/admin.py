@@ -291,24 +291,7 @@ def audit_log():
 
 
 # ---------------------------------------------------------------- Projekte (über alle Apps)
-def _bt(method, path, body=None):
-    """Bautagebuch im Docker-Netz aufrufen – mit der Anmeldung des Administrators (gemeinsame Sitzung).
-    So löscht das Bautagebuch selbst, inklusive seiner Fotos und Dateien im eigenen Laufwerk."""
-    with db.tx() as c:
-        tok = sso.current_token(request, c)
-    req = urllib.request.Request(C.BT_INTERNAL + path, method=method, data=json.dumps(body).encode() if body is not None else None,
-                                 headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            return json.loads(r.read().decode() or "{}")
-    except urllib.error.HTTPError as e:
-        try:
-            msg = json.loads(e.read().decode() or "{}").get("error")
-        except ValueError:
-            msg = None
-        raise RuntimeError(msg or f"Bautagebuch antwortet mit Fehler {e.code}")
-    except Exception as e:
-        raise RuntimeError("Bautagebuch nicht erreichbar: " + str(e)[:120])
+_bt = C.bt_api   # Bautagebuch mit der Anmeldung des Administrators aufrufen (siehe common.py)
 
 
 def _addr(r):
@@ -346,6 +329,20 @@ def projects_all():
         if k["id"] not in used_k:
             out.append({"key": f"k{k['id']}", "name": k["name"], "client": "", "address": "", "archived": bool(k["archived"]), "bt": None, "plans": [], "bks": [K(k)]})
     return jsonify(out)
+
+
+@app.get("/api/folders")
+def folders():
+    """Ordnernamen auf dem Server (Ablage des Bautagebuchs) als Vorschlag für den Projektnamen."""
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    try:
+        from urllib.parse import quote
+        r = _bt("GET", "/api/store/folders?q=" + quote(q))
+        return jsonify(r if isinstance(r, list) else [])
+    except RuntimeError:
+        return jsonify([])
 
 
 @app.post("/api/projects/bautagebuch")

@@ -57,8 +57,8 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ok);margin-right:.4rem}
 .dot.bad{background:var(--red)}
 
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:50;padding:1rem}
-.modal{background:var(--card2);border:1px solid var(--line);border-radius:12px;width:min(480px,100%);padding:1.2rem 1.3rem;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:90;padding:1rem}
+.modal{background:var(--card2);border:1px solid var(--line);border-radius:12px;width:min(480px,100%);max-height:calc(100vh - 2rem);overflow:auto;padding:1.2rem 1.3rem;box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .modal h3{margin:0 0 .8rem}
 .modal .row{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.8rem}
 .modal .row label{color:var(--mute);font-size:.88rem}

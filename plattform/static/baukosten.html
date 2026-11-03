@@ -80,6 +80,18 @@
 .h .src{margin-left:auto;font-size:.75rem;color:var(--mute);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
 .list{display:flex;flex-direction:column;gap:.6rem}
 .empty{color:var(--mute);padding:2.5rem 1rem;text-align:center}
+.nk{display:flex;flex-direction:column;gap:.35rem}
+.nk input,.nk select{width:100%;color:var(--ink);font-size:1rem;padding:.6rem .75rem}
+.nkl{font-size:.85rem;color:var(--mute);margin-top:.55rem}
+.nkList{border:1px solid var(--line);border-radius:10px;max-height:min(240px,32vh);overflow:auto;display:flex;flex-direction:column;padding:.25rem;background:var(--card)}
+.nkGrp{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);padding:.55rem .6rem .25rem}
+.nkOpt{display:flex;flex-wrap:wrap;align-items:center;gap:.1rem .6rem;text-align:left;color:var(--ink);border:1px solid transparent;border-radius:8px;padding:.5rem .65rem;width:100%}
+.nkOpt b{font-weight:600}
+.nkOpt small{flex-basis:100%;color:var(--mute);font-size:.8rem}
+.nkOpt:hover{background:var(--hov)}
+.nkOpt.on{border-color:var(--y);background:var(--hov)}
+.nkRow{display:grid;grid-template-columns:1fr 190px;gap:.8rem}
+@media (max-width:560px){.nkRow{grid-template-columns:1fr}}
 input[data-own]{border-color:var(--y)}
 .gbar{position:relative;height:22px;background:var(--hov);border-radius:4px;min-width:120px}
 .gbar i{position:absolute;top:3px;bottom:3px;border-radius:3px;background:var(--y)}
@@ -212,6 +224,11 @@ function render() {
 }
 function vUebersicht() {
   const c = B.calc, max = Math.max(1, ...c.types.map((t) => t.sum));
+  if (!B.data.rooms.length) {   // noch leer: statt 0-€-Kacheln den Einstieg zeigen
+    return `<section class="card" style="padding:1.6rem 1.6rem 1.4rem"><h2 style="font-size:1.3rem">Los geht's mit „${esc(B.name)}“</h2>
+      <p class="sub" style="max-width:640px">Für eine erste Summe reicht ein Grundriss als PDF. Räume, Flächen und Nutzungen liest die App daraus, die Kosten rechnet sie mit Kennwerten je Raumtyp.</p>
+      <div class="row" style="gap:.6rem;margin-top:.4rem"><button class="btn pri" data-act="firstPdf">Grundriss (PDF) hochladen</button><button class="btn" data-act="firstRoom">Räume von Hand eintragen</button>${AS.open ? '' : '<button class="btn" data-act="openAssist">Mit dem Assistenten</button>'}</div></section>`;
+  }
   return `<div class="kpis">
     <div class="card kpi"><span class="lbl">Bauwerk KG 300 + 400</span><b class="num">${eur(c.bauwerk)}</b><span>${B.data.rooms.length} Räume × Kennwerte</span></div>
     <div class="card kpi"><span class="lbl">Gesamt netto</span><b class="num">${eur(c.total)}</b><span>${B.acc ? `wahrscheinlich ${eur(B.acc.low)} – ${eur(B.acc.high)}` : 'inkl. Positionen und ' + pct(B.data.nk) + ' Nebenkosten'}</span></div>
@@ -468,6 +485,9 @@ document.addEventListener('click', async (e) => {
     else if (act === 'addRoom') { B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'addItem') { B.data.items.push({ kg: '', name: '', amount: null }); changed(); }
     else if (act === 'estimate') runEstimate();
+    else if (act === 'firstPdf') $('#pdfIn').click();
+    else if (act === 'firstRoom') { tab = 'plaene'; history.replaceState(null, '', '#plaene'); B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
+    else if (act === 'openAssist') { AS.open = true; AS.step = null; asSave(); assist(); }
     else if (act === 'saveKw') { try { const o = {}; Object.entries(B.data.types).forEach(([k, v]) => { o[k] = v.kw; }); await api('/api/kennwerte', 'PUT', o); toast('Eigene Kennwerte gespeichert – gelten für neue Kostenermittlungen.'); } catch (er) { toast(er.message, true); } }
     return;
   }
@@ -583,20 +603,62 @@ function pdfDialog() {
   });
 }
 async function newDialog() {
+  if (document.querySelector('.modal-bg')) return;   // schon offen (Doppelklick)
   if (!SRC) await loadSources();
-  modalBox(`<h3>Neue Kostenermittlung</h3>
-    <div class="row" style="flex-direction:column;align-items:stretch"><label>Projekt (Bautagebuch)<select id="nProj"><option value="">– ohne Projekt –</option>${SRC.projects.filter((p) => !p.archived).map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label>
-    <label>Name<input id="nName" placeholder="z. B. A526 Tierheim – Kostenschätzung"></label>
-    <label>Bauzeitenplan<select id="nPlan"><option value="">– später wählen –</option>${SRC.plans.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label></div>
+  let sel = null, folders = [], fT = 0, nameTouched = false;   // sel: {kind:'bt'|'folder'|'none', id?, name}
+  const bg = modalBox(`<h3 style="margin-bottom:.3rem">Neue Kostenermittlung</h3><p class="hint" style="margin:0 0 1rem">Wähle das Projekt – aus dem Bautagebuch oder als Ordner vom Server.</p>
+    <div class="nk">
+      <label class="nkl" for="nkQ">Projekt</label>
+      <input id="nkQ" type="search" autocomplete="off" placeholder="Projektnummer oder Name, z. B. A526">
+      <div class="nkList" id="nkList" role="listbox" aria-label="Projekte"></div>
+      <div class="nkRow"><div><label class="nkl" for="nkName">Name der Kostenermittlung</label><input id="nkName" autocomplete="off"></div>
+        <div><label class="nkl" for="nkStufe">Stufe</label><select id="nkStufe">${STUFEN.map(([k, l]) => `<option value="${k}"${k === 'schaetzung' ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>
+      <label class="nkl" for="nkPlan">Bauzeitenplan <span class="hint">(für den Mittelabfluss, kann später gewählt werden)</span></label>
+      <select id="nkPlan"><option value="">– später wählen –</option>${SRC.plans.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select>
+    </div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`,
-  async (m, bg, close) => {
-    if (m !== 'ok') { close(); return; }
-    const pid = +bg.querySelector('#nProj').value || null;
-    try { const r = await api('/api/bk', 'POST', { name: bg.querySelector('#nName').value, project_id: pid, gantt_id: bg.querySelector('#nPlan').value || null }); close(); tab = 'plaene'; await loadList(r.id); }
-    catch (er) { toast(er.message, true); }
+  async (m, bgx, close, btn) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    if (!sel) { toast('Bitte ein Projekt wählen – oder „Ohne Projekt“.', true); $('#nkQ').focus(); return; }
+    btn.disabled = true; btn.textContent = 'Lege an …';
+    try {
+      let pid = sel.kind === 'bt' ? sel.id : null;
+      if (sel.kind === 'folder') { const r = await api('/api/bautagebuch-projekt', 'POST', { name: sel.name }); pid = r.id; toast(`Projekt „${sel.name}“ im Bautagebuch angelegt.`); }
+      const r = await api('/api/bk', 'POST', { name: $('#nkName').value.trim() || sel.name, project_id: pid, gantt_id: $('#nkPlan').value || null, stufe: $('#nkStufe').value });
+      close(); SRC = null; tab = 'uebersicht'; await loadList(r.id);
+    } catch (e) { btn.disabled = false; btn.textContent = 'Anlegen'; toast(e.message, true); }
   });
-  const ps = document.querySelector('#nProj');
-  ps.onchange = () => { const v = +ps.value, pl = SRC.plans.find((p) => p.project_id === v); if (pl) document.querySelector('#nPlan').value = pl.id; const nm = document.querySelector('#nName'); if (!nm.value && v) nm.value = SRC.projects.find((p) => p.id === v).name + ' – Kostenschätzung'; };
+  bg.querySelector('.modal').style.width = 'min(620px, 100%)';
+  const stufeName = () => (STUFEN.find((x) => x[0] === $('#nkStufe').value) || [, ''])[1];
+  const setName = () => { if (!nameTouched && sel) $('#nkName').value = (sel.kind === 'none' ? '' : sel.name + ' – ') + stufeName(); };
+  const draw = () => {
+    const q = $('#nkQ').value.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
+    const hit = (t) => words.every((w) => t.toLowerCase().includes(w));
+    const pr = SRC.projects.filter((p) => !p.archived || q).filter((p) => !q || hit(p.name + ' ' + (p.client || '') + ' ' + (p.address || ''))).slice(0, q ? 30 : 8);
+    const fo = folders.filter((f) => !SRC.projects.some((p) => p.name.toLowerCase() === f.toLowerCase()));
+    const opt = (kind, key, title, sub, extra = '') => `<button type="button" role="option" class="nkOpt ${sel && sel.kind === kind && String(sel.key) === String(key) ? 'on' : ''}" data-k="${kind}" data-key="${esc(String(key))}" aria-selected="${!!(sel && sel.kind === kind && String(sel.key) === String(key))}"><b>${esc(title)}</b>${extra}${sub ? `<small>${esc(sub)}</small>` : ''}</button>`;
+    $('#nkList').innerHTML = (pr.length ? `<div class="nkGrp">Projekte im Bautagebuch</div>` + pr.map((p) => opt('bt', p.id, p.name, [p.client, p.address].filter(Boolean).join(' · ') + (p.archived ? ' · archiviert' : ''))).join('') : '')
+      + (fo.length ? `<div class="nkGrp">Ordner auf dem Server – noch kein Projekt</div>` + fo.map((f) => opt('folder', f, f, 'wird beim Anlegen im Bautagebuch als Projekt angelegt', '<span class="pill y">neu</span>')).join('') : '')
+      + (q && !pr.length && !fo.length ? `<p class="hint" style="padding:.6rem .8rem;margin:0">Nichts gefunden zu „${esc(q)}“${q.length < 2 ? '' : ' – auch kein Ordner auf dem Server'}.</p>` : '')
+      + `<div class="nkGrp">Sonstiges</div>` + opt('none', 'none', 'Ohne Projekt anlegen', 'z. B. für eine erste Machbarkeitsschätzung');
+  };
+  $('#nkQ').addEventListener('input', () => {
+    draw(); clearTimeout(fT); const q = $('#nkQ').value.trim();
+    if (q.length < 2) { folders = []; draw(); return; }
+    fT = setTimeout(async () => { try { const r = await api('/api/folders?q=' + encodeURIComponent(q)); if (q === $('#nkQ').value.trim()) { folders = r; draw(); } } catch { /* ohne Vorschläge */ } }, 250);
+  });
+  $('#nkList').addEventListener('click', (e) => {
+    const o = e.target.closest('[data-k]'); if (!o) return;
+    const k = o.dataset.k, key = o.dataset.key;
+    if (k === 'bt') { const p = SRC.projects.find((x) => String(x.id) === key); sel = { kind: k, key, id: p.id, name: p.name }; const pl = SRC.plans.find((x) => x.project_id === p.id); if (pl) $('#nkPlan').value = pl.id; }
+    else if (k === 'folder') sel = { kind: k, key, name: key };
+    else sel = { kind: 'none', key: 'none', name: '' };
+    setName(); draw(); $('#nkName').focus();
+  });
+  $('#nkName').addEventListener('input', () => { nameTouched = true; });
+  $('#nkStufe').addEventListener('change', setName);
+  draw(); $('#nkQ').focus();
 }
 (async () => {
   const me = await api('/api/me'); applyLook(me);

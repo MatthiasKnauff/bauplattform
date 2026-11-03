@@ -1,5 +1,5 @@
 """Gemeinsame Bausteine von Startseite (portal.py) und Verwaltung (admin.py)."""
-import os, threading, time, urllib.request
+import json, os, threading, time, urllib.error, urllib.request
 from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, request, send_from_directory
@@ -95,6 +95,26 @@ def _logo_bytes():
                 _logo["data"] = None
             _logo["t"] = time.time()
         return _logo["data"]
+
+
+def bt_api(method, path, body=None):
+    """Bautagebuch im Docker-Netz aufrufen – mit der Anmeldung des aktuellen Benutzers (gemeinsame Sitzung, Cookie bp_sso).
+    So gelten dort dieselben Rechte, und das Bautagebuch erledigt Anlegen/Löschen selbst (inkl. Dateien im eigenen Laufwerk)."""
+    with db.tx() as c:
+        tok = sso.current_token(request, c)
+    req = urllib.request.Request(BT_INTERNAL + path, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode() or "null")
+    except urllib.error.HTTPError as e:
+        try:
+            msg = json.loads(e.read().decode() or "{}").get("error")
+        except ValueError:
+            msg = None
+        raise RuntimeError(msg or f"Bautagebuch antwortet mit Fehler {e.code}")
+    except Exception as e:
+        raise RuntimeError("Bautagebuch nicht erreichbar: " + str(e)[:120])
 
 
 def current_user():

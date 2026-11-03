@@ -83,14 +83,25 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
 }
 const projOf = (el) => data.p.find((p) => p.key === el.closest('tr').dataset.key);
 function mkBt(p, then) {
-  modalBox(`<h3>Bautagebuch-Projekt anlegen</h3><p>„${esc(p.name)}“ hat noch kein Projekt im Bautagebuch. Anlegen und ${p.plans.length + p.bks.length > 1 ? 'Plan und Kostenermittlung damit verknüpfen' : 'damit verknüpfen'}?</p>
-    <div class="row"><label for="btName">Projektname im Bautagebuch</label><input id="btName" value="${esc(p.name)}"></div>
+  let fT = 0;
+  const bg = modalBox(`<h3>Bautagebuch-Projekt anlegen</h3><p class="mute" style="margin-top:0">„${esc(p.name)}“ hat noch kein Projekt im Bautagebuch. Anlegen und ${p.plans.length + p.bks.length > 1 ? 'Plan und Kostenermittlung' : 'es'} damit verknüpfen?</p>
+    <div class="row"><label for="btName">Projektname im Bautagebuch</label><input id="btName" value="${esc(p.name)}" autocomplete="off"></div>
+    <div id="btSug"></div>
     <div class="acts"><button class="btn" data-m="x">Nein, später</button><button class="btn pri" data-m="ok">Anlegen und verknüpfen</button></div>`,
-  async (m, bg, close) => {
+  async (m, bgx, close, btn) => {
+    if (m === 'sug') { bgx.querySelector('#btName').value = btn.dataset.name; bgx.querySelectorAll('[data-m="sug"]').forEach((x) => x.classList.toggle('pri', x === btn)); return; }
     if (m !== 'ok') { close(); return; }
-    try { const r = await api('/api/projects/bautagebuch', 'POST', { name: bg.querySelector('#btName').value, plans: p.plans.map((x) => x.id), bks: p.bks.map((x) => x.id) }); close(); toast('Bautagebuch-Projekt angelegt und verknüpft.'); await load(); if (then) then(r.id); }
+    try { const r = await api('/api/projects/bautagebuch', 'POST', { name: bgx.querySelector('#btName').value, plans: p.plans.map((x) => x.id), bks: p.bks.map((x) => x.id) }); close(); toast('Bautagebuch-Projekt angelegt und verknüpft.'); await load(); if (then) then(r.id); }
     catch (e) { toast(e.message, true); }
   });
+  const inp = bg.querySelector('#btName'), box = bg.querySelector('#btSug');
+  const look = async (q) => {   // passende Ordner auf dem Server (Ablage des Bautagebuchs) vorschlagen
+    if (q.length < 2) { box.innerHTML = ''; return; }
+    let r = []; try { r = await api('/api/folders?q=' + encodeURIComponent(q)); } catch { /* keine Vorschläge */ }
+    box.innerHTML = r.length ? `<p class="mute" style="font-size:.85rem;margin:.2rem 0 .4rem">Ordner auf dem Server – Namen übernehmen:</p><div style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto">${r.slice(0, 12).map((n) => `<button type="button" class="btn sm" style="justify-content:flex-start" data-m="sug" data-name="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : '';
+  };
+  inp.addEventListener('input', () => { clearTimeout(fT); fT = setTimeout(() => look(inp.value.trim()), 250); });
+  look((p.name.match(/^[A-Za-z]?\d[\w.]*/) || [p.name.split(/\s+/)[0] || ''])[0]);   // zuerst nach Projektnummer, sonst erstem Wort suchen
 }
 function openDlg(p) {
   const L = [];

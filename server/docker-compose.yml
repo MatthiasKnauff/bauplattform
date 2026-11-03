@@ -15,17 +15,19 @@ x-env: &env
   TZ: ${TZ:-Europe/Berlin}
   DATABASE_URL: "postgresql://bautagebuch@bautagebuch_db:5432/bautagebuch"
   PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt – in Portainer unter Environment variables eintragen}
-  TRUST_PROXY: ${TRUST_PROXY:-0}
-  COOKIE_SECURE: ${COOKIE_SECURE:-0}
-  SSO_COOKIE_DOMAIN: ${SSO_COOKIE_DOMAIN:-}
+  # Docker 2 läuft hinter dem Nginx Proxy Manager (HTTPS, je App eine eigene Adresse).
+  # Werte in Portainer (Environment variables) haben Vorrang vor diesen Vorgaben.
+  TRUST_PROXY: ${TRUST_PROXY:-1}
+  COOKIE_SECURE: ${COOKIE_SECURE:-1}
+  SSO_COOKIE_DOMAIN: ${SSO_COOKIE_DOMAIN:-gk3-architektur.de}
   BAUTAGEBUCH_PORT: ${BAUTAGEBUCH_PORT:-8080}
   GANTT_PORT: ${GANTT_PORT:-8082}
   PORTAL_PORT: ${PORTAL_PORT:-8090}
   ADMIN_PORT: ${ADMIN_PORT:-8091}
-  BAUTAGEBUCH_URL: ${BAUTAGEBUCH_URL:-}
-  GANTT_URL: ${GANTT_URL:-}
-  PORTAL_URL: ${PORTAL_URL:-}
-  ADMIN_URL: ${ADMIN_URL:-}
+  BAUTAGEBUCH_URL: ${BAUTAGEBUCH_URL:-https://bautagebuch.gk3-architektur.de}
+  GANTT_URL: ${GANTT_URL:-https://gantt.gk3-architektur.de}
+  PORTAL_URL: ${PORTAL_URL:-https://bauportal.gk3-architektur.de}
+  ADMIN_URL: ${ADMIN_URL:-https://admin.gk3-architektur.de}
   BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
   GANTT_INTERNAL: http://gantt:8082
   PORTAL_INTERNAL: http://portal:8090

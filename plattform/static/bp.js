@@ -67,8 +67,8 @@ const ICONS = {
 /* Kopfleiste: gemeinsame Kopfleiste aller Apps (Bauportal / App · Projekt · KI · Benutzer), aus /bp/head.js */
 function _loadHead() {
   if (window.BPHead) return Promise.resolve();
-  if (!document.querySelector('link[href="/bp/head.css"]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/bp/head.css'; document.head.appendChild(l); }
-  return new Promise((ok, bad) => { const s = document.createElement('script'); s.src = '/bp/head.js'; s.onload = ok; s.onerror = () => bad(new Error('Kopfleiste nicht geladen')); document.head.appendChild(s); });
+  if (!document.querySelector('link[href="bp/head.css"]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'bp/head.css'; document.head.appendChild(l); }
+  return new Promise((ok, bad) => { const s = document.createElement('script'); s.src = 'bp/head.js'; s.onload = ok; s.onerror = () => bad(new Error('Kopfleiste nicht geladen')); document.head.appendChild(s); });
 }
 async function header(current, me, conf, opt = {}) {
   BP_PROXIED = conf.proxied || null; BP_DOMAIN = conf.domain || '';

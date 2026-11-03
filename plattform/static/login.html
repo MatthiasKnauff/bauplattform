@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#26282b">
 <title>Anmelden – Bauplattform</title>
-<link rel="icon" href="/logo.png">
-<link rel="stylesheet" href="/static/bp.css">
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
 <style>
 body{display:flex;min-height:100vh;align-items:flex-start;justify-content:center}
 #box{width:100%;max-width:360px;margin:14vh 1.25rem 2rem}
@@ -27,7 +27,7 @@ p{color:var(--mute);margin:0 0 .9rem}
 </head>
 <body>
 <main id="box">
-  <div class="logo"><img alt="" src="/logo.png" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="mk" hidden><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span><span><b id="office">Bauplattform</b><small>Gemeinsame Anmeldung</small></span></div>
+  <div class="logo"><img alt="" src="logo.png" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="mk" hidden><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span><span><b id="office">Bauplattform</b><small>Gemeinsame Anmeldung</small></span></div>
   <section id="vLogin">
     <h1>Anmelden</h1>
     <form id="fLogin" autocomplete="on">
@@ -53,18 +53,18 @@ p{color:var(--mute);margin:0 0 .9rem}
     <div class="lnks"><a href="#" id="out">Abmelden</a></div>
   </section>
 </main>
-<script src="/static/bp.js"></script>
+<script src="static/bp.js"></script>
 <script>
 const next = new URLSearchParams(location.search).get('next') || '';
-fetch('/api/brand').then(r => r.json()).then(b => { if (b.office) { $('#office').textContent = b.office; document.title = 'Anmelden – ' + b.office; } }).catch(() => {});
-fetch('/api/links').then(r => r.json()).then(l => { $('#forgot').href = l.forgot; }).catch(() => {});
+fetch('api/brand').then(r => r.json()).then(b => { if (b.office) { $('#office').textContent = b.office; document.title = 'Anmelden – ' + b.office; } }).catch(() => {});
+fetch('api/links').then(r => r.json()).then(l => { $('#forgot').href = l.forgot; }).catch(() => {});
 let me = null;
 function go(dest) { location.href = dest || next || '/'; }
 function showChange() { $('#vLogin').classList.add('hidden'); $('#vChange').classList.remove('hidden'); $('#em').classList.toggle('hidden', !!(me && me.email)); $('#pw0').focus(); }
 $('#fLogin').onsubmit = async (e) => {
   e.preventDefault(); $('#err').textContent = '';
   try {
-    const r = await api('/api/login', 'POST', { name: $('#un').value, password: $('#pw').value, next });
+    const r = await api('api/login', 'POST', { name: $('#un').value, password: $('#pw').value, next });
     me = r; applyLook(r); try { sessionStorage.removeItem('bpBounce'); } catch { /* egal */ }
     if (r.must_change) { $('#pw0').value = $('#pw').value; showChange(); $('#pw1').focus(); return; }
     go(r.next);
@@ -73,10 +73,10 @@ $('#fLogin').onsubmit = async (e) => {
 $('#fChange').onsubmit = async (e) => {
   e.preventDefault(); $('#err2').textContent = '';
   if ($('#pw1').value !== $('#pw2').value) { $('#err2').textContent = 'Die beiden neuen Kennwörter sind nicht gleich.'; return; }
-  try { await api('/api/password', 'POST', { old: $('#pw0').value, new: $('#pw1').value, email: $('#em').value }); go(); }
+  try { await api('api/password', 'POST', { old: $('#pw0').value, new: $('#pw1').value, email: $('#em').value }); go(); }
   catch (err) { $('#err2').textContent = err.message; }
 };
-$('#out').onclick = async (e) => { e.preventDefault(); await fetch('/api/logout', { method: 'POST' }); location.reload(); };
+$('#out').onclick = async (e) => { e.preventDefault(); await fetch('api/logout', { method: 'POST' }); location.reload(); };
 // schon angemeldet? → direkt weiter (oder Kennwort ändern).
 // Schleifensperre: Schickt die App gleich wieder hierher zurück (Sitzung dort nicht gültig), nicht endlos hin und her
 // springen, sondern das Anmeldeformular zeigen – neu anmelden räumt alte Cookies auf.
@@ -86,7 +86,7 @@ function bounced() {
   try { sessionStorage.setItem('bpBounce', JSON.stringify(a)); } catch { /* egal */ }
   return a.length > 2;
 }
-api('/api/me').then(r => {
+api('api/me').then(r => {
   if (!r.ok) { $('#un').focus(); return; }
   me = r; applyLook(r);
   if (r.must_change) { showChange(); return; }

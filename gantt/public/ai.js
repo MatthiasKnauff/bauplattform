@@ -2,12 +2,12 @@
 /* =====================================================================
    Positionsvorschlag für neue Leistungen
    - eingebaut: Textähnlichkeit zu den vorhandenen Leistungen + DIN-Schlagworte (offline)
-   - KI: Claude über den eigenen Server (/api/ai/place); der API-Schlüssel bleibt auf dem Server
+   - KI: Claude über den eigenen Server (api/ai/place); der API-Schlüssel bleibt auf dem Server
    Einstellung (Aus / Eingebaut / KI) und Zugangsdaten: Programmeinstellungen.
    ===================================================================== */
 window.AI_SETTINGS = { mode: 'builtin', model: 'claude-haiku-5-5', models: {}, hasKey: false, keyHint: '' };
 async function loadAiSettings() {
-  try { const s = await fetch('/api/settings').then(j); if (s && s.ai) window.AI_SETTINGS = s.ai; } catch { /* Standard bleibt */ }
+  try { const s = await fetch('api/settings').then(j); if (s && s.ai) window.AI_SETTINGS = s.ai; } catch { /* Standard bleibt */ }
   if (window.bpApplyKi) window.bpApplyKi();   // KI-Auswahl der Kopfleiste (gilt in allen Apps)
   if (window.AssistCore) AssistCore.notifySoon();
   if (!$('#libView').hidden && typeof renderLib === 'function') renderLib();
@@ -71,7 +71,7 @@ function builtinPlace(text, items, curPh) {
 }
 async function aiServerPlace(text, items, cfg, curPh, phases) {
   phases = phases || CATALOG.phases.map((p) => ({ k: p.k, n: p.n }));
-  const r = await fetch('/api/ai/place', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+  const r = await fetch('api/ai/place', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider: window.AI_SETTINGS.provider || '', text, ph: curPh || '', type: (cfg && cfg.type) || '', phases, items: items.filter((i) => !i.ms).map((i) => ({ id: i.id, n: i.n, ph: i.ph, gw: i.gw })) }) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || r.statusText);
@@ -193,7 +193,7 @@ function aiSettingsWire(bg) {
   bg.querySelector('#aiTest').onclick = async () => {
     const out = bg.querySelector('#aiTestRes'); out.textContent = 'teste …'; out.style.color = '';
     try {
-      const r = await fetch('/api/ai/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: bg.querySelector('#aiKey').value, model: bg.querySelector('#aiModel').value }) });
+      const r = await fetch('api/ai/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: bg.querySelector('#aiKey').value, model: bg.querySelector('#aiModel').value }) });
       const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || r.statusText);
       out.textContent = '✔ Verbindung in Ordnung (' + d.model + ')'; out.style.color = '#2e7d32';
     } catch (e) { out.textContent = '✖ ' + e.message; out.style.color = '#c62828'; }
@@ -202,7 +202,7 @@ function aiSettingsWire(bg) {
     const mode = (bg.querySelector('input[name="aimode"]:checked') || {}).value || 'builtin';
     const body = { ai: { mode, model: bg.querySelector('#aiModel').value, key: bg.querySelector('#aiKey').value, clearKey } };
     try {
-      const s = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(j);
+      const s = await fetch('api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(j);
       window.AI_SETTINGS = s.ai;
       if (mode === 'ai' && !s.ai.hasKey) toast('KI gewählt, aber kein API-Schlüssel hinterlegt – bis dahin gilt der eingebaute Vorschlag.', true);
     } catch (e) { toast('Einstellungen nicht gespeichert: ' + e.message, true); }

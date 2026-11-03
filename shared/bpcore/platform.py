@@ -16,6 +16,10 @@ def version():
         return os.environ.get("BP_VERSION", "dev")
 
 
+# Pfade der Apps unter der gemeinsamen Adresse (Verteiler-Container „bauportal“, plattform/router.py)
+PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "admin": "verwaltung"}
+
+
 def apps():
     """Apps mit Port und (optional) eigener Adresse hinter dem Reverse Proxy.
     Hat eine App keine eigene Adresse (z. B. die Adressen-App, solange im Nginx Proxy Manager noch nichts eingetragen ist),
@@ -23,6 +27,7 @@ def apps():
     („auto“). Ohne SERVER_HOST setzt der Browser die Adresse aus dem aktuellen Rechnernamen und dem Port zusammen."""
     e = os.environ.get
     host = e("SERVER_HOST", "").strip()
+    base = e("BAUPORTAL_URL", "").strip().rstrip("/")   # alle Apps unter einer Adresse: https://bauportal.firma.de/bautagebuch …
     out = []
     for key, name, port_var, port_def, url_var, extra in (
             ("portal", "Startseite", "PORTAL_PORT", "8090", "PORTAL_URL", {}),
@@ -32,8 +37,10 @@ def apps():
             ("baukosten", "Baukosten", "BAUKOSTEN_PORT", "8094", "BAUKOSTEN_URL", {}),
             ("admin", "Verwaltung", "ADMIN_PORT", "8091", "ADMIN_URL", {"admin": True})):
         port, url = int(e(port_var, port_def)), e(url_var, "").strip().rstrip("/")
-        a = {"key": key, "name": name, "port": port, "url": url, **extra}
-        if not url and host:
+        a = {"key": key, "name": name, "port": port, "url": url, "path": PATHS[key], **extra}
+        if not url and base:
+            a["url"] = base + ("/" + PATHS[key] if PATHS[key] else "")
+        if not a["url"] and host:
             a["url"], a["auto"] = f"http://{host}:{port}", True
         out.append(a)
     return out

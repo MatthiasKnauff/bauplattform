@@ -618,9 +618,9 @@
       return res.slice(0, 3);
     },
     gewerke() { return [...new Set([...C.items.map((i) => i.gw), ...(window.DIN_ATV || []).map((x) => x[2]), ...(typeof P !== 'undefined' && P ? P.tasks.map((t) => t.gw).filter(Boolean) : [])])].sort((a, b) => a.localeCompare(b, 'de')); },
-    async presets() { return fetch('/api/presets').then(j); },
-    async savePreset(pr) { pr = clone(pr); return fetch('/api/presets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pr) }).then(j); },
-    async deletePreset(id) { return fetch('/api/presets/' + encodeURIComponent(id), { method: 'DELETE' }).then(j); },
+    async presets() { return fetch('api/presets').then(j); },
+    async savePreset(pr) { pr = clone(pr); return fetch('api/presets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pr) }).then(j); },
+    async deletePreset(id) { return fetch('api/presets/' + encodeURIComponent(id), { method: 'DELETE' }).then(j); },
     setParam(k, v) {
       if (!isLive()) return false;
       v = clone(v); const old = clone(P.assist);

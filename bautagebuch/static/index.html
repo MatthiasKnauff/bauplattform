@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#84827c">
 <title>Bautagebuch</title>
-<link rel="icon" type="image/png" href="/api/favicon">
-<link rel="apple-touch-icon" href="/api/favicon?s=180">
-<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="api/favicon">
+<link rel="apple-touch-icon" href="api/favicon?s=180">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{--bar:#84827c;--bg:#26282b;--card:#252729;--line:#3b3e42;--ink:#f3f3f1;--mute:#9a9c9e;--y:#ff5fb3;--on:#111;--red:#ff7a6b;--inp:#1d1f21;--pan:#2b2d30;--hov:#2a2d30;color-scheme:dark}
 /* helles Schema – eingestellt auf der Startseite der Bauplattform (Darstellung), gilt für alle Apps */
@@ -309,8 +309,8 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 .pvs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:.6rem .6rem calc(.6rem + env(safe-area-inset-bottom))}
 .pvw{width:max-content;min-width:100%}.pvw canvas{display:block;margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}
 </style>
-<link rel="stylesheet" href="/bp/head.css">
-<script src="/bp/head.js"></script>
+<link rel="stylesheet" href="bp/head.css">
+<script src="bp/head.js"></script>
 </head>
 <body>
 <section id="login" class="hidden"></section>
@@ -425,7 +425,7 @@ async function pvShare() {
 }
 async function api(u, m = 'GET', d, form) {
   const r = await fetch(u, {method: m, headers: d ? {'Content-Type':'application/json'} : {}, body: form || (d ? JSON.stringify(d) : undefined)});
-  if (r.status === 401 && u !== '/api/login') { showLogin(); throw 0; }
+  if (r.status === 401 && u !== 'api/login') { showLogin(); throw 0; }
   const j = await r.json();
   if (r.status === 403 && j.must_change) { authView('change'); throw 0; }
   return j;
@@ -474,9 +474,9 @@ let PLATFORM = {};
 const appUrl = a => a.url || `${location.protocol}//${location.hostname}:${a.port}`;
 const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
-  try { PLATFORM = await api('/api/platform'); } catch { PLATFORM = {}; }
+  try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
   if (window.BPHead) BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });   // gemeinsame Kopfleiste
-  try { meta = await api('/api/meta'); contacts = await api('/api/contacts'); settings = await api('/api/settings'); people = await api('/api/people'); leaderUsers = await api('/api/leaders'); await loadProjects(); } catch { return; }
+  try { meta = await api('api/meta'); contacts = await api('api/contacts'); settings = await api('api/settings'); people = await api('api/people'); leaderUsers = await api('api/leaders'); await loadProjects(); } catch { return; }
   const hp = /^#projekt=(\d+)/.exec(location.hash);   // Link aus der Verwaltung: dieses Projekt öffnen
   if (hp) history.replaceState(null, '', location.pathname);
   const start = (hp && projects.find(p => p.id === +hp[1])) || projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
@@ -485,18 +485,18 @@ const showApp = async () => {
   if (await backfillAddresses()) autoPick(true);
 };
 async function loadProjects() {
-  projects = await api('/api/projects');
+  projects = await api('api/projects');
   if (pid && !curProject()) { pid = null; rid = null; reports = []; }
 }
 async function openProject(id, keep) {
   pid = id; try { localStorage.setItem('pid', id); } catch {}
-  reports = await api(`/api/projects/${id}/reports`);
+  reports = await api(`api/projects/${id}/reports`);
   if (!keep || !curReport()) { rid = reports[0]?.id ?? null; wxEdit = headEdit = false; adding = null; }
   await loadProjects(); renderDetail(); autoWx(); checkRename(id);
 }
 async function checkRename(id) {   // Wurden abgelegte Dateien auf dem Server von Hand umbenannt? Dann Rückfrage im Bericht
   if (renameSeen[id]) return; renameSeen[id] = true; renameOffer = null;
-  try { const r = await api('/api/store/rename-check?project_id=' + id); if (r && r.count && pid === id) { renameOffer = {...r, pid: id}; if (tab === 'bericht' && !draft) renderDetail(); } } catch {}
+  try { const r = await api('api/store/rename-check?project_id=' + id); if (r && r.count && pid === id) { renameOffer = {...r, pid: id}; if (tab === 'bericht' && !draft) renderDetail(); } } catch {}
 }
 const renameBanner = () => !renameOffer || renameOffer.pid !== pid ? '' : `<div class="rnb"><b>Auf dem Server wurden Dateien von Hand umbenannt.</b>
   <div>Die App hat dein Namensschema erkannt${renameOffer.example_pdf ? ' – PDF z. B. „' + esc(renameOffer.example_pdf) + '“' : ''}${renameOffer.example_dir ? ', Fotoordner z. B. „' + esc(renameOffer.example_dir) + '“' : ''}.
@@ -506,7 +506,7 @@ async function backfillAddresses() {   // einmal pro Projekt ohne Adresse: aus d
   const todo = projects.filter(p => !addr(p) && !hasPos(p) && !(p.extra && p.extra.addr_tried));
   if (!todo.length) return false;
   let n = 0;
-  for (const p of todo) { try { const r = await api(`/api/projects/${p.id}/autoaddress`, 'POST'); if (r.error) return false; if (r.found) n++; } catch { return false; } }
+  for (const p of todo) { try { const r = await api(`api/projects/${p.id}/autoaddress`, 'POST'); if (r.error) return false; if (r.found) n++; } catch { return false; } }
   await loadProjects(); chrome();
   if (!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && (tab === 'projekt' || n)) renderDetail();
   if (n) toast(`Für ${n} Projekt${n === 1 ? '' : 'e'} wurde die Adresse aus dem Projektnamen ermittelt – bitte über die Projektauswahl → „Projekt bearbeiten“ prüfen.`);
@@ -529,7 +529,7 @@ function sheetSuggest() {   // Ordner vom Server, die noch kein Projekt sind (Ti
   clearTimeout(sheetSugT); const q = sheetQ.trim();
   if (!q) { sheetSug = []; return renderSheet(); }
   sheetSugT = setTimeout(async () => {
-    try { const r = await api('/api/store/folders?q=' + encodeURIComponent(q)); if (q === sheetQ.trim() && Array.isArray(r)) { sheetSug = r; renderSheet(); } } catch {}
+    try { const r = await api('api/store/folders?q=' + encodeURIComponent(q)); if (q === sheetQ.trim() && Array.isArray(r)) { sheetSug = r; renderSheet(); } } catch {}
   }, 250);
 }
 function renderSheet() {
@@ -571,7 +571,7 @@ function newProject() {   // Eingabe direkt im Reiter „Projekt“, kein Popup
 async function createProject() {
   const d = draft; if (!d) return;
   if (!d.name.trim()) { toast('Bitte einen Projektnamen eingeben.'); document.querySelector('[data-dp=name]')?.focus(); return; }
-  const r = await api('/api/projects', 'POST', Object.fromEntries(Object.entries(d).map(([k, v]) => [k, typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : v])));
+  const r = await api('api/projects', 'POST', Object.fromEntries(Object.entries(d).map(([k, v]) => [k, typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : v])));
   draft = null; tab = 'projekt'; await openProject(r.id);
   toast(r.auto_address ? 'Projekt angelegt. Adresse und PLZ wurden aus dem Projektnamen ermittelt – bitte prüfen.' : r.geocoded === true ? 'Projekt angelegt, Standort aus der Adresse ermittelt.' : r.geocoded === false ? 'Projekt angelegt, aber die Adresse wurde nicht gefunden – bitte prüfen.' : 'Projekt angelegt. Im Projektnamen wurde keine Adresse gefunden – trage sie ein oder übernimm den aktuellen Standort.');
 }
@@ -609,11 +609,11 @@ async function fillGeo(silent, force) {   // Wetter für die ADRESSE DES PROJEKT
   let lat = p.lat, lon = p.lon;
   if (lat == null || lon == null) {   // noch keine Koordinaten am Projekt: aus der Adresse ermitteln
     const addr = [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-    if (addr) { try { const h = await api('/api/geocode?q=' + encodeURIComponent(addr)); if (h.found) { lat = h.lat; lon = h.lon; } } catch {} }
+    if (addr) { try { const h = await api('api/geocode?q=' + encodeURIComponent(addr)); if (h.found) { lat = h.lat; lon = h.lon; } } catch {} }
   }
   if (lat == null || lon == null) { if (!silent) toast('Für das Wetter bitte zuerst die Adresse im Projekt eintragen.'); return; }
   const rid0 = r.id, needAddr = !(p.zip && p.city);
-  let g; try { g = await api(`/api/geo?lat=${lat}&lon=${lon}&date=${encodeURIComponent(r.date || '')}&time=${encodeURIComponent(r.time || '')}${needAddr ? '' : '&noaddr=1'}`); } catch { return; }
+  let g; try { g = await api(`api/geo?lat=${lat}&lon=${lon}&date=${encodeURIComponent(r.date || '')}&time=${encodeURIComponent(r.time || '')}${needAddr ? '' : '&noaddr=1'}`); } catch { return; }
   if (g.error) { if (!silent) toast(g.error); return; }
   if (rid0 !== (curReport() || {}).id) return;   // inzwischen anderer Bericht geöffnet
   const upd = {};
@@ -622,7 +622,7 @@ async function fillGeo(silent, force) {   // Wetter für die ADRESSE DES PROJEKT
   if (plz) upd.plz = plz;
   upd.extra = {...(place ? {place} : {}), wx_auto: 1};
   if (!Object.keys(upd).length) { if (!silent) toast('Keine Daten erhalten.'); return; }
-  await api('/api/reports/' + r.id, 'PUT', upd);
+  await api('api/reports/' + r.id, 'PUT', upd);
   if (!silent) toast(`Wetter für die Projektadresse am ${fmt(r.date)} übernommen` + (g.partial.length ? ` (${g.partial.join(', ')} nicht verfügbar)` : '') + '.');
   await openProject(pid, true);
 }
@@ -647,7 +647,7 @@ function dueUi(i, s) {   // Erledigungsdatum mit E-Mail-Erinnerung (nur Abschnit
 }
 function photoUi(i, s, r) {   // kleine Fotos am Eintrag (Mangel, Notiz); das große Bild liegt unter „Bilder“
   if (!(s.extra && s.extra.photos)) return '';
-  const th = r.images.filter(x => x.item_id === i.id).map(x => `<a href="/uploads/${esc(x.file)}" target="_blank" title="${esc(x.caption || 'Foto')}"><img loading="lazy" src="/api/thumb/96/${esc(x.file)}" alt="${esc(x.caption || 'Foto')}"></a>`).join('');
+  const th = r.images.filter(x => x.item_id === i.id).map(x => `<a href="uploads/${esc(x.file)}" target="_blank" title="${esc(x.caption || 'Foto')}"><img loading="lazy" src="api/thumb/96/${esc(x.file)}" alt="${esc(x.caption || 'Foto')}"></a>`).join('');
   return `<span class="ith">${th}<button class="ph" data-act="itemPhoto" data-id="${i.id}" title="Foto zu diesem Eintrag">${ic('cam', 18)}</button></span>`;
 }
 let secOpen = {}; try { secOpen = JSON.parse(localStorage.getItem('secOpen') || '{}'); } catch {}
@@ -689,7 +689,7 @@ function imgSec(s, r) {
   const shown = allImgs ? r.images : r.images.slice(0, 6), rest = r.images.length - shown.length;
   const open = secIsOpen(s.key, r.images.length);
   return `<div class="sec ${open ? '' : 'col'}"><div class="main">${secHead(s, r.images.length, open)}
-    <div class="imgs" ${open ? '' : 'style="display:none"'}>${shown.map(i => `<div><a href="/uploads/${esc(i.file)}" target="_blank"><img loading="lazy" src="/api/thumb/240/${esc(i.file)}" alt="${esc(i.caption || 'Baustellenfoto')}"></a><button class="rm" data-act="delImg" data-id="${i.id}" title="Bild löschen">✕</button><input class="cap" data-img="${i.id}" value="${esc(i.caption)}" placeholder="Beschreibung" maxlength="120" autocomplete="off" aria-label="Fotobeschreibung (wird der Dateiname)"></div>`).join('')}</div>
+    <div class="imgs" ${open ? '' : 'style="display:none"'}>${shown.map(i => `<div><a href="uploads/${esc(i.file)}" target="_blank"><img loading="lazy" src="api/thumb/240/${esc(i.file)}" alt="${esc(i.caption || 'Baustellenfoto')}"></a><button class="rm" data-act="delImg" data-id="${i.id}" title="Bild löschen">✕</button><input class="cap" data-img="${i.id}" value="${esc(i.caption)}" placeholder="Beschreibung" maxlength="120" autocomplete="off" aria-label="Fotobeschreibung (wird der Dateiname)"></div>`).join('')}</div>
     ${open && rest > 0 ? `<button class="bd morei" data-act="moreImgs">Alle ${r.images.length} Bilder anzeigen (+${rest})</button>` : ''}${open && allImgs && r.images.length > 6 ? `<button class="bd morei" data-act="lessImgs">Weniger anzeigen</button>` : ''}
     <input type="file" id="file" class="vh" accept="image/*,.heic,.heif" multiple></div>
     <div class="side"><button data-act="pickFile" title="Bilder hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
@@ -709,7 +709,7 @@ function wxSec(s, r) {
 const headMap = p => {   // dieselbe abgeflachte Karte wie in der PDF; Antippen = Route
   if (!p || !hasPos(p)) return '';
   const d = encodeURIComponent((addr(p) || p.lat + ',' + p.lon));
-  return `<a class="hmap" href="https://www.google.com/maps/dir/?api=1&destination=${d}&travelmode=driving" target="_blank" rel="noopener" title="Route zur Baustelle planen"><img src="/api/projects/${p.id}/map.jpg?v=${String(p.lat).slice(0, 7)}_${String(p.lon).slice(0, 6)}" alt="Karte" onerror="this.parentNode.remove()"></a>`;
+  return `<a class="hmap" href="https://www.google.com/maps/dir/?api=1&destination=${d}&travelmode=driving" target="_blank" rel="noopener" title="Route zur Baustelle planen"><img src="api/projects/${p.id}/map.jpg?v=${String(p.lat).slice(0, 7)}_${String(p.lon).slice(0, 6)}" alt="Karte" onerror="this.parentNode.remove()"></a>`;
 };
 function headSec(s, r) {
   const p = curProject();
@@ -736,12 +736,12 @@ function renderReport(box) {
   box.insertAdjacentHTML('beforeend', '<input type="file" id="ifile" class="vh" accept="image/*,.heic,.heif" multiple>');
   $('#ifile').onchange = async e => {
     const fd = new FormData(); [...e.target.files].forEach(x => fd.append('files', x)); fd.append('item_id', itemPhotoFor);
-    e.target.value = ''; const up = await api(`/api/reports/${rid}/images`, 'POST', null, fd); await openProject(pid, true);
+    e.target.value = ''; const up = await api(`api/reports/${rid}/images`, 'POST', null, fd); await openProject(pid, true);
     if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
   };
   const f = $('#file'); if (f) f.onchange = async e => {
     const fd = new FormData(); [...e.target.files].forEach(x => fd.append('files', x));
-    const up = await api(`/api/reports/${rid}/images`, 'POST', null, fd); openProject(pid, true);
+    const up = await api(`api/reports/${rid}/images`, 'POST', null, fd); openProject(pid, true);
     if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
   };
   document.querySelector('[data-add]')?.focus(); growAll(); loadVer();
@@ -761,7 +761,7 @@ function renderSearch(box) {
 }
 async function doSearch() {
   const q = sr.q.trim(); if (!q) { sr.res = null; return fillSearch(); }
-  const r = await api('/api/search?q=' + encodeURIComponent(q) + (sr.scope === 'one' && pid ? '&project_id=' + pid : ''));
+  const r = await api('api/search?q=' + encodeURIComponent(q) + (sr.scope === 'one' && pid ? '&project_id=' + pid : ''));
   if (q !== sr.q.trim()) return; sr.res = r.results || []; sr.trunc = r.truncated; fillSearch();
 }
 function fillSearch() {
@@ -782,12 +782,12 @@ let bk = null;
 const backupCard = () => `<div class="cform"><h3>Datensicherung</h3>
   <div class="info">Die App sichert die Datenbank (alle Projekte, Berichte, Einträge, Kontakte, Einstellungen, Protokoll) täglich automatisch – die letzten 30 bleiben. Zusätzlich entsteht vor jeder Migration und vor jeder Wiederherstellung eine Sicherung. Fotodateien liegen separat im Datenordner und sind nicht Teil dieser Sicherungen.</div>
   <div class="acts"><button data-act="bkNew">Jetzt sichern</button></div><div id="bkl" class="w"></div></div>`;
-async function loadBackups() { const r = await api('/api/backups'); bk = r.items || []; fillBackups(); }
+async function loadBackups() { const r = await api('api/backups'); bk = r.items || []; fillBackups(); }
 function fillBackups() {
   const b = $('#bkl'); if (!b || !bk) return;
   const lab = k => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k.startsWith('vor') ? 'Sicherung ' + k.replace(/-/g, ' ') : k;
   b.innerHTML = bk.length ? `<div class="audl">${bk.map(x => `<div class="vrow"><div class="vt"><span>${dt(x.created)} · ${esc(lab(x.kind))}</span><span>${esc(x.name)} · ${fsize(x.size)}</span></div>
-    <div class="va"><a class="bd" href="/api/backups/${encodeURIComponent(x.name)}/download" download>Laden</a><button data-act="bkRestore" data-id="${esc(x.name)}" data-arm="Wirklich zurückspielen? Nochmal tippen">Wiederherstellen</button><button data-act="bkDel" data-id="${esc(x.name)}" class="bad">✕</button></div></div>`).join('')}</div>
+    <div class="va"><a class="bd" href="api/backups/${encodeURIComponent(x.name)}/download" download>Laden</a><button data-act="bkRestore" data-id="${esc(x.name)}" data-arm="Wirklich zurückspielen? Nochmal tippen">Wiederherstellen</button><button data-act="bkDel" data-id="${esc(x.name)}" class="bad">✕</button></div></div>`).join('')}</div>
     <div class="info">„Wiederherstellen“ ersetzt den gesamten Datenbestand durch den Stand der Version (davor wird automatisch gesichert). Danach wird die Seite neu geladen.</div>` : '<div class="info">Noch keine Version vorhanden.</div>';
 }
 /* ---------- Auditprotokoll + Aufräumen auf dem Projektserver (nur Administrator) ---------- */
@@ -796,7 +796,7 @@ const CATS = [['', 'Alles'], ['inhalt', 'Inhalte'], ['export', 'PDF & Server'], 
 const fsize = b => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 async function loadAudit(more) {
   const a = new URLSearchParams({cat: aud.cat, q: aud.q, user: aud.user}); if (more && aud.rows.length) a.set('before', aud.rows[aud.rows.length - 1].id);
-  const r = await api('/api/audit?' + a); if (r.error) { toast(r.error); return; }
+  const r = await api('api/audit?' + a); if (r.error) { toast(r.error); return; }
   aud.rows = more ? aud.rows.concat(r.rows) : r.rows; aud.more = r.more; aud.users = r.users; aud.loaded = true; fillAudit();
 }
 function renderAudit(box) {
@@ -822,7 +822,7 @@ function fillAudit() {
 }
 async function clnLoad(btn) {
   if (btn) btn.disabled = true; cln = null;
-  const r = await api(`/api/audit/cleanup?scope=${clnScope}&project_id=${pid || ''}`);
+  const r = await api(`api/audit/cleanup?scope=${clnScope}&project_id=${pid || ''}`);
   cln = r.error ? {error: r.error} : {items: r.items, projects: r.projects, errors: r.errors, sel: new Set()}; renderAudit($('#detail'));
 }
 function fillCleanup() {
@@ -846,7 +846,7 @@ let verOpen = false, verData = null, verView = null, verSnap = null;
 const dt = iso => { const d = new Date(String(iso).replace(' ', 'T')); return isNaN(d) ? '' : d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'}) + ' ' + d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}); };
 async function loadVer() {
   const my = rid; if (!my) return;
-  try { const v = await api(`/api/reports/${my}/versions`); if (my !== rid) return; verData = v; } catch { return; }
+  try { const v = await api(`api/reports/${my}/versions`); if (my !== rid) return; verData = v; } catch { return; }
   fillVer();
 }
 function verSummary(snap) {
@@ -894,7 +894,7 @@ async function addrComplete(el) {   // PLZ ↔ Ort und Straße → PLZ/Ort ergä
   if ((v(zp) && v(ct)) || (!v(zp) && !v(ct))) return;
   addrBusy = true;
   try {
-    const r = await api('/api/address/complete?street=' + encodeURIComponent(v(st)) + '&zip=' + encodeURIComponent(v(zp)) + '&city=' + encodeURIComponent(v(ct)));
+    const r = await api('api/address/complete?street=' + encodeURIComponent(v(st)) + '&zip=' + encodeURIComponent(v(zp)) + '&city=' + encodeURIComponent(v(ct)));
     const done = [];
     for (const [k, inp] of [['zip', zp], ['city', ct]]) {
       if (r && r[k] && !v(inp)) { inp.value = r[k]; inp.dispatchEvent(new Event('input', {bubbles: true})); inp.dispatchEvent(new Event('change', {bubbles: true})); done.push(k === 'zip' ? 'PLZ ' + r[k] : r[k]); }
@@ -914,7 +914,7 @@ function adrSuggest(el) {
   const full = [q, (f('zip')?.value || '').trim(), (f('city')?.value || '').trim()].filter(Boolean).join(' '); adrQ = full;
   adrT = setTimeout(async () => {
     const p = typeof curProject === 'function' ? curProject() : null, ref = p && hasPos(p) ? p : here, near = ref ? `&lat=${ref.lat}&lon=${ref.lon}` : '';
-    let items = []; try { const r = await api('/api/address/suggest?q=' + encodeURIComponent(full) + near); items = Array.isArray(r.items) ? r.items : []; } catch {}
+    let items = []; try { const r = await api('api/address/suggest?q=' + encodeURIComponent(full) + near); items = Array.isArray(r.items) ? r.items : []; } catch {}
     if (full !== adrQ || document.activeElement !== el) return;
     adrClose(); if (!items.length) return;
     sugC = items;
@@ -946,7 +946,7 @@ function suggestProjects(q) {   // Vorschläge aus den Serverordnern (native Aus
   clearTimeout(sugT);
   sugT = setTimeout(async () => {
     const dl = $('#dl-proj'); if (!dl || !q.trim()) return;
-    const r = await api('/api/store/folders?q=' + encodeURIComponent(q.trim()));
+    const r = await api('api/store/folders?q=' + encodeURIComponent(q.trim()));
     if (Array.isArray(r) && $('#dl-proj') && draft && draft.name === q) $('#dl-proj').innerHTML = r.map(n => `<option value="${esc(n)}"></option>`).join('');
   }, 250);
 }
@@ -983,7 +983,7 @@ function renderProject(box) {
 async function loadNames(id) {   // im Projekt aktive Namenskonventionen (Ordner, PDF-Name, Fotoordner)
   const box = $('#pnames'); if (!box) return;
   try {
-    const n = await api('/api/store/names?project_id=' + id); if (!$('#pnames') || id !== pid) return;
+    const n = await api('api/store/names?project_id=' + id); if (!$('#pnames') || id !== pid) return;
     const row = (l, v) => `<div><b>${l}:</b> <code>${esc(v)}</code></div>`;
     let open = true; try { open = localStorage.getItem('namesOpen') !== '0'; } catch {}
     box.innerHTML = `<details ${open ? 'open' : ''}><summary><b>Aktive Namenskonventionen</b> (${n.scheme ? 'Schema dieses Projekts' : 'Standard der App'})</summary>`
@@ -996,7 +996,7 @@ async function loadNames(id) {   // im Projekt aktive Namenskonventionen (Ordner
 async function saveProjectField(t) {
   const p = curProject(), k = t.dataset.pf; let v = t.value.trim().replace(/\s+/g, ' ');
   if (k === 'name' && !v) { toast('Der Name darf nicht leer sein.'); t.value = p.name; return; }
-  const res = await api('/api/projects/' + pid, 'PUT', {[k]: v});
+  const res = await api('api/projects/' + pid, 'PUT', {[k]: v});
   if (res.error) { toast(res.error); t.value = p[k]; return; }
   t.value = v; await loadProjects(); chrome();
   const q = curProject(); $('#pinfo').textContent = posInfo(q);
@@ -1006,27 +1006,27 @@ async function saveProjectField(t) {
 async function geoSearch() {
   const p = curProject(), a = [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
   toast('Adresse wird gesucht …');
-  const g = await api('/api/geocode?q=' + encodeURIComponent(a || p.name) + (a ? '' : '&from_name=1'));
+  const g = await api('api/geocode?q=' + encodeURIComponent(a || p.name) + (a ? '' : '&from_name=1'));
   if (!g.found) { toast('Adresse nicht gefunden. Bitte Straße, PLZ und Ort eintragen.'); return; }
-  await api('/api/projects/' + pid, 'PUT', {street: g.street, zip: g.zip, city: g.city, lat: g.lat, lon: g.lon, extra: {addr_auto: !a}});
+  await api('api/projects/' + pid, 'PUT', {street: g.street, zip: g.zip, city: g.city, lat: g.lat, lon: g.lon, extra: {addr_auto: !a}});
   await loadProjects(); renderDetail(); toast('Adresse und Standort übernommen. Bitte kurz prüfen.');
 }
 async function geoHere() {
   const h = await locate(false); if (!h) return;
-  let g; try { g = await api(`/api/geo?lat=${h.lat}&lon=${h.lon}`); } catch { return; }
+  let g; try { g = await api(`api/geo?lat=${h.lat}&lon=${h.lon}`); } catch { return; }
   const upd = {lat: h.lat, lon: h.lon}; if (!g.error) Object.assign(upd, {street: g.street || '', zip: g.plz || '', city: g.city || ''});
-  await api('/api/projects/' + pid, 'PUT', upd);
+  await api('api/projects/' + pid, 'PUT', upd);
   await loadProjects(); renderDetail(); toast(g.error ? 'Standort gespeichert (Adresse nicht abrufbar).' : 'Adresse und Standort vom aktuellen Standort übernommen.');
 }
 async function archProject(flag) {
   const id = pid, on = flag ?? !curProject().archived, name = curProject().name;
-  await api('/api/projects/' + id, 'PUT', {archived: on ? 1 : 0}); await loadProjects();
+  await api('api/projects/' + id, 'PUT', {archived: on ? 1 : 0}); await loadProjects();
   if (on) { const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
   else renderDetail();
   toast(on ? `„${name}“ archiviert – zu finden unter Projektauswahl → Archiv.` : `„${name}“ ist wieder aktiv.`, async () => { pid = id; await archProject(!on); if (!on) await openProject(id); else renderDetail(); });
 }
 async function delProject() {
-  await api('/api/projects/' + pid, 'DELETE'); pid = null; rid = null; reports = []; await loadProjects();
+  await api('api/projects/' + pid, 'DELETE'); pid = null; rid = null; reports = []; await loadProjects();
   if (projects[0]) { tab = 'bericht'; await openProject(projects[0].id); } else renderDetail();
 }
 
@@ -1086,11 +1086,11 @@ async function saveContactField(t) {
   const c = contacts.find(x => x.id === cid), k = t.dataset.cf; let v = t.value.trim();
   if (k === 'name') v = v.replace(/\s+/g, ' ');
   if (k === 'name' && !v) { toast('Der Name darf nicht leer sein.'); t.value = c.name; return; }
-  const res = await api('/api/contacts/' + cid, 'PUT', {[k]: v});
+  const res = await api('api/contacts/' + cid, 'PUT', {[k]: v});
   if (res.error) { toast(res.error); t.value = c[k]; return; }
   t.value = v;
   if (k === 'name') document.querySelector('.cform h3').textContent = v;
-  contacts = await api('/api/contacts'); fillContactList();
+  contacts = await api('api/contacts'); fillContactList();
 }
 
 /* ---------- Kontakt-Vorschläge aus dem Netz (OpenStreetMap, über den Server) ---------- */
@@ -1101,7 +1101,7 @@ function sugHtml(list, act, msg) {
 }
 async function fetchSug(q) {
   const p = curProject(), ref = p && hasPos(p) ? p : here, near = ref ? `&lat=${ref.lat}&lon=${ref.lon}` : '';   // Bezug: Projektstandort, sonst dein Standort
-  const r = await api('/api/contacts/suggest?q=' + encodeURIComponent(q) + near);
+  const r = await api('api/contacts/suggest?q=' + encodeURIComponent(q) + near);
   return Array.isArray(r.items) ? r.items : [];
 }
 function suggestContacts(q) {   // beim Tippen im Feld „Neuer Kontakt“
@@ -1114,7 +1114,7 @@ function suggestContacts(q) {   // beim Tippen im Feld „Neuer Kontakt“
   }, 350);
 }
 async function sugDetail(x) {   // Telefon/E-Mail/Internet erst beim Antippen holen (eine Abfrage)
-  if (x.osm_id && !x._d) { try { Object.assign(x, await api(`/api/contacts/suggest/detail?type=${encodeURIComponent(x.osm_type)}&id=${x.osm_id}`)); } catch {} x._d = 1; }
+  if (x.osm_id && !x._d) { try { Object.assign(x, await api(`api/contacts/suggest/detail?type=${encodeURIComponent(x.osm_type)}&id=${x.osm_id}`)); } catch {} x._d = 1; }
   return x;
 }
 const sugFields = x => ({name: x.name, trade: tradeOpts().find(t => t.toLowerCase() === (x.trade || '').toLowerCase()) || x.trade, street: x.street, zip: x.zip, city: x.city, phone: x.phone, email: x.email, website: x.website || ''});
@@ -1122,10 +1122,10 @@ function addContact() { newC = true; cid = null; fillContactList(); fillContactD
 async function createContact() {
   const name = ($('#ncName')?.value || '').trim().replace(/\s+/g, ' ');
   if (!name) { toast('Bitte einen Namen eingeben.'); $('#ncName')?.focus(); return; }
-  const r = await api('/api/contacts', 'POST', {name});
+  const r = await api('api/contacts', 'POST', {name});
   if (r.error && !r.id) { toast(r.error); return; }
   if (r.error) toast('Diesen Kontakt gibt es schon – er wird geöffnet.');
-  newC = false; cedit = true; cid = r.id; contacts = await api('/api/contacts'); renderDetail();
+  newC = false; cedit = true; cid = r.id; contacts = await api('api/contacts'); renderDetail();
 }
 
 /* ---------- Anmeldung (Anmelden, Kennwort vergessen/zurücksetzen, erzwungene Änderung) ---------- */
@@ -1162,16 +1162,16 @@ async function authGo() {
   const v = $('#login').dataset.v, val = id => $('#' + id)?.value || '', err = m => { $('#err').textContent = m; };
   try {
     if (v === 'login') {
-      const r = await api('/api/login', 'POST', {name: val('un'), password: val('pw')});
+      const r = await api('api/login', 'POST', {name: val('un'), password: val('pw')});
       if (!r.ok) return err(r.error || 'Fehler');
       me = r; applyLook(r); r.must_change ? authView('change') : showApp();
     } else if (v === 'forgot') {
-      const r = await api('/api/forgot', 'POST', {ident: val('un')});
+      const r = await api('api/forgot', 'POST', {ident: val('un')});
       authView('login', r.message || r.error || '');
     } else {
       if (val('pw') !== val('pw2')) return err('Die beiden Kennwörter sind nicht gleich.');
-      const r = v === 'reset' ? await api('/api/reset', 'POST', {token: location.hash.slice(7), password: val('pw')})
-                              : await api('/api/password', 'POST', {old: val('pw0'), new: val('pw'), email: val('em')});
+      const r = v === 'reset' ? await api('api/reset', 'POST', {token: location.hash.slice(7), password: val('pw')})
+                              : await api('api/password', 'POST', {old: val('pw0'), new: val('pw'), email: val('em')});
       if (!r.ok) return err(r.error || 'Fehler');
       if (v === 'reset') { history.replaceState(null, '', location.pathname); authView('login', 'Kennwort geändert. Bitte anmelden.'); }
       else { me.must_change = false; showApp(); }
@@ -1181,7 +1181,7 @@ async function authGo() {
 $('#login').onclick = async e => {
   if (e.target.id === 'go') authGo();
   const a = e.target.dataset.auth; if (!a) return; e.preventDefault();
-  if (a === 'logout') { await api('/api/logout', 'POST'); authView('login'); } else authView(a);
+  if (a === 'logout') { await api('api/logout', 'POST'); authView('login'); } else authView(a);
 };
 $('#login').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') authGo(); };
 
@@ -1192,12 +1192,12 @@ const usersCard = () => `<div class="cform"><h3>${me.is_admin ? 'Benutzer' : 'Me
   ${me.is_admin ? `<div class="acts"><button data-act="userNew">${unew ? 'Abbrechen' : '＋ Benutzer anlegen'}</button></div>` : ''}
   <div class="w" id="ulist" style="grid-column:1/-1">Lade …</div></div>`;
 async function setAccent(c) {
-  const r = await api('/api/account', 'PUT', {accent: c}); if (r.error) return toast(r.error);
+  const r = await api('api/account', 'PUT', {accent: c}); if (r.error) return toast(r.error);
   me.accent = c; applyAccent(c); fillUsers();
 }
 async function fillUsers() {
   const el = $('#ulist'); if (!el) return;
-  users = me.is_admin ? await api('/api/users') : [me];
+  users = me.is_admin ? await api('api/users') : [me];
   const form = unew ? `<div class="usr open"><div class="ubody">
       <label>Name<input id="nuName" autocomplete="off"></label><label>E-Mail *<input id="nuMail" type="email" autocomplete="off"></label>
       <div class="info w">Die App erzeugt ein zufälliges Startkennwort und schickt es mit den Zugangsdaten an diese E-Mail-Adresse. Beim ersten Anmelden muss der Benutzer ein eigenes Kennwort vergeben.</div>
@@ -1242,7 +1242,7 @@ function renderProfile(box) {
     ${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}${addrLists()}
     <div class="info">Diese Angaben erscheinen in der Fußzeile jeder PDF-Seite.</div>
     <div class="info">Logo für die PDF-Kopfzeile (rechts oben). PNG, JPG oder WEBP.</div>
-    ${settings.has_logo ? `<div class="w" style="grid-column:1/-1"><img class="logo" src="/api/logo?v=${logoV}" alt="Logo"></div>` : ''}
+    ${settings.has_logo ? `<div class="w" style="grid-column:1/-1"><img class="logo" src="api/logo?v=${logoV}" alt="Logo"></div>` : ''}
     <div class="acts"><button data-act="pickLogo">${settings.has_logo ? 'Logo ersetzen' : 'Logo hochladen'}</button>${settings.has_logo ? '<button class="bad" data-act="delLogo">Logo entfernen</button>' : ''}</div>
     <input type="file" id="logoFile" class="vh" accept="image/png,image/jpeg,image/webp"></div>
 `;
@@ -1277,15 +1277,15 @@ function renderProfile(box) {
 
   const lf = $('#logoFile'); if (lf) lf.onchange = async e => {
     const fd = new FormData(); fd.append('file', e.target.files[0]);
-    const r = await api('/api/logo', 'POST', null, fd);
+    const r = await api('api/logo', 'POST', null, fd);
     if (r.error) { toast(r.error); return; }
-    logoV++; settings = await api('/api/settings'); favicon(); renderDetail();
+    logoV++; settings = await api('api/settings'); favicon(); renderDetail();
   };
   if (adm && stab === 'ablage' && m !== 'off') storeStatus();
 }
 async function storeStatus() {
   const el = $('#sstat'); if (!el) return;
-  const s = await api('/api/store/status');
+  const s = await api('api/store/status');
   el.textContent = (s.pending ? `Wartet auf Übertragung: ${s.pending}.` : 'Alles übertragen.') + (s.error ? ` Letzter Fehler: ${s.error}` : '');
 }
 
@@ -1300,7 +1300,7 @@ async function saveDue(pan, close) {   // Datum + Uhrzeit des Erinnerungs-Panels
   const id = +pan.dataset.it, d = pan.querySelector('[data-dp=date]').value, tm = pan.querySelector('[data-dp=time]').value || '09:00';
   if (!d) return;
   const it = curReport().items.find(x => x.id === id); if (it) { it.due = d; it.due_time = tm; }
-  await track(api('/api/items/' + id, 'PUT', {due: d, due_time: tm}));
+  await track(api('api/items/' + id, 'PUT', {due: d, due_time: tm}));
   if (!me.email) toast('Für die Erinnerung bitte unter Einstellungen → Benutzer eine E-Mail-Adresse eintragen.');
   else toast('Erinnerung per E-Mail am ' + fmt(d) + ' um ' + tm + ' Uhr eingetragen.');
   if (close) { dueEditId = null; renderDetail(); }
@@ -1315,12 +1315,12 @@ async function addItem(kind) {
   }
   const co = row.querySelector('[data-add-co]'); if (co) body.company = co.value.trim();
   const dd = row.querySelector('[data-add-due]'); if (dd && dd.value) { body.due = dd.value; body.due_time = row.querySelector('[data-add-time]').value || '09:00'; }
-  const res = await api(`/api/reports/${rid}/items`, 'POST', body);
+  const res = await api(`api/reports/${rid}/items`, 'POST', body);
   if (body.due && !me.email) toast('Für die Erinnerung bitte unter Einstellungen → Benutzer eine E-Mail-Adresse eintragen.');
   if (res.error) { toast(res.error); return; }
   if (addFiles.length && res.id) { const fs = addFiles; addFiles = []; await uploadPhotos(fs, res.id); }
   if (res.contact_created) toast(`„${res.name}“ wurde zu den Kontakten hinzugefügt.`);
-  if (res.contact_id) contacts = await api('/api/contacts');
+  if (res.contact_id) contacts = await api('api/contacts');
   adding = null; q = null; renderQ(); setSecOpen(kind, true); document.activeElement?.blur();   // Eingabezeile und iPhone-Tastatur schließen sich nach dem Hinzufügen
   await openProject(pid, true);
 }
@@ -1365,7 +1365,7 @@ function renderQ() {
 }
 async function uploadPhotos(files, itemId) {
   const fd = new FormData(); [...files].forEach(x => fd.append('files', x)); if (itemId) fd.append('item_id', itemId);
-  const up = await api(`/api/reports/${rid}/images`, 'POST', null, fd); setSecOpen('bilder', true); await openProject(pid, true);
+  const up = await api(`api/reports/${rid}/images`, 'POST', null, fd); setSecOpen('bilder', true); await openProject(pid, true);
   if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
 }
 function photoPicked(e) {
@@ -1424,10 +1424,10 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT') return;
   const a = b.dataset.act, id = +b.dataset.id;
   if (DANGER.has(a) && !arm(b, a + (b.dataset.id || ''))) return;
-  if (a === 'logout') { await api('/api/logout', 'POST'); showLogin(); }
+  if (a === 'logout') { await api('api/logout', 'POST'); showLogin(); }
   else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if (tab !== 'projekt') draft = null; newC = false; cfrom = null; cedit = false; renderDetail(); }
   else if (a === 'menu') $('#menu').classList.toggle('hidden');
-  else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('/api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
+  else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
   else if (a === 'projPicker') openSheet('proj');
   else if (a === 'repPicker') openSheet('rep');
   else if (a === 'pickReport') { closeSheet(); rid = id; wxEdit = headEdit = false; tab = 'bericht'; renderDetail(); }
@@ -1440,19 +1440,19 @@ document.addEventListener('click', async e => {
     const pan = b.closest('.duepanel'), d = new Date(Date.now() + +b.dataset.d * 864e5);
     pan.querySelector('[data-dp=date]').value = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); saveDue(pan, false);
   }
-  else if (a === 'dueClear') { dueEditId = null; await api('/api/items/' + id, 'PUT', {due: ''}); openProject(pid, true); }
+  else if (a === 'dueClear') { dueEditId = null; await api('api/items/' + id, 'PUT', {due: ''}); openProject(pid, true); }
   else if (a === 'addPerson') {
     const r = curReport(), v = r.site_manager ? r.site_manager.replace(/[,\s]+$/, '') + ', ' + b.dataset.name : b.dataset.name;
-    r.site_manager = v; await api('/api/reports/' + r.id, 'PUT', {site_manager: v}); renderDetail();
+    r.site_manager = v; await api('api/reports/' + r.id, 'PUT', {site_manager: v}); renderDetail();
   }
   else if (a === 'createFromFolder') {
-    const r = await api('/api/projects', 'POST', {name: b.dataset.name}); await loadProjects(); await pickProject(r.id);
+    const r = await api('api/projects', 'POST', {name: b.dataset.name}); await loadProjects(); await pickProject(r.id);
     toast(r.auto_address ? 'Projekt angelegt. Adresse und PLZ wurden aus dem Projektnamen ermittelt – bitte prüfen.' : 'Projekt angelegt. Die Adresse kannst du im Reiter „Projekt“ eintragen.');
   }
   else if (a === 'newProject') newProject();
   else if (a === 'openPath') {   // nur am PC: Netzwerkpfad des Projektordners in die Zwischenablage
     try {
-      const r = await api('/api/store/path?project_id=' + pid), t = r.path;
+      const r = await api('api/store/path?project_id=' + pid), t = r.path;
       if (!t) return toast('Kein Serverpfad: Ablage ist nicht als Windows-Server eingerichtet.');
       let ok = false;
       try { await navigator.clipboard.writeText(t); ok = true; } catch { const x = document.createElement('textarea'); x.value = t; document.body.append(x); x.select(); try { ok = document.execCommand('copy'); } catch {} x.remove(); }
@@ -1466,9 +1466,9 @@ document.addEventListener('click', async e => {
   else if (a === 'archProject') archProject();
   else if (a === 'srScope') { sr.scope = b.dataset.k; renderSearch($('#detail')); doSearch(); }
   else if (a === 'goHit') goHit(b);
-  else if (a === 'bkNew') { b.disabled = true; await api('/api/backups', 'POST'); toast('Datenbankversion angelegt.'); await loadBackups(); }
-  else if (a === 'bkDel') { const r = await api('/api/backups/' + encodeURIComponent(b.dataset.id), 'DELETE'); if (r.error) toast(r.error); await loadBackups(); }
-  else if (a === 'bkRestore') { const r = await api(`/api/backups/${encodeURIComponent(b.dataset.id)}/restore`, 'POST'); if (r.error) toast(r.error); else { toast('Wiederhergestellt – lade neu …'); setTimeout(() => location.reload(), 800); } }
+  else if (a === 'bkNew') { b.disabled = true; await api('api/backups', 'POST'); toast('Datenbankversion angelegt.'); await loadBackups(); }
+  else if (a === 'bkDel') { const r = await api('api/backups/' + encodeURIComponent(b.dataset.id), 'DELETE'); if (r.error) toast(r.error); await loadBackups(); }
+  else if (a === 'bkRestore') { const r = await api(`api/backups/${encodeURIComponent(b.dataset.id)}/restore`, 'POST'); if (r.error) toast(r.error); else { toast('Wiederhergestellt – lade neu …'); setTimeout(() => location.reload(), 800); } }
   else if (a === 'audCat') { aud.cat = b.dataset.k; aud.loaded = false; renderAudit($('#detail')); }
   else if (a === 'audMore') loadAudit(true);
   else if (a === 'audReset') { e.preventDefault?.(); aud.cat = aud.q = aud.user = ''; aud.loaded = false; renderAudit($('#detail')); }
@@ -1476,30 +1476,30 @@ document.addEventListener('click', async e => {
   else if (a === 'clnScan') { await clnLoad(b); }
   else if (a === 'clnAll') { cln.sel = cln.sel.size === cln.items.length ? new Set() : new Set(cln.items.map(i => i.project_id + '|' + i.path)); fillCleanup(); }
   else if (a === 'clnDel') {
-    const r = await api('/api/audit/cleanup', 'POST', {entries: [...cln.sel].map(k => { const n = k.indexOf('|'); return {project_id: +k.slice(0, n), path: k.slice(n + 1)}; })});
+    const r = await api('api/audit/cleanup', 'POST', {entries: [...cln.sel].map(k => { const n = k.indexOf('|'); return {project_id: +k.slice(0, n), path: k.slice(n + 1)}; })});
     if (r.error) toast(r.error); else toast(`${r.deleted.length} gelöscht` + (r.failed.length ? `, ${r.failed.length} fehlgeschlagen (${r.failed[0].error})` : '') + '.');
     await clnLoad(); aud.loaded = false;
   }
   else if (a === 'verToggle') { verOpen = !verOpen; if (verOpen) await loadVer(); else fillVer(); }
-  else if (a === 'verView') { if (verView === id) { verView = verSnap = null; } else { verView = id; verSnap = null; fillVer(); verSnap = (await api('/api/versions/' + id)).data; } fillVer(); }
-  else if (a === 'restoreVer') { const r = await api(`/api/versions/${id}/restore`, 'POST'); if (r.error) toast(r.error); else { verView = verSnap = null; toast('Bericht auf die gewählte Version zurückgesetzt (der vorherige Stand steht im Verlauf).'); await openProject(pid, true); } }
+  else if (a === 'verView') { if (verView === id) { verView = verSnap = null; } else { verView = id; verSnap = null; fillVer(); verSnap = (await api('api/versions/' + id)).data; } fillVer(); }
+  else if (a === 'restoreVer') { const r = await api(`api/versions/${id}/restore`, 'POST'); if (r.error) toast(r.error); else { verView = verSnap = null; toast('Bericht auf die gewählte Version zurückgesetzt (der vorherige Stand steht im Verlauf).'); await openProject(pid, true); } }
   else if (a === 'toggleArch') { sheetArch = !sheetArch; renderSheet(); }
   else if (a === 'toggleForeign') { sheetForeign = !sheetForeign; renderSheet(); }
   else if (a === 'pcSave') {
-    const r = await api('/api/projects/' + pid + '/contact', 'POST', {accept: true, name: $('#pcName')?.value || ''});
+    const r = await api('api/projects/' + pid + '/contact', 'POST', {accept: true, name: $('#pcName')?.value || ''});
     if (r.error) return toast(r.error);
-    contacts = await api('/api/contacts'); await loadProjects(); renderDetail(); toast('In den Kontakten gespeichert.');
+    contacts = await api('api/contacts'); await loadProjects(); renderDetail(); toast('In den Kontakten gespeichert.');
   }
-  else if (a === 'pcNo') { await api('/api/projects/' + pid + '/contact', 'POST', {accept: false}); await loadProjects(); renderDetail(); }
+  else if (a === 'pcNo') { await api('api/projects/' + pid + '/contact', 'POST', {accept: false}); await loadProjects(); renderDetail(); }
   else if (a === 'adrPick') adrPick(+b.dataset.i);
-  else if (a === 'cxXlsx') { location.assign('/api/contacts/export.xlsx' + cxQS()); toast('Excel-Datei wird geladen …'); }
-  else if (a === 'cxPdf') { const u = '/api/contacts/export.pdf' + cxQS(); isStandalone() ? openPdf(u) : window.open(u, '_blank'); }
+  else if (a === 'cxXlsx') { location.assign('api/contacts/export.xlsx' + cxQS()); toast('Excel-Datei wird geladen …'); }
+  else if (a === 'cxPdf') { const u = 'api/contacts/export.pdf' + cxQS(); isStandalone() ? openPdf(u) : window.open(u, '_blank'); }
   else if (a === 'sugNew') {
     const x = sugC[+b.dataset.i]; if (!x) return; await sugDetail(x);
-    const r = await api('/api/contacts', 'POST', Object.fromEntries(Object.entries(sugFields(x)).filter(([, v]) => v)));
+    const r = await api('api/contacts', 'POST', Object.fromEntries(Object.entries(sugFields(x)).filter(([, v]) => v)));
     if (r.error && !r.id) return toast(r.error);
     if (r.error) toast('Diesen Kontakt gibt es schon – er wird geöffnet.');
-    newC = false; cedit = true; cid = r.id; contacts = await api('/api/contacts'); renderDetail();
+    newC = false; cedit = true; cid = r.id; contacts = await api('api/contacts'); renderDetail();
   }
   else if (a === 'sugEdit') {
     const c = contacts.find(x => x.id === cid); if (!c) return;
@@ -1511,13 +1511,13 @@ document.addEventListener('click', async e => {
     const c = contacts.find(x => x.id === cid), x = sugC[+b.dataset.i]; if (!c || !x) return; await sugDetail(x);
     const add = Object.fromEntries(Object.entries(sugFields(x)).filter(([k, v]) => k !== 'name' && v && !c[k]));   // nur leere Felder füllen
     if (!Object.keys(add).length) return toast('Es gibt nichts Neues zu ergänzen.');
-    const r = await api('/api/contacts/' + cid, 'PUT', add); if (r.error) return toast(r.error);
-    contacts = await api('/api/contacts'); toast(Object.keys(add).length + ' Feld' + (Object.keys(add).length === 1 ? '' : 'er') + ' ergänzt.'); fillContactList(); fillContactDetail();
+    const r = await api('api/contacts/' + cid, 'PUT', add); if (r.error) return toast(r.error);
+    contacts = await api('api/contacts'); toast(Object.keys(add).length + ' Feld' + (Object.keys(add).length === 1 ? '' : 'er') + ' ergänzt.'); fillContactList(); fillContactDetail();
   }
   else if (a === 'renameLater') { renameOffer = null; renderDetail(); }
   else if (a === 'renameYes' || a === 'renameNo') {
     const o = renameOffer; if (!o) return; renameOffer = null; renderDetail();
-    const r = await api('/api/store/rename-apply', 'POST', {project_id: o.pid, accept: a === 'renameYes'});
+    const r = await api('api/store/rename-apply', 'POST', {project_id: o.pid, accept: a === 'renameYes'});
     toast(r.error || (a === 'renameYes' ? `${r.renamed} umbenannt. Die App benennt künftig im selben Schema.` : 'Gut, die App fragt für dieses Projekt nicht mehr nach.'));
   }
   else if (a === 'openContact') { cid = id; newC = false; cedit = false; cfrom = null; fillContactList(); fillContactDetail(); }
@@ -1527,7 +1527,7 @@ document.addEventListener('click', async e => {
   else if (a === 'ldrEdit') {
     const p = curProject(), i = +b.dataset.id, l = (p.leaders || []).slice(), self = me.id;
     l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i);
-    const res = await api('/api/projects/' + pid, 'PUT', {leaders: l});
+    const res = await api('api/projects/' + pid, 'PUT', {leaders: l});
     if (res.error) { toast(res.error); return; }
     await loadProjects();
     if (!curProject()) { toast('Du bist bei diesem Projekt nicht mehr eingetragen – es erscheint nicht mehr in deiner Projektauswahl.'); const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
@@ -1539,9 +1539,9 @@ document.addEventListener('click', async e => {
   else if (a === 'backReport') { cfrom = null; cedit = false; tab = 'bericht'; renderDetail(); }
   else if (a === 'editContact') { cedit = !cedit; fillContactDetail(); }
   else if (a === 'addContact') addContact();
-  else if (a === 'delContact') { const r = await api('/api/contacts/' + cid, 'DELETE'); if (r.error) { toast(r.error); return; } cid = null; contacts = await api('/api/contacts'); renderDetail(); }
-  else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`/api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); }
-  else if (a === 'delReport') { await api('/api/reports/' + rid, 'DELETE'); openProject(pid); }
+  else if (a === 'delContact') { const r = await api('api/contacts/' + cid, 'DELETE'); if (r.error) { toast(r.error); return; } cid = null; contacts = await api('api/contacts'); renderDetail(); }
+  else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); }
+  else if (a === 'delReport') { await api('api/reports/' + rid, 'DELETE'); openProject(pid); }
   else if (a === 'editHead') { headEdit = !headEdit; renderDetail(); }
   else if (a === 'gps') fillGeo(false);
   else if (a === 'wxEdit') { wxEdit = !wxEdit; renderDetail(); }
@@ -1549,9 +1549,9 @@ document.addEventListener('click', async e => {
   else if (a === 'secToggle') { setSecOpen(b.dataset.key, b.dataset.open !== '1'); renderDetail(); }
   else if (a === 'addItem') addItem(b.dataset.kind);
   else if (a === 'delItem') {
-    const r = await api('/api/items/' + id, 'DELETE'); await openProject(pid, true);
+    const r = await api('api/items/' + id, 'DELETE'); await openProject(pid, true);
     if (r.item) toast('Eintrag gelöscht.', async () => {
-      const x = await api('/api/items/restore', 'POST', r.item);
+      const x = await api('api/items/restore', 'POST', r.item);
       if (x.error) toast(x.error); else await openProject(pid, true);
     });
   }
@@ -1559,20 +1559,20 @@ document.addEventListener('click', async e => {
   else if (a === 'itemPhoto') { itemPhotoFor = id; $('#ifile').click(); }
   else if (a === 'moreImgs') { allImgs = true; renderDetail(); }
   else if (a === 'lessImgs') { allImgs = false; renderDetail(); }
-  else if (a === 'delImg') { await api('/api/images/' + id, 'DELETE'); openProject(pid, true); }
+  else if (a === 'delImg') { await api('api/images/' + id, 'DELETE'); openProject(pid, true); }
   else if (a === 'print') {
     if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }
-    if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('/api/reports/' + rid + '/pdf'); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf
+    if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('api/reports/' + rid + '/pdf'); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf
     const w = window.open('', '_blank'); await Promise.allSettled([...saving]);  // erst fertig speichern, dann PDF laden
-    if (w) w.location = '/api/reports/' + rid + '/pdf'; else location.href = '/api/reports/' + rid + '/pdf';
+    if (w) w.location = 'api/reports/' + rid + '/pdf'; else location.href = 'api/reports/' + rid + '/pdf';
   }
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
   else if (a === 'pvZoom') { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }
   else if (a === 'pvShare') pvShare();
   else if (a === 'pickLogo') $('#logoFile').click();
-  else if (a === 'storeTest') { toast('Verbindung wird getestet …'); const r = await api('/api/store/test', 'POST'); toast(r.ok ? 'Verbindung funktioniert, Schreiben ist möglich.' : 'Fehlgeschlagen: ' + (r.error || 'unbekannt')); }
-  else if (a === 'storeRun') { toast('Übertragung läuft …'); const r = await api('/api/store/run', 'POST'); await storeStatus(); toast(r.error && r.pending ? 'Server nicht erreichbar – wird später erneut versucht.' : `${r.sent} Datei(en) übertragen.`); }
-  else if (a === 'storeBackfill') { const r = await api('/api/store/backfill', 'POST'); toast(r.error || `${r.queued} Foto(s) werden übertragen.`); setTimeout(storeStatus, 2500); }
+  else if (a === 'storeTest') { toast('Verbindung wird getestet …'); const r = await api('api/store/test', 'POST'); toast(r.ok ? 'Verbindung funktioniert, Schreiben ist möglich.' : 'Fehlgeschlagen: ' + (r.error || 'unbekannt')); }
+  else if (a === 'storeRun') { toast('Übertragung läuft …'); const r = await api('api/store/run', 'POST'); await storeStatus(); toast(r.error && r.pending ? 'Server nicht erreichbar – wird später erneut versucht.' : `${r.sent} Datei(en) übertragen.`); }
+  else if (a === 'storeBackfill') { const r = await api('api/store/backfill', 'POST'); toast(r.error || `${r.queued} Foto(s) werden übertragen.`); setTimeout(storeStatus, 2500); }
   else if (a === 'stab') { stab = b.dataset.s; renderDetail(); }
   else if (a === 'pickContact') {
     const inp = b.closest('.sgw').querySelector('input'); inp.value = b.dataset.name; hideSug();
@@ -1595,24 +1595,24 @@ document.addEventListener('click', async e => {
   else if (a === 'userNew') { unew = !unew; fillUsers(); }
   else if (a === 'changePw') {
     if ($('#pwNew').value !== $('#pwNew2').value) return toast('Die beiden Kennwörter sind nicht gleich.');
-    const r = await api('/api/password', 'POST', {new: $('#pwNew').value});
+    const r = await api('api/password', 'POST', {new: $('#pwNew').value});
     toast(r.ok ? 'Kennwort geändert.' : r.error); if (r.ok) ['#pwNew', '#pwNew2'].forEach(x => $(x).value = '');
   }
   else if (a === 'addUser') {
-    const r = await api('/api/users', 'POST', {name: $('#nuName').value, email: $('#nuMail').value});
+    const r = await api('api/users', 'POST', {name: $('#nuName').value, email: $('#nuMail').value});
     if (r.error) return toast(r.error);
     unew = false; uopen = r.id; toast('Benutzer angelegt. Das Startkennwort wurde an ' + r.to + ' geschickt.'); fillUsers();
   }
   else if (a === 'userPw') {
-    const el = document.querySelector(`[data-upw="${id}"]`), r = await api('/api/users/' + id, 'PUT', {password: el.value});
+    const el = document.querySelector(`[data-upw="${id}"]`), r = await api('api/users/' + id, 'PUT', {password: el.value});
     toast(r.error || 'Kennwort gesetzt – der Benutzer muss es beim nächsten Anmelden ändern.'); if (!r.error) { el.value = ''; fillUsers(); }
   }
-  else if (a === 'userMail') { toast('E-Mail wird gesendet …'); const r = await api('/api/users/' + id + '/access', 'POST'); toast(r.error || 'Zugangsdaten an ' + r.to + ' gesendet.'); if (!r.error) fillUsers(); }
-  else if (a === 'delUser') { const r = await api('/api/users/' + id, 'DELETE'); toast(r.error || 'Benutzer gelöscht.'); fillUsers(); }
-  else if (a === 'mailTest') { toast('Testmail wird gesendet …'); const r = await api('/api/mail/test', 'POST'); toast(r.ok ? 'Testmail an ' + r.to + ' gesendet.' : 'Fehlgeschlagen: ' + r.error); }
-  else if (a === 'mailPassClear') { await api('/api/settings', 'PUT', {mail_pass_clear: '1'}); settings = await api('/api/settings'); renderDetail(); }
-  else if (a === 'storePassClear') { await api('/api/settings', 'PUT', {store_pass_clear: '1'}); settings = await api('/api/settings'); renderDetail(); }
-  else if (a === 'delLogo') { await api('/api/logo', 'DELETE'); settings = await api('/api/settings'); favicon(); renderDetail(); }
+  else if (a === 'userMail') { toast('E-Mail wird gesendet …'); const r = await api('api/users/' + id + '/access', 'POST'); toast(r.error || 'Zugangsdaten an ' + r.to + ' gesendet.'); if (!r.error) fillUsers(); }
+  else if (a === 'delUser') { const r = await api('api/users/' + id, 'DELETE'); toast(r.error || 'Benutzer gelöscht.'); fillUsers(); }
+  else if (a === 'mailTest') { toast('Testmail wird gesendet …'); const r = await api('api/mail/test', 'POST'); toast(r.ok ? 'Testmail an ' + r.to + ' gesendet.' : 'Fehlgeschlagen: ' + r.error); }
+  else if (a === 'mailPassClear') { await api('api/settings', 'PUT', {mail_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
+  else if (a === 'storePassClear') { await api('api/settings', 'PUT', {store_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
+  else if (a === 'delLogo') { await api('api/logo', 'DELETE'); settings = await api('api/settings'); favicon(); renderDetail(); }
 });
 document.addEventListener('change', async e => {
   const t = e.target;
@@ -1623,18 +1623,18 @@ document.addEventListener('change', async e => {
     t.replaceWith(n); n.focus(); try { n.showPicker?.(); } catch (_) {} return;
   }
   if (t.dataset.act === 'pick') { rid = +t.value; wxEdit = headEdit = false; renderDetail(); }
-  else if (t.dataset.act === 'toggle') { await api('/api/items/' + t.dataset.id, 'PUT', {done: t.checked}); openProject(pid, true); }
-  else if (t.dataset.img) { const r = await api('/api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
+  else if (t.dataset.act === 'toggle') { await api('api/items/' + t.dataset.id, 'PUT', {done: t.checked}); openProject(pid, true); }
+  else if (t.dataset.img) { const r = await api('api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
   else if (t.dataset.pf) saveProjectField(t);
   else if (t.dataset.cf) saveContactField(t);
   else if ('accentCustom' in t.dataset) setAccent(t.value);
-  else if (t.dataset.acc) { const r = await api('/api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); if (me.is_admin) fillUsers(); } }
-  else if (t.dataset.uf) { const r = await api('/api/users/' + t.dataset.id, 'PUT', {[t.dataset.uf]: t.type === 'checkbox' ? t.checked : t.value}); if (r.error) toast(r.error); else toast('Gespeichert.'); fillUsers(); }
+  else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); if (me.is_admin) fillUsers(); } }
+  else if (t.dataset.uf) { const r = await api('api/users/' + t.dataset.id, 'PUT', {[t.dataset.uf]: t.type === 'checkbox' ? t.checked : t.value}); if (r.error) toast(r.error); else toast('Gespeichert.'); fillUsers(); }
   else if (t.dataset.st) {
     const k = t.dataset.st, sec = /_pass$/.test(k); if (sec && !t.value) return;
     if (!sec) settings[k] = t.value;
-    await track(api('/api/settings', 'PUT', {[k]: t.value}));
-    if (sec || k === 'store_mode') { settings = await api('/api/settings'); renderDetail(); }
+    await track(api('api/settings', 'PUT', {[k]: t.value}));
+    if (sec || k === 'store_mode') { settings = await api('api/settings'); renderDetail(); }
     else if (k.startsWith('store_')) storeStatus();
   }
   else if (t.dataset.cl !== undefined) { cln.sel[t.checked ? 'add' : 'delete'](t.dataset.cl); fillCleanup(); }
@@ -1645,13 +1645,13 @@ document.addEventListener('change', async e => {
     const it = curReport().items.find(x => x.id === +t.dataset.it);
     if (t.dataset.k === 'text' && !v) { toast('Der Eintrag darf nicht leer sein. Zum Entfernen ✕ tippen.'); if (it) t.value = it.text; grow(t); return; }
     if (it) it[t.dataset.k] = v;
-    await track(api('/api/items/' + t.dataset.it, 'PUT', {[t.dataset.k]: v}));
+    await track(api('api/items/' + t.dataset.it, 'PUT', {[t.dataset.k]: v}));
 
   }
   else if (t.dataset.f) {
     const r = curReport(), v = t.type === 'checkbox' ? (t.checked ? 1 : 0) : t.value; r[t.dataset.f] = v;
     const manualWx = WXK.includes(t.dataset.f);   // von Hand geändert: nicht mehr automatisch überschreiben
-    await track(api('/api/reports/' + r.id, 'PUT', manualWx ? {[t.dataset.f]: v, extra: {wx_auto: 0}} : {[t.dataset.f]: v}));
+    await track(api('api/reports/' + r.id, 'PUT', manualWx ? {[t.dataset.f]: v, extra: {wx_auto: 0}} : {[t.dataset.f]: v}));
     if (manualWx) r.extra = {...(r.extra || {}), wx_auto: 0};
     if (['date', 'time'].includes(t.dataset.f) && r.extra && r.extra.wx_auto) { await fillGeo(true, true); openProject(pid, true); return; }   // Datum/Uhrzeit geändert: automatisches Wetter nachziehen
     if (['date', 'number'].includes(t.dataset.f)) openProject(pid, true);
@@ -1679,7 +1679,7 @@ document.addEventListener('keydown', e => {
 window.addEventListener('resize', growAll);
 if (location.hash.startsWith('#reset=')) authView('reset');
 else if (location.hash === '#forgot') { history.replaceState(null, '', location.pathname); authView('forgot'); }   // Link „Kennwort vergessen“ der Startseite
-else api('/api/me').then(r => { if (!r.ok) return authView('login'); me = r; applyLook(r); r.must_change ? authView('change') : showApp(); });
+else api('api/me').then(r => { if (!r.ok) return authView('login'); me = r; applyLook(r); r.must_change ? authView('change') : showApp(); });
 </script>
 </body>
 </html>

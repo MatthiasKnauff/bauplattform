@@ -18,7 +18,7 @@ cd "$(dirname "$0")"
 VER=$(cat VERSION 2>/dev/null || echo "?")
 DB_NEW=bauportal_db      # Datenbank-Container (früher „Bautagebuch_db“)
 DB_OLD=Bautagebuch_db
-APPS="bautagebuch gantt portal admin adressen baukosten"
+APPS="bautagebuch gantt portal admin adressen baukosten bauportal"
 
 say()  { printf '\n\033[1m▶ %s\033[0m\n' "$*"; }
 info() { printf '  %s\n' "$*"; }

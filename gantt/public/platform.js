@@ -21,7 +21,7 @@
   window.fetch = async (...args) => {
     const r = await origFetch(...args);
     const u = String(args[0] && args[0].url ? args[0].url : args[0]);
-    if (r.status === 401 && u.startsWith('/api/') && !leaving) {
+    if (r.status === 401 && u.startsWith('api/') && !leaving) {
       leaving = true;
       const d = await r.clone().json().catch(() => ({}));
       location.href = d.login ? d.login.replace(/next=[^&]*/, 'next=' + encodeURIComponent(location.href)) : '/';
@@ -86,7 +86,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
       m.remove();
       if (b.dataset.bp === 'logout') {
         if (typeof flushSave === 'function') await flushSave().catch(() => {});
-        const r = await origFetch('/api/logout', { method: 'POST' }).then((x) => x.json()).catch(() => ({}));
+        const r = await origFetch('api/logout', { method: 'POST' }).then((x) => x.json()).catch(() => ({}));
         leaving = true; location.href = r.login || '/';
       } else linkDialog();
     });
@@ -115,7 +115,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
   async function linkDialog() {
     if (typeof P === 'undefined' || !P) return;
     let list = [];
-    try { list = await fetch('/api/bt-projects').then(j); } catch (e) { toast('Projekte des Bautagebuchs konnten nicht geladen werden: ' + e.message, true); return; }
+    try { list = await fetch('api/bt-projects').then(j); } catch (e) { toast('Projekte des Bautagebuchs konnten nicht geladen werden: ' + e.message, true); return; }
     const cur = P._bt ? P._bt.id : '';
     const opts = '<option value="">– keine Verknüpfung –</option>' + list.map((x) => `<option value="${x.id}"${x.id === cur ? ' selected' : ''}>${escH(x.name)}${x.address ? ' – ' + escH(x.address) : ''}${x.archived ? ' (archiviert)' : ''}${x.plan && x.plan !== P.id ? ' · hat schon einen Plan' : ''}</option>`).join('');
     modal('Mit Bautagebuch-Projekt verknüpfen', `<div style="max-width:480px;line-height:1.5">
@@ -125,7 +125,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
       { label: 'Abbrechen' },
       { label: 'Übernehmen', cls: 'primary', primary: true, fn: (bg) => {
         const v = bg.querySelector('#bpLinkSel').value;
-        fetch(`/api/projects/${P.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: v ? +v : null }) }).then(j)
+        fetch(`api/projects/${P.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: v ? +v : null }) }).then(j)
           .then((r) => { P._bt = r._bt; P._rev = r._rev; showLink(); toast(r._bt ? `Verknüpft mit „${r._bt.name}“.` : 'Verknüpfung gelöst.'); })
           .catch((e) => toast('Verknüpfen fehlgeschlagen: ' + e.message, true));
       } }]);
@@ -137,11 +137,11 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     if (busy || document.hidden) return;
     const p = typeof P !== 'undefined' ? P : null;
     if (!p) { BP.others = []; showPresence(); showLink(); return; }
-    if (lastPid && lastPid !== p.id) origFetch(`/api/projects/${lastPid}/presence`, { method: 'DELETE' }).catch(() => {});
+    if (lastPid && lastPid !== p.id) origFetch(`api/projects/${lastPid}/presence`, { method: 'DELETE' }).catch(() => {});
     lastPid = p.id;
     busy = true;
     try {
-      const r = await origFetch(`/api/projects/${p.id}/presence`, { method: 'POST' }).then((x) => x.json());
+      const r = await origFetch(`api/projects/${p.id}/presence`, { method: 'POST' }).then((x) => x.json());
       if (typeof P === 'undefined' || !P || P.id !== p.id || r.error) return;
       BP.others = r.others || []; showPresence(); showLink();
       const pending = (typeof dirty !== 'undefined' && dirty) || (typeof saveTimer !== 'undefined' && saveTimer) || (typeof conflictOpen !== 'undefined' && conflictOpen);
@@ -152,14 +152,14 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
   }
   setInterval(beat, 10000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) beat(); });
-  addEventListener('pagehide', () => { if (lastPid) origFetch(`/api/projects/${lastPid}/presence`, { method: 'DELETE', keepalive: true }).catch(() => {}); });
+  addEventListener('pagehide', () => { if (lastPid) origFetch(`api/projects/${lastPid}/presence`, { method: 'DELETE', keepalive: true }).catch(() => {}); });
 
   /* ---- Start ---- */
   async function init() {
     mountBar();
-    try { BP.conf = await origFetch('/api/platform').then((r) => r.json()); } catch { BP.conf = { apps: [] }; }
+    try { BP.conf = await origFetch('api/platform').then((r) => r.json()); } catch { BP.conf = { apps: [] }; }
     try {
-      const r = await origFetch('/api/me');
+      const r = await origFetch('api/me');
       if (r.ok) {
         BP.me = await r.json(); applyAccent(BP.me.accent || '#ff5fb3');   // ohne eigene Farbe: Standard des Bautagebuchs
         // Farbschema von der Startseite (Darstellung) – gilt für alle Apps; nur neu zeichnen, wenn es sich geändert hat

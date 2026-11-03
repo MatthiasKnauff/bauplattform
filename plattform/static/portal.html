@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#84827c">
 <title>Bauplattform</title>
-<link rel="icon" href="/logo.png">
-<link rel="stylesheet" href="/static/bp.css">
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
 <style>
 .hello{margin:.4rem 0 1.4rem}
 .hello h1{margin:0}
@@ -57,7 +57,7 @@
   </details>
   <div class="foot"><span id="ver"></span></div>
 </main>
-<script src="/static/bp.js"></script>
+<script src="static/bp.js"></script>
 <script>
 const DESC = {
   bautagebuch: ['Bautagebuch', 'Tagesberichte, Wetter, Anwesende, Fotos, Mängel und Weisungen – mit PDF.'],
@@ -73,15 +73,15 @@ function renderLook(me) {
   $('#lookSum').innerHTML = `· ${esc(tn)} <i class="dot" style="background:${esc(a)}"></i>`;
   $('#sw').innerHTML = ACCENTS.map(([c, n]) => `<button class="${a === c ? 'on' : ''}" style="background:${c}" data-c="${c}" title="${n}" aria-label="${n}"></button>`).join('')
     + `<label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}"></label>`;
-  const save = async (d) => { try { const r = await api('/api/appearance', 'PUT', d); applyLook(r); renderLook(r); toast('Darstellung gespeichert – gilt in allen Apps.'); } catch (e) { toast(e.message, true); } };
+  const save = async (d) => { try { const r = await api('api/appearance', 'PUT', d); applyLook(r); renderLook(r); toast('Darstellung gespeichert – gilt in allen Apps.'); } catch (e) { toast(e.message, true); } };
   $('#th').onchange = (e) => { if (e.target.name === 'th') save({ theme: e.target.value }); };
   $('#sw').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b) save({ accent: b.dataset.c }); };
   $('#sw').querySelector('input[type=color]').onchange = (e) => save({ accent: e.target.value });
 }
 (async () => {
-  const me = await api('/api/me'); if (!me.ok) { location.href = '/login'; return; }
+  const me = await api('api/me'); if (!me.ok) { location.href = '/login'; return; }
   applyLook(me);
-  const conf = await api('/api/platform');
+  const conf = await api('api/platform');
   await header('Startseite', me, conf);
   const h = new Date().getHours();
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.name}`;

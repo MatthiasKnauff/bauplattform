@@ -39,7 +39,7 @@ def _gen_pw():
 
 
 def _access_mail(conf, to, name, pw):
-    base = (conf.get("app_url") or request.host_url).rstrip("/")
+    base = (conf.get("app_url") or request.url_root).rstrip("/")
     mail.send(conf, to, "Bautagebuch – deine Zugangsdaten",
               f"Hallo {name},\n\nhier sind deine Zugangsdaten für das Bautagebuch:\n\nAdresse:  {base}\nName:     {name}\nKennwort: {pw}\n\n"
               "Beim ersten Anmelden vergibst du ein eigenes Kennwort. Bitte lösche diese E-Mail danach.\n")
@@ -190,7 +190,7 @@ def forgot():
     with db.tx() as c:
         conf = settings.all(c)
         users = c.execute("SELECT * FROM users WHERE (name=? OR lower(email)=lower(?)) AND email!=''", (ident, ident)).fetchall()
-        base = (conf.get("app_url") or request.host_url).rstrip("/")
+        base = (conf.get("app_url") or request.url_root).rstrip("/")
         jobs = [(u["email"], u["name"], auth.new_token(c, u["id"])) for u in users]
     for to, name, tok in jobs:
         try:

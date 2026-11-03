@@ -5,7 +5,8 @@ einem eigenen Container für die Verwaltung und einem Skript, das neue Versionen
 
 | App | Adresse (Standard) | Container |
 |---|---|---|
-| Startseite / Anmeldung | `http://server:8090` | `bauplattform_portal` |
+| Verteiler: alle Apps unter einer Adresse (`/bautagebuch`, `/baukosten` …) | `http://server:8090` | `bauplattform_verteiler` |
+| Startseite / Anmeldung | über den Verteiler (`/`) | `bauplattform_portal` |
 | Bautagebuch | `http://server:8080` (wie bisher) | `bautagebuch` |
 | Bauzeitenplan | `http://server:8082` (wie bisher) | `bauzeitenplan` |
 | Adressen (Firmen, Bauherren, Baustellen) | `http://server:8093` | `bauplattform_adressen` |
@@ -147,6 +148,28 @@ Das alte Volume bleibt als Sicherung liegen. Welches Volume benutzt wird, steuer
 5. Prüfen (anmelden, ein Bericht, ein Plan). Das alte Volume `bautagebuch_pgdata` erst nach ein paar Tagen löschen.
 
 Zurück: `DB_VOLUME` wieder entfernen → der Stack nutzt das alte Volume (Stand vor dem Kopieren).
+
+## Eine Adresse für alle Apps (Verteiler)
+
+Alle Apps laufen unter **einer** Adresse, unterschieden durch den Pfad – ohne eigene Subdomain, DNS-Eintrag oder Proxy-Regel je App:
+
+| Pfad | App |
+|---|---|
+| `https://bauportal.gk3-architektur.de/` | Startseite / Anmeldung |
+| `…/bautagebuch/` | Bautagebuch |
+| `…/bauzeitenplan/` | Bauzeitenplan |
+| `…/adressen/` | Adressen |
+| `…/baukosten/` | Baukosten |
+| `…/verwaltung/` | Verwaltung |
+
+Den Pfad verteilt der Container `bauplattform_verteiler` (`plattform/router.py`) im Docker-Netz – nicht der Nginx Proxy Manager.
+Im Nginx Proxy Manager bleibt nur **ein** Eintrag: `bauportal.gk3-architektur.de` → Docker 2, Port **8090** (wie bisher für die Startseite).
+Gesteuert wird das über `BAUPORTAL_URL`; die einzelnen `*_URL`-Werte bleiben leer (gesetzte Werte haben Vorrang – in Portainer ggf. löschen).
+Neue Apps bekommen künftig einfach einen weiteren Pfad.
+
+Die bisherigen Ports (8080, 8082, …) und Subdomains funktionieren weiter, solange ihre Einträge bestehen – nützlich für Lesezeichen
+der Kolleginnen und Kollegen. Sie können später entfernt werden. Ohne Nginx (Testserver): `http://<IP>:8090/bautagebuch/` usw.;
+dafür in Portainer `BAUPORTAL_URL=http://<IP>:8090` setzen, damit auch die Links zwischen den Apps diesen Weg nehmen.
 
 ## Gemeinsame Anmeldung (SSO)
 

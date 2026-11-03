@@ -4,7 +4,7 @@
    Bauportal / <App>  ·  aktuelles Projekt  ·  KI-Auswahl  ·  Benutzer (Apps, Darstellung, Abmelden)
 
    Einbinden:
-     <link rel="stylesheet" href="/bp/head.css"><script src="/bp/head.js"></script>
+     <link rel="stylesheet" href="bp/head.css"><script src="bp/head.js"></script>
      BPHead.mount({ app: 'gantt', name: 'Bauzeitenplan', parent: el, before: el2, sticky: false });
      BPHead.setProject({ sub: 'Projekt A526 · Bauherr', title: 'Umgestaltung …' });
      BPHead.onKi((ki, provider) => …);      // Auswahl geändert (gilt in allen Apps)
@@ -56,7 +56,7 @@
     if (k === H.ki) return;
     const old = H.ki; H.ki = k; renderKi();
     try {
-      const r = await fetch('/api/bp/ki', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ki: k }) });
+      const r = await fetch('api/bp/ki', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ki: k }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || r.statusText);
       H.providers = d.providers || H.providers;
@@ -86,7 +86,7 @@
   }
   async function logout() {
     if (typeof window.flushSave === 'function') { try { await window.flushSave(); } catch { /* weiter */ } }
-    const r = await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }).then((x) => x.json()).catch(() => ({}));
+    const r = await fetch('api/logout', { method: 'POST', credentials: 'same-origin' }).then((x) => x.json()).catch(() => ({}));
     const portal = ((H.conf || {}).apps || []).find((a) => a.key === 'portal');
     location.href = r.login || (portal ? appUrl(portal) + '/login' : '/');
   }
@@ -116,7 +116,7 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
     if (opt.project) H.setProject(opt.project);
     H.ready = (async () => {
-      const [conf, me, ki] = await Promise.all([getJ('/api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('/api/me').catch(() => null), getJ('/api/bp/ki').catch(() => null)]);
+      const [conf, me, ki] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');

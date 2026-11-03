@@ -2542,16 +2542,16 @@ const j = async (r) => {
   return r.json();
 };
 const api = {
-  list: () => fetch('/api/projects').then(j),
-  get: (id) => fetch('/api/projects/' + id).then(j),
-  create: (p) => fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }).then(j),
-  save: (p, keepalive = false) => fetch('/api/projects/' + p.id, { method: 'PUT', keepalive, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...p, sched: P && p.id === P.id ? schedOut() : undefined }) }).then(j),
-  del: (id) => fetch('/api/projects/' + id, { method: 'DELETE' }).then(j),
-  versions: (id) => fetch(`/api/projects/${id}/versions`).then(j),
-  version: (id, v) => fetch(`/api/projects/${id}/versions/${v}`).then(j),
-  addVersion: (id, b) => fetch(`/api/projects/${id}/versions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(j),
-  patchVersion: (id, v, b) => fetch(`/api/projects/${id}/versions/${v}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(j),
-  delVersion: (id, v) => fetch(`/api/projects/${id}/versions/${v}`, { method: 'DELETE' }).then(j),
+  list: () => fetch('api/projects').then(j),
+  get: (id) => fetch('api/projects/' + id).then(j),
+  create: (p) => fetch('api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }).then(j),
+  save: (p, keepalive = false) => fetch('api/projects/' + p.id, { method: 'PUT', keepalive, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...p, sched: P && p.id === P.id ? schedOut() : undefined }) }).then(j),
+  del: (id) => fetch('api/projects/' + id, { method: 'DELETE' }).then(j),
+  versions: (id) => fetch(`api/projects/${id}/versions`).then(j),
+  version: (id, v) => fetch(`api/projects/${id}/versions/${v}`).then(j),
+  addVersion: (id, b) => fetch(`api/projects/${id}/versions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(j),
+  patchVersion: (id, v, b) => fetch(`api/projects/${id}/versions/${v}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(j),
+  delVersion: (id, v) => fetch(`api/projects/${id}/versions/${v}`, { method: 'DELETE' }).then(j),
 };
 /* berechnete Termine mitspeichern – die Baukosten-App verteilt damit die Kosten über die Bauzeit (Mittelabfluss) */
 function schedOut() {

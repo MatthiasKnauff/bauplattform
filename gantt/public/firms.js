@@ -46,7 +46,7 @@ function craftOf(gw) {
 const FV_FIELDS = [['contact', 'Ansprechpartner'], ['phone', 'Telefon'], ['mobile', 'Mobil'], ['mail', 'E-Mail'], ['address', 'Adresse']];
 
 async function loadFirms() {
-  try { FIRMS = await fetch('/api/firms').then(j); } catch (e) { toast('Adressbuch konnte nicht geladen werden: ' + e.message, true); }
+  try { FIRMS = await fetch('api/firms').then(j); } catch (e) { toast('Adressbuch konnte nicht geladen werden: ' + e.message, true); }
   firmsLoaded = true; if (fvVisible()) renderFirms();
 }
 // Das Adressbuch ist das Kontaktverzeichnis des Bautagebuchs (Bauplattform) – mehrere Benutzer arbeiten gleichzeitig darin.
@@ -56,7 +56,7 @@ function saveFirmsSoon() {
   clearTimeout(firmSaveT);
   firmSaveT = setTimeout(() => {
     const del = FIRMS_DEL.slice();
-    fetch('/api/firms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firms: FIRMS, deleted: del }) })
+    fetch('api/firms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firms: FIRMS, deleted: del }) })
       .then(async (r) => {
         const list = await j(r);
         FIRMS_DEL = FIRMS_DEL.filter((x) => !del.includes(x));

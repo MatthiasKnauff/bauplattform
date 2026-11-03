@@ -30,9 +30,11 @@ app = Flask(__name__, static_folder=None)
 app.register_blueprint(head.blueprint(lambda: g.get("user")))   # gemeinsame Kopfleiste (/bp/head.js, /api/bp/ki)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 app.json.sort_keys = False   # Reihenfolge der Schlüssel erhalten (z. B. Gewerke in P.trades)
+from werkzeug.middleware.proxy_fix import ProxyFix
 if os.environ.get("TRUST_PROXY") == "1":   # hinter einem Reverse Proxy: X-Forwarded-* übernehmen
-    from werkzeug.middleware.proxy_fix import ProxyFix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+else:   # nur den Pfad vom Verteiler (/bauzeitenplan) übernehmen
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=0, x_proto=0, x_host=0, x_prefix=1)
 
 
 # ---------------------------------------------------------------- JS-ähnliche Hilfen (für sanitize wie im alten Server)
@@ -227,7 +229,7 @@ def guard():
     if not u:
         if is_page:
             return redirect(_portal_login_url(request.url))
-        return jsonify(error="Nicht angemeldet", login=_portal_login_url(request.referrer or request.host_url)), 401
+        return jsonify(error="Nicht angemeldet", login=_portal_login_url(request.referrer or request.url_root)), 401
     if u["must_change"]:
         if is_page:
             return redirect(_portal_login_url(request.url))
@@ -365,7 +367,7 @@ def me():
 def logout():
     with db.tx() as c:
         sso.revoke_req(c, request)
-    return sso.clear_cookie(jsonify(ok=True, login=_portal_login_url(request.host_url)))
+    return sso.clear_cookie(jsonify(ok=True, login=_portal_login_url(request.url_root)))
 
 
 @app.route("/api/projects", methods=["GET", "POST"])

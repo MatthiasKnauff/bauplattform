@@ -59,6 +59,8 @@ def create_app():
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", MAX_CONTENT_LENGTH=30 * 1024 * 1024)
     if os.environ.get("TRUST_PROXY") == "1":   # hinter einem Reverse Proxy: X-Forwarded-Proto/-Host/-For auswerten
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    else:   # nur den Pfad vom Verteiler (/bautagebuch) übernehmen
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=0, x_proto=0, x_host=0, x_prefix=1)
     app.config["SESSION_COOKIE_SECURE"] = os.environ.get("COOKIE_SECURE") == "1"   # Cookie nur über HTTPS (Produktion)
     app.register_blueprint(head.blueprint(lambda: g.get("user")))   # gemeinsame Kopfleiste der Bauplattform (/bp/head.js, /api/bp/ki)
 
@@ -158,7 +160,7 @@ def create_app():
     def manifest():
         """Damit Chrome/Edge/Safari „App installieren“ bzw. „Zum Home-Bildschirm“ mit dem Büro-Logo als Symbol anbieten."""
         icons = [{"src": f"/api/favicon?s={n}", "sizes": f"{n}x{n}", "type": "image/png", "purpose": "any"} for n in (192, 512)] if storage.logo_path() else []
-        r = jsonify(name="Bautagebuch", short_name="Bautagebuch", start_url="/", scope="/", display="standalone",
+        r = jsonify(name="Bautagebuch", short_name="Bautagebuch", start_url="./", scope="./", display="standalone",
                     background_color="#26272b", theme_color="#26272b", icons=icons)
         r.mimetype = "application/manifest+json"
         r.headers["Cache-Control"] = "no-cache"

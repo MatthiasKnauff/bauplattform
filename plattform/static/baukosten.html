@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1c1c1a">
 <title>Baukosten</title>
-<link rel="icon" href="/logo.png">
-<link rel="stylesheet" href="/static/bp.css">
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
 <style>
 .wrap{max-width:1240px}
 .num{white-space:nowrap;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
@@ -148,7 +148,7 @@ body.as-open .wrap{padding-bottom:45vh}
   <div id="view"></div>
 </main>
 <input type="file" id="pdfIn" accept="application/pdf,.pdf" multiple class="hidden">
-<script src="/static/bp.js"></script>
+<script src="static/bp.js"></script>
 <script>
 const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Mengen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
 const STUFEN = [['rahmen', 'Kostenrahmen'], ['schaetzung', 'Kostenschätzung'], ['berechnung', 'Kostenberechnung'], ['anschlag', 'Kostenanschlag'], ['feststellung', 'Kostenfeststellung']];
@@ -170,13 +170,13 @@ function calc(d) {
 
 /* ---------- Laden / Speichern ---------- */
 async function loadList(keep) {
-  LIST = await api('/api/bk');
+  LIST = await api('api/bk');
   const want = keep || +localStorage.getItem('bk.cur') || (LIST[0] && LIST[0].id);
   $('#sel').innerHTML = LIST.length ? LIST.map((x) => `<option value="${x.id}"${x.id === want ? ' selected' : ''}>${esc(x.name)}${x.project ? ' · ' + esc(x.project.name) : ''}${x.archived ? ' (archiviert)' : ''}</option>`).join('') : '<option value="">– noch keine Kostenermittlung –</option>';
   if (LIST.some((x) => x.id === want)) await open(want); else { B = null; render(); }
 }
 async function open(id) {
-  B = await api('/api/bk/' + id); FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
+  B = await api('api/bk/' + id); FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
   asLoad(); if (localStorage.getItem(AS_KEY()) == null) { AS.open = true; asSave(); }   // beim ersten Öffnen startet der Assistent
   try { localStorage.setItem('bk.cur', id); } catch { /* egal */ }
   head(); render();
@@ -201,7 +201,7 @@ function sigOf(el) {   // Selektor für das Eingabefeld, um den Fokus nach dem N
 async function saveNow(extra = {}) {
   if (!B || saving) return; saving = true;
   try {
-    const r = await api('/api/bk/' + B.id, 'PUT', { rev: B.rev, data: B.data, ...extra });
+    const r = await api('api/bk/' + B.id, 'PUT', { rev: B.rev, data: B.data, ...extra });
     B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
     const d = new Date(); $('#save').textContent = `Gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) {
@@ -262,7 +262,7 @@ function flowCols(mini) {
 }
 async function ensureFlow() {
   if (FLOW || !B.gantt_id) return;
-  try { FLOW = await api(`/api/bk/${B.id}/flow`); } catch (e) { FLOW = { ok: false, why: e.message }; }
+  try { FLOW = await api(`api/bk/${B.id}/flow`); } catch (e) { FLOW = { ok: false, why: e.message }; }
   if (tab === 'uebersicht') { const el = $('#miniFlow'); if (el) el.innerHTML = flowCols(true); } else if (tab === 'mittel') render();
 }
 function vPlaene() {
@@ -272,10 +272,10 @@ function vPlaene() {
   const open = rooms.filter((r) => !r.ok).length;
   return `<div class="layout"><aside class="side"><span class="hint" style="text-transform:uppercase;letter-spacing:.04em">Pläne</span><div class="files">${B.files.map((x) => `
     <div class="card fc ${x.id === selFile ? 'on' : ''}" data-file="${x.id}" tabindex="0" role="button" aria-pressed="${x.id === selFile}"><b>${esc(x.meta.kind ? x.meta.kind + ' · ' : '')}${esc(x.name)}</b><small>${esc(x.meta.note || '')}</small>
-      <div class="acts"><a class="btn sm" href="/api/bk/${B.id}/files/${x.id}" target="_blank" rel="noopener">PDF</a><button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
+      <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" target="_blank" rel="noopener">PDF</a><button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
     <div class="drop" id="drop" role="button" tabindex="0">+ PDF hinzufügen<br><small>Grundrisse, Ansichten, Schnitte – Vektor-PDF aus dem CAD</small></div></div>
     <p class="hint">Raumstempel (Nummer, Name, m²) werden aus Vektor-PDFs exakt gelesen. Der Raumtyp ist ein Vorschlag – bitte jeden Raum bestätigen.</p></aside>
-  <div class="main">${f ? `<div class="plan card" style="padding:0"><img src="/api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr)}</span>`).join('')}</div>` : ''}
+  <div class="main">${f ? `<div class="plan card" style="padding:0"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr)}</span>`).join('')}</div>` : ''}
     <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} Räume · ${m2(B.calc.area)} m²${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="addRoom">+ Raum</button></div>
     <div class="tbl"><table><thead><tr><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
       <tr data-row="${i}" class="${r.id === selRoom ? 'sel' : ''} ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : ''}"><td><input class="n" style="width:64px;text-align:left" value="${esc(r.nr)}" data-f="nr" aria-label="Nummer"></td>
@@ -313,7 +313,7 @@ function estHtml() {
 }
 async function runEstimate() {
   estBusy = true; if (tab === 'kosten') render();
-  try { clearTimeout(saveT); await saveNow(); EST = await api(`/api/bk/${B.id}/schaetzen`, 'POST', {}); B.acc = EST.acc; } catch (e) { toast(e.message, true); }
+  try { clearTimeout(saveT); await saveNow(); EST = await api(`api/bk/${B.id}/schaetzen`, 'POST', {}); B.acc = EST.acc; } catch (e) { toast(e.message, true); }
   estBusy = false; render();
 }
 function vKosten() {
@@ -367,10 +367,10 @@ function vPruefung() {
     ${CHECK && CHECK.note ? `<p class="hint" style="color:#e07b3a">${esc(CHECK.note)}</p>` : ''}
     <div class="list">${CHECK ? CHECK.hinweise.map((h) => `<div class="card h"><span class="d ${h.lvl}" aria-label="${h.lvl}"></span><div><b>${esc(h.title)}</b><p>${esc(h.text)}</p></div><span class="src">${esc(h.src)}</span></div>`).join('') || '<div class="card empty">Keine Auffälligkeiten.</div>' : '<div class="card empty">Noch nicht geprüft.</div>'}</div>`;
 }
-async function loadSources() { try { SRC = await api('/api/sources'); } catch { SRC = { projects: [], plans: [] }; } if (tab === 'mittel') render(); }
+async function loadSources() { try { SRC = await api('api/sources'); } catch { SRC = { projects: [], plans: [] }; } if (tab === 'mittel') render(); }
 async function runCheck() {
   const b = document.querySelector('[data-act="check"]'); if (b) { b.disabled = true; b.textContent = 'Prüfe …'; }
-  try { clearTimeout(saveT); await saveNow(); CHECK = await api(`/api/bk/${B.id}/check`, 'POST', {}); } catch (e) { toast(e.message, true); }
+  try { clearTimeout(saveT); await saveNow(); CHECK = await api(`api/bk/${B.id}/check`, 'POST', {}); } catch (e) { toast(e.message, true); }
   render();
 }
 async function upload(files) {
@@ -379,7 +379,7 @@ async function upload(files) {
     toast(`„${f.name}“ wird gelesen …`);
     try {
       clearTimeout(saveT); await saveNow();
-      const r = await fetch(`/api/bk/${B.id}/files`, { method: 'POST', body: fd }); const d = await r.json().catch(() => ({}));
+      const r = await fetch(`api/bk/${B.id}/files`, { method: 'POST', body: fd }); const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || r.statusText);
       B = d.bk; selFile = B.files[B.files.length - 1].id; CHECK = null;
       toast(`${f.name}: ${d.note}${d.added ? ` – ${d.added} Räume übernommen` : ''}`);
@@ -488,7 +488,7 @@ document.addEventListener('click', async (e) => {
     else if (act === 'firstPdf') $('#pdfIn').click();
     else if (act === 'firstRoom') { tab = 'plaene'; history.replaceState(null, '', '#plaene'); B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'openAssist') { AS.open = true; AS.step = null; asSave(); assist(); }
-    else if (act === 'saveKw') { try { const o = {}; Object.entries(B.data.types).forEach(([k, v]) => { o[k] = v.kw; }); await api('/api/kennwerte', 'PUT', o); toast('Eigene Kennwerte gespeichert – gelten für neue Kostenermittlungen.'); } catch (er) { toast(er.message, true); } }
+    else if (act === 'saveKw') { try { const o = {}; Object.entries(B.data.types).forEach(([k, v]) => { o[k] = v.kw; }); await api('api/kennwerte', 'PUT', o); toast('Eigene Kennwerte gespeichert – gelten für neue Kostenermittlungen.'); } catch (er) { toast(er.message, true); } }
     return;
   }
   const tk = e.target.closest('[data-take]');
@@ -507,7 +507,7 @@ document.addEventListener('click', async (e) => {
     e.stopPropagation();
     const fid = +df.dataset.delfile, f = B.files.find((x) => x.id === fid), n = B.data.rooms.filter((r) => r.src === 'pdf:' + fid).length;
     modalBox(`<h3>Plan entfernen</h3><p>„${esc(f.name)}“ entfernen?${n ? ` Aus diesem Plan stammen ${n} Räume.` : ''}</p><div class="acts">${n ? '<button class="btn" data-m="keep">Plan entfernen, Räume behalten</button>' : ''}<button class="btn danger" data-m="all">${n ? 'Plan und Räume entfernen' : 'Entfernen'}</button><button class="btn" data-m="x">Abbrechen</button></div>`,
-      async (m, bg, close) => { close(); if (m === 'x') return; try { clearTimeout(saveT); await saveNow(); B = await api(`/api/bk/${B.id}/files/${fid}${m === 'keep' ? '?keep=1' : ''}`, 'DELETE'); selFile = B.files[0] ? B.files[0].id : null; render(); } catch (er) { toast(er.message, true); } });
+      async (m, bg, close) => { close(); if (m === 'x') return; try { clearTimeout(saveT); await saveNow(); B = await api(`api/bk/${B.id}/files/${fid}${m === 'keep' ? '?keep=1' : ''}`, 'DELETE'); selFile = B.files[0] ? B.files[0].id : null; render(); } catch (er) { toast(er.message, true); } });
     return;
   }
   const fc = e.target.closest('[data-file]'); if (fc && !e.target.closest('a')) { selFile = +fc.dataset.file; render(); return; }
@@ -569,7 +569,7 @@ $('#moreBtn').onclick = () => {
       if (bg.querySelector('#delName').value.trim() !== B.name.trim()) { toast('Der Name stimmt nicht – nichts gelöscht.', true); return; }
       try {
         clearTimeout(saveT); const id = B.id, name = B.name;
-        await api('/api/bk/' + id, 'DELETE'); close();
+        await api('api/bk/' + id, 'DELETE'); close();
         try { localStorage.removeItem('bk.assist.' + id); localStorage.removeItem('bk.cur'); } catch { /* egal */ }
         B = null; toast(`„${name}“ gelöscht.`); await loadList();
       } catch (e) { toast('Löschen fehlgeschlagen: ' + e.message, true); }
@@ -599,7 +599,7 @@ function pdfDialog() {
     try { localStorage.setItem('bk.pdf', JSON.stringify(n)); } catch { /* egal */ }
     close(); clearTimeout(saveT); await saveNow();
     AS.pdf = true; asSave(); assist();
-    window.open(`/api/bk/${B.id}/bericht.pdf?teile=${n.teile.join(',')}&tiefe=${n.tiefe}&brutto=${n.brutto ? 1 : 0}&mwst=${n.mwst}&runden=${n.runden}`, '_blank', 'noopener');
+    window.open(`api/bk/${B.id}/bericht.pdf?teile=${n.teile.join(',')}&tiefe=${n.tiefe}&brutto=${n.brutto ? 1 : 0}&mwst=${n.mwst}&runden=${n.runden}`, '_blank', 'noopener');
   });
 }
 async function newDialog() {
@@ -624,8 +624,8 @@ async function newDialog() {
     btn.disabled = true; btn.textContent = 'Lege an …';
     try {
       let pid = sel.kind === 'bt' ? sel.id : null;
-      if (sel.kind === 'folder') { const r = await api('/api/bautagebuch-projekt', 'POST', { name: sel.name }); pid = r.id; toast(`Projekt „${sel.name}“ im Bautagebuch angelegt.`); }
-      const r = await api('/api/bk', 'POST', { name: $('#nkName').value.trim() || sel.name, project_id: pid, gantt_id: $('#nkPlan').value || null, stufe: $('#nkStufe').value });
+      if (sel.kind === 'folder') { const r = await api('api/bautagebuch-projekt', 'POST', { name: sel.name }); pid = r.id; toast(`Projekt „${sel.name}“ im Bautagebuch angelegt.`); }
+      const r = await api('api/bk', 'POST', { name: $('#nkName').value.trim() || sel.name, project_id: pid, gantt_id: $('#nkPlan').value || null, stufe: $('#nkStufe').value });
       close(); SRC = null; tab = 'uebersicht'; await loadList(r.id);
     } catch (e) { btn.disabled = false; btn.textContent = 'Anlegen'; toast(e.message, true); }
   });
@@ -646,7 +646,7 @@ async function newDialog() {
   $('#nkQ').addEventListener('input', () => {
     draw(); clearTimeout(fT); const q = $('#nkQ').value.trim();
     if (q.length < 2) { folders = []; draw(); return; }
-    fT = setTimeout(async () => { try { const r = await api('/api/folders?q=' + encodeURIComponent(q)); if (q === $('#nkQ').value.trim()) { folders = r; draw(); } } catch { /* ohne Vorschläge */ } }, 250);
+    fT = setTimeout(async () => { try { const r = await api('api/folders?q=' + encodeURIComponent(q)); if (q === $('#nkQ').value.trim()) { folders = r; draw(); } } catch { /* ohne Vorschläge */ } }, 250);
   });
   $('#nkList').addEventListener('click', (e) => {
     const o = e.target.closest('[data-k]'); if (!o) return;
@@ -661,8 +661,8 @@ async function newDialog() {
   draw(); $('#nkQ').focus();
 }
 (async () => {
-  const me = await api('/api/me'); applyLook(me);
-  const conf = await api('/api/platform');
+  const me = await api('api/me'); applyLook(me);
+  const conf = await api('api/platform');
   await header('Baukosten', me, conf);
   BPHead.onKi(() => { CHECK = null; if (tab === 'pruefung') render(); });
   const hb = /^#bk=(\d+)/.exec(location.hash);   // Link aus der Verwaltung: diese Kostenermittlung öffnen

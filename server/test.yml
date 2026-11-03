@@ -30,10 +30,14 @@ x-env: &env
   ADMIN_URL: ${ADMIN_URL:-}
   ADRESSEN_URL: ${ADRESSEN_URL:-}
   BAUKOSTEN_URL: ${BAUKOSTEN_URL:-}
+  # Alle Apps unter EINER Adresse, unterschieden durch den Pfad (/bautagebuch, /bauzeitenplan, /adressen, /baukosten, /verwaltung).
+  # Im Nginx Proxy Manager reicht ein Eintrag auf Port 8090 (Verteiler). Eigene *_URL-Werte oben haben Vorrang.
+  BAUPORTAL_URL: ${BAUPORTAL_URL:-}
   SERVER_HOST: ${SERVER_HOST:-}   # IP/Name des Servers – für Links zu Apps ohne eigene Adresse (optional)
   BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
   GANTT_INTERNAL: http://gantt:8082
   PORTAL_INTERNAL: http://portal:8090
+  ADMIN_INTERNAL: http://admin:8091
   ADRESSEN_INTERNAL: http://adressen:8093
   BAUKOSTEN_INTERNAL: http://baukosten:8094
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
@@ -95,8 +99,7 @@ services:
     restart: unless-stopped
     depends_on:
       bautagebuch: { condition: service_healthy }
-    ports:
-      - "${PORTAL_PUBLISH:-8090}:8090"
+    # kein eigener Port: erreichbar über den Verteiler (bauportal, Port 8090)
     environment:
       <<: *env
       APP_MODULE: portal
@@ -131,6 +134,22 @@ services:
       APP_PORT: "8093"
 
 
+
+  # Verteiler: alle Apps unter einer Adresse (Pfad statt Port/Subdomain), siehe plattform/router.py
+  bauportal:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:bc86c2e
+    container_name: bauplattform_verteiler
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+    ports:
+      - "${PORTAL_PUBLISH:-8090}:8090"
+    environment:
+      <<: *env
+      APP_MODULE: router
+      APP_PORT: "8090"
+      APP_THREADS: "32"
+      APP_TIMEOUT: "320"
   baukosten:
     image: ghcr.io/matthiasknauff/bauplattform/plattform:bc86c2e
     container_name: bauplattform_baukosten
@@ -144,6 +163,7 @@ services:
       <<: *env
       APP_MODULE: baukosten
       APP_PORT: "8094"
+      APP_TIMEOUT: "300"
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB freien Arbeitsspeicher; ohne Grafikkarte antwortet es langsamer.

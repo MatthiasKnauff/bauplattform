@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#84827c">
 <title>Verwaltung – Bauplattform</title>
-<link rel="icon" href="/logo.png">
-<link rel="stylesheet" href="/static/bp.css">
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
 <style>
 .bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.9rem}
 .bar .fill{flex:1}
@@ -41,7 +41,7 @@ tr.off td:last-child{opacity:1}
 <body>
 <nav class="tabs" id="tabs"></nav>
 <main class="wrap" id="main"></main>
-<script src="/static/bp.js"></script>
+<script src="static/bp.js"></script>
 <script>
 const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer'], ['sessions', 'Angemeldet'], ['status', 'Zustand'], ['audit', 'Protokoll']];
 let tab = (location.hash || '#projekte').slice(1), me = null, data = {};
@@ -52,11 +52,11 @@ $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) 
 async function load() {
   const m = $('#main');
   try {
-    if (tab === 'projekte') { data.p = await api('/api/projects'); renderProjects(); }
-    else if (tab === 'users') { data.u = await api('/api/users'); renderUsers(); }
-    else if (tab === 'sessions') { data.s = await api('/api/sessions'); renderSessions(); }
-    else if (tab === 'status') { m.innerHTML = '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('/api/status'); renderStatus(); }
-    else { data.a = await api('/api/audit?cat=' + (data.cat || '')); renderAudit(); }
+    if (tab === 'projekte') { data.p = await api('api/projects'); renderProjects(); }
+    else if (tab === 'users') { data.u = await api('api/users'); renderUsers(); }
+    else if (tab === 'sessions') { data.s = await api('api/sessions'); renderSessions(); }
+    else if (tab === 'status') { m.innerHTML = '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
+    else { data.a = await api('api/audit?cat=' + (data.cat || '')); renderAudit(); }
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
 
@@ -91,13 +91,13 @@ function mkBt(p, then) {
   async (m, bgx, close, btn) => {
     if (m === 'sug') { bgx.querySelector('#btName').value = btn.dataset.name; bgx.querySelectorAll('[data-m="sug"]').forEach((x) => x.classList.toggle('pri', x === btn)); return; }
     if (m !== 'ok') { close(); return; }
-    try { const r = await api('/api/projects/bautagebuch', 'POST', { name: bgx.querySelector('#btName').value, plans: p.plans.map((x) => x.id), bks: p.bks.map((x) => x.id) }); close(); toast('Bautagebuch-Projekt angelegt und verknüpft.'); await load(); if (then) then(r.id); }
+    try { const r = await api('api/projects/bautagebuch', 'POST', { name: bgx.querySelector('#btName').value, plans: p.plans.map((x) => x.id), bks: p.bks.map((x) => x.id) }); close(); toast('Bautagebuch-Projekt angelegt und verknüpft.'); await load(); if (then) then(r.id); }
     catch (e) { toast(e.message, true); }
   });
   const inp = bg.querySelector('#btName'), box = bg.querySelector('#btSug');
   const look = async (q) => {   // passende Ordner auf dem Server (Ablage des Bautagebuchs) vorschlagen
     if (q.length < 2) { box.innerHTML = ''; return; }
-    let r = []; try { r = await api('/api/folders?q=' + encodeURIComponent(q)); } catch { /* keine Vorschläge */ }
+    let r = []; try { r = await api('api/folders?q=' + encodeURIComponent(q)); } catch { /* keine Vorschläge */ }
     box.innerHTML = r.length ? `<p class="mute" style="font-size:.85rem;margin:.2rem 0 .4rem">Ordner auf dem Server – Namen übernehmen:</p><div style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto">${r.slice(0, 12).map((n) => `<button type="button" class="btn sm" style="justify-content:flex-start" data-m="sug" data-name="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : '';
   };
   inp.addEventListener('input', () => { clearTimeout(fT); fT = setTimeout(() => look(inp.value.trim()), 250); });
@@ -129,7 +129,7 @@ function delDlg(p) {
     if (sel.some((o) => o[0] === 'bt') && bg.querySelector('#cf').value.trim() !== p.name.trim()) { toast('Der Projektname stimmt nicht – nichts gelöscht.', true); return; }
     btn.disabled = true; btn.textContent = 'Lösche …';
     try {
-      const r = await api('/api/projects/delete', 'POST', { bt: (sel.find((o) => o[0] === 'bt') || [])[1] ?? null, plans: sel.filter((o) => o[0] === 'plan').map((o) => o[1]), bks: sel.filter((o) => o[0] === 'bk').map((o) => o[1]) });
+      const r = await api('api/projects/delete', 'POST', { bt: (sel.find((o) => o[0] === 'bt') || [])[1] ?? null, plans: sel.filter((o) => o[0] === 'plan').map((o) => o[1]), bks: sel.filter((o) => o[0] === 'bk').map((o) => o[1]) });
       close(); toast('Gelöscht: ' + r.done.join(', ') + (r.errors.length ? ' – Fehler: ' + r.errors.join('; ') : ''), !!r.errors.length); load();
     } catch (e) { btn.disabled = false; btn.textContent = 'Angekreuzte löschen'; toast(e.message, true); }
   });
@@ -178,16 +178,16 @@ function userForm(u) {
     try {
       if (m === 'x') close();
       else if (m === 'ok') {
-        if (isNew) { const r = await api('/api/users', 'POST', body()); close(); showPw(body().name, r.password, true); }
-        else { await api('/api/users/' + u.id, 'PUT', body()); close(); toast('Gespeichert.'); }
+        if (isNew) { const r = await api('api/users', 'POST', body()); close(); showPw(body().name, r.password, true); }
+        else { await api('api/users/' + u.id, 'PUT', body()); close(); toast('Gespeichert.'); }
         load();
       } else if (m === 'pw') {
         if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = 'Wirklich zurücksetzen?'; return; }
-        const r = await api(`/api/users/${u.id}/password`, 'POST'); close(); showPw(u.name, r.password, false); load();
-      } else if (m === 'out') { await api(`/api/users/${u.id}/logout`, 'POST'); close(); toast(`${u.name} ist überall abgemeldet.`); load(); }
+        const r = await api(`api/users/${u.id}/password`, 'POST'); close(); showPw(u.name, r.password, false); load();
+      } else if (m === 'out') { await api(`api/users/${u.id}/logout`, 'POST'); close(); toast(`${u.name} ist überall abgemeldet.`); load(); }
       else if (m === 'del') {
         if (!btn.dataset.sure) { btn.dataset.sure = 1; btn.textContent = 'Wirklich löschen?'; return; }
-        await api('/api/users/' + u.id, 'DELETE'); close(); toast(`${u.name} gelöscht.`); load();
+        await api('api/users/' + u.id, 'DELETE'); close(); toast(`${u.name} gelöscht.`); load();
       }
     } catch (e) { err(e); }
   });
@@ -203,7 +203,7 @@ $('#main').addEventListener('click', (e) => {
   const b = e.target.closest('[data-a]'); if (!b) return;
   if (b.dataset.a === 'new') userForm(null);
   else if (b.dataset.a === 'edit') userForm(data.u.users.find(u => u.id === +b.closest('tr').dataset.id));
-  else if (b.dataset.a === 'end') api('/api/sessions/' + b.dataset.id, 'DELETE').then(() => { toast('Sitzung beendet.'); load(); }).catch(e => toast(e.message, true));
+  else if (b.dataset.a === 'end') api('api/sessions/' + b.dataset.id, 'DELETE').then(() => { toast('Sitzung beendet.'); load(); }).catch(e => toast(e.message, true));
   else if (b.dataset.a === 'cat') { data.cat = b.dataset.cat; load(); }
   else if (b.dataset.a === 'reload') load();
   else if (b.dataset.a === 'pf') renderProjects(data.pq, b.dataset.f);
@@ -249,8 +249,8 @@ function renderAudit() {
 }
 
 (async () => {
-  me = await api('/api/me'); applyLook(me);
-  const conf = await api('/api/platform'); data.conf = conf;
+  me = await api('api/me'); applyLook(me);
+  const conf = await api('api/platform'); data.conf = conf;
   await header('Verwaltung', me, conf);
   renderTabs(); load();
 })().catch(e => toast(e.message, true));

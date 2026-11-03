@@ -18,9 +18,11 @@ def make_app(name):
     app = Flask(name, static_folder=None)
     app.json.sort_keys = False
     app.register_blueprint(head.blueprint())   # gemeinsame Kopfleiste (/bp/head.js, /api/bp/ki)
+    from werkzeug.middleware.proxy_fix import ProxyFix
     if os.environ.get("TRUST_PROXY") == "1":   # hinter einem Reverse Proxy: X-Forwarded-* übernehmen
-        from werkzeug.middleware.proxy_fix import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    else:   # nur den Pfad vom Verteiler (/baukosten …) übernehmen
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=0, x_proto=0, x_host=0, x_prefix=1)
 
     @app.before_request
     def csrf():

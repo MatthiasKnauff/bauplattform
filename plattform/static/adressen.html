@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#84827c">
 <title>Adressen</title>
-<link rel="icon" href="/logo.png">
-<link rel="stylesheet" href="/static/bp.css">
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
 <style>
 .wrap{max-width:1100px}
 .bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
@@ -76,7 +76,7 @@
   <div class="cnt" id="cnt"></div>
   <div class="list" id="list"></div>
 </main>
-<script src="/static/bp.js"></script>
+<script src="static/bp.js"></script>
 <script>
 const KINDS = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherren'], ['baustelle', 'Baustellen']];
 const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
@@ -88,7 +88,7 @@ const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter
 const trades = (c) => String(c.trade || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
 
 async function load() {
-  ALL = await api('/api/contacts');
+  ALL = await api('api/contacts');
   const all = [...new Set(ALL.filter((c) => c.kind === 'firma').flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de'));
   $('#gw').innerHTML = '<option value="">Alle Gewerke</option>' + all.map((t) => `<option${t === gw ? ' selected' : ''}>${esc(t)}</option>`).join('');
   render();
@@ -118,7 +118,7 @@ function edit(c) {
   const map = addr(c) ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(addr(c))}` : '';
   const quick = isNew ? '' : [c.phone && `<a class="btn sm" href="tel:${esc(tel(c.phone))}">☎ Anrufen</a>`, c.mobile && `<a class="btn sm" href="tel:${esc(tel(c.mobile))}">📱 Mobil</a>`,
     c.email && `<a class="btn sm" href="mailto:${esc(c.email)}">✉ E-Mail</a>`, c.website && `<a class="btn sm" href="${esc(c.website)}" target="_blank" rel="noopener">Internet</a>`,
-    map && `<a class="btn sm" href="${esc(map)}" target="_blank" rel="noopener">Karte</a>`, `<a class="btn sm" href="/api/contacts/${c.id}.vcf">Ins Handy</a>`].filter(Boolean).join('');
+    map && `<a class="btn sm" href="${esc(map)}" target="_blank" rel="noopener">Karte</a>`, `<a class="btn sm" href="api/contacts/${c.id}.vcf">Ins Handy</a>`].filter(Boolean).join('');
   const use = isNew ? '' : [c.site_of && `Baustellenadresse des Projekts „${esc(c.site_of)}“.`,
     c.used ? `Kommt in ${c.used} ${c.used === 1 ? 'Eintrag' : 'Einträgen'} des Bautagebuchs vor${c.projects.length ? ' (' + c.projects.map(esc).join(', ') + ')' : ''}.` : ''].filter(Boolean).join(' ');
   const gwList = [...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de'));
@@ -138,13 +138,13 @@ function edit(c) {
     if (m === 'save') {
       const d = {}; bg.querySelectorAll('[data-f]').forEach((el) => { d[el.dataset.f] = el.value; });
       try {
-        if (isNew) await api('/api/contacts', 'POST', d); else await api('/api/contacts/' + c.id, 'PUT', d);
+        if (isNew) await api('api/contacts', 'POST', d); else await api('api/contacts/' + c.id, 'PUT', d);
         close(); toast(isNew ? 'Kontakt angelegt.' : 'Gespeichert.'); load();
       } catch (e) { $('#mErr', bg).textContent = e.message; }
     }
     if (m === 'del') {
       if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'Wirklich löschen?'; return; }
-      try { await api('/api/contacts/' + c.id, 'DELETE'); close(); toast('Kontakt gelöscht.'); load(); } catch (e) { $('#mErr', bg).textContent = e.message; }
+      try { await api('api/contacts/' + c.id, 'DELETE'); close(); toast('Kontakt gelöscht.'); load(); } catch (e) { $('#mErr', bg).textContent = e.message; }
     }
   });
   const first = document.querySelector('.modal [data-f="name"]'); if (first && isNew) first.focus();
@@ -164,7 +164,7 @@ function exportQS() {
   if (f) p.set('filter', f);
   const s = p.toString(); return s ? '?' + s : '';
 }
-$('#pdf').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); openPdf('/api/contacts/export.pdf' + exportQS()); };
+$('#pdf').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); openPdf('api/contacts/export.pdf' + exportQS()); };
 
 /* ---------- PDF-Ansicht (wie im Bautagebuch): funktioniert auch auf dem Handy und als Startbildschirm-App ---------- */
 let pv = null;
@@ -189,7 +189,7 @@ async function openPdf(url) {
     if (!r.ok) { const j = await r.json().catch(() => ({})); toast(j.error || 'Das PDF konnte nicht erzeugt werden.', true); return; }
     const m = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get('Content-Disposition') || ''); if (m) name = decodeURIComponent(m[1]);
     const blob = await r.blob();
-    if (!window.pdfjsLib) { await loadScript('/static/vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdfjs/pdf.worker.js'; }
+    if (!window.pdfjsLib) { await loadScript('static/vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = 'static/vendor/pdfjs/pdf.worker.js'; }
     const doc = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
     const el = document.createElement('div'); el.id = 'pv';
     el.innerHTML = `<div class="pvb"><button class="pvc" data-pv="close">✕ Schließen</button><span>${esc(name)}</span><button data-pv="zoom" data-d="-1" aria-label="Verkleinern">−</button><button data-pv="zoom" data-d="1" aria-label="Vergrößern">+</button><button data-pv="print">Drucken</button><button data-pv="share">Teilen</button></div><div class="pvs"><div class="pvw"></div></div>`;
@@ -222,11 +222,11 @@ function pvClick(e) {
   else if (b.dataset.pv === 'share') pvShare();
 }
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && pv) { if (history.state && history.state.pv) history.back(); else closePv(); } });
-$('#xlsx').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); location.assign('/api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
+$('#xlsx').onclick = () => { if (!shown().length) return toast('Keine Kontakte in der Liste.', true); location.assign('api/contacts/export.xlsx' + exportQS()); toast('Excel-Datei wird geladen …'); };
 
 (async () => {
-  const me = await api('/api/me'); applyLook(me);
-  const conf = await api('/api/platform');
+  const me = await api('api/me'); applyLook(me);
+  const conf = await api('api/platform');
   await header('Adressen', me, conf);
   await load();
   if (matchMedia('(pointer:fine)').matches) $('#q').focus({ preventScroll: true });

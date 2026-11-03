@@ -26,12 +26,12 @@ function applyPhaseList(saved) {
 let phSaveT = null;
 function savePhases() {
   clearTimeout(phSaveT);
-  phSaveT = setTimeout(() => fetch('/api/phases', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATALOG.phases.map((p) => ({ k: p.k, n: p.n, own: !!p.own }))) }).then(j)
+  phSaveT = setTimeout(() => fetch('api/phases', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATALOG.phases.map((p) => ({ k: p.k, n: p.n, own: !!p.own }))) }).then(j)
     .catch((e) => toast('Abschnitte nicht gespeichert: ' + e.message, true)), 300);
   if (window.AssistCore) AssistCore.notifySoon();
 }
 async function loadLibrary() {
-  try { const [a, b, ph, sc] = await Promise.all([fetch('/api/library').then(j), fetch('/api/catfirms').then(j), fetch('/api/phases').then(j), fetch('/api/catscope').then(j).catch(() => ({}))]); window.LIBRARY = a; CATFIRMS = b || {}; window.CATSCOPE = sc || {}; applyPhaseList(ph); libLoaded = true; }
+  try { const [a, b, ph, sc] = await Promise.all([fetch('api/library').then(j), fetch('api/catfirms').then(j), fetch('api/phases').then(j), fetch('api/catscope').then(j).catch(() => ({}))]); window.LIBRARY = a; CATFIRMS = b || {}; window.CATSCOPE = sc || {}; applyPhaseList(ph); libLoaded = true; }
   catch (e) { toast('Leistungskatalog konnte nicht geladen werden: ' + e.message, true); }
   if (window.AssistCore) AssistCore.notifySoon();
   if (!$('#libView').hidden) renderLib();
@@ -40,7 +40,7 @@ function libSet(list, now) {
   window.LIBRARY = list;   // immer neues Array – der Assistent erkennt Änderungen an der Identität
   if (window.AssistCore) AssistCore.notifySoon();
   clearTimeout(libSaveT);
-  const run = () => fetch('/api/library', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.LIBRARY) }).then(j)
+  const run = () => fetch('api/library', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.LIBRARY) }).then(j)
     .catch((e) => { toast('Leistungskatalog nicht gespeichert: ' + e.message, true); throw e; });
   if (now) return run();
   libSaveT = setTimeout(run, 500); return Promise.resolve();
@@ -49,13 +49,13 @@ function libSet(list, now) {
 let catsSaveT = null;
 function saveCatScope() {
   clearTimeout(catsSaveT);
-  catsSaveT = setTimeout(() => fetch('/api/catscope', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.CATSCOPE || {}) }).then(j)
+  catsSaveT = setTimeout(() => fetch('api/catscope', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.CATSCOPE || {}) }).then(j)
     .catch((e) => toast('Bezug nicht gespeichert: ' + e.message, true)), 300);
 }
 const stdScope = (i) => ((window.CATSCOPE || {})[i.id] || i.sc);
 function saveCatFirms() {
   clearTimeout(catfSaveT);
-  catfSaveT = setTimeout(() => fetch('/api/catfirms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATFIRMS) }).then(j)
+  catfSaveT = setTimeout(() => fetch('api/catfirms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATFIRMS) }).then(j)
     .catch((e) => toast('Firmen-Vorgaben nicht gespeichert: ' + e.message, true)), 400);
 }
 // Stammfirma eines Gewerks: Firma im Adressbuch, bei der das Gewerk eingetragen ist
@@ -453,7 +453,7 @@ function libToPlan(id) {
 /* ---------- aus Projekten übernehmen ---------- */
 async function libFromProjects() {
   let src;
-  try { src = await fetch('/api/library/sources').then(j); } catch (e) { toast('Projekte konnten nicht gelesen werden: ' + e.message, true); return; }
+  try { src = await fetch('api/library/sources').then(j); } catch (e) { toast('Projekte konnten nicht gelesen werden: ' + e.message, true); return; }
   const have = new Set(window.LIBRARY.map((x) => (x.n + '|' + x.gw).toLowerCase()));
   const rows = [];
   const body = src.length ? `<div class="hint" style="margin:0 0 8px">Gezeigt werden Leistungen, die nicht aus dem Standardkatalog stammen – von Hand angelegte und eigene Leistungen des Planungsassistenten.</div>

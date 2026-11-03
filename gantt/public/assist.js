@@ -84,6 +84,8 @@
       }
       if (cfg.flDetail && (it.id === 'mauer' || it.id === 'holz_mont')) {
         const nm = NAMES[it.id === 'holz_mont' ? (tw === 'bsp' ? 'bsp' : 'holz') : (tw === 'stb' ? 'stb' : 'massiv')];
+        const erw = CHM.erweiterung && chVisible(CHM.erweiterung, cfg) ? choiceOf(cfg, 'erweiterung') : '';   // Umbau: Rohbau gehört zum Anbau bzw. zur Aufstockung
+        const suf = it.id === 'mauer' && (erw === 'anbau' || erw === 'beides') ? ' Anbau' : it.id === 'holz_mont' && (erw === 'aufstock' || erw === 'beides') ? ' Aufstockung' : '';
         const parts = [];
         L.forEach((l, k) => {
           const top = k === L.length - 1 && dg === 'none';
@@ -92,7 +94,7 @@
         if (dg === 'aus') parts.push({ s: 'w' + L.length, n: nm[2], w: 0.35 });
         if (dg === 'staffel') parts.push({ s: 'w' + L.length, n: nm[0]('Staffelgeschoss'), w: 0.42 }, { s: 'd' + L.length, n: (it.id === 'holz_mont' ? 'Montage Dachdecke' : 'Dachdecke') + ' über Staffelgeschoss', w: 0.28 });
         const W = parts.reduce((a, x) => a + x.w, 0);
-        parts.forEach((x, k) => out.push({ ...it, id: it.id + '~' + x.s, vb: it.id, n: x.n, d: (it.d * x.w) / W, a: k ? [it.id + '~' + parts[k - 1].s] : (it.a || []).slice() }));
+        parts.forEach((x, k) => out.push({ ...it, id: it.id + '~' + x.s, vb: it.id, n: x.n + suf, d: (it.d * x.w) / W, a: k ? [it.id + '~' + parts[k - 1].s] : (it.a || []).slice() }));
       } else if (it.id === 'treppe' && cfg.flDetail) {
         const lv = [...(kg ? ['KG'] : []), ...L, ...(dg === 'aus' ? ['DG'] : dg === 'staffel' ? ['Staffelgeschoss'] : [])];
         if (lv.length < 2) { out.push(it); continue; }
@@ -168,7 +170,7 @@
   }
   // empfohlene Leistungen des Gebäudetyps passend zur gewählten Bauweise
   const recFor = (cfg) => {
-    const r = selForChoices((PROF[cfg.type] || {}).rec || [], { type: cfg.type, choice: {} }, cfg);
+    const r = selForChoices((PROF[cfg.type] || {}).rec || [], cfg.type === 'frei' ? { type: cfg.type, choice: {} } : null, cfg);   // null: alle Bauweisen-Gruppen anwenden – auch die Standardwahl (z. B. Anbau → Gründung, Rohbau)
     const S = new Set([...r, ...libList().filter((x) => (x.rec || []).includes(cfg.type)).map((x) => x.id)]);
     return normSel([...S], cfg);
   };

@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/static/bp.css">
 <style>
 .wrap{max-width:1240px}
-.num{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+.num{white-space:nowrap;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
 .r{text-align:right}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.9rem}
 .top select{flex:1 1 280px;max-width:520px;font-weight:600}
@@ -92,6 +92,7 @@ input[data-own]{border-color:var(--y)}
     <label for="sel" class="hidden">Kostenermittlung</label>
     <select id="sel" aria-label="Kostenermittlung wählen"></select>
     <button class="btn sm" id="newBtn">+ Neue Kostenermittlung</button>
+    <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
     <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
   </div>
@@ -221,6 +222,12 @@ function vPlaene() {
       <td><button class="btn sm" data-delroom="${i}" aria-label="Raum löschen" title="Raum löschen">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">Noch keine Räume.</td></tr>'}</tbody>
       <tfoot><tr><td></td><td>Summe</td><td></td><td class="r num">${m2(B.calc.area)}</td><td colspan="2"></td></tr></tfoot></table></div></div></div>`;
 }
+const KG2 = [['310', 'Baugrube / Erdbau'], ['320', 'Gründung, Unterbau'], ['330', 'Außenwände / Vertikale Baukonstruktionen, außen'], ['340', 'Innenwände / Vertikale Baukonstruktionen, innen'],
+  ['350', 'Decken / Horizontale Baukonstruktionen'], ['360', 'Dächer'], ['370', 'Infrastrukturanlagen'], ['380', 'Baukonstruktive Einbauten'], ['390', 'Sonstige Maßnahmen für Baukonstruktionen'],
+  ['410', 'Abwasser-, Wasser-, Gasanlagen'], ['420', 'Wärmeversorgungsanlagen'], ['430', 'Raumlufttechnische Anlagen'], ['440', 'Elektrische Anlagen'],
+  ['450', 'Kommunikations-, sicherheits- und informationstechnische Anlagen'], ['460', 'Förderanlagen'], ['470', 'Nutzungsspezifische und verfahrenstechnische Anlagen'],
+  ['480', 'Gebäude- und Anlagenautomation'], ['490', 'Sonstige Maßnahmen für technische Anlagen']];
+const sum2 = (g) => Object.entries(B.data.kg2 || {}).filter(([k]) => k[0] === g).reduce((a, [, v]) => a + (+v || 0), 0);
 function vKosten() {
   const c = B.calc, d = B.data;
   const kgRows = [['300', 'Bauwerk – Baukonstruktionen', `${pct(d.kg['300'])} der Raumtyp-Summe`, c.kg300], ['400', 'Bauwerk – Technische Anlagen', `${pct(d.kg['400'])} der Raumtyp-Summe`, c.kg400]]
@@ -237,7 +244,13 @@ function vKosten() {
     <div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th class="r">Betrag €</th><th></th></tr></thead><tbody>${d.items.map((i, k) => `
       <tr><td><input class="n" style="width:70px;text-align:left" value="${esc(i.kg)}" data-it="${k}" data-f="kg" aria-label="Kostengruppe"></td><td><input class="w" value="${esc(i.name)}" data-it="${k}" data-f="name" aria-label="Bezeichnung"></td>
       <td class="r"><input class="n" style="width:130px" value="${i.amount == null ? '' : Math.round(i.amount)}" placeholder="offen" data-it="${k}" data-f="amount" inputmode="numeric" aria-label="Betrag"></td><td><button class="btn sm" data-delit="${k}" aria-label="Position löschen">✕</button></td></tr>`).join('')}</tbody></table></div>
-    <div class="row" style="margin-top:.6rem"><button class="btn sm" data-act="addItem">+ Position</button></div></section>
+    <div class="row" style="margin-top:.6rem"><button class="btn sm" data-act="addItem">+ Position</button></div>
+    <h2 style="margin-top:1.4rem">Aufteilung auf die 2. Ebene (für das PDF)</h2><p class="sub">Anteil der Raumtyp-Kosten in % von KG 300 bzw. 400. Leer = nicht aufgeteilt; der Rest erscheint als „nicht zugeordnet“.</p>
+    <div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th class="r">%</th></tr></thead><tbody>${KG2.map(([k, n]) => `${k === '410' ? `<tr><td colspan="3" class="hint">Summe KG 300: ${pct(sum2('3'))}</td></tr>` : ''}
+      <tr><td class="num">${k}</td><td>${esc(n)}</td><td class="r"><input class="n" style="width:80px" value="${d.kg2[k] ?? ''}" data-kg2="${k}" inputmode="decimal" aria-label="Anteil KG ${k}"></td></tr>`).join('')}
+      <tr><td colspan="3" class="hint">Summe KG 400: ${pct(sum2('4'))}</td></tr></tbody></table></div>
+    <h2 style="margin-top:1.4rem">Erläuterungen für den Bauherrn</h2><p class="sub">Erscheint im PDF unter „Erläuterungen und Annahmen“. Leerzeile = neuer Absatz.</p>
+    <textarea data-notes="1" rows="5" style="width:100%;resize:vertical" aria-label="Erläuterungen">${esc(d.notes || '')}</textarea></section>
   <section class="card"><h2>Kostengruppen nach DIN 276</h2><p class="sub">netto</p><div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th>Ansatz</th><th class="r">Betrag</th></tr></thead><tbody>${kgRows.map(([kg, n, a, v]) => `
       <tr><td class="num">${esc(kg)}</td><td>${esc(n)}</td><td class="hint">${esc(a)}</td><td class="r num" style="${v == null ? 'color:#e07b3a' : ''}">${v == null ? 'offen' : eur(v)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td></td><td>Gesamt netto</td><td></td><td class="r num">${eur(c.total)}</td></tr></tfoot></table></div></section></div>`;
@@ -326,6 +339,8 @@ document.addEventListener('change', (e) => {
   if (row && el.dataset.f) { const r = B.data.rooms[+row.dataset.row]; r[el.dataset.f] = el.dataset.f === 'area' ? pnum(el.value) : el.value; changed(); return; }
   if (el.dataset.kw) { B.data.types[el.dataset.kw].kw = pnum(el.value); changed(); return; }
   if (el.dataset.it) { const it = B.data.items[+el.dataset.it]; it[el.dataset.f] = el.dataset.f === 'amount' ? (el.value.trim() === '' ? null : pnum(el.value)) : el.value; changed(); return; }
+  if (el.dataset.kg2) { B.data.kg2 ||= {}; if (el.value.trim() === '') delete B.data.kg2[el.dataset.kg2]; else B.data.kg2[el.dataset.kg2] = pnum(el.value); changed(); return; }
+  if (el.dataset.notes) { B.data.notes = el.value; changed(false); return; }
   if (el.dataset.share) { B.data.shares[el.dataset.share] = pnum(el.value); changed(); return; }
   if (el.dataset.set) {
     const v = pnum(el.value);
@@ -348,6 +363,32 @@ document.addEventListener('change', (e) => {
 }));
 document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-file],#drop')) { e.preventDefault(); e.target.click(); } });
 $('#newBtn').onclick = () => newDialog();
+$('#pdfBtn').onclick = () => pdfDialog();
+const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr, Stand, Gesamtkosten'], ['zusammenfassung', 'Zusammenfassung', 'Bauwerk, weitere KG, Nebenkosten, MwSt.'],
+  ['kosten', 'Kosten nach DIN 276', 'in der gewählten Gliederungstiefe'], ['raumtypen', 'Kosten nach Nutzung', 'Raumtypen mit Fläche und Kennwert'],
+  ['raumbuch', 'Raumbuch', 'alle Räume mit Nutzung und Fläche'], ['mittelabfluss', 'Mittelabfluss', 'Diagramm und Monatstabelle aus dem Bauzeitenplan'],
+  ['erlaeuterungen', 'Erläuterungen und Annahmen', 'eigener Text und offene Positionen'], ['plaene', 'Planunterlagen', 'hochgeladene Pläne als Anlage']];
+function pdfDialog() {
+  if (!B) return;
+  let o; try { o = JSON.parse(localStorage.getItem('bk.pdf')) || {}; } catch { o = {}; }
+  o = { teile: o.teile || ['deckblatt', 'zusammenfassung', 'kosten', 'mittelabfluss', 'erlaeuterungen'], tiefe: o.tiefe || 2, brutto: o.brutto ?? true, mwst: o.mwst ?? 19, runden: o.runden ?? 100 };
+  modalBox(`<h3>PDF für den Bauherrn</h3><p class="hint" style="margin-top:0">Was soll ins PDF-Paket? Die Auswahl wird gemerkt.</p>
+    <div style="display:flex;flex-direction:column;gap:.15rem;margin-bottom:.9rem">${PARTS.map(([k, n, h]) => `<label class="chk"><input type="checkbox" data-part="${k}"${o.teile.includes(k) ? ' checked' : ''}><span><b>${n}</b> <span class="hint">– ${h}</span></span></label>`).join('')}</div>
+    <div class="row" style="flex-direction:column;align-items:stretch;gap:.6rem">
+      <label>Gliederungstiefe der Kosten<select id="pTiefe"><option value="1"${o.tiefe == 1 ? ' selected' : ''}>1. Ebene – Kostengruppen 100 … 800</option><option value="2"${o.tiefe == 2 ? ' selected' : ''}>2. Ebene – z. B. 330 Außenwände, 440 Elektro</option><option value="3"${o.tiefe == 3 ? ' selected' : ''}>3. Ebene – mit Einzelpositionen</option></select></label>
+      <label>Beträge<select id="pBrutto"><option value="1"${o.brutto ? ' selected' : ''}>brutto inkl. MwSt.</option><option value="0"${o.brutto ? '' : ' selected'}>netto</option></select></label>
+      <label>MwSt. in %<input id="pMwst" value="${o.mwst}" inputmode="decimal"></label>
+      <label>Rundung<select id="pRund"><option value="0"${o.runden == 0 ? ' selected' : ''}>auf volle Euro</option><option value="100"${o.runden == 100 ? ' selected' : ''}>auf 100 €</option><option value="1000"${o.runden == 1000 ? ' selected' : ''}>auf 1.000 €</option></select></label></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erstellen</button></div>`,
+  async (m, bg, close) => {
+    if (m !== 'ok') { close(); return; }
+    const n = { teile: [...bg.querySelectorAll('[data-part]:checked')].map((x) => x.dataset.part), tiefe: +bg.querySelector('#pTiefe').value, brutto: bg.querySelector('#pBrutto').value === '1', mwst: pnum(bg.querySelector('#pMwst').value), runden: +bg.querySelector('#pRund').value };
+    if (!n.teile.length) { toast('Bitte mindestens einen Teil wählen.', true); return; }
+    try { localStorage.setItem('bk.pdf', JSON.stringify(n)); } catch { /* egal */ }
+    close(); clearTimeout(saveT); await saveNow();
+    window.open(`/api/bk/${B.id}/bericht.pdf?teile=${n.teile.join(',')}&tiefe=${n.tiefe}&brutto=${n.brutto ? 1 : 0}&mwst=${n.mwst}&runden=${n.runden}`, '_blank', 'noopener');
+  });
+}
 async function newDialog() {
   if (!SRC) await loadSources();
   modalBox(`<h3>Neue Kostenermittlung</h3>

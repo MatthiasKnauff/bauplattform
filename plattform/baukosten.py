@@ -35,6 +35,20 @@ TYPES = [
     ("sonst", "Sonstige Räume", 1300, r""),
 ]
 STUFEN = ("rahmen", "schaetzung", "berechnung", "anschlag", "feststellung")
+STUFE_NAME = {"rahmen": "Kostenrahmen", "schaetzung": "Kostenschätzung", "berechnung": "Kostenberechnung", "anschlag": "Kostenanschlag", "feststellung": "Kostenfeststellung"}
+# DIN 276 (2018), 1. und 2. Ebene
+DIN = {
+    "100": "Grundstück", "200": "Vorbereitende Maßnahmen", "210": "Herrichten", "220": "Öffentliche Erschließung", "230": "Nichtöffentliche Erschließung",
+    "240": "Ausgleichsmaßnahmen und -abgaben", "250": "Übergangsmaßnahmen",
+    "300": "Bauwerk – Baukonstruktionen", "310": "Baugrube / Erdbau", "320": "Gründung, Unterbau", "330": "Außenwände / Vertikale Baukonstruktionen, außen",
+    "340": "Innenwände / Vertikale Baukonstruktionen, innen", "350": "Decken / Horizontale Baukonstruktionen", "360": "Dächer", "370": "Infrastrukturanlagen",
+    "380": "Baukonstruktive Einbauten", "390": "Sonstige Maßnahmen für Baukonstruktionen",
+    "400": "Bauwerk – Technische Anlagen", "410": "Abwasser-, Wasser-, Gasanlagen", "420": "Wärmeversorgungsanlagen", "430": "Raumlufttechnische Anlagen",
+    "440": "Elektrische Anlagen", "450": "Kommunikations-, sicherheits- und informationstechnische Anlagen", "460": "Förderanlagen",
+    "470": "Nutzungsspezifische und verfahrenstechnische Anlagen", "480": "Gebäude- und Anlagenautomation", "490": "Sonstige Maßnahmen für technische Anlagen",
+    "500": "Außenanlagen und Freiflächen", "600": "Ausstattung und Kunstwerke", "700": "Baunebenkosten", "800": "Finanzierung",
+}
+KG2 = [k for k in DIN if k[0] in "34" and k[1:] != "00"]   # 310 … 490: Aufteilung der Raumtyp-Kosten
 NUM = re.compile(r"^\d{1,2}\.\d{2}$")
 AREA = re.compile(r"^(\d{1,4}[.,]\d{1,2})\s*m(?:²|2)$")
 
@@ -153,9 +167,12 @@ def clean_data(d, c):
         amt = it.get("amount")
         items.append({"kg": _s(it.get("kg"), 10), "name": _s(it.get("name"), 200),
                       "amount": None if amt in (None, "") else round(_num(amt, 0, 0, 1e10), 2)})
+    k2 = d.get("kg2") if isinstance(d.get("kg2"), dict) else {}
+    kg2 = {k: _num(k2.get(k), 0, 0, 100) for k in KG2 if k2.get(k) not in (None, "")}
     shares = {str(k): _num(v, 0, 0, 1e6) for k, v in list((d.get("shares") if isinstance(d.get("shares"), dict) else {}).items())[:5000] if re.fullmatch(r"\d{1,9}", str(k))}
     return {"rooms": rooms, "types": types, "kg": {"300": k300, "400": round(100 - k300, 2)},
-            "nk": _num(d.get("nk"), 20, 0, 60), "rate": _num(d.get("rate"), 3, 0, 20), "items": items, "shares": shares}
+            "nk": _num(d.get("nk"), 20, 0, 60), "rate": _num(d.get("rate"), 3, 0, 20), "items": items, "shares": shares,
+            "kg2": kg2, "notes": _s(d.get("notes"), 8000)}
 
 
 def calc(d):
@@ -607,6 +624,276 @@ def check(i):
     order = {"hoch": 0, "mittel": 1, "info": 2}
     H.sort(key=lambda h: order.get(h["lvl"], 3))
     return jsonify(hinweise=H, ki=ki, note=note)
+
+
+# ---------------------------------------------------------------- PDF für den Bauherrn
+def kg_rows(d, cal, depth):
+    """Kosten nach DIN 276 bis zur gewählten Gliederungstiefe (1 = 100er, 2 = 10er, 3 = Einzelpositionen).
+    Ergebnis: Liste von (Ebene, KG, Bezeichnung, Betrag oder None = offen)."""
+    leaves = []   # (KG dreistellig, Bezeichnung, Betrag | None)
+    for main, total in (("300", cal["kg300"]), ("400", cal["kg400"])):
+        rest = 100.0
+        for k in KG2:
+            if k[0] == main[0] and d["kg2"].get(k):
+                leaves.append((k, f"aus Kennwerten ({d['kg2'][k]:g} % von KG {main})".replace(".", ","), total * d["kg2"][k] / 100)); rest -= d["kg2"][k]
+        if total and rest > 0.01:
+            leaves.append((main, "nicht weiter aufgeteilt (Kennwerte je Raumtyp)" if rest > 99.99 else "nicht zugeordneter Rest", total * rest / 100))
+    for it in d["items"]:
+        kg = re.sub(r"\D", "", it["kg"])[:3]
+        if len(kg) == 3 and kg != "700":
+            leaves.append((kg, it["name"] or DIN.get(kg, ""), it["amount"]))
+    leaves.append(("700", "Baunebenkosten", cal["nk"]))
+
+    def tot(xs):
+        return None if xs and all(x[2] is None for x in xs) else sum(x[2] or 0 for x in xs)
+
+    rows = []
+    for g1 in sorted({k[0] + "00" for k, _, _ in leaves}):
+        L1 = [x for x in leaves if x[0][0] == g1[0]]
+        rows.append((1, g1, DIN.get(g1, ""), tot(L1), any(x[2] is None for x in L1)))
+        if depth < 2 or (len(L1) == 1 and L1[0][0] == g1):   # nur ein Betrag für die ganze Gruppe: keine Unterzeilen
+            continue
+        for g2 in sorted({x[0][:2] + "0" for x in L1 if x[0] != g1}):
+            L2 = [x for x in L1 if x[0][:2] == g2[:2] and x[0] != g1]
+            rows.append((2, g2, DIN.get(g2, L2[0][1]), tot(L2), any(x[2] is None for x in L2)))
+            if depth >= 3 and (len(L2) > 1 or L2[0][0] != g2):
+                for x in L2:
+                    rows.append((3, x[0] if x[0] != g2 else "", x[1], x[2], x[2] is None))
+        for x in L1:   # Beträge direkt auf der 1. Ebene (z. B. KG 300 nicht weiter aufgeteilt)
+            if x[0] == g1:
+                rows.append((2, "", x[1], x[2], x[2] is None))
+    return rows
+
+
+def _office():
+    try:
+        with db.tx() as c:
+            r = c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone()
+        return (r["value"] if r else "") or ""
+    except Exception:
+        return ""
+
+
+def build_report(c, r, opt):
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import (Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle)
+    from reportlab.graphics.shapes import Drawing, Rect, String, Line
+    from xml.sax.saxutils import escape as X
+
+    d = clean_data(_j(r["data"], {}), c)
+    cal = calc(d)
+    o = _out(c, r, False)
+    parts = opt["teile"]
+    mw = opt["mwst"] / 100
+    fac = 1 + mw if opt["brutto"] else 1
+    rnd = opt["runden"]
+    basis = f"brutto inkl. {opt['mwst']:g} % MwSt." if opt["brutto"] else "netto zzgl. MwSt."
+
+    def eur(v, raw=False):
+        if v is None:
+            return "offen"
+        v = v * (1 if raw else fac)
+        if rnd:
+            v = round(v / rnd) * rnd
+        return f"{v:,.0f} €".replace(",", ".")
+
+    def m2(v):
+        return f"{v:,.2f}".replace(",", "§").replace(".", ",").replace("§", ".")
+
+    INK, MUTE, ACC, LINE, BAND = colors.HexColor("#1c1c1a"), colors.HexColor("#5e5b55"), colors.HexColor("#9c4a22"), colors.HexColor("#d9d6cf"), colors.HexColor("#f4f3ef")
+    S = {
+        "h1": ParagraphStyle("h1", fontName="Helvetica-Bold", fontSize=22, leading=27, textColor=INK, spaceAfter=4),
+        "h2": ParagraphStyle("h2", fontName="Helvetica-Bold", fontSize=13.5, leading=17, textColor=INK, spaceBefore=6, spaceAfter=8),
+        "p": ParagraphStyle("p", fontName="Helvetica", fontSize=9.5, leading=13.5, textColor=INK),
+        "m": ParagraphStyle("m", fontName="Helvetica", fontSize=8.5, leading=11.5, textColor=MUTE),
+        "big": ParagraphStyle("big", fontName="Helvetica-Bold", fontSize=26, leading=30, textColor=INK),
+        "cell": ParagraphStyle("cell", fontName="Helvetica", fontSize=9, leading=11.5, textColor=INK),
+    }
+    office = _office()
+    proj = o.get("project") or {}
+    title = r["name"]
+    stufe = STUFE_NAME.get(r["stufe"], r["stufe"])
+    today = date.today().strftime("%d.%m.%Y")
+    W = A4[0] - 36 * mm
+
+    def table(data, widths, num_cols=(), head=True, bold_rows=(), level=None):
+        t = Table(data, colWidths=widths, repeatRows=1 if head else 0)
+        st = [("FONT", (0, 0), (-1, -1), "Helvetica", 9), ("TEXTCOLOR", (0, 0), (-1, -1), INK),
+              ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+              ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE)]
+        if head:
+            st += [("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 8.5), ("TEXTCOLOR", (0, 0), (-1, 0), MUTE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK)]
+        for ci in num_cols:
+            st.append(("ALIGN", (ci, 0), (ci, -1), "RIGHT"))
+        for ri in bold_rows:
+            st += [("FONT", (0, ri), (-1, ri), "Helvetica-Bold", 9.5), ("BACKGROUND", (0, ri), (-1, ri), BAND)]
+        t.setStyle(TableStyle(st))
+        return t
+
+    story = []
+    logo = C._logo_bytes()
+
+    # Deckblatt
+    if "deckblatt" in parts:
+        if logo:
+            try:
+                story += [Image(io.BytesIO(logo), width=28 * mm, height=28 * mm, kind="proportional"), Spacer(1, 18 * mm)]
+            except Exception:
+                story.append(Spacer(1, 46 * mm))
+        else:
+            story.append(Spacer(1, 46 * mm))
+        story += [Paragraph(X(stufe) + " nach DIN 276", ParagraphStyle("k", parent=S["m"], fontSize=11, textColor=ACC)), Spacer(1, 4),
+                  Paragraph(X(proj.get("name") or title), S["h1"])]
+        if proj.get("address"):
+            story.append(Paragraph(X(proj["address"]), S["p"]))
+        story.append(Spacer(1, 22 * mm))
+        rows = [["Bauherr", proj.get("client") or "—"], ["Stand", today], ["Kostenbasis", basis]]
+        if office:
+            rows.append(["Aufgestellt", office])
+        t = Table(rows, colWidths=[40 * mm, W - 40 * mm])
+        t.setStyle(TableStyle([("FONT", (0, 0), (0, -1), "Helvetica", 9), ("TEXTCOLOR", (0, 0), (0, -1), MUTE), ("FONT", (1, 0), (1, -1), "Helvetica-Bold", 10),
+                               ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+        story += [t, Spacer(1, 14 * mm), Paragraph("Gesamtkosten", S["m"]), Paragraph(eur(cal["total"]), S["big"]),
+                  Paragraph(basis + (f", gerundet auf {rnd:,} €".replace(",", ".") if rnd else ""), S["m"]), PageBreak()]
+
+    # Zusammenfassung
+    if "zusammenfassung" in parts:
+        story.append(Paragraph("Zusammenfassung", S["h2"]))
+        rows = [["", "Betrag"], ["Bauwerk (KG 300 + 400)", eur(cal["bauwerk"])], ["Weitere Kostengruppen", eur(cal["extra"])],
+                ["Baunebenkosten (KG 700)", eur(cal["nk"])]]
+        if opt["brutto"]:
+            rows += [["Gesamt netto", eur(cal["total"], True)], [f"MwSt. {opt['mwst']:g} %", eur(cal["total"] * mw, True)], ["Gesamt brutto", eur(cal["total"] * (1 + mw), True)]]
+        else:
+            rows += [["Gesamt netto", eur(cal["total"])]]
+        story.append(table(rows, [W - 50 * mm, 50 * mm], num_cols=(1,), bold_rows=(len(rows) - 1,)))
+        story += [Spacer(1, 8), Paragraph(f"Raumfläche {m2(cal['area'])} m² · Kennwert Bauwerk {eur(cal['kw'])} je m² Raumfläche ({'brutto' if opt['brutto'] else 'netto'})", S["m"]), Spacer(1, 14)]
+
+    # Kostengruppen
+    if "kosten" in parts:
+        depth = opt["tiefe"]
+        rows = [["KG", "Bezeichnung", "Betrag"]]
+        bold, styles = [], []
+        for lvl, kg, name, v, open_ in kg_rows(d, cal, depth):
+            ind = "    " * (lvl - 1)
+            rows.append([kg, Paragraph(X(ind) + ("<b>" if lvl == 1 else "") + X(name) + ("</b>" if lvl == 1 else "") + (" <font color='#9c4a22'>(teilweise offen)</font>" if open_ and v is not None else ""), S["cell"]), eur(v)])
+            if lvl == 1:
+                bold.append(len(rows) - 1)
+        rows.append(["", Paragraph("<b>Gesamt</b>", S["cell"]), eur(cal["total"])])
+        story += [Paragraph(f"Kosten nach DIN 276 – {depth}. Gliederungsebene", S["h2"]), table(rows, [16 * mm, W - 56 * mm, 40 * mm], num_cols=(2,), bold_rows=bold + [len(rows) - 1]),
+                  Spacer(1, 4), Paragraph(basis + (" · gerundet" if rnd else "") + ". „offen“ = noch nicht ermittelt, in der Summe nicht enthalten.", S["m"]), Spacer(1, 14)]
+
+    # Raumtypen / Kennwerte
+    if "raumtypen" in parts:
+        rows = [["Raumtyp", "Räume", "Fläche m²", "€ / m²", "Kosten"]]
+        for t in cal["types"]:
+            if t["n"]:
+                rows.append([t["label"], str(t["n"]), m2(t["area"]), eur(t["kw"]), eur(t["sum"])])
+        rows.append(["Summe Bauwerk", str(len(d["rooms"])), m2(cal["area"]), eur(cal["kw"]), eur(cal["bauwerk"])])
+        story += [KeepTogether([Paragraph("Kosten nach Nutzung (Kennwerte)", S["h2"]), table(rows, [W - 110 * mm, 18 * mm, 28 * mm, 28 * mm, 36 * mm], num_cols=(1, 2, 3, 4), bold_rows=(len(rows) - 1,))]), Spacer(1, 14)]
+
+    # Raumbuch
+    if "raumbuch" in parts and d["rooms"]:
+        names = dict((k, v["label"]) for k, v in d["types"].items())
+        rows = [["Nr.", "Raum", "Nutzung", "Fläche m²"]] + [[x["nr"], Paragraph(X(x["name"]), S["cell"]), names.get(x["typ"], ""), m2(x["area"])]
+                                                          for x in sorted(d["rooms"], key=lambda x: (x["floor"], x["nr"]))]
+        rows.append(["", "Summe", "", m2(cal["area"])])
+        story += [Paragraph("Raumbuch", S["h2"]), table(rows, [16 * mm, W - 90 * mm, 50 * mm, 24 * mm], num_cols=(3,), bold_rows=(len(rows) - 1,)), Spacer(1, 14)]
+
+    # Mittelabfluss
+    if "mittelabfluss" in parts:
+        fl = flow(c, r, d, cal)
+        story.append(Paragraph("Mittelabfluss", S["h2"]))
+        if not fl["ok"]:
+            story += [Paragraph(X(fl["why"]), S["m"]), Spacer(1, 14)]
+        else:
+            M = fl["months"]
+            dr = Drawing(W, 150)
+            mx = max(m["idx"] for m in M) or 1
+            bw = (W - 20) / max(1, len(M))
+            for i, m in enumerate(M):
+                h = m["idx"] / mx * 110
+                dr.add(Rect(10 + i * bw + bw * 0.18, 24, bw * 0.64, h, fillColor=ACC, strokeColor=None))
+                if len(M) <= 18 or i % 2 == 0:
+                    dr.add(String(10 + i * bw + bw / 2, 10, ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"][int(m["ym"][5:]) - 1] + " " + m["ym"][2:4],
+                                  fontName="Helvetica", fontSize=7, fillColor=MUTE, textAnchor="middle"))
+            dr.add(Line(10, 24, W - 10, 24, strokeColor=LINE, strokeWidth=0.6))
+            mon = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+            rows = [["Monat", "Betrag", "kumuliert"]] + [[f"{mon[int(m['ym'][5:]) - 1]} {m['ym'][:4]}", eur(m["idx"]), eur(m["cum_idx"])] for m in M]
+            rows.append(["Summe", eur(fl["total_idx"]), ""])
+            story += [Paragraph(f"Verteilung über den Bauzeitenplan „{X(fl['plan'])}“ ({date.fromisoformat(fl['start']).strftime('%d.%m.%Y')} bis {date.fromisoformat(fl['end']).strftime('%d.%m.%Y')}), "
+                                f"inkl. Baupreisindex {d['rate']:g} % p. a.; ohne Baunebenkosten.", S["m"]), Spacer(1, 6), dr, Spacer(1, 6),
+                      table(rows, [W - 90 * mm, 45 * mm, 45 * mm], num_cols=(1, 2), bold_rows=(len(rows) - 1,)), Spacer(1, 14)]
+
+    # Erläuterungen
+    if "erlaeuterungen" in parts:
+        story.append(Paragraph("Erläuterungen und Annahmen", S["h2"]))
+        if d["notes"]:
+            for para in d["notes"].split("\n\n"):
+                story += [Paragraph(X(para).replace("\n", "<br/>"), S["p"]), Spacer(1, 5)]
+        auto = [f"Kostenstufe: {stufe}. Kostenbasis: {basis}" + (f", Beträge gerundet auf {rnd:,} €".replace(",", ".") if rnd else "") + "."]
+        offen = [f"KG {i['kg']} {i['name']}" for i in d["items"] if i["amount"] is None]
+        if offen:
+            auto.append("Noch nicht ermittelt und in der Summe nicht enthalten: " + ", ".join(offen) + ".")
+        auto.append(f"Baunebenkosten pauschal mit {d['nk']:g} % angesetzt.")
+        kinds = [(_j(f["meta"], {}) or {}).get("kind") for f in c.execute("SELECT meta FROM bk_files WHERE bk_id=?", (r["id"],))]
+        if "Grundriss" in kinds:
+            auto.append("Flächen aus den Raumstempeln der Grundrisse (Vorentwurf) übernommen.")
+        for a in auto:
+            story += [Paragraph("• " + X(a), S["p"]), Spacer(1, 3)]
+        story.append(Spacer(1, 14))
+
+    # Pläne
+    if "plaene" in parts:
+        files = c.execute("SELECT id, name, data FROM bk_files WHERE bk_id=? ORDER BY id", (r["id"],)).fetchall()
+        for f in files:
+            try:
+                png = preview_png(bytes(f["data"]), width=1800)
+            except Exception:
+                continue
+            from PIL import Image as PI
+            w, h = PI.open(io.BytesIO(png)).size
+            ih = min(A4[1] - 60 * mm, W * h / w)
+            story += [PageBreak(), Paragraph("Planunterlage: " + X(f["name"]), S["h2"]), Image(io.BytesIO(png), width=ih * w / h, height=ih)]
+
+    buf = io.BytesIO()
+
+    def frame(cv, doc):
+        cv.saveState()
+        cv.setFont("Helvetica", 7.5); cv.setFillColor(MUTE)
+        cv.drawString(18 * mm, 10 * mm, f"{proj.get('name') or title} · {stufe} · Stand {today}")
+        cv.drawRightString(A4[0] - 18 * mm, 10 * mm, (office + " · " if office else "") + f"Seite {doc.page}")
+        cv.setStrokeColor(ACC); cv.setLineWidth(1.2); cv.line(18 * mm, A4[1] - 12 * mm, A4[0] - 18 * mm, A4[1] - 12 * mm)
+        cv.restoreState()
+
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=18 * mm, bottomMargin=18 * mm,
+                            title=f"{stufe} – {proj.get('name') or title}", author=office or "Bauplattform")
+    if not story:
+        story = [Paragraph("Keine Inhalte gewählt.", S["p"])]
+    doc.build(story, onFirstPage=frame, onLaterPages=frame)
+    return buf.getvalue()
+
+
+TEILE = ("deckblatt", "zusammenfassung", "kosten", "raumtypen", "raumbuch", "mittelabfluss", "erlaeuterungen", "plaene")
+
+
+@app.get("/api/bk/<int:i>/bericht.pdf")
+def bericht(i):
+    a = request.args
+    opt = {"teile": [t for t in (a.get("teile") or ",".join(TEILE)).split(",") if t in TEILE],
+           "tiefe": int(_num(a.get("tiefe"), 2, 1, 3)), "brutto": a.get("brutto") == "1", "mwst": _num(a.get("mwst"), 19, 0, 30),
+           "runden": int(a.get("runden")) if a.get("runden") in ("0", "100", "1000") else 0}
+    with db.tx() as c:
+        r = _row(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        pdf = build_report(c, r, opt)
+    C.audit(g.user["name"], "export", "Kosten-PDF erstellt", f"{r['name']} · Ebene {opt['tiefe']} · {', '.join(opt['teile'])}")
+    from urllib.parse import quote
+    fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"{STUFE_NAME.get(r['stufe'], 'Kosten')} {r['name']}.pdf")
+    return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(fn)}"})
 
 
 C.wait_schema()

@@ -1,5 +1,10 @@
 # Änderungsprotokoll – Gantt-App (Bauzeitenplan)
 
+## 3.1.0 – 03.11.2026
+- **Baustellenadressen nicht mehr als Firmen**: Im Bautagebuch beim Projekt gespeicherte Baustellenadressen (Gewerk „Baustelle“) erscheinen nicht mehr in der Firmenauswahl und im Adressbuch.
+- **Farbschema zentral**: wird jetzt auf der Startseite unter „Darstellung“ eingestellt und gilt für alle Apps; in den Programmeinstellungen steht nur noch der Hinweis dorthin.
+- Anmeldung: kein Hin- und Herspringen mehr zwischen Startseite und Bauzeitenplan, wenn der Browser noch ein altes Anmelde-Cookie hat (vor allem Handys).
+
 ## 3.0.1 – 03.11.2026
 - „Gewerk hinzufügen“: Der Browser schlägt keine Projektnamen/Bauvorhabenadressen mehr vor. Stattdessen Vorschlagsliste mit üblichen Gewerken und Gewerken aus dem Adressbuch (ohne die schon im Projekt vorhandenen).
 

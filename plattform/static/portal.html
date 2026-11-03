@@ -14,11 +14,26 @@
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
 .tile{display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.2rem 1.2rem 1.1rem;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s;min-height:168px}
 .tile:hover,.tile:focus-visible{border-color:var(--y);transform:translateY(-2px)}
-.tile .ic{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.05);color:var(--y)}
+.tile .ic{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;background:var(--hov);color:var(--y)}
 .tile b{font-size:1.15rem}
 .tile span{color:var(--mute);font-size:.92rem}
 .tile .go{margin-top:auto;color:var(--y);font-weight:600;font-size:.92rem}
 .tile.off{opacity:.45;pointer-events:none}
+.look{margin-top:2.2rem}
+.look h2{margin:0 0 .3rem}
+.look p{margin:0 0 1rem;color:var(--mute);font-size:.92rem}
+.th{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.7rem;margin-bottom:1.2rem}
+.th label{display:flex;flex-direction:column;gap:.45rem;background:var(--card);border:2px solid var(--line);border-radius:10px;padding:.6rem;cursor:pointer}
+.th label.on{border-color:var(--y)}
+.th input{position:absolute;opacity:0;pointer-events:none}
+.th .pv{height:46px;border-radius:6px;overflow:hidden;display:grid;grid-template-rows:12px 1fr;border:1px solid var(--line)}
+.th .pv i{display:block}.th .pv span{display:flex;gap:4px;padding:5px}.th .pv b{flex:1;border-radius:3px}.th .pv em{width:18px;border-radius:3px}
+.th small{color:var(--mute);font-size:.8rem}
+.sw{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.sw button,.sw label{width:34px;height:34px;border-radius:50%;border:3px solid transparent;padding:0;box-shadow:0 0 0 1px var(--line);position:relative;overflow:hidden}
+.sw .on{border-color:var(--ink)}
+.sw label{background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);cursor:pointer}
+.sw input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .foot{margin-top:2.4rem;color:var(--mute);font-size:.82rem;display:flex;gap:1rem;flex-wrap:wrap}
 </style>
 </head>
@@ -26,6 +41,13 @@
 <main class="wrap">
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
   <div class="tiles" id="tiles"></div>
+  <section class="look" id="look">
+    <h2>Darstellung</h2>
+    <p>Gilt für dich in allen Apps (Startseite, Bautagebuch, Bauzeitenplan, Adressen, Verwaltung) und auf allen Geräten.</p>
+    <div class="th" id="th"></div>
+    <div class="lbl mute" style="margin-bottom:.5rem;font-size:.9rem">Akzentfarbe</div>
+    <div class="sw" id="sw"></div>
+  </section>
   <div class="foot"><span id="ver"></span></div>
 </main>
 <script src="/static/bp.js"></script>
@@ -33,11 +55,25 @@
 const DESC = {
   bautagebuch: ['Bautagebuch', 'Tagesberichte, Wetter, Anwesende, Fotos, Mängel und Weisungen – mit PDF.'],
   gantt: ['Bauzeitenplan', 'Terminplanung mit Gewerken, Firmen, kritischem Weg und Versionen.'],
+  adressen: ['Adressen', 'Firmen, Bauherren und Baustellen – dieselben Kontakte wie im Bautagebuch und Bauzeitenplan.'],
   admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
 };
+const PV = { dunkel: ['#84827c', '#26282b', '#2d2f33'], hell: ['#84827c', '#f3f2ef', '#ffffff'], auto: ['#84827c', 'linear-gradient(90deg,#26282b 50%,#f3f2ef 50%)', '#9a9c9e'], klassisch: ['#2f6f3e', '#f7f7f7', '#ffffff'] };
+function renderLook(me) {
+  const t = me.theme || 'dunkel', a = (me.accent || ACCENTS[0][0]).toLowerCase();
+  $('#th').innerHTML = THEMES.map(([k, n, d]) => `<label class="${t === k ? 'on' : ''}"><input type="radio" name="th" value="${k}"${t === k ? ' checked' : ''}>
+    <span class="pv"><i style="background:${PV[k][0]}"></i><span style="background:${PV[k][1]}"><b style="background:${PV[k][2]}"></b><em style="background:var(--y)"></em></span></span>
+    <b>${esc(n)}</b><small>${esc(d)}</small></label>`).join('');
+  $('#sw').innerHTML = ACCENTS.map(([c, n]) => `<button class="${a === c ? 'on' : ''}" style="background:${c}" data-c="${c}" title="${n}" aria-label="${n}"></button>`).join('')
+    + `<label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}"></label>`;
+  const save = async (d) => { try { const r = await api('/api/appearance', 'PUT', d); applyLook(r); renderLook(r); toast('Darstellung gespeichert – gilt in allen Apps.'); } catch (e) { toast(e.message, true); } };
+  $('#th').onchange = (e) => { if (e.target.name === 'th') save({ theme: e.target.value }); };
+  $('#sw').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b) save({ accent: b.dataset.c }); };
+  $('#sw').querySelector('input[type=color]').onchange = (e) => save({ accent: e.target.value });
+}
 (async () => {
   const me = await api('/api/me'); if (!me.ok) { location.href = '/login'; return; }
-  applyAccent(me.accent);
+  applyLook(me);
   const conf = await api('/api/platform');
   await header('Startseite', me, conf);
   const h = new Date().getHours();
@@ -47,6 +83,7 @@ const DESC = {
       <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span>${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span>
       ${a.allowed ? '<span class="go">Öffnen →</span>' : ''}</a>`).join('');
   $('#ver').textContent = 'Version ' + conf.version;
+  renderLook(me);
 })().catch(e => toast(e.message, true));
 </script>
 </body>

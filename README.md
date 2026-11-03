@@ -8,6 +8,7 @@ einem eigenen Container für die Verwaltung und einem Skript, das neue Versionen
 | Startseite / Anmeldung | `http://server:8090` | `bauplattform_portal` |
 | Bautagebuch | `http://server:8080` (wie bisher) | `bautagebuch` |
 | Bauzeitenplan | `http://server:8082` (wie bisher) | `bauzeitenplan` |
+| Adressen (Firmen, Bauherren, Baustellen) | `http://server:8093` | `bauplattform_adressen` |
 | Verwaltung (nur Administratoren) | `http://server:8091` | `bauplattform_admin` |
 | Datenbank (PostgreSQL 15) | nur intern | `Bautagebuch_db` |
 
@@ -136,6 +137,26 @@ Stacks `bautagebuch` und `gantt-app` entfernen (die Volumes bleiben) und vom LXC
 - Ohne Anmeldung leitet der Bauzeitenplan zur Startseite weiter und danach wieder zurück.
 - Beim ersten Anmelden mit einem Startkennwort wird ein eigenes Kennwort verlangt, egal auf welcher Seite.
 - „Kennwort vergessen“ läuft wie bisher über das Bautagebuch (E-Mail-Link). Die Startseite verlinkt dorthin.
+
+**Darstellung:** Farbschema (Dunkel, Hell, Automatisch, Klassisch Grün) und Akzentfarbe stellt jeder auf der Startseite
+unter *Darstellung* ein. Das gilt für den Benutzer in allen Apps und auf allen Geräten (Spalten `users.theme`, `users.accent`).
+
+**Anmeldung ohne Nginx:** Wird eine App direkt über IP oder Rechnername und Port aufgerufen (z. B. `http://192.168.1.20:8093`),
+geht die Anmeldung über die Startseite auf demselben Rechner (`http://192.168.1.20:8090`). Cookies gelten je Rechnername,
+deshalb muss man sich dort einmal getrennt anmelden. Hat ein Browser noch ein altes Anmelde-Cookie nur für einen Rechnernamen
+(vor `SSO_COOKIE_DOMAIN`), prüfen alle Apps alle mitgeschickten Cookies, und die Startseite stellt es auf die Domain um.
+
+## Adressen (eigener Container)
+
+Dieselben Kontakte wie im Bautagebuch und im Adressbuch des Bauzeitenplans (Tabelle `contacts`), als eigene App fürs
+Handy und den Rechner: suchen, nach Firmen/Bauherren/Baustellen und Gewerk filtern, anlegen, ändern, anrufen, E-Mail,
+Karte, Visitenkarte ins Handy (vCard), Export als CSV. Löschen geht nur, wenn der Kontakt im Bautagebuch nirgends
+verwendet wird. Baustellenadressen (im Bautagebuch beim Projekt gespeichert) erscheinen nicht als Firmen im Bauzeitenplan.
+
+Läuft zunächst ohne Nginx über Port 8093. Damit die anderen Apps richtig dorthin verlinken, in Portainer `SERVER_HOST`
+auf die IP von Docker 2 setzen. Später im Nginx Proxy Manager eine Adresse eintragen (Ziel `bauplattform_adressen:8093`
+bzw. Docker-2-IP:8093) und `ADRESSEN_URL` setzen, z. B. `https://adressen.gk3-architektur.de`. Freischalten je Benutzer
+in der Verwaltung (App „Adressen“; wer „alle Apps“ hat, bekommt sie automatisch).
 
 ## Verwaltung (eigener Container)
 

@@ -30,8 +30,14 @@ def login_page():
 
 @app.get("/api/me")
 def me():
-    u = C.current_user()
-    return jsonify(ok=True, **C.public(u)) if u else jsonify(ok=False)
+    with db.tx() as c:
+        tok = sso.current_token(request, c)
+        u = sso.lookup(c, tok) if tok else None
+    if not u:
+        return jsonify(ok=False)
+    # gültige Sitzung immer (neu) als Cookie für die ganze Domain setzen – räumt ein altes Cookie nur für diesen
+    # Rechnernamen weg, damit alle Apps dieselbe Sitzung sehen
+    return sso.set_cookie(jsonify(ok=True, **C.public(u)), tok)
 
 
 @app.get("/api/platform")
@@ -57,7 +63,7 @@ def login():
     if not u["active"]:
         return jsonify(error="Dieses Konto ist gesperrt. Bitte an die Verwaltung wenden."), 403
     with db.tx() as c:
-        sso.revoke(c, request.cookies.get(sso.COOKIE))
+        sso.revoke_req(c, request)
         tok = sso.create(c, u["id"], request.remote_addr or "", request.user_agent.string, "portal")
     C.audit(u["name"], "konto", "Angemeldet", f"Startseite · {request.remote_addr or ''}")
     return sso.set_cookie(jsonify(ok=True, **C.public(u), next=C.safe_next(d.get("next"))), tok)
@@ -85,6 +91,33 @@ def password():
         c.execute("DELETE FROM password_resets WHERE user_id=?", (u["id"],))
     C.audit(u["name"], "konto", "Kennwort geändert", "Startseite")
     return jsonify(ok=True)
+
+
+@app.put("/api/appearance")
+def appearance():
+    """Darstellung für alle Apps: Farbschema und Akzentfarbe (nur für den angemeldeten Benutzer)."""
+    u = C.current_user()
+    if not u:
+        return jsonify(error="Nicht angemeldet"), 401
+    d = request.get_json(silent=True) or {}
+    sets, args = [], []
+    if "theme" in d:
+        t = str(d.get("theme") or "").strip().lower()
+        t = "" if t == "dunkel" else t
+        if t not in sso.THEMES:
+            return jsonify(error="Unbekanntes Farbschema."), 400
+        sets.append("theme=?"); args.append(t)
+    if "accent" in d:
+        a = str(d.get("accent") or "").strip().lower()
+        if a and not re.fullmatch(r"#[0-9a-f]{6}", a):
+            return jsonify(error="Ungültige Farbe."), 400
+        sets.append("accent=?"); args.append(a)
+    if sets:
+        with db.tx() as c:
+            c.execute(f"UPDATE users SET {', '.join(sets)}, updated=datetime('now') WHERE id=?", (*args, u["id"]))
+            u = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
+        C.audit(u["name"], "konto", "Darstellung geändert", "Startseite")
+    return jsonify(ok=True, **C.public(u))
 
 
 @app.get("/api/links")

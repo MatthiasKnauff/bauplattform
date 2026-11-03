@@ -71,7 +71,7 @@ def make_app(name):
         """Abmelden – gilt für alle Apps (gemeinsame Sitzung)."""
         u = current_user()
         with db.tx() as c:
-            sso.revoke(c, request.cookies.get(sso.COOKIE))
+            sso.revoke_req(c, request)
         if u:
             audit(u["name"], "konto", "Abgemeldet", {"portal": "Startseite", "admin": "Verwaltung"}.get(name, name))
         return sso.clear_cookie(jsonify(ok=True, login=login_url()))
@@ -98,7 +98,7 @@ def _logo_bytes():
 
 def current_user():
     with db.tx() as c:
-        return sso.lookup(c, request.cookies.get(sso.COOKIE))
+        return sso.current(c, request)
 
 
 def page(name):
@@ -107,7 +107,7 @@ def page(name):
 
 def public(u):
     return {"id": u["id"], "name": u["name"], "email": u["email"], "is_admin": bool(u["is_admin"]), "must_change": bool(u["must_change"]),
-            "accent": u["accent"] or "", "apps": sso.apps_of(u)}
+            "accent": u["accent"] or "", "theme": sso.theme_of(u) or "dunkel", "apps": sso.apps_of(u)}
 
 
 # ---- Kennwörter (gleiches Verfahren wie im Bautagebuch: werkzeug-Hash)
@@ -156,11 +156,14 @@ def audit(user, cat, action, detail=""):
 
 
 def app_base(key):
-    """Adresse einer App für Weiterleitungen auf dem Server (gleicher Rechnername, anderer Port, falls keine URL gesetzt)."""
+    """Adresse einer App für Weiterleitungen.
+    - Seite über eine Proxy-Adresse aufgerufen (z. B. https://bauportal.firma.de) → eingetragene Adresse der App.
+    - Seite direkt über IP/Rechnername und Port aufgerufen (ohne Nginx) → gleicher Rechnername, Port der App.
+      So bleibt die Anmeldung auf demselben Rechner (Cookies gelten je Rechnername), sonst käme man nie an."""
     a = next(x for x in platform.apps() if x["key"] == key)
-    if a["url"]:
-        return a["url"]
     u = urlsplit(request.host_url)
+    if a["url"] and platform.is_proxied(u.hostname):
+        return a["url"]
     return f"{u.scheme}://{u.hostname}:{a['port']}"
 
 

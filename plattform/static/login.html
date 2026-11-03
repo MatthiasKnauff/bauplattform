@@ -65,7 +65,7 @@ $('#fLogin').onsubmit = async (e) => {
   e.preventDefault(); $('#err').textContent = '';
   try {
     const r = await api('/api/login', 'POST', { name: $('#un').value, password: $('#pw').value, next });
-    me = r; applyAccent(r.accent);
+    me = r; applyLook(r); try { sessionStorage.removeItem('bpBounce'); } catch { /* egal */ }
     if (r.must_change) { $('#pw0').value = $('#pw').value; showChange(); $('#pw1').focus(); return; }
     go(r.next);
   } catch (err) { $('#err').textContent = err.message; $('#pw').select(); }
@@ -77,8 +77,22 @@ $('#fChange').onsubmit = async (e) => {
   catch (err) { $('#err2').textContent = err.message; }
 };
 $('#out').onclick = async (e) => { e.preventDefault(); await fetch('/api/logout', { method: 'POST' }); location.reload(); };
-// schon angemeldet? → direkt weiter (oder Kennwort ändern)
-api('/api/me').then(r => { if (!r.ok) { $('#un').focus(); return; } me = r; applyAccent(r.accent); if (r.must_change) showChange(); else go(); }).catch(() => {});
+// schon angemeldet? → direkt weiter (oder Kennwort ändern).
+// Schleifensperre: Schickt die App gleich wieder hierher zurück (Sitzung dort nicht gültig), nicht endlos hin und her
+// springen, sondern das Anmeldeformular zeigen – neu anmelden räumt alte Cookies auf.
+function bounced() {
+  let a = []; try { a = JSON.parse(sessionStorage.getItem('bpBounce') || '[]'); } catch { a = []; }
+  const now = Date.now(); a = a.filter((t) => now - t < 20000); a.push(now);
+  try { sessionStorage.setItem('bpBounce', JSON.stringify(a)); } catch { /* egal */ }
+  return a.length > 2;
+}
+api('/api/me').then(r => {
+  if (!r.ok) { $('#un').focus(); return; }
+  me = r; applyLook(r);
+  if (r.must_change) { showChange(); return; }
+  if (next && bounced()) { $('#err').textContent = 'Die Anmeldung wurde von der App nicht übernommen. Bitte noch einmal anmelden.'; $('#un').value = r.name || ''; $('#pw').focus(); return; }
+  go();
+}).catch(() => {});
 </script>
 </body>
 </html>

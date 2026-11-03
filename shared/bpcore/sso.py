@@ -15,7 +15,7 @@ COOKIE = os.environ.get("SSO_COOKIE_NAME", "bp_sso")
 DOMAIN = os.environ.get("SSO_COOKIE_DOMAIN", "").strip() or None
 SECURE = os.environ.get("COOKIE_SECURE") == "1"
 DAYS = int(os.environ.get("SSO_DAYS", "30") or 30)
-APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"))   # Apps mit Zugriffsrecht je Benutzer
+APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"))   # Apps mit Zugriffsrecht je Benutzer
 _TOUCH = 300   # „zuletzt gesehen“ höchstens alle 5 Minuten schreiben
 
 
@@ -54,18 +54,92 @@ def revoke_user(con, uid):
     con.execute("DELETE FROM sso_sessions WHERE user_id=?", (uid,))
 
 
-def cookie_args():
-    return dict(max_age=DAYS * 86400, httponly=True, samesite="Lax", secure=SECURE, domain=DOMAIN, path="/")
+# ---- Cookie im Browser
+# Ein Browser kann mehrere Cookies „bp_sso“ haben: eines für die ganze Domain (SSO_COOKIE_DOMAIN) und ein älteres nur für
+# einen Rechnernamen (vor Einführung der Domain gesetzt). Dann sieht die Startseite eine gültige Sitzung, die App aber nicht –
+# und beide leiten sich gegenseitig weiter (Anmeldung „flackert“, vor allem auf Handys). Deshalb werden immer ALLE
+# mitgeschickten Schlüssel geprüft, und beim Anmelden/Abmelden wird das alte Cookie mit gelöscht.
+
+def tokens(req):
+    """Alle mitgeschickten SSO-Schlüssel (ohne Doppelte)."""
+    out = []
+    for t in req.cookies.getlist(COOKIE):
+        if t and t not in out:
+            out.append(t)
+    return out
 
 
-def set_cookie(resp, tok):
-    resp.set_cookie(COOKIE, tok, **cookie_args())
+def current(con, req):
+    """Benutzer zur ersten gültigen Sitzung unter allen mitgeschickten Schlüsseln (oder None)."""
+    for t in tokens(req):
+        u = lookup(con, t)
+        if u:
+            return u
+    return None
+
+
+def current_token(req, con):
+    for t in tokens(req):
+        if lookup(con, t):
+            return t
+    return None
+
+
+def revoke_req(con, req):
+    """Alle Sitzungen dieses Browsers beenden."""
+    for t in tokens(req):
+        revoke(con, t)
+
+
+def _domain_for(req):
+    """SSO_COOKIE_DOMAIN nur verwenden, wenn die Seite auch unter dieser Domain aufgerufen wurde.
+    Aufruf über IP-Adresse oder Rechnername mit Port (ohne Reverse Proxy) → Cookie nur für diesen Rechner."""
+    if not DOMAIN or req is None:
+        return DOMAIN
+    host = (req.host or "").split(":")[0].lower()
+    d = DOMAIN.lstrip(".").lower()
+    return DOMAIN if host == d or host.endswith("." + d) else None
+
+
+def _secure_for(req):
+    """Secure-Cookie nur über HTTPS – über http://server:port würde der Browser es sonst verwerfen."""
+    if not SECURE:
+        return False
+    return True if req is None else req.scheme == "https"
+
+
+def cookie_args(req=None):
+    return dict(max_age=DAYS * 86400, httponly=True, samesite="Lax", secure=_secure_for(req), domain=_domain_for(req), path="/")
+
+
+def _clear_old(resp, req):
+    if _domain_for(req):   # Cookie nur für diesen Rechnernamen (alter Stand) entfernen
+        resp.delete_cookie(COOKIE, path="/")
+
+
+def set_cookie(resp, tok, req=None):
+    if req is None:
+        from flask import request as req
+    _clear_old(resp, req)
+    resp.set_cookie(COOKIE, tok, **cookie_args(req))
     return resp
 
 
-def clear_cookie(resp):
-    resp.delete_cookie(COOKIE, domain=DOMAIN, path="/")
+def clear_cookie(resp, req=None):
+    if req is None:
+        from flask import request as req
+    _clear_old(resp, req)
+    resp.delete_cookie(COOKIE, domain=_domain_for(req), path="/")
     return resp
+
+
+THEMES = ("", "hell", "auto", "klassisch")   # '' = Dunkel (Standard)
+
+
+def theme_of(user):
+    """Farbschema des Benutzers (zentral auf der Startseite eingestellt)."""
+    t = (user["theme"] if user is not None and "theme" in user.keys() else "") or ""
+    return t if t in THEMES else ""
 
 
 def apps_of(user):

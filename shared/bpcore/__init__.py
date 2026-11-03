@@ -1,2 +1,2 @@
 """Gemeinsamer Kern der Bauplattform (Datenbank, Anmeldung, App-Adressen)."""
-SCHEMA = 3   # mindestens benötigte Schemaversion (pg_migrations/0003_plattform.sql im Bautagebuch)
+SCHEMA = 4   # mindestens benötigte Schemaversion (pg_migrations/0004_darstellung.sql im Bautagebuch)

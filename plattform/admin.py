@@ -18,6 +18,7 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("bautagebuch", "Bautagebuch", os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000") + "/api/platform"),
     ("gantt", "Bauzeitenplan", os.environ.get("GANTT_INTERNAL", "http://gantt:8082") + "/api/health"),
     ("portal", "Startseite / Anmeldung", os.environ.get("PORTAL_INTERNAL", "http://portal:8090") + "/api/health"),
+    ("adressen", "Adressen", os.environ.get("ADRESSEN_INTERNAL", "http://adressen:8093") + "/api/health"),
 ]
 
 
@@ -204,8 +205,8 @@ def delete_user(uid):
 # ---------------------------------------------------------------- Sitzungen
 @app.get("/api/sessions")
 def sessions():
-    mine = sso._h(request.cookies.get(sso.COOKIE))
     with db.tx() as c:
+        mine = sso._h(sso.current_token(request, c) or "")
         rows = c.execute("SELECT s.token_hash, s.created, s.seen, s.expires, s.ip, s.agent, s.app, u.name FROM sso_sessions s "
                          "JOIN users u ON u.id=s.user_id WHERE s.expires>=? ORDER BY s.seen DESC", (int(time.time()),)).fetchall()
     return jsonify([{"id": r["token_hash"][:16], "name": r["name"], "created": r["created"], "seen": r["seen"], "ip": r["ip"],

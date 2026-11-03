@@ -17,7 +17,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 VER=$(cat VERSION 2>/dev/null || echo "?")
 DB=Bautagebuch_db
-APPS="bautagebuch gantt portal admin"
+APPS="bautagebuch gantt portal admin adressen"
 
 say()  { printf '\n\033[1m▶ %s\033[0m\n' "$*"; }
 info() { printf '  %s\n' "$*"; }
@@ -66,6 +66,7 @@ status() {
     info "Bautagebuch:             http://$ip:$(getenv_file BAUTAGEBUCH_PORT)"
     info "Bauzeitenplan:           http://$ip:$(getenv_file GANTT_PORT)"
     info "Verwaltung:              http://$ip:$(getenv_file ADMIN_PORT)"
+    info "Adressen:                http://$ip:$(p=$(getenv_file ADRESSEN_PORT); echo "${p:-8093}")"
   }
 }
 

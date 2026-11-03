@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#84827c">
+<title>Adressen</title>
+<link rel="icon" href="/logo.png">
+<link rel="stylesheet" href="/static/bp.css">
+<style>
+.wrap{max-width:1100px}
+.bar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
+.bar h1{margin:0}
+.bar .fill{flex:1}
+.flt{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.flt input[type=search]{flex:1 1 240px;padding:.65rem .8rem}
+.flt select{flex:0 1 200px}
+.chips{display:flex;gap:.35rem;flex-wrap:wrap}
+.chips button{border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:.35rem .8rem;font-size:.9rem}
+.chips button.on{border-color:var(--y);color:var(--y);font-weight:600}
+.chips small{opacity:.75;margin-left:.25rem}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.7rem}
+.ct{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.35rem;cursor:pointer;text-align:left;color:var(--ink);min-width:0}
+.ct:hover,.ct:focus-visible{border-color:var(--y)}
+.ct .hd{display:flex;gap:.5rem;align-items:flex-start}
+.ct b{font-size:1.02rem;flex:1;min-width:0;overflow-wrap:anywhere}
+.ct .sub{color:var(--mute);font-size:.88rem;overflow-wrap:anywhere}
+.ct .acts{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem}
+.ct .acts a{font-size:.88rem;border:1px solid var(--line);border-radius:6px;padding:.25rem .55rem;text-decoration:none;color:var(--ink);white-space:nowrap}
+.ct .acts a:hover{border-color:var(--y);color:var(--y)}
+.empty{color:var(--mute);padding:2rem 0;text-align:center}
+.cnt{color:var(--mute);font-size:.88rem;margin:-.4rem 0 .8rem}
+.modal{width:min(640px,100%);max-height:92vh;overflow:auto}
+.fm{display:grid;grid-template-columns:1fr 1fr;gap:.55rem .7rem}
+.fm label{display:flex;flex-direction:column;gap:.2rem;font-size:.85rem;color:var(--mute)}
+.fm label input,.fm label textarea{color:var(--ink);font-size:1rem}
+.fm .w{grid-column:1/-1}
+.fm textarea{min-height:80px;resize:vertical}
+.zc{display:grid;grid-template-columns:90px 1fr;gap:.7rem}
+.mh{display:flex;gap:.5rem;align-items:center;margin-bottom:.8rem}
+.mh h3{margin:0;flex:1}
+.mh .x{color:var(--mute);font-size:1.3rem;padding:.2rem .5rem}
+.quick{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.9rem}
+.info{color:var(--mute);font-size:.86rem;margin-top:.8rem}
+.mf{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
+.mf .fill{flex:1}
+@media (max-width:560px){
+  .wrap{padding:1rem .75rem 3rem}
+  .fm{grid-template-columns:1fr}
+  .list{grid-template-columns:1fr}
+  .modal-bg{padding:0;place-items:end stretch}
+  .modal{border-radius:14px 14px 0 0;max-height:94vh;width:100%}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="bar"><h1>Adressen</h1><span class="fill"></span>
+    <button class="btn sm" id="csv" title="Gefilterte Liste als CSV (Excel)">Export</button>
+    <button class="btn pri" id="neu">+ Neu</button></div>
+  <div class="flt">
+    <input type="search" id="q" placeholder="Suchen: Name, Gewerk, Person, Ort, Telefon …" autocomplete="off">
+    <select id="gw"><option value="">Alle Gewerke</option></select>
+  </div>
+  <div class="chips" id="kinds" style="margin:-.3rem 0 1rem"></div>
+  <div class="cnt" id="cnt"></div>
+  <div class="list" id="list"></div>
+</main>
+<script src="/static/bp.js"></script>
+<script>
+const KINDS = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherren'], ['baustelle', 'Baustellen']];
+const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
+  ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
+let ALL = [], kind = '', gw = '', q = '';
+try { kind = sessionStorage.getItem('adrKind') || ''; } catch { /* egal */ }
+const tel = (n) => String(n || '').replace(/[^\d+]/g, '');
+const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+const trades = (c) => String(c.trade || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+
+async function load() {
+  ALL = await api('/api/contacts');
+  const all = [...new Set(ALL.filter((c) => c.kind === 'firma').flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de'));
+  $('#gw').innerHTML = '<option value="">Alle Gewerke</option>' + all.map((t) => `<option${t === gw ? ' selected' : ''}>${esc(t)}</option>`).join('');
+  render();
+}
+function shown() {
+  const s = q.trim().toLowerCase();
+  return ALL.filter((c) => (!kind || c.kind === kind) && (!gw || trades(c).includes(gw))
+    && (!s || [c.name, c.trade, c.contact_person, c.role, c.city, c.street, c.phone, c.mobile, c.email, c.notes].join(' ').toLowerCase().includes(s)));
+}
+function render() {
+  const n = {}; ALL.forEach((c) => { n[c.kind] = (n[c.kind] || 0) + 1; });
+  $('#kinds').innerHTML = KINDS.map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${k}">${l}<small>${k ? n[k] || 0 : ALL.length}</small></button>`).join('');
+  const rows = shown();
+  $('#cnt').textContent = rows.length === ALL.length ? `${ALL.length} Kontakte` : `${rows.length} von ${ALL.length} Kontakten`;
+  $('#list').innerHTML = rows.map((c) => `<div class="ct" tabindex="0" data-id="${c.id}">
+      <div class="hd"><b>${esc(c.name)}</b>${c.kind !== 'firma' ? `<span class="pill">${c.kind === 'baustelle' ? 'Baustelle' : 'Bauherr'}</span>` : ''}</div>
+      ${c.trade ? `<div class="sub">${esc(c.trade)}</div>` : ''}
+      ${c.contact_person ? `<div class="sub">${esc(c.contact_person)}${c.role ? ' · ' + esc(c.role) : ''}</div>` : ''}
+      ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
+      <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}</div>
+    </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer.' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
+}
+
+function edit(c) {
+  const isNew = !c; c = c || { kind: kind || 'firma', trade: gw || (kind === 'bauherr' ? 'Bauherr' : '') };
+  const inp = ([k, l, w, t]) => `<label class="${w}">${l}<input data-f="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'trade' ? ' list="gwList"' : ''}></label>`;
+  const map = addr(c) ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(addr(c))}` : '';
+  const quick = isNew ? '' : [c.phone && `<a class="btn sm" href="tel:${esc(tel(c.phone))}">☎ Anrufen</a>`, c.mobile && `<a class="btn sm" href="tel:${esc(tel(c.mobile))}">📱 Mobil</a>`,
+    c.email && `<a class="btn sm" href="mailto:${esc(c.email)}">✉ E-Mail</a>`, c.website && `<a class="btn sm" href="${esc(c.website)}" target="_blank" rel="noopener">Internet</a>`,
+    map && `<a class="btn sm" href="${esc(map)}" target="_blank" rel="noopener">Karte</a>`, `<a class="btn sm" href="/api/contacts/${c.id}.vcf">Ins Handy</a>`].filter(Boolean).join('');
+  const use = isNew ? '' : [c.site_of && `Baustellenadresse des Projekts „${esc(c.site_of)}“.`,
+    c.used ? `Kommt in ${c.used} ${c.used === 1 ? 'Eintrag' : 'Einträgen'} des Bautagebuchs vor${c.projects.length ? ' (' + c.projects.map(esc).join(', ') + ')' : ''}.` : ''].filter(Boolean).join(' ');
+  const gwList = [...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de'));
+  modalBox(`<div class="mh"><h3>${isNew ? 'Neuer Kontakt' : esc(c.name)}</h3><button class="x" data-m="close" aria-label="Schließen">✕</button></div>
+    ${quick ? `<div class="quick">${quick}</div>` : ''}
+    <div class="fm">${F.map(inp).join('')}
+      <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
+      <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>
+      <label class="w">Notizen<textarea data-f="notes">${esc(c.notes || '')}</textarea></label></div>
+    <datalist id="gwList">${gwList.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
+    ${use ? `<div class="info">${use}</div>` : ''}
+    <div class="err" id="mErr"></div>
+    <div class="mf">${isNew ? '' : '<button class="btn sm danger" data-m="del">Löschen</button>'}<span class="fill"></span><button class="btn" data-m="close">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>
+    <div class="info">Dieselben Adressen wie in den Kontakten des Bautagebuchs und im Adressbuch des Bauzeitenplans.</div>`,
+  async (m, bg, close, btn) => {
+    if (m === 'close') return close();
+    if (m === 'save') {
+      const d = {}; bg.querySelectorAll('[data-f]').forEach((el) => { d[el.dataset.f] = el.value; });
+      try {
+        if (isNew) await api('/api/contacts', 'POST', d); else await api('/api/contacts/' + c.id, 'PUT', d);
+        close(); toast(isNew ? 'Kontakt angelegt.' : 'Gespeichert.'); load();
+      } catch (e) { $('#mErr', bg).textContent = e.message; }
+    }
+    if (m === 'del') {
+      if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'Wirklich löschen?'; return; }
+      try { await api('/api/contacts/' + c.id, 'DELETE'); close(); toast('Kontakt gelöscht.'); load(); } catch (e) { $('#mErr', bg).textContent = e.message; }
+    }
+  });
+  const first = document.querySelector('.modal [data-f="name"]'); if (first && isNew) first.focus();
+}
+
+$('#q').addEventListener('input', (e) => { q = e.target.value; render(); });
+$('#gw').addEventListener('change', (e) => { gw = e.target.value; render(); });
+$('#kinds').addEventListener('click', (e) => { const b = e.target.closest('[data-k]'); if (!b) return; kind = b.dataset.k; try { sessionStorage.setItem('adrKind', kind); } catch { /* egal */ } render(); });
+$('#list').addEventListener('click', (e) => { if (e.target.closest('a')) return; const el = e.target.closest('.ct'); if (el) edit(ALL.find((c) => c.id === +el.dataset.id)); });
+$('#list').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('ct')) edit(ALL.find((c) => c.id === +e.target.dataset.id)); });
+$('#neu').onclick = () => edit(null);
+$('#csv').onclick = () => { const r = shown(); location.href = '/api/contacts.csv' + (r.length === ALL.length ? '' : '?ids=' + r.map((c) => c.id).join(',')); };
+
+(async () => {
+  const me = await api('/api/me'); applyLook(me);
+  const conf = await api('/api/platform');
+  await header('Adressen', me, conf);
+  await load();
+  if (matchMedia('(pointer:fine)').matches) $('#q').focus({ preventScroll: true });
+})().catch((e) => toast(e.message, true));
+</script>
+</body>
+</html>

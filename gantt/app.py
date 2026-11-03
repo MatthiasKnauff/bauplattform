@@ -206,7 +206,7 @@ def guard():
     if (is_api and p in OPEN_API) or not (is_api or is_page):
         return
     with db.tx() as c:
-        u = sso.lookup(c, request.cookies.get(sso.COOKIE))
+        u = sso.current(c, request)
     if not u:
         if is_page:
             return redirect(_portal_login_url(request.url))
@@ -333,20 +333,21 @@ def health():
 @app.get("/api/platform")
 def platform_conf():
     with db.tx() as c:
-        u = sso.lookup(c, request.cookies.get(sso.COOKIE))
+        u = sso.current(c, request)
     return jsonify(platform.config(u))
 
 
 @app.get("/api/me")
 def me():
     u = g.user
-    return jsonify(id=u["id"], name=u["name"], is_admin=bool(u["is_admin"]), accent=u["accent"] or "", apps=sso.apps_of(u))
+    return jsonify(id=u["id"], name=u["name"], is_admin=bool(u["is_admin"]), accent=u["accent"] or "",
+                   theme=sso.theme_of(u) or "dunkel", apps=sso.apps_of(u))
 
 
 @app.post("/api/logout")
 def logout():
     with db.tx() as c:
-        sso.revoke(c, request.cookies.get(sso.COOKIE))
+        sso.revoke_req(c, request)
     return sso.clear_cookie(jsonify(ok=True, login=_portal_login_url(request.host_url)))
 
 
@@ -591,8 +592,27 @@ def firm_of(r):
             "note": r["notes"], "cid": r["id"]}
 
 
+def site_contact_ids(c):
+    """Kontakte, die Baustellenadressen sind (im Bautagebuch beim Projekt „in die Kontakte gespeichert“, Gewerk „Baustelle“).
+    Das sind keine Firmen – im Bauzeitenplan (Firmenauswahl, Adressbuch) nicht anzeigen."""
+    ids = set()
+    for r in c.execute("SELECT extra FROM projects"):
+        try:
+            ex = r["extra"] if isinstance(r["extra"], dict) else json.loads(r["extra"] or "{}")
+            if ex.get("contact_id"):
+                ids.add(int(ex["contact_id"]))
+        except (ValueError, TypeError):
+            pass
+    return ids
+
+
+def is_site(r, site_ids):
+    return r["id"] in site_ids or any(t.lower() in ("baustelle", "bauvorhaben") for t in split_trades(r["trade"]))
+
+
 def all_firms(c):
-    return [firm_of(r) for r in c.execute("SELECT * FROM contacts ORDER BY name")]
+    site = site_contact_ids(c)
+    return [firm_of(r) for r in c.execute("SELECT * FROM contacts ORDER BY name") if not is_site(r, site)]
 
 
 def clean_firm(f):

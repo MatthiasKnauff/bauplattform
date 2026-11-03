@@ -17,13 +17,17 @@ x-env: &env
   GANTT_PORT: ${GANTT_PORT:-8082}
   PORTAL_PORT: ${PORTAL_PORT:-8090}
   ADMIN_PORT: ${ADMIN_PORT:-8091}
+  ADRESSEN_PORT: ${ADRESSEN_PORT:-8093}
   BAUTAGEBUCH_URL: ${BAUTAGEBUCH_URL:-}
   GANTT_URL: ${GANTT_URL:-}
   PORTAL_URL: ${PORTAL_URL:-}
   ADMIN_URL: ${ADMIN_URL:-}
+  ADRESSEN_URL: ${ADRESSEN_URL:-}
+  SERVER_HOST: ${SERVER_HOST:-}   # IP/Name des Servers – für Links zu Apps ohne eigene Adresse (optional)
   BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
   GANTT_INTERNAL: http://gantt:8082
   PORTAL_INTERNAL: http://portal:8090
+  ADRESSEN_INTERNAL: http://adressen:8093
 
 services:
   bautagebuch_db:
@@ -101,6 +105,20 @@ services:
       <<: *env
       APP_MODULE: admin
       APP_PORT: "8091"
+
+  adressen:
+    image: bauplattform/plattform:latest
+    container_name: bauplattform_adressen
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${ADRESSEN_PUBLISH:-8093}:8093"
+    environment:
+      <<: *env
+      APP_MODULE: adressen
+      APP_PORT: "8093"
 
 volumes:
   bautagebuch_data:

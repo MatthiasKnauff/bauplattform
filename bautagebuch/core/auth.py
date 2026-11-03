@@ -50,6 +50,7 @@ def set_password(con, uid, pw, must_change=False):
 def public(u):
     return {"id": u["id"], "name": u["name"], "email": u["email"], "is_admin": bool(u["is_admin"]),
             "must_change": bool(u["must_change"]), "accent": u["accent"],
+            "theme": (u["theme"] if "theme" in u.keys() else "") or "dunkel",
             "active": bool(u["active"]) if "active" in u.keys() else True}
 
 

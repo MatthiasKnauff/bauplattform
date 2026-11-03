@@ -453,23 +453,15 @@ function updateProjSub() {
 
 /* ---------- Programmeinstellungen ---------- */
 function settingsDialog() {
-  const T = window.Theme; if (!T) return;
-  const before = T.get();
-  const SW = { dunkel: ['#46423f', '#2b2c2e', '#232427', '#e8604c'], hell: ['#f3efeb', '#ffffff', '#f7f7f7', '#d4513f'], klassisch: ['#2f6f3e', '#f7f7f7', '#ffffff', '#2f6f3e'], auto: ['#46423f', '#f3efeb', '#232427', '#e8604c'] };
-  const card = ([k, n]) => `<label class="th-card${before === k ? ' on' : ''}"><input type="radio" name="theme" value="${k}"${before === k ? ' checked' : ''}>
-    <span class="th-prev">${SW[k].slice(0, 3).map((c, i) => `<i style="background:${c};height:${[10, 8, 22][i]}px"></i>`).join('')}<b style="background:${SW[k][3]}"></b></span><span>${esc(n)}</span></label>`;
-  const bg = modal('Programmeinstellungen', `<div class="sec" style="margin-top:0">Farbschema</div><div class="th-grid">${T.list.map(card).join('')}</div>
-    <div class="hint">Das Farbschema gilt für diesen Browser und auch für den Planungsassistenten im eigenen Fenster. Druck und PDF bleiben immer hell.</div>
+  // Farbschema und Akzentfarbe werden zentral auf der Startseite der Bauplattform eingestellt (gilt für alle Apps)
+  const portal = window.BP && BP.conf && (BP.conf.apps || []).find((a) => a.key === 'portal');
+  const pUrl = portal ? (portal.url || `${location.protocol}//${location.hostname}:${portal.port}`) + '/#look' : '';
+  const bg = modal('Programmeinstellungen', `<div class="sec" style="margin-top:0">Farbschema</div>
+    <div class="hint">Farbschema und Akzentfarbe stellst du jetzt zentral auf der Startseite ein – sie gelten dann in allen Apps und auf allen Geräten.${pUrl ? ` <a href="${esc(pUrl)}">Startseite → Darstellung</a>` : ''} Druck und PDF bleiben immer hell.</div>
     <div class="sec">Löschen</div><label class="cb"><input type="checkbox" id="setDelAsk"${LS.get('delAsk', true) ? ' checked' : ''}> Beim Löschen von Leistungen fragen, ob die Dauer auf eine Hauptleistung umgelegt wird</label>${typeof aiSettingsHtml === 'function' ? aiSettingsHtml() : ''}`,
-  [{ label: 'OK', cls: 'primary', primary: true, fn: (b2) => { LS.set('delAsk', b2.querySelector('#setDelAsk').checked); if (saveAi) saveAi(); } }, { label: 'Abbrechen', fn: () => { T.set(before); renderAfterTheme(); } }]);
+  [{ label: 'OK', cls: 'primary', primary: true, fn: (b2) => { LS.set('delAsk', b2.querySelector('#setDelAsk').checked); if (saveAi) saveAi(); } }, { label: 'Abbrechen' }]);
   const saveAi = typeof aiSettingsWire === 'function' ? aiSettingsWire(bg) : null;
   bg.querySelector('.modal').style.width = 'min(640px,94vw)';
-  bg.querySelector('.mx').addEventListener('click', () => { T.set(before); renderAfterTheme(); });
-  bg.addEventListener('change', (e) => {
-    if (e.target.name !== 'theme') return;
-    bg.querySelectorAll('.th-card').forEach((c) => c.classList.toggle('on', c.contains(e.target)));
-    T.set(e.target.value); renderAfterTheme();
-  });
 }
 function renderAfterTheme() { if (P) render(); }
 

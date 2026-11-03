@@ -66,9 +66,8 @@ def create_app():
         - Anmeldung auf der Startseite (SSO-Cookie, aber noch keine Bautagebuch-Sitzung) → hier ebenfalls angemeldet.
         - Woanders abgemeldet (SSO-Sitzung weg) → hier ebenfalls abgemeldet.
         - Wer noch aus der Zeit vor der Plattform angemeldet ist, bekommt einmalig eine SSO-Sitzung – niemand muss sich neu anmelden."""
-        tok = request.cookies.get(sso.COOKIE)
         with db.tx() as c:
-            su = sso.lookup(c, tok) if tok else None
+            su = sso.current(c, request)
             uid = session.get("uid")
             if su:
                 if uid != su["id"]:
@@ -198,7 +197,7 @@ def create_app():
             session["uid"] = u["id"]
             session["sso"] = 1
             with db.tx() as c:   # gemeinsame Anmeldung: gilt gleich auch für die anderen Apps
-                sso.revoke(c, request.cookies.get(sso.COOKIE))
+                sso.revoke_req(c, request)
                 tok = sso.create(c, u["id"], request.remote_addr or "", request.user_agent.string, "bautagebuch")
             return sso.set_cookie(jsonify(ok=True, **auth.public(u)), tok)
         auth.check(None, d.get("password"))   # gleiche Rechenzeit, egal ob der Name existiert
@@ -213,7 +212,7 @@ def create_app():
                 u = auth.get(c, session.get("uid"))
             if u: audit.record(u["name"], "konto", "Abgemeldet")
         with db.tx() as c:   # gemeinsame Anmeldung: überall abmelden
-            sso.revoke(c, request.cookies.get(sso.COOKIE))
+            sso.revoke_req(c, request)
         session.clear()
         return sso.clear_cookie(jsonify(ok=True))
 

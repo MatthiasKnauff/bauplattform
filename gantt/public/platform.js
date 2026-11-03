@@ -3,7 +3,7 @@
    Bauplattform-Anbindung des Bauzeitenplans
    - Anmeldung: Antwortet der Server mit 401, geht es zur Anmeldeseite der Plattform (gemeinsame Anmeldung).
    - App-Umschalter oben rechts (Bautagebuch, Startseite, Verwaltung), Benutzername, Abmelden.
-   - Akzentfarbe des Benutzers aus dem Bautagebuch (Einstellungen → Farbe der Oberfläche) im Schema „Dunkel“/„Hell“.
+   - Farbschema und Akzentfarbe des Benutzers von der Startseite (Darstellung), gelten für alle Apps.
    - Mehrbenutzer: Herzschlag alle 10 s – zeigt, wer den Plan noch geöffnet hat, und lädt neue Stände
      anderer Benutzer automatisch, solange hier nichts ungespeichert ist.
    - Verknüpfung des Plans mit einem Projekt des Bautagebuchs.
@@ -145,7 +145,11 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     try { BP.conf = await origFetch('/api/platform').then((r) => r.json()); } catch { BP.conf = { apps: [] }; }
     try {
       const r = await origFetch('/api/me');
-      if (r.ok) { BP.me = await r.json(); applyAccent(BP.me.accent || '#ff5fb3'); }   // ohne eigene Farbe: Standard des Bautagebuchs
+      if (r.ok) {
+        BP.me = await r.json(); applyAccent(BP.me.accent || '#ff5fb3');   // ohne eigene Farbe: Standard des Bautagebuchs
+        // Farbschema von der Startseite (Darstellung) – gilt für alle Apps; nur neu zeichnen, wenn es sich geändert hat
+        if (window.Theme && BP.me.theme && window.Theme.get() !== BP.me.theme) { window.Theme.set(BP.me.theme); if (typeof renderAfterTheme === 'function') renderAfterTheme(); }
+      }
     } catch { /* Anmeldung prüft fetch() oben */ }
     setTimeout(beat, 1500);
     // Verknüpfung nach jedem Öffnen eines Plans anzeigen

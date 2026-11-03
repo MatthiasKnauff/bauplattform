@@ -24,13 +24,19 @@ x-env: &env
   GANTT_PORT: ${GANTT_PORT:-8082}
   PORTAL_PORT: ${PORTAL_PORT:-8090}
   ADMIN_PORT: ${ADMIN_PORT:-8091}
+  ADRESSEN_PORT: ${ADRESSEN_PORT:-8093}
   BAUTAGEBUCH_URL: ${BAUTAGEBUCH_URL:-https://bautagebuch.gk3-architektur.de}
   GANTT_URL: ${GANTT_URL:-https://gantt.gk3-architektur.de}
   PORTAL_URL: ${PORTAL_URL:-https://bauportal.gk3-architektur.de}
   ADMIN_URL: ${ADMIN_URL:-https://admin.gk3-architektur.de}
+  # Adressen: noch ohne Eintrag im Nginx Proxy Manager → direkt über http://SERVER_HOST:8093.
+  # Später im NPM eintragen und ADRESSEN_URL setzen (z. B. https://adressen.gk3-architektur.de).
+  ADRESSEN_URL: ${ADRESSEN_URL:-}
+  SERVER_HOST: ${SERVER_HOST:-}   # IP oder Name von Docker 2 (z. B. 192.168.1.20) – für Links zu Apps ohne eigene Adresse
   BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
   GANTT_INTERNAL: http://gantt:8082
   PORTAL_INTERNAL: http://portal:8090
+  ADRESSEN_INTERNAL: http://adressen:8093
 
 services:
   bautagebuch_db:
@@ -104,6 +110,20 @@ services:
       <<: *env
       APP_MODULE: admin
       APP_PORT: "8091"
+
+  adressen:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.3
+    container_name: bauplattform_adressen
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${ADRESSEN_PUBLISH:-8093}:8093"
+    environment:
+      <<: *env
+      APP_MODULE: adressen
+      APP_PORT: "8093"
 
 volumes:
   bautagebuch_data:

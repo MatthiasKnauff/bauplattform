@@ -489,11 +489,11 @@ def _geschosse(W, rooms):
         r["floor"] = min(heads, key=lambda hd: abs(hd[0] - x) + 0.3 * abs(hd[1] - y))[2]
 
 
-def preview_png(data, page=0, width=1400):
+def preview_png(data, page=0, width=2600):   # hoch genug zum Hineinzoomen in der Planvorschau
     import pdfplumber
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         pg = pdf.pages[min(page, len(pdf.pages) - 1)]
-        img = pg.to_image(resolution=max(20, min(150, int(width / (pg.width / 72)))))
+        img = pg.to_image(resolution=max(20, min(220, int(width / (pg.width / 72)))))
         buf = io.BytesIO()
         img.original.convert("RGB").save(buf, "PNG", optimize=True)
         return buf.getvalue()

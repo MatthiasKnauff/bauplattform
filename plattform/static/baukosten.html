@@ -51,8 +51,15 @@
 .drop{border:1px dashed var(--line);border-radius:10px;padding:1rem;text-align:center;color:var(--mute);cursor:pointer}
 .drop:hover,.drop.on{border-color:var(--y);color:var(--ink)}
 .plan{position:relative;background:#fff;border-radius:8px;overflow:hidden}
-.plan img{width:100%;height:auto;display:block}
-.plan .mk{position:absolute;transform:translate(-30%,-60%);min-width:22px;height:22px;padding:0 5px;border-radius:11px;font:600 11px/22px ui-monospace,monospace;text-align:center;color:#fff;background:#2c5876;border:2px solid #fff;box-shadow:0 1px 4px #0006}
+.plan img{width:100%;height:auto;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.plan{touch-action:none;cursor:grab}
+.plan.drag{cursor:grabbing}
+.pz{position:relative;transform-origin:0 0;--z:1}
+.pzc{position:absolute;right:8px;top:8px;display:flex;gap:4px;z-index:3;background:rgba(255,255,255,.92);border:1px solid #cfcbc2;border-radius:999px;padding:3px;box-shadow:0 2px 8px #0003}
+.pzc button{width:30px;height:30px;border-radius:50%;color:#1c1c1a;font-size:1rem;line-height:1;padding:0}
+.pzc button:hover{background:#ece9e2}
+.pzc span{font:600 12px/30px ui-monospace,monospace;color:#555;min-width:44px;text-align:center}
+.plan .mk{position:absolute;transform:translate(-30%,-60%) scale(calc(1 / var(--z)));transform-origin:30% 60%;min-width:22px;height:22px;padding:0 5px;border-radius:11px;font:600 11px/22px ui-monospace,monospace;text-align:center;color:#fff;background:#2c5876;border:2px solid #fff;box-shadow:0 1px 4px #0006}
 .plan .mk.ok{background:#2e7d4f}
 .plan .mk.warn{background:#b3541e}
 .plan .mk.sel{outline:3px solid var(--y)}
@@ -112,7 +119,8 @@ input[data-own]{border-color:var(--y)}
 .sich.hoch{border-color:var(--ok);color:var(--ok)}.sich.mittel{border-color:#e0a030;color:#e0a030}.sich.gering{border-color:#e07b3a;color:#e07b3a}
 #asst{position:fixed;right:16px;bottom:16px;width:min(380px,calc(100vw - 32px));max-height:min(72vh,640px);display:flex;flex-direction:column;z-index:45;
   background:var(--card2);border:1px solid var(--y);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
-#asst .ah{display:flex;align-items:center;gap:.5rem;padding:.7rem .9rem;border-bottom:1px solid var(--line)}
+#asst .ah{display:flex;align-items:center;gap:.5rem;padding:.7rem .9rem;border-bottom:1px solid var(--line);cursor:move;user-select:none;touch-action:none}
+#asst .ah .grip{color:var(--mute);font-size:.9rem;letter-spacing:-2px}
 #asst .ah b{flex:1}
 #asst .ab{overflow:auto;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.7rem}
 #asst .steps{display:flex;gap:4px}
@@ -220,6 +228,7 @@ function render() {
   if (!B) { v.innerHTML = `<div class="card empty"><p>Noch keine Kostenermittlung.</p><button class="btn pri" data-act="new">Erste Kostenermittlung anlegen</button></div>`; return; }
   v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
   if (sig) { const n = document.querySelector(sig); if (n) n.focus(); }
+  zmInit();
   assist();
   if (tab === 'mittel' || tab === 'uebersicht') ensureFlow();
 }
@@ -275,8 +284,9 @@ function vPlaene() {
     <div class="card fc ${x.id === selFile ? 'on' : ''}" data-file="${x.id}" tabindex="0" role="button" aria-pressed="${x.id === selFile}"><b>${esc(x.meta.kind ? x.meta.kind + ' · ' : '')}${esc(x.name)}</b><small>${esc(x.meta.note || '')}</small>
       <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" target="_blank" rel="noopener">PDF</a>${x.meta.kind !== 'Ansicht' && x.meta.kind !== 'Schnitt' ? `<button class="btn sm${x.meta.found ? '' : ' pri'}" data-kiroom="${x.id}" title="Räume mit der oben gewählten KI aus dem Planbild lesen – für Pläne, deren Beschriftung nicht als Text vorliegt">Räume mit KI lesen</button>` : ''}${x.meta.found ? '' : `<button class="btn sm" data-reread="${x.id}" title="Plan mit der aktuellen Erkennung erneut auswerten">Neu einlesen</button>`}<button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
     <div class="drop" id="drop" role="button" tabindex="0">+ PDF hinzufügen<br><small>Grundrisse, Ansichten, Schnitte – Vektor-PDF aus dem CAD</small></div></div>
-    <p class="hint">Raumstempel (Nummer, Name, m²) werden aus Vektor-PDFs exakt gelesen. Der Raumtyp ist ein Vorschlag – bitte jeden Raum bestätigen.</p></aside>
-  <div class="main">${f ? `<div class="plan card" style="padding:0"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr)}</span>`).join('')}</div>` : ''}
+    <p class="hint">Räume (Name und m², mit oder ohne Nummer) werden aus Vektor-PDFs exakt gelesen. Der Raumtyp ist ein Vorschlag – bitte jeden Raum bestätigen. Plan: Mausrad zoomt, ziehen verschiebt.</p></aside>
+  <div class="main">${f ? `<div class="plan card" id="planBox" style="padding:0" title="Mausrad oder zwei Finger: zoomen · ziehen: verschieben · Doppelklick: vergrößern"><div class="pz" id="pz"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}" draggable="false">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr || '•')}</span>`).join('')}</div>
+    <div class="pzc"><button type="button" data-zm="-" aria-label="Verkleinern">−</button><span id="pzp">100 %</span><button type="button" data-zm="+" aria-label="Vergrößern">+</button><button type="button" data-zm="0" aria-label="Ganzer Plan" title="Ganzer Plan">⤢</button></div></div>` : ''}
     <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'} · ${m2(B.calc.area)} m²${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="addRoom">+ Raum</button></div>
     <div class="tbl"><table><thead><tr><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
       <tr data-row="${i}" class="${r.id === selRoom ? 'sel' : ''} ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : ''}"><td><input class="n" style="width:64px;text-align:left" value="${esc(r.nr)}" data-f="nr" aria-label="Nummer"></td>
@@ -447,12 +457,69 @@ function assist() {
   document.body.classList.add('as-open');
   if (!box) { box = document.createElement('aside'); box.id = 'asst'; box.setAttribute('aria-label', 'Assistent'); document.body.appendChild(box); }
   const i = asCur(), S = STEPS[i], st = S.st();
-  box.innerHTML = `<div class="ah"><b>Assistent · Schritt ${i + 1} von ${STEPS.length}</b><button class="btn sm" data-as="close" title="Assistent schließen – später über den Knopf unten rechts weitermachen">Später weiter</button></div>
+  box.innerHTML = `<div class="ah" title="Zum Verschieben ziehen · Doppelklick: zurück in die Ecke"><span class="grip" aria-hidden="true">⋮⋮</span><b>Assistent · Schritt ${i + 1} von ${STEPS.length}</b><button class="btn sm" data-as="close" title="Assistent schließen – später über den Knopf unten rechts weitermachen">Später weiter</button></div>
     <div class="ab"><div class="steps">${STEPS.map((x, k) => `<button type="button" class="${k === i ? 'cur' : x.done() ? 'ok' : ''}" data-as="go:${x.k}" title="${esc(x.t)}${x.done() ? ' ✓' : ''}" aria-label="${esc(x.t)}"></button>`).join('')}</div>
     <h3>${S.done() ? '✓ ' : ''}${esc(S.t)}</h3><p>${S.txt()}</p>${st ? `<div class="st ${S.done() ? 'ok' : ''}">${st}</div>` : ''}
     <div class="acts">${S.acts.map(([l, a]) => `<button class="btn sm" data-as="${a}">${esc(l)}</button>`).join('')}</div></div>
     <div class="af"><button class="btn sm" data-as="prev"${i ? '' : ' disabled'}>Zurück</button><span class="fill">${n} von ${STEPS.length} erledigt</span>
     ${S.done() || i === STEPS.length - 1 ? '' : '<button class="btn sm" data-as="skip">Überspringen</button>'}<button class="btn sm pri" data-as="next"${i === STEPS.length - 1 ? ' disabled' : ''}>Weiter</button></div>`;
+  asPlace();
+}
+/* ---------- Assistent verschieben (an der Titelzeile ziehen) ---------- */
+function asPlace() {
+  const box = $('#asst'); if (!box) return;
+  if (!AS.pos || innerWidth <= 640) { box.style.left = box.style.top = ''; box.style.right = box.style.bottom = ''; return; }
+  const w = box.offsetWidth, h = box.offsetHeight;
+  const l = Math.max(4, Math.min(innerWidth - w - 4, AS.pos.l)), t = Math.max(56, Math.min(innerHeight - Math.min(h, 120), AS.pos.t));
+  Object.assign(box.style, { left: l + 'px', top: t + 'px', right: 'auto', bottom: 'auto' });
+}
+document.addEventListener('pointerdown', (e) => {
+  const h = e.target.closest('#asst .ah'); if (!h || e.target.closest('button') || innerWidth <= 640) return;
+  const box = $('#asst'), r = box.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+  h.setPointerCapture(e.pointerId);
+  const mv = (ev) => { AS.pos = { l: ev.clientX - dx, t: ev.clientY - dy }; asPlace(); };
+  const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); asSave(); };
+  h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+});
+document.addEventListener('dblclick', (e) => { if (e.target.closest('#asst .ah') && !e.target.closest('button')) { AS.pos = null; asSave(); asPlace(); } });
+addEventListener('resize', () => asPlace());
+
+/* ---------- Planvorschau zoomen und verschieben ---------- */
+let ZM = { key: '', s: 1, x: 0, y: 0 };
+function zmApply() {
+  const pz = $('#pz'), box = $('#planBox'); if (!pz || !box) return;
+  const W = box.clientWidth, H = pz.offsetHeight;
+  ZM.s = Math.max(1, Math.min(10, ZM.s));
+  ZM.x = Math.min(0, Math.max(W - W * ZM.s, ZM.x)); ZM.y = Math.min(0, Math.max(H - H * ZM.s, ZM.y));
+  pz.style.transform = `translate(${ZM.x}px,${ZM.y}px) scale(${ZM.s})`; pz.style.setProperty('--z', ZM.s);
+  const p = $('#pzp'); if (p) p.textContent = Math.round(ZM.s * 100) + ' %';
+}
+function zmAt(f, px, py) { const ns = Math.max(1, Math.min(10, ZM.s * f)); ZM.x = px - (px - ZM.x) * ns / ZM.s; ZM.y = py - (py - ZM.y) * ns / ZM.s; ZM.s = ns; zmApply(); }
+function zmInit() {
+  const box = $('#planBox'); if (!box) return;
+  const key = B.id + ':' + selFile; if (ZM.key !== key) ZM = { key, s: 1, x: 0, y: 0 };
+  const img = box.querySelector('img'); if (img.complete) zmApply(); else img.onload = zmApply;
+  const pt = new Map(); let last = null, moved = 0, pinch = null;
+  const rel = (e) => { const r = box.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  box.addEventListener('wheel', (e) => { e.preventDefault(); const [x, y] = rel(e); zmAt(Math.exp(-e.deltaY * 0.0015), x, y); }, { passive: false });
+  box.addEventListener('dblclick', (e) => { if (e.target.closest('.pzc')) return; const [x, y] = rel(e); if (ZM.s >= 6) { ZM.s = 1; ZM.x = ZM.y = 0; zmApply(); } else zmAt(2, x, y); });
+  box.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.pzc')) return;
+    pt.set(e.pointerId, rel(e)); moved = 0; last = rel(e);
+    if (pt.size === 2) { const [a, b] = [...pt.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: ZM.s }; }
+  });
+  box.addEventListener('pointermove', (e) => {
+    if (!pt.has(e.pointerId)) return;
+    const p = rel(e); pt.set(e.pointerId, p);
+    if (pt.size === 2 && pinch) { const [a, b] = [...pt.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); zmAt(pinch.s * d / pinch.d / ZM.s, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); moved = 99; return; }
+    const dx = p[0] - last[0], dy = p[1] - last[1]; last = p; moved += Math.abs(dx) + Math.abs(dy);
+    if (moved > 4 && ZM.s > 1) { if (!box.hasPointerCapture(e.pointerId)) box.setPointerCapture(e.pointerId); box.classList.add('drag'); ZM.x += dx; ZM.y += dy; zmApply(); }
+  });
+  const end = (e) => { pt.delete(e.pointerId); if (pt.size < 2) pinch = null; if (!pt.size) { box.classList.remove('drag'); if (moved > 4) box.dataset.dragged = '1'; } };
+  box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
+  box.addEventListener('click', (e) => { if (box.dataset.dragged) { delete box.dataset.dragged; e.stopPropagation(); e.preventDefault(); } }, true);
+  box.querySelector('.pzc').addEventListener('click', (e) => { const b = e.target.closest('[data-zm]'); if (!b) return; const W = box.clientWidth / 2, H = box.clientHeight / 2;
+    if (b.dataset.zm === '0') { ZM.s = 1; ZM.x = ZM.y = 0; zmApply(); } else zmAt(b.dataset.zm === '+' ? 1.5 : 1 / 1.5, W, H); });
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-as]'); if (!b || !B) return;

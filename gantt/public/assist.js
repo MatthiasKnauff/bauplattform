@@ -120,7 +120,8 @@
   }
   function choiceOf(cfg, gk, depth = 0) {
     const g = CHM[gk]; if (!g) return null;
-    const ok = chOpts(g, cfg, depth), want = (cfg && cfg.choice && cfg.choice[gk]) ?? (PROF[cfg && cfg.type] && PROF[cfg.type].choice && PROF[cfg.type].choice[gk]);
+    const ch = (cfg && cfg.choice) || {}, own = ch[gk] ?? (gk === 'anbaukeller' ? ch.keller : undefined);   // frühere Pläne: Keller des Anbaus stand unter „keller“
+    const ok = chOpts(g, cfg, depth), want = own ?? (PROF[cfg && cfg.type] && PROF[cfg.type].choice && PROF[cfg.type].choice[gk]);
     return (ok.find((o) => o.k === want) || ok[0] || g.opts[0]).k;
   }
   const chosen = (cfg) => CHS.filter((g) => chVisible(g, cfg)).map((g) => g.opts.find((o) => o.k === choiceOf(cfg, g.k)));

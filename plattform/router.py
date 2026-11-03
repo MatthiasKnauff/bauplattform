@@ -5,6 +5,7 @@
     https://bauportal.firma.de/bauzeitenplan/  → Bauzeitenplan
     https://bauportal.firma.de/adressen/       → Adressen
     https://bauportal.firma.de/baukosten/      → Baukosten
+    https://bauportal.firma.de/maengel/        → Mängel & Erinnerungen
     https://bauportal.firma.de/verwaltung/     → Verwaltung
 
 Im Nginx Proxy Manager ist dafür nur ein Eintrag nötig (bauportal… → Docker-Server, Port 8090). Die Verteilung auf die
@@ -23,6 +24,7 @@ UPSTREAM = {   # Pfad → interne Adresse im Docker-Netz
     "bauzeitenplan": E("GANTT_INTERNAL", "http://gantt:8082"),
     "adressen": E("ADRESSEN_INTERNAL", "http://adressen:8093"),
     "baukosten": E("BAUKOSTEN_INTERNAL", "http://baukosten:8094"),
+    "maengel": E("AUFGABEN_INTERNAL", "http://aufgaben:8095"),
     "verwaltung": E("ADMIN_INTERNAL", "http://admin:8091"),
 }
 PORTAL = E("PORTAL_INTERNAL", "http://portal:8090")

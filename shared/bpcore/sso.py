@@ -15,7 +15,7 @@ COOKIE = os.environ.get("SSO_COOKIE_NAME", "bp_sso")
 DOMAIN = os.environ.get("SSO_COOKIE_DOMAIN", "").strip() or None
 SECURE = os.environ.get("COOKIE_SECURE") == "1"
 DAYS = int(os.environ.get("SSO_DAYS", "30") or 30)
-APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"))   # Apps mit Zugriffsrecht je Benutzer
+APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"), ("aufgaben", "Mängel & Erinnerungen"))   # Apps mit Zugriffsrecht je Benutzer
 _TOUCH = 300   # „zuletzt gesehen“ höchstens alle 5 Minuten schreiben
 
 
@@ -155,6 +155,8 @@ def apps_of(user):
         v = json.loads(raw)
     except ValueError:
         return [k for k, _ in APPS]
+    if isinstance(v, list) and "aufgaben" not in v and "-aufgaben" not in v and ("bautagebuch" in v or "gantt" in v):
+        v = v + ["aufgaben"]   # neue App: wer Bautagebuch oder Bauzeitenplan nutzt, bekommt sie, bis sie in der Verwaltung abgewählt wird
     return [k for k, _ in APPS if k in v]
 
 

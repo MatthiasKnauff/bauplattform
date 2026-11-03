@@ -477,13 +477,14 @@ const showApp = async () => {
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
   if (window.BPHead) BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });   // gemeinsame Kopfleiste
   try { meta = await api('api/meta'); contacts = await api('api/contacts'); settings = await api('api/settings'); people = await api('api/people'); leaderUsers = await api('api/leaders'); await loadProjects(); } catch { return; }
-  const hp = /^#projekt=(\d+)/.exec(location.hash);   // Link aus der Verwaltung: dieses Projekt öffnen
+  const hp = /^#projekt=(\d+)(?:&bericht=(\d+))?/.exec(location.hash);   // Link aus Verwaltung / Mängelliste: dieses Projekt (und diesen Bericht) öffnen
   const hs = location.hash === '#einstellungen';    // Link aus der Verwaltung → Einstellungen
   if (hp || hs) history.replaceState(null, '', location.pathname);
   if (hs) tab = 'profil';
   const start = (hp && projects.find(p => p.id === +hp[1])) || projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
   if (start) await openProject(start.id); else renderDetail();
-  autoPick(true);   // Projekt per GPS wählen, wenn man vor Ort ist
+  if (hp && hp[2] && start && start.id === +hp[1] && reports.some((x) => x.id === +hp[2])) { tab = 'bericht'; rid = +hp[2]; renderDetail(); }
+  else if (!hp) autoPick(true);   // Projekt per GPS wählen, wenn man vor Ort ist
   if (await backfillAddresses()) autoPick(true);
 };
 async function loadProjects() {

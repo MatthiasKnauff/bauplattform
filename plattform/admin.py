@@ -21,6 +21,7 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("portal", "Startseite / Anmeldung", os.environ.get("PORTAL_INTERNAL", "http://portal:8090") + "/api/health"),
     ("adressen", "Adressen", os.environ.get("ADRESSEN_INTERNAL", "http://adressen:8093") + "/api/health"),
     ("baukosten", "Baukosten", os.environ.get("BAUKOSTEN_INTERNAL", "http://baukosten:8094") + "/api/health"),
+    ("aufgaben", "Mängel & Erinnerungen", os.environ.get("AUFGABEN_INTERNAL", "http://aufgaben:8095") + "/api/health"),
 ]
 if os.environ.get("OLLAMA_URL"):   # eigene KI im Büro
     SERVICES.append(("ollama", "KI im Büro (Ollama)", os.environ["OLLAMA_URL"].rstrip("/") + "/api/version"))
@@ -75,6 +76,8 @@ def _apps_value(d):
     """Liste der Apps → Feld users.apps. Alle Apps angehakt = '' (dann gelten auch künftige Apps)."""
     keys = [k for k, _ in sso.APPS]
     want = [k for k in keys if k in (d.get("apps") or [])]
+    if "aufgaben" not in want:
+        want.append("-aufgaben")   # bewusst abgewählt (sonst bekäme jeder mit Bautagebuch die App automatisch)
     return "" if set(want) == set(keys) else json.dumps(want)
 
 

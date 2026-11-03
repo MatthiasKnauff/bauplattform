@@ -262,6 +262,23 @@ Kostenermittlung nach DIN 276, gekoppelt an Bautagebuch-Projekt und Bauzeitenpla
 Auf Docker 2 unter `https://baukosten.gk3-architektur.de`: im Nginx Proxy Manager einen Eintrag → Docker-2-IP, Port 8094 anlegen
 (wie bei den anderen Apps). Freischalten je Benutzer in der Verwaltung (App „Baukosten“; „alle Apps“ schließt sie ein).
 
+## Mängel & Erinnerungen (eigener Container)
+
+Adresse: `/maengel` (Container `bauplattform_aufgaben`, Port 8095). Oben „Meine Projekte“ (im Bautagebuch als zuständig
+eingetragen) oder „Alle Projekte“.
+
+- **Mängel:** alle Mängel aus den Bautagesberichten (umschaltbar: Zu erledigen, Weisungen) mit Foto, Projekt, Bericht,
+  Firma und Frist. Abhaken, Frist verschieben (+1/+2 Wochen), Firma eintragen – gespeichert wird im Bautagebuch.
+  Filter nach Projekt, Firma, Status; „Mängelliste drucken“ als PDF (z. B. für eine Firma).
+- **Erinnerungen:** aus dem Bautagebuch (Erledigungsdatum – Mail verschickt das Bautagebuch am Fälligkeitstag), aus den
+  Bauzeitenplänen („Firma kommt zum ersten Mal / wieder auf die Baustelle“, Vorlauf Standard 7 Tage) und eigene.
+  Abgelaufene lassen sich neu terminieren (morgen, +3 Tage, +1 Woche, nächster Montag oder Datum/Uhrzeit) oder abhaken.
+  ↶ Rückgängig für Abhaken, Termine und Löschen.
+- **⚙ Einstellungen:** Vorlauf, Uhrzeit, ab wie vielen Tagen Pause eine Firma „wieder“ kommt, E-Mail an/aus, Testmail.
+  Empfänger: Zuständige des verknüpften Bautagebuch-Projekts, sonst wer den Plan zuletzt gespeichert hat.
+- E-Mails gehen über den Mailserver aus Verwaltung → Einstellungen → Mailserver. Die App gleicht die Pläne alle 5 Minuten ab.
+- Neue App: Wer Bautagebuch oder Bauzeitenplan nutzen darf, bekommt sie automatisch; abwählbar in der Verwaltung.
+
 ## Verwaltung (eigener Container)
 
 **Einstellungen** (Reiter in der Verwaltung, alles was für alle Apps gilt): Darstellung (Farbschema, Akzentfarbe), KI (Positionsvorschlag

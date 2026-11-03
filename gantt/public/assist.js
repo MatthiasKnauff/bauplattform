@@ -163,7 +163,7 @@
       // onTypes: Leistungen nur bei diesen Gebäudetypen an-/abwählen (sonst nur Namen, Dauern, abhängige Auswahl)
       const sw = !g.onTypes || g.onTypes.includes(newCfg.type);
       const all = new Set(sw ? g.opts.flatMap((o) => o.on) : []), on = sw ? g.opts.find((o) => o.k === kn).on : [];
-      s = s.filter((id) => !all.has(id));
+      s = s.filter((id) => !all.has(baseOf(id)));   // auch geschossweise Teile (mauer~w0) erfassen
       for (const id of on) s = withReq(s, id, true, newCfg);
     }
     return normSel(s, newCfg);
@@ -465,7 +465,7 @@
   const core = {
     catalog: () => C,
     profSets, withReq, unitNames, defName,
-    choiceGroups: (cfg) => CHS.filter((g) => chVisible(g, cfg)).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })),
+    choiceGroups: (cfg) => CHS.filter((g) => chVisible(g, cfg)).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })).filter((g) => g.opts.length > 1),   // nur echte Auswahl zeigen (z. B. „Neuer Keller“ nur bei Anbau)
     choiceAll: (cfg) => choiceAll(clone(cfg)),
     normSel: (arr, cfg) => normSel(clone(arr), clone(cfg)), baseSel: (arr) => baseSel(arr),
     // Gebäude in Worten, z. B. „KG · EG · 1.OG · Staffelgeschoss – Flachdach“

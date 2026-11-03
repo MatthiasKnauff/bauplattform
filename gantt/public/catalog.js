@@ -199,9 +199,9 @@ window.CATALOG = (() => {
     mauer: { n: 'Rohbau Anbau (Mauerwerk, Decken)', d: 12 }, zimmer: { n: 'Dachstuhl Anbau / Anschluss an das Bestandsdach' }, dach_deck: { n: 'Dacheindeckung Anbau, Anschluss an das Bestandsdach' } };
   const choices = [
     { k: 'erweiterung', ph: 'rohbau', n: 'Erweiterung', types: UMB, opts: [
-      { k: 'anbau', n: 'Anbau (seitlich, neue Gründung)', on: ['verm', 'aushub', 'grundl', 'grund', 'mauer', 'anschluss'], ovr: ANB },
-      { k: 'aufstock', n: 'Aufstockung (Holzrahmenbau auf den Bestand)', on: ['dach_ab', 'notdach', 'abbund', 'holz_mont', 'anschluss'], ovr: { ...AUFST, anschluss: { n: 'Anschluss der Aufstockung an den Bestand (Ringbalken, Abdichtung)' } } },
-      { k: 'beides', n: 'Anbau und Aufstockung', on: ['verm', 'aushub', 'grundl', 'grund', 'mauer', 'dach_ab', 'notdach', 'abbund', 'holz_mont', 'anschluss'],
+      { k: 'anbau', n: 'Anbau (seitlich, neue Gründung)', on: ['verm', 'aushub', 'grundl', 'grund', 'mauer', 'anschluss', 'fenster_neu'], ovr: ANB },
+      { k: 'aufstock', n: 'Aufstockung (Holzrahmenbau auf den Bestand)', on: ['dach_ab', 'notdach', 'abbund', 'holz_mont', 'anschluss', 'fenster_neu', 'treppe'], ovr: { ...AUFST, anschluss: { n: 'Anschluss der Aufstockung an den Bestand (Ringbalken, Abdichtung)' } } },
+      { k: 'beides', n: 'Anbau und Aufstockung', on: ['verm', 'aushub', 'grundl', 'grund', 'mauer', 'dach_ab', 'notdach', 'abbund', 'holz_mont', 'anschluss', 'fenster_neu', 'treppe'],
         ovr: { ...ANB, ...AUFST, zimmer: { n: 'Dachstühle Anbau und Aufstockung' }, dach_deck: { n: 'Dacheindeckung Anbau und Aufstockung' }, fenster_neu: { n: 'Fenster und Außentüren Anbau und Aufstockung' } } },
       { k: 'keine', n: 'nur Umbau im Bestand', on: [], ovr: { zimmer: { n: 'Dachstuhl ertüchtigen' }, dach_deck: { n: 'Dacheindeckung erneuern' } } } ] },
     { k: 'bestkeller', ph: 'erd', n: 'Vorhandener Keller', types: [...UMB, 'kern_efh', 'san_mfh'], opts: [
@@ -213,11 +213,11 @@ window.CATALOG = (() => {
     // Anbau bei Umbau und Erweiterung: kann neu unterkellert werden – neben dem Bestand mit Unterfangung der Bestandsfundamente
     { k: 'anbaukeller', ph: 'erd', n: 'Neuer Keller (Anbau)', types: UMB, opts: [
       { k: 'none', n: 'kein neuer Keller – Anbau auf Fundamenten und Bodenplatte', on: [] },
-      { k: 'wu', n: 'neuer Keller – WU-Beton (weiße Wanne)', on: ['unterfang', 'keller', 'verfuell'],
+      { k: 'wu', if: { erweiterung: ['anbau', 'beides'] }, n: 'neuer Keller – WU-Beton (weiße Wanne)', on: ['unterfang', 'keller', 'verfuell'],
         ovr: { keller: { n: 'Kellergeschoss Anbau WU-Beton (weiße Wanne), Anschluss an den Bestand', d: 12, din: '18331' }, verfuell: { n: 'Arbeitsraum Anbau verfüllen' } } },
-      { k: 'mw', n: 'neuer Keller – gemauert + Abdichtung (schwarze Wanne)', on: ['unterfang', 'keller', 'keller_abd', 'verfuell'],
+      { k: 'mw', if: { erweiterung: ['anbau', 'beides'] }, n: 'neuer Keller – gemauert + Abdichtung (schwarze Wanne)', on: ['unterfang', 'keller', 'keller_abd', 'verfuell'],
         ovr: { keller: { n: 'Kellergeschoss Anbau gemauert, Decke Stahlbeton', din: '18330 / 18331' }, keller_abd: { n: 'Abdichtung und Perimeterdämmung Keller Anbau, Fuge zum Bestand' }, verfuell: { n: 'Arbeitsraum Anbau verfüllen' } } },
-      { k: 'ft', n: 'neuer Keller – Fertigkeller (Betonfertigteile)', on: ['unterfang', 'keller', 'verfuell'],
+      { k: 'ft', if: { erweiterung: ['anbau', 'beides'] }, n: 'neuer Keller – Fertigkeller (Betonfertigteile)', on: ['unterfang', 'keller', 'verfuell'],
         ovr: { keller: { n: 'Fertigkeller Anbau montieren (Betonfertigteile)', d: 4, din: '18331' }, verfuell: { n: 'Arbeitsraum Anbau verfüllen' } } } ] },
     { k: 'keller', ph: 'erd', n: 'Keller / Gründung', types: NB, opts: [
       { k: 'none', n: 'kein Keller – Bodenplatte', on: [] },
@@ -230,7 +230,7 @@ window.CATALOG = (() => {
       { k: 'holz', n: 'Holzrahmenbau / Fertigbau', on: ['abbund', 'holz_mont'] },
       { k: 'bsp', n: 'Massivholz (Brettsperrholz)', on: ['abbund', 'holz_mont'], ovr: { abbund: { n: 'Vorfertigung Brettsperrholz-Elemente (Werk)' }, holz_mont: { n: 'Montage Brettsperrholz-Wände und -Decken' } } },
       { k: 'misch', n: 'gemischt – Bauweise je Geschoss wählen', on: ['mauer', 'abbund', 'holz_mont'] } ] },
-    { k: 'dachform', ph: 'huelle', n: 'Dachform', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], onTypes: NB, opts: [
+    { k: 'dachform', ph: 'huelle', n: 'Dachform', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], onTypes: [...NB, ...UMB, 'dg'], opts: [
       { k: 'sattel', n: 'Satteldach', on: ['zimmer'] },
       { k: 'walm', n: 'Walmdach', on: ['zimmer'], mul: { zimmer: 1.3, dach_deck: 1.25, klempner: 1.2 } },
       { k: 'pult', n: 'Pultdach', on: ['zimmer'], mul: { zimmer: 0.8, dach_deck: 0.85 } },

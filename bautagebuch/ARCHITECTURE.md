@@ -8,7 +8,7 @@ modules/*.py      je Funktionsbereich eine Datei mit einem Flask-Blueprint "bp"
 pg_migrations/*.sql Datenbankschema, nummeriert (0001_, 0002_, …)
 static/index.html Oberfläche
 data/             uploads/, backups/   (Volume bautagebuch_data)
-PostgreSQL        eigener Container Bautagebuch_db, Volume bautagebuch_pgdata
+PostgreSQL        eigener Container bauportal_db (früher Bautagebuch_db), Volume bautagebuch_pgdata
 ```
 
 ## Goldene Regeln für die Datenbank
@@ -316,7 +316,7 @@ Einstellungen → Ablage: „Alte Fototag-Ordner behalten“ (`store_keep_old_ph
 
 
 ## PostgreSQL (statt SQLite)
-- Auf Wunsch statt Redis: relationale Daten gehören in eine relationale Datenbank. Eigener Container `Bautagebuch_db` (`postgres:15`, Healthcheck `pg_isready`, kein veröffentlichter Port), Daten im benannten Volume `bautagebuch_pgdata`. Die App wartet per `depends_on: service_healthy` und verbindet über `DATABASE_URL`. Kennwort in `docker-compose.yml` ändern (an zwei Stellen identisch).
+- Auf Wunsch statt Redis: relationale Daten gehören in eine relationale Datenbank. Eigener Container `bauportal_db` (früher `Bautagebuch_db`) (`postgres:15`, Healthcheck `pg_isready`, kein veröffentlichter Port), Daten im benannten Volume `bautagebuch_pgdata`. Die App wartet per `depends_on: service_healthy` und verbindet über `DATABASE_URL`. Kennwort in `docker-compose.yml` ändern (an zwei Stellen identisch).
 - `core/db.py` behält die sqlite-ähnliche Schnittstelle (`con.execute(sql, ?-Parameter)`, Zeilen mit Namens- und Indexzugriff, `lastrowid`, `con.savepoint()` für Eindeutigkeitsfehler) und übersetzt `?` → `%s`, `datetime('now')`, `json_extract`. Einfacher Verbindungspool; Migrationen unter Advisory-Lock (mehrere Gunicorn-Worker). Namen sind `citext` (Benutzer, Kontakte: Groß-/Kleinschreibung egal).
 - Schema: `pg_migrations/0001_baseline.sql` (vollständig, IDENTITY-Spalten). Die alten SQLite-Migrationen entfielen, weil die App noch nicht produktiv war – **es gibt keinen Import alter `bau.db`-Dateien**. Ab jetzt gelten die goldenen Regeln wie oben (nur additive Migrationen; vor jeder Migration `pg_dump`).
 - Sicherung/Wiederherstellung siehe „Datenbankversionen“. Das Image enthält `postgresql-client` für `pg_dump`/`pg_restore`; die Hauptversion soll zum Datenbank-Container passen (15).

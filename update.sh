@@ -10,13 +10,14 @@
 #   bash update.sh --testdaten      NUR TESTSYSTEM: Beispiel-Benutzer, -Projekte, -Berichte, -Fotos und -Bauzeitpläne anlegen
 #
 # Beim ersten Mal übernimmt das Skript Datenbank-Kennwort, Schlüssel, Ports und Zusatz-Laufwerke aus den bisherigen
-# Containern „bautagebuch“, „Bautagebuch_db“ und „gantt-app“ und schreibt sie in die Datei .env.
+# Containern „bautagebuch“, „Bautagebuch_db“/„bauportal_db“ und „gantt-app“ und schreibt sie in die Datei .env.
 # Die Daten bleiben in den bisherigen Docker-Volumes; die alte Gantt-App wird nur gelesen (einmalige Übernahme).
 # =============================================================================
 set -euo pipefail
 cd "$(dirname "$0")"
 VER=$(cat VERSION 2>/dev/null || echo "?")
-DB=Bautagebuch_db
+DB_NEW=bauportal_db      # Datenbank-Container (früher „Bautagebuch_db“)
+DB_OLD=Bautagebuch_db
 APPS="bautagebuch gantt portal admin adressen"
 
 say()  { printf '\n\033[1m▶ %s\033[0m\n' "$*"; }
@@ -37,6 +38,8 @@ publish_of() {   # Container, Port im Container → "8080" oder "127.0.0.1:8080"
     | awk -F'|' 'NF==2 && $2!="" { if ($1!="" && $1!="0.0.0.0" && $1!="::") print $1":"$2; else print $2; exit }'
 }
 rand()       { head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+db_container(){ if exists "$DB_NEW"; then echo "$DB_NEW"; elif exists "$DB_OLD"; then echo "$DB_OLD"; else echo "$DB_NEW"; fi; }
+DB=$(db_container)
 getenv_file(){ sed -n "s/^$1=//p" .env | tail -n1 | sed "s/^'\(.*\)'$/\1/; s/^\"\(.*\)\"$/\1/"; }
 setenv() {     # Schlüssel Wert → .env (Wert in einfachen Anführungszeichen, damit $ & usw. wörtlich gelten)
   local v="$2"; case "$v" in *"'"*) ;; "") ;; *) v="'$v'";; esac
@@ -100,9 +103,9 @@ if [ ! -f .env ]; then
   pw=""
   if exists "$DB"; then pw=$(envget "$DB" POSTGRES_PASSWORD); fi
   if [ -z "$pw" ]; then
-    if docker volume inspect bautagebuch_pgdata >/dev/null 2>&1; then
+    if docker volume inspect bautagebuch_pgdata >/dev/null 2>&1 || docker volume inspect bauportal_pgdata >/dev/null 2>&1; then
       rm -f .env
-      die "Es gibt schon eine Datenbank (Volume bautagebuch_pgdata), aber keinen Container, aus dem ich das Kennwort lesen kann.
+      die "Es gibt schon eine Datenbank (Volume bautagebuch_pgdata bzw. bauportal_pgdata), aber keinen Container, aus dem ich das Kennwort lesen kann.
        Bitte .env.example nach .env kopieren, dort DB_PASSWORD eintragen (wie bisher in docker-compose.yml) und erneut starten."
     fi
     pw=$(rand); info "Neue Installation: Datenbank-Kennwort erzeugt."
@@ -151,13 +154,14 @@ docker compose build --pull
 backup
 
 say "Stelle um"
-for c in "$DB" bautagebuch gantt-app bauzeitenplan bauplattform_portal bauplattform_admin; do
+for c in "$DB_OLD" "$DB_NEW" bautagebuch gantt-app bauzeitenplan bauplattform_portal bauplattform_admin; do
   if exists "$c" && [ "$(project_of "$c")" != "bauplattform" ]; then
     info "Entferne bisherigen Container „$c“ (Daten bleiben in den Volumes)"
     docker rm -f "$c" >/dev/null
   fi
 done
 docker compose up -d --remove-orphans
+DB=$DB_NEW
 
 say "Warte, bis alle Dienste bereit sind"
 end=$((SECONDS + 300)); ok=0

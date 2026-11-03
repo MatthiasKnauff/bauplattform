@@ -10,7 +10,7 @@ einem eigenen Container für die Verwaltung und einem Skript, das neue Versionen
 | Bauzeitenplan | `http://server:8082` (wie bisher) | `bauzeitenplan` |
 | Adressen (Firmen, Bauherren, Baustellen) | `http://server:8093` | `bauplattform_adressen` |
 | Verwaltung (nur Administratoren) | `http://server:8091` | `bauplattform_admin` |
-| Datenbank (PostgreSQL 15) | nur intern | `Bautagebuch_db` |
+| Datenbank (PostgreSQL 15) für alle Apps | nur intern | `bauportal_db` (früher `Bautagebuch_db`), Volume `bauportal_pgdata` (früher `bautagebuch_pgdata`) |
 
 ```
             Browser ──► :8090 Startseite ──┐  Anmeldung (Cookie gilt für alle Ports dieses Servers)
@@ -125,6 +125,23 @@ vorhandenen Datenbank) eintragen, sinnvollerweise auch `SECRET_KEY` aus dem bish
 Die Volumes `bautagebuch_data`, `bautagebuch_pgdata` und `gantt-app_gantt-data` müssen schon vorhanden sein
 (`external`), damit nie versehentlich mit einer leeren Datenbank gestartet wird. Vor dem ersten Start die bisherigen
 Stacks `bautagebuch` und `gantt-app` entfernen (die Volumes bleiben) und vom LXC einen Snapshot anlegen.
+
+### Datenbank-Volume umbenennen (bautagebuch_pgdata → bauportal_pgdata)
+
+Docker kann Volumes nicht umbenennen – die Daten werden einmal bei **gestoppter** Datenbank in ein neues Volume kopiert.
+Das alte Volume bleibt als Sicherung liegen. Welches Volume benutzt wird, steuert `DB_VOLUME` (Standard noch der alte Name).
+
+1. Proxmox-Snapshot von Docker 2 anlegen.
+2. In Portainer den Stack **stoppen** (*Stop this stack*).
+3. Auf Docker 2 (Konsole des LXC):
+   ```
+   docker volume create bauportal_pgdata
+   docker run --rm -v bautagebuch_pgdata:/von:ro -v bauportal_pgdata:/nach alpine sh -c "cp -a /von/. /nach/ && echo fertig"
+   ```
+4. In Portainer beim Stack unter *Environment variables* `DB_VOLUME` = `bauportal_pgdata` eintragen, *Update the stack*.
+5. Prüfen (anmelden, ein Bericht, ein Plan). Das alte Volume `bautagebuch_pgdata` erst nach ein paar Tagen löschen.
+
+Zurück: `DB_VOLUME` wieder entfernen → der Stack nutzt das alte Volume (Stand vor dem Kopieren).
 
 ## Gemeinsame Anmeldung (SSO)
 

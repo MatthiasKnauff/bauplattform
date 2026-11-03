@@ -32,7 +32,7 @@ x-env: &env
 services:
   bautagebuch_db:
     image: postgres:15
-    container_name: Bautagebuch_db
+    container_name: bauportal_db   # Daten der ganzen Bauplattform (früher „Bautagebuch_db“; Volume unverändert)
     restart: unless-stopped
     environment:
       POSTGRES_USER: bautagebuch
@@ -124,6 +124,7 @@ volumes:
   bautagebuch_data:
     name: bautagebuch_data            # gleiche Volumes wie bisher – die Daten bleiben erhalten
   bautagebuch_pgdata:
-    name: bautagebuch_pgdata
+    # Daten der ganzen Bauplattform. Umstellen auf „bauportal_pgdata“: siehe README → „Datenbank-Volume umbenennen“
+    name: ${DB_VOLUME:-bautagebuch_pgdata}
   gantt_legacy:
     name: ${GANTT_LEGACY_VOLUME:-gantt-app_gantt-data}   # Volume der bisherigen Gantt-App (nur lesend)

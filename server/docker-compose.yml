@@ -29,9 +29,7 @@ x-env: &env
   GANTT_URL: ${GANTT_URL:-https://gantt.gk3-architektur.de}
   PORTAL_URL: ${PORTAL_URL:-https://bauportal.gk3-architektur.de}
   ADMIN_URL: ${ADMIN_URL:-https://admin.gk3-architektur.de}
-  # Adressen: noch ohne Eintrag im Nginx Proxy Manager → direkt über http://SERVER_HOST:8093.
-  # Später im NPM eintragen und ADRESSEN_URL setzen (z. B. https://adressen.gk3-architektur.de).
-  ADRESSEN_URL: ${ADRESSEN_URL:-}
+  ADRESSEN_URL: ${ADRESSEN_URL:-https://adressen.gk3-architektur.de}
   SERVER_HOST: ${SERVER_HOST:-}   # IP oder Name von Docker 2 (z. B. 192.168.1.20) – für Links zu Apps ohne eigene Adresse
   BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
   GANTT_INTERNAL: http://gantt:8082

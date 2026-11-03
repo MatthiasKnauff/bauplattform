@@ -171,9 +171,9 @@ Karte, Visitenkarte ins Handy (vCard), Drucken (PDF, wie im Bautagebuch) und Exp
 verwendet wird: nicht in Berichten, nicht als Baustellenadresse, in keinem Bauzeitenplan als Firma (`shared/bpcore/contacts.py`).
 PDFs öffnen wie im Bautagebuch in einer eigenen Ansicht (Zoom, Drucken, Teilen). Baustellenadressen (im Bautagebuch beim Projekt gespeichert) erscheinen nicht als Firmen im Bauzeitenplan.
 
-Läuft zunächst ohne Nginx über Port 8093. Damit die anderen Apps richtig dorthin verlinken, in Portainer `SERVER_HOST`
-auf die IP von Docker 2 setzen. Später im Nginx Proxy Manager eine Adresse eintragen (Ziel `bauplattform_adressen:8093`
-bzw. Docker-2-IP:8093) und `ADRESSEN_URL` setzen, z. B. `https://adressen.gk3-architektur.de`. Freischalten je Benutzer
+Auf Docker 2 unter `https://adressen.gk3-architektur.de` (Nginx Proxy Manager → Docker-2-IP, Port 8093, wie die anderen Apps).
+Ohne Nginx (z. B. Testserver) direkt über Port 8093; dann in Portainer `SERVER_HOST` auf die IP des Servers setzen,
+damit die anderen Apps dorthin verlinken. Freischalten je Benutzer
 in der Verwaltung (App „Adressen“; wer „alle Apps“ hat, bekommt sie automatisch).
 
 ## Verwaltung (eigener Container)

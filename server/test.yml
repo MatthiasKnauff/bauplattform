@@ -62,7 +62,7 @@ services:
       retries: 30
 
   bautagebuch:
-    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:3df4f1b
+    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:37bb62b
     container_name: bautagebuch
     restart: unless-stopped
     depends_on:
@@ -76,7 +76,7 @@ services:
       - bautagebuch_data:/data
 
   gantt:
-    image: ghcr.io/matthiasknauff/bauplattform/gantt:3df4f1b
+    image: ghcr.io/matthiasknauff/bauplattform/gantt:37bb62b
     container_name: bauzeitenplan
     restart: unless-stopped
     depends_on:
@@ -90,7 +90,7 @@ services:
       - gantt_legacy:/legacy:ro
 
   portal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:3df4f1b
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:37bb62b
     container_name: bauplattform_portal
     restart: unless-stopped
     depends_on:
@@ -103,7 +103,7 @@ services:
       APP_PORT: "8090"
 
   admin:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:3df4f1b
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:37bb62b
     container_name: bauplattform_admin
     restart: unless-stopped
     depends_on:
@@ -117,7 +117,7 @@ services:
       APP_PORT: "8091"
 
   adressen:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:3df4f1b
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:37bb62b
     container_name: bauplattform_adressen
     restart: unless-stopped
     depends_on:
@@ -132,7 +132,7 @@ services:
 
 
   baukosten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:3df4f1b
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:37bb62b
     container_name: bauplattform_baukosten
     restart: unless-stopped
     depends_on:

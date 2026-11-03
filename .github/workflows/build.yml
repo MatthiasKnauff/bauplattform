@@ -1,16 +1,24 @@
 name: Build & Publish
 
-# main  -> Image-Tag "latest" (Testen)
-# Tag v* -> zusätzlich "stable" (nur das holt der Server automatisch)
+# main   -> Image wird gebaut und die neue Versionsnummer in server/docker-compose.yml
+#           eingetragen. Portainer (Polling) erkennt die Änderung und aktualisiert.
+# Tag v* -> zusätzlich Tag "stable" (für den späteren Produktivserver)
 on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore:
+      - 'server/**'
+      - '**.md'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   IMAGE: ghcr.io/matthiasknauff/bauplattform/hello
@@ -30,14 +38,16 @@ jobs:
       - name: Tags bestimmen
         id: meta
         run: |
+          SHORT="${GITHUB_SHA::7}"
           VERSION="${GITHUB_REF_NAME}"
-          [ "${GITHUB_REF_TYPE}" = "branch" ] && VERSION="${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
-          TAGS="${IMAGE}:${GITHUB_SHA::7}"
+          [ "${GITHUB_REF_TYPE}" = "branch" ] && VERSION="${GITHUB_REF_NAME}-${SHORT}"
+          TAGS="${IMAGE}:${SHORT}"
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             TAGS="${TAGS},${IMAGE}:${GITHUB_REF_NAME},${IMAGE}:stable"
           else
             TAGS="${TAGS},${IMAGE}:latest"
           fi
+          echo "short=${SHORT}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
           echo "time=$(TZ=Europe/Berlin date '+%d.%m.%Y %H:%M')" >> "$GITHUB_OUTPUT"
@@ -50,3 +60,13 @@ jobs:
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             BUILD_TIME=${{ steps.meta.outputs.time }}
+
+      - name: Neue Version in server/docker-compose.yml eintragen
+        if: github.ref_type == 'branch'
+        run: |
+          sed -i -E "s|(image: ${IMAGE}):[A-Za-z0-9._-]+|\1:${{ steps.meta.outputs.short }}|" server/docker-compose.yml
+          if git diff --quiet; then echo "Keine Änderung"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Testserver: hello auf ${{ steps.meta.outputs.short }}"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push && break; sleep 3; done

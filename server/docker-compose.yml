@@ -2,7 +2,7 @@ services:
   hello:
     # Die Versionsnummer hinter dem Doppelpunkt setzt GitHub Actions nach jedem Build
     # automatisch. Portainer bemerkt die Änderung und spielt die neue Version ein.
-    image: ghcr.io/matthiasknauff/bauplattform/hello:454953e
+    image: ghcr.io/matthiasknauff/bauplattform/hello:ff86306
     container_name: bauplattform-hello
     restart: unless-stopped
     ports:

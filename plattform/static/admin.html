@@ -399,7 +399,8 @@ async function extLoad(method, body) {
   const box = $('#extBox'), fb = $('#fotoBox'); if (!box) return;
   let X; try { X = await api('api/bt/backups/extern', method || 'GET', body); } catch (e) { box.innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
   const L = X.letzte || {}, lab = (k) => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k;
-  box.innerHTML = `<div class="sf"><label class="w">Pfad auf dem Dateiserver<input id="extPfad" value="${esc(X.pfad || '')}" placeholder="\\\\192.168.233.88\\Projekte\\Bauportal"></label></div>
+  const S0 = data.bt || {}, vor = S0.store_mode === 'smb' && S0.store_server && S0.store_share ? `\\\\${S0.store_server}\\${S0.store_share}\\Bauportal` : '\\\\192.168.233.88\\Projekte\\Bauportal';
+  box.innerHTML = `<div class="sf"><label class="w">Pfad auf dem Dateiserver${X.pfad ? '' : ' <small class="mute">(Vorschlag aus der Ablage – mit „Pfad speichern“ übernehmen)</small>'}<input id="extPfad" value="${esc(X.pfad || vor)}" placeholder="${esc(vor)}"></label></div>
     <div class="st-a" style="margin:.5rem 0"><button class="btn pri" data-bx="save">Pfad speichern</button>${X.pfad ? '<button class="btn" data-bx="copy">Jetzt kopieren</button>' : ''}</div>
     ${X.pfad ? `<p class="${L.ok === false ? 'err' : 'mute'}" style="font-size:.9rem">${L.zeit ? `Letzte Kopie ${esc(new Date(L.zeit).toLocaleString('de-DE'))}: ${L.ok ? '✓ ' + esc(L.datei || '') : '✗ ' + esc(L.fehler || '')}` : 'Noch keine Kopie.'}</p>` : '<p class="mute">Noch kein Pfad eingetragen – Vorschlag: \\\\192.168.233.88\\Projekte\\Bauportal</p>'}
     ${X.fehler ? `<p class="err">Dateiserver nicht erreichbar: ${esc(X.fehler)}</p>` : ''}

@@ -263,7 +263,13 @@ def plaene():
         f["versendet"] = gesendet.get(f["pfad"], [])
     gewerke = sorted({*gw_plan, *cf["stichworte"].keys(), *cf["kennungen"].values(), *(x["gewerk"] for x in pl if x["gewerk"])} - {""},
                      key=lambda s: (s == "alle Firmen", s.lower()))
-    gewerke = sorted(set(gewerke) | {f["gewerk"] for f in sonst if f["gewerk"]}, key=lambda s_: (s_ == "alle Firmen", s_.lower()))
+    # dazu die Gewerke der Baubeteiligten (Firmen des Projekts, Adressen) und eigene Zuordnungen
+    with db.tx() as c:
+        adr = {t.strip() for r in c.execute("SELECT trade FROM contacts WHERE trade<>''") for t in re.split(r"[,;/]", r["trade"] or "")}
+    eig = {*(m.get("zuordnung") or {}).values()}
+    bet = {g_ for f in fl for g_ in f.get("gewerke") or []}
+    gewerke = sorted({g_ for g_ in set(gewerke) | {f["gewerk"] for f in sonst if f["gewerk"]} | bet | adr | eig if g_ and len(g_) <= 60},
+                     key=lambda s_: (s_ == "alle Firmen", s_.lower()))
     return jsonify(plaene=pl, sonstige=sonst, basis=d.get("basis"), baum=d.get("ordner") or [], aus=d.get("aus") or [], standard=d.get("standard"),
                    abgebrochen=d.get("abgebrochen"), gewerke=gewerke, firmen=fl)
 

@@ -128,7 +128,7 @@ def ordnen(dateien, conf, zuordnung=None):
                                "nr": i["nr"], "titel": i["titel"],
                                "phase": T[0], "phase_name": ph.get(T[0], ""), "variante": T[1],
                                "planart": T[2], "planart_name": pa.get(T[2], "") if T[2] else "",
-                               "lfd": T[3], "geschoss": geschoss(T[3]) if T[2] == "1" else "", "_st": {}, "_titel_rang": -1}
+                               "lfd": T[3], "geschoss": geschoss(T[3]) if T[2] == "1" and T[3].isdigit() and int(T[3]) <= 7 and not i["kennung"].upper().startswith("AA") else "", "_st": {}, "_titel_rang": -1}
         st = p["_st"].setdefault(i["index"], {"index": i["index"], "pdf": None, "pdfs": [], "cad": []})
         e = {**f, "lfd": i["lfd"], "ext": i["ext"]}
         if i["ext"] == ".pdf":

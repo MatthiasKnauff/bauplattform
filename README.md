@@ -272,6 +272,15 @@ Kostenermittlung nach DIN 276, gekoppelt an Bautagebuch-Projekt und Bauzeitenpla
 Auf Docker 2 unter `https://baukosten.gk3-architektur.de`: im Nginx Proxy Manager einen Eintrag → Docker-2-IP, Port 8094 anlegen
 (wie bei den anderen Apps). Freischalten je Benutzer in der Verwaltung (App „Baukosten“; „alle Apps“ schließt sie ein).
 
+
+**DIN 276:2018-12**: Stufen Kostenrahmen, -schätzung, -berechnung, -voranschlag, -anschlag, -feststellung; Mindest-Gliederungstiefe je Stufe
+(Schätzung 2. Ebene, ab Berechnung 3. Ebene) wird in der Prüfung gemeldet, ebenso fehlende Kostengruppen der 1. Ebene. Kostenstand und
+Kostenrisiken (Prozent mit Begründung) werden im PDF gesondert ausgewiesen.
+**Vergleichsobjekte**: abgerechnete Projekte (Kosten → „als Vergleichsobjekt speichern“) und importierte Kennwerte (Excel/CSV, z. B. Export aus
+BKI, sirAdos, DBD) ergeben je Raumtyp Mittelwert und Spanne; „Ø Vergleichswerte übernehmen“ setzt sie ein. Zugänge zu den kostenpflichtigen
+Kostendatenbanken hinterlegt der Administrator unter „Kostendatenbanken“ (direkte Abfrage, sobald ein Anbieter eine Partner-Schnittstelle freigibt).
+Beim Öffnen erklärt ein Hinweisfenster Grundlagen und Grenzen der Ermittlung („nicht mehr anzeigen“ je Benutzer).
+
 ## Mängel & Erinnerungen (eigener Container)
 
 Adresse: `/maengel` (Container `bauplattform_aufgaben`, Port 8095). Oben „Meine Projekte“ (im Bautagebuch als zuständig

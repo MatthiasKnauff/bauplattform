@@ -8,7 +8,8 @@ STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich
             "kopie": True,           # bei „direkt an die Firma“: Kopie an mich
             "kalender": False,       # eigene und verschobene Erinnerungen automatisch als Kalendertermin an mich
             "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
-            "telefon": "", "funktion": ""}   # für die Signatur
+            "telefon": "", "funktion": "",   # für die Signatur
+            "hinweise_aus": []}      # Hinweisfenster, die nicht mehr erscheinen sollen (z. B. „baukosten“)
 SIG_STANDARD = "{name}\n{funktion}\n{buero}\n{buero_strasse}, {buero_ort}\nTel. {telefon} · {email}\n{buero_web}"
 SIG_PLATZ = {"name": "Vor- und Nachname", "vorname": "Vorname", "nachname": "Nachname", "funktion": "Funktion (z. B. Bauleitung)",
              "telefon": "Telefon (eigenes, sonst Büro)", "email": "E-Mail-Adresse", "buero": "Büroname", "buero_strasse": "Straße des Büros",
@@ -41,6 +42,8 @@ def set_prefs(c, uid, d, by=""):
     for k in ("kopie", "kalender"):
         if k in d:
             p[k] = bool(d[k])
+    if isinstance(d.get("hinweise_aus"), list):
+        p["hinweise_aus"] = sorted({str(x)[:40] for x in d["hinweise_aus"] if str(x).strip()})[:30]
     for k, n in (("mailsignatur", 2000), ("telefon", 60), ("funktion", 80)):
         if k in d:
             p[k] = str(d[k] or "").replace("\r", "").strip()[:n]

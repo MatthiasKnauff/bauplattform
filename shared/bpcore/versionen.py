@@ -23,7 +23,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 ZUSAMMEN_MIN = 10
-SECRET = {"store_pass", "mail_pass", "key", "api_key", "token", "passwort", "password", "secret"}
+SECRET = {"store_pass", "mail_pass", "pass", "key", "api_key", "token", "passwort", "password", "secret"}
 MARK = "•geheim:"
 BILD = "\u2022bild:"
 STANDARD_CONF = {"alle_tage": 90, "taeglich_tage": 730}     # alle Stände 90 Tage, danach einer je Tag; 0 = unbegrenzt
@@ -33,7 +33,7 @@ GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen 
       "catscope": "Leistungsumfang je Gewerk (Bauzeitenplan)", "settings": "KI und Bauzeitenplan (Verwaltung)", "plattform": "KI-Anbieter (Verwaltung)",
       "presets": "Vorlagen des Bauzeitenplans", "assistcfg": "Assistent des Bauzeitenplans", "assistcfg_vorlagen": "Vorlagen des Assistenten"}
 BP = {"aufgaben": "Einstellungen „Mängel & Erinnerungen“", "plaene": "Einstellungen „Planstand & Versand“", "versionen_conf": "Aufbewahrung der Versionen"}
-BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)"}
+BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)", "vergleich": "Vergleichsobjekte und importierte Kennwerte (Baukosten)", "dienste": "Zugänge zu Kostendatenbanken (Baukosten)"}
 
 LABELS = {
     "office_name": "Büroname", "co_street": "Straße", "co_zip": "PLZ", "co_city": "Ort", "co_phone": "Telefon", "co_email": "E-Mail",
@@ -223,7 +223,7 @@ def quelle(c, bereich):
     if a == "bp" and k in BP:
         return Quelle(BP[k], "admin" if k == "versionen_conf" else "alle", *_row_store("bp_store", k))
     if a == "bk" and k in BK:
-        return Quelle(BK[k], "alle", *_row_store("bk_store", k))
+        return Quelle(BK[k], "admin" if k == "dienste" else "alle", *_row_store("bk_store", k))
     if a in ("bkp", "kontakt", "konto") and k.isdigit():
         i = int(k)
         if a == "bkp":

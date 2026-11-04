@@ -25,8 +25,10 @@ app = C.make_app(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024
 
 from bpcore import kosten   # Raumtypen des Büros mit Kennwerten (⚙ Einstellungen in dieser App)
-STUFEN = ("rahmen", "schaetzung", "berechnung", "anschlag", "feststellung")
-STUFE_NAME = {"rahmen": "Kostenrahmen", "schaetzung": "Kostenschätzung", "berechnung": "Kostenberechnung", "anschlag": "Kostenanschlag", "feststellung": "Kostenfeststellung"}
+STUFEN = ("rahmen", "schaetzung", "berechnung", "voranschlag", "anschlag", "feststellung")   # DIN 276:2018-12, 3.4
+STUFE_NAME = {"rahmen": "Kostenrahmen", "schaetzung": "Kostenschätzung", "berechnung": "Kostenberechnung", "voranschlag": "Kostenvoranschlag",
+              "anschlag": "Kostenanschlag", "feststellung": "Kostenfeststellung"}
+STUFE_EBENE = {"rahmen": 1, "schaetzung": 2, "berechnung": 3, "voranschlag": 3, "anschlag": 3, "feststellung": 3}   # Mindest-Gliederungstiefe
 # DIN 276 (2018), 1. und 2. Ebene
 DIN = {
     "100": "Grundstück", "200": "Vorbereitende Maßnahmen", "210": "Herrichten", "220": "Öffentliche Erschließung", "230": "Nichtöffentliche Erschließung",
@@ -166,6 +168,8 @@ def clean_data(d, c):
     return {"rooms": rooms, "types": types, "kg": {"300": k300, "400": round(100 - k300, 2)},
             "nk": _num(d.get("nk"), 20, 0, 60), "rate": _num(d.get("rate"), 3, 0, 20), "items": items, "shares": shares,
             "kg2": kg2, "notes": _s(d.get("notes"), 8000),
+            "kostenstand": d["kostenstand"] if re.fullmatch(r"20\d\d-(0[1-9]|1[0-2])", str(d.get("kostenstand") or "")) else datetime.now().strftime("%Y-%m"),
+            "risiko": _num(d.get("risiko"), 0, 0, 50), "risiko_text": _s(d.get("risiko_text"), 500),
             "bauteile": _clean_bt(d.get("bauteile")),
             "justage": _clean_ju(d.get("justage")),
             "hoehe_std": round(_num(d.get("hoehe_std"), 0, 0, 20), 2) or None,   # erste eingetragene Raumhöhe gilt für alle ohne eigene
@@ -250,9 +254,10 @@ def calc(d):
         J[x] = round(J[x], 2)
     extra = sum(i["amount"] or 0 for i in d["items"] if i["kg"] not in ("700",))
     nk = (bau + extra) * d["nk"] / 100
+    risk = (bau + extra + nk) * (d.get("risiko") or 0) / 100   # DIN 276: Kostenrisiken gesondert ausweisen
     area = sum(r["area"] for r in d["rooms"])
     return {"types": rows, "kw_summe": round(raw, 2), "bauwerk": round(bau, 2), "bauwerk_kw": round(bau_kw, 2), "kg300": round(k300, 2), "kg400": round(k400, 2),
-            "kg2": kg2, "justage": J, "extra": round(extra, 2), "nk": round(nk, 2), "total": round(bau + extra + nk, 2), "area": round(area, 2),
+            "kg2": kg2, "justage": J, "extra": round(extra, 2), "nk": round(nk, 2), "risiko": round(risk, 2), "total": round(bau + extra + nk + risk, 2), "area": round(area, 2),
             "kw": round(bau / area, 2) if area else 0}
 
 
@@ -416,6 +421,155 @@ def kennwerte_api():
             versionen.nach(c, "bk:raumtypen", g.user["name"])
             C.audit(g.user["name"], "baukosten", "Raumtypen gespeichert", note)
         return jsonify(raumtypen=kosten.catalog(c), standard=[{"key": k, "label": l, "kw": kw, "worte": w} for k, l, kw, w in kosten.TYPES])
+
+
+# ---------------------------------------------------------------- Eigene Vergleichsobjekte und importierte Kennwerte
+# Abgerechnete Projekte des Büros (am besten Kostenfeststellung) und Kennwerte aus Kostendatenbanken (BKI, sirAdos, DBD … als
+# Excel/CSV-Export) bilden eine Vergleichsbasis: Mittelwert, Spanne und Anzahl je Raumtyp. So wird die App mit jedem Projekt genauer.
+def _vg(c):
+    r = c.execute("SELECT data FROM bk_store WHERE key='vergleich'").fetchone()
+    v = _j(r["data"], []) if r else []
+    return v if isinstance(v, list) else []
+
+
+def _vg_put(c, lst):
+    with versionen.aenderung(c, "bk:vergleich", g.user["name"]):
+        c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('vergleich',?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, "
+                  "updated=excluded.updated, updated_by=excluded.updated_by", (json.dumps(lst, ensure_ascii=False), _now(), g.user["name"]))
+
+
+def _norm(s):
+    return re.sub(r"[^a-z0-9äöüß]+", " ", (s or "").lower()).strip()
+
+
+def vergleich_auswertung(lst):
+    """Je Raumtyp (nach Bezeichnung): Mittelwert, kleinster und größter Wert, Anzahl Objekte (€/m² Raumfläche, KG 300+400 netto)."""
+    by = {}
+    for o in lst:
+        for lab, kw in (o.get("types") or {}).items():
+            if kw:
+                by.setdefault(_norm(lab), {"label": lab, "werte": []})["werte"].append({"kw": kw, "obj": o.get("name"), "stand": o.get("kostenstand"), "art": o.get("art")})
+    out = {}
+    for k, x in by.items():
+        w = [y["kw"] for y in x["werte"]]
+        out[k] = {"label": x["label"], "n": len(w), "mittel": round(sum(w) / len(w), 2), "min": min(w), "max": max(w), "werte": x["werte"]}
+    return out
+
+
+@app.get("/api/vergleich")
+def vergleich_list():
+    with db.tx() as c:
+        lst = _vg(c)
+    return jsonify(objekte=lst, auswertung=vergleich_auswertung(lst))
+
+
+@app.post("/api/bk/<int:i>/vergleich")
+def vergleich_add(i):
+    """Diese Kostenermittlung als Vergleichsobjekt speichern (Kennwerte nach Justage, Aufteilung auf die 2. Ebene)."""
+    with db.tx() as c:
+        r = _row(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        d = clean_data(_j(r["data"], {}), c)
+        cal = calc(d)
+        if not cal["area"] or not cal["bauwerk"]:
+            return jsonify(error="Es gibt noch keine Flächen und Kosten – erst das Raumbuch und die Kennwerte vervollständigen."), 400
+        jf = cal["justage"]["faktor"]
+        k = cal["bauwerk"] / (cal["bauwerk_kw"] or cal["bauwerk"]) if cal["bauwerk_kw"] else 1   # Bauteile haben die Kennwerte verändert
+        types = {t["label"]: round(t["kw"] * jf * k, 2) for t in cal["types"] if t["area"]}
+        kg2 = {kk: round(v["wert"] / cal["area"], 2) for kk, v in (cal["kg2"] or {}).items()}
+        o = {"id": f"bk{i}", "art": "eigen", "name": r["name"], "stufe": STUFE_NAME.get(r["stufe"], r["stufe"]), "kostenstand": d.get("kostenstand"),
+             "flaeche": cal["area"], "bauwerk": cal["bauwerk"], "kw": cal["kw"], "types": types, "kg2_m2": kg2, "region": cal["justage"]["region"],
+             "am": _now(), "von": g.user["name"]}
+        lst = [x for x in _vg(c) if x.get("id") != o["id"]] + [o]
+        _vg_put(c, lst)
+        C.audit(g.user["name"], "baukosten", "Vergleichsobjekt gespeichert", r["name"])
+    return jsonify(objekte=lst, auswertung=vergleich_auswertung(lst), hinweis="" if r["stufe"] in ("anschlag", "feststellung") else
+                   "Hinweis: Am aussagekräftigsten sind Kostenfeststellungen (abgerechnete Kosten). Später mit der Kostenfeststellung erneut speichern – der Eintrag wird dann ersetzt.")
+
+
+@app.delete("/api/vergleich/<oid>")
+def vergleich_del(oid):
+    with db.tx() as c:
+        lst = [x for x in _vg(c) if x.get("id") != oid]
+        _vg_put(c, lst)
+    return jsonify(objekte=lst, auswertung=vergleich_auswertung(lst))
+
+
+@app.post("/api/vergleich/import")
+def vergleich_import():
+    """Kennwerte aus einer Kostendatenbank (Export als Excel oder CSV): Spalten Bezeichnung/Raumtyp und €/m² (weitere Spalten werden ignoriert)."""
+    f = request.files.get("file")
+    quelle = _s(request.form.get("quelle"), 80) or "Import"
+    stand = request.form.get("stand") if re.fullmatch(r"20\d\d-(0[1-9]|1[0-2])", request.form.get("stand") or "") else datetime.now().strftime("%Y-%m")
+    if not f:
+        return jsonify(error="Bitte eine Excel- oder CSV-Datei wählen."), 400
+    raw, rows = f.read(), []
+    try:
+        if f.filename.lower().endswith((".xlsx", ".xlsm")):
+            import openpyxl
+            ws = openpyxl.load_workbook(io.BytesIO(raw), read_only=True, data_only=True).active
+            rows = [[("" if v is None else v) for v in r] for r in ws.iter_rows(values_only=True)]
+        else:
+            import csv
+            txt = raw.decode("utf-8-sig", errors="replace")
+            rows = list(csv.reader(io.StringIO(txt), delimiter=";" if txt.count(";") >= txt.count(",") else ","))
+    except Exception as e:
+        return jsonify(error=f"Datei nicht lesbar: {e}"), 400
+    types = {}
+    for r in rows:
+        lab = next((str(x).strip() for x in r if isinstance(x, str) and re.search(r"[A-Za-zÄÖÜäöü]{2}", str(x))), "")
+        nums = [x if isinstance(x, (int, float)) else _num(str(x).replace("€", "").replace(".", "").replace(" ", ""), None) for x in r
+                if (isinstance(x, (int, float)) or re.fullmatch(r"\s*[\d. ]+(,\d+)?\s*€?\s*", str(x)))]
+        nums = [n for n in nums if n and 100 <= n <= 20000]
+        if lab and nums and len(lab) <= 80:
+            types[lab] = round(float(nums[0]), 2)
+    if not types:
+        return jsonify(error="Keine Kennwerte gefunden. Erwartet: je Zeile eine Bezeichnung (z. B. „Büro“, „Wohnen“) und ein Kennwert in € je m² (100–20.000)."), 400
+    with db.tx() as c:
+        o = {"id": "imp" + datetime.now().strftime("%Y%m%d%H%M%S"), "art": "import", "name": quelle, "stufe": "Kostendatenbank", "kostenstand": stand,
+             "types": types, "am": _now(), "von": g.user["name"]}
+        lst = _vg(c) + [o]
+        _vg_put(c, lst)
+    return jsonify(objekte=lst, auswertung=vergleich_auswertung(lst), n=len(types))
+
+
+# Kostenpflichtige Kostendatenbanken: Zugangsdaten (nur Administrator). Eine direkte Abfrage bieten die Anbieter nur Software-Partnern
+# an; bis dahin werden die Kennwerte als Excel/CSV-Export importiert (siehe oben).
+DIENSTE = [
+    {"key": "bki", "name": "BKI Baukosteninformationszentrum", "info": "BKI Kostenplaner bzw. BKI KoRa (webbasiert, Jahresabo) und BKI Baukosten (Bücher/Datenbank)", "url": "https://www.bki.de"},
+    {"key": "sirados", "name": "sirAdos Baudaten", "info": "Kostenplanung mit Baupreisen nach DIN 276 (Abo)", "url": "https://www.sirados.de"},
+    {"key": "dbd", "name": "DBD KostenElemente (Dynamische BauDaten)", "info": "Kostenelemente nach DIN 276 mit regionalen Baupreisen (Lizenz)", "url": "https://www.dbd.de"},
+]
+
+
+@app.route("/api/dienste", methods=["GET", "PUT"])
+def dienste():
+    with db.tx() as c:
+        r = c.execute("SELECT data FROM bk_store WHERE key='dienste'").fetchone()
+        cur = _j(r["data"], {}) if r else {}
+        if request.method == "PUT":
+            if not g.user["is_admin"]:
+                return jsonify(error="Die Zugänge trägt der Administrator ein."), 403
+            b = request.get_json(silent=True) or {}
+            for d_ in DIENSTE:
+                x = b.get(d_["key"]) if isinstance(b.get(d_["key"]), dict) else None
+                if x is None:
+                    continue
+                e = dict(cur.get(d_["key"]) or {})
+                e["user"] = _s(x.get("user"), 120)
+                for k in ("pass", "key"):
+                    if x.get(k + "_clear"):
+                        e.pop(k, None)
+                    elif isinstance(x.get(k), str) and x[k].strip():
+                        e[k] = x[k].strip()[:300]
+                e["an"] = bool(x.get("an"))
+                cur[d_["key"]] = e
+            with versionen.aenderung(c, "bk:dienste", g.user["name"]):
+                c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('dienste',?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, "
+                          "updated=excluded.updated, updated_by=excluded.updated_by", (json.dumps(cur), _now(), g.user["name"]))
+    return jsonify(admin=bool(g.user["is_admin"]), dienste=[{**d_, "user": (cur.get(d_["key"]) or {}).get("user", ""), "an": (cur.get(d_["key"]) or {}).get("an", False),
+                                                          "pass_set": bool((cur.get(d_["key"]) or {}).get("pass")), "key_set": bool((cur.get(d_["key"]) or {}).get("key"))} for d_ in DIENSTE])
 
 
 # ---------------------------------------------------------------- Pläne (PDF)
@@ -902,7 +1056,7 @@ def flow_api(i):
 
 # ---------------------------------------------------------------- Schätzen und Genauigkeit
 # Übliche Genauigkeit je Stufe (± in % der Gesamtkosten, Erfahrungswerte aus der Kostenplanung, keine Norm)
-STUFE_GENAU = {"rahmen": 35, "schaetzung": 25, "berechnung": 15, "anschlag": 8, "feststellung": 2}
+STUFE_GENAU = {"rahmen": 35, "schaetzung": 25, "berechnung": 15, "voranschlag": 10, "anschlag": 8, "feststellung": 2}
 # Faustwerte für fehlende Kostengruppen bei Umbau/Sanierung, in % der Bauwerkskosten (KG 300+400): (Wert, von, bis)
 FAUST = {
     "200": ("Vorbereitende Maßnahmen", 1.0, 0.5, 2.5, "Herrichten, Baustelleneinrichtung im Bestand, Leitungsumlegungen"),
@@ -1359,7 +1513,7 @@ def rules(c, r, d, cal, files):
     if zero:
         add("hoch", f"{len(zero)} Räume ohne Fläche", ", ".join(x["name"] or x["nr"] for x in zero[:6]) + " – Fläche fehlt in der Summe.", go={"tab": "plaene", "room": zero[0]["id"], "f": "area"})
     open_ = [x for x in d["rooms"] if not x["ok"]]
-    spaet = r["stufe"] in ("berechnung", "anschlag", "feststellung")
+    spaet = r["stufe"] in ("berechnung", "voranschlag", "anschlag", "feststellung")
     if open_:
         add("hoch" if spaet else "mittel", f"{len(open_)} Räume noch nicht bestätigt", "Aus dem Plan gelesene Räume bitte unter „Pläne & Mengen“ prüfen und bestätigen.", go={"tab": "plaene", "room": open_[0]["id"]})
     J = cal.get("justage") or {}
@@ -1378,12 +1532,27 @@ def rules(c, r, d, cal, files):
         if it["amount"] is None:
             add("mittel" if it["kg"] == "394" else "info", f"KG {it['kg']} {it['name']} offen", "Noch kein Betrag eingetragen – die Summe ist dafür zu niedrig. Anklicken: Positionen und Kosten vorschlagen lassen.",
                 go={"tab": "kosten", "sel": f'[data-it="{k}"][data-f="amount"]', "ask": {"thema": "kg", "kg": re.sub(r"\D", "", it["kg"])[:3], "item": k}})
-    if spaet and not d.get("kg2") and cal["bauwerk"]:
-        add("mittel", f"{STUFE_NAME[r['stufe']]}: Aufteilung auf die 2. Ebene fehlt",
-            "Ab der Kostenberechnung gehören KG 300/400 in die 2. Ebene (z. B. 330 Außenwände, 440 Elektro). Anteile unter „Kosten“ eintragen oder schätzen lassen.",
-            go={"tab": "kosten", "sel": "[data-kg2]"})
-    if r["stufe"] in ("anschlag", "feststellung"):
-        quelle = "Angebots- bzw. Auftragspreise" if r["stufe"] == "anschlag" else "abgerechnete Beträge aus den Schlussrechnungen"
+    # DIN 276:2018-12 – Gliederungstiefe, Kostenstand, Kostenrisiken, alle Kostengruppen der 1. Ebene
+    eb = STUFE_EBENE.get(r["stufe"], 1)
+    if eb >= 2 and not d.get("kg2") and not cal.get("kg2") and cal["bauwerk"]:
+        add("mittel", f"DIN 276: {STUFE_NAME[r['stufe']]} mindestens bis zur 2. Ebene",
+            "KG 300/400 gehören in die 2. Ebene (z. B. 330 Außenwände, 440 Elektrische Anlagen). Anteile unter „Kosten“ eintragen oder schätzen lassen.",
+            "DIN 276", go={"tab": "kosten", "sel": "[data-kg2]"})
+    if eb >= 3 and cal["bauwerk"] and not any(len(b.get("kg") or "") == 3 and b["kg"][2] != "0" for b in d.get("bauteile") or []):
+        add("mittel", f"DIN 276: {STUFE_NAME[r['stufe']]} bis zur 3. Ebene",
+            "Ab der Kostenberechnung verlangt DIN 276 die 3. Ebene (z. B. 331 Tragende Außenwände, 334 Außenwandöffnungen). Unter „Bauteile & Material“ Mengen und Einheitspreise erfassen"
+            + (" bzw. die bepreisten Leistungsverzeichnisse übernehmen." if r["stufe"] in ("voranschlag", "anschlag") else "."), "DIN 276", go={"tab": "bauteile"})
+    erste = {re.sub(r"\D", "", i["kg"])[:1] for i in d["items"]} | {"3", "4", "7"}
+    fehlt = [k for k in "12568" if k not in erste]
+    if fehlt:
+        add("info", "DIN 276: Kostengruppen " + ", ".join(k + "00" for k in fehlt) + " nicht aufgeführt",
+            "Die Norm gliedert die Gesamtkosten in alle Kostengruppen der 1. Ebene. Was nicht zum Auftrag gehört, als Position mit 0 € aufnehmen (z. B. „KG 100 Grundstück – nicht Bestandteil“).",
+            "DIN 276", go={"tab": "kosten", "sel": '[data-act="din1"]'})
+    if not d.get("risiko") and r["stufe"] in ("rahmen", "schaetzung", "berechnung", "voranschlag"):
+        add("info", "Kostenrisiken nicht ausgewiesen", "DIN 276 sieht vor, vorhersehbare Kostenrisiken (z. B. Bestand, Baugrund, Marktlage) gesondert auszuweisen. Unter „Kosten“ einen Zuschlag mit Begründung eintragen.",
+            "DIN 276", go={"tab": "kosten", "sel": '[data-set="risiko"]'})
+    if r["stufe"] in ("voranschlag", "anschlag", "feststellung"):
+        quelle = {"voranschlag": "Preise aus den bepreisten Leistungsverzeichnissen", "anschlag": "Angebots- bzw. Auftragspreise"}.get(r["stufe"], "abgerechnete Beträge aus den Schlussrechnungen")
         for k, it in enumerate(d["items"]):
             if it.get("est"):
                 add("mittel", f"KG {it['kg']} {it['name']} nur geschätzt", f"Für den {STUFE_NAME[r['stufe']]} hier {quelle} eintragen.",
@@ -1595,7 +1764,9 @@ def build_report(c, r, opt):
         if proj.get("address"):
             story.append(Paragraph(X(proj["address"]), S["p"]))
         story.append(Spacer(1, 22 * mm))
-        rows = [["Bauherr", proj.get("client") or "—"], ["Stand", today], ["Kostenbasis", basis]]
+        ks = d.get("kostenstand") or ""
+        rows = [["Bauherr", proj.get("client") or "—"], ["Stand", today], ["Kostenstand", f"{ks[5:7]}/{ks[:4]}" if ks else today], ["Kostenbasis", basis],
+                ["Grundlage", "DIN 276:2018-12, Kostengliederung bis zur " + f"{STUFE_EBENE.get(r['stufe'], 1)}. Ebene"]]
         if office:
             rows.append(["Aufgestellt", office])
         t = Table(rows, colWidths=[40 * mm, W - 40 * mm])
@@ -1614,6 +1785,8 @@ def build_report(c, r, opt):
         story.append(Paragraph("Zusammenfassung", S["h2"]))
         rows = [["", "Betrag"], ["Bauwerk (KG 300 + 400)", eur(cal["bauwerk"])], ["Weitere Kostengruppen", eur(cal["extra"])],
                 ["Baunebenkosten (KG 700)", eur(cal["nk"])]]
+        if cal.get("risiko"):
+            rows.append([f"Kostenrisiken ({d['risiko']:g} %)".replace(".", ",") + (f" – {d['risiko_text']}" if d.get("risiko_text") else ""), eur(cal["risiko"])])
         if opt["brutto"]:
             rows += [["Gesamt netto", eur(cal["total"], True)], [f"MwSt. {opt['mwst']:g} %", eur(cal["total"] * mw, True)], ["Gesamt brutto", eur(cal["total"] * (1 + mw), True)]]
         else:
@@ -1643,6 +1816,8 @@ def build_report(c, r, opt):
             rows.append([kg, Paragraph(X(ind) + ("<b>" if lvl == 1 else "") + X(name) + ("</b>" if lvl == 1 else "") + (" <font color='#9c4a22'>(teilweise offen)</font>" if open_ and v is not None else ""), S["cell"]), eur(v)])
             if lvl == 1:
                 bold.append(len(rows) - 1)
+        if cal.get("risiko"):
+            rows.append(["", Paragraph(X(f"Kostenrisiken, gesondert ausgewiesen ({d['risiko']:g} %)".replace(".", ",") + (f": {d['risiko_text']}" if d.get("risiko_text") else "")), S["cell"]), eur(cal["risiko"])])
         rows.append(["", Paragraph("<b>Gesamt</b>", S["cell"]), eur(cal["total"])])
         story += [Paragraph(f"Kosten nach DIN 276 – {depth}. Gliederungsebene", S["h2"]), table(rows, [16 * mm, W - 56 * mm, 40 * mm], num_cols=(2,), bold_rows=bold + [len(rows) - 1]),
                   Spacer(1, 4), Paragraph(basis + (" · gerundet" if rnd else "") + ". „offen“ = noch nicht ermittelt, in der Summe nicht enthalten.", S["m"]), Spacer(1, 14)]

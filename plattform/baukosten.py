@@ -1889,7 +1889,7 @@ def build_report(c, r, opt):
         rows = [["Raumtyp", "Räume", "Fläche m²", "€ / m²", "Kosten"]]
         for t in cal["types"]:
             if t["n"]:
-                rows.append([t["label"], str(t["n"]), m2(t["area"]) + (f"\n({m2(t['gew'])} gewichtet)" if abs(t.get("gew", t["area"]) - t["area"]) > 0.005 else ""),
+                rows.append([t["label"], str(t["n"]), m2(t["area"]) + (f" ({m2(t['gew'])} gew.)" if abs(t.get("gew", t["area"]) - t["area"]) > 0.005 else ""),
                              eur(t["kw"], kw=True), eur(t["sum"])])
         J = cal["justage"]
         ar = cal["area"] or 1

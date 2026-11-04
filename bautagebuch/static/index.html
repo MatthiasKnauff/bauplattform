@@ -171,6 +171,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 #bwz{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
 #bwz .bp{background:var(--pan);border:1px solid var(--line);border-radius:16px 16px 0 0;width:min(620px,100%);max-height:94%;display:flex;flex-direction:column;text-align:left}
 @media (min-width:700px){#bwz{align-items:center}#bwz .bp{border-radius:16px;max-height:88%}}
+#bwz.kb{align-items:flex-start}#bwz.kb .bp{border-radius:0 0 16px 16px;max-height:100%;height:100%}#bwz.kb .dots,#bwz.kb .bh{padding-top:.5rem}
 #bwz .bh{padding:.8rem 1rem .4rem;display:flex;align-items:center;gap:.5rem}
 #bwz .bh b{flex:1;font-size:1.15rem}
 #bwz .bh button{border:0;background:none;color:var(--mute);font-size:1.3rem;padding:.2rem .4rem}
@@ -1581,6 +1582,13 @@ document.addEventListener('focusin', e => { if (e.target.closest && e.target.clo
 document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('#qs')) setTimeout(() => { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest('#qs') || !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) { qTyping = false; $('#qs').classList.remove('typing'); } }, 200); });
 const fitApp = () => {   // App-Höhe = sichtbarer Bereich (mit Tastatur kleiner, ohne wieder voll)
   const vv = window.visualViewport, a = $('#app'); if (!vv || !a) return;
+  const bz = $('#bwz');   // Assistent: genau in den sichtbaren Bereich über der Tastatur legen, beim Tippen nach oben
+  if (bz) {
+    const kbz = vv.height < innerHeight - 120 && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+    bz.style.top = vv.offsetTop + 'px'; bz.style.height = vv.height + 'px'; bz.style.bottom = 'auto';
+    bz.classList.toggle('kb', kbz);
+    if (kbz) setTimeout(() => document.activeElement?.scrollIntoView?.({block: 'nearest'}), 60);
+  }
   if (qTyping) { a.style.height = ''; if (vv.offsetTop || vv.pageTop) window.scrollTo(0, 0); return; }   // Schnell-Fenster sitzt oben: keine Höhenanpassung nötig
   a.style.height = Math.abs(vv.height - innerHeight) < 2 ? '' : vv.height + 'px';
   const kb = vv.height < innerHeight - 120 && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
@@ -1589,6 +1597,7 @@ const fitApp = () => {   // App-Höhe = sichtbarer Bereich (mit Tastatur kleiner
   if (vv.offsetTop || vv.pageTop) window.scrollTo(0, 0);
 };
 if (window.visualViewport) { visualViewport.addEventListener('resize', fitApp); visualViewport.addEventListener('scroll', fitApp); }
+document.addEventListener('focusin', e => { if (e.target.closest && e.target.closest('#bwz')) { fitApp(); setTimeout(fitApp, 350); } });
 const resetView = () => { if (!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) { window.scrollTo(0, 0); document.body.scrollTop = 0; document.documentElement.scrollTop = 0; } };   // iPhone: nach der Tastatur sitzt die Seite sonst verschoben
 document.addEventListener('focusout', () => { setTimeout(() => { resetView(); fitApp(); }, 120); setTimeout(() => { resetView(); fitApp(); }, 450); });
 if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (visualViewport.height > innerHeight - 80) setTimeout(resetView, 60); });

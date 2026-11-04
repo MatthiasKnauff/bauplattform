@@ -164,6 +164,7 @@ body.as-open .wrap{padding-bottom:45vh}
     <button class="btn sm" id="newBtn">+ Neue Kostenermittlung</button>
     <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
     <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
+    <button class="btn sm" id="standBtn" title="Jetzigen Stand dieser Kostenermittlung unter einem Namen festhalten (z. B. „Kostenschätzung an Bauherrn 04.11.“)">💾 Stand speichern</button>
     <button class="btn sm" id="verBtn" title="Frühere Stände dieser Kostenermittlung ansehen und wiederherstellen">↶ Verlauf</button>
     <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
@@ -302,6 +303,7 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
 function head() {
   if (B || LIST) selBtn();
   const vb = $('#verBtn'); if (vb) vb.hidden = !B;
+  const sb = $('#standBtn'); if (sb) sb.hidden = !B;
   if (!window.BPHead) return;
   BPHead.setProject(B ? { sub: B.project ? [B.project.client, B.project.address].filter(Boolean).join(' · ') || 'Bautagebuch-Projekt' : 'Baukosten', title: B.name } : { sub: '', title: '' });
 }
@@ -1281,6 +1283,23 @@ $('#verBtn').onclick = async () => {
   BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => openBk(B.id) });
 };
 window.bpNachVerlauf = () => (B ? openBk(B.id) : location.reload());
+/* Projektstand manuell festhalten: benannter Stand im Verlauf (wird nie automatisch aufgeräumt) */
+$('#standBtn').onclick = () => {
+  if (!B) return;
+  const vor = `${STUFE_N(B.stufe)} – ${new Date().toLocaleDateString('de-DE')}`;
+  modalBox(`<h3>Stand speichern</h3><p class="hint" style="margin:0 0 .7rem">Hält „${esc(B.name)}“ so fest, wie sie jetzt ist – mit allen Räumen, Bauteilen und Kosten. Unter ↶ Verlauf lässt sich der Stand jederzeit ansehen, vergleichen und wiederherstellen; benannte Stände werden nie aufgeräumt.</p>
+    <div class="row"><label for="stName">Name des Stands</label><input id="stName" value="${esc(vor)}" maxlength="120"></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    const name = bg.querySelector('#stName').value.trim(); if (!name) return;
+    try {
+      clearTimeout(saveT); await saveNow();
+      await api('api/bp/versionen', 'POST', { bereich: 'bkp:' + B.id, name });
+      close(); toast(`Stand „${name}“ gespeichert.`);
+    } catch (e) { toast(e.message, true); }
+  });
+  setTimeout(() => { const i = document.querySelector('#stName'); if (i) { i.focus(); i.select(); } }, 50);
+};
 </script>
 </body>
 </html>

@@ -77,6 +77,12 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .uchk{display:flex;flex-wrap:wrap;gap:.3rem .9rem;max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem}
 .uchk label{display:flex;gap:.35rem;align-items:center;color:var(--ink)}
 @media (max-width:760px){.mr{grid-template-columns:auto 1fr}.mr .th{display:none}.mr .ed{grid-column:1/-1;min-width:0}.er{grid-template-columns:30px 1fr}.er .ac{grid-column:1/-1;align-items:flex-start}.er .ac .bt{justify-content:flex-start}.fm{grid-template-columns:1fr}}
+.sm-steps{margin:.2rem 0 .8rem;padding-left:1.3rem;display:flex;flex-direction:column;gap:.8rem;line-height:1.45}
+.sm-steps .btn{margin-top:.35rem}
+.sm-drop{display:flex;align-items:center;justify-content:center;margin-top:.4rem;padding:1rem;border:2px dashed var(--line);border-radius:10px;cursor:pointer;color:var(--mute);text-align:center}
+.sm-drop.on,.sm-drop:hover{border-color:var(--accent,#e33);color:var(--ink)}
+.sm-ok,.sm-bad{margin-top:.5rem;padding:.6rem .75rem;border-radius:8px;font-size:.9rem;line-height:1.45}
+.sm-ok{background:#e5f4e4;color:#1d4d1a}.sm-bad{background:#fbebeb;color:#7a1c1c}
 .bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
 .bed-bar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;padding:.55rem .9rem;background:var(--card,#fff);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .bed-bar .mute{font-size:.85rem}
@@ -180,6 +186,7 @@ async function tSet(id, status) {
 async function truegeDialog(k) {
   const [pid, firma] = [+k.split('|')[0], k.split('|').slice(1).join('|')];
   let V; try { [V] = await Promise.all([api(`api/terminruege/vorlage?pid=${pid}&firma=${encodeURIComponent(firma)}`), konto()]); } catch (e) { toast(e.message, true); return; }
+  SIGNME = !!V.signme;
   const E0 = V.empfaenger;
   const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
     <label>An</label><input id="tN" value="${esc(E0.name)}"><label>z. Hd.</label><input id="tP" value="${esc(E0.person)}" placeholder="optional">
@@ -357,8 +364,10 @@ function versandRead(bg) {
   if (v === 'mich' && !(KONTO && KONTO.email)) { toast('Für dein Konto ist keine E-Mail-Adresse hinterlegt.', true); return null; }
   return { versand: v, email: bg.querySelector('#vM').value.trim(), kopie: bg.querySelector('#vC').checked };
 }
-async function pdfHolen(url, body, titel, w) {   // PDF erzeugen, im vorab geöffneten Fenster zeigen, Ergebnis des Mailversands melden
-  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+async function pdfHolen(url, body, titel, w, datei) {   // PDF erzeugen, im vorab geöffneten Fenster zeigen, Ergebnis des Mailversands melden
+  let opt = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  if (datei) { const fd = new FormData(); fd.append('body', JSON.stringify(body)); fd.append('signiert', datei); opt = { method: 'POST', body: fd }; }   // mit sign-me unterschrieben
+  const r = await fetch(url, opt);
   if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
   const ok = r.headers.get('X-Mail'), err = r.headers.get('X-Mail-Fehler');
   const neu = r.headers.get('X-Neue-Adresse');
@@ -370,7 +379,7 @@ async function pdfHolen(url, body, titel, w) {   // PDF erzeugen, im vorab geöf
 }
 
 /* ---------- Brief-Editor: Entwurf am Bildschirm bearbeiten → speichern → drucken / versenden (dann fest, ohne Felder) ---------- */
-let pdfjsP = null;
+let pdfjsP = null, SIGNME = false;
 function pdfjs() {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   return pdfjsP || (pdfjsP = new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'static/vendor/pdfjs/pdf.js'; sc.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = 'static/vendor/pdfjs/pdf.worker.js'; ok(pdfjsLib); }; sc.onerror = () => { pdfjsP = null; bad(new Error('PDF-Anzeige nicht verfügbar')); }; document.head.appendChild(sc); }));
@@ -423,10 +432,11 @@ function briefFertig(url, body, titel) {   // gespeicherte Fassung: drucken und/
   modalBox(`<h3>${esc(titel)} ist gespeichert</h3>
     <p>Die Fassung ist fertig. Ausdruck und Versand enthalten <b>keine Eingabefelder</b> mehr und lassen sich nicht mehr ändern.</p>
     <p class="mute" style="font-size:.88rem">Versand: ${wohin}.</p>
-    <div class="acts" style="flex-wrap:wrap"><button class="btn" data-m="edit">✎ Weiter bearbeiten</button><button class="btn" data-m="druck">🖨 Drucken</button><span style="flex:1"></span>
+    <div class="acts" style="flex-wrap:wrap"><button class="btn" data-m="edit">✎ Weiter bearbeiten</button><button class="btn" data-m="druck">🖨 Drucken</button>${SIGNME ? '<button class="btn" data-m="signme" title="Qualifiziert elektronisch unterschreiben im sign-me-Portal von D-Trust">✍ Mit sign-me unterschreiben</button>' : ''}<span style="flex:1"></span>
       <button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="senden">${lab}</button></div>`, async (m, bg, close) => {
     if (m === 'x') { if (!bg.dataset.sent && !confirm(`${titel} noch nicht ${body.versand === 'pdf' ? 'abgeschlossen' : 'versendet'}. Trotzdem schließen? Die Änderungen gehen verloren.`)) return; close(); return; }
     if (m === 'edit') { try { const r = await api(url, 'POST', { ...body, schritt: 'entwurf' }); close(); briefEditor(url, body, titel, r); } catch (e) { toast(e.message, true); } return; }
+    if (m === 'signme') { close(); signmeDialog(url, body, titel); return; }
     const w = window.open('', '_blank'); if (w) w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(titel)} …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">${esc(titel)} wird erstellt …</body>`);
     try {
       if (m === 'druck') {
@@ -442,9 +452,56 @@ function briefFertig(url, body, titel) {   // gespeicherte Fassung: drucken und/
   });
 }
 
+function signmeDialog(url, body, titel) {   // sign-me (D-Trust): herunterladen → im Portal unterschreiben → zurückgeben → prüfen → senden
+  let datei = null;
+  const lab = { mich: '✉ Unterschriebene Fassung an mich senden', firma: '✉ Unterschriebene Fassung an die Firma senden', pdf: '✓ Abschließen (selbst zustellen)' }[body.versand] || '✉ Senden';
+  const bg = modalBox(`<h3>${esc(titel)} mit sign-me unterschreiben</h3>
+    <ol class="sm-steps">
+      <li><b>Fertige Fassung herunterladen</b><br><button class="btn sm" data-m="laden">⤓ ${esc(titel)} herunterladen</button></li>
+      <li><b>Im sign-me-Portal unterschreiben</b> – anmelden, das PDF hochladen, die Unterschrift platzieren, mit dem Handy bestätigen und das unterschriebene PDF herunterladen.<br><a class="btn sm" href="https://www.sign-me.de" target="_blank" rel="noopener">sign-me öffnen ↗</a></li>
+      <li><b>Unterschriebenes PDF zurückgeben</b><label class="sm-drop" id="smDrop"><input type="file" accept="application/pdf,.pdf" hidden id="smIn"><span>PDF hier hineinziehen oder <u>auswählen</u></span></label><div id="smRes"></div></li>
+    </ol>
+    <div class="acts"><button class="btn" data-m="zurueck">← Zurück</button><span style="flex:1"></span><button class="btn pri" data-m="senden" disabled>${lab}</button></div>`, async (m, bg, close) => {
+    if (m === 'zurueck') { close(); briefFertig(url, body, titel); return; }
+    if (m === 'laden') {
+      try {
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, schritt: 'drucken' }) });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
+        const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = `${titel} ${(body.empfaenger || {}).name || ''} zum Unterschreiben.pdf`.replace(/[\\/:*?"<>|]+/g, '_');
+        document.body.appendChild(a); a.click(); a.remove();
+      } catch (e) { toast(e.message, true); }
+      return;
+    }
+    if (m === 'senden' && datei) {
+      const w = window.open('', '_blank'); if (w) w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(titel)} …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">${esc(titel)} wird verschickt …</body>`);
+      try { await pdfHolen(url, { ...body, schritt: 'senden' }, titel, w, datei); close(); reload(); } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+    }
+  });
+  bg.querySelector('.modal').style.width = 'min(620px,100%)';
+  const res = bg.querySelector('#smRes'), go = bg.querySelector('[data-m="senden"]'), drop = bg.querySelector('#smDrop');
+  async function nehmen(f) {
+    datei = null; go.disabled = true; if (!f) return;
+    res.innerHTML = '<p class="mute">Signatur wird geprüft …</p>';
+    try {
+      const fd = new FormData(); fd.append('body', JSON.stringify({ ...body, schritt: 'pruefen' })); fd.append('signiert', f);
+      const r = await fetch(url, { method: 'POST', body: fd }), j = await r.json().catch(() => ({}));
+      if (!r.ok && !j.signaturen) throw new Error(j.error || 'Fehler ' + r.status);
+      const sg = (j.signaturen || []).filter((x) => x.gueltig);
+      const zeile = (x) => `<b>${esc(x.name || 'unbekannt')}</b>${x.aussteller ? ` · Zertifikat von ${esc(x.aussteller)}` : ''}${x.zeit ? ` · ${esc(new Date(x.zeit).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}` : ''}${x.qualifiziert ? ' · <b>qualifiziert</b>' : ''}`;
+      if (j.ok) { datei = f; go.disabled = false; res.innerHTML = `<div class="sm-ok">✓ Gültige Signatur: ${sg.map(zeile).join('<br>')}${j.inhalt ? '<br>Der Inhalt stimmt mit der gespeicherten Fassung überein.' : ''}${sg.some((x) => x.qualifiziert) ? '' : '<br><span class="mute">Hinweis: kein qualifiziertes Zertifikat erkannt.</span>'}</div>`; }
+      else res.innerHTML = `<div class="sm-bad">✗ ${esc(j.fehler || 'Signatur nicht gültig')}</div>`;
+    } catch (e) { res.innerHTML = `<div class="sm-bad">✗ ${esc(e.message)}</div>`; }
+  }
+  bg.querySelector('#smIn').addEventListener('change', (e) => { nehmen(e.target.files[0]); e.target.value = ''; });
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('on'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('on'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('on'); nehmen(e.dataTransfer.files[0]); });
+}
+
 /* ---------- Mängelrüge: Dialog → Entwurf im Brief-Editor ---------- */
 async function ruegeDialog(id) {
   let V; try { [V] = await Promise.all([api('api/maengelruege/vorlage?id=' + id), konto()]); } catch (e) { toast(e.message, true); return; }
+  SIGNME = !!V.signme;
   const E = V.empfaenger, sel = new Set(V.gewaehlt);
   const ms = () => V.maengel.map((m) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-rm="${m.id}"${sel.has(m.id) ? ' checked' : ''}><span>${esc(m.text)}<small class="mute" style="display:block">${esc(m.firma || 'ohne Firma')} · festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''}</small></span></label>`).join('');
   const bg = modalBox(`<h3>Mängelrüge</h3><div class="fm">

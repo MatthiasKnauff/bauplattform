@@ -289,7 +289,7 @@ def ruege_vorlage():
     alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"] and m["art"] == "maengel"]
     return jsonify(firma=firma, empfaenger={"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
                                            "email": k["email"] or ""} if k else {"name": firma, "person": "", "strasse": "", "ort": "", "email": ""},
-                   maengel=alle, gewaehlt=[m["id"] for m in alle if m["id"] == i or (firma and m["firma"] == firma)])
+                   maengel=alle, gewaehlt=[m["id"] for m in alle if m["id"] == i or (firma and m["firma"] == firma)], signme=_signme())
 
 
 def _de(d):
@@ -519,6 +519,40 @@ def _pdf_antwort(buf, fn, hinweis, fehler, neu=""):
     return Response(buf, mimetype="application/pdf", headers=h)
 
 
+def _signme(c=None):
+    """Unterschreiben mit sign-me (D-Trust) in den Büro-Einstellungen eingeschaltet?"""
+    def lesen(c):
+        r = c.execute("SELECT value FROM settings WHERE key='signme'").fetchone()
+        return bool(r and r["value"] == "1")
+    if c is not None:
+        return lesen(c)
+    with db.tx() as c:
+        return lesen(c)
+
+
+def _rueckgabe():
+    """Anfrage als JSON oder (beim Zurückgeben des signierten PDFs) als Formular mit „body“ und „signiert“."""
+    if request.files.get("signiert"):
+        try:
+            b = json.loads(request.form.get("body") or "{}")
+        except ValueError:
+            b = {}
+        return (b if isinstance(b, dict) else {}), request.files["signiert"].read()[:30 * 1024 * 1024]
+    return (request.get_json(silent=True) or {}), None
+
+
+def _signatur_pruefen(signiert, original):
+    if not signiert:
+        return {"ok": False, "fehler": "Bitte das unterschriebene PDF wählen.", "signaturen": []}
+    if not _signme():
+        return {"ok": False, "fehler": "Das Unterschreiben mit sign-me ist in den Büro-Einstellungen ausgeschaltet.", "signaturen": []}
+    from bpcore import pdfsignatur
+    try:
+        return pdfsignatur.pruefen(signiert, original)
+    except Exception as e:   # z. B. fehlende Bibliothek
+        return {"ok": False, "fehler": f"Die Signatur ließ sich nicht prüfen ({e}).", "signaturen": []}
+
+
 def _entwurf_oder_druck(schritt, pdf, felder, fn):
     """entwurf: JSON mit dem PDF (Formularfelder) und den Feldinhalten für den Brief-Editor; drucken: endgültiges PDF ohne Versand."""
     if schritt == "entwurf":
@@ -529,8 +563,8 @@ def _entwurf_oder_druck(schritt, pdf, felder, fn):
 
 @app.post("/api/maengelruege")
 def ruege_pdf():
-    """Mängelrüge als PDF mit ausfüllbaren Feldern (Empfänger, Datum, Betreff, Text, Mängel, Frist, Unterschrift)."""
-    b = request.get_json(silent=True) or {}
+    """Mängelrüge: Entwurf für den Brief-Editor, Ausdruck oder Versand (auch des mit sign-me unterschriebenen PDFs)."""
+    b, signiert = _rueckgabe()
     ids = [int(x) for x in b.get("ids") or [] if str(x).isdigit()]
     ms = [m for m in maengel("all").get_json() if m["id"] in ids and m["art"] == "maengel"]
     if not ms:
@@ -541,7 +575,7 @@ def ruege_pdf():
     liste = "\n".join(f"{n}. {m['text'].strip()}" + (f"  (festgestellt am {_de(m['datum'])})" if m["datum"] else "") for n, m in enumerate(ms, 1))
     auftrag = str(b.get("auftrag") or "").strip()[:80]
     text = (b.get("text") or "").strip() or ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", _de(frist), b.get("kuendigung", True) is not False, auftrag)
-    schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "senden") else "senden"
+    schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "pruefen", "senden") else "senden"
     buf, cv, W, H, L, R, ink, mm, ImageReader, felder = _brief(ms[0]["pid"], ms[0]["projekt"], E, auftrag, "Mängelrüge", "Mängelrüge nach VOB/B",
                                                       f"Grundlage: {grund} – {grund_n}.",
                                                       text, "Festgestellte Mängel", "Maengel", "Mängel (Liste ergänzbar)", liste, "Frist zur Beseitigung:", frist, sig=_sig(),
@@ -568,6 +602,11 @@ def ruege_pdf():
     cv.save()
     buf = io.BytesIO(_bogen(buf.getvalue()))
     fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"Mängelrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf"
+    if schritt == "pruefen" or signiert:   # mit sign-me unterschrieben: Signatur und Inhalt prüfen
+        P = _signatur_pruefen(signiert, buf.getvalue())
+        if schritt == "pruefen" or not P["ok"]:
+            return jsonify(P), (200 if schritt == "pruefen" else 400)
+        buf = io.BytesIO(signiert); fn = fn[:-4] + " (signiert).pdf"
     if schritt != "senden":
         return _entwurf_oder_druck(schritt, buf.getvalue(), felder, fn)
     if b.get("frist_eintragen") and frist:
@@ -578,7 +617,7 @@ def ruege_pdf():
                 except RuntimeError:
                     pass
     C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{ms[0]['projekt']} · {E.get('name') or ''} · {len(ms)} Mängel")
-    hinweis, fehler, neu = _versenden(b, "Mängelrüge", E, ms[0]["projekt"], ms[0]["pid"], frist, len(ms), buf.getvalue(), fn, inhalt=felder.get("Maengel") or liste)
+    hinweis, fehler, neu = _versenden(b, "Mängelrüge", E, ms[0]["projekt"], ms[0]["pid"], frist, len(ms), buf.getvalue(), fn, inhalt=("Mit sign-me qualifiziert signiert.\n" if signiert else "") + (felder.get("Maengel") or liste))
     return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
 
 
@@ -656,13 +695,13 @@ def terminruege_vorlage():
         k = c.execute("SELECT * FROM contacts WHERE id=?", (rows[0]["contact_id"],)).fetchone() if rows[0]["contact_id"] else None
         k = k or c.execute("SELECT * FROM contacts WHERE lower(name)=? ORDER BY id LIMIT 1", (firma,)).fetchone()
     E = {"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v), "email": k["email"] or ""} if k else {"name": rows[0]["firma"], "person": "", "strasse": "", "ort": "", "email": ""}
-    return jsonify(empfaenger=E, tage=rows, projekt=rows[0]["projekt"])
+    return jsonify(empfaenger=E, tage=rows, projekt=rows[0]["projekt"], signme=_signme())
 
 
 @app.post("/api/terminruege")
 def terminruege_pdf():
-    """Terminrüge (Behinderung durch fehlende Besetzung, VOB/B § 5 Abs. 3 und 4) als am Bildschirm ausfüllbares PDF."""
-    b = request.get_json(silent=True) or {}
+    """Terminrüge (Behinderung durch fehlende Besetzung, VOB/B § 5 Abs. 3 und 4): Entwurf, Ausdruck oder Versand."""
+    b, signiert = _rueckgabe()
     pid, firma = b.get("pid"), str(b.get("firma") or "").strip().lower()
     want = set(b.get("ids") or [])
     rows = [t for t in termine("all").get_json() if t["pid"] == pid and t["key"] == firma and (not want or t["id"] in want)]
@@ -673,7 +712,7 @@ def terminruege_pdf():
     auftrag = str(b.get("auftrag") or "").strip()[:80]
     text = (b.get("text") or "").strip() or terminruege_text(_de(frist), b.get("kuendigung", True) is not False, auftrag)
     liste = "\n".join(f"{_wd(t['datum'])}: laut Bauzeitenplan {', '.join(t['leistungen'])[:160]}" for t in rows)
-    schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "senden") else "senden"
+    schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "pruefen", "senden") else "senden"
     buf, cv, *_, felder = _brief(pid, rows[0]["projekt"], E, auftrag, "Terminrüge", "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
                          "Grundlage: § 5 Abs. 3 und 4 VOB/B (setzt vereinbarte Vertragsfristen voraus).",
                          text, "Tage ohne Besetzung", "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist, sig=_sig(),
@@ -681,6 +720,11 @@ def terminruege_pdf():
     cv.save()
     buf = io.BytesIO(_bogen(buf.getvalue()))
     fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"Terminrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf"
+    if schritt == "pruefen" or signiert:   # mit sign-me unterschrieben: Signatur und Inhalt prüfen
+        P = _signatur_pruefen(signiert, buf.getvalue())
+        if schritt == "pruefen" or not P["ok"]:
+            return jsonify(P), (200 if schritt == "pruefen" else 400)
+        buf = io.BytesIO(signiert); fn = fn[:-4] + " (signiert).pdf"
     if schritt != "senden":
         return _entwurf_oder_druck(schritt, buf.getvalue(), felder, fn)
     if b.get("fehlt_bestaetigen"):
@@ -690,7 +734,7 @@ def terminruege_pdf():
                     c.execute("INSERT INTO soll_anwesend(report_id, firma, status, notiz, geaendert, geaendert_von) VALUES(?,?,?,?,?,?) ON CONFLICT (report_id, firma) DO NOTHING",
                               (t["rid"], t["key"], "fehlt", "Terminrüge", datetime.now().isoformat(timespec="seconds"), g.user["name"]))
     C.audit(g.user["name"], "export", "Terminrüge erstellt", f"{rows[0]['projekt']} · {E.get('name') or ''} · {len(rows)} Tage")
-    hinweis, fehler, neu = _versenden(b, "Terminrüge", E, rows[0]["projekt"], pid, frist, len(rows), buf.getvalue(), fn, inhalt=felder.get("Tage") or liste)
+    hinweis, fehler, neu = _versenden(b, "Terminrüge", E, rows[0]["projekt"], pid, frist, len(rows), buf.getvalue(), fn, inhalt=("Mit sign-me qualifiziert signiert.\n" if signiert else "") + (felder.get("Tage") or liste))
     return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
 
 

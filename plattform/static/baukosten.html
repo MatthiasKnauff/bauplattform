@@ -234,16 +234,29 @@ function calc(d) {   // wie calc() auf dem Server
 }
 /* Justage: Kennwerte an Region und Preisstand anpassen; Gruppen ohne Bauteile angleichen */
 const fx = (v, n = 2) => (v == null ? '–' : (Math.round(v * 10 ** n) / 10 ** n).toLocaleString('de-DE', { minimumFractionDigits: n }));
+/* Empfehlung für die Kostengruppen ohne Bauteile – aus Abweichung (k), Zahl der bepreisten Gruppen und ihrem Anteil am Bauwerk */
+function juEmpfehlung(J) {
+  const n = Object.values(B.calc.kg2 || {}).filter((x) => x.quelle === 'bauteile').length, cov = J.bt_kw / ((J.bt_kw + J.rest_kw) || 1), k = J.k || 1, p = Math.round(cov * 100);
+  if (k >= 0.9 && k <= 1.1) return { v: 'kw', t: `Bauteile und Kennwerte passen zusammen (Abweichung unter 10 %). Die übrigen Gruppen können beim Kennwert bleiben.` };
+  if (n < 2 || cov < 0.25) return { v: 'kw', t: `Erst ${n} Gruppe${n === 1 ? '' : 'n'} mit Bauteilen (${p} % des Bauwerks) – zu wenig, um auf das ganze Gebäude zu schließen. Kennwert-Anteil lassen, Mengen und Einheitspreise der Bauteile prüfen und weitere Gruppen bepreisen.` };
+  if (k < 0.9) return { v: 'kw', t: `Die Bauteile liegen unter dem Kennwert-Anteil ihrer Gruppen (× ${fx(k)}). Meist fehlen dort noch Positionen – z. B. Fenster und Türen in 330, Bekleidungen, Beläge, Abdichtung oder Baustelleneinrichtung. Kennwert-Anteil der übrigen Gruppen lassen und die bepreisten Gruppen auf Vollständigkeit prüfen. Sind sie vollständig und das Büro baut wirklich günstiger, den Faktor unter „eigener Faktor“ eintragen.` };
+  if (k > 1.6 && J.region === 100 && J.preis === 100) return { v: 'preis', p: Math.round(k * 100), t: `Die Bauteile liegen sehr weit vom Kennwert entfernt (× ${fx(k)}), obwohl ${p} % des Bauwerks bepreist sind. Das spricht für Kennwerte mit altem Preisstand oder anderer Region. Empfehlung: Preisstand bzw. Regionalfaktor anpassen (gleicht alle Kennwerte an) – vorher Mengen und Einheitspreise auf Ausreißer prüfen.` };
+  return { v: 'angl', t: `${n} Gruppen mit Bauteilen decken ${p} % des Bauwerks ab und liegen einheitlich beim ${fx(k)}-fachen. Das ist ein belastbarer Hinweis auf das Preisniveau – die übrigen Gruppen angleichen, sonst werden zwei Preisniveaus gemischt.` };
+}
 function justageHtml() {
   const J = B.calc.justage || { region: 100, preis: 100, faktor: 1, rest: 'kw' }, ju = B.data.justage || {}, bt = J.bt_kw > 0;
-  const rad = (v, l, x = '') => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="radio" name="juRest" data-ju="rest" value="${v}"${(ju.rest || 'kw') === v ? ' checked' : ''}><span>${l}${x}</span></label>`;
+  const E = bt ? juEmpfehlung(J) : null, cur = ju.rest || 'kw';
+  const rad = (v, l, x = '') => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="radio" name="juRest" data-ju="rest" value="${v}"${cur === v ? ' checked' : ''}><span>${l}${E && E.v === v ? ' <span class="pill ok">empfohlen</span>' : ''}${x}</span></label>`;
+  const ok = E && (E.v === cur || (E.v === 'preis' && Math.abs(J.preis - E.p) < 1));
+  const emp = E ? `<div class="card" style="margin:.6rem 0;padding:.6rem .8rem;border-color:${ok ? 'var(--ok)' : 'var(--y)'}"><b style="font-size:.9rem">${ok ? '✓ ' : '💡 '}Empfehlung</b><p class="hint" style="margin:.2rem 0 ${ok ? 0 : '.5rem'}">${esc(E.t)}</p>
+    ${ok ? '' : E.v === 'preis' ? `<button class="btn sm" data-act="juEmpf" data-v="preis" data-p="${E.p}">Preisstand auf ${E.p} % setzen</button>` : `<button class="btn sm" data-act="juEmpf" data-v="${E.v}">Empfehlung übernehmen</button>`}</div>` : '';
   return `<section class="card" id="justage" style="margin-bottom:1rem"><h2 style="margin:0">Justage</h2>
     <p class="sub" style="margin:.3rem 0 .6rem">Kennwerte sind Durchschnittswerte zu einem bestimmten Preisstand. Hier passt du sie an Ort und heutige Preise an – Bauteile mit eigenen Einheitspreisen bleiben unberührt.</p>
     <div class="row"><label>Regionalfaktor in %<input class="n" style="width:110px" data-ju="region" value="${fx(J.region, 1)}" inputmode="decimal" title="100 = Bundesdurchschnitt; z. B. aus den BKI-Regionalfaktoren für den Landkreis"></label>
       <label>Preisstand in %<input class="n" style="width:110px" data-ju="preis" value="${fx(J.preis, 1)}" inputmode="decimal" title="Baupreisindex heute ÷ Index zum Stand der Kennwerte × 100"></label>
       <span class="hint" style="align-self:flex-end;padding-bottom:.45rem">= Faktor ${fx(J.faktor, 3)} auf alle Kennwerte</span></div>
     ${bt ? `<div style="margin-top:.8rem"><b style="font-size:.9rem">Kostengruppen ohne Bauteile</b>
-      <p class="hint" style="margin:.2rem 0 .4rem">Die bepreisten Gruppen liegen beim ${fx(J.k)}-fachen ihres Kennwert-Anteils (${eur(J.bt_wert)} statt ${eur(J.bt_kw)}).</p>
+      <p class="hint" style="margin:.2rem 0 .4rem">Die bepreisten Gruppen liegen beim ${fx(J.k)}-fachen ihres Kennwert-Anteils (${eur(J.bt_wert)} statt ${eur(J.bt_kw)}).</p>${emp}
       <div style="display:flex;flex-direction:column;gap:.3rem">${rad('kw', 'Kennwert-Anteil unverändert', ' <span class="hint">– mischt zwei Preisniveaus, wenn der Faktor deutlich von 1 abweicht</span>')}
       ${rad('angl', `an die Bauteile angleichen (× ${fx(J.k)})`, ' <span class="hint">– unterstellt, dass die übrigen Gewerke ebenso abweichen</span>')}
       ${rad('eigen', 'eigener Faktor', ` <input class="n" style="width:80px;margin-left:.4rem" data-ju="f" value="${fx(ju.f || 1)}" inputmode="decimal" aria-label="eigener Faktor">`)}</div></div>` : ''}</section>`;
@@ -852,6 +865,12 @@ document.addEventListener('click', async (e) => {
     else if (act === 'okAll') { B.data.rooms.forEach((r) => { r.ok = true; }); changed(); }
     else if (act === 'addRoom') { B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'addItem') { B.data.items.push({ kg: '', name: '', amount: null }); changed(); }
+    else if (act === 'juEmpf') {
+      const j = B.data.justage ||= { region: 100, preis: 100, rest: 'kw', f: 1 };
+      if (a.dataset.v === 'preis') { j.preis = Math.max(30, Math.min(400, +a.dataset.p)); j.rest = 'kw'; toast(`Preisstand auf ${a.dataset.p} % gesetzt – bitte mit dem Baupreisindex begründen (Quelle im PDF).`); }
+      else { j.rest = a.dataset.v; toast(a.dataset.v === 'angl' ? 'Übrige Gruppen an die Bauteile angeglichen.' : 'Übrige Gruppen bleiben beim Kennwert.'); }
+      changed();
+    }
     else if (act === 'din1') {   // DIN 276: alle Kostengruppen der 1. Ebene aufführen – nicht beauftragte mit 0 €
       const da = new Set(B.data.items.map((i) => String(i.kg).replace(/\D/g, '')[0]));
       const neu = [['100', 'Grundstück', 0], ['200', 'Vorbereitende Maßnahmen', null], ['500', 'Außenanlagen und Freiflächen', null], ['600', 'Ausstattung und Kunstwerke', 0], ['800', 'Finanzierung', 0]].filter(([k]) => !da.has(k[0]));

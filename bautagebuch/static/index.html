@@ -189,6 +189,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 #bwz .bb{padding:.3rem 1rem 1rem;overflow:auto;flex:1}
 #bwz .bb .sub{color:var(--mute);font-size:.88rem;margin:.1rem 0 .7rem}
 #bwz .bf{display:flex;gap:.5rem;padding:.7rem 1rem calc(.8rem + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+#bwz.kb .bf{padding-bottom:.5rem}
 #bwz .bf button{border:1px solid var(--line);border-radius:10px;padding:.7rem 1rem;color:var(--ink);background:transparent}
 #bwz .bf .nx{margin-left:auto;background:var(--y);color:var(--on);border-color:var(--y);font-weight:700;min-width:120px}
 #bwz .card{border:1px solid var(--line);border-radius:12px;padding:.6rem .7rem;margin-bottom:.5rem}
@@ -1643,10 +1644,14 @@ const fitApp = () => {   // App-Höhe = sichtbarer Bereich (mit Tastatur kleiner
   const vv = window.visualViewport, a = $('#app'); if (!vv || !a) return;
   const bz = $('#bwz');   // Assistent: genau in den sichtbaren Bereich über der Tastatur legen, beim Tippen nach oben
   if (bz) {
-    const kbz = vv.height < innerHeight - 120 && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+    const f = document.activeElement, kbz = vv.height < innerHeight - 120 && /^(INPUT|TEXTAREA|SELECT)$/.test(f?.tagName || '');
     bz.style.top = vv.offsetTop + 'px'; bz.style.height = vv.height + 'px'; bz.style.bottom = 'auto';
     bz.classList.toggle('kb', kbz);
-    if (kbz) setTimeout(() => document.activeElement?.scrollIntoView?.({block: 'nearest'}), 60);
+    if (kbz && f && bz.contains(f)) {   // iPhone: Seite NICHT verschieben (sonst sitzt das Fenster unter der Tastatur), nur im Fenster scrollen
+      const bb = f.closest('.bb');
+      if (bb) { const r = f.getBoundingClientRect(), rb = bb.getBoundingClientRect(); if (r.bottom > rb.bottom - 8 || r.top < rb.top) bb.scrollTop += r.top - rb.top - 40; }
+      return;
+    }
   }
   if (qTyping) { a.style.height = ''; if (vv.offsetTop || vv.pageTop) window.scrollTo(0, 0); return; }   // Schnell-Fenster sitzt oben: keine Höhenanpassung nötig
   a.style.height = Math.abs(vv.height - innerHeight) < 2 ? '' : vv.height + 'px';
@@ -1656,7 +1661,10 @@ const fitApp = () => {   // App-Höhe = sichtbarer Bereich (mit Tastatur kleiner
   if (vv.offsetTop || vv.pageTop) window.scrollTo(0, 0);
 };
 if (window.visualViewport) { visualViewport.addEventListener('resize', fitApp); visualViewport.addEventListener('scroll', fitApp); }
-document.addEventListener('focusin', e => { if (e.target.closest && e.target.closest('#bwz')) { fitApp(); setTimeout(fitApp, 350); } });
+document.addEventListener('focusin', e => {   // Assistent: der Tastatur folgen, solange sie aufgeht (iPhone animiert ~300 ms)
+  if (!(e.target.closest && e.target.closest('#bwz'))) return;
+  const t0 = Date.now(); const lauf = () => { fitApp(); if (Date.now() - t0 < 900) requestAnimationFrame(lauf); }; lauf();
+});
 const resetView = () => { if (!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) { window.scrollTo(0, 0); document.body.scrollTop = 0; document.documentElement.scrollTop = 0; } };   // iPhone: nach der Tastatur sitzt die Seite sonst verschoben
 document.addEventListener('focusout', () => { setTimeout(() => { resetView(); fitApp(); }, 120); setTimeout(() => { resetView(); fitApp(); }, 450); });
 if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (visualViewport.height > innerHeight - 80) setTimeout(resetView, 60); });

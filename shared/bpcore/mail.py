@@ -17,7 +17,7 @@ def configured(cf):
     return bool(cf.get("mail_user") and cf.get("mail_pass"))
 
 
-def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None, reply_to=None, ical=None):
+def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None, reply_to=None, ical=None, html=None):
     """to/cc: Adresse oder Liste. attachments: [(Dateiname, bytes, "maintype/subtype")].
     ical: Text einer iCalendar-Einladung (METHOD:REQUEST) – erscheint in Outlook & Co. als Termin mit Annehmen/Ablehnen."""
     if not configured(cf):
@@ -32,6 +32,20 @@ def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None
     if reply_to:
         msg["Reply-To"] = reply_to
     msg.set_content(body)
+    if html:   # dieselbe Mail als HTML (Rich-Signatur); eingebettete Bilder (data:) als Inline-Anhang (cid:), das zeigen alle Mailprogramme
+        import base64, re
+        from email.utils import make_msgid
+        bilder = []
+
+        def _cid(m):
+            cid = make_msgid(domain="bauplattform")[1:-1]
+            bilder.append((cid, m.group(1).lower().replace("jpg", "jpeg"), base64.b64decode(m.group(2))))
+            return 'src="cid:' + cid + '"'
+        html = re.sub(r'src="data:image/(png|jpe?g|gif|webp);base64,([A-Za-z0-9+/=\s]+)"', _cid, html)
+        msg.add_alternative(html, subtype="html")
+        hp = msg.get_payload()[-1]
+        for cid, sub, data in bilder:
+            hp.add_related(data, maintype="image", subtype=sub, cid=f"<{cid}>")
     if ical:
         msg.add_alternative(ical, subtype="calendar", params={"method": "REQUEST"})
     for name, data, mime in attachments or []:

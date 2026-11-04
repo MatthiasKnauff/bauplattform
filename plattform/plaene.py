@@ -290,9 +290,8 @@ def vorlage():
         T = vorlagen.alle(c)["planversand"]
         cf = mail.conf(c)
         k = konto.prefs(c, g.user["id"])
-        sig = konto.signatur_text(c, g.user)
-    W = {**_werte(p, cf), "signatur": sig}
-    keep = {"planliste": "{planliste}", "anzahl": "{anzahl}", "firma": "{firma}"}
+    W = _werte(p, cf)
+    keep = {"planliste": "{planliste}", "anzahl": "{anzahl}", "firma": "{firma}", "signatur": "{signatur}"}
     return jsonify(betreff=vorlagen.fuellen(T["betreff"], {**W, **keep}), text=vorlagen.fuellen(T["text"], {**W, **keep}),
                    versand="mich" if k.get("versand") == "mich" else "direkt", kopie=k.get("kopie", True), email=g.user["email"] or "",
                    mail=mail.configured(cf))
@@ -359,7 +358,9 @@ def versand():
     if art == "mich":
         an_namen = ", ".join(e["name"] or e["email"] for e in emp)
         try:
-            mail.send(mc, ich, vorlagen.fuellen(betreff, {**W, "firma": an_namen}), vorlagen.fuellen(text, {**W, "firma": an_namen or "…"}),
+            with db.tx() as c:
+                t_, h_ = konto.mail_teile(c, g.user, text, {**W, "firma": an_namen or "…"})
+            mail.send(mc, ich, vorlagen.fuellen(betreff, {**W, "firma": an_namen}), t_, html=h_,
                       sender=absname, attachments=anh)
             gesendet.append({"name": C.full_name(g.user), "email": ich})
         except mail.MailError as e:
@@ -368,7 +369,9 @@ def versand():
         cc = [ich] if b.get("kopie") and ich else []
         for e in emp:
             try:
-                mail.send(mc, e["email"], vorlagen.fuellen(betreff, {**W, "firma": e["name"]}), vorlagen.fuellen(text, {**W, "firma": e["name"]}),
+                with db.tx() as c:
+                    t_, h_ = konto.mail_teile(c, g.user, text, {**W, "firma": e["name"]})
+                mail.send(mc, e["email"], vorlagen.fuellen(betreff, {**W, "firma": e["name"]}), t_, html=h_,
                           sender=absname, attachments=anh, cc=[x for x in cc if x.lower() != e["email"].lower()], reply_to=ich or None)
                 gesendet.append(e)
             except mail.MailError as er:

@@ -8,6 +8,7 @@ STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich
             "kopie": True,           # bei „direkt an die Firma“: Kopie an mich
             "kalender": False,       # eigene und verschobene Erinnerungen automatisch als Kalendertermin an mich
             "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
+            "mailsignatur_html": "", # dieselbe als HTML (eingefügt aus Outlook/Word); hat Vorrang
             "telefon": "", "funktion": "",   # für die Signatur
             "hinweise_aus": []}      # Hinweisfenster, die nicht mehr erscheinen sollen (z. B. „baukosten“)
 SIG_STANDARD = "{name}\n{funktion}\n{buero}\n{buero_strasse}, {buero_ort}\nTel. {telefon} · {email}\n{buero_web}"
@@ -44,6 +45,10 @@ def set_prefs(c, uid, d, by=""):
             p[k] = bool(d[k])
     if isinstance(d.get("hinweise_aus"), list):
         p["hinweise_aus"] = sorted({str(x)[:40] for x in d["hinweise_aus"] if str(x).strip()})[:30]
+    if "mailsignatur_html" in d:
+        from . import htmlsig
+        h = htmlsig.bereinigen(str(d["mailsignatur_html"] or ""))
+        p["mailsignatur_html"] = h if htmlsig.html_zu_text(h).strip() or "<img" in h else ""
     for k, n in (("mailsignatur", 2000), ("telefon", 60), ("funktion", 80)):
         if k in d:
             p[k] = str(d[k] or "").replace("\r", "").strip()[:n]
@@ -114,10 +119,49 @@ def aufbereiten(raw):
     return buf.getvalue()
 
 
+def _werte(c, user, p):
+    S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'")}
+    vn = (user["vorname"] if "vorname" in user.keys() else "") or ""
+    nn = (user["nachname"] if "nachname" in user.keys() else "") or ""
+    return {"name": " ".join(x for x in (vn, nn) if x) or user["name"], "vorname": vn, "nachname": nn, "funktion": p.get("funktion", ""),
+            "telefon": p.get("telefon") or S.get("co_phone", ""), "email": user["email"] or "", "buero": S.get("office_name", ""),
+            "buero_strasse": S.get("co_street", ""), "buero_ort": " ".join(x for x in (S.get("co_zip", ""), S.get("co_city", "")) if x),
+            "buero_telefon": S.get("co_phone", ""), "buero_email": S.get("co_email", ""), "buero_web": S.get("co_web", "")}
+
+
+def signatur_html(c, user):
+    """Signatur als HTML (eigene Rich-Signatur mit eingesetzten Platzhaltern, sonst die Text-Signatur mit Zeilenumbrüchen)."""
+    import html as H, re
+    from . import htmlsig
+    p = prefs(c, user["id"])
+    if p.get("mailsignatur_html"):
+        W = _werte(c, user, p)
+        return re.sub(r"\{(\w+)\}", lambda m: H.escape(str(W[m.group(1)])) if m.group(1) in W else m.group(0), p["mailsignatur_html"])
+    return htmlsig.text_zu_html(signatur_text(c, user))
+
+
+def mail_teile(c, user, text, W):
+    """Mailtext aus einer Vorlage (Platzhalter in W schon ohne {signatur}) → (Text, HTML). Die HTML-Fassung trägt die Rich-Signatur."""
+    from . import htmlsig, vorlagen
+    marke = "\u2063SIGNATUR\u2063"
+    t = vorlagen.fuellen(text, {**W, "signatur": marke})
+    if "{signatur}" not in text and p_html(c, user):   # Vorlage ohne {signatur}: Signatur ans Ende
+        t = t.rstrip() + "\n\n" + marke
+    plain = t.replace(marke, signatur_text(c, user))
+    return plain, (htmlsig.mail_html(t, marke, signatur_html(c, user)) if marke in t else None)
+
+
+def p_html(c, user):
+    return bool(prefs(c, user["id"]).get("mailsignatur_html"))
+
+
 def signatur_text(c, user):
     """E-Mail-Signatur des Benutzers mit eingesetzten Werten. Leere Zeilen (z. B. ohne Funktion) und leere Trennzeichen fallen weg."""
     import re
     p = prefs(c, user["id"])
+    if p.get("mailsignatur_html"):
+        from . import htmlsig
+        return htmlsig.html_zu_text(signatur_html(c, user))
     S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'")}
     vn = (user["vorname"] if "vorname" in user.keys() else "") or ""
     nn = (user["nachname"] if "nachname" in user.keys() else "") or ""

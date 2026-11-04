@@ -103,6 +103,8 @@
 .bph-btn.on{outline:2px solid var(--y,var(--bph-acc,#ff5fb3))}
 .bph-vall select,.bph-vall input{font:inherit;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line,#3b3e42);background:transparent;color:inherit}
 .bph-vall label{display:inline-flex;gap:.35rem;align-items:center}
+.bph-sige{min-height:7.5rem;max-height:22rem;overflow:auto;line-height:1.45;outline:none}.bph-sige:focus{border-color:var(--accent,#4c8bf5)}
+.bph-sige img,.bph-sigh img{max-width:100%;height:auto}.bph-sigh{white-space:normal;background:#fff;color:#1e1e1e;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.45}
 .bph-sigt{width:100%;font:inherit;font-size:.92em;padding:.5rem .6rem;border-radius:8px;border:1px solid var(--line,#3b3e42);background:transparent;color:inherit;box-sizing:border-box}
 .bph-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin:.35rem 0}
 .bph-chips button{border:1px solid var(--line,#3b3e42);background:transparent;color:inherit;border-radius:999px;padding:.15rem .55rem;font:inherit;font-size:.8em;cursor:pointer}

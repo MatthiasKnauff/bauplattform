@@ -263,12 +263,12 @@
         b = `<h4>Unterschrift</h4><p class="bph-mu">Für Mängel- und Terminrügen. Einfach mit dunklem Stift auf weißes Papier unterschreiben und mit dem Handy fotografieren – die App stellt die Unterschrift frei und schneidet sie zu.</p>
           <div class="bph-sig">${K.signatur ? `<img src="api/bp/signatur?v=${sigV}" alt="Unterschrift">` : '<span class="bph-mu">Noch keine Unterschrift hinterlegt.</span>'}</div>
           <div class="bph-row"><label class="bph-btn pri">${busy ? 'wird aufbereitet …' : K.signatur ? 'Neues Foto' : 'Foto aufnehmen oder wählen'}<input type="file" accept="image/*" data-ksig hidden></label>${K.signatur ? '<button type="button" class="bph-btn" data-kdel>Entfernen</button>' : ''}</div>
-          <h4>E-Mail-Signatur</h4><p class="bph-mu">Steht unter allen Mails, die du aus der Plattform verschickst (Rügen, Planversand). Text hineinkopieren oder mit den Platzhaltern zusammenklicken – Zeilen mit leeren Platzhaltern fallen weg.</p>
+          <h4>E-Mail-Signatur</h4><p class="bph-mu">Steht unter allen Mails, die du aus der Plattform verschickst (Rügen, Planversand). Signatur aus Outlook, Word oder einer Webseite mit Formatierung, Logo und Links hineinkopieren oder mit den Platzhaltern zusammenklicken.</p>
           <div class="bph-row"><label style="flex:1">Funktion<input data-kf="funktion" value="${esc(K.funktion || '')}" placeholder="z. B. Bauleitung" maxlength="80"></label><label style="flex:1">Telefon (eigenes)<input data-kf="telefon" value="${esc(K.telefon || '')}" placeholder="sonst das des Büros" maxlength="60"></label></div>
-          <textarea class="bph-sigt" rows="6" data-ksigt placeholder="${esc(K.sig_standard)}">${esc(K.mailsignatur || K.sig_standard)}</textarea>
+          <div class="bph-sigt bph-sige" contenteditable="true" data-ksigt>${K.mailsignatur_html || esc(K.mailsignatur || K.sig_standard).replace(/\n/g, '<br>')}</div>
           <div class="bph-chips">${Object.entries(K.sig_platz || {}).map(([k, l]) => `<button type="button" data-kph="${k}" title="${esc(l)}">{${k}}</button>`).join('')}</div>
           <div class="bph-row"><button type="button" class="bph-btn pri" data-ksigsave>Signatur speichern</button><button type="button" class="bph-btn" data-ksigstd>Auf Standard zurücksetzen</button></div>
-          <div class="bph-mu">So sieht sie aus:</div><pre class="bph-sigp">${esc(K.sig_vorschau || '')}</pre>
+          <div class="bph-mu">So sieht sie in der Mail aus${K.mailsignatur_html ? ' (Mailprogramme ohne HTML zeigen sie als Text)' : ''}:</div><div class="bph-sigp bph-sigh">${K.sig_vorschau_html || esc(K.sig_vorschau || '').replace(/\n/g, '<br>')}</div>
           <h4>Mängel- und Terminrügen versenden</h4><p class="bph-mu">Vorauswahl im Dialog der Rüge – dort lässt sie sich jedes Mal ändern.</p>
           ${seg('versand', [['pdf', 'nur PDF'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']])}
           <label class="bph-ck"><input type="checkbox" data-kchk="kopie"${K.kopie ? ' checked' : ''}> bei „direkt an die Firma“ eine Kopie an mich</label>
@@ -290,6 +290,7 @@
     }
     function draw() { root.innerHTML = html(); }
     async function save(d) { try { K = { ...K, ...(await KX('api/bp/konto', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })) }; msg = 'Gespeichert.'; } catch (e) { msg = e.message; } draw(); }
+    root.addEventListener('mousedown', (e) => { if (e.target.closest('[data-kph]')) e.preventDefault(); });
     root.addEventListener('click', async (e) => {
       const t = e.target;
       if (t.closest('[data-kclose]')) { root.close && root.close(); return; }
@@ -297,10 +298,20 @@
       const sv = t.closest('[data-kset]'); if (sv) { save({ [sv.dataset.kset]: sv.dataset.v }); return; }
       if (t.closest('[data-kdel]')) { if (!confirm('Unterschrift entfernen?')) return; await KX('api/bp/signatur', { method: 'DELETE' }).catch((er) => { msg = er.message; }); K.signatur = false; draw(); return; }
       const ph = t.closest('[data-kph]');
-      if (ph) { const ta = root.querySelector('[data-ksigt]'); const a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a, ins = '{' + ph.dataset.kph + '}'; ta.value = ta.value.slice(0, a) + ins + ta.value.slice(b); ta.focus(); ta.setSelectionRange(a + ins.length, a + ins.length); return; }
+      if (ph) {
+        const ed = root.querySelector('[data-ksigt]'), s = window.getSelection(), ins = '{' + ph.dataset.kph + '}';
+        if (!s.rangeCount || !ed.contains(s.anchorNode)) { ed.focus(); const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); s.removeAllRanges(); s.addRange(r); }
+        if (!document.execCommand('insertText', false, ins)) { const r = s.getRangeAt(0); r.deleteContents(); r.insertNode(document.createTextNode(ins)); r.collapse(false); }
+        return;
+      }
       if (t.closest('[data-ksigsave]') || t.closest('[data-ksigstd]')) {
-        const std = !!t.closest('[data-ksigstd]'), ta = root.querySelector('[data-ksigt]').value.trim();
-        const d = { mailsignatur: std || ta === K.sig_standard ? '' : ta };
+        const std = !!t.closest('[data-ksigstd]'), ed = root.querySelector('[data-ksigt]');
+        // nur Text (Zeilen): als Text-Signatur speichern – leere Platzhalterzeilen fallen dann weg; sonst als HTML
+        const rich = [...ed.querySelectorAll('*')].some((x) => !/^(BR|DIV|P|SPAN)$/.test(x.tagName) || x.attributes.length);
+        const txt = ed.innerText.replace(/\u00a0/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+        const d = std ? { mailsignatur: '', mailsignatur_html: '' }
+          : rich ? { mailsignatur: '', mailsignatur_html: ed.innerHTML }
+          : { mailsignatur: txt === K.sig_standard ? '' : txt, mailsignatur_html: '' };
         root.querySelectorAll('[data-kf]').forEach((x) => { d[x.dataset.kf] = x.value.trim(); });
         await save(d); msg = std ? 'Signatur auf Standard zurückgesetzt.' : 'Signatur gespeichert.'; draw(); return;
       }

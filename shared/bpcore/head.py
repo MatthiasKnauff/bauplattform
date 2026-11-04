@@ -112,7 +112,8 @@ def blueprint(get_user=None):
             sig = konto.signatur(c, uid) is not None
             mail_ok = bool(c.execute("SELECT 1 FROM settings WHERE key='mail_pass' AND value<>''").fetchone())
             vorschau = konto.signatur_text(c, u)
-        return jsonify(**p, sig_standard=konto.SIG_STANDARD, sig_platz=konto.SIG_PLATZ, sig_vorschau=vorschau, uid=uid, signatur=sig, email=u["email"] or "", mail=mail_ok, admin=bool(u["is_admin"]))
+            vorschau_html = konto.signatur_html(c, u)
+        return jsonify(**p, sig_standard=konto.SIG_STANDARD, sig_platz=konto.SIG_PLATZ, sig_vorschau=vorschau, sig_vorschau_html=vorschau_html, uid=uid, signatur=sig, email=u["email"] or "", mail=mail_ok, admin=bool(u["is_admin"]))
 
     @bp.route("/api/bp/signatur", methods=["GET", "POST", "DELETE"])
     def signatur_api():

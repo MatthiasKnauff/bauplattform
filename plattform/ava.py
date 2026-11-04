@@ -1034,7 +1034,7 @@ def _pdf(r, titel, sub, story_fn, quer=False):
         return escape(str(s or "")).replace("\n", "<br/>")
 
     def table(data, widths, num=(), bold=(), head=True, band=()):
-        t = Table(data, colWidths=widths, repeatRows=1 if head else 0)
+        t = Table(data, colWidths=widths, repeatRows=1 if head else 0, splitInRow=1)   # lange Langtexte dürfen über die Seite laufen
         st = [("FONT", (0, 0), (-1, -1), "Helvetica", 8.5), ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
               ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3), ("LINEBELOW", (0, 0), (-1, -1), 0.3, LINE)]
         if head:
@@ -1200,17 +1200,22 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     rows, band, tsum, titel = [head], [], {}, []
     cur = []   # Titel-Stapel
     hdr_style = [("FONT", (0, 0), (-1, -1), FN["n"], fs), ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                 ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3), ("LINEBELOW", (0, 0), (-1, -1), 0.3, LINE),
+                 ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                  ("FONT", (0, 0), (-1, 0), FN["b"], fs - 0.5), ("TEXTCOLOR", (0, 0), (-1, 0), MUTE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK)] + \
                 [("ALIGN", (ci, 0), (ci, -1), "RIGHT") for ci in (2, 4, 5)]
 
+    weiter = set()   # Zeilen, an die eine Fortsetzung des Langtexts anschließt (dort keine Trennlinie)
+
     def tabelle_schliessen():
-        nonlocal rows, band
+        nonlocal rows, band, weiter
         if len(rows) > 1:
+            # lange Langtexte stehen in Fortsetzungszeilen – die Tabelle bricht dann zwischen den Zeilen um
             t = Table(rows, colWidths=[17 * mm, wl, 17 * mm, 11 * mm, 20 * mm, 25 * mm], repeatRows=1)
-            t.setStyle(TableStyle(hdr_style + [("BACKGROUND", (0, ri), (-1, ri), BAND) for ri in band]))
+            t.setStyle(TableStyle(hdr_style + [("BACKGROUND", (0, ri), (-1, ri), BAND) for ri in band]
+                                  + [("LINEBELOW", (0, ri), (-1, ri), 0.3, LINE) for ri in range(1, len(rows)) if ri not in weiter]
+                                  + [("BOTTOMPADDING", (0, ri), (-1, ri), 0) for ri in weiter] + [("TOPPADDING", (0, ri + 1), (-1, ri + 1), 0) for ri in weiter]))
             story.append(t)
-        rows, band = [head], []
+        rows, band, weiter = [head], [], set()
     gesamt = 0.0
     for x in items:
         if x.get("nt"):
@@ -1233,15 +1238,32 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             tabelle_schliessen(); story.append(PageBreak())
         kz = f"<b>{X(x['kurz'])}</b>" + (" <font size='7'>[S]</font>" if x.get("sp") else "")
         zelle = [Paragraph(f"<strike>{kz}</strike> – entfällt" if x.get("entf") else kz, S["p"])]
+        stuecke = []   # Langtext in Abschnitten zu höchstens 10 Zeilen (bzw. 1200 Zeichen) – lange Texte laufen so über mehrere Seiten
         if lay["langtext"] and x.get("lang") and x["lang"] != x["kurz"]:
-            zelle.append(Paragraph(X(x["lang"]), S["lang"]))
+            cur_, n_ = [], 0
+            zeilen_ = []
+            for z in x["lang"].split("\n"):   # sehr lange Absätze an Wortgrenzen teilen
+                while len(z) > 1000:
+                    cut = z.rfind(" ", 0, 1000)
+                    cut = cut if cut > 200 else 1000
+                    zeilen_.append(z[:cut]); z = z[cut:].lstrip()
+                zeilen_.append(z)
+            for z in zeilen_:
+                if cur_ and (len(cur_) >= 10 or n_ + len(z) > 1000):
+                    stuecke.append("\n".join(cur_)); cur_, n_ = [], 0
+                cur_.append(z); n_ += len(z)
+            if cur_:
+                stuecke.append("\n".join(cur_))
+            zelle.append(Paragraph(X(stuecke.pop(0)), S["lang"]))
         if x.get("art") in ("E", "A", "P"):
             zelle.append(Paragraph("Bedarfsposition (mit GB)" if x["art"] == "E" and x.get("gb") else ARTEN[x["art"]], S["mu"]))
         if x.get("bezug"):
             bz = next((y for y in items if y.get("id") == x["bezug"]), None)
             if bz:
                 zelle.append(Paragraph(f"Bezug: Pos. {X(bz.get('oz') or '')} {X(bz.get('kurz') or '')}", S["mu"]))
-        zelle += fotos(x["id"], wl - 5 * mm)
+        bilder = fotos(x["id"], wl - 5 * mm)
+        if not stuecke:
+            zelle += bilder
         ep = ep_of(x)
         gp = _gp(x, ep) if ep is not None and zaehlt({**x, "nt": None}) else None
         if gp is not None:
@@ -1251,6 +1273,9 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         rows.append([x.get("oz") or "", zelle, num(x.get("menge")), x.get("einheit") or "",
                      ep2(ep) if ep is not None else ("" if preis != "leer" else "............"),
                      "entfällt" if x.get("entf") else eur(gp) if gp is not None else ("(ohne GB)" if ep is not None else ("" if preis != "leer" else "................"))])
+        for k_, st_ in enumerate(stuecke):   # Fortsetzung des Langtexts
+            weiter.add(len(rows) - 1)
+            rows.append(["", [Paragraph(X(st_), S["lang"])] + (bilder if k_ == len(stuecke) - 1 else []), "", "", "", ""])
         if x.get("np_nach"):   # Druckoption „Neue Seite nachher“
             tabelle_schliessen(); story.append(PageBreak())
     if preis != "leer":
@@ -1265,7 +1290,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         for lab, val in (("Summe netto", sn), (f"zzgl. {MWST:g} % USt.", sn * MWST / 100), ("Summe brutto", sn * (1 + MWST / 100))):
             z.append(["", lab, eur(val) if preis != "leer" else "........................"])
         t = Table(z, colWidths=[20 * mm, W - 20 * mm - 45 * mm, 45 * mm])
-        t.setStyle(TableStyle(hdr_style[:7] + [("ALIGN", (2, 0), (2, -1), "RIGHT"), ("FONT", (0, len(z) - 3), (-1, -1), FN["b"], fs),
+        t.setStyle(TableStyle(hdr_style[:7] + [("LINEBELOW", (0, 0), (-1, -1), 0.3, LINE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK), ("ALIGN", (2, 0), (2, -1), "RIGHT"), ("FONT", (0, len(z) - 3), (-1, -1), FN["b"], fs),
                                                ("BACKGROUND", (0, len(z) - 1), (-1, len(z) - 1), BAND)]))
         story += [CondPageBreak(60 * mm), Spacer(1, 6 * mm), Paragraph("Zusammenstellung", S["h2"]), t]
     if lay["bieter"] and F["Schlusstext"].strip():
@@ -1354,7 +1379,12 @@ def lv_druck(i):
             rev = c.execute("SELECT rev FROM ava_lv WHERE id=?", (i,)).fetchone()["rev"]
             r = _lv(c, i)
         P = _payload(c, r)
-        pdf, F = _lv_druck(c, r, P, lay, entwurf=b.get("schritt") == "entwurf")
+        try:
+            pdf, F = _lv_druck(c, r, P, lay, entwurf=b.get("schritt") == "entwurf")
+        except Exception as e:   # verständliche Meldung statt „Internal Server Error“
+            import traceback
+            traceback.print_exc()
+            return jsonify(error=f"Der Ausdruck konnte nicht erstellt werden ({type(e).__name__}: {str(e)[:200]})."), 500
     name = re.sub(r"[\\/:*?\"<>|]+", "_", f"LV {r['nr']} {r['name']}") + ".pdf"
     if b.get("schritt") == "entwurf":
         return jsonify(pdf=base64.b64encode(pdf).decode(), felder=F, layout={k: v for k, v in lay.items() if k != "felder"}, rev=rev,

@@ -244,7 +244,7 @@ function renderE() {
   const G = [['ueberfaellig', 'Überfällig – noch nicht verschickt'], ['abgelaufen', 'Abgelaufen – neu terminieren oder erledigen'], ['heute', 'Heute'], ['bald', 'Nächste 7 Tage'], ['spaeter', 'Später']];
   const row = (x) => {
     const [ic, sn] = SRC[x.quelle] || ['•', ''], link = x.quelle === 'plan' && x.gantt_id ? appLink('gantt', '#plan=' + encodeURIComponent(x.gantt_id)) : x.quelle === 'bautagebuch' && x.rid ? appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) : '';
-    const sent = x.gesendet ? (x.quelle === 'bautagebuch' ? `Mail am ${de(x.gesendet)} verschickt` : `Mail am ${de(x.gesendet)} verschickt`) : '';
+    const sent = x.gesendet === 'fehler' ? '⚠ Mail nicht zustellbar – E-Mail-Adresse prüfen' : x.gesendet ? `Mail am ${de(x.gesendet)} verschickt` : '';
     return `<div class="er ${x.lage}" data-e="${x.id}"><span class="ic" title="${sn}">${ic}</span>
       <div class="tx"><b>${esc(x.titel)}</b>${x.text && x.quelle !== 'bautagebuch' ? `<p>${esc(x.text)}</p>` : x.quelle === 'bautagebuch' && x.text.split('\n').length > 1 ? `<p>${esc(x.text)}</p>` : ''}
         <small>${esc([sn, x.projekt, x.an.length ? 'an ' + x.an.join(', ') : '', sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">öffnen ↗</a>` : ''}</small></div>

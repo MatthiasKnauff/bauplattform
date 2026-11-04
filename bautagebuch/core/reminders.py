@@ -51,9 +51,18 @@ def run_once(now=None):
         try:
             mail.send(conf, u["email"], f"Bautagebuch – {len(mine)} Punkt{'e' if len(mine) != 1 else ''} fällig", body)
             sent += 1
-        except mail.MailError:
-            with db.tx() as c:   # nicht gesendet: beim nächsten Durchlauf erneut versuchen
-                c.executemany("UPDATE items SET reminded='' WHERE id=?", [(i["id"],) for i in mine])
+        except mail.MailError as e:
+            # vorübergehend: beim nächsten Durchlauf erneut; ungültige Adresse: nicht mehr (sonst sperrt Microsoft 365 das Postfach)
+            with db.tx() as c:
+                c.executemany("UPDATE items SET reminded=? WHERE id=?", [("fehler" if e.dauerhaft else "", i["id"]) for i in mine])
+            if e.dauerhaft:
+                try:
+                    from . import audit
+                    audit.record("System", "mail", "Erinnerung nicht zustellbar", f"{u['name']} <{u['email']}>: {e}"[:300])
+                except Exception:
+                    pass
+            if e.gesperrt:
+                break
     return sent
 
 

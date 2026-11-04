@@ -5,8 +5,7 @@ from email.message import EmailMessage
 PROVIDERS = {"gmail": ("smtp.gmail.com", 587), "o365": ("smtp.office365.com", 587)}
 
 
-class MailError(Exception):
-    pass
+from bpcore.mail import MailError, smtp_senden   # gemeinsame Fehlerbehandlung (ungültige Empfänger, Sperre durch den Server)
 
 
 def configured(conf):
@@ -21,15 +20,4 @@ def send(conf, to, subject, body):
     msg = EmailMessage()
     msg["From"], msg["To"], msg["Subject"] = f"Bautagebuch <{(conf.get('mail_from') or '').strip() or conf['mail_user']}>", to, subject
     msg.set_content(body)
-    try:
-        with smtplib.SMTP(host, port, timeout=15) as s:
-            s.ehlo(); s.starttls(context=ssl.create_default_context()); s.ehlo()
-            s.login(conf["mail_user"], conf["mail_pass"])
-            s.send_message(msg)
-    except smtplib.SMTPAuthenticationError:
-        hint = ("Bei Gmail ist ein „App-Passwort“ nötig (Google-Konto mit Bestätigung in zwei Schritten), nicht das normale Kennwort."
-                if prov == "gmail" else
-                "Bei Office 365 muss „Authentifizierter SMTP-Versand“ für das Postfach erlaubt sein (Exchange-Admin), und ggf. ein App-Kennwort verwenden.")
-        raise MailError("Anmeldung am Mailserver abgelehnt. " + hint)
-    except (OSError, smtplib.SMTPException) as e:
-        raise MailError(f"Mailserver nicht erreichbar oder Fehler: {e}"[:300])
+    smtp_senden(conf, msg, (conf.get("mail_from") or "").strip() or conf["mail_user"], [to])

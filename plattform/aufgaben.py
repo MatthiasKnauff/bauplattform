@@ -706,9 +706,14 @@ def send_due(now=None):
         try:
             mail.send(mc, u["email"], f"Erinnerung: {mine[0]['titel']}" if len(mine) == 1 else f"Bauplattform – {len(mine)} Erinnerungen", body)
             sent += 1
-        except mail.MailError:
+        except mail.MailError as e:
+            # ungültige Adresse: nicht alle 5 Minuten erneut versuchen – das führt bei Microsoft 365 zur Sperre des Postfachs
             with db.tx() as c:
-                c.executemany("UPDATE erinnerungen SET gesendet='' WHERE id=?", [(r["id"],) for r in mine])
+                c.executemany("UPDATE erinnerungen SET gesendet=? WHERE id=?", [("fehler" if e.dauerhaft else "", r["id"]) for r in mine])
+            if e.dauerhaft:
+                C.audit("System", "mail", "Erinnerung nicht zustellbar", f"{u['name']} <{u['email']}>: {e}"[:300])
+            if e.gesperrt:
+                break   # Postfach gesperrt: in diesem Durchlauf nichts mehr versuchen
     return sent
 
 

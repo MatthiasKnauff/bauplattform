@@ -12,6 +12,7 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/versionen/<id>/vergleich  was sich beim Wiederherstellen ändern würde · …/wiederherstellen (POST) · PATCH {name}
 /api/bp/versionen/alle   Änderungsverlauf aller Bereiche, die der Benutzer sehen darf
 /api/bp/versionen/conf   GET/PUT Aufbewahrung (nur Administrator) mit Speicherbedarf
+/api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
 """
@@ -92,6 +93,31 @@ def blueprint(get_user=None):
                     c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, u["id"]))
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
         return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "")
+
+    # ---- aktuelles Projekt des Benutzers (Projekt des Bautagebuchs; gilt in allen Apps)
+    @bp.route("/api/bp/projekt", methods=["GET", "PUT"])
+    def projekt_api():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        key = f"aktprojekt:{u['id']}"
+        with db.tx() as c:
+            if request.method == "PUT":
+                pid = (request.get_json(silent=True) or {}).get("id")
+                pid = pid if isinstance(pid, int) and c.execute("SELECT 1 FROM projects WHERE id=?", (pid,)).fetchone() else None
+                if pid:
+                    konto._put(c, key, json.dumps({"id": pid}), u["name"])
+                else:
+                    c.execute("DELETE FROM bp_store WHERE key=?", (key,))
+            try:
+                pid = json.loads(konto._get(c, key) or "{}").get("id")
+            except ValueError:
+                pid = None
+            r = c.execute("SELECT id, name, client, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
+        if not r:
+            return jsonify(id=None)
+        adr = ", ".join(x for x in (r["street"], " ".join(y for y in (r["zip"], r["city"]) if y)) if x)
+        return jsonify(id=r["id"], name=r["name"], client=r["client"] or "", adresse=adr)
 
     # ---- Mein Konto: Unterschrift, Versand, Kalender (gilt in allen Apps)
     def _uid():

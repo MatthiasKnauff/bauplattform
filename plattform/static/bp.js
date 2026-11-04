@@ -56,6 +56,14 @@ function modalBox(html, onClick) {
   const f = bg.querySelector('input,select,button'); if (f) f.focus();
   return bg;
 }
+/* wie modalBox, aber im Einstellungsfenster (⚙ → Diese App): gleicher Aufruf, „close“ schließt das Fenster */
+function paneBox(host, html, onClick) {
+  host.innerHTML = `<div class="modal pane">${html}</div>`;
+  const close = () => { if (window.BPHead && BPHead.einstellungenSchliessen) BPHead.einstellungenSchliessen(); };
+  host.onclick = (e) => { const b = e.target.closest('[data-m]'); if (b) onClick(b.dataset.m, host, close, b); };
+  return host;
+}
+const boxIn = (host) => (host ? (h, f) => paneBox(host, h, f) : modalBox);
 const ICONS = {
   bautagebuch: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 12h7M9 16h5"/></svg>',
   gantt: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M7 13h6M10 17h7"/></svg>',

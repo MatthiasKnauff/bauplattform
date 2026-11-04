@@ -60,6 +60,8 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:90;padding:1rem}
 .modal{background:var(--card2);border:1px solid var(--line);border-radius:12px;width:min(480px,100%);max-height:calc(100vh - 2rem);overflow:auto;padding:1.2rem 1.3rem;box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .modal h3{margin:0 0 .8rem}
+.modal.pane{width:auto;max-height:none;overflow:visible;border:0;box-shadow:none;padding:.2rem 0;background:transparent}
+.modal.pane > h3:first-child{display:none}
 .modal .row{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.8rem}
 .modal .row label{color:var(--mute);font-size:.88rem}
 .modal .acts{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;flex-wrap:wrap}

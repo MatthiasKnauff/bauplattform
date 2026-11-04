@@ -333,6 +333,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .clist .cb{overflow:auto;flex:1}
 .cdet{overflow:auto}
 
+.bph-dr-bg{z-index:28!important}   /* Einstellungsfenster unter Blättern (#sheet) und Meldungen des Bautagebuchs */
 #toasts{position:fixed;left:50%;bottom:calc(1rem + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:.4rem;align-items:center;max-width:92vw;pointer-events:none}
 .toast .undo{margin-left:.8rem;padding:.25rem .7rem;font-weight:600;color:var(--y);background:transparent;border:1px solid var(--y);border-radius:6px}
 .toast{pointer-events:auto;background:var(--inp);border:1px solid var(--y);border-radius:8px;padding:.6rem 1rem;text-align:center}
@@ -388,7 +389,7 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
     <button data-act="nearest" id="i-n" class="hb" title="Projekt nach Standort wählen"></button>
     <button data-act="openPath" id="i-fp" class="hb pconly" title="Ordnerpfad auf dem Server kopieren (im Explorer einfügen)"></button>
     <button data-act="print" id="i-pdf" class="hb" title="PDF des Tagesberichts erstellen"></button>
-    <button data-act="menu" id="i-g" class="hb" title="Einstellungen und weitere Apps" aria-haspopup="menu"></button>
+    <button data-act="menu" id="i-g" class="hb hidden" title="Einstellungen und weitere Apps" aria-haspopup="menu"></button>
     </div>
     <div class="menu hidden" id="menu"></div>
   </header>
@@ -563,14 +564,22 @@ const appUrl = a => a.url || `${location.protocol}//${location.hostname}:${a.por
 const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
-  if (window.BPHead) BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });   // gemeinsame Kopfleiste
+  if (window.BPHead) {   // gemeinsame Kopfleiste; ⚙ → „Bautagebuch“ zeigt die Einstellungen der App im Einstellungsfenster
+    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });
+    BPHead.appEinstellungen([{ key: 'bt', label: 'Bautagebuch', render: (h) => {
+      const vor = tab; PH = h; tab = 'profil'; renderProfile(h);
+      return () => { PH = null; tab = vor === 'profil' ? 'bericht' : vor; renderDetail(); };
+    } }]);
+    try { await BPHead.ready; } catch { /* ohne Kopfleiste weiter */ }
+  }
   try { meta = await api('api/meta'); contacts = await api('api/contacts'); settings = await api('api/settings'); people = await api('api/people'); leaderUsers = await api('api/leaders'); await loadProjects(); } catch { return; }
   const hp = /^#projekt=(\d+)(?:&bericht=(\d+))?/.exec(location.hash);   // Link aus Verwaltung / Mängelliste: dieses Projekt (und diesen Bericht) öffnen
   const hs = location.hash === '#einstellungen';    // Link aus der Verwaltung → Einstellungen
   if (hp || hs) history.replaceState(null, '', location.pathname);
-  if (hs) tab = 'profil';
-  const start = (hp && projects.find(p => p.id === +hp[1])) || projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
+  const gp = window.BPHead && BPHead.projektId && BPHead.projektId();   // Projekt aus der zuletzt benutzten App
+  const start = (hp && projects.find(p => p.id === +hp[1])) || (gp && projects.find(p => p.id === gp)) || projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
   if (start) await openProject(start.id); else renderDetail();
+  if (hs && window.BPHead && BPHead.einstellungen) BPHead.einstellungen({ bereich: 'app' });
   if (hp && hp[2] && start && start.id === +hp[1] && reports.some((x) => x.id === +hp[2])) { tab = 'bericht'; rid = +hp[2]; renderDetail(); }
   else if (!hp) autoPick(true);   // Projekt per GPS wählen, wenn man vor Ort ist
   if (await backfillAddresses()) autoPick(true);
@@ -581,6 +590,7 @@ async function loadProjects() {
 }
 async function openProject(id, keep) {
   pid = id; try { localStorage.setItem('pid', id); } catch {}
+  if (window.BPHead && BPHead.projektSetzen) BPHead.projektSetzen(id);   // gilt dann auch in den anderen Apps
   reports = await api(`api/projects/${id}/reports`);
   if (!keep || !curReport()) { rid = reports[0]?.id ?? null; wxEdit = headEdit = false; adding = null; }
   await loadProjects(); renderDetail(); autoWx(); checkRename(id);
@@ -1509,8 +1519,11 @@ async function storeStatus() {
   el.textContent = (s.pending ? `Wartet auf Übertragung: ${s.pending}.` : 'Alles übertragen.') + (s.error ? ` Letzter Fehler: ${s.error}` : '');
 }
 
+let PH = null;   // Einstellungen im Einstellungsfenster der Kopfleiste (statt im Hauptbereich)
 function renderDetail() {
   chrome();
+  if (tab === 'profil' && PH && document.body.contains(PH)) { renderProfile(PH); return; }
+  if (tab === 'profil' && window.BPHead && BPHead.einstellungen) { tab = 'bericht'; BPHead.einstellungen({ bereich: 'app' }); }
   const box = $('#detail'); box.classList.toggle('fill', tab === 'kontakte');
   $('#fab').classList.toggle('hidden', !(tab === 'bericht' && curProject() && curReport())); $('#fab').innerHTML = ic('plus', 30, 3);
   ({bericht: renderReport, projekt: renderProject, kontakte: renderContacts, profil: renderProfile, audit: renderAudit, suche: renderSearch}[tab])(box);

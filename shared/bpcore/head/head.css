@@ -111,3 +111,53 @@
 .bph-chips button:hover{border-color:var(--y,var(--bph-acc,#ff5fb3))}
 .bph-sigp{white-space:pre-wrap;font:inherit;font-size:.9em;border-left:3px solid var(--line,#3b3e42);padding:.2rem .7rem;margin:.3rem 0 .8rem}
 .bph-db label input:not([type=checkbox]):not([type=radio]):not([type=file]){font:inherit;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line,#3b3e42);background:transparent;color:inherit;width:100%;box-sizing:border-box}
+/* ▦ Apps und ⚙ Einstellungen – in allen Apps gleich */
+.bph-ic{width:40px;height:40px;border-radius:50%!important;display:grid;place-items:center;flex:none;color:var(--bph-ink)!important}
+.bph-ic:hover{background:rgba(255,255,255,.09)!important}
+.bph-ic svg{width:22px;height:22px}
+.bph-menu .bph-ms{display:block;color:var(--bph-mute);font-size:.76rem;font-weight:400}
+.bph-menu [data-konto]{align-items:flex-start}
+.bph-menu [data-konto] svg{margin-top:.15rem}
+.bph-apps{min-width:0;width:min(372px,calc(100vw - 1.2rem));padding:.3rem .3rem .5rem}
+.bph-apps .bph-info small{color:var(--bph-mute)}
+.bph-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:.3rem;padding:0 .3rem}
+.bph-menu .bph-tiles a{flex-direction:column;justify-content:center;gap:.4rem;text-align:center!important;padding:.8rem .3rem!important;border-radius:10px!important;font-size:.82rem;line-height:1.2;min-height:84px}
+.bph-menu .bph-tiles a svg{width:28px;height:28px;color:var(--bph-acc)}
+.bph-menu .bph-tiles a.cur{background:rgba(255,255,255,.08)}
+/* Einstellungsfenster (von rechts) */
+.bph-dr-bg{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0);transition:background .18s;display:flex;justify-content:flex-end}
+.bph-dr-bg.in{background:rgba(0,0,0,.45)}
+.bph-dr{width:min(760px,100vw);height:100%;background:var(--card,var(--card2,#252729));color:var(--ink,var(--text,#f3f3f1));border-left:1px solid var(--line,#3b3e42);
+  display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.35);transform:translateX(30px);opacity:0;transition:transform .18s,opacity .18s;
+  font:15px/1.4 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;text-align:left;box-sizing:border-box}
+.bph-dr *{box-sizing:border-box}
+.bph-dr-bg.in .bph-dr{transform:none;opacity:1}
+.bph-drh{display:flex;align-items:center;padding:.8rem 1.1rem .5rem;padding-top:max(.8rem,env(safe-area-inset-top))}
+.bph-drh b{flex:1;font-size:1.15rem;display:flex;align-items:center;gap:.5rem}
+.bph-drh b svg{width:22px;height:22px;color:var(--y,var(--bph-acc,#ff5fb3))}
+.bph-drt{display:flex;gap:.35rem;padding:0 1.1rem .6rem;flex-wrap:wrap}
+.bph-drt button{display:flex;align-items:center;gap:.45rem;border:1px solid var(--line,#3b3e42);background:transparent;color:inherit;border-radius:999px;padding:.45rem .9rem;font:inherit;font-size:.92rem;cursor:pointer}
+.bph-drt button svg{width:18px;height:18px}
+.bph-drt button.on{background:var(--y,var(--bph-acc,#ff5fb3));border-color:transparent;color:var(--on,#111);font-weight:600}
+.bph-drn{display:flex;gap:.2rem;padding:0 1.1rem;border-bottom:1px solid var(--line,#3b3e42);overflow-x:auto;flex:none}
+.bph-drn[hidden]{display:none}
+.bph-drn button{border:0;background:none;color:var(--mute,#9a9c9e);padding:.55rem .75rem;cursor:pointer;font:inherit;font-size:.92rem;border-bottom:2px solid transparent;white-space:nowrap}
+.bph-drn button.on{color:inherit;border-bottom-color:var(--y,var(--bph-acc,#ff5fb3));font-weight:600}
+.bph-drb{flex:1;overflow:auto;padding:.6rem 1.1rem 2rem;padding-bottom:max(2rem,env(safe-area-inset-bottom))}
+.bph-drb > h4:first-child{margin-top:.4rem}
+.bph-drb h4{margin:1rem 0 .3rem;font-size:.98rem}
+.bph-drb .bph-db{padding:0}
+.bph-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.6rem;margin:.6rem 0}
+.bph-cards h4{grid-column:1/-1;margin:.6rem 0 0}
+.bph-card{display:flex;flex-direction:column;gap:.25rem;text-align:left;border:1px solid var(--line,#3b3e42);border-radius:12px;padding:.8rem .9rem;background:transparent;color:inherit!important;text-decoration:none!important;font:inherit;cursor:pointer}
+.bph-card:hover{border-color:var(--y,var(--bph-acc,#ff5fb3))}
+.bph-card small{color:var(--mute,#9a9c9e);font-size:.82rem;line-height:1.35}
+.bph-lookp .bph-lk{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0}
+.bph-lookp .bph-th{border:1px solid var(--line,#3b3e42);border-radius:999px;padding:.45rem .95rem;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.bph-lookp .bph-th.on{background:var(--y,var(--bph-acc,#ff5fb3));color:var(--on,#111);border-color:transparent;font-weight:600}
+.bph-lookp .bph-sw{padding:0;gap:.55rem}
+.bph-lookp .bph-sw button,.bph-lookp .bph-sw label{width:34px;height:34px;border-radius:50%;padding:0;border:2px solid transparent;box-shadow:0 0 0 1px var(--line,#3b3e42);position:relative;overflow:hidden;cursor:pointer}
+.bph-lookp .bph-sw .on{border-color:var(--ink,#fff);box-shadow:0 0 0 2px var(--y,#ff5fb3)}
+@media (max-width:640px){.bph-ic{width:36px;height:36px}.bph-drt button span{display:inline}.bph-drh{padding-left:.8rem;padding-right:.8rem}.bph-drt,.bph-drn,.bph-drb{padding-left:.8rem;padding-right:.8rem}}
+.bph-hl{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.5rem 1rem;background:var(--card2,#34363a);color:var(--ink,#f3f3f1);border-bottom:1px solid var(--line,#3b3e42);font:14px/1.4 Ubuntu,"Segoe UI",system-ui,sans-serif;position:relative;z-index:24}
+.bph-hl span{flex:1;min-width:12rem}.bph-hl .bph-btn{padding:.3rem .8rem}

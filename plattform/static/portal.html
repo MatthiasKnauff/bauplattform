@@ -68,7 +68,8 @@ function pjLinks(p) {
 }
 function pjBtn() {
   const R = recent().map((k) => PJ.find((p) => p.key === k)).filter(Boolean);
-  pickButton($('#pjBtn'), { title: 'Projekt öffnen …', sub: R.length ? 'Zuletzt: ' + R[0].name : `${PJ.filter((p) => !p.archived).length} Projekte – Bautagebuch, Bauzeitenplan, Baukosten` });
+  const A = window.BPHead && BPHead.projekt;
+  pickButton($('#pjBtn'), { title: 'Projekt öffnen …', sub: A ? 'Aktuell: ' + A.name : R.length ? 'Zuletzt: ' + R[0].name : `${PJ.filter((p) => !p.archived).length} Projekte – Bautagebuch, Bauzeitenplan, Baukosten` });
 }
 $('#pjBtn').addEventListener('click', () => {
   const R = recent(), item = (p, group) => { const L = pjLinks(p);
@@ -78,10 +79,10 @@ $('#pjBtn').addEventListener('click', () => {
   pickMenu($('#pjBtn'), {
     search: 'Projekt suchen: Nummer, Name, Bauherr oder Ort …', empty: 'Kein Projekt gefunden.',
     items: [...rec.map((p) => item(p, 'Zuletzt geöffnet')), ...PJ.filter((p) => !p.archived && !R.includes(p.key)).map((p) => item(p, 'Projekte')), ...PJ.filter((p) => p.archived && !R.includes(p.key)).map((p) => item(p, 'Archiv'))],
-    onPick: (k, x) => { const L = pjLinks(x.p); remember(k); if (L[0]) location.href = L[0][1]; else toast('Dieses Projekt gibt es in keiner deiner Apps.', true); },
+    onPick: (k, x) => { const L = pjLinks(x.p); remember(k); if (x.p.bt) BPHead.projektSetzen(x.p.bt); if (L[0]) location.href = L[0][1]; else toast('Dieses Projekt gibt es in keiner deiner Apps.', true); },
   });
 });
-document.addEventListener('click', (e) => { const a = e.target.closest('.pickm a[data-pk]'); if (a) remember(a.dataset.pk); }, true);
+document.addEventListener('click', (e) => { const a = e.target.closest('.pickm a[data-pk]'); if (a) { remember(a.dataset.pk); const p = PJ.find((x) => x.key === a.dataset.pk); if (p && p.bt) BPHead.projektSetzen(p.bt); } }, true);
 (async () => {
   const me = await api('api/me'); if (!me.ok) { location.href = '/login'; return; }
   applyLook(me);
@@ -90,7 +91,7 @@ document.addEventListener('click', (e) => { const a = e.target.closest('.pickm a
   const h = new Date().getHours();
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.vorname || me.name}`;
   CONF = conf; pjBtn(); api('api/projekte').then((r) => { PJ = r; pjBtn(); }).catch(() => { $('.pj').hidden = true; });
-  $('#tiles').innerHTML = conf.apps.filter(a => DESC[a.key] && (a.allowed || a.key !== 'admin')).map(a => `
+  $('#tiles').innerHTML = conf.apps.filter(a => DESC[a.key] && a.key !== 'admin').map(a => `
     <a class="tile ${a.allowed ? '' : 'off'}" href="${esc(appUrl(a))}/"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'}>
       <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span>${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span>
       ${a.allowed ? '<span class="go">Öffnen →</span>' : ''}</a>`).join('');

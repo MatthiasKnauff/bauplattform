@@ -453,9 +453,8 @@ function updateProjSub() {
 
 /* ---------- Einstellungen: zentral in der Verwaltung (KI, Farben …); „Beim Löschen fragen“ im Reiter Leistung ---------- */
 function settingsDialog() {
+  if (window.BPHead && BPHead.einstellungen) { BPHead.einstellungen(); return; }   // ⚙ – gleiches Einstellungsfenster wie in allen Apps
   const conf = window.BP && BP.conf, me = window.BP && BP.me;
-  const admin = conf && (conf.apps || []).find((a) => a.key === 'admin' && a.allowed);
-  if (admin && window.BPHead) { window.open(BPHead.appUrl(admin) + '/#einstellungen', '_blank', 'noopener'); return; }
   const portal = conf && (conf.apps || []).find((a) => a.key === 'portal');
   modal('Einstellungen', `<div style="max-width:440px;line-height:1.5">Die Einstellungen der Bauplattform (KI, Kennwerte …) nimmt die Verwaltung vor${me ? '' : ''}.<br><br>
     Deine Farben stellst du auf der Startseite unter <b>Darstellung</b> ein${portal && window.BPHead ? ` – <a href="${esc(BPHead.appUrl(portal))}/#darstellung">zur Startseite</a>` : ''}.<br>
@@ -2763,6 +2762,27 @@ async function compareVersion(v, label) {
   m.querySelector('.modal').style.width = '900px';
 }
 
+/* ⚙ → Bauzeitenplan: Einstellungen dieser App */
+function ganttSettings(host) {
+  const draw = () => {
+    host.innerHTML = `<h4>Bearbeiten</h4>
+      <label class="bph-ck"><input type="checkbox" data-gs="delAsk"${LS.get('delAsk', true) ? ' checked' : ''}> Beim Löschen von Leistungen fragen</label>
+      <label class="bph-ck"><input type="checkbox" data-gs="autoLink"${autoLink ? ' checked' : ''}> Neue Leistungen automatisch mit der vorherigen verknüpfen</label>
+      <p class="bph-mu">Gilt auf diesem Gerät. Beides lässt sich auch im Reiter „Leistung“ umschalten.</p>
+      <h4>Kataloge, Phasen, Firmen und Vorlagen</h4>
+      <p class="bph-mu">Leistungskatalog und Vorlagen pflegst du im Reiter „Leistungskatalog“, den Planungsassistenten über ✦ in der Leiste. Frühere Stände lassen sich hier zurückholen.</p>
+      <div class="bph-row"><button type="button" class="bph-btn" data-gs="verlauf">↶ Verlauf der Kataloge und Einstellungen</button></div>`;
+  };
+  host.onchange = (e) => {
+    const k = e.target.dataset.gs;
+    if (k === 'delAsk') { LS.set('delAsk', e.target.checked); updateRibbon(); }
+    if (k === 'autoLink') { autoLink = e.target.checked; LS.set('autolink', autoLink); updateRibbon(); }
+  };
+  host.onclick = (e) => { if (e.target.closest('[data-gs="verlauf"]')) ACTIONS.verlaufKatalog(); };
+  draw();
+}
+if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'gantt', label: 'Bauzeitenplan', render: (h) => ganttSettings(h) }]);
+
 async function boot() {
   const gw = LS.get('gw', null); if (gw) document.documentElement.style.setProperty('--gw', gw + 'px');
   showTab(LS.get('tab', 'vorgang'));
@@ -2773,9 +2793,23 @@ async function boot() {
     const hp = /^#plan=([\w-]+)/.exec(location.hash);   // Link aus der Verwaltung: diesen Plan öffnen
     if (hp && projects.some((p) => p.id === hp[1])) { id = hp[1]; history.replaceState(null, '', location.pathname); }
     if (id === '__geschlossen__' && projects.length) { await refreshProjectList(); $('#projTitle').textContent = 'Kein Projekt geöffnet'; $('#projSub').textContent = 'Klicken zum Öffnen oder Anlegen'; setNoProject(true); renderStart(); if (LS.get('assistOpen', false)) setAssistOpen(true); return; }
+    let halten = false;   // kein passender Plan: der zuletzt offene Plan ändert das Projekt der anderen Apps nicht
+    if (!hp) {   // Projekt aus der zuletzt benutzten App: dessen Plan (verknüpft oder gleiche Projektnummer)
+      await new Promise((ok) => (document.readyState === 'loading' ? addEventListener('DOMContentLoaded', ok) : ok()));
+      if (window.BPHead && BPHead.ready) await BPHead.ready.catch(() => null);
+      const gp = window.BPHead && BPHead.projekt;
+      if (gp && gp.id) {
+        const nr = (gp.name.match(/^[A-Za-z]\d{3}(?:\.\d+)?/) || [''])[0].toLowerCase();
+        const fit = projects.find((p) => p.id === id && p.bt_id === gp.id) || projects.find((p) => p.bt_id === gp.id)
+          || (nr && projects.find((p) => !p.bt_id && p.name.toLowerCase().startsWith(nr)));
+        if (fit) id = fit.id;
+        else halten = true, BPHead.hinweisLeiste(`Für ${gp.name} gibt es noch keinen Bauzeitenplan.`, 'Anlegen', () => ACTIONS.newProject());
+      }
+    }
     if (!projects.some((p) => p.id === id)) id = projects[0]?.id;
     if (!id) { const p = await api.create({ name: 'Neues Projekt', start: snapWork(todayN()), tasks: [] }); id = p.id; }
     await openProject(id);
+    if (halten) window.bpHalten = id;
     await refreshProjectList();
     const aw = LS.get('aw', null); if (aw) document.documentElement.style.setProperty('--aw', aw + 'px');
     if (LS.get('assistOpen', false)) setAssistOpen(true);

@@ -745,3 +745,7 @@ html[data-theme="dunkel"] .wz-o small,html[data-theme="dunkel"] .wz-bar small,ht
 .ae-phw{display:inline-block;margin-left:.4rem;vertical-align:middle}
 .ae-phs{font-size:.75rem;padding:.05rem .2rem;max-width:12rem;opacity:.75}
 .ae-phs:hover,.ae-phs:focus{opacity:1}
+/* Einstellungsfenster der Kopfleiste (⚙) in den Farben des Bauzeitenplans */
+.bph-dr{--card:#fff;--ink:var(--text);--line:var(--bd);--mute:var(--mut);--y:var(--accent);--on:#fff;--inp:#fff}
+html[data-theme="dunkel"] .bph-dr{--card:#2b2c2e;--line:#45474b;--inp:#1d1f21}
+.bph-dr input[type=checkbox]{accent-color:var(--accent)}

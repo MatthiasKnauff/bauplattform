@@ -165,7 +165,6 @@ body.as-open .wrap{padding-bottom:45vh}
     <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
     <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
     <button class="btn sm" id="verBtn" title="Frühere Stände dieser Kostenermittlung ansehen und wiederherstellen">↶ Verlauf</button>
-    <button class="btn sm" id="setBtn" aria-haspopup="dialog" title="Einstellungen der Baukosten: Raumtypen und Kennwerte des Büros">⚙ Raumtypen</button>
     <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
   </div>
@@ -269,11 +268,20 @@ function justageHtml() {
 /* ---------- Laden / Speichern ---------- */
 async function loadList(keep) {
   LIST = await api('api/bk');
-  const want = keep || +localStorage.getItem('bk.cur') || (LIST[0] && LIST[0].id);
-  if (LIST.some((x) => x.id === want)) await openBk(want); else { B = null; selBtn(); render(); }
+  let want = keep;
+  const gp = !keep && BPHead.projektId();   // Projekt aus der zuletzt benutzten App: dessen neueste Kostenermittlung
+  if (gp) {
+    const cur = LIST.find((x) => x.id === +localStorage.getItem('bk.cur'));
+    const fit = cur && cur.project_id === gp ? cur : LIST.filter((x) => x.project_id === gp && !x.archived).concat(LIST.filter((x) => x.project_id === gp))[0];
+    if (fit) want = fit.id;
+    else BPHead.hinweisLeiste(`Für ${BPHead.projekt.name} gibt es noch keine Kostenermittlung.`, 'Anlegen', () => newDialog(BPHead.projekt.name));
+  }
+  want = want || +localStorage.getItem('bk.cur') || (LIST[0] && LIST[0].id);
+  if (LIST.some((x) => x.id === want)) await openBk(want, !gp); else { B = null; selBtn(); render(); }
 }
-async function openBk(id) {   // nicht „open“ nennen: das überschriebe window.open (PDF-Fenster)
-  B = await api('api/bk/' + id); FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
+async function openBk(id, merken = true) {   // nicht „open“ nennen: das überschriebe window.open (PDF-Fenster)
+  B = await api('api/bk/' + id);
+  if (merken && B.project_id) BPHead.projektSetzen(B.project_id);   // gilt dann auch in den anderen Apps FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
   asLoad(); if (localStorage.getItem(AS_KEY()) == null) { AS.open = true; asSave(); }   // beim ersten Öffnen startet der Assistent
   try { localStorage.setItem('bk.cur', id); } catch { /* egal */ }
   head(); render();
@@ -1005,7 +1013,7 @@ $('#newBtn').onclick = () => newDialog();
 $('#pdfBtn').onclick = () => pdfDialog();
 /* ---------- ⚙ Raumtypen: Liste des Büros (gilt für alle Kostenermittlungen) ---------- */
 const guessTyp = (name, cat) => { const n = (name || '').toLowerCase().trim(); if (n) for (const t of cat) for (const w of (t.worte || '').split(',')) { const x = w.trim(); if (x && n.includes(x)) return t.key; } return 'sonst'; };
-async function typesDialog() {
+async function typesDialog(host) {
   let R; try { R = await api('api/kennwerte'); } catch (e) { toast(e.message, true); return; }
   let L = R.raumtypen.map((t) => ({ ...t }));
   const row = (t, i) => `<tr data-i="${i}"><td><input data-tf="label" value="${esc(t.label)}" aria-label="Bezeichnung" style="width:100%"></td>
@@ -1019,7 +1027,7 @@ async function typesDialog() {
     ${B ? `<label class="chk" style="margin-top:.8rem"><input type="checkbox" id="tyRe" checked><span><b>Raumtypen neu vorschlagen</b> – in der geöffneten Kostenermittlung „${esc(B.name)}“ bekommen alle Räume, die du noch <b>nicht bestätigt</b> hast, ihren Raumtyp nach den Stichwörtern oben neu. Bestätigte Räume bleiben unverändert.</span></label>` : ''}
     <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:raumtypen" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">↶ Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>`;
   const read = (bg) => bg.querySelectorAll('tr[data-i]').forEach((tr) => { const t = L[+tr.dataset.i]; tr.querySelectorAll('[data-tf]').forEach((el) => { t[el.dataset.tf] = el.dataset.tf === 'kw' ? pnum(el.value) : el.value; }); });
-  const bg = modalBox(html(), async (m, bg, close, b) => {
+  const bg = boxIn(host)(html(), async (m, bg, close, b) => {
     if (m === 'x') { close(); return; }
     read(bg);
     const redraw = () => { bg.querySelector('.modal').innerHTML = html(); };
@@ -1031,7 +1039,7 @@ async function typesDialog() {
       const re = bg.querySelector('#tyRe')?.checked;
       try {
         const r = await api('api/kennwerte', 'PUT', { raumtypen: L.filter((t) => t.label.trim()) });
-        close(); toast('Raumtypen gespeichert – gelten für alle Kostenermittlungen.');
+        if (!host) close(); else { R.raumtypen = r.raumtypen; } toast('Raumtypen gespeichert – gelten für alle Kostenermittlungen.');
         if (B) {
           clearTimeout(saveT); await saveNow(); B = await api('api/bk/' + B.id);
           if (re) { let n = 0; B.data.rooms.forEach((x) => { if (!x.ok) { const k = guessTyp(x.name, r.raumtypen); if (k !== x.typ && B.data.types[k]) { x.typ = k; n++; } } }); if (n) { toast(`${n} Räume neu zugeordnet.`); changed(); return; } }
@@ -1040,9 +1048,8 @@ async function typesDialog() {
       } catch (er) { toast(er.message, true); }
     }
   });
-  bg.querySelector('.modal').style.width = 'min(760px,100%)';
+  if (!host) bg.querySelector('.modal').style.width = 'min(760px,100%)';
 }
-$('#setBtn').onclick = () => typesDialog();
 $('#moreBtn').onclick = () => {
   if (!B) return;
   modalBox(`<h3>„${esc(B.name)}“</h3>
@@ -1111,8 +1118,9 @@ function pdfDialog() {
     } catch (er) { if (w && !w.closed) w.close(); toast('Das PDF konnte nicht erstellt werden: ' + er.message, true); }
   });
 }
-async function newDialog() {
+async function newDialog(vor) {
   if (document.querySelector('.modal-bg')) return;   // schon offen (Doppelklick)
+  if (typeof vor === 'string') setTimeout(() => { const q = document.querySelector('#nkQ'); if (q) { q.value = vor; q.dispatchEvent(new Event('input', { bubbles: true })); } }, 0);
   if (!SRC) await loadSources();
   let sel = null, folders = [], fT = 0, nameTouched = false;   // sel: {kind:'bt'|'folder'|'none', id?, name}
   const bg = modalBox(`<h3 style="margin-bottom:.3rem">Neue Kostenermittlung</h3><p class="hint" style="margin:0 0 1rem">Wähle das Projekt – aus dem Bautagebuch oder als Ordner vom Server.</p>
@@ -1215,10 +1223,10 @@ function vgImport() {
     try { const r = await fetch('api/vergleich/import', { method: 'POST', body: fd }); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.statusText); VG = j; close(); toast(`${j.n} Kennwerte importiert.`); render(); } catch (e) { toast(e.message, true); }
   });
 }
-async function diensteDialog() {
+async function diensteDialog(host) {
   let D; try { D = await api('api/dienste'); } catch (e) { toast(e.message, true); return; }
   const dis = D.admin ? '' : ' disabled';
-  modalBox(`<h3>Kostendatenbanken (kostenpflichtig)</h3><p class="hint">Für genauere Kennwerte nach DIN 276 bieten diese Anbieter Daten aus abgerechneten Projekten an. Eine direkte Abfrage geben sie nur für Software-Partner frei – bis dahin die Kennwerte dort als Excel/CSV exportieren und unter „Kennwerte importieren“ einlesen. Die Zugangsdaten werden hier schon hinterlegt (nur der Administrator sieht und ändert sie; Kennwörter werden nie angezeigt).</p>
+  boxIn(host)(`<h3>Kostendatenbanken (kostenpflichtig)</h3><p class="hint">Für genauere Kennwerte nach DIN 276 bieten diese Anbieter Daten aus abgerechneten Projekten an. Eine direkte Abfrage geben sie nur für Software-Partner frei – bis dahin die Kennwerte dort als Excel/CSV exportieren und unter „Kennwerte importieren“ einlesen. Die Zugangsdaten werden hier schon hinterlegt (nur der Administrator sieht und ändert sie; Kennwörter werden nie angezeigt).</p>
     ${D.dienste.map((x) => `<div class="card" style="margin:.6rem 0;padding:.7rem .9rem"><label class="chk" style="font-weight:600"><input type="checkbox" data-dk="${x.key}" data-df="an"${x.an ? ' checked' : ''}${dis}> ${esc(x.name)}</label>
       <p class="hint" style="margin:.2rem 0 .5rem">${esc(x.info)} · <a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url.replace('https://', ''))}</a></p>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem"><label>Benutzer<input data-dk="${x.key}" data-df="user" value="${esc(x.user)}"${dis}></label>
@@ -1227,7 +1235,7 @@ async function diensteDialog() {
     <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:dienste" style="margin-right:auto">↶ Verlauf</button><button class="btn" data-m="x">${D.admin ? 'Abbrechen' : 'Schließen'}</button>${D.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     const b = {}; bg.querySelectorAll('[data-dk]').forEach((el) => { const o = b[el.dataset.dk] ||= {}; o[el.dataset.df] = el.type === 'checkbox' ? el.checked : el.value; });
-    try { await api('api/dienste', 'PUT', b); close(); toast('Zugänge gespeichert.'); } catch (e) { toast(e.message, true); }
+    try { await api('api/dienste', 'PUT', b); if (!host) close(); toast('Zugänge gespeichert.'); } catch (e) { toast(e.message, true); }
   });
 }
 /* ---------- Hinweis beim Öffnen (abschaltbar) ---------- */
@@ -1248,6 +1256,8 @@ async function hinweis() {
   const me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform');
   await header('Baukosten', me, conf);
+  BPHead.appEinstellungen([{ key: 'raumtypen', label: 'Raumtypen & Kennwerte', render: (h) => typesDialog(h) },
+    { key: 'dienste', label: 'Kostendatenbanken', render: (h) => diensteDialog(h) }]);
   BPHead.onKi(() => { CHECK = null; if (tab === 'pruefung') render(); });
   const hb = /^#bk=(\d+)/.exec(location.hash);   // Link aus der Verwaltung: diese Kostenermittlung öffnen
   if (!TABS.some((t) => t[0] === tab)) tab = 'uebersicht';

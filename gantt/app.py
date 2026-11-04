@@ -340,7 +340,7 @@ def list_projects(c):
             continue
         out.append({"id": r["id"], "name": r["name"], "updated": r["updated"], "n": len(p.get("tasks") or []), "start": p.get("start"),
                     "assist": bool(isinstance(p.get("assist"), dict) and p["assist"].get("type")),
-                    "by": r["updated_by"], "bt": bt.get(r["project_id"]) if r["project_id"] else None})
+                    "by": r["updated_by"], "bt": bt.get(r["project_id"]) if r["project_id"] else None, "bt_id": r["project_id"]})
     return out
 
 

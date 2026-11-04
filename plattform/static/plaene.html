@@ -66,7 +66,6 @@
     <select id="proj" aria-label="Projekt"></select>
     <button class="btn sm" id="reBtn" title="Projektordner neu durchsuchen">⟳ Neu einlesen</button>
     <span class="fill"></span>
-    <button class="btn sm" id="setBtn" title="Phasen, Planarten, Kennungen und Stichwörter für die Gewerke">⚙ Einstellungen</button>
   </div>
   <div class="ord" id="ord"></div>
   <nav class="tabs" id="tabs"></nav>
@@ -270,12 +269,12 @@ async function versandDialog() {
 }
 
 /* ---------- Einstellungen ---------- */
-async function setDialog() {
+async function setDialog(host) {
   try { CFG = await api('api/einstellungen'); } catch (e) { toast(e.message, true); return; }
   const lines = (o, sep) => Object.entries(o).map(([k, v]) => `${k}${sep}${v}`).join('\n');
   const parse = (t, sep) => Object.fromEntries(t.split('\n').map((l) => { const i = l.indexOf(sep); return i < 0 ? null : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }).filter((x) => x && x[0] && x[1]));
   const dis = CFG.admin ? '' : ' disabled';
-  modalBox(`<h3>Einstellungen – Planstand & Versand</h3><div class="set vd">
+  boxIn(host)(`<h3>Einstellungen – Planstand & Versand</h3><div class="set vd">
     <p class="mu" style="margin:0">Pläne werden nach der Plannummerierung gelesen: <code>A526 [Kennung] 2.1.1.2 [INDEX B] Titel</code>. Die erste Ziffer ist die Phase, die zweite die Planart. Ohne Index ist es der Ursprungsplan, der höchste Buchstabe der neueste Stand.${CFG.admin ? '' : ' <b>Ändern kann der Administrator.</b>'}</p>
     <div class="g2"><label>Phasen (Ziffer = Name)<textarea id="sPh"${dis}>${esc(lines(CFG.phasen, ' = '))}</textarea></label>
       <label>Planarten (Ziffer = Name)<textarea id="sPa"${dis}>${esc(lines(CFG.planarten, ' = '))}</textarea></label></div>
@@ -289,7 +288,7 @@ async function setDialog() {
     if (m === 'ok') {
       try {
         CFG = await api('api/einstellungen', 'PUT', { phasen: parse($('#sPh', bg).value, '='), planarten: parse($('#sPa', bg).value, '='), kennungen: parse($('#sKe', bg).value, '='), stichworte: parse($('#sSt', bg).value, ':'), max_mb: +$('#sMb', bg).value });
-        close(); toast('Gespeichert.'); laden();
+        if (!host) close(); toast('Gespeichert.'); laden();
       } catch (e) { toast(e.message, true); }
     }
   });
@@ -305,7 +304,6 @@ document.addEventListener('click', async (e) => {
   if (t.id === 'selNone') { SEL.clear(); render(); return; }
   if (t.id === 'vBtn') { versandDialog(); return; }
   if (t.id === 'reBtn') { laden(); return; }
-  if (t.id === 'setBtn') { setDialog(); return; }
   if (t.id === 'ordBaum') { baumDialog(); return; }
   if (t.id === 'ordMerkAlt') { try { await api('api/projekt/' + pid, 'PUT', { ordner: D.ordner }); D.gemerkt = D.ordner; renderOrd(); toast('Planordner gemerkt.'); } catch (er) { toast(er.message, true); } }
 });
@@ -317,19 +315,22 @@ document.addEventListener('change', async (e) => {
     try { await api('api/projekt/' + pid, 'PUT', { zuordnung: { [key]: v } }); const p = D.plaene.concat(D.frei || []).find((x) => x.key === key); if (p) { p.gewerk = v; p.gewerk_quelle = v ? 'zugeordnet' : ''; } render(); } catch (er) { toast(er.message, true); }
     return;
   }
-  if (t.id === 'proj') { pid = +t.value || null; LS.set('pid', pid); SEL.clear(); OPEN.clear(); VL = null; head(); laden(); return; }
+  if (t.id === 'proj') { pid = +t.value || null; LS.set('pid', pid); BPHead.projektSetzen(pid); SEL.clear(); OPEN.clear(); VL = null; head(); laden(); return; }
   if (t.id === 'fgw' || t.id === 'fph' || t.id === 'falle') { F.gw = $('#fgw').value; F.phase = $('#fph').value; F.alle = $('#falle').checked; LS.set('filter', F); render(); }
 });
 let qT = null;
 document.addEventListener('input', (e) => { if (e.target.id === 'q') { F.q = e.target.value; LS.set('filter', F); clearTimeout(qT); qT = setTimeout(() => { render(); const q = $('#q'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); } });
 function head() { const p = PROJ.find((x) => x.id === pid); if (window.BPHead) BPHead.setProject(p ? { sub: 'Planstand & Versand', title: p.name } : null); }
-window.bpNachVerlauf = () => setDialog();
+window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
 
 (async () => {
   ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
   await header('Planstand & Versand', ME, PC);
+  BPHead.appEinstellungen([{ key: 'plannr', label: 'Plannummerierung & Gewerke', render: (h) => setDialog(h) }]);
   [PROJ, CFG] = await Promise.all([api('api/projekte'), api('api/einstellungen')]);
+  const gp = BPHead.projektId(); if (gp && PROJ.some((p) => p.id === gp)) pid = gp;   // Projekt aus der zuletzt benutzten App
+  else if (pid) BPHead.projektSetzen(pid);
   if (!PROJ.some((p) => p.id === pid)) pid = (PROJ.find((p) => p.mine && !p.archived) || PROJ.find((p) => !p.archived) || {}).id || null;
   const grp = (l, f) => { const x = PROJ.filter(f); return x.length ? `<optgroup label="${l}">${x.map((p) => `<option value="${p.id}"${p.id === pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; };
   $('#proj').innerHTML = (pid ? '' : '<option value="">– Projekt wählen –</option>') + grp('Meine Projekte', (p) => p.mine && !p.archived) + grp('Weitere Projekte', (p) => !p.mine && !p.archived) + grp('Archiv', (p) => p.archived);

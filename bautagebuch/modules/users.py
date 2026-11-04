@@ -1,4 +1,5 @@
 """Benutzerverwaltung (nur Administrator), eigenes Konto, Kennwort ändern/vergessen."""
+import json
 import re, secrets
 from flask import Blueprint, g, jsonify, request, session
 from core import auth, db, mail, settings
@@ -79,6 +80,18 @@ def update_user(i):
         u = auth.get_any(c, i)
         if not u:
             return jsonify(error="Benutzer nicht gefunden"), 404
+        if "assistent" in d:   # Schritt-für-Schritt-Assistent im Bericht: anbieten, automatisch starten, welche Schritte
+            v = d["assistent"] if isinstance(d["assistent"], dict) else {}
+            st = v.get("steps") if isinstance(v.get("steps"), dict) else {}
+            a_ = {"on": v.get("on") is not False, "auto": bool(v.get("auto")),
+                  "steps": {str(k)[:40]: bool(x) for k, x in list(st.items())[:40]}}
+            u = c.execute("SELECT extra FROM users WHERE id=?", (g.user["id"],)).fetchone()
+            try:
+                ex = json.loads(u["extra"] or "{}")
+            except ValueError:
+                ex = {}
+            ex["bt_assistent"] = a_
+            c.execute("UPDATE users SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), g.user["id"]))
         if "email" in d:
             email = str(d["email"] or "").strip()
             if email and not auth.valid_email(email):
@@ -168,6 +181,18 @@ def update_account():
             if a and not re.fullmatch(r"#[0-9a-fA-F]{6}", a):
                 return jsonify(error="Die Farbe ist ungültig."), 400
             c.execute("UPDATE users SET accent=?, updated=datetime('now') WHERE id=?", (a.lower(), g.user["id"]))
+        if "assistent" in d:   # Schritt-für-Schritt-Assistent im Bericht: anbieten, automatisch starten, welche Schritte
+            v = d["assistent"] if isinstance(d["assistent"], dict) else {}
+            st = v.get("steps") if isinstance(v.get("steps"), dict) else {}
+            a_ = {"on": v.get("on") is not False, "auto": bool(v.get("auto")),
+                  "steps": {str(k)[:40]: bool(x) for k, x in list(st.items())[:40]}}
+            u = c.execute("SELECT extra FROM users WHERE id=?", (g.user["id"],)).fetchone()
+            try:
+                ex = json.loads(u["extra"] or "{}")
+            except ValueError:
+                ex = {}
+            ex["bt_assistent"] = a_
+            c.execute("UPDATE users SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), g.user["id"]))
         if "email" in d:
             email = str(d["email"] or "").strip()
             if email and not auth.valid_email(email):

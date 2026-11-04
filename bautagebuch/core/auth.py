@@ -1,4 +1,5 @@
 """Benutzer, Kennwörter, Anmelde-Bremse. Kennwörter werden nur als Hash gespeichert."""
+import json
 import hashlib, re, secrets, sys, time
 from werkzeug.security import check_password_hash, generate_password_hash
 from . import db
@@ -51,7 +52,16 @@ def public(u):
     return {"id": u["id"], "name": u["name"], "email": u["email"], "is_admin": bool(u["is_admin"]),
             "must_change": bool(u["must_change"]), "accent": u["accent"],
             "theme": (u["theme"] if "theme" in u.keys() else "") or "dunkel",
-            "active": bool(u["active"]) if "active" in u.keys() else True}
+            "active": bool(u["active"]) if "active" in u.keys() else True,
+            "assistent": _extra(u).get("bt_assistent") or {}}
+
+
+def _extra(u):
+    try:
+        v = json.loads(u["extra"] or "{}") if "extra" in u.keys() else {}
+        return v if isinstance(v, dict) else {}
+    except ValueError:
+        return {}
 
 
 def valid_email(e):

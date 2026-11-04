@@ -36,6 +36,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Versionsanzeige (Verwaltung, Fußzeilen): bei einer Freigabe immer der Tag, sonst „<VERSION>-test (abc1234)“
+      - name: Version setzen
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "${GITHUB_REF_NAME#v}" > VERSION
+          else echo "$(tr -d '[:space:]' < VERSION)-test (${GITHUB_SHA::7})" > VERSION; fi
+          cat VERSION
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io

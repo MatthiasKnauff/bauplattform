@@ -26,7 +26,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, db, konto, posteingang, sso, versionen, vorlagen
+from . import ai, benachrichtigung, briefbogen, db, konto, posteingang, skizze, sso, versionen, vorlagen
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -147,6 +147,133 @@ def blueprint(get_user=None):
                 out.append({"id": r["id"], "name": r["name"], "client": r["client"] or "", "street": r["street"] or "", "zip": r["zip"] or "",
                             "city": r["city"] or "", "lat": r["lat"], "lon": r["lon"], "archived": bool(r["archived"]), "eigen": eigen, "mein": u["id"] in lead,
                             "bauleiter": ", ".join(namen.get(i, "") for i in lead if namen.get(i))})
+        return jsonify(out)
+
+    # ---- Gemeinsam skizzieren (Ansicht für PDFs, siehe skizze.py)
+    @bp.post("/api/bp/skizze")
+    def skizze_neu():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        f = request.files.get("datei")
+        try:
+            with db.tx() as c:
+                sid = skizze.neu(c, u, request.form.get("name") or (f.filename if f else ""), f.read() if f else b"")
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        return jsonify(id=sid)
+
+    @bp.route("/api/bp/skizze/<sid>", methods=["GET", "POST"])
+    def skizze_stand(sid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if request.method == "POST" or request.args.get("beitreten"):   # per Einladung oder Link
+                if not skizze.beitreten(c, sid, u):
+                    return jsonify(error="Diese gemeinsame Skizze gibt es nicht (mehr)."), 404
+            if not skizze.darf(c, sid, u):
+                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
+            return jsonify(skizze.stand(c, sid, u, request.args.get("seit", type=int) or 0))
+
+    @bp.get("/api/bp/skizze/<sid>/datei")
+    def skizze_datei(sid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if not skizze.darf(c, sid, u):
+                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
+            r = c.execute("SELECT name, datei FROM skizze WHERE id=?", (sid,)).fetchone()
+        return Response(bytes(r["datei"]), mimetype="application/pdf", headers={"Cache-Control": "private, max-age=3600"})
+
+    @bp.get("/api/bp/skizze/<sid>/pdf")
+    def skizze_pdf(sid):
+        from urllib.parse import quote as q
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if not skizze.darf(c, sid, u):
+                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
+            try:
+                name, pdf = skizze.pdf_mit_markierungen(c, sid)
+            except ImportError:
+                return jsonify(error="PDF mit Markierungen ist in dieser App nicht verfügbar."), 501
+        n = name.rsplit(".", 1)[0] + " – markiert.pdf"
+        return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f"attachment; filename*=UTF-8''{q(n)}"})
+
+    @bp.post("/api/bp/skizze/<sid>/strich")
+    def skizze_strich(sid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if not skizze.darf(c, sid, u):
+                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
+            try:
+                return jsonify(skizze.strich(c, sid, u, request.get_json(silent=True) or {}))
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
+
+    @bp.post("/api/bp/skizze/<sid>/loeschen")
+    def skizze_loeschen(sid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if not skizze.darf(c, sid, u):
+                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
+            return jsonify(n=skizze.loeschen(c, sid, u, (request.get_json(silent=True) or {}).get("was")))
+
+    @bp.post("/api/bp/skizze/<sid>/zeiger")
+    def skizze_zeiger(sid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if not skizze.darf(c, sid, u):
+                return jsonify(error="Keine Einladung"), 403
+            skizze.zeiger(c, sid, u, request.get_json(silent=True) or {})
+        return jsonify(ok=True)
+
+    @bp.post("/api/bp/skizze/<sid>/einladen")
+    def skizze_einladen(sid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        an = [int(x) for x in (request.get_json(silent=True) or {}).get("an") or [] if str(x).isdigit()][:20]
+        with db.tx() as c:
+            if not skizze.darf(c, sid, u):
+                return jsonify(error="Keine Einladung"), 403
+            skizze.einladen(c, sid, u, an)
+        return jsonify(ok=True)
+
+    @bp.route("/api/bp/skizze-einladungen", methods=["GET", "POST"])
+    def skizze_einladungen():
+        u = user()
+        if not u:
+            return jsonify([])
+        with db.tx() as c:
+            if request.method == "POST":   # „Später“ – Einladung ausblenden
+                c.execute("UPDATE skizze_einladung SET erledigt=1 WHERE id=? AND an=?", ((request.get_json(silent=True) or {}).get("id"), u["id"]))
+            try:
+                return jsonify(skizze.einladungen(c, u))
+            except Exception:   # Schema noch nicht da
+                return jsonify([])
+
+    @bp.get("/api/bp/kollegen")
+    def kollegen():
+        """Wen man einladen kann: aktive Benutzer (ohne sich selbst), mit Hinweis, wer gerade angemeldet ist."""
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        import time as _t
+        with db.tx() as c:
+            on = {r["user_id"] for r in c.execute("SELECT DISTINCT user_id FROM sso_sessions WHERE seen>?", (int(_t.time()) - 900,))}
+            out = [{"id": r["id"], "name": skizze.name_von(r), "online": r["id"] in on}
+                   for r in c.execute("SELECT * FROM users WHERE active=1 AND id<>? AND lower(name)<>'admin' ORDER BY name", (u["id"],))]
+        out.sort(key=lambda x: (not x["online"], x["name"].lower()))
         return jsonify(out)
 
     # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – das Bautagebuch erledigt es, mit der Anmeldung des Benutzers

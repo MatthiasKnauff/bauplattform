@@ -219,6 +219,7 @@
       renderKi();
       return H;
     })();
+    H.ready.then(skWache).catch(() => {});
     return H.ready;
   };
 
@@ -900,11 +901,13 @@
     const el = document.createElement('div'); el.className = 'bph-gv'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Ansicht');
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
       <button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button>
-      <button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern">⤓</button></div>
+      <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kollegen gleichzeitig" hidden>✏️ Markieren</button>
+      <button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern">⤓</button></div><div class="bph-skl" hidden></div>
       <div class="bph-gvs"></div><button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
     document.body.appendChild(el);
     const S = el.querySelector('.bph-gvs');
-    let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null;
+    let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null, roh = null;
+    const SK = { id: null, striche: [], seq: 0, werkzeug: 'stift', farbe: '#e5484d', leute: [], t: 0, zt: 0, owner: null, aus: false };
     const fitW = () => Math.max(320, Math.min((S.clientWidth || window.innerWidth) - 16, 1400));
     async function show() {
       const x = items[i], my = ++tok; zoom = 1; pdf = null;
@@ -912,13 +915,17 @@
       el.querySelector('.bph-gvn').textContent = items.length > 1 ? `${i + 1} / ${items.length}` : '';
       el.querySelectorAll('.bph-gvp').forEach((b) => { b.hidden = items.length < 2; });
       S.scrollTop = 0; S.innerHTML = '<div class="bph-gvl">Lade …</div>';
+      el.querySelector('.bph-skb').hidden = x.typ !== 'pdf';
+      if (SK.id && !x.skizze) skEnde(true);
       if (x.typ !== 'pdf') { S.innerHTML = `<img class="bph-gvi" src="${esc(x.url)}" alt="${esc(x.name || '')}">`; return; }
       try {
         const lib = await pdfjs();
-        const data = await fetch(x.url, { credentials: 'same-origin' }).then((r) => { if (!r.ok) throw new Error('Datei nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
+        const data = await fetch(x.url, { credentials: 'same-origin' }).then((r) => { if (!r.ok) throw new Error(r.status === 403 ? 'Keine Einladung zu dieser Skizze.' : 'Datei nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
         if (my !== tok) return;
+        roh = data.slice(0);
         pdf = await lib.getDocument({ data }).promise;
         await renderPdf(my);
+        if (x.skizze && SK.id !== x.skizze) skBeitreten(x.skizze);
       } catch (e) { if (my === tok) S.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}<br><a href="${esc(x.url)}" download>Datei herunterladen</a></div>`; }
     }
     async function renderPdf(my) {
@@ -927,11 +934,165 @@
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       for (let n = 1; n <= pdf.numPages && my === tok; n++) {
         const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = (fitW() / v0.width) * zoom, v = pg.getViewport({ scale: sc * dpr });
-        const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.style.width = (zoom * 100) + '%'; cv.className = 'bph-gvc';
-        S.appendChild(cv);
+        const wr = document.createElement('div'); wr.className = 'bph-pg'; wr.dataset.seite = n; wr.style.width = (zoom * 100) + '%';
+        const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-gvc';
+        const ov = document.createElement('canvas'); ov.className = 'bph-skc';
+        wr.append(cv, ov); S.appendChild(wr);
         await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise;
+        skZeichnen(n);
+      }
+      skModus();
+    }
+    /* ---------- Markieren, auch gemeinsam: Striche relativ zur Seite (0…1), Abgleich alle 0,7 s (siehe bpcore/skizze.py) ---------- */
+    const SKW = { stift: ['✏️', 'Stift', 0.0022], marker: ['🖍', 'Marker', 0.011], pfeil: ['↗', 'Pfeil', 0.0025], rechteck: ['▭', 'Rechteck', 0.0025], text: ['T', 'Text', 0.0045], zeigen: ['☝', 'Nur zeigen / blättern', 0] };
+    const SKJ = (u, m, b) => KX(u, m ? { method: m, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) } : {});
+    const ich = () => (H.me && H.me.id) || null;
+    function skLeiste() {
+      const L = el.querySelector('.bph-skl'); L.hidden = !SK.id;
+      if (!SK.id) return;
+      const andere = SK.leute.filter((p) => p.uid !== ich() && p.aktiv);
+      const html = `${Object.entries(SKW).map(([k, [ic, t]]) => `<button type="button" data-skw="${k}" class="${SK.werkzeug === k ? 'on' : ''}" title="${t}">${ic}</button>`).join('')}
+        <span class="bph-skf" style="background:${SK.farbe}" title="deine Farbe"></span>
+        <button type="button" data-sk="zurueck" title="Meinen letzten Strich zurücknehmen">↶</button><button type="button" data-sk="alle" title="${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}">🗑</button>
+        <span class="bph-skp">${andere.length ? andere.map((p) => `<i style="background:${p.farbe}"></i>${esc(p.name.split(' ')[0])}`).join(' ') : 'nur du'}</span>
+        <button type="button" data-sk="einladen" title="Kollegen einladen – sie sehen den Plan und zeichnen gleichzeitig mit">👥 Einladen</button>
+        <button type="button" data-sk="pdf" title="Plan mit allen Markierungen als PDF">⤓ PDF</button><button type="button" data-sk="ende" title="Markieren beenden (die Skizze bleibt gespeichert)">✓ Fertig</button>`;
+      if (L._h !== html) { L._h = html; L.innerHTML = html; }   // nur bei Änderung neu zeichnen (Knöpfe bleiben klickbar)
+    }
+    function skModus() {   // Zeichnen fängt Maus/Finger ab, „Zeigen“ lässt blättern
+      const malen = !!SK.id && SK.werkzeug !== 'zeigen';
+      S.classList.toggle('bph-malen', malen);
+      el.querySelector('.bph-skb').classList.toggle('on', !!SK.id);
+    }
+    function skZeichnen(seite) {
+      const wr = S.querySelector(`.bph-pg[data-seite="${seite}"]`); if (!wr) return;
+      const ov = wr.querySelector('.bph-skc'), dpr = Math.min(2, window.devicePixelRatio || 1), W = wr.clientWidth, Hh = wr.clientHeight;
+      if (!W || !Hh) return;
+      if (ov.width !== Math.round(W * dpr) || ov.height !== Math.round(Hh * dpr)) { ov.width = Math.round(W * dpr); ov.height = Math.round(Hh * dpr); }
+      const g = ov.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, Hh);
+      const alle = SK.striche.filter((d) => d.seite === seite).concat(SK.akt && SK.akt.seite === seite ? [SK.akt] : []);
+      for (const d of alle) skStrich(g, d, W, Hh);
+      wr.querySelectorAll('.bph-ptr').forEach((x) => x.remove());
+      for (const p of SK.leute) {
+        if (p.uid === ich() || !p.aktiv || p.seite !== seite || p.x == null) continue;
+        const z = document.createElement('div'); z.className = 'bph-ptr'; z.style.left = (p.x * 100) + '%'; z.style.top = (p.y * 100) + '%'; z.style.setProperty('--f', p.farbe);
+        z.innerHTML = `<b></b><span>${esc(p.name.split(' ')[0])}</span>`; wr.appendChild(z);
       }
     }
+    function skStrich(g, d, W, Hh) {
+      const P = d.pts.map(([x, y]) => [x * W, y * Hh]), bw = Math.max(1, d.breite * W);
+      g.strokeStyle = d.farbe; g.fillStyle = d.farbe; g.lineCap = 'round'; g.lineJoin = 'round'; g.globalAlpha = d.art === 'marker' ? 0.35 : 1; g.lineWidth = bw;
+      if (d.art === 'text') { g.font = `bold ${Math.max(10, bw * 4)}px system-ui,sans-serif`; g.textBaseline = 'bottom'; g.fillText(d.text || '', P[0][0], P[0][1]); g.globalAlpha = 1; return; }
+      if (d.art === 'rechteck' && P.length > 1) { const [a, b] = [P[0], P[P.length - 1]]; g.strokeRect(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])); g.globalAlpha = 1; return; }
+      const pts = d.art === 'pfeil' && P.length > 1 ? [P[0], P[P.length - 1]] : P;
+      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const q of pts.slice(1)) g.lineTo(q[0], q[1]); if (pts.length === 1) g.lineTo(pts[0][0] + 0.1, pts[0][1]); g.stroke();
+      if (d.art === 'pfeil' && pts.length > 1) { const [a, b] = pts, w = Math.atan2(b[1] - a[1], b[0] - a[0]), L = Math.max(10, bw * 5);
+        g.beginPath(); for (const dw of [2.6, -2.6]) { g.moveTo(b[0], b[1]); g.lineTo(b[0] + L * Math.cos(w + dw), b[1] + L * Math.sin(w + dw)); } g.stroke(); }
+      g.globalAlpha = 1;
+    }
+    const alleZeichnen = () => S.querySelectorAll('.bph-pg').forEach((w) => skZeichnen(+w.dataset.seite));
+    function skUebernehmen(r) {
+      SK.owner = r.owner; SK.farbe = r.farbe || SK.farbe; SK.leute = r.leute || [];
+      const weg = new Set(r.geloescht || []); if (weg.size) SK.striche = SK.striche.filter((d) => !weg.has(d.id));
+      for (const d of r.striche || []) {
+        if (SK.striche.some((x) => x.id === d.id)) continue;
+        const tmp = d.uid === ich() && SK.striche.find((x) => x.tmp && x.pts.length === d.pts.length && Math.abs(x.pts[0][0] - d.pts[0][0]) < 1e-4 && Math.abs(x.pts[0][1] - d.pts[0][1]) < 1e-4);
+        if (tmp) { tmp.id = d.id; delete tmp.tmp; } else SK.striche.push(d);
+      }
+      SK.seq = Math.max(SK.seq, r.seq || 0);
+    }
+    async function skAbgleich() {
+      if (!SK.id || SK.aus) return;
+      try { const r = await SKJ(`api/bp/skizze/${SK.id}?seit=${SK.seq}`); skUebernehmen(r); alleZeichnen(); skLeiste(); }
+      catch (e) { if (/gibt es nicht|Keine Einladung/.test(e.message)) { skEnde(true); alert(e.message); } }
+    }
+    function skLauf() { clearInterval(SK.t); SK.t = setInterval(() => { if (document.visibilityState === 'visible') skAbgleich(); }, 700); }
+    async function skStart() {
+      if (!roh) return;
+      const b = el.querySelector('.bph-skb'); b.disabled = true;
+      try {
+        const fd = new FormData(); fd.append('datei', new Blob([roh], { type: 'application/pdf' }), items[i].name || 'Plan.pdf'); fd.append('name', items[i].name || 'Plan.pdf');
+        const r = await KX('api/bp/skizze', { method: 'POST', body: fd });
+        SK.id = r.id; SK.striche = []; SK.seq = 0; items[i].skizze = r.id;
+        await skAbgleich(); skLauf(); skModus();
+      } catch (e) { alert(e.message); } finally { b.disabled = false; }
+    }
+    async function skBeitreten(id) {
+      try { const r = await SKJ(`api/bp/skizze/${id}`, 'POST'); SK.id = id; SK.striche = []; SK.seq = 0; skUebernehmen(r); alleZeichnen(); skLeiste(); skLauf(); skModus(); }
+      catch (e) { alert(e.message); }
+    }
+    function skEnde(still) {
+      clearInterval(SK.t); if (SK.id) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: 0, x: null, y: null }).catch(() => {});
+      SK.id = null; SK.striche = []; SK.leute = []; skLeiste(); skModus(); if (!still) alleZeichnen();
+    }
+    function skPunkt(e) { const wr = e.target.closest && e.target.closest('.bph-pg'); if (!wr) return null; const r = wr.getBoundingClientRect(); return { wr, seite: +wr.dataset.seite, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
+    S.addEventListener('pointerdown', (e) => {
+      if (!SK.id || SK.werkzeug === 'zeigen') return;
+      const p = skPunkt(e); if (!p) return;
+      e.preventDefault();
+      if (SK.werkzeug === 'text') {
+        const t = prompt('Text auf dem Plan:'); if (!t) return;
+        const d = { seite: p.seite, art: 'text', farbe: SK.farbe, breite: SKW.text[2], pts: [[p.x, p.y]], text: t, tmp: true, uid: ich() };
+        SK.striche.push(d); skZeichnen(p.seite); SKJ(`api/bp/skizze/${SK.id}/strich`, 'POST', d).then((r) => { d.id = r.id; delete d.tmp; }).catch((er) => alert(er.message)); return;
+      }
+      SK.akt = { seite: p.seite, art: SK.werkzeug, farbe: SK.farbe, breite: SKW[SK.werkzeug][2], pts: [[p.x, p.y]], uid: ich() };
+      try { S.setPointerCapture(e.pointerId); } catch { /* egal */ }
+    });
+    S.addEventListener('pointermove', (e) => {
+      if (!SK.id) return;
+      const wr = SK.akt && S.querySelector(`.bph-pg[data-seite="${SK.akt.seite}"]`);
+      if (SK.akt && wr) {
+        const r = wr.getBoundingClientRect(), q = [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height];
+        if (SK.akt.art === 'rechteck' || SK.akt.art === 'pfeil') SK.akt.pts = [SK.akt.pts[0], q]; else SK.akt.pts.push(q);
+        skZeichnen(SK.akt.seite);
+      }
+      const now = Date.now(); if (now - SK.zt < 250) return; SK.zt = now;   // Zeiger für die anderen
+      const p = skPunkt(e); if (p) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: p.seite, x: p.x, y: p.y }).catch(() => {});
+    });
+    const skLos = () => {
+      const d = SK.akt; SK.akt = null; if (!d || !SK.id) return;
+      if (d.pts.length > 400) d.pts = d.pts.filter((_, k) => k % Math.ceil(d.pts.length / 400) === 0 || k === d.pts.length - 1);
+      d.tmp = true; SK.striche.push(d); skZeichnen(d.seite);
+      SKJ(`api/bp/skizze/${SK.id}/strich`, 'POST', d).then((r) => { if (d.tmp) { d.id = r.id; delete d.tmp; } }).catch((er) => alert(er.message));
+    };
+    S.addEventListener('pointerup', skLos); S.addEventListener('pointercancel', skLos);
+    async function skEinladen() {
+      let K; try { K = await SKJ('api/bp/kollegen'); } catch (e) { alert(e.message); return; }
+      const link = location.origin + location.pathname + '#skizze=' + SK.id;
+      const d = document.createElement('div'); d.className = 'bph-dlg-bg'; d.style.zIndex = 6000;
+      d.innerHTML = `<div class="bph-dlg" style="max-width:26rem"><div class="bph-dh"><b>Gemeinsam markieren</b><button type="button" class="bph-x" data-kx>×</button></div><div class="bph-db">
+        <p class="bph-mu">Wer eingeladen ist, bekommt in der Bauplattform einen Hinweis und sieht den Plan mit allen Markierungen – Striche und Zeiger erscheinen bei allen gleichzeitig.</p>
+        <div class="bph-skk">${K.map((k) => `<label class="bph-ck"><input type="checkbox" value="${k.id}"> ${esc(k.name)} ${k.online ? '<small style="color:#2f9e5a">● angemeldet</small>' : ''}</label>`).join('') || '<p class="bph-mu">Keine weiteren Benutzer.</p>'}</div>
+        <div class="bph-row"><button type="button" class="bph-btn pri" data-ko>Einladen</button><button type="button" class="bph-btn" data-kl>Link kopieren</button></div>
+        <p class="bph-mu" data-km></p></div></div>`;
+      el.appendChild(d);
+      d.addEventListener('click', async (e) => {
+        if (e.target === d || e.target.closest('[data-kx]')) return d.remove();
+        if (e.target.closest('[data-kl]')) { try { await navigator.clipboard.writeText(link); d.querySelector('[data-km]').textContent = 'Link kopiert – z. B. in Teams einfügen. Er funktioniert für angemeldete Kollegen.'; } catch { prompt('Link:', link); } return; }
+        if (e.target.closest('[data-ko]')) {
+          const an = [...d.querySelectorAll('input:checked')].map((x) => +x.value); if (!an.length) return;
+          try { await SKJ(`api/bp/skizze/${SK.id}/einladen`, 'POST', { an }); d.remove(); if (window.toast) toast('Eingeladen – sobald sie mitmachen, siehst du ihre Zeiger.'); } catch (er) { d.querySelector('[data-km]').textContent = er.message; }
+        }
+      });
+    }
+    async function skPdf() {
+      try {
+        const r = await fetch(`api/bp/skizze/${SK.id}/pdf`, { credentials: 'same-origin' });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
+        const b = await r.blob(), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = (items[i].name || 'Plan.pdf').replace(/\.pdf$/i, '') + ' – markiert.pdf'; document.body.appendChild(a); a.click(); a.remove();
+      } catch (e) { alert(e.message); }
+    }
+    el.querySelector('.bph-skl').addEventListener('click', async (e) => {
+      const w = e.target.closest('[data-skw]'); if (w) { SK.werkzeug = w.dataset.skw; skLeiste(); skModus(); return; }
+      const b = e.target.closest('[data-sk]'); if (!b) return;
+      const a = b.dataset.sk;
+      if (a === 'zurueck') { await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'letzter' }).catch((er) => alert(er.message)); return skAbgleich(); }
+      if (a === 'alle') { if (!confirm(SK.owner === ich() ? 'Alle Markierungen auf diesem Plan löschen – auch die der anderen?' : 'Alle deine Markierungen löschen?')) return; await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'alle' }).catch((er) => alert(er.message)); return skAbgleich(); }
+      if (a === 'einladen') return skEinladen();
+      if (a === 'pdf') return skPdf();
+      if (a === 'ende') { skEnde(false); }
+    });
+    addEventListener('resize', () => { if (gv) alleZeichnen(); });
     function setZoom(d) {
       zoom = Math.max(0.5, Math.min(4, zoom * (d > 0 ? 1.4 : 1 / 1.4)));
       if (pdf) renderPdf(tok); else { const im = S.querySelector('img'); if (im) { im.style.maxWidth = zoom === 1 ? '' : 'none'; im.style.maxHeight = zoom === 1 ? '' : 'none'; im.style.width = zoom === 1 ? '' : (fitW() * zoom) + 'px'; } }
@@ -948,21 +1109,21 @@
     }
     const key = (e) => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1); else return; e.preventDefault(); e.stopPropagation(); };
     function close(ohneZurueck) {
-      if (!gv) return; tok++; el.remove(); document.removeEventListener('keydown', key, true); removeEventListener('popstate', pop); gv = null;
+      if (!gv) return; tok++; skEnde(true); el.remove(); document.removeEventListener('keydown', key, true); removeEventListener('popstate', pop); gv = null;
       if (!ohneZurueck && history.state && history.state.bphGv) history.back();
     }
     const pop = () => close(true);
     el.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-gv]'); if (!b) { if (e.target === S) close(); return; }
-      const a = b.dataset.gv; if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen();
+      const b = e.target.closest('[data-gv]'); if (!b) { if (e.target === S && !SK.id) close(); return; }
+      const a = b.dataset.gv; if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen();
     });
     let tx = null, ty = 0;   // Wischen links/rechts blättert (nur ohne Vergrößerung)
     S.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } else tx = null; }, { passive: true });
     S.addEventListener('touchend', (e) => {
-      if (tx == null || zoom !== 1) return; const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty; tx = null;
+      if (tx == null || zoom !== 1 || (SK.id && SK.werkzeug !== 'zeigen')) return; const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty; tx = null;
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
     });
-    S.addEventListener('dblclick', () => setZoom(zoom === 1 ? 1 : -1));
+    S.addEventListener('dblclick', () => { if (!SK.id || SK.werkzeug === 'zeigen') setZoom(zoom === 1 ? 1 : -1); });
     document.addEventListener('keydown', key, true);
     history.pushState({ bphGv: 1 }, ''); addEventListener('popstate', pop);   // Zurück-Geste schließt die Ansicht
     gv = { close };
@@ -985,6 +1146,25 @@
     H.ansehen(items, start);
   }, true);
 
+  /* Einladungen zum gemeinsamen Markieren: in jeder App ein Hinweis unten rechts; Link #skizze=<id> öffnet direkt */
+  const skGezeigt = new Set();
+  function skHinweis(e) {
+    if (skGezeigt.has(e.id) || document.querySelector('.bph-ski')) return; skGezeigt.add(e.id);
+    const d = document.createElement('div'); d.className = 'bph-ski'; d.setAttribute('role', 'alert');
+    d.innerHTML = `<b>👥 ${esc(e.von)}</b> möchte mit dir <b>„${esc(e.name)}“</b> gemeinsam ansehen und markieren.<div class="bph-row"><button type="button" class="bph-btn pri" data-ja>Mitmachen</button><button type="button" class="bph-btn" data-nein>Später</button></div>`;
+    document.body.appendChild(d);
+    d.addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-ja]')) { d.remove(); H.ansehen([{ url: `api/bp/skizze/${e.skizze}/datei`, typ: 'pdf', name: e.name, skizze: e.skizze }]); }
+      else if (ev.target.closest('[data-nein]')) { d.remove(); KX('api/bp/skizze-einladungen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: e.id }) }).catch(() => {}); }
+    });
+  }
+  H.skizzeOeffnen = (id, name) => H.ansehen([{ url: `api/bp/skizze/${id}/datei`, typ: 'pdf', name: name || 'Gemeinsame Skizze', skizze: id }]);
+  function skWache() {
+    const m = /#skizze=([\w-]+)/.exec(location.hash);
+    if (m) { history.replaceState(null, '', location.pathname + location.search); setTimeout(() => H.skizzeOeffnen(m[1]), 300); }
+    const pr = () => { if (document.visibilityState !== 'visible' || gv) return; KX('api/bp/skizze-einladungen').then((l) => { if (l && l[0]) skHinweis(l[0]); }).catch(() => {}); };
+    setTimeout(pr, 2500); setInterval(pr, 15000);
+  }
   H.setProject = function (p) {
     if (!band) return;
     const box = band.querySelector('.bph-proj');

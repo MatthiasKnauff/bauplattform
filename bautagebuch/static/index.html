@@ -164,12 +164,53 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .ln{display:flex;justify-content:flex-start;gap:.5rem;align-items:flex-start;padding:.15rem 0;overflow-wrap:anywhere}
 .ln.done span{text-decoration:line-through;color:var(--mute)}
 .ln .x{color:var(--mute);padding:0 .3rem;font-size:.9rem}
+/* Bericht Schritt für Schritt */
+.bwz-bar{display:flex;gap:.5rem;align-items:center;margin:0 0 .8rem}
+.bwz-bar button{border:1px solid var(--line);border-radius:999px;padding:.45rem .95rem;color:var(--ink);background:var(--card)}
+.bwz-bar button.go{border-color:var(--y);color:var(--y);font-weight:700}
+#bwz{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+#bwz .bp{background:var(--pan);border:1px solid var(--line);border-radius:16px 16px 0 0;width:min(620px,100%);max-height:94%;display:flex;flex-direction:column;text-align:left}
+@media (min-width:700px){#bwz{align-items:center}#bwz .bp{border-radius:16px;max-height:88%}}
+#bwz .bh{padding:.8rem 1rem .4rem;display:flex;align-items:center;gap:.5rem}
+#bwz .bh b{flex:1;font-size:1.15rem}
+#bwz .bh button{border:0;background:none;color:var(--mute);font-size:1.3rem;padding:.2rem .4rem}
+#bwz .dots{display:flex;gap:4px;padding:0 1rem .5rem}
+#bwz .dots i{flex:1;height:5px;border-radius:3px;background:var(--line)}#bwz .dots i.on{background:var(--y)}#bwz .dots i.done{background:color-mix(in srgb,var(--y) 45%,var(--line))}
+#bwz .bb{padding:.3rem 1rem 1rem;overflow:auto;flex:1}
+#bwz .bb .sub{color:var(--mute);font-size:.88rem;margin:.1rem 0 .7rem}
+#bwz .bf{display:flex;gap:.5rem;padding:.7rem 1rem calc(.8rem + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+#bwz .bf button{border:1px solid var(--line);border-radius:10px;padding:.7rem 1rem;color:var(--ink);background:transparent}
+#bwz .bf .nx{margin-left:auto;background:var(--y);color:var(--on);border-color:var(--y);font-weight:700;min-width:120px}
+#bwz .card{border:1px solid var(--line);border-radius:12px;padding:.6rem .7rem;margin-bottom:.5rem}
+#bwz .card.fehlt{opacity:.7}#bwz .card.fehlt b{color:var(--red)}
+#bwz .card .r2{display:grid;grid-template-columns:1fr 76px;gap:.4rem;margin-top:.4rem}
+#bwz .card .r2 textarea{min-height:0;height:2.7rem;resize:vertical}
+#bwz .card .r3{display:flex;gap:.4rem;margin-top:.45rem;flex-wrap:wrap}
+#bwz .card .r3 button{flex:1;border:1px solid var(--line);border-radius:10px;padding:.55rem .4rem;color:var(--ink);background:transparent;white-space:nowrap}
+#bwz .card .r3 button.ok{border-color:var(--y);color:var(--y);font-weight:700}
+#bwz .have{color:var(--mute);font-size:.88rem;margin:.6rem 0}
+#bwz .have li{margin:.15rem 0}
+#bwz textarea,#bwz input:not([type=checkbox]),#bwz select{width:100%}
+#bwz .add{display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem}
+#bwz .add .ok{background:var(--y);color:var(--on);font-weight:700;padding:.7rem;border-radius:10px;border:0}
+#bwz .chk{display:flex;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--line);font-size:1.02rem}
+#bwz .chk input{width:22px;height:22px}
+#bwz .wg{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+#bwz .wg label{display:flex;flex-direction:column;gap:.2rem;color:var(--mute);font-size:.82rem}
+#bwz .big{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;margin-bottom:.5rem;color:var(--ink);background:transparent;font-size:1rem}
+#bwz .big.pri{border-color:var(--y);color:var(--y);font-weight:700}
 .soll-box:empty{display:none}
 .soll{border:1px dashed var(--line);border-radius:8px;padding:.5rem .7rem;margin:.4rem 0 .2rem;text-align:left}
 .soll-h{font-size:.8rem;color:var(--mute);margin-bottom:.3rem}
 .soll-r{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.3rem 0;border-top:1px solid var(--line)}
 .soll-r:first-of-type{border-top:0}
 .soll-r>span:first-child{flex:1 1 220px;min-width:0}
+.soll-r.pend{display:grid;grid-template-columns:1fr 1.3fr 74px auto;gap:.5rem;align-items:center}
+.soll-r.pend .sn{min-width:0}
+.soll-r.pend textarea,.soll-r.pend input{width:100%;padding:.3rem .45rem;border-style:dashed}
+.soll-bt{display:flex;gap:.3rem}
+.soll-bt button{min-width:38px;padding:.3rem .5rem}
+@media (max-width:640px){.soll-r.pend{grid-template-columns:1fr 70px}.soll-r.pend .sn{grid-column:1/-1}.soll-r.pend .soll-bt{grid-column:1/-1;justify-content:flex-end}}
 .soll-r small{display:block;color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .soll-r button{padding:.3rem .65rem;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.85rem}
 .soll-r button.ok{border-color:var(--y);color:var(--y)}
@@ -686,12 +727,15 @@ const SGATTR = 'data-sg="1" autocomplete="nope" name="bt-co" autocorrect="off" s
 const coAdd = s => s.extra && s.extra.company ? `<div class="sgw" style="flex:1 1 100%"><input data-add-co ${SGATTR} placeholder="Firma (optional, frei eintragen oder aus Kontakten wählen)" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : '';
 /* Anwesende laut Bauzeitenplan: erwartete Firmen vorschlagen – der Bauleiter bestätigt „anwesend“ oder „nicht da“ */
 let SOLL = { rid: 0, f: [] }, sollBusy = 0;
-function sollInner(k) {
+function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma, Tätigkeit laut Plan, Anzahl) – erst ✓ trägt sie ein
   const f = SOLL.f.filter(x => x.status === 'offen' || x.status === 'fehlt');
   if (!f.length) return '';
-  return `<div class="soll"><div class="soll-h">Laut Bauzeitenplan an diesem Tag erwartet – bitte bestätigen</div>${f.map(x => `<div class="soll-r${x.status === 'fehlt' ? ' fehlt' : ''}"><span><b>${esc(x.firma)}</b><small title="${esc(x.leistungen.join(', '))}">${esc(x.leistungen.join(', '))}</small></span>`
-    + (x.status === 'fehlt' ? `<span class="soll-st">nicht da</span><button data-act="sollSet" data-f="${esc(x.firma)}" data-st="offen">Rückgängig</button>`
-      : `<button class="ok" data-act="sollDa" data-f="${esc(x.firma)}" data-kind="${esc(k)}">✓ anwesend</button><button data-act="sollSet" data-f="${esc(x.firma)}" data-st="fehlt">✗ nicht da</button><button data-act="sollSet" data-f="${esc(x.firma)}" data-st="nein" title="Laut Plan erwartet, heute aber nicht nötig (z. B. Termin verschoben)">nicht nötig</button>`) + '</div>').join('')}</div>`;
+  return `<div class="soll"><div class="soll-h">Laut Bauzeitenplan vorausgefüllt – bitte bestätigen ✓ oder ablehnen ✗</div>${f.map(x => x.status === 'fehlt'
+    ? `<div class="soll-r fehlt" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>${esc(x.leistungen.join(', '))}</small></span><span class="soll-st">nicht da</span><button data-act="sollSet" data-st="offen">Rückgängig</button></div>`
+    : `<div class="soll-r pend" data-sollf="${esc(x.firma)}"><span class="sn"><b>${esc(x.firma)}</b><small>laut Bauzeitenplan</small></span>
+      <textarea class="act" rows="1" data-soll-act aria-label="Art der Tätigkeit">${esc(x.leistungen.join(', '))}</textarea>
+      <input class="cnt" data-soll-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter">
+      <span class="soll-bt"><button class="ok" data-act="sollDa" data-kind="${esc(k)}" title="Bestätigen – als anwesend eintragen">✓</button><button data-act="sollSet" data-st="fehlt" title="Ablehnen – Firma war nicht da">✗</button><button data-act="sollSet" data-st="nein" title="Nicht nötig – z. B. Termin verschoben">–</button></span></div>`).join('')}</div>`;
 }
 function sollHtml(r, k) {
   if (SOLL.rid !== r.id) loadSoll(r.id);
@@ -702,6 +746,7 @@ async function loadSoll(rid) {
   try { const d = await api('api/reports/' + rid + '/soll'); SOLL = { rid, f: d.firmen || [] }; } catch (e) { SOLL = { rid, f: [] }; }
   sollBusy = 0;
   document.querySelectorAll('.soll-box').forEach(b => { b.innerHTML = sollInner(b.dataset.soll); });   // nur die Vorschläge auffrischen – keine Eingabe verlieren
+  if (BWZ.open) bwzRender();
 }
 function listSec(s, r) {
   const k = s.key, lk = s.extra && s.extra.link_contacts;
@@ -768,7 +813,8 @@ function renderReport(box) {
   if (!p) { box.innerHTML = `<div class="empty">Noch kein Projekt gewählt.<br><br><button class="bd" data-act="projPicker">Projekt wählen</button> <button class="bd" data-act="newProject">Neues Projekt</button></div>`; return; }
   const r = curReport();
   if (!r) { box.innerHTML = `<div class="empty">Noch kein Tagesbericht.<br><br><button class="bd" data-act="addReport">Ersten Tagesbericht anlegen</button></div>`; return; }
-  box.innerHTML = `<div class="wrap">` + renameBanner() + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('') + `</div>`;
+  const bwzBar = bwzPrefs().on ? `<div class="bwz-bar"><button class="go" data-act="bwzStart">▶ Bericht Schritt für Schritt</button><button data-act="bwzSet" title="Schritte wählen oder Assistent ausschalten">⚙</button></div>` : '';
+  box.innerHTML = `<div class="wrap">` + renameBanner() + bwzBar + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('') + `</div>`;
   box.insertAdjacentHTML('beforeend', '<input type="file" id="ifile" class="vh" accept="image/*,.heic,.heif" multiple>');
   $('#ifile').onchange = async e => {
     const fd = new FormData(); [...e.target.files].forEach(x => fd.append('files', x)); fd.append('item_id', itemPhotoFor);
@@ -780,8 +826,98 @@ function renderReport(box) {
     const up = await api(`api/reports/${rid}/images`, 'POST', null, fd); openProject(pid, true);
     if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
   };
-  document.querySelector('[data-add]')?.focus(); growAll(); loadVer();
+  if (!BWZ.open) document.querySelector('[data-add]')?.focus(); growAll(); loadVer();
+  if (BWZ.open) bwzRender();
 }
+
+/* ---------- Bericht Schritt für Schritt: fragt nacheinander ab, was in den Bericht gehört – Schritte je Benutzer wählbar ---------- */
+const BWZ = {open: false, i: 0, set: false};
+const bwzPrefs = () => ({on: true, auto: false, steps: {}, ...(me.assistent || {})});
+function bwzAll() {   // alle möglichen Schritte in der Reihenfolge des Berichts; Prüfpunkte und Abschluss am Ende
+  const S = [];
+  for (const sec of meta.sections) {
+    if (sec.type === 'weather') S.push({k: 'wetter', t: sec.title || 'Wetter'});
+    else if (sec.type === 'list') S.push({k: sec.key, t: sec.title, sec});
+    else if (sec.type === 'images') S.push({k: 'fotos', t: sec.title || 'Fotos'});
+  }
+  S.push({k: 'pruefpunkte', t: 'Prüfpunkte'}, {k: 'abschluss', t: 'Abschluss'});
+  return S;
+}
+const bwzSteps = () => { const P = bwzPrefs(); return bwzAll().filter(x => P.steps[x.k] !== false); };
+function bwzOpen() { if (!curReport()) { toast('Lege zuerst einen Tagesbericht an.'); return; } BWZ.open = true; BWZ.i = 0; BWZ.set = false; SOLL.rid = 0; bwzRender(); loadSoll(rid).then(bwzRender); }
+function bwzClose() { BWZ.open = false; BWZ.set = false; $('#bwz')?.remove(); }
+function bwzRender() {
+  if (!BWZ.open) return;
+  let box = $('#bwz'); if (!box) { box = document.createElement('div'); box.id = 'bwz'; document.body.appendChild(box); box.addEventListener('mousedown', e => { if (e.target === box) bwzClose(); }); }
+  const keep = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.bk : null;
+  if (BWZ.set) { box.innerHTML = bwzSetHtml(); return; }
+  const S = bwzSteps(); if (!S.length) { BWZ.set = true; box.innerHTML = bwzSetHtml(); return; }
+  BWZ.i = Math.max(0, Math.min(BWZ.i, S.length - 1));
+  const x = S[BWZ.i], r = curReport(), last = BWZ.i === S.length - 1;
+  box.innerHTML = `<div class="bp" role="dialog" aria-label="Bericht Schritt für Schritt"><div class="bh"><b>${esc(x.t)}</b><small style="color:var(--mute)">${BWZ.i + 1} / ${S.length}</small><button data-act="bwzSet" title="Schritte wählen">⚙</button><button data-act="bwzClose" title="Schließen">×</button></div>
+    <div class="dots">${S.map((y, k) => `<i class="${k === BWZ.i ? 'on' : k < BWZ.i ? 'done' : ''}"></i>`).join('')}</div>
+    <div class="bb">${r ? bwzBody(x, r) : ''}</div>
+    <div class="bf">${BWZ.i ? '<button data-act="bwzPrev">Zurück</button>' : ''}<button data-act="bwzClose">Pausieren</button><button class="nx" data-act="${last ? 'bwzClose' : 'bwzNext'}">${last ? 'Fertig' : 'Weiter'}</button></div></div>`;
+  if (keep) box.querySelector(`[data-bk="${keep}"]`)?.focus();
+}
+function bwzBody(x, r) {
+  const its = k => r.items.filter(i => i.kind === k);
+  if (x.k === 'wetter') return `<p class="sub">Automatisch für den Ort und die Uhrzeit des Berichts eingetragen – bitte prüfen.</p><div class="wg">
+      <label>Wetter<select data-f="weather"><option value=""></option>${WX.map(w => `<option ${w === r.weather ? 'selected' : ''}>${w}</option>`).join('')}</select></label>
+      <label>Niederschlag<select data-f="precip"><option value=""></option>${PRECIP.map(w => `<option ${w === r.precip ? 'selected' : ''}>${w}</option>`).join('')}</select></label>
+      <label>Temperatur (°C)<input data-f="temp" inputmode="decimal" value="${esc(r.temp)}"></label><label>Wind (km/h)<input data-f="wind" inputmode="decimal" value="${esc(r.wind)}"></label></div>
+      <button class="big" data-act="gps" style="margin-top:.7rem">${ic('pin', 18)} Wetter für die Projektadresse neu laden</button>`;
+  if (x.k === 'pruefpunkte') return `<p class="sub">Zum Abschluss des Baustellentags.</p>${CHECKS.map(([k, l]) => `<label class="chk"><input type="checkbox" data-f="${k}" ${r[k] ? 'checked' : ''}>${l}</label>`).join('')}`;
+  if (x.k === 'fotos') return `<p class="sub">${r.images.length ? r.images.length + ' Foto' + (r.images.length > 1 ? 's' : '') + ' im Bericht.' : 'Noch keine Fotos im Bericht.'}</p>
+      <button class="big pri" data-act="pickFile">${ic('cam', 18)} Fotos aufnehmen oder auswählen</button>`;
+  if (x.k === 'abschluss') {
+    const n = listSecs().map(t => [t.title, its(t.key).length]).filter(([, c]) => c).map(([t, c]) => `${c} ${esc(t)}`).join(' · ');
+    return `<p class="sub">${n || 'Noch keine Einträge.'}${r.images.length ? ' · ' + r.images.length + ' Fotos' : ''}</p>
+      <button class="big pri" data-act="print">${ic('pdf', 18)} Bericht als PDF erzeugen</button><button class="big" data-act="bwzClose">Fertig – Bericht ansehen</button>`;
+  }
+  const sec = x.sec, lk = sec.extra && sec.extra.link_contacts, list = its(sec.key);
+  if (lk) {   // Anwesende: laut Bauzeitenplan vorausgefüllt – bestätigen oder ablehnen, weitere Firmen ergänzen
+    const f = (SOLL.rid === r.id ? SOLL.f : []).filter(y => y.status === 'offen' || y.status === 'fehlt');
+    return (f.length ? `<p class="sub">Laut Bauzeitenplan an diesem Tag erwartet – bitte bestätigen oder ablehnen.</p>` : '')
+      + f.map(y => y.status === 'fehlt' ? `<div class="card fehlt" data-sollf="${esc(y.firma)}"><b>${esc(y.firma)}</b> – nicht da <div class="r3"><button data-act="sollSet" data-st="offen">Rückgängig</button></div></div>`
+        : `<div class="card" data-sollf="${esc(y.firma)}"><b>${esc(y.firma)}</b><div class="r2"><textarea rows="1" data-soll-act data-bk="a${esc(y.key)}" aria-label="Art der Tätigkeit">${esc(y.leistungen.join(', '))}</textarea><input data-soll-cnt data-bk="c${esc(y.key)}" type="number" min="0" placeholder="Anz." aria-label="Anzahl"></div>
+          <div class="r3"><button class="ok" data-act="sollDa" data-kind="${esc(sec.key)}">✓ anwesend</button><button data-act="sollSet" data-st="fehlt">✗ nicht da</button><button data-act="sollSet" data-st="nein">nicht nötig</button></div></div>`).join('')
+      + (list.length ? `<div class="have">Eingetragen:<ul>${list.map(i => `<li>${esc(i.text)}${i.activity ? ' – ' + esc(i.activity) : ''}${i.headcount != null && i.headcount !== '' ? ' (' + esc(i.headcount) + ')' : ''}</li>`).join('')}</ul></div>` : '')
+      + `<div class="add qadd"><div class="sgw" style="flex:1 1 100%"><input data-add="${esc(sec.key)}" data-bk="n" ${SGATTR} placeholder="Weitere Firma …"><div class="sug hidden" role="listbox"></div></div>
+          <textarea class="ed" rows="1" data-add-act placeholder="Art der Tätigkeit"></textarea><input data-add-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter"><button class="ok" data-act="bwzAdd" data-kind="${esc(sec.key)}">Hinzufügen</button></div>`;
+  }
+  return (list.length ? `<div class="have">Schon im Bericht:<ul>${list.map(i => `<li>${esc(i.text)}</li>`).join('')}</ul></div>` : `<p class="sub">Noch nichts eingetragen – sonst einfach „Weiter“.</p>`)
+    + `<div class="add qadd">${coAdd(sec)}<textarea data-add="${esc(sec.key)}" data-bk="t" rows="3" placeholder="${esc(sec.placeholder)}"></textarea>
+      ${sec.extra && sec.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}
+      <button class="ok" data-act="bwzAdd" data-kind="${esc(sec.key)}">Hinzufügen</button></div>`;
+}
+function bwzSetHtml() {
+  const P = bwzPrefs();
+  return `<div class="bp" role="dialog" aria-label="Bericht-Assistent einstellen"><div class="bh"><b>Bericht-Assistent</b><button data-act="bwzClose" title="Schließen">×</button></div>
+    <div class="bb"><p class="sub">Welche Schritte soll der Assistent abfragen? Die Einstellung gilt für dein Konto auf allen Geräten.</p>
+      ${bwzAll().map(x => `<label class="chk"><input type="checkbox" data-bwzstep="${esc(x.k)}" ${P.steps[x.k] !== false ? 'checked' : ''}>${esc(x.t)}</label>`).join('')}
+      <p class="sub" style="margin-top:1rem">Allgemein</p>
+      <label class="chk"><input type="checkbox" data-bwzpref="auto" ${P.auto ? 'checked' : ''}>Bei jedem neuen Tagesbericht automatisch starten</label>
+      <label class="chk"><input type="checkbox" data-bwzpref="on" ${P.on ? 'checked' : ''}>Assistent im Bericht anbieten (sonst ganz ohne Assistent arbeiten)</label></div>
+    <div class="bf">${curReport() && P.on ? '<button data-act="bwzStartNow">Jetzt starten</button>' : ''}<button class="nx" data-act="bwzClose">Fertig</button></div></div>`;
+}
+async function bwzSave(P) { me.assistent = P; const r = await api('api/account', 'PUT', {assistent: P}); if (r.error) toast(r.error); renderDetail(); }
+async function bwzAdd(kind) {   // wie „Hinzufügen“ im Abschnitt, Eingabe aus dem Assistenten
+  const box = $('#bwz'), inp = box.querySelector(`[data-add="${kind}"]`), t = inp?.value.trim(); if (!t) { inp?.focus(); return; }
+  const row = inp.closest('.add'), body = {kind, text: t};
+  if (row.querySelector('[data-add-act]')) { body.activity = row.querySelector('[data-add-act]').value.trim(); const n = row.querySelector('[data-add-cnt]').value; body.headcount = n === '' ? null : +n; }
+  const co = row.querySelector('[data-add-co]'); if (co) body.company = co.value.trim();
+  const dd = row.querySelector('[data-add-due]'); if (dd && dd.value) { body.due = dd.value; body.due_time = row.querySelector('[data-add-time]').value || '09:00'; }
+  const res = await api(`api/reports/${rid}/items`, 'POST', body); if (res.error) { toast(res.error); return; }
+  if (res.contact_created) toast(`„${res.name}“ wurde zu den Kontakten hinzugefügt.`);
+  if (res.contact_id) contacts = await api('api/contacts');
+  setSecOpen(kind, true); await openProject(pid, true); bwzRender(); $('#bwz')?.querySelector(`[data-add="${kind}"]`)?.focus();
+}
+document.addEventListener('change', e => {
+  const t = e.target; if (!t.closest || !t.closest('#bwz')) return;
+  if (t.dataset.bwzstep) { const P = bwzPrefs(); P.steps = {...P.steps, [t.dataset.bwzstep]: t.checked}; bwzSave(P); }
+  if (t.dataset.bwzpref) { const P = bwzPrefs(); P[t.dataset.bwzpref] = t.checked; bwzSave(P).then(bwzRender); }
+});
 
 /* ---------- Volltextsuche ---------- */
 let sr = {q: '', scope: 'all', res: null, T: 0};
@@ -1226,7 +1362,8 @@ let uopen = null, unew = false;
 const usersCard = () => `<div class="cform"><h3>${me.is_admin ? 'Benutzer' : 'Mein Konto'}</h3>
   <div class="info">${me.is_admin ? 'Hier verwaltest du alle Benutzer – auch dich selbst: E-Mail-Adresse für „Kennwort vergessen“ und Erinnerungen, Kennwort, Administrator-Rechte.' : 'Deine E-Mail-Adresse brauchst du für „Kennwort vergessen“ und für Erinnerungen.'}</div>
   ${me.is_admin ? `<div class="acts"><button data-act="userNew">${unew ? 'Abbrechen' : '＋ Benutzer anlegen'}</button></div>` : ''}
-  <div class="w" id="ulist" style="grid-column:1/-1">Lade …</div></div>`;
+  <div class="w" id="ulist" style="grid-column:1/-1">Lade …</div>
+  <div class="w" style="grid-column:1/-1;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.6rem"><b>Bericht-Assistent</b><span style="color:var(--mute)">${bwzPrefs().on ? (bwzPrefs().auto ? 'startet bei jedem neuen Bericht' : 'auf Knopfdruck im Bericht') : 'ausgeschaltet'}</span><button class="bd" data-act="bwzSet">Schritte und Start einstellen …</button></div></div>`;
 async function setAccent(c) {
   const r = await api('api/account', 'PUT', {accent: c}); if (r.error) return toast(r.error);
   me.accent = c; applyAccent(c); fillUsers();
@@ -1576,7 +1713,7 @@ document.addEventListener('click', async e => {
   else if (a === 'editContact') { cedit = !cedit; fillContactDetail(); }
   else if (a === 'addContact') addContact();
   else if (a === 'delContact') { const r = await api('api/contacts/' + cid, 'DELETE'); if (r.error) { toast(r.error); return; } cid = null; contacts = await api('api/contacts'); renderDetail(); }
-  else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); }
+  else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); if (bwzPrefs().on && bwzPrefs().auto) bwzOpen(); }
   else if (a === 'delReport') { await api('api/reports/' + rid, 'DELETE'); openProject(pid); }
   else if (a === 'editHead') { headEdit = !headEdit; renderDetail(); }
   else if (a === 'gps') fillGeo(false);
@@ -1595,11 +1732,21 @@ document.addEventListener('click', async e => {
   else if (a === 'itemPhoto') { itemPhotoFor = id; $('#ifile').click(); }
   else if (a === 'moreImgs') { allImgs = true; renderDetail(); }
   else if (a === 'lessImgs') { allImgs = false; renderDetail(); }
+  else if (a === 'bwzStart') bwzOpen();
+  else if (a === 'bwzStartNow') { BWZ.set = false; bwzOpen(); }
+  else if (a === 'bwzSet') { if (!BWZ.open) { BWZ.open = true; } BWZ.set = !BWZ.set || !$('#bwz'); bwzRender(); }
+  else if (a === 'bwzClose') bwzClose();
+  else if (a === 'bwzNext') { BWZ.i++; bwzRender(); $('#bwz .bb')?.scrollTo(0, 0); }
+  else if (a === 'bwzPrev') { BWZ.i--; bwzRender(); }
+  else if (a === 'bwzAdd') bwzAdd(b.dataset.kind);
   else if (a === 'sollDa' || a === 'sollSet') {
     const r = curReport(); if (!r) return;
     try {
-      if (a === 'sollDa') { const x = await api('api/reports/' + r.id + '/items', 'POST', {kind: b.dataset.kind, text: b.dataset.f}); if (x.error) { toast(x.error); return; } }
-      else { const x = await api('api/reports/' + r.id + '/soll', 'POST', {firma: b.dataset.f, status: b.dataset.st}); if (x.error) { toast(x.error); return; } }
+      const row = b.closest('[data-sollf]'), firma = row ? row.dataset.sollf : b.dataset.f;
+      if (a === 'sollDa') {
+        const act = row && row.querySelector('[data-soll-act]'), cnt = row && row.querySelector('[data-soll-cnt]');
+        const x = await api('api/reports/' + r.id + '/items', 'POST', {kind: b.dataset.kind, text: firma, activity: act ? act.value.trim() : '', headcount: cnt && cnt.value !== '' ? +cnt.value : null}); if (x.error) { toast(x.error); return; }
+      } else { const x = await api('api/reports/' + r.id + '/soll', 'POST', {firma, status: b.dataset.st}); if (x.error) { toast(x.error); return; } }
     } catch (e) { return; }
     SOLL.rid = 0; openProject(pid, true);
   }
@@ -1713,7 +1860,9 @@ document.addEventListener('input', e => {
   else if (e.target.id === 'ncName') suggestContacts(e.target.value);
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeSheet(); $('#menu').classList.add('hidden'); }
+  if (e.key === 'Escape') { closeSheet(); $('#menu').classList.add('hidden'); if (BWZ.open) bwzClose(); }
+  const wrow = e.target.closest && e.target.closest('#bwz .add');
+  if (wrow && e.key === 'Enter' && !e.defaultPrevented && (e.target.tagName !== 'TEXTAREA' || e.ctrlKey || e.metaKey)) { e.preventDefault(); bwzAdd(wrow.querySelector('[data-add]').dataset.add); return; }
   const row = e.target.closest && e.target.closest('.addrow');
   const ta = e.target.tagName === 'TEXTAREA';
   if (e.key === 'Enter' && row && (!ta || e.ctrlKey || e.metaKey)) { e.preventDefault(); addItem(row.querySelector('[data-add]').dataset.add); }

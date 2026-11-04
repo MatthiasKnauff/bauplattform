@@ -678,7 +678,7 @@ def erinnerungen():
         names = {r["id"]: C.full_name(r) for r in c.execute("SELECT * FROM users")}
         plans = {r["id"]: r for r in c.execute("SELECT id, name, project_id, updated_by FROM gantt_projects")}
         own = c.execute("SELECT * FROM erinnerungen WHERE status IN ('offen','erledigt') ORDER BY termin, id").fetchall()
-        bt = c.execute(f"""SELECT i.id, i.kind, i.text, i.due, i.due_time, i.reminded, i.remind_user, r.id AS rid, r.project_id AS pid
+        bt = c.execute(f"""SELECT i.id, i.kind, i.text, i.company, i.due, i.due_time, i.reminded, i.remind_user, r.id AS rid, r.project_id AS pid
             FROM items i JOIN reports r ON r.id=i.report_id WHERE i.due!='' AND i.done=0 ORDER BY i.due""").fetchall()
         secs = {r["key"]: r["title"] for r in c.execute("SELECT key, title FROM sections")}
     today = date.today().isoformat()
@@ -699,7 +699,8 @@ def erinnerungen():
         out.append({"id": f"r{r['id']}", "quelle": r["quelle"], "titel": r["titel"], "text": r["text"], "termin": r["termin"], "uhrzeit": r["uhrzeit"],
                     "ereignis": r["ereignis"], "status": r["status"], "gesendet": r["gesendet"], "manuell": bool(r["manuell"]),
                     "projekt": p["name"] if p else (d.get("plan") or ""), "pid": r["project_id"], "gantt_id": r["gantt_id"],
-                    "an": [names.get(x, "?") for x in rec], "an_ids": rec, "von": r["erstellt_von"]})
+                    "an": [names.get(x, "?") for x in rec], "an_ids": rec, "von": r["erstellt_von"],
+                    "firma": d.get("firma") or (f"Gewerk {d['gw']}" if d.get("gw") else ""), "gw": d.get("gw") or ""})
     for x in bt:
         p = P.get(x["pid"])
         if not p or not _sees(g.user, p) or (scope == "mine" and x["remind_user"] != me and not _mine(g.user, p)):
@@ -707,7 +708,8 @@ def erinnerungen():
         out.append({"id": f"b{x['id']}", "quelle": "bautagebuch", "titel": f"{secs.get(x['kind'], 'Eintrag')}: {(x['text'] or '').strip().splitlines()[0][:140] if (x['text'] or '').strip() else ''}",
                     "text": x["text"] or "", "termin": x["due"], "uhrzeit": x["due_time"] or "09:00", "ereignis": "", "status": "offen",
                     "gesendet": x["reminded"] or "", "manuell": False, "projekt": p["name"], "pid": x["pid"], "rid": x["rid"],
-                    "an": [names.get(x["remind_user"], "?")] if x["remind_user"] else [], "an_ids": [x["remind_user"]] if x["remind_user"] else [], "von": ""})
+                    "an": [names.get(x["remind_user"], "?")] if x["remind_user"] else [], "an_ids": [x["remind_user"]] if x["remind_user"] else [], "von": "",
+                    "firma": x["company"] or "", "gw": ""})
     for o in out:
         o["lage"] = ("erledigt" if o["status"] == "erledigt" else "ueberfaellig" if o["termin"] < today and not o["gesendet"] and o["quelle"] != "bautagebuch"
                      else "abgelaufen" if o["termin"] < today else "heute" if o["termin"] == today else "bald" if o["termin"] <= (date.today() + timedelta(days=7)).isoformat() else "spaeter")

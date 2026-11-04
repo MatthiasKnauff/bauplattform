@@ -246,9 +246,25 @@ function renderE() {
       ${OPEN === x.id ? `<div class="resch">Neuer Termin: ${[[1, 'morgen'], [3, '+3 Tage'], [7, '+1 Woche'], [0, 'nächster Montag']].map(([d, l]) => `<button class="btn sm" data-rq="${d}">${l}</button>`).join('')}
         <input type="date" id="rDate" value="${esc(x.termin < iso(new Date()) ? plus(1) : x.termin)}"><input type="time" id="rTime" value="${esc(x.uhrzeit || '08:00')}"><button class="btn sm pri" data-ea="save">Speichern</button><button class="btn sm" data-ea="cancel">Abbrechen</button></div>` : ''}</div>`;
   };
-  const items = E.items, open = items.filter((x) => x.status !== 'erledigt'), done = items.filter((x) => x.status === 'erledigt');
+  // Gruppieren und sortieren (gemerkt je Gerät)
+  const EV = LS.get('eview', { grp: 'lage', sort: 'termin', q: 'alle' }), dir = EV.sort === 'termin_ab' ? -1 : 1;
+  const key = (x) => ({ termin: x.termin + (x.uhrzeit || ''), termin_ab: x.termin + (x.uhrzeit || ''), firma: (x.firma || '~') + x.termin, projekt: (x.projekt || '~') + x.termin, titel: x.titel + x.termin }[EV.sort] || x.termin).toLowerCase();
+  const items = E.items.filter((x) => EV.q === 'alle' || x.quelle === EV.q).slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * dir);
+  const open = items.filter((x) => x.status !== 'erledigt'), done = items.filter((x) => x.status === 'erledigt');
+  const gname = (x) => (EV.grp === 'projekt' ? x.projekt || 'ohne Projekt' : EV.grp === 'firma' ? x.firma || 'ohne Firma' : EV.grp === 'gewerk' ? x.gw || 'ohne Gewerk' : EV.grp === 'quelle' ? (SRC[x.quelle] || ['', x.quelle])[1] || x.quelle : '');
+  const groups = () => {
+    if (EV.grp === 'lage') return G.map(([k, l]) => [l, open.filter((x) => x.lage === k)]).filter(([, xs]) => xs.length);
+    if (EV.grp === 'keine') return [['', open]];
+    const m = new Map(); open.forEach((x) => { const n = gname(x); if (!m.has(n)) m.set(n, []); m.get(n).push(x); });
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'de'));
+  };
+  const sel = (k, o) => `<select data-ev="${k}">${o.map(([v, l]) => `<option value="${v}"${EV[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+  const bar = `<div class="flt"><label class="mute" style="display:flex;gap:.4rem;align-items:center">Gruppieren ${sel('grp', [['lage', 'nach Fälligkeit'], ['projekt', 'nach Projekt'], ['firma', 'nach Firma'], ['gewerk', 'nach Gewerk'], ['quelle', 'nach Herkunft'], ['keine', 'nicht gruppieren']])}</label>
+    <label class="mute" style="display:flex;gap:.4rem;align-items:center">Sortieren ${sel('sort', [['termin', 'Termin aufsteigend'], ['termin_ab', 'Termin absteigend'], ['firma', 'Firma'], ['projekt', 'Projekt'], ['titel', 'Text']])}</label>
+    <label class="mute" style="display:flex;gap:.4rem;align-items:center">Zeigen ${sel('q', [['alle', 'alle'], ['plan', '📅 aus Bauzeitenplänen'], ['bautagebuch', '📒 aus dem Bautagebuch'], ['eigen', '✎ eigene']])}</label></div>`;
   $('#view').innerHTML = (E.mail ? '' : `<div class="note">Der Mailserver ist noch nicht eingerichtet – Erinnerungen werden hier angezeigt, aber nicht per E-Mail verschickt. ${appLink('admin', '') ? `<a href="${esc(appLink('admin', '#einstellungen-mail'))}">Verwaltung → Einstellungen → Mailserver</a>` : ''}</div>`)
-    + (open.length ? G.map(([k, l]) => { const xs = open.filter((x) => x.lage === k); return xs.length ? `<div class="grp">${l} <small>${xs.length}</small></div><div class="ml">${xs.map(row).join('')}</div>` : ''; }).join('')
+    + bar
+    + (open.length ? groups().map(([l, xs]) => `${l ? `<div class="grp">${esc(l)} <small>${xs.length}</small></div>` : ''}<div class="ml">${xs.map(row).join('')}</div>`).join('')
       : '<div class="empty">Keine offenen Erinnerungen. Erinnerungen entstehen aus Erledigungsdaten im Bautagebuch, aus den Bauzeitenplänen (wenn eine Firma zur Baustelle muss) oder mit „+ Erinnerung“.</div>')
     + (done.length ? `<details class="done-l"><summary>Erledigt (${done.length})</summary><div class="ml">${done.map(row).join('')}</div></details>` : '')
     + `<p class="mute" style="font-size:.82rem;margin-top:1.4rem">📒 aus dem Bautagebuch (Erledigungsdatum, Mail am Fälligkeitstag) · 📅 aus den Bauzeitenplänen: Firma kommt zum ersten Mal oder wieder auf die Baustelle – Erinnerung ${CFG ? CFG.vorlauf : 7} Tage vorher · ✎ eigene. Abgelaufene lassen sich neu terminieren.</p>`;
@@ -287,6 +303,7 @@ document.addEventListener('click', async (e) => {
   }
 });
 document.addEventListener('change', (e) => {
+  if (e.target.dataset.ev) { const EV = LS.get('eview', { grp: 'lage', sort: 'termin', q: 'alle' }); EV[e.target.dataset.ev] = e.target.value; LS.set('eview', EV); renderE(); return; }
   const el = e.target;
   if (el.id === 'mart') { F.art = el.value; LS.set('filter', F); renderM(); return; }
   if (el.id === 'mproj') { F.projekt = el.value; LS.set('filter', F); renderM(); return; }

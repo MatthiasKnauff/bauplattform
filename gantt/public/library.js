@@ -499,7 +499,7 @@ loadLibrary();
 function leistungWizard(opt = {}) {
   const profs = CATALOG.profiles.filter((p) => p.k !== 'frei' && !p.hidden);
   const f = { n: '', ph: opt.ph || '', gw: '', din: '', d: 2, sc: 'we', a: '', b: '', rec: [...(opt.rec || [])] };
-  let step = 0, guessed = false;
+  let step = 0, guessed = false, kiWhy = '', kiBusy = false;
   const STEPS = ['Bezeichnung', 'Abschnitt und Gewerk', 'Dauer', 'Reihenfolge', 'Gebäudetypen'];
   const bg = document.createElement('div'); bg.className = 'modal-bg lw-bg';
   bg.innerHTML = `<div class="modal lw" role="dialog" aria-label="Neue Leistung"><div class="mh">Neue Leistung – Assistent<button class="mx" title="Schließen">×</button></div>
@@ -546,8 +546,10 @@ function leistungWizard(opt = {}) {
     else h = `<p class="lw-q">Bei welchen Gebäudetypen soll sie im Assistenten schon angehakt sein (empfohlen)?</p>
       <div class="lw-pr">${profs.map((p) => `<label class="chk"><input type="checkbox" data-lw="rec" value="${p.k}"${f.rec.includes(p.k) ? ' checked' : ''}> ${esc(p.ic || '')} ${esc(p.n)}</label>`).join('')}</div>
       <p class="lw-h">Bei den übrigen Typen steht sie unter „Weitere Leistungen“.</p>`;
+    if (kiWhy) h += `<p class="lw-ki">✨ ${esc(kiWhy)}</p>`;
     bg.querySelector('.lw-b').innerHTML = h;
-    bg.querySelector('.lw-f').innerHTML = `${step ? '<button class="btn" data-lwb="back">Zurück</button>' : ''}<span style="flex:1"></span>
+    const ki = window.AiPlace && AiPlace.enabled();
+    bg.querySelector('.lw-f').innerHTML = `${step ? '<button class="btn" data-lwb="back">Zurück</button>' : ''}${ki ? `<button class="btn" data-lwb="ki"${f.n.trim() && !kiBusy ? '' : ' disabled'} title="Abschnitt, Gewerk, DIN, Dauer, Bezug und Reihenfolge vorschlagen lassen">${kiBusy ? '✨ überlegt …' : esc(AiPlace.label())}</button>` : ''}<span style="flex:1"></span>
       <button class="btn" data-lwb="x">Abbrechen</button>${step < STEPS.length - 1 ? '<button class="btn" data-lwb="next">Weiter</button>' : ''}<button class="btn primary" data-lwb="ok"${f.n.trim() ? '' : ' disabled'}>Fertig</button>`;
     const fi = bg.querySelector('.lw-b input, .lw-b select'); if (fi) { fi.focus(); if (fi.select && step === 0) fi.select(); }
   }
@@ -567,8 +569,23 @@ function leistungWizard(opt = {}) {
     else if (a === 'back') { read(); step--; draw(); }
     else if (a === 'next') { read(); if (!f.n.trim()) return; guess(); step++; draw(); }
     else if (a === 'ok') done();
+    else if (a === 'ki') kiVorschlag();
   });
-  bg.addEventListener('input', (e) => { if (e.target.dataset.lw === 'n') { f.n = e.target.value; guessed = false; f.gw = f.din = ''; if (!opt.ph) f.ph = ''; const ok = bg.querySelector('[data-lwb="ok"]'); if (ok) ok.disabled = !f.n.trim(); } });
+  async function kiVorschlag() {   // wie ✨ im Leistungskatalog: KI (oben gewählt) oder eingebauter Vorschlag
+    read(); if (!f.n.trim()) return;
+    kiBusy = true; draw();
+    try {
+      const r = await AiPlace.suggest(f.n.trim(), (typeof P !== 'undefined' && P && P.assist) || { type: 'frei' }, f.ph || '', AiPlace.preferred(), true);
+      if (r.ph) f.ph = r.ph; if (r.gw) f.gw = r.gw; f.din = r.din || f.din || libDinFor(f.gw, f.n);
+      if (r.sc) f.sc = r.sc; if (r.d) f.d = Math.max(1, Math.round(+r.d) || 1);
+      f.a = (r.a || [])[0] || ''; f.b = (r.b || [])[0] || '';
+      guessed = true; kiWhy = r.why || 'Vorschlag übernommen – bitte prüfen.';
+      if (!step) step = 1;
+    } catch (e) { kiWhy = 'Kein Vorschlag: ' + e.message; }
+    kiBusy = false; draw();
+  }
+  bg.addEventListener('input', (e) => { if (e.target.dataset.lw === 'n') { f.n = e.target.value; guessed = false; kiWhy = '';
+      const kb = bg.querySelector('[data-lwb="ki"]'); if (kb) kb.disabled = !f.n.trim(); f.gw = f.din = ''; if (!opt.ph) f.ph = ''; const ok = bg.querySelector('[data-lwb="ok"]'); if (ok) ok.disabled = !f.n.trim(); } });
   bg.addEventListener('keydown', (e) => {
     e.stopPropagation();
     if (e.key === 'Escape') close();

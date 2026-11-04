@@ -768,3 +768,5 @@ html[data-theme="dunkel"] .bph-dr{--card:#2b2c2e;--line:#45474b;--inp:#1d1f21}
 .lw-pr{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 12px}
 .lw-f{display:flex;gap:6px;align-items:center}
 .ae-ph .ae-addl{margin-left:12px;font-weight:400;padding:1px 8px;font-size:12px}
+.lw-ki{margin:0;padding:6px 9px;border-radius:6px;background:#f3f7ff;border:1px solid #cddcf5;font-size:12px;color:#33445f}
+html[data-theme="dunkel"] .lw-ki{background:#26303f;border-color:#3b4a66;color:#d7e2f5}

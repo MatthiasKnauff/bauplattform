@@ -274,13 +274,17 @@ def zuordnen(c, uid, mails):
 def vorschlag(m):
     """Erinnerung zu einer wichtigen Mail vorschlagen: {titel, termin (JJJJ-MM-TT), text} oder None."""
     a = m.get("art")
-    if a not in WICHTIG:
-        return None
     try:
         t0 = datetime.fromisoformat((m.get("zeit") or "").replace("Z", "+00:00")).date()
     except ValueError:
         t0 = _now().date()
     wer = m.get("von_name") or m.get("von") or "Absender"
+    if a not in WICHTIG:   # sonst: Fragen und Bitten um Rückmeldung → „antworten“ in zwei Tagen
+        t = fold((m.get("betreff") or "") + " " + (m.get("vorschau") or ""))
+        if not re.search(r"\?|bitte um (ruckmeldung|antwort|info|stellungnahme|bestatigung|freigabe)|um ruckmeldung|konnten sie|konnen sie|wurden sie|ware(n)? sie|bearbeitungsstand|wie ist der stand|teilen sie (uns|mir) mit|bitte (pruf|bestatig|melden|teilen|senden|schick)", t):
+            return None
+        return {"titel": f"{wer} antworten: {m.get('betreff') or 'Mail'}"[:200], "termin": (t0 + timedelta(days=2)).isoformat(),
+                "text": f"{m.get('betreff') or ''}\nvon {wer} ({m.get('von') or ''}), eingegangen {t0.strftime('%d.%m.%Y')}"[:1000]}
     tage, titel = {"Schlussrechnung": (25, f"Schlussrechnung von {wer} prüfen (Prüffrist 30 Tage)"),
                    "Rechnung": (14, f"Rechnung von {wer} prüfen und freigeben"),
                    "Nachtrag": (7, f"Nachtrag von {wer} prüfen"),

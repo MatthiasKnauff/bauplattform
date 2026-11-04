@@ -104,6 +104,13 @@ table.lv tr.drop-hier td{box-shadow:inset 0 -3px 0 #1e5aa0}
 .fotos figure:hover .ib,.fotos figure:focus-within .ib{opacity:1}
 tr.lang.drop td{outline:2px dashed var(--y);outline-offset:-3px}
 .ib sup{font-size:.6em}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--card)}
+.seg button{border:0;background:transparent;padding:.3rem .8rem;border-radius:999px;font:inherit;font-size:.88rem;cursor:pointer;color:var(--ink)}
+.seg button.on{background:var(--ink);color:var(--card)}
+.tree tr.rech td{background:var(--tabs)}
+.tree tr.rech.akt td{background:color-mix(in srgb,#f0b429 28%,transparent)}
+.tree tr.mu td{color:var(--mute)}
+.tree tr.txt td{color:var(--mute)}
 .tree .nt{color:#e07b3a;font-weight:600}
 @media (max-width:860px){.body{grid-template-columns:1fr}.nav{display:flex;gap:.3rem;overflow-x:auto;padding:.3rem;border-right:0;border-bottom:1px solid var(--line)}.nav .ng{display:flex;gap:.2rem;margin:0}.nav .nh{display:none}.nav .ni{white-space:nowrap;padding:.35rem .6rem}.nav{position:static;height:auto}}
 .stat{display:flex;gap:.25rem;flex-wrap:wrap;align-items:center;font-size:.8rem}
@@ -235,6 +242,7 @@ if (!TABS.some((t) => t[0] === tab)) tab = 'auftraege';
 const eur = (v) => (v == null || isNaN(v) ? '–' : (Math.abs(v) < 0.005 ? 0 : v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
 const eur0 = (v) => (v == null || isNaN(v) ? '–' : Math.round(v).toLocaleString('de-DE') + ' €');
 const nf2 = (v) => (v == null || v === '' || isNaN(v) ? '' : (+v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const nf3 = (v) => (+v || 0).toLocaleString('de-DE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 const nf = (v, n = 3) => (v == null || v === '' || isNaN(v) ? '' : (+v).toLocaleString('de-DE', { maximumFractionDigits: n }));
 const pf = (s) => { if (s == null) return null; s = String(s).trim(); if (!s) return null; const v = parseFloat(s.replace(/\./g, (m, i, a) => (/\.\d{3}(\D|$)/.test(a.slice(i)) ? '' : '.')).replace(',', '.')); return isNaN(v) ? null : v; };
 const de = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('de-DE'); };
@@ -675,7 +683,65 @@ function vergabeDialog(aid) {
 }
 
 /* ---------- Aufmaß ---------- */
+/* ---------- Aufmaßprüfung: Baum wie in ORCA (LV › Teilrechnungen › Titel › Positionen) oder Aufmaß erfassen ---------- */
+let amAns = LS.get('amAns', 'baum'), AMX = LS.get('amx', {});
 function vAufmass() {
+  const um = `<div class="seg" role="group" aria-label="Ansicht" style="margin-bottom:.6rem"><button type="button" class="${amAns === 'baum' ? 'on' : ''}" data-amans="baum">Prüfung je Rechnung</button><button type="button" class="${amAns === 'erfassen' ? 'on' : ''}" data-amans="erfassen">Aufmaß erfassen</button></div>`;
+  return um + (amAns === 'baum' ? vAmBaum() : vAmErfassen());
+}
+function vAmBaum() {
+  const I = items(), VP = (L.vergabe && L.vergabe.preise) || {}, nl = ((L.vergabe && L.vergabe.nachlass) || 0) / 100;
+  const RE = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
+  const live = L.calc.aufmass || {};
+  const staende = []; let vorher = {};
+  RE.forEach((r, k) => {
+    const st = r.status === 'geprueft' && r.data && r.data.stand ? r.data.stand : live;
+    staende.push({ key: 'r' + r.id, titel: r.art === 'schluss' ? 'Schlussrechnung' : `${r.nr}. Teilrechnung`, sub: [r.re_nr ? 'Nr. ' + r.re_nr : '', r.status === 'geprueft' ? 'geprüft' : 'in Prüfung'].filter(Boolean).join(' · '), st, vorher, letzte: k === RE.length - 1 });
+    if (r.status === 'geprueft') vorher = st;
+  });
+  if (!RE.length || RE[RE.length - 1].status === 'geprueft') staende.push({ key: 'rlive', titel: RE.length ? 'Aufmaß seit der letzten Rechnung' : 'Aufmaß (noch keine Rechnung)', sub: 'noch nicht abgerechnet', st: live, vorher, letzte: true });
+  const offen = (k, def) => (k in AMX ? AMX[k] : def);
+  const e2 = (v) => (v ? eur(v).replace(' €', '') : '');
+  const prog = (x, m) => { const ep = VP[x.id]; if (ep == null || x.entf) return 0; const q = ohneGB(x) ? m : Math.max(x.menge || 0, m); return q * ep; };
+  const summe = (st, von, bis) => { let g = 0, p = 0; for (let i = von; i < bis; i++) { const x = I[i]; if (x.typ !== 'pos' || x.art === 'T' || (x.nt && x.nt_status === 'abgelehnt')) continue; const ep = VP[x.id]; if (ep == null) continue; const m = st[x.id] || 0; g += m * ep; p += prog(x, m); } return [g, p]; };
+  const ende = (i) => { const lv = I[i].lvl || 1; let j = i + 1; while (j < I.length && !(I[j].typ === 'titel' && (I[j].lvl || 1) <= lv)) j++; return j; };
+  const [gAll, pAll] = summe(staende.length ? staende[staende.length - 1].st : live, 0, I.length);
+  const out = [], car = (k, on) => `<span class="car" data-amx="${k}">${on ? '▾' : '▸'}</span>`;
+  out.push(`<tr class="root"><td><span class="tw">${IC.proj}<span>LV ${esc(L.nr)} ${esc(L.name)}${L.vergabe && L.vergabe.bieter ? ' · ' + esc(L.vergabe.bieter) : ''}</span></span></td><td></td><td></td><td></td><td class="r">${e2(gAll * (1 - nl))}</td><td class="r">${e2(pAll * (1 - nl))}</td></tr>`);
+  staende.forEach((S) => {
+    const on = offen(S.key, S.letzte), [g, p] = summe(S.st, 0, I.length);
+    out.push(`<tr class="rech${S.letzte ? ' akt' : ''}"><td><span class="tw" style="padding-left:1.1rem">${car(S.key, on)}${IC.lv}<span><b>${esc(S.titel)}</b> <span class="mu">${esc(S.sub)}</span></span></span></td><td></td><td></td><td></td><td class="r">${e2(g * (1 - nl))}</td><td class="r">${on ? '' : e2(p * (1 - nl))}</td></tr>`);
+    if (!on) return;
+    const zu = new Set();   // zugeklappte Titel
+    I.forEach((x, i) => {
+      for (const t of zu) if (i > t.i && i < t.e) return;
+      if (x.typ === 'titel') {
+        const k = S.key + ':' + x.id, o = offen(k, true), e = ende(i), [tg, tp] = summe(S.st, i + 1, e);
+        if (!o) zu.add({ i, e });
+        out.push(`<tr class="ti"><td><span class="tw" style="padding-left:${1.1 + (x.lvl || 1) * 1.1}rem">${car(k, o)}${IC.ti}<span>${esc(x.oz)} ${esc(x.kurz)}</span></span></td><td></td><td></td><td></td><td class="r">${e2(tg)}</td><td class="r">${e2(tp)}</td></tr>`);
+        return;
+      }
+      const tiefe = 1.1 + ((I.slice(0, i).reverse().find((y) => y.typ === 'titel') || {}).lvl || 0) * 1.1 + 2.2;
+      if (x.art === 'T') { out.push(`<tr class="txt"><td colspan="6"><span class="tw" style="padding-left:${tiefe}rem">${IC.pos}<span class="mu">${esc(x.kurz || x.lang || '')}</span></span></td></tr>`); return; }
+      const ep = VP[x.id], m = S.st[x.id] || 0, z = m - (S.vorher[x.id] || 0), abg = x.nt && x.nt_status === 'abgelehnt';
+      const ueb = x.menge && m > x.menge * 1.1;
+      out.push(`<tr data-amp="${x.id}" class="${abg || x.entf ? 'mu' : ''}"><td><span class="tw" style="padding-left:${tiefe}rem">${IC.pos}<span>${esc(x.oz)} ${esc(x.kurz)}${x.nt ? ` <span class="nt">${esc(x.nt)}</span>` : ''}</span></span></td>
+        <td class="r${ueb ? ' nt' : ''}" title="LV-Menge ${nf(x.menge)} ${esc(x.einheit || '')}">${nf3(m)}</td><td class="r">${nf3(z)}</td><td class="r">${ep != null ? nf2(ep) : ''}</td><td class="r">${ep != null && !abg ? e2(m * ep) || '0,00' : ''}</td><td class="r">${ep != null && !abg ? e2(prog(x, m)) : ''}</td></tr>`);
+    });
+  });
+  return `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:20rem">Bezeichnung</th><th class="r">Menge</th><th class="r">Zuwachsmenge</th><th class="r">Preis (EUR)</th><th class="r">Gesamt (EUR)</th><th class="r">Prognose (EUR)</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
+    <p class="hint" style="margin:.5rem 0 0">Menge = aufgemessen bis zu dieser Rechnung (bei geprüften Rechnungen der festgehaltene Stand), Zuwachsmenge = neu seit der vorigen geprüften Rechnung. Prognose = größere aus LV- und Aufmaßmenge × Auftragspreis. Orange: mehr als 110 % der LV-Menge. Doppelklick auf eine Position öffnet ihr Aufmaß.</p>`;
+}
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-amans]'); if (a) { amAns = a.dataset.amans; LS.set('amAns', amAns); render(); return; }
+  const c = e.target.closest('[data-amx]'); if (c) { const k = c.dataset.amx, cur = c.textContent === '▾'; AMX[k] = !cur; LS.set('amx', AMX); render(); }
+});
+document.addEventListener('dblclick', (e) => {
+  const tr = e.target.closest('tr[data-amp]'); if (!tr || tab !== 'aufmass') return;
+  amPos = tr.dataset.amp; LS.set('amPos', amPos); amAns = 'erfassen'; LS.set('amAns', amAns); render();
+  setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30);
+});
+function vAmErfassen() {
   const P = posOf(), AM = L.aufmass, K = L.calc;
   if (!P.length) return '<div class="card empty">Noch keine Positionen im LV.</div>';
   if (!P.some((p) => p.id === amPos)) amPos = (P.find((p) => AM.some((a) => a.pos_id === p.id)) || P[0]).id;

@@ -302,6 +302,7 @@ function renderSettings() {
     <div class="st-a">${x.hasKey && !x.fromEnv ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div></div>`;
   $('#main').innerHTML = `${stNav()}
   <section class="card st"><h2>KI</h2><p class="mute">Welche KI jemand nutzt, wählt jeder oben in der Kopfleiste. Hier wird eingerichtet, welche zur Verfügung stehen. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
+    <div class="st-row"><span>Kostenpflichtige KI (Claude, Gemini, ChatGPT)<small class="mute" style="display:block">Aus: für alle abgeschaltet – die Knöpfe verschwinden in der Kopfleiste aller Apps, genutzt werden nur Intern und Ollama. Schlüssel bleiben gespeichert.</small></span><div class="seg" id="stPaid">${[['an', 'Erlaubt'], ['aus', 'Aus']].map(([k, l]) => `<button class="${(K.kostenpflichtig_aus ? 'aus' : 'an') === k ? 'on' : ''}" data-paid="${k}">${l}</button>`).join('')}</div></div>
     <div class="st-row"><span>Positionsvorschlag im Bauzeitenplan</span><div class="seg" id="stVor">${[['builtin', 'An'], ['off', 'Aus']].map(([k, l]) => `<button class="${(K.vorschlag === 'off' ? 'off' : 'builtin') === k ? 'on' : ''}" data-vor="${k}">${l}</button>`).join('')}</div></div>
     <div class="st-k"><div class="st-kh"><b>Ollama – KI im Büro</b><span class="pill ${K.ollama.ok ? 'ok' : 'bad'}">${K.ollama.ok ? 'bereit' : esc(K.ollama.hint)}</span></div>
       <p class="mute" style="margin:.2rem 0 .5rem">Modell <b>${esc(K.ollama.model)}</b>${K.ollama.models.length ? ' · vorhanden: ' + esc(K.ollama.models.join(', ')) : ''}. Das Modell wird in Portainer über <code>OLLAMA_MODEL</code> festgelegt und beim Start geladen.<br>Pläne lesen (Baukosten): Bildmodell <b>${esc(K.ollama.vision || '–')}</b> ${K.ollama.sieht ? '– bereit' : K.ollama.vision ? '– wird noch geladen' : ''} (<code>OLLAMA_VISION_MODEL</code>, leer = keins).</p>
@@ -313,6 +314,7 @@ function renderSettings() {
   <section class="card st"><h2>Einstellungen in den Apps</h2><p class="mute">Alle Einstellungen erreichst du in jeder App über ⚙ oben rechts: <b>Diese App</b> (z. B. Raumtypen der Baukosten, Erinnerungen, Plannummerierung, Berichte des Bautagebuchs), <b>Für mich</b> (Unterschrift, Signatur, Absender, Kalender, Darstellung) und <b>Büro</b> (diese Seite).</p>
     <p class="mute" style="margin-top:.6rem">Jede Speicherung wird automatisch als Stand festgehalten. Mit <b>↶ Verlauf</b> neben dem Speichern-Knopf oder unter „Änderungsverlauf“ lässt sich jeder frühere Stand ansehen und wiederherstellen.</p></section>`;
 
+  $('#stPaid').onclick = (e) => { const b = e.target.closest('[data-paid]'); if (!b) return; data.paid = b.dataset.paid === 'aus'; $('#stPaid').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
   $('#stVor').onclick = (e) => { const b = e.target.closest('[data-vor]'); if (!b) return; data.vor = b.dataset.vor; $('#stVor').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
 }
 $('#main').addEventListener('click', async (e) => {
@@ -331,7 +333,8 @@ $('#main').addEventListener('click', async (e) => {
     document.querySelectorAll('[data-k]').forEach((el) => { const [pv, f] = el.dataset.k.split('.'); if (el.value.trim() || f === 'model') ki[pv][f] = el.value.trim(); });
     Object.keys(data.clear || {}).forEach((pv) => { ki[pv].clearKey = true; });
     if (data.vor) ki.vorschlag = data.vor;
-    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.vor = null; renderSettings(); toast('KI-Einstellungen gespeichert.'); } catch (er) { toast(er.message, true); }
+    if (typeof data.paid === 'boolean') ki.kostenpflichtig_aus = data.paid;
+    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.vor = null; data.paid = undefined; renderSettings(); toast('KI-Einstellungen gespeichert.'); if (window.BPHead && BPHead.kiLaden) BPHead.kiLaden(); } catch (er) { toast(er.message, true); }
     return;
   }
 });

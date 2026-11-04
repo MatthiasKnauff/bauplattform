@@ -1161,7 +1161,10 @@ PLACE_TOOL = {
 def ai_place():
     with db.tx() as c:
         k = ai_conf(c)
+        aus = bpai.paid_off(c)
     b = body()
+    if aus and jstr(b.get("provider") or "") != "ollama":   # Claude/Gemini/ChatGPT vom Administrator abgeschaltet
+        return jsonify(error=bpai.AUS_TEXT), 400
     if not k["key"] and jstr(b.get("provider") or "") not in ("ollama", "gemini", "chatgpt"):
         return jsonify(error="Kein API-Schlüssel hinterlegt (Programmeinstellungen)."), 400
     text = jstr(b.get("text") or "")[:300]

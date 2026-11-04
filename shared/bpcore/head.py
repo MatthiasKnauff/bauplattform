@@ -55,7 +55,8 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
             prov = ai.providers(c)
-        return jsonify(choice=ai.choice_of(u), providers=prov)
+            ch = ai.choice_of(u, c)
+        return jsonify(choice=ch, providers=prov, kostenpflichtig_aus=ai.paid_off())
 
     @bp.put("/api/bp/ki")
     def ki_put():
@@ -65,6 +66,8 @@ def blueprint(get_user=None):
         k = str((request.get_json(silent=True) or {}).get("ki") or "").strip().lower()
         if k not in ai.KEYS:
             return jsonify(error="Unbekannte KI."), 400
+        if k in ai.PAID and ai.paid_off():
+            return jsonify(error=ai.AUS_TEXT), 400
         with db.tx() as c, versionen.aenderung(c, f"konto:{u['id']}", u["name"]):
             c.execute("UPDATE users SET ai=? WHERE id=?", ("" if k == "intern" else k, u["id"]))
             prov = ai.providers(c)

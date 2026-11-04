@@ -18,6 +18,8 @@ PROVIDERS = (
     ("chatgpt", "ChatGPT", "OpenAI – kostenpflichtig je Anfrage"),
 )
 KEYS = tuple(k for k, _, _ in PROVIDERS)
+PAID = ("claude", "gemini", "chatgpt")
+AUS_TEXT = "Kostenpflichtige KI ist vom Administrator abgeschaltet (Verwaltung → Büro-Einstellungen → KI)."
 
 
 class AIError(Exception):
@@ -95,6 +97,23 @@ def store(c, key):
         return {}
 
 
+def paid_off(c=None):
+    """Hat der Administrator die kostenpflichtigen KIs (Claude, Gemini, ChatGPT) für alle abgeschaltet?"""
+    if c is None:
+        from . import db
+        try:
+            with db.tx() as c2:
+                return paid_off(c2)
+        except Exception:
+            return False
+    return bool((store(c, "plattform").get("ki") or {}).get("kostenpflichtig_aus"))
+
+
+def _erlaubt(provider, c):
+    if provider in PAID and paid_off(c):
+        raise AIError(AUS_TEXT)
+
+
 def ext_conf(c, prov):
     """Schlüssel/Modell für Gemini bzw. ChatGPT: in der Verwaltung hinterlegt, sonst Umgebungsvariable."""
     k = (store(c, "plattform").get("ki") or {}).get(prov) or {}
@@ -121,8 +140,10 @@ def claude_conf(c=None):
 
 def providers(c=None):
     """Auswahl für die Kopfleiste: welche Anbieter sind eingerichtet?"""
-    out = []
+    out, aus = [], paid_off(c)
     for k, label, desc in PROVIDERS:
+        if aus and k in PAID:
+            continue   # abgeschaltet: Knopf erscheint nirgends
         if k == "intern":
             ok, hint = True, desc
         elif k == "ollama":
@@ -144,9 +165,12 @@ def providers(c=None):
     return out
 
 
-def choice_of(user):
+def choice_of(user, c=None):
     v = (user["ai"] if user is not None and "ai" in user.keys() else "") or ""
-    return v if v in KEYS else "intern"
+    v = v if v in KEYS else "intern"
+    if v in PAID and paid_off(c):   # gewählte KI ist abgeschaltet → Ollama, wenn bereit, sonst Intern
+        return "ollama" if ollama_state()["ok"] else "intern"
+    return v
 
 
 def _post(url, payload, headers, timeout=90):
@@ -174,6 +198,7 @@ def _post(url, payload, headers, timeout=90):
 
 def ask(provider, system, user, max_tokens=900, c=None, json_mode=False):
     """Eine Frage an den gewählten Anbieter. Gibt Text zurück (bei json_mode möglichst reines JSON)."""
+    _erlaubt(provider, c)
     if provider == "ollama":
         if not ollama_url():
             raise AIError("Ollama ist nicht eingerichtet")
@@ -224,6 +249,7 @@ VISION = ("claude", "gemini", "chatgpt")   # können Bilder (Pläne) lesen; das 
 
 def ask_image(provider, system, user, png, max_tokens=2500, c=None):
     """Frage mit Bild (z. B. Grundriss als PNG). Antwort als Text."""
+    _erlaubt(provider, c)
     import base64
     b64 = base64.b64encode(png).decode()
     if provider == "claude":

@@ -80,6 +80,15 @@
     tip(`KI: ${p.label} – gilt jetzt in allen Apps.${p.paid ? ' Anfragen kosten je Nutzung Geld.' : ''}`);
     listeners.forEach((f) => { try { f(H.ki, prov(H.ki)); } catch { /* App-Fehler nicht weitergeben */ } });
   }
+  /* KI-Auswahl neu laden (z. B. nachdem der Administrator kostenpflichtige KI abgeschaltet hat) – auch im Fenster, das die Büro-Einstellungen eingebettet hat */
+  H.kiLaden = async function () {
+    try {
+      const d = await getJ('api/bp/ki'), alt = H.ki;
+      H.ki = d.choice || 'intern'; H.providers = d.providers || []; renderKi();
+      if (alt !== H.ki) listeners.forEach((f) => { try { f(H.ki, prov(H.ki)); } catch { /* egal */ } });
+    } catch { /* egal */ }
+    try { if (window.parent !== window && window.parent.BPHead && window.parent.BPHead.kiLaden) window.parent.BPHead.kiLaden(); } catch { /* andere Herkunft */ }
+  };
   function kiMenu() {
     closeMenus();
     const m = document.createElement('div'); m.className = 'bph-menu'; m.setAttribute('role', 'menu');

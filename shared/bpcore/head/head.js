@@ -176,7 +176,7 @@
     band = document.createElement('header');
     band.className = 'bph' + (opt.sticky ? ' bph-sticky' : '');
     band.innerHTML = `<a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span><span class="bph-app">${esc(opt.name || '')}</span></a>
-      <div class="bph-proj"><small></small><span></span></div><span class="bph-fill"></span>
+      <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div><span class="bph-fill"></span>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
       <button type="button" class="bph-ic bph-appsb" aria-haspopup="menu" aria-label="Apps" title="Apps">${IC.grid}</button>
@@ -185,7 +185,9 @@
     const parent = opt.parent || document.body;
     parent.insertBefore(band, opt.before || parent.firstChild);
     renderKi();
+    band.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.bph-proj')) { e.preventDefault(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); } });
     band.addEventListener('click', (e) => {
+      if (e.target.closest('.bph-proj')) { closeMenus(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); return; }
       const k = e.target.closest('[data-ki]');
       if (k) { e.preventDefault(); closeMenus(); setKi(k.dataset.ki); return; }
       if (e.target.closest('[data-out]')) { logout(); return; }
@@ -670,6 +672,142 @@
     return H.projekt;
   };
   H.projektId = () => (H.projekt && H.projekt.id) || null;
+  /* ---------- Projekt bearbeiten / anlegen – EINE Maske für alle Apps (Bautagebuch, Verwaltung, Projektauswahl) ----------
+     H.projektBearbeiten(id | null, { onSaved(id), onDelete(projekt, close) })  – gespeichert wird im Bautagebuch */
+  H.projektBearbeiten = async function (id, opt = {}) {
+    const B = H.app === 'bautagebuch' ? 'api/' : 'api/bp/bt/';
+    const J = (u, m, b) => KX(B + u, m ? { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined } : {});
+    let P, LEAD;
+    try { [P, LEAD] = await Promise.all([id ? J('projects').then((l) => l.find((x) => x.id === +id)) : null, J('leaders')]); } catch (e) { alert(e.message); return; }
+    if (id && !P) { alert('Projekt nicht gefunden.'); return; }
+    const neu = !P, me = H.me || {};
+    const d = P ? { ...P, leaders: [...(P.leaders || [])] } : { name: '', client: '', street: '', zip: '', city: '', folder: '', leaders: me.is_admin ? [] : [me.id].filter(Boolean) };
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+    bg.innerHTML = '<div class="bph-dlg bph-pe" role="dialog" aria-label="Projekt"></div>'; document.body.appendChild(bg);
+    const root = bg.firstChild, close = () => { bg.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', k1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    const adr = () => [d.street, [d.zip, d.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const hatPos = () => d.lat != null && d.lon != null;
+    const karte = () => { const q = hatPos() ? d.lat + ',' + d.lon : adr(); if (!q) return ''; const e = encodeURIComponent(q);
+      return `<div class="bph-map"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${e}&hl=de&z=15&output=embed"></iframe><a href="https://www.google.com/maps/dir/?api=1&destination=${e}&travelmode=driving" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>`; };
+    const posInfo = () => ((d.extra && d.extra.addr_auto) ? 'Adresse und PLZ wurden automatisch aus dem Projektnamen ermittelt – bitte prüfen. ' : '')
+      + (hatPos() ? 'Standort gespeichert – damit wählt das Bautagebuch dieses Projekt automatisch, wenn du vor Ort bist.' : neu ? 'Ohne Adresse wird sie beim Anlegen aus dem Projektnamen ermittelt.' : 'Noch kein Standort: Adresse eintragen oder „Aktuellen Standort übernehmen“.');
+    const f = (k, l, w, extra = '') => `<label class="${w ? 'w' : ''}">${l}<input data-pe="${k}" value="${esc(d[k] || '')}" autocomplete="off"${extra}></label>`;
+    let msg = '';
+    function draw() {
+      root.innerHTML = `<div class="bph-dh"><b>${neu ? 'Neues Projekt' : esc(d.name || 'Projekt')}</b><button type="button" class="bph-x" data-pc aria-label="Schließen">×</button></div><div class="bph-db">
+        <div class="bph-pef">${f('name', 'Bauvorhaben *', 1, ' placeholder="Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop"')}${f('client', 'Bauherrschaft (Name und Anschrift)', 1)}${f('street', 'Straße und Hausnummer', 1)}${f('zip', 'PLZ', 0, ' inputmode="numeric"')}${f('city', 'Ort')}</div>
+        <div class="bph-row"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button><button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button></div>
+        <p class="bph-mu">${esc(posInfo())}</p>${karte()}
+        <h4>Zuständige Bauleiter</h4><div class="bph-chips">${LEAD.map((u) => `<button type="button" class="bph-chip${d.leaders.includes(u.id) ? ' on' : ''}" data-pl="${u.id}" aria-pressed="${d.leaders.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Noch keine Benutzer.</small>'}</div>
+        <p class="bph-mu">${d.leaders.length ? 'Nur die ausgewählten Bauleiter und die Administratoren sehen dieses Projekt in der Projektauswahl.' : 'Niemand ausgewählt: alle Benutzer sehen dieses Projekt.'}</p>
+        <div class="bph-pef">${f('folder', 'Projektordner auf dem Server (leer = automatisch über das Kürzel; Unterordner mit /)', 1)}</div>
+        ${msg ? `<p class="bph-err">${esc(msg)}</p>` : ''}
+        <div class="bph-row bph-pea">${neu ? '' : `<button type="button" class="bph-btn" data-parch>${d.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button>${opt.onDelete ? '<button type="button" class="bph-btn bph-bad" data-pdel>Projekt löschen …</button>' : ''}`}
+          <span style="flex:1"></span><button type="button" class="bph-btn" data-pc>Abbrechen</button><button type="button" class="bph-btn pri" data-pok>${neu ? 'Anlegen' : 'Speichern'}</button></div></div>`;
+    }
+    const lesen = () => root.querySelectorAll('[data-pe]').forEach((i) => { d[i.dataset.pe] = i.value.trim().replace(/\s+/g, ' '); });
+    async function speichern(extra) {
+      lesen(); if (!d.name) { msg = 'Bitte einen Namen für das Bauvorhaben eingeben.'; draw(); root.querySelector('[data-pe="name"]').focus(); return; }
+      const body = { name: d.name, client: d.client, street: d.street, zip: d.zip, city: d.city, folder: d.folder, leaders: d.leaders, ...(extra || {}) };
+      if (P) for (const k of ['street', 'zip', 'city']) if ((P[k] || '') === body[k]) delete body[k];   // Adresse unverändert: Standort nicht neu suchen
+      try {
+        const r = neu ? await J('projects', 'POST', body) : await J('projects/' + P.id, 'PUT', body);
+        const nid = neu ? r.id : P.id; close();
+        const t = r.auto_address ? 'Adresse aus dem Projektnamen ermittelt – bitte prüfen.' : r.geocoded === false ? 'Adresse nicht gefunden – bitte prüfen.' : neu ? 'Projekt angelegt.' : 'Gespeichert.';
+        if (window.toast) toast(t);
+        if (opt.onSaved) opt.onSaved(nid); else { await H.projektSetzen(nid); location.reload(); }
+      } catch (e) { msg = e.message; draw(); }
+    }
+    root.addEventListener('click', async (e) => {
+      const t = e.target;
+      if (t.closest('[data-pc]')) return close();
+      const ch = t.closest('[data-pl]'); if (ch) { lesen(); const u = +ch.dataset.pl; d.leaders = d.leaders.includes(u) ? d.leaders.filter((x) => x !== u) : [...d.leaders, u]; return draw(); }
+      if (t.closest('[data-pok]')) return speichern();
+      if (t.closest('[data-parch]')) { lesen(); return speichern({ archived: d.archived ? 0 : 1 }); }
+      if (t.closest('[data-pdel]')) { close(); return opt.onDelete(P); }
+      if (t.closest('[data-pgeo]')) {
+        lesen(); const a = adr(); msg = '';
+        try { const g = await J('geocode?q=' + encodeURIComponent(a || d.name) + (a ? '' : '&from_name=1'));
+          if (!g.found) msg = 'Adresse nicht gefunden. Bitte Straße, PLZ und Ort eintragen.'; else Object.assign(d, { street: g.street, zip: g.zip, city: g.city, lat: g.lat, lon: g.lon });
+        } catch (er) { msg = er.message; }
+        return draw();
+      }
+      if (t.closest('[data-phier]')) {
+        lesen(); if (!navigator.geolocation) { msg = 'Standort nicht verfügbar.'; return draw(); }
+        navigator.geolocation.getCurrentPosition(async (g) => {
+          d.lat = g.coords.latitude; d.lon = g.coords.longitude;
+          try { const r = await J(`geo?lat=${d.lat}&lon=${d.lon}`); if (!r.error) Object.assign(d, { street: r.street || '', zip: r.plz || '', city: r.city || '' }); } catch { /* nur Standort */ }
+          if (P) { try { await J('projects/' + P.id, 'PUT', { lat: d.lat, lon: d.lon, street: d.street, zip: d.zip, city: d.city }); P.street = d.street; P.zip = d.zip; P.city = d.city; } catch (er) { msg = er.message; } }
+          draw();
+        }, () => { msg = 'Der Standort ist nicht verfügbar – bitte im Browser erlauben.'; draw(); }, { enableHighAccuracy: true, timeout: 10000 });
+      }
+    });
+    root.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('[data-pe]')) speichern(); });
+    draw(); root.querySelector('[data-pe="name"]').focus();
+  };
+
+  /* ---------- Projektauswahl – dieselbe Maske wie im Bautagebuch, in allen Apps ----------
+     H.projektWahl({ aktuell, onPick(id, projekt) })  – ohne onPick: als aktuelles Projekt setzen und die App neu laden
+     (oder die App hat mit H.beiProjektWahl(fn) eine eigene Reaktion hinterlegt). */
+  let pwFn = null;
+  H.beiProjektWahl = (fn) => { pwFn = fn; };
+  H.projektWahl = async function (opt = {}) {
+    let P; try { P = await KX('api/bp/projekte'); } catch (e) { alert(e.message); return; }
+    const akt = opt.aktuell != null ? +opt.aktuell : H.projektId();
+    let q = '', arch = false, fremd = false, hier = null;
+    try { hier = JSON.parse(sessionStorage.getItem('bpHier') || 'null'); } catch { /* egal */ }
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-pw-bg';
+    bg.innerHTML = `<div class="bph-dlg bph-pw" role="dialog" aria-label="Projekt wählen"><div class="bph-pwh"><input type="search" placeholder="Projekt suchen (Name oder Adresse)" autocomplete="off" data-pq><button type="button" class="bph-x" data-px aria-label="Schließen">×</button></div>
+      <div class="bph-pwl" data-pl></div>
+      <div class="bph-pwf"><button type="button" class="bph-btn" data-pneu>＋ Neues Projekt</button><button type="button" class="bph-btn" data-pstand>Nach Standort wählen</button><button type="button" class="bph-btn" data-pedit style="grid-column:1/-1">Projekt bearbeiten</button></div></div>`;
+    document.body.appendChild(bg);
+    const L = bg.querySelector('[data-pl]'), close = () => { bg.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', k1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    const rad = (x) => x * Math.PI / 180, dist = (p) => (hier && p.lat != null && p.lon != null ? 12742000 * Math.asin(Math.sqrt(Math.sin(rad(p.lat - hier.lat) / 2) ** 2 + Math.cos(rad(hier.lat)) * Math.cos(rad(p.lat)) * Math.sin(rad(p.lon - hier.lon) / 2) ** 2)) : null);
+    const fd = (m) => (m < 1000 ? Math.max(10, Math.round(m / 10) * 10) + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km');
+    const adr = (p) => [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const passt = (p) => { const t = [p.name, p.street, p.zip, p.city, p.client].join(' ').toLowerCase(); return q.trim().toLowerCase().split(/\s+/).every((w) => t.includes(w)); };
+    const zeile = (p, rechts, alt) => `<button type="button" class="bph-pi${p.id === akt ? ' on' : ''}${alt ? ' old' : ''}" data-pid="${p.id}"><span><b>${esc(p.name)}</b>${(alt || adr(p)) ? `<small>${esc(alt || adr(p))}</small>` : ''}</span>${rechts ? `<i>${esc(rechts)}</i>` : ''}</button>`;
+    function draw() {
+      const eig = P.filter((p) => p.eigen), fr = P.filter((p) => !p.eigen);
+      const L1 = eig.filter((p) => !p.archived && passt(p)), A = eig.filter((p) => p.archived && passt(p)), nA = eig.filter((p) => p.archived).length;
+      if (hier) L1.sort((a, b) => (dist(a) ?? 1e12) - (dist(b) ?? 1e12) || b.id - a.id);
+      const zA = arch || (q.trim() && A.length), fM = fr.filter(passt), zF = fremd || (q.trim() && fM.length);
+      let h = (fr.length ? '<div class="bph-pws">Eigene Projekte</div>' : '') + (L1.length ? L1.map((p) => zeile(p, dist(p) != null ? fd(dist(p)) : '')).join('') : `<div class="bph-pwe">${P.length ? 'Keine Treffer.' : 'Noch keine Projekte.'}</div>`);
+      if (nA) h += `<button type="button" class="bph-pi bph-pt" data-parch>🗄 Archiv (${nA}) ${zA && !q.trim() ? '– ausblenden' : zA ? '' : '– anzeigen'}</button>` + (zA ? A.map((p) => zeile(p, 'archiviert', adr(p) || ' ')).join('') : '');
+      if (fr.length) h += `<button type="button" class="bph-pi bph-pt" data-pfremd>👥 Fremde Projekte (${fr.length}) ${zF && !q.trim() ? '– ausblenden' : zF ? '' : '– anzeigen'}</button>` + (zF ? fM.map((p) => zeile(p, p.archived ? 'archiviert' : '', p.bauleiter ? 'Bauleiter: ' + p.bauleiter : adr(p) || ' ')).join('') : '');
+      L.innerHTML = h;
+      const e = L.querySelector('.on'); if (e && !q) e.scrollIntoView({ block: 'nearest' });
+    }
+    async function waehlen(id) {
+      const p = P.find((x) => x.id === id); close();
+      if (opt.onPick) return opt.onPick(id, p);
+      await H.projektSetzen(id);
+      if (pwFn) return pwFn(id, p);
+      location.reload();
+    }
+    const waehlenNeu = async (id) => { if (opt.onPick) return opt.onPick(id, null); await H.projektSetzen(id); if (pwFn) return pwFn(id, null); location.reload(); };
+    const standort = () => new Promise((ok, nein) => navigator.geolocation ? navigator.geolocation.getCurrentPosition((g) => { hier = { lat: g.coords.latitude, lon: g.coords.longitude }; try { sessionStorage.setItem('bpHier', JSON.stringify(hier)); } catch { /* egal */ } ok(hier); }, nein, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }) : nein(new Error('kein GPS')));
+    bg.addEventListener('input', (e) => { if (e.target.matches('[data-pq]')) { q = e.target.value; draw(); } });
+    bg.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('[data-pq]')) { const b = L.querySelector('[data-pid]'); if (b) waehlen(+b.dataset.pid); } });
+    bg.addEventListener('click', async (e) => {
+      const t = e.target;
+      if (t.closest('[data-px]')) return close();
+      const pi = t.closest('[data-pid]'); if (pi) return waehlen(+pi.dataset.pid);
+      if (t.closest('[data-parch]')) { arch = !arch; return draw(); }
+      if (t.closest('[data-pfremd]')) { fremd = !fremd; return draw(); }
+      if (t.closest('[data-pstand]')) {
+        try { await standort(); } catch { alert('Der Standort ist nicht verfügbar – bitte im Browser erlauben.'); return; }
+        const n = P.filter((p) => p.eigen && !p.archived && dist(p) != null).sort((a, b) => dist(a) - dist(b))[0];
+        if (n) return waehlen(n.id); draw(); return;
+      }
+      if (t.closest('[data-pneu]')) { close(); return H.projektBearbeiten(null, { onSaved: (id) => waehlenNeu(id) }); }
+      if (t.closest('[data-pedit]')) { if (!akt) return alert('Bitte zuerst ein Projekt wählen.'); close(); return H.projektBearbeiten(akt, { onSaved: (id) => waehlenNeu(id) }); }
+    });
+    draw(); bg.querySelector('[data-pq]').focus();
+    if (!hier && navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then((r) => { if (r.state === 'granted') standort().then(draw).catch(() => {}); }).catch(() => {});
+  };
   /* Leiste unter der Kopfleiste, z. B. „Für A541 gibt es noch keine Kostenermittlung – anlegen?“ */
   H.hinweisLeiste = function (text, knopf, fn) {
     if (!band) return;
@@ -844,7 +982,7 @@
     const box = band.querySelector('.bph-proj');
     box.querySelector('small').textContent = (p && p.sub) || '';
     box.querySelector('span').textContent = (p && p.title) || '';
-    box.title = p ? [p.sub, p.title].filter(Boolean).join(' – ') : '';
+    box.title = (p ? [p.sub, p.title].filter(Boolean).join(' – ') + ' · ' : '') + 'Klick: Projekt wählen';
   };
   H.onKi = function (fn) { listeners.push(fn); };
   H.provider = () => prov(H.ki);

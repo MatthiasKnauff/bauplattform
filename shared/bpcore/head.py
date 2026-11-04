@@ -127,6 +127,55 @@ def blueprint(get_user=None):
         adr = ", ".join(x for x in (r["street"], " ".join(y for y in (r["zip"], r["city"]) if y)) if x)
         return jsonify(id=r["id"], name=r["name"], client=r["client"] or "", adresse=adr)
 
+    @bp.get("/api/bp/projekte")
+    def projekte_api():
+        """Projektauswahl (gleiche Maske in allen Apps): eigene Projekte, Archiv, fremde Projekte (nur Administratoren)."""
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            namen = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM users")}
+            out = []
+            for r in c.execute("SELECT id, name, client, street, zip, city, lat, lon, archived, leaders FROM projects ORDER BY id DESC"):
+                try:
+                    lead = json.loads(r["leaders"] or "[]") or []
+                except ValueError:
+                    lead = []
+                eigen = not lead or u["id"] in lead
+                if not eigen and not u["is_admin"]:
+                    continue
+                out.append({"id": r["id"], "name": r["name"], "client": r["client"] or "", "street": r["street"] or "", "zip": r["zip"] or "",
+                            "city": r["city"] or "", "lat": r["lat"], "lon": r["lon"], "archived": bool(r["archived"]), "eigen": eigen,
+                            "bauleiter": ", ".join(namen.get(i, "") for i in lead if namen.get(i))})
+        return jsonify(out)
+
+    # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – das Bautagebuch erledigt es, mit der Anmeldung des Benutzers
+    import re as _re
+    _BT_ERLAUBT = [("GET", r"projects"), ("POST", r"projects"), ("PUT", r"projects/\d+"), ("GET", r"leaders"), ("GET", r"geocode"), ("GET", r"geo"),
+                   ("GET", r"store/folders"), ("POST", r"projects/\d+/contact")]
+
+    @bp.route("/api/bp/bt/<path:pfad>", methods=["GET", "POST", "PUT"])
+    def bt_proxy(pfad):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if not any(m == request.method and _re.fullmatch(x, pfad) for m, x in _BT_ERLAUBT):
+            return jsonify(error="Nicht erlaubt"), 403
+        with db.tx() as c:
+            tok = sso.current_token(request, c)
+        base = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/")
+        qs = request.query_string.decode()
+        body = request.get_data() if request.method in ("POST", "PUT") else None
+        req = urllib.request.Request(base + "/api/" + pfad + ("?" + qs if qs else ""), method=request.method, data=body,
+                                     headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return Response(r.read(), status=r.status, mimetype=r.headers.get_content_type() or "application/json")
+        except urllib.error.HTTPError as e:
+            return Response(e.read(), status=e.code, mimetype="application/json")
+        except Exception as e:
+            return jsonify(error="Bautagebuch nicht erreichbar: " + str(e)[:120]), 502
+
     # ---- Kontakt schnell anlegen (nach einer Sendung an eine Adresse, zu der es noch keinen Kontakt gibt)
     @bp.post("/api/bp/kontakt")
     def kontakt_neu():

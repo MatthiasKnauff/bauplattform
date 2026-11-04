@@ -54,6 +54,12 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
       BPHead.mount({ app: 'gantt', name: 'Bauzeitenplan', parent: $('#app'), before: tb });
       BPHead.ready.then(() => window.bpApplyKi && window.bpApplyKi());
       BPHead.onKi(() => window.bpApplyKi && window.bpApplyKi());
+      if (BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => {   // Projekt in der Kopfleiste gewählt: dessen Bauzeitenplan öffnen
+        let l = []; try { l = await fetch('api/projects').then((r) => r.json()); } catch { /* egal */ }
+        const plan = (l || []).find((x) => x.bt_id === id && !x.archived) || (l || []).find((x) => x.bt_id === id);
+        if (plan && typeof openProject === 'function') { await openProject(plan.id); if (typeof refreshProjectList === 'function') refreshProjectList(); }
+        else if (typeof toast === 'function') toast('Für dieses Projekt gibt es noch keinen Bauzeitenplan – über „Neu“ anlegen und verknüpfen.');
+      });
       const logo = tb.querySelector('.logo'); if (logo) logo.style.display = 'none';
     }
     const fill = tb.querySelector('.tb-fill');

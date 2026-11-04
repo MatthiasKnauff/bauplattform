@@ -337,6 +337,7 @@ window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
   if (!PROJ.some((p) => p.id === pid)) pid = (PROJ.find((p) => p.mine && !p.archived) || PROJ.find((p) => !p.archived) || {}).id || null;
   const grp = (l, f) => { const x = PROJ.filter(f); return x.length ? `<optgroup label="${l}">${x.map((p) => `<option value="${p.id}"${p.id === pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; };
   $('#proj').innerHTML = (pid ? '' : '<option value="">– Projekt wählen –</option>') + grp('Meine Projekte', (p) => p.mine && !p.archived) + grp('Weitere Projekte', (p) => !p.mine && !p.archived) + grp('Archiv', (p) => p.archived);
+  projektKnopf($('#proj'));
   if (!['plaene', 'liste'].includes(tab)) tab = 'plaene';
   head(); laden();
 })().catch((e) => toast(e.message, true));

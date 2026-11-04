@@ -567,7 +567,7 @@ const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
   if (window.BPHead) {   // gemeinsame Kopfleiste; ⚙ → „Bautagebuch“ zeigt die Einstellungen der App im Einstellungsfenster
-    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });
+    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr'), projektwahl: () => openSheet('proj') });
     // ⚙ → Bautagebuch: nur noch der Bericht-Assistent – Benutzer verwaltet die Verwaltung, Firma/Ablage/Mail/Sicherung stehen unter ⚙ → Büro
     BPHead.appEinstellungen([{ key: 'bt', label: 'Bautagebuch', render: (h) => {
       const vor = tab; PH = h; tab = 'profil'; renderProfile(h);
@@ -576,12 +576,13 @@ const showApp = async () => {
     try { await BPHead.ready; } catch { /* ohne Kopfleiste weiter */ }
   }
   try { meta = await api('api/meta'); contacts = await api('api/contacts'); settings = await api('api/settings'); people = await api('api/people'); leaderUsers = await api('api/leaders'); await loadProjects(); } catch { return; }
-  const hp = /^#projekt=(\d+)(?:&bericht=(\d+))?/.exec(location.hash);   // Link aus Verwaltung / Mängelliste: dieses Projekt (und diesen Bericht) öffnen
+  const hp = /^#projekt=(\d+)(?:&bericht=(\d+))?/.exec(location.hash), hEdit = /bearbeiten=1/.test(location.hash), hNeu = location.hash === '#neues-projekt';   // Link aus Verwaltung / Mängelliste: dieses Projekt (und diesen Bericht) öffnen
   const hs = location.hash === '#einstellungen';    // Link aus der Verwaltung → Einstellungen
-  if (hp || hs) history.replaceState(null, '', location.pathname);
+  if (hp || hs || hNeu) history.replaceState(null, '', location.pathname);
   const gp = window.BPHead && BPHead.projektId && BPHead.projektId();   // Projekt aus der zuletzt benutzten App
   const start = (hp && projects.find(p => p.id === +hp[1])) || (gp && projects.find(p => p.id === gp)) || projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
   if (start) await openProject(start.id); else renderDetail();
+  if (hNeu) newProject(); else if (hEdit && hp && start && start.id === +hp[1]) projBearbeiten();
   if (hs && window.BPHead && BPHead.einstellungen) BPHead.einstellungen({ bereich: 'app' });
   if (hp && hp[2] && start && start.id === +hp[1] && reports.some((x) => x.id === +hp[2])) { tab = 'bericht'; rid = +hp[2]; renderDetail(); }
   else if (!hp) autoPick(true);   // Projekt per GPS wählen, wenn man vor Ort ist
@@ -667,8 +668,15 @@ function renderSheet() {
   if (sheetQ.trim() && sheetSug.length) $('#pl').innerHTML += `<div class="sugh">Ordner auf dem Server – antippen legt das Projekt an</div>` +
     sheetSug.map(n => `<button class="pi" data-act="createFromFolder" data-name="${esc(n)}"><span class="l"><b>${ic('plus', 16, 3)} ${esc(n)}</b></span></button>`).join('');
 }
-function newProject() {   // Eingabe direkt im Reiter „Projekt“, kein Popup
+function projBearbeiten() {   // gemeinsame Projektmaske (Kopfleiste) – true, wenn geöffnet
+  if (!(window.BPHead && BPHead.projektBearbeiten) || !pid) return false;
+  BPHead.projektBearbeiten(pid, { onSaved: btGespeichert, onDelete: (p) => { if (confirm(`Projekt „${p.name}“ mit allen Tagesberichten und Fotos endgültig löschen?`)) delProject(); } });
+  return true;
+}
+async function btGespeichert(id) { await loadProjects(); await openProject(id); }   // nach der gemeinsamen Projektmaske
+function newProject() {   // dieselbe Projektmaske wie in allen Apps; ohne Kopfleiste: Eingabe im Reiter „Projekt“
   closeSheet(); $('#menu').classList.add('hidden');
+  if (window.BPHead && BPHead.projektBearbeiten) return BPHead.projektBearbeiten(null, { onSaved: btGespeichert });
   draft = {name: '', client: '', street: '', zip: '', city: '', leaders: me.is_admin ? [] : [me.id]}; tab = 'projekt'; renderDetail();
   document.querySelector('[data-dp=name]')?.focus();
 }
@@ -1673,7 +1681,7 @@ document.addEventListener('click', async e => {
   else if (a === 'projPicker') openSheet('proj');
   else if (a === 'repPicker') openSheet('rep');
   else if (a === 'pickReport') { closeSheet(); rid = id; wxEdit = headEdit = false; tab = 'bericht'; renderDetail(); }
-  else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); draft = null; tab = 'projekt'; renderDetail(); }
+  else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); if (projBearbeiten()) return; draft = null; tab = 'projekt'; renderDetail(); }
   else if (a === 'closeSheet') closeSheet();
   else if (a === 'pickProject') pickProject(id);
   else if (a === 'dueEdit') { dueEditId = id; renderDetail(); }

@@ -92,6 +92,22 @@ async function header(current, me, conf, opt = {}) {
   await BPHead.mount({ app: key, name: current, me, sticky: true, project: opt.project });
 }
 
+/* Projektauswahl wie im Bautagebuch: die <select> der App bleibt (unsichtbar) die Quelle, davor ein Knopf, der die
+   gemeinsame Projektmaske öffnet; auch ein Klick auf das Projekt in der Kopfleiste wählt hier das Projekt. */
+function projektKnopf(sel) {
+  if (!sel || !window.BPHead || !BPHead.projektWahl) return;
+  let b = sel.previousElementSibling && sel.previousElementSibling.classList.contains('pjk') ? sel.previousElementSibling : null;
+  if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'pjk'; b.setAttribute('aria-label', 'Projekt wählen'); sel.before(b); sel.hidden = true; sel.style.display = 'none'; }
+  const zeigen = () => { const o = sel.options[sel.selectedIndex]; pickButton(b, { title: o && o.value ? o.textContent : 'Projekt wählen …', sub: 'Projekt' }); };
+  const waehlen = (id, p) => {
+    if (![...sel.options].some((o) => +o.value === id)) { const o = document.createElement('option'); o.value = id; o.textContent = (p && p.name) || 'Projekt ' + id; sel.appendChild(o); }
+    sel.value = String(id); sel.dispatchEvent(new Event('change', { bubbles: true })); zeigen();
+  };
+  b.onclick = () => BPHead.projektWahl({ aktuell: +sel.value || null, onPick: waehlen });
+  BPHead.beiProjektWahl(waehlen);
+  sel.addEventListener('change', zeigen); zeigen();
+}
+
 /* Auswahlknopf + aufklappende Liste (wie die Projektauswahl im Bauzeitenplan).
    pickButton(el, {title, sub}) zeichnet den Knopf; pickMenu(anchor, opt) öffnet die Liste:
    opt.items: [{group, title, sub, value, on, extra}], opt.onPick(value, item), opt.search (Platzhalter), opt.footer (HTML), opt.onFooter(e, close) */

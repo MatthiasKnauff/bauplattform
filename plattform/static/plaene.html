@@ -28,7 +28,7 @@
 .pl .mu{color:var(--mute);font-size:.8rem}
 .idx{display:inline-block;min-width:1.7rem;text-align:center;border-radius:6px;padding:.05rem .35rem;font-weight:700;border:1px solid var(--y);color:var(--y)}
 .idx.o{border-color:var(--line);color:var(--mute);font-weight:500}
-.gw select{max-width:11rem;font-size:.85rem;padding:.25rem .35rem}
+.gw select,.gw input{max-width:11rem;font-size:.85rem;padding:.25rem .35rem}
 .gw small{display:block;color:var(--mute);font-size:.72rem;margin-top:.15rem}
 .gw.leer select{border-color:var(--y)}
 .sent{font-size:.78rem;color:var(--ok)}
@@ -127,7 +127,7 @@ function render() {
   if (!D) { $('#view').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; bar(); return; }
   if (D.error) { $('#view').innerHTML = `<div class="card"><p>${esc(D.error)}</p></div>`; bar(); return; }
   const L = sichtbar(), phasen = [...new Set(D.plaene.map((p) => p.phase))].sort();
-  const gwOpts = (cur) => `<option value="">– Gewerk wählen –</option>${D.gewerke.map((g) => `<option${g === cur ? ' selected' : ''}>${esc(g)}</option>`).join('')}`;
+  const gwOpts = () => `<datalist id="gwList">${D.gewerke.map((g) => `<option value="${esc(g)}">`).join('')}</datalist>`;   // Vorschläge, eigene Eingabe möglich
   const row = (p, st, alt) => {
     const k = stKey(p, st), s = st.pdf, v = (s && s.versendet) || [];
     const last = v[v.length - 1];
@@ -138,7 +138,7 @@ function render() {
       <td class="ti">${alt ? `<span class="mu">älterer Stand</span>` : `<b>${esc(p.titel || '')}</b><div class="mu">${p.frei ? '📁 ' + esc(p.phase_name || 'Projektordner') : esc([p.kennung_name, p.phase_name || ('Phase ' + p.phase), p.variante && p.variante !== '1' ? 'Variante/Typ ' + p.variante : '', [p.planart_name, p.geschoss].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>`}
         ${s ? `<div class="mu"><a href="${fileUrl(s.pfad)}" target="_blank" rel="noopener">${esc(s.name)}</a> · ${mb(s.groesse)} · ${de(s.mtime)}${st.kopien ? ` · ${st.kopien} weitere Kopie${st.kopien > 1 ? 'n' : ''}` : ''}</div>` : '<div class="mu">nur CAD-Datei</div>'}
         ${st.cad.length ? `<div class="mu">CAD: ${st.cad.map((c) => `<a href="${fileUrl(c.pfad, 1)}">${esc(c.ext.slice(1).toUpperCase())}</a>`).join(', ')}</div>` : ''}</td>
-      <td class="gw hide-m ${alt ? '' : p.gewerk ? '' : 'leer'}">${alt ? '' : `<select data-gw="${esc(p.key)}" aria-label="Gewerk">${gwOpts(p.gewerk)}</select><small>${p.gewerk ? esc(p.gewerk_quelle === 'zugeordnet' ? 'von Hand zugeordnet' : 'erkannt: ' + p.gewerk_quelle) : 'nicht erkannt'}</small>`}</td>
+      <td class="gw hide-m ${alt ? '' : p.gewerk ? '' : 'leer'}">${alt ? '' : `<input data-gw="${esc(p.key)}" list="gwList" value="${esc(p.gewerk || '')}" placeholder="Gewerk wählen oder eintippen" aria-label="Gewerk" autocomplete="off"><small>${p.gewerk ? esc(p.gewerk_quelle === 'zugeordnet' ? 'von Hand zugeordnet' : 'erkannt: ' + p.gewerk_quelle) : 'nicht erkannt'}</small>`}</td>
       <td class="hide-m">${last ? `<div class="sent" title="${esc(v.map((x) => de(x.datum) + ' an ' + x.an).join('\n'))}">✓ ${de(last.datum)}<br>${esc(last.an)}${v.length > 1 ? ` (+${v.length - 1})` : ''}</div>` : '<span class="mu">noch nicht versendet</span>'}</td>
       <td>${!alt && p.staende.length > 1 ? `<button class="ex" data-ex="${esc(p.key)}" aria-expanded="${OPEN.has(p.key)}" title="ältere Stände">${OPEN.has(p.key) ? '▾' : '▸'} ${p.staende.length - 1}</button>` : ''}</td></tr>`;
   };
@@ -151,7 +151,7 @@ function render() {
   const th = (k, l, cls = '') => `<th class="so-h ${cls}" data-sort="${k}" title="sortieren" aria-sort="${S.k === k ? (S.d > 0 ? 'ascending' : 'descending') : 'none'}">${l}${S.k === k ? (S.d > 0 ? ' ▲' : ' ▼') : ''}</th>`;
   const sp = (k, l) => `<span class="so-h" data-sort="${k}" title="sortieren">${l}${S.k === k ? (S.d > 0 ? ' ▲' : ' ▼') : ''}</span>`;
   const head = (t) => `<thead><tr><th></th>${t ? th('nr', 'Plan-Nr.') + th('index', 'Index') : '<th></th><th></th>'}<th>${sp('titel', 'Titel')} · ${sp('datum', 'Datum')}</th>${th('gewerk', 'Gewerk', 'hide-m')}${th('versendet', 'Versendet', 'hide-m')}<th></th></tr></thead>`;
-  $('#view').innerHTML = `<div class="flt"><input type="search" id="q" placeholder="Suchen: Nummer, Titel, Gewerk …" value="${esc(F.q)}">
+  $('#view').innerHTML = gwOpts() + `<div class="flt"><input type="search" id="q" placeholder="Suchen: Nummer, Titel, Gewerk …" value="${esc(F.q)}">
       <select id="fgw"><option value="">alle Gewerke</option><option value="-"${F.gw === '-' ? ' selected' : ''}>ohne Gewerk</option>${D.gewerke.map((g) => `<option${F.gw === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select>
       <select id="fph"><option value="">alle Phasen</option>${phasen.map((x) => `<option value="${esc(x)}"${F.phase === x ? ' selected' : ''}>${esc(x + ' ' + (CFG.phasen[x] || ''))}</option>`).join('')}</select>
       <label class="chk"><input type="checkbox" id="falle"${F.alle ? ' checked' : ''}> ältere Stände zeigen</label>
@@ -311,7 +311,8 @@ document.addEventListener('change', async (e) => {
   const t = e.target;
   if (t.dataset.sel) { t.checked ? SEL.add(t.dataset.sel) : SEL.delete(t.dataset.sel); bar(); return; }
   if (t.dataset.gw) {
-    const key = t.dataset.gw, v = t.value;
+    const key = t.dataset.gw, v = t.value.trim();
+    if (v && !D.gewerke.includes(v)) D.gewerke = [...D.gewerke, v].sort((a, b) => a.localeCompare(b, 'de'));
     try { await api('api/projekt/' + pid, 'PUT', { zuordnung: { [key]: v } }); const p = D.plaene.concat(D.frei || []).find((x) => x.key === key); if (p) { p.gewerk = v; p.gewerk_quelle = v ? 'zugeordnet' : ''; } render(); } catch (er) { toast(er.message, true); }
     return;
   }

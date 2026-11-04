@@ -13,6 +13,7 @@
 .rg{display:flex;flex-direction:column;justify-content:space-between;padding:0 .7rem;border-right:1px solid var(--line)}
 .rr{display:flex;gap:.15rem;align-items:center;min-height:3.4rem}
 .rl{font-size:.7rem;color:var(--mute);text-align:center;padding:.1rem 0 .25rem}
+.rb.on{background:color-mix(in srgb,var(--y) 25%,transparent)}
 .rb{display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.3rem .45rem;border-radius:6px;color:var(--ink);font-size:.76rem;min-width:3.4rem;line-height:1.1}
 .rb:hover{background:var(--hov)}
 .rb[disabled]{opacity:.4}
@@ -80,6 +81,22 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 #histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2,var(--card));border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #histBar[hidden]{display:none}
 #histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.body.mit-quelle{grid-template-columns:230px minmax(0,1fr) minmax(320px,36%)}
+.qu{border-left:1px solid var(--line);background:var(--card);position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);box-sizing:border-box;display:flex;flex-direction:column;min-width:0}
+.qu-h{padding:.6rem .7rem .5rem;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:.45rem;background:var(--tabs)}
+.qu-h .t{display:flex;align-items:center;gap:.4rem;font-weight:600}.qu-h .t .lock{font-size:.75rem;font-weight:500;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:.05rem .45rem;background:var(--card)}
+.qu-h .rr{display:flex;gap:.4rem;flex-wrap:wrap}.qu-h select{flex:1 1 12rem;min-width:0}.qu-h .pick{flex:1 1 12rem;min-width:0}
+.qu-o{display:flex;gap:.8rem;flex-wrap:wrap;font-size:.85rem;align-items:center}
+.qu-l{flex:1;overflow:auto}
+.qu table{width:100%;border-collapse:collapse;font-size:12.5px}
+.qu td,.qu th{padding:.2rem .35rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+.qu th{position:sticky;top:0;background:var(--tabs);font-weight:500;z-index:1}
+.qu tr.ti td{background:var(--band,#f2efe8);font-weight:600}
+.qu tr[draggable="true"]{cursor:grab}.qu tr.on td{background:#cfe2f6}
+.qu .lt{color:var(--mute);font-size:11.5px;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.qu-f{padding:.55rem .7rem;border-top:1px solid var(--line);display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;background:var(--tabs)}
+table.lv tr.drop-hier td{box-shadow:inset 0 -3px 0 #1e5aa0}
+@media (max-width:1100px){.body.mit-quelle{grid-template-columns:1fr}.body.mit-quelle .nav{display:none}.qu{position:static;height:70vh}}
 .fotos{display:flex;flex-wrap:wrap;gap:.45rem;margin:.4rem 0 0}
 .fotos figure{position:relative;margin:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
 .fotos img{display:block;height:92px;width:auto;max-width:180px;object-fit:cover;cursor:zoom-in}
@@ -176,6 +193,7 @@ table.lv textarea{min-height:5.5rem;resize:vertical;border-color:var(--line)}
       <button class="rb" data-act="titel" data-need="lv" title="Titel anhängen"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/><path d="M17 12v5M14.5 14.5h5" class="ac"/></svg>Titel</button>
     </div><div class="rl">Neu</div></div>
     <div class="rg"><div class="rr">
+      <button class="rb" id="quBtn" title="Ein LV aus einem anderen (alten) Projekt daneben anzeigen – schreibgeschützt – und Positionen herüberkopieren"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/><path d="M8 12h8M13 9l3 3-3 3"/></svg>Kopierquelle</button>
       <button class="rb" id="standBtn" data-need="lv" title="Jetzigen Stand dieses LV unter einem Namen festhalten (z. B. „Versand an Bieter 04.11.“)"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/></svg>Stand speichern</button>
       <button class="rb" id="verBtn" title="Frühere Stände dieses LV ansehen und wiederherstellen"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/></svg>Verlauf</button>
       <button class="rb" id="moreBtn" title="Archivieren oder löschen"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Archiv / Löschen</button>
@@ -193,6 +211,7 @@ table.lv textarea{min-height:5.5rem;resize:vertical;border-color:var(--line)}
       <div class="kpi" id="kpi"></div>
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
+    <aside class="qu" id="quelle" hidden aria-label="Kopierquelle"></aside>
   </div>
 </main>
 <input type="file" id="fileIn" accept=".x81,.x82,.x83,.x84,.x85,.x86,.xml,.xlsx" hidden>
@@ -288,7 +307,7 @@ function selBtn() {
 $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
   search: LIST.length > 6 ? 'LV suchen …' : '', empty: 'Noch kein LV in diesem Projekt.',
   items: LIST.map((x) => ({ group: x.archived ? 'Archiv' : 'Leistungsverzeichnisse', title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, STATUS.find((s) => s[0] === x.status)[1], x.auftragnehmer, x.auftrag ? eur0(x.auftrag) : x.schaetzung ? 'Schätzung ' + eur0(x.schaetzung) : ''].filter(Boolean).join(' · '), value: x.id, on: L && L.id === x.id })),
-  footer: '<button class="btn sm" data-new>+ Neues LV</button>', onPick: (x) => openLv(x.value), onFooter: (e) => { if (e.target.closest('[data-new]')) newDialog(); },
+  footer: '<button class="btn sm" data-new>+ Neues LV</button>', onPick: (v) => openLv(v), onFooter: (e) => { if (e.target.closest('[data-new]')) newDialog(); },
 }));
 function kpis() {
   if (!L) { $('#kpi').innerHTML = ''; $('#stat').innerHTML = ''; return; }
@@ -312,6 +331,7 @@ function render() {
   $('#phT').textContent = `${(TABS.find((t) => t[0] === tab) || [, ''])[1]}: ${NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn}`;
   $('#kpi').hidden = !NURLV.has(tab); $('#stat').hidden = !NURLV.has(tab);
   document.querySelectorAll('[data-need="lv"]').forEach((b) => { b.disabled = !L; });
+  if (typeof quZeigen === 'function' && QU) quZeigen();
   const v = $('#view');
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); return; }
@@ -969,6 +989,103 @@ $('#standBtn').onclick = () => {
   setTimeout(() => { const i = document.querySelector('#stName'); if (i) { i.focus(); i.select(); } }, 50);
 };
 
+/* ---------- Kopierquelle: LV aus einem anderen Projekt daneben (schreibgeschützt), Positionen herüberkopieren ---------- */
+let QU = { an: LS.get('qu.an', false), pid: LS.get('qu.pid', null), lv: LS.get('qu.lv', null), list: [], L: null, sel: new Set(), mengen: LS.get('qu.mengen', true), preise: LS.get('qu.preise', true) }, LASTI = null;
+document.addEventListener('focusin', (e) => { const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) LASTI = +tr.dataset.i; });
+async function quLaden() {
+  if (!QU.pid) QU.pid = (PROJ.find((p) => p.id !== pid) || PROJ[0] || {}).id || null;
+  QU.list = QU.pid ? await api('api/lv?project_id=' + QU.pid).catch(() => []) : [];
+  if (!QU.list.some((x) => x.id === QU.lv)) QU.lv = (QU.list[0] || {}).id || null;
+  QU.L = QU.lv ? await api('api/lv/' + QU.lv).catch(() => null) : null;
+  QU.sel = new Set(); LS.set('qu.pid', QU.pid); LS.set('qu.lv', QU.lv); quZeigen();
+}
+const quItems = () => (QU.L && QU.L.data && QU.L.data.items) || [];
+function quZeigen() {
+  const box = $('#quelle'), an = QU.an && tab === 'lv';
+  box.hidden = !an; document.querySelector('.body').classList.toggle('mit-quelle', an); $('#quBtn').classList.toggle('on', QU.an);
+  if (!an) return;
+  const VP = (QU.L && QU.L.vergabe && QU.L.vergabe.preise) || {};
+  const epq = (x) => VP[x.id] ?? x.ep_s;
+  const I = quItems();
+  const rows = I.map((x, i) => x.typ === 'titel'
+    ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
+    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right">${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
+  const lvo = QU.list.find((x) => x.id === QU.lv);
+  box.innerHTML = `<div class="qu-h"><div class="t">Kopierquelle <span class="lock" title="Hier lässt sich nichts ändern">🔒 schreibgeschützt</span><span style="flex:1"></span><button class="ib" data-qu="zu" title="Kopierquelle schließen">✕</button></div>
+      <div class="rr"><select id="quProj" aria-label="Projekt der Kopierquelle">${['Projekte', 'Archiv'].map((g) => { const ps = PROJ.filter((p) => !!p.archived === (g === 'Archiv')); return ps.length ? `<optgroup label="${g}">${ps.map((p) => `<option value="${p.id}"${p.id === QU.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
+        <button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button></div>
+      <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen mitnehmen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label></div>
+      <div class="qu-o"><span class="hint">${QU.sel.size ? `${quAuswahl().length} Zeilen gewählt` : 'Zeilen anhaken oder ins LV links ziehen'}</span><span style="flex:1"></span>
+        <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
+    <div class="qu-l">${QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
+`;
+  pickButton($('#quSel'), lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
+}
+function quAuswahl(nur) {   // gewählte Zeilen in LV-Reihenfolge; ein gewählter Titel bringt seinen Inhalt mit
+  const I = quItems(), out = [], wahl = nur || QU.sel;
+  for (let i = 0; i < I.length; i++) {
+    const x = I[i]; if (!wahl.has(x.id)) continue;
+    out.push(x);
+    if (x.typ === 'titel') { const lv = x.lvl || 1; while (i + 1 < I.length && !(I[i + 1].typ === 'titel' && (I[i + 1].lvl || 1) <= lv)) { i++; out.push(I[i]); } }
+  }
+  return out;
+}
+function quEinfuegen(liste, nach) {
+  if (!L || !liste.length) return;
+  const VP = (QU.L.vergabe && QU.L.vergabe.preise) || {};
+  const neu = liste.map((x) => {
+    const y = JSON.parse(JSON.stringify(x)); y.id = uid(); delete y.nt; delete y.nt_status; delete y.nt_grund;
+    if (y.typ === 'pos') { if (!QU.mengen) y.menge = 0; const ep = VP[x.id] ?? x.ep_s; y.ep_s = QU.preise && ep != null ? ep : null; y.quelle = `aus LV ${QU.L.nr} ${QU.L.name} (${QU.L.projekt || ''}), Pos. ${x.oz || ''}`.slice(0, 200); }
+    return y;
+  });
+  const I = items(), at = nach != null && nach >= 0 && nach < I.length ? nach + 1 : I.length;
+  I.splice(at, 0, ...neu); HIST.next = `${neu.length} Zeilen übernommen`;
+  numerieren(); changed(true);
+  { const n = neu.filter((y) => y.typ === 'pos').length; toast(`${n === 1 ? '1 Position' : n + ' Positionen'} übernommen – ↶ Rückgängig nimmt es zurück.`); }
+  QU.sel = new Set(); quZeigen();
+  setTimeout(() => { const r = document.querySelector(`table.lv tr[data-i="${at}"]`); if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
+}
+$('#quBtn').onclick = async () => { QU.an = !QU.an; LS.set('qu.an', QU.an); if (QU.an && tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } if (QU.an && !QU.L) await quLaden(); quZeigen(); };
+document.addEventListener('click', (e) => {
+  const q = e.target.closest('#quelle'); if (!q) return;
+  const b = e.target.closest('[data-qu]');
+  if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); quZeigen(); return; }
+  if (b && b.dataset.qu === 'ein') { quEinfuegen(quAuswahl(), LASTI); return; }
+  if (e.target.closest('#quSel')) {
+    pickMenu($('#quSel'), { search: QU.list.length > 6 ? 'LV suchen …' : '', empty: 'Kein LV in diesem Projekt.',
+      items: QU.list.map((x) => ({ group: x.archived ? 'Archiv' : 'Leistungsverzeichnisse', title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
+      onPick: async (v) => { QU.lv = v; QU.L = await api('api/lv/' + v).catch(() => null); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
+    return;
+  }
+  const cbx = e.target.closest('[data-qs]');
+  if (cbx) { const x = quItems()[+cbx.dataset.qs]; if (cbx.checked) QU.sel.add(x.id); else QU.sel.delete(x.id); quZeigen(); return; }
+  const tr = e.target.closest('tr[data-qi]');
+  if (tr && !e.target.closest('input')) { const x = quItems()[+tr.dataset.qi]; if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quZeigen(); }
+});
+document.addEventListener('change', async (e) => {
+  if (e.target.id === 'quProj') { QU.pid = +e.target.value; QU.lv = null; await quLaden(); }
+  else if (e.target.id === 'quM') { QU.mengen = e.target.checked; LS.set('qu.mengen', QU.mengen); }
+  else if (e.target.id === 'quP') { QU.preise = e.target.checked; LS.set('qu.preise', QU.preise); }
+});
+// Ziehen: aus der Quelle ins LV (Einfügen nach der Zeile, über der losgelassen wird)
+document.addEventListener('dragstart', (e) => {
+  const tr = e.target.closest && e.target.closest('#quelle tr[data-qi]'); if (!tr) return;
+  const x = quItems()[+tr.dataset.qi]; const wahl = QU.sel.has(x.id) ? QU.sel : new Set([x.id]);
+  e.dataTransfer.setData('text/x-ava-quelle', JSON.stringify([...wahl])); e.dataTransfer.effectAllowed = 'copy';
+});
+document.addEventListener('dragover', (e) => {
+  if (![...(e.dataTransfer.types || [])].includes('text/x-ava-quelle')) return;
+  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]');
+  document.querySelectorAll('.drop-hier').forEach((r) => r.classList.remove('drop-hier'));
+  if (tr || e.target.closest('.pane')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (tr) tr.classList.add('drop-hier'); }
+});
+document.addEventListener('drop', (e) => {
+  const d = e.dataTransfer.getData('text/x-ava-quelle'); if (!d) return;
+  e.preventDefault(); document.querySelectorAll('.drop-hier').forEach((r) => r.classList.remove('drop-hier'));
+  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]');
+  quEinfuegen(quAuswahl(new Set(JSON.parse(d))), tr ? +tr.dataset.i : null);
+});
+
 /* ---------- Eigenschaften einer Position (wie in ORCA: Allgemein · Weiteres · Menge · Grafik) ---------- */
 const LB = ['000 Baustelleneinrichtung', '002 Erdarbeiten', '006 Spezialtiefbau', '009 Entwässerungskanalarbeiten', '012 Mauerarbeiten', '013 Betonarbeiten', '014 Natur-, Betonwerksteinarbeiten', '016 Zimmer- und Holzbauarbeiten', '017 Stahlbauarbeiten', '018 Abdichtungsarbeiten', '020 Dachdeckungsarbeiten', '021 Dachabdichtungsarbeiten', '022 Klempnerarbeiten', '023 Putz- und Stuckarbeiten, Wärmedämmsysteme', '024 Fliesen- und Plattenarbeiten', '025 Estricharbeiten', '026 Fenster, Außentüren', '027 Tischlerarbeiten', '028 Parkett-, Holzpflasterarbeiten', '029 Beschlagarbeiten', '030 Rollladenarbeiten', '031 Metallbauarbeiten', '032 Verglasungsarbeiten', '034 Maler- und Lackierarbeiten', '036 Bodenbelagarbeiten', '037 Tapezierarbeiten', '038 Vorgehängte hinterlüftete Fassaden', '039 Trockenbauarbeiten', '040 Wärmeversorgungsanlagen', '042 Gas- und Wasserinstallation', '044 Abwasserinstallation', '045 Sanitärausstattung', '053 Niederspannungsanlagen', '069 Aufzüge', '080 Straßen, Wege, Plätze', '081 Betonerhaltungsarbeiten', '084 Abbruch- und Rückbauarbeiten', '087 Abfallentsorgung'];
 function eigDialog(id) {
@@ -1178,6 +1295,7 @@ function vUebersicht() {
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();
+  if (QU.an) quLaden();
 })().catch((e) => toast(e.message, true));
 addEventListener('beforeunload', () => { if (saveT && L) navigator.sendBeacon && fetch('api/lv/' + L.id, { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rev: L.rev, data: L.data }) }); });
 </script>

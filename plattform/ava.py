@@ -156,6 +156,14 @@ def clean_items(v):
         p = {"id": i, "typ": "pos", "oz": _s(x.get("oz"), 40), "kurz": _s(x.get("kurz"), 500), "lang": _s(x.get("lang"), 20000),
              "menge": round(_f(x.get("menge"), 0, 0, 1e9), 3), "einheit": _s(x.get("einheit"), 12), "art": art,
              "kg": re.sub(r"\D", "", str(x.get("kg") or ""))[:3], "ep_s": _fn(x.get("ep_s"))}
+        # weitere Eigenschaften (Dialog „Eigenschaften“): nur speichern, was gesetzt ist
+        for k, n in (("kg81", 3), ("lb", 80), ("bezug", 40), ("quelle", 200), ("mf", 500)):
+            v = re.sub(r"\D", "", str(x.get(k) or ""))[:3] if k == "kg81" else _s(x.get(k), n)
+            if v:
+                p[k] = v
+        for k in ("gb", "entf", "sp", "np_vor", "np_nach"):
+            if x.get(k):
+                p[k] = True
         if x.get("nt"):   # Nachtrag
             p["nt"] = _s(x.get("nt"), 20)
             p["nt_status"] = x.get("nt_status") if x.get("nt_status") in ("angemeldet", "beauftragt", "abgelehnt") else "angemeldet"
@@ -193,8 +201,9 @@ def _gp(p, ep):
 
 
 def zaehlt(p):
-    """Gehört die Position in die Summe? (Normal- und Pauschalpositionen; Bedarfs- und Wahlpositionen nur mit Auftrag)"""
-    return p["typ"] == "pos" and p.get("art") in ("N", "P") and not p.get("nt")
+    """Gehört die Position in die Summe? Normal- und Pauschalpositionen, Bedarfspositionen „mit Gesamtpreis“;
+    nicht: Wahlpositionen, Bedarfspositionen ohne Gesamtpreis, entfallene Positionen, Nachträge (die zählen extra)."""
+    return p["typ"] == "pos" and (p.get("art") in ("N", "P") or (p.get("art") == "E" and p.get("gb"))) and not p.get("nt") and not p.get("entf")
 
 
 def rechne(lv, angebote, aufmass, rechnungen):
@@ -220,7 +229,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
     auftrag = sum(_gp(p, _fn(VP.get(p["id"]))) for p in pos if zaehlt(p)) * (1 - nl) if VP else 0.0
     nt = {"angemeldet": 0.0, "beauftragt": 0.0, "abgelehnt": 0.0}
     for p in pos:
-        if p.get("nt") and _fn(VP.get(p["id"])) is not None:
+        if p.get("nt") and not p.get("entf") and _fn(VP.get(p["id"])) is not None:
             nt[p.get("nt_status") or "angemeldet"] += _gp(p, _fn(VP.get(p["id"]))) * (1 - nl)
     # Aufmaß je Position
     am = {}
@@ -1220,21 +1229,30 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             continue
         if x.get("art") == "T":
             rows.append(["", Paragraph(f"<font name='{FN['i']}'>{X(x.get('lang') or x['kurz'])}</font>", S["lang"]), "", "", "", ""]); continue
-        zelle = [Paragraph(f"<b>{X(x['kurz'])}</b>", S["p"])]
+        if x.get("np_vor") and len(rows) > 1:   # Druckoption „Neue Seite vorher“
+            tabelle_schliessen(); story.append(PageBreak())
+        kz = f"<b>{X(x['kurz'])}</b>" + (" <font size='7'>[S]</font>" if x.get("sp") else "")
+        zelle = [Paragraph(f"<strike>{kz}</strike> – entfällt" if x.get("entf") else kz, S["p"])]
         if lay["langtext"] and x.get("lang") and x["lang"] != x["kurz"]:
             zelle.append(Paragraph(X(x["lang"]), S["lang"]))
         if x.get("art") in ("E", "A", "P"):
-            zelle.append(Paragraph(ARTEN[x["art"]], S["mu"]))
+            zelle.append(Paragraph("Bedarfsposition (mit GB)" if x["art"] == "E" and x.get("gb") else ARTEN[x["art"]], S["mu"]))
+        if x.get("bezug"):
+            bz = next((y for y in items if y.get("id") == x["bezug"]), None)
+            if bz:
+                zelle.append(Paragraph(f"Bezug: Pos. {X(bz.get('oz') or '')} {X(bz.get('kurz') or '')}", S["mu"]))
         zelle += fotos(x["id"], wl - 5 * mm)
         ep = ep_of(x)
-        gp = _gp(x, ep) if ep is not None and x.get("art") in ("N", "P") else None
+        gp = _gp(x, ep) if ep is not None and zaehlt({**x, "nt": None}) else None
         if gp is not None:
             gesamt += gp
             for _, tid in cur:
                 tsum[tid] += gp
         rows.append([x.get("oz") or "", zelle, num(x.get("menge")), x.get("einheit") or "",
                      ep2(ep) if ep is not None else ("" if preis != "leer" else "............"),
-                     eur(gp) if gp is not None else ("(ohne GB)" if ep is not None else ("" if preis != "leer" else "................"))])
+                     "entfällt" if x.get("entf") else eur(gp) if gp is not None else ("(ohne GB)" if ep is not None else ("" if preis != "leer" else "................"))])
+        if x.get("np_nach"):   # Druckoption „Neue Seite nachher“
+            tabelle_schliessen(); story.append(PageBreak())
     if preis != "leer":
         rows.append(["", Paragraph("<b>Summe netto</b>", S["p"]), "", "", "", eur(gesamt * ((1 - (V.get("nachlass") or 0) / 100) if preis == "auftrag" else 1))])
         band.append(len(rows) - 1)

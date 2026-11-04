@@ -63,6 +63,19 @@
 .bed-f:focus{background:rgba(255,236,160,.6);box-shadow:0 0 0 1.5px #e0a800}
 .bed-l{color:#ddd;padding:3rem}
 @media (max-width:860px){.dz{grid-template-columns:1fr;grid-template-rows:auto 1fr}.dz-side{max-height:40vh}}
+.modal.eig{width:min(760px,100%)}
+.eigtabs{display:flex;gap:.2rem;border-bottom:1px solid var(--line);margin:.2rem 0 .8rem}
+.eigtabs button{border:1px solid var(--line);border-bottom:0;background:var(--tabs);padding:.35rem .9rem;border-radius:6px 6px 0 0;font:inherit;font-size:.9rem;cursor:pointer;color:var(--ink)}
+.eigtabs button.on{background:var(--card);font-weight:600;margin-bottom:-1px;padding-bottom:calc(.35rem + 1px)}
+.eigbody{min-height:330px}
+table.eigkg{border-collapse:collapse;width:100%;font-size:.88rem}table.eigkg th,table.eigkg td{border:1px solid var(--line);padding:.2rem .4rem;text-align:left}table.eigkg th{background:var(--tabs);font-weight:500}
+table.eigkg input{border:0;width:100%;padding:.2rem;background:transparent}
+.eiggrid{display:grid;grid-template-columns:1fr auto;gap:.45rem 1.2rem;align-items:center}
+.modal.eig .chk{display:flex !important;flex-direction:row;justify-content:flex-start;align-items:center;gap:.5rem;text-align:left;color:var(--ink);padding:0;font-size:.92rem;white-space:nowrap}
+.modal.eig .chk input{width:auto;margin:0;flex:none}
+.chk.dis{opacity:.5}
+.badge.sp{background:#1e5aa0;color:#fff}
+tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .fotos{display:flex;flex-wrap:wrap;gap:.45rem;margin:.4rem 0 0}
 .fotos figure{position:relative;margin:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
 .fotos img{display:block;height:92px;width:auto;max-width:180px;object-fit:cover;cursor:zoom-in}
@@ -98,7 +111,7 @@ table.lv tr.nt td:first-child{box-shadow:inset 3px 0 0 #e07b3a}
 table.lv tr.lang td{border-bottom:1px solid var(--line);padding-top:0}
 table.lv textarea{min-height:5.5rem;resize:vertical;border-color:var(--line)}
 .oz{font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap;font-size:.82rem;padding-top:.45rem!important}
-.ib{background:transparent;border:0;color:var(--mute);cursor:pointer;padding:.15rem .3rem;border-radius:6px;font-size:.92rem;line-height:1}
+.ib{background:transparent;border:0;color:var(--mute);cursor:pointer;padding:.15rem .22rem;border-radius:6px;font-size:.92rem;line-height:1}
 .ib:hover{color:var(--ink);background:var(--hov)}
 .ib.on{color:var(--y)}
 .acts-c{white-space:nowrap;text-align:right}
@@ -178,7 +191,7 @@ table.lv textarea{min-height:5.5rem;resize:vertical;border-color:var(--line)}
   </div>
 </main>
 <input type="file" id="fileIn" accept=".x81,.x82,.x83,.x84,.x85,.x86,.xml,.xlsx" hidden>
-<datalist id="ehList"><option>m</option><option>m2</option><option>m3</option><option>St</option><option>psch</option><option>kg</option><option>t</option><option>h</option><option>lfm</option></datalist>
+<datalist id="lbList"></datalist><datalist id="ehList"><option>m</option><option>m2</option><option>m3</option><option>St</option><option>psch</option><option>kg</option><option>t</option><option>h</option><option>lfm</option></datalist>
 <datalist id="gwList"></datalist>
 <script src="static/bp.js"></script>
 <script>
@@ -202,7 +215,8 @@ const nf = (v, n = 3) => (v == null || v === '' || isNaN(v) ? '' : (+v).toLocale
 const pf = (s) => { if (s == null) return null; s = String(s).trim(); if (!s) return null; const v = parseFloat(s.replace(/\./g, (m, i, a) => (/\.\d{3}(\D|$)/.test(a.slice(i)) ? '' : '.')).replace(',', '.')); return isNaN(v) ? null : v; };
 const de = (s) => { if (!s) return ''; const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('de-DE'); };
 const uid = () => Math.random().toString(36).slice(2, 12);
-const zaehlt = (p) => p.typ === 'pos' && (p.art === 'N' || p.art === 'P') && !p.nt;
+const zaehlt = (p) => p.typ === 'pos' && (p.art === 'N' || p.art === 'P' || (p.art === 'E' && p.gb)) && !p.nt && !p.entf;
+const ohneGB = (x) => x.art === 'A' || (x.art === 'E' && !x.gb);
 const items = () => (L && L.data && L.data.items) || [];
 const posOf = () => items().filter((x) => x.typ === 'pos' && x.art !== 'T');
 /* Rechenweg wie auf dem Server: „2 × 3,5 × 2,75 – 0,885 × 2,135“ */
@@ -308,8 +322,8 @@ function vLv() {
     if (x.typ === 'titel') return `<tr class="ti l${x.lvl || 1}" data-i="${i}"><td class="oz">${esc(x.oz)}</td><td colspan="${V ? 7 : 6}"><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten" style="padding-left:${((x.lvl || 1) - 1) * 1.2 + .35}rem"></td>
       <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib" data-a="lvl" title="${(x.lvl || 1) > 1 ? 'zum Titel machen' : 'zum Untertitel machen'}">${(x.lvl || 1) > 1 ? '⇤' : '⇥'}</button><button class="ib" data-a="up" title="nach oben">↑</button><button class="ib" data-a="down" title="nach unten">↓</button><button class="ib" data-a="del" title="löschen">✕</button></td></tr>`;
     const open = OPEN.has(x.id), t = x.art === 'T';
-    const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t ? (x.art === 'E' || x.art === 'A' ? null : (x.menge || 0) * ep) : null;
-    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}" data-i="${i}"><td class="oz">${esc(x.oz)}${x.nt ? `<br><span class="badge nt">${esc(x.nt)}</span>` : ''}</td>
+    const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
+    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz" title="Doppelklick: Eigenschaften">${esc(x.oz)}${x.sp ? ' <span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt ? `<br><span class="badge nt">${esc(x.nt)}</span>` : ''}</td>
       <td><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.nt ? `<select data-f="nt_status" style="width:auto;font-size:.78rem">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s) => `<option${x.nt_status === s ? ' selected' : ''}>${s}</option>`).join('')}</select>` : ''}</td>
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
       <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" list="ehList" style="width:3.8rem">`}</td>
@@ -317,8 +331,8 @@ function vLv() {
       <td class="hide-m"><input data-f="kg" value="${esc(x.kg || '')}" placeholder="KG" style="width:3.4rem" inputmode="numeric" title="Kostengruppe DIN 276"></td>
       <td>${t ? '' : V ? `<input class="n" data-vp="${x.id}" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.5rem" title="Einheitspreis des Auftrags${x.nt ? ' (Nachtragspreis)' : ''}">` : `<input class="n" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="EP" title="geschätzter Einheitspreis (Kostenanschlag)">`}</td>
       ${V ? `<td class="r hint" title="geschätzter EP">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>` : ''}
-      <td class="r" data-gp="${i}">${gp != null ? eur(gp) : x.art === 'E' || x.art === 'A' ? '<span class="hint">ohne GB</span>' : ''}</td>
-      <td class="acts-c"><button class="ib${open || x.lang || fotosVon(x).length ? ' on' : ''}" data-a="lang" title="Langtext${fotosVon(x).length ? ' · ' + fotosVon(x).length + ' Foto(s)' : ''}">${fotosVon(x).length ? '¶<sup>📷</sup>' : '¶'}</button><button class="ib" data-a="up" title="nach oben">↑</button><button class="ib" data-a="down" title="nach unten">↓</button><button class="ib" data-a="del" title="löschen">✕</button></td></tr>`;
+      <td class="r" data-gp="${i}">${x.entf ? '<span class="hint">entfällt</span>' : gp != null ? eur(gp) : ohneGB(x) ? '<span class="hint">ohne GB</span>' : ''}</td>
+      <td class="acts-c"><button class="ib" data-a="eig" title="Eigenschaften der Position">⋯</button><button class="ib${open || x.lang || fotosVon(x).length ? ' on' : ''}" data-a="lang" title="Langtext${fotosVon(x).length ? ' · ' + fotosVon(x).length + ' Foto(s)' : ''}">${fotosVon(x).length ? '¶<sup>📷</sup>' : '¶'}</button><button class="ib" data-a="up" title="nach oben">↑</button><button class="ib" data-a="down" title="nach unten">↓</button><button class="ib" data-a="del" title="löschen">✕</button></td></tr>`;
     if (open) h += `<tr class="lang" data-i="${i}"><td></td><td colspan="${V ? 8 : 7}"><textarea data-f="lang" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung">${esc(x.lang || '')}</textarea>
       ${fotoLeiste(x)}
       <div class="bar" style="margin:.3rem 0 0"><button class="btn sm" data-a="ki" title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><label class="btn sm" title="Fotos oder Skizzen zur Position – erscheinen unter dem Langtext im LV-Ausdruck. Ein Bild aus der Zwischenablage mit Strg+V im Langtext einfügen.">📷 Foto<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label><span class="hint">${x.nt ? 'Begründung des Nachtrags: ' : ''}</span>${x.nt ? `<input data-f="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung auf Anordnung des Bauherrn" style="flex:1;min-width:14rem">` : ''}</div></td></tr>`;
@@ -330,7 +344,7 @@ function vLv() {
       <button class="btn sm" data-act="bk" title="Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen">Aus Baukosten …</button>
       <span class="fill"></span><button class="btn sm" data-act="vorbem">${L.data.vorbem ? '✎ ' : '+ '}Vorbemerkungen</button><button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><b>Vorbemerkungen</b><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
-    <div class="tblw"><table class="lv"><thead><tr><th>OZ</th><th style="min-width:18rem">Kurztext</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
+    <div class="tblw"><table class="lv"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
       <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="10" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}</tbody>
       <tfoot><tr><td></td><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
@@ -346,7 +360,7 @@ function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
       const c = document.querySelector(`[data-tsum="${i}"]`); if (c) c.textContent = s ? eur(s) : '';
     } else if (x.typ === 'pos') {
       tot += gp(x);
-      const c = document.querySelector(`[data-gp="${i}"]`); if (c && x.art !== 'T') c.innerHTML = ep(x) != null ? (x.art === 'E' || x.art === 'A' ? '<span class="hint">ohne GB</span>' : eur((x.menge || 0) * ep(x))) : '';
+      const c = document.querySelector(`[data-gp="${i}"]`); if (c && x.art !== 'T') c.innerHTML = x.entf ? '<span class="hint">entfällt</span>' : ep(x) != null ? (ohneGB(x) ? '<span class="hint">ohne GB</span>' : eur((x.menge || 0) * ep(x))) : '';
     }
   });
   const s = $('#lvSum'); if (s) s.textContent = eur(tot);
@@ -429,6 +443,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'del') { if (x.typ === 'titel' && !confirm('Titel löschen? Die Positionen darunter bleiben.')) return; if (L.aufmass.some((z) => z.pos_id === x.id) && !confirm('Zu dieser Position gibt es Aufmaß. Trotzdem löschen?')) return; items().splice(i, 1); numerieren(); changed(true); return; }
     if (a === 'lvl') { x.lvl = (x.lvl || 1) > 1 ? 1 : 2; numerieren(); changed(true); return; }
     if (a === 'lang') { if (OPEN.has(x.id)) OPEN.delete(x.id); else OPEN.add(x.id); render(); return; }
+    if (a === 'eig') return eigDialog(x.id);
   }
   if (row && t.closest('[data-a="ki"]')) {
     const x = items()[+row.dataset.i], b = t.closest('[data-a="ki"]'); b.disabled = true; b.textContent = '✨ schreibe …';
@@ -582,7 +597,7 @@ function vAngebote() {
   }).join('');
   const sorted = [...A];
   return head + `<p class="hint" style="margin:-.2rem 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter). <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
-    <div class="tblw"><table class="lv ps"><thead><tr><th>OZ</th><th style="min-width:14rem">Kurztext</th><th class="r">Menge</th><th>EH</th>
+    <div class="tblw"><table class="lv ps"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th>
       ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
         <label class="hint" style="font-weight:400">Eingang <input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto"></label></th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody><tfoot>
@@ -869,7 +884,7 @@ async function fotoHoch(posId, files) {
     await flush(); toast(files.length > 1 ? `${files.length} Fotos werden hochgeladen …` : 'Foto wird hochgeladen …');
     const r = await fetch(`api/lv/${L.id}/bilder`, { method: 'POST', body: fd }), j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || r.statusText);
-    L = j; OPEN.add(posId); render();
+    L = j; OPEN.add(posId); render(); if (window.eigNeu) eigNeu();
   } catch (e) { toast(e.message, true); }
 }
 document.addEventListener('change', (e) => { const el = e.target; if (el.dataset && el.dataset.foto) { fotoHoch(el.dataset.foto, el.files); el.value = ''; } });
@@ -877,7 +892,7 @@ document.addEventListener('click', async (e) => {
   const z = e.target.closest('[data-fzeig]');
   if (z) { const x = items().find((y) => y.id === z.dataset.fzeig); const fs = fotosVon(x).map((b) => ({ url: `api/bild/${b.id}`, name: b.name, typ: 'bild' })); if (window.BPHead && BPHead.ansehen) BPHead.ansehen(fs, +z.dataset.k); else window.open(fs[+z.dataset.k].url, '_blank'); return; }
   const d = e.target.closest('[data-fdel]');
-  if (d) { if (!confirm('Foto entfernen?')) return; try { await call('api/bild/' + d.dataset.fdel, 'DELETE'); } catch (er) { toast(er.message, true); } }
+  if (d) { if (!confirm('Foto entfernen?')) return; try { await call('api/bild/' + d.dataset.fdel, 'DELETE'); if (window.eigNeu) eigNeu(); } catch (er) { toast(er.message, true); } }
 });
 document.addEventListener('paste', (e) => {   // Bild aus der Zwischenablage (Screenshot, kopiertes Foto) in den Langtext
   const ta = e.target.closest && e.target.closest('tr.lang'); if (!ta || !L) return;
@@ -887,6 +902,90 @@ document.addEventListener('paste', (e) => {   // Bild aus der Zwischenablage (Sc
 document.addEventListener('dragover', (e) => { if (e.target.closest && e.target.closest('tr.lang') && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); e.target.closest('tr.lang').classList.add('drop'); } });
 document.addEventListener('dragleave', (e) => { const r = e.target.closest && e.target.closest('tr.lang'); if (r) r.classList.remove('drop'); });
 document.addEventListener('drop', (e) => { const r = e.target.closest && e.target.closest('tr.lang'); if (!r || !L || !e.dataTransfer.files.length) return; e.preventDefault(); r.classList.remove('drop'); fotoHoch(items()[+r.dataset.i].id, e.dataTransfer.files); });
+
+/* ---------- Eigenschaften einer Position (wie in ORCA: Allgemein · Weiteres · Menge · Grafik) ---------- */
+const LB = ['000 Baustelleneinrichtung', '002 Erdarbeiten', '006 Spezialtiefbau', '009 Entwässerungskanalarbeiten', '012 Mauerarbeiten', '013 Betonarbeiten', '014 Natur-, Betonwerksteinarbeiten', '016 Zimmer- und Holzbauarbeiten', '017 Stahlbauarbeiten', '018 Abdichtungsarbeiten', '020 Dachdeckungsarbeiten', '021 Dachabdichtungsarbeiten', '022 Klempnerarbeiten', '023 Putz- und Stuckarbeiten, Wärmedämmsysteme', '024 Fliesen- und Plattenarbeiten', '025 Estricharbeiten', '026 Fenster, Außentüren', '027 Tischlerarbeiten', '028 Parkett-, Holzpflasterarbeiten', '029 Beschlagarbeiten', '030 Rollladenarbeiten', '031 Metallbauarbeiten', '032 Verglasungsarbeiten', '034 Maler- und Lackierarbeiten', '036 Bodenbelagarbeiten', '037 Tapezierarbeiten', '038 Vorgehängte hinterlüftete Fassaden', '039 Trockenbauarbeiten', '040 Wärmeversorgungsanlagen', '042 Gas- und Wasserinstallation', '044 Abwasserinstallation', '045 Sanitärausstattung', '053 Niederspannungsanlagen', '069 Aufzüge', '080 Straßen, Wege, Plätze', '081 Betonerhaltungsarbeiten', '084 Abbruch- und Rückbauarbeiten', '087 Abfallentsorgung'];
+function eigDialog(id) {
+  let tabE = LS.get('eigTab', 'weiteres'), snap = {};
+  const posen = () => items().filter((y) => y.typ === 'pos');
+  const X = () => items().find((y) => y.id === id);
+  const merk = () => { if (!snap[id]) snap[id] = JSON.parse(JSON.stringify(X())); };
+  const bg = modalBox('<div id="eigBox"></div>', async (m, bg, close) => {
+    const x = X(); if (!x) return close();
+    if (m === 'x') { close(); render(); return; }
+    if (m.startsWith('t:')) { tabE = m.slice(2); LS.set('eigTab', tabE); draw(); return; }
+    if (m === 'prev' || m === 'next') { const P = posen(), k = P.findIndex((y) => y.id === id); const n = P[k + (m === 'prev' ? -1 : 1)]; if (n) { id = n.id; draw(); } return; }
+    if (m === 'neu') {
+      const I = items(), at = I.findIndex((y) => y.id === id) + 1;
+      const nx = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: x.einheit || 'm2', kg: x.kg || '' };
+      I.splice(at, 0, nx); numerieren(); changed(true); id = nx.id; tabE = 'allgemein'; draw();
+      setTimeout(() => { const f = bg.querySelector('[data-e="kurz"]'); if (f) f.focus(); }, 30); return;
+    }
+    if (m === 'undo') { if (!snap[id]) return; const I = items(), k = I.findIndex((y) => y.id === id); I[k] = JSON.parse(JSON.stringify(snap[id])); delete snap[id]; changed(true); draw(); toast('Änderungen an dieser Position zurückgenommen.'); return; }
+    if (m === 'mf') { const f = bg.querySelector('[data-e="mf"]'); try { const r = await api('api/formel', 'POST', { formel: f.value }); if (r.wert == null) throw new Error('Rechenweg nicht lesbar'); merk(); x.mf = f.value.trim(); x.menge = Math.round(r.wert * 1000) / 1000; changed(true); draw(); } catch (er) { toast(er.message, true); } }
+  });
+  const box = bg.querySelector('#eigBox'); bg.querySelector('.modal').classList.add('eig');
+  const cb = (k, l, on, dis = false, t = '') => `<label class="chk${dis ? ' dis' : ''}" title="${esc(t)}"><input type="checkbox" data-e="${k}"${on ? ' checked' : ''}${dis ? ' disabled' : ''}> ${l}</label>`;
+  function draw() {
+    const x = X(); if (!x) return;
+    const P = posen(), k = P.findIndex((y) => y.id === id), V = vergeben(), ep = V ? (L.vergabe.preise || {})[x.id] : null;
+    const am = L.aufmass.filter((a) => a.pos_id === x.id).reduce((s, a) => s + (a.menge || 0), 0);
+    const T = [['allgemein', 'Allgemein'], ['weiteres', 'Weiteres'], ['menge', 'Menge'], ['grafik', 'Grafik']];
+    let h = '';
+    if (tabE === 'allgemein') h = `<div class="fm">
+      <label>OZ</label><input value="${esc(x.oz)}" disabled>
+      <label>Kurztext</label><input data-e="kurz" value="${esc(x.kurz)}">
+      <label>Langtext</label><textarea data-e="lang" rows="8">${esc(x.lang || '')}</textarea>
+      <label>Einheit</label><input data-e="einheit" value="${esc(x.einheit || '')}" list="ehList" style="max-width:8rem">
+      <label>EP Schätzung</label><input class="n" data-e="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="max-width:10rem">
+      ${V ? `<label>EP Auftrag</label><input class="n" value="${ep != null ? nf2(ep) : ''}" disabled style="max-width:10rem">` : ''}</div>`;
+    else if (tabE === 'weiteres') h = `<div class="fm">
+      <label>Kostengruppen</label><table class="eigkg"><thead><tr><th>Kostenberechnung</th><th>Kostengruppe</th></tr></thead><tbody>
+        <tr><td>DIN 276 (2018-12)</td><td><input data-e="kg" value="${esc(x.kg || '')}" inputmode="numeric" placeholder="z. B. 331"></td></tr>
+        <tr><td>DIN 276 (1981)</td><td><input data-e="kg81" value="${esc(x.kg81 || '')}" inputmode="numeric"></td></tr>
+        <tr><td>Leistungsbereiche</td><td><input data-e="lb" value="${esc(x.lb || '')}" list="lbList" placeholder="z. B. 012 Mauerarbeiten"></td></tr></tbody></table>
+      <label>Positionsart</label><select data-e="pa"><option value="N"${['N', 'E'].includes(x.art) ? ' selected' : ''}>Position</option><option value="P"${x.art === 'P' ? ' selected' : ''}>Pauschalposition</option><option value="A"${x.art === 'A' ? ' selected' : ''}>Wahlposition (Alternative)</option><option value="T"${x.art === 'T' ? ' selected' : ''}>Hinweistext</option></select>
+      <label></label><div class="eiggrid">
+        ${cb('nt', 'Die Position ist eine Nachtragsposition', !!x.nt)}<span></span>
+        ${cb('bed', 'Die Position ist eine Bedarfsposition', x.art === 'E', !['N', 'E'].includes(x.art))}${cb('gb', 'Mit Gesamtpreis', !!x.gb, x.art !== 'E', 'Bedarfsposition zählt in die Summe')}
+        ${cb('entf', 'Position entfällt', !!x.entf)}${cb('sp', 'Schwerpunktposition', !!x.sp, false, 'besonders wichtige Position (im Ausdruck mit [S])')}</div>
+      <label>Bezug auf Position</label><select data-e="bezug"><option value="">–</option>${P.filter((y) => y.id !== x.id).map((y) => `<option value="${y.id}"${x.bezug === y.id ? ' selected' : ''}>${esc(y.oz)} ${esc((y.kurz || '').slice(0, 60))}</option>`).join('')}</select>
+      <label>Quellverweis</label><input value="${esc(x.quelle || '')}" disabled placeholder="z. B. aus Kostenermittlung oder GAEB">
+      <label>Druckoptionen</label><div class="eiggrid">${cb('np_vor', 'Neue Seite vorher', !!x.np_vor)}${cb('np_nach', 'Neue Seite nachher', !!x.np_nach)}</div></div>`;
+    else if (tabE === 'menge') h = `<div class="fm">
+      <label>LV-Menge</label><div style="display:flex;gap:.4rem;align-items:center"><input class="n" data-e="menge" value="${nf(x.menge)}" inputmode="decimal" style="max-width:9rem"><span>${esc(x.einheit || '')}</span></div>
+      <label>Rechenweg</label><div style="display:flex;gap:.4rem"><input data-e="mf" value="${esc(x.mf || '')}" placeholder="z. B. 2 × 12,40 × 2,75 – 3 × 1,01 × 2,13" style="flex:1"><button class="btn sm" data-m="mf">= übernehmen</button></div>
+      <label>Aufmaß</label><div>${am ? `${nf(am)} ${esc(x.einheit || '')} aufgemessen · ${x.menge ? Math.round(am / x.menge * 100) + ' % der LV-Menge' : ''}` : '<span class="hint">noch kein Aufmaß</span>'}</div></div>`;
+    else h = `<div class="fm"><label>Fotos und Skizzen</label><div>${fotoLeiste(x) || '<span class="hint">Noch keine Bilder – sie stehen im Ausdruck unter dem Langtext.</span>'}
+      <div class="bar" style="margin:.5rem 0 0"><label class="btn sm">📷 Foto hinzufügen<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label></div></div></div>`;
+    box.innerHTML = `<h3 style="display:flex;gap:.5rem;align-items:baseline">Eigenschaften: Position <span class="hint">${esc(x.oz)} ${esc((x.kurz || '').slice(0, 50))}</span></h3>
+      <div class="eigtabs">${T.map(([kk, l]) => `<button type="button" data-m="t:${kk}" class="${tabE === kk ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="eigbody">${h}</div>
+      <div class="acts"><button class="btn sm" data-m="prev" ${k <= 0 ? 'disabled' : ''} title="vorherige Position">&lt;&lt;</button><button class="btn sm" data-m="next" ${k >= P.length - 1 ? 'disabled' : ''} title="nächste Position">&gt;&gt;</button>
+        <button class="btn sm" data-m="neu" title="neue Position darunter">Neu</button><button class="btn sm" data-m="undo" ${snap[id] ? '' : 'disabled'}>Rückgängig</button><span style="flex:1"></span><button class="btn pri" data-m="x">Schließen</button></div>`;
+  }
+  const setz = (el) => {
+    const x = X(); const e = el.dataset.e; if (!x || !e || e === 'mf') return;
+    merk();
+    const v = el.type === 'checkbox' ? el.checked : el.value;
+    if (e === 'ep_s') x.ep_s = pf(v);
+    else if (e === 'menge') { x.menge = pf(v) ?? 0; }
+    else if (e === 'kg' || e === 'kg81') x[e] = String(v).replace(/\D/g, '').slice(0, 3);
+    else if (e === 'pa') { x.art = v; if (v !== 'N') delete x.gb; }
+    else if (e === 'bed') { if (['N', 'E'].includes(x.art)) x.art = v ? 'E' : 'N'; if (!v) delete x.gb; }
+    else if (e === 'nt') { if (v) { x.nt = 'NT' + (items().filter((y) => y.nt).length + 1); x.nt_status = 'angemeldet'; } else { delete x.nt; delete x.nt_status; delete x.nt_grund; } }
+    else if (['gb', 'entf', 'sp', 'np_vor', 'np_nach'].includes(e)) { if (v) x[e] = true; else delete x[e]; }
+    else if (e === 'bezug' || e === 'lb') { if (v) x[e] = v; else delete x[e]; }
+    else x[e] = v;
+    changed(['pa', 'bed', 'nt', 'gb', 'entf', 'sp'].includes(e) || el.type === 'checkbox' || el.tagName === 'SELECT');
+    if (el.type === 'checkbox' || el.tagName === 'SELECT') draw();
+  };
+  window.eigNeu = draw;
+  box.addEventListener('change', (e) => setz(e.target));
+  box.addEventListener('input', (e) => { if (['kurz', 'lang', 'einheit', 'lb'].includes(e.target.dataset.e)) { const x = X(); merk(); x[e.target.dataset.e] = e.target.value; changed(); } });
+  draw();
+}
+document.addEventListener('dblclick', (e) => { const td = e.target.closest('td.oz'); if (!td || tab !== 'lv') return; const tr = td.closest('tr[data-i]'); const x = tr && items()[+tr.dataset.i]; if (x && x.typ === 'pos') eigDialog(x.id); });
 
 /* ---------- Aufträge: Baum über alle Vergabeeinheiten (wie in ORCA: Projekt › LV › Titel › Position) ---------- */
 const IC = {
@@ -1002,6 +1101,7 @@ function vUebersicht() {
 
 /* ---------- Start ---------- */
 (async () => {
+  $('#lbList').innerHTML = LB.map((l) => `<option value="${l}">`).join('');
   const me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform');
   await header('Ausschreibung & Abrechnung', me, conf);

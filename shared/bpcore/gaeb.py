@@ -121,8 +121,10 @@ def lesen(data):
             kurz = (lang.split("\n")[0] if lang else "")[:200]
         art = "N"
         prov = _text(_kid(it, "Provis"))
+        mit_gb = False
         if prov:
             art = "E"
+            mit_gb = prov.strip().lower() == "withtotal"
         if _kid(it, "ALNGroupNo") is not None or _kid(it, "ALNSerNo") is not None:
             art = "A"
         if (_text(_kid(it, "LumpSumItem")) or "").lower() in ("yes", "true", "1"):
@@ -133,7 +135,7 @@ def lesen(data):
             qty = _num(_text(_kid(qs, "Qty"))) if qs is not None else None
         up = _num(_text(_kid(it, "UP")))
         return {"typ": "pos", "oz": oz, "kurz": kurz, "lang": lang if lang != kurz else "", "menge": qty or 0,
-                "einheit": _text(_kid(it, "QU")), "art": art, "ep": up}
+                "einheit": _text(_kid(it, "QU")), "art": art, "ep": up, **({"gb": True} if mit_gb else {})}
 
     walk(_find(boq, "BoQBody"), "", 1)
     if not any(i["typ"] == "pos" for i in items):
@@ -178,7 +180,7 @@ def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
         a = x.get("art") or "N"
         h = f'<Item ID="{uuid.uuid4()}" RNoPart="{escape(parts[-1] if parts else "")}">'
         if a == "E":
-            h += "<Provis>WithoutTotal</Provis>"
+            h += "<Provis>WithTotal</Provis>" if x.get("gb") else "<Provis>WithoutTotal</Provis>"
         if a == "A":
             h += "<ALNGroupNo>1</ALNGroupNo><ALNSerNo>1</ALNSerNo>"
         if a == "P":
@@ -187,7 +189,7 @@ def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
         if mit_preis:
             ep = preise.get(x["id"])
             if ep is not None:
-                gp = 0.0 if a in ("E", "A") else round(float(x.get("menge") or 0) * float(ep), 2)
+                gp = 0.0 if (a == "A" or (a == "E" and not x.get("gb"))) else round(float(x.get("menge") or 0) * float(ep), 2)
                 h += f"<UP>{_f(float(ep), 2)}</UP><IT>{_f(gp, 2)}</IT>"
         lang = x.get("lang") or ""
         h += (f"<Description><CompleteText><DetailTxt><Text>{_p(lang or x.get('kurz'))}</Text></DetailTxt>"

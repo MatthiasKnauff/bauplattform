@@ -6,7 +6,13 @@ import base64, io, json
 
 STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich zum Weiterleiten) | firma (direkt an die Firma)
             "kopie": True,           # bei „direkt an die Firma“: Kopie an mich
-            "kalender": False}       # eigene und verschobene Erinnerungen automatisch als Kalendertermin an mich
+            "kalender": False,       # eigene und verschobene Erinnerungen automatisch als Kalendertermin an mich
+            "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
+            "telefon": "", "funktion": ""}   # für die Signatur
+SIG_STANDARD = "{name}\n{funktion}\n{buero}\n{buero_strasse}, {buero_ort}\nTel. {telefon} · {email}\n{buero_web}"
+SIG_PLATZ = {"name": "Vor- und Nachname", "vorname": "Vorname", "nachname": "Nachname", "funktion": "Funktion (z. B. Bauleitung)",
+             "telefon": "Telefon (eigenes, sonst Büro)", "email": "E-Mail-Adresse", "buero": "Büroname", "buero_strasse": "Straße des Büros",
+             "buero_ort": "PLZ und Ort des Büros", "buero_telefon": "Telefon des Büros", "buero_email": "E-Mail des Büros", "buero_web": "Internetseite des Büros"}
 
 
 def _get(c, key):
@@ -35,6 +41,9 @@ def set_prefs(c, uid, d, by=""):
     for k in ("kopie", "kalender"):
         if k in d:
             p[k] = bool(d[k])
+    for k, n in (("mailsignatur", 2000), ("telefon", 60), ("funktion", 80)):
+        if k in d:
+            p[k] = str(d[k] or "").replace("\r", "").strip()[:n]
     _put(c, f"konto:{uid}", json.dumps(p), by)
     return p
 
@@ -100,3 +109,28 @@ def aufbereiten(raw):
         out = out.resize((900, max(1, round(out.height * 900 / out.width))), Image.LANCZOS)
     buf = io.BytesIO(); out.save(buf, "PNG", optimize=True)
     return buf.getvalue()
+
+
+def signatur_text(c, user):
+    """E-Mail-Signatur des Benutzers mit eingesetzten Werten. Leere Zeilen (z. B. ohne Funktion) und leere Trennzeichen fallen weg."""
+    import re
+    p = prefs(c, user["id"])
+    S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'")}
+    vn = (user["vorname"] if "vorname" in user.keys() else "") or ""
+    nn = (user["nachname"] if "nachname" in user.keys() else "") or ""
+    W = {"name": " ".join(x for x in (vn, nn) if x) or user["name"], "vorname": vn, "nachname": nn, "funktion": p.get("funktion", ""),
+         "telefon": p.get("telefon") or S.get("co_phone", ""), "email": user["email"] or "", "buero": S.get("office_name", ""),
+         "buero_strasse": S.get("co_street", ""), "buero_ort": " ".join(x for x in (S.get("co_zip", ""), S.get("co_city", "")) if x),
+         "buero_telefon": S.get("co_phone", ""), "buero_email": S.get("co_email", ""), "buero_web": S.get("co_web", "")}
+    t = p.get("mailsignatur") or SIG_STANDARD
+    out = []
+    for line in t.split("\n"):
+        if re.search(r"\{\w+\}", line) and not any(W.get(k) for k in re.findall(r"\{(\w+)\}", line)):
+            continue   # Zeile nur aus leeren Platzhaltern
+        v = re.sub(r"\{(\w+)\}", lambda m: str(W.get(m.group(1), m.group(0))), line)
+        v = re.sub(r"^(\s*(Tel\.|Fax|Mobil|E-Mail)\s*)?[·,|-]\s*", "", v)                    # führende Trennzeichen
+        v = re.sub(r"\s*[·,|]\s*$", "", v)                                                   # Trennzeichen am Ende
+        v = re.sub(r"(Tel\.|Mobil)\s*(?=·|$)", "", v).strip(" ·,|")
+        if v.strip() or not line.strip():
+            out.append(v)
+    return "\n".join(out).strip()

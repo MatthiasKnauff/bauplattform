@@ -49,7 +49,7 @@ LABELS = {
     "kw": "Kennwert", "label": "Bezeichnung", "worte": "Suchwörter", "name": "Name", "trade": "Gewerk", "contact_person": "Ansprechpartner",
     "phone": "Telefon", "mobile": "Mobil", "email": "E-Mail", "street": "Straße", "zip": "PLZ", "city": "Ort", "notes": "Notizen",
     "website": "Internet", "role": "Rolle", "extra": "Weiteres", "alle_tage": "alle Stände (Tage)", "taeglich_tage": "ein Stand je Tag bis (Tage)",
-    "phasen": "Phasen", "planarten": "Planarten", "kennungen": "Kennungen", "stichworte": "Stichwörter", "max_mb": "Anhänge höchstens (MB)",
+    "mailsignatur": "E-Mail-Signatur", "funktion": "Funktion", "phasen": "Phasen", "planarten": "Planarten", "kennungen": "Kennungen", "stichworte": "Stichwörter", "max_mb": "Anhänge höchstens (MB)",
     "betreff": "Betreff", "text": "Text", "auto": "automatisch starten", "on": "anbieten", "steps": "Schritte", "dur": "Dauer", "gw": "Gewerk", "phase": "Phase", "titel": "Titel", "stufe": "Stufe",
 }
 for _k, _n in (("maengelruege", "Mängelrüge"), ("terminruege", "Terminrüge"), ("termin", "Kalendertermin"), ("planversand", "Planversand")):

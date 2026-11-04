@@ -10,7 +10,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, mail, plan, planname, platform, sso, versionen, vorlagen
+from bpcore import db, konto, mail, plan, planname, platform, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -283,8 +283,9 @@ def vorlage():
             return jsonify(error="Projekt nicht gefunden"), 404
         T = vorlagen.alle(c)["planversand"]
         cf = mail.conf(c)
-        k = __import__("bpcore.konto", fromlist=["konto"]).prefs(c, g.user["id"])
-    W = _werte(p, cf)
+        k = konto.prefs(c, g.user["id"])
+        sig = konto.signatur_text(c, g.user)
+    W = {**_werte(p, cf), "signatur": sig}
     keep = {"planliste": "{planliste}", "anzahl": "{anzahl}", "firma": "{firma}"}
     return jsonify(betreff=vorlagen.fuellen(T["betreff"], {**W, **keep}), text=vorlagen.fuellen(T["text"], {**W, **keep}),
                    versand="mich" if k.get("versand") == "mich" else "direkt", kopie=k.get("kopie", True), email=g.user["email"] or "",

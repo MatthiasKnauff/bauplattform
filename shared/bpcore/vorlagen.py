@@ -5,27 +5,27 @@ DEF = {
     "maengelruege": {"name": "Mängelrüge", "betreff": "Mängelrüge – {bauvorhaben}",
                      "text": "Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unsere Mängelrüge zum Bauvorhaben {bauvorhaben}. "
                              "Bitte beseitigen Sie die aufgeführten Mängel bis zum {frist} und zeigen Sie uns die Beseitigung schriftlich an.\n\n"
-                             "Mit freundlichen Grüßen\n{absender}\n{buero}"},
+                             "Mit freundlichen Grüßen\n\n{signatur}"},
     "terminruege": {"name": "Terminrüge", "betreff": "Aufforderung zur Abhilfe – {bauvorhaben}",
                     "text": "Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie unsere Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B zum Bauvorhaben {bauvorhaben}. "
                             "Bitte nehmen Sie die Arbeiten bis zum {frist} mit ausreichender Besetzung wieder auf und bestätigen Sie uns dies kurzfristig.\n\n"
-                            "Mit freundlichen Grüßen\n{absender}\n{buero}"},
+                            "Mit freundlichen Grüßen\n\n{signatur}"},
     "planversand": {"name": "Planversand", "betreff": "Pläne {bauvorhaben}",
                     "text": "Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie folgende Pläne zum Bauvorhaben {bauvorhaben}:\n\n{planliste}\n\n"
                             "Bitte prüfen Sie die Unterlagen und arbeiten Sie ab sofort nur noch nach diesen Planständen. "
-                            "Bei Unklarheiten melden Sie sich bitte rechtzeitig vor Ausführung.\n\nMit freundlichen Grüßen\n{absender}\n{buero}"},
+                            "Bei Unklarheiten melden Sie sich bitte rechtzeitig vor Ausführung.\n\nMit freundlichen Grüßen\n\n{signatur}"},
     "termin": {"name": "Kalendertermin", "betreff": "{titel}",
                "text": "{text}\n\nProjekt: {projekt}\nAus der Bauplattform ({buero})."},
 }
 PLATZHALTER = {
-    "maengelruege": ["firma", "bauvorhaben", "projekt", "frist", "anzahl", "absender", "buero", "datum"],
-    "terminruege": ["firma", "bauvorhaben", "projekt", "frist", "anzahl", "absender", "buero", "datum"],
-    "planversand": ["firma", "bauvorhaben", "projekt", "planliste", "anzahl", "absender", "buero", "datum"],
+    "maengelruege": ["firma", "bauvorhaben", "projekt", "frist", "anzahl", "absender", "buero", "datum", "signatur"],
+    "terminruege": ["firma", "bauvorhaben", "projekt", "frist", "anzahl", "absender", "buero", "datum", "signatur"],
+    "planversand": ["firma", "bauvorhaben", "projekt", "planliste", "anzahl", "absender", "buero", "datum", "signatur"],
     "termin": ["titel", "text", "projekt", "datum", "uhrzeit", "absender", "buero"],
 }
 ERKL = {"firma": "Name der Firma", "bauvorhaben": "Projekt mit Adresse", "projekt": "Projektname", "frist": "Frist (TT.MM.JJJJ)",
         "anzahl": "Anzahl (Mängel, Tage bzw. Pläne)", "absender": "Name des Absenders", "buero": "Büroname", "datum": "heutiges Datum bzw. Termin",
-        "titel": "Titel der Erinnerung", "planliste": "Liste der Pläne (Nummer, Index, Titel, Datei)", "text": "Text der Erinnerung", "uhrzeit": "Uhrzeit"}
+        "titel": "Titel der Erinnerung", "signatur": "E-Mail-Signatur des Absenders (Mein Konto)", "planliste": "Liste der Pläne (Nummer, Index, Titel, Datei)", "text": "Text der Erinnerung", "uhrzeit": "Uhrzeit"}
 
 
 def alle(c):

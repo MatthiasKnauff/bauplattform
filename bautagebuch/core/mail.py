@@ -19,7 +19,7 @@ def send(conf, to, subject, body):
     prov = conf.get("mail_provider") or "gmail"
     host, port = PROVIDERS.get(prov, PROVIDERS["gmail"])
     msg = EmailMessage()
-    msg["From"], msg["To"], msg["Subject"] = f"Bautagebuch <{conf['mail_user']}>", to, subject
+    msg["From"], msg["To"], msg["Subject"] = f"Bautagebuch <{(conf.get('mail_from') or '').strip() or conf['mail_user']}>", to, subject
     msg.set_content(body)
     try:
         with smtplib.SMTP(host, port, timeout=15) as s:

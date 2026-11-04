@@ -353,7 +353,8 @@ def versand():
     W = {"planliste": "\n".join(_planzeile(x) for x in liste), "anzahl": len(liste)}
     betreff = str(b.get("betreff") or "").strip()[:300] or "Pläne"
     text = str(b.get("text") or "").strip()[:20000] or "{planliste}"
-    absname = mc.get("office_name") or C.full_name(g.user)
+    with db.tx() as c:
+        von, absname = konto.absender(c, g.user, mc)   # Büro-Absender oder (je Benutzer) die eigene Adresse
     gesendet, fehler = [], []
     if art == "mich":
         an_namen = ", ".join(e["name"] or e["email"] for e in emp)
@@ -361,7 +362,7 @@ def versand():
             with db.tx() as c:
                 t_, h_ = konto.mail_teile(c, g.user, text, {**W, "firma": an_namen or "…"})
             mail.send(mc, ich, vorlagen.fuellen(betreff, {**W, "firma": an_namen}), t_, html=h_,
-                      sender=absname, attachments=anh)
+                      sender=absname, from_addr=von, attachments=anh)
             gesendet.append({"name": C.full_name(g.user), "email": ich})
         except mail.MailError as e:
             fehler.append(str(e))
@@ -372,7 +373,7 @@ def versand():
                 with db.tx() as c:
                     t_, h_ = konto.mail_teile(c, g.user, text, {**W, "firma": e["name"]})
                 mail.send(mc, e["email"], vorlagen.fuellen(betreff, {**W, "firma": e["name"]}), t_, html=h_,
-                          sender=absname, attachments=anh, cc=[x for x in cc if x.lower() != e["email"].lower()], reply_to=ich or None)
+                          sender=absname, from_addr=von, attachments=anh, cc=[x for x in cc if x.lower() != e["email"].lower()], reply_to=ich or None)
                 gesendet.append(e)
             except mail.MailError as er:
                 fehler.append(f"{e['name'] or e['email']}: {er}")

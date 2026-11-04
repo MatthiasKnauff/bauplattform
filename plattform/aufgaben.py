@@ -404,8 +404,9 @@ def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname):
     cc = [ich] if v == "firma" and b.get("kopie") and ich and ich.lower() != an.lower() else []
     with db.tx() as c:
         text, html = konto.mail_teile(c, g.user, T["text"], W)   # Text und HTML (mit Rich-Signatur)
+        von, vname = konto.absender(c, g.user, cf)                # Büro-Absender oder (je Benutzer) die eigene Adresse
     try:
-        mail.send(cf, an, vorlagen.fuellen(T["betreff"], W), text, sender=cf.get("office_name") or C.full_name(g.user),
+        mail.send(cf, an, vorlagen.fuellen(T["betreff"], W), text, sender=vname, from_addr=von,
                   attachments=[(dateiname, pdf, "application/pdf")], cc=cc, reply_to=ich or None, html=html)
     except mail.MailError as e:
         return "", str(e)

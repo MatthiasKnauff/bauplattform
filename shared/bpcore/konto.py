@@ -10,6 +10,7 @@ STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich
             "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
             "mailsignatur_html": "", # dieselbe als HTML (eingefügt aus Outlook/Word); hat Vorrang
             "telefon": "", "funktion": "",   # für die Signatur
+            "absender": "buero",     # Absender meiner Mails: buero (Absenderadresse des Büros) | eigen (meine E-Mail-Adresse)
             "hinweise_aus": []}      # Hinweisfenster, die nicht mehr erscheinen sollen (z. B. „baukosten“)
 SIG_STANDARD = "{name}\n{funktion}\n{buero}\n{buero_strasse}, {buero_ort}\nTel. {telefon} · {email}\n{buero_web}"
 SIG_PLATZ = {"name": "Vor- und Nachname", "vorname": "Vorname", "nachname": "Nachname", "funktion": "Funktion (z. B. Bauleitung)",
@@ -40,6 +41,8 @@ def set_prefs(c, uid, d, by=""):
     p = prefs(c, uid)
     if d.get("versand") in ("pdf", "mich", "firma"):
         p["versand"] = d["versand"]
+    if d.get("absender") in ("buero", "eigen"):
+        p["absender"] = d["absender"]
     for k in ("kopie", "kalender"):
         if k in d:
             p[k] = bool(d[k])
@@ -181,3 +184,16 @@ def signatur_text(c, user):
         if v.strip() or not line.strip():
             out.append(v)
     return "\n".join(out).strip()
+
+
+def absender(c, user, cf):
+    """(Adresse, Name) für Mails, die der Benutzer verschickt. Standard: Absenderadresse des Büros (Mailserver → Absender),
+    auf Wunsch je Benutzer die eigene E-Mail-Adresse (der Mailserver muss das Senden in deren Namen erlauben)."""
+    p = prefs(c, user["id"])
+    mail = (user["email"] or "").strip() if "email" in user.keys() else ""
+    vn = (user["vorname"] if "vorname" in user.keys() else "") or ""
+    nn = (user["nachname"] if "nachname" in user.keys() else "") or ""
+    name = " ".join(x for x in (vn, nn) if x) or user["name"]
+    if p.get("absender") == "eigen" and mail:
+        return mail, name
+    return None, cf.get("office_name") or name

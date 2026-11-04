@@ -17,7 +17,12 @@ def configured(cf):
     return bool(cf.get("mail_user") and cf.get("mail_pass"))
 
 
-def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None, reply_to=None, ical=None, html=None):
+def von(cf):
+    """Absenderadresse aller Mails: Einstellung „Absender“ beim Mailserver, sonst das Postfach selbst."""
+    return (cf.get("mail_from") or "").strip() or cf.get("mail_user", "")
+
+
+def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None, reply_to=None, ical=None, html=None, from_addr=None):
     """to/cc: Adresse oder Liste. attachments: [(Dateiname, bytes, "maintype/subtype")].
     ical: Text einer iCalendar-Einladung (METHOD:REQUEST) – erscheint in Outlook & Co. als Termin mit Annehmen/Ablehnen."""
     if not configured(cf):
@@ -26,7 +31,7 @@ def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None
     host, port = PROVIDERS.get(prov, PROVIDERS["gmail"])
     lst = lambda v: [x for x in ([v] if isinstance(v, str) else (v or [])) if x]
     msg = EmailMessage()
-    msg["From"], msg["To"], msg["Subject"] = f"{sender} <{cf['mail_user']}>", ", ".join(lst(to)), subject
+    msg["From"], msg["To"], msg["Subject"] = f"{sender} <{from_addr or von(cf)}>", ", ".join(lst(to)), subject
     if lst(cc):
         msg["Cc"] = ", ".join(lst(cc))
     if reply_to:
@@ -60,5 +65,8 @@ def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None
             s.send_message(msg)
     except smtplib.SMTPAuthenticationError:
         raise MailError("Anmeldung am Mailserver abgelehnt – Zugangsdaten unter Verwaltung → Einstellungen → Mailserver prüfen.")
+    except smtplib.SMTPSenderRefused:
+        raise MailError(f"Der Mailserver lässt {from_addr or von(cf)} nicht als Absender zu – im Postfach „Senden als“ erlauben "
+                        "oder unter ⚙ → Für mich den Absender auf das Büro stellen.")
     except (OSError, smtplib.SMTPException) as e:
         raise MailError(f"Mailserver nicht erreichbar oder Fehler: {e}"[:300])

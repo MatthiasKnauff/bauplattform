@@ -301,6 +301,9 @@
           <div class="bph-chips">${Object.entries(K.sig_platz || {}).map(([k, l]) => `<button type="button" data-kph="${k}" title="${esc(l)}">{${k}}</button>`).join('')}</div>
           <div class="bph-row"><button type="button" class="bph-btn pri" data-ksigsave>Signatur speichern</button><button type="button" class="bph-btn" data-ksigstd>Auf Standard zurücksetzen</button></div>
           <div class="bph-mu">So sieht sie in der Mail aus${K.mailsignatur_html ? ' (Mailprogramme ohne HTML zeigen sie als Text)' : ''}:</div><div class="bph-sigp bph-sigh">${K.sig_vorschau_html || esc(K.sig_vorschau || '').replace(/\n/g, '<br>')}</div>
+          <h4>Absender meiner Mails</h4><p class="bph-mu">Rügen und Planversand gehen standardmäßig vom Büro-Postfach aus. Antworten kommen in jedem Fall auch an dich (Antwort an: deine Adresse).</p>
+          ${seg('absender', [['buero', 'Büro' + (K.absender_buero ? ' (' + esc(K.absender_buero) + ')' : '')], ['eigen', 'meine Adresse' + (K.email ? ' (' + esc(K.email) + ')' : '')]])}
+          ${K.absender === 'eigen' ? '<p class="bph-mu">Der Mailserver muss das Senden in deinem Namen erlauben (Microsoft 365: „Senden als“ für das Büro-Postfach). Sonst erscheint beim Versand ein Hinweis.</p>' : ''}
           <h4>Mängel- und Terminrügen versenden</h4><p class="bph-mu">Vorauswahl im Dialog der Rüge – dort lässt sie sich jedes Mal ändern.</p>
           ${seg('versand', [['pdf', 'nur PDF'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']])}
           <label class="bph-ck"><input type="checkbox" data-kchk="kopie"${K.kopie ? ' checked' : ''}> bei „direkt an die Firma“ eine Kopie an mich</label>

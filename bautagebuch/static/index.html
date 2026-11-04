@@ -374,6 +374,8 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 .pvb button{border:1px solid var(--line);border-radius:10px;padding:.45rem .8rem;color:var(--y);font-weight:600;white-space:nowrap}.pvb .pvc{background:var(--y);color:#111;border-color:var(--y)}
 .pvs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:.6rem .6rem calc(.6rem + env(safe-area-inset-bottom))}
 .pvw{width:max-content;min-width:100%}.pvw canvas{display:block;margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}
+/* Projektauswahl steht oben in der Kopfleiste – nur am Handy (dort ist die Kopfleiste knapp) bleibt sie hier */
+@media (min-width:641px){.bph + #hdr #projBtn{display:none}}
 </style>
 <link rel="stylesheet" href="bp/head.css">
 <script src="bp/head.js"></script>

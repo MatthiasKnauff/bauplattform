@@ -344,7 +344,9 @@ function renderBtSettings() {
   if (t === 'firma') h = `<section class="card st"><h2>Firmendaten</h2><p class="mute">Erscheinen in der Fußzeile jeder PDF-Seite (Bautagebuch, Baukosten).</p><div class="sf">${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}</div>${SAVEF()}</section>
     <section class="card st"><h2>Logo</h2><p class="mute">Für die PDF-Kopfzeile (rechts oben) und als Symbol der Apps. PNG, JPG oder WEBP.</p>
     ${S.has_logo ? `<img src="api/bt/logo?v=${data.logoV || 0}" alt="Logo" style="max-height:90px;max-width:260px;background:#fff;padding:.4rem;border-radius:8px;margin-bottom:.6rem">` : ''}
-    <div class="st-a"><label class="btn">${S.has_logo ? 'Logo ersetzen' : 'Logo hochladen'}<input type="file" id="logoIn" accept="image/png,image/jpeg,image/webp" hidden></label>${S.has_logo ? '<button class="btn danger" data-bs="dellogo">Logo entfernen</button>' : ''}</div></section>`;
+    <div class="st-a"><label class="btn">${S.has_logo ? 'Logo ersetzen' : 'Logo hochladen'}<input type="file" id="logoIn" accept="image/png,image/jpeg,image/webp" hidden></label>${S.has_logo ? '<button class="btn danger" data-bs="dellogo">Logo entfernen</button>' : ''}</div></section>
+  <section class="card st"><h2>Briefbogen</h2><p class="mute">PDF des Briefbogens (DIN A4, eine Seite). Er liegt unter Mängel- und Terminrügen; Logo und Fußzeile kommen dann vom Briefbogen. Oben rechts und unten etwa 45 mm müssen frei sein.</p>
+    <div class="st-a" id="bbBox"><span class="mute">Lade …</span></div></section>`;
   else if (t === 'ablage') h = `<section class="card st"><h2>Ablage auf dem Server</h2><p class="mute">Fotos und PDFs des Bautagebuchs automatisch in die Projektordner legen. Die Projektordner sind auch die Namensvorschläge beim Anlegen von Projekten in allen Apps.</p><div class="sf">
     ${stSel('store_mode', 'Fotos und PDFs automatisch ablegen', [['off', 'Aus'], ['smb', 'Windows-Server (Netzwerkfreigabe mit Zugangsdaten)'], ['folder', 'Ordner im Container (z. B. eingebundenes Laufwerk)']], 'off')}
     ${m === 'smb' ? stIn('store_server', 'Server (Name oder IP)', 0, { ph: 'z. B. fileserver' }) + stIn('store_share', 'Freigabename', 0, { ph: 'z. B. Projekte' }) + stIn('store_path', 'Gemeinsamer Ordner in der Freigabe (optional)', 1) + stIn('store_domain', 'Domäne (optional)') + stIn('store_user', 'Benutzer') + pw('store_pass', 'Kennwort') : ''}
@@ -374,6 +376,21 @@ function renderBtSettings() {
     if (!r.ok || j.error) return toast(j.error || 'Hochladen fehlgeschlagen', true);
     data.logoV = Date.now(); toast('Logo gespeichert.'); loadSettings();
   };
+  const bbBox = $('#bbBox');
+  if (bbBox) {
+    const bbDraw = (v) => {
+      bbBox.innerHTML = (v.vorhanden ? `<a class="btn" href="api/bp/briefbogen" target="_blank" rel="noopener">Briefbogen ansehen</a>` : '<span class="mute">Kein Briefbogen – die Briefe bekommen Logo und Fußzeile aus den Firmendaten.</span>')
+        + `<label class="btn">${v.vorhanden ? 'Ersetzen' : 'Briefbogen hochladen (PDF)'}<input type="file" id="bbIn" accept="application/pdf" hidden></label>` + (v.vorhanden ? '<button class="btn danger" id="bbDel">Entfernen</button>' : '');
+      $('#bbIn').onchange = async (e) => {
+        const fd = new FormData(); fd.append('file', e.target.files[0]);
+        const r = await fetch('api/bp/briefbogen', { method: 'POST', body: fd }); const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.error) return toast(j.error || 'Hochladen fehlgeschlagen', true);
+        toast('Briefbogen gespeichert.'); bbDraw(j);
+      };
+      const d = $('#bbDel'); if (d) d.onclick = async () => { if (!confirm('Briefbogen entfernen?')) return; bbDraw(await api('api/bp/briefbogen', 'DELETE')); };
+    };
+    api('api/bp/briefbogen?info=1').then(bbDraw).catch((er) => { bbBox.textContent = er.message; });
+  }
   const sm = $('#main').querySelector('[data-st="store_mode"]'); if (sm) sm.onchange = () => { data.bt.store_mode = sm.value; collect(); renderBtSettings(); };
 }
 let pend = {};

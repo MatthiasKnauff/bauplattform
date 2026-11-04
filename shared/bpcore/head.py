@@ -20,7 +20,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, db, konto, sso, versionen, vorlagen
+from . import ai, briefbogen, db, konto, sso, versionen, vorlagen
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -254,6 +254,35 @@ def blueprint(get_user=None):
                     konto._put(c, "versionen_conf", json.dumps(cur), u["name"])
                 weg = versionen.aufraeumen(c)
             return jsonify(**versionen.conf(c), statistik=versionen.statistik(c), entfernt=weg)
+
+    @bp.route("/api/bp/briefbogen", methods=["GET", "POST", "DELETE"])
+    def briefbogen_api():
+        """Briefbogen des Büros (PDF): GET Datei (?info=1 nur ob vorhanden) · POST hochladen · DELETE (nur Administrator)."""
+        import base64
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if request.method == "GET":
+            with db.tx() as c:
+                data = briefbogen.holen(c)
+            if request.args.get("info"):
+                return jsonify(vorhanden=bool(data), groesse=len(data or b""))
+            return Response(data, mimetype="application/pdf", headers={"Content-Disposition": "inline; filename=Briefbogen.pdf"}) if data else ("", 404)
+        if not u["is_admin"]:
+            return jsonify(error="Den Briefbogen hinterlegt der Administrator."), 403
+        with db.tx() as c:
+            if request.method == "DELETE":
+                c.execute("DELETE FROM bp_store WHERE key='briefbogen'")
+                return jsonify(ok=True, vorhanden=False)
+            f = request.files.get("file")
+            data = f.read() if f else b""
+            if not data or len(data) > 10 * 1024 * 1024:
+                return jsonify(error="Bitte den Briefbogen als PDF wählen (höchstens 10 MB)."), 400
+            err = briefbogen.pruefen(data)
+            if err:
+                return jsonify(error=err), 400
+            konto._put(c, "briefbogen", base64.b64encode(data).decode(), u["name"])
+        return jsonify(ok=True, vorhanden=True, groesse=len(data))
 
     @bp.get("/api/bp/projektnamen")
     def projektnamen():

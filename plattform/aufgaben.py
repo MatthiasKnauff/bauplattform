@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, ical, konto, mail, plan, platform, sso, versionen, vorlagen
+from bpcore import briefbogen, db, ical, konto, mail, plan, platform, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -302,6 +302,7 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     with db.tx() as c:
         S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'")}
         p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
+        bb = briefbogen.holen(c) is not None   # Briefbogen des Büros: Logo und Fußzeile kommen von dort
     de = _de
     office = S.get("office_name") or ""
     absender = ", ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v)
@@ -333,10 +334,12 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     def feld(nm, x, y, w, h, val, size=10, multi=False, tip="", transparent=False):
         if multi:
             val = umbruch(val, w, size)
-        form.textfield(name=nm, tooltip=tip or nm, x=x, y=y, width=w, height=h, value=val, fontName="Helvetica", fontSize=size, borderWidth=0.5,
-                       borderColor=line, fillColor=None if transparent else colors.HexColor("#f6f8fb"), textColor=ink, fieldFlags="multiline" if multi else "", maxlen=100000, forceBorder=True)
+        # ohne Hintergrund und Rahmen: im Ausdruck unsichtbar; der PDF-Betrachter hebt die Felder beim Bearbeiten selbst hervor
+        form.textfield(name=nm, tooltip=tip or nm, x=x, y=y, width=w, height=h, value=val, fontName="Helvetica", fontSize=size, borderWidth=0,
+                       borderColor=None, fillColor=None, textColor=ink, fieldFlags="multiline" if multi else "", maxlen=100000)
 
-    C.draw_logo(cv, R, H - 12 * mm, 16 * mm, 60 * mm)
+    if not bb:
+        C.draw_logo(cv, R, H - 12 * mm, 16 * mm, 60 * mm)
     cv.setFont("Helvetica", 7); cv.setFillColor(mute); cv.drawString(L, H - 48 * mm, absender[:120])
     feld("Empfaenger", L, H - 80 * mm, 85 * mm, 30 * mm, adr, 10, True, "Empfänger")
     cv.setFont("Helvetica", 8); cv.drawString(R - 62 * mm, H - 52 * mm, "Datum")
@@ -346,22 +349,34 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     cv.setFillColor(ink); cv.setFont("Helvetica-Bold", 13); cv.drawString(L, H - 92 * mm, kopf)
     feld("Betreff", L, H - 102 * mm, R - L, 8 * mm, f"Bauvorhaben: {bv}" + (f", Auftrag {auftrag}" if auftrag else ""), 10, tip="Betreff / Bauvorhaben")
     cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, grundzeile)
-    feld("Text", L, H - 172 * mm, R - L, 64 * mm, text, 9.5, True, "Anschreiben")
-    cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, H - 178 * mm, liste_titel)
-    feld(liste_feld, L, H - 226 * mm, R - L, 45 * mm, liste, 9.5, True, liste_tip)
-    cv.setFont("Helvetica-Bold", 10); cv.drawString(L, H - 234 * mm, frist_label)
-    feld("Frist", L + 42 * mm, H - 236 * mm, 40 * mm, 7 * mm, de(frist), 10, tip="Frist")
+    k = 0.83 if bb else 1.0   # mit Briefbogen: unten bleibt die Fußzeile des Büros frei (ca. 45 mm)
+    yt = H - 108 * mm - 64 * mm * k
+    feld("Text", L, yt, R - L, 64 * mm * k, text, 9.5, True, "Anschreiben")
+    cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, yt - 6 * mm, liste_titel)
+    yl = yt - 8 * mm - 45 * mm * k
+    feld(liste_feld, L, yl, R - L, 45 * mm * k, liste, 9.5, True, liste_tip)
+    cv.setFont("Helvetica-Bold", 10); cv.drawString(L, yl - 8 * mm, frist_label)
+    feld("Frist", L + 42 * mm, yl - 10 * mm, 40 * mm, 7 * mm, de(frist), 10, tip="Frist")
+    yg = yl - 16 * mm   # Oberkante Gruß
     if sig:   # Unterschrift (aus „Mein Konto“) zwischen Gruß und Namen – das Feld darüber ist durchsichtig
         try:
             ir = ImageReader(io.BytesIO(sig)); iw, ih = ir.getSize(); hh = 11 * mm; ww = min(62 * mm, iw * hh / ih); hh = ww * ih / iw
-            cv.drawImage(ir, L + 2 * mm, H - 242 * mm - 5.5 * mm - hh, ww, hh, mask="auto")
+            cv.drawImage(ir, L + 2 * mm, yg - 5.5 * mm - hh, ww, hh, mask="auto")
         except Exception:
             pass
-    feld("Gruss", L, H - 272 * mm, 90 * mm, 30 * mm, f"{gruss}\n\n\n\n{name}" + (f"\n{office}" if office else ""), 9.5, True, "Gruß und Unterschrift", transparent=True)
-    cv.setFont("Helvetica", 7); cv.setFillColor(mute)
-    foot = " · ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
-    cv.drawCentredString(W / 2, 10 * mm, foot[:180])
+    feld("Gruss", L, yg - 30 * mm, 90 * mm, 30 * mm, f"{gruss}\n\n\n\n{name}" + (f"\n{office}" if office else ""), 9.5, True, "Gruß und Unterschrift", transparent=True)
+    if not bb:
+        cv.setFont("Helvetica", 7); cv.setFillColor(mute)
+        foot = " · ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
+        cv.drawCentredString(W / 2, 10 * mm, foot[:180])
     return buf, cv, W, H, L, R, ink, mm, ImageReader
+
+
+def _bogen(pdf):
+    """Briefbogen des Büros unter die erste Seite legen (Anlagen bleiben ohne)."""
+    with db.tx() as c:
+        bb = briefbogen.holen(c)
+    return briefbogen.unterlegen(pdf, bb, 1)
 
 
 def _sig():
@@ -443,6 +458,7 @@ def ruege_pdf():
             cv.setFont("Helvetica", 8.5); cv.drawString(L, y0 - ih * sc - 5 * mm, f"Mangel {nr[im['item_id']]}")
             pos += 1
     cv.save()
+    buf = io.BytesIO(_bogen(buf.getvalue()))
     if b.get("frist_eintragen") and frist:
         for m in ms:
             if m["frist"] != frist:
@@ -551,6 +567,7 @@ def terminruege_pdf():
                          "Grundlage: § 5 Abs. 3 und 4 VOB/B (setzt vereinbarte Vertragsfristen voraus). Nachweisbar zustellen.",
                          text, "Tage ohne Besetzung", "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist, sig=_sig())
     cv.save()
+    buf = io.BytesIO(_bogen(buf.getvalue()))
     if b.get("fehlt_bestaetigen"):
         with db.tx() as c:
             for t in rows:

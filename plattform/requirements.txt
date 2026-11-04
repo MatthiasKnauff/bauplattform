@@ -5,3 +5,4 @@ pillow>=10.4,<13
 reportlab>=4.2,<5
 openpyxl>=3.1,<4
 pdfplumber>=0.11,<0.12
+pypdf>=4.3,<7

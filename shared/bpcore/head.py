@@ -12,6 +12,8 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/versionen/<id>/vergleich  was sich beim Wiederherstellen ändern würde · …/wiederherstellen (POST) · PATCH {name}
 /api/bp/versionen/alle   Änderungsverlauf aller Bereiche, die der Benutzer sehen darf
 /api/bp/versionen/conf   GET/PUT Aufbewahrung (nur Administrator) mit Speicherbedarf
+/api/bp/post        GET Mail-Übersicht zu meinen Projekten (?auto=1 einmal am Tag abrufen, ?neu=1 jetzt) · POST erledigt
+/api/bp/postfaecher GET/PUT meine Postfächer (Microsoft 365 an/aus, eigene IMAP-Konten) · POST …/test
 /api/bp/kontakt    POST {name, email, trade, contact_person}  Kontakt schnell anlegen (nach Versand an eine neue Adresse)
 /api/bp/kontakt/<id>/verlauf  Benachrichtigungsverlauf (Planversand, Rügen …)
 /api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
@@ -24,7 +26,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, db, konto, sso, versionen, vorlagen
+from . import ai, benachrichtigung, briefbogen, db, konto, posteingang, sso, versionen, vorlagen
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -356,6 +358,95 @@ def blueprint(get_user=None):
         """Vom Briefbogen abgelesener Satzspiegel in mm (Anzeige in den Einstellungen)."""
         r = briefbogen.raender(data) if data else None
         return {k: round(v / 72 * 25.4) for k, v in r.items()} if r else None
+
+    # ---- Posteingang: Mails zu meinen Projekten (Microsoft 365 zentral, eigene IMAP-Postfächer unter „Mein Konto“)
+    @bp.route("/api/bp/post", methods=["GET", "POST"])
+    def post_api():
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if request.method == "POST":   # Vorschlag erledigt (Erinnerung angelegt oder verworfen)
+                b = request.get_json(silent=True) or {}
+                d = posteingang.lesen(c, uid)
+                mid = str(b.get("id") or "")[:200]
+                d.setdefault("erledigt", {})[mid] = str(b.get("wie") or "ja")[:40]
+                for m in d.get("mails") or []:
+                    if m.get("id") == mid:
+                        m.pop("vorschlag", None)
+                konto._put(c, f"post:{uid}", json.dumps(d, ensure_ascii=False), "posteingang")
+                return jsonify(ok=True)
+            ein = posteingang.eingerichtet(c, u)
+            d = posteingang.lesen(c, uid)
+            heute = datetime.now().date().isoformat()
+            stand_lokal = ""
+            if d.get("stand"):
+                try:
+                    stand_lokal = datetime.fromisoformat(d["stand"]).astimezone().date().isoformat()
+                except ValueError:
+                    pass
+            if ein and (request.args.get("neu") or (request.args.get("auto") and stand_lokal != heute and datetime.now().hour >= 5)):
+                d = posteingang.abrufen(c, u)
+        return jsonify(**d, eingerichtet=ein)
+
+    @bp.post("/api/bp/post/erinnerung")
+    def post_erinnerung():
+        """Vorschlag aus der Mail-Übersicht als Erinnerung anlegen (wie in „Mängel & Erinnerungen“, an mich)."""
+        import re as _re
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        titel, termin = str(b.get("titel") or "").strip()[:200], str(b.get("termin") or "")
+        if not titel or not _re.fullmatch(r"\d{4}-\d{2}-\d{2}", termin):
+            return jsonify(error="Bitte Text und Datum angeben."), 400
+        jetzt = datetime.now().isoformat(timespec="seconds")
+        with db.tx() as c:
+            pid = b.get("pid") if isinstance(b.get("pid"), int) and c.execute("SELECT 1 FROM projects WHERE id=?", (b.get("pid"),)).fetchone() else None
+            c.execute("""INSERT INTO erinnerungen(quelle, project_id, titel, text, termin, uhrzeit, empfaenger, daten, erstellt, erstellt_von, geaendert, geaendert_von)
+                         VALUES('eigen',?,?,?,?,'08:00',?,?,?,?,?,?)""", (pid, titel, str(b.get("text") or "")[:2000], termin, json.dumps([uid]),
+                                                                           json.dumps({"aus_mail": str(b.get("id") or "")[:200]}), jetzt, u["name"], jetzt, u["name"]))
+            d = posteingang.lesen(c, uid)
+            d.setdefault("erledigt", {})[str(b.get("id") or "")[:200]] = "angelegt"
+            for m in d.get("mails") or []:
+                if m.get("id") == b.get("id"):
+                    m.pop("vorschlag", None)
+            konto._put(c, f"post:{uid}", json.dumps(d, ensure_ascii=False), "posteingang")
+        return jsonify(ok=True)
+
+    @bp.route("/api/bp/postfaecher", methods=["GET", "PUT"])
+    def postfaecher_api():
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if request.method == "PUT":
+                d = posteingang.postfaecher_setzen(c, uid, request.get_json(silent=True) or {}, u["name"])
+            else:
+                d = posteingang.postfaecher_oeffentlich(c, uid)
+            m = posteingang.m365_ok(c)
+        return jsonify(**d, m365_zentral=m, email=u["email"] or "")
+
+    @bp.post("/api/bp/postfaecher/test")
+    def postfaecher_test():
+        """Ein Postfach probeweise lesen: {konto:{…}} (IMAP, Kennwort leer = gespeichertes) oder {m365:true} (eigenes Postfach)."""
+        from datetime import timedelta, timezone
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            try:
+                if b.get("m365"):
+                    return jsonify(ok=True, text=posteingang.m365_test(c, (b.get("adresse") if u["is_admin"] and b.get("adresse") else u["email"]) or ""))
+                k = dict(b.get("konto") or {})
+                if not k.get("pass"):
+                    k["pass"] = next((x.get("pass") for x in posteingang.postfaecher(c, uid)["konten"] if x.get("id") == k.get("id")), "")
+                k.setdefault("id", "test")
+                n = len(posteingang.imap_lesen(k, datetime.now(timezone.utc) - timedelta(days=1)))
+                return jsonify(ok=True, text=f"Verbindung klappt – {n} Mails seit gestern im Ordner {k.get('ordner') or 'INBOX'}.")
+            except Exception as e:
+                return jsonify(ok=False, error=str(e)[:300])
 
     @bp.get("/api/bp/projektnamen")
     def projektnamen():

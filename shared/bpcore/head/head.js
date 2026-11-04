@@ -319,6 +319,8 @@
           <label class="bph-ck"><input type="checkbox" data-kchk="kopie"${K.kopie ? ' checked' : ''}> bei „direkt an die Firma“ eine Kopie an mich</label>
           <h4>Kalender</h4><label class="bph-ck"><input type="checkbox" data-kchk="kalender"${K.kalender ? ' checked' : ''}> eigene und verschobene Erinnerungen automatisch als Termin an mich senden (Outlook & Co.: annehmen trägt ihn in den Kalender ein)</label>
           <p class="bph-mu">Einzelne Erinnerungen, Fristen und Termine lassen sich außerdem jederzeit mit 📅 als Termin schicken.</p>
+          <h4>Posteingang</h4><p class="bph-mu">Die Startseite zeigt einmal am Tag die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen.</p>
+          <div class="bph-row"><button type="button" class="bph-btn" data-kpost>📬 Postfächer einrichten …</button></div>
           <div class="bph-row">${H.verlaufKnopf('konto:' + K.uid, 'Verlauf meiner Einstellungen')}</div>
           <p class="bph-mu">${K.email ? `Mails gehen an <b>${esc(K.email)}</b>.` : '<b>Für dein Konto ist keine E-Mail-Adresse hinterlegt</b> – bitte vom Administrator in der Verwaltung (▦ → Verwaltung → Benutzer) eintragen lassen.'}${K.mail ? '' : ' Der Mailserver ist noch nicht eingerichtet (⚙ → Büro → Mailserver).'}</p>`;
       } else if (!V) { b = '<p class="bph-mu">Lade …</p>'; KX('api/bp/mailvorlagen').then((v) => { V = v; draw(); }).catch((e) => { msg = e.message; draw(); }); }
@@ -339,6 +341,7 @@
     root.addEventListener('click', async (e) => {
       const t = e.target;
       if (t.closest('[data-kclose]')) { root.close && root.close(); return; }
+      if (t.closest('[data-kpost]')) { H.postfaecher(); return; }
       const tb = t.closest('[data-ktab]'); if (tb) { tab = tb.dataset.ktab; msg = ''; draw(); return; }
       const sv = t.closest('[data-kset]'); if (sv) { save({ [sv.dataset.kset]: sv.dataset.v }); return; }
       if (t.closest('[data-kdel]')) { if (!confirm('Unterschrift entfernen?')) return; await KX('api/bp/signatur', { method: 'DELETE' }).catch((er) => { msg = er.message; }); K.signatur = false; draw(); return; }
@@ -452,6 +455,43 @@
     draw(); load();
   };
   /* Knopf „Verlauf“ für eine beliebige Stelle: H.verlaufKnopf('einst:bt', { nach }) → HTML; Klick öffnet den Verlauf */
+  /* Meine Postfächer: Microsoft 365 (zentral eingerichtet) an/aus und eigene IMAP-Konten */
+  H.postfaecher = async function () {
+    let D, msg = '', neu = null;
+    try { D = await KX('api/bp/postfaecher'); } catch (e) { alert(e.message); return; }
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+    bg.innerHTML = '<div class="bph-dlg" role="dialog" aria-label="Meine Postfächer"></div>'; document.body.appendChild(bg);
+    const root = bg.firstChild, close = () => { bg.remove(); document.removeEventListener('keydown', e1); }, e1 = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    const VORL = { gmail: ['imap.gmail.com', 993], webde: ['imap.web.de', 993], gmx: ['imap.gmx.net', 993], ionos: ['imap.ionos.de', 993], strato: ['imap.strato.de', 993], tonline: ['secureimap.t-online.de', 993], outlook: ['outlook.office365.com', 993] };
+    const feld = (k, i, l, typ = 'text', ph = '') => `<label style="flex:1;min-width:9rem">${l}<input data-pf="${k}" data-pi="${i}" type="${typ}" value="${typ === 'password' ? '' : esc((D.konten[i] || {})[k] ?? '')}" placeholder="${esc(ph)}" autocomplete="${typ === 'password' ? 'new-password' : 'off'}"></label>`;
+    function draw() {
+      root.innerHTML = `<div class="bph-dh"><b>Meine Postfächer</b><button type="button" class="bph-x" data-pc aria-label="Schließen">×</button></div><div class="bph-db">
+        <p class="bph-mu">Aus diesen Postfächern stellt die Startseite einmal am Tag (oder mit ↻) die Mails zu <b>deinen</b> Projekten zusammen. Gelesen wird nur – nichts wird verschoben, gelöscht oder als gelesen markiert. Nur du siehst die Übersicht.</p>
+        <h4>Büro-Postfach (Microsoft 365)</h4>
+        ${D.m365_zentral ? `<label class="bph-ck"><input type="checkbox" data-pm${D.m365 ? ' checked' : ''}> mein Postfach <b>${esc(D.email || '–')}</b> einbeziehen</label><div class="bph-row"><button type="button" class="bph-btn" data-ptm>Probeweise lesen</button></div>`
+          : '<p class="bph-mu">Noch nicht eingerichtet – das macht der Administrator einmal unter ⚙ → Büro → Mailserver.</p>'}
+        <h4>Weitere eigene Postfächer (IMAP)</h4>
+        ${D.konten.map((k, i) => `<div class="bph-tpl"><div class="bph-row"><label class="bph-ck" style="flex:1"><input type="checkbox" data-pf="an" data-pi="${i}"${k.an !== false ? ' checked' : ''}> <b>${esc(k.name || k.user)}</b></label><button type="button" class="bph-btn" data-pt="${i}">Testen</button><button type="button" class="bph-btn" data-pd="${i}">Entfernen</button></div>
+          <div class="bph-row">${feld('name', i, 'Bezeichnung', 'text', 'z. B. Projektpostfach')}${feld('user', i, 'Benutzername / Adresse')}</div>
+          <div class="bph-row">${feld('host', i, 'IMAP-Server', 'text', 'imap.example.de')}<label style="width:6rem">Port<input data-pf="port" data-pi="${i}" value="${esc(k.port || 993)}" inputmode="numeric"></label>${feld('ordner', i, 'Ordner', 'text', 'INBOX')}</div>
+          <div class="bph-row">${feld('pass', i, k.pass_set ? 'Kennwort (gespeichert – zum Ändern neu eingeben)' : 'Kennwort / App-Passwort', 'password', k.pass_set ? '••••••••' : '')}</div></div>`).join('') || '<p class="bph-mu">Keine weiteren Postfächer.</p>'}
+        <div class="bph-row"><select data-pv><option value="">+ Postfach hinzufügen …</option><option value="gmail">Gmail</option><option value="outlook">Outlook.com / Microsoft (IMAP)</option><option value="webde">WEB.DE</option><option value="gmx">GMX</option><option value="tonline">T-Online</option><option value="ionos">IONOS (1&1)</option><option value="strato">Strato</option><option value="eigen">anderer Anbieter</option></select></div>
+        <p class="bph-mu">Gmail, GMX, WEB.DE & Co. verlangen meist ein <b>App-Passwort</b> und eingeschaltetes IMAP in den Einstellungen des Postfachs.</p>
+        <div class="bph-row"><button type="button" class="bph-btn pri" data-ps>Speichern</button></div>${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
+    }
+    const lesen = () => { root.querySelectorAll('[data-pf]').forEach((el) => { const k = D.konten[+el.dataset.pi]; if (!k) return; const f = el.dataset.pf; k[f] = el.type === 'checkbox' ? el.checked : el.value; }); const m = root.querySelector('[data-pm]'); if (m) D.m365 = m.checked; };
+    root.addEventListener('click', async (e) => {
+      const t = e.target;
+      if (t.closest('[data-pc]')) return close();
+      if (t.closest('[data-pd]')) { lesen(); D.konten.splice(+t.closest('[data-pd]').dataset.pd, 1); draw(); return; }
+      if (t.closest('[data-ps]')) { lesen(); try { D = { ...D, ...(await JS('api/bp/postfaecher', 'PUT', { m365: D.m365, konten: D.konten })) }; msg = 'Gespeichert.'; } catch (er) { msg = er.message; } draw(); return; }
+      if (t.closest('[data-ptm]')) { msg = 'lese …'; draw(); try { const r = await JS('api/bp/postfaecher/test', 'POST', { m365: true }); msg = r.ok ? '✔ ' + r.text : '✖ ' + r.error; } catch (er) { msg = er.message; } draw(); return; }
+      const pt = t.closest('[data-pt]'); if (pt) { lesen(); msg = 'verbinde …'; draw(); try { const r = await JS('api/bp/postfaecher/test', 'POST', { konto: D.konten[+pt.dataset.pt] }); msg = r.ok ? '✔ ' + r.text : '✖ ' + r.error; } catch (er) { msg = er.message; } draw(); }
+    });
+    root.addEventListener('change', (e) => { const v = e.target.closest('[data-pv]'); if (!v || !v.value) return; lesen(); const x = VORL[v.value] || ['', 993]; D.konten.push({ name: v.options[v.selectedIndex].text.replace(/ \(.*/, ''), host: x[0], port: x[1], user: '', ordner: 'INBOX', an: true }); draw(); });
+    draw();
+  };
   H.verlaufKnopf = (bereich, label) => `<button type="button" class="bph-btn bph-vbtn" data-bph-verlauf="${esc(bereich)}" title="Frühere Stände ansehen und wiederherstellen">↶ ${esc(label || 'Verlauf')}</button>`;
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-bph-verlauf]'); if (b) { e.preventDefault(); H.verlauf({ bereich: b.dataset.bphVerlauf, nach: H.nachVerlauf || window.bpNachVerlauf }); } });
 

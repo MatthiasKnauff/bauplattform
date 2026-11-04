@@ -15,13 +15,31 @@
 .pj .pick{min-width:min(420px,100%)}
 .pj .pm-x a,.pickm .pm-x a{font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:.2rem .6rem;color:var(--ink);text-decoration:none;white-space:nowrap}
 .pickm .pm-x a:hover{border-color:var(--y);color:var(--y)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
-.tile{display:flex;flex-direction:column;gap:.55rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.2rem 1.2rem 1.1rem;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s;min-height:168px}
-.tile:hover,.tile:focus-visible{border-color:var(--y);transform:translateY(-2px)}
-.tile .ic{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;background:var(--hov);color:var(--y)}
-.tile b{font-size:1.15rem}
-.tile span{color:var(--mute);font-size:.92rem}
-.tile .go{margin-top:auto;color:var(--y);font-weight:600;font-size:.92rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.6rem;margin-bottom:1.4rem}
+.tile{display:grid;grid-template-columns:40px minmax(0,1fr);grid-template-rows:auto auto;column-gap:.7rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.6rem .75rem;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
+.tile:hover,.tile:focus-visible{border-color:var(--y);transform:translateY(-1px)}
+.tile .ic{grid-row:1/3;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--hov);color:var(--y)}
+.tile .ic svg{width:24px;height:24px}
+.tile b{font-size:1rem;line-height:1.2}
+.tile span.d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Post zu meinen Projekten */
+.post{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem 1rem}
+.post-h{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.5rem}
+.post-h h2{margin:0;font-size:1.1rem}.post-h .mute{font-size:.85rem}
+.pg{margin-top:.8rem}.pg-h{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:.25rem;margin-bottom:.2rem}
+.pg-h b{font-size:.98rem}.pg-h small{color:var(--mute)}
+.pm{display:grid;grid-template-columns:1.6rem minmax(0,1fr) auto;gap:.15rem .55rem;padding:.4rem .2rem;border-bottom:1px dashed var(--line);align-items:start}
+.pm:last-child{border-bottom:0}.pm .ic2{font-size:1.05rem;line-height:1.3}
+.pm .t{min-width:0}.pm .t b{font-weight:600}.pm .t .s{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pm .t .v{display:block;color:var(--mute);font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pm .t .g{color:var(--mute);font-size:.76rem}
+.pm .z{color:var(--mute);font-size:.8rem;white-space:nowrap;text-align:right}
+.pm a.s{color:var(--ink);text-decoration:none}.pm a.s:hover{text-decoration:underline}
+.art{display:inline-block;font-size:.72rem;border:1px solid var(--line);border-radius:999px;padding:0 .45rem;margin-right:.3rem;color:var(--mute)}
+.art.w{border-color:#e07b3a;color:#b35a1f}
+.vs{grid-column:2/4;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;background:var(--hov);border-radius:8px;padding:.3rem .5rem;font-size:.86rem;margin-top:.2rem}
+.vs input[type=date]{font:inherit;font-size:.85rem;padding:.1rem .3rem}
+.post .fehler{color:#b33;font-size:.82rem;margin-top:.5rem}
 .tile.off{opacity:.45;pointer-events:none}
 .th{display:flex;gap:.35rem;flex-wrap:wrap}
 .th label{border:1px solid var(--line);border-radius:999px;padding:.2rem .7rem;cursor:pointer;color:var(--mute);background:transparent}
@@ -41,6 +59,7 @@
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
   <div class="pj"><button type="button" id="pjBtn" title="Projekt suchen und in einer App öffnen"></button></div>
   <div class="tiles" id="tiles"></div>
+  <section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section>
   <div class="foot"><span id="ver"></span></div>
 </main>
 <script src="static/bp.js"></script>
@@ -84,6 +103,51 @@ $('#pjBtn').addEventListener('click', () => {
   });
 });
 document.addEventListener('click', (e) => { const a = e.target.closest('.pickm a[data-pk]'); if (a) { remember(a.dataset.pk); const p = PJ.find((x) => x.key === a.dataset.pk); if (p && p.bt) BPHead.projektSetzen(p.bt); } }, true);
+/* ---------- Post zu meinen Projekten: einmal am Tag aus den Postfächern, mit Vorschlägen für Erinnerungen ---------- */
+let POST = null, POSTALLE = false, POSTLAEUFT = false;
+const ARTIC = { Rechnung: '🧾', Schlussrechnung: '🧾', Nachtrag: '📝', Angebot: '📝', Behinderung: '⚠️', Mangel: '⚠️', Termin: '📅', Plan: '📐', Nachricht: '✉️' };
+const WICHTIG = new Set(['Rechnung', 'Schlussrechnung', 'Nachtrag', 'Angebot', 'Behinderung', 'Mangel', 'Termin']);
+const zeitTxt = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; const h = new Date(); const gleich = d.toDateString() === h.toDateString(); return gleich ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
+function postZeigen() {
+  const box = $('#post'); box.hidden = false; const D = POST || {};
+  const kopf = `<div class="post-h"><h2>📬 Post zu deinen Projekten</h2><span class="mute">${D.stand ? `seit ${zeitTxt(D.seit)} · Stand ${zeitTxt(D.stand)}` : ''}${POSTLAEUFT ? ' · wird abgerufen …' : ''}</span><span style="flex:1"></span>
+    ${D.eingerichtet ? `<button class="btn sm" data-post="neu" ${POSTLAEUFT ? 'disabled' : ''} title="Postfächer jetzt lesen">↻ Jetzt abrufen</button>` : ''}<button class="btn sm" data-post="pf" title="Postfächer einrichten">⚙ Postfächer</button></div>`;
+  if (!D.eingerichtet) { box.innerHTML = kopf + `<p class="mute" style="margin:.2rem 0 0">Hier stehen einmal am Tag die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Dazu einmal unter <a href="#" data-post="pf">⚙ Postfächer</a> dein Büro-Postfach einschalten oder eigene Postfächer eintragen.</p>`; return; }
+  const M = D.mails || [];
+  const grp = {}; M.forEach((m) => { (grp[m.pid] ||= { name: m.projekt, mails: [] }).mails.push(m); });
+  const G = Object.values(grp).sort((a, b) => b.mails.filter((m) => WICHTIG.has(m.art)).length - a.mails.filter((m) => WICHTIG.has(m.art)).length || b.mails.length - a.mails.length);
+  const zeile = (m) => `<div class="pm"><span class="ic2" title="${esc(m.art)}">${ARTIC[m.art] || '✉️'}</span>
+      <span class="t">${m.link ? `<a class="s" href="${esc(m.link)}" target="_blank" rel="noopener" title="In Outlook öffnen">` : '<span class="s">'}<span class="art${WICHTIG.has(m.art) ? ' w' : ''}">${esc(m.art)}</span><b>${esc(m.von_name || m.von)}</b> – ${esc(m.betreff || '(ohne Betreff)')}${m.link ? '</a>' : '</span>'}
+        <span class="v">${esc(m.vorschau || '')}${m.anhaenge && m.anhaenge.length ? ' · 📎 ' + esc(m.anhaenge.join(', ')) : ''}</span><span class="g">${esc(m.grund || '')}${m.quelle && m.quelle !== 'Microsoft 365' ? ' · ' + esc(m.quelle) : ''}</span></span>
+      <span class="z">${esc(zeitTxt(m.zeit))}</span>
+      ${m.vorschlag ? `<div class="vs" data-vs="${esc(m.id)}">⏰ <span>Erinnerung: <b>${esc(m.vorschlag.titel)}</b> am</span><input type="date" value="${esc(m.vorschlag.termin)}" aria-label="Datum der Erinnerung"><button class="btn sm pri" data-post="anlegen">Anlegen</button><button class="btn sm" data-post="nein" title="Vorschlag verwerfen">✕</button></div>` : ''}</div>`;
+  const body = G.length ? G.map((g) => { const w = g.mails.filter((m) => WICHTIG.has(m.art)).length, zeig = POSTALLE ? g.mails : g.mails.slice(0, 4);
+    return `<div class="pg"><div class="pg-h"><b>${esc(g.name)}</b><small>${g.mails.length} Mail${g.mails.length > 1 ? 's' : ''}${w ? ` · ${w} wichtig` : ''}</small></div>${zeig.map(zeile).join('')}${zeig.length < g.mails.length ? `<button class="btn sm" data-post="alle" style="margin-top:.3rem">+ ${g.mails.length - zeig.length} weitere</button>` : ''}</div>`; }).join('')
+    : `<p class="mute" style="margin:.2rem 0 0">${D.stand ? `Keine Mails zu deinen Projekten${D.gelesen ? ` (${D.gelesen} Mails gelesen)` : ''}.${D.projekte === 0 ? ' Du bist im Bautagebuch bei keinem Projekt als zuständig eingetragen.' : ''}` : 'Noch nicht abgerufen.'}</p>`;
+  box.innerHTML = kopf + body + ((D.fehler || []).length ? `<div class="fehler">${D.fehler.map(esc).join('<br>')}</div>` : '') + (G.length && !POSTALLE && M.length > 4 ? '<div style="margin-top:.6rem"><button class="btn sm" data-post="alle">Alle anzeigen</button></div>' : '');
+}
+async function postLaden(arg) {
+  if (arg) { POSTLAEUFT = true; postZeigen(); }
+  try { POST = await api('api/bp/post' + (arg || '')); } catch (e) { POST = { ...(POST || {}), fehler: [e.message] }; }
+  POSTLAEUFT = false; postZeigen();
+}
+async function postStart() { await postLaden(''); if (POST && POST.eingerichtet) postLaden('?auto=1'); }
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-post]'); if (!b) return; e.preventDefault();
+  const a = b.dataset.post;
+  if (a === 'neu') return postLaden('?neu=1');
+  if (a === 'pf') { if (window.BPHead && BPHead.postfaecher) { await BPHead.postfaecher(); } const iv = setInterval(() => { if (!document.querySelector('.bph-dlg-bg')) { clearInterval(iv); postStart(); } }, 700); return; }
+  if (a === 'alle') { POSTALLE = true; postZeigen(); return; }
+  const vs = b.closest('[data-vs]'); if (!vs) return;
+  const m = (POST.mails || []).find((x) => x.id === vs.dataset.vs); if (!m) return;
+  if (a === 'nein') { await api('api/bp/post', 'POST', { id: m.id, wie: 'verworfen' }).catch(() => {}); delete m.vorschlag; postZeigen(); return; }
+  if (a === 'anlegen') {
+    try {
+      await api('api/bp/post/erinnerung', 'POST', { id: m.id, titel: m.vorschlag.titel, termin: vs.querySelector('input').value, text: m.vorschlag.text, pid: m.pid });
+      delete m.vorschlag; postZeigen(); toast('Erinnerung angelegt – sie steht unter „Mängel & Erinnerungen“ und kommt am Tag per Mail.');
+    } catch (er) { toast(er.message, true); }
+  }
+});
 (async () => {
   const me = await api('api/me'); if (!me.ok) { location.href = '/login'; return; }
   applyLook(me);
@@ -94,8 +158,8 @@ document.addEventListener('click', (e) => { const a = e.target.closest('.pickm a
   CONF = conf; pjBtn(); api('api/projekte').then((r) => { PJ = r; pjBtn(); }).catch(() => { $('.pj').hidden = true; });
   $('#tiles').innerHTML = conf.apps.filter(a => DESC[a.key] && a.key !== 'admin').map(a => `
     <a class="tile ${a.allowed ? '' : 'off'}" href="${esc(appUrl(a))}/"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'}>
-      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span>${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span>
-      ${a.allowed ? '<span class="go">Öffnen →</span>' : ''}</a>`).join('');
+      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`).join('');
+  postStart();
   $('#ver').textContent = 'Version ' + conf.version;
   if (/^#(darstellung|look)$/.test(location.hash) && window.BPHead && BPHead.look) BPHead.ready.then(() => BPHead.look());   // alte Lesezeichen
 })().catch(e => toast(e.message, true));

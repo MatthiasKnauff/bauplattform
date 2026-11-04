@@ -1,0 +1,375 @@
+"""Posteingang: Mails zu den eigenen Projekten – einmal am Tag (oder auf Knopfdruck) als Übersicht.
+
+Quellen
+  Microsoft 365  zentral in der Verwaltung: App-Registrierung (Mandant, Client-ID, Geheimnis) mit der Anwendungsberechtigung
+                 Mail.Read. Gelesen wird je Benutzer nur dessen eigenes Postfach (Adresse aus seinem Konto) – nur lesend.
+  IMAP           weitere eigene Postfächer, die jeder unter „Mein Konto“ selbst einträgt (Gmail, Web.de, eigene Domain …).
+
+Zuordnung nur zu den Projekten, für die der Benutzer im Bautagebuch zuständig ist („Meine Projekte“):
+  Projektnummer (z. B. A481) im Betreff/Text · Absender ist eine Firma des Projekts (Bautagebuch, Angebote, Aufträge) ·
+  markante Wörter aus Projektname und Straße (z. B. „Tierheim“, „Grillo“).
+Mails ohne Bezug zu den eigenen Projekten bleiben außen vor.
+
+Gespeichert wird nur, was die Übersicht braucht (Absender, Betreff, Zeit, kurze Vorschau, Namen der Anhänge) –
+in bp_store „post:<uid>“; die Zugangsdaten der eigenen Postfächer in „postfaecher:<uid>“.
+"""
+import email, email.header, email.utils, imaplib, json, re, threading, unicodedata, urllib.error, urllib.parse, urllib.request
+from datetime import datetime, timedelta, timezone
+
+from . import konto
+
+ARTEN = (   # (Art, Muster) – das erste passende gewinnt
+    ("Schlussrechnung", r"schlussrechnung|schlussabrechnung"),
+    ("Rechnung", r"rechnung|invoice|faktura|\bre[-\s]?nr|abschlag|teilrechnung"),
+    ("Nachtrag", r"nachtrag|mehrkosten|zusatzleistung|§\s*2\s*abs"),
+    ("Angebot", r"angebot|kostenvoranschlag|offerte"),
+    ("Behinderung", r"behinderung|bedenken|§\s*4\s*abs\.?\s*3|§\s*6\s*abs"),
+    ("Mangel", r"mangel|maengel|mängel|schaden|reklamation"),
+    ("Termin", r"termin|frist|abnahme|besprechung|baubesprechung|ortstermin|einladung"),
+    ("Plan", r"\bplan\b|plaene|pläne|zeichnung|\.dwg|\.pdf.*index"),
+)
+WICHTIG = {"Schlussrechnung", "Rechnung", "Nachtrag", "Angebot", "Behinderung", "Mangel", "Termin"}
+FREEMAIL = {"gmail.com", "googlemail.com", "web.de", "gmx.de", "gmx.net", "t-online.de", "outlook.com", "hotmail.com", "hotmail.de",
+            "live.de", "yahoo.de", "yahoo.com", "icloud.com", "me.com", "aol.com", "freenet.de", "arcor.de", "posteo.de", "mailbox.org"}
+STOPP = {"neubau", "umbau", "anbau", "sanierung", "erweiterung", "modernisierung", "strasse", "straße", "weg", "platz", "allee",
+         "haus", "gebaeude", "gebäude", "projekt", "bauvorhaben", "wohnhaus", "wohnungen", "halle", "essen", "bochum",
+         "dortmund", "bottrop", "gelsenkirchen", "duisburg", "oberhausen", "muelheim", "mülheim", "herne", "gladbeck", "recklinghausen"}
+
+_lock = threading.Lock()
+_busy = set()
+
+
+def fold(s):
+    s = unicodedata.normalize("NFKD", str(s or "").lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss"))
+    return "".join(ch for ch in s if not unicodedata.combining(ch))
+
+
+def _now():
+    return datetime.now(timezone.utc)
+
+
+# ---------------------------------------------------------------- Einstellungen
+def m365_conf(c):
+    r = {x["key"]: x["value"] for x in c.execute("SELECT key, value FROM settings WHERE key IN ('m365_tenant','m365_client','m365_secret')").fetchall()}
+    return {"tenant": (r.get("m365_tenant") or "").strip(), "client": (r.get("m365_client") or "").strip(), "secret": (r.get("m365_secret") or "").strip()}
+
+
+def m365_ok(c):
+    m = m365_conf(c)
+    return bool(m["tenant"] and m["client"] and m["secret"])
+
+
+def postfaecher(c, uid):
+    v = konto._get(c, f"postfaecher:{uid}")
+    try:
+        d = json.loads(v) if v else {}
+    except ValueError:
+        d = {}
+    return {"m365": d.get("m365", True), "konten": [k for k in d.get("konten") or [] if isinstance(k, dict)]}
+
+
+def postfaecher_oeffentlich(c, uid):
+    d = postfaecher(c, uid)
+    return {"m365": d["m365"], "konten": [{**{k: v for k, v in x.items() if k != "pass"}, "pass_set": bool(x.get("pass"))} for x in d["konten"]]}
+
+
+def postfaecher_setzen(c, uid, b, by):
+    alt = postfaecher(c, uid)
+    altk = {k.get("id"): k for k in alt["konten"]}
+    neu = []
+    for k in (b.get("konten") or [])[:8]:
+        if not isinstance(k, dict):
+            continue
+        kid = re.sub(r"[^a-z0-9]", "", str(k.get("id") or ""))[:12] or __import__("uuid").uuid4().hex[:8]
+        x = {"id": kid, "name": str(k.get("name") or "")[:60], "host": str(k.get("host") or "").strip()[:120],
+             "port": int(k.get("port") or 993) if str(k.get("port") or "993").isdigit() else 993, "user": str(k.get("user") or "").strip()[:160],
+             "ordner": str(k.get("ordner") or "INBOX").strip()[:80] or "INBOX", "an": k.get("an", True) is not False}
+        pw = k.get("pass")
+        x["pass"] = pw if isinstance(pw, str) and pw else (altk.get(kid) or {}).get("pass", "")
+        if x["host"] and x["user"]:
+            neu.append(x)
+    d = {"m365": b.get("m365", alt["m365"]) is not False, "konten": neu}
+    konto._put(c, f"postfaecher:{uid}", json.dumps(d, ensure_ascii=False), by)
+    return postfaecher_oeffentlich(c, uid)
+
+
+# ---------------------------------------------------------------- Abruf: Microsoft 365 (Graph, nur lesen)
+def _json(url, data=None, headers=None, timeout=25):
+    req = urllib.request.Request(url, data=data, headers=headers or {})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def _token(m):
+    d = urllib.parse.urlencode({"client_id": m["client"], "client_secret": m["secret"], "scope": "https://graph.microsoft.com/.default",
+                                "grant_type": "client_credentials"}).encode()
+    try:
+        return _json(f"https://login.microsoftonline.com/{urllib.parse.quote(m['tenant'])}/oauth2/v2.0/token", d,
+                     {"Content-Type": "application/x-www-form-urlencoded"})["access_token"]
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Anmeldung bei Microsoft 365 abgelehnt ({e.code}) – Mandant, Client-ID und Geheimnis prüfen.")
+
+
+def m365_lesen(m, adresse, seit):
+    tok = _token(m)
+    h = {"Authorization": "Bearer " + tok, "Prefer": 'outlook.body-content-type="text"'}
+    q = urllib.parse.urlencode({"$filter": f"receivedDateTime ge {seit.strftime('%Y-%m-%dT%H:%M:%SZ')}", "$orderby": "receivedDateTime desc", "$top": "100",
+                                "$select": "id,subject,from,receivedDateTime,bodyPreview,hasAttachments,webLink,isRead"})
+    try:
+        d = _json(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(adresse)}/mailFolders/inbox/messages?{q}", headers=h)
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Postfach {adresse} nicht lesbar ({e.code}) – hat die App die Berechtigung „Mail.Read“ (Anwendung) mit Administratorzustimmung?")
+    out = []
+    for x in d.get("value") or []:
+        f = (x.get("from") or {}).get("emailAddress") or {}
+        anh = []
+        if x.get("hasAttachments") and len(out) < 60:
+            try:
+                a = _json(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(adresse)}/messages/{x['id']}/attachments?$select=name", headers=h, timeout=15)
+                anh = [y.get("name") or "" for y in a.get("value") or []][:12]
+            except Exception:
+                pass
+        out.append({"id": "m:" + x["id"][-40:], "quelle": "Microsoft 365", "von": (f.get("address") or "").lower(), "von_name": f.get("name") or "",
+                    "betreff": x.get("subject") or "", "zeit": x.get("receivedDateTime") or "", "vorschau": (x.get("bodyPreview") or "")[:400],
+                    "anhaenge": anh, "link": x.get("webLink") or "", "gelesen": bool(x.get("isRead"))})
+    return out
+
+
+# ---------------------------------------------------------------- Abruf: IMAP (eigene Postfächer)
+def _dec(s):
+    try:
+        return str(email.header.make_header(email.header.decode_header(s or "")))
+    except Exception:
+        return s or ""
+
+
+def imap_lesen(k, seit):
+    M = imaplib.IMAP4_SSL(k["host"], int(k.get("port") or 993), timeout=25) if int(k.get("port") or 993) != 143 else imaplib.IMAP4(k["host"], 143, timeout=25)
+    try:
+        if int(k.get("port") or 993) == 143:
+            M.starttls()
+        M.login(k["user"], k.get("pass") or "")
+        M.select('"' + (k.get("ordner") or "INBOX").replace('"', "") + '"', readonly=True)
+        typ, data = M.search(None, "SINCE", seit.strftime("%d-%b-%Y"))
+        ids = (data[0] or b"").split()[-80:]
+        out = []
+        for i in reversed(ids):
+            typ, d = M.fetch(i, "(BODY.PEEK[HEADER] BODYSTRUCTURE BODY.PEEK[TEXT]<0.6000>)")
+            head, text, struct = b"", b"", ""
+            for part in d:
+                if isinstance(part, tuple):
+                    kopf = part[0].decode("latin-1", "replace").upper()
+                    if "HEADER" in kopf:
+                        head = part[1]
+                    elif "TEXT" in kopf:
+                        text = part[1]
+                    if "BODYSTRUCTURE" in kopf:
+                        struct = part[0].decode("latin-1", "replace")
+                elif isinstance(part, bytes) and b"BODYSTRUCTURE" in part:
+                    struct += part.decode("latin-1", "replace")
+            msg = email.message_from_bytes(head + b"\r\n" + text)
+            try:
+                zeit = email.utils.parsedate_to_datetime(msg.get("Date")).astimezone(timezone.utc)
+            except Exception:
+                zeit = _now()
+            if zeit < seit:
+                continue
+            name, adr = email.utils.parseaddr(_dec(msg.get("From")))
+            vorschau = ""
+            for p in msg.walk() if msg.is_multipart() else [msg]:
+                if p.get_content_type() == "text/plain":
+                    try:
+                        vorschau = (p.get_payload(decode=True) or b"").decode(p.get_content_charset() or "utf-8", "replace")
+                    except Exception:
+                        vorschau = str(p.get_payload())[:600]
+                    break
+            if not vorschau:   # nur HTML – grob entschlackt
+                vorschau = re.sub(r"<[^>]+>", " ", text.decode("utf-8", "replace"))
+            anh = [_dec(x) for x in re.findall(r'"(?:FILENAME|NAME)" "([^"]+)"', struct, re.I)][:12]
+            out.append({"id": f"i:{k['id']}:{(msg.get('Message-ID') or i.decode())[-60:]}", "quelle": k.get("name") or k["user"], "von": adr.lower(),
+                        "von_name": name, "betreff": _dec(msg.get("Subject")), "zeit": zeit.isoformat(), "vorschau": " ".join(vorschau.split())[:400],
+                        "anhaenge": anh, "link": "", "gelesen": False})
+        return out
+    finally:
+        try:
+            M.logout()
+        except Exception:
+            pass
+
+
+# ---------------------------------------------------------------- Zuordnung zu den eigenen Projekten
+def meine_projekte(c, uid):
+    out = []
+    for r in c.execute("SELECT id, name, street, zip, city, leaders, archived FROM projects WHERE archived=0").fetchall():
+        try:
+            lead = json.loads(r["leaders"] or "[]")
+        except ValueError:
+            lead = []
+        if uid in lead:
+            out.append(r)
+    return out
+
+
+def _merkmale(c, p):
+    name = p["name"] or ""
+    m = re.match(r"\s*([A-Za-z]{1,3}\s?\d{2,5}(?:[.\-]\d{1,3})?)\b", name)
+    nummer = fold(m.group(1)).replace(" ", "") if m else ""
+    rest = name[m.end():] if m else name
+    worte = set()
+    for w in re.findall(r"[A-Za-zÄÖÜäöüß]{5,}", rest + " " + (p["street"] or "")):
+        f = fold(w)
+        f = re.sub(r"(strasse|str)$", "", f)
+        if len(f) >= 5 and f not in STOPP and fold(p["city"] or "") != f:
+            worte.add(f)
+    # Firmen des Projekts: Kontakte aus den Tagesberichten, Angebote und Aufträge der AVA
+    mails = {}
+    rows = c.execute("""SELECT DISTINCT ct.id, ct.name, ct.email FROM contacts ct WHERE ct.email<>'' AND ct.id IN (
+                          SELECT i.contact_id FROM items i JOIN reports r ON r.id=i.report_id WHERE r.project_id=? AND i.contact_id IS NOT NULL
+                          UNION SELECT a.contact_id FROM ava_angebot a JOIN ava_lv l ON l.id=a.lv_id WHERE l.project_id=? AND a.contact_id IS NOT NULL)""",
+                     (p["id"], p["id"])).fetchall()
+    for r in rows:
+        for e in re.split(r"[;,\s]+", (r["email"] or "").lower()):
+            if "@" in e:
+                mails[e] = r["name"]
+    domains = {e.split("@", 1)[1]: n for e, n in mails.items() if e.split("@", 1)[1] not in FREEMAIL}
+    return {"id": p["id"], "name": name, "nummer": nummer, "worte": worte, "mails": mails, "domains": domains}
+
+
+def art_von(m):
+    t = fold(" ".join([m.get("betreff") or "", " ".join(m.get("anhaenge") or []), (m.get("vorschau") or "")[:200]]))
+    for a, rx in ARTEN:
+        if re.search(rx, t):
+            return a
+    return "Nachricht"
+
+
+def zuordnen(c, uid, mails):
+    P = [_merkmale(c, p) for p in meine_projekte(c, uid)]
+    out = []
+    for m in mails:
+        t = fold(" ".join([m.get("betreff") or "", m.get("vorschau") or "", " ".join(m.get("anhaenge") or [])]))
+        best = None
+        for p in P:
+            grund, punkte = "", 0
+            nr = re.match(r"([a-z]+)(.*)", p["nummer"]) if p["nummer"] else None
+            if nr and re.search(r"(?<![a-z0-9])" + re.escape(nr.group(1)) + r"\s?" + re.escape(nr.group(2)) + r"(?![0-9])", t):
+                grund, punkte = f"Projektnummer {p['name'].split()[0]}", 3
+            elif m.get("von") in p["mails"]:
+                grund, punkte = f"Absender: {p['mails'][m['von']]}", 3
+            elif m.get("von", "").split("@")[-1] in p["domains"]:
+                grund, punkte = f"Firma: {p['domains'][m['von'].split('@')[-1]]}", 2
+            else:
+                treffer = [w for w in p["worte"] if re.search(r"\b" + re.escape(w), t)]
+                if treffer:
+                    grund, punkte = "Stichwort: " + ", ".join(sorted(treffer)[:2]), 1
+            if punkte and (not best or punkte > best[0]):
+                best = (punkte, p, grund)
+        if best:
+            out.append({**m, "pid": best[1]["id"], "projekt": best[1]["name"], "grund": best[2], "art": art_von(m)})
+    return out, len(P)
+
+
+def vorschlag(m):
+    """Erinnerung zu einer wichtigen Mail vorschlagen: {titel, termin (JJJJ-MM-TT), text} oder None."""
+    a = m.get("art")
+    if a not in WICHTIG:
+        return None
+    try:
+        t0 = datetime.fromisoformat((m.get("zeit") or "").replace("Z", "+00:00")).date()
+    except ValueError:
+        t0 = _now().date()
+    wer = m.get("von_name") or m.get("von") or "Absender"
+    tage, titel = {"Schlussrechnung": (25, f"Schlussrechnung von {wer} prüfen (Prüffrist 30 Tage)"),
+                   "Rechnung": (14, f"Rechnung von {wer} prüfen und freigeben"),
+                   "Nachtrag": (7, f"Nachtrag von {wer} prüfen"),
+                   "Angebot": (7, f"Angebot von {wer} prüfen"),
+                   "Behinderung": (2, f"Behinderungsanzeige/Bedenken von {wer} beantworten"),
+                   "Mangel": (5, f"Mängelmeldung von {wer} nachgehen"),
+                   "Termin": (0, f"Termin: {m.get('betreff') or ''}")}[a]
+    termin = t0 + timedelta(days=tage)
+    if a == "Termin":   # Datum aus Betreff/Text: einen Tag vorher erinnern
+        d = re.search(r"\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})?", (m.get("betreff") or "") + " " + (m.get("vorschau") or ""))
+        if not d:
+            return None
+        try:
+            j = int(d.group(3)) if d.group(3) else t0.year
+            j = j + 2000 if j < 100 else j
+            dt = datetime(j, int(d.group(2)), int(d.group(1))).date()
+            if dt < t0:
+                return None
+            termin = max(t0, dt - timedelta(days=1))
+        except ValueError:
+            return None
+    return {"titel": titel[:200], "termin": termin.isoformat(), "text": f"{m.get('betreff') or ''}\nvon {wer} ({m.get('von') or ''}), eingegangen {t0.strftime('%d.%m.%Y')}"[:1000]}
+
+
+# ---------------------------------------------------------------- Übersicht (einmal am Tag oder auf Knopfdruck)
+def lesen(c, uid):
+    v = konto._get(c, f"post:{uid}")
+    try:
+        return json.loads(v) if v else {}
+    except ValueError:
+        return {}
+
+
+def abrufen(c, u):
+    """Alle Postfächer des Benutzers lesen, den eigenen Projekten zuordnen und speichern. Gibt die Übersicht zurück."""
+    uid = u["id"]
+    with _lock:
+        if uid in _busy:
+            return dict(lesen(c, uid), laeuft=True)
+        _busy.add(uid)
+    try:
+        alt = lesen(c, uid)
+        jetzt = _now()
+        try:
+            letzte = datetime.fromisoformat(alt.get("stand")) if alt.get("stand") else None
+        except ValueError:
+            letzte = None
+        seit = min(letzte - timedelta(hours=2) if letzte else jetzt - timedelta(days=1), jetzt - timedelta(days=1))
+        seit = max(seit, jetzt - timedelta(days=7))
+        pf, fehler, mails = postfaecher(c, uid), [], []
+        if pf["m365"] and m365_ok(c) and (u["email"] or "").strip():
+            try:
+                mails += m365_lesen(m365_conf(c), u["email"].strip(), seit)
+            except Exception as e:
+                fehler.append(f"Microsoft 365: {e}")
+        for k in pf["konten"]:
+            if not k.get("an", True):
+                continue
+            try:
+                mails += imap_lesen(k, seit)
+            except Exception as e:
+                fehler.append(f"{k.get('name') or k['user']}: {e}")
+        gesehen, uniq = set(), []
+        for m in sorted(mails, key=lambda m: m.get("zeit") or "", reverse=True):
+            key = (m.get("von"), (m.get("betreff") or "").strip().lower(), (m.get("zeit") or "")[:16])
+            if key not in gesehen:
+                gesehen.add(key)
+                uniq.append(m)
+        zu, n_proj = zuordnen(c, uid, uniq)
+        erl = alt.get("erledigt") or {}
+        for m in zu:
+            s = vorschlag(m)
+            if s and m["id"] not in erl:
+                m["vorschlag"] = s
+        d = {"stand": jetzt.isoformat(timespec="seconds"), "seit": seit.isoformat(timespec="seconds"), "mails": zu[:300], "gelesen": len(uniq),
+             "projekte": n_proj, "fehler": fehler, "erledigt": {k: v for k, v in erl.items() if v and k in {m["id"] for m in zu}}}
+        konto._put(c, f"post:{uid}", json.dumps(d, ensure_ascii=False), "posteingang")
+        return d
+    finally:
+        with _lock:
+            _busy.discard(uid)
+
+
+def eingerichtet(c, u):
+    pf = postfaecher(c, u["id"])
+    return bool((pf["m365"] and m365_ok(c) and (u["email"] or "").strip()) or any(k.get("an", True) for k in pf["konten"]))
+
+
+def m365_test(c, adresse):
+    m = m365_conf(c)
+    if not (m["tenant"] and m["client"] and m["secret"]):
+        raise RuntimeError("Mandant, Client-ID und Geheimnis eintragen und speichern.")
+    n = len(m365_lesen(m, adresse, _now() - timedelta(days=1)))
+    return f"Postfach {adresse} gelesen – {n} Mails seit gestern."

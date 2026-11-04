@@ -4,7 +4,7 @@ from core import db, settings, storage
 
 bp = Blueprint("settings", __name__)
 KEY = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
-SECRETS = ("store_pass", "mail_pass")
+SECRETS = ("store_pass", "mail_pass", "m365_secret")
 
 
 @bp.get("/api/settings")

@@ -33,10 +33,26 @@
     let all = [...C.items, ...lib, ...cus];
     if (phO) all = all.map((i) => (phO[i.id] && phO[i.id] !== i.ph ? { ...i, ph: phO[i.id] } : i));
     const base = new Map(all.map((i, k) => [i.id, k]));
-    const key = (i) => { const k = ord ? ord.indexOf(i.id) : -1; return k >= 0 ? k : 10000 + base.get(i.id); };
+    // Reihenfolge: auch je Geschoss aufgeteilte Leistungen (id~w0 …) stehen in cfg.order – dann zählt deren erste Stelle
+    const key = (i) => { if (!ord) return 10000 + base.get(i.id); let k = ord.indexOf(i.id); if (k < 0) k = ord.findIndex((x) => typeof x === 'string' && x.startsWith(i.id + '~')); return k >= 0 ? k : 10000 + base.get(i.id); };
     const out = []; for (const ph of C.phases) out.push(...all.filter((i) => i.ph === ph.k).sort((a, b) => key(a) - key(b)));
     const known = new Set(C.phases.map((p) => p.k)); out.push(...all.filter((i) => !known.has(i.ph)).map((i) => ({ ...i, ph: C.phases[C.phases.length - 1].k })));
-    return expandFloors(out, cfg);
+    return nachOrder(expandFloors(out, cfg), ord);
+  }
+  // nach dem Aufteilen in Geschosse die gespeicherte Reihenfolge noch einmal anwenden: eine verschobene Leistung
+  // (z. B. „Pultdach richten“ nach „Mauerwerk 1.OG“) steht dann auch zwischen den Geschossen an ihrem Platz.
+  // Leistungen, die nicht in der Reihenfolge stehen, bleiben hinter ihrem Vorgänger in der Liste.
+  function nachOrder(list, ord) {
+    if (!ord || !ord.length) return list;
+    const pos = new Map(ord.map((x, k) => [x, k]));
+    if (!list.some((i) => i.vb && pos.has(i.id))) return list;   // nur nötig, wenn Geschoss-Leistungen einzeln verschoben wurden
+    const out = [];
+    for (const ph of [...new Set(list.map((i) => i.ph))]) {
+      let last = -1, n = 0;
+      const g = list.filter((i) => i.ph === ph).map((it) => { const p = pos.get(it.id); if (p != null) last = p; n++; return { it, k: p != null ? p : last + n / 1e6 }; });
+      out.push(...g.sort((a, b) => a.k - b.k).map((x) => x.it));
+    }
+    return out;
   }
   /* ---------- Geschosse: Rohbau und Treppen je Geschoss ---------- */
   function levelsOf(cfg) {

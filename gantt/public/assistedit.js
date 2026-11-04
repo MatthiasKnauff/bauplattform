@@ -269,7 +269,9 @@
     if (a === 'redo') { undo(true); return; }
     if (a === 'cancel') close();
     else if (a === 'save') save();
-    else if (a === 'lib') { if (dirty && !window.confirm('Ungespeicherte Änderungen verwerfen und zum Leistungskatalog wechseln?')) return; close(true); const tb = document.querySelector('[data-view="lib"],[data-tab="lib"],#tabLib'); if (tb) tb.click(); else if (typeof showLib === 'function') showLib(); }
+    else if (a === 'lib') { if (dirty && !window.confirm('Ungespeicherte Änderungen verwerfen und zum Leistungskatalog wechseln?')) return; close(true);
+      const w = typeof showTab === 'function' ? window : window.opener && typeof window.opener.showTab === 'function' ? window.opener : null;   // auch aus dem eigenen Assistenten-Fenster
+      if (w) { w.showTab('katalog'); if (w !== window) w.focus(); } }
     else if (a === 'newp') {
       const base = draftProfiles().find((p) => p.k === selP) || draftProfiles()[0], k = uid('eigen_');
       const n = window.prompt('Name des neuen Gebäudetyps', base.n + ' (Kopie)'); if (!n) return;

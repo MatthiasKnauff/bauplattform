@@ -14,7 +14,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, db, gaeb, platform, sso, versionen
+from bpcore import ai, db, gaeb, platform, schrift, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -63,6 +63,12 @@ def _j(v, d):
         return x if x is not None else d
     except (TypeError, ValueError):
         return d
+
+def _latin(t):
+    """Formularfelder (Entwurf) können nur Latin-1 – der Editor arbeitet ohnehin mit den Originaltexten."""
+    t = str(t or "").translate({0x2013: "-", 0x2014: "-", 0x201E: '"', 0x201C: '"', 0x201D: '"', 0x2018: "'", 0x2019: "'", 0x2026: "...", 0x20AC: "EUR"})
+    return t.encode("latin-1", "replace").decode("latin-1")
+
 
 
 def _now():
@@ -1034,7 +1040,7 @@ def _pdf(r, titel, sub, story_fn, quer=False):
         return t
     with db.tx() as c:
         p = _sees(c, r["project_id"]) if r["project_id"] else None
-        office = (c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone() or {"value": ""})["value"]
+        office = C.kurzname(c)
     story = []
     logo = C.print_logo()
     kopf = [[Paragraph(X(titel), S["h1"]), ""], [Paragraph(X(sub), S["sub"]), ""]]
@@ -1085,6 +1091,259 @@ def _de(iso):
         return datetime.fromisoformat(iso).strftime("%d.%m.%Y")
     except (TypeError, ValueError):
         return iso or ""
+
+
+# ---------------------------------------------------------------- LV-Druck mit Layout-Editor
+DRUCK_STD = {"preise": "leer", "deckblatt": True, "langtext": True, "fotos": True, "vorbem": True, "zusammenstellung": True,
+             "seite_je_titel": False, "bieter": True, "schrift": 9}
+DRUCK_FELDER = ("Titel", "Untertitel", "Bauvorhaben", "Bauherr", "Aufsteller", "Datum", "Hinweis", "Vorbemerkungen", "Schlusstext")
+SCHLUSS_STD = "Bieter (Firma, Anschrift):\n\n\n\nOrt, Datum, Unterschrift:"
+
+
+def _druck_layout(d, b=None):
+    """Gespeichertes Layout des LV (data.druck) mit den Vorgaben ergänzen, dann die übergebenen Änderungen darüber."""
+    lay = dict(DRUCK_STD)
+    for src in ((d.get("druck") or {}) if isinstance(d.get("druck"), dict) else {}, b or {}):
+        for k, v in src.items():
+            if k in ("deckblatt", "langtext", "fotos", "vorbem", "zusammenstellung", "seite_je_titel", "bieter"):
+                lay[k] = bool(v)
+            elif k == "preise" and v in ("leer", "schaetzung", "auftrag"):
+                lay[k] = v
+            elif k == "schrift" and v in (8, 9, 10, "8", "9", "10"):
+                lay[k] = int(v)
+            elif k == "felder" and isinstance(v, dict):
+                lay["felder"] = {**(lay.get("felder") or {}), **{f: str(v[f])[:20000] for f in DRUCK_FELDER if isinstance(v.get(f), str)}}
+    return lay
+
+
+def _druck_felder(c, r, P, lay):
+    """Texte des Ausdrucks: Vorgaben aus LV, Projekt und Büro – überschrieben durch die im Editor geänderten."""
+    p = _sees(c, r["project_id"]) if r["project_id"] else None
+    S = {x["key"]: x["value"] for x in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'").fetchall()}
+    adr = lambda a, b_, z, o: ", ".join(v for v in (a, b_, " ".join(x for x in (z, o) if x)) if v)
+    F = {"Titel": "Leistungsverzeichnis", "Untertitel": f"LV {r['nr']} – {r['name']}" + (f"\nGewerk: {r['gewerk']}" if r["gewerk"] and r["gewerk"] != r["name"] else ""),
+         "Bauvorhaben": (adr(p["name"], p["street"] if p["street"] and p["street"] not in p["name"] else "", p["zip"], p["city"]) if p else P["projekt"]),
+         "Bauherr": (p["client"] or "") if p and "client" in p.keys() else "",
+         "Aufsteller": "\n".join(v for v in (S.get("office_name") or "", S.get("co_street") or "", " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v),
+         "Datum": date.today().strftime("%d.%m.%Y"), "Hinweis": "",
+         "Vorbemerkungen": P["data"].get("vorbem") or "", "Schlusstext": SCHLUSS_STD}
+    F.update({k: v for k, v in (lay.get("felder") or {}).items() if k in F})
+    return F
+
+
+def _lv_druck(c, r, P, lay, entwurf=False):
+    """LV als PDF nach Layout. entwurf=True: Deckblatt-Texte als Formularfelder (für den Editor), sonst feste Schrift."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.lib.utils import ImageReader
+    from reportlab.platypus import Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, CondPageBreak
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    from xml.sax.saxutils import escape
+    F = _druck_felder(c, r, P, lay)
+    FN = schrift.fuer(c)
+    kurz = C.kurzname(c)
+    items = P["data"].get("items") or []
+    V = P["vergabe"]; VP = V.get("preise") or {}
+    fs = lay["schrift"]
+    INK, MUTE, LINE, BAND, ACC = colors.HexColor("#1c1c1a"), colors.HexColor("#6b6b66"), colors.HexColor("#d9d6cf"), colors.HexColor("#f2efe8"), colors.HexColor("#b7410e")
+    S = {"p": ParagraphStyle("p", fontName=FN["n"], fontSize=fs, leading=fs * 1.3, textColor=INK),
+         "pb": ParagraphStyle("pb", fontName=FN["b"], fontSize=fs + 0.5, leading=fs * 1.35, textColor=INK),
+         "lang": ParagraphStyle("lang", fontName=FN["n"], fontSize=fs - 0.5, leading=(fs - 0.5) * 1.3, textColor=INK),
+         "mu": ParagraphStyle("mu", fontName=FN["n"], fontSize=fs - 1, leading=(fs - 1) * 1.3, textColor=MUTE),
+         "h2": ParagraphStyle("h2", fontName=FN["b"], fontSize=12, leading=15, textColor=ACC, spaceBefore=6, spaceAfter=4),
+         "h1": ParagraphStyle("h1", fontName=FN["b"], fontSize=15, leading=19, textColor=INK)}
+    X = lambda t: escape(str(t or "")).replace("\n", "<br/>")
+    ps = A4; W = ps[0] - 36 * mm
+    preis = lay["preise"]
+    ep_of = (lambda x: _fn(VP.get(x["id"]))) if preis == "auftrag" else (lambda x: x.get("ep_s")) if preis == "schaetzung" else (lambda x: None)
+    BILD = {}
+    if lay["fotos"]:
+        for b in c.execute("SELECT pos_id, data FROM ava_bild WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall():
+            BILD.setdefault(b["pos_id"], []).append(b)
+
+    def fotos(pid_, breite):
+        from PIL import Image as PI
+        out = []
+        sp = (breite - 3 * mm) / 2
+        for b in BILD.get(pid_) or []:
+            try:
+                im = PI.open(io.BytesIO(bytes(b["data"]))); im.thumbnail((900, 900))
+                o_ = io.BytesIO(); im.convert("RGB").save(o_, "JPEG", quality=80)
+                w_, h_ = im.size; f = min(sp / w_, 60 * mm / h_)
+                out.append(RLImage(io.BytesIO(o_.getvalue()), width=w_ * f, height=h_ * f))
+            except Exception:
+                continue
+        if not out:
+            return []
+        t = Table([out[k:k + 2] + [""] * (2 - len(out[k:k + 2])) for k in range(0, len(out), 2)], colWidths=[sp + 1.5 * mm] * 2, hAlign="LEFT")
+        t.setStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 3), ("TOPPADDING", (0, 0), (-1, -1), 3)])
+        return [Spacer(1, 1.5 * mm), t]
+
+    story = []
+    if lay["deckblatt"]:
+        story.append(PageBreak())
+    if lay["vorbem"] and F["Vorbemerkungen"].strip():
+        story += [Paragraph("Vorbemerkungen", S["h2"]), Paragraph(X(F["Vorbemerkungen"]), S["p"]), Spacer(1, 5 * mm)]
+    wl = W - 90 * mm
+    head = ["OZ", "Leistung", "Menge", "EH", "EP", "GP"]
+    rows, band, tsum, titel = [head], [], {}, []
+    cur = []   # Titel-Stapel
+    hdr_style = [("FONT", (0, 0), (-1, -1), FN["n"], fs), ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                 ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3), ("LINEBELOW", (0, 0), (-1, -1), 0.3, LINE),
+                 ("FONT", (0, 0), (-1, 0), FN["b"], fs - 0.5), ("TEXTCOLOR", (0, 0), (-1, 0), MUTE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK)] + \
+                [("ALIGN", (ci, 0), (ci, -1), "RIGHT") for ci in (2, 4, 5)]
+
+    def tabelle_schliessen():
+        nonlocal rows, band
+        if len(rows) > 1:
+            t = Table(rows, colWidths=[17 * mm, wl, 17 * mm, 11 * mm, 20 * mm, 25 * mm], repeatRows=1)
+            t.setStyle(TableStyle(hdr_style + [("BACKGROUND", (0, ri), (-1, ri), BAND) for ri in band]))
+            story.append(t)
+        rows, band = [head], []
+    gesamt = 0.0
+    for x in items:
+        if x.get("nt"):
+            continue
+        if x["typ"] == "titel":
+            lv_ = x.get("lvl") or 1
+            if lay["seite_je_titel"] and lv_ == 1 and (len(rows) > 1 or len(story) > (1 if lay["deckblatt"] else 0)):
+                tabelle_schliessen(); story.append(PageBreak())
+            while cur and cur[-1][0] >= lv_:
+                cur.pop()
+            cur.append((lv_, x["id"]))
+            tsum[x["id"]] = 0.0
+            if lv_ == 1:
+                titel.append(x)
+            rows.append([x.get("oz") or "", Paragraph(f"<b>{X(x['kurz'])}</b>", S["pb"]), "", "", "", ""]); band.append(len(rows) - 1)
+            continue
+        if x.get("art") == "T":
+            rows.append(["", Paragraph(f"<font name='{FN['i']}'>{X(x.get('lang') or x['kurz'])}</font>", S["lang"]), "", "", "", ""]); continue
+        zelle = [Paragraph(f"<b>{X(x['kurz'])}</b>", S["p"])]
+        if lay["langtext"] and x.get("lang") and x["lang"] != x["kurz"]:
+            zelle.append(Paragraph(X(x["lang"]), S["lang"]))
+        if x.get("art") in ("E", "A", "P"):
+            zelle.append(Paragraph(ARTEN[x["art"]], S["mu"]))
+        zelle += fotos(x["id"], wl - 5 * mm)
+        ep = ep_of(x)
+        gp = _gp(x, ep) if ep is not None and x.get("art") in ("N", "P") else None
+        if gp is not None:
+            gesamt += gp
+            for _, tid in cur:
+                tsum[tid] += gp
+        rows.append([x.get("oz") or "", zelle, num(x.get("menge")), x.get("einheit") or "",
+                     ep2(ep) if ep is not None else ("" if preis != "leer" else "............"),
+                     eur(gp) if gp is not None else ("(ohne GB)" if ep is not None else ("" if preis != "leer" else "................"))])
+    if preis != "leer":
+        rows.append(["", Paragraph("<b>Summe netto</b>", S["p"]), "", "", "", eur(gesamt * ((1 - (V.get("nachlass") or 0) / 100) if preis == "auftrag" else 1))])
+        band.append(len(rows) - 1)
+    tabelle_schliessen()
+    if lay["zusammenstellung"] and titel:
+        z = [["OZ", "Titel", "Betrag netto"]]
+        for t_ in titel:
+            z.append([t_.get("oz") or "", t_["kurz"], eur(tsum.get(t_["id"])) if preis != "leer" else "........................"])
+        sn = gesamt * ((1 - (V.get("nachlass") or 0) / 100) if preis == "auftrag" else 1)
+        for lab, val in (("Summe netto", sn), (f"zzgl. {MWST:g} % USt.", sn * MWST / 100), ("Summe brutto", sn * (1 + MWST / 100))):
+            z.append(["", lab, eur(val) if preis != "leer" else "........................"])
+        t = Table(z, colWidths=[20 * mm, W - 20 * mm - 45 * mm, 45 * mm])
+        t.setStyle(TableStyle(hdr_style[:7] + [("ALIGN", (2, 0), (2, -1), "RIGHT"), ("FONT", (0, len(z) - 3), (-1, -1), FN["b"], fs),
+                                               ("BACKGROUND", (0, len(z) - 1), (-1, len(z) - 1), BAND)]))
+        story += [CondPageBreak(60 * mm), Spacer(1, 6 * mm), Paragraph("Zusammenstellung", S["h2"]), t]
+    if lay["bieter"] and F["Schlusstext"].strip():
+        story += [CondPageBreak(45 * mm), Spacer(1, 10 * mm)]
+        for z in F["Schlusstext"].split("\n"):
+            story.append(Paragraph(X(z) + (" " + "_" * 60 if z.rstrip().endswith(":") else ""), S["p"]) if z.strip() else Spacer(1, fs * 1.3))
+
+    def deckblatt(cv):
+        form = cv.acroForm
+        L = 25 * mm; B = ps[0] - 50 * mm
+        def feld(nm, y, h, size, bold=False, multi=False):
+            if entwurf:
+                form.textfield(name=nm, tooltip=nm, x=L, y=y, width=B, height=h, value=_latin(F[nm]), fontName="Helvetica-Bold" if bold else "Helvetica", fontSize=size,
+                               borderWidth=0, borderColor=None, fillColor=None, textColor=INK, fieldFlags="multiline" if multi else "", maxlen=100000)
+                return
+            fnt = FN["b"] if bold else FN["n"]
+            cv.setFont(fnt, size); cv.setFillColor(INK)
+            yy = y + h - size * 1.05 - 1
+            for z in F[nm].split("\n"):
+                cur_ = ""
+                for wd in z.split(" "):   # Umbruch
+                    t_ = (cur_ + " " + wd).strip()
+                    if stringWidth(t_, fnt, size) > B - 6 and cur_:
+                        cv.drawString(L + 2, yy, cur_); yy -= size * 1.2; cur_ = wd
+                    else:
+                        cur_ = t_
+                cv.drawString(L + 2, yy, cur_); yy -= size * 1.2
+        logo = C.print_logo()
+        if logo:
+            try:
+                ir = ImageReader(io.BytesIO(logo)); iw, ih = ir.getSize(); hh = 28 * mm; ww = min(70 * mm, iw * hh / ih); hh = ww * ih / iw
+                cv.drawImage(ir, ps[0] - 20 * mm - ww, ps[1] - 18 * mm - hh, ww, hh, mask="auto")
+            except Exception:
+                pass
+        lab = lambda t, y: (cv.setFont(FN["n"], 8), cv.setFillColor(MUTE), cv.drawString(L + 2, y, t))
+        feld("Titel", ps[1] - 105 * mm, 14 * mm, 24, True)
+        feld("Untertitel", ps[1] - 125 * mm, 18 * mm, 13, False, True)
+        cv.setStrokeColor(ACC); cv.setLineWidth(1.2); cv.line(L + 2, ps[1] - 130 * mm, L + 60 * mm, ps[1] - 130 * mm)
+        lab("Bauvorhaben", ps[1] - 140 * mm); feld("Bauvorhaben", ps[1] - 160 * mm, 18 * mm, 11, False, True)
+        lab("Bauherr", ps[1] - 168 * mm); feld("Bauherr", ps[1] - 188 * mm, 18 * mm, 11, False, True)
+        lab("Aufgestellt", ps[1] - 196 * mm); feld("Aufsteller", ps[1] - 218 * mm, 20 * mm, 11, False, True)
+        lab("Datum", ps[1] - 226 * mm); feld("Datum", ps[1] - 235 * mm, 8 * mm, 11)
+        feld("Hinweis", 30 * mm, 26 * mm, 10, False, True)
+
+    def seite(cv, doc):
+        cv.saveState()
+        if lay["deckblatt"] and doc.page == 1:
+            deckblatt(cv)
+        else:
+            cv.setFont(FN["n"], 7.5); cv.setFillColor(MUTE)
+            cv.drawString(18 * mm, ps[1] - 10 * mm, f"LV {r['nr']} {r['name']}"[:90])
+            cv.drawRightString(ps[0] - 18 * mm, ps[1] - 10 * mm, (P["projekt"] or "")[:80])
+            cv.drawString(18 * mm, 10 * mm, f"{kurz + ' · ' if kurz else ''}{F['Datum']}"[:120])
+            cv.drawRightString(ps[0] - 18 * mm, 10 * mm, f"Seite {doc.page - (1 if lay['deckblatt'] else 0)}")
+        cv.restoreState()
+    if not story:
+        story.append(Spacer(1, 1))
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=ps, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm, bottomMargin=18 * mm,
+                            title=f"{F['Titel']} {r['nr']} – {r['name']}", author=kurz or "Bauplattform")
+    doc.build(story, onFirstPage=seite, onLaterPages=seite)
+    return buf.getvalue(), F
+
+
+@app.post("/api/lv/<int:i>/druck")
+def lv_druck(i):
+    """Layout-Editor: entwurf → JSON {pdf (Deckblatt mit Feldern), felder, layout}; sonst das fertige PDF ohne Felder.
+    speichern=1 legt das Layout (und die Vorbemerkungen) beim LV ab."""
+    import base64
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
+        d = _j(r["data"], {}) or {}
+        lay = _druck_layout(d, b.get("layout") if isinstance(b.get("layout"), dict) else {})
+        if lay["preise"] == "auftrag" and not (_j(r["vergabe"], {}) or {}).get("preise"):
+            lay["preise"] = "schaetzung"
+        rev = r["rev"]
+        if b.get("speichern"):
+            d["druck"] = {k: v for k, v in lay.items() if k != "felder"} | {"felder": {k: v for k, v in (lay.get("felder") or {}).items() if k not in ("Vorbemerkungen", "Datum")}}
+            if isinstance((lay.get("felder") or {}).get("Vorbemerkungen"), str):
+                d["vorbem"] = lay["felder"]["Vorbemerkungen"]
+            c.execute("UPDATE ava_lv SET data=? WHERE id=?", (json.dumps(d, ensure_ascii=False), i))
+            _touch(c, i)
+            rev = c.execute("SELECT rev FROM ava_lv WHERE id=?", (i,)).fetchone()["rev"]
+            r = _lv(c, i)
+        P = _payload(c, r)
+        pdf, F = _lv_druck(c, r, P, lay, entwurf=b.get("schritt") == "entwurf")
+    name = re.sub(r"[\\/:*?\"<>|]+", "_", f"LV {r['nr']} {r['name']}") + ".pdf"
+    if b.get("schritt") == "entwurf":
+        return jsonify(pdf=base64.b64encode(pdf).decode(), felder=F, layout={k: v for k, v in lay.items() if k != "felder"}, rev=rev,
+                       vergeben=bool((_j(r["vergabe"], {}) or {}).get("preise")), datei=name)
+    from urllib.parse import quote
+    return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(name)}", "X-Rev": str(rev)})
+
 
 
 @app.get("/api/lv/<int:i>/pdf")

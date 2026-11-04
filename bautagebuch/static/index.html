@@ -1465,7 +1465,7 @@ const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
   <div class="info"><b>Gmail:</b> Google-Konto mit Bestätigung in zwei Schritten und dort ein „App-Passwort“ erzeugen; dieses hier eintragen. <b>Office 365:</b> Im Microsoft-365-Admincenter muss für das Postfach „Authentifizierter SMTP-Versand“ erlaubt sein; Microsoft schaltet das teils standardmäßig ab. Die Testmail geht an die E-Mail-Adresse unter „Benutzer“ (bei deinem Namen).</div></div>`;
 
 /* ---------- Einstellungen: Firma, Logo, Ablage ---------- */
-const CO = [['office_name','Firmenname (erscheint im PDF, z. B. „Zu erledigen von GK3“)',1],['co_street','Straße und Hausnummer',1],['co_zip','PLZ'],['co_city','Ort'],['co_phone','Telefon'],['co_email','E-Mail'],['co_web','Internet',1],['co_extra','Weitere Angabe (z. B. Steuernummer, Handelsregister)',1]];
+const CO = [['office_name','Firmenname (erscheint im PDF, z. B. „Zu erledigen von GK3“)',1],['co_short','Kurzname – wo der lange Firmenname nicht passt (Absenderzeile, Fußzeilen, Gruß), z. B. „GK3 Architekten“',1],['co_street','Straße und Hausnummer',1],['co_zip','PLZ'],['co_city','Ort'],['co_phone','Telefon'],['co_email','E-Mail'],['co_web','Internet',1],['co_extra','Weitere Angabe (z. B. Steuernummer, Handelsregister)',1]];
 const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="text" value="${esc(settings[k] || o.def || '')}" placeholder="${esc(o.ph || '')}" autocomplete="off"${listAttr(k)}></label>`;
 const STABS = [['benutzer', 'Benutzer'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['sicherung', 'Datensicherung']];
 let stab = 'benutzer';
@@ -1478,7 +1478,10 @@ function renderProfile(box) {
     <div class="info">Logo für die PDF-Kopfzeile (rechts oben). PNG, JPG oder WEBP.</div>
     ${settings.has_logo ? `<div class="w" style="grid-column:1/-1"><img class="logo" src="api/logo?v=${logoV}" alt="Logo"></div>` : ''}
     <div class="acts"><button data-act="pickLogo">${settings.has_logo ? 'Logo ersetzen' : 'Logo hochladen'}</button>${settings.has_logo ? '<button class="bad" data-act="delLogo">Logo entfernen</button>' : ''}</div>
-    <input type="file" id="logoFile" class="vh" accept="image/png,image/jpeg,image/webp"></div>
+    <input type="file" id="logoFile" class="vh" accept="image/png,image/jpeg,image/webp">
+    <div class="info">Briefbogen (PDF, DIN A4, leer – nur Logo und Fußzeile): liegt unter den Briefen der Bauplattform (Mängel- und Terminrüge); der Text richtet sich nach ihm.</div>
+    <div class="acts" id="bbBox"><span class="mute">Lade …</span></div>
+    <input type="file" id="bbFile" class="vh" accept="application/pdf"></div>
 `;
   const store = `  <div class="cform"><h3>Ablage auf dem Server</h3>
     <label class="w">Fotos und PDFs automatisch ablegen
@@ -1516,6 +1519,28 @@ function renderProfile(box) {
     logoV++; settings = await api('api/settings'); favicon(); renderDetail();
   };
   if (adm && stab === 'ablage' && m !== 'off') storeStatus();
+  const bbBox = $('#bbBox');
+  if (bbBox) {   // Briefbogen (dieselbe Einstellung wie in der Verwaltung)
+    const bbDraw = (v) => {
+      const sp = v.satzspiegel;
+      bbBox.innerHTML = (v.vorhanden ? '<a class="btn" href="api/bp/briefbogen" target="_blank" rel="noopener">Briefbogen ansehen</a>' : '')
+        + `<button data-bb="pick">${v.vorhanden ? 'Briefbogen ersetzen' : 'Briefbogen hochladen (PDF)'}</button>` + (v.vorhanden ? '<button class="bad" data-bb="del">Briefbogen entfernen</button>' : '')
+        + (sp ? `<span class="mute" style="flex-basis:100%;font-size:.85rem">Abgelesen: Text ab ${sp.links} mm vom linken Rand bis ${sp.rechts} mm vor dem rechten, Logo bis ${sp.kopf} mm von oben, Fußzeile ab ${sp.fuss} mm von unten.</span>` : '');
+    };
+    bbBox.onclick = async (e) => {
+      const b = e.target.closest('[data-bb]'); if (!b) return;
+      if (b.dataset.bb === 'pick') return $('#bbFile').click();
+      if (!confirm('Briefbogen entfernen?')) return;
+      const r = await fetch('api/bp/briefbogen', { method: 'DELETE' }); bbDraw(await r.json().catch(() => ({})));
+    };
+    $('#bbFile').onchange = async (e) => {
+      const fd = new FormData(); fd.append('file', e.target.files[0]); e.target.value = '';
+      const r = await fetch('api/bp/briefbogen', { method: 'POST', body: fd }); const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.error) { toast(j.error || 'Hochladen fehlgeschlagen'); return; }
+      toast('Briefbogen gespeichert.'); bbDraw(j);
+    };
+    fetch('api/bp/briefbogen?info=1').then((r) => r.json()).then(bbDraw).catch(() => { bbBox.textContent = ''; });
+  }
 }
 async function storeStatus() {
   const el = $('#sstat'); if (!el) return;

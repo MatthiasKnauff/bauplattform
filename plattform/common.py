@@ -316,3 +316,9 @@ def projects_overview(c, user=None):
         if k["id"] not in used_k:
             out.append({"key": f"k{k['id']}", "name": k["name"], "client": "", "address": "", "archived": bool(k["archived"]), "bt": None, "plans": [], "bks": [K(k)]})
     return out
+
+
+def kurzname(c):
+    """Kurzname des Büros (Einstellung „Kurzname“) – für Stellen, an denen der lange Firmenname nicht passt; sonst der Firmenname."""
+    r = {x["key"]: x["value"] for x in c.execute("SELECT key, value FROM settings WHERE key IN ('office_name','co_short')").fetchall()}
+    return (r.get("co_short") or "").strip() or r.get("office_name") or ""

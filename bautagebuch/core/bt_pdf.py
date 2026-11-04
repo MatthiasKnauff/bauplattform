@@ -318,7 +318,8 @@ def build(proj, rep, items, images, sections, settings, logo, upload_dir):
 
     E = lambda i, pre="": entry(i, pre, [im for im in images if im.get("item_id") == i["id"]])
     rem = [E(i) for i in of("notizen")] + [E(i, "<b>Anweisung:</b> ") for i in of("weisungen")]
-    todo_label = f"Zu erledigen von {safe(office)}:" if office else "Zu erledigen:"
+    kurz = (settings.get("co_short") or "").strip() or office   # Kurzname, falls hinterlegt
+    todo_label = f"Zu erledigen von {safe(kurz)}:" if kurz else "Zu erledigen:"
     todo_paras = [E(i) for i in of(todo)]
     rows = [i for k in link for i in of(k)]
     extras = [(s_["title"], [E(i) for i in of(s_["key"])]) for s_ in others if of(s_["key"])]

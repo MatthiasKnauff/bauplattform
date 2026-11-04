@@ -291,6 +291,11 @@ def export_pdf():
     from xml.sax.saxutils import escape
     rows, label = _sel()
     office = _office()
+    try:
+        with db.tx() as c:
+            kurz = C.kurzname(c) or office
+    except Exception:
+        kurz = office
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=22 * mm, bottomMargin=14 * mm,
                             title="Adressverzeichnis", author=office)
@@ -313,7 +318,7 @@ def export_pdf():
     stitle = ParagraphStyle("t", fontName="Helvetica-Bold", fontSize=15, leading=19)
     sub = ParagraphStyle("s", fontName="Helvetica", fontSize=8.5, textColor=colors.HexColor("#6b6f76"), spaceAfter=6 * mm)
     story = [Paragraph("Adressverzeichnis", stitle),
-             Paragraph(f"{esc(office) + ' · ' if office else ''}Stand {datetime.now():%d.%m.%Y} · {len(rows)} Kontakte · {esc(label)}", sub), t]
+             Paragraph(f"{esc(kurz) + ' · ' if kurz else ''}Stand {datetime.now():%d.%m.%Y} · {len(rows)} Kontakte · {esc(label)}", sub), t]
 
     def foot(cv, d):
         cv.setFont("Helvetica", 7.5); cv.setFillColor(colors.HexColor("#6b6f76"))

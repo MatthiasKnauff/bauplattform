@@ -49,6 +49,20 @@
 .tree .ico{width:16px;height:16px;flex:none}
 .tree .mu{color:var(--mute)}
 .lv tr.flash td{background:color-mix(in srgb,var(--y) 40%,transparent);transition:background .6s}
+.bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
+.bed-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.5rem .9rem;background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.dz{flex:1;display:grid;grid-template-columns:300px minmax(0,1fr);min-height:0}
+.dz-side{background:var(--card);color:var(--ink);overflow:auto;padding:.9rem;display:flex;flex-direction:column;gap:.8rem;border-right:1px solid var(--line)}
+.dz-l{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--mute)}
+.dz-l select,.dz-l textarea{font:inherit;font-size:.9rem;color:var(--ink)}
+.dz-g{display:flex;flex-direction:column;gap:.3rem}.dz-c{display:flex;gap:.45rem;align-items:center;font-size:.9rem}
+.bed-s{overflow:auto;padding:1rem .75rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
+.bed-p{position:relative;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.35);flex:none}
+.bed-p canvas{width:100%;height:100%;display:block}
+.bed-f{position:absolute;box-sizing:border-box;margin:0;border:0;border-radius:2px;background:rgba(255,226,120,.3);color:#1c1c1a;font-family:Lato,Helvetica,Arial,sans-serif;line-height:1.2;resize:none;outline:none;overflow:hidden}
+.bed-f:focus{background:rgba(255,236,160,.6);box-shadow:0 0 0 1.5px #e0a800}
+.bed-l{color:#ddd;padding:3rem}
+@media (max-width:860px){.dz{grid-template-columns:1fr;grid-template-rows:auto 1fr}.dz-side{max-height:40vh}}
 .fotos{display:flex;flex-wrap:wrap;gap:.45rem;margin:.4rem 0 0}
 .fotos figure{position:relative;margin:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
 .fotos img{display:block;height:92px;width:auto;max-width:180px;object-fit:cover;cursor:zoom-in}
@@ -518,9 +532,9 @@ async function doImport(file) {
 $('#impBtn').onclick = () => { if (!L) return; const m = menu($('#impBtn'), [['lv', 'Leistungsverzeichnis einlesen', 'GAEB X81–X86 oder Excel'], ['angebot', 'Angebot eines Bieters einlesen', 'GAEB X84 oder ausgefülltes Excel']]); m.onpick = (k) => importDialog(k); };
 $('#expBtn').onclick = () => {
   if (!L) return;
-  const m = menu($('#expBtn'), [['x83', 'GAEB X83 – an die Bieter', 'Angebotsaufforderung, ohne Preise'], ['xlsx', 'Excel zum Ausfüllen', 'für Firmen ohne GAEB-Programm'], ['pdf', 'LV als PDF', 'zum Ausdrucken mit Preisfeldern'], ['pdfp', 'LV als PDF mit Schätzpreisen', 'Kostenanschlag des Planers'], '-',
+  const m = menu($('#expBtn'), [['x83', 'GAEB X83 – an die Bieter', 'Angebotsaufforderung, ohne Preise'], ['xlsx', 'Excel zum Ausfüllen', 'für Firmen ohne GAEB-Programm'], ['druck', 'LV drucken / PDF …', 'Layout wählen, Deckblatt und Texte bearbeiten'], '-',
     ['x86', 'GAEB X86 – Auftrags-LV', vergeben() ? 'mit Auftragspreisen und Nachträgen' : 'erst nach der Vergabe', !vergeben()], ['ps', 'Preisspiegel als PDF', L.angebote.length ? '' : 'erst mit Angeboten', !L.angebote.length], ['am', 'Massenermittlung als PDF', L.aufmass.length ? '' : 'erst mit Aufmaß', !L.aufmass.length]]);
-  m.onpick = (k) => { const u = { x83: `api/lv/${L.id}/gaeb?dp=83`, x86: `api/lv/${L.id}/gaeb?dp=86`, xlsx: `api/lv/${L.id}/excel` }[k]; if (u) { location.href = u; return; }
+  m.onpick = (k) => { if (k === 'druck') return druckEditor(); const u = { x83: `api/lv/${L.id}/gaeb?dp=83`, x86: `api/lv/${L.id}/gaeb?dp=86`, xlsx: `api/lv/${L.id}/excel` }[k]; if (u) { location.href = u; return; }
     window.open({ pdf: `api/lv/${L.id}/pdf?art=lv`, pdfp: `api/lv/${L.id}/pdf?art=lv&preise=1`, ps: `api/lv/${L.id}/pdf?art=preisspiegel`, am: `api/lv/${L.id}/pdf?art=aufmass` }[k], '_blank'); };
 };
 function menu(anchor, list) {
@@ -757,6 +771,89 @@ async function reAktion(b) {
     if (a === 'zurueck') return call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
     if (a === 'del') { if (!confirm(`${r.nr}. Rechnung löschen?`)) return; return call('api/rechnungen/' + r.id, 'DELETE'); }
   } catch (e) { toast(e.message, true); }
+}
+
+/* ---------- LV drucken: einfacher Layout-Editor mit Vorschau (Deckblatt-Texte direkt in der Vorschau ändern) ---------- */
+let pdfjsP = null;
+function pdfjs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return pdfjsP || (pdfjsP = new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'static/vendor/pdfjs/pdf.js'; sc.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = 'static/vendor/pdfjs/pdf.worker.js'; ok(pdfjsLib); }; sc.onerror = () => { pdfjsP = null; bad(new Error('PDF-Vorschau nicht verfügbar')); }; document.head.appendChild(sc); }));
+}
+async function druckEditor() {
+  if (!L) return; await flush();
+  const lib = await pdfjs().catch((e) => { toast(e.message, true); return null; }); if (!lib) return;
+  let lay = null, F = null, tok = 0, verg = false;
+  const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'LV drucken');
+  ov.innerHTML = `<div class="bed-bar"><b>LV ${esc(L.nr)} drucken</b><span class="hint">Links das Layout, rechts die Vorschau – gelbe Texte auf dem Deckblatt direkt ändern.</span><span style="flex:1"></span>
+    <button class="btn" data-d="x">Schließen</button><button class="btn" data-d="save" title="Layout und Texte beim LV merken">Layout speichern</button><button class="btn" data-d="pdf">⤓ PDF</button><button class="btn pri" data-d="druck">🖨 Drucken</button></div>
+    <div class="dz"><aside class="dz-side"></aside><div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
+  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+  const side = ov.querySelector('.dz-side'), S = ov.querySelector('.bed-s');
+  const CH = [['deckblatt', 'Deckblatt'], ['vorbem', 'Vorbemerkungen'], ['langtext', 'Langtexte'], ['fotos', 'Fotos zu den Positionen'], ['zusammenstellung', 'Zusammenstellung der Titel'], ['bieter', 'Bieterangaben und Unterschrift am Ende'], ['seite_je_titel', 'Jeden Titel auf neuer Seite']];
+  const sideDraw = () => {
+    side.innerHTML = `<label class="dz-l">Preise<select data-l="preise"><option value="leer">leer – zum Ausfüllen durch die Bieter</option><option value="schaetzung">mit Schätzpreisen (Kostenanschlag)</option><option value="auftrag"${verg ? '' : ' disabled'}>mit Auftragspreisen${verg ? '' : ' (erst nach der Vergabe)'}</option></select></label>
+      <div class="dz-g">${CH.map(([k, l]) => `<label class="dz-c"><input type="checkbox" data-l="${k}"${lay[k] ? ' checked' : ''}> ${l}</label>`).join('')}</div>
+      <label class="dz-l">Schriftgröße<select data-l="schrift">${[[8, 'klein'], [9, 'normal'], [10, 'groß']].map(([v, n]) => `<option value="${v}"${lay.schrift === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label class="dz-l">Vorbemerkungen<textarea data-f="Vorbemerkungen" rows="7" placeholder="z. B. Allgemeine Angaben zur Baustelle, Ausführungszeit, Zufahrt …">${esc(F.Vorbemerkungen)}</textarea></label>
+      <label class="dz-l">Schlusstext<textarea data-f="Schlusstext" rows="5">${esc(F.Schlusstext)}</textarea><span class="hint">Zeilen mit „:“ am Ende bekommen eine Schreiblinie.</span></label>`;
+    side.querySelector('[data-l="preise"]').value = lay.preise;
+  };
+  async function laden() {
+    const my = ++tok, top = S.scrollTop;
+    try {
+      const r = await api(`api/lv/${L.id}/druck`, 'POST', { schritt: 'entwurf', layout: lay ? { ...lay, felder: F } : {} });
+      if (my !== tok) return;
+      const neu = !lay; lay = r.layout; F = r.felder; verg = r.vergeben; if (neu) sideDraw();
+      const pdf = await lib.getDocument({ data: Uint8Array.from(atob(r.pdf), (ch) => ch.charCodeAt(0)) }).promise;
+      if (my !== tok) return;
+      const frag = document.createDocumentFragment(), breite = Math.min(S.clientWidth - 24, 820);
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc });
+        const vv = pg.getViewport({ scale: sc * Math.min(2, window.devicePixelRatio || 1) });
+        const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
+        const cvs = document.createElement('canvas'); cvs.width = vv.width; cvs.height = vv.height; box.appendChild(cvs); frag.appendChild(box);
+        await pg.render({ canvasContext: cvs.getContext('2d'), viewport: vv, annotationMode: lib.AnnotationMode.DISABLE }).promise;
+        for (const a of await pg.getAnnotations()) {
+          if (a.subtype !== 'Widget' || !(a.fieldName in F)) continue;
+          const [x1, y1, x2, y2] = v.convertToViewportRectangle(a.rect), fs = ((a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 10) * sc;
+          const el = document.createElement(a.multiLine ? 'textarea' : 'input'); el.className = 'bed-f'; el.dataset.f = a.fieldName; el.value = F[a.fieldName]; el.title = a.fieldName;
+          el.placeholder = { Hinweis: 'z. B. Angebotsabgabe bis …', Bauherr: 'Bauherr' }[a.fieldName] || '';
+          Object.assign(el.style, { left: Math.min(x1, x2) + 'px', top: Math.min(y1, y2) + 'px', width: Math.abs(x2 - x1) + 'px', height: Math.abs(y2 - y1) + 'px', fontSize: fs + 'px', padding: `${2 * sc}px`, fontWeight: a.fieldName === 'Titel' ? '700' : '400' });
+          box.appendChild(el);
+        }
+      }
+      if (my !== tok) return;
+      S.replaceChildren(frag); S.scrollTop = top;
+    } catch (e) { if (my === tok) S.innerHTML = `<div class="bed-l">${esc(e.message || 'Vorschau nicht möglich')}</div>`; }
+  }
+  let t0 = 0; const spaeter = (ms = 500) => { clearTimeout(t0); t0 = setTimeout(laden, ms); };
+  ov.addEventListener('input', (e) => { const f = e.target.dataset.f; if (f && F) F[f] = e.target.value; if (f && e.target.closest('.dz-side')) spaeter(1200); });
+  ov.addEventListener('change', (e) => {
+    const l = e.target.dataset.l, f = e.target.dataset.f;
+    if (l) { lay[l] = e.target.type === 'checkbox' ? e.target.checked : l === 'schrift' ? +e.target.value : e.target.value; spaeter(150); }
+    else if (f && !e.target.closest('.dz-side')) spaeter(150);   // Deckblatt-Feld verlassen → Vorschau neu
+  });
+  const zu = () => { clearTimeout(t0); tok++; ov.remove(); document.body.style.overflow = ''; };
+  ov.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-d]'); if (!b || !lay) return; const a = b.dataset.d;
+    if (a === 'x') return zu();
+    if (a === 'save') {
+      try {
+        const r = await api(`api/lv/${L.id}/druck`, 'POST', { schritt: 'entwurf', speichern: 1, layout: { ...lay, felder: F } });
+        L.rev = r.rev; L.data.druck = r.layout; L.data.vorbem = F.Vorbemerkungen; toast('Layout gespeichert – gilt beim nächsten Druck dieses LV.');
+      } catch (er) { toast(er.message, true); }
+      return;
+    }
+    const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>LV wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">LV wird erstellt …</body>');
+    try {
+      const r = await fetch(`api/lv/${L.id}/druck`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ layout: { ...lay, felder: F } }) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
+      const href = URL.createObjectURL(await r.blob());
+      if (w && !w.closed) { w.location.href = href; if (a === 'druck') setTimeout(() => { try { w.print(); } catch { /* Betrachter druckt selbst */ } }, 1200); }
+      else { const ln = document.createElement('a'); ln.href = href; ln.download = `LV ${L.nr} ${L.name}.pdf`; document.body.appendChild(ln); ln.click(); ln.remove(); }
+    } catch (er) { if (w && !w.closed) w.close(); toast(er.message, true); }
+  });
+  laden();
 }
 
 /* ---------- Fotos zu Positionen ---------- */

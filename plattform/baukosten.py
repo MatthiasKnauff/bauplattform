@@ -1739,6 +1739,14 @@ def kg_rows(d, cal, depth):
     return rows
 
 
+def _kurz():
+    try:
+        with db.tx() as c:
+            return C.kurzname(c)
+    except Exception:
+        return ""
+
+
 def _office():
     try:
         with db.tx() as c:
@@ -1787,6 +1795,7 @@ def build_report(c, r, opt):
         "cell": ParagraphStyle("cell", fontName="Helvetica", fontSize=9, leading=11.5, textColor=INK),
     }
     office = _office()
+    kurz = _kurz() or office
     proj = o.get("project") or {}
     title = r["name"]
     stufe = STUFE_NAME.get(r["stufe"], r["stufe"])
@@ -1980,7 +1989,7 @@ def build_report(c, r, opt):
         cv.saveState()
         cv.setFont("Helvetica", 7.5); cv.setFillColor(MUTE)
         cv.drawString(18 * mm, 10 * mm, f"{proj.get('name') or title} · {stufe} · Stand {today}")
-        cv.drawRightString(A4[0] - 18 * mm, 10 * mm, (office + " · " if office else "") + f"Seite {doc.page}")
+        cv.drawRightString(A4[0] - 18 * mm, 10 * mm, (kurz + " · " if kurz else "") + f"Seite {doc.page}")
         cover = doc.page == 1 and "deckblatt" in parts
         if not cover:   # Logo in der Kopfzeile jeder Seite (das Deckblatt zeigt es groß)
             C.draw_logo(cv, A4[0] - 18 * mm, A4[1] - 6 * mm, 11 * mm, 45 * mm)

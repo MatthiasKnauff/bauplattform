@@ -334,7 +334,7 @@ def blueprint(get_user=None):
             with db.tx() as c:
                 data = briefbogen.holen(c)
             if request.args.get("info"):
-                return jsonify(vorhanden=bool(data), groesse=len(data or b""))
+                return jsonify(vorhanden=bool(data), groesse=len(data or b""), satzspiegel=_satz(data))
             return Response(data, mimetype="application/pdf", headers={"Content-Disposition": "inline; filename=Briefbogen.pdf"}) if data else ("", 404)
         if not u["is_admin"]:
             return jsonify(error="Den Briefbogen hinterlegt der Administrator."), 403
@@ -350,7 +350,12 @@ def blueprint(get_user=None):
             if err:
                 return jsonify(error=err), 400
             konto._put(c, "briefbogen", base64.b64encode(data).decode(), u["name"])
-        return jsonify(ok=True, vorhanden=True, groesse=len(data))
+        return jsonify(ok=True, vorhanden=True, groesse=len(data), satzspiegel=_satz(data))
+
+    def _satz(data):
+        """Vom Briefbogen abgelesener Satzspiegel in mm (Anzeige in den Einstellungen)."""
+        r = briefbogen.raender(data) if data else None
+        return {k: round(v / 72 * 25.4) for k, v in r.items()} if r else None
 
     @bp.get("/api/bp/projektnamen")
     def projektnamen():

@@ -37,7 +37,7 @@ BP = {"aufgaben": "Einstellungen „Mängel & Erinnerungen“", "plaene": "Einst
 BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)", "vergleich": "Vergleichsobjekte und importierte Kennwerte (Baukosten)", "dienste": "Zugänge zu Kostendatenbanken (Baukosten)"}
 
 LABELS = {
-    "office_name": "Büroname", "co_street": "Straße", "co_zip": "PLZ", "co_city": "Ort", "co_phone": "Telefon", "co_email": "E-Mail",
+    "office_name": "Büroname", "co_short": "Kurzname", "co_street": "Straße", "co_zip": "PLZ", "co_city": "Ort", "co_phone": "Telefon", "co_email": "E-Mail",
     "co_web": "Internet", "app_url": "Adresse der Bauplattform", "mail_provider": "Mailanbieter", "mail_user": "Mail-Benutzer",
     "mail_pass": "Mail-Kennwort", "mail_host": "Mailserver", "mail_port": "Mail-Port", "mail_from": "Absender",
     "store_mode": "Ablage", "store_server": "Server", "store_share": "Freigabe", "store_path": "Pfad", "store_user": "Ablage-Benutzer",

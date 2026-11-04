@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, briefbogen, db, ical, konto, mail, plan, platform, sso, versionen, vorlagen
+from bpcore import benachrichtigung, briefbogen, db, ical, konto, mail, plan, platform, schrift, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -66,6 +66,12 @@ def platform_conf():
 # ---------------------------------------------------------------- Hilfen
 def _now():
     return datetime.now().isoformat(timespec="seconds")
+
+def _latin(t):
+    """Formularfelder (Entwurf) können nur Latin-1 – der Editor arbeitet ohnehin mit den Originaltexten."""
+    t = str(t or "").translate({0x2013: "-", 0x2014: "-", 0x201E: '"', 0x201C: '"', 0x201D: '"', 0x2018: "'", 0x2019: "'", 0x2026: "...", 0x20AC: "EUR"})
+    return t.encode("latin-1", "replace").decode("latin-1")
+
 
 
 def _j(v, d):
@@ -197,7 +203,7 @@ def maengel_pdf():
     title = (request.args.get("titel") or "Mängelliste").strip()[:120]
     buf = io.BytesIO()
     with db.tx() as c:
-        office = (c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone() or {"value": ""})["value"]
+        office = C.kurzname(c)
     st = ParagraphStyle("c", fontName="Helvetica", fontSize=8.5, leading=11)
     sb = ParagraphStyle("b", parent=st, fontName="Helvetica-Bold")
     sh = ParagraphStyle("h", parent=st, fontName="Helvetica-Bold", textColor=colors.white)
@@ -315,17 +321,21 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     with db.tx() as c:
         S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'")}
         p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
-        bb = briefbogen.holen(c) is not None   # Briefbogen des Büros: Logo und Fußzeile kommen von dort
+        bogen = briefbogen.holen(c)   # Briefbogen des Büros: Logo und Fußzeile kommen von dort
+        FN = schrift.fuer(c)          # Schrift der Briefe (Einstellung des Büros)
+    bb = bogen is not None
+    RD = briefbogen.raender(bogen) if bb else None   # Satzspiegel passend zum Briefbogen
     de = _de
     office = S.get("office_name") or ""
-    absender = ", ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v)
+    kurz = S.get("co_short") or office   # Kurzname, wo der lange Firmenname nicht passt
+    absender = ", ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v)
     bv = p["name"] + (", " + ", ".join(v for v in (p["street"], " ".join(x for x in (p["zip"], p["city"]) if x)) if v) if p and (p["street"] or p["city"]) else "") if p else projekt
     adr = "\n".join(v for v in (E.get("name"), ("z. Hd. " + E["person"]) if E.get("person") else "", E.get("strasse"), E.get("ort")) if v)
     name = C.full_name(g.user)
     V = {"Empfaenger": adr, "Datum": datetime.now().strftime("%d.%m.%Y"), "Bearbeiter": name,
          "Betreff": f"Bauvorhaben: {bv}" + (f", Auftrag {auftrag}" if auftrag else ""), "Text": text, liste_feld: liste, "Frist": de(frist),
          # Leerzeilen zwischen Gruß und Namen: Platz für die Unterschrift
-         "Gruss": "Mit freundlichen Grüßen\n\n\n\n\n\n" + name + (f"\n{office}" if office else "")}
+         "Gruss": "Mit freundlichen Grüßen\n\n\n\n\n\n\n\n\n" + name + (f"\n{kurz}" if kurz else "")}
     for k, v in (werte or {}).items():
         if k in V:
             V[k] = v
@@ -333,10 +343,11 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     cv = canvas.Canvas(buf, pagesize=A4)
     cv.setTitle(f"{doc} – {projekt}"); cv.setAuthor(office or name)
     W, H = A4
-    L, R = 22 * mm, W - 18 * mm
+    L, R = (RD["links"], W - RD["rechts"]) if RD else (22 * mm, W - 18 * mm)
+    AL = max(L, 20 * mm)   # Anschrift im Fenster des Umschlags (DIN 5008: 20 mm vom Rand)
     form = cv.acroForm
     ink, mute = colors.HexColor("#1e1e1e"), colors.HexColor("#6b6f76")
-    unten = (47 if bb else 20) * mm   # tiefste Schreibzeile (mit Briefbogen bleibt die Fußzeile des Büros frei)
+    unten = (RD["fuss"] + 8 * mm) if RD else (47 if bb else 20) * mm   # tiefste Schreibzeile (Fußzeile des Briefbogens bleibt frei)
 
     def umbruch(t, w, size):   # Zeilen vorab umbrechen
         out = []
@@ -344,7 +355,7 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
             cur = ""
             for word in para.split(" "):
                 tryl = (cur + " " + word).strip()
-                if stringWidth(tryl, "Helvetica", size) <= w - 6 or not cur:
+                if stringWidth(tryl, FN["n"] if fest else "Helvetica", size) <= w - 6 or not cur:
                     cur = tryl
                 else:
                     out.append(cur); cur = word
@@ -354,14 +365,14 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     def feld(nm, x, y, w, h, size=10, multi=False, tip=""):
         """Entwurf: Formularfeld. Endgültig: fester Text an derselben Stelle (Kopfbereich)."""
         if fest:
-            cv.setFont("Helvetica", size); cv.setFillColor(ink)
+            cv.setFont(FN["n"], size); cv.setFillColor(ink)
             zs = umbruch(V[nm], w, size) if multi else [V[nm].replace("\n", " ")]
             yy = y + h - size * 1.05 - 1 if multi else y + (h - size) / 2 + 1.5
             for z in zs:
-                cv.drawString(x + 2, yy, z); yy -= size * 1.2
+                cv.drawString(x, yy, z); yy -= size * 1.2   # bündig mit dem Satzspiegel des Briefbogens
             return
         val = "\n".join(umbruch(V[nm], w, size)) if multi else V[nm]
-        form.textfield(name=nm, tooltip=tip or nm, x=x, y=y, width=w, height=h, value=val, fontName="Helvetica", fontSize=size, borderWidth=0,
+        form.textfield(name=nm, tooltip=tip or nm, x=x, y=y, width=w, height=h, value=_latin(val), fontName="Helvetica", fontSize=size, borderWidth=0,
                        borderColor=None, fillColor=None, textColor=ink, fieldFlags="multiline" if multi else "", maxlen=100000)
 
     def unterschrift(y_oben):   # Unterschrift (aus „Mein Konto“) unter der Grußzeile
@@ -369,28 +380,28 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
             return
         try:
             ir = ImageReader(io.BytesIO(sig)); iw, ih = ir.getSize()
-            hh = 19 * mm; ww = min(85 * mm, iw * hh / ih); hh = ww * ih / iw
+            hh = 30 * mm; ww = min(110 * mm, iw * hh / ih); hh = ww * ih / iw
             cv.drawImage(ir, L + 2 * mm, y_oben - 5 * mm - hh, ww, hh, mask="auto")
         except Exception:
             pass
 
     def fuss():
         if not bb:
-            cv.setFont("Helvetica", 7); cv.setFillColor(mute)
-            foot = " · ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
+            cv.setFont(FN["n"], 7); cv.setFillColor(mute)
+            foot = " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
             cv.drawCentredString(W / 2, 10 * mm, foot[:180])
 
     if not bb:
         C.draw_logo(cv, R, H - 12 * mm, 16 * mm, 60 * mm)
-    cv.setFont("Helvetica", 7); cv.setFillColor(mute); cv.drawString(L, H - 48 * mm, absender[:120])
-    feld("Empfaenger", L, H - 80 * mm, 85 * mm, 30 * mm, 10, True, "Empfänger")
-    cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(R - 62 * mm, H - 52 * mm, "Datum")
+    cv.setFont(FN["n"], 7); cv.setFillColor(mute); cv.drawString(AL, H - 48 * mm, absender[:120])
+    feld("Empfaenger", AL, H - 80 * mm, 85 * mm, 30 * mm, 10, True, "Empfänger")
+    cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(R - 62 * mm, H - 52 * mm, "Datum")
     feld("Datum", R - 62 * mm, H - 61 * mm, 62 * mm, 7 * mm, 10)
-    cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(R - 62 * mm, H - 66 * mm, "Bearbeitet von")
+    cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(R - 62 * mm, H - 66 * mm, "Bearbeitet von")
     feld("Bearbeiter", R - 62 * mm, H - 75 * mm, 62 * mm, 7 * mm, 10)
-    cv.setFillColor(ink); cv.setFont("Helvetica-Bold", 13); cv.drawString(L, H - 92 * mm, kopf)
+    cv.setFillColor(ink); cv.setFont(FN["b"], 13); cv.drawString(L, H - 92 * mm, kopf)
     feld("Betreff", L, H - 102 * mm, R - L, 8 * mm, 10, tip="Betreff / Bauvorhaben")
-    cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, grundzeile)
+    cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, grundzeile)
 
     if fest:   # Text fließt: Anschreiben, Liste, Frist, Gruß – bei langen Texten weiter auf der nächsten Seite
         y = [H - 110 * mm]
@@ -399,18 +410,18 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
             if y[0] - h < unten:
                 fuss(); cv.showPage(); y[0] = H - 25 * mm
 
-        def absatz(t, size=9.5, font="Helvetica"):
+        def absatz(t, size=9.5, font=None):
             for z in umbruch(t, R - L, size):
                 platz(size * 1.25)
-                cv.setFont(font, size); cv.setFillColor(ink); cv.drawString(L + 2, y[0] - size, z); y[0] -= size * 1.25
+                cv.setFont(font or FN["n"], size); cv.setFillColor(ink); cv.drawString(L, y[0] - size, z); y[0] -= size * 1.25
 
         absatz(V["Text"])
         y[0] -= 4 * mm; platz(12 * mm)
-        cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, y[0] - 10, liste_titel); y[0] -= 6 * mm
+        cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, y[0] - 10, liste_titel); y[0] -= 6 * mm
         absatz(V[liste_feld])
         y[0] -= 4 * mm; platz(8 * mm)
-        cv.setFont("Helvetica-Bold", 10); cv.drawString(L, y[0] - 10, frist_label)
-        cv.setFont("Helvetica", 10); cv.drawString(L + 44 * mm, y[0] - 10, V["Frist"]); y[0] -= 10 * mm
+        cv.setFont(FN["b"], 10); cv.drawString(L, y[0] - 10, frist_label)
+        cv.setFont(FN["n"], 10); cv.drawString(L + 44 * mm, y[0] - 10, V["Frist"]); y[0] -= 10 * mm
         gz = V["Gruss"].split("\n")
         platz(len(gz) * 9.5 * 1.25 + 2 * mm)
         unterschrift(y[0])
@@ -420,14 +431,14 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
         k = 0.83 if bb else 1.0
         yt = H - 108 * mm - 58 * mm * k
         feld("Text", L, yt, R - L, 58 * mm * k, 9.5, True, "Anschreiben")
-        cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, yt - 6 * mm, liste_titel)
-        yl = yt - 8 * mm - 40 * mm * k
-        feld(liste_feld, L, yl, R - L, 40 * mm * k, 9.5, True, liste_tip)
-        cv.setFont("Helvetica-Bold", 10); cv.drawString(L, yl - 8 * mm, frist_label)
+        cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, yt - 6 * mm, liste_titel)
+        yl = yt - 8 * mm - 34 * mm * k
+        feld(liste_feld, L, yl, R - L, 34 * mm * k, 9.5, True, liste_tip)
+        cv.setFont(FN["b"], 10); cv.drawString(L, yl - 8 * mm, frist_label)
         feld("Frist", L + 42 * mm, yl - 10 * mm, 40 * mm, 7 * mm, 10, tip="Frist")
         yg = yl - 14 * mm
         unterschrift(yg)
-        feld("Gruss", L, max(yg - 38 * mm, unten - 2 * mm), 100 * mm, min(38 * mm, yg - unten + 2 * mm), 9.5, True, "Gruß und Unterschrift")
+        feld("Gruss", L, max(yg - 50 * mm, unten - 2 * mm), 120 * mm, min(50 * mm, yg - unten + 2 * mm), 9.5, True, "Gruß und Unterschrift")
         fuss()
     return buf, cv, W, H, L, R, ink, mm, ImageReader, V
 
@@ -532,7 +543,7 @@ def ruege_pdf():
     text = (b.get("text") or "").strip() or ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", _de(frist), b.get("kuendigung", True) is not False, auftrag)
     schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "senden") else "senden"
     buf, cv, W, H, L, R, ink, mm, ImageReader, felder = _brief(ms[0]["pid"], ms[0]["projekt"], E, auftrag, "Mängelrüge", "Mängelrüge nach VOB/B",
-                                                      f"Grundlage: {grund} – {grund_n}. Bitte nachweisbar zustellen (Einschreiben, Bote).",
+                                                      f"Grundlage: {grund} – {grund_n}.",
                                                       text, "Festgestellte Mängel", "Maengel", "Mängel (Liste ergänzbar)", liste, "Frist zur Beseitigung:", frist, sig=_sig(),
                                                       werte=_werte(b), fest=schritt != "entwurf")
     if b.get("fotos"):   # Anlage: Fotos zu den Mängeln
@@ -664,7 +675,7 @@ def terminruege_pdf():
     liste = "\n".join(f"{_wd(t['datum'])}: laut Bauzeitenplan {', '.join(t['leistungen'])[:160]}" for t in rows)
     schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "senden") else "senden"
     buf, cv, *_, felder = _brief(pid, rows[0]["projekt"], E, auftrag, "Terminrüge", "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
-                         "Grundlage: § 5 Abs. 3 und 4 VOB/B (setzt vereinbarte Vertragsfristen voraus). Nachweisbar zustellen.",
+                         "Grundlage: § 5 Abs. 3 und 4 VOB/B (setzt vereinbarte Vertragsfristen voraus).",
                          text, "Tage ohne Besetzung", "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist, sig=_sig(),
                          werte=_werte(b), fest=schritt != "entwurf")
     cv.save()

@@ -276,7 +276,7 @@ async function loadList(keep) {
     const cur = LIST.find((x) => x.id === +localStorage.getItem('bk.cur'));
     const fit = cur && cur.project_id === gp ? cur : LIST.filter((x) => x.project_id === gp && !x.archived).concat(LIST.filter((x) => x.project_id === gp))[0];
     if (fit) want = fit.id;
-    else BPHead.hinweisLeiste(`Für ${BPHead.projekt.name} gibt es noch keine Kostenermittlung.`, 'Anlegen', () => newDialog(BPHead.projekt.name));
+    else BPHead.hinweisLeiste(`Für ${BPHead.projekt.name} gibt es noch keine Kostenermittlung.`, 'Anlegen', () => newDialog());
   }
   want = want || +localStorage.getItem('bk.cur') || (LIST[0] && LIST[0].id);
   if (LIST.some((x) => x.id === want)) await openBk(want, !gp); else { B = null; selBtn(); render(); }
@@ -1189,6 +1189,14 @@ async function newDialog(vor) {
   $('#nkName').addEventListener('input', () => { nameTouched = true; });
   $('#nkStufe').addEventListener('change', setName);
   draw(); $('#nkQ').focus();
+  // Projekt, aus dem man gekommen ist: hat es noch keine Kostenermittlung, gleich auswählen und den Namen übernehmen
+  const gp = window.BPHead && BPHead.projekt, gpr = gp && gp.id && SRC.projects.find((p) => p.id === gp.id);
+  if (gpr && !LIST.some((x) => x.project_id === gpr.id)) {
+    sel = { kind: 'bt', key: String(gpr.id), id: gpr.id, name: gpr.name };
+    $('#nkQ').value = gpr.name; draw(); setName();
+    const pl = SRC.plans.find((x) => x.project_id === gpr.id); if (pl) $('#nkPlan').value = pl.id;
+    $('#nkName').focus();
+  }
 }
 /* ---------- Erklärung der Justage-Empfehlung ---------- */
 function juWarum() {

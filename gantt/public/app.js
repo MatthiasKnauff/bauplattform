@@ -2407,6 +2407,10 @@ function fileNew() {
       <button class="nw-opt" data-nw="kopie"><b>Aus anderem Bauzeitenplan</b><small>Ablauf eines früheren Projekts übernehmen, auf den neuen Anfang verschoben</small></button>
     </div><div class="form" style="margin-top:10px"><label>Projektname</label><input id="nwName" class="full" value="" placeholder="Projektnummer oder Name – Vorschläge aus Bautagebuch und Server" data-bp-projekt autocomplete="off"><label>Projektanfang</label><input id="nwStart" type="date" class="full" value="${isoD(startOf('week', todayN() + 7))}"></div>`, [{ label: 'Abbrechen' }]);
   const bg = [...document.querySelectorAll('.modal-bg')].pop();
+  // Projekt, aus dem man gekommen ist (gemeinsames Projekt der Apps): hat es noch keinen Plan, dessen Namen vorschlagen und verknüpfen
+  const gp = window.BPHead && BPHead.projekt;
+  const gnr = gp && gp.id ? (gp.name.match(/^[A-Za-z]\d{3}(?:\.\d+)?/) || [''])[0].toLowerCase() : '';
+  if (gp && gp.id && !projects.some((p) => p.bt_id === gp.id || (gnr && !p.bt_id && p.name.toLowerCase().startsWith(gnr)))) { const nw = bg.querySelector('#nwName'); nw.value = gp.name; nw.dataset.btId = gp.id; }
   bg.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-nw]'); if (!b) return;
     const nw = bg.querySelector('#nwName'), name = nw.value.trim() || 'Neues Projekt', st = parseDate(bg.querySelector('#nwStart').value) ?? todayN();
@@ -2836,7 +2840,7 @@ async function boot() {
         const fit = projects.find((p) => p.id === id && p.bt_id === gp.id) || projects.find((p) => p.bt_id === gp.id)
           || (nr && projects.find((p) => !p.bt_id && p.name.toLowerCase().startsWith(nr)));
         if (fit) id = fit.id;
-        else halten = true, BPHead.hinweisLeiste(`Für ${gp.name} gibt es noch keinen Bauzeitenplan.`, 'Anlegen', () => ACTIONS.newProject());
+        else halten = true, BPHead.hinweisLeiste(`Für ${gp.name} gibt es noch keinen Bauzeitenplan.`, 'Anlegen', () => fileNew());
       }
     }
     if (!projects.some((p) => p.id === id)) id = (projects.find((p) => !p.archived) || projects[0])?.id;

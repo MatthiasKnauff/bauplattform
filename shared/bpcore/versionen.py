@@ -43,7 +43,7 @@ LABELS = {
     "np_vor": "neue Seite vorher", "np_nach": "neue Seite nachher", "nt_status": "Nachtrag-Status", "nt_grund": "Begründung", "vorbem": "Vorbemerkungen",
     "druck": "Drucklayout", "lvl": "Ebene", "oz": "OZ", "signme": "sign-me", "co_font": "Schrift der Briefe",
     "office_name": "Büroname", "co_short": "Kurzname", "co_street": "Straße", "co_zip": "PLZ", "co_city": "Ort", "co_phone": "Telefon", "co_email": "E-Mail",
-    "co_web": "Internet", "app_url": "Adresse der Bauplattform", "mail_provider": "Mailanbieter", "mail_user": "Mail-Benutzer",
+    "co_web": "Internet", "app_url": "Adresse der Bauplattform", "mail_provider": "Mailanbieter", "mail_host": "SMTP-Server", "mail_port": "SMTP-Port", "mail_user": "Mail-Benutzer",
     "mail_pass": "Mail-Kennwort", "mail_host": "Mailserver", "mail_port": "Mail-Port", "mail_from": "Absender",
     "store_mode": "Ablage", "store_server": "Server", "store_share": "Freigabe", "store_path": "Pfad", "store_user": "Ablage-Benutzer",
     "store_pass": "Ablage-Kennwort", "store_domain": "Domäne", "store_dir": "Ordner", "store_folder_desc": "Ordnerbeschreibung",

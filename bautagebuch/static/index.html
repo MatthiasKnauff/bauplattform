@@ -1440,7 +1440,8 @@ async function setAccent(c) {
 }
 const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
   <div class="info">Mit diesem Postfach verschickt die App E-Mails: „Kennwort vergessen“ und Erinnerungen zu Erledigungsterminen.</div>
-  <label class="w">Anbieter<select data-st="mail_provider"><option value="gmail" ${(settings.mail_provider || 'gmail') === 'gmail' ? 'selected' : ''}>Gmail</option><option value="o365" ${settings.mail_provider === 'o365' ? 'selected' : ''}>Office 365</option></select></label>
+  <label class="w">Anbieter<select data-st="mail_provider">${[['o365', 'Office 365 / Microsoft 365'], ['gmail', 'Gmail / Google Workspace'], ['outlook', 'Outlook.com / Hotmail'], ['webde', 'WEB.DE'], ['gmx', 'GMX'], ['tonline', 'T-Online'], ['ionos', 'IONOS (1&1)'], ['strato', 'Strato'], ['andere', 'anderer Anbieter']].map(([v, n]) => `<option value="${v}" ${(settings.mail_provider || 'gmail') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+  ${settings.mail_provider === 'andere' ? stIn('mail_host', 'SMTP-Server', 0, {ph: 'smtp.firma.de'}) + stIn('mail_port', 'Port', 0, {ph: '587 oder 465'}) : ''}
   ${stIn('mail_user', 'Postfach (Benutzername = Absenderadresse)', 1, {ph: 'bautagebuch@firma.de'})}
   <label class="w">Kennwort des Postfachs<input data-st="mail_pass" type="password" value="" placeholder="${settings.mail_pass_set ? '•••••••• (gespeichert – zum Ändern neu eingeben)' : ''}" autocomplete="new-password"></label>
   ${stIn('app_url', 'Adresse der App in den Links (optional)', 1, {ph: 'https://bau.firma.de'})}

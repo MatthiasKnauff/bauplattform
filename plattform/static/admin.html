@@ -87,11 +87,6 @@ tr.off td:last-child{opacity:1}
 .mtile b{font-size:1rem;line-height:1.2}
 .mtile .d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mtile.ok .d{color:#2f9e5a}
-.ptiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.5rem;margin:.2rem 0 .8rem}
-.ptile{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.55rem .75rem;color:var(--ink);font:inherit;cursor:pointer}
-.ptile span{color:var(--mute);font-size:.8rem}
-.ptile.on{border-color:var(--y);box-shadow:inset 0 0 0 1px var(--y)}
-.ptile.on b::after{content:' ✓';color:var(--y)}
 details.hilfe{margin-top:.7rem;font-size:.85rem;color:var(--mute)}
 details.hilfe summary{cursor:pointer;color:var(--ink);font-weight:600}
 details.hilfe p{margin:.4rem 0 0}
@@ -427,17 +422,18 @@ function renderBtSettings() {
     const B = data.bt, prov = B.mail_provider || 'gmail', ausOk = !!(B.mail_user && S.mail_pass_set), einOk = !!(B.m365_tenant && B.m365_client && S.m365_secret_set);
     const ICM = { aus: '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/>', ein: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2-7h12l2 7v5H4z"/>', zu: '<circle cx="9" cy="8" r="3"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M17 8h4M19 6v4"/>' };
     const kachel = (k, titel, text, ok) => `<a class="mtile${ok ? ' ok' : ''}" href="#" data-mgo="m-${k}"><span class="ic"><svg viewBox="0 0 24 24">${ICM[k]}</svg></span><b>${titel}</b><span class="d">${ok ? '✓ ' : ''}${esc(text)}</span></a>`;
-    const anb = (v, n, d) => `<button type="button" class="ptile${prov === v ? ' on' : ''}" data-prov="${v}"><b>${n}</b><span>${d}</span></button>`;
-    h = `<div class="mtiles">${kachel('aus', 'Postausgang', ausOk ? `${prov === 'o365' ? 'Office 365' : 'Gmail'} · ${B.mail_from || B.mail_user}` : 'noch nicht eingerichtet', ausOk)}
+    const ANB = [['o365', 'Office 365 / Microsoft 365'], ['gmail', 'Gmail / Google Workspace'], ['outlook', 'Outlook.com / Hotmail'], ['webde', 'WEB.DE'], ['gmx', 'GMX'], ['tonline', 'T-Online'], ['ionos', 'IONOS (1&1)'], ['strato', 'Strato'], ['andere', 'anderer Anbieter']];
+    const anbName = (ANB.find((x) => x[0] === prov) || ANB[1])[1];
+    h = `<div class="mtiles">${kachel('aus', 'Postausgang', ausOk ? `${anbName} · ${B.mail_from || B.mail_user}` : 'noch nicht eingerichtet', ausOk)}
         ${kachel('ein', 'Posteingang lesen', einOk ? 'Microsoft 365 verbunden' : 'optional – Microsoft 365', einOk)}
         ${kachel('zu', 'Postfächer zuweisen', 'mail@, rechnungen@ … an Benutzer', false)}</div>
     <section class="card st" id="m-aus"><h2>Postausgang</h2><p class="mute">Über dieses Postfach verschicken alle Apps ihre E-Mails.</p>
-      <input type="hidden" data-st="mail_provider" value="${esc(prov)}">
-      <div class="ptiles">${anb('o365', 'Office 365', 'Microsoft 365 / Exchange Online')}${anb('gmail', 'Gmail', 'Google Workspace / Gmail')}</div>
-      <div class="sf">${stIn('mail_user', 'Postfach (Anmeldung)', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender (leer = Postfach)', 0, { ph: 'mail@gk3-architektur.de' })}${pw('mail_pass', 'Kennwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
+      <div class="sf"><label class="w">Anbieter<select data-st="mail_provider" data-provwahl>${ANB.map(([v, n]) => `<option value="${v}"${prov === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+        <div class="w sf" data-andere style="grid-column:1/-1;${prov === 'andere' ? '' : 'display:none'}">${stIn('mail_host', 'SMTP-Server', 0, { ph: 'smtp.firma.de' })}${stIn('mail_port', 'Port', 0, { ph: '587 (STARTTLS) oder 465 (SSL)' })}</div>
+        ${stIn('mail_user', 'Benutzername / Adresse', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender (leer = Postfach)', 0, { ph: 'mail@gk3-architektur.de' })}${pw('mail_pass', 'Kennwort / App-Passwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
       <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="mailtest">Testmail an mich</button>${vk('einst:bt')}${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
       <details class="hilfe"><summary>Hilfe</summary><p>Als Absender steht die <b>Absenderadresse</b> in den Mails – jeder Benutzer kann unter ⚙ → Für mich stattdessen seine eigene wählen. Ist der Absender nicht das Postfach selbst, muss das Postfach in seinem Namen senden dürfen (Microsoft 365: „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p>
-        <p><b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. <b>Gmail:</b> Bestätigung in zwei Schritten einschalten und ein „App-Passwort“ erzeugen. Die Testmail geht an deine Adresse unter „Benutzer“.</p></details></section>
+        <p><b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. <b>Gmail, GMX, WEB.DE & Co.:</b> meist ein „App-Passwort“ und eingeschaltetes SMTP/IMAP in den Einstellungen des Postfachs. <b>T-Online:</b> eigenes E-Mail-Passwort aus dem Kundencenter. Die Testmail geht an deine Adresse unter „Benutzer“.</p></details></section>
     <section class="card st" id="m-ein"><h2>Posteingang lesen <span class="mute" style="font-weight:400;font-size:.85rem">Microsoft 365 · optional</span></h2><p class="mute">Die Startseite zeigt jedem einmal am Tag die Mails zu <b>seinen</b> Projekten – nur lesend.</p>
       <div class="sf">${stIn('m365_tenant', 'Verzeichnis-ID (Tenant)', 0, { ph: '3f2a…' })}${stIn('m365_client', 'Anwendungs-ID (Client)', 0)}${pw('m365_secret', 'Geheimer Clientschlüssel (Wert)')}</div>
       <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="m365test">Mein Postfach probeweise lesen</button>${S.m365_secret_set ? '<button class="btn danger" data-bs="clear" data-k="m365_secret">Schlüssel löschen</button>' : ''}<span class="mute st-r" id="m3Out"></span></div>
@@ -522,9 +518,8 @@ $('#main').addEventListener('click', async (e) => {
 });
 let pend = {};
 function collect() { $('#main').querySelectorAll('[data-st]').forEach((el) => { const k = el.dataset.st; if (/_pass$/.test(k) && !el.value) return; pend[k] = el.value.trim(); if (!/_pass$/.test(k)) data.bt[k] = pend[k]; }); }
+$('#main').addEventListener('change', (e) => { if (e.target.matches('[data-provwahl]')) { const a = $('#main').querySelector('[data-andere]'); if (a) a.style.display = e.target.value === 'andere' ? '' : 'none'; } });
 $('#main').addEventListener('click', (e) => {
-  const pv = e.target.closest('[data-prov]');
-  if (pv) { const h = $('#main').querySelector('[data-st="mail_provider"]'); h.value = pv.dataset.prov; pv.parentElement.querySelectorAll('.ptile').forEach((x) => x.classList.toggle('on', x === pv)); return; }
   const g = e.target.closest('[data-mgo]'); if (g) { e.preventDefault(); const z = document.getElementById(g.dataset.mgo); if (z) z.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 });
 $('#main').addEventListener('click', async (e) => {

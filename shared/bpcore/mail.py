@@ -3,7 +3,27 @@ import re, smtplib, ssl, time
 from datetime import datetime
 from email.message import EmailMessage
 
-PROVIDERS = {"gmail": ("smtp.gmail.com", 587), "o365": ("smtp.office365.com", 587)}
+# Postausgang: bekannte Anbieter (wie die Postfächer unter ⚙ → Für mich), „andere“ mit eigenem Server (mail_host / mail_port)
+PROVIDERS = {"o365": ("smtp.office365.com", 587), "gmail": ("smtp.gmail.com", 587), "outlook": ("smtp-mail.outlook.com", 587),
+             "webde": ("smtp.web.de", 587), "gmx": ("mail.gmx.net", 587), "tonline": ("securesmtp.t-online.de", 465),
+             "ionos": ("smtp.ionos.de", 587), "strato": ("smtp.strato.de", 465)}
+HINWEIS = {"gmail": "Bei Gmail ist ein „App-Passwort“ nötig (Google-Konto mit Bestätigung in zwei Schritten).",
+           "o365": "Bei Office 365 muss „Authentifizierter SMTP-Versand“ für das Postfach erlaubt sein.",
+           "webde": "Bei WEB.DE muss in den Einstellungen des Postfachs „POP3/IMAP/SMTP“ erlaubt sein.",
+           "gmx": "Bei GMX muss in den Einstellungen des Postfachs „POP3/IMAP/SMTP“ erlaubt sein.",
+           "tonline": "Bei T-Online ist ein eigenes „E-Mail-Passwort“ nötig (Kundencenter → E-Mail-Passwort)."}
+
+
+def server(cf):
+    """(Host, Port) des Postausgangs."""
+    prov = cf.get("mail_provider") or "gmail"
+    if prov == "andere":
+        try:
+            port = int(cf.get("mail_port") or 587)
+        except ValueError:
+            port = 587
+        return (cf.get("mail_host") or "").strip(), port
+    return PROVIDERS.get(prov, PROVIDERS["gmail"])
 ADRESSE = re.compile(r"^[^@\s<>,;]+@[^@\s<>,;]+\.[A-Za-z]{2,}$")
 PAUSE_S = 2 * 3600                 # nach einer Sperre durch den Mailserver so lange nichts mehr versuchen
 _pause = {"bis": 0.0}
@@ -31,15 +51,21 @@ def smtp_senden(cf, msg, absender, empfaenger):
     if falsch:
         raise MailError("Ungültige E-Mail-Adresse: " + ", ".join(falsch), dauerhaft=True)
     prov = cf.get("mail_provider") or "gmail"
-    host, port = PROVIDERS.get(prov, PROVIDERS["gmail"])
+    host, port = server(cf)
+    if not host:
+        raise MailError("Für den Postausgang ist kein SMTP-Server eingetragen (⚙ → Büro → Mailserver).")
     try:
-        with smtplib.SMTP(host, port, timeout=20) as s:
-            s.ehlo(); s.starttls(context=ssl.create_default_context()); s.ehlo()
-            s.login(cf["mail_user"], cf["mail_pass"])
-            s.send_message(msg)
+        if port == 465:   # SSL von Anfang an (z. B. T-Online, Strato)
+            with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as s:
+                s.login(cf["mail_user"], cf["mail_pass"])
+                s.send_message(msg)
+        else:             # STARTTLS (Port 587)
+            with smtplib.SMTP(host, port, timeout=20) as s:
+                s.ehlo(); s.starttls(context=ssl.create_default_context()); s.ehlo()
+                s.login(cf["mail_user"], cf["mail_pass"])
+                s.send_message(msg)
     except smtplib.SMTPAuthenticationError:
-        hint = ("Bei Gmail ist ein „App-Passwort“ nötig (Google-Konto mit Bestätigung in zwei Schritten)." if prov == "gmail" else
-                "Bei Office 365 muss „Authentifizierter SMTP-Versand“ für das Postfach erlaubt sein.")
+        hint = HINWEIS.get(prov, "Bei vielen Anbietern ist ein „App-Passwort“ nötig oder SMTP muss im Postfach erlaubt werden.")
         raise MailError("Anmeldung am Mailserver abgelehnt – Zugangsdaten unter ⚙ → Büro → Mailserver prüfen. " + hint)
     except smtplib.SMTPRecipientsRefused as e:
         raise MailError("Empfänger vom Mailserver abgelehnt: " + ", ".join(e.recipients), dauerhaft=True)
@@ -76,8 +102,6 @@ def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None
     ical: Text einer iCalendar-Einladung (METHOD:REQUEST) – erscheint in Outlook & Co. als Termin mit Annehmen/Ablehnen."""
     if not configured(cf):
         raise MailError("Der E-Mail-Versand ist nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).")
-    prov = cf.get("mail_provider") or "gmail"
-    host, port = PROVIDERS.get(prov, PROVIDERS["gmail"])
     lst = lambda v: [x for x in ([v] if isinstance(v, str) else (v or [])) if x]
     msg = EmailMessage()
     msg["From"], msg["To"], msg["Subject"] = f"{sender} <{from_addr or von(cf)}>", ", ".join(lst(to)), subject

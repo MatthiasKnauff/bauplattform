@@ -161,3 +161,5 @@
 @media (max-width:640px){.bph-ic{width:36px;height:36px}.bph-drt button span{display:inline}.bph-drh{padding-left:.8rem;padding-right:.8rem}.bph-drt,.bph-drn,.bph-drb{padding-left:.8rem;padding-right:.8rem}}
 .bph-hl{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.5rem 1rem;background:var(--card2,#34363a);color:var(--ink,#f3f3f1);border-bottom:1px solid var(--line,#3b3e42);font:14px/1.4 Ubuntu,"Segoe UI",system-ui,sans-serif;position:relative;z-index:24}
 .bph-hl span{flex:1;min-width:12rem}.bph-hl .bph-btn{padding:.3rem .8rem}
+.bph-drb.bph-drb-if{padding:0;overflow:hidden;display:flex}
+.bph-if{flex:1;width:100%;border:0;background:transparent;min-height:0}

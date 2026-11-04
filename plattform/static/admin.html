@@ -91,6 +91,10 @@ tr.off td:last-child{opacity:1}
 .pf-users small{color:var(--mute);font-size:.72rem;white-space:nowrap}
 @media (max-width:820px){.prow{grid-template-columns:1fr}.pact{justify-content:flex-start}}
 @media (max-width:760px){.hide-s{display:none}}
+/* eingebettet im Einstellungsfenster (⚙ → Büro): nur die Einstellungen, ohne Kopfleiste, Reiter und Unternavigation */
+html.embed .bph,html.embed #tabs,html.embed .stnav{display:none!important}
+html.embed .wrap{padding:.6rem .2rem 2rem;max-width:none}
+html.embed body{background:transparent}
 </style>
 </head>
 <body>
@@ -98,21 +102,27 @@ tr.off td:last-child{opacity:1}
 <main class="wrap" id="main"></main>
 <script src="static/bp.js"></script>
 <script>
-const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer & Rechte'], ['sessions', 'Angemeldet'], ['einstellungen', 'Büro-Einstellungen'], ['system', 'System']];
-let tab = (location.hash || '#projekte').slice(1), me = null, data = {};
+// Büro-Einstellungen: jetzt unter ⚙ → Büro in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
+const EMBED = new URLSearchParams(location.search).has('einbetten');
+if (EMBED) document.documentElement.classList.add('embed');
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer & Rechte'], ['sessions', 'Angemeldet'], ['system', 'System']];
+let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
 const SYS = [['health', 'Server-Status'], ['protokoll', 'Protokoll']];
 const sysNav = () => `<div class="bar" style="margin-bottom:1.2rem">${SYS.map(([k, l]) => `<button class="btn sm ${k === (data.sys || 'health') ? 'pri' : ''}" data-a="sys" data-sys="${k}">${l}</button>`).join('')}</div>`;
 const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
-function renderTabs() { $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}</button>`).join(''); }
+function renderTabs() {
+  $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')
+    + `<span style="flex:1"></span><button class="tab" data-buero title="Firma & Logo, Ablage, Mailserver, KI, Datensicherung, E-Mail-Vorlagen">⚙ Büro-Einstellungen</button>`;
+}
 addEventListener('hashchange', () => {   // ⚙ → Büro → … in der Verwaltung selbst: nur die Ansicht wechseln
   const h = location.hash.slice(1); if (!h) return;
   if (h.startsWith('einstellungen')) { tab = 'einstellungen'; data.stab = h.slice(14) || 'allgemein'; } else if (TABS.some((t) => t[0] === h)) tab = h; else return;
   if (window.BPHead && BPHead.einstellungenSchliessen) BPHead.einstellungenSchliessen();
   renderTabs(); load();
 });
-$('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; history.replaceState(null, '', '#' + tab); renderTabs(); load(); };
+$('#tabs').onclick = (e) => { if (e.target.closest('[data-buero]')) { BPHead.einstellungen({ bereich: 'buero' }); return; } const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; history.replaceState(null, '', '#' + tab); renderTabs(); load(); };
 
 async function load() {
   const m = $('#main');
@@ -265,7 +275,7 @@ function delDlg(p) {
 
 /* ---------- Einstellungen: allgemeine (für alle Apps) – besondere stehen in der jeweiligen App ---------- */
 const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['sicherung', 'Datensicherung'], ['verlauf', 'Änderungsverlauf']];   // persönliche Einstellungen: ⚙ → Für mich
-const stNav = () => `<h1>Einstellungen</h1><div class="bar" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
+const stNav = () => `<div class="stnav"><h1>Büro-Einstellungen</h1><p class="mute" style="margin-top:-.4rem">Auch erreichbar in jeder App über ⚙ → Büro.</p></div><div class="bar stnav" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {
   const t = data.stab || 'allgemein';
   if (t === 'allgemein') { data.e = await api('api/einstellungen'); return renderSettings(); }

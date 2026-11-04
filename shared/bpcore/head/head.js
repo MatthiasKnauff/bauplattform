@@ -533,7 +533,7 @@
     const aufraeumen = () => { const f = aufr; aufr = null; if (typeof f === 'function') { try { f(); } catch { /* App-Fehler nicht weitergeben */ } } };
     function draw() {
       aufraeumen();
-      kopf(); B.innerHTML = ''; B.scrollTop = 0;
+      kopf(); B.innerHTML = ''; B.scrollTop = 0; B.classList.remove('bph-drb-if');
       if (bereich === 'app') {
         nav(appSet.filter((x) => x.render).map((x) => [x.key, x.label]));
         const links = appSet.filter((x) => !x.render && x.open);
@@ -556,13 +556,14 @@
         } else { const host = document.createElement('div'); B.appendChild(host); H.konto({ into: host, tab: 'konto', nurKonto: true }); }
         return;
       }
-      nav([['karten', 'Übersicht'], ['vorlagen', 'E-Mail-Vorlagen'], ['verlauf', 'Änderungsverlauf']]);
+      nav(BUERO.map(([k, l]) => [k, l]).concat([['vorlagen', 'E-Mail-Vorlagen'], ['verlauf', 'Änderungsverlauf']]));
       if (teil === 'vorlagen') { const host = document.createElement('div'); B.appendChild(host); H.konto({ into: host, tab: 'vorlagen', nurVorlagen: true }); return; }
       if (teil === 'verlauf') { const host = document.createElement('div'); B.appendChild(host); H.verlaufAlle({ into: host }); return; }
       const adm = sortApps().find((a) => a.key === 'admin');
-      B.innerHTML = '<p class="bph-mu">Gilt für alle im Büro. Öffnet die Verwaltung an der passenden Stelle.</p><div class="bph-cards">'
-        + BUERO.map(([k, l, t]) => `<a class="bph-card" href="${adm ? esc(appUrl(adm)) + '/#einstellungen' + (k === 'allgemein' ? '' : '-' + k) : '#'}"><b>${esc(l)}</b><small>${esc(t)}</small></a>`).join('')
-        + (adm ? `<a class="bph-card" href="${esc(appUrl(adm))}/"><b>Verwaltung</b><small>Projekte, Benutzer & Rechte, Angemeldet, System</small></a>` : '') + '</div>';
+      if (!adm) { B.innerHTML = '<p class="bph-mu">Die Verwaltung ist für dein Konto nicht erreichbar.</p>'; return; }
+      // Büro-Einstellungen der Verwaltung direkt hier (eingebettet, dieselben Formulare)
+      B.classList.add('bph-drb-if');
+      B.innerHTML = `<iframe class="bph-if" title="Büro-Einstellungen" src="${esc(appUrl(adm))}/?einbetten=1#einstellungen${teil === 'allgemein' ? '' : '-' + esc(teil)}"></iframe>`;
     }
     const close = () => {
       bg.remove(); dr = null; document.removeEventListener('keydown', key); aufraeumen();

@@ -34,7 +34,11 @@ def make_app(name):
     @app.after_request
     def headers(resp):
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
-        resp.headers.setdefault("X-Frame-Options", "DENY")
+        if request.args.get("einbetten") and resp.mimetype == "text/html":   # Verwaltung im Einstellungsfenster (⚙ → Büro) der anderen Apps
+            host = request.host.split(":")[0]
+            resp.headers["Content-Security-Policy"] = f"frame-ancestors 'self' http://{host}:* https://{host}:* https://{host}"
+        else:
+            resp.headers.setdefault("X-Frame-Options", "DENY")
         resp.headers.setdefault("Referrer-Policy", "same-origin")
         if request.path.startswith("/api/") or resp.mimetype == "text/html":
             resp.headers["Cache-Control"] = "no-store"

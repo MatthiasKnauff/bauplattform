@@ -548,7 +548,7 @@ const growAll = () => document.querySelectorAll('textarea.ed').forEach(grow);
 function chrome() {
   const p = curProject();
   $('#pname').textContent = p ? p.name : 'Projekt wählen';
-  if (window.BPHead) BPHead.setProject(p ? { sub: addr(p) || 'Bautagebuch', title: p.name } : { sub: '', title: '' });
+  if (window.BPHead) BPHead.setProject(p ? { sub: addr(p) || 'Keine Adresse hinterlegt – Projekt bearbeiten', title: p.name } : { sub: '', title: '' });
   $('#paddr').textContent = p ? (addr(p) || 'Keine Adresse hinterlegt – über die Projektauswahl → „Projekt bearbeiten“ eintragen') : 'Tippe hier, um ein Projekt zu wählen';
   $('#chev').innerHTML = ic('chev', 20, 3); $('#rchev').innerHTML = ic('chev', 20, 3);
   const r = p ? curReport() : null;

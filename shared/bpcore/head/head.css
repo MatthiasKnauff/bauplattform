@@ -12,7 +12,7 @@
 .bph-plat{font-weight:600;letter-spacing:.01em}
 .bph-sl{color:var(--bph-mute)}
 .bph-app{font-weight:600;color:var(--bph-acc)}
-.bph-proj{display:flex;flex-direction:column;min-width:0;flex:0 1 auto;line-height:1.25;cursor:pointer;border-radius:8px;padding:.15rem .5rem;margin-left:-.5rem}
+.bph-proj{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;max-width:34rem;line-height:1.25;cursor:pointer;border-radius:8px;padding:.15rem .5rem;margin-left:-.5rem}
 .bph-proj:hover{background:rgba(255,255,255,.08)}
 .bph-proj span:empty::before{content:'Projekt wählen …';opacity:.6}
 .bph-proj small{order:2;font-size:.76rem;color:var(--bph-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

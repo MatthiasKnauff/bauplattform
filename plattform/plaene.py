@@ -250,6 +250,8 @@ def plaene():
     q = {"project_id": pid}
     if m.get("aus") is not None:
         q["aus"] = json.dumps(m["aus"])
+    if request.args.get("neu") == "1":   # „Neu einlesen“: Zwischenspeicher übergehen
+        q["neu"] = "1"
     try:
         d = _bt("/api/plaene/dateien?" + urllib.parse.urlencode(q))
     except ValueError as e:
@@ -270,7 +272,7 @@ def plaene():
     bet = {g_ for f in fl for g_ in f.get("gewerke") or []}
     gewerke = sorted({g_ for g_ in set(gewerke) | {f["gewerk"] for f in sonst if f["gewerk"]} | bet | adr | eig if g_ and len(g_) <= 60},
                      key=lambda s_: (s_ == "alle Firmen", s_.lower()))
-    return jsonify(plaene=pl, sonstige=sonst, basis=d.get("basis"), baum=d.get("ordner") or [], aus=d.get("aus") or [], standard=d.get("standard"),
+    return jsonify(plaene=pl, sonstige=sonst, basis=d.get("basis"), stand=d.get("stand") or "", zwischengespeichert=bool(d.get("zwischengespeichert")), baum=d.get("ordner") or [], aus=d.get("aus") or [], standard=d.get("standard"),
                    abgebrochen=d.get("abgebrochen"), gewerke=gewerke, firmen=fl)
 
 

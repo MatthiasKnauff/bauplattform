@@ -91,6 +91,7 @@ function renderOrd() {
   const n = (D.aus || []).length;
   $('#ord').innerHTML = `Projektordner <code>${esc(D.basis || '')}</code> · durchsucht: <b>${n ? `alle Ordner außer ${n}` : 'alle Ordner'}</b>
     <button class="btn sm" id="ordBaum">Ordner wählen …</button>
+    ${D.stand ? `<span class="mu" title="${D.zwischengespeichert ? 'Aus dem Zwischenspeicher – nachts für alle laufenden Projekte eingelesen. „Neu einlesen“ durchsucht den Ordner jetzt.' : 'gerade eingelesen'}">· Stand ${esc(new Date(D.stand).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}</span>` : ''}
     ${D.abgebrochen ? '<span class="pill bad" title="Sehr viele Dateien – bitte unter „Ordner wählen“ große Ordner (z. B. Fotos) abwählen">Suche nicht vollständig</span>' : ''}`;
 }
 /* Verzeichnisbaum mit Häkchen: abgewählte Ordner (samt Unterordnern) werden nicht durchsucht */
@@ -186,10 +187,10 @@ function bar() {
   b.innerHTML = `<span><b>${g.length}</b> ${g.length > 1 ? 'Pläne' : 'Plan'} gewählt · ${mb(size)}${cad ? ` · zu ${cad} passende CAD-Dateien` : ''}</span><button class="btn pri" id="vBtn">Versand vorbereiten …</button>`;
 }
 
-async function laden() {
+async function laden(neu) {
   if (!pid) { D = null; render(); return; }
   busy = true; D = null; render();
-  try { D = await api(`api/plaene?project_id=${pid}`); }
+  try { D = await api(`api/plaene?project_id=${pid}${neu === true ? '&neu=1' : ''}`); }
   catch (e) { D = { error: e.message, plaene: [], sonstige: [], gewerke: [], firmen: [] }; }
   D.frei = (D.sonstige || []).map(frei);
   busy = false; SEL = new Set([...SEL].filter((k) => D.plaene.concat(D.frei).some((p) => p.staende.some((st) => stKey(p, st) === k))));
@@ -303,7 +304,7 @@ document.addEventListener('click', async (e) => {
   if (t.id === 'selNeu') { sichtbar().forEach((p) => { const st = p.staende.find((s) => s.pdf); if (st) SEL.add(stKey(p, st)); }); render(); return; }
   if (t.id === 'selNone') { SEL.clear(); render(); return; }
   if (t.id === 'vBtn') { versandDialog(); return; }
-  if (t.id === 'reBtn') { laden(); return; }
+  if (t.id === 'reBtn') { laden(true); return; }   // Ordner jetzt neu durchsuchen (sonst Zwischenspeicher vom selben Tag)
   if (t.id === 'ordBaum') { baumDialog(); return; }
   if (t.id === 'ordMerkAlt') { try { await api('api/projekt/' + pid, 'PUT', { ordner: D.ordner }); D.gemerkt = D.ordner; renderOrd(); toast('Planordner gemerkt.'); } catch (er) { toast(er.message, true); } }
 });

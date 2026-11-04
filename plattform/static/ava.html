@@ -1489,7 +1489,7 @@ function tlZurueck(vor) {
 const tlSicht = () => { const q = TLq.trim().toLowerCase(); return TL.tueren.filter((t) => !q || Object.values(t).some((v) => typeof v === 'string' && v.toLowerCase().includes(q))); };
 const tlSpalten = () => TSP.filter((c) => !TLzu.has(c[4]) || c[4] === 'Lage');
 const tlBox = () => (TLA && TLC ? { r1: Math.min(TLA.r, TLC.r), r2: Math.max(TLA.r, TLC.r), c1: Math.min(TLA.c, TLC.c), c2: Math.max(TLA.c, TLC.c) } : null);
-const tlText = (t, c) => { const v = t[c[0]]; return c[2] === 'b' ? (v ? '✓' : '') : v == null ? '' : String(v); };
+const tlText = (t, c) => { const v = t[c[0]]; return c[2] === 'b' ? (v ? '✓' : '') : v == null ? '' : c[0] === 'din' ? String(v).replace(/^DIN /, '') : String(v); };
 function tlWert(c, roh) {   // eingegebenen / eingefügten Text in den Feldwert wandeln
   const v = String(roh == null ? '' : roh).trim();
   if (c[2] === 'b') return /^(x|ja|j|1|✓|✔|true|wahr|yes)$/i.test(v) || undefined;

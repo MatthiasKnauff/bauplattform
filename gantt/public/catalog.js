@@ -75,6 +75,7 @@ window.CATALOG = (() => {
     { id: 'zimmer', ph: 'huelle', n: 'Dachstuhl / Zimmererarbeiten', gw: 'Zimmerer', din: '18334', sc: 'bau', d: 5, a: ['mauer', 'holz_mont', 'geruest', 'be'] },
     { id: 'dachfenster', m: 'dach_deck', ph: 'huelle', n: 'Dachflächenfenster einbauen', gw: 'Dach', din: '18338', sc: 'bau', d: 2, fix: 1, a: ['zimmer', 'geruest'] },
     { id: 'dach_deck', ph: 'huelle', n: 'Dacheindeckung', gw: 'Dach', din: '18338', sc: 'bau', d: 8, a: ['schornstein', 'dachfenster', 'zimmer', 'geruest', 'be'] },
+    { id: 'dampfsp', m: 'dach_deck', ph: 'huelle', n: 'Dampfsperre', gw: 'Dach', din: '18336', sc: 'bau', d: 1, a: ['zimmer', 'mauer', 'holz_mont', 'geruest', 'be'] },
     { id: 'dach_daemm', m: 'dach_deck', ph: 'huelle', n: 'Dachdämmung', gw: 'Dach', din: '18338', sc: 'bau', d: 4, a: ['dach_deck', 'zimmer', 'geruest', 'be'] },
     { id: 'dach_zub', m: 'dach_deck', ph: 'huelle', n: 'Dachzubehör (Schneefang, Laufroste, Sicherheitshaken)', gw: 'Dach', din: '18338', sc: 'bau', d: 1, fix: 1, a: ['dach_deck'] },
     { id: 'gruendach', ph: 'huelle', n: 'Dachbegrünung (extensiv)', gw: 'Außenanlagen', din: '18320', sc: 'bau', d: 3, ch: 'dachdeckung', a: ['dach_deck'] },
@@ -240,9 +241,9 @@ window.CATALOG = (() => {
       { k: 'sattel', n: 'Satteldach', on: ['zimmer'] },
       { k: 'walm', n: 'Walmdach', on: ['zimmer'], mul: { zimmer: 1.3, dach_deck: 1.25, klempner: 1.2 } },
       { k: 'pult', n: 'Pultdach', on: ['zimmer'], mul: { zimmer: 0.8, dach_deck: 0.85 } },
-      // Flachdach: erst Dampfsperre und Dämmung (Warmdach), dann die Abdichtung – Dämmung bleibt eine eigene Leistung
-      { k: 'flach', n: 'Flachdach', on: ['dach_daemm'], ovr: { dach_deck: { n: 'Dachabdichtung Flachdach', din: '18336', a: ['schornstein', 'dachfenster', 'zimmer', 'dach_daemm', 'geruest', 'be'] },
-        dach_daemm: { n: 'Flachdach: Dampfsperre und Wärmedämmung (Gefälle)', din: '18336', a: ['zimmer', 'mauer', 'holz_mont', 'geruest', 'be'] }, klempner: { n: 'Klempnerarbeiten (Attika, Abläufe)' } } } ] },
+      // Flachdach (Warmdach): Dampfsperre, dann Wärmedämmung (Gefälle), dann die Abdichtung – jeweils eigene Leistungen
+      { k: 'flach', n: 'Flachdach', on: ['dampfsp', 'dach_daemm'], ovr: { dach_deck: { n: 'Dachabdichtung Flachdach', din: '18336', a: ['schornstein', 'dachfenster', 'zimmer', 'dach_daemm', 'geruest', 'be'] },
+        dach_daemm: { n: 'Flachdach: Wärmedämmung (Gefälledämmung)', din: '18336', a: ['dampfsp', 'zimmer', 'mauer', 'holz_mont', 'geruest', 'be'] }, klempner: { n: 'Klempnerarbeiten (Attika, Abläufe)' } } } ] },
     { k: 'dachdeckung', ph: 'huelle', n: 'Dachdeckung', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], opts: [
       { k: 'ziegel', n: 'Dachziegel / Betondachstein', on: [], if: { dachform: ['sattel', 'walm', 'pult'] } },
       { k: 'schiefer', n: 'Schiefer', on: [], if: { dachform: ['sattel', 'walm', 'pult'] }, ovr: { dach_deck: { n: 'Schieferdeckung' } }, mul: { dach_deck: 1.6 } },

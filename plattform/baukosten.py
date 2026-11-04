@@ -1881,7 +1881,7 @@ def build_report(c, r, opt):
     if "kosten" in parts:
         depth = opt["tiefe"]
         rows = [["KG", "Bezeichnung", "Betrag"]]
-        bold, styles = [], []
+        bold = []
         for lvl, kg, name, v, open_ in kg_rows(d, cal, depth):
             ind = "    " * (lvl - 1)
             rows.append([kg, Paragraph(X(ind) + ("<b>" if lvl == 1 else "") + X(name) + ("</b>" if lvl == 1 else "") + (" <font color='#9c4a22'>(teilweise offen)</font>" if open_ and v is not None else ""), S["cell"]), eur(v)])

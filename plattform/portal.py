@@ -5,7 +5,7 @@
 """
 import re
 
-from flask import g, jsonify, redirect, request
+from flask import jsonify, redirect, request
 
 from bpcore import db, platform, sso
 import common as C

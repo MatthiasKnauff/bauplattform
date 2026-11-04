@@ -9,8 +9,8 @@ Die HTTP-Schnittstelle (/api/...) ist unverändert, damit die Oberfläche (publi
 - Pläne lassen sich mit einem Bautagebuch-Projekt verknüpfen (Sichtbarkeit richtet sich dann nach den Bauleitern).
 - Alte Daten (Docker-Volume der Gantt-App, eingebunden unter /legacy) werden beim ersten Start übernommen.
 """
-import json, math, os, re, secrets, threading, time, urllib.error, urllib.request
-from datetime import date, datetime, timezone
+import json, math, os, re, secrets, time, urllib.error, urllib.request
+from datetime import date, datetime
 from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
@@ -684,8 +684,8 @@ def clean_assistcfg(b):
         pv = clean_prof(v, own=True)
         if pv and pv["k"] not in seen:
             seen.add(pv["k"]); out["own"].append(pv)
-    for g, v in list((b.get("choices") or {}).items())[:60] if isinstance(b.get("choices"), dict) else []:
-        if not AKEY.match(g) or not isinstance(v, dict):
+    for gk, v in list((b.get("choices") or {}).items())[:60] if isinstance(b.get("choices"), dict) else []:
+        if not AKEY.match(gk) or not isinstance(v, dict):
             continue
         e = {}
         if v.get("n"):
@@ -711,7 +711,7 @@ def clean_assistcfg(b):
         if own:
             e["own"] = own
         if e:
-            out["choices"][g] = e
+            out["choices"][gk] = e
     return out if len(json.dumps(out)) < 600000 else None
 
 

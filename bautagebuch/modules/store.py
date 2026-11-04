@@ -1,5 +1,4 @@
 """Ablage auf dem Server: Verbindungstest, Status, manuelles Senden, nachträgliche Übertragung."""
-import re
 from flask import Blueprint, g, jsonify, request
 from core import access, db, remote, scheme, settings, sync
 

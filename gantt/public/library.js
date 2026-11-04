@@ -64,7 +64,6 @@ function gwFirm(gw) {
   const g = gw.toLowerCase(), l = FIRMS.filter((f) => (f.gewerke || []).some((x) => x.toLowerCase() === g)).sort((a, b) => a.name.localeCompare(b.name, 'de'));
   return l.length ? l[0].name : '';
 }
-const gwFirmCount = (gw) => (typeof FIRMS === 'undefined' || !gw ? 0 : FIRMS.filter((f) => (f.gewerke || []).some((x) => x.toLowerCase() === gw.toLowerCase())).length);
 // Vorgabe für alle Projekte: eigene Angabe je Leistung, sonst Stammfirma des Gewerks
 function libFirmFor(id, gw) {
   const own = (window.LIBRARY.find((x) => x.id === id) || {}).firm || CATFIRMS[id] || '';

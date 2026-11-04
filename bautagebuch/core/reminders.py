@@ -5,7 +5,7 @@ Datum gesetzt hat, eine Sammel-Mail. Bereits erledigte Einträge werden überspr
 erinnert; nachgeholt wird auch, wenn der Server am Tag selbst nicht lief.
 """
 import threading, time
-from datetime import date, datetime
+from datetime import datetime
 from . import db, mail, settings
 
 _started = False

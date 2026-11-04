@@ -200,7 +200,6 @@ def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
     out, stack = [], []   # stack: offene Titel-Ebenen
 
     def close_to(lvl):
-        nonlocal out
         while stack and stack[-1]["lvl"] >= lvl:
             t = stack.pop()
             body = ("<Itemlist>" + "".join(t["items"]) + "</Itemlist>" if t["items"] else "") + "".join(t["kids"])

@@ -1,4 +1,4 @@
-import json, io, re
+import json, io
 from datetime import datetime
 from flask import Blueprint, Response, g, jsonify, request
 from core import audit, db, geo, settings
@@ -183,7 +183,6 @@ def export_pdf():
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=14 * mm, bottomMargin=14 * mm,
                             title="Adressverzeichnis", author=office)
     st = ParagraphStyle("c", fontName="Helvetica", fontSize=8, leading=10)
-    sb = ParagraphStyle("b", parent=st, fontName="Helvetica-Bold")
     sh = ParagraphStyle("h", parent=st, fontName="Helvetica-Bold", textColor=colors.white)
     esc = lambda v: escape(str(v or ""))
     P = lambda t, s=st: Paragraph(t or "&nbsp;", s)

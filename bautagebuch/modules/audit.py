@@ -1,5 +1,5 @@
 from flask import Blueprint, g, jsonify, request
-from core import audit, cleanup, db
+from core import cleanup, db
 
 bp = Blueprint("audit", __name__)   # nur Administrator (siehe app.admin_only)
 

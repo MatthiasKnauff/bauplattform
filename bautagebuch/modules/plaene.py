@@ -152,7 +152,6 @@ def dateien():
 def vorab_einlesen():
     """Einmal am Tag (nachts): Projektordner aller laufenden Projekte vorab einlesen, damit die Planliste sofort da ist."""
     import json
-    from datetime import date
     with db.tx() as c:
         if not c.execute("SELECT pg_try_advisory_xact_lock(hashtext('planscan:nacht')) AS ok").fetchone()["ok"]:
             return 0

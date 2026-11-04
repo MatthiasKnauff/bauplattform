@@ -16,7 +16,6 @@ html[data-theme="hell"]{--bg:#f3f2ef;--card:#ffffff;--line:#d9d8d3;--ink:#232427
 html[data-theme="hell"] #tabs{background:#e7e5e0}
 html[data-theme="hell"] .menu{background:#ffffff}
 html[data-theme="hell"] .tab.on{color:var(--ink)}
-html[data-theme="hell"] .swb.on{border-color:var(--ink)}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overscroll-behavior:none}
 html,body{position:fixed;inset:0;width:100%;overflow:hidden}   /* die Seite selbst scrollt nie; gescrollt wird nur im Inhaltsbereich (#detail) – sonst rutscht am iPhone die ganze App weg */
@@ -52,17 +51,6 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .stabs button{border:1px solid var(--line);border-radius:999px;padding:.35rem .9rem;color:var(--mute);font-weight:600}
 .stabs button.on{background:var(--y);border-color:var(--y);color:var(--on)}
 .cform h4{grid-column:1/-1;margin:.8rem 0 0;font-size:1.05rem}
-.usr{border:1px solid var(--line);border-radius:10px;margin:.5rem 0;overflow:hidden}
-.uhead{width:100%;display:flex;align-items:center;gap:.6rem;padding:.65rem .8rem;color:var(--ink);text-align:left;border-radius:0;justify-content:flex-start}
-.uhead:disabled{opacity:1;cursor:default}
-.uhead .l{flex:1;min-width:0;display:flex;flex-direction:column}
-.uhead small{color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.badge{border:1px solid var(--y);color:var(--y);border-radius:999px;padding:.05rem .55rem;font-size:.75rem;white-space:nowrap}
-.usr.open .uchev{transform:rotate(180deg)}
-.ubody{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;padding:.2rem .8rem .8rem;border-top:1px solid var(--line)}
-.ubody .w,.ubody .acts{grid-column:1/-1}
-.usr:not(.open) .ubody{display:none}
-.usr.open .ubody{display:grid}
 @media(max-width:720px){.ubody{grid-template-columns:1fr}}
 #login .go{background:var(--y);color:var(--on);width:100%;padding:.7rem;font-weight:700}
 #err{color:var(--red);min-height:1.3em}
@@ -162,13 +150,8 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .main h3{margin:.1rem 0 .1rem;font-size:1.85rem;font-weight:700;text-transform:uppercase;line-height:1.15}
 .meta{line-height:1.35}
 .side{margin:.8rem 0;border-left:1px solid var(--line);width:58px;display:flex;align-items:center;justify-content:center}
-.side.q4{width:116px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
-.q4 button{border-radius:0;height:100%}
-.q4 button:nth-child(2),.q4 button:nth-child(4){border-left:1px solid var(--line)}
-.q4 button:nth-child(1),.q4 button:nth-child(2){border-bottom:1px solid var(--line)}
 .side.wx{width:150px;flex-direction:column;gap:.2rem;border-left:0;color:var(--ink);font-size:.95rem}
 .side.wx .cl{color:var(--y)}
-.mini{margin-top:.5rem;padding:.25rem .5rem;font-size:.85rem;color:var(--mute)}
 .lines{max-width:660px;margin:.3rem 0 0}
 .ln{display:flex;justify-content:flex-start;gap:.5rem;align-items:flex-start;padding:.15rem 0;overflow-wrap:anywhere}
 .ln.done span{text-decoration:line-through;color:var(--mute)}
@@ -289,11 +272,6 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .imgs .cap::placeholder{color:var(--mute);opacity:.6}
 .imgs .rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);color:#fff;padding:0 .4rem;font-size:.8rem}
 .lbl{font-size:.8rem;color:var(--mute);margin-bottom:.4rem}
-.sw{display:flex;flex-wrap:wrap;gap:.5rem}
-.swb{width:34px;height:34px;border-radius:50%;padding:0;border:2px solid transparent;position:relative;cursor:pointer}
-.swb.on{border-color:#fff;box-shadow:0 0 0 2px var(--bg) inset}
-.swb.cust{background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);overflow:hidden}
-.swb.cust input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
 .ith{display:flex;gap:3px;align-items:center;flex:none}
 .ith img{width:30px;height:30px;object-fit:cover;border-radius:4px;display:block}
 .itp{position:relative;display:block}
@@ -356,7 +334,7 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
   .cform .cback{display:inline-flex}
   #toasts{bottom:calc(4.8rem + env(safe-area-inset-bottom))}
 }
-@media (max-width:520px){.main h3{font-size:1.45rem}.side{width:50px}.side.q4{width:100px}.side.wx{width:110px}.cform{grid-template-columns:1fr}
+@media (max-width:520px){.main h3{font-size:1.45rem}.side{width:50px}.side.wx{width:110px}.cform{grid-template-columns:1fr}
   .ln.firm{grid-template-columns:1fr 70px auto}.ln.firm .act{grid-column:1/3;grid-row:2}}
 /* mehrzeilige Einträge, Bearbeiten direkt auf der Seite */
 .ln:not(.firm){justify-content:flex-start;text-align:left}
@@ -1435,10 +1413,6 @@ $('#login').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'IN
 const appCard = () => `<div class="cform"><h3>Bautagebuch</h3>
   <div class="w" style="grid-column:1/-1;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><b>Bericht-Assistent</b><span style="color:var(--mute)">${bwzPrefs().on ? (bwzPrefs().auto ? 'startet bei jedem neuen Bericht' : 'auf Knopfdruck im Bericht') : 'ausgeschaltet'}</span><button class="bd" data-act="bwzSet">Schritte und Start einstellen …</button></div>
   <div class="info">Benutzer, E-Mail-Adressen und Rechte verwaltet der Administrator in der Verwaltung (▦ → Verwaltung → Benutzer & Rechte). Dein Kennwort änderst du unter ⚙ → Für mich.</div></div>`;
-async function setAccent(c) {
-  const r = await api('api/account', 'PUT', {accent: c}); if (r.error) return toast(r.error);
-  me.accent = c; applyAccent(c);
-}
 const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
   <div class="info">Mit diesem Postfach verschickt die App E-Mails: „Kennwort vergessen“ und Erinnerungen zu Erledigungsterminen.</div>
   <label class="w">Anbieter<select data-st="mail_provider">${[['o365', 'Office 365 / Microsoft 365'], ['gmail', 'Gmail / Google Workspace'], ['outlook', 'Outlook.com / Hotmail'], ['webde', 'WEB.DE'], ['gmx', 'GMX'], ['tonline', 'T-Online'], ['ionos', 'IONOS (1&1)'], ['strato', 'Strato'], ['andere', 'anderer Anbieter']].map(([v, n]) => `<option value="${v}" ${(settings.mail_provider || 'gmail') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
@@ -1873,7 +1847,6 @@ document.addEventListener('click', async e => {
   else if (a === 'aRm') { addFiles.splice(+b.dataset.i, 1); renderApv(); }
   else if (a === 'qDate') { const d = new Date(Date.now() + +b.dataset.d * 864e5); b.closest('.qadd').querySelector('[data-add-due]').value = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   else if (a === 'qAssign') { const fs = qFiles; q = null; renderQ(); await uploadPhotos(fs, b.dataset.id || null); }
-  else if (a === 'accent') { await setAccent(b.dataset.c); }
   else if (a === 'changePw') {
     if ($('#pwNew').value !== $('#pwNew2').value) return toast('Die beiden Kennwörter sind nicht gleich.');
     const r = await api('api/password', 'POST', {new: $('#pwNew').value});
@@ -1897,7 +1870,6 @@ document.addEventListener('change', async e => {
   else if (t.dataset.img) { const r = await api('api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
   else if (t.dataset.pf) saveProjectField(t);
   else if (t.dataset.cf) saveContactField(t);
-  else if ('accentCustom' in t.dataset) setAccent(t.value);
   else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); } }
   else if (t.dataset.st) {
     const k = t.dataset.st, sec = /_pass$/.test(k); if (sec && !t.value) return;

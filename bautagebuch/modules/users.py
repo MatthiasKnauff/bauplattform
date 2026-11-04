@@ -1,7 +1,7 @@
 """Benutzerverwaltung (nur Administrator), eigenes Konto, Kennwort ändern/vergessen."""
 import json
 import re, secrets
-from flask import Blueprint, g, jsonify, request, session
+from flask import Blueprint, g, jsonify, request
 from core import auth, db, mail, settings
 
 bp = Blueprint("users", __name__)

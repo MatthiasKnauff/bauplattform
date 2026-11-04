@@ -1,4 +1,3 @@
-import json
 from flask import Blueprint, Response, g, jsonify, request
 from core import access, db, geo, staticmap, storage
 

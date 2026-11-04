@@ -2,7 +2,7 @@
 import io, json, os, threading, time, urllib.error, urllib.request
 from urllib.parse import quote, urlsplit
 
-from flask import Flask, g, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from bpcore import SCHEMA, db, head, platform, sso

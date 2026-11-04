@@ -34,7 +34,7 @@ def scan_many(ids):
     for pid in ids:
         try:
             found, proj, target = scan(pid, target)
-        except ValueError as e:
+        except ValueError:
             if not target:
                 raise
             errors += 1; continue

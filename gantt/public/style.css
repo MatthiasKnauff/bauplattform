@@ -643,21 +643,13 @@ html[data-theme="dunkel"] body{background:#26282b}
 .bp-chip{display:inline-flex;align-items:center;gap:6px;max-width:240px;height:32px;padding:0 10px;margin-right:4px;border-radius:16px;
   background:var(--top-card);border:1px solid var(--top-cardbd);color:var(--top-fg);cursor:pointer;font-size:12px}
 .bp-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bp-chip svg,.bp-menu svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bp-chip svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .bp-pres{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;margin-right:6px;border-radius:12px;font-size:11.5px;
   background:rgba(255,255,255,.14);color:var(--top-fg);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
 .bp-pres::before{content:"";width:8px;height:8px;border-radius:50%;background:#3ddc84;flex:none}
-#bpApps svg{fill:currentColor;stroke:none}
 .bp-chip[hidden],.bp-pres[hidden]{display:none}
-html:not([data-theme="-"]) .bp-menu{position:fixed;right:10px;top:54px;z-index:3000;min-width:240px;background:#34363a;color:#f3f3f1;border:1px solid #3b3e42;
   border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;flex-direction:column;padding:4px 0;font-size:13px}
-html:not([data-theme="-"]) .bp-menu .bp-who{padding:8px 14px;color:#9a9c9e}
-html:not([data-theme="-"]) .bp-menu .bp-who b{color:#f3f3f1;font-weight:600}
-html:not([data-theme="-"]) .bp-menu a,html:not([data-theme="-"]) .bp-menu button{display:flex;align-items:center;gap:8px;padding:9px 14px;color:#f3f3f1;text-decoration:none;background:none;border:0;text-align:left;cursor:pointer;font:inherit}
-html:not([data-theme="-"]) .bp-menu a:hover,html:not([data-theme="-"]) .bp-menu button:hover{background:rgba(255,255,255,.07)}
-html:not([data-theme="-"]) .bp-menu a::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--bp-accent,#ff5fb3);flex:none}
-html:not([data-theme="-"]) .bp-menu .bp-sep{border-top:1px solid #3b3e42;margin:4px 0}
-@media print{.bp-chip,.bp-pres,#bpApps,.bp-menu{display:none!important}}
+@media print{.bp-chip,.bp-pres{display:none!important}}
 .as-form label.as-sub{padding-left:1rem;color:#777;font-size:.92em}
 /* Schritt-für-Schritt-Abfrage im Planungsassistenten */
 .wz-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px;padding:8px 10px;border:1px dashed var(--accent);border-radius:8px}

@@ -975,7 +975,7 @@ def erinnerungen(scope_arg=None):
         names = {r["id"]: C.full_name(r) for r in c.execute("SELECT * FROM users")}
         plans = {r["id"]: r for r in c.execute("SELECT id, name, project_id, updated_by FROM gantt_projects")}
         own = c.execute("SELECT * FROM erinnerungen WHERE status IN ('offen','erledigt') ORDER BY termin, id").fetchall()
-        bt = c.execute(f"""SELECT i.id, i.kind, i.text, i.company, i.due, i.due_time, i.reminded, i.remind_user, r.id AS rid, r.project_id AS pid
+        bt = c.execute("""SELECT i.id, i.kind, i.text, i.company, i.due, i.due_time, i.reminded, i.remind_user, r.id AS rid, r.project_id AS pid
             FROM items i JOIN reports r ON r.id=i.report_id WHERE i.due!='' AND i.done=0 ORDER BY i.due""").fetchall()
         secs = {r["key"]: r["title"] for r in c.execute("SELECT key, title FROM sections")}
     today = date.today().isoformat()

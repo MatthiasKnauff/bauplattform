@@ -175,7 +175,7 @@ def clean_items(v):
 
 def nummerieren(items, schritt=10):
     """Ordnungszahlen neu vergeben: Titel 01, 02 … (Untertitel 01.01), Positionen 0010, 0020 … je Titel."""
-    stack, cnt, top = [], {}, 0
+    stack, cnt = [], {}
     for x in items:
         if x["typ"] == "titel":
             lvl = x.get("lvl") or 1
@@ -1744,7 +1744,6 @@ def lv_pdf(i):
             return jsonify(error="Nicht gefunden"), 404
         P = _payload(c, r)
     items = P["data"].get("items") or []
-    pos = {x["id"]: x for x in items if x["typ"] == "pos"}
     K = P["calc"]
     V = P["vergabe"]
     VP = V.get("preise") or {}

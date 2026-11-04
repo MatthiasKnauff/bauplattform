@@ -172,43 +172,5 @@ window.SugBar = {
   state: (own) => ({ cur: 'own', own, res: {}, busy: null, err: '', timer: null, text: '' }),
 };
 
-/* ---------- Einstellungen (Teil des Dialogs „Programmeinstellungen“) ---------- */
-function aiSettingsHtml() {
-  const S = window.AI_SETTINGS, M = S.models && Object.keys(S.models).length ? S.models : { 'claude-haiku-5-5': 'Claude Haiku 5.5', 'claude-sonnet-5-5': 'Claude Sonnet 5.5' };
-  const r = (v, l, h) => `<label class="cb ai-r"><input type="radio" name="aimode" value="${v}"${S.mode === v ? ' checked' : ''}> <span><b>${l}</b><small>${h}</small></span></label>`;
-  return `<div class="sec">Positionsvorschlag für neue Leistungen</div>
-    <div class="ai-modes">${r('builtin', 'Eingebaut (ohne KI)', 'Vergleicht die Bezeichnung mit vorhandenen Leistungen und DIN-Schlagworten – offline, kostenlos.')}
-      ${r('ai', 'KI (Claude)', 'Fragt Claude über deinen Server – versteht Fachbegriffe und Sonderfälle. Bei Fehlern greift der eingebaute Vorschlag.')}
-      ${r('off', 'Aus', 'Kein Vorschlags-Knopf.')}</div>
-    <div class="form ai-form" style="grid-template-columns:auto 1fr;margin-top:8px">
-      <label>API-Schlüssel</label><div class="colrow"><input id="aiKey" type="password" autocomplete="off" placeholder="${S.hasKey ? 'hinterlegt (' + esc(S.keyHint) + ')' + (S.fromEnv ? ' aus docker-compose' : '') + ' – zum Ändern neu eingeben' : 'sk-ant-… (von console.anthropic.com)'}">${S.hasKey && !S.fromEnv ? '<button type="button" class="btn sm" id="aiKeyDel">Entfernen</button>' : ''}</div>
-      <label>Modell</label><select id="aiModel">${Object.entries(M).map(([k, n]) => `<option value="${k}"${S.model === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
-      <label></label><div class="colrow"><button type="button" class="btn sm" id="aiTest">Verbindung testen</button><span id="aiTestRes" class="hint" style="margin:0"></span></div>
-    </div>
-    <div class="hint">Der Schlüssel wird nur auf dem Server gespeichert (Datenordner, nicht im Browser) und gilt für alle Nutzer dieser Installation. An die KI gehen nur Leistungsbezeichnungen, Gewerke und Abschnitte – keine Firmen oder Kontaktdaten. Kosten entstehen je Anfrage über dein Anthropic-Konto.</div>`;
-}
-function aiSettingsWire(bg) {
-  let clearKey = false;
-  const del = bg.querySelector('#aiKeyDel'); if (del) del.onclick = () => { clearKey = true; del.textContent = 'wird entfernt'; del.disabled = true; bg.querySelector('#aiKey').placeholder = 'kein Schlüssel'; };
-  bg.querySelector('#aiTest').onclick = async () => {
-    const out = bg.querySelector('#aiTestRes'); out.textContent = 'teste …'; out.style.color = '';
-    try {
-      const r = await fetch('api/ai/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: bg.querySelector('#aiKey').value, model: bg.querySelector('#aiModel').value }) });
-      const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || r.statusText);
-      out.textContent = '✔ Verbindung in Ordnung (' + d.model + ')'; out.style.color = '#2e7d32';
-    } catch (e) { out.textContent = '✖ ' + e.message; out.style.color = '#c62828'; }
-  };
-  return async () => {
-    const mode = (bg.querySelector('input[name="aimode"]:checked') || {}).value || 'builtin';
-    const body = { ai: { mode, model: bg.querySelector('#aiModel').value, key: bg.querySelector('#aiKey').value, clearKey } };
-    try {
-      const s = await fetch('api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(j);
-      window.AI_SETTINGS = s.ai;
-      if (mode === 'ai' && !s.ai.hasKey) toast('KI gewählt, aber kein API-Schlüssel hinterlegt – bis dahin gilt der eingebaute Vorschlag.', true);
-    } catch (e) { toast('Einstellungen nicht gespeichert: ' + e.message, true); }
-    if (window.AssistCore) AssistCore.notifySoon();
-    if (!$('#libView').hidden && typeof renderLib === 'function') renderLib();
-  };
-}
 
 loadAiSettings();

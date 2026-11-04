@@ -45,7 +45,6 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
   }
 
   /* ---- Kopfleiste: Verknüpfung, „auch im Plan“, App-Umschalter ---- */
-  const ICON_APPS = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="4" height="4" rx="1"/><rect x="10" y="4" width="4" height="4" rx="1"/><rect x="16" y="4" width="4" height="4" rx="1"/><rect x="4" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="16" y="10" width="4" height="4" rx="1"/><rect x="4" y="16" width="4" height="4" rx="1"/><rect x="10" y="16" width="4" height="4" rx="1"/><rect x="16" y="16" width="4" height="4" rx="1"/></svg>';
   const ICON_LINK = '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
   function mountBar() {
     const tb = $('#topbar'); if (!tb || $('#bpLink')) return;
@@ -76,30 +75,6 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     else { S.mode = 'ai'; S.hasKey = true; S.provider = k; }
     if (window.AssistCore && AssistCore.notifySoon) AssistCore.notifySoon();
   };
-  function toggleMenu(force) {
-    let m = $('#bpMenu');
-    if (m && force !== true) { m.remove(); return; }
-    if (m) m.remove();
-    if (!BP.conf) return;
-    m = document.createElement('div'); m.id = 'bpMenu'; m.className = 'bp-menu';
-    const apps = BP.conf.apps.filter((a) => a.allowed && a.key !== 'gantt');
-    m.innerHTML = `<div class="bp-who">Angemeldet: <b>${escH(BP.me ? BP.me.name : '')}</b></div>`
-      + apps.map((a) => `<a href="${escH(appUrl(a))}">${escH(a.name)}</a>`).join('')
-      + (typeof P !== 'undefined' && P ? `<div class="bp-sep"></div><button data-bp="link">${ICON_LINK}Mit Bautagebuch-Projekt verknüpfen …</button>` : '')
-      + '<div class="bp-sep"></div><button data-bp="logout">Abmelden</button>';
-    m.addEventListener('click', async (e) => {
-      const b = e.target.closest('[data-bp]'); if (!b) return;
-      m.remove();
-      if (b.dataset.bp === 'logout') {
-        if (typeof flushSave === 'function') await flushSave().catch(() => {});
-        const r = await origFetch('api/logout', { method: 'POST' }).then((x) => x.json()).catch(() => ({}));
-        leaving = true; location.href = r.login || '/';
-      } else linkDialog();
-    });
-    document.body.appendChild(m);
-  }
-  document.addEventListener('click', (e) => { const m = $('#bpMenu'); if (m && !m.contains(e.target)) m.remove(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { const m = $('#bpMenu'); if (m) m.remove(); } });
 
   function showLink() {
     const el = $('#bpLink'); if (!el) return;

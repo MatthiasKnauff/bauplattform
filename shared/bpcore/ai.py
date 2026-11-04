@@ -302,7 +302,6 @@ def ask_image(provider, system, user, png, max_tokens=2500, c=None):
 
 def ask_json(provider, system, user, max_tokens=900, c=None):
     """Wie ask(), Antwort als JSON-Objekt (Codeblöcke und Text drumherum werden entfernt)."""
-    import re
     t = ask(provider, system, user, max_tokens, c, json_mode=True) or ""
     return parse_json(t)
 

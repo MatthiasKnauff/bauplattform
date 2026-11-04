@@ -1264,13 +1264,6 @@ function tidyLinks() {
   });
   if (ok) toast(n ? `${n} überflüssige Verknüpfungen entfernt – die Termine bleiben gleich (Strg+Z macht es rückgängig).` : 'Keine überflüssigen Verknüpfungen gefunden.');
 }
-function addLink(pi, si, type = 'FS', lag = 0) {
-  if (pi === si) return false;
-  if (isAncestor(pi, si) || isAncestor(si, pi)) { toast('Leistungsgruppen können nicht mit ihren eigenen Teilleistungen verknüpft werden.', true); return false; }
-  const s = P.tasks[si], puid = P.tasks[pi].uid;
-  if (s.preds.some((p) => p.uid === puid)) { toast('Diese Leistungen sind bereits verknüpft.'); return false; }
-  return act(() => { s.preds.push({ uid: puid, type, lag }); });
-}
 function linkSel() {
   const ix = selIdx(); if (ix.length < 2) { toast('Markiere mindestens zwei Leistungen (Strg- oder Umschalt-Klick).'); return; }
   act(() => {
@@ -2849,7 +2842,6 @@ async function boot() {
       history.replaceState(null, '', location.pathname);
     }
     if (id === '__geschlossen__' && projects.length) { await refreshProjectList(); $('#projTitle').textContent = 'Kein Projekt geöffnet'; $('#projSub').textContent = 'Klicken zum Öffnen oder Anlegen'; setNoProject(true); renderStart(); if (LS.get('assistOpen', false)) setAssistOpen(true); return; }
-    let halten = false;   // kein passender Plan: der zuletzt offene Plan ändert das Projekt der anderen Apps nicht
     if (!hp) {   // Projekt aus der zuletzt benutzten App: dessen Plan (verknüpft oder gleiche Projektnummer)
       await new Promise((ok) => (document.readyState === 'loading' ? addEventListener('DOMContentLoaded', ok) : ok()));
       if (window.BPHead && BPHead.ready) await BPHead.ready.catch(() => null);
@@ -2865,7 +2857,6 @@ async function boot() {
     if (!projects.some((p) => p.id === id)) id = (projects.find((p) => !p.archived) || projects[0])?.id;
     if (!id) { const p = await api.create({ name: 'Neues Projekt', start: snapWork(todayN()), tasks: [] }); id = p.id; }
     await openProject(id);
-    if (halten) window.bpHalten = id;
     await refreshProjectList();
     const aw = LS.get('aw', null); if (aw) document.documentElement.style.setProperty('--aw', aw + 'px');
     if (LS.get('assistOpen', false)) setAssistOpen(true);

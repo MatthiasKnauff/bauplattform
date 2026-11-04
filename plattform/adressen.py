@@ -345,7 +345,7 @@ def vcard(i):
         parts = person.split()
         lines.append(f"N:{_vc(parts[-1])};{_vc(' '.join(parts[:-1]))};;;")
     else:
-        lines.append(f"N:;;;;")
+        lines.append("N:;;;;")
     if r["role"]:
         lines.append(f"TITLE:{_vc(r['role'])}")
     if r["phone"]:

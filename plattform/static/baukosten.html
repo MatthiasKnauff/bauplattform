@@ -932,10 +932,19 @@ document.addEventListener('click', async (e) => {
   const kr = e.target.closest('[data-kiroom]');
   if (kr) {
     const ki = window.BPHead ? BPHead.provider() : { key: 'intern' };
-    if (!['claude', 'gemini', 'chatgpt'].includes(ki.key)) { toast('Zum Lesen von Plänen oben in der Kopfleiste Claude, Gemini oder ChatGPT wählen – Intern und das Ollama-Standardmodell können keine Bilder lesen.', true); return; }
+    if (!ki.bild) { toast(ki.key === 'ollama' ? 'Das Bildmodell von Ollama ist noch nicht geladen – kurz warten oder oben Claude, Gemini oder ChatGPT wählen.' : 'Zum Lesen von Plänen oben in der Kopfleiste Ollama (mit Bildmodell), Claude, Gemini oder ChatGPT wählen – „Intern“ kann keine Bilder lesen.', true); return; }
     kr.disabled = true; kr.textContent = 'KI liest den Plan …';
-    try { clearTimeout(saveT); await saveNow(); const r = await api(`api/bk/${B.id}/files/${kr.dataset.kiroom}/ki-raeume`, 'POST', {}); B = r.bk; toast(`${ki.label}: ${r.found} Räume gelesen, ${r.added} neu übernommen – bitte prüfen.${r.hinweis ? ' ' + r.hinweis : ''}`); render(); }
-    catch (er) { toast(er.message, true); kr.disabled = false; kr.textContent = '✨ KI lesen'; }
+    try {
+      clearTimeout(saveT); await saveNow();
+      const url = `api/bk/${B.id}/files/${kr.dataset.kiroom}/ki-raeume`;
+      let r = await api(url, 'POST', {});
+      while (r.wait) {   // Ollama im Büro: läuft im Hintergrund, ohne Grafikkarte einige Minuten
+        kr.textContent = `KI liest den Plan … ${Math.floor((r.sek || 0) / 60)}:${String((r.sek || 0) % 60).padStart(2, '0')}`;
+        await new Promise((ok) => setTimeout(ok, 4000));
+        r = await api(url, 'POST', { job: r.job });
+      }
+      B = r.bk; toast(`${ki.label}: ${r.found} Räume gelesen, ${r.added} neu übernommen – bitte prüfen.${r.hinweis ? ' ' + r.hinweis : ''}`); render();
+    } catch (er) { toast(er.message, true); kr.disabled = false; kr.textContent = '✨ KI lesen'; }
     return;
   }
   const dr = e.target.closest('[data-delroom]'); if (dr) { B.data.rooms.splice(+dr.dataset.delroom, 1); changed(); return; }

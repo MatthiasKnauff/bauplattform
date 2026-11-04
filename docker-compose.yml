@@ -40,6 +40,7 @@ x-env: &env
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+  OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-qwen3-vl:4b}   # liest Pläne (Bilder); leer = keins
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -198,7 +199,8 @@ services:
       APP_TIMEOUT: "300"
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
-  # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB freien Arbeitsspeicher; ohne Grafikkarte antwortet es langsamer.
+  # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB, für das Bildmodell qwen3-vl:4b (Pläne lesen) weitere ~4 GB freien Arbeitsspeicher;
+  # ohne Grafikkarte antwortet es langsamer (ein Plan: einige Minuten).
   ollama:
     image: ollama/ollama:latest
     container_name: bauplattform_ollama
@@ -215,7 +217,7 @@ services:
       retries: 5
       start_period: 20s
 
-  # lädt einmal beim Start das Modell (OLLAMA_MODEL) herunter und beendet sich dann – vorhandene Modelle werden nur geprüft
+  # lädt einmal beim Start die Modelle (OLLAMA_MODEL, OLLAMA_VISION_MODEL) herunter und beendet sich dann – vorhandene Modelle werden nur geprüft
   ollama_modell:
     image: ollama/ollama:latest
     container_name: bauplattform_ollama_modell
@@ -224,7 +226,7 @@ services:
       ollama: { condition: service_healthy }
     environment:
       OLLAMA_HOST: http://ollama:11434
-    entrypoint: ["/bin/sh", "-c", "ollama pull \"${OLLAMA_MODEL:-qwen2.5:3b}\" && echo \"Modell ${OLLAMA_MODEL:-qwen2.5:3b} bereit\""]
+    entrypoint: ["/bin/sh", "-c", "ollama pull \"${OLLAMA_MODEL:-qwen2.5:3b}\" && echo \"Modell ${OLLAMA_MODEL:-qwen2.5:3b} bereit\"; V=\"${OLLAMA_VISION_MODEL-qwen3-vl:4b}\"; [ -z \"$$V\" ] || ollama pull \"$$V\" && echo \"Bildmodell $$V bereit\""]
 
 volumes:
   bautagebuch_data:

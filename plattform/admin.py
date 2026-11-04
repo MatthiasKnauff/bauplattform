@@ -482,7 +482,7 @@ def _einst(c):
                        "model": cl["model"], "models": ai.CLAUDE_MODELS},
             "gemini": {"hasKey": bool(gm["key"]), "hint": _hint(gm["key"]), "fromEnv": gm["fromEnv"], "model": gm["model"]},
             "chatgpt": {"hasKey": bool(oa["key"]), "hint": _hint(oa["key"]), "fromEnv": oa["fromEnv"], "model": oa["model"]},
-            "ollama": {"url": bool(ai.ollama_url()), "model": ai.ollama_model(), "ok": oll["ok"], "hint": oll["hint"], "models": oll["models"]},
+            "ollama": {"url": bool(ai.ollama_url()), "model": ai.ollama_model(), "vision": ai.ollama_vision_model(), "sieht": ai.ollama_sieht(), "ok": oll["ok"], "hint": oll["hint"], "models": oll["models"]},
         },
     }
 

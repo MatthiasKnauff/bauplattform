@@ -36,6 +36,25 @@ def ollama_model():
     return _env("OLLAMA_MODEL", "qwen2.5:3b")
 
 
+def ollama_vision_model():
+    """Zweites Ollama-Modell, das Bilder lesen kann (Pläne) – leer = keins."""
+    return _env("OLLAMA_VISION_MODEL", "qwen3-vl:4b")
+
+
+def _hat(names, want):
+    return bool(want) and (want in names or want + ":latest" in names or (":" not in want and any(n.split(":")[0] == want for n in names)))
+
+
+def ollama_sieht():
+    """Kann Ollama Bilder lesen (Bildmodell geladen)?"""
+    return bool(ollama_url()) and _hat(ollama_state()["models"], ollama_vision_model())
+
+
+def sieht(provider):
+    """Kann der Anbieter Pläne (Bilder) lesen?"""
+    return provider in VISION or (provider == "ollama" and ollama_sieht())
+
+
 _oll = {"t": 0, "ok": False, "hint": "", "models": []}
 _olock = threading.Lock()
 
@@ -51,7 +70,7 @@ def ollama_state():
                 with urllib.request.urlopen(url + "/api/tags", timeout=2) as r:
                     names = [m.get("name", "") for m in (json.loads(r.read().decode() or "{}").get("models") or [])]
                 want = ollama_model()
-                has = want in names or want + ":latest" in names or (":" not in want and any(n.split(":")[0] == want for n in names))
+                has = _hat(names, want)
                 _oll.update(ok=has, models=names,
                             hint=f"Modell {want}" if has else f"Modell {want} wird noch geladen …" if not names else f"Modell {want} fehlt (vorhanden: {', '.join(names[:3])})")
             except Exception:
@@ -109,6 +128,8 @@ def providers(c=None):
         elif k == "ollama":
             st = ollama_state()
             ok, hint = st["ok"], (desc + " · " + st["hint"]) if st["ok"] else st["hint"]
+            if ok and _hat(st["models"], ollama_vision_model()):
+                hint += " · liest Pläne mit " + ollama_vision_model()
         elif k == "claude":
             ok = bool(claude_conf(c)["key"])
             hint = desc if ok else "nicht eingerichtet (Verwaltung → Einstellungen → KI)"
@@ -118,7 +139,8 @@ def providers(c=None):
         else:
             ok = bool(ext_conf(c, "chatgpt")["key"])
             hint = desc if ok else "nicht eingerichtet (Verwaltung → Einstellungen → KI)"
-        out.append({"key": k, "label": label, "ok": ok, "hint": hint, "paid": k in ("claude", "gemini", "chatgpt")})
+        out.append({"key": k, "label": label, "ok": ok, "hint": hint, "paid": k in ("claude", "gemini", "chatgpt"),
+                    "bild": k in VISION or (k == "ollama" and ok and _hat(ollama_state()["models"], ollama_vision_model()))})
     return out
 
 
@@ -231,7 +253,15 @@ def ask_image(provider, system, user, png, max_tokens=2500, c=None):
                                                                                                    {"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}}]}]},
                   {"authorization": "Bearer " + o["key"]}, timeout=180)
         return ((d.get("choices") or [{}])[0].get("message") or {}).get("content", "")
-    raise AIError("Diese KI kann keine Pläne (Bilder) lesen – oben Claude, Gemini oder ChatGPT wählen")
+    if provider == "ollama" and ollama_url():
+        vm = ollama_vision_model()
+        if not _hat(ollama_state()["models"], vm):
+            raise AIError(f"Das Bildmodell {vm or '(keins)'} ist in Ollama noch nicht geladen – kurz warten oder Claude, Gemini, ChatGPT wählen")
+        p = {"model": vm, "stream": False, "format": "json", "options": {"num_predict": max_tokens, "temperature": 0, "num_ctx": 16384},
+             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user, "images": [b64]}]}
+        d = _post(ollama_url() + "/api/chat", p, {}, timeout=900)   # ohne Grafikkarte: mehrere Minuten
+        return (d.get("message") or {}).get("content", "")
+    raise AIError("Diese KI kann keine Pläne (Bilder) lesen – oben Claude, Gemini, ChatGPT oder Ollama (mit Bildmodell) wählen")
 
 
 def ask_json(provider, system, user, max_tokens=900, c=None):

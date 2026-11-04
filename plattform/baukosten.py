@@ -13,7 +13,7 @@ Kostenermittlung nach DIN 276 aus Plänen (PDF) und dem Bauzeitenplan:
 /api/bk/<id>/check          Plausibilitätsprüfung
 /api/kennwerte              eigene Kennwerte je Raumtyp (für neue Kostenermittlungen)
 """
-import io, json, re
+import io, json, re, time
 from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
@@ -881,21 +881,68 @@ der jeweiligen Zeichnung (z. B. Kellergeschoss, Erdgeschoss). Antworte nur mit J
 {"raeume":[{"geschoss":"Erdgeschoss","nr":"","name":"Küche","flaeche":12.46}],"hinweis":"…"}"""
 
 
+# Ollama im Büro: Plan lesen dauert ohne Grafikkarte Minuten → im Hintergrund; Stand in bp_store „kijob:<id>“ (mehrere Worker)
+def _job_get(c, jid):
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", ("kijob:" + jid,)).fetchone()
+    return _j(r["data"], None) if r else None
+
+
+def _job_put(c, jid, d):
+    c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
+              "updated=EXCLUDED.updated", ("kijob:" + jid, json.dumps(d), _now(), "ki"))
+
+
 @app.post("/api/bk/<int:i>/files/<int:fid>/ki-raeume")
 def file_ki_rooms(i, fid):
-    """Räume mit der gewählten KI aus dem Planbild lesen (für Pläne ohne lesbaren Text, z. B. Scans)."""
+    """Räume mit der gewählten KI aus dem Planbild lesen (für Pläne ohne lesbaren Text, z. B. Scans).
+    Ollama: erste Anfrage startet das Lesen im Hintergrund ({job}); weitere Anfragen mit {job} holen das Ergebnis ({wait} solange es läuft)."""
+    import threading, uuid
     ki = ai.choice_of(g.user)
-    if ki not in ai.VISION:
-        return jsonify(error="Zum Lesen von Plänen oben in der Kopfleiste Claude, Gemini oder ChatGPT wählen (das Ollama-Standardmodell kann keine Bilder lesen)."), 400
+    job = (request.get_json(silent=True) or {}).get("job")
+    txt = None
+    if job:
+        with db.tx() as c:
+            j = _job_get(c, str(job)[:20])
+            if j and j["done"]:
+                c.execute("DELETE FROM bp_store WHERE key=?", ("kijob:" + str(job)[:20],))
+        if not j or j["bk"] != [i, fid]:
+            return jsonify(error="Lesevorgang nicht mehr vorhanden – bitte erneut starten."), 404
+        if not j["done"]:
+            return jsonify(wait=True, job=job, sek=int(time.time() - j["t"]))
+        if j["error"]:
+            return jsonify(error=j["error"]), 502
+        txt, ki = j["txt"], j["ki"]
+    elif not ai.sieht(ki):
+        return jsonify(error="Zum Lesen von Plänen oben in der Kopfleiste Claude, Gemini, ChatGPT oder Ollama (mit Bildmodell) wählen."), 400
     with db.tx() as c:
         f = c.execute("SELECT name, data FROM bk_files WHERE id=? AND bk_id=?", (fid, i)).fetchone()
         if not f:
             return jsonify(error="Nicht gefunden"), 404
-        try:
-            png = preview_png(bytes(f["data"]), width=2200)
-            txt = ai.ask_image(ki, PLAN_SYS, "Lies alle beschrifteten Räume aus diesem Plan.", png, 3000, c)
-        except ai.AIError as e:
-            return jsonify(error=str(e)), 502
+        if txt is None and ki == "ollama":
+            png = preview_png(bytes(f["data"]), width=1600)
+            jid = uuid.uuid4().hex[:12]
+            J = {"bk": [i, fid], "done": False, "txt": "", "error": "", "ki": ki, "t": time.time()}
+            _job_put(c, jid, J)
+            c.execute("DELETE FROM bp_store WHERE key LIKE 'kijob:%' AND updated < ?", ((datetime.now() - timedelta(hours=2)).isoformat(timespec="seconds"),))
+
+            def run():
+                try:
+                    J["txt"] = ai.ask_image("ollama", PLAN_SYS, "Lies alle beschrifteten Räume aus diesem Plan.", png, 3000, None)
+                except ai.AIError as e:
+                    J["error"] = str(e)
+                except Exception as e:
+                    J["error"] = "Fehler beim Lesen: " + str(e)[:200]
+                J["done"] = True
+                with db.tx() as c2:
+                    _job_put(c2, jid, J)
+            threading.Thread(target=run, daemon=True).start()
+            return jsonify(wait=True, job=jid, sek=0)
+        if txt is None:
+            try:
+                png = preview_png(bytes(f["data"]), width=2200)
+                txt = ai.ask_image(ki, PLAN_SYS, "Lies alle beschrifteten Räume aus diesem Plan.", png, 3000, c)
+            except ai.AIError as e:
+                return jsonify(error=str(e)), 502
         try:
             o = ai.parse_json(txt)
         except ai.AIError:

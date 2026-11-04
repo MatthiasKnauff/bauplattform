@@ -506,7 +506,7 @@
     ['firma', 'Firma & Logo', 'Name, Anschrift, Logo und Briefbogen für Briefe und Mails'],
     ['ablage', 'Ablage', 'Dateiserver (Projektordner), Zugang'],
     ['mail', 'Mailserver', 'Postfach, über das die Plattform Mails verschickt'],
-    ['allgemein', 'KI und Kostendatenbanken', 'Anbieter, Schlüssel, eigene Server'],
+    ['allgemein', 'KI', 'Anbieter, Schlüssel, KI im Büro (Ollama)'],
     ['sicherung', 'Datensicherung', 'tägliche Sicherung, Kopie auf dem Dateiserver, Wiederherstellen'],
   ];
   H.einstellungen = function (opt = {}) {

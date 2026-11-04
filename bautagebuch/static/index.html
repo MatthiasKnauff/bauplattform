@@ -1466,8 +1466,8 @@ const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input dat
 const STABS = [['benutzer', 'Benutzer'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['sicherung', 'Datensicherung']];
 let stab = 'benutzer';
 function renderProfile(box) {
-  const m = settings.store_mode || 'off', adm = me.is_admin;
-  if (!adm) stab = 'benutzer';
+  const m = settings.store_mode || 'off', adm = me.is_admin, imFenster = box === PH;
+  if (!adm || imFenster) stab = 'benutzer';   // im Einstellungsfenster (⚙): Firma, Ablage, Mailserver, Sicherung stehen unter „Büro“
   const firm = `  <div class="cform"><h3>Firmendaten</h3>
     ${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}${addrLists()}
     <div class="info">Diese Angaben erscheinen in der Fußzeile jeder PDF-Seite.</div>
@@ -1501,7 +1501,7 @@ function renderProfile(box) {
     <div class="info">Alle Fotos (auch iPhone-HEIC, PNG, WEBP) werden beim Hochladen als JPG gespeichert und liegen auf dem Server in voller Auflösung; nur im PDF sind sie verkleinert. Das Kennwort wird nur auf dem Server der App gespeichert und nie an den Browser zurückgegeben; am besten ein eigenes Konto nur mit Schreibrecht auf diese Freigabe verwenden.</div>
   </div>`;
   const bar = adm ? `<div class="stabs">${STABS.map(([k, l]) => `<button class="${k === stab ? 'on' : ''}" data-act="stab" data-s="${k}">${l}</button>`).join('')}${['firma', 'ablage', 'mail'].includes(stab) ? '<button data-bph-verlauf="einst:bt" title="Frühere Stände von Firma, Ablage und Mailserver ansehen und wiederherstellen" style="margin-left:auto">↶ Verlauf</button>' : ''}</div>` : '';
-  box.innerHTML = `<div class="wrap">${bar}${{benutzer: usersCard, firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
+  box.innerHTML = `<div class="wrap">${imFenster ? (adm ? '<div class="info" style="margin-bottom:.8rem">Firma & Logo, Ablage, Mailserver und Datensicherung: ⚙ → Büro.</div>' : '') : bar}${{benutzer: usersCard, firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
   if (stab === 'benutzer') fillUsers();
   if (stab === 'sicherung') loadBackups();
 

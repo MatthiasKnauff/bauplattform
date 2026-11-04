@@ -371,6 +371,7 @@ function kpis() {
   $('#stat').innerHTML = '<span class="hint">Stand:</span>' + STATUS.map(([k, l]) => `<button type="button" data-status="${k}" class="${L.status === k ? 'on' : ''}">${l}</button>`).join('');
 }
 function render() {
+  if (typeof histUi === 'function') setTimeout(histUi, 0);
   if (tab !== 'lv' && $('#lvSel')) $('#lvSel').hidden = true;
   selBtn(); kpis();
   const n = { lv: posOf().length, angebote: L ? L.angebote.length : 0, aufmass: L ? new Set(L.aufmass.map((a) => a.pos_id)).size : 0, rechnungen: L ? L.rechnungen.length : 0, auftraege: LIST.filter((x) => !x.archived).length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
@@ -1154,9 +1155,10 @@ function histGo(dir) {
 function histUi() {
   let el = $('#histBar');
   if (!el) { el = document.createElement('div'); el.id = 'histBar'; el.innerHTML = '<button class="btn" data-hist="-1">↶ Rückgängig</button><button class="btn" data-hist="1" title="Wiederholen (Strg+Y)">↷</button>'; document.body.appendChild(el);
-    el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (b) histGo(+b.dataset.hist); }); }
-  const u = HIST.undo[HIST.undo.length - 1], r = HIST.redo[HIST.redo.length - 1];
-  el.hidden = !L || (!u && !r);
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (!b) return; if (tab === 'tueren' && TL) tlZurueck(+b.dataset.hist > 0); else histGo(+b.dataset.hist); }); }
+  const tl = tab === 'tueren' && TL;   // in der Türliste: deren eigene Schritte, sonst die des LV
+  const u = tl ? TLH[TLH.length - 1] : HIST.undo[HIST.undo.length - 1], r = tl ? TLR[TLR.length - 1] : HIST.redo[HIST.redo.length - 1];
+  el.hidden = tl ? (!u && !r) : (!L || tab === 'tueren' || (!u && !r));
   const bu = el.querySelector('[data-hist="-1"]'), br = el.querySelector('[data-hist="1"]');
   bu.disabled = !u; bu.title = u ? `Rückgängig: ${u.label} (Strg+Z)` : 'Nichts rückgängig zu machen'; bu.textContent = u ? `↶ ${u.label}` : '↶ Rückgängig';
   br.disabled = !r; br.title = r ? `Wiederholen: ${r.label} (Strg+Y)` : 'Nichts zu wiederholen';
@@ -1165,6 +1167,7 @@ document.addEventListener('keydown', (e) => {
   if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg,.bed')) return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;   // im Feld macht der Browser selbst rückgängig
   const k = e.key.toLowerCase();
+  if (tab === 'tueren') { if (TL && (k === 'z' || k === 'y')) { e.preventDefault(); tlZurueck(k === 'y' || e.shiftKey); } return; }
   if (k === 'z' && !e.shiftKey) { e.preventDefault(); histGo(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); histGo(1); }
 });
 /* Stand speichern: benannter Stand im Verlauf (wird nie automatisch aufgeräumt) */
@@ -1552,10 +1555,17 @@ async function tlJetzt() {
   } catch (e) { $('#save').textContent = 'Nicht gespeichert'; toast(e.message + (e.data && e.data.conflict ? ' Die Liste wird neu geladen.' : ''), true); if (e.data && e.data.conflict) tlLaden(); }
 }
 /* Rückgängig / Wiederholen (Strg+Z / Strg+Y) – je Änderung ein Stand */
-function tlMerken() { TLH.push(JSON.stringify(TL.tueren)); if (TLH.length > 80) TLH.shift(); TLR = []; }
+function tlMerken(label) { TLH.push({ data: JSON.stringify(TL.tueren), label: label || '' }); if (TLH.length > 80) TLH.shift(); TLR = []; setTimeout(tlBeschriften, 0); }
+function tlBeschriften() {   // Text für „↶ …“ aus dem Unterschied ermitteln (wie im LV)
+  const top = TLH[TLH.length - 1]; if (!top || top.label) return histUi();
+  const a = JSON.parse(top.data), n = TL.tueren.length;
+  top.label = n < a.length ? `${a.length - n} Zeile${a.length - n > 1 ? 'n' : ''} gelöscht` : n > a.length ? `${n - a.length} Zeile${n - a.length > 1 ? 'n' : ''} hinzugefügt` : 'Türliste geändert';
+  histUi();
+}
 function tlZurueck(vor) {
   const von = vor ? TLR : TLH, nach = vor ? TLH : TLR; if (!von.length) return toast(vor ? 'Nichts zum Wiederholen.' : 'Nichts mehr rückgängig zu machen.');
-  nach.push(JSON.stringify(TL.tueren)); TL.tueren = JSON.parse(von.pop()); tlSpeichern(true); tlZeichnen();
+  const st = von.pop(); nach.push({ data: JSON.stringify(TL.tueren), label: st.label }); TL.tueren = JSON.parse(st.data); tlSpeichern(true); tlZeichnen(); histUi();
+  toast(`${vor ? 'Wiederholt' : 'Rückgängig'}: ${st.label || 'Änderung'}`);
 }
 const tlSicht = () => { const q = TLq.trim().toLowerCase(); return TL.tueren.filter((t) => !q || Object.values(t).some((v) => typeof v === 'string' && v.toLowerCase().includes(q))); };
 const tlSpalten = () => TSP.filter((c) => !TLzu.has(c[4]) || c[4] === 'Lage');
@@ -1586,7 +1596,6 @@ function vTueren(v) {
       <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button>
       <span class="sep"></span>
       <button class="btn sm" data-tl="dup" ${nZ ? '' : 'disabled'} title="Markierte Zeilen kopieren">Zeilen duplizieren</button><button class="btn sm" data-tl="mehr" ${nZ ? '' : 'disabled'} title="Ein Feld für alle markierten Zeilen setzen">Ändern …</button><button class="btn sm danger" data-tl="del" ${nZ ? '' : 'disabled'}>Zeilen löschen</button>
-      <button class="btn sm" data-tl="undo" title="Rückgängig (Strg+Z)" ${TLH.length ? '' : 'disabled'}>↶</button><button class="btn sm" data-tl="redo" title="Wiederholen (Strg+Y)" ${TLR.length ? '' : 'disabled'}>↷</button>
       <span class="sep"></span>
       <input type="search" id="tlQ" placeholder="Suchen (Nr., Raum, T30 …)" value="${esc(TLq)}">
       <span style="flex:1"></span><span class="hint">${TL.tueren.length} Zeilen · ${stueck} Stück${nZ > 1 ? ` · ${nZ} Zeilen markiert` : ''}</span>
@@ -1616,7 +1625,7 @@ function tlGehe(r, c, erweitern) {
 }
 function tlBearbeiten(start) {   // Zelle bearbeiten (Eingabefeld über der Zelle)
   if (!TLC) return; const T = tlSicht(), S = tlSpalten(), t = T[TLC.r], c = S[TLC.c]; if (!t || !c) return;
-  if (c[2] === 'b') { tlMerken(); tlSetzen(t, c, t[c[0]] ? '' : 'x'); tlSpeichern(); tlZelleNeu(TLC.r, TLC.c); return; }
+  if (c[2] === 'b') { tlMerken(`${c[1]} umgeschaltet`); tlSetzen(t, c, t[c[0]] ? '' : 'x'); tlSpeichern(); tlZelleNeu(TLC.r, TLC.c); return; }
   const td = document.querySelector(`table.tl td[data-r="${TLC.r}"][data-c="${TLC.c}"]`); if (!td) return;
   const inp = document.createElement('input'); inp.className = 'ed'; inp.value = start != null ? start : (t[c[0]] || '');
   if (TA[c[0]]) inp.setAttribute('list', 'tl-' + c[0]);
@@ -1626,7 +1635,7 @@ function tlBearbeiten(start) {   // Zelle bearbeiten (Eingabefeld über der Zell
 }
 function tlEdFertig(ok, weiter) {
   const e = tlEd; if (!e) return; tlEd = null;
-  if (ok && e.inp.value !== e.alt) { tlMerken(); tlSetzen(e.t, e.sp, e.inp.value); tlSpeichern(); }
+  if (ok && e.inp.value !== e.alt) { tlMerken(`${e.sp[1]} geändert`); tlSetzen(e.t, e.sp, e.inp.value); tlSpeichern(); }
   e.inp.remove(); tlZelleNeu(e.r, e.c); const w = $('.tl-w'); if (w) w.focus({ preventScroll: true });
   if (weiter === 'unten') { if (e.r === tlSicht().length - 1) tlAktion('neu'); else tlGehe(e.r + 1, e.c); }
   else if (weiter === 'rechts') tlGehe(e.r, e.c + 1); else if (weiter === 'links') tlGehe(e.r, e.c - 1);
@@ -1639,14 +1648,14 @@ function tlKopieren(ausschneiden) {
   return tsv;
 }
 function tlLeeren() {
-  const B = tlBox(); if (!B) return; const T = tlSicht(), S = tlSpalten(); tlMerken();
+  const B = tlBox(); if (!B) return; const T = tlSicht(), S = tlSpalten(); tlMerken('Zellen geleert');
   T.slice(B.r1, B.r2 + 1).forEach((t) => S.slice(B.c1, B.c2 + 1).forEach((c) => { delete t[c[0]]; })); tlSpeichern(); tlZeichnen();
 }
 function tlEinfuegen(text) {
   if (!text) return; const zeilen = text.replace(/\r/g, '').replace(/\n$/, '').split('\n').map((z) => z.split('\t'));
   if (!TL.tueren.length) { TLA = TLC = { r: 0, c: 0 }; }
   if (!TLC) return toast('Erst eine Zelle anklicken, dann einfügen.', true);
-  const S = tlSpalten(); let T = tlSicht(); tlMerken();
+  const S = tlSpalten(); let T = tlSicht(); tlMerken('Eingefügt');
   const B = tlBox(), einzeln = zeilen.length === 1 && zeilen[0].length === 1;
   if (einzeln && B) { T.slice(B.r1, B.r2 + 1).forEach((t) => S.slice(B.c1, B.c2 + 1).forEach((c) => tlSetzen(t, c, zeilen[0][0]))); tlSpeichern(true); tlZeichnen(); return; }
   const r0 = B ? B.r1 : TLC.r, c0 = B ? B.c1 : TLC.c;
@@ -1659,7 +1668,7 @@ function tlEinfuegen(text) {
   tlSpeichern(true); tlZeichnen(); toast(`${zeilen.length} Zeile${zeilen.length > 1 ? 'n' : ''} eingefügt.`);
 }
 function tlFuellen() {   // Strg+D: oberste Zeile der Markierung nach unten
-  const B = tlBox(); if (!B || B.r2 === B.r1) return; const T = tlSicht(), S = tlSpalten(); tlMerken();
+  const B = tlBox(); if (!B || B.r2 === B.r1) return; const T = tlSicht(), S = tlSpalten(); tlMerken('Nach unten ausgefüllt');
   T.slice(B.r1 + 1, B.r2 + 1).forEach((t) => S.slice(B.c1, B.c2 + 1).forEach((c) => { if (T[B.r1][c[0]] == null) delete t[c[0]]; else t[c[0]] = T[B.r1][c[0]]; }));
   tlSpeichern(true); tlZeichnen();
 }
@@ -1699,8 +1708,6 @@ document.addEventListener('keydown', (e) => {
   }
   if (!e.target.classList || !e.target.classList.contains('tl-w')) return;
   const k = e.key, strg = e.ctrlKey || e.metaKey;
-  if (strg && (k === 'z' || k === 'Z')) { e.preventDefault(); return tlZurueck(e.shiftKey); }
-  if (strg && (k === 'y' || k === 'Y')) { e.preventDefault(); return tlZurueck(true); }
   if (strg && (k === 'a' || k === 'A')) { e.preventDefault(); TLA = { r: 0, c: 0 }; TLC = { r: tlSicht().length - 1, c: tlSpalten().length - 1 }; return tlMarkieren(); }
   if (strg && (k === 'd' || k === 'D')) { e.preventDefault(); return tlFuellen(); }
   if (!TLC) { if (k.startsWith('Arrow')) { e.preventDefault(); tlGehe(0, 0); } return; }

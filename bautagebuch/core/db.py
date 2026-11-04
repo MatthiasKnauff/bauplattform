@@ -140,7 +140,16 @@ def tx():
     """Eine Transaktion: bei Erfolg commit, bei Fehler rollback. Verbindungen werden wiederverwendet."""
     with _plock:
         con = _pool.pop() if _pool else None
-    if con is None or con._c.closed:
+    if con is not None and not con._c.closed and time.time() - getattr(con, "_used", 0) > 20:
+        try:   # länger unbenutzt: prüfen, ob die Verbindung noch lebt (z. B. nach Neustart der Datenbank)
+            con._c.execute("SELECT 1"); con._c.rollback()
+        except Exception:
+            try:
+                con.close()
+            except Exception:
+                pass
+            con = None
+    if con is None or con._c.closed or getattr(con._c, "broken", False):
         con = _open()
     try:
         yield con
@@ -155,7 +164,8 @@ def tx():
         try:
             if not con._c.closed:
                 with _plock:
-                    if len(_pool) < 8:
+                    if len(_pool) < 8 and not getattr(con._c, "broken", False):
+                        con._used = time.time()
                         _pool.append(con)
                         con = None
         finally:

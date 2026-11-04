@@ -41,6 +41,8 @@
 .emp label{display:flex;gap:.5rem;align-items:baseline}
 .emp small{color:var(--mute)}
 .vd textarea{width:100%;min-height:12rem;font:inherit}
+.modal.wide{width:min(980px,96vw);max-width:none}
+@media (min-width:900px){.modal.wide .vd{grid-template-columns:1fr 1fr;column-gap:1.6rem}.modal.wide .vd>.full{grid-column:1/-1}.modal.wide .vd textarea{min-height:16rem}.modal.wide .emp{max-height:22rem}}
 .vd input[type=text],.vd input[type=email]{width:100%}
 .opt{display:grid;gap:.25rem}
 .opt label{display:flex;gap:.5rem;align-items:baseline}
@@ -180,23 +182,23 @@ async function versandDialog() {
   const ohneGw = g.filter((x) => !x.p.gewerk).length;
   const size = (cad) => g.reduce((a, x) => a + x.st.pdf.groesse + (cad ? x.st.cad.reduce((s, c) => s + c.groesse, 0) : 0), 0);
   const html = () => `<h3>Pläne versenden</h3><div class="vd">
-    <div><h4>Pläne (${g.length})</h4><div class="mu" style="font-size:.88rem">${g.map((x) => esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div>
+    <div class="full"><h4>Pläne (${g.length})</h4><div class="mu" style="font-size:.88rem">${g.map((x) => esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div>
       ${ohneGw ? `<p class="warn">${ohneGw > 1 ? ohneGw + ' Plänen' : 'Einem Plan'} ist noch kein Gewerk zugeordnet – Empfänger bitte selbst wählen oder in der Liste das Gewerk eintragen.</p>` : ''}</div>
     <div><h4>Empfänger</h4>${gws.length ? `<p class="mu" style="margin:.1rem 0 .4rem;font-size:.85rem">Vorgeschlagen nach Gewerk: ${esc(gws.join(', '))}</p>` : ''}
       <div class="emp">${firmen.length ? firmen.map((f, i) => `<label><input type="checkbox" data-emp="${i}"${f.vor && f.email ? ' checked' : ''}${f.email ? '' : ' disabled'}> <span><b>${esc(f.name)}</b> <small>${esc(f.gewerke.join(', '))}${f.email ? ' · ' + esc(f.email) : ' · keine E-Mail-Adresse (in Adressen eintragen)'}</small></span></label>`).join('') : '<span class="mu">Für dieses Projekt sind keine Firmen bekannt (Bauzeitenplan → Gewerke & Firmen oder Anwesende im Bautagebuch).</span>'}
       ${extra.map((e, i) => `<label><input type="checkbox" data-ext="${i}" checked> <span><b>${esc(e.name || e.email)}</b> <small>${esc(e.email)}</small></span></label>`).join('')}</div>
       <div style="display:flex;gap:.5rem;margin-top:.4rem"><input type="email" id="vAdd" placeholder="weitere E-Mail-Adresse" list="vAddL" style="flex:1"><datalist id="vAddL"></datalist><button class="btn sm" data-m="add">Hinzufügen</button></div></div>
-    ${cadN ? `<div class="opt"><h4>CAD-Dateien</h4><p class="mu" style="margin:0;font-size:.88rem">Zu ${cadN} der gewählten Pläne gibt es passende CAD-Dateien (gleiche Nummer und gleicher Index). Mitsenden?</p>
+    <div style="display:grid;gap:.8rem;align-content:start">${cadN ? `<div class="opt"><h4>CAD-Dateien</h4><p class="mu" style="margin:0;font-size:.88rem">Zu ${cadN} der gewählten Pläne gibt es passende CAD-Dateien (gleiche Nummer und gleicher Index). Mitsenden?</p>
       <label><input type="radio" name="vCad" value="1"> ja, CAD-Dateien mitsenden</label><label><input type="radio" name="vCad" value="0" checked> nein, nur die PDFs</label></div>` : ''}
     <div class="opt"><h4>Versand</h4>
       <label><input type="radio" name="vArt" value="direkt"${V.versand !== 'mich' ? ' checked' : ''}> direkt an die Empfänger (eine E-Mail je Firma)</label>
       <label style="margin-left:1.6rem"><input type="checkbox" id="vKopie"${V.kopie ? ' checked' : ''}> Kopie an mich</label>
       <label><input type="radio" name="vArt" value="mich"${V.versand === 'mich' ? ' checked' : ''}> an mich zum Weiterleiten${V.email ? ` (${esc(V.email)})` : ''}</label>
-      <label class="dis" title="folgt, sobald die eigene Nextcloud eingerichtet ist"><input type="radio" name="vArt" value="link" disabled> als Download-Link über die Nextcloud des Büros – folgt</label></div>
-    <div><h4>E-Mail</h4><label>Betreff<input type="text" id="vBetreff" value="${esc(V.betreff)}"></label>
+      <label class="dis" title="folgt, sobald die eigene Nextcloud eingerichtet ist"><input type="radio" name="vArt" value="link" disabled> als Download-Link über die Nextcloud des Büros – folgt</label></div></div>
+    <div class="full"><h4>E-Mail</h4><label>Betreff<input type="text" id="vBetreff" value="${esc(V.betreff)}"></label>
       <label>Text<textarea id="vText">${esc(V.text)}</textarea></label>
       <p class="mu" style="font-size:.8rem;margin:.2rem 0 0">{planliste} wird durch die Liste der Pläne ersetzt, {firma} durch den Namen des Empfängers, {anzahl} durch die Zahl der Pläne. Die Vorlage pflegt der Administrator unter Mein Konto → E-Mail-Vorlagen.</p></div>
-    <p id="vSize" class="mu"></p>${V.mail ? '' : '<p class="warn">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'}
+    <p id="vSize" class="mu full"></p>${V.mail ? '' : '<p class="warn full">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'}
     </div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="send">Senden</button></div>`;
   const bg = modalBox(html(), async (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -208,6 +210,8 @@ async function versandDialog() {
       const art = (bg.querySelector('[name=vArt]:checked') || {}).value || 'direkt', cad = (bg.querySelector('[name=vCad]:checked') || {}).value === '1';
       const emp = [...bg.querySelectorAll('[data-emp]:checked')].map((x) => ({ name: firmen[+x.dataset.emp].name, email: firmen[+x.dataset.emp].email }))
         .concat([...bg.querySelectorAll('[data-ext]:checked')].map((x) => extra[+x.dataset.ext]));
+      const offen = $('#vAdd', bg).value.trim();   // eingetippt, aber nicht „Hinzufügen“ gedrückt
+      if (/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(offen) && !emp.some((e) => e.email.toLowerCase() === offen.toLowerCase())) emp.push({ name: '', email: offen });
       if (art === 'direkt' && !emp.length) { toast('Bitte mindestens einen Empfänger wählen.', true); return; }
       const btn = bg.querySelector('[data-m=send]'); btn.disabled = true; btn.textContent = 'wird gesendet …';
       try {
@@ -221,6 +225,7 @@ async function versandDialog() {
   const save = (bg) => ({ b: $('#vBetreff', bg).value, t: $('#vText', bg).value, emp: [...bg.querySelectorAll('[data-emp]')].map((x) => x.checked), art: (bg.querySelector('[name=vArt]:checked') || {}).value, cad: (bg.querySelector('[name=vCad]:checked') || {}).value, kopie: $('#vKopie', bg).checked });
   const restore = (bg, k) => { $('#vBetreff', bg).value = k.b; $('#vText', bg).value = k.t; bg.querySelectorAll('[data-emp]').forEach((x, i) => { x.checked = k.emp[i]; }); const a = bg.querySelector(`[name=vArt][value="${k.art}"]`); if (a) a.checked = true; const c = bg.querySelector(`[name=vCad][value="${k.cad}"]`); if (c) c.checked = true; $('#vKopie', bg).checked = k.kopie; };
   const sz = (bg) => { const cad = (bg.querySelector('[name=vCad]:checked') || {}).value === '1', s = size(cad), lim = (CFG.max_mb || 20) * 1048576; $('#vSize', bg).innerHTML = `Anhänge zusammen etwa <b>${mb(s)}</b>${s > lim ? ` – <b>mehr als ${CFG.max_mb} MB</b>: viele Mailserver nehmen das nicht an. Bitte weniger Pläne auf einmal oder ohne CAD-Dateien senden.` : ''}`; };
+  bg.querySelector('.modal').classList.add('wide');
   bg.addEventListener('change', () => sz(bg)); sz(bg);
   api('api/kontakte').then((K) => { const dl = $('#vAddL', bg); if (dl) dl.innerHTML = K.map((k) => `<option value="${esc(k.email)}">${esc(k.name)}</option>`).join(''); }).catch(() => {});
 }

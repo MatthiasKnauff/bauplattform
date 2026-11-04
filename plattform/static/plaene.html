@@ -49,6 +49,9 @@
 .opt label.dis{opacity:.5}
 .warn{border:1px solid var(--y);border-radius:8px;padding:.5rem .7rem;font-size:.9rem}
 .so summary{cursor:pointer;color:var(--mute);margin:1.2rem 0 .4rem}
+.so-h{cursor:pointer;user-select:none;white-space:nowrap}.so-h:hover{color:var(--ink)}
+.baum{display:grid;gap:.15rem;max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem}
+.baum label{display:flex;gap:.45rem;align-items:baseline;white-space:nowrap}.baum label.off{opacity:.55}.baum small{color:var(--mute)}
 .so li{margin:.15rem 0}
 .vl td{font-size:.9rem}
 .set textarea{width:100%;min-height:7rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
@@ -85,18 +88,36 @@ function renderTabs() {
   $('#tabs').innerHTML = [['plaene', 'Pläne', n], ['liste', 'Planversandliste', v]].map(([k, l, c]) => `<button class="tab ${tab === k ? 'on' : ''}" data-tab="${k}">${l}${c ? `<small>${c}</small>` : ''}</button>`).join('');
 }
 function renderOrd() {
-  if (!D) { $('#ord').innerHTML = ''; return; }
-  const opts = ['<option value="">automatisch (Planordner suchen)</option>'].concat((D.oberordner || []).map((o) => `<option${D.ordner === o ? ' selected' : ''}>${esc(o)}</option>`));
-  if (D.ordner && !(D.oberordner || []).includes(D.ordner)) opts.push(`<option selected>${esc(D.ordner)}</option>`);
-  $('#ord').innerHTML = `Projektordner <code>${esc(D.basis || '')}</code> · durchsucht: <select id="ordSel" aria-label="Planordner">${opts.join('')}</select>
-    ${D.ordner !== D.gemerkt ? '<button class="btn sm" id="ordMerk">für dieses Projekt merken</button>' : D.gemerkt ? '<span class="pill ok">gemerkt</span>' : ''}
-    ${D.abgebrochen ? '<span class="pill bad" title="Sehr viele Dateien – bitte einen Planordner wählen">Suche abgebrochen</span>' : ''}`;
+  if (!D || D.error) { $('#ord').innerHTML = ''; return; }
+  const n = (D.aus || []).length;
+  $('#ord').innerHTML = `Projektordner <code>${esc(D.basis || '')}</code> · durchsucht: <b>${n ? `alle Ordner außer ${n}` : 'alle Ordner'}</b>
+    <button class="btn sm" id="ordBaum">Ordner wählen …</button>
+    ${D.abgebrochen ? '<span class="pill bad" title="Sehr viele Dateien – bitte unter „Ordner wählen“ große Ordner (z. B. Fotos) abwählen">Suche nicht vollständig</span>' : ''}`;
 }
+/* Verzeichnisbaum mit Häkchen: abgewählte Ordner (samt Unterordnern) werden nicht durchsucht */
+function baumDialog() {
+  const B = (D.baum || []).slice().sort((a, b) => a.pfad.localeCompare(b.pfad, 'de'));
+  const aus = new Set(D.aus || []);
+  const sum = (pf) => B.filter((x) => x.pfad === pf || x.pfad.startsWith(pf + '/')).reduce((s, x) => s + x.n, 0);
+  const html = () => `<h3>Ordner durchsuchen</h3><p class="hint mu" style="margin:0 0 .6rem;font-size:.88rem">Häkchen = wird durchsucht (mit allen Unterordnern). Abgewählte Ordner werden übersprungen – z. B. Fotos, damit die Suche schneller ist. Die Zahl nennt die gefundenen PDF- und CAD-Dateien.</p>
+    <div class="baum">${B.map((x) => { const t = x.pfad.split('/'), d = t.length - 1, off = t.some((_, i) => aus.has(t.slice(0, i + 1).join('/')));
+      return `<label style="padding-left:${d * 1.2}rem" class="${off ? 'off' : ''}"><input type="checkbox" data-bp="${esc(x.pfad)}"${off ? '' : ' checked'}${t.slice(0, -1).some((_, i) => aus.has(t.slice(0, i + 1).join('/'))) ? ' disabled' : ''}> 📁 ${esc(t[d])} <small>${x.aus ? 'nicht durchsucht' : sum(x.pfad) || ''}</small></label>`; }).join('') || '<p class="mu">Keine Unterordner.</p>'}</div>
+    <div class="acts"><button class="btn" data-m="std" style="margin-right:auto" title="Foto- und Bautagebuch-Ordner auslassen, sonst alles">Vorgabe</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen und neu durchsuchen</button></div>`;
+  const bg = modalBox(html(), async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    const neu = m === 'std' ? null : [...aus];
+    try { await api('api/projekt/' + pid, 'PUT', { aus: neu }); close(); SEL.clear(); laden(); } catch (e) { toast(e.message, true); }
+  });
+  bg.querySelector('.modal').classList.add('wide');
+  bg.addEventListener('change', (e) => { const pf = e.target.dataset.bp; if (pf == null) return; if (e.target.checked) aus.delete(pf); else { aus.add(pf); [...aus].forEach((a) => { if (a.startsWith(pf + '/')) aus.delete(a); }); } const st = bg.querySelector('.baum').scrollTop; bg.querySelector('.modal').innerHTML = html(); bg.querySelector('.baum').scrollTop = st; });
+}
+const frei = (f) => ({ key: f.key, frei: true, nr: '', kennung: '', titel: f.titel, phase: '', phase_name: f.ordner || '', planart_name: '', gewerk: f.gewerk, gewerk_quelle: f.gewerk_quelle,
+  staende: [{ index: '', pdf: f, cad: f.cad || [], kopien: 0 }] });
 
 function sichtbar() {
   if (!D) return [];
   const q = F.q.trim().toLowerCase();
-  return D.plaene.filter((p) => (!F.gw || (F.gw === '-' ? !p.gewerk : p.gewerk === F.gw)) && (!F.phase || p.phase === F.phase)
+  return D.plaene.concat(F.phase ? [] : D.frei || []).filter((p) => (!F.gw || (F.gw === '-' ? !p.gewerk : p.gewerk === F.gw)) && (!F.phase || p.phase === F.phase)
     && (!q || [p.nr, p.titel, p.kennung, p.gewerk, p.phase_name, p.planart_name, ...p.staende.map((s) => s.pdf && s.pdf.name)].join(' ').toLowerCase().includes(q)));
 }
 function render() {
@@ -112,33 +133,49 @@ function render() {
     const last = v[v.length - 1];
     return `<tr class="${alt ? 'alt' : ''}" data-k="${esc(k)}">
       <td>${s ? `<input type="checkbox" data-sel="${esc(k)}"${SEL.has(k) ? ' checked' : ''} aria-label="Plan wählen">` : ''}</td>
-      <td class="nr">${alt ? '' : `${p.kennung ? `<span class="pill">${esc(p.kennung)}</span> ` : ''}<b>${esc(p.nr)}</b>`}</td>
-      <td><span class="idx ${st.index ? '' : 'o'}" title="${st.index ? 'Index ' + st.index : 'Ursprungsplan (ohne Index)'}">${st.index || '–'}</span></td>
-      <td class="ti">${alt ? `<span class="mu">älterer Stand</span>` : `<b>${esc(p.titel || '')}</b><div class="mu">${esc([p.phase_name || ('Phase ' + p.phase), p.planart_name].filter(Boolean).join(' · '))}</div>`}
+      <td class="nr">${alt ? '' : p.frei ? '<span class="mu">ohne Nr.</span>' : `${p.kennung ? `<span class="pill">${esc(p.kennung)}</span> ` : ''}<b>${esc(p.nr)}</b>`}</td>
+      <td>${p.frei ? '' : `<span class="idx ${st.index ? '' : 'o'}" title="${st.index ? 'Index ' + st.index : 'Ursprungsplan (ohne Index)'}">${st.index || '–'}</span>`}</td>
+      <td class="ti">${alt ? `<span class="mu">älterer Stand</span>` : `<b>${esc(p.titel || '')}</b><div class="mu">${p.frei ? '📁 ' + esc(p.phase_name || 'Projektordner') : esc([p.phase_name || ('Phase ' + p.phase), p.planart_name].filter(Boolean).join(' · '))}</div>`}
         ${s ? `<div class="mu"><a href="${fileUrl(s.pfad)}" target="_blank" rel="noopener">${esc(s.name)}</a> · ${mb(s.groesse)} · ${de(s.mtime)}${st.kopien ? ` · ${st.kopien} weitere Kopie${st.kopien > 1 ? 'n' : ''}` : ''}</div>` : '<div class="mu">nur CAD-Datei</div>'}
         ${st.cad.length ? `<div class="mu">CAD: ${st.cad.map((c) => `<a href="${fileUrl(c.pfad, 1)}">${esc(c.ext.slice(1).toUpperCase())}</a>`).join(', ')}</div>` : ''}</td>
       <td class="gw hide-m ${alt ? '' : p.gewerk ? '' : 'leer'}">${alt ? '' : `<select data-gw="${esc(p.key)}" aria-label="Gewerk">${gwOpts(p.gewerk)}</select><small>${p.gewerk ? esc(p.gewerk_quelle === 'zugeordnet' ? 'von Hand zugeordnet' : 'erkannt: ' + p.gewerk_quelle) : 'nicht erkannt'}</small>`}</td>
       <td class="hide-m">${last ? `<div class="sent" title="${esc(v.map((x) => de(x.datum) + ' an ' + x.an).join('\n'))}">✓ ${de(last.datum)}<br>${esc(last.an)}${v.length > 1 ? ` (+${v.length - 1})` : ''}</div>` : '<span class="mu">noch nicht versendet</span>'}</td>
       <td>${!alt && p.staende.length > 1 ? `<button class="ex" data-ex="${esc(p.key)}" aria-expanded="${OPEN.has(p.key)}" title="ältere Stände">${OPEN.has(p.key) ? '▾' : '▸'} ${p.staende.length - 1}</button>` : ''}</td></tr>`;
   };
-  const rows = L.map((p) => {
+  const Lp = sortiert(L.filter((p) => !p.frei)), Lf = sortiert(L.filter((p) => p.frei));
+  const rowsOf = (LL) => LL.map((p) => {
     const vis = F.alle || OPEN.has(p.key) ? p.staende : p.staende.slice(0, 1);
     return vis.map((st, i) => row(p, st, i > 0)).join('');
   }).join('');
+  const rows = rowsOf(Lp), rowsF = rowsOf(Lf);
+  const th = (k, l, cls = '') => `<th class="so-h ${cls}" data-sort="${k}" title="sortieren" aria-sort="${S.k === k ? (S.d > 0 ? 'ascending' : 'descending') : 'none'}">${l}${S.k === k ? (S.d > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+  const sp = (k, l) => `<span class="so-h" data-sort="${k}" title="sortieren">${l}${S.k === k ? (S.d > 0 ? ' ▲' : ' ▼') : ''}</span>`;
+  const head = (t) => `<thead><tr><th></th>${t ? th('nr', 'Plan-Nr.') + th('index', 'Index') : '<th></th><th></th>'}<th>${sp('titel', 'Titel')} · ${sp('datum', 'Datum')}</th>${th('gewerk', 'Gewerk', 'hide-m')}${th('versendet', 'Versendet', 'hide-m')}<th></th></tr></thead>`;
   $('#view').innerHTML = `<div class="flt"><input type="search" id="q" placeholder="Suchen: Nummer, Titel, Gewerk …" value="${esc(F.q)}">
       <select id="fgw"><option value="">alle Gewerke</option><option value="-"${F.gw === '-' ? ' selected' : ''}>ohne Gewerk</option>${D.gewerke.map((g) => `<option${F.gw === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select>
       <select id="fph"><option value="">alle Phasen</option>${phasen.map((x) => `<option value="${esc(x)}"${F.phase === x ? ' selected' : ''}>${esc(x + ' ' + (CFG.phasen[x] || ''))}</option>`).join('')}</select>
       <label class="chk"><input type="checkbox" id="falle"${F.alle ? ' checked' : ''}> ältere Stände zeigen</label>
       <button class="btn sm" id="selNeu" title="den neuesten Stand aller angezeigten Pläne wählen">Neueste wählen</button>${SEL.size ? '<button class="btn sm" id="selNone">Auswahl aufheben</button>' : ''}</div>
-    ${L.length ? `<div class="tbl"><table class="pl"><thead><tr><th></th><th>Plan-Nr.</th><th>Index</th><th>Titel · Datei</th><th class="hide-m">Gewerk</th><th class="hide-m">Versendet</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
-      : `<div class="card"><p>${D.plaene.length ? 'Keine Pläne zu diesem Filter.' : 'Im Ordner wurden keine Pläne nach der Plannummerierung gefunden (z. B. „A526 2.1.1.2 INDEX B Grundriss EG.pdf“). Oben einen anderen Ordner wählen.'}</p></div>`}
-    ${D.sonstige.length ? `<details class="so"><summary>${D.sonstige.length} weitere PDF-Dateien ohne Plannummer</summary><ul>${D.sonstige.slice(0, 300).map((f) => `<li><a href="${fileUrl(f.pfad)}" target="_blank" rel="noopener">${esc(f.pfad)}</a> <span class="mute">${mb(f.groesse)} · ${de(f.mtime)}</span></li>`).join('')}</ul></details>` : ''}`;
+    ${Lp.length ? `<div class="tbl"><table class="pl">${head('Plan-Nr.')}<tbody>${rows}</tbody></table></div>`
+      : `<div class="card"><p>${D.plaene.length ? 'Keine Pläne mit Plannummer zu diesem Filter.' : 'Keine Pläne nach der Plannummerierung gefunden (z. B. „A526 2.1.1.2 INDEX B Grundriss EG.pdf“).'}</p></div>`}
+    ${(D.frei || []).length ? `<h3 style="margin:1.4rem 0 .5rem">Weitere PDF-Dateien ohne Plannummer <small class="mu">(${Lf.length}${Lf.length !== D.frei.length ? ' von ' + D.frei.length : ''}, neueste zuerst)</small></h3>
+      ${Lf.length ? `<div class="tbl"><table class="pl">${head('')}<tbody>${rowsF}</tbody></table></div>` : '<p class="mu">Keine zu diesem Filter.</p>'}` : ''}`;
   bar();
+}
+/* Sortieren per Klick auf die Spaltenköpfe (nochmal = umgekehrt); gilt für beide Listen */
+let S = LS.get('sort', { k: 'nr', d: 1 });
+const nrKey = (p) => (p.nr || '').split('.').map((x) => String(+x || 0).padStart(4, '0')).join('.');
+function sortiert(L) {
+  const top = (p) => p.staende.find((x) => x.pdf) || p.staende[0];
+  const val = { nr: (p) => (p.frei ? '' : p.proj + nrKey(p) + p.kennung), index: (p) => top(p).index || '', titel: (p) => (p.titel || '').toLowerCase(),
+    gewerk: (p) => (p.gewerk || '\uffff').toLowerCase(), datum: (p) => (top(p).pdf || {}).mtime || 0,
+    versendet: (p) => { const v = (top(p).pdf || {}).versendet || []; return v.length ? v[v.length - 1].datum : ''; } }[S.k] || ((p) => nrKey(p));
+  return L.slice().sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * S.d || nrKey(a).localeCompare(nrKey(b)); });
 }
 function gewaehlt() {
   const out = [];
   if (!D) return out;
-  for (const p of D.plaene) for (const st of p.staende) if (SEL.has(stKey(p, st)) && st.pdf) out.push({ p, st });
+  for (const p of D.plaene.concat(D.frei || [])) for (const st of p.staende) if (SEL.has(stKey(p, st)) && st.pdf) out.push({ p, st });
   return out;
 }
 function bar() {
@@ -149,12 +186,13 @@ function bar() {
   b.innerHTML = `<span><b>${g.length}</b> ${g.length > 1 ? 'Pläne' : 'Plan'} gewählt · ${mb(size)}${cad ? ` · zu ${cad} passende CAD-Dateien` : ''}</span><button class="btn pri" id="vBtn">Versand vorbereiten …</button>`;
 }
 
-async function laden(ordner) {
+async function laden() {
   if (!pid) { D = null; render(); return; }
   busy = true; D = null; render();
-  try { D = await api(`api/plaene?project_id=${pid}` + (ordner != null ? '&ordner=' + encodeURIComponent(ordner) : '')); }
+  try { D = await api(`api/plaene?project_id=${pid}`); }
   catch (e) { D = { error: e.message, plaene: [], sonstige: [], gewerke: [], firmen: [] }; }
-  busy = false; SEL = new Set([...SEL].filter((k) => D.plaene.some((p) => p.staende.some((st) => stKey(p, st) === k))));
+  D.frei = (D.sonstige || []).map(frei);
+  busy = false; SEL = new Set([...SEL].filter((k) => D.plaene.concat(D.frei).some((p) => p.staende.some((st) => stKey(p, st) === k))));
   render();
   api('api/versandliste?project_id=' + pid).then((r) => { VL = r; renderTabs(); if (tab === 'liste') renderListe(); }).catch(() => {});
 }
@@ -182,7 +220,7 @@ async function versandDialog() {
   const ohneGw = g.filter((x) => !x.p.gewerk).length;
   const size = (cad) => g.reduce((a, x) => a + x.st.pdf.groesse + (cad ? x.st.cad.reduce((s, c) => s + c.groesse, 0) : 0), 0);
   const html = () => `<h3>Pläne versenden</h3><div class="vd">
-    <div class="full"><h4>Pläne (${g.length})</h4><div class="mu" style="font-size:.88rem">${g.map((x) => esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div>
+    <div class="full"><h4>Pläne (${g.length})</h4><div class="mu" style="font-size:.88rem">${g.map((x) => x.p.frei ? esc(x.st.pdf.name) : esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div>
       ${ohneGw ? `<p class="warn">${ohneGw > 1 ? ohneGw + ' Plänen' : 'Einem Plan'} ist noch kein Gewerk zugeordnet – Empfänger bitte selbst wählen oder in der Liste das Gewerk eintragen.</p>` : ''}</div>
     <div><h4>Empfänger</h4>${gws.length ? `<p class="mu" style="margin:.1rem 0 .4rem;font-size:.85rem">Vorgeschlagen nach Gewerk: ${esc(gws.join(', '))}</p>` : ''}
       <div class="emp">${firmen.length ? firmen.map((f, i) => `<label><input type="checkbox" data-emp="${i}"${f.vor && f.email ? ' checked' : ''}${f.email ? '' : ' disabled'}> <span><b>${esc(f.name)}</b> <small>${esc(f.gewerke.join(', '))}${f.email ? ' · ' + esc(f.email) : ' · keine E-Mail-Adresse (in Adressen eintragen)'}</small></span></label>`).join('') : '<span class="mu">Für dieses Projekt sind keine Firmen bekannt (Bauzeitenplan → Gewerke & Firmen oder Anwesende im Bautagebuch).</span>'}
@@ -260,24 +298,25 @@ async function setDialog() {
 document.addEventListener('click', async (e) => {
   const t = e.target;
   const tb = t.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; history.replaceState(null, '', '#' + tab); render(); return; }
+  const so = t.closest('[data-sort]'); if (so) { const k = so.dataset.sort; S = { k, d: S.k === k ? -S.d : (k === 'datum' || k === 'versendet' ? -1 : 1) }; LS.set('sort', S); render(); return; }
   const ex = t.closest('[data-ex]'); if (ex) { const k = ex.dataset.ex; OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); render(); return; }
   if (t.id === 'selNeu') { sichtbar().forEach((p) => { const st = p.staende.find((s) => s.pdf); if (st) SEL.add(stKey(p, st)); }); render(); return; }
   if (t.id === 'selNone') { SEL.clear(); render(); return; }
   if (t.id === 'vBtn') { versandDialog(); return; }
   if (t.id === 'reBtn') { laden(); return; }
   if (t.id === 'setBtn') { setDialog(); return; }
-  if (t.id === 'ordMerk') { try { await api('api/projekt/' + pid, 'PUT', { ordner: D.ordner }); D.gemerkt = D.ordner; renderOrd(); toast('Planordner gemerkt.'); } catch (er) { toast(er.message, true); } }
+  if (t.id === 'ordBaum') { baumDialog(); return; }
+  if (t.id === 'ordMerkAlt') { try { await api('api/projekt/' + pid, 'PUT', { ordner: D.ordner }); D.gemerkt = D.ordner; renderOrd(); toast('Planordner gemerkt.'); } catch (er) { toast(er.message, true); } }
 });
 document.addEventListener('change', async (e) => {
   const t = e.target;
   if (t.dataset.sel) { t.checked ? SEL.add(t.dataset.sel) : SEL.delete(t.dataset.sel); bar(); return; }
   if (t.dataset.gw) {
     const key = t.dataset.gw, v = t.value;
-    try { await api('api/projekt/' + pid, 'PUT', { zuordnung: { [key]: v } }); const p = D.plaene.find((x) => x.key === key); if (p) { p.gewerk = v; p.gewerk_quelle = v ? 'zugeordnet' : ''; } render(); } catch (er) { toast(er.message, true); }
+    try { await api('api/projekt/' + pid, 'PUT', { zuordnung: { [key]: v } }); const p = D.plaene.concat(D.frei || []).find((x) => x.key === key); if (p) { p.gewerk = v; p.gewerk_quelle = v ? 'zugeordnet' : ''; } render(); } catch (er) { toast(er.message, true); }
     return;
   }
   if (t.id === 'proj') { pid = +t.value || null; LS.set('pid', pid); SEL.clear(); OPEN.clear(); VL = null; head(); laden(); return; }
-  if (t.id === 'ordSel') { SEL.clear(); laden(t.value); return; }
   if (t.id === 'fgw' || t.id === 'fph' || t.id === 'falle') { F.gw = $('#fgw').value; F.phase = $('#fph').value; F.alle = $('#falle').checked; LS.set('filter', F); render(); }
 });
 let qT = null;

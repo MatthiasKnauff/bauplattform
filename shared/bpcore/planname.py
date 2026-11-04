@@ -31,6 +31,7 @@ STANDARD = {
 CAD = {".dwg", ".dxf", ".dwf", ".pln", ".ifc"}
 KENNUNG = r"AA|ELT|FL|FK|AP|IP|NA|P\s*\([^)]*\)|P"
 RX = re.compile(r"^(?P<proj>[A-Za-z]\d{3}(?:\.\d+)*)[\s_-]+(?:(?P<gw>" + KENNUNG + r")[\s_-]+)?(?P<nr>\d+(?:[._]\d+){1,5})(?![\d])[._\s-]*(?P<rest>.*)$", re.I)
+RX2 = re.compile(r"(?<![A-Za-z0-9])" + RX.pattern[1:], re.I)
 IDX = re.compile(r"(?:^|[\s_-])(?:INDEX|IDX)[\s_.-]*(?P<i>[A-Z])(?=$|[\s_.-])", re.I)
 LFD = re.compile(r"[\s_-]+(\d{1,3})$")
 
@@ -40,6 +41,9 @@ def lies(dateiname):
     stem, ext = (dateiname.rsplit(".", 1) + [""])[:2] if "." in dateiname else (dateiname, "")
     ext = "." + ext.lower() if ext else ""
     m = RX.match(stem.strip())
+    if not m:   # Plannummer mitten im Namen („A481 Tierheim … NEU_5008_A481 5.1.4.10. Balkonplatten_7“)
+        ms = list(RX2.finditer(stem.strip()))
+        m = ms[-1] if ms else None
     if not m:
         return None
     rest = m.group("rest") or ""
@@ -88,12 +92,15 @@ def ordnen(dateien, conf, zuordnung=None):
     Stand: {index, pdf:{pfad,name,groesse,mtime}, cad:[…]} – neuester Stand zuerst."""
     zuordnung = zuordnung or {}
     ph, pa = conf.get("phasen") or {}, conf.get("planarten") or {}
-    plaene, sonst = {}, []
+    plaene, sonst, cad_frei = {}, [], {}
+    stamm = lambda f: (f.get("ordner") or "", f["name"].rsplit(".", 1)[0].strip().lower())
     for f in dateien:
         i = lies(f["name"])
         if not i:
             if f["name"].lower().endswith(".pdf"):
                 sonst.append(f)
+            elif "." + f["name"].rsplit(".", 1)[-1].lower() in CAD:
+                cad_frei.setdefault(stamm(f), []).append({**f, "ext": "." + f["name"].rsplit(".", 1)[-1].lower()})
             continue
         key = f"{i['proj']}|{i['kennung']}|{i['nr']}"
         p = plaene.get(key)
@@ -122,7 +129,14 @@ def ordnen(dateien, conf, zuordnung=None):
         p["gewerk"], p["gewerk_quelle"] = (gw, "zugeordnet") if gw else gewerk(p, conf)
         out.append(p)
     out.sort(key=lambda p: (p["proj"], [int(x) if x.isdigit() else 0 for x in p["nr"].split(".")], p["kennung"]))
-    return out, sonst
+    weitere = []   # PDFs ohne Plannummer: genauso versendbar, Gewerk aus Stichwörtern, CAD-Datei mit gleichem Namen im selben Ordner
+    for f in sorted(sonst, key=lambda f: -(f.get("mtime") or 0)):
+        key = "f:" + f["pfad"]
+        titel = " ".join(re.sub(r"[_]+", " ", f["name"].rsplit(".", 1)[0]).split())
+        gw = zuordnung.get(key)
+        g_, q_ = (gw, "zugeordnet") if gw else gewerk({"titel": titel}, conf)
+        weitere.append({**f, "key": key, "titel": titel, "gewerk": g_, "gewerk_quelle": q_, "cad": cad_frei.get(stamm(f), [])})
+    return out, weitere
 
 
 def _fertig(st):

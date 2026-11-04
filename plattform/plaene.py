@@ -210,6 +210,8 @@ def projekt_merken(pid):
         m = _store(c, f"plaene:{pid}", {})
         if "ordner" in b:
             m["ordner"] = str(b["ordner"] or "").strip()[:400]
+        if "aus" in b:   # ausgeschlossene Ordner (Verzeichnisbaum); None = Vorgabe (Foto-/Bautagebuch-Ordner)
+            m["aus"] = None if b["aus"] is None else [str(x)[:400] for x in (b["aus"] or [])][:500]
         if isinstance(b.get("zuordnung"), dict):
             z = m.setdefault("zuordnung", {})
             for k, v in b["zuordnung"].items():
@@ -238,10 +240,11 @@ def plaene():
             for x in _j(r["plaene"], []):
                 gesendet.setdefault(x.get("pfad"), []).append({"datum": r["datum"], "an": an, "art": r["art"]})
         gw_plan = sorted({gw for _, d in plan.plans(c, pid) for gw in ((d or {}).get("trades") or {})})
-    ordner = request.args.get("ordner")
-    ordner = (m.get("ordner") or "") if ordner is None else ordner
+    q = {"project_id": pid}
+    if m.get("aus") is not None:
+        q["aus"] = json.dumps(m["aus"])
     try:
-        d = _bt("/api/plaene/dateien?" + urllib.parse.urlencode({"project_id": pid, "ordner": ordner}))
+        d = _bt("/api/plaene/dateien?" + urllib.parse.urlencode(q))
     except ValueError as e:
         return jsonify(error=str(e), firmen=fl), 502
     pl, sonst = planname.ordnen(d.get("dateien") or [], cf, m.get("zuordnung") or {})
@@ -249,10 +252,13 @@ def plaene():
         for st in x["staende"]:
             if st["pdf"]:
                 st["pdf"]["versendet"] = gesendet.get(st["pdf"]["pfad"], [])
+    for f in sonst:
+        f["versendet"] = gesendet.get(f["pfad"], [])
     gewerke = sorted({*gw_plan, *cf["stichworte"].keys(), *cf["kennungen"].values(), *(x["gewerk"] for x in pl if x["gewerk"])} - {""},
                      key=lambda s: (s == "alle Firmen", s.lower()))
-    return jsonify(plaene=pl, sonstige=sonst, basis=d.get("basis"), ordner=d.get("ordner") or "", oberordner=d.get("oberordner") or [],
-                   abgebrochen=d.get("abgebrochen"), gewerke=gewerke, firmen=fl, gemerkt=m.get("ordner") or "")
+    gewerke = sorted(set(gewerke) | {f["gewerk"] for f in sonst if f["gewerk"]}, key=lambda s_: (s_ == "alle Firmen", s_.lower()))
+    return jsonify(plaene=pl, sonstige=sonst, basis=d.get("basis"), baum=d.get("ordner") or [], aus=d.get("aus") or [], standard=d.get("standard"),
+                   abgebrochen=d.get("abgebrochen"), gewerke=gewerke, firmen=fl)
 
 
 @app.get("/api/datei")

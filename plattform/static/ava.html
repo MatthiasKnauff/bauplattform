@@ -147,6 +147,8 @@ table.lv .acts-c .ib:hover{background:var(--hov)}
 table.lv .acts-c .ib[data-a="del"]:hover{color:#c62828}
 table.lv .acts-c .ib.on{color:var(--y)}
 table.lv tr[data-i]:not(.lang) td.oz{cursor:pointer}
+#lvSel{position:fixed;left:50%;transform:translateX(-50%);bottom:1rem;z-index:60;display:flex;gap:.5rem;align-items:center;background:var(--card);border:1px solid #4da3ff;border-radius:12px;padding:.45rem .7rem;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+#lvSel[hidden]{display:none}
 table.lv tr.akt td{background:color-mix(in srgb,#4da3ff 16%,transparent)!important}
 table.lv tr.akt:not(.lang) td.oz{box-shadow:inset 4px 0 0 #4da3ff;font-weight:700}
 table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
@@ -312,6 +314,7 @@ async function loadList(want) {
   if (pick) await openLv(pick.id); else { L = null; render(); }
 }
 async function openLv(id) {
+  if (!L || L.id !== id) { LVSEL = new Set(); LVAKT = null; }
   L = await api('api/lv/' + id); LS.set('lv:' + pid, id); render(); histTrack();
 }
 function changed(draw = false) {
@@ -368,6 +371,7 @@ function kpis() {
   $('#stat').innerHTML = '<span class="hint">Stand:</span>' + STATUS.map(([k, l]) => `<button type="button" data-status="${k}" class="${L.status === k ? 'on' : ''}">${l}</button>`).join('');
 }
 function render() {
+  if (tab !== 'lv' && $('#lvSel')) $('#lvSel').hidden = true;
   selBtn(); kpis();
   const n = { lv: posOf().length, angebote: L ? L.angebote.length : 0, aufmass: L ? new Set(L.aufmass.map((a) => a.pos_id)).size : 0, rechnungen: L ? L.rechnungen.length : 0, auftraege: LIST.filter((x) => !x.archived).length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
@@ -440,9 +444,10 @@ function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
   const s = $('#lvSum'); if (s) s.textContent = eur(tot);
 }
 /* Aktive Zeile: Klick auf die OZ (oder Bearbeiten in der Zeile) – neue Titel, Positionen und Hinweistexte kommen dahinter */
-let LVAKT = null;
+let LVAKT = null, LVSEL = new Set(), LVANK = null;   // aktive Zeile (dahinter wird eingefügt), Mehrfachmarkierung (Strg/Umschalt), Anker für Umschalt
 function lvAktZeigen() {
-  const I = items(); document.querySelectorAll('table.lv tr[data-i]').forEach((tr) => { const x = I[+tr.dataset.i]; tr.classList.toggle('akt', !!x && x.id === LVAKT); });
+  const I = items(); document.querySelectorAll('table.lv tr[data-i]').forEach((tr) => { const x = I[+tr.dataset.i]; tr.classList.toggle('akt', !!x && (x.id === LVAKT || LVSEL.has(x.id))); });
+  lvSelLeiste();
   const n = I.findIndex((x) => x.id === LVAKT), h = n >= 0 ? `nach ${I[n].oz || (I[n].art === 'T' ? 'dem Hinweistext' : 'der markierten Zeile')} einfügen` : 'am Ende anhängen';
   document.querySelectorAll('[data-act="titel"],[data-act="pos"],[data-act="txt"]').forEach((b) => { b.title = h; });
 }
@@ -452,11 +457,70 @@ function lvEinfuegeStelle(kind) {
   if (x.typ === 'titel' && kind === 'titel') { let e = n + 1; while (e < I.length && !(I[e].typ === 'titel' && (I[e].lvl || 1) <= (x.lvl || 1))) e++; return e; }   // neuer Titel nach dem ganzen Titel
   return n + 1;
 }
-document.addEventListener('click', (e) => {
+document.addEventListener('click', (e) => {   // Klick auf die OZ markiert; Strg+Klick einzelne dazu/weg, Umschalt+Klick von–bis
   if (tab !== 'lv' || !L) return;
-  const td = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang) td.oz'); if (!td) return;
-  const x = items()[+td.parentElement.dataset.i]; if (!x) return;
-  LVAKT = LVAKT === x.id ? null : x.id; lvAktZeigen();
+  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang)'); if (!tr) return;
+  const aufOz = !!e.target.closest('td.oz'), feld = e.target.closest('input,textarea,select,button,a');
+  if (!aufOz && (feld || !(e.ctrlKey || e.metaKey || e.shiftKey))) return;
+  const I = items(), x = I[+tr.dataset.i]; if (!x) return;
+  if (e.shiftKey) {
+    e.preventDefault(); const a = I.findIndex((y) => y.id === (LVANK || LVAKT)); const b = I.indexOf(x);
+    if (a < 0) { LVSEL = new Set([x.id]); } else { const [v, n] = a < b ? [a, b] : [b, a]; LVSEL = new Set(I.slice(v, n + 1).map((y) => y.id)); }
+    LVAKT = x.id; window.getSelection && window.getSelection().removeAllRanges();
+  } else if (e.ctrlKey || e.metaKey) {
+    if (LVSEL.size === 0 && LVAKT) LVSEL.add(LVAKT);
+    if (LVSEL.has(x.id)) { LVSEL.delete(x.id); if (LVAKT === x.id) LVAKT = [...LVSEL].pop() || null; } else { LVSEL.add(x.id); LVAKT = x.id; }
+    LVANK = x.id;
+  } else {
+    const nur = LVSEL.size <= 1 && LVAKT === x.id; LVSEL = nur ? new Set() : new Set([x.id]); LVAKT = nur ? null : x.id; LVANK = LVAKT;
+  }
+  lvAktZeigen();
+});
+const lvMarkiert = () => { const I = items(); const ids = LVSEL.size ? LVSEL : new Set(LVAKT ? [LVAKT] : []); return I.filter((y) => ids.has(y.id)); };
+function lvSelLeiste() {   // Leiste für mehrere markierte Zeilen
+  let el = $('#lvSel'); const n = tab === 'lv' && L ? lvMarkiert().length : 0;
+  if (n < 2) { if (el) el.hidden = true; return; }
+  if (!el) { el = document.createElement('div'); el.id = 'lvSel'; document.body.appendChild(el);
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-ls]'); if (b) lvSelAktion(b.dataset.ls); }); }
+  el.hidden = false;
+  el.innerHTML = `<b>${n} Zeilen markiert</b><button class="btn sm" data-ls="kopieren" title="Strg+C">Kopieren</button><button class="btn sm" data-ls="ausschneiden" title="Strg+X">Ausschneiden</button><button class="btn sm danger" data-ls="loeschen" title="Entf">Löschen</button><button class="btn sm" data-ls="weg" title="Esc">✕</button>`;
+}
+let LVCLIP = null;
+function lvSelAktion(a) {
+  const M = lvMarkiert(); if (!M.length && a !== 'einfuegen') return;
+  if (a === 'weg') { LVSEL = new Set(); lvAktZeigen(); return; }
+  if (a === 'kopieren' || a === 'ausschneiden') {
+    LVCLIP = JSON.parse(JSON.stringify(M)); try { localStorage.setItem('ava.clip', JSON.stringify(LVCLIP)); } catch { /* egal */ }
+    if (a === 'kopieren') return toast(`${M.length} Zeile${M.length > 1 ? 'n' : ''} kopiert – mit Strg+V hinter der markierten Zeile einfügen (auch in einem anderen LV).`);
+  }
+  if (a === 'ausschneiden' || a === 'loeschen') {
+    if (a === 'loeschen' && M.length > 1 && !confirm(`${M.length} Zeilen löschen? (Strg+Z holt sie zurück)`)) return;
+    if (M.some((x) => L.aufmass.some((z) => z.pos_id === x.id)) && !confirm('Zu markierten Positionen gibt es Aufmaß. Trotzdem entfernen?')) return;
+    const weg = new Set(M.map((x) => x.id)), I = items(), vor = I.findIndex((x) => weg.has(x.id)) - 1;
+    L.data.items = I.filter((x) => !weg.has(x.id)); LVSEL = new Set(); LVAKT = vor >= 0 ? L.data.items[Math.min(vor, L.data.items.length - 1)]?.id || null : null;
+    HIST.next = a === 'loeschen' ? `${M.length} Zeile${M.length > 1 ? 'n' : ''} gelöscht` : `${M.length} Zeile${M.length > 1 ? 'n' : ''} ausgeschnitten`; numerieren(); changed(true);
+    if (a === 'ausschneiden') toast(`${M.length} Zeilen ausgeschnitten – mit Strg+V an der markierten Stelle einfügen.`);
+    return;
+  }
+  if (a === 'einfuegen') {
+    let C = LVCLIP; if (!C) { try { C = JSON.parse(localStorage.getItem('ava.clip') || 'null'); } catch { C = null; } }
+    if (!C || !C.length) return toast('Nichts zum Einfügen – erst Zeilen markieren und mit Strg+C kopieren.');
+    const I = items(), at = (() => { const n = I.findIndex((x) => x.id === LVAKT); return n < 0 ? I.length : n + 1; })();
+    const neu = C.map((x) => { const y = { ...JSON.parse(JSON.stringify(x)), id: uid() }; delete y.nt; delete y.nt_status; delete y.nt_grund; return y; });
+    I.splice(at, 0, ...neu); LVSEL = new Set(neu.map((x) => x.id)); LVAKT = neu[neu.length - 1].id;
+    HIST.next = `${neu.length} Zeile${neu.length > 1 ? 'n' : ''} eingefügt`; numerieren(); changed(true);
+  }
+}
+document.addEventListener('keydown', (e) => {   // Strg+C/X/V, Entf und Esc für markierte Zeilen (nicht in Eingabefeldern)
+  if (tab !== 'lv' || !L || document.querySelector('.modal-bg,.bed')) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
+  const k = e.key.toLowerCase(), strg = e.ctrlKey || e.metaKey;
+  if (strg && k === 'c' && lvMarkiert().length) { if (String(window.getSelection && window.getSelection()).trim()) return; e.preventDefault(); lvSelAktion('kopieren'); }
+  else if (strg && k === 'x' && lvMarkiert().length) { e.preventDefault(); lvSelAktion('ausschneiden'); }
+  else if (strg && k === 'v') { e.preventDefault(); lvSelAktion('einfuegen'); }
+  else if (strg && k === 'a' && !e.shiftKey) { e.preventDefault(); LVSEL = new Set(items().map((x) => x.id)); lvAktZeigen(); }
+  else if ((k === 'delete') && lvMarkiert().length) { e.preventDefault(); lvSelAktion('loeschen'); }
+  else if (k === 'escape' && LVSEL.size) { LVSEL = new Set(); lvAktZeigen(); }
 });
 document.addEventListener('focusin', (e) => { if (tab !== 'lv' || !L) return; const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) { const x = items()[+tr.dataset.i]; if (x && x.id !== LVAKT) { LVAKT = x.id; lvAktZeigen(); } } });
 function addItem(kind) {
@@ -1231,6 +1295,11 @@ document.addEventListener('drop', (e) => {
   e.preventDefault(); document.querySelectorAll('.zieh-hier').forEach((r) => r.classList.remove('zieh-hier'));
   const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); const von = ZIEH; ZIEH = null; if (!tr) return;
   const I = items(), x = I[von]; let nach = +tr.dataset.i;
+  if (LVSEL.size > 1 && LVSEL.has(x.id)) {   // mehrere markierte Zeilen zusammen verschieben
+    const ziel = I[nach]; if (LVSEL.has(ziel.id)) return;
+    const blk = I.filter((y) => LVSEL.has(y.id)), rest = I.filter((y) => !LVSEL.has(y.id));
+    rest.splice(rest.indexOf(ziel) + 1, 0, ...blk); L.data.items = rest; HIST.next = `${blk.length} Zeilen verschoben`; numerieren(); changed(true); return;
+  }
   let ende = von + 1; if (x.typ === 'titel') { const lv = x.lvl || 1; while (ende < I.length && !(I[ende].typ === 'titel' && (I[ende].lvl || 1) <= lv)) ende++; }
   if (nach >= von && nach < ende) return;   // in sich selbst
   const blk = I.splice(von, ende - von); if (nach >= ende) nach -= blk.length;

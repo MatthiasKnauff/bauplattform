@@ -815,3 +815,16 @@ html[data-theme="dunkel"] .mk{background:#2b2c2e;border-color:#3b3d41;border-lef
 
 .op-arch{margin:10px 4px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
 .op-row.arch{opacity:.7}
+
+/* Suche im Plan (Reiterleiste rechts) */
+.gs-box{margin-left:auto;align-self:center;display:flex;align-items:center;gap:4px;flex:none;border:1px solid var(--tab-bd);border-radius:999px;padding:2px 6px 2px 10px;background:transparent;color:var(--tab-fg);min-width:0}
+.gs-box svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;opacity:.6;flex:none}
+.gs-box input{border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:13px;width:260px;padding:5px 2px}
+.gs-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+.gs-box.none{border-color:#d9534f}
+.gs-n{font-size:12px;opacity:.7;white-space:nowrap;min-width:2.6em;text-align:right}
+.gs-box button{border:0;background:transparent;color:inherit;font-size:17px;line-height:1;width:24px;height:24px;border-radius:50%;cursor:pointer}
+.gs-box button:hover{background:var(--tab-bd)}
+.row.gs-hit .c-name{box-shadow:inset 3px 0 0 #f5b400;background:color-mix(in srgb,#ffd200 22%,transparent)}
+@media (max-width:900px){.gs-box input{width:140px}}
+html.mobil .gs-box{display:none}

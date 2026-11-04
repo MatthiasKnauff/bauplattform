@@ -223,12 +223,7 @@
   function tradesFor(cfg, ids, base) {
     const tr = { ...(base || {}) }; ctx(cfg);
     for (const id of ids) { const b = B(id); if (b && b.craft && b.gw && !(tr[b.gw] && tr[b.gw].craft)) tr[b.gw] = { ...(tr[b.gw] || {}), craft: b.craft }; }
-    // Stammfirmen der Gewerke für das neue Projekt vorbelegen
-    for (const id of ids) {
-      const b = B(id); if (!b || !b.gw || (tr[b.gw] && tr[b.gw].firm)) continue;
-      const ff = firmFor(id, b.gw); if (ff.own || !ff.name) continue;
-      const g = typeof firmByName === 'function' ? firmByName(ff.name) : null; if (g) tr[b.gw] = { ...(tr[b.gw] || {}), firm: g.id };
-    }
+    // Firmen werden bei neuen Plänen nicht vorbelegt – die trägt man ein, sobald vergeben ist („Gewerke & Firmen“)
     return tr;
   }
   // Leistungen, deren Name/Gewerk/Dauer/Vorgänger von einer Bauweise abhängen
@@ -360,7 +355,9 @@
   const mkT = (o) => ({ uid: 0, name: '', dur: 0, cons: null, pct: 0, res: '', gw: '', color: '', notes: '', lvl: 0, preds: [], collapsed: false, cat: '', blk: -1, ph: '', ...o });
   // Firmen-Vorgabe aus dem Leistungskatalog: je Leistung, sonst Stammfirma des Gewerks im Adressbuch
   const firmFor = (id, gw) => (window.Library && window.Library.firmFor ? window.Library.firmFor(baseOf(id), gw) : { name: '', own: false });
-  function taskOf(id, cfg, blk, lvl) { const it = item(id, cfg); return mkT({ name: it.n, dur: dur(id, cfg), gw: it.gw, res: firmFor(id, it.gw).name || it.firm || '', notes: it.info || '', cat: id, blk, lvl }); }
+  // Unternehmer bleibt leer, solange dem Gewerk im Projekt keine Firma zugeordnet ist (keine Vorbelegung aus dem Katalog)
+  const firmaImProjekt = (gw) => { const tr = gw && P && P.trades && P.trades[gw]; const f = tr && tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null; return f ? f.name : ''; };
+  function taskOf(id, cfg, blk, lvl) { const it = item(id, cfg); return mkT({ name: it.n, dur: dur(id, cfg), gw: it.gw, res: firmaImProjekt(it.gw), notes: it.info || '', cat: id, blk, lvl }); }
   function build(cfg, selArr) {
     materialize(cfg, selArr); ctx(cfg); const sel = new Set(normSel(selArr, cfg)), T = []; let uid = 1;
     const push = (t) => { t.uid = uid++; T.push(t); return t; };
@@ -429,10 +426,9 @@
     const t = taskOf(id, cfg, blk, L); t.uid = P.nextUid++;
     // Firma aus „Gewerke & Firmen“ übernehmen, sonst Firma/Unternehmer aus dem Leistungskatalog
     const it = item(id, cfg), tr = (P.trades && P.trades[t.gw]) || {};
-    const f = tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null, ff = firmFor(id, t.gw);
-    // Reihenfolge: Firma je Leistung aus dem Katalog → Firma des Gewerks im Projekt → Stammfirma des Gewerks
-    if (ff.own && ff.name) t.res = ff.name; else if (f) t.res = f.name; else if (ff.name) t.res = ff.name;
-    if (!f && t.gw && !ff.own && ff.name) { const g = typeof firmByName === 'function' ? firmByName(ff.name) : null; if (g) { P.trades = { ...(P.trades || {}) }; P.trades[t.gw] = { ...tr, firm: g.id }; } }
+    const f = tr.firm && typeof firmById === 'function' ? firmById(tr.firm) : null;
+    // nur eine im Projekt zugeordnete Firma eintragen – sonst bleibt der Unternehmer leer
+    t.res = f ? f.name : '';
     if (it.craft && t.gw && !tr.craft) { P.trades = { ...(P.trades || {}) }; P.trades[t.gw] = { ...(P.trades[t.gw] || {}), craft: it.craft }; }
     T.splice(pos, 0, t);
   }

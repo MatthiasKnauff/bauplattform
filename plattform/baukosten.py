@@ -1801,7 +1801,7 @@ def build_report(c, r, opt):
             try:
                 from reportlab.lib.utils import ImageReader
                 ImageReader(io.BytesIO(logo)).getSize()   # nicht lesbares Logo erst beim Bauen des PDFs zu bemerken, ließe alles scheitern
-                story += [Image(io.BytesIO(logo), width=28 * mm, height=28 * mm, kind="proportional"), Spacer(1, 18 * mm)]
+                story += [Image(io.BytesIO(logo), width=28 * mm, height=28 * mm, kind="proportional", hAlign="RIGHT"), Spacer(1, 18 * mm)]
             except Exception:
                 story.append(Spacer(1, 46 * mm))
         else:

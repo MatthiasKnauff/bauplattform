@@ -47,6 +47,8 @@ tr.off td:last-child{opacity:1}
 .sw input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .st-k{border:1px solid var(--line);border-radius:10px;padding:.8rem 1rem;margin-top:.7rem}
 .st-kh{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.st-kh .pill{margin-left:auto}.st-sw{flex:none}.st-sw button{padding:.25rem .8rem}
+.st-off{background:color-mix(in srgb,var(--line) 25%,transparent)}.st-off>:not(.st-kh){opacity:.45}.st-off .st-kh b{opacity:.6}
 .st-g{display:grid;grid-template-columns:1.4fr 1fr;gap:.6rem 1rem;margin-top:.6rem}
 .st-g label{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--mute)}
 .st-g input,.st-g select{color:var(--ink);font-size:.95rem}
@@ -278,7 +280,7 @@ const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablag
 const stNav = () => `<div class="stnav"><h1>Büro-Einstellungen</h1><p class="mute" style="margin-top:-.4rem">Auch erreichbar in jeder App über ⚙ → Büro.</p></div><div class="bar stnav" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {
   const t = data.stab || 'allgemein';
-  if (t === 'allgemein') { data.e = await api('api/einstellungen'); return renderSettings(); }
+  if (t === 'allgemein') { data.e = await api('api/einstellungen'); data.aus = null; data.ausGeaendert = false; return renderSettings(); }
   if (t === 'konto') { data.stab = 'allgemein'; if (window.BPHead) BPHead.einstellungen({ bereich: 'ich' }); return loadSettings(); }   // alte Lesezeichen
   if (t === 'vorlagen') {
     $('#main').innerHTML = stNav() + '<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">Die Vorlagen gelten für alle Apps; auch erreichbar über ⚙ → Büro → E-Mail-Vorlagen.</p>';
@@ -296,15 +298,17 @@ async function loadSettings() {
 function renderSettings() {
   const E = data.e, K = E.ki, me0 = me || {};
   const t = me0.theme || 'dunkel', a = (me0.accent || ACCENTS[0][0]).toLowerCase();
-  const keyRow = (prov, label, x, extra = '') => `<div class="st-k"><div class="st-kh"><b>${label}</b><span class="pill ${x.hasKey ? 'ok' : ''}">${x.hasKey ? 'eingerichtet' + (x.fromEnv ? ' (Portainer)' : '') : 'nicht eingerichtet'}</span></div>
+  if (!data.aus) data.aus = new Set(K.aus || []);
+  const schalter = (prov) => `<div class="seg st-sw" data-swp="${prov}" title="Aus: für alle im Büro abgeschaltet – der Knopf verschwindet in der Kopfleiste aller Apps, der Schlüssel bleibt gespeichert">${[['an', 'An'], ['aus', 'Aus']].map(([k, l]) => `<button type="button" class="${(data.aus.has(prov) ? 'aus' : 'an') === k ? 'on' : ''}" data-sw="${k}">${l}</button>`).join('')}</div>`;
+  const keyRow = (prov, label, x, extra = '') => `<div class="st-k${data.aus.has(prov) ? ' st-off' : ''}"><div class="st-kh"><b>${label}</b><span class="pill ${x.hasKey ? 'ok' : ''}">${x.hasKey ? 'eingerichtet' + (x.fromEnv ? ' (Portainer)' : '') : 'nicht eingerichtet'}</span>${schalter(prov)}</div>
     <div class="st-g"><label>API-Schlüssel<input type="password" data-k="${prov}.key" autocomplete="off" placeholder="${x.hasKey ? 'hinterlegt (' + esc(x.hint) + ') – zum Ändern neu eingeben' : 'Schlüssel einfügen'}"></label>
     <label>Modell${extra || `<input data-k="${prov}.model" value="${esc(x.model)}" autocomplete="off">`}</label></div>
     <div class="st-a">${x.hasKey && !x.fromEnv ? `<button class="btn sm" data-sa="clear" data-p="${prov}">Schlüssel entfernen</button>` : ''}<button class="btn sm" data-sa="test" data-p="${prov}">Verbindung testen</button><span class="mute st-r" id="tr-${prov}"></span></div></div>`;
   $('#main').innerHTML = `${stNav()}
   <section class="card st"><h2>KI</h2><p class="mute">Welche KI jemand nutzt, wählt jeder oben in der Kopfleiste. Hier wird eingerichtet, welche zur Verfügung stehen. Schlüssel werden nur auf dem Server gespeichert und nie angezeigt.</p>
-    <div class="st-row"><span>Kostenpflichtige KI (Claude, Gemini, ChatGPT)<small class="mute" style="display:block">Aus: für alle abgeschaltet – die Knöpfe verschwinden in der Kopfleiste aller Apps, genutzt werden nur Intern und Ollama. Schlüssel bleiben gespeichert.</small></span><div class="seg" id="stPaid">${[['an', 'Erlaubt'], ['aus', 'Aus']].map(([k, l]) => `<button class="${(K.kostenpflichtig_aus ? 'aus' : 'an') === k ? 'on' : ''}" data-paid="${k}">${l}</button>`).join('')}</div></div>
     <div class="st-row"><span>Positionsvorschlag im Bauzeitenplan</span><div class="seg" id="stVor">${[['builtin', 'An'], ['off', 'Aus']].map(([k, l]) => `<button class="${(K.vorschlag === 'off' ? 'off' : 'builtin') === k ? 'on' : ''}" data-vor="${k}">${l}</button>`).join('')}</div></div>
-    <div class="st-k"><div class="st-kh"><b>Ollama – KI im Büro</b><span class="pill ${K.ollama.ok ? 'ok' : 'bad'}">${K.ollama.ok ? 'bereit' : esc(K.ollama.hint)}</span></div>
+    <p class="mute" style="margin:.2rem 0 .6rem">Mit <b>An / Aus</b> bei jeder KI schaltest du sie für alle im Büro ein oder ab. Abgeschaltete KIs verschwinden aus der Kopfleiste aller Apps; wer sie gewählt hatte, arbeitet mit Ollama bzw. Intern weiter. Intern ist immer verfügbar.</p>
+    <div class="st-k${data.aus.has('ollama') ? ' st-off' : ''}"><div class="st-kh"><b>Ollama – KI im Büro</b><span class="pill ${K.ollama.ok ? 'ok' : 'bad'}">${K.ollama.ok ? 'bereit' : esc(K.ollama.hint)}</span>${schalter('ollama')}</div>
       <p class="mute" style="margin:.2rem 0 .5rem">Modell <b>${esc(K.ollama.model)}</b>${K.ollama.models.length ? ' · vorhanden: ' + esc(K.ollama.models.join(', ')) : ''}. Das Modell wird in Portainer über <code>OLLAMA_MODEL</code> festgelegt und beim Start geladen.<br>Pläne lesen (Baukosten): Bildmodell <b>${esc(K.ollama.vision || '–')}</b> ${K.ollama.sieht ? '– bereit' : K.ollama.vision ? '– wird noch geladen' : ''} (<code>OLLAMA_VISION_MODEL</code>, leer = keins).</p>
       <div class="st-a"><button class="btn sm" data-sa="test" data-p="ollama">Verbindung testen</button><span class="mute st-r" id="tr-ollama"></span></div></div>
     ${keyRow('claude', 'Claude (Anthropic)', K.claude, `<select data-k="claude.model">${Object.entries(K.claude.models).map(([k, n]) => `<option value="${k}"${K.claude.model === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`)}
@@ -314,7 +318,9 @@ function renderSettings() {
   <section class="card st"><h2>Einstellungen in den Apps</h2><p class="mute">Alle Einstellungen erreichst du in jeder App über ⚙ oben rechts: <b>Diese App</b> (z. B. Raumtypen der Baukosten, Erinnerungen, Plannummerierung, Berichte des Bautagebuchs), <b>Für mich</b> (Unterschrift, Signatur, Absender, Kalender, Darstellung) und <b>Büro</b> (diese Seite).</p>
     <p class="mute" style="margin-top:.6rem">Jede Speicherung wird automatisch als Stand festgehalten. Mit <b>↶ Verlauf</b> neben dem Speichern-Knopf oder unter „Änderungsverlauf“ lässt sich jeder frühere Stand ansehen und wiederherstellen.</p></section>`;
 
-  $('#stPaid').onclick = (e) => { const b = e.target.closest('[data-paid]'); if (!b) return; data.paid = b.dataset.paid === 'aus'; $('#stPaid').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
+  document.querySelectorAll('[data-swp]').forEach((sw) => { sw.onclick = (e) => { const b = e.target.closest('[data-sw]'); if (!b) return; const pv = sw.dataset.swp;
+    if (b.dataset.sw === 'aus') data.aus.add(pv); else data.aus.delete(pv); data.ausGeaendert = true;
+    sw.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); sw.closest('.st-k').classList.toggle('st-off', data.aus.has(pv)); }; });
   $('#stVor').onclick = (e) => { const b = e.target.closest('[data-vor]'); if (!b) return; data.vor = b.dataset.vor; $('#stVor').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
 }
 $('#main').addEventListener('click', async (e) => {
@@ -333,8 +339,8 @@ $('#main').addEventListener('click', async (e) => {
     document.querySelectorAll('[data-k]').forEach((el) => { const [pv, f] = el.dataset.k.split('.'); if (el.value.trim() || f === 'model') ki[pv][f] = el.value.trim(); });
     Object.keys(data.clear || {}).forEach((pv) => { ki[pv].clearKey = true; });
     if (data.vor) ki.vorschlag = data.vor;
-    if (typeof data.paid === 'boolean') ki.kostenpflichtig_aus = data.paid;
-    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.vor = null; data.paid = undefined; renderSettings(); toast('KI-Einstellungen gespeichert.'); if (window.BPHead && BPHead.kiLaden) BPHead.kiLaden(); } catch (er) { toast(er.message, true); }
+    if (data.ausGeaendert) ki.aus = [...data.aus];
+    try { data.e = await api('api/einstellungen', 'PUT', { ki }); data.clear = {}; data.vor = null; data.aus = null; data.ausGeaendert = false; renderSettings(); toast('KI-Einstellungen gespeichert.'); if (window.BPHead && BPHead.kiLaden) BPHead.kiLaden(); } catch (er) { toast(er.message, true); }
     return;
   }
 });

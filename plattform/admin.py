@@ -478,7 +478,7 @@ def _einst(c):
     return {
         "ki": {
             "vorschlag": st.get("mode") if st.get("mode") in ("off", "builtin", "ai") else "builtin",
-            "kostenpflichtig_aus": ai.paid_off(c),
+            "aus": sorted(ai.abgeschaltet(c)),
             "claude": {"hasKey": bool(cl["key"]), "hint": _hint(cl["key"]), "fromEnv": not st.get("key") and bool(os.environ.get("ANTHROPIC_API_KEY")),
                        "model": cl["model"], "models": ai.CLAUDE_MODELS},
             "gemini": {"hasKey": bool(gm["key"]), "hint": _hint(gm["key"]), "fromEnv": gm["fromEnv"], "model": gm["model"]},
@@ -512,9 +512,14 @@ def einstellungen():
                 _put_store(c, "settings", st)
                 pl = ai.store(c, "plattform")
                 pk = dict(pl.get("ki") or {})
-                if isinstance(ki.get("kostenpflichtig_aus"), bool) and ki["kostenpflichtig_aus"] != bool(pk.get("kostenpflichtig_aus")):
-                    pk["kostenpflichtig_aus"] = ki["kostenpflichtig_aus"]
-                    changed.append("kostenpflichtige KI " + ("abgeschaltet" if ki["kostenpflichtig_aus"] else "wieder erlaubt"))
+                if isinstance(ki.get("aus"), list):   # einzelne KIs für alle abschalten
+                    alt = ai.abgeschaltet(c)
+                    neu = {x for x in ki["aus"] if x in ai.SCHALTBAR}
+                    pk["aus"] = sorted(neu); pk.pop("kostenpflichtig_aus", None)
+                    for x in sorted(neu - alt):
+                        changed.append(f"{x} abgeschaltet")
+                    for x in sorted(alt - neu):
+                        changed.append(f"{x} wieder eingeschaltet")
                 for prov in ("gemini", "chatgpt"):
                     x = ki.get(prov) if isinstance(ki.get(prov), dict) else {}
                     cur = dict(pk.get(prov) or {})

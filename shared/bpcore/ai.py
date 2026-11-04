@@ -19,7 +19,8 @@ PROVIDERS = (
 )
 KEYS = tuple(k for k, _, _ in PROVIDERS)
 PAID = ("claude", "gemini", "chatgpt")
-AUS_TEXT = "Kostenpflichtige KI ist vom Administrator abgeschaltet (Verwaltung → Büro-Einstellungen → KI)."
+SCHALTBAR = ("ollama", "claude", "gemini", "chatgpt")   # Intern ist immer da
+AUS_TEXT = "Diese KI ist vom Administrator abgeschaltet (Verwaltung → Büro-Einstellungen → KI)."
 
 
 class AIError(Exception):
@@ -97,20 +98,28 @@ def store(c, key):
         return {}
 
 
-def paid_off(c=None):
-    """Hat der Administrator die kostenpflichtigen KIs (Claude, Gemini, ChatGPT) für alle abgeschaltet?"""
+def abgeschaltet(c=None):
+    """Vom Administrator für alle abgeschaltete KIs (Menge der Schlüssel aus SCHALTBAR)."""
     if c is None:
         from . import db
         try:
             with db.tx() as c2:
-                return paid_off(c2)
+                return abgeschaltet(c2)
         except Exception:
-            return False
-    return bool((store(c, "plattform").get("ki") or {}).get("kostenpflichtig_aus"))
+            return set()
+    k = store(c, "plattform").get("ki") or {}
+    aus = {x for x in (k.get("aus") or []) if x in SCHALTBAR}
+    if k.get("kostenpflichtig_aus"):   # frühere Einstellung „kostenpflichtige KI aus“
+        aus |= set(PAID)
+    return aus
+
+
+def paid_off(c=None):
+    return set(PAID) <= abgeschaltet(c)
 
 
 def _erlaubt(provider, c):
-    if provider in PAID and paid_off(c):
+    if provider in abgeschaltet(c):
         raise AIError(AUS_TEXT)
 
 
@@ -140,9 +149,9 @@ def claude_conf(c=None):
 
 def providers(c=None):
     """Auswahl für die Kopfleiste: welche Anbieter sind eingerichtet?"""
-    out, aus = [], paid_off(c)
+    out, aus = [], abgeschaltet(c)
     for k, label, desc in PROVIDERS:
-        if aus and k in PAID:
+        if k in aus:
             continue   # abgeschaltet: Knopf erscheint nirgends
         if k == "intern":
             ok, hint = True, desc
@@ -168,8 +177,9 @@ def providers(c=None):
 def choice_of(user, c=None):
     v = (user["ai"] if user is not None and "ai" in user.keys() else "") or ""
     v = v if v in KEYS else "intern"
-    if v in PAID and paid_off(c):   # gewählte KI ist abgeschaltet → Ollama, wenn bereit, sonst Intern
-        return "ollama" if ollama_state()["ok"] else "intern"
+    aus = abgeschaltet(c) if v != "intern" else set()
+    if v in aus:   # gewählte KI ist abgeschaltet → Ollama, wenn erlaubt und bereit, sonst Intern
+        return "ollama" if "ollama" not in aus and ollama_state()["ok"] else "intern"
     return v
 
 

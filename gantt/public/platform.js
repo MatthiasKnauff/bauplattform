@@ -106,7 +106,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     const p = typeof P !== 'undefined' && P ? P : null, bt = p ? p._bt : null;
     el.hidden = !p;
     if (window.BPHead && bt && bt.id && BPHead.projektSetzen && window.bpHalten !== p.id) BPHead.projektSetzen(bt.id);   // gilt dann auch in den anderen Apps
-    if (window.BPHead) BPHead.setProject(p ? { sub: bt ? 'Bautagebuch-Projekt: ' + bt.name + (bt.address ? ' · ' + bt.address : '') : 'Bauzeitenplan', title: p.name } : { sub: '', title: '' });
+    // die Kopfleiste zeigt das Projekt (BPHead.projektSetzen oben); den Plan wählt die Leiste darunter
     if (!p) return;
     if (bt) { el.innerHTML = ICON_LINK + '<span>' + escH(bt.name) + '</span>'; el.title = `Verknüpft mit dem Bautagebuch-Projekt „${bt.name}“${bt.address ? ' (' + bt.address + ')' : ''} – klicken zum Ändern`; }
     else { el.innerHTML = ICON_LINK + '<span>Mit Projekt verknüpfen</span>'; el.title = 'Plan mit einem Projekt des Bautagebuchs verknüpfen'; }

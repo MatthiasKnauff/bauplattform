@@ -204,7 +204,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
-      H.projekt = pj && pj.id ? pj : null;
+      H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
       if (portal) band.querySelector('.bph-brand').href = appUrl(portal) + '/';
@@ -664,14 +664,16 @@
   /* ---------- aktuelles Projekt: gilt in allen Apps (wer die App wechselt, bleibt im selben Projekt) ---------- */
   H.projektSetzen = async function (id) {
     id = id ? +id : null;
-    if ((H.projekt && H.projekt.id) === id) return H.projekt;
+    if ((H.projekt && H.projekt.id) === id) { kopfProjekt(); return H.projekt; }
     try {
       const r = await fetch('api/bp/projekt', { method: 'PUT', credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).then((x) => x.json());
-      H.projekt = r && r.id ? r : null;
+      H.projekt = r && r.id ? r : null; kopfProjekt();
     } catch { /* nicht schlimm */ }
     return H.projekt;
   };
   H.projektId = () => (H.projekt && H.projekt.id) || null;
+  /* Die Kopfleiste zeigt immer das aktuelle Projekt (eine Projektauswahl für alle Apps); Apps wählen darunter nur ihr LV, ihren Plan … */
+  function kopfProjekt() { const p = H.projekt; H.setProject(p ? { title: p.name, sub: p.adresse || 'Keine Adresse hinterlegt' } : null); }
   /* ---------- Projekt bearbeiten / anlegen – EINE Maske für alle Apps (Bautagebuch, Verwaltung, Projektauswahl) ----------
      H.projektBearbeiten(id | null, { onSaved(id), onDelete(projekt, close) })  – gespeichert wird im Bautagebuch */
   H.projektBearbeiten = async function (id, opt = {}) {
@@ -713,7 +715,7 @@
       if (P) for (const k of ['street', 'zip', 'city']) if ((P[k] || '') === body[k]) delete body[k];   // Adresse unverändert: Standort nicht neu suchen
       try {
         const r = neu ? await J('projects', 'POST', body) : await J('projects/' + P.id, 'PUT', body);
-        const nid = neu ? r.id : P.id; close();
+        const nid = neu ? r.id : P.id; close(); if (H.projekt && H.projekt.id === nid) H.projekt = null;   // Kopfleiste neu laden (Name/Adresse geändert)
         const t = r.auto_address ? 'Adresse aus dem Projektnamen ermittelt – bitte prüfen.' : r.geocoded === false ? 'Adresse nicht gefunden – bitte prüfen.' : neu ? 'Projekt angelegt.' : 'Gespeichert.';
         if (window.toast) toast(t);
         if (opt.onSaved) opt.onSaved(nid); else { await H.projektSetzen(nid); location.reload(); }

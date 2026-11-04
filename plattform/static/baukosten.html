@@ -331,7 +331,7 @@ function head() {
   const sb = $('#standBtn'); if (sb) sb.hidden = !B;
   const ab = $('#ansBtn'); if (ab) ab.hidden = !B || LIST.length < 2;
   if (!window.BPHead) return;
-  BPHead.setProject(B ? { sub: B.project ? [B.project.client, B.project.address].filter(Boolean).join(' · ') || 'Bautagebuch-Projekt' : 'Baukosten', title: B.name } : { sub: '', title: '' });
+  if (B && B.project_id) BPHead.projektSetzen(B.project_id);   // Kopfleiste zeigt das Projekt
 }
 function changed(redraw = true) {
   B.calc = calc(B.data); FLOW = null;

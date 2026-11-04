@@ -229,7 +229,7 @@ table.tl .ed{position:absolute;left:0;top:0;height:100%;min-width:100%;z-index:5
 <body>
 <main class="ava">
   <div class="rib" role="toolbar" aria-label="Werkzeuge">
-    <div class="rg"><div class="rr"><select id="proj" aria-label="Projekt"></select><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button></div><div class="rl">Projekt und LV</div></div>
+    <div class="rg"><div class="rr"><select id="proj" aria-label="Projekt"></select><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button></div><div class="rl">Leistungsverzeichnis</div></div>
     <div class="rg"><div class="rr">
       <button class="rb" id="newBtn" title="Neues Leistungsverzeichnis / neuer Auftrag"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M12 11v6M9 14h6" class="ac"/></svg>Neu</button>
       <button class="rb" data-act="pos" data-need="lv" title="Position anhängen"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h12"/><path d="M19 15v6M16 18h6" class="ac"/></svg>Position</button>
@@ -306,6 +306,7 @@ async function loadProj() {
   $('#proj').innerHTML = `<optgroup label="Projekte">${PROJ.filter((p) => !p.archived).map((p) => `<option value="${p.id}"${p.id === pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>`
     + (PROJ.some((p) => p.archived) ? `<optgroup label="Archiv">${PROJ.filter((p) => p.archived).map((p) => `<option value="${p.id}"${p.id === pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : '');
   projektKnopf($('#proj'));
+  if (pid && window.BPHead) BPHead.projektSetzen(pid);
 }
 async function loadList(want) {
   LIST = pid ? await api('api/lv?project_id=' + pid) : [];
@@ -351,7 +352,6 @@ function selBtn() {
   pickButton($('#sel'), L ? { title: `${L.nr ? L.nr + ' · ' : ''}${L.name}`, sub: [L.gewerk, STATUS.find((s) => s[0] === L.status)[1], L.vergabe.bieter ? 'an ' + L.vergabe.bieter : '', L.archived ? 'archiviert' : ''].filter(Boolean).join(' · ') }
     : { title: LIST.length ? 'LV wählen' : 'Noch kein Leistungsverzeichnis', sub: LIST.length ? `${LIST.length} im Projekt` : 'Mit „+ Neues LV“ anlegen' });
   ['impBtn', 'expBtn', 'verBtn', 'moreBtn'].forEach((k) => { $('#' + k).hidden = !L; });
-  if (window.BPHead) BPHead.setProject({ title: L ? `LV ${L.nr} ${L.name}` : ((PROJ.find((p) => p.id === pid) || {}).name || ''), sub: L ? L.projekt : '' });
 }
 $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
   search: LIST.length > 6 ? 'LV suchen …' : '', empty: 'Noch kein LV in diesem Projekt.',

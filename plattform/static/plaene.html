@@ -323,7 +323,7 @@ document.addEventListener('change', async (e) => {
 });
 let qT = null;
 document.addEventListener('input', (e) => { if (e.target.id === 'q') { F.q = e.target.value; LS.set('filter', F); clearTimeout(qT); qT = setTimeout(() => { render(); const q = $('#q'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); } });
-function head() { const p = PROJ.find((x) => x.id === pid); if (window.BPHead) BPHead.setProject(p ? { sub: 'Planstand & Versand', title: p.name } : null); }
+function head() { /* Projekt steht in der Kopfleiste (BPHead) */ }
 window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
 
 (async () => {

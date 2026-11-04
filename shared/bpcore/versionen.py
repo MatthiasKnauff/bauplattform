@@ -12,6 +12,7 @@ Bereiche (Schlüssel `bereich`):
   bp:aufgaben       Einstellungen „Mängel & Erinnerungen“ (bp_store)
   bk:raumtypen      Raumtypen und Kennwerte (bk_store)
   bkp:<id>          eine Kostenermittlung (bk_projects.data)
+  avalv:<id>        ein Leistungsverzeichnis (ava_lv: Positionen, Vergabe)
   kontakt:<id>      eine Adresse (contacts)
   konto:<uid>       persönliche Einstellungen eines Benutzers (Versand, Kalender, Darstellung, KI, Assistent, Unterschrift)
   versionen:conf    Aufbewahrung der Stände (bp_store)
@@ -32,7 +33,7 @@ VORSCHLAEGE = [("Sparsam", 30, 180), ("Empfohlen", 90, 730), ("Großzügig", 365
 GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen (Bauzeitenplan)", "catfirms": "Firmen je Gewerk (Bauzeitenplan)",
       "catscope": "Leistungsumfang je Gewerk (Bauzeitenplan)", "settings": "KI und Bauzeitenplan (Verwaltung)", "plattform": "KI-Anbieter (Verwaltung)",
       "presets": "Vorlagen des Bauzeitenplans", "assistcfg": "Assistent des Bauzeitenplans", "assistcfg_vorlagen": "Vorlagen des Assistenten"}
-BP = {"aufgaben": "Einstellungen „Mängel & Erinnerungen“", "plaene": "Einstellungen „Planstand & Versand“", "versionen_conf": "Aufbewahrung der Versionen"}
+BP = {"aufgaben": "Einstellungen „Mängel & Erinnerungen“", "plaene": "Einstellungen „Planstand & Versand“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}
 BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)", "vergleich": "Vergleichsobjekte und importierte Kennwerte (Baukosten)", "dienste": "Zugänge zu Kostendatenbanken (Baukosten)"}
 
 LABELS = {
@@ -173,6 +174,19 @@ def _bkp(i):
     return load, save
 
 
+def _avalv(i):
+    def load(c):
+        r = c.execute("SELECT name, nr, gewerk, data, vergabe FROM ava_lv WHERE id=?", (i,)).fetchone()
+        return {"name": r["name"], "nr": r["nr"], "gewerk": r["gewerk"], "lv": _j(r["data"], {}), "vergabe": _j(r["vergabe"], {})} if r else None
+
+    def save(c, v, by):
+        if v is not None:
+            c.execute("UPDATE ava_lv SET name=?, nr=?, gewerk=?, data=?, vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
+                      (v.get("name") or "", v.get("nr") or "", v.get("gewerk") or "", json.dumps(v.get("lv") or {}, ensure_ascii=False),
+                       json.dumps(v.get("vergabe") or {}, ensure_ascii=False), _now(), by, i))
+    return load, save
+
+
 def _konto(uid):
     from . import konto
 
@@ -224,6 +238,9 @@ def quelle(c, bereich):
         return Quelle(BP[k], "admin" if k == "versionen_conf" else "alle", *_row_store("bp_store", k))
     if a == "bk" and k in BK:
         return Quelle(BK[k], "admin" if k == "dienste" else "alle", *_row_store("bk_store", k))
+    if a == "avalv" and k.isdigit():
+        r = c.execute("SELECT name, nr FROM ava_lv WHERE id=?", (int(k),)).fetchone()
+        return Quelle(f"Leistungsverzeichnis „{((r['nr'] + ' ') if r and r['nr'] else '') + (r['name'] if r else k)}“", "alle", *_avalv(int(k)))
     if a in ("bkp", "kontakt", "konto") and k.isdigit():
         i = int(k)
         if a == "bkp":
@@ -516,7 +533,7 @@ def statistik(c):
 
 
 TEILE = {"einst": "Allgemeine Einstellungen und Vorlagen", "gs": "Bauzeitenplan und KI", "bp": "Mängel & Erinnerungen, Planstand & Versand", "bk": "Raumtypen",
-         "bkp": "Kostenermittlungen", "kontakt": "Adressen", "konto": "Persönliche Einstellungen"}
+         "bkp": "Kostenermittlungen", "avalv": "Leistungsverzeichnisse", "kontakt": "Adressen", "konto": "Persönliche Einstellungen"}
 
 
 def uebersicht(c, u, teil="", wer="", q="", n=300):

@@ -23,6 +23,7 @@
 .bnv summary{cursor:pointer;font-weight:600}
 .bnv summary small{font-weight:400;margin-left:.3rem}
 .bnv #bnHost{margin-top:.5rem}
+.mapb{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:.2rem 0 .8rem}.mapb iframe{display:block;width:100%;height:190px;border:0;background:#2a2c30}.mapr{display:block;color:var(--y);text-decoration:none;padding:.5rem .9rem;font-weight:700;border-top:1px solid var(--line)}@media(max-width:640px){.mapb iframe{height:140px}}
 .wo{margin-top:.5rem;font-size:.9rem}.wo .btn{margin-left:.3rem}
 #mErr .orte{display:flex;flex-direction:column;gap:.25rem;margin-top:.45rem}
 #mErr .orte a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem}
@@ -215,15 +216,16 @@ async function nkTake(bg, i) {
 function edit(c, verlaufAuf) {
   const isNew = !c; c = c || { kind: kind || 'firma', trade: gw || (kind === 'bauherr' ? 'Bauherr' : '') };
   const inp = ([k, l, w, t]) => `<label class="${w}">${l}<input data-f="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'trade' ? ' list="gwList"' : ''}></label>`;
-  const map = addr(c) ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(addr(c))}` : '';
+  const map = addr(c) ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr(c))}&travelmode=driving` : '';   // wie im Bautagebuch: Google Maps mit Route
   const quick = isNew ? '' : [c.phone && `<a class="btn sm" href="tel:${esc(tel(c.phone))}">☎ Anrufen</a>`, c.mobile && `<a class="btn sm" href="tel:${esc(tel(c.mobile))}">📱 Mobil</a>`,
     c.email && `<a class="btn sm" href="mailto:${esc(c.email)}">✉ E-Mail</a>`, c.website && `<a class="btn sm" href="${esc(c.website)}" target="_blank" rel="noopener">Internet</a>`,
-    map && `<a class="btn sm" href="${esc(map)}" target="_blank" rel="noopener">Karte</a>`, `<a class="btn sm" href="api/contacts/${c.id}.vcf">Ins Handy</a>`].filter(Boolean).join('');
+    map && `<a class="btn sm" href="${esc(map)}" target="_blank" rel="noopener" title="Route in Google Maps planen">🧭 Route</a>`, `<a class="btn sm" href="api/contacts/${c.id}.vcf">Ins Handy</a>`].filter(Boolean).join('');
   const use = isNew ? '' : [c.site_of && `Baustellenadresse des Projekts „${esc(c.site_of)}“.`,
     c.used ? `Kommt in ${c.used} ${c.used === 1 ? 'Eintrag' : 'Einträgen'} des Bautagebuchs vor${c.projects.length ? ' (' + c.projects.map(esc).join(', ') + ')' : ''}.` : ''].filter(Boolean).join(' ');
   const gwList = [...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de'));
   const bgE = modalBox(`<div class="mh"><h3>${isNew ? 'Neuer Kontakt' : esc(c.name)}</h3><button class="x" data-m="close" aria-label="Schließen">✕</button></div>
     ${quick ? `<div class="quick">${quick}</div>` : ''}
+    ${!isNew && addr(c) ? `<div class="mapb"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${encodeURIComponent(addr(c))}&hl=de&z=15&output=embed"></iframe><a class="mapr" href="${esc(map)}" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>` : ''}
     <div class="fm">${F.map(inp).join('')}${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
       <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
       <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>

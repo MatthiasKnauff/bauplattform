@@ -306,6 +306,21 @@ eingetragen) oder „Alle Projekte“.
 - E-Mails gehen über den Mailserver aus Verwaltung → Einstellungen → Mailserver. Die App gleicht die Pläne alle 5 Minuten ab.
 - Neue App: Wer Bautagebuch oder Bauzeitenplan nutzen darf, bekommt sie automatisch; abwählbar in der Verwaltung.
 
+## Ausschreibung & Abrechnung (eigener Container)
+
+Pfad `/ava`, Container `bauplattform_ava` (Port 8097, gleiches Image wie die Plattform, `APP_MODULE: ava`). Tabellen `ava_lv`,
+`ava_angebot`, `ava_aufmass`, `ava_rechnung` (Migration `0013_ava.sql` im Bautagebuch).
+
+- Leistungsverzeichnisse je Projekt (Titel, Untertitel, Positionen mit Kurz-/Langtext, Menge, Einheit, Normal-/Bedarfs-/Wahl-/Pauschalposition,
+  Hinweistexte, KG nach DIN 276, Schätzpreis). Übernahme aus den Bauteilen einer Kostenermittlung oder als Kopie eines anderen LV. Langtext-Vorschlag mit der gewählten KI.
+- GAEB DA XML 3.x lesen (X81–X86) und schreiben (X83 an die Bieter, X84, X86 Auftrags-LV) – `bpcore/gaeb.py`; Excel zum Ausfüllen für Firmen ohne GAEB, ausgefülltes Excel wieder einlesen.
+- Angebote mit Preisspiegel (niedrigster Preis, Ausreißer > 30 %, Nachlass, Rang), Vergabe: die Preise des Angebots werden die Auftragspreise.
+- Nachträge als Positionen mit Status (angemeldet, beauftragt, abgelehnt) und eigenem Preis.
+- Aufmaß je Position mit Rechenweg („2 × 3,50 × 2,75 – 0,885 × 2,135“), Übernahme aus dem Raumbuch der Baukosten.
+- Rechnungsprüfung kumuliert: Aufmaß × Auftrags-EP − Nachlass − Abzüge − Sicherheitseinbehalt − bisher anerkannt = Zahlbetrag; „Prüfung abschließen“ hält den Aufmaßstand fest.
+- PDFs: LV (mit Preisfeldern oder Schätzpreisen), Preisspiegel, Massenermittlung, Rechnungsprüfblatt. Übersicht aller LV eines Projekts (Kostenkontrolle).
+- Neue App: Wer Baukosten oder Bauzeitenplan nutzen darf, bekommt sie automatisch; abwählbar in der Verwaltung.
+
 ## Planstand & Versand (eigener Container)
 
 Pfad `/plaene`, Container `bauplattform_plaene` (Port 8096, gleiches Image wie die Plattform, `APP_MODULE: plaene`).

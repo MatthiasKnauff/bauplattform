@@ -2,16 +2,18 @@
 
 Aufbau:  <Projekt> [<Kennung>] <Nummer> [INDEX <Buchstabe>] <Titel> [_<lfd. Nr.>]
   Projekt   A526 (Buchstabe + drei Ziffern, ggf. mit Unterprojekt A450.2)
-  Kennung   optional: AA, ELT, FL, FK, AP, IP, NA oder P (Fachplaner)
-  Nummer    Phase.Planart.… z. B. 2.1.1.2 (Phase 2, Planart 1 = Grundriss); Trennzeichen Punkt oder Unterstrich
+  Kennung   optional (Stelle 0): AA Außenanlage, ELT Elektro, FL Fliesenspiegel, FK Farbkonzept, P (…) Positionsplan,
+            AP Außenputz, IP Innenputz, NA Nachtrag zum Bauantrag
+  Nummer    1. Leistungsphase . 2. Gebäudetyp/Variante . 3. Planart . 4. laufende Nummer (bei Grundrissen das Geschoss:
+            1 = KG, 2 = EG, 3 = 1. OG …), z. B. 5.1.1.2 = Ausführungsplan, Gebäudetyp 1, Grundriss EG; Trennzeichen Punkt oder Unterstrich
   INDEX B   Planstand – ohne Index ist es der Ursprungsplan; der höchste Buchstabe ist der neueste Stand
 """
 import re
 
 STANDARD = {
-    "phasen": {"1": "Bestand", "2": "Entwurf", "3": "Genehmigung", "4": "Ausführung", "5": "Details", "6": "Ausschreibung"},
-    "planarten": {"0": "Lageplan", "1": "Grundriss", "2": "Ansicht", "3": "Schnitt", "4": "Detail", "5": "Isometrie"},
-    "kennungen": {"ELT": "Elektro"},
+    "phasen": {"1": "Bestand", "2": "Vorentwurf", "3": "Entwurf", "4": "Genehmigungsplan", "5": "Ausführungsplan", "6": "Ausschreibung"},
+    "planarten": {"0": "Lageplan", "1": "Grundriss", "2": "Ansicht", "3": "Schnitt", "4": "Detail", "5": "Isometrie / Perspektive"},
+    "kennungen": {"AA": "Außenanlagen", "ELT": "Elektro", "FL": "Fliesen", "FK": "Maler", "AP": "Putz", "IP": "Putz"},
     "stichworte": {
         "Rohbau": "bodenplatte, decke, fundament, rohbau, schal, bewehrung, mauerwerk, sturz, ringbalken",
         "Zimmerer": "balkenlage, dachstuhl, sparren, holzbau, zimmerer, pfetten",
@@ -28,6 +30,10 @@ STANDARD = {
     },
     "max_mb": 20,
 }
+ALT_PHASEN = {"1": "Bestand", "2": "Entwurf", "3": "Genehmigung", "4": "Ausführung", "5": "Details", "6": "Ausschreibung"}   # frühere (falsche) Vorgabe
+ALT_PLANARTEN = {"0": "Lageplan", "1": "Grundriss", "2": "Ansicht", "3": "Schnitt", "4": "Detail", "5": "Isometrie"}
+KENNUNG_NAME = {"AA": "Außenanlage", "ELT": "Elektro", "FL": "Fliesenspiegel", "FK": "Farbkonzept", "P": "Positionsplan",
+                "AP": "Außenputz", "IP": "Innenputz", "NA": "Nachtrag zum Bauantrag"}
 CAD = {".dwg", ".dxf", ".dwf", ".pln", ".ifc"}
 KENNUNG = r"AA|ELT|FL|FK|AP|IP|NA|P\s*\([^)]*\)|P"
 RX = re.compile(r"^(?P<proj>[A-Za-z]\d{3}(?:\.\d+)*)[\s_-]+(?:(?P<gw>" + KENNUNG + r")[\s_-]+)?(?P<nr>\d+(?:[._]\d+){1,5})(?![\d])[._\s-]*(?P<rest>.*)$", re.I)
@@ -68,13 +74,25 @@ def _kw(s):
     return [w.strip().lower() for w in re.split(r"[,;\n]", s or "") if w.strip()]
 
 
+def geschoss(n):
+    """Laufende Nummer bei Grundrissen → Geschoss: 1 = KG, 2 = EG, 3 = 1. OG …"""
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return ""
+    return "KG" if n == 1 else "EG" if n == 2 else f"{n - 2}. OG" if n > 2 else ""
+
+
 def gewerk(info, conf):
-    """(Gewerk, Quelle) aus Kennung oder Stichwörtern im Titel; (\"\", \"\") wenn nichts passt."""
-    k = (info.get("kennung") or "").split("(")[0]
+    """(Gewerk, Quelle) aus Kennung, Inhalt von „P (…)“ oder Stichwörtern im Titel; (\"\", \"\") wenn nichts passt."""
+    kn = info.get("kennung") or ""
+    k = kn.split("(")[0].strip()
     for kk, gw in (conf.get("kennungen") or {}).items():
-        if kk.upper() == k and gw:
+        if kk.upper() == k.upper() and gw:
             return gw, f"Kennung {k}"
     t = (info.get("titel") or "").lower()
+    if "(" in kn:   # Positionsplan „P (Fenster)“: Gewerk steht in der Klammer
+        t = kn.split("(", 1)[1].rstrip(")").lower() + " " + t
     for gw, worte in (conf.get("stichworte") or {}).items():
         for w in _kw(worte):
             if re.search(r"(?<![a-zäöüß])" + re.escape(w), t):
@@ -88,7 +106,7 @@ def _idx_rang(i):
 
 def ordnen(dateien, conf, zuordnung=None):
     """Dateien aus dem Projektordner → (Pläne, sonstige PDFs).
-    Plan: {key, proj, kennung, nr, phase, phase_name, planart, planart_name, titel, gewerk, gewerk_quelle, staende:[…], neu}
+    Plan: {key, proj, kennung, kennung_name, nr, phase, phase_name, variante, planart, planart_name, lfd, geschoss, titel, gewerk, gewerk_quelle, staende:[…]}
     Stand: {index, pdf:{pfad,name,groesse,mtime}, cad:[…]} – neuester Stand zuerst."""
     zuordnung = zuordnung or {}
     ph, pa = conf.get("phasen") or {}, conf.get("planarten") or {}
@@ -105,10 +123,12 @@ def ordnen(dateien, conf, zuordnung=None):
         key = f"{i['proj']}|{i['kennung']}|{i['nr']}"
         p = plaene.get(key)
         if not p:
-            p = plaene[key] = {"key": key, "proj": i["proj"], "kennung": i["kennung"], "nr": i["nr"], "titel": i["titel"],
-                               "phase": i["teile"][0], "phase_name": ph.get(i["teile"][0], ""),
-                               "planart": i["teile"][1] if len(i["teile"]) > 1 else "",
-                               "planart_name": pa.get(i["teile"][1], "") if len(i["teile"]) > 1 else "", "_st": {}, "_titel_rang": -1}
+            T = i["teile"] + [""] * 4
+            p = plaene[key] = {"key": key, "proj": i["proj"], "kennung": i["kennung"], "kennung_name": KENNUNG_NAME.get(i["kennung"].split("(")[0].strip().upper(), ""),
+                               "nr": i["nr"], "titel": i["titel"],
+                               "phase": T[0], "phase_name": ph.get(T[0], ""), "variante": T[1],
+                               "planart": T[2], "planart_name": pa.get(T[2], "") if T[2] else "",
+                               "lfd": T[3], "geschoss": geschoss(T[3]) if T[2] == "1" else "", "_st": {}, "_titel_rang": -1}
         st = p["_st"].setdefault(i["index"], {"index": i["index"], "pdf": None, "pdfs": [], "cad": []})
         e = {**f, "lfd": i["lfd"], "ext": i["ext"]}
         if i["ext"] == ".pdf":

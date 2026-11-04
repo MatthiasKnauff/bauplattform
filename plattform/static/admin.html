@@ -79,6 +79,22 @@ tr.off td:last-child{opacity:1}
 .pf{display:grid;grid-template-columns:140px 1fr;gap:.55rem .8rem}
 .pf label{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--mute)}
 .pf label.w{grid-column:1/-1}
+.mtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.6rem;margin-bottom:1rem}
+.mtile{display:grid;grid-template-columns:40px minmax(0,1fr);grid-template-rows:auto auto;column-gap:.7rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.6rem .75rem;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
+.mtile:hover{border-color:var(--y);transform:translateY(-1px)}
+.mtile .ic{grid-row:1/3;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--hov);color:var(--y)}
+.mtile .ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mtile b{font-size:1rem;line-height:1.2}
+.mtile .d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtile.ok .d{color:#2f9e5a}
+.ptiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.5rem;margin:.2rem 0 .8rem}
+.ptile{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.55rem .75rem;color:var(--ink);font:inherit;cursor:pointer}
+.ptile span{color:var(--mute);font-size:.8rem}
+.ptile.on{border-color:var(--y);box-shadow:inset 0 0 0 1px var(--y)}
+.ptile.on b::after{content:' ✓';color:var(--y)}
+details.hilfe{margin-top:.7rem;font-size:.85rem;color:var(--mute)}
+details.hilfe summary{cursor:pointer;color:var(--ink);font-weight:600}
+details.hilfe p{margin:.4rem 0 0}
 .sf{display:grid;grid-template-columns:1fr 1fr;gap:.6rem 1rem}
 .sf label{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--mute)}
 .sf label.w{grid-column:1/-1}
@@ -407,16 +423,28 @@ function renderBtSettings() {
       + stIn('store_keep_old_photos', 'Alte Fototag-Ordner behalten (0 = alle)') + stIn('store_keep_old_pdf', 'Alte Bautagebuch-PDFs behalten (0 = alle)') : ''}</div>
     ${m !== 'off' ? '<p class="mute" style="font-size:.85rem;margin:.6rem 0 0">Platzhalter: <b>{projekt}</b> Projektordner, <b>{kuerzel}</b> erstes Wort des Projektnamens (z. B. A483), <b>{datum}</b>, <b>{jahr}</b>, <b>{monat}</b>. Mit „/“ trennst du Unterordner.</p>' : ''}
     <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>`;
-  else if (t === 'mail') h = `<section class="card st"><h2>Mailserver (Postausgang)</h2><p class="mute">Mit diesem Postfach verschicken die Apps E-Mails: Zugangsdaten neuer Benutzer, „Kennwort vergessen“, Erinnerungen, Rügen und Planversand. Als Absender steht die <b>Absenderadresse</b> darin – jeder Benutzer kann unter ⚙ → Für mich stattdessen seine eigene Adresse wählen. Ist die Absenderadresse nicht das Postfach selbst, muss das Postfach in ihrem Namen senden dürfen (Microsoft 365: Berechtigung „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p><div class="sf">
-    ${stSel('mail_provider', 'Anbieter', [['gmail', 'Gmail'], ['o365', 'Office 365']], 'gmail')}${stIn('mail_user', 'Postfach (Benutzername für die Anmeldung)', 1, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absenderadresse aller Mails (leer = Postfach)', 1, { ph: 'mail@gk3-architektur.de' })}${pw('mail_pass', 'Kennwort des Postfachs')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de/bautagebuch' })}</div>
-    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}<button class="btn" data-bs="mailtest">Testmail an mich senden</button>${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
-    <p class="mute" style="font-size:.85rem;margin:.8rem 0 0"><b>Gmail:</b> Bestätigung in zwei Schritten einschalten und ein „App-Passwort“ erzeugen. <b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. Die Testmail geht an deine E-Mail-Adresse unter „Benutzer“.</p></section>
-    <section class="card st"><h2>Posteingang lesen (Microsoft 365)</h2><p class="mute">Damit zeigt die Startseite jedem einmal am Tag die Mails zu <b>seinen</b> Projekten (Rechnungen, Nachträge, Termine …). Gelesen wird nur lesend und je Benutzer nur dessen eigenes Postfach (Adresse aus „Benutzer“). Weitere Postfächer trägt jeder unter ⚙ → Für mich selbst ein.</p>
-    <div class="sf">${stIn('m365_tenant', 'Verzeichnis-ID (Mandant / Tenant ID)', 1, { ph: 'z. B. 3f2a…-…' })}${stIn('m365_client', 'Anwendungs-ID (Client ID)', 1)}${pw('m365_secret', 'Geheimer Clientschlüssel (Wert)')}</div>
-    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="m365test">Mein Postfach probeweise lesen</button>${S.m365_secret_set ? '<button class="btn danger" data-bs="clear" data-k="m365_secret">Schlüssel löschen</button>' : ''}<span class="mute st-r" id="m3Out"></span></div>
-    <p class="mute" style="font-size:.85rem;margin:.8rem 0 0"><b>Einrichten (einmalig):</b> Microsoft Entra Admin Center → App-Registrierungen → Neue Registrierung (z. B. „Bauplattform Posteingang“) → API-Berechtigungen → Microsoft Graph → <b>Anwendungsberechtigungen</b> → <b>Mail.Read</b> → „Administratorzustimmung erteilen“ → Zertifikate & Geheimnisse → neuer geheimer Clientschlüssel. Verzeichnis-ID, Anwendungs-ID und den <b>Wert</b> des Schlüssels hier eintragen. Wer den Zugriff auf bestimmte Postfächer begrenzen will, kann in Exchange eine „Application Access Policy“ setzen.</p></section>
-    <section class="card st"><h2>Postfächer den Benutzern zuweisen</h2><p class="mute">Jeder sieht automatisch sein eigenes Postfach. Hier kommen freigegebene und gemeinsame Postfächer dazu (z. B. mail@, buero@, rechnungen@) – angehakt erscheinen ihre Mails zu den eigenen Projekten in der Übersicht des Benutzers.</p>
-    <div id="pzBox"><p class="mute">Lade …</p></div></section>`;
+  else if (t === 'mail') {
+    const B = data.bt, prov = B.mail_provider || 'gmail', ausOk = !!(B.mail_user && S.mail_pass_set), einOk = !!(B.m365_tenant && B.m365_client && S.m365_secret_set);
+    const ICM = { aus: '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/>', ein: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2-7h12l2 7v5H4z"/>', zu: '<circle cx="9" cy="8" r="3"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M17 8h4M19 6v4"/>' };
+    const kachel = (k, titel, text, ok) => `<a class="mtile${ok ? ' ok' : ''}" href="#" data-mgo="m-${k}"><span class="ic"><svg viewBox="0 0 24 24">${ICM[k]}</svg></span><b>${titel}</b><span class="d">${ok ? '✓ ' : ''}${esc(text)}</span></a>`;
+    const anb = (v, n, d) => `<button type="button" class="ptile${prov === v ? ' on' : ''}" data-prov="${v}"><b>${n}</b><span>${d}</span></button>`;
+    h = `<div class="mtiles">${kachel('aus', 'Postausgang', ausOk ? `${prov === 'o365' ? 'Office 365' : 'Gmail'} · ${B.mail_from || B.mail_user}` : 'noch nicht eingerichtet', ausOk)}
+        ${kachel('ein', 'Posteingang lesen', einOk ? 'Microsoft 365 verbunden' : 'optional – Microsoft 365', einOk)}
+        ${kachel('zu', 'Postfächer zuweisen', 'mail@, rechnungen@ … an Benutzer', false)}</div>
+    <section class="card st" id="m-aus"><h2>Postausgang</h2><p class="mute">Über dieses Postfach verschicken alle Apps ihre E-Mails.</p>
+      <input type="hidden" data-st="mail_provider" value="${esc(prov)}">
+      <div class="ptiles">${anb('o365', 'Office 365', 'Microsoft 365 / Exchange Online')}${anb('gmail', 'Gmail', 'Google Workspace / Gmail')}</div>
+      <div class="sf">${stIn('mail_user', 'Postfach (Anmeldung)', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender (leer = Postfach)', 0, { ph: 'mail@gk3-architektur.de' })}${pw('mail_pass', 'Kennwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
+      <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="mailtest">Testmail an mich</button>${vk('einst:bt')}${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
+      <details class="hilfe"><summary>Hilfe</summary><p>Als Absender steht die <b>Absenderadresse</b> in den Mails – jeder Benutzer kann unter ⚙ → Für mich stattdessen seine eigene wählen. Ist der Absender nicht das Postfach selbst, muss das Postfach in seinem Namen senden dürfen (Microsoft 365: „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p>
+        <p><b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. <b>Gmail:</b> Bestätigung in zwei Schritten einschalten und ein „App-Passwort“ erzeugen. Die Testmail geht an deine Adresse unter „Benutzer“.</p></details></section>
+    <section class="card st" id="m-ein"><h2>Posteingang lesen <span class="mute" style="font-weight:400;font-size:.85rem">Microsoft 365 · optional</span></h2><p class="mute">Die Startseite zeigt jedem einmal am Tag die Mails zu <b>seinen</b> Projekten – nur lesend.</p>
+      <div class="sf">${stIn('m365_tenant', 'Verzeichnis-ID (Tenant)', 0, { ph: '3f2a…' })}${stIn('m365_client', 'Anwendungs-ID (Client)', 0)}${pw('m365_secret', 'Geheimer Clientschlüssel (Wert)')}</div>
+      <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="m365test">Mein Postfach probeweise lesen</button>${S.m365_secret_set ? '<button class="btn danger" data-bs="clear" data-k="m365_secret">Schlüssel löschen</button>' : ''}<span class="mute st-r" id="m3Out"></span></div>
+      <details class="hilfe"><summary>So richtest du es ein (einmalig)</summary><p>Microsoft Entra Admin Center → App-Registrierungen → Neue Registrierung (z. B. „Bauplattform Posteingang“) → API-Berechtigungen → Microsoft Graph → <b>Anwendungsberechtigungen</b> → <b>Mail.Read</b> (für „Alle aus Microsoft 365 holen“ zusätzlich <b>User.Read.All</b>) → „Administratorzustimmung erteilen“ → Zertifikate & Geheimnisse → neuer geheimer Clientschlüssel. Verzeichnis-ID, Anwendungs-ID und den <b>Wert</b> des Schlüssels hier eintragen. Zugriff auf bestimmte Postfächer begrenzen: in Exchange eine „Application Access Policy“ setzen.</p></details></section>
+    <section class="card st" id="m-zu"><h2>Postfächer zuweisen</h2><p class="mute">Jeder sieht sein eigenes Postfach. Hier kommen gemeinsame Postfächer dazu (mail@, buero@, rechnungen@ …).</p>
+      <div id="pzBox"><p class="mute">Lade …</p></div></section>`;
+  }
   else if (t === 'sicherung') {
     const lab = (k) => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k.startsWith('vor') ? 'Sicherung ' + k.replace(/-/g, ' ') : k;
     h = `<section class="card st"><h2>Datensicherung</h2><p class="mute">Die Datenbank (alle Apps: Projekte, Berichte, Bauzeitenpläne, Adressen, Baukosten, Benutzer, Einstellungen) wird täglich automatisch gesichert – die letzten 30 bleiben. Zusätzlich vor jedem Update und jeder Wiederherstellung. Fotodateien liegen separat im Datenordner.</p>
@@ -494,6 +522,11 @@ $('#main').addEventListener('click', async (e) => {
 });
 let pend = {};
 function collect() { $('#main').querySelectorAll('[data-st]').forEach((el) => { const k = el.dataset.st; if (/_pass$/.test(k) && !el.value) return; pend[k] = el.value.trim(); if (!/_pass$/.test(k)) data.bt[k] = pend[k]; }); }
+$('#main').addEventListener('click', (e) => {
+  const pv = e.target.closest('[data-prov]');
+  if (pv) { const h = $('#main').querySelector('[data-st="mail_provider"]'); h.value = pv.dataset.prov; pv.parentElement.querySelectorAll('.ptile').forEach((x) => x.classList.toggle('on', x === pv)); return; }
+  const g = e.target.closest('[data-mgo]'); if (g) { e.preventDefault(); const z = document.getElementById(g.dataset.mgo); if (z) z.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+});
 $('#main').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-bs]'); if (!b) return;
   const a = b.dataset.bs, out = (t, ok) => { const o = $('#bsOut'); if (o) { o.textContent = t; o.style.color = ok == null ? '' : ok ? 'var(--ok)' : 'var(--red)'; } else toast(t, ok === false); };

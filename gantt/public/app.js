@@ -2404,6 +2404,7 @@ function fileNew() {
   modal('Neu', `<div class="nw-opts">
       <button class="nw-opt" data-nw="empty"><b>Leeres Projekt</b><small>Leistungen selbst eintragen</small></button>
       <button class="nw-opt" data-nw="assist"><b>Mit Planungsassistent</b><small>Gebäudetyp wählen, Leistungen vorschlagen lassen</small></button>
+      <button class="nw-opt" data-nw="kopie"><b>Aus anderem Bauzeitenplan</b><small>Ablauf eines früheren Projekts übernehmen, auf den neuen Anfang verschoben</small></button>
     </div><div class="form" style="margin-top:10px"><label>Projektname</label><input id="nwName" class="full" value="" placeholder="Projektnummer oder Name – Vorschläge aus Bautagebuch und Server" data-bp-projekt autocomplete="off"><label>Projektanfang</label><input id="nwStart" type="date" class="full" value="${isoD(startOf('week', todayN() + 7))}"></div>`, [{ label: 'Abbrechen' }]);
   const bg = [...document.querySelectorAll('.modal-bg')].pop();
   bg.addEventListener('click', async (e) => {
@@ -2411,6 +2412,7 @@ function fileNew() {
     const nw = bg.querySelector('#nwName'), name = nw.value.trim() || 'Neues Projekt', st = parseDate(bg.querySelector('#nwStart').value) ?? todayN();
     const btId = nw.dataset.btId ? +nw.dataset.btId : null;   // Vorschlag „Projekt im Bautagebuch“ gewählt → gleich verknüpfen
     bg.remove();
+    if (b.dataset.nw === 'kopie' && window.planAusAnderem) { window.planAusAnderem(nw.value.trim(), st, btId); return; }
     if (!(await leaveProjectOk())) return;
     const p = await api.create({ name, start: snapWork(st), tasks: [], cal: P ? P.cal : null });
     if (btId) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: btId }) }).catch(() => {});

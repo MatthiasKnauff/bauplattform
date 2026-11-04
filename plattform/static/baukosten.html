@@ -165,6 +165,7 @@ body.as-open .wrap{padding-bottom:45vh}
     <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
     <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
     <button class="btn sm" id="standBtn" title="Jetzigen Stand dieser Kostenermittlung unter einem Namen festhalten (z. B. „Kostenschätzung an Bauherrn 04.11.“)">💾 Stand speichern</button>
+    <button class="btn sm" id="ansBtn" title="Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus einer anderen Kostenermittlung übernehmen">⇪ Ansätze übernehmen …</button>
     <button class="btn sm" id="verBtn" title="Frühere Stände dieser Kostenermittlung ansehen und wiederherstellen">↶ Verlauf</button>
     <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
@@ -304,6 +305,7 @@ function head() {
   if (B || LIST) selBtn();
   const vb = $('#verBtn'); if (vb) vb.hidden = !B;
   const sb = $('#standBtn'); if (sb) sb.hidden = !B;
+  const ab = $('#ansBtn'); if (ab) ab.hidden = !B || LIST.length < 2;
   if (!window.BPHead) return;
   BPHead.setProject(B ? { sub: B.project ? [B.project.client, B.project.address].filter(Boolean).join(' · ') || 'Bautagebuch-Projekt' : 'Baukosten', title: B.name } : { sub: '', title: '' });
 }
@@ -740,7 +742,7 @@ function histTrack() {   // nach jeder Änderung aufrufen: alten Stand merken
   const cur = JSON.stringify(B.data);
   if (HIST.id !== B.id) { HIST = { id: B.id, last: cur, undo: [], redo: [] }; histUi(); return; }
   if (cur === HIST.last) return;
-  HIST.undo.push({ data: HIST.last, label: histLabel(HIST.last, cur) }); if (HIST.undo.length > 60) HIST.undo.shift();
+  HIST.undo.push({ data: HIST.last, label: HIST.next || histLabel(HIST.last, cur) }); HIST.next = ''; if (HIST.undo.length > 60) HIST.undo.shift();
   HIST.redo = []; HIST.last = cur; histUi();
 }
 function histGo(dir) {
@@ -1283,6 +1285,68 @@ $('#verBtn').onclick = async () => {
   BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => openBk(B.id) });
 };
 window.bpNachVerlauf = () => (B ? openBk(B.id) : location.reload());
+/* Kostenansätze aus einer anderen Kostenermittlung übernehmen – wie jede Änderung mit ↶ Rückgängig umkehrbar */
+$('#ansBtn').onclick = () => {
+  if (!B) return;
+  const L = LIST.filter((x) => x.id !== B.id).sort((a, b) => (!!a.archived - !!b.archived) || String(b.updated || '').localeCompare(String(a.updated || '')));
+  let Q = null;
+  const TEILE = [
+    ['kw', 'Kennwerte der Raumtypen', 'Kosten je m² für jeden Raumtyp (auch eigene Raumtypen jenes Projekts)'],
+    ['proz', 'Prozente und Justage', 'Aufteilung KG 300/400 und der Gruppen, Baunebenkosten, Preissteigerung, Risikozuschlag, Regionalfaktor und Preisstand'],
+    ['pausch', 'Pauschale Positionen', 'KG 200, Abbruch, Außenanlagen usw. mit Beträgen – ersetzt die Positionen hier'],
+    ['bt', 'Bauteile mit Einheitspreisen', 'werden angehängt; Mengen nur auf Wunsch (sonst hier neu ermitteln)'],
+  ];
+  const info = (k) => {
+    if (!Q) return '';
+    const d = Q.data || {};
+    if (k === 'kw') return `${Object.keys(d.types || {}).length} Raumtypen`;
+    if (k === 'proz') return `KG 300 ${d.kg ? d.kg['300'] : '–'} % · Nebenkosten ${d.nk ?? '–'} % · Steigerung ${d.rate ?? '–'} %/Jahr${d.risiko ? ` · Risiko ${d.risiko} %` : ''}`;
+    if (k === 'pausch') { const it = (d.items || []).filter((x) => x.amount != null); return `${(d.items || []).length} Positionen${it.length ? `, ${it.length} mit Betrag (${eur(it.reduce((a, x) => a + x.amount, 0))})` : ''}`; }
+    if (k === 'bt') return `${(d.bauteile || []).length} Bauteile`;
+    return '';
+  };
+  const html = () => `<h3>Kostenansätze übernehmen</h3>
+    <p class="hint" style="margin:0 0 .6rem">Aus einer anderen Kostenermittlung in „${esc(B.name)}“. Räume und Pläne bleiben, wie sie sind. ↶ Rückgängig nimmt die Übernahme wieder zurück.</p>
+    <div class="row"><label for="ansQ">Aus</label><select id="ansQ"><option value="">– Kostenermittlung wählen –</option>
+      <optgroup label="Kostenermittlungen">${L.filter((x) => !x.archived).map((x) => `<option value="${x.id}"${Q && Q.id === x.id ? ' selected' : ''}>${esc(x.name)}${x.total ? ' · ' + eur(x.total) : ''}</option>`).join('')}</optgroup>
+      ${L.some((x) => x.archived) ? `<optgroup label="Archiv">${L.filter((x) => x.archived).map((x) => `<option value="${x.id}"${Q && Q.id === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : ''}</select></div>
+    ${Q ? `<p class="hint" style="margin:.2rem 0 .5rem">${esc(bkSub(Q))}${Q.calc && Q.calc.total ? ' · gesamt ' + eur(Q.calc.total) : ''}</p>` : ''}
+    <div style="display:flex;flex-direction:column;gap:.45rem;margin:.4rem 0">${TEILE.map(([k, l, t]) => `<label class="chk" style="align-items:flex-start;gap:.5rem"><input type="checkbox" style="flex:none" data-ans="${k}"${k !== 'pausch' ? ' checked' : ''}${Q ? '' : ' disabled'}><span><b>${l}</b>${Q ? ` <small class="pill">${esc(info(k))}</small>` : ''}<small class="hint" style="display:block">${t}</small></span></label>`).join('')}
+      <label class="chk" style="margin-left:1.7rem"><input type="checkbox" id="ansMenge"${Q ? '' : ' disabled'}> Mengen der Bauteile mit übernehmen</label></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok"${Q ? '' : ' disabled'}>Übernehmen</button></div>`;
+  const bg = modalBox(html(), (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok' || !Q) return;
+    const w = new Set([...bg.querySelectorAll('[data-ans]:checked')].map((x) => x.dataset.ans));
+    if (!w.size) { toast('Bitte mindestens einen Teil wählen.', true); return; }
+    const d = B.data, q = JSON.parse(JSON.stringify(Q.data || {})), done = [];
+    histTrack();
+    if (w.has('kw')) {
+      Object.entries(q.types || {}).forEach(([k, v]) => { if (d.types[k]) d.types[k].kw = v.kw; else d.types[k] = { label: v.label, kw: v.kw, eigen: true }; });
+      done.push('Kennwerte');
+    }
+    if (w.has('proz')) {
+      ['kg', 'nk', 'rate', 'kg2', 'risiko', 'risiko_text', 'justage'].forEach((k) => { if (q[k] !== undefined) d[k] = q[k]; });
+      done.push('Prozente');
+    }
+    if (w.has('pausch')) { d.items = q.items || []; done.push('Pauschalen'); }
+    if (w.has('bt')) {
+      const mit = bg.querySelector('#ansMenge').checked, t0 = Date.now();
+      const neu = (q.bauteile || []).map((b, k) => ({ ...b, id: 'u' + t0 + '_' + k, src: '', menge: mit ? b.menge : 0, formel: mit ? b.formel : '', geschoss: mit ? b.geschoss : '',
+        notiz: [b.notiz, `aus „${Q.name}“`].filter(Boolean).join(' · ').slice(0, 500) }));
+      d.bauteile = (d.bauteile || []).concat(neu); done.push(`${neu.length} Bauteile`);
+    }
+    close(); CHECK = null; HIST.next = 'Ansätze übernommen'; histTrack();
+    changed();
+    toast(`Aus „${Q.name}“ übernommen: ${done.join(', ')}. ↶ Rückgängig nimmt es zurück.`);
+  });
+  bg.addEventListener('change', async (e) => {
+    if (e.target.id !== 'ansQ') return;
+    const id = +e.target.value; Q = null;
+    if (id) { try { Q = await api('api/bk/' + id); } catch (er) { toast(er.message, true); } }
+    bg.querySelector('.modal').innerHTML = html();
+  });
+};
 /* Projektstand manuell festhalten: benannter Stand im Verlauf (wird nie automatisch aufgeräumt) */
 $('#standBtn').onclick = () => {
   if (!B) return;

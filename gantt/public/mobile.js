@@ -92,7 +92,7 @@
 
   function zeichnen() {
     const heute = todayN();
-    const projSel = `<select id="mProj" aria-label="Bauzeitenplan wählen">${(projects || []).map((p) => `<option value="${E(p.id)}"${P && p.id === P.id ? ' selected' : ''}>${E(p.name)}</option>`).join('')}</select>`;
+    const projSel = `<select id="mProj" aria-label="Bauzeitenplan wählen">${(projects || []).filter((p) => !p.archived || (P && p.id === P.id)).map((p) => `<option value="${E(p.id)}"${P && p.id === P.id ? ' selected' : ''}>${E(p.name)}${p.archived ? ' (archiviert)' : ''}</option>`).join('')}</select>`;
     if (!P || !CAL) { box.innerHTML = `<div class="mv-top">${projSel}</div><p class="mu" style="padding:1rem">Kein Bauzeitenplan geöffnet.</p>`; return; }
     const L = P.tasks.filter((t, i) => !CAL.summ[i]);
     const fertig = L.length ? Math.round(L.reduce((s, t) => s + (t.pct || 0), 0) / L.length) : 0;

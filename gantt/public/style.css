@@ -812,3 +812,6 @@ html[data-theme="dunkel"] .mk{background:#2b2c2e;border-color:#3b3d41;border-lef
 .mu{color:var(--mut)}
 .mv-f{text-align:center;color:var(--mut);font-size:.8rem;margin-top:1.5rem}
 .mv-f button{border:1px solid var(--bd);background:transparent;border-radius:999px;padding:.3rem .8rem;font:inherit;color:var(--accent);margin-left:.3rem}
+
+.op-arch{margin:10px 4px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.op-row.arch{opacity:.7}

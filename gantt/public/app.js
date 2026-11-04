@@ -2274,13 +2274,7 @@ const ACTIONS = {
     const p = await api.create({ name, start: snapWork(todayN()), tasks: [] }); await refreshProjectList(); await openProject(p.id);
   }),
   renameProject: () => promptDialog('Projekt umbenennen', 'Projektname', P.name, (name) => { act(() => { P.name = name; }); refreshProjectList(); }),
-  deleteProject: () => confirmDialog('Projekt löschen', `Soll das Projekt <b>${esc(P.name)}</b> endgültig gelöscht werden? Das kann nicht rückgängig gemacht werden.`, async () => {
-    clearTimeout(saveTimer); saveTimer = null;
-    await api.del(P.id); projects = await api.list();
-    if (!projects.length) { const p = await api.create({ name: 'Neues Projekt', start: snapWork(todayN()), tasks: [] }); projects = await api.list(); await openProject(p.id); }
-    else await openProject(projects[0].id);
-    refreshProjectList();
-  }),
+  deleteProject: () => archivDialog(),
   importJson: () => $('#fileInput').click(),
   exportJson: () => download(fileName('json'), JSON.stringify({ name: P.name, start: P.start, startDate: isoD(P.start), nextUid: P.nextUid, gwColors: P.gwColors || {}, tasks: P.tasks }, null, 2), 'application/json'),
   exportCsv,
@@ -2345,7 +2339,7 @@ async function renderStart() {
 $('#startView').addEventListener('click', async (e) => { const b = e.target.closest('[data-open]'); if (!b) return; await openProject(b.dataset.open); refreshProjectList(); });
 function projMenu(btn) {
   const r = btn.getBoundingClientRect();
-  const rec = projects.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).filter((p) => !P || p.id !== P.id).slice(0, 8);
+  const rec = projects.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).filter((p) => (!P || p.id !== P.id) && !p.archived).slice(0, 8);
   const items = [
     ...(P ? [{ label: '✔ ' + P.name, dis: true }, '-'] : []),
     ...rec.map((p) => ({ label: p.name, fn: async () => { await openProject(p.id); refreshProjectList(); } })),
@@ -2425,6 +2419,30 @@ function fileNew() {
     if (b.dataset.nw === 'assist') { setAssistOpen(true); toast('Wähle rechts im Planungsassistenten die Maßnahme – „In … erzeugen“ füllt das neue Projekt.'); }
   });
 }
+/* Archivieren statt Löschen (wie in den Baukosten): archivierte Pläne bleiben erhalten, stehen in den Listen unten */
+function archivDialog() {
+  if (!P) return;
+  const arch = !!P.archived;
+  modal(arch ? 'Archiviertes Projekt' : 'Archivieren oder löschen', `<div style="max-width:460px;line-height:1.5">
+    <p><b>${arch ? 'Zurückholen' : 'Archivieren'}</b> ${arch ? 'stellt „' + esc(P.name) + '“ wieder zu den laufenden Plänen.' : 'nimmt „' + esc(P.name) + '“ aus den laufenden Plänen – er bleibt mit allen Versionen erhalten und lässt sich jederzeit zurückholen (Öffnen → unten „Archiv“).'}</p>
+    <p><b>Löschen</b> entfernt den Plan endgültig – mit allen Versionen. Das lässt sich nicht rückgängig machen.</p></div>`, [
+    { label: 'Endgültig löschen …', cls: 'danger', left: true, fn: () => { reallyDelete(); } },
+    { label: 'Abbrechen' },
+    { label: arch ? 'Zurückholen' : 'Archivieren', cls: 'primary', primary: true, fn: async () => {
+      act(() => { P.archived = !arch; }); await saveNow(); await refreshProjectList();
+      toast(arch ? `„${P.name}“ ist wieder ein laufender Plan.` : `„${P.name}“ archiviert – unter Öffnen → „Archiv“ jederzeit erreichbar.`);
+    } }]);
+}
+function reallyDelete() {
+  confirmDialog('Projekt endgültig löschen', `Soll das Projekt <b>${esc(P.name)}</b> mit allen Versionen endgültig gelöscht werden? Das kann nicht rückgängig gemacht werden. <br><br>Tipp: <b>Archivieren</b> behält den Plan.`, async () => {
+    clearTimeout(saveTimer); saveTimer = null;
+    await api.del(P.id); projects = await api.list();
+    const next = projects.find((p) => !p.archived) || projects[0];
+    if (!next) { const p = await api.create({ name: 'Neues Projekt', start: snapWork(todayN()), tasks: [] }); projects = await api.list(); await openProject(p.id); }
+    else await openProject(next.id);
+    refreshProjectList();
+  });
+}
 async function fileOpen() {
   let list = await api.list();
   const fmtTs = (iso) => { if (!iso) return ''; const d = new Date(iso); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -2433,9 +2451,10 @@ async function fileOpen() {
   bg.querySelector('.modal').style.width = '760px';
   const draw = () => {
     const qv = bg.querySelector('#opQ').value.trim().toLowerCase();
-    const rows = list.filter((p) => !qv || (p.name || '').toLowerCase().includes(qv)).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
-    bg.querySelector('#opList').innerHTML = rows.map((p) => `<div class="op-row${P && p.id === P.id ? ' cur' : ''}" data-op="${p.id}"><div class="op-n"><b>${esc(p.name)}</b><small>${p.n ?? '?'} Leistungen · Anfang ${p.start != null ? fmtD(p.start) : '–'}${p.assist ? ' · mit Assistent' : ''}${P && p.id === P.id ? ' · <i>geöffnet</i>' : ''}</small></div>
-      <span class="op-d">geändert ${fmtTs(p.updated)}</span><button class="btn sm primary" data-opo="${p.id}">Öffnen</button><button class="btn sm" data-opc="${p.id}" title="Kopie anlegen">Duplizieren</button><button class="btn sm" data-opd="${p.id}" title="Löschen">✕</button></div>`).join('') || '<div class="hint">Keine Projekte gefunden.</div>';
+    const rows = list.filter((p) => !qv || (p.name || '').toLowerCase().includes(qv)).sort((a, b) => (!!a.archived - !!b.archived) || (b.updated || '').localeCompare(a.updated || ''));
+    let archH = false;
+    bg.querySelector('#opList').innerHTML = rows.map((p) => `${p.archived && !archH && (archH = true) ? '<div class="op-arch">Archiv</div>' : ''}<div class="op-row${P && p.id === P.id ? ' cur' : ''}${p.archived ? ' arch' : ''}" data-op="${p.id}"><div class="op-n"><b>${esc(p.name)}</b><small>${p.n ?? '?'} Leistungen · Anfang ${p.start != null ? fmtD(p.start) : '–'}${p.assist ? ' · mit Assistent' : ''}${P && p.id === P.id ? ' · <i>geöffnet</i>' : ''}</small></div>
+      <span class="op-d">geändert ${fmtTs(p.updated)}</span><button class="btn sm primary" data-opo="${p.id}">Öffnen</button><button class="btn sm" data-opc="${p.id}" title="Kopie anlegen">Duplizieren</button><button class="btn sm" data-opa="${p.id}" title="${p.archived ? 'Wieder zu den laufenden Plänen' : 'Archivieren – bleibt erhalten, steht unten im Archiv'}">${p.archived ? 'Zurückholen' : 'Archivieren'}</button><button class="btn sm" data-opd="${p.id}" title="Löschen">✕</button></div>`).join('') || '<div class="hint">Keine Projekte gefunden.</div>';
   };
   bg.querySelector('#opQ').addEventListener('input', draw);
   const openId = async (id) => { bg.remove(); if (await openProject(id) !== false) refreshProjectList(); };
@@ -2445,6 +2464,12 @@ async function fileOpen() {
     if (t.id === 'opFile') { bg.remove(); openFromComputer(); return; }
     if (t.dataset.opo) { openId(t.dataset.opo); return; }
     if (t.dataset.opc) { const src = t.dataset.opc === P.id ? projectFileData() : await api.get(t.dataset.opc); const c = await api.create({ ...src, name: src.name + ' (Kopie)' }); list = await api.list(); draw(); toast(`Kopie „${c.name}“ angelegt.`); refreshProjectList(); return; }
+    if (t.dataset.opa) {
+      const id = t.dataset.opa, x = list.find((p) => p.id === id);
+      if (P && id === P.id) { act(() => { P.archived = !P.archived; }); await saveNow(); }
+      else await fetch('api/projects/' + encodeURIComponent(id) + '/archiv', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archiviert: !x.archived }) }).then(j);
+      list = await api.list(); draw(); refreshProjectList(); return;
+    }
     if (t.dataset.opd) {
       if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Löschen?'; t.classList.add('danger'); setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = '✕'; t.classList.remove('danger'); } }, 3000); return; }
       const id = t.dataset.opd;
@@ -2628,7 +2653,9 @@ addEventListener('beforeunload', (e) => { if (saveTimer && P) { api.save(P, true
 
 async function refreshProjectList() {
   projects = await api.list();
-  $('#projSelect').innerHTML = projects.map((p) => `<option value="${p.id}"${P && p.id === P.id ? ' selected' : ''}>${esc(p.id === P?.id ? P.name : p.name)}</option>`).join('');
+  const opt = (p) => `<option value="${p.id}"${P && p.id === P.id ? ' selected' : ''}>${esc(p.id === P?.id ? P.name : p.name)}</option>`;
+  const lauf = projects.filter((p) => !p.archived), arch = projects.filter((p) => p.archived);
+  $('#projSelect').innerHTML = lauf.map(opt).join('') + (arch.length ? `<optgroup label="Archiv">${arch.map(opt).join('')}</optgroup>` : '');
 }
 function askUnsaved() {
   return new Promise((resolve) => {
@@ -2810,7 +2837,7 @@ async function boot() {
         else halten = true, BPHead.hinweisLeiste(`Für ${gp.name} gibt es noch keinen Bauzeitenplan.`, 'Anlegen', () => ACTIONS.newProject());
       }
     }
-    if (!projects.some((p) => p.id === id)) id = projects[0]?.id;
+    if (!projects.some((p) => p.id === id)) id = (projects.find((p) => !p.archived) || projects[0])?.id;
     if (!id) { const p = await api.create({ name: 'Neues Projekt', start: snapWork(todayN()), tasks: [] }); id = p.id; }
     await openProject(id);
     if (halten) window.bpHalten = id;

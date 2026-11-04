@@ -183,6 +183,7 @@ def sanitize(inp, pid):
         "nextUid": int(nu) if float(nu).is_integer() else nu,
         "tasks": clean, "cal": cal, "trades": trades, "assist": assist, "gwColors": gw_colors,
         "sched": _sched(inp.get("sched"), {t["uid"] for t in clean}),
+        "archived": truthy(inp.get("archived")),   # archiviert: bleibt erhalten, steht in den Listen unten
     }
 
 
@@ -340,7 +341,8 @@ def list_projects(c):
             continue
         out.append({"id": r["id"], "name": r["name"], "updated": r["updated"], "n": len(p.get("tasks") or []), "start": p.get("start"),
                     "assist": bool(isinstance(p.get("assist"), dict) and p["assist"].get("type")),
-                    "by": r["updated_by"], "bt": bt.get(r["project_id"]) if r["project_id"] else None, "bt_id": r["project_id"]})
+                    "by": r["updated_by"], "bt": bt.get(r["project_id"]) if r["project_id"] else None, "bt_id": r["project_id"],
+                    "archived": bool(p.get("archived"))})
     return out
 
 
@@ -424,6 +426,23 @@ def project(pid):
             return jsonify(error=f"Der Plan wurde inzwischen von {r['updated_by'] or 'jemand anderem'} geändert.", conflict=True,
                            by=r["updated_by"], updated=r["updated"], rev=r["rev"]), 409
         return jsonify(write_project(c, sanitize(b, pid), uname()))
+
+
+@app.put("/api/projects/<pid>/archiv")
+def project_archiv(pid):
+    """Plan archivieren oder zurückholen ({archiviert: true|false}) – ohne ihn zu öffnen."""
+    b = body()
+    with db.tx() as c:
+        r, err = _project_or_error(c, pid)
+        if err:
+            return err
+        c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", ("gantt:" + pid,))
+        r = row_of(c, pid)
+        d = json.loads(r["data"])
+        d["archived"] = truthy(b.get("archiviert"))
+        d["id"], d["name"] = pid, r["name"]
+        c.execute("UPDATE gantt_projects SET data=?, rev=rev+1 WHERE id=?", (json.dumps(d, ensure_ascii=False, separators=(",", ":")), pid))
+        return jsonify(ok=True, archived=d["archived"], rev=row_of(c, pid)["rev"])
 
 
 @app.put("/api/projects/<pid>/link")

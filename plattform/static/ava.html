@@ -195,6 +195,27 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .menu small{display:block;color:var(--mute);font-size:.75rem}
 .menu hr{border:0;border-top:1px solid var(--line);margin:.25rem 0}
 @media (max-width:760px){.top select#proj,#sel{min-width:0;flex:1 1 100%;width:100%}.top .fill{display:none}.fm{grid-template-columns:1fr}.hide-m{display:none}}
+.tl-bar{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin:0 0 .5rem}
+.tl-bar input[type=search]{width:12rem;padding:.3rem .5rem}
+.tl-bar .sep{width:1px;align-self:stretch;background:var(--line);margin:0 .2rem}
+.tl-w{overflow:auto;max-height:calc(100vh - 210px);border:1px solid var(--line);background:var(--card)}
+table.tl{border-collapse:separate;border-spacing:0;font-size:12.5px}
+table.tl th{position:sticky;top:0;z-index:2;background:var(--tabs);font-weight:500;padding:.2rem .3rem;border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap;text-align:left;vertical-align:bottom}
+table.tl th.v{writing-mode:vertical-rl;transform:rotate(180deg);height:8.5rem;text-align:left;padding:.3rem .1rem;font-size:11.5px;width:1.6rem}
+table.tl th.g{background:var(--tabs);border-bottom:2px solid var(--y);text-align:center;font-size:11px;color:var(--mute);padding:.1rem}
+table.tl td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:0;white-space:nowrap}
+table.tl td.c{text-align:center;padding:0 .2rem}
+table.tl td input,table.tl td select{border:0;border-radius:0;background:transparent;font:inherit;font-size:12.5px;padding:.22rem .3rem;width:100%;min-width:0;color:var(--ink);box-sizing:border-box}
+table.tl td input[type=checkbox]{width:auto;accent-color:var(--y)}
+table.tl td input:focus,table.tl td select:focus{outline:2px solid var(--y);outline-offset:-2px;background:var(--bg)}
+table.tl tr.sel td{background:color-mix(in srgb,var(--y) 14%,transparent)}
+table.tl tbody tr:hover td{background:var(--hov)}
+table.tl .st{position:sticky;left:0;z-index:1;background:var(--card)}
+table.tl th.st{z-index:3;background:var(--tabs)}
+table.tl .st2{position:sticky;left:1.9rem;z-index:1;background:var(--card);box-shadow:1px 0 0 var(--line)}
+table.tl th.st2{z-index:3;background:var(--tabs)}
+.tl-leer{padding:2rem;text-align:center}
+.tl-vs{display:grid;grid-template-columns:1fr auto;gap:.3rem .8rem;font-size:.85rem;max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:.5rem}
 </style>
 </head>
 <body>
@@ -206,6 +227,9 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
       <button class="rb" data-act="pos" data-need="lv" title="Position anhängen"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h12"/><path d="M19 15v6M16 18h6" class="ac"/></svg>Position</button>
       <button class="rb" data-act="titel" data-need="lv" title="Titel anhängen"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/><path d="M17 12v5M14.5 14.5h5" class="ac"/></svg>Titel</button>
     </div><div class="rl">Neu</div></div>
+    <div class="rg"><div class="rr">
+      <button class="rb" id="tlBtn" title="Türliste des Projekts: alle Türen mit Raum, Maßen, Anschlag, Brand- und Schallschutz, Ausstattung – später als Positionen ins LV"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="11" height="18" rx="1"/><circle cx="13" cy="12" r=".9"/><path d="M19 8h3M19 12h3M19 16h3" class="ac"/></svg>Türliste</button>
+    </div><div class="rl">Listen</div></div>
     <div class="rg"><div class="rr">
       <button class="rb" id="quBtn" title="Ein LV aus einem anderen (alten) Projekt daneben anzeigen – schreibgeschützt – und Positionen herüberkopieren"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/><path d="M8 12h8M13 9l3 3-3 3"/></svg>Kopierquelle</button>
       <button class="rb" id="standBtn" data-need="lv" title="Jetzigen Stand dieses LV unter einem Namen festhalten (z. B. „Versand an Bieter 04.11.“)"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/></svg>Stand speichern</button>
@@ -235,7 +259,7 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('ava.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('ava.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschritte, rechts die Tabelle
-  ['Ausschreibung', [['lv', 'Leistungsverzeichnis', '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/>']]],
+  ['Ausschreibung', [['lv', 'Leistungsverzeichnis', '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/>'], ['tueren', 'Türliste', '<rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="15" cy="12" r=".8"/>']]],
   ['Vergabe', [['angebote', 'Angebote & Preisspiegel', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>']]],
   ['Vergabe und Abrechnung', [['auftraege', 'Aufträge', '<path d="M3 7h6l2 2h10v10H3z"/>'], ['aufmass', 'Aufmaßprüfung', '<path d="M3 17l14-14 4 4-14 14H3z"/><path d="M13 7l4 4"/>'], ['rechnungen', 'Rechnungen', '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>']]],
   ['Kostenübersicht', [['uebersicht', 'Kostenkontrolle', '<path d="M4 19h16M7 16V9M12 16V5M17 16v-4"/>']]],
@@ -338,7 +362,7 @@ function kpis() {
 }
 function render() {
   selBtn(); kpis();
-  const n = { lv: posOf().length, angebote: L ? L.angebote.length : 0, aufmass: L ? new Set(L.aufmass.map((a) => a.pos_id)).size : 0, rechnungen: L ? L.rechnungen.length : 0, auftraege: LIST.filter((x) => !x.archived).length };
+  const n = { lv: posOf().length, angebote: L ? L.angebote.length : 0, aufmass: L ? new Set(L.aufmass.map((a) => a.pos_id)).size : 0, rechnungen: L ? L.rechnungen.length : 0, auftraege: LIST.filter((x) => !x.archived).length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
   $('#tabs').innerHTML = (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
     + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')}</div>`).join('');
@@ -350,6 +374,7 @@ function render() {
   const v = $('#view');
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); return; }
+  if (tab === 'tueren') { vTueren(v); return; }
   if (!L) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   v.innerHTML = { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   sums();
@@ -1381,6 +1406,195 @@ function vUebersicht() {
     <div class="tblw"><table class="lv ue"><thead><tr><th>Nr.</th><th>LV</th><th>Stand</th><th class="r">Schätzung</th><th class="r">bestes Angebot</th><th class="r">Auftrag</th><th class="r">Nachträge</th><th class="r">abgerechnet</th><th class="r">noch offen</th><th class="r">Abw. zur Schätzung</th></tr></thead>
       <tbody>${rows}</tbody><tfoot><tr><td></td><td><b>Summe netto</b></td><td></td><td class="r"><b>${eur0(S.s)}</b></td><td class="r">${eur0(S.a)}</td><td class="r"><b>${eur0(S.au)}</b></td><td class="r">${eur0(S.nt)}</td><td class="r"><b>${eur0(S.ab)}</b></td><td class="r">${eur0(ges - S.ab)}</td>
       <td class="r">${ges && S.s ? (ges >= S.s ? '+' : '') + Math.round((ges / S.s - 1) * 100) + ' %' : ''}</td></tr></tfoot></table></div>`;
+}
+
+/* ---------- Türliste: je Projekt eine Tabelle aller Türen, gleiche Ausführung wird später zu einer LV-Position ---------- */
+const TA = { art: ['Innentür', 'Wohnungseingangstür', 'Außentür', 'Funktionstür', 'Brandschutztür', 'Rauchschutztür', 'Schallschutztür', 'Schiebetür', 'Ganzglastür', 'Stahltür', 'Tor'],
+  flg: ['1-flg.', '2-flg.', '2-flg. ungleich', 'Schiebetür', 'Pendeltür'], din: ['DIN L', 'DIN R'],
+  brand: ['T30', 'T30-RS', 'T90', 'T90-RS', 'RS', 'EI2 30', 'EI2 90'], schall: ['27 dB', '32 dB', '37 dB', '42 dB', '47 dB'], rc: ['RC2', 'RC3', 'RC4'], klima: ['I', 'II', 'III'],
+  zarge: ['Stahl-Umfassungszarge', 'Stahl-Eckzarge', 'Stahl-Blockzarge', 'Holz-Umfassungszarge', 'Holz-Blockzarge', 'Alu-Rahmen', 'Ganzglas-Beschläge', 'zargenlos (flächenbündig)'],
+  blatt: ['Röhrenspan', 'Vollspan', 'Stahl doppelwandig', 'Alu-Rahmen mit Füllung', 'Ganzglas ESG', 'Holz massiv', 'Brandschutzeinlage'],
+  oberfl: ['CPL', 'HPL', 'Lack weiß', 'Lack RAL nach Wahl', 'Furnier', 'pulverbeschichtet', 'grundiert'],
+  glas: ['Klarglas VSG', 'Satinato ESG', 'Brandschutzglas', 'Drahtglas'],
+  schloss: ['BB', 'PZ', 'WC (Bad)', 'Panik', 'Motorschloss', 'ohne'], beschlag: ['Drücker/Drücker Edelstahl', 'Drücker/Knauf', 'Stoßgriff', 'Muschelgriff', 'Drücker/Drücker Alu'] };
+const TJA = [['otsch', 'Obentürschließer'], ['frl', 'Feststellanlage'], ['licht', 'Lichtausschnitt'], ['oberlicht', 'Oberlicht'], ['seitenteil', 'Seitenteil'], ['bodend', 'Bodendichtung'],
+  ['schwelle', 'schwellenlos'], ['bf', 'barrierefrei'], ['panik', 'Panik EN 1125'], ['notaus', 'Notausgang EN 179'], ['eoeff', 'E-Öffner'], ['antrieb', 'Antrieb'], ['zk', 'Zutrittskontrolle'],
+  ['rm', 'Riegelkontakt'], ['sa', 'Schließanlage'], ['lueft', 'Lüftungsgitter'], ['stopper', 'Türstopper'], ['kanten', 'Kantenschutz'], ['nass', 'Feuchtraum']];
+const TSP = [   // Spalten: Schlüssel, Überschrift, Art (t Text, n Zahl, s Auswahl, d Text mit Vorschlägen), Breite (rem), Gruppe
+  ['nr', 'Tür-Nr.', 't', 5.5, 'Lage'], ['geschoss', 'Geschoss', 't', 4.5, 'Lage'], ['raum', 'Raum-Nr.', 't', 4.8, 'Lage'], ['raumname', 'Raum', 't', 8, 'Lage'], ['zu', 'zu Raum', 't', 7, 'Lage'],
+  ['typ', 'Typ', 't', 3.2, 'Tür'], ['anzahl', 'Anz.', 'n', 2.8, 'Tür'], ['art', 'Art', 'd', 8.5, 'Tür'], ['flg', 'Flügel', 's', 6, 'Tür'], ['din', 'DIN', 's', 4.6, 'Tür'],
+  ['b', 'B mm', 'n', 3.6, 'Maße (BRM)'], ['h', 'H mm', 'n', 3.6, 'Maße (BRM)'], ['wand', 'Wand', 'n', 3.2, 'Maße (BRM)'],
+  ['zarge', 'Zarge', 'd', 9, 'Ausführung'], ['blatt', 'Türblatt', 'd', 7.5, 'Ausführung'], ['oberfl', 'Oberfläche', 'd', 6.5, 'Ausführung'], ['farbe', 'Farbe', 't', 5, 'Ausführung'], ['glas', 'Verglasung', 'd', 6.5, 'Ausführung'],
+  ['brand', 'Brand', 's', 5, 'Anforderungen'], ['schall', 'Schall', 's', 4.6, 'Anforderungen'], ['rc', 'RC', 's', 3.6, 'Anforderungen'], ['klima', 'Klima', 's', 3.4, 'Anforderungen'],
+  ['schloss', 'Schloss', 'd', 5, 'Beschlag'], ['beschlag', 'Beschlag', 'd', 8, 'Beschlag'],
+  ...TJA.map(([k, l]) => [k, l, 'b', 1.6, 'Ausstattung']), ['bem', 'Bemerkung', 't', 12, '']];
+let TL = null, TLsel = new Set(), TLq = '', tlT = 0;
+const tlNeu = () => ({ id: uid() });
+function tlDatalists() {
+  if ($('#tlDl')) return;
+  const d = document.createElement('div'); d.id = 'tlDl'; d.hidden = true;
+  d.innerHTML = Object.entries(TA).map(([k, xs]) => `<datalist id="tl-${k}">${xs.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`).join('');
+  document.body.appendChild(d);
+}
+async function tlLaden() {
+  const p = pid; TL = { pid: p, tueren: [], rev: 0, laedt: true };
+  try { const r = await api(`api/projekt/${p}/tueren`); if (pid === p) TL = { pid: p, tueren: r.tueren, rev: r.rev }; } catch (e) { toast(e.message, true); }
+  TLsel = new Set(); if (tab === 'tueren') render();
+}
+function tlSpeichern(sofort) {
+  $('#save').textContent = 'Nicht gespeichert …';
+  clearTimeout(tlT); tlT = setTimeout(tlJetzt, sofort ? 10 : 700);
+}
+async function tlJetzt() {
+  tlT = 0; if (!TL) return;
+  try { const r = await api(`api/projekt/${TL.pid}/tueren`, 'PUT', { rev: TL.rev, tueren: TL.tueren }); TL.rev = r.rev;
+    const d = new Date(); $('#save').textContent = `Gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  } catch (e) { $('#save').textContent = 'Nicht gespeichert'; toast(e.message + (e.data && e.data.conflict ? ' Die Liste wird neu geladen.' : ''), true); if (e.data && e.data.conflict) tlLaden(); }
+}
+function tlZelle(t, [k, , a]) {
+  const v = t[k] == null ? '' : t[k];
+  if (a === 'b') return `<td class="c"><input type="checkbox" data-tf="${k}" ${v ? 'checked' : ''} aria-label="${esc(k)}"></td>`;
+  if (a === 's') return `<td><select data-tf="${k}"><option value=""></option>${TA[k].map((o) => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}${v && !TA[k].includes(v) ? `<option selected>${esc(v)}</option>` : ''}</select></td>`;
+  return `<td><input data-tf="${k}" value="${esc(v)}"${a === 'd' ? ` list="tl-${k}"` : ''}${a === 'n' ? ' inputmode="numeric" style="text-align:right"' : ''}></td>`;
+}
+function tlSichtbar() {
+  const q = TLq.trim().toLowerCase();
+  return TL.tueren.filter((t) => !q || Object.values(t).some((v) => typeof v === 'string' && v.toLowerCase().includes(q)));
+}
+function vTueren(v) {
+  if (!pid) { v.innerHTML = '<div class="card empty"><p>Bitte oben ein Projekt wählen.</p></div>'; return; }
+  if (!TL || TL.pid !== pid) { v.innerHTML = '<p class="mute">Lade Türliste …</p>'; tlLaden(); return; }
+  if (TL.laedt) { v.innerHTML = '<p class="mute">Lade Türliste …</p>'; return; }
+  tlDatalists();
+  const T = tlSichtbar(), n = TLsel.size;
+  const gr = []; TSP.forEach((c) => { const g = gr[gr.length - 1]; if (g && g[0] === c[4]) g[1]++; else gr.push([c[4], 1]); });
+  const stueck = TL.tueren.reduce((s, t) => s + (Math.max(1, parseInt(t.anzahl, 10) || 1)), 0);
+  v.innerHTML = `<div class="tl-bar">
+      <button class="btn sm pri" data-tl="neu">+ Tür</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button>
+      <span class="sep"></span>
+      <button class="btn sm" data-tl="dup" ${n ? '' : 'disabled'} title="Ausgewählte Türen kopieren">Duplizieren</button><button class="btn sm" data-tl="mehr" ${n ? '' : 'disabled'} title="Ein Feld für alle ausgewählten Türen setzen">Auswahl ändern …</button><button class="btn sm danger" data-tl="del" ${n ? '' : 'disabled'}>Löschen</button>
+      <span class="sep"></span>
+      <input type="search" id="tlQ" placeholder="Suchen (Nr., Raum, T30 …)" value="${esc(TLq)}">
+      <span style="flex:1"></span><span class="hint">${TL.tueren.length} Zeilen · ${stueck} Türen${n ? ` · ${n} ausgewählt` : ''}</span>
+      <a class="btn sm" href="api/projekt/${pid}/tueren.xlsx" title="Türliste als Excel">Excel</a><button class="btn sm pri" data-tl="lv" ${TL.tueren.length ? '' : 'disabled'} title="Gleiche Türen zu Positionen zusammenfassen und ins LV übernehmen">→ In LV übernehmen …</button></div>
+    ${TL.tueren.length ? `<div class="tl-w"><table class="tl"><thead><tr><th class="g st"></th>${gr.map(([g, k]) => `<th class="g" colspan="${k}">${esc(g)}</th>`).join('')}</tr>
+      <tr><th class="st"><input type="checkbox" data-tl="alle" ${n && n === T.length ? 'checked' : ''} aria-label="Alle auswählen"></th>${TSP.map((c, i) => `<th class="${c[2] === 'b' ? 'v' : ''}${i === 0 ? ' st2' : ''}" style="${c[2] === 'b' ? '' : `min-width:${c[3]}rem;max-width:${c[3]}rem`}" title="${esc(c[1])}">${esc(c[1])}</th>`).join('')}</tr></thead>
+      <tbody>${T.map((t) => `<tr data-t="${esc(t.id)}" class="${TLsel.has(t.id) ? 'sel' : ''}"><td class="c st"><input type="checkbox" data-tl="sel" ${TLsel.has(t.id) ? 'checked' : ''} aria-label="auswählen"></td>${TSP.map((c, i) => { const z = tlZelle(t, c); return i === 0 ? z.replace('<td>', '<td class="st2">') : z; }).join('')}</tr>`).join('')}</tbody></table></div>
+      <p class="hint" style="margin:.5rem 0 0">Eingaben werden sofort gespeichert. Tab/Enter springt weiter, ↑ ↓ wechselt die Zeile. Beim Übernehmen ins LV werden Türen mit gleicher Ausführung (ohne Nr., Raum, Anschlag, Bemerkung) zu einer Position mit Stückzahl zusammengefasst; Anschlag und Tür-Nummern stehen im Langtext.</p>`
+    : `<div class="card tl-leer"><p>Noch keine Türen in diesem Projekt.</p><p class="hint">Türen einzeln anlegen oder für die Räume aus dem Raumbuch der Kostenermittlung übernehmen. Alles lässt sich später als Positionen ins LV übernehmen.</p><button class="btn pri" data-tl="neu">+ Erste Tür</button> <button class="btn" data-tl="raeume">Aus Raumbuch …</button></div>`}`;
+}
+function tlNaechsteNr(nr) {   // „T 0.05“ → „T 0.06“, „T12“ → „T13“
+  const m = String(nr || '').match(/^(.*?)(\d+)(\D*)$/); if (!m) return '';
+  return m[1] + String(+m[2] + 1).padStart(m[2].length, '0') + m[3];
+}
+function tlZeichnen(fokus) {
+  const w = $('.tl-w'), sl = w ? w.scrollLeft : 0, stp = w ? w.scrollTop : 0;
+  render(); const w2 = $('.tl-w'); if (w2) { w2.scrollLeft = sl; w2.scrollTop = stp; }
+  if (fokus) { const el = document.querySelector(`tr[data-t="${fokus}"] [data-tf="nr"]`); if (el) { el.focus(); el.select(); el.scrollIntoView({ block: 'nearest' }); } }
+}
+$('#tlBtn').addEventListener('click', async () => { await flush(); tab = 'tueren'; LS.set('tab', tab); render(); });
+document.addEventListener('input', (e) => {
+  const el = e.target; if (tab !== 'tueren' || !TL) return;
+  if (el.id === 'tlQ') { TLq = el.value; const p = el.selectionStart; tlZeichnen(); const q = $('#tlQ'); q.focus(); q.setSelectionRange(p, p); return; }
+  const tr = el.closest('tr[data-t]'); if (!tr || !el.dataset.tf) return;
+  const t = TL.tueren.find((x) => x.id === tr.dataset.t); if (!t) return;
+  const k = el.dataset.tf, v = el.type === 'checkbox' ? el.checked : el.value;
+  if (v === '' || v === false) delete t[k]; else t[k] = v;
+  tlSpeichern();
+});
+document.addEventListener('change', (e) => {
+  const el = e.target; if (tab !== 'tueren' || !TL) return;
+  if (el.dataset.tl === 'sel') { const id = el.closest('tr[data-t]').dataset.t; if (el.checked) TLsel.add(id); else TLsel.delete(id); tlZeichnen(); return; }
+  if (el.dataset.tl === 'alle') { TLsel = el.checked ? new Set(tlSichtbar().map((t) => t.id)) : new Set(); tlZeichnen(); }
+});
+document.addEventListener('keydown', (e) => {
+  if (tab !== 'tueren' || !TL) return;
+  const el = e.target, tr = el.closest && el.closest('table.tl tr[data-t]'); if (!tr || !el.dataset.tf) return;
+  let ziel = null;
+  if (e.key === 'ArrowDown' || (e.key === 'Enter' && el.tagName === 'INPUT' && el.type !== 'checkbox')) ziel = tr.nextElementSibling;
+  else if (e.key === 'ArrowUp') ziel = tr.previousElementSibling;
+  if (el.tagName === 'SELECT' && e.key.startsWith('Arrow')) return;   // Auswahl mit Pfeilen bleibt
+  if (e.key === 'Enter' && !ziel) { e.preventDefault(); tlAktion('neu', tr.dataset.t); return; }
+  if (!ziel) return;
+  e.preventDefault(); const f = ziel.querySelector(`[data-tf="${el.dataset.tf}"]`); if (f) { f.focus(); if (f.select) f.select(); }
+});
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-tl]'); if (!b || tab !== 'tueren' || !TL || b.tagName === 'INPUT') return;
+  tlAktion(b.dataset.tl);
+});
+async function tlAktion(a, nach) {
+  const T = TL.tueren;
+  if (a === 'neu') {   // neue Zeile: Ausführung der letzten (bzw. aktuellen) Tür übernehmen, Nr. hochzählen, Raum leer
+    const ref = nach ? T.find((t) => t.id === nach) : T[T.length - 1];
+    const t = ref ? { ...ref, id: uid(), nr: tlNaechsteNr(ref.nr), raum: '', raumname: '', zu: '', bem: '' } : tlNeu();
+    Object.keys(t).forEach((k) => { if (t[k] === '') delete t[k]; });
+    const i = ref ? T.indexOf(ref) + 1 : T.length; T.splice(i, 0, t); TLq = ''; tlSpeichern(true); tlZeichnen(t.id); return;
+  }
+  if (a === 'dup') {
+    const neu = []; T.slice().forEach((t) => { if (TLsel.has(t.id)) { const k = { ...t, id: uid() }; T.splice(T.indexOf(t) + 1, 0, k); neu.push(k.id); } });
+    TLsel = new Set(neu); tlSpeichern(true); tlZeichnen(); toast(`${neu.length} Tür${neu.length > 1 ? 'en' : ''} kopiert – die Kopien sind ausgewählt.`); return;
+  }
+  if (a === 'del') {
+    if (!confirm(`${TLsel.size} Tür${TLsel.size > 1 ? 'en' : ''} aus der Liste löschen?`)) return;
+    TL.tueren = T.filter((t) => !TLsel.has(t.id)); TLsel = new Set(); tlSpeichern(true); tlZeichnen(); return;
+  }
+  if (a === 'mehr') return tlMehrfach();
+  if (a === 'raeume') return tlRaeume();
+  if (a === 'lv') return tlInsLv();
+}
+function tlMehrfach() {
+  const F = TSP.filter((c) => !['nr', 'raum', 'raumname'].includes(c[0]));
+  const feld = (k) => { const c = TSP.find((x) => x[0] === k);
+    if (c[2] === 'b') return '<select id="tmV"><option value="1">Ja</option><option value="">Nein</option></select>';
+    if (c[2] === 's') return `<select id="tmV"><option value="">(leer)</option>${TA[k].map((o) => `<option>${esc(o)}</option>`).join('')}</select>`;
+    return `<input id="tmV"${c[2] === 'd' ? ` list="tl-${k}"` : ''} placeholder="leer lassen zum Löschen">`; };
+  const bg = modalBox(`<h3>${TLsel.size} Türen ändern</h3><label class="dz-l">Feld<select id="tmF">${F.map((c) => `<option value="${c[0]}">${esc(c[4] ? c[4] + ': ' : '')}${esc(c[1])}</option>`).join('')}</select></label>
+    <label class="dz-l" style="margin-top:.6rem">Neuer Wert<span id="tmW">${feld(F[0][0])}</span></label>
+    <div class="acts" style="margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Für alle setzen</button></div>`, (m, bg2, close) => {
+    if (m === 'x') return close();
+    const k = $('#tmF').value, v = $('#tmV').value;
+    TL.tueren.forEach((t) => { if (!TLsel.has(t.id)) return; if (v) t[k] = TSP.find((c) => c[0] === k)[2] === 'b' ? true : v; else delete t[k]; });
+    close(); tlSpeichern(true); tlZeichnen();
+  });
+  bg.querySelector('#tmF').addEventListener('change', (e) => { bg.querySelector('#tmW').innerHTML = feld(e.target.value); });
+}
+async function tlRaeume() {
+  let r; try { r = await api(`api/projekt/${pid}/raeume`); } catch (e) { return toast(e.message, true); }
+  if (!r.raeume.length) return toast(r.bk ? 'Im Raumbuch der Kostenermittlung stehen noch keine Räume.' : 'Für dieses Projekt gibt es noch keine Kostenermittlung mit Raumbuch.', true);
+  const hat = new Set(TL.tueren.map((t) => t.raum).filter(Boolean));
+  modalBox(`<h3>Türen aus dem Raumbuch</h3><p class="hint">Raumbuch „${esc(r.bk.name)}“. Für jeden gewählten Raum wird eine Tür angelegt (Nr. = T + Raumnummer). Räume, die schon eine Tür haben, sind abgewählt.</p>
+    <label class="dz-c"><input type="checkbox" id="trAlle"> alle</label>
+    <div class="tl-vs">${r.raeume.map((x, i) => `<label class="dz-c"><input type="checkbox" data-ri="${i}" ${hat.has(x.nr) ? '' : 'checked'}> ${esc(x.nr)} ${esc(x.name)}</label><span class="hint">${esc(x.geschoss)}</span>`).join('')}</div>
+    <div class="acts" style="margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Türen anlegen</button></div>`, (m, bg, close) => {
+    if (m === 'x') return close();
+    const neu = [...bg.querySelectorAll('[data-ri]:checked')].map((c) => { const x = r.raeume[+c.dataset.ri];
+      const t = { id: uid(), nr: x.nr ? 'T ' + x.nr : '', raum: x.nr, raumname: x.name, geschoss: x.geschoss, art: 'Innentür', flg: '1-flg.' };
+      Object.keys(t).forEach((k) => { if (!t[k]) delete t[k]; }); return t; });
+    TL.tueren.push(...neu); close(); tlSpeichern(true); tlZeichnen(); toast(`${neu.length} Türen angelegt.`);
+  }).querySelector('#trAlle').addEventListener('change', (e) => { e.target.closest('.modal').querySelectorAll('[data-ri]').forEach((c) => { c.checked = e.target.checked; }); });
+}
+function tlGruppen(T) {   // wie auf dem Server: gleiche Ausführung → eine Position
+  const ohne = new Set(['id', 'nr', 'geschoss', 'raum', 'raumname', 'zu', 'din', 'bem', 'anzahl']);
+  const g = new Set(T.map((t) => JSON.stringify(Object.keys(t).filter((k) => !ohne.has(k)).sort().map((k) => [k, t[k]])))); return g.size;
+}
+function tlInsLv() {
+  const auswahl = TLsel.size ? TL.tueren.filter((t) => TLsel.has(t.id)) : TL.tueren;
+  const lvs = LIST.filter((x) => !x.archived);
+  modalBox(`<h3>Türen ins LV übernehmen</h3>
+    <p>${auswahl.length} Tür${auswahl.length > 1 ? 'en' : ''}${TLsel.size ? ' (Auswahl)' : ''} ergeben <b>${tlGruppen(auswahl)} Position${tlGruppen(auswahl) > 1 ? 'en' : ''}</b> – gleiche Ausführung wird zusammengefasst, Stückzahl als Menge, Anschlag und Tür-Nummern im Langtext.</p>
+    <label class="dz-l">Ziel<select id="tlZiel"><option value="">Neues LV „Türen“ anlegen</option>${lvs.map((x) => `<option value="${x.id}"${L && L.id === x.id ? ' selected' : ''}>an LV ${esc(x.nr)} ${esc(x.name)} anhängen</option>`).join('')}</select></label>
+    <label class="dz-l" style="margin-top:.6rem">Titel im LV<input id="tlTitel" value="Türen"></label>
+    <div class="acts" style="margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') return close();
+    btn.disabled = true;
+    try {
+      if (tlT) { clearTimeout(tlT); await tlJetzt(); }
+      const z = $('#tlZiel').value;
+      const r = await api(`api/projekt/${pid}/tueren/lv`, 'POST', { ids: TLsel.size ? [...TLsel] : [], lv: z ? +z : null, titel: $('#tlTitel').value });
+      close(); await refreshList(); await openLv(r.lv); tab = 'lv'; LS.set('tab', tab); render();
+      toast(`${r.tueren} Tür${r.tueren > 1 ? 'en' : ''} → ${r.positionen} Position${r.positionen > 1 ? 'en' : ''} übernommen. Preise und Texte jetzt im LV ergänzen.`);
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
 }
 
 /* ---------- Start ---------- */

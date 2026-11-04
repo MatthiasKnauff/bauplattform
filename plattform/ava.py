@@ -10,6 +10,7 @@ Wahlpositionen ohne Gesamtbetrag), Nachlass in Prozent. Abrechnung kumuliert: Le
 - Nachlass - Abzüge - Sicherheitseinbehalt = anerkannt; Zahlbetrag = anerkannt - bisher anerkannt (vorige Rechnungen).
 """
 import ast, io, json, operator, re, uuid
+from collections import Counter
 from datetime import date, datetime
 
 from flask import Response, g, jsonify, redirect, request
@@ -538,6 +539,226 @@ def raeume(i):
         return jsonify(bk={"id": bk["id"], "name": bk["name"]},
                        raeume=[{"id": x.get("id"), "nr": x.get("nr") or "", "name": x.get("name") or "", "geschoss": x.get("floor") or "", "flaeche": x.get("area") or 0,
                                 "hoehe": x.get("h") or hstd or 0} for x in d.get("rooms") or []])
+
+
+# ---------------------------------------------------------------- Türliste (je Projekt) → Positionen im LV
+# Gespeichert in bp_store „tueren:<projekt>“ als {"tueren": [...], "rev": n}. Jede Tür ist ein flaches Objekt mit Text- und Ja/Nein-Feldern.
+TUER_TEXT = {"nr": 30, "geschoss": 30, "raum": 30, "raumname": 80, "zu": 80, "typ": 30, "art": 60, "flg": 30, "din": 10, "b": 10, "h": 10, "wand": 10,
+             "zarge": 60, "blatt": 60, "oberfl": 60, "farbe": 60, "brand": 20, "schall": 20, "rc": 10, "klima": 10, "schloss": 40, "beschlag": 60,
+             "glas": 60, "bem": 500, "anzahl": 6}
+TUER_JA = {"otsch": "Obentürschließer mit Gleitschiene", "frl": "Feststellanlage (Rauchmelder, Magnet)", "licht": "Lichtausschnitt",
+           "oberlicht": "Oberlicht", "seitenteil": "Seitenteil", "bodend": "absenkbare Bodendichtung", "schwelle": "schwellenlos (barrierefrei)",
+           "bf": "barrierefrei nach DIN 18040 (lichte Breite ≥ 90 cm, Bedienkräfte)", "panik": "Panikbeschlag nach DIN EN 1125",
+           "notaus": "Notausgangsverschluss nach DIN EN 179", "eoeff": "Elektro-Türöffner", "antrieb": "Drehflügelantrieb mit Tastern",
+           "zk": "Vorrüstung Zutrittskontrolle", "lueft": "Lüftungsgitter / Überströmöffnung", "stopper": "Türstopper",
+           "kanten": "Kantenschutz", "nass": "für Feuchträume (Klimaklasse III)", "sa": "Profilzylinder in Schließanlage", "rm": "Riegelkontakt / Öffnungsmelder"}
+
+
+def _tuer_clean(v):
+    out, seen = [], set()
+    for x in (v if isinstance(v, list) else [])[:2000]:
+        if not isinstance(x, dict):
+            continue
+        t = {"id": _s(x.get("id"), 20) or uuid.uuid4().hex[:10]}
+        while t["id"] in seen:
+            t["id"] = uuid.uuid4().hex[:10]
+        seen.add(t["id"])
+        for k, n in TUER_TEXT.items():
+            val = _s(x.get(k), n)
+            if val:
+                t[k] = val
+        for k in TUER_JA:
+            if x.get(k):
+                t[k] = True
+        out.append(t)
+    return out
+
+
+def _tueren_laden(c, pid):
+    from bpcore import konto
+    d = _j(konto._get(c, f"tueren:{pid}"), {}) or {}
+    return {"tueren": d.get("tueren") or [], "rev": d.get("rev") or 0, "updated_by": d.get("updated_by") or ""}
+
+
+_GRUPPE_OHNE = {"id", "nr", "geschoss", "raum", "raumname", "zu", "din", "bem", "anzahl"}
+
+
+def _mm(v):
+    try:
+        return f"{int(float(str(v).replace(',', '.'))):,}".replace(",", ".")
+    except ValueError:
+        return str(v)
+
+
+def _tuer_kurz(t):
+    teile = [t.get("art") or "Tür", t.get("flg") or ""]
+    if t.get("b") and t.get("h"):
+        teile.append(f"{_mm(t['b'])} × {_mm(t['h'])} mm")
+    for k in ("brand", "schall", "rc"):
+        if t.get(k):
+            teile.append(t[k])
+    return ((f"Typ {t['typ']}: " if t.get("typ") else "") + ", ".join(x for x in teile if x))[:300]
+
+
+def _tuer_lang(t, liste):
+    z = []
+    kopf = (t.get("art") or "Tür") + (", " + {"1-flg.": "einflügelig", "2-flg.": "zweiflügelig", "2-flg. ungleich": "zweiflügelig, ungleich geteilt"}.get(t.get("flg"), t.get("flg") or "") if t.get("flg") else "")
+    z.append(kopf + ", liefern und fachgerecht einbauen, einschließlich aller Befestigungs- und Abdichtungsarbeiten.")
+    if t.get("b") or t.get("h"):
+        z.append(f"Baurichtmaß (B × H): {_mm(t.get('b') or '…')} × {_mm(t.get('h') or '…')} mm" + (f", Wanddicke {_mm(t['wand'])} mm" if t.get("wand") else ""))
+    elif t.get("wand"):
+        z.append(f"Wanddicke {_mm(t['wand'])} mm")
+    for k, lab in (("zarge", "Zarge"), ("blatt", "Türblatt"), ("oberfl", "Oberfläche"), ("farbe", "Farbe"), ("glas", "Verglasung"), ("schloss", "Schloss"), ("beschlag", "Beschlag"), ("klima", "Klimaklasse")):
+        if t.get(k):
+            z.append(f"{lab}: {t[k]}")
+    if t.get("brand"):
+        b = t["brand"]
+        txt = []
+        if b.startswith("T30"): txt.append("Feuerschutzabschluss T30 (EI2 30-C5) nach DIN 4102-5 / DIN EN 1634-1, mit allgemeiner bauaufsichtlicher Zulassung bzw. Bauartgenehmigung, selbstschließend")
+        elif b.startswith("T90"): txt.append("Feuerschutzabschluss T90 (EI2 90-C5) nach DIN 4102-5 / DIN EN 1634-1, mit allgemeiner bauaufsichtlicher Zulassung bzw. Bauartgenehmigung, selbstschließend")
+        elif b.startswith("EI"): txt.append(f"Feuerschutzabschluss {b} nach DIN EN 1634-1, selbstschließend")
+        if "RS" in b: txt.append("Rauchschutz (RS / Sa) nach DIN 18095 / DIN EN 1634-3, selbstschließend")
+        z.extend(txt or [f"Brandschutz: {b}"])
+    if t.get("schall"):
+        z.append(f"Schallschutz: bewertetes Schalldämm-Maß Rw,P ≥ {t['schall'].replace('dB', '').strip()} dB (eingebaut)")
+    if t.get("rc"):
+        z.append(f"Einbruchhemmung: {t['rc']} nach DIN EN 1627")
+    aus = [TUER_JA[k] for k in TUER_JA if t.get(k)]
+    if aus:
+        z.append("Ausstattung: " + "; ".join(aus))
+    # welche Türen gehören dazu (aus der Türliste)
+    din = Counter(x.get("din") for x in liste for _ in range(max(1, int(_f(x.get("anzahl"), 1, 1, 999)))) if x.get("din"))
+    if din:
+        z.append("Anschlag: " + ", ".join(f"{n} × {d}" for d, n in sorted(din.items())))
+    nrn = [((x.get("nr") or "?") + (f" ({x['raum']}{' ' + x['raumname'] if x.get('raumname') else ''})" if x.get("raum") or x.get("raumname") else "")) for x in liste]
+    z.append("Türen laut Türliste: " + ", ".join(nrn))
+    bem = sorted({x["bem"] for x in liste if x.get("bem")})
+    if bem:
+        z.append("Hinweise: " + " / ".join(bem))
+    return "\n".join(z)[:20000]
+
+
+def tueren_zu_positionen(tueren):
+    gruppen = {}
+    for t in tueren:
+        k = json.dumps({a: b for a, b in t.items() if a not in _GRUPPE_OHNE}, sort_keys=True)
+        gruppen.setdefault(k, []).append(t)
+    items = []
+    for liste in gruppen.values():
+        t = liste[0]
+        n = sum(max(1, int(_f(x.get("anzahl"), 1, 1, 999))) for x in liste)
+        items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "kurz": _tuer_kurz(t), "lang": _tuer_lang(t, liste), "menge": n, "einheit": "St",
+                      "kg": "334" if (t.get("art") or "").startswith(("Außen", "Tor")) else "344", "bezug": "Türliste", "quelle": "Türliste: " + ", ".join(x.get("nr") or "?" for x in liste)})
+    items.sort(key=lambda p: (p["kurz"]))
+    return items
+
+
+@app.route("/api/projekt/<int:pid>/tueren", methods=["GET", "PUT"])
+def tueren(pid):
+    from bpcore import konto
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        if request.method == "GET":
+            return jsonify(_tueren_laden(c, pid))
+        b = request.get_json(silent=True) or {}
+        c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"tueren:{pid}",))
+        alt = _tueren_laden(c, pid)
+        if isinstance(b.get("rev"), int) and b["rev"] != alt["rev"] and not b.get("force"):
+            return jsonify(error=f"Die Türliste wurde inzwischen von {alt['updated_by'] or 'jemand anderem'} geändert.", conflict=True), 409
+        neu = {"tueren": _tuer_clean(b.get("tueren")), "rev": alt["rev"] + 1, "updated_by": g.user["name"]}
+        konto._put(c, f"tueren:{pid}", json.dumps(neu, ensure_ascii=False), g.user["name"])
+        return jsonify(neu)
+
+
+@app.get("/api/projekt/<int:pid>/raeume")
+def projekt_raeume(pid):
+    """Räume aus dem Raumbuch der Kostenermittlung des Projekts (für die Türliste)."""
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        bk = c.execute("SELECT id, name, data FROM bk_projects WHERE project_id=? AND archived=0 ORDER BY updated DESC LIMIT 1", (pid,)).fetchone()
+        if not bk:
+            return jsonify(bk=None, raeume=[])
+        d = _j(bk["data"], {}) or {}
+        return jsonify(bk={"id": bk["id"], "name": bk["name"]},
+                       raeume=[{"nr": x.get("nr") or "", "name": x.get("name") or "", "geschoss": x.get("floor") or ""} for x in d.get("rooms") or []])
+
+
+@app.post("/api/projekt/<int:pid>/tueren/lv")
+def tueren_ins_lv(pid):
+    """Türen (alle oder ausgewählte) zu Positionen zusammenfassen – gleiche Ausführung = eine Position, Menge = Anzahl –
+    und an ein LV anhängen (unter einem Titel „Türen“) oder ein neues LV anlegen."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        T = _tueren_laden(c, pid)["tueren"]
+        ids = set(b.get("ids") or [])
+        if ids:
+            T = [t for t in T if t["id"] in ids]
+        if not T:
+            return jsonify(error="Keine Türen in der Liste."), 400
+        pos = tueren_zu_positionen(T)
+        titel = _s(b.get("titel"), 300) or "Türen"
+        neu = [{"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": titel}] + pos
+        now = _now()
+        if isinstance(b.get("lv"), int):
+            r = _lv(c, b["lv"])
+            if not r or r["project_id"] != pid:
+                return jsonify(error="LV nicht gefunden"), 404
+            i = r["id"]
+            d = _j(r["data"], {}) or {}
+            d["items"] = clean_items((d.get("items") or []) + neu)
+            nummerieren(d["items"])
+            versionen.vor(c, f"avalv:{i}")
+            c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), now, g.user["name"], i))
+        else:
+            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id=?", (pid,)).fetchone()["n"]
+            items = nummerieren(clean_items(neu))
+            i = c.execute("INSERT INTO ava_lv(project_id, nr, name, gewerk, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
+                          (pid, str(n + 1).zfill(2), _s(b.get("name"), 200) or "Türen", _s(b.get("gewerk"), 120) or "Türen",
+                           json.dumps({"items": items}, ensure_ascii=False), now, now, g.user["name"])).fetchone()["id"]
+        versionen.nach(c, f"avalv:{i}", g.user["name"])
+        C.audit(g.user["name"], "ava", "Türliste ins LV", f"{len(T)} Türen → {len(pos)} Positionen")
+        return jsonify(ok=True, lv=i, positionen=len(pos), tueren=len(T))
+
+
+@app.get("/api/projekt/<int:pid>/tueren.xlsx")
+def tueren_excel(pid):
+    import openpyxl
+    from openpyxl.styles import Alignment, Font, PatternFill
+    with db.tx() as c:
+        p = _sees(c, pid)
+        if not p:
+            return jsonify(error="Projekt nicht gefunden"), 404
+        T = _tueren_laden(c, pid)["tueren"]
+    sp = [("nr", "Tür-Nr."), ("geschoss", "Geschoss"), ("raum", "Raum-Nr."), ("raumname", "Raum"), ("zu", "zu Raum"), ("typ", "Typ"), ("anzahl", "Anz."), ("art", "Art"),
+          ("flg", "Flügel"), ("din", "DIN"), ("b", "Breite BRM"), ("h", "Höhe BRM"), ("wand", "Wand"), ("zarge", "Zarge"), ("blatt", "Türblatt"),
+          ("oberfl", "Oberfläche"), ("farbe", "Farbe"), ("glas", "Verglasung"), ("brand", "Brandschutz"), ("schall", "Schall"), ("rc", "RC"),
+          ("klima", "Klima"), ("schloss", "Schloss"), ("beschlag", "Beschlag")] + [(k, v.split(" (")[0].split(" nach")[0]) for k, v in TUER_JA.items()] + [("bem", "Bemerkung")]
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Türliste"
+    ws.append([f"Türliste – {p['name']}"])
+    ws["A1"].font = Font(bold=True, size=13)
+    ws.append([])
+    ws.append([l for _, l in sp])
+    kopf = PatternFill("solid", fgColor="E8E6E1")
+    for cell in ws[3]:
+        cell.font = Font(bold=True)
+        cell.fill = kopf
+        cell.alignment = Alignment(wrap_text=True, vertical="bottom", text_rotation=90 if cell.column > 24 and cell.column < len(sp) else 0)
+    for t in T:
+        ws.append([("x" if t.get(k) else "") if k in TUER_JA else t.get(k, "") for k, _ in sp])
+    for i, (k, _) in enumerate(sp, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 4 if k in TUER_JA else 40 if k == "bem" else 13
+    ws.row_dimensions[3].height = 120
+    ws.freeze_panes = "B4"
+    buf = io.BytesIO()
+    wb.save(buf)
+    return _datei(buf.getvalue(), re.sub(r"[\\/:*?\"<>|]+", "_", f"Türliste {p['name']}") + ".xlsx",
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 # ---------------------------------------------------------------- Fotos zu Positionen

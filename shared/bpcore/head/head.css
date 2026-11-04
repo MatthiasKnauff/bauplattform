@@ -75,7 +75,7 @@
 .bph-sig{background:#fff;border-radius:10px;min-height:90px;display:flex;align-items:center;justify-content:center;padding:.6rem;margin:.4rem 0}
 .bph-sig img{max-height:110px;max-width:100%}.bph-sig .bph-mu{color:#666}
 .bph-row{display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0}
-.bph-btn{border:1px solid var(--line,#3b3e42);border-radius:999px;padding:.45rem .95rem;background:transparent;color:inherit;cursor:pointer;font:inherit}
+.bph-btn{border:1px solid var(--line,#3b3e42);border-radius:8px;padding:.45rem .95rem;background:transparent;color:inherit;cursor:pointer;font:inherit}
 .bph-btn.pri{border-color:var(--y,var(--bph-acc,#ff5fb3));color:var(--y,var(--bph-acc,#ff5fb3));font-weight:600}
 .bph-seg{display:inline-flex;border:1px solid var(--line,#3b3e42);border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap}
 .bph-seg button{border:0;border-radius:999px;padding:.35rem .8rem;background:transparent;color:var(--mute,#9a9c9e);cursor:pointer;font:inherit}

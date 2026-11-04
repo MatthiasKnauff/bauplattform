@@ -11,9 +11,6 @@
 .hello{margin:.4rem 0 1.4rem}
 .hello h1{margin:0}
 .hello p{margin:.3rem 0 0;color:var(--mute)}
-.pj{margin:0 0 1.6rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
-.pj .pick{min-width:min(420px,100%)}
-.pj .pm-x a,.pickm .pm-x a{font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:.2rem .6rem;color:var(--ink);text-decoration:none;white-space:nowrap}
 .pickm .pm-x a:hover{border-color:var(--y);color:var(--y)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.6rem;margin-bottom:1.4rem}
 .tile{display:grid;grid-template-columns:40px minmax(0,1fr);grid-template-rows:auto auto;column-gap:.7rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.6rem .75rem;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
@@ -55,7 +52,6 @@
 <body>
 <main class="wrap">
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
-  <div class="pj"><button type="button" id="pjBtn" title="Projekt suchen und in einer App öffnen"></button></div>
   <div class="tiles" id="tiles"></div>
   <section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section>
   <div class="foot"><span id="ver"></span></div>
@@ -72,35 +68,6 @@ const DESC = {
   baukosten: ['Baukosten', 'Kosten nach DIN 276 aus Plänen (PDF) und Bauzeitenplan – mit Mittelabfluss und KI-Prüfung.'],
   admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
 };
-/* ---------- Projekt direkt öffnen: Suche über alle Apps, zuletzt geöffnete zuerst ---------- */
-let PJ = [], CONF = null;
-const RECENT_KEY = 'bp.recent';
-const recent = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; } };
-const remember = (k) => { try { localStorage.setItem(RECENT_KEY, JSON.stringify([k, ...recent().filter((x) => x !== k)].slice(0, 6))); } catch { /* egal */ } };
-function pjLinks(p) {
-  const app = (k) => (CONF.apps || []).find((a) => a.key === k && a.allowed), L = [];
-  if (p.bt && app('bautagebuch')) L.push(['Bautagebuch', appUrl(app('bautagebuch')) + '/#projekt=' + p.bt]);
-  if (app('gantt')) p.plans.forEach((x) => L.push([p.plans.length > 1 ? 'Bauzeitenplan: ' + x.name : 'Bauzeitenplan', appUrl(app('gantt')) + '/#plan=' + encodeURIComponent(x.id)]));
-  if (app('baukosten')) p.bks.filter((x) => !x.archived).forEach((x) => L.push([p.bks.length > 1 ? 'Baukosten: ' + (x.name.replace(p.name, '').replace(/^\s*[–-]\s*/, '') || x.name) : 'Baukosten', appUrl(app('baukosten')) + '/#bk=' + x.id]));
-  return L;
-}
-function pjBtn() {
-  const R = recent().map((k) => PJ.find((p) => p.key === k)).filter(Boolean);
-  const A = window.BPHead && BPHead.projekt;
-  pickButton($('#pjBtn'), { title: 'Projekt öffnen …', sub: A ? 'Aktuell: ' + A.name : R.length ? 'Zuletzt: ' + R[0].name : `${PJ.filter((p) => !p.archived).length} Projekte – Bautagebuch, Bauzeitenplan, Baukosten` });
-}
-$('#pjBtn').addEventListener('click', () => {
-  const R = recent(), item = (p, group) => { const L = pjLinks(p);
-    return { group, title: p.name, sub: [p.client, p.address].filter(Boolean).join(' · '), value: p.key, p,
-      extra: L.map(([n, u]) => `<a href="${esc(u)}" data-pk="${esc(p.key)}">${esc(n.replace(/^(Bauzeitenplan|Baukosten): .*/, '$1'))}</a>`).join('') }; };
-  const rec = R.map((k) => PJ.find((p) => p.key === k)).filter(Boolean);
-  pickMenu($('#pjBtn'), {
-    search: 'Projekt suchen: Nummer, Name, Bauherr oder Ort …', empty: 'Kein Projekt gefunden.',
-    items: [...rec.map((p) => item(p, 'Zuletzt geöffnet')), ...PJ.filter((p) => !p.archived && !R.includes(p.key)).map((p) => item(p, 'Projekte')), ...PJ.filter((p) => p.archived && !R.includes(p.key)).map((p) => item(p, 'Archiv'))],
-    onPick: (k, x) => { const L = pjLinks(x.p); remember(k); if (x.p.bt) BPHead.projektSetzen(x.p.bt); if (L[0]) location.href = L[0][1]; else toast('Dieses Projekt gibt es in keiner deiner Apps.', true); },
-  });
-});
-document.addEventListener('click', (e) => { const a = e.target.closest('.pickm a[data-pk]'); if (a) { remember(a.dataset.pk); const p = PJ.find((x) => x.key === a.dataset.pk); if (p && p.bt) BPHead.projektSetzen(p.bt); } }, true);
 /* ---------- Post zu meinen Projekten: einmal am Tag aus den Postfächern, mit Vorschlägen für Erinnerungen ---------- */
 let POST = null, POSTALLE = false, POSTLAEUFT = false;
 const ARTIC = { Rechnung: '🧾', Schlussrechnung: '🧾', Nachtrag: '📝', Angebot: '📝', Behinderung: '⚠️', Mangel: '⚠️', Termin: '📅', Plan: '📐', Nachricht: '✉️' };
@@ -159,7 +126,7 @@ document.addEventListener('click', async (e) => {
   await header('Startseite', me, conf);
   const h = new Date().getHours();
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.vorname || me.name}`;
-  CONF = conf; pjBtn(); api('api/projekte').then((r) => { PJ = r; pjBtn(); }).catch(() => { $('.pj').hidden = true; });
+  if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { postZeigen && POST && postZeigen(); });   // Startseite: Projekt gilt danach in allen Apps
   $('#tiles').innerHTML = conf.apps.filter(a => DESC[a.key] && a.key !== 'admin').map(a => `
     <a class="tile ${a.allowed ? '' : 'off'}" href="${esc(appUrl(a))}/"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'}>
       <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`).join('');

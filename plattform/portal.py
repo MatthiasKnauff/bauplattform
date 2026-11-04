@@ -40,19 +40,6 @@ def me():
     return sso.set_cookie(jsonify(ok=True, **C.public(u)), tok)
 
 
-@app.get("/api/projekte")
-def projekte():
-    """Projekte für die Auswahl auf der Startseite – mit den Apps, in denen es sie gibt (nur was der Benutzer sehen darf)."""
-    u = C.current_user()
-    if not u:
-        return jsonify(error="Nicht angemeldet"), 401
-    with db.tx() as c:
-        rows = C.projects_overview(c, u)
-    return jsonify([{"key": p["key"], "name": p["name"], "client": p.get("client") or "", "address": p.get("address") or "", "archived": p["archived"],
-                     "bt": p["bt"]["id"] if p.get("bt") else None, "plans": [{"id": x["id"], "name": x["name"]} for x in p["plans"]],
-                     "bks": [{"id": x["id"], "name": x["name"], "archived": x["archived"]} for x in p["bks"]]} for p in rows])
-
-
 @app.get("/api/platform")
 def platform_conf():
     return jsonify(platform.config(C.current_user()))

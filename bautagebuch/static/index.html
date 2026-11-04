@@ -73,6 +73,12 @@ label.chk input{flex:none;margin:.15rem 0 0}
 #projBtn,#repBtn{justify-content:flex-start;gap:.6rem;color:#fff;text-align:left;padding:.35rem .7rem;background:rgba(0,0,0,.16);border-radius:10px}
 #projBtn{flex:1;min-width:0;max-width:560px}
 #repBtn{flex:none;margin-right:auto;min-width:110px;max-width:200px}
+.htools{display:flex;gap:.3rem;align-items:center;flex:none}
+#hdr .hb{flex-direction:column;gap:.1rem;min-width:44px;height:46px;padding:.25rem .45rem;border-radius:10px;background:rgba(0,0,0,.16);color:#fff;font-size:.68rem;line-height:1}
+#hdr .hb span{opacity:.85}
+#hdr .hb:hover,#hdr .hb:focus-visible{background:rgba(0,0,0,.28)}
+#hdr .hb.hidden{display:none}
+@media (max-width:560px){#hdr .hb span{display:none}#hdr .hb{height:42px;min-width:40px}}
 #repBtn.hidden{display:none}
 #projBtn .t,#repBtn .t{min-width:0;flex:1;display:flex;flex-direction:column;line-height:1.2}
 #projBtn b,#repBtn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:1.02rem}
@@ -375,10 +381,12 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
   <header id="hdr">
     <button id="projBtn" data-act="projPicker" aria-haspopup="dialog" title="Projekt wählen"><span class="t"><b id="pname"></b><small id="paddr"></small></span><span id="chev"></span></button>
     <button id="repBtn" data-act="repPicker" aria-haspopup="dialog" title="Tagesbericht wählen"><span class="t"><b id="rname"></b><small id="rdate"></small></span><span id="rchev"></span></button>
-    <button data-act="nearest" id="i-n" title="Projekt nach Standort wählen"></button>
-    <button data-act="openPath" id="i-fp" class="pconly" title="Ordnerpfad auf dem Server kopieren (im Explorer einfügen)"></button>
-    <button data-act="print" id="i-pdf" title="PDF erstellen"></button>
-    <button data-act="menu" id="i-g" title="Menü"></button>
+    <div class="htools">
+    <button data-act="nearest" id="i-n" class="hb" title="Projekt nach Standort wählen"></button>
+    <button data-act="openPath" id="i-fp" class="hb pconly" title="Ordnerpfad auf dem Server kopieren (im Explorer einfügen)"></button>
+    <button data-act="print" id="i-pdf" class="hb" title="PDF des Tagesberichts erstellen"></button>
+    <button data-act="menu" id="i-g" class="hb" title="Einstellungen und weitere Apps" aria-haspopup="menu"></button>
+    </div>
     <div class="menu hidden" id="menu"></div>
   </header>
   <nav id="tabs" aria-label="Bereiche"></nav>
@@ -419,6 +427,7 @@ const IC = {
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
   out:'<path d="M10 4H4v16h6M14 8l5 4-5 4M19 12H9"/>', chev:'<path d="M6 9l6 6 6-6"/>',
+  grid:'<rect x="3.5" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="16" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="16" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="16" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="16" width="4.5" height="4.5" rx="1"/><rect x="16" y="16" width="4.5" height="4.5" rx="1"/>',
   pin:'<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'
 };
 const ic = (n, s = 22, w = 2.4) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
@@ -518,12 +527,12 @@ function chrome() {
   $('#repBtn').classList.toggle('hidden', !p);
   $('#rname').textContent = r ? `Nr. ${r.number}` : 'Kein Bericht';
   $('#rdate').textContent = r ? fmt(r.date) + (r.time ? ' · ' + r.time : '') : 'Tippen zum Anlegen';
-  $('#i-n').innerHTML = ic('pin', 22); $('#i-pdf').innerHTML = ic('pdf', 22); $('#i-fp').innerHTML = ic('folder', 22); $('#i-fp').classList.toggle('hidden', !p); $('#i-g').innerHTML = ic('gear', 22);
+  $('#i-n').innerHTML = ic('pin', 20) + '<span>Standort</span>'; $('#i-pdf').innerHTML = ic('pdf', 20) + '<span>PDF</span>'; $('#i-fp').innerHTML = ic('folder', 20) + '<span>Ordner</span>'; $('#i-fp').classList.toggle('hidden', !p); $('#i-g').innerHTML = ic('grid', 20, 1.7) + '<span>Mehr</span>';
   $('#i-pdf').classList.toggle('hidden', !rid);
   $('#tabs').innerHTML = TABS.concat(me.is_admin ? [['audit', 'Protokoll', 'clock']] : []).map(([k, l, i]) => `<button class="tab ${k === tab ? 'on' : ''}" data-act="tab" data-t="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ic(i, 20, 2)}<span>${l}</span></button>`).join('');
   const apps = (PLATFORM.apps || []).filter(a => a.allowed && a.key !== 'bautagebuch');   // Bauplattform: andere Apps (gleiche Anmeldung)
   $('#menu').innerHTML = `<div class="who">Angemeldet: ${esc(me.name)}</div><button data-act="tab" data-t="profil">${ic('gear', 18)}Einstellungen</button>`
-    + (apps.length ? '<div class="msep"></div>' + apps.map(a => `<a class="mapp" href="${esc(appUrl(a))}">${ic({ gantt: 'cal', admin: 'users', portal: 'home' }[a.key] || 'doc', 18)}${esc(a.name)}</a>`).join('') + '<div class="msep"></div>' : '')
+    + (apps.length ? '<div class="msep"></div>' + apps.map(a => `<a class="mapp" href="${esc(appUrl(a))}">${ic({ gantt: 'cal', admin: 'users', portal: 'home', adressen: 'user', aufgaben: 'clock', plaene: 'folder', baukosten: 'archive' }[a.key] || 'doc', 18)}${esc(a.name)}</a>`).join('') + '<div class="msep"></div>' : '')
     + `<button data-act="logout">${ic('out', 18)}Abmelden</button>`;
 }
 let PLATFORM = {};

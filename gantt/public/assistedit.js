@@ -86,7 +86,7 @@
     bg = document.createElement('div'); bg.className = 'modal-bg ae-bg';
     bg.innerHTML = `<div class="modal ae" role="dialog" aria-label="Assistent einrichten" tabindex="-1"><div class="mh">Assistent einrichten<button class="mx" title="Schließen">×</button></div>
       <div class="ae-tabs"></div><div class="mb ae-body"></div>
-      <div class="mf"><span class="ae-hint">Gilt für alle Benutzer und neue Planungen. Bestehende Pläne bleiben, wie sie sind.</span><span class="ae-dirty" hidden>Nicht gespeichert</span><button class="btn" data-ae="cancel">Abbrechen</button><button class="btn primary" data-ae="save">Speichern</button></div></div>`;
+      <div class="mf"><span class="ae-hint">Gilt für alle Benutzer und neue Planungen. Bestehende Pläne bleiben, wie sie sind.</span><span class="ae-dirty" hidden>Nicht gespeichert</span><button type="button" class="btn" data-bph-verlauf="gs:assistcfg" title="Frühere Einrichtungen ansehen und wiederherstellen">↶ Verlauf</button><button class="btn" data-ae="cancel">Abbrechen</button><button class="btn primary" data-ae="save">Speichern</button></div></div>`;
     document.body.appendChild(bg);
     bg.addEventListener('click', onClick); bg.addEventListener('change', onChange); bg.addEventListener('input', onInput);
     bg.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') close(); });

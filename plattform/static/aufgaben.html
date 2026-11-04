@@ -418,7 +418,7 @@ $('#setBtn').onclick = async () => {
     <p class="w mute" style="font-size:.85rem;margin:0">Empfänger: die Zuständigen des verknüpften Bautagebuch-Projekts, sonst wer den Plan zuletzt gespeichert hat. Den Mailserver stellst du in der Verwaltung ein. Erinnerungen aus dem Bautagebuch verschickt das Bautagebuch am Fälligkeitstag selbst.</p></div>
     <label>Persönlich</label><div><button class="btn sm" data-m="konto">Unterschrift, E-Mail & Kalender …</button> <span class="mute" style="font-size:.85rem">Versand von Rügen, Termine in deinen Kalender</span></div>
     ${ME && ME.is_admin ? '<label>Für alle</label><div><button class="btn sm" data-m="vorlagen">E-Mail-Vorlagen …</button> <span class="mute" style="font-size:.85rem">Texte der Mails für Mängel- und Terminrüge und Kalendertermine</span></div>' : ''}
-    <div class="acts"><button class="btn" data-m="test" style="margin-right:auto">Testmail an mich</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    <div class="acts"><button class="btn" data-m="test">Testmail an mich</button><button type="button" class="btn" data-bph-verlauf="bp:aufgaben" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">↶ Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m === 'konto' || m === 'vorlagen') { if (window.BPHead) BPHead.konto({ tab: m }); return; }
     if (m === 'test') { try { const r = await api('api/erinnerungen/test', 'POST', {}); toast('Testmail an ' + r.to + ' verschickt.'); } catch (e) { toast(e.message, true); } return; }

@@ -164,6 +164,7 @@ body.as-open .wrap{padding-bottom:45vh}
     <button class="btn sm" id="newBtn">+ Neue Kostenermittlung</button>
     <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
     <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
+    <button class="btn sm" id="verBtn" title="Frühere Stände dieser Kostenermittlung ansehen und wiederherstellen">↶ Verlauf</button>
     <button class="btn sm" id="setBtn" aria-haspopup="dialog" title="Einstellungen der Baukosten: Raumtypen und Kennwerte des Büros">⚙ Raumtypen</button>
     <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
@@ -271,6 +272,7 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
 }));
 function head() {
   if (B || LIST) selBtn();
+  const vb = $('#verBtn'); if (vb) vb.hidden = !B;
   if (!window.BPHead) return;
   BPHead.setProject(B ? { sub: B.project ? [B.project.client, B.project.address].filter(Boolean).join(' · ') || 'Bautagebuch-Projekt' : 'Baukosten', title: B.name } : { sub: '', title: '' });
 }
@@ -960,7 +962,7 @@ async function typesDialog() {
     <div class="tbl"><table><thead><tr><th>Raumtyp</th><th>Stichwörter (mit Komma)</th><th class="r">€ / m²</th><th></th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>
     <div class="acts" style="justify-content:flex-start;margin-top:.6rem"><button class="btn sm" data-m="add">＋ Raumtyp</button><button class="btn sm" data-m="std">Vorgaben wiederherstellen</button></div>
     ${B ? `<label class="chk" style="margin-top:.8rem"><input type="checkbox" id="tyRe" checked><span><b>Raumtypen neu vorschlagen</b> – in der geöffneten Kostenermittlung „${esc(B.name)}“ bekommen alle Räume, die du noch <b>nicht bestätigt</b> hast, ihren Raumtyp nach den Stichwörtern oben neu. Bestätigte Räume bleiben unverändert.</span></label>` : ''}
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>`;
+    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:raumtypen" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">↶ Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>`;
   const read = (bg) => bg.querySelectorAll('tr[data-i]').forEach((tr) => { const t = L[+tr.dataset.i]; tr.querySelectorAll('[data-tf]').forEach((el) => { t[el.dataset.tf] = el.dataset.tf === 'kw' ? pnum(el.value) : el.value; }); });
   const bg = modalBox(html(), async (m, bg, close, b) => {
     if (m === 'x') { close(); return; }
@@ -1122,6 +1124,12 @@ async function newDialog() {
   if (hb) history.replaceState(null, '', location.pathname + '#' + tab);
   await loadList(hb ? +hb[1] : undefined);
 })().catch((e) => toast(e.message, true));
+$('#verBtn').onclick = async () => {
+  if (!B || !window.BPHead) return;
+  clearTimeout(saveT); if ($('#save').textContent.startsWith('Nicht')) await saveNow();
+  BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => openBk(B.id) });
+};
+window.bpNachVerlauf = () => (B ? openBk(B.id) : location.reload());
 </script>
 </body>
 </html>

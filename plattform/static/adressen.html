@@ -120,6 +120,7 @@
     <button class="btn sm" id="cols" aria-haspopup="true" hidden>Spalten</button>
     <button class="btn sm" id="pdf" title="Gefilterte Liste drucken (PDF)">Drucken</button>
     <button class="btn sm" id="xlsx" title="Gefilterte Liste als Excel-Datei">Excel</button>
+    <button class="btn sm" id="verl" title="Geänderte und gelöschte Adressen ansehen und wiederherstellen">↶ Verlauf</button>
     <button class="btn pri" id="neu">+ Neu</button></div>
   <div class="flt">
     <input type="search" id="q" placeholder="Suchen: Name, Gewerk, Person, Ort, Telefon …" autocomplete="off">
@@ -192,7 +193,7 @@ function edit(c) {
     <datalist id="gwList">${gwList.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     ${use ? `<div class="info">${use}</div>` : ''}
     <div class="err" id="mErr"></div>
-    <div class="mf">${isNew ? '' : '<button class="btn sm danger" data-m="del">Löschen</button>'}<span class="fill"></span><button class="btn" data-m="close">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>
+    <div class="mf">${isNew ? '' : `<button class="btn sm danger" data-m="del">Löschen</button><button type="button" class="btn sm" data-bph-verlauf="kontakt:${c.id}" title="Frühere Stände dieser Adresse ansehen und wiederherstellen">↶ Verlauf</button>`}<span class="fill"></span><button class="btn" data-m="close">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>
     <div class="info">Dieselben Adressen wie in den Kontakten des Bautagebuchs und im Adressbuch des Bauzeitenplans.</div>`,
   async (m, bg, close, btn) => {
     if (m === 'close') return close();
@@ -429,6 +430,8 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   setView(TV.view);
   if (matchMedia('(pointer:fine)').matches) $('#q').focus({ preventScroll: true });
 })().catch((e) => toast(e.message, true));
+$('#verl').onclick = () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Verlauf der Adressen' }); };
+window.bpNachVerlauf = () => load();
 </script>
 </body>
 </html>

@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, db, platform, sso
+from bpcore import ai, db, platform, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -349,7 +349,9 @@ def bk_one(i):
         if "data" in b:
             sets.append("data=?"); args.append(json.dumps(clean_data(b["data"], c)))
         if sets:
+            versionen.vor(c, f"bkp:{i}")
             c.execute(f"UPDATE bk_projects SET {', '.join(sets)}, rev=rev+1, updated=?, updated_by=? WHERE id=?", (*args, _now(), g.user["name"], i))
+            versionen.nach(c, f"bkp:{i}", g.user["name"])
         return jsonify(_out(c, _row(c, i)))
 
 
@@ -407,9 +409,11 @@ def kennwerte_api():
             else:                                      # nur Kennwerte (Kosten → „als eigene Kennwerte speichern“)
                 cat = [dict(t, kw=_num(b.get(t["key"]), t["kw"], 0, 50000)) for t in kosten.catalog(c)]
                 note = "Kennwerte"
+            versionen.vor(c, "bk:raumtypen")
             c.execute("INSERT INTO bk_store(key, data, updated, updated_by) VALUES('raumtypen',?,?,?) "
                       "ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated=excluded.updated, updated_by=excluded.updated_by",
                       (json.dumps([{k: t[k] for k in ("key", "label", "kw", "worte")} for t in cat], ensure_ascii=False), _now(), g.user["name"]))
+            versionen.nach(c, "bk:raumtypen", g.user["name"])
             C.audit(g.user["name"], "baukosten", "Raumtypen gespeichert", note)
         return jsonify(raumtypen=kosten.catalog(c), standard=[{"key": k, "label": l, "kw": kw, "worte": w} for k, l, kw, w in kosten.TYPES])
 
@@ -672,7 +676,9 @@ def file_add(i):
             d["rooms"].append({"id": f"f{fid}-{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"], c),
                                "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": x["pos"]})
             added += 1
+        versionen.vor(c, f"bkp:{i}")
         c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
+        versionen.nach(c, f"bkp:{i}", g.user["name"])
         out = _out(c, _row(c, i))
     C.audit(g.user["name"], "baukosten", "Plan hochgeladen", f"{name} · {added} Räume übernommen · {r['name']}")
     return jsonify(added=added, found=len(found), note=meta["note"], bk=out)
@@ -708,7 +714,9 @@ def file_reread(i, fid):
             d["rooms"].append({"id": f"f{fid}-r{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"], c),
                                "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": x["pos"]})
             added += 1
+        versionen.vor(c, f"bkp:{i}")
         c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
+        versionen.nach(c, f"bkp:{i}", g.user["name"])
         out = _out(c, _row(c, i))
     return jsonify(added=added, found=len(found), note=meta["note"], bk=out)
 
@@ -759,7 +767,9 @@ def file_ki_rooms(i, fid):
             d["rooms"].append({"id": f"k{fid}-{k}", "nr": x["nr"], "name": x["name"], "area": x["area"], "typ": guess_type(x["name"], c),
                                "ok": False, "src": f"pdf:{fid}", "floor": fl, "pos": None})
             added += 1
+        versionen.vor(c, f"bkp:{i}")
         c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
+        versionen.nach(c, f"bkp:{i}", g.user["name"])
         out = _out(c, _row(c, i))
     C.audit(g.user["name"], "baukosten", "Räume mit KI aus dem Plan gelesen", f"{f['name']} · {added} Räume · {ki}")
     return jsonify(added=added, found=len(found), hinweis=_s(o.get("hinweis"), 300), bk=out)
@@ -808,7 +818,9 @@ def file_del(i, fid):
         keep = request.args.get("keep") == "1"   # Räume aus dem Plan behalten?
         if not keep:
             d["rooms"] = [x for x in d["rooms"] if x["src"] != f"pdf:{fid}"]
+        versionen.vor(c, f"bkp:{i}")
         c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d), _now(), g.user["name"], i))
+        versionen.nach(c, f"bkp:{i}", g.user["name"])
         out = _out(c, _row(c, i))
     _prev.pop((i, fid), None)
     C.audit(g.user["name"], "baukosten", "Plan entfernt", f["name"])

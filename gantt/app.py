@@ -15,7 +15,7 @@ from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
-from bpcore import SCHEMA, ai as bpai, db, head, platform, sso
+from bpcore import SCHEMA, ai as bpai, db, head, platform, sso, versionen
 from bpcore import contacts as shared_contacts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -549,6 +549,13 @@ def store_get(c, key, default):
 
 
 def store_put(c, key, val, by=""):
+    if key.startswith("_") or by == "Übernahme":
+        return _store_put(c, key, val, by)
+    with versionen.aenderung(c, f"gs:{key}", by):
+        _store_put(c, key, val, by)
+
+
+def _store_put(c, key, val, by=""):
     c.execute("INSERT INTO gantt_store(key, data, updated, updated_by) VALUES(?,?,?,?) "
               "ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by",
               (key, json.dumps(val, ensure_ascii=False), now_iso(), by))

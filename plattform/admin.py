@@ -8,7 +8,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, platform, sso
+from bpcore import db, platform, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -452,6 +452,11 @@ def project_delete():
 
 # ---------------------------------------------------------------- Einstellungen (zentral für alle Apps)
 def _put_store(c, key, val):
+    with versionen.aenderung(c, f"gs:{key}", g.user["name"]):
+        _put_store_roh(c, key, val)
+
+
+def _put_store_roh(c, key, val):
     c.execute("INSERT INTO gantt_store(key, data, updated, updated_by) VALUES(?,?,?,?) "
               "ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by",
               (key, json.dumps(val, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), g.user["name"]))

@@ -258,7 +258,7 @@ function delDlg(p) {
 
 
 /* ---------- Einstellungen: allgemeine (für alle Apps) – besondere stehen in der jeweiligen App ---------- */
-const STABS = [['allgemein', 'Darstellung & KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['konto', 'Mein Konto'], ['sicherung', 'Datensicherung']];
+const STABS = [['allgemein', 'Darstellung & KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['konto', 'Mein Konto'], ['sicherung', 'Datensicherung'], ['verlauf', 'Änderungsverlauf']];
 const stNav = () => `<h1>Einstellungen</h1><div class="bar" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {
   const t = data.stab || 'allgemein';
@@ -266,6 +266,10 @@ async function loadSettings() {
   if (t === 'konto' || t === 'vorlagen') {   // dieselbe Ansicht wie im Benutzermenü jeder App („Unterschrift, E-Mail & Kalender“)
     $('#main').innerHTML = stNav() + `<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">${t === 'konto' ? 'Jeder Benutzer stellt das für sich im Benutzermenü jeder App ein (oben rechts → „Unterschrift, E-Mail & Kalender“).' : 'Die Vorlagen gelten für alle Apps; in „Mängel & Erinnerungen“ unter ⚙ Einstellungen sind sie ebenfalls erreichbar.'}</p>`;
     if (window.BPHead && BPHead.konto) BPHead.konto({ into: $('#kontoBox'), tab: t }); return;
+  }
+  if (t === 'verlauf') {
+    $('#main').innerHTML = stNav() + '<section class="card st" id="verlaufBox"></section>';
+    if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ into: $('#verlaufBox') }); return;
   }
   $('#main').innerHTML = stNav() + '<p class="mute">Lade …</p>';
   data.bt = await api('api/bt/settings');
@@ -291,13 +295,14 @@ function renderSettings() {
     ${keyRow('claude', 'Claude (Anthropic)', K.claude, `<select data-k="claude.model">${Object.entries(K.claude.models).map(([k, n]) => `<option value="${k}"${K.claude.model === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`)}
     ${keyRow('gemini', 'Gemini (Google)', K.gemini)}
     ${keyRow('chatgpt', 'ChatGPT (OpenAI)', K.chatgpt)}
-    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-sa="saveki">KI-Einstellungen speichern</button></div></section>
+    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-sa="saveki">KI-Einstellungen speichern</button>${vk('gs:settings', 'Verlauf Claude')}${vk('gs:plattform', 'Verlauf Gemini/ChatGPT')}</div></section>
   <section class="card st"><h2>Einstellungen in den Apps</h2><p class="mute">Hier steht alles, was für alle Apps gilt. Was nur eine App betrifft, stellst du direkt dort ein:</p>
     <div class="kv"><span>Baukosten</span><b>⚙ Raumtypen – Raumtypen, Stichwörter und Kennwerte des Büros</b></div>
     <div class="kv"><span>Bauzeitenplan</span><b>Reiter „Leistung“ – Nachfragen beim Löschen</b></div>
     <div class="kv"><span>Bautagebuch</span><b>Abschnitte und Vorlagen der Berichte</b></div>
     <div class="kv"><span>Mängel & Erinnerungen</span><b>⚙ Einstellungen – Vorlauf, Uhrzeit und Mails der Erinnerungen; E-Mail-Vorlagen</b></div>
-    <div class="kv"><span>jede App</span><b>Benutzermenü → Unterschrift, E-Mail & Kalender (persönlich)</b></div></section>`;
+    <div class="kv"><span>jede App</span><b>Benutzermenü → Unterschrift, E-Mail & Kalender (persönlich)</b></div>
+    <p class="mute" style="margin-top:.6rem">Jede Speicherung wird automatisch als Stand festgehalten. Mit <b>↶ Verlauf</b> neben dem Speichern-Knopf oder unter „Änderungsverlauf“ lässt sich jeder frühere Stand ansehen und wiederherstellen.</p></section>`;
   const saveLook = async (d) => { try { const r = await api('api/bp/darstellung', 'PUT', d); me.theme = r.theme; me.accent = r.accent; applyLook(me); renderSettings(); toast('Darstellung gespeichert – gilt in allen Apps.'); } catch (e) { toast(e.message, true); } };
   $('#stTheme').onclick = (e) => { const b = e.target.closest('[data-th]'); if (b) saveLook({ theme: b.dataset.th }); };
   $('#stAcc').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b) saveLook({ accent: b.dataset.c }); };
@@ -330,12 +335,13 @@ const CO = [['office_name', 'Firmenname (erscheint im PDF, z. B. „Zu erledigen
 const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="${o.type || 'text'}" value="${esc(o.type === 'password' ? '' : (data.bt[k] || o.def || ''))}" placeholder="${esc(o.ph || '')}" autocomplete="${o.type === 'password' ? 'new-password' : 'off'}"></label>`;
 const stSel = (k, l, opts, def) => `<label class="w">${l}<select data-st="${k}">${opts.map(([v, n]) => `<option value="${v}"${(data.bt[k] || def) === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
 const fsize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
-const SAVE = '<div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button></div>';
+const vk = (b, l) => `<button type="button" class="btn" data-bph-verlauf="${b}" title="Frühere Stände ansehen und wiederherstellen">↶ ${l || 'Verlauf'}</button>`;
+const SAVEF = () => `<div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}</div>`;
 function renderBtSettings() {
   const S = data.bt, t = data.stab, m = S.store_mode || 'off';
   const pw = (k, l) => stIn(k, l + (S[k + '_set'] ? ' – gespeichert, zum Ändern neu eingeben' : ''), 1, { type: 'password', ph: S[k + '_set'] ? '••••••••' : '' });
   let h = '';
-  if (t === 'firma') h = `<section class="card st"><h2>Firmendaten</h2><p class="mute">Erscheinen in der Fußzeile jeder PDF-Seite (Bautagebuch, Baukosten).</p><div class="sf">${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}</div>${SAVE}</section>
+  if (t === 'firma') h = `<section class="card st"><h2>Firmendaten</h2><p class="mute">Erscheinen in der Fußzeile jeder PDF-Seite (Bautagebuch, Baukosten).</p><div class="sf">${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}</div>${SAVEF()}</section>
     <section class="card st"><h2>Logo</h2><p class="mute">Für die PDF-Kopfzeile (rechts oben) und als Symbol der Apps. PNG, JPG oder WEBP.</p>
     ${S.has_logo ? `<img src="api/bt/logo?v=${data.logoV || 0}" alt="Logo" style="max-height:90px;max-width:260px;background:#fff;padding:.4rem;border-radius:8px;margin-bottom:.6rem">` : ''}
     <div class="st-a"><label class="btn">${S.has_logo ? 'Logo ersetzen' : 'Logo hochladen'}<input type="file" id="logoIn" accept="image/png,image/jpeg,image/webp" hidden></label>${S.has_logo ? '<button class="btn danger" data-bs="dellogo">Logo entfernen</button>' : ''}</div></section>`;
@@ -348,10 +354,10 @@ function renderBtSettings() {
       + stIn('store_tpl_pdf', 'Ordner für Bautagebuch-PDFs', 1, { def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Bautagebuch' })
       + stIn('store_keep_old_photos', 'Alte Fototag-Ordner behalten (0 = alle)') + stIn('store_keep_old_pdf', 'Alte Bautagebuch-PDFs behalten (0 = alle)') : ''}</div>
     ${m !== 'off' ? '<p class="mute" style="font-size:.85rem;margin:.6rem 0 0">Platzhalter: <b>{projekt}</b> Projektordner, <b>{kuerzel}</b> erstes Wort des Projektnamens (z. B. A483), <b>{datum}</b>, <b>{jahr}</b>, <b>{monat}</b>. Mit „/“ trennst du Unterordner.</p>' : ''}
-    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>`;
+    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>`;
   else if (t === 'mail') h = `<section class="card st"><h2>Mailserver (Postausgang)</h2><p class="mute">Mit diesem Postfach verschicken die Apps E-Mails: Zugangsdaten neuer Benutzer, „Kennwort vergessen“ und Erinnerungen.</p><div class="sf">
     ${stSel('mail_provider', 'Anbieter', [['gmail', 'Gmail'], ['o365', 'Office 365']], 'gmail')}${stIn('mail_user', 'Postfach (Benutzername = Absenderadresse)', 1, { ph: 'bautagebuch@firma.de' })}${pw('mail_pass', 'Kennwort des Postfachs')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de/bautagebuch' })}</div>
-    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="mailtest">Testmail an mich senden</button>${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
+    <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}<button class="btn" data-bs="mailtest">Testmail an mich senden</button>${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
     <p class="mute" style="font-size:.85rem;margin:.8rem 0 0"><b>Gmail:</b> Bestätigung in zwei Schritten einschalten und ein „App-Passwort“ erzeugen. <b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. Die Testmail geht an deine E-Mail-Adresse unter „Benutzer“.</p></section>`;
   else if (t === 'sicherung') {
     const lab = (k) => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k.startsWith('vor') ? 'Sicherung ' + k.replace(/-/g, ' ') : k;
@@ -511,6 +517,7 @@ function renderAudit() {
   await header('Verwaltung', me, conf);
   renderTabs(); load();
 })().catch(e => toast(e.message, true));
+window.bpNachVerlauf = () => (location.hash.startsWith('#einstellungen') ? loadSettings().catch((er) => toast(er.message, true)) : location.reload());
 </script>
 </body>
 </html>

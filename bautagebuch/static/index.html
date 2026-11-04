@@ -1443,7 +1443,7 @@ function renderProfile(box) {
     ${settings.store_pass_set && m === 'smb' ? `<div class="acts"><button class="bad" data-act="storePassClear">Gespeichertes Kennwort löschen</button></div>` : ''}
     <div class="info">Alle Fotos (auch iPhone-HEIC, PNG, WEBP) werden beim Hochladen als JPG gespeichert und liegen auf dem Server in voller Auflösung; nur im PDF sind sie verkleinert. Das Kennwort wird nur auf dem Server der App gespeichert und nie an den Browser zurückgegeben; am besten ein eigenes Konto nur mit Schreibrecht auf diese Freigabe verwenden.</div>
   </div>`;
-  const bar = adm ? `<div class="stabs">${STABS.map(([k, l]) => `<button class="${k === stab ? 'on' : ''}" data-act="stab" data-s="${k}">${l}</button>`).join('')}</div>` : '';
+  const bar = adm ? `<div class="stabs">${STABS.map(([k, l]) => `<button class="${k === stab ? 'on' : ''}" data-act="stab" data-s="${k}">${l}</button>`).join('')}${['firma', 'ablage', 'mail'].includes(stab) ? '<button data-bph-verlauf="einst:bt" title="Frühere Stände von Firma, Ablage und Mailserver ansehen und wiederherstellen" style="margin-left:auto">↶ Verlauf</button>' : ''}</div>` : '';
   box.innerHTML = `<div class="wrap">${bar}${{benutzer: usersCard, firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
   if (stab === 'benutzer') fillUsers();
   if (stab === 'sicherung') loadBackups();

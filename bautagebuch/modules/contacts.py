@@ -88,7 +88,10 @@ def delete_contact(i):
         why = shared.usage(c, i)
         if why:
             return jsonify(error=shared.blocked_message(row["name"], why)), 409
+        from bpcore import versionen
+        versionen.vor(c, f"kontakt:{i}")
         c.execute("DELETE FROM contacts WHERE id=?", (i,))
+        versionen.nach(c, f"kontakt:{i}", g.user["name"])
     return jsonify(ok=True)
 
 

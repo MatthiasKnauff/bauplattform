@@ -8,6 +8,10 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/konto       GET/PUT  persönliche Einstellungen (Versand von Rügen, Kalendertermine) – alle Apps
 /api/bp/signatur    POST Foto hochladen (wird freigestellt) · GET PNG · DELETE
 /api/bp/mailvorlagen GET alle Vorlagen · PUT (nur Administrator)
+/api/bp/versionen?bereich=…   Stände eines Bereichs · POST {bereich, name} jetzigen Stand benennen
+/api/bp/versionen/<id>/vergleich  was sich beim Wiederherstellen ändern würde · …/wiederherstellen (POST) · PATCH {name}
+/api/bp/versionen/alle   Änderungsverlauf aller Bereiche, die der Benutzer sehen darf
+/api/bp/versionen/conf   GET/PUT Aufbewahrung (nur Administrator) mit Speicherbedarf
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
 """
@@ -16,7 +20,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, db, konto, sso, vorlagen
+from . import ai, db, konto, sso, versionen, vorlagen
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -57,7 +61,7 @@ def blueprint(get_user=None):
         k = str((request.get_json(silent=True) or {}).get("ki") or "").strip().lower()
         if k not in ai.KEYS:
             return jsonify(error="Unbekannte KI."), 400
-        with db.tx() as c:
+        with db.tx() as c, versionen.aenderung(c, f"konto:{u['id']}", u["name"]):
             c.execute("UPDATE users SET ai=? WHERE id=?", ("" if k == "intern" else k, u["id"]))
             prov = ai.providers(c)
         return jsonify(choice=k, providers=prov)
@@ -84,7 +88,8 @@ def blueprint(get_user=None):
             sets.append("accent=?"); args.append(a)
         with db.tx() as c:
             if sets:
-                c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, u["id"]))
+                with versionen.aenderung(c, f"konto:{u['id']}", u["name"]):
+                    c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, u["id"]))
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
         return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "")
 
@@ -99,10 +104,14 @@ def blueprint(get_user=None):
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
-            p = konto.set_prefs(c, uid, request.get_json(silent=True) or {}, u["name"]) if request.method == "PUT" else konto.prefs(c, uid)
+            if request.method == "PUT":
+                with versionen.aenderung(c, f"konto:{uid}", u["name"]):
+                    p = konto.set_prefs(c, uid, request.get_json(silent=True) or {}, u["name"])
+            else:
+                p = konto.prefs(c, uid)
             sig = konto.signatur(c, uid) is not None
             mail_ok = bool(c.execute("SELECT 1 FROM settings WHERE key='mail_pass' AND value<>''").fetchone())
-        return jsonify(**p, signatur=sig, email=u["email"] or "", mail=mail_ok, admin=bool(u["is_admin"]))
+        return jsonify(**p, uid=uid, signatur=sig, email=u["email"] or "", mail=mail_ok, admin=bool(u["is_admin"]))
 
     @bp.route("/api/bp/signatur", methods=["GET", "POST", "DELETE"])
     def signatur_api():
@@ -114,7 +123,7 @@ def blueprint(get_user=None):
                 png = konto.signatur(c, uid)
             return Response(png, mimetype="image/png", headers={"Cache-Control": "no-store"}) if png else ("", 404)
         if request.method == "DELETE":
-            with db.tx() as c:
+            with db.tx() as c, versionen.aenderung(c, f"konto:{uid}", u["name"]):
                 konto.set_signatur(c, uid, None)
             return jsonify(ok=True)
         f = request.files.get("file")
@@ -127,7 +136,7 @@ def blueprint(get_user=None):
             return jsonify(error="Bildbearbeitung ist in dieser App nicht verfügbar – bitte in der Verwaltung hochladen."), 500
         except ValueError as e:
             return jsonify(error=str(e)), 400
-        with db.tx() as c:
+        with db.tx() as c, versionen.aenderung(c, f"konto:{uid}", u["name"]):
             konto.set_signatur(c, uid, png, u["name"])
         return jsonify(ok=True)
 
@@ -141,10 +150,109 @@ def blueprint(get_user=None):
                 if not u["is_admin"]:
                     return jsonify(error="Nur der Administrator darf die Vorlagen ändern."), 403
                 d = request.get_json(silent=True) or {}
-                for k, v in d.items():
-                    if k in vorlagen.DEF and isinstance(v, dict):
-                        vorlagen.setzen(c, k, v.get("betreff"), v.get("text"))
+                with versionen.aenderung(c, "einst:vorlagen", u["name"]):
+                    for k, v in d.items():
+                        if k in vorlagen.DEF and isinstance(v, dict):
+                            vorlagen.setzen(c, k, v.get("betreff"), v.get("text"))
             return jsonify(vorlagen=vorlagen.alle(c), erkl=vorlagen.ERKL, admin=bool(u["is_admin"]))
+
+    # ---- Versionen (Änderungsverlauf) aller Einstellungen und Stammdaten
+    @bp.route("/api/bp/versionen", methods=["GET", "POST"])
+    def versionen_api():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {} if request.method == "POST" else {}
+        bereich = str(request.args.get("bereich") or b.get("bereich") or "")
+        with db.tx() as c:
+            q = versionen.quelle(c, bereich)
+            if not q:
+                return jsonify(error="Unbekannter Bereich"), 404
+            if not versionen.darf(u, q):
+                return jsonify(error="Diese Stände darf nur der Administrator sehen."), 403
+            if request.method == "POST":
+                name = " ".join(str(b.get("name") or "").split())[:120]
+                if not name:
+                    return jsonify(error="Bitte einen Namen eingeben."), 400
+                versionen.benennen(c, bereich, name, u["name"])
+            versionen.vorher(c, bereich)
+            return jsonify(bereich=bereich, titel=q.titel, versionen=versionen.liste(c, bereich))
+
+    def _version(c, u, vid):
+        r = c.execute("SELECT bereich FROM versionen WHERE id=?", (vid,)).fetchone()
+        q = versionen.quelle(c, r["bereich"]) if r else None
+        return (q, r["bereich"]) if q and versionen.darf(u, q) else (None, None)
+
+    @bp.route("/api/bp/versionen/<int:vid>", methods=["PATCH"])
+    def version_name(vid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            q, _ = _version(c, u, vid)
+            if not q:
+                return jsonify(error="Nicht gefunden"), 404
+            versionen.umbenennen(c, vid, " ".join(str((request.get_json(silent=True) or {}).get("name") or "").split())[:120])
+        return jsonify(ok=True)
+
+    @bp.get("/api/bp/versionen/<int:vid>/vergleich")
+    def version_vergleich(vid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            q, _ = _version(c, u, vid)
+            if not q:
+                return jsonify(error="Nicht gefunden"), 404
+            return jsonify(aenderungen=versionen.vergleich(c, vid))
+
+    @bp.post("/api/bp/versionen/<int:vid>/wiederherstellen")
+    def version_zurueck(vid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            q, bereich = _version(c, u, vid)
+            if not q:
+                return jsonify(error="Nicht gefunden"), 404
+            versionen.wiederherstellen(c, vid, u["name"])
+            return jsonify(ok=True, bereich=bereich, versionen=versionen.liste(c, bereich))
+
+    @bp.get("/api/bp/versionen/alle")
+    def versionen_alle():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        a = request.args
+        with db.tx() as c:
+            rows = versionen.uebersicht(c, u, a.get("teil") or "", a.get("wer") or "", a.get("q") or "")
+            wer = sorted({r["wer"] for r in c.execute("SELECT DISTINCT wer FROM versionen WHERE wer<>''")}, key=str.lower)
+        return jsonify(versionen=rows, teile=versionen.TEILE, wer=wer, admin=bool(u["is_admin"]))
+
+    @bp.route("/api/bp/versionen/conf", methods=["GET", "PUT"])
+    def versionen_conf():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if not u["is_admin"]:
+            return jsonify(error="Nur der Administrator."), 403
+        with db.tx() as c:
+            weg = None
+            if request.method == "PUT":
+                d = request.get_json(silent=True) or {}
+                cur = versionen.conf(c)
+                for k in cur:
+                    if k in d:
+                        try:
+                            cur[k] = max(0, min(3650, int(d[k])))
+                        except (TypeError, ValueError):
+                            return jsonify(error="Bitte ganze Tage eingeben."), 400
+                if not cur["alle_tage"]:
+                    cur["alle_tage"] = 1
+                with versionen.aenderung(c, "bp:versionen_conf", u["name"]):
+                    konto._put(c, "versionen_conf", json.dumps(cur), u["name"])
+                weg = versionen.aufraeumen(c)
+            return jsonify(**versionen.conf(c), statistik=versionen.statistik(c), entfernt=weg)
 
     @bp.get("/api/bp/projektnamen")
     def projektnamen():

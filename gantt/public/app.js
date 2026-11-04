@@ -2251,6 +2251,7 @@ const ICONS = {
   palette: '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.5-4-8.2-9-8.2z"/><circle cx="7.5" cy="11" r="1.4" class="f" style="fill:#42a5f5"/><circle cx="10" cy="7" r="1.4" class="f" style="fill:#ffca28"/><circle cx="14.5" cy="7" r="1.4" class="f" style="fill:#66bb6a"/><circle cx="17" cy="10.5" r="1.4" class="f" style="fill:#ef8f5f"/>',
   magic: '<path d="M4 20L16 8"/><path d="M14 6l2-2 4 4-2 2z" class="grn"/><path d="M6 4v3M4.5 5.5h3M19 14v3M17.5 15.5h3M10 2.5v2M9 3.5h2" class="blue"/>',
   close: '<path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21H11"/><path d="M14 3v5h5V11"/><path d="M15 15l6 6M21 15l-6 6" class="red"/>',
+  verlauf: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/><path d="M12 7v5l3 2"/>',
   settings: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.5 17.3a1.8 1.8 0 0 0 2.5 2.5l5.8-5.8a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.3-.5-.5-2.3z"/>',
   printer: '<path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M7 14h10v7H7z" class="bluef"/><circle cx="17.5" cy="11" r=".6" class="f"/>',
 };
@@ -2299,6 +2300,7 @@ const ACTIONS = {
   toggleAutoLink: () => { autoLink = !autoLink; LS.set('autolink', autoLink); updateRibbon(); toast(autoLink ? 'Automatisch verknüpfen: EIN – beim Einfügen und Löschen werden Verknüpfungen angepasst.' : 'Automatisch verknüpfen: AUS'); },
   gwDialog, gwAuto,
   settings: () => settingsDialog(),
+  verlaufKatalog: () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'gs', titel: 'Verlauf der Kataloge und Einstellungen' }); },
   fileClose: () => closeProject(),
   projMenu: (b) => projMenu(b),
   libNew: () => libNew(), libFromProjects: () => libFromProjects(), libStd: () => libToggleStd(), libExport: () => libExport(), libImport: () => libImportFile(),
@@ -2310,7 +2312,7 @@ document.addEventListener('click', (e) => {
 });
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
 // ohne geöffnetes Projekt erlaubte Befehle
-const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'toggleAssist', 'popoutAssist', 'libNew', 'libFromProjects', 'libStd', 'libExport', 'libImport']);
+const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'verlaufKatalog', 'toggleAssist', 'popoutAssist', 'libNew', 'libFromProjects', 'libStd', 'libExport', 'libImport']);
 function setNoProject(on) {
   document.body.classList.toggle('no-project', on);
   document.querySelectorAll('.rb[data-act]').forEach((b) => b.classList.toggle('np-dis', on && !NOPROJ_OK.has(b.dataset.act)));

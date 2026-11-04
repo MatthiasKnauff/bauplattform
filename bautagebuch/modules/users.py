@@ -91,7 +91,10 @@ def update_user(i):
             except ValueError:
                 ex = {}
             ex["bt_assistent"] = a_
+            from bpcore import versionen
+            versionen.vor(c, f"konto:{g.user['id']}")
             c.execute("UPDATE users SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), g.user["id"]))
+            versionen.nach(c, f"konto:{g.user['id']}", g.user["name"])
         if "email" in d:
             email = str(d["email"] or "").strip()
             if email and not auth.valid_email(email):
@@ -192,7 +195,10 @@ def update_account():
             except ValueError:
                 ex = {}
             ex["bt_assistent"] = a_
+            from bpcore import versionen
+            versionen.vor(c, f"konto:{g.user['id']}")
             c.execute("UPDATE users SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), g.user["id"]))
+            versionen.nach(c, f"konto:{g.user['id']}", g.user["name"])
         if "email" in d:
             email = str(d["email"] or "").strip()
             if email and not auth.valid_email(email):

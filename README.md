@@ -322,6 +322,21 @@ Nur für Administratoren. Die Benutzer sind dieselben wie im Bautagebuch.
 
 Die Benutzerverwaltung im Bautagebuch (Einstellungen) funktioniert weiter. Beide arbeiten auf derselben Tabelle.
 
+## Versionen und Änderungsverlauf (alle Apps)
+
+Jede Speicherung von Einstellungen und Stammdaten legt automatisch einen Stand an (Tabelle `versionen`, `shared/bpcore/versionen.py`):
+allgemeine Einstellungen (Firma, Ablage, Mailserver), E-Mail-Vorlagen, KI-Einstellungen, Leistungskatalog/Phasen/Firmen/Vorlagen/Assistent
+des Bauzeitenplans, Einstellungen von „Mängel & Erinnerungen“, Raumtypen und Kostenermittlungen, Adressen (auch gelöschte) und die
+persönlichen Einstellungen jedes Benutzers (Versand, Kalender, Darstellung, KI, Assistent, Unterschrift).
+
+- Jeder Stand nennt die Änderungen in Worten („Büroname: „A“ → „B““); Speicherungen desselben Benutzers innerhalb von 10 Minuten werden zusammengefasst.
+- **↶ Verlauf** neben dem Speichern-Knopf: Stände ansehen, mit dem jetzigen vergleichen, wiederherstellen (der jetzige bleibt erhalten), Stände benennen.
+- Persönliche Einstellungen sieht und ändert nur der Benutzer selbst, allgemeine Einstellungen nur der Administrator, Stammdaten alle.
+- Kennwörter und API-Schlüssel werden nie gespeichert (nur eine Prüfsumme); beim Wiederherstellen bleiben sie unverändert.
+- Verwaltung → Einstellungen → **Änderungsverlauf**: alle Stände mit Filter; Aufbewahrung mit Vorschlägen und geschätztem Speicherbedarf
+  (Standard: alle Stände 90 Tage, danach einer je Tag bis 730 Tage). Aufgeräumt wird einmal täglich; benannte Stände, der Ausgangsstand und der jüngste Stand bleiben immer.
+- Bautagesberichte und Bauzeitenpläne haben weiterhin ihren eigenen Verlauf in der App („Version speichern“ im Bauzeitenplan).
+
 ## Gemeinsame Daten
 
 | Daten | Tabelle | genutzt von |

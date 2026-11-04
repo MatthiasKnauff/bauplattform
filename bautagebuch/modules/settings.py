@@ -20,7 +20,8 @@ def get_settings():
 
 @bp.put("/api/settings")
 def put_settings():
-    with db.tx() as c:
+    from bpcore import versionen
+    with db.tx() as c, versionen.aenderung(c, "einst:bt", g.user["name"]):
         for k, v in (request.json or {}).items():
             if k.endswith("_clear") and k[:-6] in SECRETS:
                 settings.put(c, k[:-6], "")

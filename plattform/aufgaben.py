@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, ical, konto, mail, plan, platform, sso, vorlagen
+from bpcore import db, ical, konto, mail, plan, platform, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -708,6 +708,11 @@ def start_loop():
                     c.execute("SELECT pg_advisory_xact_lock(hashtext('aufgaben:sync'))")
                     sync_plans(c)
                 send_due()
+                if _loop.get("aufgeraeumt") != date.today().isoformat():   # einmal am Tag: alte Versionen ausdünnen
+                    with db.tx() as c:
+                        c.execute("SELECT pg_advisory_xact_lock(hashtext('versionen:aufraeumen'))")
+                        versionen.aufraeumen(c)
+                    _loop["aufgeraeumt"] = date.today().isoformat()
                 _loop["last"], _loop["error"] = _now(), ""
             except Exception as e:   # nie den Prozess beenden – beim nächsten Durchlauf erneut
                 _loop["error"] = str(e)[:300]
@@ -974,8 +979,10 @@ def einstellungen():
                 cur["mail_plan"] = bool(b["mail_plan"])
             if TIME.match(str(b.get("uhrzeit") or "")):
                 cur["uhrzeit"] = b["uhrzeit"]
+            versionen.vor(c, "bp:aufgaben")
             c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES('aufgaben',?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated=excluded.updated, updated_by=excluded.updated_by",
                       (json.dumps(cur), _now(), g.user["name"]))
+            versionen.nach(c, "bp:aufgaben", g.user["name"])
             # neuer Vorlauf: noch nicht verschickte, nicht von Hand verschobene Plan-Erinnerungen neu berechnen
             for r in c.execute("SELECT id, ereignis FROM erinnerungen WHERE quelle='plan' AND status='offen' AND gesendet='' AND manuell=0").fetchall():
                 if r["ereignis"]:

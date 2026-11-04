@@ -256,9 +256,9 @@ def firms(rows, empty=1):
     return t
 
 
-def prepare(path, maxpx=1100):
+def prepare(path, maxpx=560, quality=64):
     """Foto für das PDF verkleinern (nur die Kopie im PDF; Original in uploads/ und auf dem Server bleibt voll aufgelöst).
-    1100 px reichen für eine Halbseitenzelle bei ~250 dpi; None, wenn das Format nicht lesbar ist."""
+    560 px auf der langen Seite reichen für eine Drittelzelle (≈ 52 mm) bei ~270 dpi; None, wenn das Format nicht lesbar ist."""
     try:
         im = ImageOps.exif_transpose(PILImage.open(path))
         if im.mode in ("RGBA", "LA", "P"):
@@ -268,38 +268,45 @@ def prepare(path, maxpx=1100):
             im = bg
         else:
             im = im.convert("RGB")
-        im.thumbnail((maxpx, maxpx))
+        im.thumbnail((maxpx, maxpx), PILImage.LANCZOS)
         buf = io.BytesIO()
-        im.save(buf, "JPEG", quality=72, optimize=True, progressive=True)
+        im.save(buf, "JPEG", quality=quality, optimize=True, progressive=True, subsampling=2)
         buf.seek(0)
         return buf, im.size
     except Exception:
         return None
 
 
+FOTO_SPALTEN = 3
+
+
 def photos(images, upload_dir, title):
-    colw = W / 2 - 4 * mm
+    """Fotodokumentation: drei Fotos je Zeile, bis zu vier Zeilen je Seite (12 Fotos)."""
+    k = FOTO_SPALTEN
+    gap = 4 * mm
+    colw = (W - (k - 1) * gap) / k
+    maxh = 52 * mm
     cells = []
     for n, im in enumerate(images, 1):
         prep = prepare(os.path.join(upload_dir, im["file"]))
         if prep:
             buf, (w, h) = prep
-            sc = min(colw / w, 66 * mm / h)
+            sc = min(colw / w, maxh / h)
             pic = Image(buf, w * sc, h * sc, hAlign="LEFT")
         else:
             pic = P("(Bild kann nicht dargestellt werden)", 8, color=GREY)
         cap = f"<b>Foto {n}</b>" + (f"&nbsp;&nbsp;{safe(im.get('caption'))}" if im.get("caption") else "")
-        cells.append([pic, Spacer(1, 1.5 * mm), P(cap, 8.5, color=INK)])
-    rows = [cells[i:i + 2] for i in range(0, len(cells), 2)]
-    if rows and len(rows[-1]) == 1:
-        rows[-1].append("")
-    t = Table(rows, colWidths=[W / 2, W / 2])
-    t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                           ("BOTTOMPADDING", (0, 0), (-1, -1), 6 * mm), ("TOPPADDING", (0, 0), (-1, -1), 0)]))
+        cells.append([pic, Spacer(1, 1 * mm), P(cap, 7.5, leading=9, color=INK)])
+    rows = [cells[i:i + k] for i in range(0, len(cells), k)]
+    if rows:
+        rows[-1] += [""] * (k - len(rows[-1]))
+    t = Table(rows, colWidths=[colw + gap] * (k - 1) + [colw])
+    t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                           ("BOTTOMPADDING", (0, 0), (-1, -1), 4 * mm), ("TOPPADDING", (0, 0), (-1, -1), 0)]))
     rule = Table([[""]], colWidths=[W], rowHeights=[1])
     rule.setStyle(TableStyle([("LINEABOVE", (0, 0), (-1, 0), 1.6, INK)]))
     return [PageBreak(), P("<b>Fotodokumentation</b>", 18, color=INK), Spacer(1, 1.5 * mm), P(safe(title), 9, color=GREY),
-            Spacer(1, 2 * mm), rule, Spacer(1, 5 * mm), t]
+            Spacer(1, 2 * mm), rule, Spacer(1, 4 * mm), t]
 
 
 def build(proj, rep, items, images, sections, settings, logo, upload_dir):

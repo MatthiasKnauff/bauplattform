@@ -145,7 +145,7 @@ def blueprint(get_user=None):
                 if not eigen and not u["is_admin"]:
                     continue
                 out.append({"id": r["id"], "name": r["name"], "client": r["client"] or "", "street": r["street"] or "", "zip": r["zip"] or "",
-                            "city": r["city"] or "", "lat": r["lat"], "lon": r["lon"], "archived": bool(r["archived"]), "eigen": eigen,
+                            "city": r["city"] or "", "lat": r["lat"], "lon": r["lon"], "archived": bool(r["archived"]), "eigen": eigen, "mein": u["id"] in lead,
                             "bauleiter": ", ".join(namen.get(i, "") for i in lead if namen.get(i))})
         return jsonify(out)
 

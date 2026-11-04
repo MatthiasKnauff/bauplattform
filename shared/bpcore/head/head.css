@@ -53,8 +53,8 @@
 .bph-tip{position:absolute;right:1rem;top:calc(100% + 6px);max-width:min(420px,92vw);background:#2a2a28;color:var(--bph-ink);border:1px solid var(--bph-line);border-left:4px solid var(--bph-acc);
   border-radius:8px;padding:.55rem .8rem;font-size:.88rem;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:71}
 @media (max-width:900px){.bph-ki{display:none}.bph-kim{display:inline-flex;align-items:center}.bph-nm{display:none}}
-@media (max-width:640px){.bph{gap:.6rem;padding:.3rem .6rem;min-height:46px}.bph-proj{display:none}.bph-fill{display:block}}
-@media (max-width:420px){.bph-plat,.bph-sl{display:none}}
+@media (max-width:640px){.bph{gap:.5rem;padding:.3rem .6rem;min-height:46px}.bph-app,.bph-plat,.bph-sl{display:none}.bph-proj{margin-left:0}.bph-proj small{font-size:.7rem}}
+@media (max-width:420px){.bph-proj small{display:none}}
 .bph-sug{position:fixed;z-index:4000;background:#fff;color:#1c1c1a;border:1px solid #cfcbc2;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.25);
   max-height:320px;overflow:auto;padding:.25rem;font:14px/1.35 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;box-sizing:border-box}
 .bph-sug-g{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b675f;padding:.5rem .6rem .2rem}

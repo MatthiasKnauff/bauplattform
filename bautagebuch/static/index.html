@@ -374,8 +374,8 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 .pvb button{border:1px solid var(--line);border-radius:10px;padding:.45rem .8rem;color:var(--y);font-weight:600;white-space:nowrap}.pvb .pvc{background:var(--y);color:#111;border-color:var(--y)}
 .pvs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:.6rem .6rem calc(.6rem + env(safe-area-inset-bottom))}
 .pvw{width:max-content;min-width:100%}.pvw canvas{display:block;margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}
-/* Projektauswahl steht oben in der Kopfleiste – nur am Handy (dort ist die Kopfleiste knapp) bleibt sie hier */
-@media (min-width:641px){.bph + #hdr #projBtn{display:none}}
+/* Projektauswahl steht nur oben in der Kopfleiste (gemeinsam mit allen Apps) */
+.bph + #hdr #projBtn{display:none}
 </style>
 <link rel="stylesheet" href="bp/head.css">
 <script src="bp/head.js"></script>
@@ -569,7 +569,8 @@ const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
   if (window.BPHead) {   // gemeinsame Kopfleiste; ⚙ → „Bautagebuch“ zeigt die Einstellungen der App im Einstellungsfenster
-    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr'), projektwahl: () => openSheet('proj') });
+    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });
+    if (BPHead.beiProjektWahl) BPHead.beiProjektWahl((id) => pickProject(id));   // eine Projektauswahl: die oben in der Kopfleiste
     // ⚙ → Bautagebuch: nur noch der Bericht-Assistent – Benutzer verwaltet die Verwaltung, Firma/Ablage/Mail/Sicherung stehen unter ⚙ → Büro
     BPHead.appEinstellungen([{ key: 'bt', label: 'Bautagebuch', render: (h) => {
       const vor = tab; PH = h; tab = 'profil'; renderProfile(h);
@@ -1680,7 +1681,7 @@ document.addEventListener('click', async e => {
   else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if (tab !== 'projekt') draft = null; newC = false; cfrom = null; cedit = false; renderDetail(); }
   else if (a === 'menu') $('#menu').classList.toggle('hidden');
   else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
-  else if (a === 'projPicker') openSheet('proj');
+  else if (a === 'projPicker') { if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) }); else openSheet('proj'); }
   else if (a === 'repPicker') openSheet('rep');
   else if (a === 'pickReport') { closeSheet(); rid = id; wxEdit = headEdit = false; tab = 'bericht'; renderDetail(); }
   else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); if (projBearbeiten()) return; draft = null; tab = 'projekt'; renderDetail(); }

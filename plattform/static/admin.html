@@ -620,7 +620,7 @@ $('#main').addEventListener('click', (e) => {
   else if (b.dataset.a === 'popen') openDlg(projOf(b));
   else if (b.dataset.a === 'pdel') delDlg(projOf(b));
   else if (b.dataset.a === 'pnew') { if (window.BPHead && BPHead.projektBearbeiten) BPHead.projektBearbeiten(null, { onSaved: () => load() }); else projForm(null); }
-  else if (b.dataset.a === 'pedit') { const p = projOf(b); if (window.BPHead && BPHead.projektBearbeiten) BPHead.projektBearbeiten(p.bt.id, { onSaved: () => load(), onDelete: () => delDlg(p) }); else projForm(p); }
+  else if (b.dataset.a === 'pedit') { const p = projOf(b); if (window.BPHead && BPHead.projektBearbeiten) BPHead.projektBearbeiten(p.bt.id, { archiv: true, onSaved: () => load(), onDelete: () => delDlg(p) }); else projForm(p); }
   else if (b.dataset.a === 'pmore') moreMenu(projOf(b), b);
   else if (b.dataset.a === 'mkbt') mkBt(projOf(b));
 });

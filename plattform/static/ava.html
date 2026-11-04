@@ -140,6 +140,13 @@ table.lv tr.lang td{border-bottom:1px solid var(--line);padding-top:0}
 table.lv textarea{min-height:5.5rem;resize:vertical;border-color:var(--line)}
 .oz{font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap;font-size:.82rem;padding-top:.45rem!important}
 .ib{background:transparent;border:0;color:var(--mute);cursor:pointer;padding:.15rem .22rem;border-radius:6px;font-size:.92rem;line-height:1}
+table.lv .acts-c .ib{color:var(--ink);font-size:1.05rem;font-weight:700;padding:.2rem .3rem;min-width:1.7rem}
+table.lv .acts-c .ib svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+table.lv .acts-c .ib:hover{background:var(--hov)}
+table.lv .acts-c .ib[data-a="del"]:hover{color:#c62828}
+table.lv .acts-c .ib.on{color:var(--y)}
+table.lv tr[data-i]:not(.lang) td.oz{cursor:grab}
+table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .ib:hover{color:var(--ink);background:var(--hov)}
 .ib.on{color:var(--y)}
 .acts-c{white-space:nowrap;text-align:right}
@@ -354,10 +361,10 @@ function vLv() {
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {};
   const rows = I.map((x, i) => {
     if (x.typ === 'titel') return `<tr class="ti l${x.lvl || 1}" data-i="${i}"><td class="oz">${esc(x.oz)}</td><td colspan="${V ? 7 : 6}"><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten" style="padding-left:${((x.lvl || 1) - 1) * 1.2 + .35}rem"></td>
-      <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib" data-a="lvl" title="${(x.lvl || 1) > 1 ? 'zum Titel machen' : 'zum Untertitel machen'}">${(x.lvl || 1) > 1 ? '⇤' : '⇥'}</button><button class="ib" data-a="up" title="nach oben">↑</button><button class="ib" data-a="down" title="nach unten">↓</button><button class="ib" data-a="del" title="löschen">✕</button></td></tr>`;
+      <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib" data-a="lvl" title="${(x.lvl || 1) > 1 ? 'zum Titel machen' : 'zum Untertitel machen'}">${(x.lvl || 1) > 1 ? '⇤' : '⇥'}</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     const open = OPEN.has(x.id), t = x.art === 'T';
     const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
-    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz">${esc(x.oz)}${x.sp ? ' <span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt ? `<br><span class="badge nt">${esc(x.nt)}</span>` : ''}</td>
+    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz" title="Zum Verschieben hier greifen und ziehen">${esc(x.oz)}${x.sp ? ' <span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt ? `<br><span class="badge nt">${esc(x.nt)}</span>` : ''}</td>
       <td><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${!open && !t && x.lang ? `<div class="lt" title="Langtext – Doppelklick öffnet die Eigenschaften">${esc(x.lang)}</div>` : ''}${x.nt ? `<select data-f="nt_status" style="width:auto;font-size:.78rem">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s) => `<option${x.nt_status === s ? ' selected' : ''}>${s}</option>`).join('')}</select>` : ''}</td>
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
       <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" list="ehList" style="width:3.8rem">`}</td>
@@ -366,7 +373,7 @@ function vLv() {
       <td>${t ? '' : V ? `<input class="n" data-vp="${x.id}" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.5rem" title="Einheitspreis des Auftrags${x.nt ? ' (Nachtragspreis)' : ''}">` : `<input class="n" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="EP" title="geschätzter Einheitspreis (Kostenanschlag)">`}</td>
       ${V ? `<td class="r hint" title="geschätzter EP">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>` : ''}
       <td class="r" data-gp="${i}">${x.entf ? '<span class="hint">entfällt</span>' : gp != null ? eur(gp) : ohneGB(x) ? '<span class="hint">ohne GB</span>' : ''}</td>
-      <td class="acts-c"><button class="ib" data-a="eig" title="Eigenschaften der Position">⋯</button><button class="ib${open || x.lang || fotosVon(x).length ? ' on' : ''}" data-a="lang" title="Langtext${fotosVon(x).length ? ' · ' + fotosVon(x).length + ' Foto(s)' : ''}">${fotosVon(x).length ? '¶<sup>📷</sup>' : '¶'}</button><button class="ib" data-a="up" title="nach oben">↑</button><button class="ib" data-a="down" title="nach unten">↓</button><button class="ib" data-a="del" title="löschen">✕</button></td></tr>`;
+      <td class="acts-c"><button class="ib" data-a="eig" title="Eigenschaften der Position (auch Doppelklick)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button><button class="ib${open || x.lang || fotosVon(x).length ? ' on' : ''}" data-a="lang" title="Langtext${fotosVon(x).length ? ' · ' + fotosVon(x).length + ' Foto(s)' : ''}">${fotosVon(x).length ? '¶<sup>📷</sup>' : '¶'}</button><button class="ib" data-a="del" title="Position löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     if (open) h += `<tr class="lang" data-i="${i}"><td></td><td colspan="${V ? 8 : 7}"><textarea data-f="lang" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung">${esc(x.lang || '')}</textarea>
       ${fotoLeiste(x)}
       <div class="bar" style="margin:.3rem 0 0"><button class="btn sm" data-a="ki" title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><label class="btn sm" title="Fotos oder Skizzen zur Position – erscheinen unter dem Langtext im LV-Ausdruck. Ein Bild aus der Zwischenablage mit Strg+V im Langtext einfügen.">📷 Foto<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label><span class="hint">${x.nt ? 'Begründung des Nachtrags: ' : ''}</span>${x.nt ? `<input data-f="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung auf Anordnung des Bauherrn" style="flex:1;min-width:14rem">` : ''}</div></td></tr>`;
@@ -1151,6 +1158,30 @@ document.addEventListener('drop', (e) => {
   const tr = e.target.closest && e.target.closest('table.lv tr[data-i]');
   quEinfuegen(quAuswahl(new Set(JSON.parse(d))), tr ? +tr.dataset.i : null);
 });
+
+/* ---------- Zeilen verschieben: an der Ordnungszahl greifen und an die neue Stelle ziehen (Titel nehmen ihren Inhalt mit) ---------- */
+let ZIEH = null;
+document.addEventListener('mousedown', (e) => { const td = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang) td.oz'); if (td && tab === 'lv') td.parentElement.draggable = true; });
+document.addEventListener('dragstart', (e) => {
+  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (!tr || !tr.draggable || tab !== 'lv') return;
+  ZIEH = +tr.dataset.i; e.dataTransfer.setData('text/x-ava-zeile', String(ZIEH)); e.dataTransfer.effectAllowed = 'move';
+});
+document.addEventListener('dragover', (e) => {
+  if (ZIEH == null || ![...(e.dataTransfer.types || [])].includes('text/x-ava-zeile')) return;
+  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); document.querySelectorAll('.zieh-hier').forEach((r) => r.classList.remove('zieh-hier'));
+  if (tr) { e.preventDefault(); tr.classList.add('zieh-hier'); }
+});
+document.addEventListener('drop', (e) => {
+  if (ZIEH == null || !e.dataTransfer.getData('text/x-ava-zeile')) return;
+  e.preventDefault(); document.querySelectorAll('.zieh-hier').forEach((r) => r.classList.remove('zieh-hier'));
+  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); const von = ZIEH; ZIEH = null; if (!tr) return;
+  const I = items(), x = I[von]; let nach = +tr.dataset.i;
+  let ende = von + 1; if (x.typ === 'titel') { const lv = x.lvl || 1; while (ende < I.length && !(I[ende].typ === 'titel' && (I[ende].lvl || 1) <= lv)) ende++; }
+  if (nach >= von && nach < ende) return;   // in sich selbst
+  const blk = I.splice(von, ende - von); if (nach >= ende) nach -= blk.length;
+  I.splice(nach + 1, 0, ...blk); HIST.next = 'Verschoben'; numerieren(); changed(true);
+});
+document.addEventListener('dragend', () => { ZIEH = null; document.querySelectorAll('table.lv tr[draggable="true"]').forEach((r) => { r.draggable = false; }); document.querySelectorAll('.zieh-hier').forEach((r) => r.classList.remove('zieh-hier')); });
 
 /* ---------- Eigenschaften einer Position (wie in ORCA: Allgemein · Weiteres · Menge · Grafik) ---------- */
 const LB = ['000 Baustelleneinrichtung', '002 Erdarbeiten', '006 Spezialtiefbau', '009 Entwässerungskanalarbeiten', '012 Mauerarbeiten', '013 Betonarbeiten', '014 Natur-, Betonwerksteinarbeiten', '016 Zimmer- und Holzbauarbeiten', '017 Stahlbauarbeiten', '018 Abdichtungsarbeiten', '020 Dachdeckungsarbeiten', '021 Dachabdichtungsarbeiten', '022 Klempnerarbeiten', '023 Putz- und Stuckarbeiten, Wärmedämmsysteme', '024 Fliesen- und Plattenarbeiten', '025 Estricharbeiten', '026 Fenster, Außentüren', '027 Tischlerarbeiten', '028 Parkett-, Holzpflasterarbeiten', '029 Beschlagarbeiten', '030 Rollladenarbeiten', '031 Metallbauarbeiten', '032 Verglasungsarbeiten', '034 Maler- und Lackierarbeiten', '036 Bodenbelagarbeiten', '037 Tapezierarbeiten', '038 Vorgehängte hinterlüftete Fassaden', '039 Trockenbauarbeiten', '040 Wärmeversorgungsanlagen', '042 Gas- und Wasserinstallation', '044 Abwasserinstallation', '045 Sanitärausstattung', '053 Niederspannungsanlagen', '069 Aufzüge', '080 Straßen, Wege, Plätze', '081 Betonerhaltungsarbeiten', '084 Abbruch- und Rückbauarbeiten', '087 Abfallentsorgung'];

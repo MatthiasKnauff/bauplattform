@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, mail, platform, sso
+from bpcore import db, mail, plan, platform, sso
 import common as C
 
 app = C.make_app(__name__)
@@ -286,44 +286,36 @@ def ruege_vorlage():
                    maengel=alle, gewaehlt=[m["id"] for m in alle if m["id"] == i or (firma and m["firma"] == firma)])
 
 
-@app.post("/api/maengelruege")
-def ruege_pdf():
-    """Mängelrüge als PDF mit ausfüllbaren Feldern (Empfänger, Datum, Betreff, Text, Mängel, Frist, Unterschrift)."""
+def _de(d):
+    return f"{d[8:10]}.{d[5:7]}.{d[:4]}" if d and len(d) >= 10 else ""
+
+
+def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, liste_feld, liste_tip, liste, frist_label, frist):
+    """Brief an eine Firma als PDF mit am Bildschirm ausfüllbaren Feldern (Mängelrüge, Terminrüge).
+    Gibt Puffer und Zeichenfläche zurück – Anlagen kann der Aufrufer anhängen, dann cv.save()."""
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib.utils import ImageReader
     from reportlab.pdfgen import canvas
-    b = request.get_json(silent=True) or {}
-    ids = [int(x) for x in b.get("ids") or [] if str(x).isdigit()]
-    ms = [m for m in maengel("all").get_json() if m["id"] in ids and m["art"] == "maengel"]
-    if not ms:
-        return jsonify(error="Bitte mindestens einen Mangel wählen."), 400
-    E = b.get("empfaenger") if isinstance(b.get("empfaenger"), dict) else {}
-    frist = str(b.get("frist") or "").strip()
-    grund, grund_n = GRUND.get(b.get("grund"), GRUND["vob4"])
+    from reportlab.pdfbase.pdfmetrics import stringWidth
     with db.tx() as c:
         S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'")}
-        p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (ms[0]["pid"],)).fetchone()
-    de = lambda d: f"{d[8:10]}.{d[5:7]}.{d[:4]}" if d and len(d) >= 10 else ""
+        p = c.execute("SELECT name, client, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
+    de = _de
     office = S.get("office_name") or ""
     absender = ", ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)) if v)
-    bv = p["name"] + (", " + ", ".join(v for v in (p["street"], " ".join(x for x in (p["zip"], p["city"]) if x)) if v) if p and (p["street"] or p["city"]) else "") if p else ms[0]["projekt"]
+    bv = p["name"] + (", " + ", ".join(v for v in (p["street"], " ".join(x for x in (p["zip"], p["city"]) if x)) if v) if p and (p["street"] or p["city"]) else "") if p else projekt
     adr = "\n".join(v for v in (E.get("name"), ("z. Hd. " + E["person"]) if E.get("person") else "", E.get("strasse"), E.get("ort")) if v)
-    liste = "\n".join(f"{n}. {m['text'].strip()}" + (f"  (festgestellt am {de(m['datum'])})" if m["datum"] else "") for n, m in enumerate(ms, 1))
-    auftrag = str(b.get("auftrag") or "").strip()[:80]
-    text = (b.get("text") or "").strip() or ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", de(frist), b.get("kuendigung", True) is not False, auftrag)
     gruss = "Mit freundlichen Grüßen"
     name = C.full_name(g.user)
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=A4)
-    cv.setTitle(f"Mängelrüge – {ms[0]['projekt']}"); cv.setAuthor(office or name)
+    cv.setTitle(f"{doc} – {projekt}"); cv.setAuthor(office or name)
     W, H = A4
     L, R = 22 * mm, W - 18 * mm
     form = cv.acroForm
     ink, mute, line = colors.HexColor("#1e1e1e"), colors.HexColor("#6b6f76"), colors.HexColor("#c9cdd3")
-
-    from reportlab.pdfbase.pdfmetrics import stringWidth
 
     def umbruch(t, w, size):   # Zeilen vorab umbrechen – sonst zeigen manche Betrachter lange Zeilen abgeschnitten
         out = []
@@ -351,18 +343,38 @@ def ruege_pdf():
     feld("Datum", R - 62 * mm, H - 61 * mm, 62 * mm, 7 * mm, datetime.now().strftime("%d.%m.%Y"), 10)
     cv.drawString(R - 62 * mm, H - 66 * mm, "Bearbeitet von")
     feld("Bearbeiter", R - 62 * mm, H - 75 * mm, 62 * mm, 7 * mm, name, 10)
-    cv.setFillColor(ink); cv.setFont("Helvetica-Bold", 13); cv.drawString(L, H - 92 * mm, "Mängelrüge nach VOB/B")
+    cv.setFillColor(ink); cv.setFont("Helvetica-Bold", 13); cv.drawString(L, H - 92 * mm, kopf)
     feld("Betreff", L, H - 102 * mm, R - L, 8 * mm, f"Bauvorhaben: {bv}" + (f", Auftrag {auftrag}" if auftrag else ""), 10, tip="Betreff / Bauvorhaben")
-    cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, f"Grundlage: {grund} – {grund_n}. Bitte nachweisbar zustellen (Einschreiben, Bote).")
+    cv.setFont("Helvetica", 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, grundzeile)
     feld("Text", L, H - 172 * mm, R - L, 64 * mm, text, 9.5, True, "Anschreiben")
-    cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, H - 178 * mm, "Festgestellte Mängel")
-    feld("Maengel", L, H - 226 * mm, R - L, 45 * mm, liste, 9.5, True, "Mängel (Liste ergänzbar)")
-    cv.setFont("Helvetica-Bold", 10); cv.drawString(L, H - 234 * mm, "Frist zur Beseitigung:")
+    cv.setFont("Helvetica-Bold", 10); cv.setFillColor(ink); cv.drawString(L, H - 178 * mm, liste_titel)
+    feld(liste_feld, L, H - 226 * mm, R - L, 45 * mm, liste, 9.5, True, liste_tip)
+    cv.setFont("Helvetica-Bold", 10); cv.drawString(L, H - 234 * mm, frist_label)
     feld("Frist", L + 42 * mm, H - 236 * mm, 40 * mm, 7 * mm, de(frist), 10, tip="Frist")
     feld("Gruss", L, H - 262 * mm, 90 * mm, 20 * mm, f"{gruss}\n\n\n{name}" + (f"\n{office}" if office else ""), 9.5, True, "Gruß und Unterschrift")
     cv.setFont("Helvetica", 7); cv.setFillColor(mute)
     foot = " · ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
     cv.drawCentredString(W / 2, 10 * mm, foot[:180])
+    return buf, cv, W, H, L, R, ink, mm, ImageReader
+
+
+@app.post("/api/maengelruege")
+def ruege_pdf():
+    """Mängelrüge als PDF mit ausfüllbaren Feldern (Empfänger, Datum, Betreff, Text, Mängel, Frist, Unterschrift)."""
+    b = request.get_json(silent=True) or {}
+    ids = [int(x) for x in b.get("ids") or [] if str(x).isdigit()]
+    ms = [m for m in maengel("all").get_json() if m["id"] in ids and m["art"] == "maengel"]
+    if not ms:
+        return jsonify(error="Bitte mindestens einen Mangel wählen."), 400
+    E = b.get("empfaenger") if isinstance(b.get("empfaenger"), dict) else {}
+    frist = str(b.get("frist") or "").strip()
+    grund, grund_n = GRUND.get(b.get("grund"), GRUND["vob4"])
+    liste = "\n".join(f"{n}. {m['text'].strip()}" + (f"  (festgestellt am {_de(m['datum'])})" if m["datum"] else "") for n, m in enumerate(ms, 1))
+    auftrag = str(b.get("auftrag") or "").strip()[:80]
+    text = (b.get("text") or "").strip() or ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", _de(frist), b.get("kuendigung", True) is not False, auftrag)
+    buf, cv, W, H, L, R, ink, mm, ImageReader = _brief(ms[0]["pid"], ms[0]["projekt"], E, auftrag, "Mängelrüge", "Mängelrüge nach VOB/B",
+                                                      f"Grundlage: {grund} – {grund_n}. Bitte nachweisbar zustellen (Einschreiben, Bote).",
+                                                      text, "Festgestellte Mängel", "Maengel", "Mängel (Liste ergänzbar)", liste, "Frist zur Beseitigung:", frist)
     if b.get("fotos"):   # Anlage: Fotos zu den Mängeln
         with db.tx() as c:
             tok = sso.current_token(request, c)
@@ -392,6 +404,112 @@ def ruege_pdf():
                     pass
     C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{ms[0]['projekt']} · {E.get('name') or ''} · {len(ms)} Mängel")
     fn = urllib.parse.quote(re.sub(r"[\\/:*?\"<>|]+", "_", f"Mängelrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf")
+    return Response(buf.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{fn}"})
+
+
+# ---------------------------------------------------------------- Termine: Firmen laut Bauzeitenplan nicht anwesend
+TAGE_ZURUECK = 120
+
+
+@app.get("/api/termine")
+def termine(scope=None):
+    """Berichtstage, an denen eine Firma laut Bauzeitenplan hätte da sein sollen, aber nicht als anwesend eingetragen ist.
+    status offen = vom Bauleiter nicht bestätigt, fehlt = als „nicht da“ bestätigt. „nicht nötig“ und nachgetragene Anwesenheit fallen heraus."""
+    scope = scope or _scope()
+    ab = (date.today() - timedelta(days=TAGE_ZURUECK)).isoformat()
+    heute = date.today().isoformat()
+    out = []
+    with db.tx() as c:
+        P = _projects(c)
+        firms = plan.firm_map(c)
+        pids = [r["project_id"] for r in c.execute("SELECT DISTINCT project_id FROM gantt_projects WHERE project_id IS NOT NULL")]
+        for pid in pids:
+            p = P.get(pid)
+            if not p or p["archived"] or not _sees(g.user, p) or (scope == "mine" and not _mine(g.user, p)):
+                continue
+            pl = plan.plans(c, pid)
+            for r in c.execute("SELECT id, date FROM reports WHERE project_id=? AND date>=? AND date<=? ORDER BY date", (pid, ab, heute)).fetchall():
+                for e in plan.soll_ist(c, r["id"], pid, r["date"], firms=firms, plan_list=pl):
+                    if e["status"] == "fehlt" or (e["status"] == "offen" and r["date"] < heute):   # heutiger Bericht ist evtl. noch in Arbeit
+                        out.append({"id": f"{r['id']}:{e['key']}", "rid": r["id"], "datum": r["date"], "pid": pid, "projekt": p["name"], "firma": e["firma"], "key": e["key"],
+                                    "contact_id": e["contact_id"], "gw": e["gw"], "leistungen": e["leistungen"], "plan": e["plan"], "status": e["status"],
+                                    "von": e.get("von", ""), "am": e.get("am", "")})
+    out.sort(key=lambda x: (x["projekt"].lower(), x["firma"].lower(), x["datum"]))
+    return jsonify(out)
+
+
+@app.put("/api/termine/<int:rid>")
+def termin_set(rid):
+    b = request.get_json(silent=True) or {}
+    firma, st = str(b.get("firma") or "").strip().lower()[:200], b.get("status")
+    if not firma or st not in ("fehlt", "nein", "da", "offen"):
+        return jsonify(error="Ungültige Angabe"), 400
+    with db.tx() as c:
+        r = c.execute("SELECT project_id FROM reports WHERE id=?", (rid,)).fetchone()
+        p = _projects(c).get(r["project_id"]) if r else None
+        if not p or not _sees(g.user, p):
+            return jsonify(error="Nicht gefunden"), 404
+        old = c.execute("SELECT status FROM soll_anwesend WHERE report_id=? AND firma=?", (rid, firma)).fetchone()
+        c.execute("DELETE FROM soll_anwesend WHERE report_id=? AND firma=?", (rid, firma))
+        if st != "offen":
+            c.execute("INSERT INTO soll_anwesend(report_id, firma, status, notiz, geaendert, geaendert_von) VALUES(?,?,?,?,?,?)",
+                      (rid, firma, st, str(b.get("notiz") or "")[:500], datetime.now().isoformat(timespec="seconds"), g.user["name"]))
+    return jsonify(ok=True, vorher=old["status"] if old else "offen")
+
+
+def terminruege_text(frist, kuendigung=True, auftrag=""):
+    f = frist or "[Datum]"
+    bez = f" (Auftrag {auftrag})" if auftrag else ""
+    t = ("Sehr geehrte Damen und Herren,\n\nnach dem vereinbarten Bauzeitenplan hätten Sie Ihre Leistungen" + bez + " an den unten genannten Tagen auf der Baustelle "
+         "ausführen müssen. An diesen Tagen waren Sie nicht bzw. nicht ausreichend auf der Baustelle vertreten. Die Arbeitskräfte und Geräte sind damit so "
+         "unzureichend, dass die Ausführungsfristen offenbar nicht eingehalten werden können.\n\n"
+         f"Wir fordern Sie gemäß § 5 Abs. 3 VOB/B auf, unverzüglich Abhilfe zu schaffen und die Arbeiten spätestens bis zum {f} mit ausreichender Besetzung "
+         "wieder aufzunehmen bzw. fortzuführen. Bitte bestätigen Sie uns kurzfristig schriftlich, wann und mit wie vielen Arbeitskräften Sie die Arbeiten fortsetzen.\n\n")
+    if kuendigung:
+        t += ("Wir erklären bereits jetzt, dass wir Ihnen nach fruchtlosem Ablauf dieser Frist den Auftrag für die betroffenen Leistungen gemäß § 5 Abs. 4 "
+              "i. V. m. § 8 Abs. 3 VOB/B entziehen werden. ")
+    return t + "Ansprüche auf Ersatz des entstehenden Schadens (§ 6 Abs. 6 VOB/B) und weitere Rechte bleiben vorbehalten."
+
+
+@app.get("/api/terminruege/vorlage")
+def terminruege_vorlage():
+    pid, firma = request.args.get("pid", type=int), (request.args.get("firma") or "").strip().lower()
+    rows = [t for t in termine("all").get_json() if t["pid"] == pid and t["key"] == firma]
+    if not rows:
+        return jsonify(error="Nichts gefunden"), 404
+    with db.tx() as c:
+        k = c.execute("SELECT * FROM contacts WHERE id=?", (rows[0]["contact_id"],)).fetchone() if rows[0]["contact_id"] else None
+        k = k or c.execute("SELECT * FROM contacts WHERE lower(name)=? ORDER BY id LIMIT 1", (firma,)).fetchone()
+    E = {"name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v)} if k else {"name": rows[0]["firma"], "person": "", "strasse": "", "ort": ""}
+    return jsonify(empfaenger=E, tage=rows, projekt=rows[0]["projekt"])
+
+
+@app.post("/api/terminruege")
+def terminruege_pdf():
+    """Terminrüge (Behinderung durch fehlende Besetzung, VOB/B § 5 Abs. 3 und 4) als am Bildschirm ausfüllbares PDF."""
+    b = request.get_json(silent=True) or {}
+    pid, firma = b.get("pid"), str(b.get("firma") or "").strip().lower()
+    want = set(b.get("ids") or [])
+    rows = [t for t in termine("all").get_json() if t["pid"] == pid and t["key"] == firma and (not want or t["id"] in want)]
+    if not rows:
+        return jsonify(error="Bitte mindestens einen Tag wählen."), 400
+    E = b.get("empfaenger") if isinstance(b.get("empfaenger"), dict) else {}
+    frist = str(b.get("frist") or "").strip()
+    auftrag = str(b.get("auftrag") or "").strip()[:80]
+    text = (b.get("text") or "").strip() or terminruege_text(_de(frist), b.get("kuendigung", True) is not False, auftrag)
+    liste = "\n".join(f"{_wd(t['datum'])}: laut Bauzeitenplan {', '.join(t['leistungen'])[:160]}" for t in rows)
+    buf, cv, *_ = _brief(pid, rows[0]["projekt"], E, auftrag, "Terminrüge", "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
+                         "Grundlage: § 5 Abs. 3 und 4 VOB/B (setzt vereinbarte Vertragsfristen voraus). Nachweisbar zustellen.",
+                         text, "Tage ohne Besetzung", "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist)
+    cv.save()
+    if b.get("fehlt_bestaetigen"):
+        with db.tx() as c:
+            for t in rows:
+                if t["status"] == "offen":
+                    c.execute("INSERT INTO soll_anwesend(report_id, firma, status, notiz, geaendert, geaendert_von) VALUES(?,?,?,?,?,?) ON CONFLICT (report_id, firma) DO NOTHING",
+                              (t["rid"], t["key"], "fehlt", "Terminrüge", datetime.now().isoformat(timespec="seconds"), g.user["name"]))
+    C.audit(g.user["name"], "export", "Terminrüge erstellt", f"{rows[0]['projekt']} · {E.get('name') or ''} · {len(rows)} Tage")
+    fn = urllib.parse.quote(re.sub(r"[\\/:*?\"<>|]+", "_", f"Terminrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf")
     return Response(buf.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{fn}"})
 
 

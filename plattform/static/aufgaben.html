@@ -64,6 +64,11 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 #undoBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #undoBar[hidden]{display:none}
 #undoBar .btn{border-radius:999px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem;margin-bottom:.7rem}
+.trow{display:grid;grid-template-columns:110px 1fr auto auto;gap:.4rem .8rem;align-items:center;padding:.45rem 0;border-top:1px solid var(--line);margin-top:.45rem}
+.trow .tdat{font-weight:600;white-space:nowrap}.trow .tl{color:var(--mute);font-size:.86rem;min-width:0}
+.trow .tact{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:760px){.trow{grid-template-columns:1fr auto}.trow .tl{grid-column:1/-1;grid-row:2}.trow .tact{grid-column:1/-1}}
 .fm{display:grid;grid-template-columns:150px 1fr;gap:.55rem .8rem;align-items:center}
 .fm label{color:var(--mute);font-size:.88rem}
 .fm .w{grid-column:1/-1}
@@ -89,7 +94,7 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('auf.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('auf.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 let tab = (location.hash || '').slice(1) || LS.get('tab', 'maengel'), scope = LS.get('scope', 'mine');
-let M = null, E = null, CONF = null, ME = null, F = LS.get('filter', { q: '', projekt: '', firma: '', art: 'maengel', status: 'offen' }), OPEN = null;
+let M = null, E = null, T = null, CONF = null, ME = null, F = LS.get('filter', { q: '', projekt: '', firma: '', art: 'maengel', status: 'offen' }), OPEN = null;
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const deW = (d) => (d ? WD[new Date(d + 'T12:00').getDay()] + ' ' + de(d) : '');
@@ -110,16 +115,79 @@ $('#undoBtn').onclick = async () => { const u = UNDO; if (!u) return; UNDO = nul
 async function reload(first) {
   try {
     if (tab === 'maengel') M = await api('api/maengel?scope=' + scope);
+    else if (tab === 'termine') T = await api('api/termine?scope=' + scope);
     else E = await api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : ''));
   } catch (e) { $('#view').innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
   render();
 }
 function renderTabs() {
   const nM = M ? M.filter((m) => m.status === 'ueberfaellig').length : 0, nE = E ? E.items.filter((x) => ['ueberfaellig', 'abgelaufen', 'heute'].includes(x.lage)).length : 0;
-  $('#tabs').innerHTML = [['maengel', 'Mängel', nM], ['erinnerungen', 'Erinnerungen', nE]].map(([k, l, n]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}${n ? `<small class="bad" title="überfällig / fällig">${n}</small>` : ''}</button>`).join('');
+  const nT = T ? T.filter((x) => x.status === 'offen').length : 0;
+  $('#tabs').innerHTML = [['maengel', 'Mängel', nM], ['termine', 'Termine', nT], ['erinnerungen', 'Erinnerungen', nE]].map(([k, l, n]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}${n ? `<small class="bad" title="überfällig / fällig">${n}</small>` : ''}</button>`).join('');
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
-function render() { renderTabs(); if (tab === 'maengel') renderM(); else renderE(); }
+function render() { renderTabs(); if (tab === 'maengel') renderM(); else if (tab === 'termine') renderT(); else renderE(); }
+
+/* ---------- Termine: Firmen laut Bauzeitenplan nicht anwesend ---------- */
+function renderT() {
+  if (!T) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
+  const groups = {}; T.forEach((x) => { (groups[x.pid + '|' + x.key] ||= []).push(x); });
+  const nO = T.filter((x) => x.status === 'offen').length, nF = T.length - nO;
+  let h = `<div class="kpi"><button type="button" class="on" tabindex="-1">Nicht bestätigt<b>${nO}</b></button><button type="button" tabindex="-1">„Nicht da“ bestätigt<b>${nF}</b></button></div>
+    <p class="note">Berichtstage der letzten 120 Tage, an denen eine Firma laut Bauzeitenplan auf der Baustelle sein sollte, im Bautagebuch aber nicht als anwesend eingetragen ist.
+    „Nicht bestätigt“ heißt: Der Bauleiter hat den Vorschlag im Bericht weder als anwesend noch als „nicht da“ markiert. Daraus lässt sich je Firma eine Terminrüge (VOB/B § 5) erzeugen.</p>`;
+  if (!T.length) h += '<div class="empty">Keine Abweichungen – alle laut Plan erwarteten Firmen waren da oder wurden bestätigt.</div>';
+  for (const [k, rows] of Object.entries(groups)) {
+    const x0 = rows[0];
+    h += `<section class="tgrp"><div style="display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>${esc(x0.firma)}</b>${x0.gw ? ` <span class="mute">· ${esc(x0.gw)}</span>` : ''}<div class="mute" style="font-size:.85rem">${esc(x0.projekt)} · Plan „${esc(x0.plan)}“</div></div>
+      <button class="btn sm" data-truege="${esc(k)}" title="Aufforderung zur Abhilfe nach VOB/B § 5 Abs. 3 als ausfüllbares PDF">✉ Terminrüge</button></div>
+      ${rows.map((x) => `<div class="trow" data-tid="${esc(x.id)}"><span class="tdat">${esc(deW(x.datum))}</span><span class="tl">${esc(x.leistungen.join(', '))}</span>
+        <span class="st ${x.status === 'fehlt' ? 'ueberfaellig' : 'heute'}">${x.status === 'fehlt' ? 'nicht da' + (x.von ? ' · ' + esc(x.von) : '') : 'nicht bestätigt'}</span>
+        <span class="tact">${x.status === 'offen' ? `<button class="btn sm" data-tset="fehlt">nicht da</button>` : ''}<button class="btn sm" data-tset="da" title="Firma war doch da">war da</button><button class="btn sm" data-tset="nein" title="Laut Plan erwartet, aber nicht nötig (z. B. Termin verschoben)">nicht nötig</button>
+        ${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) ? `<a class="btn sm" href="${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`)}" target="_blank">Bericht ↗</a>` : ''}</span></div>`).join('')}</section>`;
+  }
+  $('#view').innerHTML = h;
+}
+async function tSet(id, status) {
+  const x = T.find((y) => y.id === id); if (!x) return;
+  try {
+    const r = await api('api/termine/' + x.rid, 'PUT', { firma: x.key, status });
+    undoable({ fehlt: 'Nicht da', da: 'War da', nein: 'Nicht nötig' }[status], () => api('api/termine/' + x.rid, 'PUT', { firma: x.key, status: r.vorher }));
+    await reload();
+  } catch (e) { toast(e.message, true); }
+}
+async function truegeDialog(k) {
+  const [pid, firma] = [+k.split('|')[0], k.split('|').slice(1).join('|')];
+  let V; try { V = await api(`api/terminruege/vorlage?pid=${pid}&firma=${encodeURIComponent(firma)}`); } catch (e) { toast(e.message, true); return; }
+  const E0 = V.empfaenger;
+  const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
+    <label>An</label><input id="tN" value="${esc(E0.name)}"><label>z. Hd.</label><input id="tP" value="${esc(E0.person)}" placeholder="optional">
+    <label>Straße</label><input id="tS" value="${esc(E0.strasse)}"><label>PLZ Ort</label><input id="tO" value="${esc(E0.ort)}">
+    <label>Auftrag</label><input id="tA" placeholder="z. B. Nr. 12/2026 vom 03.03.2026 (optional)">
+    <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="tF" value="${plus(3)}">${[[2, '2 Tage'], [3, '3 Tage'], [7, '1 Woche']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
+    <label class="w">Tage (laut Bauzeitenplan erwartet, nicht anwesend)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">
+      ${V.tage.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-td="${esc(x.id)}" checked><span>${esc(deW(x.datum))}<small class="mute" style="display:block">${esc(x.leistungen.join(', '))} · ${x.status === 'fehlt' ? 'als „nicht da“ bestätigt' : 'nicht bestätigt'}</small></span></label>`).join('')}</div>
+    <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
+    <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tB" checked> nicht bestätigte Tage als „nicht da“ übernehmen</label>
+    <p class="w mute" style="font-size:.82rem;margin:0">Setzt voraus, dass der Bauzeitenplan bzw. die Ausführungsfristen vertraglich vereinbart sind (VOB/B § 5). Das PDF hat ausfüllbare Felder; der Mustertext ersetzt keine Rechtsberatung.</p></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erzeugen</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m.startsWith('f')) { bg.querySelector('#tF').value = plus(+m.slice(1)); return; }
+    if (m !== 'ok') return;
+    const ids = [...bg.querySelectorAll('[data-td]:checked')].map((x) => x.dataset.td); if (!ids.length) { toast('Bitte mindestens einen Tag wählen.', true); return; }
+    const body = { pid, firma, ids, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: bg.querySelector('#tB').checked,
+      empfaenger: { name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
+    const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Terminrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Terminrüge wird erstellt …</body>');
+    try {
+      const r = await fetch('api/terminruege', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
+      const href = URL.createObjectURL(await r.blob());
+      if (w && !w.closed) w.location.href = href; else { const a = document.createElement('a'); a.href = href; a.download = 'Terminrüge.pdf'; document.body.appendChild(a); a.click(); a.remove(); }
+      close(); toast('Terminrüge erstellt.'); reload();
+    } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+  });
+  bg.querySelector('.modal').style.width = 'min(720px,100%)';
+}
 
 /* ---------- Mängel ---------- */
 function mFiltered() {
@@ -194,7 +262,9 @@ async function eSave(id, body, undoBody, label) {
 /* ---------- Bedienung ---------- */
 document.addEventListener('click', async (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); reload(tab === 'erinnerungen' && !E); return; }
-  const sc = e.target.closest('[data-scope]'); if (sc) { scope = sc.dataset.scope; LS.set('scope', scope); M = null; E = null; render(); reload(); return; }
+  const sc = e.target.closest('[data-scope]'); if (sc) { scope = sc.dataset.scope; LS.set('scope', scope); M = null; E = null; T = null; render(); reload(); return; }
+  const ts = e.target.closest('[data-tset]'); if (ts) { tSet(ts.closest('[data-tid]').dataset.tid, ts.dataset.tset); return; }
+  const tr = e.target.closest('[data-truege]'); if (tr) { truegeDialog(tr.dataset.truege); return; }
   const st = e.target.closest('[data-st]'); if (st) { F.status = st.dataset.st; LS.set('filter', F); renderM(); return; }
   if (e.target.id === 'mpdf') { const ids = mFiltered().map((m) => m.id); if (!ids.length) return toast('Keine Einträge in der Liste.', true); const ti = ['Mängelliste', F.firma, F.projekt ? (M.find((m) => String(m.pid) === F.projekt) || {}).projekt : ''].filter(Boolean).join(' – '); window.open(`api/maengel.pdf?ids=${ids.join(',')}&titel=${encodeURIComponent(ti)}`, '_blank'); return; }
   const mr = e.target.closest('[data-m]');
@@ -314,10 +384,11 @@ $('#setBtn').onclick = async () => {
   CONF = await api('api/platform');
   await header('Mängel & Erinnerungen', ME, CONF);
   try { CFG = await api('api/einstellungen'); } catch { /* egal */ }
-  if (!['maengel', 'erinnerungen'].includes(tab)) tab = 'maengel';
+  if (!['maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'maengel';
   renderTabs(); await reload(tab === 'erinnerungen');
   if (tab === 'maengel') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});
   else api('api/maengel?scope=' + scope).then((r) => { M = r; renderTabs(); }).catch(() => {});
+  if (tab !== 'termine') api('api/termine?scope=' + scope).then((r) => { T = r; renderTabs(); }).catch(() => {});
 })().catch((e) => toast(e.message, true));
 </script>
 </body>

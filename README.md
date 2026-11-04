@@ -280,6 +280,10 @@ eingetragen) oder „Alle Projekte“.
 - **Mängel:** alle Mängel aus den Bautagesberichten (✉ Mängelrüge: am Bildschirm ausfüllbares PDF an die Firma mit Frist, nach VOB/B § 4 Abs. 7 vor bzw. § 13 Abs. 5 nach der Abnahme, auf Wunsch mit Androhung der Auftragsentziehung, Fotos als Anlage) (umschaltbar: Zu erledigen, Weisungen) mit Foto, Projekt, Bericht,
   Firma und Frist. Abhaken, Frist verschieben (+1/+2 Wochen), Firma eintragen – gespeichert wird im Bautagebuch.
   Filter nach Projekt, Firma, Status; „Mängelliste drucken“ als PDF (z. B. für eine Firma).
+- **Termine:** Berichtstage der letzten 120 Tage, an denen eine Firma laut verknüpftem Bauzeitenplan auf der Baustelle sein sollte, im Bautagebuch aber nicht als
+  anwesend eingetragen ist (nicht bestätigt bzw. vom Bauleiter als „nicht da“ bestätigt). Je Firma ✉ Terminrüge: Aufforderung zur Abhilfe nach VOB/B § 5 Abs. 3
+  (Fristsetzung, auf Wunsch Androhung der Auftragsentziehung § 5 Abs. 4 i. V. m. § 8 Abs. 3) als ausfüllbares PDF. Im Bautagebuch schlägt der Abschnitt
+  „Anwesende“ die laut Plan erwarteten Firmen vor (✓ anwesend / ✗ nicht da / nicht nötig; Tabelle soll_anwesend, Migration 0009).
 - **Erinnerungen:** aus dem Bautagebuch (Erledigungsdatum – Mail verschickt das Bautagebuch am Fälligkeitstag), aus den
   Bauzeitenplänen („Firma kommt zum ersten Mal / wieder auf die Baustelle“, Vorlauf Standard 7 Tage) und eigene.
   Abgelaufene lassen sich neu terminieren (morgen, +3 Tage, +1 Woche, nächster Montag oder Datum/Uhrzeit) oder abhaken.

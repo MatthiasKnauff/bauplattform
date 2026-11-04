@@ -164,6 +164,17 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .ln{display:flex;justify-content:flex-start;gap:.5rem;align-items:flex-start;padding:.15rem 0;overflow-wrap:anywhere}
 .ln.done span{text-decoration:line-through;color:var(--mute)}
 .ln .x{color:var(--mute);padding:0 .3rem;font-size:.9rem}
+.soll-box:empty{display:none}
+.soll{border:1px dashed var(--line);border-radius:8px;padding:.5rem .7rem;margin:.4rem 0 .2rem;text-align:left}
+.soll-h{font-size:.8rem;color:var(--mute);margin-bottom:.3rem}
+.soll-r{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.3rem 0;border-top:1px solid var(--line)}
+.soll-r:first-of-type{border-top:0}
+.soll-r>span:first-child{flex:1 1 220px;min-width:0}
+.soll-r small{display:block;color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.soll-r button{padding:.3rem .65rem;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.85rem}
+.soll-r button.ok{border-color:var(--y);color:var(--y)}
+.soll-r.fehlt b{color:var(--red)}
+.soll-st{color:var(--red);font-size:.82rem}
 .ln.firm{display:grid;grid-template-columns:1fr 1.3fr 74px auto;gap:.5rem;align-items:center;text-align:left}
 .due{font-size:.8rem;color:var(--y);border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem;white-space:nowrap;align-self:center}
 .due.late{color:#ff8a80;border-color:#ff8a80}
@@ -673,6 +684,25 @@ function renderApv() {
 }
 const SGATTR = 'data-sg="1" autocomplete="nope" name="bt-co" autocorrect="off" spellcheck="false"';
 const coAdd = s => s.extra && s.extra.company ? `<div class="sgw" style="flex:1 1 100%"><input data-add-co ${SGATTR} placeholder="Firma (optional, frei eintragen oder aus Kontakten wählen)" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : '';
+/* Anwesende laut Bauzeitenplan: erwartete Firmen vorschlagen – der Bauleiter bestätigt „anwesend“ oder „nicht da“ */
+let SOLL = { rid: 0, f: [] }, sollBusy = 0;
+function sollInner(k) {
+  const f = SOLL.f.filter(x => x.status === 'offen' || x.status === 'fehlt');
+  if (!f.length) return '';
+  return `<div class="soll"><div class="soll-h">Laut Bauzeitenplan an diesem Tag erwartet – bitte bestätigen</div>${f.map(x => `<div class="soll-r${x.status === 'fehlt' ? ' fehlt' : ''}"><span><b>${esc(x.firma)}</b><small title="${esc(x.leistungen.join(', '))}">${esc(x.leistungen.join(', '))}</small></span>`
+    + (x.status === 'fehlt' ? `<span class="soll-st">nicht da</span><button data-act="sollSet" data-f="${esc(x.firma)}" data-st="offen">Rückgängig</button>`
+      : `<button class="ok" data-act="sollDa" data-f="${esc(x.firma)}" data-kind="${esc(k)}">✓ anwesend</button><button data-act="sollSet" data-f="${esc(x.firma)}" data-st="fehlt">✗ nicht da</button><button data-act="sollSet" data-f="${esc(x.firma)}" data-st="nein" title="Laut Plan erwartet, heute aber nicht nötig (z. B. Termin verschoben)">nicht nötig</button>`) + '</div>').join('')}</div>`;
+}
+function sollHtml(r, k) {
+  if (SOLL.rid !== r.id) loadSoll(r.id);
+  return `<div class="soll-box" data-soll="${esc(k)}">${SOLL.rid === r.id ? sollInner(k) : ''}</div>`;
+}
+async function loadSoll(rid) {
+  if (sollBusy === rid) return; sollBusy = rid;
+  try { const d = await api('api/reports/' + rid + '/soll'); SOLL = { rid, f: d.firmen || [] }; } catch (e) { SOLL = { rid, f: [] }; }
+  sollBusy = 0;
+  document.querySelectorAll('.soll-box').forEach(b => { b.innerHTML = sollInner(b.dataset.soll); });   // nur die Vorschläge auffrischen – keine Eingabe verlieren
+}
 function listSec(s, r) {
   const k = s.key, lk = s.extra && s.extra.link_contacts;
   const link = i => i.contact_id ? `<button class="lnk" data-act="gotoContact" data-id="${i.contact_id}" title="Kontakt öffnen">${esc(i.text)}</button>` : esc(i.text);
@@ -688,7 +718,7 @@ function listSec(s, r) {
     : '<div class="hint">Enter = neue Zeile · Strg+Enter = hinzufügen</div>';
   const add = adding === k ? `<div class="addrow">${lk ? '' : coAdd(s)}${field}${extra}${s.extra && s.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}${photoAdd(s)}<button class="ok" data-act="addItem" data-kind="${esc(k)}">Hinzufügen</button></div>` : '';
   const n = r.items.filter(i => i.kind === k).length, open = secIsOpen(k, n) || adding === k;
-  return `<div class="sec ${open ? '' : 'col'}"><div class="main">${secHead(s, n, open)}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
+  return `<div class="sec ${open ? '' : 'col'}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
     <div class="side"><button data-act="adding" data-kind="${esc(k)}" title="${esc(s.title)} hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
 }
 function imgSec(s, r) {
@@ -1565,6 +1595,14 @@ document.addEventListener('click', async e => {
   else if (a === 'itemPhoto') { itemPhotoFor = id; $('#ifile').click(); }
   else if (a === 'moreImgs') { allImgs = true; renderDetail(); }
   else if (a === 'lessImgs') { allImgs = false; renderDetail(); }
+  else if (a === 'sollDa' || a === 'sollSet') {
+    const r = curReport(); if (!r) return;
+    try {
+      if (a === 'sollDa') { const x = await api('api/reports/' + r.id + '/items', 'POST', {kind: b.dataset.kind, text: b.dataset.f}); if (x.error) { toast(x.error); return; } }
+      else { const x = await api('api/reports/' + r.id + '/soll', 'POST', {firma: b.dataset.f, status: b.dataset.st}); if (x.error) { toast(x.error); return; } }
+    } catch (e) { return; }
+    SOLL.rid = 0; openProject(pid, true);
+  }
   else if (a === 'delImg') { await api('api/images/' + id, 'DELETE'); openProject(pid, true); }
   else if (a === 'print') {
     if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }

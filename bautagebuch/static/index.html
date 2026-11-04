@@ -441,7 +441,7 @@ const PRECIP = ['trocken','leichter Regen','Regen','Starkregen','Schnee'];
 const CHECKS = [['chk_tidy','Baustelle aufgeräumt'],['chk_measure','Maßkontrolle'],['chk_photos','Fotodokumentation'],['chk_firms','Alle Firmen angesprochen']];
 const NEAR_M = 600;   // so nah (Meter) muss man an einem Projekt sein, damit es automatisch gewählt wird
 const favicon = () => document.querySelectorAll('link[rel=icon],link[rel=apple-touch-icon]').forEach(l => { l.href = l.href.split('?')[0] + (l.href.includes('s=180') ? '?s=180&' : '?') + 'v=' + Date.now(); });
-let settings = {}, logoV = 1, saving = new Set(), here = null, cq = '', cTrade = '', cProj = '', sheetQ = '';
+let settings = {}, logoV = 1, saving = new Set(), here = null, cq = '', cTrade = '', cProj = '', cProjSet = false, sheetQ = '';
 const track = pr => { saving.add(pr); pr.finally(() => saving.delete(pr)); return pr; };
 let draft = null, newC = false, cedit = false, cfrom = null, armedKey = null, armedTimer = null;
 let itemPhotoFor = null, meta = {sections: []}, contacts = [], cid = null, projects = [], pid = null, reports = [], rid = null, tab = 'bericht', wxEdit = false, headEdit = false, adding = null, allImgs = false, dueEditId = null, leaderUsers = [];
@@ -1262,6 +1262,7 @@ async function delProject() {
 /* ---------- Kontakte ---------- */
 const CFIELDS = [['name','Firma / Name *','text','w'],['trade','Gewerk'],['contact_person','Ansprechpartner'],['role','Funktion'],['phone','Telefon','tel'],['mobile','Mobil','tel'],['email','E-Mail','email'],['website','Internet','text','w'],['street','Straße','text','w'],['zip','PLZ'],['city','Ort']];
 function renderContacts(box) {
+  if (!cProjSet && pid) cProj = String(pid);   // Baustellen-Ansicht: zuerst die Beteiligten des geöffneten Projekts („Alle Projekte“ hebt das auf)
   box.innerHTML = `<div class="split"><div class="clist"><div class="ch"><input id="cq" type="search" placeholder="Kontakte filtern" value="${esc(cq)}"><button data-act="addContact" title="Kontakt anlegen">${ic('plus', 22, 3)}</button></div><div class="cx"><select id="ctr" aria-label="Nach Gewerk filtern"></select><select id="cpr" aria-label="Nach Projekt filtern"></select><button data-act="cxXlsx" title="Liste als Excel-Datei laden">Excel</button><button data-act="cxPdf" title="Liste drucken (PDF)">Drucken</button></div><div class="cb" id="cb"></div></div><div class="cdet" id="cdet"></div></div>`;
   fillContactList(); fillContactDetail(); $('#ncName')?.focus();
 }
@@ -1309,7 +1310,8 @@ function fillContactDetail() {
   box.innerHTML = `<div class="cform">${back}<div class="chead"><h3>${esc(c.name)}</h3>${pen}</div>
     ${rows.length ? `<dl class="cview">${rows.map(([l, v]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '<div class="info">Noch keine Daten. Mit dem Stift oben rechts kannst du sie ergänzen.</div>'}
     ${mapBlock([c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}
-    <div class="info">In ${c.used} Berichtseintrag${c.used === 1 ? '' : 'en'} verwendet.</div></div>`;
+    <div class="info">In ${c.used} Berichtseintrag${c.used === 1 ? '' : 'en'} verwendet.</div>
+    ${(() => { const a = (PLATFORM.apps || []).find(x => x.key === 'adressen' && x.allowed); return a ? `<div class="acts"><a class="btn" href="${esc(appUrl(a))}/#kontakt=${c.id}" title="In der Adressen-App bearbeiten – Tabelle, Export, Ins Handy, Verlauf">In Adressen bearbeiten ↗</a></div>` : ''; })()}</div>`;
 }
 async function saveContactField(t) {
   const c = contacts.find(x => x.id === cid), k = t.dataset.cf; let v = t.value.trim();
@@ -1920,7 +1922,7 @@ document.addEventListener('change', async e => {
     if (['date', 'number'].includes(t.dataset.f)) openProject(pid, true);
   }
 });
-document.addEventListener('change', e => { if (e.target.id === 'ctr') { cTrade = e.target.value; fillContactList(); } if (e.target.id === 'cpr') { cProj = e.target.value; fillContactList(); } });
+document.addEventListener('change', e => { if (e.target.id === 'ctr') { cTrade = e.target.value; fillContactList(); } if (e.target.id === 'cpr') { cProj = e.target.value; cProjSet = true; fillContactList(); } });
 document.addEventListener('input', e => {
   if (e.target.classList.contains('ed')) grow(e.target);
   else if (e.target.dataset.dp && draft) {

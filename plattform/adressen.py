@@ -133,6 +133,26 @@ def list_contacts():
     return jsonify(rows)
 
 
+@app.get("/api/contacts/suggest")
+def suggest():
+    """Firmenvorschläge aus dem Netz (OpenStreetMap) – wie beim Anlegen im Bautagebuch (dort abgefragt)."""
+    from urllib.parse import urlencode
+    q = {k: v for k, v in (("q", request.args.get("q", "")), ("lat", request.args.get("lat", "")), ("lon", request.args.get("lon", ""))) if v}
+    try:
+        return jsonify(C.bt_api("GET", "/api/contacts/suggest?" + urlencode(q)) or {"items": []})
+    except RuntimeError as e:
+        return jsonify(items=[], error=str(e))
+
+
+@app.get("/api/contacts/suggest/detail")
+def suggest_detail():
+    from urllib.parse import urlencode
+    try:
+        return jsonify(C.bt_api("GET", "/api/contacts/suggest/detail?" + urlencode({"type": request.args.get("type", ""), "id": request.args.get("id", "")})) or {})
+    except RuntimeError as e:
+        return jsonify(error=str(e))
+
+
 @app.post("/api/contacts")
 def create_contact():
     try:

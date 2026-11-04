@@ -16,6 +16,9 @@
 .flt input[type=search]{flex:1 1 240px;padding:.65rem .8rem}
 .flt select{flex:0 1 200px}
 .chips{display:flex;gap:.35rem;flex-wrap:wrap}
+.sugbox .sugh{font-size:.8rem;color:var(--mute);margin:.2rem 0 .3rem}
+.sugbox .sugo{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem;margin:.25rem 0;background:transparent;color:var(--ink)}
+.sugbox .sugo:hover{border-color:var(--y)}.sugbox .sugo small{display:block;color:var(--mute);font-size:.8rem}
 #mErr .orte{display:flex;flex-direction:column;gap:.25rem;margin-top:.45rem}
 #mErr .orte a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem}
 #mErr .orte a:hover{border-color:var(--y)}
@@ -180,6 +183,25 @@ function render() {
     </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer.' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
 }
 
+/* Neuer Kontakt: Firmenvorschläge aus dem Netz (OpenStreetMap, wie im Bautagebuch) – antippen übernimmt Adresse, Telefon, E-Mail */
+let sugT = 0, sugL = [];
+function nkSuggest(bg, q) {
+  clearTimeout(sugT); const box = bg.querySelector('#nkSug'); if (!box) return;
+  q = q.trim(); if (q.length < 3) { box.innerHTML = ''; sugL = []; return; }
+  sugT = setTimeout(async () => {
+    let r = { items: [] }; try { r = await api('api/contacts/suggest?q=' + encodeURIComponent(q)); } catch { /* ohne Vorschläge */ }
+    sugL = Array.isArray(r.items) ? r.items : [];
+    box.innerHTML = sugL.length ? '<div class="sugh">Vorschläge aus dem Netz – antippen zum Übernehmen</div>' + sugL.map((x, i) => `<button type="button" class="sugo" data-sug="${i}"><b>${esc(x.name)}</b><small>${esc([x.trade, [x.street, [x.zip, x.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), x.phone].filter(Boolean).join(' · '))}</small></button>`).join('') : '';
+  }, 350);
+}
+async function nkTake(bg, i) {
+  let x = sugL[i]; if (!x) return;
+  if (x.osm_id) { try { x = { ...x, ...(await api(`api/contacts/suggest/detail?type=${encodeURIComponent(x.osm_type)}&id=${x.osm_id}`)) }; } catch { /* egal */ } }
+  const set = (k, v) => { const el = bg.querySelector(`[data-f="${k}"]`); if (el && v && !el.value.trim()) el.value = v; };
+  const n = bg.querySelector('[data-f="name"]'); if (n && x.name) n.value = x.name;
+  set('trade', x.trade); set('street', x.street); set('zip', x.zip); set('city', x.city); set('phone', x.phone); set('email', x.email); set('website', x.website);
+  bg.querySelector('#nkSug').innerHTML = '<div class="sugh">Übernommen – bitte prüfen und speichern.</div>';
+}
 function edit(c) {
   const isNew = !c; c = c || { kind: kind || 'firma', trade: gw || (kind === 'bauherr' ? 'Bauherr' : '') };
   const inp = ([k, l, w, t]) => `<label class="${w}">${l}<input data-f="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'trade' ? ' list="gwList"' : ''}></label>`;
@@ -190,9 +212,9 @@ function edit(c) {
   const use = isNew ? '' : [c.site_of && `Baustellenadresse des Projekts „${esc(c.site_of)}“.`,
     c.used ? `Kommt in ${c.used} ${c.used === 1 ? 'Eintrag' : 'Einträgen'} des Bautagebuchs vor${c.projects.length ? ' (' + c.projects.map(esc).join(', ') + ')' : ''}.` : ''].filter(Boolean).join(' ');
   const gwList = [...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de'));
-  modalBox(`<div class="mh"><h3>${isNew ? 'Neuer Kontakt' : esc(c.name)}</h3><button class="x" data-m="close" aria-label="Schließen">✕</button></div>
+  const bgE = modalBox(`<div class="mh"><h3>${isNew ? 'Neuer Kontakt' : esc(c.name)}</h3><button class="x" data-m="close" aria-label="Schließen">✕</button></div>
     ${quick ? `<div class="quick">${quick}</div>` : ''}
-    <div class="fm">${F.map(inp).join('')}
+    <div class="fm">${F.map(inp).join('')}${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
       <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
       <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>
       <label class="w">Notizen<textarea data-f="notes">${esc(c.notes || '')}</textarea></label></div>
@@ -220,6 +242,10 @@ function edit(c) {
     }
   });
   const first = document.querySelector('.modal [data-f="name"]'); if (first && isNew) first.focus();
+  if (isNew && bgE) {
+    bgE.addEventListener('input', (e) => { if (e.target.dataset.f === 'name') nkSuggest(bgE, e.target.value); });
+    bgE.addEventListener('click', (e) => { const b = e.target.closest('[data-sug]'); if (b) nkTake(bgE, +b.dataset.sug); });
+  }
 }
 
 
@@ -439,6 +465,8 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   if (BPHead.projekt) betN = BPHead.projekt.name;
   await load();
   if (betN && ALL.some(istBet)) { bet = betN; render(); }
+  const hk = /^#kontakt=(\d+)/.exec(location.hash);   // aus dem Bautagebuch: „In Adressen bearbeiten“
+  if (hk) { history.replaceState(null, '', location.pathname); const c = ALL.find((x) => x.id === +hk[1]); if (c) edit(c); }
   setView(TV.view);
   if (matchMedia('(pointer:fine)').matches) $('#q').focus({ preventScroll: true });
 })().catch((e) => toast(e.message, true));

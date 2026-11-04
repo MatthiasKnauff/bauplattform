@@ -47,6 +47,16 @@ def create_item(r):
             text = name
             forced["contact_id"] = cid
             out = {"contact_id": cid, "contact_created": created, "name": name}
+            if "activity" not in d or "headcount" not in d:   # von Hand eingetragen: Tätigkeit nach Bauzeitenplan/Gewerk, 1 Anwesender vorschlagen
+                rep = c.execute("SELECT project_id, date FROM reports WHERE id=?", (r,)).fetchone()
+                if "activity" not in d and rep:
+                    from bpcore import plan
+                    try:
+                        with c.savepoint():
+                            d["activity"] = plan.taetigkeit(c, rep["project_id"], rep["date"], cid, name)
+                    except Exception:
+                        d["activity"] = ""
+                d.setdefault("headcount", 1)
         d["text"] = text
         return jsonify(id=db.insert(c, "items", d, forced=forced), **out)
 

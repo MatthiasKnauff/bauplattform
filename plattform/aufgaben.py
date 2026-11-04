@@ -665,8 +665,7 @@ def send_due(now=None):
         rows = [r for r in c.execute("SELECT * FROM erinnerungen WHERE status='offen' AND gesendet='' AND termin!='' AND termin<=?", (today,)).fetchall()
                 if (r["termin"] < today or (r["uhrzeit"] or "08:00") <= hhmm) and (r["quelle"] != "plan" or cf["mail_plan"])]
         users = {r["id"]: r for r in c.execute("SELECT id, name, vorname, email FROM users WHERE active=1")}
-    link = (mc.get("app_url") or "").rstrip("/")
-    link = re.sub(r"/bautagebuch$", "", link) + "/maengel/" if link else ""
+    link = platform.link("aufgaben", "#erinnerungen", mc)
     by = {}
     for r in rows:
         for uid in _ids(r["empfaenger"]):
@@ -680,7 +679,8 @@ def send_due(now=None):
             mine = [r for r in rs if c.execute("UPDATE erinnerungen SET gesendet=? WHERE id=? AND (gesendet='' OR gesendet=?)", (today, r["id"], today)).rowcount == 1]
         if not mine:
             continue
-        lines = [f"• {r['titel']}\n  {r['text'].replace(chr(10), chr(10) + '  ')}" for r in mine]
+        lines = [f"• {r['titel']}\n  {r['text'].replace(chr(10), chr(10) + '  ')}"
+                 + (f"\n  {platform.link('aufgaben', '#erinnerung-' + str(r['id']), mc)}" if link else "") for r in mine]
         body = (f"Hallo {u['vorname'] or u['name']},\n\nErinnerung aus der Bauplattform:\n\n" + "\n\n".join(lines)
                 + ("\n\nAlle Erinnerungen und zum Neu-Terminieren: " + link if link else "") + "\n")
         try:

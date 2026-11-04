@@ -726,16 +726,17 @@ function renderApv() {
 const SGATTR = 'data-sg="1" autocomplete="nope" name="bt-co" autocorrect="off" spellcheck="false"';
 const coAdd = s => s.extra && s.extra.company ? `<div class="sgw" style="flex:1 1 100%"><input data-add-co ${SGATTR} placeholder="Firma (optional, frei eintragen oder aus Kontakten wählen)" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : '';
 /* Anwesende laut Bauzeitenplan: erwartete Firmen vorschlagen – der Bauleiter bestätigt „anwesend“ oder „nicht da“ */
-let SOLL = { rid: 0, f: [] }, sollBusy = 0;
+let SOLL = { rid: 0, f: [], o: [] }, sollBusy = 0;
 function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma, Tätigkeit laut Plan, Anzahl) – erst ✓ trägt sie ein
   const f = SOLL.f.filter(x => x.status === 'offen' || x.status === 'fehlt');
-  if (!f.length) return '';
+  const oh = (SOLL.o || []).length ? `<div class="soll-h" style="opacity:.75">Laut Bauzeitenplan heute außerdem: ${SOLL.o.map(x => esc(x.gewerk + (x.leistungen.length ? ' (' + x.leistungen.join(', ') + ')' : ''))).join(', ')} – dort ist keine Firma eingetragen (Bauzeitenplan → Gewerke & Firmen).</div>` : '';
+  if (!f.length) return oh ? `<div class="soll">${oh}</div>` : '';
   return `<div class="soll"><div class="soll-h">Laut Bauzeitenplan vorausgefüllt – bitte bestätigen ✓ oder ablehnen ✗</div>${f.map(x => x.status === 'fehlt'
     ? `<div class="soll-r fehlt" data-sollf="${esc(x.firma)}"><span><b>${esc(x.firma)}</b><small>${esc(x.leistungen.join(', '))}</small></span><span class="soll-st">nicht da</span><button data-act="sollSet" data-st="offen">Rückgängig</button></div>`
     : `<div class="soll-r pend" data-sollf="${esc(x.firma)}"><span class="sn"><b>${esc(x.firma)}</b><small>laut Bauzeitenplan</small></span>
       <textarea class="act" rows="1" data-soll-act aria-label="Art der Tätigkeit">${esc(x.leistungen.join(', '))}</textarea>
-      <input class="cnt" data-soll-cnt type="number" min="0" placeholder="Anz." aria-label="Anzahl Mitarbeiter">
-      <span class="soll-bt"><button class="ok" data-act="sollDa" data-kind="${esc(k)}" title="Bestätigen – als anwesend eintragen">✓</button><button data-act="sollSet" data-st="fehlt" title="Ablehnen – Firma war nicht da">✗</button><button data-act="sollSet" data-st="nein" title="Nicht nötig – z. B. Termin verschoben">–</button></span></div>`).join('')}</div>`;
+      <input class="cnt" data-soll-cnt type="number" min="0" placeholder="Anz." value="1" aria-label="Anzahl Mitarbeiter">
+      <span class="soll-bt"><button class="ok" data-act="sollDa" data-kind="${esc(k)}" title="Bestätigen – als anwesend eintragen">✓</button><button data-act="sollSet" data-st="fehlt" title="Ablehnen – Firma war nicht da">✗</button><button data-act="sollSet" data-st="nein" title="Nicht nötig – z. B. Termin verschoben">–</button></span></div>`).join('')}${oh}</div>`;
 }
 function sollHtml(r, k) {
   if (SOLL.rid !== r.id) loadSoll(r.id);
@@ -743,7 +744,7 @@ function sollHtml(r, k) {
 }
 async function loadSoll(rid) {
   if (sollBusy === rid) return; sollBusy = rid;
-  try { const d = await api('api/reports/' + rid + '/soll'); SOLL = { rid, f: d.firmen || [] }; } catch (e) { SOLL = { rid, f: [] }; }
+  try { const d = await api('api/reports/' + rid + '/soll'); SOLL = { rid, f: d.firmen || [], o: d.ohne_firma || [] }; } catch (e) { SOLL = { rid, f: [], o: [] }; }
   sollBusy = 0;
   document.querySelectorAll('.soll-box').forEach(b => { b.innerHTML = sollInner(b.dataset.soll); });   // nur die Vorschläge auffrischen – keine Eingabe verlieren
   if (BWZ.open) bwzRender();
@@ -905,7 +906,7 @@ async function bwzSave(P) { me.assistent = P; const r = await api('api/account',
 async function bwzAdd(kind) {   // wie „Hinzufügen“ im Abschnitt, Eingabe aus dem Assistenten
   const box = $('#bwz'), inp = box.querySelector(`[data-add="${kind}"]`), t = inp?.value.trim(); if (!t) { inp?.focus(); return; }
   const row = inp.closest('.add'), body = {kind, text: t};
-  if (row.querySelector('[data-add-act]')) { body.activity = row.querySelector('[data-add-act]').value.trim(); const n = row.querySelector('[data-add-cnt]').value; body.headcount = n === '' ? null : +n; }
+  if (row.querySelector('[data-add-act]')) { const a = row.querySelector('[data-add-act]').value.trim(), n = row.querySelector('[data-add-cnt]').value; if (a) body.activity = a; if (n !== '') body.headcount = +n; }
   const co = row.querySelector('[data-add-co]'); if (co) body.company = co.value.trim();
   const dd = row.querySelector('[data-add-due]'); if (dd && dd.value) { body.due = dd.value; body.due_time = row.querySelector('[data-add-time]').value || '09:00'; }
   const res = await api(`api/reports/${rid}/items`, 'POST', body); if (res.error) { toast(res.error); return; }
@@ -913,6 +914,17 @@ async function bwzAdd(kind) {   // wie „Hinzufügen“ im Abschnitt, Eingabe a
   if (res.contact_id) contacts = await api('api/contacts');
   setSecOpen(kind, true); await openProject(pid, true); bwzRender(); $('#bwz')?.querySelector(`[data-add="${kind}"]`)?.focus();
 }
+/* Von Hand eingetragene Firma: Tätigkeit (laut Bauzeitenplan, sonst nach Gewerk) und 1 Anwesenden vorschlagen */
+async function taetVorschlag(row) {
+  const inp = row && row.querySelector('[data-add]'), act = row && row.querySelector('[data-add-act]'), cnt = row && row.querySelector('[data-add-cnt]');
+  if (!inp || !act || !rid) return;
+  const f = inp.value.trim(); if (!f || act.value.trim() || act.dataset.vf === f) return;
+  act.dataset.vf = f;
+  try { const r = await api(`api/reports/${rid}/taetigkeit?firma=` + encodeURIComponent(f)); if (r.taetigkeit && !act.value.trim() && inp.value.trim() === f) { act.value = r.taetigkeit; act.dispatchEvent(new Event('input', {bubbles: true})); } } catch (e) { /* ohne Vorschlag */ }
+  if (cnt && cnt.value === '') cnt.value = '1';
+}
+document.addEventListener('change', e => { if (e.target.matches && e.target.matches('[data-add]')) taetVorschlag(e.target.closest('.addrow,.qadd,.add')); });
+document.addEventListener('focusin', e => { if (e.target.matches && (e.target.matches('[data-add-act]') || e.target.matches('[data-add-cnt]'))) taetVorschlag(e.target.closest('.addrow,.qadd,.add')); });
 document.addEventListener('change', e => {
   const t = e.target; if (!t.closest || !t.closest('#bwz')) return;
   if (t.dataset.bwzstep) { const P = bwzPrefs(); P.steps = {...P.steps, [t.dataset.bwzstep]: t.checked}; bwzSave(P); }
@@ -1483,8 +1495,9 @@ async function addItem(kind) {
   if (!t) return;
   const row = inp.closest('.addrow,.qadd'), body = {kind, text: t};
   if (row.querySelector('[data-add-act]')) {
-    body.activity = row.querySelector('[data-add-act]').value.trim();
-    const n = row.querySelector('[data-add-cnt]').value; body.headcount = n === '' ? null : +n;
+    const a = row.querySelector('[data-add-act]').value.trim(), n = row.querySelector('[data-add-cnt]').value;
+    if (a) body.activity = a;              // leer: Tätigkeit nach Bauzeitenplan bzw. Gewerk vorschlagen (Server)
+    if (n !== '') body.headcount = +n;     // leer: 1 Anwesender
   }
   const co = row.querySelector('[data-add-co]'); if (co) body.company = co.value.trim();
   const dd = row.querySelector('[data-add-due]'); if (dd && dd.value) { body.due = dd.value; body.due_time = row.querySelector('[data-add-time]').value || '09:00'; }

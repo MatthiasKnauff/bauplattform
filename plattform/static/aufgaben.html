@@ -29,6 +29,7 @@
 .grp small{color:var(--mute);font-weight:400}
 .grp a{font-weight:400;font-size:.85rem;margin-left:auto}
 .ml{display:flex;flex-direction:column;gap:.45rem}
+.mr.hl,.er.hl{outline:3px solid var(--y);outline-offset:2px;transition:outline-color 1s}
 .mr{display:grid;grid-template-columns:auto 64px 1fr auto;gap:.4rem .9rem;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem}
 .mr.done{opacity:.6}
 .mr.ueberfaellig{border-left:4px solid var(--red)}
@@ -111,6 +112,17 @@ function undoable(label, fn) {
 }
 $('#undoBtn').onclick = async () => { const u = UNDO; if (!u) return; UNDO = null; $('#undoBar').hidden = true; try { await u.fn(); toast('Rückgängig gemacht.'); await reload(); } catch (e) { toast(e.message, true); } };
 
+/* ---------- Direkt zu einem Eintrag (Link aus der E-Mail) ---------- */
+function zeige(art, id) {
+  if (art === 'mangel' && M) {
+    const m = M.find((x) => String(x.id) === id);
+    if (!m) { toast('Dieser Eintrag ist nicht (mehr) vorhanden.', true); return; }
+    F = { q: '', projekt: '', firma: '', art: m.art, status: 'alle' }; render();
+  } else if (E) { render(); }
+  const el = document.querySelector(art === 'mangel' ? `[data-m="${id}"]` : `[data-e="r${id}"]`);
+  if (!el) { toast('Dieser Eintrag ist nicht (mehr) vorhanden.', true); return; }
+  el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 4000);
+}
 /* ---------- Laden ---------- */
 async function reload(first) {
   try {
@@ -433,8 +445,11 @@ $('#setBtn').onclick = async () => {
   CONF = await api('api/platform');
   await header('Mängel & Erinnerungen', ME, CONF);
   try { CFG = await api('api/einstellungen'); } catch { /* egal */ }
+  const deep = /^(mangel|erinnerung)-(\d+)$/.exec(tab);   // Link aus einer E-Mail: direkt zum Eintrag
+  if (deep) { tab = deep[1] === 'mangel' ? 'maengel' : 'erinnerungen'; scope = 'all'; history.replaceState(null, '', '#' + tab); }
   if (!['maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'maengel';
   renderTabs(); await reload(tab === 'erinnerungen');
+  if (deep) zeige(deep[1], deep[2]);
   if (tab === 'maengel') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});
   else api('api/maengel?scope=' + scope).then((r) => { M = r; renderTabs(); }).catch(() => {});
   if (tab !== 'termine') api('api/termine?scope=' + scope).then((r) => { T = r; renderTabs(); }).catch(() => {});

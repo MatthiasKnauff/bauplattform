@@ -43,10 +43,11 @@ def run_once(now=None):
             mine = [i for i in items if c.execute("UPDATE items SET reminded=? WHERE id=? AND reminded=''", (today, i["id"])).rowcount == 1]
         if not mine:
             continue
-        lines = [f"• {i['proj']} – {i['sec'] or 'Eintrag'}: {i['text'].strip().splitlines()[0]}  (fällig {_de(i['due'])} {i['due_time'] or '09:00'}, Bericht vom {_de(i['rdate'])})" for i in mine]
-        link = conf.get("app_url", "").rstrip("/")
-        body = (f"Hallo {u['name']},\n\nfolgende Punkte aus dem Bautagebuch sind heute fällig bzw. überfällig:\n\n" + "\n".join(lines)
-                + (f"\n\n{link}" if link else "") + "\n")
+        from bpcore import platform
+        lk = lambda i: platform.link("aufgaben", f"#mangel-{i['id']}", conf)   # direkt zum Eintrag in „Mängel & Erinnerungen“
+        lines = [f"• {i['proj']} – {i['sec'] or 'Eintrag'}: {i['text'].strip().splitlines()[0]}  (fällig {_de(i['due'])} {i['due_time'] or '09:00'}, Bericht vom {_de(i['rdate'])})"
+                 + (f"\n  {lk(i)}" if lk(i) else "") for i in mine]
+        body = (f"Hallo {u['name']},\n\nfolgende Punkte aus dem Bautagebuch sind heute fällig bzw. überfällig:\n\n" + "\n".join(lines) + "\n")
         try:
             mail.send(conf, u["email"], f"Bautagebuch – {len(mine)} Punkt{'e' if len(mine) != 1 else ''} fällig", body)
             sent += 1

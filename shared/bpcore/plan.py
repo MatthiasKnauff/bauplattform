@@ -4,8 +4,8 @@ Ein Bauzeitenplan (Tabelle gantt_projects) ist über project_id mit einem Bautag
 Seine berechneten Termine stehen in data["sched"] ({uid, s, f, g}); die Firma einer Leistung ergibt sich
 aus „Gewerke & Firmen“ (data["trades"][gewerk]["firm"] = Kontakt-Schlüssel) oder dem Feld „Unternehmer“.
 """
-import json
-from datetime import date
+import json, re
+from datetime import date, timedelta
 
 
 def _j(s, d):
@@ -25,10 +25,18 @@ def firm_map(c):
 
 
 def plans(c, project_id):
-    return [(g["name"], _j(g["data"], {})) for g in c.execute("SELECT name, data FROM gantt_projects WHERE project_id=?", (project_id,)).fetchall()]
+    """Bauzeitenpläne des Projekts: verknüpfte Pläne, sonst nicht verknüpfte Pläne, deren Name mit dem Projektkürzel beginnt („A541 …“)."""
+    rows = c.execute("SELECT name, data FROM gantt_projects WHERE project_id=?", (project_id,)).fetchall()
+    if not rows:
+        p = c.execute("SELECT name FROM projects WHERE id=?", (project_id,)).fetchone()
+        code = ((p["name"] or "").split() or [""])[0].rstrip(".,") if p else ""
+        if re.match(r"^[A-Za-z]+\d", code):
+            rows = [r for r in c.execute("SELECT name, data FROM gantt_projects WHERE project_id IS NULL").fetchall()
+                    if re.match(re.escape(code) + r"(?![\d.])", (r["name"] or "").strip(), re.I)]
+    return [(g["name"], _j(g["data"], {})) for g in rows]
 
 
-def expected(plan_list, firms, day):
+def expected(plan_list, firms, day, ohne=None):
     """Firmen, die laut Plan an `day` (JJJJ-MM-TT) auf der Baustelle sein sollen → [{firma, key, contact_id, gw, leistungen, plan}].
     Samstag/Sonntag: niemand erwartet. Leistungen ohne eingetragene Firma werden übergangen (nicht zuordenbar)."""
     try:
@@ -53,6 +61,8 @@ def expected(plan_list, firms, day):
             if not name and res and res != (tr.get("craft") or "").strip():
                 name = res
             if not name:
+                if ohne is not None and (gw or t.get("name")):
+                    ohne.setdefault(gw or "ohne Gewerk", set()).add(t.get("name") or "")
                 continue
             k = name.strip().lower()
             e = out.setdefault(k, {"firma": name.strip(), "key": k, "contact_id": cid, "gw": gw, "leistungen": [], "plan": pname})
@@ -92,3 +102,50 @@ def soll_ist(c, report_id, project_id, day, firms=None, plan_list=None):
         else:
             e["status"] = "offen"
     return exp
+
+
+TAETIGKEIT = {   # naheliegende Tätigkeit je Gewerk (Stichwort im Gewerk der Firma → Text)
+    "rohbau": "Rohbauarbeiten", "maurer": "Maurerarbeiten", "beton": "Betonarbeiten", "erd": "Erdarbeiten", "tiefbau": "Tiefbauarbeiten",
+    "abbruch": "Abbrucharbeiten", "gerüst": "Gerüstbau", "zimmer": "Zimmererarbeiten", "holzbau": "Holzbauarbeiten", "dach": "Dacharbeiten",
+    "klempner": "Klempnerarbeiten", "spengler": "Klempnerarbeiten", "fenster": "Fenstermontage", "elektro": "Elektroinstallation",
+    "sanitär": "Sanitärinstallation", "heizung": "Heizungsinstallation", "lüftung": "Lüftungsinstallation", "hls": "Haustechnik-Installation",
+    "shk": "Sanitär- und Heizungsinstallation", "trockenbau": "Trockenbauarbeiten", "putz": "Putzarbeiten", "estrich": "Estricharbeiten",
+    "fliese": "Fliesenarbeiten", "maler": "Malerarbeiten", "tapez": "Tapezierarbeiten", "boden": "Bodenbelagsarbeiten", "parkett": "Parkettarbeiten",
+    "tischler": "Tischlerarbeiten", "schreiner": "Schreinerarbeiten", "metallbau": "Metallbauarbeiten", "schlosser": "Schlosserarbeiten",
+    "treppe": "Treppenmontage", "aufzug": "Aufzugsmontage", "wdvs": "Fassadendämmung", "fassade": "Fassadenarbeiten", "dämm": "Dämmarbeiten",
+    "garten": "Garten- und Landschaftsbau", "galabau": "Garten- und Landschaftsbau", "pflaster": "Pflasterarbeiten", "reinigung": "Bauendreinigung",
+    "abdicht": "Abdichtungsarbeiten", "statik": "Statik / Prüfung", "vermess": "Vermessung", "schornstein": "Schornsteinarbeiten",
+}
+
+
+def taetigkeit(c, project_id, day, contact_id, name):
+    """Vorschlag für „Art der Tätigkeit“ einer von Hand eingetragenen Firma: Leistungen laut Bauzeitenplan (am Tag, sonst die nächstgelegenen),
+    sonst eine naheliegende Tätigkeit nach dem Gewerk der Firma."""
+    key = (name or "").strip().lower()
+    try:
+        pl, fm = plans(c, project_id), firm_map(c)
+        for e in expected(pl, fm, day):
+            if e["key"] == key or (contact_id and e["contact_id"] == contact_id):
+                return ", ".join(e["leistungen"])[:300]
+        best = None   # nicht am Tag eingeplant: Leistungen der Firma mit dem nächsten Termin
+        for d in range(1, 15):
+            for sgn in (-1, 1):
+                try:
+                    t = (date.fromisoformat(day) + timedelta(days=sgn * d)).isoformat()
+                except ValueError:
+                    break
+                for e in expected(pl, fm, t):
+                    if e["key"] == key or (contact_id and e["contact_id"] == contact_id):
+                        best = e
+                        break
+                if best:
+                    return ", ".join(best["leistungen"])[:300]
+    except Exception:
+        pass
+    r = c.execute("SELECT trade FROM contacts WHERE id=?", (contact_id,)).fetchone() if contact_id else None
+    tr = ((r["trade"] if r else "") or "").strip()
+    low = (tr + " " + (name or "")).lower()
+    for k, v in TAETIGKEIT.items():
+        if k in low:
+            return v
+    return (tr + "arbeiten") if tr and " " not in tr and not tr.lower().endswith(("arbeiten", "bau")) else tr

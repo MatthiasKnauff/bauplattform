@@ -72,3 +72,19 @@ def config(user=None):
         out.append(a)
     return {"version": version(), "apps": out, "proxied": proxied_hosts(),
             "domain": os.environ.get("SSO_COOKIE_DOMAIN", "").strip().lstrip(".").lower()}
+
+
+def link(app, frag="", conf=None):
+    """Adresse für Links in E-Mails: immer über die gemeinsame Adresse (BAUPORTAL_URL, z. B. https://bauportal.gk3-architektur.de/maengel/#mangel-12).
+    Ohne BAUPORTAL_URL: die in den Einstellungen eingetragene Adresse (app_url) ohne App-Pfad, sonst leer."""
+    base = os.environ.get("BAUPORTAL_URL", "").strip().rstrip("/")
+    if not base and conf:
+        base = (conf.get("app_url") or "").strip().rstrip("/")
+        for p in PATHS.values():
+            if p and base.endswith("/" + p):
+                base = base[: -len(p) - 1]
+                break
+    if not base:
+        return ""
+    path = PATHS.get(app, "")
+    return base + ("/" + path if path else "") + "/" + (frag or "")

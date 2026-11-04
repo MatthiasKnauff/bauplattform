@@ -163,3 +163,17 @@
 .bph-hl span{flex:1;min-width:12rem}.bph-hl .bph-btn{padding:.3rem .8rem}
 .bph-drb.bph-drb-if{padding:0;overflow:hidden;display:flex}
 .bph-if{flex:1;width:100%;border:0;background:transparent;min-height:0}
+/* Ansicht für Fotos und PDFs (blättern) */
+.bph-gv{position:fixed;inset:0;width:100vw;overflow:hidden;z-index:5000;background:#1b1c1e;color:#f3f3f1;display:flex;flex-direction:column;font:15px/1.4 Ubuntu,"Segoe UI",system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
+.bph-gvb{display:flex;align-items:center;gap:.35rem;padding:.4rem .5rem;background:#2b2c30;flex:none}
+.bph-gvb button{border:1px solid #4a4c50;background:transparent;color:inherit;border-radius:999px;min-width:40px;height:40px;font:inherit;font-size:1.05rem;cursor:pointer}
+.bph-gvt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.9rem}
+.bph-gvn{font-size:.85rem;color:#b9b4aa;white-space:nowrap}
+.bph-gvs{flex:1;min-width:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:8px;touch-action:pan-x pan-y pinch-zoom}
+.bph-gvi{max-width:100%;max-height:calc(100vh - 80px);object-fit:contain;margin:auto}
+.bph-gvc{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);max-width:none;flex:none;height:auto}
+.bph-gvl{margin:auto;color:#b9b4aa;text-align:center}.bph-gvl a{color:#ff9ad0}
+.bph-gvp{position:absolute;z-index:3;top:50%;transform:translateY(-50%);left:6px;width:44px;height:64px;border:0;border-radius:12px;background:rgba(0,0,0,.35);color:#fff;font-size:2rem;cursor:pointer}
+.bph-gvp.n{left:auto;right:6px}
+.bph-gvp[hidden]{display:none}
+@media (pointer:coarse){.bph-gvp{background:rgba(0,0,0,.2);width:36px}}

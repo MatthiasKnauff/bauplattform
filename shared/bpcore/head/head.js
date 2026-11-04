@@ -605,6 +605,112 @@
     band.after(el);
   };
 
+  /* ---------- Ansicht für Fotos und PDFs: im Fenster der App blättern (nie ein neuer Tab – am iPhone kommt man sonst nicht zurück) ----------
+     BPHead.ansehen([{ url, name, typ: 'bild'|'pdf' }], start)
+     Automatisch für Links auf Fotos (uploads/…, .jpg/.png …) und für Links mit data-ansehen="pdf"|"bild".
+     Alle passenden Links im selben Bereich ([data-galerie], sonst die Seite) sind eine Reihe: ‹ › , Wischen, Pfeiltasten. */
+  const IMG_RX = /(^|\/)uploads\/|\.(jpe?g|png|webp|gif|heic)(\?|#|$)/i;
+  const typVon = (a) => a.dataset.ansehen || (IMG_RX.test(a.getAttribute('href') || '') ? 'bild' : /\.pdf(\?|#|$)/i.test(a.getAttribute('href') || '') ? 'pdf' : '');
+  let pdfjsP = null;
+  function pdfjs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (pdfjsP) return pdfjsP;
+    const tryLoad = (base) => new Promise((ok, bad) => { const s = document.createElement('script'); s.src = base + 'pdf.js'; s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.js'; ok(window.pdfjsLib); }; s.onerror = () => { s.remove(); bad(); }; document.head.appendChild(s); });
+    pdfjsP = tryLoad('static/vendor/pdfjs/').catch(() => tryLoad('vendor/pdfjs/')).catch(() => { pdfjsP = null; throw new Error('PDF-Anzeige nicht verfügbar'); });
+    return pdfjsP;
+  }
+  let gv = null;
+  H.ansehen = function (items, start = 0) {
+    items = (items || []).filter((x) => x && x.url); if (!items.length) return;
+    if (gv) gv.close(true);
+    const el = document.createElement('div'); el.className = 'bph-gv'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Ansicht');
+    el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
+      <button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button>
+      <button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern">⤓</button></div>
+      <div class="bph-gvs"></div><button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
+    document.body.appendChild(el);
+    const S = el.querySelector('.bph-gvs');
+    let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null;
+    const fitW = () => Math.max(320, Math.min((S.clientWidth || window.innerWidth) - 16, 1400));
+    async function show() {
+      const x = items[i], my = ++tok; zoom = 1; pdf = null;
+      el.querySelector('.bph-gvt').textContent = x.name || '';
+      el.querySelector('.bph-gvn').textContent = items.length > 1 ? `${i + 1} / ${items.length}` : '';
+      el.querySelectorAll('.bph-gvp').forEach((b) => { b.hidden = items.length < 2; });
+      S.scrollTop = 0; S.innerHTML = '<div class="bph-gvl">Lade …</div>';
+      if (x.typ !== 'pdf') { S.innerHTML = `<img class="bph-gvi" src="${esc(x.url)}" alt="${esc(x.name || '')}">`; return; }
+      try {
+        const lib = await pdfjs();
+        const data = await fetch(x.url, { credentials: 'same-origin' }).then((r) => { if (!r.ok) throw new Error('Datei nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
+        if (my !== tok) return;
+        pdf = await lib.getDocument({ data }).promise;
+        await renderPdf(my);
+      } catch (e) { if (my === tok) S.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}<br><a href="${esc(x.url)}" download>Datei herunterladen</a></div>`; }
+    }
+    async function renderPdf(my) {
+      if (!pdf) return;
+      S.innerHTML = '';
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      for (let n = 1; n <= pdf.numPages && my === tok; n++) {
+        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = (fitW() / v0.width) * zoom, v = pg.getViewport({ scale: sc * dpr });
+        const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.style.width = (zoom * 100) + '%'; cv.className = 'bph-gvc';
+        S.appendChild(cv);
+        await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise;
+      }
+    }
+    function setZoom(d) {
+      zoom = Math.max(0.5, Math.min(4, zoom * (d > 0 ? 1.4 : 1 / 1.4)));
+      if (pdf) renderPdf(tok); else { const im = S.querySelector('img'); if (im) { im.style.maxWidth = zoom === 1 ? '' : 'none'; im.style.maxHeight = zoom === 1 ? '' : 'none'; im.style.width = zoom === 1 ? '' : (fitW() * zoom) + 'px'; } }
+    }
+    const go = (d) => { if (items.length < 2) return; i = (i + d + items.length) % items.length; show(); };
+    async function teilen() {
+      const x = items[i];
+      try {
+        const b = await fetch(x.url, { credentials: 'same-origin' }).then((r) => r.blob());
+        const f = new File([b], x.name || (x.typ === 'pdf' ? 'Datei.pdf' : 'Foto.jpg'), { type: b.type });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return; }
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
+      } catch (e) { if (!e || e.name !== 'AbortError') window.open(x.url, '_blank'); }
+    }
+    const key = (e) => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1); else return; e.preventDefault(); e.stopPropagation(); };
+    function close(ohneZurueck) {
+      if (!gv) return; tok++; el.remove(); document.removeEventListener('keydown', key, true); removeEventListener('popstate', pop); gv = null;
+      if (!ohneZurueck && history.state && history.state.bphGv) history.back();
+    }
+    const pop = () => close(true);
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-gv]'); if (!b) { if (e.target === S) close(); return; }
+      const a = b.dataset.gv; if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen();
+    });
+    let tx = null, ty = 0;   // Wischen links/rechts blättert (nur ohne Vergrößerung)
+    S.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } else tx = null; }, { passive: true });
+    S.addEventListener('touchend', (e) => {
+      if (tx == null || zoom !== 1) return; const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty; tx = null;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+    });
+    S.addEventListener('dblclick', () => setZoom(zoom === 1 ? 1 : -1));
+    document.addEventListener('keydown', key, true);
+    history.pushState({ bphGv: 1 }, ''); addEventListener('popstate', pop);   // Zurück-Geste schließt die Ansicht
+    gv = { close };
+    show();
+  };
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (!a || e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey || a.hasAttribute('download') || a.dataset.ansehen === 'nein') return;
+    const typ = typVon(a); if (!typ) return;
+    e.preventDefault();
+    const scope = a.closest('[data-galerie]') || document, seen = new Set(), items = [];
+    let start = 0;
+    scope.querySelectorAll('a[href]').forEach((x) => {
+      const t = typVon(x); if (!t || x.dataset.ansehen === 'nein' || x.hasAttribute('download')) return;
+      const url = x.getAttribute('href'); if (seen.has(url)) { if (x === a) start = items.findIndex((y) => y.url === url); return; }
+      seen.add(url); if (x === a) start = items.length;
+      const img = x.querySelector('img');
+      items.push({ url, typ: t, name: x.dataset.name || x.title || (img && img.alt) || x.textContent.trim() || '' });
+    });
+    H.ansehen(items, start);
+  }, true);
+
   H.setProject = function (p) {
     if (!band) return;
     const box = band.querySelector('.bph-proj');

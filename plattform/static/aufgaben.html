@@ -210,7 +210,7 @@ function renderM() {
   const projs = [...new Map(M.map((m) => [m.pid, m.projekt])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'));
   const firms = [...new Set(M.map((m) => m.firma).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
   const by = new Map(); list.forEach((m) => { if (!by.has(m.pid)) by.set(m.pid, []); by.get(m.pid).push(m); });
-  const thumb = (m) => m.bild ? `<a class="th" href="api/bild/0/${encodeURIComponent(m.bild)}" target="_blank" rel="noopener" style="background-image:url('api/bild/240/${encodeURIComponent(m.bild)}')" title="Foto öffnen${m.fotos > 1 ? ` (${m.fotos} Fotos)` : ''}" aria-label="Foto"></a>` : '<span class="th">kein Foto</span>';
+  const thumb = (m) => m.bild ? `<a class="th" href="api/bild/0/${encodeURIComponent(m.bild)}" data-ansehen="bild" data-name="${esc((m.text || '').slice(0, 60))}" style="background-image:url('api/bild/240/${encodeURIComponent(m.bild)}')" title="Foto öffnen${m.fotos > 1 ? ` (${m.fotos} Fotos)` : ''}" aria-label="Foto"></a>` : '<span class="th">kein Foto</span>';
   const row = (m) => `<div class="mr ${m.done ? 'done' : m.status}" data-m="${m.id}">
       <input type="checkbox" class="ck" data-done ${m.done ? 'checked' : ''} title="${m.done ? 'wieder öffnen' : 'als erledigt abhaken'}" aria-label="erledigt">
       ${thumb(m)}

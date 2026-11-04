@@ -137,7 +137,7 @@ function render() {
       <td class="nr">${alt ? '' : p.frei ? '<span class="mu">ohne Nr.</span>' : `${p.kennung ? `<span class="pill">${esc(p.kennung)}</span> ` : ''}<b>${esc(p.nr)}</b>`}</td>
       <td>${p.frei ? '' : `<span class="idx ${st.index ? '' : 'o'}" title="${st.index ? 'Index ' + st.index : 'Ursprungsplan (ohne Index)'}">${st.index || '–'}</span>`}</td>
       <td class="ti">${alt ? `<span class="mu">älterer Stand</span>` : `<b>${esc(p.titel || '')}</b><div class="mu">${p.frei ? '📁 ' + esc(p.phase_name || 'Projektordner') : esc([p.kennung_name, p.phase_name || ('Phase ' + p.phase), p.variante && p.variante !== '1' ? 'Variante/Typ ' + p.variante : '', [p.planart_name, p.geschoss].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>`}
-        ${s ? `<div class="mu"><a href="${fileUrl(s.pfad)}" target="_blank" rel="noopener">${esc(s.name)}</a> · ${mb(s.groesse)} · ${de(s.mtime)}${st.kopien ? ` · ${st.kopien} weitere Kopie${st.kopien > 1 ? 'n' : ''}` : ''}</div>` : '<div class="mu">nur CAD-Datei</div>'}
+        ${s ? `<div class="mu"><a href="${fileUrl(s.pfad)}" data-ansehen="pdf" data-name="${esc(s.name)}">${esc(s.name)}</a> · ${mb(s.groesse)} · ${de(s.mtime)}${st.kopien ? ` · ${st.kopien} weitere Kopie${st.kopien > 1 ? 'n' : ''}` : ''}</div>` : '<div class="mu">nur CAD-Datei</div>'}
         ${st.cad.length ? `<div class="mu">CAD: ${st.cad.map((c) => `<a href="${fileUrl(c.pfad, 1)}">${esc(c.ext.slice(1).toUpperCase())}</a>`).join(', ')}</div>` : ''}</td>
       <td class="gw hide-m ${alt ? '' : p.gewerk ? '' : 'leer'}">${alt ? '' : `<input data-gw="${esc(p.key)}" list="gwList" value="${esc(p.gewerk || '')}" placeholder="Gewerk wählen oder eintippen" aria-label="Gewerk" autocomplete="off"><small>${p.gewerk ? esc(p.gewerk_quelle === 'zugeordnet' ? 'von Hand zugeordnet' : 'erkannt: ' + p.gewerk_quelle) : 'nicht erkannt'}</small>`}</td>
       <td class="hide-m">${last ? `<div class="sent" title="${esc(v.map((x) => de(x.datum) + ' an ' + x.an).join('\n'))}">✓ ${de(last.datum)}<br>${esc(last.an)}${v.length > 1 ? ` (+${v.length - 1})` : ''}</div>` : '<span class="mu">noch nicht versendet</span>'}</td>
@@ -200,7 +200,7 @@ async function laden(neu) {
 function renderListe() {
   bar();
   if (!VL) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
-  $('#view').innerHTML = `<div class="flt"><span class="fill"></span><a class="btn sm" href="api/versandliste.pdf?project_id=${pid}" target="_blank" rel="noopener">Planversandliste als PDF</a></div>
+  $('#view').innerHTML = `<div class="flt"><span class="fill"></span><a class="btn sm" href="api/versandliste.pdf?project_id=${pid}" data-ansehen="pdf" data-name="Planversandliste.pdf">Planversandliste als PDF</a></div>
     ${VL.length ? `<div class="tbl"><table class="pl vl"><thead><tr><th>Datum</th><th>Empfänger</th><th>Pläne</th><th class="hide-m">Versand</th></tr></thead><tbody>
     ${VL.map((r) => `<tr><td class="nr">${de(r.datum)}<div class="mu">${new Date(r.datum).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div></td>
       <td>${r.empfaenger.map((e) => `${esc(e.name || e.email)}${e.name ? `<div class="mu">${esc(e.email)}</div>` : ''}`).join('')}</td>

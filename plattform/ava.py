@@ -1186,9 +1186,28 @@ def _lv_druck(c, r, P, lay, entwurf=False):
                 continue
         if not out:
             return []
-        t = Table([out[k:k + 2] + [""] * (2 - len(out[k:k + 2])) for k in range(0, len(out), 2)], colWidths=[sp + 1.5 * mm] * 2, hAlign="LEFT")
-        t.setStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 3), ("TOPPADDING", (0, 0), (-1, -1), 3)])
-        return [Spacer(1, 1.5 * mm), t]
+        reihen = []   # je zwei Fotos eine eigene Tabellenzeile – so dürfen viele Fotos über mehrere Seiten laufen
+        for k in range(0, len(out), 2):
+            t = Table([out[k:k + 2] + [""] * (2 - len(out[k:k + 2]))], colWidths=[sp + 1.5 * mm] * 2, hAlign="LEFT")
+            t.setStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 3), ("TOPPADDING", (0, 0), (-1, -1), 3)])
+            reihen.append(t)
+        return reihen
+
+    def stuecke_von(text):   # Text in Abschnitte zu höchstens 10 Zeilen bzw. 1000 Zeichen – lange Texte laufen so über mehrere Seiten
+        zeilen_, st, cur_, n_ = [], [], [], 0
+        for z in str(text or "").split("\n"):
+            while len(z) > 1000:
+                cut = z.rfind(" ", 0, 1000)
+                cut = cut if cut > 200 else 1000
+                zeilen_.append(z[:cut]); z = z[cut:].lstrip()
+            zeilen_.append(z)
+        for z in zeilen_:
+            if cur_ and (len(cur_) >= 10 or n_ + len(z) > 1000):
+                st.append("\n".join(cur_)); cur_, n_ = [], 0
+            cur_.append(z); n_ += len(z)
+        if cur_:
+            st.append("\n".join(cur_))
+        return st or [""]
 
     story = []
     if lay["deckblatt"]:
@@ -1232,28 +1251,19 @@ def _lv_druck(c, r, P, lay, entwurf=False):
                 titel.append(x)
             rows.append([x.get("oz") or "", Paragraph(f"<b>{X(x['kurz'])}</b>", S["pb"]), "", "", "", ""]); band.append(len(rows) - 1)
             continue
-        if x.get("art") == "T":
-            rows.append(["", Paragraph(f"<font name='{FN['i']}'>{X(x.get('lang') or x['kurz'])}</font>", S["lang"]), "", "", "", ""]); continue
+        if x.get("art") == "T":   # Hinweistext (z. B. lange Vorbemerkung aus GAEB) – ebenfalls in Abschnitten
+            for k_, st_ in enumerate(stuecke_von(x.get("lang") or x["kurz"])):
+                if k_:
+                    weiter.add(len(rows) - 1)
+                rows.append(["", Paragraph(f"<font name='{FN['i']}'>{X(st_)}</font>", S["lang"]), "", "", "", ""])
+            continue
         if x.get("np_vor") and len(rows) > 1:   # Druckoption „Neue Seite vorher“
             tabelle_schliessen(); story.append(PageBreak())
         kz = f"<b>{X(x['kurz'])}</b>" + (" <font size='7'>[S]</font>" if x.get("sp") else "")
         zelle = [Paragraph(f"<strike>{kz}</strike> – entfällt" if x.get("entf") else kz, S["p"])]
-        stuecke = []   # Langtext in Abschnitten zu höchstens 10 Zeilen (bzw. 1200 Zeichen) – lange Texte laufen so über mehrere Seiten
+        stuecke = []
         if lay["langtext"] and x.get("lang") and x["lang"] != x["kurz"]:
-            cur_, n_ = [], 0
-            zeilen_ = []
-            for z in x["lang"].split("\n"):   # sehr lange Absätze an Wortgrenzen teilen
-                while len(z) > 1000:
-                    cut = z.rfind(" ", 0, 1000)
-                    cut = cut if cut > 200 else 1000
-                    zeilen_.append(z[:cut]); z = z[cut:].lstrip()
-                zeilen_.append(z)
-            for z in zeilen_:
-                if cur_ and (len(cur_) >= 10 or n_ + len(z) > 1000):
-                    stuecke.append("\n".join(cur_)); cur_, n_ = [], 0
-                cur_.append(z); n_ += len(z)
-            if cur_:
-                stuecke.append("\n".join(cur_))
+            stuecke = stuecke_von(x["lang"])
             zelle.append(Paragraph(X(stuecke.pop(0)), S["lang"]))
         if x.get("art") in ("E", "A", "P"):
             zelle.append(Paragraph("Bedarfsposition (mit GB)" if x["art"] == "E" and x.get("gb") else ARTEN[x["art"]], S["mu"]))
@@ -1262,8 +1272,6 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             if bz:
                 zelle.append(Paragraph(f"Bezug: Pos. {X(bz.get('oz') or '')} {X(bz.get('kurz') or '')}", S["mu"]))
         bilder = fotos(x["id"], wl - 5 * mm)
-        if not stuecke:
-            zelle += bilder
         ep = ep_of(x)
         gp = _gp(x, ep) if ep is not None and zaehlt({**x, "nt": None}) else None
         if gp is not None:
@@ -1273,9 +1281,12 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         rows.append([x.get("oz") or "", zelle, num(x.get("menge")), x.get("einheit") or "",
                      ep2(ep) if ep is not None else ("" if preis != "leer" else "............"),
                      "entfällt" if x.get("entf") else eur(gp) if gp is not None else ("(ohne GB)" if ep is not None else ("" if preis != "leer" else "................"))])
-        for k_, st_ in enumerate(stuecke):   # Fortsetzung des Langtexts
+        for st_ in stuecke:   # Fortsetzung des Langtexts
             weiter.add(len(rows) - 1)
-            rows.append(["", [Paragraph(X(st_), S["lang"])] + (bilder if k_ == len(stuecke) - 1 else []), "", "", "", ""])
+            rows.append(["", Paragraph(X(st_), S["lang"]), "", "", "", ""])
+        for bt_ in bilder:   # Fotos, je zwei in einer Zeile
+            weiter.add(len(rows) - 1)
+            rows.append(["", bt_, "", "", "", ""])
         if x.get("np_nach"):   # Druckoption „Neue Seite nachher“
             tabelle_schliessen(); story.append(PageBreak())
     if preis != "leer":

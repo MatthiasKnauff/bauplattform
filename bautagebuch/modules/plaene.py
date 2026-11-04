@@ -11,6 +11,7 @@ from core import access, db, remote, settings, sync
 bp = Blueprint("plaene", __name__)
 EXT = {".pdf", ".dwg", ".dxf", ".dwf", ".pln", ".plt", ".ifc"}
 PLAN_DIR = re.compile(r"plan|pläne|plaene|zeichnung|cad|dwg|werkpl|entwurf|genehmigung|ausf", re.I)
+TOP_PLAN = re.compile(r"pl(ä|ae)ne|zeichnungen|\bcad\b", re.I)
 SKIP_DIR = re.compile(r"foto|photo|bautagebuch|papierkorb|\$recycle", re.I)
 MAX_FILES, MAX_SEC = 8000, 90
 
@@ -77,10 +78,10 @@ def dateien():
     standard = aus is None
     aus = {"/".join(remote.clean_path(x)) for x in (aus or []) if isinstance(x, str)}
     out, dirs, t0 = [], {}, time.time()
-    if standard:   # Vorgabe: Foto-/Bautagebuch-Ordner ausschließen (sie werden trotzdem im Baum gezeigt)
-        for e in t.listdir("/".join(base)):
-            if e["dir"] and SKIP_DIR.search(e["name"]):
-                aus.add(e["name"])
+    if standard:   # Vorgabe: nur der Planordner („A497 9. Pläne“) – gibt es keinen, alles außer Foto-/Bautagebuch-Ordnern
+        top = [e["name"] for e in t.listdir("/".join(base)) if e["dir"]]
+        plan = [d for d in top if TOP_PLAN.search(d)]
+        aus |= {d for d in top if d not in plan} if plan else {d for d in top if SKIP_DIR.search(d)}
     try:
         _walk(t, base, [], 9, out, dirs, aus, t0)
     except Exception as e:

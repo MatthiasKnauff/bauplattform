@@ -291,7 +291,7 @@ async function saveNow(extra = {}) {
   if (!B || saving) return; saving = true;
   try {
     const r = await api('api/bk/' + B.id, 'PUT', { rev: B.rev, data: B.data, ...extra });
-    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
+    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; if (r.quellen) B.quellen = r.quellen; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
     const d = new Date(); $('#save').textContent = `Gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) {
     $('#save').textContent = 'Nicht gespeichert';
@@ -487,7 +487,9 @@ function vPruefung() {
   const ki = window.BPHead ? BPHead.provider() : { label: 'Intern' };
   return `<div class="row" style="margin-bottom:1rem"><div style="flex:1"><h2 style="margin:0">Plausibilitätsprüfung</h2><p class="hint" style="margin:.2rem 0 0">Feste Regeln${ki.key && ki.key !== 'intern' ? ' und ' + esc(ki.label) : ''} · KI oben in der Kopfleiste wählen</p></div><button class="btn pri" data-act="check">${CHECK ? 'Erneut prüfen' : 'Jetzt prüfen'}</button><button class="btn ki" data-act="checkKi" title="Zusätzlich mit KI prüfen (oben gewählte KI, sonst die erste eingerichtete)">✨ mit KI</button></div>
     ${CHECK && CHECK.note ? `<p class="hint" style="color:#e07b3a">${esc(CHECK.note)}</p>` : ''}
-    <div class="list">${CHECK ? CHECK.hinweise.map((h, k) => `<button type="button" class="card h go" data-hint="${k}" title="Zur Stelle springen"><span class="d ${h.lvl}" aria-label="${h.lvl}"></span><div><b>${esc(h.title)}</b><p>${esc(h.text)}</p></div><span class="src">${esc(h.src)}<i aria-hidden="true">→</i></span></button>`).join('') || '<div class="card empty">Keine Auffälligkeiten.</div>' : '<div class="card empty">Noch nicht geprüft.</div>'}</div>`;
+    <div class="list">${CHECK ? CHECK.hinweise.map((h, k) => `<button type="button" class="card h go" data-hint="${k}" title="Zur Stelle springen"><span class="d ${h.lvl}" aria-label="${h.lvl}"></span><div><b>${esc(h.title)}</b><p>${esc(h.text)}</p></div><span class="src">${esc(h.src)}<i aria-hidden="true">→</i></span></button>`).join('') || '<div class="card empty">Keine Auffälligkeiten.</div>' : '<div class="card empty">Noch nicht geprüft.</div>'}</div>
+    <section class="card" style="margin-top:1.4rem" id="quellen"><h2 style="margin:0 0 .3rem">Grundlagen und Quellen</h2><p class="sub" style="margin:0 0 .6rem">Woher Flächen, Kennwerte, Anteile und Preise dieser Kostenermittlung stammen – im „PDF für den Bauherrn“ als eigener Abschnitt wählbar.</p>
+      ${(B.quellen || []).map((q) => `<p style="margin:.55rem 0"><b>${esc(q.t)}</b><br><span class="hint" style="font-size:.88rem;color:var(--ink)">${esc(q.x)}</span></p>`).join('') || '<p class="hint">Wird beim nächsten Speichern ermittelt.</p>'}</section>`;
 }
 /* ---------- Bauteile & Material: Kostenberechnung mit Mengen, Materialien und Einheitspreisen ---------- */
 let btBusy = false;
@@ -1016,12 +1018,12 @@ $('#moreBtn').onclick = () => {
 const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr, Stand, Gesamtkosten'], ['zusammenfassung', 'Zusammenfassung', 'Bauwerk, weitere KG, Nebenkosten, MwSt.'], ['genauigkeit', 'Genauigkeit', 'wahrscheinliche Spanne und was sie beeinflusst'],
   ['kosten', 'Kosten nach DIN 276', 'in der gewählten Gliederungstiefe'], ['raumtypen', 'Kosten nach Nutzung', 'Raumtypen mit Fläche und Kennwert'],
   ['raumbuch', 'Raumbuch', 'alle Räume mit Nutzung und Fläche'], ['mittelabfluss', 'Mittelabfluss', 'Diagramm und Monatstabelle aus dem Bauzeitenplan'],
-  ['erlaeuterungen', 'Erläuterungen und Annahmen', 'eigener Text und offene Positionen'], ['plaene', 'Planunterlagen', 'hochgeladene Pläne als Anlage']];
+  ['erlaeuterungen', 'Erläuterungen und Annahmen', 'eigener Text und offene Positionen'], ['quellen', 'Grundlagen und Quellen', 'woher Flächen, Kennwerte, Anteile und Preise stammen'], ['plaene', 'Planunterlagen', 'hochgeladene Pläne als Anlage']];
 function pdfDialog() {
   if (!B) return;
   let o; try { o = JSON.parse(localStorage.getItem('bk.pdf')) || {}; } catch { o = {}; }
   const tb = o.tiefeBy || {};
-  o = { teile: o.teile || ['deckblatt', 'zusammenfassung', 'genauigkeit', 'kosten', 'mittelabfluss', 'erlaeuterungen'], tiefe: tb[B.stufe] || (STUFE_INFO[B.stufe] || {}).ebene || 2, tiefeBy: tb, brutto: o.brutto ?? true, mwst: o.mwst ?? 19, runden: o.runden ?? 100 };
+  o = { teile: o.teile || ['deckblatt', 'zusammenfassung', 'genauigkeit', 'kosten', 'mittelabfluss', 'erlaeuterungen', 'quellen'], tiefe: tb[B.stufe] || (STUFE_INFO[B.stufe] || {}).ebene || 2, tiefeBy: tb, brutto: o.brutto ?? true, mwst: o.mwst ?? 19, runden: o.runden ?? 100 };
   modalBox(`<h3>PDF für den Bauherrn</h3><p class="hint" style="margin-top:0">Was soll ins PDF-Paket? Die Auswahl wird gemerkt.</p>
     <div style="display:flex;flex-direction:column;gap:.15rem;margin-bottom:.9rem">${PARTS.map(([k, n, h]) => `<label class="chk"><input type="checkbox" data-part="${k}"${o.teile.includes(k) ? ' checked' : ''}><span><b>${n}</b> <span class="hint">– ${h}</span></span></label>`).join('')}</div>
     <div class="row" style="flex-direction:column;align-items:stretch;gap:.6rem">

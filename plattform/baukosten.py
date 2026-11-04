@@ -276,6 +276,7 @@ def _out(c, r, full=True):
         o["files"] = [{"id": f["id"], "name": f["name"], "size": f["size"], "created": f["created"], "meta": _j(f["meta"], {})}
                       for f in c.execute("SELECT id, name, size, created, meta FROM bk_files WHERE bk_id=? ORDER BY id", (r["id"],))]
         o["acc"] = genauigkeit(c, r, d, o["calc"], [f["meta"].get("kind", "") for f in o["files"]])
+        o["quellen"] = quellen(c, r, d, o["calc"])
         o["kg2_std"] = KG2_FAUST
         o["mat"] = {k: {"name": n, "einheit": e, "opts": [{"n": a, "ep": b} for a, b in opts]} for k, (n, e, opts) in MAT.items()}
     else:
@@ -973,6 +974,63 @@ def schaetzen_intern(d, cal):
     return out, kg2
 
 
+# ---------------------------------------------------------------- Grundlagen und Quellen (für App und PDF)
+def quellen(c, r, d, cal):
+    """Woher Flächen, Kennwerte, Anteile, Preise und Spannen dieser Kostenermittlung stammen – ehrlich je nach Datenlage."""
+    Q = []
+    eurs = lambda v: f"{v:,.0f} €".replace(",", ".")
+    Q.append(("Gliederung und Stufen", "Kostengruppen und Kostenstufen nach DIN 276:2018-12 „Kosten im Bauwesen“ (Kostenrahmen, -schätzung, -berechnung, "
+              "-anschlag, -feststellung); Zuordnung zu den Leistungsphasen nach HOAI 2021. Gerechnet wird netto; die Umsatzsteuer weist das PDF auf Wunsch aus."))
+    kinds = [(_j(f["meta"], {}) or {}).get("kind") for f in c.execute("SELECT meta FROM bk_files WHERE bk_id=?", (r["id"],))]
+    n_pdf = sum(1 for x in d["rooms"] if str(x.get("src", "")).startswith("pdf")); n_ok = sum(1 for x in d["rooms"] if x.get("ok"))
+    Q.append(("Flächen", ((f"{n_pdf} von {len(d['rooms'])} Räumen aus den Raumstempeln der hochgeladenen Pläne gelesen" + (", übrige von Hand eingetragen. " if n_pdf < len(d["rooms"]) else ". ")) if d["rooms"] else "Noch keine Räume erfasst. ")
+              + f"{n_ok} Räume geprüft und bestätigt. Maßgebend ist die Fläche im Raumstempel (in der Regel Netto-Raumfläche nach DIN 277:2021-08 „Grundflächen und Rauminhalte im Hochbau“); "
+              "die App misst nicht selbst nach." + (" Geschosshöhen aus Höhenkoten der Schnitte." if "Schnitt" in kinds else "")))
+    own = kennwerte(c)
+    used = [t for t in cal["types"] if t["area"]]
+    ex = [t["label"] for t in used if t["typ"] in own and own[t["typ"]]["beispiel"] is not None and abs(t["kw"] - own[t["typ"]]["beispiel"]) < 0.5]
+    eig = [t["label"] for t in used if t["label"] not in ex]
+    txt = "Kosten je m² Raumfläche für KG 300 + 400, je Raumtyp. "
+    if ex:
+        txt += (f"Beispielwerte der App bei: {', '.join(ex)}. Diese Werte sind grobe Größenordnungen für den Einstieg und stammen nicht aus einer "
+                "veröffentlichten Kennwertsammlung; sie ersetzen weder eigene Werte aus abgerechneten Projekten noch eine Kennwertsammlung wie BKI Baukosten (Baukosteninformationszentrum Deutscher Architektenkammern). ")
+    if eig:
+        txt += f"Eigene bzw. angepasste Kennwerte bei: {', '.join(eig)}. "
+    Q.append(("Kennwerte", txt.strip()))
+    Q.append(("Rechenweg", "Bauwerk (KG 300 + 400) = Summe aus Raumfläche × Kennwert je Raumtyp, mal Justage-Faktor. Aufteilung auf KG 300 und 400 und – ab der "
+              "Kostenberechnung – auf die Kostengruppen der 2. Ebene nach Anteilen. Wo Bauteile erfasst sind, ersetzt Menge × Einheitspreis den Anteil dieser Kostengruppe. "
+              "Eigene Positionen (z. B. KG 200, 394, 500) werden addiert; Baunebenkosten KG 700 = Prozentsatz auf Bauwerk und Positionen. "
+              "Preissteigerung im Mittelabfluss: Betrag × (1 + Satz) hoch Jahre ab heute bis zum Monat der Ausführung. Es sind einfache, offengelegte Rechenschritte – "
+              "keine Formeln aus einer Norm; DIN 276 regelt Gliederung und Stufen, nicht die Rechenwerte."))
+    J = cal.get("justage") or {}
+    if J and (J.get("region") != 100 or J.get("preis") != 100):
+        Q.append(("Justage der Kennwerte", f"Regionalfaktor {J['region']:g} % und Preisstand {J['preis']:g} % – zusammen Faktor {str(round(J['faktor'], 3)).replace('.', ',')} auf alle Kennwerte. "
+                  "Regionalfaktoren z. B. aus den BKI-Regionalfaktoren, Preisstand als Verhältnis der Baupreisindizes des Statistischen Bundesamts (Destatis) heute zum Stand der Kennwerte. "
+                  "Die Werte sind im Projekt eingetragen, nicht automatisch abgerufen."))
+    Q.append(("Aufteilung", f"KG 300 / 400 im Verhältnis {d['kg']['300']:g} / {d['kg']['400']:g} % (Annahme, im Projekt änderbar). "
+              + ("Kostengruppen der 2. Ebene mit eigenen Anteilen. " if d["kg2"] else "Kostengruppen der 2. Ebene nach Faustanteilen der App (Erfahrungswerte für Wohngebäude, keine Normvorgabe). " if cal.get("kg2") or r["stufe"] in ("berechnung", "anschlag", "feststellung") else "")
+              + f"Baunebenkosten KG 700 pauschal {d['nk']:g} % (Annahme)."))
+    bts = d.get("bauteile") or []
+    if bts:
+        mp = {k: {round(ep, 2) for _, ep in opts} for k, (_, _, opts) in MAT.items()}
+        bsp = sum(1 for b in bts if round(b.get("ep") or 0, 2) in mp.get(b.get("kg"), set()))
+        ki = sum(1 for b in bts if str(b.get("src", "")).startswith("KI"))
+        frm = sum(1 for b in bts if b.get("formel"))
+        Q.append(("Bauteile, Mengen, Preise", f"{len(bts)} Bauteile mit Menge × Einheitspreis. Mengen aus Raumbuch, Geschossen und Höhen abgeleitet bzw. von Hand"
+                  + (f", {frm} mit nachvollziehbarer Ermittlung (Rechnung oder Beschreibung)" if frm else "") + ". "
+                  + (f"{bsp} Einheitspreise sind Beispielpreise der App (grobe Marktgrößen, netto, ohne Gewähr). " if bsp else "")
+                  + (f"{ki} Positionen von einer KI vorgeschlagen und zu prüfen. " if ki else "")
+                  + "Für Kostenanschlag und -feststellung gelten Angebote bzw. Rechnungen."))
+    est = [i for i in d["items"] if i.get("est")]
+    if est:
+        Q.append(("Geschätzte Positionen", "; ".join(f"KG {i['kg']} {i['name']}: {eurs(i['amount'] or 0)} ({i['est']['src']}, Spanne {eurs(i['est']['low'])} – {eurs(i['est']['high'])})" for i in est) + "."))
+    Q.append(("Genauigkeit", f"Übliche Spanne je Stufe ({', '.join(f'{STUFE_NAME[k]} ± {v} %' for k, v in STUFE_GENAU.items())}) sind Erfahrungswerte aus der Praxis; "
+              "DIN 276 schreibt keine Genauigkeit vor. Zu- und Abschläge je nach Datenlage (Beispielwerte, unbestätigte Flächen, Bauteile) zeigt der Abschnitt „Genauigkeit“."))
+    Q.append(("Mittelabfluss und Preissteigerung", f"Kosten über die Leistungen des verknüpften Bauzeitenplans verteilt (Gewicht = Dauer, im Projekt änderbar). "
+              f"Preissteigerung {d['rate']:g} % pro Jahr als Annahme; zur Orientierung dienen die Baupreisindizes des Statistischen Bundesamts (Destatis)."))
+    return [{"t": t, "x": x} for t, x in Q]
+
+
 # ---------------------------------------------------------------- Mengen & Material (Kostenberechnung nach Bauteilen)
 # Beispiel-Einheitspreise (netto, Stand Vorlage) – in der App je Zeile änderbar
 MAT = {
@@ -1646,6 +1704,13 @@ def build_report(c, r, opt):
             story += [Paragraph("• " + X(a), S["p"]), Spacer(1, 3)]
         story.append(Spacer(1, 14))
 
+    if "quellen" in parts:
+        story.append(Paragraph("Grundlagen und Quellen", S["h2"]))
+        story += [Paragraph("Woher Flächen, Kennwerte, Anteile und Preise dieser Kostenermittlung stammen.", S["m"]), Spacer(1, 6)]
+        for q in quellen(c, r, d, cal):
+            story += [Paragraph(f"<b>{X(q['t'])}</b><br/>{X(q['x'])}", S["p"]), Spacer(1, 6)]
+        story.append(Spacer(1, 8))
+
     # Pläne
     if "plaene" in parts:
         files = c.execute("SELECT id, name, data FROM bk_files WHERE bk_id=? ORDER BY id", (r["id"],)).fetchall()
@@ -1680,7 +1745,7 @@ def build_report(c, r, opt):
     return buf.getvalue()
 
 
-TEILE = ("deckblatt", "zusammenfassung", "genauigkeit", "kosten", "raumtypen", "raumbuch", "mittelabfluss", "erlaeuterungen", "plaene")
+TEILE = ("deckblatt", "zusammenfassung", "genauigkeit", "kosten", "raumtypen", "raumbuch", "mittelabfluss", "erlaeuterungen", "quellen", "plaene")
 
 
 @app.get("/api/bk/<int:i>/bericht.pdf")

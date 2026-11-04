@@ -16,6 +16,9 @@
 .flt input[type=search]{flex:1 1 240px;padding:.65rem .8rem}
 .flt select{flex:0 1 200px}
 .chips{display:flex;gap:.35rem;flex-wrap:wrap}
+#mErr .orte{display:flex;flex-direction:column;gap:.25rem;margin-top:.45rem}
+#mErr .orte a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem}
+#mErr .orte a:hover{border-color:var(--y)}
 .chips button{border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:.35rem .8rem;font-size:.9rem}
 .chips button.on{border-color:var(--y);color:var(--y);font-weight:600}
 .chips small{opacity:.75;margin-left:.25rem}
@@ -139,6 +142,7 @@
 const KINDS = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherren'], ['baustelle', 'Baustellen']];
 const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
   ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
+let conf0 = {};   // Plattform (Adressen der anderen Apps für „verwendet in …“)
 let ALL = [], kind = '', gw = '', q = '', bet = '', betN = '';   // bet: nur Beteiligte des aktuellen Projekts (aus der zuletzt benutzten App)
 const istBet = (c) => c.projects.includes(betN) || c.site_of === betN;
 const betChip = () => (betN ? `<button class="${bet ? 'on' : ''}" data-bet title="Firmen und Personen, die im Bautagebuch dieses Projekts vorkommen">Beteiligte ${esc(betN)}<small>${ALL.filter(istBet).length}</small></button>` : '');
@@ -208,7 +212,11 @@ function edit(c) {
     }
     if (m === 'del') {
       if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'Wirklich löschen?'; return; }
-      try { await api('api/contacts/' + c.id, 'DELETE'); close(); toast('Kontakt gelöscht.'); load(); } catch (e) { $('#mErr', bg).textContent = e.message; }
+      try { await api('api/contacts/' + c.id, 'DELETE'); close(); toast('Kontakt gelöscht.'); load(); } catch (e) {
+        const er = $('#mErr', bg); er.textContent = e.message;
+        const O = (e.data && e.data.orte) || [], A = (k) => (conf0.apps || []).find((a) => a.key === k && a.allowed);
+        if (O.length) er.insertAdjacentHTML('beforeend', '<span class="orte">' + O.map((o) => A(o.app) ? `<a href="${esc(appUrl(A(o.app)) + '/' + o.frag)}">↗ ${esc(o.label)}</a>` : `<span>${esc(o.label)}</span>`).join('') + '</span>');
+      }
     }
   });
   const first = document.querySelector('.modal [data-f="name"]'); if (first && isNew) first.focus();
@@ -426,7 +434,7 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
 
 (async () => {
   const me = await api('api/me'); applyLook(me);
-  const conf = await api('api/platform');
+  const conf = await api('api/platform'); conf0 = conf;
   await header('Adressen', me, conf);
   if (BPHead.projekt) betN = BPHead.projekt.name;
   await load();

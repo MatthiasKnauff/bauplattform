@@ -15,7 +15,7 @@ async function api(u, m = 'GET', d) {
   const r = await fetch(u, { method: m, headers: d ? { 'Content-Type': 'application/json' } : {}, body: d ? JSON.stringify(d) : undefined });
   const j = await r.json().catch(() => ({}));
   if (r.status === 401 && j.login) { location.href = j.login; throw new Error('Nicht angemeldet'); }
-  if (!r.ok) throw new Error(j.error || r.statusText);
+  if (!r.ok) { const e = new Error(j.error || r.statusText); e.data = j; throw e; }
   return j;
 }
 function toast(msg, bad = false) {

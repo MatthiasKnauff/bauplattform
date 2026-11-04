@@ -190,7 +190,7 @@ def delete_contact(i):
             return jsonify(ok=True)
         why = shared_contacts.usage(c, i)   # gleiche Regel wie im Bautagebuch und im Bauzeitenplan
         if why:
-            return jsonify(error=shared_contacts.blocked_message(r["name"], why)), 409
+            return jsonify(error=shared_contacts.blocked_message(r["name"], why), orte=shared_contacts.orte(c, i)), 409
         versionen.vor(c, f"kontakt:{i}")
         c.execute("DELETE FROM contacts WHERE id=?", (i,))
         versionen.nach(c, f"kontakt:{i}", g.user["name"])

@@ -2791,7 +2791,11 @@ async function boot() {
     projects = await api.list();
     let id = LS.get('last', null);
     const hp = /^#plan=([\w-]+)/.exec(location.hash);   // Link aus der Verwaltung: diesen Plan öffnen
-    if (hp && projects.some((p) => p.id === hp[1])) { id = hp[1]; history.replaceState(null, '', location.pathname); }
+    if (hp && projects.some((p) => p.id === hp[1])) {
+      id = hp[1];
+      const ht = /[&#]tab=(\w+)/.exec(location.hash); if (ht) showTab(ht[1]);   // z. B. aus den Adressen: „Gewerke & Firmen“
+      history.replaceState(null, '', location.pathname);
+    }
     if (id === '__geschlossen__' && projects.length) { await refreshProjectList(); $('#projTitle').textContent = 'Kein Projekt geöffnet'; $('#projSub').textContent = 'Klicken zum Öffnen oder Anlegen'; setNoProject(true); renderStart(); if (LS.get('assistOpen', false)) setAssistOpen(true); return; }
     let halten = false;   // kein passender Plan: der zuletzt offene Plan ändert das Projekt der anderen Apps nicht
     if (!hp) {   // Projekt aus der zuletzt benutzten App: dessen Plan (verknüpft oder gleiche Projektnummer)

@@ -51,5 +51,34 @@ def usage(c, cid):
     return why
 
 
+def orte(c, cid, n=8):
+    """Wo der Kontakt verwendet wird – zum direkten Öffnen: [{app, frag, label}] (neueste Berichte zuerst, höchstens n)."""
+    row = c.execute("SELECT id, name, extra FROM contacts WHERE id=?", (cid,)).fetchone()
+    if not row:
+        return []
+    out = []
+    for p in c.execute("SELECT id, name, extra FROM projects"):
+        try:
+            if int(_json(p["extra"]).get("contact_id") or 0) == cid:
+                out.append({"app": "bautagebuch", "frag": f"#projekt={p['id']}", "label": f"Baustellenadresse · {p['name']}"})
+        except (TypeError, ValueError):
+            pass
+    fid = gantt_id(row)
+    for g in c.execute("SELECT id, name, data FROM gantt_projects WHERE data LIKE ?", (f'%"{fid}"%',)):
+        trades = _json(g["data"]).get("trades") or {}
+        gw = [k for k, t in trades.items() if isinstance(t, dict) and t.get("firm") == fid] if isinstance(trades, dict) else []
+        if gw:
+            out.append({"app": "gantt", "frag": f"#plan={g['id']}&tab=firmen", "label": f"Bauzeitenplan „{g['name']}“ · {', '.join(gw[:3])}"})
+    for r in c.execute("""SELECT r.id AS rid, r.number, r.date, p.id AS pid, p.name AS pname, COUNT(*) AS n FROM items i
+                          JOIN reports r ON r.id=i.report_id JOIN projects p ON p.id=r.project_id
+                          WHERE i.contact_id=? GROUP BY r.id, r.number, r.date, p.id, p.name ORDER BY r.date DESC, r.id DESC""", (cid,)):
+        if len(out) >= n:
+            break
+        d = "-".join(reversed((r["date"] or "").split("-"))).replace("-", ".")
+        out.append({"app": "bautagebuch", "frag": f"#projekt={r['pid']}&bericht={r['rid']}",
+                    "label": ("Bericht" + (f" Nr. {r['number']}" if r["number"] else "") + f" vom {d} · {r['pname']}") + (f" ({r['n']} Einträge)" if r["n"] > 1 else "")})
+    return out[:n]
+
+
 def blocked_message(name, why):
     return f"„{name}“ wird noch verwendet ({'; '.join(why)}) und kann deshalb nicht gelöscht werden."

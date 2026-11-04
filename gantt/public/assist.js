@@ -54,12 +54,20 @@
   // Bauweise je Geschoss bei „gemischt“: Vorgabe EG massiv, darüber Holz
   function floorTw(cfg, L) {
     const f = cfg.flTw || {}, TW = ['massiv', 'stb', 'holz', 'bsp'];
-    const tw = CHM.tragwerk && chVisible(CHM.tragwerk, cfg) ? choiceOf(cfg, 'tragwerk') : 'massiv';
+    const tw = CHM.tragwerk && live(CHM.tragwerk, cfg) ? choiceOf(cfg, 'tragwerk') : 'massiv';
     if (tw !== 'misch') return L.map(() => (TW.includes(tw) ? tw : 'massiv'));   // einheitlich: Angaben je Geschoss gelten nur bei „gemischt“
     return L.map((l, k) => (TW.includes(f[l]) ? f[l] : k === 0 ? 'massiv' : 'holz'));
   }
+  // Umbau: Rohbau gehört zum Anbau bzw. zur Aufstockung – Zusatz am Namen der Geschoss-Teile
+  function erwSuf(cfg, id) {
+    const erw = CHM.erweiterung && chVisible(CHM.erweiterung, cfg) ? choiceOf(cfg, 'erweiterung') : '';
+    if (erw === 'anbau') return ' Anbau';
+    if (erw === 'aufstock') return id === 'holz_mont' ? ' Aufstockung' : '';
+    if (erw === 'beides') return id === 'mauer' ? ' Anbau' : ' Aufstockung';
+    return '';
+  }
   function expandFloors(list, cfg) {
-    const tw = cfg && cfg.type && CHM.tragwerk && chVisible(CHM.tragwerk, cfg) ? choiceOf(cfg, 'tragwerk') : 'massiv';
+    const tw = cfg && cfg.type && CHM.tragwerk && live(CHM.tragwerk, cfg) ? choiceOf(cfg, 'tragwerk') : 'massiv';
     if (!cfg || !cfg.type || (!cfg.flDetail && tw !== 'misch')) return list;
     const { L, dg, flach, kg } = levelsOf(cfg);
     const out = [];
@@ -83,14 +91,13 @@
           const isH = x.it.id === 'holz_mont', a0 = k ? [parts[k - 1].it.id + '~' + parts[k - 1].s] : (x.it.a || []).filter((y) => y !== 'mauer' && y !== 'holz_mont');
           if (isH && !holzSeen && k && (x.it.a || []).includes('abbund')) a0.push('abbund');
           if (isH) holzSeen = true;
-          out.push({ ...x.it, id: x.it.id + '~' + x.s, vb: x.it.id, n: x.n, d: (x.it.d * x.w) / W, a: a0 });
+          out.push({ ...x.it, id: x.it.id + '~' + x.s, vb: x.it.id, n: x.n + erwSuf(cfg, x.it.id), d: (x.it.d * x.w) / W, a: a0 });
         });
         continue;
       }
       if (cfg.flDetail && (it.id === 'mauer' || it.id === 'holz_mont')) {
         const nm = NAMES[it.id === 'holz_mont' ? (tw === 'bsp' ? 'bsp' : 'holz') : (tw === 'stb' ? 'stb' : 'massiv')];
-        const erw = CHM.erweiterung && chVisible(CHM.erweiterung, cfg) ? choiceOf(cfg, 'erweiterung') : '';   // Umbau: Rohbau gehört zum Anbau bzw. zur Aufstockung
-        const suf = it.id === 'mauer' && (erw === 'anbau' || erw === 'beides') ? ' Anbau' : it.id === 'holz_mont' && (erw === 'aufstock' || erw === 'beides') ? ' Aufstockung' : '';
+        const suf = erwSuf(cfg, it.id);
         const parts = [];
         L.forEach((l, k) => {
           const top = k === L.length - 1 && dg === 'none';
@@ -179,15 +186,17 @@
     const ok = chOpts(g, cfg, depth), want = own ?? (PROF[cfg && cfg.type] && PROF[cfg.type].choice && PROF[cfg.type].choice[gk]);
     return (ok.find((o) => o.k === want) || ok[0] || g.opts[0]).k;
   }
-  const chosen = (cfg) => CHS.filter((g) => chVisible(g, cfg)).map((g) => g.opts.find((o) => o.k === choiceOf(cfg, g.k)));
-  const choiceAll = (cfg) => Object.fromEntries(CHS.filter((g) => chVisible(g, cfg)).map((g) => [g.k, choiceOf(cfg, g.k)]));
+  // Gruppe wirkt nur, wenn sie sichtbar ist und mindestens eine Ausführung zur Wahl steht (z. B. Bauweise beim Umbau nur mit Anbau)
+  function live(g, cfg) { return chVisible(g, cfg) && chOpts(g, cfg).length > 0; }
+  const chosen = (cfg) => CHS.filter((g) => live(g, cfg)).map((g) => g.opts.find((o) => o.k === choiceOf(cfg, g.k)));
+  const choiceAll = (cfg) => Object.fromEntries(CHS.filter((g) => live(g, cfg)).map((g) => [g.k, choiceOf(cfg, g.k)]));
   // Auswahl an geänderte Bauweise anpassen: Leistungen der alten Wahl raus, der neuen rein
   function selForChoices(selArr, oldCfg, newCfg) {
     let s = baseSel(selArr);
     for (const g of CHS) {
-      if (!chVisible(g, newCfg)) continue;
+      if (!live(g, newCfg)) continue;
       const ko = choiceOf(oldCfg, g.k), kn = choiceOf(newCfg, g.k);
-      if (ko === kn && chVisible(g, oldCfg)) continue;
+      if (ko === kn && live(g, oldCfg)) continue;
       // onTypes: Leistungen nur bei diesen Gebäudetypen an-/abwählen (sonst nur Namen, Dauern, abhängige Auswahl)
       const sw = !g.onTypes || g.onTypes.includes(newCfg.type) || newCfg.type === 'frei';
       const all = new Set(sw ? g.opts.flatMap((o) => o.on) : []), on = sw ? g.opts.find((o) => o.k === kn).on : [];
@@ -494,7 +503,7 @@
     catalog: () => C,
     openSetup: () => { if (window.AssistEdit) { try { window.focus(); } catch (e) { /* Zweitfenster */ } window.AssistEdit.open(); } },
     profSets, withReq, unitNames, defName,
-    choiceGroups: (cfg) => CHS.filter((g) => chVisible(g, cfg)).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })).filter((g) => g.opts.length > 1),   // nur echte Auswahl zeigen (z. B. „Neuer Keller“ nur bei Anbau)
+    choiceGroups: (cfg) => CHS.filter((g) => live(g, cfg)).map((g) => ({ k: g.k, ph: g.ph, n: g.n, val: choiceOf(cfg, g.k), opts: chOpts(g, cfg).map((o) => ({ k: o.k, n: o.n })) })).filter((g) => g.opts.length > 1),   // nur echte Auswahl zeigen (z. B. „Neuer Keller“ nur bei Anbau)
     choiceAll: (cfg) => choiceAll(clone(cfg)),
     normSel: (arr, cfg) => normSel(clone(arr), clone(cfg)), baseSel: (arr) => baseSel(arr),
     // Gebäude in Worten, z. B. „KG · EG · 1.OG · Staffelgeschoss – Flachdach“

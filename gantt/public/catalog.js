@@ -204,7 +204,7 @@ window.CATALOG = (() => {
       { k: 'bestand', n: 'Umbau / Sanierung im Bestand', on: [] },
       { k: 'erw', n: 'Bestand mit Anbau oder Aufstockung', on: [] } ] },
     { k: 'erweiterung', ph: 'rohbau', n: 'Erweiterung', types: UMB, opts: [
-      { k: 'anbau', n: 'Anbau (seitlich, neue Gründung)', on: ['verm', 'aushub', 'grundl', 'grund', 'mauer', 'anschluss', 'fenster_neu'], ovr: ANB },
+      { k: 'anbau', n: 'Anbau (seitlich, neue Gründung)', on: ['verm', 'aushub', 'grundl', 'grund', 'anschluss', 'fenster_neu'], ovr: ANB },   // Rohbau setzt die Bauweise
       { k: 'aufstock', n: 'Aufstockung (Holzrahmenbau auf den Bestand)', on: ['dach_ab', 'notdach', 'abbund', 'holz_mont', 'anschluss', 'fenster_neu'], ovr: { ...AUFST, anschluss: { n: 'Anschluss der Aufstockung an den Bestand (Ringbalken, Abdichtung)' } } },
       { k: 'beides', n: 'Anbau und Aufstockung', on: ['verm', 'aushub', 'grundl', 'grund', 'mauer', 'dach_ab', 'notdach', 'abbund', 'holz_mont', 'anschluss', 'fenster_neu'],
         ovr: { ...ANB, ...AUFST, zimmer: { n: 'Dachstühle Anbau und Aufstockung' }, dach_deck: { n: 'Dacheindeckung Anbau und Aufstockung' }, fenster_neu: { n: 'Fenster und Außentüren Anbau und Aufstockung' } } },
@@ -229,12 +229,13 @@ window.CATALOG = (() => {
       { k: 'wu', n: 'Betonkeller WU-Beton (weiße Wanne)', on: ['keller', 'verfuell'], ovr: { keller: { n: 'Kellergeschoss WU-Beton (weiße Wanne)', d: 12, din: '18331' } } },
       { k: 'mw', n: 'gemauerter Keller + Abdichtung (schwarze Wanne)', on: ['keller', 'keller_abd', 'verfuell'], ovr: { keller: { n: 'Kellergeschoss gemauert, Decke Stahlbeton', din: '18330 / 18331' } } },
       { k: 'ft', n: 'Fertigkeller (Betonfertigteile)', on: ['keller', 'verfuell'], ovr: { keller: { n: 'Fertigkeller montieren (Betonfertigteile)', d: 4, din: '18331' } } } ] },
-    { k: 'tragwerk', ph: 'rohbau', n: 'Tragwerk / Bauweise', types: NB, opts: [
-      { k: 'massiv', n: 'Massivbau (Mauerwerk, Stahlbetondecken)', on: ['mauer'] },
-      { k: 'stb', n: 'Stahlbeton (Wände und Decken)', on: ['mauer'], ovr: { mauer: { n: 'Rohbau Stahlbeton (Wände, Decken)', din: '18331' } }, mul: { mauer: 1.1 } },
-      { k: 'holz', n: 'Holzrahmenbau / Fertigbau', on: ['abbund', 'holz_mont'] },
-      { k: 'bsp', n: 'Massivholz (Brettsperrholz)', on: ['abbund', 'holz_mont'], ovr: { abbund: { n: 'Vorfertigung Brettsperrholz-Elemente (Werk)' }, holz_mont: { n: 'Montage Brettsperrholz-Wände und -Decken' } } },
-      { k: 'misch', n: 'gemischt – Bauweise je Geschoss wählen', on: ['mauer', 'abbund', 'holz_mont'] } ] },
+    // Umbau: Bauweise nur für einen Anbau wählbar (Aufstockung ist Holzbau, „Anbau und Aufstockung“ bleibt beim Standard)
+    { k: 'tragwerk', ph: 'rohbau', n: 'Tragwerk / Bauweise', types: [...NB, ...UMB], opts: [
+      { k: 'massiv', if: { erweiterung: ['anbau'] }, n: 'Massivbau (Mauerwerk, Stahlbetondecken)', on: ['mauer'] },
+      { k: 'stb', if: { erweiterung: ['anbau'] }, n: 'Stahlbeton (Wände und Decken)', on: ['mauer'], ovr: { mauer: { n: 'Rohbau Stahlbeton (Wände, Decken)', din: '18331' } }, mul: { mauer: 1.1 } },
+      { k: 'holz', if: { erweiterung: ['anbau'] }, n: 'Holzrahmenbau / Fertigbau', on: ['abbund', 'holz_mont'] },
+      { k: 'bsp', if: { erweiterung: ['anbau'] }, n: 'Massivholz (Brettsperrholz)', on: ['abbund', 'holz_mont'], ovr: { abbund: { n: 'Vorfertigung Brettsperrholz-Elemente (Werk)' }, holz_mont: { n: 'Montage Brettsperrholz-Wände und -Decken' } } },
+      { k: 'misch', if: { erweiterung: ['anbau'] }, n: 'gemischt – Bauweise je Geschoss wählen', on: ['mauer', 'abbund', 'holz_mont'] } ] },
     { k: 'dachform', ph: 'huelle', n: 'Dachform', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], onTypes: [...NB, ...UMB, 'dg'], opts: [
       { k: 'sattel', n: 'Satteldach', on: ['zimmer'] },
       { k: 'walm', n: 'Walmdach', on: ['zimmer'], mul: { zimmer: 1.3, dach_deck: 1.25, klempner: 1.2 } },

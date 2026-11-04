@@ -284,6 +284,10 @@ eingetragen) oder „Alle Projekte“.
   anwesend eingetragen ist (nicht bestätigt bzw. vom Bauleiter als „nicht da“ bestätigt). Je Firma ✉ Terminrüge: Aufforderung zur Abhilfe nach VOB/B § 5 Abs. 3
   (Fristsetzung, auf Wunsch Androhung der Auftragsentziehung § 5 Abs. 4 i. V. m. § 8 Abs. 3) als ausfüllbares PDF. Im Bautagebuch schlägt der Abschnitt
   „Anwesende“ die laut Plan erwarteten Firmen vor (✓ anwesend / ✗ nicht da / nicht nötig; Tabelle soll_anwesend, Migration 0009).
+- **Versand und Kalender:** Mängel- und Terminrüge als PDF, per E-Mail an mich (zum Weiterleiten) oder direkt an die Firma (auf Wunsch Kopie an
+  mich), mit der eigenen Unterschrift (Handyfoto, wird freigestellt). 📅 schickt Erinnerungen und Fristen als Kalendereinladung (iCalendar REQUEST,
+  gleiche UID beim Verschieben); auf Wunsch automatisch. Persönliche Einstellungen: Benutzermenü jeder App → „Unterschrift, E-Mail & Kalender“
+  (api/bp/konto, api/bp/signatur); E-Mail-Vorlagen mit Platzhaltern: Verwaltung → Einstellungen → E-Mail-Vorlagen (api/bp/mailvorlagen).
 - **Erinnerungen:** aus dem Bautagebuch (Erledigungsdatum – Mail verschickt das Bautagebuch am Fälligkeitstag), aus den
   Bauzeitenplänen („Firma kommt zum ersten Mal / wieder auf die Baustelle“, Vorlauf Standard 7 Tage) und eigene.
   Abgelaufene lassen sich neu terminieren (morgen, +3 Tage, +1 Woche, nächster Montag oder Datum/Uhrzeit) oder abhaken.

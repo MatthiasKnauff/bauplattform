@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, mail, plan, platform, sso
+from bpcore import db, ical, konto, mail, plan, platform, sso, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -290,7 +290,7 @@ def _de(d):
     return f"{d[8:10]}.{d[5:7]}.{d[:4]}" if d and len(d) >= 10 else ""
 
 
-def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, liste_feld, liste_tip, liste, frist_label, frist):
+def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, liste_feld, liste_tip, liste, frist_label, frist, sig=None):
     """Brief an eine Firma als PDF mit am Bildschirm ausfüllbaren Feldern (Mängelrüge, Terminrüge).
     Gibt Puffer und Zeichenfläche zurück – Anlagen kann der Aufrufer anhängen, dann cv.save()."""
     from reportlab.lib import colors
@@ -330,11 +330,11 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
             out.append(cur)
         return "\n".join(out)
 
-    def feld(nm, x, y, w, h, val, size=10, multi=False, tip=""):
+    def feld(nm, x, y, w, h, val, size=10, multi=False, tip="", transparent=False):
         if multi:
             val = umbruch(val, w, size)
         form.textfield(name=nm, tooltip=tip or nm, x=x, y=y, width=w, height=h, value=val, fontName="Helvetica", fontSize=size, borderWidth=0.5,
-                       borderColor=line, fillColor=colors.HexColor("#f6f8fb"), textColor=ink, fieldFlags="multiline" if multi else "", maxlen=100000, forceBorder=True)
+                       borderColor=line, fillColor=None if transparent else colors.HexColor("#f6f8fb"), textColor=ink, fieldFlags="multiline" if multi else "", maxlen=100000, forceBorder=True)
 
     C.draw_logo(cv, R, H - 12 * mm, 16 * mm, 60 * mm)
     cv.setFont("Helvetica", 7); cv.setFillColor(mute); cv.drawString(L, H - 48 * mm, absender[:120])
@@ -351,11 +351,58 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     feld(liste_feld, L, H - 226 * mm, R - L, 45 * mm, liste, 9.5, True, liste_tip)
     cv.setFont("Helvetica-Bold", 10); cv.drawString(L, H - 234 * mm, frist_label)
     feld("Frist", L + 42 * mm, H - 236 * mm, 40 * mm, 7 * mm, de(frist), 10, tip="Frist")
-    feld("Gruss", L, H - 262 * mm, 90 * mm, 20 * mm, f"{gruss}\n\n\n{name}" + (f"\n{office}" if office else ""), 9.5, True, "Gruß und Unterschrift")
+    if sig:   # Unterschrift (aus „Mein Konto“) zwischen Gruß und Namen – das Feld darüber ist durchsichtig
+        try:
+            ir = ImageReader(io.BytesIO(sig)); iw, ih = ir.getSize(); hh = 11 * mm; ww = min(62 * mm, iw * hh / ih); hh = ww * ih / iw
+            cv.drawImage(ir, L + 2 * mm, H - 242 * mm - 5.5 * mm - hh, ww, hh, mask="auto")
+        except Exception:
+            pass
+    feld("Gruss", L, H - 272 * mm, 90 * mm, 30 * mm, f"{gruss}\n\n\n\n{name}" + (f"\n{office}" if office else ""), 9.5, True, "Gruß und Unterschrift", transparent=True)
     cv.setFont("Helvetica", 7); cv.setFillColor(mute)
     foot = " · ".join(v for v in (office, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
     cv.drawCentredString(W / 2, 10 * mm, foot[:180])
     return buf, cv, W, H, L, R, ink, mm, ImageReader
+
+
+def _sig():
+    with db.tx() as c:
+        return konto.signatur(c, g.user["id"])
+
+
+def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname):
+    """Rüge per Mail: versand = mich (an mich zum Weiterleiten) | firma (direkt an die Firma, auf Wunsch Kopie an mich).
+    Gibt (Hinweis, Fehler) zurück – das PDF wird in jedem Fall geliefert."""
+    v = b.get("versand")
+    if v not in ("mich", "firma"):
+        return "", ""
+    with db.tx() as c:
+        cf = mail.conf(c)
+        T = vorlagen.alle(c)["maengelruege" if art == "Mängelrüge" else "terminruege"]
+        p = c.execute("SELECT name, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
+    ich = (g.user["email"] or "").strip()
+    an = ich if v == "mich" else str(b.get("email") or "").strip()
+    if not an or "@" not in an:
+        return "", "Keine E-Mail-Adresse " + ("in deinem Konto." if v == "mich" else "für die Firma angegeben.")
+    bv = (p["name"] + (", " + ", ".join(x for x in (p["street"], " ".join(y for y in (p["zip"], p["city"]) if y)) if x) if p and (p["street"] or p["city"]) else "")) if p else projekt
+    W = {"firma": E.get("name") or "", "bauvorhaben": bv, "projekt": p["name"] if p else projekt, "frist": _de(frist), "anzahl": anzahl,
+         "absender": C.full_name(g.user), "buero": cf.get("office_name") or "", "datum": datetime.now().strftime("%d.%m.%Y")}
+    cc = [ich] if v == "firma" and b.get("kopie") and ich and ich.lower() != an.lower() else []
+    try:
+        mail.send(cf, an, vorlagen.fuellen(T["betreff"], W), vorlagen.fuellen(T["text"], W), sender=cf.get("office_name") or C.full_name(g.user),
+                  attachments=[(dateiname, pdf, "application/pdf")], cc=cc, reply_to=ich or None)
+    except mail.MailError as e:
+        return "", str(e)
+    C.audit(g.user["name"], "mail", f"{art} per E-Mail", f"{projekt} · an {an}" + (f" · Kopie {cc[0]}" if cc else ""))
+    return f"per E-Mail an {an}" + (" (Kopie an dich)" if cc else ""), ""
+
+
+def _pdf_antwort(buf, fn, hinweis, fehler):
+    h = {"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(fn)}"}
+    if hinweis:
+        h["X-Mail"] = urllib.parse.quote(hinweis)
+    if fehler:
+        h["X-Mail-Fehler"] = urllib.parse.quote(fehler)
+    return Response(buf, mimetype="application/pdf", headers=h)
 
 
 @app.post("/api/maengelruege")
@@ -374,7 +421,7 @@ def ruege_pdf():
     text = (b.get("text") or "").strip() or ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", _de(frist), b.get("kuendigung", True) is not False, auftrag)
     buf, cv, W, H, L, R, ink, mm, ImageReader = _brief(ms[0]["pid"], ms[0]["projekt"], E, auftrag, "Mängelrüge", "Mängelrüge nach VOB/B",
                                                       f"Grundlage: {grund} – {grund_n}. Bitte nachweisbar zustellen (Einschreiben, Bote).",
-                                                      text, "Festgestellte Mängel", "Maengel", "Mängel (Liste ergänzbar)", liste, "Frist zur Beseitigung:", frist)
+                                                      text, "Festgestellte Mängel", "Maengel", "Mängel (Liste ergänzbar)", liste, "Frist zur Beseitigung:", frist, sig=_sig())
     if b.get("fotos"):   # Anlage: Fotos zu den Mängeln
         with db.tx() as c:
             tok = sso.current_token(request, c)
@@ -403,8 +450,9 @@ def ruege_pdf():
                 except RuntimeError:
                     pass
     C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{ms[0]['projekt']} · {E.get('name') or ''} · {len(ms)} Mängel")
-    fn = urllib.parse.quote(re.sub(r"[\\/:*?\"<>|]+", "_", f"Mängelrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf")
-    return Response(buf.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{fn}"})
+    fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"Mängelrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf"
+    hinweis, fehler = _versenden(b, "Mängelrüge", E, ms[0]["projekt"], ms[0]["pid"], frist, len(ms), buf.getvalue(), fn)
+    return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler)
 
 
 # ---------------------------------------------------------------- Termine: Firmen laut Bauzeitenplan nicht anwesend
@@ -480,7 +528,7 @@ def terminruege_vorlage():
     with db.tx() as c:
         k = c.execute("SELECT * FROM contacts WHERE id=?", (rows[0]["contact_id"],)).fetchone() if rows[0]["contact_id"] else None
         k = k or c.execute("SELECT * FROM contacts WHERE lower(name)=? ORDER BY id LIMIT 1", (firma,)).fetchone()
-    E = {"name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v)} if k else {"name": rows[0]["firma"], "person": "", "strasse": "", "ort": ""}
+    E = {"name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v), "email": k["email"] or ""} if k else {"name": rows[0]["firma"], "person": "", "strasse": "", "ort": "", "email": ""}
     return jsonify(empfaenger=E, tage=rows, projekt=rows[0]["projekt"])
 
 
@@ -500,7 +548,7 @@ def terminruege_pdf():
     liste = "\n".join(f"{_wd(t['datum'])}: laut Bauzeitenplan {', '.join(t['leistungen'])[:160]}" for t in rows)
     buf, cv, *_ = _brief(pid, rows[0]["projekt"], E, auftrag, "Terminrüge", "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
                          "Grundlage: § 5 Abs. 3 und 4 VOB/B (setzt vereinbarte Vertragsfristen voraus). Nachweisbar zustellen.",
-                         text, "Tage ohne Besetzung", "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist)
+                         text, "Tage ohne Besetzung", "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist, sig=_sig())
     cv.save()
     if b.get("fehlt_bestaetigen"):
         with db.tx() as c:
@@ -509,8 +557,9 @@ def terminruege_pdf():
                     c.execute("INSERT INTO soll_anwesend(report_id, firma, status, notiz, geaendert, geaendert_von) VALUES(?,?,?,?,?,?) ON CONFLICT (report_id, firma) DO NOTHING",
                               (t["rid"], t["key"], "fehlt", "Terminrüge", datetime.now().isoformat(timespec="seconds"), g.user["name"]))
     C.audit(g.user["name"], "export", "Terminrüge erstellt", f"{rows[0]['projekt']} · {E.get('name') or ''} · {len(rows)} Tage")
-    fn = urllib.parse.quote(re.sub(r"[\\/:*?\"<>|]+", "_", f"Terminrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf")
-    return Response(buf.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{fn}"})
+    fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"Terminrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf"
+    hinweis, fehler = _versenden(b, "Terminrüge", E, rows[0]["projekt"], pid, frist, len(rows), buf.getvalue(), fn)
+    return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler)
 
 
 # ---------------------------------------------------------------- Bauzeitenpläne → „Firma kommt zur Baustelle“
@@ -667,9 +716,13 @@ def start_loop():
 
 
 # ---------------------------------------------------------------- Erinnerungen (alle Quellen)
+def erinnerungen_liste(scope):
+    return erinnerungen(scope).get_json()["items"]
+
+
 @app.get("/api/erinnerungen")
-def erinnerungen():
-    scope = _scope()
+def erinnerungen(scope_arg=None):
+    scope = scope_arg or _scope()
     with db.tx() as c:
         if request.args.get("abgleich") == "1":   # Seite geöffnet: Pläne sofort abgleichen
             c.execute("SELECT pg_advisory_xact_lock(hashtext('aufgaben:sync'))")
@@ -739,7 +792,7 @@ def erinnerung_neu():
                          VALUES('eigen',?,?,?,?,?,?,?,?,?,?) RETURNING id""",
                       (pid, titel, str(b.get("text") or "")[:2000], termin, uz, json.dumps(rec), _now(), g.user["name"], _now(), g.user["name"])).fetchone()[0]
     C.audit(g.user["name"], "inhalt", "Erinnerung angelegt", titel)
-    return jsonify(ok=True, id=f"r{i}")
+    return jsonify(ok=True, id=f"r{i}", hinweis=_kal_auto(f"r{i}"))
 
 
 @app.put("/api/erinnerungen/<rid>")
@@ -761,7 +814,7 @@ def erinnerung_edit(rid):
             C.bt_api("PUT", f"/api/items/{int(rid[1:])}", body)
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
-        return jsonify(ok=True)
+        return jsonify(ok=True, hinweis=_kal_auto(rid) if termin else "")
     if not (rid.startswith("r") and rid[1:].isdigit()):
         return jsonify(error="Nicht gefunden"), 404
     with db.tx() as c:
@@ -784,7 +837,72 @@ def erinnerung_edit(rid):
         if sets:
             c.execute(f"UPDATE erinnerungen SET {', '.join(k + '=?' for k in sets)}, geaendert=?, geaendert_von=? WHERE id=?", (*sets.values(), _now(), g.user["name"], r["id"]))
     C.audit(g.user["name"], "inhalt", "Erinnerung geändert", f"{r['titel']}: " + ", ".join(f"{k}={v}" for k, v in sets.items() if k != "gesendet"))
-    return jsonify(ok=True)
+    return jsonify(ok=True, hinweis=_kal_auto(rid) if (termin is not None or uz) and b.get("status") != "erledigt" else "")
+
+
+# ---------------------------------------------------------------- Kalendertermine (Einladung zum Annehmen, z. B. Outlook)
+def _kal_eintrag(eid):
+    """Eintrag für den Kalender: Erinnerung (r…, b…) oder Frist eines Mangels/einer Aufgabe (m…)."""
+    if eid.startswith("m") and eid[1:].isdigit():
+        m = next((x for x in maengel("all").get_json() if x["id"] == int(eid[1:])), None)
+        if not m or not m["frist"]:
+            return None
+        return {"titel": f"Frist {m['art_n']}: {m['text'].strip().splitlines()[0][:120] if m['text'].strip() else ''}" + (f" ({m['firma']})" if m["firma"] else ""),
+                "text": m["text"], "termin": m["frist"], "uhrzeit": m.get("uhrzeit") or "09:00", "pid": m["pid"], "projekt": m["projekt"]}
+    x = next((y for y in erinnerungen_liste("all") if y["id"] == eid), None)
+    return x and {"titel": x["titel"], "text": x["text"], "termin": x["termin"], "uhrzeit": x["uhrzeit"] or "08:00", "pid": x.get("pid"), "projekt": x["projekt"]}
+
+
+def kalender_senden(eid):
+    """Schickt dem angemeldeten Benutzer eine Einladung; derselbe Eintrag behält seine UID (verschoben = aktualisiert)."""
+    ich = (g.user["email"] or "").strip()
+    if not ich:
+        return "Für dein Konto ist keine E-Mail-Adresse hinterlegt."
+    e = _kal_eintrag(eid)
+    if not e or not DATE.match(e["termin"] or ""):
+        return "Kein Termin für diesen Eintrag."
+    with db.tx() as c:
+        cf = mail.conf(c)
+        T = vorlagen.alle(c)["termin"]
+        p = c.execute("SELECT name, street, zip, city FROM projects WHERE id=?", (e["pid"],)).fetchone() if e.get("pid") else None
+        key = f"ical:{g.user['id']}:{eid}"
+        old = c.execute("SELECT data FROM bp_store WHERE key=?", (key,)).fetchone()
+        seq = (json.loads(old["data"]).get("seq", 0) + 1) if old else 0
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
+                  (key, json.dumps({"seq": seq, "termin": e["termin"]}), _now(), g.user["name"]))
+    ort = ", ".join(x for x in (p["street"], " ".join(y for y in (p["zip"], p["city"]) if y)) if x) if p else ""
+    W = {"titel": e["titel"], "text": e["text"] or "", "projekt": e["projekt"] or "", "datum": _de(e["termin"]), "uhrzeit": e["uhrzeit"],
+         "absender": C.full_name(g.user), "buero": cf.get("office_name") or "Bauplattform"}
+    titel, text = vorlagen.fuellen(T["betreff"], W).strip(), re.sub(r"\n{3,}", "\n\n", vorlagen.fuellen(T["text"], W)).strip()
+    host = (cf.get("app_url") or "bauplattform").split("//")[-1].split("/")[0] or "bauplattform"
+    inv = ical.einladung(f"{eid}-{g.user['id']}@{host}", e["termin"], e["uhrzeit"], 30, titel, text, ort, cf.get("mail_user") or ich,
+                         cf.get("office_name") or "Bauplattform", ich, C.full_name(g.user), seq=seq)
+    try:
+        mail.send(cf, ich, titel, text + "\n\nIm Anhang als Kalendertermin – „Annehmen“ trägt ihn in deinen Kalender ein.",
+                  sender=cf.get("office_name") or "Bauplattform", ical=inv)
+    except mail.MailError as er:
+        return str(er)
+    return ""
+
+
+@app.post("/api/kalender")
+def kalender_api():
+    eid = str((request.get_json(silent=True) or {}).get("id") or "")
+    err = kalender_senden(eid)
+    return (jsonify(error=err), 400) if err else jsonify(ok=True, an=g.user["email"])
+
+
+def _kal_auto(eid):
+    """„Erinnerungen automatisch als Termin“ (Mein Konto): nach Anlegen/Verschieben still versuchen."""
+    try:
+        with db.tx() as c:
+            on = konto.prefs(c, g.user["id"]).get("kalender")
+        if on and g.user["email"]:
+            err = kalender_senden(eid)
+            return "Termin an dich verschickt." if not err else ""
+    except Exception:
+        pass
+    return ""
 
 
 @app.delete("/api/erinnerungen/<rid>")

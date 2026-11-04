@@ -5,15 +5,18 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 
 /bp/head.js, /bp/head.css   Oberfläche (für alle Apps gleich)
 /api/bp/projektnamen?q=   Vorschläge für Projektnamen: Projekte im Bautagebuch und Ordner auf dem Server (Ablage)
+/api/bp/konto       GET/PUT  persönliche Einstellungen (Versand von Rügen, Kalendertermine) – alle Apps
+/api/bp/signatur    POST Foto hochladen (wird freigestellt) · GET PNG · DELETE
+/api/bp/mailvorlagen GET alle Vorlagen · PUT (nur Administrator)
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
 """
 import json, os, urllib.error, urllib.request
 from urllib.parse import quote
 
-from flask import Blueprint, jsonify, request, send_from_directory
+from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, db, sso
+from . import ai, db, konto, sso, vorlagen
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -84,6 +87,64 @@ def blueprint(get_user=None):
                 c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, u["id"]))
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
         return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "")
+
+    # ---- Mein Konto: Unterschrift, Versand, Kalender (gilt in allen Apps)
+    def _uid():
+        u = user()
+        return u, (u["id"] if u else None)
+
+    @bp.route("/api/bp/konto", methods=["GET", "PUT"])
+    def konto_api():
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            p = konto.set_prefs(c, uid, request.get_json(silent=True) or {}, u["name"]) if request.method == "PUT" else konto.prefs(c, uid)
+            sig = konto.signatur(c, uid) is not None
+            mail_ok = bool(c.execute("SELECT 1 FROM settings WHERE key='mail_pass' AND value<>''").fetchone())
+        return jsonify(**p, signatur=sig, email=u["email"] or "", mail=mail_ok, admin=bool(u["is_admin"]))
+
+    @bp.route("/api/bp/signatur", methods=["GET", "POST", "DELETE"])
+    def signatur_api():
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if request.method == "GET":
+            with db.tx() as c:
+                png = konto.signatur(c, uid)
+            return Response(png, mimetype="image/png", headers={"Cache-Control": "no-store"}) if png else ("", 404)
+        if request.method == "DELETE":
+            with db.tx() as c:
+                konto.set_signatur(c, uid, None)
+            return jsonify(ok=True)
+        f = request.files.get("file")
+        raw = f.read() if f else b""
+        if not raw or len(raw) > 25 * 1024 * 1024:
+            return jsonify(error="Bitte ein Foto der Unterschrift wählen (höchstens 25 MB)."), 400
+        try:
+            png = konto.aufbereiten(raw)
+        except ImportError:
+            return jsonify(error="Bildbearbeitung ist in dieser App nicht verfügbar – bitte in der Verwaltung hochladen."), 500
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        with db.tx() as c:
+            konto.set_signatur(c, uid, png, u["name"])
+        return jsonify(ok=True)
+
+    @bp.route("/api/bp/mailvorlagen", methods=["GET", "PUT"])
+    def mailvorlagen_api():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if request.method == "PUT":
+                if not u["is_admin"]:
+                    return jsonify(error="Nur der Administrator darf die Vorlagen ändern."), 403
+                d = request.get_json(silent=True) or {}
+                for k, v in d.items():
+                    if k in vorlagen.DEF and isinstance(v, dict):
+                        vorlagen.setzen(c, k, v.get("betreff"), v.get("text"))
+            return jsonify(vorlagen=vorlagen.alle(c), erkl=vorlagen.ERKL, admin=bool(u["is_admin"]))
 
     @bp.get("/api/bp/projektnamen")
     def projektnamen():

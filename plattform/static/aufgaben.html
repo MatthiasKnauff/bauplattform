@@ -158,7 +158,7 @@ async function tSet(id, status) {
 }
 async function truegeDialog(k) {
   const [pid, firma] = [+k.split('|')[0], k.split('|').slice(1).join('|')];
-  let V; try { V = await api(`api/terminruege/vorlage?pid=${pid}&firma=${encodeURIComponent(firma)}`); } catch (e) { toast(e.message, true); return; }
+  let V; try { [V] = await Promise.all([api(`api/terminruege/vorlage?pid=${pid}&firma=${encodeURIComponent(firma)}`), konto()]); } catch (e) { toast(e.message, true); return; }
   const E0 = V.empfaenger;
   const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
     <label>An</label><input id="tN" value="${esc(E0.name)}"><label>z. Hd.</label><input id="tP" value="${esc(E0.person)}" placeholder="optional">
@@ -169,24 +169,20 @@ async function truegeDialog(k) {
       ${V.tage.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-td="${esc(x.id)}" checked><span>${esc(deW(x.datum))}<small class="mute" style="display:block">${esc(x.leistungen.join(', '))} · ${x.status === 'fehlt' ? 'als „nicht da“ bestätigt' : 'nicht bestätigt'}</small></span></label>`).join('')}</div>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tB" checked> nicht bestätigte Tage als „nicht da“ übernehmen</label>
+    ${versandHtml(KONTO, E0.email)}
     <p class="w mute" style="font-size:.82rem;margin:0">Setzt voraus, dass der Bauzeitenplan bzw. die Ausführungsfristen vertraglich vereinbart sind (VOB/B § 5). Das PDF hat ausfüllbare Felder; der Mustertext ersetzt keine Rechtsberatung.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erzeugen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#tF').value = plus(+m.slice(1)); return; }
     if (m !== 'ok') return;
     const ids = [...bg.querySelectorAll('[data-td]:checked')].map((x) => x.dataset.td); if (!ids.length) { toast('Bitte mindestens einen Tag wählen.', true); return; }
-    const body = { pid, firma, ids, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: bg.querySelector('#tB').checked,
+    const vs = versandRead(bg); if (!vs) return;
+    const body = { ...vs, pid, firma, ids, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: bg.querySelector('#tB').checked,
       empfaenger: { name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
     const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Terminrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Terminrüge wird erstellt …</body>');
-    try {
-      const r = await fetch('api/terminruege', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
-      const href = URL.createObjectURL(await r.blob());
-      if (w && !w.closed) w.location.href = href; else { const a = document.createElement('a'); a.href = href; a.download = 'Terminrüge.pdf'; document.body.appendChild(a); a.click(); a.remove(); }
-      close(); toast('Terminrüge erstellt.'); reload();
-    } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+    try { await pdfHolen('api/terminruege', body, 'Terminrüge', w); close(); reload(); } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
   });
-  bg.querySelector('.modal').style.width = 'min(720px,100%)';
+  bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg);
 }
 
 /* ---------- Mängel ---------- */
@@ -210,7 +206,7 @@ function renderM() {
       <div class="tx"><p>${esc(m.text)}</p><small><span class="st ${m.status}">${m.done ? 'erledigt' : m.status === 'ueberfaellig' ? 'überfällig' : 'offen'}</span> · ${esc(m.art_n)} festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''} · ${appLink('bautagebuch', '') ? `<a href="${esc(appLink('bautagebuch', `#projekt=${m.pid}&bericht=${m.rid}`))}" target="_blank" rel="noopener">Bericht öffnen ↗</a>` : ''}</small></div>
       <div class="ed"><label><span>Firma</span><input data-f="firma" value="${esc(m.firma)}" list="firmList" placeholder="wer behebt?"></label>
         <label><span>Frist</span><input type="date" data-f="frist" value="${esc(m.frist)}"></label>
-        <div style="display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}${m.done || m.art !== 'maengel' ? '' : '<button class="btn sm" data-ruege title="Mängelrüge an die Firma als ausfüllbares PDF">✉ Mängelrüge</button>'}</div></div></div>`;
+        <div style="display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}${m.frist && !m.done ? '<button class="btn sm" data-kal title="Frist als Termin in meinen Kalender (Einladung per E-Mail)">📅</button>' : ''}${m.done || m.art !== 'maengel' ? '' : '<button class="btn sm" data-ruege title="Mängelrüge an die Firma als ausfüllbares PDF">✉ Mängelrüge</button>'}</div></div></div>`;
   $('#view').innerHTML = `<div class="kpi">${[['offen', 'Offen'], ['ueberfaellig', 'Überfällig'], ['erledigt', 'Erledigt'], ['alle', 'Alle']].map(([k, l]) => `<button class="${F.status === k ? 'on' : ''}" data-st="${k}">${l}<b>${n[k]}</b></button>`).join('')}</div>
     <div class="flt"><input type="search" id="mq" placeholder="Suchen: Text, Firma, Projekt …" value="${esc(F.q)}">
       <select id="mart"><option value="maengel"${F.art === 'maengel' ? ' selected' : ''}>Mängel</option><option value="zu_erledigen"${F.art === 'zu_erledigen' ? ' selected' : ''}>Zu erledigen</option><option value="weisungen"${F.art === 'weisungen' ? ' selected' : ''}>Weisungen</option><option value=""${!F.art ? ' selected' : ''}>alles</option></select>
@@ -242,7 +238,7 @@ function renderE() {
       <div class="tx"><b>${esc(x.titel)}</b>${x.text && x.quelle !== 'bautagebuch' ? `<p>${esc(x.text)}</p>` : x.quelle === 'bautagebuch' && x.text.split('\n').length > 1 ? `<p>${esc(x.text)}</p>` : ''}
         <small>${esc([sn, x.projekt, x.an.length ? 'an ' + x.an.join(', ') : '', sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">öffnen ↗</a>` : ''}</small></div>
       <div class="ac"><span class="dt">${deW(x.termin)}${x.uhrzeit ? ' · ' + esc(x.uhrzeit) : ''}</span><span class="st ${x.lage}">${{ ueberfaellig: 'überfällig', abgelaufen: 'abgelaufen', heute: 'heute', bald: 'bald', spaeter: 'geplant', erledigt: 'erledigt' }[x.lage]}</span>
-        <div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : '<button class="btn sm" data-ea="resch">Neu terminieren</button><button class="btn sm" data-ea="done">✓ Erledigt</button>'}${x.quelle === 'eigen' ? '<button class="btn sm danger" data-ea="del" aria-label="löschen">✕</button>' : ''}</div></div>
+        <div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : '<button class="btn sm" data-ea="kal" title="Als Termin in meinen Kalender (Einladung per E-Mail)">📅</button><button class="btn sm" data-ea="resch">Neu terminieren</button><button class="btn sm" data-ea="done">✓ Erledigt</button>'}${x.quelle === 'eigen' ? '<button class="btn sm danger" data-ea="del" aria-label="löschen">✕</button>' : ''}</div></div>
       ${OPEN === x.id ? `<div class="resch">Neuer Termin: ${[[1, 'morgen'], [3, '+3 Tage'], [7, '+1 Woche'], [0, 'nächster Montag']].map(([d, l]) => `<button class="btn sm" data-rq="${d}">${l}</button>`).join('')}
         <input type="date" id="rDate" value="${esc(x.termin < iso(new Date()) ? plus(1) : x.termin)}"><input type="time" id="rTime" value="${esc(x.uhrzeit || '08:00')}"><button class="btn sm pri" data-ea="save">Speichern</button><button class="btn sm" data-ea="cancel">Abbrechen</button></div>` : ''}</div>`;
   };
@@ -269,8 +265,11 @@ function renderE() {
     + (done.length ? `<details class="done-l"><summary>Erledigt (${done.length})</summary><div class="ml">${done.map(row).join('')}</div></details>` : '')
     + `<p class="mute" style="font-size:.82rem;margin-top:1.4rem">📒 aus dem Bautagebuch (Erledigungsdatum, Mail am Fälligkeitstag) · 📅 aus den Bauzeitenplänen: Firma kommt zum ersten Mal oder wieder auf die Baustelle – Erinnerung ${CFG ? CFG.vorlauf : 7} Tage vorher · ✎ eigene. Abgelaufene lassen sich neu terminieren.</p>`;
 }
+async function kalender(id) {   // Einladung an mich – „Annehmen“ trägt den Termin in Outlook & Co. ein
+  try { const r = await api('api/kalender', 'POST', { id }); toast(`Termin an ${r.an} geschickt – in der E-Mail „Annehmen“ wählen.`); } catch (e) { toast(e.message, true); }
+}
 async function eSave(id, body, undoBody, label) {
-  try { await api('api/erinnerungen/' + id, 'PUT', body); } catch (e) { toast(e.message, true); return; }
+  try { const r = await api('api/erinnerungen/' + id, 'PUT', body); if (r && r.hinweis) toast(r.hinweis); } catch (e) { toast(e.message, true); return; }
   if (undoBody) undoable(label, () => api('api/erinnerungen/' + id, 'PUT', undoBody));
   OPEN = null; await reload();
 }
@@ -287,6 +286,7 @@ document.addEventListener('click', async (e) => {
   if (mr) {
     const id = +mr.dataset.m, m = M.find((x) => x.id === id);
     if (e.target.closest('[data-ruege]')) { ruegeDialog(id); return; }
+    if (e.target.closest('[data-kal]')) { kalender('m' + id); return; }
     const pl = e.target.closest('[data-plus]'); if (pl) { const old = m.frist, nf = plus(+pl.dataset.plus, m.frist && m.frist > iso(new Date()) ? m.frist : null); mSave(id, { frist: nf }, { frist: old }, 'Frist ändern'); return; }
     return;
   }
@@ -294,6 +294,7 @@ document.addEventListener('click', async (e) => {
   if (er && rq) { $('#rDate').value = +rq.dataset.rq ? plus(+rq.dataset.rq) : nextMon(); return; }
   if (er && ea) {
     const id = er.dataset.e, x = E.items.find((y) => y.id === id), a = ea.dataset.ea;
+    if (a === 'kal') { kalender(id); return; }
     if (a === 'resch') { OPEN = id; renderE(); $('#rDate').focus(); return; }
     if (a === 'cancel') { OPEN = null; renderE(); return; }
     if (a === 'save') { const d = $('#rDate').value, tm = $('#rTime').value; if (!d) return toast('Bitte ein Datum wählen.', true); await eSave(id, { termin: d, uhrzeit: tm }, { termin: x.termin, uhrzeit: x.uhrzeit }, 'Neuer Termin'); toast(`Neu terminiert auf ${deW(d)} ${tm}.`); return; }
@@ -316,9 +317,39 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'mq') { F.q = e.target.value; LS.set('filter', F); clearTimeout(window._mqT); window._mqT = setTimeout(() => { renderM(); const q = $('#mq'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); } });
 
+/* ---------- Versand einer Rüge: nur PDF, per Mail an mich (zum Weiterleiten) oder direkt an die Firma ---------- */
+let KONTO = null;
+async function konto() { try { KONTO = await api('api/bp/konto'); } catch { KONTO = { versand: 'pdf', kopie: true, signatur: false, email: '', mail: false }; } return KONTO; }
+function versandHtml(K, mailFirma) {
+  return `<label>Versand</label><select id="vV">${[['pdf', 'nur PDF – selbst drucken oder versenden'], ['mich', 'per E-Mail an mich – zum Weiterleiten'], ['firma', 'direkt per E-Mail an die Firma']].map(([v, l]) => `<option value="${v}"${K.versand === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+    <label class="vF">E-Mail der Firma</label><input class="vF" id="vM" type="email" value="${esc(mailFirma || '')}" placeholder="aus den Adressen – sonst hier eintragen">
+    <label class="vF"></label><label class="chk vF" style="color:var(--ink)"><input type="checkbox" id="vC"${K.kopie ? ' checked' : ''}> Kopie an mich${K.email ? ` (${esc(K.email)})` : ''}</label>
+    <p class="w mute" style="font-size:.82rem;margin:0">${K.signatur ? 'Deine Unterschrift wird eingefügt.' : 'Noch keine Unterschrift hinterlegt –'} <a href="#" data-kontolink>Unterschrift, E-Mail & Kalender</a>${K.mail ? '' : ' · Der Mailserver ist noch nicht eingerichtet.'}</p>`;
+}
+function versandBind(bg) {
+  const upd = () => { const f = bg.querySelector('#vV').value === 'firma'; bg.querySelectorAll('.vF').forEach((x) => { x.style.display = f ? '' : 'none'; }); };
+  bg.querySelector('#vV').addEventListener('change', upd); upd();
+  bg.querySelector('[data-kontolink]').addEventListener('click', (e) => { e.preventDefault(); window.BPHead && BPHead.konto(); });
+}
+function versandRead(bg) {
+  const v = bg.querySelector('#vV').value;
+  if (v === 'firma' && !/@/.test(bg.querySelector('#vM').value)) { toast('Bitte die E-Mail-Adresse der Firma eintragen.', true); return null; }
+  if (v === 'mich' && !(KONTO && KONTO.email)) { toast('Für dein Konto ist keine E-Mail-Adresse hinterlegt.', true); return null; }
+  return { versand: v, email: bg.querySelector('#vM').value.trim(), kopie: bg.querySelector('#vC').checked };
+}
+async function pdfHolen(url, body, titel, w) {   // PDF erzeugen, im vorab geöffneten Fenster zeigen, Ergebnis des Mailversands melden
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
+  const ok = r.headers.get('X-Mail'), err = r.headers.get('X-Mail-Fehler');
+  const href = URL.createObjectURL(await r.blob());
+  if (w && !w.closed) w.location.href = href; else { const a = document.createElement('a'); a.href = href; a.download = titel + '.pdf'; document.body.appendChild(a); a.click(); a.remove(); }
+  if (err) toast(`${titel} erstellt, aber nicht verschickt: ${decodeURIComponent(err)}`, true);
+  else toast(`${titel} erstellt${ok ? ' und ' + decodeURIComponent(ok) + ' verschickt' : ''}.`);
+}
+
 /* ---------- Mängelrüge: Dialog → am Bildschirm ausfüllbares PDF ---------- */
 async function ruegeDialog(id) {
-  let V; try { V = await api('api/maengelruege/vorlage?id=' + id); } catch (e) { toast(e.message, true); return; }
+  let V; try { [V] = await Promise.all([api('api/maengelruege/vorlage?id=' + id), konto()]); } catch (e) { toast(e.message, true); return; }
   const E = V.empfaenger, sel = new Set(V.gewaehlt);
   const ms = () => V.maengel.map((m) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-rm="${m.id}"${sel.has(m.id) ? ' checked' : ''}><span>${esc(m.text)}<small class="mute" style="display:block">${esc(m.firma || 'ohne Firma')} · festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''}</small></span></label>`).join('');
   const bg = modalBox(`<h3>Mängelrüge</h3><div class="fm">
@@ -333,26 +364,24 @@ async function ruegeDialog(id) {
     <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">${ms()}</div>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>
+    ${versandHtml(KONTO, E.email)}
     <p class="w mute" style="font-size:.82rem;margin:0">Das PDF hat ausfüllbare Felder: Empfänger, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich vor dem Drucken oder Versenden am Bildschirm ändern. Der Mustertext folgt der VOB/B und ersetzt keine Rechtsberatung – die VOB/B muss im Vertrag vereinbart sein.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erzeugen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#rF').value = plus(+m.slice(1)); return; }
     if (m === 'ok') {
       const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm); if (!ids.length) { toast('Bitte mindestens einen Mangel wählen.', true); return; }
-      const body = { ids, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
+      const vs = versandRead(bg); if (!vs) return;
+      const body = { ...vs, ids, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
         empfaenger: { name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
       const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Mängelrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Mängelrüge wird erstellt …</body>');
       try {
-        const r = await fetch('api/maengelruege', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
-        const href = URL.createObjectURL(await r.blob());
-        if (w && !w.closed) w.location.href = href; else { const a = document.createElement('a'); a.href = href; a.download = 'Mängelrüge.pdf'; document.body.appendChild(a); a.click(); a.remove(); }
-        close(); toast('Mängelrüge erstellt' + (body.frist_eintragen ? ' – Frist bei den Mängeln eingetragen.' : '.'));
-        if (body.frist_eintragen) reload();
+        await pdfHolen('api/maengelruege', body, 'Mängelrüge', w);
+        close(); if (body.frist_eintragen) reload();
       } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
     }
   });
-  bg.querySelector('.modal').style.width = 'min(720px,100%)';
+  bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg);
   const rg = bg.querySelector('#rG'), kw = () => { bg.querySelector('#rKw').style.display = rg.value === 'vob4' ? '' : 'none'; };
   rg.addEventListener('change', kw); kw();
 }
@@ -373,7 +402,7 @@ $('#neuBtn').onclick = async () => {
     if (m === 'ok') {
       const b = { titel: bg.querySelector('#nT').value, text: bg.querySelector('#nX').value, termin: bg.querySelector('#nD').value, uhrzeit: bg.querySelector('#nZ').value,
         pid: +bg.querySelector('#nP').value || null, an: [...bg.querySelectorAll('[data-u]:checked')].map((x) => +x.dataset.u) };
-      try { await api('api/erinnerungen', 'POST', b); close(); toast('Erinnerung gespeichert.'); tab = 'erinnerungen'; history.replaceState(null, '', '#erinnerungen'); await reload(); } catch (e) { toast(e.message, true); }
+      try { const rr = await api('api/erinnerungen', 'POST', b); close(); toast('Erinnerung gespeichert.' + (rr.hinweis ? ' ' + rr.hinweis : '')); tab = 'erinnerungen'; history.replaceState(null, '', '#erinnerungen'); await reload(); } catch (e) { toast(e.message, true); }
     }
   });
 };
@@ -387,8 +416,11 @@ $('#setBtn').onclick = async () => {
     <label for="sL">„Wieder“ ab</label><div><input id="sL" type="number" min="1" max="90" value="${CFG.luecke}" style="width:80px"> Tagen Pause – kürzere Pausen zählen als ein Einsatz</div>
     <label>E-Mail</label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="sM"${CFG.mail_plan ? ' checked' : ''}> Erinnerungen aus den Bauzeitenplänen per E-Mail verschicken</label>
     <p class="w mute" style="font-size:.85rem;margin:0">Empfänger: die Zuständigen des verknüpften Bautagebuch-Projekts, sonst wer den Plan zuletzt gespeichert hat. Den Mailserver stellst du in der Verwaltung ein. Erinnerungen aus dem Bautagebuch verschickt das Bautagebuch am Fälligkeitstag selbst.</p></div>
+    <label>Persönlich</label><div><button class="btn sm" data-m="konto">Unterschrift, E-Mail & Kalender …</button> <span class="mute" style="font-size:.85rem">Versand von Rügen, Termine in deinen Kalender</span></div>
+    ${ME && ME.is_admin ? '<label>Für alle</label><div><button class="btn sm" data-m="vorlagen">E-Mail-Vorlagen …</button> <span class="mute" style="font-size:.85rem">Texte der Mails für Mängel- und Terminrüge und Kalendertermine</span></div>' : ''}
     <div class="acts"><button class="btn" data-m="test" style="margin-right:auto">Testmail an mich</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
+    if (m === 'konto' || m === 'vorlagen') { if (window.BPHead) BPHead.konto({ tab: m }); return; }
     if (m === 'test') { try { const r = await api('api/erinnerungen/test', 'POST', {}); toast('Testmail an ' + r.to + ' verschickt.'); } catch (e) { toast(e.message, true); } return; }
     if (m === 'ok') {
       try { CFG = await api('api/einstellungen', 'PUT', { vorlauf: +bg.querySelector('#sV').value, luecke: +bg.querySelector('#sL').value, uhrzeit: bg.querySelector('#sU').value, mail_plan: bg.querySelector('#sM').checked }); close(); toast('Gespeichert – Termine der Erinnerungen angepasst.'); E = null; if (tab === 'erinnerungen') reload(true); } catch (e) { toast(e.message, true); }

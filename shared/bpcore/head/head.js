@@ -27,6 +27,7 @@
     admin: SV('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/>'),
     out: SV('<path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/>'),
     look: SV('<circle cx="12" cy="12" r="9"/><path d="M12 3v18M12 3a9 9 0 0 1 0 18"/>'),
+    konto: SV('<path d="M4 19c3-1 4-6 6-6s1 5 3 5 2-3 3-3 2 2 4 2"/><path d="M4 22h16"/>'),
   };
   const appUrl = (a) => {   // wie bp.js: über den Reverse Proxy → eingetragene Adresse, direkt über Port → gleicher Rechner
     const h = location.hostname, direct = `${location.protocol}//${h}:${a.port}`;
@@ -89,6 +90,7 @@
       + apps.map((a) => `<a role="menuitem" href="${esc(appUrl(a))}/"${a.key === H.app ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}${esc(a.key === 'portal' ? 'Startseite' : a.name)}</a>`).join('')
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung (Farben)</button>`
+      + `<button type="button" role="menuitem" data-konto>${IC.konto}Unterschrift, E-Mail & Kalender</button>`
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
     band.appendChild(m);
   }
@@ -148,6 +150,7 @@
       if (k) { e.preventDefault(); closeMenus(); setKi(k.dataset.ki); return; }
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
+      if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.konto(); return; }
       if (e.target.closest('.bph-kim')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else kiMenu(); return; }
       if (e.target.closest('.bph-who')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else userMenu(); }
     });
@@ -232,6 +235,77 @@
   }, true);
   window.addEventListener('resize', sugPlace); document.addEventListener('scroll', sugPlace, true);
   H.projektFeld = (inp) => { if (inp) { inp.setAttribute('data-bp-projekt', ''); inp.setAttribute('autocomplete', 'off'); } };
+
+/* ---------- Mein Konto: Unterschrift, Versand von Rügen, Kalendertermine; für Administratoren die E-Mail-Vorlagen ----------
+     H.konto()                       Fenster (Benutzermenü jeder App)
+     H.konto({ into: el, tab })      in eine Seite einbetten (Verwaltung → Einstellungen, Einstellungen einer App) */
+  const KX = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || 'Fehler ' + r.status); return j; });
+  H.konto = async function (opt = {}) {
+    let K, V = null, tab = opt.tab || 'konto', root, busy = false, sigV = Date.now(), msg = '';
+    try { K = await KX('api/bp/konto'); } catch (e) { alert(e.message); return; }
+    if (opt.into) root = opt.into;
+    else {
+      const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+      bg.innerHTML = '<div class="bph-dlg" role="dialog" aria-label="Unterschrift, E-Mail und Kalender"></div>';
+      document.body.appendChild(bg); root = bg.firstChild;
+      const close = () => { bg.remove(); document.removeEventListener('keydown', esc1); };
+      const esc1 = (e) => { if (e.key === 'Escape') close(); };
+      document.addEventListener('keydown', esc1);
+      bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+      root.close = close;
+    }
+    const seg = (k, opts) => `<div class="bph-seg">${opts.map(([v, l]) => `<button type="button" data-kset="${k}" data-v="${v}" class="${String(K[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+    function html() {
+      const tabs = K.admin ? `<div class="bph-tabs"><button type="button" data-ktab="konto" class="${tab === 'konto' ? 'on' : ''}">Mein Konto</button><button type="button" data-ktab="vorlagen" class="${tab === 'vorlagen' ? 'on' : ''}">E-Mail-Vorlagen</button></div>` : '';
+      let b = '';
+      if (tab === 'konto') {
+        b = `<h4>Unterschrift</h4><p class="bph-mu">Für Mängel- und Terminrügen. Einfach mit dunklem Stift auf weißes Papier unterschreiben und mit dem Handy fotografieren – die App stellt die Unterschrift frei und schneidet sie zu.</p>
+          <div class="bph-sig">${K.signatur ? `<img src="api/bp/signatur?v=${sigV}" alt="Unterschrift">` : '<span class="bph-mu">Noch keine Unterschrift hinterlegt.</span>'}</div>
+          <div class="bph-row"><label class="bph-btn pri">${busy ? 'wird aufbereitet …' : K.signatur ? 'Neues Foto' : 'Foto aufnehmen oder wählen'}<input type="file" accept="image/*" data-ksig hidden></label>${K.signatur ? '<button type="button" class="bph-btn" data-kdel>Entfernen</button>' : ''}</div>
+          <h4>Mängel- und Terminrügen versenden</h4><p class="bph-mu">Vorauswahl im Dialog der Rüge – dort lässt sie sich jedes Mal ändern.</p>
+          ${seg('versand', [['pdf', 'nur PDF'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']])}
+          <label class="bph-ck"><input type="checkbox" data-kchk="kopie"${K.kopie ? ' checked' : ''}> bei „direkt an die Firma“ eine Kopie an mich</label>
+          <h4>Kalender</h4><label class="bph-ck"><input type="checkbox" data-kchk="kalender"${K.kalender ? ' checked' : ''}> eigene und verschobene Erinnerungen automatisch als Termin an mich senden (Outlook & Co.: annehmen trägt ihn in den Kalender ein)</label>
+          <p class="bph-mu">Einzelne Erinnerungen, Fristen und Termine lassen sich außerdem jederzeit mit 📅 als Termin schicken.</p>
+          <p class="bph-mu">${K.email ? `Mails gehen an <b>${esc(K.email)}</b>.` : '<b>Für dein Konto ist keine E-Mail-Adresse hinterlegt</b> – bitte im Bautagebuch unter Einstellungen → Mein Konto oder vom Administrator eintragen lassen.'}${K.mail ? '' : ' Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).'}</p>`;
+      } else if (!V) { b = '<p class="bph-mu">Lade …</p>'; KX('api/bp/mailvorlagen').then((v) => { V = v; draw(); }).catch((e) => { msg = e.message; draw(); }); }
+      else {
+        b = `<p class="bph-mu">Texte der E-Mails, die die Plattform verschickt. Platzhalter in geschweiften Klammern werden beim Versand ersetzt. Leer lassen = Standardtext.</p>`
+          + Object.entries(V.vorlagen).map(([k, t]) => `<div class="bph-tpl"><h4>${esc(t.name)}${t.standard ? ' <small class="bph-mu">Standard</small>' : ''}</h4>
+            <label>Betreff<input data-tk="${k}" data-tf="betreff" value="${esc(t.betreff)}"${V.admin ? '' : ' disabled'}></label>
+            <label>Text<textarea rows="6" data-tk="${k}" data-tf="text"${V.admin ? '' : ' disabled'}>${esc(t.text)}</textarea></label>
+            <p class="bph-mu">${t.platzhalter.map((p) => `<code title="${esc(V.erkl[p] || '')}">{${p}}</code> ${esc(V.erkl[p] || '')}`).join(' · ')}</p></div>`).join('')
+          + (V.admin ? '<div class="bph-row"><button type="button" class="bph-btn pri" data-ksave>Vorlagen speichern</button></div>' : '');
+      }
+      return (opt.into ? '' : `<div class="bph-dh"><b>Unterschrift, E-Mail & Kalender</b><button type="button" class="bph-x" data-kclose aria-label="Schließen">×</button></div>`)
+        + tabs + `<div class="bph-db">${b}${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
+    }
+    function draw() { root.innerHTML = html(); }
+    async function save(d) { try { K = { ...K, ...(await KX('api/bp/konto', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })) }; msg = 'Gespeichert.'; } catch (e) { msg = e.message; } draw(); }
+    root.addEventListener('click', async (e) => {
+      const t = e.target;
+      if (t.closest('[data-kclose]')) { root.close && root.close(); return; }
+      const tb = t.closest('[data-ktab]'); if (tb) { tab = tb.dataset.ktab; msg = ''; draw(); return; }
+      const sv = t.closest('[data-kset]'); if (sv) { save({ [sv.dataset.kset]: sv.dataset.v }); return; }
+      if (t.closest('[data-kdel]')) { if (!confirm('Unterschrift entfernen?')) return; await KX('api/bp/signatur', { method: 'DELETE' }).catch((er) => { msg = er.message; }); K.signatur = false; draw(); return; }
+      if (t.closest('[data-ksave]')) {
+        const d = {}; root.querySelectorAll('[data-tk]').forEach((x) => { (d[x.dataset.tk] ||= {})[x.dataset.tf] = x.value; });
+        try { V = await KX('api/bp/mailvorlagen', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); msg = 'Vorlagen gespeichert.'; } catch (er) { msg = er.message; }
+        draw();
+      }
+    });
+    root.addEventListener('change', async (e) => {
+      const t = e.target;
+      if (t.dataset.kchk) { save({ [t.dataset.kchk]: t.checked }); return; }
+      if (t.dataset.ksig !== undefined && t.files && t.files[0]) {
+        busy = true; msg = ''; draw();
+        const fd = new FormData(); fd.append('file', t.files[0]);
+        try { await KX('api/bp/signatur', { method: 'POST', body: fd }); K.signatur = true; sigV = Date.now(); msg = 'Unterschrift gespeichert.'; } catch (er) { msg = er.message; }
+        busy = false; draw();
+      }
+    });
+    draw();
+  };
 
   H.setProject = function (p) {
     if (!band) return;

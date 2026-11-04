@@ -258,11 +258,15 @@ function delDlg(p) {
 
 
 /* ---------- Einstellungen: allgemeine (für alle Apps) – besondere stehen in der jeweiligen App ---------- */
-const STABS = [['allgemein', 'Darstellung & KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['sicherung', 'Datensicherung']];
+const STABS = [['allgemein', 'Darstellung & KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['konto', 'Mein Konto'], ['sicherung', 'Datensicherung']];
 const stNav = () => `<h1>Einstellungen</h1><div class="bar" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {
   const t = data.stab || 'allgemein';
   if (t === 'allgemein') { data.e = await api('api/einstellungen'); return renderSettings(); }
+  if (t === 'konto' || t === 'vorlagen') {   // dieselbe Ansicht wie im Benutzermenü jeder App („Unterschrift, E-Mail & Kalender“)
+    $('#main').innerHTML = stNav() + `<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">${t === 'konto' ? 'Jeder Benutzer stellt das für sich im Benutzermenü jeder App ein (oben rechts → „Unterschrift, E-Mail & Kalender“).' : 'Die Vorlagen gelten für alle Apps; in „Mängel & Erinnerungen“ unter ⚙ Einstellungen sind sie ebenfalls erreichbar.'}</p>`;
+    if (window.BPHead && BPHead.konto) BPHead.konto({ into: $('#kontoBox'), tab: t }); return;
+  }
   $('#main').innerHTML = stNav() + '<p class="mute">Lade …</p>';
   data.bt = await api('api/bt/settings');
   if (t === 'sicherung') data.bk = (await api('api/bt/backups')).items || [];
@@ -291,7 +295,9 @@ function renderSettings() {
   <section class="card st"><h2>Einstellungen in den Apps</h2><p class="mute">Hier steht alles, was für alle Apps gilt. Was nur eine App betrifft, stellst du direkt dort ein:</p>
     <div class="kv"><span>Baukosten</span><b>⚙ Raumtypen – Raumtypen, Stichwörter und Kennwerte des Büros</b></div>
     <div class="kv"><span>Bauzeitenplan</span><b>Reiter „Leistung“ – Nachfragen beim Löschen</b></div>
-    <div class="kv"><span>Bautagebuch</span><b>Abschnitte und Vorlagen der Berichte</b></div></section>`;
+    <div class="kv"><span>Bautagebuch</span><b>Abschnitte und Vorlagen der Berichte</b></div>
+    <div class="kv"><span>Mängel & Erinnerungen</span><b>⚙ Einstellungen – Vorlauf, Uhrzeit und Mails der Erinnerungen; E-Mail-Vorlagen</b></div>
+    <div class="kv"><span>jede App</span><b>Benutzermenü → Unterschrift, E-Mail & Kalender (persönlich)</b></div></section>`;
   const saveLook = async (d) => { try { const r = await api('api/bp/darstellung', 'PUT', d); me.theme = r.theme; me.accent = r.accent; applyLook(me); renderSettings(); toast('Darstellung gespeichert – gilt in allen Apps.'); } catch (e) { toast(e.message, true); } };
   $('#stTheme').onclick = (e) => { const b = e.target.closest('[data-th]'); if (b) saveLook({ theme: b.dataset.th }); };
   $('#stAcc').onclick = (e) => { const b = e.target.closest('button[data-c]'); if (b) saveLook({ accent: b.dataset.c }); };

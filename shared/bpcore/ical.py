@@ -21,7 +21,7 @@ END:VTIMEZONE"""
 
 
 def _esc(s):
-    return str(s or "").replace("\\", "\\\\").replace(";", "\;").replace(",", "\\,").replace("\r", "").replace("\n", "\\n")
+    return str(s or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r", "").replace("\n", "\\n")
 
 
 def _fold(line):

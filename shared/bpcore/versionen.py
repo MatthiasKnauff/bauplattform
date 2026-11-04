@@ -32,7 +32,7 @@ VORSCHLAEGE = [("Sparsam", 30, 180), ("Empfohlen", 90, 730), ("Großzügig", 365
 GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen (Bauzeitenplan)", "catfirms": "Firmen je Gewerk (Bauzeitenplan)",
       "catscope": "Leistungsumfang je Gewerk (Bauzeitenplan)", "settings": "KI und Bauzeitenplan (Verwaltung)", "plattform": "KI-Anbieter (Verwaltung)",
       "presets": "Vorlagen des Bauzeitenplans", "assistcfg": "Assistent des Bauzeitenplans", "assistcfg_vorlagen": "Vorlagen des Assistenten"}
-BP = {"aufgaben": "Einstellungen „Mängel & Erinnerungen“", "versionen_conf": "Aufbewahrung der Versionen"}
+BP = {"aufgaben": "Einstellungen „Mängel & Erinnerungen“", "plaene": "Einstellungen „Planstand & Versand“", "versionen_conf": "Aufbewahrung der Versionen"}
 BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)"}
 
 LABELS = {
@@ -49,6 +49,7 @@ LABELS = {
     "kw": "Kennwert", "label": "Bezeichnung", "worte": "Suchwörter", "name": "Name", "trade": "Gewerk", "contact_person": "Ansprechpartner",
     "phone": "Telefon", "mobile": "Mobil", "email": "E-Mail", "street": "Straße", "zip": "PLZ", "city": "Ort", "notes": "Notizen",
     "website": "Internet", "role": "Rolle", "extra": "Weiteres", "alle_tage": "alle Stände (Tage)", "taeglich_tage": "ein Stand je Tag bis (Tage)",
+    "phasen": "Phasen", "planarten": "Planarten", "kennungen": "Kennungen", "stichworte": "Stichwörter", "max_mb": "Anhänge höchstens (MB)",
     "betreff": "Betreff", "text": "Text", "auto": "automatisch starten", "on": "anbieten", "steps": "Schritte", "dur": "Dauer", "gw": "Gewerk", "phase": "Phase", "titel": "Titel", "stufe": "Stufe",
 }
 for _k, _n in (("maengelruege", "Mängelrüge"), ("terminruege", "Terminrüge"), ("termin", "Kalendertermin"), ("planversand", "Planversand")):
@@ -514,7 +515,7 @@ def statistik(c):
             "teile": teile, "vorschlaege": vorschlaege}
 
 
-TEILE = {"einst": "Allgemeine Einstellungen und Vorlagen", "gs": "Bauzeitenplan und KI", "bp": "Mängel & Erinnerungen", "bk": "Raumtypen",
+TEILE = {"einst": "Allgemeine Einstellungen und Vorlagen", "gs": "Bauzeitenplan und KI", "bp": "Mängel & Erinnerungen, Planstand & Versand", "bk": "Raumtypen",
          "bkp": "Kostenermittlungen", "kontakt": "Adressen", "konto": "Persönliche Einstellungen"}
 
 

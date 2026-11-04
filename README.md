@@ -297,6 +297,22 @@ eingetragen) oder „Alle Projekte“.
 - E-Mails gehen über den Mailserver aus Verwaltung → Einstellungen → Mailserver. Die App gleicht die Pläne alle 5 Minuten ab.
 - Neue App: Wer Bautagebuch oder Bauzeitenplan nutzen darf, bekommt sie automatisch; abwählbar in der Verwaltung.
 
+## Planstand & Versand (eigener Container)
+
+Pfad `/plaene`, Container `bauplattform_plaene` (Port 8096, gleiches Image wie die Plattform, `APP_MODULE: plaene`).
+Liest über das Bautagebuch (nur das hat Zugang zur Ablage) die Pläne im Projektordner:
+
+- Sucht automatisch Ordner mit „Plan/Pläne/Zeichnung/CAD …“ im Namen; ein anderer Ordner lässt sich wählen und je Projekt merken.
+- Liest die Plannummerierung `A526 [Kennung] 2.1.1.2 [INDEX B] Titel`: Phase und Planart aus den ersten Ziffern, der höchste Index ist der neueste Stand (ältere Stände aufklappbar).
+- Gewerk aus der Kennung (ELT → Elektro) oder Stichwörtern im Titel (Bodenplatte → Rohbau …), sonst von Hand wählen (wird je Projekt gemerkt).
+- Versand: Empfänger nach Gewerk aus den Firmen des Projekts (Bauzeitenplan, Anwesende), passende CAD-Dateien (gleiche Nummer und Index) auf Nachfrage,
+  direkt an die Firmen (Kopie an mich) oder an mich zum Weiterleiten; Größenhinweis; Download-Link über Nextcloud folgt.
+- Mailtext: Vorlage „Planversand“ (Mein Konto → E-Mail-Vorlagen) mit {planliste}, {firma}, {anzahl}.
+- Planversandliste je Projekt (Tabelle `planversand`), als PDF.
+- ⚙ Einstellungen (Administrator): Phasen, Planarten, Kennungen, Stichwörter, Größe der Anhänge.
+
+Der Produktivserver bekommt den Container mit der nächsten Freigabe (`server/produktiv-naechste.yml`).
+
 ## Verwaltung (eigener Container)
 
 **Einstellungen** (Reiter in der Verwaltung, alles was für alle Apps gilt): Darstellung (Farbschema, Akzentfarbe), KI (Positionsvorschlag

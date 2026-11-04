@@ -81,6 +81,10 @@ class Folder:
     def delete(self, rel, is_dir):
         shutil.rmtree(self._p(rel)) if is_dir else os.remove(self._p(rel))
 
+    def read(self, rel, limit=None):
+        with open(self._p(rel), "rb") as f:
+            return f.read(limit or -1)
+
 
 class Smb:
     """Windows-Server über SMB (Port 445), mit Benutzername/Kennwort."""
@@ -153,6 +157,10 @@ class Smb:
                 try: b += self.sc.stat(root + "\\" + f).st_size
                 except OSError: pass
         return n, b
+
+    def read(self, rel, limit=None):
+        with self.sc.open_file(self._unc(clean_path(rel)), mode="rb") as f:
+            return f.read(limit or -1)
 
     def delete(self, rel, is_dir):
         unc = self._unc(clean_path(rel))

@@ -2327,9 +2327,27 @@ async function closeProject() {
   if (!$('#libView').hidden && typeof renderLib === 'function') renderLib();
   toast(`„${name}“ geschlossen.`);
 }
+/* Projekt oben in der Kopfleiste hat (noch) keinen Bauzeitenplan: keinen fremden Plan zeigen, sondern anbieten, einen anzulegen */
+async function keinPlanFuer() {
+  if (P) { if (!(await leaveProjectOk())) return; await flushSave(); }
+  P = null; CAL = null; undoS = []; redoS = []; sel.clear(); dirty = false;
+  $('#projTitle').textContent = 'Kein Bauzeitenplan'; $('#projSub').textContent = 'für dieses Projekt';
+  setSave(' '); if ($('#projSelect')) $('#projSelect').value = '';
+  setNoProject(true); renderStart(); if ($('#stInfo')) $('#stInfo').textContent = '';
+}
+window.keinPlanFuer = keinPlanFuer;
 async function renderStart() {
   const box = $('#startView'); if (!box || P) return;
   try { projects = await api.list(); } catch { /* Liste wie gehabt */ }
+  const gp = window.BPHead && BPHead.projekt;
+  if (gp && gp.id) {   // aktuelles Projekt der Plattform
+    const eig = projects.filter((p) => p.bt_id === gp.id && !p.archived);
+    box.innerHTML = `<div class="sv"><div class="sv-h"><h2>${eig.length ? 'Bauzeitpläne für ' + esc(gp.name) : 'Für ' + esc(gp.name) + ' gibt es noch keinen Bauzeitenplan'}</h2>
+      <p>${eig.length ? 'Plan wählen oder einen weiteren anlegen.' : 'Neu anlegen – leer, mit dem Planungsassistenten oder aus dem Ablauf eines früheren Projekts. Er wird gleich mit diesem Projekt verknüpft.'}</p>
+      <div class="sv-b"><button class="btn primary" data-act="fileNew">Bauzeitenplan anlegen …</button><button class="btn" data-act="fileOpen">Anderen Plan öffnen …</button></div></div>
+      ${eig.length ? `<div class="sv-list">${eig.map((p) => `<button class="sv-p" data-open="${p.id}"><b>${esc(p.name)}</b><small>${p.n || 0} Leistungen${p.start != null ? ' · Beginn ' + fmtD(p.start) : ''}</small></button>`).join('')}</div>` : ''}</div>`;
+    return;
+  }
   const rec = projects.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).slice(0, 12);
   const when = (u) => { if (!u) return ''; const d = new Date(u); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   box.innerHTML = `<div class="sv"><div class="sv-h"><h2>Kein Projekt geöffnet</h2><p>Projekt aus der Liste wählen, ein neues anlegen oder mit dem Planungsassistenten starten.</p>
@@ -2339,13 +2357,14 @@ async function renderStart() {
 $('#startView').addEventListener('click', async (e) => { const b = e.target.closest('[data-open]'); if (!b) return; await openProject(b.dataset.open); refreshProjectList(); });
 function projMenu(btn) {
   const r = btn.getBoundingClientRect();
-  const rec = projects.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).filter((p) => (!P || p.id !== P.id) && !p.archived).slice(0, 8);
+  const gp = window.BPHead && BPHead.projekt;   // nur die Pläne des Projekts oben; alle anderen über „Öffnen …“
+  const rec = projects.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).filter((p) => (!P || p.id !== P.id) && !p.archived && (!gp || !gp.id || p.bt_id === gp.id)).slice(0, 8);
   const items = [
     ...(P ? [{ label: '✔ ' + P.name, dis: true }, '-'] : []),
     ...rec.map((p) => ({ label: p.name, fn: async () => { await openProject(p.id); refreshProjectList(); } })),
     ...(rec.length ? ['-'] : []),
-    { label: 'Öffnen …', key: 'Strg+O', fn: () => fileOpen() },
-    { label: 'Neues Projekt …', fn: () => fileNew() },
+    { label: 'Anderen Plan öffnen …', key: 'Strg+O', fn: () => fileOpen() },
+    { label: 'Neuer Bauzeitenplan …', fn: () => fileNew() },
     '-',
     { label: 'Projekt schließen', key: 'Strg+W', dis: !P, fn: () => closeProject() },
   ];
@@ -2840,7 +2859,7 @@ async function boot() {
         const fit = projects.find((p) => p.id === id && p.bt_id === gp.id) || projects.find((p) => p.bt_id === gp.id)
           || (nr && projects.find((p) => !p.bt_id && p.name.toLowerCase().startsWith(nr)));
         if (fit) id = fit.id;
-        else halten = true, BPHead.hinweisLeiste(`Für ${gp.name} gibt es noch keinen Bauzeitenplan.`, 'Anlegen', () => fileNew());
+        else { await refreshProjectList(); await keinPlanFuer(); if (LS.get('assistOpen', false)) setAssistOpen(true); return; }   // kein fremder Plan unter diesem Projekt
       }
     }
     if (!projects.some((p) => p.id === id)) id = (projects.find((p) => !p.archived) || projects[0])?.id;

@@ -58,7 +58,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
         let l = []; try { l = await fetch('api/projects').then((r) => r.json()); } catch { /* egal */ }
         const plan = (l || []).find((x) => x.bt_id === id && !x.archived) || (l || []).find((x) => x.bt_id === id);
         if (plan && typeof openProject === 'function') { await openProject(plan.id); if (typeof refreshProjectList === 'function') refreshProjectList(); }
-        else if (typeof toast === 'function') toast('Für dieses Projekt gibt es noch keinen Bauzeitenplan – über „Neu“ anlegen und verknüpfen.');
+        else if (typeof keinPlanFuer === 'function') keinPlanFuer();
       });
       const logo = tb.querySelector('.logo'); if (logo) logo.style.display = 'none';
     }
@@ -105,8 +105,8 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     const el = $('#bpLink'); if (!el) return;
     const p = typeof P !== 'undefined' && P ? P : null, bt = p ? p._bt : null;
     el.hidden = !p;
-    if (window.BPHead && bt && bt.id && BPHead.projektSetzen && window.bpHalten !== p.id) BPHead.projektSetzen(bt.id);   // gilt dann auch in den anderen Apps
-    // die Kopfleiste zeigt das Projekt (BPHead.projektSetzen oben); den Plan wählt die Leiste darunter
+    if (window.BPHead && bt && bt.id && BPHead.projektSetzen) BPHead.projektSetzen(bt.id);   // gilt dann auch in den anderen Apps
+    if (window.BPHead && p && !bt) BPHead.setProject({ title: p.name, sub: 'Bauzeitenplan ohne Projekt – oben „Mit Projekt verknüpfen“' });   // sonst zeigt die Kopfleiste das Projekt
     if (!p) return;
     if (bt) { el.innerHTML = ICON_LINK + '<span>' + escH(bt.name) + '</span>'; el.title = `Verknüpft mit dem Bautagebuch-Projekt „${bt.name}“${bt.address ? ' (' + bt.address + ')' : ''} – klicken zum Ändern`; }
     else { el.innerHTML = ICON_LINK + '<span>Mit Projekt verknüpfen</span>'; el.title = 'Plan mit einem Projekt des Bautagebuchs verknüpfen'; }

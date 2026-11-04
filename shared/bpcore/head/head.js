@@ -284,7 +284,7 @@
 /* ---------- Mein Konto: Unterschrift, Versand von Rügen, Kalendertermine; für Administratoren die E-Mail-Vorlagen ----------
      H.konto()                       Fenster (Benutzermenü jeder App)
      H.konto({ into: el, tab })      in eine Seite einbetten (Verwaltung → Einstellungen, Einstellungen einer App) */
-  const KX = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || 'Fehler ' + r.status); return j; });
+  const KX = (u, o = {}) => fetch(u, { credentials: 'same-origin', ...o }).then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || ([502, 503, 504].includes(r.status) ? 'Der Server ist gerade nicht erreichbar – vermutlich wird gerade ein Update eingespielt. Bitte in einer Minute noch einmal versuchen.' : 'Fehler ' + r.status)); return j; });
   H.konto = async function (opt = {}) {
     let K, V = null, tab = opt.tab || 'konto', root, busy = false, sigV = Date.now(), msg = '';
     try { K = await KX('api/bp/konto'); } catch (e) { alert(e.message); return; }

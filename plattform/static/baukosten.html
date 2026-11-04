@@ -79,6 +79,23 @@
 .plan .mk.ok{background:#2e7d4f}
 .plan .mk.warn{background:#b3541e}
 .plan .mk.sel{outline:3px solid var(--y)}
+.pbar{display:flex;justify-content:flex-end;margin-bottom:-.6rem}
+.pmodes{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.pmodes button{background:transparent;border:0;color:inherit;padding:.25rem .7rem;font-size:1rem;line-height:1.2;cursor:pointer}
+.pmodes button.on{background:var(--y);color:#1c1c1a}
+.pv-seite .wrap{max-width:none}.pv-seite .layout .side{flex:0 1 230px;min-width:200px}
+.layout .main.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:1rem;align-items:start}
+.layout .main.split .sp-r{position:sticky;top:8px;display:flex;flex-direction:column;gap:.5rem;order:2}
+.layout .main.split .sp-r .pmodes{align-self:flex-end}
+.layout .main.split .sp-r .plan{max-height:calc(100vh - 70px)}
+.layout .main.split .sp-l{min-width:0;display:flex;flex-direction:column;gap:1rem;order:1}
+.pwin{position:fixed;z-index:40;display:flex;flex-direction:column;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 50px #0006;resize:both;overflow:hidden;min-width:280px;min-height:200px}
+.pwh{display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem .35rem .8rem;cursor:move;user-select:none;border-bottom:1px solid var(--line);touch-action:none}
+.pwh b{flex:1;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pwx{background:transparent;border:0;color:inherit;font-size:1rem;width:28px;height:28px;border-radius:50%;cursor:pointer}
+.pwx:hover{background:var(--hov)}
+.pwin .plan{flex:1;border-radius:0 0 12px 12px;margin:0;border:0}
+@media (max-width:900px){.layout .main.split{grid-template-columns:1fr}.layout .main.split .sp-r{position:static;order:0}}
 .layout{display:flex;flex-wrap:wrap;gap:1.2rem;align-items:flex-start}
 .layout .side{flex:0 1 300px;min-width:260px;display:flex;flex-direction:column;gap:.8rem}
 .layout .main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:1rem}
@@ -86,6 +103,8 @@
 .tbl input.n{width:96px;text-align:right;font-family:ui-monospace,monospace}
 .tbl input.w{width:100%;min-width:140px}
 .tbl tr.sel td{background:var(--hov)}
+.tbl select.set{border-color:var(--y);font-weight:600}.tbl input.nz{min-width:150px}
+.alle{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:-.2rem 0 .6rem}.alle select{padding:.3rem .5rem;font-size:.88rem}.alle span{flex:1 1 260px}
 .tbl tr.warn td:first-child{box-shadow:inset 3px 0 0 #e07b3a}
 .tbl tfoot td{font-weight:600;border-top:1px solid var(--line)}
 .okb{border:1px solid var(--line);border-radius:6px;padding:.3rem .7rem;font-size:.85rem;color:var(--mute);min-height:34px;white-space:nowrap}
@@ -201,10 +220,14 @@ const ym = (s) => { const [y, m] = s.split('-'); return ['Jan', 'Feb', 'Mär', '
 
 /* ---------- Rechnen (wie auf dem Server, damit Eingaben sofort wirken) ---------- */
 const btBetrag = (b) => Math.round((+b.menge || 0) * (+b.ep || 0) * 100) / 100;
+/* Angaben je Raum: Faktor auf den Kennwert (wie STD_F / MASS_F auf dem Server) */
+const STD_F = { einfach: 0.85, mittel: 1, gehoben: 1.2, hoch: 1.45 }, MASS_F = { neu: 1, umbau: 0.8, sanierung: 0.6, bestand: 0 };
+const STD_L = [['', 'mittel'], ['einfach', 'einfach'], ['gehoben', 'gehoben'], ['hoch', 'hoch']], MASS_L = [['', 'Neubau'], ['umbau', 'Umbau'], ['sanierung', 'Sanierung'], ['bestand', 'Bestand bleibt']];
+const raumF = (r) => (STD_F[r.std || 'mittel'] ?? 1) * (MASS_F[r.mass || 'neu'] ?? 1);
 function calc(d) {   // wie calc() auf dem Server
   const ju = Object.assign({ region: 100, preis: 100, rest: 'kw', f: 1 }, d.justage || {}), jf = ju.region / 100 * ju.preis / 100;
-  const by = {}; d.rooms.forEach((r) => { const t = by[r.typ] ||= { area: 0, n: 0 }; t.area += +r.area || 0; t.n++; });
-  let raw = 0; const types = Object.entries(d.types).map(([k, t]) => { const a = by[k] || { area: 0, n: 0 }; const s = a.area * t.kw; raw += s; return { typ: k, label: t.label, n: a.n, area: a.area, kw: t.kw, sum: s }; });
+  const by = {}; d.rooms.forEach((r) => { const t = by[r.typ] ||= { area: 0, n: 0, gew: 0 }; t.area += +r.area || 0; t.n++; t.gew += (+r.area || 0) * raumF(r); });
+  let raw = 0; const types = Object.entries(d.types).map(([k, t]) => { const a = by[k] || { area: 0, n: 0, gew: 0 }; const s = a.gew * t.kw; raw += s; return { typ: k, label: t.label, n: a.n, area: a.area, gew: a.gew, kw: t.kw, sum: s }; });
   let bau = raw * jf; const bauKw = bau; let k300 = bau * d.kg['300'] / 100, k400 = bau * d.kg['400'] / 100; const kg2 = {};
   const J = { region: ju.region, preis: ju.preis, faktor: jf, rest: ju.rest, rest_f: 1, k: null, bt_wert: 0, bt_kw: 0, rest_kw: 0, rest_wert: 0 };
   const bts = (d.bauteile || []).filter((b) => /^[34]\d\d$/.test(b.kg || ''));
@@ -283,7 +306,8 @@ async function loadList(keep) {
 }
 async function openBk(id, merken = true) {   // nicht „open“ nennen: das überschriebe window.open (PDF-Fenster)
   B = await api('api/bk/' + id);
-  if (merken && B.project_id) BPHead.projektSetzen(B.project_id);   // gilt dann auch in den anderen Apps FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
+  if (merken && B.project_id) BPHead.projektSetzen(B.project_id);   // gilt dann auch in den anderen Apps
+  FLOW = null; CHECK = null; EST = null; selFile = B.files[0] ? B.files[0].id : null;
   asLoad(); if (localStorage.getItem(AS_KEY()) == null) { AS.open = true; asSave(); }   // beim ersten Öffnen startet der Assistent
   try { localStorage.setItem('bk.cur', id); } catch { /* egal */ }
   head(); render();
@@ -345,7 +369,8 @@ function render() {
   v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, bauteile: vBauteile, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
   if (sig) { const n = document.querySelector(sig); if (n) n.focus(); }
   histTrack();
-  zmInit();
+  zmInit(); pwInit();
+  document.body.classList.toggle('pv-seite', tab === 'plaene' && pvMode() === 'seite');
   assist();
   if (tab === 'mittel' || tab === 'uebersicht') ensureFlow();
 }
@@ -407,20 +432,57 @@ function vPlaene() {
       <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" data-ansehen="pdf" data-name="${esc(x.name)}">PDF</a>${x.meta.kind !== 'Ansicht' && x.meta.kind !== 'Schnitt' ? `<button class="btn sm${x.meta.found ? '' : ' pri'}" data-kiroom="${x.id}" title="Räume mit der oben gewählten KI aus dem Planbild lesen – für Pläne, deren Beschriftung nicht als Text vorliegt">✨ KI lesen</button>` : ''}${x.meta.found ? '' : `<button class="btn sm" data-reread="${x.id}" title="Plan mit der aktuellen Erkennung erneut auswerten">Neu einlesen</button>`}<button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
     <div class="drop" id="drop" role="button" tabindex="0">+ PDF hinzufügen<br><small>Grundrisse, Ansichten, Schnitte – Vektor-PDF aus dem CAD</small></div></div>
     <p class="hint">Räume (Name und m², mit oder ohne Nummer) werden aus Vektor-PDFs exakt gelesen. Der Raumtyp ist ein Vorschlag – bitte jeden Raum bestätigen. Plan: Mausrad zoomt, ziehen verschiebt.</p></aside>
-  <div class="main">${f ? `<div class="plan card" id="planBox" style="padding:0" title="Mausrad oder zwei Finger: zoomen · ziehen: verschieben · Doppelklick: vergrößern"><div class="pz" id="pz"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}" draggable="false">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr || '•')}</span>`).join('')}</div>
-    <div class="pzc"><button type="button" data-zm="-" aria-label="Verkleinern">−</button><span id="pzp">100 %</span><button type="button" data-zm="+" aria-label="Vergrößern">+</button><button type="button" data-zm="0" aria-label="Ganzer Plan" title="Ganzer Plan">⤢</button></div></div>` : ''}
+  ${(() => {
+    const PV = pvMode(), plan = f ? `<div class="plan card" id="planBox" style="padding:0" title="Mausrad oder zwei Finger: zoomen · ziehen: verschieben · Doppelklick: vergrößern"><div class="pz" id="pz"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}" draggable="false">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr || '•')}</span>`).join('')}</div>
+    <div class="pzc"><button type="button" data-zm="-" aria-label="Verkleinern">−</button><span id="pzp">100 %</span><button type="button" data-zm="+" aria-label="Vergrößern">+</button><button type="button" data-zm="0" aria-label="Ganzer Plan" title="Ganzer Plan">⤢</button></div></div>` : '';
+    const modes = f ? `<div class="pmodes" role="group" aria-label="Anordnung des Plans">${[['oben', '▭', 'Plan über dem Raumbuch'], ['seite', '◫', 'Geteilte Ansicht: Plan neben dem Raumbuch'], ['fenster', '⧉', 'Plan in einem frei beweglichen Fenster']].map(([k, i, t]) => `<button type="button" data-pmode="${k}" class="${PV === k ? 'on' : ''}" title="${t}" aria-pressed="${PV === k}">${i}</button>`).join('')}</div>` : '';
+    if (PV === 'fenster' && f) { const g = pwGeo(); return `<div class="pwin" id="pwin" style="left:${g.l}px;top:${g.t}px;width:${g.w}px;height:${g.h}px"><div class="pwh" id="pwh"><b>${esc(f.name)}</b>${modes}<button type="button" class="pwx" data-pmode="oben" title="Fenster schließen – Plan wieder über dem Raumbuch" aria-label="Fenster schließen">✕</button></div>${plan}</div><div class="main">`; }
+    if (PV === 'seite' && f) return `<div class="main split"><div class="sp-r">${modes}${plan}</div><div class="sp-l">`;
+    return `<div class="main">${f ? `<div class="pbar">${modes}</div>` : ''}${plan}`;
+  })()}
     <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'} · ${m2(B.calc.area)} m²${volume() ? ` · ${m2(volume()).replace(/,\d+$/, '')} m³` : ''}${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="addRoom">+ Raum</button></div>
     ${hoehenInfo()}
-    <div class="tbl"><table><thead><tr><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th class="r" title="Geschosshöhe (Fertigfußboden bis Fertigfußboden) – aus dem Schnitt oder eingetragen">Höhe m</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
+    ${rooms.length ? `<div class="alle hint">Für alle Räume setzen: <select data-alle="std" aria-label="Standard für alle"><option value="-">Standard …</option>${STD_L.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
+      <select data-alle="mass" aria-label="Maßnahme für alle"><option value="-">Maßnahme …</option>${MASS_L.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
+      <span>Standard und Maßnahme gewichten den Kennwert des Raumtyps, Besonderheiten liest die KI bei Bauteilen und Prüfung mit.</span></div>` : ''}
+    <div class="tbl"><table><thead><tr><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th class="r" title="Geschosshöhe (Fertigfußboden bis Fertigfußboden) – aus dem Schnitt oder eingetragen">Höhe m</th><th title="Ausbaustandard – Faktor auf den Kennwert: einfach 0,85 · mittel 1 · gehoben 1,2 · hoch 1,45">Standard</th><th title="Maßnahme – Faktor auf den Kennwert: Neubau 1 · Umbau 0,8 · Sanierung 0,6 · Bestand bleibt 0">Maßnahme</th><th title="z. B. Fußbodenheizung, Fliesen raumhoch, Akustikdecke – hilft der KI bei Bauteilen und Prüfung">Besonderheiten</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
       <tr data-row="${i}" class="${r.id === selRoom ? 'sel' : ''} ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : ''}"><td><input class="n" style="width:64px;text-align:left" value="${esc(r.nr)}" data-f="nr" aria-label="Nummer"></td>
       <td><input class="w" value="${esc(r.name)}" data-f="name" aria-label="Raumname">${dup[r.floor + '|' + r.nr] > 1 ? '<span class="wn">Raumnummer doppelt</span>' : ''}${r.floor ? `<span class="hint" style="font-size:.75rem">${esc(r.floor)}</span>` : ''}</td>
       <td><select data-f="typ" aria-label="Raumtyp">${typeOpts(r.typ)}</select></td>
       <td class="r"><input class="n" value="${m2(r.area)}" data-f="area" inputmode="decimal" aria-label="Fläche"></td>
       <td class="r">${(() => { const a = hAuto(r); return `<input class="n" style="width:64px" value="${r.h ? String(r.h).replace('.', ',') : ''}" placeholder="${a.v ? String(a.v).replace('.', ',') : '–'}" title="${esc(r.h ? 'eigener Wert – leeren übernimmt wieder ' + (a.v ? String(a.v).replace('.', ',') + ' m (' + a.src + ')' : 'den Standard') : a.v ? a.src : 'Höhe eintragen – der erste Wert gilt für alle Räume, bis du ihn änderst')}" data-h="${i}" inputmode="decimal" aria-label="Höhe">`; })()}</td>
+      <td><select data-f="std" aria-label="Standard" class="${r.std ? 'set' : ''}">${STD_L.map(([k, l]) => `<option value="${k}"${(r.std || '') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
+      <td><select data-f="mass" aria-label="Maßnahme" class="${r.mass ? 'set' : ''}">${MASS_L.map(([k, l]) => `<option value="${k}"${(r.mass || '') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
+      <td><input class="w nz" value="${esc(r.notiz || '')}" data-f="notiz" placeholder="z. B. Fußbodenheizung" aria-label="Besonderheiten" maxlength="500"></td>
       <td><button class="okb ${r.ok ? 'on' : ''}" data-ok="${i}">${r.ok ? '✓ Bestätigt' : 'Prüfen'}</button></td>
-      <td><button class="btn sm" data-delroom="${i}" aria-label="Raum löschen" title="Raum löschen">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">Noch keine Räume.</td></tr>'}</tbody>
-      <tfoot><tr><td></td><td>Summe</td><td></td><td class="r num">${m2(B.calc.area)}</td><td class="r num" title="Raumvolumen (Fläche × Höhe)">${volume() ? m2(volume()).replace(/,\d+$/, '') + ' m³' : ''}</td><td colspan="2"></td></tr></tfoot></table></div></div></div>`;
+      <td><button class="btn sm" data-delroom="${i}" aria-label="Raum löschen" title="Raum löschen">✕</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty">Noch keine Räume.</td></tr>'}</tbody>
+      <tfoot><tr><td></td><td>Summe</td><td></td><td class="r num">${m2(B.calc.area)}</td><td class="r num" title="Raumvolumen (Fläche × Höhe)">${volume() ? m2(volume()).replace(/,\d+$/, '') + ' m³' : ''}</td><td colspan="5"></td></tr></tfoot></table></div>${pvMode() === 'seite' && f ? '</div>' : ''}</div></div>`;
 }
+/* Anordnung des Plans beim Raumbuch: oben · nebeneinander (geteilte Ansicht) · eigenes Fenster (frei beweglich, Größe änderbar) */
+const pvMode = () => { try { const v = localStorage.getItem('bk.planAnsicht'); return ['seite', 'fenster'].includes(v) ? (v === 'seite' && innerWidth < 900 ? 'oben' : v) : 'oben'; } catch { return 'oben'; } };
+function pwGeo() {
+  let g = null; try { g = JSON.parse(localStorage.getItem('bk.planFenster')); } catch { /* egal */ }
+  const w = Math.min(innerWidth - 16, Math.max(320, (g && g.w) || Math.round(innerWidth * 0.45))), h = Math.min(innerHeight - 16, Math.max(240, (g && g.h) || Math.round(innerHeight * 0.6)));
+  return { w, h, l: Math.max(0, Math.min(innerWidth - 120, (g && g.l) ?? innerWidth - w - 24)), t: Math.max(0, Math.min(innerHeight - 60, (g && g.t) ?? 90)) };
+}
+function pwSave() { const w = $('#pwin'); if (!w) return; const r = w.getBoundingClientRect(); try { localStorage.setItem('bk.planFenster', JSON.stringify({ l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) })); } catch { /* egal */ } }
+function pwInit() {
+  const w = $('#pwin'); if (!w) return;
+  const h = $('#pwh');
+  h.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    const r = w.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; h.setPointerCapture(e.pointerId);
+    const mv = (ev) => { w.style.left = Math.max(-r.width + 80, Math.min(innerWidth - 80, ev.clientX - dx)) + 'px'; w.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
+    const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); pwSave(); };
+    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+  });
+  let t = 0; new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { pwSave(); zmApply(); }, 200); }).observe(w);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-pmode]'); if (!b) return;
+  try { localStorage.setItem('bk.planAnsicht', b.dataset.pmode); } catch { /* egal */ }
+  render();
+});
 // Höhen: eigener Wert am Raum, sonst Geschosshöhe aus dem Schnitt, sonst die zuerst eingetragene Höhe (gilt für alle)
 function floorKey(n) {
   n = String(n || '').toLowerCase();
@@ -477,7 +539,7 @@ function vKosten() {
     .concat(c.risiko ? [['', 'Kostenrisiken (gesondert ausgewiesen)', `${pct(d.risiko)}${d.risiko_text ? ' – ' + d.risiko_text : ''}`, c.risiko]] : []);
   return `${estHtml()}<section class="card" style="margin-bottom:1.2rem"><h2>Raumtypen und Kennwerte</h2><p class="sub">Kennwerte in € je m² Raumfläche (KG 300 + 400, netto). Die vorgegebenen Werte sind Beispiele – eigene Werte aus abgerechneten Projekten eintragen. Raumtypen ergänzen oder umbenennen: <a href="#" data-act="raumtypen">⚙ Raumtypen</a>.</p>
     <div class="tbl"><table><thead><tr><th>Raumtyp</th><th class="r">Räume</th><th class="r">Fläche m²</th><th class="r">€ / m²</th><th class="r">Summe</th></tr></thead><tbody>${c.types.map((t) => `
-      <tr><td>${esc(t.label)}</td><td class="r num">${t.n}</td><td class="r num">${m2(t.area)}</td><td class="r"><input class="n" value="${Math.round(t.kw)}" data-kw="${t.typ}" inputmode="numeric" aria-label="Kennwert ${esc(t.label)}">${vgHint(t)}</td><td class="r num">${eur(t.sum)}</td></tr>`).join('')}</tbody>
+      <tr><td>${esc(t.label)}</td><td class="r num">${t.n}</td><td class="r num">${m2(t.area)}${Math.abs((t.gew ?? t.area) - t.area) > 0.005 ? `<div class="hint" style="font-size:.75rem" title="Fläche × Faktor aus Standard und Maßnahme der Räume">${m2(t.gew)} gewichtet</div>` : ''}</td><td class="r"><input class="n" value="${Math.round(t.kw)}" data-kw="${t.typ}" inputmode="numeric" aria-label="Kennwert ${esc(t.label)}">${vgHint(t)}</td><td class="r num">${eur(t.sum)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td>Summe Kennwerte</td><td></td><td class="r num">${m2(c.area)}</td><td class="r num">${eur(c.area ? c.kw_summe / c.area : 0)}</td><td class="r num">${eur(c.kw_summe)}</td></tr>
       ${Math.abs(c.justage.faktor - 1) > 1e-6 ? `<tr><td colspan="3"><a href="#" data-act="toJustage">Justage</a> <span class="hint">Region ${fx(c.justage.region, 1)} % × Preisstand ${fx(c.justage.preis, 1)} %</span></td><td class="r num">× ${fx(c.justage.faktor, 3)}</td><td class="r num">${eur(c.bauwerk_kw)}</td></tr>` : ''}
       ${Object.keys(c.kg2 || {}).length ? `<tr><td colspan="3">Bauwerk mit Bauteilen <a href="#" data-tab="bauteile" class="hint">(Bauteile & Material)</a></td><td class="r num">${eur(c.kw)}</td><td class="r num">${eur(c.bauwerk)}</td></tr>` : ''}</tfoot></table></div>
@@ -989,6 +1051,7 @@ document.addEventListener('change', (e) => {
     else r.h = v;
     changed(); return;
   }
+  if (el.dataset.alle) { const k = el.dataset.alle, v = el.value; if (v === '-') return; B.data.rooms.forEach((r) => { r[k] = v; }); toast(`${k === 'std' ? 'Standard' : 'Maßnahme'} „${el.options[el.selectedIndex].text}“ für alle ${B.data.rooms.length} Räume gesetzt.`); changed(); return; }
   if (row && el.dataset.f) { const r = B.data.rooms[+row.dataset.row]; r[el.dataset.f] = el.dataset.f === 'area' ? pnum(el.value) : el.value; changed(); return; }
   if (el.dataset.kw) { B.data.types[el.dataset.kw].kw = pnum(el.value); changed(); return; }
   if (el.dataset.it) { const it = B.data.items[+el.dataset.it]; if (el.dataset.f === 'amount') delete it.est; it[el.dataset.f] = el.dataset.f === 'amount' ? (el.value.trim() === '' ? null : pnum(el.value)) : el.value; changed(); return; }

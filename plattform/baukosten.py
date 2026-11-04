@@ -118,6 +118,17 @@ def guess_type(name, c):
     return kosten.guess(name, kosten.catalog(c))
 
 
+# Angaben je Raum: Faktor auf den Kennwert des Raumtyps (leer = mittel bzw. Neubau = 1)
+STD_F = {"einfach": 0.85, "mittel": 1.0, "gehoben": 1.2, "hoch": 1.45}
+MASS_F = {"neu": 1.0, "umbau": 0.8, "sanierung": 0.6, "bestand": 0.0}
+STD_N = {"einfach": "einfacher Standard", "mittel": "mittlerer Standard", "gehoben": "gehobener Standard", "hoch": "hoher Standard"}
+MASS_N = {"neu": "Neubau", "umbau": "Umbau", "sanierung": "Sanierung", "bestand": "Bestand bleibt unverändert"}
+
+
+def raum_f(r):
+    return STD_F.get(r.get("std") or "mittel", 1.0) * MASS_F.get(r.get("mass") or "neu", 1.0)
+
+
 def default_data(c):
     kw = kennwerte(c)
     return {"rooms": [], "types": {k: {"label": v["label"], "kw": v["kw"]} for k, v in kw.items()},
@@ -147,7 +158,9 @@ def clean_data(d, c):
                       "area": round(_num(r.get("area"), 0, 0, 1e6), 2), "typ": r.get("typ") if r.get("typ") in types else "sonst",
                       "ok": bool(r.get("ok")), "src": _s(r.get("src"), 40), "floor": _s(r.get("floor"), 40),
                       "pos": r.get("pos") if isinstance(r.get("pos"), list) and len(r["pos"]) == 2 else None,
-                      "h": round(_num(r.get("h"), 0, 0, 20), 2) or None})
+                      "h": round(_num(r.get("h"), 0, 0, 20), 2) or None,
+                      "std": r.get("std") if r.get("std") in STD_F else "", "mass": r.get("mass") if r.get("mass") in MASS_F else "",
+                      "notiz": _s(r.get("notiz"), 500)})
     kg = d.get("kg") if isinstance(d.get("kg"), dict) else {}
     k300 = _num(kg.get("300"), 70, 0, 100)
     items = []
@@ -210,13 +223,13 @@ def calc(d):
     jf = ju["region"] / 100 * ju["preis"] / 100
     by = {}
     for r in d["rooms"]:
-        t = by.setdefault(r["typ"], {"area": 0.0, "n": 0})
-        t["area"] += r["area"]; t["n"] += 1
+        t = by.setdefault(r["typ"], {"area": 0.0, "n": 0, "gew": 0.0})
+        t["area"] += r["area"]; t["n"] += 1; t["gew"] += r["area"] * raum_f(r)   # Standard und Maßnahme gewichten die Fläche
     rows, raw = [], 0.0
     for k, t in d["types"].items():
-        a = by.get(k, {"area": 0.0, "n": 0})
-        s = a["area"] * t["kw"]; raw += s
-        rows.append({"typ": k, "label": t["label"], "n": a["n"], "area": round(a["area"], 2), "kw": t["kw"], "sum": round(s, 2)})
+        a = by.get(k, {"area": 0.0, "n": 0, "gew": 0.0})
+        s = a["gew"] * t["kw"]; raw += s
+        rows.append({"typ": k, "label": t["label"], "n": a["n"], "area": round(a["area"], 2), "gew": round(a["gew"], 2), "kw": t["kw"], "sum": round(s, 2)})
     bau = bau_kw = raw * jf
     k300, k400 = bau * d["kg"]["300"] / 100, bau * d["kg"]["400"] / 100
     kg2 = {}
@@ -1351,7 +1364,9 @@ def bauteile_vorschlag(i):
             if not ki:
                 return jsonify(error="Keine KI eingerichtet – in der Verwaltung unter Einstellungen → KI einen Schlüssel hinterlegen."), 400
             info = {"maßnahme": r["name"], "stufe": STUFE_NAME.get(r["stufe"]), "geometrie": _geo(d, cal), "raumflaeche_m2": cal["area"],
-                    "raeume": [f"{x['floor']} {x['nr']} {x['name']} {x['area']} m² ({d['types'].get(x['typ'], {}).get('label', '')})" for x in d["rooms"][:150]],
+                    "raeume": [f"{x['floor']} {x['nr']} {x['name']} {x['area']} m² ({d['types'].get(x['typ'], {}).get('label', '')}"
+                               + "".join(f", {v}" for v in (STD_N.get(x.get('std')) if x.get('std') else "", MASS_N.get(x.get('mass')) if x.get('mass') else "") if v)
+                               + (f"; Besonderheiten: {x['notiz']}" if x.get('notiz') else "") + ")" for x in d["rooms"][:150]],
                     "pläne": [f["name"] for f in c.execute("SELECT name FROM bk_files WHERE bk_id=?", (i,))],
                     "entwurf": [{k: x[k] for k in ("kg", "name", "mat", "menge", "einheit", "ep")} for x in rows]}
             try:
@@ -1874,7 +1889,8 @@ def build_report(c, r, opt):
         rows = [["Raumtyp", "Räume", "Fläche m²", "€ / m²", "Kosten"]]
         for t in cal["types"]:
             if t["n"]:
-                rows.append([t["label"], str(t["n"]), m2(t["area"]), eur(t["kw"], kw=True), eur(t["sum"])])
+                rows.append([t["label"], str(t["n"]), m2(t["area"]) + (f"\n({m2(t['gew'])} gewichtet)" if abs(t.get("gew", t["area"]) - t["area"]) > 0.005 else ""),
+                             eur(t["kw"], kw=True), eur(t["sum"])])
         J = cal["justage"]
         ar = cal["area"] or 1
         rows.append(["Summe Kennwerte", str(len(d["rooms"])), m2(cal["area"]), eur(cal["kw_summe"] / ar, kw=True), eur(cal["kw_summe"])])

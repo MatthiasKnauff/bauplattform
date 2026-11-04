@@ -321,6 +321,7 @@
           <p class="bph-mu">Einzelne Erinnerungen, Fristen und Termine lassen sich außerdem jederzeit mit 📅 als Termin schicken.</p>
           <h4>Posteingang</h4><p class="bph-mu">Die Startseite zeigt einmal am Tag die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen.</p>
           <div class="bph-row"><button type="button" class="bph-btn" data-kpost>📬 Postfächer einrichten …</button></div>
+          <h4>Kennwort</h4><div class="bph-row"><button type="button" class="bph-btn" data-kpw>🔑 Kennwort ändern …</button></div>
           <div class="bph-row">${H.verlaufKnopf('konto:' + K.uid, 'Verlauf meiner Einstellungen')}</div>
           <p class="bph-mu">${K.email ? `Mails gehen an <b>${esc(K.email)}</b>.` : '<b>Für dein Konto ist keine E-Mail-Adresse hinterlegt</b> – bitte vom Administrator in der Verwaltung (▦ → Verwaltung → Benutzer) eintragen lassen.'}${K.mail ? '' : ' Der Mailserver ist noch nicht eingerichtet (⚙ → Büro → Mailserver).'}</p>`;
       } else if (!V) { b = '<p class="bph-mu">Lade …</p>'; KX('api/bp/mailvorlagen').then((v) => { V = v; draw(); }).catch((e) => { msg = e.message; draw(); }); }
@@ -342,6 +343,7 @@
       const t = e.target;
       if (t.closest('[data-kclose]')) { root.close && root.close(); return; }
       if (t.closest('[data-kpost]')) { H.postfaecher(); return; }
+      if (t.closest('[data-kpw]')) { H.kennwort(); return; }
       const tb = t.closest('[data-ktab]'); if (tb) { tab = tb.dataset.ktab; msg = ''; draw(); return; }
       const sv = t.closest('[data-kset]'); if (sv) { save({ [sv.dataset.kset]: sv.dataset.v }); return; }
       if (t.closest('[data-kdel]')) { if (!confirm('Unterschrift entfernen?')) return; await KX('api/bp/signatur', { method: 'DELETE' }).catch((er) => { msg = er.message; }); K.signatur = false; draw(); return; }
@@ -455,6 +457,30 @@
     draw(); load();
   };
   /* Knopf „Verlauf“ für eine beliebige Stelle: H.verlaufKnopf('einst:bt', { nach }) → HTML; Klick öffnet den Verlauf */
+  /* Eigenes Kennwort ändern (die Benutzerverwaltung liegt nur in der Verwaltung) */
+  H.kennwort = function () {
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+    bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Kennwort ändern" style="max-width:26rem"><div class="bph-dh"><b>Kennwort ändern</b><button type="button" class="bph-x" data-kc aria-label="Schließen">×</button></div><div class="bph-db">
+      <p class="bph-mu">Gilt für alle Apps der Bauplattform. Mindestens 8 Zeichen.</p>
+      <label style="display:block;margin:.4rem 0">Bisheriges Kennwort<input type="password" data-ka autocomplete="current-password"></label>
+      <label style="display:block;margin:.4rem 0">Neues Kennwort<input type="password" data-kn autocomplete="new-password"></label>
+      <label style="display:block;margin:.4rem 0">Neues Kennwort wiederholen<input type="password" data-kw autocomplete="new-password"></label>
+      <p class="bph-mu" data-km></p>
+      <div class="bph-row"><button type="button" class="bph-btn" data-kc>Abbrechen</button><button type="button" class="bph-btn pri" data-ks>Kennwort ändern</button></div></div></div>`;
+    document.body.appendChild(bg);
+    const q = (a) => bg.querySelector(a), close = () => bg.remove(), m = q('[data-km]');
+    bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    bg.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); if (e.key === 'Enter') q('[data-ks]').click(); });
+    bg.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-kc]')) return close();
+      if (!e.target.closest('[data-ks]')) return;
+      const a = q('[data-ka]').value, n = q('[data-kn]').value;
+      if (n !== q('[data-kw]').value) { m.textContent = 'Die beiden neuen Kennwörter stimmen nicht überein.'; return; }
+      try { await KX('api/bp/kennwort', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alt: a, neu: n }) }); close(); if (window.toast) toast('Kennwort geändert.'); else alert('Kennwort geändert.'); }
+      catch (err) { m.textContent = err.message; }
+    });
+    q('[data-ka]').focus();
+  };
   /* Meine Postfächer: Microsoft 365 (zentral eingerichtet) an/aus und eigene IMAP-Konten */
   H.postfaecher = async function () {
     let D, msg = '', neu = null;

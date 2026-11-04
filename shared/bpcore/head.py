@@ -184,6 +184,33 @@ def blueprint(get_user=None):
             mc = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key IN ('mail_from', 'mail_user')")}
         return jsonify(**p, sig_standard=konto.SIG_STANDARD, sig_platz=konto.SIG_PLATZ, sig_vorschau=vorschau, sig_vorschau_html=vorschau_html, absender_buero=(mc.get("mail_from") or "").strip() or mc.get("mail_user", ""), uid=uid, signatur=sig, email=u["email"] or "", mail=mail_ok, admin=bool(u["is_admin"]))
 
+    @bp.post("/api/bp/kennwort")
+    def kennwort_api():
+        """Eigenes Kennwort ändern (⚙ → Für mich) – die Benutzerverwaltung selbst liegt nur in der Verwaltung."""
+        from werkzeug.security import check_password_hash, generate_password_hash
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        d = request.get_json(silent=True) or {}
+        alt, neu = d.get("alt") or "", d.get("neu") or ""
+        with db.tx() as c:
+            r = c.execute("SELECT pass_hash FROM users WHERE id=?", (uid,)).fetchone()
+            if not r or not check_password_hash(r["pass_hash"], alt):
+                return jsonify(error="Das bisherige Kennwort stimmt nicht."), 400
+            if len(neu) < 8:
+                return jsonify(error="Das neue Kennwort braucht mindestens 8 Zeichen."), 400
+            if neu == alt or neu.lower() in (u["name"].lower(), "admin", "passwort", "password"):
+                return jsonify(error="Dieses Kennwort ist zu einfach oder unverändert."), 400
+            c.execute("UPDATE users SET pass_hash=?, must_change=0 WHERE id=?", (generate_password_hash(neu), uid))
+            c.execute("DELETE FROM password_resets WHERE user_id=?", (uid,))
+        try:
+            with db.tx() as c:
+                c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
+                          (datetime.now().isoformat(timespec="seconds").replace("T", " "), u["name"], "konto", "Kennwort geändert", "⚙ Für mich"))
+        except Exception:
+            pass
+        return jsonify(ok=True)
+
     @bp.route("/api/bp/signatur", methods=["GET", "POST", "DELETE"])
     def signatur_api():
         u, uid = _uid()

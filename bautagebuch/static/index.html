@@ -568,6 +568,7 @@ const showApp = async () => {
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
   if (window.BPHead) {   // gemeinsame Kopfleiste; ⚙ → „Bautagebuch“ zeigt die Einstellungen der App im Einstellungsfenster
     BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });
+    // ⚙ → Bautagebuch: nur noch der Bericht-Assistent – Benutzer verwaltet die Verwaltung, Firma/Ablage/Mail/Sicherung stehen unter ⚙ → Büro
     BPHead.appEinstellungen([{ key: 'bt', label: 'Bautagebuch', render: (h) => {
       const vor = tab; PH = h; tab = 'profil'; renderProfile(h);
       return () => { PH = null; tab = vor === 'profil' ? 'bericht' : vor; renderDetail(); };
@@ -1418,42 +1419,13 @@ $('#login').onclick = async e => {
 };
 $('#login').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') authGo(); };
 
-/* ---------- Einstellungen: Mein Konto, Benutzer, Mailserver ---------- */
-let uopen = null, unew = false;
-const usersCard = () => `<div class="cform"><h3>${me.is_admin ? 'Benutzer' : 'Mein Konto'}</h3>
-  <div class="info">${me.is_admin ? 'Hier verwaltest du alle Benutzer – auch dich selbst: E-Mail-Adresse für „Kennwort vergessen“ und Erinnerungen, Kennwort, Administrator-Rechte.' : 'Deine E-Mail-Adresse brauchst du für „Kennwort vergessen“ und für Erinnerungen.'}</div>
-  ${me.is_admin ? `<div class="acts"><button data-act="userNew">${unew ? 'Abbrechen' : '＋ Benutzer anlegen'}</button></div>` : ''}
-  <div class="w" id="ulist" style="grid-column:1/-1">Lade …</div>
-  <div class="w" style="grid-column:1/-1;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.6rem"><b>Bericht-Assistent</b><span style="color:var(--mute)">${bwzPrefs().on ? (bwzPrefs().auto ? 'startet bei jedem neuen Bericht' : 'auf Knopfdruck im Bericht') : 'ausgeschaltet'}</span><button class="bd" data-act="bwzSet">Schritte und Start einstellen …</button></div></div>`;
+/* ---------- Einstellungen: Bericht-Assistent (je Benutzer), Mailserver – Benutzer verwaltet nur die Verwaltung ---------- */
+const appCard = () => `<div class="cform"><h3>Bautagebuch</h3>
+  <div class="w" style="grid-column:1/-1;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><b>Bericht-Assistent</b><span style="color:var(--mute)">${bwzPrefs().on ? (bwzPrefs().auto ? 'startet bei jedem neuen Bericht' : 'auf Knopfdruck im Bericht') : 'ausgeschaltet'}</span><button class="bd" data-act="bwzSet">Schritte und Start einstellen …</button></div>
+  <div class="info">Benutzer, E-Mail-Adressen und Rechte verwaltet der Administrator in der Verwaltung (▦ → Verwaltung → Benutzer & Rechte). Dein Kennwort änderst du unter ⚙ → Für mich.</div></div>`;
 async function setAccent(c) {
   const r = await api('api/account', 'PUT', {accent: c}); if (r.error) return toast(r.error);
-  me.accent = c; applyAccent(c); fillUsers();
-}
-async function fillUsers() {
-  const el = $('#ulist'); if (!el) return;
-  users = me.is_admin ? await api('api/users') : [me];
-  const form = unew ? `<div class="usr open"><div class="ubody">
-      <label>Name<input id="nuName" autocomplete="off"></label><label>E-Mail *<input id="nuMail" type="email" autocomplete="off"></label>
-      <div class="info w">Die App erzeugt ein zufälliges Startkennwort und schickt es mit den Zugangsdaten an diese E-Mail-Adresse. Beim ersten Anmelden muss der Benutzer ein eigenes Kennwort vergeben.</div>
-      <div class="acts"><button class="pri" data-act="addUser">Benutzer anlegen</button></div></div></div>` : '';
-  el.innerHTML = form + users.map(u => {
-    const self = u.id === me.id, open = (uopen === u.id || !me.is_admin) && true, builtin = u.name.toLowerCase() === 'admin';
-    return `<div class="usr ${open ? 'open' : ''}"><button class="uhead" data-act="userOpen" data-id="${u.id}" ${me.is_admin ? '' : 'disabled'}>
-      <span class="l"><b>${esc(u.name)}${self ? ' (du)' : ''}</b><small>${esc(u.email || 'keine E-Mail-Adresse')}${u.must_change ? ' · muss Kennwort noch ändern' : ''}</small></span>
-      ${u.is_admin ? '<span class="badge">Administrator</span>' : ''}${me.is_admin ? '<span class="uchev">' + ic('chev', 18, 3) + '</span>' : ''}</button>
-      ${open && self ? `<div class="ubody">
-        <label class="w">E-Mail-Adresse<input data-acc="email" type="email" value="${esc(me.email)}" autocomplete="email"></label>
-        <div class="w" style="grid-column:1/-1"><div class="lbl">Farbe und Farbschema der Oberfläche</div><div class="info">Werden jetzt zentral auf der Startseite eingestellt und gelten für alle Apps: ${(() => { const p = ((PLATFORM && PLATFORM.apps) || []).find(a => a.key === 'portal'); return p ? `<a href="${esc(appUrl(p))}/#look">Startseite → Darstellung</a>` : 'Startseite → Darstellung'; })()}</div></div>
-        <h4>Kennwort ändern</h4>
-        <label>Neues Kennwort (mind. 8 Zeichen)<input id="pwNew" type="password" autocomplete="new-password"></label>
-        <label>Wiederholen<input id="pwNew2" type="password" autocomplete="new-password"></label>
-        <div class="acts"><button data-act="changePw">Kennwort ändern</button></div></div>` : open ? `<div class="ubody">
-        ${builtin ? '' : `<label>Name<input data-uf="name" data-id="${u.id}" value="${esc(u.name)}" autocomplete="off"></label>`}
-        <label>E-Mail<input data-uf="email" data-id="${u.id}" type="email" value="${esc(u.email)}" autocomplete="off"></label>
-        <label class="chk w"><input type="checkbox" data-uf="is_admin" data-id="${u.id}" ${u.is_admin ? 'checked' : ''}> Administrator (darf Benutzer, Mailserver, Firma und Ablage verwalten)</label>
-        <div class="info w">Das bisherige Kennwort kann nicht erneut gesendet werden – es ist nur verschlüsselt gespeichert. „Zugang per E-Mail senden“ erzeugt stattdessen ein neues Startkennwort und schickt es im Klartext an die hinterlegte Adresse; der Benutzer ändert es beim nächsten Anmelden.</div><label class="w">Neues Kennwort setzen (der Benutzer ändert es beim nächsten Anmelden)<input data-upw="${u.id}" autocomplete="off" placeholder="mindestens 8 Zeichen"></label>
-        <div class="acts"><button data-act="userPw" data-id="${u.id}">Kennwort setzen</button>${u.email && !self ? `<button data-act="userMail" data-id="${u.id}" data-arm="Wirklich senden? Nochmal tippen" title="Erzeugt ein neues Startkennwort und schickt es dem Benutzer per E-Mail">Zugang per E-Mail senden</button>` : ''}${builtin ? '' : `<button class="bad" data-act="delUser" data-id="${u.id}">Benutzer löschen</button>`}</div></div>` : ''}</div>`;
-  }).join('');
+  me.accent = c; applyAccent(c);
 }
 const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
   <div class="info">Mit diesem Postfach verschickt die App E-Mails: „Kennwort vergessen“ und Erinnerungen zu Erledigungsterminen.</div>
@@ -1462,16 +1434,16 @@ const mailCard = () => `<div class="cform"><h3>Mailserver (Postausgang)</h3>
   <label class="w">Kennwort des Postfachs<input data-st="mail_pass" type="password" value="" placeholder="${settings.mail_pass_set ? '•••••••• (gespeichert – zum Ändern neu eingeben)' : ''}" autocomplete="new-password"></label>
   ${stIn('app_url', 'Adresse der App in den Links (optional)', 1, {ph: 'https://bau.firma.de'})}
   <div class="acts"><button data-act="mailTest">Testmail an mich senden</button>${settings.mail_pass_set ? '<button class="bad" data-act="mailPassClear">Gespeichertes Kennwort löschen</button>' : ''}</div>
-  <div class="info"><b>Gmail:</b> Google-Konto mit Bestätigung in zwei Schritten und dort ein „App-Passwort“ erzeugen; dieses hier eintragen. <b>Office 365:</b> Im Microsoft-365-Admincenter muss für das Postfach „Authentifizierter SMTP-Versand“ erlaubt sein; Microsoft schaltet das teils standardmäßig ab. Die Testmail geht an die E-Mail-Adresse unter „Benutzer“ (bei deinem Namen).</div></div>`;
+  <div class="info"><b>Gmail:</b> Google-Konto mit Bestätigung in zwei Schritten und dort ein „App-Passwort“ erzeugen; dieses hier eintragen. <b>Office 365:</b> Im Microsoft-365-Admincenter muss für das Postfach „Authentifizierter SMTP-Versand“ erlaubt sein; Microsoft schaltet das teils standardmäßig ab. Die Testmail geht an deine E-Mail-Adresse (Verwaltung → Benutzer).</div></div>`;
 
 /* ---------- Einstellungen: Firma, Logo, Ablage ---------- */
 const CO = [['office_name','Firmenname (erscheint im PDF, z. B. „Zu erledigen von GK3“)',1],['co_short','Kurzname – wo der lange Firmenname nicht passt (Absenderzeile, Fußzeilen, Gruß), z. B. „GK3 Architekten“',1],['co_street','Straße und Hausnummer',1],['co_zip','PLZ'],['co_city','Ort'],['co_phone','Telefon'],['co_email','E-Mail'],['co_web','Internet',1],['co_extra','Weitere Angabe (z. B. Steuernummer, Handelsregister)',1]];
 const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="text" value="${esc(settings[k] || o.def || '')}" placeholder="${esc(o.ph || '')}" autocomplete="off"${listAttr(k)}></label>`;
-const STABS = [['benutzer', 'Benutzer'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['sicherung', 'Datensicherung']];
-let stab = 'benutzer';
+const STABS = [['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['sicherung', 'Datensicherung']];
+let stab = 'firma';
 function renderProfile(box) {
   const m = settings.store_mode || 'off', adm = me.is_admin, imFenster = box === PH;
-  if (!adm || imFenster) stab = 'benutzer';   // im Einstellungsfenster (⚙): Firma, Ablage, Mailserver, Sicherung stehen unter „Büro“
+  if (!STABS.some((x) => x[0] === stab)) stab = 'firma';
   const firm = `  <div class="cform"><h3>Firmendaten</h3>
     ${CO.map(([k, l, w]) => stIn(k, l, w)).join('')}${addrLists()}
     <div class="info">Diese Angaben erscheinen in der Fußzeile jeder PDF-Seite.</div>
@@ -1508,8 +1480,7 @@ function renderProfile(box) {
     <div class="info">Alle Fotos (auch iPhone-HEIC, PNG, WEBP) werden beim Hochladen als JPG gespeichert und liegen auf dem Server in voller Auflösung; nur im PDF sind sie verkleinert. Das Kennwort wird nur auf dem Server der App gespeichert und nie an den Browser zurückgegeben; am besten ein eigenes Konto nur mit Schreibrecht auf diese Freigabe verwenden.</div>
   </div>`;
   const bar = adm ? `<div class="stabs">${STABS.map(([k, l]) => `<button class="${k === stab ? 'on' : ''}" data-act="stab" data-s="${k}">${l}</button>`).join('')}${['firma', 'ablage', 'mail'].includes(stab) ? '<button data-bph-verlauf="einst:bt" title="Frühere Stände von Firma, Ablage und Mailserver ansehen und wiederherstellen" style="margin-left:auto">↶ Verlauf</button>' : ''}</div>` : '';
-  box.innerHTML = `<div class="wrap">${imFenster ? (adm ? '<div class="info" style="margin-bottom:.8rem">Firma & Logo, Ablage, Mailserver und Datensicherung: ⚙ → Büro.</div>' : '') : bar}${{benutzer: usersCard, firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
-  if (stab === 'benutzer') fillUsers();
+  box.innerHTML = `<div class="wrap">${imFenster ? (adm ? '<div class="info" style="margin-bottom:.8rem">Firma & Logo, Ablage, Mailserver und Datensicherung: ⚙ → Büro.</div>' : '') : bar}${imFenster || !adm ? appCard() : {firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
   if (stab === 'sicherung') loadBackups();
 
   const lf = $('#logoFile'); if (lf) lf.onchange = async e => {
@@ -1563,7 +1534,7 @@ async function saveDue(pan, close) {   // Datum + Uhrzeit des Erinnerungs-Panels
   if (!d) return;
   const it = curReport().items.find(x => x.id === id); if (it) { it.due = d; it.due_time = tm; }
   await track(api('api/items/' + id, 'PUT', {due: d, due_time: tm}));
-  if (!me.email) toast('Für die Erinnerung bitte unter Einstellungen → Benutzer eine E-Mail-Adresse eintragen.');
+  if (!me.email) toast('Für die Erinnerung fehlt deine E-Mail-Adresse – bitte in der Verwaltung → Benutzer eintragen lassen.');
   else toast('Erinnerung per E-Mail am ' + fmt(d) + ' um ' + tm + ' Uhr eingetragen.');
   if (close) { dueEditId = null; renderDetail(); }
 }
@@ -1579,7 +1550,7 @@ async function addItem(kind) {
   const co = row.querySelector('[data-add-co]'); if (co) body.company = co.value.trim();
   const dd = row.querySelector('[data-add-due]'); if (dd && dd.value) { body.due = dd.value; body.due_time = row.querySelector('[data-add-time]').value || '09:00'; }
   const res = await api(`api/reports/${rid}/items`, 'POST', body);
-  if (body.due && !me.email) toast('Für die Erinnerung bitte unter Einstellungen → Benutzer eine E-Mail-Adresse eintragen.');
+  if (body.due && !me.email) toast('Für die Erinnerung fehlt deine E-Mail-Adresse – bitte in der Verwaltung → Benutzer eintragen lassen.');
   if (res.error) { toast(res.error); return; }
   if (addFiles.length && res.id) { const fs = addFiles; addFiles = []; await uploadPhotos(fs, res.id); }
   if (res.contact_created) toast(`„${res.name}“ wurde zu den Kontakten hinzugefügt.`);
@@ -1883,24 +1854,11 @@ document.addEventListener('click', async e => {
   else if (a === 'qDate') { const d = new Date(Date.now() + +b.dataset.d * 864e5); b.closest('.qadd').querySelector('[data-add-due]').value = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   else if (a === 'qAssign') { const fs = qFiles; q = null; renderQ(); await uploadPhotos(fs, b.dataset.id || null); }
   else if (a === 'accent') { await setAccent(b.dataset.c); }
-  else if (a === 'userOpen') { uopen = uopen === id ? null : id; fillUsers(); }
-  else if (a === 'userNew') { unew = !unew; fillUsers(); }
   else if (a === 'changePw') {
     if ($('#pwNew').value !== $('#pwNew2').value) return toast('Die beiden Kennwörter sind nicht gleich.');
     const r = await api('api/password', 'POST', {new: $('#pwNew').value});
     toast(r.ok ? 'Kennwort geändert.' : r.error); if (r.ok) ['#pwNew', '#pwNew2'].forEach(x => $(x).value = '');
   }
-  else if (a === 'addUser') {
-    const r = await api('api/users', 'POST', {name: $('#nuName').value, email: $('#nuMail').value});
-    if (r.error) return toast(r.error);
-    unew = false; uopen = r.id; toast('Benutzer angelegt. Das Startkennwort wurde an ' + r.to + ' geschickt.'); fillUsers();
-  }
-  else if (a === 'userPw') {
-    const el = document.querySelector(`[data-upw="${id}"]`), r = await api('api/users/' + id, 'PUT', {password: el.value});
-    toast(r.error || 'Kennwort gesetzt – der Benutzer muss es beim nächsten Anmelden ändern.'); if (!r.error) { el.value = ''; fillUsers(); }
-  }
-  else if (a === 'userMail') { toast('E-Mail wird gesendet …'); const r = await api('api/users/' + id + '/access', 'POST'); toast(r.error || 'Zugangsdaten an ' + r.to + ' gesendet.'); if (!r.error) fillUsers(); }
-  else if (a === 'delUser') { const r = await api('api/users/' + id, 'DELETE'); toast(r.error || 'Benutzer gelöscht.'); fillUsers(); }
   else if (a === 'mailTest') { toast('Testmail wird gesendet …'); const r = await api('api/mail/test', 'POST'); toast(r.ok ? 'Testmail an ' + r.to + ' gesendet.' : 'Fehlgeschlagen: ' + r.error); }
   else if (a === 'mailPassClear') { await api('api/settings', 'PUT', {mail_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
   else if (a === 'storePassClear') { await api('api/settings', 'PUT', {store_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
@@ -1920,8 +1878,7 @@ document.addEventListener('change', async e => {
   else if (t.dataset.pf) saveProjectField(t);
   else if (t.dataset.cf) saveContactField(t);
   else if ('accentCustom' in t.dataset) setAccent(t.value);
-  else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); if (me.is_admin) fillUsers(); } }
-  else if (t.dataset.uf) { const r = await api('api/users/' + t.dataset.id, 'PUT', {[t.dataset.uf]: t.type === 'checkbox' ? t.checked : t.value}); if (r.error) toast(r.error); else toast('Gespeichert.'); fillUsers(); }
+  else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); } }
   else if (t.dataset.st) {
     const k = t.dataset.st, sec = /_pass$/.test(k); if (sec && !t.value) return;
     if (!sec) settings[k] = t.value;

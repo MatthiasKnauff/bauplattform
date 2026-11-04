@@ -902,7 +902,7 @@
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
       <button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button>
       <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kollegen gleichzeitig" hidden>✏️ Markieren</button>
-      <button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern">⤓</button></div><div class="bph-skl" hidden></div>
+      <button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern">⤓</button></div><div class="bph-skl" hidden></div><div class="bph-skm" hidden><button type="button" data-skm="stift" title="Zeichnen">✏️</button><button type="button" data-skm="zeigen" title="Nur zeigen / blättern">☝</button><button type="button" data-skm="zurueck" title="Letzten Strich zurück">↶</button><button type="button" data-skm="voll" title="Leisten wieder einblenden">⤡</button></div>
       <div class="bph-gvs"></div><button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
     document.body.appendChild(el);
     const S = el.querySelector('.bph-gvs');
@@ -956,7 +956,7 @@
         <button type="button" data-sk="zurueck" title="Meinen letzten Strich zurücknehmen">↶</button><button type="button" data-sk="alle" title="${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}">🗑</button>
         <span class="bph-skp">${andere.length ? andere.map((p) => `<i style="background:${p.farbe}"></i>${esc(p.name.split(' ')[0])}`).join(' ') : 'nur du'}</span>
         <button type="button" data-sk="einladen" title="Kollegen einladen – sie sehen den Plan und zeichnen gleichzeitig mit">👥 Einladen</button>
-        <button type="button" data-sk="pdf" title="Plan mit allen Markierungen als PDF">⤓ PDF</button><button type="button" data-sk="ende" title="Markieren beenden (die Skizze bleibt gespeichert)">✓ Fertig</button>`;
+        <button type="button" data-sk="pdf" title="Plan mit allen Markierungen als PDF">⤓ PDF</button><button type="button" data-sk="voll" title="Leisten ausblenden – mehr Platz zum Zeichnen (z. B. iPhone quer)">⤢</button><button type="button" data-sk="ende" title="Markieren beenden (die Skizze bleibt gespeichert)">✓ Fertig</button>`;
       if (L._h !== html) { L._h = html; L.innerHTML = html; }   // nur bei Änderung neu zeichnen (Knöpfe bleiben klickbar)
     }
     function skModus() {   // Zeichnen fängt Maus/Finger ab, „Zeigen“ lässt blättern
@@ -1023,7 +1023,7 @@
     }
     function skEnde(still) {
       clearInterval(SK.t); if (SK.id) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: 0, x: null, y: null }).catch(() => {});
-      SK.id = null; SK.striche = []; SK.leute = []; skLeiste(); skModus(); if (!still) alleZeichnen();
+      SK.id = null; SK.striche = []; SK.leute = []; el.classList.remove('bph-voll'); el.querySelector('.bph-skm').hidden = true; skLeiste(); skModus(); if (!still) alleZeichnen();
     }
     function skPunkt(e) { const wr = e.target.closest && e.target.closest('.bph-pg'); if (!wr) return null; const r = wr.getBoundingClientRect(); return { wr, seite: +wr.dataset.seite, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
     S.addEventListener('pointerdown', (e) => {
@@ -1083,14 +1083,26 @@
       } catch (e) { alert(e.message); }
     }
     el.querySelector('.bph-skl').addEventListener('click', async (e) => {
-      const w = e.target.closest('[data-skw]'); if (w) { SK.werkzeug = w.dataset.skw; skLeiste(); skModus(); return; }
+      const w = e.target.closest('[data-skw]'); if (w) { SK.werkzeug = w.dataset.skw; if (w.dataset.skw !== 'zeigen') SK.letztes = w.dataset.skw; skLeiste(); skModus(); return; }
       const b = e.target.closest('[data-sk]'); if (!b) return;
       const a = b.dataset.sk;
       if (a === 'zurueck') { await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'letzter' }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'alle') { if (!confirm(SK.owner === ich() ? 'Alle Markierungen auf diesem Plan löschen – auch die der anderen?' : 'Alle deine Markierungen löschen?')) return; await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'alle' }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'einladen') return skEinladen();
       if (a === 'pdf') return skPdf();
+      if (a === 'voll') return skVoll(true);
       if (a === 'ende') { skEnde(false); }
+    });
+    function skVoll(an) {   // Leisten aus: nur Plan + kleine Werkzeugpille (iPhone quer)
+      el.classList.toggle('bph-voll', an); el.querySelector('.bph-skm').hidden = !an;
+      el.querySelectorAll('.bph-skm [data-skm]').forEach((b) => b.classList.toggle('on', b.dataset.skm === (SK.werkzeug === 'zeigen' ? 'zeigen' : 'stift')));
+      setTimeout(alleZeichnen, 50);
+    }
+    el.querySelector('.bph-skm').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-skm]'); if (!b) return; const a = b.dataset.skm;
+      if (a === 'voll') return skVoll(false);
+      if (a === 'zurueck') { await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'letzter' }).catch(() => {}); return skAbgleich(); }
+      SK.werkzeug = a === 'zeigen' ? 'zeigen' : (SK.letztes || 'stift'); skLeiste(); skModus(); skVoll(true);
     });
     addEventListener('resize', () => { if (gv) alleZeichnen(); });
     function setZoom(d) {

@@ -183,6 +183,13 @@
 .bph-gvb .bph-skb.on{background:#ff5fb3;border-color:#ff5fb3;color:#111}
 .bph-skl{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;padding:.35rem .5rem;background:#232428;border-top:1px solid #3a3c40}
 .bph-skl[hidden]{display:none}
+.bph-voll .bph-gvb,.bph-voll .bph-skl,.bph-voll .bph-gvp{display:none!important}
+.bph-voll .bph-gvs{padding-top:max(8px,env(safe-area-inset-top))}
+.bph-skm{position:absolute;z-index:4;right:max(10px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));display:flex;gap:4px;background:rgba(30,31,34,.82);border-radius:999px;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.bph-skm[hidden]{display:none}
+.bph-skm button{width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:#fff;font-size:1.05rem;cursor:pointer}
+.bph-skm button.on{background:#f3f3f1;color:#111}
+@media (orientation:landscape) and (max-height:500px){.bph-skl button{height:32px;min-width:34px}.bph-gvb button{height:34px;min-width:34px}}
 .bph-skl button{border:1px solid #4a4c50;background:transparent;color:#f3f3f1;border-radius:10px;min-width:38px;height:36px;font:inherit;font-size:.95rem;cursor:pointer;padding:0 .55rem}
 .bph-skl button.on{background:#f3f3f1;color:#111}
 .bph-skf{width:22px;height:22px;border-radius:50%;border:2px solid #fff;margin:0 .3rem}

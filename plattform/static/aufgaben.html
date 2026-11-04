@@ -83,6 +83,9 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .sm-drop.on,.sm-drop:hover{border-color:var(--accent,#e33);color:var(--ink)}
 .sm-ok,.sm-bad{margin-top:.5rem;padding:.6rem .75rem;border-radius:8px;font-size:.9rem;line-height:1.45}
 .sm-ok{background:#e5f4e4;color:#1d4d1a}.sm-bad{background:#fbebeb;color:#7a1c1c}
+.briefe{margin:.2rem 0 .9rem;padding:.6rem .85rem;border:1px solid var(--line);border-left:4px solid var(--accent,#e33);border-radius:10px;background:var(--card)}
+.briefe .bf{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.35rem 0;border-top:1px solid var(--line);margin-top:.35rem}
+.briefe .bf span:last-child{display:flex;gap:.35rem}
 .bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
 .bed-bar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;padding:.55rem .9rem;background:var(--card,#fff);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .bed-bar .mute{font-size:.85rem}
@@ -103,6 +106,7 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
     <button class="btn sm" id="neuBtn">+ Erinnerung</button>
   </div>
   <nav class="tabs" id="tabs"></nav>
+  <div id="briefe" class="briefe" hidden></div>
   <div id="view"><p class="mute">Lade …</p></div>
 </main>
 <div id="undoBar" hidden><button class="btn" id="undoBtn">↶ Rückgängig</button></div>
@@ -390,7 +394,7 @@ async function briefStart(url, body, titel, close) {   // aus dem Dialog: Entwur
   close();
   briefEditor(url, body, titel, r);
 }
-async function briefEditor(url, body, titel, E) {
+async function briefEditor(url, body, titel, E, bid) {
   const lib = await pdfjs().catch((e) => { toast(e.message, true); return null; }); if (!lib) return;
   const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', titel + ' bearbeiten');
   ov.innerHTML = `<div class="bed-bar"><b>${esc(titel)} bearbeiten</b><span class="mute">Text anklicken und ändern – gelb hinterlegt sind die änderbaren Felder.</span><span style="flex:1"></span>
@@ -420,23 +424,26 @@ async function briefEditor(url, body, titel, E) {
   const zu = () => { ov.remove(); document.body.style.overflow = ''; };
   ov.addEventListener('click', (e) => {
     const b = e.target.closest('[data-b]'); if (!b) return;
-    if (b.dataset.b === 'x') { if (confirm(`${titel} verwerfen? Es wurde nichts gespeichert oder versendet.`)) zu(); return; }
+    if (b.dataset.b === 'x') { if (confirm(bid ? `Änderungen verwerfen? Die gespeicherte Fassung bleibt.` : `${titel} verwerfen? Es wurde noch nichts gespeichert.`)) { zu(); if (bid) briefFertig(url, body, titel, bid, true); } return; }
     const werte = { ...E.felder }; Object.entries(F).forEach(([k, el]) => { werte[k] = el.value; });
-    zu(); briefFertig(url, { ...body, werte }, titel);
+    zu(); briefFertig(url, { ...body, werte }, titel, bid);
   });
   const f0 = F.Text || Object.values(F)[0]; if (f0) f0.focus();
 }
-function briefFertig(url, body, titel) {   // gespeicherte Fassung: drucken und/oder versenden – beides ohne Formularfelder
+async function briefFertig(url, body, titel, bid, schonGespeichert) {   // gespeicherte Fassung: drucken und/oder versenden – beides ohne Formularfelder
+  if (!schonGespeichert) {   // auf dem Server ablegen – bleibt unter „Gespeicherte Schreiben“, bis es versendet ist
+    try { bid = (await api('api/briefe', 'POST', { id: bid, titel, url, body })).id; ladeBriefe(); } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message, true); }
+  }
   const lab = { mich: '✉ An mich senden', firma: '✉ An die Firma senden', pdf: '✓ Abschließen (selbst zustellen)' }[body.versand] || '✉ Versenden';
   const wohin = { mich: `per E-Mail an dich (${esc((KONTO && KONTO.email) || '')}) zum Weiterleiten`, firma: `per E-Mail an ${esc(body.email || '')}${body.kopie ? ' (Kopie an dich)' : ''}`, pdf: 'nicht per E-Mail – du stellst sie selbst zu (Einschreiben, Bote) und sie wird im Verlauf der Firma eingetragen' }[body.versand] || '';
   modalBox(`<h3>${esc(titel)} ist gespeichert</h3>
-    <p>Die Fassung ist fertig. Ausdruck und Versand enthalten <b>keine Eingabefelder</b> mehr und lassen sich nicht mehr ändern.</p>
+    <p>Du findest sie jederzeit oben unter <b>Gespeicherte Schreiben</b> wieder – zum Weiterbearbeiten, Drucken oder Versenden. Ausdruck und Versand enthalten keine Eingabefelder.</p>
     <p class="mute" style="font-size:.88rem">Versand: ${wohin}.</p>
     <div class="acts" style="flex-wrap:wrap"><button class="btn" data-m="edit">✎ Weiter bearbeiten</button><button class="btn" data-m="druck">🖨 Drucken</button>${SIGNME ? '<button class="btn" data-m="signme" title="Qualifiziert elektronisch unterschreiben im sign-me-Portal von D-Trust">✍ Mit sign-me unterschreiben</button>' : ''}<span style="flex:1"></span>
       <button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="senden">${lab}</button></div>`, async (m, bg, close) => {
-    if (m === 'x') { if (!bg.dataset.sent && !confirm(`${titel} noch nicht ${body.versand === 'pdf' ? 'abgeschlossen' : 'versendet'}. Trotzdem schließen? Die Änderungen gehen verloren.`)) return; close(); return; }
-    if (m === 'edit') { try { const r = await api(url, 'POST', { ...body, schritt: 'entwurf' }); close(); briefEditor(url, body, titel, r); } catch (e) { toast(e.message, true); } return; }
-    if (m === 'signme') { close(); signmeDialog(url, body, titel); return; }
+    if (m === 'x') { close(); return; }
+    if (m === 'edit') { try { const r = await api(url, 'POST', { ...body, schritt: 'entwurf' }); close(); briefEditor(url, body, titel, r, bid); } catch (e) { toast(e.message, true); } return; }
+    if (m === 'signme') { close(); signmeDialog(url, body, titel, bid); return; }
     const w = window.open('', '_blank'); if (w) w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(titel)} …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">${esc(titel)} wird erstellt …</body>`);
     try {
       if (m === 'druck') {
@@ -447,12 +454,12 @@ function briefFertig(url, body, titel) {   // gespeicherte Fassung: drucken und/
         return;
       }
       await pdfHolen(url, { ...body, schritt: 'senden' }, titel, w);
-      bg.dataset.sent = '1'; close(); reload();
+      close(); await briefWeg(bid); reload();
     } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
   });
 }
 
-function signmeDialog(url, body, titel) {   // sign-me (D-Trust): herunterladen → im Portal unterschreiben → zurückgeben → prüfen → senden
+function signmeDialog(url, body, titel, bid) {   // sign-me (D-Trust): herunterladen → im Portal unterschreiben → zurückgeben → prüfen → senden
   let datei = null;
   const lab = { mich: '✉ Unterschriebene Fassung an mich senden', firma: '✉ Unterschriebene Fassung an die Firma senden', pdf: '✓ Abschließen (selbst zustellen)' }[body.versand] || '✉ Senden';
   const bg = modalBox(`<h3>${esc(titel)} mit sign-me unterschreiben</h3>
@@ -462,7 +469,7 @@ function signmeDialog(url, body, titel) {   // sign-me (D-Trust): herunterladen 
       <li><b>Unterschriebenes PDF zurückgeben</b><label class="sm-drop" id="smDrop"><input type="file" accept="application/pdf,.pdf" hidden id="smIn"><span>PDF hier hineinziehen oder <u>auswählen</u></span></label><div id="smRes"></div></li>
     </ol>
     <div class="acts"><button class="btn" data-m="zurueck">← Zurück</button><span style="flex:1"></span><button class="btn pri" data-m="senden" disabled>${lab}</button></div>`, async (m, bg, close) => {
-    if (m === 'zurueck') { close(); briefFertig(url, body, titel); return; }
+    if (m === 'zurueck') { close(); briefFertig(url, body, titel, bid, true); return; }
     if (m === 'laden') {
       try {
         const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, schritt: 'drucken' }) });
@@ -474,7 +481,7 @@ function signmeDialog(url, body, titel) {   // sign-me (D-Trust): herunterladen 
     }
     if (m === 'senden' && datei) {
       const w = window.open('', '_blank'); if (w) w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(titel)} …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">${esc(titel)} wird verschickt …</body>`);
-      try { await pdfHolen(url, { ...body, schritt: 'senden' }, titel, w, datei); close(); reload(); } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+      try { await pdfHolen(url, { ...body, schritt: 'senden' }, titel, w, datei); close(); await briefWeg(bid); reload(); } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
     }
   });
   bg.querySelector('.modal').style.width = 'min(620px,100%)';
@@ -497,6 +504,20 @@ function signmeDialog(url, body, titel) {   // sign-me (D-Trust): herunterladen 
   drop.addEventListener('dragleave', () => drop.classList.remove('on'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('on'); nehmen(e.dataTransfer.files[0]); });
 }
+
+/* ---------- Gespeicherte Schreiben (Rügen, die noch nicht versendet sind) ---------- */
+let BRIEFE = [];
+async function ladeBriefe() { try { BRIEFE = await api('api/briefe'); } catch { BRIEFE = []; } briefeZeigen(); }
+async function briefWeg(bid) { if (!bid) return; try { await api('api/briefe/' + bid, 'DELETE'); } catch { /* egal */ } await ladeBriefe(); }
+function briefeZeigen() {
+  const box = $('#briefe'); if (!box) return;
+  box.hidden = !BRIEFE.length;
+  box.innerHTML = BRIEFE.length ? `<b>Gespeicherte Schreiben</b> <span class="mute">– noch nicht versendet</span>${BRIEFE.map((b) => `<div class="bf"><span>✉ ${esc(b.titel)}${b.firma ? ' an ' + esc(b.firma) : ''} <small class="mute">· ${esc(new Date(b.stand).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}</small></span><span><button class="btn sm" data-bf="${esc(b.id)}">Öffnen</button><button class="btn sm" data-bfweg="${esc(b.id)}" title="Schreiben löschen">✕</button></span></div>`).join('')}` : '';
+}
+document.addEventListener('click', async (e) => {
+  const o = e.target.closest('[data-bf]'); if (o) { const b = BRIEFE.find((x) => x.id === o.dataset.bf); if (!b) return; if (!KONTO) await konto(); SIGNME = !!b.signme; briefFertig(b.url, b.body, b.titel, b.id, true); return; }
+  const d = e.target.closest('[data-bfweg]'); if (d) { if (!confirm('Gespeichertes Schreiben löschen?')) return; await briefWeg(d.dataset.bfweg); }
+});
 
 /* ---------- Mängelrüge: Dialog → Entwurf im Brief-Editor ---------- */
 async function ruegeDialog(id) {
@@ -585,7 +606,7 @@ async function setDialog(host) {
   if (!['maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'maengel';
   const gp = !deep && BPHead.projektId();   // Projekt aus der zuletzt benutzten App: Mängel dieses Projekts (Filter „Alle Projekte“ hebt das auf)
   if (gp) F.projekt = String(gp);
-  renderTabs(); await reload(tab === 'erinnerungen');
+  renderTabs(); ladeBriefe(); await reload(tab === 'erinnerungen');
   if (gp && M && !M.some((m) => m.pid === gp)) { F.projekt = ''; if (tab === 'maengel') renderM(); }
   if (deep) zeige(deep[1], deep[2]);
   if (tab === 'maengel') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});

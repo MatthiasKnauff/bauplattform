@@ -15,7 +15,7 @@ Diese App gleicht die Pläne regelmäßig ab und verschickt die Erinnerungen per
 /api/einstellungen           Vorlauf, Lücke, E-Mail an/aus
 /api/bild/<size>/<file>      Foto-Vorschau aus dem Bautagebuch
 """
-import io, json, re, threading, time, urllib.error, urllib.parse, urllib.request
+import io, json, re, threading, time, uuid, urllib.error, urllib.parse, urllib.request
 from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
@@ -619,6 +619,44 @@ def ruege_pdf():
     C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{ms[0]['projekt']} · {E.get('name') or ''} · {len(ms)} Mängel")
     hinweis, fehler, neu = _versenden(b, "Mängelrüge", E, ms[0]["projekt"], ms[0]["pid"], frist, len(ms), buf.getvalue(), fn, inhalt=("Mit sign-me qualifiziert signiert.\n" if signiert else "") + (felder.get("Maengel") or liste))
     return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
+
+
+# ---------------------------------------------------------------- Gespeicherte Schreiben (Rügen, die noch nicht versendet sind)
+def _bkey(i=""):
+    return f"brief:{g.user['id']}:{i}"
+
+
+@app.route("/api/briefe", methods=["GET", "POST"])
+def briefe():
+    """GET: meine gespeicherten, noch nicht versendeten Schreiben · POST {id?, art, titel, url, body}: speichern."""
+    with db.tx() as c:
+        if request.method == "GET":
+            rows = c.execute("SELECT key, data, updated FROM bp_store WHERE key LIKE ? ORDER BY updated DESC", (_bkey() + "%",)).fetchall()
+            out, sm = [], _signme(c)
+            for r in rows:
+                try:
+                    d = json.loads(r["data"])
+                except ValueError:
+                    continue
+                out.append({"id": r["key"].rsplit(":", 1)[1], "titel": d.get("titel"), "url": d.get("url"), "body": d.get("body") or {},
+                            "firma": ((d.get("body") or {}).get("empfaenger") or {}).get("name") or "", "projekt": d.get("projekt") or "", "stand": r["updated"], "signme": sm})
+            return jsonify(out)
+        b = request.get_json(silent=True) or {}
+        if b.get("url") not in ("api/maengelruege", "api/terminruege") or not isinstance(b.get("body"), dict):
+            return jsonify(error="Unbekanntes Schreiben"), 400
+        i = re.sub(r"[^a-z0-9]", "", str(b.get("id") or ""))[:16] or uuid.uuid4().hex[:12]
+        data = json.dumps({"titel": str(b.get("titel") or "Schreiben")[:60], "url": b["url"], "body": b["body"], "projekt": str(b.get("projekt") or "")[:200]}, ensure_ascii=False)
+        if len(data) > 400000:
+            return jsonify(error="Das Schreiben ist zu lang."), 400
+        konto._put(c, _bkey(i), data, g.user["name"])
+    return jsonify(ok=True, id=i)
+
+
+@app.delete("/api/briefe/<i>")
+def brief_weg(i):
+    with db.tx() as c:
+        c.execute("DELETE FROM bp_store WHERE key=?", (_bkey(re.sub(r"[^a-z0-9]", "", i)[:16]),))
+    return jsonify(ok=True)
 
 
 # ---------------------------------------------------------------- Termine: Firmen laut Bauzeitenplan nicht anwesend

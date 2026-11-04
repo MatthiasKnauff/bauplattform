@@ -165,6 +165,11 @@ table.lv.baum tr.ti td{background:transparent;font-weight:600}
 table.lv.baum tr.ti.l1 td{background:color-mix(in srgb,var(--hov) 60%,transparent)}
 table.lv.baum tr.ti input{font-weight:600}
 table.lv.baum tr.wurzel td{background:var(--card);font-weight:600}
+table.lv.baum tr.wurzel.zu{cursor:pointer}
+table.lv.baum tr.wurzel.zu:hover td{background:var(--hov)}
+table.lv.baum tr.wurzel.zu b{font-weight:600}
+#sel{margin-left:.2rem}
+#sel[hidden]{display:none}
 table.lv.baum tr.wurzel td b{vertical-align:middle}
 table.lv.baum tr:not(.wurzel):not(.lang):hover td{background:var(--hov)}
 table.lv.baum .badge{margin-left:.3rem}
@@ -248,7 +253,7 @@ table.tl .ed{position:absolute;left:0;top:0;height:100%;min-width:100%;z-index:5
 <body>
 <main class="ava">
   <div class="rib" role="toolbar" aria-label="Werkzeuge">
-    <div class="rg"><div class="rr"><select id="proj" aria-label="Projekt"></select><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button></div><div class="rl">Leistungsverzeichnis</div></div>
+    <select id="proj" aria-label="Projekt" hidden></select>
     <div class="rg"><div class="rr">
       <button class="rb" id="newBtn" title="Neues Leistungsverzeichnis / neuer Auftrag"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M12 11v6M9 14h6" class="ac"/></svg>Neu</button>
       <button class="rb" data-act="pos" data-need="lv" title="Position anhängen"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h12"/><path d="M19 15v6M16 18h6" class="ac"/></svg>Position</button>
@@ -272,7 +277,7 @@ table.tl .ed{position:absolute;left:0;top:0;height:100%;min-width:100%;z-index:5
   <div class="body">
     <aside class="nav" id="tabs" aria-label="Bereiche"></aside>
     <section class="pane">
-      <div class="ph"><b id="phT"></b><span class="stat" id="stat"></span></div>
+      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span></div>
       <div class="kpi" id="kpi"></div>
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
@@ -398,7 +403,9 @@ function render() {
   $('#tabs').innerHTML = (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
     + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')}</div>`).join('');
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
-  $('#phT').textContent = `${(TABS.find((t) => t[0] === tab) || [, ''])[1]}: ${NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn}`;
+  const mitSel = NURLV.has(tab) && tab !== 'lv' && LIST.length > 0;   // im LV wählt der Baum, in Angebote/Aufmaß/Rechnungen dieser Knopf
+  $('#sel').hidden = !mitSel;
+  $('#phT').textContent = `${(TABS.find((t) => t[0] === tab) || [, ''])[1]}${mitSel ? '' : ': ' + (NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn)}`;
   $('#kpi').hidden = !NURLV.has(tab); $('#stat').hidden = !NURLV.has(tab);
   document.querySelectorAll('[data-need="lv"]').forEach((b) => { b.disabled = !L; });
   if (typeof quZeigen === 'function' && QU) quZeigen();
@@ -451,6 +458,10 @@ function vLv() {
   }).join('');
   const kopf = `<tr class="wurzel"><td class="baumz"><div class="bz" style="${einr(0)}"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NC - 1}"></td></tr>
     <tr class="wurzel lvz"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▾</span>${IC.lv}<b>${esc(L.nr)} ${esc(L.name)}</b></div></td><td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
+  // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
+  const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
+  const LV = LIST.filter((x) => !x.archived || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
+  const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   return `<div class="bar"><button class="btn sm" data-act="titel">+ Titel</button><button class="btn sm" data-act="pos">+ Position</button><button class="btn sm" data-act="txt">+ Hinweistext</button>
       ${V ? '<button class="btn sm" data-act="nt" title="Nachtragsposition (geänderte oder zusätzliche Leistung nach § 2 Abs. 5/6 VOB/B)">+ Nachtrag</button>' : ''}
       <button class="btn sm" data-act="num" title="Ordnungszahlen neu vergeben: Titel 01, 02 …, Positionen 0010, 0020 …">Nummerieren</button>
@@ -458,9 +469,13 @@ function vLv() {
       <span class="fill"></span><button class="btn sm" data-act="vorbem">${L.data.vorbem ? '✎ ' : '+ '}Vorbemerkungen</button><button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><b>Vorbemerkungen</b><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
-      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf}${rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}</tbody>
+      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace('<tr class="wurzel lvz">', vorher + '<tr class="wurzel lvz">')}${rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
+document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen
+  const r = tab === 'lv' && e.target.closest && e.target.closest('[data-lvopen]'); if (!r) return;
+  await flush(); await openLv(+r.dataset.lvopen);
+});
 document.addEventListener('click', (e) => {   // Titel auf- und zuklappen
   if (tab !== 'lv' || !L) return;
   const c = e.target.closest && e.target.closest('[data-zu]'), a = e.target.closest && e.target.closest('[data-lvalle]');

@@ -37,6 +37,11 @@ BP = {"aufgaben": "Einstellungen „Mängel & Erinnerungen“", "plaene": "Einst
 BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)", "vergleich": "Vergleichsobjekte und importierte Kennwerte (Baukosten)", "dienste": "Zugänge zu Kostendatenbanken (Baukosten)"}
 
 LABELS = {
+    # AVA (Leistungsverzeichnis)
+    "lv": "LV", "items": "Positionen", "kurz": "Kurztext", "lang": "Langtext", "menge": "Menge", "einheit": "Einheit", "art": "Art", "kg": "KG", "kg81": "KG (1981)",
+    "lb": "Leistungsbereich", "ep_s": "EP Schätzung", "gb": "mit Gesamtpreis", "entf": "entfällt", "sp": "Schwerpunkt", "bezug": "Bezug", "mf": "Rechenweg",
+    "np_vor": "neue Seite vorher", "np_nach": "neue Seite nachher", "nt_status": "Nachtrag-Status", "nt_grund": "Begründung", "vorbem": "Vorbemerkungen",
+    "druck": "Drucklayout", "lvl": "Ebene", "oz": "OZ", "signme": "sign-me", "co_font": "Schrift der Briefe",
     "office_name": "Büroname", "co_short": "Kurzname", "co_street": "Straße", "co_zip": "PLZ", "co_city": "Ort", "co_phone": "Telefon", "co_email": "E-Mail",
     "co_web": "Internet", "app_url": "Adresse der Bauplattform", "mail_provider": "Mailanbieter", "mail_user": "Mail-Benutzer",
     "mail_pass": "Mail-Kennwort", "mail_host": "Mailserver", "mail_port": "Mail-Port", "mail_from": "Absender",
@@ -299,6 +304,9 @@ def _ident(x):
 
 def _nm(x):
     if isinstance(x, dict):
+        if isinstance(x.get("kurz"), str) and ("oz" in x or "typ" in x):   # Position/Titel eines LV: „01.0010 Außenwand“
+            k = " ".join(x["kurz"].split())
+            return (f"{x.get('oz') or ''} " + (k if len(k) <= 40 else k[:38] + "…")).strip() or "Position"
         for k in ("label", "name", "titel", "title"):
             if isinstance(x.get(k), str) and x[k].strip():
                 return x[k].strip()

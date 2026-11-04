@@ -77,6 +77,9 @@ table.eigkg input{border:0;width:100%;padding:.2rem;background:transparent}
 .lv .lt{font-size:.8rem;line-height:1.35;color:var(--mute);margin:.1rem .35rem .2rem;max-height:4.05em;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:default}
 .badge.sp{background:#1e5aa0;color:#fff}
 tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
+#histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2,var(--card));border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#histBar[hidden]{display:none}
+#histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fotos{display:flex;flex-wrap:wrap;gap:.45rem;margin:.4rem 0 0}
 .fotos figure{position:relative;margin:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
 .fotos img{display:block;height:92px;width:auto;max-width:180px;object-fit:cover;cursor:zoom-in}
@@ -173,6 +176,7 @@ table.lv textarea{min-height:5.5rem;resize:vertical;border-color:var(--line)}
       <button class="rb" data-act="titel" data-need="lv" title="Titel anhängen"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/><path d="M17 12v5M14.5 14.5h5" class="ac"/></svg>Titel</button>
     </div><div class="rl">Neu</div></div>
     <div class="rg"><div class="rr">
+      <button class="rb" id="standBtn" data-need="lv" title="Jetzigen Stand dieses LV unter einem Namen festhalten (z. B. „Versand an Bieter 04.11.“)"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/></svg>Stand speichern</button>
       <button class="rb" id="verBtn" title="Frühere Stände dieses LV ansehen und wiederherstellen"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/></svg>Verlauf</button>
       <button class="rb" id="moreBtn" title="Archivieren oder löschen"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Archiv / Löschen</button>
     </div><div class="rl">Bearbeiten</div></div>
@@ -243,9 +247,10 @@ async function loadList(want) {
   if (pick) await openLv(pick.id); else { L = null; render(); }
 }
 async function openLv(id) {
-  L = await api('api/lv/' + id); LS.set('lv:' + pid, id); render();
+  L = await api('api/lv/' + id); LS.set('lv:' + pid, id); render(); histTrack();
 }
 function changed(draw = false) {
+  histTrack();
   $('#save').textContent = 'Nicht gespeichert …';
   clearTimeout(saveT); saveT = setTimeout(saveNow, 800);
   if (draw) render(); else { kpis(); sums(); }
@@ -268,7 +273,7 @@ async function saveNow(extra = {}) {
 async function flush() { if (saveT) { clearTimeout(saveT); saveT = 0; if ($('#save').textContent.startsWith('Nicht')) await saveNow(); } }
 async function call(url, m, body) {   // Aktion auf dem Server, Antwort ist das ganze LV
   await flush();
-  const r = await api(url, m, body); L = r; render(); if (r.hinweis) toast(r.hinweis); refreshList(); return r;
+  const r = await api(url, m, body); L = r; render(); histTrack(); if (r.hinweis) toast(r.hinweis); refreshList(); return r;
 }
 async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); } catch { /* egal */ } }
 
@@ -542,7 +547,7 @@ async function doImport(file) {
     await flush();
     const r = await fetch(`api/lv/${L.id}/import`, { method: 'POST', body: fd }), j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || r.statusText);
-    L = j; render(); toast(j.hinweis || 'Eingelesen.'); refreshList();
+    L = j; HIST.next = 'Einlesen'; render(); histTrack(); toast(j.hinweis || 'Eingelesen.'); refreshList();
   } catch (e) { toast(e.message, true); }
 }
 $('#impBtn').onclick = () => { if (!L) return; const m = menu($('#impBtn'), [['lv', 'Leistungsverzeichnis einlesen', 'GAEB X81–X86 oder Excel'], ['angebot', 'Angebot eines Bieters einlesen', 'GAEB X84 oder ausgefülltes Excel']]); m.onpick = (k) => importDialog(k); };
@@ -903,6 +908,66 @@ document.addEventListener('paste', (e) => {   // Bild aus der Zwischenablage (Sc
 document.addEventListener('dragover', (e) => { if (e.target.closest && e.target.closest('tr.lang') && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); e.target.closest('tr.lang').classList.add('drop'); } });
 document.addEventListener('dragleave', (e) => { const r = e.target.closest && e.target.closest('tr.lang'); if (r) r.classList.remove('drop'); });
 document.addEventListener('drop', (e) => { const r = e.target.closest && e.target.closest('tr.lang'); if (!r || !L || !e.dataTransfer.files.length) return; e.preventDefault(); r.classList.remove('drop'); fotoHoch(items()[+r.dataset.i].id, e.dataTransfer.files); });
+
+/* ---------- Rückgängig / Wiederholen (wie in den anderen Apps): Eingaben, Löschen, Verschieben, Übernahmen ---------- */
+let HIST = { id: null, last: null, undo: [], redo: [], t: 0 };
+const histLabel = (a, b) => {
+  try {
+    const A = JSON.parse(a).items || [], Bd = JSON.parse(b).items || [];
+    if (Bd.length < A.length) return A.length - Bd.length === 1 ? 'Zeile gelöscht' : `${A.length - Bd.length} Zeilen gelöscht`;
+    if (Bd.length > A.length) return Bd.length - A.length === 1 ? 'Zeile hinzugefügt' : `${Bd.length - A.length} Zeilen hinzugefügt`;
+    if (A.map((x) => x.id).join() !== Bd.map((x) => x.id).join()) return 'Verschoben';
+    const k = A.findIndex((x, i) => JSON.stringify(x) !== JSON.stringify(Bd[i]));
+    if (k >= 0) return `Pos. ${Bd[k].oz || Bd[k].kurz || ''} geändert`.replace('  ', ' ');
+  } catch { /* egal */ }
+  return 'Änderung';
+};
+function histTrack() {   // bei jeder Änderung: alten Stand merken (Tippen in einem Feld zählt als ein Schritt)
+  if (!L || !L.data) return;
+  const cur = JSON.stringify(L.data);
+  if (HIST.id !== L.id) { HIST = { id: L.id, last: cur, undo: [], redo: [], t: 0 }; histUi(); return; }
+  if (cur === HIST.last) return;
+  const lab = HIST.next || histLabel(HIST.last, cur), top = HIST.undo[HIST.undo.length - 1], now = Date.now();
+  if (!HIST.next && top && top.label === lab && now - HIST.t < 2000) { /* schnelles Weitertippen: derselbe Schritt */ }
+  else { HIST.undo.push({ data: HIST.last, label: lab }); if (HIST.undo.length > 80) HIST.undo.shift(); }
+  HIST.next = ''; HIST.t = now; HIST.redo = []; HIST.last = cur; histUi();
+}
+function histGo(dir) {
+  histTrack();
+  const from = dir < 0 ? HIST.undo : HIST.redo, to = dir < 0 ? HIST.redo : HIST.undo, st = from.pop(); if (!st) return;
+  to.push({ data: HIST.last, label: st.label });
+  L.data = JSON.parse(st.data); HIST.last = st.data; HIST.t = 0;
+  changed(true); histUi(); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${st.label}`);
+}
+function histUi() {
+  let el = $('#histBar');
+  if (!el) { el = document.createElement('div'); el.id = 'histBar'; el.innerHTML = '<button class="btn" data-hist="-1">↶ Rückgängig</button><button class="btn" data-hist="1" title="Wiederholen (Strg+Y)">↷</button>'; document.body.appendChild(el);
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (b) histGo(+b.dataset.hist); }); }
+  const u = HIST.undo[HIST.undo.length - 1], r = HIST.redo[HIST.redo.length - 1];
+  el.hidden = !L || (!u && !r);
+  const bu = el.querySelector('[data-hist="-1"]'), br = el.querySelector('[data-hist="1"]');
+  bu.disabled = !u; bu.title = u ? `Rückgängig: ${u.label} (Strg+Z)` : 'Nichts rückgängig zu machen'; bu.textContent = u ? `↶ ${u.label}` : '↶ Rückgängig';
+  br.disabled = !r; br.title = r ? `Wiederholen: ${r.label} (Strg+Y)` : 'Nichts zu wiederholen';
+}
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg,.bed')) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;   // im Feld macht der Browser selbst rückgängig
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); histGo(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); histGo(1); }
+});
+/* Stand speichern: benannter Stand im Verlauf (wird nie automatisch aufgeräumt) */
+$('#standBtn').onclick = () => {
+  if (!L) return;
+  const vor = `${STATUS.find((x) => x[0] === L.status)[1]} – ${new Date().toLocaleDateString('de-DE')}`;
+  modalBox(`<h3>Stand speichern</h3><p class="hint" style="margin:0 0 .7rem">Hält „LV ${esc(L.nr)} ${esc(L.name)}“ so fest, wie es jetzt ist – mit allen Positionen, Texten, Mengen und Preisen. Unter Verlauf lässt sich der Stand jederzeit ansehen, vergleichen und wiederherstellen; benannte Stände werden nie aufgeräumt.</p>
+    <div class="fm"><label for="stName">Name des Stands</label><input id="stName" value="${esc(vor)}" maxlength="120"></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    const name = bg.querySelector('#stName').value.trim(); if (!name) return;
+    try { await flush(); await api('api/bp/versionen', 'POST', { bereich: 'avalv:' + L.id, name }); close(); toast(`Stand „${name}“ gespeichert.`); } catch (e) { toast(e.message, true); }
+  });
+  setTimeout(() => { const i = document.querySelector('#stName'); if (i) { i.focus(); i.select(); } }, 50);
+};
 
 /* ---------- Eigenschaften einer Position (wie in ORCA: Allgemein · Weiteres · Menge · Grafik) ---------- */
 const LB = ['000 Baustelleneinrichtung', '002 Erdarbeiten', '006 Spezialtiefbau', '009 Entwässerungskanalarbeiten', '012 Mauerarbeiten', '013 Betonarbeiten', '014 Natur-, Betonwerksteinarbeiten', '016 Zimmer- und Holzbauarbeiten', '017 Stahlbauarbeiten', '018 Abdichtungsarbeiten', '020 Dachdeckungsarbeiten', '021 Dachabdichtungsarbeiten', '022 Klempnerarbeiten', '023 Putz- und Stuckarbeiten, Wärmedämmsysteme', '024 Fliesen- und Plattenarbeiten', '025 Estricharbeiten', '026 Fenster, Außentüren', '027 Tischlerarbeiten', '028 Parkett-, Holzpflasterarbeiten', '029 Beschlagarbeiten', '030 Rollladenarbeiten', '031 Metallbauarbeiten', '032 Verglasungsarbeiten', '034 Maler- und Lackierarbeiten', '036 Bodenbelagarbeiten', '037 Tapezierarbeiten', '038 Vorgehängte hinterlüftete Fassaden', '039 Trockenbauarbeiten', '040 Wärmeversorgungsanlagen', '042 Gas- und Wasserinstallation', '044 Abwasserinstallation', '045 Sanitärausstattung', '053 Niederspannungsanlagen', '069 Aufzüge', '080 Straßen, Wege, Plätze', '081 Betonerhaltungsarbeiten', '084 Abbruch- und Rückbauarbeiten', '087 Abfallentsorgung'];

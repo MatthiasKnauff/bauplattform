@@ -108,6 +108,8 @@ def _token(m):
                      {"Content-Type": "application/x-www-form-urlencoded"})["access_token"]
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"Anmeldung bei Microsoft 365 abgelehnt ({e.code}) – Mandant, Client-ID und Geheimnis prüfen.")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Microsoft 365 nicht erreichbar ({e.reason}) – Internetzugang des Servers prüfen.")
 
 
 def m365_lesen(m, adresse, seit):
@@ -129,7 +131,7 @@ def m365_lesen(m, adresse, seit):
                 anh = [y.get("name") or "" for y in a.get("value") or []][:12]
             except Exception:
                 pass
-        out.append({"id": "m:" + x["id"][-40:], "quelle": "Microsoft 365", "von": (f.get("address") or "").lower(), "von_name": f.get("name") or "",
+        out.append({"id": "m:" + x["id"][-40:], "quelle": adresse, "von": (f.get("address") or "").lower(), "von_name": f.get("name") or "",
                     "betreff": x.get("subject") or "", "zeit": x.get("receivedDateTime") or "", "vorschau": (x.get("bodyPreview") or "")[:400],
                     "anhaenge": anh, "link": x.get("webLink") or "", "gelesen": bool(x.get("isRead"))})
     return out
@@ -329,11 +331,12 @@ def abrufen(c, u):
         seit = min(letzte - timedelta(hours=2) if letzte else jetzt - timedelta(days=1), jetzt - timedelta(days=1))
         seit = max(seit, jetzt - timedelta(days=7))
         pf, fehler, mails = postfaecher(c, uid), [], []
-        if pf["m365"] and m365_ok(c) and (u["email"] or "").strip():
-            try:
-                mails += m365_lesen(m365_conf(c), u["email"].strip(), seit)
-            except Exception as e:
-                fehler.append(f"Microsoft 365: {e}")
+        if m365_ok(c):
+            for adr in m365_postfaecher_von(c, u):   # eigenes Postfach und vom Administrator zugewiesene (z. B. rechnungen@, mail@)
+                try:
+                    mails += m365_lesen(m365_conf(c), adr, seit)
+                except Exception as e:
+                    fehler.append(f"{adr}: {e}")
         for k in pf["konten"]:
             if not k.get("an", True):
                 continue
@@ -364,7 +367,7 @@ def abrufen(c, u):
 
 def eingerichtet(c, u):
     pf = postfaecher(c, u["id"])
-    return bool((pf["m365"] and m365_ok(c) and (u["email"] or "").strip()) or any(k.get("an", True) for k in pf["konten"]))
+    return bool((m365_ok(c) and m365_postfaecher_von(c, u)) or any(k.get("an", True) for k in pf["konten"]))
 
 
 def m365_test(c, adresse):
@@ -373,3 +376,59 @@ def m365_test(c, adresse):
         raise RuntimeError("Mandant, Client-ID und Geheimnis eintragen und speichern.")
     n = len(m365_lesen(m, adresse, _now() - timedelta(days=1)))
     return f"Postfach {adresse} gelesen – {n} Mails seit gestern."
+
+
+# ---------------------------------------------------------------- Zuweisung der Microsoft-365-Postfächer (Administrator)
+def zuweisung(c):
+    """{postfaecher: [{adresse, name}], zuordnung: {uid: [adresse …]}} – freigegebene/gemeinsame Postfächer (mail@, rechnungen@ …)
+    und welche Benutzer sie in ihrer Übersicht sehen."""
+    v = konto._get(c, "post:zuweisung")
+    try:
+        d = json.loads(v) if v else {}
+    except ValueError:
+        d = {}
+    return {"postfaecher": [x for x in d.get("postfaecher") or [] if isinstance(x, dict) and "@" in str(x.get("adresse") or "")],
+            "zuordnung": {str(k): [a for a in v_ if isinstance(a, str)] for k, v_ in (d.get("zuordnung") or {}).items() if isinstance(v_, list)}}
+
+
+def zuweisung_setzen(c, b, by):
+    pf, seen = [], set()
+    for x in (b.get("postfaecher") or [])[:200]:
+        a = str((x or {}).get("adresse") or "").strip().lower()[:200]
+        if "@" in a and a not in seen:
+            seen.add(a)
+            pf.append({"adresse": a, "name": str(x.get("name") or "")[:100]})
+    zu = {}
+    for k, v in (b.get("zuordnung") or {}).items():
+        if str(k).isdigit() and isinstance(v, list):
+            zu[str(k)] = sorted({str(a).strip().lower() for a in v if str(a).strip().lower() in seen})
+    konto._put(c, "post:zuweisung", json.dumps({"postfaecher": pf, "zuordnung": zu}, ensure_ascii=False), by)
+    return zuweisung(c)
+
+
+def m365_postfaecher_von(c, u):
+    """Welche Microsoft-365-Postfächer gehören in die Übersicht dieses Benutzers? Das eigene (wenn eingeschaltet) und die zugewiesenen."""
+    out = []
+    eigen = (u["email"] or "").strip().lower()
+    if eigen and postfaecher(c, u["id"])["m365"]:
+        out.append(eigen)
+    for a in zuweisung(c)["zuordnung"].get(str(u["id"]), []):
+        if a not in out:
+            out.append(a)
+    return out
+
+
+def m365_alle(c):
+    """Alle Postfächer im Microsoft-365-Mandanten (Benutzer und freigegebene Postfächer) – braucht zusätzlich „User.Read.All“."""
+    m = m365_conf(c)
+    tok = _token(m)
+    out, url = [], "https://graph.microsoft.com/v1.0/users?$select=mail,displayName,userPrincipalName&$top=200"
+    try:
+        while url and len(out) < 1000:
+            d = _json(url, headers={"Authorization": "Bearer " + tok})
+            out += [{"adresse": (x.get("mail") or "").lower(), "name": x.get("displayName") or ""} for x in d.get("value") or [] if x.get("mail")]
+            url = d.get("@odata.nextLink")
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Liste der Postfächer nicht lesbar ({e.code}) – dafür braucht die App zusätzlich „User.Read.All“ (Anwendung). "
+                           "Postfächer lassen sich auch von Hand eintragen.")
+    return sorted(out, key=lambda x: x["adresse"])

@@ -469,7 +469,7 @@
       root.innerHTML = `<div class="bph-dh"><b>Meine Postfächer</b><button type="button" class="bph-x" data-pc aria-label="Schließen">×</button></div><div class="bph-db">
         <p class="bph-mu">Aus diesen Postfächern stellt die Startseite einmal am Tag (oder mit ↻) die Mails zu <b>deinen</b> Projekten zusammen. Gelesen wird nur – nichts wird verschoben, gelöscht oder als gelesen markiert. Nur du siehst die Übersicht.</p>
         <h4>Büro-Postfach (Microsoft 365)</h4>
-        ${D.m365_zentral ? `<label class="bph-ck"><input type="checkbox" data-pm${D.m365 ? ' checked' : ''}> mein Postfach <b>${esc(D.email || '–')}</b> einbeziehen</label><div class="bph-row"><button type="button" class="bph-btn" data-ptm>Probeweise lesen</button></div>`
+        ${D.m365_zentral ? `<label class="bph-ck"><input type="checkbox" data-pm${D.m365 ? ' checked' : ''}> mein Postfach <b>${esc(D.email || '–')}</b> einbeziehen</label>${(D.zugewiesen || []).length ? `<p class="bph-mu">Dazu vom Administrator zugewiesen: <b>${D.zugewiesen.map(esc).join(', ')}</b></p>` : ''}<div class="bph-row"><button type="button" class="bph-btn" data-ptm>Probeweise lesen</button></div>`
           : '<p class="bph-mu">Noch nicht eingerichtet – das macht der Administrator einmal unter ⚙ → Büro → Mailserver.</p>'}
         <h4>Weitere eigene Postfächer (IMAP)</h4>
         ${D.konten.map((k, i) => `<div class="bph-tpl"><div class="bph-row"><label class="bph-ck" style="flex:1"><input type="checkbox" data-pf="an" data-pi="${i}"${k.an !== false ? ' checked' : ''}> <b>${esc(k.name || k.user)}</b></label><button type="button" class="bph-btn" data-pt="${i}">Testen</button><button type="button" class="bph-btn" data-pd="${i}">Entfernen</button></div>

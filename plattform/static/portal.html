@@ -118,7 +118,7 @@ function postZeigen() {
   const G = Object.values(grp).sort((a, b) => b.mails.filter((m) => WICHTIG.has(m.art)).length - a.mails.filter((m) => WICHTIG.has(m.art)).length || b.mails.length - a.mails.length);
   const zeile = (m) => `<div class="pm"><span class="ic2" title="${esc(m.art)}">${ARTIC[m.art] || '✉️'}</span>
       <span class="t">${m.link ? `<a class="s" href="${esc(m.link)}" target="_blank" rel="noopener" title="In Outlook öffnen">` : '<span class="s">'}<span class="art${WICHTIG.has(m.art) ? ' w' : ''}">${esc(m.art)}</span><b>${esc(m.von_name || m.von)}</b> – ${esc(m.betreff || '(ohne Betreff)')}${m.link ? '</a>' : '</span>'}
-        <span class="v">${esc(m.vorschau || '')}${m.anhaenge && m.anhaenge.length ? ' · 📎 ' + esc(m.anhaenge.join(', ')) : ''}</span><span class="g">${esc(m.grund || '')}${m.quelle && m.quelle !== 'Microsoft 365' ? ' · ' + esc(m.quelle) : ''}</span></span>
+        <span class="v">${esc(m.vorschau || '')}${m.anhaenge && m.anhaenge.length ? ' · 📎 ' + esc(m.anhaenge.join(', ')) : ''}</span><span class="g">${esc(m.grund || '')}${m.quelle ? ' · 📥 ' + esc(m.quelle) : ''}</span></span>
       <span class="z">${esc(zeitTxt(m.zeit))}</span>
       ${m.vorschlag ? `<div class="vs" data-vs="${esc(m.id)}">⏰ <span>Erinnerung: <b>${esc(m.vorschlag.titel)}</b> am</span><input type="date" value="${esc(m.vorschlag.termin)}" aria-label="Datum der Erinnerung"><button class="btn sm pri" data-post="anlegen">Anlegen</button><button class="btn sm" data-post="nein" title="Vorschlag verwerfen">✕</button></div>` : ''}</div>`;
   const body = G.length ? G.map((g) => { const w = g.mails.filter((m) => WICHTIG.has(m.art)).length, zeig = POSTALLE ? g.mails : g.mails.slice(0, 4);

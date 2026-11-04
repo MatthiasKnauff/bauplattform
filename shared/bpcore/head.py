@@ -414,6 +414,27 @@ def blueprint(get_user=None):
             konto._put(c, f"post:{uid}", json.dumps(d, ensure_ascii=False), "posteingang")
         return jsonify(ok=True)
 
+    @bp.route("/api/bp/post/zuweisung", methods=["GET", "PUT", "POST"])
+    def post_zuweisung():
+        """Administrator: Microsoft-365-Postfächer (auch freigegebene wie mail@ oder rechnungen@) den Benutzern zuweisen.
+        GET Liste und Zuordnung · PUT speichern · POST alle Postfächer aus Microsoft 365 holen."""
+        u, uid = _uid()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Nur für Administratoren"), 403
+        with db.tx() as c:
+            if request.method == "POST":
+                try:
+                    return jsonify(postfaecher=posteingang.m365_alle(c))
+                except Exception as e:
+                    return jsonify(error=str(e)[:300]), 400
+            if request.method == "PUT":
+                d = posteingang.zuweisung_setzen(c, request.get_json(silent=True) or {}, u["name"])
+            else:
+                d = posteingang.zuweisung(c)
+            users = [{"id": r["id"], "name": r["name"], "email": r["email"] or ""} for r in c.execute("SELECT id, name, email FROM users ORDER BY name").fetchall()]
+            ok = posteingang.m365_ok(c)
+        return jsonify(**d, benutzer=users, m365=ok)
+
     @bp.route("/api/bp/postfaecher", methods=["GET", "PUT"])
     def postfaecher_api():
         u, uid = _uid()
@@ -425,7 +446,8 @@ def blueprint(get_user=None):
             else:
                 d = posteingang.postfaecher_oeffentlich(c, uid)
             m = posteingang.m365_ok(c)
-        return jsonify(**d, m365_zentral=m, email=u["email"] or "")
+            zug = posteingang.zuweisung(c)["zuordnung"].get(str(uid), [])
+        return jsonify(**d, m365_zentral=m, email=u["email"] or "", zugewiesen=zug)
 
     @bp.post("/api/bp/postfaecher/test")
     def postfaecher_test():

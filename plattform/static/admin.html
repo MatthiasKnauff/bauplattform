@@ -352,6 +352,41 @@ const stSel = (k, l, opts, def) => `<label class="w">${l}<select data-st="${k}">
 const fsize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
 const vk = (b, l) => `<button type="button" class="btn" data-bph-verlauf="${b}" title="Frühere Stände ansehen und wiederherstellen">↶ ${l || 'Verlauf'}</button>`;
 const SAVEF = () => `<div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}</div>`;
+/* ---------- Posteingang: Microsoft-365-Postfächer den Benutzern zuweisen (wie im Mail-Archiver) ---------- */
+let PZ = null;
+async function pzLaden() { try { PZ = await api('api/bp/post/zuweisung'); } catch (e) { $('#pzBox').innerHTML = `<p class="mute">${esc(e.message)}</p>`; return; } pzZeigen(); }
+function pzZeigen(msg = '') {
+  const B = PZ.benutzer, P = PZ.postfaecher, Z = PZ.zuordnung;
+  const eigen = (u, a) => (u.email || '').toLowerCase() === a;
+  $('#pzBox').innerHTML = (P.length ? `<div class="tbl"><table><thead><tr><th>Postfach</th>${B.map((u) => `<th style="text-align:center;font-size:.8rem" title="${esc(u.email)}">${esc(u.name)}</th>`).join('')}<th></th></tr></thead><tbody>
+      ${P.map((p, i) => `<tr><td><b>${esc(p.adresse)}</b>${p.name ? `<br><span class="mute" style="font-size:.82rem">${esc(p.name)}</span>` : ''}</td>${B.map((u) => eigen(u, p.adresse)
+        ? '<td style="text-align:center" title="eigenes Postfach – immer dabei"><input type="checkbox" checked disabled></td>'
+        : `<td style="text-align:center"><input type="checkbox" data-pz="${u.id}" data-pa="${esc(p.adresse)}"${(Z[u.id] || []).includes(p.adresse) ? ' checked' : ''} aria-label="${esc(p.adresse)} für ${esc(u.name)}"></td>`).join('')}
+        <td><button class="btn sm danger" data-pzdel="${i}" title="Postfach aus der Liste nehmen">✕</button></td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="mute">Noch keine Postfächer in der Liste.</p>')
+    + `<div class="st-a" style="margin-top:.7rem;flex-wrap:wrap"><input id="pzAdr" placeholder="postfach@firma.de" style="min-width:14rem"><input id="pzName" placeholder="Bezeichnung (optional)"><button class="btn" data-pz-add>+ Postfach</button>
+      <button class="btn" data-pz-holen ${PZ.m365 ? '' : 'disabled title="Erst Microsoft 365 oben einrichten"'}>Alle aus Microsoft 365 holen</button><span style="flex:1"></span><button class="btn pri" data-pz-save>Zuweisung speichern</button></div>
+    ${msg ? `<p class="mute" style="margin:.5rem 0 0">${esc(msg)}</p>` : ''}`;
+}
+document.addEventListener('click', async (e) => {
+  if (!PZ || !e.target.closest('#pzBox')) return;
+  const t = e.target;
+  if (t.closest('[data-pz-add]')) { const a = $('#pzAdr').value.trim().toLowerCase(); if (!/@/.test(a)) return; if (!PZ.postfaecher.some((p) => p.adresse === a)) PZ.postfaecher.push({ adresse: a, name: $('#pzName').value.trim() }); pzZeigen(); return; }
+  const d = t.closest('[data-pzdel]'); if (d) { const p = PZ.postfaecher[+d.dataset.pzdel]; PZ.postfaecher.splice(+d.dataset.pzdel, 1); Object.keys(PZ.zuordnung).forEach((k) => { PZ.zuordnung[k] = PZ.zuordnung[k].filter((x) => x !== p.adresse); }); pzZeigen(); return; }
+  if (t.closest('[data-pz-holen]')) {
+    pzZeigen('hole Postfächer …');
+    try { const r = await api('api/bp/post/zuweisung', 'POST'); let n = 0; r.postfaecher.forEach((p) => { if (!PZ.postfaecher.some((x) => x.adresse === p.adresse)) { PZ.postfaecher.push(p); n++; } }); pzZeigen(`${n} Postfächer hinzugefügt – jetzt anhaken und speichern.`); }
+    catch (er) { pzZeigen(er.message); }
+    return;
+  }
+  if (t.closest('[data-pz-save]')) { try { PZ = { ...PZ, ...(await api('api/bp/post/zuweisung', 'PUT', { postfaecher: PZ.postfaecher, zuordnung: PZ.zuordnung })) }; pzZeigen('Gespeichert.'); } catch (er) { pzZeigen(er.message); } }
+});
+document.addEventListener('change', (e) => {
+  const c = e.target.closest && e.target.closest('[data-pz]'); if (!c || !PZ) return;
+  const k = c.dataset.pz, a = c.dataset.pa, L = new Set(PZ.zuordnung[k] || []);
+  if (c.checked) L.add(a); else L.delete(a); PZ.zuordnung[k] = [...L];
+});
+
 function renderBtSettings() {
   const S = data.bt, t = data.stab, m = S.store_mode || 'off';
   const pw = (k, l) => stIn(k, l + (S[k + '_set'] ? ' – gespeichert, zum Ändern neu eingeben' : ''), 1, { type: 'password', ph: S[k + '_set'] ? '••••••••' : '' });
@@ -379,7 +414,9 @@ function renderBtSettings() {
     <section class="card st"><h2>Posteingang lesen (Microsoft 365)</h2><p class="mute">Damit zeigt die Startseite jedem einmal am Tag die Mails zu <b>seinen</b> Projekten (Rechnungen, Nachträge, Termine …). Gelesen wird nur lesend und je Benutzer nur dessen eigenes Postfach (Adresse aus „Benutzer“). Weitere Postfächer trägt jeder unter ⚙ → Für mich selbst ein.</p>
     <div class="sf">${stIn('m365_tenant', 'Verzeichnis-ID (Mandant / Tenant ID)', 1, { ph: 'z. B. 3f2a…-…' })}${stIn('m365_client', 'Anwendungs-ID (Client ID)', 1)}${pw('m365_secret', 'Geheimer Clientschlüssel (Wert)')}</div>
     <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="m365test">Mein Postfach probeweise lesen</button>${S.m365_secret_set ? '<button class="btn danger" data-bs="clear" data-k="m365_secret">Schlüssel löschen</button>' : ''}<span class="mute st-r" id="m3Out"></span></div>
-    <p class="mute" style="font-size:.85rem;margin:.8rem 0 0"><b>Einrichten (einmalig):</b> Microsoft Entra Admin Center → App-Registrierungen → Neue Registrierung (z. B. „Bauplattform Posteingang“) → API-Berechtigungen → Microsoft Graph → <b>Anwendungsberechtigungen</b> → <b>Mail.Read</b> → „Administratorzustimmung erteilen“ → Zertifikate & Geheimnisse → neuer geheimer Clientschlüssel. Verzeichnis-ID, Anwendungs-ID und den <b>Wert</b> des Schlüssels hier eintragen. Wer den Zugriff auf bestimmte Postfächer begrenzen will, kann in Exchange eine „Application Access Policy“ setzen.</p></section>`;
+    <p class="mute" style="font-size:.85rem;margin:.8rem 0 0"><b>Einrichten (einmalig):</b> Microsoft Entra Admin Center → App-Registrierungen → Neue Registrierung (z. B. „Bauplattform Posteingang“) → API-Berechtigungen → Microsoft Graph → <b>Anwendungsberechtigungen</b> → <b>Mail.Read</b> → „Administratorzustimmung erteilen“ → Zertifikate & Geheimnisse → neuer geheimer Clientschlüssel. Verzeichnis-ID, Anwendungs-ID und den <b>Wert</b> des Schlüssels hier eintragen. Wer den Zugriff auf bestimmte Postfächer begrenzen will, kann in Exchange eine „Application Access Policy“ setzen.</p></section>
+    <section class="card st"><h2>Postfächer den Benutzern zuweisen</h2><p class="mute">Jeder sieht automatisch sein eigenes Postfach. Hier kommen freigegebene und gemeinsame Postfächer dazu (z. B. mail@, buero@, rechnungen@) – angehakt erscheinen ihre Mails zu den eigenen Projekten in der Übersicht des Benutzers.</p>
+    <div id="pzBox"><p class="mute">Lade …</p></div></section>`;
   else if (t === 'sicherung') {
     const lab = (k) => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k.startsWith('vor') ? 'Sicherung ' + k.replace(/-/g, ' ') : k;
     h = `<section class="card st"><h2>Datensicherung</h2><p class="mute">Die Datenbank (alle Apps: Projekte, Berichte, Bauzeitenpläne, Adressen, Baukosten, Benutzer, Einstellungen) wird täglich automatisch gesichert – die letzten 30 bleiben. Zusätzlich vor jedem Update und jeder Wiederherstellung. Fotodateien liegen separat im Datenordner.</p>
@@ -400,6 +437,7 @@ function renderBtSettings() {
     data.logoV = Date.now(); toast('Logo gespeichert.'); loadSettings();
   };
   if ($('#extBox')) extLoad();
+  if ($('#pzBox')) pzLaden();
   const bbBox = $('#bbBox');
   if (bbBox) {
     const bbDraw = (v) => {

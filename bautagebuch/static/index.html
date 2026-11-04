@@ -414,6 +414,8 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 
 <script>
 const $ = s => document.querySelector(s);
+const fold = s => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');   // Suche: pü = pue = Pü
+const passt = (text, q) => { const t = fold(text); return fold(q).split(/\s+/).filter(Boolean).every(w => t.includes(w)); };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = d => d ? new Date(d + 'T12:00').toLocaleDateString('de-DE') : '';
 const IC = {
@@ -643,7 +645,7 @@ function renderSheet() {
     return;
   }
   const q = sheetQ.toLowerCase(), d = p => here && hasPos(p) ? dist(here.lat, here.lon, p.lat, p.lon) : null;
-  const match = p => [p.name, p.street, p.zip, p.city, p.client].join(' ').toLowerCase().includes(q);
+  const match = p => passt([p.name, p.street, p.zip, p.city, p.client].join(' '), q);
   const foreignP = p => me.is_admin && (p.leaders || []).length > 0 && !(p.leaders || []).includes(me.id);   // nur Administratoren sehen Projekte anderer Bauleiter
   const mine = projects.filter(p => !foreignP(p)), foreign = projects.filter(foreignP);
   const list = mine.filter(p => !p.archived && match(p));
@@ -1270,7 +1272,7 @@ const cxQS = () => '?q=' + encodeURIComponent(cq.trim()) + '&trade=' + encodeURI
 function fillContactList() {
   const sel = $('#ctr'); if (sel) { const ts = tradeOpts(); if (cTrade && !ts.some(t => t.toLowerCase() === cTrade.toLowerCase())) cTrade = ''; sel.innerHTML = '<option value="">Alle Gewerke</option>' + ts.map(t => `<option ${t.toLowerCase() === cTrade.toLowerCase() ? 'selected' : ''}>${esc(t)}</option>`).join(''); }
   const sp = $('#cpr'); if (sp) { if (cProj && !projects.some(p => String(p.id) === cProj)) cProj = ''; sp.innerHTML = '<option value="">Alle Projekte</option>' + projects.map(p => `<option value="${p.id}" ${String(p.id) === cProj ? 'selected' : ''}>${esc(p.name)}</option>`).join(''); }
-  const q = cq.toLowerCase(), list = contacts.filter(c => (!cProj || (c.projects || []).includes(+cProj)) && (!cTrade || (c.trade || '').trim().toLowerCase() === cTrade.toLowerCase()) && [c.name, c.trade, c.contact_person, c.city].join(' ').toLowerCase().includes(q));
+  const q = cq.toLowerCase(), list = contacts.filter(c => (!cProj || (c.projects || []).includes(+cProj)) && (!cTrade || (c.trade || '').trim().toLowerCase() === cTrade.toLowerCase()) && passt([c.name, c.trade, c.contact_person, c.city, c.email, c.phone].join(' '), q));
   $('#cb').innerHTML = list.length ? list.map(c => `<button class="pi ${c.id === cid ? 'on' : ''}" data-act="openContact" data-id="${c.id}"><span class="l"><b>${esc(c.name)}</b>${c.trade || c.contact_person ? `<small>${esc([c.trade, c.contact_person].filter(Boolean).join(' · '))}</small>` : ''}</span></button>`).join('')
     : `<div class="empty">${contacts.length ? 'Keine Treffer.' : 'Noch keine Kontakte. Firmen aus „Anwesende“ erscheinen hier automatisch.'}</div>`;
 }
@@ -1614,7 +1616,7 @@ $('#acam').onchange = addPicked; $('#alib').onchange = addPicked;
 $('#qcam').onchange = photoPicked; $('#qlib').onchange = photoPicked;
 function showSug(inp) {   // eigene Kontaktliste statt <datalist>: erscheint bei jedem Antippen/Tippen, nicht nur beim ersten Mal
   const box = inp.parentElement.querySelector('.sug'); if (!box) return;
-  const q = inp.value.trim().toLowerCase(), hits = contacts.filter(c => (c.trade || '').trim().toLowerCase() !== 'baustelle').filter(c => !q || c.name.toLowerCase().includes(q)).filter(c => c.name.toLowerCase() !== q).slice(0, 8);
+  const q = inp.value.trim().toLowerCase(), hits = contacts.filter(c => (c.trade || '').trim().toLowerCase() !== 'baustelle').filter(c => !q || passt(c.name, q)).filter(c => c.name.toLowerCase() !== q).slice(0, 8);
   box.innerHTML = hits.map(c => `<button type="button" data-act="pickContact" data-name="${esc(c.name)}">${esc(c.name)}</button>`).join('');
   box.classList.toggle('hidden', !hits.length);
 }

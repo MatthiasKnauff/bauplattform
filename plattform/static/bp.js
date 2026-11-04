@@ -1,6 +1,10 @@
 'use strict';
 /* Bauplattform – kleine gemeinsame Hilfen für Startseite und Verwaltung */
 const $ = (s, el = document) => el.querySelector(s);
+/* Suchen ohne Ärger mit Umlauten: „pü“, „pue“ und „Pürzer“ (auch aus anderen Programmen mit zerlegten Umlauten) passen zusammen */
+const fold = (s) => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+  .normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+const passt = (text, q) => { const t = fold(text); return fold(q).split(/\s+/).filter(Boolean).every((w) => t.includes(w)); };
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // Adresse einer App: über den Reverse Proxy aufgerufen → eingetragene Adresse; direkt über IP/Rechnername und Port
 // (ohne Nginx) → gleicher Rechner, Port der App (die Anmeldung gilt je Rechnername).

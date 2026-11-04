@@ -1226,8 +1226,8 @@ async function newDialog(vor) {
   const stufeName = () => (STUFEN.find((x) => x[0] === $('#nkStufe').value) || [, ''])[1];
   const setName = () => { if (!nameTouched && sel) $('#nkName').value = (sel.kind === 'none' ? '' : sel.name + ' – ') + stufeName(); };
   const draw = () => {
-    const q = $('#nkQ').value.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
-    const hit = (t) => words.every((w) => t.toLowerCase().includes(w));
+    const q = $('#nkQ').value.trim().toLowerCase();
+    const hit = (t) => passt(t, q);
     const pr = SRC.projects.filter((p) => !p.archived || q).filter((p) => !q || hit(p.name + ' ' + (p.client || '') + ' ' + (p.address || ''))).slice(0, q ? 30 : 8);
     const fo = folders.filter((f) => !SRC.projects.some((p) => p.name.toLowerCase() === f.toLowerCase()));
     const opt = (kind, key, title, sub, extra = '') => `<button type="button" role="option" class="nkOpt ${sel && sel.kind === kind && String(sel.key) === String(key) ? 'on' : ''}" data-k="${kind}" data-key="${esc(String(key))}" aria-selected="${!!(sel && sel.kind === kind && String(sel.key) === String(key))}"><b>${esc(title)}</b>${extra}${sub ? `<small>${esc(sub)}</small>` : ''}</button>`;

@@ -15,7 +15,7 @@
   const q = box.querySelector('#gsQ'), nEl = box.querySelector('#gsN');
   let hits = [], pos = -1;
 
-  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+  const norm = (s) => String(s || '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
   function suchen() {
     const w = norm(q.value).trim().split(/\s+/).filter(Boolean);
     hits = [];

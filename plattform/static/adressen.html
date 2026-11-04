@@ -23,6 +23,7 @@
 .bnv summary{cursor:pointer;font-weight:600}
 .bnv summary small{font-weight:400;margin-left:.3rem}
 .bnv #bnHost{margin-top:.5rem}
+.wo{margin-top:.5rem;font-size:.9rem}.wo .btn{margin-left:.3rem}
 #mErr .orte{display:flex;flex-direction:column;gap:.25rem;margin-top:.45rem}
 #mErr .orte a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem}
 #mErr .orte a:hover{border-color:var(--y)}
@@ -165,9 +166,14 @@ async function load() {
   render();
 }
 function shown() {
-  const s = q.trim().toLowerCase();
-  return ALL.filter((c) => (!bet || istBet(c)) && (!kind || c.kind === kind) && (!gw || trades(c).includes(gw))
-    && (!s || [c.name, c.trade, c.contact_person, c.role, c.city, c.street, c.phone, c.mobile, c.email, c.notes].join(' ').toLowerCase().includes(s)));
+  const s = q.trim();
+  return ALL.filter((c) => (!bet || istBet(c)) && (!kind || c.kind === kind) && (!gw || trades(c).includes(gw)) && (!s || sucht(c, s)));
+}
+const sucht = (c, s) => passt([c.name, c.trade, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes].join(' '), s);
+/* nichts gefunden, aber in anderen Arten / ohne Beteiligten- oder Gewerk-Filter schon? */
+function woanders() {
+  const s = q.trim(); if (!s || (!kind && !bet && !gw)) return 0;
+  return ALL.filter((c) => sucht(c, s)).length;
 }
 function render() {
   if (typeof TV !== 'undefined' && TV.view === 'tabelle') { const n2 = {}; ALL.forEach((c) => { n2[c.kind] = (n2[c.kind] || 0) + 1; });
@@ -184,7 +190,7 @@ function render() {
       ${c.contact_person ? `<div class="sub">${esc(c.contact_person)}${c.role ? ' · ' + esc(c.role) : ''}</div>` : ''}
       ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
       <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}</div>
-    </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer.' : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
+    </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer.' + `${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && KINDS.find((x) => x[0] === kind)[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}` : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
 }
 
 /* Neuer Kontakt: Firmenvorschläge aus dem Netz (OpenStreetMap, wie im Bautagebuch) – antippen übernimmt Adresse, Telefon, E-Mail */
@@ -273,7 +279,7 @@ const tvSave = () => { try { localStorage.setItem('adr.tabelle', JSON.stringify(
 const cellVal = (c, k) => (k === 'kind' ? KINDN[c.kind] || c.kind : k === 'used' ? (c.used ? `${c.used} × ${c.projects.join(', ')}` : '') : c[k] || '');
 function tableRows() {
   const fl = Object.entries(TV.flt).filter(([, v]) => v);
-  let r = shown().filter((c) => fl.every(([k, v]) => (k === 'kind' ? c.kind === v : String(cellVal(c, k)).toLowerCase().includes(v.toLowerCase()))));
+  let r = shown().filter((c) => fl.every(([k, v]) => (k === 'kind' ? c.kind === v : passt(String(cellVal(c, k)), v))));
   const { k, d } = TV.sort;
   if (k) r = r.slice().sort((a, b) => { const x = String(cellVal(a, k)), y = String(cellVal(b, k)); if (!x !== !y) return x ? -1 : 1; return d * x.localeCompare(y, 'de', { numeric: true, sensitivity: 'base' }); });
   return r;
@@ -289,7 +295,7 @@ function renderTable() {
     <tbody>${rows.map((c) => `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
       : `<td><input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' list="gwAll"' : ''}></td>`).join('')}
       <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" title="E-Mail">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`).join('')
-      || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer.</td></tr>`}</tbody></table>
+      || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer.${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && KINDS.find((x) => x[0] === kind)[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}</td></tr>`}</tbody></table>
     <datalist id="gwAll">${[...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de')).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
   fitTw();
@@ -326,6 +332,7 @@ function renderActive() {
     + '<button class="btn sm" data-clr="*">Alle Filter löschen</button>';
 }
 function clearFilter(k) {
+  if (k === 'nurq') { gw = ''; $('#gw').value = ''; kind = ''; bet = ''; try { sessionStorage.setItem('adrKind', ''); } catch { /* egal */ } }
   if (k === '*' || k === 'q') { q = ''; $('#q').value = ''; }
   if (k === '*' || k === 'gw') { gw = ''; $('#gw').value = ''; }
   if (k === '*' || k === 'kind') { kind = ''; try { sessionStorage.setItem('adrKind', ''); } catch { /* egal */ } }

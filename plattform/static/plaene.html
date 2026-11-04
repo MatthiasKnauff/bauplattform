@@ -119,7 +119,7 @@ function sichtbar() {
   if (!D) return [];
   const q = F.q.trim().toLowerCase();
   return D.plaene.concat(F.phase ? [] : D.frei || []).filter((p) => (!F.gw || (F.gw === '-' ? !p.gewerk : p.gewerk === F.gw)) && (!F.phase || p.phase === F.phase)
-    && (!q || [p.nr, p.titel, p.kennung, p.gewerk, p.phase_name, p.planart_name, ...p.staende.map((s) => s.pdf && s.pdf.name)].join(' ').toLowerCase().includes(q)));
+    && (!q || passt([p.nr, p.titel, p.kennung, p.gewerk, p.phase_name, p.planart_name, ...p.staende.map((s) => s.pdf && s.pdf.name)].join(' '), q)));
 }
 function render() {
   renderTabs(); renderOrd();

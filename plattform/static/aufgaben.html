@@ -201,7 +201,7 @@ function mFiltered() {
   const q = F.q.trim().toLowerCase();
   return M.filter((m) => (!F.art || m.art === F.art) && (!F.projekt || String(m.pid) === F.projekt) && (!F.firma || m.firma === F.firma)
     && (F.status === 'alle' || (F.status === 'offen' ? !m.done : F.status === 'ueberfaellig' ? m.status === 'ueberfaellig' : m.done))
-    && (!q || [m.text, m.firma, m.projekt].join(' ').toLowerCase().includes(q)));
+    && (!q || passt([m.text, m.firma, m.projekt].join(' '), q)));
 }
 function renderM() {
   if (!M) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }

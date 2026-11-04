@@ -77,6 +77,16 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .uchk{display:flex;flex-wrap:wrap;gap:.3rem .9rem;max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem}
 .uchk label{display:flex;gap:.35rem;align-items:center;color:var(--ink)}
 @media (max-width:760px){.mr{grid-template-columns:auto 1fr}.mr .th{display:none}.mr .ed{grid-column:1/-1;min-width:0}.er{grid-template-columns:30px 1fr}.er .ac{grid-column:1/-1;align-items:flex-start}.er .ac .bt{justify-content:flex-start}.fm{grid-template-columns:1fr}}
+.bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
+.bed-bar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;padding:.55rem .9rem;background:var(--card,#fff);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.bed-bar .mute{font-size:.85rem}
+.bed-s{flex:1;overflow:auto;padding:1rem .75rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
+.bed-p{position:relative;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.35);flex:none}
+.bed-p canvas{width:100%;height:100%;display:block}
+.bed-f{position:absolute;box-sizing:border-box;margin:0;border:0;border-radius:2px;background:rgba(255,226,120,.28);color:#1e1e1e;font-family:Helvetica,Arial,sans-serif;line-height:1.2;resize:none;outline:none;overflow:auto}
+.bed-f:hover{background:rgba(255,214,90,.4)}.bed-f:focus{background:rgba(255,236,160,.55);box-shadow:0 0 0 1.5px #e0a800}
+.bed-f.gr{background:rgba(255,226,120,.12)}
+.bed-l{color:#ddd;padding:3rem}
 </style>
 </head>
 <body>
@@ -181,8 +191,8 @@ async function truegeDialog(k) {
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tB" checked> nicht bestätigte Tage als „nicht da“ übernehmen</label>
     ${versandHtml(KONTO, E0.email)}
-    <p class="w mute" style="font-size:.82rem;margin:0">Setzt voraus, dass der Bauzeitenplan bzw. die Ausführungsfristen vertraglich vereinbart sind (VOB/B § 5). Das PDF hat ausfüllbare Felder; der Mustertext ersetzt keine Rechtsberatung.</p></div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erzeugen</button></div>`, async (m, bg, close) => {
+    <p class="w mute" style="font-size:.82rem;margin:0">Setzt voraus, dass der Bauzeitenplan bzw. die Ausführungsfristen vertraglich vereinbart sind (VOB/B § 5). Im nächsten Schritt lässt sich das Schreiben bearbeiten, danach drucken oder versenden. Der Mustertext ersetzt keine Rechtsberatung.</p></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter: Schreiben bearbeiten</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#tF').value = plus(+m.slice(1)); return; }
     if (m !== 'ok') return;
@@ -190,8 +200,7 @@ async function truegeDialog(k) {
     const vs = versandRead(bg); if (!vs) return;
     const body = { ...vs, pid, firma, ids, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: bg.querySelector('#tB').checked,
       empfaenger: { id: bg.querySelector('#tN').value.trim() === E0.name ? E0.id : null, name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
-    const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Terminrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Terminrüge wird erstellt …</body>');
-    try { await pdfHolen('api/terminruege', body, 'Terminrüge', w); close(); reload(); } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+    try { await briefStart('api/terminruege', body, 'Terminrüge', close); } catch (e) { toast(e.message, true); }
   });
   bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg);
 }
@@ -360,7 +369,80 @@ async function pdfHolen(url, body, titel, w) {   // PDF erzeugen, im vorab geöf
   if (neu && window.BPHead && BPHead.kontaktAnlegen) BPHead.kontaktAnlegen([decodeURIComponent(neu)], { name: (body.empfaenger || {}).name || '' });
 }
 
-/* ---------- Mängelrüge: Dialog → am Bildschirm ausfüllbares PDF ---------- */
+/* ---------- Brief-Editor: Entwurf am Bildschirm bearbeiten → speichern → drucken / versenden (dann fest, ohne Felder) ---------- */
+let pdfjsP = null;
+function pdfjs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return pdfjsP || (pdfjsP = new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'static/vendor/pdfjs/pdf.js'; sc.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = 'static/vendor/pdfjs/pdf.worker.js'; ok(pdfjsLib); }; sc.onerror = () => { pdfjsP = null; bad(new Error('PDF-Anzeige nicht verfügbar')); }; document.head.appendChild(sc); }));
+}
+const B64 = (b) => Uint8Array.from(atob(b), (ch) => ch.charCodeAt(0));
+async function briefStart(url, body, titel, close) {   // aus dem Dialog: Entwurf holen und im Editor öffnen
+  const r = await api(url, 'POST', { ...body, schritt: 'entwurf' });
+  close();
+  briefEditor(url, body, titel, r);
+}
+async function briefEditor(url, body, titel, E) {
+  const lib = await pdfjs().catch((e) => { toast(e.message, true); return null; }); if (!lib) return;
+  const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', titel + ' bearbeiten');
+  ov.innerHTML = `<div class="bed-bar"><b>${esc(titel)} bearbeiten</b><span class="mute">Text anklicken und ändern – gelb hinterlegt sind die änderbaren Felder.</span><span style="flex:1"></span>
+    <button class="btn" data-b="x">Abbrechen</button><button class="btn pri" data-b="ok">Speichern &amp; schließen</button></div><div class="bed-s"><div class="bed-l">Lade …</div></div>`;
+  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+  const S = ov.querySelector('.bed-s'), F = {};
+  try {
+    const pdf = await lib.getDocument({ data: B64(E.pdf) }).promise;
+    S.innerHTML = '';
+    const breite = Math.min(S.clientWidth - 24, 900);
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc });
+      const dpr = Math.min(2, window.devicePixelRatio || 1), vv = pg.getViewport({ scale: sc * dpr });
+      const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
+      const cvs = document.createElement('canvas'); cvs.width = vv.width; cvs.height = vv.height; box.appendChild(cvs); S.appendChild(box);
+      await pg.render({ canvasContext: cvs.getContext('2d'), viewport: vv, annotationMode: lib.AnnotationMode.DISABLE }).promise;
+      for (const a of await pg.getAnnotations()) {
+        if (a.subtype !== 'Widget' || !a.fieldName || !(a.fieldName in E.felder)) continue;
+        const [x1, y1, x2, y2] = v.convertToViewportRectangle(a.rect), fs = ((a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 10) * sc;
+        const el = document.createElement(a.multiLine ? 'textarea' : 'input'); el.className = 'bed-f' + (a.fieldName === 'Gruss' ? ' gr' : '');
+        el.value = E.felder[a.fieldName]; el.title = a.alternativeText || a.fieldName; el.spellcheck = true; el.lang = 'de';
+        Object.assign(el.style, { left: Math.min(x1, x2) + 'px', top: Math.min(y1, y2) + 'px', width: Math.abs(x2 - x1) + 'px', height: Math.abs(y2 - y1) + 'px', fontSize: fs + 'px', padding: `${2 * sc}px ${2 * sc}px` });
+        box.appendChild(el); F[a.fieldName] = el;
+      }
+    }
+  } catch (e) { S.innerHTML = `<div class="bed-l">${esc(e.message || 'Entwurf nicht lesbar')}</div>`; }
+  const zu = () => { ov.remove(); document.body.style.overflow = ''; };
+  ov.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-b]'); if (!b) return;
+    if (b.dataset.b === 'x') { if (confirm(`${titel} verwerfen? Es wurde nichts gespeichert oder versendet.`)) zu(); return; }
+    const werte = { ...E.felder }; Object.entries(F).forEach(([k, el]) => { werte[k] = el.value; });
+    zu(); briefFertig(url, { ...body, werte }, titel);
+  });
+  const f0 = F.Text || Object.values(F)[0]; if (f0) f0.focus();
+}
+function briefFertig(url, body, titel) {   // gespeicherte Fassung: drucken und/oder versenden – beides ohne Formularfelder
+  const lab = { mich: '✉ An mich senden', firma: '✉ An die Firma senden', pdf: '✓ Abschließen (selbst zustellen)' }[body.versand] || '✉ Versenden';
+  const wohin = { mich: `per E-Mail an dich (${esc((KONTO && KONTO.email) || '')}) zum Weiterleiten`, firma: `per E-Mail an ${esc(body.email || '')}${body.kopie ? ' (Kopie an dich)' : ''}`, pdf: 'nicht per E-Mail – du stellst sie selbst zu (Einschreiben, Bote) und sie wird im Verlauf der Firma eingetragen' }[body.versand] || '';
+  modalBox(`<h3>${esc(titel)} ist gespeichert</h3>
+    <p>Die Fassung ist fertig. Ausdruck und Versand enthalten <b>keine Eingabefelder</b> mehr und lassen sich nicht mehr ändern.</p>
+    <p class="mute" style="font-size:.88rem">Versand: ${wohin}.</p>
+    <div class="acts" style="flex-wrap:wrap"><button class="btn" data-m="edit">✎ Weiter bearbeiten</button><button class="btn" data-m="druck">🖨 Drucken</button><span style="flex:1"></span>
+      <button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="senden">${lab}</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { if (!bg.dataset.sent && !confirm(`${titel} noch nicht ${body.versand === 'pdf' ? 'abgeschlossen' : 'versendet'}. Trotzdem schließen? Die Änderungen gehen verloren.`)) return; close(); return; }
+    if (m === 'edit') { try { const r = await api(url, 'POST', { ...body, schritt: 'entwurf' }); close(); briefEditor(url, body, titel, r); } catch (e) { toast(e.message, true); } return; }
+    const w = window.open('', '_blank'); if (w) w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(titel)} …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">${esc(titel)} wird erstellt …</body>`);
+    try {
+      if (m === 'druck') {
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, schritt: 'drucken' }) });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
+        const href = URL.createObjectURL(await r.blob());
+        if (w && !w.closed) { w.location.href = href; setTimeout(() => { try { w.print(); } catch { /* Betrachter druckt selbst */ } }, 1200); } else window.open(href, '_blank');
+        return;
+      }
+      await pdfHolen(url, { ...body, schritt: 'senden' }, titel, w);
+      bg.dataset.sent = '1'; close(); reload();
+    } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+  });
+}
+
+/* ---------- Mängelrüge: Dialog → Entwurf im Brief-Editor ---------- */
 async function ruegeDialog(id) {
   let V; try { [V] = await Promise.all([api('api/maengelruege/vorlage?id=' + id), konto()]); } catch (e) { toast(e.message, true); return; }
   const E = V.empfaenger, sel = new Set(V.gewaehlt);
@@ -378,8 +460,8 @@ async function ruegeDialog(id) {
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>
     ${versandHtml(KONTO, E.email)}
-    <p class="w mute" style="font-size:.82rem;margin:0">Das PDF hat ausfüllbare Felder: Empfänger, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich vor dem Drucken oder Versenden am Bildschirm ändern. Der Mustertext folgt der VOB/B und ersetzt keine Rechtsberatung – die VOB/B muss im Vertrag vereinbart sein.</p></div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erzeugen</button></div>`, async (m, bg, close) => {
+    <p class="w mute" style="font-size:.82rem;margin:0">Im nächsten Schritt öffnet sich das Schreiben zum Bearbeiten: Empfänger, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich ändern. Nach dem Speichern wird gedruckt oder versendet – ohne Eingabefelder. Der Mustertext folgt der VOB/B und ersetzt keine Rechtsberatung – die VOB/B muss im Vertrag vereinbart sein.</p></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter: Schreiben bearbeiten</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#rF').value = plus(+m.slice(1)); return; }
     if (m === 'ok') {
@@ -387,11 +469,7 @@ async function ruegeDialog(id) {
       const vs = versandRead(bg); if (!vs) return;
       const body = { ...vs, ids, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
         empfaenger: { id: bg.querySelector('#rN').value.trim() === E.name ? E.id : null, name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
-      const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Mängelrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Mängelrüge wird erstellt …</body>');
-      try {
-        await pdfHolen('api/maengelruege', body, 'Mängelrüge', w);
-        close(); if (body.frist_eintragen) reload();
-      } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+      try { await briefStart('api/maengelruege', body, 'Mängelrüge', close); } catch (e) { toast(e.message, true); }
     }
   });
   bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg);

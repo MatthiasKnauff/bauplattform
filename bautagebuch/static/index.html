@@ -133,6 +133,9 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
 .qgrid button{border:1px solid var(--line);border-radius:12px;padding:.9rem .5rem;color:var(--ink);flex-direction:column;gap:.35rem;font-weight:600;min-height:78px}
 .qgrid button svg{color:var(--y)}
+#upBusy{position:fixed;left:50%;bottom:calc(5.5rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:.6rem;background:#2b2d30;color:#fff;border:1px solid var(--y);border-radius:999px;padding:.55rem 1.1rem;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:.92rem;white-space:nowrap}
+#upBusy .spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.25);border-top-color:var(--y);border-radius:50%;animation:upspin .8s linear infinite}
+@keyframes upspin{to{transform:rotate(360deg)}}
 .padd{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
 .padd>button{border:1px solid var(--line);border-radius:8px;padding:.45rem .7rem;color:var(--ink);gap:.4rem}
 .apv{display:flex;gap:.4rem;flex-wrap:wrap;flex:1 1 100%}
@@ -488,7 +491,27 @@ async function pvShare() {
   try { if (navigator.canShare && navigator.canShare({files: [f]})) { await navigator.share({files: [f]}); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(pv.blob); a.download = pv.name; document.body.appendChild(a); a.click(); a.remove();
 }
+/* Hochladen mit Drehkreis und Fortschritt (Fotos, Logo): unten eingeblendet, bis der Server fertig ist */
+function upBusy(on, txt) {
+  let b = $('#upBusy');
+  if (!on) { if (b && !--b._n) b.remove(); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'upBusy'; b.setAttribute('role', 'status'); b._n = 0; b.innerHTML = '<span class="spin"></span><span class="t"></span>'; document.body.appendChild(b); }
+  if (on === 'start') b._n++;
+  b.querySelector('.t').textContent = txt;
+}
+function apiUpload(u, form) {
+  const n = [...form.getAll('files')].length, was = n ? (n > 1 ? `${n} Fotos werden hochgeladen` : 'Foto wird hochgeladen') : 'Wird hochgeladen';
+  upBusy('start', was + ' …');
+  return new Promise((ok, bad) => {
+    const x = new XMLHttpRequest(); x.open('POST', u);
+    x.upload.onprogress = (e) => { if (e.lengthComputable) upBusy(true, e.loaded < e.total ? `${was} … ${Math.round(e.loaded / e.total * 100)} %` : 'Wird verarbeitet …'); };
+    x.onload = () => { upBusy(false); if (x.status === 401) { showLogin(); bad(0); return; } try { ok(JSON.parse(x.responseText)); } catch { ok({error: 'Hochladen fehlgeschlagen (' + x.status + ')'}); } };
+    x.onerror = () => { upBusy(false); toast('Hochladen fehlgeschlagen – bitte Verbindung prüfen und erneut versuchen.'); bad(0); };
+    x.send(form);
+  });
+}
 async function api(u, m = 'GET', d, form) {
+  if (form && m === 'POST') return apiUpload(u, form);
   const r = await fetch(u, {method: m, headers: d ? {'Content-Type':'application/json'} : {}, body: form || (d ? JSON.stringify(d) : undefined)});
   if (r.status === 401 && u !== 'api/login') { showLogin(); throw 0; }
   const j = await r.json();

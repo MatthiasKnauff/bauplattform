@@ -4,7 +4,7 @@ from flask import Flask, g, jsonify, request, send_from_directory, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import modules
-from core import access, audit, auth, backups, db, reminders, storage, sync, versions
+from core import access, audit, auth, backups, db, extern, reminders, storage, sync, versions
 from bpcore import head, platform, sso   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
 
 OPEN = ("/api/login", "/api/me", "/api/forgot", "/api/reset", "/api/favicon", "/api/platform")   # favicon: auch auf der Anmeldeseite
@@ -52,6 +52,7 @@ def create_app():
     sync.start()  # Hintergrund-Übertragung auf den Server
     reminders.start()  # E-Mail-Erinnerungen für Erledigungsdaten
     backups.start()    # tägliche Datenbankversionen
+    extern.start()     # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
     versions.start()   # Versionsverlauf der Berichte (automatische Momentaufnahmen)
     app = Flask(__name__, static_folder="static", static_url_path="")
     app.secret_key = _secret_key()

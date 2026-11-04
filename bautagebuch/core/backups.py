@@ -104,7 +104,9 @@ def start():
                         raise StopIteration
                     autos = [x for x in listing() if x["kind"] == "auto"]
                     if not autos or time.time() - autos[0]["mtime"] > 23.5 * 3600:
-                        create("auto")
+                        name = create("auto")
+                        from . import extern
+                        extern.kopieren(name)   # Kopie auf den Dateiserver (falls eingerichtet)
             except Exception:
                 pass
             time.sleep(900)

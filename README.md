@@ -362,6 +362,14 @@ persönlichen Einstellungen jedes Benutzers (Versand, Kalender, Darstellung, KI,
   (Standard: alle Stände 90 Tage, danach einer je Tag bis 730 Tage). Aufgeräumt wird einmal täglich; benannte Stände, der Ausgangsstand und der jüngste Stand bleiben immer.
 - Bautagesberichte und Bauzeitenpläne haben weiterhin ihren eigenen Verlauf in der App („Version speichern“ im Bauzeitenplan).
 
+
+### Sicherung auf dem Dateiserver und Wiederherstellung nach einem Ausfall
+Verwaltung → Einstellungen → Datensicherung → „Sicherung auf dem Dateiserver“: Pfad z. B. `\\192.168.233.88\Projekte\Bauportal`
+(Zugang wie bei der Ablage). Nach jeder täglichen und jeder manuellen Sicherung legt das Bautagebuch dort `Datenbank/bau-….dump`
+(die letzten 30), `Logo/` und `LIESMICH.txt` (Anleitung) ab. Nach einem Ausfall: neu installieren, Ablage und Pfad eintragen,
+die Sicherung „Zurückholen und wiederherstellen“. Fehlende Fotos holt die App danach (und bei jedem Start) aus den Projektordnern
+auf dem Dateiserver zurück – Voraussetzung: die Ablage war eingeschaltet (`images.sent_remote`).
+
 ## Gemeinsame Daten
 
 | Daten | Tabelle | genutzt von |

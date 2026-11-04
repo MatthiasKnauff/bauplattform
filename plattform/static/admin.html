@@ -367,7 +367,11 @@ function renderBtSettings() {
     <div class="st-a" style="margin-bottom:.8rem"><button class="btn pri" data-bs="bknew">Jetzt sichern</button></div>
     ${data.bk.length ? `<div class="tbl"><table><thead><tr><th>Stand</th><th>Art</th><th class="r hide-s">Größe</th><th></th></tr></thead><tbody>${data.bk.map((x) => `<tr><td>${esc(new Date(x.created).toLocaleString('de-DE'))}</td><td>${esc(lab(x.kind))}</td><td class="r hide-s">${fsize(x.size)}</td>
       <td><div class="acts"><a class="btn sm" href="api/bt/backups/${encodeURIComponent(x.name)}/download" download>Laden</a><button class="btn sm" data-bs="bkrestore" data-n="${esc(x.name)}">Wiederherstellen</button><button class="btn sm danger" data-bs="bkdel" data-n="${esc(x.name)}" aria-label="Sicherung löschen">✕</button></div></td></tr>`).join('')}</tbody></table></div>` : '<p class="mute">Noch keine Sicherung vorhanden.</p>'}
-    <p class="mute" style="font-size:.85rem">„Wiederherstellen“ ersetzt den gesamten Datenbestand durch diesen Stand (davor wird automatisch gesichert).</p></section>`;
+    <p class="mute" style="font-size:.85rem">„Wiederherstellen“ ersetzt den gesamten Datenbestand durch diesen Stand (davor wird automatisch gesichert).</p></section>
+    <section class="card st"><h2>Sicherung auf dem Dateiserver</h2><p class="mute">Damit bei einem Ausfall des Docker-Servers nichts verloren geht: Nach jeder täglichen und jeder manuellen Sicherung legt die App eine Kopie auf dem Dateiserver ab (die letzten 30, dazu Logo und eine Anleitung „LIESMICH.txt“). Zugang wie bei der Ablage.</p>
+      <div id="extBox"><p class="mute">Lade …</p></div></section>
+    <section class="card st"><h2>Fotos</h2><p class="mute">Fotos sind nicht in der Datenbanksicherung, liegen aber nach der Übertragung im Projektordner auf dem Dateiserver (Ablage). Fehlen sie im Datenordner – z. B. auf einem neuen Server –, holt die App sie von dort zurück: beim Start automatisch und hier per Knopf.</p>
+      <div id="fotoBox"><p class="mute">Lade …</p></div></section>`;
   }
   $('#main').innerHTML = stNav() + h + '<p class="mute" style="font-size:.85rem">Diese Einstellungen gehören zum Bautagebuch und sind dort unter Einstellungen dieselben.</p>';
   const lf = $('#logoIn'); if (lf) lf.onchange = async (e) => {
@@ -376,6 +380,7 @@ function renderBtSettings() {
     if (!r.ok || j.error) return toast(j.error || 'Hochladen fehlgeschlagen', true);
     data.logoV = Date.now(); toast('Logo gespeichert.'); loadSettings();
   };
+  if ($('#extBox')) extLoad();
   const bbBox = $('#bbBox');
   if (bbBox) {
     const bbDraw = (v) => {
@@ -393,6 +398,40 @@ function renderBtSettings() {
   }
   const sm = $('#main').querySelector('[data-st="store_mode"]'); if (sm) sm.onchange = () => { data.bt.store_mode = sm.value; collect(); renderBtSettings(); };
 }
+/* Sicherung auf dem Dateiserver, Fotos zurückholen (Bautagebuch: /api/backups/extern, /api/backups/fotos) */
+async function extLoad(method, body) {
+  const box = $('#extBox'), fb = $('#fotoBox'); if (!box) return;
+  let X; try { X = await api('api/bt/backups/extern', method || 'GET', body); } catch (e) { box.innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
+  const L = X.letzte || {}, lab = (k) => k === 'auto' ? 'automatisch' : k === 'manuell' ? 'manuell' : k;
+  box.innerHTML = `<div class="sf"><label class="w">Pfad auf dem Dateiserver<input id="extPfad" value="${esc(X.pfad || '')}" placeholder="\\\\192.168.233.88\\Projekte\\Bauportal"></label></div>
+    <div class="st-a" style="margin:.5rem 0"><button class="btn pri" data-bx="save">Pfad speichern</button>${X.pfad ? '<button class="btn" data-bx="copy">Jetzt kopieren</button>' : ''}</div>
+    ${X.pfad ? `<p class="${L.ok === false ? 'err' : 'mute'}" style="font-size:.9rem">${L.zeit ? `Letzte Kopie ${esc(new Date(L.zeit).toLocaleString('de-DE'))}: ${L.ok ? '✓ ' + esc(L.datei || '') : '✗ ' + esc(L.fehler || '')}` : 'Noch keine Kopie.'}</p>` : '<p class="mute">Noch kein Pfad eingetragen – Vorschlag: \\\\192.168.233.88\\Projekte\\Bauportal</p>'}
+    ${X.fehler ? `<p class="err">Dateiserver nicht erreichbar: ${esc(X.fehler)}</p>` : ''}
+    ${(X.liste || []).length ? `<details><summary class="mute" style="cursor:pointer">${X.liste.length} Sicherungen auf dem Dateiserver</summary><div class="tbl" style="margin-top:.5rem"><table><tbody>${X.liste.map((x) => `<tr><td>${esc(new Date(x.created).toLocaleString('de-DE'))}</td><td>${esc(lab(x.kind))}</td><td class="r hide-s">${fsize(x.size)}</td>
+      <td><button class="btn sm" data-bx="restore" data-n="${esc(x.name)}" title="Vom Dateiserver holen und den gesamten Datenbestand durch diesen Stand ersetzen">Zurückholen und wiederherstellen</button></td></tr>`).join('')}</tbody></table></div></details>` : ''}`;
+  if (fb) {
+    const F = X.fotos || {}, H = X.holen || {};
+    fb.innerHTML = `<p>${F.gesamt} Fotos · ${F.fehlen ? `<b>${F.fehlen} fehlen im Datenordner</b> (${F.holbar} auf dem Dateiserver vorhanden${F.nicht_holbar ? `, ${F.nicht_holbar} nie übertragen` : ''})` : 'alle vorhanden ✓'}</p>
+      ${H.laeuft ? `<p class="mute">Wird zurückgeholt … ${H.geholt} geholt, ${H.offen} offen</p>` : H.meldung ? `<p class="mute">${esc(H.meldung)}</p>` : ''}
+      ${!X.ablage ? '<p class="err">Die Ablage auf dem Dateiserver ist ausgeschaltet – ohne sie gibt es keine Kopie der Fotos (Einstellungen → Ablage).</p>' : ''}
+      ${F.holbar && !H.laeuft ? '<div class="st-a"><button class="btn" data-bx="fotos">Fehlende Fotos jetzt zurückholen</button></div>' : ''}`;
+    if (H.laeuft) setTimeout(() => { if ($('#fotoBox')) extLoad(); }, 4000);
+  }
+}
+$('#main').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-bx]'); if (!b) return;
+  const a = b.dataset.bx;
+  try {
+    if (a === 'save') { await extLoad('PUT', { pfad: $('#extPfad').value.trim() }); toast('Pfad gespeichert.'); }
+    else if (a === 'copy') { b.disabled = true; b.textContent = 'kopiert …'; await extLoad('POST'); toast('Sicherung auf den Dateiserver kopiert.'); }
+    else if (a === 'fotos') { await api('api/bt/backups/fotos', 'POST'); extLoad(); toast('Fotos werden zurückgeholt …'); }
+    else if (a === 'restore') {
+      if (!confirmTwice(b, 'Wirklich alles ersetzen? Nochmal klicken')) return;
+      b.disabled = true; b.textContent = 'wird geholt und eingespielt …';
+      await api(`api/bt/backups/${encodeURIComponent(b.dataset.n)}/restore?extern=1`, 'POST'); toast('Wiederhergestellt – Fotos werden im Hintergrund zurückgeholt.'); loadSettings();
+    }
+  } catch (er) { toast(er.message, true); extLoad(); }
+});
 let pend = {};
 function collect() { $('#main').querySelectorAll('[data-st]').forEach((el) => { const k = el.dataset.st; if (/_pass$/.test(k) && !el.value) return; pend[k] = el.value.trim(); if (!/_pass$/.test(k)) data.bt[k] = pend[k]; }); }
 $('#main').addEventListener('click', async (e) => {

@@ -115,7 +115,7 @@ function renderLib() {
     const own = L.filter((x) => x.ph === ph.k && hit(x));
     const std = libStd ? CATALOG.items.filter((i) => i.ph === ph.k && !i.ms && hit(i)) : [];
     if (!own.length && !std.length && q) continue;   // leere Abschnitte zeigen – dort kann man Leistungen anlegen
-    h += `<tr class="lv-ph"><td colspan="12">${esc(ph.n)}<button class="btn sm" data-lnew="${ph.k}" title="Neue Leistung in diesem Abschnitt">＋ Leistung</button></td></tr>`;
+    h += `<tr class="lv-ph"><td colspan="12">${esc(ph.n)}<button class="btn sm" data-lnew="${ph.k}" title="Neue Leistung in diesem Abschnitt">＋ Leistung</button><button class="btn sm" data-lwiz="${ph.k}" title="Neue Leistung Schritt für Schritt: Abschnitt, Gewerk, Dauer, Reihenfolge, Gebäudetypen">✨ mit Assistent</button></td></tr>`;
     for (const x of own) {
       shown++;
       const dt = typeof dinTitle === 'function' ? dinTitle(x.din) : '';
@@ -406,6 +406,7 @@ $('#libView').addEventListener('click', (e) => {
   }
   if (b.dataset.lsub) { libSub = b.dataset.lsub; LS.set('libSub', libSub); renderLib(); return; }
   if (b.dataset.lnew) { libNew(b.dataset.lnew); return; }
+  if (b.dataset.lwiz) { leistungWizard({ ph: b.dataset.lwiz }); return; }
   if (b.dataset.rec) { const id = b.closest('tr').dataset.lid, x = window.LIBRARY.find((y) => y.id === id), r = new Set(x.rec || []); if (r.has(b.dataset.rec)) r.delete(b.dataset.rec); else r.add(b.dataset.rec); libUpd(id, { rec: [...r] }); renderLib(); return; }
   if (b.dataset.ldup) { const x = window.LIBRARY.find((y) => y.id === b.dataset.ldup); libNew(x.ph, { ...x, n: x.n + ' (Kopie)', from: x.id, src: 'Kopie von „' + x.n + '“' }); return; }
   if (b.dataset.lcopy) { const i = CATALOG.items.find((y) => y.id === b.dataset.lcopy); libNew(i.ph, { n: i.n, gw: i.gw, din: i.din || '', sc: i.sc, d: i.d || 1, a: (i.a || []).map((z) => (Array.isArray(z) ? z[0] : z)).filter((z) => z !== 'start').slice(0, 1), craft: (typeof CRAFT !== 'undefined' && CRAFT[i.gw]) || '', src: 'Standardkatalog', from: i.id }); return; }
@@ -491,3 +492,88 @@ function libImportFile() {
 }
 
 loadLibrary();
+
+/* ---------- Leistungs-Assistent: neue Leistung Schritt für Schritt (Leistungskatalog und „Assistent einrichten“) ----------
+   leistungWizard({ ph, rec: ['neubau_efh'], onDone(x) }) – legt die Leistung im Leistungskatalog an.
+   Jeder Schritt hat einen Vorschlag; „Fertig“ geht jederzeit, der Rest bleibt beim Vorschlag. */
+function leistungWizard(opt = {}) {
+  const profs = CATALOG.profiles.filter((p) => p.k !== 'frei' && !p.hidden);
+  const f = { n: '', ph: opt.ph || '', gw: '', din: '', d: 2, sc: 'we', a: '', b: '', rec: [...(opt.rec || [])] };
+  let step = 0, guessed = false;
+  const STEPS = ['Bezeichnung', 'Abschnitt und Gewerk', 'Dauer', 'Reihenfolge', 'Gebäudetypen'];
+  const bg = document.createElement('div'); bg.className = 'modal-bg lw-bg';
+  bg.innerHTML = `<div class="modal lw" role="dialog" aria-label="Neue Leistung"><div class="mh">Neue Leistung – Assistent<button class="mx" title="Schließen">×</button></div>
+    <div class="lw-steps"></div><div class="mb lw-b"></div><div class="mf lw-f"></div></div>`;
+  document.body.appendChild(bg);
+  const close = () => bg.remove();
+  const guess = () => {   // Vorschläge aus der Bezeichnung (Abschnitt, Gewerk, DIN, Bezug)
+    if (guessed || !f.n.trim()) return; guessed = true;
+    const sug = (window.AssistCore && AssistCore.dinSuggest(f.n)[0]) || null;
+    if (!f.gw && sug) f.gw = sug.gw || '';
+    if (!f.ph) f.ph = libGuessPh(f.n, f.gw);
+    if (!f.din) f.din = libDinFor(f.gw, f.n);
+    const sim = CATALOG.items.find((i) => i.gw === f.gw && i.ph === f.ph);
+    if (sim) { f.sc = sim.sc || f.sc; if (sim.d) f.d = sim.d; }
+    else f.sc = ['planung', 'vorb', 'abbruch', 'erd', 'rohbau', 'huelle', 'aussen'].includes(f.ph) ? 'bau' : 'we';   // Gebäude oder je Einheit
+  };
+  const read = () => {
+    bg.querySelectorAll('[data-lw]').forEach((el) => {
+      const k = el.dataset.lw;
+      if (k === 'rec') return;
+      f[k] = k === 'd' ? Math.max(1, Math.round(+el.value) || 1) : el.value;
+    });
+    if (step === 4) f.rec = [...bg.querySelectorAll('[data-lw="rec"]:checked')].map((x) => x.value);
+  };
+  const phOpts = () => libPhases().map((p) => `<option value="${p.k}"${p.k === f.ph ? ' selected' : ''}>${esc(p.n)}</option>`).join('');
+  function draw() {
+    bg.querySelector('.lw-steps').innerHTML = STEPS.map((s, i) => `<button class="${i === step ? 'on' : i < step ? 'done' : ''}" data-lwgo="${i}"${!f.n.trim() && i ? ' disabled' : ''}>${i + 1}. ${esc(s)}</button>`).join('');
+    let h = '';
+    if (step === 0) h = `<p class="lw-q">Wie heißt die Leistung?</p><input data-lw="n" class="lw-in" value="${esc(f.n)}" placeholder="z. B. Bewehrungsabnahme, Innenputz Kalk, Treppenlift einbauen" autocomplete="off">
+      <p class="lw-h">Aus der Bezeichnung schlägt der Assistent Abschnitt, Gewerk, DIN und Dauer vor. Mit „Fertig“ kannst du jederzeit abschließen – der Rest bleibt beim Vorschlag.</p>`;
+    else if (step === 1) h = `<p class="lw-q">In welchen Abschnitt gehört sie, und welches Gewerk führt sie aus?</p>
+      <label>Abschnitt<select data-lw="ph">${phOpts()}</select></label>
+      <label>Gewerk<input data-lw="gw" list="lwGw" value="${esc(f.gw)}" placeholder="z. B. Rohbau, Statiker, Architekt"></label>
+      <label>DIN (ATV)<input data-lw="din" list="lwDin" value="${esc(f.din)}" placeholder="z. B. 18331"></label>
+      <datalist id="lwGw">${AssistCore.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist>
+      <datalist id="lwDin">${(window.DIN_ATV || []).map((x) => `<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</datalist>`;
+    else if (step === 2) h = `<p class="lw-q">Wie lange dauert sie, und gilt sie einmal für das Gebäude oder je Wohnung/Einheit?</p>
+      <label>Richtdauer (Arbeitstage)<input data-lw="d" type="number" min="1" max="999" value="${f.d}" class="lw-n"></label>
+      <label>Bezug<select data-lw="sc"><option value="bau"${f.sc === 'bau' ? ' selected' : ''}>einmal für das Gebäude</option><option value="we"${f.sc === 'we' ? ' selected' : ''}>je Einheit (Wohnung, Bauabschnitt)</option></select></label>
+      <p class="lw-h">Die Richtdauer gilt für die Referenzgröße und wird im Assistenten mit der Fläche skaliert.</p>`;
+    else if (step === 3) h = `<p class="lw-q">Wann kommt sie dran?</p>
+      <label>beginnt nach<select data-lw="a"><option value="">automatisch – am Ende des Abschnitts</option>${libPredOpts(f.a, '')}</select></label>
+      <label>muss fertig sein vor<select data-lw="b"><option value="">–</option>${libPredOpts(f.b, '')}</select></label>`;
+    else h = `<p class="lw-q">Bei welchen Gebäudetypen soll sie im Assistenten schon angehakt sein (empfohlen)?</p>
+      <div class="lw-pr">${profs.map((p) => `<label class="chk"><input type="checkbox" data-lw="rec" value="${p.k}"${f.rec.includes(p.k) ? ' checked' : ''}> ${esc(p.ic || '')} ${esc(p.n)}</label>`).join('')}</div>
+      <p class="lw-h">Bei den übrigen Typen steht sie unter „Weitere Leistungen“.</p>`;
+    bg.querySelector('.lw-b').innerHTML = h;
+    bg.querySelector('.lw-f').innerHTML = `${step ? '<button class="btn" data-lwb="back">Zurück</button>' : ''}<span style="flex:1"></span>
+      <button class="btn" data-lwb="x">Abbrechen</button>${step < STEPS.length - 1 ? '<button class="btn" data-lwb="next">Weiter</button>' : ''}<button class="btn primary" data-lwb="ok"${f.n.trim() ? '' : ' disabled'}>Fertig</button>`;
+    const fi = bg.querySelector('.lw-b input, .lw-b select'); if (fi) { fi.focus(); if (fi.select && step === 0) fi.select(); }
+  }
+  async function done() {
+    read(); guess();
+    const x = libClean({ n: f.n.trim(), ph: f.ph || 'ausbau', gw: f.gw.trim(), din: f.din.trim(), d: f.d, sc: f.sc, a: f.a ? [f.a] : [], b: f.b ? [f.b] : [], rec: f.rec });
+    try { await window.Library.add(x); } catch { return; }
+    close(); toast(`„${x.n}“ angelegt – steht im Leistungskatalog und im Planungsassistenten.`);
+    if (opt.onDone) opt.onDone(x);
+  }
+  bg.addEventListener('click', (e) => {
+    if (e.target.closest('.mx')) { close(); return; }
+    const go = e.target.closest('[data-lwgo]'); if (go && !go.disabled) { read(); guess(); step = +go.dataset.lwgo; draw(); return; }
+    const b = e.target.closest('[data-lwb]'); if (!b) return;
+    const a = b.dataset.lwb;
+    if (a === 'x') close();
+    else if (a === 'back') { read(); step--; draw(); }
+    else if (a === 'next') { read(); if (!f.n.trim()) return; guess(); step++; draw(); }
+    else if (a === 'ok') done();
+  });
+  bg.addEventListener('input', (e) => { if (e.target.dataset.lw === 'n') { f.n = e.target.value; guessed = false; f.gw = f.din = ''; if (!opt.ph) f.ph = ''; const ok = bg.querySelector('[data-lwb="ok"]'); if (ok) ok.disabled = !f.n.trim(); } });
+  bg.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Escape') close();
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); read(); if (!f.n.trim()) return; if (step < STEPS.length - 1) { guess(); step++; draw(); } else done(); }
+  });
+  draw();
+}
+window.leistungWizard = leistungWizard;

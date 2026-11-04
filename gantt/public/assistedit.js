@@ -161,8 +161,8 @@
     h += '<table class="ae-tbl"><thead><tr><th></th><th>Leistung</th><th class="c">Status</th><th>eigene Bezeichnung</th><th class="r">Richtdauer AT</th></tr></thead><tbody>';
     const L = itemsFor(p), phSel = (i) => `<select class="ae-phs" data-iph="${i.id}" title="Gruppe (Phase) im Bauzeitenplan">${PH().map((x) => `<option value="${x.k}"${x.k === i.ph ? ' selected' : ''}>${H(x.n)}</option>`).join('')}</select>`;
     for (const ph of PH()) {
-      const all = L.filter((i) => i.ph === ph.k), its = all.filter(hit); if (!its.length) continue;
-      h += `<tr class="ae-ph"><td colspan="5">${H(ph.n)}</td></tr>`;
+      const all = L.filter((i) => i.ph === ph.k), its = all.filter(hit); if (!its.length && q) continue;
+      h += `<tr class="ae-ph"><td colspan="5">${H(ph.n)}<button class="btn sm ae-addl" data-ae-new="${ph.k}" title="Neue Leistung in dieser Gruppe – der Assistent fragt Gewerk, Dauer, Reihenfolge und Gebäudetypen ab">＋ Leistung</button></td></tr>`;
       for (const i of its) {
         const k = all.indexOf(i);
         const st = R.has(i.id) ? 'rec' : O.has(i.id) ? 'opt' : 'off', sOv = (std.ovr || {})[i.id] || {}, m = mine[i.id] || {};
@@ -237,6 +237,14 @@
   function onClick(e) {
     const t = e.target, b = t.closest('button,[data-selp],[data-selg]'); if (!b || !bg.contains(b)) return;
     if (b.dataset.tab) { tab = b.dataset.tab; render(); return; }
+    if (b.dataset.aeNew && window.leistungWizard) {   // neue Leistung direkt hier anlegen (landet im Leistungskatalog)
+      const k = selP;
+      window.leistungWizard({ ph: b.dataset.aeNew, rec: [k], onDone: (x) => {
+        const p = draftProfiles().find((y) => y.k === k); if (p) { snap(); setStatus(p, x.id, (x.rec || []).includes(k) ? 'rec' : 'opt'); }
+        q = ''; render();
+      } });
+      return;
+    }
     if (b.dataset.selp) { if (t.closest('button')) { /* Pfeile */ } else { selP = b.dataset.selp; render(); return; } }
     if (b.dataset.selg) { selG = b.dataset.selg; render(); return; }
     if (b.dataset.mv) {

@@ -247,7 +247,7 @@ async function versandDialog() {
     }
     if (m === 'send') {
       const art = (bg.querySelector('[name=vArt]:checked') || {}).value || 'direkt', cad = (bg.querySelector('[name=vCad]:checked') || {}).value === '1';
-      const emp = [...bg.querySelectorAll('[data-emp]:checked')].map((x) => ({ name: firmen[+x.dataset.emp].name, email: firmen[+x.dataset.emp].email }))
+      const emp = [...bg.querySelectorAll('[data-emp]:checked')].map((x) => ({ name: firmen[+x.dataset.emp].name, email: firmen[+x.dataset.emp].email, contact_id: firmen[+x.dataset.emp].id }))
         .concat([...bg.querySelectorAll('[data-ext]:checked')].map((x) => extra[+x.dataset.ext]));
       const offen = $('#vAdd', bg).value.trim();   // eingetippt, aber nicht „Hinzufügen“ gedrückt
       if (/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(offen) && !emp.some((e) => e.email.toLowerCase() === offen.toLowerCase())) emp.push({ name: '', email: offen });
@@ -258,6 +258,7 @@ async function versandDialog() {
           plaene: g.map((x) => ({ pfad: x.st.pdf.pfad, nr: x.p.nr, index: x.st.index, titel: x.p.titel, kennung: x.p.kennung, cad: x.st.cad.map((c) => c.pfad) })) });
         close(); toast(`${g.length} ${g.length > 1 ? 'Pläne' : 'Plan'} (${String(r.mb).replace('.', ',')} MB) gesendet an ${r.an.map((e) => e.name || e.email).join(', ')}.` + (r.fehler.length ? ' Nicht gesendet: ' + r.fehler.join('; ') : ''), !!r.fehler.length);
         SEL.clear(); laden();
+        if (r.neu && r.neu.length && window.BPHead && BPHead.kontaktAnlegen) BPHead.kontaktAnlegen(r.neu);   // nur eine Mail-Adresse? → kurz fragen, ob ein Kontakt angelegt werden soll
       } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Senden'; }
     }
   });

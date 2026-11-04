@@ -19,6 +19,10 @@
 .sugbox .sugh{font-size:.8rem;color:var(--mute);margin:.2rem 0 .3rem}
 .sugbox .sugo{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem;margin:.25rem 0;background:transparent;color:var(--ink)}
 .sugbox .sugo:hover{border-color:var(--y)}.sugbox .sugo small{display:block;color:var(--mute);font-size:.8rem}
+.bnv{margin:.6rem 0 .2rem;border:1px solid var(--line);border-radius:10px;padding:.45rem .7rem}
+.bnv summary{cursor:pointer;font-weight:600}
+.bnv summary small{font-weight:400;margin-left:.3rem}
+.bnv #bnHost{margin-top:.5rem}
 #mErr .orte{display:flex;flex-direction:column;gap:.25rem;margin-top:.45rem}
 #mErr .orte a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:.35rem .6rem}
 #mErr .orte a:hover{border-color:var(--y)}
@@ -202,7 +206,7 @@ async function nkTake(bg, i) {
   set('trade', x.trade); set('street', x.street); set('zip', x.zip); set('city', x.city); set('phone', x.phone); set('email', x.email); set('website', x.website);
   bg.querySelector('#nkSug').innerHTML = '<div class="sugh">Übernommen – bitte prüfen und speichern.</div>';
 }
-function edit(c) {
+function edit(c, verlaufAuf) {
   const isNew = !c; c = c || { kind: kind || 'firma', trade: gw || (kind === 'bauherr' ? 'Bauherr' : '') };
   const inp = ([k, l, w, t]) => `<label class="${w}">${l}<input data-f="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'trade' ? ' list="gwList"' : ''}></label>`;
   const map = addr(c) ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(addr(c))}` : '';
@@ -220,6 +224,7 @@ function edit(c) {
       <label class="w">Notizen<textarea data-f="notes">${esc(c.notes || '')}</textarea></label></div>
     <datalist id="gwList">${gwList.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     ${use ? `<div class="info">${use}</div>` : ''}
+    ${isNew ? '' : '<details class="bnv" id="bnBox"><summary>Benachrichtigungsverlauf <small class="mu">Pläne, Mängel- und Terminrügen</small></summary><div id="bnHost"></div></details>'}
     <div class="err" id="mErr"></div>
     <div class="mf">${isNew ? '' : `<button class="btn sm danger" data-m="del">Löschen</button><button type="button" class="btn sm" data-bph-verlauf="kontakt:${c.id}" title="Frühere Stände dieser Adresse ansehen und wiederherstellen">↶ Verlauf</button>`}<span class="fill"></span><button class="btn" data-m="close">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>
     <div class="info">Dieselben Adressen wie in den Kontakten des Bautagebuchs und im Adressbuch des Bauzeitenplans.</div>`,
@@ -242,6 +247,11 @@ function edit(c) {
     }
   });
   const first = document.querySelector('.modal [data-f="name"]'); if (first && isNew) first.focus();
+  const bnB = bgE && bgE.querySelector('#bnBox');
+  if (bnB && window.BPHead && BPHead.benachrichtigungen) {
+    bnB.addEventListener('toggle', () => { if (bnB.open && !bnB.dataset.l) { bnB.dataset.l = '1'; BPHead.benachrichtigungen(c.id, bnB.querySelector('#bnHost')); } });
+    if (verlaufAuf) { bnB.open = true; setTimeout(() => bnB.scrollIntoView({ block: 'nearest' }), 300); }
+  }
   if (isNew && bgE) {
     bgE.addEventListener('input', (e) => { if (e.target.dataset.f === 'name') nkSuggest(bgE, e.target.value); });
     bgE.addEventListener('click', (e) => { const b = e.target.closest('[data-sug]'); if (b) nkTake(bgE, +b.dataset.sug); });
@@ -466,7 +476,7 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   await load();
   if (betN && ALL.some(istBet)) { bet = betN; render(); }
   const hk = /^#kontakt=(\d+)/.exec(location.hash);   // aus dem Bautagebuch: „In Adressen bearbeiten“
-  if (hk) { history.replaceState(null, '', location.pathname); const c = ALL.find((x) => x.id === +hk[1]); if (c) edit(c); }
+  if (hk) { const vl = /[#&]verlauf\b/.test(location.hash); history.replaceState(null, '', location.pathname); const c = ALL.find((x) => x.id === +hk[1]); if (c) edit(c, vl); }
   setView(TV.view);
   if (matchMedia('(pointer:fine)').matches) $('#q').focus({ preventScroll: true });
 })().catch((e) => toast(e.message, true));

@@ -15,7 +15,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, platform, sso, versionen
+from bpcore import benachrichtigung, db, platform, sso, versionen
 from bpcore import contacts as shared_contacts
 import common as C
 
@@ -169,6 +169,7 @@ def create_contact():
                 cid = c.execute(f"INSERT INTO contacts({', '.join(cols)}) VALUES({', '.join('?' * len(cols))}) RETURNING id",
                                 (*d.values(), "{}", ts, ts)).fetchone()[0]
             versionen.nach(c, f"kontakt:{cid}", g.user["name"])
+            benachrichtigung.zuordnen(c, cid, d.get("email"))
     except db.IntegrityError:
         return jsonify(error=DUP), 409
     C.audit(g.user["name"], "kontakte", "Kontakt angelegt", f"{d['name']} · Adressen")
@@ -196,6 +197,8 @@ def update_contact(i):
             with c.savepoint():
                 c.execute(f"UPDATE contacts SET {', '.join(k + '=?' for k in ch)}, updated=? WHERE id=?", (*ch.values(), _now(), i))
             versionen.nach(c, f"kontakt:{i}", g.user["name"])
+            if ch.get("email"):
+                benachrichtigung.zuordnen(c, i, ch["email"])
     except db.IntegrityError:
         return jsonify(error=DUP), 409
     C.audit(g.user["name"], "kontakte", "Kontakt geändert", f"{ch.get('name') or old['name']} · " + ", ".join(FIELDS[k][1] for k in ch))

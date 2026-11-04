@@ -10,7 +10,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, konto, mail, plan, planname, platform, sso, versionen, vorlagen
+from bpcore import benachrichtigung, db, konto, mail, plan, planname, platform, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -329,7 +329,8 @@ def versand():
     b = request.get_json(silent=True) or {}
     pid = b.get("project_id") if isinstance(b.get("project_id"), int) else None
     sel = [x for x in (b.get("plaene") or []) if isinstance(x, dict) and x.get("pfad")][:80]
-    emp = [{"name": str(e.get("name") or "").strip()[:200], "email": str(e.get("email") or "").strip()[:200]}
+    emp = [{"name": str(e.get("name") or "").strip()[:200], "email": str(e.get("email") or "").strip()[:200],
+            **({"contact_id": e["contact_id"]} if isinstance(e.get("contact_id"), int) else {})}
            for e in (b.get("empfaenger") or []) if isinstance(e, dict)]
     emp = [e for e in emp if re.fullmatch(r"[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+", e["email"])]
     art = "mich" if b.get("versand") == "mich" else "direkt"
@@ -370,7 +371,7 @@ def versand():
     text = str(b.get("text") or "").strip()[:20000] or "{planliste}"
     with db.tx() as c:
         von, absname = konto.absender(c, g.user, mc)   # Büro-Absender oder (je Benutzer) die eigene Adresse
-    gesendet, fehler = [], []
+    gesendet, fehler, nicht = [], [], []
     if art == "mich":
         an_namen = ", ".join(e["name"] or e["email"] for e in emp)
         try:
@@ -392,6 +393,22 @@ def versand():
                 gesendet.append(e)
             except mail.MailError as er:
                 fehler.append(f"{e['name'] or e['email']}: {er}")
+                nicht.append((e, er))
+    # Benachrichtigungsverlauf der Kontakte – auch für Adressen ohne Kontakt (erscheinen, sobald der Kontakt angelegt ist)
+    inhalt = "\n".join(_planzeile(x) for x in liste)
+    bt = vorlagen.fuellen(betreff, {**W, "firma": ""})[:300]
+    with db.tx() as c:
+        if art == "mich":
+            if gesendet:
+                benachrichtigung.protokoll(c, "planversand", emp, project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
+                                           von=C.full_name(g.user), weg="weiterleiten", link="plaene:#liste")
+        else:
+            benachrichtigung.protokoll(c, "planversand", gesendet, project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
+                                       von=C.full_name(g.user), link="plaene:#liste")
+            for e, er in nicht:
+                benachrichtigung.protokoll(c, "planversand", [e], project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
+                                           von=C.full_name(g.user), status="fehler", fehler=str(er), link="plaene:#liste")
+        neu = benachrichtigung.unbekannt(c, [e["email"] for e in emp])
     if gesendet:
         with db.tx() as c:
             c.execute("INSERT INTO planversand(project_id, datum, absender, art, empfaenger, plaene, betreff) VALUES(?,?,?,?,?,?,?)",
@@ -399,8 +416,8 @@ def versand():
                        json.dumps(liste, ensure_ascii=False), vorlagen.fuellen(betreff, {**W, "firma": ""})[:300]))
         C.audit(g.user["name"], "mail", "Planversand", f"{p['name']} · {len(liste)} Pläne · " + ", ".join(e["email"] for e in gesendet))
     if fehler and not gesendet:
-        return jsonify(error="; ".join(fehler)), 502
-    return jsonify(ok=True, an=gesendet, fehler=fehler, mb=round(total / 1048576, 1))
+        return jsonify(error="; ".join(fehler), neu=neu), 502
+    return jsonify(ok=True, an=gesendet, fehler=fehler, mb=round(total / 1048576, 1), neu=neu)
 
 
 # ---------------------------------------------------------------- Planversandliste

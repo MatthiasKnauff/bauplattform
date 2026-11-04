@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import briefbogen, db, ical, konto, mail, plan, platform, sso, versionen, vorlagen
+from bpcore import benachrichtigung, briefbogen, db, ical, konto, mail, plan, platform, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -281,7 +281,7 @@ def ruege_vorlage():
         firma = x["company"] or x["contact"] or ""
         k = c.execute("SELECT * FROM contacts WHERE lower(name)=lower(?) ORDER BY id LIMIT 1", (firma,)).fetchone() if firma else None
     alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"] and m["art"] == "maengel"]
-    return jsonify(firma=firma, empfaenger={"name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
+    return jsonify(firma=firma, empfaenger={"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
                                            "email": k["email"] or ""} if k else {"name": firma, "person": "", "strasse": "", "ort": "", "email": ""},
                    maengel=alle, gewaehlt=[m["id"] for m in alle if m["id"] == i or (firma and m["firma"] == firma)])
 
@@ -384,20 +384,41 @@ def _sig():
         return konto.signatur(c, g.user["id"])
 
 
-def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname):
+def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname, inhalt=""):
     """Rüge per Mail: versand = mich (an mich zum Weiterleiten) | firma (direkt an die Firma, auf Wunsch Kopie an mich).
-    Gibt (Hinweis, Fehler) zurück – das PDF wird in jedem Fall geliefert."""
+    Gibt (Hinweis, Fehler, neue Adresse) zurück – das PDF wird in jedem Fall geliefert. Jede Rüge kommt in den
+    Benachrichtigungsverlauf des Kontakts (auch „nur PDF“ – dann stellt man sie selbst zu)."""
     v = b.get("versand")
-    if v not in ("mich", "firma"):
-        return "", ""
-    with db.tx() as c:
-        cf = mail.conf(c)
-        T = vorlagen.alle(c)["maengelruege" if art == "Mängelrüge" else "terminruege"]
-        p = c.execute("SELECT name, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
+    v = v if v in ("mich", "firma") else "pdf"
+    key = "maengelruege" if art == "Mängelrüge" else "terminruege"
     ich = (g.user["email"] or "").strip()
     an = ich if v == "mich" else str(b.get("email") or "").strip()
+
+    def log(status="gesendet", fehler=""):
+        with db.tx() as c:
+            cid = E.get("id") if isinstance(E.get("id"), int) else None
+            if not cid and E.get("name"):
+                r = c.execute("SELECT id FROM contacts WHERE lower(name)=lower(?) ORDER BY id LIMIT 1", (E["name"],)).fetchone()
+                cid = r["id"] if r else None
+            mail_firma = an if v == "firma" else ""
+            if not mail_firma and cid:
+                r = c.execute("SELECT email FROM contacts WHERE id=?", (cid,)).fetchone()
+                mail_firma = (r["email"] or "") if r else ""
+            benachrichtigung.protokoll(c, key, [{"contact_id": cid, "email": mail_firma, "name": E.get("name") or ""}], project_id=pid, projekt=projekt,
+                                       betreff=f"{art}" + (f" – Frist bis {_de(frist)}" if frist else ""), inhalt=inhalt, von=C.full_name(g.user),
+                                       weg={"mich": "weiterleiten", "firma": "mail"}[v] if v != "pdf" else "pdf", status=status, fehler=fehler,
+                                       link="aufgaben:#" + ("maengel" if key == "maengelruege" else "termine"))
+            return benachrichtigung.unbekannt(c, [an]) if v == "firma" and status == "gesendet" else []
+
+    if v == "pdf":
+        log()
+        return "", "", ""
+    with db.tx() as c:
+        cf = mail.conf(c)
+        T = vorlagen.alle(c)[key]
+        p = c.execute("SELECT name, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
     if not an or "@" not in an:
-        return "", "Keine E-Mail-Adresse " + ("in deinem Konto." if v == "mich" else "für die Firma angegeben.")
+        return "", "Keine E-Mail-Adresse " + ("in deinem Konto." if v == "mich" else "für die Firma angegeben."), ""
     bv = (p["name"] + (", " + ", ".join(x for x in (p["street"], " ".join(y for y in (p["zip"], p["city"]) if y)) if x) if p and (p["street"] or p["city"]) else "")) if p else projekt
     W = {"firma": E.get("name") or "", "bauvorhaben": bv, "projekt": p["name"] if p else projekt, "frist": _de(frist), "anzahl": anzahl,
          "absender": C.full_name(g.user), "buero": cf.get("office_name") or "", "datum": datetime.now().strftime("%d.%m.%Y")}
@@ -409,13 +430,17 @@ def _versenden(b, art, E, projekt, pid, frist, anzahl, pdf, dateiname):
         mail.send(cf, an, vorlagen.fuellen(T["betreff"], W), text, sender=vname, from_addr=von,
                   attachments=[(dateiname, pdf, "application/pdf")], cc=cc, reply_to=ich or None, html=html)
     except mail.MailError as e:
-        return "", str(e)
+        log("fehler", str(e))
+        return "", str(e), ""
+    neu = log()
     C.audit(g.user["name"], "mail", f"{art} per E-Mail", f"{projekt} · an {an}" + (f" · Kopie {cc[0]}" if cc else ""))
-    return f"per E-Mail an {an}" + (" (Kopie an dich)" if cc else ""), ""
+    return f"per E-Mail an {an}" + (" (Kopie an dich)" if cc else ""), "", (neu[0] if neu else "")
 
 
-def _pdf_antwort(buf, fn, hinweis, fehler):
+def _pdf_antwort(buf, fn, hinweis, fehler, neu=""):
     h = {"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(fn)}"}
+    if neu:
+        h["X-Neue-Adresse"] = urllib.parse.quote(neu)
     if hinweis:
         h["X-Mail"] = urllib.parse.quote(hinweis)
     if fehler:
@@ -470,8 +495,8 @@ def ruege_pdf():
                     pass
     C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{ms[0]['projekt']} · {E.get('name') or ''} · {len(ms)} Mängel")
     fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"Mängelrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf"
-    hinweis, fehler = _versenden(b, "Mängelrüge", E, ms[0]["projekt"], ms[0]["pid"], frist, len(ms), buf.getvalue(), fn)
-    return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler)
+    hinweis, fehler, neu = _versenden(b, "Mängelrüge", E, ms[0]["projekt"], ms[0]["pid"], frist, len(ms), buf.getvalue(), fn, inhalt=liste)
+    return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
 
 
 # ---------------------------------------------------------------- Termine: Firmen laut Bauzeitenplan nicht anwesend
@@ -547,7 +572,7 @@ def terminruege_vorlage():
     with db.tx() as c:
         k = c.execute("SELECT * FROM contacts WHERE id=?", (rows[0]["contact_id"],)).fetchone() if rows[0]["contact_id"] else None
         k = k or c.execute("SELECT * FROM contacts WHERE lower(name)=? ORDER BY id LIMIT 1", (firma,)).fetchone()
-    E = {"name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v), "email": k["email"] or ""} if k else {"name": rows[0]["firma"], "person": "", "strasse": "", "ort": "", "email": ""}
+    E = {"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v), "email": k["email"] or ""} if k else {"name": rows[0]["firma"], "person": "", "strasse": "", "ort": "", "email": ""}
     return jsonify(empfaenger=E, tage=rows, projekt=rows[0]["projekt"])
 
 
@@ -578,8 +603,8 @@ def terminruege_pdf():
                               (t["rid"], t["key"], "fehlt", "Terminrüge", datetime.now().isoformat(timespec="seconds"), g.user["name"]))
     C.audit(g.user["name"], "export", "Terminrüge erstellt", f"{rows[0]['projekt']} · {E.get('name') or ''} · {len(rows)} Tage")
     fn = re.sub(r"[\\/:*?\"<>|]+", "_", f"Terminrüge {E.get('name') or ''} {date.today():%Y-%m-%d}") + ".pdf"
-    hinweis, fehler = _versenden(b, "Terminrüge", E, rows[0]["projekt"], pid, frist, len(rows), buf.getvalue(), fn)
-    return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler)
+    hinweis, fehler, neu = _versenden(b, "Terminrüge", E, rows[0]["projekt"], pid, frist, len(rows), buf.getvalue(), fn, inhalt=liste)
+    return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
 
 
 # ---------------------------------------------------------------- Bauzeitenpläne → „Firma kommt zur Baustelle“

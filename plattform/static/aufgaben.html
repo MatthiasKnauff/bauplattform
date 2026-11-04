@@ -189,7 +189,7 @@ async function truegeDialog(k) {
     const ids = [...bg.querySelectorAll('[data-td]:checked')].map((x) => x.dataset.td); if (!ids.length) { toast('Bitte mindestens einen Tag wählen.', true); return; }
     const vs = versandRead(bg); if (!vs) return;
     const body = { ...vs, pid, firma, ids, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: bg.querySelector('#tB').checked,
-      empfaenger: { name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
+      empfaenger: { id: bg.querySelector('#tN').value.trim() === E0.name ? E0.id : null, name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
     const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Terminrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Terminrüge wird erstellt …</body>');
     try { await pdfHolen('api/terminruege', body, 'Terminrüge', w); close(); reload(); } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
   });
@@ -352,10 +352,12 @@ async function pdfHolen(url, body, titel, w) {   // PDF erzeugen, im vorab geöf
   const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
   const ok = r.headers.get('X-Mail'), err = r.headers.get('X-Mail-Fehler');
+  const neu = r.headers.get('X-Neue-Adresse');
   const href = URL.createObjectURL(await r.blob());
   if (w && !w.closed) w.location.href = href; else { const a = document.createElement('a'); a.href = href; a.download = titel + '.pdf'; document.body.appendChild(a); a.click(); a.remove(); }
   if (err) toast(`${titel} erstellt, aber nicht verschickt: ${decodeURIComponent(err)}`, true);
   else toast(`${titel} erstellt${ok ? ' und ' + decodeURIComponent(ok) + ' verschickt' : ''}.`);
+  if (neu && window.BPHead && BPHead.kontaktAnlegen) BPHead.kontaktAnlegen([decodeURIComponent(neu)], { name: (body.empfaenger || {}).name || '' });
 }
 
 /* ---------- Mängelrüge: Dialog → am Bildschirm ausfüllbares PDF ---------- */
@@ -384,7 +386,7 @@ async function ruegeDialog(id) {
       const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm); if (!ids.length) { toast('Bitte mindestens einen Mangel wählen.', true); return; }
       const vs = versandRead(bg); if (!vs) return;
       const body = { ...vs, ids, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
-        empfaenger: { name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
+        empfaenger: { id: bg.querySelector('#rN').value.trim() === E.name ? E.id : null, name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
       const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>Mängelrüge wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">Mängelrüge wird erstellt …</body>');
       try {
         await pdfHolen('api/maengelruege', body, 'Mängelrüge', w);

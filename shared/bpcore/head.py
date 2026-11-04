@@ -12,16 +12,19 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/versionen/<id>/vergleich  was sich beim Wiederherstellen ändern würde · …/wiederherstellen (POST) · PATCH {name}
 /api/bp/versionen/alle   Änderungsverlauf aller Bereiche, die der Benutzer sehen darf
 /api/bp/versionen/conf   GET/PUT Aufbewahrung (nur Administrator) mit Speicherbedarf
+/api/bp/kontakt    POST {name, email, trade, contact_person}  Kontakt schnell anlegen (nach Versand an eine neue Adresse)
+/api/bp/kontakt/<id>/verlauf  Benachrichtigungsverlauf (Planversand, Rügen …)
 /api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
 """
 import json, os, urllib.error, urllib.request
+from datetime import datetime
 from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, briefbogen, db, konto, sso, versionen, vorlagen
+from . import ai, benachrichtigung, briefbogen, db, konto, sso, versionen, vorlagen
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -118,6 +121,40 @@ def blueprint(get_user=None):
             return jsonify(id=None)
         adr = ", ".join(x for x in (r["street"], " ".join(y for y in (r["zip"], r["city"]) if y)) if x)
         return jsonify(id=r["id"], name=r["name"], client=r["client"] or "", adresse=adr)
+
+    # ---- Kontakt schnell anlegen (nach einer Sendung an eine Adresse, zu der es noch keinen Kontakt gibt)
+    @bp.post("/api/bp/kontakt")
+    def kontakt_neu():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        f = {k: str(b.get(k) or "").strip()[:n] for k, n in (("name", 200), ("email", 200), ("trade", 300), ("contact_person", 200), ("phone", 100))}
+        if not f["email"] or "@" not in f["email"]:
+            return jsonify(error="Bitte eine gültige E-Mail-Adresse angeben."), 400
+        f["name"] = f["name"] or f["contact_person"] or f["email"]
+        ts = datetime.now().isoformat(timespec="seconds")
+        try:
+            with db.tx() as c:
+                r = c.execute("SELECT id FROM contacts WHERE lower(email)=?", (f["email"].lower(),)).fetchone()
+                if r:
+                    return jsonify(ok=True, id=r["id"], vorhanden=True)
+                with c.savepoint():
+                    cid = c.execute("""INSERT INTO contacts(name, email, trade, contact_person, phone, extra, created, updated)
+                                       VALUES(?,?,?,?,?,?,?,?) RETURNING id""",
+                                    (f["name"], f["email"], f["trade"], f["contact_person"], f["phone"], "{}", ts, ts)).fetchone()[0]
+                versionen.nach(c, f"kontakt:{cid}", u["name"])
+                benachrichtigung.zuordnen(c, cid, f["email"])
+        except db.IntegrityError:
+            return jsonify(error=f"Einen Kontakt „{f['name']}“ gibt es schon – bitte einen anderen Namen wählen oder die Adresse dort in Adressen eintragen."), 409
+        return jsonify(ok=True, id=cid)
+
+    @bp.get("/api/bp/kontakt/<int:cid>/verlauf")
+    def kontakt_verlauf(cid):
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            return jsonify(benachrichtigung.verlauf(c, cid))
 
     # ---- Mein Konto: Unterschrift, Versand, Kalender (gilt in allen Apps)
     def _uid():

@@ -605,6 +605,58 @@
     band.after(el);
   };
 
+  /* ---------- Benachrichtigungen an Kontakte ----------
+     BPHead.kontaktAnlegen(['a@b.de'], { name, trade })  nach einer Sendung an Adressen ohne Kontakt kurz fragen, ob ein Kontakt angelegt werden soll
+     BPHead.benachrichtigungen(kontaktId, host)          Verlauf der Sendungen an diesen Kontakt (Planversand, Rügen …) in host zeichnen */
+  H.kontaktAnlegen = function (emails, vor = {}) {
+    const L = [...new Set((emails || []).filter(Boolean))];
+    if (!L.length) return Promise.resolve([]);
+    return new Promise((fertig) => {
+      const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+      bg.innerHTML = `<div class="bph-dlg bph-kn" role="dialog" aria-label="Als Kontakt anlegen?"><div class="bph-dh"><b>Als Kontakt anlegen?</b><button type="button" class="bph-x" aria-label="Schließen">×</button></div><div class="bph-db">
+        <p class="bph-mu">Für ${L.length > 1 ? 'diese Adressen gibt' : 'diese Adresse gibt'} es noch keinen Kontakt. Die Sendung ist trotzdem im Verlauf vermerkt – sie erscheint beim Kontakt, sobald er mit dieser E-Mail-Adresse angelegt ist.</p>
+        ${L.map((m, i) => `<div class="bph-kn-z" data-kn="${i}"><div class="bph-kn-m">✉ <b>${esc(m)}</b></div>
+          <div class="bph-row"><label style="flex:2">Firma / Name<input data-k="name" value="${esc(L.length === 1 ? vor.name || '' : '')}" placeholder="${esc(m.split('@')[1] || '')}"></label>
+          <label style="flex:1.4">Gewerk<input data-k="trade" value="${esc(vor.trade || '')}"></label>
+          <label style="flex:1.6">Ansprechpartner<input data-k="contact_person"></label></div>
+          <div class="bph-row"><button type="button" class="bph-btn pri" data-kja>Kontakt anlegen</button><span class="bph-kn-st bph-mu"></span></div></div>`).join('')}
+        <div class="bph-row" style="justify-content:flex-end;margin-top:.6rem"><button type="button" class="bph-btn" data-knein>Nicht jetzt</button></div></div></div>`;
+      document.body.appendChild(bg);
+      const neu = [];
+      const close = () => { bg.remove(); fertig(neu); };
+      bg.querySelector('.bph-x').onclick = close; bg.querySelector('[data-knein]').onclick = close;
+      bg.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-kja]'); if (!b) return;
+        const z = b.closest('[data-kn]'), i = +z.dataset.kn, st = z.querySelector('.bph-kn-st');
+        const d = { email: L[i] }; z.querySelectorAll('[data-k]').forEach((x) => { d[x.dataset.k] = x.value.trim(); });
+        b.disabled = true; st.textContent = 'wird angelegt …';
+        try {
+          const r = await KX('api/bp/kontakt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+          neu.push(r.id); st.textContent = r.vorhanden ? '✓ gab es schon' : '✓ angelegt';
+          z.querySelectorAll('input').forEach((x) => { x.disabled = true; });
+          if (!bg.querySelector('[data-kja]:not(:disabled)')) setTimeout(close, 700);
+        } catch (er) { b.disabled = false; st.textContent = er.message; }
+      });
+      const f = bg.querySelector('[data-k="name"]'); if (f) f.focus();
+    });
+  };
+  H.benachrichtigungen = async function (cid, host) {
+    host.innerHTML = '<p class="bph-mu">Lade …</p>';
+    let L; try { L = await KX(`api/bp/kontakt/${cid}/verlauf`); } catch (e) { host.innerHTML = `<p class="bph-mu">${esc(e.message)}</p>`; return; }
+    const apps = ((H.conf || {}).apps || []).filter((a) => a.allowed);
+    const lk = (l) => { const [k, fr] = String(l || '').split(':'); const a = apps.find((x) => x.key === k); return a && fr != null ? appUrl(a) + '/' + l.slice(k.length + 1) : ''; };
+    const dt = (t) => { const d = new Date(t); return isNaN(d) ? t : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
+    const IC2 = { planversand: '📐', maengelruege: '⚠', terminruege: '⏱' };
+    host.innerHTML = L.length ? `<ul class="bph-bn">${L.map((x) => `<li class="${x.status === 'fehler' ? 'f' : ''}"><details><summary><span class="bph-bn-i">${IC2[x.art] || '✉'}</span>
+        <span class="bph-bn-t"><span><b>${esc(x.art_name)}</b>${x.projekt ? ' · ' + esc(x.projekt) : ''}</span><small>${dt(x.ts)} · ${esc(x.weg_name)}${x.von ? ' · von ' + esc(x.von) : ''}${x.email ? ' · ' + esc(x.email) : ''}${x.status === 'fehler' ? ' · <b>nicht zugestellt</b>' : ''}</small></span></summary>
+        <div class="bph-bn-d">${x.betreff ? `<div><b>${esc(x.betreff)}</b></div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="bph-mu">Fehler: ${esc(x.fehler)}</div>` : ''}${lk(x.link) ? `<a href="${esc(lk(x.link))}" data-bnp="${x.project_id || ''}">↗ ${x.art === 'planversand' ? 'Planversandliste' : 'Liste'} öffnen</a>` : ''}</div></details></li>`).join('')}</ul>`
+      : '<p class="bph-mu">Noch keine Pläne, Mängel- oder Terminrügen an diesen Kontakt verschickt.</p>';
+    host.onclick = async (e) => {   // vorher das Projekt der Sendung als aktuelles Projekt setzen
+      const a = e.target.closest('[data-bnp]'); if (!a || !a.dataset.bnp) return;
+      e.preventDefault(); try { await H.projektSetzen(+a.dataset.bnp); } catch { /* egal */ } location.href = a.href;
+    };
+  };
+
   /* ---------- Ansicht für Fotos und PDFs: im Fenster der App blättern (nie ein neuer Tab – am iPhone kommt man sonst nicht zurück) ----------
      BPHead.ansehen([{ url, name, typ: 'bild'|'pdf' }], start)
      Automatisch für Links auf Fotos (uploads/…, .jpg/.png …) und für Links mit data-ansehen="pdf"|"bild".

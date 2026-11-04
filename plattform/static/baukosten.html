@@ -234,21 +234,24 @@ function calc(d) {   // wie calc() auf dem Server
 }
 /* Justage: Kennwerte an Region und Preisstand anpassen; Gruppen ohne Bauteile angleichen */
 const fx = (v, n = 2) => (v == null ? '–' : (Math.round(v * 10 ** n) / 10 ** n).toLocaleString('de-DE', { minimumFractionDigits: n }));
+/* Abweichung in Worten: „Bauteile 89 % mehr als Kennwert“ */
+const vglTxt = (wert, kw, kurz) => { if (!kw) return '–'; const d = Math.round((wert / kw - 1) * 100); return Math.abs(d) < 1 ? (kurz ? 'wie Kennwert' : 'Bauteile wie Kennwert') : `${kurz ? '' : 'Bauteile '}${Math.abs(d)} % ${d > 0 ? 'mehr' : 'weniger'} als Kennwert`; };
+const kPct = (k) => vglTxt(k || 1, 1);
 /* Empfehlung für die Kostengruppen ohne Bauteile – aus Abweichung (k), Zahl der bepreisten Gruppen und ihrem Anteil am Bauwerk */
 function juEmpfehlung(J) {
   const n = Object.values(B.calc.kg2 || {}).filter((x) => x.quelle === 'bauteile').length, cov = J.bt_kw / ((J.bt_kw + J.rest_kw) || 1), k = J.k || 1, p = Math.round(cov * 100);
-  if (k >= 0.9 && k <= 1.1) return { v: 'kw', t: `Bauteile und Kennwerte passen zusammen (Abweichung unter 10 %). Die übrigen Gruppen können beim Kennwert bleiben.` };
-  if (n < 2 || cov < 0.25) return { v: 'kw', t: `Erst ${n} Gruppe${n === 1 ? '' : 'n'} mit Bauteilen (${p} % des Bauwerks) – zu wenig, um auf das ganze Gebäude zu schließen. Kennwert-Anteil lassen, Mengen und Einheitspreise der Bauteile prüfen und weitere Gruppen bepreisen.` };
-  if (k < 0.9) return { v: 'kw', t: `Die Bauteile liegen unter dem Kennwert-Anteil ihrer Gruppen (× ${fx(k)}). Meist fehlen dort noch Positionen – z. B. Fenster und Türen in 330, Bekleidungen, Beläge, Abdichtung oder Baustelleneinrichtung. Kennwert-Anteil der übrigen Gruppen lassen und die bepreisten Gruppen auf Vollständigkeit prüfen. Sind sie vollständig und das Büro baut wirklich günstiger, den Faktor unter „eigener Faktor“ eintragen.` };
-  if (k > 1.6 && J.region === 100 && J.preis === 100) return { v: 'preis', p: Math.round(k * 100), t: `Die Bauteile liegen sehr weit vom Kennwert entfernt (× ${fx(k)}), obwohl ${p} % des Bauwerks bepreist sind. Das spricht für Kennwerte mit altem Preisstand oder anderer Region. Empfehlung: Preisstand bzw. Regionalfaktor anpassen (gleicht alle Kennwerte an) – vorher Mengen und Einheitspreise auf Ausreißer prüfen.` };
-  return { v: 'angl', t: `${n} Gruppen mit Bauteilen decken ${p} % des Bauwerks ab und liegen einheitlich beim ${fx(k)}-fachen. Das ist ein belastbarer Hinweis auf das Preisniveau – die übrigen Gruppen angleichen, sonst werden zwei Preisniveaus gemischt.` };
+  if (k >= 0.9 && k <= 1.1) return { v: 'kw', s: 'Kennwert-Anteil unverändert lassen', t: `Bauteile und Kennwerte passen zusammen (Abweichung unter 10 %). Die übrigen Gruppen können beim Kennwert bleiben.` };
+  if (n < 2 || cov < 0.25) return { v: 'kw', s: 'Kennwert-Anteil lassen, weitere Gruppen bepreisen', t: `Erst ${n} Gruppe${n === 1 ? '' : 'n'} mit Bauteilen (${p} % des Bauwerks) – zu wenig, um auf das ganze Gebäude zu schließen. Kennwert-Anteil lassen, Mengen und Einheitspreise der Bauteile prüfen und weitere Gruppen bepreisen.` };
+  if (k < 0.9) return { v: 'kw', s: 'Bauteile auf Vollständigkeit prüfen, Kennwert-Anteil lassen', t: `Die Bauteile liegen unter dem Kennwert-Anteil ihrer Gruppen (${kPct(k)}). Meist fehlen dort noch Positionen – z. B. Fenster und Türen in 330, Bekleidungen, Beläge, Abdichtung oder Baustelleneinrichtung. Kennwert-Anteil der übrigen Gruppen lassen und die bepreisten Gruppen auf Vollständigkeit prüfen. Sind sie vollständig und das Büro baut wirklich günstiger, den Faktor unter „eigener Faktor“ eintragen.` };
+  if (k > 1.6 && J.region === 100 && J.preis === 100) return { v: 'preis', p: Math.round(k * 100), s: `Preisstand auf ${Math.round(k * 100)} % anpassen`, t: `Die Bauteile liegen sehr weit vom Kennwert entfernt (${kPct(k)}), obwohl ${p} % des Bauwerks bepreist sind. Das spricht für Kennwerte mit altem Preisstand oder anderer Region. Empfehlung: Preisstand bzw. Regionalfaktor anpassen (gleicht alle Kennwerte an) – vorher Mengen und Einheitspreise auf Ausreißer prüfen.` };
+  return { v: 'angl', s: 'übrige Gruppen an die Bauteile angleichen', t: `${n} Gruppen mit Bauteilen decken ${p} % des Bauwerks ab – ${kPct(k)}. Das ist ein belastbarer Hinweis auf das Preisniveau – die übrigen Gruppen angleichen, sonst werden zwei Preisniveaus gemischt.` };
 }
 function justageHtml() {
   const J = B.calc.justage || { region: 100, preis: 100, faktor: 1, rest: 'kw' }, ju = B.data.justage || {}, bt = J.bt_kw > 0;
   const E = bt ? juEmpfehlung(J) : null, cur = ju.rest || 'kw';
   const rad = (v, l, x = '') => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="radio" name="juRest" data-ju="rest" value="${v}"${cur === v ? ' checked' : ''}><span>${l}${E && E.v === v ? ' <span class="pill ok">empfohlen</span>' : ''}${x}</span></label>`;
   const ok = E && (E.v === cur || (E.v === 'preis' && Math.abs(J.preis - E.p) < 1));
-  const emp = E ? `<div class="card" style="margin:.6rem 0;padding:.6rem .8rem;border-color:${ok ? 'var(--ok)' : 'var(--y)'}"><b style="font-size:.9rem">${ok ? '✓ ' : '💡 '}Empfehlung</b><p class="hint" style="margin:.2rem 0 ${ok ? 0 : '.5rem'}">${esc(E.t)}</p>
+  const emp = E ? `<div class="card" style="margin:.6rem 0;padding:.6rem .8rem;border-color:${ok ? 'var(--ok)' : 'var(--y)'}"><b style="font-size:.9rem">${ok ? '✓ ' : '💡 '}Empfehlung</b> <a href="#" data-act="juWarum" class="hint">Warum?</a><p class="hint" style="margin:.2rem 0 ${ok ? 0 : '.5rem'}">${esc(E.t)}</p>
     ${ok ? '' : E.v === 'preis' ? `<button class="btn sm" data-act="juEmpf" data-v="preis" data-p="${E.p}">Preisstand auf ${E.p} % setzen</button>` : `<button class="btn sm" data-act="juEmpf" data-v="${E.v}">Empfehlung übernehmen</button>`}</div>` : '';
   return `<section class="card" id="justage" style="margin-bottom:1rem"><h2 style="margin:0">Justage</h2>
     <p class="sub" style="margin:.3rem 0 .6rem">Kennwerte sind Durchschnittswerte zu einem bestimmten Preisstand. Hier passt du sie an Ort und heutige Preise an – Bauteile mit eigenen Einheitspreisen bleiben unberührt.</p>
@@ -256,9 +259,10 @@ function justageHtml() {
       <label>Preisstand in %<input class="n" style="width:110px" data-ju="preis" value="${fx(J.preis, 1)}" inputmode="decimal" title="Baupreisindex heute ÷ Index zum Stand der Kennwerte × 100"></label>
       <span class="hint" style="align-self:flex-end;padding-bottom:.45rem">= Faktor ${fx(J.faktor, 3)} auf alle Kennwerte</span></div>
     ${bt ? `<div style="margin-top:.8rem"><b style="font-size:.9rem">Kostengruppen ohne Bauteile</b>
-      <p class="hint" style="margin:.2rem 0 .4rem">Die bepreisten Gruppen liegen beim ${fx(J.k)}-fachen ihres Kennwert-Anteils (${eur(J.bt_wert)} statt ${eur(J.bt_kw)}).</p>${emp}
+      <div class="tbl" style="margin:.4rem 0"><table><thead><tr><th>Gruppen mit Bauteilen</th><th class="r">Kennwert-Anteil</th><th class="r">Bauteile</th><th class="r">Abweichung</th></tr></thead>
+        <tbody><tr><td>${Object.entries(B.calc.kg2 || {}).filter(([, x]) => x.quelle === 'bauteile').map(([k]) => k).join(', ')}</td><td class="r num">${eur(J.bt_kw)}</td><td class="r num">${eur(J.bt_wert)}</td><td class="r"${J.k && (J.k > 1.4 || J.k < 0.7) ? ' style="color:#e07b3a"' : ''}>${vglTxt(J.bt_wert, J.bt_kw)}</td></tr></tbody></table></div>${emp}
       <div style="display:flex;flex-direction:column;gap:.3rem">${rad('kw', 'Kennwert-Anteil unverändert', ' <span class="hint">– mischt zwei Preisniveaus, wenn der Faktor deutlich von 1 abweicht</span>')}
-      ${rad('angl', `an die Bauteile angleichen (× ${fx(J.k)})`, ' <span class="hint">– unterstellt, dass die übrigen Gewerke ebenso abweichen</span>')}
+      ${rad('angl', `an die Bauteile angleichen (${J.k >= 1 ? '+' : '−'}${Math.abs(Math.round((J.k - 1) * 100))} %)`, ' <span class="hint">– unterstellt, dass die übrigen Gewerke ebenso abweichen</span>')}
       ${rad('eigen', 'eigener Faktor', ` <input class="n" style="width:80px;margin-left:.4rem" data-ju="f" value="${fx(ju.f || 1)}" inputmode="decimal" aria-label="eigener Faktor">`)}</div></div>` : ''}</section>`;
 }
 
@@ -532,7 +536,7 @@ function evalFormel(t) {   // „12,5 * 2,75 + 3“ → Zahl; sonst null (Text i
   try { const v = Function('"use strict";return (' + x + ')')(); return isFinite(v) && v >= 0 ? Math.round(v * 1000) / 1000 : null; } catch { return null; }
 }
 function vBauteile() {
-  const d = B.data, c = B.calc, bt = d.bauteile || [], M = B.mat || {};
+  const d = B.data, c = B.calc, bt = d.bauteile || [], M = B.mat || {}, J0 = c.justage || {};
   const matSel = (b, i) => { const m = M[b.kg]; const opts = m ? m.opts : []; const own = b.mat && !opts.some((o) => o.n === b.mat);
     return `<select data-bf="mat" data-bi="${i}" aria-label="Material">${opts.map((o) => `<option value="${esc(o.n)}"${o.n === b.mat ? ' selected' : ''}>${esc(o.n)} · ${eur(o.ep)}</option>`).join('')}${own || !opts.length ? `<option value="${esc(b.mat)}" selected>${esc(b.mat || '– eigenes –')}</option>` : ''}<option value="__eigen">eigenes Material …</option></select>`; };
   const groups = {}; bt.forEach((b, i) => { const k = (b.kg || '').slice(0, 2) + '0'; (groups[k] ||= []).push([b, i]); });
@@ -553,17 +557,18 @@ function vBauteile() {
     ${(() => { const J = c.justage || {}; if (!J.bt_kw) return `<div class="kpis" style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:.8rem"><span><span class="hint">Bauwerk KG 300 + 400 aus Kennwerten</span><br><b>${eur(c.bauwerk)}</b></span></div>`;
       const dev = J.k ? Math.round((J.k - 1) * 100) : 0, warn = J.k && (J.k > 1.4 || J.k < 0.7);
       const it = (l, v, x = '') => `<span><span class="hint">${l}</span><br><b>${v}</b>${x}</span>`, op = (t) => `<span style="align-self:center;font-size:1.3rem;color:var(--mute)">${t}</span>`;
-      return `<div class="kpis" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.8rem;align-items:flex-start">${it('Gruppen mit Bauteilen', eur(J.bt_wert), `<br><span class="hint" style="font-size:.75rem">Kennwert-Anteil wäre ${eur(J.bt_kw)} (${dev > 0 ? '+' : ''}${dev} %)</span>`)}${op('+')}${it('übrige Gruppen aus Kennwerten', eur(J.rest_wert), `<br><span class="hint" style="font-size:.75rem">${J.rest_f !== 1 ? `${eur(J.rest_kw)} × ${fx(J.rest_f)}` : 'unverändert'}</span>`)}${op('=')}${it('Bauwerk KG 300 + 400', eur(c.bauwerk), c.area ? `<br><span class="hint" style="font-size:.75rem">${eur(c.bauwerk / c.area)} je m² Raumfläche</span>` : '')}<span style="flex:1"></span>${it('zum Vergleich: nur Kennwerte', eur(c.bauwerk_kw))}</div>
-        ${warn ? `<p class="hint" style="color:#e07b3a;margin:.6rem 0 0">Bauteile und Kennwerte liegen weit auseinander (Faktor ${fx(J.k)}). Einfach addiert entsteht ein Mischwert aus zwei Preisniveaus – Mengen und Preise prüfen oder unten bei „Justage“ angleichen.</p>` : ''}`; })()}</section>
+      return `<div class="kpis" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.8rem;align-items:flex-start">${it('Gruppen mit Bauteilen', eur(J.bt_wert), `<br><span class="hint" style="font-size:.75rem">Kennwert-Anteil ${eur(J.bt_kw)} · ${vglTxt(J.bt_wert, J.bt_kw)}</span>`)}${op('+')}${it('übrige Gruppen aus Kennwerten', eur(J.rest_wert), `<br><span class="hint" style="font-size:.75rem">${J.rest_f !== 1 ? `${eur(J.rest_kw)} × ${fx(J.rest_f)}` : 'unverändert'}</span>`)}${op('=')}${it('Bauwerk KG 300 + 400', eur(c.bauwerk), c.area ? `<br><span class="hint" style="font-size:.75rem">${eur(c.bauwerk / c.area)} je m² Raumfläche</span>` : '')}<span style="flex:1"></span>${it('zum Vergleich: nur Kennwerte', eur(c.bauwerk_kw))}</div>
+        ${(() => { const E = juEmpfehlung(J), cur = (d.justage || {}).rest || 'kw', ok = E.v === cur || (E.v === 'preis' && Math.abs(J.preis - E.p) < 1);
+          return `<p class="hint" style="margin:.6rem 0 0;${warn && !ok ? 'color:#e07b3a' : ''}">${warn ? `Bauteile und Kennwerte liegen weit auseinander (${vglTxt(J.bt_wert, J.bt_kw)}). ` : ''}${ok ? '✓' : '💡'} <b>Empfehlung:</b> ${esc(E.s)}${ok ? ' (gewählt)' : ''} · <a href="#" data-act="juWarum">Warum?</a>${ok ? '' : ` · <a href="#" data-act="toJustage">zur Justage</a>`}</p>`; })()}`; })()}</section>
     ${justageHtml()}
     ${bt.length ? `<div class="tbl"><table class="bt"><thead><tr><th>KG</th><th>Bauteil</th><th>Material / Ausführung</th><th>Ermittlung</th><th class="r">Menge</th><th>Einh.</th><th class="r">€ / Einh.</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
-      ${Object.keys(groups).sort().map((k) => { const g = c.kg2[k] || {}; return `<tr class="bt-g"><td>${k}</td><td colspan="6"><b>${esc(KG2N[k] || 'KG ' + k)}</b>${g.kennwert ? ` <span class="hint">· Kennwert-Anteil wäre ${eur(g.kennwert)}</span>` : ''}</td><td class="r num"><b>${eur(groups[k].reduce((a, [b]) => a + btBetrag(b), 0))}</b></td><td></td></tr>` + groups[k].map(row).join(''); }).join('')}
+      ${Object.keys(groups).sort().map((k) => { const g = c.kg2[k] || {}; return `<tr class="bt-g"><td>${k}</td><td colspan="6"><b>${esc(KG2N[k] || 'KG ' + k)}</b>${g.kennwert ? ` <span class="hint">· Kennwert-Anteil ${eur(g.kennwert)} · ${vglTxt(groups[k].reduce((a, [b]) => a + btBetrag(b), 0), g.kennwert)}</span>` : ''}</td><td class="r num"><b>${eur(groups[k].reduce((a, [b]) => a + btBetrag(b), 0))}</b></td><td></td></tr>` + groups[k].map(row).join(''); }).join('')}
       </tbody></table></div>` : '<div class="card empty"><p>Noch keine Bauteile. „Vorschläge aus Raumbuch & Plänen“ legt eine Liste mit Mengen aus Flächen, Geschossen und Höhen an – Material und Preis wählst du je Zeile.</p></div>'}
     <div class="row" style="margin-top:.7rem;gap:.4rem"><select id="btNewKg" aria-label="Kostengruppe für neues Bauteil">${kgOpts}</select><button class="btn sm" data-act="btAdd">+ Bauteil</button>${bt.length ? '<span style="flex:1"></span><button class="btn sm danger" data-act="btClear">Alle Bauteile entfernen</button>' : ''}</div>
-    ${c.kg2 && Object.keys(c.kg2).length ? `<section class="card" style="margin-top:1rem"><h2 style="margin:0 0 .5rem">Kostengruppen der 2. Ebene</h2><div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th>Quelle</th><th class="r">Kennwert-Anteil</th><th class="r">Abweichung</th><th class="r">Betrag</th></tr></thead><tbody>
+    ${c.kg2 && Object.keys(c.kg2).length ? `<section class="card" style="margin-top:1rem"><h2 style="margin:0 0 .5rem">Kostengruppen der 2. Ebene</h2><p class="hint" style="margin:0 0 .5rem">Abweichung = Bauteile im Vergleich zum Kennwert-Anteil derselben Kostengruppe.</p><div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th>Quelle</th><th class="r">Kennwert-Anteil</th><th class="r">Bauteile</th><th class="r">Abweichung</th><th class="r">Betrag</th></tr></thead><tbody>
       ${Object.entries(c.kg2).sort().map(([k, x]) => { const dv = x.kennwert ? Math.round((x.wert / x.kennwert - 1) * 100) : null;
-        return `<tr><td>${k}</td><td>${esc(KG2N[k] || '')}</td><td>${x.quelle === 'bauteile' ? `${x.n} Bauteile` : '<span class="hint">Kennwert-Anteil</span>'}</td><td class="r num">${eur(x.kennwert)}</td><td class="r num"${dv != null && Math.abs(dv) > 40 ? ' style="color:#e07b3a"' : ''}>${dv == null ? '–' : (dv > 0 ? '+' : '') + dv + ' %'}</td><td class="r num">${eur(x.wert)}</td></tr>`; }).join('')}</tbody>
-      <tfoot><tr><td></td><td>Summe</td><td></td><td class="r num">${eur(Object.values(c.kg2).reduce((a, x) => a + x.kennwert, 0))}</td><td></td><td class="r num">${eur(c.bauwerk)}</td></tr></tfoot></table></div></section>` : ''}`;
+        return `<tr><td>${k}</td><td>${esc(KG2N[k] || '')}</td><td>${x.quelle === 'bauteile' ? `${x.n} Bauteile` : '<span class="hint">Kennwert-Anteil</span>'}</td><td class="r num">${eur(x.kennwert)}</td><td class="r num">${x.quelle === 'bauteile' ? eur(x.wert) : '–'}</td><td class="r"${dv != null && Math.abs(dv) > 40 ? ' style="color:#e07b3a"' : ''}>${x.quelle === 'bauteile' ? vglTxt(x.wert, x.kennwert) : x.wert !== x.kennwert ? `angeglichen ${vglTxt(x.wert, x.kennwert, true)}` : '–'}</td><td class="r num">${eur(x.wert)}</td></tr>`; }).join('')}</tbody>
+      <tfoot><tr><td></td><td>Summe</td><td></td><td class="r num">${eur(Object.values(c.kg2).reduce((a, x) => a + x.kennwert, 0))}</td><td class="r num">${eur(J0.bt_wert)}</td><td class="r">${J0.bt_kw ? vglTxt(J0.bt_wert, J0.bt_kw) : ''}</td><td class="r num">${eur(c.bauwerk)}</td></tr></tfoot></table></div></section>` : ''}`;
 }
 async function btSuggest(ki) {
   if (btBusy) return;
@@ -865,6 +870,7 @@ document.addEventListener('click', async (e) => {
     else if (act === 'okAll') { B.data.rooms.forEach((r) => { r.ok = true; }); changed(); }
     else if (act === 'addRoom') { B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'addItem') { B.data.items.push({ kg: '', name: '', amount: null }); changed(); }
+    else if (act === 'juWarum') { e.preventDefault(); juWarum(); }
     else if (act === 'juEmpf') {
       const j = B.data.justage ||= { region: 100, preis: 100, rest: 'kw', f: 1 };
       if (a.dataset.v === 'preis') { j.preis = Math.max(30, Math.min(400, +a.dataset.p)); j.rest = 'kw'; toast(`Preisstand auf ${a.dataset.p} % gesetzt – bitte mit dem Baupreisindex begründen (Quelle im PDF).`); }
@@ -1162,6 +1168,40 @@ async function newDialog() {
   $('#nkName').addEventListener('input', () => { nameTouched = true; });
   $('#nkStufe').addEventListener('change', setName);
   draw(); $('#nkQ').focus();
+}
+/* ---------- Erklärung der Justage-Empfehlung ---------- */
+function juWarum() {
+  const J = B.calc.justage || {}; if (!J.bt_kw) return;
+  const E = juEmpfehlung(J), n = Object.values(B.calc.kg2 || {}).filter((x) => x.quelle === 'bauteile').length, cov = Math.round(J.bt_kw / ((J.bt_kw + J.rest_kw) || 1) * 100);
+  const z = (c, t) => `<tr${c ? ' style="background:rgba(127,127,127,.12);font-weight:600"' : ''}><td>${t[0]}</td><td>${t[1]}</td></tr>`;
+  modalBox(`<h3>Warum diese Empfehlung?</h3>
+    <p>Hat eine Kostengruppe der 2. Ebene Bauteile mit Menge und Einheitspreis, ersetzen sie dort den Anteil aus den Raumtyp-Kennwerten. Die übrigen Gruppen stehen weiter beim Kennwert. Weichen beide stark voneinander ab, ergibt die Summe einen <b>Mischwert aus zwei Preisniveaus</b> – die Justage legt fest, wie die übrigen Gruppen damit umgehen.</p>
+    <div class="tbl" style="margin:.6rem 0"><table><tbody>
+      <tr><td>Gruppen mit Bauteilen</td><td class="r">${n} (${cov} % des Bauwerks)</td></tr>
+      <tr><td>Kennwert-Anteil dieser Gruppen</td><td class="r num">${eur(J.bt_kw)}</td></tr>
+      <tr><td>Bauteile dieser Gruppen</td><td class="r num">${eur(J.bt_wert)}</td></tr>
+      <tr><td>Abweichung</td><td class="r"><b>${vglTxt(J.bt_wert, J.bt_kw)}</b></td></tr></tbody></table></div>
+    <h4 style="margin:.8rem 0 .3rem">So entscheidet die App</h4>
+    <div class="tbl"><table><thead><tr><th>Lage</th><th>Empfehlung</th></tr></thead><tbody>
+      ${z(E.v === 'kw' && J.k >= 0.9 && J.k <= 1.1, ['Abweichung höchstens 10 %', 'Kennwert-Anteil unverändert – beide Preisniveaus passen'])}
+      ${z(E.s.startsWith('Kennwert-Anteil lassen'), ['nur 1 Gruppe oder unter 25 % des Bauwerks bepreist', 'Kennwert-Anteil lassen – zu wenig, um aufs ganze Gebäude zu schließen'])}
+      ${z(E.s.startsWith('Bauteile auf'), ['Bauteile günstiger als der Kennwert', 'meist fehlen Positionen (Fenster, Beläge, Abdichtung …) – erst vervollständigen'])}
+      ${z(E.v === 'angl', ['mind. 2 Gruppen und 25 % bepreist, Bauteile 10–60 % teurer', 'übrige Gruppen angleichen – die Bauteile zeigen das tatsächliche Preisniveau'])}
+      ${z(E.v === 'preis', ['Bauteile mehr als 60 % teurer, noch keine Justage', 'Preisstand/Region anpassen – die Kennwerte sind vermutlich veraltet'])}
+    </tbody></table></div>
+    <h4 style="margin:.8rem 0 .3rem">Hier: ${esc(E.s)}</h4><p class="hint" style="margin:0">${esc(E.t)}</p>
+    <h4 style="margin:.8rem 0 .3rem">Die Möglichkeiten</h4>
+    <ul style="margin:0;padding-left:1.2rem;font-size:.92rem"><li><b>Kennwert-Anteil unverändert</b> – sicher, solange Bauteile und Kennwerte zusammenpassen.</li>
+      <li><b>an die Bauteile angleichen</b> – überträgt die Abweichung der bepreisten auf alle übrigen Gruppen.</li>
+      <li><b>eigener Faktor</b> – wenn du das Preisniveau des Projekts besser kennst (z. B. aus Angeboten).</li>
+      <li><b>Regionalfaktor / Preisstand</b> – ändert alle Kennwerte (Ort, Baupreisindex); die Bauteile bleiben, wie sie sind.</li></ul>
+    <p class="hint">Die Empfehlung ist eine Hilfe. Entscheidend bleibt deine fachliche Einschätzung des Projekts.</p>
+    <div class="acts"><button class="btn" data-m="x">Schließen</button>${E.v === 'preis' ? `<button class="btn pri" data-m="ok">Preisstand auf ${E.p} % setzen</button>` : `<button class="btn pri" data-m="ok">Empfehlung übernehmen</button>`}</div>`, (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    close(); const j = B.data.justage ||= { region: 100, preis: 100, rest: 'kw', f: 1 };
+    if (E.v === 'preis') { j.preis = Math.max(30, Math.min(400, E.p)); j.rest = 'kw'; } else j.rest = E.v;
+    toast('Empfehlung übernommen.'); changed();
+  }).querySelector('.modal').style.width = 'min(760px, 96vw)';
 }
 /* ---------- Kennwerte importieren, Kostendatenbanken ---------- */
 function vgImport() {

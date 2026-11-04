@@ -309,10 +309,12 @@ eingetragen) oder „Alle Projekte“.
 ## Ausschreibung & Abrechnung (eigener Container)
 
 Pfad `/ava`, Container `bauplattform_ava` (Port 8097, gleiches Image wie die Plattform, `APP_MODULE: ava`). Tabellen `ava_lv`,
-`ava_angebot`, `ava_aufmass`, `ava_rechnung` (Migration `0013_ava.sql` im Bautagebuch).
+`ava_angebot`, `ava_aufmass`, `ava_rechnung` (Migration `0013_ava.sql` im Bautagebuch), Fotos in `ava_bild` (`0014_ava_bilder.sql`).
 
 - Leistungsverzeichnisse je Projekt (Titel, Untertitel, Positionen mit Kurz-/Langtext, Menge, Einheit, Normal-/Bedarfs-/Wahl-/Pauschalposition,
   Hinweistexte, KG nach DIN 276, Schätzpreis). Übernahme aus den Bauteilen einer Kostenermittlung oder als Kopie eines anderen LV. Langtext-Vorschlag mit der gewählten KI.
+- Fotos/Skizzen je Position (hochladen, Strg+V oder hineinziehen; verkleinert auf 1600 px) – stehen unter dem Langtext und im LV-Ausdruck.
+- Ansicht wie in gewohnten AVA-Programmen: links die Arbeitsschritte, oben ein Menüband, „Aufträge“ als aufklappbarer Baum Projekt › LV › Titel › Position mit Firma, Auftrag, Nachträgen, Prognose, Bedarfsposition und KG.
 - GAEB DA XML 3.x lesen (X81–X86) und schreiben (X83 an die Bieter, X84, X86 Auftrags-LV) – `bpcore/gaeb.py`; Excel zum Ausfüllen für Firmen ohne GAEB, ausgefülltes Excel wieder einlesen.
 - Angebote mit Preisspiegel (niedrigster Preis, Ausreißer > 30 %, Nachlass, Rang), Vergabe: die Preise des Angebots werden die Auftragspreise.
 - Nachträge als Positionen mit Status (angemeldet, beauftragt, abgelehnt) und eigenem Preis.

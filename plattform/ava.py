@@ -274,7 +274,32 @@ def _payload(c, r):
                          "user": x["user_name"]} for x in am],
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
                             "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"]} for x in re_],
-            "calc": rechne(r, ang, am, re_)}
+            "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"])}
+
+
+def _bilder(c, i):
+    """Fotos je Position: {pos_id: [{id, name, w, h}]}"""
+    out = {}
+    for b in c.execute("SELECT id, pos_id, name, w, h FROM ava_bild WHERE lv_id=? ORDER BY id", (i,)).fetchall():
+        out.setdefault(b["pos_id"], []).append({"id": b["id"], "name": b["name"], "w": b["w"], "h": b["h"]})
+    return out
+
+
+def _bild_aufbereiten(raw):
+    """Beliebiges Foto (auch Handy-Hochformat mit EXIF-Drehung, PNG mit Transparenz) → (jpeg, vorschau, w, h)."""
+    from PIL import Image, ImageOps
+    im = Image.open(io.BytesIO(raw))
+    im = ImageOps.exif_transpose(im)
+    if im.mode in ("RGBA", "LA", "P"):
+        im = im.convert("RGBA")
+        bg = Image.new("RGB", im.size, (255, 255, 255)); bg.paste(im, mask=im.split()[-1]); im = bg
+    else:
+        im = im.convert("RGB")
+    im.thumbnail((1600, 1600))
+    a = io.BytesIO(); im.save(a, "JPEG", quality=84, optimize=True)
+    k = im.copy(); k.thumbnail((360, 360))
+    b = io.BytesIO(); k.save(b, "JPEG", quality=80)
+    return a.getvalue(), b.getvalue(), im.width, im.height
 
 
 def _antwort(c, i):
@@ -326,7 +351,11 @@ def lv_liste():
             out.append({"id": r["id"], "project_id": r["project_id"], "nr": r["nr"], "name": r["name"], "gewerk": r["gewerk"], "status": r["status"],
                         "archived": bool(r["archived"]), "updated": r["updated"], "n_pos": sum(1 for x in d.get("items") or [] if x["typ"] == "pos" and x.get("art") != "T"),
                         "n_angebote": len(ang), "auftragnehmer": V.get("bieter") or "", "schaetzung": k["schaetzung"], "auftrag": k["auftrag"],
-                        "nachtraege": k["nachtraege"]["beauftragt"], "abgerechnet": k["abgerechnet"], "min_angebot": min([a["netto"] for a in k["angebote"] if a["summe"]] or [0])})
+                        "nachtraege": k["nachtraege"]["beauftragt"], "nt_angemeldet": k["nachtraege"]["angemeldet"],
+                        "n_nt": sum(1 for x in d.get("items") or [] if x.get("nt")), "leistung": k["leistung"],
+                        # Prognose wie in der AVA üblich: Auftrag + beauftragte und angemeldete Nachträge; ohne Auftrag die Schätzung
+                        "prognose": round((k["auftrag"] + k["nachtraege"]["beauftragt"] + k["nachtraege"]["angemeldet"]) if V.get("preise") else k["schaetzung"], 2),
+                        "abgerechnet": k["abgerechnet"], "min_angebot": min([a["netto"] for a in k["angebote"] if a["summe"]] or [0])})
     return jsonify(out)
 
 
@@ -343,7 +372,8 @@ def lv_neu():
             q = _lv(c, src)
             if not q:
                 return jsonify(error="Vorlage nicht gefunden"), 404
-            items = [{**x, "id": uuid.uuid4().hex[:10]} for x in (_j(q["data"], {}) or {}).get("items") or [] if not x.get("nt")]
+            neu_id = {}   # alte → neue Positions-id (für die Fotos)
+            items = [{**x, "id": neu_id.setdefault(x.get("id"), uuid.uuid4().hex[:10])} for x in (_j(q["data"], {}) or {}).get("items") or [] if not x.get("nt")]
             if not b.get("mengen", True):
                 for x in items:
                     if x["typ"] == "pos":
@@ -356,6 +386,11 @@ def lv_neu():
         now = _now()
         i = c.execute("INSERT INTO ava_lv(project_id, bk_id, nr, name, gewerk, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
                       (pid, bk, nr, name, _s(b.get("gewerk"), 120), json.dumps({"items": clean_items(items)}, ensure_ascii=False), now, now, g.user["name"])).fetchone()["id"]
+        if isinstance(src, int) and b.get("bilder", True):
+            for x in c.execute("SELECT pos_id, name, w, h, data, klein FROM ava_bild WHERE lv_id=? ORDER BY id", (src,)).fetchall():
+                if x["pos_id"] in neu_id:
+                    c.execute("INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, klein, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
+                              (i, neu_id[x["pos_id"]], x["name"], x["w"], x["h"], x["data"], x["klein"], now, g.user["name"]))
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         C.audit(g.user["name"], "ava", "LV angelegt", f"{nr} {name}")
         return _antwort(c, i)
@@ -488,6 +523,51 @@ def raeume(i):
         return jsonify(bk={"id": bk["id"], "name": bk["name"]},
                        raeume=[{"id": x.get("id"), "nr": x.get("nr") or "", "name": x.get("name") or "", "geschoss": x.get("floor") or "", "flaeche": x.get("area") or 0,
                                 "hoehe": x.get("h") or hstd or 0} for x in d.get("rooms") or []])
+
+
+# ---------------------------------------------------------------- Fotos zu Positionen
+@app.post("/api/lv/<int:i>/bilder")
+def bilder_neu(i):
+    pos_id = _s(request.form.get("pos_id"), 40)
+    fs = request.files.getlist("datei")
+    if not pos_id or not fs:
+        return jsonify(error="Keine Datei"), 400
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
+        if not any(x.get("id") == pos_id for x in (_j(r["data"], {}) or {}).get("items") or []):
+            return jsonify(error="Position nicht gefunden – bitte erst speichern"), 404
+        n, now = 0, _now()
+        for f in fs[:20]:
+            raw = f.read()
+            if not raw or len(raw) > 40 * 1024 * 1024:
+                continue
+            try:
+                big, small, w, h = _bild_aufbereiten(raw)
+            except Exception:   # kein lesbares Bild (z. B. HEIC ohne Plugin)
+                continue
+            c.execute("INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, klein, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
+                      (i, pos_id, _s(f.filename, 200) or "Foto", w, h, big, small, now, g.user["name"]))
+            n += 1
+        if not n:
+            return jsonify(error="Die Datei ist kein lesbares Bild (JPG, PNG, WEBP, GIF)."), 400
+        _touch(c, i)
+        return _antwort(c, i)
+
+
+@app.route("/api/bild/<int:b>", methods=["GET", "DELETE"])
+def bild_eins(b):
+    with db.tx() as c:
+        x = c.execute("SELECT id, lv_id, name, " + ("klein" if request.args.get("klein") else "data") + " AS d FROM ava_bild WHERE id=?", (b,)).fetchone()
+        if not x or not _lv(c, x["lv_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        if request.method == "DELETE":
+            c.execute("DELETE FROM ava_bild WHERE id=?", (b,))
+            _touch(c, x["lv_id"])
+            return _antwort(c, x["lv_id"])
+        d = x["d"]
+    return Response(bytes(d), mimetype="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
 
 
 # ---------------------------------------------------------------- GAEB und Excel
@@ -1134,6 +1214,36 @@ def lv_pdf(i):
         fn = f"Pruefung Rechnung {R['nr']}"
     else:
         preise = request.args.get("preise") == "1"
+        BILD = {}
+        if request.args.get("fotos", "1") != "0":
+            with db.tx() as c:
+                for b in c.execute("SELECT pos_id, data, w, h FROM ava_bild WHERE lv_id=? ORDER BY id", (i,)).fetchall():
+                    BILD.setdefault(b["pos_id"], []).append(b)
+
+        def _pdf_fotos(pid_, breite, mm):
+            """Fotos einer Position als kleine Tabelle (zwei nebeneinander) unter dem Langtext."""
+            from reportlab.platypus import Image as RLImage, Spacer as Sp, Table as T
+            from PIL import Image as PI
+            bs = BILD.get(pid_) or []
+            if not bs:
+                return []
+            zellen = []
+            sp = (breite - 3 * mm) / 2
+            for b in bs:
+                try:
+                    im = PI.open(io.BytesIO(bytes(b["data"]))); im.thumbnail((900, 900))
+                    o_ = io.BytesIO(); im.save(o_, "JPEG", quality=80)
+                    w_, h_ = im.size
+                    f = min(sp / w_, 60 * mm / h_)
+                    zellen.append(RLImage(io.BytesIO(o_.getvalue()), width=w_ * f, height=h_ * f))
+                except Exception:
+                    continue
+            if not zellen:
+                return []
+            reihen = [zellen[k:k + 2] + [""] * (2 - len(zellen[k:k + 2])) for k in range(0, len(zellen), 2)]
+            t = T(reihen, colWidths=[sp + 1.5 * mm, sp + 1.5 * mm], hAlign="LEFT")
+            t.setStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 3), ("TOPPADDING", (0, 0), (-1, -1), 3)])
+            return [Sp(1, 1.5 * mm), t]
 
         def st(story, S, X, table, W, mm, p):
             adr = " ".join(y for y in ((p["street"] or ""), (p["zip"] or ""), (p["city"] or "")) if y) if p else ""
@@ -1158,7 +1268,8 @@ def lv_pdf(i):
                 if x.get("art") in ("E", "A", "P"):
                     txt += f"<br/><font color='#6b6b66'>{ARTEN[x['art']]}</font>"
                 ep = x.get("ep_s") if preise else None
-                rows.append([x["oz"], Paragraph(txt, S["p"]), num(x["menge"]), x["einheit"], ep2(ep) if ep is not None else "..............",
+                fotos = _pdf_fotos(x["id"], W - 107 * mm, mm)
+                rows.append([x["oz"], [Paragraph(txt, S["p"])] + fotos if fotos else Paragraph(txt, S["p"]), num(x["menge"]), x["einheit"], ep2(ep) if ep is not None else "..............",
                              (eur(_gp(x, ep)) if x.get("art") in ("N", "P") else "(ohne GB)") if ep is not None else ".................."])
             rows.append(["", "Summe netto", "", "", "", eur(K["schaetzung"]) if preise else ".................."])
             story.append(table(rows, [20 * mm, W - 20 * mm - 82 * mm, 18 * mm, 12 * mm, 22 * mm, 30 * mm], num=(2, 4, 5), band=tuple(band), bold=(len(rows) - 1,)))

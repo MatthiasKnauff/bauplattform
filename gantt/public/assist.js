@@ -25,7 +25,9 @@
   }
   function itemsOf0(cfg) {
     const cus = cfg && Array.isArray(cfg.custom) ? cfg.custom : [];
-    const phO = cfg && cfg.phase, ord = cfg && Array.isArray(cfg.order) ? cfg.order : null;
+    const pf = cfg && cfg.type && PROF[cfg.type];   // Gruppe und Reihenfolge aus „Assistent einrichten“ (je Gebäudetyp), Projekt geht vor
+    const phO0 = { ...((pf && pf.phase) || {}), ...((cfg && cfg.phase) || {}) }, phO = Object.keys(phO0).length ? phO0 : null;
+    const ord = cfg && Array.isArray(cfg.order) ? cfg.order : pf && Array.isArray(pf.order) ? pf.order : null;
     const cid = new Set(cus.map((c) => c.id)), lib = libList().filter((x) => !cid.has(x.id)).map(libToItem);
     if (!cus.length && !phO && !ord && !lib.length) return expandFloors(C.items, cfg);
     let all = [...C.items, ...lib, ...cus];

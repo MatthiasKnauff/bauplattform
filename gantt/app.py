@@ -635,6 +635,10 @@ def clean_prof(x, own=False):
                 if e:
                     ov[k] = e
         o["ovr"] = ov
+    if isinstance(x.get("phase"), dict):   # Leistung in andere Gruppe (Phase)
+        o["phase"] = {k: jstr(v)[:40] for k, v in list(x["phase"].items())[:600] if IKEY.match(k) and AKEY.match(jstr(v))}
+    if "order" in x:   # Reihenfolge der Leistungen
+        o["order"] = _ids(x["order"])
     if "hidden" in x:
         o["hidden"] = bool(x.get("hidden"))
     if "ord" in x and num(x.get("ord")) is not None:

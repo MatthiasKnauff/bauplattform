@@ -741,3 +741,7 @@ html[data-theme="dunkel"] .wz-o small,html[data-theme="dunkel"] .wz-bar small,ht
 .ae .mf{align-items:center}
 .ae-hint{margin-right:auto;color:var(--mut);font-size:11px}
 .ae-dirty{color:#c0392b;font-size:11px}
+.ae-tbl td.ae-mv{white-space:nowrap;width:1%;padding-right:0}
+.ae-phw{display:inline-block;margin-left:.4rem;vertical-align:middle}
+.ae-phs{font-size:.75rem;padding:.05rem .2rem;max-width:12rem;opacity:.75}
+.ae-phs:hover,.ae-phs:focus{opacity:1}

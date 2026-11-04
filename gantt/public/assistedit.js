@@ -28,6 +28,8 @@
     if (d.rec) o.rec = d.rec.slice();
     if (d.opt) o.opt = d.opt.slice();
     if (d.ovr) { o.ovr = { ...(o.ovr || {}) }; for (const [id, e] of Object.entries(d.ovr)) o.ovr[id] = { ...(o.ovr[id] || {}), ...e }; }
+    if (d.phase) o.phase = { ...(o.phase || {}), ...d.phase };   // Leistung in eine andere Gruppe (Phase)
+    if (d.order) o.order = d.order.slice();                     // Reihenfolge der Leistungen
     return o;
   }
   function profilesOf(cfg) {
@@ -75,21 +77,35 @@
     const s = STD.choices.find((x) => x.k === g.k) || g, d = CFG_D.choices[g.k] || {};
     return [...s.opts.map((o) => { const e = (d.opts || {})[o.k] || {}; return { k: o.k, n: e.n || o.n, std: o.n, on: e.on || o.on || [], hidden: !!e.hidden, mod: !!e.on }; }), ...(d.own || []).map((o) => ({ ...o, own: 1 }))];
   }
-  const touch = () => { dirty = true; const f = bg && bg.querySelector('.ae-dirty'); if (f) f.hidden = false; };
+  let UNDO = [], REDO = [], SNAP = null;   // Rückgängig im Dialog: Stand vor jeder Änderung
+  const snap = () => { SNAP = JSON.stringify(CFG_D); };
+  const touch = () => {
+    if (SNAP && SNAP !== JSON.stringify(CFG_D) && UNDO[UNDO.length - 1] !== SNAP) { UNDO.push(SNAP); if (UNDO.length > 100) UNDO.shift(); REDO = []; }
+    SNAP = null; dirty = true; const f = bg && bg.querySelector('.ae-dirty'); if (f) f.hidden = false; undoBtns();
+  };
+  const undoBtns = () => { if (!bg) return; const u = bg.querySelector('[data-ae="undo"]'), r = bg.querySelector('[data-ae="redo"]'); if (u) u.disabled = !UNDO.length; if (r) r.disabled = !REDO.length; };
+  function undo(redo) {
+    const from = redo ? REDO : UNDO, to = redo ? UNDO : REDO; if (!from.length) return;
+    to.push(JSON.stringify(CFG_D)); CFG_D = norm(JSON.parse(from.pop())); dirty = true; render(); undoBtns();
+  }
   const profD = (k) => { const own = CFG_D.own.find((o) => o.k === k); return own || (CFG_D.profiles[k] ||= {}); };
   const grpD = (k) => (CFG_D.choices[k] ||= {});
 
   /* ---------- Dialog ---------- */
   function open() {
     if (bg) { bg.querySelector('.modal').focus(); return; }
-    CFG_D = norm(clone(CFG)); dirty = false; tab = 'typen'; selP = selP || (C.profiles[0] || {}).k; selG = selG || (C.choices[0] || {}).k; VORL = null;
+    CFG_D = norm(clone(CFG)); dirty = false; UNDO = []; REDO = []; tab = 'typen'; selP = selP || (C.profiles[0] || {}).k; selG = selG || (C.choices[0] || {}).k; VORL = null;
     bg = document.createElement('div'); bg.className = 'modal-bg ae-bg';
     bg.innerHTML = `<div class="modal ae" role="dialog" aria-label="Assistent einrichten" tabindex="-1"><div class="mh">Assistent einrichten<button class="mx" title="Schließen">×</button></div>
       <div class="ae-tabs"></div><div class="mb ae-body"></div>
-      <div class="mf"><span class="ae-hint">Gilt für alle Benutzer und neue Planungen. Bestehende Pläne bleiben, wie sie sind.</span><span class="ae-dirty" hidden>Nicht gespeichert</span><button type="button" class="btn" data-bph-verlauf="gs:assistcfg" title="Frühere Einrichtungen ansehen und wiederherstellen">↶ Verlauf</button><button class="btn" data-ae="cancel">Abbrechen</button><button class="btn primary" data-ae="save">Speichern</button></div></div>`;
+      <div class="mf"><span class="ae-hint">Gilt für alle Benutzer und neue Planungen. Bestehende Pläne bleiben, wie sie sind.</span><span class="ae-dirty" hidden>Nicht gespeichert</span><button class="btn" data-ae="undo" title="Letzte Änderung rückgängig (Strg+Z)" disabled>↶ Rückgängig</button><button class="btn" data-ae="redo" title="Wiederholen (Strg+Y)" disabled>↷</button><button type="button" class="btn" data-bph-verlauf="gs:assistcfg" title="Frühere gespeicherte Einrichtungen ansehen und wiederherstellen">Verlauf</button><button class="btn" data-ae="cancel">Abbrechen</button><button class="btn primary" data-ae="save">Speichern</button></div></div>`;
     document.body.appendChild(bg);
-    bg.addEventListener('click', onClick); bg.addEventListener('change', onChange); bg.addEventListener('input', onInput);
-    bg.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') close(); });
+    bg.addEventListener('click', (e) => { snap(); onClick(e); }); bg.addEventListener('change', (e) => { snap(); onChange(e); }); bg.addEventListener('input', onInput);
+    bg.addEventListener('keydown', (e) => {
+      e.stopPropagation(); if (e.key === 'Escape') { close(); return; }
+      const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+      if ((e.ctrlKey || e.metaKey) && !inField && (e.key === 'z' || e.key === 'Z' || e.key === 'y')) { e.preventDefault(); undo(e.key === 'y' || e.shiftKey); }
+    });
     bg.querySelector('.mx').onclick = () => close();
     if (typeof makeDraggable === 'function') makeDraggable(bg.querySelector('.modal'), bg.querySelector('.mh'), 'dlgPos:assistedit');
     render();
@@ -112,6 +128,7 @@
     body.innerHTML = tab === 'typen' ? vTypen() : tab === 'bauweisen' ? vBauweisen() : vVorlagen();
     const m = body.querySelector('.ae-main'); if (m) m.scrollTop = sc;
     if (dirty) bg.querySelector('.ae-dirty').hidden = false;
+    undoBtns();
   }
 
   /* ----- Gebäudetypen ----- */
@@ -138,16 +155,20 @@
     // Leistungen
     const R = new Set(p.rec || []), O = new Set(p.opt === '*' ? allItems().map((i) => i.id) : p.opt || []), BC = byChoice(p), ov = p.ovr || {}, mine = (profD(p.k).ovr || {});
     const hit = (i) => (!q || (i.n + ' ' + (ov[i.id] && ov[i.id].n || '')).toLowerCase().includes(q.toLowerCase())) && (flt === 'alle' || (flt === 'rec' ? R.has(i.id) : flt === 'opt' ? O.has(i.id) && !R.has(i.id) : flt === 'mod' ? !!mine[i.id] : !R.has(i.id) && !O.has(i.id)));
-    h += `<h4>Leistungen <small class="ae-mut">empfohlen = vorausgewählt · optional = unter „Weitere Leistungen“ · – = nicht angeboten</small></h4>
+    h += `<h4>Leistungen <small class="ae-mut">empfohlen = vorausgewählt · optional = unter „Weitere Leistungen“ · – = nicht angeboten · ↑↓ Reihenfolge, Auswahlfeld = Gruppe im Bauzeitenplan · <i class="t bw">über …</i> = setzt die gewählte Bauweise</small></h4>
       <div class="ae-row ae-flt"><input type="search" data-q value="${H(q)}" placeholder="Leistung suchen …"><span class="ae-seg">${[['alle', 'alle'], ['rec', 'empfohlen'], ['opt', 'optional'], ['off', 'nicht angeboten'], ['mod', 'eigene Namen/Dauern']].map(([k, l]) => `<button class="${flt === k ? 'on' : ''}" data-flt="${k}">${l}</button>`).join('')}</span>
       <span class="ae-sp"></span>${p.own ? `<button class="btn sm danger" data-ae="delp">Gebäudetyp löschen</button>` : `<button class="btn sm" data-ae="resetp"${CFG_D.profiles[p.k] ? '' : ' disabled'} title="Alle Änderungen an diesem Typ verwerfen">Standard wiederherstellen</button>`}</div>`;
-    h += '<table class="ae-tbl"><thead><tr><th>Leistung</th><th class="c">Status</th><th>eigene Bezeichnung</th><th class="r">Richtdauer AT</th></tr></thead><tbody>';
+    h += '<table class="ae-tbl"><thead><tr><th></th><th>Leistung</th><th class="c">Status</th><th>eigene Bezeichnung</th><th class="r">Richtdauer AT</th></tr></thead><tbody>';
+    const L = itemsFor(p), phSel = (i) => `<select class="ae-phs" data-iph="${i.id}" title="Gruppe (Phase) im Bauzeitenplan">${PH().map((x) => `<option value="${x.k}"${x.k === i.ph ? ' selected' : ''}>${H(x.n)}</option>`).join('')}</select>`;
     for (const ph of PH()) {
-      const its = allItems().filter((i) => i.ph === ph.k && hit(i)); if (!its.length) continue;
-      h += `<tr class="ae-ph"><td colspan="4">${H(ph.n)}</td></tr>`;
+      const all = L.filter((i) => i.ph === ph.k), its = all.filter(hit); if (!its.length) continue;
+      h += `<tr class="ae-ph"><td colspan="5">${H(ph.n)}</td></tr>`;
       for (const i of its) {
+        const k = all.indexOf(i);
         const st = R.has(i.id) ? 'rec' : O.has(i.id) ? 'opt' : 'off', sOv = (std.ovr || {})[i.id] || {}, m = mine[i.id] || {};
-        h += `<tr><td>${H(i.n)}${i.lib ? ' <i class="t">Katalog</i>' : ''}${i.ms ? ' <i class="t">Meilenstein</i>' : ''}${BC[i.id] ? ` <i class="t bw" title="Wird über die Bauweise „${H(BC[i.id].join(', '))}“ gesetzt oder abgewählt">Bauweise</i>` : ''}</td>
+        h += `<tr><td class="ae-mv"><button class="ae-ib" data-imv="${i.id}" data-d="-1" title="nach oben"${k ? '' : ' disabled'}>↑</button><button class="ae-ib" data-imv="${i.id}" data-d="1" title="nach unten"${k < all.length - 1 ? '' : ' disabled'}>↓</button></td>
+          <td>${H(i.n)}${i.lib ? ' <i class="t">Katalog</i>' : ''}${i.ms ? ' <i class="t">Meilenstein</i>' : ''}${BC[i.id] ? ` <i class="t bw" title="Diese Leistung schaltet der Assistent über die Bauweise „${H(BC[i.id].join(', '))}“ ein oder aus – „empfohlen/optional“ gilt, soweit die gewählte Bauweise sie vorsieht. Welche Leistungen eine Bauweise setzt, steht im Reiter „Bauweisen“.">über ${H(BC[i.id].join(', '))}</i>` : ''}
+            <div class="ae-phw">${phSel(i)}${(p.phase || {})[i.id] ? ' <i class="t m">verschoben</i>' : ''}</div></td>
           <td class="c"><span class="ae-seg sm" data-st="${i.id}">${[['rec', 'empfohlen'], ['opt', 'optional'], ['off', '–']].map(([k, l]) => `<button class="${st === k ? 'on ' + k : ''}" data-v="${k}">${l}</button>`).join('')}</span></td>
           <td>${i.lib ? '<span class="ae-mut">im Leistungskatalog</span>' : `<input data-on="${i.id}" value="${H(m.n || '')}" placeholder="${H(sOv.n || i.n)}">`}</td>
           <td class="r">${i.lib || i.ms ? '' : `<input class="n" data-od="${i.id}" value="${H(m.d ?? '')}" placeholder="${H(sOv.d ?? i.d)}" inputmode="numeric">`}</td></tr>`;
@@ -155,6 +176,12 @@
     }
     h += '</tbody></table><p class="ae-mut">Richtdauer gilt für die Referenzgröße und wird mit der Fläche skaliert. Leer = Vorgabe aus dem Katalog.</p></div>';
     return `<div class="ae-two">${side}${h}</div>`;
+  }
+  function itemsFor(p) {   // Leistungen mit Gruppe und Reihenfolge dieses Gebäudetyps
+    const phO = p.phase || {}, ord = Array.isArray(p.order) ? p.order : [];
+    const base = allItems().map((i, k) => ({ ...i, ph: phO[i.id] || i.ph, _k: k }));
+    const key = (i) => { const k = ord.indexOf(i.id); return k >= 0 ? k : 10000 + i._k; };
+    return base.sort((a, b) => key(a) - key(b));
   }
   function setStatus(p, id, v) {
     const d = profD(p.k), cur = draftProfiles().find((x) => x.k === p.k);
@@ -218,12 +245,20 @@
       [list[i], list[k]] = [list[k], list[i]]; list.forEach((p, n) => { profD(p.k).ord = n; }); touch(); render(); return;
     }
     if (b.dataset.flt) { flt = b.dataset.flt; render(); return; }
+    if (b.dataset.imv) {   // Leistung innerhalb ihrer Gruppe verschieben
+      const p = draftProfiles().find((x) => x.k === selP), L = itemsFor(p), it = L.find((i) => i.id === b.dataset.imv);
+      const grp = L.filter((i) => i.ph === it.ph), k = grp.indexOf(it), j = k + +b.dataset.d; if (j < 0 || j >= grp.length) return;
+      const ids = L.map((i) => i.id), a = ids.indexOf(grp[k].id), c = ids.indexOf(grp[j].id); [ids[a], ids[c]] = [ids[c], ids[a]];
+      profD(p.k).order = ids; touch(); render(); return;
+    }
     const seg = b.closest('[data-st]'); if (seg && b.dataset.v) { setStatus(draftProfiles().find((p) => p.k === selP), seg.dataset.st, b.dataset.v); render(); return; }
     if (b.dataset.rmon) { const o = optD(selG, b.dataset.rmon), cur = draftOpts(C.choices.find((g) => g.k === selG)).find((x) => x.k === b.dataset.rmon); o.on = (cur.on || []).filter((x) => x !== b.dataset.id); touch(); render(); return; }
     if (b.dataset.delo) { const d = grpD(selG); d.own = (d.own || []).filter((o) => o.k !== b.dataset.delo); touch(); render(); return; }
     if (b.dataset.vload) { const v = VORL.find((x) => x.id === b.dataset.vload); if (v) { CFG_D = norm(clone(v.data)); touch(); say(`Vorlage „${v.name}“ geladen – mit „Speichern“ übernehmen.`); render(); } return; }
     if (b.dataset.vdel) { const v = VORL.find((x) => x.id === b.dataset.vdel); if (v && window.confirm(`Vorlage „${v.name}“ löschen?`)) api('api/assistcfg/vorlagen/' + v.id, 'DELETE').then(() => { VORL = VORL.filter((x) => x !== v); render(); }).catch((er) => say(er.message, true)); return; }
     const a = b.dataset.ae; if (!a) return;
+    if (a === 'undo') { undo(false); return; }
+    if (a === 'redo') { undo(true); return; }
     if (a === 'cancel') close();
     else if (a === 'save') save();
     else if (a === 'lib') { if (dirty && !window.confirm('Ungespeicherte Änderungen verwerfen und zum Leistungskatalog wechseln?')) return; close(true); const tb = document.querySelector('[data-view="lib"],[data-tab="lib"],#tabLib'); if (tb) tb.click(); else if (typeof showLib === 'function') showLib(); }
@@ -252,6 +287,11 @@
       else if (['area', 'units', 'floors'].includes(f)) { const v = Math.round(+String(t.value).replace(',', '.')); if (v > 0) d[f] = v; else { delete d[f]; t.value = ''; } }
       else if (t.value.trim()) d[f] = t.value.trim(); else delete d[f];
       touch(); if (['n', 'ic', 'hidden'].includes(f)) render(); return;
+    }
+    if (t.dataset.iph && p) {   // Leistung in eine andere Gruppe
+      const d = profD(p.k), id = t.dataset.iph, orig = (allItems().find((i) => i.id === id) || {}).ph;
+      d.phase = { ...(d.phase || {}) }; if (t.value === orig) delete d.phase[id]; else d.phase[id] = t.value;
+      if (!Object.keys(d.phase).length) delete d.phase; touch(); render(); return;
     }
     if (t.dataset.pch && p) { const d = profD(p.k); d.choice = { ...(d.choice || {}), [t.dataset.pch]: t.value }; touch(); return; }
     if (t.dataset.on && p) { const d = profD(p.k); d.ovr ||= {}; const e2 = d.ovr[t.dataset.on] ||= {}; if (t.value.trim()) e2.n = t.value.trim(); else delete e2.n; if (!Object.keys(e2).length) delete d.ovr[t.dataset.on]; touch(); return; }

@@ -74,7 +74,7 @@ window.CATALOG = (() => {
     { id: 'geruest', ph: 'huelle', n: 'Gerüst stellen', gw: 'Gerüst', din: '18451', sc: 'bau', d: 2, a: ['mauer', 'holz_mont', 'be'] },
     { id: 'zimmer', ph: 'huelle', n: 'Dachstuhl / Zimmererarbeiten', gw: 'Zimmerer', din: '18334', sc: 'bau', d: 5, a: ['mauer', 'holz_mont', 'geruest', 'be'] },
     { id: 'dachfenster', m: 'dach_deck', ph: 'huelle', n: 'Dachflächenfenster einbauen', gw: 'Dach', din: '18338', sc: 'bau', d: 2, fix: 1, a: ['zimmer', 'geruest'] },
-    { id: 'dach_deck', ph: 'huelle', n: 'Dacheindeckung / Dachabdichtung', gw: 'Dach', din: '18338', sc: 'bau', d: 8, a: ['schornstein', 'dachfenster', 'zimmer', 'geruest', 'be'] },
+    { id: 'dach_deck', ph: 'huelle', n: 'Dacheindeckung', gw: 'Dach', din: '18338', sc: 'bau', d: 8, a: ['schornstein', 'dachfenster', 'zimmer', 'geruest', 'be'] },
     { id: 'dach_daemm', m: 'dach_deck', ph: 'huelle', n: 'Dachdämmung', gw: 'Dach', din: '18338', sc: 'bau', d: 4, a: ['dach_deck', 'zimmer', 'geruest', 'be'] },
     { id: 'dach_zub', m: 'dach_deck', ph: 'huelle', n: 'Dachzubehör (Schneefang, Laufroste, Sicherheitshaken)', gw: 'Dach', din: '18338', sc: 'bau', d: 1, fix: 1, a: ['dach_deck'] },
     { id: 'gruendach', ph: 'huelle', n: 'Dachbegrünung (extensiv)', gw: 'Außenanlagen', din: '18320', sc: 'bau', d: 3, ch: 'dachdeckung', a: ['dach_deck'] },
@@ -240,13 +240,15 @@ window.CATALOG = (() => {
       { k: 'sattel', n: 'Satteldach', on: ['zimmer'] },
       { k: 'walm', n: 'Walmdach', on: ['zimmer'], mul: { zimmer: 1.3, dach_deck: 1.25, klempner: 1.2 } },
       { k: 'pult', n: 'Pultdach', on: ['zimmer'], mul: { zimmer: 0.8, dach_deck: 0.85 } },
-      { k: 'flach', n: 'Flachdach', on: [], ovr: { dach_deck: { n: 'Flachdach: Wärmedämmung und Abdichtung', din: '18338 / 18336' }, klempner: { n: 'Klempnerarbeiten (Attika, Abläufe)' } } } ] },
+      // Flachdach: erst Dampfsperre und Dämmung (Warmdach), dann die Abdichtung – Dämmung bleibt eine eigene Leistung
+      { k: 'flach', n: 'Flachdach', on: ['dach_daemm'], ovr: { dach_deck: { n: 'Dachabdichtung Flachdach', din: '18336', a: ['schornstein', 'dachfenster', 'zimmer', 'dach_daemm', 'geruest', 'be'] },
+        dach_daemm: { n: 'Flachdach: Dampfsperre und Wärmedämmung (Gefälle)', din: '18336', a: ['zimmer', 'mauer', 'holz_mont', 'geruest', 'be'] }, klempner: { n: 'Klempnerarbeiten (Attika, Abläufe)' } } } ] },
     { k: 'dachdeckung', ph: 'huelle', n: 'Dachdeckung', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ', 'dg'], opts: [
       { k: 'ziegel', n: 'Dachziegel / Betondachstein', on: [], if: { dachform: ['sattel', 'walm', 'pult'] } },
       { k: 'schiefer', n: 'Schiefer', on: [], if: { dachform: ['sattel', 'walm', 'pult'] }, ovr: { dach_deck: { n: 'Schieferdeckung' } }, mul: { dach_deck: 1.6 } },
-      { k: 'bitumen', n: 'Bitumenbahnen', on: [], if: { dachform: ['flach'] } },
-      { k: 'kunststoff', n: 'Kunststoff-/Elastomerbahnen', on: [], if: { dachform: ['flach'] } },
-      { k: 'gruen', n: 'Gründach (extensiv)', on: ['gruendach'], if: { dachform: ['flach'] } },
+      { k: 'bitumen', n: 'Abdichtung mit Bitumenbahnen', on: [], if: { dachform: ['flach', 'pult'] }, ovr: { dach_deck: { n: 'Dachabdichtung mit Bitumenbahnen', din: '18336' } } },
+      { k: 'kunststoff', n: 'Abdichtung mit Kunststoff-/Elastomerbahnen', on: [], if: { dachform: ['flach', 'pult'] }, ovr: { dach_deck: { n: 'Dachabdichtung mit Kunststoff-/Elastomerbahnen', din: '18336' } } },
+      { k: 'gruen', n: 'Gründach (extensiv)', on: ['gruendach'], if: { dachform: ['flach', 'pult'] }, ovr: { dach_deck: { n: 'Dachabdichtung (wurzelfest) für die Begrünung', din: '18336' } } },
       { k: 'metall', n: 'Metall (Stehfalz)', on: [], ovr: { dach_deck: { n: 'Metalldach (Stehfalzdeckung)', gw: 'Klempner', din: '18339' } } } ] },
     { k: 'fassade', ph: 'huelle', n: 'Fassade', types: [...UMB, ...NB, 'kern_efh', 'san_mfh', 'energ'], opts: [
       { k: 'putz', n: 'Putzfassade (monolithisches Mauerwerk)', on: ['aussenputz'] },

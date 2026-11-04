@@ -14,7 +14,7 @@ const CRAFT = { Abbruch: 'Abbruchunternehmer', Rohbau: 'Maurer / Betonbauer', Sa
   Bodenbelag: 'Bodenleger / Parkettleger', Tischler: 'Tischler / Schreiner', Dach: 'Dachdecker', Zimmerer: 'Zimmerer', Klempner: 'Klempner / Spengler', Gerüst: 'Gerüstbauer',
   Erdbau: 'Erdbauer', Abdichtung: 'Bauwerksabdichter', Fassade: 'Fassadenbauer / Stuckateur', Lüftung: 'Lüftungsbauer', Aufzug: 'Aufzugsbauer', Außenanlagen: 'Garten- und Landschaftsbauer',
   Reinigung: 'Gebäudereiniger', Bauleitung: 'Bauleitung', Vermessung: 'Vermessungsingenieur', Metallbau: 'Metallbauer / Schlosser', Naturstein: 'Steinmetz', Stahlbau: 'Stahlbauer',
-  Spezialtiefbau: 'Spezialtiefbauer', Tiefbau: 'Tiefbauer', Dämmung: 'Isolierer', Statiker: 'Tragwerksplaner',
+  Spezialtiefbau: 'Spezialtiefbauer', Tiefbau: 'Tiefbauer', Dämmung: 'Isolierer', Statiker: 'Tragwerksplaner', Architekt: 'Architekt / Objektplaner',
   Rollladen: 'Rollladen- und Sonnenschutztechniker', Glaser: 'Glaser', Küche: 'Küchenmonteur / Tischler' };
 const GW_DIN = { Abbruch: '18459', Rohbau: '18330 / 18331', Erdbau: '18300', Sanitär: '18381', Heizung: '18380', Elektro: '18382', Lüftung: '18379', Fenster: '18355', Tischler: '18355',
   Putz: '18350', Estrich: '18353', Fliesen: '18352', Trockenbau: '18340', Maler: '18363', Bodenbelag: '18356 / 18365', Dach: '18338', Zimmerer: '18334', Klempner: '18339',

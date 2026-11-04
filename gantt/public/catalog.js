@@ -19,6 +19,7 @@
    ===================================================================== */
 window.CATALOG = (() => {
   const phases = [
+    { k: 'planung', n: 'Ingenieur / Planung' },   // Architekt, Bauleitung, Statiker, Vermesser
     { k: 'vorb', n: 'Vorbereitung' },
     { k: 'abbruch', n: 'Abbruch und Rückbau' },
     { k: 'erd', n: 'Erd- und Gründungsarbeiten' },
@@ -33,10 +34,17 @@ window.CATALOG = (() => {
   const TGA_START = ['dicht', 'mauer', 'holz_mont', 'durchbr', 'wand_ab', 'entk', 'schutz', 'be'];
   const items = [
     // Vorbereitung
-    { id: 'be', ph: 'vorb', n: 'Baustelleneinrichtung', gw: 'Bauleitung', sc: 'bau', d: 2, fix: 1, a: ['start'] },
-    { id: 'statik', ph: 'vorb', n: 'Statik / Tragwerksplanung freigegeben', gw: 'Bauleitung', sc: 'bau', ms: 1, a: ['start'] },
+    // Ingenieur / Planung
+    { id: 'baugen', ph: 'planung', n: 'Baugenehmigung erteilt', gw: 'Architekt', sc: 'bau', ms: 1, a: ['start'] },
+    { id: 'planfrei', ph: 'planung', n: 'Ausführungsplanung freigegeben', gw: 'Architekt', sc: 'bau', ms: 1, a: ['start'] },
+    { id: 'statik', ph: 'planung', n: 'Statik / Tragwerksplanung freigegeben', gw: 'Statiker', sc: 'bau', ms: 1, a: ['start'] },
+    { id: 'pruefing', ph: 'planung', n: 'Bewehrungsabnahme (Prüfingenieur)', gw: 'Statiker', sc: 'bau', ms: 1, a: ['grund'] },
+    { id: 'einmess', ph: 'planung', n: 'Gebäudeeinmessung (Vermesser)', gw: 'Vermessung', sc: 'bau', d: 1, fix: 1, a: ['mauer', 'holz_mont'] },
+    { id: 'abn', ph: 'planung', n: 'Abnahme mit dem Bauherrn (Bauleitung)', gw: 'Bauleitung', sc: 'bau', ms: 1, a: ['reinig'] },
+    // Vorbereitung
+    { id: 'be', ph: 'vorb', n: 'Baustelleneinrichtung', gw: 'Bauleitung', sc: 'bau', d: 2, fix: 1, a: ['start', 'baugen', 'planfrei'] },
     { id: 'schutz', ph: 'vorb', n: 'Schutzmaßnahmen, Staubschutzwände', gw: 'Bauleitung', sc: 'we', d: 1, fix: 1, a: ['be'] },
-    { id: 'verm', ph: 'vorb', n: 'Vermessung / Schnurgerüst', gw: 'Vermessung', sc: 'bau', d: 1, fix: 1, nb: 1, a: ['be'] },
+    { id: 'verm', ph: 'planung', n: 'Vermessung / Schnurgerüst', gw: 'Vermessung', sc: 'bau', d: 1, fix: 1, nb: 1, a: ['be'] },
     // Abbruch
     { id: 'schad', m: 'entk', ph: 'abbruch', n: 'Schadstoffsanierung (Asbest, KMF, PAK)', gw: 'Abbruch', din: '18459', sc: 'we', d: 3, a: ['schutz', 'be'] },
     { id: 'entk', ph: 'abbruch', n: 'Entkernung (Beläge, Bekleidungen, Altinstallation)', gw: 'Abbruch', din: '18459', sc: 'we', d: 4, a: ['schad', 'schutz', 'be'] },
@@ -296,6 +304,9 @@ window.CATALOG = (() => {
       { k: 'teppich', n: 'Teppich', on: ['boden'], ovr: { boden: { n: 'Teppichboden verlegen', din: '18365' } }, mul: { boden: 0.6 } },
       { k: 'fliesen', n: 'Fliesen in allen Räumen', on: [], mul: { fliesen: 2 } } ] },
   ];
+  // Ingenieur / Planung: in allen Gebäudetypen unter „Weitere Leistungen“ (Neubau-Leistungen nur, wo es eine Gründung gibt)
+  const ING = ['baugen', 'planfrei', 'statik', 'pruefing', 'einmess', 'abn'];
+  profiles.forEach((p) => { if (Array.isArray(p.opt)) ING.forEach((id) => { if (!p.opt.includes(id) && !(p.rec || []).includes(id)) p.opt.push(id); }); });
   return { phases, items, profiles, choices, ref: { bau: 140, we: 80 } };
 })();
 

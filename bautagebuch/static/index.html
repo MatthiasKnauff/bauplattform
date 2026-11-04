@@ -716,7 +716,7 @@ const secHead = (s, n, open) => `<h3 class="tg" data-act="secToggle" data-key="$
 let addFiles = [];   // Fotos, die beim Anlegen eines Eintrags gleich mitgeschickt werden
 const photoAdd = s => (s.extra && s.extra.photos) ? `<div class="padd"><button type="button" data-act="aCam">${ic('cam', 20)} Foto aufnehmen</button><button type="button" data-act="aLib">${ic('pdf', 20)} Aus Mediathek</button><div id="apv" class="apv"></div></div>` : '';
 function renderApv() {
-  const box = $('#apv'); if (!box) return; box.innerHTML = '';
+  const box = $('#bwz #apv') || $('#apv'); if (!box) return; box.innerHTML = '';
   addFiles.forEach((f, i) => {
     const sp = document.createElement('span'), im = new Image(); im.alt = f.name; im.src = URL.createObjectURL(f);
     im.onerror = () => { const n = document.createElement('span'); n.className = 'nf'; n.textContent = '📷'; n.title = f.name; im.replaceWith(n); };
@@ -861,6 +861,7 @@ function bwzRender() {
     <div class="bb">${r ? bwzBody(x, r) : ''}</div>
     <div class="bf">${BWZ.i ? '<button data-act="bwzPrev">Zurück</button>' : ''}<button data-act="bwzClose">Pausieren</button><button class="nx" data-act="${last ? 'bwzClose' : 'bwzNext'}">${last ? 'Fertig' : 'Weiter'}</button></div></div>`;
   if (keep) box.querySelector(`[data-bk="${keep}"]`)?.focus();
+  if (box.querySelector('#apv')) renderApv();
 }
 function bwzBody(x, r) {
   const its = k => r.items.filter(i => i.kind === k);
@@ -891,7 +892,7 @@ function bwzBody(x, r) {
   return (list.length ? `<div class="have">Schon im Bericht:<ul>${list.map(i => `<li>${esc(i.text)}</li>`).join('')}</ul></div>` : `<p class="sub">Noch nichts eingetragen – sonst einfach „Weiter“.</p>`)
     + `<div class="add qadd">${coAdd(sec)}<textarea data-add="${esc(sec.key)}" data-bk="t" rows="3" placeholder="${esc(sec.placeholder)}"></textarea>
       ${sec.extra && sec.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}
-      <button class="ok" data-act="bwzAdd" data-kind="${esc(sec.key)}">Hinzufügen</button></div>`;
+      ${photoAdd(sec)}<button class="ok" data-act="bwzAdd" data-kind="${esc(sec.key)}">Hinzufügen</button></div>`;
 }
 function bwzSetHtml() {
   const P = bwzPrefs();
@@ -911,9 +912,10 @@ async function bwzAdd(kind) {   // wie „Hinzufügen“ im Abschnitt, Eingabe a
   const co = row.querySelector('[data-add-co]'); if (co) body.company = co.value.trim();
   const dd = row.querySelector('[data-add-due]'); if (dd && dd.value) { body.due = dd.value; body.due_time = row.querySelector('[data-add-time]').value || '09:00'; }
   const res = await api(`api/reports/${rid}/items`, 'POST', body); if (res.error) { toast(res.error); return; }
+  if (addFiles.length && res.id) { const fs = addFiles; addFiles = []; await uploadPhotos(fs, res.id); }
   if (res.contact_created) toast(`„${res.name}“ wurde zu den Kontakten hinzugefügt.`);
   if (res.contact_id) contacts = await api('api/contacts');
-  setSecOpen(kind, true); await openProject(pid, true); bwzRender(); $('#bwz')?.querySelector(`[data-add="${kind}"]`)?.focus();
+  setSecOpen(kind, true); await openProject(pid, true); bwzRender(); renderApv(); $('#bwz')?.querySelector(`[data-add="${kind}"]`)?.focus();
 }
 /* Von Hand eingetragene Firma: Tätigkeit (laut Bauzeitenplan, sonst nach Gewerk) und 1 Anwesenden vorschlagen */
 async function taetVorschlag(row) {
@@ -1761,8 +1763,8 @@ document.addEventListener('click', async e => {
   else if (a === 'bwzStartNow') { BWZ.set = false; bwzOpen(); }
   else if (a === 'bwzSet') { if (!BWZ.open) { BWZ.open = true; } BWZ.set = !BWZ.set || !$('#bwz'); bwzRender(); }
   else if (a === 'bwzClose') bwzClose();
-  else if (a === 'bwzNext') { BWZ.i++; bwzRender(); $('#bwz .bb')?.scrollTo(0, 0); }
-  else if (a === 'bwzPrev') { BWZ.i--; bwzRender(); }
+  else if (a === 'bwzNext') { addFiles = []; BWZ.i++; bwzRender(); $('#bwz .bb')?.scrollTo(0, 0); }
+  else if (a === 'bwzPrev') { addFiles = []; BWZ.i--; bwzRender(); }
   else if (a === 'bwzAdd') bwzAdd(b.dataset.kind);
   else if (a === 'sollDa' || a === 'sollSet') {
     const r = curReport(); if (!r) return;

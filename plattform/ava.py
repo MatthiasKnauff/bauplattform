@@ -545,13 +545,13 @@ def raeume(i):
 # Gespeichert in bp_store „tueren:<projekt>“ als {"tueren": [...], "rev": n}. Jede Tür ist ein flaches Objekt mit Text- und Ja/Nein-Feldern.
 TUER_TEXT = {"nr": 30, "geschoss": 30, "raum": 30, "raumname": 80, "zu": 80, "typ": 30, "art": 60, "flg": 30, "din": 10, "b": 10, "h": 10, "wand": 10,
              "zarge": 60, "blatt": 60, "oberfl": 60, "farbe": 60, "brand": 20, "schall": 20, "rc": 10, "klima": 10, "schloss": 40, "beschlag": 60,
-             "glas": 60, "bem": 500, "anzahl": 6}
+             "glas": 60, "bem": 500, "anzahl": 6, "oeffnung": 40, "bruestung": 20, "fb_innen": 60, "fb_aussen": 60, "rollo": 60}
 TUER_JA = {"otsch": "Obentürschließer mit Gleitschiene", "frl": "Feststellanlage (Rauchmelder, Magnet)", "licht": "Lichtausschnitt",
            "oberlicht": "Oberlicht", "seitenteil": "Seitenteil", "bodend": "absenkbare Bodendichtung", "schwelle": "schwellenlos (barrierefrei)",
            "bf": "barrierefrei nach DIN 18040 (lichte Breite ≥ 90 cm, Bedienkräfte)", "panik": "Panikbeschlag nach DIN EN 1125",
            "notaus": "Notausgangsverschluss nach DIN EN 179", "eoeff": "Elektro-Türöffner", "antrieb": "Drehflügelantrieb mit Tastern",
-           "zk": "Vorrüstung Zutrittskontrolle", "lueft": "Lüftungsgitter / Überströmöffnung", "stopper": "Türstopper",
-           "kanten": "Kantenschutz", "nass": "für Feuchträume (Klimaklasse III)", "sa": "Profilzylinder in Schließanlage", "rm": "Riegelkontakt / Öffnungsmelder"}
+           "zk": "Vorrüstung Zutrittskontrolle", "lueft": "Lüftungsöffnung (Überströmöffnung)", "stopper": "Türstopper",
+           "kanten": "Kantenschutz", "umfz": "Umfassungszarge", "nass": "für Feuchträume (Klimaklasse III)", "sa": "Profilzylinder in Schließanlage", "rm": "Riegelkontakt / Öffnungsmelder"}
 
 
 def _tuer_clean(v):
@@ -583,11 +583,23 @@ def _tueren_laden(c, pid):
 _GRUPPE_OHNE = {"id", "nr", "geschoss", "raum", "raumname", "zu", "din", "bem", "anzahl"}
 
 
-def _mm(v):
+def _meter(v):
+    """Maß wie in der Türliste eingegeben (m oder mm) → Meter: „1010“ und „1,01“ → 1.01."""
     try:
-        return f"{int(float(str(v).replace(',', '.'))):,}".replace(",", ".")
+        x = float(str(v).replace(" ", "").replace(",", "."))
     except ValueError:
-        return str(v)
+        return None
+    return x / 1000 if x >= 10 else x
+
+
+def _m(v):
+    x = _meter(v)
+    return str(v) if x is None else (f"{x:.3f}".rstrip("0").rstrip(".") if x % 1 else f"{x:.2f}").replace(".", ",")
+
+
+def _mm(v):
+    x = _meter(v)
+    return str(v) if x is None else f"{round(x * 1000):,}".replace(",", ".")
 
 
 def _tuer_kurz(t):
@@ -638,19 +650,109 @@ def _tuer_lang(t, liste):
     return "\n".join(z)[:20000]
 
 
-def tueren_zu_positionen(tueren):
-    gruppen = {}
+def _tuer_gruppe(t):
+    """Titel im LV: Fenster, Außentüren, Innentüren (wie in den bisherigen LVs des Büros)."""
+    a = (t.get("art") or "").lower()
+    if a.startswith("fenster") or "fenster" in a:
+        return "Fenster"
+    if a.startswith(("außen", "aussen", "nebeneingang", "haus", "tor")):
+        return "Außentüren"
+    return "Innentüren"
+
+
+_FENSTERART = ("Fenster", )
+_ORT = {"id", "nr", "geschoss", "raum", "raumname", "zu", "bem", "anzahl"}
+# Merkmale in der Reihenfolge der LV-Texte: (Schlüssel, Bezeichnung)
+_MERKMALE = [("art", "Typ"), ("flg", "Flügel"), ("din", "Öffnungsrichtung"), ("oeffnung", "Öffnungsart"), ("bruestung", "Brüstungshöhe"),
+             ("fb_innen", "Innenfensterbank"), ("fb_aussen", "Außenfensterbank"), ("rollo", "Rollo"), ("wand", "Wanddicke"),
+             ("zarge", "Zarge"), ("blatt", "Türblatt"), ("oberfl", "Oberfläche"), ("farbe", "Farbe"), ("glas", "Verglasung"),
+             ("brand", "Ausführung"), ("schall", "Schallschutz"), ("rc", "Einbruchhemmung"), ("klima", "Klimaklasse"),
+             ("schloss", "Schloss"), ("beschlag", "Beschlag")]
+# immer mit ja/nein nennen (wie bisher im LV), sonst nur, wenn angehakt
+_JA_NEIN = {"Innentüren": ("licht", "umfz", "lueft"), "Außentüren": (), "Fenster": ()}
+
+
+def _merkmal_zeile(k, lab, v):
+    if k == "din":
+        v = {"DIN L": "L", "DIN R": "R"}.get(v, v)
+    elif k == "bruestung":
+        v = _m(v)
+    elif k == "brand":
+        v = v.replace("-", "")
+    return f"{lab}: {v}"
+
+
+def _positionen_merkmale(liste, gemeinsam, gruppe):
+    t = liste[0]
+    z = ["Einbauposition: " + ", ".join(x.get("nr") or "?" for x in liste)]
+    raeume = [x.get("raumname") or x.get("raum") or "" for x in liste]
+    if any(raeume):
+        z.append("Raum: " + ", ".join(r for r in raeume if r))
+    for k, lab in _MERKMALE[:1]:
+        z.append(_merkmal_zeile(k, lab, t.get(k) or ""))
+    if t.get("b") or t.get("h"):
+        z.append(f"Maße (bxh): {_m(t.get('b') or '?')}x{_m(t.get('h') or '?')}")
+    for k, lab in _MERKMALE[1:]:
+        if t.get(k) and (k in ("din", "brand") or k not in gemeinsam):
+            z.append(_merkmal_zeile(k, lab, t[k]))
+    jn = _JA_NEIN.get(gruppe, ())
+    for k in jn:
+        z.append(f"{TUER_JA[k].split(' (')[0].split(' /')[0]}: {'ja' if t.get(k) else 'nein'}")
+    for k, lab in TUER_JA.items():
+        if t.get(k) and k not in jn and k not in gemeinsam:
+            z.append(lab)
+    bem = sorted({x["bem"] for x in liste if x.get("bem")})
+    z.extend(bem)
+    return "\n".join(z)[:20000]
+
+
+def _system_text(gruppe, gemeinsam):
+    z = []
+    for k, lab in _MERKMALE[1:]:
+        if k in gemeinsam and k not in ("din", "brand", "art"):
+            z.append(_merkmal_zeile(k, lab, gemeinsam[k]))
+    for k, lab in TUER_JA.items():
+        if gemeinsam.get(k) and k not in _JA_NEIN.get(gruppe, ()):
+            z.append(lab)
+    return ("\n".join(z) if z else "(Hersteller/System, Profile, Oberfläche, Beschläge, Anschlüsse – bitte ergänzen oder aus einem alten LV über die Kopierquelle übernehmen)")
+
+
+def tueren_zu_positionen(tueren, form="merkmale", din_trennen=True):
+    """Türen/Fenster zu LV-Positionen: gleiche Ausführung = eine Position (Menge = Stückzahl).
+    form „merkmale“ (wie in den bisherigen LVs des Büros): je Gruppe (Fenster, Außentüren, Innentüren) ein Titel mit
+    Systembeschreibung (Hinweistext mit allem, was für alle gleich ist), darunter Positionen „… gemäß vorangegangener
+    Systembeschreibung“ mit Einbauposition, Raum, Typ, Maße, Öffnungsrichtung usw.
+    form „lang“: ein ausführlicher Langtext je Position (ohne Titel je Gruppe)."""
+    ohne = _ORT | (set() if din_trennen else {"din"})
+    nach_gruppe = {}
     for t in tueren:
-        k = json.dumps({a: b for a, b in t.items() if a not in _GRUPPE_OHNE}, sort_keys=True)
-        gruppen.setdefault(k, []).append(t)
-    items = []
-    for liste in gruppen.values():
-        t = liste[0]
-        n = sum(max(1, int(_f(x.get("anzahl"), 1, 1, 999))) for x in liste)
-        items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "kurz": _tuer_kurz(t), "lang": _tuer_lang(t, liste), "menge": n, "einheit": "St",
-                      "kg": "334" if (t.get("art") or "").startswith(("Außen", "Tor")) else "344", "bezug": "Türliste", "quelle": "Türliste: " + ", ".join(x.get("nr") or "?" for x in liste)})
-    items.sort(key=lambda p: (p["kurz"]))
-    return items
+        nach_gruppe.setdefault(_tuer_gruppe(t) if form == "merkmale" else "", []).append(t)
+    out = []
+    for gruppe in [g for g in ("Fenster", "Außentüren", "Innentüren", "") if g in nach_gruppe]:
+        T = nach_gruppe[gruppe]
+        gruppen = {}
+        for t in T:
+            k = json.dumps({a: b for a, b in t.items() if a not in ohne}, sort_keys=True)
+            gruppen.setdefault(k, []).append(t)
+        items = []
+        if form == "merkmale":
+            keys = set().union(*[set(t) for t in T]) - _ORT - {"din", "b", "h", "art", "typ"}
+            gemeinsam = {k: T[0][k] for k in keys if all(t.get(k) == T[0].get(k) for t in T)} if len(gruppen) > 1 else {}
+            items.append({"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": gruppe})
+            items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "T", "kurz": f"Systembeschreibung {gruppe}", "lang": _system_text(gruppe, gemeinsam), "menge": 0, "einheit": ""})
+        for liste in gruppen.values():
+            t = liste[0]
+            n = sum(max(1, int(_f(x.get("anzahl"), 1, 1, 999))) for x in liste)
+            if form == "merkmale":
+                kurz = f"{t.get('art') or ('Fenster' if gruppe == 'Fenster' else 'Tür')} gemäß vorangegangener Systembeschreibung"
+                lang = _positionen_merkmale(liste, gemeinsam, gruppe)
+            else:
+                kurz, lang = _tuer_kurz(t), _tuer_lang(t, liste)
+            items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "kurz": kurz[:500], "lang": lang, "menge": n, "einheit": "St",
+                          "kg": "334" if gruppe in ("Fenster", "Außentüren") or (t.get("art") or "").startswith(("Außen", "Tor")) else "344",
+                          "bezug": "Türliste", "quelle": "Türliste: " + ", ".join(x.get("nr") or "?" for x in liste)})
+        out.extend(items)
+    return out
 
 
 @app.route("/api/projekt/<int:pid>/tueren", methods=["GET", "PUT"])
@@ -699,9 +801,14 @@ def tueren_ins_lv(pid):
             T = [t for t in T if t["id"] in ids]
         if not T:
             return jsonify(error="Keine Türen in der Liste."), 400
-        pos = tueren_zu_positionen(T)
-        titel = _s(b.get("titel"), 300) or "Türen"
-        neu = [{"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": titel}] + pos
+        form = "lang" if b.get("form") == "lang" else "merkmale"
+        pos = tueren_zu_positionen(T, form, b.get("din_trennen", True) is not False)
+        titel = _s(b.get("titel"), 300)
+        neu = ([{"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": titel or "Türen"}] if form == "lang" or titel else []) + pos
+        if form == "merkmale" and titel:   # Obertitel: Gruppen werden Untertitel
+            for x in neu[1:]:
+                if x["typ"] == "titel":
+                    x["lvl"] = 2
         now = _now()
         if isinstance(b.get("lv"), int):
             r = _lv(c, b["lv"])
@@ -720,8 +827,8 @@ def tueren_ins_lv(pid):
                           (pid, str(n + 1).zfill(2), _s(b.get("name"), 200) or "Türen", _s(b.get("gewerk"), 120) or "Türen",
                            json.dumps({"items": items}, ensure_ascii=False), now, now, g.user["name"])).fetchone()["id"]
         versionen.nach(c, f"avalv:{i}", g.user["name"])
-        C.audit(g.user["name"], "ava", "Türliste ins LV", f"{len(T)} Türen → {len(pos)} Positionen")
-        return jsonify(ok=True, lv=i, positionen=len(pos), tueren=len(T))
+        C.audit(g.user["name"], "ava", "Türliste ins LV", f"{len(T)} Türen/Fenster")
+        return jsonify(ok=True, lv=i, positionen=sum(1 for x in pos if x["typ"] == "pos" and x["art"] != "T"), tueren=len(T))
 
 
 @app.get("/api/projekt/<int:pid>/tueren.xlsx")
@@ -734,7 +841,8 @@ def tueren_excel(pid):
             return jsonify(error="Projekt nicht gefunden"), 404
         T = _tueren_laden(c, pid)["tueren"]
     sp = [("nr", "Tür-Nr."), ("geschoss", "Geschoss"), ("raum", "Raum-Nr."), ("raumname", "Raum"), ("zu", "zu Raum"), ("typ", "Typ"), ("anzahl", "Anz."), ("art", "Art"),
-          ("flg", "Flügel"), ("din", "DIN"), ("b", "Breite BRM"), ("h", "Höhe BRM"), ("wand", "Wand"), ("zarge", "Zarge"), ("blatt", "Türblatt"),
+          ("flg", "Flügel"), ("din", "Öffnungsrichtung"), ("b", "Breite"), ("h", "Höhe"), ("wand", "Wand"), ("bruestung", "Brüstung"),
+          ("oeffnung", "Öffnungsart"), ("fb_innen", "Innenfensterbank"), ("fb_aussen", "Außenfensterbank"), ("rollo", "Rollo"), ("zarge", "Zarge"), ("blatt", "Türblatt"),
           ("oberfl", "Oberfläche"), ("farbe", "Farbe"), ("glas", "Verglasung"), ("brand", "Brandschutz"), ("schall", "Schall"), ("rc", "RC"),
           ("klima", "Klima"), ("schloss", "Schloss"), ("beschlag", "Beschlag")] + [(k, v.split(" (")[0].split(" nach")[0]) for k, v in TUER_JA.items()] + [("bem", "Bemerkung")]
     wb = openpyxl.Workbook()
@@ -748,7 +856,7 @@ def tueren_excel(pid):
     for cell in ws[3]:
         cell.font = Font(bold=True)
         cell.fill = kopf
-        cell.alignment = Alignment(wrap_text=True, vertical="bottom", text_rotation=90 if cell.column > 24 and cell.column < len(sp) else 0)
+        cell.alignment = Alignment(wrap_text=True, vertical="bottom", text_rotation=90 if sp[cell.column - 1][0] in TUER_JA else 0)
     for t in T:
         ws.append([("x" if t.get(k) else "") if k in TUER_JA else t.get(k, "") for k, _ in sp])
     for i, (k, _) in enumerate(sp, 1):

@@ -1164,7 +1164,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
          "h2": ParagraphStyle("h2", fontName=FN["b"], fontSize=12, leading=15, textColor=ACC, spaceBefore=6, spaceAfter=4),
          "h1": ParagraphStyle("h1", fontName=FN["b"], fontSize=15, leading=19, textColor=INK)}
     X = lambda t: escape(str(t or "")).replace("\n", "<br/>")
-    ps = A4; W = ps[0] - 36 * mm
+    ps = A4; W = ps[0] - 40 * mm   # 25 mm Heftrand links, 15 mm rechts
     preis = lay["preise"]
     ep_of = (lambda x: _fn(VP.get(x["id"]))) if preis == "auftrag" else (lambda x: x.get("ep_s")) if preis == "schaetzung" else (lambda x: None)
     BILD = {}
@@ -1316,15 +1316,15 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             deckblatt(cv)
         else:
             cv.setFont(FN["n"], 7.5); cv.setFillColor(MUTE)
-            cv.drawString(18 * mm, ps[1] - 10 * mm, f"LV {r['nr']} {r['name']}"[:90])
-            cv.drawRightString(ps[0] - 18 * mm, ps[1] - 10 * mm, (P["projekt"] or "")[:80])
-            cv.drawString(18 * mm, 10 * mm, f"{kurz + ' · ' if kurz else ''}{F['Datum']}"[:120])
-            cv.drawRightString(ps[0] - 18 * mm, 10 * mm, f"Seite {doc.page - (1 if lay['deckblatt'] else 0)}")
+            cv.drawString(25 * mm, ps[1] - 10 * mm, f"LV {r['nr']} {r['name']}"[:90])
+            cv.drawRightString(ps[0] - 15 * mm, ps[1] - 10 * mm, (P["projekt"] or "")[:80])
+            cv.drawString(25 * mm, 10 * mm, f"{kurz + ' · ' if kurz else ''}{F['Datum']}"[:120])
+            cv.drawRightString(ps[0] - 15 * mm, 10 * mm, f"Seite {doc.page - (1 if lay['deckblatt'] else 0)}")
         cv.restoreState()
     if not story:
         story.append(Spacer(1, 1))
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=ps, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm, bottomMargin=18 * mm,
+    doc = SimpleDocTemplate(buf, pagesize=ps, leftMargin=25 * mm, rightMargin=15 * mm, topMargin=16 * mm, bottomMargin=18 * mm,
                             title=f"{F['Titel']} {r['nr']} – {r['name']}", author=kurz or "Bauplattform")
     doc.build(story, onFirstPage=seite, onLaterPages=seite)
     return buf.getvalue(), F

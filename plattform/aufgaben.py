@@ -343,8 +343,11 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     cv = canvas.Canvas(buf, pagesize=A4)
     cv.setTitle(f"{doc} – {projekt}"); cv.setAuthor(office or name)
     W, H = A4
-    L, R = (RD["links"], W - RD["rechts"]) if RD else (22 * mm, W - 18 * mm)
-    AL = max(L, 20 * mm)   # Anschrift im Fenster des Umschlags (DIN 5008: 20 mm vom Rand)
+    # DIN 5008 (Form B): 25 mm Heftrand links – auch wenn die Fußzeile des Briefbogens weiter außen beginnt.
+    # Rechts so weit wie der Briefbogen (mindestens 10 mm).
+    L = max(RD["links"], 25 * mm) if RD else 25 * mm
+    R = W - (max(RD["rechts"], 10 * mm) if RD else 20 * mm)
+    AL = 25 * mm   # Anschrift im Fenster: Feld ab 20 mm, Schrift 5 mm eingerückt
     form = cv.acroForm
     ink, mute = colors.HexColor("#1e1e1e"), colors.HexColor("#6b6f76")
     unten = (RD["fuss"] + 8 * mm) if RD else (47 if bb else 20) * mm   # tiefste Schreibzeile (Fußzeile des Briefbogens bleibt frei)
@@ -393,18 +396,35 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
 
     if not bb:
         C.draw_logo(cv, R, H - 12 * mm, 16 * mm, 60 * mm)
-    cv.setFont(FN["n"], 7); cv.setFillColor(mute); cv.drawString(AL, H - 48 * mm, absender[:120])
-    feld("Empfaenger", AL, H - 80 * mm, 85 * mm, 30 * mm, 10, True, "Empfänger")
+    # Anschriftfeld DIN 5008 Form B: 45–90 mm von oben, 20–105 mm von links (Fensterumschlag DL/C5/C4).
+    # Rücksendeangabe ganz oben im Feld (passend verkleinert), darunter die Zusatz- und Vermerkzone, ab 63 mm die Anschrift.
+    afs, zeilen = 7, [absender]
+    while afs > 6 and stringWidth(absender, FN["n"], afs) > 80 * mm:
+        afs -= 0.25
+    if stringWidth(absender, FN["n"], afs) > 80 * mm and ", " in absender:   # zu lang: Name und Anschrift in zwei Zeilen
+        n_, rest = absender.split(", ", 1)
+        zeilen, afs = [n_, rest], 6
+    zeilen = [z if stringWidth(z, FN["n"], afs) <= 80 * mm else z[:int(len(z) * 80 * mm / stringWidth(z, FN["n"], afs)) - 1] + "…" for z in zeilen]
+    cv.setFont(FN["n"], afs); cv.setFillColor(mute)
+    for n_, z in enumerate(zeilen):
+        cv.drawString(AL, H - 49.2 * mm + (len(zeilen) - 1 - n_) * afs * 1.12, z)
+    cv.setStrokeColor(mute); cv.setLineWidth(0.25)
+    cv.line(AL, H - 50 * mm, AL + min(80 * mm, max(stringWidth(z, FN["n"], afs) for z in zeilen)), H - 50 * mm)
+    feld("Empfaenger", AL, H - 90 * mm, 80 * mm, 27 * mm, 10, True, "Empfänger")
+    # Falzmarken (105 / 210 mm) und Lochmarke (Blattmitte) am linken Rand
+    cv.setStrokeColor(colors.HexColor("#9aa0a6")); cv.setLineWidth(0.4)
+    for yy, ln in ((105, 5), (210, 5), (148.5, 7)):
+        cv.line(4 * mm, H - yy * mm, (4 + ln) * mm, H - yy * mm)
     cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(R - 62 * mm, H - 52 * mm, "Datum")
     feld("Datum", R - 62 * mm, H - 61 * mm, 62 * mm, 7 * mm, 10)
     cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(R - 62 * mm, H - 66 * mm, "Bearbeitet von")
     feld("Bearbeiter", R - 62 * mm, H - 75 * mm, 62 * mm, 7 * mm, 10)
-    cv.setFillColor(ink); cv.setFont(FN["b"], 13); cv.drawString(L, H - 92 * mm, kopf)
-    feld("Betreff", L, H - 102 * mm, R - L, 8 * mm, 10, tip="Betreff / Bauvorhaben")
-    cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(L, H - 105.5 * mm, grundzeile)
+    cv.setFillColor(ink); cv.setFont(FN["b"], 13); cv.drawString(L, H - 100 * mm, kopf)   # unterhalb des Fensters (endet bei 90 mm)
+    feld("Betreff", L, H - 110 * mm, R - L, 8 * mm, 10, tip="Betreff / Bauvorhaben")
+    cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(L, H - 113.5 * mm, grundzeile)
 
     if fest:   # Text fließt: Anschreiben, Liste, Frist, Gruß – bei langen Texten weiter auf der nächsten Seite
-        y = [H - 110 * mm]
+        y = [H - 118 * mm]
 
         def platz(h):
             if y[0] - h < unten:
@@ -429,7 +449,7 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
         fuss()
     else:
         k = 0.83 if bb else 1.0
-        yt = H - 108 * mm - 58 * mm * k
+        yt = H - 116 * mm - 58 * mm * k
         feld("Text", L, yt, R - L, 58 * mm * k, 9.5, True, "Anschreiben")
         cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, yt - 6 * mm, liste_titel)
         yl = yt - 8 * mm - 34 * mm * k

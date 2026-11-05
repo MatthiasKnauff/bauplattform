@@ -354,7 +354,29 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 .pvs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:.6rem .6rem calc(.6rem + env(safe-area-inset-bottom))}
 .pvw{width:max-content;min-width:100%}.pvw canvas{display:block;margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}
 /* Projektauswahl steht nur oben in der Kopfleiste (gemeinsam mit allen Apps) */
-.bph + #hdr #projBtn{display:none}
+.bph + #leiste #projBtn{display:none}
+/* keine eigene graue Zeile mehr: Berichtsauswahl, Standort und Ordner stehen in der Reiterzeile (am Handy oben im Inhalt) */
+#leiste{display:contents}
+html[data-theme="hell"] #leiste{--lb:#e7e5e0}
+#leiste #repBtn{color:var(--ink);background:var(--card);border:1px solid var(--line)}
+#leiste #repBtn small{color:var(--mute)}
+#leiste #rchev{color:var(--mute)}
+#leiste #hdr .hb{background:transparent;color:var(--mute);border:1px solid transparent}
+#leiste #hdr .hb:hover,#leiste #hdr .hb:focus-visible{background:var(--hov);color:var(--ink)}
+@media (min-width:721px){
+  #leiste{display:flex;align-items:center;background:var(--lb,#303236);border-bottom:1px solid var(--line);flex:none;position:relative}
+  #leiste #hdr{display:contents}
+  #leiste #repBtn{order:1;margin:.35rem .3rem .35rem .6rem;min-height:0;padding:.25rem .7rem}
+  #leiste #repBtn b{font-size:.95rem}
+  #leiste #tabs{order:2;flex:1;min-width:0;border-bottom:0;background:transparent}
+  #leiste .htools{order:3;padding-right:.6rem}
+  #leiste #hdr .hb{height:38px;min-width:38px;flex-direction:row}
+  #leiste #hdr .hb span{display:none}
+  #leiste .menu{top:50px}
+}
+@media (max-width:720px){
+  #leiste #hdr{background:var(--bg);min-height:0;padding:.45rem .6rem}
+}
 </style>
 <link rel="stylesheet" href="bp/head.css">
 <script src="bp/head.js"></script>
@@ -363,6 +385,7 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 <section id="login" class="hidden"></section>
 
 <div id="app" class="hidden">
+  <div id="leiste">
   <header id="hdr">
     <button id="projBtn" data-act="projPicker" aria-haspopup="dialog" title="Projekt wählen"><span class="t"><b id="pname"></b><small id="paddr"></small></span><span id="chev"></span></button>
     <button id="repBtn" data-act="repPicker" aria-haspopup="dialog" title="Tagesbericht wählen"><span class="t"><b id="rname"></b><small id="rdate"></small></span><span id="rchev"></span></button>
@@ -375,6 +398,7 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
     <div class="menu hidden" id="menu"></div>
   </header>
   <nav id="tabs" aria-label="Bereiche"></nav>
+  </div>
   <main id="detail"></main>
   <button id="fab" class="hidden" data-act="qOpen" aria-label="Hinzufügen" title="Foto, Notiz, Mangel … hinzufügen"></button>
   <div id="qs" class="hidden"></div>
@@ -548,7 +572,7 @@ const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }
   if (window.BPHead) {   // gemeinsame Kopfleiste; ⚙ → „Bautagebuch“ zeigt die Einstellungen der App im Einstellungsfenster
-    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#hdr') });
+    BPHead.mount({ app: 'bautagebuch', name: 'Bautagebuch', parent: $('#app'), before: $('#leiste') });
     if (BPHead.beiProjektWahl) BPHead.beiProjektWahl((id) => pickProject(id));   // eine Projektauswahl: die oben in der Kopfleiste
     // ⚙ → Bautagebuch: nur noch der Bericht-Assistent – Benutzer verwaltet die Verwaltung, Firma/Ablage/Mail/Sicherung stehen unter ⚙ → Büro
     BPHead.appEinstellungen([{ key: 'bt', label: 'Bautagebuch', render: (h) => {
@@ -1023,10 +1047,10 @@ async function loadAudit(more) {
 }
 function renderAudit(box) {
   const p = curProject();
-  box.innerHTML = `<div class="wrap"><div class="cform" style="max-width:760px"><h3>Alte Versionen auf dem Projektserver</h3>
+  box.innerHTML = `<div class="wrap"><div class="cform" style="max-width:760px"><h3>Alte PDFs auf dem Projektserver</h3>
     <div class="info w">Beim erneuten PDF-Export benennt die App das bisherige PDF und den Fotoordner des Tages in „…_old1“, „…_old2“ um. Hier findest du diese Kopien in den Projektordnern auf dem Server und kannst sie löschen.</div>
     <div class="chips w">${[['one', p ? 'Aktuelles Projekt' : ''], ['active', 'Alle aktiven Projekte'], ['archived', 'Archivierte Projekte'], ['all', 'Alle Projekte']].filter(x => x[1]).map(([k, l]) => `<button class="chip ${clnScope === k ? 'on' : ''}" data-act="clnScope" data-k="${k}">${l}</button>`).join('')}</div>
-    <div class="acts w"><button data-act="clnScan">${cln ? 'Neu suchen' : 'Alte Versionen suchen'}</button></div><div id="cln" class="w"></div></div>
+    <div class="acts w"><button data-act="clnScan">${cln ? 'Neu suchen' : 'Alte PDFs suchen'}</button></div><div id="cln" class="w"></div></div>
     <div class="cform" style="max-width:760px;padding-top:0"><h3>Protokoll</h3>
     <div class="chips w">${CATS.map(([k, l]) => `<button class="chip ${aud.cat === k ? 'on' : ''}" data-act="audCat" data-k="${k}">${l}</button>`).join('')}</div>
     <div class="w audf"><input id="audq" type="search" placeholder="Suchen: Aktion, Projekt, Bericht, Dateiname …" value="${esc(aud.q)}" autocomplete="off"><select id="audu" aria-label="Benutzer"></select></div>
@@ -1061,7 +1085,7 @@ function fillCleanup() {
     <div class="acts"><button data-act="clnAll">${sel.length === cln.items.length ? 'Alle abwählen' : 'Alle markieren'}</button>
     <button class="bad" data-act="clnDel" data-arm="${sel.length} Element(e) endgültig löschen? Nochmal tippen" ${sel.length ? '' : 'disabled'}>Ausgewählte löschen${sel.length ? ` (${sel.length}, ${fsize(tot)})` : ''}</button></div>
     <div class="info">Gelöscht wird nur auf dem Projektserver, endgültig. Das aktuelle PDF und die aktuellen Fotos bleiben unberührt. Jede Löschung steht im Protokoll.</div>`
-    : `<div class="info">Keine alten Versionen auf dem Server gefunden (${cln.projects} Projekt(e) durchsucht).</div>`;
+    : `<div class="info">Keine alten PDFs auf dem Server gefunden (${cln.projects} Projekt(e) durchsucht).</div>`;
 }
 /* ---------- Versionsverlauf der Berichte ---------- */
 let verOpen = false, verData = null, verView = null, verSnap = null;
@@ -1466,7 +1490,7 @@ function renderProfile(box) {
     ${settings.store_pass_set && m === 'smb' ? `<div class="acts"><button class="bad" data-act="storePassClear">Gespeichertes Kennwort löschen</button></div>` : ''}
     <div class="info">Alle Fotos (auch iPhone-HEIC, PNG, WEBP) werden beim Hochladen als JPG gespeichert und liegen auf dem Server in voller Auflösung; nur im PDF sind sie verkleinert. Das Kennwort wird nur auf dem Server der App gespeichert und nie an den Browser zurückgegeben; am besten ein eigenes Konto nur mit Schreibrecht auf diese Freigabe verwenden.</div>
   </div>`;
-  const bar = adm ? `<div class="stabs">${STABS.map(([k, l]) => `<button class="${k === stab ? 'on' : ''}" data-act="stab" data-s="${k}">${l}</button>`).join('')}${['firma', 'ablage', 'mail'].includes(stab) ? '<button data-bph-verlauf="einst:bt" title="Frühere Stände von Firma, Ablage und Mailserver ansehen und wiederherstellen" style="margin-left:auto">↶ Verlauf</button>' : ''}</div>` : '';
+  const bar = adm ? `<div class="stabs">${STABS.map(([k, l]) => `<button class="${k === stab ? 'on' : ''}" data-act="stab" data-s="${k}">${l}</button>`).join('')}${['firma', 'ablage', 'mail'].includes(stab) ? '<button data-bph-verlauf="einst:bt" title="Frühere Stände von Firma, Ablage und Mailserver ansehen und wiederherstellen" style="margin-left:auto">🕘 Verlauf</button>' : ''}</div>` : '';
   box.innerHTML = `<div class="wrap">${imFenster ? (adm ? '<div class="info" style="margin-bottom:.8rem">Firma & Logo, Ablage, Mailserver und Datensicherung: ⚙ → Büro.</div>' : '') : bar}${imFenster || !adm ? appCard() : {firma: () => firm, ablage: () => store, mail: mailCard, sicherung: backupCard}[stab]()}</div>`;
   if (stab === 'sicherung') loadBackups();
 

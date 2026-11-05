@@ -391,8 +391,8 @@ def automatisch(c, u):
 
 
 # ---------------------------------------------------------------- manuelle Aufgaben
-def _zeile(x, U):
-    return {"id": x["id"], "titel": x["titel"], "notiz": x["notiz"], "pid": x["project_id"], "faellig": x["faellig"], "prio": x["prio"],
+def _zeile(x, U, D=None):
+    return {"dateien": (D or {}).get(x["id"], []), "id": x["id"], "titel": x["titel"], "notiz": x["notiz"], "pid": x["project_id"], "faellig": x["faellig"], "prio": x["prio"],
             "personen": _ids(x["personen"]), "personen_namen": [U.get(i, "?") for i in _ids(x["personen"])], "mail": bool(x["mail"]),
             "status": x["status"], "erstellt": x["erstellt"], "erstellt_von": x["erstellt_von"], "erstellt_name": x["erstellt_name"],
             "erledigt": x["erledigt"], "erledigt_name": x["erledigt_name"], "auto": False, "key": f"t:{x['id']}"}
@@ -407,11 +407,19 @@ def manuell(c, u, erledigte_tage=7):
     """Offene Aufgaben, die ich angelegt habe oder an denen ich beteiligt bin – dazu die in den letzten Tagen erledigten."""
     U = benutzer(c)
     seit = (datetime.now() - timedelta(days=erledigte_tage)).isoformat(timespec="seconds")
-    out = []
-    for x in c.execute("SELECT * FROM todo WHERE status='offen' OR erledigt>=? ORDER BY id DESC", (seit,)).fetchall():
-        if x["erstellt_von"] == u["id"] or u["id"] in _ids(x["personen"]):
-            out.append(_zeile(x, U))
-    return out
+    rows = [x for x in c.execute("SELECT * FROM todo WHERE status='offen' OR erledigt>=? ORDER BY id DESC", (seit,)).fetchall()
+            if x["erstellt_von"] == u["id"] or u["id"] in _ids(x["personen"])]
+    D = dateien(c, [x["id"] for x in rows])
+    return [_zeile(x, U, D) for x in rows]
+
+
+def dateien(c, ids):
+    """Anhänge (ohne Inhalt) je Aufgabe."""
+    D = {}
+    if ids:
+        for r in c.execute(f"SELECT id, todo_id, name, mime, groesse FROM todo_datei WHERE todo_id IN ({','.join('?' * len(ids))}) ORDER BY id", tuple(ids)).fetchall():
+            D.setdefault(r["todo_id"], []).append({"id": r["id"], "name": r["name"], "mime": r["mime"], "groesse": r["groesse"]})
+    return D
 
 
 def darf(c, u, tid):

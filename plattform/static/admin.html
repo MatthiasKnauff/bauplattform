@@ -282,7 +282,7 @@ function delDlg(p) {
 
 
 /* ---------- Einstellungen: allgemeine (für alle Apps) – besondere stehen in der jeweiligen App ---------- */
-const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['sicherung', 'Datensicherung'], ['verlauf', 'Änderungsverlauf']];   // persönliche Einstellungen: ⚙ → Für mich
+const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
 const stNav = () => `<div class="stnav"><h1>Büro-Einstellungen</h1><p class="mute" style="margin-top:-.4rem">Auch erreichbar in jeder App über ⚙ → Büro.</p></div><div class="bar stnav" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {
   const t = data.stab || 'allgemein';
@@ -322,7 +322,7 @@ function renderSettings() {
     ${keyRow('chatgpt', 'ChatGPT (OpenAI)', K.chatgpt)}
     <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-sa="saveki">KI-Einstellungen speichern</button>${vk('gs:settings', 'Verlauf Claude')}${vk('gs:plattform', 'Verlauf Gemini/ChatGPT')}</div></section>
   <section class="card st"><h2>Einstellungen in den Apps</h2><p class="mute">Alle Einstellungen erreichst du in jeder App über ⚙ oben rechts: <b>Diese App</b> (z. B. Raumtypen der Baukosten, Erinnerungen, Plannummerierung, Berichte des Bautagebuchs), <b>Für mich</b> (Unterschrift, Signatur, Absender, Kalender, Darstellung) und <b>Büro</b> (diese Seite).</p>
-    <p class="mute" style="margin-top:.6rem">Jede Speicherung wird automatisch als Stand festgehalten. Mit <b>↶ Verlauf</b> neben dem Speichern-Knopf oder unter „Änderungsverlauf“ lässt sich jeder frühere Stand ansehen und wiederherstellen.</p></section>`;
+    <p class="mute" style="margin-top:.6rem">Jede Speicherung wird automatisch als Stand festgehalten. Mit <b>🕘 Verlauf</b> neben dem Speichern-Knopf oder unter „Verlauf“ lässt sich jeder frühere Stand ansehen und wiederherstellen.</p></section>`;
 
   document.querySelectorAll('[data-swp]').forEach((sw) => { sw.onclick = (e) => { const b = e.target.closest('[data-sw]'); if (!b) return; const pv = sw.dataset.swp;
     if (b.dataset.sw === 'aus') data.aus.add(pv); else data.aus.delete(pv); data.ausGeaendert = true;
@@ -356,7 +356,7 @@ const CO = [['office_name', 'Firmenname (erscheint im PDF, z. B. „Zu erledigen
 const stIn = (k, l, w, o = {}) => `<label class="${w ? 'w' : ''}">${l}<input data-st="${k}" type="${o.type || 'text'}" value="${esc(o.type === 'password' ? '' : (data.bt[k] || o.def || ''))}" placeholder="${esc(o.ph || '')}" autocomplete="${o.type === 'password' ? 'new-password' : 'off'}"></label>`;
 const stSel = (k, l, opts, def) => `<label class="w">${l}<select data-st="${k}">${opts.map(([v, n]) => `<option value="${v}"${(data.bt[k] || def) === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
 const fsize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
-const vk = (b, l) => `<button type="button" class="btn" data-bph-verlauf="${b}" title="Frühere Stände ansehen und wiederherstellen">↶ ${l || 'Verlauf'}</button>`;
+const vk = (b, l) => `<button type="button" class="btn" data-bph-verlauf="${b}" title="Frühere Stände ansehen und wiederherstellen">🕘 ${l || 'Verlauf'}</button>`;
 const SAVEF = () => `<div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}</div>`;
 /* ---------- Posteingang: Microsoft-365-Postfächer den Benutzern zuweisen (wie im Mail-Archiver) ---------- */
 let PZ = null;

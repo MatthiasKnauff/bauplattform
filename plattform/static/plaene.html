@@ -199,7 +199,7 @@ async function laden(neu) {
 function renderListe() {
   bar();
   if (!VL) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
-  $('#view').innerHTML = `<div class="flt"><span class="fill"></span><a class="btn sm" href="api/versandliste.pdf?project_id=${pid}" data-ansehen="pdf" data-name="Planversandliste.pdf">Planversandliste als PDF</a></div>
+  $('#view').innerHTML = `<div class="flt"><span class="fill"></span><a class="btn sm" href="api/versandliste.pdf?project_id=${pid}" data-ansehen="pdf" data-name="Planversandliste.pdf">🖨 Drucken / PDF</a></div>
     ${VL.length ? `<div class="tbl"><table class="pl vl"><thead><tr><th>Datum</th><th>Empfänger</th><th>Pläne</th><th class="hide-m">Versand</th></tr></thead><tbody>
     ${VL.map((r) => `<tr><td class="nr">${de(r.datum)}<div class="mu">${new Date(r.datum).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div></td>
       <td>${r.empfaenger.map((e) => `${esc(e.name || e.email)}${e.name ? `<div class="mu">${esc(e.email)}</div>` : ''}`).join('')}</td>
@@ -283,7 +283,7 @@ async function setDialog(host) {
     <label>Stichwörter im Plantitel → Gewerk (Gewerk: Stichwörter mit Komma)<textarea id="sSt" style="min-height:11rem"${dis}>${esc(lines(CFG.stichworte, ': '))}</textarea></label>
     <label>E-Mail-Anhänge höchstens <input type="number" id="sMb" min="1" max="100" value="${CFG.max_mb}" style="width:5rem"${dis}> MB</label>
     <p class="mu" style="margin:0;font-size:.85rem">Passt kein Stichwort, wählt man das Gewerk in der Liste selbst – das wird für das Projekt gemerkt.</p></div>
-    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bp:plaene" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">↶ Verlauf</button>${CFG.admin ? '<button class="btn" data-m="std">Vorgaben</button>' : ''}<button class="btn" data-m="x">${CFG.admin ? 'Abbrechen' : 'Schließen'}</button>${CFG.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`, async (m, bg, close) => {
+    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bp:plaene" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button>${CFG.admin ? '<button class="btn" data-m="std">Vorgaben</button>' : ''}<button class="btn" data-m="x">${CFG.admin ? 'Abbrechen' : 'Schließen'}</button>${CFG.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m === 'std') { const S = CFG.standard; $('#sPh', bg).value = lines(S.phasen, ' = '); $('#sPa', bg).value = lines(S.planarten, ' = '); $('#sKe', bg).value = lines(S.kennungen, ' = '); $('#sSt', bg).value = lines(S.stichworte, ': '); $('#sMb', bg).value = S.max_mb; return; }
     if (m === 'ok') {

@@ -711,7 +711,7 @@ def blueprint(get_user=None):
                           (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, uid, skizze.name_von(u), jetzt)).fetchone()
             hinweis = _todo_mail(c, u, x, set(x["personen"])) if x["mail"] and x["personen"] else ""
             row = todo.darf(c, u, r["id"])
-            return jsonify(aufgabe=todo._zeile(row, todo.benutzer(c)), hinweis=hinweis)
+            return jsonify(aufgabe=todo._zeile(row, todo.benutzer(c), todo.dateien(c, [row['id']])), hinweis=hinweis)
 
     @bp.route("/api/bp/todo/<int:tid>", methods=["PUT", "DELETE"])
     def todo_aendern(tid):
@@ -740,7 +740,46 @@ def blueprint(get_user=None):
                           (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, tid))
             neu = set(x["personen"]) - set(todo._ids(alt["personen"]))
             hinweis = _todo_mail(c, u, x, neu) if x["mail"] and neu else ""
-            return jsonify(aufgabe=todo._zeile(todo.darf(c, u, tid) or alt, todo.benutzer(c)), hinweis=hinweis)
+            return jsonify(aufgabe=todo._zeile(todo.darf(c, u, tid) or alt, todo.benutzer(c), todo.dateien(c, [tid])), hinweis=hinweis)
+
+    @bp.post("/api/bp/todo/<int:tid>/datei")
+    def todo_datei_neu(tid):
+        """Anhänge und Fotos hochladen (mehrere auf einmal, je höchstens 25 MB)."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        fs = request.files.getlist("datei")
+        if not fs:
+            return jsonify(error="Keine Datei."), 400
+        jetzt = datetime.now().isoformat(timespec="seconds")
+        with db.tx() as c:
+            if not todo.darf(c, u, tid):
+                return jsonify(error="Aufgabe nicht gefunden."), 404
+            for f in fs[:20]:
+                data = f.read()
+                if len(data) > 25 * 1024 * 1024:
+                    return jsonify(error=f"„{f.filename}“ ist größer als 25 MB."), 400
+                c.execute("INSERT INTO todo_datei(todo_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?)",
+                          (tid, (f.filename or "Datei")[:200], (f.mimetype or "application/octet-stream")[:100], len(data), data, jetzt, skizze.name_von(u)))
+            return jsonify(dateien=todo.dateien(c, [tid]).get(tid, []))
+
+    @bp.route("/api/bp/todo/<int:tid>/datei/<int:did>", methods=["GET", "DELETE"])
+    def todo_datei(tid, did):
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if not todo.darf(c, u, tid):
+                return jsonify(error="Aufgabe nicht gefunden."), 404
+            if request.method == "DELETE":
+                c.execute("DELETE FROM todo_datei WHERE id=? AND todo_id=?", (did, tid))
+                return jsonify(dateien=todo.dateien(c, [tid]).get(tid, []))
+            r = c.execute("SELECT name, mime, data FROM todo_datei WHERE id=? AND todo_id=?", (did, tid)).fetchone()
+        if not r:
+            return jsonify(error="Datei nicht gefunden."), 404
+        from urllib.parse import quote as q
+        art = "attachment" if request.args.get("laden") else "inline"
+        return Response(bytes(r["data"]), mimetype=r["mime"], headers={"Content-Disposition": f"{art}; filename*=UTF-8''{q(r['name'])}", "Cache-Control": "private, max-age=3600"})
 
     @bp.post("/api/bp/todo-zustand")
     def todo_zustand():

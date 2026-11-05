@@ -60,6 +60,13 @@
 .te .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:end}.te .row>label{flex:1;min-width:9rem}
 .te .ck2{display:flex;gap:.35rem;align-items:center;font-size:.85rem;color:var(--ink)}
 .te .btns{display:flex;gap:.4rem;flex-wrap:wrap}
+.tdp{flex:1;min-width:0;text-align:left;font:inherit;font-size:.92rem;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdf{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.25rem}
+.tdd{position:relative;display:inline-flex}
+.tdd img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
+.tdn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:.3rem .55rem;font:inherit;font-size:.82rem;cursor:pointer;max-width:14rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.tdx{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:#c33;color:#fff;font-size:13px;line-height:20px;padding:0;cursor:pointer}
+.tdf label.btn{cursor:pointer}
 .sp{position:absolute;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:.3rem;display:grid;min-width:12rem}
 .sp button{border:0;background:none;text-align:left;font:inherit;padding:.4rem .6rem;border-radius:6px;cursor:pointer;color:var(--ink)}
 .sp button:hover{background:var(--hov)}
@@ -186,7 +193,7 @@ function tdAlle() {
 }
 function tdZeile(x) {
   const h = tdHeute(), rot = x.f && x.f < h;
-  const unter = [x.auto ? `<span class="rg" title="automatisch erkannt">⚙ ${esc(x.regel_name)}</span>` : '', x.projekt, x.text, !x.auto && x.personen_namen && x.personen_namen.length ? '👥 ' + x.personen_namen.join(', ') : '',
+  const unter = [x.auto ? `<span class="rg" title="automatisch erkannt">⚙ ${esc(x.regel_name)}</span>` : '', x.projekt, x.text, !x.auto && x.personen_namen && x.personen_namen.length ? '👥 ' + x.personen_namen.join(', ') : '', !x.auto && (x.dateien || []).length ? '📎 ' + x.dateien.length : '',
     !x.auto && x.erstellt_name && TDREF && x.erstellt_von !== TDREF.ich ? 'von ' + x.erstellt_name : '', x.spaeter ? 'zurückgestellt bis ' + tdDatum(x.spaeter) : '', x.status === 'erledigt' ? `erledigt ${x.erledigt_name ? 'von ' + x.erledigt_name : ''}` : ''].filter(Boolean);
   return `<div class="tr${x.status === 'erledigt' ? ' fertig' : ''}" data-tk="${esc(x.key)}">
     <input type="checkbox" class="ck" data-td="fertig"${x.status === 'erledigt' ? ' checked' : ''} title="${x.auto ? 'Erledigt – ausblenden (kommt nicht wieder)' : 'Erledigt'}" aria-label="erledigt">
@@ -199,11 +206,14 @@ function tdEditor(x) {
   return `<div class="te" data-te="${x.id || ''}">
     <label>Aufgabe<input data-tf="titel" value="${esc(x.titel || '')}"></label>
     <div class="row"><label>fällig am<input type="date" data-tf="faellig" value="${esc(x.faellig || '')}"></label>
-      <label>Projekt<select data-tf="pid"><option value="">– ohne Projekt –</option>${R.projekte.map((p) => `<option value="${p.id}"${p.id === x.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label></div>
+      <label>Projekt<span style="display:flex;gap:.3rem"><input type="hidden" data-tf="pid" value="${x.pid || ''}"><button type="button" class="tdp" data-td="projekt">${x.pid ? esc(((R.projekte.find((p) => p.id === x.pid)) || {}).name || 'Projekt') : '– ohne Projekt –'} ▾</button>${x.pid ? '<button type="button" class="tdp" data-td="ohneprojekt" title="Ohne Projekt" style="flex:none">✕</button>' : ''}</span></label></div>
     <div><span style="font-size:.8rem;color:var(--mute)">Beteiligte – sehen die Aufgabe und können sie erledigen</span><div class="bph-chips">${R.benutzer.filter((u) => u.id !== R.ich).map((u) => `<button type="button" class="bph-chip${pers.has(u.id) ? ' on' : ''}" data-tp="${u.id}" aria-pressed="${pers.has(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Keine weiteren Benutzer.</small>'}</div></div>
     <label class="ck2"><input type="checkbox" data-tf="mail"${x.mail ? ' checked' : ''}> Beteiligte per Mail benachrichtigen (beim Hinzufügen)</label>
     <label class="ck2"><input type="checkbox" data-tf="prio"${x.prio ? ' checked' : ''}> ❗ wichtig</label>
     <label>Notiz<textarea data-tf="notiz" rows="2">${esc(x.notiz || '')}</textarea></label>
+    <div><span style="font-size:.8rem;color:var(--mute)">Anhänge und Fotos</span>
+      <div class="tdf">${(x.dateien || []).map((d) => `<span class="tdd">${/^image\//.test(d.mime) ? `<img src="api/bp/todo/${x.id}/datei/${d.id}" alt="" data-tda="${d.id}">` : `<button type="button" class="tdn" data-tda="${d.id}">📄 ${esc(d.name)}</button>`}<button type="button" class="tdx" data-tdx="${d.id}" title="Entfernen" aria-label="Entfernen">×</button></span>`).join('')}
+        ${x.id ? `<label class="btn sm">📎 Anhang<input type="file" data-tup multiple hidden></label><label class="btn sm">📷 Foto<input type="file" data-tup accept="image/*" capture="environment" multiple hidden></label>` : '<small class="mute">Nach dem Speichern kannst du Anhänge und Fotos hinzufügen.</small>'}</div></div>
     <div class="btns"><button class="btn sm pri" data-td="speichern">Speichern</button><button class="btn sm" data-td="zu">Abbrechen</button><span style="flex:1"></span>${x.id && (!TDREF || x.erstellt_von === TDREF.ich) ? '<button class="btn sm" data-td="loeschen">Löschen</button>' : ''}</div></div>`;
 }
 function tdZeigen() {
@@ -212,7 +222,7 @@ function tdZeigen() {
   const wo = tdPlus(7 - ((new Date().getDay() + 6) % 7) - 1);   // Sonntag dieser Woche
   const G = [['Überfällig', (x) => x.f && x.f < h, 1], ['Heute', (x) => x.f === h], ['Diese Woche', (x) => x.f > h && x.f <= wo], ['Später', (x) => x.f > wo], ['Ohne Datum', (x) => !x.f]];
   const sort = (a, b) => (b.prio || 0) - (a.prio || 0) || (a.f || '9').localeCompare(b.f || '9') || (a.titel || '').localeCompare(b.titel || '');
-  let html = `<div class="post-h"><h2>☑ To-dos</h2><span class="mute">${offen.length} offen</span><span style="flex:1"></span><button class="btn sm" data-td="einst" title="Welche Aufgaben automatisch erkannt werden">⚙ Einstellen</button></div>
+  let html = `<div class="post-h"><h2>☑ To-dos</h2><span class="mute">${offen.length} offen</span></div>
     <form class="tq" data-td="neuform"><input id="tdNeu" placeholder="+ Neue Aufgabe – z. B. „Statik nachfordern bis Fr“" autocomplete="off" aria-label="Neue Aufgabe"><button class="btn sm pri">Anlegen</button></form>`;
   if (TDOFFEN === 'neu') html += `<div class="tr">${tdEditor({ titel: (TD._neu || {}).titel, faellig: (TD._neu || {}).faellig, pid: window.BPHead && BPHead.projektId ? BPHead.projektId() : null, personen: [], mail: true })}</div>`;
   let n = 0;
@@ -220,7 +230,7 @@ function tdZeigen() {
     const L = offen.filter(fn).sort(sort); if (!L.length) continue; n += L.length;
     html += `<div class="tg${rot ? ' rot' : ''}">${name} · ${L.length}</div>` + L.map(tdZeile).join('');
   }
-  if (!n) html += `<p class="mute" style="margin:.4rem 0">Nichts zu tun 🎉${(TD.auto || []).length ? '' : ' – automatisch erkannte Aufgaben stellst du unter ⚙ Einstellen ein.'}</p>`;
+  if (!n) html += `<p class="mute" style="margin:.4rem 0">Nichts zu tun 🎉${(TD.auto || []).length ? '' : ' – automatisch erkannte Aufgaben stellst du unter ⚙ → Startseite → To-dos ein.'}</p>`;
   if (spaeter.length) html += `<div class="tg">Zurückgestellt · ${spaeter.length} <button data-td="zeig" data-w="spaeter">${TDZEIG.spaeter ? 'ausblenden' : 'anzeigen'}</button></div>` + (TDZEIG.spaeter ? spaeter.sort(sort).map(tdZeile).join('') : '');
   if (erledigt.length) html += `<div class="tg">Erledigt (7 Tage) · ${erledigt.length} <button data-td="zeig" data-w="erledigt">${TDZEIG.erledigt ? 'ausblenden' : 'anzeigen'}</button></div>` + (TDZEIG.erledigt ? erledigt.map(tdZeile).join('') : '');
   if ((TD.fehler || []).length) html += `<div class="fehler">${TD.fehler.map(esc).join('<br>')}</div>`;
@@ -258,6 +268,12 @@ document.addEventListener('click', async (e) => {
   if (a === 'einst') { if (window.BPHead && BPHead.einstellungen) BPHead.einstellungen({ bereich: 'app', teil: 'todo' }); return; }
   if (a === 'zeig') { TDZEIG[b.dataset.w] = !TDZEIG[b.dataset.w]; tdZeigen(); return; }
   if (a === 'zu') { TDOFFEN = null; tdZeigen(); return; }
+  if (a === 'projekt' || a === 'ohneprojekt') {   // dieselbe Projektauswahl wie oben (meine, die der anderen – ohne Archiv)
+    const te = b.closest('.te'), setze = (id, name) => { te.querySelector('[data-tf="pid"]').value = id || ''; const st = tdLesen(te); const ziel = x || {}; Object.assign(ziel, st, { pid: id || null }); if (name && TDREF && id && !TDREF.projekte.some((p) => p.id === id)) TDREF.projekte.push({ id, name }); tdZeigen(); };
+    if (a === 'ohneprojekt') return setze(null);
+    if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: +te.querySelector('[data-tf="pid"]').value || null, onPick: (id, p) => setze(id, p && p.name) });
+    return;
+  }
   if (a === 'bearbeiten' && x) { await tdRef(); TDOFFEN = TDOFFEN === x.key ? null : x.key; tdZeigen(); return; }
   if (a === 'oeffnen' && x) {
     if (!x.link) return; if (/^https?:/.test(x.link)) { window.open(x.link, 'bp-outlook'); return; }
@@ -285,6 +301,42 @@ document.addEventListener('click', async (e) => {
   }
   if (a === 'loeschen' && x) { if (!confirm('Aufgabe löschen?')) return; await api('api/bp/todo/' + x.id, 'DELETE').catch((er) => toast(er.message, true)); TD.manuell = TD.manuell.filter((y) => y.id !== x.id); TDOFFEN = null; tdZeigen(); }
 });
+async function tdKlein(f) {   // Fotos vor dem Hochladen auf höchstens 2400 px verkleinern
+  if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) || f.size < 600000) return f;
+  try {
+    const bmp = await createImageBitmap(f), k = Math.min(1, 2400 / Math.max(bmp.width, bmp.height));
+    if (k === 1 && f.type === 'image/jpeg') return f;
+    const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+    cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    const b = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.85));
+    return b ? new File([b], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f;
+  } catch { return f; }
+}
+document.addEventListener('change', async (e) => {
+  const inp = e.target.closest('[data-tup]'); if (!inp || !inp.files.length) return;
+  const row = inp.closest('[data-tk]'), x = row && tdFinde(row.dataset.tk); if (!x || !x.id) return;
+  const fd = new FormData(); for (const f of inp.files) fd.append('datei', await tdKlein(f));
+  inp.value = '';
+  try {
+    const r = await fetch('api/bp/todo/' + x.id + '/datei', { method: 'POST', body: fd, credentials: 'same-origin' });
+    const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Hochladen fehlgeschlagen');
+    const te = row.querySelector('.te'), stand = te ? tdLesen(te) : null;   // Eingaben im offenen Editor behalten
+    x.dateien = d.dateien; if (stand) Object.assign(x, stand, { pid: stand.pid }); tdZeigen();
+  } catch (er) { toast(er.message, true); }
+});
+document.addEventListener('click', async (e) => {
+  const a = e.target.closest('[data-tda],[data-tdx]'); if (!a || !a.closest('#todo')) return;
+  e.preventDefault(); e.stopPropagation();
+  const row = a.closest('[data-tk]'), x = row && tdFinde(row.dataset.tk); if (!x) return;
+  if (a.dataset.tdx) {
+    if (!confirm('Anhang entfernen?')) return;
+    try { const d = await api(`api/bp/todo/${x.id}/datei/${a.dataset.tdx}`, 'DELETE'); x.dateien = d.dateien; tdZeigen(); } catch (er) { toast(er.message, true); }
+    return;
+  }
+  const L = (x.dateien || []).filter((d) => /^image\/|pdf$/.test(d.mime)), k = L.findIndex((d) => String(d.id) === a.dataset.tda);
+  if (k >= 0 && window.BPHead && BPHead.ansehen) BPHead.ansehen(L.map((d) => ({ url: `api/bp/todo/${x.id}/datei/${d.id}`, typ: /pdf$/.test(d.mime) ? 'pdf' : 'foto', name: d.name })), k);
+  else window.open(`api/bp/todo/${x.id}/datei/${a.dataset.tda}?laden=1`, '_blank');
+}, true);
 /* Einstellungen → Startseite → To-dos: jede automatische Prüfung an/aus, für wen, für welche Projekte, Schwelle */
 async function tdEinstellungen(host) {
   host.innerHTML = '<p class="bph-mu">Lade …</p>';

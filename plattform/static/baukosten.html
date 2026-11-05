@@ -179,11 +179,11 @@ body.as-open .wrap{padding-bottom:45vh}
 <body>
 <main class="wrap">
   <div class="top">
-    <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
+    <button class="btn sm pri" id="pdfBtn" title="Kostenermittlung für den Bauherrn drucken oder als PDF">🖨 Drucken / PDF …</button>
     <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
-    <button class="btn sm" id="standBtn" title="Jetzigen Stand dieser Kostenermittlung unter einem Namen festhalten (z. B. „Kostenschätzung an Bauherrn 04.11.“)">💾 Stand speichern</button>
+    <button class="btn sm" id="standBtn" title="Jetzigen Stand dieser Kostenermittlung unter einem Namen festhalten (z. B. „Kostenschätzung an Bauherrn 04.11.“)">📌 Stand speichern</button>
     <button class="btn sm" id="ansBtn" title="Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus einer anderen Kostenermittlung übernehmen">↪ Ansätze übernehmen …</button>
-    <button class="btn sm" id="verBtn" title="Frühere Stände dieser Kostenermittlung ansehen und wiederherstellen">↶ Verlauf</button>
+    <button class="btn sm" id="verBtn" title="Frühere Stände dieser Kostenermittlung ansehen und wiederherstellen">🕘 Verlauf</button>
     <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
   </div>
@@ -345,7 +345,7 @@ async function saveNow(extra = {}) {
   try {
     const r = await api('api/bk/' + B.id, 'PUT', { rev: B.rev, data: B.data, ...extra });
     B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; if (r.quellen) B.quellen = r.quellen; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
-    const d = new Date(); $('#save').textContent = `Gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const d = new Date(); $('#save').textContent = `✓ gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) {
     $('#save').textContent = 'Nicht gespeichert';
     if (/geändert/.test(e.message)) { toast(e.message + ' Der neue Stand wird geladen.', true); await openBk(B.id); }
@@ -1095,7 +1095,7 @@ async function typesDialog(host) {
     <div class="tbl"><table><thead><tr><th>Raumtyp</th><th>Stichwörter (mit Komma)</th><th class="r">€ / m²</th><th></th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>
     <div class="acts" style="justify-content:flex-start;margin-top:.6rem"><button class="btn sm" data-m="add">＋ Raumtyp</button><button class="btn sm" data-m="std">Vorgaben wiederherstellen</button></div>
     ${B ? `<label class="chk" style="margin-top:.8rem"><input type="checkbox" id="tyRe" checked><span><b>Raumtypen neu vorschlagen</b> – in der geöffneten Kostenermittlung „${esc(B.name)}“ bekommen alle Räume, die du noch <b>nicht bestätigt</b> hast, ihren Raumtyp nach den Stichwörtern oben neu. Bestätigte Räume bleiben unverändert.</span></label>` : ''}
-    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:raumtypen" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">↶ Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>`;
+    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:raumtypen" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>`;
   const read = (bg) => bg.querySelectorAll('tr[data-i]').forEach((tr) => { const t = L[+tr.dataset.i]; tr.querySelectorAll('[data-tf]').forEach((el) => { t[el.dataset.tf] = el.dataset.tf === 'kw' ? pnum(el.value) : el.value; }); });
   const bg = boxIn(host)(html(), async (m, bg, close, b) => {
     if (m === 'x') { close(); return; }
@@ -1314,7 +1314,7 @@ async function diensteDialog(host) {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem"><label>Benutzer<input data-dk="${x.key}" data-df="user" value="${esc(x.user)}"${dis}></label>
       <label>Kennwort<input type="password" data-dk="${x.key}" data-df="pass" placeholder="${x.pass_set ? 'hinterlegt' : ''}" autocomplete="new-password"${dis}></label>
       <label>API-Schlüssel / Lizenz<input type="password" data-dk="${x.key}" data-df="key" placeholder="${x.key_set ? 'hinterlegt' : ''}" autocomplete="new-password"${dis}></label></div></div>`).join('')}
-    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:dienste" style="margin-right:auto">↶ Verlauf</button><button class="btn" data-m="x">${D.admin ? 'Abbrechen' : 'Schließen'}</button>${D.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`, async (m, bg, close) => {
+    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:dienste" style="margin-right:auto">🕘 Verlauf</button><button class="btn" data-m="x">${D.admin ? 'Abbrechen' : 'Schließen'}</button>${D.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     const b = {}; bg.querySelectorAll('[data-dk]').forEach((el) => { const o = b[el.dataset.dk] ||= {}; o[el.dataset.df] = el.type === 'checkbox' ? el.checked : el.value; });
     try { await api('api/dienste', 'PUT', b); if (!host) close(); toast('Zugänge gespeichert.'); } catch (e) { toast(e.message, true); }
@@ -1420,7 +1420,7 @@ $('#ansBtn').onclick = () => {
 $('#standBtn').onclick = () => {
   if (!B) return;
   const vor = `${STUFE_N(B.stufe)} – ${new Date().toLocaleDateString('de-DE')}`;
-  modalBox(`<h3>Stand speichern</h3><p class="hint" style="margin:0 0 .7rem">Hält „${esc(B.name)}“ so fest, wie sie jetzt ist – mit allen Räumen, Bauteilen und Kosten. Unter ↶ Verlauf lässt sich der Stand jederzeit ansehen, vergleichen und wiederherstellen; benannte Stände werden nie aufgeräumt.</p>
+  modalBox(`<h3>Stand speichern</h3><p class="hint" style="margin:0 0 .7rem">Hält „${esc(B.name)}“ so fest, wie sie jetzt ist – mit allen Räumen, Bauteilen und Kosten. Unter 🕘 Verlauf lässt sich der Stand jederzeit ansehen, vergleichen und wiederherstellen; benannte Stände werden nie aufgeräumt.</p>
     <div class="row"><label for="stName">Name des Stands</label><input id="stName" value="${esc(vor)}" maxlength="120"></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }

@@ -556,14 +556,14 @@
     root.addEventListener('change', (e) => { if (e.target.closest('[data-pab="rhythmus"],[data-peg]')) { lesen(); draw(); return; } const v = e.target.closest('[data-pv]'); if (!v || !v.value) return; lesen(); const x = VORL[v.value] || ['', 993]; D.konten.push({ name: v.options[v.selectedIndex].text.replace(/ \(.*/, ''), host: x[0], port: x[1], user: '', ordner: 'INBOX', an: true }); draw(); });
     draw();
   };
-  H.verlaufKnopf = (bereich, label) => `<button type="button" class="bph-btn bph-vbtn" data-bph-verlauf="${esc(bereich)}" title="Frühere Stände ansehen und wiederherstellen">↶ ${esc(label || 'Verlauf')}</button>`;
+  H.verlaufKnopf = (bereich, label) => `<button type="button" class="bph-btn bph-vbtn" data-bph-verlauf="${esc(bereich)}" title="Frühere Stände ansehen und wiederherstellen">🕘 ${esc(label || 'Verlauf')}</button>`;
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-bph-verlauf]'); if (b) { e.preventDefault(); H.verlauf({ bereich: b.dataset.bphVerlauf, nach: H.nachVerlauf || window.bpNachVerlauf }); } });
 
   H.verlaufAlle = async function (opt = {}) {
     let root = opt.into, D = null, C = null, f = { teil: opt.teil || '', wer: '', q: '' }, msg = '';
     if (!root) {   // als Fenster (z. B. Adressen → Änderungsverlauf)
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-      bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Änderungsverlauf"><div class="bph-dh"><b>${esc(opt.titel || 'Änderungsverlauf')}</b><button type="button" class="bph-x" aria-label="Schließen">×</button></div><div class="bph-db"></div></div>`;
+      bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Verlauf"><div class="bph-dh"><b>${esc(opt.titel || 'Verlauf')}</b><button type="button" class="bph-x" aria-label="Schließen">×</button></div><div class="bph-db"></div></div>`;
       document.body.appendChild(bg); root = bg.querySelector('.bph-db');
       const close = () => { bg.remove(); document.removeEventListener('keydown', esc1); };
       const esc1 = (e) => { if (e.key === 'Escape' && !document.querySelector('.bph-dlg-bg ~ .bph-dlg-bg')) close(); };
@@ -670,7 +670,7 @@
         } else { const host = document.createElement('div'); B.appendChild(host); H.konto({ into: host, tab: 'konto', nurKonto: true }); }
         return;
       }
-      nav(BUERO.map(([k, l]) => [k, l]).concat([['vorlagen', 'E-Mail-Vorlagen'], ['verlauf', 'Änderungsverlauf']]));
+      nav(BUERO.map(([k, l]) => [k, l]).concat([['vorlagen', 'E-Mail-Vorlagen'], ['verlauf', 'Verlauf']]));
       if (teil === 'vorlagen') { const host = document.createElement('div'); B.appendChild(host); H.konto({ into: host, tab: 'vorlagen', nurVorlagen: true }); return; }
       if (teil === 'verlauf') { const host = document.createElement('div'); B.appendChild(host); H.verlaufAlle({ into: host }); return; }
       const adm = sortApps().find((a) => a.key === 'admin');

@@ -215,7 +215,7 @@ let zoom = LS.get('zoom', 3), showCrit = LS.get('crit', false);
 let undoS = [], redoS = [];
 let view = { start: null, end: 0, ppd: 0 }, geo = {};
 let editing = null, drag = null, saveTimer = null;
-let autoSave = LS.get('autosave', true), dirty = false;
+let autoSave = true, dirty = false;   // es wird immer automatisch gespeichert
 const fileHandles = {};   // Projekt-ID → verknüpfte Datei auf diesem Computer (nur in dieser Sitzung)
 
 
@@ -2160,7 +2160,6 @@ document.addEventListener('keydown', (e) => {
   if (!$('#firmView').hidden && !(e.ctrlKey || e.metaKey)) return;
   if (e.target.closest && e.target.closest('#assistPane')) return;
   const k = e.key, ctrl = e.ctrlKey || e.metaKey, lk = k.toLowerCase();
-  if (ctrl && lk === 'w' && P) { e.preventDefault(); closeProject(); return; }
   if (!P) { if (ctrl && lk === 'o') { e.preventDefault(); fileOpen(); } return; }
   if (k === 'Escape' && splitMode) { setSplitMode(false); return; }
   if (k === 'Escape' && relink) { closeRelink(); return; }
@@ -2238,6 +2237,7 @@ const ICONS = {
   history: '<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3 4v4h4" class="blue"/><path d="M12 7.5V12l3 2" class="grn"/>',
   tidy: '<path d="M4 6h7l4 6h5M4 18h7l4-6" class="blue"/><path d="M16 4l4 4M20 4l-4 4" class="red"/>',
   open: '<path d="M3 6h6l2 2h9v3"/><path d="M3 6v13h15l3-8H7l-4 8" class="blue"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   saveas: '<path d="M5 3h11l3 3v7"/><path d="M5 3v18h7"/><path d="M8 3v5h7V3"/><path d="M15 21l1-3 5-5 2 2-5 5z" class="grn"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3.5 6l8.5 7 8.5-7" class="blue"/>',
   palette: '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.5-4-8.2-9-8.2z"/><circle cx="7.5" cy="11" r="1.4" class="f" style="fill:#42a5f5"/><circle cx="10" cy="7" r="1.4" class="f" style="fill:#ffca28"/><circle cx="14.5" cy="7" r="1.4" class="f" style="fill:#66bb6a"/><circle cx="17" cy="10.5" r="1.4" class="f" style="fill:#ef8f5f"/>',
@@ -2288,12 +2288,13 @@ const ACTIONS = {
   settings: () => settingsDialog(),
   verlaufKatalog: () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'gs', titel: 'Verlauf der Kataloge und Einstellungen' }); },
   fileClose: () => closeProject(),
+  bpVerknuepfen: () => { if (window.bpLinkDialog) window.bpLinkDialog(); },
   projMenu: (b) => projMenu(b),
   libNew: () => libNew(), libFromProjects: () => libFromProjects(), libStd: () => libToggleStd(), libExport: () => libExport(), libImport: () => libImportFile(),
 };
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
-  if (!P && !NOPROJ_OK.has(b.dataset.act)) { toast('Kein Projekt geöffnet – über die Projektkarte oben links oder Datei → Öffnen ein Projekt wählen.'); return; }
+  if (!P && !NOPROJ_OK.has(b.dataset.act)) { toast('Kein Bauzeitenplan geöffnet – oben im Kopf das Projekt wählen oder Datei → Öffnen.'); return; }
   const f = ACTIONS[b.dataset.act]; if (f) f(b);
 });
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
@@ -2508,27 +2509,41 @@ async function openFromComputer() {
     toast(`„${f.name}“ geöffnet und verknüpft – „Speichern“ schreibt auch in diese Datei.`);
   } catch (err) { toast('Öffnen fehlgeschlagen: ' + err.message, true); }
 }
-function fileSaveAs() {
+function fileSaveAs() {   // „Speichern unter“ = wie eine Datei abspeichern: Formate oder Kopie unter neuem Namen
+  if (!P) return;
   const canPick = !!window.showSaveFilePicker;
-  modal('Speichern unter', `<div class="form"><label>Name</label><input id="saName" class="full" value="${esc(P.name)} (Kopie)"></div>
-    <div class="sa-opts">
-      <label class="cb"><input type="radio" name="saT" value="server" checked> <span><b>Als neues Projekt auf dem Server</b><small>Kopie unter neuem Namen – danach arbeitest du in der Kopie weiter, das Original bleibt wie zuletzt gespeichert.</small></span></label>
-      <label class="cb"><input type="radio" name="saT" value="file"> <span><b>Als Datei auf diesem Computer (.gantt)</b><small>${canPick ? 'Speicherort frei wählbar; das Projekt bleibt mit der Datei verknüpft, „Speichern“ schreibt auch dorthin.' : 'Wird als Download gespeichert (dieser Browser erlaubt keine Ordnerwahl – in Chrome/Edge möglich).'}</small></span></label>
-    </div>`, [{ label: 'Speichern', cls: 'primary', primary: true, fn: (bg) => {
-    const name = bg.querySelector('#saName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
-    const to = bg.querySelector('input[name=saT]:checked').value;
-    (async () => {
-      if (to === 'server') {
-        const p = await api.create({ ...projectFileData(), name });
-        dirty = false; clearTimeout(saveTimer); saveTimer = null;   // Änderungen sind in der Kopie
-        await openProject(p.id); await refreshProjectList(); toast(`Gespeichert unter „${name}“ – du arbeitest jetzt in der Kopie.`);
-      } else if (canPick) {
-        let h; try { h = await window.showSaveFilePicker({ suggestedName: name.replace(/[\\/:*?"<>|]+/g, '_') + '.gantt', types: GANTT_TYPES }); } catch { return; }
+  const bg = modal('Speichern unter', `<div class="ex-opts">
+      <button class="nw-opt" data-ex="gantt"><b>Gantt-Projektdatei (.gantt)</b><small>${canPick ? 'Speicherort frei wählbar; der Plan bleibt mit der Datei verknüpft – Änderungen werden auch dorthin geschrieben.' : 'Vollständig – zum Sichern, Weitergeben und wieder Öffnen (als Download)'}</small></button>
+      <button class="nw-opt" data-ex="csv"><b>Excel / CSV (.csv)</b><small>Tabelle aller Leistungen mit Terminen, Gewerk, Unternehmer</small></button>
+      <button class="nw-opt" data-ex="xml"><b>MS Project (.xml)</b><small>Zum Öffnen in Microsoft Project und kompatiblen Programmen</small></button>
+      <button class="nw-opt" data-ex="pdf"><b>PDF</b><small>Bauzeitenplan mit Format- und Seitenwahl (wie Drucken)</small></button>
+      <button class="nw-opt" data-ex="kopie"><b>Kopie unter neuem Namen</b><small>Neuer Bauzeitenplan auf dem Server – danach arbeitest du in der Kopie weiter, das Original bleibt erhalten.</small></button>
+    </div>`, [{ label: 'Abbrechen' }]);
+  bg.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ex]'); if (!b) return; bg.remove();
+    const k = b.dataset.ex;
+    if (k === 'csv') return exportCsv();
+    if (k === 'xml') return exportXml();
+    if (k === 'pdf') return printDialog();
+    if (k === 'kopie') {
+      modal('Kopie unter neuem Namen', `<div class="form"><label>Name</label><input id="saName" class="full" value="${esc(P.name)} (Kopie)"></div>`, [{ label: 'Speichern', cls: 'primary', primary: true, fn: (bg2) => {
+        const name = bg2.querySelector('#saName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
+        (async () => {
+          const p = await api.create({ ...projectFileData(), name });
+          dirty = false; clearTimeout(saveTimer); saveTimer = null;
+          await openProject(p.id); await refreshProjectList(); toast(`Gespeichert unter „${name}“ – du arbeitest jetzt in der Kopie.`);
+        })().catch((er) => toast('Speichern fehlgeschlagen: ' + er.message, true));
+      } }, { label: 'Abbrechen' }]);
+      return;
+    }
+    (async () => {   // .gantt
+      if (canPick) {
+        let h; try { h = await window.showSaveFilePicker({ suggestedName: fileName('gantt'), types: GANTT_TYPES }); } catch { return; }
         await flushSave(); await writeFileHandle(h); fileHandles[P.id] = h; markDirty();
-        toast(`Gespeichert in „${h.name}“ – „Speichern“ schreibt ab jetzt auch in diese Datei.`);
-      } else { download(name.replace(/[\\/:*?"<>|]+/g, '_') + '.gantt', JSON.stringify(projectFileData(), null, 1), 'application/json'); }
-    })().catch((e) => toast('Speichern fehlgeschlagen: ' + e.message, true));
-  } }, { label: 'Abbrechen' }]);
+        toast(`Gespeichert in „${h.name}“ – Änderungen werden auch in diese Datei geschrieben.`);
+      } else download(fileName('gantt'), JSON.stringify(projectFileData(), null, 1), 'application/json');
+    })().catch((er) => toast('Speichern fehlgeschlagen: ' + er.message, true));
+  });
 }
 function fileExport() {
   const bg = modal('Speichern als – Dateiformat', `<div class="ex-opts">
@@ -2605,7 +2620,7 @@ const api = {
 function schedOut() {
   try { return P.tasks.map((t, i) => ({ uid: t.uid, s: isoD(CAL.sd[i]), f: isoD(CAL.fd[i]), g: CAL.summ[i] ? 1 : 0 })); } catch { return null; }
 }
-const setSave = (s) => { $('#saveState').textContent = s; };
+const setSave = (s) => { const el = $('#saveState'); if (el) el.textContent = /^Gespeichert/.test(s) ? '✓ ' + s.replace(/^Gespeichert/, 'gespeichert') : s; };
 function queueSave() {
   dirty = true; markDirty();
   clearTimeout(saveTimer); saveTimer = null;
@@ -2714,12 +2729,12 @@ const fillTask = (t) => ({ cat: '', blk: -1, ph: '', preds: [], pct: 0, res: '',
 
 /* ---------- Versionshistorie ---------- */
 function saveVersionDialog(after) {
-  modal('Version speichern', `<div class="form"><label>Name</label><input id="vName" class="full" placeholder="z. B. Stand Ausschreibung, Freigabe Bauherr" value="Stand ${fmtShort(todayN())}${ud(todayN()).getUTCFullYear()}">
+  modal('Stand speichern', `<div class="form"><label>Name</label><input id="vName" class="full" placeholder="z. B. Stand Ausschreibung, an Bauherrn" value="Stand ${fmtShort(todayN())}${ud(todayN()).getUTCFullYear()}">
       <label>Notiz</label><textarea id="vNote" class="full" placeholder="optional – was hat sich geändert?"></textarea></div>
       <div class="hint">Gespeichert wird der aktuelle Plan mit allen Leistungen, Verknüpfungen, Kalender und Assistent-Einstellungen. Projektende jetzt: ${fmtD(CAL.peDay)}.</div>`,
   [{ label: 'Speichern', cls: 'primary', primary: true, fn: (bg) => {
     const name = bg.querySelector('#vName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
-    (async () => { await flushSave(); await api.addVersion(P.id, { name, note: bg.querySelector('#vNote').value, end: CAL.peDay }); toast(`Version „${name}“ gespeichert.`); if (after) after(); })().catch((e) => toast('Fehler: ' + e.message, true));
+    (async () => { await flushSave(); await api.addVersion(P.id, { name, note: bg.querySelector('#vNote').value, end: CAL.peDay }); toast(`Stand „${name}“ gespeichert – er steht im Verlauf.`); if (after) after(); })().catch((e) => toast('Fehler: ' + e.message, true));
   } }, { label: 'Abbrechen' }]);
 }
 function scheduleOf(data) {   // Termine eines gespeicherten Stands berechnen, ohne den aktuellen Plan anzufassen
@@ -2731,8 +2746,8 @@ function scheduleOf(data) {   // Termine eines gespeicherten Stands berechnen, o
 async function versionHistory() {
   await flushSave();
   let list = [];
-  const bg = modal('Versionshistorie – ' + P.name, '<div id="vhBody">Lade …</div>', [
-    { label: 'Aktuellen Stand als Version speichern …', left: true, fn: () => { saveVersionDialog(() => versionHistory()); } },
+  const bg = modal('Verlauf – ' + P.name, '<div id="vhBody">Lade …</div>', [
+    { label: '📌 Stand speichern …', left: true, fn: () => { saveVersionDialog(() => versionHistory()); } },
     { label: 'Schließen' }]);
   bg.querySelector('.modal').style.width = '860px';
   const fmtTs = (iso) => { const d = new Date(iso); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -2816,7 +2831,7 @@ function ganttSettings(host) {
       <p class="bph-mu">Gilt auf diesem Gerät. Beides lässt sich auch im Reiter „Leistung“ umschalten.</p>
       <h4>Kataloge, Phasen, Firmen und Vorlagen</h4>
       <p class="bph-mu">Leistungskatalog und Vorlagen pflegst du im Reiter „Leistungskatalog“, den Planungsassistenten über ✦ in der Leiste. Frühere Stände lassen sich hier zurückholen.</p>
-      <div class="bph-row"><button type="button" class="bph-btn" data-gs="verlauf">↶ Verlauf der Kataloge und Einstellungen</button></div>`;
+      <div class="bph-row"><button type="button" class="bph-btn" data-gs="verlauf">🕘 Verlauf der Kataloge und Einstellungen</button></div>`;
   };
   host.onchange = (e) => {
     const k = e.target.dataset.gs;

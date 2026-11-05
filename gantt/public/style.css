@@ -823,3 +823,12 @@ html.mobil .gs-box{display:none}
 
 /* Plan-Auswahl oben entfällt: es gilt das Projekt in der Kopfleiste (andere Pläne über Datei → Öffnen) */
 #projCard[hidden]{display:none!important}
+
+/* Leiste über den Reitern entfällt: Assistent, Drucken, Verknüpfung, „auch im Plan“ und Speicherstand stehen rechts in der Reiterzeile */
+#topbar{display:none!important}
+#tabs .gs-box{order:90}
+#tabs .tb-r{order:91;display:flex;align-items:center;gap:6px;margin-left:8px;flex:none}
+#tabs .tb-r .ticon{width:32px;height:32px}
+#tabs .tb-r #saveState{font-size:12px;color:var(--tab-fg);opacity:.75;white-space:nowrap}
+#tabs .tb-r .bp-chip{max-width:16rem}
+html.mobil #tabs .tb-r #saveState{display:none}

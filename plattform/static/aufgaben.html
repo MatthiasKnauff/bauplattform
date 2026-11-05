@@ -243,7 +243,7 @@ function renderM() {
       <select id="mart"><option value="maengel"${F.art === 'maengel' ? ' selected' : ''}>Mängel</option><option value="zu_erledigen"${F.art === 'zu_erledigen' ? ' selected' : ''}>Zu erledigen</option><option value="weisungen"${F.art === 'weisungen' ? ' selected' : ''}>Weisungen</option><option value=""${!F.art ? ' selected' : ''}>alles</option></select>
       <select id="mproj"><option value="">Alle Projekte (${projs.length})</option>${projs.map(([k, v]) => `<option value="${k}"${String(k) === F.projekt ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select>
       <select id="mfirm"><option value="">Alle Firmen</option>${firms.map((f) => `<option${f === F.firma ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select>
-      <button class="btn sm" id="mpdf" title="Die angezeigte Liste als PDF – z. B. für eine Firma">Mängelliste drucken (PDF)</button></div>
+      <button class="btn sm" id="mpdf" title="Die angezeigte Liste als PDF – z. B. für eine Firma">🖨 Drucken / PDF</button></div>
     ${scope === 'mine' && !M.length ? '<div class="note">In „Meine Projekte“ stehen Projekte, bei denen du im Bautagebuch als zuständig eingetragen bist. Oben auf „Alle Projekte“ umschalten, um alles zu sehen.</div>' : ''}
     ${list.length ? [...by.entries()].map(([pid, ms]) => `<div class="grp">${esc(ms[0].projekt)} <small>${ms.length} ${ms.length === 1 ? 'Eintrag' : 'Einträge'}</small></div><div class="ml">${ms.map(row).join('')}</div>`).join('') : '<div class="empty">Keine Einträge für diese Auswahl.</div>'}
     <datalist id="firmList">${firms.map((f) => `<option value="${esc(f)}">`).join('')}</datalist>`;
@@ -431,15 +431,15 @@ async function briefEditor(url, body, titel, E, bid) {
   const f0 = F.Text || Object.values(F)[0]; if (f0) f0.focus();
 }
 async function briefFertig(url, body, titel, bid, schonGespeichert) {   // gespeicherte Fassung: drucken und/oder versenden – beides ohne Formularfelder
-  if (!schonGespeichert) {   // auf dem Server ablegen – bleibt unter „Gespeicherte Schreiben“, bis es versendet ist
+  if (!schonGespeichert) {   // auf dem Server ablegen – bleibt unter „Entwürfe“, bis es versendet ist
     try { bid = (await api('api/briefe', 'POST', { id: bid, titel, url, body })).id; ladeBriefe(); } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message, true); }
   }
   const lab = { mich: '✉ An mich senden', firma: '✉ An die Firma senden', pdf: '✓ Abschließen (selbst zustellen)' }[body.versand] || '✉ Versenden';
   const wohin = { mich: `per E-Mail an dich (${esc((KONTO && KONTO.email) || '')}) zum Weiterleiten`, firma: `per E-Mail an ${esc(body.email || '')}${body.kopie ? ' (Kopie an dich)' : ''}`, pdf: 'nicht per E-Mail – du stellst sie selbst zu (Einschreiben, Bote) und sie wird im Verlauf der Firma eingetragen' }[body.versand] || '';
   modalBox(`<h3>${esc(titel)} ist gespeichert</h3>
-    <p>Du findest sie jederzeit oben unter <b>Gespeicherte Schreiben</b> wieder – zum Weiterbearbeiten, Drucken oder Versenden. Ausdruck und Versand enthalten keine Eingabefelder.</p>
+    <p>Du findest sie jederzeit oben unter <b>Entwürfe</b> wieder – zum Weiterbearbeiten, Drucken oder Versenden. Ausdruck und Versand enthalten keine Eingabefelder.</p>
     <p class="mute" style="font-size:.88rem">Versand: ${wohin}.</p>
-    <div class="acts" style="flex-wrap:wrap"><button class="btn" data-m="edit">✎ Weiter bearbeiten</button><button class="btn" data-m="druck">🖨 Drucken</button>${SIGNME ? '<button class="btn" data-m="signme" title="Qualifiziert elektronisch unterschreiben im sign-me-Portal von D-Trust">✍ Mit sign-me unterschreiben</button>' : ''}<span style="flex:1"></span>
+    <div class="acts" style="flex-wrap:wrap"><button class="btn" data-m="edit">✎ Weiter bearbeiten</button><button class="btn" data-m="druck">🖨 Drucken / PDF</button>${SIGNME ? '<button class="btn" data-m="signme" title="Qualifiziert elektronisch unterschreiben im sign-me-Portal von D-Trust">✍ Mit sign-me unterschreiben</button>' : ''}<span style="flex:1"></span>
       <button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="senden">${lab}</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m === 'edit') { try { const r = await api(url, 'POST', { ...body, schritt: 'entwurf' }); close(); briefEditor(url, body, titel, r, bid); } catch (e) { toast(e.message, true); } return; }
@@ -505,18 +505,18 @@ function signmeDialog(url, body, titel, bid) {   // sign-me (D-Trust): herunterl
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('on'); nehmen(e.dataTransfer.files[0]); });
 }
 
-/* ---------- Gespeicherte Schreiben (Rügen, die noch nicht versendet sind) ---------- */
+/* ---------- Entwürfe (Rügen, die noch nicht versendet sind) ---------- */
 let BRIEFE = [];
 async function ladeBriefe() { try { BRIEFE = await api('api/briefe'); } catch { BRIEFE = []; } briefeZeigen(); }
 async function briefWeg(bid) { if (!bid) return; try { await api('api/briefe/' + bid, 'DELETE'); } catch { /* egal */ } await ladeBriefe(); }
 function briefeZeigen() {
   const box = $('#briefe'); if (!box) return;
   box.hidden = !BRIEFE.length;
-  box.innerHTML = BRIEFE.length ? `<b>Gespeicherte Schreiben</b> <span class="mute">– noch nicht versendet</span>${BRIEFE.map((b) => `<div class="bf"><span>✉ ${esc(b.titel)}${b.firma ? ' an ' + esc(b.firma) : ''} <small class="mute">· ${esc(new Date(b.stand).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}</small></span><span><button class="btn sm" data-bf="${esc(b.id)}">Öffnen</button><button class="btn sm" data-bfweg="${esc(b.id)}" title="Schreiben löschen">✕</button></span></div>`).join('')}` : '';
+  box.innerHTML = BRIEFE.length ? `<b>Entwürfe</b> <span class="mute">– noch nicht versendete Schreiben</span>${BRIEFE.map((b) => `<div class="bf"><span>✉ ${esc(b.titel)}${b.firma ? ' an ' + esc(b.firma) : ''} <small class="mute">· ${esc(new Date(b.stand).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}</small></span><span><button class="btn sm" data-bf="${esc(b.id)}">Öffnen</button><button class="btn sm" data-bfweg="${esc(b.id)}" title="Schreiben löschen">✕</button></span></div>`).join('')}` : '';
 }
 document.addEventListener('click', async (e) => {
   const o = e.target.closest('[data-bf]'); if (o) { const b = BRIEFE.find((x) => x.id === o.dataset.bf); if (!b) return; if (!KONTO) await konto(); SIGNME = !!b.signme; briefFertig(b.url, b.body, b.titel, b.id, true); return; }
-  const d = e.target.closest('[data-bfweg]'); if (d) { if (!confirm('Gespeichertes Schreiben löschen?')) return; await briefWeg(d.dataset.bfweg); }
+  const d = e.target.closest('[data-bfweg]'); if (d) { if (!confirm('Entwurf löschen?')) return; await briefWeg(d.dataset.bfweg); }
 });
 
 /* ---------- Mängelrüge: Dialog → Entwurf im Brief-Editor ---------- */
@@ -586,7 +586,7 @@ async function setDialog(host) {
     <label>E-Mail</label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="sM"${CFG.mail_plan ? ' checked' : ''}> Erinnerungen aus den Bauzeitenplänen per E-Mail verschicken</label>
     <p class="w mute" style="font-size:.85rem;margin:0">Empfänger: die Zuständigen des verknüpften Bautagebuch-Projekts, sonst wer den Plan zuletzt gespeichert hat. Den Mailserver stellst du in der Verwaltung ein. Erinnerungen aus dem Bautagebuch verschickt das Bautagebuch am Fälligkeitstag selbst.</p></div>
     <p class="w mute" style="font-size:.85rem;margin:.3rem 0 0">Unterschrift, Signatur und Versand der Rügen: ⚙ → Für mich. Texte der Mails: ⚙ → Büro → E-Mail-Vorlagen.</p>
-    <div class="acts"><button class="btn" data-m="test">Testmail an mich</button><button type="button" class="btn" data-bph-verlauf="bp:aufgaben" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">↶ Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    <div class="acts"><button class="btn" data-m="test">Testmail an mich</button><button type="button" class="btn" data-bph-verlauf="bp:aufgaben" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m === 'test') { try { const r = await api('api/erinnerungen/test', 'POST', {}); toast('Testmail an ' + r.to + ' verschickt.'); } catch (e) { toast(e.message, true); } return; }
     if (m === 'ok') {

@@ -61,11 +61,14 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
       });
       const logo = tb.querySelector('.logo'); if (logo) logo.style.display = 'none';
     }
-    const fill = tb.querySelector('.tb-fill');
     const link = document.createElement('button'); link.className = 'bp-chip'; link.id = 'bpLink'; link.hidden = true;
     link.onclick = linkDialog;
     const pres = document.createElement('span'); pres.className = 'bp-pres'; pres.id = 'bpPres'; pres.hidden = true;
-    fill.after(link, pres);
+    // die Leiste über den Reitern entfällt: alles rechts in die Reiterzeile (neben die Suche)
+    const r = document.createElement('span'); r.className = 'tb-r';
+    const st = document.createElement('span'); st.id = 'saveState'; st.title = 'Es wird automatisch gespeichert. Benannte Stände und alle Zwischenstände: Datei → Verlauf';
+    r.append(pres, link, ...[...tb.querySelectorAll('.ticon')], st);
+    ($('#tabs') || tb).appendChild(r);
   }
   /* KI-Auswahl der Kopfleiste auf den Positionsvorschlag übertragen (Intern = eingebauter Vorschlag) */
   window.bpApplyKi = function () {
@@ -79,9 +82,9 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
   function showLink() {
     const el = $('#bpLink'); if (!el) return;
     const p = typeof P !== 'undefined' && P ? P : null, bt = p ? p._bt : null;
-    el.hidden = !p;
+    el.hidden = !p || !!(p && p._bt);   // verknüpft: das Projekt steht oben im Kopf – ändern unter Datei → Projekt verknüpfen
     if (window.BPHead && bt && bt.id && BPHead.projektSetzen) BPHead.projektSetzen(bt.id);   // gilt dann auch in den anderen Apps
-    if (window.BPHead && p && !bt) BPHead.setProject({ title: p.name, sub: 'Bauzeitenplan ohne Projekt – oben „Mit Projekt verknüpfen“' });   // sonst zeigt die Kopfleiste das Projekt
+    if (window.BPHead && p && !bt) BPHead.setProject({ title: p.name, sub: 'Bauzeitenplan ohne Projekt – Datei → Projekt verknüpfen' });   // sonst zeigt die Kopfleiste das Projekt
     if (!p) return;
     if (bt) { el.innerHTML = ICON_LINK + '<span>' + escH(bt.name) + '</span>'; el.title = `Verknüpft mit dem Bautagebuch-Projekt „${bt.name}“${bt.address ? ' (' + bt.address + ')' : ''} – klicken zum Ändern`; }
     else { el.innerHTML = ICON_LINK + '<span>Mit Projekt verknüpfen</span>'; el.title = 'Plan mit einem Projekt des Bautagebuchs verknüpfen'; }
@@ -94,6 +97,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     el.title = o.length ? 'Gleichzeitiges Arbeiten ist möglich: Änderungen der anderen werden automatisch übernommen, solange du selbst gerade nichts Ungespeichertes hast.' : '';
   }
 
+  window.bpLinkDialog = () => linkDialog();
   async function linkDialog() {
     if (typeof P === 'undefined' || !P) return;
     let list = [];

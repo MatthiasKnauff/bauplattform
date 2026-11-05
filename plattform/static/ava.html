@@ -1467,10 +1467,19 @@ async function katalogEinstellungen(host) {
       <p class="bph-mu">Katalogdatei, z. B. sirAdos-Positionen (*.ava). Sie bleibt nur in der Datenbank des Büros. Einlesen dauert bei großen Katalogen etwa eine halbe Minute.</p>` : '<p class="bph-mu">Einlesen kann die Verwaltung.</p>'}`;
   const inp = host.querySelector('#katDatei');
   if (inp) inp.onchange = async () => {
-    const f = inp.files[0]; if (!f) return; const m = host.querySelector('#katMsg'); m.textContent = `Lese „${f.name}“ ein … (${Math.round(f.size / 1048576)} MB)`;
-    const fd = new FormData(); fd.append('datei', f);
-    try { const r = await fetch('api/katalog', { method: 'POST', body: fd, credentials: 'same-origin' }); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); KAT = j; toast(`Katalog eingelesen: ${j.info.n_pos.toLocaleString('de-DE')} Positionen.`); katalogEinstellungen(host); }
-    catch (e) { m.textContent = e.message; }
+    const f = inp.files[0]; if (!f) return; const m = host.querySelector('#katMsg'); m.textContent = `Packe „${f.name}“ (${Math.round(f.size / 1048576)} MB) …`;
+    try {   // gepackt und in Teilen unter 1 MB – große Kataloge (100 MB und mehr) kommen so durch jeden Proxy
+      const gz = new Uint8Array(await new Response(f.stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+      const T = 900 * 1024, n = Math.max(1, Math.ceil(gz.length / T)), id = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
+      let j = null;
+      for (let i = 0; i < n; i++) {
+        m.textContent = i < n - 1 ? `Lade hoch … ${Math.round(i / n * 100)} %` : 'Lese den Katalog ein … (etwa eine halbe Minute)';
+        const r = await fetch(`api/katalog/teil?id=${id}&i=${i}&n=${n}&name=${encodeURIComponent(f.name)}`, { method: 'POST', body: gz.subarray(i * T, (i + 1) * T), headers: { 'Content-Type': 'application/octet-stream' }, credentials: 'same-origin' });
+        const txt = await r.text(); try { j = JSON.parse(txt); } catch { throw new Error(`Der Server hat den Teil ${i + 1} von ${n} abgelehnt (${r.status}${r.status === 413 ? ' – zu groß für den Proxy' : ''}).`); }
+        if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
+      }
+      KAT = j; toast(`Katalog eingelesen: ${j.info.n_pos.toLocaleString('de-DE')} Positionen.`); katalogEinstellungen(host);
+    } catch (e) { m.textContent = e.message; }
   };
   const weg = host.querySelector('#katWeg');
   if (weg) weg.onclick = async () => { if (!confirm('Positionskatalog entfernen? Bereits übernommene Positionen in den LVs bleiben.')) return; await api('api/katalog', 'DELETE').catch((e) => toast(e.message, true)); KAT = null; katalogEinstellungen(host); };

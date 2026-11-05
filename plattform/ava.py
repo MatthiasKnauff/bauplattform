@@ -9,7 +9,7 @@ Rechnen (rechne): Angebots- und Auftragssumme aus Menge × Einheitspreis der Nor
 Wahlpositionen ohne Gesamtbetrag), Nachlass in Prozent. Abrechnung kumuliert: Leistungsstand = Aufmaß × Auftrags-EP,
 - Nachlass - Abzüge - Sicherheitseinbehalt = anerkannt; Zahlbetrag = anerkannt - bisher anerkannt (vorige Rechnungen).
 """
-import ast, io, json, operator, re, uuid
+import ast, io, json, operator, os, re, uuid
 from collections import Counter
 from datetime import date, datetime
 
@@ -158,32 +158,78 @@ def katalog_api():
         if not f:
             return jsonify(error="Keine Datei"), 400
         import tempfile
-        import katalog
         with tempfile.NamedTemporaryFile(suffix=".ava") as tmp:
             f.save(tmp.name)
-            try:
-                quelle, stand, Z = katalog.lesen(tmp.name, f.filename or "")
-            except Exception as e:
-                return jsonify(error=f"Die Datei ließ sich nicht als Positionskatalog lesen: {str(e)[:200]}"), 400
-        gew, zeilen = "", []
-        for k, x in enumerate(Z):
-            if x["typ"] == "gewerk":
-                gew = x["oz"]
-            if not gew:   # Hinweise vor dem ersten Gewerk
-                continue
-            zeilen.append((k, gew, x["typ"], int(x.get("ebene") or 0), x["oz"][:40], x["kurz"][:500], x.get("lang", "")[:20000], x.get("art", "N"),
-                           x.get("einheit", "")[:12], x.get("kg", ""), x.get("ep_von"), x.get("ep"), x.get("ep_bis")))
-        info = {"quelle": quelle, "stand": stand, "datei": _s(f.filename, 200), "importiert": _now(), "von": g.user["name"],
-                "n_pos": sum(1 for z in zeilen if z[2] == "pos" and z[7] != "T"), "n_gewerke": sum(1 for z in zeilen if z[2] == "gewerk")}
-        with db.tx() as c:
-            from bpcore import konto
-            c.execute("DELETE FROM ava_katalog")
-            c.copy_rows("ava_katalog", ("nr", "gewerk", "typ", "ebene", "oz", "kurz", "lang", "art", "einheit", "kg", "ep_von", "ep", "ep_bis"), zeilen)
-            konto._put(c, "ava:katalog", json.dumps(info, ensure_ascii=False), g.user["name"])
-        C.audit(g.user["name"], "ava", "Positionskatalog eingelesen", f"{info['quelle']} · {info['n_pos']} Positionen")
+            fehler = _kat_einlesen(tmp.name, f.filename or "")
+        if fehler:
+            return jsonify(error=fehler), 400
+    return _kat_antwort()
+
+
+@app.post("/api/katalog/teil")
+def katalog_teil():
+    """Großen Katalog in Teilen hochladen (gzip, je unter 1 MB – passt durch jeden Proxy). Der letzte Teil startet das Einlesen."""
+    if not g.user["is_admin"]:
+        return jsonify(error="Den Positionskatalog kann nur die Verwaltung einlesen."), 403
+    import gzip, shutil, tempfile
+    a = request.args
+    uid, i, n = a.get("id", ""), a.get("i", type=int), a.get("n", type=int)
+    if not re.fullmatch(r"[0-9a-f]{8,40}", uid) or i is None or not n or not (0 <= i < n <= 2000):
+        return jsonify(error="Ungültiger Teil"), 400
+    d = os.path.join(tempfile.gettempdir(), "bpkat-" + uid)
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, f"{i:05d}"), "wb") as fh:
+        fh.write(request.get_data())
+    da = sorted(x for x in os.listdir(d) if x.isdigit())
+    if len(da) < n:
+        return jsonify(ok=True, fehlt=n - len(da))
+    ziel = os.path.join(d, "katalog.ava")
+    try:
+        with open(os.path.join(d, "alles.gz"), "wb") as out:
+            for x in da:
+                with open(os.path.join(d, x), "rb") as fh:
+                    shutil.copyfileobj(fh, out)
+        with gzip.open(os.path.join(d, "alles.gz"), "rb") as src, open(ziel, "wb") as out:
+            shutil.copyfileobj(src, out)
+        fehler = _kat_einlesen(ziel, _s(a.get("name"), 200))
+    except OSError as e:
+        fehler = f"Die Datei kam nicht vollständig an ({e})."
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    if fehler:
+        return jsonify(error=fehler), 400
+    return _kat_antwort()
+
+
+def _kat_einlesen(pfad, dateiname):
+    """Katalog aus der Datei in die Datenbank (ersetzt den bisherigen). Gibt eine Fehlermeldung zurück oder None."""
+    import katalog
+    try:
+        quelle, stand, Z = katalog.lesen(pfad, dateiname)
+    except Exception as e:
+        return f"Die Datei ließ sich nicht als Positionskatalog lesen: {str(e)[:200]}"
+    gew, zeilen = "", []
+    for k, x in enumerate(Z):
+        if x["typ"] == "gewerk":
+            gew = x["oz"]
+        if not gew:   # Hinweise vor dem ersten Gewerk
+            continue
+        zeilen.append((k, gew, x["typ"], int(x.get("ebene") or 0), x["oz"][:40], x["kurz"][:500], x.get("lang", "")[:20000], x.get("art", "N"),
+                       x.get("einheit", "")[:12], x.get("kg", ""), x.get("ep_von"), x.get("ep"), x.get("ep_bis")))
+    info = {"quelle": quelle, "stand": stand, "datei": _s(dateiname, 200), "importiert": _now(), "von": g.user["name"],
+            "n_pos": sum(1 for z in zeilen if z[2] == "pos" and z[7] != "T"), "n_gewerke": sum(1 for z in zeilen if z[2] == "gewerk")}
+    with db.tx() as c:
+        from bpcore import konto
+        c.execute("DELETE FROM ava_katalog")
+        c.copy_rows("ava_katalog", ("nr", "gewerk", "typ", "ebene", "oz", "kurz", "lang", "art", "einheit", "kg", "ep_von", "ep", "ep_bis"), zeilen)
+        konto._put(c, "ava:katalog", json.dumps(info, ensure_ascii=False), g.user["name"])
+    C.audit(g.user["name"], "ava", "Positionskatalog eingelesen", f"{info['quelle']} · {info['n_pos']} Positionen")
+    return None
+
+
+def _kat_antwort():
     with db.tx() as c:
         if request.method == "DELETE":
-            from bpcore import konto
             c.execute("DELETE FROM ava_katalog")
             c.execute("DELETE FROM bp_store WHERE key='ava:katalog'")
             return jsonify(ok=True)

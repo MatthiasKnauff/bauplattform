@@ -339,6 +339,17 @@ Liest über das Bautagebuch (nur das hat Zugang zur Ablage) die Pläne im Projek
 
 Der Produktivserver bekommt den Container mit der nächsten Freigabe (`server/produktiv-naechste.yml`).
 
+## Kommunikation (eigener Container)
+
+Pfad `/kommunikation`, Container `bauplattform_kommunikation` (Port 8098, gleiches Image wie die Plattform, `APP_MODULE: kommunikation`).
+Zeigt, was aus der Plattform an wen verschickt wurde – Planversand, Mängel- und Terminrügen (per E-Mail, an mich zum Weiterleiten
+oder als PDF) – aus dem Benachrichtigungsverlauf (Tabelle `benachrichtigungen`). Die App liest nur.
+
+- Projekt oben im Kopf oder alle Projekte; links „Mit wem“ mit Anzahl und letzter Sendung, rechts der Verlauf nach Tagen.
+- Ein Kontakt (links anklicken oder „👤 Kontakt …“): alles, was ihm geschickt wurde, über alle Projekte – links nach Projekten.
+- Filter nach Art, „nur von mir“, Suche; Export für Excel (CSV) und Drucken als Nachweis.
+- Wer Bautagebuch, Bauzeitenplan, Planstand oder Mängel & Erinnerungen nutzt, bekommt die App automatisch (in der Verwaltung abwählbar).
+
 ## Verwaltung (eigener Container)
 
 **Einstellungen** (Reiter in der Verwaltung, alles was für alle Apps gilt): Darstellung (Farbschema, Akzentfarbe), KI (Positionsvorschlag

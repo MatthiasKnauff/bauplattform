@@ -23,6 +23,7 @@
     gantt: SV('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M7 13h6M10 17h7"/>'),
     adressen: SV('<rect x="4" y="3" width="15" height="18" rx="2"/><circle cx="11.5" cy="10" r="2.5"/><path d="M7.5 17a4 4 0 0 1 8 0"/>'),
     plaene: SV('<path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5"/><path d="M8 13h8M8 17h5"/><path d="M7 9h4"/>'),
+    kommunikation: SV('<path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M19 9h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v2l-3-2h-4"/><path d="M6 9h7M6 12h4"/>'),
     ava: SV('<path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/><path d="M8 10h8M8 13h8M8 16h5"/><path d="M14.5 17.5l1.5 1.5 3-3"/>'),
     aufgaben: SV('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
     baukosten: SV('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 18h6"/>'),
@@ -904,6 +905,8 @@
         <span class="bph-bn-t"><span><b>${esc(x.art_name)}</b>${x.projekt ? ' · ' + esc(x.projekt) : ''}</span><small>${dt(x.ts)} · ${esc(x.weg_name)}${x.von ? ' · von ' + esc(x.von) : ''}${x.email ? ' · ' + esc(x.email) : ''}${x.status === 'fehler' ? ' · <b>nicht zugestellt</b>' : ''}</small></span></summary>
         <div class="bph-bn-d">${x.betreff ? `<div><b>${esc(x.betreff)}</b></div>` : ''}${x.inhalt ? `<pre>${esc(x.inhalt)}</pre>` : ''}${x.fehler ? `<div class="bph-mu">Fehler: ${esc(x.fehler)}</div>` : ''}${lk(x.link) ? `<a href="${esc(lk(x.link))}" data-bnp="${x.project_id || ''}">↗ ${x.art === 'planversand' ? 'Planversandliste' : 'Liste'} öffnen</a>` : ''}</div></details></li>`).join('')}</ul>`
       : '<p class="bph-mu">Noch keine Pläne, Mängel- oder Terminrügen an diesen Kontakt verschickt.</p>';
+    const kom = apps.find((a) => a.key === 'kommunikation');
+    if (kom && L.length) host.insertAdjacentHTML('beforeend', `<p><a href="${esc(appUrl(kom))}/#kontakt=${cid}">↗ Alles mit diesem Kontakt in „Kommunikation“</a></p>`);
     host.onclick = async (e) => {   // vorher das Projekt der Sendung als aktuelles Projekt setzen
       const a = e.target.closest('[data-bnp]'); if (!a || !a.dataset.bnp) return;
       e.preventDefault(); try { await H.projektSetzen(+a.dataset.bnp); } catch { /* egal */ } location.href = a.href;

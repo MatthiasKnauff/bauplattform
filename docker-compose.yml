@@ -38,6 +38,7 @@ x-env: &env
   AUFGABEN_INTERNAL: http://aufgaben:8095
   PLAENE_INTERNAL: http://plaene:8096
   AVA_INTERNAL: http://ava:8097
+  KOMMUNIKATION_INTERNAL: http://kommunikation:8098
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -214,6 +215,22 @@ services:
       APP_MODULE: ava
       APP_PORT: "8097"
       APP_TIMEOUT: "300"
+
+  # Kommunikation: was an wen verschickt wurde (Planversand, Rügen) – je Projekt und je Kontakt
+  kommunikation:
+    image: bauplattform/plattform:latest
+    container_name: bauplattform_kommunikation
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${KOMMUNIKATION_PUBLISH:-8098}:8098"
+    environment:
+      <<: *env
+      APP_MODULE: kommunikation
+      APP_PORT: "8098"
+      APP_TIMEOUT: "120"
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB, für das Bildmodell qwen3-vl:4b (Pläne lesen) weitere ~4 GB freien Arbeitsspeicher;

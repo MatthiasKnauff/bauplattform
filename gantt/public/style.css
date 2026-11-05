@@ -832,3 +832,6 @@ html.mobil .gs-box{display:none}
 #tabs .tb-r #saveState{font-size:12px;color:var(--tab-fg);opacity:.75;white-space:nowrap}
 #tabs .tb-r .bp-chip{max-width:16rem}
 html.mobil #tabs .tb-r #saveState{display:none}
+
+/* Dialoge: an der Ecke rechts unten in der Größe veränderbar (verschieben an der Kopfzeile) */
+.modal{resize:both;overflow:hidden;min-height:140px}.modal .mb{flex:1;overflow:auto}

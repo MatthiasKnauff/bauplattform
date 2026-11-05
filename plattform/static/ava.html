@@ -104,10 +104,15 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 #histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .body.mit-quelle{grid-template-columns:230px minmax(0,1fr) minmax(320px,36%)}
 .qu{border-left:1px solid var(--line);background:var(--card);position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);box-sizing:border-box;display:flex;flex-direction:column;min-width:0}
-.qu-h{padding:.6rem .7rem .5rem;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:.45rem;background:var(--tabs)}
+.qu-h{padding:.45rem .6rem .4rem;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:.35rem;background:var(--tabs)}
 .qu-h .t{display:flex;align-items:center;gap:.4rem;font-weight:600}.qu-h .t .lock{font-size:.75rem;font-weight:500;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:.05rem .45rem;background:var(--card)}
 .qu-h .rr{display:flex;gap:.4rem;flex-wrap:wrap}.qu-h select{flex:1 1 12rem;min-width:0}.qu-h .pick{flex:1 1 12rem;min-width:0}
-.qu-o{display:flex;gap:.8rem;flex-wrap:wrap;font-size:.85rem;align-items:center}
+.qu-o{display:flex;gap:.7rem;flex-wrap:wrap;font-size:.85rem;align-items:center}
+.qu-o .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}   /* Höhe bleibt gleich – sonst springt die Liste beim Anklicken */
+.qu-h .qu-s input[type=search]{flex:1 1 9rem;min-width:0;padding:.3rem .5rem}.qu-h .qu-s select{flex:0 1 auto;width:auto;padding:.3rem .4rem}
+.qu-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.qu-seg button{border:0;background:transparent;padding:.25rem .55rem;font:inherit;font-size:.82rem;color:var(--mute);cursor:pointer}
+.qu-seg button.on{background:var(--y);color:var(--on);font-weight:600}
+.qu .lt.voll{display:block;-webkit-line-clamp:unset;overflow:visible;max-height:none;color:var(--ink)}
 .qu-l{flex:1;overflow:auto}
 .qu table{width:100%;border-collapse:collapse;font-size:12.5px}
 .qu td,.qu th{padding:.2rem .35rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
@@ -1486,17 +1491,26 @@ document.addEventListener('keydown', (e) => {
   if (k === 'z' && !e.shiftKey) { e.preventDefault(); histGo(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); histGo(1); }
 });
 /* ---------- Kopierquelle: LV aus einem anderen Projekt daneben (schreibgeschützt), Positionen herüberkopieren ---------- */
-let QU = { an: LS.get('qu.an', false), pid: LS.get('qu.pid', null), lv: LS.get('qu.lv', null), list: [], L: null, sel: new Set(), mengen: LS.get('qu.mengen', true), preise: LS.get('qu.preise', true) }, LASTI = null;
+let QU = { ber: LS.get('qu.ber', ''), inG: LS.get('qu.inG', true), gw: null, an: LS.get('qu.an', false), pid: LS.get('qu.pid', null), lv: LS.get('qu.lv', null), list: [], L: null, sel: new Set(), mengen: LS.get('qu.mengen', true), preise: LS.get('qu.preise', true) }, LASTI = null;
 document.addEventListener('focusin', (e) => { const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) LASTI = +tr.dataset.i; });
-let KAT = null;
+let KAT = null;   // {kataloge: [...]} – eingelesene Kataloge (sirAdos Positionen, sirAdos Elemente …)
+const istKat = (v) => String(v || '').startsWith('kat:');
+const katId = (v) => +String(v).split(':')[1];
 async function katalogEinstellungen(host) {
-  const K = await api('api/katalog').catch((e) => ({ fehler: e.message }));
-  const I = K.info, admin = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
-  const st = I && I.stand ? `${I.stand.slice(5, 7)}/${I.stand.slice(0, 4)}` : '';
-  host.innerHTML = `<p class="bph-mu">Texte für die Leistungsverzeichnisse: Gewerke, Titel und Positionen mit Kurz- und Langtext, Einheit, Kostengruppe und Preisspanne. Im LV unter <b>Kopierquelle</b> → „Positionskatalog“ durchsuchen und Positionen herüberziehen; der mittlere Preis wird zur Schätzung.</p>
-    ${I ? `<div style="border:1px solid var(--line);border-radius:10px;padding:.7rem .9rem;margin:.6rem 0"><b>${esc(I.quelle)}</b>${st ? ` · Preisstand ${st}` : ''}<br><span class="bph-mu" style="margin:0">${I.n_gewerke} Gewerke, ${I.n_pos.toLocaleString('de-DE')} Positionen · eingelesen ${new Date(I.importiert).toLocaleDateString('de-DE')} von ${esc(I.von)}${I.datei ? ' · ' + esc(I.datei) : ''}</span></div>` : '<p><b>Noch kein Katalog eingelesen.</b></p>'}
-    ${admin ? `<div class="bph-row" style="gap:.5rem;flex-wrap:wrap"><label class="bph-btn pri" style="cursor:pointer">${I ? 'Neuen Katalog einlesen …' : 'Katalog einlesen …'}<input type="file" id="katDatei" accept=".ava,.mdb,.accdb" hidden></label>${I ? '<button type="button" class="bph-btn" id="katWeg">Katalog entfernen</button>' : ''}<span class="bph-mu" id="katMsg" style="margin:0"></span></div>
-      <p class="bph-mu">Katalogdatei, z. B. sirAdos-Positionen (*.ava). Sie bleibt nur in der Datenbank des Büros. Einlesen dauert bei großen Katalogen etwa eine halbe Minute.</p>` : '<p class="bph-mu">Einlesen kann die Verwaltung.</p>'}`;
+  const K = await api('api/katalog').catch((e) => ({ kataloge: [], fehler: e.message })); KAT = K;
+  const admin = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
+  const st = (x) => (x.stand && x.stand.length >= 7 ? `Preisstand ${x.stand.slice(5, 7)}/${x.stand.slice(0, 4)} · ` : '');
+  host.innerHTML = `<p class="bph-mu">Texte für die Leistungsverzeichnisse – beliebig viele Kataloge, z. B. sirAdos Positionen und sirAdos Elemente. Im LV unter <b>Kopierquelle</b> den Katalog wählen, durchsuchen und Positionen herüberziehen; der mittlere Preis wird zur Schätzung.</p>
+    ${K.kataloge.length ? K.kataloge.map((x) => `<div style="border:1px solid var(--line);border-radius:10px;padding:.7rem .9rem;margin:.5rem 0;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap" data-kid="${x.id}">
+      <div style="flex:1;min-width:14rem"><b>${esc(x.name)}</b><br><span class="bph-mu" style="margin:0">${st(x)}${x.n_gewerke} ${x.art === 'elemente' ? 'Kostengruppen' : 'Gewerke'}, ${(x.n_pos || 0).toLocaleString('de-DE')} ${x.art === 'elemente' ? 'Elemente' : 'Positionen'} · eingelesen ${x.importiert ? new Date(x.importiert).toLocaleDateString('de-DE') : ''} von ${esc(x.von)}${x.datei ? ' · ' + esc(x.datei) : ''}</span></div>
+      ${admin ? `<button type="button" class="bph-btn" data-kren="${x.id}">Umbenennen</button><button type="button" class="bph-btn" data-kweg="${x.id}">Entfernen</button>` : ''}</div>`).join('') : '<p><b>Noch kein Katalog eingelesen.</b></p>'}
+    ${admin ? `<div class="bph-row" style="gap:.5rem;flex-wrap:wrap;margin-top:.6rem"><label class="bph-btn pri" style="cursor:pointer">＋ Katalog einlesen …<input type="file" id="katDatei" accept=".ava,.mdb,.accdb" hidden></label><span class="bph-mu" id="katMsg" style="margin:0"></span></div>
+      <p class="bph-mu">Katalogdatei, z. B. sirAdos-Positionen oder -Elemente (*.ava). Dieselbe Datei noch einmal einlesen ersetzt den Katalog (z. B. neuer Preisstand). Die Kataloge bleiben nur in der Datenbank des Büros.</p>` : '<p class="bph-mu">Einlesen kann die Verwaltung.</p>'}`;
+  host.onclick = async (e) => {
+    const r = e.target.closest('[data-kren]'), w = e.target.closest('[data-kweg]');
+    if (r) { const x = K.kataloge.find((y) => y.id === +r.dataset.kren); const n = prompt('Name des Katalogs', x.name); if (!n || !n.trim()) return; await api('api/katalog/' + x.id, 'PUT', { name: n.trim() }).catch((er) => toast(er.message, true)); katalogEinstellungen(host); }
+    if (w) { const x = K.kataloge.find((y) => y.id === +w.dataset.kweg); if (!confirm(`Katalog „${x.name}“ entfernen? Bereits übernommene Positionen in den LVs bleiben.`)) return; await api('api/katalog/' + x.id, 'DELETE').catch((er) => toast(er.message, true)); katalogEinstellungen(host); }
+  };
   const inp = host.querySelector('#katDatei');
   if (inp) inp.onchange = async () => {
     const f = inp.files[0]; if (!f) return; const m = host.querySelector('#katMsg'); m.textContent = `Packe „${f.name}“ (${Math.round(f.size / 1048576)} MB) …`;
@@ -1505,27 +1519,28 @@ async function katalogEinstellungen(host) {
       const T = 900 * 1024, n = Math.max(1, Math.ceil(gz.length / T)), id = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
       let j = null;
       for (let i = 0; i < n; i++) {
-        m.textContent = i < n - 1 ? `Lade hoch … ${Math.round(i / n * 100)} %` : 'Lese den Katalog ein … (etwa eine halbe Minute)';
+        m.textContent = i < n - 1 ? `Lade hoch … ${Math.round(i / n * 100)} %` : 'Lese den Katalog ein … (bis zu einer halben Minute)';
         const r = await fetch(`api/katalog/teil?id=${id}&i=${i}&n=${n}&name=${encodeURIComponent(f.name)}`, { method: 'POST', body: gz.subarray(i * T, (i + 1) * T), headers: { 'Content-Type': 'application/octet-stream' }, credentials: 'same-origin' });
         const txt = await r.text(); try { j = JSON.parse(txt); } catch { throw new Error(`Der Server hat den Teil ${i + 1} von ${n} abgelehnt (${r.status}${r.status === 413 ? ' – zu groß für den Proxy' : ''}).`); }
         if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
       }
-      KAT = j; toast(`Katalog eingelesen: ${j.info.n_pos.toLocaleString('de-DE')} Positionen.`); katalogEinstellungen(host);
+      const neu = (j.kataloge || []).find((x) => x.id === j.neu);
+      KAT = { kataloge: j.kataloge }; toast(neu ? `„${neu.name}“ eingelesen: ${(neu.n_pos || 0).toLocaleString('de-DE')} ${neu.art === 'elemente' ? 'Elemente' : 'Positionen'}.` : 'Katalog eingelesen.'); katalogEinstellungen(host);
     } catch (e) { m.textContent = e.message; }
   };
-  const weg = host.querySelector('#katWeg');
-  if (weg) weg.onclick = async () => { if (!confirm('Positionskatalog entfernen? Bereits übernommene Positionen in den LVs bleiben.')) return; await api('api/katalog', 'DELETE').catch((e) => toast(e.message, true)); KAT = null; katalogEinstellungen(host); };
-}   // Positionskatalog (z. B. sirAdos): {info, gewerke} – in der Kopierquelle wie ein Projekt mit einem „LV“ je Gewerk
-const quLvLaden = (v) => (String(v).startsWith('kat:') ? api(String(v) === 'kat:suche' ? 'api/katalog/suche?q=' + encodeURIComponent(QU.q || '') : 'api/katalog/gewerk/' + encodeURIComponent(String(v).slice(4))) : api('api/lv/' + v)).catch(() => null);
+}
+const quLvLaden = (v) => { const t = String(v).split(':'); return (istKat(v) ? api(t[2] === 'suche' ? `api/katalog/${t[1]}/suche?q=` + encodeURIComponent(QU.q || '') + (QU.inG && QU.gw ? '&gewerk=' + encodeURIComponent(QU.gw) : '') + (QU.ber ? '&bereich=' + QU.ber : '') : `api/katalog/${t[1]}/gewerk/` + encodeURIComponent(t.slice(2).join(':'))) : api('api/lv/' + v)).catch(() => null); };
 async function quLaden() {
-  if (!KAT) KAT = await api('api/katalog').catch(() => ({ info: null, gewerke: [] }));
-  if (QU.pid === 'kat' && !KAT.info) QU.pid = null;
+  if (!KAT) KAT = await api('api/katalog').catch(() => ({ kataloge: [] }));
+  if (QU.pid === 'kat') QU.pid = KAT.kataloge[0] ? 'kat:' + KAT.kataloge[0].id : null;   // vorher: ein einziger Katalog
+  if (istKat(QU.pid) && !KAT.kataloge.some((x) => x.id === katId(QU.pid))) QU.pid = null;
   if (!QU.pid) QU.pid = (PROJ.find((p) => p.id !== pid) || PROJ[0] || {}).id || null;
-  QU.vers = QU.pid && QU.pid !== 'kat' ? await api('api/versionen?project_id=' + QU.pid).catch(() => []) : [];
+  QU.vers = QU.pid && !istKat(QU.pid) ? await api('api/versionen?project_id=' + QU.pid).catch(() => []) : [];
   if (!QU.vers.some((v) => v.id === QU.ver)) QU.ver = ((QU.vers.find((v) => v.aktiv) || QU.vers[0]) || {}).id || null;
-  QU.list = QU.pid === 'kat' ? KAT.gewerke : QU.pid ? await api('api/lv?project_id=' + QU.pid + (QU.ver ? '&version_id=' + QU.ver : '')).catch(() => []) : [];
-  if (!QU.list.some((x) => x.id === QU.lv) && QU.lv !== 'kat:suche') QU.lv = (QU.list[0] || {}).id || null;
-  if (QU.pid !== 'kat' && QU.lv === 'kat:suche') QU.lv = (QU.list[0] || {}).id || null;
+  QU.list = istKat(QU.pid) ? ((await api('api/katalog/' + katId(QU.pid)).catch(() => ({ gewerke: [] }))).gewerke || []) : QU.pid ? await api('api/lv?project_id=' + QU.pid + (QU.ver ? '&version_id=' + QU.ver : '')).catch(() => []) : [];
+  const suche = istKat(QU.pid) && QU.lv === `${QU.pid}:suche`;
+  if (!suche && !QU.list.some((x) => x.id === QU.lv)) QU.lv = (QU.list[0] || {}).id || null;
+  if (istKat(QU.lv) && !suche) QU.gw = String(QU.lv).split(':').slice(2).join(':');
   QU.L = QU.lv ? await quLvLaden(QU.lv) : null;
   QU.sel = new Set(); LS.set('qu.pid', QU.pid); LS.set('qu.lv', QU.lv); quZeigen();
 }
@@ -1539,20 +1554,23 @@ function quZeigen() {
   const I = quItems();
   const rows = I.map((x, i) => x.typ === 'titel'
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
-    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
+    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
   const lvo = QU.list.find((x) => x.id === QU.lv);
-  box.innerHTML = `<div class="qu-h"><div class="t">Kopierquelle <span class="lock" title="Hier lässt sich nichts ändern">🔒 schreibgeschützt</span><span style="flex:1"></span><button class="ib" data-qu="zu" title="Kopierquelle schließen">✕</button></div>
-      <div class="rr"><select id="quProj" aria-label="Projekt der Kopierquelle">${KAT && KAT.info ? `<optgroup label="Katalog"><option value="kat"${QU.pid === 'kat' ? ' selected' : ''}>Positionskatalog ${esc(KAT.info.quelle || '')}</option></optgroup>` : ''}${['Projekte', 'Archiv'].map((g) => { const ps = PROJ.filter((p) => !!p.archived === (g === 'Archiv')); return ps.length ? `<optgroup label="${g}">${ps.map((p) => `<option value="${p.id}"${p.id === QU.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
-        <button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button></div>
+  const sir = istKat(QU.pid) && /^sirados/i.test(((KAT.kataloge || []).find((x) => x.id === katId(QU.pid)) || {}).quelle || '');
+  const gwName = QU.gw && ((QU.list || []).find((x) => x.id === `${QU.pid}:${QU.gw}`) || {}).name;
+  box.innerHTML = `<div class="qu-h">
+      <div class="rr"><select id="quProj" aria-label="Projekt der Kopierquelle">${KAT && KAT.kataloge.length ? `<optgroup label="Kataloge">${KAT.kataloge.map((x) => `<option value="kat:${x.id}"${QU.pid === 'kat:' + x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : ''}${['Projekte', 'Archiv'].map((g) => { const ps = PROJ.filter((p) => !!p.archived === (g === 'Archiv')); return ps.length ? `<optgroup label="${g}">${ps.map((p) => `<option value="${p.id}"${p.id === QU.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select><button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button><button class="ib" data-qu="zu" title="Kopierquelle schließen (schreibgeschützt – hier lässt sich nichts ändern)">✕</button></div>
       ${(QU.vers || []).length > 1 ? `<div class="rr"><label style="display:flex;gap:.5rem;align-items:center;flex:1;font-size:.88rem;color:var(--mute)">Version<select id="quVer" style="flex:1">${QU.vers.map((v, i) => `<option value="${v.id}"${v.id === QU.ver ? ' selected' : ''}>${i + 1} · ${esc(v.name)}${v.aktiv ? ' (aktuell)' : ''}${v.archived ? ' (archiviert)' : ''}</option>`).join('')}</select></label></div>` : ''}
-      ${QU.pid === 'kat' ? `<div class="rr"><input type="search" id="quQ" value="${esc(QU.q || '')}" placeholder="Im ganzen Katalog suchen – z. B. Kalksandstein 17,5" autocomplete="off" style="flex:1"></div>` : ''}
-      <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen mitnehmen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label></div>
-      <div class="qu-o"><span class="hint">${QU.sel.size ? `${quAuswahl().length} Zeilen gewählt` : 'Zeilen anhaken oder ins LV links ziehen'}</span><span style="flex:1"></span>
+      ${istKat(QU.pid) ? `<div class="rr qu-s"><input type="search" id="quQ" value="${esc(QU.q || '')}" placeholder="Suchen – z. B. Kalksandstein 17,5" autocomplete="off">
+        ${gwName ? `<select id="quIn" aria-label="Wo suchen"><option value=""${QU.inG ? '' : ' selected'}>überall</option><option value="g"${QU.inG ? ' selected' : ''}>nur ${esc(gwName.length > 22 ? gwName.slice(0, 21) + '…' : gwName)}</option></select>` : ''}
+        ${sir ? `<span class="qu-seg">${[['', 'Alle'], ['neubau', 'Neubau'], ['altbau', 'Altbau']].map(([k, l]) => `<button type="button" data-qber="${k}" class="${(QU.ber || '') === k ? 'on' : ''}">${l}</button>`).join('')}</span>` : ''}</div>` : ''}
+      <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle (Katalog: mittlerer Preis) – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label>
+        <span class="hint" style="flex:1 1 0;text-align:right">${QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext'}</span>
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
     <div class="qu-l">${QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
 `;
-  pickButton($('#quSel'), QU.lv === 'kat:suche' ? { title: QU.L ? QU.L.name : 'Suche', sub: QU.L ? `${quItems().filter((x) => x.typ === 'pos').length}${QU.L.mehr ? '+' : ''} Treffer` : '' }
-    : lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: QU.pid === 'kat' ? `${lvo.bereich} · ${lvo.n_pos} Positionen` : [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
+  pickButton($('#quSel'), istKat(QU.lv) && QU.lv.endsWith(':suche') ? { title: QU.L ? QU.L.name : 'Suche', sub: QU.L ? `${quItems().filter((x) => x.typ === 'pos').length}${QU.L.mehr ? '+' : ''} Treffer` : '' }
+    : lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: istKat(QU.pid) ? `${lvo.bereich} · ${lvo.n_pos} Positionen` : [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
 }
 function quAuswahl(nur) {   // gewählte Zeilen in LV-Reihenfolge; ein gewählter Titel bringt seinen Inhalt mit
   const I = quItems(), out = [], wahl = nur || QU.sel;
@@ -1585,29 +1603,53 @@ document.addEventListener('click', (e) => {
   if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); quZeigen(); return; }
   if (b && b.dataset.qu === 'ein') { quEinfuegen(quAuswahl(), LASTI); return; }
   if (e.target.closest('#quSel')) {
-    pickMenu($('#quSel'), { search: QU.list.length > 6 ? (QU.pid === 'kat' ? 'Gewerk suchen …' : 'LV suchen …') : '', empty: 'Kein LV in diesem Projekt.',
-      items: QU.list.map((x) => ({ group: x.bereich || (x.archived ? 'Archiv' : 'Leistungsverzeichnisse'), title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
-      onPick: async (v) => { QU.lv = v; QU.L = await quLvLaden(v); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
+    pickMenu($('#quSel'), { search: QU.list.length > 6 ? (istKat(QU.pid) ? 'Gewerk suchen …' : 'LV suchen …') : '', empty: 'Kein LV in diesem Projekt.',
+      items: QU.list.filter((x) => !istKat(QU.pid) || !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || '')).map((x) => ({ group: x.bereich || (x.archived ? 'Archiv' : 'Leistungsverzeichnisse'), title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
+      onPick: async (v) => { QU.lv = v; if (istKat(v)) { QU.gw = String(v).split(':').slice(2).join(':'); QU.q = ''; } QU.L = await quLvLaden(v); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
     return;
   }
   const cbx = e.target.closest('[data-qs]');
-  if (cbx) { const x = quItems()[+cbx.dataset.qs]; if (cbx.checked) QU.sel.add(x.id); else QU.sel.delete(x.id); quZeigen(); return; }
+  if (cbx) { const x = quItems()[+cbx.dataset.qs]; if (cbx.checked) QU.sel.add(x.id); else QU.sel.delete(x.id); quWahlUi(); return; }
   const tr = e.target.closest('tr[data-qi]');
-  if (tr && !e.target.closest('input')) { const x = quItems()[+tr.dataset.qi]; if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quZeigen(); }
+  if (tr && !e.target.closest('input') && e.detail < 2) { const x = quItems()[+tr.dataset.qi]; if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quWahlUi(); }
+});
+async function quSucheNeu() {   // Suche mit den aktuellen Filtern neu laden (oder zurück zum Gewerk)
+  const q = (QU.q || '').trim();
+  if (q.length < 3) { if (istKat(QU.lv) && QU.lv.endsWith(':suche')) { QU.lv = QU.gw ? `${QU.pid}:${QU.gw}` : (QU.list[0] || {}).id || null; QU.L = QU.lv ? await quLvLaden(QU.lv) : null; QU.sel = new Set(); quZeigen(); } return; }
+  QU.lv = `${QU.pid}:suche`; QU.L = await quLvLaden(QU.lv); QU.sel = new Set(); quZeigen();
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('#quelle [data-qber]'); if (!b) return;
+  QU.ber = b.dataset.qber; LS.set('qu.ber', QU.ber);
+  if (QU.ber && QU.gw && QU.inG) { const x = QU.list.find((y) => y.id === `${QU.pid}:${QU.gw}`); if (x && (QU.ber === 'altbau') !== /^Altbau/.test(x.bereich || '')) QU.inG = false; }
+  if ((QU.q || '').trim().length >= 3) await quSucheNeu(); else quZeigen();
+});
+function quWahlUi() {   // Auswahl anzeigen, ohne die Liste neu zu zeichnen (sonst gehen Doppelklick und Scrollposition verloren)
+  const I = quItems();
+  document.querySelectorAll('#quelle tr[data-qi]').forEach((tr) => { const x = I[+tr.dataset.qi], on = !!x && QU.sel.has(x.id); tr.classList.toggle('on', on); const c = tr.querySelector('[data-qs]'); if (c) c.checked = on; });
+  const h = document.querySelector('#quelle .qu-o .hint'); if (h) h.textContent = QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext';
+  const b = document.querySelector('#quelle [data-qu="ein"]'); if (b) b.disabled = !(QU.sel.size && L);
+}
+document.addEventListener('dblclick', (e) => {   // Langtext ganz zeigen / wieder kürzen
+  const tr = e.target.closest && e.target.closest('#quelle tr[data-qi]'); if (!tr || e.target.closest('input')) return;
+  const x = quItems()[+tr.dataset.qi]; if (!x || x.typ !== 'pos') return;
+  if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quWahlUi();   // der erste Klick des Doppelklicks hat die Zeile umgeschaltet
+  QU.offen ||= new Set(); if (QU.offen.has(x.id)) QU.offen.delete(x.id); else QU.offen.add(x.id);
+  const lt = tr.querySelector('.lt'); if (lt) lt.classList.toggle('voll', QU.offen.has(x.id));
+  window.getSelection && window.getSelection().removeAllRanges();
 });
 let quQT = 0;
 document.addEventListener('input', (e) => {
   if (e.target.id !== 'quQ') return;
   QU.q = e.target.value; clearTimeout(quQT);
   quQT = setTimeout(async () => {
-    const q = QU.q.trim();
-    if (q.length < 3) { if (QU.lv === 'kat:suche') { QU.lv = (QU.list[0] || {}).id || null; QU.L = QU.lv ? await quLvLaden(QU.lv) : null; QU.sel = new Set(); quZeigen(); $('#quQ').focus(); } return; }
-    QU.lv = 'kat:suche'; QU.L = await quLvLaden('kat:suche'); QU.sel = new Set(); quZeigen();
+    await quSucheNeu();
     const i = $('#quQ'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
   }, 350);
 });
 document.addEventListener('change', async (e) => {
-  if (e.target.id === 'quProj') { QU.pid = e.target.value === 'kat' ? 'kat' : +e.target.value; QU.lv = null; QU.ver = null; await quLaden(); }
+  if (e.target.id === 'quProj') { QU.pid = istKat(e.target.value) ? e.target.value : +e.target.value; QU.lv = null; QU.ver = null; QU.q = ''; await quLaden(); }
+  else if (e.target.id === 'quIn') { QU.inG = e.target.value === 'g'; LS.set('qu.inG', QU.inG); await quSucheNeu(); }
   else if (e.target.id === 'quVer') { QU.ver = +e.target.value; QU.lv = null; await quLaden(); }
   else if (e.target.id === 'quM') { QU.mengen = e.target.checked; LS.set('qu.mengen', QU.mengen); }
   else if (e.target.id === 'quP') { QU.preise = e.target.checked; LS.set('qu.preise', QU.preise); }
@@ -2358,7 +2400,7 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   const me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform');
   await header('Ausschreibung & Abrechnung', me, conf);
-  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Positionskatalog', render: (h) => katalogEinstellungen(h) }]);
+  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => katalogEinstellungen(h) }]);
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();

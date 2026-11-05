@@ -780,6 +780,22 @@
   };
   H.versionStatus = (t) => { const s = document.querySelector('#bph-vl .bph-vl-st'); if (s) s.textContent = t || ''; };
 
+  /* ---------- Dialoge der Kopfleiste (Projekt, Verlauf, Konto …): an der Titelzeile verschieben, an der Ecke in der Größe ändern ---------- */
+  function dlgBeweglich(m) {
+    if (!m || m.dataset.beweglich || innerWidth <= 700) return; m.dataset.beweglich = '1';
+    m.addEventListener('pointerdown', (e) => {
+      const k = m.querySelector('.bph-dh'); if (!k || !k.contains(e.target) || e.target.closest('button,input,select,a') || e.button > 0) return;
+      const r = m.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
+      Object.assign(m.style, { position: 'fixed', margin: '0', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
+      const mv = (ev) => { m.style.left = Math.max(-r.width + 100, Math.min(innerWidth - 100, ev.clientX - dx)) + 'px'; m.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+  }
+  const dlgBeob = () => new MutationObserver((ms) => ms.forEach((x) => x.addedNodes.forEach((n) => { if (n.nodeType === 1 && n.classList.contains('bph-dlg-bg')) setTimeout(() => dlgBeweglich(n.querySelector('.bph-dlg')), 0); })))
+    .observe(document.body, { childList: true });   // Dialoge hängen direkt am <body> – nur dort schauen (schnell)
+  if (document.body) dlgBeob(); else addEventListener('DOMContentLoaded', dlgBeob);
+
   /* ---------- aktuelles Projekt: gilt in allen Apps (wer die App wechselt, bleibt im selben Projekt) ---------- */
   H.projektSetzen = async function (id) {
     id = id ? +id : null;

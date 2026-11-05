@@ -53,12 +53,44 @@ if (_mq && _mq.addEventListener) _mq.addEventListener('change', () => { if (_the
 function modalBox(html, onClick) {
   const bg = document.createElement('div'); bg.className = 'modal-bg';
   bg.innerHTML = `<div class="modal" role="dialog">${html}</div>`;
-  const close = () => bg.remove();
-  bg.addEventListener('click', (e) => { if (e.target === bg) close(); const b = e.target.closest('[data-m]'); if (b) onClick(b.dataset.m, bg, close, b); });
-  bg.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  const close = () => { bg.remove(); document.removeEventListener('keydown', taste, true); };
+  let unten = null; bg.addEventListener('pointerdown', (e) => { unten = e.target; });   // Ziehen/Größe ändern, das außerhalb endet, schließt nicht
+  bg.addEventListener('click', (e) => { if (e.target === bg && unten === bg) close(); const b = e.target.closest('[data-m]'); if (b && !b.disabled) onClick(b.dataset.m, bg, close, b); });
+  /* Tastatur (nur für das oberste Fenster): Esc bricht ab; ← → (in Eingabefeldern Alt+← →) oder Bild↑/Bild↓ springen zum vorigen/nächsten Eintrag */
+  const taste = (e) => {
+    const alle = [...document.querySelectorAll('.modal-bg')]; if (alle[alle.length - 1] !== bg) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); const x = bg.querySelector('[data-m="x"],[data-m="zu"],[data-m="abbrechen"]'); if (x) x.click(); if (bg.isConnected) close(); return; }
+    const feld = e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"]');
+    const vor = e.key === 'PageUp' || (e.key === 'ArrowLeft' && (!feld || e.altKey)), nach = e.key === 'PageDown' || (e.key === 'ArrowRight' && (!feld || e.altKey));
+    if (!vor && !nach) return;
+    const b = bg.querySelector(vor ? '[data-m="prev"],[data-m="zurueck"],[data-m="vor"]' : '[data-m="next"],[data-m="weiter"],[data-m="naechst"]');
+    if (b && !b.disabled) { e.preventDefault(); e.stopPropagation(); if (feld) feld.dispatchEvent(new Event('change', { bubbles: true })); b.click(); }
+  };
+  document.addEventListener('keydown', taste, true);
+  new MutationObserver((m, o) => { if (!bg.isConnected) { document.removeEventListener('keydown', taste, true); o.disconnect(); } }).observe(document.body, { childList: true });
   document.body.appendChild(bg);
+  dlgBeweglich(bg.querySelector('.modal'));
   const f = bg.querySelector('input,select,button'); if (f) f.focus();
   return bg;
+}
+/* Dialoge an der Überschrift verschieben und an der Ecke rechts unten in der Größe ändern – je Dialogtitel gemerkt */
+function dlgBeweglich(m) {
+  if (!m || m.dataset.beweglich) return; m.dataset.beweglich = '1';
+  const kopf = () => m.querySelector('h3,h2,.mh');   // Überschrift kann erst nach dem Öffnen gezeichnet werden
+  const key = () => { const k = kopf(); return k ? 'bp.dlg.' + ((k.childNodes[0] && k.childNodes[0].textContent) || k.textContent || '').trim().slice(0, 40) : ''; };
+  const setzen = (r) => { Object.assign(m.style, { position: 'fixed', margin: '0', left: Math.max(0, Math.min(innerWidth - 120, r.l)) + 'px', top: Math.max(0, Math.min(innerHeight - 60, r.t)) + 'px' }); if (r.w) m.style.width = Math.min(innerWidth - 16, r.w) + 'px'; if (r.h) { m.style.height = Math.min(innerHeight - 16, r.h) + 'px'; m.style.maxHeight = 'none'; } };
+  const holen = () => { try { const r = key() && JSON.parse(localStorage.getItem(key()) || 'null'); if (r && innerWidth > 700) setzen(r); } catch { /* egal */ } };
+  if (kopf()) holen(); else setTimeout(holen, 0);
+  const merken = () => { if (!key()) return; try { const r = m.getBoundingClientRect(); localStorage.setItem(key(), JSON.stringify({ l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: m.style.height ? Math.round(r.height) : 0 })); } catch { /* egal */ } };
+  m.addEventListener('pointerdown', (e) => {
+    const k = kopf(); if (!k || !k.contains(e.target) || e.target.closest('button,input,select,a') || e.button > 0 || innerWidth <= 700) return;
+    const r = m.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
+    setzen({ l: r.left, t: r.top, w: r.width });
+    const mv = (ev) => { m.style.left = Math.max(-r.width + 100, Math.min(innerWidth - 100, ev.clientX - dx)) + 'px'; m.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); merken(); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  });
+  new ResizeObserver(() => { if (m.dataset.gross !== String(m.offsetWidth + 'x' + m.offsetHeight)) { if (m.dataset.gross) merken(); m.dataset.gross = m.offsetWidth + 'x' + m.offsetHeight; } }).observe(m);
 }
 /* wie modalBox, aber im Einstellungsfenster (⚙ → Diese App): gleicher Aufruf, „close“ schließt das Fenster */
 function paneBox(host, html, onClick) {

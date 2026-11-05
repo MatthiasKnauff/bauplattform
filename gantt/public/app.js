@@ -1340,6 +1340,10 @@ function modal(title, body, buttons) {
     e.stopPropagation();
     if (e.key === 'Escape') close();
     if (e.key === 'Enter' && e.target.tagName === 'INPUT') { const p = buttons.find((b) => b.primary); if (p) { e.preventDefault(); run(p); } }
+    // ← → (in Eingabefeldern Alt+← →) bzw. Bild↑/Bild↓: vorige / nächste Leistung, wenn der Dialog solche Knöpfe hat
+    const feld = e.target.closest && e.target.closest('input,textarea,select');
+    const vor = e.key === 'PageUp' || (e.key === 'ArrowLeft' && (!feld || e.altKey)), nach = e.key === 'PageDown' || (e.key === 'ArrowRight' && (!feld || e.altKey));
+    if (vor || nach) { const b = buttons.find((x) => (vor ? /^◀/ : /▶$/).test(x.label || '')); if (b) { e.preventDefault(); if (feld) feld.dispatchEvent(new Event('change', { bubbles: true })); run(b); } }
   });
   bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
   document.body.appendChild(bg);

@@ -14,6 +14,7 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/versionen/conf   GET/PUT Aufbewahrung (nur Administrator) mit Speicherbedarf
 /api/bp/post        GET Mail-Übersicht zu meinen Projekten (?auto=1 einmal am Tag abrufen, ?neu=1 jetzt) · POST erledigt
 /api/bp/postfaecher GET/PUT meine Postfächer (Microsoft 365 an/aus, eigene IMAP-Konten) · POST …/test
+/api/bp/kacheln GET/PUT Reihenfolge der App-Kacheln auf der Startseite (je Benutzer)
 /api/bp/kontakt    POST {name, email, trade, contact_person}  Kontakt schnell anlegen (nach Versand an eine neue Adresse)
 /api/bp/kontakt/<id>/verlauf  Benachrichtigungsverlauf (Planversand, Rügen …)
 /api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
@@ -601,16 +602,9 @@ def blueprint(get_user=None):
                 return jsonify(ok=True)
             ein = posteingang.eingerichtet(c, u)
             d = posteingang.lesen(c, uid)
-            heute = datetime.now().date().isoformat()
-            stand_lokal = ""
-            if d.get("stand"):
-                try:
-                    stand_lokal = datetime.fromisoformat(d["stand"]).astimezone().date().isoformat()
-                except ValueError:
-                    pass
-            if ein and (request.args.get("neu") or (request.args.get("auto") and stand_lokal != heute and datetime.now().hour >= 5)):
+            if ein and (request.args.get("neu") or (request.args.get("auto") and posteingang.faellig(c, uid))):
                 d = posteingang.abrufen(c, u)
-        return jsonify(**d, eingerichtet=ein)
+        return jsonify(**d, eingerichtet=ein, abruf=posteingang.postfaecher(c, uid)["abruf"])
 
     @bp.post("/api/bp/post/erinnerung")
     def post_erinnerung():
@@ -657,6 +651,23 @@ def blueprint(get_user=None):
             users = [{"id": r["id"], "name": r["name"], "email": r["email"] or ""} for r in c.execute("SELECT id, name, email FROM users ORDER BY name").fetchall()]
             ok = posteingang.m365_ok(c)
         return jsonify(**d, benutzer=users, m365=ok)
+
+    @bp.route("/api/bp/kacheln", methods=["GET", "PUT"])
+    def kacheln_api():
+        """Reihenfolge der App-Kacheln auf der Startseite (je Benutzer, auf allen Geräten gleich)."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if request.method == "PUT":
+                r = [str(x)[:40] for x in ((request.get_json(silent=True) or {}).get("reihenfolge") or [])[:40] if isinstance(x, str)]
+                konto._put(c, f"kacheln:{uid}", json.dumps(r), u["name"])
+                return jsonify(reihenfolge=r)
+            try:
+                r = json.loads(konto._get(c, f"kacheln:{uid}") or "[]")
+            except ValueError:
+                r = []
+        return jsonify(reihenfolge=r if isinstance(r, list) else [])
 
     @bp.route("/api/bp/postfaecher", methods=["GET", "PUT"])
     def postfaecher_api():

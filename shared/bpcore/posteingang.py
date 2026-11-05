@@ -65,12 +65,76 @@ def postfaecher(c, uid):
         d = json.loads(v) if v else {}
     except ValueError:
         d = {}
-    return {"m365": d.get("m365", True), "konten": [k for k in d.get("konten") or [] if isinstance(k, dict)]}
+    return {"m365": d.get("m365", True), "konten": [k for k in d.get("konten") or [] if isinstance(k, dict)], "abruf": _abruf(d.get("abruf"))}
+
+
+RHYTHMEN = ("tag", "zweimal", "stuendlich", "hand")
+
+
+def _abruf(a):
+    """Wie oft die Postfächer gelesen werden: einmal am Tag (Uhrzeit), zweimal (Uhrzeit und 5 h später), stündlich 7–19 Uhr, nur von Hand."""
+    a = a if isinstance(a, dict) else {}
+    r = a.get("rhythmus") if a.get("rhythmus") in RHYTHMEN else "tag"
+    z = str(a.get("uhrzeit") or "08:00")
+    return {"rhythmus": r, "uhrzeit": z if re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", z) else "08:00"}
+
+
+def letzter_termin(abruf, jetzt=None):
+    """Der letzte planmäßige Abruf vor „jetzt“ (Ortszeit) – oder None (nur von Hand)."""
+    jetzt = jetzt or datetime.now()
+    r = abruf["rhythmus"]
+    if r == "hand":
+        return None
+    h, m = map(int, abruf["uhrzeit"].split(":"))
+    if r == "stuendlich":
+        zeiten = [(x, 0) for x in range(7, 20)]
+    elif r == "zweimal":
+        zeiten = [(h, m), ((h + 5) % 24, m)]
+    else:
+        zeiten = [(h, m)]
+    kand = []
+    for tag in (jetzt.date(), jetzt.date() - timedelta(days=1)):
+        for hh, mm in zeiten:
+            t = datetime(tag.year, tag.month, tag.day, hh, mm)
+            if t <= jetzt:
+                kand.append(t)
+    return max(kand) if kand else None
+
+
+def faellig(c, uid):
+    """Ist ein planmäßiger Abruf fällig (seit dem letzten Termin noch nicht gelesen)?"""
+    t = letzter_termin(postfaecher(c, uid)["abruf"])
+    if not t:
+        return False
+    st = lesen(c, uid).get("stand")
+    try:
+        stand = datetime.fromisoformat(st).astimezone().replace(tzinfo=None) if st else None
+    except ValueError:
+        stand = None
+    return stand is None or stand < t
+
+
+def alle_faelligen(c_fn):
+    """Hintergrund (alle 5 Minuten aus der Aufgaben-App): für jeden eingerichteten Benutzer abrufen, wenn sein Termin erreicht ist."""
+    with c_fn() as c:
+        users = c.execute("SELECT * FROM users WHERE active=1").fetchall()
+    n = 0
+    for u in users:
+        try:
+            with c_fn() as c:
+                if not c.execute("SELECT pg_try_advisory_xact_lock(hashtext(?)) AS ok", (f"post:{u['id']}",)).fetchone()["ok"]:
+                    continue
+                if eingerichtet(c, u) and faellig(c, u["id"]):
+                    abrufen(c, u)
+                    n += 1
+        except Exception:   # einzelnes Postfach gestört – die anderen trotzdem
+            continue
+    return n
 
 
 def postfaecher_oeffentlich(c, uid):
     d = postfaecher(c, uid)
-    return {"m365": d["m365"], "konten": [{**{k: v for k, v in x.items() if k != "pass"}, "pass_set": bool(x.get("pass"))} for x in d["konten"]]}
+    return {"m365": d["m365"], "abruf": d["abruf"], "konten": [{**{k: v for k, v in x.items() if k != "pass"}, "pass_set": bool(x.get("pass"))} for x in d["konten"]]}
 
 
 def postfaecher_setzen(c, uid, b, by):
@@ -88,7 +152,7 @@ def postfaecher_setzen(c, uid, b, by):
         x["pass"] = pw if isinstance(pw, str) and pw else (altk.get(kid) or {}).get("pass", "")
         if x["host"] and x["user"]:
             neu.append(x)
-    d = {"m365": b.get("m365", alt["m365"]) is not False, "konten": neu}
+    d = {"m365": b.get("m365", alt["m365"]) is not False, "konten": neu, "abruf": _abruf(b.get("abruf") or alt["abruf"])}
     konto._put(c, f"postfaecher:{uid}", json.dumps(d, ensure_ascii=False), by)
     return postfaecher_oeffentlich(c, uid)
 

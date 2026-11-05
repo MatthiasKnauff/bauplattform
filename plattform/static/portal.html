@@ -18,6 +18,17 @@
 .tile .ic{grid-row:1/3;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--hov);color:var(--y)}
 .tile .ic svg{width:24px;height:24px}
 .tile b{font-size:1rem;line-height:1.2}
+/* Kacheln anordnen (✎) */
+.hello{position:relative}
+.ordnen{position:absolute;right:0;top:.2rem;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:.95rem}
+.ordnen:hover,.ordnen.on{color:var(--y);border-color:var(--y)}
+.ordnen.on{background:var(--y);color:var(--on)}
+.tiles.edit .tile{cursor:grab;border-style:dashed;user-select:none;-webkit-user-select:none;touch-action:none}
+.tiles.edit .tile:hover{transform:none}
+.tiles.edit .tile.zieh{opacity:.35}
+.tiles.edit .tile.ziel{border-color:var(--y);border-style:solid}
+.ordnen-h{grid-column:1/-1;color:var(--mute);font-size:.85rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.ordnen-h button{border:0;background:none;color:var(--y);cursor:pointer;font:inherit;padding:0;text-decoration:underline}
 .tile span.d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Post zu meinen Projekten */
 .post{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem 1rem}
@@ -53,7 +64,7 @@
 </head>
 <body>
 <main class="wrap">
-  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
+  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="ordnen" id="ordnen" title="Kacheln anordnen (ziehen und ablegen)" aria-pressed="false">✎</button></div>
   <div class="tiles" id="tiles"></div>
   <section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section>
   <div class="foot"><span id="ver"></span></div>
@@ -70,6 +81,46 @@ const DESC = {
   baukosten: ['Baukosten', 'Kosten nach DIN 276 aus Plänen (PDF) und Bauzeitenplan – mit Mittelabfluss und KI-Prüfung.'],
   admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
 };
+/* ---------- Kacheln: eigene Reihenfolge (✎ – ziehen und ablegen, auch mit dem Finger) ---------- */
+let APPS = [], REIHE = [], ORDNEN = false;
+function kachelnZeigen() {
+  const pos = (k) => { const i = REIHE.indexOf(k); return i < 0 ? 1000 + APPS.findIndex((a) => a.key === k) : i; };
+  const L = [...APPS].sort((a, b) => pos(a.key) - pos(b.key));
+  $('#tiles').innerHTML = L.map(a => `
+    <a class="tile ${a.allowed ? '' : 'off'}" data-key="${esc(a.key)}" href="${esc(appUrl(a))}/"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
+      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`).join('')
+    + (ORDNEN ? '<div class="ordnen-h">Kacheln an die gewünschte Stelle ziehen. <button type="button" data-ord="fertig">Fertig</button><button type="button" data-ord="zurueck">Ursprüngliche Reihenfolge</button></div>' : '');
+  $('#tiles').classList.toggle('edit', ORDNEN);
+}
+async function reiheSpeichern(r) { REIHE = r; try { await api('api/bp/kacheln', 'PUT', { reihenfolge: r }); } catch (e) { toast(e.message, true); } }
+function ordnen(an) { ORDNEN = an; const b = $('#ordnen'); b.classList.toggle('on', an); b.setAttribute('aria-pressed', an); b.textContent = an ? '✓' : '✎'; b.title = an ? 'Anordnen beenden' : 'Kacheln anordnen (ziehen und ablegen)'; kachelnZeigen(); }
+$('#ordnen').addEventListener('click', () => ordnen(!ORDNEN));
+$('#tiles').addEventListener('click', async (e) => {
+  const o = e.target.closest('[data-ord]'); if (o) { if (o.dataset.ord === 'fertig') ordnen(false); else { await reiheSpeichern([]); kachelnZeigen(); } return; }
+  if (ORDNEN && e.target.closest('.tile')) e.preventDefault();   // beim Anordnen nicht in die App springen
+});
+(() => {   // Ziehen mit Maus, Stift und Finger (Pointer-Events – geht auch auf dem iPhone)
+  let zieh = null, geist = null, dx = 0, dy = 0;
+  const T = $('#tiles');
+  T.addEventListener('pointerdown', (e) => {
+    const t = ORDNEN && e.target.closest('.tile'); if (!t || e.button > 0) return;
+    e.preventDefault(); zieh = t; const r = t.getBoundingClientRect(); dx = e.clientX - r.left; dy = e.clientY - r.top;
+    geist = t.cloneNode(true); Object.assign(geist.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', pointerEvents: 'none', zIndex: 60, boxShadow: '0 10px 30px rgba(0,0,0,.3)', opacity: '.95' });
+    document.body.appendChild(geist); t.classList.add('zieh'); T.setPointerCapture(e.pointerId);
+  });
+  T.addEventListener('pointermove', (e) => {
+    if (!zieh) return;
+    geist.style.left = (e.clientX - dx) + 'px'; geist.style.top = (e.clientY - dy) + 'px';
+    const unter = document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.classList && x.classList.contains('tile') && x !== zieh && x !== geist);
+    T.querySelectorAll('.ziel').forEach((x) => x.classList.remove('ziel'));
+    if (unter) { const r = unter.getBoundingClientRect(), nach = e.clientX > r.left + r.width / 2; unter.classList.add('ziel'); if (nach ? unter.nextElementSibling !== zieh : unter.previousElementSibling !== zieh) unter.parentNode.insertBefore(zieh, nach ? unter.nextElementSibling : unter); }
+  });
+  const ende = () => {
+    if (!zieh) return; zieh.classList.remove('zieh'); geist.remove(); T.querySelectorAll('.ziel').forEach((x) => x.classList.remove('ziel')); zieh = null;
+    reiheSpeichern([...T.querySelectorAll('.tile')].map((x) => x.dataset.key));
+  };
+  T.addEventListener('pointerup', ende); T.addEventListener('pointercancel', ende);
+})();
 /* ---------- Post zu meinen Projekten: einmal am Tag aus den Postfächern, mit Vorschlägen für Erinnerungen ---------- */
 let POST = null, POSTALLE = false, POSTLAEUFT = false;
 const ARTIC = { Rechnung: '🧾', Schlussrechnung: '🧾', Nachtrag: '📝', Angebot: '📝', Behinderung: '⚠️', Mangel: '⚠️', Termin: '📅', Plan: '📐', Nachricht: '✉️' };
@@ -77,9 +128,9 @@ const WICHTIG = new Set(['Rechnung', 'Schlussrechnung', 'Nachtrag', 'Angebot', '
 const zeitTxt = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; const h = new Date(); const gleich = d.toDateString() === h.toDateString(); return gleich ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
 function postZeigen() {
   const box = $('#post'); box.hidden = false; const HANDY = /iPhone|iPad|Android/i.test(navigator.userAgent); const D = POST || {};
-  const kopf = `<div class="post-h"><h2>📬 Post zu deinen Projekten</h2><span class="mute">${D.stand ? `seit ${zeitTxt(D.seit)} · Stand ${zeitTxt(D.stand)}` : ''}${POSTLAEUFT ? ' · wird abgerufen …' : ''}</span><span style="flex:1"></span>
-    ${D.eingerichtet ? `<button class="btn sm" data-post="neu" ${POSTLAEUFT ? 'disabled' : ''} title="Postfächer jetzt lesen">↻ Jetzt abrufen</button>` : ''}<button class="btn sm" data-post="pf" title="Postfächer einrichten">⚙ Postfächer</button></div>`;
-  if (!D.eingerichtet) { box.innerHTML = kopf + `<p class="mute" style="margin:.2rem 0 0">Hier stehen einmal am Tag die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Dazu einmal unter <a href="#" data-post="pf">⚙ Postfächer</a> dein Büro-Postfach einschalten oder eigene Postfächer eintragen.</p>`; return; }
+  const kopf = `<div class="post-h"><h2>📬 Post zu deinen Projekten</h2><span class="mute">${D.stand ? `seit ${zeitTxt(D.seit)} · Stand ${zeitTxt(D.stand)}` : ''}${D.abruf ? ' · ' + ({ tag: 'automatisch um ' + D.abruf.uhrzeit, zweimal: 'automatisch 2× täglich ab ' + D.abruf.uhrzeit, stuendlich: 'automatisch stündlich', hand: 'nur von Hand' })[D.abruf.rhythmus] : ''}${POSTLAEUFT ? ' · wird abgerufen …' : ''}</span><span style="flex:1"></span>
+    ${D.eingerichtet ? `<button class="btn sm" data-post="neu" ${POSTLAEUFT ? 'disabled' : ''} title="Postfächer jetzt lesen">↻ Jetzt abrufen</button>` : ''}<button class="btn sm" data-post="pf" title="Postfächer und Abrufzeit einstellen">⚙ Postfächer</button></div>`;
+  if (!D.eingerichtet) { box.innerHTML = kopf + `<p class="mute" style="margin:.2rem 0 0">Hier stehen jeden Morgen um 8 Uhr (einstellbar) die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Dazu einmal unter <a href="#" data-post="pf">⚙ Postfächer</a> dein Büro-Postfach einschalten oder eigene Postfächer eintragen.</p>`; return; }
   const M = D.mails || [];
   const grp = {}; M.forEach((m) => { (grp[m.pid] ||= { name: m.projekt, mails: [] }).mails.push(m); });
   const G = Object.values(grp).sort((a, b) => b.mails.filter((m) => WICHTIG.has(m.art)).length - a.mails.filter((m) => WICHTIG.has(m.art)).length || b.mails.length - a.mails.length);
@@ -103,7 +154,7 @@ document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-post]'); if (!b) return; e.preventDefault();
   const a = b.dataset.post;
   if (a === 'neu') return postLaden('?neu=1');
-  if (a === 'pf') { if (window.BPHead && BPHead.postfaecher) { await BPHead.postfaecher(); } const iv = setInterval(() => { if (!document.querySelector('.bph-dlg-bg')) { clearInterval(iv); postStart(); } }, 700); return; }
+  if (a === 'pf') { if (window.BPHead && BPHead.einstellungen) BPHead.einstellungen({ bereich: 'app', teil: 'post' }); return; }
   if (a === 'alle') { POSTALLE = true; postZeigen(); return; }
   if (a === 'erinnern') {   // Erinnerung zu jeder Mail – Vorschlag mit Text und Datum, beides änderbar
     const m = (POST.mails || []).find((x) => x.id === b.dataset.mid); if (!m) return;
@@ -129,10 +180,20 @@ document.addEventListener('click', async (e) => {
   const h = new Date().getHours();
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.vorname || me.name}`;
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { postZeigen && POST && postZeigen(); });   // Startseite: Projekt gilt danach in allen Apps
-  $('#tiles').innerHTML = conf.apps.filter(a => DESC[a.key] && a.key !== 'admin').map(a => `
-    <a class="tile ${a.allowed ? '' : 'off'}" href="${esc(appUrl(a))}/"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'}>
-      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`).join('');
+  APPS = conf.apps.filter(a => DESC[a.key] && a.key !== 'admin');
+  REIHE = await api('api/bp/kacheln').then((r) => r.reihenfolge || []).catch(() => []);
+  kachelnZeigen();
+  if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
+    { key: 'post', label: 'Posteingang', render: (host) => { BPHead.postfaecher({ into: host, nachSpeichern: () => postStart() }); } },
+    { key: 'kacheln', label: 'Kacheln', render: (host) => {
+      host.innerHTML = `<p class="bph-mu">Die Reihenfolge der App-Kacheln stellst du direkt auf der Startseite ein: rechts oben auf <b>✎</b> klicken und die Kacheln an die gewünschte Stelle ziehen. Sie gilt auf allen deinen Geräten.</p>
+        <div class="bph-row"><button type="button" class="bph-btn pri" data-k1>✎ Jetzt anordnen</button><button type="button" class="bph-btn" data-k2${REIHE.length ? '' : ' disabled'}>Ursprüngliche Reihenfolge</button></div>`;
+      host.querySelector('[data-k1]').onclick = () => { BPHead.einstellungenSchliessen(); ordnen(true); };
+      host.querySelector('[data-k2]').onclick = async () => { await reiheSpeichern([]); kachelnZeigen(); BPHead.einstellungenSchliessen(); toast('Ursprüngliche Reihenfolge wiederhergestellt.'); };
+    } },
+  ]);
   postStart();
+  setInterval(() => { if (document.visibilityState === 'visible' && POST && POST.eingerichtet && !POSTLAEUFT) postLaden('?auto=1'); }, 10 * 60 * 1000);   // Seite bleibt offen: zur eingestellten Zeit nachladen
   $('#ver').textContent = 'Version ' + conf.version;
   if (/^#(darstellung|look)$/.test(location.hash) && window.BPHead && BPHead.look) BPHead.ready.then(() => BPHead.look());   // alte Lesezeichen
 })().catch(e => toast(e.message, true));

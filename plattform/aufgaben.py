@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, briefbogen, db, ical, konto, mail, plan, platform, schrift, sso, versionen, vorlagen
+from bpcore import benachrichtigung, briefbogen, db, ical, konto, mail, plan, platform, posteingang, schrift, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -947,6 +947,10 @@ def start_loop():
                     c.execute("SELECT pg_advisory_xact_lock(hashtext('aufgaben:sync'))")
                     sync_plans(c)
                 send_due()
+                try:   # Posteingang der Startseite zu den eingestellten Zeiten lesen (Standard: täglich 8:00)
+                    _loop["post"] = posteingang.alle_faelligen(db.tx)
+                except Exception as e:
+                    _loop["post_fehler"] = str(e)[:200]
                 if _loop.get("aufgeraeumt") != date.today().isoformat():   # einmal am Tag: alte Versionen ausdünnen
                     with db.tx() as c:
                         c.execute("SELECT pg_advisory_xact_lock(hashtext('versionen:aufraeumen'))")

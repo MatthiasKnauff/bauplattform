@@ -338,7 +338,7 @@
           <label class="bph-ck"><input type="checkbox" data-kchk="kopie"${K.kopie ? ' checked' : ''}> bei „direkt an die Firma“ eine Kopie an mich</label>
           <h4>Kalender</h4><label class="bph-ck"><input type="checkbox" data-kchk="kalender"${K.kalender ? ' checked' : ''}> eigene und verschobene Erinnerungen automatisch als Termin an mich senden (Outlook & Co.: annehmen trägt ihn in den Kalender ein)</label>
           <p class="bph-mu">Einzelne Erinnerungen, Fristen und Termine lassen sich außerdem jederzeit mit 📅 als Termin schicken.</p>
-          <h4>Posteingang</h4><p class="bph-mu">Die Startseite zeigt einmal am Tag die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen.</p>
+          <h4>Posteingang</h4><p class="bph-mu">Die Startseite zeigt die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Postfächer und Abrufzeit stellst du auf der Startseite unter ⚙ → Startseite → Posteingang ein.</p>
           <div class="bph-row"><button type="button" class="bph-btn" data-kpost>📬 Postfächer einrichten …</button></div>
           <h4>Kennwort</h4><div class="bph-row"><button type="button" class="bph-btn" data-kpw>🔑 Kennwort ändern …</button></div>
           <div class="bph-row">${H.verlaufKnopf('konto:' + K.uid, 'Verlauf meiner Einstellungen')}</div>
@@ -501,18 +501,29 @@
     q('[data-ka]').focus();
   };
   /* Meine Postfächer: Microsoft 365 (zentral eingerichtet) an/aus und eigene IMAP-Konten */
-  H.postfaecher = async function () {
-    let D, msg = '', neu = null;
-    try { D = await KX('api/bp/postfaecher'); } catch (e) { alert(e.message); return; }
-    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-    bg.innerHTML = '<div class="bph-dlg" role="dialog" aria-label="Meine Postfächer"></div>'; document.body.appendChild(bg);
-    const root = bg.firstChild, close = () => { bg.remove(); document.removeEventListener('keydown', e1); }, e1 = (e) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+  /* opt.into: in ein Element zeichnen (Einstellungen → Startseite → Posteingang) statt als Fenster; opt.nachSpeichern(D) */
+  H.postfaecher = async function (opt = {}) {
+    let D, msg = '';
+    if (opt.into) opt.into.innerHTML = '<p class="bph-mu">Lade …</p>';
+    try { D = await KX('api/bp/postfaecher'); } catch (e) { if (opt.into) opt.into.textContent = e.message; else alert(e.message); return; }
+    let root, close;
+    if (opt.into) { root = opt.into; close = () => {}; } else {
+      const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+      bg.innerHTML = '<div class="bph-dlg" role="dialog" aria-label="Meine Postfächer"></div>'; document.body.appendChild(bg);
+      const e1 = (e) => { if (e.key === 'Escape') close(); };
+      root = bg.firstChild; close = () => { bg.remove(); document.removeEventListener('keydown', e1); };
+      document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    }
+    const AB = D.abruf || { rhythmus: 'tag', uhrzeit: '08:00' };
+    const abrufText = () => ({ tag: `einmal am Tag um ${AB.uhrzeit} Uhr`, zweimal: `zweimal am Tag, um ${AB.uhrzeit} und 5 Stunden später`, stuendlich: 'stündlich von 7 bis 19 Uhr', hand: 'nur, wenn du ↻ Jetzt abrufen drückst' })[AB.rhythmus];
     const VORL = { gmail: ['imap.gmail.com', 993], webde: ['imap.web.de', 993], gmx: ['imap.gmx.net', 993], ionos: ['imap.ionos.de', 993], strato: ['imap.strato.de', 993], tonline: ['secureimap.t-online.de', 993], outlook: ['outlook.office365.com', 993] };
     const feld = (k, i, l, typ = 'text', ph = '') => `<label style="flex:1;min-width:9rem">${l}<input data-pf="${k}" data-pi="${i}" type="${typ}" value="${typ === 'password' ? '' : esc((D.konten[i] || {})[k] ?? '')}" placeholder="${esc(ph)}" autocomplete="${typ === 'password' ? 'new-password' : 'off'}"></label>`;
     function draw() {
-      root.innerHTML = `<div class="bph-dh"><b>Meine Postfächer</b><button type="button" class="bph-x" data-pc aria-label="Schließen">×</button></div><div class="bph-db">
-        <p class="bph-mu">Aus diesen Postfächern stellt die Startseite einmal am Tag (oder mit ↻) die Mails zu <b>deinen</b> Projekten zusammen. Gelesen wird nur – nichts wird verschoben, gelöscht oder als gelesen markiert. Nur du siehst die Übersicht.</p>
+      root.innerHTML = `${opt.into ? '' : '<div class="bph-dh"><b>Meine Postfächer</b><button type="button" class="bph-x" data-pc aria-label="Schließen">×</button></div>'}<div class="bph-db"${opt.into ? ' style="padding:0"' : ''}>
+        <p class="bph-mu">Aus diesen Postfächern stellt die Startseite die Mails zu <b>deinen</b> Projekten zusammen – ${abrufText()} (und jederzeit mit ↻). Gelesen wird nur – nichts wird verschoben, gelöscht oder als gelesen markiert. Nur du siehst die Übersicht.</p>
+        <h4>Abruf</h4>
+        <div class="bph-row" style="align-items:flex-end"><label style="flex:1;min-width:12rem">Wie oft<select data-pab="rhythmus" style="width:100%;font:inherit;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line,#3b3e42);background:var(--inp,transparent);color:inherit">${[['tag', 'einmal am Tag'], ['zweimal', 'zweimal am Tag'], ['stuendlich', 'stündlich (7–19 Uhr)'], ['hand', 'nur von Hand (↻)']].map(([k, l]) => `<option value="${k}"${AB.rhythmus === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+          ${AB.rhythmus === 'tag' || AB.rhythmus === 'zweimal' ? `<label style="width:8rem">${AB.rhythmus === 'zweimal' ? 'ab' : 'um'}<input type="time" data-pab="uhrzeit" value="${esc(AB.uhrzeit)}"></label>` : ''}</div>
         <h4>Büro-Postfach (Microsoft 365)</h4>
         ${D.m365_zentral ? `<label class="bph-ck"><input type="checkbox" data-pm${D.m365 ? ' checked' : ''}> mein Postfach <b>${esc(D.email || '–')}</b> einbeziehen</label>${(D.zugewiesen || []).length ? `<p class="bph-mu">Dazu vom Administrator zugewiesen: <b>${D.zugewiesen.map(esc).join(', ')}</b></p>` : ''}<div class="bph-row"><button type="button" class="bph-btn" data-ptm>Probeweise lesen</button></div>`
           : '<p class="bph-mu">Noch nicht eingerichtet – das macht der Administrator einmal unter ⚙ → Büro → Mailserver.</p>'}
@@ -525,16 +536,16 @@
         <p class="bph-mu">Gmail, GMX, WEB.DE & Co. verlangen meist ein <b>App-Passwort</b> und eingeschaltetes IMAP in den Einstellungen des Postfachs.</p>
         <div class="bph-row"><button type="button" class="bph-btn pri" data-ps>Speichern</button></div>${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
     }
-    const lesen = () => { root.querySelectorAll('[data-pf]').forEach((el) => { const k = D.konten[+el.dataset.pi]; if (!k) return; const f = el.dataset.pf; k[f] = el.type === 'checkbox' ? el.checked : el.value; }); const m = root.querySelector('[data-pm]'); if (m) D.m365 = m.checked; };
+    const lesen = () => { root.querySelectorAll('[data-pab]').forEach((el) => { AB[el.dataset.pab] = el.value || AB[el.dataset.pab]; }); root.querySelectorAll('[data-pf]').forEach((el) => { const k = D.konten[+el.dataset.pi]; if (!k) return; const f = el.dataset.pf; k[f] = el.type === 'checkbox' ? el.checked : el.value; }); const m = root.querySelector('[data-pm]'); if (m) D.m365 = m.checked; };
     root.addEventListener('click', async (e) => {
       const t = e.target;
       if (t.closest('[data-pc]')) return close();
       if (t.closest('[data-pd]')) { lesen(); D.konten.splice(+t.closest('[data-pd]').dataset.pd, 1); draw(); return; }
-      if (t.closest('[data-ps]')) { lesen(); try { D = { ...D, ...(await JS('api/bp/postfaecher', 'PUT', { m365: D.m365, konten: D.konten })) }; msg = 'Gespeichert.'; } catch (er) { msg = er.message; } draw(); return; }
+      if (t.closest('[data-ps]')) { lesen(); try { D = { ...D, ...(await JS('api/bp/postfaecher', 'PUT', { m365: D.m365, konten: D.konten, abruf: AB })) }; Object.assign(AB, D.abruf || {}); msg = 'Gespeichert.'; if (opt.nachSpeichern) opt.nachSpeichern(D); } catch (er) { msg = er.message; } draw(); return; }
       if (t.closest('[data-ptm]')) { msg = 'lese …'; draw(); try { const r = await JS('api/bp/postfaecher/test', 'POST', { m365: true }); msg = r.ok ? '✔ ' + r.text : '✖ ' + r.error; } catch (er) { msg = er.message; } draw(); return; }
       const pt = t.closest('[data-pt]'); if (pt) { lesen(); msg = 'verbinde …'; draw(); try { const r = await JS('api/bp/postfaecher/test', 'POST', { konto: D.konten[+pt.dataset.pt] }); msg = r.ok ? '✔ ' + r.text : '✖ ' + r.error; } catch (er) { msg = er.message; } draw(); }
     });
-    root.addEventListener('change', (e) => { const v = e.target.closest('[data-pv]'); if (!v || !v.value) return; lesen(); const x = VORL[v.value] || ['', 993]; D.konten.push({ name: v.options[v.selectedIndex].text.replace(/ \(.*/, ''), host: x[0], port: x[1], user: '', ordner: 'INBOX', an: true }); draw(); });
+    root.addEventListener('change', (e) => { if (e.target.closest('[data-pab="rhythmus"]')) { lesen(); draw(); return; } const v = e.target.closest('[data-pv]'); if (!v || !v.value) return; lesen(); const x = VORL[v.value] || ['', 993]; D.konten.push({ name: v.options[v.selectedIndex].text.replace(/ \(.*/, ''), host: x[0], port: x[1], user: '', ordner: 'INBOX', an: true }); draw(); });
     draw();
   };
   H.verlaufKnopf = (bereich, label) => `<button type="button" class="bph-btn bph-vbtn" data-bph-verlauf="${esc(bereich)}" title="Frühere Stände ansehen und wiederherstellen">↶ ${esc(label || 'Verlauf')}</button>`;

@@ -194,6 +194,7 @@ body.as-open .wrap{padding-bottom:45vh}
 </main>
 <input type="file" id="pdfIn" accept="application/pdf,.pdf" multiple class="hidden">
 <script src="static/bp.js"></script>
+<script src="static/pdbwahl.js"></script>
 <script>
 const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Mengen'], ['bauteile', 'Bauteile & Kostengruppen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
 // Was die Stufe bedeutet und bewirkt (Genauigkeit, Gliederungstiefe im PDF, zusätzliche Prüfregeln)
@@ -680,7 +681,7 @@ function vBauteile() {
     ${bt.length ? `<div class="tbl"><table class="bt"><thead><tr><th>KG</th><th>Bauteil</th><th>Material / Ausführung</th><th>Ermittlung</th><th class="r">Menge</th><th>Einh.</th><th class="r">€ / Einh.</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
       ${Object.keys(groups).sort().map((k) => { const g = c.kg2[k] || {}; return `<tr class="bt-g"><td>${k}</td><td colspan="6"><b>${esc(KG2N[k] || 'KG ' + k)}</b>${g.kennwert ? ` <span class="hint">· Kennwert-Anteil ${eur(g.kennwert)} · ${vglTxt(groups[k].reduce((a, [b]) => a + btBetrag(b), 0), g.kennwert)}</span>` : ''}</td><td class="r num"><b>${eur(groups[k].reduce((a, [b]) => a + btBetrag(b), 0))}</b></td><td></td></tr>` + groups[k].map(row).join(''); }).join('')}
       </tbody></table></div>` : '<div class="card empty"><p>Noch keine Bauteile. „Vorschläge aus Raumbuch & Plänen“ legt eine Liste mit Mengen aus Flächen, Geschossen und Höhen an – Material und Preis wählst du je Zeile.</p></div>'}
-    <div class="row" style="margin-top:.7rem;gap:.4rem"><select id="btNewKg" aria-label="Kostengruppe für neues Bauteil">${kgOpts}</select><button class="btn sm" data-act="btAdd">+ Bauteil</button>${bt.length ? '<span style="flex:1"></span><button class="btn sm danger" data-act="btClear">Alle Bauteile entfernen</button>' : ''}</div>
+    <div class="row" style="margin-top:.7rem;gap:.4rem"><select id="btNewKg" aria-label="Kostengruppe für neues Bauteil">${kgOpts}</select><button class="btn sm" data-act="btAdd">+ Bauteil</button><button class="btn sm" data-act="btPdb" title="Bauteile aus den Baudaten (Positionsdatenbank, Sirados-Import, eigene Positionen) mit Einheit, KG und Preis übernehmen">+ aus Baudaten</button>${bt.length ? '<span style="flex:1"></span><button class="btn sm danger" data-act="btClear">Alle Bauteile entfernen</button>' : ''}</div>
     ${c.kg2 && Object.keys(c.kg2).length ? `<section class="card" style="margin-top:1rem"><h2 style="margin:0 0 .5rem">Kostengruppen der 2. Ebene</h2><p class="hint" style="margin:0 0 .5rem">Abweichung = Bauteile im Vergleich zum Kennwert-Anteil derselben Kostengruppe.</p><div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th>Quelle</th><th class="r">Kennwert-Anteil</th><th class="r">Bauteile</th><th class="r">Abweichung</th><th class="r">Betrag</th></tr></thead><tbody>
       ${Object.entries(c.kg2).sort().map(([k, x]) => { const dv = x.kennwert ? Math.round((x.wert / x.kennwert - 1) * 100) : null;
         return `<tr><td>${k}</td><td>${esc(KG2N[k] || '')}</td><td>${x.quelle === 'bauteile' ? `${x.n} Bauteile` : '<span class="hint">Kennwert-Anteil</span>'}</td><td class="r num">${eur(x.kennwert)}</td><td class="r num">${x.quelle === 'bauteile' ? eur(x.wert) : '–'}</td><td class="r"${dv != null && Math.abs(dv) > 40 ? ' style="color:#e07b3a"' : ''}>${x.quelle === 'bauteile' ? vglTxt(x.wert, x.kennwert) : x.wert !== x.kennwert ? `angeglichen ${vglTxt(x.wert, x.kennwert, true)}` : '–'}</td><td class="r num">${eur(x.wert)}</td></tr>`; }).join('')}</tbody>
@@ -1014,6 +1015,11 @@ document.addEventListener('click', async (e) => {
     else if (act === 'hstdClear') { e.preventDefault(); const v = prompt('Standardhöhe für alle Räume ohne eigene Höhe (m):', String(B.data.hoehe_std || '').replace('.', ',')); if (v != null) { const n = pnum(v); B.data.hoehe_std = n >= 1.5 && n <= 20 ? Math.round(n * 100) / 100 : null; changed(); } }
     else if (act === 'btVor') btSuggest(false);
     else if (act === 'btKi') btSuggest(true);
+    else if (act === 'btPdb') { pdbWahl({ titel: 'Bauteile aus den Baudaten', knopf: 'übernehmen', onInsert(neu) {
+      const L = (B.data.bauteile ||= []);
+      neu.forEach((x, k) => L.push({ id: 'h' + Date.now() + k, kg: x.kg || $('#btNewKg').value, name: x.kurz, mat: '', formel: '', menge: 0, einheit: x.einheit, ep: x.ep_s ?? 0, src: '', notiz: [x.quelle, x.ep_von != null ? `Spanne ${x.ep_von}–${x.ep_bis} €` : ''].filter(Boolean).join(' · '), geschoss: '' }));
+      changed(); toast(`${neu.length} Bauteil${neu.length === 1 ? '' : 'e'} übernommen – Mengen ergänzen.`);
+    } }); }
     else if (act === 'btAdd') { const k = $('#btNewKg').value, m = (B.mat || {})[k]; (B.data.bauteile ||= []).push({ id: 'h' + Date.now(), kg: k, name: m ? m.name : '', mat: m && m.opts[0] ? m.opts[0].n : '', formel: '', menge: 0, einheit: m ? m.einheit : 'm²', ep: m && m.opts[0] ? m.opts[0].ep : 0, src: '', notiz: '', geschoss: '' }); changed(); setTimeout(() => { const ins = document.querySelectorAll('[data-bf="formel"]'); const x = [...ins].find((e) => +e.dataset.bi === B.data.bauteile.length - 1); if (x) x.focus(); }, 50); }
     else if (act === 'btClear') { if (confirm('Alle Bauteile entfernen? Die Kosten kommen dann wieder ganz aus den Kennwerten (mit ↶ Rückgängig zurückholbar).')) { B.data.bauteile = []; changed(); } }
     else if (act === 'raumtypen') { e.preventDefault(); typesDialog(); }

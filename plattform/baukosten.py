@@ -18,10 +18,11 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, db, papierkorb, platform, sso, versionen
+from bpcore import ai, baudaten, db, papierkorb, platform, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
+baudaten.register(app)   # Bauteile aus den Baudaten (Dialog static/pdbwahl.js)
 app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024
 
 from bpcore import kosten   # Raumtypen des Büros mit Kennwerten (⚙ Einstellungen in dieser App)

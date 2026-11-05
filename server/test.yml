@@ -44,6 +44,7 @@ x-env: &env
   PLAENE_INTERNAL: http://plaene:8096
   AVA_INTERNAL: http://ava:8097
   KOMMUNIKATION_INTERNAL: http://kommunikation:8098
+  BAUDATEN_INTERNAL: http://baudaten:8099
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -232,6 +233,22 @@ services:
       APP_MODULE: kommunikation
       APP_PORT: "8098"
       APP_TIMEOUT: "120"
+
+  # Baudaten: Positionsdatenbank (Texte, DIN 276, Preise), importierte Kataloge (z. B. Sirados) und eigene Preise
+  baudaten:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:971988d
+    container_name: bauplattform_baudaten
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${BAUDATEN_PUBLISH:-8099}:8099"
+    environment:
+      <<: *env
+      APP_MODULE: baudaten
+      APP_PORT: "8099"
+      APP_TIMEOUT: "600"
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB, für das Bildmodell qwen3-vl:4b (Pläne lesen) weitere ~4 GB freien Arbeitsspeicher;

@@ -11,6 +11,7 @@ einem eigenen Container für die Verwaltung und einem Skript, das neue Versionen
 | Bauzeitenplan | `http://server:8082` (wie bisher) | `bauzeitenplan` |
 | Adressen (Firmen, Bauherren, Baustellen) | `http://server:8093` | `bauplattform_adressen` |
 | Baukosten (DIN 276, Mittelabfluss) | `http://server:8094` | `bauplattform_baukosten` |
+| Baudaten (Positionsdatenbank, Kataloge, eigene Preise) | `http://server:8099` | `bauplattform_baudaten` |
 | Verwaltung (nur Administratoren) | `http://server:8091` | `bauplattform_admin` |
 | KI im Büro (Ollama) | nur intern (`http://ollama:11434`) | `bauplattform_ollama` (+ `bauplattform_ollama_modell` lädt das Modell) |
 | Datenbank (PostgreSQL 15) für alle Apps | nur intern | `bauportal_db` (früher `Bautagebuch_db`), Volume `bauportal_pgdata` (früher `bautagebuch_pgdata`) |
@@ -338,6 +339,25 @@ Liest über das Bautagebuch (nur das hat Zugang zur Ablage) die Pläne im Projek
 - ⚙ Einstellungen (Administrator): Phasen, Planarten, Kennungen, Stichwörter, Größe der Anhänge.
 
 Der Produktivserver bekommt den Container mit der nächsten Freigabe (`server/produktiv-naechste.yml`).
+
+## Baudaten (eigener Container)
+
+Pfad `/baudaten`, Container `bauplattform_baudaten` (Port 8099, gleiches Image wie die Plattform, `APP_MODULE: baudaten`).
+Alle Positions- und Preisdaten an einer Stelle; Ausschreibung & Abrechnung und Baukosten fügen daraus Positionen ein.
+
+- **Positionsdatenbank der Bauplattform** (Katalog „gk3“): rund 68.000 Positionen in 66 Leistungsbereichen (Nummern angelehnt an das
+  StLB-Bau), je Position Kurztext, Langtext (Grundtext + Folgetext), Einheit, DIN-276-Kostengruppe und Preisspanne von – mittel – bis.
+  Texte und Kalkulation sind eigene, Preisstand 11/2026. Quelle und Pflege: `positionsdb/` (siehe `positionsdb/README.md`).
+- **Importierte Kataloge**, z. B. Sirados: als GAEB-Datei (X81–X86) einlesen oder aus einem LV der Ausschreibung übernehmen (⤒ Import, nur
+  Administrator). Die Daten liegen nur in der Datenbank des Büros, nie im Repository – Lizenz des Anbieters beachten.
+- **Eigene Positionen** (Katalog „Eigene Positionen“): neu anlegen oder aus jedem Katalog übernehmen und anpassen; **eigene Preise** aus Vergaben
+  je Position notieren (Median wird angezeigt).
+- **Preise auf heute**: aktueller Baupreisindex und Regional-/Projektfaktor (⚙ Preise); der Administrator pflegt Index, Faktoren und die
+  Verrechnungslöhne je Gewerk – Katalogpreise werden dann aus Zeitansatz × Lohn + Stoff neu gerechnet.
+- In **Ausschreibung & Abrechnung**: Knopf „Baudaten“ bzw. „+ aus Baudaten“ – suchen, mehrere wählen, an der aktiven Stelle einfügen
+  (Text, Einheit, KG, Schätzpreis). In **Baukosten** bei den Bauteilen: „+ aus Baudaten“.
+- Wer Baukosten oder Ausschreibung nutzt, bekommt die App automatisch (in der Verwaltung abwählbar).
+- Tabellen `pdb_*` (Migrationen 0023 Schema, 0024 Katalogdaten im Bautagebuch); gemeinsamer Zugriff `shared/bpcore/baudaten.py`.
 
 ## Kommunikation (eigener Container)
 

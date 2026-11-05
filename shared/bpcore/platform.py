@@ -17,7 +17,7 @@ def version():
 
 
 # Pfade der Apps unter der gemeinsamen Adresse (Verteiler-Container „bauportal“, plattform/router.py)
-PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "admin": "verwaltung"}
+PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "baudaten": "baudaten", "admin": "verwaltung"}
 
 
 def apps():
@@ -39,6 +39,7 @@ def apps():
             ("plaene", "Planstand & Versand", "PLAENE_PORT", "8096", "PLAENE_URL", {}),
             ("ava", "Ausschreibung & Abrechnung", "AVA_PORT", "8097", "AVA_URL", {}),
             ("kommunikation", "Kommunikation", "KOMMUNIKATION_PORT", "8098", "KOMMUNIKATION_URL", {}),
+            ("baudaten", "Baudaten", "BAUDATEN_PORT", "8099", "BAUDATEN_URL", {}),
             ("admin", "Verwaltung", "ADMIN_PORT", "8091", "ADMIN_URL", {"admin": True})):
         port, url = int(e(port_var, port_def)), e(url_var, "").strip().rstrip("/")
         a = {"key": key, "name": name, "port": port, "url": url, "path": PATHS[key], **extra}

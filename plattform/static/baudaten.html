@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#84827c">
+<title>Baudaten</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
+<style>
+.wrap{max-width:1500px;padding-bottom:5rem}
+.top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .7rem}
+.top input[type=search]{flex:1 1 280px;min-width:0;font:inherit;padding:.5rem .8rem;border-radius:999px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.top select,.fl select,.fl input{font:inherit;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.fl{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem;font-size:.9rem;color:var(--mute)}
+.fl label{display:inline-flex;gap:.3rem;align-items:center}
+.fl input.kg{width:5.5rem}
+.info{font-size:.85rem;color:var(--mute);margin-left:auto}
+.grid{display:grid;grid-template-columns:280px minmax(0,1fr) minmax(0,520px);gap:1rem;align-items:start}
+.side{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.4rem 0;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
+.side h3{margin:.5rem .9rem .3rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600}
+.si{display:flex;gap:.5rem;align-items:center;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.38rem .9rem;cursor:pointer;border-left:3px solid transparent;font-size:.92rem}
+.si:hover{background:var(--hov)}.si.on{background:var(--hov);border-left-color:var(--y)}
+.si span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si i{font-style:normal;font-size:.75rem;color:var(--mute)}
+.si.sub{padding-left:1.8rem;font-size:.86rem}
+.si .nr{font-variant-numeric:tabular-nums;color:var(--mute);margin-right:.3rem}
+.list{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:grid;grid-template-columns:8.5rem minmax(0,1fr) 3.2rem 9.5rem;gap:.6rem;padding:.5rem .8rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline}
+.row:hover{background:var(--hov)}.row.on{background:var(--hov);box-shadow:inset 3px 0 0 var(--y)}
+.row .c{font-size:.78rem;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .k{min-width:0}.row .k b{font-weight:500}
+.row .k small{display:block;color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .e{color:var(--mute);font-size:.85rem}
+.row .p{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .p small{display:block;color:var(--mute);font-size:.74rem}
+.star{color:var(--y)}
+.det{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
+.det h2{font-size:1.05rem;margin:.1rem 0 .4rem;line-height:1.35}
+.det .mute{font-size:.85rem}
+.det pre{white-space:pre-wrap;font:inherit;font-size:.92rem;line-height:1.45;margin:.5rem 0;background:var(--inp);padding:.6rem .7rem;border-radius:8px}
+.det table{width:100%;border-collapse:collapse;font-size:.88rem;margin:.4rem 0}
+.det td{padding:.25rem .3rem;border-bottom:1px solid var(--line)}.det td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.preis{display:flex;gap:.5rem;margin:.6rem 0}
+.preis div{flex:1;background:var(--inp);border-radius:10px;padding:.5rem .6rem;text-align:center}
+.preis div b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
+.preis div.m{outline:2px solid var(--y)}
+.preis small{color:var(--mute);font-size:.75rem}
+.acts{display:flex;gap:.4rem;flex-wrap:wrap;margin:.7rem 0}
+.det h4{margin:1rem 0 .3rem;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+.ed label{display:block;font-size:.82rem;color:var(--mute);margin:.5rem 0 .15rem}
+.ed input,.ed textarea,.ed select{width:100%;box-sizing:border-box;font:inherit;padding:.4rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.ed textarea{min-height:9rem}
+.ed .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem}
+.leer{padding:2rem 1rem;text-align:center;color:var(--mute)}
+.badge{display:inline-block;font-size:.72rem;border:1px solid var(--line);border-radius:999px;padding:0 .45rem;color:var(--mute);margin-right:.3rem}
+.modal .ed{min-width:min(560px,86vw)}
+.tbl{width:100%;border-collapse:collapse;font-size:.88rem}.tbl td{padding:.2rem .3rem}.tbl input{width:100%;box-sizing:border-box}
+@media (max-width:1200px){.grid{grid-template-columns:240px minmax(0,1fr)}.det{grid-column:1/-1;position:static;max-height:none}}
+@media (max-width:760px){.grid{grid-template-columns:1fr}.side{position:static;max-height:260px}.row{grid-template-columns:minmax(0,1fr) 7.5rem}.row .c,.row .e{display:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="top">
+    <select id="kat" aria-label="Katalog"></select>
+    <input type="search" id="q" placeholder="Suchen – z. B. „Kalksand 17,5“, „Fliesen 60x60“, „Wärmepumpe“ oder Code …" autocomplete="off">
+    <button class="btn sm" id="neuBtn" title="Neue eigene Position anlegen">＋ Eigene Position</button>
+    <button class="btn sm" id="csvBtn" title="Gefilterte Positionen für Excel speichern">⤓ Excel (CSV)</button>
+    <button class="btn sm" id="setBtn" title="Baupreisindex, Regionalfaktor und Verrechnungslöhne">⚙ Preise</button>
+    <button class="btn sm" id="impBtn" hidden title="Katalog importieren (z. B. Sirados als GAEB)">⤒ Import</button>
+  </div>
+  <div class="fl">
+    <label>KG <input class="kg" id="kg" placeholder="z. B. 331" inputmode="numeric"></label>
+    <label>Einheit <select id="einh"><option value="">alle</option></select></label>
+    <label>Genauigkeit <select id="gen"><option value="">alle</option><option>A</option><option>B</option><option>C</option></select></label>
+    <label><input type="checkbox" id="fav"> nur Favoriten</label>
+    <span class="info" id="info"></span>
+  </div>
+  <div class="grid">
+    <aside class="side" id="side" aria-label="Leistungsbereiche"></aside>
+    <section><div class="list" id="list" aria-live="polite"></div><div id="mehr"></div></section>
+    <aside class="det" id="det"><div class="leer">Position anklicken – Langtext, Preisspanne, Kalkulation und eigene Preise.</div></aside>
+  </div>
+</main>
+<script src="static/bp.js"></script>
+<script>
+const LS = { get(k, d) { try { const v = localStorage.getItem('bd.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('bd.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+const F = { katalog: LS.get('katalog', 'gk3'), lb: '', gruppe: '', q: '', kg: '', einheit: '', genauigkeit: '', fav: false };
+let S = null, L = [], GES = 0, N = 100, SEL = null, GR = {}, tok = 0;
+const eur = (v) => (v == null ? '–' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
+const num = (v, d = 2) => (v == null ? '' : Number(v).toLocaleString('de-DE', { maximumFractionDigits: d }));
+const GEN = { A: 'Standardleistung (−15 % / +20 %)', B: 'mit Produkt-/Mengeneinfluss (−22 % / +30 %)', C: 'stark produkt-/orts-/mengenabhängig (−32 % / +50 %)' };
+
+function params(extra = {}) {
+  const p = new URLSearchParams();
+  for (const k of ['katalog', 'lb', 'gruppe', 'q', 'kg', 'einheit', 'genauigkeit']) if (F[k]) p.set(k, F[k]);
+  if (F.fav) p.set('fav', '1');
+  for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  return p.toString();
+}
+async function start() {
+  S = await api('api/start?katalog=' + encodeURIComponent(F.katalog));
+  if (!S.kataloge.some((k) => k.key === F.katalog)) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); S = await api('api/start?katalog=gk3'); }
+  $('#kat').innerHTML = S.kataloge.map((k) => `<option value="${esc(k.key)}"${k.key === F.katalog ? ' selected' : ''}>${esc(k.name)} (${k.n.toLocaleString('de-DE')})</option>`).join('');
+  $('#einh').innerHTML = '<option value="">alle</option>' + S.einheiten.map((e) => `<option${e === F.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('');
+  $('#impBtn').hidden = !S.admin;
+  seite(); laden();
+}
+function seite() {
+  const E = S.einstellungen, kat = S.kataloge.find((k) => k.key === F.katalog) || {};
+  let h = `<h3>${esc(kat.name || '')}</h3><button type="button" class="si${!F.lb ? ' on' : ''}" data-lb=""><span>Alle Leistungsbereiche</span><i>${(kat.n || 0).toLocaleString('de-DE')}</i></button>`;
+  for (const l of S.lbs) {
+    h += `<button type="button" class="si${F.lb === l.nr ? ' on' : ''}" data-lb="${esc(l.nr)}"><span><span class="nr">${esc(l.nr)}</span>${esc(l.name || '')}</span><i>${l.n.toLocaleString('de-DE')}</i></button>`;
+    if (F.lb === l.nr && GR[l.nr]) h += GR[l.nr].map((g) => `<button type="button" class="si sub${F.gruppe === g.nr ? ' on' : ''}" data-gr="${esc(g.nr)}"><span>${esc(g.name || g.nr)}</span><i>${g.n}</i></button>`).join('');
+  }
+  h += `<h3>Preise</h3><p class="mute" style="margin:0 .9rem .6rem;font-size:.8rem">Index ${num(E.index_aktuell, 1)} (Basis ${num(E.index_basis, 1)}, 2021 = 100)<br>${esc(E.faktor_name)} × ${num(E.faktor, 3)}${kat.lizenz ? '<br>' + esc(kat.lizenz) : ''}</p>`;
+  $('#side').innerHTML = h;
+}
+async function laden() {
+  const my = ++tok;
+  try {
+    const r = await api('api/suche?' + params({ n: N }));
+    if (my !== tok) return; L = r.positionen; GES = r.gesamt; liste();
+  } catch (e) { if (my === tok) $('#list').innerHTML = `<div class="leer">${esc(e.message)}</div>`; }
+}
+function liste() {
+  $('#info').textContent = `${GES.toLocaleString('de-DE')} Position${GES === 1 ? '' : 'en'} · Preise netto, umgerechnet auf heute`;
+  if (!L.length) { $('#list').innerHTML = `<div class="leer">${F.q || F.kg || F.einheit || F.fav ? 'Nichts gefunden – Suche oder Filter ändern.' : 'Dieser Katalog ist leer.'}</div>`; $('#mehr').innerHTML = ''; return; }
+  $('#list').innerHTML = L.map((x) => `<div class="row${SEL && SEL.id === x.id ? ' on' : ''}" data-id="${x.id}">
+    <span class="c">${esc(x.code)}</span>
+    <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${esc(x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
+    <span class="e">${esc(x.einheit)}</span>
+    <span class="p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}${x.ep_von_akt != null ? `<small>${num(x.ep_von_akt)} – ${num(x.ep_bis_akt)}</small>` : ''}</span></div>`).join('');
+  $('#mehr').innerHTML = GES > L.length ? `<button type="button" class="btn sm" data-mehr style="margin:.6rem 0">+ weitere ${Math.min(200, GES - L.length)} von ${(GES - L.length).toLocaleString('de-DE')}</button>` : '';
+}
+async function zeigen(id) {
+  try { SEL = await api('api/position/' + id); } catch (e) { toast(e.message, true); return; }
+  document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
+  detail();
+}
+function detail() {
+  const x = SEL, ro = !!x.nur_lesen, darf = !ro && (x.katalog === 'eigen' || S.admin);
+  const kalk = x.quelle === 'katalog' && x.h != null ? `<h4>Kalkulation (Preisstand ${esc(x.preisstand)})</h4><table>
+      <tr><td>Zeitansatz</td><td>${num(x.h, 3)} h/${esc(x.einheit)}</td></tr>
+      <tr><td>Verrechnungslohn ${esc(x.gewerk)}</td><td>${eur(x.verrechnungslohn)}/h</td></tr>
+      <tr><td>Lohn</td><td>${eur(x.h * x.verrechnungslohn)}</td></tr>
+      <tr><td>Stoff + Gerät (+ 12 %)</td><td>${eur((x.stoff + x.geraet) * 1.12)}</td></tr>
+      <tr><td><b>EP zum Preisstand</b></td><td><b>${eur(x.ep_mittel)}</b></td></tr>
+      <tr><td>Umrechnung auf heute (Index × Faktor)</td><td>× ${num(x.umrechnung, 4)}</td></tr></table>` : '';
+  const eigen = `<h4>Eigene Preise aus Vergaben${x.n_preise ? ` · Median ${eur(x.ep_eigen_median)}` : ''}</h4>
+    ${(x.preise || []).length ? `<table>${x.preise.map((p) => `<tr><td>${esc(p.datum)} ${esc(p.firma)}${p.menge ? ' · ' + num(p.menge) + ' ' + esc(x.einheit) : ''}${p.notiz ? '<br><small class="mute">' + esc(p.notiz) + '</small>' : ''}</td><td>${eur(p.ep)} <button type="button" class="btn sm" data-pweg="${p.id}" title="Eintrag löschen">✕</button></td></tr>`).join('')}</table>` : '<p class="mute">Noch keine. Auftragspreise hier eintragen – mit der Zeit werden die Baudaten so zu den Preisen des Büros.</p>'}
+    <div class="ed" style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:.4rem;align-items:end"><div><label>EP netto €</label><input id="pEp" inputmode="decimal"></div><div><label>Firma / Projekt</label><input id="pFi"></div><button type="button" class="btn sm" data-pneu>＋</button></div>`;
+  $('#det').innerHTML = `<div class="mute"><span class="badge">${esc(x.katalog_name)}</span>${esc(x.code)}${x.lb_name ? ' · ' + esc(x.lb_nr + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}${x.titel && !x.lb_name ? ' · ' + esc(x.titel) : ''}</div>
+    <h2>${esc(x.kurz)}</h2>
+    <div class="mute">Einheit <b>${esc(x.einheit)}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b> <span title="${esc(GEN[x.genauigkeit] || '')}">ⓘ</span>` : ''}${x.tags ? ' · ' + esc(x.tags) : ''}</div>
+    <div class="preis"><div><small>von</small><b>${eur(x.ep_von_akt)}</b></div><div class="m"><small>mittel</small><b>${eur(x.ep_mittel_akt)}</b></div><div><small>bis</small><b>${eur(x.ep_bis_akt)}</b></div></div>
+    <pre>${esc(x.lang_voll || '')}</pre>
+    ${x.hinweis ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}
+    <div class="acts">
+      <button type="button" class="btn sm" data-copy title="Kurz- und Langtext, Einheit und Preis kopieren">⧉ Text kopieren</button>
+      ${ro ? '' : `<button type="button" class="btn sm" data-fav>${x.favorit ? '★ Favorit' : '☆ Favorit'}</button>`}
+      ${x.katalog !== 'eigen' ? '<button type="button" class="btn sm" data-eigen title="Als eigene Position übernehmen und anpassen">⎘ Als eigene Position</button>' : ''}
+      ${darf ? '<button type="button" class="btn sm" data-edit>✎ Bearbeiten</button>' : ''}
+      ${ro ? '' : `<button type="button" class="btn sm" data-aktiv>${x.aktiv ? 'Ausblenden' : 'Wieder einblenden'}</button>`}
+      ${x.katalog === 'eigen' ? '<button type="button" class="btn sm" data-del>Löschen</button>' : ''}
+    </div>${ro ? '<p class="mute">Aus einem Katalog der Ausschreibung (z. B. sirAdos, eingelesen in Ausschreibung &amp; Abrechnung → ⚙ → Positionskatalog). Für eigene Preise oder Änderungen als eigene Position übernehmen.</p>' : ''}${kalk}${ro ? '' : eigen}`;
+}
+function bearbeiten() {
+  const x = SEL;
+  modalBox(`<h3>Position bearbeiten</h3><div class="ed">
+    <label>Kurztext</label><input id="eK" value="${esc(x.kurz)}" maxlength="300">
+    <label>Langtext${x.grund_id ? ' (Folgetext – der Grundtext gehört zum Katalog)' : ''}</label><textarea id="eL">${esc(x.lang || '')}</textarea>
+    <div class="r3"><div><label>Einheit</label><select id="eE">${S.einheiten.map((e) => `<option${e === x.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select></div>
+      <div><label>KG DIN 276</label><input id="eG" value="${esc(x.kg)}" maxlength="3"></div>
+      <div><label>Genauigkeit</label><select id="eA">${['A', 'B', 'C'].map((a) => `<option${a === x.genauigkeit ? ' selected' : ''}>${a}</option>`).join('')}</select></div></div>
+    <div class="r3"><div><label>EP von (heute)</label><input id="eV" value="${num(x.ep_von_akt)}"></div><div><label>EP mittel (heute)</label><input id="eM" value="${num(x.ep_mittel_akt)}"></div><div><label>EP bis (heute)</label><input id="eB" value="${num(x.ep_bis_akt)}"></div></div>
+    <label>Hinweis</label><input id="eH" value="${esc(x.hinweis || '')}">
+    <label>Schlagworte (kommagetrennt)</label><input id="eT" value="${esc(x.tags || '')}">
+  </div><div class="acts" style="justify-content:flex-end"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    if (m === 'x') return close();
+    const z = (s) => { const v = bg.querySelector(s).value.trim().replace(/\./g, '').replace(',', '.'); return v === '' ? null : +v; };
+    try {
+      SEL = await api('api/position/' + x.id, 'PUT', { kurz: bg.querySelector('#eK').value, lang: bg.querySelector('#eL').value, einheit: bg.querySelector('#eE').value, kg: bg.querySelector('#eG').value,
+        genauigkeit: bg.querySelector('#eA').value, ep_von: z('#eV'), ep_mittel: z('#eM'), ep_bis: z('#eB'), hinweis: bg.querySelector('#eH').value, tags: bg.querySelector('#eT').value });
+      close(); detail(); laden(); toast('Gespeichert');
+    } catch (e) { toast(e.message, true); }
+  });
+}
+function einstellungen() {
+  const E = S.einstellungen, ad = S.admin;
+  modalBox(`<h3>Preise umrechnen</h3><div class="ed">
+    <label>Regionalfaktor / Projektfaktor (gilt für alle)</label><select id="sF">${E.faktoren.map((f) => `<option value="${f.id}"${f.id === E.faktor_id ? ' selected' : ''}>${esc(f.name)} × ${num(f.faktor, 3)}</option>`).join('')}</select>
+    ${ad ? `<label>Aktueller Baupreisindex (${esc(E.index_name)}, 2021 = 100) – Katalog-Basis ${num(E.index_basis, 1)} (${esc(E.preisstand)})</label><input id="sI" value="${num(E.index_aktuell, 1)}" inputmode="decimal">
+    <p class="mute" style="font-size:.8rem">Neuer Wert vierteljährlich bei Destatis (Preisindizes für Bauwerke, Wohngebäude).</p>
+    <label>Faktoren</label><table class="tbl" id="sFt">${E.faktoren.map((f) => `<tr data-id="${f.id}"><td><input value="${esc(f.name)}"></td><td style="width:6rem"><input value="${num(f.faktor, 3)}"></td></tr>`).join('')}<tr><td><input placeholder="Neu, z. B. Ruhrgebiet"></td><td><input placeholder="1,00"></td></tr></table>
+    <label>Verrechnungslöhne €/h (Katalogpreise werden damit neu gerechnet)</label><table class="tbl" id="sL">${S.loehne.map((l) => `<tr><td>${esc(l.name)}</td><td style="width:6rem"><input data-g="${esc(l.gewerk)}" value="${num(l.verrechnungslohn, 2)}"></td></tr>`).join('')}</table>` : '<p class="mute">Index, Faktoren und Löhne stellt der Administrator ein.</p>'}
+  </div><div class="acts" style="justify-content:flex-end"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
+    if (m === 'x') return close();
+    const z = (v) => +String(v).trim().replace(/\./g, '').replace(',', '.');
+    const b = { faktor_id: +bg.querySelector('#sF').value };
+    if (ad) {
+      b.index_aktuell = z(bg.querySelector('#sI').value);
+      b.faktoren = [...bg.querySelectorAll('#sFt tr')].map((tr) => { const i = tr.querySelectorAll('input'); return { id: tr.dataset.id ? +tr.dataset.id : undefined, name: i[0].value.trim(), faktor: z(i[1].value) }; }).filter((f) => f.name && f.faktor);
+      const lo = {}; let geaendert = false;
+      bg.querySelectorAll('#sL input').forEach((i) => { const alt = S.loehne.find((l) => l.gewerk === i.dataset.g); const v = z(i.value); if (alt && v && Math.abs(v - alt.verrechnungslohn) > 0.001) { lo[i.dataset.g] = v; geaendert = true; } });
+      if (geaendert) b.loehne = lo;
+    }
+    try { await api('api/einstellungen', 'PUT', b); close(); await start(); if (SEL) zeigen(SEL.id); toast('Übernommen'); } catch (e) { toast(e.message, true); }
+  });
+}
+async function importieren() {
+  let lvs = []; try { lvs = await api('api/lvs'); } catch { /* egal */ }
+  const imp = S.kataloge.filter((k) => k.art === 'import');
+  modalBox(`<h3>Katalog importieren</h3><div class="ed">
+    <p class="mute" style="font-size:.85rem"><b>sirAdos-Kataloge (*.ava, Positionen und Elemente)</b> werden wie bisher in „Ausschreibung &amp; Abrechnung“ unter ⚙ → Positionskatalog eingelesen und erscheinen hier automatisch als eigene Kataloge. Hier zusätzlich: weitere Kataloge als GAEB DA XML (X81–X86) oder ein vorhandenes LV übernehmen. Die Daten bleiben in der Datenbank des Büros; bitte die Lizenz des Anbieters beachten.</p>
+    <label>Name des Katalogs</label><input id="iN" placeholder="z. B. Sirados Neubau 2026" list="iKat"><datalist id="iKat">${imp.map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
+    <label>GAEB-Datei</label><input type="file" id="iD" accept=".x81,.x82,.x83,.x84,.x85,.x86,.xml,.X81,.X83,.X84">
+    <label>… oder LV aus der Ausschreibung</label><select id="iL"><option value="">–</option>${lvs.map((l) => `<option value="${l.id}">${esc([l.projekt, l.nr, l.name].filter(Boolean).join(' · '))}</option>`).join('')}</select>
+    <div class="r3"><div><label>Preisstand (JJJJ-MM)</label><input id="iP" placeholder="2026-01"></div><div><label>Index zum Preisstand</label><input id="iI" placeholder="z. B. 135,8"></div><div><label>Lizenzhinweis</label><input id="iZ" placeholder="z. B. Sirados, 3 Plätze"></div></div>
+    <label><input type="checkbox" id="iR" checked style="width:auto"> vorhandenen Katalog gleichen Namens ersetzen</label>
+    ${imp.length ? `<label>Importierte Kataloge</label><table class="tbl">${imp.map((k) => `<tr><td>${esc(k.name)} · ${k.n.toLocaleString('de-DE')} Pos.${k.preisstand ? ' · ' + esc(k.preisstand) : ''}</td><td style="width:5rem"><button class="btn sm" data-m="del:${esc(k.key)}">Löschen</button></td></tr>`).join('')}</table>` : ''}
+  </div><div class="acts" style="justify-content:flex-end"><button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="ok">Einlesen</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') return close();
+    if (m.startsWith('del:')) { if (!confirm('Katalog mit allen Positionen löschen?')) return; try { await api('api/katalog/' + encodeURIComponent(m.slice(4)), 'DELETE'); close(); start(); toast('Gelöscht'); } catch (e) { toast(e.message, true); } return; }
+    const name = bg.querySelector('#iN').value.trim(), f = bg.querySelector('#iD').files[0], lv = bg.querySelector('#iL').value;
+    if (!name) return toast('Bitte einen Namen angeben.', true);
+    if (!f && !lv) return toast('Bitte eine GAEB-Datei oder ein LV wählen.', true);
+    const z = (v) => String(v).trim().replace(',', '.');
+    const meta = { name, preisstand: bg.querySelector('#iP').value.trim(), index_basis: z(bg.querySelector('#iI').value), lizenz: bg.querySelector('#iZ').value.trim(), ersetzen: bg.querySelector('#iR').checked ? '1' : '0' };
+    btn.disabled = true; btn.textContent = 'Liest ein …';
+    try {
+      let r;
+      if (f) {
+        const fd = new FormData(); fd.append('datei', f); for (const [k, v] of Object.entries(meta)) fd.append(k, v);
+        const res = await fetch('api/import', { method: 'POST', body: fd }); r = await res.json().catch(() => ({})); if (!res.ok) throw new Error(r.error || res.statusText);
+      } else r = await api('api/import', 'POST', { ...meta, lv_id: +lv });
+      close(); F.katalog = r.key; LS.set('katalog', r.key); F.lb = ''; F.gruppe = ''; await start(); toast(r.hinweis);
+    } catch (e) { btn.disabled = false; btn.textContent = 'Einlesen'; toast(e.message, true); }
+  });
+}
+
+document.addEventListener('click', async (e) => {
+  const t = e.target;
+  const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } } seite(); laden(); return; }
+  const gr = t.closest('[data-gr]'); if (gr) { F.gruppe = F.gruppe === gr.dataset.gr ? '' : gr.dataset.gr; N = 100; seite(); laden(); return; }
+  const row = t.closest('.row[data-id]'); if (row) { zeigen(+row.dataset.id); return; }
+  if (t.closest('[data-mehr]')) { N += 200; laden(); return; }
+  if (t.closest('#csvBtn')) { location.href = 'api/export.csv?' + params(); return; }
+  if (t.closest('#setBtn')) { einstellungen(); return; }
+  if (t.closest('#impBtn')) { importieren(); return; }
+  if (t.closest('#neuBtn')) { try { SEL = await api('api/position', 'POST', {}); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
+  if (!SEL) return;
+  if (t.closest('[data-copy]')) {
+    const s = `${SEL.kurz}\n\n${SEL.lang_voll || ''}\n\nEinheit: ${SEL.einheit}${SEL.ep_mittel_akt != null ? ` · EP ca. ${eur(SEL.ep_mittel_akt)} netto` : ''}`;
+    try { await navigator.clipboard.writeText(s); toast('In die Zwischenablage kopiert'); } catch { toast('Kopieren nicht möglich', true); } return;
+  }
+  if (t.closest('[data-fav]')) { SEL = await api('api/position/' + SEL.id, 'PUT', { favorit: !SEL.favorit }); detail(); laden(); return; }
+  if (t.closest('[data-aktiv]')) { SEL = await api('api/position/' + SEL.id, 'PUT', { aktiv: !SEL.aktiv }); detail(); laden(); return; }
+  if (t.closest('[data-eigen]')) { try { SEL = await api('api/position', 'POST', { von: SEL.id }); toast('Als eigene Position angelegt (Katalog „Eigene Positionen“)'); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
+  if (t.closest('[data-edit]')) { bearbeiten(); return; }
+  if (t.closest('[data-del]')) { if (!confirm('Eigene Position löschen?')) return; await api('api/position/' + SEL.id, 'DELETE'); SEL = null; $('#det').innerHTML = '<div class="leer">Gelöscht.</div>'; laden(); start(); return; }
+  if (t.closest('[data-pneu]')) {
+    const ep = +String($('#pEp').value).trim().replace(/\./g, '').replace(',', '.');
+    if (!ep) return toast('Bitte einen Einheitspreis eingeben.', true);
+    try { SEL = await api(`api/position/${SEL.id}/preis`, 'POST', { ep, firma: $('#pFi').value, project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || null }); detail(); } catch (er) { toast(er.message, true); } return;
+  }
+  const pw = t.closest('[data-pweg]'); if (pw) { try { SEL = await api('api/preis/' + pw.dataset.pweg, 'DELETE'); detail(); } catch (er) { toast(er.message, true); } }
+});
+$('#kat').addEventListener('change', (e) => { F.katalog = e.target.value; LS.set('katalog', F.katalog); F.lb = ''; F.gruppe = ''; GR = {}; N = 100; start(); });
+for (const [id, k] of [['einh', 'einheit'], ['gen', 'genauigkeit']]) $('#' + id).addEventListener('change', (e) => { F[k] = e.target.value; N = 100; laden(); });
+$('#fav').addEventListener('change', (e) => { F.fav = e.target.checked; laden(); });
+let qT = 0;
+for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => { F[k] = e.target.value.trim(); N = 100; laden(); }, 300); });
+
+(async () => {
+  const ME = await api('api/me'); applyLook(ME);
+  const PC = await api('api/platform');
+  await header('Baudaten', ME, PC);
+  await start();
+})().catch((e) => toast(e.message, true));
+</script>
+</body>
+</html>

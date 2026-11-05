@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, db, gaeb, papierkorb, platform, schrift, sso, versionen
+from bpcore import ai, baudaten, db, gaeb, papierkorb, platform, schrift, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -853,6 +853,10 @@ def baukosten_liste():
             out.append({"id": r["id"], "name": r["name"], "stufe": r["stufe"], "eigenes": r["project_id"] == pid, "n": len(bts), "kgs": kgs,
                         "raeume": len(d.get("rooms") or [])})
         return jsonify(out)
+
+
+# Positionen aus den Baudaten (Positionsdatenbank, importierte Kataloge): /api/baudaten/suche und /api/baudaten/positionen
+baudaten.register(app)
 
 
 KG_NAMEN = {"310": "Baugrube / Erdbau", "320": "Gründung, Unterbau", "330": "Außenwände", "340": "Innenwände", "350": "Decken", "360": "Dächer",

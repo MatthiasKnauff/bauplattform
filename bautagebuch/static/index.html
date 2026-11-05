@@ -1198,7 +1198,7 @@ function renderProject(box) {
     <div class="info" id="pinfo">${esc(posInfo(p))}</div>
     ${mapBlock(hasPos(p) ? p.lat + ',' + p.lon : [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), true)}
     <div class="acts"><button data-act="geoSearch">Adresse suchen</button><button data-act="geoHere">Aktuellen Standort übernehmen</button><button data-act="archProject">${p.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button><button class="bad" data-act="delProject">Projekt löschen</button></div>
-    ${p.archived ? '<div class="info">Dieses Projekt ist archiviert: Es erscheint nicht in der Projektauswahl und wird nicht per GPS gewählt. Wiederfinden: Projektauswahl → „Archiv“ oder dort einfach suchen.</div>' : ''}
+    ${p.archived ? '<div class="info">Dieses Projekt ist archiviert: Es erscheint nicht in der Projektauswahl und wird nicht per GPS gewählt. Wiederfinden: Verwaltung → Projekte → „Archiv“ oder dort einfach suchen.</div>' : ''}
     <div class="info">„Adresse suchen“ nutzt die eingetragene Adresse, ohne Eintrag den Projektnamen (ohne Kürzel wie A481); die PLZ wird im Internet nachgeschlagen.</div></div></div>`;
   loadNames(p.id);
 }
@@ -1245,7 +1245,7 @@ async function archProject(flag) {
   await api('api/projects/' + id, 'PUT', {archived: on ? 1 : 0}); await loadProjects();
   if (on) { const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
   else renderDetail();
-  toast(on ? `„${name}“ archiviert – zu finden unter Projektauswahl → Archiv.` : `„${name}“ ist wieder aktiv.`, async () => { pid = id; await archProject(!on); if (!on) await openProject(id); else renderDetail(); });
+  toast(on ? `„${name}“ archiviert – zu finden in der Verwaltung → Projekte → Archiv.` : `„${name}“ ist wieder aktiv.`, async () => { pid = id; await archProject(!on); if (!on) await openProject(id); else renderDetail(); });
 }
 async function delProject() {
   await api('api/projects/' + pid, 'DELETE'); pid = null; rid = null; reports = []; await loadProjects();

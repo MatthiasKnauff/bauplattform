@@ -254,7 +254,7 @@ def mail_test():
         conf = settings.all(c)
         me = auth.get(c, g.user["id"])
     if not me["email"]:
-        return jsonify(ok=False, error="Trage zuerst unter Einstellungen → Benutzer deine E-Mail-Adresse ein; dorthin geht die Testmail."), 400
+        return jsonify(ok=False, error="Für dein Konto fehlt die E-Mail-Adresse (Verwaltung → Benutzer & Rechte); dorthin geht die Testmail."), 400
     try:
         mail.send(conf, me["email"], "Bautagebuch – Testmail", "Der E-Mail-Versand funktioniert.")
     except mail.MailError as e:

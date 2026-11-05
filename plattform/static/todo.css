@@ -1,0 +1,44 @@
+/* To-do-Liste – gemeinsam für die Startseite (klein) und die App „Aufgaben & Mängel“ (komplett) */
+.todo{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem 1rem}
+.todo .post-h{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.5rem}
+.todo .post-h h2{margin:0;font-size:1.1rem}.todo .post-h .mute{font-size:.85rem}
+.todo .fehler{color:#b33;font-size:.82rem;margin-top:.5rem}
+.todo .tdalle{display:inline-block;margin-top:.6rem;font-size:.88rem;color:var(--y);text-decoration:none}.todo .tdalle:hover{text-decoration:underline}
+.todo .tq{display:flex;gap:.4rem;margin:.1rem 0 .4rem}
+.todo .tq input{flex:1;min-width:0;font:inherit;padding:.45rem .7rem;border-radius:10px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.todo .tq input:focus{border-color:var(--y);outline:none}
+.todo .tg{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:.75rem 0 .1rem;display:flex;gap:.4rem;align-items:center}
+.todo .tg.rot{color:var(--red,#d33)}
+.todo .tg button{border:0;background:none;color:var(--mute);font:inherit;cursor:pointer;padding:0;text-transform:none;letter-spacing:0;text-decoration:underline}
+.tr{display:grid;grid-template-columns:1.5rem minmax(0,1fr) auto;gap:.1rem .5rem;padding:.38rem .15rem;border-bottom:1px dashed var(--line);align-items:start}
+.tr:last-child{border-bottom:0}
+.tr .ck{width:1.05rem;height:1.05rem;margin:.2rem 0 0;accent-color:var(--y);cursor:pointer}
+.tr .tt{min-width:0;cursor:pointer}
+.tr .tt b{font-weight:600}.tr .tt .x{display:block;color:var(--mute);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr .tt .rg{font-size:.7rem;border:1px solid var(--line);border-radius:999px;padding:0 .4rem;color:var(--mute);margin-right:.3rem;white-space:nowrap}
+.tr .tt .pr{color:#e07b3a}
+.tr .tz{font-size:.8rem;color:var(--mute);white-space:nowrap;text-align:right}
+.tr .tz.rot{color:var(--red,#d33);font-weight:600}
+.tr .ta{display:flex;gap:.2rem;justify-content:flex-end;margin-top:.15rem}
+.tr .ta button,.tr .ta a{border:0;background:none;cursor:pointer;font:inherit;font-size:.8rem;color:var(--mute);padding:.05rem .25rem;text-decoration:none;border-radius:6px}
+.tr .ta button:hover,.tr .ta a:hover{color:var(--y);background:var(--hov)}
+.tr.fertig .tt b{text-decoration:line-through;color:var(--mute)}
+.te{grid-column:1/-1;background:var(--hov);border-radius:10px;padding:.6rem .7rem;margin:.3rem 0 .2rem;display:grid;gap:.45rem}
+.te label{font-size:.8rem;color:var(--mute);display:grid;gap:.15rem}
+.te input,.te select,.te textarea{font:inherit;font-size:.92rem;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.te .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:end}.te .row>label{flex:1;min-width:9rem}
+.te .ck2{display:flex;gap:.35rem;align-items:center;font-size:.85rem;color:var(--ink)}
+.te .btns{display:flex;gap:.4rem;flex-wrap:wrap}
+.tdp{flex:1;min-width:0;text-align:left;font:inherit;font-size:.92rem;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdf{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.25rem}
+.tdd{position:relative;display:inline-flex}
+.tdd img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
+.tdn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:.3rem .55rem;font:inherit;font-size:.82rem;cursor:pointer;max-width:14rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.tdx{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:#c33;color:#fff;font-size:13px;line-height:20px;padding:0;cursor:pointer}
+.tdf label.btn{cursor:pointer}
+.sp{position:absolute;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:.3rem;display:grid;min-width:12rem}
+.sp button{border:0;background:none;text-align:left;font:inherit;padding:.4rem .6rem;border-radius:6px;cursor:pointer;color:var(--ink)}
+.sp button:hover{background:var(--hov)}
+.sp input{font:inherit;margin:.2rem .4rem .4rem;padding:.2rem .3rem}
+
+.todo.voll .post-h{display:none}   /* in der App sagt der Reiter schon „To-dos“ */

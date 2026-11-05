@@ -9,7 +9,7 @@ Bereiche (Schlüssel `bereich`):
   einst:bt          Allgemeine Einstellungen (Firma, Ablage, E-Mail) – Tabelle settings ohne Vorlagen
   einst:vorlagen    E-Mail-Vorlagen (settings tpl_*)
   gs:<key>          Bauzeitenplan-/KI-Einstellungen (Tabelle gantt_store)
-  bp:aufgaben       Einstellungen „Mängel & Erinnerungen“ (bp_store)
+  bp:aufgaben       Einstellungen „Aufgaben & Mängel“ (bp_store)
   bk:raumtypen      Raumtypen und Kennwerte (bk_store)
   bkp:<id>          eine Kostenermittlung (bk_projects.data)
   avalv:<id>        ein Leistungsverzeichnis (ava_lv: Positionen, Vergabe)
@@ -33,7 +33,7 @@ VORSCHLAEGE = [("Sparsam", 30, 180), ("Empfohlen", 90, 730), ("Großzügig", 365
 GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen (Bauzeitenplan)", "catfirms": "Firmen je Gewerk (Bauzeitenplan)",
       "catscope": "Leistungsumfang je Gewerk (Bauzeitenplan)", "settings": "KI und Bauzeitenplan (Verwaltung)", "plattform": "KI-Anbieter (Verwaltung)",
       "presets": "Vorlagen des Bauzeitenplans", "assistcfg": "Assistent des Bauzeitenplans", "assistcfg_vorlagen": "Vorlagen des Assistenten"}
-BP = {"aufgaben": "Einstellungen „Mängel & Erinnerungen“", "plaene": "Einstellungen „Planstand & Versand“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}
+BP = {"aufgaben": "Einstellungen „Aufgaben & Mängel“", "plaene": "Einstellungen „Planstand & Versand“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}
 BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)", "vergleich": "Vergleichsobjekte und importierte Kennwerte (Baukosten)", "dienste": "Zugänge zu Kostendatenbanken (Baukosten)"}
 
 LABELS = {
@@ -540,7 +540,7 @@ def statistik(c):
             "teile": teile, "vorschlaege": vorschlaege}
 
 
-TEILE = {"einst": "Allgemeine Einstellungen und Vorlagen", "gs": "Bauzeitenplan und KI", "bp": "Mängel & Erinnerungen, Planstand & Versand", "bk": "Raumtypen",
+TEILE = {"einst": "Allgemeine Einstellungen und Vorlagen", "gs": "Bauzeitenplan und KI", "bp": "Aufgaben & Mängel, Planstand & Versand", "bk": "Raumtypen",
          "bkp": "Kostenermittlungen", "avalv": "Leistungsverzeichnisse", "kontakt": "Adressen", "konto": "Persönliche Einstellungen"}
 
 

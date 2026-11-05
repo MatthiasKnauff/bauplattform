@@ -1,4 +1,4 @@
-"""Soll-Anwesenheit aus den Bauzeitenplänen – gemeinsam für Bautagebuch und „Mängel & Erinnerungen“.
+"""Soll-Anwesenheit aus den Bauzeitenplänen – gemeinsam für Bautagebuch und „Aufgaben & Mängel“.
 
 Ein Bauzeitenplan (Tabelle gantt_projects) ist über project_id mit einem Bautagebuch-Projekt verknüpft.
 Seine berechneten Termine stehen in data["sched"] ({uid, s, f, g}); die Firma einer Leistung ergibt sich

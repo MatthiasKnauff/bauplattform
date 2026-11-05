@@ -1,4 +1,4 @@
-"""Mängel & Erinnerungen – Mängelverfolgung aus den Bautagesberichten und zentrale Erinnerungen.
+"""Aufgaben & Mängel – Mängelverfolgung aus den Bautagesberichten und zentrale Erinnerungen.
 
 Mängel (und „Zu erledigen“, Weisungen) kommen aus den Einträgen des Bautagebuchs (Tabelle items). Erledigt-Haken, Frist und
 Firma werden über das Bautagebuch gespeichert (gleiche Rechte, gleiche Erinnerungs-Mail des Bautagebuchs am Fälligkeitstag).
@@ -41,7 +41,7 @@ def guard():
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base("aufgaben") + "/")), 401
         return redirect(C.login_url(request.url))
     if not sso.has_app(u, "aufgaben"):
-        msg = "Für „Mängel & Erinnerungen“ ist dein Konto nicht freigeschaltet."
+        msg = "Für „Aufgaben & Mängel“ ist dein Konto nicht freigeschaltet."
         if p.startswith("/api/"):
             return jsonify(error=msg), 403
         return (f'{msg} <a href="{C.app_base("portal")}/">Zur Startseite</a>', 403, {"Content-Type": "text/html; charset=utf-8"})
@@ -1187,7 +1187,7 @@ def erinnerung_test():
     if not g.user["email"]:
         return jsonify(error="Unter Benutzer ist für dich keine E-Mail-Adresse eingetragen."), 400
     try:
-        mail.send(mc, g.user["email"], "Bauplattform – Test der Erinnerungen", f"Hallo {C.public(g.user)['vorname'] or g.user['name']},\n\nso kommen Erinnerungen aus „Mängel & Erinnerungen“ an.\n")
+        mail.send(mc, g.user["email"], "Bauplattform – Test der Erinnerungen", f"Hallo {C.public(g.user)['vorname'] or g.user['name']},\n\nso kommen Erinnerungen aus „Aufgaben & Mängel“ an.\n")
     except mail.MailError as e:
         return jsonify(error=str(e)), 502
     return jsonify(ok=True, to=g.user["email"])

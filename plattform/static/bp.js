@@ -89,7 +89,7 @@ function _loadHead() {
 async function header(current, me, conf, opt = {}) {
   BP_PROXIED = conf.proxied || null; BP_DOMAIN = conf.domain || '';
   await _loadHead();
-  const key = { Startseite: 'portal', Verwaltung: 'admin', Adressen: 'adressen', Baukosten: 'baukosten', 'Mängel & Erinnerungen': 'aufgaben', 'Planstand & Versand': 'plaene', 'Ausschreibung & Abrechnung': 'ava', Kommunikation: 'kommunikation' }[current] || '';
+  const key = { Startseite: 'portal', Verwaltung: 'admin', Adressen: 'adressen', Baukosten: 'baukosten', 'Aufgaben & Mängel': 'aufgaben', 'Mängel & Erinnerungen': 'aufgaben', 'Planstand & Versand': 'plaene', 'Ausschreibung & Abrechnung': 'ava', Kommunikation: 'kommunikation' }[current] || '';
   await BPHead.mount({ app: key, name: current, me, sticky: true, project: opt.project });
 }
 

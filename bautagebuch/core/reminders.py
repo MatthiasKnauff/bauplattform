@@ -44,7 +44,7 @@ def run_once(now=None):
         if not mine:
             continue
         from bpcore import platform
-        lk = lambda i: platform.link("aufgaben", f"#mangel-{i['id']}", conf)   # direkt zum Eintrag in „Mängel & Erinnerungen“
+        lk = lambda i: platform.link("aufgaben", f"#mangel-{i['id']}", conf)   # direkt zum Eintrag in „Aufgaben & Mängel“
         lines = [f"• {i['proj']} – {i['sec'] or 'Eintrag'}: {i['text'].strip().splitlines()[0]}  (fällig {_de(i['due'])} {i['due_time'] or '09:00'}, Bericht vom {_de(i['rdate'])})"
                  + (f"\n  {lk(i)}" if lk(i) else "") for i in mine]
         body = (f"Hallo {u['name']},\n\nfolgende Punkte aus dem Bautagebuch sind heute fällig bzw. überfällig:\n\n" + "\n".join(lines) + "\n")

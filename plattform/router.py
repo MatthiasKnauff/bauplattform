@@ -5,7 +5,7 @@
     https://bauportal.firma.de/bauzeitenplan/  → Bauzeitenplan
     https://bauportal.firma.de/adressen/       → Adressen
     https://bauportal.firma.de/baukosten/      → Baukosten
-    https://bauportal.firma.de/maengel/        → Mängel & Erinnerungen
+    https://bauportal.firma.de/maengel/        → Aufgaben & Mängel
     https://bauportal.firma.de/verwaltung/     → Verwaltung
 
 Im Nginx Proxy Manager ist dafür nur ein Eintrag nötig (bauportal… → Docker-Server, Port 8090). Die Verteilung auf die

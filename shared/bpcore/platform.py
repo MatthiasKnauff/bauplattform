@@ -35,7 +35,7 @@ def apps():
             ("gantt", "Bauzeitenplan", "GANTT_PORT", "8082", "GANTT_URL", {}),
             ("adressen", "Adressen", "ADRESSEN_PORT", "8093", "ADRESSEN_URL", {}),
             ("baukosten", "Baukosten", "BAUKOSTEN_PORT", "8094", "BAUKOSTEN_URL", {}),
-            ("aufgaben", "Mängel & Erinnerungen", "AUFGABEN_PORT", "8095", "AUFGABEN_URL", {}),
+            ("aufgaben", "Aufgaben & Mängel", "AUFGABEN_PORT", "8095", "AUFGABEN_URL", {}),
             ("plaene", "Planstand & Versand", "PLAENE_PORT", "8096", "PLAENE_URL", {}),
             ("ava", "Ausschreibung & Abrechnung", "AVA_PORT", "8097", "AVA_URL", {}),
             ("kommunikation", "Kommunikation", "KOMMUNIKATION_PORT", "8098", "KOMMUNIKATION_URL", {}),

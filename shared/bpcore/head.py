@@ -611,7 +611,7 @@ def blueprint(get_user=None):
 
     @bp.post("/api/bp/post/erinnerung")
     def post_erinnerung():
-        """Vorschlag aus der Mail-Übersicht als Erinnerung anlegen (wie in „Mängel & Erinnerungen“, an mich)."""
+        """Vorschlag aus der Mail-Übersicht als Erinnerung anlegen (wie in „Aufgaben & Mängel“, an mich)."""
         import re as _re
         u, uid = _uid()
         if not u:

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#84827c">
-<title>Mängel & Erinnerungen</title>
+<title>Aufgaben & Mängel</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="static/bp.css">
 <style>
@@ -97,6 +97,7 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .bed-f.gr{background:rgba(255,226,120,.12)}
 .bed-l{color:#ddd;padding:3rem}
 </style>
+<link rel="stylesheet" href="static/todo.css">
 </head>
 <body>
 <main class="wrap">
@@ -111,9 +112,10 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 </main>
 <div id="undoBar" hidden><button class="btn" id="undoBtn">↶ Rückgängig</button></div>
 <script src="static/bp.js"></script>
+<script src="static/todo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('auf.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('auf.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
-let tab = (location.hash || '').slice(1) || LS.get('tab', 'maengel'), scope = LS.get('scope', 'mine');
+let tab = (location.hash || '').slice(1) || LS.get('tab', 'todos'), scope = LS.get('scope', 'mine');
 let M = null, E = null, T = null, CONF = null, ME = null, F = LS.get('filter', { q: '', projekt: '', firma: '', art: 'maengel', status: 'offen' }), OPEN = null;
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -145,6 +147,7 @@ function zeige(art, id) {
 /* ---------- Laden ---------- */
 async function reload(first) {
   try {
+    if (tab === 'todos') { await tdRef(); await tdLaden(); renderTabs(); return; }
     if (tab === 'maengel') M = await api('api/maengel?scope=' + scope);
     else if (tab === 'termine') T = await api('api/termine?scope=' + scope);
     else E = await api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : ''));
@@ -154,10 +157,15 @@ async function reload(first) {
 function renderTabs() {
   const nM = M ? M.filter((m) => m.status === 'ueberfaellig').length : 0, nE = E ? E.items.filter((x) => ['ueberfaellig', 'abgelaufen', 'heute'].includes(x.lage)).length : 0;
   const nT = T ? T.filter((x) => x.status === 'offen').length : 0;
-  $('#tabs').innerHTML = [['maengel', 'Mängel', nM], ['termine', 'Termine', nT], ['erinnerungen', 'Erinnerungen', nE]].map(([k, l, n]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}${n ? `<small class="bad" title="überfällig / fällig">${n}</small>` : ''}</button>`).join('');
+  const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
+  $('.top').style.display = tab === 'todos' ? 'none' : '';   // gelten nur für Mängel, Termine, Erinnerungen
+  $('#tabs').innerHTML = [['todos', 'To-dos', nTd], ['maengel', 'Mängel', nM], ['termine', 'Termine', nT], ['erinnerungen', 'Erinnerungen', nE]].map(([k, l, n]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}${n ? `<small class="bad" title="überfällig / fällig">${n}</small>` : ''}</button>`).join('');
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
-function render() { renderTabs(); if (tab === 'maengel') renderM(); else if (tab === 'termine') renderT(); else renderE(); }
+function render() {
+  renderTabs();
+  if (tab === 'todos') { if (!$('#todo')) $('#view').innerHTML = '<section class="todo voll" id="todo"></section>'; tdZeigen(); return; }
+  if (tab === 'maengel') renderM(); else if (tab === 'termine') renderT(); else renderE(); }
 
 /* ---------- Termine: Firmen laut Bauzeitenplan nicht anwesend ---------- */
 function renderT() {
@@ -308,6 +316,7 @@ async function eSave(id, body, undoBody, label) {
 /* ---------- Bedienung ---------- */
 document.addEventListener('click', async (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); reload(tab === 'erinnerungen' && !E); return; }
+  if (e.target.closest('#todo')) return;   // To-do-Liste hat eigene Bedienung (todo.js)
   const sc = e.target.closest('[data-scope]'); if (sc) { scope = sc.dataset.scope; LS.set('scope', scope); M = null; E = null; T = null; render(); reload(); return; }
   const ts = e.target.closest('[data-tset]'); if (ts) { tSet(ts.closest('[data-tid]').dataset.tid, ts.dataset.tset); return; }
   const tr = e.target.closest('[data-truege]'); if (tr) { truegeDialog(tr.dataset.truege); return; }
@@ -598,19 +607,23 @@ async function setDialog(host) {
 (async () => {
   ME = await api('api/me'); applyLook(ME);
   CONF = await api('api/platform');
-  await header('Mängel & Erinnerungen', ME, CONF);
-  BPHead.appEinstellungen([{ key: 'erinnerungen', label: 'Erinnerungen', render: (h) => setDialog(h) }]);
+  await header('Aufgaben & Mängel', ME, CONF);
+  BPHead.appEinstellungen([{ key: 'todo', label: 'To-dos', render: (h) => tdEinstellungen(h) }, { key: 'erinnerungen', label: 'Erinnerungen', render: (h) => setDialog(h) }]);
   try { CFG = await api('api/einstellungen'); } catch { /* egal */ }
   const deep = /^(mangel|erinnerung)-(\d+)$/.exec(tab);   // Link aus einer E-Mail: direkt zum Eintrag
   if (deep) { tab = deep[1] === 'mangel' ? 'maengel' : 'erinnerungen'; scope = 'all'; history.replaceState(null, '', '#' + tab); }
-  if (!['maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'maengel';
+  const tdDeep = /^todos&t=(\d+)$/.exec(tab);   // von der Startseite: eine eigene Aufgabe gleich zum Bearbeiten öffnen
+  if (tdDeep) { tab = 'todos'; history.replaceState(null, '', '#todos'); }
+  if (!['todos', 'maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'todos';
   const gp = !deep && BPHead.projektId();   // Projekt aus der zuletzt benutzten App: Mängel dieses Projekts (Filter „Alle Projekte“ hebt das auf)
   if (gp) F.projekt = String(gp);
-  renderTabs(); ladeBriefe(); await reload(tab === 'erinnerungen');
+  renderTabs(); ladeBriefe(); if (tab === 'todos') render(); await reload(tab === 'erinnerungen');
+  if (tdDeep && TD) { const x = (TD.manuell || []).find((y) => String(y.id) === tdDeep[1]); if (x) { TDOFFEN = x.key; tdZeigen(); const el = $('#todo .te'); if (el) el.scrollIntoView({ block: 'center' }); } }
+  if (tab !== 'todos') tdRef().then(tdLaden).then(renderTabs).catch(() => {});
   if (gp && M && !M.some((m) => m.pid === gp)) { F.projekt = ''; if (tab === 'maengel') renderM(); }
   if (deep) zeige(deep[1], deep[2]);
-  if (tab === 'maengel') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});
-  else api('api/maengel?scope=' + scope).then((r) => { M = r; renderTabs(); }).catch(() => {});
+  if (tab !== 'erinnerungen') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});
+  if (tab !== 'maengel') api('api/maengel?scope=' + scope).then((r) => { M = r; renderTabs(); }).catch(() => {});
   if (tab !== 'termine') api('api/termine?scope=' + scope).then((r) => { T = r; renderTabs(); }).catch(() => {});
 })().catch((e) => toast(e.message, true));
 </script>

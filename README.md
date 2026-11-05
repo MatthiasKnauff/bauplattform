@@ -281,7 +281,7 @@ BKI, sirAdos, DBD) ergeben je Raumtyp Mittelwert und Spanne; „Ø Vergleichswer
 Kostendatenbanken hinterlegt der Administrator unter „Kostendatenbanken“ (direkte Abfrage, sobald ein Anbieter eine Partner-Schnittstelle freigibt).
 Beim Öffnen erklärt ein Hinweisfenster Grundlagen und Grenzen der Ermittlung („nicht mehr anzeigen“ je Benutzer).
 
-## Mängel & Erinnerungen (eigener Container)
+## Aufgaben & Mängel (eigener Container)
 
 Adresse: `/maengel` (Container `bauplattform_aufgaben`, Port 8095). Oben „Meine Projekte“ (im Bautagebuch als zuständig
 eingetragen) oder „Alle Projekte“.
@@ -348,7 +348,7 @@ oder als PDF) – aus dem Benachrichtigungsverlauf (Tabelle `benachrichtigungen`
 - Projekt oben im Kopf oder alle Projekte; links „Mit wem“ mit Anzahl und letzter Sendung, rechts der Verlauf nach Tagen.
 - Ein Kontakt (links anklicken oder „👤 Kontakt …“): alles, was ihm geschickt wurde, über alle Projekte – links nach Projekten.
 - Filter nach Art, „nur von mir“, Suche; Export für Excel (CSV) und Drucken als Nachweis.
-- Wer Bautagebuch, Bauzeitenplan, Planstand oder Mängel & Erinnerungen nutzt, bekommt die App automatisch (in der Verwaltung abwählbar).
+- Wer Bautagebuch, Bauzeitenplan, Planstand oder Aufgaben & Mängel nutzt, bekommt die App automatisch (in der Verwaltung abwählbar).
 
 ## Verwaltung (eigener Container)
 
@@ -379,7 +379,7 @@ Die Benutzerverwaltung im Bautagebuch (Einstellungen) funktioniert weiter. Beide
 
 Jede Speicherung von Einstellungen und Stammdaten legt automatisch einen Stand an (Tabelle `versionen`, `shared/bpcore/versionen.py`):
 allgemeine Einstellungen (Firma, Ablage, Mailserver), E-Mail-Vorlagen, KI-Einstellungen, Leistungskatalog/Phasen/Firmen/Vorlagen/Assistent
-des Bauzeitenplans, Einstellungen von „Mängel & Erinnerungen“, Raumtypen und Kostenermittlungen, Adressen (auch gelöschte) und die
+des Bauzeitenplans, Einstellungen von „Aufgaben & Mängel“, Raumtypen und Kostenermittlungen, Adressen (auch gelöschte) und die
 persönlichen Einstellungen jedes Benutzers (Versand, Kalender, Darstellung, KI, Assistent, Unterschrift).
 
 - Jeder Stand nennt die Änderungen in Worten („Büroname: „A“ → „B““); Speicherungen desselben Benutzers innerhalb von 10 Minuten werden zusammengefasst.

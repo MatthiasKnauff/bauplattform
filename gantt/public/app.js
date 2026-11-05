@@ -2449,8 +2449,8 @@ function archivDialog() {
   const arch = !!P.archived;
   modal(arch ? 'Archiviertes Projekt' : 'Archivieren oder löschen', `<div style="max-width:460px;line-height:1.5">
     <p><b>${arch ? 'Zurückholen' : 'Archivieren'}</b> ${arch ? 'stellt „' + esc(P.name) + '“ wieder zu den laufenden Plänen.' : 'nimmt „' + esc(P.name) + '“ aus den laufenden Plänen – er bleibt mit allen Versionen erhalten und lässt sich jederzeit zurückholen (Öffnen → unten „Archiv“).'}</p>
-    <p><b>Löschen</b> entfernt den Plan endgültig – mit allen Versionen. Das lässt sich nicht rückgängig machen.</p></div>`, [
-    { label: 'Endgültig löschen …', cls: 'danger', left: true, fn: () => { reallyDelete(); } },
+    <p><b>In den Papierkorb</b> nimmt diese Version mit ihrem Verlauf heraus. Aus dem Papierkorb (Startseite) lässt sie sich wiederherstellen, bis er geleert wird.</p></div>`, [
+    { label: '🗑 In den Papierkorb', cls: 'danger', left: true, fn: () => { reallyDelete(); } },
     { label: 'Abbrechen' },
     { label: arch ? 'Zurückholen' : 'Archivieren', cls: 'primary', primary: true, fn: async () => {
       act(() => { P.archived = !arch; }); await saveNow(); await refreshProjectList();
@@ -2458,14 +2458,14 @@ function archivDialog() {
     } }]);
 }
 function reallyDelete() {
-  confirmDialog('Version endgültig löschen', `Soll die Version <b>${esc(P.name)}</b> mit ihrem Verlauf endgültig gelöscht werden? Das kann nicht rückgängig gemacht werden. <br><br>Tipp: <b>Archivieren</b> behält den Plan.`, async () => {
-    clearTimeout(saveTimer); saveTimer = null;
+  (async () => {
+    await flushSave(); clearTimeout(saveTimer); saveTimer = null; const name = P.name;
     const bt = P._bt && P._bt.id;
     await api.del(P.id); projects = await api.list(); P = null;
     const next = bt ? projects.find((p) => !p.archived && p.bt_id === bt) || projects.find((p) => p.bt_id === bt) : projects.find((p) => !p.archived);   // nächste Version desselben Projekts
     if (next) await openProject(next.id); else { await keinPlanFuer(); }
-    refreshProjectList();
-  });
+    refreshProjectList(); toast(`„${name}“ liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.`);
+  })().catch((e) => toast(e.message, true));
 }
 async function fileOpen() {
   let list = await api.list();

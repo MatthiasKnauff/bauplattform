@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, db, platform, sso, versionen
+from bpcore import ai, db, papierkorb, platform, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -341,10 +341,11 @@ def bk_one(i):
             return jsonify(error="Nicht gefunden"), 404
         if request.method == "GET":
             return jsonify(_out(c, r))
-        if request.method == "DELETE":
-            c.execute("DELETE FROM bk_projects WHERE id=?", (i,))
-            C.audit(g.user["name"], "baukosten", "Kostenermittlung gelöscht", r["name"])
-            return jsonify(ok=True)
+        if request.method == "DELETE":   # in den Papierkorb (mit den hochgeladenen Plänen)
+            pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
+            papierkorb.ablegen(c, "bk_projects", i, "Kostenermittlung", r["name"], g.user["name"], pr["name"] if pr else "", "baukosten")
+            C.audit(g.user["name"], "baukosten", "Kostenermittlung in den Papierkorb", r["name"])
+            return jsonify(ok=True, papierkorb=True)
         b = request.get_json(silent=True) or {}
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"bk:{i}",))
         r = _row(c, i)

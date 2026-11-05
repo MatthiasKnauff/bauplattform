@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, db, gaeb, platform, schrift, sso, versionen
+from bpcore import ai, db, gaeb, papierkorb, platform, schrift, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -349,7 +349,8 @@ def version_eins(vid):
         if request.method == "DELETE":
             if c.execute("SELECT COUNT(*) AS n FROM ava_version WHERE project_id=?", (v["project_id"],)).fetchone()["n"] < 2:
                 return jsonify(error="Die einzige Version lässt sich nicht löschen."), 400
-            c.execute("DELETE FROM ava_version WHERE id=?", (vid,))
+            pr = c.execute("SELECT name FROM projects WHERE id=?", (v["project_id"],)).fetchone()
+            papierkorb.ablegen(c, "ava_version", vid, "AVA-Version", v["name"], g.user["name"], pr["name"] if pr else "", "ava")
             if v["aktiv"]:
                 c.execute("""UPDATE ava_version SET aktiv=1 WHERE id=(SELECT id FROM ava_version WHERE project_id=?
                              ORDER BY archived, updated DESC NULLS LAST, id DESC LIMIT 1)""", (v["project_id"],))
@@ -748,9 +749,10 @@ def lv_eins(i):
         if request.method == "GET":
             return jsonify(_payload(c, r))
         if request.method == "DELETE":
-            c.execute("DELETE FROM ava_lv WHERE id=?", (i,))
-            C.audit(g.user["name"], "ava", "LV gelöscht", f"{r['nr']} {r['name']}")
-            return jsonify(ok=True)
+            pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
+            papierkorb.ablegen(c, "ava_lv", i, "Leistungsverzeichnis", f"LV {r['nr']} {r['name']}".strip(), g.user["name"], pr["name"] if pr else "", "ava")
+            C.audit(g.user["name"], "ava", "LV in den Papierkorb", f"{r['nr']} {r['name']}")
+            return jsonify(ok=True, papierkorb=True)
         b = request.get_json(silent=True) or {}
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"avalv:{i}",))
         r = _lv(c, i)

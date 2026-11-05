@@ -1179,27 +1179,20 @@ function verwalten() {
   if (!B) return;
   modalBox(`<h3>„${esc(B.name)}“</h3>
     <p><b>Archivieren</b> schiebt diese Version in der Versionsauswahl nach unten unter „Archiviert“; sie bleibt erhalten und lässt sich jederzeit zurückholen.</p>
-    <p><b>Löschen</b> entfernt diese Version endgültig – mit Raumbuch, Schätzungen und hochgeladenen Plänen. Das lässt sich nicht rückgängig machen.</p>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${B.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del">Endgültig löschen …</button></div>`,
+    <p><b>In den Papierkorb</b> nimmt diese Version mit Raumbuch, Schätzungen und hochgeladenen Plänen heraus – wiederherstellen lässt sie sich auf der Startseite unter „Papierkorb“.</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${B.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del">🗑 In den Papierkorb</button></div>`,
   async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m === 'arch') {
       close(); clearTimeout(saveT); await saveNow({ archived: !B.archived });
       toast(B.archived ? 'Aus dem Archiv geholt.' : 'Archiviert.'); await loadList(B.id); return;
     }
-    if (m === 'del') {   // zweite Sicherheitsabfrage: Namen eintippen
-      bg.querySelector('.modal').innerHTML = `<h3>Endgültig löschen</h3><p>Zur Bestätigung den Namen eintippen:<br><b>${esc(B.name)}</b></p>
-        <div class="row" style="flex-direction:column;align-items:stretch"><input id="delName" autocomplete="off" aria-label="Name zur Bestätigung"></div>
-        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="del2">Löschen</button></div>`;
-      bg.querySelector('#delName').focus(); return;
-    }
-    if (m === 'del2') {
-      if (bg.querySelector('#delName').value.trim() !== B.name.trim()) { toast('Der Name stimmt nicht – nichts gelöscht.', true); return; }
+    if (m === 'del') {
       try {
-        clearTimeout(saveT); const id = B.id, name = B.name;
+        clearTimeout(saveT); await saveNow(); const id = B.id, name = B.name;
         await api('api/bk/' + id, 'DELETE'); close();
-        try { localStorage.removeItem('bk.assist.' + id); localStorage.removeItem('bk.cur'); } catch { /* egal */ }
-        B = null; toast(`„${name}“ gelöscht.`); await loadList();
+        try { localStorage.removeItem('bk.cur'); } catch { /* egal */ }
+        B = null; toast(`„${name}“ liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.`); await loadList();
       } catch (e) { toast('Löschen fehlgeschlagen: ' + e.message, true); }
     }
   });

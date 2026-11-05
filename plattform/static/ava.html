@@ -428,12 +428,12 @@ async function vleiste(neu) {
     onVerlauf: () => lvVerlauf(),
     onVerwalten: () => { if (!akt) return; modalBox(`<h3>Version „${esc(akt.name)}“</h3>
         <p><b>Archivieren</b> schiebt die Version in der Auswahl nach unten unter „Archiviert“; sie bleibt erhalten.</p>
-        <p><b>Löschen</b> entfernt die Version endgültig – mit allen ihren Leistungsverzeichnissen, Angeboten, Aufmaß und Rechnungen.</p>
-        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${akt.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del"${VERS.length < 2 ? ' disabled title="Die einzige Version lässt sich nicht löschen."' : ''}>Endgültig löschen …</button></div>`, async (m, bg, close) => {
+        <p><b>In den Papierkorb</b> nimmt die Version mit allen ihren Leistungsverzeichnissen, Angeboten, Aufmaß und Rechnungen heraus – wiederherstellen auf der Startseite unter „Papierkorb“.</p>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${akt.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del"${VERS.length < 2 ? ' disabled title="Die einzige Version lässt sich nicht löschen."' : ''}>🗑 In den Papierkorb</button></div>`, async (m, bg, close) => {
         if (m === 'x') { close(); return; }
         try {
           if (m === 'arch') { await api('api/versionen/' + akt.id, 'PUT', { archived: !akt.archived }); close(); vleiste(); return; }
-          if (m === 'del') { if (!confirm(`Version „${akt.name}“ mit allen LVs endgültig löschen?`)) return; await api('api/versionen/' + akt.id, 'DELETE'); close(); L = null; await loadList(); toast('Version gelöscht.'); }
+          if (m === 'del') { await flush(); await api('api/versionen/' + akt.id, 'DELETE'); close(); L = null; await loadList(); toast('Version liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.'); }
         } catch (e) { toast(e.message, true); }
       }); } });
   el.style.display = VERS.length ? '' : 'none';
@@ -903,11 +903,11 @@ window.bpNachVerlauf = () => (L ? openLv(L.id) : location.reload());
 $('#moreBtn').onclick = () => {
   if (!L) return;
   modalBox(`<h3>Archivieren oder löschen</h3><p><b>${L.archived ? 'Zurückholen' : 'Archivieren'}</b> ${L.archived ? 'stellt das LV wieder zu den laufenden.' : 'nimmt das LV aus der Liste – mit Angeboten, Aufmaß und Rechnungen bleibt alles erhalten.'}</p>
-    <p><b>Löschen</b> entfernt das LV mit allen Angeboten, Aufmaßen und Rechnungen endgültig.</p>
-    <div class="acts"><button class="btn danger" data-m="del" style="margin-right:auto">Endgültig löschen …</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="arch">${L.archived ? 'Zurückholen' : 'Archivieren'}</button></div>`, async (m, bg, close, btn) => {
+    <p><b>In den Papierkorb</b> nimmt das LV mit Angeboten, Aufmaß und Rechnungen heraus – wiederherstellen lässt es sich auf der Startseite unter „Papierkorb“.</p>
+    <div class="acts"><button class="btn danger" data-m="del" style="margin-right:auto">🗑 In den Papierkorb</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="arch">${L.archived ? 'Zurückholen' : 'Archivieren'}</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m === 'arch') { await flush(); await saveNow({ archived: !L.archived }); close(); await refreshList(); render(); return; }
-    if (m === 'del') { if (!btn.dataset.s) { btn.dataset.s = 1; btn.textContent = 'Wirklich endgültig löschen?'; return; } try { await api('api/lv/' + L.id, 'DELETE'); close(); L = null; await loadList(); toast('LV gelöscht.'); } catch (e) { toast(e.message, true); } }
+    if (m === 'del') { try { await flush(); await api('api/lv/' + L.id, 'DELETE'); close(); L = null; await loadList(); toast('LV liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.'); } catch (e) { toast(e.message, true); } }
   });
 };
 

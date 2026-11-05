@@ -8,7 +8,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, platform, sso, versionen
+from bpcore import db, papierkorb, platform, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -435,12 +435,12 @@ def project_delete():
             r = c.execute("SELECT name FROM gantt_projects WHERE id=?", (x,)).fetchone()
             if r:
                 c.execute("DELETE FROM gantt_presence WHERE gantt_id=?", (x,))
-                c.execute("DELETE FROM gantt_projects WHERE id=?", (x,))   # Versionen werden mitgelöscht
+                papierkorb.ablegen(c, "gantt_projects", x, "Bauzeitenplan", r["name"], g.user["name"], "", "gantt")   # mit Verlauf
                 done.append(f"Bauzeitenplan „{r['name']}“")
         for x in [int(v) for v in (b.get("bks") or []) if isinstance(v, int)][:200]:
             r = c.execute("SELECT name FROM bk_projects WHERE id=?", (x,)).fetchone()
             if r:
-                c.execute("DELETE FROM bk_projects WHERE id=?", (x,))   # Pläne (PDF) werden mitgelöscht
+                papierkorb.ablegen(c, "bk_projects", x, "Kostenermittlung", r["name"], g.user["name"], "", "baukosten")   # mit Plänen (PDF)
                 done.append(f"Kostenermittlung „{r['name']}“")
     bt = b.get("bt")
     if isinstance(bt, int):

@@ -23,6 +23,14 @@ def index():
     return C.page("portal.html")
 
 
+@app.get("/papierkorb")
+def papierkorb_seite():
+    u = C.current_user()
+    if not u or u["must_change"]:
+        return redirect("/login")
+    return C.page("papierkorb.html")
+
+
 @app.get("/login")
 def login_page():
     return C.page("login.html")

@@ -133,8 +133,27 @@ def auto_address(i):
 
 @bp.delete("/api/projects/<int:i>")
 def delete_project(i):
+    """In den Papierkorb der Plattform – mit Berichten, Fotos und allem, was in den anderen Apps am Projekt hängt.
+    Die Fotodateien bleiben liegen, bis der Papierkorb geleert wird (papierkorb_dateien)."""
+    from bpcore import papierkorb
     with db.tx() as c:
+        r = c.execute("SELECT name FROM projects WHERE id=?", (i,)).fetchone()
+        if not r:
+            return jsonify(ok=True)
         files = db.image_files(c, "report_id IN (SELECT id FROM reports WHERE project_id=?)", (i,))
-        c.execute("DELETE FROM projects WHERE id=?", (i,))
-    storage.drop(files)
-    return jsonify(ok=True)
+        papierkorb.ablegen(c, "projects", i, "Bautagebuch-Projekt", r["name"], getattr(g, "user", None) and g.user["name"] or "", r["name"],
+                           "bautagebuch", dateien=list(files))
+    papierkorb_dateien()
+    return jsonify(ok=True, papierkorb=True)
+
+
+def papierkorb_dateien():
+    """Fotos von Projekten, die im Papierkorb endgültig gelöscht wurden, vom Datenträger entfernen."""
+    from bpcore import papierkorb
+    try:
+        with db.tx() as c:
+            files = papierkorb.dateien_abholen(c, "bautagebuch")
+        if files:
+            storage.drop(files)
+    except Exception:
+        pass

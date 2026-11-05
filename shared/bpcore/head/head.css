@@ -133,7 +133,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 /* gleichmäßig über den Farbkreis verteilt, damit keine zwei Apps ähnlich aussehen; die Startseite bleibt neutral */
 [data-af="aufgaben"]{--af:#e03131}[data-af="ava"]{--af:#f08c00}[data-af="baukosten"]{--af:#b5a000}[data-af="gantt"]{--af:#2f9e44}
 [data-af="plaene"]{--af:#0c9c8c}[data-af="bautagebuch"]{--af:#1c7ed6}[data-af="adressen"]{--af:#7048e8}[data-af="kommunikation"]{--af:#ae3ec9}
-[data-af="admin"]{--af:#868e96}[data-af="portal"]{--af:#9a9c9e}
+[data-af="papierkorb"]{--af:#8d6e63}[data-af="admin"]{--af:#868e96}[data-af="portal"]{--af:#9a9c9e}
 .bph-menu .bph-tiles a[data-af] svg{color:var(--af)}
 .bph-menu .bph-tiles a.cur{background:rgba(255,255,255,.08)}
 /* Einstellungsfenster (von rechts) */

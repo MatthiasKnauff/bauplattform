@@ -302,26 +302,23 @@ function openDlg(p) {
 }
 function delDlg(p) {
   const opts = [];
-  if (p.bt) opts.push(['bt', p.bt.id, `<b>Bautagebuch-Projekt</b><small>mit ${p.bt.reports} Tagesberichten und ${p.bt.images} Fotos – endgültig</small>`]);
+  if (p.bt) opts.push(['bt', p.bt.id, `<b>Bautagebuch-Projekt</b><small>mit ${p.bt.reports} Tagesberichten und ${p.bt.images} Fotos</small>`]);
   p.plans.forEach((x) => opts.push(['plan', x.id, `<b>Bauzeitenplan „${esc(x.name)}“</b><small>mit ${x.versions} gespeicherten Versionen</small>`]));
   p.bks.forEach((x) => opts.push(['bk', x.id, `<b>Kostenermittlung „${esc(x.name)}“</b><small>mit Raumbuch, Schätzungen und ${x.files} Plänen (PDF)</small>`]));
-  const bg = modalBox(`<h3>Aus welchen Apps löschen?</h3><p class="mute">„${esc(p.name)}“ – angekreuzte Teile werden endgültig gelöscht, alles andere bleibt.</p>
+  const bg = modalBox(`<h3>Aus welchen Apps löschen?</h3><p class="mute">„${esc(p.name)}“ – angekreuzte Teile kommen in den Papierkorb (Startseite), alles andere bleibt.</p>
     <div class="dl">${opts.map(([t, id, l], n) => `<label><input type="checkbox" data-n="${n}"><span>${l}</span></label>`).join('')}</div>
-    <div class="row hidden" id="cfRow"><label for="cf">Bautagebuch-Projekt löschen: zur Bestätigung den Projektnamen eintippen</label><input id="cf" autocomplete="off"></div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="del" disabled>Angekreuzte löschen</button></div>`,
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="del" disabled>🗑 In den Papierkorb</button></div>`,
   async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     const sel = [...bg.querySelectorAll('[data-n]:checked')].map((c) => opts[+c.dataset.n]);
-    if (sel.some((o) => o[0] === 'bt') && bg.querySelector('#cf').value.trim() !== p.name.trim()) { toast('Der Projektname stimmt nicht – nichts gelöscht.', true); return; }
     btn.disabled = true; btn.textContent = 'Lösche …';
     try {
       const r = await api('api/projects/delete', 'POST', { bt: (sel.find((o) => o[0] === 'bt') || [])[1] ?? null, plans: sel.filter((o) => o[0] === 'plan').map((o) => o[1]), bks: sel.filter((o) => o[0] === 'bk').map((o) => o[1]) });
-      close(); toast('Gelöscht: ' + r.done.join(', ') + (r.errors.length ? ' – Fehler: ' + r.errors.join('; ') : ''), !!r.errors.length); load();
-    } catch (e) { btn.disabled = false; btn.textContent = 'Angekreuzte löschen'; toast(e.message, true); }
+      close(); toast('Im Papierkorb: ' + r.done.join(', ') + (r.errors.length ? ' – Fehler: ' + r.errors.join('; ') : ''), !!r.errors.length); load();
+    } catch (e) { btn.disabled = false; btn.textContent = '🗑 In den Papierkorb'; toast(e.message, true); }
   });
   bg.addEventListener('change', () => {
     const sel = [...bg.querySelectorAll('[data-n]:checked')].map((c) => opts[+c.dataset.n]);
-    bg.querySelector('#cfRow').classList.toggle('hidden', !sel.some((o) => o[0] === 'bt'));
     bg.querySelector('[data-m="del"]').disabled = !sel.length;
   });
 }

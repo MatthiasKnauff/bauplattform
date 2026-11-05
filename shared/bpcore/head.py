@@ -27,7 +27,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, db, konto, posteingang, skizze, sso, todo, versionen, vorlagen
+from . import ai, benachrichtigung, briefbogen, db, konto, papierkorb, posteingang, skizze, sso, todo, versionen, vorlagen
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -725,7 +725,8 @@ def blueprint(get_user=None):
             if request.method == "DELETE":
                 if alt["erstellt_von"] != uid and not u["is_admin"]:
                     return jsonify(error="Löschen kann nur, wer die Aufgabe angelegt hat."), 403
-                c.execute("DELETE FROM todo WHERE id=?", (tid,))
+                pr = c.execute("SELECT name FROM projects WHERE id=?", (alt["project_id"],)).fetchone() if alt["project_id"] else None
+                papierkorb.ablegen(c, "todo", tid, "To-do", alt["titel"], u["name"], pr["name"] if pr else "", "aufgaben")
                 return jsonify(ok=True)
             b = request.get_json(silent=True) or {}
             jetzt = datetime.now().isoformat(timespec="seconds")
@@ -803,6 +804,53 @@ def blueprint(get_user=None):
             P = [{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM projects WHERE archived=0 ORDER BY name").fetchall()]
             U = [{"id": r["id"], "name": skizze.name_von(r)} for r in c.execute("SELECT * FROM users WHERE active=1 AND lower(name)<>'admin' ORDER BY name").fetchall()]
         return jsonify(regeln=list(R.values()), projekte=P, benutzer=U, ich=uid)
+
+    # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer
+    @bp.get("/api/bp/papierkorb")
+    def papierkorb_liste():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            return jsonify(eintraege=papierkorb.liste(c), einst=papierkorb.einstellungen(c), admin=bool(u["is_admin"]))
+
+    @bp.post("/api/bp/papierkorb/<int:pid>/zurueck")
+    def papierkorb_zurueck(pid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        try:
+            with db.tx() as c:
+                r = papierkorb.wiederherstellen(c, pid)
+        except ValueError as e:
+            return jsonify(error=str(e)), 409
+        return jsonify(ok=True, **r)
+
+    @bp.post("/api/bp/papierkorb/loeschen")
+    def papierkorb_loeschen():
+        """{ids: [...]} oder {alle: true} – endgültig (nur Verwaltung)."""
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Endgültig löschen kann nur die Verwaltung."), 403
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            ids = [r["id"] for r in c.execute("SELECT id FROM bp_papierkorb").fetchall()] if b.get("alle") else \
+                [int(x) for x in (b.get("ids") or []) if isinstance(x, int)]
+            n = papierkorb.endgueltig(c, ids)
+        return jsonify(ok=True, n=n)
+
+    @bp.put("/api/bp/papierkorb/einst")
+    def papierkorb_einst():
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Nur die Verwaltung."), 403
+        t = (request.get_json(silent=True) or {}).get("tage")
+        if not isinstance(t, int) or not 0 <= t <= 3650:
+            return jsonify(error="Bitte eine Zahl von 0 bis 3650 Tagen."), 400
+        with db.tx() as c:
+            papierkorb.einstellungen_setzen(c, t, u["name"])
+            papierkorb.aufraeumen(c)
+            return jsonify(einst=papierkorb.einstellungen(c))
 
     @bp.route("/api/bp/kacheln", methods=["GET", "PUT"])
     def kacheln_api():

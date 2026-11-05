@@ -15,7 +15,7 @@ from urllib.parse import quote, urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
-from bpcore import SCHEMA, ai as bpai, db, head, platform, sso, versionen
+from bpcore import SCHEMA, ai as bpai, db, head, papierkorb, platform, sso, versionen
 from bpcore import contacts as shared_contacts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -414,10 +414,11 @@ def project(pid):
             return err
         if request.method == "GET":
             return jsonify(out_project(c, r))
-        if request.method == "DELETE":
-            c.execute("DELETE FROM gantt_projects WHERE id=?", (pid,))
+        if request.method == "DELETE":   # in den Papierkorb (mit allen Ständen im Verlauf)
+            pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
             c.execute("DELETE FROM gantt_presence WHERE gantt_id=?", (pid,))
-            return jsonify(ok=True)
+            papierkorb.ablegen(c, "gantt_projects", pid, "Bauzeitenplan", r["name"], uname(), pr["name"] if pr else "", "gantt")
+            return jsonify(ok=True, papierkorb=True)
         b = body()
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", ("gantt:" + pid,))   # gleichzeitige Speicherungen nacheinander
         r = row_of(c, pid)

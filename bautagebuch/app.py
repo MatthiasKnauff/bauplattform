@@ -126,6 +126,17 @@ def create_app():
         resp.headers["Permissions-Policy"] = "geolocation=(self), camera=(self)"   # GPS und Kamera für die App erlauben
         return resp
 
+    _pk_zeit = [0.0]
+
+    @app.before_request
+    def papierkorb_dateien():   # höchstens alle 10 Minuten: Fotos endgültig gelöschter Projekte vom Datenträger
+        import time
+        if time.time() - _pk_zeit[0] > 600:
+            _pk_zeit[0] = time.time()
+            from modules.projects import papierkorb_dateien as weg
+            import threading
+            threading.Thread(target=weg, daemon=True).start()
+
     @app.before_request
     def guard():
         p = request.path

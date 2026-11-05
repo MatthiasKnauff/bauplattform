@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#84827c">
+<title>Papierkorb</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
+<style>
+.wrap{max-width:1000px}
+.pk-top{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.4rem 0 1rem}
+.pk-top h1{font-size:1.35rem;margin:0;flex:1}
+.pk-ein{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;color:var(--mute);font-size:.92rem;margin:0 0 1rem}
+.pk-ein select{width:auto}
+.pk-l{display:flex;flex-direction:column;gap:.5rem}
+.pk-i{display:flex;gap:.8rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem}
+.pk-i .ic{font-size:1.4rem;width:2rem;text-align:center;flex:none}
+.pk-i .t{flex:1;min-width:0}
+.pk-i .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-i .t small{display:block;color:var(--mute);font-size:.84rem}
+.pk-i .art{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+.pk-i .a{display:flex;gap:.4rem;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.pk-g{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:1rem .2rem .2rem}
+.leer{text-align:center;color:var(--mute);padding:3rem 1rem;background:var(--card);border:1px dashed var(--line);border-radius:12px}
+@media (max-width:640px){.pk-i{flex-wrap:wrap}.pk-i .a{width:100%;justify-content:flex-start}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="pk-top"><h1>🗑 Papierkorb</h1><button class="btn sm" id="leeren" hidden>Papierkorb leeren …</button></div>
+  <p class="pk-ein" id="ein"></p>
+  <div id="liste"><p class="mute">Lade …</p></div>
+</main>
+<script src="static/bp.js"></script>
+<script>
+let D = null, CONF = null;
+const APP = { bautagebuch: ['📒', 'Bautagebuch'], gantt: ['📅', 'Bauzeitenplan'], baukosten: ['💶', 'Baukosten'], ava: ['📄', 'Ausschreibung & Abrechnung'], aufgaben: ['☑', 'Aufgaben & Mängel'] };
+const wann = (t) => { if (!t) return ''; const d = new Date(t); return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
+const tagGruppe = (t) => { const d = new Date(t), h = new Date(); const tage = Math.floor((new Date(h.toDateString()) - new Date(d.toDateString())) / 864e5); return tage <= 0 ? 'Heute' : tage === 1 ? 'Gestern' : tage < 7 ? 'Diese Woche' : tage < 31 ? 'Diesen Monat' : 'Älter'; };
+function rest(t) {
+  const tage = D.einst.tage; if (!tage) return '';
+  const bis = new Date(new Date(t).getTime() + tage * 864e5), n = Math.ceil((bis - new Date()) / 864e5);
+  return n <= 1 ? ' · wird morgen endgültig gelöscht' : ` · noch ${n} Tage`;
+}
+function zeigen() {
+  const A = D.admin;
+  $('#leeren').hidden = !A || !D.eintraege.length;
+  const T = [[0, 'nie (nur von Hand)'], [7, '7 Tagen'], [14, '14 Tagen'], [30, '30 Tagen'], [60, '60 Tagen'], [90, '90 Tagen'], [180, '180 Tagen'], [365, 'einem Jahr']];
+  if (!T.some(([k]) => k === D.einst.tage)) T.push([D.einst.tage, D.einst.tage + ' Tagen']);
+  $('#ein').innerHTML = `Gelöschtes aus allen Apps – mit allem, was daran hing (Berichte, Fotos, Pläne, Angebote …). Wiederherstellen kann jeder; endgültig löschen die Verwaltung.<br>
+    Automatisch endgültig löschen nach ${A ? `<select id="tage" aria-label="Automatisch endgültig löschen nach">${T.map(([k, l]) => `<option value="${k}"${k === D.einst.tage ? ' selected' : ''}>${l}</option>`).join('')}</select>` : `<b>${(T.find(([k]) => k === D.einst.tage) || [, D.einst.tage + ' Tagen'])[1]}</b>`}`;
+  if (!D.eintraege.length) { $('#liste').innerHTML = '<div class="leer">Der Papierkorb ist leer.</div>'; return; }
+  let g = '', h = '';
+  for (const x of D.eintraege) {
+    const gr = tagGruppe(x.geloescht); if (gr !== g) { g = gr; h += `<div class="pk-g">${g}</div>`; }
+    const ap = APP[x.app] || ['🗂', x.app || ''];
+    h += `<div class="pk-i" data-id="${x.id}"><span class="ic" aria-hidden="true">${ap[0]}</span>
+      <div class="t"><span class="art">${esc(x.art)}${ap[1] && ap[1] !== x.art ? ' · ' + esc(ap[1]) : ''}</span><b>${esc(x.titel || '–')}</b>
+        <small>${x.projekt && x.projekt !== x.titel ? esc(x.projekt) + ' · ' : ''}gelöscht ${esc(wann(x.geloescht))}${x.von ? ' von ' + esc(x.von) : ''}${esc(rest(x.geloescht))}</small></div>
+      <div class="a"><button class="btn sm pri" data-zurueck="${x.id}">↩ Wiederherstellen</button>${A ? `<button class="btn sm" data-weg="${x.id}" title="Endgültig löschen – lässt sich nicht rückgängig machen">Endgültig löschen</button>` : ''}</div></div>`;
+  }
+  $('#liste').innerHTML = `<div class="pk-l">${h}</div>`;
+}
+async function laden() { D = await api('api/bp/papierkorb'); zeigen(); }
+const appLink = (k) => { const a = (CONF.apps || []).find((x) => x.key === k && x.allowed); return a ? appUrl(a) + '/' : ''; };
+document.addEventListener('click', async (e) => {
+  const z = e.target.closest('[data-zurueck]');
+  if (z) {
+    z.disabled = true;
+    try { const r = await api(`api/bp/papierkorb/${z.dataset.zurueck}/zurueck`, 'POST'); const l = appLink(r.app);
+      toast(`„${r.titel}“ ist wieder da${l ? ' – in ' + (APP[r.app] || [, r.app])[1] : ''}.`); await laden(); }
+    catch (er) { z.disabled = false; toast(er.message, true); }
+    return;
+  }
+  const w = e.target.closest('[data-weg]');
+  if (w) {
+    if (!w.dataset.s) { w.dataset.s = 1; w.textContent = 'Wirklich endgültig?'; w.classList.add('danger'); setTimeout(() => { if (w.isConnected) { delete w.dataset.s; w.textContent = 'Endgültig löschen'; w.classList.remove('danger'); } }, 4000); return; }
+    try { await api('api/bp/papierkorb/loeschen', 'POST', { ids: [+w.dataset.weg] }); await laden(); } catch (er) { toast(er.message, true); }
+  }
+});
+$('#leeren').onclick = () => modalBox(`<h3>Papierkorb leeren</h3><p>Alle ${D.eintraege.length} Einträge werden endgültig gelöscht – mit Berichten, Fotos, Plänen und allem, was daran hängt. Das lässt sich nicht rückgängig machen.</p>
+  <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="ok">Endgültig löschen</button></div>`, async (m, bg, close) => {
+  if (m !== 'ok') { close(); return; }
+  try { const r = await api('api/bp/papierkorb/loeschen', 'POST', { alle: true }); close(); toast(`${r.n} Einträge endgültig gelöscht.`); await laden(); } catch (er) { toast(er.message, true); }
+});
+document.addEventListener('change', async (e) => {
+  if (e.target.id !== 'tage') return;
+  try { const r = await api('api/bp/papierkorb/einst', 'PUT', { tage: +e.target.value }); D.einst = r.einst; toast(+e.target.value ? `Einträge werden nach ${e.target.options[e.target.selectedIndex].text} endgültig gelöscht.` : 'Der Papierkorb wird nur noch von Hand geleert.'); await laden(); }
+  catch (er) { toast(er.message, true); }
+});
+(async () => {
+  const me = await api('api/me'); if (!me.ok) { location.href = '/login'; return; }
+  applyLook(me);
+  CONF = await api('api/platform');
+  await header('Papierkorb', me, CONF);
+  await laden();
+})().catch((e) => toast(e.message, true));
+</script>
+</body>
+</html>

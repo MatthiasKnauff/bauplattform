@@ -29,7 +29,10 @@ STANDARD = {
         "alle Firmen": "baustelleneinrichtung, be-plan",
     },
     "max_mb": 20,
+    # Bedeutung der Stellen der Plannummer 5.1.1.2 (in dieser Reihenfolge) – einstellbar wie die Spaltenzuordnung beim CSV-Einlesen
+    "stellen": ["phase", "variante", "planart", "lfd"],
 }
+ROLLEN = ("phase", "variante", "planart", "lfd", "egal")
 ALT_PHASEN = {"1": "Bestand", "2": "Entwurf", "3": "Genehmigung", "4": "Ausführung", "5": "Details", "6": "Ausschreibung"}   # frühere (falsche) Vorgabe
 ALT_PLANARTEN = {"0": "Lageplan", "1": "Grundriss", "2": "Ansicht", "3": "Schnitt", "4": "Detail", "5": "Isometrie"}
 KENNUNG_NAME = {"AA": "Außenanlage", "ELT": "Elektro", "FL": "Fliesenspiegel", "FK": "Farbkonzept", "P": "Positionsplan",
@@ -123,7 +126,12 @@ def ordnen(dateien, conf, zuordnung=None):
         key = f"{i['proj']}|{i['kennung']}|{i['nr']}"
         p = plaene.get(key)
         if not p:
-            T = i["teile"] + [""] * 4
+            rl = [r for r in (conf.get("stellen") or STANDARD["stellen"]) if r in ROLLEN]
+            W = {}
+            for k, v in zip(rl, i["teile"]):
+                if k != "egal" and k not in W:
+                    W[k] = v
+            T = [W.get("phase", ""), W.get("variante", ""), W.get("planart", ""), W.get("lfd", "")]
             p = plaene[key] = {"key": key, "proj": i["proj"], "kennung": i["kennung"], "kennung_name": KENNUNG_NAME.get(i["kennung"].split("(")[0].strip().upper(), ""),
                                "nr": i["nr"], "titel": i["titel"],
                                "phase": T[0], "phase_name": ph.get(T[0], ""), "variante": T[1],

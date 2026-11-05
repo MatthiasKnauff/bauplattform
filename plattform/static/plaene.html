@@ -59,6 +59,21 @@
 .vl td{font-size:.9rem}
 .set textarea{width:100%;min-height:7rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
 .set .g2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+/* Zuordnung wie beim CSV-Einlesen */
+.zm{overflow-x:auto;margin:.5rem 0 0;border:1px solid var(--line);border-radius:10px}
+.zm table{border-collapse:collapse;min-width:100%}
+.zm td{padding:.35rem .45rem;border-right:1px solid var(--line);vertical-align:top;font-size:.85rem}
+.zm td:last-child{border-right:0}
+.zm .zs{font-family:ui-monospace,Consolas,monospace;font-weight:700;font-size:.95rem;background:var(--hov);border-radius:6px;padding:.2rem .45rem;white-space:nowrap}
+.zm select{font:inherit;font-size:.82rem;padding:.2rem;border-radius:6px;border:1px solid var(--y);background:var(--inp);color:var(--ink);max-width:12rem}
+.zm tr.zb td{color:#2f9e5a;font-weight:600;font-size:.82rem}
+/* kleine Tabellen statt Textfelder */
+.zt{width:100%;border-collapse:collapse;margin:.3rem 0 .3rem}
+.zt th{font-size:.75rem;color:var(--mute);text-align:left;font-weight:600;padding:.15rem .3rem;border-bottom:1px solid var(--line)}
+.zt td{padding:.1rem .15rem;border-bottom:1px solid var(--line)}
+.zt input{width:100%;border:1px solid transparent;background:transparent;color:var(--ink);font:inherit;font-size:.88rem;padding:.25rem .35rem;border-radius:5px}
+.zt input:focus{border-color:var(--y);background:var(--inp);outline:none}
+.zt .zx{border:0;background:none;color:var(--mute);cursor:pointer;font-size:1rem;padding:0 .3rem}.zt .zx:hover{color:#d33}
 @media (max-width:760px){.pl .hide-m{display:none}.set .g2{grid-template-columns:1fr}.top select{min-width:0;flex:1 1 100%;width:100%}.top .fill{display:none}.ord code{max-width:100%}.pl td,.pl th{padding:.45rem .3rem}.pl .nr b{font-size:.9rem}}
 </style>
 </head>
@@ -152,7 +167,7 @@ function render() {
       <select id="fgw"><option value="">alle Gewerke</option><option value="-"${F.gw === '-' ? ' selected' : ''}>ohne Gewerk</option>${D.gewerke.map((g) => `<option${F.gw === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select>
       <select id="fph"><option value="">alle Phasen</option>${phasen.map((x) => `<option value="${esc(x)}"${F.phase === x ? ' selected' : ''}>${esc(x + ' ' + (CFG.phasen[x] || ''))}</option>`).join('')}</select>
       <label class="chk"><input type="checkbox" id="falle"${F.alle ? ' checked' : ''}> ältere Stände zeigen</label>
-      <button class="btn sm" id="selNeu" title="den neuesten Stand aller angezeigten Pläne wählen">Neueste wählen</button>${SEL.size ? '<button class="btn sm" id="selNone">Auswahl aufheben</button>' : ''}</div>
+      ${SEL.size ? '<button class="btn sm" id="selNone">Auswahl aufheben</button>' : ''}</div>
     ${Lp.length ? `<div class="tbl"><table class="pl">${head('Plan-Nr.')}<tbody>${rows}</tbody></table></div>`
       : `<div class="card"><p>${D.plaene.length ? 'Keine Pläne mit Plannummer zu diesem Filter.' : 'Keine Pläne nach der Plannummerierung gefunden (z. B. „A526 2.1.1.2 INDEX B Grundriss EG.pdf“).'}</p></div>`}
     ${(D.frei || []).length ? `<h3 style="margin:1.4rem 0 .5rem">Weitere PDF-Dateien ohne Plannummer <small class="mu">(${Lf.length}${Lf.length !== D.frei.length ? ' von ' + D.frei.length : ''}, neueste zuerst)</small></h3>
@@ -266,29 +281,69 @@ async function versandDialog() {
   api('api/kontakte').then((K) => { const dl = $('#vAddL', bg); if (dl) dl.innerHTML = K.map((k) => `<option value="${esc(k.email)}">${esc(k.name)}</option>`).join(''); }).catch(() => {});
 }
 
-/* ---------- Einstellungen ---------- */
+/* ---------- Einstellungen: Planname wie beim CSV-Einlesen zuordnen, Listen als kleine Tabellen ---------- */
+const ROLLEN = [['phase', 'Leistungsphase'], ['variante', 'Gebäudetyp / Variante'], ['planart', 'Planart'], ['lfd', 'Lfd. Nr. (bei Grundrissen Geschoss)'], ['egal', '– ohne Bedeutung –']];
+function nameZerlegen(n) {   // wie planname.lies (vereinfacht): Projekt, Kennung, Nummernstellen, Index, Titel
+  const st = String(n || '').replace(/\.(pdf|dwg|dxf|pln|ifc)$/i, '').trim();
+  const m = /^([A-Za-z]\d{3}(?:\.\d+)*)[\s_-]+(?:(AA|ELT|FL|FK|AP|IP|NA|P\s*\([^)]*\)|P)[\s_-]+)?(\d+(?:[._]\d+){1,5})(?!\d)[._\s-]*(.*)$/i.exec(st);
+  if (!m) return null;
+  let rest = m[4] || '', idx = '';
+  const mi = /(?:^|[\s_-])(?:INDEX|IDX)[\s_.-]*([A-Z])(?=$|[\s_.-])/i.exec(rest); if (mi) { idx = mi[1].toUpperCase(); rest = rest.slice(0, mi.index) + ' ' + rest.slice(mi.index + mi[0].length); }
+  return { proj: m[1].toUpperCase(), kennung: (m[2] || '').toUpperCase(), teile: m[3].split(/[._]/), index: idx, titel: rest.replace(/_+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[-.]+|[-.]+$/g, '') };
+}
 async function setDialog(host) {
   try { CFG = await api('api/einstellungen'); } catch (e) { toast(e.message, true); return; }
-  const lines = (o, sep) => Object.entries(o).map(([k, v]) => `${k}${sep}${v}`).join('\n');
-  const parse = (t, sep) => Object.fromEntries(t.split('\n').map((l) => { const i = l.indexOf(sep); return i < 0 ? null : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }).filter((x) => x && x[0] && x[1]));
   const dis = CFG.admin ? '' : ' disabled';
-  boxIn(host)(`<h3>Einstellungen – Planstand & Versand</h3><div class="set vd">
-    <p class="mu" style="margin:0">Pläne werden nach der Plannummerierung gelesen: <code>A526 [Kennung] 5.1.1.2 [INDEX B] Titel</code> – 1. Leistungsphase, 2. Gebäudetyp/Variante, 3. Planart, 4. laufende Nummer (bei Grundrissen das Geschoss: 1 = KG, 2 = EG, 3 = 1. OG …). Ohne Index ist es der Ursprungsplan, der höchste Buchstabe der neueste Stand.${CFG.admin ? '' : ' <b>Ändern kann der Administrator.</b>'}</p>
-    <div class="g2"><label>Phasen (Ziffer = Name)<textarea id="sPh"${dis}>${esc(lines(CFG.phasen, ' = '))}</textarea></label>
-      <label>Planarten (Ziffer = Name)<textarea id="sPa"${dis}>${esc(lines(CFG.planarten, ' = '))}</textarea></label></div>
-    <label>Kennungen → Gewerk (z. B. ELT = Elektro)<textarea id="sKe" style="min-height:4.5rem"${dis}>${esc(lines(CFG.kennungen, ' = '))}</textarea></label>
-    <label>Stichwörter im Plantitel → Gewerk (Gewerk: Stichwörter mit Komma)<textarea id="sSt" style="min-height:11rem"${dis}>${esc(lines(CFG.stichworte, ': '))}</textarea></label>
-    <label>E-Mail-Anhänge höchstens <input type="number" id="sMb" min="1" max="100" value="${CFG.max_mb}" style="width:5rem"${dis}> MB</label>
-    <p class="mu" style="margin:0;font-size:.85rem">Passt kein Stichwort, wählt man das Gewerk in der Liste selbst – das wird für das Projekt gemerkt.</p></div>
-    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bp:plaene" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button>${CFG.admin ? '<button class="btn" data-m="std">Vorgaben</button>' : ''}<button class="btn" data-m="x">${CFG.admin ? 'Abbrechen' : 'Schließen'}</button>${CFG.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`, async (m, bg, close) => {
+  const W = { stellen: [...(CFG.stellen || ['phase', 'variante', 'planart', 'lfd'])], phasen: Object.entries(CFG.phasen), planarten: Object.entries(CFG.planarten), kennungen: Object.entries(CFG.kennungen), stichworte: Object.entries(CFG.stichworte), max_mb: CFG.max_mb };
+  const bsp0 = (D && D.plaene && D.plaene.length && ((D.plaene.find((p) => p.kennung && p.staende.some((x) => x.index)) || D.plaene[0]).staende.find((x) => x.pdf) || {}).pdf || {}).name || 'A526 ELT 5.1.1.2 INDEX B Grundriss EG.pdf';
+  let bsp = bsp0;
+  const tabelle = (k, k1, k2, breit) => `<table class="zt" data-zt="${k}"><thead><tr><th style="width:${breit || '5.5rem'}">${k1}</th><th>${k2}</th><th style="width:2rem"></th></tr></thead><tbody>
+      ${W[k].map(([a, v], i) => `<tr><td><input data-zk="${k}" data-zi="${i}" data-zf="0" value="${esc(a)}"${dis}></td><td><input data-zk="${k}" data-zi="${i}" data-zf="1" value="${esc(v)}"${dis}></td><td>${dis ? '' : `<button type="button" class="zx" data-zdel="${k}" data-zi="${i}" title="Zeile löschen" aria-label="Zeile löschen">×</button>`}</td></tr>`).join('')}</tbody></table>
+    ${dis ? '' : `<button type="button" class="btn sm" data-zadd="${k}">+ Zeile</button>`}`;
+  const zuordnung = () => {
+    const z = nameZerlegen(bsp);
+    if (!z) return '<p class="mu" style="margin:.4rem 0">Dieser Name passt nicht zur Plannummerierung (Projekt, Nummer mit Punkten …). Solche PDFs erscheinen unter „Weitere PDFs“ und lassen sich trotzdem versenden.</p>';
+    const bed = (rolle, v) => { const t = rolle === 'phase' ? W.phasen : rolle === 'planart' ? W.planarten : null; if (t) { const x = t.find(([a]) => a === v); return x ? x[1] : '?'; } if (rolle === 'lfd') { const pa = z.teile[W.stellen.indexOf('planart')]; const n = +v; return pa === '1' && n ? (n === 1 ? 'KG' : n === 2 ? 'EG' : `${n - 2}. OG`) : 'Nr. ' + v; } if (rolle === 'variante') return 'Typ ' + v; return ''; };
+    const ke = z.kennung ? (W.kennungen.find(([a]) => a.toUpperCase() === z.kennung.split('(')[0].trim()) || [, '?'])[1] : '';
+    const spalten = [['Projekt', z.proj, '<span class="mu">Projekt</span>', ''],
+      ...(z.kennung ? [['Kennung', z.kennung, '<span class="mu">Kennung</span>', '→ ' + esc(ke)]] : []),
+      ...z.teile.map((v, i) => [`${i + 1}. Stelle`, v, `<select data-stelle="${i}"${dis}>${ROLLEN.map(([k, l]) => `<option value="${k}"${(W.stellen[i] || 'egal') === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`, esc(bed(W.stellen[i] || 'egal', v))]),
+      ...(z.index ? [['Index', 'INDEX ' + z.index, '<span class="mu">Planstand</span>', 'neuester = höchster Buchstabe']] : []),
+      ['Titel', z.titel || '–', '<span class="mu">Titel</span>', '']];
+    return `<div class="zm"><table><tr>${spalten.map((x) => `<td><div class="zs">${esc(x[1])}</div></td>`).join('')}</tr><tr>${spalten.map((x) => `<td>${x[2]}</td>`).join('')}</tr><tr class="zb">${spalten.map((x) => `<td>${x[3]}</td>`).join('')}</tr></table></div>`;
+  };
+  const html = () => `<h3>Einstellungen – Planstand & Versand</h3><div class="set vd">
+    <div><b>So sind eure Plannamen aufgebaut</b><p class="mu" style="margin:.2rem 0 .5rem;font-size:.88rem">Wie beim Einlesen einer Excel-Datei: unter jede Stelle der Plannummer wählen, was sie bedeutet. Darunter steht, was die App daraus liest.</p>
+      <label style="display:grid;gap:.2rem">Beispiel (Dateiname eines Plans – zum Ausprobieren änderbar)<input id="sBsp" value="${esc(bsp)}" autocomplete="off" style="width:100%"></label>
+      <div id="sZu">${zuordnung()}</div></div>
+    <div class="g2"><div><b>Leistungsphasen</b>${tabelle('phasen', 'Ziffer', 'Bedeutung')}</div><div><b>Planarten</b>${tabelle('planarten', 'Ziffer', 'Bedeutung')}</div></div>
+    <div><b>Kennungen → Gewerk</b> <span class="mu" style="font-size:.85rem">(Buchstaben vor der Nummer, z. B. ELT)</span>${tabelle('kennungen', 'Kennung', 'Gewerk')}</div>
+    <div><b>Stichwörter im Titel → Gewerk</b> <span class="mu" style="font-size:.85rem">(passt kein Stichwort, wählt man das Gewerk in der Liste – das wird gemerkt)</span>${tabelle('stichworte', 'Gewerk', 'Stichwörter (mit Komma)', '9rem')}</div>
+    <label>E-Mail-Anhänge höchstens <input type="number" id="sMb" min="1" max="100" value="${W.max_mb}" style="width:5rem"${dis}> MB</label></div>
+    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bp:plaene" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button>${CFG.admin ? '<button class="btn" data-m="std">Vorgaben</button>' : ''}<button class="btn" data-m="x">${CFG.admin ? 'Abbrechen' : 'Schließen'}</button>${CFG.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`;
+  const box0 = boxIn(host)(html(), async (m, bg, close) => {
     if (m === 'x') { close(); return; }
-    if (m === 'std') { const S = CFG.standard; $('#sPh', bg).value = lines(S.phasen, ' = '); $('#sPa', bg).value = lines(S.planarten, ' = '); $('#sKe', bg).value = lines(S.kennungen, ' = '); $('#sSt', bg).value = lines(S.stichworte, ': '); $('#sMb', bg).value = S.max_mb; return; }
+    if (m === 'std') { const S = CFG.standard; Object.assign(W, { stellen: [...S.stellen], phasen: Object.entries(S.phasen), planarten: Object.entries(S.planarten), kennungen: Object.entries(S.kennungen), stichworte: Object.entries(S.stichworte), max_mb: S.max_mb }); neuZeichnen(bg); return; }
     if (m === 'ok') {
+      const obj = (k) => Object.fromEntries(W[k].filter(([a, v]) => String(a).trim() && String(v).trim()).map(([a, v]) => [String(a).trim(), String(v).trim()]));
       try {
-        CFG = await api('api/einstellungen', 'PUT', { phasen: parse($('#sPh', bg).value, '='), planarten: parse($('#sPa', bg).value, '='), kennungen: parse($('#sKe', bg).value, '='), stichworte: parse($('#sSt', bg).value, ':'), max_mb: +$('#sMb', bg).value });
+        CFG = await api('api/einstellungen', 'PUT', { stellen: W.stellen, phasen: obj('phasen'), planarten: obj('planarten'), kennungen: obj('kennungen'), stichworte: obj('stichworte'), max_mb: +$('#sMb', bg).value });
         if (!host) close(); toast('Gespeichert.'); laden();
       } catch (e) { toast(e.message, true); }
     }
+  });
+  const root = host || (box0 && box0.nodeType ? box0 : [...document.querySelectorAll('.modal-bg')].pop()) || document;
+  const neuZeichnen = (bg) => { const r = bg || root; const box = r.querySelector('.set'); if (!box) return; const y = box.scrollTop; const mb = r.querySelector('#sMb'); if (mb) W.max_mb = +mb.value; box.outerHTML = html().split('<div class="acts">')[0].replace(/^<h3>[^<]*<\/h3>/, ''); r.querySelector('.set').scrollTop = y; };
+  const zuNeu = () => { const z = root.querySelector('#sZu'); if (z) z.innerHTML = zuordnung(); };
+  root.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t.id === 'sBsp') { bsp = t.value; zuNeu(); return; }
+    if (t.dataset.zk) { W[t.dataset.zk][+t.dataset.zi][+t.dataset.zf] = t.value; if (t.dataset.zk !== 'stichworte') zuNeu(); }
+  });
+  root.addEventListener('change', (e) => { const t = e.target; if (t.dataset.stelle != null) { while (W.stellen.length <= +t.dataset.stelle) W.stellen.push('egal'); W.stellen[+t.dataset.stelle] = t.value; zuNeu(); } });
+  root.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-zadd]'); if (a) { W[a.dataset.zadd].push(['', '']); neuZeichnen(); const ins = root.querySelectorAll(`[data-zk="${a.dataset.zadd}"][data-zf="0"]`); if (ins.length) ins[ins.length - 1].focus(); return; }
+    const d = e.target.closest('[data-zdel]'); if (d) { W[d.dataset.zdel].splice(+d.dataset.zi, 1); neuZeichnen(); zuNeu(); }
   });
 }
 

@@ -97,6 +97,8 @@ def conf(c):
             out["max_mb"] = max(1, min(100, int(d.get("max_mb", out["max_mb"]))))
         except (TypeError, ValueError):
             pass
+        if isinstance(d.get("stellen"), list) and d["stellen"]:
+            out["stellen"] = [str(x) if str(x) in planname.ROLLEN else "egal" for x in d["stellen"][:6]]
     return out
 
 
@@ -196,6 +198,8 @@ def einstellungen():
             for k in ("phasen", "planarten", "kennungen", "stichworte"):
                 if isinstance(b.get(k), dict):
                     cur[k] = {str(a).strip()[:40]: str(v).strip()[:400] for a, v in b[k].items() if str(a).strip() and str(v).strip()}
+            if isinstance(b.get("stellen"), list) and b["stellen"]:
+                cur["stellen"] = [str(x) if str(x) in planname.ROLLEN else "egal" for x in b["stellen"][:6]]
             if "max_mb" in b:
                 try:
                     cur["max_mb"] = max(1, min(100, int(b["max_mb"])))

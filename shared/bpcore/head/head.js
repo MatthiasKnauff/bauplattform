@@ -122,7 +122,7 @@
     const m = document.createElement('div'); m.className = 'bph-menu bph-apps'; m.setAttribute('role', 'menu'); m.setAttribute('aria-label', 'Apps');
     const apps = sortApps();
     m.innerHTML = '<div class="bph-info">Apps' + (H.projekt && H.projekt.id ? ` <small>· Projekt <b>${esc(H.projekt.name)}</b> bleibt gewählt</small>` : '') + '</div><div class="bph-tiles">'
-      + (apps.length ? apps.map((a) => `<a role="menuitem" href="${esc(appUrl(a))}/"${a.key === H.app ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}<span>${esc(a.key === 'portal' ? 'Startseite' : a.name)}</span></a>`).join('')
+      + (apps.length ? apps.map((a) => `<a role="menuitem" data-af="${esc(a.key)}" href="${esc(appUrl(a))}/"${a.key === H.app ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}<span>${esc(a.key === 'portal' ? 'Startseite' : a.name)}</span></a>`).join('')
         : '<span class="bph-mu" style="padding:.5rem">Keine weiteren Apps.</span>') + '</div>';
     band.appendChild(m);
   }

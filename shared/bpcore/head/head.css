@@ -129,6 +129,10 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:.3rem;padding:0 .3rem}
 .bph-menu .bph-tiles a{flex-direction:column;justify-content:center;gap:.4rem;text-align:center!important;padding:.8rem .3rem!important;border-radius:10px!important;font-size:.82em;line-height:1.2;min-height:84px}
 .bph-menu .bph-tiles a svg{width:28px;height:28px;color:var(--bph-acc)}
+/* jede App hat ihre eigene, dezente Farbe (Kacheln der Startseite und App-Umschalter) – zum schnellen Unterscheiden */
+[data-af="bautagebuch"]{--af:#3b82f6}[data-af="gantt"]{--af:#22a35a}[data-af="adressen"]{--af:#8b5cf6}[data-af="baukosten"]{--af:#d4a017}
+[data-af="aufgaben"]{--af:#e5484d}[data-af="plaene"]{--af:#14b8a6}[data-af="ava"]{--af:#f97316}[data-af="kommunikation"]{--af:#d946ef}[data-af="admin"]{--af:#8a8f98}
+.bph-menu .bph-tiles a[data-af] svg{color:var(--af)}
 .bph-menu .bph-tiles a.cur{background:rgba(255,255,255,.08)}
 /* Einstellungsfenster (von rechts) */
 .bph-dr-bg{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0);transition:background .18s;display:flex;justify-content:flex-end}

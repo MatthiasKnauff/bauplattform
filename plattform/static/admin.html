@@ -151,12 +151,11 @@ const appOf = (k) => (data.conf.apps || []).find((a) => a.key === k);
 const linkTo = (k, frag) => { const a = appOf(k); return a ? appUrl(a) + '/' + frag : '#'; };
 function renderProjects(q = data.pq || '', f = data.pf || '') {
   data.pq = q; data.pf = f;
-  const all = data.p, noBt = all.filter((p) => !p.bt).length, nArch = all.filter((p) => p.archived).length;
-  const list = all.filter((p) => (!q || (p.name + ' ' + p.client + ' ' + p.address + ' ' + p.plans.map((x) => x.name).join(' ') + ' ' + p.bks.map((x) => x.name).join(' ')).toLowerCase().includes(q.toLowerCase()))
-    && (f !== 'nobt' || !p.bt) && (f === 'arch' ? p.archived : f === 'alle' || !p.archived));
+  const all = data.p, nArch = all.filter((p) => p.archived).length;
+  const list = all.filter((p) => (!q || (p.name + ' ' + p.client + ' ' + p.address + ' ' + p.plans.map((x) => x.name).join(' ') + ' ' + p.bks.map((x) => x.name).join(' ')).toLowerCase().includes(q.toLowerCase())) && (f === 'arch' ? p.archived : f === 'alle' || !p.archived));
   $('#main').innerHTML = `<div class="bar"><h1 style="margin:0">Projekte</h1><span class="fill"></span><button class="btn pri" data-a="pnew">+ Projekt anlegen</button></div>
     <div class="bar"><input type="search" id="pq" placeholder="Projekt, Bauherr, Plan suchen …" value="${esc(q)}" style="flex:1 1 260px">
-      <div class="seg">${[['', 'Aktiv'], ['nobt', 'Ohne Bautagebuch' + (noBt ? ' · ' + noBt : '')], ['arch', 'Archiv' + (nArch ? ' · ' + nArch : '')], ['alle', 'Alle']].map(([k, l]) => `<button class="${k === f ? 'on' : ''}" data-a="pf" data-f="${k}">${l}</button>`).join('')}</div></div>
+      <div class="seg">${[['', 'Aktiv'], ['arch', 'Archiv' + (nArch ? ' · ' + nArch : '')], ['alle', 'Alle']].map(([k, l]) => `<button class="${k === f ? 'on' : ''}" data-a="pf" data-f="${k}">${l}</button>`).join('')}</div></div>
     <div class="plist">${list.map((p) => `<div class="prow${p.archived ? ' arch' : ''}" data-key="${p.key}">
       <div class="pmain"><b>${esc(p.name)}</b>${p.archived ? ' <span class="pill">archiviert</span>' : ''}
         ${p.client || p.address ? `<small>${esc([p.client, p.address].filter(Boolean).join(' · '))}</small>` : ''}

@@ -125,6 +125,7 @@
 .nk{display:flex;flex-direction:column;gap:.35rem}
 .nk input,.nk select{width:100%;color:var(--ink);font-size:1rem;padding:.6rem .75rem}
 .nkl{font-size:.85rem;color:var(--mute);margin-top:.55rem}
+.nkFix{padding:.55rem .75rem;border:1px solid var(--line);border-radius:8px;background:var(--hov);margin-bottom:.8rem}
 .nkList{border:1px solid var(--line);border-radius:10px;max-height:min(240px,32vh);overflow:auto;display:flex;flex-direction:column;padding:.25rem;background:var(--card)}
 .nkGrp{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);padding:.55rem .6rem .25rem}
 .nkOpt{display:flex;flex-wrap:wrap;align-items:center;gap:.1rem .6rem;text-align:left;color:var(--ink);border:1px solid transparent;border-radius:8px;padding:.5rem .65rem;width:100%}
@@ -178,9 +179,6 @@ body.as-open .wrap{padding-bottom:45vh}
 <body>
 <main class="wrap">
   <div class="top">
-    <label for="sel" class="hidden">Kostenermittlung</label>
-    <button type="button" id="sel" aria-label="Kostenermittlung wählen" title="Kostenermittlung wechseln, neu anlegen"></button>
-    <button class="btn sm" id="newBtn">+ Neue Kostenermittlung</button>
     <button class="btn sm pri" id="pdfBtn">PDF für den Bauherrn …</button>
     <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
     <button class="btn sm" id="standBtn" title="Jetzigen Stand dieser Kostenermittlung unter einem Namen festhalten (z. B. „Kostenschätzung an Bauherrn 04.11.“)">💾 Stand speichern</button>
@@ -314,26 +312,8 @@ async function openBk(id, merken = true) {   // nicht „open“ nennen: das üb
 }
 const STUFE_N = (k) => (STUFEN.find((x) => x[0] === k) || [k, ''])[1];
 const bkSub = (x) => [STUFE_N(x.stufe), x.project ? [x.project.client, x.project.address].filter(Boolean).join(' · ') : '', x.archived ? 'archiviert' : ''].filter(Boolean).join(' · ');
-/* Das Projekt steht oben in der Kopfleiste – hier wird nur die Kostenermittlung dieses Projekts gewählt (wie der Plan im Bauzeitenplan) */
-const kurzName = (x) => { const pn = x.project && x.project.name; let n = x.name || ''; if (pn && n.startsWith(pn)) n = n.slice(pn.length).replace(/^\s*[–-]\s*/, ''); return n || STUFE_N(x.stufe) || x.name; };
-const bkKurzSub = (x) => [STUFE_N(x.stufe), x.archived ? 'archiviert' : ''].filter(Boolean).join(' · ');
-let BKALLE = false;
-function selBtn() {
-  const x = B && LIST.find((y) => y.id === B.id);
-  pickButton($('#sel'), B ? { title: kurzName({ ...x, ...B }), sub: 'Kostenermittlung · ' + bkKurzSub({ ...x, ...B }) + (B.calc && B.calc.total ? ' · ' + eur(B.calc.total) : '') } : { title: 'Keine Kostenermittlung', sub: 'für dieses Projekt' });
-}
-function bkWahl() {
-  const gp = (window.BPHead && BPHead.projektId()) || (B && B.project_id) || null;
-  const L2 = BKALLE || !gp ? LIST : LIST.filter((x) => x.project_id === gp);
-  pickMenu($('#sel'), {
-    search: L2.length > 6 ? 'Suchen …' : '', empty: 'Für dieses Projekt gibt es noch keine Kostenermittlung.',
-    items: L2.map((x) => ({ group: x.archived ? 'Archiv' : BKALLE ? (x.project ? x.project.name : 'Ohne Projekt') : 'Kostenermittlungen dieses Projekts', title: BKALLE ? x.name : kurzName(x), sub: bkKurzSub(x), find: x.project ? x.project.name : '', value: x.id, on: B && x.id === B.id })),
-    footer: `<button type="button" class="btn sm" data-pnew>+ Neue Kostenermittlung</button>${gp ? ` <button type="button" class="btn sm" data-palle>${BKALLE ? 'Nur dieses Projekt' : 'Andere Projekte …'}</button>` : ''}`,
-    onFooter: (e, close) => { if (e.target.closest('[data-pnew]')) { close(); newDialog(); } else if (e.target.closest('[data-palle]')) { close(); BKALLE = !BKALLE; bkWahl(); } },
-    onPick: (id) => { BKALLE = false; if (B && id === B.id) return; clearTimeout(saveT); saveNow().then(() => openBk(id)); },
-  });
-}
-$('#sel').addEventListener('click', bkWahl);
+/* Das Projekt steht oben in der Kopfleiste – die App zeigt dessen Kostenermittlung, eine eigene Auswahl gibt es nicht */
+function selBtn() { /* keine zweite Auswahl mehr */ }
 if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => {   // Projekt oben gewählt: dessen Kostenermittlung
   clearTimeout(saveT); if (B) await saveNow().catch(() => {});
   LIST = await api('api/bk'); const fit = LIST.filter((x) => x.project_id === id && !x.archived).concat(LIST.filter((x) => x.project_id === id))[0];
@@ -341,9 +321,9 @@ if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => 
 });
 function head() {
   if (B || LIST) selBtn();
-  const vb = $('#verBtn'); if (vb) vb.hidden = !B;
-  const sb = $('#standBtn'); if (sb) sb.hidden = !B;
-  const ab = $('#ansBtn'); if (ab) ab.hidden = !B || LIST.length < 2;
+  // ohne Kostenermittlung: nur „anlegen“ (hidden reicht bei .btn nicht – display kommt aus dem CSS)
+  document.querySelectorAll('.top > .btn, .stufen, #tabs').forEach((x) => { x.style.display = B ? '' : 'none'; });
+  const ab = $('#ansBtn'); if (ab && B && LIST.length < 2) ab.style.display = 'none';
   if (!window.BPHead) return;
   if (B && B.project_id) BPHead.projektSetzen(B.project_id);   // Kopfleiste zeigt das Projekt
 }
@@ -380,7 +360,7 @@ function render() {
   $('#stufen').innerHTML = STUFEN.map(([k, l]) => `<button type="button" data-stufe="${k}" class="${B && B.stufe === k ? 'on' : ''}" aria-pressed="${B && B.stufe === k}"${B ? '' : ' disabled'}>${l}</button>`).join('');
   const v = $('#view'), sig = sigOf(document.activeElement);
   if (!B) { const gp = window.BPHead && BPHead.projekt;
-    v.innerHTML = `<div class="card empty"><p><b>${gp && gp.id ? `Für ${esc(gp.name)} gibt es noch keine Kostenermittlung.` : 'Noch keine Kostenermittlung.'}</b></p><p class="hint">Mit einem Grundriss (PDF), von Hand oder mit dem Assistenten – sie wird gleich mit dem Projekt verknüpft.</p><button class="btn pri" data-act="new">Kostenermittlung anlegen</button>${LIST.length ? ' <button class="btn" data-act="andere">Andere öffnen …</button>' : ''}</div>`; return; }
+    v.innerHTML = `<div class="card empty"><p><b>${gp && gp.id ? `Für ${esc(gp.name)} gibt es noch keine Kostenermittlung.` : 'Noch keine Kostenermittlung.'}</b></p><p class="hint">Mit einem Grundriss (PDF), von Hand oder mit dem Assistenten – sie wird gleich mit dem Projekt verknüpft.</p><button class="btn pri" data-act="new">Kostenermittlung anlegen</button></div>`; return; }
   v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, bauteile: vBauteile, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
   if (sig) { const n = document.querySelector(sig); if (n) n.focus(); }
   histTrack();
@@ -952,7 +932,6 @@ document.addEventListener('click', async (e) => {
   if (a) {
     const act = a.dataset.act;
     if (act === 'new') newDialog();
-    else if (act === 'andere') { BKALLE = true; bkWahl(); }
     else if (act === 'goCheck') { tab = 'pruefung'; history.replaceState(null, '', '#pruefung'); render(); runCheck(); }
     else if (act === 'check') runCheck();
     else if (act === 'checkKi') runCheck(true);
@@ -1101,7 +1080,6 @@ document.addEventListener('change', (e) => {
   if (ev === 'drop' && e.dataTransfer.files.length) upload([...e.dataTransfer.files]);
 }));
 document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-file],#drop')) { e.preventDefault(); e.target.click(); } });
-$('#newBtn').onclick = () => newDialog();
 $('#pdfBtn').onclick = () => pdfDialog();
 /* ---------- ⚙ Raumtypen: Liste des Büros (gilt für alle Kostenermittlungen) ---------- */
 const guessTyp = (name, cat) => { const n = (name || '').toLowerCase().trim(); if (n) for (const t of cat) for (const w of (t.worte || '').split(',')) { const x = w.trim(); if (x && n.includes(x)) return t.key; } return 'sonst'; };
@@ -1274,6 +1252,10 @@ async function newDialog(vor) {
     sel = { kind: 'bt', key: String(gpr.id), id: gpr.id, name: gpr.name };
     $('#nkQ').value = gpr.name; draw(); setName();
     const pl = SRC.plans.find((x) => x.project_id === gpr.id); if (pl) $('#nkPlan').value = pl.id;
+    // Projekt steht oben fest – keine zweite Projektsuche im Dialog
+    $('#nkQ').style.display = 'none'; $('#nkList').style.display = 'none';
+    $('#nkQ').insertAdjacentHTML('afterend', `<div class="nkFix"><b>${esc(gpr.name)}</b>${gpr.address ? `<small> · ${esc(gpr.address)}</small>` : ''}</div>`);
+    const hi = bg.querySelector('.hint'); if (hi) hi.textContent = 'Für das oben gewählte Projekt.';
     $('#nkName').focus();
   }
 }

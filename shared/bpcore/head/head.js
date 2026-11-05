@@ -156,12 +156,27 @@
       const r = await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then((x) => x.json());
       if (r.error) throw new Error(r.error);
       H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent });
+      setTimeout(eigeneFarben, 50);
       if (typeof window.applyLook === 'function') window.applyLook(H.me); else lookDirty = true;
       (redraw || lookMenu)();
       try { localStorage.setItem('bpTheme', r.theme); if (r.accent) localStorage.setItem('accent', r.accent); } catch { /* egal */ }
     } catch (e) { alert('Darstellung konnte nicht gespeichert werden: ' + e.message); }
   }
   H.look = lookMenu;
+  /* Apps ohne bp.css (Bauzeitenplan) kennen --card/--ink/--y nicht – dann bekämen die gemeinsamen Dialoge die dunklen
+     Ersatzfarben und Pink. Dort setzt die Kopfleiste Schema (head.css: html.bph-eigen) und die persönliche Akzentfarbe. */
+  function eigeneFarben() {
+    const root = document.documentElement;
+    if (!root.classList.contains('bph-eigen') && getComputedStyle(root).getPropertyValue('--card').trim()) return;   // App hat eigene Farben (bp.css)
+    root.classList.add('bph-eigen');
+    const lum = (x) => { const n = parseInt(x.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+    const sh = (x, f) => { const n = parseInt(x.slice(1), 16); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f).toString(16).padStart(2, '0')).join(''); };
+    let c = /^#[0-9a-f]{6}$/i.test((H.me && H.me.accent) || '') ? H.me.accent : '#ff5fb3';
+    if ((root.dataset.theme || 'dunkel') !== 'dunkel') while (lum(c) > 0.62) c = sh(c, 0.85);   // wie bp.js: auf hellem Grund lesbar
+    root.style.setProperty('--y', c); root.style.setProperty('--on', lum(c) > 0.55 ? '#111' : '#fff');
+  }
+  H.eigeneFarben = eigeneFarben;
+  try { new MutationObserver(() => { if (document.documentElement.classList.contains('bph-eigen')) eigeneFarben(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) { /* egal */ }
   async function logout() {
     if (typeof window.flushSave === 'function') { try { await window.flushSave(); } catch { /* weiter */ } }
     const r = await fetch('api/logout', { method: 'POST', credentials: 'same-origin' }).then((x) => x.json()).catch(() => ({}));
@@ -216,6 +231,7 @@
         band.querySelector('.bph-av').textContent = (H.me.vorname || H.me.name || '?').slice(0, 1).toUpperCase();
         band.querySelector('.bph-nm').textContent = H.me.full || H.me.name || '';
       }
+      eigeneFarben();
       renderKi();
       return H;
     })();

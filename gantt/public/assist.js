@@ -971,7 +971,7 @@
         h += `<div class="as-mode${live ? ' live' : ''}">` + (live
           ? `<b>Verknüpft</b> mit „${esc(st.name)}“ – jede Änderung wirkt sofort im Plan (Strg+Z im Plan macht sie rückgängig).`
           : st.nTasks
-            ? `<b>Entwurf</b> für ein neues Projekt. „${esc(st.name)}“ wurde nicht mit dem Assistenten erstellt – einzelne Leistungen kannst du dort mit <b>＋</b> an der markierten Zeile einfügen.`
+            ? `<b>Entwurf</b> – „${esc(st.name)}“ ist ohne Assistent entstanden. Einzelne Leistungen fügst du mit <b>＋</b> an der markierten Zeile ein – oder du baust den Plan unten mit dem Assistenten neu auf.`
             : '<b>Entwurf</b> – Maßnahme oder Vorlage wählen, Leistungen anpassen, Plan erzeugen.') + '</div>';
         h += '<div class="as-body">';
         const bodyAt = h.length;
@@ -1068,7 +1068,7 @@
           const e = sel.size ? core.estimate(cfg, [...sel]) : null;
           h += `<div class="as-sum">${e ? `Vorschau: Ende ca. <b>${esc(e.end)}</b> · ${e.wd} Arbeitstage · ${e.n} Leistungen` : 'Keine Leistungen gewählt'}</div>`
             + `<div class="as-btns"><input class="as-name" data-a="pname" value="${esc(projName || core.defName(cfg))}" title="Name des neuen Projekts"><button class="btn primary" data-a="create"${sel.size ? '' : ' disabled'}>Neues Projekt erstellen</button>`
-            + (st.hasProject && st.nTasks === 0 ? `<button class="btn" data-a="adopt"${sel.size ? '' : ' disabled'}>In „${esc(st.name)}“ erzeugen</button>` : '') + '</div>';
+            + (st.hasProject ? `<button class="btn" data-a="adopt"${sel.size ? '' : ' disabled'}>${st.nTasks ? `„${esc(st.name)}“ neu aufbauen …` : `In „${esc(st.name)}“ erzeugen`}</button>` : '') + '</div>';
         }
         if (msg) h += `<div class="as-msg${msgErr ? ' err' : ''}">${esc(msg)}</div>`;
         h += '</div></div>';
@@ -1287,7 +1287,10 @@
           }
           case 'rm-no': askRm = null; break;
           case 'create': b.disabled = true; say('Projekt wird erstellt …'); render(); try { await core.create(cfg, [...sel], projName || core.defName(cfg)); say('Projekt erstellt – Änderungen hier wirken jetzt direkt im Plan.'); } catch (err) { say('Fehler: ' + err.message, true); } break;
-          case 'adopt': { const ok = core.regenerate(cfg, [...sel]); say(ok ? 'Plan erzeugt.' : 'Nicht möglich.', !ok); break; }
+          case 'adopt': {
+            if (state().st.nTasks) { pending = { msg: `„${state().st.name}“ mit dem Assistenten neu aufbauen? Die ${state().st.nTasks} vorhandenen Vorgänge werden durch die gewählten Leistungen ersetzt (im Plan mit Strg+Z rückgängig). Danach ist der Plan mit dem Assistenten verknüpft.`, ok: 'Neu aufbauen', run: () => core.regenerate(cfg, [...sel]) }; break; }
+            const ok = core.regenerate(cfg, [...sel]); say(ok ? 'Plan erzeugt.' : 'Nicht möglich.', !ok); break;
+          }
           default: return;
         }
         render();

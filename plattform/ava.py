@@ -203,8 +203,8 @@ def katalog_teil():
 
 def _kat_einlesen(pfad, dateiname):
     """Katalog aus der Datei in die Datenbank (ersetzt den bisherigen). Gibt eine Fehlermeldung zurück oder None."""
-    import katalog
     try:
+        import katalog
         quelle, stand, Z = katalog.lesen(pfad, dateiname)
     except Exception as e:
         return f"Die Datei ließ sich nicht als Positionskatalog lesen: {str(e)[:200]}"
@@ -218,13 +218,21 @@ def _kat_einlesen(pfad, dateiname):
                        x.get("einheit", "")[:12], x.get("kg", ""), x.get("ep_von"), x.get("ep"), x.get("ep_bis")))
     info = {"quelle": quelle, "stand": stand, "datei": _s(dateiname, 200), "importiert": _now(), "von": g.user["name"],
             "n_pos": sum(1 for z in zeilen if z[2] == "pos" and z[7] != "T"), "n_gewerke": sum(1 for z in zeilen if z[2] == "gewerk")}
+    try:
+        _kat_speichern(zeilen, info)
+    except Exception as e:   # Klartext statt Fehler 500
+        app.logger.exception("Positionskatalog speichern")
+        return f"Der Katalog ließ sich nicht speichern: {type(e).__name__}: {str(e)[:200]}"
+    C.audit(g.user["name"], "ava", "Positionskatalog eingelesen", f"{info['quelle']} · {info['n_pos']} Positionen")
+    return None
+
+
+def _kat_speichern(zeilen, info):
     with db.tx() as c:
         from bpcore import konto
         c.execute("DELETE FROM ava_katalog")
         c.copy_rows("ava_katalog", ("nr", "gewerk", "typ", "ebene", "oz", "kurz", "lang", "art", "einheit", "kg", "ep_von", "ep", "ep_bis"), zeilen)
         konto._put(c, "ava:katalog", json.dumps(info, ensure_ascii=False), g.user["name"])
-    C.audit(g.user["name"], "ava", "Positionskatalog eingelesen", f"{info['quelle']} · {info['n_pos']} Positionen")
-    return None
 
 
 def _kat_antwort():
@@ -681,7 +689,11 @@ def lv_liste():
     with db.tx() as c:
         if pid and not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
-        rows = c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + AKTIV + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall()
+        vid = request.args.get("version_id", type=int)   # Kopierquelle: auch eine andere als die aktive Version
+        if pid and vid:
+            rows = c.execute("SELECT * FROM ava_lv WHERE project_id=? AND version_id=? ORDER BY archived, nr, id", (pid, vid)).fetchall()
+        else:
+            rows = c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + AKTIV + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall()
         out = []
         for r in rows:
             if r["project_id"] and not _sees(c, r["project_id"]):

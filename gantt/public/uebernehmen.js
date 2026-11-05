@@ -10,12 +10,35 @@
   const E = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plaene = (ohne) => (projects || []).filter((p) => p.id !== ohne)
     .sort((a, b) => (!!a.archived - !!b.archived) || (b.updated || '').localeCompare(a.updated || ''));
-  const auswahl = (ohne, id = 'ubQ') => {
-    const L = plaene(ohne);
-    if (!L.length) return '<p class="hint">Es gibt noch keinen anderen Bauzeitenplan.</p>';
-    const og = (arch) => L.filter((p) => !!p.archived === arch).map((p) => `<option value="${E(p.id)}">${E(p.name)}</option>`).join('');
-    return `<select id="${id}" class="full"><option value="">– Bauzeitenplan wählen –</option><optgroup label="Laufende Pläne">${og(false)}</optgroup>${L.some((p) => p.archived) ? `<optgroup label="Archiv">${og(true)}</optgroup>` : ''}</select>`;
+  /* Auswahl in zwei Schritten: Projekt, dann dessen Version (Versionen = Pläne desselben Projekts) */
+  const projekteVon = (ohne) => {
+    const m = new Map();
+    plaene(ohne).forEach((p) => {
+      const k = p.bt_id ? 'b' + p.bt_id : 'p' + p.id;
+      if (!m.has(k)) m.set(k, { k, name: p.bt || p.name, arch: true, plaene: [], eigen: !!(P && P._bt && p.bt_id === P._bt.id) });
+      const x = m.get(k); x.plaene.push(p); if (!p.archived) x.arch = false;
+    });
+    return [...m.values()].sort((a, b) => (b.eigen - a.eigen) || (a.arch - b.arch) || a.name.localeCompare(b.name, 'de'));
   };
+  const auswahl = (ohne) => {
+    const L = projekteVon(ohne);
+    if (!L.length) return '<p class="hint">Es gibt noch keinen anderen Bauzeitenplan.</p>';
+    const og = (lbl, xs) => (xs.length ? `<optgroup label="${lbl}">${xs.map((x) => `<option value="${E(x.k)}">${E(x.name)}</option>`).join('')}</optgroup>` : '');
+    return `<div style="display:grid;grid-template-columns:3fr 2fr;gap:.5rem"><select id="ubP" class="full" aria-label="Projekt"><option value="">– Projekt wählen –</option>${og('Dieses Projekt', L.filter((x) => x.eigen))}${og('Projekte', L.filter((x) => !x.eigen && !x.arch))}${og('Archiv', L.filter((x) => !x.eigen && x.arch))}</select>
+      <select id="ubQ" class="full" aria-label="Version" disabled><option value="">– Version –</option></select></div>`;
+  };
+  function auswahlBinden(bg, ohne) {
+    const P1 = bg.querySelector('#ubP'), Q = bg.querySelector('#ubQ'); if (!P1 || !Q) return;
+    P1.addEventListener('change', () => {
+      const x = projekteVon(ohne).find((y) => y.k === P1.value);
+      const V = x ? x.plaene.slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id)) : [];
+      Q.innerHTML = V.length ? V.map((p, i) => `<option value="${E(p.id)}">${i + 1} · ${E(p.name)}${p.archived ? ' (archiviert)' : ''}</option>`).join('') : '<option value="">– Version –</option>';
+      Q.disabled = !V.length;
+      const neu = V.filter((p) => !p.archived).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))[0] || V[V.length - 1];   // zuletzt bearbeitete Version vorschlagen
+      if (neu) Q.value = neu.id;
+      Q.dispatchEvent(new Event('change'));
+    });
+  }
 
   /* Leistungen kopieren: neue Nummern, Verknüpfungen nur innerhalb der Auswahl, Termine verschoben */
   function kopieren(tasks, shift, opt, nextUid) {
@@ -44,14 +67,14 @@
   /* ---------- 1) neuer Plan aus einem anderen ---------- */
   window.planAusAnderem = function (name0, start0, btId) {
     const bg = modal('Neuer Plan aus anderem Bauzeitenplan', `<div class="form" style="min-width:min(520px,86vw)">
-        <label>Vorlage</label>${auswahl(null)}
+        <label>Vorlage – Projekt und Version</label>${auswahl(null)}
         <label>Projektname</label><input id="ubName" class="full" value="${E(name0 || '')}" placeholder="Name des neuen Plans" data-bp-projekt autocomplete="off">
         <label>Projektanfang *</label><input id="ubStart" type="date" class="full" value="" required title="Wann beginnt das neue Projekt?">
       </div>${firmenFrage('der Vorlage')}<div style="margin-top:.5rem"><label class="cb"><input type="checkbox" id="ubPct" checked> Fortschritt (% erledigt) zurücksetzen</label>
           <label class="cb"><input type="checkbox" id="ubNotes" checked> Notizen übernehmen</label></div><p class="hint" id="ubInfo" style="margin:.4rem 0 0">Alle Leistungen, Dauern, Verknüpfungen, Gewerke und der Kalender werden übernommen und auf den neuen Projektanfang verschoben.</p>`,
     [{ label: 'Abbrechen' }, { label: 'Plan anlegen', cls: 'primary', primary: true, fn: (bg) => {
       const q = bg.querySelector('#ubQ') && bg.querySelector('#ubQ').value;
-      if (!q) { toast('Bitte einen Bauzeitenplan als Vorlage wählen.', true); return false; }
+      if (!q) { toast('Bitte Projekt und Version als Vorlage wählen.', true); return false; }
       const nw = bg.querySelector('#ubName'), name = nw.value.trim();
       if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
       const st0 = parseDate(bg.querySelector('#ubStart').value);
@@ -70,6 +93,7 @@
         toast(`„${name}“ aus „${src.name}“ angelegt – ${k.tasks.length} Leistungen, Beginn ${fmtD(st)}${opt.firmen ? ', Firmen übernommen' : ', Unternehmer noch leer'}.`);
       })().catch((e) => toast('Fehler: ' + e.message, true));
     } }]);
+    auswahlBinden(bg, null);
     const sel = bg.querySelector('#ubQ');
     if (sel) sel.addEventListener('change', async () => {
       const info = bg.querySelector('#ubInfo'); if (!sel.value) return;
@@ -85,7 +109,7 @@
   window.planTeileUebernehmen = function () {
     if (!P) return;
     let SRC = null;
-    const bg = modal('Aus anderem Plan übernehmen', `<div class="form" style="min-width:min(560px,88vw)"><label>Bauzeitenplan</label>${auswahl(P.id)}</div>
+    const bg = modal('Aus anderem Plan übernehmen', `<div class="form" style="min-width:min(560px,88vw)"><label>Aus Projekt und Version</label>${auswahl(P.id)}</div>
       <div id="ubTeile" style="margin-top:.6rem"></div>
       <div class="form" style="margin-top:.6rem"><label>Beginn der Abschnitte *</label><input id="ubAb" type="date" class="full" value="" title="Ab wann sollen die übernommenen Leistungen frühestens beginnen?"></div>
       ${firmenFrage('dem anderen Plan')}
@@ -93,7 +117,7 @@
         <label class="cb"><input type="checkbox" id="ubNotes" checked> Notizen übernehmen</label></div>
       <p class="hint" style="margin:.4rem 0 0">Die gewählten Abschnitte werden unten an „${E(P.name)}“ angehängt – mit Dauern, Gewerken und den Verknüpfungen untereinander. Leistungen ohne Vorgänger beginnen frühestens am gewählten Tag, feste Termine verschieben sich entsprechend. ↶ Rückgängig nimmt alles wieder heraus.</p>`,
     [{ label: 'Abbrechen' }, { label: 'Übernehmen', cls: 'primary', primary: true, fn: (bg) => {
-      if (!SRC) { toast('Bitte einen Bauzeitenplan wählen.', true); return false; }
+      if (!SRC) { toast('Bitte Projekt und Version wählen.', true); return false; }
       const T = SRC.tasks || [], idx = [...bg.querySelectorAll('[data-ubg]:checked')].map((x) => +x.dataset.ubg);
       if (!idx.length) { toast('Bitte mindestens einen Abschnitt wählen.', true); return false; }
       const teil = [];
@@ -114,6 +138,7 @@
       });
       if (ok !== false) toast(`${n} Leistungen aus „${SRC.name}“ übernommen (ab ${fmtD(ab)}${opt.firmen ? ', mit Firmen' : ', Unternehmer leer'}) – unten im Plan markiert.`);
     } }]);
+    auswahlBinden(bg, P.id);
     const q = bg.querySelector('#ubQ'); if (!q) return;
     q.addEventListener('change', async () => {
       const box = bg.querySelector('#ubTeile'); SRC = null; box.innerHTML = '';
@@ -123,7 +148,7 @@
       const T = SRC.tasks || [];
       const top = T.map((t, i) => ({ t, i })).filter(({ t }) => (t.lvl || 0) === 0);
       const anz = (i) => { let n = 0; const l0 = T[i].lvl || 0; for (let j = i + 1; j < T.length && (T[j].lvl || 0) > l0; j++) if (!(T[j + 1] && T[j + 1].lvl > T[j].lvl)) n++; return n; };
-      box.innerHTML = top.length ? `<div class="hint" style="margin-bottom:.3rem">Abschnitte von „${E(SRC.name)}“ <button type="button" class="btn sm" data-uball>alle</button> <button type="button" class="btn sm" data-ubnone>keine</button></div>
+      box.innerHTML = top.length ? `<div class="hint" style="margin-bottom:.3rem">Abschnitte aus „${E(SRC.name)}“ <button type="button" class="btn sm" data-uball>alle</button> <button type="button" class="btn sm" data-ubnone>keine</button></div>
         <div style="max-height:46vh;overflow:auto;border:1px solid var(--line,#ccc);border-radius:8px;padding:.4rem .6rem">${top.map(({ t, i }) => { const n = anz(i);
           return `<label class="cb" style="display:flex;gap:.4rem;padding:.15rem 0"><input type="checkbox" data-ubg="${i}"> <span><b>${E(t.name)}</b>${n ? ` <small class="hint">${n} Leistung${n > 1 ? 'en' : ''}</small>` : t.gw ? ` <small class="hint">${E(t.gw)}</small>` : ''}</span></label>`; }).join('')}</div>`
         : '<p class="hint">Dieser Plan hat keine Leistungen.</p>';

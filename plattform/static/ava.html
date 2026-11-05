@@ -1489,7 +1489,9 @@ async function quLaden() {
   if (!KAT) KAT = await api('api/katalog').catch(() => ({ info: null, gewerke: [] }));
   if (QU.pid === 'kat' && !KAT.info) QU.pid = null;
   if (!QU.pid) QU.pid = (PROJ.find((p) => p.id !== pid) || PROJ[0] || {}).id || null;
-  QU.list = QU.pid === 'kat' ? KAT.gewerke : QU.pid ? await api('api/lv?project_id=' + QU.pid).catch(() => []) : [];
+  QU.vers = QU.pid && QU.pid !== 'kat' ? await api('api/versionen?project_id=' + QU.pid).catch(() => []) : [];
+  if (!QU.vers.some((v) => v.id === QU.ver)) QU.ver = ((QU.vers.find((v) => v.aktiv) || QU.vers[0]) || {}).id || null;
+  QU.list = QU.pid === 'kat' ? KAT.gewerke : QU.pid ? await api('api/lv?project_id=' + QU.pid + (QU.ver ? '&version_id=' + QU.ver : '')).catch(() => []) : [];
   if (!QU.list.some((x) => x.id === QU.lv) && QU.lv !== 'kat:suche') QU.lv = (QU.list[0] || {}).id || null;
   if (QU.pid !== 'kat' && QU.lv === 'kat:suche') QU.lv = (QU.list[0] || {}).id || null;
   QU.L = QU.lv ? await quLvLaden(QU.lv) : null;
@@ -1510,6 +1512,7 @@ function quZeigen() {
   box.innerHTML = `<div class="qu-h"><div class="t">Kopierquelle <span class="lock" title="Hier lässt sich nichts ändern">🔒 schreibgeschützt</span><span style="flex:1"></span><button class="ib" data-qu="zu" title="Kopierquelle schließen">✕</button></div>
       <div class="rr"><select id="quProj" aria-label="Projekt der Kopierquelle">${KAT && KAT.info ? `<optgroup label="Katalog"><option value="kat"${QU.pid === 'kat' ? ' selected' : ''}>Positionskatalog ${esc(KAT.info.quelle || '')}</option></optgroup>` : ''}${['Projekte', 'Archiv'].map((g) => { const ps = PROJ.filter((p) => !!p.archived === (g === 'Archiv')); return ps.length ? `<optgroup label="${g}">${ps.map((p) => `<option value="${p.id}"${p.id === QU.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
         <button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button></div>
+      ${(QU.vers || []).length > 1 ? `<div class="rr"><label style="display:flex;gap:.5rem;align-items:center;flex:1;font-size:.88rem;color:var(--mute)">Version<select id="quVer" style="flex:1">${QU.vers.map((v, i) => `<option value="${v.id}"${v.id === QU.ver ? ' selected' : ''}>${i + 1} · ${esc(v.name)}${v.aktiv ? ' (aktuell)' : ''}${v.archived ? ' (archiviert)' : ''}</option>`).join('')}</select></label></div>` : ''}
       ${QU.pid === 'kat' ? `<div class="rr"><input type="search" id="quQ" value="${esc(QU.q || '')}" placeholder="Im ganzen Katalog suchen – z. B. Kalksandstein 17,5" autocomplete="off" style="flex:1"></div>` : ''}
       <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen mitnehmen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label></div>
       <div class="qu-o"><span class="hint">${QU.sel.size ? `${quAuswahl().length} Zeilen gewählt` : 'Zeilen anhaken oder ins LV links ziehen'}</span><span style="flex:1"></span>
@@ -1572,7 +1575,8 @@ document.addEventListener('input', (e) => {
   }, 350);
 });
 document.addEventListener('change', async (e) => {
-  if (e.target.id === 'quProj') { QU.pid = e.target.value === 'kat' ? 'kat' : +e.target.value; QU.lv = null; await quLaden(); }
+  if (e.target.id === 'quProj') { QU.pid = e.target.value === 'kat' ? 'kat' : +e.target.value; QU.lv = null; QU.ver = null; await quLaden(); }
+  else if (e.target.id === 'quVer') { QU.ver = +e.target.value; QU.lv = null; await quLaden(); }
   else if (e.target.id === 'quM') { QU.mengen = e.target.checked; LS.set('qu.mengen', QU.mengen); }
   else if (e.target.id === 'quP') { QU.preise = e.target.checked; LS.set('qu.preise', QU.preise); }
 });

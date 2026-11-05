@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY plattform/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY plattform/common.py plattform/portal.py plattform/admin.py plattform/adressen.py plattform/baukosten.py plattform/aufgaben.py plattform/plaene.py plattform/ava.py plattform/kommunikation.py plattform/router.py ./
+COPY plattform/common.py plattform/portal.py plattform/admin.py plattform/adressen.py plattform/baukosten.py plattform/aufgaben.py plattform/plaene.py plattform/ava.py plattform/katalog.py plattform/kommunikation.py plattform/router.py ./
 COPY plattform/static ./static
 COPY plattform/vendor ./vendor
 COPY shared/bpcore ./bpcore

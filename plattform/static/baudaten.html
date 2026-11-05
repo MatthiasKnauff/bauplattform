@@ -50,11 +50,26 @@
 .det h4{margin:1rem 0 .3rem;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
 .ed label{display:block;font-size:.82rem;color:var(--mute);margin:.5rem 0 .15rem}
 .ed input,.ed textarea,.ed select{width:100%;box-sizing:border-box;font:inherit;padding:.4rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
-.ed textarea{min-height:9rem}
+.ed textarea{min-height:8rem}
 .ed .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem}
 .leer{padding:2rem 1rem;text-align:center;color:var(--mute)}
 .badge{display:inline-block;font-size:.72rem;border:1px solid var(--line);border-radius:999px;padding:0 .45rem;color:var(--mute);margin-right:.3rem}
-.modal .ed{min-width:min(560px,86vw)}
+.modal:has(.ed){width:min(640px,100%)}
+.modal.ed-modal{width:min(720px,100%);padding:1.1rem 1.4rem 1rem}
+.ed-modal h3{display:flex;align-items:baseline;gap:.6rem}
+.ed-code{font-size:.8rem;font-weight:500;color:var(--mute);font-family:ui-monospace,Menlo,Consolas,monospace}
+.ed section{border-top:1px solid var(--line);padding:.7rem 0 .4rem}
+.ed section:first-child{border-top:0;padding-top:0}
+.ed-h{font-size:.74rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:.15rem}
+.ed-h small{text-transform:none;letter-spacing:0;font-weight:400;margin-left:.3rem}
+.ed label small{color:var(--mute);font-weight:400;margin-left:.3rem;opacity:.85}
+.ed input:focus,.ed textarea:focus,.ed select:focus{outline:2px solid var(--y);outline-offset:-1px;border-color:transparent}
+.ed textarea{resize:vertical;line-height:1.45}
+.ed .eur{position:relative}.ed .eur input{padding-right:1.6rem;text-align:right;font-variant-numeric:tabular-nums}
+.ed .eur span{position:absolute;right:.55rem;top:50%;transform:translateY(-50%);color:var(--mute);font-size:.85rem;pointer-events:none}
+.ed .ep .mid input{font-weight:600;border-color:var(--y)}
+.ed-tip{margin:.35rem 0 0;font-size:.8rem;color:var(--mute)}
+@media (max-width:560px){.ed .r3{grid-template-columns:1fr 1fr}.ed .r3>div:last-child:nth-child(3){grid-column:1/-1}.ed .ep{grid-template-columns:1fr 1fr 1fr}.ed .ep>div:last-child:nth-child(3){grid-column:auto}}
 .tbl{width:100%;border-collapse:collapse;font-size:.88rem}.tbl td{padding:.2rem .3rem}.tbl input{width:100%;box-sizing:border-box}
 @media (max-width:1200px){.grid{grid-template-columns:240px minmax(0,1fr)}.det{grid-column:1/-1;position:static;max-height:none}}
 @media (max-width:760px){.grid{grid-template-columns:1fr}.side{position:static;max-height:260px}.row{grid-template-columns:minmax(0,1fr) 7.5rem}.row .c,.row .e{display:none}}
@@ -167,25 +182,52 @@ function detail() {
     </div>${ro ? '<p class="mute">Aus einem Katalog der Ausschreibung (z. B. sirAdos, eingelesen in Ausschreibung &amp; Abrechnung → ⚙ → Positionskatalog). Für eigene Preise oder Änderungen als eigene Position übernehmen.</p>' : ''}${kalk}${ro ? '' : eigen}`;
 }
 function bearbeiten() {
-  const x = SEL;
-  modalBox(`<h3>Position bearbeiten</h3><div class="ed">
-    <label>Kurztext</label><input id="eK" value="${esc(x.kurz)}" maxlength="300">
-    <label>Langtext${x.grund_id ? ' (Folgetext – der Grundtext gehört zum Katalog)' : ''}</label><textarea id="eL">${esc(x.lang || '')}</textarea>
-    <div class="r3"><div><label>Einheit</label><select id="eE">${S.einheiten.map((e) => `<option${e === x.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select></div>
-      <div><label>KG DIN 276</label><input id="eG" value="${esc(x.kg)}" maxlength="3"></div>
-      <div><label>Genauigkeit</label><select id="eA">${['A', 'B', 'C'].map((a) => `<option${a === x.genauigkeit ? ' selected' : ''}>${a}</option>`).join('')}</select></div></div>
-    <div class="r3"><div><label>EP von (heute)</label><input id="eV" value="${num(x.ep_von_akt)}"></div><div><label>EP mittel (heute)</label><input id="eM" value="${num(x.ep_mittel_akt)}"></div><div><label>EP bis (heute)</label><input id="eB" value="${num(x.ep_bis_akt)}"></div></div>
-    <label>Hinweis</label><input id="eH" value="${esc(x.hinweis || '')}">
-    <label>Schlagworte (kommagetrennt)</label><input id="eT" value="${esc(x.tags || '')}">
-  </div><div class="acts" style="justify-content:flex-end"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+  const x = SEL, SP = { A: [0.85, 1.2], B: [0.78, 1.3], C: [0.68, 1.5] };   // Preisspanne je Genauigkeit (wie im Katalog)
+  const bg = modalBox(`<h3>Position bearbeiten${x.code ? ` <span class="ed-code">${esc(x.code)}</span>` : ''}</h3><div class="ed">
+    <section><div class="ed-h">Text</div>
+      <label for="eK">Kurztext <small id="eKn"></small></label><input id="eK" value="${esc(x.kurz)}" maxlength="300" placeholder="z. B. Innenwand KS 17,5 cm">
+      <label for="eL">Langtext${x.grund_id ? ' <small>Folgetext – der Grundtext gehört zum Katalog</small>' : ''}</label><textarea id="eL" placeholder="Ausführliche Beschreibung für das Leistungsverzeichnis …">${esc(x.lang || '')}</textarea></section>
+    <section><div class="ed-h">Abrechnung</div><div class="r3">
+      <div><label for="eE">Einheit</label><select id="eE">${S.einheiten.map((e) => `<option${e === x.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select></div>
+      <div><label for="eG">Kostengruppe DIN 276</label><input id="eG" value="${esc(x.kg)}" maxlength="3" inputmode="numeric" placeholder="z. B. 331"></div>
+      <div><label for="eA" title="Bestimmt die Preisspanne von–bis">Genauigkeit</label><select id="eA" title="${esc(Object.entries(GEN).map(([k, v]) => k + ': ' + v).join('\n'))}">${['A', 'B', 'C'].map((a) => `<option value="${a}"${a === x.genauigkeit ? ' selected' : ''}>${a} – ${{ A: 'Standardleistung', B: 'mittlere Streuung', C: 'große Streuung' }[a]}</option>`).join('')}</select></div></div></section>
+    <section><div class="ed-h">Einheitspreis heute <small>netto, € je <span id="eEh">${esc(x.einheit)}</span></small></div><div class="r3 ep">
+      <div><label for="eV">von</label><div class="eur"><input id="eV" value="${num(x.ep_von_akt)}" inputmode="decimal"><span>€</span></div></div>
+      <div class="mid"><label for="eM">mittel</label><div class="eur"><input id="eM" value="${num(x.ep_mittel_akt)}" inputmode="decimal"><span>€</span></div></div>
+      <div><label for="eB">bis</label><div class="eur"><input id="eB" value="${num(x.ep_bis_akt)}" inputmode="decimal"><span>€</span></div></div></div>
+      <p class="ed-tip" id="eTip"></p></section>
+    <section><div class="ed-h">Zusätzlich</div>
+      <label for="eH">Hinweis</label><input id="eH" value="${esc(x.hinweis || '')}" placeholder="z. B. nur bis 3 m Raumhöhe">
+      <label for="eT">Schlagworte <small>kommagetrennt – helfen beim Suchen</small></label><input id="eT" value="${esc(x.tags || '')}" placeholder="z. B. Mauerwerk, KS, Innenwand"></section>
+  </div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
     if (m === 'x') return close();
+    if (m !== 'ok') return;
+    const kurz = bg.querySelector('#eK').value.trim(); if (!kurz) { bg.querySelector('#eK').focus(); return toast('Bitte einen Kurztext eingeben.', true); }
     const z = (s) => { const v = bg.querySelector(s).value.trim().replace(/\./g, '').replace(',', '.'); return v === '' ? null : +v; };
+    const mi = z('#eM'), sp = SP[bg.querySelector('#eA').value];
+    let von = z('#eV'), bis = z('#eB');
+    if (mi != null && von == null) von = Math.round(mi * sp[0] * 100) / 100;   // leer gelassen: aus der Genauigkeit
+    if (mi != null && bis == null) bis = Math.round(mi * sp[1] * 100) / 100;
+    if ([von, mi, bis].some((v) => v != null && !Number.isFinite(v))) return toast('Bitte die Preise als Zahl eingeben, z. B. 48,50.', true);
+    if (von != null && mi != null && bis != null && !(von <= mi && mi <= bis)) return toast('Die Preise passen nicht: von ≤ mittel ≤ bis.', true);
     try {
-      SEL = await api('api/position/' + x.id, 'PUT', { kurz: bg.querySelector('#eK').value, lang: bg.querySelector('#eL').value, einheit: bg.querySelector('#eE').value, kg: bg.querySelector('#eG').value,
-        genauigkeit: bg.querySelector('#eA').value, ep_von: z('#eV'), ep_mittel: z('#eM'), ep_bis: z('#eB'), hinweis: bg.querySelector('#eH').value, tags: bg.querySelector('#eT').value });
+      SEL = await api('api/position/' + x.id, 'PUT', { kurz, lang: bg.querySelector('#eL').value, einheit: bg.querySelector('#eE').value, kg: bg.querySelector('#eG').value.trim(),
+        genauigkeit: bg.querySelector('#eA').value, ep_von: von, ep_mittel: mi, ep_bis: bis, hinweis: bg.querySelector('#eH').value, tags: bg.querySelector('#eT').value });
       close(); detail(); laden(); toast('Gespeichert');
     } catch (e) { toast(e.message, true); }
   });
+  bg.querySelector('.modal').classList.add('ed-modal');
+  const q = (s) => bg.querySelector(s), zahl = (s) => { const v = q(s).value.trim().replace(/\./g, '').replace(',', '.'); return v === '' ? null : +v; };
+  const tip = () => {
+    const mi = zahl('#eM'), sp = SP[q('#eA').value];
+    q('#eV').placeholder = mi ? num(mi * sp[0]) : ''; q('#eB').placeholder = mi ? num(mi * sp[1]) : '';
+    q('#eTip').textContent = mi ? `Leer gelassen, werden „von“ und „bis“ aus der Genauigkeit gerechnet: ${GEN[q('#eA').value].replace(/^.*\(/, '').replace(')', '')}.` : 'Mindestens den mittleren Preis angeben – „von“ und „bis“ ergeben sich dann aus der Genauigkeit.';
+  };
+  const zaehl = () => { const n = q('#eK').value.length; q('#eKn').textContent = n > 200 ? `${n}/300` : ''; };
+  q('#eM').addEventListener('input', tip); q('#eA').addEventListener('change', tip); q('#eE').addEventListener('change', () => { q('#eEh').textContent = q('#eE').value; });
+  q('#eK').addEventListener('input', zaehl);
+  const hoch = () => { const t = q('#eL'); t.style.height = 'auto'; t.style.height = Math.min(Math.max(t.scrollHeight + 2, 130), innerHeight * 0.45) + 'px'; };
+  q('#eL').addEventListener('input', hoch); tip(); zaehl(); setTimeout(hoch, 0);
 }
 function einstellungen() {
   const E = S.einstellungen, ad = S.admin;

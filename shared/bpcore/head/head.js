@@ -774,15 +774,23 @@
     const posInfo = () => ((d.extra && d.extra.addr_auto) ? 'Adresse und PLZ wurden automatisch aus dem Projektnamen ermittelt – bitte prüfen. ' : '')
       + (hatPos() ? 'Standort gespeichert – damit wählt das Bautagebuch dieses Projekt automatisch, wenn du vor Ort bist.' : neu ? 'Ohne Adresse wird sie beim Anlegen aus dem Projektnamen ermittelt.' : 'Noch kein Standort: Adresse eintragen oder „Aktuellen Standort übernehmen“.');
     const f = (k, l, w, extra = '') => `<label class="${w ? 'w' : ''}">${l}<input data-pe="${k}" value="${esc(d[k] || '')}" autocomplete="off"${extra}></label>`;
-    let msg = '';
+    let msg = '', ordT = 0;
+    const ordnerVorschlag = (inp) => {   // Ordner auf dem Server zur Eingabe (Name: nur bei neuen Projekten; Projektordner: mit Hauptordner)
+      clearTimeout(ordT); const qq = inp.value.trim(), k = inp.dataset.pe; if (qq.length < 2) return;
+      ordT = setTimeout(async () => {
+        let r = []; try { r = await KX(B + 'store/folders?q=' + encodeURIComponent(qq.split('/').pop() || qq) + (k === 'folder' ? '&pfad=1' : '')); } catch { return; }
+        const dl = root.querySelector('#bph-dl-' + k); if (!dl || inp.value.trim() !== qq) return;
+        dl.innerHTML = (Array.isArray(r) ? r : []).map((n) => `<option value="${esc(n)}"></option>`).join('');
+      }, 250);
+    };
     function draw() {
       root.innerHTML = `<div class="bph-dh"><b>${neu ? 'Neues Projekt' : esc(d.name || 'Projekt')}</b><button type="button" class="bph-x" data-pc aria-label="Schließen">×</button></div><div class="bph-db">
-        <div class="bph-pef">${f('name', 'Bauvorhaben *', 1, ' placeholder="Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop"')}${f('client', 'Bauherrschaft (Name und Anschrift)', 1)}${f('street', 'Straße und Hausnummer', 1)}${f('zip', 'PLZ', 0, ' inputmode="numeric"')}${f('city', 'Ort')}</div>
+        <div class="bph-pef">${f('name', 'Bauvorhaben *', 1, ' placeholder="Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop"' + (neu ? ' list="bph-dl-name"' : ''))}<datalist id="bph-dl-name"></datalist>${f('client', 'Bauherrschaft (Name und Anschrift)', 1)}${f('street', 'Straße und Hausnummer', 1)}${f('zip', 'PLZ', 0, ' inputmode="numeric"')}${f('city', 'Ort')}</div>
         <div class="bph-row"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button><button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button></div>
         <p class="bph-mu">${esc(posInfo())}</p>${karte()}
         <h4>Zuständige Bauleiter</h4><div class="bph-chips">${LEAD.map((u) => `<button type="button" class="bph-chip${d.leaders.includes(u.id) ? ' on' : ''}" data-pl="${u.id}" aria-pressed="${d.leaders.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Noch keine Benutzer.</small>'}</div>
         <p class="bph-mu">${d.leaders.length ? 'Nur die ausgewählten Bauleiter und die Administratoren sehen dieses Projekt in der Projektauswahl.' : 'Niemand ausgewählt: alle Benutzer sehen dieses Projekt.'}</p>
-        <div class="bph-pef">${f('folder', 'Projektordner auf dem Server (leer = automatisch über das Kürzel; Unterordner mit /)', 1)}</div>
+        <div class="bph-pef">${f('folder', 'Projektordner auf dem Server (leer = automatisch über das Kürzel; Unterordner mit /)', 1, ' list="bph-dl-folder" placeholder="Ordnernamen tippen – Vorschläge vom Server"')}<datalist id="bph-dl-folder"></datalist></div>
         ${msg ? `<p class="bph-err">${esc(msg)}</p>` : ''}
         <div class="bph-row bph-pea">${neu ? '' : `${opt.archiv ? `<button type="button" class="bph-btn" data-parch>${d.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button>` : ''}${opt.onDelete ? '<button type="button" class="bph-btn bph-bad" data-pdel>Projekt löschen …</button>' : ''}`}
           <span style="flex:1"></span><button type="button" class="bph-btn" data-pc>Abbrechen</button><button type="button" class="bph-btn pri" data-pok>${neu ? 'Anlegen' : 'Speichern'}</button></div></div>`;
@@ -824,6 +832,7 @@
         }, () => { msg = 'Der Standort ist nicht verfügbar – bitte im Browser erlauben.'; draw(); }, { enableHighAccuracy: true, timeout: 10000 });
       }
     });
+    root.addEventListener('input', (e) => { if (e.target.matches('[data-pe="folder"]') || (neu && e.target.matches('[data-pe="name"]'))) ordnerVorschlag(e.target); });
     root.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('[data-pe]')) speichern(); });
     draw(); root.querySelector('[data-pe="name"]').focus();
   };

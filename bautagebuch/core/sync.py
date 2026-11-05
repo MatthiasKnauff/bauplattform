@@ -268,6 +268,8 @@ def suggest_projects(conf, q):
             except Exception:
                 names = []
             hit = _subs[key] = (time.time(), sorted((n for n in names if n.lower().startswith(code.lower() + ".")), key=_natural))
+        for n in hit[1]:
+            _pfad[n.lower()] = d + "/" + n
         if hit[1]:   # Hauptordner mit Unterprojekten ist selbst kein Projekt: nur die Unterordner anbieten
             out.remove(d)
             out += hit[1]
@@ -276,6 +278,12 @@ def suggest_projects(conf, q):
 
 
 _idx = {"t": 0, "key": None, "names": [], "busy": False, "parents": set()}
+_pfad = {}   # Unterprojekt → „Hauptordner/Unterprojekt“ (für das Feld „Projektordner“ der Projektmaske)
+
+
+def pfad(name):
+    """Ordnername aus suggest_projects() als Pfad ab der Ablage (Unterprojekte mit ihrem Hauptordner)."""
+    return _pfad.get((name or "").lower(), name)
 
 
 def _indexed(conf, tops):
@@ -298,6 +306,8 @@ def _indexed(conf, tops):
                     if subs:
                         parents.add(d)
                         names += sorted(subs, key=_natural)
+                        for n in subs:
+                            _pfad[n.lower()] = d + "/" + n
             except Exception:
                 pass
             _idx.update(t=time.time(), key=key, names=names, parents=parents, busy=False)

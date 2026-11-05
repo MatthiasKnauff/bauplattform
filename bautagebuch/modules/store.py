@@ -74,6 +74,8 @@ def folders():
     words = q.split()   # jedes Wort muss irgendwo im Ordnernamen vorkommen: „a450.22 auf dem holte“
     match = [d for d in names if all(w in d.lower() for w in words)]
     hits = [d for d in match if d.lower().startswith(q)] + [d for d in match if not d.lower().startswith(q)]
+    if request.args.get("pfad"):   # für das Feld „Projektordner“: Unterprojekte mit Hauptordner („A450 Haupt/A450.22 Unter“)
+        return jsonify([sync.pfad(d) for d in hits[:30]])
     return jsonify(hits[:30])
 
 

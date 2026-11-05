@@ -71,7 +71,7 @@ services:
       retries: 30
 
   bautagebuch:
-    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:1b984d7
     container_name: bautagebuch
     restart: unless-stopped
     depends_on:
@@ -85,7 +85,7 @@ services:
       - bautagebuch_data:/data
 
   gantt:
-    image: ghcr.io/matthiasknauff/bauplattform/gantt:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/gantt:1b984d7
     container_name: bauzeitenplan
     restart: unless-stopped
     depends_on:
@@ -99,7 +99,7 @@ services:
       - gantt_legacy:/legacy:ro
 
   portal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_portal
     restart: unless-stopped
     depends_on:
@@ -111,7 +111,7 @@ services:
       APP_PORT: "8090"
 
   admin:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_admin
     restart: unless-stopped
     depends_on:
@@ -125,7 +125,7 @@ services:
       APP_PORT: "8091"
 
   adressen:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_adressen
     restart: unless-stopped
     depends_on:
@@ -142,7 +142,7 @@ services:
 
   # Verteiler: alle Apps unter einer Adresse (Pfad statt Port/Subdomain), siehe plattform/router.py
   bauportal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_verteiler
     restart: unless-stopped
     depends_on:
@@ -156,7 +156,7 @@ services:
       APP_THREADS: "32"
       APP_TIMEOUT: "320"
   baukosten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_baukosten
     restart: unless-stopped
     depends_on:
@@ -172,7 +172,7 @@ services:
 
   # Mängel & Erinnerungen: Mängelverfolgung aus den Bautagesberichten, Erinnerungen aus Bautagebuch, Bauzeitenplänen und eigene
   aufgaben:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_aufgaben
     restart: unless-stopped
     depends_on:
@@ -187,7 +187,7 @@ services:
 
   # Planstand & Versand: Pläne im Projektordner (über das Bautagebuch), neuester Index, Versand an die Firmen, Planversandliste
   plaene:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_plaene
     restart: unless-stopped
     depends_on:
@@ -203,7 +203,7 @@ services:
 
   # Ausschreibung & Abrechnung: Leistungsverzeichnisse, Angebote/Preisspiegel, Aufmaß, Rechnungsprüfung (GAEB)
   ava:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_ava
     restart: unless-stopped
     depends_on:
@@ -219,7 +219,7 @@ services:
 
   # Kommunikation: was an wen verschickt wurde (Planversand, Rügen) – je Projekt und je Kontakt
   kommunikation:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:46ca559
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:1b984d7
     container_name: bauplattform_kommunikation
     restart: unless-stopped
     depends_on:

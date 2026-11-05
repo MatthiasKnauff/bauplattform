@@ -275,6 +275,15 @@ html.mobil #mView{display:block;font-size:15px;line-height:1.4;min-height:calc(1
 html.mobil .bph{position:sticky;top:0}
 .mv-top{position:sticky;top:46px;z-index:5;background:var(--bg);padding:.6rem .8rem .5rem;border-bottom:1px solid var(--line)}
 .mv-top select{width:100%;font:inherit;font-weight:600;font-size:16px;padding:.5rem .6rem;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.mv-q{display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem}
+.mv-q input[type=search]{flex:1;min-width:0;font:inherit;font-size:16px;padding:.5rem .8rem;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink)}
+.mv-q label{font-size:.78rem;color:var(--mute);display:flex;gap:.3rem;align-items:center;white-space:nowrap}
+.mv-r{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;padding:.6rem .2rem}
+.mv-r .o{font-size:.8rem;color:var(--mute)}.mv-r .t{font-weight:600}.mv-r .s{font-size:.85rem;color:var(--mute)}
+.mv-r mark{background:color-mix(in srgb,var(--y) 35%,transparent);color:inherit;border-radius:2px}
+.mv-g{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mute);margin:.9rem 0 .2rem}
+.mp.blink{animation:vqblinkm 2.2s ease-out}
+@keyframes vqblinkm{0%,40%{background:color-mix(in srgb,var(--y) 35%,transparent)}100%{background:transparent}}
 .mv-seg{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:3px;background:var(--card);margin-top:.5rem}
 .mv-seg button{flex:1;border:0;background:transparent;border-radius:999px;padding:.45rem .2rem;font:inherit;font-size:.88rem;color:var(--mute)}
 .mv-seg button.on{background:var(--y);color:var(--on);font-weight:600}
@@ -2043,7 +2052,7 @@ const MOB = (() => {
   const schmal = Math.min(window.innerWidth, screen.width || 9999) <= 760, touch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
   if (!((schmal && touch) || /iPhone|Android.+Mobile/i.test(navigator.userAgent))) return null;
   document.documentElement.classList.add('mobil');
-  const box = $('#mView'), st = { modus: LS.get('mModus', 'auftraege'), auf: new Set() };
+  const box = $('#mView'), st = { modus: LS.get('mModus', 'auftraege'), auf: new Set(), q: '', alle: LS.get('vqAlle', false), T: 0, tok: 0, R: [] };
   const pct = (a, b) => (b ? Math.max(0, Math.min(100, Math.round(a / b * 100))) : 0);
   const stLbl = (k) => (STATUS.find((x) => x[0] === k) || [, k])[1];
   function vAuf() {
@@ -2107,13 +2116,39 @@ const MOB = (() => {
   function zeichnen() {
     const lvSel = LIST.length ? `<select id="mLv" aria-label="Leistungsverzeichnis">${LIST.filter((x) => !x.archived || (L && x.id === L.id)).map((x) => `<option value="${x.id}"${L && x.id === L.id ? ' selected' : ''}>${esc(x.nr)} · ${esc(x.name)}</option>`).join('')}</select>` : '';
     const M = [['auftraege', 'Aufträge'], ['lv', 'LV'], ['nt', 'Nachträge'], ['re', 'Rechnungen']];
-    box.innerHTML = `<div class="mv-top">${st.modus === 'auftraege' ? '' : lvSel}<div class="mv-seg">${M.map(([k, l]) => `<button data-mm="${k}" class="${k === st.modus ? 'on' : ''}">${l}</button>`).join('')}</div></div>
-      <div class="mv-b">${st.modus === 'lv' ? vLvM() : st.modus === 'nt' ? vNt() : st.modus === 're' ? vRe() : vAuf()}
+    box.innerHTML = `<div class="mv-top"><div class="mv-q"><input type="search" id="mQ" placeholder="🔍 Suchen – Text, OZ, Firma …" value="${esc(st.q)}" autocomplete="off" enterkeyhint="search"><label><input type="checkbox" id="mQa"${st.alle ? ' checked' : ''}> alle Projekte</label></div>${st.modus === 'auftraege' ? '' : lvSel}<div class="mv-seg">${M.map(([k, l]) => `<button data-mm="${k}" class="${k === st.modus ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="mv-b">${st.q.length > 1 ? '<p style="color:var(--mute)">Suche …</p>' : st.modus === 'lv' ? vLvM() : st.modus === 'nt' ? vNt() : st.modus === 're' ? vRe() : vAuf()}
       <p class="mv-f">Nur Ansicht – bearbeiten am Computer. <button data-mdesk>Desktop-Ansicht</button></p></div>`;
+    if (st.q.trim().length > 1) suchen();
   }
-  box.addEventListener('change', async (e) => { if (e.target.id === 'mLv') { await openLv(+e.target.value); } });
+  async function suchen() {   // Volltextsuche wie am Computer (api/suche) – Ergebnisse statt der Liste
+    const q = st.q.trim(), b = box.querySelector('.mv-b'); if (!b) return;
+    if (q.length < 2) { zeichnen(); return; }
+    const my = ++st.tok;
+    try {
+      const r = await api('api/suche?q=' + encodeURIComponent(q) + (st.alle || !pid ? '' : '&pid=' + pid)); if (my !== st.tok) return;
+      st.R = r.treffer.filter((t) => t.art !== 'tuer');
+      let h = '', grp = '';
+      st.R.forEach((t, k) => {
+        const g = [st.alle ? t.projekt : '', t.lv].filter(Boolean).join(' › '); if (g !== grp) { grp = g; h += `<div class="mv-g">${esc(g)}</div>`; }
+        h += `<button class="mv-r" data-mr="${k}"><div class="o">${VQIC[t.art] || '▪'} ${esc(t.oz || (t.art === 'angebot' ? 'Bieter' : t.art === 'rechnung' ? 'Rechnung' : t.art === 'aufmass' ? 'Aufmaß' : ''))}${t.nt ? ' · ' + esc(t.nt) : ''}</div><div class="t">${vqMarkieren(t.titel, q)}</div>${t.text ? `<div class="s">${vqMarkieren(t.text, q)}</div>` : ''}</button>`;
+      });
+      b.innerHTML = h || `<p style="color:var(--mute);padding:.5rem 0">Nichts gefunden zu „${esc(q)}“${st.alle ? '' : ' in diesem Projekt – Häkchen „alle Projekte“ setzen'}.</p>`;
+    } catch (er) { toast(er.message, true); }
+  }
+  async function gehe(t) {
+    st.q = ''; document.activeElement && document.activeElement.blur && document.activeElement.blur();
+    if (t.pid && t.pid !== pid) { pid = t.pid; LS.set('pid', pid); if (window.BPHead) BPHead.projektSetzen(pid); LIST = await api('api/lv?project_id=' + pid); }
+    st.modus = t.art === 'rechnung' ? 're' : 'lv'; LS.set('mModus', st.modus); st.auf.clear(); st.lang = t.pos_id || null;
+    if (t.lv_id) await openLv(t.lv_id);
+    zeichnen();
+    setTimeout(() => { const el = t.pos_id && box.querySelector(`[data-mp="${CSS.escape(t.pos_id)}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('blink'); } else scrollTo(0, 0); }, 60);
+  }
+  box.addEventListener('input', (e) => { if (e.target.id === 'mQ') { st.q = e.target.value; clearTimeout(st.T); st.T = setTimeout(suchen, 300); } });
+  box.addEventListener('change', async (e) => { if (e.target.id === 'mQa') { st.alle = e.target.checked; LS.set('vqAlle', st.alle); suchen(); return; } if (e.target.id === 'mLv') { await openLv(+e.target.value); } });
   box.addEventListener('click', async (e) => {
-    const m = e.target.closest('[data-mm]'); if (m) { st.modus = m.dataset.mm; LS.set('mModus', st.modus); zeichnen(); scrollTo(0, 0); return; }
+    const mr = e.target.closest('[data-mr]'); if (mr) { gehe(st.R[+mr.dataset.mr]); return; }
+    const m = e.target.closest('[data-mm]'); if (m) { st.q = ''; st.modus = m.dataset.mm; LS.set('mModus', st.modus); zeichnen(); scrollTo(0, 0); return; }
     const k = e.target.closest('[data-mlv]'); if (k) { st.modus = 'lv'; LS.set('mModus', 'lv'); await openLv(+k.dataset.mlv); scrollTo(0, 0); return; }
     const t = e.target.closest('[data-mt]'); if (t) { const id = t.dataset.mt; if (st.auf.has(id)) st.auf.delete(id); else st.auf.add(id); zeichnen(); return; }
     const p = e.target.closest('[data-mp]'); if (p) { st.lang = st.lang === p.dataset.mp ? null : p.dataset.mp; zeichnen(); return; }

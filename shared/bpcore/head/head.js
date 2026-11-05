@@ -514,7 +514,7 @@
       root = bg.firstChild; close = () => { bg.remove(); document.removeEventListener('keydown', e1); };
       document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
     }
-    const AB = D.abruf || { rhythmus: 'tag', uhrzeit: '08:00' };
+    const AB = D.abruf || { rhythmus: 'tag', uhrzeit: '08:00' }, EG = D.eigene || { aus: true, postfaecher: [] };
     const abrufText = () => ({ tag: `einmal am Tag um ${AB.uhrzeit} Uhr`, zweimal: `zweimal am Tag, um ${AB.uhrzeit} und 5 Stunden später`, stuendlich: 'stündlich von 7 bis 19 Uhr', hand: 'nur, wenn du ↻ Jetzt abrufen drückst' })[AB.rhythmus];
     const VORL = { gmail: ['imap.gmail.com', 993], webde: ['imap.web.de', 993], gmx: ['imap.gmx.net', 993], ionos: ['imap.ionos.de', 993], strato: ['imap.strato.de', 993], tonline: ['secureimap.t-online.de', 993], outlook: ['outlook.office365.com', 993] };
     const feld = (k, i, l, typ = 'text', ph = '') => `<label style="flex:1;min-width:9rem">${l}<input data-pf="${k}" data-pi="${i}" type="${typ}" value="${typ === 'password' ? '' : esc((D.konten[i] || {})[k] ?? '')}" placeholder="${esc(ph)}" autocomplete="${typ === 'password' ? 'new-password' : 'off'}"></label>`;
@@ -524,6 +524,9 @@
         <h4>Abruf</h4>
         <div class="bph-row" style="align-items:flex-end"><label style="flex:1;min-width:12rem">Wie oft<select data-pab="rhythmus" style="width:100%;font:inherit;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line,#3b3e42);background:var(--inp,transparent);color:inherit">${[['tag', 'einmal am Tag'], ['zweimal', 'zweimal am Tag'], ['stuendlich', 'stündlich (7–19 Uhr)'], ['hand', 'nur von Hand (↻)']].map(([k, l]) => `<option value="${k}"${AB.rhythmus === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
           ${AB.rhythmus === 'tag' || AB.rhythmus === 'zweimal' ? `<label style="width:8rem">${AB.rhythmus === 'zweimal' ? 'ab' : 'um'}<input type="time" data-pab="uhrzeit" value="${esc(AB.uhrzeit)}"></label>` : ''}</div>
+        <h4>Eigene Mails</h4>
+        <label class="bph-ck"><input type="checkbox" data-peg${EG.aus ? ' checked' : ''}> Mails ausblenden, die ich selbst geschickt habe – z. B. in Kopie an ${esc((D.zugewiesen || [])[0] || 'mail@…')}</label>
+        <div class="bph-row"${EG.aus ? '' : ' hidden'}><label style="flex:1">nur in diesen Postfächern <span class="bph-mu">(leer = in allen; mehrere mit Komma)</span><input data-pegp value="${esc(EG.postfaecher.join(', '))}" placeholder="alle Postfächer – z. B. ${esc((D.zugewiesen || [])[0] || 'mail@gk3-architektur.de')} eintragen" list="bph-pegl" autocomplete="off"></label><datalist id="bph-pegl">${(D.zugewiesen || []).concat(D.email ? [D.email] : []).map((a) => `<option value="${esc(a)}">`).join('')}</datalist></div>
         <h4>Büro-Postfach (Microsoft 365)</h4>
         ${D.m365_zentral ? `<label class="bph-ck"><input type="checkbox" data-pm${D.m365 ? ' checked' : ''}> mein Postfach <b>${esc(D.email || '–')}</b> einbeziehen</label>${(D.zugewiesen || []).length ? `<p class="bph-mu">Dazu vom Administrator zugewiesen: <b>${D.zugewiesen.map(esc).join(', ')}</b></p>` : ''}<div class="bph-row"><button type="button" class="bph-btn" data-ptm>Probeweise lesen</button></div>`
           : '<p class="bph-mu">Noch nicht eingerichtet – das macht der Administrator einmal unter ⚙ → Büro → Mailserver.</p>'}
@@ -536,16 +539,16 @@
         <p class="bph-mu">Gmail, GMX, WEB.DE & Co. verlangen meist ein <b>App-Passwort</b> und eingeschaltetes IMAP in den Einstellungen des Postfachs.</p>
         <div class="bph-row"><button type="button" class="bph-btn pri" data-ps>Speichern</button></div>${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
     }
-    const lesen = () => { root.querySelectorAll('[data-pab]').forEach((el) => { AB[el.dataset.pab] = el.value || AB[el.dataset.pab]; }); root.querySelectorAll('[data-pf]').forEach((el) => { const k = D.konten[+el.dataset.pi]; if (!k) return; const f = el.dataset.pf; k[f] = el.type === 'checkbox' ? el.checked : el.value; }); const m = root.querySelector('[data-pm]'); if (m) D.m365 = m.checked; };
+    const lesen = () => { const eg = root.querySelector('[data-peg]'); if (eg) EG.aus = eg.checked; const egp = root.querySelector('[data-pegp]'); if (egp) EG.postfaecher = egp.value.split(/[\s,;]+/).filter((a) => a.includes('@')); root.querySelectorAll('[data-pab]').forEach((el) => { AB[el.dataset.pab] = el.value || AB[el.dataset.pab]; }); root.querySelectorAll('[data-pf]').forEach((el) => { const k = D.konten[+el.dataset.pi]; if (!k) return; const f = el.dataset.pf; k[f] = el.type === 'checkbox' ? el.checked : el.value; }); const m = root.querySelector('[data-pm]'); if (m) D.m365 = m.checked; };
     root.addEventListener('click', async (e) => {
       const t = e.target;
       if (t.closest('[data-pc]')) return close();
       if (t.closest('[data-pd]')) { lesen(); D.konten.splice(+t.closest('[data-pd]').dataset.pd, 1); draw(); return; }
-      if (t.closest('[data-ps]')) { lesen(); try { D = { ...D, ...(await JS('api/bp/postfaecher', 'PUT', { m365: D.m365, konten: D.konten, abruf: AB })) }; Object.assign(AB, D.abruf || {}); msg = 'Gespeichert.'; if (opt.nachSpeichern) opt.nachSpeichern(D); } catch (er) { msg = er.message; } draw(); return; }
+      if (t.closest('[data-ps]')) { lesen(); try { D = { ...D, ...(await JS('api/bp/postfaecher', 'PUT', { m365: D.m365, konten: D.konten, abruf: AB, eigene: EG })) }; Object.assign(AB, D.abruf || {}); Object.assign(EG, D.eigene || {}); msg = 'Gespeichert.'; if (opt.nachSpeichern) opt.nachSpeichern(D); } catch (er) { msg = er.message; } draw(); return; }
       if (t.closest('[data-ptm]')) { msg = 'lese …'; draw(); try { const r = await JS('api/bp/postfaecher/test', 'POST', { m365: true }); msg = r.ok ? '✔ ' + r.text : '✖ ' + r.error; } catch (er) { msg = er.message; } draw(); return; }
       const pt = t.closest('[data-pt]'); if (pt) { lesen(); msg = 'verbinde …'; draw(); try { const r = await JS('api/bp/postfaecher/test', 'POST', { konto: D.konten[+pt.dataset.pt] }); msg = r.ok ? '✔ ' + r.text : '✖ ' + r.error; } catch (er) { msg = er.message; } draw(); }
     });
-    root.addEventListener('change', (e) => { if (e.target.closest('[data-pab="rhythmus"]')) { lesen(); draw(); return; } const v = e.target.closest('[data-pv]'); if (!v || !v.value) return; lesen(); const x = VORL[v.value] || ['', 993]; D.konten.push({ name: v.options[v.selectedIndex].text.replace(/ \(.*/, ''), host: x[0], port: x[1], user: '', ordner: 'INBOX', an: true }); draw(); });
+    root.addEventListener('change', (e) => { if (e.target.closest('[data-pab="rhythmus"],[data-peg]')) { lesen(); draw(); return; } const v = e.target.closest('[data-pv]'); if (!v || !v.value) return; lesen(); const x = VORL[v.value] || ['', 993]; D.konten.push({ name: v.options[v.selectedIndex].text.replace(/ \(.*/, ''), host: x[0], port: x[1], user: '', ordner: 'INBOX', an: true }); draw(); });
     draw();
   };
   H.verlaufKnopf = (bereich, label) => `<button type="button" class="bph-btn bph-vbtn" data-bph-verlauf="${esc(bereich)}" title="Frühere Stände ansehen und wiederherstellen">↶ ${esc(label || 'Verlauf')}</button>`;

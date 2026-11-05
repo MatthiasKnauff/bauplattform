@@ -604,7 +604,10 @@ def blueprint(get_user=None):
             d = posteingang.lesen(c, uid)
             if ein and (request.args.get("neu") or (request.args.get("auto") and posteingang.faellig(c, uid))):
                 d = posteingang.abrufen(c, u)
-        return jsonify(**d, eingerichtet=ein, abruf=posteingang.postfaecher(c, uid)["abruf"])
+            if d.get("mails"):   # Einstellung „eigene Kopien ausblenden“ gilt sofort, auch für schon gelesene Mails
+                d["mails"] = posteingang.eigene_filtern(c, u, d["mails"])
+            abruf = posteingang.postfaecher(c, uid)["abruf"]
+        return jsonify(**d, eingerichtet=ein, abruf=abruf)
 
     @bp.post("/api/bp/post/erinnerung")
     def post_erinnerung():

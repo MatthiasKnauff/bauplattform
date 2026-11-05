@@ -65,7 +65,34 @@ def postfaecher(c, uid):
         d = json.loads(v) if v else {}
     except ValueError:
         d = {}
-    return {"m365": d.get("m365", True), "konten": [k for k in d.get("konten") or [] if isinstance(k, dict)], "abruf": _abruf(d.get("abruf"))}
+    return {"m365": d.get("m365", True), "konten": [k for k in d.get("konten") or [] if isinstance(k, dict)], "abruf": _abruf(d.get("abruf")),
+            "eigene": _eigene(d.get("eigene"))}
+
+
+def _eigene(e):
+    """Selbst verschickte Mails, die als Kopie in einem gemeinsamen Postfach (z. B. mail@) landen, ausblenden.
+    postfaecher leer = in allen Postfächern."""
+    e = e if isinstance(e, dict) else {}
+    pf = e.get("postfaecher")
+    if isinstance(pf, str):
+        pf = re.split(r"[\s,;]+", pf)
+    pf = sorted({str(a).strip().lower() for a in (pf or []) if "@" in str(a)})[:20]
+    return {"aus": e.get("aus", True) is not False, "postfaecher": pf}
+
+
+def meine_adressen(c, u):
+    pf = postfaecher(c, u["id"])
+    a = {(u["email"] or "").strip().lower()} | {str(k.get("user") or "").strip().lower() for k in pf["konten"]}
+    return {x for x in a if "@" in x}
+
+
+def eigene_filtern(c, u, mails):
+    """Mails ohne die eigenen Kopien (Absender = ich, gelesen aus einem der eingestellten Postfächer)."""
+    e = postfaecher(c, u["id"])["eigene"]
+    if not e["aus"]:
+        return mails
+    ich, nur = meine_adressen(c, u), set(e["postfaecher"])
+    return [m for m in mails if not ((m.get("von") or "").lower() in ich and (not nur or (m.get("quelle") or "").lower() in nur))]
 
 
 RHYTHMEN = ("tag", "zweimal", "stuendlich", "hand")
@@ -134,7 +161,7 @@ def alle_faelligen(c_fn):
 
 def postfaecher_oeffentlich(c, uid):
     d = postfaecher(c, uid)
-    return {"m365": d["m365"], "abruf": d["abruf"], "konten": [{**{k: v for k, v in x.items() if k != "pass"}, "pass_set": bool(x.get("pass"))} for x in d["konten"]]}
+    return {"m365": d["m365"], "abruf": d["abruf"], "eigene": d["eigene"], "konten": [{**{k: v for k, v in x.items() if k != "pass"}, "pass_set": bool(x.get("pass"))} for x in d["konten"]]}
 
 
 def postfaecher_setzen(c, uid, b, by):
@@ -152,7 +179,8 @@ def postfaecher_setzen(c, uid, b, by):
         x["pass"] = pw if isinstance(pw, str) and pw else (altk.get(kid) or {}).get("pass", "")
         if x["host"] and x["user"]:
             neu.append(x)
-    d = {"m365": b.get("m365", alt["m365"]) is not False, "konten": neu, "abruf": _abruf(b.get("abruf") or alt["abruf"])}
+    d = {"m365": b.get("m365", alt["m365"]) is not False, "konten": neu, "abruf": _abruf(b.get("abruf") or alt["abruf"]),
+         "eigene": _eigene(b.get("eigene") if b.get("eigene") is not None else alt["eigene"])}
     konto._put(c, f"postfaecher:{uid}", json.dumps(d, ensure_ascii=False), by)
     return postfaecher_oeffentlich(c, uid)
 
@@ -418,6 +446,7 @@ def abrufen(c, u):
             if key not in gesehen:
                 gesehen.add(key)
                 uniq.append(m)
+        uniq = eigene_filtern(c, u, uniq)
         zu, n_proj = zuordnen(c, uid, uniq)
         erl = alt.get("erledigt") or {}
         for m in zu:

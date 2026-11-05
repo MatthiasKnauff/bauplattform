@@ -20,6 +20,7 @@ function tdDatumAus(t) {   // „Statik nachfordern bis Fr“ → Titel + Datum
 }
 async function tdLaden() {
   try { TD = await api('api/bp/todo'); } catch (e) { TD = { auto: [], manuell: [], fehler: [e.message] }; }
+  if (typeof TDWEG !== 'undefined' && TDWEG) TD.manuell = (TD.manuell || []).filter((y) => y.id !== TDWEG.x.id);   // gerade gelöscht (Rückgängig läuft noch)
   tdZeigen();
 }
 async function tdRef() { if (!TDREF) TDREF = await api('api/bp/todo-regeln').catch(() => ({ regeln: [], projekte: [], benutzer: [], ich: null })); return TDREF; }
@@ -67,8 +68,9 @@ function tdZeigen() {
   let n = 0, rest = TDKLEIN ? 6 : 1e9;   // Startseite: nur die dringendsten sechs
   for (const [name, fn, rot] of G) {
     const L = offen.filter(fn).sort(sort); if (!L.length) continue; n += L.length;
-    if (rest <= 0) continue;
-    html += `<div class="tg${rot ? ' rot' : ''}">${name} · ${L.length}</div>` + L.slice(0, rest).map(tdZeile).join('');
+    if (rest <= 0 && !L.some((x) => x.key === TDOFFEN)) continue;
+    const zeig = L.slice(0, Math.max(0, rest)), o = L.find((x) => x.key === TDOFFEN); if (o && !zeig.includes(o)) zeig.push(o);   // geöffnete Aufgabe immer zeigen
+    html += `<div class="tg${rot ? ' rot' : ''}">${name} · ${L.length}</div>` + zeig.map(tdZeile).join('');
     rest -= L.length;
   }
   if (TDKLEIN) {
@@ -121,7 +123,6 @@ document.addEventListener('click', async (e) => {
     if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: +te.querySelector('[data-tf="pid"]').value || null, onPick: (id, p) => setze(id, p && p.name) });
     return;
   }
-  if (a === 'bearbeiten' && x && TDKLEIN) { const app = ((BPHead.conf || {}).apps || []).find((y) => y.key === 'aufgaben' && y.allowed); if (app) location.href = appUrl(app) + '/#todos&t=' + x.id; return; }
   if (a === 'bearbeiten' && x) { await tdRef(); TDOFFEN = TDOFFEN === x.key ? null : x.key; tdZeigen(); return; }
   if (a === 'oeffnen' && x) {
     if (!x.link) return; if (/^https?:/.test(x.link)) { window.open(x.link, 'bp-outlook'); return; }
@@ -147,8 +148,25 @@ document.addEventListener('click', async (e) => {
     } catch (er) { toast(er.message, true); }
     return;
   }
-  if (a === 'loeschen' && x) { if (!confirm('Aufgabe löschen?')) return; await api('api/bp/todo/' + x.id, 'DELETE').catch((er) => toast(er.message, true)); TD.manuell = TD.manuell.filter((y) => y.id !== x.id); TDOFFEN = null; tdZeigen(); }
+  if (a === 'loeschen' && x) { tdLoeschen(x); }
 });
+/* Löschen mit ↶ Rückgängig: erst nach 10 s wirklich löschen (oder beim Verlassen der Seite) */
+let TDWEG = null;
+function tdWegJetzt() {
+  const w = TDWEG; if (!w) return; TDWEG = null; clearTimeout(w.t);
+  const bar = document.getElementById('tdUndo'); if (bar) bar.remove();
+  fetch('api/bp/todo/' + w.x.id, { method: 'DELETE', credentials: 'same-origin', keepalive: true }).catch(() => {});
+}
+function tdLoeschen(x) {
+  tdWegJetzt();   // ein vorher gelöschtes jetzt endgültig
+  const i = TD.manuell.indexOf(x); TD.manuell = TD.manuell.filter((y) => y.id !== x.id); TDOFFEN = null; tdZeigen();
+  const bar = document.createElement('div'); bar.id = 'tdUndo'; bar.className = 'td-undo';
+  bar.innerHTML = `<span>„${esc(x.titel)}“ gelöscht</span><button type="button">↶ Rückgängig</button>`;
+  document.body.appendChild(bar);
+  TDWEG = { x, i, t: setTimeout(tdWegJetzt, 10000) };
+  bar.querySelector('button').onclick = () => { const w = TDWEG; if (!w) return; TDWEG = null; clearTimeout(w.t); bar.remove(); TD.manuell.splice(Math.max(0, w.i), 0, w.x); tdZeigen(); toast('Wiederhergestellt.'); };
+}
+addEventListener('pagehide', tdWegJetzt);
 async function tdKlein(f) {   // Fotos vor dem Hochladen auf höchstens 2400 px verkleinern
   if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) || f.size < 600000) return f;
   try {

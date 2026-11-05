@@ -359,13 +359,19 @@ html[data-theme="hell"] #leiste{--lb:#e7e5e0}
 #leiste #repBtn{color:var(--ink);background:var(--card);border:1px solid var(--line)}
 #leiste #repBtn small{color:var(--mute)}
 #leiste #rchev{color:var(--mute)}
+/* wie die Versionsauswahl in Bauzeitenplan, Baukosten und Ausschreibung: eine Zeile, Rahmen in der Akzentfarbe */
+#leiste #repBtn{border:1.5px solid var(--y);border-radius:9px;min-height:36px;max-width:none;min-width:220px;padding:.2rem .45rem .2rem .7rem;gap:.55rem;box-sizing:border-box}
+#leiste #repBtn .t{flex-direction:row;align-items:baseline;gap:.55rem}
+#leiste #repBtn b{color:var(--y);font-size:15px;flex:none}
+#leiste #repBtn small{color:var(--ink);font-size:15px;font-weight:600}
+#leiste #rchev{display:flex;margin-left:auto}#leiste #rchev svg{width:16px;height:16px}
+@media (max-width:760px){#leiste #repBtn{min-width:0;max-width:62vw}}
 #leiste #hdr .hb{background:transparent;color:var(--mute);border:1px solid transparent}
 #leiste #hdr .hb:hover,#leiste #hdr .hb:focus-visible{background:var(--hov);color:var(--ink)}
 @media (min-width:721px){
   #leiste{display:flex;align-items:center;background:var(--lb,#303236);border-bottom:1px solid var(--line);flex:none;position:relative}
   #leiste #hdr{display:contents}
-  #leiste #repBtn{order:1;margin:.35rem .3rem .35rem .6rem;min-height:0;padding:.25rem .7rem}
-  #leiste #repBtn b{font-size:.95rem}
+  #leiste #repBtn{order:1;margin:.35rem .3rem .35rem .6rem}
   #leiste #tabs{order:2;flex:1;min-width:0;border-bottom:0;background:transparent}
   #leiste .htools{order:3;padding-right:.6rem}
   #btq{width:15rem}
@@ -559,8 +565,9 @@ function chrome() {
   $('#chev').innerHTML = ic('chev', 20, 3); $('#rchev').innerHTML = ic('chev', 20, 3);
   const r = p ? curReport() : null;
   $('#repBtn').classList.toggle('hidden', !p);
-  $('#rname').textContent = r ? `Nr. ${r.number}` : 'Kein Bericht';
-  $('#rdate').textContent = r ? fmt(r.date) + (r.time ? ' · ' + r.time : '') : 'Tippen zum Anlegen';
+  $('#rname').textContent = r && r.number != null ? String(r.number) : '';   // wie die Versionsauswahl der anderen Apps: Nummer, Datum, ▾
+  $('#rdate').textContent = r ? fmt(r.date) + (r.time ? ' · ' + r.time : '') : 'Kein Bericht – anlegen';
+  $('#repBtn').title = r ? `Tagesbericht Nr. ${r.number} – anderen wählen` : 'Tagesbericht anlegen';
   $('#i-n').innerHTML = ic('pin', 20) + '<span>Standort</span>'; $('#i-pdf').innerHTML = ic('pdf', 20) + '<span>PDF</span>'; $('#i-fp').innerHTML = ic('folder', 20) + '<span>Ordner</span>'; $('#i-fp').classList.toggle('hidden', !p); $('#i-g').innerHTML = ic('grid', 20, 1.7) + '<span>Mehr</span>';
   $('#i-pdf').classList.toggle('hidden', !rid);
   $('#tabs').innerHTML = TABS.map(([k, l, i]) => `<button class="tab ${k === tab ? 'on' : ''}" data-act="tab" data-t="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ic(i, 20, 2)}<span>${l}</span></button>`).join('');

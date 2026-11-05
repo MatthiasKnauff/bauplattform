@@ -177,6 +177,49 @@
     root.style.setProperty('--y', c); root.style.setProperty('--on', lum(c) > 0.55 ? '#111' : '#fff');
   }
   H.eigeneFarben = eigeneFarben;
+  /* Überall, wo man Dateien hochladen kann, geht auch Ziehen und Ablegen: die Datei landet im nächstgelegenen Datei-Feld
+     (passender Typ, z. B. Fotos → Feld für Bilder). Apps mit eigener Ablage (Fotos an LV-Positionen, Grundrisse …) behandeln
+     das Ereignis selbst – dann greift dies nicht (defaultPrevented). */
+  (function dropUeberall() {
+    let mark = null, hinw = null;
+    const hatDateien = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+    const typen = (e) => [...(e.dataTransfer.items || [])].filter((i) => i.kind === 'file').map((i) => ({ type: i.type || '', name: '' }));
+    const passt = (inp, fs) => {
+      const acc = (inp.accept || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
+      return !acc.length || fs.every((f) => acc.some((a) => (a.endsWith('/*') ? (f.type || '').startsWith(a.slice(0, -1))
+        : a.startsWith('.') ? (!f.name ? !f.type || /octet|xml|sheet|excel|json|pdf/.test(f.type) || a.includes(f.type.split('/')[1] || '#') : f.name.toLowerCase().endsWith(a))
+          : f.type === a) || (f.name && /\.(heic|heif)$/i.test(f.name) && a === 'image/*')));
+    };
+    const sichtbar = (el) => !el.closest('[hidden]:not(input), .hidden:not(input)') || el.closest('label');
+    function ziel(start, fs) {
+      for (let el = start; el && el !== document.documentElement; el = el.parentElement) {
+        const ins = [...el.querySelectorAll('input[type=file]')].filter((i) => !i.disabled && passt(i, fs) && sichtbar(i));
+        if (ins.length) return { inp: ins.find((i) => !i.hasAttribute('capture')) || ins[0], zone: el };
+      }
+      return null;
+    }
+    const weg = () => { if (mark) mark.classList.remove('bph-dropzone'); mark = null; if (hinw) { hinw.remove(); hinw = null; } };
+    window.addEventListener('dragover', (e) => {
+      if (!hatDateien(e) || e.defaultPrevented) return;
+      e.preventDefault();   // sonst öffnet der Browser die Datei und die Seite ist weg
+      const z = ziel(e.target, typen(e));
+      e.dataTransfer.dropEffect = z ? 'copy' : 'none';
+      const zone = z && (z.zone === document.body ? null : z.zone);
+      if (zone !== mark) { weg(); if (zone) { mark = zone; mark.classList.add('bph-dropzone'); } }
+      if (z && !zone && !hinw) { hinw = document.createElement('div'); hinw.className = 'bph-drophinw'; hinw.textContent = 'Loslassen zum Hochladen'; document.body.appendChild(hinw); }
+    });
+    window.addEventListener('dragleave', (e) => { if (!e.relatedTarget) weg(); });
+    window.addEventListener('drop', (e) => {
+      const fs = e.dataTransfer ? [...(e.dataTransfer.files || [])] : [];
+      weg();
+      if (!fs.length || e.defaultPrevented) return;
+      e.preventDefault();
+      const z = ziel(e.target, fs);
+      if (!z) { if (window.toast) window.toast('Hier kann keine Datei abgelegt werden.', true); return; }
+      const dt = new DataTransfer(); (z.inp.multiple ? fs : fs.slice(0, 1)).forEach((f) => dt.items.add(f));
+      z.inp.files = dt.files; z.inp.dispatchEvent(new Event('change', { bubbles: true })); z.inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  })();
   try { new MutationObserver(() => { if (document.documentElement.classList.contains('bph-eigen')) eigeneFarben(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) { /* egal */ }
   async function logout() {
     if (typeof window.flushSave === 'function') { try { await window.flushSave(); } catch { /* weiter */ } }

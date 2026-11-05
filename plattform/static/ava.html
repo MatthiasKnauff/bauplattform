@@ -2167,6 +2167,14 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();
+  const hl = /lv=(\d+)/.exec(location.hash);   // Link aus den To-dos der Startseite: #lv=<id>[&pos=<id>][&tab=rechnungen]
+  if (hl) {
+    try {
+      const lv = await api('api/lv/' + hl[1]), hp = /pos=([^&]+)/.exec(location.hash), ht = /tab=(\w+)/.exec(location.hash);
+      await vqGehe({ lv_id: lv.id, pid: lv.project_id, projekt: lv.projekt || '', pos_id: hp ? decodeURIComponent(hp[1]) : null, art: ht && ht[1] === 'rechnungen' ? 'rechnung' : 'pos', titel: '' });
+    } catch (e) { toast(e.message, true); }
+    history.replaceState(null, '', location.pathname + location.search);
+  }
   if (QU.an) quLaden();
 })().catch((e) => toast(e.message, true));
 addEventListener('beforeunload', () => { if (saveT && L) navigator.sendBeacon && fetch('api/lv/' + L.id, { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rev: L.rev, data: L.data }) }); });

@@ -263,6 +263,19 @@ def plaene():
                 st["pdf"]["versendet"] = gesendet.get(st["pdf"]["pfad"], [])
     for f in sonst:
         f["versendet"] = gesendet.get(f["pfad"], [])
+    try:   # für die To-do-Liste der Startseite („Pläne nicht versendet“): neuester PDF-Stand je Plan
+        neu = []
+        for x in pl:
+            st = next((y for y in x["staende"] if y.get("pdf")), None)
+            if st:
+                mt = st["pdf"].get("mtime")
+                dt = datetime.fromtimestamp(mt).isoformat(timespec="seconds") if isinstance(mt, (int, float)) else str(mt or "")
+                neu.append({"pfad": st["pdf"]["pfad"], "name": " ".join(v for v in (x.get("nr") or x.get("key") or "", x.get("titel") or "") if v).strip() or st["pdf"]["name"],
+                            "index": st.get("index") or "", "datum": dt, "gewerk": x.get("gewerk") or ""})
+        with db.tx() as c:
+            konto._put(c, f"plaene:stand:{pid}", json.dumps({"plaene": neu, "stand": d.get("stand") or ""}), g.user["name"])
+    except Exception:
+        pass
     gewerke = sorted({*gw_plan, *cf["stichworte"].keys(), *cf["kennungen"].values(), *(x["gewerk"] for x in pl if x["gewerk"])} - {""},
                      key=lambda s: (s == "alle Firmen", s.lower()))
     # dazu die Gewerke der Baubeteiligten (Firmen des Projekts, Adressen) und eigene Zuordnungen

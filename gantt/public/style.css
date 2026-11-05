@@ -820,3 +820,6 @@ html[data-theme="dunkel"] .mk{background:#2b2c2e;border-color:#3b3d41;border-lef
 .row.gs-hit .c-name{box-shadow:inset 3px 0 0 #f5b400;background:color-mix(in srgb,#ffd200 22%,transparent)}
 @media (max-width:900px){.gs-box input{width:140px}}
 html.mobil .gs-box{display:none}
+
+/* Plan-Auswahl oben entfällt: es gilt das Projekt in der Kopfleiste (andere Pläne über Datei → Öffnen) */
+#projCard[hidden]{display:none!important}

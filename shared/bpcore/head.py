@@ -27,7 +27,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, db, konto, posteingang, skizze, sso, versionen, vorlagen
+from . import ai, benachrichtigung, briefbogen, db, konto, posteingang, skizze, sso, todo, versionen, vorlagen
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -654,6 +654,116 @@ def blueprint(get_user=None):
             users = [{"id": r["id"], "name": r["name"], "email": r["email"] or ""} for r in c.execute("SELECT id, name, email FROM users ORDER BY name").fetchall()]
             ok = posteingang.m365_ok(c)
         return jsonify(**d, benutzer=users, m365=ok)
+
+    # ------------------------------------------------------------ To-do-Liste der Startseite
+    @bp.get("/api/bp/todo")
+    def todo_liste():
+        """Automatische Aufgaben (aus den Daten der Apps) + manuelle Aufgaben (angelegt oder beteiligt)."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            auto, fehler = todo.automatisch(c, u)
+            man = todo.manuell(c, u)
+        return jsonify(auto=auto, manuell=man, fehler=fehler, heute=datetime.now().date().isoformat())
+
+    def _todo_mail(c, u, x, neu_ids):
+        """Beteiligte (nicht ich selbst) über eine neue oder ihnen neu zugewiesene Aufgabe informieren."""
+        from . import mail as M, platform as PF
+        cf = M.conf(c)
+        if not M.configured(cf):
+            return "Mailversand ist nicht eingerichtet – Beteiligte wurden nicht benachrichtigt."
+        pr = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone() if x["project_id"] else None
+        wer, fehl = skizze.name_von(u), []
+        for r in c.execute("SELECT * FROM users WHERE active=1").fetchall():
+            if r["id"] not in neu_ids or r["id"] == u["id"] or not (r["email"] or "").strip():
+                continue
+            txt = (f"Hallo {skizze.name_von(r)},\n\n{wer} hat dir eine Aufgabe zugewiesen:\n\n    {x['titel']}\n\n"
+                   + (f"Projekt: {pr['name']}\n" if pr else "") + (f"Fällig: {datetime.fromisoformat(x['faellig']).strftime('%d.%m.%Y')}\n" if x["faellig"] else "")
+                   + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {PF.link('portal', '', cf)}\n" if PF.link("portal", "", cf) else ""))
+            try:
+                M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None)
+            except Exception as e:
+                fehl.append(f"{skizze.name_von(r)}: {e}")
+        return "; ".join(fehl)
+
+    def _todo_body(b, alt=None):
+        alt = alt or {}
+        f = (b.get("faellig") if "faellig" in b else alt.get("faellig")) or ""
+        return {"titel": str(b.get("titel", alt.get("titel")) or "").strip()[:300], "notiz": str(b.get("notiz", alt.get("notiz")) or "")[:4000],
+                "project_id": b.get("pid") if "pid" in b else alt.get("project_id"),
+                "faellig": f if len(f) == 10 and f[4] == "-" else "", "prio": 1 if b.get("prio", alt.get("prio")) else 0,
+                "personen": [int(i) for i in (b.get("personen") if "personen" in b else todo._ids(alt.get("personen"))) or [] if str(i).isdigit()][:30],
+                "mail": 1 if b.get("mail", alt.get("mail")) else 0}
+
+    @bp.post("/api/bp/todo")
+    def todo_neu():
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        x = _todo_body(request.get_json(silent=True) or {})
+        if not x["titel"]:
+            return jsonify(error="Bitte einen Titel eingeben."), 400
+        jetzt = datetime.now().isoformat(timespec="seconds")
+        with db.tx() as c:
+            r = c.execute("""INSERT INTO todo(titel, notiz, project_id, faellig, prio, personen, mail, status, erstellt, erstellt_von, erstellt_name, geaendert)
+                             VALUES(?,?,?,?,?,?,?,'offen',?,?,?,?) RETURNING id""",
+                          (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, uid, skizze.name_von(u), jetzt)).fetchone()
+            hinweis = _todo_mail(c, u, x, set(x["personen"])) if x["mail"] and x["personen"] else ""
+            row = todo.darf(c, u, r["id"])
+            return jsonify(aufgabe=todo._zeile(row, todo.benutzer(c)), hinweis=hinweis)
+
+    @bp.route("/api/bp/todo/<int:tid>", methods=["PUT", "DELETE"])
+    def todo_aendern(tid):
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            alt = todo.darf(c, u, tid)
+            if not alt:
+                return jsonify(error="Aufgabe nicht gefunden."), 404
+            if request.method == "DELETE":
+                if alt["erstellt_von"] != uid and not u["is_admin"]:
+                    return jsonify(error="Löschen kann nur, wer die Aufgabe angelegt hat."), 403
+                c.execute("DELETE FROM todo WHERE id=?", (tid,))
+                return jsonify(ok=True)
+            b = request.get_json(silent=True) or {}
+            jetzt = datetime.now().isoformat(timespec="seconds")
+            if "erledigt" in b:
+                c.execute("UPDATE todo SET status=?, erledigt=?, erledigt_name=?, geaendert=? WHERE id=?",
+                          ("erledigt" if b["erledigt"] else "offen", jetzt if b["erledigt"] else "", skizze.name_von(u) if b["erledigt"] else "", jetzt, tid))
+            x = _todo_body(b, dict(alt))
+            if any(k in b for k in ("titel", "notiz", "pid", "faellig", "prio", "personen", "mail")):
+                if not x["titel"]:
+                    return jsonify(error="Bitte einen Titel eingeben."), 400
+                c.execute("UPDATE todo SET titel=?, notiz=?, project_id=?, faellig=?, prio=?, personen=?, mail=?, geaendert=? WHERE id=?",
+                          (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, tid))
+            neu = set(x["personen"]) - set(todo._ids(alt["personen"]))
+            hinweis = _todo_mail(c, u, x, neu) if x["mail"] and neu else ""
+            return jsonify(aufgabe=todo._zeile(todo.darf(c, u, tid) or alt, todo.benutzer(c)), hinweis=hinweis)
+
+    @bp.post("/api/bp/todo-zustand")
+    def todo_zustand():
+        """Automatische Aufgabe zurückstellen (bis), ausblenden (aus) oder wieder zeigen."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            todo.zustand_setzen(c, uid, str(b.get("key") or "")[:200], bis=(b.get("bis") or None), aus=bool(b.get("aus")), wer=u["name"])
+        return jsonify(ok=True)
+
+    @bp.route("/api/bp/todo-regeln", methods=["GET", "PUT"])
+    def todo_regeln():
+        """Einstellungen der automatischen Aufgaben – gelten für alle Benutzer (wer sie sieht, steht je Regel)."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            R = todo.regeln_setzen(c, request.get_json(silent=True) or {}, u["name"]) if request.method == "PUT" else todo.regeln(c)
+            P = [{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM projects WHERE archived=0 ORDER BY name").fetchall()]
+            U = [{"id": r["id"], "name": skizze.name_von(r)} for r in c.execute("SELECT * FROM users WHERE active=1 AND lower(name)<>'admin' ORDER BY name").fetchall()]
+        return jsonify(regeln=list(R.values()), projekte=P, benutzer=U, ich=uid)
 
     @bp.route("/api/bp/kacheln", methods=["GET", "PUT"])
     def kacheln_api():

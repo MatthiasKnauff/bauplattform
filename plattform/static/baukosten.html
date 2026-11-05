@@ -318,7 +318,7 @@ function vleiste() {
   if (!window.BPHead || !BPHead.versionsleiste) return;
   const ab = $('#ansBtn'); if (ab) ab.style.display = LIST.length < 2 ? 'none' : '';
   const el = BPHead.versionsleiste({ vor: $('main.wrap'), aktuell: B && B.id, rechts: [$('#pdfBtn'), ab],
-    liste: versionen().map((x) => ({ id: x.id, name: x.name, sub: STUFE_N(x.stufe) + (x.total ? ' · ' + eur(x.total) : ''), datum: dkurz(x.updated), wer: x.updated_by, archiviert: x.archived })),
+    liste: versionen().map((x) => ({ id: x.id, name: x.name, datum: dkurz(x.updated), wer: x.updated_by, archiviert: x.archived })),
     onWahl: async (id) => { clearTimeout(saveT); if (B) await saveNow().catch(() => {}); await openBk(+id); },
     onNeu: neueVersion, onUmbenennen: umbenennen, onVerlauf: verlauf, onVerwalten: verwalten });
   el.style.display = B ? '' : 'none';

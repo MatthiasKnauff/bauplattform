@@ -2701,7 +2701,7 @@ function vleiste() {
   const L = !P ? [] : (bt ? projects.filter((p) => p.bt_id === bt) : projects.filter((p) => p.id === P.id)).slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id));
   const when = (u) => { if (!u) return ''; const d = new Date(u); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`; };
   const el = BPHead.versionsleiste({ vor: $('#tabs'), aktuell: P && P.id, rechts: vlKnoepfe,
-    liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, sub: `${p.n || 0} Leistungen`, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
+    liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
     onWahl: async (id) => { await flushSave(); if (await openProject(String(id)) !== false) refreshProjectList(); },
     onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() });
   el.style.display = P ? '' : 'none';

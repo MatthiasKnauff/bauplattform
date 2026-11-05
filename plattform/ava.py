@@ -120,6 +120,114 @@ def _schnipsel(text, worte, n=70):
     return ("… " if a else "") + t[a:a + n * 2] + (" …" if a + n * 2 < len(t) else "")
 
 
+# ---------------------------------------------------------------- Positionskatalog (z. B. sirAdos)
+def _kat_info(c):
+    from bpcore import konto
+    return _j(konto._get(c, "ava:katalog"), None)
+
+
+def _kat_pos(x):
+    p = {"id": f"k{x['id']}", "typ": "pos", "oz": x["oz"], "kurz": x["kurz"], "lang": x["lang"], "menge": 0, "einheit": x["einheit"],
+         "art": "T" if x["art"] == "T" else "N", "kg": x["kg"], "ep_s": round(x["ep"], 2) if x["ep"] else None}
+    if x["ep_von"] or x["ep_bis"]:
+        p["spanne"] = [round(x["ep_von"] or 0, 2), round(x["ep_bis"] or 0, 2)]
+    return p
+
+
+def _kat_lv(name, nr, info, zeilen):
+    """Katalogausschnitt im Format eines LV (für die Kopierquelle)."""
+    items = []
+    for x in zeilen:
+        if x["typ"] == "titel":
+            items.append({"id": f"k{x['id']}", "typ": "titel", "lvl": max(1, min(4, x["ebene"])), "oz": x["oz"], "kurz": x["kurz"]})
+        elif x["typ"] == "pos":
+            items.append(_kat_pos(x))
+    q = (info or {}).get("quelle") or "Katalog"
+    st = (info or {}).get("stand") or ""
+    return {"id": "kat:" + nr, "nr": nr, "name": name, "projekt": f"Positionskatalog {q}" + (f", Preisstand {st[5:7]}/{st[:4]}" if len(st) >= 7 else ""),
+            "katalog": True, "data": {"items": items}, "vergabe": {}}
+
+
+@app.route("/api/katalog", methods=["GET", "POST", "DELETE"])
+def katalog_api():
+    """GET: Infos und Gewerke. POST (Datei „datei“, nur Verwaltung): Katalog einlesen – ersetzt den bisherigen. DELETE: entfernen."""
+    if request.method in ("POST", "DELETE") and not g.user["is_admin"]:
+        return jsonify(error="Den Positionskatalog kann nur die Verwaltung einlesen."), 403
+    if request.method == "POST":
+        f = request.files.get("datei")
+        if not f:
+            return jsonify(error="Keine Datei"), 400
+        import tempfile
+        import katalog
+        with tempfile.NamedTemporaryFile(suffix=".ava") as tmp:
+            f.save(tmp.name)
+            try:
+                quelle, stand, Z = katalog.lesen(tmp.name, f.filename or "")
+            except Exception as e:
+                return jsonify(error=f"Die Datei ließ sich nicht als Positionskatalog lesen: {str(e)[:200]}"), 400
+        gew, zeilen = "", []
+        for k, x in enumerate(Z):
+            if x["typ"] == "gewerk":
+                gew = x["oz"]
+            if not gew:   # Hinweise vor dem ersten Gewerk
+                continue
+            zeilen.append((k, gew, x["typ"], int(x.get("ebene") or 0), x["oz"][:40], x["kurz"][:500], x.get("lang", "")[:20000], x.get("art", "N"),
+                           x.get("einheit", "")[:12], x.get("kg", ""), x.get("ep_von"), x.get("ep"), x.get("ep_bis")))
+        info = {"quelle": quelle, "stand": stand, "datei": _s(f.filename, 200), "importiert": _now(), "von": g.user["name"],
+                "n_pos": sum(1 for z in zeilen if z[2] == "pos" and z[7] != "T"), "n_gewerke": sum(1 for z in zeilen if z[2] == "gewerk")}
+        with db.tx() as c:
+            from bpcore import konto
+            c.execute("DELETE FROM ava_katalog")
+            c.copy_rows("ava_katalog", ("nr", "gewerk", "typ", "ebene", "oz", "kurz", "lang", "art", "einheit", "kg", "ep_von", "ep", "ep_bis"), zeilen)
+            konto._put(c, "ava:katalog", json.dumps(info, ensure_ascii=False), g.user["name"])
+        C.audit(g.user["name"], "ava", "Positionskatalog eingelesen", f"{info['quelle']} · {info['n_pos']} Positionen")
+    with db.tx() as c:
+        if request.method == "DELETE":
+            from bpcore import konto
+            c.execute("DELETE FROM ava_katalog")
+            c.execute("DELETE FROM bp_store WHERE key='ava:katalog'")
+            return jsonify(ok=True)
+        info = _kat_info(c)
+        gw = c.execute("""SELECT g.oz, g.kurz, (SELECT COUNT(*) FROM ava_katalog p WHERE p.gewerk=g.gewerk AND p.typ='pos' AND p.art<>'T') AS n
+                          FROM ava_katalog g WHERE g.typ='gewerk' ORDER BY g.nr""").fetchall()
+    return jsonify(info=info, gewerke=[{"id": "kat:" + x["oz"], "nr": x["oz"], "name": x["kurz"], "n_pos": x["n"], "gewerk": "", "status": "entwurf",
+                                        "archived": False} for x in gw])
+
+
+@app.get("/api/katalog/gewerk/<oz>")
+def katalog_gewerk(oz):
+    with db.tx() as c:
+        g_ = c.execute("SELECT * FROM ava_katalog WHERE typ='gewerk' AND gewerk=?", (oz,)).fetchone()
+        if not g_:
+            return jsonify(error="Gewerk nicht im Katalog"), 404
+        zeilen = c.execute("SELECT * FROM ava_katalog WHERE gewerk=? AND typ<>'gewerk' ORDER BY nr", (oz,)).fetchall()
+        return jsonify(_kat_lv(g_["kurz"], oz, _kat_info(c), zeilen))
+
+
+@app.get("/api/katalog/suche")
+def katalog_suche():
+    """Volltext im Katalog (Kurz- und Langtext, OZ) – alle Wörter müssen vorkommen; Ergebnis als LV mit den Gewerken als Titel."""
+    q = (request.args.get("q") or "").strip()
+    worte = [w for w in _fold(q).split() if w]
+    with db.tx() as c:
+        info = _kat_info(c)
+        if not worte:
+            return jsonify(_kat_lv("Suche", "suche", info, []))
+        gn = {x["gewerk"]: x["kurz"] for x in c.execute("SELECT gewerk, kurz FROM ava_katalog WHERE typ='gewerk'").fetchall()}
+        cond = " AND ".join(["lower(kurz || ' ' || lang || ' ' || oz) LIKE ?"] * len(worte))
+        roh = c.execute(f"SELECT * FROM ava_katalog WHERE typ='pos' AND {cond} ORDER BY nr LIMIT 2000", ["%" + w.lower() + "%" for w in q.split()]).fetchall()
+        treffer = [x for x in roh if all(w in _fold(f"{x['kurz']} {x['lang']} {x['oz']}") for w in worte)][:300]
+        zeilen, akt = [], None
+        for x in treffer:
+            if x["gewerk"] != akt:
+                akt = x["gewerk"]
+                zeilen.append({"id": f"g{akt}", "typ": "titel", "ebene": 1, "oz": akt, "kurz": gn.get(akt, "")})
+            zeilen.append(x)
+        out = _kat_lv(f"Suche „{q}“", "suche", info, zeilen)
+        out["mehr"] = len(roh) >= 2000 or len(treffer) >= 300
+        return jsonify(out)
+
+
 # Versionen: je Projekt gilt die aktive Version (die zuletzt geöffnete) – LVs anderer Versionen bleiben unberührt
 AKTIV = "(version_id IS NULL OR version_id IN (SELECT id FROM ava_version WHERE aktiv=1))"
 

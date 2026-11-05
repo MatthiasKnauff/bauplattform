@@ -409,7 +409,7 @@ async function vleiste(neu) {
   const akt = VERS.find((v) => v.aktiv) || VERS[0];
   const dk = (t) => (t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
   const el = BPHead.versionsleiste({ vor: $('main.ava'), aktuell: akt && akt.id,
-    liste: VERS.map((v) => ({ id: v.id, name: v.name, sub: `${v.n_lv} ${v.n_lv === 1 ? 'LV' : 'LVs'}`, datum: dk(v.created), wer: v.updated_by, archiviert: v.archived })),
+    liste: VERS.map((v) => ({ id: v.id, name: v.name, datum: dk(v.created), wer: v.updated_by, archiviert: v.archived })),
     onWahl: async (id) => { await flush(); await api('api/versionen/' + id, 'PUT', { aktiv: true }); L = null; await loadList(); toast('Version gewechselt – gilt für alle, die in diesem Projekt arbeiten.'); },
     onNeu: () => { if (!akt) return; modalBox(`<h3>Neue Version</h3><p class="hint" style="margin:0 0 .7rem">Kopie von „${esc(akt.name)}“ mit allen Leistungsverzeichnissen, Angeboten, Aufmaß, Rechnungen und Fotos. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</p>
         <div class="fm"><label for="nvName">Name der Version</label><input id="nvName" maxlength="120" placeholder="z. B. Bauherrenwünsche eingearbeitet"></div>
@@ -1456,11 +1456,34 @@ document.addEventListener('keydown', (e) => {
 /* ---------- Kopierquelle: LV aus einem anderen Projekt daneben (schreibgeschützt), Positionen herüberkopieren ---------- */
 let QU = { an: LS.get('qu.an', false), pid: LS.get('qu.pid', null), lv: LS.get('qu.lv', null), list: [], L: null, sel: new Set(), mengen: LS.get('qu.mengen', true), preise: LS.get('qu.preise', true) }, LASTI = null;
 document.addEventListener('focusin', (e) => { const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) LASTI = +tr.dataset.i; });
+let KAT = null;
+async function katalogEinstellungen(host) {
+  const K = await api('api/katalog').catch((e) => ({ fehler: e.message }));
+  const I = K.info, admin = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
+  const st = I && I.stand ? `${I.stand.slice(5, 7)}/${I.stand.slice(0, 4)}` : '';
+  host.innerHTML = `<p class="bph-mu">Texte für die Leistungsverzeichnisse: Gewerke, Titel und Positionen mit Kurz- und Langtext, Einheit, Kostengruppe und Preisspanne. Im LV unter <b>Kopierquelle</b> → „Positionskatalog“ durchsuchen und Positionen herüberziehen; der mittlere Preis wird zur Schätzung.</p>
+    ${I ? `<div style="border:1px solid var(--line);border-radius:10px;padding:.7rem .9rem;margin:.6rem 0"><b>${esc(I.quelle)}</b>${st ? ` · Preisstand ${st}` : ''}<br><span class="bph-mu" style="margin:0">${I.n_gewerke} Gewerke, ${I.n_pos.toLocaleString('de-DE')} Positionen · eingelesen ${new Date(I.importiert).toLocaleDateString('de-DE')} von ${esc(I.von)}${I.datei ? ' · ' + esc(I.datei) : ''}</span></div>` : '<p><b>Noch kein Katalog eingelesen.</b></p>'}
+    ${admin ? `<div class="bph-row" style="gap:.5rem;flex-wrap:wrap"><label class="bph-btn pri" style="cursor:pointer">${I ? 'Neuen Katalog einlesen …' : 'Katalog einlesen …'}<input type="file" id="katDatei" accept=".ava,.mdb,.accdb" hidden></label>${I ? '<button type="button" class="bph-btn" id="katWeg">Katalog entfernen</button>' : ''}<span class="bph-mu" id="katMsg" style="margin:0"></span></div>
+      <p class="bph-mu">Katalogdatei, z. B. sirAdos-Positionen (*.ava). Sie bleibt nur in der Datenbank des Büros. Einlesen dauert bei großen Katalogen etwa eine halbe Minute.</p>` : '<p class="bph-mu">Einlesen kann die Verwaltung.</p>'}`;
+  const inp = host.querySelector('#katDatei');
+  if (inp) inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return; const m = host.querySelector('#katMsg'); m.textContent = `Lese „${f.name}“ ein … (${Math.round(f.size / 1048576)} MB)`;
+    const fd = new FormData(); fd.append('datei', f);
+    try { const r = await fetch('api/katalog', { method: 'POST', body: fd, credentials: 'same-origin' }); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); KAT = j; toast(`Katalog eingelesen: ${j.info.n_pos.toLocaleString('de-DE')} Positionen.`); katalogEinstellungen(host); }
+    catch (e) { m.textContent = e.message; }
+  };
+  const weg = host.querySelector('#katWeg');
+  if (weg) weg.onclick = async () => { if (!confirm('Positionskatalog entfernen? Bereits übernommene Positionen in den LVs bleiben.')) return; await api('api/katalog', 'DELETE').catch((e) => toast(e.message, true)); KAT = null; katalogEinstellungen(host); };
+}   // Positionskatalog (z. B. sirAdos): {info, gewerke} – in der Kopierquelle wie ein Projekt mit einem „LV“ je Gewerk
+const quLvLaden = (v) => (String(v).startsWith('kat:') ? api(String(v) === 'kat:suche' ? 'api/katalog/suche?q=' + encodeURIComponent(QU.q || '') : 'api/katalog/gewerk/' + encodeURIComponent(String(v).slice(4))) : api('api/lv/' + v)).catch(() => null);
 async function quLaden() {
+  if (!KAT) KAT = await api('api/katalog').catch(() => ({ info: null, gewerke: [] }));
+  if (QU.pid === 'kat' && !KAT.info) QU.pid = null;
   if (!QU.pid) QU.pid = (PROJ.find((p) => p.id !== pid) || PROJ[0] || {}).id || null;
-  QU.list = QU.pid ? await api('api/lv?project_id=' + QU.pid).catch(() => []) : [];
-  if (!QU.list.some((x) => x.id === QU.lv)) QU.lv = (QU.list[0] || {}).id || null;
-  QU.L = QU.lv ? await api('api/lv/' + QU.lv).catch(() => null) : null;
+  QU.list = QU.pid === 'kat' ? KAT.gewerke : QU.pid ? await api('api/lv?project_id=' + QU.pid).catch(() => []) : [];
+  if (!QU.list.some((x) => x.id === QU.lv) && QU.lv !== 'kat:suche') QU.lv = (QU.list[0] || {}).id || null;
+  if (QU.pid !== 'kat' && QU.lv === 'kat:suche') QU.lv = (QU.list[0] || {}).id || null;
+  QU.L = QU.lv ? await quLvLaden(QU.lv) : null;
   QU.sel = new Set(); LS.set('qu.pid', QU.pid); LS.set('qu.lv', QU.lv); quZeigen();
 }
 const quItems = () => (QU.L && QU.L.data && QU.L.data.items) || [];
@@ -1473,17 +1496,19 @@ function quZeigen() {
   const I = quItems();
   const rows = I.map((x, i) => x.typ === 'titel'
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
-    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right">${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
+    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
   const lvo = QU.list.find((x) => x.id === QU.lv);
   box.innerHTML = `<div class="qu-h"><div class="t">Kopierquelle <span class="lock" title="Hier lässt sich nichts ändern">🔒 schreibgeschützt</span><span style="flex:1"></span><button class="ib" data-qu="zu" title="Kopierquelle schließen">✕</button></div>
-      <div class="rr"><select id="quProj" aria-label="Projekt der Kopierquelle">${['Projekte', 'Archiv'].map((g) => { const ps = PROJ.filter((p) => !!p.archived === (g === 'Archiv')); return ps.length ? `<optgroup label="${g}">${ps.map((p) => `<option value="${p.id}"${p.id === QU.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
+      <div class="rr"><select id="quProj" aria-label="Projekt der Kopierquelle">${KAT && KAT.info ? `<optgroup label="Katalog"><option value="kat"${QU.pid === 'kat' ? ' selected' : ''}>Positionskatalog ${esc(KAT.info.quelle || '')}</option></optgroup>` : ''}${['Projekte', 'Archiv'].map((g) => { const ps = PROJ.filter((p) => !!p.archived === (g === 'Archiv')); return ps.length ? `<optgroup label="${g}">${ps.map((p) => `<option value="${p.id}"${p.id === QU.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>
         <button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button></div>
+      ${QU.pid === 'kat' ? `<div class="rr"><input type="search" id="quQ" value="${esc(QU.q || '')}" placeholder="Im ganzen Katalog suchen – z. B. Kalksandstein 17,5" autocomplete="off" style="flex:1"></div>` : ''}
       <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen mitnehmen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label></div>
       <div class="qu-o"><span class="hint">${QU.sel.size ? `${quAuswahl().length} Zeilen gewählt` : 'Zeilen anhaken oder ins LV links ziehen'}</span><span style="flex:1"></span>
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
     <div class="qu-l">${QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
 `;
-  pickButton($('#quSel'), lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
+  pickButton($('#quSel'), QU.lv === 'kat:suche' ? { title: QU.L ? QU.L.name : 'Suche', sub: QU.L ? `${quItems().filter((x) => x.typ === 'pos').length}${QU.L.mehr ? '+' : ''} Treffer` : '' }
+    : lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: QU.pid === 'kat' ? `${lvo.n_pos} Positionen` : [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
 }
 function quAuswahl(nur) {   // gewählte Zeilen in LV-Reihenfolge; ein gewählter Titel bringt seinen Inhalt mit
   const I = quItems(), out = [], wahl = nur || QU.sel;
@@ -1499,7 +1524,7 @@ function quEinfuegen(liste, nach) {
   const VP = (QU.L.vergabe && QU.L.vergabe.preise) || {};
   const neu = liste.map((x) => {
     const y = JSON.parse(JSON.stringify(x)); y.id = uid(); delete y.nt; delete y.nt_status; delete y.nt_grund;
-    if (y.typ === 'pos') { if (!QU.mengen) y.menge = 0; const ep = VP[x.id] ?? x.ep_s; y.ep_s = QU.preise && ep != null ? ep : null; y.quelle = `aus LV ${QU.L.nr} ${QU.L.name} (${QU.L.projekt || ''}), Pos. ${x.oz || ''}`.slice(0, 200); }
+    if (y.typ === 'pos') { if (!QU.mengen) y.menge = 0; const ep = VP[x.id] ?? x.ep_s; y.ep_s = QU.preise && ep != null ? ep : null; y.quelle = (QU.L.katalog ? `${QU.L.projekt}, Pos. ${x.oz || ''}${x.spanne ? ` (von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €)` : ''}` : `aus LV ${QU.L.nr} ${QU.L.name} (${QU.L.projekt || ''}), Pos. ${x.oz || ''}`).slice(0, 200); delete y.spanne; }
     return y;
   });
   const I = items(), at = nach != null && nach >= 0 && nach < I.length ? nach + 1 : I.length;
@@ -1518,7 +1543,7 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('#quSel')) {
     pickMenu($('#quSel'), { search: QU.list.length > 6 ? 'LV suchen …' : '', empty: 'Kein LV in diesem Projekt.',
       items: QU.list.map((x) => ({ group: x.archived ? 'Archiv' : 'Leistungsverzeichnisse', title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
-      onPick: async (v) => { QU.lv = v; QU.L = await api('api/lv/' + v).catch(() => null); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
+      onPick: async (v) => { QU.lv = v; QU.L = await quLvLaden(v); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
     return;
   }
   const cbx = e.target.closest('[data-qs]');
@@ -1526,8 +1551,19 @@ document.addEventListener('click', (e) => {
   const tr = e.target.closest('tr[data-qi]');
   if (tr && !e.target.closest('input')) { const x = quItems()[+tr.dataset.qi]; if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quZeigen(); }
 });
+let quQT = 0;
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'quQ') return;
+  QU.q = e.target.value; clearTimeout(quQT);
+  quQT = setTimeout(async () => {
+    const q = QU.q.trim();
+    if (q.length < 3) { if (QU.lv === 'kat:suche') { QU.lv = (QU.list[0] || {}).id || null; QU.L = QU.lv ? await quLvLaden(QU.lv) : null; QU.sel = new Set(); quZeigen(); $('#quQ').focus(); } return; }
+    QU.lv = 'kat:suche'; QU.L = await quLvLaden('kat:suche'); QU.sel = new Set(); quZeigen();
+    const i = $('#quQ'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+  }, 350);
+});
 document.addEventListener('change', async (e) => {
-  if (e.target.id === 'quProj') { QU.pid = +e.target.value; QU.lv = null; await quLaden(); }
+  if (e.target.id === 'quProj') { QU.pid = e.target.value === 'kat' ? 'kat' : +e.target.value; QU.lv = null; await quLaden(); }
   else if (e.target.id === 'quM') { QU.mengen = e.target.checked; LS.set('qu.mengen', QU.mengen); }
   else if (e.target.id === 'quP') { QU.preise = e.target.checked; LS.set('qu.preise', QU.preise); }
 });
@@ -2192,6 +2228,7 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   const me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform');
   await header('Ausschreibung & Abrechnung', me, conf);
+  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Positionskatalog', render: (h) => katalogEinstellungen(h) }]);
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();

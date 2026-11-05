@@ -1,0 +1,6 @@
+access_parser – https://github.com/claroty/access_parser (Commit 7b733913), Apache License 2.0 (siehe LICENSE).
+Liest Microsoft-Access-Dateien (*.mdb, *.accdb, z. B. sirAdos-Positionskataloge *.ava) ohne Access/ODBC.
+Änderungen für die Bauplattform:
+- tabulate nur noch bei print_database() importiert (sonst nicht nötig)
+- Jet3 (Access 97): Offsets der Spalten variabler Länge wie mdbtools (mdb_crack_row3) berechnet;
+  die ursprüngliche Sprungtabellen-Logik lieferte bei langen Zeilen leere Texte (z. B. Titel und Gewerke im sirAdos-Katalog).

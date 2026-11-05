@@ -86,6 +86,13 @@ class Con:
         cur.execute(_sql(sql, bool(params)), tuple(params) if params else None)
         return Cur(cur)
 
+    def copy_rows(self, table, cols, rows):
+        """Viele Zeilen auf einmal (COPY – um ein Vielfaches schneller als einzelne INSERTs)."""
+        with self._c.cursor() as cur:
+            with cur.copy(f"COPY {table} ({', '.join(cols)}) FROM STDIN") as cp:
+                for r in rows:
+                    cp.write_row(tuple(r))
+
     @contextmanager
     def savepoint(self):
         self._c.execute("SAVEPOINT sp")

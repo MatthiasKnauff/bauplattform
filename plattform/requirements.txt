@@ -8,3 +8,4 @@ pdfplumber>=0.11,<0.12
 pypdf>=4.3,<7
 asn1crypto>=1.5,<2
 cryptography>=42
+construct>=2.10,<3

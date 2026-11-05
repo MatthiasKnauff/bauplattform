@@ -33,6 +33,8 @@
 .pm .z{color:var(--mute);font-size:.8rem;white-space:nowrap;text-align:right}
 .pm .z .ib2{border:0;background:none;cursor:pointer;font-size:1rem;padding:.15rem .2rem;opacity:.55}.pm .z .ib2:hover{opacity:1}
 .vs .vst{flex:1;min-width:12rem;font:inherit;font-weight:600}
+.pm .z .pf{display:inline-block;max-width:14rem;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+@media (max-width:640px){.pm .z .pf{max-width:7rem}}
 .pm .z .app{font-size:.78rem;text-decoration:none}
 .pm a.s{color:var(--ink);text-decoration:none}.pm a.s:hover{text-decoration:underline}
 .art{display:inline-block;font-size:.72rem;border:1px solid var(--line);border-radius:999px;padding:0 .45rem;margin-right:.3rem;color:var(--mute)}
@@ -83,8 +85,8 @@ function postZeigen() {
   const G = Object.values(grp).sort((a, b) => b.mails.filter((m) => WICHTIG.has(m.art)).length - a.mails.filter((m) => WICHTIG.has(m.art)).length || b.mails.length - a.mails.length);
   const zeile = (m) => `<div class="pm"><span class="ic2" title="${esc(m.art)}">${ARTIC[m.art] || '✉️'}</span>
       <span class="t">${m.link ? `<a class="s" href="${esc(m.link)}" target="bp-outlook" title="In Outlook öffnen (immer dieselbe Registerkarte)">` : '<span class="s">'}<span class="art${WICHTIG.has(m.art) ? ' w' : ''}">${esc(m.art)}</span><b>${esc(m.von_name || m.von)}</b> – ${esc(m.betreff || '(ohne Betreff)')}${m.link ? '</a>' : '</span>'}
-        <span class="v">${esc(m.vorschau || '')}${m.anhaenge && m.anhaenge.length ? ' · 📎 ' + esc(m.anhaenge.join(', ')) : ''}</span><span class="g">${esc(m.grund || '')}${m.quelle ? ' · 📥 ' + esc(m.quelle) : ''}</span></span>
-      <span class="z">${esc(zeitTxt(m.zeit))}${m.vorschlag ? '' : `<br><button class="ib2" data-post="erinnern" data-mid="${esc(m.id)}" title="Erinnerung zu dieser Mail anlegen">⏰</button>`}${m.link && HANDY ? '<br><a class="app" href="ms-outlook://" title="Outlook-App öffnen">📱 App</a>' : ''}</span>
+        <span class="v">${esc(m.vorschau || '')}${m.anhaenge && m.anhaenge.length ? ' · 📎 ' + esc(m.anhaenge.join(', ')) : ''}</span><span class="g">${esc(m.grund || '')}</span></span>
+      <span class="z">${m.quelle ? `<span class="pf" title="Postfach: ${esc(m.quelle)}">📥 ${esc(m.quelle)}</span> · ` : ''}${esc(zeitTxt(m.zeit))}${m.vorschlag ? '' : `<br><button class="ib2" data-post="erinnern" data-mid="${esc(m.id)}" title="Erinnerung zu dieser Mail anlegen">⏰</button>`}${m.link && HANDY ? '<br><a class="app" href="ms-outlook://" title="Outlook-App öffnen">📱 App</a>' : ''}</span>
       ${m.vorschlag ? `<div class="vs" data-vs="${esc(m.id)}">⏰ <span>Erinnerung:</span><input class="vst" value="${esc(m.vorschlag.titel)}" aria-label="Text der Erinnerung"><span>am</span><input type="date" value="${esc(m.vorschlag.termin)}" aria-label="Datum der Erinnerung"><button class="btn sm pri" data-post="anlegen">Anlegen</button><button class="btn sm" data-post="nein" title="Vorschlag verwerfen">✕</button></div>` : ''}</div>`;
   const body = G.length ? G.map((g) => { const w = g.mails.filter((m) => WICHTIG.has(m.art)).length, zeig = POSTALLE ? g.mails : g.mails.slice(0, 4);
     return `<div class="pg"><div class="pg-h"><b>${esc(g.name)}</b><small>${g.mails.length} Mail${g.mails.length > 1 ? 's' : ''}${w ? ` · ${w} wichtig` : ''}</small></div>${zeig.map(zeile).join('')}${zeig.length < g.mails.length ? `<button class="btn sm" data-post="alle" style="margin-top:.3rem">+ ${g.mails.length - zeig.length} weitere</button>` : ''}</div>`; }).join('')

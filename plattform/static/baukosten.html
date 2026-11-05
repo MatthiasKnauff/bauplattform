@@ -299,7 +299,7 @@ async function loadList(keep) {
     const cur = LIST.find((x) => x.id === +localStorage.getItem('bk.cur'));
     const fit = cur && cur.project_id === gp ? cur : LIST.filter((x) => x.project_id === gp && !x.archived).concat(LIST.filter((x) => x.project_id === gp))[0];
     if (fit) want = fit.id;
-    else BPHead.hinweisLeiste(`Für ${BPHead.projekt.name} gibt es noch keine Kostenermittlung.`, 'Anlegen', () => newDialog());
+    else { B = null; selBtn(); head(); render(); return; }   // kein fremdes Projekt zeigen – anbieten, eine anzulegen
   }
   want = want || +localStorage.getItem('bk.cur') || (LIST[0] && LIST[0].id);
   if (LIST.some((x) => x.id === want)) await openBk(want, !gp); else { B = null; selBtn(); render(); }
@@ -314,17 +314,31 @@ async function openBk(id, merken = true) {   // nicht „open“ nennen: das üb
 }
 const STUFE_N = (k) => (STUFEN.find((x) => x[0] === k) || [k, ''])[1];
 const bkSub = (x) => [STUFE_N(x.stufe), x.project ? [x.project.client, x.project.address].filter(Boolean).join(' · ') : '', x.archived ? 'archiviert' : ''].filter(Boolean).join(' · ');
-function selBtn() {   // Auswahlknopf wie im Bauzeitenplan: Name + Stufe/Bauherr
+/* Das Projekt steht oben in der Kopfleiste – hier wird nur die Kostenermittlung dieses Projekts gewählt (wie der Plan im Bauzeitenplan) */
+const kurzName = (x) => { const pn = x.project && x.project.name; let n = x.name || ''; if (pn && n.startsWith(pn)) n = n.slice(pn.length).replace(/^\s*[–-]\s*/, ''); return n || STUFE_N(x.stufe) || x.name; };
+const bkKurzSub = (x) => [STUFE_N(x.stufe), x.archived ? 'archiviert' : ''].filter(Boolean).join(' · ');
+let BKALLE = false;
+function selBtn() {
   const x = B && LIST.find((y) => y.id === B.id);
-  pickButton($('#sel'), B ? { title: B.name, sub: bkSub({ ...x, ...B }) + (B.calc && B.calc.total ? ' · ' + eur(B.calc.total) : '') } : { title: LIST.length ? 'Kostenermittlung wählen' : 'Noch keine Kostenermittlung', sub: LIST.length ? `${LIST.length} vorhanden` : 'Mit „+ Neue Kostenermittlung“ anlegen' });
+  pickButton($('#sel'), B ? { title: kurzName({ ...x, ...B }), sub: 'Kostenermittlung · ' + bkKurzSub({ ...x, ...B }) + (B.calc && B.calc.total ? ' · ' + eur(B.calc.total) : '') } : { title: 'Keine Kostenermittlung', sub: 'für dieses Projekt' });
 }
-$('#sel').addEventListener('click', () => pickMenu($('#sel'), {
-  search: 'Suchen: Name, Projekt, Bauherr …', empty: 'Keine Kostenermittlung gefunden.',
-  items: LIST.map((x) => ({ group: x.archived ? 'Archiv' : 'Kostenermittlungen', title: x.name, sub: bkSub(x), find: x.project ? x.project.name : '', value: x.id, on: B && x.id === B.id })),
-  footer: '<button type="button" class="btn sm" data-pnew>+ Neue Kostenermittlung</button>',
-  onFooter: (e, close) => { if (e.target.closest('[data-pnew]')) { close(); newDialog(); } },
-  onPick: (id) => { if (B && id === B.id) return; clearTimeout(saveT); saveNow().then(() => openBk(id)); },
-}));
+function bkWahl() {
+  const gp = (window.BPHead && BPHead.projektId()) || (B && B.project_id) || null;
+  const L2 = BKALLE || !gp ? LIST : LIST.filter((x) => x.project_id === gp);
+  pickMenu($('#sel'), {
+    search: L2.length > 6 ? 'Suchen …' : '', empty: 'Für dieses Projekt gibt es noch keine Kostenermittlung.',
+    items: L2.map((x) => ({ group: x.archived ? 'Archiv' : BKALLE ? (x.project ? x.project.name : 'Ohne Projekt') : 'Kostenermittlungen dieses Projekts', title: BKALLE ? x.name : kurzName(x), sub: bkKurzSub(x), find: x.project ? x.project.name : '', value: x.id, on: B && x.id === B.id })),
+    footer: `<button type="button" class="btn sm" data-pnew>+ Neue Kostenermittlung</button>${gp ? ` <button type="button" class="btn sm" data-palle>${BKALLE ? 'Nur dieses Projekt' : 'Andere Projekte …'}</button>` : ''}`,
+    onFooter: (e, close) => { if (e.target.closest('[data-pnew]')) { close(); newDialog(); } else if (e.target.closest('[data-palle]')) { close(); BKALLE = !BKALLE; bkWahl(); } },
+    onPick: (id) => { BKALLE = false; if (B && id === B.id) return; clearTimeout(saveT); saveNow().then(() => openBk(id)); },
+  });
+}
+$('#sel').addEventListener('click', bkWahl);
+if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => {   // Projekt oben gewählt: dessen Kostenermittlung
+  clearTimeout(saveT); if (B) await saveNow().catch(() => {});
+  LIST = await api('api/bk'); const fit = LIST.filter((x) => x.project_id === id && !x.archived).concat(LIST.filter((x) => x.project_id === id))[0];
+  if (fit) await openBk(fit.id, false); else { B = null; selBtn(); head(); render(); }
+});
 function head() {
   if (B || LIST) selBtn();
   const vb = $('#verBtn'); if (vb) vb.hidden = !B;
@@ -365,7 +379,8 @@ function render() {
   const SI = B && STUFE_INFO[B.stufe]; $('#stinfo').innerHTML = SI ? `<b>${esc(SI.lph)}</b> · übliche Genauigkeit ± ${SI.genau} % · ${esc(SI.txt)}` : '';
   $('#stufen').innerHTML = STUFEN.map(([k, l]) => `<button type="button" data-stufe="${k}" class="${B && B.stufe === k ? 'on' : ''}" aria-pressed="${B && B.stufe === k}"${B ? '' : ' disabled'}>${l}</button>`).join('');
   const v = $('#view'), sig = sigOf(document.activeElement);
-  if (!B) { v.innerHTML = `<div class="card empty"><p>Noch keine Kostenermittlung.</p><button class="btn pri" data-act="new">Erste Kostenermittlung anlegen</button></div>`; return; }
+  if (!B) { const gp = window.BPHead && BPHead.projekt;
+    v.innerHTML = `<div class="card empty"><p><b>${gp && gp.id ? `Für ${esc(gp.name)} gibt es noch keine Kostenermittlung.` : 'Noch keine Kostenermittlung.'}</b></p><p class="hint">Mit einem Grundriss (PDF), von Hand oder mit dem Assistenten – sie wird gleich mit dem Projekt verknüpft.</p><button class="btn pri" data-act="new">Kostenermittlung anlegen</button>${LIST.length ? ' <button class="btn" data-act="andere">Andere öffnen …</button>' : ''}</div>`; return; }
   v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, bauteile: vBauteile, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
   if (sig) { const n = document.querySelector(sig); if (n) n.focus(); }
   histTrack();
@@ -937,6 +952,7 @@ document.addEventListener('click', async (e) => {
   if (a) {
     const act = a.dataset.act;
     if (act === 'new') newDialog();
+    else if (act === 'andere') { BKALLE = true; bkWahl(); }
     else if (act === 'goCheck') { tab = 'pruefung'; history.replaceState(null, '', '#pruefung'); render(); runCheck(); }
     else if (act === 'check') runCheck();
     else if (act === 'checkKi') runCheck(true);

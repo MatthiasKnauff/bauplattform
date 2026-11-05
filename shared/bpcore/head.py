@@ -176,6 +176,26 @@ def blueprint(get_user=None):
                 return jsonify(error="Keine Einladung zu dieser Skizze."), 403
             return jsonify(skizze.stand(c, sid, u, request.args.get("seit", type=int) or 0))
 
+    @bp.get("/api/bp/skizze-dauerhaft")
+    def skizze_dauerhaft_fuer():
+        """Gibt es zu diesem Plan dauerhafte Markierungen? (Ansicht fragt beim Öffnen jedes PDFs)"""
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        a = request.args
+        with db.tx() as c:
+            return jsonify(id=skizze.dauerhaft_fuer(c, a.get("hash") or "", a.get("name") or "", a.get("groesse", type=int) or 0))
+
+    @bp.post("/api/bp/skizze/<sid>/dauerhaft")
+    def skizze_dauerhaft(sid):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if not skizze.darf(c, sid, u):
+                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
+            skizze.dauerhaft_setzen(c, sid, bool((request.get_json(silent=True) or {}).get("an")))
+        return jsonify(ok=True)
+
     @bp.get("/api/bp/skizze/<sid>/datei")
     def skizze_datei(sid):
         u = user()
@@ -200,7 +220,7 @@ def blueprint(get_user=None):
                 name, pdf = skizze.pdf_mit_markierungen(c, sid)
             except ImportError:
                 return jsonify(error="PDF mit Markierungen ist in dieser App nicht verfügbar."), 501
-        n = name.rsplit(".", 1)[0] + " – markiert.pdf"
+        n = name.rsplit(".", 1)[0] + " (markiert).pdf"
         return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f"attachment; filename*=UTF-8''{q(n)}"})
 
     @bp.post("/api/bp/skizze/<sid>/strich")

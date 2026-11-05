@@ -6,7 +6,7 @@ Kollegen in einer anderen App ihn sehen. Eingeladen wird über die Benutzerliste
 (seq > zuletzt gesehen). Wo die anderen gerade zeigen, steht in skizze_cursor (Laserpointer, nur die letzten Sekunden).
 Koordinaten sind relativ zur Seite (0…1) – unabhängig von Zoom und Bildschirm.
 """
-import json, re, secrets, time
+import hashlib, json, re, secrets, time
 from datetime import datetime
 
 FARBEN = ["#e5484d", "#2f7fe0", "#1f9d55", "#e08a00", "#8e4ec6", "#0e9aa7"]
@@ -33,10 +33,10 @@ def _teil(r):
 
 def darf(c, sid, u):
     """Sitzung, wenn der Benutzer Besitzer oder Teilnehmer ist (oder per Link beitritt: beitreten())."""
-    r = c.execute("SELECT id, name, owner, owner_name, seq, teilnehmer, created FROM skizze WHERE id=?", (sid,)).fetchone()
+    r = c.execute("SELECT id, name, owner, owner_name, seq, teilnehmer, created, dauerhaft FROM skizze WHERE id=?", (sid,)).fetchone()
     if not r:
         return None
-    return r if (r["owner"] == u["id"] or u["id"] in _teil(r) or u["is_admin"]) else None
+    return r if (r["dauerhaft"] or r["owner"] == u["id"] or u["id"] in _teil(r) or u["is_admin"]) else None
 
 
 def neu(c, u, name, pdf):
@@ -45,9 +45,24 @@ def neu(c, u, name, pdf):
     if len(pdf) > MAX_PDF:
         raise ValueError("Der Plan ist zu groß (höchstens 60 MB).")
     sid = secrets.token_urlsafe(9)
-    c.execute("INSERT INTO skizze(id, name, owner, owner_name, datei, seq, teilnehmer, created, updated) VALUES(?,?,?,?,?,0,?,?,?)",
-              (sid, (name or "Plan.pdf")[:200], u["id"], name_von(u), pdf, json.dumps([u["id"]]), _now(), _now()))
+    c.execute("INSERT INTO skizze(id, name, owner, owner_name, datei, seq, teilnehmer, created, updated, hash, groesse) VALUES(?,?,?,?,?,0,?,?,?,?,?)",
+              (sid, (name or "Plan.pdf")[:200], u["id"], name_von(u), pdf, json.dumps([u["id"]]), _now(), _now(), hashlib.sha256(pdf).hexdigest(), len(pdf)))
     return sid
+
+
+def dauerhaft_fuer(c, h="", name="", groesse=0):
+    """Dauerhafte Skizze zu einem Plan – über den Inhalt (SHA-256), sonst über Name + Größe."""
+    r = None
+    if h:
+        r = c.execute("SELECT id FROM skizze WHERE dauerhaft=1 AND hash=? ORDER BY updated DESC LIMIT 1", (h,)).fetchone()
+    if not r and name and groesse:
+        r = c.execute("SELECT id FROM skizze WHERE dauerhaft=1 AND name=? AND groesse=? ORDER BY updated DESC LIMIT 1", (name[:200], int(groesse))).fetchone()
+    return r["id"] if r else None
+
+
+def dauerhaft_setzen(c, sid, an):
+    c.execute("UPDATE skizze SET dauerhaft=?, updated=? WHERE id=?", (1 if an else 0, _now(), sid))
+    _seq(c, sid)
 
 
 def beitreten(c, sid, u):
@@ -131,7 +146,7 @@ def loeschen(c, sid, u, was):
 
 def stand(c, sid, u, seit=0):
     """Was sich seit `seit` geändert hat + wer da ist (mit Zeiger)."""
-    r = c.execute("SELECT seq, teilnehmer, owner, owner_name, name FROM skizze WHERE id=?", (sid,)).fetchone()
+    r = c.execute("SELECT seq, teilnehmer, owner, owner_name, name, dauerhaft FROM skizze WHERE id=?", (sid,)).fetchone()
     rows = c.execute("SELECT id, uid, name, data, geloescht FROM skizze_strich WHERE skizze_id=? AND seq>? ORDER BY id", (sid, seit)).fetchall()
     neu, weg = [], []
     for x in rows:
@@ -147,7 +162,7 @@ def stand(c, sid, u, seit=0):
     leute = [{"uid": x["uid"], "name": x["name"], "farbe": x["farbe"], "seite": x["seite"], "x": x["x"], "y": x["y"], "aktiv": jetzt - x["zeit"] < 4000}
              for x in c.execute("SELECT uid, name, farbe, seite, x, y, t AS zeit FROM skizze_cursor WHERE skizze_id=? AND t>?", (sid, jetzt - 60000))]
     return {"seq": r["seq"], "striche": neu, "geloescht": weg, "leute": leute, "owner": r["owner"], "owner_name": r["owner_name"], "name": r["name"],
-            "farbe": farbe_von(r, u["id"])}
+            "dauerhaft": bool(r["dauerhaft"]), "farbe": farbe_von(r, u["id"])}
 
 
 def zeiger(c, sid, u, d):

@@ -902,12 +902,12 @@
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
       <button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button>
       <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kollegen gleichzeitig" hidden>✏️ Markieren</button>
-      <button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern">⤓</button></div><div class="bph-skl" hidden></div><div class="bph-skm" hidden><button type="button" data-skm="stift" title="Zeichnen">✏️</button><button type="button" data-skm="zeigen" title="Nur zeigen / blättern">☝</button><button type="button" data-skm="zurueck" title="Letzten Strich zurück">↶</button><button type="button" data-skm="voll" title="Leisten wieder einblenden">⤡</button></div>
+      <button type="button" data-gv="dr" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button></div><div class="bph-skl" hidden></div><div class="bph-skm" hidden><button type="button" data-skm="stift" title="Zeichnen">✏️</button><button type="button" data-skm="zeigen" title="Nur zeigen / blättern">☝</button><button type="button" data-skm="zurueck" title="Letzten Strich zurück">↶</button><button type="button" data-skm="voll" title="Leisten wieder einblenden">⤡</button></div>
       <div class="bph-gvs"></div><button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
     document.body.appendChild(el);
     const S = el.querySelector('.bph-gvs');
     let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null, roh = null;
-    const SK = { id: null, striche: [], seq: 0, werkzeug: 'stift', farbe: '#e5484d', leute: [], t: 0, zt: 0, owner: null, aus: false };
+    const SK = { id: null, striche: [], seq: 0, werkzeug: 'stift', farbe: '#e5484d', leute: [], t: 0, zt: 0, owner: null, aus: false, dauerhaft: false, dauer: null };
     const fitW = () => Math.max(320, Math.min((S.clientWidth || window.innerWidth) - 16, 1400));
     async function show() {
       const x = items[i], my = ++tok; zoom = 1; pdf = null;
@@ -917,6 +917,7 @@
       S.scrollTop = 0; S.innerHTML = '<div class="bph-gvl">Lade …</div>';
       el.querySelector('.bph-skb').hidden = x.typ !== 'pdf';
       if (SK.id && !x.skizze) skEnde(true);
+      if (!SK.id) { SK.striche = []; SK.dauer = null; skKnopf(); }
       if (x.typ !== 'pdf') { S.innerHTML = `<img class="bph-gvi" src="${esc(x.url)}" alt="${esc(x.name || '')}">`; return; }
       try {
         const lib = await pdfjs();
@@ -925,7 +926,7 @@
         roh = data.slice(0);
         pdf = await lib.getDocument({ data }).promise;
         await renderPdf(my);
-        if (x.skizze && SK.id !== x.skizze) skBeitreten(x.skizze);
+        if (x.skizze && SK.id !== x.skizze) skBeitreten(x.skizze); else if (!x.skizze) skDauerSuchen(my);
       } catch (e) { if (my === tok) S.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}<br><a href="${esc(x.url)}" download>Datei herunterladen</a></div>`; }
     }
     async function renderPdf(my) {
@@ -955,6 +956,7 @@
         <span class="bph-skf" style="background:${SK.farbe}" title="deine Farbe"></span>
         <button type="button" data-sk="zurueck" title="Meinen letzten Strich zurücknehmen">↶</button><button type="button" data-sk="alle" title="${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}">🗑</button>
         <span class="bph-skp">${andere.length ? andere.map((p) => `<i style="background:${p.farbe}"></i>${esc(p.name.split(' ')[0])}`).join(' ') : 'nur du'}</span>
+        <button type="button" data-sk="dauer" class="${SK.dauerhaft ? 'on' : ''}" title="${SK.dauerhaft ? 'Markierungen bleiben dauerhaft am Plan – jeder, der den Plan öffnet, sieht sie. Klicken zum Aufheben.' : 'Markierungen dauerhaft am Plan behalten – erscheinen wieder, wenn jemand den Plan öffnet'}">📌 ${SK.dauerhaft ? 'Dauerhaft' : 'Behalten'}</button>
         <button type="button" data-sk="einladen" title="Kollegen einladen – sie sehen den Plan und zeichnen gleichzeitig mit">👥 Einladen</button>
         <button type="button" data-sk="pdf" title="Plan mit allen Markierungen als PDF">⤓ PDF</button><button type="button" data-sk="voll" title="Leisten ausblenden – mehr Platz zum Zeichnen (z. B. iPhone quer)">⤢</button><button type="button" data-sk="ende" title="Markieren beenden (die Skizze bleibt gespeichert)">✓ Fertig</button>`;
       if (L._h !== html) { L._h = html; L.innerHTML = html; }   // nur bei Änderung neu zeichnen (Knöpfe bleiben klickbar)
@@ -992,7 +994,7 @@
     }
     const alleZeichnen = () => S.querySelectorAll('.bph-pg').forEach((w) => skZeichnen(+w.dataset.seite));
     function skUebernehmen(r) {
-      SK.owner = r.owner; SK.farbe = r.farbe || SK.farbe; SK.leute = r.leute || [];
+      SK.owner = r.owner; SK.farbe = r.farbe || SK.farbe; SK.leute = r.leute || []; SK.dauerhaft = !!r.dauerhaft;
       const weg = new Set(r.geloescht || []); if (weg.size) SK.striche = SK.striche.filter((d) => !weg.has(d.id));
       for (const d of r.striche || []) {
         if (SK.striche.some((x) => x.id === d.id)) continue;
@@ -1009,6 +1011,7 @@
     function skLauf() { clearInterval(SK.t); SK.t = setInterval(() => { if (document.visibilityState === 'visible') skAbgleich(); }, 700); }
     async function skStart() {
       if (!roh) return;
+      if (SK.dauer) return skBeitreten(SK.dauer);
       const b = el.querySelector('.bph-skb'); b.disabled = true;
       try {
         const fd = new FormData(); fd.append('datei', new Blob([roh], { type: 'application/pdf' }), items[i].name || 'Plan.pdf'); fd.append('name', items[i].name || 'Plan.pdf');
@@ -1022,8 +1025,12 @@
       catch (e) { alert(e.message); }
     }
     function skEnde(still) {
+      const warId = SK.id, eigene = SK.striche.some((d) => d.uid === ich());
+      if (!still && warId && !SK.dauerhaft && eigene && confirm('Markierungen dauerhaft am Plan behalten?\n\nDann sieht sie jeder wieder, der diesen Plan öffnet – auch in den anderen Apps.')) {
+        SKJ(`api/bp/skizze/${warId}/dauerhaft`, 'POST', { an: true }).then(() => skDauerSuchen(tok)).catch((er) => alert(er.message));
+      }
       clearInterval(SK.t); if (SK.id) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: 0, x: null, y: null }).catch(() => {});
-      SK.id = null; SK.striche = []; SK.leute = []; el.classList.remove('bph-voll'); el.querySelector('.bph-skm').hidden = true; skLeiste(); skModus(); if (!still) alleZeichnen();
+      SK.id = null; SK.striche = []; SK.leute = []; SK.dauerhaft = false; SK.dauer = null; el.classList.remove('bph-voll'); el.querySelector('.bph-skm').hidden = true; skLeiste(); skModus(); skKnopf(); if (!still) { alleZeichnen(); if (warId && items[i] && !items[i].skizze) skDauerSuchen(tok); }
     }
     function skPunkt(e) { const wr = e.target.closest && e.target.closest('.bph-pg'); if (!wr) return null; const r = wr.getBoundingClientRect(); return { wr, seite: +wr.dataset.seite, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
     S.addEventListener('pointerdown', (e) => {
@@ -1056,6 +1063,45 @@
       SKJ(`api/bp/skizze/${SK.id}/strich`, 'POST', d).then((r) => { if (d.tmp) { d.id = r.id; delete d.tmp; } }).catch((er) => alert(er.message));
     };
     S.addEventListener('pointerup', skLos); S.addEventListener('pointercancel', skLos);
+    async function skHash(buf) {
+      try { return crypto.subtle ? [...new Uint8Array(await crypto.subtle.digest('SHA-256', buf))].map((b) => b.toString(16).padStart(2, '0')).join('') : ''; } catch (e) { return ''; }
+    }
+    async function skDauerSuchen(my) {   // dauerhafte Markierungen zu diesem Plan anzeigen (ohne Zeichenmodus)
+      if (!roh || SK.id) return;
+      try {
+        const x = items[i], h = await skHash(roh);
+        const q = await SKJ(`api/bp/skizze-dauerhaft?hash=${h}&name=${encodeURIComponent(x.name || '')}&groesse=${roh.byteLength}`);
+        if (my !== tok || SK.id || !q.id) return;
+        const r = await SKJ(`api/bp/skizze/${q.id}`);
+        if (my !== tok || SK.id) return;
+        SK.dauer = q.id; SK.striche = r.striche || []; alleZeichnen(); skKnopf();
+      } catch (e) { /* ohne Markierungen weiter */ }
+    }
+    function skKnopf() {
+      const b = el.querySelector('.bph-skb'), n = SK.dauer && !SK.id ? SK.striche.length : 0;
+      b.innerHTML = n ? `📌 Markiert <small>(${n})</small>` : '✏️ Markieren';
+      b.title = n ? 'Dieser Plan hat dauerhafte Markierungen – klicken zum Weitermarkieren' : 'Markieren – auch gemeinsam mit Kollegen gleichzeitig';
+    }
+    async function markiertesPdf() {   // Plan mit Markierungen, sonst das Original
+      const x = items[i], sid = SK.id || SK.dauer;
+      if (x.typ === 'pdf' && sid && SK.striche.length) {
+        try {
+          const r = await fetch(`api/bp/skizze/${sid}/pdf`, { credentials: 'same-origin' });
+          if (r.ok) return { b: await r.blob(), name: (x.name || 'Plan.pdf').replace(/\.pdf$/i, '') + ' (markiert).pdf' };
+        } catch (e) { /* Original */ }
+      }
+      const b = await fetch(x.url, { credentials: 'same-origin' }).then((r) => r.blob());
+      return { b, name: x.name || (x.typ === 'pdf' ? 'Datei.pdf' : 'Foto.jpg') };
+    }
+    async function drucken() {
+      try {
+        const { b } = await markiertesPdf(), u = URL.createObjectURL(b);
+        if (items[i].typ !== 'pdf' || /iPhone|iPad|Android/i.test(navigator.userAgent)) { window.open(u, '_blank'); return; }
+        const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0'; f.src = u;
+        f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(u, '_blank'); } setTimeout(() => f.remove(), 60000); };
+        document.body.appendChild(f);
+      } catch (e) { alert(e.message || 'Drucken nicht möglich'); }
+    }
     async function skEinladen() {
       let K; try { K = await SKJ('api/bp/kollegen'); } catch (e) { alert(e.message); return; }
       const link = location.origin + location.pathname + '#skizze=' + SK.id;
@@ -1079,7 +1125,7 @@
       try {
         const r = await fetch(`api/bp/skizze/${SK.id}/pdf`, { credentials: 'same-origin' });
         if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
-        const b = await r.blob(), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = (items[i].name || 'Plan.pdf').replace(/\.pdf$/i, '') + ' – markiert.pdf'; document.body.appendChild(a); a.click(); a.remove();
+        const b = await r.blob(), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = (items[i].name || 'Plan.pdf').replace(/\.pdf$/i, '') + ' (markiert).pdf'; document.body.appendChild(a); a.click(); a.remove();
       } catch (e) { alert(e.message); }
     }
     el.querySelector('.bph-skl').addEventListener('click', async (e) => {
@@ -1090,6 +1136,7 @@
       if (a === 'alle') { if (!confirm(SK.owner === ich() ? 'Alle Markierungen auf diesem Plan löschen – auch die der anderen?' : 'Alle deine Markierungen löschen?')) return; await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'alle' }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'einladen') return skEinladen();
       if (a === 'pdf') return skPdf();
+      if (a === 'dauer') { const an = !SK.dauerhaft; if (!an && !confirm('Markierungen nicht mehr dauerhaft am Plan zeigen?')) return; await SKJ(`api/bp/skizze/${SK.id}/dauerhaft`, 'POST', { an }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'voll') return skVoll(true);
       if (a === 'ende') { skEnde(false); }
     });
@@ -1113,8 +1160,8 @@
     async function teilen() {
       const x = items[i];
       try {
-        const b = await fetch(x.url, { credentials: 'same-origin' }).then((r) => r.blob());
-        const f = new File([b], x.name || (x.typ === 'pdf' ? 'Datei.pdf' : 'Foto.jpg'), { type: b.type });
+        const { b, name } = await markiertesPdf();
+        const f = new File([b], name, { type: b.type || (x.typ === 'pdf' ? 'application/pdf' : '') });
         if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return; }
         const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
       } catch (e) { if (!e || e.name !== 'AbortError') window.open(x.url, '_blank'); }
@@ -1127,7 +1174,7 @@
     const pop = () => close(true);
     el.addEventListener('click', (e) => {
       const b = e.target.closest('[data-gv]'); if (!b) { if (e.target === S && !SK.id) close(); return; }
-      const a = b.dataset.gv; if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen();
+      const a = b.dataset.gv; if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'dr') drucken();
     });
     let tx = null, ty = 0;   // Wischen links/rechts blättert (nur ohne Vergrößerung)
     S.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } else tx = null; }, { passive: true });

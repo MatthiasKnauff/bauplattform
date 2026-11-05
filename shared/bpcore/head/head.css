@@ -192,6 +192,8 @@
 @media (orientation:landscape) and (max-height:500px){.bph-skl button{height:32px;min-width:34px}.bph-gvb button{height:34px;min-width:34px}}
 .bph-skl button{border:1px solid #4a4c50;background:transparent;color:#f3f3f1;border-radius:10px;min-width:38px;height:36px;font:inherit;font-size:.95rem;cursor:pointer;padding:0 .55rem}
 .bph-skl button.on{background:#f3f3f1;color:#111}
+.bph-skl button[data-sk="dauer"].on{background:#ff5fb3;border-color:#ff5fb3;color:#111}
+.bph-gvb .bph-skb small{opacity:.75;font-size:.8em}
 .bph-skf{width:22px;height:22px;border-radius:50%;border:2px solid #fff;margin:0 .3rem}
 .bph-skp{flex:1;min-width:6rem;font-size:.85rem;color:#b9b4aa}
 .bph-skp i{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 .25rem 0 .5rem}

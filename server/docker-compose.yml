@@ -46,6 +46,7 @@ x-env: &env
   PLAENE_INTERNAL: http://plaene:8096
   AVA_INTERNAL: http://ava:8097
   KOMMUNIKATION_INTERNAL: http://kommunikation:8098
+  BAUDATEN_INTERNAL: http://baudaten:8099
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -73,7 +74,7 @@ services:
       retries: 30
 
   bautagebuch:
-    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:v2026.11.103
     container_name: bautagebuch
     restart: unless-stopped
     depends_on:
@@ -87,7 +88,7 @@ services:
       - bautagebuch_data:/data
 
   gantt:
-    image: ghcr.io/matthiasknauff/bauplattform/gantt:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/gantt:v2026.11.103
     container_name: bauzeitenplan
     restart: unless-stopped
     depends_on:
@@ -101,7 +102,7 @@ services:
       - gantt_legacy:/legacy:ro
 
   portal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_portal
     restart: unless-stopped
     depends_on:
@@ -113,7 +114,7 @@ services:
       APP_PORT: "8090"
 
   admin:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_admin
     restart: unless-stopped
     depends_on:
@@ -127,7 +128,7 @@ services:
       APP_PORT: "8091"
 
   adressen:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_adressen
     restart: unless-stopped
     depends_on:
@@ -144,7 +145,7 @@ services:
 
   # Verteiler: alle Apps unter einer Adresse (Pfad statt Port/Subdomain), siehe plattform/router.py
   bauportal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_verteiler
     restart: unless-stopped
     depends_on:
@@ -158,7 +159,7 @@ services:
       APP_THREADS: "32"
       APP_TIMEOUT: "320"
   baukosten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_baukosten
     restart: unless-stopped
     depends_on:
@@ -174,7 +175,7 @@ services:
 
   # Mängel & Erinnerungen: Mängelverfolgung aus den Bautagesberichten, Erinnerungen aus Bautagebuch, Bauzeitenplänen und eigene
   aufgaben:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_aufgaben
     restart: unless-stopped
     depends_on:
@@ -189,7 +190,7 @@ services:
 
   # Planstand & Versand: Pläne im Projektordner (über das Bautagebuch), neuester Index, Versand an die Firmen, Planversandliste
   plaene:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_plaene
     restart: unless-stopped
     depends_on:
@@ -205,7 +206,7 @@ services:
 
   # Ausschreibung & Abrechnung: Leistungsverzeichnisse, Angebote/Preisspiegel, Aufmaß, Rechnungsprüfung (GAEB)
   ava:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_ava
     restart: unless-stopped
     depends_on:
@@ -221,7 +222,7 @@ services:
 
   # Kommunikation: was an wen verschickt wurde (Planversand, Rügen) – je Projekt und je Kontakt
   kommunikation:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.102
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
     container_name: bauplattform_kommunikation
     restart: unless-stopped
     depends_on:
@@ -234,6 +235,22 @@ services:
       APP_MODULE: kommunikation
       APP_PORT: "8098"
       APP_TIMEOUT: "120"
+
+  # Baudaten: Positionsdatenbank (Texte, DIN 276, Preise), importierte Kataloge (z. B. Sirados) und eigene Preise
+  baudaten:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.103
+    container_name: bauplattform_baudaten
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${BAUDATEN_PUBLISH:-8099}:8099"
+    environment:
+      <<: *env
+      APP_MODULE: baudaten
+      APP_PORT: "8099"
+      APP_TIMEOUT: "600"
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB, für das Bildmodell qwen3-vl:4b (Pläne lesen) weitere ~4 GB freien Arbeitsspeicher;

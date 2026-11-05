@@ -245,6 +245,45 @@ table.tl .ed{position:absolute;left:0;top:0;height:100%;min-width:100%;z-index:5
 .tl-w .ed-fix{position:absolute;z-index:6}
 .tl-leer{padding:2rem;text-align:center}
 .tl-vs{display:grid;grid-template-columns:1fr auto;gap:.3rem .8rem;font-size:.85rem;max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:.5rem}
+/* ---------- Handy-Ansicht (nur lesen, wie im Bauzeitenplan) ---------- */
+#mView{display:none}
+html.mobil main.ava,html.mobil #histBar,html.mobil #lvSel{display:none!important}
+html.mobil #mView{display:block;font-size:15px;line-height:1.4;min-height:calc(100vh - 46px);background:var(--bg)}
+html.mobil .bph{position:sticky;top:0}
+.mv-top{position:sticky;top:46px;z-index:5;background:var(--bg);padding:.6rem .8rem .5rem;border-bottom:1px solid var(--line)}
+.mv-top select{width:100%;font:inherit;font-weight:600;font-size:16px;padding:.5rem .6rem;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.mv-seg{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:3px;background:var(--card);margin-top:.5rem}
+.mv-seg button{flex:1;border:0;background:transparent;border-radius:999px;padding:.45rem .2rem;font:inherit;font-size:.88rem;color:var(--mute)}
+.mv-seg button.on{background:var(--y);color:var(--on);font-weight:600}
+.mv-b{padding:.4rem .7rem 2rem}
+.mv-k{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin:.5rem 0}
+.mv-k div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.45rem .6rem}
+.mv-k small{display:block;color:var(--mute);font-size:.75rem}
+.mv-k b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.mv-k .sub{color:var(--mute);font-size:.75rem}
+.mk{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--gw,var(--y));border-radius:10px;padding:.55rem .7rem;margin:.45rem 0;display:block;width:100%;text-align:left;color:var(--ink);font:inherit}
+.mk-h{display:flex;align-items:center;gap:.45rem}
+.mk-h b{font-weight:600;line-height:1.25;flex:1;min-width:0}
+.mk-tag{font-size:.72rem;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:0 .45rem;white-space:nowrap}
+.mk-tag.ok{border-color:#2f9e5a;color:#2f9e5a}.mk-tag.w{border-color:#e07b3a;color:#e07b3a}
+.mk-z{font-size:.84rem;color:var(--mute);margin-top:.15rem}
+.mk-r{display:flex;justify-content:space-between;gap:.6rem;font-size:.86rem;margin-top:.2rem;font-variant-numeric:tabular-nums}
+.mk-r span{color:var(--mute)}
+.mk-b{position:relative;height:8px;background:rgba(127,127,127,.15);border-radius:4px;margin-top:.45rem;overflow:hidden}
+.mk-b i{position:absolute;left:0;top:0;bottom:0;background:var(--y);border-radius:4px}
+.mk-b u{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--y) 40%,transparent);border-radius:4px}
+.mg h3{font-size:.95rem;margin:1rem .2rem .45rem;display:flex;align-items:center;gap:.4rem}
+.mg h3 small{color:var(--mute);font-weight:400}
+.mg h3 .mg-s{margin-left:auto;font-variant-numeric:tabular-nums;font-size:.88rem}
+.mp{border-bottom:1px solid var(--line);padding:.45rem .2rem}
+.mp .o{color:var(--mute);font-size:.78rem;font-variant-numeric:tabular-nums}
+.mp .t{font-weight:500}
+.mp .z{display:flex;justify-content:space-between;font-size:.82rem;color:var(--mute);font-variant-numeric:tabular-nums;margin-top:.1rem}
+.mp .z b{color:var(--ink);font-weight:600}
+.mp.grau{opacity:.6}
+.mp .lt{font-size:.8rem;color:var(--mute);white-space:pre-line;margin-top:.25rem}
+.mv-f{text-align:center;color:var(--mute);font-size:.8rem;margin-top:1.5rem}
+.mv-f button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:.3rem .8rem;font:inherit;color:var(--y);margin-left:.3rem}
 </style>
 </head>
 <body>
@@ -281,6 +320,7 @@ table.tl .ed{position:absolute;left:0;top:0;height:100%;min-width:100%;z-index:5
     <aside class="qu" id="quelle" hidden aria-label="Kopierquelle"></aside>
   </div>
 </main>
+<div id="mView" aria-label="Handy-Ansicht"></div>
 <input type="file" id="fileIn" accept=".x81,.x82,.x83,.x84,.x85,.x86,.xml,.xlsx" hidden>
 <datalist id="lbList"></datalist><datalist id="ehList"><option>m</option><option>m2</option><option>m3</option><option>St</option><option>psch</option><option>kg</option><option>t</option><option>h</option><option>lfm</option></datalist>
 <datalist id="gwList"></datalist>
@@ -392,6 +432,7 @@ function kpis() {
   $('#stat').innerHTML = '<span class="hint">Stand:</span>' + STATUS.map(([k, l]) => `<button type="button" data-status="${k}" class="${L.status === k ? 'on' : ''}">${l}</button>`).join('');
 }
 function render() {
+  if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
   if (typeof histUi === 'function') setTimeout(histUi, 0);
   if (tab !== 'lv' && $('#lvSel')) $('#lvSel').hidden = true;
   selBtn(); kpis();
@@ -1858,6 +1899,95 @@ function tlInsLv(sel) {
   });
   return bg;
 }
+
+/* ---------- Handy-Ansicht: übersichtlich, nur lesen (wie im Bauzeitenplan) ----------
+   Aufträge: alle LVs des Projekts mit Auftrag, Nachträgen, Leistungsstand, abgerechnet · LV: Titel mit Summen, Positionen
+   (Tippen zeigt den Langtext) · Nachträge · Rechnungen. Bearbeiten geht am Computer („Desktop-Ansicht“ schaltet um). */
+const MOB = (() => {
+  const LSK = 'ava.mobilAus';
+  try { if (localStorage.getItem(LSK) === '1') return null; } catch { /* egal */ }
+  const schmal = Math.min(window.innerWidth, screen.width || 9999) <= 760, touch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+  if (!((schmal && touch) || /iPhone|Android.+Mobile/i.test(navigator.userAgent))) return null;
+  document.documentElement.classList.add('mobil');
+  const box = $('#mView'), st = { modus: LS.get('mModus', 'auftraege'), auf: new Set() };
+  const pct = (a, b) => (b ? Math.max(0, Math.min(100, Math.round(a / b * 100))) : 0);
+  const stLbl = (k) => (STATUS.find((x) => x[0] === k) || [, k])[1];
+  function vAuf() {
+    const A = LIST.filter((x) => !x.archived);
+    if (!A.length) return '<p class="mu" style="padding:1rem;color:var(--mute)">In diesem Projekt gibt es noch kein Leistungsverzeichnis.</p>';
+    const S = A.reduce((s, x) => ({ a: s.a + (x.auftrag || 0), sch: s.sch + (x.auftrag ? 0 : x.schaetzung || 0), n: s.n + (x.nachtraege || 0), ab: s.ab + (x.abgerechnet || 0), p: s.p + (x.prognose || 0) }), { a: 0, sch: 0, n: 0, ab: 0, p: 0 });
+    return `<div class="mv-k"><div><small>Aufträge</small><b>${eur0(S.a)}</b>${S.sch ? `<span class="sub"> · ${eur0(S.sch)} noch nicht vergeben</span>` : ''}</div><div><small>Nachträge beauftragt</small><b>${eur0(S.n)}</b></div>
+        <div><small>Prognose</small><b>${eur0(S.p)}</b></div><div><small>abgerechnet</small><b>${eur0(S.ab)}</b><span class="sub"> · ${pct(S.ab, S.a + S.n)} %</span></div></div>
+      ${A.map((x) => { const ges = (x.auftrag || 0) + (x.nachtraege || 0);
+        return `<button class="mk" data-mlv="${x.id}"><div class="mk-h"><b>${esc(x.nr)} ${esc(x.name)}</b><span class="mk-tag${x.status === 'vergeben' ? ' ok' : ''}">${esc(stLbl(x.status))}</span></div>
+          <div class="mk-z">${esc([x.gewerk, x.auftragnehmer].filter(Boolean).join(' · ') || 'noch nicht vergeben')}</div>
+          ${x.auftrag ? `<div class="mk-r"><span>Auftrag</span>${eur0(x.auftrag)}</div>` : `<div class="mk-r"><span>Schätzung</span>${eur0(x.schaetzung)}</div>`}
+          ${x.nachtraege || x.nt_angemeldet ? `<div class="mk-r"><span>Nachträge</span>${eur0(x.nachtraege)}${x.nt_angemeldet ? ` <small style="color:#e07b3a">+ ${eur0(x.nt_angemeldet)} angemeldet</small>` : ''}</div>` : ''}
+          ${ges ? `<div class="mk-r"><span>Leistungsstand · abgerechnet</span>${eur0(x.leistung)} · ${eur0(x.abgerechnet)}</div>
+          <div class="mk-b"><u style="width:${pct(x.leistung, ges)}%"></u><i style="width:${pct(x.abgerechnet, ges)}%"></i></div>` : ''}</button>`; }).join('')}`;
+  }
+  const preisVon = (x) => (vergeben() ? (L.vergabe.preise || {})[x.id] : x.ep_s);
+  function vLvM() {
+    if (!L) return '<p style="padding:1rem;color:var(--mute)">Kein LV gewählt.</p>';
+    const I = items(), K = L.calc, ges = K.auftrag + K.nachtraege.beauftragt;
+    let h = `<div class="mv-k"><div><small>${vergeben() ? 'Auftrag' : 'Schätzung'}</small><b>${eur0(vergeben() ? K.auftrag : K.schaetzung)}</b>${L.vergabe.bieter ? `<span class="sub"> · ${esc(L.vergabe.bieter)}</span>` : ''}</div>
+      <div><small>Nachträge beauftragt</small><b>${eur0(K.nachtraege.beauftragt)}</b>${K.nachtraege.angemeldet ? `<span class="sub"> · ${eur0(K.nachtraege.angemeldet)} angem.</span>` : ''}</div>
+      <div><small>Leistungsstand</small><b>${eur0(K.leistung)}</b><span class="sub"> · ${pct(K.leistung, ges)} %</span></div><div><small>abgerechnet</small><b>${eur0(K.abgerechnet)}</b></div></div>`;
+    let offen = false, sum = 0, tit = null;
+    const fl = () => { if (tit) h += `</div>`; };
+    I.forEach((x) => {
+      if (x.typ === 'titel') {
+        fl(); const lv = x.lvl || 1; let s2 = 0;
+        for (let j = I.indexOf(x) + 1; j < I.length && !(I[j].typ === 'titel' && (I[j].lvl || 1) <= lv); j++) { const y = I[j]; const ep = preisVon(y); if (y.typ === 'pos' && zaehlt(y) && ep != null) s2 += (y.menge || 0) * ep; }
+        offen = !st.auf.has(x.id); tit = x;
+        h += `<section class="mg"><h3 data-mt="${esc(x.id)}" style="padding-left:${(lv - 1) * .8}rem">${offen ? '▾' : '▸'} ${esc(x.oz)} ${esc(x.kurz)}<span class="mg-s">${s2 ? eur0(s2) : ''}</span></h3><div${offen ? '' : ' hidden'}>`;
+        return;
+      }
+      if (x.art === 'T') { h += `<div class="mp grau"><div class="t" style="font-style:italic">${esc(x.kurz)}</div>${x.lang ? `<div class="lt">${esc(x.lang)}</div>` : ''}</div>`; return; }
+      const ep = preisVon(x), gp = ep != null && zaehlt(x) ? (x.menge || 0) * ep : null; sum += gp || 0;
+      h += `<div class="mp${ohneGB(x) || x.entf ? ' grau' : ''}" data-mp="${esc(x.id)}"><div class="o">${esc(x.oz)}${x.nt ? ` · <b style="color:#e07b3a">${esc(x.nt)} ${esc(x.nt_status || '')}</b>` : ''}${ohneGB(x) ? ' · ohne GB' : ''}${x.entf ? ' · entfällt' : ''}</div>
+        <div class="t">${esc(x.kurz)}</div><div class="z"><span>${nf(x.menge)} ${esc(x.einheit || '')}${ep != null ? ' × ' + nf2(ep) + ' €' : ''}</span><b>${gp != null ? eur(gp) : ''}</b></div>
+        ${st.lang === x.id && x.lang ? `<div class="lt">${esc(x.lang)}</div>` : ''}</div>`;
+    });
+    fl();
+    return h + `<p class="mv-f" style="margin-top:.8rem">Summe netto <b>${eur(sum)}</b></p>`;
+  }
+  function vNt() {
+    if (!L) return '';
+    const N = items().filter((x) => x.nt); if (!N.length) return '<p style="padding:1rem;color:var(--mute)">Keine Nachträge in diesem LV.</p>';
+    const VP = L.vergabe.preise || {};
+    return N.map((x) => { const ep = VP[x.id], gp = ep != null ? (x.menge || 0) * ep : null, s = x.nt_status || 'angemeldet';
+      return `<div class="mk" style="--gw:${s === 'beauftragt' ? '#2f9e5a' : s === 'abgelehnt' ? '#9e9e9e' : '#e07b3a'}"><div class="mk-h"><b>${esc(x.nt)} · ${esc(x.kurz)}</b><span class="mk-tag ${s === 'beauftragt' ? 'ok' : s === 'angemeldet' ? 'w' : ''}">${esc(s)}</span></div>
+        <div class="mk-r"><span>${nf(x.menge)} ${esc(x.einheit || '')}${ep != null ? ' × ' + nf2(ep) + ' €' : ''}</span>${gp != null ? eur(gp) : '–'}</div>${x.nt_grund ? `<div class="mk-z">${esc(x.nt_grund)}</div>` : ''}</div>`; }).join('');
+  }
+  function vRe() {
+    if (!L) return '';
+    if (!L.rechnungen.length) return '<p style="padding:1rem;color:var(--mute)">Noch keine Rechnungen zu diesem LV.</p>';
+    const RC = Object.fromEntries(L.calc.rechnungen.map((r) => [r.id, r]));
+    return [...L.rechnungen].reverse().map((r) => { const c = RC[r.id] || {}, g = r.status === 'geprueft';
+      return `<div class="mk" style="--gw:${g ? '#2f9e5a' : '#e0a030'}"><div class="mk-h"><b>${r.nr}. ${r.art === 'schluss' ? 'Schlussrechnung' : 'Abschlagsrechnung'}</b><span class="mk-tag ${g ? 'ok' : 'w'}">${g ? 'geprüft' : 'in Prüfung'}</span></div>
+        <div class="mk-z">${[r.re_nr ? 'Nr. ' + esc(r.re_nr) : '', r.datum ? de(r.datum) : '', r.eingang ? 'Eingang ' + de(r.eingang) : ''].filter(Boolean).join(' · ')}</div>
+        ${r.gefordert ? `<div class="mk-r"><span>gefordert (kumuliert)</span>${eur(r.gefordert)}</div>` : ''}
+        <div class="mk-r"><span>anerkannt (kumuliert)</span>${eur(c.anerkannt)}</div><div class="mk-r"><span>Zahlbetrag netto · brutto</span><b>${eur(c.zahlung)} · ${eur(c.brutto)}</b></div></div>`; }).join('');
+  }
+  function zeichnen() {
+    const lvSel = LIST.length ? `<select id="mLv" aria-label="Leistungsverzeichnis">${LIST.filter((x) => !x.archived || (L && x.id === L.id)).map((x) => `<option value="${x.id}"${L && x.id === L.id ? ' selected' : ''}>${esc(x.nr)} · ${esc(x.name)}</option>`).join('')}</select>` : '';
+    const M = [['auftraege', 'Aufträge'], ['lv', 'LV'], ['nt', 'Nachträge'], ['re', 'Rechnungen']];
+    box.innerHTML = `<div class="mv-top">${st.modus === 'auftraege' ? '' : lvSel}<div class="mv-seg">${M.map(([k, l]) => `<button data-mm="${k}" class="${k === st.modus ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="mv-b">${st.modus === 'lv' ? vLvM() : st.modus === 'nt' ? vNt() : st.modus === 're' ? vRe() : vAuf()}
+      <p class="mv-f">Nur Ansicht – bearbeiten am Computer. <button data-mdesk>Desktop-Ansicht</button></p></div>`;
+  }
+  box.addEventListener('change', async (e) => { if (e.target.id === 'mLv') { await openLv(+e.target.value); } });
+  box.addEventListener('click', async (e) => {
+    const m = e.target.closest('[data-mm]'); if (m) { st.modus = m.dataset.mm; LS.set('mModus', st.modus); zeichnen(); scrollTo(0, 0); return; }
+    const k = e.target.closest('[data-mlv]'); if (k) { st.modus = 'lv'; LS.set('mModus', 'lv'); await openLv(+k.dataset.mlv); scrollTo(0, 0); return; }
+    const t = e.target.closest('[data-mt]'); if (t) { const id = t.dataset.mt; if (st.auf.has(id)) st.auf.delete(id); else st.auf.add(id); zeichnen(); return; }
+    const p = e.target.closest('[data-mp]'); if (p) { st.lang = st.lang === p.dataset.mp ? null : p.dataset.mp; zeichnen(); return; }
+    if (e.target.closest('[data-mdesk]')) { try { localStorage.setItem(LSK, '1'); } catch { /* egal */ } location.reload(); }
+  });
+  return { zeichnen };
+})();
+window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catch { /* egal */ } location.reload(); };
 
 /* ---------- Start ---------- */
 (async () => {

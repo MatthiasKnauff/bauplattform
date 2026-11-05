@@ -20,6 +20,23 @@
 .rb svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .rb svg .ac{stroke:var(--y)}
 .rib .fill{flex:1}
+/* Volltextsuche */
+.vqb{display:flex;flex-direction:column;gap:.2rem;justify-content:center;min-width:15rem}
+.vqb input[type=search]{width:100%;font:inherit;font-size:.85rem;padding:.35rem .6rem;border-radius:999px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.vqb input[type=search]:focus{border-color:var(--y);outline:none}
+.vqb label{font-size:.72rem;color:var(--mute);display:flex;gap:.3rem;align-items:center;cursor:pointer}
+.vqe{position:fixed;z-index:90;background:var(--card2);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.35);width:min(620px,calc(100vw - 16px));max-height:min(70vh,620px);overflow:auto;padding:.3rem 0}
+.vqe .g{font-size:.75rem;color:var(--mute);padding:.55rem .9rem .2rem;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:-.3rem;background:var(--card2)}
+.vqe button{display:grid;grid-template-columns:1.6rem 4.6rem minmax(0,1fr);gap:.1rem .5rem;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.4rem .9rem;cursor:pointer;align-items:start}
+.vqe button:hover,.vqe button.on{background:var(--hov)}
+.vqe .i{font-size:.95rem;grid-row:1/3}
+.vqe .oz{font-family:ui-monospace,Consolas,monospace;font-size:.8rem;color:var(--mute);padding-top:.1rem;grid-row:1/3}
+.vqe .t{font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vqe .s{grid-column:3;font-size:.8rem;color:var(--mute);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vqe mark{background:color-mix(in srgb,var(--y) 35%,transparent);color:inherit;border-radius:2px;padding:0 1px}
+.vqe .leer{padding:1rem;color:var(--mute);font-size:.9rem}
+tr.vqblink td{animation:vqblink 2.2s ease-out}
+@keyframes vqblink{0%,40%{background:color-mix(in srgb,var(--y) 40%,transparent)}100%{background:transparent}}
 .save{font-size:.78rem;color:var(--mute);align-self:center;padding:0 .6rem}
 .body{flex:1;display:grid;grid-template-columns:230px minmax(0,1fr);min-height:calc(100vh - 140px)}
 .nav{border-right:1px solid var(--line);background:var(--card);overflow:auto;padding:.5rem .45rem;position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);box-sizing:border-box}
@@ -314,6 +331,7 @@ html.mobil .bph{position:sticky;top:0}
       <button class="rb" id="impBtn" title="GAEB-Datei (X81–X86) oder ausgefülltes Excel einlesen"><svg viewBox="0 0 24 24"><path d="M5 14v6h14v-6"/><path d="M12 3v11M8 10l4 4 4-4" class="ac"/></svg>Import</button>
       <button class="rb" id="expBtn" title="GAEB, Excel und PDF"><svg viewBox="0 0 24 24"><path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4" class="ac"/></svg>Export</button>
     </div><div class="rl">Datenaustausch</div></div>
+    <div class="rg"><div class="rr"><div class="vqb"><input type="search" id="vq" placeholder="Volltext: Text, OZ, Firma, Raum …" autocomplete="off" title="Volltextsuche in allen LVs, Angeboten, Aufmaß und Türliste (Strg+Umschalt+F)" aria-label="Volltextsuche"><label><input type="checkbox" id="vqAlle"> in allen Projekten</label></div></div><div class="rl">Suchen</div></div>
     <span class="fill"></span><span class="save" id="save" role="status"></span>
   </div>
   <div class="body">
@@ -1232,6 +1250,77 @@ async function druckEditor() {
   });
   laden();
 }
+
+/* ---------- Volltextsuche: alle LVs (Kurz-/Langtext, OZ, Titel, Nachträge), Bieter, Aufmaß, Rechnungen, Türliste ---------- */
+const VQ = { T: 0, tok: 0, L: [], i: -1, box: null };
+const VQIC = { lv: '📄', titel: '📁', pos: '▪', text: '📝', nachtrag: '➕', angebot: '🏷', aufmass: '📏', rechnung: '🧾', tuer: '🚪' };
+function vqMarkieren(text, q) {
+  let h = esc(text || '');
+  const worte = q.toLowerCase().split(/\s+/).filter((w) => w.length > 1).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ae|ä/g, '(?:ae|ä)').replace(/oe|ö/g, '(?:oe|ö)').replace(/ue|ü/g, '(?:ue|ü)').replace(/ss|ß/g, '(?:ss|ß)'));
+  if (!worte.length) return h;
+  try { h = h.replace(new RegExp('(' + worte.join('|') + ')', 'gi'), '<mark>$1</mark>'); } catch { /* ohne Markierung */ }
+  return h;
+}
+function vqZu() { if (VQ.box) { VQ.box.remove(); VQ.box = null; } VQ.i = -1; }
+function vqZeigen(q, r) {
+  if (!VQ.box) { VQ.box = document.createElement('div'); VQ.box.className = 'vqe'; VQ.box.setAttribute('role', 'listbox'); document.body.appendChild(VQ.box); }
+  const rc = $('#vq').getBoundingClientRect(); VQ.box.style.top = (rc.bottom + 6) + 'px'; VQ.box.style.left = Math.max(8, Math.min(rc.left, innerWidth - VQ.box.offsetWidth - 8)) + 'px';
+  VQ.L = r.treffer; VQ.i = -1;
+  if (!VQ.L.length) { VQ.box.innerHTML = `<div class="leer">Nichts gefunden zu „${esc(q)}“${$('#vqAlle').checked ? '' : ' in diesem Projekt – <a href="#" data-vqalle>in allen Projekten suchen</a>'}.</div>`; return; }
+  let h = '', grp = '';
+  VQ.L.forEach((t, k) => {
+    const g = [$('#vqAlle').checked ? t.projekt : '', t.lv].filter(Boolean).join(' › '); if (g !== grp) { grp = g; h += `<div class="g">${esc(g)}${t.archiviert ? ' · Archiv' : ''}</div>`; }
+    h += `<button type="button" role="option" data-vqi="${k}"><span class="i">${VQIC[t.art] || '▪'}</span><span class="oz">${esc(t.oz || (t.art === 'angebot' ? 'Bieter' : t.art === 'rechnung' ? 'Rechnung' : t.art === 'tuer' ? 'Tür' : ''))}</span><span class="t">${t.entf ? '<s>' : ''}${vqMarkieren(t.titel, q)}${t.entf ? '</s>' : ''}${t.nt ? ` <small>(${esc(t.nt)})</small>` : ''}</span>${t.text ? `<span class="s">${vqMarkieren(t.text, q)}</span>` : ''}</button>`;
+  });
+  if (r.mehr) h += '<div class="leer">Weitere Treffer – Suche genauer fassen.</div>';
+  VQ.box.innerHTML = h;
+}
+async function vqSuchen() {
+  const q = $('#vq').value.trim(); if (q.length < 2) return vqZu();
+  const my = ++VQ.tok;
+  try { const r = await api('api/suche?q=' + encodeURIComponent(q) + ($('#vqAlle').checked || !pid ? '' : '&pid=' + pid)); if (my === VQ.tok && $('#vq').value.trim() === q) vqZeigen(q, r); }
+  catch (e) { toast(e.message, true); }
+}
+async function vqGehe(t) {
+  vqZu(); await flush();
+  if (t.pid && t.pid !== pid) {   // anderes Projekt: wird auch oben im Kopf gewählt
+    pid = t.pid; LS.set('pid', pid); if (window.BPHead) BPHead.projektSetzen(pid);
+    const sel = $('#proj'); if (sel && ![...sel.options].some((o) => +o.value === pid)) { const o = document.createElement('option'); o.value = pid; o.textContent = t.projekt; sel.appendChild(o); } if (sel) sel.value = String(pid);
+    LIST = await api('api/lv?project_id=' + pid);
+  }
+  if (t.art === 'tuer') { tab = 'tueren'; LS.set('tab', tab); TLq = t.titel.replace(/^Tür\s*/, ''); render(); return; }
+  if (t.lv_id && (!L || L.id !== t.lv_id)) await openLv(t.lv_id);
+  tab = { angebot: 'angebote', aufmass: 'aufmass', rechnung: 'rechnungen' }[t.art] || 'lv'; LS.set('tab', tab);
+  if (t.art === 'aufmass' && t.pos_id) { amPos = t.pos_id; LS.set('amPos', amPos); }
+  if (tab === 'lv' && t.pos_id) {   // Titel darüber aufklappen, Zeile markieren und hinscrollen
+    const I = items(), n = I.findIndex((x) => x.id === t.pos_id);
+    if (n >= 0) { let lv = I[n].typ === 'titel' ? (I[n].lvl || 1) : 99; for (let k = n - 1; k >= 0; k--) if (I[k].typ === 'titel' && (I[k].lvl || 1) < lv) { LVZU.delete(I[k].id); lv = I[k].lvl || 1; } LS.set('lvzu:' + L.id, [...LVZU]); }
+    LVAKT = t.pos_id; LVSEL = new Set();
+  }
+  render();
+  if (tab === 'lv' && t.pos_id) setTimeout(() => {
+    const I = items(), n = I.findIndex((x) => x.id === t.pos_id), tr = n >= 0 && document.querySelector(`table.lv tr[data-i="${n}"]`);
+    if (tr) { tr.scrollIntoView({ block: 'center', behavior: 'smooth' }); tr.classList.add('vqblink'); setTimeout(() => tr.classList.remove('vqblink'), 2300); }
+  }, 30);
+}
+$('#vq').addEventListener('input', () => { clearTimeout(VQ.T); VQ.T = setTimeout(vqSuchen, 250); });
+$('#vq').addEventListener('focus', () => { if ($('#vq').value.trim().length > 1) vqSuchen(); });
+$('#vqAlle').addEventListener('change', () => { LS.set('vqAlle', $('#vqAlle').checked); vqSuchen(); $('#vq').focus(); });
+$('#vqAlle').checked = LS.get('vqAlle', false);
+$('#vq').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { vqZu(); $('#vq').blur(); return; }
+  if (!VQ.box || !VQ.L.length) { if (e.key === 'Enter') vqSuchen(); return; }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); VQ.i = Math.max(0, Math.min(VQ.L.length - 1, VQ.i + (e.key === 'ArrowDown' ? 1 : -1))); VQ.box.querySelectorAll('[data-vqi]').forEach((b) => b.classList.toggle('on', +b.dataset.vqi === VQ.i)); const b = VQ.box.querySelector(`[data-vqi="${VQ.i}"]`); if (b) b.scrollIntoView({ block: 'nearest' }); }
+  if (e.key === 'Enter') { e.preventDefault(); vqGehe(VQ.L[Math.max(0, VQ.i)]); }
+});
+document.addEventListener('mousedown', (e) => {
+  if (!VQ.box) return;
+  const b = e.target.closest('[data-vqi]'); if (b) { e.preventDefault(); vqGehe(VQ.L[+b.dataset.vqi]); return; }
+  if (e.target.closest('[data-vqalle]')) { e.preventDefault(); $('#vqAlle').checked = true; LS.set('vqAlle', true); vqSuchen(); return; }
+  if (!e.target.closest('.vqe') && !e.target.closest('.vqb')) vqZu();
+});
+document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); $('#vq').focus(); $('#vq').select(); } });
+addEventListener('resize', vqZu);
 
 /* ---------- Fotos zu Positionen ---------- */
 const fotosVon = (x) => (L && L.bilder && L.bilder[x.id]) || [];

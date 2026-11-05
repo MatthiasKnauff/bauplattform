@@ -104,6 +104,88 @@ def _sees(c, pid):
     return r if g.user["is_admin"] or not lead or g.user["id"] in lead else None
 
 
+# ---------------------------------------------------------------- Volltextsuche
+def _fold(t):
+    import unicodedata
+    t = str(t or "").lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    return "".join(ch for ch in unicodedata.normalize("NFKD", t) if not unicodedata.combining(ch))
+
+
+def _schnipsel(text, worte, n=70):
+    """Ausschnitt um den ersten Treffer (Originaltext, eine Zeile)."""
+    t = " ".join(str(text or "").split())
+    f = _fold(t)
+    pos = min([f.find(w) for w in worte if f.find(w) >= 0] or [0])
+    a = max(0, pos - n // 2)
+    return ("… " if a else "") + t[a:a + n * 2] + (" …" if a + n * 2 < len(t) else "")
+
+
+@app.get("/api/suche")
+def suche():
+    """Volltext über alle LVs (Kurz- und Langtexte, OZ, Titel, Hinweistexte, Nachträge), Bieter, Aufmaß und Türliste.
+    pid = nur dieses Projekt; alle Wörter müssen vorkommen (Umlaute egal)."""
+    q = (request.args.get("q") or "").strip()
+    worte = [w for w in _fold(q).split() if w]
+    if not worte or len(q) < 2:
+        return jsonify(treffer=[], mehr=False)
+    pid = request.args.get("pid", type=int)
+    passt = lambda *xs: all(w in _fold(" ".join(str(x or "") for x in xs)) for w in worte)
+    out, LIMIT = [], 300
+    with db.tx() as c:
+        projekte = {}
+        for r in c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall():
+            if r["project_id"] not in projekte:
+                projekte[r["project_id"]] = _sees(c, r["project_id"]) if r["project_id"] else True
+            pr = projekte[r["project_id"]]
+            if not pr:
+                continue
+            pname = pr["name"] if pr is not True else ""
+            basis = {"lv_id": r["id"], "lv": f"{r['nr']} {r['name']}".strip(), "pid": r["project_id"], "projekt": pname, "archiviert": bool(r["archived"])}
+            if passt(r["nr"], r["name"], r["gewerk"]):
+                out.append({**basis, "art": "lv", "titel": f"LV {r['nr']} {r['name']}", "text": r["gewerk"] or ""})
+            items = (_j(r["data"], {}) or {}).get("items") or []
+            for x in items:
+                if not passt(x.get("oz"), x.get("kurz"), x.get("lang"), x.get("einheit"), x.get("nt")):
+                    continue
+                art = "titel" if x.get("typ") == "titel" else "text" if x.get("art") == "T" else "nachtrag" if x.get("nt") else "pos"
+                lang = x.get("lang") or ""
+                txt = _schnipsel(lang, worte) if lang and lang != x.get("kurz") and any(w in _fold(lang) for w in worte) else ""
+                out.append({**basis, "art": art, "pos_id": x.get("id"), "oz": x.get("oz") or "", "titel": x.get("kurz") or "", "text": txt,
+                            "nt": x.get("nt") or "", "entf": bool(x.get("entf"))})
+                if len(out) >= LIMIT:
+                    break
+            for a in c.execute("SELECT id, bieter FROM ava_angebot WHERE lv_id=?", (r["id"],)).fetchall():
+                if passt(a["bieter"]):
+                    out.append({**basis, "art": "angebot", "titel": a["bieter"], "text": "Angebot", "angebot": a["id"]})
+            pos = {x.get("id"): x for x in items}
+            for a in c.execute("SELECT id, pos_id, ort, formel FROM ava_aufmass WHERE lv_id=?", (r["id"],)).fetchall():
+                if passt(a["ort"], a["formel"]):
+                    x = pos.get(a["pos_id"]) or {}
+                    out.append({**basis, "art": "aufmass", "pos_id": a["pos_id"], "oz": x.get("oz") or "", "titel": x.get("kurz") or "", "text": f"{a['ort']} · {a['formel']}"})
+            for a in c.execute("SELECT nr, re_nr, notiz FROM ava_rechnung WHERE lv_id=?", (r["id"],)).fetchall():
+                if passt(a["re_nr"], a["notiz"]):
+                    out.append({**basis, "art": "rechnung", "titel": f"{a['nr']}. Rechnung" + (f" ({a['re_nr']})" if a["re_nr"] else ""), "text": _schnipsel(a["notiz"], worte)})
+            if len(out) >= LIMIT:
+                break
+        # Türlisten der Projekte
+        pids = [pid] if pid else [int(x["key"].split(":")[1]) for x in c.execute("SELECT key FROM bp_store WHERE key LIKE 'tueren:%'").fetchall()
+                                  if x["key"].split(":")[1].isdigit()]
+        for p_ in pids:
+            if len(out) >= LIMIT:
+                break
+            d = _tueren_laden(c, p_)
+            if not d["tueren"]:
+                continue
+            pr = _sees(c, p_)
+            if not pr:
+                continue
+            for t in d["tueren"]:
+                if isinstance(t, dict) and passt(*[v for v in t.values() if isinstance(v, (str, int, float))]):
+                    out.append({"art": "tuer", "pid": p_, "projekt": pr["name"], "lv_id": None, "lv": "Türliste", "tuer": t.get("id"),
+                                "titel": f"Tür {t.get('nr') or ''}".strip(), "text": " · ".join(str(t.get(k)) for k in ("raum", "typ", "breite", "hoehe") if t.get(k))})
+    return jsonify(treffer=out[:LIMIT], mehr=len(out) >= LIMIT)
+
+
 def _lv(c, i):
     r = c.execute("SELECT * FROM ava_lv WHERE id=?", (i,)).fetchone()
     if not r or (r["project_id"] and not _sees(c, r["project_id"])):

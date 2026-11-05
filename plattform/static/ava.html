@@ -267,6 +267,38 @@ table.tl tr.rs td.rn{background:color-mix(in srgb,#4da3ff 35%,var(--tabs));color
 table.tl .ed{position:absolute;left:0;top:0;height:100%;min-width:100%;z-index:5;box-sizing:border-box;border:2px solid #4da3ff;border-radius:0;font:inherit;font-size:12px;padding:0 .2rem;background:var(--bg);color:var(--ink)}
 .tl-w .ed-fix{position:absolute;z-index:6}
 .tl-leer{padding:2rem;text-align:center}
+.tl-views{display:flex;gap:.3rem;flex-wrap:wrap;margin:0 0 -1px;position:relative;z-index:1}
+.tl-views button{border:1px solid transparent;border-bottom:0;border-radius:9px 9px 0 0;padding:.45rem .9rem;background:transparent;color:var(--mute);font:inherit;font-size:.95rem;cursor:pointer}
+.tl-views button.on{background:var(--card);border-color:var(--line);color:var(--ink);font-weight:600}
+.tl-views small{color:var(--mute);font-weight:400;font-size:.78rem}
+.tl-flex{display:flex;align-items:flex-start;gap:.6rem}
+.tl-flex .tl-w{flex:1;min-width:0}
+.tl-d{width:340px;flex:none;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;max-height:calc(100vh - 215px);overflow:auto;font-size:.92rem}
+.tl-d h4{margin:0;font-size:1.05rem}
+.tl-dg{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:.8rem 0 .3rem}
+.tl-df{display:grid;grid-template-columns:1fr 1fr;gap:.35rem .55rem}
+.tl-df label{display:flex;flex-direction:column;gap:.1rem;font-size:.78rem;color:var(--mute)}
+.tl-df label.w{grid-column:1/-1}
+.tl-df input{font-size:.92rem;padding:.35rem .5rem;width:100%;min-width:0;box-sizing:border-box}
+.tl-chips{display:flex;flex-wrap:wrap;gap:.3rem}
+.tl-chips button{border:1px solid var(--line);border-radius:999px;padding:.2rem .6rem;background:transparent;color:var(--ink);font:inherit;font-size:.82rem;cursor:pointer}
+.tl-chips button.on{background:var(--y);border-color:var(--y);color:var(--on)}
+.tl-chips button.halb{border-color:var(--y);border-style:dashed}
+.tl-pop{position:fixed;z-index:1000;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.3);padding:.7rem;max-width:min(440px,92vw)}
+table.tl td.mk{white-space:nowrap;overflow:hidden}
+table.tl td.mk .tl-tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:0 .45rem;margin-right:.2rem;font-size:.85em;line-height:1.5}
+table.tl td.fx,table.tl th.fx{position:sticky;z-index:1;background:var(--card)}
+table.tl th.fx{z-index:3;background:var(--tabs)}
+table.tl td.fx{box-shadow:inset -1px 0 0 var(--line)}
+table.tl.gross{font-size:14.5px}
+table.tl.gross td{height:40px;padding:.3rem .5rem}
+table.tl.gross thead tr:nth-child(2) th{height:auto;vertical-align:bottom;text-align:left}
+table.tl.gross th .vt{writing-mode:horizontal-tb;transform:none;white-space:normal;font-size:12.5px;font-weight:600;padding:.45rem .5rem;max-height:none;margin:0}
+table.tl.gross th.g{font-size:11px;height:1.5rem}
+table.tl.gross thead tr:nth-child(2) th{top:1.5rem}
+table.tl.gross td.rn,table.tl.gross th.rn{font-size:12px}
+table.tl.gross .ed{font-size:14.5px;padding:0 .45rem}
+@media (max-width:1100px){.tl-flex{flex-direction:column}.tl-d{width:100%;max-height:none}}
 .tl-vs{display:grid;grid-template-columns:1fr auto;gap:.3rem .8rem;font-size:.85rem;max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:.5rem}
 /* ---------- Handy-Ansicht (nur lesen, wie im Bauzeitenplan) ---------- */
 #mView{display:none}
@@ -1886,30 +1918,66 @@ function tlZurueck(vor) {
   toast(`${vor ? 'Wiederholt' : 'Rückgängig'}: ${st.label || 'Änderung'}`);
 }
 const tlSicht = () => { const q = TLq.trim().toLowerCase(); return TL.tueren.filter((t) => !q || Object.values(t).some((v) => typeof v === 'string' && v.toLowerCase().includes(q))); };
-const tlSpalten = () => TSP.filter((c) => !TLzu.has(c[4]) || c[4] === 'Lage');
+/* Darstellung (⚙ in der Leiste, je Benutzer gemerkt): Ansichten, feste Lage-Spalten, Ausstattung als Marken, Details rechts, große Schrift */
+const TLO = Object.assign({ ansichten: true, fest: true, marken: true, details: true, gross: true }, LS.get('tlo', {}));
+let TLV = LS.get('tlv', 'uebersicht');
+const TAUS = ['aus', 'Ausstattung', 'm', 120, 'Ausstattung'];   // eine Spalte mit Marken statt 20 Ja/Nein-Spalten
+const TVIEWS = [
+  ['uebersicht', 'Übersicht', ['nr', 'geschoss', 'raum', 'raumname', 'art', 'anzahl', 'flg', 'din', 'b', 'h', 'wand', 'brand', 'schall', 'aus', 'bem']],
+  ['masse', 'Maße & Fenster', ['nr', 'geschoss', 'raum', 'typ', 'art', 'anzahl', 'b', 'h', 'wand', 'bruestung', 'oeffnung', 'fb_innen', 'fb_aussen', 'rollo', 'glas']],
+  ['ausf', 'Ausführung', ['nr', 'geschoss', 'raum', 'art', 'zarge', 'blatt', 'oberfl', 'farbe', 'glas', 'aus']],
+  ['anf', 'Anforderungen & Beschlag', ['nr', 'geschoss', 'raum', 'art', 'brand', 'schall', 'rc', 'klima', 'schloss', 'beschlag', 'aus']],
+  ['alle', 'Alle Spalten', null]];
+const TFEST = ['nr', 'geschoss', 'raum'];   // bleiben beim Scrollen nach rechts stehen
+const tlSpalten = () => {
+  const v = TLO.ansichten ? TVIEWS.find((x) => x[0] === TLV) || TVIEWS[0] : TVIEWS[TVIEWS.length - 1];
+  let L = v[2] ? v[2].map((k) => (k === 'aus' ? TAUS : TSP.find((c) => c[0] === k))).filter(Boolean) : TSP.filter((c) => !TLzu.has(c[4]) || c[4] === 'Lage');
+  if (!v[2] && TLO.marken) { const i = L.findIndex((c) => c[2] === 'b'); L = L.filter((c) => c[2] !== 'b'); if (i >= 0) L.splice(i, 0, TAUS); }
+  if (!TLO.marken) L = L.flatMap((c) => (c === TAUS ? TSP.filter((x) => x[2] === 'b') : [c]));
+  return L;
+};
+const TKURZ = { nr: 'Nr.', geschoss: 'Geschoss', raum: 'Raum-Nr.', raumname: 'Raum', zu: 'zu Raum', anzahl: 'Anz.', din: 'DIN', b: 'Breite', h: 'Höhe', wand: 'Wand', bruestung: 'Brüstung', oeffnung: 'Öffnung',
+  fb_innen: 'Fensterbank innen', fb_aussen: 'Fensterbank außen', brand: 'Brand', schall: 'Schall', rc: 'RC', klima: 'Klima', farbe: 'Farbe/RAL', oberfl: 'Oberfläche' };
+const tlKopf = (c) => (TLO.gross && TKURZ[c[0]]) || c[1];
+const TMIN = { art: 150, raumname: 120, bem: 220, zarge: 170, blatt: 150, beschlag: 170, oeffnung: 110, fb_innen: 140, fb_aussen: 140, glas: 130, oberfl: 110, schloss: 70, brand: 80, schall: 70, wand: 66, b: 66, h: 66, bruestung: 76 };
+const tlBreite = (c) => (TLO.gross ? Math.max(TMIN[c[0]] || 0, Math.round(c[3] * 1.7), c[2] === 'b' ? 34 : c[2] === 'm' ? 230 : c[2] === 's' ? 100 : 50, Math.min(150, tlKopf(c).length * 8.4 + 18)) : c[3]);
 const tlBox = () => (TLA && TLC ? { r1: Math.min(TLA.r, TLC.r), r2: Math.max(TLA.r, TLC.r), c1: Math.min(TLA.c, TLC.c), c2: Math.max(TLA.c, TLC.c) } : null);
-const tlText = (t, c) => { const v = t[c[0]]; return c[2] === 'b' ? (v ? '✓' : '') : v == null ? '' : c[0] === 'din' ? String(v).replace(/^DIN /, '') : String(v); };
+const tlText = (t, c) => { if (c[2] === 'm') return TJA.filter(([k]) => t[k]).map(([, l]) => l).join(', '); const v = t[c[0]]; return c[2] === 'b' ? (v ? '✓' : '') : v == null ? '' : c[0] === 'din' ? String(v).replace(/^DIN /, '') : String(v); };
 function tlWert(c, roh) {   // eingegebenen / eingefügten Text in den Feldwert wandeln
   const v = String(roh == null ? '' : roh).trim();
   if (c[2] === 'b') return /^(x|ja|j|1|✓|✔|true|wahr|yes)$/i.test(v) || undefined;
   if (c[0] === 'din') { const m = v.match(/^(?:din\s*)?([lr])$/i); if (m) return 'DIN ' + m[1].toUpperCase(); }
   return v || undefined;
 }
-function tlSetzen(t, c, roh) { const w = tlWert(c, roh); if (w === undefined || w === false) delete t[c[0]]; else t[c[0]] = w; }
+function tlSetzen(t, c, roh) {
+  if (c[2] === 'm') {   // Marken: „OTS, E-Öffner“ – Bezeichnung oder Kürzel
+    const L = String(roh || '').toLowerCase().split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+    TJA.forEach(([k, l]) => { if (L.some((x) => x === l.toLowerCase() || x === k || l.toLowerCase().startsWith(x))) t[k] = true; else delete t[k]; });
+    return;
+  }
+  const w = tlWert(c, roh); if (w === undefined || w === false) delete t[c[0]]; else t[c[0]] = w; }
 function vTueren(v) {
   if (!pid) { v.innerHTML = '<div class="card empty"><p>Bitte oben ein Projekt wählen.</p></div>'; return; }
   if (!TL || TL.pid !== pid) { v.innerHTML = '<p class="mute">Lade Türliste …</p>'; tlLaden(); return; }
   if (TL.laedt) { v.innerHTML = '<p class="mute">Lade Türliste …</p>'; return; }
   tlDatalists();
   const T = tlSicht(), S = tlSpalten(), B = tlBox();
-  const gr = []; TSP.forEach((c) => { const g = gr[gr.length - 1]; if (g && g[0] === c[4]) g[1].push(c); else gr.push([c[4], [c]]); });
+  const alle = !TLO.ansichten || TLV === 'alle', zu = (g) => alle && TLzu.has(g) && g !== 'Lage';
+  const gr = [];
+  if (alle) [...new Set(TSP.map((c) => c[4]))].forEach((g) => gr.push([g, S.filter((c) => c[4] === g)]));
+  else S.forEach((c) => { const g = gr[gr.length - 1]; if (g && g[0] === c[4]) g[1].push(c); else gr.push([c[4], [c]]); });
+  const RN = TLO.gross ? 34 : 26, LEFT = {}; { let acc = RN; S.forEach((c) => { if (TLO.fest && TFEST.includes(c[0])) LEFT[c[0]] = acc; acc += tlBreite(c); }); }
   const stueck = TL.tueren.reduce((s, t) => s + (Math.max(1, parseInt(t.anzahl, 10) || 1)), 0);
   const nZ = B ? B.r2 - B.r1 + 1 : 0;
-  const kopf1 = gr.map(([g, cs]) => (TLzu.has(g) && g !== 'Lage' ? `<th class="g" data-tlg="${esc(g)}" title="${esc(g)} wieder aufklappen" style="width:16px">▸</th>` : `<th class="g" colspan="${cs.length}" data-tlg="${esc(g)}" title="${g === 'Lage' ? '' : 'Klick: Spaltengruppe zuklappen'}">${esc(g)}</th>`)).join('');
-  const kopf2 = gr.map(([g, cs]) => (TLzu.has(g) && g !== 'Lage' ? '<th data-tlg="' + esc(g) + '"></th>' : cs.map((c) => `<th style="width:${c[3]}px" title="${esc(c[1])}" data-tlk="${S.indexOf(c)}"><span class="vt">${esc(c[1])}</span></th>`).join(''))).join('');
+  const kopf1 = gr.map(([g, cs]) => (zu(g) ? `<th class="g" data-tlg="${esc(g)}" title="${esc(g)} wieder aufklappen" style="width:16px">▸</th>` : `<th class="g" colspan="${cs.length}" data-tlg="${esc(g)}" title="${g === 'Lage' ? '' : 'Klick: Spaltengruppe zuklappen'}">${esc(g)}</th>`)).join('');
+  const kopf2 = gr.map(([g, cs]) => (zu(g) ? '<th data-tlg="' + esc(g) + '"></th>' : cs.map((c) => `<th style="width:${tlBreite(c)}px${LEFT[c[0]] != null ? `;left:${LEFT[c[0]]}px` : ''}" class="${LEFT[c[0]] != null ? 'fx' : ''}" title="${esc(c[1])}" data-tlk="${S.indexOf(c)}"><span class="vt">${esc(tlKopf(c))}</span></th>`).join(''))).join('');
   const zelle = (t, r, c, ci) => { const cl = [c[2] === 'b' ? 'c' : c[2] === 'n' ? 'n' : '']; if (B && r >= B.r1 && r <= B.r2 && ci >= B.c1 && ci <= B.c2) cl.push('m'); if (TLC && TLC.r === r && TLC.c === ci) cl.push('a');
-    const x = tlText(t, c); return `<td data-r="${r}" data-c="${ci}" class="${cl.join(' ')}"${x.length > 6 ? ` title="${esc(x)}"` : ''}>${esc(x)}</td>`; };
-  const zeile = (t, r) => { let ci = 0; return `<tr data-t="${esc(t.id)}" class="${B && r >= B.r1 && r <= B.r2 && B.c1 === 0 && B.c2 === S.length - 1 ? 'rs' : ''}"><td class="rn" data-rn="${r}">${r + 1}</td>${gr.map(([g, cs]) => (TLzu.has(g) && g !== 'Lage' ? '<td class="k"></td>' : cs.map((c) => zelle(t, r, c, ci++)).join(''))).join('')}</tr>`; };
+    const x = tlText(t, c), fx = LEFT[c[0]] != null;
+    if (fx) cl.push('fx');
+    const st = fx ? ` style="left:${LEFT[c[0]]}px"` : '';
+    if (c[2] === 'm') return `<td data-r="${r}" data-c="${ci}" class="${cl.join(' ')} mk"${x ? ` title="${esc(x)}"` : ''}>${TJA.filter(([k]) => t[k]).map(([, l]) => `<span class="tl-tag">${esc(l)}</span>`).join('')}</td>`;
+    return `<td data-r="${r}" data-c="${ci}" class="${cl.join(' ')}"${st}${x.length > 6 ? ` title="${esc(x)}"` : ''}>${esc(x)}</td>`; };
+  const zeile = (t, r) => { let ci = 0; return `<tr data-t="${esc(t.id)}" class="${B && r >= B.r1 && r <= B.r2 && B.c1 === 0 && B.c2 === S.length - 1 ? 'rs' : ''}"><td class="rn" data-rn="${r}">${r + 1}</td>${gr.map(([g, cs]) => (zu(g) ? '<td class="k"></td>' : cs.map((c) => zelle(t, r, c, ci++)).join(''))).join('')}</tr>`; };
   v.innerHTML = `<div class="tl-bar">
       <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button>
       <span class="sep"></span>
@@ -1917,12 +1985,48 @@ function vTueren(v) {
       <span class="sep"></span>
       <input type="search" id="tlQ" placeholder="Suchen (Nr., Raum, T30 …)" value="${esc(TLq)}">
       <span style="flex:1"></span><span class="hint">${TL.tueren.length} Zeilen · ${stueck} Stück${nZ > 1 ? ` · ${nZ} Zeilen markiert` : ''}</span>
-      <a class="btn sm" href="api/projekt/${pid}/tueren.xlsx" title="Liste als Excel">Excel</a><button class="btn sm pri" data-tl="lv" ${TL.tueren.length ? '' : 'disabled'} title="Gleiche Elemente zu Positionen zusammenfassen und ins LV übernehmen">→ In LV übernehmen …</button></div>
-    ${TL.tueren.length ? `<div class="tl-w" tabindex="0"><table class="tl"><colgroup><col style="width:26px">${gr.map(([g, cs]) => (TLzu.has(g) && g !== 'Lage' ? '<col style="width:16px">' : cs.map((c) => `<col style="width:${c[3]}px">`).join(''))).join('')}</colgroup>
+      <button class="btn sm" data-tl="opt" title="Darstellung: Ansichten, feste Spalten, Ausstattung als Marken, Details, Schriftgröße" aria-haspopup="dialog">⚙ Darstellung</button><a class="btn sm" href="api/projekt/${pid}/tueren.xlsx" title="Liste als Excel">Excel</a><button class="btn sm pri" data-tl="lv" ${TL.tueren.length ? '' : 'disabled'} title="Gleiche Elemente zu Positionen zusammenfassen und ins LV übernehmen">→ In LV übernehmen …</button></div>
+    ${TLO.ansichten && TL.tueren.length ? `<div class="tl-views" role="tablist">${TVIEWS.map(([k, l, ks]) => `<button type="button" role="tab" data-tlv="${k}" class="${k === TLV ? 'on' : ''}" aria-selected="${k === TLV}">${esc(l)}${ks ? ` <small>${ks.length}</small>` : ''}</button>`).join('')}</div>` : ''}
+    ${TL.tueren.length ? `<div class="tl-flex"><div class="tl-w" tabindex="0"><table class="tl${TLO.gross ? ' gross' : ''}"><colgroup><col style="width:${RN}px">${gr.map(([g, cs]) => (zu(g) ? '<col style="width:16px">' : cs.map((c) => `<col style="width:${tlBreite(c)}px">`).join(''))).join('')}</colgroup>
       <thead><tr><th class="rn g" rowspan="1"></th>${kopf1}</tr><tr><th class="rn" title="Alles markieren" data-tl="alles">⊿</th>${kopf2}</tr></thead>
-      <tbody>${T.map(zeile).join('')}</tbody></table></div>
-      <p class="hint" style="margin:.5rem 0 0">Wie in Excel: klicken/ziehen markiert (Umschalt erweitert, Zeilennummer markiert ganze Zeilen), Tippen oder Doppelklick schreibt, Entf löscht, Strg+C / Strg+X / Strg+V kopiert und fügt ein – auch aus Excel –, Strg+D füllt nach unten, Strg+Z macht rückgängig. Ja/Nein-Spalten mit Klick oder Leertaste, beim Einfügen gilt x/ja/1 als Ja. Maße in m oder mm. Gruppenüberschrift anklicken klappt Spalten zu.</p>`
+      <tbody>${T.map(zeile).join('')}</tbody></table></div>${TLO.details ? `<aside class="tl-d" id="tlD">${tlDetails()}</aside>` : ''}</div>
+      <p class="hint" style="margin:.5rem 0 0">Wie in Excel: klicken/ziehen markiert (Umschalt erweitert, Zeilennummer markiert ganze Zeilen), Tippen oder Doppelklick schreibt, Entf löscht, Strg+C / Strg+X / Strg+V kopiert und fügt ein – auch aus Excel –, Strg+D füllt nach unten, Strg+Z macht rückgängig. Ja/Nein-Spalten mit Klick oder Leertaste, beim Einfügen gilt x/ja/1 als Ja. Maße in m oder mm.${alle ? ' Gruppenüberschrift anklicken klappt Spalten zu.' : ''}${TLO.marken ? ' Ausstattung: Doppelklick oder Eingabe öffnet die Auswahl.' : ''}</p>`
     : `<div class="card tl-leer"><p>Noch keine Türen oder Fenster in diesem Projekt.</p><p class="hint">Zeilen anlegen, aus Excel einfügen (Strg+V in die erste Zelle) oder für die Räume aus dem Raumbuch übernehmen. Alles lässt sich später als Positionen ins LV übernehmen.</p><button class="btn pri" data-tl="neu">+ Erste Zeile</button> <button class="btn" data-tl="raeume">Aus Raumbuch …</button> <button class="btn" data-tl="einf">Aus Zwischenablage einfügen</button></div>`}`;
+}
+/* Details rechts: alle Felder der markierten Zeile(n) – eine Änderung gilt für alle markierten */
+function tlAuswahl() { const B = tlBox(), V = tlSicht(); return B ? V.slice(B.r1, B.r2 + 1) : TLC ? [V[TLC.r]].filter(Boolean) : []; }
+function tlDetails() {
+  const W = tlAuswahl();
+  if (!W.length) return '<p class="hint" style="margin:0">Zeile anklicken – hier stehen dann alle ihre Felder. Mehrere Zeilen markieren: Änderungen gelten für alle.</p>';
+  const gleich = (k) => { const v = W[0][k]; return W.every((t) => (t[k] ?? '') === (v ?? '')) ? (v ?? '') : null; };
+  const kopf = W.length === 1 ? `${esc(W[0].nr || 'ohne Nr.')}${W[0].raumname || W[0].raum ? ' · ' + esc(W[0].raumname || W[0].raum) : ''}` : `${W.length} Zeilen markiert`;
+  const gruppen = [...new Set(TSP.filter((c) => c[2] !== 'b').map((c) => c[4]))];
+  return `<h4>${kopf}</h4><p class="hint" style="margin:.1rem 0 .6rem">${W.length > 1 ? 'Änderungen gelten für alle markierten Zeilen. Leere Felder: unterschiedliche Werte.' : 'Änderungen gelten sofort.'}</p>`
+    + gruppen.map((g) => `<div class="tl-dg">${esc(g)}</div><div class="tl-df">${TSP.filter((c) => c[4] === g && c[2] !== 'b').map((c) => { const v = gleich(c[0]);
+      return `<label${c[0] === 'bem' || c[0] === 'raumname' ? ' class="w"' : ''}>${esc(c[1].replace(/ \(m o\. mm\)/, ''))}<input data-tld="${c[0]}" value="${esc(v ?? '')}"${v === null ? ' placeholder="unterschiedlich"' : ''}${TA[c[0]] ? ` list="tl-${c[0]}"` : ''} autocomplete="off"></label>`; }).join('')}</div>`).join('')
+    + `<div class="tl-dg">Ausstattung</div><div class="tl-chips">${TJA.map(([k, l]) => { const n = W.filter((t) => t[k]).length; return `<button type="button" data-tlj="${k}" class="${n === W.length ? 'on' : n ? 'halb' : ''}">${esc(l)}</button>`; }).join('')}</div>`;
+}
+function tlDetailsNeu() { const d = document.getElementById('tlD'); if (d && !d.contains(document.activeElement)) d.innerHTML = tlDetails(); }
+function tlMarkenWahl(td) {   // Ausstattung in der Tabelle: Auswahl an der Zelle
+  document.querySelectorAll('.tl-pop').forEach((x) => x.remove());
+  const W = tlAuswahl(); if (!W.length) return;
+  const pop = document.createElement('div'); pop.className = 'tl-pop';
+  const zeichnen = () => { pop.innerHTML = `<div class="tl-chips">${TJA.map(([k, l]) => { const n = W.filter((t) => t[k]).length; return `<button type="button" data-tlj="${k}" class="${n === W.length ? 'on' : n ? 'halb' : ''}">${esc(l)}</button>`; }).join('')}</div><div class="hint" style="margin-top:.4rem">${W.length > 1 ? W.length + ' Zeilen · ' : ''}Esc oder Klick daneben schließt</div>`; };
+  zeichnen(); document.body.appendChild(pop);
+  const r = td.getBoundingClientRect(); pop.style.left = Math.max(8, Math.min(innerWidth - pop.offsetWidth - 8, r.left)) + 'px'; pop.style.top = Math.min(innerHeight - pop.offsetHeight - 8, r.bottom + 4) + 'px';
+  pop.addEventListener('click', (e) => { const b = e.target.closest('[data-tlj]'); if (!b) return; tlJa(b.dataset.tlj, W); zeichnen(); });
+  setTimeout(() => { const zu = (e) => { if (e.type === 'keydown' ? e.key === 'Escape' : !pop.contains(e.target)) { pop.remove(); document.removeEventListener('mousedown', zu); document.removeEventListener('keydown', zu); tlZeichnen(); } }; document.addEventListener('mousedown', zu); document.addEventListener('keydown', zu); }, 0);
+}
+function tlJa(k, W) {   // Ausstattung an/aus für alle gewählten Zeilen (alle an → alle aus)
+  const an = !W.every((t) => t[k]); tlMerken(`${(TJA.find((x) => x[0] === k) || [, k])[1]} ${an ? 'an' : 'aus'}`);
+  W.forEach((t) => { if (an) t[k] = true; else delete t[k]; }); tlSpeichern();
+  const B = tlBox(); if (B) for (let r = B.r1; r <= B.r2; r++) tlSpalten().forEach((c, ci) => { if (c[2] === 'm' || c[0] === k) tlZelleNeu(r, ci); });
+}
+function tlOptionen(btn) {
+  const L = [['ansichten', 'Ansichten (Reiter Übersicht, Maße & Fenster …)'], ['fest', 'Nr., Geschoss und Raum beim Scrollen festhalten'], ['marken', 'Ausstattung als Marken in einer Spalte'], ['details', 'Details der markierten Zeile rechts'], ['gross', 'Große Schrift und Zeilen']];
+  modalBox(`<h3>Darstellung der Türliste</h3><div style="display:flex;flex-direction:column;gap:.5rem;margin:.4rem 0 1rem">${L.map(([k, l]) => `<label class="chk"><input type="checkbox" data-tlo="${k}"${TLO[k] ? ' checked' : ''}><span>${l}</span></label>`).join('')}</div><p class="hint">Gilt nur für dich, wird gemerkt.</p><div class="acts"><button class="btn pri" data-m="x">Fertig</button></div>`, (m, bg, close) => close())
+    .addEventListener('change', (e) => { const k = e.target.dataset.tlo; if (!k) return; TLO[k] = e.target.checked; LS.set('tlo', TLO); TLA = TLC = null; tlZeichnen(); });
+  void btn;
 }
 function tlNaechsteNr(nr) { const m = String(nr || '').match(/^(.*?)(\d+)(\D*)$/); if (!m) return ''; return m[1] + String(+m[2] + 1).padStart(m[2].length, '0') + m[3]; }
 function tlZeichnen() {
@@ -1934,6 +2038,7 @@ function tlMarkieren() {   // nur Klassen setzen (schnell, ohne neu zu zeichnen)
   document.querySelectorAll('table.tl td[data-r]').forEach((td) => { const r = +td.dataset.r, c = +td.dataset.c;
     td.classList.toggle('m', !!B && r >= B.r1 && r <= B.r2 && c >= B.c1 && c <= B.c2); td.classList.toggle('a', !!TLC && TLC.r === r && TLC.c === c); });
   document.querySelectorAll('table.tl tbody tr').forEach((tr, r) => tr.classList.toggle('rs', !!B && r >= B.r1 && r <= B.r2 && B.c1 === 0 && B.c2 === S.length - 1));
+  tlDetailsNeu();
   const n = B ? B.r2 - B.r1 + 1 : 0; ['dup', 'mehr', 'del'].forEach((k) => { const b = document.querySelector(`[data-tl="${k}"]`); if (b) b.disabled = !n; });
   const td = TLC && document.querySelector(`table.tl td[data-r="${TLC.r}"][data-c="${TLC.c}"]`); if (td) td.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
@@ -1943,6 +2048,7 @@ function tlGehe(r, c, erweitern) {
 }
 function tlBearbeiten(start) {   // Zelle bearbeiten (Eingabefeld über der Zelle)
   if (!TLC) return; const T = tlSicht(), S = tlSpalten(), t = T[TLC.r], c = S[TLC.c]; if (!t || !c) return;
+  if (c[2] === 'm') { const td = document.querySelector(`table.tl td[data-r="${TLC.r}"][data-c="${TLC.c}"]`); if (td) tlMarkenWahl(td); return; }
   if (c[2] === 'b') { tlMerken(`${c[1]} umgeschaltet`); tlSetzen(t, c, t[c[0]] ? '' : 'x'); tlSpeichern(); tlZelleNeu(TLC.r, TLC.c); return; }
   const td = document.querySelector(`table.tl td[data-r="${TLC.r}"][data-c="${TLC.c}"]`); if (!td) return;
   const inp = document.createElement('input'); inp.className = 'ed'; inp.value = start != null ? start : (t[c[0]] || '');
@@ -2049,9 +2155,20 @@ document.addEventListener('paste', (e) => {
 document.addEventListener('click', (e) => {
   if (tab !== 'tueren' || !TL) return;
   const g = e.target.closest('[data-tlg]'); if (g && g.dataset.tlg !== 'Lage') { const n = g.dataset.tlg; if (TLzu.has(n)) TLzu.delete(n); else TLzu.add(n); LS.set('tlzu', [...TLzu]); TLA = TLC = null; tlZeichnen(); return; }
+  const v = e.target.closest('[data-tlv]'); if (v) { TLV = v.dataset.tlv; LS.set('tlv', TLV); TLA = TLC = null; tlZeichnen(); return; }
+  const j = e.target.closest('#tlD [data-tlj]'); if (j) { tlJa(j.dataset.tlj, tlAuswahl()); const d = $('#tlD'); if (d) d.innerHTML = tlDetails(); return; }
+  if (e.target.closest('#tlD')) return;
   const b = e.target.closest('[data-tl]'); if (b) tlAktion(b.dataset.tl);
 });
+document.addEventListener('change', (e) => {   // Details rechts: Feld für alle markierten Zeilen setzen
+  const el = e.target.closest && e.target.closest('#tlD [data-tld]'); if (!el || tab !== 'tueren' || !TL) return;
+  const c = TSP.find((x) => x[0] === el.dataset.tld), W = tlAuswahl(); if (!c || !W.length) return;
+  if (el.value === '' && el.placeholder === 'unterschiedlich') return;   // nichts eingetragen: unterschiedliche Werte bleiben
+  tlMerken(`${c[1]} geändert`); W.forEach((t) => tlSetzen(t, c, el.value)); tlSpeichern();
+  const B = tlBox(), S = tlSpalten(), ci = S.indexOf(c); if (B && ci >= 0) for (let r = B.r1; r <= B.r2; r++) tlZelleNeu(r, ci); else if (TLC && ci >= 0) tlZelleNeu(TLC.r, ci);
+});
 async function tlAktion(a) {
+  if (a === 'opt') { tlOptionen(); return; }
   const T = TL.tueren, V = tlSicht(), B = tlBox(), sel = B ? V.slice(B.r1, B.r2 + 1) : [];
   if (a === 'neu') {   // neue Zeile unter der markierten: Ausführung übernehmen, Nr. hochzählen, Raum leer
     const ref = TLC ? V[B.r2] : T[T.length - 1];

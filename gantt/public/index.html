@@ -16,11 +16,9 @@
     <button class="tcard" id="projCard" hidden data-act="projMenu" title="Projekt wechseln, öffnen, neu anlegen oder schließen"><span class="tc-txt"><span class="tc-t" id="projTitle">Projekt</span><span class="tc-s" id="projSub">&nbsp;</span></span><svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
     <span class="tb-fill"></span>
     <button class="ticon" data-act="toggleAssist" title="Planungsassistent ein-/ausblenden"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M18.5 14.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/></svg></button>
-    <button class="ticon" data-act="printDialog" title="Drucken / PDF (Strg+P)"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M7 14h10v7H7z"/></svg></button>
   </header>
 
   <nav id="tabs">
-    <button class="tab" data-tab="datei"><svg viewBox="0 0 24 24"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5"/></svg>Datei</button>
     <button class="tab active" data-tab="vorgang"><svg viewBox="0 0 24 24"><path d="M4 6h9M7 12h11M5 18h7"/></svg>Leistung</button>
     <button class="tab" data-tab="projekt"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>Projekt</button>
     <button class="tab" data-tab="ansicht"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Ansicht</button>
@@ -29,34 +27,7 @@
   </nav>
 
   <div id="ribbon">
-    <!-- Datei -->
-    <div class="grp" data-tab="datei">
-      <div class="btns">
-        <button class="rb" data-act="fileNew" data-ico="newfile" title="Neues Projekt">Neu</button>
-        <button class="rb" data-act="fileOpen" data-ico="open" title="Projekt öffnen (Strg+O)">Öffnen</button>
-        <button class="rb" data-act="fileSaveAs" data-ico="saveas" title="Speichern unter – als Datei (.gantt, Excel/CSV, MS Project, PDF) oder als Kopie unter neuem Namen (Strg+Umschalt+S)">Speichern<br>unter …</button>
-        <button class="rb" data-act="planUebernehmen" data-ico="open" title="Abschnitte (Leistungen mit Dauern, Gewerken und Verknüpfungen) aus einem anderen Bauzeitenplan an diesen Plan anhängen">Aus anderem<br>Plan …</button>
-      </div><div class="gl">Datei</div>
-    </div>
-    <div class="grp" data-tab="datei">
-      <div class="btns">
-        <div class="rcol" style="display:none"><select id="projSelect"></select><input type="checkbox" id="autoSaveChk"></div>
-        <button class="rb" data-act="bpVerknuepfen" data-ico="link" title="Plan mit einem Projekt des Bautagebuchs verknüpfen oder die Verknüpfung ändern">Projekt<br>verknüpfen</button>
-        <button class="rb" data-act="renameProject" data-ico="pencil">Umbe-<br>nennen</button>
-        <button class="rb" data-act="deleteProject" data-ico="trash" title="Projekt archivieren (bleibt erhalten) oder endgültig löschen">Archivieren /<br>löschen</button>
-      </div><div class="gl">Projekt</div>
-    </div>
-    <div class="grp" data-tab="datei">
-      <div class="btns">
-        <button class="rb" data-act="saveVersion" data-ico="vsave" title="Jetzigen Plan unter einem Namen festhalten (z. B. „an Bauherrn 05.11.“)">Stand<br>speichern</button>
-        <button class="rb" data-act="versionHistory" data-ico="history" title="Alle Stände – automatische und benannte – ansehen, vergleichen und wiederherstellen">Verlauf</button>
-      </div><div class="gl">Verlauf</div>
-    </div>
-    <div class="grp" data-tab="datei">
-      <div class="btns">
-        <button class="rb" data-act="printDialog" data-ico="printer" title="Drucken / PDF (Strg+P)">Drucken<br>/ PDF</button>
-      </div><div class="gl">Ausgabe</div>
-    </div>
+    <div class="rcol" style="display:none"><select id="projSelect"></select><input type="checkbox" id="autoSaveChk"></div>
 
     <!-- Gewerke & Firmen -->
     <div class="grp" data-tab="firmen">

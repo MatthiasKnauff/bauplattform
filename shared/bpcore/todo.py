@@ -154,7 +154,7 @@ def _a_erinnerungen(c, u, R, P, ok):
 
 
 def _lvs(c, ok):
-    for r in c.execute("SELECT * FROM ava_lv WHERE archived=0").fetchall():
+    for r in c.execute("SELECT * FROM ava_lv WHERE archived=0 AND (version_id IS NULL OR version_id IN (SELECT id FROM ava_version WHERE aktiv=1))").fetchall():
         if r["project_id"] and ok(r["project_id"]):
             yield r
 
@@ -322,7 +322,7 @@ def _a_budget(c, u, R, P, ok):
     except Exception:   # Module nicht im Container – Analyse entfällt
         return out
     for pid in [p for p in P if ok(p)]:
-        lvs = c.execute("SELECT * FROM ava_lv WHERE project_id=? AND archived=0", (pid,)).fetchall()
+        lvs = c.execute("SELECT * FROM ava_lv WHERE project_id=? AND archived=0 AND (version_id IS NULL OR version_id IN (SELECT id FROM ava_version WHERE aktiv=1))", (pid,)).fetchall()
         if not lvs:
             continue
         summe = 0.0

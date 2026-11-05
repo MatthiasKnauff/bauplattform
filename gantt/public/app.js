@@ -2266,7 +2266,7 @@ const ACTIONS = {
     await flushSave();
     const p = await api.create({ name, start: snapWork(todayN()), tasks: [] }); await refreshProjectList(); await openProject(p.id);
   }),
-  renameProject: () => promptDialog('Projekt umbenennen', 'Projektname', P.name, (name) => { act(() => { P.name = name; }); refreshProjectList(); }),
+  renameProject: () => promptDialog('Version umbenennen', 'Name der Version (das Projekt steht oben in der Kopfleiste)', P.name, (name) => { act(() => { P.name = name; }); refreshProjectList(); }),
   deleteProject: () => archivDialog(),
   importJson: () => $('#fileInput').click(),
   exportJson: () => download(fileName('json'), JSON.stringify({ name: P.name, start: P.start, startDate: isoD(P.start), nextUid: P.nextUid, gwColors: P.gwColors || {}, tasks: P.tasks }, null, 2), 'application/json'),
@@ -2294,7 +2294,7 @@ const ACTIONS = {
 };
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
-  if (!P && !NOPROJ_OK.has(b.dataset.act)) { toast('Kein Bauzeitenplan geöffnet – oben im Kopf das Projekt wählen oder Datei → Öffnen.'); return; }
+  if (!P && !NOPROJ_OK.has(b.dataset.act)) { toast('Kein Bauzeitenplan geöffnet – oben im Kopf das Projekt wählen oder einen Plan anlegen.'); return; }
   const f = ACTIONS[b.dataset.act]; if (f) f(b);
 });
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
@@ -2302,6 +2302,7 @@ document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () 
 const NOPROJ_OK = new Set(['fileNew', 'fileOpen', 'projMenu', 'settings', 'verlaufKatalog', 'toggleAssist', 'popoutAssist', 'libNew', 'libFromProjects', 'libStd', 'libExport', 'libImport']);
 function setNoProject(on) {
   document.body.classList.toggle('no-project', on);
+  if (on) { const v = document.getElementById('bph-vl'); if (v) v.style.display = 'none'; }
   document.querySelectorAll('.rb[data-act]').forEach((b) => b.classList.toggle('np-dis', on && !NOPROJ_OK.has(b.dataset.act)));
   $('#startView').hidden = !on || LS.get('tab', 'vorgang') === 'katalog';
   if (on) { $('#main').hidden = true; $('#firmView').hidden = true; }
@@ -2336,9 +2337,10 @@ async function renderStart() {
   const gp = window.BPHead && BPHead.projekt;
   if (gp && gp.id) {   // aktuelles Projekt der Plattform
     const eig = projects.filter((p) => p.bt_id === gp.id && !p.archived);
-    box.innerHTML = `<div class="sv"><div class="sv-h"><h2>${eig.length ? 'Bauzeitpläne für ' + esc(gp.name) : 'Für ' + esc(gp.name) + ' gibt es noch keinen Bauzeitenplan'}</h2>
-      <p>${eig.length ? 'Plan wählen oder einen weiteren anlegen.' : 'Neu anlegen – leer, mit dem Planungsassistenten oder aus dem Ablauf eines früheren Projekts. Er wird gleich mit diesem Projekt verknüpft.'}</p>
-      <div class="sv-b"><button class="btn primary" data-act="fileNew">Bauzeitenplan anlegen …</button><button class="btn" data-act="fileOpen">Anderen Plan öffnen …</button></div></div>
+    if (eig.length) { await openProject(eig.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))[0].id); refreshProjectList(); return; }
+    box.innerHTML = `<div class="sv"><div class="sv-h"><h2>Für ${esc(gp.name)} gibt es noch keinen Bauzeitenplan</h2>
+      <p>Neu anlegen – leer, mit dem Planungsassistenten oder aus dem Ablauf eines früheren Projekts. Er gehört gleich zu diesem Projekt; die erste Version heißt „Startversion“.</p>
+      <div class="sv-b"><button class="btn primary" data-act="fileNew">Bauzeitenplan anlegen …</button></div></div>
       ${eig.length ? `<div class="sv-list">${eig.map((p) => `<button class="sv-p" data-open="${p.id}"><b>${esc(p.name)}</b><small>${p.n || 0} Leistungen${p.start != null ? ' · Beginn ' + fmtD(p.start) : ''}</small></button>`).join('')}</div>` : ''}</div>`;
     return;
   }
@@ -2365,6 +2367,7 @@ function projMenu(btn) {
   ctxMenu(r.left, r.bottom + 4, items);
 }
 function showTab(name) {
+  if (!document.querySelector(`.tab[data-tab="${name}"]`)) name = 'vorgang';   // Reiter „Datei“ gibt es nicht mehr (Versionsleiste)
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.grp').forEach((g) => g.classList.toggle('show', g.dataset.tab === name));
   LS.set('tab', name);
@@ -2423,7 +2426,9 @@ function fileNew() {
   // Projekt, aus dem man gekommen ist (gemeinsames Projekt der Apps): hat es noch keinen Plan, dessen Namen vorschlagen und verknüpfen
   const gp = window.BPHead && BPHead.projekt;
   const gnr = gp && gp.id ? (gp.name.match(/^[A-Za-z]\d{3}(?:\.\d+)?/) || [''])[0].toLowerCase() : '';
-  if (gp && gp.id && !projects.some((p) => p.bt_id === gp.id || (gnr && !p.bt_id && p.name.toLowerCase().startsWith(gnr)))) { const nw = bg.querySelector('#nwName'); nw.value = gp.name; nw.dataset.btId = gp.id; }
+  if (gp && gp.id && !projects.some((p) => p.bt_id === gp.id || (gnr && !p.bt_id && p.name.toLowerCase().startsWith(gnr)))) {   // Projekt steht oben: erste Version, ohne Namensabfrage
+    const nw = bg.querySelector('#nwName'); nw.value = 'Startversion'; nw.dataset.btId = gp.id;
+    const lb = nw.previousElementSibling; if (lb && lb.tagName === 'LABEL') lb.hidden = true; nw.hidden = true; }
   bg.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-nw]'); if (!b) return;
     const nw = bg.querySelector('#nwName'), name = nw.value.trim() || 'Neues Projekt', st = parseDate(bg.querySelector('#nwStart').value) ?? todayN();
@@ -2453,12 +2458,12 @@ function archivDialog() {
     } }]);
 }
 function reallyDelete() {
-  confirmDialog('Projekt endgültig löschen', `Soll das Projekt <b>${esc(P.name)}</b> mit allen Versionen endgültig gelöscht werden? Das kann nicht rückgängig gemacht werden. <br><br>Tipp: <b>Archivieren</b> behält den Plan.`, async () => {
+  confirmDialog('Version endgültig löschen', `Soll die Version <b>${esc(P.name)}</b> mit ihrem Verlauf endgültig gelöscht werden? Das kann nicht rückgängig gemacht werden. <br><br>Tipp: <b>Archivieren</b> behält den Plan.`, async () => {
     clearTimeout(saveTimer); saveTimer = null;
-    await api.del(P.id); projects = await api.list();
-    const next = projects.find((p) => !p.archived) || projects[0];
-    if (!next) { const p = await api.create({ name: 'Neues Projekt', start: snapWork(todayN()), tasks: [] }); projects = await api.list(); await openProject(p.id); }
-    else await openProject(next.id);
+    const bt = P._bt && P._bt.id;
+    await api.del(P.id); projects = await api.list(); P = null;
+    const next = bt ? projects.find((p) => !p.archived && p.bt_id === bt) || projects.find((p) => p.bt_id === bt) : projects.find((p) => !p.archived);   // nächste Version desselben Projekts
+    if (next) await openProject(next.id); else { await keinPlanFuer(); }
     refreshProjectList();
   });
 }
@@ -2546,7 +2551,7 @@ function fileSaveAs() {   // „Speichern unter“ = wie eine Datei abspeichern:
   });
 }
 function fileExport() {
-  const bg = modal('Speichern als – Dateiformat', `<div class="ex-opts">
+  const bg = modal('Exportieren', `<div class="ex-opts">
       <button class="nw-opt" data-ex="gantt"><b>Gantt-Projektdatei (.gantt)</b><small>Vollständig – zum Sichern, Weitergeben und wieder Öffnen</small></button>
       <button class="nw-opt" data-ex="csv"><b>Excel / CSV (.csv)</b><small>Tabelle aller Leistungen mit Terminen, Gewerk, Unternehmer</small></button>
       <button class="nw-opt" data-ex="xml"><b>MS Project (.xml)</b><small>Zum Öffnen in Microsoft Project und kompatiblen Programmen</small></button>
@@ -2684,11 +2689,44 @@ async function reloadProject(note) {
 async function flushSave() { if (saveTimer) { clearTimeout(saveTimer); await saveNow(); } }
 addEventListener('beforeunload', (e) => { if (saveTimer && P) { api.save(P, true); } else if (dirty && !autoSave && P) { e.preventDefault(); e.returnValue = ''; } });
 
+/* ---------- Versionsleiste: je Projekt EIN Bauzeitenplan, darin Versionen (Startversion, 1. Überarbeitung …) = Pläne desselben Projekts ---------- */
+let vlKnoepfe = null;
+function vleiste() {
+  if (!window.BPHead || !BPHead.versionsleiste) return;
+  if (!vlKnoepfe) {
+    const mk = (act, txt, tip) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'bph-vl-b'; b.dataset.act = act; b.textContent = txt; b.title = tip; return b; };
+    vlKnoepfe = [mk('printDialog', '🖨 Drucken / PDF …', 'Bauzeitenplan drucken oder als PDF (Strg+P)'), mk('fileExport', '⤓ Exportieren …', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei')];
+  }
+  const bt = P && P._bt ? P._bt.id : null;
+  const L = !P ? [] : (bt ? projects.filter((p) => p.bt_id === bt) : projects.filter((p) => p.id === P.id)).slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id));
+  const when = (u) => { if (!u) return ''; const d = new Date(u); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`; };
+  const el = BPHead.versionsleiste({ vor: $('#tabs'), aktuell: P && P.id, rechts: vlKnoepfe,
+    liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, sub: `${p.n || 0} Leistungen`, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
+    onWahl: async (id) => { await flushSave(); if (await openProject(String(id)) !== false) refreshProjectList(); },
+    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() });
+  el.style.display = P ? '' : 'none';
+}
+window.ganttVleiste = vleiste;
+function neueVersion() {
+  if (!P) return;
+  modal('Neue Version', `<div class="form" style="max-width:460px"><div class="hint" style="margin:0 0 8px">Kopie von „${esc(P.name)}“ mit allen Leistungen, Verknüpfungen, Firmen und Kalender. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</div>
+    <label>Name der Version</label><input id="nvName" class="full" placeholder="z. B. 1. Überarbeitung, nach den Sommerferien"></div>`, [{ label: 'Anlegen', cls: 'primary', primary: true, fn: (bg) => {
+    const name = bg.querySelector('#nvName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
+    (async () => {
+      await flushSave();
+      const src = JSON.parse(JSON.stringify(P)); delete src._rev; delete src._by; delete src._bt;
+      const p = await api.create({ ...src, name, archived: false, _link: P._bt ? P._bt.id : null });
+      await openProject(p.id); await refreshProjectList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`);
+    })().catch((er) => toast('Anlegen fehlgeschlagen: ' + er.message, true));
+  } }, { label: 'Abbrechen' }]);
+  setTimeout(() => { const i = document.querySelector('#nvName'); if (i) i.focus(); }, 30);
+}
 async function refreshProjectList() {
   projects = await api.list();
   const opt = (p) => `<option value="${p.id}"${P && p.id === P.id ? ' selected' : ''}>${esc(p.id === P?.id ? P.name : p.name)}</option>`;
   const lauf = projects.filter((p) => !p.archived), arch = projects.filter((p) => p.archived);
   $('#projSelect').innerHTML = lauf.map(opt).join('') + (arch.length ? `<optgroup label="Archiv">${arch.map(opt).join('')}</optgroup>` : '');
+  vleiste();
 }
 function askUnsaved() {
   return new Promise((resolve) => {
@@ -2747,7 +2785,6 @@ async function versionHistory() {
   await flushSave();
   let list = [];
   const bg = modal('Verlauf – ' + P.name, '<div id="vhBody">Lade …</div>', [
-    { label: '📌 Stand speichern …', left: true, fn: () => { saveVersionDialog(() => versionHistory()); } },
     { label: 'Schließen' }]);
   bg.querySelector('.modal').style.width = '860px';
   const fmtTs = (iso) => { const d = new Date(iso); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };

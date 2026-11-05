@@ -223,7 +223,7 @@ let PRINT_LOGO = null;
 function printPages(L) {
   const { o, s, pw, ph, m, slices, bands, tableW } = L, { u, hb, fb } = L.hdr;
   const tab = printTable(L), ch = printChart(L);
-  const title = (o.title || '').trim() || P.name;
+  const title = (o.title || '').trim() || (P._bt && P._bt.name) || P.name;   // Projektname (die Version steht im Kopf des Plans nicht)
   const now = new Date(), stamp = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const span = P.tasks.length ? `${fmtD(CAL.sd[L.rows[0]] ?? P.start)} – ${fmtD(CAL.peDay)}` : '';
   const defs = `<defs><marker id="pah" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.6L8,4L0,7.4z" fill="#1f3864"/></marker><marker id="pahc" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.6L8,4L0,7.4z" fill="#c00000"/></marker></defs>`;
@@ -323,7 +323,7 @@ function printDialog() {
         <label class="cb"><input type="checkbox" data-o="header"${o.header ? ' checked' : ''}> Kopfzeile</label>
         <label class="cb"><input type="checkbox" data-o="footer"${o.footer ? ' checked' : ''}> Seitenzahl / Datum</label>
       </div>
-      <label>Titel</label><input data-o="title" value="${esc(o.title)}" placeholder="${esc(P.name)}">
+      <label>Titel</label><input data-o="title" value="${esc(o.title)}" placeholder="${esc((P._bt && P._bt.name) || P.name)}">
     </div>
     <div class="pr-prev"><div class="pr-info" id="prInfo"></div><div class="pr-pages" id="prPages"></div></div>
   </div>`;

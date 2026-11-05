@@ -754,21 +754,22 @@
         const a = b.dataset.vl;
         if (a === 'dd') { const m = el.querySelector('.bph-vl-menu'); m.hidden = !m.hidden; return; }
         el.querySelector('.bph-vl-menu').hidden = true;
-        if (a === 'w') { if (+b.dataset.id !== +O.aktuell && O.onWahl) O.onWahl(+b.dataset.id); return; }
+        if (a === 'w') { if (String(b.dataset.id) !== String(O.aktuell) && O.onWahl) O.onWahl(b.dataset.id); return; }
+        if (a === 'x') { const x = (O.extra || [])[+b.dataset.i]; if (x && x.fn) x.fn(); return; }
         const f = { neu: O.onNeu, ren: O.onUmbenennen, ver: O.onVerlauf, verw: O.onVerwalten }[a]; if (f) f();
       });
       document.addEventListener('mousedown', (e) => { const m = el.querySelector('.bph-vl-menu'); if (m && !m.hidden && !e.target.closest('.bph-vl-menu,[data-vl="dd"]')) m.hidden = true; });
       document.addEventListener('keydown', (e) => { const m = el.querySelector('.bph-vl-menu'); if (e.key === 'Escape' && m) m.hidden = true; });
     }
     el._o = o;
-    const L = o.liste || [], akt = L.find((x) => +x.id === +o.aktuell), nr = (x) => L.filter((y) => !y.archiviert).indexOf(x) + 1;
+    const L = o.liste || [], akt = L.find((x) => String(x.id) === String(o.aktuell)), nr = (x) => L.filter((y) => !y.archiviert).indexOf(x) + 1;
     const zeile = (x) => `<button type="button" class="bph-vl-i${x === akt ? ' on' : ''}${x.archiviert ? ' alt' : ''}" data-vl="w" data-id="${x.id}"><span class="n">${x.archiviert ? '🗄' : nr(x)}</span><span class="t"><b>${esc(x.name || 'ohne Namen')}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span><span class="d">${esc(x.wer || '')}${x.datum ? '<br>' + esc(x.datum) : ''}</span></button>`;
     const aktiv = L.filter((x) => !x.archiviert), arch = L.filter((x) => x.archiviert);
     const st = el.querySelector('.bph-vl-st'), stT = st ? st.textContent : '';
     el.innerHTML = `<span class="bph-vl-l">Version</span>
       <span class="bph-vl-w"><button type="button" class="bph-vl-dd" data-vl="dd" aria-haspopup="listbox"${akt ? '' : ' disabled'}>${akt ? `<b class="n">${akt.archiviert ? '🗄' : nr(akt)}</b><b class="t">${esc(akt.name || 'ohne Namen')}</b>${akt.sub ? `<small>${esc(akt.sub)}</small>` : ''}` : '<b class="t">–</b>'}<span class="c">▾</span></button>
       <div class="bph-vl-menu" hidden>${aktiv.map(zeile).join('')}${arch.length ? '<div class="bph-vl-h">Archiviert</div>' + arch.map(zeile).join('') : ''}
-        <div class="bph-vl-sep2"></div>${akt ? `<button type="button" class="bph-vl-a" data-vl="neu">＋ Neue Version aus „${esc(akt.name || '')}“ …</button>` : ''}${o.onVerwalten && akt ? `<button type="button" class="bph-vl-a" data-vl="verw">🗄 Diese Version archivieren / löschen …</button>` : ''}</div></span>
+        <div class="bph-vl-sep2"></div>${akt ? `<button type="button" class="bph-vl-a" data-vl="neu">＋ Neue Version aus „${esc(akt.name || '')}“ …</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" class="bph-vl-a" data-vl="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${o.onVerwalten && akt ? `<button type="button" class="bph-vl-a" data-vl="verw">🗄 Diese Version archivieren / löschen …</button>` : ''}</div></span>
       ${akt ? `<button type="button" class="bph-vl-b pri" data-vl="neu" title="Kopie der aktuellen Version unter neuem Namen – die alte bleibt, wie sie ist">＋ Neue Version …</button><button type="button" class="bph-vl-b" data-vl="ren">✎ Umbenennen</button>${o.onVerlauf ? '<button type="button" class="bph-vl-b" data-vl="ver" title="Automatisch gesicherte Zwischenstände dieser Version">🕘 Verlauf</button>' : ''}` : ''}
       <span class="bph-vl-r"></span><span class="bph-vl-st" role="status">${esc(stT)}</span>`;
     const r = el.querySelector('.bph-vl-r');

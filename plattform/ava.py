@@ -120,6 +120,90 @@ def _schnipsel(text, worte, n=70):
     return ("… " if a else "") + t[a:a + n * 2] + (" …" if a + n * 2 < len(t) else "")
 
 
+# Versionen: je Projekt gilt die aktive Version (die zuletzt geöffnete) – LVs anderer Versionen bleiben unberührt
+AKTIV = "(version_id IS NULL OR version_id IN (SELECT id FROM ava_version WHERE aktiv=1))"
+
+
+@app.route("/api/versionen", methods=["GET", "POST"])
+def versionen_liste():
+    """Versionen der AVA eines Projekts. POST {project_id, name}: Kopie der aktiven Version (alle LVs mit Angeboten, Aufmaß,
+    Rechnungen und Fotos) – die neue wird aktiv, die alte bleibt, wie sie ist."""
+    b = request.get_json(silent=True) or {} if request.method == "POST" else {}
+    pid = b.get("project_id") if request.method == "POST" else request.args.get("project_id", type=int)
+    if not isinstance(pid, int):
+        return jsonify(error="Projekt fehlt"), 400
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        if request.method == "POST":
+            name = _s(b.get("name"), 200)
+            if not name:
+                return jsonify(error="Bitte einen Namen für die Version eingeben."), 400
+            c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"avaver:{pid}",))
+            now, wer = _now(), g.user["name"]
+            alt = c.execute("SELECT id FROM ava_version WHERE project_id=? AND aktiv=1 ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
+            if not alt:   # noch keine Version: die bisherigen LVs werden zur „Startversion“
+                alt = c.execute("INSERT INTO ava_version(project_id, name, aktiv, created, updated, updated_by) VALUES(?,?,1,?,?,?) RETURNING id",
+                                (pid, "Startversion", now, now, wer)).fetchone()
+                c.execute("UPDATE ava_lv SET version_id=? WHERE project_id=? AND version_id IS NULL", (alt["id"], pid))
+            vid = c.execute("INSERT INTO ava_version(project_id, name, aktiv, von, created, updated, updated_by) VALUES(?,?,0,?,?,?,?) RETURNING id",
+                            (pid, name, alt["id"], now, now, wer)).fetchone()["id"]
+            for r in c.execute("SELECT * FROM ava_lv WHERE version_id=? ORDER BY id", (alt["id"],)).fetchall():
+                n = c.execute("""INSERT INTO ava_lv(project_id, bk_id, nr, name, gewerk, status, data, vergabe, archived, rev, created, updated, updated_by, version_id)
+                                 VALUES(?,?,?,?,?,?,?,?,?,0,?,?,?,?) RETURNING id""",
+                              (r["project_id"], r["bk_id"], r["nr"], r["name"], r["gewerk"], r["status"], r["data"], r["vergabe"], r["archived"],
+                               now, now, wer, vid)).fetchone()["id"]
+                amap = {}
+                for a in c.execute("SELECT * FROM ava_angebot WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall():
+                    amap[a["id"]] = c.execute("""INSERT INTO ava_angebot(lv_id, contact_id, bieter, eingang, preise, nachlass, skonto, notiz, quelle, created, updated)
+                                                 VALUES(?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
+                                              (n, a["contact_id"], a["bieter"], a["eingang"], a["preise"], a["nachlass"], a["skonto"], a["notiz"], a["quelle"],
+                                               a["created"], a["updated"])).fetchone()["id"]
+                V = _j(r["vergabe"], {}) or {}
+                if V.get("angebot_id") in amap:   # Vergabe zeigt auf das kopierte Angebot
+                    V["angebot_id"] = amap[V["angebot_id"]]
+                    c.execute("UPDATE ava_lv SET vergabe=? WHERE id=?", (json.dumps(V, ensure_ascii=False), n))
+                c.execute("""INSERT INTO ava_aufmass(lv_id, pos_id, datum, ort, formel, menge, quelle, created, user_name)
+                             SELECT ?, pos_id, datum, ort, formel, menge, quelle, created, user_name FROM ava_aufmass WHERE lv_id=? ORDER BY id""", (n, r["id"]))
+                c.execute("""INSERT INTO ava_rechnung(lv_id, nr, art, datum, eingang, re_nr, gefordert, data, status, notiz, created, updated, updated_by)
+                             SELECT ?, nr, art, datum, eingang, re_nr, gefordert, data, status, notiz, created, updated, updated_by FROM ava_rechnung WHERE lv_id=? ORDER BY id""",
+                          (n, r["id"]))
+                c.execute("""INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, klein, created, user_name)
+                             SELECT ?, pos_id, name, w, h, data, klein, created, user_name FROM ava_bild WHERE lv_id=? ORDER BY id""", (n, r["id"]))
+            c.execute("UPDATE ava_version SET aktiv=CASE WHEN id=? THEN 1 ELSE 0 END WHERE project_id=?", (vid, pid))
+            C.audit(wer, "ava", "Neue Version", name)
+        rows = c.execute("""SELECT v.*, (SELECT COUNT(*) FROM ava_lv l WHERE l.version_id=v.id) AS n_lv FROM ava_version v
+                            WHERE v.project_id=? ORDER BY v.id""", (pid,)).fetchall()
+        return jsonify([{"id": v["id"], "name": v["name"], "aktiv": bool(v["aktiv"]), "archived": bool(v["archived"]), "n_lv": v["n_lv"],
+                         "created": v["created"], "updated": v["updated"], "updated_by": v["updated_by"]} for v in rows])
+
+
+@app.route("/api/versionen/<int:vid>", methods=["PUT", "DELETE"])
+def version_eins(vid):
+    """PUT {aktiv: true} öffnet die Version (gilt für alle), {name}, {archived}. DELETE löscht sie mit allen LVs."""
+    with db.tx() as c:
+        v = c.execute("SELECT * FROM ava_version WHERE id=?", (vid,)).fetchone()
+        if not v or not _sees(c, v["project_id"]):
+            return jsonify(error="Version nicht gefunden"), 404
+        if request.method == "DELETE":
+            if c.execute("SELECT COUNT(*) AS n FROM ava_version WHERE project_id=?", (v["project_id"],)).fetchone()["n"] < 2:
+                return jsonify(error="Die einzige Version lässt sich nicht löschen."), 400
+            c.execute("DELETE FROM ava_version WHERE id=?", (vid,))
+            if v["aktiv"]:
+                c.execute("""UPDATE ava_version SET aktiv=1 WHERE id=(SELECT id FROM ava_version WHERE project_id=?
+                             ORDER BY archived, updated DESC NULLS LAST, id DESC LIMIT 1)""", (v["project_id"],))
+            C.audit(g.user["name"], "ava", "Version gelöscht", v["name"])
+            return jsonify(ok=True)
+        b = request.get_json(silent=True) or {}
+        if _s(b.get("name"), 200):
+            c.execute("UPDATE ava_version SET name=?, updated=?, updated_by=? WHERE id=?", (_s(b["name"], 200), _now(), g.user["name"], vid))
+        if "archived" in b:
+            c.execute("UPDATE ava_version SET archived=? WHERE id=?", (1 if b["archived"] else 0, vid))
+        if b.get("aktiv"):
+            c.execute("UPDATE ava_version SET aktiv=CASE WHEN id=? THEN 1 ELSE 0 END WHERE project_id=?", (vid, v["project_id"]))
+        return jsonify(ok=True)
+
+
 @app.get("/api/suche")
 def suche():
     """Volltext über alle LVs (Kurz- und Langtexte, OZ, Titel, Hinweistexte, Nachträge), Bieter, Aufmaß und Türliste.
@@ -133,7 +217,7 @@ def suche():
     out, LIMIT = [], 300
     with db.tx() as c:
         projekte = {}
-        for r in c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall():
+        for r in c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + AKTIV + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall():
             if r["project_id"] not in projekte:
                 projekte[r["project_id"]] = _sees(c, r["project_id"]) if r["project_id"] else True
             pr = projekte[r["project_id"]]
@@ -435,7 +519,7 @@ def lv_liste():
     with db.tx() as c:
         if pid and not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
-        rows = c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall()
+        rows = c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + AKTIV + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall()
         out = []
         for r in rows:
             if r["project_id"] and not _sees(c, r["project_id"]):
@@ -478,7 +562,7 @@ def lv_neu():
                         x["menge"] = 0
         nr = _s(b.get("nr"), 20)
         if not nr:
-            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id IS NOT DISTINCT FROM ?", (pid,)).fetchone()["n"]
+            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id IS NOT DISTINCT FROM ? AND " + AKTIV, (pid,)).fetchone()["n"]
             nr = str(n + 1).zfill(2)
         name = _s(b.get("name"), 200) or _s(b.get("gewerk"), 120) or "Leistungsverzeichnis"
         now = _now()
@@ -903,7 +987,7 @@ def tueren_ins_lv(pid):
             versionen.vor(c, f"avalv:{i}")
             c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), now, g.user["name"], i))
         else:
-            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id=?", (pid,)).fetchone()["n"]
+            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id=? AND " + AKTIV, (pid,)).fetchone()["n"]
             items = nummerieren(clean_items(neu))
             i = c.execute("INSERT INTO ava_lv(project_id, nr, name, gewerk, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
                           (pid, str(n + 1).zfill(2), _s(b.get("name"), 200) or "Türen", _s(b.get("gewerk"), 120) or "Türen",

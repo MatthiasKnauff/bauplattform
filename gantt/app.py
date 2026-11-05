@@ -332,14 +332,14 @@ def list_projects(c):
     vis = visible_bt(c, g.user) if getattr(g, "user", None) else None
     bt = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM projects")}
     out = []
-    for r in c.execute("SELECT id, name, data, updated, updated_by, project_id FROM gantt_projects ORDER BY updated DESC"):
+    for r in c.execute("SELECT id, name, data, created, updated, updated_by, project_id FROM gantt_projects ORDER BY updated DESC"):
         if vis is not None and r["project_id"] is not None and r["project_id"] not in vis:
             continue
         try:
             p = json.loads(r["data"])
         except ValueError:
             continue
-        out.append({"id": r["id"], "name": r["name"], "updated": r["updated"], "n": len(p.get("tasks") or []), "start": p.get("start"),
+        out.append({"id": r["id"], "name": r["name"], "created": r["created"], "updated": r["updated"], "n": len(p.get("tasks") or []), "start": p.get("start"),
                     "assist": bool(isinstance(p.get("assist"), dict) and p["assist"].get("type")),
                     "by": r["updated_by"], "bt": bt.get(r["project_id"]) if r["project_id"] else None, "bt_id": r["project_id"],
                     "archived": bool(p.get("archived"))})

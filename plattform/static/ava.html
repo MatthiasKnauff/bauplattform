@@ -332,8 +332,6 @@ html.mobil .bph{position:sticky;top:0}
     </div><div class="rl">Listen</div></div>
     <div class="rg"><div class="rr">
       <button class="rb" id="quBtn" title="Ein LV aus einem anderen (alten) Projekt daneben anzeigen – schreibgeschützt – und Positionen herüberkopieren"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/><path d="M8 12h8M13 9l3 3-3 3"/></svg>Kopierquelle</button>
-      <button class="rb" id="standBtn" data-need="lv" title="Jetzigen Stand dieses LV unter einem Namen festhalten (z. B. „Versand an Bieter 04.11.“)"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/></svg>Stand speichern</button>
-      <button class="rb" id="verBtn" title="Frühere Stände dieses LV ansehen und wiederherstellen"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/></svg>Verlauf</button>
       <button class="rb" id="moreBtn" title="Archivieren oder löschen"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Archiv / Löschen</button>
     </div><div class="rl">Bearbeiten</div></div>
     <div class="rg"><div class="rr">
@@ -403,8 +401,46 @@ async function loadProj() {
   projektKnopf($('#proj'));
   if (pid && window.BPHead) BPHead.projektSetzen(pid);
 }
+/* ---------- Versionsleiste: je Projekt EINE AVA, darin Versionen (Startversion, Bauherrenwünsche eingearbeitet …) – jede mit eigenen LVs ---------- */
+let VERS = [];
+async function vleiste(neu) {
+  if (!window.BPHead || !BPHead.versionsleiste) return;
+  if (neu !== false) { try { VERS = pid ? await api('api/versionen?project_id=' + pid) : []; } catch { VERS = []; } }
+  const akt = VERS.find((v) => v.aktiv) || VERS[0];
+  const dk = (t) => (t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
+  const el = BPHead.versionsleiste({ vor: $('main.ava'), aktuell: akt && akt.id,
+    liste: VERS.map((v) => ({ id: v.id, name: v.name, sub: `${v.n_lv} ${v.n_lv === 1 ? 'LV' : 'LVs'}`, datum: dk(v.created), wer: v.updated_by, archiviert: v.archived })),
+    onWahl: async (id) => { await flush(); await api('api/versionen/' + id, 'PUT', { aktiv: true }); L = null; await loadList(); toast('Version gewechselt – gilt für alle, die in diesem Projekt arbeiten.'); },
+    onNeu: () => { if (!akt) return; modalBox(`<h3>Neue Version</h3><p class="hint" style="margin:0 0 .7rem">Kopie von „${esc(akt.name)}“ mit allen Leistungsverzeichnissen, Angeboten, Aufmaß, Rechnungen und Fotos. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</p>
+        <div class="fm"><label for="nvName">Name der Version</label><input id="nvName" maxlength="120" placeholder="z. B. Bauherrenwünsche eingearbeitet"></div>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close, btn) => {
+        if (m === 'x') { close(); return; }
+        const name = bg.querySelector('#nvName').value.trim(); if (!name) { bg.querySelector('#nvName').focus(); return; }
+        btn.disabled = true;
+        try { await flush(); await api('api/versionen', 'POST', { project_id: pid, name }); close(); L = null; await loadList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`); } catch (e) { btn.disabled = false; toast(e.message, true); }
+      }); setTimeout(() => { const i = document.querySelector('#nvName'); if (i) i.focus(); }, 50); },
+    onUmbenennen: () => { if (!akt) return; modalBox(`<h3>Version umbenennen</h3><div class="fm"><label for="rnName">Name der Version</label><input id="rnName" maxlength="120" value="${esc(akt.name)}"></div>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+        if (m === 'x') { close(); return; }
+        const name = bg.querySelector('#rnName').value.trim(); if (!name) return;
+        try { await api('api/versionen/' + akt.id, 'PUT', { name }); close(); vleiste(); } catch (e) { toast(e.message, true); }
+      }); setTimeout(() => { const i = document.querySelector('#rnName'); if (i) { i.focus(); i.select(); } }, 50); },
+    onVerlauf: () => lvVerlauf(),
+    onVerwalten: () => { if (!akt) return; modalBox(`<h3>Version „${esc(akt.name)}“</h3>
+        <p><b>Archivieren</b> schiebt die Version in der Auswahl nach unten unter „Archiviert“; sie bleibt erhalten.</p>
+        <p><b>Löschen</b> entfernt die Version endgültig – mit allen ihren Leistungsverzeichnissen, Angeboten, Aufmaß und Rechnungen.</p>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${akt.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del"${VERS.length < 2 ? ' disabled title="Die einzige Version lässt sich nicht löschen."' : ''}>Endgültig löschen …</button></div>`, async (m, bg, close) => {
+        if (m === 'x') { close(); return; }
+        try {
+          if (m === 'arch') { await api('api/versionen/' + akt.id, 'PUT', { archived: !akt.archived }); close(); vleiste(); return; }
+          if (m === 'del') { if (!confirm(`Version „${akt.name}“ mit allen LVs endgültig löschen?`)) return; await api('api/versionen/' + akt.id, 'DELETE'); close(); L = null; await loadList(); toast('Version gelöscht.'); }
+        } catch (e) { toast(e.message, true); }
+      }); } });
+  el.style.display = VERS.length ? '' : 'none';
+}
 async function loadList(want) {
   LIST = pid ? await api('api/lv?project_id=' + pid) : [];
+  vleiste();
   want = want || LS.get('lv:' + pid);
   const pick = LIST.find((x) => x.id === want) || LIST.find((x) => !x.archived) || LIST[0];
   if (pick) await openLv(pick.id); else { L = null; render(); }
@@ -439,14 +475,14 @@ async function call(url, m, body) {   // Aktion auf dem Server, Antwort ist das 
   await flush();
   const r = await api(url, m, body); L = r; render(); histTrack(); if (r.hinweis) toast(r.hinweis); refreshList(); return r;
 }
-async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); } catch { /* egal */ } }
+async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
 
 /* ---------- Kopf ---------- */
 function selBtn() {
   const x = L && LIST.find((y) => y.id === L.id);
   pickButton($('#sel'), L ? { title: `${L.nr ? L.nr + ' · ' : ''}${L.name}`, sub: [L.gewerk, STATUS.find((s) => s[0] === L.status)[1], L.vergabe.bieter ? 'an ' + L.vergabe.bieter : '', L.archived ? 'archiviert' : ''].filter(Boolean).join(' · ') }
     : { title: LIST.length ? 'LV wählen' : 'Noch kein Leistungsverzeichnis', sub: LIST.length ? `${LIST.length} im Projekt` : 'Mit „+ Neues LV“ anlegen' });
-  ['impBtn', 'expBtn', 'druBtn', 'verBtn', 'moreBtn'].forEach((k) => { $('#' + k).hidden = !L; });
+  ['impBtn', 'expBtn', 'druBtn', 'moreBtn'].forEach((k) => { $('#' + k).hidden = !L; });
 }
 $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
   search: LIST.length > 6 ? 'LV suchen …' : '', empty: 'Noch kein LV in diesem Projekt.',
@@ -862,7 +898,7 @@ function menu(anchor, list) {
   return o;
 }
 $('#newBtn').onclick = () => newDialog();
-$('#verBtn').onclick = async () => { if (!L || !window.BPHead) return; await flush(); BPHead.verlauf({ bereich: 'avalv:' + L.id, nach: () => openLv(L.id) }); };
+async function lvVerlauf() { if (!L || !window.BPHead) { toast('Erst ein LV öffnen – der Verlauf gilt je Leistungsverzeichnis.'); return; } await flush(); BPHead.verlauf({ bereich: 'avalv:' + L.id, nach: () => openLv(L.id) }); }
 window.bpNachVerlauf = () => (L ? openLv(L.id) : location.reload());
 $('#moreBtn').onclick = () => {
   if (!L) return;
@@ -1417,20 +1453,6 @@ document.addEventListener('keydown', (e) => {
   if (tab === 'tueren') { if (TL && (k === 'z' || k === 'y')) { e.preventDefault(); tlZurueck(k === 'y' || e.shiftKey); } return; }
   if (k === 'z' && !e.shiftKey) { e.preventDefault(); histGo(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); histGo(1); }
 });
-/* Stand speichern: benannter Stand im Verlauf (wird nie automatisch aufgeräumt) */
-$('#standBtn').onclick = () => {
-  if (!L) return;
-  const vor = `${STATUS.find((x) => x[0] === L.status)[1]} – ${new Date().toLocaleDateString('de-DE')}`;
-  modalBox(`<h3>Stand speichern</h3><p class="hint" style="margin:0 0 .7rem">Hält „LV ${esc(L.nr)} ${esc(L.name)}“ so fest, wie es jetzt ist – mit allen Positionen, Texten, Mengen und Preisen. Unter Verlauf lässt sich der Stand jederzeit ansehen, vergleichen und wiederherstellen; benannte Stände werden nie aufgeräumt.</p>
-    <div class="fm"><label for="stName">Name des Stands</label><input id="stName" value="${esc(vor)}" maxlength="120"></div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
-    if (m === 'x') { close(); return; }
-    const name = bg.querySelector('#stName').value.trim(); if (!name) return;
-    try { await flush(); await api('api/bp/versionen', 'POST', { bereich: 'avalv:' + L.id, name }); close(); toast(`Stand „${name}“ gespeichert.`); } catch (e) { toast(e.message, true); }
-  });
-  setTimeout(() => { const i = document.querySelector('#stName'); if (i) { i.focus(); i.select(); } }, 50);
-};
-
 /* ---------- Kopierquelle: LV aus einem anderen Projekt daneben (schreibgeschützt), Positionen herüberkopieren ---------- */
 let QU = { an: LS.get('qu.an', false), pid: LS.get('qu.pid', null), lv: LS.get('qu.lv', null), list: [], L: null, sel: new Set(), mengen: LS.get('qu.mengen', true), preise: LS.get('qu.preise', true) }, LASTI = null;
 document.addEventListener('focusin', (e) => { const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) LASTI = +tr.dataset.i; });

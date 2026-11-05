@@ -1508,7 +1508,7 @@ function quZeigen() {
     <div class="qu-l">${QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
 `;
   pickButton($('#quSel'), QU.lv === 'kat:suche' ? { title: QU.L ? QU.L.name : 'Suche', sub: QU.L ? `${quItems().filter((x) => x.typ === 'pos').length}${QU.L.mehr ? '+' : ''} Treffer` : '' }
-    : lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: QU.pid === 'kat' ? `${lvo.n_pos} Positionen` : [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
+    : lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: QU.pid === 'kat' ? `${lvo.bereich} · ${lvo.n_pos} Positionen` : [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
 }
 function quAuswahl(nur) {   // gewählte Zeilen in LV-Reihenfolge; ein gewählter Titel bringt seinen Inhalt mit
   const I = quItems(), out = [], wahl = nur || QU.sel;
@@ -1541,8 +1541,8 @@ document.addEventListener('click', (e) => {
   if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); quZeigen(); return; }
   if (b && b.dataset.qu === 'ein') { quEinfuegen(quAuswahl(), LASTI); return; }
   if (e.target.closest('#quSel')) {
-    pickMenu($('#quSel'), { search: QU.list.length > 6 ? 'LV suchen …' : '', empty: 'Kein LV in diesem Projekt.',
-      items: QU.list.map((x) => ({ group: x.archived ? 'Archiv' : 'Leistungsverzeichnisse', title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
+    pickMenu($('#quSel'), { search: QU.list.length > 6 ? (QU.pid === 'kat' ? 'Gewerk suchen …' : 'LV suchen …') : '', empty: 'Kein LV in diesem Projekt.',
+      items: QU.list.map((x) => ({ group: x.bereich || (x.archived ? 'Archiv' : 'Leistungsverzeichnisse'), title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
       onPick: async (v) => { QU.lv = v; QU.L = await quLvLaden(v); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
     return;
   }

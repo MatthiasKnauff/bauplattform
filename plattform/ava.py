@@ -191,7 +191,12 @@ def katalog_api():
         gw = c.execute("""SELECT g.oz, g.kurz, (SELECT COUNT(*) FROM ava_katalog p WHERE p.gewerk=g.gewerk AND p.typ='pos' AND p.art<>'T') AS n
                           FROM ava_katalog g WHERE g.typ='gewerk' ORDER BY g.nr""").fetchall()
     return jsonify(info=info, gewerke=[{"id": "kat:" + x["oz"], "nr": x["oz"], "name": x["kurz"], "n_pos": x["n"], "gewerk": "", "status": "entwurf",
-                                        "archived": False} for x in gw])
+                                        "archived": False, "bereich": _kat_bereich(x["oz"])} for x in gw])
+
+
+def _kat_bereich(oz):
+    """sirAdos: Gewerke 000–299 Neubau, ab 300 dieselben Gewerke für Altbau/Sanierung (Abbruch, Arbeiten im Bestand)."""
+    return "Altbau / Sanierung" if oz.isdigit() and int(oz) >= 300 else "Neubau"
 
 
 @app.get("/api/katalog/gewerk/<oz>")
@@ -201,7 +206,9 @@ def katalog_gewerk(oz):
         if not g_:
             return jsonify(error="Gewerk nicht im Katalog"), 404
         zeilen = c.execute("SELECT * FROM ava_katalog WHERE gewerk=? AND typ<>'gewerk' ORDER BY nr", (oz,)).fetchall()
-        return jsonify(_kat_lv(g_["kurz"], oz, _kat_info(c), zeilen))
+        out = _kat_lv(g_["kurz"], oz, _kat_info(c), zeilen)
+        out["bereich"] = _kat_bereich(oz)
+        return jsonify(out)
 
 
 @app.get("/api/katalog/suche")
@@ -221,7 +228,7 @@ def katalog_suche():
         for x in treffer:
             if x["gewerk"] != akt:
                 akt = x["gewerk"]
-                zeilen.append({"id": f"g{akt}", "typ": "titel", "ebene": 1, "oz": akt, "kurz": gn.get(akt, "")})
+                zeilen.append({"id": f"g{akt}", "typ": "titel", "ebene": 1, "oz": akt, "kurz": f"{gn.get(akt, '')} ({_kat_bereich(akt)})"})
             zeilen.append(x)
         out = _kat_lv(f"Suche „{q}“", "suche", info, zeilen)
         out["mehr"] = len(roh) >= 2000 or len(treffer) >= 300

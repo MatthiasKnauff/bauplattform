@@ -560,7 +560,7 @@ def ki_test():
 # Firma & Logo, Ablage, Mailserver und Datensicherung gehören dem Bautagebuch (es verschickt die Mails, legt die Fotos ab und
 # sichert die Datenbank). Die Verwaltung zeigt dieselben Einstellungen und reicht die Aufrufe mit der Anmeldung des Benutzers
 # an das Bautagebuch weiter – beide Stellen bearbeiten also dieselben Daten.
-BT_PASS = re.compile(r"^(settings|logo|mail/test|store/(test|run|backfill|status)|backups(/[^/]+(/(download|restore))?)?)$")
+BT_PASS = re.compile(r"^(settings|logo|mail/test|store/(test|run|backfill|status)|backups(/[^/]+(/(download|restore))?)?|audit/cleanup)$")
 
 
 @app.route("/api/bt/<path:p>", methods=["GET", "POST", "PUT", "DELETE"])

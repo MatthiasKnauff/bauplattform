@@ -259,8 +259,6 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .ar{display:grid;grid-template-columns:8.5rem 1fr;gap:.6rem;padding:.55rem .7rem;border-bottom:1px solid var(--line);font-size:.85rem;text-align:left}.ar:last-child{border-bottom:0}
 .ar .at{color:var(--mute);font-size:.78rem}.ar .aa{display:flex;flex-direction:column;gap:.1rem;min-width:0}.ar .ad{color:var(--ink);overflow-wrap:anywhere}.ar small{color:var(--mute)}
 .ar.konto b{color:#9db8e0}.ar.export b{color:#e0b060}
-.cr{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:center;padding:.5rem .3rem;border-bottom:1px solid var(--line);text-align:left;font-size:.85rem}.cr .cn{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.cr small{color:var(--mute)}.cr .cs{text-align:right;white-space:nowrap}
-#cln h4{margin:1rem 0 .1rem;text-align:left}#cln h5{margin:.5rem 0 .1rem;text-align:left;color:var(--mute);font-weight:600}#cln .info.bad{color:#e08080}
 @media (max-width:520px){.ar{grid-template-columns:1fr;gap:.1rem}}
 .checks{display:flex;flex-wrap:wrap;gap:.5rem 1.3rem;justify-content:flex-start;margin-top:.8rem}
 .checks label{display:flex;gap:.45rem;align-items:center;font-size:.9rem}
@@ -370,13 +368,17 @@ html[data-theme="hell"] #leiste{--lb:#e7e5e0}
   #leiste #repBtn b{font-size:.95rem}
   #leiste #tabs{order:2;flex:1;min-width:0;border-bottom:0;background:transparent}
   #leiste .htools{order:3;padding-right:.6rem}
+  #btq{width:15rem}
   #leiste #hdr .hb{height:38px;min-width:38px;flex-direction:row}
   #leiste #hdr .hb span{display:none}
   #leiste .menu{top:50px}
 }
 @media (max-width:720px){
   #leiste #hdr{background:var(--bg);min-height:0;padding:.45rem .6rem}
+  #btq{width:8.5rem}
 }
+#btq{font:inherit;font-size:.88rem;padding:.4rem .75rem;border-radius:999px;border:1px solid var(--line);background:var(--inp);color:var(--ink);margin-right:.2rem}
+#btq:focus{border-color:var(--y);outline:none}
 </style>
 <link rel="stylesheet" href="bp/head.css">
 <script src="bp/head.js"></script>
@@ -390,6 +392,7 @@ html[data-theme="hell"] #leiste{--lb:#e7e5e0}
     <button id="projBtn" data-act="projPicker" aria-haspopup="dialog" title="Projekt wählen"><span class="t"><b id="pname"></b><small id="paddr"></small></span><span id="chev"></span></button>
     <button id="repBtn" data-act="repPicker" aria-haspopup="dialog" title="Tagesbericht wählen"><span class="t"><b id="rname"></b><small id="rdate"></small></span><span id="rchev"></span></button>
     <div class="htools">
+    <input id="btq" type="search" placeholder="Im Bautagebuch suchen …" autocomplete="off" enterkeyhint="search" aria-label="Im Bautagebuch suchen" title="Durchsucht Projekte, Berichte, Mängel, Notizen, Anwesende, Weisungen, Fotobeschreibungen und Kontakte">
     <button data-act="nearest" id="i-n" class="hb" title="Projekt nach Standort wählen"></button>
     <button data-act="openPath" id="i-fp" class="hb pconly" title="Ordnerpfad auf dem Server kopieren (im Explorer einfügen)"></button>
     <button data-act="print" id="i-pdf" class="hb" title="PDF des Tagesberichts erstellen"></button>
@@ -442,7 +445,7 @@ const IC = {
   pin:'<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'
 };
 const ic = (n, s = 22, w = 2.4) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
-const TABS = [['bericht','Bericht','doc'],['kontakte','Kontakte','users'],['suche','Suche','search']];
+const TABS = [['bericht','Bericht','doc'],['kontakte','Kontakte','users']];   // Suche: Feld rechts in der Reiterzeile
 const WX = ['Heiter','Sonnig','Wolkig','Bedeckt','Regen','Gewitter','Schnee','Nebel'];
 const PRECIP = ['trocken','leichter Regen','Regen','Starkregen','Schnee'];
 const CHECKS = [['chk_tidy','Baustelle aufgeräumt'],['chk_measure','Maßkontrolle'],['chk_photos','Fotodokumentation'],['chk_firms','Alle Firmen angesprochen']];
@@ -538,7 +541,7 @@ function toast(msg, undo) {   // höchstens zwei Meldungen gleichzeitig; mit und
   setTimeout(() => t.remove(), undo ? 8000 : 5000);
 }
 
-const DANGER = new Set(['bkRestore', 'bkDel', 'clnDel', 'restoreVer', 'delUser', 'userMail', 'delProject', 'delReport', 'delContact', 'delImg', 'delLogo']);
+const DANGER = new Set(['bkRestore', 'bkDel', 'restoreVer', 'delUser', 'userMail', 'delProject', 'delReport', 'delContact', 'delImg', 'delLogo']);
 function disarm() { clearTimeout(armedTimer); armedKey = null; document.querySelectorAll('.armed').forEach(el => { el.classList.remove('armed'); if (el._orig != null) { el.innerHTML = el._orig; el._orig = null; } }); }
 function arm(b, key) {   // erster Tipp = scharf stellen, zweiter Tipp = ausführen
   if (armedKey === key) { disarm(); return true; }
@@ -560,7 +563,7 @@ function chrome() {
   $('#rdate').textContent = r ? fmt(r.date) + (r.time ? ' · ' + r.time : '') : 'Tippen zum Anlegen';
   $('#i-n').innerHTML = ic('pin', 20) + '<span>Standort</span>'; $('#i-pdf').innerHTML = ic('pdf', 20) + '<span>PDF</span>'; $('#i-fp').innerHTML = ic('folder', 20) + '<span>Ordner</span>'; $('#i-fp').classList.toggle('hidden', !p); $('#i-g').innerHTML = ic('grid', 20, 1.7) + '<span>Mehr</span>';
   $('#i-pdf').classList.toggle('hidden', !rid);
-  $('#tabs').innerHTML = TABS.concat(me.is_admin ? [['audit', 'Protokoll', 'clock']] : []).map(([k, l, i]) => `<button class="tab ${k === tab ? 'on' : ''}" data-act="tab" data-t="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ic(i, 20, 2)}<span>${l}</span></button>`).join('');
+  $('#tabs').innerHTML = TABS.map(([k, l, i]) => `<button class="tab ${k === tab ? 'on' : ''}" data-act="tab" data-t="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ic(i, 20, 2)}<span>${l}</span></button>`).join('');
   const apps = (PLATFORM.apps || []).filter(a => a.allowed && a.key !== 'bautagebuch');   // Bauplattform: andere Apps (gleiche Anmeldung)
   $('#menu').innerHTML = `<div class="who">Angemeldet: ${esc(me.name)}</div><button data-act="tab" data-t="profil">${ic('gear', 18)}Einstellungen</button>`
     + (apps.length ? '<div class="msep"></div>' + apps.map(a => `<a class="mapp" href="${esc(appUrl(a))}">${ic({ gantt: 'cal', admin: 'users', portal: 'home', adressen: 'user', aufgaben: 'clock', plaene: 'folder', baukosten: 'archive' }[a.key] || 'doc', 18)}${esc(a.name)}</a>`).join('') + '<div class="msep"></div>' : '')
@@ -998,12 +1001,11 @@ let sr = {q: '', scope: 'all', res: null, T: 0};
 const mark = parts => parts.map(([t, h]) => h ? `<mark>${esc(t)}</mark>` : esc(t)).join('');
 function renderSearch(box) {
   const p = curProject();
-  box.innerHTML = `<div class="wrap"><div class="cform" style="max-width:760px"><h3>Suche</h3>
-    <input class="w" id="fq" type="search" placeholder="Stichwörter, z. B. Riss Fenster oder Häser Elektro" value="${esc(sr.q)}" autocomplete="off" enterkeyhint="search">
+  box.innerHTML = `<div class="wrap"><div class="cform" style="max-width:760px"><h3>Suche${sr.q ? ` nach „${esc(sr.q)}“` : ''} <button class="bd" data-act="srZu" style="float:right;font-size:.85rem">✕ Schließen</button></h3>
     <div class="chips w"><button class="chip ${sr.scope === 'all' ? 'on' : ''}" data-act="srScope" data-k="all">Alle Projekte</button>${p ? `<button class="chip ${sr.scope === 'one' ? 'on' : ''}" data-act="srScope" data-k="one">Nur ${esc(p.name)}</button>` : ''}</div>
     <div class="info w">Durchsucht Projekte, Berichte (Datum, Bauleitung, Wetter), Mängel, Notizen, Anwesende, Weisungen, Zu erledigen, Fotobeschreibungen und Kontakte. Alle Wörter müssen vorkommen; Groß-/Kleinschreibung und Umlaute spielen keine Rolle („haeser“ findet „Häser“).</div>
     <div id="srl" class="w audl"></div></div></div>`;
-  fillSearch(); if (!sr.q) $('#fq').focus();
+  fillSearch();
 }
 async function doSearch() {
   const q = sr.q.trim(); if (!q) { sr.res = null; return fillSearch(); }
@@ -1036,57 +1038,8 @@ function fillBackups() {
     <div class="va"><a class="bd" href="api/backups/${encodeURIComponent(x.name)}/download" download>Laden</a><button data-act="bkRestore" data-id="${esc(x.name)}" data-arm="Wirklich zurückspielen? Nochmal tippen">Wiederherstellen</button><button data-act="bkDel" data-id="${esc(x.name)}" class="bad">✕</button></div></div>`).join('')}</div>
     <div class="info">„Wiederherstellen“ ersetzt den gesamten Datenbestand durch den Stand der Version (davor wird automatisch gesichert). Danach wird die Seite neu geladen.</div>` : '<div class="info">Noch keine Version vorhanden.</div>';
 }
-/* ---------- Auditprotokoll + Aufräumen auf dem Projektserver (nur Administrator) ---------- */
-let aud = {cat: '', q: '', user: '', rows: [], more: false, users: [], loaded: false}, cln = null, clnScope = 'one';   // cln: null = noch nicht gesucht
-const CATS = [['', 'Alles'], ['inhalt', 'Inhalte'], ['export', 'PDF & Server'], ['konto', 'Konto']];
+/* Protokoll und „Alte PDFs aufräumen“ stehen jetzt in der Verwaltung → System */
 const fsize = b => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
-async function loadAudit(more) {
-  const a = new URLSearchParams({cat: aud.cat, q: aud.q, user: aud.user}); if (more && aud.rows.length) a.set('before', aud.rows[aud.rows.length - 1].id);
-  const r = await api('api/audit?' + a); if (r.error) { toast(r.error); return; }
-  aud.rows = more ? aud.rows.concat(r.rows) : r.rows; aud.more = r.more; aud.users = r.users; aud.loaded = true; fillAudit();
-}
-function renderAudit(box) {
-  const p = curProject();
-  box.innerHTML = `<div class="wrap"><div class="cform" style="max-width:760px"><h3>Alte PDFs auf dem Projektserver</h3>
-    <div class="info w">Beim erneuten PDF-Export benennt die App das bisherige PDF und den Fotoordner des Tages in „…_old1“, „…_old2“ um. Hier findest du diese Kopien in den Projektordnern auf dem Server und kannst sie löschen.</div>
-    <div class="chips w">${[['one', p ? 'Aktuelles Projekt' : ''], ['active', 'Alle aktiven Projekte'], ['archived', 'Archivierte Projekte'], ['all', 'Alle Projekte']].filter(x => x[1]).map(([k, l]) => `<button class="chip ${clnScope === k ? 'on' : ''}" data-act="clnScope" data-k="${k}">${l}</button>`).join('')}</div>
-    <div class="acts w"><button data-act="clnScan">${cln ? 'Neu suchen' : 'Alte PDFs suchen'}</button></div><div id="cln" class="w"></div></div>
-    <div class="cform" style="max-width:760px;padding-top:0"><h3>Protokoll</h3>
-    <div class="chips w">${CATS.map(([k, l]) => `<button class="chip ${aud.cat === k ? 'on' : ''}" data-act="audCat" data-k="${k}">${l}</button>`).join('')}</div>
-    <div class="w audf"><input id="audq" type="search" placeholder="Suchen: Aktion, Projekt, Bericht, Dateiname …" value="${esc(aud.q)}" autocomplete="off"><select id="audu" aria-label="Benutzer"></select></div>
-    <div class="info w" id="audh"></div>
-    <div id="audl" class="w audl"></div></div></div>`;
-  fillCleanup(); if (aud.loaded) fillAudit(); else loadAudit();
-}
-function fillAudit() {
-  const b = $('#audl'); if (!b) return;
-  const u = $('#audu'); if (u) u.innerHTML = `<option value="">Alle Benutzer</option>` + [...new Set([...aud.users, aud.user].filter(Boolean))].map(n => `<option ${n === aud.user ? 'selected' : ''}>${esc(n)}</option>`).join('');
-  const act = [aud.cat && CATS.find(c => c[0] === aud.cat)[1], aud.user && 'Benutzer ' + aud.user, aud.q && '„' + aud.q + '“'].filter(Boolean);
-  $('#audh').innerHTML = act.length ? `Filter: ${esc(act.join(' + '))} – <a href="#" data-act="audReset">zurücksetzen</a>` : 'Zeigt die letzten Aktionen aller Benutzer. Mit den Knöpfen, der Suche und dem Benutzer lässt sich eingrenzen (alles gleichzeitig).';
-  b.innerHTML = aud.rows.length ? aud.rows.map(r => `<div class="ar ${r.cat}"><div class="at">${dt(r.ts)} · ${esc(r.user_name || '–')}</div><div class="aa"><b>${esc(r.action)}</b>${r.detail ? `<span class="ad">${esc(r.detail)}</span>` : ''}${r.project || r.report ? `<small>${esc([r.project, r.report].filter(Boolean).join(' · '))}</small>` : ''}</div></div>`).join('')
-    + (aud.more ? '<button class="bd" data-act="audMore">Ältere Einträge laden</button>' : '') : '<div class="empty">Keine Einträge.</div>';
-}
-async function clnLoad(btn) {
-  if (btn) btn.disabled = true; cln = null;
-  const r = await api(`api/audit/cleanup?scope=${clnScope}&project_id=${pid || ''}`);
-  cln = r.error ? {error: r.error} : {items: r.items, projects: r.projects, errors: r.errors, sel: new Set()}; renderAudit($('#detail'));
-}
-function fillCleanup() {
-  const b = $('#cln'); if (!b) return;
-  if (!cln) { b.innerHTML = ''; return; }
-  if (cln.error) { b.innerHTML = `<div class="info bad">${esc(cln.error)}</div>`; return; }
-  const key = i => i.project_id + '|' + i.path;
-  const sel = cln.items.filter(i => cln.sel.has(key(i))), tot = sel.reduce((n, i) => n + i.size, 0);
-  const row = i => `<label class="cr"><input type="checkbox" data-cl="${esc(key(i))}" ${cln.sel.has(key(i)) ? 'checked' : ''}><span class="cn"><b>${esc(i.name)}</b><small>${esc(i.dir)}</small></span><span class="cs">${i.kind === 'photos' ? i.files + ' Foto(s) · ' : ''}${fsize(i.size)}<br><small>${dt(new Date(i.mtime * 1000).toISOString())}</small></span></label>`;
-  const grp = (pj, k, t) => { const l = cln.items.filter(i => i.project_id === pj && i.kind === k); return l.length ? `<h5>${t} (${l.length})</h5>${l.map(row).join('')}` : ''; };
-  const projs = [...new Map(cln.items.map(i => [i.project_id, i])).values()];
-  b.innerHTML = cln.items.length ? `<div class="info">${cln.items.length} alte Version(en) in ${projs.length} Projekt(en) (${cln.projects} durchsucht${cln.errors ? ', ' + cln.errors + ' nicht erreichbar' : ''}).</div>`
-    + projs.map(i => `<h4>${esc(i.project)}${i.archived ? ' <small>(archiviert)</small>' : ''}</h4>${grp(i.project_id, 'pdf', 'PDF-Dateien')}${grp(i.project_id, 'photos', 'Fotoordner')}`).join('') + `
-    <div class="acts"><button data-act="clnAll">${sel.length === cln.items.length ? 'Alle abwählen' : 'Alle markieren'}</button>
-    <button class="bad" data-act="clnDel" data-arm="${sel.length} Element(e) endgültig löschen? Nochmal tippen" ${sel.length ? '' : 'disabled'}>Ausgewählte löschen${sel.length ? ` (${sel.length}, ${fsize(tot)})` : ''}</button></div>
-    <div class="info">Gelöscht wird nur auf dem Projektserver, endgültig. Das aktuelle PDF und die aktuellen Fotos bleiben unberührt. Jede Löschung steht im Protokoll.</div>`
-    : `<div class="info">Keine alten PDFs auf dem Server gefunden (${cln.projects} Projekt(e) durchsucht).</div>`;
-}
 /* ---------- Versionsverlauf der Berichte ---------- */
 let verOpen = false, verData = null, verView = null, verSnap = null;
 const dt = iso => { const d = new Date(String(iso).replace(' ', 'T')); return isNaN(d) ? '' : d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'}) + ' ' + d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}); };
@@ -1537,7 +1490,7 @@ function renderDetail() {
   if (tab === 'profil' && window.BPHead && BPHead.einstellungen) { tab = 'bericht'; BPHead.einstellungen({ bereich: 'app' }); }
   const box = $('#detail'); box.classList.toggle('fill', tab === 'kontakte');
   $('#fab').classList.toggle('hidden', !(tab === 'bericht' && curProject() && curReport())); $('#fab').innerHTML = ic('plus', 30, 3);
-  ({bericht: renderReport, projekt: renderProject, kontakte: renderContacts, profil: renderProfile, audit: renderAudit, suche: renderSearch}[tab])(box);
+  ({bericht: renderReport, projekt: renderProject, kontakte: renderContacts, profil: renderProfile, suche: renderSearch}[tab])(box);
 }
 
 async function saveDue(pan, close) {   // Datum + Uhrzeit des Erinnerungs-Panels speichern
@@ -1631,8 +1584,13 @@ const hideSug = () => document.querySelectorAll('.sug').forEach(b => b.classList
 document.addEventListener('focusin', e => { if (e.target.dataset && e.target.dataset.sg) showSug(e.target); });
 document.addEventListener('click', e => { if (e.target.dataset && e.target.dataset.sg) showSug(e.target); });
 document.addEventListener('input', e => {
-  if (e.target.id === 'fq') { sr.q = e.target.value; clearTimeout(sr.T); sr.T = setTimeout(doSearch, 250); return; }
-  if (e.target.id === 'audq') { clearTimeout(window._audT); window._audT = setTimeout(() => { aud.q = e.target.value.trim(); loadAudit(); }, 300); return; } if (e.target.dataset && e.target.dataset.sg) showSug(e.target); });
+  if (e.target.id === 'btq') {   // Suchfeld in der Reiterzeile: Treffer im Inhalt, leeres Feld → zurück
+    sr.q = e.target.value; clearTimeout(sr.T);
+    if (!sr.q.trim()) { if (tab === 'suche') { tab = sr.vor || 'bericht'; chrome(); renderDetail(); } return; }
+    if (tab !== 'suche') { sr.vor = tab; tab = 'suche'; chrome(); renderDetail(); } else { const h = document.querySelector('#detail h3'); if (h) h.firstChild.textContent = `Suche nach „${sr.q}“ `; }
+    sr.T = setTimeout(doSearch, 250); return;
+  }
+  if (e.target.dataset && e.target.dataset.sg) showSug(e.target); });
 document.addEventListener('focusout', e => { if (e.target.dataset && e.target.dataset.sg) setTimeout(hideSug, 200); });
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.sug, .adrsug')) e.preventDefault(); });   // Eingabefeld behält den Fokus
 // Schnell-Fenster: Beim Tippen rückt es nach OBEN unter die Kopfzeile, damit die iPhone-Tastatur es nie verdeckt (Safari verschiebt sonst die Seite)
@@ -1685,7 +1643,8 @@ document.addEventListener('click', async e => {
   const a = b.dataset.act, id = +b.dataset.id;
   if (DANGER.has(a) && !arm(b, a + (b.dataset.id || ''))) return;
   if (a === 'logout') { await api('api/logout', 'POST'); showLogin(); }
-  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if (tab !== 'projekt') draft = null; newC = false; cfrom = null; cedit = false; renderDetail(); }
+  else if (a === 'srZu') { $('#btq').value = ''; sr.q = ''; tab = sr.vor || 'bericht'; chrome(); renderDetail(); }
+  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } if (tab !== 'projekt') draft = null; newC = false; cfrom = null; cedit = false; renderDetail(); }
   else if (a === 'menu') $('#menu').classList.toggle('hidden');
   else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
   else if (a === 'projPicker') { if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) }); else openSheet('proj'); }
@@ -1729,17 +1688,6 @@ document.addEventListener('click', async e => {
   else if (a === 'bkNew') { b.disabled = true; await api('api/backups', 'POST'); toast('Datenbankversion angelegt.'); await loadBackups(); }
   else if (a === 'bkDel') { const r = await api('api/backups/' + encodeURIComponent(b.dataset.id), 'DELETE'); if (r.error) toast(r.error); await loadBackups(); }
   else if (a === 'bkRestore') { const r = await api(`api/backups/${encodeURIComponent(b.dataset.id)}/restore`, 'POST'); if (r.error) toast(r.error); else { toast('Wiederhergestellt – lade neu …'); setTimeout(() => location.reload(), 800); } }
-  else if (a === 'audCat') { aud.cat = b.dataset.k; aud.loaded = false; renderAudit($('#detail')); }
-  else if (a === 'audMore') loadAudit(true);
-  else if (a === 'audReset') { e.preventDefault?.(); aud.cat = aud.q = aud.user = ''; aud.loaded = false; renderAudit($('#detail')); }
-  else if (a === 'clnScope') { clnScope = b.dataset.k; cln = null; renderAudit($('#detail')); }
-  else if (a === 'clnScan') { await clnLoad(b); }
-  else if (a === 'clnAll') { cln.sel = cln.sel.size === cln.items.length ? new Set() : new Set(cln.items.map(i => i.project_id + '|' + i.path)); fillCleanup(); }
-  else if (a === 'clnDel') {
-    const r = await api('api/audit/cleanup', 'POST', {entries: [...cln.sel].map(k => { const n = k.indexOf('|'); return {project_id: +k.slice(0, n), path: k.slice(n + 1)}; })});
-    if (r.error) toast(r.error); else toast(`${r.deleted.length} gelöscht` + (r.failed.length ? `, ${r.failed.length} fehlgeschlagen (${r.failed[0].error})` : '') + '.');
-    await clnLoad(); aud.loaded = false;
-  }
   else if (a === 'verToggle') { verOpen = !verOpen; if (verOpen) await loadVer(); else fillVer(); }
   else if (a === 'verView') { if (verView === id) { verView = verSnap = null; } else { verView = id; verSnap = null; fillVer(); verSnap = (await api('api/versions/' + id)).data; } fillVer(); }
   else if (a === 'restoreVer') { const r = await api(`api/versions/${id}/restore`, 'POST'); if (r.error) toast(r.error); else { verView = verSnap = null; toast('Bericht auf die gewählte Version zurückgesetzt (der vorherige Stand steht im Verlauf).'); await openProject(pid, true); } }
@@ -1902,8 +1850,6 @@ document.addEventListener('change', async e => {
     if (sec || k === 'store_mode') { settings = await api('api/settings'); renderDetail(); }
     else if (k.startsWith('store_')) storeStatus();
   }
-  else if (t.dataset.cl !== undefined) { cln.sel[t.checked ? 'add' : 'delete'](t.dataset.cl); fillCleanup(); }
-  else if (t.id === 'audu') { aud.user = t.value; loadAudit(); }
   else if (t.dataset.dp && t.closest('.duepanel')) saveDue(t.closest('.duepanel'), t.dataset.dp === 'time');
   else if (t.dataset.it) {
     const v = t.dataset.k === 'headcount' ? (t.value === '' ? null : +t.value) : t.value.trim();

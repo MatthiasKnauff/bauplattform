@@ -114,7 +114,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'nein') { await api('api/bp/post', 'POST', { id: m.id, wie: 'verworfen' }).catch(() => {}); delete m.vorschlag; postZeigen(); return; }
   if (a === 'anlegen') {
     try {
-      await api('api/bp/post/erinnerung', 'POST', { id: m.id, titel: (vs.querySelector('.vst') || {}).value || m.vorschlag.titel, termin: vs.querySelector('input').value, text: m.vorschlag.text, pid: m.pid });
+      await api('api/bp/post/erinnerung', 'POST', { id: m.id, titel: (vs.querySelector('.vst') || {}).value || m.vorschlag.titel, termin: vs.querySelector('input[type=date]').value, text: m.vorschlag.text, pid: m.pid });
       delete m.vorschlag; postZeigen(); toast('Erinnerung angelegt – sie steht unter „Mängel & Erinnerungen“ und kommt am Tag per Mail.');
     } catch (er) { toast(er.message, true); }
   }

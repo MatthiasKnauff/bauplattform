@@ -1479,6 +1479,26 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     from reportlab.platypus import Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, CondPageBreak
     from reportlab.pdfbase.pdfmetrics import stringWidth
     from xml.sax.saxutils import escape
+
+    class EditPara(Paragraph):
+        """Im Entwurf: unsichtbarer Link über dem ganzen Absatz – der Druck-Editor macht daraus ein bearbeitbares Feld (Position + Feld)."""
+        def __init__(self, text, style, ziel=None, **kw):
+            super().__init__(text, style, **kw)
+            self._ziel = ziel
+
+        def split(self, aW, aH):   # über den Seitenrand geteilt: beide Teile bleiben bearbeitbar
+            teile = super().split(aW, aH)
+            for t in teile:
+                t._ziel = self._ziel
+            return teile
+
+        def drawOn(self, canv, x, y, _sW=0):
+            super().drawOn(canv, x, y, _sW)
+            if self._ziel:
+                canv.linkURL("https://bauplattform.invalid/edit/" + self._ziel, (x, y, x + self.width, y + self.height), relative=1, thickness=0)
+
+    def PE(text, style, pid, feld):   # Paragraph, im Entwurf bearbeitbar
+        return EditPara(text, style, f"{pid}/{feld}") if entwurf and pid else Paragraph(text, style)
     F = _druck_felder(c, r, P, lay)
     FN = schrift.fuer(c)
     kurz = C.kurzname(c)
@@ -1578,22 +1598,22 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             tsum[x["id"]] = 0.0
             if lv_ == 1:
                 titel.append(x)
-            rows.append([x.get("oz") or "", Paragraph(f"<b>{X(x['kurz'])}</b>", S["pb"]), "", "", "", ""]); band.append(len(rows) - 1)
+            rows.append([x.get("oz") or "", PE(f"<b>{X(x['kurz'])}</b>", S["pb"], x.get("id"), "kurz"), "", "", "", ""]); band.append(len(rows) - 1)
             continue
         if x.get("art") == "T":   # Hinweistext (z. B. lange Vorbemerkung aus GAEB) – ebenfalls in Abschnitten
             for k_, st_ in enumerate(stuecke_von(x.get("lang") or x["kurz"])):
                 if k_:
                     weiter.add(len(rows) - 1)
-                rows.append(["", Paragraph(f"<font name='{FN['i']}'>{X(st_)}</font>", S["lang"]), "", "", "", ""])
+                rows.append(["", PE(f"<font name='{FN['i']}'>{X(st_)}</font>", S["lang"], x.get("id"), "lang" if x.get("lang") else "kurz"), "", "", "", ""])
             continue
         if x.get("np_vor") and len(rows) > 1:   # Druckoption „Neue Seite vorher“
             tabelle_schliessen(); story.append(PageBreak())
         kz = f"<b>{X(x['kurz'])}</b>" + (" <font size='7'>[S]</font>" if x.get("sp") else "")
-        zelle = [Paragraph(f"<strike>{kz}</strike> – entfällt" if x.get("entf") else kz, S["p"])]
+        zelle = [PE(f"<strike>{kz}</strike> – entfällt" if x.get("entf") else kz, S["p"], x.get("id"), "kurz")]
         stuecke = []
         if lay["langtext"] and x.get("lang") and x["lang"] != x["kurz"]:
             stuecke = stuecke_von(x["lang"])
-            zelle.append(Paragraph(X(stuecke.pop(0)), S["lang"]))
+            zelle.append(PE(X(stuecke.pop(0)), S["lang"], x.get("id"), "lang"))
         if x.get("art") in ("E", "A", "P"):
             zelle.append(Paragraph("Bedarfsposition (mit GB)" if x["art"] == "E" and x.get("gb") else ARTEN[x["art"]], S["mu"]))
         if x.get("bezug"):
@@ -1612,7 +1632,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
                      "entfällt" if x.get("entf") else eur(gp) if gp is not None else ("(ohne GB)" if ep is not None else ("" if preis != "leer" else "................"))])
         for st_ in stuecke:   # Fortsetzung des Langtexts
             weiter.add(len(rows) - 1)
-            rows.append(["", Paragraph(X(st_), S["lang"]), "", "", "", ""])
+            rows.append(["", PE(X(st_), S["lang"], x.get("id"), "lang"), "", "", "", ""])
         for bt_ in bilder:   # Fotos, je zwei in einer Zeile
             weiter.add(len(rows) - 1)
             rows.append(["", bt_, "", "", "", ""])

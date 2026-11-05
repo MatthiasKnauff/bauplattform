@@ -143,7 +143,7 @@ function detail() {
   const x = SEL, ro = !!x.nur_lesen, darf = !ro && (x.katalog === 'eigen' || S.admin);
   const kalk = x.quelle === 'katalog' && x.h != null ? `<h4>Kalkulation (Preisstand ${esc(x.preisstand)})</h4><table>
       <tr><td>Zeitansatz</td><td>${num(x.h, 3)} h/${esc(x.einheit)}</td></tr>
-      <tr><td>Verrechnungslohn ${esc(x.gewerk)}</td><td>${eur(x.verrechnungslohn)}/h</td></tr>
+      <tr><td>Verrechnungslohn ${esc(((S.loehne || []).find((l) => l.gewerk === x.gewerk) || {}).name || x.gewerk)}</td><td>${eur(x.verrechnungslohn)}/h</td></tr>
       <tr><td>Lohn</td><td>${eur(x.h * x.verrechnungslohn)}</td></tr>
       <tr><td>Stoff + Gerät (+ 12 %)</td><td>${eur((x.stoff + x.geraet) * 1.12)}</td></tr>
       <tr><td><b>EP zum Preisstand</b></td><td><b>${eur(x.ep_mittel)}</b></td></tr>

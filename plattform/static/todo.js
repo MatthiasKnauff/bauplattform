@@ -36,9 +36,34 @@ function tdZeile(x) {
     !x.auto && x.erstellt_name && TDREF && x.erstellt_von !== TDREF.ich ? 'von ' + x.erstellt_name : '', x.spaeter ? 'zurückgestellt bis ' + tdDatum(x.spaeter) : '', x.status === 'erledigt' ? `erledigt ${x.erledigt_name ? 'von ' + x.erledigt_name : ''}` : ''].filter(Boolean);
   return `<div class="tr${x.status === 'erledigt' ? ' fertig' : ''}" data-tk="${esc(x.key)}">
     <input type="checkbox" class="ck" data-td="fertig"${x.status === 'erledigt' ? ' checked' : ''} title="${x.auto ? 'Erledigt – ausblenden (kommt nicht wieder)' : 'Erledigt'}" aria-label="erledigt">
-    <span class="tt" data-td="${x.auto ? 'oeffnen' : 'bearbeiten'}" title="${x.auto ? 'Zur Stelle in der App' : 'Bearbeiten'}"><b>${x.prio ? '<span class="pr">❗</span>' : ''}${esc(x.titel)}</b><span class="x">${unter.map((u, i) => i === 0 && x.auto ? u : esc(u)).join(' · ')}</span></span>
+    <span class="tt" data-td="${x.regel === 'erinnerungen' ? 'erin' : x.auto ? 'oeffnen' : 'bearbeiten'}" title="${x.regel === 'erinnerungen' ? 'Erinnerung hier öffnen' : x.auto ? 'Zur Stelle in der App' : 'Bearbeiten'}"><b>${x.prio ? '<span class="pr">❗</span>' : ''}${esc(x.titel)}</b><span class="x">${unter.map((u, i) => i === 0 && x.auto ? u : esc(u)).join(' · ')}</span></span>
     <span><span class="tz${rot ? ' rot' : ''}">${esc(tdDatum(x.f))}</span><span class="ta">${x.auto ? `${x.spaeter ? '<button data-td="jetzt" title="Wieder anzeigen">↺</button>' : '<button data-td="spaeter" title="Zurückstellen">⏱ später</button>'}${x.link ? '<button data-td="oeffnen" title="Öffnen">↗</button>' : ''}` : `<button data-td="spaeterm" title="Fälligkeit verschieben">⏱</button>`}</span></span>
-    ${TDOFFEN === x.key ? tdEditor(x) : ''}</div>`;
+    ${TDOFFEN === x.key ? (x.regel === 'erinnerungen' ? tdErEditor(x) : tdEditor(x)) : ''}</div>`;
+}
+/* Erinnerung direkt hier bearbeiten (Startseite) – gespeichert wird in „Aufgaben & Mängel“ */
+const TDER = {};
+const tdAufg = () => ((window.BPHead && BPHead.conf) || {}).apps ? BPHead.conf.apps.find((y) => y.key === 'aufgaben' && y.allowed) : null;
+const tdErId = (x) => 'r' + String(x.key).split(':')[1];
+function tdErEditor(x) {
+  const e = TDER[x.key];
+  if (!e) return '<div class="te"><small class="mute">Lade …</small></div>';
+  if (e.fehler) return `<div class="te"><small class="mute">${esc(e.fehler)}</small><div class="btns"><button class="btn sm" data-td="oeffnen">In „Aufgaben & Mängel“ öffnen ↗</button><button class="btn sm" data-td="zu">Schließen</button></div></div>`;
+  const eigen = e.quelle === 'eigen';
+  return `<div class="te" data-ter="${esc(e.id)}">
+    <label>Erinnerung<input data-ef="titel" value="${esc(e.titel || '')}"${eigen ? '' : ' disabled title="Kommt aus dem Bauzeitenplan – dort ändern"'}></label>
+    <div class="row"><label>am<input type="date" data-ef="termin" value="${esc(e.termin || '')}"></label><label>um<input type="time" data-ef="uhrzeit" value="${esc(e.uhrzeit || '')}"></label></div>
+    <label>Text<textarea data-ef="text" rows="3"${eigen ? '' : ' disabled'}>${esc(e.text || '')}</textarea></label>
+    <small class="mute">${[e.projekt, e.firma, e.an && e.an.length ? 'an ' + e.an.join(', ') : '', e.von ? 'von ' + e.von : ''].filter(Boolean).map(esc).join(' · ')}</small>
+    <div class="btns"><button class="btn sm pri" data-td="erspeichern">Speichern</button><button class="btn sm" data-td="ererledigt">✓ Erledigt</button><button class="btn sm" data-td="zu">Abbrechen</button><span style="flex:1"></span><button class="btn sm" data-td="oeffnen" title="In „Aufgaben & Mängel“ öffnen">↗ In der App</button></div></div>`;
+}
+async function tdErSpeichern(x, body) {
+  const a = tdAufg(); if (!a) return toast('Für „Aufgaben & Mängel“ ist dein Konto nicht freigeschaltet.', true);
+  try {
+    const r = await api(appUrl(a) + '/api/erinnerungen/' + tdErId(x), 'PUT', body);
+    delete TDER[x.key]; TDOFFEN = null;
+    await tdLaden();
+    toast(body.status === 'erledigt' ? 'Erinnerung erledigt.' : 'Erinnerung gespeichert.' + (r.hinweis ? ' ' + r.hinweis : ''));
+  } catch (er) { toast(er.message, true); }
 }
 function tdEditor(x) {
   const R = TDREF || { projekte: [], benutzer: [] }, pers = new Set(x.personen || []);
@@ -122,6 +147,21 @@ document.addEventListener('click', async (e) => {
     if (a === 'ohneprojekt') return setze(null);
     if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: +te.querySelector('[data-tf="pid"]').value || null, onPick: (id, p) => setze(id, p && p.name) });
     return;
+  }
+  if (a === 'erin' && x) {
+    if (TDOFFEN === x.key) { TDOFFEN = null; tdZeigen(); return; }
+    const ap = tdAufg(); if (!ap) return toast('Für „Aufgaben & Mängel“ ist dein Konto nicht freigeschaltet.', true);
+    TDOFFEN = x.key; delete TDER[x.key]; tdZeigen();
+    try { TDER[x.key] = await api(appUrl(ap) + '/api/erinnerungen/' + tdErId(x)); } catch (er) { TDER[x.key] = { fehler: er.message }; }
+    if (TDOFFEN === x.key) tdZeigen(); return;
+  }
+  if ((a === 'erspeichern' || a === 'ererledigt') && x) {
+    const te = b.closest('.te'), v = (k) => te.querySelector(`[data-ef="${k}"]`);
+    if (a === 'ererledigt') return tdErSpeichern(x, { status: 'erledigt' });
+    const body = { termin: v('termin').value, uhrzeit: v('uhrzeit').value };
+    if (!v('titel').disabled) { body.titel = v('titel').value; body.text = v('text').value; }
+    if (!body.termin) return toast('Bitte ein Datum angeben.', true);
+    return tdErSpeichern(x, body);
   }
   if (a === 'bearbeiten' && x) { await tdRef(); TDOFFEN = TDOFFEN === x.key ? null : x.key; tdZeigen(); return; }
   if (a === 'oeffnen' && x) {

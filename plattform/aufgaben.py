@@ -1023,6 +1023,13 @@ def _mail_ok():
         return mail.configured(mail.conf(c))
 
 
+@app.get("/api/erinnerungen/<rid>")
+def erinnerung_eine(rid):
+    """Eine Erinnerung (für den Editor in den To-dos auf der Startseite)."""
+    x = next((y for y in erinnerungen_liste("all") if y["id"] == rid), None)
+    return jsonify(x) if x else (jsonify(error="Die Erinnerung gibt es nicht mehr."), 404)
+
+
 @app.post("/api/erinnerungen")
 def erinnerung_neu():
     b = request.get_json(silent=True) or {}

@@ -12,7 +12,10 @@
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem}
 .top .fill{flex:1}
 .top select{min-width:16rem;max-width:100%}
-.ord{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.88rem;color:var(--mute);margin:-.2rem 0 .9rem}
+.ord{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--mute)}
+/* Reiter und Ordner-Knöpfe in einer Zeile */
+.tabrow{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;background:var(--tabs);border-bottom:1px solid var(--line);border-radius:10px 10px 0 0;margin:0 -.2rem 1rem;padding-right:.6rem}
+.tabrow .tabs{margin:0;border-bottom:0;background:transparent;flex:1;min-width:0}
 .ord code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.1rem .4rem;color:var(--ink);word-break:break-all}
 .tabs{margin:0 -.2rem 1rem;border-radius:10px 10px 0 0}
 .tab small{margin-left:.35rem;font-size:.75rem;border-radius:999px;padding:.05rem .45rem;background:var(--hov);color:var(--mute)}
@@ -61,13 +64,8 @@
 </head>
 <body>
 <main class="wrap">
-  <div class="top">
-    <select id="proj" aria-label="Projekt" hidden></select>
-    <span class="fill"></span>
-    <button class="btn sm" id="reBtn" title="Projektordner neu durchsuchen">⟳ Neu einlesen</button>
-  </div>
-  <div class="ord" id="ord"></div>
-  <nav class="tabs" id="tabs"></nav>
+  <select id="proj" aria-label="Projekt" hidden></select>
+  <div class="tabrow"><nav class="tabs" id="tabs"></nav><div class="ord" id="ord"></div><button class="btn sm" id="reBtn" title="Projektordner neu durchsuchen">⟳ Neu einlesen</button></div>
   <div id="view"><p class="mute">Lade …</p></div>
 </main>
 <div class="bar" id="bar" hidden></div>
@@ -88,8 +86,7 @@ function renderTabs() {
 function renderOrd() {
   if (!D || D.error) { $('#ord').innerHTML = ''; return; }
   const n = (D.aus || []).length;
-  $('#ord').innerHTML = `Projektordner <code>${esc(D.basis || '')}</code> · durchsucht: <b>${n ? `alle Ordner außer ${n}` : 'alle Ordner'}</b>
-    <button class="btn sm" id="ordBaum">Ordner wählen …</button>
+  $('#ord').innerHTML = `<button class="btn sm" id="ordBaum" title="Projektordner ${esc(D.basis || '')} – durchsucht: ${n ? `alle Ordner außer ${n}` : 'alle Ordner'}">Ordner wählen …${n ? ` <small>(${n} aus)</small>` : ''}</button>
     ${D.stand ? `<span class="mu" title="${D.zwischengespeichert ? 'Aus dem Zwischenspeicher – nachts für alle laufenden Projekte eingelesen. „Neu einlesen“ durchsucht den Ordner jetzt.' : 'gerade eingelesen'}">· Stand ${esc(new Date(D.stand).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}</span>` : ''}
     ${D.abgebrochen ? '<span class="pill bad" title="Sehr viele Dateien – bitte unter „Ordner wählen“ große Ordner (z. B. Fotos) abwählen">Suche nicht vollständig</span>' : ''}`;
 }

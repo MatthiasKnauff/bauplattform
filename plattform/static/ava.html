@@ -294,7 +294,9 @@ table.tl td.mk{white-space:nowrap;overflow:hidden}
 table.tl td.mk .tl-tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:0 .45rem;margin-right:.2rem;font-size:.85em;line-height:1.5}
 table.tl td.fx,table.tl th.fx{position:sticky;z-index:1;background:var(--card)}
 table.tl th.fx{z-index:3;background:var(--tabs)}
-table.tl td.fx{box-shadow:inset -1px 0 0 var(--line)}
+table.tl td.fx{background:color-mix(in srgb,var(--card) 93%,var(--y))}
+table.tl th.fx{background:color-mix(in srgb,var(--tabs) 88%,var(--y))}
+table.tl td.fxl,table.tl th.fxl{box-shadow:inset -2px 0 0 var(--y),3px 0 4px -2px rgba(0,0,0,.18)}   /* Ende der festen Spalten: kräftiger Rand */
 table.tl.gross{font-size:14.5px}
 table.tl.gross td{height:40px;padding:.3rem .5rem}
 table.tl.gross thead tr:nth-child(2) th{height:auto;vertical-align:bottom;text-align:left}
@@ -2021,13 +2023,14 @@ function vTueren(v) {
   if (alle) [...new Set(TSP.map((c) => c[4]))].forEach((g) => gr.push([g, S.filter((c) => c[4] === g)]));
   else S.forEach((c) => { const g = gr[gr.length - 1]; if (g && g[0] === c[4]) g[1].push(c); else gr.push([c[4], [c]]); });
   const RN = TLO.gross ? 34 : 26, LEFT = {}; { let acc = RN; S.forEach((c) => { if (TLO.fest && TFEST.includes(c[0])) LEFT[c[0]] = acc; acc += tlBreite(c); }); }
+  const FXL = Object.keys(LEFT).pop();   // letzte feste Spalte bekommt den kräftigen Rand
   const stueck = TL.tueren.reduce((s, t) => s + (Math.max(1, parseInt(t.anzahl, 10) || 1)), 0);
   const nZ = B ? B.r2 - B.r1 + 1 : 0;
   const kopf1 = gr.map(([g, cs]) => (zu(g) ? `<th class="g" data-tlg="${esc(g)}" title="${esc(g)} wieder aufklappen" style="width:16px">▸</th>` : `<th class="g" colspan="${cs.length}" data-tlg="${esc(g)}" title="${g === 'Lage' ? '' : 'Klick: Spaltengruppe zuklappen'}">${esc(g)}</th>`)).join('');
-  const kopf2 = gr.map(([g, cs]) => (zu(g) ? '<th data-tlg="' + esc(g) + '"></th>' : cs.map((c) => `<th style="width:${tlBreite(c)}px${LEFT[c[0]] != null ? `;left:${LEFT[c[0]]}px` : ''}" class="${LEFT[c[0]] != null ? 'fx' : ''}" title="${esc(c[1])}" data-tlk="${S.indexOf(c)}"><span class="vt">${esc(tlKopf(c))}</span></th>`).join(''))).join('');
+  const kopf2 = gr.map(([g, cs]) => (zu(g) ? '<th data-tlg="' + esc(g) + '"></th>' : cs.map((c) => `<th style="width:${tlBreite(c)}px${LEFT[c[0]] != null ? `;left:${LEFT[c[0]]}px` : ''}" class="${LEFT[c[0]] != null ? 'fx' : ''}${c[0] === FXL ? ' fxl' : ''}" title="${esc(c[1])}" data-tlk="${S.indexOf(c)}"><span class="vt">${esc(tlKopf(c))}</span></th>`).join(''))).join('');
   const zelle = (t, r, c, ci) => { const cl = [c[2] === 'b' ? 'c' : c[2] === 'n' ? 'n' : '']; if (B && r >= B.r1 && r <= B.r2 && ci >= B.c1 && ci <= B.c2) cl.push('m'); if (TLC && TLC.r === r && TLC.c === ci) cl.push('a');
     const x = tlText(t, c), fx = LEFT[c[0]] != null;
-    if (fx) cl.push('fx');
+    if (fx) cl.push('fx'); if (c[0] === FXL) cl.push('fxl');
     const st = fx ? ` style="left:${LEFT[c[0]]}px"` : '';
     if (c[2] === 'm') return `<td data-r="${r}" data-c="${ci}" class="${cl.join(' ')} mk"${x ? ` title="${esc(x)}"` : ''}>${TJA.filter(([k]) => t[k]).map(([, l]) => `<span class="tl-tag">${esc(l)}</span>`).join('')}</td>`;
     return `<td data-r="${r}" data-c="${ci}" class="${cl.join(' ')}"${st}${x.length > 6 ? ` title="${esc(x)}"` : ''}>${esc(x)}</td>`; };

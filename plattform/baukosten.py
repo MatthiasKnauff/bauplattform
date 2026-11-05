@@ -294,6 +294,7 @@ def _out(c, r, full=True):
         o["files"] = [{"id": f["id"], "name": f["name"], "size": f["size"], "created": f["created"], "meta": _j(f["meta"], {})}
                       for f in c.execute("SELECT id, name, size, created, meta FROM bk_files WHERE bk_id=? ORDER BY id", (r["id"],))]
         o["acc"] = genauigkeit(c, r, d, o["calc"], [f["meta"].get("kind", "") for f in o["files"]])
+        o["reife"] = reife(c, r, d, o["calc"], c.execute("SELECT name, meta FROM bk_files WHERE bk_id=?", (r["id"],)).fetchall())
         o["quellen"] = quellen(c, r, d, o["calc"])
         o["kg2_std"] = KG2_FAUST
         o["mat"] = {k: {"name": n, "einheit": e, "opts": [{"n": a, "ep": b} for a, b in opts]} for k, (n, e, opts) in MAT.items()}
@@ -320,8 +321,8 @@ def bk_new():
         gid = _s(b.get("gantt_id"), 80) or None
         if gid and not c.execute("SELECT 1 FROM gantt_projects WHERE id=?", (gid,)).fetchone():
             gid = None
-        if not name and pid:
-            name = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()["name"]
+        if not name and pid:   # das Projekt steht in der Kopfleiste – die erste Version heißt einfach so
+            name = "Startversion"
         if not name:
             return jsonify(error="Bitte einen Namen eingeben."), 400
         now = _now()
@@ -371,6 +372,26 @@ def bk_one(i):
             c.execute(f"UPDATE bk_projects SET {', '.join(sets)}, rev=rev+1, updated=?, updated_by=? WHERE id=?", (*args, _now(), g.user["name"], i))
             versionen.nach(c, f"bkp:{i}", g.user["name"])
         return jsonify(_out(c, _row(c, i)))
+
+
+@app.post("/api/bk/<int:i>/kopie")
+def bk_kopie(i):
+    """Neue Version: Kopie dieser Kostenermittlung (mit Plänen) unter einem neuen Unternamen – die alte bleibt, wie sie ist."""
+    name = _s((request.get_json(silent=True) or {}).get("name"), 200)
+    if not name:
+        return jsonify(error="Bitte einen Namen für die Version eingeben."), 400
+    with db.tx() as c:
+        r = _row(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        now = _now()
+        n = c.execute("INSERT INTO bk_projects(name, project_id, gantt_id, stufe, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
+                      (name, r["project_id"], r["gantt_id"], r["stufe"], r["data"], now, now, g.user["name"])).fetchone()["id"]
+        c.execute("""INSERT INTO bk_files(bk_id, name, mime, size, data, meta, created, user_name)
+                     SELECT ?, name, mime, size, data, meta, created, user_name FROM bk_files WHERE bk_id=? ORDER BY id""", (n, i))
+        out = _out(c, _row(c, n))
+    C.audit(g.user["name"], "baukosten", "Neue Version angelegt", f"{name} (aus {r['name']})")
+    return jsonify(out)
 
 
 def _addr(p):
@@ -1559,6 +1580,23 @@ def schaetzen(i):
 
 
 # ---------------------------------------------------------------- Prüfung
+def reife(c, r, d, cal, files):
+    """Wofür reichen die Daten? Je Stufe die Punkte, die dafür noch fehlen (dieselben Regeln wie die Prüfung, mit der jeweiligen Stufe).
+    Ergebnis: {"reicht": höchste Stufe ohne fehlende Punkte | None, "stufen": [{"key", "name", "ok", "fehlt": [{"text", "go"}]}]}"""
+    out, reicht = [], None
+    for k in STUFEN:
+        H = rules(c, {**dict(r), "stufe": k}, d, cal, files)
+        n = STUFE_NAME[k]
+        f = [h for h in H if h["lvl"] == "hoch" or h["title"].startswith("DIN 276: " + n) or h["title"].endswith("nur geschätzt")]
+        if k not in ("rahmen", "schaetzung"):   # ab der Kostenberechnung: keine Kostengruppe mehr ohne Betrag
+            f += [h for h in H if h["lvl"] in ("mittel", "info") and h["title"].endswith(" offen") and h["title"].startswith("KG ")]
+        f = [{"text": h["title"], "go": h.get("go") or {}} for h in f]
+        out.append({"key": k, "name": n, "ok": not f, "fehlt": f})
+        if not f and (reicht is None or STUFEN.index(k) == STUFEN.index(reicht) + 1):
+            reicht = k
+    return {"reicht": reicht, "stufen": out}
+
+
 def rules(c, r, d, cal, files):
     H = []
     # go: wohin ein Klick auf den Hinweis führt (Reiter + Feld)
@@ -1799,6 +1837,8 @@ def build_report(c, r, opt):
     proj = o.get("project") or {}
     title = r["name"]
     stufe = STUFE_NAME.get(r["stufe"], r["stufe"])
+    if opt.get("vorl"):   # gedruckt, obwohl die Daten für diese Stufe noch nicht reichen
+        stufe += " (vorläufig)"
     today = date.today().strftime("%d.%m.%Y")
     W = A4[0] - 36 * mm
 
@@ -2012,7 +2052,7 @@ def bericht(i):
     a = request.args
     opt = {"teile": [t for t in (a.get("teile") or ",".join(TEILE)).split(",") if t in TEILE],
            "tiefe": int(_num(a.get("tiefe"), 2, 1, 3)), "brutto": a.get("brutto") == "1", "mwst": _num(a.get("mwst"), 19, 0, 30),
-           "runden": int(a.get("runden")) if a.get("runden") in ("0", "100", "1000") else 0}
+           "runden": int(a.get("runden")) if a.get("runden") in ("0", "100", "1000") else 0, "vorl": a.get("vorl") == "1"}
     with db.tx() as c:
         r = _row(c, i)
         if not r:

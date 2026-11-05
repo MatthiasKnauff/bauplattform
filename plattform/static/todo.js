@@ -212,7 +212,7 @@ async function tdEinstellungen(host) {
   zeichnen();
   host.onchange = (e) => { const k = e.target.closest('[data-rk]'); if (!k) return; const r = C[k.dataset.rk]; if (e.target.dataset.rf === 'an') { r.an = e.target.checked; zeichnen(); } if (e.target.dataset.rf === 'wert') r.wert = +e.target.value || 0; };
   host.onclick = async (e) => {
-    const b = e.target.closest('[data-rf],[data-rfu],[data-rfp]'); if (!b) return;
+    const b = e.target.closest('[data-rf],[data-rfu],[data-rfp]'); if (!b || ['an', 'wert'].includes(b.dataset.rf)) return;   // Haken und Zahl: über „change“ (sonst zeichnet der Klick vorher neu und der Haken springt zurück)
     if (b.dataset.rf === 'speichern') {
       try { const n = await api('api/bp/todo-regeln', 'PUT', C); TDREF = n; host.querySelector('[data-rmsg]').textContent = 'Gespeichert.'; tdLaden(); } catch (er) { host.querySelector('[data-rmsg]').textContent = er.message; }
       return;

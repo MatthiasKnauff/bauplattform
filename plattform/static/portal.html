@@ -201,6 +201,7 @@ document.addEventListener('click', async (e) => {
   kachelnZeigen();
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
     { key: 'post', label: 'Posteingang', render: (host) => { BPHead.postfaecher({ into: host, nachSpeichern: () => postStart() }); } },
+    { key: 'todo', label: 'To-dos', render: (host) => { tdEinstellungen(host); } },
     { key: 'kacheln', label: 'Kacheln', render: (host) => {
       host.innerHTML = `<p class="bph-mu">Die Reihenfolge der App-Kacheln stellst du direkt auf der Startseite ein: rechts oben auf <b>✎</b> klicken und die Kacheln an die gewünschte Stelle ziehen. Sie gilt auf allen deinen Geräten.</p>
         <div class="bph-row"><button type="button" class="bph-btn pri" data-k1>✎ Jetzt anordnen</button><button type="button" class="bph-btn" data-k2${REIHE.length ? '' : ' disabled'}>Ursprüngliche Reihenfolge</button></div>`;

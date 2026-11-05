@@ -16,8 +16,14 @@
 .top .fill{flex:1}
 .save{color:var(--mute);font-size:.85rem}
 .stufen{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin:0 0 1rem}
-.stinfo{margin:-.5rem 0 1rem;font-size:.85rem;color:var(--mute)}
-.stinfo b{color:var(--ink);font-weight:600}
+.reife{display:grid;grid-template-columns:repeat(6,1fr);gap:.45rem;margin-top:.9rem}
+.rf{position:relative;border:1px solid var(--line);border-radius:10px;padding:.55rem .6rem;font-size:.82rem;color:var(--mute);display:flex;flex-direction:column;gap:.15rem}
+.rf b{font-size:.86rem;font-weight:600}.rf.ok{border-color:color-mix(in srgb,var(--ok) 55%,transparent);background:color-mix(in srgb,var(--ok) 10%,transparent);color:var(--ink)}
+.rf.ok b{color:var(--ink)}.rf.cur{outline:2px solid var(--ok);outline-offset:-1px}
+.rf .pin{position:absolute;top:-.6rem;left:.5rem;background:var(--ok);color:#fff;font-size:.68rem;font-weight:700;border-radius:999px;padding:0 .45rem}
+.pwarn{background:color-mix(in srgb,#f08c00 12%,transparent);border:1px solid color-mix(in srgb,#f08c00 45%,transparent);border-radius:10px;padding:.6rem .8rem;font-size:.9rem;margin:.4rem 0}
+.rfl{margin:.2rem 0 0;padding-left:1.2rem;font-size:.9rem;line-height:1.6}
+@media (max-width:900px){.reife{grid-template-columns:repeat(3,1fr)}}
 .stufen .lbl{font-size:.8rem;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin-right:.3rem}
 .pills button{border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:.35rem .85rem;font-size:.88rem;min-height:36px}
 .pills button.on{border-color:var(--y);color:var(--ink);background:var(--hov);font-weight:600}
@@ -178,24 +184,18 @@ body.as-open .wrap{padding-bottom:45vh}
 </head>
 <body>
 <main class="wrap">
-  <div class="top">
-    <button class="btn sm pri" id="pdfBtn" title="Kostenermittlung für den Bauherrn drucken oder als PDF">🖨 Drucken / PDF …</button>
-    <button class="btn sm" id="moreBtn" aria-haspopup="dialog">Archivieren / Löschen …</button>
-    <button class="btn sm" id="standBtn" title="Jetzigen Stand dieser Kostenermittlung unter einem Namen festhalten (z. B. „Kostenschätzung an Bauherrn 04.11.“)">📌 Stand speichern</button>
+  <div class="top" hidden>   <!-- wandern in die Versionsleiste unter der Kopfleiste -->
+    <button class="btn sm pri" id="pdfBtn" title="Kostenermittlung für den Bauherrn drucken oder als PDF – die Stufe nach DIN 276 wählst du dort">🖨 Drucken / PDF …</button>
     <button class="btn sm" id="ansBtn" title="Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus einer anderen Kostenermittlung übernehmen">↪ Ansätze übernehmen …</button>
-    <button class="btn sm" id="verBtn" title="Frühere Stände dieser Kostenermittlung ansehen und wiederherstellen">🕘 Verlauf</button>
-    <span class="fill"></span>
     <span class="save" id="save" role="status"></span>
   </div>
-  <div class="stufen"><span class="lbl">Stufe DIN 276</span><div class="pills" id="stufen" style="display:flex;gap:.35rem;flex-wrap:wrap"></div></div>
-  <p class="stinfo" id="stinfo"></p>
   <nav class="tabs" id="tabs" aria-label="Bereiche"></nav>
   <div id="view"></div>
 </main>
 <input type="file" id="pdfIn" accept="application/pdf,.pdf" multiple class="hidden">
 <script src="static/bp.js"></script>
 <script>
-const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Mengen'], ['bauteile', 'Bauteile & Material'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
+const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Mengen'], ['bauteile', 'Bauteile & Kostengruppen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
 // Was die Stufe bedeutet und bewirkt (Genauigkeit, Gliederungstiefe im PDF, zusätzliche Prüfregeln)
 const STUFE_INFO = {
   rahmen: { lph: 'LPH 1 · Grundlagen', ebene: 1, genau: 35, txt: 'Gesamtkosten aus Fläche × Kennwert, Gliederung nach der 1. Ebene.' },
@@ -310,6 +310,43 @@ async function openBk(id, merken = true) {   // nicht „open“ nennen: das üb
   try { localStorage.setItem('bk.cur', id); } catch { /* egal */ }
   head(); render();
 }
+const saveEl = () => document.querySelector('#bph-vl .bph-vl-st') || $('#save');
+const dkurz = (t) => (t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
+/* ---------- Versionsleiste: je Projekt eine Kostenermittlung, darin Versionen (Startversion, nach Bankgespräch …) ---------- */
+function versionen() { return B ? (B.project_id ? LIST.filter((x) => x.project_id === B.project_id) : LIST.filter((x) => x.id === B.id)).sort((a, b) => a.id - b.id) : []; }
+function vleiste() {
+  if (!window.BPHead || !BPHead.versionsleiste) return;
+  const ab = $('#ansBtn'); if (ab) ab.style.display = LIST.length < 2 ? 'none' : '';
+  const el = BPHead.versionsleiste({ vor: $('main.wrap'), aktuell: B && B.id, rechts: [$('#pdfBtn'), ab],
+    liste: versionen().map((x) => ({ id: x.id, name: x.name, sub: STUFE_N(x.stufe) + (x.total ? ' · ' + eur(x.total) : ''), datum: dkurz(x.updated), wer: x.updated_by, archiviert: x.archived })),
+    onWahl: async (id) => { clearTimeout(saveT); if (B) await saveNow().catch(() => {}); await openBk(id); },
+    onNeu: neueVersion, onUmbenennen: umbenennen, onVerlauf: verlauf, onVerwalten: verwalten });
+  el.style.display = B ? '' : 'none';
+}
+function neueVersion() {
+  if (!B) return;
+  modalBox(`<h3>Neue Version</h3><p class="hint" style="margin:0 0 .7rem">Kopie von „${esc(B.name)}“ mit allen Räumen, Bauteilen, Kosten und Plänen. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</p>
+    <div class="row" style="flex-direction:column;align-items:stretch"><label for="nvName">Name der Version</label><input id="nvName" maxlength="120" placeholder="z. B. nach Bauherrengespräch"></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') { close(); return; }
+    const name = bg.querySelector('#nvName').value.trim(); if (!name) { bg.querySelector('#nvName').focus(); return; }
+    btn.disabled = true;
+    try { clearTimeout(saveT); await saveNow(); const r = await api(`api/bk/${B.id}/kopie`, 'POST', { name }); close(); toast(`Version „${name}“ angelegt.`); await loadList(r.id); }
+    catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  setTimeout(() => { const i = document.querySelector('#nvName'); if (i) i.focus(); }, 50);
+}
+function umbenennen() {
+  if (!B) return;
+  modalBox(`<h3>Version umbenennen</h3><p class="hint" style="margin:0 0 .7rem">Nur der Name der Version – das Projekt steht oben in der Kopfleiste.</p>
+    <div class="row" style="flex-direction:column;align-items:stretch"><label for="rnName">Name der Version</label><input id="rnName" maxlength="120" value="${esc(B.name)}"></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    const name = bg.querySelector('#rnName').value.trim(); if (!name) return;
+    close(); clearTimeout(saveT); await saveNow({ name }); B.name = name; const x = LIST.find((y) => y.id === B.id); if (x) x.name = name; vleiste();
+  });
+  setTimeout(() => { const i = document.querySelector('#rnName'); if (i) { i.focus(); i.select(); } }, 50);
+}
 const STUFE_N = (k) => (STUFEN.find((x) => x[0] === k) || [k, ''])[1];
 const bkSub = (x) => [STUFE_N(x.stufe), x.project ? [x.project.client, x.project.address].filter(Boolean).join(' · ') : '', x.archived ? 'archiviert' : ''].filter(Boolean).join(' · ');
 /* Das Projekt steht oben in der Kopfleiste – die App zeigt dessen Kostenermittlung, eine eigene Auswahl gibt es nicht */
@@ -322,14 +359,14 @@ if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => 
 function head() {
   if (B || LIST) selBtn();
   // ohne Kostenermittlung: nur „anlegen“ (hidden reicht bei .btn nicht – display kommt aus dem CSS)
-  document.querySelectorAll('.top > .btn, .stufen, #tabs').forEach((x) => { x.style.display = B ? '' : 'none'; });
-  const ab = $('#ansBtn'); if (ab && B && LIST.length < 2) ab.style.display = 'none';
+  $('#tabs').style.display = B ? '' : 'none';
+  vleiste();
   if (!window.BPHead) return;
   if (B && B.project_id) BPHead.projektSetzen(B.project_id);   // Kopfleiste zeigt das Projekt
 }
 function changed(redraw = true) {
   B.calc = calc(B.data); FLOW = null;
-  $('#save').textContent = 'Nicht gespeichert …';
+  saveEl().textContent = 'Nicht gespeichert …';
   clearTimeout(saveT); saveT = setTimeout(saveNow, 700);
   if (redraw) setTimeout(render, 0);   // erst nach dem Fokuswechsel neu zeichnen, damit Tab weiterspringt
 }
@@ -344,10 +381,10 @@ async function saveNow(extra = {}) {
   if (!B || saving) return; saving = true;
   try {
     const r = await api('api/bk/' + B.id, 'PUT', { rev: B.rev, data: B.data, ...extra });
-    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; if (r.quellen) B.quellen = r.quellen; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
-    const d = new Date(); $('#save').textContent = `✓ gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; B.reife = r.reife; const rb = $('#reifeBox'); if (rb) rb.innerHTML = reifeHtml(); if (r.quellen) B.quellen = r.quellen; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
+    const d = new Date(); saveEl().textContent = `✓ gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) {
-    $('#save').textContent = 'Nicht gespeichert';
+    saveEl().textContent = 'Nicht gespeichert';
     if (/geändert/.test(e.message)) { toast(e.message + ' Der neue Stand wird geladen.', true); await openBk(B.id); }
     else toast('Speichern fehlgeschlagen: ' + e.message, true);
   } finally { saving = false; }
@@ -356,8 +393,6 @@ async function saveNow(extra = {}) {
 /* ---------- Oberfläche ---------- */
 function render() {
   $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}"${k === tab ? ' aria-current="page"' : ''}>${l}${k === 'pruefung' && CHECK ? ` <span class="pill y">${CHECK.hinweise.length}</span>` : ''}</button>`).join('');
-  const SI = B && STUFE_INFO[B.stufe]; $('#stinfo').innerHTML = SI ? `<b>${esc(SI.lph)}</b> · übliche Genauigkeit ± ${SI.genau} % · ${esc(SI.txt)}` : '';
-  $('#stufen').innerHTML = STUFEN.map(([k, l]) => `<button type="button" data-stufe="${k}" class="${B && B.stufe === k ? 'on' : ''}" aria-pressed="${B && B.stufe === k}"${B ? '' : ' disabled'}>${l}</button>`).join('');
   const v = $('#view'), sig = sigOf(document.activeElement);
   if (!B) { const gp = window.BPHead && BPHead.projekt;
     v.innerHTML = `<div class="card empty"><p><b>${gp && gp.id ? `Für ${esc(gp.name)} gibt es noch keine Kostenermittlung.` : 'Noch keine Kostenermittlung.'}</b></p><p class="hint">Mit einem Grundriss (PDF), von Hand oder mit dem Assistenten – sie wird gleich mit dem Projekt verknüpft.</p><button class="btn pri" data-act="new">Kostenermittlung anlegen</button></div>`; return; }
@@ -381,6 +416,7 @@ function vUebersicht() {
     <div class="card kpi"><span class="lbl">Gesamt netto</span><b class="num">${eur(c.total)}</b><span>${B.acc ? `wahrscheinlich ${eur(B.acc.low)} – ${eur(B.acc.high)}` : 'inkl. Positionen und ' + pct(B.data.nk) + ' Nebenkosten'}</span></div>
     <div class="card kpi"><span class="lbl">Raumfläche</span><b class="num">${m2(c.area)} m²</b><span>${B.files.length} Pläne</span></div>
     <div class="card kpi"><span class="lbl">Kennwert</span><b class="num">${eur(c.kw)}</b><span>je m² Raumfläche, KG 300 + 400</span></div></div>
+  <section class="card" style="margin-bottom:1.2rem" id="reifeBox">${reifeHtml()}</section>
   <div class="two">
     <section class="card"><h2>Kosten nach Raumtyp</h2><p class="sub">Fläche × Kennwert</p><div class="bars">${c.types.filter((t) => t.n).map((t) => `
       <div class="bar"><div class="t"><span>${esc(t.label)} <span class="mute">· ${m2(t.area)} m²</span></span><span class="num">${eur(t.sum)}</span></div><div class="tr"><div class="f" style="width:${(t.sum / max * 100).toFixed(1)}%"></div></div></div>`).join('') || '<p class="hint">Noch keine Räume – unter „Pläne & Mengen“ einen Grundriss hochladen.</p>'}</div></section>
@@ -388,6 +424,14 @@ function vUebersicht() {
   </div>
   <section class="card" style="margin-top:1.2rem" id="accBox">${accHtml()}</section>
   <section class="card alert"><b>Plausibilitätsprüfung</b><span class="fill">${CHECK ? CHECK.hinweise.length + ' Hinweise' : 'Regeln und – je nach KI-Auswahl oben – Hinweise der KI'}</span><button class="btn" data-act="goCheck">Prüfen</button></section>`;
+}
+/* Wofür reichen die Daten? – ergibt sich aus den Eingaben (dieselben Regeln wie die Prüfung); die Stufe wählt man erst beim Prüfen und Drucken */
+function reifeHtml() {
+  const R0 = B.reife; if (!R0) return '<h2>Wofür reichen die Daten?</h2><p class="hint">Wird beim nächsten Speichern ermittelt.</p>';
+  const I = STUFE_INFO, nx = R0.stufen.find((x) => !x.ok), sp = (x) => STUFE_INFO[x.key].lph.split(' · ')[0];
+  return `<h2>Wofür reichen die Daten?</h2><p class="sub">Ergibt sich von selbst aus dem, was eingegeben ist. Die Stufe nach DIN 276 wählst du erst beim Prüfen und beim Drucken.</p>
+    <div class="reife">${R0.stufen.map((x) => `<div class="rf ${x.ok ? 'ok' : ''}${x.key === R0.reicht ? ' cur' : ''}">${x.key === R0.reicht ? '<span class="pin">reicht für</span>' : ''}<b>${x.ok ? '✓' : '○'} ${esc(x.name)}</b><span>${esc(sp(x))} · ± ${I[x.key].genau} %</span></div>`).join('')}</div>
+    ${nx ? `<p style="margin:.7rem 0 .2rem"><b>Für ${esc(nx.name === 'Kostenrahmen' ? 'den Kostenrahmen' : 'die ' + nx.name)} fehlt noch:</b></p><ul class="rfl">${nx.fehlt.slice(0, 6).map((f, k) => `<li>${esc(f.text)}${f.go && f.go.tab ? ` – <a href="#" data-rgo="${R0.stufen.indexOf(nx)}:${k}">zu „${esc((TABS.find((t) => t[0] === f.go.tab) || [, ''])[1])}“</a>` : ''}</li>`).join('')}${nx.fehlt.length > 6 ? `<li class="hint">und ${nx.fehlt.length - 6} weitere – siehe Prüfung</li>` : ''}</ul>` : '<p class="hint" style="margin:.6rem 0 0">Die Daten reichen für alle Stufen. Ob es ein Kostenvoranschlag, -anschlag oder eine -feststellung ist, hängt davon ab, woher die Beträge stammen (LV, Angebote, Rechnungen).</p>'}`;
 }
 function accHtml() {
   const a = B.acc; if (!a) return '';
@@ -588,7 +632,10 @@ function vMittel() {
 }
 function vPruefung() {
   const ki = window.BPHead ? BPHead.provider() : { label: 'Intern' };
-  return `<div class="row" style="margin-bottom:1rem"><div style="flex:1"><h2 style="margin:0">Plausibilitätsprüfung</h2><p class="hint" style="margin:.2rem 0 0">Feste Regeln${ki.key && ki.key !== 'intern' ? ' und ' + esc(ki.label) : ''} · KI oben in der Kopfleiste wählen</p></div><button class="btn pri" data-act="check">${CHECK ? 'Erneut prüfen' : 'Jetzt prüfen'}</button><button class="btn ki" data-act="checkKi" title="Zusätzlich mit KI prüfen (oben gewählte KI, sonst die erste eingerichtete)">✨ mit KI</button></div>
+  const rc = B.reife && B.reife.reicht, rs = B.reife && B.reife.stufen.find((x) => x.key === B.stufe);
+  return `<div class="row" style="margin-bottom:1rem"><div style="flex:1"><h2 style="margin:0">Plausibilitätsprüfung</h2><p class="hint" style="margin:.2rem 0 0">Feste Regeln${ki.key && ki.key !== 'intern' ? ' und ' + esc(ki.label) : ''} · KI oben in der Kopfleiste wählen</p></div>
+    <span style="display:flex;align-items:center;gap:.5rem;font-size:.9rem;color:var(--mute);white-space:nowrap">prüfen als <select data-pstufe aria-label="prüfen als" style="width:auto">${STUFEN.map(([k, l]) => `<option value="${k}"${k === B.stufe ? ' selected' : ''}>${l}${k === rc ? ' – dafür reicht es' : ''}</option>`).join('')}</select></span><button class="btn pri" data-act="check">${CHECK ? 'Erneut prüfen' : 'Jetzt prüfen'}</button><button class="btn ki" data-act="checkKi" title="Zusätzlich mit KI prüfen (oben gewählte KI, sonst die erste eingerichtete)">✨ mit KI</button></div>
+    ${rs ? `<p class="hint" style="margin:-.4rem 0 .8rem${rs.ok ? '' : ';color:#e07b3a'}">${rs.ok ? `✓ Als ${esc(rs.name)} ist alles vorhanden.` : `Als ${esc(rs.name)} fehlt noch: ${rs.fehlt.length} ${rs.fehlt.length === 1 ? 'Punkt' : 'Punkte'}${rc ? ` – die Daten reichen für ${esc(STUFE_N(rc) === 'Kostenrahmen' ? 'den Kostenrahmen' : 'die ' + STUFE_N(rc))}` : ''}.`}</p>` : ''}
     ${CHECK && CHECK.note ? `<p class="hint" style="color:#e07b3a">${esc(CHECK.note)}</p>` : ''}
     <div class="list">${CHECK ? CHECK.hinweise.map((h, k) => `<button type="button" class="card h go" data-hint="${k}" title="Zur Stelle springen"><span class="d ${h.lvl}" aria-label="${h.lvl}"></span><div><b>${esc(h.title)}</b><p>${esc(h.text)}</p></div><span class="src">${esc(h.src)}<i aria-hidden="true">→</i></span></button>`).join('') || '<div class="card empty">Keine Auffälligkeiten.</div>' : '<div class="card empty">Noch nicht geprüft.</div>'}</div>
     <section class="card" style="margin-top:1.4rem" id="quellen"><h2 style="margin:0 0 .3rem">Grundlagen und Quellen</h2><p class="sub" style="margin:0 0 .6rem">Woher Flächen, Kennwerte, Anteile und Preise dieser Kostenermittlung stammen – im „PDF für den Bauherrn“ als eigener Abschnitt wählbar.</p>
@@ -674,9 +721,9 @@ let AS = { open: false, step: null, skip: [], kw: false, pdf: false };
 function asLoad() { try { AS = Object.assign({ open: false, step: null, skip: [], kw: false, pdf: false }, JSON.parse(localStorage.getItem(AS_KEY())) || {}); } catch { AS = { open: false, step: null, skip: [], kw: false, pdf: false }; } }
 function asSave() { try { localStorage.setItem(AS_KEY(), JSON.stringify(AS)); } catch { /* egal */ } }
 const STEPS = [
-  { k: 'projekt', t: 'Projekt und Stufe', done: () => !!B.project_id,
-    txt: () => `Verknüpfe die Kostenermittlung mit dem Projekt aus dem Bautagebuch und wähle oben die Stufe nach DIN 276. Im Vorentwurf ist das meist die <b>Kostenschätzung</b>.`,
-    st: () => B.project ? `Projekt: ${esc(B.project.name)} · Stufe: ${esc((STUFEN.find((x) => x[0] === B.stufe) || [, ''])[1])}` : 'Noch kein Projekt verknüpft.',
+  { k: 'projekt', t: 'Projekt', done: () => !!B.project_id,
+    txt: () => `Verknüpfe die Kostenermittlung mit dem Projekt aus dem Bautagebuch. Die Stufe nach DIN 276 (z. B. <b>Kostenschätzung</b>) wählst du erst beim Prüfen und Drucken – die Übersicht zeigt, wofür die Daten schon reichen.`,
+    st: () => B.project ? `Projekt: ${esc(B.project.name)}` : 'Noch kein Projekt verknüpft.',
     acts: [['Zur Verknüpfung', 'tab:mittel']] },
   { k: 'plaene', t: 'Pläne hochladen', done: () => B.files.length > 0,
     txt: () => 'Lade die Grundrisse <b>aller Geschosse</b> als PDF aus dem CAD hoch, dazu Ansichten und Schnitte. Aus Grundrissen werden Raumnummer, Name und Fläche exakt gelesen.',
@@ -842,6 +889,12 @@ function goHint(h) {
   });
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-hint]'); if (b && CHECK) goHint(CHECK.hinweise[+b.dataset.hint]); });
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-rgo]'); if (!b || !B || !B.reife) return; e.preventDefault(); const [i, k] = b.dataset.rgo.split(':').map(Number); const f = B.reife.stufen[i].fehlt[k]; goHint({ title: f.text, go: f.go }); });
+document.addEventListener('change', (e) => {   // Prüfung: gegen welche Stufe nach DIN 276
+  const sel = e.target.closest('[data-pstufe]'); if (!sel || !B) return;
+  B.stufe = sel.value; CHECK = null; clearTimeout(saveT);
+  saveNow({ stufe: B.stufe }).then(() => { const x = LIST.find((y) => y.id === B.id); if (x) x.stufe = B.stufe; vleiste(); render(); runCheck(); });
+});
 
 /* ---------- Assistent verschieben (an der Titelzeile ziehen) ---------- */
 function asPlace() {
@@ -931,7 +984,9 @@ document.addEventListener('click', async (e) => {
   const a = e.target.closest('[data-act]');
   if (a) {
     const act = a.dataset.act;
-    if (act === 'new') newDialog();
+    if (act === 'new') { const gp = window.BPHead && BPHead.projektId();   // Projekt steht oben: gleich anlegen, ohne Rückfrage
+      if (gp) { try { const r = await api('api/bk', 'POST', { project_id: gp, name: 'Startversion' }); SRC = null; tab = 'uebersicht'; await loadList(r.id); } catch (er) { toast(er.message, true); } }
+      else newDialog(); }
     else if (act === 'goCheck') { tab = 'pruefung'; history.replaceState(null, '', '#pruefung'); render(); runCheck(); }
     else if (act === 'check') runCheck();
     else if (act === 'checkKi') runCheck(true);
@@ -1120,11 +1175,11 @@ async function typesDialog(host) {
   });
   if (!host) bg.querySelector('.modal').style.width = 'min(760px,100%)';
 }
-$('#moreBtn').onclick = () => {
+function verwalten() {
   if (!B) return;
   modalBox(`<h3>„${esc(B.name)}“</h3>
-    <p><b>Archivieren</b> blendet die Kostenermittlung in der Auswahl nach unten aus; sie bleibt erhalten und lässt sich jederzeit zurückholen.</p>
-    <p><b>Löschen</b> entfernt sie endgültig – mit Raumbuch, Schätzungen und hochgeladenen Plänen. Das lässt sich nicht rückgängig machen.</p>
+    <p><b>Archivieren</b> schiebt diese Version in der Versionsauswahl nach unten unter „Archiviert“; sie bleibt erhalten und lässt sich jederzeit zurückholen.</p>
+    <p><b>Löschen</b> entfernt diese Version endgültig – mit Raumbuch, Schätzungen und hochgeladenen Plänen. Das lässt sich nicht rückgängig machen.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${B.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del">Endgültig löschen …</button></div>`,
   async (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -1148,7 +1203,7 @@ $('#moreBtn').onclick = () => {
       } catch (e) { toast('Löschen fehlgeschlagen: ' + e.message, true); }
     }
   });
-};
+}
 const PARTS = [['deckblatt', 'Deckblatt', 'Projekt, Bauherr, Stand, Gesamtkosten'], ['zusammenfassung', 'Zusammenfassung', 'Bauwerk, weitere KG, Nebenkosten, MwSt.'], ['genauigkeit', 'Genauigkeit', 'wahrscheinliche Spanne und was sie beeinflusst'],
   ['kosten', 'Kosten nach DIN 276', 'in der gewählten Gliederungstiefe'], ['raumtypen', 'Kosten nach Nutzung', 'Raumtypen mit Fläche und Kennwert'],
   ['raumbuch', 'Raumbuch', 'alle Räume mit Nutzung und Fläche'], ['mittelabfluss', 'Mittelabfluss', 'Diagramm und Monatstabelle aus dem Bauzeitenplan'],
@@ -1158,7 +1213,15 @@ function pdfDialog() {
   let o; try { o = JSON.parse(localStorage.getItem('bk.pdf')) || {}; } catch { o = {}; }
   const tb = o.tiefeBy || {};
   o = { teile: o.teile || ['deckblatt', 'zusammenfassung', 'genauigkeit', 'kosten', 'mittelabfluss', 'erlaeuterungen', 'quellen'], tiefe: tb[B.stufe] || (STUFE_INFO[B.stufe] || {}).ebene || 2, tiefeBy: tb, brutto: o.brutto ?? true, mwst: o.mwst ?? 19, runden: o.runden ?? 100 };
-  modalBox(`<h3>PDF für den Bauherrn</h3><p class="hint" style="margin-top:0">Was soll ins PDF-Paket? Die Auswahl wird gemerkt.</p>
+  let st = B.stufe;
+  const warn = () => { const x = B.reife && B.reife.stufen.find((y) => y.key === st), rc = B.reife && B.reife.reicht; if (!x || x.ok) return '';
+    return `<div class="pwarn"><b>Dafür reichen die Daten noch nicht:</b> ${x.fehlt.slice(0, 4).map((f) => esc(f.text)).join(' · ')}${x.fehlt.length > 4 ? ` · und ${x.fehlt.length - 4} weitere` : ''}
+      <div class="acts" style="justify-content:flex-start;margin:.5rem 0 .3rem">${rc ? `<button class="btn sm" data-m="tiefer">Als ${esc(STUFE_N(rc))} ausgeben</button>` : ''}<button class="btn sm" data-m="pruef">Zur Prüfung</button></div>
+      <label class="chk"><input type="checkbox" id="pVorl" checked><span>trotzdem als ${esc(STUFE_N(st))} – mit dem Vermerk „vorläufig“</span></label></div>`; };
+  const bg0 = modalBox(`<h3>PDF für den Bauherrn</h3>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin:.2rem 0 .4rem"><b>Ausgeben als</b><select id="pStufe" aria-label="Ausgeben als" style="width:auto">${STUFEN.map(([k, l]) => `<option value="${k}"${k === st ? ' selected' : ''}>${l}${B.reife && k === B.reife.reicht ? ' – dafür reicht es' : ''}</option>`).join('')}</select><span class="hint" id="pLph">nach DIN 276, ${esc(STUFE_INFO[st].lph)}</span></div>
+    <div id="pWarn">${warn()}</div>
+    <p class="hint" style="margin-top:.6rem">Was soll ins PDF-Paket? Die Auswahl wird gemerkt.</p>
     <div style="display:flex;flex-direction:column;gap:.15rem;margin-bottom:.9rem">${PARTS.map(([k, n, h]) => `<label class="chk"><input type="checkbox" data-part="${k}"${o.teile.includes(k) ? ' checked' : ''}><span><b>${n}</b> <span class="hint">– ${h}</span></span></label>`).join('')}</div>
     <div class="row" style="flex-direction:column;align-items:stretch;gap:.6rem">
       <label>Gliederungstiefe der Kosten<select id="pTiefe"><option value="1"${o.tiefe == 1 ? ' selected' : ''}>1. Ebene – Kostengruppen 100 … 800</option><option value="2"${o.tiefe == 2 ? ' selected' : ''}>2. Ebene – z. B. 330 Außenwände, 440 Elektro</option><option value="3"${o.tiefe == 3 ? ' selected' : ''}>3. Ebene – mit Einzelpositionen</option></select></label>
@@ -1167,16 +1230,21 @@ function pdfDialog() {
       <label>Rundung<select id="pRund"><option value="0"${o.runden == 0 ? ' selected' : ''}>auf volle Euro</option><option value="100"${o.runden == 100 ? ' selected' : ''}>auf 100 €</option><option value="1000"${o.runden == 1000 ? ' selected' : ''}>auf 1.000 €</option></select></label></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">PDF erstellen</button></div>`,
   async (m, bg, close) => {
+    if (m === 'tiefer') { bg.querySelector('#pStufe').value = B.reife.reicht; bg.querySelector('#pStufe').dispatchEvent(new Event('change', { bubbles: true })); return; }
+    if (m === 'pruef') { close(); tab = 'pruefung'; history.replaceState(null, '', '#pruefung'); if (st !== B.stufe) { B.stufe = st; clearTimeout(saveT); await saveNow({ stufe: st }); } render(); runCheck(); return; }
     if (m !== 'ok') { close(); return; }
+    const vx = B.reife && B.reife.stufen.find((y) => y.key === st), vorl = !!(vx && !vx.ok);
+    if (vorl && !bg.querySelector('#pVorl').checked) { toast('Für diese Stufe reichen die Daten noch nicht – niedrigere Stufe wählen oder „vorläufig“ ankreuzen.', true); return; }
     const n = { teile: [...bg.querySelectorAll('[data-part]:checked')].map((x) => x.dataset.part), tiefe: +bg.querySelector('#pTiefe').value, brutto: bg.querySelector('#pBrutto').value === '1', mwst: pnum(bg.querySelector('#pMwst').value), runden: +bg.querySelector('#pRund').value };
     if (!n.teile.length) { toast('Bitte mindestens einen Teil wählen.', true); return; }
     try { localStorage.setItem('bk.pdf', JSON.stringify({ ...n, tiefeBy: { ...o.tiefeBy, [B.stufe]: n.tiefe } })); } catch { /* egal */ }
     // Fenster SOFORT öffnen (noch im Klick) – nach dem Speichern würde der Browser es als Popup blockieren
     const w = window.open('', '_blank');
     if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>PDF wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">PDF wird erstellt …</body>');
-    close(); clearTimeout(saveT); await saveNow();
+    close(); clearTimeout(saveT);
+    if (st !== B.stufe) { B.stufe = st; const x = LIST.find((y) => y.id === B.id); if (x) x.stufe = st; await saveNow({ stufe: st }); vleiste(); } else await saveNow();
     AS.pdf = true; asSave(); assist();
-    const url = `api/bk/${B.id}/bericht.pdf?teile=${n.teile.join(',')}&tiefe=${n.tiefe}&brutto=${n.brutto ? 1 : 0}&mwst=${n.mwst}&runden=${n.runden}`;
+    const url = `api/bk/${B.id}/bericht.pdf?teile=${n.teile.join(',')}&tiefe=${n.tiefe}&brutto=${n.brutto ? 1 : 0}&mwst=${n.mwst}&runden=${n.runden}${vorl ? '&vorl=1' : ''}`;
     toast('PDF wird erstellt …');
     try {
       const r = await fetch(url);
@@ -1186,6 +1254,16 @@ function pdfDialog() {
       else { const a = document.createElement('a'); a.href = href; a.download = `${STUFEN.find((x) => x[0] === B.stufe)?.[1] || 'Kosten'} ${B.name}.pdf`; document.body.appendChild(a); a.click(); a.remove(); }
       setTimeout(() => URL.revokeObjectURL(href), 120000);
     } catch (er) { if (w && !w.closed) w.close(); toast('Das PDF konnte nicht erstellt werden: ' + er.message, true); }
+  });
+  pdfStufeBind(bg0, (k) => { st = k; }, warn, tb);
+}
+function pdfStufeBind(bg, setSt, warn, tb) {
+  bg.addEventListener('change', (e) => {
+    if (e.target.id !== 'pStufe') return;
+    const k = e.target.value; setSt(k);
+    bg.querySelector('#pLph').textContent = 'nach DIN 276, ' + STUFE_INFO[k].lph;
+    bg.querySelector('#pWarn').innerHTML = warn();
+    bg.querySelector('#pTiefe').value = String(tb[k] || STUFE_INFO[k].ebene || 2);   // Gliederungstiefe passend zur Stufe
   });
 }
 async function newDialog(vor) {
@@ -1198,8 +1276,7 @@ async function newDialog(vor) {
       <label class="nkl" for="nkQ">Projekt</label>
       <input id="nkQ" type="search" autocomplete="off" placeholder="Projektnummer oder Name, z. B. A526">
       <div class="nkList" id="nkList" role="listbox" aria-label="Projekte"></div>
-      <div class="nkRow"><div><label class="nkl" for="nkName">Name der Kostenermittlung</label><input id="nkName" autocomplete="off"></div>
-        <div><label class="nkl" for="nkStufe">Stufe</label><select id="nkStufe">${STUFEN.map(([k, l]) => `<option value="${k}"${k === 'schaetzung' ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>
+      <div class="nkRow"><div><label class="nkl" for="nkName">Name der Version</label><input id="nkName" autocomplete="off" value="Startversion"></div></div>
       <label class="nkl" for="nkPlan">Bauzeitenplan <span class="hint">(für den Mittelabfluss, kann später gewählt werden)</span></label>
       <select id="nkPlan"><option value="">– später wählen –</option>${SRC.plans.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select>
     </div>
@@ -1212,13 +1289,12 @@ async function newDialog(vor) {
     try {
       let pid = sel.kind === 'bt' ? sel.id : null;
       if (sel.kind === 'folder') { const r = await api('api/bautagebuch-projekt', 'POST', { name: sel.name }); pid = r.id; toast(`Projekt „${sel.name}“ im Bautagebuch angelegt.`); }
-      const r = await api('api/bk', 'POST', { name: $('#nkName').value.trim() || sel.name, project_id: pid, gantt_id: $('#nkPlan').value || null, stufe: $('#nkStufe').value });
+      const r = await api('api/bk', 'POST', { name: $('#nkName').value.trim() || sel.name, project_id: pid, gantt_id: $('#nkPlan').value || null });
       close(); SRC = null; tab = 'uebersicht'; await loadList(r.id);
     } catch (e) { btn.disabled = false; btn.textContent = 'Anlegen'; toast(e.message, true); }
   });
   bg.querySelector('.modal').style.width = 'min(620px, 100%)';
-  const stufeName = () => (STUFEN.find((x) => x[0] === $('#nkStufe').value) || [, ''])[1];
-  const setName = () => { if (!nameTouched && sel) $('#nkName').value = (sel.kind === 'none' ? '' : sel.name + ' – ') + stufeName(); };
+  const setName = () => {};   // die Version heißt „Startversion“ – das Projekt steht in der Kopfleiste
   const draw = () => {
     const q = $('#nkQ').value.trim().toLowerCase();
     const hit = (t) => passt(t, q);
@@ -1244,7 +1320,6 @@ async function newDialog(vor) {
     setName(); draw(); $('#nkName').focus();
   });
   $('#nkName').addEventListener('input', () => { nameTouched = true; });
-  $('#nkStufe').addEventListener('change', setName);
   draw(); $('#nkQ').focus();
   // Projekt, aus dem man gekommen ist: hat es noch keine Kostenermittlung, gleich auswählen und den Namen übernehmen
   const gp = window.BPHead && BPHead.projekt, gpr = gp && gp.id && SRC.projects.find((p) => p.id === gp.id);
@@ -1348,11 +1423,11 @@ async function hinweis() {
   api('api/vergleich').then((v) => { VG = v; if (B && tab === 'kosten') render(); }).catch(() => {});
   hinweis();
 })().catch((e) => toast(e.message, true));
-$('#verBtn').onclick = async () => {
+async function verlauf() {
   if (!B || !window.BPHead) return;
-  clearTimeout(saveT); if ($('#save').textContent.startsWith('Nicht')) await saveNow();
+  clearTimeout(saveT); if (saveEl().textContent.startsWith('Nicht')) await saveNow();
   BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => openBk(B.id) });
-};
+}
 window.bpNachVerlauf = () => (B ? openBk(B.id) : location.reload());
 /* Kostenansätze aus einer anderen Kostenermittlung übernehmen – wie jede Änderung mit ↶ Rückgängig umkehrbar */
 $('#ansBtn').onclick = () => {
@@ -1415,23 +1490,6 @@ $('#ansBtn').onclick = () => {
     if (id) { try { Q = await api('api/bk/' + id); } catch (er) { toast(er.message, true); } }
     bg.querySelector('.modal').innerHTML = html();
   });
-};
-/* Projektstand manuell festhalten: benannter Stand im Verlauf (wird nie automatisch aufgeräumt) */
-$('#standBtn').onclick = () => {
-  if (!B) return;
-  const vor = `${STUFE_N(B.stufe)} – ${new Date().toLocaleDateString('de-DE')}`;
-  modalBox(`<h3>Stand speichern</h3><p class="hint" style="margin:0 0 .7rem">Hält „${esc(B.name)}“ so fest, wie sie jetzt ist – mit allen Räumen, Bauteilen und Kosten. Unter 🕘 Verlauf lässt sich der Stand jederzeit ansehen, vergleichen und wiederherstellen; benannte Stände werden nie aufgeräumt.</p>
-    <div class="row"><label for="stName">Name des Stands</label><input id="stName" value="${esc(vor)}" maxlength="120"></div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
-    if (m === 'x') { close(); return; }
-    const name = bg.querySelector('#stName').value.trim(); if (!name) return;
-    try {
-      clearTimeout(saveT); await saveNow();
-      await api('api/bp/versionen', 'POST', { bereich: 'bkp:' + B.id, name });
-      close(); toast(`Stand „${name}“ gespeichert.`);
-    } catch (e) { toast(e.message, true); }
-  });
-  setTimeout(() => { const i = document.querySelector('#stName'); if (i) { i.focus(); i.select(); } }, 50);
 };
 </script>
 </body>

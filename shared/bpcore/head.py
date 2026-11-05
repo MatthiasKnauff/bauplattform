@@ -604,8 +604,8 @@ def blueprint(get_user=None):
             d = posteingang.lesen(c, uid)
             if ein and (request.args.get("neu") or (request.args.get("auto") and posteingang.faellig(c, uid))):
                 d = posteingang.abrufen(c, u)
-            if d.get("mails"):   # Einstellung „eigene Kopien ausblenden“ gilt sofort, auch für schon gelesene Mails
-                d["mails"] = posteingang.eigene_filtern(c, u, d["mails"])
+            if d.get("mails"):   # „eigene Kopien ausblenden“ und „einen Tag sichtbar“ gelten sofort, auch für schon gelesene Mails
+                d["mails"] = posteingang.sichtbar(c, uid, posteingang.eigene_filtern(c, u, d["mails"]))
             abruf = posteingang.postfaecher(c, uid)["abruf"]
         return jsonify(**d, eingerichtet=ein, abruf=abruf)
 

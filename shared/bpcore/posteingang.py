@@ -66,7 +66,17 @@ def postfaecher(c, uid):
     except ValueError:
         d = {}
     return {"m365": d.get("m365", True), "konten": [k for k in d.get("konten") or [] if isinstance(k, dict)], "abruf": _abruf(d.get("abruf")),
-            "eigene": _eigene(d.get("eigene"))}
+            "eigene": _eigene(d.get("eigene")), "anzeige": _anzeige(d.get("anzeige"))}
+
+
+def _anzeige(a):
+    """Wie lange eine Mail in der Übersicht steht: tage (1–14), wochenende=True → Samstag/Sonntag zählen nicht mit."""
+    a = a if isinstance(a, dict) else {}
+    try:
+        t = max(1, min(14, int(a.get("tage") or 1)))
+    except (TypeError, ValueError):
+        t = 1
+    return {"tage": t, "wochenende": a.get("wochenende", True) is not False}
 
 
 def _eigene(e):
@@ -161,7 +171,7 @@ def alle_faelligen(c_fn):
 
 def postfaecher_oeffentlich(c, uid):
     d = postfaecher(c, uid)
-    return {"m365": d["m365"], "abruf": d["abruf"], "eigene": d["eigene"], "konten": [{**{k: v for k, v in x.items() if k != "pass"}, "pass_set": bool(x.get("pass"))} for x in d["konten"]]}
+    return {"m365": d["m365"], "abruf": d["abruf"], "eigene": d["eigene"], "anzeige": d["anzeige"], "konten": [{**{k: v for k, v in x.items() if k != "pass"}, "pass_set": bool(x.get("pass"))} for x in d["konten"]]}
 
 
 def postfaecher_setzen(c, uid, b, by):
@@ -180,7 +190,8 @@ def postfaecher_setzen(c, uid, b, by):
         if x["host"] and x["user"]:
             neu.append(x)
     d = {"m365": b.get("m365", alt["m365"]) is not False, "konten": neu, "abruf": _abruf(b.get("abruf") or alt["abruf"]),
-         "eigene": _eigene(b.get("eigene") if b.get("eigene") is not None else alt["eigene"])}
+         "eigene": _eigene(b.get("eigene") if b.get("eigene") is not None else alt["eigene"]),
+         "anzeige": _anzeige(b.get("anzeige") if b.get("anzeige") is not None else alt["anzeige"])}
     konto._put(c, f"postfaecher:{uid}", json.dumps(d, ensure_ascii=False), by)
     return postfaecher_oeffentlich(c, uid)
 
@@ -425,7 +436,8 @@ def abrufen(c, u):
         except ValueError:
             letzte = None
         seit = min(letzte - timedelta(hours=2) if letzte else jetzt - timedelta(days=1), jetzt - timedelta(days=1))
-        seit = max(seit, jetzt - timedelta(days=7))
+        seit = min(seit, grenze(postfaecher(c, uid)["anzeige"]).astimezone(timezone.utc))
+        seit = max(seit, jetzt - timedelta(days=16))
         pf, fehler, mails = postfaecher(c, uid), [], []
         if m365_ok(c):
             for adr in m365_postfaecher_von(c, u):   # eigenes Postfach und vom Administrator zugewiesene (z. B. rechnungen@, mail@)
@@ -453,6 +465,9 @@ def abrufen(c, u):
             s = vorschlag(m)
             if s and m["id"] not in erl:
                 m["vorschlag"] = s
+        neu_ids = {m["id"] for m in zu}
+        zu = sichtbar(c, uid, zu + [m for m in alt.get("mails") or [] if m.get("id") not in neu_ids])   # ältere mit offener Erinnerung bleiben
+        zu.sort(key=lambda m: m.get("zeit") or "", reverse=True)
         d = {"stand": jetzt.isoformat(timespec="seconds"), "seit": seit.isoformat(timespec="seconds"), "mails": zu[:300], "gelesen": len(uniq),
              "projekte": n_proj, "fehler": fehler, "erledigt": {k: v for k, v in erl.items() if v and k in {m["id"] for m in zu}}}
         konto._put(c, f"post:{uid}", json.dumps(d, ensure_ascii=False), "posteingang")
@@ -460,6 +475,50 @@ def abrufen(c, u):
     finally:
         with _lock:
             _busy.discard(uid)
+
+
+def grenze(anzeige, jetzt=None):
+    """Ältere Mails fallen aus der Übersicht: so viele Tage zurück, Wochenendtage auf Wunsch nicht mitgezählt
+    (1 Tag + Wochenende: am Montag stehen noch die Mails seit Freitag)."""
+    g = jetzt or datetime.now().astimezone()
+    rest = anzeige["tage"]
+    while rest > 0:
+        g -= timedelta(days=1)
+        if anzeige["wochenende"] and g.weekday() >= 5:
+            continue
+        rest -= 1
+    return g
+
+
+def mit_erinnerung(c, uid):
+    """{Mail-ID: Termin} der offenen Erinnerungen, die aus der Mail-Übersicht angelegt wurden."""
+    out = {}
+    for r in c.execute("SELECT termin, daten, empfaenger FROM erinnerungen WHERE status='offen' AND daten LIKE '%aus_mail%'").fetchall():
+        try:
+            d, an = json.loads(r["daten"] or "{}"), json.loads(r["empfaenger"] or "[]")
+        except ValueError:
+            continue
+        if d.get("aus_mail") and (uid in an or str(uid) in map(str, an)):
+            out[d["aus_mail"]] = r["termin"]
+    return out
+
+
+def sichtbar(c, uid, mails):
+    """Eine Mail steht die eingestellten Tage in der Übersicht – mit offener Erinnerung so lange, bis die Erinnerung erledigt ist."""
+    gr = grenze(postfaecher(c, uid)["anzeige"])
+    er = mit_erinnerung(c, uid)
+    out = []
+    for m in mails:
+        try:
+            t = datetime.fromisoformat((m.get("zeit") or "").replace("Z", "+00:00"))
+            t = t if t.tzinfo else t.replace(tzinfo=timezone.utc)
+        except ValueError:
+            t = None
+        if m.get("id") in er:
+            out.append({**m, "erinnerung": er[m["id"]]})
+        elif t is None or t >= gr:
+            out.append({k: v for k, v in m.items() if k != "erinnerung"})
+    return out
 
 
 def eingerichtet(c, u):

@@ -99,7 +99,7 @@ function tdZeigen() {
   const sort = (a, b) => (b.prio || 0) - (a.prio || 0) || (a.f || '9').localeCompare(b.f || '9') || (a.titel || '').localeCompare(b.titel || '');
   const app = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'aufgaben' && a.allowed), appL = app ? appUrl(app) + '/#todos' : '';
   let html = `<div class="post-h"><h2>☑ To-dos</h2><span class="mute">${offen.length} offen</span></div>
-    <form class="tq" data-td="neuform"><input id="tdNeu" data-bp-projekt="wort" placeholder="+ Neue Aufgabe – z. B. „A480 Statik nachfordern bis Fr“" autocomplete="off" aria-label="Neue Aufgabe" title="Projektkürzel (z. B. A48…) oder @Name tippen – das Projekt wird vorgeschlagen"><button class="btn sm pri">Anlegen</button></form>`;
+    <form class="tq" data-td="neuform"><input id="tdNeu" data-bp-projekt="wort" placeholder="+ Neue Aufgabe – z. B. „A480 Statik nachfordern bis Fr“" autocomplete="off" aria-label="Neue Aufgabe" title="Projektkürzel, Ort oder Name tippen (z. B. A48, Tierheim, Krefeld) – passende Projekte und Ordner werden vorgeschlagen"><button class="btn sm pri">Anlegen</button></form>`;
   if (TDOFFEN === 'neu') html += `<div class="tr">${tdEditor({ titel: (TD._neu || {}).titel, faellig: (TD._neu || {}).faellig, pid: window.BPHead && BPHead.projektId ? BPHead.projektId() : null, personen: [], mail: true })}</div>`;
   let n = 0, rest = TDKLEIN ? 6 : 1e9;   // Startseite: nur die dringendsten sechs
   for (const [name, fn, rot] of G) {

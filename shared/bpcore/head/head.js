@@ -308,10 +308,10 @@
     sugPlace();
   }
   /* Wort-Modus (data-bp-projekt="wort", z. B. Zeile „Neue Aufgabe“): vervollständigt nur das Wort am Cursor –
-     ein Projektkürzel wie „A48“ oder ein Name nach „@“ –, der übrige Text bleibt stehen */
+     ein Projektkürzel wie „A48“, ein Ort oder Name („Tierheim“, „Krefeld“) –, der übrige Text bleibt stehen */
   const sugWort = (inp) => {
     const pos = inp.selectionStart == null ? inp.value.length : inp.selectionStart, vor = inp.value.slice(0, pos);
-    const m = vor.match(/(?:^|\s)(@[^\s@]{2,}|[A-Za-z]{1,3}\d[\w.-]*)$/);
+    const m = vor.match(/(?:^|\s)(@[^\s@]{2,}|[A-Za-z]{1,3}\d[\w.-]*|[^\s@\d][^\s@]{2,})$/);   // Kürzel, @Name oder jedes Wort ab 3 Buchstaben (Tierheim, Krefeld)
     return m ? { a: pos - m[1].length, b: pos, q: m[1].replace(/^@/, '') } : null;
   };
   function sugPick(i) {

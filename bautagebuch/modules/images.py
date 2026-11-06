@@ -20,10 +20,14 @@ def _default_caption(c, report_id, item_id):
     """Foto an einem Eintrag heißt zunächst wie der Eintrag: „Mangel 1“, „Mangel 2“ …, weitere Fotos „Mangel 1 (2)“."""
     if not item_id:
         return ""
-    it = c.execute("SELECT i.kind, s.extra FROM items i LEFT JOIN sections s ON s.key=i.kind WHERE i.id=?", (item_id,)).fetchone()
+    it = c.execute("SELECT i.kind, i.text, s.extra FROM items i LEFT JOIN sections s ON s.key=i.kind WHERE i.id=?", (item_id,)).fetchone()
     label = json.loads(it["extra"] or "{}").get("photo_label") if it and it["extra"] else None
-    if not label:
-        return ""
+    if not label:   # Abschnitte ohne eigene Bezeichnung (z. B. Anwesende): das Foto heißt wie der Eintrag
+        t = " ".join(str((it["text"] if it else "") or "").split())[:60]
+        if not t:
+            return ""
+        more = c.execute("SELECT COUNT(*) FROM images WHERE item_id=?", (item_id,)).fetchone()[0]
+        return t + (f" ({more + 1})" if more else "")
     n = c.execute("SELECT COUNT(*) FROM items WHERE report_id=? AND kind=? AND id<=?", (report_id, it["kind"], item_id)).fetchone()[0]
     more = c.execute("SELECT COUNT(*) FROM images WHERE item_id=?", (item_id,)).fetchone()[0]
     return f"{label} {n}" + (f" ({more + 1})" if more else "")

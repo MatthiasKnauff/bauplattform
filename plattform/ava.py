@@ -2216,7 +2216,7 @@ def _auslesen(data, items):
                 or (len(T) < len(_ozn(x["oz"])) and len(T) >= 2 and _ozn(x["oz"])[-len(T):] == T)]
         return kand[0] if len(kand) == 1 else None
 
-    treffer, kopf, text1, rzeilen, zahlen, ocr = {}, {}, "", [], {}, False
+    treffer, kopf, text1, rzeilen, zahlen, ocr, summen = {}, {}, "", [], {}, False, []
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         for n, pg in enumerate(pdf.pages[:40], 1):
             W_, H_ = float(pg.width), float(pg.height)
@@ -2268,6 +2268,17 @@ def _auslesen(data, items):
                     t.update(menge=nums[best[0]][1], ep=nums[best[1]][1], gp=nums[best[2]][1])
                 if pid not in treffer or best:
                     treffer[pid] = t
+            for z in zeilen:   # Summenzeilen: Netto, Umsatzsteuer, Brutto/Endsumme – mit Stelle des Betrags
+                tx = " ".join(w["text"] for w in z).lower()
+                geld = [w for w in z if _zahl(w["text"]) is not None and "," in w["text"]]
+                if not geld or len(tx) > 90:
+                    continue
+                art = ("mwst" if re.search(r"mwst|mehrwertsteuer|umsatzsteuer|\bust\b", tx) else
+                       "brutto" if re.search(r"endsumme|brutto|gesamtbetrag|zahlbetrag|rechnungsbetrag|zu zahlen", tx) else
+                       "netto" if re.search(r"\bsumme\b|netto|zwischensumme|gesamtsumme", tx) else None)
+                if art and not any(x_["art"] == art for x_ in summen):
+                    w = geld[-1]
+                    summen.append({"art": art, "wert": _zahl(w["text"]), "seite": n, "box": box_von([w])})
             for k, z in enumerate(zeilen):   # Zeilen ohne LV-Position, in denen Menge × Preis = Betrag aufgeht (Regie, Material …)
                 if k in belegt:
                     continue
@@ -2301,6 +2312,7 @@ def _auslesen(data, items):
         m = re.search(r"(?:Summe\s+netto|Nettobetrag|Netto(?:summe|betrag)?|Gesamt\s+netto|Zwischensumme)\s*(?:EUR|€)?\s*:?\s*(-?[\d.]+,\d{2})", text1, re.I)
         if m and _zahl(m.group(1)) is not None:
             kopf["netto"] = _zahl(m.group(1))
+    kopf["summen"] = summen
     return {"pos": treffer, "kopf": kopf, "text": bool(text1.strip()), "ocr": ocr, "zeilen": rzeilen[:300],
             "zahlen": {str(k): v for k, v in zahlen.items() if v}}
 
@@ -2493,7 +2505,19 @@ def beleg_pruefen(b):
         K = rechne(lv, ang, am, re_)
         RC = next((y for y in K["rechnungen"] if y["id"] == x["rid"]), None)
         gef = x["gefordert"] or 0
-    zeichen = []
+        A = _j(x["auslese"], None) if "auslese" in x.keys() else None
+        if not A or "zahlen" not in A:
+            A = _auslese_anwenden(c, b, x["rid"], lv)
+        R0 = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (x["rid"],)).fetchone()
+        VP = (_j(lv["vergabe"], {}) or {}).get("preise") or {}
+    zeichen = _pruefzeichen(A, K, RC, R0, VP)
+    if zeichen:
+        with db.tx() as c:
+            for n, art, pos, txt in zeichen:
+                skizze.strich(c, sid, g.user, {"seite": n, "art": art, "farbe": "#1f9d4c" if art == "haken" else "#e02424", "breite": 0.004, "pts": [pos]})
+                if txt:
+                    skizze.strich(c, sid, g.user, {"seite": n, "art": "text", "farbe": "#e02424", "breite": 0.0035, "pts": [[max(0.03, pos[0] - 0.32), min(0.99, pos[1] + 0.024)]], "text": txt})
+        return jsonify(skizze=sid, name=x["name"], automatisch=len(zeichen))
     try:
         import pdfplumber
         with pdfplumber.open(io.BytesIO(data)) as pdf:
@@ -2526,6 +2550,44 @@ def beleg_pruefen(b):
             if txt:
                 skizze.strich(c, sid, g.user, {"seite": n, "art": "text", "farbe": "#e02424", "breite": 0.0035, "pts": [[max(0.03, pos[0] - 0.32), min(0.99, pos[1] + 0.024)]], "text": txt})
     return jsonify(skizze=sid, name=x["name"], automatisch=sum(1 for z in zeichen if z[1] != "_geld"))
+
+
+def _pruefzeichen(A, K, RC, R, VP):
+    """✔/✘ je erkannter Position (Menge lt. Firma = Aufmaß, EP = Auftrags-EP), je Regiezeile und je Summe (Netto, Brutto)."""
+    if not A or not RC:
+        return []
+    out, am = [], K.get("aufmass") or {}
+    rd = (_j(R["data"], {}) or {}) if R else {}
+    stand = rd.get("stand") if R and R["status"] == "geprueft" and isinstance(rd.get("stand"), dict) else am
+    num = lambda v: f"{v:,.3f}".rstrip("0").rstrip(",.").replace(",", "X").replace(".", ",").replace("X", ".")   # noqa: E731
+    mitte = lambda t: [min(0.985, t["box"][2] + 0.012), (t["box"][1] + t["box"][3]) / 2]   # noqa: E731
+    for pid, t in (A.get("pos") or {}).items():
+        if t.get("menge") is None:
+            continue
+        m, ep = stand.get(pid, 0) or 0, _fn(VP.get(pid))
+        ok_m, ok_ep = abs(t["menge"] - m) < 1e-6, ep is None or t.get("ep") is None or abs(t["ep"] - ep) < 0.005
+        txt = None if ok_m and ok_ep else " · ".join(v for v in ((f"Menge {num(m)}" if not ok_m else ""), (f"EP {_eur(ep)}" if not ok_ep else "")) if v)
+        out.append((t["seite"], "haken" if not txt else "kreuz", mitte(t), txt))
+    if R and R["art"] == "regie":
+        Z = rd.get("zeilen") or []
+        for t in A.get("zeilen") or []:
+            z = next((z for z in Z if (z.get("text") or "").strip().lower() == t["text"].strip().lower()), None)
+            if not z:
+                out.append((t["seite"], "kreuz", mitte(t), "nicht anerkannt"))
+                continue
+            ok = abs(_f(z.get("menge")) - t["menge"]) < 1e-6 and abs(_f(z.get("ep")) - t["ep"]) < 0.005
+            out.append((t["seite"], "haken" if ok else "kreuz", mitte(t), None if ok else f"{num(_f(z.get('menge')))} × {_eur(_f(z.get('ep')))}"))
+    netto_g = RC["leistung"] - RC["nachlass"]
+    for su in (A.get("kopf") or {}).get("summen") or []:
+        if su["art"] == "netto":
+            ok, txt = abs(su["wert"] - netto_g) <= 1, f"geprüft {_eur(netto_g)}"
+        elif su["art"] == "brutto":
+            ok = abs(su["wert"] - RC["brutto"]) <= 1 or abs(su["wert"] - netto_g * (1 + MWST / 100)) <= 1
+            txt = f"Zahlung lt. Prüfung {_eur(RC['brutto'])}"
+        else:
+            ok, txt = abs(su["wert"] - netto_g * MWST / 100) <= 1 or abs(su["wert"] - RC["mwst"]) <= 1, f"geprüft {_eur(RC['mwst'])}"
+        out.append((su["seite"], "haken" if ok else "kreuz", mitte(su), None if ok else txt))
+    return out
 
 
 def _eur(v):

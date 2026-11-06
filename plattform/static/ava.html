@@ -397,6 +397,8 @@ html.mobil .bph{position:sticky;top:0}
 tr.am-lf td input{color:#c0621f}
 .am-zz{position:absolute;cursor:copy;border-radius:2px}.am-zz:hover{background:rgba(31,157,76,.18);outline:1px solid #1f9d4c}.am-zz.ok{background:rgba(31,157,76,.12)}
 .am-zk table{font-size:.84rem}
+.am-mk{position:absolute;transform:translateY(-55%);font-weight:800;font-size:clamp(11px,1.6vw,17px);line-height:1;pointer-events:none;white-space:nowrap;z-index:2}
+.am-mk.ok{color:#1f9d4c}.am-mk.no{color:#e02424}.am-mk small{position:absolute;right:-.2em;top:110%;font-size:clamp(8px,.72vw,11px);font-weight:700;background:#fff;border:1px solid #e02424;border-radius:4px;padding:0 .3em;box-shadow:0 1px 3px #0003}
 @media (max-width:900px){.am-split{grid-template-columns:1fr}.am-r{position:static;height:70vh}}
 .pjw{display:grid;grid-template-columns:17.5rem minmax(0,1fr);gap:.9rem;align-items:start}.pjw.zu{grid-template-columns:2.2rem minmax(0,1fr)}
 .pjm{min-width:0}
@@ -1260,6 +1262,7 @@ const amListe = () => posOf().filter((p) => (!amNur || L.aufmass.some((a) => a.p
 function vAmErfassen() {
   const P = posOf(), AM = L.aufmass, K = L.calc, B = amBelege(), R = amRe();
   if (!P.length) return '<div class="card empty">Noch keine Positionen im LV.</div>';
+  if (B.length && !B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[B.length - 1]).id;
   if (!P.some((p) => p.id === amPos)) amPos = (P.find((p) => AM.some((a) => a.pos_id === p.id)) || P[0]).id;
   const x = P.find((p) => p.id === amPos), Z = AM.filter((a) => a.pos_id === amPos), sum = Z.reduce((s, a) => s + (a.menge || 0), 0);
   const VP = (L.vergabe && L.vergabe.preise) || {}, LI = amListe(), idx = LI.findIndex((p) => p.id === amPos);
@@ -1290,11 +1293,11 @@ function vAmErfassen() {
   if (!B.length) return `${kopf}<div class="am-zone" data-amdrop>${hoch}<span class="hint">oder hierher ziehen – sie erscheint rechts neben der Prüfung, erkannte Mengen werden gleich eingetragen${R && R.status !== 'geprueft' ? ` (zur ${esc(reTitel(R))})` : ' (legt eine neue Teilrechnung an)'}. Ohne PDF einfach hier prüfen.</span></div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:1rem;align-items:start" class="amg">${tab_}${detail}</div>
     <style>@media (max-width:900px){.amg{grid-template-columns:1fr!important}}</style>`;
-  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amZeilenKarte(R)}${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
+  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amSummenKarte(R)}${amZeilenKarte(R)}${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
 }
 /* Zeilen der PDF ohne LV-Position (Regie, Material …): in die Rechnung übernehmen */
 function amZeilenKarte(R) {
-  const Z = []; amBelege().forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id })));
+  const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id })));
   if (!Z.length || !R) return '';
   const sum = Z.reduce((a, z) => a + (z.gp || 0), 0), g = R.status === 'geprueft';
   const knopf = R.art === 'regie' ? `<span style="color:var(--ok);font-weight:600">✓ ${(R.data.zeilen || []).length} Zeilen stehen in der ${esc(reTitel(R))}</span> <button class="btn sm" data-tab="rechnungen">ansehen</button>`
@@ -1303,6 +1306,33 @@ function amZeilenKarte(R) {
     <table class="lv am" style="margin:.4rem 0"><thead><tr><th>Text</th><th class="r">Menge</th><th>Einh.</th><th class="r">EP</th><th class="r">Betrag</th></tr></thead><tbody>
     ${Z.map((z, k) => `<tr data-amzl="${k}" style="cursor:pointer" title="in der PDF zeigen"><td>${esc(z.text)}</td><td class="r">${nf(z.menge)}</td><td>${esc(z.einheit || '')}</td><td class="r">${nf2(z.ep)}</td><td class="r">${nf2(z.gp)}</td></tr>`).join('')}</tbody></table>
     <div class="bar" style="margin:0">${knopf}</div></div>`;
+}
+/* Summen der Firma gegen die Prüfung (links) – rechts in der PDF dieselben Haken und Kreuze */
+function amRC(R) { return R && L.calc.rechnungen.find((r) => r.id === R.id); }
+function amSummen(RC) { const ng = RC.leistung - RC.nachlass; return { ng, netto: [ng], mwst: [RC.mwst, ng * 0.19], brutto: [RC.brutto, ng * 1.19] }; }
+function amSummenKarte(R) {
+  const RC = amRC(R); if (!RC) return '';
+  const S = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.kopf && b.auslese.kopf.summen) || []).forEach((su) => S.push({ ...su, bid: b.id })));
+  const G = amSummen(RC), NAME = { netto: 'Netto' + (RC.einzeln ? '' : ' (kumuliert)'), mwst: 'Umsatzsteuer 19 %', brutto: 'Brutto / Endsumme' };
+  const zeile = (art) => { const su = S.find((x) => x.art === art), g = G[art][0], ok = su && G[art].some((v) => Math.abs(su.wert - v) <= 1);
+    return `<tr${su ? ` data-amsu="${art}" style="cursor:pointer" title="in der PDF zeigen"` : ''}><td>${NAME[art]}</td><td class="r">${su ? nf2(su.wert) : '<span class="hint">–</span>'}</td><td class="r">${nf2(art === 'brutto' ? RC.brutto : g)}</td><td style="text-align:center;font-weight:700;color:${ok ? 'var(--ok)' : '#e02424'}">${su ? (ok ? '✔' : '✘') : ''}</td></tr>`; };
+  return `<div class="card am-zk"><b>Summen</b> <span class="hint">lt. Firma gegen die Prüfung${S.length ? '' : ' – in der PDF nicht erkannt'}</span>
+    <table class="lv am" style="margin:.35rem 0 0"><thead><tr><th></th><th class="r">lt. Firma</th><th class="r">geprüft</th><th></th></tr></thead><tbody>${['netto', 'mwst', 'brutto'].map(zeile).join('')}
+    <tr><td colspan="2" class="hint">Zahlbetrag netto lt. Prüfung</td><td class="r"><b>${nf2(RC.zahlung)}</b></td><td></td></tr></tbody></table></div>`;
+}
+function amMarken() {
+  const V = AMV; if (!V || !V.pages.length) return;
+  V.el.querySelectorAll('.am-mk').forEach((x) => x.remove());
+  const b = amBelege().find((y) => y.id === V.bid), A = b && b.auslese, R = amRe(), RC = amRC(R); if (!A || !RC) return;
+  const VP = (L.vergabe && L.vergabe.preise) || {}, stand = R.status === 'geprueft' && R.data.stand ? R.data.stand : L.calc.aufmass || {}, M = [];
+  for (const [pid, t] of Object.entries(A.pos || {})) { if (t.menge == null) continue; const m = stand[pid] || 0, ep = VP[pid];
+    const okM = Math.abs(t.menge - m) < 1e-6, okE = ep == null || t.ep == null || Math.abs(t.ep - ep) < 0.005; M.push([t, okM && okE, [okM ? '' : `Menge ${nf(m)}`, okE ? '' : `EP ${nf2(ep)}`].filter(Boolean).join(' · ')]); }
+  if (R.art === 'regie') for (const t of A.zeilen || []) { const z = (R.data.zeilen || []).find((y) => (y.text || '').trim().toLowerCase() === t.text.trim().toLowerCase());
+    if (!z) { M.push([t, false, 'nicht anerkannt']); continue; } const ok = Math.abs((z.menge || 0) - t.menge) < 1e-6 && Math.abs((z.ep || 0) - t.ep) < 0.005; M.push([t, ok, ok ? '' : `${nf(z.menge)} × ${nf2(z.ep)}`]); }
+  const G = amSummen(RC);
+  for (const su of (A.kopf && A.kopf.summen) || []) { const ok = G[su.art].some((v) => Math.abs(su.wert - v) <= 1); M.push([su, ok, ok ? '' : su.art === 'brutto' ? `Zahlung lt. Prüfung ${nf2(RC.brutto)}` : `geprüft ${nf2(G[su.art][0])}`]); }
+  for (const [t, ok, txt] of M) { const w = V.pages[t.seite - 1]; if (!w) continue; const d = document.createElement('div'); d.className = 'am-mk ' + (ok ? 'ok' : 'no');
+    d.style.left = Math.min(97, t.box[2] * 100 + 0.8) + '%'; d.style.top = ((t.box[1] + t.box[3]) / 2 * 100) + '%'; d.innerHTML = (ok ? '✔' : '✘') + (txt ? `<small>${esc(txt)}</small>` : ''); w.appendChild(d); }
 }
 function amZeigeBox(bid, seite, box) {
   if (!AMV || AMV.bid !== bid) { AMB = bid; LS.set('amB', AMB); AMV = null; amPdfMount(); return; }
@@ -1314,17 +1344,17 @@ async function amPdfMount() {
   if (!B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[0]).id;
   if (!AMV || AMV.bid !== AMB) { AMV = { bid: AMB, el: document.createElement('div'), pages: [], zoom: LS.get('amZoom', 1) }; AMV.el.className = 'am-pv'; AMV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; amPdfLaden(AMV); }
   const b = B.find((y) => y.id === AMB), A = b.auslese;
-  if (!A || !A.zahlen) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
+  if (!A || !A.zahlen || !A.kopf || !A.kopf.summen) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
   slot.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
     <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? 'Scan, per Texterkennung gelesen · ' : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · Zahlen anklicken übernimmt sie in den Rechenweg`) : ''}</span><span class="fill"></span>
     <button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF entfernen">✕</button></div>`;
   slot.appendChild(AMV.el);
-  if (AMV.pdf) amPdfZeige(amPos);
+  if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
 }
 async function amPdfLaden(V) {
   try { const lib = await pdfjs(); V.pdf = await lib.getDocument({ url: 'api/belege/' + V.bid, withCredentials: true }).promise; } catch (e) { V.el.innerHTML = `<p class="hint" style="color:#fff">PDF lässt sich nicht anzeigen: ${esc(e.message)}</p>`; return; }
   if (AMV !== V) return;
-  await amPdfZeichnen(V); amPdfZeige(amPos, true);
+  await amPdfZeichnen(V); amMarken(); amPdfZeige(amPos, true);
 }
 async function amPdfZeichnen(V) {
   V.el.innerHTML = ''; V.pages = [];
@@ -1397,14 +1427,15 @@ document.addEventListener('click', async (e) => {
   const s = e.target.closest('[data-amstep]'); if (s) return amSchritt(+s.dataset.amstep);
   const zz = e.target.closest('.am-zz'); if (zz) { const f = document.querySelector('[data-am-new="formel"]'); if (!f) return; const w = String(+zz.dataset.v).replace('.', ',');
     f.value = f.value.trim() ? f.value.trim() + ' + ' + w : w; f.dispatchEvent(new Event('input', { bubbles: true })); f.focus(); zz.classList.add('ok'); return; }
-  const zl = e.target.closest('[data-amzl]'); if (zl) { const Z = []; amBelege().forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id }))); const z = Z[+zl.dataset.amzl]; if (z) amZeigeBox(z.bid, z.seite, z.box); return; }
-  const z2 = e.target.closest('[data-amz2]'); if (z2) { const R = amRe(); if (!R) return; const Z = []; amBelege().forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push(z)));
+  const su = e.target.closest('[data-amsu]'); if (su) { for (const b of amBelege().filter((y) => y.id === AMB)) { const x = ((b.auslese && b.auslese.kopf && b.auslese.kopf.summen) || []).find((y) => y.art === su.dataset.amsu); if (x) return amZeigeBox(b.id, x.seite, x.box); } return; }
+  const zl = e.target.closest('[data-amzl]'); if (zl) { const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id }))); const z = Z[+zl.dataset.amzl]; if (z) amZeigeBox(z.bid, z.seite, z.box); return; }
+  const z2 = e.target.closest('[data-amz2]'); if (z2) { const R = amRe(); if (!R) return; const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push(z)));
     try { if (z2.dataset.amz2 === 'regie') { await call('api/rechnungen/' + R.id, 'PUT', { art: 'regie', zeilen: Z.map((z) => ({ text: z.text, menge: z.menge, einheit: z.einheit || '', ep: z.ep })) }); toast('Als Regierechnung übernommen – unter „Rechnungen“ prüfen.'); }
       else { await call('api/rechnungen/' + R.id, 'PUT', { frei: Z.reduce((a, z) => a + (z.gp || 0), 0) }); toast('Summe als geprüfter Betrag (ohne Aufmaß) eingetragen – unter „Rechnungen“ prüfen.'); } } catch (er) { toast(er.message, true); }
     return; }
   const u = e.target.closest('[data-amueb]'); if (u) return amUebernehmen(u.dataset.amueb === '*' ? null : u.dataset.amueb);
-  const b = e.target.closest('[data-amb]'); if (b) { AMB = +b.dataset.amb; LS.set('amB', AMB); return amPdfMount(); }
-  const z = e.target.closest('[data-amz]'); if (z && AMV && AMV.pdf) { AMV.zoom = Math.max(0.5, Math.min(3, AMV.zoom * (+z.dataset.amz > 0 ? 1.2 : 1 / 1.2))); LS.set('amZoom', AMV.zoom); await amPdfZeichnen(AMV); amPdfZeige(amPos, true); return; }
+  const b = e.target.closest('[data-amb]'); if (b) { AMB = +b.dataset.amb; LS.set('amB', AMB); return render(); }
+  const z = e.target.closest('[data-amz]'); if (z && AMV && AMV.pdf) { AMV.zoom = Math.max(0.5, Math.min(3, AMV.zoom * (+z.dataset.amz > 0 ? 1.2 : 1 / 1.2))); LS.set('amZoom', AMV.zoom); await amPdfZeichnen(AMV); amMarken(); amPdfZeige(amPos, true); return; }
   const d = e.target.closest('[data-ambdel]'); if (d) { const id = +d.dataset.ambdel; try { await call('api/belege/' + id, 'DELETE'); AMV = null; toast('PDF entfernt.'); } catch (er) { toast(er.message, true); } }
 });
 document.addEventListener('change', (e) => {

@@ -228,7 +228,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .soll-r button.ok{border-color:var(--y);color:var(--y)}
 .soll-r.fehlt b{color:var(--red)}
 .soll-st{color:var(--red);font-size:.82rem}
-.ln.firm{display:grid;grid-template-columns:1fr 1.3fr 74px auto;gap:.5rem;align-items:center;text-align:left}
+.ln.firm{display:grid;grid-template-columns:1fr 1.3fr 74px auto auto;gap:.5rem;align-items:center;text-align:left}
 .due{font-size:.8rem;color:var(--y);border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem;white-space:nowrap;align-self:center}
 .due.late{color:#ff8a80;border-color:#ff8a80}
 .dueb{color:var(--mute);padding:0 .3rem;align-self:center}
@@ -351,7 +351,7 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
   #toasts{bottom:calc(4.8rem + env(safe-area-inset-bottom))}
 }
 @media (max-width:520px){.main h3{font-size:1.45rem}.side{width:50px}.side.wx{width:110px}.cform{grid-template-columns:1fr}
-  .ln.firm{grid-template-columns:1fr 70px auto}.ln.firm .act{grid-column:1/3;grid-row:2}}
+  .ln.firm{grid-template-columns:1fr 70px auto auto}.ln.firm .act{grid-column:1/-1;grid-row:2}}
 /* mehrzeilige Einträge, Bearbeiten direkt auf der Seite */
 .ln:not(.firm){justify-content:flex-start;text-align:left}
 .ed{flex:1;width:auto;min-height:0;resize:none;overflow:hidden;background:transparent;border:1px solid transparent;padding:.25rem .4rem;margin-left:-.45rem;line-height:1.4;text-align:left}
@@ -792,8 +792,9 @@ function dueUi(i, s) {   // Erledigungsdatum mit E-Mail-Erinnerung (nur Abschnit
   if (i.due) return `<button class="due ${!i.done && i.due < todayISO() ? 'late' : ''}" data-act="dueEdit" data-id="${i.id}" title="Erinnerung per E-Mail am ${esc(fmt(i.due))} um ${esc(i.due_time || '09:00')} Uhr – antippen zum Ändern">⏰ ${esc(fmt(i.due))} ${esc(i.due_time || '09:00')}</button>`;
   return `<button class="dueb" data-act="dueEdit" data-id="${i.id}" title="Erledigungsdatum mit E-Mail-Erinnerung">${ic('cal', 18)}</button>`;
 }
+const fotoOk = (s) => !!s && (s.type === 'list' || !!(s.extra && s.extra.photos));   // Fotos an Einträgen in allen Abschnitten (auch Anwesende)
 function photoUi(i, s, r) {   // kleine Fotos am Eintrag (Mangel, Notiz); das große Bild liegt unter „Bilder“
-  if (!(s.extra && s.extra.photos)) return '';
+  if (!fotoOk(s)) return '';
   const th = r.images.filter(x => x.item_id === i.id).map(x => `<span class="itp"><a href="uploads/${esc(x.file)}" target="_blank" title="${esc(x.caption || 'Foto')}"><img loading="lazy" src="api/thumb/96/${esc(x.file)}" alt="${esc(x.caption || 'Foto')}"></a><button type="button" class="itd" data-act="delImg" data-id="${x.id}" title="Foto löschen" aria-label="Foto löschen">×</button></span>`).join('');
   return `<span class="ith">${th}<button class="ph" data-act="itemPhoto" data-id="${i.id}" title="Foto zu diesem Eintrag">${ic('cam', 18)}</button></span>`;
 }
@@ -802,7 +803,7 @@ const secIsOpen = (k, n) => (k in secOpen ? secOpen[k] : n > 0);
 const setSecOpen = (k, v) => { secOpen[k] = v; try { localStorage.setItem('secOpen', JSON.stringify(secOpen)); } catch {} };
 const secHead = (s, n, open) => `<h3 class="tg" data-act="secToggle" data-key="${esc(s.key)}" data-open="${open ? 1 : 0}" role="button" aria-expanded="${open}">${esc(s.title)}${n ? `<span class="cn">${n}</span>` : ''}<span class="cv ${open ? 'o' : ''}">${ic('chev', 20, 3)}</span></h3>`;
 let addFiles = [];   // Fotos, die beim Anlegen eines Eintrags gleich mitgeschickt werden
-const photoAdd = s => (s.extra && s.extra.photos) ? `<div class="padd"><button type="button" data-act="aCam">${ic('cam', 20)} Foto aufnehmen</button><button type="button" data-act="aLib">${ic('pdf', 20)} Aus Mediathek</button><div id="apv" class="apv"></div></div>` : '';
+const photoAdd = s => fotoOk(s) ? `<div class="padd"><button type="button" data-act="aCam">${ic('cam', 20)} Foto aufnehmen</button><button type="button" data-act="aLib">${ic('pdf', 20)} Aus Mediathek</button><div id="apv" class="apv"></div></div>` : '';
 function renderApv() {
   const box = $('#bwz #apv') || $('#apv'); if (!box) return; box.innerHTML = '';
   addFiles.forEach((f, i) => {
@@ -867,7 +868,7 @@ function listSec(s, r) {
   const rows = r.items.filter(i => i.kind === k).map(i => lk ? `<div class="ln firm"><span>${link(i)}</span>
     <textarea class="act ed" rows="1" data-it="${i.id}" data-k="activity" placeholder="Art der Tätigkeit" aria-label="Art der Tätigkeit">${esc(i.activity)}</textarea>
     <input class="cnt" data-it="${i.id}" data-k="headcount" type="number" min="0" placeholder="Anz." value="${i.headcount ?? ''}" aria-label="Anzahl Mitarbeiter">
-    <button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>` : `<div class="ln ${i.done ? 'done' : ''}">
+    ${photoUi(i, s, r)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>` : `<div class="ln ${i.done ? 'done' : ''}">
     ${s.checkable ? `<input type="checkbox" data-act="toggle" data-id="${i.id}" ${i.done ? 'checked' : ''} aria-label="Erledigt">` : ''}
     ${s.extra && s.extra.company ? `<div class="sgw cow"><input class="co" data-it="${i.id}" data-k="company" ${SGATTR} placeholder="Firma" value="${esc(i.company)}" aria-label="Firma"><div class="sug hidden" role="listbox"></div></div>` : ''}<textarea class="ed" data-it="${i.id}" data-k="text" rows="1" aria-label="Eintrag bearbeiten">${esc(i.text)}</textarea>${photoUi(i, s, r)}${dueUi(i, s)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>`).join('');
   const field = lk ? `<div class="sgw"><input data-add="${esc(k)}" data-sg="1" placeholder="${esc(s.placeholder)}" autocomplete="nope" name="bt-add" autocorrect="off" spellcheck="false" enterkeyhint="next"><div class="sug hidden" role="listbox"></div></div>`
@@ -1607,7 +1608,7 @@ function renderQ() {
         <span class="chips"><button class="chip" data-act="qDate" data-d="0">Heute</button><button class="chip" data-act="qDate" data-d="1">Morgen</button><button class="chip" data-act="qDate" data-d="7">+1 Woche</button></span></label>` : '';
     h = `<h4>${esc(x.title)}${close}</h4><div class="qadd">${lk ? '' : coAdd(x)}${first}${due}${photoAdd(x)}<div class="qact"><button class="ok" data-act="addItem" data-kind="${esc(x.key)}">Hinzufügen</button></div></div>`;
   } else if (q.step === 'assign') {
-    const cands = listSecs().filter(t => t.extra && t.extra.photos).flatMap(t => curReport().items.filter(i => i.kind === t.key).map((i, n) => ({id: i.id, label: (t.extra.photo_label || t.title) + ' ' + (n + 1), text: i.text})));
+    const cands = listSecs().filter(t => fotoOk(t)).flatMap(t => curReport().items.filter(i => i.kind === t.key).map((i, n) => ({id: i.id, label: ((t.extra && t.extra.photo_label) || t.title) + ' ' + (n + 1), text: i.text})));
     h = `<h4>Foto zuordnen${close}</h4><div class="qpick"><button data-act="qAssign" data-id="">Nur unter „Bilder“ ablegen</button>
       ${cands.map(c => `<button data-act="qAssign" data-id="${c.id}"><small>${esc(c.label)}</small>${esc(c.text.slice(0, 60))}</button>`).join('')}</div>`;
   }
@@ -1645,7 +1646,7 @@ async function uploadPhotos(files, itemId) {
 }
 function photoPicked(e) {
   qFiles = [...e.target.files]; e.target.value = ''; if (!qFiles.length) return;
-  const has = listSecs().some(t => t.extra && t.extra.photos && curReport().items.some(i => i.kind === t.key));
+  const has = listSecs().some(t => fotoOk(t) && curReport().items.some(i => i.kind === t.key));
   if (!has) { q = null; renderQ(); uploadPhotos(qFiles, null); } else { q = {step: 'assign'}; renderQ(); }
 }
 const addPicked = e => { addFiles.push(...e.target.files); e.target.value = ''; renderApv(); };

@@ -748,38 +748,132 @@ def rechne(lv, angebote, aufmass, rechnungen):
             if ep is not None:
                 s += round(m * ep, 2)
         return s
-    R, vorher = [], 0.0
+    # Rechnungen: Teil-/Schlussrechnungen kumuliert (Hauptauftrag), Nachtragsrechnungen kumuliert nur über Nachtragspositionen
+    # (dann zählen die Nachträge nicht mehr im Hauptauftrag), Regierechnungen einzeln (Stundenlohnzettel), Freigabe der Sicherheit
+    ist_nt = {p["id"] for p in pos if p.get("nt")}
+    nt_kette = any(r["art"] == "nachtrag" for r in rechnungen)
+    S = sicherheit_conf(V)
+    vorher = {"haupt": 0.0, "nachtrag": 0.0}
+    eb_stand = {"haupt": 0.0, "nachtrag": 0.0}   # Einbehalt der letzten geprüften Rechnung je Kette (kumuliert)
+    eb_regie, frei = 0.0, 0.0
+    R = []
     for r in sorted(rechnungen, key=lambda r: r["nr"]):
         rd = _j(r["data"], {}) or {}
-        stand = rd.get("stand") if r["status"] == "geprueft" and isinstance(rd.get("stand"), dict) else am
-        L = stand_wert(stand)
-        N = L * nl
+        art = r["art"] if r["art"] in RE_ARTEN else "abschlag"
+        g_ = r["status"] == "geprueft"
+        if art == "sicherheit":
+            B = round(_f(rd.get("betrag"), 0, 0), 2)
+            R.append({"id": r["id"], "art": art, "leistung": 0.0, "nachlass": 0.0, "abzuege": 0.0, "einbehalt_pct": 0.0, "einbehalt": round(-B, 2), "anerkannt": B,
+                      "vorher": 0.0, "zahlung": B, "mwst": round(B * MWST / 100, 2), "brutto": round(B * (1 + MWST / 100), 2), "differenz": None, "live": not g_})
+            if g_:
+                frei += B
+            continue
+        if art == "regie":
+            L = sum(round(_f(z.get("menge")) * _f(z.get("ep")), 2) for z in rd.get("zeilen") or [])
+            N = 0.0
+        else:
+            stand = rd.get("stand") if g_ and isinstance(rd.get("stand"), dict) else am
+            nur = (lambda k: k in ist_nt) if art == "nachtrag" else (lambda k: k not in ist_nt) if nt_kette else None
+            L = stand_wert({k: v for k, v in stand.items() if nur is None or nur(k)})
+            N = L * nl
         L1 = L - N
         abz = 0.0
         for z in rd.get("abzuege") or []:
             abz += L1 * (_f(z.get("pct")) / 100) if z.get("pct") not in (None, "") else _f(z.get("betrag"))
         L2 = L1 - abz
-        eb_pct = _f(rd.get("einbehalt"), _f(V.get("einbehalt"), 5.0)) if rd.get("einbehalt") not in (None, "") else _f(V.get("einbehalt"), 5.0)
+        std = S["pct_schluss"] if art == "schluss" else S["pct_abschlag"]
+        if g_ and rd.get("einbehalt") in (None, ""):   # früher geprüft, Satz nicht festgehalten: wie damals gerechnet
+            std = _f(V.get("einbehalt"), 5.0)
+        eb_pct = _f(rd.get("einbehalt"), std) if rd.get("einbehalt") not in (None, "") else std
         E = L2 * eb_pct / 100
         L3 = L2 - E
-        Z = L3 - vorher
-        R.append({"id": r["id"], "leistung": round(L, 2), "nachlass": round(N, 2), "abzuege": round(abz, 2), "einbehalt_pct": eb_pct, "einbehalt": round(E, 2),
-                  "anerkannt": round(L3, 2), "vorher": round(vorher, 2), "zahlung": round(Z, 2), "mwst": round(Z * MWST / 100, 2),
+        kette = "nachtrag" if art == "nachtrag" else "haupt"
+        vh = 0.0 if art == "regie" else vorher[kette]
+        Z = L3 - vh
+        R.append({"id": r["id"], "art": art, "leistung": round(L, 2), "nachlass": round(N, 2), "abzuege": round(abz, 2), "einbehalt_pct": eb_pct, "einbehalt": round(E, 2),
+                  "anerkannt": round(L3, 2), "vorher": round(vh, 2), "zahlung": round(Z, 2), "mwst": round(Z * MWST / 100, 2),
                   "brutto": round(Z * (1 + MWST / 100), 2), "differenz": round((r["gefordert"] or 0) - L1, 2) if r["gefordert"] else None,
-                  "live": r["status"] != "geprueft"})
-        if r["status"] == "geprueft":
-            vorher = L3
+                  "live": not g_})
+        if g_:
+            if art == "regie":
+                eb_regie += E
+            else:
+                vorher[kette] = L3
+                eb_stand[kette] = E
+    einbehalten = eb_stand["haupt"] + eb_stand["nachtrag"] + eb_regie
     leistung = stand_wert(am)
     return {"schaetzung": round(schaetz, 2), "ohne_schaetzung": ohne_s, "angebote": A, "auftrag": round(auftrag, 2),
             "nachtraege": {k: round(v, 2) for k, v in nt.items()}, "aufmass": {k: round(v, 4) for k, v in am.items()},
             "leistung": round(leistung * (1 - nl), 2), "rechnungen": R,
-            "abgerechnet": max([x["anerkannt"] for x in R if not x["live"]] or [0])}
+            "abgerechnet": round(vorher["haupt"] + vorher["nachtrag"] + sum(x["anerkannt"] for x in R if not x["live"] and x["art"] == "regie"), 2),
+            "sicherheit": {"einbehalten": round(einbehalten, 2), "freigegeben": round(frei, 2), "offen": round(einbehalten - frei, 2), **S}}
+
+
+RE_ARTEN = ("abschlag", "schluss", "regie", "nachtrag", "sicherheit")
+RE_NAME = {"abschlag": "Teilrechnung", "schluss": "Schlussrechnung", "regie": "Regierechnung", "nachtrag": "Nachtragsrechnung", "sicherheit": "Freigabe der Sicherheit"}
+
+
+def re_titel(nr, art):
+    return f"{nr}. Teilrechnung" if art == "abschlag" else f"{nr}. {RE_NAME.get(art, 'Rechnung')}"
+
+
+def sicherheit_conf(V):
+    """Sicherheiten des Auftrags (VOB/B § 17): Vertragserfüllung (Einbehalt in Teil-/Nachtrags-/Regierechnungen oder Bürgschaft)
+    und Mängelansprüche (Einbehalt in der Schlussrechnung oder Bürgschaft), Abnahme und Ende der Verjährungsfrist für Mängelansprüche."""
+    S = V.get("sicherheit") or {}
+    ve = {"form": "einbehalt", "pct": _f(V.get("einbehalt"), 5.0), **(S.get("ve") or {})}
+    ve["pct"] = _f(V.get("einbehalt"), 5.0)
+    ma = {"form": "einbehalt", **(S.get("ma") or {})}
+    if ma.get("pct") is None:   # ohne eigene Angabe wie bisher: derselbe Satz wie für die Vertragserfüllung
+        ma["pct"] = ve["pct"]
+    jahre = int(_f(S.get("gw_jahre"), 4, 0, 30))
+    ende = S.get("gw_ende") or ""
+    if not ende and S.get("abnahme"):
+        try:
+            a = date.fromisoformat(S["abnahme"])
+            try:
+                ende = a.replace(year=a.year + jahre).isoformat()
+            except ValueError:
+                ende = a.replace(year=a.year + jahre, day=28).isoformat()
+        except ValueError:
+            ende = ""
+    abgeloest = lambda x: x.get("form") == "buergschaft" and bool(x.get("eingang"))   # noqa: E731
+    return {"ve": ve, "ma": ma, "abnahme": S.get("abnahme") or "", "gw_jahre": jahre, "gw_ende": ende,
+            "pct_abschlag": 0.0 if abgeloest(ve) else ve["pct"], "pct_schluss": 0.0 if abgeloest(ma) else _f(ma.get("pct"), ve["pct"])}
+
+
+def _sicherheit_clean(b, alt):
+    """Eingaben zu den Sicherheiten übernehmen (nur bekannte Felder)."""
+    S = dict(alt or {})
+    for k in ("ve", "ma"):
+        if isinstance(b.get(k), dict):
+            x = dict(S.get(k) or {})
+            for f, n in (("form", 20), ("buerge", 200), ("nr", 80), ("eingang", 10), ("rueckgabe", 10), ("notiz", 500)):
+                if f in b[k]:
+                    x[f] = _s(b[k][f], n)
+            if x.get("form") not in ("einbehalt", "buergschaft"):
+                x["form"] = "einbehalt"
+            for f in ("betrag", "pct"):
+                if f in b[k]:
+                    x[f] = _fn(b[k][f])
+            S[k] = x
+    for f in ("abnahme", "gw_ende"):
+        if f in b:
+            S[f] = _s(b[f], 10)
+    if "gw_jahre" in b:
+        S["gw_jahre"] = int(_f(b["gw_jahre"], 4, 0, 30))
+    return S
 
 
 def _payload(c, r):
     ang = c.execute("SELECT * FROM ava_angebot WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall()
     am = c.execute("SELECT * FROM ava_aufmass WHERE lv_id=? ORDER BY pos_id, datum, id", (r["id"],)).fetchall()
     re_ = c.execute("SELECT * FROM ava_rechnung WHERE lv_id=? ORDER BY nr", (r["id"],)).fetchall()
+    belege = {}
+    if re_:
+        _beleg_tabelle(c)
+        for b in c.execute("SELECT id, rechnung_id, name, ablage, created, user_name FROM ava_beleg WHERE rechnung_id = ANY(?) ORDER BY id", ([x["id"] for x in re_],)).fetchall():
+            belege.setdefault(b["rechnung_id"], []).append({"id": b["id"], "name": b["name"], "ablage": b["ablage"], "created": b["created"], "user": b["user_name"]})
     p = _sees(c, r["project_id"]) if r["project_id"] else None
     return {"id": r["id"], "project_id": r["project_id"], "projekt": p["name"] if p else "", "bk_id": r["bk_id"], "nr": r["nr"], "name": r["name"],
             "gewerk": r["gewerk"], "status": r["status"], "archived": bool(r["archived"]), "rev": r["rev"], "updated": r["updated"], "updated_by": r["updated_by"],
@@ -789,7 +883,8 @@ def _payload(c, r):
             "aufmass": [{"id": x["id"], "pos_id": x["pos_id"], "datum": x["datum"], "ort": x["ort"], "formel": x["formel"], "menge": x["menge"], "quelle": x["quelle"],
                          "user": x["user_name"]} for x in am],
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
-                            "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"]} for x in re_],
+                            "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"],
+                            "belege": belege.get(x["id"], [])} for x in re_],
             "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"])}
 
 
@@ -955,6 +1050,8 @@ def lv_eins(i):
             for k in ("nachlass", "skonto", "einbehalt"):
                 if k in b["vergabe"]:
                     V[k] = round(_f(b["vergabe"][k], 0, 0, 100), 3)
+            if isinstance(b["vergabe"].get("sicherheit"), dict):   # Sicherheiten, Abnahme, Mängelfrist
+                V["sicherheit"] = _sicherheit_clean(b["vergabe"]["sicherheit"], V.get("sicherheit"))
             if isinstance(b["vergabe"].get("preise"), dict):   # Preise des Auftrags (z. B. Nachtrags-EP)
                 P = V.get("preise") or {}
                 for k, v in list(b["vergabe"]["preise"].items())[:3000]:
@@ -2014,15 +2111,89 @@ def rechnung_neu(i):
             return jsonify(error="Erst vergeben: Rechnungen werden mit den Preisen des Auftrags geprüft."), 400
         if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND status<>'geprueft'", (i,)).fetchone():
             return jsonify(error="Es gibt noch eine ungeprüfte Rechnung – bitte erst diese prüfen."), 400
-        if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND art='schluss'", (i,)).fetchone():
-            return jsonify(error="Die Schlussrechnung ist schon erfasst."), 400
+        art = b.get("art") if b.get("art") in RE_ARTEN else "abschlag"
+        if art in ("abschlag", "schluss", "nachtrag") and c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND art='schluss'", (i,)).fetchone():
+            return jsonify(error="Die Schlussrechnung ist schon erfasst – danach nur noch Regierechnung oder Freigabe der Sicherheit."), 400
         nr = (c.execute("SELECT MAX(nr) AS n FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone()["n"] or 0) + 1
-        art = "schluss" if b.get("art") == "schluss" else "abschlag"
+        data = {"abzuege": []}
+        if art == "regie":
+            data["zeilen"] = []
+        if art == "sicherheit":
+            data["betrag"] = round(_f(b.get("betrag"), 0, 0), 2)
         c.execute("INSERT INTO ava_rechnung(lv_id, nr, art, datum, eingang, re_nr, gefordert, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                   (i, nr, art, _s(b.get("datum"), 10), _s(b.get("eingang"), 10) or date.today().isoformat(), _s(b.get("re_nr"), 60),
-                   round(_f(b.get("gefordert"), 0, 0), 2), json.dumps({"abzuege": []}), _now(), _now(), g.user["name"]))
+                   round(_f(b.get("gefordert"), 0, 0), 2), json.dumps(data), _now(), _now(), g.user["name"]))
         _touch(c, i)
         return _antwort(c, i)
+
+
+_BELEG = {"ok": False}
+
+
+def _beleg_tabelle(c):
+    if _BELEG["ok"]:
+        return
+    c.execute("""CREATE TABLE IF NOT EXISTS ava_beleg(id SERIAL PRIMARY KEY, rechnung_id INTEGER NOT NULL REFERENCES ava_rechnung(id) ON DELETE CASCADE,
+                 name TEXT NOT NULL DEFAULT '', data BYTEA, ablage TEXT NOT NULL DEFAULT '', created TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '')""")
+    _BELEG["ok"] = True
+
+
+@app.post("/api/rechnungen/<int:k>/beleg")
+def beleg_neu(k):
+    """Rechnung der Firma als PDF: in der Plattform speichern und im Projektordner ablegen (… Rechnungsprüfung / … <Firma>)."""
+    import base64
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei."), 400
+    roh = f.read(60 * 1024 * 1024 + 1)
+    if len(roh) > 60 * 1024 * 1024 or not roh.startswith(b"%PDF"):
+        return jsonify(error="Bitte eine PDF-Datei (höchstens 60 MB) wählen."), 400
+    with db.tx() as c:
+        x = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (k,)).fetchone()
+        r = _lv(c, x["lv_id"]) if x else None
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        V = _j(r["vergabe"], {}) or {}
+        _beleg_tabelle(c)
+        bid = c.execute("INSERT INTO ava_beleg(rechnung_id, name, data, created, user_name) VALUES(?,?,?,?,?) RETURNING id",
+                        (k, _s(f.filename, 200) or "Rechnung.pdf", roh, _now(), g.user["name"])).fetchone()["id"]
+        pid = r["project_id"]
+        name = " ".join(v for v in (re_titel(x["nr"], x["art"]), V.get("bieter") or "", ("Nr. " + x["re_nr"]) if x["re_nr"] else "", x["datum"] or x["eingang"] or "") if v) + ".pdf"
+    hinweis, pfad = "", ""
+    if pid:
+        try:
+            a = C.bt_api("POST", "/api/ablage/rechnung", {"project_id": pid, "firma": V.get("bieter") or "", "name": name, "datei": base64.b64encode(roh).decode()})
+            pfad = (a or {}).get("pfad") or ""
+        except Exception as e:
+            hinweis = f"In der Plattform gespeichert, aber nicht im Projektordner: {e}"
+    with db.tx() as c:
+        c.execute("UPDATE ava_beleg SET ablage=? WHERE id=?", (pfad, bid))
+        _touch(c, x["lv_id"])
+        out = _antwort(c, x["lv_id"])
+    if hinweis or pfad:
+        d = out.get_json()
+        d["hinweis"] = hinweis or f"Abgelegt im Projektordner: {pfad}"
+        return jsonify(d)
+    return out
+
+
+@app.route("/api/belege/<int:b>", methods=["GET", "DELETE"])
+def beleg(b):
+    with db.tx() as c:
+        _beleg_tabelle(c)
+        x = c.execute("SELECT b.*, r.lv_id FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
+        if not x or not _lv(c, x["lv_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        if request.method == "DELETE":
+            c.execute("DELETE FROM ava_beleg WHERE id=?", (b,))
+            _touch(c, x["lv_id"])
+            return _antwort(c, x["lv_id"])
+    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
+
+
+def urllib_quote(s):
+    import urllib.parse
+    return urllib.parse.quote(s or "Rechnung.pdf")
 
 
 @app.route("/api/rechnungen/<int:k>", methods=["PUT", "DELETE"])
@@ -2045,17 +2216,25 @@ def rechnung(k):
             if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND nr>?", (x["lv_id"], x["nr"])).fetchone():
                 return jsonify(error="Nur die Prüfung der letzten Rechnung lässt sich zurücknehmen."), 400
             status = "offen"; d.pop("stand", None); d.pop("geprueft_am", None); d.pop("geprueft_von", None)
-        elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert")):
+        elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
         if isinstance(b.get("abzuege"), list):
             d["abzuege"] = [{"text": _s(z.get("text"), 200), "pct": _fn(z.get("pct")), "betrag": _fn(z.get("betrag"))} for z in b["abzuege"][:20] if isinstance(z, dict)]
         if "einbehalt" in b:
             d["einbehalt"] = _fn(b["einbehalt"])
+        if isinstance(b.get("zeilen"), list):   # Regierechnung: Stundenlohnzettel / Zeilen
+            d["zeilen"] = [{"text": _s(z.get("text"), 300), "menge": _fn(z.get("menge")), "einheit": _s(z.get("einheit"), 12) or "h", "ep": _fn(z.get("ep"))}
+                           for z in b["zeilen"][:200] if isinstance(z, dict)]
+        if "betrag" in b:   # Freigabe der Sicherheit
+            d["betrag"] = round(_f(b["betrag"], 0, 0), 2)
         if b.get("status") == "geprueft" and status != "geprueft":   # Prüfung abschließen: Aufmaßstand festhalten
             am = {}
             for z in c.execute("SELECT pos_id, menge FROM ava_aufmass WHERE lv_id=?", (x["lv_id"],)):
                 am[z["pos_id"]] = round(am.get(z["pos_id"], 0.0) + (z["menge"] or 0), 4)
             d["stand"] = am
+            if d.get("einbehalt") is None and x["art"] != "sicherheit":   # Satz festhalten – spätere Änderungen an den Sicherheiten ändern geprüfte Rechnungen nicht
+                S_ = sicherheit_conf(_j(r["vergabe"], {}) or {})
+                d["einbehalt"] = S_["pct_schluss"] if x["art"] == "schluss" else S_["pct_abschlag"]
             d["geprueft_am"] = date.today().isoformat()
             d["geprueft_von"] = C.full_name(g.user)
             status = "geprueft"
@@ -2065,7 +2244,7 @@ def rechnung(k):
                 sets.append(f"{k_}=?"); args.append(_s(b[k_], n))
         if "gefordert" in b:
             sets.append("gefordert=?"); args.append(round(_f(b["gefordert"], 0, 0), 2))
-        if b.get("art") in ("abschlag", "schluss"):
+        if b.get("art") in RE_ARTEN:
             sets.append("art=?"); args.append(b["art"])
         c.execute(f"UPDATE ava_rechnung SET {', '.join(sets)}, updated=?, updated_by=? WHERE id=?", (*args, _now(), g.user["name"], k))
         if status == "geprueft" and x["art"] == "schluss" or (b.get("art") == "schluss" and status == "geprueft"):
@@ -2602,16 +2781,64 @@ def lv_pdf(i):
         if not R:
             return jsonify(error="Rechnung nicht gefunden"), 404
         stand = R["data"].get("stand") if R["status"] == "geprueft" else K["aufmass"]
+        freigabe = request.args.get("freigabe") == "1"   # Rechnungsfreigabe für den Bauherrn: Deckblatt + Prüfung + Rechnung der Firma
 
         def st(story, S, X, table, W, mm, p):
-            info = [["Auftragnehmer", V.get("bieter") or "—"], ["Rechnung", f"{R['nr']}. {'Schlussrechnung' if R['art'] == 'schluss' else 'Abschlagsrechnung'}"
+            if freigabe:
+                from reportlab.platypus import PageBreak
+                try:
+                    from datetime import timedelta
+                    ein = date.fromisoformat(R["eingang"])
+                    frist = (ein + timedelta(days=30 if R["art"] == "schluss" else 21)).strftime("%d.%m.%Y")
+                except (TypeError, ValueError):
+                    frist = ""
+                with db.tx() as c2:
+                    pr = c2.execute("SELECT client FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
+                SK = K.get("sicherheit") or {}
+                story += [Paragraph("Rechnungsfreigabe", S["h2"]), Spacer(1, 2 * mm), table([
+                    ["Bauherr", (pr["client"] if pr and pr["client"] else "—")], ["Projekt", P["projekt"] or "—"], ["Leistung", f"LV {r['nr']} {r['name']}"],
+                    ["Auftragnehmer", V.get("bieter") or "—"],
+                    ["Rechnung", re_titel(R["nr"], R["art"]) + (f" · Nr. {R['re_nr']}" if R["re_nr"] else "") + (f" vom {_de(R['datum'])}" if R["datum"] else "")],
+                    ["Eingang", _de(R["eingang"]) + (f" · Zahlung fällig bis {frist} (VOB/B § 16)" if frist else "")]], [38 * mm, W - 38 * mm], head=False), Spacer(1, 5 * mm)]
+                z = []
+                if R["gefordert"]:
+                    z.append(["gefordert netto" + ("" if R["art"] in ("regie", "sicherheit") else " (kumuliert)"), eur(R["gefordert"])])
+                if R["art"] != "sicherheit":
+                    z.append(["geprüft und anerkannt netto" + ("" if R["art"] == "regie" else " (kumuliert)"), eur(RC["anerkannt"])])
+                    if R["art"] != "regie":
+                        z.append(["abzüglich bereits anerkannt", eur(-RC["vorher"])])
+                z += [["zur Zahlung freigegeben netto", eur(RC["zahlung"])], [f"zuzüglich Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])],
+                      ["zur Zahlung freigegeben brutto", eur(RC["brutto"])]]
+                story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - 1,)))
+                story += [Spacer(1, 3 * mm), Paragraph(f"Sicherheiten: einbehalten {eur(SK.get('einbehalten', 0))}, freigegeben {eur(SK.get('freigegeben', 0))}, "
+                                                       f"noch einbehalten {eur(SK.get('offen', 0))}.", S["l"]), Spacer(1, 6 * mm),
+                          Paragraph(("Die Rechnung wurde sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))}" if R["status"] == "geprueft" else "")
+                                     + f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto'])}</b> brutto" + (f" bis zum {frist}" if frist else "") + "."
+                                     + ("" if R["status"] == "geprueft" else " <i>(Entwurf – Prüfung noch nicht abgeschlossen)</i>")), S["p"]),
+                          Spacer(1, 18 * mm), table([["Ort, Datum", "Bauleitung / Objektüberwachung", "zur Zahlung angewiesen (Bauherr)"]], [W / 3] * 3, head=False),
+                          Paragraph("Anlagen: Prüfblatt, Rechnung des Auftragnehmers", S["l"]), PageBreak()]
+            info = [["Auftragnehmer", V.get("bieter") or "—"], ["Rechnung", re_titel(R['nr'], R['art'])
                      + (f" · Nr. {R['re_nr']}" if R["re_nr"] else "") + (f" vom {_de(R['datum'])}" if R["datum"] else "")],
                     ["Eingang", _de(R["eingang"])], ["Auftragssumme", eur(K["auftrag"]) + (f" · Nachträge beauftragt {eur(K['nachtraege']['beauftragt'])}" if K["nachtraege"]["beauftragt"] else "")]]
             t = table(info, [38 * mm, W - 38 * mm], head=False)
-            story += [t, Spacer(1, 5 * mm), Paragraph("Leistungsstand (kumuliert)", S["h2"])]
+            art_ = R["art"]
+            nt_kette = any(x_["art"] == "nachtrag" for x_ in K["rechnungen"])
+            if art_ == "regie":
+                story += [t, Spacer(1, 5 * mm), Paragraph("Stundenlohnarbeiten", S["h2"])]
+                rows = [["Leistung", "Menge", "EH", "Satz", "Betrag"]]
+                for z_ in R["data"].get("zeilen") or []:
+                    rows.append([Paragraph(X(z_.get("text") or ""), S["p"]), num(z_.get("menge") or 0), z_.get("einheit") or "h", ep2(z_.get("ep")) if z_.get("ep") is not None else "—",
+                                 eur(round((z_.get("menge") or 0) * (z_.get("ep") or 0), 2))])
+                story.append(table(rows, [W - 96 * mm, 20 * mm, 12 * mm, 24 * mm, 40 * mm], num=(1, 3, 4)))
+            elif art_ != "sicherheit":
+                story += [t, Spacer(1, 5 * mm), Paragraph("Leistungsstand (kumuliert)" + (" – Nachtragspositionen" if art_ == "nachtrag" else ""), S["h2"])]
+            else:
+                story += [t]
             rows = [["OZ", "Kurztext", "Menge", "EH", "EP", "Betrag"]]
-            for x in items:
+            for x in items if art_ not in ("regie", "sicherheit") else []:
                 if x["typ"] != "pos" or x.get("art") == "T":
+                    continue
+                if nt_kette and bool(x.get("nt")) != (art_ == "nachtrag"):
                     continue
                 m = (stand or {}).get(x["id"])
                 ep = _fn(VP.get(x["id"]))
@@ -2619,18 +2846,22 @@ def lv_pdf(i):
                     continue
                 rows.append([x["oz"] + (f" {x['nt']}" if x.get("nt") else ""), Paragraph(X(x["kurz"]), S["p"]), num(m), x["einheit"], ep2(ep) if ep is not None else "—",
                              eur(round(m * ep, 2)) if ep is not None and not (x.get("nt") and x.get("nt_status") == "abgelehnt") else "—"])
-            story.append(table(rows, [20 * mm, W - 20 * mm - 96 * mm, 20 * mm, 12 * mm, 24 * mm, 40 * mm], num=(2, 4, 5)))
+            if art_ not in ("regie", "sicherheit"):
+                story.append(table(rows, [20 * mm, W - 20 * mm - 96 * mm, 20 * mm, 12 * mm, 24 * mm, 40 * mm], num=(2, 4, 5)))
             story += [Spacer(1, 5 * mm), Paragraph("Prüfung", S["h2"])]
-            z = [["Leistungsstand netto", eur(RC["leistung"])]]
+            z = [["Freigabe der Sicherheit netto" if art_ == "sicherheit" else "Summe Stundenlohnarbeiten" if art_ == "regie" else "Leistungsstand netto",
+                  eur(RC["zahlung"] if art_ == "sicherheit" else RC["leistung"])]]
             if RC["nachlass"]:
                 z.append([f"- Nachlass {num(V.get('nachlass'), 2)} %", eur(-RC["nachlass"])])
             L1 = RC["leistung"] - RC["nachlass"]
             for a in R["data"].get("abzuege") or []:
                 w = L1 * a["pct"] / 100 if a.get("pct") is not None else (a.get("betrag") or 0)
                 z.append([f"- {a.get('text') or 'Abzug'}" + (f" ({num(a['pct'], 2)} %)" if a.get("pct") is not None else ""), eur(-w)])
-            z.append([f"- Sicherheitseinbehalt {num(RC['einbehalt_pct'], 2)} %", eur(-RC["einbehalt"])])
-            z.append(["= anerkannt (kumuliert)", eur(RC["anerkannt"])])
-            z.append(["- bisher anerkannt", eur(-RC["vorher"])])
+            if art_ != "sicherheit":
+                z.append([f"- {'Sicherheit für Mängelansprüche' if art_ == 'schluss' else 'Sicherheitseinbehalt'} {num(RC['einbehalt_pct'], 2)} %", eur(-RC["einbehalt"])])
+                z.append(["= anerkannt" + ("" if art_ == "regie" else " (kumuliert)"), eur(RC["anerkannt"])])
+                if art_ != "regie":
+                    z.append(["- bisher anerkannt", eur(-RC["vorher"])])
             z.append(["= Zahlbetrag netto", eur(RC["zahlung"])])
             z.append([f"+ Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])])
             z.append(["= Zahlbetrag brutto", eur(RC["brutto"])])
@@ -2640,8 +2871,22 @@ def lv_pdf(i):
             story += [Spacer(1, 10 * mm), Paragraph(
                 ("Sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))} von {X(R['data'].get('geprueft_von'))}" if R["status"] == "geprueft" else " – Entwurf, Prüfung noch nicht abgeschlossen")) +
                 (f"<br/>Bemerkung: {X(R['notiz'])}" if R["notiz"] else ""), S["p"])]
-        pdf = _pdf(r, f"Rechnungsprüfung – {R['nr']}. {'Schlussrechnung' if R['art'] == 'schluss' else 'Abschlagsrechnung'}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st)
-        fn = f"Pruefung Rechnung {R['nr']}"
+        pdf = _pdf(r, f"{'Rechnungsfreigabe' if freigabe else 'Rechnungsprüfung'} – {re_titel(R['nr'], R['art'])}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st)
+        fn = f"{'Rechnungsfreigabe' if freigabe else 'Pruefung'} Rechnung {R['nr']}"
+        if freigabe:   # Rechnung(en) der Firma anhängen
+            try:
+                from pypdf import PdfReader, PdfWriter
+                with db.tx() as c2:
+                    _beleg_tabelle(c2)
+                    bl = [bytes(b["data"]) for b in c2.execute("SELECT data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
+                if bl:
+                    w = PdfWriter()
+                    for part in [pdf] + bl:
+                        for pg in PdfReader(io.BytesIO(part)).pages:
+                            w.add_page(pg)
+                    buf = io.BytesIO(); w.write(buf); pdf = buf.getvalue()
+            except Exception:
+                pass
     else:
         preise = request.args.get("preise") == "1"
         BILD = {}

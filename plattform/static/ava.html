@@ -370,6 +370,11 @@ html.mobil .bph{position:sticky;top:0}
 .mp .lt{font-size:.8rem;color:var(--mute);white-space:pre-line;margin-top:.25rem}
 .mv-f{text-align:center;color:var(--mute);font-size:.8rem;margin-top:1.5rem}
 .mv-f button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:.3rem .8rem;font:inherit;color:var(--y);margin-left:.3rem}
+.si h3{display:flex;gap:.5rem;align-items:baseline}.si-b{border-top:1px solid var(--line);padding:.6rem 0}.si-b>b{display:block}.si-b>.hint{display:block;margin-bottom:.35rem}
+.si-g{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:flex-end;margin:.3rem 0}.si-g label{display:flex;flex-direction:column;font-size:.8rem;color:var(--mute);gap:.15rem}.si-g input,.si-g select{font-size:.9rem}
+.si-sum{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.2rem 0 .5rem}.si-w{background:color-mix(in srgb,#e0a030 18%,transparent);border-radius:8px;padding:.4rem .6rem;margin:.3rem 0}
+.re-bel{display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;margin:.5rem 0;padding:.45rem .55rem;border:1px dashed var(--line);border-radius:8px}.re-bel.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 10%,transparent)}
+.re-b{display:inline-flex;gap:.3rem;align-items:center}.re-z{width:100%;margin:.4rem 0}.re-z input{font:inherit}
 </style>
 </head>
 <body>
@@ -835,7 +840,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'x84') return importDialog('angebot');
     if (a === 'ps') return window.open(`api/lv/${L.id}/pdf?art=preisspiegel`, '_blank');
     if (a === 'amPdf') return window.open(`api/lv/${L.id}/pdf?art=aufmass`, '_blank');
-    if (a === 'reNeu') return reDialog();
+    if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
     if (a === 'vergabeWeg') {
       if (!(await bpFrage('Vergabe aufheben? Die Auftragspreise werden entfernt.'))) return;
       const id = L.id, V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status;   // alten Stand merken
@@ -1217,64 +1222,146 @@ async function raumDialog() {
 }
 
 /* ---------- Rechnungen ---------- */
+const RE_NAME = { abschlag: 'Teilrechnung', schluss: 'Schlussrechnung', regie: 'Regierechnung', nachtrag: 'Nachtragsrechnung', sicherheit: 'Freigabe der Sicherheit' };
+const reTitel = (r) => (r.art === 'abschlag' || !RE_NAME[r.art] ? `${r.nr}. Teilrechnung` : `${r.nr}. ${RE_NAME[r.art]}`);
+/* Sicherheiten (VOB/B § 17): Vertragserfüllung und Mängelansprüche – Einbehalt oder Bürgschaft; Abnahme und Frist */
+function vSicherheiten(K) {
+  const S = K.sicherheit || {}, ve = S.ve || {}, ma = S.ma || {}, ein = (k, f, v, ph = '', typ = 'text', w = '') => `<input data-si="${k}.${f}" value="${esc(v ?? '')}" type="${typ}" placeholder="${esc(ph)}"${w ? ` style="width:${w}"` : ''}${typ === 'text' && /betrag|pct/.test(f) ? ' inputmode="decimal"' : ''}>`;
+  const heute = new Date().toISOString().slice(0, 10), ende = S.gw_ende || '';
+  const tage = ende ? Math.round((new Date(ende) - new Date(heute)) / 864e5) : null;
+  const zurueck = (x) => x.form === 'buergschaft' ? !!x.rueckgabe : false;
+  const warn = [];
+  if (ve.form === 'buergschaft' && ve.eingang && !ve.rueckgabe && S.abnahme && (ma.form !== 'buergschaft' || ma.eingang)) warn.push('Abnahme ist erfolgt – Vertragserfüllungsbürgschaft zurückgeben (sobald die Sicherheit für Mängelansprüche vorliegt).');
+  if (tage != null && tage <= 60 && (K.sicherheit.offen > 0.5 || (ma.form === 'buergschaft' && ma.eingang && !zurueck(ma)))) warn.push(tage < 0 ? `Verjährungsfrist für Mängelansprüche ist seit ${-tage} Tagen abgelaufen – Sicherheit freigeben bzw. Bürgschaft zurückgeben (vorher Mängel prüfen).` : `Verjährungsfrist für Mängelansprüche endet in ${tage} Tagen (${de(ende)}) – Begehung vorher, dann Sicherheit freigeben.`);
+  const block = (k, x, titel, txt) => `<div class="si-b"><b>${titel}</b><span class="hint">${txt}</span>
+      <div class="si-g"><label>Art<select data-si="${k}.form"><option value="einbehalt"${x.form !== 'buergschaft' ? ' selected' : ''}>Einbehalt</option><option value="buergschaft"${x.form === 'buergschaft' ? ' selected' : ''}>Bürgschaft</option></select></label>
+      ${k === 've' ? `<label>Einbehalt %<input data-ve="einbehalt" value="${esc(nf(ve.pct, 2))}" inputmode="decimal" style="width:5rem"></label>` : `<label>Einbehalt %${ein(k, 'pct', nf(x.pct, 2), '3', 'text', '5rem')}</label>`}
+      ${x.form === 'buergschaft' ? `<label>Betrag €${ein(k, 'betrag', x.betrag != null ? nf(x.betrag, 2) : '', '', 'text', '8rem')}</label><label>Bürge (Bank/Versicherung)${ein(k, 'buerge', x.buerge, 'z. B. Sparkasse Essen')}</label>
+        <label>Nr.${ein(k, 'nr', x.nr, '', 'text', '8rem')}</label><label>erhalten am${ein(k, 'eingang', x.eingang, '', 'date')}</label><label>zurückgegeben am${ein(k, 'rueckgabe', x.rueckgabe, '', 'date')}</label>` : ''}</div>
+      ${x.form === 'buergschaft' && x.eingang ? `<span class="hint">${k === 've' ? 'Bürgschaft liegt vor – in Teilrechnungen wird nichts einbehalten.' : 'Bürgschaft liegt vor – in der Schlussrechnung wird nichts einbehalten.'}</span>` : ''}</div>`;
+  return `<div class="card si"><h3>Sicherheiten <span class="hint">VOB/B § 17</span></h3>
+    ${warn.map((w) => `<p class="si-w">⚠ ${esc(w)}</p>`).join('')}
+    <div class="si-sum"><span>einbehalten <b>${eur(S.einbehalten)}</b></span><span>freigegeben <b>${eur(S.freigegeben)}</b></span><span>noch einbehalten <b>${eur(S.offen)}</b></span></div>
+    ${block('ve', ve, 'Vertragserfüllung', 'Einbehalt in jeder Teil-, Nachtrags- und Regierechnung – oder abgelöst durch Bürgschaft')}
+    ${block('ma', ma, 'Mängelansprüche (Gewährleistung)', 'Einbehalt in der Schlussrechnung – oder abgelöst durch Bürgschaft')}
+    <div class="si-g"><label>Abnahme am${ein('', 'abnahme', S.abnahme, '', 'date')}</label><label>Verjährung Jahre${ein('', 'gw_jahre', S.gw_jahre, '4', 'text', '4rem')}</label>
+      <label>Frist endet am<input data-si=".gw_ende" type="date" value="${esc(ende)}"></label></div></div>`;
+}
+async function siSave(el) {
+  const [k, f] = el.dataset.si.split('.'), b = {};
+  const v = el.value;
+  if (!k) b[f] = f === 'gw_jahre' ? pf(v) : v; else b[k] = { [f]: /betrag|pct/.test(f) ? pf(v) : v };
+  try { await call('api/lv/' + L.id, 'PUT', { vergabe: { sicherheit: b } }); } catch (e) { toast(e.message, true); }
+}
 function vRechnungen() {
   if (!vergeben()) return '<div class="card empty"><p>Rechnungen werden mit den Preisen des Auftrags geprüft – bitte erst unter „Angebote & Vergabe“ vergeben.</p></div>';
   const K = L.calc, RC = Object.fromEntries(K.rechnungen.map((r) => [r.id, r]));
-  const offen = L.rechnungen.some((r) => r.status !== 'geprueft'), schluss = L.rechnungen.some((r) => r.art === 'schluss');
   const cards = [...L.rechnungen].reverse().map((r) => {
-    const c = RC[r.id], g = r.status === 'geprueft', last = r.nr === Math.max(...L.rechnungen.map((x) => x.nr)), ab = r.data.abzuege || [];
-    const L1 = c.leistung - c.nachlass;
-    return `<div class="card"><h3>${r.nr}. ${r.art === 'schluss' ? 'Schlussrechnung' : 'Abschlagsrechnung'}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
-        <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : 'in Prüfung – Aufmaß von heute'}</span></h3>
-      <div class="g"><label>Rechnungsnr. der Firma<input data-re="re_nr" data-id="${r.id}" value="${esc(r.re_nr)}"${g ? ' disabled' : ''}></label>
-        <label>Rechnungsdatum<input type="date" data-re="datum" data-id="${r.id}" value="${esc(r.datum)}"${g ? ' disabled' : ''}></label>
-        <label>Eingang<input type="date" data-re="eingang" data-id="${r.id}" value="${esc(r.eingang)}"${g ? ' disabled' : ''}></label>
-        <label>gefordert (kumuliert, netto)<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${g ? ' disabled' : ''}></label>
-        <label>Einbehalt %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${g ? ' disabled' : ''}></label></div>
+    const c = RC[r.id], g = r.status === 'geprueft', last = r.nr === Math.max(...L.rechnungen.map((x) => x.nr)), ab = r.data.abzuege || [], art = r.art || 'abschlag';
+    const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
+    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}
+      <label class="btn sm">📎 Rechnung (PDF) hinzufügen<input type="file" accept="application/pdf,.pdf" hidden data-rebeleg="${r.id}"></label><span class="hint">oder hierher ziehen – wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt</span></div>`;
+    const kopf = `<h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
+        <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
+      <div class="g"><label>Rechnungsnr. der Firma<input data-re="re_nr" data-id="${r.id}" value="${esc(r.re_nr)}"${dis}></label>
+        <label>Rechnungsdatum<input type="date" data-re="datum" data-id="${r.id}" value="${esc(r.datum)}"${dis}></label>
+        <label>Eingang<input type="date" data-re="eingang" data-id="${r.id}" value="${esc(r.eingang)}"${dis}></label>
+        ${art === 'sicherheit' ? `<label>freizugebender Betrag netto<input data-re="betrag" data-id="${r.id}" value="${nf(r.data.betrag || 0, 2)}" inputmode="decimal"${dis}></label>`
+          : `<label>gefordert (${art === 'regie' ? 'netto' : 'kumuliert, netto'})<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
+        <label>Einbehalt %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>${belege}`;
+    const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="width:100%;min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
+      <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="pdf" data-id="${r.id}">Prüfblatt PDF</button><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag, Prüfblatt und Rechnung der Firma in einer PDF">Rechnungsfreigabe PDF</button>
+        ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="${art === 'regie' || art === 'sicherheit' ? 'Prüfung abschließen' : 'Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung'}">✓ Prüfung abschließen</button>`}
+        ${last ? `<button class="btn sm danger" data-reb="del" data-id="${r.id}">Löschen</button>` : ''}</div>`;
+    if (art === 'sicherheit') {
+      return `<div class="card">${kopf}<table><tbody>
+        <tr><td>noch einbehalten (alle geprüften Rechnungen)</td><td class="r">${eur(K.sicherheit.offen + (g ? c.zahlung : 0))}</td></tr>
+        <tr class="s"><td>= Freigabe netto</td><td class="r">${eur(c.zahlung)}</td></tr>
+        <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
+        <tr class="s"><td>= Auszahlung brutto</td><td class="r">${eur(c.brutto)}</td></tr></tbody></table>${fuss}</div>`;
+    }
+    const zeilen = art === 'regie' ? `<table class="re-z"><thead><tr><th>Stundenlohnarbeiten (Stundenzettel)</th><th class="r">Menge</th><th>Einh.</th><th class="r">Satz €</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
+        ${(r.data.zeilen || []).map((z, k) => `<tr><td><input data-re="z-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Facharbeiter 12.10." style="width:100%"${dis}></td>
+          <td class="r"><input data-re="z-menge" data-id="${r.id}" data-k="${k}" value="${z.menge != null ? nf(z.menge, 2) : ''}" inputmode="decimal" style="width:5rem;text-align:right"${dis}></td>
+          <td><input data-re="z-einheit" data-id="${r.id}" data-k="${k}" value="${esc(z.einheit || 'h')}" style="width:3.5rem"${dis}></td>
+          <td class="r"><input data-re="z-ep" data-id="${r.id}" data-k="${k}" value="${z.ep != null ? nf(z.ep, 2) : ''}" inputmode="decimal" style="width:6rem;text-align:right"${dis}></td>
+          <td class="r">${eur((z.menge || 0) * (z.ep || 0))}</td><td>${g ? '' : `<button class="ib" data-reb="zdel" data-id="${r.id}" data-k="${k}">✕</button>`}</td></tr>`).join('')}
+        ${g ? '' : `<tr><td colspan="6"><button class="ib" data-reb="zneu" data-id="${r.id}">+ Zeile (Lohn, Gerät, Material laut Stundenzettel)</button></td></tr>`}</tbody></table>` : '';
+    return `<div class="card">${kopf}${zeilen}
       <table><tbody>
-        <tr><td>Leistungsstand netto (Aufmaß × Auftrags-EP)</td><td class="r">${eur(c.leistung)}</td></tr>
+        <tr><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>
         ${c.nachlass ? `<tr><td>– Nachlass ${nf(L.vergabe.nachlass, 2)} %</td><td class="r">${eur(-c.nachlass)}</td></tr>` : ''}
-        ${ab.map((z, k) => `<tr><td><div class="abz"><span>–</span><input data-re="abz-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Bauwasser/Strom" style="flex:1"${g ? ' disabled' : ''}>
-          <input data-re="abz-pct" data-id="${r.id}" data-k="${k}" value="${z.pct != null ? nf(z.pct, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"${g ? ' disabled' : ''}>
-          <input data-re="abz-betrag" data-id="${r.id}" data-k="${k}" value="${z.betrag != null ? nf(z.betrag, 2) : ''}" placeholder="oder €" style="width:6rem" inputmode="decimal"${g ? ' disabled' : ''}>${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
+        ${ab.map((z, k) => `<tr><td><div class="abz"><span>–</span><input data-re="abz-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Bauwasser/Strom" style="flex:1"${dis}>
+          <input data-re="abz-pct" data-id="${r.id}" data-k="${k}" value="${z.pct != null ? nf(z.pct, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"${dis}>
+          <input data-re="abz-betrag" data-id="${r.id}" data-k="${k}" value="${z.betrag != null ? nf(z.betrag, 2) : ''}" placeholder="oder €" style="width:6rem" inputmode="decimal"${dis}>${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
           <td class="r">${eur(-(z.pct != null ? L1 * z.pct / 100 : (z.betrag || 0)))}</td></tr>`).join('')}
         ${g ? '' : `<tr><td colspan="2"><button class="ib" data-reb="abzneu" data-id="${r.id}">+ Abzug (Umlage Bauwasser/Strom, Bauleistungsversicherung, Schadensersatz …)</button></td></tr>`}
-        <tr><td>– Sicherheitseinbehalt ${nf(c.einbehalt_pct, 2)} %</td><td class="r">${eur(-c.einbehalt)}</td></tr>
-        <tr class="s"><td>= anerkannt (kumuliert)</td><td class="r">${eur(c.anerkannt)}</td></tr>
-        <tr><td>– bisher anerkannt</td><td class="r">${eur(-c.vorher)}</td></tr>
+        <tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %</td><td class="r">${eur(-c.einbehalt)}</td></tr>
+        <tr class="s"><td>= anerkannt${art === 'regie' ? '' : ' (kumuliert)'}</td><td class="r">${eur(c.anerkannt)}</td></tr>
+        ${art === 'regie' ? '' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
         <tr class="s"><td>= Zahlbetrag netto</td><td class="r">${eur(c.zahlung)}</td></tr>
         <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
         <tr class="s"><td>= Zahlbetrag brutto</td><td class="r">${eur(c.brutto)}</td></tr>
         ${r.gefordert ? `<tr><td>gefordert ${eur(r.gefordert)} · Differenz zum geprüften Leistungsstand</td><td class="r" style="color:${c.differenz > 0.5 ? 'var(--red)' : 'inherit'}">${eur(c.differenz)}</td></tr>` : ''}
-      </tbody></table>
-      <label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="width:100%;min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
-      <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="pdf" data-id="${r.id}">Prüfblatt PDF</button>
-        ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung">✓ Prüfung abschließen</button>`}
-        ${last ? `<button class="btn sm danger" data-reb="del" data-id="${r.id}">Löschen</button>` : ''}</div></div>`;
+      </tbody></table>${fuss}</div>`;
   }).join('');
-  return `<div class="bar"><button class="btn sm pri" data-act="reNeu"${offen || schluss ? ' disabled' : ''} title="${offen ? 'Erst die offene Rechnung prüfen' : schluss ? 'Schlussrechnung ist erfasst' : ''}">+ Rechnung erfassen</button>
-    <span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)}</span></div>
-    <div class="re">${cards || '<div class="card empty">Noch keine Rechnung. Abschlagsrechnungen werden kumuliert geprüft: Aufmaß × Auftragspreis, abzüglich Nachlass, Abzügen, Einbehalt und bisheriger Zahlungen.</div>'}</div>`;
+  return `<div class="bar"><button class="btn sm pri" data-act="reNeu" aria-haspopup="listbox">+ Neu ▾</button>
+    <span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
+    <div class="re">${cards || '<div class="card empty">Noch keine Rechnung. Teilrechnungen werden kumuliert geprüft: Aufmaß × Auftragspreis, abzüglich Nachlass, Abzügen, Einbehalt und bisheriger Zahlungen.</div>'}${vSicherheiten(K)}</div>`;
 }
-function reDialog() {
-  const n = L.rechnungen.length + 1;
-  modalBox(`<h3>${n}. Rechnung erfassen</h3><div class="fm">
-      <label>Art</label><select id="reArt"><option value="abschlag">${n}. Abschlagsrechnung</option><option value="schluss">Schlussrechnung</option></select>
+function reNeuMenu(anchor) {
+  const offen = L.rechnungen.some((r) => r.status !== 'geprueft'), schluss = L.rechnungen.some((r) => r.art === 'schluss');
+  const grund = offen ? 'erst die offene Rechnung prüfen' : '';
+  const it = [['abschlag', 'Teilrechnung', 'kumuliert über das Aufmaß', offen || schluss], ['schluss', 'Schlussrechnung', 'mit Sicherheit für Mängelansprüche', offen || schluss],
+    ['regie', 'Regierechnung', 'Stundenlohnarbeiten nach Stundenzetteln', offen], ['nachtrag', 'Nachtragsrechnung', 'kumuliert nur über die Nachtragspositionen', offen || schluss],
+    ['sicherheit', 'Freigabe der Sicherheit', `noch einbehalten ${eur((L.calc.sicherheit || {}).offen || 0)}`, offen]];
+  pickMenu(anchor, { items: it.map(([v, t, sub, dis]) => ({ value: dis ? '' : v, title: t, sub: dis ? (grund || 'nach der Schlussrechnung nicht mehr') : sub })), onPick: (v) => { if (v) reDialog(v); } });
+}
+function reDialog(art = 'abschlag') {
+  const n = L.rechnungen.length + 1, offen = (L.calc.sicherheit || {}).offen || 0;
+  modalBox(`<h3>${art === 'abschlag' ? n + '. Teilrechnung' : RE_NAME[art]} erfassen</h3><div class="fm">
+      <label>Rechnung (PDF)</label><input type="file" id="reF" accept="application/pdf,.pdf">
       <label>Rechnungsnr.</label><input id="reNr">
       <label>Rechnungsdatum</label><input type="date" id="reD">
       <label>Eingang</label><input type="date" id="reE" value="${new Date().toISOString().slice(0, 10)}">
-      <label>gefordert netto</label><input id="reG" placeholder="kumulierter Betrag laut Rechnung" inputmode="decimal"></div>
-    <p class="hint">Geprüft wird mit dem Aufmaß unter „Aufmaß“ – bitte dort die Mengen der Firma prüfen und eintragen.</p>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close) => {
+      ${art === 'sicherheit' ? `<label>Freigabe netto</label><input id="reB" value="${nf(offen, 2)}" inputmode="decimal">` : `<label>gefordert netto</label><input id="reG" placeholder="${art === 'regie' ? 'Betrag laut Rechnung' : 'kumulierter Betrag laut Rechnung'}" inputmode="decimal">`}</div>
+    <p class="hint">${art === 'regie' ? 'Die Stundenzettel danach als Zeilen eintragen.' : art === 'sicherheit' ? 'Freigabe nach Ablauf der Verjährungsfrist für Mängelansprüche (Begehung vorher).' : 'Geprüft wird mit dem Aufmaß unter „Aufmaß“ – bitte dort die Mengen der Firma prüfen und eintragen.'} Die PDF wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt.</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
-    try { await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: $('#reArt').value, re_nr: $('#reNr').value, datum: $('#reD').value, eingang: $('#reE').value, gefordert: pf($('#reG').value) || 0 }); close(); } catch (e) { toast(e.message, true); }
+    btn.disabled = true;
+    try {
+      const r = await call(`api/lv/${L.id}/rechnungen`, 'POST', { art, re_nr: $('#reNr').value, datum: $('#reD').value, eingang: $('#reE').value,
+        gefordert: art === 'sicherheit' ? 0 : (pf($('#reG').value) || 0), betrag: art === 'sicherheit' ? (pf($('#reB').value) || 0) : undefined });
+      const f = $('#reF').files[0]; close();
+      if (f) { const neu = r.rechnungen.reduce((a, x) => (x.nr > a.nr ? x : a), r.rechnungen[0]); await reBelegHoch(neu.id, f); }
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
 }
+async function reBelegHoch(rid, f) {
+  if (!f) return;
+  if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') return toast('Bitte eine PDF-Datei wählen.', true);
+  const fd = new FormData(); fd.append('datei', f);
+  toast('Rechnung wird gespeichert und im Projektordner abgelegt …');
+  try {
+    const r = await fetch(`api/rechnungen/${rid}/beleg`, { method: 'POST', body: fd, credentials: 'same-origin' });
+    const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status);
+    L = d; render(); toast(d.hinweis || 'Rechnung gespeichert.', !!(d.hinweis && /nicht im Projektordner/.test(d.hinweis)));
+  } catch (e) { toast(e.message, true); }
+}
+document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-rebeleg]'); if (i && i.files[0]) { reBelegHoch(+i.dataset.rebeleg, i.files[0]); i.value = ''; } });
+document.addEventListener('change', (e) => { const el = e.target.closest && e.target.closest('[data-si],[data-ve]'); if (!el || !L) return;
+  if (el.dataset.ve) { call('api/lv/' + L.id, 'PUT', { vergabe: { einbehalt: pf(el.value) ?? 5 } }).catch((er) => toast(er.message, true)); return; }
+  siSave(el); });
+document.addEventListener('dragover', (e) => { const z = e.target.closest && e.target.closest('[data-redrop]'); if (z && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); z.classList.add('over'); } });
+document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-redrop]'); if (z) z.classList.remove('over'); });
+document.addEventListener('drop', (e) => { const z = e.target.closest && e.target.closest('[data-redrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); z.classList.remove('over'); reBelegHoch(+z.dataset.redrop, e.dataTransfer.files[0]); });
 async function reSave(el) {
   const r = L.rechnungen.find((x) => x.id === +el.dataset.id); if (!r) return;
   const f = el.dataset.re, body = {};
-  if (f.startsWith('abz-')) { const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f.slice(4); ab[k][key] = key === 'text' ? el.value : pf(el.value); if (key === 'pct' && ab[k].pct != null) ab[k].betrag = null; if (key === 'betrag' && ab[k].betrag != null) ab[k].pct = null; body.abzuege = ab; }
+  if (f.startsWith('z-')) { const zs = (r.data.zeilen || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f.slice(2); zs[k][key] = ['menge', 'ep'].includes(key) ? pf(el.value) : el.value; body.zeilen = zs; }
+  else if (f === 'betrag') body.betrag = pf(el.value) || 0;
+  else if (f.startsWith('abz-')) { const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f.slice(4); ab[k][key] = key === 'text' ? el.value : pf(el.value); if (key === 'pct' && ab[k].pct != null) ab[k].betrag = null; if (key === 'betrag' && ab[k].betrag != null) ab[k].pct = null; body.abzuege = ab; }
   else body[f] = ['gefordert', 'einbehalt'].includes(f) ? pf(el.value) : el.value;
   try { await call('api/rechnungen/' + r.id, 'PUT', body); } catch (e) { toast(e.message, true); }
 }
@@ -1282,8 +1369,14 @@ async function reAktion(b) {
   const r = L.rechnungen.find((x) => x.id === +b.dataset.id); if (!r) return;
   const a = b.dataset.reb;
   try {
-    if (a === 'pdf') return window.open(`api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}`, '_blank');
+    if (a === 'pdf' || a === 'freigabe') { const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}${a === 'freigabe' ? '&freigabe=1' : ''}`;
+      if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: (a === 'freigabe' ? 'Rechnungsfreigabe ' : 'Prüfblatt ') + reTitel(r) + '.pdf' }]); else location.href = url; return; }
     if (a === 'abzneu') return call('api/rechnungen/' + r.id, 'PUT', { abzuege: [...(r.data.abzuege || []), { text: '', pct: null, betrag: null }] });
+    if (a === 'zneu') return call('api/rechnungen/' + r.id, 'PUT', { zeilen: [...(r.data.zeilen || []), { text: '', menge: null, einheit: 'h', ep: null }] });
+    if (a === 'zdel') { const alt = JSON.parse(JSON.stringify(r.data.zeilen || [])); await call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt.filter((_, k) => k !== +b.dataset.k) });
+      rueckgaengig('Zeile entfernt', () => call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt })); return; }
+    if (a === 'beleg') { const x = (r.belege || []).find((y) => y.id === +b.dataset.bid); if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url: 'api/belege/' + b.dataset.bid, typ: 'pdf', name: x ? x.name : 'Rechnung.pdf' }]); else location.href = 'api/belege/' + b.dataset.bid; return; }
+    if (a === 'belegdel') { if (!(await bpFrage('Rechnungs-PDF hier entfernen?\nIm Projektordner bleibt sie liegen.', { ok: 'Entfernen' }))) return; return call('api/belege/' + b.dataset.bid, 'DELETE'); }
     if (a === 'abzdel') {
       const alt = JSON.parse(JSON.stringify(r.data.abzuege || [])), ab = alt.filter((_, k) => k !== +b.dataset.k), z = alt[+b.dataset.k] || {};
       await call('api/rechnungen/' + r.id, 'PUT', { abzuege: ab });

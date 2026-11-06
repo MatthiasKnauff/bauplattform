@@ -788,7 +788,7 @@
   /* ---------- ⚙ Einstellungen: ein Fenster für alle Apps (von rechts, nie ein neues Browserfenster) ----------
      Diese App  – was die App registriert: BPHead.appEinstellungen([{ key, label, text, render(host) | open() }])
      Für mich   – Mein Konto (Unterschrift, Signatur, Versand, Kalender), Darstellung
-     Büro       – nur Administrator: Firma & Logo, Briefbogen, Ablage, Mailserver, E-Mail-Vorlagen, KI, Datensicherung … */
+     Büro       – nur Administrator: Firma & Logo, Briefbogen, Ablage, Mailserver, Druck-Layouts, E-Mail-Vorlagen, KI, Datensicherung … */
   let appSet = [], dr = null;
   H.appEinstellungen = (list) => { appSet = (list || []).filter(Boolean); if (dr && dr.bereich === 'app') dr.draw(); };
   H.einstellungenSchliessen = () => { if (dr) dr.close(); };
@@ -796,6 +796,7 @@
     ['firma', 'Firma & Logo', 'Name, Anschrift, Logo und Briefbogen für Briefe und Mails'],
     ['ablage', 'Ablage', 'Dateiserver (Projektordner), Zugang'],
     ['mail', 'Mailserver', 'Postfach, über das die Plattform Mails verschickt'],
+    ['druck', 'Druck-Layouts', 'Wo steht was auf den PDFs (Rügen …) – Editor mit Raster und Versionen'],
     ['allgemein', 'KI', 'Anbieter, Schlüssel, KI im Büro (Ollama)'],
     ['sicherung', 'Datensicherung', 'tägliche Sicherung, Kopie auf dem Dateiserver, Wiederherstellen'],
   ];
@@ -896,6 +897,7 @@
         ['buero', 'firma', 'Büro', 'Firma & Logo', 'Firma Büro Name Anschrift Logo Briefbogen Briefkopf Bank Telefon Internetseite', ''],
         ['buero', 'ablage', 'Büro', 'Ablage', 'Ablage Dateiserver Projektordner SMB Netzlaufwerk Zugang Ordner', ''],
         ['buero', 'mail', 'Büro', 'Mailserver', 'Mailserver SMTP Postfach Versand Microsoft 365 Absenderadresse', ''],
+        ['buero', 'druck', 'Büro', 'Druck-Layouts', 'Druck Layout PDF Ausdruck Briefkopf Anschrift Fenster Position Raster Rüge Mängelrüge Terminrüge Vorlage Editor', ''],
         ['buero', 'allgemein', 'Büro', 'KI', 'KI künstliche Intelligenz Ollama Claude Gemini ChatGPT Schlüssel API Anbieter', ''],
         ['buero', 'sicherung', 'Büro', 'Datensicherung', 'Datensicherung Backup Sicherung Wiederherstellen Kopie', ''],
         ['buero', 'vorlagen', 'Büro', 'E-Mail-Vorlagen', 'Vorlage Mail Text Rüge Einladung Platzhalter', ''],

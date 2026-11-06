@@ -323,3 +323,21 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-frage .bph-dlg{animation:bph-pop .12s ease-out}@keyframes bph-pop{from{transform:scale(.97);opacity:0}to{transform:none;opacity:1}}
 .bph-frage .bph-frage-in{border:1px solid var(--line,#ccc);border-radius:9px;padding:.5rem .65rem;font:inherit;background:var(--bg,#fff);color:inherit}
 .bph-btn.bph-gefahr{background:#d64545;border-color:#d64545;color:#fff}
+
+/* Zolli – Hinweis-Zollstock (nur am PC) */
+.bph-zolli{position:fixed;z-index:2147483000;display:flex;align-items:flex-end;gap:.2rem;pointer-events:none;animation:bph-zl-rein .5s cubic-bezier(.3,1.6,.5,1)}
+.bph-zolli.links{flex-direction:row}
+.bph-zolli-fig{width:88px;height:124px;flex:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25));animation:bph-zl-wipp 2.4s ease-in-out infinite;transform-origin:50% 100%}
+.bph-zolli:not(.links){flex-direction:row-reverse}
+.bph-zl-arm-r{animation:bph-zl-wink 1.2s ease-in-out infinite;transform-origin:52px 60px}
+.bph-zolli-bl{pointer-events:auto;position:relative;max-width:300px;background:#fffbe6;color:#1c1c1a;border:1.5px solid #c9a400;border-radius:14px;padding:.6rem .75rem;font-size:.86rem;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.22);margin-bottom:58px}
+.bph-zolli-k{display:flex;gap:.35rem;margin-top:.5rem;flex-wrap:wrap}
+.bph-zolli-k button{font:inherit;font-size:.78rem;border:1px solid #c9a400;background:#fff;border-radius:999px;padding:.15rem .6rem;cursor:pointer;color:#1c1c1a}
+.bph-zolli-k button:first-child{background:#f5c518;font-weight:600}
+.bph-zolli-ziel{outline:3px dashed #f5c518!important;outline-offset:4px;animation:bph-zl-puls 1.4s ease-in-out infinite}
+@keyframes bph-zl-rein{from{transform:translateY(40px) scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes bph-zl-wipp{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(5deg) translateY(-3px)}}
+@keyframes bph-zl-wink{0%,100%{transform:rotate(0)}50%{transform:rotate(-28deg)}}
+@keyframes bph-zl-puls{0%,100%{outline-color:#f5c518}50%{outline-color:transparent}}
+@media (prefers-reduced-motion:reduce){.bph-zolli,.bph-zolli-fig,.bph-zl-arm-r,.bph-zolli-ziel{animation:none}}
+@media print{.bph-zolli{display:none}}

@@ -180,9 +180,14 @@ input[data-own]{border-color:var(--y)}
 body.as-open .wrap{padding-bottom:45vh}
 @media (max-width:640px){#asst{right:0;bottom:0;width:100vw;border-radius:14px 14px 0 0;max-height:58vh}.wrap{padding-bottom:8rem}}
 @media (max-width:640px){.tabs{margin:0 -.8rem 1rem}.kpi b{font-size:1.3rem}}
+/* Wasserzeichen „Betaversion“ – blass, liegt über allem, fängt aber keine Klicks ab; in Dialogen und im Druck nicht */
+.beta-wz{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:20;overflow:hidden}
+.beta-wz span{font:800 clamp(64px,14vw,220px)/1 Ubuntu,"Segoe UI",system-ui,sans-serif;letter-spacing:.04em;color:var(--ink);opacity:.07;transform:rotate(-24deg);white-space:nowrap;user-select:none}
+@media print{.beta-wz{display:none}}
 </style>
 </head>
 <body>
+<div class="beta-wz" aria-hidden="true"><span>Betaversion</span></div>
 <main class="wrap">
   <div class="top" hidden>   <!-- wandern in die Versionsleiste unter der Kopfleiste -->
     <button class="btn sm pri" id="pdfBtn" title="Kostenermittlung für den Bauherrn drucken oder als PDF – die Stufe nach DIN 276 wählst du dort">🖨 Drucken / PDF …</button>

@@ -413,6 +413,8 @@ tr.am-lf td input{color:#c0621f}
 .pj-r .car{cursor:pointer;color:var(--mute);text-align:center}.pj-r .ok{color:var(--ok);font-weight:600}.pj-r .offen{color:#e0a030}
 .pj-blink{animation:pjb 1.5s ease}@keyframes pjb{0%,60%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
+.ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
+.ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:6px;font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
 .ava-drop{display:flex;flex-direction:column;align-items:center;gap:.15rem;margin:.8rem .3rem .4rem;padding:.7rem .5rem;border:2px dashed var(--line);border-radius:10px;text-align:center;cursor:pointer;color:var(--mute);font-size:.85rem}
 .ava-drop b{color:var(--ink)}.ava-drop small{font-size:.72rem;line-height:1.25}.ava-drop:hover{border-color:var(--y);color:var(--ink)}
 body.ava-ziehen .ava-drop{border-color:var(--y);background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink)}
@@ -627,6 +629,18 @@ async function avaDokument(f) {
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
   return new Promise((fertig) => {
     let projId = (E.projekte[0] || {}).id || pid || null, lvs = E.lvs || [];
+    const ABL = { ordner: null, hand: false, tok: 0 };
+    const ablZeigen = () => { const el = bg.querySelector('#adAblPfad'); if (!el) return;
+      el.innerHTML = ABL.fehler ? `<span style="color:#e07b3a">${esc(ABL.fehler)}</span>` : ABL.ordner ? `📁 ${ABL.ordner.map((x, i) => `<span${ABL.neu && ABL.neu[i] ? ' class="ad-neu" title="wird angelegt"' : ''}>${esc(x)}</span>`).join(' / ')}${ABL.hand ? ' <small>(von Hand)</small>' : ''}${ABL.neu && ABL.neu.some(Boolean) ? ' <small>– kursiv: wird angelegt</small>' : ''}` : 'wird gesucht …'; };
+    const ablSuchen = async () => {
+      if (ABL.hand || !projId) return ablZeigen();
+      const my = ++ABL.tok, art = bg.querySelector('#adArt').value, x = lvs.find((y) => y.id === +bg.querySelector('#adLv').value);
+      ABL.ordner = null; ABL.fehler = ''; ablZeigen();
+      const r = await api(`api/ablage/vorschlag?project_id=${projId}&art=${art}&firma=${encodeURIComponent(bg.querySelector('#adFirma').value.trim())}&gewerk=${encodeURIComponent(x ? x.name : '')}`).catch((e) => ({ ok: false, error: e.message }));
+      if (my !== ABL.tok) return;
+      if (r.ok && Array.isArray(r.ordner)) { ABL.ordner = r.ordner; ABL.neu = r.neu; } else ABL.fehler = r.error || 'Ablage nicht erreichbar';
+      ablZeigen();
+    };
     const projOpts = () => `${E.projekte.length ? `<optgroup label="erkannt">${E.projekte.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</optgroup>` : ''}
       <optgroup label="alle Projekte">${PROJ.filter((p) => !p.archived && !E.projekte.some((q) => q.id === p.id)).map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</optgroup><option value="neu">＋ neues Projekt anlegen …</option>`;
     const lvOpts = (art) => `${lvs.filter((x) => x.project_id === projId).map((x) => `<option value="${x.id}">${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.bieter ? ' · ' + esc(x.bieter) : ''}${x.treffer ? ` · ${x.treffer} Pos. passen` : ''}${x.firma ? ' · Firma passt' : ''}</option>`).join('')}${art === 'lv' || art === 'rechnung' ? `<option value="neu">＋ neues LV${art === 'rechnung' ? ' (Rechnung ohne LV)' : ''}</option>` : ''}`;
@@ -635,15 +649,17 @@ async function avaDokument(f) {
       <div class="fm"><label for="adArt">Was ist es?</label><select id="adArt">${Object.entries(DOKN).map(([k, l]) => `<option value="${k}"${k === (E.dok || 'rechnung') ? ' selected' : ''}>${l}</option>`).join('')}</select>
       <label for="adProj">Projekt</label><select id="adProj">${projOpts()}</select>
       <label for="adLv">LV / Auftrag</label><select id="adLv"></select>
-      <label for="adFirma">Firma</label><input id="adFirma" list="adFirmen" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer"><datalist id="adFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist></div>
+      <label for="adFirma">Firma</label><input id="adFirma" list="adFirmen" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer"><datalist id="adFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
+      <label style="align-self:start;padding-top:.15rem">Projektordner</label><div class="ad-abl"><span id="adAblPfad" class="hint">wird gesucht …</span><span class="ad-abl-k"><button class="btn sm" type="button" id="adAblWahl" title="Ordner selbst wählen">ändern …</button><label class="hint ad-nein"><input type="checkbox" id="adAblNein"> nicht ablegen</label></span></div></div>
       <p class="hint" id="adWohin" style="margin:.5rem 0 0"></p>
       <div class="acts"><button class="btn" data-m="x">${files_rest() ? 'Überspringen' : 'Abbrechen'}</button><button class="btn pri" data-m="ok">Ablegen</button></div>`, async (m, bg, close) => {
       if (m === 'x') { close(); fertig(); return; }
       if (m !== 'ok') return;
       const art = bg.querySelector('#adArt').value, lvv = bg.querySelector('#adLv').value, firma = bg.querySelector('#adFirma').value.trim();
       if (!projId) { toast('Bitte ein Projekt wählen.', true); return; }
+      const ordner = bg.querySelector('#adAblNein').checked ? 'nein' : ABL.ordner && ABL.ordner.length ? ABL.ordner : null;
       close();
-      try { await avaAblegen(f, E, { art, projId, lv: lvv === 'neu' || !lvv ? null : +lvv, firma }); } catch (e) { toast(e.message, true); }
+      try { await avaAblegen(f, E, { art, projId, lv: lvv === 'neu' || !lvv ? null : +lvv, firma, ordner }); } catch (e) { toast(e.message, true); }
       fertig();
     });
     const zeichne = async () => {
@@ -656,7 +672,8 @@ async function avaDokument(f) {
       const sel = bg.querySelector('#adLv'), alt = sel.value; sel.innerHTML = lvOpts(art); if ([...sel.options].some((o) => o.value === alt)) sel.value = alt;
       if (art === 'lv' && !sel.value) sel.value = 'neu';
       const x = lvs.find((y) => y.id === +sel.value);
-      bg.querySelector('#adWohin').innerHTML = art === 'lv' ? (sel.value === 'neu' ? 'Wird als neues LV angelegt' + (E.format === 'pdf' ? ' – aus einer PDF lassen sich keine Positionen lesen, bitte GAEB oder Excel; die PDF wird nicht übernommen.' : '.') : 'Positionen werden an das gewählte LV angehängt.')
+      ablSuchen();
+      bg.querySelector('#adWohin').innerHTML = art === 'lv' ? (sel.value === 'neu' ? 'Wird als neues LV angelegt' + (E.format === 'pdf' ? ' – aus einer PDF lassen sich keine Positionen lesen (dafür GAEB oder Excel); die PDF wird im Projektordner abgelegt.' : '.') : 'Positionen werden an das gewählte LV angehängt.')
         : art === 'angebot' ? 'Preise werden als Angebot der Firma eingetragen (Zuordnung über die Ordnungszahl) – danach im Preisspiegel.'
         : sel.value === 'neu' ? 'Neues LV ohne Positionen, Auftrag frei an die Firma – die Rechnung wird mit dem Betrag erfasst (Kostenkontrolle).'
         : `Kommt als PDF zur ${x && !x.vergeben ? 'Rechnung (das LV ist noch nicht vergeben – Auftrag wird frei an die Firma eingetragen)' : 'offenen Rechnung des Auftrags'} und wird in der Aufmaßprüfung neben der Prüfung angezeigt.`;
@@ -672,9 +689,43 @@ async function avaDokument(f) {
       }
       zeichne();
     });
+    bg.addEventListener('input', (e) => { if (e.target.id === 'adFirma') { clearTimeout(ABL.t); ABL.t = setTimeout(ablSuchen, 500); } });
+    bg.addEventListener('click', async (e) => {
+      if (!e.target.closest('#adAblWahl')) return;
+      const w = await ordnerWahl(projId, ABL.ordner ? ABL.ordner.filter((_, i) => !(ABL.neu && ABL.neu[i])) : []);
+      if (w) { ABL.ordner = w; ABL.neu = null; ABL.hand = true; ABL.fehler = ''; bg.querySelector('#adAblNein').checked = false; ablZeigen(); }
+    });
     zeichne();
   });
   function files_rest() { return false; }
+}
+/* Ordner im Projektordner selbst wählen: durchklicken, neuen Ordner anlegen, „hier ablegen“ */
+function ordnerWahl(projId, start) {
+  return new Promise((fertig) => {
+    let pfad = [...(start || [])], neu = [];
+    const bg = modalBox(`<h3>Ordner wählen</h3><div id="owPfad" class="hint" style="margin:0 0 .4rem"></div><div id="owListe" class="ow-l">Lade …</div>
+      <div class="acts"><button class="btn" data-m="ordner">＋ neuer Ordner</button><span style="flex:1"></span><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Hier ablegen</button></div>`, async (m, bg, close) => {
+      if (m === 'x') { close(); fertig(null); return; }
+      if (m === 'ok') { close(); fertig([...pfad, ...neu]); return; }
+      if (m === 'ordner') { const n = await bpEingabe('Name des neuen Ordners (wird beim Ablegen angelegt):', ''); if (n && n.trim()) { neu.push(n.trim().replace(/[\\/:*?"<>|]/g, ' ')); zeichne(); } }
+    });
+    async function zeichne() {
+      const ganz = [...pfad, ...neu];
+      bg.querySelector('#owPfad').innerHTML = `<a href="#" data-ow="-1">📁 Projektordner</a>${ganz.map((x, i) => ` / <a href="#" data-ow="${i}">${esc(x)}</a>`).join('')}`;
+      const L_ = bg.querySelector('#owListe');
+      if (neu.length) { L_.innerHTML = '<p class="hint">Neuer Ordner – noch leer.</p>'; return; }
+      L_.textContent = 'Lade …';
+      const r = await api(`api/ablage/ordner?project_id=${projId}&pfad=${encodeURIComponent(pfad.join('/'))}`).catch((e) => ({ ok: false, error: e.message }));
+      if (!r.ok || !Array.isArray(r.ordner)) { L_.innerHTML = `<p style="color:#e07b3a">${esc(r.error || 'Ablage nicht erreichbar')}</p>`; return; }
+      L_.innerHTML = (pfad.length ? '<button class="ow-o" data-owauf="1">⬑ eine Ebene höher</button>' : '') + (r.ordner.length ? r.ordner.map((d) => `<button class="ow-o" data-owin="${esc(d)}">📁 ${esc(d)}</button>`).join('') : '<p class="hint">Keine Unterordner.</p>');
+    }
+    bg.addEventListener('click', (e) => {
+      const a = e.target.closest('[data-ow]'); if (a) { e.preventDefault(); const i = +a.dataset.ow, ganz = [...pfad, ...neu].slice(0, i + 1); pfad = ganz.slice(0, Math.min(ganz.length, pfad.length)); neu = ganz.slice(pfad.length); zeichne(); return; }
+      const o = e.target.closest('[data-owin]'); if (o) { pfad.push(o.dataset.owin); zeichne(); return; }
+      if (e.target.closest('[data-owauf]')) { pfad.pop(); zeichne(); }
+    });
+    zeichne();
+  });
 }
 async function projGehe(id) {
   if (id === pid) return;
@@ -694,18 +745,27 @@ async function avaAblegen(f, E, o) {
     await refreshList();
   }
   await openLv(lvId);
+  const ablegen = async () => {   // Angebot / LV: Datei zusätzlich in den Projektordner
+    if (o.ordner === 'nein') return;
+    const fd = new FormData(); fd.append('datei', f); fd.append('project_id', o.projId); fd.append('art', o.art); fd.append('firma', o.firma || ''); fd.append('gewerk', L ? L.gewerk || L.name : '');
+    if (Array.isArray(o.ordner)) fd.append('ordner', JSON.stringify(o.ordner));
+    try { const r = await fetch('api/ablage', { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); toast('Im Projektordner abgelegt: ' + j.pfad); }
+    catch (e) { toast('Nicht im Projektordner abgelegt: ' + e.message, true); }
+  };
   if (o.art === 'lv') {
-    if (E.format === 'pdf') { tab = 'lv'; LS.set('tab', tab); render(); toast('Aus einer PDF lassen sich keine Positionen lesen – bitte als GAEB (X81/X83) oder Excel ablegen.', true); return; }
-    IMP = { ziel: 'lv', ersetzen: false }; tab = 'lv'; LS.set('tab', tab); render(); await doImport(f); return;
+    tab = 'lv'; LS.set('tab', tab); render();
+    if (E.format !== 'pdf') { IMP = { ziel: 'lv', ersetzen: false }; await doImport(f); }
+    else toast('Aus einer PDF lassen sich keine Positionen lesen – für Positionen bitte GAEB (X81/X83) oder Excel.');
+    await ablegen(); return;
   }
   if (o.art === 'angebot') {
     tab = 'angebote'; LS.set('tab', tab); render();
     if (E.format === 'pdf') {
       const fd = new FormData(); fd.append('datei', f); fd.append('bieter', o.firma || f.name); if (K) fd.append('contact_id', K.id);
       const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
-      L = j; render(); toast(j.hinweis || 'Angebot übernommen.'); refreshList(); return;
+      L = j; render(); toast(j.hinweis || 'Angebot übernommen.'); refreshList(); await ablegen(); return;
     }
-    IMP = { ziel: 'angebot', bieter: o.firma, contact_id: K ? K.id : null }; await doImport(f); return;
+    IMP = { ziel: 'angebot', bieter: o.firma, contact_id: K ? K.id : null }; await doImport(f); await ablegen(); return;
   }
   // Rechnung / Aufmaß: PDF in die Aufmaßprüfung (offene Rechnung, sonst neue)
   if (E.format !== 'pdf') throw new Error('Rechnungen und Aufmaße bitte als PDF ablegen.');
@@ -713,7 +773,7 @@ async function avaAblegen(f, E, o) {
   if (!L.rechnungen.some((r) => r.status !== 'geprueft') && E.regie && !(L.calc.auftrag && posOf().length)) await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'regie' });
   if (!L.rechnungen.some((r) => r.status !== 'geprueft') && E.schluss) await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'schluss' });
   tab = 'aufmass'; amAns = 'erfassen'; LS.set('tab', tab); LS.set('amAns', amAns); render();
-  await amBelegHoch([f]);
+  AMABL = { ordner: o.ordner, art: o.art }; try { await amBelegHoch([f]); } finally { AMABL = null; }
 }
 document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-avadropin]'); if (i && i.files.length) { const fs = [...i.files]; i.value = ''; avaDokumente(fs); } });
 /* irgendwo auf die Seite ziehen (außer auf eigene Ablagen wie Rechnung, Aufmaß, Foto am Langtext): das gemeinsame Ablagefeld */
@@ -1389,6 +1449,7 @@ document.addEventListener('dblclick', (e) => {
 });
 /* Rechnung / Aufmaß der Firma neben der Prüfung: PDF rechts, Positionen Schritt für Schritt, erkannte Mengen eintragen */
 const AMNEU = new Set();
+let AMABL = null;   // Ablage im Projektordner, aus dem gemeinsamen Ablagefeld gewählt
 let AMB = LS.get('amB', 0), amNurR = LS.get('amNurR', false), AMV = null;
 const amRe = () => (L ? L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
 const amBelege = () => { const r = amRe(); return r ? r.belege || [] : []; };
@@ -1525,6 +1586,7 @@ async function amBelegHoch(files) {
   if (!R) { try { await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'abschlag' }); } catch (e) { return toast(e.message, true); } R = L.rechnungen.find((r) => r.status !== 'geprueft'); if (!R) return; }
   for (const f of files) {
     const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen und im Projektordner abgelegt …`);
+    if (AMABL) { fd.append('art', AMABL.art || 'rechnung'); if (AMABL.ordner) fd.append('ordner', JSON.stringify(AMABL.ordner)); }
     try { const r = await fetch(`api/rechnungen/${R.id}/beleg`, { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status); L = d; }
     catch (e) { toast(e.message, true); return; }
   }

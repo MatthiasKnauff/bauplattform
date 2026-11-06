@@ -1945,6 +1945,52 @@ def angebot_neu(i):
         return _antwort(c, i)
 
 
+@app.get("/api/ablage/vorschlag")
+def ablage_vorschlag():
+    """Ordnervorschlag im Projektordner (vom Bautagebuch, das die Ablage kennt)."""
+    import urllib.parse
+    q = {k: request.args.get(k) or "" for k in ("project_id", "art", "firma", "gewerk")}
+    try:
+        return jsonify(C.bt_api("GET", "/api/ablage/vorschlag?" + urllib.parse.urlencode(q)))
+    except RuntimeError as e:
+        return jsonify(ok=False, error=str(e))
+
+
+@app.get("/api/ablage/ordner")
+def ablage_ordner():
+    import urllib.parse
+    q = {k: request.args.get(k) or "" for k in ("project_id", "pfad")}
+    try:
+        return jsonify(C.bt_api("GET", "/api/ablage/ordner?" + urllib.parse.urlencode(q)))
+    except RuntimeError as e:
+        return jsonify(ok=False, error=str(e))
+
+
+@app.post("/api/ablage")
+def ablage_datei():
+    """Angebot oder Muster-LV (oder anderes) im Projektordner ablegen – Ordner wie vorgeschlagen oder von Hand gewählt."""
+    import base64
+    f = request.files.get("datei")
+    pid = request.form.get("project_id", type=int)
+    if not f or not pid:
+        return jsonify(error="Datei oder Projekt fehlt"), 400
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+    try:
+        ordner = json.loads(request.form.get("ordner") or "null")
+    except ValueError:
+        ordner = None
+    roh = f.read(80 * 1024 * 1024)
+    try:
+        a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "art": request.form.get("art") or "", "firma": request.form.get("firma") or "",
+                                                  "gewerk": request.form.get("gewerk") or "", "name": f.filename or "Dokument.pdf",
+                                                  "datei": base64.b64encode(roh).decode(), "ordner": ordner if isinstance(ordner, list) else None})
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    return jsonify(ok=True, pfad=(a or {}).get("pfad") or "")
+
+
 @app.post("/api/lv/<int:i>/angebot-pdf")
 def angebot_pdf(i):
     """Angebot als PDF (auch Scan): Einheitspreise je LV-Position erkennen (Menge × EP = GP) und als Angebot des Bieters eintragen."""
@@ -2606,8 +2652,19 @@ def beleg_neu(k):
     hinweis, pfad = "", ""
     if pid:
         try:
-            a = C.bt_api("POST", "/api/ablage/rechnung", {"project_id": pid, "firma": V.get("bieter") or "", "name": name, "datei": base64.b64encode(roh).decode()})
+            ordner = None
+            try:
+                ordner = json.loads(request.form.get("ordner") or "null")
+            except ValueError:
+                pass
+            if ordner == "nein":   # bewusst nicht im Projektordner ablegen
+                raise StopIteration
+            a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "firma": V.get("bieter") or "", "name": name, "datei": base64.b64encode(roh).decode(),
+                                                      "art": "aufmass" if request.form.get("art") == "aufmass" else "rechnung", "gewerk": r["gewerk"] or r["name"] or "",
+                                                      "ordner": ordner if isinstance(ordner, list) else None})
             pfad = (a or {}).get("pfad") or ""
+        except StopIteration:
+            pass
         except Exception as e:
             hinweis = f"In der Plattform gespeichert, aber nicht im Projektordner: {e}"
     with db.tx() as c:

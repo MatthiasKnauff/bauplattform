@@ -269,7 +269,8 @@ def _bd_items(c, rows, katalog):
     eig = {}   # eigene Preise (Baudaten → Eigene Preise), neueste zuerst
     pids = [r["id"] for r in rows if r["id"] > 0]
     if pids:
-        for x in c.execute("SELECT position_id, ep, firma, datum FROM pdb_preis WHERE position_id = ANY(?) ORDER BY datum DESC, id DESC", (pids,)).fetchall():
+        for x in c.execute("SELECT position_id, ep, firma, datum FROM pdb_preis WHERE position_id = ANY(?) AND datum >= ? ORDER BY datum DESC, id DESC",
+                           (pids, baudaten._vor_jahren(5))).fetchall():
             eig.setdefault(x["position_id"], []).append({"ep": x["ep"], "firma": x["firma"] or "", "datum": x["datum"] or ""})
     out, grund = [], None
     for r in rows:
@@ -662,6 +663,8 @@ def clean_items(v):
         for k in ("gb", "entf", "sp", "np_vor", "np_nach"):
             if x.get(k):
                 p[k] = True
+        if isinstance(x.get("pdb"), int) and x["pdb"] > 0:   # Herkunft: Position der Baudaten (für Auftrags-/Angebotspreise)
+            p["pdb"] = x["pdb"]
         if x.get("nt"):   # Nachtrag
             p["nt"] = _s(x.get("nt"), 20)
             p["nt_status"] = x.get("nt_status") if x.get("nt_status") in ("angemeldet", "beauftragt", "abgelehnt") else "angemeldet"
@@ -1868,6 +1871,7 @@ def vergabe(i):
             if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND status='geprueft'", (i,)).fetchone():
                 return jsonify(error="Es gibt schon geprüfte Rechnungen – die Vergabe lässt sich nicht mehr aufheben."), 400
             c.execute("UPDATE ava_lv SET vergabe='{}', status='versendet', rev=rev+1, updated=?, updated_by=? WHERE id=?", (_now(), g.user["name"], i))
+            c.execute("DELETE FROM pdb_preis WHERE user_name IN (?, ?)", (f"ava:{i}:auftrag", f"ava:{i}:median"))
         else:
             a = c.execute("SELECT * FROM ava_angebot WHERE id=? AND lv_id=?", (b.get("angebot_id"), i)).fetchone()
             if not a:
@@ -1882,8 +1886,70 @@ def vergabe(i):
             c.execute("UPDATE ava_lv SET vergabe=?, status='vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?",
                       (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
             C.audit(g.user["name"], "ava", "Vergabe", f"LV {r['nr']} {r['name']} an {a['bieter']}")
+            try:
+                with c.savepoint():
+                    _preise_in_baudaten(c, i)
+            except Exception:
+                pass   # Erfahrungspreise sind ein Zusatz – die Vergabe darf daran nicht scheitern
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         return _antwort(c, i)
+
+
+RX_BD_CODE = re.compile(r"Baudaten\b.*?\b(\d{3}\.\d{2}\.\d{3}\.\d{5})")
+
+
+def _preise_in_baudaten(c, i):
+    """Nach der Vergabe: Auftragspreis und Median aller Angebote als eigene Preise in die Baudaten (nur Positionen, die aus den
+    Baudaten stammen). Je Projekt nur der letzte Stand; Ausreißer (unter 30 % / über 300 % des Katalogpreises) bleiben draußen."""
+    r = _lv(c, i)
+    V = _j(r["vergabe"], {}) or {}
+    if not V.get("angebot_id"):
+        return 0
+    I = [x for x in (_j(r["data"], {}) or {}).get("items") or [] if x.get("typ") == "pos" and x.get("art") != "T"]
+    codes = {}
+    for x in I:
+        if not x.get("pdb"):
+            m = RX_BD_CODE.search(x.get("quelle") or "")
+            if m:
+                codes[x["id"]] = m.group(1)
+    if codes:
+        nach_code = {row["code"]: row["id"] for row in c.execute("SELECT id, code FROM pdb_position WHERE code = ANY(?)", (sorted(set(codes.values())),)).fetchall()}
+        for x in I:
+            if x["id"] in codes and codes[x["id"]] in nach_code:
+                x["pdb"] = nach_code[codes[x["id"]]]
+    I = [x for x in I if x.get("pdb")]
+    if not I:
+        return 0
+    ang = c.execute("SELECT id, bieter, preise, nachlass FROM ava_angebot WHERE lv_id=?", (i,)).fetchall()
+    netto = {a["id"]: {k: v * (1 - (a["nachlass"] or 0) / 100) for k, v in (_j(a["preise"], {}) or {}).items() if isinstance(v, (int, float)) and v > 0} for a in ang}
+    auf = netto.get(V["angebot_id"], {})
+    kat = {row["id"]: row for row in c.execute("SELECT id, katalog, ep_mittel FROM pdb_position WHERE id = ANY(?)", (sorted({x["pdb"] for x in I}),)).fetchall()}
+    fk = {}
+    datum = V.get("datum") or date.today().isoformat()
+    pid = r["project_id"]
+    n = 0
+    for x in I:
+        k = kat.get(x["pdb"])
+        if not k:
+            continue
+        f = fk.setdefault(k["katalog"], baudaten.umrechnung(c, k["katalog"]))
+        ref = (k["ep_mittel"] or 0) * f
+        ok = (lambda ep: ep and (not ref or 0.3 * ref <= ep <= 3 * ref))
+        c.execute("DELETE FROM pdb_preis WHERE position_id=? AND ((project_id IS NOT DISTINCT FROM ? AND user_name LIKE 'ava:%') OR user_name IN (?, ?))",
+                  (x["pdb"], pid, f"ava:{i}:auftrag", f"ava:{i}:median"))
+        menge = _fn(x.get("menge"))
+        ep = auf.get(x["id"])
+        if ok(ep):
+            c.execute("INSERT INTO pdb_preis(position_id, ep, datum, project_id, firma, menge, notiz, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
+                      (x["pdb"], round(ep, 2), datum, pid, V.get("bieter") or "Auftrag", menge, f"Auftrag · LV {r['nr']} {r['name']}"[:500], _now(), f"ava:{i}:auftrag"))
+            n += 1
+        alle = sorted(v[x["id"]] for v in netto.values() if ok(v.get(x["id"])))
+        if len(alle) >= 2:
+            med = alle[len(alle) // 2] if len(alle) % 2 else (alle[len(alle) // 2 - 1] + alle[len(alle) // 2]) / 2
+            c.execute("INSERT INTO pdb_preis(position_id, ep, datum, project_id, firma, menge, notiz, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
+                      (x["pdb"], round(med, 2), datum, pid, f"Median {len(alle)} Angebote", menge, f"Angebote · LV {r['nr']} {r['name']}"[:500], _now(), f"ava:{i}:median"))
+            n += 1
+    return n
 
 
 # ---------------------------------------------------------------- Aufmaß (Massenermittlung)

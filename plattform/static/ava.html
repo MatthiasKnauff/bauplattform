@@ -1718,6 +1718,7 @@ async function quEinfuegen(liste, nach) {
   let neu = liste.map((x) => {
     const y = JSON.parse(JSON.stringify(x)); y.id = uid(); delete y.nt; delete y.nt_status; delete y.nt_grund;
     if (y.typ === 'pos') { if (!QU.mengen) y.menge = 0; const ep = VP[x.id] ?? x.ep_s; y.ep_s = QU.preise && ep != null ? ep : null; y.quelle = (QU.L.katalog ? `${QU.L.projekt}, Pos. ${x.oz || ''}${x.spanne ? ` (von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €)` : ''}` : `aus LV ${QU.L.nr} ${QU.L.name} (${QU.L.projekt || ''}), Pos. ${x.oz || ''}`).slice(0, 200);
+      { const m = /^b(\d+)$/.exec(x.id); if (QU.L.katalog && m) y.pdb = +m[1]; }   // Herkunft merken: Auftrags-/Angebotspreise fließen später in die Baudaten zurück
       if (QU.L.katalog && (y.spanne || y.eigene)) { y._bd = true; if (y.spanne) { y.ep_von = y.spanne[0]; y.ep_bis = y.spanne[1]; } } delete y.spanne; }
     return y;
   });

@@ -204,7 +204,24 @@ def position(c, pid):
     d["umrechnung"] = round(f, 4)
     d["nur_lesen"] = d.get("katalog_art") == "avakatalog"
     d["preise"] = [] if pid < 0 else [x.dict() for x in c.execute("SELECT id, ep, datum, project_id, firma, menge, notiz, user_name FROM pdb_preis WHERE position_id=? ORDER BY datum DESC, id DESC", (pid,)).fetchall()]
+    grenze = _vor_jahren(5)   # ältere Preise bleiben gespeichert, zählen aber nicht mehr (Median, Vorschlag)
+    for x in d["preise"]:
+        x["alt"] = (x.get("datum") or "") < grenze
+        x["auto"] = str(x.get("user_name") or "").startswith("ava:")
+    v = sorted(x["ep"] for x in d["preise"] if not x["alt"] and x["ep"] is not None)
+    d["ep_eigen_median"] = (v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2) if v else None
+    d["n_preise"] = len(v)
+    d["ep_eigen_median_akt"] = _rund(d["ep_eigen_median"]) if d["ep_eigen_median"] is not None else None
     return d
+
+
+def _vor_jahren(n):
+    from datetime import date
+    t = date.today()
+    try:
+        return t.replace(year=t.year - n).isoformat()
+    except ValueError:
+        return t.replace(year=t.year - n, day=28).isoformat()
 
 
 def als_lv_position(d):
@@ -333,6 +350,6 @@ def register(app):
                     out.append({"typ": "pos", "art": "N", "kurz": x["kurz"], "lang": x["lang"], "menge": 0, "einheit": x["einheit"], "kg": x["kg"],
                                 "ep_s": x["ep"], "lb": (d.get("lb_name") or "")[:80], "quelle": f"Baudaten {d['katalog_name']} {d['code']}"[:200],
                                 "ep_von": d.get("ep_von_akt"), "ep_bis": d.get("ep_bis_akt"), "genauigkeit": d.get("genauigkeit") or "",
-                                "code": d.get("code"), "eigene": [{"ep": p["ep"], "firma": p["firma"] or "", "datum": p["datum"] or ""} for p in d["preise"][:12]],
+                                "code": d.get("code"), "eigene": [{"ep": p["ep"], "firma": p["firma"] or "", "datum": p["datum"] or ""} for p in d["preise"] if not p["alt"]][:12],
                                 "ep_median": d.get("ep_eigen_median")})
         return jsonify(out)

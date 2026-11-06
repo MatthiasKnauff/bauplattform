@@ -33,6 +33,20 @@ BEREICHE = {
         **GEMEINSAM, "firma": "Name der Firma", "grundlage": "Rechtsgrundlage unter dem Betreff (§ 5 Abs. 3 VOB/B)",
         "frist": "Frist zur Wiederaufnahme (TT.MM.JJJJ)", "anzahl": "Tage im Verzug", "auftrag": "Auftrag / Vergabe-Nr."}},
 }
+AVA = {
+    "buero": GEMEINSAM["buero"], "fusszeile": GEMEINSAM["fusszeile"], "datum": "heutiges Datum (Druckdatum)", "bearbeiter": GEMEINSAM["bearbeiter"],
+    "projekt": GEMEINSAM["projekt"], "bauvorhaben": GEMEINSAM["bauvorhaben"], "bauherr": "Bauherrschaft des Projekts",
+    "dokument": "Überschrift des Ausdrucks (z. B. „Rechnungsprüfung – 2. Abschlagsrechnung“)", "untertitel": "Zeile unter der Überschrift (Projekt, LV, Auftragnehmer)",
+    "lv": "LV-Nummer und Bezeichnung (z. B. LV 03 Rohbauarbeiten)", "gewerk": "Gewerk des LV", "auftragnehmer": "beauftragte Firma",
+    "seite": "Seitenzahl",
+}
+RE = {"rechnung": "Rechnung (z. B. 2. Abschlagsrechnung)", "re_nr": "Rechnungsnummer der Firma", "re_datum": "Rechnungsdatum", "eingang": "Eingang der Rechnung"}
+BEREICHE.update({
+    "lv": {"name": "Leistungsverzeichnis (Seiten nach dem Deckblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA)},
+    "aufmass": {"name": "Massenermittlung / Aufmaß", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA)},
+    "rechnungspruefung": {"name": "Rechnungsprüfung (Prüfblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
+    "rechnungsfreigabe": {"name": "Rechnungsfreigabe für den Bauherrn", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
+})
 FELDER = {"Empfaenger": "Empfänger (Anschrift, mehrzeilig)", "Datum": "Datum", "Bearbeiter": "Bearbeitet von", "Betreff": "Betreff / Bauvorhaben"}
 TYPEN = {"text": "Text", "feld": "Feld (im Brief änderbar)", "logo": "Logo", "linie": "Linie", "falzmarken": "Falz- und Lochmarken", "inhalt": "Inhalt (fließt)"}
 
@@ -42,6 +56,32 @@ def _e(typ, x, y, w, h, **k):
 
 
 def standard(bereich="maengelruege"):
+    if (BEREICHE.get(bereich) or {}).get("art") == "ava":
+        return _standard_ava(bereich)
+    return _standard_brief()
+
+
+def _standard_ava(bereich):
+    """Wie die AVA-Ausdrucke bisher aussehen: Überschrift + Logo oben, Fußzeile mit Seitenzahl, Inhalt dazwischen."""
+    if bereich == "lv":   # 25 mm Heftrand links, 15 mm rechts; Kopf- und Fußzeile auf allen Seiten nach dem Deckblatt
+        return {"raster": 2.5, "folge_oben": 16, "elemente": [
+            _e("text", 25, 7, 95, 4, text="{lv}", groesse=7.5, farbe="mute", seiten="alle", name="Kopfzeile links"),
+            _e("text", 120, 7, 75, 4, text="{projekt}", groesse=7.5, farbe="mute", ausrichtung="rechts", seiten="alle", name="Kopfzeile rechts"),
+            _e("inhalt", 25, 16, 170, 263, name="Inhalt"),
+            _e("text", 25, 284, 120, 4, text="{buero} · {datum}", groesse=7.5, farbe="mute", seiten="alle", name="Fußzeile links"),
+            _e("text", 145, 284, 50, 4, text="Seite {seite}", groesse=7.5, farbe="mute", ausrichtung="rechts", seiten="alle", name="Seitenzahl"),
+        ]}
+    return {"raster": 2.5, "folge_oben": 14, "elemente": [
+        _e("text", 16, 14, 140, 8, text="{dokument}", groesse=16, fett=True, name="Überschrift"),
+        _e("text", 16, 23, 140, 10, text="{untertitel}", groesse=9.5, farbe="mute", name="Untertitel"),
+        _e("logo", 164, 14, 30, 22, name="Logo"),
+        _e("inhalt", 16, 40, 178, 239, name="Inhalt"),
+        _e("text", 16, 284, 130, 4, text="{buero} · {projekt} · {lv}", groesse=7.5, farbe="mute", seiten="alle", name="Fußzeile"),
+        _e("text", 134, 284, 60, 4, text="Seite {seite} · {datum}", groesse=7.5, farbe="mute", ausrichtung="rechts", seiten="alle", name="Seitenzahl"),
+    ]}
+
+
+def _standard_brief():
     """Wie die Briefe bisher aussehen: DIN 5008 Form B (Anschrift im Fenster, Infoblock rechts, Betreff, Inhalt ab 118 mm)."""
     return {"raster": 2.5, "elemente": [
         _e("logo", 130, 12, 60, 16, nur_ohne_bogen=True, name="Logo"),
@@ -117,7 +157,9 @@ def pruefen(data):
     if not inhalt:
         out.append(_e("inhalt", 25, 118, 165, 154, name="Inhalt"))
     r = (data or {}).get("raster")
-    return {"raster": r if r in (1, 2, 2.5, 5, 10) else 2.5, "elemente": out}
+    fo = (data or {}).get("folge_oben")
+    fo = max(5.0, min(150.0, float(fo))) if isinstance(fo, (int, float)) else None
+    return {"raster": r if r in (1, 2, 2.5, 5, 10) else 2.5, "elemente": out, **({"folge_oben": fo} if fo is not None else {})}
 
 
 def fuellen(t, werte):
@@ -184,8 +226,144 @@ def zeichnen(cv, lay, werte, seite, H, fonts, bogen, feld_fn=None, logo_fn=None,
                 cv.line(x0, yy + size * 1.2 - 2, x0 + breit, yy + size * 1.2 - 2)
 
 
+def umbruch_std(t, w, size, fn):
+    """Text in Zeilen, die in w (Punkt) passen."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    out = []
+    for z in str(t or "").split("\n"):
+        cur = ""
+        for wd in z.split(" "):
+            n = (cur + " " + wd).strip()
+            if cur and stringWidth(n, fn, size) > w:
+                out.append(cur); cur = wd
+            else:
+                cur = n
+        out.append(cur)
+    return out
+
+
+def rahmen(lay):
+    """Inhaltsbereich in mm: (links, oben erste Seite, oben Folgeseiten, Breite, unten)."""
+    e = inhalt(lay)
+    fo = lay.get("folge_oben")
+    return e["x"], e["y"], (fo if fo is not None else min(e["y"], 25)), e["w"], e["y"] + e["h"]
+
+
+def platypus_seiten(lay, werte, fonts, logo_fn=None, bogen=False, erste_seite=1, ps=None):
+    """PageTemplates („erste“, „folge“) für reportlab-Platypus nach dem Layout. erste_seite: Seitennummer, ab der das
+    Layout zählt (z. B. 2, wenn ein Deckblatt davor steht – das Deckblatt zeichnet der Aufrufer selbst)."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import Frame, PageTemplate
+    ps = ps or A4
+    H = ps[1]
+    x, y1, y2, w, u = rahmen(lay)
+
+    def zeichne(cv, doc):
+        n = doc.page - erste_seite + 1
+        if n < 1:
+            return
+        cv.saveState()
+        zeichnen(cv, lay, {**werte, "seite": str(n)}, n, H, fonts, bogen, logo_fn=logo_fn, umbruch=umbruch_std)
+        cv.restoreState()
+
+    def fr(oben, ident):
+        return Frame(x * MM, H - u * MM, w * MM, (u - oben) * MM, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0, id=ident)
+    return [PageTemplate(id="erste", frames=[fr(y1, "f1")], onPage=zeichne, autoNextPageTemplate="folge"),
+            PageTemplate(id="folge", frames=[fr(y2, "f2")], onPage=zeichne)], w * MM
+
+
+# ---------------------------------------------------------------- eigene Felder
+# Einmal angelegt, in allen Layouts als {schluessel} nutzbar. quelle "projekt": einmal je Projekt eingetragen (Projekt-Maske
+# oder beim ersten Ausdruck), dann immer gesetzt; "ausdruck": bei jedem Ausdruck abgefragt (z. B. eine Nummer, die jedes Mal neu ist).
+def _slug(t):
+    t = str(t or "").lower()
+    for a, b in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        t = t.replace(a, b)
+    return re.sub(r"[^a-z0-9]+", "_", t).strip("_")[:30] or "feld"
+
+
+def eigene(c):
+    r = c.execute("SELECT data FROM bp_store WHERE key='layout:eigene'").fetchone()
+    try:
+        d = json.loads(r["data"]) if r and r["data"] else []
+    except (TypeError, ValueError):
+        d = []
+    return [x for x in d if isinstance(x, dict) and x.get("key")]
+
+
+def eigene_setzen(c, liste, wer):
+    belegt = set(GEMEINSAM) | set(AVA) | set(RE) | {k for b in BEREICHE.values() for k in b["variablen"]}
+    out, keys = [], set()
+    for x in (liste or [])[:60]:
+        if not isinstance(x, dict) or not str(x.get("name") or "").strip():
+            continue
+        k = str(x.get("key") or "") or _slug(x["name"])
+        k = _slug(k)
+        while k in belegt or k in keys:
+            k = (k + "_2")[:32]
+        keys.add(k)
+        out.append({"key": k, "name": str(x["name"]).strip()[:60], "quelle": "ausdruck" if x.get("quelle") == "ausdruck" else "projekt",
+                    "hilfe": str(x.get("hilfe") or "")[:200]})
+    c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES('layout:eigene',?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
+              "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (json.dumps(out, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), wer))
+    return out
+
+
+def werte_projekt(c, pid):
+    if not pid:
+        return {}
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"layoutwerte:{int(pid)}",)).fetchone()
+    try:
+        d = json.loads(r["data"]) if r and r["data"] else {}
+    except (TypeError, ValueError):
+        d = {}
+    return d if isinstance(d, dict) else {}
+
+
+def werte_projekt_setzen(c, pid, werte, wer):
+    d = werte_projekt(c, pid)
+    for k, v in (werte or {}).items():
+        d[k if re.fullmatch(r"_?[a-z0-9_]{1,50}", str(k)) else _slug(k)] = str(v or "")[:500]
+    c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
+              "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (f"layoutwerte:{int(pid)}", json.dumps(d, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), wer))
+    return d
+
+
+def gebraucht(c, bereich, lay=None):
+    """Eigene Felder, die im aktiven Layout des Ausdrucks vorkommen."""
+    lay = lay or aktiv(c, bereich)
+    txt = " ".join(e.get("text") or "" for e in lay["elemente"])
+    return [x for x in eigene(c) if "{" + x["key"] + "}" in txt]
+
+
+def abfrage(c, bereich, pid):
+    """Was vor dem Ausdruck gefragt werden muss: Felder „bei jedem Ausdruck“ und noch leere Projekt-Felder (alle mit Wert vorbelegt)."""
+    W = werte_projekt(c, pid)
+    out = []
+    for x in gebraucht(c, bereich):
+        out.append({**x, "wert": W.get(x["key"], "") if x["quelle"] == "projekt" else W.get("_zuletzt_" + x["key"], ""),
+                    "fehlt": x["quelle"] == "ausdruck" or not W.get(x["key"])})
+    return out
+
+
+def eigene_werte(c, pid, extra=None):
+    """Werte der eigenen Felder für den Ausdruck: Projektwerte, darüber die beim Ausdruck eingegebenen."""
+    W = werte_projekt(c, pid)
+    out = {x["key"]: W.get(x["key"], "") for x in eigene(c)}
+    for k, v in (extra or {}).items():
+        out[_slug(k)] = str(v or "")[:500]
+    return out
+
+
 def beispiel(bereich):
     """Werte für die Vorschau im Editor."""
+    if (BEREICHE.get(bereich) or {}).get("art") == "ava":
+        return {"buero": "GK3 Architektur", "fusszeile": "GK3 Architektur · Frohnhauser Str. 233 · 45144 Essen · 0201 123456", "datum": datetime.now().strftime("%d.%m.%Y"),
+                "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen", "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "bauherr": "Muster Wohnbau GmbH",
+                "dokument": {"lv": "Leistungsverzeichnis", "aufmass": "Massenermittlung – LV 03 Rohbauarbeiten", "rechnungspruefung": "Rechnungsprüfung – 2. Abschlagsrechnung",
+                             "rechnungsfreigabe": "Rechnungsfreigabe – 2. Abschlagsrechnung"}.get(bereich, ""),
+                "untertitel": "A497 Maybachstraße 15a, Essen · LV 03 Rohbauarbeiten", "lv": "LV 03 Rohbauarbeiten", "gewerk": "Rohbau", "auftragnehmer": "Muster Bau GmbH",
+                "seite": "1", "rechnung": "2. Abschlagsrechnung", "re_nr": "RE-2026-117", "re_datum": "02.11.2026", "eingang": "04.11.2026"}
     return {"buero": "GK3 Architektur", "absender": "GK3, Frohnhauser Str. 233, 45144 Essen", "fusszeile": "GK3 Architektur · Frohnhauser Str. 233 · 45144 Essen · 0201 123456 · mail@gk3-architektur.de",
             "datum": datetime.now().strftime("%d.%m.%Y"), "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen",
             "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "dokument": "Mängelrüge nach VOB/B" if bereich == "maengelruege" else "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",

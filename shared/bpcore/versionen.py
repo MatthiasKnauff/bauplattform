@@ -35,7 +35,10 @@ GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen 
       "catscope": "Leistungsumfang je Gewerk (Bauzeitenplan)", "settings": "KI und Bauzeitenplan (Verwaltung)", "plattform": "KI-Anbieter (Verwaltung)",
       "presets": "Vorlagen des Bauzeitenplans", "assistcfg": "Assistent des Bauzeitenplans", "assistcfg_vorlagen": "Vorlagen des Assistenten"}
 BP = {"todo:regeln": "Regeln der To-dos (Startseite)", "aufgaben": "Einstellungen „Aufgaben & Mängel“", "plaene": "Einstellungen „Planstand & Versand“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}
-BP.update({"layout:maengelruege": "Druck-Layout „Mängelrüge“", "layout:terminruege": "Druck-Layout „Terminrüge“"})
+BP.update({"layout:maengelruege": "Druck-Layout „Mängelrüge“", "layout:terminruege": "Druck-Layout „Terminrüge“",
+           "layout:lv": "Druck-Layout „Leistungsverzeichnis“", "layout:aufmass": "Druck-Layout „Massenermittlung“",
+           "layout:rechnungspruefung": "Druck-Layout „Rechnungsprüfung“", "layout:rechnungsfreigabe": "Druck-Layout „Rechnungsfreigabe“",
+           "layout:eigene": "Eigene Felder der Druck-Layouts"})
 BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)", "vergleich": "Vergleichsobjekte und importierte Kennwerte (Baukosten)", "dienste": "Zugänge zu Kostendatenbanken (Baukosten)"}
 
 LABELS = {

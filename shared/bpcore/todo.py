@@ -18,6 +18,7 @@ REGELN = [
     ("maengel", "Mängel mit abgelaufener Frist", "Mängel, Weisungen und „zu erledigen“ aus den Tagesberichten, deren Frist vorbei ist", True, None),
     ("erinnerungen", "Fällige Erinnerungen", "Offene Erinnerungen an mich, deren Termin erreicht ist", True, ("Tage vorher", "Tage", 0)),
     ("rechnungen", "Rechnungsprüfung (VOB/B § 16)", "Rechnungen in Prüfung – Frist 21 Tage (Abschlag) bzw. 30 Tage (Schluss) ab Eingang; Hinweis so viele Tage vor Ablauf", True, ("Tage vor Fristende", "Tage", 7)),
+    ("skonto", "Skontofrist läuft ab", "Rechnungen mit vereinbartem Skonto, die noch nicht als bezahlt markiert sind – Hinweis so viele Tage vor Ablauf der Skontofrist", True, ("Tage vor Ablauf", "Tage", 3)),
     ("nachtraege", "Nachträge ohne Entscheidung", "Angemeldete Nachträge in den LVs, die weder beauftragt noch abgelehnt sind", True, None),
     ("vergabe", "Vergabe vor Baubeginn", "Gewerk beginnt laut Bauzeitenplan bald, im AVA ist noch kein LV dafür vergeben", False, ("Wochen vor Beginn", "Wochen", 6)),
     ("firma", "Vorgänge ohne Firma", "Vorgänge im Bauzeitenplan, die bald beginnen und noch keine Firma haben", False, ("Tage vor Beginn", "Tage", 14)),
@@ -189,6 +190,36 @@ def _a_rechnungen(c, u, R, P, ok):
                           (f"Prüffrist {'abgelaufen seit ' + str(-rest) + ' Tagen' if rest < 0 else 'endet heute' if rest == 0 else 'endet in ' + str(rest) + ' Tagen'}"
                            f" (Eingang {ein.strftime('%d.%m.%Y')}){' · Nr. ' + x['re_nr'] if x['re_nr'] else ''}"),
                           lv["project_id"], P, frist, f"ava:#lv={lv['id']}&tab=rechnungen", 1))
+    return out
+
+
+def _a_skonto(c, u, R, P, ok):
+    """Skonto: Satz/Tage aus dem Auftrag (vergabe) oder der Rechnung, Frist ab Eingang; erledigt mit „bezahlt am“."""
+    out = []
+    heute = _heute()
+    for lv in _lvs(c, ok):
+        V = _j(lv["vergabe"], {}) or {}
+        for x in c.execute("SELECT id, nr, art, eingang, re_nr, status, data FROM ava_rechnung WHERE lv_id=? AND art<>'sicherheit'", (lv["id"],)).fetchall():
+            d = _j(x["data"], {}) or {}
+            if d.get("bezahlt"):
+                continue
+            try:
+                pct = float(d["skonto"]) if d.get("skonto") not in (None, "") else float(V.get("skonto") or 0)
+                tage = int(d["skonto_tage"]) if d.get("skonto_tage") not in (None, "") else int(V.get("skonto_tage") or 0)
+                ein = date.fromisoformat(x["eingang"]) if x["eingang"] else None
+            except (TypeError, ValueError):
+                continue
+            if not pct or not tage or not ein:
+                continue
+            bis = ein + timedelta(days=tage)
+            rest = (bis - heute).days
+            if rest < 0 or rest > (R["wert"] or 0):
+                continue
+            art = {"schluss": "Schlussrechnung", "regie": "Regierechnung", "nachtrag": "Nachtragsrechnung"}.get(x["art"], "Abschlagsrechnung")
+            out.append(_e("skonto", x["id"], f"Skonto {str(pct).rstrip('0').rstrip('.').replace('.', ',')} % – {x['nr']}. {art}, LV {lv['nr']} {lv['name']}",
+                          (f"Skontofrist {'endet heute' if rest == 0 else 'endet in ' + str(rest) + ' Tagen'} ({bis.strftime('%d.%m.%Y')})"
+                           f"{' · erst noch prüfen' if x['status'] != 'geprueft' else ' · Freigabe an den Bauherrn, dann „bezahlt am“ eintragen'}{' · Nr. ' + x['re_nr'] if x['re_nr'] else ''}"),
+                          lv["project_id"], P, bis, f"ava:#lv={lv['id']}&tab=rechnungen", 2))
     return out
 
 
@@ -436,7 +467,7 @@ def _a_post(c, u, R, P, ok):
     return out
 
 
-ANALYSEN = {"terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
+ANALYSEN = {"terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post}
 
 

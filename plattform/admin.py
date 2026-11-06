@@ -608,7 +608,7 @@ def layouts():
         for k, b in layout.BEREICHE.items():
             d = layout.lesen(c, k)
             v = next((x for x in d["versionen"] if x["id"] == d.get("aktiv")), d["versionen"][0])
-            out.append({"key": k, "name": b["name"], "gruppe": b["gruppe"], "version": v["name"], "n": len(d["versionen"])})
+            out.append({"key": k, "name": b["name"], "gruppe": b["gruppe"], "art": b.get("art", "brief"), "version": v["name"], "n": len(d["versionen"])})
     return jsonify(out)
 
 
@@ -651,8 +651,31 @@ def layout_eins(b):
                     v["datum"], v["wer"] = datetime.now().strftime("%d.%m.%Y %H:%M"), g.user["name"]
                 layout.schreiben(c, b, d, g.user["name"])
         B = layout.BEREICHE[b]
-        return jsonify({**d, "bereich": {"key": b, "name": B["name"], "variablen": B["variablen"]}, "felder": layout.FELDER, "typen": layout.TYPEN,
-                        "standard": layout.standard(b), "beispiel": layout.beispiel(b)})
+        EG = layout.eigene(c)
+        return jsonify({**d, "bereich": {"key": b, "name": B["name"], "art": B.get("art", "brief"), "variablen": B["variablen"]},
+                        "felder": {} if B.get("art") == "ava" else layout.FELDER, "typen": layout.TYPEN, "eigene": EG,
+                        "standard": layout.standard(b), "beispiel": {**layout.beispiel(b), **{x["key"]: f"‹{x['name']}›" for x in EG}}})
+
+
+@app.route("/api/layouts-eigene", methods=["GET", "PUT"])
+def layouts_eigene():
+    """Eigene Felder für alle Druck-Layouts: [{key, name, quelle: projekt|ausdruck, hilfe}]."""
+    with db.tx() as c:
+        if request.method == "PUT":
+            with versionen.aenderung(c, "bp:layout:eigene", g.user["name"]):
+                out = layout.eigene_setzen(c, (request.get_json(silent=True) or {}).get("eigene"), g.user["name"])
+            return jsonify(out)
+        return jsonify(layout.eigene(c))
+
+
+@app.route("/api/layouts-werte/<int:pid>", methods=["GET", "PUT"])
+def layouts_werte(pid):
+    """Werte der eigenen Felder „je Projekt“ (Projekt-Maske)."""
+    with db.tx() as c:
+        if request.method == "PUT":
+            layout.werte_projekt_setzen(c, pid, (request.get_json(silent=True) or {}).get("werte") or {}, g.user["name"])
+        W = layout.werte_projekt(c, pid)
+        return jsonify([{**x, "wert": W.get(x["key"], "")} for x in layout.eigene(c) if x["quelle"] == "projekt"])
 
 
 @app.post("/api/layouts/<b>/vorschau")
@@ -669,7 +692,12 @@ def layout_vorschau(b):
         bogen = briefbogen.holen(c)
         FN = schrift.fuer(c)
     W, H = A4
+    ava = layout.BEREICHE[b].get("art") == "ava"
+    if ava:
+        bogen = None   # AVA-Ausdrucke ohne Briefbogen
     werte = layout.beispiel(b)
+    with db.tx() as c:
+        werte.update({x["key"]: f"‹{x['name']}›" for x in layout.eigene(c)})
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=A4)
 
@@ -678,12 +706,17 @@ def layout_vorschau(b):
         yy = y + h - size * 1.05 - 1 if multi else y + (h - size) / 2 + 1.5
         for z in (werte.get(nm, "").split("\n") if multi else [werte.get(nm, "").replace("\n", " ")]):
             cv.drawString(x, yy, z); yy -= size * 1.2
-    layout.zeichnen(cv, lay, werte, 1, H, FN, bogen is not None, feld_fn=feld, logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_))
-    IB = layout.inhalt(lay)
-    x, y, w, h = IB["x"] * layout.MM, H - (IB["y"] + IB["h"]) * layout.MM, IB["w"] * layout.MM, IB["h"] * layout.MM
-    cv.setFillColor(colors.HexColor("#f4f1e8")); cv.setStrokeColor(colors.HexColor("#d9cfa8")); cv.rect(x, y, w, h, fill=1, stroke=1)
-    cv.setFillColor(colors.HexColor("#8a7a3a")); cv.setFont(FN["n"], 9)
-    cv.drawString(x + 4, y + h - 14, "Inhalt: Anschreiben, Liste, Frist, Gruß und Unterschrift fließen hier hinein – bei Bedarf auf Folgeseiten.")
-    cv.showPage(); cv.save()
+    lx, y1, y2, lw, lu = layout.rahmen(lay)
+    for seite in (1, 2):   # erste Seite und eine Folgeseite – so sieht man, wo der Inhalt weiterläuft
+        layout.zeichnen(cv, lay, {**werte, "seite": str(seite)}, seite, H, FN, bogen is not None, feld_fn=feld if seite == 1 else None,
+                        logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=layout.umbruch_std)
+        oben = y1 if seite == 1 else y2
+        x, y, w, h = lx * layout.MM, H - lu * layout.MM, lw * layout.MM, (lu - oben) * layout.MM
+        cv.setFillColor(colors.HexColor("#f4f1e8")); cv.setStrokeColor(colors.HexColor("#d9cfa8")); cv.rect(x, y, w, h, fill=1, stroke=1)
+        cv.setFillColor(colors.HexColor("#8a7a3a")); cv.setFont(FN["n"], 9)
+        cv.drawString(x + 4, y + h - 14, ("Inhalt: Tabellen und Summen des Ausdrucks fließen hier hinein" if ava else "Inhalt: Anschreiben, Liste, Frist, Gruß und Unterschrift fließen hier hinein")
+                      + (" – Folgeseite" if seite == 2 else " – bei Bedarf auf Folgeseiten."))
+        cv.showPage()
+    cv.save()
     pdf = briefbogen.unterlegen(buf.getvalue(), bogen, 1) if bogen else buf.getvalue()
     return Response(pdf, mimetype="application/pdf")

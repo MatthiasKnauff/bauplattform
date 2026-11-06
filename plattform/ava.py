@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, gaeb, papierkorb, platform, schrift, sso, versionen
+from bpcore import ai, baudaten, db, gaeb, layout, papierkorb, platform, schrift, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -522,9 +522,9 @@ def versionen_liste():
                                now, now, wer, vid)).fetchone()["id"]
                 amap = {}
                 for a in c.execute("SELECT * FROM ava_angebot WHERE lv_id=? ORDER BY id", (r["id"],)).fetchall():
-                    amap[a["id"]] = c.execute("""INSERT INTO ava_angebot(lv_id, contact_id, bieter, eingang, preise, nachlass, skonto, notiz, quelle, created, updated)
-                                                 VALUES(?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
-                                              (n, a["contact_id"], a["bieter"], a["eingang"], a["preise"], a["nachlass"], a["skonto"], a["notiz"], a["quelle"],
+                    amap[a["id"]] = c.execute("""INSERT INTO ava_angebot(lv_id, contact_id, bieter, eingang, preise, nachlass, nachlass_eur, skonto, skonto_tage, notiz, quelle, created, updated)
+                                                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
+                                              (n, a["contact_id"], a["bieter"], a["eingang"], a["preise"], a["nachlass"], a["nachlass_eur"] or 0, a["skonto"], a["skonto_tage"] or 0, a["notiz"], a["quelle"],
                                                a["created"], a["updated"])).fetchone()["id"]
                 V = _j(r["vergabe"], {}) or {}
                 if V.get("angebot_id") in amap:   # Vergabe zeigt auf das kopierte Angebot
@@ -748,13 +748,58 @@ def zaehlt(p):
     return p["typ"] == "pos" and (p.get("art") in ("N", "P") or (p.get("art") == "E" and p.get("gb"))) and not p.get("nt") and not p.get("entf")
 
 
+def _ak(a, k):
+    """Spalte eines Angebots, die es in alten Datenbanken noch nicht gibt."""
+    try:
+        return a[k]
+    except (KeyError, IndexError):
+        return None
+
+
+def nachlass_satz(V, pos):
+    """Nachlass als Anteil: Prozent plus fester Betrag (umgelegt auf die Auftragssumme vor Nachlass – so mindert er jede
+    Abschlagsrechnung anteilig und ist mit der Schlussrechnung vollständig abgezogen)."""
+    nl = _f(V.get("nachlass"), 0) / 100
+    eur_ = _f(V.get("nachlass_eur"), 0)
+    if eur_ > 0:
+        VP = V.get("preise") or {}
+        basis = sum(_gp(p, _fn(VP.get(p["id"]))) for p in pos if zaehlt(p)) if VP else 0.0
+        if V.get("frei"):
+            basis += _f(V.get("summe"), 0)
+        if basis > 0:
+            nl += eur_ / basis
+    return min(nl, 0.99)
+
+
+def nachlass_text(V):
+    p, e = _f(V.get("nachlass"), 0), _f(V.get("nachlass_eur"), 0)
+    return " + ".join(x for x in ((f"{num(p, 2)} %" if p else ""), (eur(e) if e else "")) if x) or "0 %"
+
+
+def _skonto(V, rd, r, brutto):
+    """Skonto je Rechnung: Satz und Frist aus dem Auftrag, in der Rechnung änderbar. Frist ab Rechnungseingang."""
+    pct = _fn(rd.get("skonto")) if rd.get("skonto") not in (None, "") else _f(V.get("skonto"), 0)
+    tage = int(_f(rd.get("skonto_tage"), 0)) if rd.get("skonto_tage") not in (None, "") else int(_f(V.get("skonto_tage"), 0))
+    if not pct or pct <= 0 or brutto <= 0:
+        return {"skonto_pct": pct or 0, "skonto_tage": tage, "skonto": 0.0, "skonto_bis": "", "brutto_skonto": round(brutto, 2), "bezahlt": rd.get("bezahlt") or ""}
+    bis = ""
+    try:
+        from datetime import timedelta
+        if r["eingang"] and tage:
+            bis = (date.fromisoformat(r["eingang"]) + timedelta(days=tage)).isoformat()
+    except (TypeError, ValueError, KeyError, IndexError):
+        bis = ""
+    sk = round(brutto * pct / 100, 2)
+    return {"skonto_pct": pct, "skonto_tage": tage, "skonto": sk, "skonto_bis": bis, "brutto_skonto": round(brutto - sk, 2), "bezahlt": rd.get("bezahlt") or ""}
+
+
 def rechne(lv, angebote, aufmass, rechnungen):
     d = _j(lv["data"], {}) or {}
     items = d.get("items") or []
     pos = [p for p in items if p["typ"] == "pos" and p.get("art") != "T"]
     V = _j(lv["vergabe"], {}) or {}
     VP = V.get("preise") or {}
-    nl = (V.get("nachlass") or 0) / 100
+    nl = nachlass_satz(V, pos)
     schaetz = sum(_gp(p, p.get("ep_s")) for p in pos if zaehlt(p) and p.get("ep_s") is not None)
     ohne_s = sum(1 for p in pos if zaehlt(p) and p.get("ep_s") is None)
     # Angebote
@@ -763,7 +808,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
         pr = _j(a["preise"], {}) or {}
         brutto = sum(_gp(p, _fn(pr.get(p["id"]))) for p in pos if zaehlt(p))
         fehlt = sum(1 for p in pos if zaehlt(p) and _fn(pr.get(p["id"])) is None)
-        netto = brutto * (1 - (a["nachlass"] or 0) / 100)
+        netto = brutto * (1 - (a["nachlass"] or 0) / 100) - (_ak(a, "nachlass_eur") or 0)
         A.append({"id": a["id"], "summe": round(brutto, 2), "netto": round(netto, 2), "fehlt": fehlt})
     for k, x in enumerate(sorted([x for x in A if x["summe"]], key=lambda x: x["netto"])):
         x["rang"] = k + 1
@@ -840,7 +885,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
         R.append({"id": r["id"], "art": art, "leistung": round(L, 2), "nachlass": round(N, 2), "abzuege": round(abz, 2), "einbehalt_pct": eb_pct, "einbehalt": round(E, 2),
                   "anerkannt": round(L3, 2), "vorher": round(vh, 2), "zahlung": round(Z, 2), "mwst": round(Z * MWST / 100, 2),
                   "brutto": round(Z * (1 + MWST / 100), 2), "differenz": round((r["gefordert"] or 0) - L1, 2) if r["gefordert"] else None,
-                  "live": not g_, "frei": frei_, "einzeln": einzeln})
+                  "live": not g_, "frei": frei_, "einzeln": einzeln, **_skonto(V, rd, r, Z * (1 + MWST / 100))})
         if frei_:
             frei_summe += L
         if g_:
@@ -929,7 +974,7 @@ def _payload(c, r):
             "gewerk": r["gewerk"], "status": r["status"], "archived": bool(r["archived"]), "rev": r["rev"], "updated": r["updated"], "updated_by": r["updated_by"],
             "data": _j(r["data"], {}) or {}, "vergabe": _j(r["vergabe"], {}) or {},
             "angebote": [{"id": a["id"], "contact_id": a["contact_id"], "bieter": a["bieter"], "eingang": a["eingang"], "preise": _j(a["preise"], {}),
-                          "nachlass": a["nachlass"], "skonto": a["skonto"], "notiz": a["notiz"], "quelle": a["quelle"]} for a in ang],
+                          "nachlass": a["nachlass"], "nachlass_eur": _ak(a, "nachlass_eur") or 0, "skonto": a["skonto"], "skonto_tage": _ak(a, "skonto_tage") or 0, "notiz": a["notiz"], "quelle": a["quelle"]} for a in ang],
             "aufmass": [{"id": x["id"], "pos_id": x["pos_id"], "datum": x["datum"], "ort": x["ort"], "formel": x["formel"], "menge": x["menge"], "quelle": x["quelle"],
                          "user": x["user_name"]} for x in am],
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
@@ -1108,6 +1153,10 @@ def lv_eins(i):
             for k in ("nachlass", "skonto", "einbehalt"):
                 if k in b["vergabe"]:
                     V[k] = round(_f(b["vergabe"][k], 0, 0, 100), 3)
+            if "nachlass_eur" in b["vergabe"]:
+                V["nachlass_eur"] = round(_f(b["vergabe"]["nachlass_eur"], 0, 0), 2)
+            if "skonto_tage" in b["vergabe"]:
+                V["skonto_tage"] = int(_f(b["vergabe"]["skonto_tage"], 0, 0, 365))
             if V.get("frei"):
                 if "summe" in b["vergabe"]:
                     V["summe"] = round(_f(b["vergabe"]["summe"], 0, 0), 2)
@@ -2220,6 +2269,10 @@ def angebot(a):
             for k in ("nachlass", "skonto"):
                 if k in b:
                     sets.append(f"{k}=?"); args.append(round(_f(b[k], 0, 0, 100), 3))
+            if "nachlass_eur" in b:
+                sets.append("nachlass_eur=?"); args.append(round(_f(b["nachlass_eur"], 0, 0), 2))
+            if "skonto_tage" in b:
+                sets.append("skonto_tage=?"); args.append(int(_f(b["skonto_tage"], 0, 0, 365)))
             if isinstance(b.get("preise"), dict):   # nur geänderte Preise schicken – sie werden zusammengeführt
                 P = _j(x["preise"], {}) or {}
                 for k, v in list(b["preise"].items())[:3000]:
@@ -2256,7 +2309,8 @@ def vergabe(i):
             alt = _j(r["vergabe"], {}) or {}
             cid = b.get("contact_id") if isinstance(b.get("contact_id"), int) else None
             V = {**alt, "frei": True, "contact_id": cid, "bieter": bieter, "datum": _s(b.get("datum"), 10) or date.today().isoformat(),
-                 "summe": round(_f(b.get("summe"), 0, 0), 2), "nachlass": alt.get("nachlass", 0), "skonto": alt.get("skonto", 0),
+                 "summe": round(_f(b.get("summe"), 0, 0), 2), "nachlass": alt.get("nachlass", 0), "nachlass_eur": alt.get("nachlass_eur", 0),
+                 "skonto": _f(b.get("skonto"), alt.get("skonto", 0), 0, 100), "skonto_tage": int(_f(b.get("skonto_tage"), alt.get("skonto_tage", 0), 0, 365)),
                  "einbehalt": round(_f(b.get("einbehalt"), alt.get("einbehalt", 0.0), 0, 30), 2), "preise": alt.get("preise") or {}}
             c.execute("UPDATE ava_lv SET vergabe=?, status='vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?",
                       (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
@@ -2271,7 +2325,7 @@ def vergabe(i):
                 if k not in P:
                     P[k] = v
             V = {"angebot_id": a["id"], "contact_id": a["contact_id"], "bieter": a["bieter"], "datum": _s(b.get("datum"), 10) or date.today().isoformat(),
-                 "nachlass": a["nachlass"] or 0, "skonto": a["skonto"] or 0, "einbehalt": round(_f(b.get("einbehalt"), alt.get("einbehalt", 5.0), 0, 30), 2), "preise": P}
+                 "nachlass": a["nachlass"] or 0, "nachlass_eur": _ak(a, "nachlass_eur") or 0, "skonto": a["skonto"] or 0, "skonto_tage": _ak(a, "skonto_tage") or 0, "einbehalt": round(_f(b.get("einbehalt"), alt.get("einbehalt", 5.0), 0, 30), 2), "preise": P}
             c.execute("UPDATE ava_lv SET vergabe=?, status='vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?",
                       (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
             C.audit(g.user["name"], "ava", "Vergabe", f"LV {r['nr']} {r['name']} an {a['bieter']}")
@@ -3150,6 +3204,17 @@ def rechnung(k):
                 d.pop("frei", None)
             else:
                 d["frei"] = round(_f(b["frei"], 0), 2)
+        for k_ in ("skonto", "skonto_tage"):   # Skonto dieser Rechnung (leer: wie im Auftrag)
+            if k_ in b:
+                if b[k_] in (None, ""):
+                    d.pop(k_, None)
+                else:
+                    d[k_] = round(_f(b[k_], 0, 0, 100), 3) if k_ == "skonto" else int(_f(b[k_], 0, 0, 365))
+        if "bezahlt" in b:   # Zahlung angewiesen/erfolgt am – danach keine Skonto-Erinnerung mehr
+            if b["bezahlt"]:
+                d["bezahlt"] = _s(b["bezahlt"], 10)
+            else:
+                d.pop("bezahlt", None)
         if "betrag" in b:   # Freigabe der Sicherheit
             d["betrag"] = round(_f(b["betrag"], 0, 0), 2)
         if b.get("status") == "geprueft" and status != "geprueft":   # Prüfung abschließen: Aufmaßstand festhalten
@@ -3208,7 +3273,33 @@ def ki_langtext():
 
 
 # ---------------------------------------------------------------- PDF: LV, Preisspiegel, Aufmaß, Rechnungsprüfung
-def _pdf(r, titel, sub, story_fn, quer=False):
+def _druck_lw():
+    """Beim Ausdruck eingegebene Werte eigener Felder (?lw=JSON)."""
+    try:
+        d = json.loads(request.args.get("lw") or "{}")
+        return {str(k)[:40]: str(v)[:500] for k, v in d.items()} if isinstance(d, dict) else {}
+    except (TypeError, ValueError):
+        return {}
+
+
+def _druck_werte(c, r, titel="", sub="", extra=None):
+    """Variablen der AVA-Layouts für ein LV (Projekt, Büro, Auftragnehmer …) plus eigene Felder."""
+    p = _sees(c, r["project_id"]) if r["project_id"] else None
+    S = {x["key"]: x["value"] for x in c.execute("SELECT key, value FROM settings WHERE key='office_name' OR key LIKE 'co\\_%'").fetchall()}
+    V = _j(r["vergabe"], {}) or {}
+    adr = ", ".join(v for v in ((p["street"] or "") if p else "", " ".join(x for x in ((p["zip"] or "") if p else "", (p["city"] or "") if p else "") if x)) if v)
+    kurz = S.get("co_short") or S.get("office_name") or ""
+    W = {"buero": S.get("office_name") or kurz, "datum": date.today().strftime("%d.%m.%Y"), "bearbeiter": C.full_name(g.user) if getattr(g, "user", None) else "",
+         "fusszeile": " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v),
+         "projekt": p["name"] if p else "", "bauvorhaben": ", ".join(v for v in ((p["name"] if p else ""), adr if adr and p and adr not in p["name"] else "") if v),
+         "bauherr": (p["client"] or "") if p and "client" in p.keys() else "", "dokument": titel, "untertitel": sub,
+         "lv": f"LV {r['nr']} {r['name']}".strip(), "gewerk": r["gewerk"] or "", "auftragnehmer": V.get("bieter") or ""}
+    W.update(extra or {})
+    W.update({k: v for k, v in layout.eigene_werte(c, r["project_id"], _druck_lw()).items() if v or k not in W})
+    return W
+
+
+def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None):
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import ParagraphStyle
@@ -3247,6 +3338,18 @@ def _pdf(r, titel, sub, story_fn, quer=False):
     with db.tx() as c:
         p = _sees(c, r["project_id"]) if r["project_id"] else None
         office = C.kurzname(c)
+        LAY = layout.aktiv(c, bereich) if bereich and not quer else None
+        LW = _druck_werte(c, r, titel, sub, werte) if LAY else None
+    if LAY:   # nach dem Druck-Layout (⚙ → Büro → Druck-Layouts): feste Elemente je Seite, Inhalt im Inhaltsbereich
+        from reportlab.platypus import BaseDocTemplate
+        doc = BaseDocTemplate(buf, pagesize=A4, title=titel, author=office or "Bauplattform")
+        tpl, W = layout.platypus_seiten(LAY, LW, {"n": "Helvetica", "b": "Helvetica-Bold"},
+                                        logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_))
+        doc.addPageTemplates(tpl)
+        story = []
+        story_fn(story, S, X, table, W, mm, p)
+        doc.build(story or [Spacer(1, 1)])
+        return buf.getvalue()
     story = []
     logo = C.print_logo()
     kopf = [[Paragraph(X(titel), S["h1"]), ""], [Paragraph(X(sub), S["sub"]), ""]]
@@ -3381,7 +3484,9 @@ def _lv_druck(c, r, P, lay, entwurf=False):
          "h2": ParagraphStyle("h2", fontName=FN["b"], fontSize=12, leading=15, textColor=ACC, spaceBefore=6, spaceAfter=4),
          "h1": ParagraphStyle("h1", fontName=FN["b"], fontSize=15, leading=19, textColor=INK)}
     X = lambda t: escape(str(t or "")).replace("\n", "<br/>")
-    ps = A4; W = ps[0] - 40 * mm   # 25 mm Heftrand links, 15 mm rechts
+    LAY = layout.aktiv(c, "lv")
+    LW = _druck_werte(c, r, F["Titel"], F["Untertitel"], {"datum": F["Datum"]})
+    ps = A4; W = layout.rahmen(LAY)[3] * mm   # Breite des Inhalts laut Druck-Layout (Vorgabe 170 mm: 25 mm Heftrand links, 15 mm rechts)
     preis = lay["preise"]
     ep_of = (lambda x: _fn(VP.get(x["id"]))) if preis == "auftrag" else (lambda x: x.get("ep_s")) if preis == "schaetzung" else (lambda x: None)
     BILD = {}
@@ -3563,11 +3668,11 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         lab("Datum", ps[1] - 226 * mm); feld("Datum", ps[1] - 235 * mm, 8 * mm, 11)
         feld("Hinweis", 30 * mm, 26 * mm, 10, False, True)
 
-    def seite(cv, doc):
+    def seite(cv, doc):   # nur noch das Deckblatt – die übrigen Seiten zeichnet das Druck-Layout
         cv.saveState()
         if lay["deckblatt"] and doc.page == 1:
             deckblatt(cv)
-        else:
+        elif False:
             cv.setFont(FN["n"], 7.5); cv.setFillColor(MUTE)
             cv.drawString(25 * mm, ps[1] - 10 * mm, f"LV {r['nr']} {r['name']}"[:90])
             cv.drawRightString(ps[0] - 15 * mm, ps[1] - 10 * mm, (P["projekt"] or "")[:80])
@@ -3577,9 +3682,14 @@ def _lv_druck(c, r, P, lay, entwurf=False):
     if not story:
         story.append(Spacer(1, 1))
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=ps, leftMargin=25 * mm, rightMargin=15 * mm, topMargin=16 * mm, bottomMargin=18 * mm,
-                            title=f"{F['Titel']} {r['nr']} – {r['name']}", author=kurz or "Bauplattform")
-    doc.build(story, onFirstPage=seite, onLaterPages=seite)
+    # Seiten nach dem Deckblatt nach dem Druck-Layout „Leistungsverzeichnis“ (Kopf-/Fußzeile, Inhaltsbereich)
+    from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate
+    tpl, _w = layout.platypus_seiten(LAY, LW, FN, logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), erste_seite=2 if lay["deckblatt"] else 1)
+    if lay["deckblatt"]:
+        tpl = [PageTemplate(id="deck", frames=[Frame(25 * mm, 18 * mm, ps[0] - 40 * mm, ps[1] - 34 * mm, id="d")], onPage=seite, autoNextPageTemplate="erste")] + tpl
+    doc = BaseDocTemplate(buf, pagesize=ps, title=f"{F['Titel']} {r['nr']} – {r['name']}", author=kurz or "Bauplattform")
+    doc.addPageTemplates(tpl)
+    doc.build(story)
     return buf.getvalue(), F
 
 
@@ -3620,6 +3730,25 @@ def lv_druck(i):
     from urllib.parse import quote
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(name)}", "X-Rev": str(rev)})
 
+
+
+@app.route("/api/lv/<int:i>/druckfelder", methods=["GET", "POST"])
+def druckfelder(i):
+    """Eigene Felder vor dem Ausdruck: GET ?bereich= → [{key, name, quelle, wert, fehlt}] (nur im Layout benutzte);
+    POST {bereich, werte} speichert Projektwerte (und die zuletzt eingegebenen Ausdruckswerte als Vorschlag)."""
+    b = request.values.get("bereich") or (request.get_json(silent=True) or {}).get("bereich") or ""
+    if b not in layout.BEREICHE:
+        return jsonify(error="Unbekannter Ausdruck"), 404
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        pid = r["project_id"]
+        if request.method == "POST" and pid:
+            werte = (request.get_json(silent=True) or {}).get("werte") or {}
+            E = {x["key"]: x for x in layout.eigene(c)}
+            layout.werte_projekt_setzen(c, pid, {(k if E[k]["quelle"] == "projekt" else "_zuletzt_" + k): v for k, v in werte.items() if k in E}, g.user["name"])
+        return jsonify(layout.abfrage(c, b, pid))
 
 
 @app.get("/api/lv/<int:i>/pdf")
@@ -3697,7 +3826,7 @@ def lv_pdf(i):
                 rows.append(["", "Summe", "", num(sum(z["menge"] for z in zs)), x["einheit"]])
                 bold.append(len(rows) - 1)
             story.append(table(rows, [24 * mm, W - 24 * mm - 70 * mm - 40 * mm, 70 * mm, 24 * mm, 16 * mm], num=(3,), bold=tuple(bold)))
-        pdf = _pdf(r, f"Massenermittlung – LV {r['nr']} {r['name']}", f"{P['projekt']}{' · Auftragnehmer: ' + V['bieter'] if V.get('bieter') else ''}", st)
+        pdf = _pdf(r, f"Massenermittlung – LV {r['nr']} {r['name']}", f"{P['projekt']}{' · Auftragnehmer: ' + V['bieter'] if V.get('bieter') else ''}", st, bereich="aufmass")
         fn = "Massenermittlung"
     elif art == "rechnung":
         rid = request.args.get("rid", type=int)
@@ -3734,11 +3863,16 @@ def lv_pdf(i):
                         z.append(["abzüglich bereits anerkannt", eur(-RC["vorher"])])
                 z += [["zur Zahlung freigegeben netto", eur(RC["zahlung"])], [f"zuzüglich Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])],
                       ["zur Zahlung freigegeben brutto", eur(RC["brutto"])]]
-                story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - 1,)))
+                if RC.get("skonto"):
+                    z += [[f"bei Zahlung bis {_de(RC['skonto_bis'])} abzüglich {num(RC['skonto_pct'], 2)} % Skonto" if RC.get("skonto_bis") else f"abzüglich {num(RC['skonto_pct'], 2)} % Skonto", eur(-RC["skonto"])],
+                          ["Zahlbetrag brutto mit Skonto", eur(RC["brutto_skonto"])]]
+                story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - 1,) if not RC.get("skonto") else (len(z) - 3, len(z) - 1)))
                 story += [Spacer(1, 3 * mm), Paragraph(f"Sicherheiten: einbehalten {eur(SK.get('einbehalten', 0))}, freigegeben {eur(SK.get('freigegeben', 0))}, "
                                                        f"noch einbehalten {eur(SK.get('offen', 0))}.", S["l"]), Spacer(1, 6 * mm),
                           Paragraph(("Die Rechnung wurde sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))}" if R["status"] == "geprueft" else "")
-                                     + f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto'])}</b> brutto" + (f" bis zum {frist}" if frist else "") + "."
+                                     + (f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto_skonto'])}</b> brutto unter Abzug von Skonto bis zum <b>{_de(RC['skonto_bis'])}</b>"
+                                        f" (danach {eur(RC['brutto'])}" + (f" bis zum {frist}" if frist else "") + ")" if RC.get("skonto") and RC.get("skonto_bis") else
+                                        f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto'])}</b> brutto" + (f" bis zum {frist}" if frist else "")) + "."
                                      + ("" if R["status"] == "geprueft" else " <i>(Entwurf – Prüfung noch nicht abgeschlossen)</i>")), S["p"]),
                           Spacer(1, 18 * mm), table([["Ort, Datum", "Bauleitung / Objektüberwachung", "zur Zahlung angewiesen (Bauherr)"]], [W / 3] * 3, head=False),
                           Paragraph("Anlagen: Prüfblatt, Rechnung des Auftragnehmers", S["l"]), PageBreak()]
@@ -3779,7 +3913,7 @@ def lv_pdf(i):
             z = [["Freigabe der Sicherheit netto" if art_ == "sicherheit" else "Summe Stundenlohnarbeiten" if art_ == "regie" else "geprüfter Betrag netto" if RC.get("frei") else "Leistungsstand netto",
                   eur(RC["zahlung"] if art_ == "sicherheit" else RC["leistung"])]]
             if RC["nachlass"]:
-                z.append([f"- Nachlass {num(V.get('nachlass'), 2)} %", eur(-RC["nachlass"])])
+                z.append([f"- Nachlass {nachlass_text(V)}", eur(-RC["nachlass"])])
             L1 = RC["leistung"] - RC["nachlass"]
             for a in R["data"].get("abzuege") or []:
                 w = L1 * a["pct"] / 100 if a.get("pct") is not None else (a.get("betrag") or 0)
@@ -3792,13 +3926,18 @@ def lv_pdf(i):
             z.append(["= Zahlbetrag netto", eur(RC["zahlung"])])
             z.append([f"+ Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])])
             z.append(["= Zahlbetrag brutto", eur(RC["brutto"])])
+            if RC.get("skonto"):
+                z.append([f"- Skonto {num(RC['skonto_pct'], 2)} %" + (f" bei Zahlung bis {_de(RC['skonto_bis'])}" if RC.get("skonto_bis") else ""), eur(-RC["skonto"])])
+                z.append(["= Zahlbetrag brutto mit Skonto", eur(RC["brutto_skonto"])])
             if R["gefordert"]:
                 z.append([f"zum Vergleich: gefordert ({'netto' if RC.get('einzeln') else 'kumuliert netto'}) {eur(R['gefordert'])}", f"Differenz {eur(RC['differenz'])}"])
             story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - (2 if R["gefordert"] else 1),)))
             story += [Spacer(1, 10 * mm), Paragraph(
                 ("Sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))} von {X(R['data'].get('geprueft_von'))}" if R["status"] == "geprueft" else " – Entwurf, Prüfung noch nicht abgeschlossen")) +
                 (f"<br/>Bemerkung: {X(R['notiz'])}" if R["notiz"] else ""), S["p"])]
-        pdf = _pdf(r, f"{'Rechnungsfreigabe' if freigabe else 'Rechnungsprüfung'} – {re_titel(R['nr'], R['art'])}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st)
+        pdf = _pdf(r, f"{'Rechnungsfreigabe' if freigabe else 'Rechnungsprüfung'} – {re_titel(R['nr'], R['art'])}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st,
+                   bereich="rechnungsfreigabe" if freigabe else "rechnungspruefung",
+                   werte={"rechnung": re_titel(R["nr"], R["art"]), "re_nr": R["re_nr"] or "", "re_datum": _de(R["datum"]), "eingang": _de(R["eingang"])})
         fn = f"{'Rechnungsfreigabe' if freigabe else 'Pruefung'} Rechnung {R['nr']}"
         if freigabe:   # Rechnung(en) der Firma anhängen
             try:

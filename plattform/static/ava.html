@@ -1236,9 +1236,9 @@ document.addEventListener('click', async (e) => {
     if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); render(); return; }
     if (a === 'bieter') return bieterDialog();
     if (a === 'x84') return importDialog('angebot');
-    if (a === 'ps') return window.open(`api/lv/${L.id}/pdf?art=preisspiegel`, '_blank');
+    if (a === 'ps') return pdfZeigen('', `api/lv/${L.id}/pdf?art=preisspiegel`, `Preisspiegel LV ${L.nr}.pdf`);
     if (a === 'freiVergeben') { try { if (await freiVergeben(L.id, $('#view'))) toast('Auftrag eingetragen – Rechnungen jetzt über „+ Neu ▾“ erfassen.'); } catch (er) { toast(er.message, true); } return; }
-    if (a === 'amPdf') return window.open(`api/lv/${L.id}/pdf?art=aufmass`, '_blank');
+    if (a === 'amPdf') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, `Massenermittlung LV ${L.nr}.pdf`);
     if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
     if (a === 'vergabeWeg') {
       const id = L.id, V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status;   // alten Stand merken
@@ -1399,7 +1399,7 @@ $('#druBtn').onclick = () => {   // Drucken / PDF
   if (!L) return;
   const m = menu($('#druBtn'), [['druck', 'LV drucken / PDF …', 'Layout wählen, Deckblatt und Texte bearbeiten'],
     ['ps', 'Preisspiegel', L.angebote.length ? '' : 'erst mit Angeboten', !L.angebote.length], ['am', 'Massenermittlung', L.aufmass.length ? '' : 'erst mit Aufmaß', !L.aufmass.length]]);
-  m.onpick = (k) => { if (k === 'druck') return druckEditor(); window.open({ ps: `api/lv/${L.id}/pdf?art=preisspiegel`, am: `api/lv/${L.id}/pdf?art=aufmass` }[k], '_blank'); };
+  m.onpick = (k) => { if (k === 'druck') return druckEditor(); if (k === 'am') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, `Massenermittlung LV ${L.nr}.pdf`); pdfZeigen('', `api/lv/${L.id}/pdf?art=preisspiegel`, `Preisspiegel LV ${L.nr}.pdf`); };
 };
 function menu(anchor, list) {
   document.querySelectorAll('.menu').forEach((x) => x.remove());
@@ -1438,11 +1438,19 @@ $('#moreBtn').onclick = () => {
 };
 
 /* ---------- Angebote, Preisspiegel, Vergabe ---------- */
+const nlText = (V) => [V.nachlass ? nf(V.nachlass, 2) + ' %' : '', V.nachlass_eur ? eur(V.nachlass_eur) : ''].filter(Boolean).join(' + ') || '0 %';
+/* Konditionen des Auftrags: Nachlass (% / €) und Skonto (% / Tage) – aus dem Angebot übernommen, hier änderbar */
+const auftragKonditionen = (V) => `<span class="vk hint" style="display:inline-flex;gap:.35rem;align-items:center;flex-wrap:wrap">Nachlass
+  <input data-ang="v_nachlass" value="${V.nachlass ? nf(V.nachlass, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal" title="Nachlass in Prozent">
+  <input data-ang="v_nachlass_eur" value="${V.nachlass_eur ? nf(V.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag netto – wird anteilig auf jede Rechnung umgelegt">
+  · Skonto <input data-ang="v_skonto" value="${V.skonto ? nf(V.skonto, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal"> % in
+  <input data-ang="v_skonto_tage" value="${V.skonto_tage || ''}" placeholder="Tage" style="width:3.6rem" inputmode="numeric" title="Tage ab Rechnungseingang"> Tagen</span>`;
 function vAngebote() {
   const P = posOf().filter((x) => !x.nt), A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe;
   const head = `<div class="bar"><button class="btn sm pri" data-act="bieter">+ Bieter</button>
     <span class="fill"></span>${A.length ? '<button class="btn sm" data-act="ps">Preisspiegel PDF</button>' : ''}</div>
-    ${V.bieter ? `<div class="vb"><span>✓ Vergeben an <b>${esc(V.bieter)}</b> am ${de(V.datum)} · Auftrag ${eur(K.auftrag)}${V.nachlass ? ` (nach ${nf(V.nachlass, 2)} % Nachlass)` : ''}</span>
+    ${V.bieter ? `<div class="vb"><span>✓ Vergeben an <b>${esc(V.bieter)}</b> am ${de(V.datum)} · Auftrag ${eur(K.auftrag)}${V.nachlass || V.nachlass_eur ? ` (nach ${nlText(V)} Nachlass)` : ''}</span>
+      ${auftragKonditionen(V)}
       <label class="hint">Sicherheitseinbehalt <input data-ang="einbehalt" value="${nf(V.einbehalt ?? 5, 2)}" style="width:4rem" inputmode="decimal"> %</label><span class="fill"></span><button class="btn sm" data-act="vergabeWeg">Vergabe aufheben</button></div>` : ''}`;
   if (!A.length) return head + `<div class="card empty"><p>Noch keine Angebote. Bieter hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
     <p class="hint">Das LV gibst du oben unter „⇡ Ausgeben …“ als GAEB X83, Excel oder PDF an die Bieter.</p></div>`;
@@ -1462,7 +1470,8 @@ function vAngebote() {
         <label class="hint" style="font-weight:400">Eingang <input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto"></label></th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody><tfoot>
       <tr><td></td><td colspan="3">Summe netto</td>${sorted.map((a) => `<td class="r">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}</tr>
-      <tr><td></td><td colspan="3">Nachlass %</td>${sorted.map((a) => `<td class="r"><input class="n" data-ang="nachlass" data-aid="${a.id}" value="${a.nachlass ? nf(a.nachlass, 2) : ''}" placeholder="0" style="width:4.5rem" inputmode="decimal"></td>`).join('')}</tr>
+      <tr><td></td><td colspan="3">Nachlass <span class="hint">% und/oder fester Betrag €</span></td>${sorted.map((a) => `<td class="r"><input class="n" data-ang="nachlass" data-aid="${a.id}" value="${a.nachlass ? nf(a.nachlass, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal" title="Nachlass in Prozent"> <input class="n" data-ang="nachlass_eur" data-aid="${a.id}" value="${a.nachlass_eur ? nf(a.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag (netto)"></td>`).join('')}</tr>
+      <tr><td></td><td colspan="3">Skonto <span class="hint">% innerhalb von … Tagen ab Rechnungseingang</span></td>${sorted.map((a) => `<td class="r"><input class="n" data-ang="skonto" data-aid="${a.id}" value="${a.skonto ? nf(a.skonto, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"> <input class="n" data-ang="skonto_tage" data-aid="${a.id}" value="${a.skonto_tage || ''}" placeholder="Tage" style="width:4rem" inputmode="numeric"></td>`).join('')}</tr>
       <tr><td></td><td colspan="3"><b>Wertung netto</b></td>${sorted.map((a) => `<td class="r"><b>${eur(kA[a.id].netto)}</b>${kA[a.id].rang ? `<br><span class="pill${kA[a.id].rang === 1 ? ' ok' : ''}">Rang ${kA[a.id].rang}</span>` : ''}</td>`).join('')}</tr>
       <tr><td></td><td colspan="3"></td>${sorted.map((a) => `<td class="r">${V.angebot_id === a.id ? '<span class="pill ok">beauftragt</span>' : `<button class="btn sm" data-vergabe="${a.id}">Vergeben …</button>`}<br><button class="ib" data-angx84="${a.id}" title="Angebot als GAEB X84 speichern">X84</button></td>`).join('')}</tr>
       </tfoot></table></div>`;
@@ -1471,7 +1480,8 @@ async function angSave(el) {
   const a = el.dataset.ang;
   try {
     if (a === 'einbehalt') return call('api/lv/' + L.id, 'PUT', { vergabe: { einbehalt: pf(el.value) ?? 5 } });
-    const body = a === 'ep' ? { preise: { [el.dataset.pid]: el.value } } : { [a]: a === 'nachlass' ? pf(el.value) ?? 0 : el.value };
+    if (a.startsWith('v_')) return call('api/lv/' + L.id, 'PUT', { vergabe: { [a.slice(2)]: pf(el.value) ?? 0 } });
+    const body = a === 'ep' ? { preise: { [el.dataset.pid]: el.value } } : { [a]: ['nachlass', 'nachlass_eur', 'skonto', 'skonto_tage'].includes(a) ? pf(el.value) ?? 0 : el.value };
     const r = await api('api/angebote/' + el.dataset.aid, 'PUT', body);
     const pos = document.activeElement && document.activeElement.dataset ? { aid: document.activeElement.dataset.aid, pid: document.activeElement.dataset.pid, f: document.activeElement.dataset.ang } : null;
     L = r; render();
@@ -1935,7 +1945,7 @@ function vRechnungen() {
       <table><tbody>
         ${c.frei ? `<tr><td>geprüfter Betrag netto (ohne Aufmaß)</td><td class="r"><input data-re="frei" data-id="${r.id}" value="${nf(r.data.frei || 0, 2)}" inputmode="decimal" style="width:9rem;text-align:right"${dis}></td></tr>`
           : `<tr><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>`}
-        ${c.nachlass ? `<tr><td>– Nachlass ${nf(L.vergabe.nachlass, 2)} %</td><td class="r">${eur(-c.nachlass)}</td></tr>` : ''}
+        ${c.nachlass ? `<tr><td>– Nachlass ${nlText(L.vergabe)}</td><td class="r">${eur(-c.nachlass)}</td></tr>` : ''}
         ${ab.map((z, k) => `<tr><td><div class="abz"><span>–</span><input data-re="abz-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Bauwasser/Strom" style="flex:1"${dis}>
           <input data-re="abz-pct" data-id="${r.id}" data-k="${k}" value="${z.pct != null ? nf(z.pct, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"${dis}>
           <input data-re="abz-betrag" data-id="${r.id}" data-k="${k}" value="${z.betrag != null ? nf(z.betrag, 2) : ''}" placeholder="oder €" style="width:6rem" inputmode="decimal"${dis}>${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
@@ -1947,12 +1957,51 @@ function vRechnungen() {
         <tr class="s"><td>= Zahlbetrag netto</td><td class="r">${eur(c.zahlung)}</td></tr>
         <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
         <tr class="s"><td>= Zahlbetrag brutto</td><td class="r">${eur(c.brutto)}</td></tr>
+        ${c.skonto ? `<tr><td>– Skonto ${nf(c.skonto_pct, 2)} %${c.skonto_bis ? ` bei Zahlung bis <b>${de(c.skonto_bis)}</b>` : ''}</td><td class="r">${eur(-c.skonto)}</td></tr>
+          <tr class="s"><td>= Zahlbetrag mit Skonto</td><td class="r">${eur(c.brutto_skonto)}</td></tr>` : ''}
         ${r.gefordert ? `<tr><td>gefordert ${eur(r.gefordert)} · Differenz zum geprüften Leistungsstand</td><td class="r" style="color:${c.differenz > 0.5 ? 'var(--red)' : 'inherit'}">${eur(c.differenz)}</td></tr>` : ''}
-      </tbody></table>${fuss}</div>`;
+      </tbody></table>${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
   return `<div class="bar"><button class="btn sm pri" data-act="reNeu" aria-haspopup="listbox">+ Neu ▾</button>
     <span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
     <div class="re">${cards || '<div class="card empty">Noch keine Rechnung. Teilrechnungen werden kumuliert geprüft: Aufmaß × Auftragspreis, abzüglich Nachlass, Abzügen, Einbehalt und bisheriger Zahlungen.</div>'}${vSicherheiten(K)}</div>`;
+}
+/* Eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
+   oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
+async function druckfelder(bereich, _x) {
+  let F = [];
+  try { F = await api(`api/lv/${L.id}/druckfelder?bereich=${bereich}`); } catch { return ''; }
+  const frag = F.filter((x) => x.fehlt);
+  if (!frag.length) return '';
+  return new Promise((fertig) => {
+    modalBox(`<h2 style="margin-top:0">Angaben für den Ausdruck</h2>
+      <div style="display:grid;gap:.7rem;min-width:min(420px,80vw)">${frag.map((x) => `<label style="display:flex;flex-direction:column;gap:.2rem;font-weight:600">${esc(x.name)}
+        <input data-df="${esc(x.key)}" value="${esc(x.wert || '')}" autocomplete="off" style="width:100%;box-sizing:border-box;font-weight:400">
+        <small class="hint">${x.quelle === 'projekt' ? 'wird für dieses Projekt gemerkt – später änderbar in der Verwaltung beim Projekt' : 'wird bei jedem Ausdruck abgefragt'}${x.hilfe ? ' · ' + esc(x.hilfe) : ''}</small></label>`).join('')}</div>
+      <div class="bar" style="justify-content:flex-end;margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter zum Ausdruck</button></div>`, async (m, bg, close) => {
+      if (m === 'x') { close(); fertig(null); return; }
+      if (m !== 'ok') return;
+      const werte = Object.fromEntries([...bg.querySelectorAll('[data-df]')].map((i) => [i.dataset.df, i.value.trim()]));
+      try { await api(`api/lv/${L.id}/druckfelder`, 'POST', { bereich, werte }); } catch (e) { toast(e.message, true); }
+      close();
+      const lw = Object.fromEntries(frag.filter((x) => x.quelle === 'ausdruck').map((x) => [x.key, werte[x.key] || '']));
+      fertig(Object.keys(lw).length ? '&lw=' + encodeURIComponent(JSON.stringify(lw)) : '');
+    });
+    setTimeout(() => { const i = document.querySelector('[data-df]'); if (i) i.focus(); }, 50);
+  });
+}
+async function pdfZeigen(bereich, url, name) {
+  const lw = bereich ? await druckfelder(bereich, '') : ''; if (lw == null) return;
+  if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url: url + lw, typ: 'pdf', name }]); else location.href = url + lw;
+}
+/* Skonto je Rechnung (leer = wie im Auftrag) und „bezahlt am“ – danach keine Erinnerung mehr */
+function reSkonto(r, c) {
+  const V = L.vergabe || {}, rest = c.skonto_bis && !c.bezahlt ? Math.round((new Date(c.skonto_bis) - new Date(new Date().toISOString().slice(0, 10))) / 864e5) : null;
+  return `<div class="g re-sk" style="margin-top:.5rem">
+    <label title="Leer: wie im Auftrag (${nf(V.skonto || 0, 2)} %)">Skonto %<input data-re="skonto" data-id="${r.id}" value="${r.data.skonto != null ? nf(r.data.skonto, 2) : ''}" placeholder="${nf(V.skonto || 0, 2)}" inputmode="decimal"></label>
+    <label title="Tage ab Rechnungseingang. Leer: wie im Auftrag (${V.skonto_tage || 0} Tage)">Skontofrist (Tage ab Eingang)<input data-re="skonto_tage" data-id="${r.id}" value="${r.data.skonto_tage != null ? r.data.skonto_tage : ''}" placeholder="${V.skonto_tage || ''}" inputmode="numeric"></label>
+    <label>bezahlt am<input type="date" data-re="bezahlt" data-id="${r.id}" value="${esc(r.data.bezahlt || '')}"></label>
+    <span class="hint" style="align-self:end;padding-bottom:.45rem">${c.skonto && !r.eingang ? '⚠ Eingangsdatum fehlt – ohne Eingang keine Skontofrist' : c.bezahlt ? '✓ bezahlt' : rest == null ? '' : rest < 0 ? `Skontofrist abgelaufen am ${de(c.skonto_bis)}` : `<b style="color:${rest <= 3 ? 'var(--red)' : 'inherit'}">Skonto noch ${rest === 0 ? 'heute' : rest + ' Tag' + (rest === 1 ? '' : 'e')}</b> (bis ${de(c.skonto_bis)})`}</span></div>`;
 }
 /* Auftrag ohne LV / Angebot („Zettelwirtschaft“) */
 function freiFelder() {
@@ -2024,6 +2073,7 @@ async function reSave(el) {
   else if (f === 'freiAn') body.frei = el.checked ? (r.gefordert || 0) : null;
   else if (f === 'frei') body.frei = pf(el.value) || 0;
   else if (f.startsWith('abz-')) { const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f.slice(4); ab[k][key] = key === 'text' ? el.value : pf(el.value); if (key === 'pct' && ab[k].pct != null) ab[k].betrag = null; if (key === 'betrag' && ab[k].betrag != null) ab[k].pct = null; body.abzuege = ab; }
+  else if (f === 'skonto' || f === 'skonto_tage') body[f] = el.value.trim() === '' ? null : pf(el.value);
   else body[f] = ['gefordert', 'einbehalt'].includes(f) ? pf(el.value) : el.value;
   try { await call('api/rechnungen/' + r.id, 'PUT', body); } catch (e) { toast(e.message, true); }
 }
@@ -2031,7 +2081,8 @@ async function reAktion(b) {
   const r = L.rechnungen.find((x) => x.id === +b.dataset.id); if (!r) return;
   const a = b.dataset.reb;
   try {
-    if (a === 'pdf' || a === 'freigabe') { const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}${a === 'freigabe' ? '&freigabe=1' : ''}`;
+    if (a === 'pdf' || a === 'freigabe') { const lw = await druckfelder(a === 'freigabe' ? 'rechnungsfreigabe' : 'rechnungspruefung', ''); if (lw == null) return;
+      const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}${a === 'freigabe' ? '&freigabe=1' : ''}${lw}`;
       if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: (a === 'freigabe' ? 'Rechnungsfreigabe ' : 'Prüfblatt ') + reTitel(r) + '.pdf' }]); else location.href = url; return; }
     if (a === 'abzneu') return call('api/rechnungen/' + r.id, 'PUT', { abzuege: [...(r.data.abzuege || []), { text: '', pct: null, betrag: null }] });
     if (a === 'zneu') return call('api/rechnungen/' + r.id, 'PUT', { zeilen: [...(r.data.zeilen || []), { text: '', menge: null, einheit: 'h', ep: null }] });
@@ -2182,11 +2233,13 @@ async function druckEditor() {
       } catch (er) { toast(er.message, true); }
       return;
     }
-    const w = window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>LV wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">LV wird erstellt …</body>');
+    const lw = await druckfelder('lv', ''); if (lw == null) return;
+    const w = window.BPHead && BPHead.ansehen ? null : window.open('', '_blank'); if (w) w.document.write('<!doctype html><meta charset="utf-8"><title>LV wird erstellt …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">LV wird erstellt …</body>');
     try {
-      const r = await fetch(`api/lv/${L.id}/druck`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ layout: { ...lay, felder: F } }) });
+      const r = await fetch(`api/lv/${L.id}/druck${lw ? '?' + lw.slice(1) : ''}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ layout: { ...lay, felder: F } }) });
       if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
       const href = URL.createObjectURL(await r.blob());
+      if (!w && window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: href, typ: 'pdf', name: `LV ${L.nr} ${L.name}.pdf` }]); return; }
       if (w && !w.closed) { w.location.href = href; if (a === 'druck') setTimeout(() => { try { w.print(); } catch { /* Betrachter druckt selbst */ } }, 1200); }
       else { const ln = document.createElement('a'); ln.href = href; ln.download = `LV ${L.nr} ${L.name}.pdf`; document.body.appendChild(ln); ln.click(); ln.remove(); }
     } catch (er) { if (w && !w.closed) w.close(); toast(er.message, true); }

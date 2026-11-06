@@ -974,6 +974,19 @@ async function lvDokHoch(lvId, f) {
   } catch (e) { toast(e.message, true); }
 }
 
+/* GAEB: alle Positionen in derselben Titeltiefe, höchstens 4 Titelebenen, keine übersprungene Ebene */
+function lvGaebHinweis() {
+  const I = items(), tiefe = {}, sprung = []; let akt = 0;
+  I.forEach((x) => {
+    if (x.typ === 'titel') { const lv = x.lvl || 1; if (lv > akt + 1) sprung.push(x.oz || x.kurz); akt = lv; }
+    else if (x.art !== 'T') tiefe[akt] = (tiefe[akt] || 0) + 1;
+  });
+  const T = Object.keys(tiefe).map(Number);
+  if (T.length <= 1 && !sprung.length) return '';
+  const nz = (t) => (t === 0 ? 'ohne Titel' : t === 1 ? 'direkt unter Titeln' : `unter Untertiteln der ${t}. Ebene`);
+  return `<p class="si-w" style="margin:.2rem 0 .6rem">⚠ Noch nicht GAEB-konform: ${T.length > 1 ? `Positionen stehen in unterschiedlicher Tiefe (${T.sort().map((t) => `${tiefe[t]} ${nz(t)}`).join(', ')}). In GAEB brauchen alle Positionen dieselbe Titeltiefe – z. B. alle Titel mit ⇥ zu Untertiteln machen oder fehlende Untertitel ergänzen.` : ''}${sprung.length ? ` Ebene übersprungen bei ${sprung.slice(0, 3).map(esc).join(', ')} – ein Untertitel braucht einen Titel darüber.` : ''}</p>`;
+}
+
 /* ---------- Leistungsverzeichnis ---------- */
 const vergeben = () => !!(L && L.vergabe && L.vergabe.preise);
 /* LV als Baum wie in „Aufträge“: Projekt → LV → Titel (zuklappbar) → Positionen; Kurztext direkt in der Zeile bearbeiten */
@@ -994,7 +1007,7 @@ function vLv() {
       const versteckt = !!zuAb; tief = lv; const zu = LVZU.has(x.id); if (!zuAb && zu) zuAb = lv;
       if (versteckt) return '';
       return `<tr class="ti l${lv}" data-i="${i}"><td class="oz baumz"><div class="bz" style="${einr(lv + 1)}"><span class="car" data-zu="${x.id}" title="${zu ? 'aufklappen' : 'zuklappen'}">${zu ? '▸' : '▾'}</span>${IC.ti}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten"></div></td><td colspan="${V ? 6 : 5}"></td>
-      <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib" data-a="lvl" title="${lv > 1 ? 'zum Titel machen' : 'zum Untertitel machen'}">${lv > 1 ? '⇤' : '⇥'}</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
+      <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib" data-a="lvlauf" title="eine Ebene höher (mit seinen Untertiteln)"${lv > 1 ? '' : ' disabled'}>⇤</button><button class="ib" data-a="lvlab" title="zum Untertitel machen – eine Ebene tiefer (GAEB: höchstens 4 Ebenen)"${lv < 4 ? '' : ' disabled'}>⇥</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     }
     if (zuAb) return '';
     const open = OPEN.has(x.id), t = x.art === 'T';
@@ -1019,13 +1032,14 @@ function vLv() {
   const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
   const LV = LIST.filter((x) => !x.archived || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
-  return `<div class="bar"><button class="btn sm" data-act="titel">+ Titel</button><button class="btn sm" data-act="pos">+ Position</button><button class="btn sm" data-act="txt">+ Hinweistext</button>
+  return `<div class="bar"><button class="btn sm" data-act="titel">+ Titel</button><button class="btn sm" data-act="utitel" title="Untertitel unter dem aktuellen Titel (GAEB: höchstens 4 Titelebenen)">+ Untertitel</button><button class="btn sm" data-act="pos">+ Position</button><button class="btn sm" data-act="txt">+ Hinweistext</button>
       ${V ? '<button class="btn sm" data-act="nt" title="Nachtragsposition (geänderte oder zusätzliche Leistung nach § 2 Abs. 5/6 VOB/B)">+ Nachtrag</button>' : ''}
       <button class="btn sm" data-act="num" title="Ordnungszahlen neu vergeben: Titel 01, 02 …, Positionen 0010, 0020 …">Nummerieren</button>
       <button class="btn sm" data-act="bk" title="Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen">Aus Baukosten …</button>
       <label class="btn sm" title="Ein LV als PDF oder Scan (z. B. vom Bauherrn) rechts daneben legen – Zeilen anklicken übernimmt sie, erkannte Positionen auf einmal">📄 LV-PDF daneben …<input type="file" accept=".pdf,application/pdf" hidden data-lvdokin></label>
       ${(L.dokumente || []).length ? `<button class="btn sm${LVDOK ? ' pri' : ''}" data-lvdokan title="PDF rechts ein- oder ausblenden">${LVDOK ? 'PDF ausblenden' : 'PDF zeigen'}</button>` : ''}
       <span class="fill"></span><button class="btn sm" data-act="vorbem">${L.data.vorbem ? '✎ ' : '+ '}Vorbemerkungen</button><button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
+    ${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><b>Vorbemerkungen</b><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
       <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace('<tr class="wurzel lvz">', vorher + '<tr class="wurzel lvz">')}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
@@ -1144,7 +1158,9 @@ document.addEventListener('focusin', (e) => { if (tab !== 'lv' || !L) return; co
 function addItem(kind) {
   const I = items(), at = lvEinfuegeStelle(kind), ref = at > 0 ? I[at - 1] : null;
   let neu;
-  if (kind === 'titel') neu = { id: uid(), typ: 'titel', lvl: ref && ref.typ === 'titel' ? (ref.lvl || 1) : 1, oz: '', kurz: '' };
+  const ober = [...I.slice(0, at)].reverse().find((x) => x.typ === 'titel');   // Titel, in dem eingefügt wird
+  if (kind === 'utitel') { const lv = ober ? (ober.lvl || 1) + 1 : 1; if (lv > 4) { toast('GAEB erlaubt höchstens 4 Titelebenen – hier geht kein weiterer Untertitel.', true); return; } neu = { id: uid(), typ: 'titel', lvl: lv, oz: '', kurz: '' }; }
+  else if (kind === 'titel') neu = { id: uid(), typ: 'titel', lvl: ref && ref.typ === 'titel' ? (ref.lvl || 1) : ober ? (ober.lvl || 1) : 1, oz: '', kurz: '' };
   else if (kind === 'txt') neu = { id: uid(), typ: 'pos', art: 'T', oz: '', kurz: '', lang: '', menge: 0, einheit: '' };
   else if (kind === 'nt') { const n = I.filter((x) => x.nt).length + 1; neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 1, einheit: 'psch', nt: 'NT' + n, nt_status: 'angemeldet' }; }
   else { const last = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T') || [...I].reverse().find((x) => x.typ === 'pos' && x.art !== 'T'); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: last ? last.einheit : 'm2', kg: last ? last.kg : '' }; }
@@ -1207,7 +1223,7 @@ document.addEventListener('click', async (e) => {
   if (ac) {
     const a = ac.dataset.act;
     if (a === 'new') return newDialog();
-    if (['titel', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
+    if (['titel', 'utitel', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
     if (a === 'num') { numerieren(); changed(true); return; }
     if (a === 'bk') return bkDialog();
     if (a === 'vorbem') { L.data.showVorbem = !L.data.showVorbem; render(); return; }
@@ -1234,7 +1250,16 @@ document.addEventListener('click', async (e) => {
     const i = +row.dataset.i, x = items()[i], a = ib.dataset.a;
     if (a === 'up' || a === 'down') return moveItem(i, a === 'up' ? -1 : 1);
     if (a === 'del') { items().splice(i, 1); numerieren(); changed(true); return; }
-    if (a === 'lvl') { x.lvl = (x.lvl || 1) > 1 ? 1 : 2; numerieren(); changed(true); return; }
+    if (a === 'lvlauf' || a === 'lvlab') {   // Titel samt seinen Untertiteln eine Ebene höher/tiefer
+      const I = items(), alt = x.lvl || 1, d = a === 'lvlab' ? 1 : -1;
+      const vor = [...I.slice(0, i)].reverse().find((y) => y.typ === 'titel');
+      if (d > 0 && (!vor || (vor.lvl || 1) < alt)) { toast('Ein Untertitel braucht darüber einen Titel derselben Ebene – erst einen Titel davor anlegen.', true); return; }
+      let ende = i + 1; while (ende < I.length && !(I[ende].typ === 'titel' && (I[ende].lvl || 1) <= alt)) ende++;
+      const tief = Math.max(...I.slice(i, ende).filter((y) => y.typ === 'titel').map((y) => y.lvl || 1));
+      if (alt + d < 1 || tief + d > 4) { toast('GAEB erlaubt höchstens 4 Titelebenen.', true); return; }
+      I.slice(i, ende).forEach((y) => { if (y.typ === 'titel') y.lvl = (y.lvl || 1) + d; });
+      HIST.next = d > 0 ? 'Zum Untertitel gemacht' : 'Eine Ebene höher'; numerieren(); changed(true); return;
+    }
     if (a === 'lang') { if (OPEN.has(x.id)) OPEN.delete(x.id); else OPEN.add(x.id); render(); return; }
     if (a === 'eig') return eigDialog(x.id);
   }

@@ -257,6 +257,11 @@ def oops(e):
     if isinstance(e, HTTPException):
         return jsonify(error=e.description), e.code
     app.logger.exception(e)
+    try:
+        from bpcore import fehler
+        fehler.ausnahme("gantt", e, f"{request.method} {request.path}", uname())
+    except Exception:
+        pass
     return jsonify(error=str(e)), 500
 
 

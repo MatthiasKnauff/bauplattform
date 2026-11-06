@@ -119,7 +119,7 @@ const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer & Rechte'], ['sessio
 let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
-const SYS = [['health', 'Server-Status'], ['protokoll', 'Protokoll'], ['altpdf', 'Alte PDFs aufräumen']];
+const SYS = [['health', 'Server-Status'], ['fehler', 'Fehlermeldungen'], ['protokoll', 'Protokoll'], ['altpdf', 'Alte PDFs aufräumen']];
 const sysNav = () => `<div class="bar" style="margin-bottom:1.2rem">${SYS.map(([k, l]) => `<button class="btn sm ${k === (data.sys || 'health') ? 'pri' : ''}" data-a="sys" data-sys="${k}">${l}</button>`).join('')}</div>`;
 const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
 function renderTabs() {
@@ -143,6 +143,7 @@ async function load() {
     else if (tab === 'einstellungen') { await loadSettings(); }
     else if ((data.sys || 'health') === 'health') { m.innerHTML = sysNav() + '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
     else if (data.sys === 'altpdf') { renderAltPdf(); }
+    else if (data.sys === 'fehler') { data.f = await api('api/bp/fehler'); renderFehler(); }
     else { data.a = await api('api/audit?cat=' + (data.cat || '')); renderAudit(); }
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
@@ -687,6 +688,31 @@ function renderStatus() {
     ${s.gantt_init ? `<div class="note">Bauzeitenplan eingerichtet am ${esc(new Date(s.gantt_init.at).toLocaleString('de-DE'))}: ${s.gantt_init.imported} Pläne aus der bisherigen Gantt-App übernommen${s.gantt_init.samples ? `, ${s.gantt_init.samples} Beispielpläne angelegt` : ''}.</div>` : ''}
     <div class="note">Plattform-Version ${esc(s.version)} · Stand ${esc(new Date(s.time).toLocaleString('de-DE'))}. Sicherungen der Datenbank verwaltest du unter Einstellungen → Datensicherung; vor jedem Update legt das Update-Skript zusätzlich eine Sicherung an.</div>`;
 }
+
+/* ---------- Fehlermeldungen (Server und Browser, alle Apps) ---------- */
+function renderFehler() {
+  const F = data.f.fehler || [], dt = (t) => (t ? new Date(t).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '');
+  const art = data.fart || '';
+  const L = F.filter((x) => !art || x.art === art);
+  $('#main').innerHTML = `${sysNav()}<h1>Fehlermeldungen</h1>
+    <p class="mute" style="margin-top:-.3rem">Unerwartete Fehler aller Apps – auf dem Server (Programmfehler) und im Browser der Benutzer. Gleiche Fehler sind zusammengefasst. Hinweise wie „Bitte einen Titel eingeben“ stehen hier nicht.</p>
+    <div class="bar">${[['', `Alle (${F.length})`], ['server', 'Server'], ['browser', 'Browser']].map(([k, l]) => `<button class="btn sm ${k === art ? 'pri' : ''}" data-a="fart" data-fart="${k}">${l}</button>`).join('')}
+      <span style="flex:1"></span>${data.f.ungelesen ? `<button class="btn sm" data-a="fgelesen">Alle als gelesen markieren (${data.f.ungelesen} neu)</button>` : ''}${F.length ? '<button class="btn sm danger" data-a="fleeren">Liste leeren</button>' : ''}</div>
+    ${L.length ? `<div class="tbl"><table><thead><tr><th>Zuletzt</th><th>App</th><th>Meldung</th><th class="hide-s">Wo · Wer</th><th style="text-align:right">Anzahl</th><th></th></tr></thead><tbody>
+    ${L.map((x) => `<tr${x.gelesen ? '' : ' style="font-weight:600"'}><td style="white-space:nowrap">${esc(dt(x.zuletzt))}${x.anzahl > 1 ? `<br><small class="mute">seit ${esc(dt(x.zuerst))}</small>` : ''}</td>
+      <td><span class="badge">${esc(x.art === 'browser' ? 'Browser' : 'Server')}</span> ${esc(x.app)}</td>
+      <td style="max-width:34rem"><details><summary style="cursor:pointer">${esc(x.meldung)}</summary><pre style="white-space:pre-wrap;font-size:.75rem;max-height:20rem;overflow:auto;margin:.4rem 0 0">${esc(x.stack || '')}</pre>${x.browser ? `<small class="mute">${esc(x.browser)}</small>` : ''}</details></td>
+      <td class="hide-s mute">${esc([x.pfad, x.user_name].filter(Boolean).join(' · '))}</td><td style="text-align:right">${x.anzahl}</td>
+      <td><button class="btn sm" data-a="fweg" data-fid="${x.id}" title="Eintrag entfernen">✕</button></td></tr>`).join('')}
+    </tbody></table></div>` : '<p class="mute">Keine Fehler – alles ruhig.</p>'}`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-a="fart"],[data-a="fgelesen"],[data-a="fleeren"],[data-a="fweg"]'); if (!b) return;
+  const a = b.dataset.a;
+  if (a === 'fart') { data.fart = b.dataset.fart; renderFehler(); return; }
+  if (a === 'fleeren' && !(await bpFrage('Alle Fehlermeldungen löschen?', { ok: 'Löschen', gefahr: true }))) return;
+  try { data.f = await api('api/bp/fehler', 'PUT', a === 'fgelesen' ? { gelesen: true } : a === 'fleeren' ? { leeren: true } : { weg: +b.dataset.fid }); renderFehler(); } catch (er) { toast(er.message, true); }
+});
 
 /* ---------- Protokoll ---------- */
 function renderAudit() {

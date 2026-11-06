@@ -35,6 +35,18 @@
   window.bpEingabe = (t, v, o) => DLG(t, 'eingabe', v, o);
   window.bpHinweis = (t) => DLG(t, 'hinweis');
   window.alert = (t) => { DLG(t, 'hinweis'); };   // nicht mehr blockierend – überall gleich aussehend
+  { // Fehler im Browser an die Verwaltung melden (System → Fehlermeldungen) – höchstens 10 je Seite, gleiche nur einmal
+    const gemeldet = new Set();
+    const melden = (meldung, stack) => {
+      meldung = String(meldung || '').slice(0, 600); if (!meldung || gemeldet.has(meldung) || gemeldet.size >= 10) return;
+      if (/ResizeObserver loop|Script error\.?$|NetworkError|Failed to fetch|Load failed|AbortError/i.test(meldung)) return;   // harmlos bzw. Verbindung
+      gemeldet.add(meldung);
+      try { fetch('api/bp/fehler', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+        body: JSON.stringify({ app: H.app || document.title, meldung, stack: String(stack || '').slice(0, 6000), pfad: location.pathname + location.hash }) }).catch(() => {}); } catch { /* egal */ }
+    };
+    window.addEventListener('error', (e) => { if (e && e.message) melden(e.message, (e.error && e.error.stack) || `${e.filename || ''}:${e.lineno || ''}:${e.colno || ''}`); });
+    window.addEventListener('unhandledrejection', (e) => { const r = e && e.reason; if (r && (r.status || r.data)) return; melden(r && r.message ? r.message : String(r), r && r.stack); });   // API-Fehlermeldungen (400/403 …) sind keine Systemfehler
+  }
   const listeners = [];
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const getJ = (u) => fetch(u, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))));

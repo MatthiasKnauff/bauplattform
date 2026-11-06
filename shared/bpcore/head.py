@@ -27,7 +27,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, db, konto, papierkorb, posteingang, skizze, sso, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, db, fehler, konto, papierkorb, posteingang, skizze, sso, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -42,6 +42,46 @@ def blueprint(get_user=None):
                 return u
         with db.tx() as c:
             return sso.current(c, request)
+
+    @bp.app_errorhandler(Exception)
+    def _fehler_server(e):   # unerwartete Fehler aller Apps festhalten (Verwaltung → System → Fehlermeldungen)
+        from werkzeug.exceptions import HTTPException
+        if isinstance(e, HTTPException):
+            return e
+        from flask import current_app
+        try:
+            u = user()
+        except Exception:
+            u = None
+        try:
+            wer = u["name"] if u else ""
+        except Exception:
+            wer = ""
+        fehler.ausnahme(current_app.import_name, e, f"{request.method} {request.path}", wer)
+        current_app.logger.exception(e)
+        if request.path.startswith("/api/"):
+            return jsonify(error="Interner Fehler – die Verwaltung ist informiert (System → Fehlermeldungen)."), 500
+        return "Interner Fehler – die Verwaltung ist informiert.", 500
+
+    @bp.post("/api/bp/fehler")
+    def fehler_browser():
+        """Fehler aus dem Browser (head.js meldet window.onerror / unbehandelte Promises)."""
+        u = user()
+        if not u:
+            return jsonify(ok=False), 401
+        b = request.get_json(silent=True) or {}
+        fehler.melden(str(b.get("app") or "")[:40], "browser", b.get("meldung"), b.get("stack"), b.get("pfad"), u["name"], request.headers.get("User-Agent", ""))
+        return jsonify(ok=True)
+
+    @bp.route("/api/bp/fehler", methods=["GET", "PUT"])
+    def fehler_liste():
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Nur für die Verwaltung."), 403
+        with db.tx() as c:
+            if request.method == "PUT":
+                fehler.aktion(c, request.get_json(silent=True) or {})
+            return jsonify(fehler=fehler.liste(c), ungelesen=fehler.ungelesen(c))
 
     @bp.get("/bp/<name>")
     def asset(name):

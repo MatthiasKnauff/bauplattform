@@ -57,6 +57,9 @@
 .er .ac{display:flex;flex-direction:column;align-items:flex-end;gap:.35rem}
 .er .ac .dt{font-weight:600;white-space:nowrap}
 .er .ac .bt{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.er{cursor:pointer}.er:not(.auf):hover{border-color:var(--y)}.er:not(.auf) .tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.er:not(.auf){padding:.5rem .9rem}
+.er.auf{cursor:default;box-shadow:0 4px 16px rgba(0,0,0,.08)}.er .tx{min-width:0}
+.e-ed{display:grid;gap:.35rem;margin:.4rem 0 .2rem}.e-ed label{display:grid;gap:.1rem;font-size:.8rem;color:var(--mute)}.e-ed input,.e-ed textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.92rem}
 .resch{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.5rem;padding:.5rem;border:1px dashed var(--y);border-radius:8px;grid-column:2/-1}
 .resch input{padding:.3rem .45rem}
 details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
@@ -306,17 +309,22 @@ async function mSave(id, body, undoBody, label) {
 
 /* ---------- Erinnerungen ---------- */
 const SRC = { bautagebuch: ['📒', 'Bautagebuch'], plan: ['📅', 'Bauzeitenplan'], eigen: ['✎', 'eigene Erinnerung'] };
+const EAUF = new Set();   // aufgeklappte Erinnerungen
 function renderE() {
   if (!E) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
   const G = [['ueberfaellig', 'Überfällig – noch nicht verschickt'], ['abgelaufen', 'Abgelaufen – neu terminieren oder erledigen'], ['heute', 'Heute'], ['bald', 'Nächste 7 Tage'], ['spaeter', 'Später']];
   const row = (x) => {
     const [ic, sn] = SRC[x.quelle] || ['•', ''], link = x.quelle === 'plan' && x.gantt_id ? appLink('gantt', '#plan=' + encodeURIComponent(x.gantt_id)) : x.quelle === 'bautagebuch' && x.rid ? appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) : '';
     const sent = x.gesendet === 'fehler' ? '⚠ Mail nicht zustellbar – E-Mail-Adresse prüfen' : x.gesendet ? `Mail am ${de(x.gesendet)} verschickt` : '';
-    return `<div class="er ${x.lage}" data-e="${x.id}"><span class="ic" title="${sn}">${ic}</span>
-      <div class="tx"><b>${esc(x.titel)}</b>${x.text && x.quelle !== 'bautagebuch' ? `<p>${esc(x.text)}</p>` : x.quelle === 'bautagebuch' && x.text.split('\n').length > 1 ? `<p>${esc(x.text)}</p>` : ''}
-        <small>${esc([sn, x.projekt, x.an.length ? 'an ' + x.an.join(', ') : '', sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${link ? ` · <a href="${esc(link)}">öffnen ↗</a>` : ''}</small></div>
+    const auf = EAUF.has(x.id) || OPEN === x.id, eigen = x.quelle === 'eigen';
+    const ziel = link || x.mail || '';
+    return `<div class="er ${x.lage}${auf ? ' auf' : ''}" data-e="${x.id}" title="${auf ? 'Klick klappt zu' : 'Klick klappt auf'}${ziel ? ' · Doppelklick öffnet ' + (link ? (x.quelle === 'plan' ? 'den Bauzeitenplan' : 'den Bericht') : 'die Mail') : ''}"><span class="ic" title="${sn}">${ic}</span>
+      <div class="tx"><b>${esc(x.titel)}</b>${auf
+        ? (eigen ? `<div class="e-ed"><label>Text<input data-ef="titel" value="${esc(x.titel)}"></label><label>Notiz<textarea data-ef="text" rows="3">${esc(x.text || '')}</textarea></label></div>` : (x.text && (x.quelle !== 'bautagebuch' || x.text.split('\n').length > 1) ? `<p>${esc(x.text)}</p>` : ''))
+          + `<small>${esc([sn, x.projekt, x.firma, x.an.length ? 'an ' + x.an.join(', ') : '', sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${ziel ? ` · <a href="${esc(ziel)}"${x.mail && !link ? ' target="bp-outlook"' : ''}>${link ? (x.quelle === 'plan' ? 'Bauzeitenplan öffnen →' : 'Bericht öffnen →') : 'Mail öffnen →'}</a>` : ''}</small>`
+        : `<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small>`}</div>
       <div class="ac"><span class="dt">${deW(x.termin)}${x.uhrzeit ? ' · ' + esc(x.uhrzeit) : ''}</span><span class="st ${x.lage}">${{ ueberfaellig: 'überfällig', abgelaufen: 'abgelaufen', heute: 'heute', bald: 'bald', spaeter: 'geplant', erledigt: 'erledigt' }[x.lage]}</span>
-        <div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : '<button class="btn sm" data-ea="kal" title="Als Termin in meinen Kalender (Einladung per E-Mail)">📅</button><button class="btn sm" data-ea="resch">Neu terminieren</button><button class="btn sm" data-ea="done">✓ Erledigt</button>'}${x.quelle === 'eigen' ? '<button class="btn sm danger" data-ea="del" aria-label="löschen">✕</button>' : ''}</div></div>
+        ${auf ? `<div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : `${eigen ? '<button class="btn sm pri" data-ea="esave">Speichern</button>' : ''}<button class="btn sm" data-ea="kal" title="Als Termin in meinen Kalender (Einladung per E-Mail)">📅</button><button class="btn sm" data-ea="resch">Neu terminieren</button><button class="btn sm" data-ea="done">✓ Erledigt</button>`}${eigen ? '<button class="btn sm danger" data-ea="del" title="Löschen">✕</button>' : ''}</div>` : ''}</div>
       ${OPEN === x.id ? `<div class="resch">Neuer Termin: ${[[1, 'morgen'], [3, '+3 Tage'], [7, '+1 Woche'], [0, 'nächster Montag']].map(([d, l]) => `<button class="btn sm" data-rq="${d}">${l}</button>`).join('')}
         <input type="date" id="rDate" value="${esc(x.termin < iso(new Date()) ? plus(1) : x.termin)}"><input type="time" id="rTime" value="${esc(x.uhrzeit || '08:00')}"><button class="btn sm pri" data-ea="save">Speichern</button><button class="btn sm" data-ea="cancel">Abbrechen</button></div>` : ''}</div>`;
   };
@@ -370,10 +378,15 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const er = e.target.closest('[data-e]'), ea = e.target.closest('[data-ea]'), rq = e.target.closest('[data-rq]');
+  if (er && !ea && !rq && e.detail < 2 && !e.target.closest('a,input,textarea,select,button,.resch')) {   // Klick auf die Zeile: auf-/zuklappen
+    const id = er.dataset.e; if (EAUF.has(id)) { EAUF.delete(id); if (OPEN === id) OPEN = null; } else EAUF.add(id); renderE(); return;
+  }
   if (er && rq) { $('#rDate').value = +rq.dataset.rq ? plus(+rq.dataset.rq) : nextMon(); return; }
   if (er && ea) {
     const id = er.dataset.e, x = E.items.find((y) => y.id === id), a = ea.dataset.ea;
     if (a === 'kal') { kalender(id); return; }
+    if (a === 'esave') { const t = er.querySelector('[data-ef="titel"]').value.trim(), tx = er.querySelector('[data-ef="text"]').value; if (!t) return toast('Bitte einen Text eingeben.', true);
+      await eSave(id, { titel: t, text: tx }, { titel: x.titel, text: x.text }, 'Erinnerung geändert'); EAUF.delete(id); return; }
     if (a === 'resch') { OPEN = id; renderE(); $('#rDate').focus(); return; }
     if (a === 'cancel') { OPEN = null; renderE(); return; }
     if (a === 'save') { const d = $('#rDate').value, tm = $('#rTime').value; if (!d) return toast('Bitte ein Datum wählen.', true); await eSave(id, { termin: d, uhrzeit: tm }, { termin: x.termin, uhrzeit: x.uhrzeit }, 'Neuer Termin'); toast(`Neu terminiert auf ${deW(d)} ${tm}.`); return; }
@@ -381,6 +394,12 @@ document.addEventListener('click', async (e) => {
     if (a === 'reopen') { await eSave(id, { status: 'offen' }, { status: 'erledigt' }, 'Wieder öffnen'); return; }
     if (a === 'del') { try { const r = await api('api/erinnerungen/' + id, 'DELETE'); undoable('Löschen', () => api('api/erinnerungen/wiederherstellen', 'POST', r.item)); await reload(); } catch (er2) { toast(er2.message, true); } return; }
   }
+});
+document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Erinnerung: Bericht / Bauzeitenplan / Mail öffnen
+  const er = e.target.closest && e.target.closest('.er[data-e]'); if (!er || e.target.closest('a,input,textarea,select,button')) return;
+  const a = er.querySelector('.tx small a[href]');
+  if (a) { if (a.target) window.open(a.href, a.target); else location.href = a.href; return; }
+  EAUF.add(er.dataset.e); renderE(); const f = document.querySelector(`.er[data-e="${CSS.escape(er.dataset.e)}"] [data-ef="titel"]`); if (f) f.focus();
 });
 document.addEventListener('change', (e) => {
   if (e.target.dataset.ev) { const EV = LS.get('eview', { grp: 'lage', sort: 'termin', q: 'alle' }); EV[e.target.dataset.ev] = e.target.value; LS.set('eview', EV); renderE(); return; }

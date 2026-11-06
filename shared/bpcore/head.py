@@ -638,10 +638,12 @@ def blueprint(get_user=None):
         jetzt = datetime.now().isoformat(timespec="seconds")
         with db.tx() as c:
             pid = b.get("pid") if isinstance(b.get("pid"), int) and c.execute("SELECT 1 FROM projects WHERE id=?", (b.get("pid"),)).fetchone() else None
+            d = posteingang.lesen(c, uid)
+            mail = next((m for m in d.get("mails") or [] if m.get("id") == str(b.get("id") or "")), {})   # Link zur Mail (Outlook) für „öffnen“
             c.execute("""INSERT INTO erinnerungen(quelle, project_id, titel, text, termin, uhrzeit, empfaenger, daten, erstellt, erstellt_von, geaendert, geaendert_von)
                          VALUES('eigen',?,?,?,?,'08:00',?,?,?,?,?,?)""", (pid, titel, str(b.get("text") or "")[:2000], termin, json.dumps([uid]),
-                                                                           json.dumps({"aus_mail": str(b.get("id") or "")[:200]}), jetzt, u["name"], jetzt, u["name"]))
-            d = posteingang.lesen(c, uid)
+                                                                           json.dumps({"aus_mail": str(b.get("id") or "")[:200], "link": str(mail.get("link") or "")[:1000]}),
+                                                                           jetzt, u["name"], jetzt, u["name"]))
             d.setdefault("erledigt", {})[str(b.get("id") or "")[:200]] = "angelegt"
             for m in d.get("mails") or []:
                 if m.get("id") == b.get("id"):

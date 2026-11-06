@@ -1067,7 +1067,8 @@ def erinnerungen(scope_arg=None):
                     "ereignis": r["ereignis"], "status": r["status"], "gesendet": r["gesendet"], "manuell": bool(r["manuell"]),
                     "projekt": p["name"] if p else (d.get("plan") or ""), "pid": r["project_id"], "gantt_id": r["gantt_id"],
                     "an": [names.get(x, "?") for x in rec], "an_ids": rec, "von": r["erstellt_von"],
-                    "firma": d.get("firma") or (f"Gewerk {d['gw']}" if d.get("gw") else ""), "gw": d.get("gw") or ""})
+                    "firma": d.get("firma") or (f"Gewerk {d['gw']}" if d.get("gw") else ""), "gw": d.get("gw") or "",
+                    "mail": d.get("link") or ""})
     for x in bt:
         p = P.get(x["pid"])
         if not p or not _sees(g.user, p) or (scope == "mine" and x["remind_user"] != me and not _mine(g.user, p)):

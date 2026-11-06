@@ -300,7 +300,7 @@ def blueprint(get_user=None):
     # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – das Bautagebuch erledigt es, mit der Anmeldung des Benutzers
     import re as _re
     _BT_ERLAUBT = [("GET", r"projects"), ("POST", r"projects"), ("PUT", r"projects/\d+"), ("GET", r"leaders"), ("GET", r"geocode"), ("GET", r"geo"),
-                   ("GET", r"store/folders"), ("POST", r"projects/\d+/contact")]
+                   ("GET", r"store/folders"), ("POST", r"projects/\d+/contact"), ("GET", r"logo")]
 
     @bp.route("/api/bp/bt/<path:pfad>", methods=["GET", "POST", "PUT"])
     def bt_proxy(pfad):

@@ -239,6 +239,7 @@
     band.className = 'bph' + (opt.sticky ? ' bph-sticky' : '');
     band.innerHTML = `<a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span><span class="bph-app">${esc(opt.name || '')}</span></a>
       <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div><span class="bph-fill"></span>
+      <a class="bph-logo" href="/" title="Startseite" hidden><img alt="Büro-Logo"></a>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
       <button type="button" class="bph-ic bph-appsb" aria-haspopup="menu" aria-label="Apps" title="Apps">${IC.grid}</button>
@@ -270,6 +271,11 @@
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
       if (portal) band.querySelector('.bph-brand').href = appUrl(portal) + '/';
+      const lg = band.querySelector('.bph-logo');   // Büro-Logo (Verwaltung → Einstellungen), dezent in der Kopfleiste – über die eigene App geholt
+      if (lg) {
+        const img = lg.querySelector('img'); img.onload = () => { lg.hidden = false; }; img.onerror = () => lg.remove();
+        img.src = H.app === 'bautagebuch' ? 'api/logo' : 'api/bp/bt/logo'; if (portal) lg.href = appUrl(portal) + '/';
+      }
       if (H.me) {
         const acc = /^#[0-9a-f]{6}$/i.test(H.me.accent || '') ? H.me.accent : '#ff5fb3';
         const n = parseInt(acc.slice(1), 16), lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;

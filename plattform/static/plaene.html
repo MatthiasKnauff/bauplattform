@@ -75,6 +75,7 @@
 .zt input:focus{border-color:var(--y);background:var(--inp);outline:none}
 .zt .zx{border:0;background:none;color:var(--mute);cursor:pointer;font-size:1rem;padding:0 .3rem}.zt .zx:hover{color:#d33}
 @media (max-width:760px){.pl .hide-m{display:none}.set .g2{grid-template-columns:1fr}.top select{min-width:0;flex:1 1 100%;width:100%}.top .fill{display:none}.ord code{max-width:100%}.pl td,.pl th{padding:.45rem .3rem}.pl .nr b{font-size:.9rem}}
+.mkd{display:inline-block;margin-left:.5rem;padding:0 .5rem;border-radius:999px;background:color-mix(in srgb,#ff5fb3 18%,transparent);color:#c2185b;font-size:.78rem;font-weight:600;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -147,7 +148,7 @@ function render() {
       <td>${s ? `<input type="checkbox" data-sel="${esc(k)}"${SEL.has(k) ? ' checked' : ''} aria-label="Plan wählen">` : ''}</td>
       <td class="nr">${alt ? '' : p.frei ? '<span class="mu">ohne Nr.</span>' : `${p.kennung ? `<span class="pill">${esc(p.kennung)}</span> ` : ''}<b>${esc(p.nr)}</b>`}</td>
       <td>${p.frei ? '' : `<span class="idx ${st.index ? '' : 'o'}" title="${st.index ? 'Index ' + st.index : 'Ursprungsplan (ohne Index)'}">${st.index || '–'}</span>`}</td>
-      <td class="ti">${alt ? `<span class="mu">älterer Stand</span>` : `<b>${esc(p.titel || '')}</b><div class="mu">${p.frei ? '📁 ' + esc(p.phase_name || 'Projektordner') : esc([p.kennung_name, p.phase_name || ('Phase ' + p.phase), p.variante && p.variante !== '1' ? 'Variante/Typ ' + p.variante : '', [p.planart_name, p.geschoss].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>`}
+      <td class="ti">${alt ? `<span class="mu">älterer Stand</span>` : `<b>${esc(p.titel || '')}</b>${s && s.markiert ? ` <span class="mkd" title="${esc(s.markiert.n + ' Markierung' + (s.markiert.n === 1 ? '' : 'en') + ' · zuletzt ' + new Date(s.markiert.wann).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) + ' · von ' + s.markiert.wer)}">📌 markiert · ${esc(de(s.markiert.wann))} · ${esc(s.markiert.wer)}</span>` : ''}<div class="mu">${p.frei ? '📁 ' + esc(p.phase_name || 'Projektordner') : esc([p.kennung_name, p.phase_name || ('Phase ' + p.phase), p.variante && p.variante !== '1' ? 'Variante/Typ ' + p.variante : '', [p.planart_name, p.geschoss].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</div>`}
         ${s ? `<div class="mu"><a href="${fileUrl(s.pfad)}" data-ansehen="pdf" data-name="${esc(s.name)}">${esc(s.name)}</a> · ${mb(s.groesse)} · ${de(s.mtime)}${st.kopien ? ` · ${st.kopien} weitere Kopie${st.kopien > 1 ? 'n' : ''}` : ''}</div>` : '<div class="mu">nur CAD-Datei</div>'}
         ${st.cad.length ? `<div class="mu">CAD: ${st.cad.map((c) => `<a href="${fileUrl(c.pfad, 1)}">${esc(c.ext.slice(1).toUpperCase())}</a>`).join(', ')}</div>` : ''}</td>
       <td class="gw hide-m ${alt ? '' : p.gewerk ? '' : 'leer'}">${alt ? '' : `<input data-gw="${esc(p.key)}" list="gwList" value="${esc(p.gewerk || '')}" placeholder="Gewerk wählen oder eintippen" aria-label="Gewerk" autocomplete="off"><small>${p.gewerk ? esc(p.gewerk_quelle === 'zugeordnet' ? 'von Hand zugeordnet' : 'erkannt: ' + p.gewerk_quelle) : 'nicht erkannt'}</small>`}</td>

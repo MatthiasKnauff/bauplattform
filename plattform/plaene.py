@@ -267,6 +267,28 @@ def plaene():
                 st["pdf"]["versendet"] = gesendet.get(st["pdf"]["pfad"], [])
     for f in sonst:
         f["versendet"] = gesendet.get(f["pfad"], [])
+    try:   # dauerhafte Markierungen (gemeinsam markieren) am Plan: wann zuletzt und von wem
+        with db.tx() as c:
+            mk = {}
+            for r in c.execute("""SELECT s.name, s.groesse, max(x.created) AS wann, string_agg(DISTINCT x.name, ', ') AS wer, count(x.id) AS n
+                                  FROM skizze s JOIN skizze_strich x ON x.skizze_id = s.id AND x.geloescht = 0
+                                  WHERE s.dauerhaft = 1 GROUP BY s.id, s.name, s.groesse""").fetchall():
+                k = (r["name"], int(r["groesse"] or 0))
+                if k not in mk or (r["wann"] or "") > mk[k]["wann"]:
+                    mk[k] = {"wann": r["wann"] or "", "wer": r["wer"] or "", "n": r["n"]}
+        if mk:
+            for x in pl:
+                for st in x["staende"]:
+                    if st.get("pdf"):
+                        m_ = mk.get((st["pdf"].get("name"), int(st["pdf"].get("groesse") or 0)))
+                        if m_:
+                            st["pdf"]["markiert"] = m_
+            for f in sonst:
+                m_ = mk.get((f.get("name"), int(f.get("groesse") or 0)))
+                if m_:
+                    f["markiert"] = m_
+    except Exception:
+        pass
     try:   # für die To-do-Liste der Startseite („Pläne nicht versendet“): neuester PDF-Stand je Plan
         neu = []
         for x in pl:

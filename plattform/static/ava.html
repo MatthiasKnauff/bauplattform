@@ -415,6 +415,9 @@ tr.am-lf td input{color:#c0621f}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 .ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
 .ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:6px;font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
+.lv-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:.8rem;align-items:start}.lv-sl{min-width:0}
+.lv-zz{position:absolute;cursor:copy;border-radius:2px}.lv-zz:hover{background:rgba(245,166,35,.22);outline:1px solid #f5a623}.lv-zz.ok{background:rgba(31,157,76,.1)}
+@media (max-width:900px){.lv-split{grid-template-columns:1fr}}
 .ava-drop{display:flex;flex-direction:column;align-items:center;gap:.15rem;margin:.8rem .3rem .4rem;padding:.7rem .5rem;border:2px dashed var(--line);border-radius:10px;text-align:center;cursor:pointer;color:var(--mute);font-size:.85rem}
 .ava-drop b{color:var(--ink)}.ava-drop small{font-size:.72rem;line-height:1.25}.ava-drop:hover{border-color:var(--y);color:var(--ink)}
 body.ava-ziehen .ava-drop{border-color:var(--y);background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink)}
@@ -673,7 +676,7 @@ async function avaDokument(f) {
       if (art === 'lv' && !sel.value) sel.value = 'neu';
       const x = lvs.find((y) => y.id === +sel.value);
       ablSuchen();
-      bg.querySelector('#adWohin').innerHTML = art === 'lv' ? (sel.value === 'neu' ? 'Wird als neues LV angelegt' + (E.format === 'pdf' ? ' – aus einer PDF lassen sich keine Positionen lesen (dafür GAEB oder Excel); die PDF wird im Projektordner abgelegt.' : '.') : 'Positionen werden an das gewählte LV angehängt.')
+      bg.querySelector('#adWohin').innerHTML = art === 'lv' ? (sel.value === 'neu' ? 'Wird als neues LV angelegt' + (E.format === 'pdf' ? ' – die PDF steht dann rechts daneben: erkannte Positionen übernehmen oder Zeile für Zeile anklicken.' : '.') : 'Positionen werden an das gewählte LV angehängt.')
         : art === 'angebot' ? 'Preise werden als Angebot der Firma eingetragen (Zuordnung über die Ordnungszahl) – danach im Preisspiegel.'
         : sel.value === 'neu' ? 'Neues LV ohne Positionen, Auftrag frei an die Firma – die Rechnung wird mit dem Betrag erfasst (Kostenkontrolle).'
         : `Kommt als PDF zur ${x && !x.vergeben ? 'Rechnung (das LV ist noch nicht vergeben – Auftrag wird frei an die Firma eingetragen)' : 'offenen Rechnung des Auftrags'} und wird in der Aufmaßprüfung neben der Prüfung angezeigt.`;
@@ -755,7 +758,7 @@ async function avaAblegen(f, E, o) {
   if (o.art === 'lv') {
     tab = 'lv'; LS.set('tab', tab); render();
     if (E.format !== 'pdf') { IMP = { ziel: 'lv', ersetzen: false }; await doImport(f); }
-    else toast('Aus einer PDF lassen sich keine Positionen lesen – für Positionen bitte GAEB (X81/X83) oder Excel.');
+    else await lvDokHoch(lvId, f);   // PDF/Scan: rechts daneben, Positionen erkennen oder Zeile für Zeile übernehmen
     await ablegen(); return;
   }
   if (o.art === 'angebot') {
@@ -794,7 +797,7 @@ document.addEventListener('drop', (e) => {
 });
 
 /* ---------- Projektbaum links (LV, Angebote, Aufmaßprüfung, Rechnungen) ---------- */
-const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
+const PJTABS = new Set(['angebote', 'aufmass', 'rechnungen']);   // im LV steht der Projektbaum in der Tabelle selbst
 let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
 function pjBaum() {
   const xs = LIST.filter((x) => !x.archived && (tab === 'lv' || tab === 'angebote' || x.vergeben));
@@ -851,7 +854,7 @@ function render() {
     + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')}</div>`).join('')
     + `<label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Dokument ablegen</b><small>Angebot, LV, Aufmaß, Rechnung · PDF, Scan, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,application/pdf"></label>`;
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
-  const mitSel = NURLV.has(tab) && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
+  const mitSel = NURLV.has(tab) && tab !== 'lv' && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
   $('#sel').hidden = !mitSel;
   $('#phT').textContent = `${(TABS.find((t) => t[0] === tab) || [, ''])[1]}${mitSel ? '' : ': ' + (NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn)}`;
   $('#kpi').hidden = !NURLV.has(tab); $('#stat').hidden = !NURLV.has(tab);
@@ -873,7 +876,102 @@ function render() {
   sums();
   if (tab === 'aufmass') amPdfMount();
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);
-  if (tab === 'lv') lvAktZeigen();
+  if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); }
+}
+
+/* ---------- LV als PDF/Scan daneben: Zeilen anklicken → ins gewählte Feld, Alt+Klick → neue Position, erkannte Positionen übernehmen ---------- */
+let LVDOK = LS.get('lvdok', true), LVDV = null, LVFELD = null;
+function lvSplitMount() {
+  const D = (L && L.dokumente) || []; if (!D.length || !LVDOK) return;
+  const tbl = document.querySelector('#view table.lv.baum'); if (!tbl) return;
+  const w = tbl.closest('.tblw'); if (!w || w.parentNode.classList.contains('lv-sl')) return;
+  const sp = document.createElement('div'); sp.className = 'lv-split'; w.parentNode.insertBefore(sp, w);
+  const l = document.createElement('div'); l.className = 'lv-sl'; l.appendChild(w); sp.appendChild(l);
+  const sum = sp.nextElementSibling; if (sum && sum.matches && sum.matches('.lvsum,.lv-summe')) l.appendChild(sum);
+  const r = document.createElement('div'); r.className = 'am-r lv-sr'; sp.appendChild(r);
+  if (LVDV && !D.some((d) => d.id === LVDV.id)) LVDV = null;
+  const did = LVDV ? LVDV.id : (D.find((d) => d.id === LS.get('lvdokid')) || D[D.length - 1]).id;
+  if (!LVDV || LVDV.id !== did) { LVDV = { id: did, el: document.createElement('div'), pages: [], zoom: LS.get('lvZoom', 1) }; LVDV.el.className = 'am-pv'; LVDV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; lvDokLaden(LVDV); }
+  const d = D.find((x) => x.id === did), n = d.n_pos + d.n_titel;
+  r.innerHTML = `<div class="am-pk">${D.map((y) => `<button class="btn sm${y.id === did ? ' pri' : ''}" data-lvdokw="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 26 ? y.name.slice(0, 24) + '…' : y.name)}</button>`).join('')}
+    ${n ? `<button class="btn sm" data-lvdokueb title="Erkannte Titel und Positionen (OZ, Kurztext, Menge, Einheit, Langtext) ans LV anhängen">Erkannte übernehmen (${d.n_pos} Pos.${d.n_titel ? ', ' + d.n_titel + ' Titel' : ''})</button>` : ''}
+    <span class="fill"></span><button class="ib" data-lvz="-1" title="kleiner">−</button><button class="ib" data-lvz="1" title="größer">＋</button><button class="ib" data-lvdokdel="${did}" title="PDF entfernen">✕</button></div>
+    <div class="hint" style="padding:.25rem .5rem;border-bottom:1px solid var(--line)">${d.ocr ? 'Scan, per Texterkennung gelesen – bitte prüfen · ' : ''}Zeile anklicken → ins gewählte Feld links (Kurztext, Menge, Einheit, Langtext …) · <b>Alt+Klick</b> → als neue Position</div>`;
+  r.appendChild(LVDV.el);
+}
+async function lvDokLaden(V) {
+  try { const lib = await pdfjs(); [V.pdf, V.A] = await Promise.all([lib.getDocument({ url: 'api/lvdok/' + V.id, withCredentials: true }).promise, api(`api/lvdok/${V.id}?auslese=1`)]); }
+  catch (e) { V.el.innerHTML = `<p class="hint" style="color:#fff">PDF lässt sich nicht anzeigen: ${esc(e.message)}</p>`; return; }
+  if (LVDV !== V) return; lvDokZeichnen(V);
+}
+async function lvDokZeichnen(V) {
+  V.el.innerHTML = ''; V.pages = [];
+  const w = Math.max(300, (V.el.clientWidth || 600) - 20), dpr = window.devicePixelRatio || 1;
+  for (let n = 1; n <= Math.min(V.pdf.numPages, 80); n++) {
+    const pg = await V.pdf.getPage(n), vp1 = pg.getViewport({ scale: 1 }), sc = w / vp1.width * V.zoom, vp = pg.getViewport({ scale: sc * dpr });
+    const wrap = document.createElement('div'); wrap.className = 'am-pg'; wrap.style.width = vp1.width * sc + 'px'; wrap.style.height = vp1.height * sc + 'px';
+    const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; cv.style.width = '100%'; cv.style.height = '100%'; wrap.appendChild(cv); V.el.appendChild(wrap); V.pages.push(wrap);
+    await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise; if (LVDV !== V) return;
+    ((V.A && V.A.zeilen && V.A.zeilen[n]) || []).forEach(([x0, y0, x1, y1, t], k) => { const d = document.createElement('div'); d.className = 'lv-zz'; d.dataset.t = t; d.title = t;
+      Object.assign(d.style, { left: x0 * 100 + '%', top: y0 * 100 + '%', width: (x1 - x0) * 100 + '%', height: (y1 - y0) * 100 + '%' }); wrap.appendChild(d); });
+  }
+}
+const EH_RX = /^(m2|m²|qm|m3|m³|cbm|m|lfm|lfdm|st|stk|stck|stück|psch|pausch|h|std|kg|t|to|wo|mt|tag|l|ltr|satz)\.?$/i;
+function lvZeileLesen(t) {   // „02.0010 NYM-J 3x1,5 verlegen 250,000 m“ → {oz, kurz, menge, einheit}
+  const tk = t.split(/\s+/).filter((x) => x && !/^[._…\-]{2,}$|^€$/.test(x)); let oz = '', menge = null, einheit = '';
+  if (tk.length && /^\d{1,4}(\.\d{1,4}){0,4}\.?$/.test(tk[0]) && tk.length > 1) oz = tk.shift().replace(/\.$/, '');
+  const zahl = (x) => (/^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+(,\d+)?$/.test(x) ? pf(x) : null);
+  for (let k = tk.length - 1; k > 0 && k >= tk.length - 4; k--) {
+    if (EH_RX.test(tk[k]) && zahl(tk[k - 1]) != null) { menge = zahl(tk[k - 1]); einheit = tk[k]; tk.splice(k - 1); break; }
+    if (EH_RX.test(tk[k - 1]) && zahl(tk[k]) != null) { menge = zahl(tk[k]); einheit = tk[k - 1]; tk.splice(k - 1); break; }
+  }
+  return { oz, kurz: tk.join(' ').trim(), menge, einheit, zahlen: t.split(/\s+/).map(zahl).filter((x) => x != null) };
+}
+document.addEventListener('focusin', (e) => { if (e.target.closest && e.target.closest('table.lv') && e.target.matches('[data-f],[data-vp]')) LVFELD = e.target; });
+document.addEventListener('click', async (e) => {
+  if (tab !== 'lv' || !L) return;
+  const z = e.target.closest('.lv-zz');
+  if (z) {
+    const P = lvZeileLesen(z.dataset.t); z.classList.add('ok');
+    if (e.altKey || !LVFELD || !LVFELD.isConnected) {
+      if (!e.altKey) { toast('Erst links ein Feld anklicken (Kurztext, Menge, Langtext …) – oder Alt+Klick legt die Zeile als neue Position an.'); return; }
+      const I = items(), ai = LVAKT ? I.findIndex((x) => x.id === LVAKT) : -1, at = ai >= 0 ? ai + 1 : I.length;
+      const ref = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T');
+      const neu = { id: uid(), typ: 'pos', art: 'N', oz: P.oz, kurz: P.kurz || z.dataset.t, lang: '', menge: P.menge ?? 0, einheit: P.einheit || (ref ? ref.einheit : ''), kg: ref ? ref.kg : '' };
+      I.splice(at, 0, neu); LVAKT = neu.id; if (!P.oz) numerieren(); HIST.next = 'Position aus der PDF'; changed(true);
+      setTimeout(() => { const el = document.querySelector(`tr[data-i="${at}"] [data-f="kurz"]`); if (el) { el.focus({ preventScroll: true }); LVFELD = el; } }, 40); return;
+    }
+    const f = LVFELD.dataset.f || (LVFELD.dataset.vp ? 'ep' : '');
+    if (['menge', 'ep_s', 'ep'].includes(f)) { const v = f === 'menge' && P.menge != null ? P.menge : P.zahlen[P.zahlen.length - 1]; if (v == null) { toast('In dieser Zeile steht keine Zahl.'); return; } LVFELD.value = f === 'menge' ? nf(v) : nf2(v); }
+    else if (f === 'einheit') LVFELD.value = P.einheit || z.dataset.t.split(/\s+/).find((x) => EH_RX.test(x)) || LVFELD.value;
+    else if (f === 'lang' || LVFELD.tagName === 'TEXTAREA') LVFELD.value = (LVFELD.value.trim() ? LVFELD.value.replace(/\s+$/, '') + '\n' : '') + z.dataset.t;
+    else LVFELD.value = P.kurz || z.dataset.t;
+    LVFELD.dispatchEvent(new Event('input', { bubbles: true })); LVFELD.dispatchEvent(new Event('change', { bubbles: true })); LVFELD.focus({ preventScroll: true });
+    return;
+  }
+  if (e.target.closest('[data-lvdokan]')) { LVDOK = !LVDOK; LS.set('lvdok', LVDOK); render(); return; }
+  const w = e.target.closest('[data-lvdokw]'); if (w) { LVDV = null; LS.set('lvdokid', +w.dataset.lvdokw); render(); return; }
+  const zz = e.target.closest('[data-lvz]'); if (zz && LVDV && LVDV.pdf) { LVDV.zoom = Math.max(0.5, Math.min(3, LVDV.zoom * (+zz.dataset.lvz > 0 ? 1.2 : 1 / 1.2))); LS.set('lvZoom', LVDV.zoom); lvDokZeichnen(LVDV); return; }
+  const dl = e.target.closest('[data-lvdokdel]'); if (dl) { try { await call('api/lvdok/' + dl.dataset.lvdokdel, 'DELETE'); LVDV = null; } catch (er) { toast(er.message, true); } return; }
+  if (e.target.closest('[data-lvdokueb]')) {
+    const A = LVDV && LVDV.A ? LVDV.A : await api(`api/lvdok/${LS.get('lvdokid') || L.dokumente[L.dokumente.length - 1].id}?auslese=1`).catch(() => null);
+    const V = (A && A.vorschlag) || []; if (!V.length) return;
+    if (posOf().length && !(await bpFrage(`${V.filter((x) => x.typ === 'pos').length} erkannte Positionen an das LV anhängen?\nVorhandene Positionen bleiben stehen.`, { ok: 'Anhängen' }))) return;
+    const alt = JSON.parse(JSON.stringify(items()));
+    L.data.items = items().concat(V.map(({ seite, ...x }) => ({ id: uid(), ...x }))); HIST.next = 'Positionen aus der PDF'; changed(true);
+    rueckgaengig(`${V.length} Zeilen aus der PDF übernommen`, () => { L.data.items = alt; changed(true); });
+  }
+});
+document.addEventListener('change', async (e) => {
+  const i = e.target.closest && e.target.closest('[data-lvdokin]'); if (!i || !i.files.length || !L) return;
+  const f = i.files[0]; i.value = ''; await lvDokHoch(L.id, f);
+});
+async function lvDokHoch(lvId, f) {
+  const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen …`);
+  try { const r = await fetch(`api/lv/${lvId}/dok`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
+    L = j; LVDOK = true; LS.set('lvdok', true); LVDV = null; LS.set('lvdokid', j.dokumente[j.dokumente.length - 1].id); tab = 'lv'; LS.set('tab', tab); render();
+    const d = j.dokumente[j.dokumente.length - 1]; toast(d.n_pos ? `${d.n_pos} Positionen erkannt – oben rechts „Erkannte übernehmen“ oder Zeile für Zeile anklicken.` : 'Keine Positionen sicher erkannt – Zeilen anklicken übernimmt sie ins gewählte Feld, Alt+Klick als neue Position.');
+  } catch (e) { toast(e.message, true); }
 }
 
 /* ---------- Leistungsverzeichnis ---------- */
@@ -923,6 +1021,8 @@ function vLv() {
       ${V ? '<button class="btn sm" data-act="nt" title="Nachtragsposition (geänderte oder zusätzliche Leistung nach § 2 Abs. 5/6 VOB/B)">+ Nachtrag</button>' : ''}
       <button class="btn sm" data-act="num" title="Ordnungszahlen neu vergeben: Titel 01, 02 …, Positionen 0010, 0020 …">Nummerieren</button>
       <button class="btn sm" data-act="bk" title="Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen">Aus Baukosten …</button>
+      <label class="btn sm" title="Ein LV als PDF oder Scan (z. B. vom Bauherrn) rechts daneben legen – Zeilen anklicken übernimmt sie, erkannte Positionen auf einmal">📄 LV-PDF daneben …<input type="file" accept=".pdf,application/pdf" hidden data-lvdokin></label>
+      ${(L.dokumente || []).length ? `<button class="btn sm${LVDOK ? ' pri' : ''}" data-lvdokan title="PDF rechts ein- oder ausblenden">${LVDOK ? 'PDF ausblenden' : 'PDF zeigen'}</button>` : ''}
       <span class="fill"></span><button class="btn sm" data-act="vorbem">${L.data.vorbem ? '✎ ' : '+ '}Vorbemerkungen</button><button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><b>Vorbemerkungen</b><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
@@ -2220,7 +2320,21 @@ function quDreh(an) {
   if (!an && o) o.remove();
 }
 const quLvLaden0 = (v) => { const t = String(v).split(':'); return (istKat(v) ? api(t[2] === 'suche' ? `api/katalog/${t[1]}/suche?q=` + encodeURIComponent(QU.q || '') + (QU.inG && QU.gw ? '&gewerk=' + encodeURIComponent(QU.gw) : '') + (QU.ber ? '&bereich=' + QU.ber : '') : `api/katalog/${t[1]}/gewerk/` + encodeURIComponent(t.slice(2).join(':'))) : api('api/lv/' + v)).catch(() => null); };
-const quLvLaden = async (v) => { quBusy(1); try { return await quLvLaden0(v); } finally { quBusy(-1); } };
+/* Zwischenspeicher der Kopierquelle: Kataloggewerke im Browser (IndexedDB, bleibt über Neuladen erhalten – bis der Katalog neu eingelesen wird),
+   Baudaten-Gruppen sofort aus dem Speicher und im Hintergrund aufgefrischt */
+const QUMEM = new Map(); let QUDBP = null;
+const quDb = () => QUDBP || (QUDBP = new Promise((ok) => { try { const r = indexedDB.open('bp-kopierquelle', 1); r.onupgradeneeded = () => r.result.createObjectStore('k'); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); } catch { ok(null); } }));
+const quCache = async (k, v) => { const d = await quDb(); if (!d) return null; return new Promise((ok) => { try { const st = d.transaction('k', v === undefined ? 'readonly' : 'readwrite').objectStore('k'); const r = v === undefined ? st.get(k) : st.put(v, k); r.onsuccess = () => ok(v === undefined ? r.result || null : v); r.onerror = () => ok(null); } catch { ok(null); } }); };
+async function quLvLadenC(v) {
+  const t = String(v).split(':'), statisch = t[0] === 'kat' && /^\d+$/.test(t[1]) && t[2] !== 'suche', bd = t[0] === 'kat' && /^bd-/.test(t[1]) && t[1] !== 'bd-korb' && t[2] !== 'suche';
+  if (!statisch && !bd) return quLvLaden0(v);
+  const kat = statisch ? ((KAT && KAT.kataloge) || []).find((x) => String(x.id) === t[1]) : null, key = v + '|' + (kat ? kat.importiert || kat.n_pos : 'bd');
+  if (QUMEM.has(key)) { if (bd) quLvLaden0(v).then((x) => { if (x) { QUMEM.set(key, x); quCache(key, x); } }); return QUMEM.get(key); }
+  const alt = await quCache(key);
+  if (alt) { QUMEM.set(key, alt); if (bd) quLvLaden0(v).then((x) => { if (x) { QUMEM.set(key, x); quCache(key, x); if (QU.lv === v) { QU.L = x; quZeigen(); } } }); return alt; }
+  const x = await quLvLaden0(v); if (x) { QUMEM.set(key, x); quCache(key, x); } return x;
+}
+const quLvLaden = async (v) => { quBusy(1); try { return await quLvLadenC(v); } finally { quBusy(-1); } };
 async function quLaden() { quBusy(1); try { await quLaden0(); } finally { quBusy(-1); } }
 async function quLaden0() {
   if (!KAT || !Array.isArray(KAT.kataloge)) KAT = await api('api/katalog').catch(() => ({ kataloge: [] })); if (!Array.isArray(KAT.kataloge)) KAT.kataloge = [];

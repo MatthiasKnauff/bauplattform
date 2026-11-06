@@ -209,6 +209,12 @@ async function laden(neu) {
   render();
   api('api/versandliste?project_id=' + pid).then((r) => { VL = r; renderTabs(); if (tab === 'liste') renderListe(); }).catch(() => {});
 }
+/* nach dem Ansehen/Markieren: Liste still auffrischen (ohne „Lade …“ und ohne Springen) */
+async function ladenStill() {
+  if (!pid || busy) return;
+  try { const N = await api(`api/plaene?project_id=${pid}`); N.frei = (N.sonstige || []).map(frei); const y = scrollY; D = N; render(); scrollTo(0, y); } catch { /* egal */ }
+}
+document.addEventListener('bph:ansehen-zu', ladenStill);
 function renderListe() {
   bar();
   if (!VL) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }

@@ -127,6 +127,24 @@ def _kat_bereich(key):
     return "Altbau / Sanierung" if key.startswith("A") or (key.isdigit() and int(key) >= 300) else "Neubau"
 
 
+_MEMO = {}
+
+
+def _memo(key, ttl, fn):
+    """Kleiner Zwischenspeicher je Prozess für große, selten geänderte Daten (Kataloge, Baudaten) – Kopierquelle öffnet schneller."""
+    import time
+    jetzt = time.time()
+    x = _MEMO.get(key)
+    if x and x[0] > jetzt:
+        return x[1]
+    v = fn()
+    if len(_MEMO) > 80:
+        for k in sorted(_MEMO, key=lambda k: _MEMO[k][0])[:20]:
+            _MEMO.pop(k, None)
+    _MEMO[key] = (jetzt + ttl, v)
+    return v
+
+
 def _kat_info(c, kid):
     r = c.execute("SELECT * FROM ava_kataloge WHERE id=?", (kid,)).fetchone()
     return {k: r[k] for k in r.keys()} if r else None
@@ -184,8 +202,11 @@ def katalog_eins(kid):
             if name:
                 c.execute("UPDATE ava_kataloge SET name=? WHERE id=?", (name, kid))
             return jsonify(kataloge=_kat_liste(c))
-        gw = c.execute("""SELECT g.gewerk, g.oz, g.kurz, (SELECT COUNT(*) FROM ava_katalog p WHERE p.katalog_id=g.katalog_id AND p.gewerk=g.gewerk AND p.typ='pos' AND p.art<>'T') AS n
-                          FROM ava_katalog g WHERE g.katalog_id=? AND g.typ='gewerk' ORDER BY g.nr""", (kid,)).fetchall()
+        def lesen():
+            n = {r["gewerk"]: r["n"] for r in c.execute("SELECT gewerk, COUNT(*) AS n FROM ava_katalog WHERE katalog_id=? AND typ='pos' AND art<>'T' GROUP BY gewerk", (kid,)).fetchall()}
+            return [{"gewerk": r["gewerk"], "oz": r["oz"], "kurz": r["kurz"], "n": n.get(r["gewerk"], 0)}
+                    for r in c.execute("SELECT gewerk, oz, kurz FROM ava_katalog WHERE katalog_id=? AND typ='gewerk' ORDER BY nr", (kid,)).fetchall()]
+        gw = _memo(("katgw", kid, info.get("importiert")), 3600, lesen)
     sir = (info.get("quelle") or "").lower().startswith("sirados")
     return jsonify(info=info, gewerke=[{"id": f"kat:{kid}:{x['gewerk']}", "nr": x["oz"], "name": x["kurz"], "n_pos": x["n"], "gewerk": "", "status": "entwurf",
                                         "archived": False, "bereich": _kat_bereich(x["gewerk"]) if sir else (info.get("name") or "")} for x in gw])
@@ -195,15 +216,25 @@ def katalog_eins(kid):
 def katalog_gewerk(kid, oz):
     with db.tx() as c:
         info = _kat_info(c, kid)
-        g_ = c.execute("SELECT * FROM ava_katalog WHERE katalog_id=? AND typ='gewerk' AND gewerk=?", (kid, oz)).fetchone()
-        if not info or not g_:
+        if not info:
             return jsonify(error="Gewerk nicht im Katalog"), 404
-        zeilen = c.execute("SELECT * FROM ava_katalog WHERE katalog_id=? AND gewerk=? AND typ<>'gewerk' ORDER BY nr", (kid, oz)).fetchall()
-        out = _kat_lv(g_["kurz"], oz, info, zeilen)
-        out["nr"] = g_["oz"]
-        if (info.get("quelle") or "").lower().startswith("sirados"):
-            out["bereich"] = _kat_bereich(oz)
-        return jsonify(out)
+
+        def lesen():
+            g_ = c.execute("SELECT * FROM ava_katalog WHERE katalog_id=? AND typ='gewerk' AND gewerk=?", (kid, oz)).fetchone()
+            if not g_:
+                return None
+            zeilen = c.execute("SELECT * FROM ava_katalog WHERE katalog_id=? AND gewerk=? AND typ<>'gewerk' ORDER BY nr", (kid, oz)).fetchall()
+            out = _kat_lv(g_["kurz"], oz, info, zeilen)
+            out["nr"] = g_["oz"]
+            if (info.get("quelle") or "").lower().startswith("sirados"):
+                out["bereich"] = _kat_bereich(oz)
+            return out
+        out = _memo(("katgwl", kid, oz, info.get("importiert")), 3600, lesen)
+        if out is None:
+            return jsonify(error="Gewerk nicht im Katalog"), 404
+        r = jsonify(out)
+        r.headers["Cache-Control"] = "private, max-age=3600"   # Katalog ändert sich nur beim Neu-Einlesen (dann neue Adresse mit ?v=)
+        return r
 
 
 @app.get("/api/katalog/<int:kid>/suche")
@@ -251,8 +282,10 @@ BD_MAX = 2000   # Positionen je Gruppe bzw. Suche in der Kopierquelle
 def bd_kataloge():
     """Kataloge der Baudaten für die Kopierquelle – ohne die der Ausschreibung (die stehen schon unter „Kataloge“)."""
     with db.tx() as c:
-        rows = c.execute("""SELECT k.key, k.name, (SELECT COUNT(*) FROM pdb_position p WHERE p.katalog = k.key AND p.aktiv = 1) AS n
-                            FROM pdb_katalog k ORDER BY k.sort, k.name""").fetchall()
+        def lesen():
+            n = {r["katalog"]: r["n"] for r in c.execute("SELECT katalog, COUNT(*) AS n FROM pdb_position WHERE aktiv=1 GROUP BY katalog").fetchall()}
+            return [{"key": r["key"], "name": r["name"], "n": n.get(r["key"], 0)} for r in c.execute("SELECT key, name FROM pdb_katalog ORDER BY sort, name").fetchall()]
+        rows = _memo(("bdkat",), 300, lesen)
         n_korb = len(baudaten.korb(c, g.user["id"]))
     return jsonify([{"id": "bd-korb", "name": "Baudaten-Korb", "quelle": "baudaten", "n_pos": n_korb}]
                    + [{"id": "bd-" + x["key"], "name": "Baudaten: " + x["name"], "quelle": "baudaten", "n_pos": x["n"]} for x in rows if x["n"]])
@@ -303,12 +336,16 @@ def bd_gruppen(key):
                                                                              "gewerk": "", "status": "entwurf", "archived": False, "bereich": "Baudaten"}])
     with db.tx() as c:
         if key == "gk3":
-            rows = c.execute("""SELECT g.nr, g.name, l.nr AS lb, l.name AS lb_name, (SELECT COUNT(*) FROM pdb_position p WHERE p.katalog='gk3' AND p.gruppe=g.nr AND p.aktiv=1) AS n
-                                FROM pdb_gruppe g JOIN pdb_leistungsbereich l ON l.nr = g.lb_nr ORDER BY g.nr""").fetchall()
+            def lesen():
+                n = {r["gruppe"]: r["n"] for r in c.execute("SELECT gruppe, COUNT(*) AS n FROM pdb_position WHERE katalog='gk3' AND aktiv=1 GROUP BY gruppe").fetchall()}
+                return [{"nr": r["nr"], "name": r["name"], "lb": r["lb"], "lb_name": r["lb_name"], "n": n.get(r["nr"], 0)}
+                        for r in c.execute("SELECT g.nr, g.name, l.nr AS lb, l.name AS lb_name FROM pdb_gruppe g JOIN pdb_leistungsbereich l ON l.nr = g.lb_nr ORDER BY g.nr").fetchall()]
+            rows = _memo(("bdgk3",), 300, lesen)
             gw = [{"id": f"kat:bd-gk3:{x['nr']}", "nr": x["nr"], "name": x["name"], "n_pos": x["n"], "gewerk": "", "status": "entwurf", "archived": False,
                    "bereich": f"{x['lb']} {x['lb_name']}"} for x in rows if x["n"]]
         else:
-            rows = c.execute("""SELECT gruppe, MIN(titel) AS titel, COUNT(*) AS n FROM pdb_position WHERE katalog=? AND aktiv=1 GROUP BY gruppe ORDER BY gruppe""", (key,)).fetchall()
+            rows = _memo(("bdgr", key), 300, lambda: [dict(gruppe=r["gruppe"], titel=r["titel"], n=r["n"]) for r in c.execute(
+                """SELECT gruppe, MIN(titel) AS titel, COUNT(*) AS n FROM pdb_position WHERE katalog=? AND aktiv=1 GROUP BY gruppe ORDER BY gruppe""", (key,)).fetchall()])
             gw = [{"id": f"kat:bd-{key}:{x['gruppe'] or '-'}", "nr": x["gruppe"], "name": x["titel"] or x["gruppe"] or "Alle", "n_pos": x["n"], "gewerk": "",
                    "status": "entwurf", "archived": False, "bereich": "Baudaten"} for x in rows]
     return jsonify(info={"id": "bd-" + key, "name": "Baudaten"}, gewerke=gw)
@@ -334,11 +371,13 @@ def bd_gruppe(key, gr):
         return jsonify({"id": "kat:bd-korb:alle", "nr": "", "name": "Korb", "projekt": "Baudaten-Korb", "katalog": True, "mehr": False,
                         "data": {"items": items}, "vergabe": {}})
     with db.tx() as c:
-        rows = c.execute(f"{SQL_BD} WHERE katalog=? AND gruppe=? AND aktiv=1 ORDER BY code LIMIT ?", (key, "" if gr == "-" else gr, BD_MAX + 1)).fetchall()
-        name = (c.execute("SELECT name FROM pdb_gruppe WHERE nr=?", (gr,)).fetchone() or {"name": gr}) if key == "gk3" else {"name": gr}
-        items = _bd_items(c, rows[:BD_MAX], key)
-    return jsonify({"id": f"kat:bd-{key}:{gr}", "nr": gr, "name": name["name"], "projekt": "Baudaten", "katalog": True, "mehr": len(rows) > BD_MAX,
-                    "data": {"items": items}, "vergabe": {}})
+        def lesen():
+            rows = c.execute(f"{SQL_BD} WHERE katalog=? AND gruppe=? AND aktiv=1 ORDER BY code LIMIT ?", (key, "" if gr == "-" else gr, BD_MAX + 1)).fetchall()
+            name = (c.execute("SELECT name FROM pdb_gruppe WHERE nr=?", (gr,)).fetchone() or {"name": gr}) if key == "gk3" else {"name": gr}
+            return {"id": f"kat:bd-{key}:{gr}", "nr": gr, "name": name["name"], "projekt": "Baudaten", "katalog": True, "mehr": len(rows) > BD_MAX,
+                    "data": {"items": _bd_items(c, rows[:BD_MAX], key)}, "vergabe": {}}
+        out = _memo(("bdgrl", key, gr), 120, lesen)
+    return jsonify(out)
 
 
 @app.get("/api/katalog/bd-<key>/suche")
@@ -894,7 +933,7 @@ def _payload(c, r):
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
                             "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"],
                             "belege": belege.get(x["id"], [])} for x in re_],
-            "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"])}
+            "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"]), "dokumente": _lvdoks(c, r["id"])}
 
 
 def _bilder(c, i):
@@ -1943,6 +1982,137 @@ def angebot_neu(i):
                   (i, cid, bieter, _s(b.get("eingang"), 10) or "", _now(), _now()))
         _touch(c, i)
         return _antwort(c, i)
+
+
+# ---------------------------------------------------------------- LV als PDF (auch Scan): daneben anzeigen, Zeilen anklicken, Positionen vorschlagen
+_LVDOK = {"ok": False}
+_EINHEITEN = r"(m2|m²|qm|m3|m³|cbm|m|lfm|lfdm|st|stk|stck|stück|psch|pausch|pschl|h|std|kg|t|to|wo|woche|mt|monat|tag|l|ltr|satz|stg)\.?"
+
+
+def _lvdok_tabelle(c):
+    if _LVDOK["ok"]:
+        return
+    c.execute("""CREATE TABLE IF NOT EXISTS ava_lvdok(id SERIAL PRIMARY KEY, lv_id INTEGER NOT NULL, name TEXT NOT NULL DEFAULT '', data BYTEA,
+                 auslese TEXT, created TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '')""")
+    _LVDOK["ok"] = True
+
+
+def _seiten_zeilen(data, seiten=60):
+    """[(Seite, Breite, Höhe, [[Wörter einer Zeile]])], bei Scans per Texterkennung (bis 30 Seiten)."""
+    import pdfplumber
+    out, ocr = [], False
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        for n, pg in enumerate(pdf.pages[:seiten], 1):
+            ws = pg.extract_words(keep_blank_chars=False, use_text_flow=False)
+            if not ws and n <= 30:
+                ws = _ocr_woerter(pg)
+                ocr = ocr or bool(ws)
+            ws = sorted(ws, key=lambda w: (float(w["top"]), float(w["x0"])))
+            zeilen = []
+            for w in ws:
+                m_ = (float(w["top"]) + float(w["bottom"])) / 2
+                if zeilen and abs(m_ - zeilen[-1][0]["_m"]) <= max(3.0, (float(w["bottom"]) - float(w["top"])) * 0.45):
+                    zeilen[-1].append(w)
+                else:
+                    w["_m"] = m_
+                    zeilen.append([w])
+            for z in zeilen:
+                z.sort(key=lambda w: float(w["x0"]))
+            out.append((n, float(pg.width), float(pg.height), zeilen))
+    return out, ocr
+
+
+def _lv_lesen(data):
+    """Zeilen mit Stelle (zum Anklicken) und ein Vorschlag für Titel/Positionen: OZ am Zeilenanfang, Menge + Einheit am Ende,
+    folgende Zeilen bis zur nächsten OZ als Langtext."""
+    S, ocr = _seiten_zeilen(data)
+    rx_oz = re.compile(r"^\d{1,4}(?:\.\d{1,4}){1,4}\.?$")
+    rx_eh = re.compile("^" + _EINHEITEN + "$", re.I)
+    zeilen, alle = {}, []
+    for n, W_, H_, Z in S:
+        zl = zeilen.setdefault(str(n), [])
+        for z in Z:
+            t = " ".join(w["text"] for w in z).strip()
+            if not t:
+                continue
+            zl.append([round(min(float(w["x0"]) for w in z) / W_, 4), round(min(float(w["top"]) for w in z) / H_, 4),
+                       round(max(float(w["x1"]) for w in z) / W_, 4), round(max(float(w["bottom"]) for w in z) / H_, 4), t[:400]])
+            alle.append((n, [w["text"] for w in z], t))
+    vor, akt = [], None
+    for n, toks, t in alle:
+        oz = toks[0].rstrip(".") if toks and (rx_oz.match(toks[0]) or (re.fullmatch(r"\d{1,2}\.?", toks[0]) and len(toks) > 1 and not any(_zahl(x) is not None for x in toks[1:]))) else None
+        if oz:
+            rest = toks[1:]
+            menge = eh = None
+            # Menge und Einheit am Ende (auch „12,500 m2 ....... ......“)
+            rr = [x for x in rest if not re.fullmatch(r"[._…\-]{2,}|€|eur", x, re.I)]
+            for k in range(len(rr) - 1, max(0, len(rr) - 5), -1):
+                if rx_eh.match(rr[k]) and k > 0 and _zahl(rr[k - 1]) is not None:
+                    menge, eh, rr = _zahl(rr[k - 1]), rr[k], rr[:k - 1]
+                    break
+                if rx_eh.match(rr[k - 1]) and _zahl(rr[k]) is not None and k > 1:
+                    menge, eh, rr = _zahl(rr[k]), rr[k - 1], rr[:k - 1]
+                    break
+            text = " ".join(rr).strip(" .:")
+            if menge is not None and text:
+                akt = {"typ": "pos", "art": "N", "oz": oz, "kurz": text[:250], "lang": "", "menge": menge, "einheit": eh, "seite": n}
+                vor.append(akt)
+                continue
+            if text and menge is None and len(rest) <= 14 and not any(_zahl(x) is not None and "," in x for x in rest):
+                akt = None
+                vor.append({"typ": "titel", "oz": oz, "kurz": text[:200], "lvl": min(3, oz.count(".") + 1), "seite": n})
+                continue
+        if akt and len(akt["lang"]) < 4000 and not re.fullmatch(r"[\s._…\-€]*|(seite|übertrag|summe|ep|gp)\b.*", t, re.I):
+            akt["lang"] = (akt["lang"] + "\n" + t).strip()
+    return {"zeilen": zeilen, "vorschlag": vor[:3000], "ocr": ocr}
+
+
+def _lvdoks(c, i):
+    _lvdok_tabelle(c)
+    out = []
+    for d in c.execute("SELECT id, name, auslese, created FROM ava_lvdok WHERE lv_id=? ORDER BY id", (i,)).fetchall():
+        A = _j(d["auslese"], {}) or {}
+        out.append({"id": d["id"], "name": d["name"], "created": d["created"], "ocr": bool(A.get("ocr")),
+                    "n_pos": sum(1 for x in A.get("vorschlag") or [] if x["typ"] == "pos"), "n_titel": sum(1 for x in A.get("vorschlag") or [] if x["typ"] == "titel")})
+    return out
+
+
+@app.post("/api/lv/<int:i>/dok")
+def lvdok_neu(i):
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei"), 400
+    data = f.read(80 * 1024 * 1024 + 1)
+    if len(data) > 80 * 1024 * 1024 or not data.startswith(b"%PDF"):
+        return jsonify(error="Bitte eine PDF-Datei (höchstens 80 MB)."), 400
+    try:
+        A = _lv_lesen(data)
+    except Exception as e:
+        A = {"zeilen": {}, "vorschlag": [], "ocr": False, "fehler": str(e)[:200]}
+    with db.tx() as c:
+        if not _lv(c, i):
+            return jsonify(error="Nicht gefunden"), 404
+        _lvdok_tabelle(c)
+        c.execute("INSERT INTO ava_lvdok(lv_id, name, data, auslese, created, user_name) VALUES(?,?,?,?,?,?)",
+                  (i, _s(f.filename, 200) or "LV.pdf", data, json.dumps(A, ensure_ascii=False), _now(), g.user["name"]))
+        _touch(c, i)
+        return _antwort(c, i)
+
+
+@app.route("/api/lvdok/<int:d>", methods=["GET", "DELETE"])
+def lvdok(d):
+    with db.tx() as c:
+        _lvdok_tabelle(c)
+        x = c.execute("SELECT * FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+        if not x or not _lv(c, x["lv_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        if request.method == "DELETE":
+            c.execute("DELETE FROM ava_lvdok WHERE id=?", (d,))
+            _touch(c, x["lv_id"])
+            return _antwort(c, x["lv_id"])
+    if request.args.get("auslese"):
+        return jsonify(_j(x["auslese"], {}) or {})
+    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
 
 
 @app.get("/api/ablage/vorschlag")

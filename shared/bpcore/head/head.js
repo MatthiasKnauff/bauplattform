@@ -1534,6 +1534,7 @@
     const key = (e) => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1); else return; e.preventDefault(); e.stopPropagation(); };
     function close(ohneZurueck) {
       if (!gv) return; tok++; skEnde(true); el.remove(); document.body.classList.remove('bph-gv-offen'); document.removeEventListener('keydown', key, true); removeEventListener('popstate', pop); gv = null;
+      setTimeout(() => document.dispatchEvent(new CustomEvent('bph:ansehen-zu')), 700);   // Apps frischen auf (z. B. „📌 markiert“ in der Planliste)
       if (!ohneZurueck && history.state && history.state.bphGv) history.back();
     }
     const pop = () => close(true);

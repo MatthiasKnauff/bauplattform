@@ -63,6 +63,23 @@ def blueprint(get_user=None):
             return jsonify(error="Interner Fehler – die Verwaltung ist informiert (System → Fehlermeldungen)."), 500
         return "Interner Fehler – die Verwaltung ist informiert.", 500
 
+    @bp.after_app_request
+    def _fehler_antwort(resp):   # behandelte Fehler mit 5xx (Dienst nicht erreichbar, Mailserver …) ebenfalls festhalten
+        try:
+            from flask import current_app, g as g_
+            if resp.status_code >= 502 and not getattr(g_, "bp_fehler_gemeldet", False) and resp.is_json:
+                d = resp.get_json(silent=True) or {}
+                if d.get("error"):
+                    try:
+                        u = user()
+                        wer = u["name"] if u else ""
+                    except Exception:
+                        wer = ""
+                    fehler.melden(current_app.import_name, "server", f"{resp.status_code}: {d['error']}", "", f"{request.method} {request.path}", wer)
+        except Exception:
+            pass
+        return resp
+
     @bp.post("/api/bp/fehler")
     def fehler_browser():
         """Fehler aus dem Browser (head.js meldet window.onerror / unbehandelte Promises)."""

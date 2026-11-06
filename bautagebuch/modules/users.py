@@ -256,6 +256,8 @@ def mail_test():
     if not me["email"]:
         return jsonify(ok=False, error="Für dein Konto fehlt die E-Mail-Adresse (Verwaltung → Benutzer & Rechte); dorthin geht die Testmail."), 400
     try:
+        from bpcore import mail as bpmail
+        bpmail.pause_aufheben()   # Testmail versucht es immer wirklich
         mail.send(conf, me["email"], "Bautagebuch – Testmail", "Der E-Mail-Versand funktioniert.")
     except mail.MailError as e:
         return jsonify(ok=False, error=str(e)), 502

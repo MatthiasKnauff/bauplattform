@@ -36,6 +36,11 @@ class MailError(Exception):
         self.dauerhaft, self.gesperrt = dauerhaft, gesperrt
 
 
+def pause_aufheben():
+    """Testmail: trotz eigener Pause wirklich versuchen (falls Microsoft die Sperre schon aufgehoben hat)."""
+    _pause["bis"] = 0.0
+
+
 def pause_text():
     return (f"Der Mailserver hat das Postfach vorübergehend gesperrt, weil zu viele Mails an ungültige Adressen gingen "
             f"(Microsoft 365: „Sender throttled“). Die Plattform versucht es ab {datetime.fromtimestamp(_pause['bis']).strftime('%H:%M')} Uhr wieder; "
@@ -44,6 +49,14 @@ def pause_text():
 
 
 def smtp_senden(cf, msg, absender, empfaenger):
+    try:
+        return _smtp_senden(cf, msg, absender, empfaenger)
+    except MailError as e:
+        _melden(e, empfaenger, msg.get("Subject", ""))
+        raise
+
+
+def _smtp_senden(cf, msg, absender, empfaenger):
     """Mail über den eingetragenen Server verschicken. Fehler als MailError (dauerhaft / gesperrt, siehe oben)."""
     if time.time() < _pause["bis"]:
         raise MailError(pause_text(), gesperrt=True)
@@ -97,7 +110,39 @@ def von(cf):
     return (cf.get("mail_from") or "").strip() or cf.get("mail_user", "")
 
 
-def send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None, reply_to=None, ical=None, html=None, from_addr=None):
+def _melden(e, to, subject):
+    """Gescheiterte Mail unter Verwaltung → System → Fehlermeldungen (Art „Mail“) festhalten – nur einmal je Fehler."""
+    if getattr(e, "gemeldet", False):
+        return
+    e.gemeldet = True
+    if True:
+        try:
+            from . import fehler
+            wer = ""
+            try:
+                from flask import g, has_request_context
+                if has_request_context():
+                    g.bp_fehler_gemeldet = True
+                    u = getattr(g, "user", None)
+                    wer = (u["name"] if u else "") or ""
+            except Exception:
+                pass
+            ziel = ", ".join([to] if isinstance(to, str) else list(to or []))
+            fehler.melden("mail", "mail", f"Mailversand gescheitert: {e}", "", f"an {ziel[:200]} · „{str(subject)[:120]}“", wer)
+        except Exception:
+            pass
+
+
+def send(cf, to, subject, body, *a, **k):
+    """Wie _send – gescheiterte Mails stehen zusätzlich unter Verwaltung → System → Fehlermeldungen."""
+    try:
+        return _send(cf, to, subject, body, *a, **k)
+    except MailError as e:
+        _melden(e, to, subject)
+        raise
+
+
+def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=None, reply_to=None, ical=None, html=None, from_addr=None):
     """to/cc: Adresse oder Liste. attachments: [(Dateiname, bytes, "maintype/subtype")].
     ical: Text einer iCalendar-Einladung (METHOD:REQUEST) – erscheint in Outlook & Co. als Termin mit Annehmen/Ablehnen."""
     if not configured(cf):

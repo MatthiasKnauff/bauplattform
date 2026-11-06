@@ -695,12 +695,12 @@ function renderFehler() {
   const art = data.fart || '';
   const L = F.filter((x) => !art || x.art === art);
   $('#main').innerHTML = `${sysNav()}<h1>Fehlermeldungen</h1>
-    <p class="mute" style="margin-top:-.3rem">Unerwartete Fehler aller Apps – auf dem Server (Programmfehler) und im Browser der Benutzer. Gleiche Fehler sind zusammengefasst. Hinweise wie „Bitte einen Titel eingeben“ stehen hier nicht.</p>
-    <div class="bar">${[['', `Alle (${F.length})`], ['server', 'Server'], ['browser', 'Browser']].map(([k, l]) => `<button class="btn sm ${k === art ? 'pri' : ''}" data-a="fart" data-fart="${k}">${l}</button>`).join('')}
+    <p class="mute" style="margin-top:-.3rem">Unerwartete Fehler aller Apps – auf dem Server (Programmfehler, Dienste nicht erreichbar), beim Mailversand und im Browser der Benutzer. Gleiche Fehler sind zusammengefasst. Hinweise wie „Bitte einen Titel eingeben“ stehen hier nicht.</p>
+    <div class="bar">${[['', `Alle (${F.length})`], ['server', 'Server'], ['mail', 'Mail'], ['browser', 'Browser']].map(([k, l]) => `<button class="btn sm ${k === art ? 'pri' : ''}" data-a="fart" data-fart="${k}">${l}</button>`).join('')}
       <span style="flex:1"></span>${data.f.ungelesen ? `<button class="btn sm" data-a="fgelesen">Alle als gelesen markieren (${data.f.ungelesen} neu)</button>` : ''}${F.length ? '<button class="btn sm danger" data-a="fleeren">Liste leeren</button>' : ''}</div>
     ${L.length ? `<div class="tbl"><table><thead><tr><th>Zuletzt</th><th>App</th><th>Meldung</th><th class="hide-s">Wo · Wer</th><th style="text-align:right">Anzahl</th><th></th></tr></thead><tbody>
     ${L.map((x) => `<tr${x.gelesen ? '' : ' style="font-weight:600"'}><td style="white-space:nowrap">${esc(dt(x.zuletzt))}${x.anzahl > 1 ? `<br><small class="mute">seit ${esc(dt(x.zuerst))}</small>` : ''}</td>
-      <td><span class="badge">${esc(x.art === 'browser' ? 'Browser' : 'Server')}</span> ${esc(x.app)}</td>
+      <td><span class="badge">${esc({ browser: 'Browser', mail: 'Mail' }[x.art] || 'Server')}</span> ${esc(x.app)}</td>
       <td style="max-width:34rem"><details><summary style="cursor:pointer">${esc(x.meldung)}</summary><pre style="white-space:pre-wrap;font-size:.75rem;max-height:20rem;overflow:auto;margin:.4rem 0 0">${esc(x.stack || '')}</pre>${x.browser ? `<small class="mute">${esc(x.browser)}</small>` : ''}</details></td>
       <td class="hide-s mute">${esc([x.pfad, x.user_name].filter(Boolean).join(' · '))}</td><td style="text-align:right">${x.anzahl}</td>
       <td><button class="btn sm" data-a="fweg" data-fid="${x.id}" title="Eintrag entfernen">✕</button></td></tr>`).join('')}

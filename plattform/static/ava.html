@@ -1545,7 +1545,7 @@ async function katalogEinstellungen(host) {
 }
 const quLvLaden = (v) => { const t = String(v).split(':'); return (istKat(v) ? api(t[2] === 'suche' ? `api/katalog/${t[1]}/suche?q=` + encodeURIComponent(QU.q || '') + (QU.inG && QU.gw ? '&gewerk=' + encodeURIComponent(QU.gw) : '') + (QU.ber ? '&bereich=' + QU.ber : '') : `api/katalog/${t[1]}/gewerk/` + encodeURIComponent(t.slice(2).join(':'))) : api('api/lv/' + v)).catch(() => null); };
 async function quLaden() {
-  if (!KAT) KAT = await api('api/katalog').catch(() => ({ kataloge: [] }));
+  if (!KAT || !Array.isArray(KAT.kataloge)) KAT = await api('api/katalog').catch(() => ({ kataloge: [] })); if (!Array.isArray(KAT.kataloge)) KAT.kataloge = [];
   if (QU.pid === 'kat') QU.pid = KAT.kataloge[0] ? 'kat:' + KAT.kataloge[0].id : null;   // vorher: ein einziger Katalog
   if (istKat(QU.pid) && !KAT.kataloge.some((x) => x.id === katId(QU.pid))) QU.pid = null;
   if (!QU.pid) QU.pid = (PROJ.find((p) => p.id !== pid) || PROJ[0] || {}).id || null;
@@ -1563,6 +1563,7 @@ function quZeigen() {
   const box = $('#quelle'), an = QU.an && tab === 'lv';
   box.hidden = !an; document.querySelector('.body').classList.toggle('mit-quelle', an); $('#quBtn').classList.toggle('on', QU.an);
   if (!an) return;
+  if (!KAT) { box.innerHTML = '<p class="mute" style="padding:1rem">Lade Kopierquelle …</p>'; return; }   // quLaden läuft noch
   const VP = (QU.L && QU.L.vergabe && QU.L.vergabe.preise) || {};
   const epq = (x) => VP[x.id] ?? x.ep_s;
   const I = quItems();
@@ -1570,7 +1571,7 @@ function quZeigen() {
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
     : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
   const lvo = QU.list.find((x) => x.id === QU.lv);
-  const sir = istKat(QU.pid) && /^sirados/i.test(((KAT.kataloge || []).find((x) => x.id === katId(QU.pid)) || {}).quelle || '');
+  const sir = istKat(QU.pid) && /^sirados/i.test((((KAT && KAT.kataloge) || []).find((x) => x.id === katId(QU.pid)) || {}).quelle || '');
   const gwName = QU.gw && ((QU.list || []).find((x) => x.id === `${QU.pid}:${QU.gw}`) || {}).name;
   box.innerHTML = `<div class="qu-h">
       <div class="rr"><select id="quProj" aria-label="Projekt der Kopierquelle">${KAT && KAT.kataloge.length ? `<optgroup label="Kataloge">${KAT.kataloge.map((x) => `<option value="kat:${x.id}"${QU.pid === 'kat:' + x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : ''}${['Projekte', 'Archiv'].map((g) => { const ps = PROJ.filter((p) => !!p.archived === (g === 'Archiv')); return ps.length ? `<optgroup label="${g}">${ps.map((p) => `<option value="${p.id}"${p.id === QU.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select><button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button><button class="ib" data-qu="zu" title="Kopierquelle schließen (schreibgeschützt – hier lässt sich nichts ändern)">✕</button></div>

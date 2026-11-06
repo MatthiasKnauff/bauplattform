@@ -969,7 +969,7 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
             if request.method == "PUT":
-                r = [str(x)[:40] for x in ((request.get_json(silent=True) or {}).get("reihenfolge") or [])[:40] if isinstance(x, str)]
+                r = [str(x)[:40] for x in ((request.get_json(silent=True) or {}).get("reihenfolge") or [])[:120] if isinstance(x, str)]   # '' = leeres Feld
                 konto._put(c, f"kacheln:{uid}", json.dumps(r), u["name"])
                 return jsonify(reihenfolge=r)
             try:

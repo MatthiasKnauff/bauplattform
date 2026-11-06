@@ -28,6 +28,9 @@
 .tiles.edit .tile:hover{transform:none}
 .tiles.edit .tile.zieh{opacity:.35}
 .tiles.edit .tile.ziel{border-color:var(--y);border-style:solid}
+.tile.leer{visibility:hidden;min-height:62px}
+.tiles.edit .tile.leer{visibility:visible;background:transparent;border:1px dashed color-mix(in srgb,var(--line) 70%,transparent);cursor:default}
+.tiles.edit .tile.leer.ziel{border:2px dashed var(--y);background:color-mix(in srgb,var(--y) 8%,transparent)}
 .ordnen-h{grid-column:1/-1;color:var(--mute);font-size:.85rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
 .ordnen-h button{border:0;background:none;color:var(--y);cursor:pointer;font:inherit;padding:0;text-decoration:underline}
 .tile span.d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -97,14 +100,25 @@ const DESC = {
 };
 /* ---------- Kacheln: eigene Reihenfolge (✎ – ziehen und ablegen, auch mit dem Finger) ---------- */
 let APPS = [], REIHE = [], ORDNEN = false;
+/* Plätze im Raster: REIHE enthält App-Schlüssel und '' für leere Felder (Lücken bleiben stehen) */
+function plaetze() {
+  const da = new Set(APPS.map((a) => a.key)), S = REIHE.map((k) => (da.has(k) ? k : '')), dabei = new Set(S);
+  APPS.forEach((a) => { if (!dabei.has(a.key)) S.push(a.key); });
+  while (S.length && !S[S.length - 1]) S.pop();
+  return S;
+}
 function kachelnZeigen() {
-  const pos = (k) => { const i = REIHE.indexOf(k); return i < 0 ? 1000 + APPS.findIndex((a) => a.key === k) : i; };
-  const L = [...APPS].sort((a, b) => pos(a.key) - pos(b.key));
-  $('#tiles').innerHTML = L.map(a => `
-    <a class="tile ${a.allowed ? '' : 'off'}" data-key="${esc(a.key)}" data-af="${esc(a.key)}" href="${a.key === 'papierkorb' ? 'papierkorb' : esc(appUrl(a)) + '/'}"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
-      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`).join('')
-    + (ORDNEN ? '<div class="ordnen-h">Kacheln an die gewünschte Stelle ziehen. <button type="button" data-ord="fertig">Fertig</button><button type="button" data-ord="zurueck">Ursprüngliche Reihenfolge</button></div>' : '');
+  const S = plaetze(), A = Object.fromEntries(APPS.map((a) => [a.key, a]));
+  $('#tiles').innerHTML = S.map((k, i) => !k ? `<div class="tile leer" data-i="${i}" aria-hidden="true"></div>` : ((a) => `
+    <a class="tile ${a.allowed ? '' : 'off'}" data-i="${i}" data-key="${esc(a.key)}" data-af="${esc(a.key)}" href="${a.key === 'papierkorb' ? 'papierkorb' : esc(appUrl(a)) + '/'}"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
+      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`)(A[k])).join('')
+    + (ORDNEN ? '<div class="ordnen-h">Kacheln auf eine andere Kachel (tauschen) oder ein leeres Feld ziehen – auch neben oder unter die anderen. <button type="button" data-ord="fertig">Fertig</button><button type="button" data-ord="zurueck">Ursprüngliche Reihenfolge</button></div>' : '');
   $('#tiles').classList.toggle('edit', ORDNEN);
+  if (ORDNEN) {   // leere Felder bis zum Zeilenende und eine ganze Zeile darunter zum Ablegen
+    const T = $('#tiles'), sp = getComputedStyle(T).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+    const n = S.length + ((sp - S.length % sp) % sp) + sp, h = T.querySelector('.ordnen-h');
+    for (let i = S.length; i < n; i++) { const d = document.createElement('div'); d.className = 'tile leer'; d.dataset.i = i; T.insertBefore(d, h); }
+  }
 }
 async function reiheSpeichern(r) { REIHE = r; try { await api('api/bp/kacheln', 'PUT', { reihenfolge: r }); } catch (e) { toast(e.message, true); } }
 function ordnen(an) { ORDNEN = an; const b = $('#ordnen'); b.classList.toggle('on', an); b.setAttribute('aria-pressed', an); b.textContent = an ? '✓' : '✎'; b.title = an ? 'Anordnen beenden' : 'Kacheln anordnen (ziehen und ablegen)'; kachelnZeigen(); }
@@ -117,7 +131,7 @@ $('#tiles').addEventListener('click', async (e) => {
   let zieh = null, geist = null, dx = 0, dy = 0;
   const T = $('#tiles');
   T.addEventListener('pointerdown', (e) => {
-    const t = ORDNEN && e.target.closest('.tile'); if (!t || e.button > 0) return;
+    const t = ORDNEN && e.target.closest('.tile:not(.leer)'); if (!t || e.button > 0) return;
     e.preventDefault(); zieh = t; const r = t.getBoundingClientRect(); dx = e.clientX - r.left; dy = e.clientY - r.top;
     geist = t.cloneNode(true); Object.assign(geist.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', pointerEvents: 'none', zIndex: 60, boxShadow: '0 10px 30px rgba(0,0,0,.3)', opacity: '.95' });
     document.body.appendChild(geist); t.classList.add('zieh'); T.setPointerCapture(e.pointerId);
@@ -127,11 +141,16 @@ $('#tiles').addEventListener('click', async (e) => {
     geist.style.left = (e.clientX - dx) + 'px'; geist.style.top = (e.clientY - dy) + 'px';
     const unter = document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.classList && x.classList.contains('tile') && x !== zieh && x !== geist);
     T.querySelectorAll('.ziel').forEach((x) => x.classList.remove('ziel'));
-    if (unter) { const r = unter.getBoundingClientRect(), nach = e.clientX > r.left + r.width / 2; unter.classList.add('ziel'); if (nach ? unter.nextElementSibling !== zieh : unter.previousElementSibling !== zieh) unter.parentNode.insertBefore(zieh, nach ? unter.nextElementSibling : unter); }
+    if (unter) unter.classList.add('ziel');
   });
   const ende = () => {
-    if (!zieh) return; zieh.classList.remove('zieh'); geist.remove(); T.querySelectorAll('.ziel').forEach((x) => x.classList.remove('ziel')); zieh = null;
-    reiheSpeichern([...T.querySelectorAll('.tile')].map((x) => x.dataset.key));
+    if (!zieh) return; const z = T.querySelector('.ziel'), von = +zieh.dataset.i;
+    zieh.classList.remove('zieh'); geist.remove(); zieh = null;
+    if (!z) return;
+    const S = [...T.querySelectorAll('[data-i]')].map((x) => x.dataset.key || ''), nach = +z.dataset.i;
+    [S[von], S[nach]] = [S[nach], S[von]];   // tauschen bzw. auf das leere Feld setzen – die alte Stelle bleibt leer
+    while (S.length && !S[S.length - 1]) S.pop();
+    reiheSpeichern(S); kachelnZeigen();
   };
   T.addEventListener('pointerup', ende); T.addEventListener('pointercancel', ende);
 })();

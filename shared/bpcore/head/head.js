@@ -1198,7 +1198,7 @@
       <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kollegen gleichzeitig" hidden>✏️ Markieren</button>
       <button type="button" data-gv="dr" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button></div><div class="bph-skl" hidden></div><div class="bph-skm" hidden><button type="button" data-skm="stift" title="Zeichnen">✏️</button><button type="button" data-skm="zeigen" title="Nur zeigen / blättern">☝</button><button type="button" data-skm="zurueck" title="Letzten Strich zurück">↶</button><button type="button" data-skm="voll" title="Leisten wieder einblenden">⤡</button></div>
       <div class="bph-gvs"></div><button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
-    document.body.appendChild(el);
+    document.body.appendChild(el); document.body.classList.add('bph-gv-offen');
     const S = el.querySelector('.bph-gvs');
     let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null, roh = null;
     const SK = { id: null, striche: [], seq: 0, werkzeug: 'stift', farbe: '#e5484d', leute: [], t: 0, zt: 0, owner: null, aus: false, dauerhaft: false, dauer: null };
@@ -1462,7 +1462,7 @@
     }
     const key = (e) => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1); else return; e.preventDefault(); e.stopPropagation(); };
     function close(ohneZurueck) {
-      if (!gv) return; tok++; skEnde(true); el.remove(); document.removeEventListener('keydown', key, true); removeEventListener('popstate', pop); gv = null;
+      if (!gv) return; tok++; skEnde(true); el.remove(); document.body.classList.remove('bph-gv-offen'); document.removeEventListener('keydown', key, true); removeEventListener('popstate', pop); gv = null;
       if (!ohneZurueck && history.state && history.state.bphGv) history.back();
     }
     const pop = () => close(true);

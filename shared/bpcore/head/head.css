@@ -176,8 +176,8 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-drb.bph-drb-if{padding:0;overflow:hidden;display:flex}
 .bph-if{flex:1;width:100%;border:0;background:transparent;min-height:0}
 /* Ansicht für Fotos und PDFs (blättern) */
-.bph-gv{position:fixed;inset:0;width:100vw;overflow:hidden;z-index:5000;background:#1b1c1e;color:#f3f3f1;display:flex;flex-direction:column;font:15px/1.4 Ubuntu,"Segoe UI",system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
-.bph-gvb{display:flex;align-items:center;gap:.35rem;padding:.4rem .5rem;background:#2b2c30;flex:none}
+.bph-gv{position:fixed;inset:0;width:auto;max-width:100%;overflow:hidden;z-index:5000;background:#1b1c1e;color:#f3f3f1;display:flex;flex-direction:column;font:15px/1.4 Ubuntu,"Segoe UI",system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
+.bph-gvb{display:flex;align-items:center;flex-wrap:wrap;gap:.35rem;padding:.45rem max(.8rem,env(safe-area-inset-right)) .45rem max(.6rem,env(safe-area-inset-left));background:#2b2c30;flex:none}
 .bph-gvb button{border:1px solid #4a4c50;background:transparent;color:inherit;border-radius:999px;min-width:40px;height:40px;font:inherit;font-size:1.05em;cursor:pointer}
 .bph-gvt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.9em}
 .bph-gvn{font-size:.85em;color:#b9b4aa;white-space:nowrap}
@@ -190,7 +190,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-gvs.bph-malen .bph-pg{touch-action:none}
 .bph-gvb .bph-skb{padding:0 .8rem}
 .bph-gvb .bph-skb.on{background:#ff5fb3;border-color:#ff5fb3;color:#111}
-.bph-skl{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;padding:.35rem .5rem;background:#232428;border-top:1px solid #3a3c40}
+.bph-skl{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;padding:.4rem max(.8rem,env(safe-area-inset-right)) .4rem max(.6rem,env(safe-area-inset-left));background:#232428;border-top:1px solid #3a3c40}
 .bph-skl[hidden]{display:none}
 .bph-voll .bph-gvb,.bph-voll .bph-skl,.bph-voll .bph-gvp{display:none!important}
 .bph-voll .bph-gvs{padding-top:max(8px,env(safe-area-inset-top))}
@@ -308,3 +308,5 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-sres button{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;text-align:left;border:1px solid var(--bph-line,#ddd);background:var(--bph-card,#fff);color:inherit;border-radius:10px;padding:.5rem .7rem;cursor:pointer;font:inherit}
 .bph-sres button:hover{border-color:var(--y,var(--bph-acc,#d9772b))}.bph-sres small{opacity:.6;font-size:.75rem}.bph-sres span{opacity:.65;font-size:.8rem}
 .bph-treffer{background:color-mix(in srgb,var(--y,var(--bph-acc,#d9772b)) 28%,transparent);border-radius:6px;transition:background .6s}
+
+body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrollbalken (der schob die Knöpfe an den Rand) */

@@ -101,6 +101,10 @@
 .fm textarea{min-height:80px;resize:vertical}
 .zc{display:grid;grid-template-columns:90px 1fr;gap:.7rem}
 .mh{display:flex;gap:.5rem;align-items:center;margin-bottom:.8rem}
+table.dup{border-collapse:collapse;width:100%;font-size:.88rem}table.dup th,table.dup td{border-bottom:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}
+table.dup thead th{vertical-align:bottom}table.dup tbody th{color:var(--mute);font-weight:500;white-space:nowrap}
+table.dup td.w{cursor:pointer;border-radius:6px}table.dup td.w:hover{background:color-mix(in srgb,var(--y) 12%,transparent)}table.dup td.on{background:color-mix(in srgb,var(--y) 20%,transparent);font-weight:600}
+table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:border-box}.dup-z,.dup-m{display:flex;gap:.3rem;align-items:center;white-space:nowrap;font-weight:500}.dup-m{font-size:.8rem;font-weight:400}
 .mh h3{margin:0;flex:1}
 .mh .x{color:var(--mute);font-size:1.3rem;padding:.2rem .5rem}
 .quick{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.9rem}
@@ -132,6 +136,7 @@
     <button class="btn sm" id="cols" aria-haspopup="true" hidden>Spalten</button>
     <button class="btn sm" id="pdf" title="Gefilterte Liste drucken oder als PDF">🖨 Drucken / PDF</button>
     <button class="btn sm" id="xlsx" title="Gefilterte Liste als Excel-Datei speichern">⤓ Speichern unter …</button>
+    <button class="btn sm" id="dup" title="Doppelte und ähnliche Adressen finden und zusammenführen">🔍 Duplikate</button>
     <button class="btn sm" id="verl" title="Geänderte und gelöschte Adressen ansehen und wiederherstellen">🕘 Verlauf</button>
     <button class="btn pri" id="neu">+ Neu</button></div>
   <div class="flt">
@@ -489,6 +494,56 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   setView(TV.view);
   if (matchMedia('(pointer:fine)').matches) $('#q').focus({ preventScroll: true });
 })().catch((e) => toast(e.message, true));
+/* ---------- Duplikate: ähnliche Adressen finden, Werte wählen, zusammenführen (Verweise in Bautagebuch, Bauzeitenplan, AVA werden umgehängt) ---------- */
+const DF = [['name', 'Firma / Name'], ['trade', 'Gewerk'], ['contact_person', 'Ansprechpartner'], ['role', 'Funktion'], ['phone', 'Telefon'], ['mobile', 'Mobil'],
+  ['email', 'E-Mail'], ['website', 'Internet'], ['street', 'Straße'], ['zip', 'PLZ'], ['city', 'Ort'], ['notes', 'Notizen']];
+async function duplikate() {
+  let G; try { G = await api('api/contacts/duplikate'); } catch (e) { toast(e.message, true); return; }
+  if (!G.length) { toast('Keine doppelten oder sehr ähnlichen Adressen gefunden.'); return; }
+  let k = 0, ziel = null, wahl = {};
+  const bg = modalBox('<div id="dupIn"></div>', async (m, bg, close) => {
+    if (m === 'x') { close(); load(); return; }
+    const g = G[k];
+    if (m === 'weiter') { k++; if (k >= G.length) { close(); load(); toast('Alle Vorschläge durchgesehen.'); return; } zeichne(true); return; }
+    if (m === 'keine') { try { await api('api/contacts/keine-duplikate', 'POST', { ids: g.ids }); } catch (e) { toast(e.message, true); return; } G.splice(k, 1); if (k >= G.length) { close(); load(); toast('Alle Vorschläge durchgesehen.'); return; } zeichne(true); return; }
+    if (m === 'ok') {
+      const quellen = g.kontakte.filter((c) => c.id !== ziel && bg.querySelector(`[data-mit="${c.id}"]`).checked).map((c) => c.id);
+      if (!quellen.length) { toast('Mindestens einen weiteren Kontakt zum Zusammenführen anhaken.', true); return; }
+      const felder = {}; DF.forEach(([f]) => { felder[f] = wahl[f] ?? ''; });
+      try { const r = await api('api/contacts/zusammenfuehren', 'POST', { ziel, quellen, felder }); toast(`${r.n + 1} Adressen zu „${felder.name}“ zusammengeführt – alle Verweise hängen jetzt dort. Zurückholen unter 🕘 Verlauf.`); }
+      catch (e) { toast(e.message, true); return; }
+      G.splice(k, 1); if (k >= G.length) { close(); load(); return; } zeichne(true);
+    }
+  });
+  bg.querySelector('.modal').style.width = 'min(1100px,100%)';
+  function vorbelegen() {
+    const g = G[k], K = g.kontakte, voll = (c) => DF.filter(([f]) => (c[f] || '').trim()).length;
+    ziel = [...K].sort((a, b) => (b.used - a.used) || (voll(b) - voll(a)) || (a.id - b.id))[0].id;
+    wahl = {}; const z = K.find((c) => c.id === ziel);
+    DF.forEach(([f]) => {
+      if (f === 'trade' || f === 'notes') { const t = [...new Set(K.flatMap((c) => String(c[f] || '').split(f === 'trade' ? /[,;]\s*/ : /\n+/).map((x) => x.trim()).filter(Boolean)))]; wahl[f] = t.join(f === 'trade' ? ', ' : '\n'); }
+      else wahl[f] = (z[f] || '').trim() || (K.map((c) => (c[f] || '').trim()).find(Boolean) || '');
+    });
+  }
+  function zeichne(neu) {
+    if (neu) vorbelegen();
+    const g = G[k], K = g.kontakte;
+    bg.querySelector('#dupIn').innerHTML = `<div class="mh"><h3 style="margin:0">Mögliche Duplikate <span class="mute" style="font-weight:400;font-size:.9rem">· ${k + 1} von ${G.length}</span></h3><button class="x" data-m="x" aria-label="Schließen">✕</button></div>
+      <p class="mute" style="margin:0 0 .6rem">${esc(g.grund)}. Werte je Zeile anklicken, die bleiben sollen; der Kontakt „bleibt“ übernimmt alle Verweise (Bautagebuch, Baustellenadresse, Bauzeitenpläne, AVA), die anderen werden gelöscht.</p>
+      <div style="overflow:auto"><table class="dup"><thead><tr><th></th>${K.map((c) => `<th><label class="dup-z"><input type="radio" name="dupZ" value="${c.id}"${c.id === ziel ? ' checked' : ''}> bleibt</label>
+        <label class="dup-m"><input type="checkbox" data-mit="${c.id}" checked${c.id === ziel ? ' disabled' : ''}> zusammenführen</label><div class="mute" style="font-weight:400;font-size:.78rem">${c.used ? `in ${c.used} Einträgen` : 'nicht verwendet'}${c.site_of ? ' · Baustelle ' + esc(c.site_of) : ''}</div></th>`).join('')}<th>Ergebnis</th></tr></thead>
+      <tbody>${DF.map(([f, l]) => { const vs = K.map((c) => (c[f] || '').trim()); if (!vs.some(Boolean)) return '';
+        const gleich = vs.every((v) => v === vs[0]);
+        return `<tr><th>${l}</th>${K.map((c, i) => `<td class="${vs[i] && vs[i] === wahl[f] ? 'on' : ''}${vs[i] && !gleich ? ' w' : ''}" ${vs[i] && !gleich ? `data-w="${f}" data-i="${i}" title="diesen Wert nehmen"` : ''}>${esc(vs[i]) || '<span class="mute">–</span>'}</td>`).join('')}
+          <td>${f === 'notes' ? `<textarea data-e="${f}" rows="2">${esc(wahl[f])}</textarea>` : `<input data-e="${f}" value="${esc(wahl[f])}">`}</td></tr>`; }).join('')}</tbody></table></div>
+      <div class="acts" style="margin-top:.8rem;display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn" data-m="keine" title="Diese Adressen sind verschieden – nicht mehr vorschlagen">Keine Duplikate</button><button class="btn" data-m="weiter">Überspringen</button><span style="flex:1"></span><button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="ok">Zusammenführen</button></div>`;
+  }
+  bg.addEventListener('click', (e) => { const w = e.target.closest('[data-w]'); if (!w) return; const g = G[k]; wahl[w.dataset.w] = (g.kontakte[+w.dataset.i][w.dataset.w] || '').trim(); zeichne(); });
+  bg.addEventListener('input', (e) => { if (e.target.dataset.e) wahl[e.target.dataset.e] = e.target.value; });
+  bg.addEventListener('change', (e) => { if (e.target.name === 'dupZ') { ziel = +e.target.value; zeichne(); } });
+  zeichne(true);
+}
+$('#dup').onclick = duplikate;
 $('#verl').onclick = () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Verlauf der Adressen' }); };
 window.bpNachVerlauf = () => load();
 </script>

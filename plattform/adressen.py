@@ -205,6 +205,74 @@ def update_contact(i):
     return jsonify(ok=True)
 
 
+_KEINDUP = "kontakte:keine_duplikate"
+
+
+def _keindup(c):
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (_KEINDUP,)).fetchone()
+    try:
+        return set(json.loads(r["data"]) if r else [])
+    except (TypeError, ValueError):
+        return set()
+
+
+@app.get("/api/contacts/duplikate")
+def duplikate():
+    """Mögliche Duplikate (gleiche E-Mail, Telefon, Internetseite, gleicher/ähnlicher Name) – Gruppen mit den Kontakten."""
+    with db.tx() as c:
+        used, site = _usage(c)
+        alle = {r["id"]: _out(r, used, site) for r in c.execute("SELECT * FROM contacts")}
+        G = shared_contacts.duplikate(c, _keindup(c))
+    return jsonify([{**g, "kontakte": [alle[i] for i in g["ids"] if i in alle]} for g in G])
+
+
+@app.post("/api/contacts/zusammenfuehren")
+def zusammenfuehren():
+    """{ziel, quellen: [...], felder: {feld: wert}} – ziel bekommt die gewählten Werte, alle Verweise der quellen werden umgehängt, quellen gelöscht."""
+    b = request.get_json(silent=True) or {}
+    ziel, quellen = b.get("ziel"), [q for q in (b.get("quellen") or []) if isinstance(q, int) and q != b.get("ziel")]
+    if not isinstance(ziel, int) or not quellen:
+        return jsonify(error="Bitte den Kontakt wählen, der bleibt, und mindestens einen weiteren."), 400
+    try:
+        felder = _clean(b.get("felder") or {}, partial=True)
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    with db.tx() as c:
+        z = c.execute("SELECT * FROM contacts WHERE id=?", (ziel,)).fetchone()
+        if not z:
+            return jsonify(error="Kontakt nicht gefunden"), 404
+        namen = []
+        for q in quellen:
+            r = c.execute("SELECT name FROM contacts WHERE id=?", (q,)).fetchone()
+            if not r:
+                continue
+            versionen.vor(c, f"kontakt:{q}")
+            shared_contacts.zusammenfuehren(c, ziel, q)
+            versionen.nach(c, f"kontakt:{q}", g.user["name"])
+            namen.append(r["name"])
+        if felder:
+            if "name" in felder and felder["name"].lower() != (z["name"] or "").lower() and c.execute("SELECT 1 FROM contacts WHERE name=? AND id<>?", (felder["name"], ziel)).fetchone():
+                return jsonify(error=DUP), 409
+            versionen.vor(c, f"kontakt:{ziel}")
+            sets = ", ".join(f"{k}=?" for k in felder)
+            c.execute(f"UPDATE contacts SET {sets}, updated=? WHERE id=?", (*felder.values(), _now(), ziel))
+            versionen.nach(c, f"kontakt:{ziel}", g.user["name"])
+    C.audit(g.user["name"], "kontakte", "Kontakte zusammengeführt", f"{', '.join(namen)} → {felder.get('name') or z['name']}")
+    return jsonify(ok=True, n=len(namen))
+
+
+@app.post("/api/contacts/keine-duplikate")
+def keine_duplikate():
+    """{ids} – diese Kontakte sind verschieden; bei der Duplikatsuche nicht mehr vorschlagen."""
+    ids = sorted({i for i in (request.get_json(silent=True) or {}).get("ids") or [] if isinstance(i, int)})
+    with db.tx() as c:
+        s_ = _keindup(c)
+        s_ |= {f"{a}-{b}" for k, a in enumerate(ids) for b in ids[k + 1:]}
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
+                  (_KEINDUP, json.dumps(sorted(s_)), _now(), g.user["name"]))
+    return jsonify(ok=True)
+
+
 @app.delete("/api/contacts/<int:i>")
 def delete_contact(i):
     with db.tx() as c:

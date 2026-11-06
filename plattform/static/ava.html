@@ -542,8 +542,8 @@ async function vleiste(neu) {
     onVerlauf: () => lvVerlauf(),
     onVerwalten: () => { if (!akt) return; modalBox(`<h3>Version „${esc(akt.name)}“</h3>
         <p><b>Archivieren</b> schiebt die Version in der Auswahl nach unten unter „Archiviert“; sie bleibt erhalten.</p>
-        <p><b>In den Papierkorb</b> nimmt die Version mit allen ihren Leistungsverzeichnissen, Angeboten, Aufmaß und Rechnungen heraus – wiederherstellen auf der Startseite unter „Papierkorb“.</p>
-        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${akt.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del"${VERS.length < 2 ? ' disabled title="Die einzige Version lässt sich nicht löschen."' : ''}>🗑 In den Papierkorb</button></div>`, async (m, bg, close) => {
+        <p><b>In den Papierkorb</b> nimmt die Version mit allen ihren Leistungsverzeichnissen, Angeboten, Aufmaß und Rechnungen heraus – wiederherstellen auf der Startseite unter „Papierkorb“.${VERS.length < 2 ? ' Da es die einzige ist, geht es danach mit einer leeren „Startversion“ weiter.' : ''}</p>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${akt.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del"${VERS.length < 2 ? ' title="Die einzige Version – danach gibt es eine leere „Startversion“"' : ''}>🗑 In den Papierkorb</button></div>`, async (m, bg, close) => {
         if (m === 'x') { close(); return; }
         try {
           if (m === 'arch') {

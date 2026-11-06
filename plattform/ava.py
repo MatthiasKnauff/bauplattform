@@ -553,11 +553,13 @@ def version_eins(vid):
         if not v or not _sees(c, v["project_id"]):
             return jsonify(error="Version nicht gefunden"), 404
         if request.method == "DELETE":
-            if c.execute("SELECT COUNT(*) AS n FROM ava_version WHERE project_id=?", (v["project_id"],)).fetchone()["n"] < 2:
-                return jsonify(error="Die einzige Version lässt sich nicht löschen."), 400
+            einzige = c.execute("SELECT COUNT(*) AS n FROM ava_version WHERE project_id=?", (v["project_id"],)).fetchone()["n"] < 2
             pr = c.execute("SELECT name FROM projects WHERE id=?", (v["project_id"],)).fetchone()
             pk = papierkorb.ablegen(c, "ava_version", vid, "AVA-Version", v["name"], g.user["name"], pr["name"] if pr else "", "ava")
-            if v["aktiv"]:
+            if einzige:   # die einzige Version: eine leere „Startversion“ übernimmt, damit das Projekt weiter eine hat
+                c.execute("INSERT INTO ava_version(project_id, name, aktiv, created, updated, updated_by) VALUES(?,?,1,?,?,?)",
+                          (v["project_id"], "Startversion", _now(), _now(), g.user["name"]))
+            elif v["aktiv"]:
                 c.execute("""UPDATE ava_version SET aktiv=1 WHERE id=(SELECT id FROM ava_version WHERE project_id=?
                              ORDER BY archived, updated DESC NULLS LAST, id DESC LIMIT 1)""", (v["project_id"],))
             C.audit(g.user["name"], "ava", "Version gelöscht", v["name"])

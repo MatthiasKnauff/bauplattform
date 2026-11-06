@@ -218,7 +218,7 @@ function renderT() {
       ${rows.map((x) => `<div class="trow" data-tid="${esc(x.id)}"><span class="tdat">${esc(deW(x.datum))}</span><span class="tl">${esc(x.leistungen.join(', '))}</span>
         <span class="st ${x.status === 'fehlt' ? 'ueberfaellig' : 'heute'}">${x.status === 'fehlt' ? 'nicht da' + (x.von ? ' · ' + esc(x.von) : '') : 'nicht bestätigt'}</span>
         <span class="tact">${x.status === 'offen' ? `<button class="btn sm" data-tset="fehlt">nicht da</button>` : ''}<button class="btn sm" data-tset="da" title="Firma war doch da">war da</button><button class="btn sm" data-tset="nein" title="Laut Plan erwartet, aber nicht nötig (z. B. Termin verschoben)">nicht nötig</button>
-        ${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) ? `<a class="btn sm" href="${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`)}" target="_blank">Bericht ↗</a>` : ''}</span></div>`).join('')}</section>`;
+        ${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) ? `<a class="btn sm" href="${appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`)}">Bericht →</a>` : ''}</span></div>`).join('')}</section>`;
   }
   $('#view').innerHTML = h;
 }
@@ -281,7 +281,7 @@ function renderM() {
   const row = (m) => `<div class="mr ${m.done ? 'done' : m.status}" data-m="${m.id}">
       <input type="checkbox" class="ck" data-done ${m.done ? 'checked' : ''} title="${m.done ? 'wieder öffnen' : 'als erledigt abhaken'}" aria-label="erledigt">
       ${thumb(m)}
-      <div class="tx"><p>${esc(m.text)}</p><small><span class="st ${m.status}">${m.done ? 'erledigt' : m.status === 'ueberfaellig' ? 'überfällig' : 'offen'}</span> · ${esc(m.art_n)} festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''} · ${appLink('bautagebuch', '') ? `<a href="${esc(appLink('bautagebuch', `#projekt=${m.pid}&bericht=${m.rid}`))}" target="_blank" rel="noopener">Bericht öffnen ↗</a>` : ''}</small></div>
+      <div class="tx"><p>${esc(m.text)}</p><small><span class="st ${m.status}">${m.done ? 'erledigt' : m.status === 'ueberfaellig' ? 'überfällig' : 'offen'}</span> · ${esc(m.art_n)} festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''} · ${appLink('bautagebuch', '') ? `<a href="${esc(appLink('bautagebuch', `#projekt=${m.pid}&bericht=${m.rid}`))}">Bericht öffnen →</a>` : ''}</small></div>
       <div class="ed"><label><span>Firma</span><input data-f="firma" value="${esc(m.firma)}" list="firmList" placeholder="wer behebt?"></label>
         <label><span>Frist</span><input type="date" data-f="frist" value="${esc(m.frist)}"></label>
         <div style="display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap">${[[7, '+1 Woche'], [14, '+2 Wo.']].map(([d, l]) => `<button class="btn sm" data-plus="${d}">${l}</button>`).join('')}${m.frist && !m.done ? '<button class="btn sm" data-kal title="Frist als Termin in meinen Kalender (Einladung per E-Mail)">📅</button>' : ''}${m.done || m.art !== 'maengel' ? '' : '<button class="btn sm" data-ruege title="Mängelrüge an die Firma als ausfüllbares PDF">✉ Mängelrüge</button>'}</div></div></div>`;
@@ -314,7 +314,7 @@ function renderE() {
     const sent = x.gesendet === 'fehler' ? '⚠ Mail nicht zustellbar – E-Mail-Adresse prüfen' : x.gesendet ? `Mail am ${de(x.gesendet)} verschickt` : '';
     return `<div class="er ${x.lage}" data-e="${x.id}"><span class="ic" title="${sn}">${ic}</span>
       <div class="tx"><b>${esc(x.titel)}</b>${x.text && x.quelle !== 'bautagebuch' ? `<p>${esc(x.text)}</p>` : x.quelle === 'bautagebuch' && x.text.split('\n').length > 1 ? `<p>${esc(x.text)}</p>` : ''}
-        <small>${esc([sn, x.projekt, x.an.length ? 'an ' + x.an.join(', ') : '', sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">öffnen ↗</a>` : ''}</small></div>
+        <small>${esc([sn, x.projekt, x.an.length ? 'an ' + x.an.join(', ') : '', sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${link ? ` · <a href="${esc(link)}">öffnen ↗</a>` : ''}</small></div>
       <div class="ac"><span class="dt">${deW(x.termin)}${x.uhrzeit ? ' · ' + esc(x.uhrzeit) : ''}</span><span class="st ${x.lage}">${{ ueberfaellig: 'überfällig', abgelaufen: 'abgelaufen', heute: 'heute', bald: 'bald', spaeter: 'geplant', erledigt: 'erledigt' }[x.lage]}</span>
         <div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : '<button class="btn sm" data-ea="kal" title="Als Termin in meinen Kalender (Einladung per E-Mail)">📅</button><button class="btn sm" data-ea="resch">Neu terminieren</button><button class="btn sm" data-ea="done">✓ Erledigt</button>'}${x.quelle === 'eigen' ? '<button class="btn sm danger" data-ea="del" aria-label="löschen">✕</button>' : ''}</div></div>
       ${OPEN === x.id ? `<div class="resch">Neuer Termin: ${[[1, 'morgen'], [3, '+3 Tage'], [7, '+1 Woche'], [0, 'nächster Montag']].map(([d, l]) => `<button class="btn sm" data-rq="${d}">${l}</button>`).join('')}

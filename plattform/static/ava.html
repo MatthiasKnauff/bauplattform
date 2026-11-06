@@ -37,7 +37,8 @@
 .vqe .leer{padding:1rem;color:var(--mute);font-size:.9rem}
 tr.vqblink td{animation:vqblink 2.2s ease-out}
 @keyframes vqblink{0%,40%{background:color-mix(in srgb,var(--y) 40%,transparent)}100%{background:transparent}}
-.save{font-size:.78rem;color:var(--mute);align-self:center;padding:0 .6rem}
+.save{font-size:.78rem;color:var(--mute);align-self:center;padding:0 .6rem;margin-left:auto}
+.rib.weg{display:none}
 .body{flex:1;display:grid;grid-template-columns:230px minmax(0,1fr);min-height:calc(100vh - 140px)}
 .nav{border-right:1px solid var(--line);background:var(--card);overflow:auto;padding:.5rem .45rem;position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);box-sizing:border-box}
 .nav .ng{margin-bottom:.35rem}
@@ -399,12 +400,11 @@ html.mobil .bph{position:sticky;top:0}
       <button class="rb" id="druBtn" data-need="lv" title="LV drucken oder als PDF – Layout wählen, Deckblatt und Texte bearbeiten; Preisspiegel, Massenermittlung"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M7 14h10v7H7z" class="ac"/></svg>Drucken / PDF</button>
     </div><div class="rl">Datenaustausch</div></div>
     <div class="rg"><div class="rr"><div class="vqb"><input type="search" id="vq" placeholder="Volltext: Text, OZ, Firma, Raum …" autocomplete="off" title="Volltextsuche in allen LVs, Angeboten, Aufmaß und Türliste (Strg+Umschalt+F)" aria-label="Volltextsuche"><label><input type="checkbox" id="vqAlle"> in allen Projekten</label></div></div><div class="rl">Suchen</div></div>
-    <span class="fill"></span><span class="save" id="save" role="status"></span>
-  </div>
+    </div>
   <div class="body">
     <aside class="nav" id="tabs" aria-label="Bereiche"></aside>
     <section class="pane">
-      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span></div>
+      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><span class="save" id="save" role="status"></span></div>
       <div class="kpi" id="kpi"></div>
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
@@ -589,6 +589,8 @@ function render() {
   $('#phT').textContent = `${(TABS.find((t) => t[0] === tab) || [, ''])[1]}${mitSel ? '' : ': ' + (NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn)}`;
   $('#kpi').hidden = !NURLV.has(tab); $('#stat').hidden = !NURLV.has(tab);
   document.querySelectorAll('[data-need="lv"]').forEach((b) => { b.disabled = !L; });
+  // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
+  $('.rib').classList.toggle('weg', !['lv', 'auftraege'].includes(tab) && document.activeElement !== $('#vq'));
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v = $('#view');
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
@@ -1589,7 +1591,7 @@ $('#vq').addEventListener('focus', () => { if ($('#vq').value.trim().length > 1)
 $('#vqAlle').addEventListener('change', () => { LS.set('vqAlle', $('#vqAlle').checked); vqSuchen(); $('#vq').focus(); });
 $('#vqAlle').checked = LS.get('vqAlle', false);
 $('#vq').addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { vqZu(); $('#vq').blur(); return; }
+  if (e.key === 'Escape') { vqZu(); $('#vq').blur(); if (!['lv', 'auftraege'].includes(tab)) $('.rib').classList.add('weg'); return; }
   if (!VQ.box || !VQ.L.length) { if (e.key === 'Enter') vqSuchen(); return; }
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); VQ.i = Math.max(0, Math.min(VQ.L.length - 1, VQ.i + (e.key === 'ArrowDown' ? 1 : -1))); VQ.box.querySelectorAll('[data-vqi]').forEach((b) => b.classList.toggle('on', +b.dataset.vqi === VQ.i)); const b = VQ.box.querySelector(`[data-vqi="${VQ.i}"]`); if (b) b.scrollIntoView({ block: 'nearest' }); }
   if (e.key === 'Enter') { e.preventDefault(); vqGehe(VQ.L[Math.max(0, VQ.i)]); }
@@ -1600,7 +1602,7 @@ document.addEventListener('mousedown', (e) => {
   if (e.target.closest('[data-vqalle]')) { e.preventDefault(); $('#vqAlle').checked = true; LS.set('vqAlle', true); vqSuchen(); return; }
   if (!e.target.closest('.vqe') && !e.target.closest('.vqb')) vqZu();
 });
-document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); $('#vq').focus(); $('#vq').select(); } });
+document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); $('.rib').classList.remove('weg'); $('#vq').focus(); $('#vq').select(); } });
 addEventListener('resize', vqZu);
 
 /* ---------- Fotos zu Positionen ---------- */

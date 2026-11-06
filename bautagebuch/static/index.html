@@ -565,7 +565,7 @@ function toast(msg, undo) {   // höchstens zwei Meldungen gleichzeitig; mit und
   setTimeout(() => t.remove(), undo ? 8000 : 5000);
 }
 
-const DANGER = new Set(['bkRestore', 'bkDel', 'restoreVer', 'delUser', 'userMail', 'delProject', 'delReport', 'delContact', 'delImg', 'delLogo']);
+const DANGER = new Set(['bkRestore', 'bkDel', 'restoreVer', 'delUser', 'userMail']);   // Löschen mit Rückgängig/Papierkorb braucht keine zweite Bestätigung
 function disarm() { clearTimeout(armedTimer); armedKey = null; document.querySelectorAll('.armed').forEach(el => { el.classList.remove('armed'); if (el._orig != null) { el.innerHTML = el._orig; el._orig = null; } }); }
 function arm(b, key) {   // erster Tipp = scharf stellen, zweiter Tipp = ausführen
   if (armedKey === key) { disarm(); return true; }
@@ -704,7 +704,7 @@ function renderSheet() {
 }
 function projBearbeiten() {   // gemeinsame Projektmaske (Kopfleiste) – true, wenn geöffnet
   if (!(window.BPHead && BPHead.projektBearbeiten) || !pid) return false;
-  BPHead.projektBearbeiten(pid, { onSaved: btGespeichert, onDelete: async (p) => { if ((await bpFrage(`Projekt „${p.name}“ mit allen Tagesberichten und Fotos in den Papierkorb legen? Wiederherstellen lässt es sich auf der Startseite unter „Papierkorb“.`))) delProject(); } });
+  BPHead.projektBearbeiten(pid, { onSaved: btGespeichert, onDelete: async () => { delProject(); } });
   return true;
 }
 async function btGespeichert(id) { await loadProjects(); await openProject(id); }   // nach der gemeinsamen Projektmaske
@@ -1870,7 +1870,8 @@ document.addEventListener('click', async e => {
     } catch (e) { return; }
     SOLL.rid = 0; openProject(pid, true);
   }
-  else if (a === 'delImg') { await api('api/images/' + id, 'DELETE'); openProject(pid, true); }
+  else if (a === 'delImg') { const r = await api('api/images/' + id, 'DELETE'); openProject(pid, true);
+    if (r && typeof r.papierkorb === 'number') toast('Foto im Papierkorb.', async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; } openProject(pid, true); }); }
   else if (a === 'print') {
     if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }
     if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('api/reports/' + rid + '/pdf'); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf

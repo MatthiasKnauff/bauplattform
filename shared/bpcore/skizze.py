@@ -10,7 +10,7 @@ import hashlib, json, re, secrets, time
 from datetime import datetime
 
 FARBEN = ["#e5484d", "#2f7fe0", "#1f9d55", "#e08a00", "#8e4ec6", "#0e9aa7"]
-ARTEN = ("stift", "marker", "text", "pfeil", "rechteck")
+ARTEN = ("stift", "marker", "text", "pfeil", "rechteck", "haken", "kreuz")
 MAX_PDF = 60 * 1024 * 1024
 
 
@@ -232,6 +232,17 @@ def pdf_mit_markierungen(c, sid):
                 return x0 + X, y0 + h - Y
             for d in striche[n]:
                 col = HexColor(d["farbe"])
+                if d["art"] in ("haken", "kreuz"):   # Prüfzeichen: grüner Haken / rotes Kreuz
+                    x, y = P(*d["pts"][0])
+                    g_ = max(6, d["breite"] * vw * 4)
+                    cv.setStrokeColor(col); cv.setLineWidth(max(1.2, g_ / 6)); cv.setLineCap(1); cv.setLineJoin(1)
+                    pth = cv.beginPath()
+                    if d["art"] == "haken":
+                        pth.moveTo(x - g_ * .5, y); pth.lineTo(x - g_ * .1, y - g_ * .45); pth.lineTo(x + g_ * .6, y + g_ * .55)
+                    else:
+                        pth.moveTo(x - g_ * .45, y + g_ * .45); pth.lineTo(x + g_ * .45, y - g_ * .45); pth.moveTo(x - g_ * .45, y - g_ * .45); pth.lineTo(x + g_ * .45, y + g_ * .45)
+                    cv.drawPath(pth, stroke=1, fill=0)
+                    continue
                 if d["art"] == "text":
                     x, y = P(*d["pts"][0])
                     cv.setFillColor(col)

@@ -1285,7 +1285,7 @@
       skModus();
     }
     /* ---------- Markieren, auch gemeinsam: Striche relativ zur Seite (0…1), Abgleich alle 0,7 s (siehe bpcore/skizze.py) ---------- */
-    const SKW = { stift: ['✏️', 'Stift', 0.0022], marker: ['🖍', 'Marker', 0.011], pfeil: ['↗', 'Pfeil', 0.0025], rechteck: ['▭', 'Rechteck', 0.0025], text: ['T', 'Text', 0.0045], zeigen: ['☝', 'Nur zeigen / blättern', 0] };
+    const SKW = { stift: ['✏️', 'Stift', 0.0022], marker: ['🖍', 'Marker', 0.011], pfeil: ['↗', 'Pfeil', 0.0025], rechteck: ['▭', 'Rechteck', 0.0025], text: ['T', 'Text', 0.0045], haken: ['✔', 'Haken (grün) – geprüft, in Ordnung', 0.004], kreuz: ['✘', 'Kreuz (rot) – gestrichen / nicht anerkannt', 0.004], zeigen: ['☝', 'Nur zeigen / blättern', 0] };
     const SKJ = (u, m, b) => KX(u, m ? { method: m, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) } : {});
     const ich = () => (H.me && H.me.id) || null;
     function skLeiste() {
@@ -1324,6 +1324,11 @@
     function skStrich(g, d, W, Hh) {
       const P = d.pts.map(([x, y]) => [x * W, y * Hh]), bw = Math.max(1, d.breite * W);
       g.strokeStyle = d.farbe; g.fillStyle = d.farbe; g.lineCap = 'round'; g.lineJoin = 'round'; g.globalAlpha = d.art === 'marker' ? 0.35 : 1; g.lineWidth = bw;
+      if (d.art === 'haken' || d.art === 'kreuz') {   // Prüfzeichen
+        const [x, y] = P[0], q = Math.max(10, bw * 4); g.strokeStyle = d.farbe; g.lineWidth = Math.max(2, q / 6); g.beginPath();
+        if (d.art === 'haken') { g.moveTo(x - q * .5, y); g.lineTo(x - q * .1, y + q * .45); g.lineTo(x + q * .6, y - q * .55); }
+        else { g.moveTo(x - q * .45, y - q * .45); g.lineTo(x + q * .45, y + q * .45); g.moveTo(x - q * .45, y + q * .45); g.lineTo(x + q * .45, y - q * .45); }
+        g.stroke(); return; }
       if (d.art === 'text') { g.font = `bold ${Math.max(10, bw * 4)}px system-ui,sans-serif`; g.textBaseline = 'bottom'; g.fillText(d.text || '', P[0][0], P[0][1]); g.globalAlpha = 1; return; }
       if (d.art === 'rechteck' && P.length > 1) { const [a, b] = [P[0], P[P.length - 1]]; g.strokeRect(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])); g.globalAlpha = 1; return; }
       const pts = d.art === 'pfeil' && P.length > 1 ? [P[0], P[P.length - 1]] : P;
@@ -1377,6 +1382,10 @@
       if (!SK.id || SK.werkzeug === 'zeigen') return;
       const p = skPunkt(e); if (!p) return;
       e.preventDefault();
+      if (SK.werkzeug === 'haken' || SK.werkzeug === 'kreuz') {   // ein Klick setzt das Prüfzeichen (Haken grün, Kreuz rot)
+        const d = { seite: p.seite, art: SK.werkzeug, farbe: SK.werkzeug === 'haken' ? '#1f9d4c' : '#e02424', breite: SKW[SK.werkzeug][2], pts: [[p.x, p.y]], tmp: true, uid: ich() };
+        SK.striche.push(d); skZeichnen(p.seite); SKJ(`api/bp/skizze/${SK.id}/strich`, 'POST', d).then((r) => { d.id = r.id; delete d.tmp; }).catch((er) => bpHinweis(er.message)); return;
+      }
       if (SK.werkzeug === 'text') {   // direkt an der Stelle im Plan tippen – Enter übernimmt, Esc verwirft
         const alt = p.wr.querySelector('.bph-sktxt'); if (alt) { alt.blur(); return; }
         const W = p.wr.getBoundingClientRect().width, fs = Math.max(10, Math.max(1, SKW.text[2] * W) * 4);

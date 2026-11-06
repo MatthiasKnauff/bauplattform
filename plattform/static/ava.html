@@ -736,8 +736,6 @@ async function lvSelAktion(a) {
     if (a === 'kopieren') return toast(`${M.length} Zeile${M.length > 1 ? 'n' : ''} kopiert – mit Strg+V hinter der markierten Zeile einfügen (auch in einem anderen LV).`);
   }
   if (a === 'ausschneiden' || a === 'loeschen') {
-    if (a === 'loeschen' && M.length > 1 && !(await bpFrage(`${M.length} Zeilen löschen? (Strg+Z holt sie zurück)`))) return;
-    if (M.some((x) => L.aufmass.some((z) => z.pos_id === x.id)) && !(await bpFrage('Zu markierten Positionen gibt es Aufmaß. Trotzdem entfernen?'))) return;
     const weg = new Set(M.map((x) => x.id)), I = items(), vor = I.findIndex((x) => weg.has(x.id)) - 1;
     L.data.items = I.filter((x) => !weg.has(x.id)); LVSEL = new Set(); LVAKT = vor >= 0 ? L.data.items[Math.min(vor, L.data.items.length - 1)]?.id || null : null;
     HIST.next = a === 'loeschen' ? `${M.length} Zeile${M.length > 1 ? 'n' : ''} gelöscht` : `${M.length} Zeile${M.length > 1 ? 'n' : ''} ausgeschnitten`; numerieren(); changed(true);
@@ -842,7 +840,6 @@ document.addEventListener('click', async (e) => {
     if (a === 'amPdf') return window.open(`api/lv/${L.id}/pdf?art=aufmass`, '_blank');
     if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
     if (a === 'vergabeWeg') {
-      if (!(await bpFrage('Vergabe aufheben? Die Auftragspreise werden entfernt.'))) return;
       const id = L.id, V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status;   // alten Stand merken
       try { await call(`api/lv/${id}/vergabe`, 'DELETE'); } catch (er) { toast(er.message, true); return; }
       if (V.angebot_id) rueckgaengig(`Vergabe an ${V.bieter || 'den Bieter'} aufgehoben`, async () => {
@@ -857,7 +854,7 @@ document.addEventListener('click', async (e) => {
   if (row && ib && tab === 'lv') {
     const i = +row.dataset.i, x = items()[i], a = ib.dataset.a;
     if (a === 'up' || a === 'down') return moveItem(i, a === 'up' ? -1 : 1);
-    if (a === 'del') { if (x.typ === 'titel' && !(await bpFrage('Titel löschen? Die Positionen darunter bleiben.'))) return; if (L.aufmass.some((z) => z.pos_id === x.id) && !(await bpFrage('Zu dieser Position gibt es Aufmaß. Trotzdem löschen?'))) return; items().splice(i, 1); numerieren(); changed(true); return; }
+    if (a === 'del') { items().splice(i, 1); numerieren(); changed(true); return; }
     if (a === 'lvl') { x.lvl = (x.lvl || 1) > 1 ? 1 : 2; numerieren(); changed(true); return; }
     if (a === 'lang') { if (OPEN.has(x.id)) OPEN.delete(x.id); else OPEN.add(x.id); render(); return; }
     if (a === 'eig') return eigDialog(x.id);
@@ -869,7 +866,6 @@ document.addEventListener('click', async (e) => {
   }
   const vg = t.closest('[data-vergabe]'); if (vg) return vergabeDialog(+vg.dataset.vergabe);
   const ad = t.closest('[data-angdel]'); if (ad) {
-    if (!(await bpFrage('Angebot löschen?'))) return;
     const id = L.id, x = JSON.parse(JSON.stringify(L.angebote.find((z) => z.id === +ad.dataset.angdel) || {})), vergeben = L.vergabe && L.vergabe.angebot_id === x.id;
     try { await call('api/angebote/' + ad.dataset.angdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }
     if (x.id && !vergeben) rueckgaengig(`Angebot ${x.bieter} gelöscht`, async () => {   // neu anlegen und Preise wieder eintragen
@@ -1259,7 +1255,7 @@ function vRechnungen() {
   const cards = [...L.rechnungen].reverse().map((r) => {
     const c = RC[r.id], g = r.status === 'geprueft', last = r.nr === Math.max(...L.rechnungen.map((x) => x.nr)), ab = r.data.abzuege || [], art = r.art || 'abschlag';
     const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
-    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}
+    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung abhaken: Summen werden automatisch mit ✔ / ✘ markiert, dann von Hand ergänzen oder streichen – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}
       <label class="btn sm">📎 Rechnung (PDF) hinzufügen<input type="file" accept="application/pdf,.pdf" hidden data-rebeleg="${r.id}"></label><span class="hint">oder hierher ziehen – wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt</span></div>`;
     const kopf = `<h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
         <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
@@ -1376,6 +1372,11 @@ async function reAktion(b) {
     if (a === 'zdel') { const alt = JSON.parse(JSON.stringify(r.data.zeilen || [])); await call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt.filter((_, k) => k !== +b.dataset.k) });
       rueckgaengig('Zeile entfernt', () => call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt })); return; }
     if (a === 'beleg') { const x = (r.belege || []).find((y) => y.id === +b.dataset.bid); if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url: 'api/belege/' + b.dataset.bid, typ: 'pdf', name: x ? x.name : 'Rechnung.pdf' }]); else location.href = 'api/belege/' + b.dataset.bid; return; }
+    if (a === 'belegpruef') {
+      const d = await api(`api/belege/${b.dataset.bid}/pruefen`, 'POST');
+      if (d.automatisch) toast(`${d.automatisch} Prüfzeichen automatisch gesetzt – mit ✔ / ✘ ergänzen, mit 🗑 bzw. ↶ entfernen.`);
+      if (window.BPHead && BPHead.skizzeOeffnen) BPHead.skizzeOeffnen(d.skizze, d.name); return;
+    }
     if (a === 'belegdel') { if (!(await bpFrage('Rechnungs-PDF hier entfernen?\nIm Projektordner bleibt sie liegen.', { ok: 'Entfernen' }))) return; return call('api/belege/' + b.dataset.bid, 'DELETE'); }
     if (a === 'abzdel') {
       const alt = JSON.parse(JSON.stringify(r.data.abzuege || [])), ab = alt.filter((_, k) => k !== +b.dataset.k), z = alt[+b.dataset.k] || {};
@@ -1394,7 +1395,6 @@ async function reAktion(b) {
     }
     if (a === 'zurueck') return call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
     if (a === 'del') {
-      if (!(await bpFrage(`${r.nr}. Rechnung löschen?`))) return;
       const id = L.id, x = JSON.parse(JSON.stringify(r)), stAlt = L.status;
       await call('api/rechnungen/' + r.id, 'DELETE');
       rueckgaengig(`${x.nr}. Rechnung gelöscht`, async () => {   // neu anlegen (gleiche Nummer, da die letzte) und Abzüge/Prüfung wieder setzen

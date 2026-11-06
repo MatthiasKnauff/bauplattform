@@ -782,8 +782,6 @@ def rechne(lv, angebote, aufmass, rechnungen):
             abz += L1 * (_f(z.get("pct")) / 100) if z.get("pct") not in (None, "") else _f(z.get("betrag"))
         L2 = L1 - abz
         std = S["pct_schluss"] if art == "schluss" else S["pct_abschlag"]
-        if g_ and rd.get("einbehalt") in (None, ""):   # schon geprüft (ohne festgehaltenen Satz): wie damals – spätere Bürgschaften ändern nichts
-            std = S["ve"]["pct"] if art != "schluss" or not (V.get("sicherheit") or {}).get("ma") else std
         if g_ and rd.get("einbehalt") in (None, ""):   # früher geprüft, Satz nicht festgehalten: wie damals gerechnet
             std = _f(V.get("einbehalt"), 5.0)
         eb_pct = _f(rd.get("einbehalt"), std) if rd.get("einbehalt") not in (None, "") else std
@@ -2193,6 +2191,89 @@ def beleg(b):
     return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
 
 
+def _beleg_markiert(c, data):
+    """Rechnung der Firma mit meinen Prüfzeichen (Haken/Kreuze, Notizen aus „prüfen“), sonst unverändert."""
+    from bpcore import skizze
+    h = hashlib.sha256(data).hexdigest()
+    sk = c.execute("""SELECT s.id FROM skizze s WHERE s.hash=? AND EXISTS (SELECT 1 FROM skizze_strich x WHERE x.skizze_id=s.id AND x.geloescht=0)
+                      ORDER BY s.updated DESC LIMIT 1""", (h,)).fetchone()
+    if not sk:
+        return data
+    try:
+        return skizze.pdf_mit_markierungen(c, sk["id"])[1]
+    except Exception:
+        return data
+
+
+_GELD = re.compile(r"^-?\d{1,3}(?:\.\d{3})*,\d{2}$|^-?\d+,\d{2}$")
+
+
+@app.post("/api/belege/<int:b>/pruefen")
+def beleg_pruefen(b):
+    """Rechnung der Firma zum Abhaken öffnen: Markier-Sitzung zur PDF (bleibt am Beleg). Beim ersten Mal setzt die Plattform
+    selbst Zeichen: geforderte Summe ✔ (stimmt mit dem geprüften Leistungsstand) bzw. ✘ mit dem geprüften Betrag daneben,
+    Rechnungsbetrag ✔/✘ gegen den geprüften Zahlbetrag brutto. Danach von Hand ergänzen, streichen, wieder löschen."""
+    from bpcore import skizze
+    with db.tx() as c:
+        _beleg_tabelle(c)
+        x = c.execute("SELECT b.*, r.lv_id, r.gefordert, r.id AS rid FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
+        lv = _lv(c, x["lv_id"]) if x else None
+        if not lv:
+            return jsonify(error="Nicht gefunden"), 404
+        data = bytes(x["data"])
+        h = hashlib.sha256(data).hexdigest()
+        alt = c.execute("SELECT id FROM skizze WHERE hash=? ORDER BY updated DESC LIMIT 1", (h,)).fetchone()
+        if alt:
+            if not skizze.darf(c, alt["id"], g.user):
+                skizze.beitreten(c, alt["id"], g.user)
+            return jsonify(skizze=alt["id"], name=x["name"])
+        sid = skizze.neu(c, g.user, x["name"], data)
+        skizze.dauerhaft_setzen(c, sid, True)   # bleibt am Beleg – auch beim normalen Ansehen sichtbar
+        ang = c.execute("SELECT * FROM ava_angebot WHERE lv_id=? ORDER BY id", (lv["id"],)).fetchall()
+        am = c.execute("SELECT * FROM ava_aufmass WHERE lv_id=? ORDER BY pos_id, datum, id", (lv["id"],)).fetchall()
+        re_ = c.execute("SELECT * FROM ava_rechnung WHERE lv_id=? ORDER BY nr", (lv["id"],)).fetchall()
+        K = rechne(lv, ang, am, re_)
+        RC = next((y for y in K["rechnungen"] if y["id"] == x["rid"]), None)
+        gef = x["gefordert"] or 0
+    zeichen = []
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            seiten = pdf.pages[:30]
+            for n, pg in enumerate(seiten, 1):
+                W_, H_ = float(pg.width), float(pg.height)
+                for w in pg.extract_words(keep_blank_chars=False):
+                    t = w["text"].strip().rstrip("€").strip()
+                    if not _GELD.match(t):
+                        continue
+                    v = float(t.replace(".", "").replace(",", "."))
+                    pos = [min(1.0, (float(w["x1"]) + 8) / W_), (float(w["top"]) + float(w["bottom"])) / 2 / H_]
+                    if RC and gef and abs(v - gef) < 0.01:
+                        ok = abs(gef - (RC["leistung"] - RC["nachlass"])) <= 1
+                        zeichen.append((n, "haken" if ok else "kreuz", pos, None if ok else f"geprüft {_eur(RC['leistung'] - RC['nachlass'])}"))
+                    zeichen.append((n, "_geld", pos, v))
+        if RC and zeichen:   # Rechnungsbetrag: der unterste Betrag auf der letzten Seite mit Beträgen (Endbetrag)
+            letzte = max(z[0] for z in zeichen if z[1] == "_geld")
+            gross = max((z for z in zeichen if z[1] == "_geld" and z[0] == letzte), key=lambda z: z[2][1])
+            if not (gef and abs(gross[3] - gef) < 0.01):
+                ok = abs(gross[3] - RC["brutto"]) <= 1
+                zeichen.append((gross[0], "haken" if ok else "kreuz", gross[2], None if ok else f"Zahlung lt. Prüfung {_eur(RC['brutto'])} brutto"))
+    except Exception:
+        zeichen = []
+    with db.tx() as c:
+        for n, art, pos, txt in zeichen:
+            if art == "_geld":
+                continue
+            skizze.strich(c, sid, g.user, {"seite": n, "art": art, "farbe": "#1f9d4c" if art == "haken" else "#e02424", "breite": 0.004, "pts": [pos]})
+            if txt:
+                skizze.strich(c, sid, g.user, {"seite": n, "art": "text", "farbe": "#e02424", "breite": 0.0035, "pts": [[max(0.03, pos[0] - 0.32), min(0.99, pos[1] + 0.024)]], "text": txt})
+    return jsonify(skizze=sid, name=x["name"], automatisch=sum(1 for z in zeichen if z[1] != "_geld"))
+
+
+def _eur(v):
+    return f"{v:,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def urllib_quote(s):
     import urllib.parse
     return urllib.parse.quote(s or "Rechnung.pdf")
@@ -2229,9 +2310,6 @@ def rechnung(k):
                            for z in b["zeilen"][:200] if isinstance(z, dict)]
         if "betrag" in b:   # Freigabe der Sicherheit
             d["betrag"] = round(_f(b["betrag"], 0, 0), 2)
-        if b.get("status") == "geprueft" and status != "geprueft" and d.get("einbehalt") in (None, "") and x["art"] != "sicherheit":   # Satz festhalten
-            S_ = sicherheit_conf(_j(r["vergabe"], {}) or {})
-            d["einbehalt"] = S_["pct_schluss"] if x["art"] == "schluss" else S_["pct_abschlag"]
         if b.get("status") == "geprueft" and status != "geprueft":   # Prüfung abschließen: Aufmaßstand festhalten
             am = {}
             for z in c.execute("SELECT pos_id, menge FROM ava_aufmass WHERE lv_id=?", (x["lv_id"],)):
@@ -2883,7 +2961,7 @@ def lv_pdf(i):
                 from pypdf import PdfReader, PdfWriter
                 with db.tx() as c2:
                     _beleg_tabelle(c2)
-                    bl = [bytes(b["data"]) for b in c2.execute("SELECT data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
+                    bl = [_beleg_markiert(c2, bytes(b["data"])) for b in c2.execute("SELECT data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
                 if bl:
                     w = PdfWriter()
                     for part in [pdf] + bl:

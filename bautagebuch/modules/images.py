@@ -1,5 +1,5 @@
 import json
-from flask import Blueprint, jsonify, request, send_file, send_from_directory
+from flask import Blueprint, g, jsonify, request, send_file, send_from_directory
 from core import db, settings, storage, sync
 
 bp = Blueprint("images", __name__)
@@ -67,8 +67,13 @@ def update_image(i):
 
 @bp.delete("/api/images/<int:i>")
 def delete_image(i):
+    """Foto in den Papierkorb (Datei bleibt liegen, bis der Papierkorb geleert wird) – „Rückgängig“ holt es zurück."""
+    from bpcore import papierkorb
     with db.tx() as c:
+        r = c.execute("SELECT i.*, p.name AS projekt FROM images i LEFT JOIN reports rp ON rp.id = i.report_id LEFT JOIN projects p ON p.id = rp.project_id WHERE i.id=?", (i,)).fetchone()
+        if not r:
+            return jsonify(ok=True)
         files = db.image_files(c, "id=?", (i,))
-        c.execute("DELETE FROM images WHERE id=?", (i,))
-    storage.drop(files)
-    return jsonify(ok=True)
+        pk = papierkorb.ablegen(c, "images", i, "Foto", (r["caption"] if "caption" in r.keys() else "") or "Foto", g.user["name"] if getattr(g, "user", None) else "",
+                                r["projekt"] or "", "bautagebuch", dateien=files)
+    return jsonify(ok=True, papierkorb=pk)

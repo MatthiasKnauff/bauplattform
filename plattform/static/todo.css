@@ -4,6 +4,8 @@
 .todo .post-h h2{margin:0;font-size:1.1rem}.todo .post-h .mute{font-size:.85rem}
 .todo .fehler{color:#b33;font-size:.82rem;margin-top:.5rem}
 .todo .tdalle{display:inline-block;margin-top:.6rem;font-size:.88rem;color:var(--y);text-decoration:none}.todo .tdalle:hover{text-decoration:underline}
+.todo .tq-p{display:flex;align-items:center;gap:.35rem;font-size:.85rem;color:var(--mute);margin:.1rem 0 .2rem}.todo .tq-p b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.todo .tq-p button{border:0;background:none;color:var(--mute);cursor:pointer;padding:0 .2rem;font-size:.9rem}
 .todo .tq{display:flex;gap:.4rem;margin:.1rem 0 .4rem}
 .todo .tq input{flex:1;min-width:0;font:inherit;padding:.45rem .7rem;border-radius:10px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
 .todo .tq input:focus{border-color:var(--y);outline:none}

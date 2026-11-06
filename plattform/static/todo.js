@@ -26,10 +26,22 @@ function tdProjektAus(t) {
   }
   // sonst ein Wort, das genau ein Projekt trifft: „Tierheim anrufen“ → A481 Tierheim Grillostr. 24, Essen („Essen“ allein passt auf viele → nichts)
   for (const w of String(t || '').toLowerCase().match(/[a-zäöüß][a-zäöüß-]{3,}/g) || []) {
-    const treffer = P.filter((x) => (x.name || '').toLowerCase().includes(w));
+    const kern = (n) => (n || '').toLowerCase().replace(/,[^,]*$/, '');   // ohne Ort am Ende („…, Essen“) – „essen gehen“ ist kein Projekt
+    const treffer = P.filter((x) => kern(x.name).includes(w));
     if (treffer.length === 1) return treffer[0];
   }
   return null;
+}
+let TDPROJ = null;   // in der Zeile „Neue Aufgabe“ vorgewähltes Projekt (gilt für die nächsten Aufgaben, bis ✕)
+const tdFokus = () => setTimeout(() => { const i = $('#tdNeu'); if (i) { i.value = ''; i.focus(); } }, 0);
+function tdNurProjekt(t, gew) {
+  const P = (TDREF && TDREF.projekte) || [], s = t.toLowerCase().replace(/[.,;:]+$/, '').trim();
+  if (gew) { const p = P.find((x) => x.id === gew); if (p && s === (p.name || '').toLowerCase()) return p; }
+  const exakt = P.find((x) => (x.name || '').toLowerCase() === s || ((x.name || '').split(/\s+/)[0] || '').replace(/[.,:;]+$/, '').toLowerCase() === s);
+  if (exakt) return exakt;
+  const w = s.split(/\s+/).filter(Boolean);   // alle Wörter stecken im Namen genau eines Projekts („tierheim“, „a481 tierheim“)
+  const T = w.length && w.length <= 4 ? P.filter((x) => w.every((y) => (x.name || '').toLowerCase().includes(y))) : [];
+  return T.length === 1 ? T[0] : null;
 }
 async function tdLaden() {
   try { TD = await api('api/bp/todo'); } catch (e) { TD = { auto: [], manuell: [], fehler: [e.message] }; }
@@ -104,6 +116,7 @@ function tdZeigen() {
   const sort = (a, b) => (b.prio || 0) - (a.prio || 0) || (a.f || '9').localeCompare(b.f || '9') || (a.titel || '').localeCompare(b.titel || '');
   const app = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'aufgaben' && a.allowed), appL = app ? appUrl(app) + '/#todos' : '';
   let html = `<div class="post-h"><h2>☑ To-dos</h2><span class="mute">${offen.length} offen</span></div>
+    ${TDPROJ ? `<div class="tq-p">für <b>${esc(TDPROJ.name)}</b><button type="button" data-td="tqweg" title="Ohne Projekt weiter" aria-label="Projekt entfernen">✕</button></div>` : ''}
     <form class="tq" data-td="neuform"><input id="tdNeu" data-bp-projekt="wort" placeholder="+ Neue Aufgabe – z. B. „A480 Statik nachfordern bis Fr“" autocomplete="off" aria-label="Neue Aufgabe" title="Projektkürzel, Ort oder Name tippen (z. B. A48, Tierheim, Krefeld) – passende Projekte und Ordner werden vorgeschlagen"><button class="btn sm pri">Anlegen</button></form>`;
   if (TDOFFEN === 'neu') html += `<div class="tr">${tdEditor({ titel: (TD._neu || {}).titel, faellig: (TD._neu || {}).faellig, pid: window.BPHead && BPHead.projektId ? BPHead.projektId() : null, personen: [], mail: true })}</div>`;
   let n = 0, rest = TDKLEIN ? 6 : 1e9;   // Startseite: nur die dringendsten sechs
@@ -148,8 +161,11 @@ document.addEventListener('submit', async (e) => {
   if (!e.target.closest('[data-td="neuform"]')) return; e.preventDefault();
   const inp = $('#tdNeu'), t = inp.value.trim(); if (!t) return;
   const x = tdDatumAus(t), gew = +inp.dataset.btId || null;   // aus der Vorschlagsliste gewähltes Projekt
-  await tdRef(); const pk = tdProjektAus(t);   // Kürzel im Text (z. B. A480) schlägt das Projekt oben
-  try { const r = await api('api/bp/todo', 'POST', { ...x, pid: pk ? pk.id : gew || (window.BPHead && BPHead.projektId ? BPHead.projektId() : null) }); delete inp.dataset.btId; TD.manuell.unshift(r.aufgabe); tdZeigen(); toast(`Aufgabe angelegt${x.faellig ? ' – fällig ' + tdDatum(x.faellig) : ''}. Antippen, um Beteiligte oder Notiz zu ergänzen.`); }
+  await tdRef();
+  const nurProjekt = tdNurProjekt(t, gew);   // nur ein Projekt getippt („A480“, „Tierheim“) → Projekt vorwählen, keine Aufgabe
+  if (nurProjekt) { TDPROJ = nurProjekt; delete inp.dataset.btId; tdZeigen(); tdFokus(); return; }
+  const pk = tdProjektAus(t) || (gew && (TDREF.projekte || []).find((p) => p.id === gew)) || TDPROJ;   // sonst: Projekt im Text, vorgewählt – nie automatisch das Projekt oben
+  try { const r = await api('api/bp/todo', 'POST', { ...x, pid: pk ? pk.id : null }); delete inp.dataset.btId; TD.manuell.unshift(r.aufgabe); tdZeigen(); tdFokus(); toast(`Aufgabe angelegt${pk ? ' – ' + pk.name : ' – ohne Projekt'}${x.faellig ? ', fällig ' + tdDatum(x.faellig) : ''}.`); }
   catch (er) { toast(er.message, true); }
 });
 document.addEventListener('click', async (e) => {
@@ -165,6 +181,7 @@ document.addEventListener('click', async (e) => {
     if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: +te.querySelector('[data-tf="pid"]').value || null, onPick: (id, p) => setze(id, p && p.name) });
     return;
   }
+  if (a === 'tqweg') { TDPROJ = null; tdZeigen(); tdFokus(); return; }
   if (a === 'erin' && x) {
     if (TDOFFEN === x.key) { TDOFFEN = null; tdZeigen(); return; }
     const ap = tdAufg(); if (!ap) return toast('Für „Aufgaben & Mängel“ ist dein Konto nicht freigeschaltet.', true);

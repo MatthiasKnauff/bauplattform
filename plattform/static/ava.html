@@ -400,6 +400,9 @@ tr.am-lf td input{color:#c0621f}
 .am-mk{position:absolute;transform:translateY(-55%);font-weight:800;font-size:clamp(11px,1.6vw,17px);line-height:1;pointer-events:none;white-space:nowrap;z-index:2}
 .am-mk.ok{color:#1f9d4c}.am-mk.no{color:#e02424}.am-mk small{position:absolute;right:-.2em;top:110%;font-size:clamp(8px,.72vw,11px);font-weight:700;background:#fff;border:1px solid #e02424;border-radius:4px;padding:0 .3em;box-shadow:0 1px 3px #0003}
 @media (max-width:900px){.am-split{grid-template-columns:1fr}.am-r{position:static;height:70vh}}
+.nav-baum{margin:.1rem 0 .35rem .85rem;padding-left:.15rem;border-left:1px solid var(--line);font-size:.8rem}
+.nav-baum .pj-r{grid-template-columns:.8rem 14px minmax(0,1fr);padding:.18rem .3rem;gap:.25rem}.nav-baum .pj-r.root{grid-template-columns:14px minmax(0,1fr)}
+.nav-baum .pj-r .v{display:none}.nav-baum .pj-r.k{padding-left:1rem}.nav-baum .pj-r .t small{font-size:.7rem}
 .pjw{display:grid;grid-template-columns:17.5rem minmax(0,1fr);gap:.9rem;align-items:start}.pjw.zu{grid-template-columns:2.2rem minmax(0,1fr)}
 .pjm{min-width:0}
 .pj{position:sticky;top:.5rem;max-height:calc(100vh - 140px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.25rem 0 .4rem;font-size:.86rem}
@@ -797,7 +800,7 @@ document.addEventListener('drop', (e) => {
 });
 
 /* ---------- Projektbaum links (LV, Angebote, Aufmaßprüfung, Rechnungen) ---------- */
-const PJTABS = new Set(['angebote', 'aufmass', 'rechnungen']);   // im LV steht der Projektbaum in der Tabelle selbst
+const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);   // Projektbaum links in der Navigation unter dem gewählten Bereich
 let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
 function pjBaum() {
   const xs = LIST.filter((x) => !x.archived && (tab === 'lv' || tab === 'angebote' || x.vergeben));
@@ -805,8 +808,7 @@ function pjBaum() {
   const titel = { lv: 'Leistungsverzeichnisse', angebote: 'Angebote', aufmass: 'Aufmaßprüfung', rechnungen: 'Rechnungen' }[tab];
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
   if (L && !PJX.size) PJX.add(L.id);
-  const out = [`<div class="pj-h"><b>${titel}</b><button type="button" class="ib" data-pjzu title="${PJZU ? 'Projektbaum zeigen' : 'Projektbaum einklappen'}">${PJZU ? '»' : '«'}</button></div>`,
-    `<div class="pj-r root">${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${e0(xs.reduce((a, x) => a + (tab === 'aufmass' ? x.leistung : tab === 'rechnungen' ? x.abgerechnet : tab === 'angebote' ? x.min_angebot : (x.auftrag || x.schaetzung)), 0))}</span></div>`];
+  const out = [`<div class="pj-r root" title="${esc(titel)}">${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${e0(xs.reduce((a, x) => a + (tab === 'aufmass' ? x.leistung : tab === 'rechnungen' ? x.abgerechnet : tab === 'angebote' ? x.min_angebot : (x.auftrag || x.schaetzung)), 0))}</span></div>`];
   if (!xs.length) out.push(`<p class="hint" style="padding:.3rem .5rem">${tab === 'lv' || tab === 'angebote' ? 'Noch kein LV.' : 'Noch nichts vergeben.'}</p>`);
   xs.forEach((x) => {
     const kids = tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : tab === 'lv' ? [] : x.rechnungen;
@@ -851,7 +853,7 @@ function render() {
   const n = { lv: posOf().length, angebote: L ? L.angebote.length : 0, aufmass: L ? new Set(L.aufmass.map((a) => a.pos_id)).size : 0, rechnungen: L ? L.rechnungen.length : 0, auftraege: LIST.filter((x) => !x.archived).length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
   $('#tabs').innerHTML = (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
-    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')}</div>`).join('')
+    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>${tab === k && PJTABS.has(k) && LIST.some((x) => !x.archived) ? `<div class="nav-baum" id="pjTree">${pjBaum()}</div>` : ''}`).join('')}</div>`).join('')
     + `<label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Dokument ablegen</b><small>Angebot, LV, Aufmaß, Rechnung · PDF, Scan, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,application/pdf"></label>`;
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   const mitSel = NURLV.has(tab) && tab !== 'lv' && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
@@ -863,11 +865,6 @@ function render() {
   $('.rib').classList.toggle('weg', !['lv', 'auftraege'].includes(tab) && document.activeElement !== $('#vq'));
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
-  if (PJTABS.has(tab) && LIST.some((x) => !x.archived)) {   // wie in ORCA: links der Projektbaum (alle LVs mit Angeboten bzw. Rechnungen), rechts das Gewählte
-    if (!v0.querySelector(':scope > .pjw')) v0.innerHTML = '<div class="pjw"><aside class="pj" id="pjTree" aria-label="Projektbaum"></aside><div class="pjm" id="pjMain"></div></div>';
-    v0.querySelector('.pjw').classList.toggle('zu', PJZU || (tab === 'lv' && QU.an));   // mit Kopierquelle braucht das LV den Platz
-    $('#pjTree').innerHTML = pjBaum(); v = $('#pjMain');
-  }
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); return; }
   if (tab === 'tueren') { vTueren(v); return; }
@@ -1042,7 +1039,7 @@ function vLv() {
     ${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><b>Vorbemerkungen</b><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
-      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace('<tr class="wurzel lvz">', vorher + '<tr class="wurzel lvz">')}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
+      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^<tr class="wurzel">.*?<\/tr>\s*/s, '')}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
 document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen
@@ -1434,7 +1431,7 @@ $('#moreBtn').onclick = () => {
 /* ---------- Angebote, Preisspiegel, Vergabe ---------- */
 function vAngebote() {
   const P = posOf().filter((x) => !x.nt), A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe;
-  const head = `<div class="bar"><button class="btn sm pri" data-act="bieter">+ Bieter</button><button class="btn sm" data-act="x84">⇣ Angebot einlesen (GAEB X84 / Excel)</button>
+  const head = `<div class="bar"><button class="btn sm pri" data-act="bieter">+ Bieter</button>
     <span class="fill"></span>${A.length ? '<button class="btn sm" data-act="ps">Preisspiegel PDF</button>' : ''}</div>
     ${V.bieter ? `<div class="vb"><span>✓ Vergeben an <b>${esc(V.bieter)}</b> am ${de(V.datum)} · Auftrag ${eur(K.auftrag)}${V.nachlass ? ` (nach ${nf(V.nachlass, 2)} % Nachlass)` : ''}</span>
       <label class="hint">Sicherheitseinbehalt <input data-ang="einbehalt" value="${nf(V.einbehalt ?? 5, 2)}" style="width:4rem" inputmode="decimal"> %</label><span class="fill"></span><button class="btn sm" data-act="vergabeWeg">Vergabe aufheben</button></div>` : ''}`;

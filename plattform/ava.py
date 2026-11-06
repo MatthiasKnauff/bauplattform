@@ -1945,6 +1945,40 @@ def angebot_neu(i):
         return _antwort(c, i)
 
 
+@app.post("/api/lv/<int:i>/angebot-pdf")
+def angebot_pdf(i):
+    """Angebot als PDF (auch Scan): Einheitspreise je LV-Position erkennen (Menge × EP = GP) und als Angebot des Bieters eintragen."""
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei"), 400
+    data = f.read(80 * 1024 * 1024)
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        try:
+            A = _auslesen(data, (_j(r["data"], {}) or {}).get("items") or [])
+        except Exception as e:
+            return jsonify(error=f"PDF lässt sich nicht lesen: {e}"), 400
+        preise = {pid: t["ep"] for pid, t in (A.get("pos") or {}).items() if t.get("ep") is not None}
+        if not preise:
+            return jsonify(error="In der PDF keine Preise zu den Positionen dieses LV gefunden (Zuordnung über die OZ; Menge × EP = GP muss aufgehen)."), 400
+        bieter = _s(request.form.get("bieter"), 200) or _s(f.filename, 200)
+        cid = request.form.get("contact_id", type=int)
+        a = c.execute("SELECT id, preise FROM ava_angebot WHERE lv_id=? AND (contact_id=? OR lower(bieter)=lower(?))", (i, cid, bieter)).fetchone()
+        if a:
+            P = {**(_j(a["preise"], {}) or {}), **preise}
+            c.execute("UPDATE ava_angebot SET preise=?, quelle='pdf', updated=? WHERE id=?", (json.dumps(P), _now(), a["id"]))
+        else:
+            c.execute("INSERT INTO ava_angebot(lv_id, contact_id, bieter, eingang, preise, quelle, created, updated) VALUES(?,?,?,?,?,?,?,?)",
+                      (i, cid, bieter, date.today().isoformat(), json.dumps(preise), "pdf", _now(), _now()))
+        _touch(c, i)
+        out = _payload(c, c.execute("SELECT * FROM ava_lv WHERE id=?", (i,)).fetchone())
+        n_lv = sum(1 for x in (_j(r["data"], {}) or {}).get("items") or [] if x.get("typ") == "pos" and x.get("art") != "T")
+        out["hinweis"] = f"{len(preise)} von {n_lv} Preisen von „{bieter}“ aus der PDF übernommen" + (" (Scan, per Texterkennung – bitte prüfen)" if A.get("ocr") else "") + "."
+        return jsonify(out)
+
+
 @app.route("/api/angebote/<int:a>", methods=["PUT", "DELETE"])
 def angebot(a):
     b = request.get_json(silent=True) or {}
@@ -2391,6 +2425,146 @@ def _auslese_anwenden(c, bid, rid, lv):
         if K.get("schluss") and R["art"] == "abschlag" and not c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND art='schluss'", (R["lv_id"],)).fetchone():
             c.execute("UPDATE ava_rechnung SET art='schluss' WHERE id=?", (rid,))
     return A
+
+
+def _pdf_text(data, seiten=10):
+    """Text einer PDF (bei Scans per Texterkennung) – zeilenweise, für die Erkennung von Art, Firma und Projekt."""
+    import pdfplumber
+    out, ocr = [], False
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        for n, pg in enumerate(pdf.pages[:seiten], 1):
+            ws = pg.extract_words(keep_blank_chars=False, use_text_flow=False)
+            if not ws and n <= 4:
+                ws = _ocr_woerter(pg)
+                ocr = ocr or bool(ws)
+            ws.sort(key=lambda w: (round(float(w["top"]) / 4), float(w["x0"])))
+            zeile, y = [], None
+            for w in ws:
+                if y is not None and abs(float(w["top"]) - y) > 4:
+                    out.append(" ".join(zeile)); zeile = []
+                y = float(w["top"]); zeile.append(w["text"])
+            if zeile:
+                out.append(" ".join(zeile))
+    return "\n".join(out), ocr
+
+
+_DOKARTEN = {
+    "rechnung": r"(abschlags|schluss|teil|regie|stundenlohn|nachtrags)?rechnung\b|rechnungs(nummer|nr|datum|betrag)|zahlbar (bis|sofort|innerhalb)",
+    "angebot": r"\b(nachtrags)?angebot\b|angebots(nummer|nr|datum|summe)|bindefrist|gültig bis|wir bieten",
+    "aufmass": r"aufma(ß|ss)|mengenermittlung|massenermittlung|abrechnungszeichnung",
+    "lv": r"leistungsverzeichnis|leistungsbeschreibung|angebotsaufforderung|ausschreibung",
+}
+
+
+@app.post("/api/ava/erkennen")
+def ava_erkennen():
+    """Eine beliebige Datei für die AVA: Art (Angebot, LV, Aufmaß, Rechnung), Firma, Projekt und passendes LV erkennen –
+    die Seite fragt dann nach und legt sie an der richtigen Stelle ab."""
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei"), 400
+    data, name = f.read(80 * 1024 * 1024 + 1), (f.filename or "")
+    if len(data) > 80 * 1024 * 1024:
+        return jsonify(error="Datei zu groß (höchstens 80 MB)."), 400
+    nl, out = name.lower(), {"name": name}
+    text, items_d = "", []
+    if re.search(r"\.(x|d|p)8[1-6]$|\.x3[1-2]$", nl) or data[:400].lstrip().startswith(b"<?xml") and b"GAEB" in data[:4000]:
+        try:
+            G = gaeb.lesen(data)
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        dp = int(G.get("dp") or 0)
+        out.update(format="gaeb", dp=dp, dok={84: "angebot", 85: "angebot", 31: "aufmass"}.get(dp, "lv"), sicher=True,
+                   firma=G.get("bieter") or "", lv_name=G.get("lv_name") or "", n_pos=sum(1 for x in G["items"] if x["typ"] == "pos"))
+        text = " ".join(filter(None, [G.get("projekt") or "", G.get("lv_name") or "", G.get("bieter") or ""]))
+        items_d = G["items"]
+    elif nl.endswith((".xlsx", ".xlsm")):
+        try:
+            G = _excel_lesen(data)
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        mit = sum(1 for x in G["items"] if x["typ"] == "pos" and x.get("ep") is not None)
+        out.update(format="excel", dok="angebot" if mit else "lv", sicher=False, firma="", lv_name=G.get("lv_name") or "",
+                   n_pos=sum(1 for x in G["items"] if x["typ"] == "pos"))
+        items_d = G["items"]
+        text = name
+    elif data.startswith(b"%PDF"):
+        try:
+            text, ocr = _pdf_text(data)
+        except Exception as e:
+            return jsonify(error=f"PDF lässt sich nicht lesen: {e}"), 400
+        kopf = "\n".join(text.splitlines()[:40]).lower()
+        punkte = {k: len(re.findall(rx, kopf, re.I)) * 3 + len(re.findall(rx, text.lower() + " " + nl, re.I)) for k, rx in _DOKARTEN.items()}
+        if re.search(r"rechnung", nl):
+            punkte["rechnung"] += 5
+        if re.search(r"angebot", nl):
+            punkte["angebot"] += 5
+        if re.search(r"aufma", nl):
+            punkte["aufmass"] += 5
+        best = sorted(punkte.items(), key=lambda kv: -kv[1])
+        out.update(format="pdf", ocr=ocr, dok=best[0][0] if best[0][1] else "", sicher=bool(best[0][1] and best[0][1] >= 2 * max(1, best[1][1])),
+                   punkte=punkte, nachtrag=bool(re.search(r"nachtrag", kopf)), regie=bool(re.search(r"regie|stundenlohn", kopf + nl)),
+                   schluss=bool(re.search(r"schlussrechnung", kopf)), text=bool(text.strip()))
+        if not text.strip():
+            out["hinweis"] = "Die PDF hat keinen lesbaren Text – bitte Art, Projekt und LV wählen."
+    else:
+        return jsonify(error="Unbekanntes Format – bitte PDF, GAEB (X81–X86) oder Excel."), 400
+    tl = text.lower()
+    with db.tx() as c:
+        # Firma: bekannte Adresse, deren Name im Text steht (die längste gewinnt); sonst die erste Zeile (Briefkopf)
+        if not out.get("firma"):
+            best = None
+            for k in c.execute("SELECT id, name FROM contacts WHERE coalesce(trade,'') NOT IN ('Bauherr','Baustelle') AND length(name) >= 4").fetchall():
+                kn = k["name"].lower()
+                if kn in tl and (not best or len(kn) > len(best["name"])):
+                    best = k
+            if best:
+                out.update(firma=best["name"], contact_id=best["id"])
+            elif out.get("format") == "pdf":
+                erste = next((z.strip() for z in text.splitlines() if len(z.strip()) > 3 and not re.match(r"^(rechnung|angebot|seite)\b", z.strip(), re.I)), "")
+                out["firma"] = re.split(r"\s[·|–-]\s", erste)[0][:120]
+        # Projekt: Projektnummer (z. B. A497), Straße oder Name im Text
+        P = []
+        for p in c.execute("SELECT id, name, street, city, leaders, archived FROM projects").fetchall():
+            lead = _j(p["leaders"], []) or []
+            if not (g.user["is_admin"] or not lead or g.user["id"] in lead):
+                continue
+            sc = 0
+            m = re.match(r"^\s*([A-Z]\d{3,4})\b", p["name"] or "")
+            if m and re.search(r"\b" + re.escape(m.group(1).lower()) + r"\b", tl):
+                sc += 10
+            for w in re.findall(r"[a-zäöüß]{5,}", ((p["street"] or "") + " " + (p["name"] or "")).lower()):
+                if w not in ("straße", "strasse", "essen", "projekt") and w in tl:
+                    sc += 3
+            if p["city"] and p["city"].lower() in tl:
+                sc += 1
+            if sc:
+                P.append({"id": p["id"], "name": p["name"], "punkte": sc - (2 if p["archived"] else 0)})
+        P.sort(key=lambda x: -x["punkte"])
+        out["projekte"] = P[:5]
+        if not P:   # Vorschlag für ein neues Projekt: Zeile mit „Bauvorhaben / BV / Projekt“
+            m = re.search(r"(?:bauvorhaben|\bbv\b|projekt|baustelle|objekt)\s*[:.]?\s*(.{6,80})", text, re.I)
+            out["projekt_vorschlag"] = m.group(1).strip(" :,-") if m else ""
+        # LVs der Kandidaten: wie viele OZ der Datei passen, Firma = Auftragnehmer/Bieter, Gewerk im Text
+        toks = set(re.findall(r"\b\d+(?:[.\-/]\d+)+\b|\b\d{3,}\b", text))
+        oz_d = {_ozn(x.get("oz")) for x in items_d if x.get("typ") == "pos" and x.get("oz")}
+        tn = {_ozn(t) for t in toks} | oz_d
+        fl = (out.get("firma") or "").lower()
+        lvs = []
+        for pr in (P[:3] or ([{"id": request.form.get("project_id", type=int)}] if request.form.get("project_id") else [])):
+            for r in c.execute("SELECT * FROM ava_lv WHERE project_id=? AND " + AKTIV + " AND archived=0 ORDER BY nr, id", (pr["id"],)).fetchall():
+                I = [x for x in (_j(r["data"], {}) or {}).get("items") or [] if x.get("typ") == "pos" and x.get("oz")]
+                tr = sum(1 for x in I if _ozn(x["oz"]) in tn or any(len(t) > len(_ozn(x["oz"])) and t[-len(_ozn(x["oz"])):] == _ozn(x["oz"]) for t in tn if len(_ozn(x["oz"])) >= 2))
+                V = _j(r["vergabe"], {}) or {}
+                bieter = [a["bieter"] for a in c.execute("SELECT bieter FROM ava_angebot WHERE lv_id=?", (r["id"],)).fetchall()]
+                firma_ok = bool(fl) and any(b_ and (b_.lower() in fl or fl in b_.lower()) for b_ in [V.get("bieter") or ""] + bieter)
+                gw = bool(r["gewerk"]) and r["gewerk"].lower() in tl or bool(r["name"]) and r["name"].lower() in tl
+                sc = tr + (20 if firma_ok else 0) + (5 if gw else 0)
+                lvs.append({"id": r["id"], "project_id": r["project_id"], "nr": r["nr"], "name": r["name"], "treffer": tr, "firma": firma_ok,
+                            "vergeben": bool(V.get("preise") or V.get("frei")), "bieter": V.get("bieter") or "", "punkte": sc})
+        lvs.sort(key=lambda x: -x["punkte"])
+        out["lvs"] = lvs[:12]
+    return jsonify(out)
 
 
 @app.post("/api/belege/<int:b>/auslesen")

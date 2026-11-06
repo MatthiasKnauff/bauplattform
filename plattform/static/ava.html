@@ -413,6 +413,10 @@ tr.am-lf td input{color:#c0621f}
 .pj-r .car{cursor:pointer;color:var(--mute);text-align:center}.pj-r .ok{color:var(--ok);font-weight:600}.pj-r .offen{color:#e0a030}
 .pj-blink{animation:pjb 1.5s ease}@keyframes pjb{0%,60%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
+.ava-drop{display:flex;flex-direction:column;align-items:center;gap:.15rem;margin:.8rem .3rem .4rem;padding:.7rem .5rem;border:2px dashed var(--line);border-radius:10px;text-align:center;cursor:pointer;color:var(--mute);font-size:.85rem}
+.ava-drop b{color:var(--ink)}.ava-drop small{font-size:.72rem;line-height:1.25}.ava-drop:hover{border-color:var(--y);color:var(--ink)}
+body.ava-ziehen .ava-drop{border-color:var(--y);background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink)}
+body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV, Aufmaß oder Rechnung und fragt, wohin";position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);padding:.6rem 1rem;border-radius:10px;font-size:.9rem;pointer-events:none;box-shadow:0 6px 20px #0004}
 </style>
 </head>
 <body>
@@ -611,6 +615,124 @@ function kpis() {
     <div><small>abgerechnet</small><b>${K.abgerechnet ? eur0(K.abgerechnet) : '–'}</b></div>`;
   $('#stat').innerHTML = '<span class="hint">Stand:</span>' + STATUS.map(([k, l]) => `<button type="button" data-status="${k}" class="${L.status === k ? 'on' : ''}">${l}</button>`).join('');
 }
+/* ---------- Ein Ablagefeld für die ganze AVA: Datei erkennen (Art, Firma, Projekt, LV), nachfragen, an die richtige Stelle ---------- */
+const DOKN = { angebot: 'Angebot', rechnung: 'Rechnung', aufmass: 'Aufmaß', lv: 'Leistungsverzeichnis (Muster-LV)' };
+async function avaDokumente(files) { for (const f of [...files]) { const ok = await avaDokument(f); if (ok === false) break; } }
+async function avaDokument(f) {
+  const fd = new FormData(); fd.append('datei', f); if (pid) fd.append('project_id', pid);
+  toast(`„${f.name}“ wird gelesen …`);
+  let E;
+  try { const r = await fetch('api/ava/erkennen', { method: 'POST', body: fd, credentials: 'same-origin' }); E = await r.json(); if (!r.ok) throw new Error(E.error || 'Fehler ' + r.status); }
+  catch (e) { toast(e.message, true); return; }
+  if (!KONT) KONT = await api('api/kontakte').catch(() => []);
+  return new Promise((fertig) => {
+    let projId = (E.projekte[0] || {}).id || pid || null, lvs = E.lvs || [];
+    const projOpts = () => `${E.projekte.length ? `<optgroup label="erkannt">${E.projekte.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</optgroup>` : ''}
+      <optgroup label="alle Projekte">${PROJ.filter((p) => !p.archived && !E.projekte.some((q) => q.id === p.id)).map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</optgroup><option value="neu">＋ neues Projekt anlegen …</option>`;
+    const lvOpts = (art) => `${lvs.filter((x) => x.project_id === projId).map((x) => `<option value="${x.id}">${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.bieter ? ' · ' + esc(x.bieter) : ''}${x.treffer ? ` · ${x.treffer} Pos. passen` : ''}${x.firma ? ' · Firma passt' : ''}</option>`).join('')}${art === 'lv' || art === 'rechnung' ? `<option value="neu">＋ neues LV${art === 'rechnung' ? ' (Rechnung ohne LV)' : ''}</option>` : ''}`;
+    const was = [E.format === 'gaeb' ? `GAEB X${E.dp}` : E.format === 'excel' ? 'Excel' : E.ocr ? 'PDF-Scan (Texterkennung)' : 'PDF', E.n_pos ? `${E.n_pos} Positionen` : '', E.regie ? 'Regie/Stundenlohn' : '', E.schluss ? 'Schlussrechnung' : '', E.nachtrag ? 'Nachtrag' : ''].filter(Boolean).join(' · ');
+    const bg = modalBox(`<h3>Dokument ablegen</h3><p class="hint" style="margin:0 0 .6rem"><b>${esc(f.name)}</b> · ${esc(was)}${E.sicher ? '' : ' · <span style="color:#e07b3a">Art nicht sicher erkannt – bitte prüfen</span>'}${E.hinweis ? ' · ' + esc(E.hinweis) : ''}</p>
+      <div class="fm"><label for="adArt">Was ist es?</label><select id="adArt">${Object.entries(DOKN).map(([k, l]) => `<option value="${k}"${k === (E.dok || 'rechnung') ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <label for="adProj">Projekt</label><select id="adProj">${projOpts()}</select>
+      <label for="adLv">LV / Auftrag</label><select id="adLv"></select>
+      <label for="adFirma">Firma</label><input id="adFirma" list="adFirmen" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer"><datalist id="adFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist></div>
+      <p class="hint" id="adWohin" style="margin:.5rem 0 0"></p>
+      <div class="acts"><button class="btn" data-m="x">${files_rest() ? 'Überspringen' : 'Abbrechen'}</button><button class="btn pri" data-m="ok">Ablegen</button></div>`, async (m, bg, close) => {
+      if (m === 'x') { close(); fertig(); return; }
+      if (m !== 'ok') return;
+      const art = bg.querySelector('#adArt').value, lvv = bg.querySelector('#adLv').value, firma = bg.querySelector('#adFirma').value.trim();
+      if (!projId) { toast('Bitte ein Projekt wählen.', true); return; }
+      close();
+      try { await avaAblegen(f, E, { art, projId, lv: lvv === 'neu' || !lvv ? null : +lvv, firma }); } catch (e) { toast(e.message, true); }
+      fertig();
+    });
+    const zeichne = async () => {
+      const art = bg.querySelector('#adArt').value;
+      if (projId && !lvs.some((x) => x.project_id === projId)) {   // LVs des gewählten Projekts nachladen
+        const L2 = await api('api/lv?project_id=' + projId).catch(() => []);
+        lvs = lvs.concat(L2.filter((x) => !x.archived).map((x) => ({ id: x.id, project_id: projId, nr: x.nr, name: x.name, bieter: x.auftragnehmer, vergeben: x.vergeben, treffer: 0 })));
+      }
+      bg.querySelector('#adProj').value = projId ? String(projId) : '';
+      const sel = bg.querySelector('#adLv'), alt = sel.value; sel.innerHTML = lvOpts(art); if ([...sel.options].some((o) => o.value === alt)) sel.value = alt;
+      if (art === 'lv' && !sel.value) sel.value = 'neu';
+      const x = lvs.find((y) => y.id === +sel.value);
+      bg.querySelector('#adWohin').innerHTML = art === 'lv' ? (sel.value === 'neu' ? 'Wird als neues LV angelegt' + (E.format === 'pdf' ? ' – aus einer PDF lassen sich keine Positionen lesen, bitte GAEB oder Excel; die PDF wird nicht übernommen.' : '.') : 'Positionen werden an das gewählte LV angehängt.')
+        : art === 'angebot' ? 'Preise werden als Angebot der Firma eingetragen (Zuordnung über die Ordnungszahl) – danach im Preisspiegel.'
+        : sel.value === 'neu' ? 'Neues LV ohne Positionen, Auftrag frei an die Firma – die Rechnung wird mit dem Betrag erfasst (Kostenkontrolle).'
+        : `Kommt als PDF zur ${x && !x.vergeben ? 'Rechnung (das LV ist noch nicht vergeben – Auftrag wird frei an die Firma eingetragen)' : 'offenen Rechnung des Auftrags'} und wird in der Aufmaßprüfung neben der Prüfung angezeigt.`;
+    };
+    bg.addEventListener('change', async (e) => {
+      if (e.target.id === 'adProj') {
+        if (e.target.value === 'neu') {
+          e.target.value = projId ? String(projId) : '';
+          if (window.BPHead && BPHead.projektBearbeiten) BPHead.projektBearbeiten(null, { name: E.projekt_vorschlag || '', onSaved: async (nid) => { PROJ = await api('api/projekte'); projId = nid; bg.querySelector('#adProj').innerHTML = projOpts(); zeichne(); } });
+          return;
+        }
+        projId = +e.target.value;
+      }
+      zeichne();
+    });
+    zeichne();
+  });
+  function files_rest() { return false; }
+}
+async function projGehe(id) {
+  if (id === pid) return;
+  await flush(); pid = id; LS.set('pid', pid); if (window.BPHead) await BPHead.projektSetzen(pid);
+  if (!PROJ.some((p) => p.id === id)) PROJ = await api('api/projekte');
+  const sel = $('#proj'); if (sel && ![...sel.options].some((o) => +o.value === id)) { const o = document.createElement('option'); o.value = id; o.textContent = (PROJ.find((p) => p.id === id) || {}).name || ''; sel.appendChild(o); } if (sel) sel.value = String(id);
+  LIST = await api('api/lv?project_id=' + pid); vleiste();
+}
+async function avaAblegen(f, E, o) {
+  await projGehe(o.projId);
+  const K = (KONT || []).find((k) => k.name.toLowerCase() === (o.firma || '').toLowerCase());
+  let lvId = o.lv;
+  if (!lvId) {   // neues LV
+    const name = (o.art === 'lv' ? E.lv_name : '') || (o.art === 'rechnung' ? (o.firma || 'Rechnung') : f.name.replace(/\.[^.]+$/, ''));
+    const r = await api('api/lv', 'POST', { project_id: o.projId, name, gewerk: K ? K.trade || '' : '', nr: String(LIST.length + 1).padStart(2, '0') }); lvId = r.id;
+    if (o.art === 'rechnung') await api(`api/lv/${lvId}/vergabe`, 'POST', { frei: true, bieter: o.firma || 'Firma', contact_id: K ? K.id : null, summe: 0, einbehalt: 0 });
+    await refreshList();
+  }
+  await openLv(lvId);
+  if (o.art === 'lv') {
+    if (E.format === 'pdf') { tab = 'lv'; LS.set('tab', tab); render(); toast('Aus einer PDF lassen sich keine Positionen lesen – bitte als GAEB (X81/X83) oder Excel ablegen.', true); return; }
+    IMP = { ziel: 'lv', ersetzen: false }; tab = 'lv'; LS.set('tab', tab); render(); await doImport(f); return;
+  }
+  if (o.art === 'angebot') {
+    tab = 'angebote'; LS.set('tab', tab); render();
+    if (E.format === 'pdf') {
+      const fd = new FormData(); fd.append('datei', f); fd.append('bieter', o.firma || f.name); if (K) fd.append('contact_id', K.id);
+      const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
+      L = j; render(); toast(j.hinweis || 'Angebot übernommen.'); refreshList(); return;
+    }
+    IMP = { ziel: 'angebot', bieter: o.firma, contact_id: K ? K.id : null }; await doImport(f); return;
+  }
+  // Rechnung / Aufmaß: PDF in die Aufmaßprüfung (offene Rechnung, sonst neue)
+  if (E.format !== 'pdf') throw new Error('Rechnungen und Aufmaße bitte als PDF ablegen.');
+  if (!vergeben()) { await call(`api/lv/${lvId}/vergabe`, 'POST', { frei: true, bieter: o.firma || 'Firma', contact_id: K ? K.id : null, summe: 0, einbehalt: 0 }); toast(`Auftrag frei an „${o.firma || 'Firma'}“ eingetragen.`); }
+  if (!L.rechnungen.some((r) => r.status !== 'geprueft') && E.regie && !(L.calc.auftrag && posOf().length)) await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'regie' });
+  if (!L.rechnungen.some((r) => r.status !== 'geprueft') && E.schluss) await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'schluss' });
+  tab = 'aufmass'; amAns = 'erfassen'; LS.set('tab', tab); LS.set('amAns', amAns); render();
+  await amBelegHoch([f]);
+}
+document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-avadropin]'); if (i && i.files.length) { const fs = [...i.files]; i.value = ''; avaDokumente(fs); } });
+/* irgendwo auf die Seite ziehen (außer auf eigene Ablagen wie Rechnung, Aufmaß, Foto am Langtext): das gemeinsame Ablagefeld */
+const AVAEIGEN = '[data-amdrop],[data-redrop],tr.lang,.modal-bg,.bph-dlg-bg,.bed';
+document.addEventListener('dragover', (e) => {
+  if (![...(e.dataTransfer.types || [])].includes('Files')) return;
+  const eigen = e.target.closest && e.target.closest(AVAEIGEN), feld = e.target.closest && e.target.closest('[data-avadrop]');
+  document.body.classList.toggle('ava-ziehen', !eigen || !!feld);
+  if (!eigen || feld) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }
+});
+document.addEventListener('dragleave', (e) => { if (!e.relatedTarget || !document.body.contains(e.relatedTarget)) document.body.classList.remove('ava-ziehen'); });
+document.addEventListener('drop', (e) => {
+  document.body.classList.remove('ava-ziehen');
+  if (!e.dataTransfer.files.length) return;
+  const eigen = e.target.closest && e.target.closest(AVAEIGEN), feld = e.target.closest && e.target.closest('[data-avadrop]');
+  if (eigen && !feld) return;
+  e.preventDefault(); avaDokumente(e.dataTransfer.files);
+});
+
 /* ---------- Projektbaum links (LV, Angebote, Aufmaßprüfung, Rechnungen) ---------- */
 const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
 let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
@@ -644,8 +766,8 @@ function pjFokus() {
   const F = PJF; PJF = null; if (!F || !F.sub) return;
   const id = +F.sub.slice(1); let el = null;
   if (tab === 'angebote') { const i = document.querySelector(`th input[data-aid="${id}"]`); el = i && i.closest('th'); if (el) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); }
-  else if (tab === 'rechnungen') { el = document.querySelector(`.card[data-reid="${id}"]`); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
-  else if (tab === 'aufmass') { el = document.querySelector(`tr[data-amr="r${id}"]`); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  else if (tab === 'rechnungen') { el = document.querySelector(`.card[data-reid="${id}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  else if (tab === 'aufmass') { el = document.querySelector(`tr[data-amr="r${id}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
   if (el) { el.classList.add('pj-blink'); setTimeout(() => el.classList.remove('pj-blink'), 1600); }
 }
 document.addEventListener('click', async (e) => {
@@ -666,7 +788,8 @@ function render() {
   const n = { lv: posOf().length, angebote: L ? L.angebote.length : 0, aufmass: L ? new Set(L.aufmass.map((a) => a.pos_id)).size : 0, rechnungen: L ? L.rechnungen.length : 0, auftraege: LIST.filter((x) => !x.archived).length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
   $('#tabs').innerHTML = (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
-    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')}</div>`).join('');
+    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')}</div>`).join('')
+    + `<label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Dokument ablegen</b><small>Angebot, LV, Aufmaß, Rechnung · PDF, Scan, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,application/pdf"></label>`;
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   const mitSel = NURLV.has(tab) && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
   $('#sel').hidden = !mitSel;
@@ -1205,21 +1328,33 @@ function vAmBaum() {
   const RE = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
   const live = L.calc.aufmass || {};
   const staende = []; let vorher = {};
+  const RC_ = Object.fromEntries((L.calc.rechnungen || []).map((x) => [x.id, x]));
+  const ohneAm = (r) => r.art === 'regie' || r.art === 'sicherheit' || (RC_[r.id] && RC_[r.id].frei);   // laufen nicht über das Aufmaß
+  const letzteAm = [...RE].reverse().find((r) => !ohneAm(r));
   RE.forEach((r, k) => {
+    const sub = [r.re_nr ? 'Nr. ' + r.re_nr : '', r.status === 'geprueft' ? 'geprüft' : 'in Prüfung'].filter(Boolean).join(' · ');
+    if (ohneAm(r)) { staende.push({ key: 'r' + r.id, titel: reTitel(r), sub: sub + ' · ' + (r.art === 'regie' ? 'Stundenlohn, ohne Aufmaß' : r.art === 'sicherheit' ? 'ohne Aufmaß' : 'Betrag frei geprüft, ohne Aufmaß'), ohne: r, letzte: k === RE.length - 1 }); return; }
     const st = r.status === 'geprueft' && r.data && r.data.stand ? r.data.stand : live;
-    staende.push({ key: 'r' + r.id, titel: r.art === 'schluss' ? 'Schlussrechnung' : `${r.nr}. Teilrechnung`, sub: [r.re_nr ? 'Nr. ' + r.re_nr : '', r.status === 'geprueft' ? 'geprüft' : 'in Prüfung'].filter(Boolean).join(' · '), st, vorher, letzte: k === RE.length - 1 });
+    staende.push({ key: 'r' + r.id, titel: reTitel(r), sub, st, vorher, letzte: r === letzteAm && (r.status !== 'geprueft' || k === RE.length - 1) });
     if (r.status === 'geprueft') vorher = st;
   });
-  if (!RE.length || RE[RE.length - 1].status === 'geprueft') staende.push({ key: 'rlive', titel: RE.length ? 'Aufmaß seit der letzten Rechnung' : 'Aufmaß (noch keine Rechnung)', sub: 'noch nicht abgerechnet', st: live, vorher, letzte: true });
+  if (!letzteAm || letzteAm.status === 'geprueft') staende.push({ key: 'rlive', titel: RE.length ? 'Aufmaß seit der letzten Rechnung' : 'Aufmaß (noch keine Rechnung)', sub: 'noch nicht abgerechnet', st: live, vorher, letzte: true });
   const offen = (k, def) => (k in AMX ? AMX[k] : def);
   const e2 = (v) => (v ? eur(v).replace(' €', '') : '');
   const prog = (x, m) => { const ep = VP[x.id]; if (ep == null || x.entf) return 0; const q = ohneGB(x) ? m : Math.max(x.menge || 0, m); return q * ep; };
   const summe = (st, von, bis) => { let g = 0, p = 0; for (let i = von; i < bis; i++) { const x = I[i]; if (x.typ !== 'pos' || x.art === 'T' || (x.nt && x.nt_status === 'abgelehnt')) continue; const ep = VP[x.id]; if (ep == null) continue; const m = st[x.id] || 0; g += m * ep; p += prog(x, m); } return [g, p]; };
   const ende = (i) => { const lv = I[i].lvl || 1; let j = i + 1; while (j < I.length && !(I[j].typ === 'titel' && (I[j].lvl || 1) <= lv)) j++; return j; };
-  const [gAll, pAll] = summe(staende.length ? staende[staende.length - 1].st : live, 0, I.length);
+  const mitAm = staende.filter((S) => !S.ohne);
+  const [gAll, pAll] = summe(mitAm.length ? mitAm[mitAm.length - 1].st : live, 0, I.length);
   const out = [], car = (k, on) => `<span class="car" data-amx="${k}">${on ? '▾' : '▸'}</span>`;
   out.push(`<tr class="root"><td><span class="tw">${IC.proj}<span>LV ${esc(L.nr)} ${esc(L.name)}${L.vergabe && L.vergabe.bieter ? ' · ' + esc(L.vergabe.bieter) : ''}</span></span></td><td></td><td></td><td></td><td class="r">${e2(gAll * (1 - nl))}</td><td class="r">${e2(pAll * (1 - nl))}</td></tr>`);
   staende.forEach((S) => {
+    if (S.ohne) {   // Regie-, freie Rechnung, Freigabe der Sicherheit: Betrag statt Aufmaß, Zeilen der Regierechnung
+      const r = S.ohne, c = RC_[r.id] || {}, on = offen(S.key, false), Z = r.art === 'regie' ? r.data.zeilen || [] : [];
+      out.push(`<tr class="rech" data-amr="${S.key}"><td><span class="tw" style="padding-left:1.1rem">${Z.length ? car(S.key, on) : '<span class="car"></span>'}${IC.lv}<span><b>${esc(S.titel)}</b> <span class="mu">${esc(S.sub)}</span></span></span></td><td></td><td></td><td></td><td class="r">${e2(c.leistung)}</td><td class="r"></td></tr>`);
+      if (on) Z.forEach((z) => out.push(`<tr><td><span class="tw" style="padding-left:3.3rem">${IC.pos}<span>${esc(z.text || '')}</span></span></td><td class="r">${nf3(z.menge || 0)} ${esc(z.einheit || '')}</td><td></td><td class="r">${z.ep != null ? nf2(z.ep) : ''}</td><td class="r">${e2((z.menge || 0) * (z.ep || 0))}</td><td></td></tr>`));
+      return;
+    }
     const on = offen(S.key, S.letzte), [g, p] = summe(S.st, 0, I.length);
     out.push(`<tr class="rech${S.letzte ? ' akt' : ''}" data-amr="${S.key}"><td><span class="tw" style="padding-left:1.1rem">${car(S.key, on)}${IC.lv}<span><b>${esc(S.titel)}</b> <span class="mu">${esc(S.sub)}</span></span></span></td><td></td><td></td><td></td><td class="r">${e2(g * (1 - nl))}</td><td class="r">${on ? '' : e2(p * (1 - nl))}</td></tr>`);
     if (!on) return;

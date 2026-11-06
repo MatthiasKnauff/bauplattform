@@ -161,10 +161,71 @@ def gruppen(c, lb, katalog="gk3"):
     return [x.dict() for x in rows]
 
 
+# ---------------------------------------------------------------- Korb: Positionen in den Baudaten sammeln, später in ein LV / in die Kosten übernehmen
+KORB_MAX = 500
+
+
+def korb(c, uid):
+    from . import konto
+    try:
+        ids = json.loads(konto._get(c, f"pdbkorb:{uid}") or "[]")
+    except ValueError:
+        ids = []
+    return [i for i in ids if isinstance(i, int)]
+
+
+def korb_setzen(c, uid, ids, wer=""):
+    from . import konto
+    ids = list(dict.fromkeys(i for i in ids if isinstance(i, int)))[-KORB_MAX:]
+    konto._put(c, f"pdbkorb:{uid}", json.dumps(ids), wer)
+    return ids
+
+
+def korb_positionen(c, uid):
+    """Positionen im Korb (Reihenfolge wie hinzugefügt), Preise auf heute umgerechnet – Felder wie suche()."""
+    ids = korb(c, uid)
+    if not ids:
+        return []
+    E, fk = einstellungen(c), {}
+    rows = {r["id"]: r.dict() for r in c.execute(f"{SQL_LISTE} WHERE p.id = ANY(?)", (ids,)).fetchall()}
+    out = []
+    for i in ids:
+        d = rows.get(i)
+        if not d:
+            continue
+        f = fk.setdefault(d["katalog"], umrechnung(c, d["katalog"], E))
+        for k in ("ep_von", "ep_mittel", "ep_bis"):
+            d[k + "_akt"] = _rund(d[k] * f) if d[k] is not None else None
+        out.append(d)
+    return out
+
+
+def register_korb(app):
+    from flask import g, jsonify, request
+    from bpcore import db
+
+    @app.get("/api/baudaten/korb")
+    def baudaten_korb():
+        with db.tx() as c:
+            return jsonify(korb_positionen(c, g.user["id"]))
+
+    @app.post("/api/baudaten/korb")
+    def baudaten_korb_aendern():
+        """{dazu: [ids]} · {weg: [ids]} · {leeren: true} → {ids}"""
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            ids = [] if b.get("leeren") else korb(c, g.user["id"])
+            weg = set(b.get("weg") or [])
+            ids = [i for i in ids if i not in weg] + [i for i in (b.get("dazu") or []) if isinstance(i, int)]
+            ids = korb_setzen(c, g.user["id"], ids, "korb")
+        return jsonify(ids=ids)
+
+
 def register(app):
     """Endpunkte für den Auswahldialog (static/pdbwahl.js) in einer anderen App (Ausschreibung, Baukosten)."""
     from flask import jsonify, request
     from bpcore import db
+    register_korb(app)
 
     @app.get("/api/baudaten/suche")
     def baudaten_suche():
@@ -190,5 +251,7 @@ def register(app):
                     x = als_lv_position(d)
                     out.append({"typ": "pos", "art": "N", "kurz": x["kurz"], "lang": x["lang"], "menge": 0, "einheit": x["einheit"], "kg": x["kg"],
                                 "ep_s": x["ep"], "lb": (d.get("lb_name") or "")[:80], "quelle": f"Baudaten {d['katalog_name']} {d['code']}"[:200],
-                                "ep_von": d.get("ep_von_akt"), "ep_bis": d.get("ep_bis_akt"), "genauigkeit": d.get("genauigkeit") or ""})
+                                "ep_von": d.get("ep_von_akt"), "ep_bis": d.get("ep_bis_akt"), "genauigkeit": d.get("genauigkeit") or "",
+                                "code": d.get("code"), "eigene": [{"ep": p["ep"], "firma": p["firma"] or "", "datum": p["datum"] or ""} for p in d["preise"][:12]],
+                                "ep_median": d.get("ep_eigen_median")})
         return jsonify(out)

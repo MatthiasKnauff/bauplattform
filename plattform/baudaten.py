@@ -42,6 +42,9 @@ def guard():
     g.user = u
 
 
+B.register_korb(app)   # Korb: Positionen sammeln, in Ausschreibung / Baukosten übernehmen
+
+
 def _admin():
     return bool(g.user["is_admin"])
 
@@ -212,10 +215,41 @@ def preis_neu(i):
     with db.tx() as c:
         if not c.execute("SELECT 1 FROM pdb_position WHERE id=?", (i,)).fetchone():
             return jsonify(error="Position nicht gefunden"), 404
+        firma = _s(b.get("firma"), 200)
+        if firma and b.get("neue_firma") and not c.execute("SELECT 1 FROM contacts WHERE name=?", (firma,)).fetchone():   # unbekannte Firma: in Adressen anlegen
+            pos = c.execute("SELECT gewerk, lb_name FROM pdb_position_ansicht WHERE id=?", (i,)).fetchone()
+            ts = db.now_iso()
+            c.execute("INSERT INTO contacts(name, trade, extra, created, updated) VALUES(?,?,?,?,?) ON CONFLICT (name) DO NOTHING",
+                      (firma, _s(b.get("gewerk") or (pos and (pos["gewerk"] or pos["lb_name"])) or "", 300), "{}", ts, ts))
+            C.audit(C.full_name(g.user), "adressen", "Firma angelegt (Baudaten)", firma)
         c.execute("INSERT INTO pdb_preis(position_id, ep, datum, project_id, firma, menge, notiz, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
                   (i, ep, _s(b.get("datum"), 10) or date.today().isoformat(), b.get("project_id") if isinstance(b.get("project_id"), int) else None,
-                   _s(b.get("firma"), 200), _fn(b.get("menge")), _s(b.get("notiz"), 500), db.now_iso(), C.full_name(g.user)))
+                   firma, _fn(b.get("menge")), _s(b.get("notiz"), 500), db.now_iso(), C.full_name(g.user)))
         return jsonify(B.position(c, i))
+
+
+@app.get("/api/firmen")
+def firmen():
+    """Firmen aus den Adressen für „Eigene Preise“ einer Position: zuerst die, die hier schon Preise haben,
+    dann die mit passendem Gewerk (Leistungsbereich / Verrechnungslohn), dann alle übrigen."""
+    pid = request.args.get("position", type=int)
+    with db.tx() as c:
+        pos = c.execute("""SELECT p.lb_nr, p.katalog, p.lb_name, p.gewerk, COALESCE(l.name, '') AS lohn FROM pdb_position_ansicht p
+                           LEFT JOIN pdb_lohn l ON l.gewerk = p.gewerk WHERE p.id=?""", (pid,)).fetchone() if pid else None
+        schon = set()
+        if pos:
+            schon = {(r["firma"] or "").lower() for r in c.execute("""SELECT DISTINCT x.firma FROM pdb_preis x JOIN pdb_position p ON p.id = x.position_id
+                                                                     WHERE p.katalog=? AND p.lb_nr=?""", (pos["katalog"], pos["lb_nr"])).fetchall()}
+        rows = c.execute("SELECT name, trade FROM contacts ORDER BY name").fetchall()
+    w = {x[:5] for x in re.split(r"[^a-zäöüß]+", " ".join(str(pos[k] or "") for k in ("lb_name", "gewerk", "lohn")).lower() if pos else "")
+         if len(x) > 3 and x not in ("arbeiten", "und", "oder", "sonstige")}
+    out = []
+    for r in rows:
+        t = {x[:5] for x in re.split(r"[^a-zäöüß]+", (r["trade"] or "").lower()) if len(x) > 3}
+        rang = 0 if r["name"].lower() in schon else 1 if w & t else 2
+        out.append({"name": r["name"], "gewerk": r["trade"] or "", "rang": rang})
+    out.sort(key=lambda x: (x["rang"], x["name"].lower()))
+    return jsonify(out)
 
 
 @app.delete("/api/preis/<int:k>")

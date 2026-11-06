@@ -253,27 +253,41 @@ def bd_kataloge():
     with db.tx() as c:
         rows = c.execute("""SELECT k.key, k.name, (SELECT COUNT(*) FROM pdb_position p WHERE p.katalog = k.key AND p.aktiv = 1) AS n
                             FROM pdb_katalog k ORDER BY k.sort, k.name""").fetchall()
-    return jsonify([{"id": "bd-" + x["key"], "name": "Baudaten: " + x["name"], "quelle": "baudaten", "n_pos": x["n"]} for x in rows if x["n"]])
+        n_korb = len(baudaten.korb(c, g.user["id"]))
+    return jsonify([{"id": "bd-korb", "name": "Baudaten-Korb", "quelle": "baudaten", "n_pos": n_korb}]
+                   + [{"id": "bd-" + x["key"], "name": "Baudaten: " + x["name"], "quelle": "baudaten", "n_pos": x["n"]} for x in rows if x["n"]])
 
 
 def _bd_items(c, rows, katalog):
     """Positionen der Baudaten → Zeilen der Kopierquelle (Langtext = Grund- + Folgetext, Preis auf heute umgerechnet)."""
-    f = baudaten.umrechnung(c, katalog)
+    fk = {}   # Umrechnungsfaktor je Katalog (der Korb mischt Kataloge)
     gt = {}
     ids = sorted({r["grund_id"] for r in rows if r["grund_id"]})
     for k in range(0, len(ids), 1000):
         for x in c.execute("SELECT id, text FROM pdb_grundtext WHERE id = ANY(?)", (ids[k:k + 1000],)).fetchall():
             gt[x["id"]] = x["text"]
+    eig = {}   # eigene Preise (Baudaten → Eigene Preise), neueste zuerst
+    pids = [r["id"] for r in rows if r["id"] > 0]
+    if pids:
+        for x in c.execute("SELECT position_id, ep, firma, datum FROM pdb_preis WHERE position_id = ANY(?) ORDER BY datum DESC, id DESC", (pids,)).fetchall():
+            eig.setdefault(x["position_id"], []).append({"ep": x["ep"], "firma": x["firma"] or "", "datum": x["datum"] or ""})
     out, grund = [], None
     for r in rows:
         if r["grund_id"] and r["grund_id"] != grund and katalog == "gk3":   # Grundposition als Zwischentitel
             grund = r["grund_id"]
-        rd = lambda v: round(v * f, 2) if v is not None else None
+        kk = r["katalog"] if katalog == "korb" else katalog
+        f = fk[kk] if kk in fk else fk.setdefault(kk, baudaten.umrechnung(c, kk))
+        rd = lambda v: round(v * f, 2) if v is not None else None   # noqa: E731
         p = {"id": f"b{r['id']}", "typ": "pos", "oz": r["code"], "kurz": r["kurz"], "bez": r["bez"] or "",
              "lang": (gt.get(r["grund_id"], "") + " " + (r["lang"] or "")).strip(), "menge": 0, "einheit": r["einheit"], "art": "N",
              "kg": r["kg"], "ep_s": rd(r["ep_mittel"]), "quelle": f"Baudaten {r['code']}"}
         if r["ep_von"] is not None and r["ep_bis"] is not None:
             p["spanne"] = [rd(r["ep_von"]), rd(r["ep_bis"])]
+        if eig.get(r["id"]):
+            e = eig[r["id"]][:12]
+            v = sorted(x["ep"] for x in eig[r["id"]] if x["ep"] is not None)
+            p["eigene"] = e
+            p["ep_median"] = round((v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2), 2) if v else None
         out.append(p)
     return out
 
@@ -281,6 +295,11 @@ def _bd_items(c, rows, katalog):
 @app.get("/api/katalog/bd-<key>")
 def bd_gruppen(key):
     """Gruppen eines Baudaten-Katalogs wie die Gewerke eines Katalogs (Auswahl in der Kopierquelle)."""
+    if key == "korb":
+        with db.tx() as c:
+            n = len(baudaten.korb(c, g.user["id"]))
+        return jsonify(info={"id": "bd-korb", "name": "Baudaten-Korb"}, gewerke=[{"id": "kat:bd-korb:alle", "nr": "", "name": "Korb – in den Baudaten gesammelt", "n_pos": n,
+                                                                             "gewerk": "", "status": "entwurf", "archived": False, "bereich": "Baudaten"}])
     with db.tx() as c:
         if key == "gk3":
             rows = c.execute("""SELECT g.nr, g.name, l.nr AS lb, l.name AS lb_name, (SELECT COUNT(*) FROM pdb_position p WHERE p.katalog='gk3' AND p.gruppe=g.nr AND p.aktiv=1) AS n
@@ -294,11 +313,25 @@ def bd_gruppen(key):
     return jsonify(info={"id": "bd-" + key, "name": "Baudaten"}, gewerke=gw)
 
 
-SQL_BD = "SELECT id, code, grund_id, kurz, bez, lang, einheit, kg, ep_von, ep_mittel, ep_bis FROM pdb_position"
+SQL_BD = "SELECT id, katalog, code, grund_id, kurz, bez, lang, einheit, kg, ep_von, ep_mittel, ep_bis FROM pdb_position"
+
+
+def _bd_korb(c, q=""):
+    """Der Korb des Benutzers (in den Baudaten gesammelt) als Kopierquelle – auch Positionen aus Katalogen der Ausschreibung."""
+    ids = baudaten.korb(c, g.user["id"])
+    rows = {r["id"]: r for r in c.execute("SELECT id, katalog, code, grund_id, kurz, bez, lang, einheit, kg, ep_von, ep_mittel, ep_bis FROM pdb_alle WHERE id = ANY(?)",
+                                         (ids,)).fetchall()} if ids else {}
+    q = q.lower()
+    return _bd_items(c, [rows[i] for i in ids if i in rows and (not q or q in f"{rows[i]['code']} {rows[i]['kurz']} {rows[i]['bez']}".lower())], "korb")
 
 
 @app.get("/api/katalog/bd-<key>/gewerk/<gr>")
 def bd_gruppe(key, gr):
+    if key == "korb":
+        with db.tx() as c:
+            items = _bd_korb(c)
+        return jsonify({"id": "kat:bd-korb:alle", "nr": "", "name": "Korb", "projekt": "Baudaten-Korb", "katalog": True, "mehr": False,
+                        "data": {"items": items}, "vergabe": {}})
     with db.tx() as c:
         rows = c.execute(f"{SQL_BD} WHERE katalog=? AND gruppe=? AND aktiv=1 ORDER BY code LIMIT ?", (key, "" if gr == "-" else gr, BD_MAX + 1)).fetchall()
         name = (c.execute("SELECT name FROM pdb_gruppe WHERE nr=?", (gr,)).fetchone() or {"name": gr}) if key == "gk3" else {"name": gr}
@@ -310,6 +343,11 @@ def bd_gruppe(key, gr):
 @app.get("/api/katalog/bd-<key>/suche")
 def bd_suche(key):
     q = (request.args.get("q") or "").strip()
+    if key == "korb":
+        with db.tx() as c:
+            items = _bd_korb(c, q)
+        return jsonify({"id": "kat:bd-korb:suche", "nr": "", "name": f"Suche „{q}“" if q else "Korb", "projekt": "Baudaten-Korb", "katalog": True,
+                        "data": {"items": items}, "vergabe": {}})
     a = {"katalog": key, "q": q}
     if request.args.get("gewerk"):
         a["gruppe"] = request.args.get("gewerk")

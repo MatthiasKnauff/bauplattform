@@ -1697,14 +1697,17 @@ function quAuswahl(nur) {   // gewählte Zeilen in LV-Reihenfolge; ein gewählte
   }
   return out;
 }
-function quEinfuegen(liste, nach) {
+async function quEinfuegen(liste, nach) {
   if (!L || !liste.length) return;
   const VP = (QU.L.vergabe && QU.L.vergabe.preise) || {};
-  const neu = liste.map((x) => {
+  let neu = liste.map((x) => {
     const y = JSON.parse(JSON.stringify(x)); y.id = uid(); delete y.nt; delete y.nt_status; delete y.nt_grund;
-    if (y.typ === 'pos') { if (!QU.mengen) y.menge = 0; const ep = VP[x.id] ?? x.ep_s; y.ep_s = QU.preise && ep != null ? ep : null; y.quelle = (QU.L.katalog ? `${QU.L.projekt}, Pos. ${x.oz || ''}${x.spanne ? ` (von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €)` : ''}` : `aus LV ${QU.L.nr} ${QU.L.name} (${QU.L.projekt || ''}), Pos. ${x.oz || ''}`).slice(0, 200); delete y.spanne; }
+    if (y.typ === 'pos') { if (!QU.mengen) y.menge = 0; const ep = VP[x.id] ?? x.ep_s; y.ep_s = QU.preise && ep != null ? ep : null; y.quelle = (QU.L.katalog ? `${QU.L.projekt}, Pos. ${x.oz || ''}${x.spanne ? ` (von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €)` : ''}` : `aus LV ${QU.L.nr} ${QU.L.name} (${QU.L.projekt || ''}), Pos. ${x.oz || ''}`).slice(0, 200);
+      if (y.eigene && y.spanne) { y.ep_von = y.spanne[0]; y.ep_bis = y.spanne[1]; } delete y.spanne; }
     return y;
   });
+  if (QU.preise && neu.some((y) => y.eigene && y.eigene.length)) { neu = await pdbPreiswahl(neu); if (!neu) return; }   // eigene Preise vorhanden → nachfragen
+  neu.forEach((y) => { if (y.eigene) { delete y.ep_von; delete y.ep_bis; } delete y.eigene; delete y.ep_median; });
   const I = items(), at = nach != null && nach >= 0 && nach < I.length ? nach + 1 : I.length;
   I.splice(at, 0, ...neu); HIST.next = `${neu.length} Zeilen übernommen`;
   numerieren(); changed(true);
@@ -2536,5 +2539,6 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
 addEventListener('beforeunload', () => { if (saveT && L) navigator.sendBeacon && fetch('api/lv/' + L.id, { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rev: L.rev, data: L.data }) }); });
 </script>
 <script src="static/tlimport.js"></script>
+<script src="static/pdbwahl.js"></script>
 </body>
 </html>

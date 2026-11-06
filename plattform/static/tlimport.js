@@ -173,7 +173,7 @@
     const nrs = B.map((_, i) => new Set(auswerten(B, new Set([i]), map).zeilen.map((z) => z.t.nr).filter(Boolean)));
     const staende = [];
     nrs.forEach((A, i) => { for (let j = i + 1; j < nrs.length; j++) { const gem = [...A].filter((x) => nrs[j].has(x)).length; if (A.size && gem >= 0.5 * Math.min(A.size, nrs[j].size)) { wahl.delete(i); staende.push([i, j, gem]); break; } } });
-    let ersetzen = false;
+    let ersetzen = false, nurW = false;   // nurW: Vorschau nur mit Warnungen
     const unterschiede = (i, j) => { const a = {}, n = { c: 0 }; auswerten(B, new Set([i]), map).zeilen.forEach((z) => { a[z.t.nr] = JSON.stringify({ ...z.t, id: 0 }); });
       auswerten(B, new Set([j]), map).zeilen.forEach((z) => { if (a[z.t.nr] && a[z.t.nr] !== JSON.stringify({ ...z.t, id: 0 })) n.c++; }); return n.c; };
     const koepfe = () => { const K = []; B.forEach((bl, bi) => { if (!wahl.has(bi)) return; bl.zeilen.filter(istKopf).forEach((r) => r.forEach((h) => { h = String(h || '').trim(); if (h && !K.includes(h)) K.push(h); })); }); return K; };
@@ -181,7 +181,8 @@
       const E = auswerten(B, wahl, map), K = koepfe(), F = FELDER();
       const P = E.zeilen.map((z) => ({ ...z, pl: pruefen(z.t, E.zeilen.map((y) => y.t)).concat(z.hinw.map((x) => ['i', x])) }));
       const nW = P.reduce((a, z) => a + z.pl.filter((x) => x[0] === 'w').length, 0), nI = P.reduce((a, z) => a + z.pl.filter((x) => x[0] === 'i').length, 0);
-      const vorschau = P.slice(0, 200).map((z) => `<tr class="${z.pl.some((x) => x[0] === 'w') ? 'w' : ''}"><td>${esc(z.t.nr || '')}</td><td>${esc(z.t.geschoss || '')}</td><td>${esc(z.t.raumname || z.t.raum || '')}</td><td>${esc(z.t.art || '')}</td>
+      const PV = nurW && nW ? P.filter((z) => z.pl.some((x) => x[0] === 'w')) : P;
+      const vorschau = PV.slice(0, 200).map((z) => `<tr class="${z.pl.some((x) => x[0] === 'w') ? 'w' : ''}"><td>${esc(z.t.nr || '')}</td><td>${esc(z.t.geschoss || '')}</td><td>${esc(z.t.raumname || z.t.raum || '')}</td><td>${esc(z.t.art || '')}</td>
         <td class="r">${esc(z.t.b || '')}${z.t.b || z.t.h ? ' × ' : ''}${esc(z.t.h || '')}</td><td>${esc([z.t.din, z.t.oeffnung, z.t.brand, ...TJA.filter(([k]) => z.t[k]).map(([, l]) => l)].filter(Boolean).join(', '))}</td>
         <td class="pl">${z.pl.map(([l, s]) => `<span class="${l}">${l === 'w' ? '⚠' : 'ℹ'} ${esc(s)}</span>`).join('')}</td></tr>`).join('');
       return `<h3>Fenster- & Türliste einlesen – ${esc(D.datei)}</h3>
@@ -195,8 +196,8 @@
             <label class="chk" style="margin-top:.6rem"><input type="checkbox" data-tiers${ersetzen ? ' checked' : ''}> vorhandene ${TL.tueren.length} Zeilen ersetzen (sonst anhängen)</label>
           </div>
           <div class="tli-r">
-            <p class="tli-sum"><b>${P.length}</b> Zeilen · ${nW ? `<span class="w">⚠ ${nW} Warnungen</span> · ` : ''}${nI} Hinweise${E.stat.doppelt ? ` · ${E.stat.doppelt} gleiche Zeilen aus mehreren Blättern nur einmal` : ''}${E.stat.mm ? ' · Maße in mm erkannt und in m umgerechnet' : ''}</p>
-            <div class="tli-v"><table><thead><tr><th>Nr.</th><th>Gesch.</th><th>Raum</th><th>Art</th><th class="r">B × H (m)</th><th>Ausführung</th><th>Prüfung</th></tr></thead><tbody>${vorschau || '<tr><td colspan="7" class="mute">Keine Zeilen erkannt – Spalten oder Blätter prüfen.</td></tr>'}</tbody></table>${P.length > 200 ? `<p class="hint">… und ${P.length - 200} weitere</p>` : ''}</div>
+            <p class="tli-sum"><b>${P.length}</b> Zeilen · ${nW ? `<button type="button" class="btn sm${nurW ? ' pri' : ''} tli-nw" data-tinw title="${nurW ? 'Wieder alle Zeilen zeigen' : 'Nur Zeilen mit Warnungen zeigen'}">⚠ ${nW} Warnungen${nurW ? ' – alle zeigen' : ' – nur diese zeigen'}</button> · ` : ''}${nI} Hinweise${E.stat.doppelt ? ` · ${E.stat.doppelt} gleiche Zeilen aus mehreren Blättern nur einmal` : ''}${E.stat.mm ? ' · Maße in mm erkannt und in m umgerechnet' : ''}</p>
+            <div class="tli-v"><table><thead><tr><th>Nr.</th><th>Gesch.</th><th>Raum</th><th>Art</th><th class="r">B × H (m)</th><th>Ausführung</th><th>Prüfung</th></tr></thead><tbody>${vorschau || '<tr><td colspan="7" class="mute">Keine Zeilen erkannt – Spalten oder Blätter prüfen.</td></tr>'}</tbody></table>${PV.length > 200 ? `<p class="hint">… und ${PV.length - 200} weitere</p>` : ''}</div>
           </div>
         </div>
         <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok"${P.length ? '' : ' disabled'}>${P.length} Zeilen übernehmen</button></div>`;
@@ -214,6 +215,7 @@
     });
     const bg = [...document.querySelectorAll('.modal-bg')].pop(), mo = bg.querySelector('.modal'); mo.classList.add('tli-modal');
     const neu = () => { const sc = (mo.querySelector('.tli-v') || {}).scrollTop || 0; mo.innerHTML = body(); const v = mo.querySelector('.tli-v'); if (v) v.scrollTop = sc; };
+    mo.addEventListener('click', (e) => { if (e.target.closest('[data-tinw]')) { nurW = !nurW; mo.querySelector('.tli-v').scrollTop = 0; neu(); } });
     mo.addEventListener('change', (e) => {
       const el = e.target;
       if (el.dataset.tib != null) { if (el.checked) wahl.add(+el.dataset.tib); else wahl.delete(+el.dataset.tib); neu(); }
@@ -250,7 +252,7 @@
 .tli-map label{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:.4rem;align-items:center;font-size:.85rem}
 .tli-map label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tli-map select{font-size:.82rem;padding:.2rem .3rem;width:100%}
-.tli-sum{margin:0 0 .4rem}.tli-sum .w,.tli-v .w{color:var(--red,#c0392b)}
+.tli-sum{margin:0 0 .4rem}.tli-sum .tli-nw{padding:.1rem .5rem;font-size:.84rem}.tli-sum .tli-nw:not(.pri){color:var(--red,#c0392b);border-color:var(--red,#c0392b)}.tli-sum .w,.tli-v .w{color:var(--red,#c0392b)}
 .tli-v{max-height:58vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
 .tli-v table{border-collapse:collapse;width:100%;font-size:.84rem}
 .tli-v th{position:sticky;top:0;background:var(--tabs,var(--card));text-align:left;padding:.3rem .4rem;font-weight:500}

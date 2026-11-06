@@ -27,6 +27,11 @@
 .si .nr{font-variant-numeric:tabular-nums;color:var(--mute);margin-right:.3rem}
 .list{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .row{display:grid;grid-template-columns:8.5rem minmax(0,1fr) 3.2rem 9.5rem;gap:.6rem;padding:.5rem .8rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline}
+.row{grid-template-columns:7.6rem minmax(0,1fr) 3rem 8rem 1.6rem}.row .k b{overflow-wrap:anywhere;hyphens:auto}
+.kb{width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;font-size:.85rem;line-height:1;padding:0;align-self:start}
+.kb:hover{border-color:var(--y);color:var(--y)}.kb.on{background:var(--y);border-color:var(--y);color:#fff}
+#korbN{display:inline-block;min-width:1.2rem;padding:0 .3rem;border-radius:9px;background:var(--hov);font-size:.78rem;text-align:center}
+#korbBtn.voll #korbN{background:var(--y);color:#fff}
 .row:hover{background:var(--hov)}.row.on{background:var(--hov);box-shadow:inset 3px 0 0 var(--y)}
 .row .c{font-size:.78rem;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .k{min-width:0}.row .k b{font-weight:500}
@@ -72,7 +77,7 @@
 @media (max-width:560px){.ed .r3{grid-template-columns:1fr 1fr}.ed .r3>div:last-child:nth-child(3){grid-column:1/-1}.ed .ep{grid-template-columns:1fr 1fr 1fr}.ed .ep>div:last-child:nth-child(3){grid-column:auto}}
 .tbl{width:100%;border-collapse:collapse;font-size:.88rem}.tbl td{padding:.2rem .3rem}.tbl input{width:100%;box-sizing:border-box}
 @media (max-width:1200px){.grid{grid-template-columns:240px minmax(0,1fr)}.det{grid-column:1/-1;position:static;max-height:none}}
-@media (max-width:760px){.grid{grid-template-columns:1fr}.side{position:static;max-height:260px}.row{grid-template-columns:minmax(0,1fr) 7.5rem}.row .c,.row .e{display:none}}
+@media (max-width:760px){.grid{grid-template-columns:1fr}.side{position:static;max-height:260px}.row{grid-template-columns:minmax(0,1fr) 7.5rem 1.8rem}.row .c,.row .e{display:none}}
 </style>
 </head>
 <body>
@@ -81,6 +86,7 @@
     <select id="kat" aria-label="Katalog"></select>
     <input type="search" id="q" placeholder="Suchen – z. B. „Kalksand 17,5“, „Fliesen 60x60“, „Wärmepumpe“ oder Code …" autocomplete="off">
     <button class="btn sm" id="neuBtn" title="Neue eigene Position anlegen">＋ Eigene Position</button>
+    <button class="btn sm" id="korbBtn" title="Gesammelte Positionen – in Ausschreibung (Kopierquelle) und Baukosten übernehmen">Korb <span id="korbN">0</span></button>
     <button class="btn sm" id="csvBtn" title="Gefilterte Positionen für Excel speichern">⤓ Excel (CSV)</button>
     <button class="btn sm" id="setBtn" title="Baupreisindex, Regionalfaktor und Verrechnungslöhne">⚙ Preise</button>
     <button class="btn sm" id="impBtn" hidden title="Katalog importieren (z. B. Sirados als GAEB)">⤒ Import</button>
@@ -115,6 +121,7 @@ function params(extra = {}) {
   return p.toString();
 }
 async function start() {
+  api('api/baudaten/korb').then((r) => { KORB = new Set(r.map((x) => x.id)); korbZeigen(); }).catch(() => {});
   S = await api('api/start?katalog=' + encodeURIComponent(F.katalog));
   if (!S.kataloge.some((k) => k.key === F.katalog)) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); S = await api('api/start?katalog=gk3'); }
   $('#kat').innerHTML = S.kataloge.map((k) => `<option value="${esc(k.key)}"${k.key === F.katalog ? ' selected' : ''}>${esc(k.name)} (${k.n.toLocaleString('de-DE')})</option>`).join('');
@@ -146,13 +153,67 @@ function liste() {
     <span class="c">${esc(x.code)}</span>
     <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${esc(x.bez || x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
     <span class="e">${esc(x.einheit)}</span>
-    <span class="p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}${x.ep_von_akt != null ? `<small>${num(x.ep_von_akt)} – ${num(x.ep_bis_akt)}</small>` : ''}</span></div>`).join('');
+    <span class="p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}${x.ep_von_akt != null ? `<small>${num(x.ep_von_akt)} – ${num(x.ep_bis_akt)}</small>` : ''}</span>
+    ${korbKnopf(x.id)}</div>`).join('');
   $('#mehr').innerHTML = GES > L.length ? `<button type="button" class="btn sm" data-mehr style="margin:.6rem 0">+ weitere ${Math.min(200, GES - L.length)} von ${(GES - L.length).toLocaleString('de-DE')}</button>` : '';
 }
 async function zeigen(id) {
   try { SEL = await api('api/position/' + id); } catch (e) { toast(e.message, true); return; }
   document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
   detail();
+}
+let KORB = new Set();   // Korb: gesammelte Positionen (je Benutzer, auf dem Server)
+const korbKnopf = (id) => `<button type="button" class="kb${KORB.has(id) ? ' on' : ''}" data-korb="${id}" title="${KORB.has(id) ? 'Aus dem Korb nehmen' : 'In den Korb'}" aria-label="${KORB.has(id) ? 'Aus dem Korb nehmen' : 'In den Korb'}">${KORB.has(id) ? '✓' : '＋'}</button>`;
+function korbZeigen() {
+  $('#korbN').textContent = KORB.size; $('#korbBtn').classList.toggle('voll', KORB.size > 0);
+  document.querySelectorAll('[data-korb]').forEach((b) => { b.outerHTML = korbKnopf(+b.dataset.korb); });
+  const d = document.querySelector('[data-korbd]'); if (d && SEL) { d.classList.toggle('pri', KORB.has(SEL.id)); d.textContent = KORB.has(SEL.id) ? '✓ Im Korb' : '＋ In den Korb'; }
+}
+async function korbAendern(b, still) {
+  const vorher = [...KORB];
+  try { KORB = new Set((await api('api/baudaten/korb', 'POST', b)).ids); korbZeigen(); } catch (er) { toast(er.message, true); return; }
+  if (still) return;
+  const n = (b.dazu || []).length;
+  rueckgaengig(b.leeren ? 'Korb geleert' : n ? `In den Korb gelegt (${KORB.size})` : 'Aus dem Korb genommen', async () => {
+    KORB = new Set((await api('api/baudaten/korb', 'POST', { leeren: true, dazu: vorher })).ids); korbZeigen(); });
+}
+async function korbDialog() {
+  let P = [];
+  try { P = await api('api/baudaten/korb'); } catch (er) { toast(er.message, true); return; }
+  const zeile = (x) => `<div style="display:grid;grid-template-columns:7rem minmax(0,1fr) 3rem 6.5rem 1.8rem;gap:.5rem;padding:.4rem .6rem;border-bottom:1px solid var(--line);align-items:baseline">
+      <span class="mute" style="font-size:.76rem">${esc(x.code)}</span><span>${esc(x.bez || x.kurz)}<small class="mute" style="display:block;font-size:.76rem">${esc(x.gruppe_name || x.titel || '')}</small></span>
+      <span class="mute">${esc(x.einheit)}</span><span style="text-align:right">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}</span>
+      <button type="button" class="btn sm" data-m="weg:${x.id}" title="Aus dem Korb nehmen" style="padding:.1rem .4rem">✕</button></div>`;
+  const bg = modalBox(`<h3>Korb</h3>
+    <p class="mute" style="margin:.1rem 0 .6rem;font-size:.86rem">Hier gesammelte Positionen stehen in der <b>Ausschreibung</b> in der Kopierquelle unter „Kataloge → Baudaten-Korb“ und in den <b>Baukosten</b> unter „Aus Baudaten“ → Korb zur Übernahme bereit. Gefragt wird dabei, ob Katalog- oder eigene Preise gelten.</p>
+    <div id="kbL" style="max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:8px">${P.length ? P.map(zeile).join('') : '<p class="mute" style="padding:1rem">Der Korb ist leer. Positionen mit ＋ in der Liste oder „In den Korb“ sammeln.</p>'}</div>
+    <div style="display:flex;gap:.4rem;margin-top:.7rem"><button class="btn" data-m="leeren"${P.length ? '' : ' disabled'} style="color:var(--red,#c0392b)">Korb leeren</button><span style="flex:1"></span><button class="btn pri" data-m="x">Schließen</button></div>`, async (m, bg, close) => {
+    if (m === 'x') return close();
+    if (m === 'leeren') { close(); korbAendern({ leeren: true }); return; }
+    if (m.startsWith('weg:')) { const id = +m.slice(4); await korbAendern({ weg: [id] }); P = P.filter((x) => x.id !== id);
+      bg.querySelector('#kbL').innerHTML = P.length ? P.map(zeile).join('') : '<p class="mute" style="padding:1rem">Der Korb ist leer.</p>'; }
+  });
+  bg.querySelector('.modal').style.width = 'min(760px,100%)';
+}
+let FIRMEN = null, FIRMEN_POS = null;   // Vorschläge für „Firma“ bei eigenen Preisen (passendes Gewerk zuerst)
+async function firmenLaden(pid) {
+  if (!FIRMEN || FIRMEN_POS !== pid) { try { FIRMEN = await api('api/firmen?position=' + pid); FIRMEN_POS = pid; } catch { FIRMEN = null; return; } }
+  const dl = document.getElementById('pFiL'); if (!dl || !SEL || SEL.id !== pid) return;
+  dl.innerHTML = FIRMEN.map((f) => `<option value="${esc(f.name)}" label="${esc([f.rang === 0 ? '★ schon Preise in diesem Bereich' : f.rang === 1 ? '✓ passendes Gewerk' : '', f.gewerk].filter(Boolean).join(' · '))}"></option>`).join('');
+}
+function firmaNeuFragen(name) {   // → Gewerk (anlegen), false (nur eintragen) oder null (abgebrochen)
+  return new Promise((fertig) => {
+    let erg = null;
+    const vorschlag = ((S.loehne || []).find((l) => l.gewerk === SEL.gewerk) || {}).name || SEL.lb_name || '';
+    const bg = modalBox(`<h3>Neue Firma</h3><p>„${esc(name)}“ ist noch nicht in den Adressen.</p>
+      <label style="display:block;margin:.5rem 0 .2rem">Gewerk</label><input id="fnGw" value="${esc(vorschlag)}" style="width:100%">
+      <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-top:.8rem;flex-wrap:wrap"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="nur">Nur hier eintragen</button><button class="btn pri" data-m="neu">In Adressen anlegen</button></div>`, (m, bg, close) => {
+      if (m === 'neu') erg = bg.querySelector('#fnGw').value.trim(); else if (m === 'nur') erg = false;
+      close();
+    });
+    bg.querySelector('#fnGw').focus();
+    new MutationObserver((_, mo) => { if (!bg.isConnected) { mo.disconnect(); fertig(erg); } }).observe(document.body, { childList: true, subtree: true });
+  });
 }
 function detail() {
   const x = SEL, ro = !!x.nur_lesen, darf = !ro && x.katalog === 'eigen';   // Kataloge sind schreibgeschützt
@@ -165,7 +226,7 @@ function detail() {
       <tr><td>Umrechnung auf heute (Index × Faktor)</td><td>× ${num(x.umrechnung, 4)}</td></tr></table>` : '';
   const eigen = `<h4>Eigene Preise aus Vergaben${x.n_preise ? ` · Median ${eur(x.ep_eigen_median)}` : ''}</h4>
     ${(x.preise || []).length ? `<table>${x.preise.map((p) => `<tr><td>${esc(p.datum)} ${esc(p.firma)}${p.menge ? ' · ' + num(p.menge) + ' ' + esc(x.einheit) : ''}${p.notiz ? '<br><small class="mute">' + esc(p.notiz) + '</small>' : ''}</td><td>${eur(p.ep)} <button type="button" class="btn sm" data-pweg="${p.id}" title="Eintrag löschen">✕</button></td></tr>`).join('')}</table>` : '<p class="mute">Noch keine. Auftragspreise hier eintragen – mit der Zeit werden die Baudaten so zu den Preisen des Büros.</p>'}
-    <div class="ed" style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:.4rem;align-items:end"><div><label>EP netto €</label><input id="pEp" inputmode="decimal"></div><div><label>Firma / Projekt</label><input id="pFi"></div><button type="button" class="btn sm" data-pneu>＋</button></div>`;
+    <div class="ed" style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:.4rem;align-items:end"><div><label>EP netto €</label><input id="pEp" inputmode="decimal"></div><div><label>Firma</label><input id="pFi" list="pFiL" autocomplete="off" placeholder="Firma wählen oder neu eintragen"><datalist id="pFiL"></datalist></div><button type="button" class="btn sm" data-pneu>＋</button></div>`;
   $('#det').innerHTML = `<div class="mute"><span class="badge">${esc(x.katalog_name)}</span>${esc(x.code)}${x.lb_name ? ' · ' + esc(x.lb_nr + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}${x.titel && !x.lb_name ? ' · ' + esc(x.titel) : ''}</div>
     <h2>${esc(x.bez || x.kurz)}</h2>${x.bez ? `<div class="mute">Kurztext (LV, max. 70 Zeichen): ${esc(x.kurz)}</div>` : ''}
     <div class="mute">Einheit <b>${esc(x.einheit)}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b> <span title="${esc(GEN[x.genauigkeit] || '')}">ⓘ</span>` : ''}${x.tags ? ' · ' + esc(x.tags) : ''}</div>
@@ -173,6 +234,7 @@ function detail() {
     <pre>${esc(x.lang_voll || '')}</pre>
     ${x.hinweis ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}
     <div class="acts">
+      <button type="button" class="btn sm${KORB.has(x.id) ? ' pri' : ''}" data-korbd title="Im Korb sammeln – in der Ausschreibung (Kopierquelle → Baudaten-Korb) und in den Baukosten (Aus Baudaten → Korb) übernehmen">${KORB.has(x.id) ? '✓ Im Korb' : '＋ In den Korb'}</button>
       <button type="button" class="btn sm" data-copy title="Kurz- und Langtext, Einheit und Preis kopieren">⧉ Text kopieren</button>
       ${ro ? '' : `<button type="button" class="btn sm" data-fav>${x.favorit ? '★ Favorit' : '☆ Favorit'}</button>`}
       ${x.katalog !== 'eigen' ? '<button type="button" class="btn sm" data-eigen title="Als eigene Position übernehmen und anpassen">⎘ Als eigene Position</button>' : ''}
@@ -180,6 +242,7 @@ function detail() {
       ${ro ? '' : `<button type="button" class="btn sm" data-aktiv>${x.aktiv ? 'Ausblenden' : 'Wieder einblenden'}</button>`}
       ${x.katalog === 'eigen' ? '<button type="button" class="btn sm" data-del>Löschen</button>' : ''}
     </div>${!ro && x.katalog !== 'eigen' ? '<p class="mute">🔒 Katalogposition – schreibgeschützt. Für eigene Texte oder Preise „Als eigene Position“ übernehmen.</p>' : ''}${ro ? '<p class="mute">🔒 Aus einem Katalog der Ausschreibung (z. B. sirAdos, eingelesen in Ausschreibung &amp; Abrechnung → ⚙ → Positionskatalog). Für eigene Preise oder Änderungen als eigene Position übernehmen.</p>' : ''}${kalk}${ro ? '' : eigen}`;
+  if (document.getElementById('pFiL')) firmenLaden(x.id);
 }
 function bearbeiten() {
   const x = SEL, SP = { A: [0.85, 1.2], B: [0.78, 1.3], C: [0.68, 1.5] };   // Preisspanne je Genauigkeit (wie im Katalog)
@@ -293,6 +356,9 @@ document.addEventListener('click', async (e) => {
   const t = e.target;
   const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } } seite(); laden(); return; }
   const gr = t.closest('[data-gr]'); if (gr) { F.gruppe = F.gruppe === gr.dataset.gr ? '' : gr.dataset.gr; N = 100; seite(); laden(); return; }
+  const kb = t.closest('[data-korb]'); if (kb) { const id = +kb.dataset.korb; korbAendern(KORB.has(id) ? { weg: [id] } : { dazu: [id] }); return; }
+  if (t.closest('[data-korbd]') && SEL) { korbAendern(KORB.has(SEL.id) ? { weg: [SEL.id] } : { dazu: [SEL.id] }); return; }
+  if (t.closest('#korbBtn')) { korbDialog(); return; }
   const row = t.closest('.row[data-id]'); if (row) { zeigen(+row.dataset.id); return; }
   if (t.closest('[data-mehr]')) { N += 200; laden(); return; }
   if (t.closest('#csvBtn')) { location.href = 'api/export.csv?' + params(); return; }
@@ -317,7 +383,12 @@ document.addEventListener('click', async (e) => {
   if (t.closest('[data-pneu]')) {
     const ep = +String($('#pEp').value).trim().replace(/\./g, '').replace(',', '.');
     if (!ep) return toast('Bitte einen Einheitspreis eingeben.', true);
-    try { SEL = await api(`api/position/${SEL.id}/preis`, 'POST', { ep, firma: $('#pFi').value, project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || null }); detail(); } catch (er) { toast(er.message, true); } return;
+    const firma = $('#pFi').value.trim(), b = { ep, firma, project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || null };
+    if (firma && FIRMEN && !FIRMEN.some((f) => f.name.toLowerCase() === firma.toLowerCase())) {   // unbekannte Firma → in den Adressen anlegen?
+      const gw = await firmaNeuFragen(firma); if (gw === null) return;
+      if (gw !== false) { b.neue_firma = true; b.gewerk = gw; }
+    }
+    try { SEL = await api(`api/position/${SEL.id}/preis`, 'POST', b); if (b.neue_firma) { FIRMEN = null; toast(`„${firma}“ in den Adressen angelegt`); } detail(); } catch (er) { toast(er.message, true); } return;
   }
   const pw = t.closest('[data-pweg]'); if (pw) {
     const id = SEL.id, p = (SEL.preise || []).find((x) => x.id === +pw.dataset.pweg);   // alten Eintrag merken

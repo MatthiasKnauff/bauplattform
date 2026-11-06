@@ -980,7 +980,14 @@ def lv_liste():
                         # Prognose wie in der AVA üblich: Auftrag + beauftragte und angemeldete Nachträge; ohne Auftrag die Schätzung
                         "prognose": round(max(k["auftrag"] + k["nachtraege"]["beauftragt"] + k["nachtraege"]["angemeldet"], k["abgerechnet"] if V.get("frei") else 0)
                                           if (V.get("preise") or V.get("frei")) else k["schaetzung"], 2),
-                        "abgerechnet": k["abgerechnet"], "min_angebot": min([a["netto"] for a in k["angebote"] if a["summe"]] or [0])})
+                        "abgerechnet": k["abgerechnet"], "min_angebot": min([a["netto"] for a in k["angebote"] if a["summe"]] or [0]),
+                        # für die Projektbäume in Angebote / Aufmaßprüfung / Rechnungen
+                        "vergeben": bool(V.get("preise") or V.get("frei")), "frei": bool(V.get("frei")), "angebot_id": V.get("angebot_id"),
+                        "angebote": [{"id": a["id"], "bieter": a["bieter"], **{f: x[f] for f in ("netto", "rang", "fehlt") if f in x}}
+                                     for a in ang for x in k["angebote"] if x["id"] == a["id"]],
+                        "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "status": x["status"], "re_nr": x["re_nr"],
+                                        "anerkannt": rc["anerkannt"], "zahlung": rc["zahlung"]}
+                                       for x in sorted(re_, key=lambda y: y["nr"]) for rc in k["rechnungen"] if rc["id"] == x["id"]]})
     return jsonify(out)
 
 

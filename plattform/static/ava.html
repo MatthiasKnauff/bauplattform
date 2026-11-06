@@ -389,6 +389,19 @@ html.mobil .bph{position:sticky;top:0}
 .am-firma{margin:.1rem 0 .55rem;padding:.4rem .55rem;border-radius:8px;background:color-mix(in srgb,var(--y) 10%,transparent);display:flex;flex-wrap:wrap;gap:.3rem .5rem;align-items:center}
 tr.am-lf td input{color:#c0621f}
 @media (max-width:900px){.am-split{grid-template-columns:1fr}.am-r{position:static;height:70vh}}
+.pjw{display:grid;grid-template-columns:17.5rem minmax(0,1fr);gap:.9rem;align-items:start}.pjw.zu{grid-template-columns:2.2rem minmax(0,1fr)}
+.pjm{min-width:0}
+.pj{position:sticky;top:.5rem;max-height:calc(100vh - 140px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.25rem 0 .4rem;font-size:.86rem}
+.pjw.zu .pj>:not(.pj-h){display:none}.pjw.zu .pj-h b{display:none}.pjw.zu .pj-h{justify-content:center;padding:.2rem 0}
+.pj-h{display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding:.25rem .3rem .35rem .6rem;border-bottom:1px solid var(--line);margin-bottom:.2rem}
+.pj-r{display:grid;grid-template-columns:1rem 16px minmax(0,1fr) auto;gap:.3rem;align-items:center;padding:.22rem .5rem;cursor:pointer;border-left:3px solid transparent}
+.pj-r.root{grid-template-columns:16px minmax(0,1fr) auto;font-weight:600;cursor:default}
+.pj-r svg{width:15px;height:15px}.pj-r .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pj-r .t small{display:block;color:var(--mute);font-size:.74rem;overflow:hidden;text-overflow:ellipsis}
+.pj-r .v{font-variant-numeric:tabular-nums;color:var(--mute);font-size:.8rem}.pj-r.k{padding-left:1.6rem}
+.pj-r:hover{background:var(--hov)}.pj-r.akt{font-weight:600}.pj-r.on{background:color-mix(in srgb,var(--y) 14%,transparent);border-left-color:var(--y)}
+.pj-r .car{cursor:pointer;color:var(--mute);text-align:center}.pj-r .ok{color:var(--ok);font-weight:600}.pj-r .offen{color:#e0a030}
+.pj-blink{animation:pjb 1.5s ease}@keyframes pjb{0%,60%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
+@media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 </style>
 </head>
 <body>
@@ -561,7 +574,7 @@ async function lvSetzen(id, extra) {
   if (L && L.id === id) { await flush(); await saveNow(extra); await refreshList(); render(); return; }
   await api('api/lv/' + id, 'PUT', extra); await refreshList();
 }
-async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
+async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); const pt = $('#pjTree'); if (pt && PJTABS.has(tab)) pt.innerHTML = pjBaum(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
 
 /* ---------- Kopf ---------- */
 function selBtn() {
@@ -587,6 +600,53 @@ function kpis() {
     <div><small>abgerechnet</small><b>${K.abgerechnet ? eur0(K.abgerechnet) : '–'}</b></div>`;
   $('#stat').innerHTML = '<span class="hint">Stand:</span>' + STATUS.map(([k, l]) => `<button type="button" data-status="${k}" class="${L.status === k ? 'on' : ''}">${l}</button>`).join('');
 }
+/* ---------- Projektbaum links (LV, Angebote, Aufmaßprüfung, Rechnungen) ---------- */
+const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
+let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
+function pjBaum() {
+  const xs = LIST.filter((x) => !x.archived && (tab === 'lv' || tab === 'angebote' || x.vergeben));
+  const e0 = (v) => (v ? eur(v).replace(' €', '') : '');
+  const titel = { lv: 'Leistungsverzeichnisse', angebote: 'Angebote', aufmass: 'Aufmaßprüfung', rechnungen: 'Rechnungen' }[tab];
+  const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
+  if (L && !PJX.size) PJX.add(L.id);
+  const out = [`<div class="pj-h"><b>${titel}</b><button type="button" class="ib" data-pjzu title="${PJZU ? 'Projektbaum zeigen' : 'Projektbaum einklappen'}">${PJZU ? '»' : '«'}</button></div>`,
+    `<div class="pj-r root">${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${e0(xs.reduce((a, x) => a + (tab === 'aufmass' ? x.leistung : tab === 'rechnungen' ? x.abgerechnet : tab === 'angebote' ? x.min_angebot : (x.auftrag || x.schaetzung)), 0))}</span></div>`];
+  if (!xs.length) out.push(`<p class="hint" style="padding:.3rem .5rem">${tab === 'lv' || tab === 'angebote' ? 'Noch kein LV.' : 'Noch nichts vergeben.'}</p>`);
+  xs.forEach((x) => {
+    const kids = tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : tab === 'lv' ? [] : x.rechnungen;
+    const on = L && L.id === x.id, offen = PJX.has(x.id);
+    const wert = tab === 'lv' ? x.auftrag || x.schaetzung : tab === 'angebote' ? x.min_angebot : tab === 'aufmass' ? x.leistung : x.auftrag;
+    const sub = tab === 'lv' ? `${x.n_pos} Pos.${x.auftragnehmer ? ' · ' + x.auftragnehmer : ''}` : tab === 'angebote' ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}${x.auftragnehmer ? ' · an ' + x.auftragnehmer : ''}` : x.auftragnehmer + (x.frei ? ' · ohne LV' : '');
+    out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : ''}>${kids.length ? (offen ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span></div>`);
+    if (!offen) return;
+    kids.forEach((k) => {
+      const key = (tab === 'angebote' ? 'b' : 'r') + k.id, sel = on && PJSEL === key;
+      const txt = tab === 'angebote' ? `${k.rang ? k.rang + '. ' : ''}${esc(k.bieter)}${x.angebot_id === k.id ? ' <span class="ok">✓ beauftragt</span>' : ''}`
+        : `${esc(reTitel(k))}${k.re_nr ? ` <small>Nr. ${esc(k.re_nr)}</small>` : ''} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>`;
+      out.push(`<div class="pj-r k${sel ? ' on' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${tab === 'angebote' ? IC.pos : IC.ti}<span class="t">${txt}</span><span class="v">${e0(tab === 'angebote' ? k.netto : tab === 'aufmass' ? k.anerkannt : k.zahlung)}</span></div>`);
+    });
+  });
+  return out.join('');
+}
+let PJSEL = null;
+function pjFokus() {
+  const F = PJF; PJF = null; if (!F || !F.sub) return;
+  const id = +F.sub.slice(1); let el = null;
+  if (tab === 'angebote') { const i = document.querySelector(`th input[data-aid="${id}"]`); el = i && i.closest('th'); if (el) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); }
+  else if (tab === 'rechnungen') { el = document.querySelector(`.card[data-reid="${id}"]`); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  else if (tab === 'aufmass') { el = document.querySelector(`tr[data-amr="r${id}"]`); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  if (el) { el.classList.add('pj-blink'); setTimeout(() => el.classList.remove('pj-blink'), 1600); }
+}
+document.addEventListener('click', async (e) => {
+  if (!PJTABS.has(tab)) return;
+  if (e.target.closest('[data-pjzu]')) { PJZU = !PJZU; LS.set('pjzu', PJZU); render(); return; }
+  const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else PJX.add(id); LS.set('pjx', [...PJX].slice(-100)); $('#pjTree').innerHTML = pjBaum(); return; }
+  const r = e.target.closest('[data-pjlv]'); if (!r) return;
+  const id = +r.dataset.pjlv, sub = r.dataset.pjsub || null;
+  PJSEL = sub; PJF = { lv: id, sub }; PJX.add(id); LS.set('pjx', [...PJX].slice(-100));
+  if (tab === 'aufmass' && sub) { const x = LIST.find((y) => y.id === id); amAns = 'baum'; LS.set('amAns', amAns); (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX); }
+  if (!L || L.id !== id) { await flush(); await openLv(id); } else render();
+});
 function render() {
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
   if (typeof histUi === 'function') setTimeout(histUi, 0);
@@ -597,7 +657,7 @@ function render() {
   $('#tabs').innerHTML = (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
     + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')}</div>`).join('');
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
-  const mitSel = NURLV.has(tab) && tab !== 'lv' && LIST.length > 0;   // im LV wählt der Baum, in Angebote/Aufmaß/Rechnungen dieser Knopf
+  const mitSel = NURLV.has(tab) && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
   $('#sel').hidden = !mitSel;
   $('#phT').textContent = `${(TABS.find((t) => t[0] === tab) || [, ''])[1]}${mitSel ? '' : ': ' + (NURLV.has(tab) && L ? `LV ${L.nr} ${L.name}` : pn)}`;
   $('#kpi').hidden = !NURLV.has(tab); $('#stat').hidden = !NURLV.has(tab);
@@ -605,7 +665,12 @@ function render() {
   // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
   $('.rib').classList.toggle('weg', !['lv', 'auftraege'].includes(tab) && document.activeElement !== $('#vq'));
   if (typeof quZeigen === 'function' && QU) quZeigen();
-  const v = $('#view');
+  const v0 = $('#view'); let v = v0;
+  if (PJTABS.has(tab) && LIST.some((x) => !x.archived)) {   // wie in ORCA: links der Projektbaum (alle LVs mit Angeboten bzw. Rechnungen), rechts das Gewählte
+    if (!v0.querySelector(':scope > .pjw')) v0.innerHTML = '<div class="pjw"><aside class="pj" id="pjTree" aria-label="Projektbaum"></aside><div class="pjm" id="pjMain"></div></div>';
+    v0.querySelector('.pjw').classList.toggle('zu', PJZU);
+    $('#pjTree').innerHTML = pjBaum(); v = $('#pjMain');
+  }
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); return; }
   if (tab === 'tueren') { vTueren(v); return; }
@@ -613,6 +678,7 @@ function render() {
   v.innerHTML = { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   sums();
   if (tab === 'aufmass') amPdfMount();
+  if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);
   if (tab === 'lv') lvAktZeigen();
 }
 
@@ -1144,7 +1210,7 @@ function vAmBaum() {
   out.push(`<tr class="root"><td><span class="tw">${IC.proj}<span>LV ${esc(L.nr)} ${esc(L.name)}${L.vergabe && L.vergabe.bieter ? ' · ' + esc(L.vergabe.bieter) : ''}</span></span></td><td></td><td></td><td></td><td class="r">${e2(gAll * (1 - nl))}</td><td class="r">${e2(pAll * (1 - nl))}</td></tr>`);
   staende.forEach((S) => {
     const on = offen(S.key, S.letzte), [g, p] = summe(S.st, 0, I.length);
-    out.push(`<tr class="rech${S.letzte ? ' akt' : ''}"><td><span class="tw" style="padding-left:1.1rem">${car(S.key, on)}${IC.lv}<span><b>${esc(S.titel)}</b> <span class="mu">${esc(S.sub)}</span></span></span></td><td></td><td></td><td></td><td class="r">${e2(g * (1 - nl))}</td><td class="r">${on ? '' : e2(p * (1 - nl))}</td></tr>`);
+    out.push(`<tr class="rech${S.letzte ? ' akt' : ''}" data-amr="${S.key}"><td><span class="tw" style="padding-left:1.1rem">${car(S.key, on)}${IC.lv}<span><b>${esc(S.titel)}</b> <span class="mu">${esc(S.sub)}</span></span></span></td><td></td><td></td><td></td><td class="r">${e2(g * (1 - nl))}</td><td class="r">${on ? '' : e2(p * (1 - nl))}</td></tr>`);
     if (!on) return;
     const zu = new Set();   // zugeklappte Titel
     I.forEach((x, i) => {
@@ -1408,7 +1474,7 @@ function vRechnungen() {
         ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="${art === 'regie' || art === 'sicherheit' ? 'Prüfung abschließen' : 'Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung'}">✓ Prüfung abschließen</button>`}
         ${last ? `<button class="btn sm danger" data-reb="del" data-id="${r.id}">Löschen</button>` : ''}</div>`;
     if (art === 'sicherheit') {
-      return `<div class="card">${kopf}<table><tbody>
+      return `<div class="card" data-reid="${r.id}">${kopf}<table><tbody>
         <tr><td>noch einbehalten (alle geprüften Rechnungen)</td><td class="r">${eur(K.sicherheit.offen + (g ? c.zahlung : 0))}</td></tr>
         <tr class="s"><td>= Freigabe netto</td><td class="r">${eur(c.zahlung)}</td></tr>
         <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
@@ -1421,7 +1487,7 @@ function vRechnungen() {
           <td class="r"><input data-re="z-ep" data-id="${r.id}" data-k="${k}" value="${z.ep != null ? nf(z.ep, 2) : ''}" inputmode="decimal" style="width:6rem;text-align:right"${dis}></td>
           <td class="r">${eur((z.menge || 0) * (z.ep || 0))}</td><td>${g ? '' : `<button class="ib" data-reb="zdel" data-id="${r.id}" data-k="${k}">✕</button>`}</td></tr>`).join('')}
         ${g ? '' : `<tr><td colspan="6"><button class="ib" data-reb="zneu" data-id="${r.id}">+ Zeile (Lohn, Gerät, Material laut Stundenzettel)</button></td></tr>`}</tbody></table>` : '';
-    return `<div class="card">${kopf}${zeilen}
+    return `<div class="card" data-reid="${r.id}">${kopf}${zeilen}
       <table><tbody>
         ${c.frei ? `<tr><td>geprüfter Betrag netto (ohne Aufmaß)</td><td class="r"><input data-re="frei" data-id="${r.id}" value="${nf(r.data.frei || 0, 2)}" inputmode="decimal" style="width:9rem;text-align:right"${dis}></td></tr>`
           : `<tr><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>`}

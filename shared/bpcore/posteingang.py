@@ -87,7 +87,7 @@ def _eigene(e):
     if isinstance(pf, str):
         pf = re.split(r"[\s,;]+", pf)
     pf = sorted({str(a).strip().lower() for a in (pf or []) if "@" in str(a)})[:20]
-    return {"aus": e.get("aus", True) is not False, "postfaecher": pf}
+    return {"aus": e.get("aus", True) is not False, "postfaecher": pf, "cc": e.get("cc", True) is not False}
 
 
 def meine_adressen(c, u):
@@ -99,10 +99,26 @@ def meine_adressen(c, u):
 def eigene_filtern(c, u, mails):
     """Mails ohne die eigenen Kopien (Absender = ich, gelesen aus einem der eingestellten Postfächer)."""
     e = postfaecher(c, u["id"])["eigene"]
-    if not e["aus"]:
+    if not e["aus"] and not e["cc"]:
         return mails
     ich, nur = meine_adressen(c, u), set(e["postfaecher"])
-    return [m for m in mails if not ((m.get("von") or "").lower() in ich and (not nur or (m.get("quelle") or "").lower() in nur))]
+    out = []
+    for m in mails:
+        von, pf = (m.get("von") or "").lower(), (m.get("postfach") or m.get("quelle") or "").lower()
+        if e["aus"] and (von in ich or (von and von == pf)) and (not nur or pf in nur):
+            continue   # selbst geschickt – auch aus dem gemeinsamen Postfach (GK3-Mail an …, Kopie an mail@)
+        if e["cc"] and _nur_kenntnis(m, ich | {pf}):
+            continue
+        out.append(m)
+    return out
+
+
+def _nur_kenntnis(m, wir):
+    """Nur zur Kenntnis: wir stehen nur in CC, nicht unter „An“ (ältere Abrufe ohne Empfänger: nie)."""
+    an, cc = [a.lower() for a in m.get("an") or []], [a.lower() for a in m.get("cc") or []]
+    if not an and not cc:
+        return False
+    return not any(a in wir for a in an) and any(a in wir for a in cc)
 
 
 RHYTHMEN = ("tag", "zweimal", "stuendlich", "hand")
@@ -219,7 +235,7 @@ def m365_lesen(m, adresse, seit):
     tok = _token(m)
     h = {"Authorization": "Bearer " + tok, "Prefer": 'outlook.body-content-type="text"'}
     q = urllib.parse.urlencode({"$filter": f"receivedDateTime ge {seit.strftime('%Y-%m-%dT%H:%M:%SZ')}", "$orderby": "receivedDateTime desc", "$top": "100",
-                                "$select": "id,subject,from,receivedDateTime,bodyPreview,hasAttachments,webLink,isRead"})
+                                "$select": "id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,hasAttachments,webLink,isRead"})
     try:
         d = _json(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(adresse)}/mailFolders/inbox/messages?{q}", headers=h)
     except urllib.error.HTTPError as e:
@@ -236,7 +252,9 @@ def m365_lesen(m, adresse, seit):
                 pass
         out.append({"id": "m:" + x["id"][-40:], "quelle": adresse, "von": (f.get("address") or "").lower(), "von_name": f.get("name") or "",
                     "betreff": x.get("subject") or "", "zeit": x.get("receivedDateTime") or "", "vorschau": (x.get("bodyPreview") or "")[:400],
-                    "anhaenge": anh, "link": x.get("webLink") or "", "gelesen": bool(x.get("isRead"))})
+                    "anhaenge": anh, "link": x.get("webLink") or "", "gelesen": bool(x.get("isRead")), "postfach": adresse.lower(),
+                    "an": [((r.get("emailAddress") or {}).get("address") or "").lower() for r in x.get("toRecipients") or []][:40],
+                    "cc": [((r.get("emailAddress") or {}).get("address") or "").lower() for r in x.get("ccRecipients") or []][:40]})
     return out
 
 
@@ -293,7 +311,9 @@ def imap_lesen(k, seit):
             anh = [_dec(x) for x in re.findall(r'"(?:FILENAME|NAME)" "([^"]+)"', struct, re.I)][:12]
             out.append({"id": f"i:{k['id']}:{(msg.get('Message-ID') or i.decode())[-60:]}", "quelle": k.get("name") or k["user"], "von": adr.lower(),
                         "von_name": name, "betreff": _dec(msg.get("Subject")), "zeit": zeit.isoformat(), "vorschau": " ".join(vorschau.split())[:400],
-                        "anhaenge": anh, "link": "", "gelesen": False})
+                        "anhaenge": anh, "link": "", "gelesen": False, "postfach": (k.get("user") or "").lower(),
+                        "an": [a.lower() for _, a in email.utils.getaddresses([_dec(msg.get("To"))]) if a][:40],
+                        "cc": [a.lower() for _, a in email.utils.getaddresses([_dec(msg.get("Cc"))]) if a][:40]})
         return out
     finally:
         try:

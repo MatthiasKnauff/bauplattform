@@ -578,7 +578,7 @@
       root = bg.firstChild; close = () => { bg.remove(); document.removeEventListener('keydown', e1); };
       document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
     }
-    const AB = D.abruf || { rhythmus: 'tag', uhrzeit: '08:00' }, EG = D.eigene || { aus: true, postfaecher: [] }, AZ = D.anzeige || { tage: 1, wochenende: true };
+    const AB = D.abruf || { rhythmus: 'tag', uhrzeit: '08:00' }, EG = D.eigene || { aus: true, postfaecher: [], cc: true }, AZ = D.anzeige || { tage: 1, wochenende: true };
     const abrufText = () => ({ tag: `einmal am Tag um ${AB.uhrzeit} Uhr`, zweimal: `zweimal am Tag, um ${AB.uhrzeit} und 5 Stunden später`, stuendlich: 'stündlich von 7 bis 19 Uhr', hand: 'nur, wenn du ↻ Jetzt abrufen drückst' })[AB.rhythmus];
     const VORL = { gmail: ['imap.gmail.com', 993], webde: ['imap.web.de', 993], gmx: ['imap.gmx.net', 993], ionos: ['imap.ionos.de', 993], strato: ['imap.strato.de', 993], tonline: ['secureimap.t-online.de', 993], outlook: ['outlook.office365.com', 993] };
     const feld = (k, i, l, typ = 'text', ph = '') => `<label style="flex:1;min-width:9rem">${l}<input data-pf="${k}" data-pi="${i}" type="${typ}" value="${typ === 'password' ? '' : esc((D.konten[i] || {})[k] ?? '')}" placeholder="${esc(ph)}" autocomplete="${typ === 'password' ? 'new-password' : 'off'}"></label>`;
@@ -593,7 +593,8 @@
         <label class="bph-ck"><input type="checkbox" data-pazw${AZ.wochenende ? ' checked' : ''}> Wochenende nicht mitzählen – die Mails vom Freitag stehen am Montag noch da</label>
         <p class="bph-mu">Mails, zu denen du eine Erinnerung angelegt hast, bleiben stehen, bis die Erinnerung erledigt ist.</p>
         <h4>Eigene Mails</h4>
-        <label class="bph-ck"><input type="checkbox" data-peg${EG.aus ? ' checked' : ''}> Mails ausblenden, die ich selbst geschickt habe – z. B. in Kopie an ${esc((D.zugewiesen || [])[0] || 'mail@…')}</label>
+        <label class="bph-ck"><input type="checkbox" data-peg${EG.aus ? ' checked' : ''}> Mails ausblenden, die wir selbst geschickt haben – von mir oder aus dem Postfach selbst (z. B. „GK3-Mail“), auch in Kopie an ${esc((D.zugewiesen || [])[0] || 'mail@…')}</label>
+        <label class="bph-ck"><input type="checkbox" data-pegc${EG.cc !== false ? ' checked' : ''}> Mails nur zur Kenntnis ausblenden – wir stehen nur in CC, nicht unter „An“</label>
         <div class="bph-row"${EG.aus ? '' : ' hidden'}><label style="flex:1">nur in diesen Postfächern <span class="bph-mu">(leer = in allen; mehrere mit Komma)</span><input data-pegp value="${esc(EG.postfaecher.join(', '))}" placeholder="alle Postfächer – z. B. ${esc((D.zugewiesen || [])[0] || 'mail@gk3-architektur.de')} eintragen" list="bph-pegl" autocomplete="off"></label><datalist id="bph-pegl">${(D.zugewiesen || []).concat(D.email ? [D.email] : []).map((a) => `<option value="${esc(a)}">`).join('')}</datalist></div>
         <h4>Büro-Postfach (Microsoft 365)</h4>
         ${D.m365_zentral ? `<label class="bph-ck"><input type="checkbox" data-pm${D.m365 ? ' checked' : ''}> mein Postfach <b>${esc(D.email || '–')}</b> einbeziehen</label>${(D.zugewiesen || []).length ? `<p class="bph-mu">Dazu vom Administrator zugewiesen: <b>${D.zugewiesen.map(esc).join(', ')}</b></p>` : ''}<div class="bph-row"><button type="button" class="bph-btn" data-ptm>Probeweise lesen</button></div>`
@@ -607,7 +608,7 @@
         <p class="bph-mu">Gmail, GMX, WEB.DE & Co. verlangen meist ein <b>App-Passwort</b> und eingeschaltetes IMAP in den Einstellungen des Postfachs.</p>
         <div class="bph-row"><button type="button" class="bph-btn pri" data-ps>Speichern</button></div>${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
     }
-    const lesen = () => { const az = root.querySelector('[data-paz="tage"]'); if (az) AZ.tage = +az.value; const azw = root.querySelector('[data-pazw]'); if (azw) AZ.wochenende = azw.checked; const eg = root.querySelector('[data-peg]'); if (eg) EG.aus = eg.checked; const egp = root.querySelector('[data-pegp]'); if (egp) EG.postfaecher = egp.value.split(/[\s,;]+/).filter((a) => a.includes('@')); root.querySelectorAll('[data-pab]').forEach((el) => { AB[el.dataset.pab] = el.value || AB[el.dataset.pab]; }); root.querySelectorAll('[data-pf]').forEach((el) => { const k = D.konten[+el.dataset.pi]; if (!k) return; const f = el.dataset.pf; k[f] = el.type === 'checkbox' ? el.checked : el.value; }); const m = root.querySelector('[data-pm]'); if (m) D.m365 = m.checked; };
+    const lesen = () => { const az = root.querySelector('[data-paz="tage"]'); if (az) AZ.tage = +az.value; const azw = root.querySelector('[data-pazw]'); if (azw) AZ.wochenende = azw.checked; const eg = root.querySelector('[data-peg]'); if (eg) EG.aus = eg.checked; const egc = root.querySelector('[data-pegc]'); if (egc) EG.cc = egc.checked; const egp = root.querySelector('[data-pegp]'); if (egp) EG.postfaecher = egp.value.split(/[\s,;]+/).filter((a) => a.includes('@')); root.querySelectorAll('[data-pab]').forEach((el) => { AB[el.dataset.pab] = el.value || AB[el.dataset.pab]; }); root.querySelectorAll('[data-pf]').forEach((el) => { const k = D.konten[+el.dataset.pi]; if (!k) return; const f = el.dataset.pf; k[f] = el.type === 'checkbox' ? el.checked : el.value; }); const m = root.querySelector('[data-pm]'); if (m) D.m365 = m.checked; };
     root.addEventListener('click', async (e) => {
       const t = e.target;
       if (t.closest('[data-pc]')) return close();

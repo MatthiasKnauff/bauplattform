@@ -839,3 +839,12 @@ html.mobil #tabs .tb-r #saveState{display:none}
 
 /* Dialoge: an der Ecke rechts unten in der Größe veränderbar (verschieben an der Kopfzeile) */
 .modal{resize:both;overflow:hidden;min-height:140px}.modal .mb{flex:1;overflow:auto}
+
+/* Dialoge besser lesbar (nicht so fisselig) */
+.modal{font-size:14px;line-height:1.45}
+.modal .mh{font-size:15px;font-weight:600;padding:9px 14px}
+.modal .mb{padding:16px 18px}
+.modal .form{gap:10px 12px}
+.modal .form label{color:#333}
+.modal .form input,.modal .form select,.modal .form textarea{padding:6px 8px;border-radius:5px}
+.modal .mf .btn{padding:6px 18px;font-size:14px}

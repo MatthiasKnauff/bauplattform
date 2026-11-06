@@ -50,3 +50,5 @@
 .td-undo{position:fixed;left:50%;bottom:4.6rem;transform:translateX(-50%);z-index:900;display:flex;gap:.8rem;align-items:center;background:#1e1e1e;color:#fff;border-radius:10px;padding:.55rem .6rem .55rem 1rem;box-shadow:0 8px 28px rgba(0,0,0,.35);font-size:.92rem;max-width:calc(100vw - 2rem)}
 .td-undo span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .td-undo button{background:var(--y);color:var(--on,#111);border:0;border-radius:7px;padding:.35rem .8rem;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+
+.bph-btn.td-std{color:#d64545!important;border-color:#d64545!important;background:transparent}.bph-btn.td-std:hover{background:rgba(214,69,69,.1)}   /* Zurücksetzen: rot, rechts */

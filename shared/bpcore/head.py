@@ -170,11 +170,9 @@ def blueprint(get_user=None):
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
-            if request.method == "POST" or request.args.get("beitreten"):   # per Einladung oder Link
+            if request.method == "POST" or request.args.get("beitreten") or not skizze.darf(c, sid, u):   # per Einladung oder Link – der Link genügt
                 if not skizze.beitreten(c, sid, u):
                     return jsonify(error="Diese gemeinsame Skizze gibt es nicht (mehr)."), 404
-            if not skizze.darf(c, sid, u):
-                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
             return jsonify(skizze.stand(c, sid, u, request.args.get("seit", type=int) or 0))
 
     @bp.get("/api/bp/skizze-dauerhaft")
@@ -203,8 +201,8 @@ def blueprint(get_user=None):
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
-            if not skizze.darf(c, sid, u):
-                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
+            if not skizze.darf(c, sid, u) and not skizze.beitreten(c, sid, u):   # wer den Link hat, ist dabei – keine Einladung nötig
+                return jsonify(error="Diese gemeinsame Skizze gibt es nicht (mehr)."), 404
             r = c.execute("SELECT name, datei FROM skizze WHERE id=?", (sid,)).fetchone()
         return Response(bytes(r["datei"]), mimetype="application/pdf", headers={"Cache-Control": "private, max-age=3600"})
 

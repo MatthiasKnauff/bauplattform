@@ -1401,14 +1401,14 @@
       const link = location.origin + location.pathname + '#skizze=' + SK.id;
       const d = document.createElement('div'); d.className = 'bph-dlg-bg'; d.style.zIndex = 6000;
       d.innerHTML = `<div class="bph-dlg" style="max-width:26rem"><div class="bph-dh"><b>Gemeinsam markieren</b><button type="button" class="bph-x" data-kx>×</button></div><div class="bph-db">
-        <p class="bph-mu">Wer eingeladen ist, bekommt in der Bauplattform einen Hinweis und sieht den Plan mit allen Markierungen – Striche und Zeiger erscheinen bei allen gleichzeitig.</p>
+        <p class="bph-mu">Entweder hier Kollegen einladen – sie bekommen in der Bauplattform einen Hinweis – <b>oder</b> den Link kopieren und selbst verschicken: Wer ihn öffnet, ist ohne Einladung dabei. Striche und Zeiger erscheinen bei allen gleichzeitig.</p>
         <div class="bph-skk">${K.map((k) => `<label class="bph-ck"><input type="checkbox" value="${k.id}"> ${esc(k.name)} ${k.online ? '<small style="color:#2f9e5a">● angemeldet</small>' : ''}</label>`).join('') || '<p class="bph-mu">Keine weiteren Benutzer.</p>'}</div>
         <div class="bph-row"><button type="button" class="bph-btn pri" data-ko>Einladen</button><button type="button" class="bph-btn" data-kl>Link kopieren</button></div>
         <p class="bph-mu" data-km></p></div></div>`;
       el.appendChild(d);
       d.addEventListener('click', async (e) => {
         if (e.target === d || e.target.closest('[data-kx]')) return d.remove();
-        if (e.target.closest('[data-kl]')) { try { await navigator.clipboard.writeText(link); d.querySelector('[data-km]').textContent = 'Link kopiert – z. B. in Teams einfügen. Er funktioniert für angemeldete Kollegen.'; } catch { prompt('Link:', link); } return; }
+        if (e.target.closest('[data-kl]')) { try { await navigator.clipboard.writeText(link); d.querySelector('[data-km]').textContent = 'Link kopiert – z. B. in Teams oder per Mail schicken. Wer ihn öffnet, ist sofort dabei, eine Einladung ist nicht nötig.'; } catch { prompt('Link:', link); } return; }
         if (e.target.closest('[data-ko]')) {
           const an = [...d.querySelectorAll('input:checked')].map((x) => +x.value); if (!an.length) return;
           try { await SKJ(`api/bp/skizze/${SK.id}/einladen`, 'POST', { an }); d.remove(); if (window.toast) toast('Eingeladen – sobald sie mitmachen, siehst du ihre Zeiger.'); } catch (er) { d.querySelector('[data-km]').textContent = er.message; }

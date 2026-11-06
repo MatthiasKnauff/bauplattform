@@ -6,7 +6,9 @@ import base64, io, json
 
 STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich zum Weiterleiten) | firma (direkt an die Firma)
             "kopie": True,           # bei „direkt an die Firma“: Kopie an mich
-            "kalender": False,       # eigene und verschobene Erinnerungen automatisch als Kalendertermin an mich
+            "kalender": False,       # alt: eigene Erinnerungen als Kalendertermin (ersetzt durch erinnerung_art)
+            "erinnerung_art": "",    # Erinnerungen aller Apps: mail (einfache Mail am Tag) | termin (sofort als Termin zum Annehmen); leer = nach „kalender“
+            "erinnerung_an": "ich",  # ich | bauleiter (alle Bauleiter des Projekts)
             "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
             "mailsignatur_html": "", # dieselbe als HTML (eingefügt aus Outlook/Word); hat Vorrang
             "telefon": "", "funktion": "",   # für die Signatur
@@ -46,6 +48,10 @@ def set_prefs(c, uid, d, by=""):
     for k in ("kopie", "kalender"):
         if k in d:
             p[k] = bool(d[k])
+    if d.get("erinnerung_art") in ("mail", "termin"):
+        p["erinnerung_art"] = d["erinnerung_art"]
+    if d.get("erinnerung_an") in ("ich", "bauleiter"):
+        p["erinnerung_an"] = d["erinnerung_an"]
     if isinstance(d.get("hinweise_aus"), list):
         p["hinweise_aus"] = sorted({str(x)[:40] for x in d["hinweise_aus"] if str(x).strip()})[:30]
     if "mailsignatur_html" in d:

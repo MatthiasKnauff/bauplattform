@@ -315,7 +315,7 @@ function renderE() {
   const G = [['ueberfaellig', 'Überfällig – noch nicht verschickt'], ['abgelaufen', 'Abgelaufen – neu terminieren oder erledigen'], ['heute', 'Heute'], ['bald', 'Nächste 7 Tage'], ['spaeter', 'Später']];
   const row = (x) => {
     const [ic, sn] = SRC[x.quelle] || ['•', ''], link = x.quelle === 'plan' && x.gantt_id ? appLink('gantt', '#plan=' + encodeURIComponent(x.gantt_id)) : x.quelle === 'bautagebuch' && x.rid ? appLink('bautagebuch', `#projekt=${x.pid}&bericht=${x.rid}`) : '';
-    const sent = x.gesendet === 'fehler' ? '⚠ Mail nicht zustellbar – E-Mail-Adresse prüfen' : x.gesendet ? `Mail am ${de(x.gesendet)} verschickt` : '';
+    const sent = x.gesendet === 'fehler' ? '⚠ Mail nicht zustellbar – E-Mail-Adresse prüfen' : x.gesendet === 'termin' ? '📅 als Termin verschickt' : x.gesendet ? `Mail am ${de(x.gesendet)} verschickt` : '';
     const auf = EAUF.has(x.id) || OPEN === x.id, eigen = x.quelle === 'eigen';
     const ziel = link || x.mail || '';
     return `<div class="er ${x.lage}${auf ? ' auf' : ''}" data-e="${x.id}" title="${auf ? 'Klick klappt zu' : 'Klick klappt auf'}${ziel ? ' · Doppelklick öffnet ' + (link ? (x.quelle === 'plan' ? 'den Bauzeitenplan' : 'den Bericht') : 'die Mail') : ''}"><span class="ic" title="${sn}">${ic}</span>

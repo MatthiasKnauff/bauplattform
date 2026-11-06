@@ -400,7 +400,10 @@
           <h4>Mängel- und Terminrügen versenden</h4><p class="bph-mu">Vorauswahl im Dialog der Rüge – dort lässt sie sich jedes Mal ändern.</p>
           ${seg('versand', [['pdf', 'nur PDF'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']])}
           <label class="bph-ck"><input type="checkbox" data-kchk="kopie"${K.kopie ? ' checked' : ''}> bei „direkt an die Firma“ eine Kopie an mich</label>
-          <h4>Kalender</h4><label class="bph-ck"><input type="checkbox" data-kchk="kalender"${K.kalender ? ' checked' : ''}> eigene und verschobene Erinnerungen automatisch als Termin an mich senden (Outlook & Co.: annehmen trägt ihn in den Kalender ein)</label>
+          <h4>Erinnerungen</h4><p class="bph-mu">Gilt für alle Apps, die erinnern: Bautagebuch (Mängel, Zu erledigen, Weisungen mit Datum), eigene Erinnerungen, Erinnerungen aus Mails.</p>
+          ${(K.erinnerung_art = K.erinnerung_art || (K.kalender ? 'termin' : 'mail'), seg('erinnerung_art', [['mail', 'einfache Mail am Erinnerungstag'], ['termin', 'sofort als Outlook-Termin zum Annehmen']]))}
+          ${seg('erinnerung_an', [['ich', 'nur an mich'], ['bauleiter', 'an alle Bauleiter des Projekts']])}
+          <p class="bph-mu">${K.erinnerung_art === 'termin' ? 'Der Termin kommt beim Anlegen oder Verschieben als Einladung – „Annehmen“ trägt ihn in den Standardkalender ein, die angehängte termin.ics lässt sich in einen anderen Kalender übernehmen. Die Mail am Tag entfällt.' : 'Am Erinnerungstag zur eingestellten Uhrzeit kommt eine Mail.'}</p>
           <p class="bph-mu">Einzelne Erinnerungen, Fristen und Termine lassen sich außerdem jederzeit mit 📅 als Termin schicken.</p>
           <h4>Posteingang</h4><p class="bph-mu">Die Startseite zeigt die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Postfächer und Abrufzeit stellst du auf der Startseite unter ⚙ → Startseite → Posteingang ein.</p>
           <div class="bph-row"><button type="button" class="bph-btn" data-kpost>📬 Postfächer einrichten …</button></div>

@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, briefbogen, db, ical, konto, mail, plan, platform, posteingang, schrift, sso, todo, versionen, vorlagen
+from bpcore import benachrichtigung, briefbogen, db, erinnern, ical, konto, mail, plan, platform, posteingang, schrift, sso, todo, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -1105,11 +1105,11 @@ def erinnerung_neu():
     if not titel or not DATE.match(termin):
         return jsonify(error="Bitte Text und Datum angeben."), 400
     uz = b.get("uhrzeit") if TIME.match(str(b.get("uhrzeit") or "")) else "08:00"
-    rec = [int(x) for x in (b.get("an") or [g.user["id"]]) if str(x).isdigit()] or [g.user["id"]]
     pid = b.get("pid") if isinstance(b.get("pid"), int) else None
     with db.tx() as c:
         if pid and not c.execute("SELECT 1 FROM projects WHERE id=?", (pid,)).fetchone():
             pid = None
+        rec = [int(x) for x in (b.get("an") or []) if str(x).isdigit()] or erinnern.empfaenger(c, g.user["id"], pid)   # ohne Auswahl: nach Einstellung (ich / alle Bauleiter)
         i = c.execute("""INSERT INTO erinnerungen(quelle, project_id, titel, text, termin, uhrzeit, empfaenger, erstellt, erstellt_von, geaendert, geaendert_von)
                          VALUES('eigen',?,?,?,?,?,?,?,?,?,?) RETURNING id""",
                       (pid, titel, str(b.get("text") or "")[:2000], termin, uz, json.dumps(rec), _now(), g.user["name"], _now(), g.user["name"])).fetchone()[0]
@@ -1215,16 +1215,24 @@ def kalender_api():
 
 
 def _kal_auto(eid):
-    """„Erinnerungen automatisch als Termin“ (Mein Konto): nach Anlegen/Verschieben still versuchen."""
+    """Nach Anlegen/Verschieben einer eigenen Erinnerung: je nach Einstellung (⚙ → Für mich → Erinnerungen) sofort als Termin
+    an die Empfänger – die Mail am Tag entfällt dann (gesendet = „termin“)."""
+    if not (eid.startswith("r") and eid[1:].isdigit()):
+        return ""
     try:
         with db.tx() as c:
-            on = konto.prefs(c, g.user["id"]).get("kalender")
-        if on and g.user["email"]:
-            err = kalender_senden(eid)
-            return "Termin an dich verschickt." if not err else ""
+            if erinnern.einstellung(c, g.user["id"])["art"] != "termin":
+                return ""
+            r = c.execute("SELECT * FROM erinnerungen WHERE id=?", (int(eid[1:]),)).fetchone()
+            if not r or r["status"] == "erledigt":
+                return ""
+            n, f = erinnern.termine_senden(c, f"r{r['id']}", r["termin"], r["uhrzeit"], r["titel"], r["text"], r["project_id"], _ids(r["empfaenger"]),
+                                           C.full_name(g.user))
+            if n:
+                c.execute("UPDATE erinnerungen SET gesendet='termin' WHERE id=?", (r["id"],))
+        return (f"Als Termin verschickt ({n} Empfänger)." if n else "") + (f" {f}" if f else "")
     except Exception:
-        pass
-    return ""
+        return ""
 
 
 @app.delete("/api/erinnerungen/<rid>")

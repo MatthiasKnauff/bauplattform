@@ -24,23 +24,37 @@ def run_once(now=None):
         conf = settings.all(c)
         if not mail.configured(conf):
             return 0
-        rows = c.execute("""SELECT i.id, i.text, i.due, i.due_time, i.remind_user, s.title AS sec, p.name AS proj, r.date AS rdate
+        rows = c.execute("""SELECT i.id, i.text, i.due, i.due_time, i.remind_user, s.title AS sec, p.name AS proj, p.id AS pid, r.date AS rdate
             FROM items i JOIN reports r ON r.id=i.report_id JOIN projects p ON p.id=r.project_id
             LEFT JOIN sections s ON s.key=i.kind
             WHERE i.due != '' AND i.due <= ? AND i.reminded = '' AND i.done = 0 AND i.remind_user IS NOT NULL
             ORDER BY i.due, i.id""", (today,)).fetchall()
         rows = [r for r in rows if r["due"] < today or (r["due_time"] or "09:00") <= hhmm]   # Uhrzeit am Fälligkeitstag abwarten
-        users = {r["remind_user"]: c.execute("SELECT name, email FROM users WHERE id=?", (r["remind_user"],)).fetchone() for r in rows}
+        # Empfänger nach der Einstellung dessen, der das Datum gesetzt hat: nur er oder alle Bauleiter des Projekts (⚙ → Für mich → Erinnerungen)
+        try:
+            from bpcore import erinnern
+            emp = {r["id"]: erinnern.empfaenger(c, r["remind_user"], r["pid"]) for r in rows}
+        except Exception:
+            emp = {r["id"]: [r["remind_user"]] for r in rows}
+        alle = {x for v in emp.values() for x in v}
+        users = {x: c.execute("SELECT name, email FROM users WHERE id=?", (x,)).fetchone() for x in alle}
     by_user = {}
     for r in rows:
-        by_user.setdefault(r["remind_user"], []).append(r)
+        for x in emp.get(r["id"]) or [r["remind_user"]]:
+            by_user.setdefault(x, []).append(r)
+    reserviert = {}   # Eintrag → Tag, an dem er (für alle Empfänger) verschickt wird
     sent = 0
     for uid, items in by_user.items():
         u = users.get(uid)
         if not u or not u["email"]:
             continue   # ohne E-Mail-Adresse keine Erinnerung; sie wird nachgeholt, sobald eine eingetragen ist
-        with db.tx() as c:   # Einträge „reservieren“, damit zwei Worker nicht doppelt senden
-            mine = [i for i in items if c.execute("UPDATE items SET reminded=? WHERE id=? AND reminded=''", (today, i["id"])).rowcount == 1]
+        with db.tx() as c:   # Einträge „reservieren“, damit zwei Worker nicht doppelt senden (je Eintrag einmal, gilt für alle seine Empfänger)
+            mine = []
+            for i in items:
+                if i["id"] not in reserviert:
+                    reserviert[i["id"]] = c.execute("UPDATE items SET reminded=? WHERE id=? AND reminded=''", (today, i["id"])).rowcount == 1
+                if reserviert[i["id"]]:
+                    mine.append(i)
         if not mine:
             continue
         from bpcore import platform

@@ -28,6 +28,26 @@ def _due(d):
     return None
 
 
+def _als_termin(c, item_id):
+    """Einstellung „sofort als Termin“ (⚙ → Für mich → Erinnerungen): Erinnerung zum Erledigungsdatum gleich als Einladung
+    an mich bzw. alle Bauleiter des Projekts – die Mail am Tag entfällt dann (reminded = „termin“)."""
+    try:
+        from bpcore import erinnern
+        r = c.execute("""SELECT i.id, i.text, i.due, i.due_time, i.remind_user, i.done, s.title AS sec, rp.project_id AS pid
+                         FROM items i JOIN reports rp ON rp.id=i.report_id LEFT JOIN sections s ON s.key=i.kind WHERE i.id=?""", (item_id,)).fetchone()
+        if not r or not r["due"] or r["done"] or not r["remind_user"] or erinnern.einstellung(c, r["remind_user"])["art"] != "termin":
+            return ""
+        t = (r["text"] or "").strip()
+        with c.savepoint():
+            n, f = erinnern.termine_senden(c, f"b{r['id']}", r["due"], r["due_time"] or "09:00", f"{r['sec'] or 'Eintrag'}: {t.splitlines()[0][:120] if t else ''}",
+                                           t, r["pid"], erinnern.empfaenger(c, r["remind_user"], r["pid"]), g.user["name"])
+            if n:
+                c.execute("UPDATE items SET reminded='termin' WHERE id=?", (r["id"],))
+        return "Als Termin verschickt." if n else f
+    except Exception:
+        return ""
+
+
 @bp.post("/api/reports/<int:r>/items")
 def create_item(r):
     d = request.json or {}
@@ -58,7 +78,10 @@ def create_item(r):
                         d["activity"] = ""
                 d.setdefault("headcount", 1)
         d["text"] = text
-        return jsonify(id=db.insert(c, "items", d, forced=forced), **out)
+        neu = db.insert(c, "items", d, forced=forced)
+        if d.get("due"):
+            out["hinweis"] = _als_termin(c, neu)
+        return jsonify(id=neu, **out)
 
 
 @bp.put("/api/items/<int:i>")
@@ -69,7 +92,8 @@ def update_item(i):
         return jsonify(error=err), 400
     with db.tx() as c:
         db.update(c, "items", i, d, protected=("report_id",))
-    return jsonify(ok=True)
+        hinweis = _als_termin(c, i) if d.get("due") or ("due_time" in d and "due" not in d) else ""
+    return jsonify(ok=True, hinweis=hinweis)
 
 
 @bp.delete("/api/items/<int:i>")

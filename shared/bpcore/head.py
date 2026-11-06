@@ -640,16 +640,25 @@ def blueprint(get_user=None):
             pid = b.get("pid") if isinstance(b.get("pid"), int) and c.execute("SELECT 1 FROM projects WHERE id=?", (b.get("pid"),)).fetchone() else None
             d = posteingang.lesen(c, uid)
             mail = next((m for m in d.get("mails") or [] if m.get("id") == str(b.get("id") or "")), {})   # Link zur Mail (Outlook) für „öffnen“
-            c.execute("""INSERT INTO erinnerungen(quelle, project_id, titel, text, termin, uhrzeit, empfaenger, daten, erstellt, erstellt_von, geaendert, geaendert_von)
-                         VALUES('eigen',?,?,?,?,'08:00',?,?,?,?,?,?)""", (pid, titel, str(b.get("text") or "")[:2000], termin, json.dumps([uid]),
+            from . import erinnern
+            emp = erinnern.empfaenger(c, uid, pid)   # nach Einstellung: ich / alle Bauleiter des Projekts
+            neu = c.execute("""INSERT INTO erinnerungen(quelle, project_id, titel, text, termin, uhrzeit, empfaenger, daten, erstellt, erstellt_von, geaendert, geaendert_von)
+                         VALUES('eigen',?,?,?,?,'08:00',?,?,?,?,?,?) RETURNING id""", (pid, titel, str(b.get("text") or "")[:2000], termin, json.dumps(emp),
                                                                            json.dumps({"aus_mail": str(b.get("id") or "")[:200], "link": str(mail.get("link") or "")[:1000]}),
-                                                                           jetzt, u["name"], jetzt, u["name"]))
+                                                                           jetzt, u["name"], jetzt, u["name"])).fetchone()
+            hinweis = ""
+            if erinnern.einstellung(c, uid)["art"] == "termin":   # sofort als Termin zum Annehmen statt Mail am Tag
+                with c.savepoint():
+                    n, f = erinnern.termine_senden(c, f"r{neu['id']}", termin, "08:00", titel, str(b.get("text") or ""), pid, emp, skizze.name_von(u))
+                    if n:
+                        c.execute("UPDATE erinnerungen SET gesendet='termin' WHERE id=?", (neu["id"],))
+                    hinweis = f"Als Termin verschickt ({n} Empfänger)." if n else f
             d.setdefault("erledigt", {})[str(b.get("id") or "")[:200]] = "angelegt"
             for m in d.get("mails") or []:
                 if m.get("id") == b.get("id"):
                     m.pop("vorschlag", None)
             konto._put(c, f"post:{uid}", json.dumps(d, ensure_ascii=False), "posteingang")
-        return jsonify(ok=True)
+        return jsonify(ok=True, hinweis=hinweis)
 
     @bp.route("/api/bp/post/zuweisung", methods=["GET", "PUT", "POST"])
     def post_zuweisung():

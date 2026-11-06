@@ -18,13 +18,14 @@ USER, PW = "Test-Admin", "Testdaten1"
 
 # Pfad im Verteiler → (Name, Datenabfragen). Die Hauptseite "/" und "/api/me" prüft der Test bei jeder App selbst.
 # {pid} = ein Testprojekt aus dem Bautagebuch (wird nach der Anmeldung ermittelt).
+# Nicht geprüft: alles, was die Ablage auf dem Dateiserver braucht (z. B. Planliste) – die gibt es im Test nicht.
 APPS = {
     "bautagebuch":   ("Bautagebuch", ["/api/projects", "/api/contacts", "/api/settings", "/api/users", "/api/backups", "/api/search?q=Test"]),
     "bauzeitenplan": ("Bauzeitenplan", ["/api/health", "/api/bt-projects", "/api/firms", "/api/library", "/api/phases", "/api/settings"]),
     "adressen":      ("Adressen", ["/api/contacts", "/api/contacts/duplikate"]),
     "baukosten":     ("Baukosten", ["/api/bk", "/api/kennwerte", "/api/sources"]),
     "maengel":       ("Aufgaben & Mängel", ["/api/maengel", "/api/termine", "/api/erinnerungen", "/api/projekte"]),
-    "plaene":        ("Pläne", ["/api/projekte", "/api/kontakte", "/api/plaene?project_id={pid}", "/api/versandliste?project_id={pid}"]),
+    "plaene":        ("Pläne", ["/api/projekte", "/api/kontakte", "/api/versandliste?project_id={pid}"]),
     "ava":           ("AVA", ["/api/projekte", "/api/kontakte", "/api/uebersicht", "/api/baudaten/kataloge"]),
     "kommunikation": ("Kommunikation", ["/api/kom", "/api/kontakte"]),
     "baudaten":      ("Baudaten", ["/api/start", "/api/gruppen", "/api/firmen"]),

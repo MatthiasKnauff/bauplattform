@@ -403,6 +403,7 @@ html[data-theme="hell"] #leiste{--lb:#e7e5e0}
 }
 #btq{font:inherit;font-size:.88rem;padding:.4rem .75rem;border-radius:999px;border:1px solid var(--line);background:var(--inp);color:var(--ink);margin-right:.2rem}
 #btq:focus{border-color:var(--y);outline:none}
+.sec.over,.ln.over{outline:2px dashed var(--acc,#e8a57e);outline-offset:2px;background:color-mix(in srgb,var(--acc,#e8a57e) 10%,transparent)}
 </style>
 <link rel="stylesheet" href="bp/head.css">
 <script src="bp/head.js"></script>
@@ -875,13 +876,13 @@ function listSec(s, r) {
     : '<div class="hint">Enter = neue Zeile · Strg+Enter = hinzufügen</div>';
   const add = adding === k ? `<div class="addrow">${lk ? '' : coAdd(s)}${field}${extra}${s.extra && s.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}${photoAdd(s)}<button class="ok" data-act="addItem" data-kind="${esc(k)}">Hinzufügen</button></div>` : '';
   const n = r.items.filter(i => i.kind === k).length, open = secIsOpen(k, n) || adding === k;
-  return `<div class="sec ${open ? '' : 'col'}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
+  return `<div class="sec ${open ? '' : 'col'}" data-drop="${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
     <div class="side"><button data-act="adding" data-kind="${esc(k)}" title="${esc(s.title)} hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
 }
 function imgSec(s, r) {
   const shown = allImgs ? r.images : r.images.slice(0, 6), rest = r.images.length - shown.length;
   const open = secIsOpen(s.key, r.images.length);
-  return `<div class="sec ${open ? '' : 'col'}"><div class="main">${secHead(s, r.images.length, open)}
+  return `<div class="sec ${open ? '' : 'col'}" data-drop=""><div class="main">${secHead(s, r.images.length, open)}
     <div class="imgs" ${open ? '' : 'style="display:none"'}>${shown.map(i => `<div><a href="uploads/${esc(i.file)}" target="_blank"><img loading="lazy" src="api/thumb/240/${esc(i.file)}" alt="${esc(i.caption || 'Baustellenfoto')}"></a><button class="rm" data-act="delImg" data-id="${i.id}" title="Bild löschen">✕</button><input class="cap" data-img="${i.id}" value="${esc(i.caption)}" placeholder="Beschreibung" maxlength="120" autocomplete="off" aria-label="Fotobeschreibung (wird der Dateiname)"></div>`).join('')}</div>
     ${open && rest > 0 ? `<button class="bd morei" data-act="moreImgs">Alle ${r.images.length} Bilder anzeigen (+${rest})</button>` : ''}${open && allImgs && r.images.length > 6 ? `<button class="bd morei" data-act="lessImgs">Weniger anzeigen</button>` : ''}
     <input type="file" id="file" class="vh" accept="image/*,.heic,.heif" multiple></div>
@@ -1614,6 +1615,29 @@ function renderQ() {
   box.classList.toggle('typing', qTyping);
   const f = box.querySelector('textarea,input[data-add]'); if (f && q.step === 'add') setTimeout(() => f.focus(), 50);
 }
+/* Bilder hineinziehen: auf einen Eintrag → an diesen Eintrag, auf einen Abschnitt → neuer Eintrag dort (Text eingeben, Foto ist schon dabei),
+   auf „Bilder“ oder sonst wohin im Bericht → unter Bilder. Im Bericht bleiben es Vorschaubilder, im Ausdruck stehen sie auf Zusatzseiten. */
+const istBild = (f) => /^image\//.test(f.type) || /\.(jpe?g|png|heic|heif|webp|gif)$/i.test(f.name || '');
+const dateienIn = (e) => [...(e.dataTransfer && e.dataTransfer.types || [])].includes('Files');
+document.addEventListener('dragover', (e) => {
+  if (!rid || !dateienIn(e)) return;
+  const z = e.target.closest && e.target.closest('[data-drop]'); if (!z && !e.target.closest('#detail,.detail,main')) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+  document.querySelectorAll('.sec.over,.ln.over').forEach((x) => x.classList.remove('over'));
+  const ln = e.target.closest && e.target.closest('.ln'); (ln && ln.querySelector('[data-it]') ? ln : z)?.classList.add('over');
+});
+document.addEventListener('dragleave', (e) => { if (!e.relatedTarget || !document.body.contains(e.relatedTarget)) document.querySelectorAll('.sec.over,.ln.over').forEach((x) => x.classList.remove('over')); });
+document.addEventListener('drop', async (e) => {
+  if (!rid || !dateienIn(e)) return;
+  const fs = [...e.dataTransfer.files].filter(istBild); document.querySelectorAll('.sec.over,.ln.over').forEach((x) => x.classList.remove('over'));
+  const z = e.target.closest && e.target.closest('[data-drop]'); if (!z && !e.target.closest('#detail,.detail,main')) return;
+  e.preventDefault(); if (!fs.length) { toast('Nur Bilder (JPG, PNG, HEIC …) lassen sich hier ablegen.'); return; }
+  const ln = e.target.closest && e.target.closest('.ln'), it = ln && ln.querySelector('[data-it]');
+  if (it) { await uploadPhotos(fs, +it.dataset.it); toast(fs.length > 1 ? `${fs.length} Fotos am Eintrag` : 'Foto am Eintrag'); return; }
+  const k = z && z.dataset.drop;
+  if (k) { adding = k; addFiles = fs; setSecOpen(k, true); renderDetail(); renderApv(); setTimeout(() => document.querySelector(`[data-add="${k}"]`)?.focus(), 50); toast('Text zum neuen Eintrag eingeben – das Foto ist schon dabei.'); return; }
+  await uploadPhotos(fs, null);
+});
 async function uploadPhotos(files, itemId) {
   const fd = new FormData(); [...files].forEach(x => fd.append('files', x)); if (itemId) fd.append('item_id', itemId);
   const up = await api(`api/reports/${rid}/images`, 'POST', null, fd); setSecOpen('bilder', true); await openProject(pid, true);

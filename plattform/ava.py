@@ -2397,6 +2397,20 @@ def rechnung_neu(i):
         r = _lv(c, i)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
+        W = b.get("wiederherstellen")
+        if isinstance(W, dict) and isinstance(W.get("nr"), int):   # Rückgängig nach dem Löschen: wie sie war, mit derselben Nummer und den PDFs
+            if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND nr=?", (i, W["nr"])).fetchone():
+                return jsonify(error="Die Nummer ist inzwischen vergeben."), 400
+            art = W.get("art") if W.get("art") in RE_ARTEN else "abschlag"
+            neu = c.execute("INSERT INTO ava_rechnung(lv_id, nr, art, status, datum, eingang, re_nr, gefordert, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
+                            (i, W["nr"], art, "geprueft" if W.get("status") == "geprueft" else "offen", _s(W.get("datum"), 10), _s(W.get("eingang"), 10),
+                             _s(W.get("re_nr"), 60), round(_f(W.get("gefordert"), 0, 0), 2), json.dumps(W.get("data") if isinstance(W.get("data"), dict) else {}),
+                             _now(), _now(), g.user["name"])).fetchone()["id"]
+            if isinstance(W.get("id"), int):
+                _beleg_tabelle(c)
+                c.execute("UPDATE ava_beleg SET rechnung_id=? WHERE rechnung_id=?", (neu, W["id"]))
+            _touch(c, i)
+            return _antwort(c, i)
         V0 = _j(r["vergabe"], {}) or {}
         if not (V0.get("preise") or V0.get("frei")):
             return jsonify(error="Erst vergeben – oder ohne LV „Auftrag frei eintragen“ (Firma und Summe)."), 400
@@ -3084,6 +3098,22 @@ def urllib_quote(s):
     return urllib.parse.quote(s or "Rechnung.pdf")
 
 
+def _re_kette(x):
+    """Kette, in der Rechnungen aufeinander aufbauen (kumuliert): Haupt (Abschlag/Schluss) bzw. Nachträge; Regie, frei geprüfte
+    und Freigabe der Sicherheit stehen für sich."""
+    d = _j(x["data"], {}) or {}
+    if x["art"] in ("regie", "sicherheit") or d.get("frei") is not None:
+        return None
+    return "nachtrag" if x["art"] == "nachtrag" else "haupt"
+
+
+def _re_nachfolger(c, x):
+    k = _re_kette(x)
+    if not k:
+        return False
+    return any(_re_kette(y) == k for y in c.execute("SELECT art, data FROM ava_rechnung WHERE lv_id=? AND nr>?", (x["lv_id"], x["nr"])).fetchall())
+
+
 @app.route("/api/rechnungen/<int:k>", methods=["PUT", "DELETE"])
 def rechnung(k):
     b = request.get_json(silent=True) or {}
@@ -3093,16 +3123,16 @@ def rechnung(k):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         if request.method == "DELETE":
-            if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND nr>?", (x["lv_id"], x["nr"])).fetchone():
-                return jsonify(error="Nur die letzte Rechnung lässt sich löschen."), 400
+            if _re_nachfolger(c, x):
+                return jsonify(error="Auf dieser Rechnung bauen spätere Abschlags-/Schlussrechnungen auf – erst die späteren löschen."), 400
             c.execute("DELETE FROM ava_rechnung WHERE id=?", (k,))
             _touch(c, x["lv_id"])
             return _antwort(c, x["lv_id"])
         d = _j(x["data"], {}) or {}
         status = x["status"]
         if b.get("status") == "offen" and status == "geprueft":   # Prüfung zurücknehmen (nur die letzte)
-            if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND nr>?", (x["lv_id"], x["nr"])).fetchone():
-                return jsonify(error="Nur die Prüfung der letzten Rechnung lässt sich zurücknehmen."), 400
+            if _re_nachfolger(c, x):
+                return jsonify(error="Auf dieser Rechnung bauen spätere Rechnungen auf – erst deren Prüfung zurücknehmen."), 400
             status = "offen"; d.pop("stand", None); d.pop("geprueft_am", None); d.pop("geprueft_von", None)
         elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400

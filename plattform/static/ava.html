@@ -387,7 +387,7 @@ html.mobil .bph{position:sticky;top:0}
 .re-b{display:inline-flex;gap:.3rem;align-items:center}.re-z{width:100%;margin:.4rem 0}.re-z input{font:inherit}
 .am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
-.am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;align-items:start}
+.am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
 .am-l{display:flex;flex-direction:column;gap:.8rem;min-width:0}.am-l .tblw{max-height:40vh;overflow:auto}
 .am-r{position:sticky;top:8px;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
 .am-pk{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;padding:.35rem .45rem;border-bottom:1px solid var(--line)}
@@ -420,7 +420,11 @@ tr.am-lf td input{color:#c0621f}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 .ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
 .ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:6px;font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
-.lv-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:.8rem;align-items:start}.lv-sl{min-width:0}
+.sp-griff{cursor:col-resize;align-self:stretch;border-radius:4px;background:linear-gradient(90deg,transparent 4px,var(--line) 4px,var(--line) 6px,transparent 6px);min-height:200px}.sp-griff:hover{background:linear-gradient(90deg,transparent 3px,var(--y) 3px,var(--y) 7px,transparent 7px)}
+.am-split.frei,.lv-split.frei{grid-template-columns:1fr!important}.am-split.frei>.sp-griff,.lv-split.frei>.sp-griff{display:none}
+.am-split.frei>.am-r,.lv-split.frei>.am-r{position:fixed;z-index:60;resize:both;overflow:hidden;min-width:300px;min-height:240px;box-shadow:0 12px 40px #0005}
+.am-split.frei>.am-r .am-pk,.lv-split.frei>.am-r .am-pk{cursor:move;background:var(--tabs)}
+.lv-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:.35rem;align-items:start}.lv-sl{min-width:0}
 .lv-zz{position:absolute;cursor:copy;border-radius:2px}.lv-zz:hover{background:rgba(245,166,35,.22);outline:1px solid #f5a623}.lv-zz.ok{background:rgba(31,157,76,.1)}
 @media (max-width:900px){.lv-split{grid-template-columns:1fr}}
 .ava-drop{display:flex;flex-direction:column;align-items:center;gap:.15rem;margin:.8rem .3rem .4rem;padding:.7rem .5rem;border:2px dashed var(--line);border-radius:10px;text-align:center;cursor:pointer;color:var(--mute);font-size:.85rem}
@@ -897,9 +901,9 @@ function lvSplitMount() {
   const d = D.find((x) => x.id === did), n = d.n_pos + d.n_titel;
   r.innerHTML = `<div class="am-pk">${D.map((y) => `<button class="btn sm${y.id === did ? ' pri' : ''}" data-lvdokw="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 26 ? y.name.slice(0, 24) + '…' : y.name)}</button>`).join('')}
     ${n ? `<button class="btn sm" data-lvdokueb title="Erkannte Titel und Positionen (OZ, Kurztext, Menge, Einheit, Langtext) ans LV anhängen">Erkannte übernehmen (${d.n_pos} Pos.${d.n_titel ? ', ' + d.n_titel + ' Titel' : ''})</button>` : ''}
-    <span class="fill"></span><button class="ib" data-lvz="-1" title="kleiner">−</button><button class="ib" data-lvz="1" title="größer">＋</button><button class="ib" data-lvdokdel="${did}" title="PDF entfernen">✕</button></div>
+    <span class="fill"></span><button class="ib" data-lvz="-1" title="kleiner">−</button><button class="ib" data-lvz="1" title="größer">＋</button><button class="ib" data-frei title="als freies Fenster verschieben / wieder andocken">⧉</button><button class="ib" data-lvdokdel="${did}" title="PDF entfernen">✕</button></div>
     <div class="hint" style="padding:.25rem .5rem;border-bottom:1px solid var(--line)">${d.ocr ? 'Scan, per Texterkennung gelesen – bitte prüfen · ' : ''}Zeile anklicken → ins gewählte Feld links (Kurztext, Menge, Einheit, Langtext …) · <b>Alt+Klick</b> → als neue Position</div>`;
-  r.appendChild(LVDV.el);
+  r.appendChild(LVDV.el); teilung(sp, 'lv', () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV));
 }
 async function lvDokLaden(V) {
   try { const lib = await pdfjs(); [V.pdf, V.A] = await Promise.all([lib.getDocument({ url: 'api/lvdok/' + V.id, withCredentials: true }).promise, api(`api/lvdok/${V.id}?auslese=1`)]); }
@@ -1620,6 +1624,38 @@ function vAmErfassen() {
     <style>@media (max-width:900px){.amg{grid-template-columns:1fr!important}}</style>`;
   return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amSummenKarte(R)}${amZeilenKarte(R)}${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
 }
+/* Geteilte Ansicht: Trennung verschiebbar (Breite gemerkt) oder die PDF als freies Fenster über der Seite (verschieben, Größe ziehen) */
+function teilung(sp, key, neuZeichnen) {
+  if (!sp) return;
+  const r = sp.querySelector(':scope > .am-r'), l = sp.firstElementChild; if (!r || !l) return;
+  let g = sp.querySelector(':scope > .sp-griff');
+  if (!g) { g = document.createElement('div'); g.className = 'sp-griff'; g.title = 'Trennung verschieben (Doppelklick: Mitte)'; sp.insertBefore(g, r); }
+  const frei = LS.get('frei.' + key, false), f = Math.max(0.2, Math.min(0.8, LS.get('teil.' + key, 0.52)));
+  sp.classList.toggle('frei', frei);
+  const schmal = innerWidth < 900; g.hidden = schmal;
+  sp.style.gridTemplateColumns = frei || schmal ? '' : `minmax(0,${f}fr) 10px minmax(0,${1 - f}fr)`;
+  if (frei) { const q = LS.get('freipos.' + key, null) || { x: innerWidth - 700, y: 120, w: 640, h: innerHeight - 180 };
+    Object.assign(r.style, { left: Math.max(0, Math.min(innerWidth - 120, q.x)) + 'px', top: Math.max(0, Math.min(innerHeight - 60, q.y)) + 'px', width: q.w + 'px', height: q.h + 'px' }); }
+  else Object.assign(r.style, { left: '', top: '', width: '', height: '' });
+  let breite = r.clientWidth, t = 0;
+  if (!r._ro) { r._ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { const w = r.clientWidth; if (Math.abs(w - breite) > 40) { breite = w; neuZeichnen(); }
+      if (sp.classList.contains('frei')) LS.set('freipos.' + key, { x: r.offsetLeft, y: r.offsetTop, w: r.offsetWidth, h: r.offsetHeight }); }, 350); }); r._ro.observe(r); }
+  g.onpointerdown = (e) => { e.preventDefault(); g.setPointerCapture(e.pointerId); const b = sp.getBoundingClientRect();
+    g.onpointermove = (m) => { const v = Math.max(0.2, Math.min(0.8, (m.clientX - b.left) / b.width)); sp.style.gridTemplateColumns = `minmax(0,${v}fr) 10px minmax(0,${1 - v}fr)`; LS.set('teil.' + key, v); };
+    g.onpointerup = () => { g.onpointermove = null; }; };
+  g.ondblclick = () => { LS.set('teil.' + key, 0.52); teilung(sp, key, neuZeichnen); };
+  const kopf = r.querySelector('.am-pk');
+  if (kopf) kopf.onpointerdown = (e) => { if (!sp.classList.contains('frei') || e.target.closest('button,input,select,a')) return; e.preventDefault();
+    const sx = e.clientX - r.offsetLeft, sy = e.clientY - r.offsetTop; kopf.setPointerCapture(e.pointerId);
+    kopf.onpointermove = (m) => { r.style.left = Math.max(0, Math.min(innerWidth - 120, m.clientX - sx)) + 'px'; r.style.top = Math.max(0, Math.min(innerHeight - 50, m.clientY - sy)) + 'px'; };
+    kopf.onpointerup = () => { kopf.onpointermove = null; LS.set('freipos.' + key, { x: r.offsetLeft, y: r.offsetTop, w: r.offsetWidth, h: r.offsetHeight }); }; };
+  const knopf = r.querySelector('[data-frei]');
+  if (knopf) { knopf.textContent = frei ? '⧈' : '⧉'; knopf.title = frei ? 'wieder andocken (geteilte Ansicht)' : 'als freies Fenster verschieben'; knopf.onclick = (e) => { e.stopPropagation(); LS.set('frei.' + key, !frei); teilung(sp, key, neuZeichnen); setTimeout(neuZeichnen, 60); }; }
+}
+
+/* Rechnung ohne Nachfolger in ihrer Kette (Abschlag/Schluss bzw. Nachtrag bauen kumuliert aufeinander auf; Regie, frei geprüfte, Sicherheit stehen für sich) */
+function reKette(r) { if (r.art === 'regie' || r.art === 'sicherheit' || (r.data && r.data.frei != null)) return null; return r.art === 'nachtrag' ? 'nachtrag' : 'haupt'; }
+function reNachfolger(r) { const k = reKette(r); return !!k && L.rechnungen.some((y) => y.nr > r.nr && reKette(y) === k); }
 /* Zeilen der PDF ohne LV-Position (Regie, Material …): in die Rechnung übernehmen */
 function amZeilenKarte(R) {
   const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id })));
@@ -1683,8 +1719,8 @@ async function amPdfMount() {
   if (!A || !A.zahlen || !A.kopf || !A.kopf.summen) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
   slot.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
     <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? 'Scan, per Texterkennung gelesen · ' : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · Zahlen anklicken übernimmt sie in den Rechenweg`) : ''}</span><span class="fill"></span>
-    <button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF entfernen">✕</button></div>`;
-  slot.appendChild(AMV.el);
+    <button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-frei title="als freies Fenster verschieben / wieder andocken">⧉</button><button class="ib" data-ambdel="${AMB}" title="PDF entfernen">✕</button></div>`;
+  slot.appendChild(AMV.el); teilung(slot.closest('.am-split'), 'am', () => AMV && AMV.pdf && amPdfZeichnen(AMV).then(() => { amMarken(); amPdfZeige(amPos, true); }));
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
 }
 async function amPdfLaden(V) {
@@ -1864,7 +1900,7 @@ function vRechnungen() {
     ${freiFelder()}<div class="bar" style="justify-content:center"><button class="btn pri" data-act="freiVergeben">Auftrag frei eintragen</button></div></div>`;
   const K = L.calc, RC = Object.fromEntries(K.rechnungen.map((r) => [r.id, r]));
   const cards = [...L.rechnungen].reverse().map((r) => {
-    const c = RC[r.id], g = r.status === 'geprueft', last = r.nr === Math.max(...L.rechnungen.map((x) => x.nr)), ab = r.data.abzuege || [], art = r.art || 'abschlag';
+    const c = RC[r.id], g = r.status === 'geprueft', last = !reNachfolger(r), ab = r.data.abzuege || [], art = r.art || 'abschlag';
     const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
     const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung abhaken: Summen werden automatisch mit ✔ / ✘ markiert, dann von Hand ergänzen oder streichen – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}
       <label class="btn sm">📎 Rechnung (PDF) hinzufügen<input type="file" accept="application/pdf,.pdf" hidden data-rebeleg="${r.id}"></label><span class="hint">oder hierher ziehen – wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt</span></div>`;
@@ -2027,13 +2063,9 @@ async function reAktion(b) {
     if (a === 'del') {
       const id = L.id, x = JSON.parse(JSON.stringify(r)), stAlt = L.status;
       await call('api/rechnungen/' + r.id, 'DELETE');
-      rueckgaengig(`${x.nr}. Rechnung gelöscht`, async () => {   // neu anlegen (gleiche Nummer, da die letzte) und Abzüge/Prüfung wieder setzen
-        const n = await call(`api/lv/${id}/rechnungen`, 'POST', { art: x.art, re_nr: x.re_nr, datum: x.datum, eingang: x.eingang, gefordert: x.gefordert });
-        const neu = n.rechnungen.find((y) => y.nr === x.nr) || n.rechnungen[n.rechnungen.length - 1];
-        const body = { abzuege: (x.data && x.data.abzuege) || [], notiz: x.notiz || '' };
-        if (x.data && x.data.einbehalt != null) body.einbehalt = x.data.einbehalt;
-        await call('api/rechnungen/' + neu.id, 'PUT', body);
-        if (x.status === 'geprueft') { await call('api/rechnungen/' + neu.id, 'PUT', { status: 'geprueft' }); if (stAlt !== L.status) await call('api/lv/' + id, 'PUT', { status: stAlt }); }
+      rueckgaengig(`${reTitel(x)} gelöscht`, async () => {   // wie sie war: gleiche Nummer, Prüfstand, PDFs
+        await call(`api/lv/${id}/rechnungen`, 'POST', { wiederherstellen: x });
+        if (stAlt !== L.status) await call('api/lv/' + id, 'PUT', { status: stAlt });
       });
       return;
     }

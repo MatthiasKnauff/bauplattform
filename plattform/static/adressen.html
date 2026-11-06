@@ -251,8 +251,10 @@ function edit(c, verlaufAuf) {
       } catch (e) { $('#mErr', bg).textContent = e.message; }
     }
     if (m === 'del') {
-      if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'Wirklich löschen?'; return; }
-      try { await api('api/contacts/' + c.id, 'DELETE'); close(); toast('Kontakt gelöscht.'); load(); } catch (e) {
+      try { await api('api/contacts/' + c.id, 'DELETE'); close(); load();
+        const alt = Object.fromEntries(['name', 'trade', 'contact_person', 'role', 'phone', 'mobile', 'email', 'website', 'street', 'zip', 'city', 'notes'].map((k) => [k, c[k] || '']));
+        rueckgaengig(`„${c.name}“ gelöscht`, async () => { await api('api/contacts', 'POST', alt); load(); });
+      } catch (e) {
         const er = $('#mErr', bg); er.textContent = e.message;
         const O = (e.data && e.data.orte) || [], A = (k) => (conf0.apps || []).find((a) => a.key === k && a.allowed);
         if (O.length) er.insertAdjacentHTML('beforeend', '<span class="orte">' + O.map((o) => A(o.app) ? `<a href="${esc(appUrl(A(o.app)) + '/' + o.frag)}">↗ ${esc(o.label)}</a>` : `<span>${esc(o.label)}</span>`).join('') + '</span>');

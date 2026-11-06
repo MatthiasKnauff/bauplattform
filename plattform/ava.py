@@ -782,6 +782,8 @@ def rechne(lv, angebote, aufmass, rechnungen):
             abz += L1 * (_f(z.get("pct")) / 100) if z.get("pct") not in (None, "") else _f(z.get("betrag"))
         L2 = L1 - abz
         std = S["pct_schluss"] if art == "schluss" else S["pct_abschlag"]
+        if g_ and rd.get("einbehalt") in (None, ""):   # schon geprüft (ohne festgehaltenen Satz): wie damals – spätere Bürgschaften ändern nichts
+            std = S["ve"]["pct"] if art != "schluss" or not (V.get("sicherheit") or {}).get("ma") else std
         if g_ and rd.get("einbehalt") in (None, ""):   # früher geprüft, Satz nicht festgehalten: wie damals gerechnet
             std = _f(V.get("einbehalt"), 5.0)
         eb_pct = _f(rd.get("einbehalt"), std) if rd.get("einbehalt") not in (None, "") else std
@@ -2227,6 +2229,9 @@ def rechnung(k):
                            for z in b["zeilen"][:200] if isinstance(z, dict)]
         if "betrag" in b:   # Freigabe der Sicherheit
             d["betrag"] = round(_f(b["betrag"], 0, 0), 2)
+        if b.get("status") == "geprueft" and status != "geprueft" and d.get("einbehalt") in (None, "") and x["art"] != "sicherheit":   # Satz festhalten
+            S_ = sicherheit_conf(_j(r["vergabe"], {}) or {})
+            d["einbehalt"] = S_["pct_schluss"] if x["art"] == "schluss" else S_["pct_abschlag"]
         if b.get("status") == "geprueft" and status != "geprueft":   # Prüfung abschließen: Aufmaßstand festhalten
             am = {}
             for z in c.execute("SELECT pos_id, menge FROM ava_aufmass WHERE lv_id=?", (x["lv_id"],)):

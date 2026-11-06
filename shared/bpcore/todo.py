@@ -21,6 +21,7 @@ REGELN = [
     ("nachtraege", "Nachträge ohne Entscheidung", "Angemeldete Nachträge in den LVs, die weder beauftragt noch abgelehnt sind", True, None),
     ("vergabe", "Vergabe vor Baubeginn", "Gewerk beginnt laut Bauzeitenplan bald, im AVA ist noch kein LV dafür vergeben", False, ("Wochen vor Beginn", "Wochen", 6)),
     ("firma", "Vorgänge ohne Firma", "Vorgänge im Bauzeitenplan, die bald beginnen und noch keine Firma haben", False, ("Tage vor Beginn", "Tage", 14)),
+    ("terminruege", "Terminrüge vorschlagen", "Firmen, die laut gemeldetem Arbeitsfortschritt (Bautagebuch) so viele Arbeitstage hinter dem Bauzeitenplan liegen", True, ("Arbeitstage Verzug", "AT", 5)),
     ("verzug", "Vorgänge im Verzug", "Vorgänge, deren Ende laut Bauzeitenplan vorbei ist und die nicht als fertig gemeldet sind", False, None),
     ("planversand", "Pläne nicht versendet", "Neue Planstände im Projektordner, die noch an niemanden verschickt wurden (aus der letzten Einlesung von „Planstand & Versand“)", False, ("Tage alt höchstens", "Tage", 30)),
     ("tagesbericht", "Tagesbericht fehlt", "Laufende Baustelle (Firmen laut Bauzeitenplan da), aber seit so vielen Arbeitstagen kein Tagesbericht", False, ("Arbeitstage", "Tage", 3)),
@@ -264,6 +265,57 @@ def _a_verzug(c, u, R, P, ok):
     return out
 
 
+SCHWELLE = "termin:schwelle"   # je Projekt abweichende Schwelle für die Terminrüge {pid: Arbeitstage}
+
+
+def schwellen(c):
+    d = _j(konto._get(c, SCHWELLE), {}) or {}
+    return {int(k): int(v) for k, v in d.items() if str(k).isdigit() and isinstance(v, (int, float)) and 0 < v <= 120}
+
+
+def schwelle(c, pid, regel=None):
+    """Ab wie vielen Arbeitstagen Verzug eine Terminrüge vorgeschlagen wird: Projekt, sonst Regel „Terminrüge vorschlagen“ (Standard 5)."""
+    return schwellen(c).get(pid) or ((regel or regeln(c)["terminruege"])["wert"] or 5)
+
+
+def schwelle_setzen(c, pid, tage, wer=""):
+    d = schwellen(c)
+    if tage:
+        d[pid] = max(1, min(120, int(tage)))
+    else:
+        d.pop(pid, None)
+    konto._put(c, SCHWELLE, json.dumps({str(k): v for k, v in d.items()}), wer)
+
+
+def verzug(c, pids, heute=None, alle=False, regel=None):
+    """Vorgänge im Verzug laut Arbeitsfortschritt (je Projekt ab dessen Schwelle; alle=True: jeder Rückstand > 0)."""
+    heute = heute or _iso(_heute())
+    firms, out = plan.firm_map(c), []
+    for pid in pids:
+        sw = schwelle(c, pid, regel)
+        for x in plan.fortschritt(plan.plans_mit_id(c, pid), firms, heute):
+            if x["verzug"] > 0 and (alle or x["verzug"] >= sw):
+                m = c.execute("""SELECT f.ampel, f.pct, r.date FROM bt_fortschritt f JOIN reports r ON r.id=f.report_id
+                                 WHERE f.gantt_id=? AND f.uid=? ORDER BY r.date DESC LIMIT 1""", (x["gantt_id"], x["uid"])).fetchone()
+                out.append({**x, "pid": pid, "schwelle": sw, "gemeldet": m["date"] if m else "", "ampel": m["ampel"] if m else ""})
+    return out
+
+
+def _a_terminruege(c, u, R, P, ok):
+    out, n = [], {}
+    L = sorted(verzug(c, [p for p in P if ok(p)], regel=R), key=lambda y: -y["verzug"])   # je Firma der größte Rückstand vorn
+    for x in L:
+        k = (x["pid"], x["key"])
+        if k in n:   # je Firma und Projekt ein Vorschlag
+            continue
+        n[k] = 1
+        weitere = [y["vorgang"] for y in L if y["pid"] == x["pid"] and y["key"] == x["key"] and y is not x][:3]
+        out.append(_e("terminruege", f"{x['pid']}:{x['key']}", f"Terminrüge? {x['firma']} ca. {x['verzug']:g} AT im Verzug",
+                      f"{x['vorgang']}: {x['ist']} % statt {x['soll']} %" + (f" · auch {', '.join(weitere)}" if weitere else ""), x["pid"], P, None,
+                      f"aufgaben:#termine&ruege={x['pid']}|{x['key']}", 1))
+    return out
+
+
 def _a_planversand(c, u, R, P, ok):
     """Aus der letzten Einlesung („plaene:stand:<pid>“, von Planstand & Versand gemerkt): neueste PDF je Plan, noch nie versendet."""
     out = []
@@ -362,7 +414,7 @@ def _a_post(c, u, R, P, ok):
     return out
 
 
-ANALYSEN = {"maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
+ANALYSEN = {"terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "budget": _a_budget, "post": _a_post}
 
 

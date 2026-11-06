@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, briefbogen, db, ical, konto, mail, plan, platform, posteingang, schrift, sso, versionen, vorlagen
+from bpcore import benachrichtigung, briefbogen, db, ical, konto, mail, plan, platform, posteingang, schrift, sso, todo, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -729,31 +729,92 @@ def termin_set(rid):
     return jsonify(ok=True, vorher=old["status"] if old else "offen")
 
 
-def terminruege_text(frist, kuendigung=True, auftrag=""):
+def terminruege_text(frist, kuendigung=True, auftrag="", tage=True, verzug=False):
+    """Mustertext der Terminrüge – Grund: fehlende Besetzung an Tagen (tage) und/oder Rückstand laut Arbeitsfortschritt (verzug)."""
     f = frist or "[Datum]"
     bez = f" (Auftrag {auftrag})" if auftrag else ""
-    t = ("Sehr geehrte Damen und Herren,\n\nnach dem vereinbarten Bauzeitenplan hätten Sie Ihre Leistungen" + bez + " an den unten genannten Tagen auf der Baustelle "
-         "ausführen müssen. An diesen Tagen waren Sie nicht bzw. nicht ausreichend auf der Baustelle vertreten. Die Arbeitskräfte und Geräte sind damit so "
-         "unzureichend, dass die Ausführungsfristen offenbar nicht eingehalten werden können.\n\n"
-         f"Wir fordern Sie gemäß § 5 Abs. 3 VOB/B auf, unverzüglich Abhilfe zu schaffen und die Arbeiten spätestens bis zum {f} mit ausreichender Besetzung "
-         "wieder aufzunehmen bzw. fortzuführen. Bitte bestätigen Sie uns kurzfristig schriftlich, wann und mit wie vielen Arbeitskräften Sie die Arbeiten fortsetzen.\n\n")
+    t = "Sehr geehrte Damen und Herren,\n\n"
+    if tage:
+        t += ("nach dem vereinbarten Bauzeitenplan hätten Sie Ihre Leistungen" + bez + " an den unten genannten Tagen auf der Baustelle "
+              "ausführen müssen. An diesen Tagen waren Sie nicht bzw. nicht ausreichend auf der Baustelle vertreten. ")
+    if verzug:
+        t += (("Außerdem liegen" if tage else "Nach dem vereinbarten Bauzeitenplan und dem tatsächlichen Arbeitsfortschritt liegen") + " Sie mit den unten genannten Leistungen"
+              + ("" if tage else bez) + " erheblich hinter dem Plan zurück. ")
+    t += ("Die Arbeitskräfte und Geräte sind damit so unzureichend, dass die Ausführungsfristen offenbar nicht eingehalten werden können.\n\n"
+          f"Wir fordern Sie gemäß § 5 Abs. 3 VOB/B auf, unverzüglich Abhilfe zu schaffen und die Arbeiten spätestens bis zum {f} mit ausreichender Besetzung "
+          + ("wieder aufzunehmen bzw. fortzuführen" if tage and not verzug else "fortzuführen, sodass der Rückstand aufgeholt wird und die vereinbarten Fristen eingehalten werden")
+          + ". Bitte bestätigen Sie uns kurzfristig schriftlich, wann und mit wie vielen Arbeitskräften Sie die Arbeiten fortsetzen.\n\n")
     if kuendigung:
         t += ("Wir erklären bereits jetzt, dass wir Ihnen nach fruchtlosem Ablauf dieser Frist den Auftrag für die betroffenen Leistungen gemäß § 5 Abs. 4 "
               "i. V. m. § 8 Abs. 3 VOB/B entziehen werden. ")
     return t + "Ansprüche auf Ersatz des entstehenden Schadens (§ 6 Abs. 6 VOB/B) und weitere Rechte bleiben vorbehalten."
 
 
+@app.get("/api/verzug")
+def verzug_api():
+    """Vorgänge im Verzug laut gemeldetem Arbeitsfortschritt (je Projekt ab dessen Schwelle; ?alle=1 jeder Rückstand)."""
+    scope = _scope()
+    alle = request.args.get("alle") == "1"
+    gid, uid = request.args.get("gid"), request.args.get("uid", type=int)
+    with db.tx() as c:
+        P = _projects(c)
+        pids = [r["project_id"] for r in c.execute("SELECT DISTINCT project_id FROM gantt_projects WHERE project_id IS NOT NULL")
+                if (p := P.get(r["project_id"])) and not p["archived"] and _sees(g.user, p) and (scope != "mine" or gid or _mine(g.user, p))]
+        L = todo.verzug(c, pids, alle=alle or bool(gid))
+        sw = {pid: todo.schwelle(c, pid) for pid in pids}
+        R = todo.regeln(c)["terminruege"]["wert"] or 5
+        eig = todo.schwellen(c)
+    if gid:
+        L = [x for x in L if x["gantt_id"] == gid and (uid is None or x["uid"] == uid)]
+    for x in L:
+        x["projekt"] = P[x["pid"]]["name"]
+        x["id"] = f"{x['gantt_id']}:{x['uid']}"
+    return jsonify(vorgaenge=L, schwellen=sw, standard=R, eigene=eig)
+
+
+@app.put("/api/verzug/schwelle")
+def verzug_schwelle():
+    """Ab wie vielen Arbeitstagen Verzug eine Terminrüge vorgeschlagen wird – für ein Projekt (tage leer = Standard) oder als Standard (pid leer)."""
+    b = request.get_json(silent=True) or {}
+    pid, tage = b.get("pid"), b.get("tage")
+    if tage not in (None, "") and not (isinstance(tage, int) and 1 <= tage <= 120):
+        return jsonify(error="Bitte 1 bis 120 Arbeitstage."), 400
+    with db.tx() as c:
+        if isinstance(pid, int):
+            p = _projects(c).get(pid)
+            if not p or not _sees(g.user, p):
+                return jsonify(error="Nicht gefunden"), 404
+            todo.schwelle_setzen(c, pid, tage or None, g.user["name"])
+        else:
+            todo.regeln_setzen(c, {"terminruege": {"wert": tage or 5}}, g.user["name"])
+    return jsonify(ok=True)
+
+
 @app.get("/api/terminruege/vorlage")
 def terminruege_vorlage():
     pid, firma = request.args.get("pid", type=int), (request.args.get("firma") or "").strip().lower()
     rows = [t for t in termine("all").get_json() if t["pid"] == pid and t["key"] == firma]
-    if not rows:
-        return jsonify(error="Nichts gefunden"), 404
+    vz = _verzug_rows(pid, firma)
+    if not rows and not vz:
+        return jsonify(error="Für diese Firma gibt es weder fehlende Tage noch einen Rückstand laut Arbeitsfortschritt."), 404
+    r0 = rows[0] if rows else vz[0]
     with db.tx() as c:
-        k = c.execute("SELECT * FROM contacts WHERE id=?", (rows[0]["contact_id"],)).fetchone() if rows[0]["contact_id"] else None
+        k = c.execute("SELECT * FROM contacts WHERE id=?", (r0["contact_id"],)).fetchone() if r0.get("contact_id") else None
         k = k or c.execute("SELECT * FROM contacts WHERE lower(name)=? ORDER BY id LIMIT 1", (firma,)).fetchone()
-    E = {"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v), "email": k["email"] or ""} if k else {"name": rows[0]["firma"], "person": "", "strasse": "", "ort": "", "email": ""}
-    return jsonify(empfaenger=E, tage=rows, projekt=rows[0]["projekt"], signme=_signme())
+    E = {"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v), "email": k["email"] or ""} if k else {"name": r0["firma"], "person": "", "strasse": "", "ort": "", "email": ""}
+    return jsonify(empfaenger=E, tage=rows, verzug=vz, projekt=r0["projekt"], signme=_signme())
+
+
+def _verzug_rows(pid, firma):
+    """Rückstand einer Firma im Projekt laut Arbeitsfortschritt (jeder Vorgang mit Verzug > 0, „ab_schwelle“ markiert)."""
+    with db.tx() as c:
+        p = _projects(c).get(pid)
+        if not p or not _sees(g.user, p):
+            return []
+        L = [x for x in todo.verzug(c, [pid], alle=True) if x["key"] == firma]
+    for x in L:
+        x["projekt"], x["id"], x["ab_schwelle"] = p["name"], f"{x['gantt_id']}:{x['uid']}", x["verzug"] >= x["schwelle"]
+    return L
 
 
 @app.post("/api/terminruege")
@@ -761,19 +822,24 @@ def terminruege_pdf():
     """Terminrüge (Behinderung durch fehlende Besetzung, VOB/B § 5 Abs. 3 und 4): Entwurf, Ausdruck oder Versand."""
     b, signiert = _rueckgabe()
     pid, firma = b.get("pid"), str(b.get("firma") or "").strip().lower()
-    want = set(b.get("ids") or [])
-    rows = [t for t in termine("all").get_json() if t["pid"] == pid and t["key"] == firma and (not want or t["id"] in want)]
-    if not rows:
-        return jsonify(error="Bitte mindestens einen Tag wählen."), 400
+    want, vwant = set(b.get("ids") or []), set(b.get("vids") or [])
+    rows = [t for t in termine("all").get_json() if t["pid"] == pid and t["key"] == firma and t["id"] in want] if want else []
+    vz = [x for x in _verzug_rows(pid, firma) if x["id"] in vwant] if vwant else []
+    if not rows and not vz:
+        return jsonify(error="Bitte mindestens einen Tag oder einen Vorgang im Verzug wählen."), 400
+    r0 = rows[0] if rows else vz[0]
     E = b.get("empfaenger") if isinstance(b.get("empfaenger"), dict) else {}
     frist = str(b.get("frist") or "").strip()
     auftrag = str(b.get("auftrag") or "").strip()[:80]
-    text = (b.get("text") or "").strip() or terminruege_text(_de(frist), b.get("kuendigung", True) is not False, auftrag)
-    liste = "\n".join(f"{_wd(t['datum'])}: laut Bauzeitenplan {', '.join(t['leistungen'])[:160]}" for t in rows)
+    text = (b.get("text") or "").strip() or terminruege_text(_de(frist), b.get("kuendigung", True) is not False, auftrag, tage=bool(rows), verzug=bool(vz))
+    liste = "\n".join([f"{_wd(t['datum'])}: laut Bauzeitenplan {', '.join(t['leistungen'])[:160]}" for t in rows]
+                      + [f"{x['vorgang'][:90]}: geplant {_de(x['s'])}–{_de(x['f'])}, Stand {_de(date.today().isoformat())} {x['ist']} % statt {x['soll']} % "
+                         f"(Rückstand ca. {x['verzug']:g} Arbeitstage)" for x in vz])
     schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "pruefen", "senden") else "senden"
-    buf, cv, *_, felder = _brief(pid, rows[0]["projekt"], E, auftrag, "Terminrüge", "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
+    buf, cv, *_, felder = _brief(pid, r0["projekt"], E, auftrag, "Terminrüge", "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
                          "Grundlage: § 5 Abs. 3 und 4 VOB/B (setzt vereinbarte Vertragsfristen voraus).",
-                         text, "Tage ohne Besetzung", "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist, sig=_sig(),
+                         text, "Tage ohne Besetzung" if not vz else "Rückstand laut Bauzeitenplan" if not rows else "Tage ohne Besetzung und Rückstand",
+                         "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist, sig=_sig(),
                          werte=_werte(b), fest=schritt != "entwurf")
     cv.save()
     buf = io.BytesIO(_bogen(buf.getvalue()))
@@ -791,8 +857,8 @@ def terminruege_pdf():
                 if t["status"] == "offen":
                     c.execute("INSERT INTO soll_anwesend(report_id, firma, status, notiz, geaendert, geaendert_von) VALUES(?,?,?,?,?,?) ON CONFLICT (report_id, firma) DO NOTHING",
                               (t["rid"], t["key"], "fehlt", "Terminrüge", datetime.now().isoformat(timespec="seconds"), g.user["name"]))
-    C.audit(g.user["name"], "export", "Terminrüge erstellt", f"{rows[0]['projekt']} · {E.get('name') or ''} · {len(rows)} Tage")
-    hinweis, fehler, neu = _versenden(b, "Terminrüge", E, rows[0]["projekt"], pid, frist, len(rows), buf.getvalue(), fn, inhalt=("Mit sign-me qualifiziert signiert.\n" if signiert else "") + (felder.get("Tage") or liste))
+    C.audit(g.user["name"], "export", "Terminrüge erstellt", f"{r0['projekt']} · {E.get('name') or ''} · {len(rows)} Tage · {len(vz)} Vorgänge im Verzug")
+    hinweis, fehler, neu = _versenden(b, "Terminrüge", E, r0["projekt"], pid, frist, len(rows) or len(vz), buf.getvalue(), fn, inhalt=("Mit sign-me qualifiziert signiert.\n" if signiert else "") + (felder.get("Tage") or liste))
     return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
 
 

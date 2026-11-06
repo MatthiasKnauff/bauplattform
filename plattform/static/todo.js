@@ -18,6 +18,14 @@ function tdDatumAus(t) {   // „Statik nachfordern bis Fr“ → Titel + Datum
   else if ((m = /\b(?:in\s+)?(\d{1,2})\s+woche[n]?\b|\bnächste\s+woche\b/i.exec(t))) { d = tdPlus(7 * (+m[1] || 1)); weg(m[0]); }
   return { titel: t.replace(/\s+(bis|am)$/i, '').trim(), faellig: d };
 }
+/* Projekt aus dem Text erkennen: „A480 An Knauf denken“ → Projekt, dessen Name mit dem Kürzel A480 beginnt */
+function tdProjektAus(t) {
+  const P = (TDREF && TDREF.projekte) || [], kurz = (n) => ((n || '').trim().split(/\s+/)[0] || '').replace(/[.,:;]+$/, '').toLowerCase();
+  for (const m of String(t || '').matchAll(/(?:^|[\s(])([A-Za-z]{1,3}\d{2,5}(?:[.-]\d+)?)(?=$|[\s,.:;)])/g)) {
+    const p = P.find((x) => kurz(x.name) === m[1].toLowerCase()); if (p) return p;
+  }
+  return null;
+}
 async function tdLaden() {
   try { TD = await api('api/bp/todo'); } catch (e) { TD = { auto: [], manuell: [], fehler: [e.message] }; }
   if (typeof TDWEG !== 'undefined' && TDWEG) TD.manuell = (TD.manuell || []).filter((y) => y.id !== TDWEG.x.id);   // gerade gelöscht (Rückgängig läuft noch)
@@ -59,10 +67,13 @@ function tdErEditor(x) {
 async function tdErSpeichern(x, body) {
   const a = tdAufg(); if (!a) return toast('Für „Aufgaben & Mängel“ ist dein Konto nicht freigeschaltet.', true);
   try {
+    const alt = TDER[x.key] && !TDER[x.key].fehler ? TDER[x.key] : (await api(appUrl(a) + '/api/erinnerungen/' + tdErId(x)).catch(() => null));
     const r = await api(appUrl(a) + '/api/erinnerungen/' + tdErId(x), 'PUT', body);
     delete TDER[x.key]; TDOFFEN = null;
     await tdLaden();
-    toast(body.status === 'erledigt' ? 'Erinnerung erledigt.' : 'Erinnerung gespeichert.' + (r.hinweis ? ' ' + r.hinweis : ''));
+    const zurueck = alt ? { status: 'offen', termin: alt.termin, uhrzeit: alt.uhrzeit, ...(alt.quelle === 'eigen' ? { titel: alt.titel, text: alt.text } : {}) } : body.status ? { status: 'offen' } : null;
+    const msg = body.status === 'erledigt' ? 'Erinnerung erledigt' : 'Erinnerung gespeichert' + (r.hinweis ? ' – ' + r.hinweis : '');
+    if (zurueck) rueckgaengig(msg, async () => { await api(appUrl(a) + '/api/erinnerungen/' + tdErId(x), 'PUT', zurueck); await tdLaden(); }); else toast(msg + '.');
   } catch (er) { toast(er.message, true); }
 }
 function tdEditor(x) {
@@ -132,7 +143,8 @@ document.addEventListener('submit', async (e) => {
   if (!e.target.closest('[data-td="neuform"]')) return; e.preventDefault();
   const t = $('#tdNeu').value.trim(); if (!t) return;
   const x = tdDatumAus(t);
-  try { const r = await api('api/bp/todo', 'POST', { ...x, pid: window.BPHead && BPHead.projektId ? BPHead.projektId() : null }); TD.manuell.unshift(r.aufgabe); tdZeigen(); toast(`Aufgabe angelegt${x.faellig ? ' – fällig ' + tdDatum(x.faellig) : ''}. Antippen, um Beteiligte oder Notiz zu ergänzen.`); }
+  await tdRef(); const pk = tdProjektAus(t);   // Kürzel im Text (z. B. A480) schlägt das Projekt oben
+  try { const r = await api('api/bp/todo', 'POST', { ...x, pid: pk ? pk.id : window.BPHead && BPHead.projektId ? BPHead.projektId() : null }); TD.manuell.unshift(r.aufgabe); tdZeigen(); toast(`Aufgabe angelegt${x.faellig ? ' – fällig ' + tdDatum(x.faellig) : ''}. Antippen, um Beteiligte oder Notiz zu ergänzen.`); }
   catch (er) { toast(er.message, true); }
 });
 document.addEventListener('click', async (e) => {
@@ -171,12 +183,21 @@ document.addEventListener('click', async (e) => {
     if (x.pid && BPHead.projektSetzen) { try { await BPHead.projektSetzen(x.pid); } catch { /* egal */ } }
     location.href = appUrl(app) + '/' + x.link.slice(k.length + 1); return;
   }
-  if (a === 'spaeter' && x) { tdSpaeterMenue(b, async (bis) => { await api('api/bp/todo-zustand', 'POST', { key: x.key, bis }).catch((er) => toast(er.message, true)); x.spaeter = bis; tdZeigen(); toast(`Zurückgestellt bis ${tdDatum(bis)}.`); }); return; }
-  if (a === 'spaeterm' && x) { tdSpaeterMenue(b, async (bis) => { try { const r = await api('api/bp/todo/' + x.id, 'PUT', { faellig: bis }); Object.assign(x, r.aufgabe); tdZeigen(); } catch (er) { toast(er.message, true); } }); return; }
+  if (a === 'spaeter' && x) { tdSpaeterMenue(b, async (bis) => { await api('api/bp/todo-zustand', 'POST', { key: x.key, bis }).catch((er) => toast(er.message, true)); x.spaeter = bis; tdZeigen();
+    rueckgaengig(`Zurückgestellt bis ${tdDatum(bis)}`, async () => { await api('api/bp/todo-zustand', 'POST', { key: x.key }); delete x.spaeter; tdZeigen(); }); }); return; }
+  if (a === 'spaeterm' && x) { tdSpaeterMenue(b, async (bis) => { const alt = x.faellig || ''; try { const r = await api('api/bp/todo/' + x.id, 'PUT', { faellig: bis }); Object.assign(x, r.aufgabe); tdZeigen();
+    rueckgaengig(`Verschoben auf ${tdDatum(bis)}`, async () => { const r2 = await api('api/bp/todo/' + x.id, 'PUT', { faellig: alt }); Object.assign(x, r2.aufgabe); tdZeigen(); }); } catch (er) { toast(er.message, true); } }); return; }
   if (a === 'jetzt' && x) { await api('api/bp/todo-zustand', 'POST', { key: x.key }).catch(() => {}); delete x.spaeter; tdZeigen(); return; }
   if (a === 'fertig' && x) {
-    if (x.auto) { await api('api/bp/todo-zustand', 'POST', { key: x.key, aus: true }).catch((er) => toast(er.message, true)); TD.auto = TD.auto.filter((y) => y.key !== x.key); tdZeigen(); toast('Ausgeblendet – erscheint nicht wieder.'); return; }
-    try { const r = await api('api/bp/todo/' + x.id, 'PUT', { erledigt: b.checked }); Object.assign(x, r.aufgabe); tdZeigen(); } catch (er) { toast(er.message, true); }
+    if (x.auto) {
+      if (x.regel === 'erinnerungen') return tdErSpeichern(x, { status: 'erledigt' });   // Erinnerung wirklich erledigen (mit Rückgängig)
+      await api('api/bp/todo-zustand', 'POST', { key: x.key, aus: true }).catch((er) => toast(er.message, true)); const i = TD.auto.indexOf(x); TD.auto = TD.auto.filter((y) => y.key !== x.key); tdZeigen();
+      rueckgaengig('Ausgeblendet – erscheint nicht wieder', async () => { await api('api/bp/todo-zustand', 'POST', { key: x.key }); TD.auto.splice(Math.max(0, i), 0, x); tdZeigen(); });
+      return;
+    }
+    const an = b.checked;
+    try { const r = await api('api/bp/todo/' + x.id, 'PUT', { erledigt: an }); Object.assign(x, r.aufgabe); tdZeigen();
+      if (an) rueckgaengig(`„${x.titel}“ erledigt`, async () => { const r2 = await api('api/bp/todo/' + x.id, 'PUT', { erledigt: false }); Object.assign(x, r2.aufgabe); tdZeigen(); }); } catch (er) { toast(er.message, true); }
     return;
   }
   if (a === 'speichern') {
@@ -218,6 +239,12 @@ async function tdKlein(f) {   // Fotos vor dem Hochladen auf höchstens 2400 px 
     return b ? new File([b], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f;
   } catch { return f; }
 }
+document.addEventListener('input', (e) => {   // im Editor: Kürzel im Titel → Projekt mitziehen
+  const inp = e.target.closest && e.target.closest('#todo .te [data-tf="titel"]'); if (!inp) return;
+  const p = tdProjektAus(inp.value); if (!p) return;
+  const te = inp.closest('.te'), h = te.querySelector('[data-tf="pid"]'); if (!h || +h.value === p.id) return;
+  h.value = p.id; const bt = te.querySelector('[data-td="projekt"]'); if (bt) bt.textContent = p.name + ' ▾';
+});
 document.addEventListener('change', async (e) => {
   const inp = e.target.closest('[data-tup]'); if (!inp || !inp.files.length) return;
   const row = inp.closest('[data-tk]'), x = row && tdFinde(row.dataset.tk); if (!x || !x.id) return;

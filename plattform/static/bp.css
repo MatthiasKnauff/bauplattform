@@ -95,3 +95,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .pickm .pm-o .pm-x{flex:0 1 auto;display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
 .pickm .pm-e{padding:.8rem .6rem;color:var(--mute);font-size:.9rem}
 .pickm .pm-f{border-top:1px solid var(--line);padding:.5rem;display:flex;gap:.4rem;flex-wrap:wrap}
+
+.bp-undo{position:fixed;left:50%;bottom:4.6rem;transform:translateX(-50%);z-index:900;display:flex;gap:.8rem;align-items:center;background:#1e1e1e;color:#fff;border-radius:10px;padding:.55rem .6rem .55rem 1rem;box-shadow:0 8px 28px rgba(0,0,0,.35);font-size:.92rem;max-width:calc(100vw - 2rem)}
+.bp-undo span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bp-undo button{background:var(--y);color:var(--on,#111);border:0;border-radius:7px;padding:.35rem .8rem;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}

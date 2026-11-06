@@ -1728,6 +1728,7 @@ function taskCtx(e) {
     { label: 'Verknüpfung lösen', dis: !has, fn: unlinkSel },
     '-',
     { label: 'Zur Leistung scrollen', dis: !has, fn: scrollToTask },
+    ...(window.BP && BP.kannRuege && BP.kannRuege() ? [{ label: 'Terminrüge …', dis: selIdx().length !== 1, fn: () => BP.terminruege(P.tasks[selIdx()[0]].uid) }] : []),
     { label: selIdx().length > 1 ? `Gemeinsam bearbeiten… (${selIdx().length})` : 'Informationen…', key: '⇧+F2', dis: !has, fn: infoForSelection },
   ]);
 }
@@ -2079,6 +2080,7 @@ chartBody.addEventListener('contextmenu', (e) => {
     { label: 'Fortschritt 0 %', fn: () => act(() => { t.pct = 0; }) },
     { label: 'Fortschritt 50 %', fn: () => act(() => { t.pct = 50; }) },
     { label: 'Fortschritt 100 %', fn: () => act(() => { t.pct = 100; }) },
+    ...(window.BP && BP.kannRuege && BP.kannRuege() ? [{ label: 'Terminrüge …', dis: (t.pct || 0) >= 100, fn: () => BP.terminruege(t.uid) }] : []),
     '-',
     { label: 'Leistung einfügen', key: 'Einfg', fn: () => insertTask() },
     { label: 'Leistung löschen', key: 'Entf', fn: deleteSel },

@@ -69,6 +69,13 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .trow{display:grid;grid-template-columns:110px 1fr auto auto;gap:.4rem .8rem;align-items:center;padding:.45rem 0;border-top:1px solid var(--line);margin-top:.45rem}
 .trow .tdat{font-weight:600;white-space:nowrap}.trow .tl{color:var(--mute);font-size:.86rem;min-width:0}
 .trow .tact{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.vzh{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap;margin:.2rem 0 .5rem}.vzh h3{margin:0;font-size:1rem}
+.vzh select{width:auto;padding:.2rem .4rem}
+.vzrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem .8rem;align-items:center;padding:.45rem 0;border-top:1px solid var(--line);margin-top:.45rem}
+.vzrow .vb{height:6px;border-radius:3px;background:var(--line);position:relative;margin-top:.3rem;max-width:320px}
+.vzrow .vb i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--y)}
+.vzrow .vb s{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);text-decoration:none}
+.vzrow .vt{font-weight:700;color:var(--red);white-space:nowrap}
 @media (max-width:760px){.trow{grid-template-columns:1fr auto}.trow .tl{grid-column:1/-1;grid-row:2}.trow .tact{grid-column:1/-1}}
 .fm{display:grid;grid-template-columns:150px 1fr;gap:.55rem .8rem;align-items:center}
 .fm label{color:var(--mute);font-size:.88rem}
@@ -115,7 +122,9 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 <script src="static/todo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('auf.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('auf.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
-let tab = (location.hash || '').slice(1) || LS.get('tab', 'todos'), scope = LS.get('scope', 'mine');
+const HASH = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&'));   // z. B. #termine&ruege=12|firma oder &gid=…&uid=…
+let tab = (location.hash || '').slice(1).split('&')[0] === 'termine' ? 'termine' : (location.hash || '').slice(1) || LS.get('tab', 'todos'), scope = LS.get('scope', 'mine');
+let VZ = null;
 let M = null, E = null, T = null, CONF = null, ME = null, F = LS.get('filter', { q: '', projekt: '', firma: '', art: 'maengel', status: 'offen' }), OPEN = null;
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -149,14 +158,14 @@ async function reload(first) {
   try {
     if (tab === 'todos') { await tdRef(); await tdLaden(); renderTabs(); return; }
     if (tab === 'maengel') M = await api('api/maengel?scope=' + scope);
-    else if (tab === 'termine') T = await api('api/termine?scope=' + scope);
+    else if (tab === 'termine') [T, VZ] = await Promise.all([api('api/termine?scope=' + scope), api('api/verzug?scope=' + scope).catch(() => null)]);
     else E = await api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : ''));
   } catch (e) { $('#view').innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
   render();
 }
 function renderTabs() {
   const nM = M ? M.filter((m) => m.status === 'ueberfaellig').length : 0, nE = E ? E.items.filter((x) => ['ueberfaellig', 'abgelaufen', 'heute'].includes(x.lage)).length : 0;
-  const nT = T ? T.filter((x) => x.status === 'offen').length : 0;
+  const nT = (T ? T.filter((x) => x.status === 'offen').length : 0) + (VZ ? new Set(VZ.vorgaenge.map((x) => x.pid + '|' + x.key)).size : 0);
   const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
   $('.top').style.display = tab === 'todos' ? 'none' : '';   // gelten nur für Mängel, Termine, Erinnerungen
   $('#tabs').innerHTML = [['todos', 'To-dos', nTd], ['maengel', 'Mängel', nM], ['termine', 'Termine', nT], ['erinnerungen', 'Erinnerungen', nE]].map(([k, l, n]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}${n ? `<small class="bad" title="überfällig / fällig">${n}</small>` : ''}</button>`).join('');
@@ -167,6 +176,31 @@ function render() {
   if (tab === 'todos') { if (!$('#todo')) $('#view').innerHTML = '<section class="todo voll" id="todo"></section>'; tdZeigen(); return; }
   if (tab === 'maengel') renderM(); else if (tab === 'termine') renderT(); else renderE(); }
 
+/* ---------- Termine: Verzug laut Arbeitsfortschritt (Bautagebuch → Bauzeitenplan) ---------- */
+function vzHtml() {
+  if (!VZ) return '';
+  const pidSel = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || null;
+  const swOpt = (v, std) => [['', `Standard (${VZ.standard} AT)`], ...[2, 3, 5, 7, 10, 15, 20].map((n) => [n, n + ' AT'])].filter(([k]) => std || k !== '').map(([k, l]) => `<option value="${k}"${String(v ?? '') === String(k) ? ' selected' : ''}>${l}</option>`).join('');
+  let h = `<div class="vzh"><h3>Im Verzug laut Arbeitsfortschritt</h3><span class="mute" style="font-size:.86rem">Terminrüge vorschlagen ab
+    <select data-vzsw="" aria-label="Standard">${swOpt(VZ.standard, false)}</select>${pidSel ? ` · dieses Projekt <select data-vzsw="${pidSel}" aria-label="Schwelle für dieses Projekt">${swOpt((VZ.eigene || {})[pidSel], true)}</select>` : ''}</span></div>`;
+  const G = {}; VZ.vorgaenge.forEach((x) => { (G[x.pid + '|' + x.key] ||= []).push(x); });
+  if (!VZ.vorgaenge.length) return h + '<div class="empty" style="margin-bottom:1rem">Keine Firma liegt über der Schwelle. Den Fortschritt melden die Bauleiter im Tagesbericht (Abschnitt Anwesende).</div>';
+  for (const [k, rows] of Object.entries(G)) {
+    const x0 = rows[0];
+    h += `<section class="tgrp"><div style="display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>${esc(x0.firma)}</b>${x0.gw ? ` <span class="mute">· ${esc(x0.gw)}</span>` : ''}<div class="mute" style="font-size:.85rem">${esc(x0.projekt)} · Plan „${esc(x0.plan)}“ · Schwelle ${x0.schwelle} AT</div></div>
+      <button class="btn sm pri" data-truege="${esc(k)}" title="Aufforderung zur Abhilfe nach VOB/B § 5 Abs. 3">✉ Terminrüge</button></div>
+      ${rows.map((x) => `<div class="vzrow"><div><b>${esc(x.vorgang)}</b> <span class="mute" style="font-size:.85rem">· ${esc(de(x.s))}–${esc(de(x.f))} · ${x.ist} % statt ${x.soll} %${x.gemeldet ? ' · gemeldet ' + esc(de(x.gemeldet)) + (x.ampel === 'hinterher' ? ' „hinterher“' : '') : ' · noch nie gemeldet'}</span>
+        <div class="vb" title="Ist ${x.ist} % · Soll ${x.soll} %"><i style="width:${x.ist}%"></i><s style="left:${x.soll}%"></s></div></div>
+        <span class="vt">≈ ${String(x.verzug).replace('.', ',')} AT</span></div>`).join('')}</section>`;
+  }
+  return h + '<h3 style="font-size:1rem;margin:1.2rem 0 .4rem">Nicht anwesend laut Bautagebuch</h3>';
+}
+document.addEventListener('change', async (e) => {
+  const s = e.target.closest('[data-vzsw]'); if (!s) return;
+  try { await api('api/verzug/schwelle', 'PUT', { pid: s.dataset.vzsw ? +s.dataset.vzsw : null, tage: s.value ? +s.value : null }); toast('Schwelle gespeichert.'); VZ = await api('api/verzug?scope=' + scope); renderT(); renderTabs(); }
+  catch (er) { toast(er.message, true); }
+});
+
 /* ---------- Termine: Firmen laut Bauzeitenplan nicht anwesend ---------- */
 function renderT() {
   if (!T) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
@@ -175,6 +209,7 @@ function renderT() {
   let h = `<div class="kpi"><button type="button" class="on" tabindex="-1">Nicht bestätigt<b>${nO}</b></button><button type="button" tabindex="-1">„Nicht da“ bestätigt<b>${nF}</b></button></div>
     <p class="note">Berichtstage der letzten 120 Tage, an denen eine Firma laut Bauzeitenplan auf der Baustelle sein sollte, im Bautagebuch aber nicht als anwesend eingetragen ist.
     „Nicht bestätigt“ heißt: Der Bauleiter hat den Vorschlag im Bericht weder als anwesend noch als „nicht da“ markiert. Daraus lässt sich je Firma eine Terminrüge (VOB/B § 5) erzeugen.</p>`;
+  h = vzHtml() + h;
   if (!T.length) h += '<div class="empty">Keine Abweichungen – alle laut Plan erwarteten Firmen waren da oder wurden bestätigt.</div>';
   for (const [k, rows] of Object.entries(groups)) {
     const x0 = rows[0];
@@ -195,9 +230,10 @@ async function tSet(id, status) {
     await reload();
   } catch (e) { toast(e.message, true); }
 }
-async function truegeDialog(k) {
+async function truegeDialog(k, nur) {
   const [pid, firma] = [+k.split('|')[0], k.split('|').slice(1).join('|')];
   let V; try { [V] = await Promise.all([api(`api/terminruege/vorlage?pid=${pid}&firma=${encodeURIComponent(firma)}`), konto()]); } catch (e) { toast(e.message, true); return; }
+  V.nur = nur || '';
   SIGNME = !!V.signme;
   const E0 = V.empfaenger;
   const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
@@ -205,19 +241,22 @@ async function truegeDialog(k) {
     <label>Straße</label><input id="tS" value="${esc(E0.strasse)}"><label>PLZ Ort</label><input id="tO" value="${esc(E0.ort)}">
     <label>Auftrag</label><input id="tA" placeholder="z. B. Nr. 12/2026 vom 03.03.2026 (optional)">
     <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="tF" value="${plus(3)}">${[[2, '2 Tage'], [3, '3 Tage'], [7, '1 Woche']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
-    <label class="w">Tage (laut Bauzeitenplan erwartet, nicht anwesend)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">
-      ${V.tage.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-td="${esc(x.id)}" checked><span>${esc(deW(x.datum))}<small class="mute" style="display:block">${esc(x.leistungen.join(', '))} · ${x.status === 'fehlt' ? 'als „nicht da“ bestätigt' : 'nicht bestätigt'}</small></span></label>`).join('')}</div>
+    ${(V.verzug || []).length ? `<label class="w">Rückstand laut Arbeitsfortschritt</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">
+      ${V.verzug.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-tv="${esc(x.id)}"${x.ab_schwelle || (V.nur && V.nur === x.id) ? ' checked' : ''}><span>${esc(x.vorgang)} – ca. ${String(x.verzug).replace('.', ',')} AT<small class="mute" style="display:block">${esc(de(x.s))}–${esc(de(x.f))} · ${x.ist} % statt ${x.soll} %${x.ab_schwelle ? '' : ' · unter der Schwelle'}</small></span></label>`).join('')}</div>` : ''}
+    ${V.tage.length ? `<label class="w">Tage (laut Bauzeitenplan erwartet, nicht anwesend)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">
+      ${V.tage.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-td="${esc(x.id)}" checked><span>${esc(deW(x.datum))}<small class="mute" style="display:block">${esc(x.leistungen.join(', '))} · ${x.status === 'fehlt' ? 'als „nicht da“ bestätigt' : 'nicht bestätigt'}</small></span></label>`).join('')}</div>` : ''}
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
-    <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tB" checked> nicht bestätigte Tage als „nicht da“ übernehmen</label>
+    ${V.tage.length ? '<label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tB" checked> nicht bestätigte Tage als „nicht da“ übernehmen</label>' : ''}
     ${versandHtml(KONTO, E0.email)}
     <p class="w mute" style="font-size:.82rem;margin:0">Setzt voraus, dass der Bauzeitenplan bzw. die Ausführungsfristen vertraglich vereinbart sind (VOB/B § 5). Im nächsten Schritt lässt sich das Schreiben bearbeiten, danach drucken oder versenden. Der Mustertext ersetzt keine Rechtsberatung.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter: Schreiben bearbeiten</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#tF').value = plus(+m.slice(1)); return; }
     if (m !== 'ok') return;
-    const ids = [...bg.querySelectorAll('[data-td]:checked')].map((x) => x.dataset.td); if (!ids.length) { toast('Bitte mindestens einen Tag wählen.', true); return; }
+    const ids = [...bg.querySelectorAll('[data-td]:checked')].map((x) => x.dataset.td), vids = [...bg.querySelectorAll('[data-tv]:checked')].map((x) => x.dataset.tv);
+    if (!ids.length && !vids.length) { toast('Bitte mindestens einen Tag oder einen Vorgang wählen.', true); return; }
     const vs = versandRead(bg); if (!vs) return;
-    const body = { ...vs, pid, firma, ids, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: bg.querySelector('#tB').checked,
+    const body = { ...vs, pid, firma, ids, vids, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: !!(bg.querySelector('#tB') || {}).checked,
       empfaenger: { id: bg.querySelector('#tN').value.trim() === E0.name ? E0.id : null, name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
     try { await briefStart('api/terminruege', body, 'Terminrüge', close); } catch (e) { toast(e.message, true); }
   });
@@ -622,6 +661,17 @@ async function setDialog(host) {
   if (tab !== 'todos') tdRef().then(tdLaden).then(renderTabs).catch(() => {});
   if (gp && M && !M.some((m) => m.pid === gp)) { F.projekt = ''; if (tab === 'maengel') renderM(); }
   if (deep) zeige(deep[1], deep[2]);
+  if (tab === 'termine' && (HASH.get('ruege') || HASH.get('gid'))) {   // aus To-do oder Bauzeitenplan: Terminrüge gleich öffnen
+    history.replaceState(null, '', '#termine');
+    if (HASH.get('ruege')) truegeDialog(HASH.get('ruege'));
+    else {
+      try {
+        const r = await api(`api/verzug?gid=${encodeURIComponent(HASH.get('gid'))}&uid=${encodeURIComponent(HASH.get('uid') || '')}`), x = r.vorgaenge[0];
+        if (x) truegeDialog(x.pid + '|' + x.key, x.id);
+        else toast(HASH.get('firma') ? 'Für diesen Vorgang ist kein Rückstand gemeldet – der Arbeitsfortschritt wird im Tagesbericht eingetragen.' : 'Für diesen Vorgang ist kein Rückstand gemeldet.', true);
+      } catch (er) { toast(er.message, true); }
+    }
+  }
   if (tab !== 'erinnerungen') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});
   if (tab !== 'maengel') api('api/maengel?scope=' + scope).then((r) => { M = r; renderTabs(); }).catch(() => {});
   if (tab !== 'termine') api('api/termine?scope=' + scope).then((r) => { T = r; renderTabs(); }).catch(() => {});

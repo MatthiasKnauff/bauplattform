@@ -5,7 +5,7 @@ Seine berechneten Termine stehen in data["sched"] ({uid, s, f, g}); die Firma ei
 aus „Gewerke & Firmen“ (data["trades"][gewerk]["firm"] = Kontakt-Schlüssel) oder dem Feld „Unternehmer“.
 """
 import json, re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 
 def _j(s, d):
@@ -26,14 +26,93 @@ def firm_map(c):
 
 def plans(c, project_id):
     """Bauzeitenpläne des Projekts: verknüpfte Pläne, sonst nicht verknüpfte Pläne, deren Name mit dem Projektkürzel beginnt („A541 …“)."""
-    rows = c.execute("SELECT name, data FROM gantt_projects WHERE project_id=?", (project_id,)).fetchall()
+    return [(n, d) for _, n, d in plans_mit_id(c, project_id)]
+
+
+def plans_mit_id(c, project_id):
+    """wie plans(), aber [(Plan-ID, Name, data)] – zum Zurückschreiben (Arbeitsfortschritt)."""
+    rows = c.execute("SELECT id, name, data FROM gantt_projects WHERE project_id=?", (project_id,)).fetchall()
     if not rows:
         p = c.execute("SELECT name FROM projects WHERE id=?", (project_id,)).fetchone()
         code = ((p["name"] or "").split() or [""])[0].rstrip(".,") if p else ""
         if re.match(r"^[A-Za-z]+\d", code):
-            rows = [r for r in c.execute("SELECT name, data FROM gantt_projects WHERE project_id IS NULL").fetchall()
+            rows = [r for r in c.execute("SELECT id, name, data FROM gantt_projects WHERE project_id IS NULL").fetchall()
                     if re.match(re.escape(code) + r"(?![\d.])", (r["name"] or "").strip(), re.I)]
-    return [(g["name"], _j(g["data"], {})) for g in rows]
+    return [(g["id"], g["name"], _j(g["data"], {})) for g in rows]
+
+
+def _firma(t, trades, firms):
+    """Firma einer Leistung: aus „Gewerke & Firmen“ oder dem Feld „Unternehmer“ → (Name, Kontakt-ID, Gewerk)."""
+    gw = (t.get("gw") or "").strip()
+    tr = trades.get(gw) or {}
+    name, cid = firms.get(tr.get("firm") or "", ("", None))
+    res = (t.get("res") or "").strip()
+    if not name and res and res != (tr.get("craft") or "").strip():
+        name = res
+    return name.strip(), cid, gw
+
+
+def arbeitstage(a, b):
+    """Arbeitstage (Mo–Fr) von a bis b einschließlich (ISO-Daten); 0, wenn b vor a liegt."""
+    try:
+        d0, d1 = date.fromisoformat(a), date.fromisoformat(b)
+    except (TypeError, ValueError):
+        return 0
+    if d1 < d0:
+        return 0
+    n = (d1 - d0).days + 1
+    w, r = divmod(n, 7)
+    return w * 5 + sum(1 for i in range(r) if (d0.weekday() + i) % 7 < 5)
+
+
+def fortschritt(plan_list, firms, day, nur_mit_firma=True):
+    """Vorgänge, die laut Bauzeitenplan bis `day` begonnen haben und noch nicht fertig sind (oder an `day` laufen).
+    plan_list: [(Plan-ID, Name, data)]. Je Vorgang: Soll-Fortschritt (linear über die Arbeitstage), Ist (Fortschritt im Plan)
+    und der absehbare Verzug in Arbeitstagen: läuft die Firma im geplanten Tempo weiter, wird sie so viel später fertig."""
+    out = []
+    for gid, pname, data in plan_list:
+        if not isinstance(data, dict):
+            continue
+        tasks = {t.get("uid"): t for t in (data.get("tasks") or []) if isinstance(t, dict)}
+        trades = data.get("trades") or {}
+        for s in data.get("sched") or []:
+            t = tasks.get(s.get("uid"))
+            if not t or s.get("g") or not t.get("dur") or not s.get("s") or s["s"] > day:
+                continue
+            f = s.get("f") or s["s"]
+            ist = max(0, min(100, int(round(float(t.get("pct") or 0)))))
+            if ist >= 100 and f < day:
+                continue
+            name, cid, gw = _firma(t, trades, firms)
+            if nur_mit_firma and not name:
+                continue
+            dauer = max(1, arbeitstage(s["s"], f))
+            vergangen = arbeitstage(s["s"], min(day, f))
+            soll = min(100, round(100 * vergangen / dauer))
+            rest = (100 - ist) / 100 * dauer
+            verzug = (arbeitstage((date.fromisoformat(f) + timedelta(days=1)).isoformat(), day) + rest) if day > f else (soll - ist) / 100 * dauer
+            out.append({"gantt_id": gid, "plan": pname, "uid": t.get("uid"), "vorgang": t.get("name") or "Vorgang", "firma": name, "key": name.lower(),
+                        "contact_id": cid, "gw": gw, "s": s["s"], "f": f, "dauer": dauer, "soll": soll, "ist": ist,
+                        "verzug": round(max(0.0, verzug) if ist < 100 else 0.0, 1)})
+    out.sort(key=lambda x: (x["firma"].lower(), x["s"], x["vorgang"]))
+    return out
+
+
+def fortschritt_setzen(c, gantt_id, uid, pct, wer=""):
+    """Fortschritt eines Vorgangs in den Bauzeitenplan schreiben (der Änderungszähler steigt – offene Pläne laden neu)."""
+    r = c.execute("SELECT data FROM gantt_projects WHERE id=?", (gantt_id,)).fetchone()
+    if not r:
+        return False
+    d = _j(r["data"], {})
+    for t in d.get("tasks") or []:
+        if isinstance(t, dict) and t.get("uid") == uid:
+            if (t.get("pct") or 0) == pct:
+                return True
+            t["pct"] = pct
+            c.execute("UPDATE gantt_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
+                      (json.dumps(d, ensure_ascii=False, separators=(",", ":")), datetime.now().isoformat(timespec="seconds"), wer, gantt_id))
+            return True
+    return False
 
 
 def expected(plan_list, firms, day, ohne=None):
@@ -54,12 +133,7 @@ def expected(plan_list, firms, day, ohne=None):
             t = tasks.get(s.get("uid"))
             if not t or s.get("g") or not t.get("dur") or not s.get("s") or not (s["s"] <= day <= (s.get("f") or s["s"])):
                 continue
-            gw = (t.get("gw") or "").strip()
-            tr = trades.get(gw) or {}
-            name, cid = firms.get(tr.get("firm") or "", ("", None))
-            res = (t.get("res") or "").strip()
-            if not name and res and res != (tr.get("craft") or "").strip():
-                name = res
+            name, cid, gw = _firma(t, trades, firms)
             if not name:
                 if ohne is not None and (gw or t.get("name")):
                     ohne.setdefault(gw or "ohne Gewerk", set()).add(t.get("name") or "")

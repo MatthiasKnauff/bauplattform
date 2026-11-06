@@ -206,6 +206,24 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .soll-bt button{min-width:38px;padding:.3rem .5rem}
 @media (max-width:640px){.soll-r.pend{grid-template-columns:1fr 70px}.soll-r.pend .sn{grid-column:1/-1}.soll-r.pend .soll-bt{grid-column:1/-1;justify-content:flex-end}}
 .soll-r small{display:block;color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Arbeitsfortschritt laut Bauzeitenplan */
+.fs{border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem;margin:.5rem 0 .2rem;text-align:left}
+.fs-h{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;font-size:.8rem;color:var(--mute);margin-bottom:.2rem}
+.fs-h b{color:var(--ink);font-size:.9rem}
+.fs-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.3rem .6rem;align-items:center;padding:.4rem 0;border-top:1px solid var(--line)}
+.fs-r:first-of-type{border-top:0}
+.fs-n{min-width:0}.fs-n b{font-weight:600}.fs-n small{display:block;color:var(--mute);font-size:.78rem}
+.fs-n .vz{color:var(--red);font-weight:600}
+.fs-p,.fs-a{display:flex;gap:2px}
+.fs-p button,.fs-a button{min-width:2.5rem;padding:.28rem .35rem;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.82rem;font-variant-numeric:tabular-nums}
+.fs-p button:first-child,.fs-a button:first-child{border-radius:14px 0 0 14px}.fs-p button:last-child,.fs-a button:last-child{border-radius:0 14px 14px 0}
+.fs-p button.soll{box-shadow:inset 0 -2px 0 var(--mute)}
+.fs-p button.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:700}
+.fs-a button{min-width:auto;padding:.28rem .55rem}
+.fs-a button.on[data-am="plan"]{background:#2e9d5b;border-color:#2e9d5b;color:#fff}
+.fs-a button.on[data-am="hinterher"]{background:#e0a020;border-color:#e0a020;color:#111}
+.fs-a button.on[data-am="fertig"]{background:var(--y);border-color:var(--y);color:var(--on)}
+@media (max-width:640px){.fs-r{grid-template-columns:1fr}.fs-p,.fs-a{justify-content:flex-start;flex-wrap:wrap}}
 .soll-r button{padding:.3rem .65rem;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:.85rem}
 .soll-r button.ok{border-color:var(--y);color:var(--y)}
 .soll-r.fehlt b{color:var(--red)}
@@ -810,7 +828,30 @@ function sollInner(k) {   // erwartete Firmen als vorausgefüllte Zeilen (Firma,
 }
 function sollHtml(r, k) {
   if (SOLL.rid !== r.id) loadSoll(r.id);
-  return `<div class="soll-box" data-soll="${esc(k)}">${SOLL.rid === r.id ? sollInner(k) : ''}</div>`;
+  if (FS.rid !== r.id) loadFs(r.id);
+  return `<div class="soll-box" data-soll="${esc(k)}">${SOLL.rid === r.id ? sollInner(k) : ''}</div><div class="soll-box fs-box">${FS.rid === r.id ? fsInner() : ''}</div>`;
+}
+/* Arbeitsfortschritt: je laufendem Vorgang Prozent und Ampel – geht direkt in den Bauzeitenplan */
+let FS = { rid: 0, v: [], sw: 5 }, fsBusy = 0;
+const fsVz = (n) => (n >= 10 ? Math.round(n) : String(Math.round(n * 2) / 2).replace('.', ',')) + ' AT';
+function fsInner() {
+  if (!FS.v.length) return '';
+  const zeile = (x) => {
+    const wert = x.pct_bericht != null ? x.pct_bericht : null, sollR = Math.round(x.soll / 25) * 25;
+    const vz = x.verzug >= FS.sw ? `<span class="vz">≈ ${fsVz(x.verzug)} im Verzug – Terminrüge möglich</span>` : x.verzug >= 1 ? `≈ ${fsVz(x.verzug)} hinterher` : '';
+    return `<div class="fs-r" data-fsg="${esc(x.gantt_id)}" data-fsu="${x.uid}"><span class="fs-n"><b>${esc(x.vorgang)}</b> <span class="mute">· ${esc(x.firma)}</span>
+        <small>laut Plan ${x.soll} %${x.f ? ' · Ende ' + esc(x.f.slice(8, 10) + '.' + x.f.slice(5, 7) + '.') : ''} · im Bauzeitenplan ${x.ist} %${vz ? ' · ' + vz : ''}</small></span>
+      <span class="fs-p" role="group" aria-label="Fortschritt">${[0, 25, 50, 75, 100].map((p) => `<button type="button" data-act="fsSet" data-p="${p}" class="${wert === p ? 'on' : ''}${p === sollR ? ' soll' : ''}" title="${p} % fertig${p === sollR ? ' – etwa laut Plan' : ''}">${p}</button>`).join('')}</span>
+      <span class="fs-a" role="group" aria-label="Stand">${[['plan', 'im Plan'], ['hinterher', 'hinterher'], ['fertig', 'fertig']].map(([k, l]) => `<button type="button" data-act="fsSet" data-am="${k}" class="${x.ampel === k ? 'on' : ''}">${l}</button>`).join('')}</span></div>`;
+  };
+  const L = FS.alle || FS.v.length <= 8 ? FS.v : FS.v.slice(0, 6);
+  return `<div class="fs"><div class="fs-h"><b>Arbeitsfortschritt</b> laut Bauzeitenplan – wird dort eingetragen. Terminrüge ab ${FS.sw} Arbeitstagen Verzug.</div>${L.map(zeile).join('')}${L.length < FS.v.length ? `<button type="button" class="bd morei" data-act="fsAlle">Alle ${FS.v.length} Vorgänge anzeigen</button>` : ''}</div>`;
+}
+async function loadFs(rid) {
+  if (fsBusy === rid) return; fsBusy = rid;
+  try { const d = await api('api/reports/' + rid + '/fortschritt'); FS = { rid, v: d.vorgaenge || [], sw: d.schwelle || 5, alle: FS.rid === rid && FS.alle }; } catch (e) { FS = { rid, v: [], sw: 5 }; }
+  fsBusy = 0;
+  document.querySelectorAll('.fs-box').forEach(b => { b.innerHTML = fsInner(); });
 }
 async function loadSoll(rid) {
   if (sollBusy === rid) return; sollBusy = rid;
@@ -1784,6 +1825,20 @@ document.addEventListener('click', async e => {
   else if (a === 'bwzNext') { addFiles = []; BWZ.i++; bwzRender(); $('#bwz .bb')?.scrollTo(0, 0); }
   else if (a === 'bwzPrev') { addFiles = []; BWZ.i--; bwzRender(); }
   else if (a === 'bwzAdd') bwzAdd(b.dataset.kind);
+  else if (a === 'fsAlle') { FS.alle = true; document.querySelectorAll('.fs-box').forEach(bx => { bx.innerHTML = fsInner(); }); }
+  else if (a === 'fsSet') {
+    const r = curReport(), row = b.closest('[data-fsg]'); if (!r || !row) return;
+    const x = FS.v.find(y => y.gantt_id === row.dataset.fsg && y.uid === +row.dataset.fsu); if (!x) return;
+    const body = { gantt_id: x.gantt_id, uid: x.uid, ampel: x.ampel || '' };
+    if (b.dataset.p != null) { body.pct = +b.dataset.p; if (body.pct === 100) body.ampel = 'fertig'; else if (body.ampel === 'fertig') body.ampel = ''; }
+    else { body.ampel = x.ampel === b.dataset.am ? '' : b.dataset.am; if (body.ampel === 'hinterher' || !body.ampel) body.pct = x.pct_bericht != null ? x.pct_bericht : x.ist; }
+    try {
+      const d = await api('api/reports/' + r.id + '/fortschritt', 'POST', body); if (d.error) { toast(d.error); return; }
+      FS = { rid: r.id, v: d.vorgaenge || [], sw: d.schwelle || 5, alle: FS.alle };
+      document.querySelectorAll('.fs-box').forEach(bx => { bx.innerHTML = fsInner(); });
+      if (!d.im_plan) toast('Gespeichert – ein späterer Bericht hat für diesen Vorgang schon einen Stand, der Bauzeitenplan bleibt daher.');
+    } catch (e) { toast(e.message || 'Speichern fehlgeschlagen'); }
+  }
   else if (a === 'sollDa' || a === 'sollSet') {
     const r = curReport(); if (!r) return;
     try {

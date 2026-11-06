@@ -15,6 +15,14 @@
   const escH = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const appUrl = (a) => a.url || `${location.protocol}//${location.hostname}:${a.port}`;
 
+  /* ---- Terminrüge zu einer Leistung: öffnet „Aufgaben & Mängel“ mit dem Rückstand laut Arbeitsfortschritt ---- */
+  BP.terminruege = (uid) => {
+    const a = ((BP.conf || {}).apps || []).find((x) => x.key === 'aufgaben' && x.allowed);
+    if (!a) { if (window.toast) toast('Für „Aufgaben & Mängel“ ist dein Konto nicht freigeschaltet.', true); return; }
+    window.open(appUrl(a) + '/#termine&gid=' + encodeURIComponent(P.id) + '&uid=' + uid, 'bp-aufgaben');
+  };
+  BP.kannRuege = () => ((BP.conf || {}).apps || []).some((x) => x.key === 'aufgaben' && x.allowed);
+
   /* ---- 401 → Anmeldeseite ---- */
   const origFetch = window.fetch.bind(window);
   let leaving = false;

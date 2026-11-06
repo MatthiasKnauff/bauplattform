@@ -73,6 +73,16 @@ function modalBox(html, onClick) {
   const f = bg.querySelector('input,select,button'); if (f) f.focus();
   return bg;
 }
+/* Rückgängig-Leiste unten: rueckgaengig('„X“ erledigt', async () => {…}) – 10 s lang, danach weg */
+let _undo = null;
+function rueckgaengig(text, fn, ms = 10000) {
+  if (_undo) { clearTimeout(_undo.t); _undo.el.remove(); }
+  const el = document.createElement('div'); el.className = 'bp-undo'; el.setAttribute('role', 'status');
+  el.innerHTML = `<span>${esc(text)}</span><button type="button">↶ Rückgängig</button>`;
+  document.body.appendChild(el);
+  const u = _undo = { el, t: setTimeout(() => { el.remove(); if (_undo === u) _undo = null; }, ms) };
+  el.querySelector('button').onclick = async () => { clearTimeout(u.t); el.remove(); if (_undo === u) _undo = null; try { await fn(); } catch (e) { toast(e.message || 'Rückgängig ging nicht', true); } };
+}
 /* Dialoge an der Überschrift verschieben und an der Ecke rechts unten in der Größe ändern – je Dialogtitel gemerkt */
 function dlgBeweglich(m) {
   if (!m || m.dataset.beweglich) return; m.dataset.beweglich = '1';
@@ -112,6 +122,7 @@ function paneBox(host, html, onClick) {
 }
 const boxIn = (host) => (host ? (h, f) => paneBox(host, h, f) : modalBox);
 const ICONS = {
+  papierkorb: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>',
   bautagebuch: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 12h7M9 16h5"/></svg>',
   gantt: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M7 13h6M10 17h7"/></svg>',
   adressen: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="15" height="18" rx="2"/><path d="M19 7h2M19 12h2M19 17h2"/><circle cx="11.5" cy="10" r="2.5"/><path d="M7.5 17a4 4 0 0 1 8 0"/></svg>',

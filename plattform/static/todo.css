@@ -24,10 +24,12 @@
 .tr .ta button,.tr .ta a{border:0;background:none;cursor:pointer;font:inherit;font-size:.8rem;color:var(--mute);padding:.05rem .25rem;text-decoration:none;border-radius:6px}
 .tr .ta button:hover,.tr .ta a:hover{color:var(--y);background:var(--hov)}
 .tr.fertig .tt b{text-decoration:line-through;color:var(--mute)}
-.te{grid-column:1/-1;background:var(--hov);border-radius:10px;padding:.6rem .7rem;margin:.3rem 0 .2rem;display:grid;gap:.45rem}
-.te label{font-size:.8rem;color:var(--mute);display:grid;gap:.15rem}
+.te{grid-column:1/-1;background:var(--hov);border-radius:10px;padding:.6rem .7rem;margin:.3rem 0 .2rem;display:grid;grid-template-columns:minmax(0,1fr);gap:.45rem;min-width:0;box-sizing:border-box}
+.te label{font-size:.8rem;color:var(--mute);display:grid;grid-template-columns:minmax(0,1fr);gap:.15rem;min-width:0}
 .te input,.te select,.te textarea{font:inherit;font-size:.92rem;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
-.te .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:end}.te .row>label{flex:1;min-width:9rem}
+.te .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:end;min-width:0}.te .row>label{flex:1 1 9rem;min-width:0}   /* nichts ragt über den Rand (Handy) */
+.te input:not([type=checkbox]):not([type=radio]):not([type=hidden]),.te select,.te textarea{width:100%;max-width:100%;box-sizing:border-box;min-width:0}
+.te .row>label>span{min-width:0}.te .tdp{min-width:0;flex:1 1 auto;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .te .ck2{display:flex;gap:.35rem;align-items:center;font-size:.85rem;color:var(--ink)}
 .te .btns{display:flex;gap:.4rem;flex-wrap:wrap}
 .tdp{flex:1;min-width:0;text-align:left;font:inherit;font-size:.92rem;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

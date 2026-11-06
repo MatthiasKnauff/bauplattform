@@ -8,7 +8,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, papierkorb, platform, sso, versionen
+from bpcore import briefbogen, db, layout, papierkorb, platform, schrift, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -593,3 +593,97 @@ def bt_pass(p):
 
 
 C.wait_schema()
+
+
+# ---------------------------------------------------------------- Druck-Layouts (Editor: static/layout.html)
+@app.get("/layout")
+def layout_seite():
+    return C.page("layout.html")
+
+
+@app.get("/api/layouts")
+def layouts():
+    with db.tx() as c:
+        out = []
+        for k, b in layout.BEREICHE.items():
+            d = layout.lesen(c, k)
+            v = next((x for x in d["versionen"] if x["id"] == d.get("aktiv")), d["versionen"][0])
+            out.append({"key": k, "name": b["name"], "gruppe": b["gruppe"], "version": v["name"], "n": len(d["versionen"])})
+    return jsonify(out)
+
+
+@app.route("/api/layouts/<b>", methods=["GET", "PUT"])
+def layout_eins(b):
+    """GET: Versionen, aktive, Variablen. PUT {version: id, data?, name?, archiviert?} | {aktiv: id} | {neu: {name, von}} | {weg: id}."""
+    if b not in layout.BEREICHE:
+        return jsonify(error="Unbekannter Ausdruck"), 404
+    with db.tx() as c:
+        d = layout.lesen(c, b)
+        if request.method == "PUT":
+            body = request.get_json(silent=True) or {}
+            V = d["versionen"]
+            with versionen.aenderung(c, f"bp:layout:{b}", g.user["name"]):
+                if body.get("aktiv"):
+                    if not any(x["id"] == body["aktiv"] for x in V):
+                        return jsonify(error="Version nicht gefunden"), 404
+                    d["aktiv"] = body["aktiv"]
+                if isinstance(body.get("neu"), dict):
+                    von = next((x for x in V if x["id"] == body["neu"].get("von")), None) or next((x for x in V if x["id"] == d["aktiv"]), V[0])
+                    nv = {"id": "v" + str(int(time.time() * 1000))[-9:], "name": str(body["neu"].get("name") or "Neue Version")[:80],
+                          "data": layout.pruefen(body["neu"]["data"]) if isinstance(body["neu"].get("data"), dict) else layout.kopie(von["data"]), "archiviert": False, "datum": datetime.now().strftime("%d.%m.%Y %H:%M"), "wer": g.user["name"]}
+                    V.append(nv); d["aktiv"] = nv["id"]
+                if body.get("weg"):
+                    if len([x for x in V if x["id"] != body["weg"]]) < 1:
+                        return jsonify(error="Die einzige Version bleibt."), 400
+                    d["versionen"] = V = [x for x in V if x["id"] != body["weg"]]
+                    if d["aktiv"] == body["weg"]:
+                        d["aktiv"] = V[0]["id"]
+                if body.get("version"):
+                    v = next((x for x in V if x["id"] == body["version"]), None)
+                    if not v:
+                        return jsonify(error="Version nicht gefunden"), 404
+                    if isinstance(body.get("data"), dict):
+                        v["data"] = layout.pruefen(body["data"])
+                    if body.get("name"):
+                        v["name"] = str(body["name"])[:80]
+                    if "archiviert" in body:
+                        v["archiviert"] = bool(body["archiviert"])
+                    v["datum"], v["wer"] = datetime.now().strftime("%d.%m.%Y %H:%M"), g.user["name"]
+                layout.schreiben(c, b, d, g.user["name"])
+        B = layout.BEREICHE[b]
+        return jsonify({**d, "bereich": {"key": b, "name": B["name"], "variablen": B["variablen"]}, "felder": layout.FELDER, "typen": layout.TYPEN,
+                        "standard": layout.standard(b), "beispiel": layout.beispiel(b)})
+
+
+@app.post("/api/layouts/<b>/vorschau")
+def layout_vorschau(b):
+    """PDF mit Beispieldaten – so wie gedruckt (Briefbogen darunter, wenn hinterlegt)."""
+    import io
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    if b not in layout.BEREICHE:
+        return jsonify(error="Unbekannter Ausdruck"), 404
+    lay = layout.pruefen((request.get_json(silent=True) or {}).get("data") or {})
+    with db.tx() as c:
+        bogen = briefbogen.holen(c)
+        FN = schrift.fuer(c)
+    W, H = A4
+    werte = layout.beispiel(b)
+    buf = io.BytesIO()
+    cv = canvas.Canvas(buf, pagesize=A4)
+
+    def feld(nm, x, y, w, h, size, multi, tip):
+        cv.setFont(FN["n"], size); cv.setFillColor(colors.HexColor("#1e1e1e"))
+        yy = y + h - size * 1.05 - 1 if multi else y + (h - size) / 2 + 1.5
+        for z in (werte.get(nm, "").split("\n") if multi else [werte.get(nm, "").replace("\n", " ")]):
+            cv.drawString(x, yy, z); yy -= size * 1.2
+    layout.zeichnen(cv, lay, werte, 1, H, FN, bogen is not None, feld_fn=feld, logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_))
+    IB = layout.inhalt(lay)
+    x, y, w, h = IB["x"] * layout.MM, H - (IB["y"] + IB["h"]) * layout.MM, IB["w"] * layout.MM, IB["h"] * layout.MM
+    cv.setFillColor(colors.HexColor("#f4f1e8")); cv.setStrokeColor(colors.HexColor("#d9cfa8")); cv.rect(x, y, w, h, fill=1, stroke=1)
+    cv.setFillColor(colors.HexColor("#8a7a3a")); cv.setFont(FN["n"], 9)
+    cv.drawString(x + 4, y + h - 14, "Inhalt: Anschreiben, Liste, Frist, Gruß und Unterschrift fließen hier hinein – bei Bedarf auf Folgeseiten.")
+    cv.showPage(); cv.save()
+    pdf = briefbogen.unterlegen(buf.getvalue(), bogen, 1) if bogen else buf.getvalue()
+    return Response(pdf, mimetype="application/pdf")

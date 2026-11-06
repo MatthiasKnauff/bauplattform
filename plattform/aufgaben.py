@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, briefbogen, db, erinnern, ical, konto, mail, plan, platform, posteingang, schrift, sso, todo, versionen, vorlagen
+from bpcore import layout, benachrichtigung, briefbogen, db, erinnern, ical, konto, mail, plan, platform, posteingang, schrift, sso, todo, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -394,41 +394,33 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
             foot = " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
             cv.drawCentredString(W / 2, 10 * mm, foot[:180])
 
-    if not bb:
-        C.draw_logo(cv, R, H - 12 * mm, 16 * mm, 60 * mm)
-    # Anschriftfeld DIN 5008 Form B: 45–90 mm von oben, 20–105 mm von links (Fensterumschlag DL/C5/C4).
-    # Rücksendeangabe ganz oben im Feld (passend verkleinert), darunter die Zusatz- und Vermerkzone, ab 63 mm die Anschrift.
-    afs, zeilen = 7, [absender]
-    while afs > 6 and stringWidth(absender, FN["n"], afs) > 80 * mm:
-        afs -= 0.25
-    if stringWidth(absender, FN["n"], afs) > 80 * mm and ", " in absender:   # zu lang: Name und Anschrift in zwei Zeilen
-        n_, rest = absender.split(", ", 1)
-        zeilen, afs = [n_, rest], 6
-    zeilen = [z if stringWidth(z, FN["n"], afs) <= 80 * mm else z[:int(len(z) * 80 * mm / stringWidth(z, FN["n"], afs)) - 1] + "…" for z in zeilen]
-    cv.setFont(FN["n"], afs); cv.setFillColor(mute)
-    for n_, z in enumerate(zeilen):
-        cv.drawString(AL, H - 49.2 * mm + (len(zeilen) - 1 - n_) * afs * 1.12, z)
-    cv.setStrokeColor(mute); cv.setLineWidth(0.25)
-    cv.line(AL, H - 50 * mm, AL + min(80 * mm, max(stringWidth(z, FN["n"], afs) for z in zeilen)), H - 50 * mm)
-    feld("Empfaenger", AL, H - 90 * mm, 80 * mm, 27 * mm, 10, True, "Empfänger")
-    # Falzmarken (105 / 210 mm) und Lochmarke (Blattmitte) am linken Rand
-    cv.setStrokeColor(colors.HexColor("#9aa0a6")); cv.setLineWidth(0.4)
-    for yy, ln in ((105, 5), (210, 5), (148.5, 7)):
-        cv.line(4 * mm, H - yy * mm, (4 + ln) * mm, H - yy * mm)
-    cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(R - 62 * mm, H - 52 * mm, "Datum")
-    feld("Datum", R - 62 * mm, H - 61 * mm, 62 * mm, 7 * mm, 10)
-    cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(R - 62 * mm, H - 66 * mm, "Bearbeitet von")
-    feld("Bearbeiter", R - 62 * mm, H - 75 * mm, 62 * mm, 7 * mm, 10)
-    cv.setFillColor(ink); cv.setFont(FN["b"], 13); cv.drawString(L, H - 100 * mm, kopf)   # unterhalb des Fensters (endet bei 90 mm)
-    feld("Betreff", L, H - 110 * mm, R - L, 8 * mm, 10, tip="Betreff / Bauvorhaben")
-    cv.setFont(FN["n"], 8); cv.setFillColor(mute); cv.drawString(L, H - 113.5 * mm, grundzeile)
+    # Lage der Felder aus dem Druck-Layout (Verwaltung → Büro → Druck-Layouts); Vorgabe wie bisher (DIN 5008 Form B)
+    with db.tx() as c:
+        LAY = layout.aktiv(c, "maengelruege" if doc == "Mängelrüge" else "terminruege")
+    foot = " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
+    LW = {"buero": office, "absender": absender, "fusszeile": foot, "datum": V["Datum"], "bearbeiter": name, "projekt": projekt, "bauvorhaben": bv,
+          "dokument": kopf, "grundlage": grundzeile, "firma": E.get("name") or "", "frist": de(frist), "auftrag": auftrag or "",
+          "anzahl": str(len([z for z in str(liste or "").split("\n") if z.strip()]))}
+    seite = [1]
+
+    def kopf_zeichnen():
+        layout.zeichnen(cv, LAY, LW, seite[0], H, FN, bb, feld_fn=feld if seite[0] == 1 else None,
+                        logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=lambda t, w, sz, fn: umbruch(t, w, sz))
+    kopf_zeichnen()
+    IB = layout.inhalt(LAY)
+    L, R = IB["x"] * mm, (IB["x"] + IB["w"]) * mm
+    oben_in = H - IB["y"] * mm
+    unten = max(unten, H - (IB["y"] + IB["h"]) * mm)
+
+    def fuss():   # Fußzeile u. a. kommen aus dem Layout (Elemente „auf allen Seiten“)
+        pass
 
     if fest:   # Text fließt: Anschreiben, Liste, Frist, Gruß – bei langen Texten weiter auf der nächsten Seite
-        y = [H - 118 * mm]
+        y = [oben_in]
 
         def platz(h):
             if y[0] - h < unten:
-                fuss(); cv.showPage(); y[0] = H - 25 * mm
+                cv.showPage(); seite[0] += 1; kopf_zeichnen(); y[0] = H - 25 * mm
 
         def absatz(t, size=9.5, font=None):
             for z in umbruch(t, R - L, size):
@@ -449,7 +441,7 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
         fuss()
     else:
         k = 0.83 if bb else 1.0
-        yt = H - 116 * mm - 58 * mm * k
+        yt = oben_in + 2 * mm - 58 * mm * k
         feld("Text", L, yt, R - L, 58 * mm * k, 9.5, True, "Anschreiben")
         cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, yt - 6 * mm, liste_titel)
         yl = yt - 8 * mm - 34 * mm * k

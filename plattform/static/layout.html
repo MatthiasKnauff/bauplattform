@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Druck-Layouts – Bauplattform</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
+<style>
+body{margin:0}
+.lw{display:grid;grid-template-columns:250px minmax(0,1fr) 290px;gap:0;height:calc(100vh - 52px);min-height:520px}
+.lw>aside{overflow:auto;padding:.8rem;background:var(--card);border-right:1px solid var(--line)}
+.lw>aside.r{border-right:0;border-left:1px solid var(--line)}
+.lw h3{margin:.2rem 0 .5rem;font-size:.95rem}.lw h4{margin:1rem 0 .4rem;font-size:.82rem;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.pal{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}.pal button{font:inherit;font-size:.82rem;padding:.4rem .3rem;border:1px solid var(--line);border-radius:7px;background:var(--card2);color:var(--ink);cursor:pointer;text-align:left}
+.pal button:hover{border-color:var(--y)}
+.var{display:block;width:100%;text-align:left;font:inherit;font-size:.8rem;background:none;border:0;border-bottom:1px solid var(--line);padding:.35rem .2rem;color:var(--ink);cursor:pointer}
+.var code{color:var(--y);font-size:.82rem}.var small{display:block;color:var(--mute);font-size:.74rem;line-height:1.3}.var:hover{background:var(--hov)}
+.mitte{display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.wz{display:flex;gap:.25rem;flex-wrap:wrap;align-items:center;padding:.45rem .6rem;border-bottom:1px solid var(--line);background:var(--card)}
+.wz button{font:inherit;font-size:.8rem;min-width:2rem;height:2rem;border:1px solid var(--line);border-radius:6px;background:var(--card2);color:var(--ink);cursor:pointer;padding:0 .45rem}
+.wz button:disabled{opacity:.35;cursor:default}.wz button:not(:disabled):hover{border-color:var(--y)}
+.wz .sep{width:1px;height:1.4rem;background:var(--line);margin:0 .25rem}.wz label{font-size:.8rem;color:var(--mute);display:flex;gap:.3rem;align-items:center}
+.wz select{font:inherit;font-size:.8rem}
+.buehne{flex:1;overflow:auto;padding:24px;display:flex;justify-content:center}
+.blatt{position:relative;background:#fff;box-shadow:0 4px 18px #0006;flex:none;user-select:none}
+.blatt .gitter{position:absolute;inset:0;pointer-events:none}
+.el{position:absolute;box-sizing:border-box;border:1px dashed rgba(0,0,0,.25);color:#1e1e1e;overflow:hidden;cursor:move;line-height:1.2;white-space:pre-wrap;word-break:break-word}
+.el.mute{color:#6b6f76}.el.fett{font-weight:700}.el.mitte{text-align:center}.el.rechts{text-align:right}.el.ul span{border-bottom:1px solid #6b6f76}
+.el.feld{background:rgba(70,130,220,.08);border-color:rgba(70,130,220,.55)}
+.el.inhalt{background:repeating-linear-gradient(45deg,rgba(214,190,90,.12) 0 8px,rgba(214,190,90,.2) 8px 16px);border-color:#c9a400;color:#8a7a3a;font-size:12px!important;display:flex;align-items:center;justify-content:center;text-align:center}
+.el.logo{background:rgba(0,0,0,.05);color:#888;display:flex;align-items:center;justify-content:center;font-size:11px!important}
+.el.linie{border:0;overflow:visible}.el.linie::after{content:"";position:absolute;background:#1e1e1e}
+.el.linie.h::after{left:0;right:0;top:50%;height:1px}.el.linie.v::after{top:0;bottom:0;left:50%;width:1px}
+.el.falz{border:0;overflow:visible;pointer-events:auto}
+.el.ohne{opacity:.45}
+.el.sel{outline:2px solid #ff8c1a;outline-offset:1px;border-color:transparent;z-index:5}
+.el .gr{position:absolute;width:9px;height:9px;background:#ff8c1a;border:1px solid #fff;display:none}.el.sel .gr{display:block}
+.gr.se{right:-5px;bottom:-5px;cursor:nwse-resize}.gr.e{right:-5px;top:calc(50% - 5px);cursor:ew-resize}.gr.s{bottom:-5px;left:calc(50% - 5px);cursor:ns-resize}
+.fm{display:grid;grid-template-columns:1fr 1fr;gap:.45rem .5rem}.fm label{display:flex;flex-direction:column;gap:.15rem;font-size:.78rem;color:var(--mute)}
+.fm .ganz{grid-column:1/-1}.fm input,.fm select,.fm textarea{font:inherit;font-size:.86rem;min-width:0;width:100%;box-sizing:border-box}.fm .ck input{width:auto}.fm textarea{min-height:80px;resize:vertical}
+.ck{display:flex!important;flex-direction:row!important;gap:.4rem;align-items:center;color:var(--ink)!important}
+.hint{color:var(--mute);font-size:.78rem;line-height:1.4}
+.vs-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;display:flex;align-items:center;justify-content:center}
+.vs-bg .vs{width:min(900px,94vw);height:92vh;background:var(--card);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+.vs-bg .vs header{display:flex;align-items:center;gap:.5rem;padding:.5rem .8rem;border-bottom:1px solid var(--line)}.vs-bg iframe{flex:1;border:0;background:#fff}
+@media (max-width:1100px){.lw{grid-template-columns:200px minmax(0,1fr) 240px}}
+</style>
+</head>
+<body>
+<div id="vlPlatz"></div>
+<div class="lw">
+  <aside>
+    <h3>Ausdruck</h3>
+    <select id="ber" style="width:100%"></select>
+    <p class="hint" style="margin:.4rem 0 0">Ein Editor für alle Ausdrucke – je Ausdruck eigene Variablen. Gedruckt wird nach der aktiven Version.</p>
+    <h4>Hinzufügen</h4>
+    <div class="pal">
+      <button data-neu="text">T&nbsp; Text</button><button data-neu="feld">▭ Feld</button>
+      <button data-neu="logo">◩ Logo</button><button data-neu="linie">— Linie</button>
+      <button data-neu="falzmarken">⌐ Falzmarken</button><button data-neu="inhalt">▤ Inhalt</button>
+    </div>
+    <h4>Variablen</h4>
+    <p class="hint" style="margin:0 0 .3rem">Klick fügt sie in den gewählten Text ein. Beim Drucken stehen dort die echten Werte.</p>
+    <div id="vars"></div>
+  </aside>
+  <div class="mitte">
+    <div class="wz" id="wz">
+      <button data-al="links" title="links bündig">⇤</button><button data-al="hmitte" title="waagerecht mittig">↔</button><button data-al="rechts" title="rechts bündig">⇥</button>
+      <span class="sep"></span><button data-al="oben" title="oben bündig">⤒</button><button data-al="vmitte" title="senkrecht mittig">↕</button><button data-al="unten" title="unten bündig">⤓</button>
+      <span class="sep"></span><button data-al="vh" title="gleiche Abstände waagerecht (ab 3)">⋯</button><button data-al="vv" title="gleiche Abstände senkrecht (ab 3)">⋮</button>
+      <span class="sep"></span><button data-al="bw" title="gleiche Breite">⟷=</button><button data-al="bh" title="gleiche Höhe">↕=</button>
+      <span class="sep"></span><button data-al="dup" title="duplizieren (Strg+D)">⧉</button><button data-al="del" title="löschen (Entf)">🗑</button>
+      <button data-al="undo" title="rückgängig (Strg+Z)">↶</button><button data-al="redo" title="wiederholen (Strg+Y)">↷</button>
+      <span class="sep"></span><label>Raster<select id="raster"><option value="1">1 mm</option><option value="2">2 mm</option><option value="2.5">2,5 mm</option><option value="5">5 mm</option><option value="10">10 mm</option></select></label>
+      <label>Zoom<select id="zoom"><option value="0">Seite</option><option value="2.4">75 %</option><option value="3.2">100 %</option><option value="4.8">150 %</option></select></label>
+      <span style="flex:1"></span>
+      <button id="std" title="Vorgabe (DIN 5008) in diese Version laden – mit Rückgängig">Vorgabe</button>
+      <button id="vs" style="border-color:var(--y)">📄 Vorschau-PDF</button>
+    </div>
+    <div class="buehne" id="bue"><div class="blatt" id="blatt"><svg class="gitter" id="git"></svg></div></div>
+  </div>
+  <aside class="r" id="props"></aside>
+</div>
+<button hidden id="verlBtn"></button>
+<script src="static/bp.js"></script>
+<script>
+const LS = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* egal */ } } };
+let B = location.hash.slice(1) || LS.get('lay.b', 'maengelruege'), D = null, V = null, SEL = new Set(), K = 3.2, HIST = [], REDO = [], speichT = 0;
+const ELN = { text: 'Text', feld: 'Feld', logo: 'Logo', linie: 'Linie', falzmarken: 'Falzmarken', inhalt: 'Inhalt' };
+const r1 = (v) => Math.round(v * 100) / 100;
+const ras = () => +(V && V.data.raster) || 2.5;
+const snap = (v) => r1(Math.round(v / ras()) * ras());
+const E = () => V.data.elemente;
+const wert = (t) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (D.beispiel[k] ?? m));
+
+async function laden() {
+  const L = await api('api/layouts');
+  $('#ber').innerHTML = L.map((x) => `<option value="${x.key}"${x.key === B ? ' selected' : ''}>${esc(x.gruppe)} · ${esc(x.name)}</option>`).join('');
+  if (!L.some((x) => x.key === B)) B = L[0].key;
+  D = await api('api/layouts/' + B); V = D.versionen.find((x) => x.id === D.aktiv) || D.versionen[0];
+  HIST = []; REDO = []; SEL = new Set(); vl(); vars(); zeichne(); props();
+}
+function vl() {
+  if (!window.BPHead || !BPHead.versionsleiste) return;
+  BPHead.versionsleiste({ vor: $('#vlPlatz'), liste: D.versionen.map((x) => ({ id: x.id, name: x.name, datum: x.datum, wer: x.wer, archiviert: x.archiviert })), aktuell: V.id,
+    onWahl: async (id) => { await sofort(); D = await api('api/layouts/' + B, 'PUT', { aktiv: id }); V = D.versionen.find((x) => x.id === D.aktiv); HIST = []; SEL.clear(); vl(); zeichne(); props(); toast(`Version „${V.name}“ ist aktiv – danach wird gedruckt.`); },
+    onNeu: async () => { const n = await bpEingabe('Name der neuen Version (Kopie von „' + V.name + '“):', ''); if (!n) return; await sofort(); D = await api('api/layouts/' + B, 'PUT', { neu: { name: n, von: V.id } }); V = D.versionen.find((x) => x.id === D.aktiv); vl(); zeichne(); props(); },
+    onUmbenennen: async () => { const n = await bpEingabe('Name der Version:', V.name); if (!n) return; D = await api('api/layouts/' + B, 'PUT', { version: V.id, name: n }); V = D.versionen.find((x) => x.id === V.id); vl(); },
+    onVerlauf: () => { const b = $('#verlBtn'); b.dataset.bphVerlauf = 'bp:layout:' + B; b.click(); },
+    onVerwalten: () => {
+      const n = D.versionen.length;
+      modalBox(`<h2 style="margin-top:0">Version „${esc(V.name)}“</h2><p class="mute">${V.archiviert ? 'Die Version ist archiviert.' : 'Archivierte Versionen bleiben erhalten, stehen aber unten in der Liste.'}${V.id === D.aktiv ? ' Sie ist gerade aktiv für den Druck.' : ''}</p>
+        <div class="bar" style="justify-content:flex-end;gap:.4rem"><button class="btn" data-m="zu">Abbrechen</button><button class="btn" data-m="arch">${V.archiviert ? 'Aus dem Archiv holen' : '🗄 Archivieren'}</button><button class="btn danger" data-m="weg"${n < 2 ? ' disabled title="Die einzige Version lässt sich nicht löschen"' : ''}>🗑 Löschen</button></div>`, async (m, bg, close) => {
+        close(); if (m === 'zu') return;
+        try {
+          if (m === 'arch') { D = await api('api/layouts/' + B, 'PUT', { version: V.id, archiviert: !V.archiviert }); V = D.versionen.find((x) => x.id === V.id); vl(); return; }
+          const alt = JSON.parse(JSON.stringify(V)), warAktiv = V.id === D.aktiv;
+          D = await api('api/layouts/' + B, 'PUT', { weg: V.id }); V = D.versionen.find((x) => x.id === D.aktiv) || D.versionen[0]; SEL.clear(); vl(); zeichne(); props();
+          rueckgaengig(`Version „${alt.name}“ gelöscht`, async () => {
+            D = await api('api/layouts/' + B, 'PUT', { neu: { name: alt.name, data: alt.data } }); V = D.versionen.find((x) => x.id === D.aktiv);
+            if (!warAktiv) { const id = V.id; D = await api('api/layouts/' + B, 'PUT', { aktiv: D.versionen.find((x) => x.name !== alt.name)?.id || id }); V = D.versionen.find((x) => x.id === id); }
+            vl(); zeichne(); props();
+          });
+        } catch (e) { toast(e.message, true); }
+      });
+    } });
+}
+function vars() {
+  $('#vars').innerHTML = Object.entries(D.bereich.variablen).map(([k, t]) => `<button class="var" data-var="${k}"><code>{${k}}</code><small>${esc(t)}</small></button>`).join('')
+    + `<h4>Felder</h4><p class="hint" style="margin:0 0 .3rem">Felder lassen sich vor dem Versenden im Brief noch ändern.</p>` + Object.entries(D.felder).map(([k, t]) => `<div class="var" style="cursor:default"><code>${esc(t)}</code></div>`).join('');
+}
+function massstab() {
+  const z = +$('#zoom').value;
+  if (z) return z;
+  const b = $('#bue'); return Math.max(1.2, Math.min((b.clientWidth - 48) / 210, (b.clientHeight - 48) / 297));
+}
+function zeichne() {
+  K = massstab(); const bl = $('#blatt'), r = ras();
+  bl.style.width = 210 * K + 'px'; bl.style.height = 297 * K + 'px';
+  $('#raster').value = String(r);
+  let g = ''; for (let x = 0; x <= 210; x += r) g += `<line x1="${x * K}" y1="0" x2="${x * K}" y2="${297 * K}" stroke="${x % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
+  for (let y = 0; y <= 297; y += r) g += `<line x1="0" y1="${y * K}" x2="${210 * K}" y2="${y * K}" stroke="${y % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
+  g += `<rect x="${20 * K}" y="${45 * K}" width="${85 * K}" height="${45 * K}" fill="none" stroke="#9fc0e8" stroke-dasharray="4 3"/><text x="${21 * K}" y="${44 * K}" font-size="${2.6 * K}" fill="#7aa0cc">Fensterbereich DIN 5008</text>`;
+  $('#git').setAttribute('width', 210 * K); $('#git').setAttribute('height', 297 * K); $('#git').innerHTML = g;
+  bl.querySelectorAll('.el').forEach((x) => x.remove());
+  E().forEach((e) => {
+    const d = document.createElement('div'); d.dataset.id = e.id;
+    const h = e.typ === 'linie' ? (e.w >= e.h ? 'h' : 'v') : '';
+    d.className = `el ${e.typ === 'feld' ? 'feld' : e.typ === 'inhalt' ? 'inhalt' : e.typ === 'logo' ? 'logo' : e.typ === 'linie' ? 'linie ' + h : e.typ === 'falzmarken' ? 'falz' : ''}${e.farbe === 'mute' ? ' mute' : ''}${e.fett ? ' fett' : ''}${e.ausrichtung === 'mitte' ? ' mitte' : e.ausrichtung === 'rechts' ? ' rechts' : ''}${e.unterstrichen ? ' ul' : ''}${e.nur_ohne_bogen ? ' ohne' : ''}${SEL.has(e.id) ? ' sel' : ''}`;
+    Object.assign(d.style, { left: e.x * K + 'px', top: e.y * K + 'px', width: e.w * K + 'px', height: e.h * K + 'px', fontSize: (e.groesse || 10) * K * 0.3528 + 'px' });
+    d.title = (e.name || ELN[e.typ]) + (e.nur_ohne_bogen ? ' · nur ohne Briefbogen' : '') + (e.seiten === 'alle' ? ' · auf allen Seiten' : '');
+    if (e.typ === 'text') d.innerHTML = `<span>${esc(wert(e.text))}</span>`;
+    else if (e.typ === 'feld') d.textContent = D.beispiel[e.feld] || D.felder[e.feld];
+    else if (e.typ === 'inhalt') d.textContent = 'Inhalt – Anschreiben, Liste, Frist, Gruß fließen hier hinein';
+    else if (e.typ === 'logo') d.textContent = 'Logo';
+    else if (e.typ === 'falzmarken') d.innerHTML = [105, 210, 148.5].map((y, i) => `<i style="position:absolute;left:0;top:${(y - e.y) * K}px;width:${(i === 2 ? 7 : 5) * K}px;height:1px;background:#9aa0a6"></i>`).join('');
+    d.insertAdjacentHTML('beforeend', '<i class="gr se" data-gr="se"></i><i class="gr e" data-gr="e"></i><i class="gr s" data-gr="s"></i>');
+    bl.appendChild(d);
+  });
+  wzUi();
+}
+function wzUi() {
+  const n = SEL.size;
+  $('#wz').querySelectorAll('[data-al]').forEach((b) => { const a = b.dataset.al;
+    b.disabled = a === 'undo' ? !HIST.length : a === 'redo' ? !REDO.length : ['vh', 'vv'].includes(a) ? n < 3 : ['bw', 'bh'].includes(a) ? n < 2 : !n; });
+}
+function merken() { HIST.push(JSON.stringify(V.data)); if (HIST.length > 80) HIST.shift(); REDO = []; }
+function geaendert(neuZeichnen = true) { if (neuZeichnen) zeichne(); props(); speichern(); }
+function speichern() { clearTimeout(speichT); if (window.BPHead) BPHead.versionStatus('…'); speichT = setTimeout(sofort, 700); }
+async function sofort() {
+  if (!speichT) return; clearTimeout(speichT); speichT = 0;
+  try { D = { ...D, ...(await api('api/layouts/' + B, 'PUT', { version: V.id, data: V.data })) }; const nv = D.versionen.find((x) => x.id === V.id); if (nv) V.datum = nv.datum;
+    if (window.BPHead) BPHead.versionStatus('✓ gespeichert ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })); }
+  catch (e) { toast(e.message, true); }
+}
+function props() {
+  const P = $('#props'), S = E().filter((e) => SEL.has(e.id));
+  if (!S.length) { P.innerHTML = `<h3>Eigenschaften</h3><p class="hint">Element anklicken (mit Umschalt mehrere), ziehen zum Verschieben, an den orangen Griffen die Größe ändern. Pfeiltasten verschieben um ein Rasterfeld, mit Umschalt um 0,5 mm.</p>
+    <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen.</p>`; return; }
+  if (S.length > 1) { P.innerHTML = `<h3>${S.length} Elemente gewählt</h3><p class="hint">Oben ausrichten, gleiche Abstände oder gleiche Größe.</p>`; return; }
+  const e = S[0], nz = (k, l, st = 0.5) => `<label>${l}<input type="number" step="${st}" data-p="${k}" value="${e[k] ?? ''}"></label>`;
+  P.innerHTML = `<h3>${esc(e.name || ELN[e.typ])} <span class="hint">· ${ELN[e.typ]}</span></h3><div class="fm">
+    <label class="ganz">Bezeichnung<input data-p="name" value="${esc(e.name || '')}"></label>
+    ${nz('x', 'links (mm)')}${nz('y', 'oben (mm)')}${nz('w', 'Breite (mm)')}${nz('h', 'Höhe (mm)')}
+    ${e.typ === 'text' ? `<label class="ganz">Text – Variablen links anklicken<textarea data-p="text" id="ptext">${esc(e.text || '')}</textarea></label>` : ''}
+    ${e.typ === 'feld' ? `<label class="ganz">Feld<select data-p="feld">${Object.entries(D.felder).map(([k, t]) => `<option value="${k}"${e.feld === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>` : ''}
+    ${['text', 'feld'].includes(e.typ) ? `${nz('groesse', 'Schriftgröße (pt)')}
+      <label>Farbe<select data-p="farbe"><option value="ink"${e.farbe !== 'mute' ? ' selected' : ''}>Schwarz</option><option value="mute"${e.farbe === 'mute' ? ' selected' : ''}>Grau</option></select></label>
+      <label>Ausrichtung<select data-p="ausrichtung">${[['links', 'links'], ['mitte', 'mittig'], ['rechts', 'rechts']].map(([k, l]) => `<option value="${k}"${(e.ausrichtung || 'links') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="ck"><input type="checkbox" data-p="fett"${e.fett ? ' checked' : ''}> fett</label>
+      ${e.typ === 'text' ? `<label class="ck ganz"><input type="checkbox" data-p="unterstrichen"${e.unterstrichen ? ' checked' : ''}> unterstrichen</label>` : ''}` : ''}
+    ${e.typ === 'linie' ? nz('staerke', 'Strichstärke (pt)', 0.1) : ''}
+    ${e.typ !== 'inhalt' ? `<label class="ganz">Seiten<select data-p="seiten"><option value="erste"${e.seiten !== 'alle' ? ' selected' : ''}>nur erste Seite</option><option value="alle"${e.seiten === 'alle' ? ' selected' : ''}>auf allen Seiten</option></select></label>
+      <label class="ck ganz"><input type="checkbox" data-p="nur_ohne_bogen"${e.nur_ohne_bogen ? ' checked' : ''}> nur ohne Briefbogen (z. B. Logo, Fußzeile)</label>` : '<p class="hint ganz">Ab hier fließt der Inhalt. Auf Folgeseiten beginnt er oben (25 mm).</p>'}
+    </div><div style="display:flex;gap:.4rem;margin-top:.8rem"><button class="btn sm" data-al="dup">⧉ Duplizieren</button><button class="btn sm danger" data-al="del"${e.typ === 'inhalt' ? ' disabled title="Der Inhalt muss bleiben"' : ''}>🗑 Löschen</button></div>`;
+}
+$('#props').addEventListener('change', (e) => {
+  const f = e.target.dataset.p; if (!f) return; const el = E().find((x) => SEL.has(x.id)); if (!el) return;
+  merken();
+  el[f] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'number' ? (e.target.value === '' ? el[f] : +e.target.value) : e.target.value;
+  geaendert();
+});
+['keyup', 'click', 'select'].forEach((ev) => $('#props').addEventListener(ev, (e) => { if (e.target.id === 'ptext') e.target.dataset.pos = e.target.selectionStart; }));
+$('#props').addEventListener('input', (e) => { if (e.target.id !== 'ptext') return; e.target.dataset.pos = e.target.selectionStart; const el = E().find((x) => SEL.has(x.id)); if (!el) return; el.text = e.target.value; zeichne(); speichern(); });
+$('#vars').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-var]'); if (!b) return; const t = `{${b.dataset.var}}`, ta = $('#ptext');
+  if (ta) { merken(); const s = ta.dataset.pos != null ? +ta.dataset.pos : ta.value.length; ta.value = ta.value.slice(0, s) + t + ta.value.slice(s); E().find((x) => SEL.has(x.id)).text = ta.value; zeichne(); speichern(); ta.focus(); ta.selectionStart = ta.selectionEnd = s + t.length; ta.dataset.pos = s + t.length; return; }
+  merken(); const n = { id: Math.random().toString(36).slice(2, 10), typ: 'text', x: 25, y: 130, w: 80, h: 6, text: t, groesse: 10, farbe: 'ink', ausrichtung: 'links', seiten: 'erste', name: t };
+  E().push(n); SEL = new Set([n.id]); geaendert();
+});
+document.querySelector('.pal').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-neu]'); if (!b) return; const t = b.dataset.neu;
+  if (t === 'inhalt' && E().some((x) => x.typ === 'inhalt')) { toast('Es gibt schon einen Inhalt – den vorhandenen verschieben oder in der Größe ändern.'); SEL = new Set([E().find((x) => x.typ === 'inhalt').id]); zeichne(); props(); return; }
+  merken();
+  const n = { id: Math.random().toString(36).slice(2, 10), typ: t, x: 25, y: 130, w: t === 'linie' ? 165 : t === 'falzmarken' ? 7 : 80, h: t === 'linie' ? 1 : t === 'falzmarken' ? 106 : t === 'logo' ? 16 : 7, seiten: 'erste', name: ELN[t] };
+  if (t === 'text') Object.assign(n, { text: 'Neuer Text', groesse: 10, farbe: 'ink', ausrichtung: 'links' });
+  if (t === 'feld') Object.assign(n, { feld: 'Datum', groesse: 10, farbe: 'ink', ausrichtung: 'links' });
+  if (t === 'falzmarken') Object.assign(n, { x: 4, y: 105 });
+  E().push(n); SEL = new Set([n.id]); geaendert();
+});
+/* Ziehen: verschieben (alle gewählten) und Größe ändern – rastet am Raster ein */
+$('#blatt').addEventListener('pointerdown', (ev) => {
+  const d = ev.target.closest('.el');
+  if (!d) { SEL.clear(); zeichne(); props(); return; }
+  const id = d.dataset.id;
+  if (ev.shiftKey) { if (SEL.has(id)) SEL.delete(id); else SEL.add(id); zeichne(); props(); return; }
+  if (!SEL.has(id)) { SEL = new Set([id]); zeichne(); props(); }
+  const gr = ev.target.dataset.gr, sx = ev.clientX, sy = ev.clientY, start = E().filter((x) => SEL.has(x.id)).map((x) => ({ x, ...x }));
+  let bewegt = false; ev.preventDefault(); $('#blatt').setPointerCapture(ev.pointerId);
+  const mv = (m) => {
+    const dx = (m.clientX - sx) / K, dy = (m.clientY - sy) / K; if (!bewegt && Math.abs(dx) + Math.abs(dy) < 0.4) return;
+    if (!bewegt) { merken(); bewegt = true; }
+    if (gr) start.forEach((s) => { if (gr !== 's') s.x.w = Math.max(ras(), snap(s.w + dx)); if (gr !== 'e') s.x.h = Math.max(0.5, snap(s.h + dy)); });
+    else start.forEach((s) => { s.x.x = Math.max(0, Math.min(208, snap(s.ox + dx))); s.x.y = Math.max(0, Math.min(295, snap(s.oy + dy))); });
+    zeichne();
+  };
+  start.forEach((s) => { s.ox = s.x.x; s.oy = s.x.y; s.w = s.x.w; s.h = s.x.h; });
+  const up = () => { $('#blatt').removeEventListener('pointermove', mv); $('#blatt').removeEventListener('pointerup', up); if (bewegt) geaendert(false); };
+  $('#blatt').addEventListener('pointermove', mv); $('#blatt').addEventListener('pointerup', up);
+});
+/* Ausrichten, Verteilen, gleiche Größe – bezogen auf die Auswahl (ein Element: auf den Satzspiegel 25–190 mm) */
+function ausrichten(a) {
+  const S = E().filter((x) => SEL.has(x.id));
+  if (a === 'undo') { if (!HIST.length) return; REDO.push(JSON.stringify(V.data)); V.data = JSON.parse(HIST.pop()); return geaendert(); }
+  if (a === 'redo') { if (!REDO.length) return; HIST.push(JSON.stringify(V.data)); V.data = JSON.parse(REDO.pop()); return geaendert(); }
+  if (!S.length) return;
+  merken();
+  if (a === 'del') { V.data.elemente = E().filter((x) => !SEL.has(x.id) || x.typ === 'inhalt'); SEL.clear(); return geaendert(); }
+  if (a === 'dup') { const neu = S.filter((x) => x.typ !== 'inhalt').map((x) => ({ ...x, id: Math.random().toString(36).slice(2, 10), x: snap(x.x + 5), y: snap(x.y + 5), name: (x.name || ELN[x.typ]) + ' (Kopie)' })); E().push(...neu); SEL = new Set(neu.map((x) => x.id)); return geaendert(); }
+  const ein = S.length === 1, l = ein ? 25 : Math.min(...S.map((x) => x.x)), r = ein ? 190 : Math.max(...S.map((x) => x.x + x.w)), o = Math.min(...S.map((x) => x.y)), u = Math.max(...S.map((x) => x.y + x.h));
+  S.forEach((x) => {
+    if (a === 'links') x.x = l; if (a === 'rechts') x.x = r1(r - x.w); if (a === 'hmitte') x.x = r1((l + r) / 2 - x.w / 2);
+    if (a === 'oben') x.y = o; if (a === 'unten') x.y = r1(u - x.h); if (a === 'vmitte') x.y = r1((o + u) / 2 - x.h / 2);
+    if (a === 'bw') x.w = S[0].w; if (a === 'bh') x.h = S[0].h;
+  });
+  if (a === 'vh' || a === 'vv') {   // gleiche Abstände zwischen den Elementen
+    const k = a === 'vh' ? 'x' : 'y', g = a === 'vh' ? 'w' : 'h', s = [...S].sort((p, q) => p[k] - q[k]);
+    const frei = (s[s.length - 1][k] + s[s.length - 1][g] - s[0][k] - s.reduce((t, x) => t + x[g], 0)) / (s.length - 1);
+    let pos = s[0][k] + s[0][g]; for (let i = 1; i < s.length - 1; i++) { s[i][k] = r1(pos + frei); pos = s[i][k] + s[i][g]; }
+  }
+  geaendert();
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-al]'); if (b && !b.disabled) ausrichten(b.dataset.al); });
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input,textarea,select') || document.querySelector('.modal-bg,.bph-dlg-bg,.vs-bg')) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); ausrichten(e.shiftKey ? 'redo' : 'undo'); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); ausrichten('redo'); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); ausrichten('dup'); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); ausrichten('del'); return; }
+  const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!d || !SEL.size) return;
+  e.preventDefault(); merken(); const st = e.shiftKey ? 0.5 : ras();
+  E().filter((x) => SEL.has(x.id)).forEach((x) => { x.x = r1(Math.max(0, x.x + d[0] * st)); x.y = r1(Math.max(0, x.y + d[1] * st)); }); geaendert();
+});
+$('#raster').onchange = (e) => { merken(); V.data.raster = +e.target.value; geaendert(); };
+$('#zoom').onchange = () => zeichne();
+addEventListener('resize', () => { if (!+$('#zoom').value) zeichne(); });
+$('#ber').onchange = async (e) => { await sofort(); B = e.target.value; LS.set('lay.b', B); history.replaceState(null, '', '#' + B); laden(); };
+$('#std').onclick = () => { merken(); V.data = JSON.parse(JSON.stringify(D.standard)); SEL.clear(); geaendert(); rueckgaengig('Vorgabe geladen', () => ausrichten('undo')); };
+$('#vs').onclick = async () => {
+  await sofort();
+  try {
+    const r = await fetch(`api/layouts/${B}/vorschau`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: V.data }) });
+    if (!r.ok) throw new Error('Vorschau nicht möglich (' + r.status + ')');
+    const u = URL.createObjectURL(await r.blob()), bg = document.createElement('div'); bg.className = 'vs-bg';
+    bg.innerHTML = `<div class="vs"><header><b>Vorschau mit Beispieldaten</b><span class="hint">· so wird gedruckt (Briefbogen darunter, falls hinterlegt)</span><span style="flex:1"></span><button class="btn sm" data-x>Schließen</button></header><iframe src="${u}#view=FitH"></iframe></div>`;
+    bg.addEventListener('click', (e) => { if (e.target === bg || e.target.closest('[data-x]')) { bg.remove(); URL.revokeObjectURL(u); } }); document.body.appendChild(bg);
+  } catch (e) { toast(e.message, true); }
+};
+addEventListener('beforeunload', () => { if (speichT) { sofort(); } });
+(async () => {
+  const me = await api('api/me'); applyLook(me);
+  await header('Verwaltung', me, await api('api/platform'));
+  window.bpNachVerlauf = () => laden();
+  await laden();
+})().catch((e) => toast(e.message, true));
+addEventListener('hashchange', async () => { const h = location.hash.slice(1); if (h && h !== B) { await sofort(); B = h; laden(); } });
+</script>
+</body>
+</html>

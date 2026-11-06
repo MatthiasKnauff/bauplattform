@@ -331,7 +331,7 @@ function delDlg(p) {
 
 
 /* ---------- Einstellungen: allgemeine (für alle Apps) – besondere stehen in der jeweiligen App ---------- */
-const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
+const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
 const stNav = () => `<div class="stnav"><h1>Büro-Einstellungen</h1><p class="mute" style="margin-top:-.4rem">Auch erreichbar in jeder App über ⚙ → Büro.</p></div><div class="bar stnav" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {
   const t = data.stab || 'allgemein';
@@ -340,6 +340,12 @@ async function loadSettings() {
   if (t === 'vorlagen') {
     $('#main').innerHTML = stNav() + '<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">Die Vorlagen gelten für alle Apps; auch erreichbar über ⚙ → Büro → E-Mail-Vorlagen.</p>';
     if (window.BPHead && BPHead.konto) BPHead.konto({ into: $('#kontoBox'), tab: t, nurVorlagen: true }); return;
+  }
+  if (t === 'druck') {
+    const L = await api('api/layouts');
+    $('#main').innerHTML = stNav() + `<section class="card st"><h2 style="margin-top:0">Druck-Layouts</h2><p class="mute">Wo steht was auf dem Ausdruck? Ein Editor für alle PDFs – Elemente im Raster verschieben, ausrichten, Variablen einsetzen. Feste Versionen; gedruckt wird nach der aktiven.</p>
+      <div style="display:flex;flex-direction:column;gap:.4rem;margin-top:.8rem">${L.map((x) => `<a class="btn" style="justify-content:space-between" target="_top" href="layout#${esc(x.key)}"><span><b>${esc(x.name)}</b> <span class="mute">· ${esc(x.gruppe)}</span></span><span class="mute">${esc(x.version || '')} ✎</span></a>`).join('')}</div></section>`;
+    return;
   }
   if (t === 'verlauf') {
     $('#main').innerHTML = stNav() + '<section class="card st" id="verlaufBox"></section>';

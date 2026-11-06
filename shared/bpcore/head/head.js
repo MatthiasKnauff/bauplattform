@@ -607,9 +607,9 @@
             <li>Aktion <b>„Inhalte von URL abrufen“</b> hinzufügen (nimmt die URL von oben).</li>
             <li>Optional: Aktion <b>„Mitteilung anzeigen“</b> mit dem Ergebnis – dann siehst du „Vor Ort: A481 …“.</li>
             <li>Einmal antippen zum Testen (Standortzugriff erlauben) – unten unter „Letzte Besuche“ erscheint die Baustelle, wenn du dort bist.</li>
-            <li><b>Mit CarPlay im Auto:</b> unten <b>Automation</b> → <b>＋</b> → <b>CarPlay</b> → „Trennt“ → <b>Sofort ausführen</b> → Kurzbefehl „Baustelle melden“. Zur Sicherheit dazu zwei Automationen <b>Tageszeit</b> (11:00 und 15:00, Mo–Fr), ebenfalls sofort ausführen.</li>
-            <li><b>Ohne CarPlay:</b> Automationen <b>Tageszeit</b> alle 30 Minuten in der Arbeitszeit (07:00, 07:30 … 17:00, Mo–Fr) – je Uhrzeit eine Automation, jeweils „Sofort ausführen“ → „Baustelle melden“. Jede braucht nur ein paar Sekunden GPS, der Akku merkt davon kaum etwas.</li>
-            <li>Die Mitteilung „Automation ausgeführt“ lässt sich unter Einstellungen → Bildschirmzeit → Mitteilungen bzw. in der Automation („Bei Ausführung benachrichtigen“ aus) abschalten.</li>
+            <li><b>Automatisch starten – iOS 27:</b> im Kurzbefehl <b>Bearbeiten</b> → <b>Automation</b> → Auslöser <b>CarPlay</b> → „Trennt“. Zur Sicherheit zwei weitere Auslöser <b>Tageszeit</b> (11:00 und 15:00, wöchentlich Mo–Fr). Dann <b>Bearbeiten</b> → <b>ⓘ</b> → <b>Datenschutz</b> → „Ausführen im gesperrten Zustand erlauben“ einschalten – sonst fragt das iPhone jedes Mal nach.</li>
+            <li><b>Automatisch starten – iOS 17 bis 26:</b> unten <b>Automation</b> → <b>＋</b> → <b>CarPlay</b> → „Trennt“ → <b>Sofort ausführen</b>, „Bei Ausführung benachrichtigen“ aus → Kurzbefehl „Baustelle melden“. Dazu zwei Automationen <b>Tageszeit</b> (11:00 und 15:00, Mo–Fr), ebenfalls sofort ausführen.</li>
+            <li><b>Ohne CarPlay:</b> statt CarPlay alle 30 Minuten in der Arbeitszeit einen Auslöser <b>Tageszeit</b> (07:00, 07:30 … 17:00, Mo–Fr). Jede Meldung braucht nur ein paar Sekunden GPS, der Akku merkt davon kaum etwas.</li>
           </ol>
           <p class="bph-mu">Ist der Kurzbefehl fertig, lässt er sich unter „Teilen → iCloud-Link kopieren“ an Kollegen weitergeben – jeder trägt dann nur seine eigene Adresse ein. Die Automationen legt jeder selbst an (das erlaubt Apple nicht anders).</p></details>
         <div class="bph-row"><button type="button" class="bph-btn" data-vtest title="Mit dem Standort dieses Geräts ausprobieren">📍 Jetzt mit diesem Gerät testen</button></div>

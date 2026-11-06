@@ -101,16 +101,37 @@ def eigene_filtern(c, u, mails):
     e = postfaecher(c, u["id"])["eigene"]
     if not e["aus"] and not e["cc"]:
         return mails
-    ich, nur = meine_adressen(c, u), set(e["postfaecher"])
+    ich, nur, namen = meine_adressen(c, u), set(e["postfaecher"]), meine_namen(u)
     out = []
     for m in mails:
         von, pf = (m.get("von") or "").lower(), (m.get("postfach") or m.get("quelle") or "").lower()
         if e["aus"] and (von in ich or (von and von == pf)) and (not nur or pf in nur):
             continue   # selbst geschickt – auch aus dem gemeinsamen Postfach (GK3-Mail an …, Kopie an mail@)
-        if e["cc"] and _nur_kenntnis(m, ich | {pf}):
-            continue
+        if e["cc"] and _nur_kenntnis(m, ich | {pf}) and not m.get("persoenlich") and not angesprochen(m, namen):
+            continue   # nur in CC – außer ich werde im Text persönlich angesprochen
         out.append(m)
     return out
+
+
+def meine_namen(u):
+    """Vor- und Nachname des Benutzers (für „im Text angesprochen“)."""
+    n = ""
+    for k in ("vorname", "nachname", "name"):
+        try:
+            n += " " + fold(u[k] or "")
+        except (KeyError, IndexError, TypeError):
+            pass
+    return list(dict.fromkeys(re.findall(r"[a-z]{3,}", n)))[:4]
+
+
+def angesprochen(m, namen):
+    """Wird der Benutzer im Text persönlich angesprochen? („Hallo Matthias“, „Sehr geehrter Herr Knauff“, „@Matthias“, „Matthias, …“ am Anfang)"""
+    if not namen:
+        return False
+    t = fold(" ".join([m.get("suchtext") or m.get("vorschau") or ""]))[:700]
+    n = "(?:" + "|".join(re.escape(x) for x in namen) + ")"
+    return bool(re.search(r"(?:hallo|hi|hey|moin|servus|lieber|liebe|guten (?:morgen|tag|abend)|sehr geehrte[rs]? (?:herr|frau)|herr|frau|@)\s*" + n + r"\b", t)
+                or re.match(r"\s*" + n + r"\b\s*[,!]", t))
 
 
 def _nur_kenntnis(m, wir):
@@ -235,7 +256,7 @@ def m365_lesen(m, adresse, seit):
     tok = _token(m)
     h = {"Authorization": "Bearer " + tok, "Prefer": 'outlook.body-content-type="text"'}
     q = urllib.parse.urlencode({"$filter": f"receivedDateTime ge {seit.strftime('%Y-%m-%dT%H:%M:%SZ')}", "$orderby": "receivedDateTime desc", "$top": "100",
-                                "$select": "id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,hasAttachments,webLink,isRead"})
+                                "$select": "id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,body,hasAttachments,webLink,isRead"})
     try:
         d = _json(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(adresse)}/mailFolders/inbox/messages?{q}", headers=h)
     except urllib.error.HTTPError as e:
@@ -254,7 +275,8 @@ def m365_lesen(m, adresse, seit):
                     "betreff": x.get("subject") or "", "zeit": x.get("receivedDateTime") or "", "vorschau": (x.get("bodyPreview") or "")[:400],
                     "anhaenge": anh, "link": x.get("webLink") or "", "gelesen": bool(x.get("isRead")), "postfach": adresse.lower(),
                     "an": [((r.get("emailAddress") or {}).get("address") or "").lower() for r in x.get("toRecipients") or []][:40],
-                    "cc": [((r.get("emailAddress") or {}).get("address") or "").lower() for r in x.get("ccRecipients") or []][:40]})
+                    "cc": [((r.get("emailAddress") or {}).get("address") or "").lower() for r in x.get("ccRecipients") or []][:40],
+                    "suchtext": " ".join(((x.get("body") or {}).get("content") or x.get("bodyPreview") or "").split())[:5000]})   # nur zum Zuordnen, wird nicht gespeichert
     return out
 
 
@@ -313,7 +335,8 @@ def imap_lesen(k, seit):
                         "von_name": name, "betreff": _dec(msg.get("Subject")), "zeit": zeit.isoformat(), "vorschau": " ".join(vorschau.split())[:400],
                         "anhaenge": anh, "link": "", "gelesen": False, "postfach": (k.get("user") or "").lower(),
                         "an": [a.lower() for _, a in email.utils.getaddresses([_dec(msg.get("To"))]) if a][:40],
-                        "cc": [a.lower() for _, a in email.utils.getaddresses([_dec(msg.get("Cc"))]) if a][:40]})
+                        "cc": [a.lower() for _, a in email.utils.getaddresses([_dec(msg.get("Cc"))]) if a][:40],
+                        "suchtext": " ".join(vorschau.split())[:5000]})
         return out
     finally:
         try:
@@ -324,13 +347,19 @@ def imap_lesen(k, seit):
 
 # ---------------------------------------------------------------- Zuordnung zu den eigenen Projekten
 def meine_projekte(c, uid):
+    """Projekte, an denen der Benutzer beteiligt ist: als Bauleiter eingetragen oder Tagesberichte als Bauleiter geschrieben (letzte 12 Monate)."""
+    u = c.execute("SELECT name, vorname, nachname FROM users WHERE id=?", (uid,)).fetchone()
+    namen = {x for x in ((u["name"] or "").strip(), f"{u['vorname'] or ''} {u['nachname'] or ''}".strip()) if x} if u else set()
+    seit = (datetime.now() - timedelta(days=365)).date().isoformat()
+    berichte = {r["project_id"] for r in c.execute("SELECT DISTINCT project_id, site_manager FROM reports WHERE site_manager<>'' AND date>=?", (seit,)).fetchall()
+                if r["site_manager"].strip().lower() in {x.lower() for x in namen}}
     out = []
     for r in c.execute("SELECT id, name, street, zip, city, leaders, archived FROM projects WHERE archived=0").fetchall():
         try:
             lead = json.loads(r["leaders"] or "[]")
         except ValueError:
             lead = []
-        if uid in lead:
+        if uid in lead or r["id"] in berichte:
             out.append(r)
     return out
 
@@ -352,12 +381,16 @@ def _merkmale(c, p):
                           SELECT i.contact_id FROM items i JOIN reports r ON r.id=i.report_id WHERE r.project_id=? AND i.contact_id IS NOT NULL
                           UNION SELECT a.contact_id FROM ava_angebot a JOIN ava_lv l ON l.id=a.lv_id WHERE l.project_id=? AND a.contact_id IS NOT NULL)""",
                      (p["id"], p["id"])).fetchall()
+    firmen = {}
     for r in rows:
         for e in re.split(r"[;,\s]+", (r["email"] or "").lower()):
             if "@" in e:
                 mails[e] = r["name"]
+        kern = " ".join(fold(re.sub(r"\b(gmbh|co|kg|ag|ug|mbh|gbr|ohg|e\.?k|inh|und)\b\.?|&", " ", r["name"] or "", flags=re.I)).split())
+        if len(kern) >= 6:
+            firmen[kern] = r["name"]
     domains = {e.split("@", 1)[1]: n for e, n in mails.items() if e.split("@", 1)[1] not in FREEMAIL}
-    return {"id": p["id"], "name": name, "nummer": nummer, "worte": worte, "mails": mails, "domains": domains}
+    return {"id": p["id"], "name": name, "nummer": nummer, "worte": worte, "mails": mails, "domains": domains, "firmen": firmen}
 
 
 def art_von(m):
@@ -368,29 +401,56 @@ def art_von(m):
     return "Nachricht"
 
 
-def zuordnen(c, uid, mails):
+def _j_dict(v):
+    try:
+        d = json.loads(v) if v else {}
+        return d if isinstance(d, dict) else {}
+    except ValueError:
+        return {}
+
+
+def zuordnen(c, uid, mails, gelernt=None):
+    """Mails den eigenen Projekten zuordnen. Gesucht wird in Betreff, ganzem Text und Anhängen nach Projektnummer und Stichworten,
+    beim Absender und bei allen Empfängern (An/CC) nach Firmen des Projekts, im Text nach Firmennamen; Absender, deren Mails schon
+    einem Projekt zugeordnet waren, zählen mit. Ohne Projekt bleibt eine Mail, wenn sie mich im Text persönlich anspricht."""
     P = [_merkmale(c, p) for p in meine_projekte(c, uid)]
+    u = c.execute("SELECT name, vorname, nachname FROM users WHERE id=?", (uid,)).fetchone()
+    namen = meine_namen(u) if u else []
+    gelernt = gelernt or {}
     out = []
     for m in mails:
-        t = fold(" ".join([m.get("betreff") or "", m.get("vorschau") or "", " ".join(m.get("anhaenge") or [])]))
+        t = fold(" ".join([m.get("betreff") or "", m.get("suchtext") or m.get("vorschau") or "", " ".join(m.get("anhaenge") or [])]))
+        beteiligt = [a for a in (m.get("an") or []) + (m.get("cc") or []) if a]
         best = None
         for p in P:
             grund, punkte = "", 0
             nr = re.match(r"([a-z]+)(.*)", p["nummer"]) if p["nummer"] else None
             if nr and re.search(r"(?<![a-z0-9])" + re.escape(nr.group(1)) + r"\s?" + re.escape(nr.group(2)) + r"(?![0-9])", t):
-                grund, punkte = f"Projektnummer {p['name'].split()[0]}", 3
+                grund, punkte = f"Projektnummer {p['name'].split()[0]}", 4
             elif m.get("von") in p["mails"]:
                 grund, punkte = f"Absender: {p['mails'][m['von']]}", 3
             elif m.get("von", "").split("@")[-1] in p["domains"]:
-                grund, punkte = f"Firma: {p['domains'][m['von'].split('@')[-1]]}", 2
+                grund, punkte = f"Firma: {p['domains'][m['von'].split('@')[-1]]}", 2.5
+            elif gelernt.get(m.get("von")) == p["id"]:
+                grund, punkte = "Absender schrieb schon zu diesem Projekt", 2.4
             else:
-                treffer = [w for w in p["worte"] if re.search(r"\b" + re.escape(w), t)]
-                if treffer:
-                    grund, punkte = "Stichwort: " + ", ".join(sorted(treffer)[:2]), 1
+                mit = next((a for a in beteiligt if a in p["mails"]), None) or next((a for a in beteiligt if a.split("@")[-1] in p["domains"]), None)
+                worte = [w for w in p["worte"] if re.search(r"\b" + re.escape(w), t)]
+                firma = next((n for k, n in p["firmen"].items() if k in t), None)
+                if mit:
+                    grund, punkte = f"Beteiligt: {p['mails'].get(mit) or p['domains'].get(mit.split('@')[-1])}", 2
+                elif len(worte) >= 2:
+                    grund, punkte = "Stichworte: " + ", ".join(sorted(worte)[:2]), 1.5
+                elif firma:
+                    grund, punkte = f"Firma im Text: {firma}", 1.2
+                elif worte:
+                    grund, punkte = "Stichwort: " + worte[0], 1
             if punkte and (not best or punkte > best[0]):
                 best = (punkte, p, grund)
         if best:
             out.append({**m, "pid": best[1]["id"], "projekt": best[1]["name"], "grund": best[2], "art": art_von(m)})
+        elif angesprochen(m, namen):
+            out.append({**m, "pid": 0, "projekt": "An dich – ohne Projekt", "grund": "persönlich angesprochen", "persoenlich": True, "art": art_von(m)})
     return out, len(P)
 
 
@@ -479,7 +539,18 @@ def abrufen(c, u):
                 gesehen.add(key)
                 uniq.append(m)
         uniq = eigene_filtern(c, u, uniq)
-        zu, n_proj = zuordnen(c, uid, uniq)
+        gelernt = {}
+        for m in sorted(alt.get("mails") or [], key=lambda m: m.get("zeit") or ""):   # nur sichere Zuordnungen lernen (Projektnummer)
+            if m.get("pid") and m.get("von") and str(m.get("grund") or "").startswith("Projektnummer"):
+                gelernt[m["von"]] = m["pid"]
+        for k, v in (_j_dict(konto._get(c, f"post:gelernt:{uid}"))).items():
+            gelernt.setdefault(k, v)
+        zu, n_proj = zuordnen(c, uid, uniq, gelernt)
+        for m in zu:
+            m.pop("suchtext", None)
+            if m.get("pid") and m.get("von") and str(m.get("grund") or "").startswith("Projektnummer"):
+                gelernt[m["von"]] = m["pid"]
+        konto._put(c, f"post:gelernt:{uid}", json.dumps(dict(list(gelernt.items())[-800:])), "posteingang")
         erl = alt.get("erledigt") or {}
         for m in zu:
             s = vorschlag(m)

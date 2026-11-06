@@ -273,7 +273,12 @@
       if (portal) band.querySelector('.bph-brand').href = appUrl(portal) + '/';
       const lg = band.querySelector('.bph-logo');   // Büro-Logo (Verwaltung → Einstellungen), dezent in der Kopfleiste – über die eigene App geholt
       if (lg) {
-        const img = lg.querySelector('img'); img.onload = () => { lg.hidden = false; }; img.onerror = () => lg.remove();
+        const img = lg.querySelector('img');
+        img.onload = () => {   // Logo mit weißem Hintergrund (JPG …): anders einfärben, sonst würde daraus ein weißes Rechteck
+          try { const cv = document.createElement('canvas'); cv.width = cv.height = 4; const g = cv.getContext('2d'); g.drawImage(img, 0, 0, 1, 1, 0, 0, 4, 4); if (g.getImageData(1, 1, 1, 1).data[3] > 200) lg.classList.add('opak'); } catch { /* egal */ }
+          lg.hidden = false;
+        };
+        img.onerror = () => lg.remove();
         img.src = H.app === 'bautagebuch' ? 'api/logo' : 'api/bp/bt/logo'; if (portal) lg.href = appUrl(portal) + '/';
       }
       if (H.me) {
@@ -413,6 +418,8 @@
           <p class="bph-mu">Einzelne Erinnerungen, Fristen und Termine lassen sich außerdem jederzeit mit 📅 als Termin schicken.</p>
           <h4>Posteingang</h4><p class="bph-mu">Die Startseite zeigt die Mails zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Postfächer und Abrufzeit stellst du auf der Startseite unter ⚙ → Startseite → Posteingang ein.</p>
           <div class="bph-row"><button type="button" class="bph-btn" data-kpost>📬 Postfächer einrichten …</button></div>
+          <h4>Vor Ort erkennen</h4><p class="bph-mu">Dein iPhone meldet per Kurzbefehl, wenn du auf einer Baustelle warst – fehlt der Tagesbericht, erinnert die Plattform.</p>
+          <div class="bph-row"><button type="button" class="bph-btn" data-kvorort>📍 Vor Ort erkennen einrichten …</button></div>
           <h4>Kennwort</h4><div class="bph-row"><button type="button" class="bph-btn" data-kpw>🔑 Kennwort ändern …</button></div>
           <div class="bph-row">${H.verlaufKnopf('konto:' + K.uid, 'Verlauf meiner Einstellungen')}</div>
           <p class="bph-mu">${K.email ? `Mails gehen an <b>${esc(K.email)}</b>.` : '<b>Für dein Konto ist keine E-Mail-Adresse hinterlegt</b> – bitte vom Administrator in der Verwaltung (▦ → Verwaltung → Benutzer) eintragen lassen.'}${K.mail ? '' : ' Der Mailserver ist noch nicht eingerichtet (⚙ → Büro → Mailserver).'}</p>`;
@@ -435,6 +442,7 @@
       const t = e.target;
       if (t.closest('[data-kclose]')) { root.close && root.close(); return; }
       if (t.closest('[data-kpost]')) { H.postfaecher(); return; }
+      if (t.closest('[data-kvorort]')) { H.vorort(); return; }
       if (t.closest('[data-kpw]')) { H.kennwort(); return; }
       const tb = t.closest('[data-ktab]'); if (tb) { tab = tb.dataset.ktab; msg = ''; draw(); return; }
       const sv = t.closest('[data-kset]'); if (sv) { save({ [sv.dataset.kset]: sv.dataset.v }); return; }
@@ -575,6 +583,73 @@
   };
   /* Meine Postfächer: Microsoft 365 (zentral eingerichtet) an/aus und eigene IMAP-Konten */
   /* opt.into: in ein Element zeichnen (Einstellungen → Startseite → Posteingang) statt als Fenster; opt.nachSpeichern(D) */
+  /* ---------- Vor Ort erkennen: iPhone-Kurzbefehl meldet den Standort, fehlt der Tagesbericht, kommt ein To-do (und abends eine Mail) ---------- */
+  H.vorort = async function () {
+    let D, msg = '';
+    try { D = await KX('api/bp/vorort/einst'); } catch (e) { alert(e.message); return; }
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+    bg.innerHTML = '<div class="bph-dlg" role="dialog" aria-label="Vor Ort erkennen" style="width:min(760px,96vw)"></div>'; document.body.appendChild(bg);
+    const root = bg.firstChild, e1 = (e) => { if (e.key === 'Escape') close(); };
+    const close = () => { bg.remove(); document.removeEventListener('keydown', e1); };
+    document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    const portal = ((H.conf || {}).apps || []).find((a) => a.key === 'portal');
+    const basis = () => new URL((portal ? appUrl(portal) : '') + '/api/bp/vorort', location.href).href;
+    const adresse = () => `${basis()}?k=${encodeURIComponent(D.schluessel)}&lat=`;
+    const TG = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    const put = async (b) => { try { D = await KX('api/bp/vorort/einst', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); msg = 'Gespeichert.'; } catch (e) { msg = e.message; } draw(); };
+    const de = (d) => new Date(d + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    function draw() {
+      const E = D.einst;
+      root.innerHTML = `<div class="bph-dh"><b>📍 Vor Ort erkennen (iPhone)</b><button type="button" class="bph-x" data-vx aria-label="Schließen">×</button></div><div class="bph-db">
+        <p class="bph-mu">Dein iPhone meldet über einen Kurzbefehl, wo du bist. Liegt der Standort in der Arbeitszeit an einer Baustelle, merkt sich die Plattform nur <b>Projekt, Tag und Uhrzeit</b> – keine Koordinaten. Fehlt für den Tag der Tagesbericht, erscheint ein To-do${E.mail ? ' und am Ende der Arbeitszeit kommt eine Mail' : ''}.</p>
+        <label class="bph-ck"><input type="checkbox" data-vf="an"${E.an ? ' checked' : ''}> eingeschaltet</label>
+        <div class="bph-row" style="flex-wrap:wrap;gap:.6rem;align-items:center">Arbeitszeit <input type="time" data-vf="von" value="${esc(E.von)}" style="width:8.5rem"> bis <input type="time" data-vf="bis" value="${esc(E.bis)}" style="width:8.5rem">
+          <span class="bph-chips">${TG.map((t, i) => `<button type="button" class="bph-chip${E.tage.includes(i) ? ' on' : ''}" data-vt="${i}">${t}</button>`).join('')}</span></div>
+        <div class="bph-row" style="gap:.6rem;align-items:center">Baustelle erkannt bis <select data-vf="radius">${[100, 150, 250, 400, 600, 1000].map((r) => `<option value="${r}"${E.radius === r ? ' selected' : ''}>${r} m</option>`).join('')}</select> Entfernung (Projektadresse)</div>
+        <label class="bph-ck"><input type="checkbox" data-vf="mail"${E.mail ? ' checked' : ''}> am Ende der Arbeitszeit per Mail erinnern, wenn der Tagesbericht fehlt</label>
+        <h4>Deine persönliche Adresse für den Kurzbefehl</h4>
+        <div class="bph-row" style="gap:.4rem"><input readonly value="${esc(adresse())}" data-vadr style="flex:1;font-family:monospace;font-size:.82rem"><button type="button" class="bph-btn" data-vcopy>Kopieren</button><button type="button" class="bph-btn" data-vneu title="Alte Adresse wird ungültig – z. B. wenn das iPhone weg ist">Neuer Schlüssel</button></div>
+        <p class="bph-mu">Nicht weitergeben – wer die Adresse kennt, kann Besuche für dich melden.</p>
+        <details class="bph-anl"><summary><b>Anleitung: Kurzbefehl einrichten</b> (einmalig, ca. 5 Minuten)</summary>
+          <ol>
+            <li>Auf dem iPhone die App <b>Kurzbefehle</b> öffnen → unten <b>Kurzbefehle</b> → <b>＋</b>. Name: „Baustelle melden“.</li>
+            <li>Aktion <b>„Aktuellen Standort abrufen“</b> hinzufügen.</li>
+            <li>Aktion <b>„URL“</b> hinzufügen und die Adresse oben einfügen (endet mit <code>&amp;lat=</code>). Direkt dahinter die Variable <b>Standort → Breitengrad</b> einsetzen, dann <code>&amp;lon=</code> tippen und die Variable <b>Standort → Längengrad</b> einsetzen.</li>
+            <li>Aktion <b>„Inhalte von URL abrufen“</b> hinzufügen (nimmt die URL von oben).</li>
+            <li>Optional: Aktion <b>„Mitteilung anzeigen“</b> mit dem Ergebnis – dann siehst du „Vor Ort: A481 …“.</li>
+            <li>Einmal antippen zum Testen (Standortzugriff erlauben) – unten unter „Letzte Besuche“ erscheint die Baustelle, wenn du dort bist.</li>
+            <li><b>Mit CarPlay im Auto:</b> unten <b>Automation</b> → <b>＋</b> → <b>CarPlay</b> → „Trennt“ → <b>Sofort ausführen</b> → Kurzbefehl „Baustelle melden“. Zur Sicherheit dazu zwei Automationen <b>Tageszeit</b> (11:00 und 15:00, Mo–Fr), ebenfalls sofort ausführen.</li>
+            <li><b>Ohne CarPlay:</b> Automationen <b>Tageszeit</b> alle 30 Minuten in der Arbeitszeit (07:00, 07:30 … 17:00, Mo–Fr) – je Uhrzeit eine Automation, jeweils „Sofort ausführen“ → „Baustelle melden“. Jede braucht nur ein paar Sekunden GPS, der Akku merkt davon kaum etwas.</li>
+            <li>Die Mitteilung „Automation ausgeführt“ lässt sich unter Einstellungen → Bildschirmzeit → Mitteilungen bzw. in der Automation („Bei Ausführung benachrichtigen“ aus) abschalten.</li>
+          </ol>
+          <p class="bph-mu">Ist der Kurzbefehl fertig, lässt er sich unter „Teilen → iCloud-Link kopieren“ an Kollegen weitergeben – jeder trägt dann nur seine eigene Adresse ein. Die Automationen legt jeder selbst an (das erlaubt Apple nicht anders).</p></details>
+        <div class="bph-row"><button type="button" class="bph-btn" data-vtest title="Mit dem Standort dieses Geräts ausprobieren">📍 Jetzt mit diesem Gerät testen</button></div>
+        <h4>Letzte Besuche</h4>
+        ${D.besuche.length ? `<div class="bph-vlist">${D.besuche.map((b) => `<div>${esc(de(b.datum))} · <b>${esc(b.projekt)}</b> · ${esc(b.von)}${b.bis !== b.von ? '–' + esc(b.bis) : ''} Uhr · ${b.bericht ? '✓ Bericht' : '<span style="color:#d64545">kein Bericht</span>'}</div>`).join('')}</div>` : '<p class="bph-mu">Noch keine – sobald der Kurzbefehl eine Baustelle meldet, steht sie hier.</p>'}
+        ${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
+    }
+    draw();
+    root.addEventListener('click', async (e) => {
+      const t = e.target;
+      if (t.closest('[data-vx]')) return close();
+      const tg = t.closest('[data-vt]'); if (tg) { const T = new Set(D.einst.tage), i = +tg.dataset.vt; T.has(i) ? T.delete(i) : T.add(i); return put({ tage: [...T] }); }
+      if (t.closest('[data-vcopy]')) { const i = root.querySelector('[data-vadr]'); i.select(); try { await navigator.clipboard.writeText(i.value); msg = 'Adresse kopiert.'; } catch { document.execCommand('copy'); msg = 'Adresse kopiert.'; } draw(); return; }
+      if (t.closest('[data-vneu]')) { if (confirm('Neuen Schlüssel erzeugen? Der Kurzbefehl auf dem iPhone muss dann die neue Adresse bekommen.')) put({ neuer_schluessel: true }); return; }
+      if (t.closest('[data-vtest]')) {
+        if (!navigator.geolocation) { msg = 'Dieses Gerät gibt keinen Standort heraus.'; return draw(); }
+        msg = 'Standort wird bestimmt …'; draw();
+        navigator.geolocation.getCurrentPosition(async (p) => {
+          try { const r = await fetch(`${adresse()}${p.coords.latitude}&lon=${p.coords.longitude}`); msg = 'Antwort: ' + (await r.text()); D = await KX('api/bp/vorort/einst'); } catch (er) { msg = er.message; }
+          draw();
+        }, (er) => { msg = 'Standort nicht verfügbar: ' + er.message; draw(); }, { enableHighAccuracy: true, timeout: 15000 });
+      }
+    });
+    root.addEventListener('change', (e) => {
+      const f = e.target.dataset.vf; if (!f) return;
+      put({ [f]: e.target.type === 'checkbox' ? e.target.checked : f === 'radius' ? +e.target.value : e.target.value });
+    });
+  };
+
   H.postfaecher = async function (opt = {}) {
     let D, msg = '';
     if (opt.into) opt.into.innerHTML = '<p class="bph-mu">Lade …</p>';

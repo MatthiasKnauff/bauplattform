@@ -1013,6 +1013,13 @@ def start_loop():
                     c.execute("SELECT pg_advisory_xact_lock(hashtext('aufgaben:sync'))")
                     sync_plans(c)
                 send_due()
+                try:   # Vor Ort erkennen: am Ende der Arbeitszeit an fehlende Tagesberichte erinnern
+                    from bpcore import vorort
+                    with db.tx() as c:
+                        c.execute("SELECT pg_advisory_xact_lock(hashtext('vorort:abend'))")
+                        vorort.abend_mails(c)
+                except Exception as e:
+                    _loop["vorort_fehler"] = str(e)[:200]
                 try:   # Posteingang der Startseite zu den eingestellten Zeiten lesen (Standard: täglich 8:00)
                     _loop["post"] = posteingang.alle_faelligen(db.tx)
                 except Exception as e:

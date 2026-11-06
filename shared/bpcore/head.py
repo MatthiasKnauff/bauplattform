@@ -27,7 +27,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, db, konto, papierkorb, posteingang, skizze, sso, todo, versionen, vorlagen
+from . import ai, benachrichtigung, briefbogen, db, konto, papierkorb, posteingang, skizze, sso, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -825,6 +825,28 @@ def blueprint(get_user=None):
         with db.tx() as c:
             todo.zustand_setzen(c, uid, str(b.get("key") or "")[:200], bis=(b.get("bis") or None), aus=bool(b.get("aus")), wer=u["name"])
         return jsonify(ok=True)
+
+    # ---- Vor Ort erkennen (iPhone-Kurzbefehl meldet den Standort; ohne Anmeldung, mit persönlichem Schlüssel)
+    @bp.route("/api/bp/vorort", methods=["GET", "POST"])
+    def vorort_melden():
+        b = request.get_json(silent=True) or {}
+        v = lambda k: request.values.get(k) or b.get(k)
+        with db.tx() as c:
+            code, txt = vorort.melden(c, str(v("k") or "")[:60], v("lat"), v("lon"))
+        return Response(txt, status=code, mimetype="text/plain")
+
+    @bp.route("/api/bp/vorort/einst", methods=["GET", "PUT"])
+    def vorort_einst():
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if request.method == "PUT":
+                b = request.get_json(silent=True) or {}
+                if b.get("neuer_schluessel"):
+                    vorort.schluessel(c, uid, neu=True)
+                vorort.einst_setzen(c, uid, b, u["name"])
+            return jsonify(einst=vorort.einst(c, uid), schluessel=vorort.schluessel(c, uid), besuche=vorort.besuche(c, uid, 21))
 
     @bp.route("/api/bp/todo-regeln", methods=["GET", "PUT"])
     def todo_regeln():

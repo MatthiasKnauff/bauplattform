@@ -24,6 +24,7 @@ REGELN = [
     ("terminruege", "Terminrüge vorschlagen", "Firmen, die laut gemeldetem Arbeitsfortschritt (Bautagebuch) so viele Arbeitstage hinter dem Bauzeitenplan liegen", True, ("Arbeitstage Verzug", "AT", 5)),
     ("verzug", "Vorgänge im Verzug", "Vorgänge, deren Ende laut Bauzeitenplan vorbei ist und die nicht als fertig gemeldet sind", False, None),
     ("planversand", "Pläne nicht versendet", "Neue Planstände im Projektordner, die noch an niemanden verschickt wurden (aus der letzten Einlesung von „Planstand & Versand“)", False, ("Tage alt höchstens", "Tage", 30)),
+    ("vorort", "Tagesbericht nach Baustellenbesuch", "Ich war laut Standort (iPhone-Kurzbefehl, ⚙ → Für mich → Vor Ort erkennen) auf der Baustelle, aber für den Tag gibt es keinen Tagesbericht", True, ("Tage zurück", "Tage", 7)),
     ("tagesbericht", "Tagesbericht fehlt", "Laufende Baustelle (Firmen laut Bauzeitenplan da), aber seit so vielen Arbeitstagen kein Tagesbericht", False, ("Arbeitstage", "Tage", 3)),
     ("budget", "Budget überschritten", "Aufträge + beauftragte Nachträge im AVA liegen über der Kostenermittlung (KG 300 + 400)", False, ("Toleranz", "%", 0)),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
@@ -374,6 +375,19 @@ def _a_tagesbericht(c, u, R, P, ok):
     return out
 
 
+def _a_vorort(c, u, R, P, ok):
+    from . import vorort
+    out = []
+    for b in vorort.ohne_bericht(c, u["id"], R["wert"] or 7):
+        if isinstance(R["projekte"], list) and b["pid"] not in R["projekte"]:
+            continue
+        d = date.fromisoformat(b["datum"])
+        out.append(_e("vorort", f"{b['pid']}:{b['datum']}", f"Tagesbericht vom {d.strftime('%d.%m.')} schreiben",
+                      f"Du warst {'heute' if d == _heute() else 'am ' + d.strftime('%d.%m.')} {b['von']}{'–' + b['bis'] if b['bis'] != b['von'] else ''} Uhr vor Ort",
+                      b["pid"], P, b["datum"], f"bautagebuch:#projekt={b['pid']}", 1))
+    return out
+
+
 def _a_budget(c, u, R, P, ok):
     out = []
     try:
@@ -423,7 +437,7 @@ def _a_post(c, u, R, P, ok):
 
 
 ANALYSEN = {"terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
-            "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "budget": _a_budget, "post": _a_post}
+            "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post}
 
 
 def automatisch(c, u):

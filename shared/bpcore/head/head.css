@@ -298,10 +298,6 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 
 @media (min-width:701px){.bph-dlg{resize:both;min-width:280px;min-height:140px}.bph-dh{cursor:move;user-select:none}.bph-dh button{cursor:pointer}}
 
-.bph-logo{flex:none;display:flex;align-items:center;height:30px;margin:0 .7rem 0 .2rem}   /* Büro-Logo als helle Silhouette – fügt sich in die dunkle Kopfleiste */
-.bph-logo[hidden]{display:none}.bph-logo img{max-height:22px;max-width:110px;object-fit:contain;display:block;filter:brightness(0) invert(1);opacity:.55;transition:opacity .15s}.bph-logo:hover img{opacity:.9}
-.bph-logo.opak img{filter:grayscale(1) invert(1) brightness(.6);mix-blend-mode:screen;opacity:1}.bph-logo.opak:hover img{filter:grayscale(1) invert(1) brightness(.95)}
-@media (max-width:760px){.bph-logo{display:none!important}}
 
 .bph-anl{margin:.6rem 0;border:1px solid var(--line,#ddd);border-radius:8px;padding:.5rem .7rem}.bph-anl summary{cursor:pointer}.bph-anl ol{margin:.5rem 0 .3rem 1.1rem;padding:0;line-height:1.5}.bph-anl li{margin:.25rem 0}
 .bph-vlist{display:flex;flex-direction:column;gap:.2rem;font-size:.9rem;max-height:220px;overflow:auto}

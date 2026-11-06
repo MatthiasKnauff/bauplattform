@@ -300,7 +300,10 @@ table.tl td.fxl,table.tl th.fxl{box-shadow:inset -2px 0 0 var(--y),3px 0 4px -2p
 table.tl.gross{font-size:14.5px}
 table.tl.gross td{height:var(--tlrh,28px);padding:.12rem .4rem}
 table.tl td{height:var(--tlrh,1.35rem)}
-.tl-rz{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;z-index:4}
+.tl-sort{color:var(--y);font-size:.8em;margin-left:.3em}
+table.tl th[data-tlsort]{cursor:pointer}table.tl th[data-tlsort]:hover{color:var(--y)}
+.tl-w::-webkit-scrollbar{width:14px;height:14px}.tl-w::-webkit-scrollbar-track{background:var(--tabs)}.tl-w::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mute) 55%,transparent);border-radius:7px;border:3px solid var(--tabs)}.tl-w::-webkit-scrollbar-thumb:hover{background:var(--mute)}.tl-w::-webkit-scrollbar-corner{background:var(--tabs)}
+.tl-rz{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:4}
 .tl-rz:hover,.tl-rz.on{background:color-mix(in srgb,var(--y) 55%,transparent)}
 table.tl th{position:sticky}
 .tl-rh{position:absolute;left:0;right:0;bottom:0;height:5px;cursor:row-resize;z-index:2}
@@ -2088,7 +2091,16 @@ function tlZurueck(vor) {
   const st = von.pop(); nach.push({ data: JSON.stringify(TL.tueren), label: st.label }); TL.tueren = JSON.parse(st.data); tlSpeichern(true); tlZeichnen(); histUi();
   toast(`${vor ? 'Wiederholt' : 'Rückgängig'}: ${st.label || 'Änderung'}`);
 }
-const tlSicht = () => { const q = TLq.trim().toLowerCase(); return TL.tueren.filter((t) => !q || Object.values(t).some((v) => typeof v === 'string' && v.toLowerCase().includes(q))); };
+let TLS = LS.get('tl.sort', null);   // Sortierung der Ansicht {k, ab} – Klick auf den Spaltenkopf (aufsteigend → absteigend → aus)
+const tlSortWert = (t, k) => { const v = t[k]; if (v == null || v === '') return null; if (typeof v === 'boolean') return v ? 1 : 0;
+  const z = String(v).trim().replace(/\s/g, ''); return /^-?\d+([.,]\d+)?$/.test(z) && !['nr', 'raum'].includes(k) ? parseFloat(z.replace(',', '.')) : String(v); };
+const tlSicht = () => { const q = TLq.trim().toLowerCase(); const L = TL.tueren.filter((t) => !q || Object.values(t).some((v) => typeof v === 'string' && v.toLowerCase().includes(q)));
+  if (!TLS || !TLS.k) return L;
+  const k = TLS.k, f = TLS.ab ? -1 : 1;
+  return L.map((t, i) => [t, i]).sort(([a, i], [b, j]) => { const x = tlSortWert(a, k), y = tlSortWert(b, k);
+    if (x == null || y == null) return x == null && y == null ? i - j : x == null ? 1 : -1;   // leere immer unten
+    const r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' });
+    return r ? r * f : i - j; }).map(([t]) => t); };
 /* Darstellung (⚙ in der Leiste, je Benutzer gemerkt): Ansichten, feste Lage-Spalten, Ausstattung als Marken, Details rechts, große Schrift */
 const TLO = Object.assign({ ansichten: true, fest: true, marken: true, details: true, gross: true }, LS.get('tlo', {}));
 let TLV = LS.get('tlv', 'uebersicht');
@@ -2144,7 +2156,7 @@ function vTueren(v) {
   const stueck = TL.tueren.reduce((s, t) => s + (Math.max(1, parseInt(t.anzahl, 10) || 1)), 0);
   const nZ = B ? B.r2 - B.r1 + 1 : 0;
   const kopf1 = gr.map(([g, cs]) => (zu(g) ? `<th class="g" data-tlg="${esc(g)}" title="${esc(g)} wieder aufklappen" style="width:16px">▸</th>` : `<th class="g" colspan="${cs.length}" data-tlg="${esc(g)}" title="${g === 'Lage' ? '' : 'Klick: Spaltengruppe zuklappen'}">${esc(g)}</th>`)).join('');
-  const kopf2 = gr.map(([g, cs]) => (zu(g) ? '<th data-tlg="' + esc(g) + '"></th>' : cs.map((c) => `<th style="width:${tlBreite(c)}px${LEFT[c[0]] != null ? `;left:${LEFT[c[0]]}px` : ''}" class="${LEFT[c[0]] != null ? 'fx' : ''}${c[0] === FXL ? ' fxl' : ''}" title="${esc(c[1])}" data-tlk="${S.indexOf(c)}"><span class="vt">${esc(tlKopf(c))}</span><i class="tl-rz" data-tlrz="${esc(c[0])}" title="Ziehen: Spaltenbreite · Doppelklick: Standard"></i></th>`).join(''))).join('');
+  const kopf2 = gr.map(([g, cs]) => (zu(g) ? '<th data-tlg="' + esc(g) + '"></th>' : cs.map((c) => `<th style="width:${tlBreite(c)}px${LEFT[c[0]] != null ? `;left:${LEFT[c[0]]}px` : ''}" class="${LEFT[c[0]] != null ? 'fx' : ''}${c[0] === FXL ? ' fxl' : ''}" title="${esc(c[1])} – Klick sortiert" data-tlk="${S.indexOf(c)}" data-tlsort="${esc(c[0])}"><span class="vt">${esc(tlKopf(c))}${TLS && TLS.k === c[0] && c[2] !== 'm' ? `<b class="tl-sort">${TLS.ab ? '▼' : '▲'}</b>` : ''}</span><i class="tl-rz" data-tlrz="${esc(c[0])}" title="Ziehen: Spaltenbreite · Doppelklick: Standard"></i></th>`).join(''))).join('');
   const zelle = (t, r, c, ci) => { const cl = [c[2] === 'b' ? 'c' : c[2] === 'n' ? 'n' : '']; if (B && r >= B.r1 && r <= B.r2 && ci >= B.c1 && ci <= B.c2) cl.push('m'); if (TLC && TLC.r === r && TLC.c === ci) cl.push('a');
     const x = tlText(t, c), fx = LEFT[c[0]] != null;
     if (fx) cl.push('fx'); if (c[0] === FXL) cl.push('fxl');
@@ -2161,7 +2173,7 @@ function vTueren(v) {
       <span style="flex:1"></span><span class="hint">${TL.tueren.length} Zeilen · ${stueck} Stück${nZ > 1 ? ` · ${nZ} Zeilen markiert` : ''}</span>
       ${TL.tueren.length ? (() => { const n = window.tlWarnungen ? tlWarnungen() : 0; return `<button class="btn sm${n ? ' warnb' : ''}" data-tl="pruef" title="Plausibilität prüfen: fehlende Angaben, ungewöhnliche Maße, 2. Rettungsweg, Absturzsicherung, Brandschutz …">${n ? `⚠ ${n} prüfen` : '✓ Prüfen'}</button>`; })() : ''}<button class="btn sm" data-tl="opt" title="Darstellung: Ansichten, feste Spalten, Ausstattung als Marken, Details, Schriftgröße" aria-haspopup="dialog">⚙ Darstellung</button><a class="btn sm" href="api/projekt/${pid}/tueren.xlsx" title="Liste als Excel">Excel</a><button class="btn sm pri" data-tl="lv" ${TL.tueren.length ? '' : 'disabled'} title="Gleiche Elemente zu Positionen zusammenfassen und ins LV übernehmen">→ In LV übernehmen …</button></div>
     ${TLO.ansichten && TL.tueren.length ? `<div class="tl-views" role="tablist">${TVIEWS.map(([k, l, ks]) => `<button type="button" role="tab" data-tlv="${k}" class="${k === TLV ? 'on' : ''}" aria-selected="${k === TLV}">${esc(l)}${ks ? ` <small>${ks.length}</small>` : ''}</button>`).join('')}</div>` : ''}
-    ${TL.tueren.length ? `<div class="tl-flex"><div class="tl-w" tabindex="0"><table class="tl${TLO.gross ? ' gross' : ''}"${LS.get('tl.rh', 0) ? ` style="--tlrh:${LS.get('tl.rh', 0)}px"` : ''}><colgroup><col style="width:${RN}px">${gr.map(([g, cs]) => (zu(g) ? '<col style="width:16px">' : cs.map((c) => `<col style="width:${tlBreite(c)}px">`).join(''))).join('')}</colgroup>
+    ${TL.tueren.length ? `<div class="tl-flex"><div class="tl-w" tabindex="0"><table class="tl${TLO.gross ? ' gross' : ''}" style="width:${RN + gr.reduce((a, [g, cs]) => a + (zu(g) ? 16 : cs.reduce((b, c) => b + tlBreite(c), 0)), 0)}px${LS.get('tl.rh', 0) ? `;--tlrh:${LS.get('tl.rh', 0)}px` : ''}"><colgroup><col style="width:${RN}px">${gr.map(([g, cs]) => (zu(g) ? '<col style="width:16px">' : cs.map((c) => `<col style="width:${tlBreite(c)}px">`).join(''))).join('')}</colgroup>
       <thead><tr><th class="rn g" rowspan="1"></th>${kopf1}</tr><tr><th class="rn" title="Alles markieren" data-tl="alles">⊿</th>${kopf2}</tr></thead>
       <tbody>${T.map(zeile).join('')}</tbody></table></div>${TLO.details ? `<aside class="tl-d" id="tlD">${tlDetails()}</aside>` : ''}</div>
       <p class="hint" style="margin:.5rem 0 0">Wie in Excel: klicken/ziehen markiert (Umschalt erweitert, Zeilennummer markiert ganze Zeilen), Tippen oder Doppelklick schreibt, Entf löscht, Strg+C / Strg+X / Strg+V kopiert und fügt ein – auch aus Excel –, Strg+D füllt nach unten, Strg+Z macht rückgängig. Spaltenbreite am rechten Rand des Spaltenkopfs ziehen, Zeilenhöhe am unteren Rand der Zeilennummer (Doppelklick: Standard). Ja/Nein-Spalten mit Klick oder Leertaste, beim Einfügen gilt x/ja/1 als Ja. Maße in m oder mm.${alle ? ' Gruppenüberschrift anklicken klappt Spalten zu.' : ''}${TLO.marken ? ' Ausstattung: Doppelklick oder Eingabe öffnet die Auswahl.' : ''}</p>`
@@ -2282,9 +2294,10 @@ document.addEventListener('mousedown', (e) => {
   e.preventDefault(); e.stopPropagation(); rz.classList.add('on'); document.body.classList.add('tl-ziehen');
   const tab_ = rz.closest('table.tl'), x0 = e.clientX, y0 = e.clientY;
   if (rz.classList.contains('tl-rz')) {
-    const th = rz.closest('th'), i = [...th.parentElement.children].indexOf(th), col = tab_.querySelectorAll('colgroup col')[i], w0 = th.getBoundingClientRect().width;
-    let w = w0;
-    const mv = (ev) => { w = Math.max(24, Math.min(600, Math.round(w0 + ev.clientX - x0))); th.style.width = w + 'px'; if (col) col.style.width = w + 'px'; };
+    const th = rz.closest('th'), i = [...th.parentElement.children].indexOf(th), col = tab_.querySelectorAll('colgroup col')[i], w0 = th.getBoundingClientRect().width, tw0 = tab_.getBoundingClientRect().width;
+    let w = w0, raf = 0;
+    const mv = (ev) => { w = Math.max(24, Math.min(600, Math.round(w0 + ev.clientX - x0)));   // Tabelle wächst mit – die anderen Spalten bleiben stehen
+      if (!raf) raf = requestAnimationFrame(() => { raf = 0; tab_.style.width = (tw0 + w - w0) + 'px'; th.style.width = w + 'px'; if (col) col.style.width = w + 'px'; }); };
     const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); document.body.classList.remove('tl-ziehen'); tlRzKlick = Date.now();
       if (Math.abs(w - w0) > 2) { TLBW[rz.dataset.tlrz] = w; LS.set('tl.bw', TLBW); tlZeichnen(); } else rz.classList.remove('on'); };
     document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
@@ -2357,6 +2370,8 @@ document.addEventListener('paste', (e) => {
 });
 document.addEventListener('click', (e) => {
   if (tab !== 'tueren' || !TL) return;
+  const so = e.target.closest('th[data-tlsort]'); if (so && !e.target.closest('.tl-rz')) { const k = so.dataset.tlsort; if (k === 'aus' || k === 'ausstattung') return;
+    TLS = !TLS || TLS.k !== k ? { k, ab: false } : !TLS.ab ? { k, ab: true } : null; LS.set('tl.sort', TLS); TLA = TLC = null; tlZeichnen(); return; }
   const g = e.target.closest('[data-tlg]'); if (g && g.dataset.tlg !== 'Lage') { const n = g.dataset.tlg; if (TLzu.has(n)) TLzu.delete(n); else TLzu.add(n); LS.set('tlzu', [...TLzu]); TLA = TLC = null; tlZeichnen(); return; }
   const v = e.target.closest('[data-tlv]'); if (v) { TLV = v.dataset.tlv; LS.set('tlv', TLV); TLA = TLC = null; tlZeichnen(); return; }
   const j = e.target.closest('#tlD [data-tlj]'); if (j) { tlJa(j.dataset.tlj, tlAuswahl()); const d = $('#tlD'); if (d) d.innerHTML = tlDetails(); return; }

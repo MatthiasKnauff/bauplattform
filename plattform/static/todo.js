@@ -81,7 +81,7 @@ function tdEditor(x) {
     <div class="btns"><button class="btn sm pri" data-td="speichern">Speichern</button><button class="btn sm" data-td="zu">Abbrechen</button><span style="flex:1"></span>${x.id && (!TDREF || x.erstellt_von === TDREF.ich) ? '<button class="btn sm" data-td="loeschen">Löschen</button>' : ''}</div></div>`;
 }
 function tdZeigen() {
-  const box = $('#todo'); if (!box) return; if (!TD) { box.innerHTML = '<div class="post-h"><h2>☑ To-dos</h2></div><p class="mute">Lade …</p>'; return; }
+  const box = $('#todo'); if (!box) return; box.classList.toggle('td-klein', !!TDKLEIN); if (!TD) { box.innerHTML = '<div class="post-h"><h2>☑ To-dos</h2></div><p class="mute">Lade …</p>'; return; }
   const { offen, spaeter, erledigt, h } = tdAlle();
   const wo = tdPlus(7 - ((new Date().getDay() + 6) % 7) - 1);   // Sonntag dieser Woche
   const G = [['Überfällig', (x) => x.f && x.f < h, 1], ['Heute', (x) => x.f === h], ['Diese Woche', (x) => x.f > h && x.f <= wo], ['Später', (x) => x.f > wo], ['Ohne Datum', (x) => !x.f]];

@@ -1084,7 +1084,8 @@ function vergabeDialog(aid) {
   const a = L.angebote.find((x) => x.id === aid), k = L.calc.angebote.find((x) => x.id === aid);
   modalBox(`<h3>Vergabe an ${esc(a.bieter)}</h3><p>Wertungssumme <b>${eur(k.netto)}</b>${k.rang ? ` · Rang ${k.rang}` : ''}${k.fehlt ? ` · <b style="color:var(--red)">${k.fehlt} Preise fehlen</b>` : ''}.</p>
     <p class="hint">Die Preise dieses Angebots werden die Auftragspreise – für Nachträge, Aufmaß und Rechnungsprüfung.</p>
-    <div class="fm"><label>Auftragsdatum</label><input type="date" id="vgD" value="${new Date().toISOString().slice(0, 10)}"><label>Sicherheitseinbehalt</label><span><input id="vgE" value="${nf(L.vergabe.einbehalt ?? 5, 2)}" style="width:5rem" inputmode="decimal"> % (Vertragserfüllung, in jeder Abschlagsrechnung)</span></div>
+    <div class="fm" style="align-items:center;grid-template-columns:auto 1fr;column-gap:1.2rem"><label>Auftragsdatum</label><input type="date" id="vgD" value="${new Date().toISOString().slice(0, 10)}" style="max-width:12rem"><label>Sicherheitseinbehalt</label><span style="display:flex;align-items:center;gap:.4rem"><input id="vgE" value="${nf(L.vergabe.einbehalt ?? 5, 2)}" style="width:5rem;text-align:right" inputmode="decimal"> %</span>
+      <span></span><span class="hint" style="margin-top:-.3rem">Vertragserfüllung – wird in jeder Abschlagsrechnung einbehalten</span></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Vergeben</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;

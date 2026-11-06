@@ -2216,21 +2216,33 @@ def _auslesen(data, items):
                 or (len(T) < len(_ozn(x["oz"])) and len(T) >= 2 and _ozn(x["oz"])[-len(T):] == T)]
         return kand[0] if len(kand) == 1 else None
 
-    treffer, kopf, text1 = {}, {}, ""
+    treffer, kopf, text1, rzeilen, zahlen, ocr = {}, {}, "", [], {}, False
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         for n, pg in enumerate(pdf.pages[:40], 1):
             W_, H_ = float(pg.width), float(pg.height)
-            ws = sorted(pg.extract_words(keep_blank_chars=False, use_text_flow=False), key=lambda w: (round(float(w["top"]) / 3), float(w["x0"])))
+            ws = pg.extract_words(keep_blank_chars=False, use_text_flow=False)
+            if not ws and n <= 10:   # Scan ohne Textebene: Texterkennung (Tesseract)
+                ws = _ocr_woerter(pg)
+                ocr = ocr or bool(ws)
+            ws = sorted(ws, key=lambda w: (float(w["top"]), float(w["x0"])))
             zeilen = []
             for w in ws:
-                if zeilen and abs(float(w["top"]) - zeilen[-1][0]["top"]) <= 3:
+                if zeilen and abs((float(w["top"]) + float(w["bottom"])) / 2 - zeilen[-1][0]["_m"]) <= max(3.0, (float(w["bottom"]) - float(w["top"])) * 0.45):
                     zeilen[-1].append(w)
                 else:
+                    w["_m"] = (float(w["top"]) + float(w["bottom"])) / 2
                     zeilen.append([w])
             for z in zeilen:
                 z.sort(key=lambda w: float(w["x0"]))
             if n <= 2:
                 text1 += "\n".join(" ".join(w["text"] for w in z) for z in zeilen) + "\n"
+            zl = zahlen.setdefault(n, [])
+            for w in ws:   # alle Zahlen mit Stelle – in der Ansicht anklickbar (in den Rechenweg übernehmen)
+                v = _zahl(w["text"])
+                if v is not None and len(zl) < 1500:
+                    zl.append([round(float(w["x0"]) / W_, 4), round(float(w["top"]) / H_, 4), round(float(w["x1"]) / W_, 4), round(float(w["bottom"]) / H_, 4), v])
+            box_von = lambda ws_: [round(v, 4) for v in (min(float(w["x0"]) for w in ws_) / W_, min(float(w["top"]) for w in ws_) / H_,   # noqa: E731
+                                                         max(float(w["x1"]) for w in ws_) / W_, max(float(w["bottom"]) for w in ws_) / H_)]
             starts = []
             for k, z in enumerate(zeilen):
                 pid = None
@@ -2240,36 +2252,41 @@ def _auslesen(data, items):
                         break
                 if pid:
                     starts.append((k, pid))
+            belegt = set()
             for j, (k, pid) in enumerate(starts):
+                bis = min(starts[j + 1][0] if j + 1 < len(starts) else len(zeilen), k + 7)
+                belegt.update(range(k, bis))
                 if pid in treffer and treffer[pid].get("menge") is not None:
                     continue
-                bis = min(starts[j + 1][0] if j + 1 < len(starts) else len(zeilen), k + 7)
                 ws_ = [w for z in zeilen[k:bis] for w in z]
                 nums = [(w, _zahl(w["text"])) for w in ws_[1:]]
                 nums = [(w, v) for w, v in nums if v is not None]
-                best = None
-                for c_ in range(len(nums)):
-                    for b_ in range(c_):
-                        for a_ in range(b_):
-                            a, b, cc = nums[a_][1], nums[b_][1], nums[c_][1]
-                            if cc and abs(a * b - cc) <= max(0.05, abs(cc) * 0.002):
-                                best = (a_, b_, c_)
-                                break
-                        if best:
-                            break
-                    if best:
-                        break
+                best = _tripel(nums)
                 bis_w = nums[best[2]][0] if best else (zeilen[k][-1])
-                box_ws = [w for w in ws_ if float(w["top"]) <= float(bis_w["bottom"])]
-                box = [min(float(w["x0"]) for w in box_ws) / W_, min(float(w["top"]) for w in box_ws) / H_,
-                       max(float(w["x1"]) for w in box_ws) / W_, max(float(w["bottom"]) for w in box_ws) / H_]
-                t = {"seite": n, "box": [round(v, 4) for v in box]}
+                t = {"seite": n, "box": box_von([w for w in ws_ if float(w["top"]) <= float(bis_w["bottom"])])}
                 if best:
                     t.update(menge=nums[best[0]][1], ep=nums[best[1]][1], gp=nums[best[2]][1])
                 if pid not in treffer or best:
                     treffer[pid] = t
+            for k, z in enumerate(zeilen):   # Zeilen ohne LV-Position, in denen Menge × Preis = Betrag aufgeht (Regie, Material …)
+                if k in belegt:
+                    continue
+                nums = [(i, w, _zahl(w["text"])) for i, w in enumerate(z)]
+                nums = [(i, w, v) for i, w, v in nums if v is not None]
+                best = _tripel([(w, v) for _, w, v in nums])
+                if not best or nums[best[2]][2] == 0:
+                    continue
+                ia, ib = nums[best[0]][0], nums[best[1]][0]
+                mitte = [w["text"] for w in z[ia + 1:ib] if _zahl(w["text"]) is None and w["text"].strip() not in ("€", "EUR", "x", "×")]
+                eh = mitte[0] if mitte and len(mitte[0]) <= 6 and len(mitte) > 1 else ""
+                txt = " ".join(mitte[1:] if eh else mitte)
+                if not txt:
+                    continue
+                rzeilen.append({"seite": n, "box": box_von(z), "text": txt[:300], "einheit": eh, "menge": nums[best[0]][2], "ep": nums[best[1]][2], "gp": nums[best[2]][2]})
     if re.search(r"schlussrechnung", text1, re.I):
         kopf["schluss"] = True
+    if not treffer and rzeilen and re.search(r"regie|stundenlohn|stundenzettel", text1, re.I):
+        kopf["regie"] = True
     m = re.search(r"Rechnung(?:s)?[ \-]?(?:nummer|nr\.?|no\.?)\s*[:.#]?\s*([A-Z0-9][\w\-/]{1,30})", text1, re.I)
     if m:
         kopf["re_nr"] = m.group(1)
@@ -2277,19 +2294,63 @@ def _auslesen(data, items):
     if m:
         y = int(m.group(3)); y = y + 2000 if y < 100 else y
         kopf["datum"] = f"{y:04d}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
-    gp = [t["gp"] for t in treffer.values() if t.get("gp") is not None]
+    gp = [t["gp"] for t in treffer.values() if t.get("gp") is not None] or [z["gp"] for z in rzeilen]
     if gp:
         kopf["netto"] = round(sum(gp), 2)
     else:
         m = re.search(r"(?:Summe\s+netto|Nettobetrag|Netto(?:summe|betrag)?|Gesamt\s+netto|Zwischensumme)\s*(?:EUR|€)?\s*:?\s*(-?[\d.]+,\d{2})", text1, re.I)
         if m and _zahl(m.group(1)) is not None:
             kopf["netto"] = _zahl(m.group(1))
-    return {"pos": treffer, "kopf": kopf, "text": bool(text1.strip())}
+    return {"pos": treffer, "kopf": kopf, "text": bool(text1.strip()), "ocr": ocr, "zeilen": rzeilen[:300],
+            "zahlen": {str(k): v for k, v in zahlen.items() if v}}
+
+
+def _tripel(nums):
+    """Erste Dreiergruppe a, b, c (in dieser Reihenfolge) mit a × b = c – Menge, Einheitspreis, Betrag."""
+    for c_ in range(len(nums)):
+        for b_ in range(c_):
+            for a_ in range(b_):
+                a, b, cc = nums[a_][1], nums[b_][1], nums[c_][1]
+                if cc and a and b and abs(a * b - cc) <= max(0.05, abs(cc) * 0.002):
+                    return (a_, b_, c_)
+    return None
+
+
+def _ocr_woerter(pg):
+    """Wörter einer gescannten Seite per Tesseract (deutsch), in PDF-Koordinaten wie pdfplumber.extract_words."""
+    import shutil
+    import subprocess
+    import tempfile
+    if not shutil.which("tesseract"):
+        return []
+    dpi = 300
+    try:
+        bild = pg.to_image(resolution=dpi).original.convert("L")
+        with tempfile.TemporaryDirectory() as td:
+            f = os.path.join(td, "s.png")
+            bild.save(f)
+            out = subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", "6", "tsv"], capture_output=True, text=True, timeout=90).stdout
+    except Exception:
+        return []
+    k = 72.0 / dpi
+    ws = []
+    for zeile in out.splitlines()[1:]:
+        t = zeile.split("\t")
+        if len(t) < 12 or t[0] != "5" or not t[11].strip():
+            continue
+        try:
+            x, y, w, h, conf = int(t[6]), int(t[7]), int(t[8]), int(t[9]), float(t[10])
+        except ValueError:
+            continue
+        if conf < 15:
+            continue
+        ws.append({"text": t[11].strip(), "x0": x * k, "x1": (x + w) * k, "top": y * k, "bottom": (y + h) * k})
+    return ws
 
 
 def _auslese_anwenden(c, bid, rid, lv):
     """PDF lesen, Ergebnis am Beleg merken und leere Felder der Rechnung (Nr., Datum, gefordert) füllen."""
-    x = c.execute("SELECT data FROM ava_beleg WHERE id=?", (bid,)).fetchone()
+    x = c.execute("SELECT data, name FROM ava_beleg WHERE id=?", (bid,)).fetchone()
     try:
         A = _auslesen(bytes(x["data"]), (_j(lv["data"], {}) or {}).get("items") or [])
     except Exception as e:
@@ -2307,6 +2368,13 @@ def _auslese_anwenden(c, bid, rid, lv):
         rd = _j(R["data"], {}) or {}
         if K.get("netto") and rd.get("frei") == 0:   # Rechnung ohne Aufmaß: gefundenen Nettobetrag als Vorschlag eintragen
             rd["frei"] = K["netto"]
+            c.execute("UPDATE ava_rechnung SET data=? WHERE id=?", (json.dumps(rd, ensure_ascii=False), rid))
+        regie = (K.get("regie") or (re.search(r"regie|stundenlohn", x["name"] or "", re.I) and A.get("zeilen") and not A.get("pos")))
+        if regie and R["art"] == "abschlag" and not rd.get("frei"):   # Regierechnung erkannt: Art umstellen
+            c.execute("UPDATE ava_rechnung SET art='regie' WHERE id=?", (rid,))
+            R = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
+        if R["art"] == "regie" and A.get("zeilen") and not rd.get("zeilen"):   # Stundenlohn-/Materialzeilen eintragen
+            rd["zeilen"] = [{"text": z["text"], "menge": z["menge"], "einheit": z.get("einheit") or "", "ep": z["ep"]} for z in A["zeilen"][:200]]
             c.execute("UPDATE ava_rechnung SET data=? WHERE id=?", (json.dumps(rd, ensure_ascii=False), rid))
         if K.get("schluss") and R["art"] == "abschlag" and not c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND art='schluss'", (R["lv_id"],)).fetchone():
             c.execute("UPDATE ava_rechnung SET art='schluss' WHERE id=?", (rid,))

@@ -388,6 +388,8 @@ html.mobil .bph{position:sticky;top:0}
 .am-dk{display:flex;gap:.6rem;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.am-nav{display:flex;gap:.4rem;align-items:center}
 .am-firma{margin:.1rem 0 .55rem;padding:.4rem .55rem;border-radius:8px;background:color-mix(in srgb,var(--y) 10%,transparent);display:flex;flex-wrap:wrap;gap:.3rem .5rem;align-items:center}
 tr.am-lf td input{color:#c0621f}
+.am-zz{position:absolute;cursor:copy;border-radius:2px}.am-zz:hover{background:rgba(31,157,76,.18);outline:1px solid #1f9d4c}.am-zz.ok{background:rgba(31,157,76,.12)}
+.am-zk table{font-size:.84rem}
 @media (max-width:900px){.am-split{grid-template-columns:1fr}.am-r{position:static;height:70vh}}
 .pjw{display:grid;grid-template-columns:17.5rem minmax(0,1fr);gap:.9rem;align-items:start}.pjw.zu{grid-template-columns:2.2rem minmax(0,1fr)}
 .pjm{min-width:0}
@@ -1242,10 +1244,11 @@ document.addEventListener('dblclick', (e) => {
   setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30);
 });
 /* Rechnung / Aufmaß der Firma neben der Prüfung: PDF rechts, Positionen Schritt für Schritt, erkannte Mengen eintragen */
+const AMNEU = new Set();
 let AMB = LS.get('amB', 0), amNurR = LS.get('amNurR', false), AMV = null;
 const amRe = () => (L ? L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
 const amBelege = () => { const r = amRe(); return r ? r.belege || [] : []; };
-function amTreffer(pid) { let t = null; for (const b of amBelege()) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
+function amTreffer(pid) { let t = null; for (const b of [...amBelege()].sort((x, y) => (y.id === AMB) - (x.id === AMB))) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
 const amListe = () => posOf().filter((p) => (!amNur || L.aufmass.some((a) => a.pos_id === p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id)));
 function vAmErfassen() {
   const P = posOf(), AM = L.aufmass, K = L.calc, B = amBelege(), R = amRe();
@@ -1280,7 +1283,23 @@ function vAmErfassen() {
   if (!B.length) return `${kopf}<div class="am-zone" data-amdrop>${hoch}<span class="hint">oder hierher ziehen – sie erscheint rechts neben der Prüfung, erkannte Mengen werden gleich eingetragen${R && R.status !== 'geprueft' ? ` (zur ${esc(reTitel(R))})` : ' (legt eine neue Teilrechnung an)'}. Ohne PDF einfach hier prüfen.</span></div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:1rem;align-items:start" class="amg">${tab_}${detail}</div>
     <style>@media (max-width:900px){.amg{grid-template-columns:1fr!important}}</style>`;
-  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
+  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amZeilenKarte(R)}${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
+}
+/* Zeilen der PDF ohne LV-Position (Regie, Material …): in die Rechnung übernehmen */
+function amZeilenKarte(R) {
+  const Z = []; amBelege().forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id })));
+  if (!Z.length || !R) return '';
+  const sum = Z.reduce((a, z) => a + (z.gp || 0), 0), g = R.status === 'geprueft';
+  const knopf = R.art === 'regie' ? `<span style="color:var(--ok);font-weight:600">✓ ${(R.data.zeilen || []).length} Zeilen stehen in der ${esc(reTitel(R))}</span> <button class="btn sm" data-tab="rechnungen">ansehen</button>`
+    : g ? '' : `<button class="btn sm pri" data-amz2="regie" title="Rechnung als Regierechnung führen – die Zeilen werden Stundenlohn-/Materialzeilen">Als Regierechnung übernehmen</button><button class="btn sm" data-amz2="frei" title="Ohne Aufmaß: Summe der Zeilen als geprüften Betrag eintragen">Summe frei übernehmen (${eur(sum)})</button>`;
+  return `<div class="card am-zk"><b>In der PDF ohne LV-Position</b> <span class="hint">${Z.length} Zeile${Z.length === 1 ? '' : 'n'} · ${eur(sum)} netto${amBelege().some((b) => b.auslese && b.auslese.ocr) ? ' · per Texterkennung aus dem Scan – bitte prüfen' : ''}</span>
+    <table class="lv am" style="margin:.4rem 0"><thead><tr><th>Text</th><th class="r">Menge</th><th>Einh.</th><th class="r">EP</th><th class="r">Betrag</th></tr></thead><tbody>
+    ${Z.map((z, k) => `<tr data-amzl="${k}" style="cursor:pointer" title="in der PDF zeigen"><td>${esc(z.text)}</td><td class="r">${nf(z.menge)}</td><td>${esc(z.einheit || '')}</td><td class="r">${nf2(z.ep)}</td><td class="r">${nf2(z.gp)}</td></tr>`).join('')}</tbody></table>
+    <div class="bar" style="margin:0">${knopf}</div></div>`;
+}
+function amZeigeBox(bid, seite, box) {
+  if (!AMV || AMV.bid !== bid) { AMB = bid; LS.set('amB', AMB); AMV = null; amPdfMount(); return; }
+  amPdfZeige(null, false, { seite, box, bid });
 }
 /* PDF-Ansicht (pdf.js), bleibt beim Neuzeichnen der Ansicht erhalten */
 async function amPdfMount() {
@@ -1288,8 +1307,9 @@ async function amPdfMount() {
   if (!B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[0]).id;
   if (!AMV || AMV.bid !== AMB) { AMV = { bid: AMB, el: document.createElement('div'), pages: [], zoom: LS.get('amZoom', 1) }; AMV.el.className = 'am-pv'; AMV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; amPdfLaden(AMV); }
   const b = B.find((y) => y.id === AMB), A = b.auslese;
+  if (!A || !A.zahlen) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
   slot.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
-    <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${Object.keys(A.pos || {}).length} Positionen erkannt`) : ''}</span><span class="fill"></span>
+    <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? 'Scan, per Texterkennung gelesen · ' : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · Zahlen anklicken übernimmt sie in den Rechenweg`) : ''}</span><span class="fill"></span>
     <button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF entfernen">✕</button></div>`;
   slot.appendChild(AMV.el);
   if (AMV.pdf) amPdfZeige(amPos);
@@ -1309,13 +1329,16 @@ async function amPdfZeichnen(V) {
     wrap.appendChild(cv); V.el.appendChild(wrap); V.pages.push(wrap);
     await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
     if (AMV !== V) return;
+    const b = amBelege().find((y) => y.id === V.bid), zs = (b && b.auslese && b.auslese.zahlen && b.auslese.zahlen[n]) || [];
+    zs.forEach(([x0, y0, x1, y1, w]) => { const d = document.createElement('div'); d.className = 'am-zz'; d.dataset.v = w; d.title = `${nf(w)} in den Rechenweg übernehmen`;
+      Object.assign(d.style, { left: x0 * 100 + '%', top: y0 * 100 + '%', width: (x1 - x0) * 100 + '%', height: (y1 - y0) * 100 + '%' }); wrap.appendChild(d); });
   }
 }
-function amPdfZeige(pid, sofort) {
+function amPdfZeige(pid, sofort, direkt) {
   const V = AMV; if (!V || !V.pages.length) return;
-  const t = amTreffer(pid); V.el.querySelectorAll('.am-hl').forEach((h) => h.remove());
+  const t = direkt || amTreffer(pid); V.el.querySelectorAll('.am-hl').forEach((h) => h.remove());
   if (!t) return;
-  if (t.bid !== V.bid) { AMB = t.bid; LS.set('amB', AMB); amPdfMount(); return; }
+  if (t.bid !== V.bid) return;   // steht in der anderen PDF – Reiter oben wechselt
   const wrap = V.pages[t.seite - 1]; if (!wrap) return;
   const [x0, y0, x1, y1] = t.box, hl = document.createElement('div'); hl.className = 'am-hl';
   Object.assign(hl.style, { left: `calc(${x0 * 100}% - 4px)`, top: `calc(${y0 * 100}% - 3px)`, width: `calc(${(x1 - x0) * 100}% + 8px)`, height: `calc(${(y1 - y0) * 100}% + 6px)` });
@@ -1365,6 +1388,13 @@ function amSchritt(d) {
 document.addEventListener('click', async (e) => {
   if (tab !== 'aufmass' || !L) return;
   const s = e.target.closest('[data-amstep]'); if (s) return amSchritt(+s.dataset.amstep);
+  const zz = e.target.closest('.am-zz'); if (zz) { const f = document.querySelector('[data-am-new="formel"]'); if (!f) return; const w = String(+zz.dataset.v).replace('.', ',');
+    f.value = f.value.trim() ? f.value.trim() + ' + ' + w : w; f.dispatchEvent(new Event('input', { bubbles: true })); f.focus(); zz.classList.add('ok'); return; }
+  const zl = e.target.closest('[data-amzl]'); if (zl) { const Z = []; amBelege().forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id }))); const z = Z[+zl.dataset.amzl]; if (z) amZeigeBox(z.bid, z.seite, z.box); return; }
+  const z2 = e.target.closest('[data-amz2]'); if (z2) { const R = amRe(); if (!R) return; const Z = []; amBelege().forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push(z)));
+    try { if (z2.dataset.amz2 === 'regie') { await call('api/rechnungen/' + R.id, 'PUT', { art: 'regie', zeilen: Z.map((z) => ({ text: z.text, menge: z.menge, einheit: z.einheit || '', ep: z.ep })) }); toast('Als Regierechnung übernommen – unter „Rechnungen“ prüfen.'); }
+      else { await call('api/rechnungen/' + R.id, 'PUT', { frei: Z.reduce((a, z) => a + (z.gp || 0), 0) }); toast('Summe als geprüfter Betrag (ohne Aufmaß) eingetragen – unter „Rechnungen“ prüfen.'); } } catch (er) { toast(er.message, true); }
+    return; }
   const u = e.target.closest('[data-amueb]'); if (u) return amUebernehmen(u.dataset.amueb === '*' ? null : u.dataset.amueb);
   const b = e.target.closest('[data-amb]'); if (b) { AMB = +b.dataset.amb; LS.set('amB', AMB); return amPdfMount(); }
   const z = e.target.closest('[data-amz]'); if (z && AMV && AMV.pdf) { AMV.zoom = Math.max(0.5, Math.min(3, AMV.zoom * (+z.dataset.amz > 0 ? 1.2 : 1 / 1.2))); LS.set('amZoom', AMV.zoom); await amPdfZeichnen(AMV); amPdfZeige(amPos, true); return; }

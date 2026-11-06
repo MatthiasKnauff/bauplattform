@@ -594,6 +594,11 @@ def blueprint(get_user=None):
                 b = request.get_json(silent=True) or {}
                 d = posteingang.lesen(c, uid)
                 mid = str(b.get("id") or "")[:200]
+                if b.get("wie") in ("aus", "ein"):   # Mail nur hier ausblenden / wieder einblenden – die Mail selbst bleibt unberührt
+                    aus = set(json.loads(konto._get(c, f"post:aus:{uid}") or "[]"))
+                    (aus.add if b["wie"] == "aus" else aus.discard)(mid)
+                    konto._put(c, f"post:aus:{uid}", json.dumps(sorted(aus)[-2000:]), "posteingang")
+                    return jsonify(ok=True)
                 if b.get("wie") == "zurueck":   # Verwerfen rückgängig: Vorschlag wieder an die Mail
                     d.setdefault("erledigt", {}).pop(mid, None)
                     v = b.get("vorschlag") if isinstance(b.get("vorschlag"), dict) else {}
@@ -614,6 +619,8 @@ def blueprint(get_user=None):
                 d = posteingang.abrufen(c, u)
             if d.get("mails"):   # „eigene Kopien ausblenden“ und „einen Tag sichtbar“ gelten sofort, auch für schon gelesene Mails
                 d["mails"] = posteingang.sichtbar(c, uid, posteingang.eigene_filtern(c, u, d["mails"]))
+                aus = set(json.loads(konto._get(c, f"post:aus:{uid}") or "[]"))
+                d["mails"] = [{**m, "aus": True} if m.get("id") in aus else m for m in d["mails"]]
             abruf = posteingang.postfaecher(c, uid)["abruf"]
         return jsonify(**d, eingerichtet=ein, abruf=abruf)
 

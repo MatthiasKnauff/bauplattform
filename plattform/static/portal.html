@@ -48,6 +48,9 @@
 .pm .t .g{color:var(--mute);font-size:.76rem}
 .pm .z{color:var(--mute);font-size:.8rem;white-space:nowrap;text-align:right}
 .pm .z .ib2{border:0;background:none;cursor:pointer;font-size:1rem;padding:.15rem .2rem;opacity:.55}.pm .z .ib2:hover{opacity:1}
+.pm .z .pmx{font-size:.8rem;color:var(--mute);margin-right:.2rem;opacity:.45}.pm:hover .z .pmx{opacity:.9}
+.post-aus{margin-top:.7rem;border-top:1px solid var(--line);padding-top:.4rem}.post-aus summary{cursor:pointer;color:var(--mute);font-size:.88rem}
+.post-aus .pg-a{opacity:.75}.post-aus .pg-a>small{display:block;margin:.4rem 0 -.2rem .2rem}
 .vs .vst{flex:1;min-width:12rem;font:inherit;font-weight:600}
 .pm .z .pf{display:inline-block;max-width:14rem;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 @media (max-width:640px){.pm .z .pf{max-width:7rem}}
@@ -132,7 +135,7 @@ $('#tiles').addEventListener('click', async (e) => {
   T.addEventListener('pointerup', ende); T.addEventListener('pointercancel', ende);
 })();
 /* ---------- Post zu meinen Projekten: einmal am Tag aus den Postfächern, mit Vorschlägen für Erinnerungen ---------- */
-let POST = null, POSTALLE = false, POSTLAEUFT = false;
+let POST = null, POSTALLE = false, POSTLAEUFT = false, POSTAUSOFFEN = false;
 const ARTIC = { Rechnung: '🧾', Schlussrechnung: '🧾', Nachtrag: '📝', Angebot: '📝', Behinderung: '⚠️', Mangel: '⚠️', Termin: '📅', Plan: '📐', Nachricht: '✉️' };
 const WICHTIG = new Set(['Rechnung', 'Schlussrechnung', 'Nachtrag', 'Angebot', 'Behinderung', 'Mangel', 'Termin']);
 const zeitTxt = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; const h = new Date(); const gleich = d.toDateString() === h.toDateString(); return gleich ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
@@ -141,18 +144,19 @@ function postZeigen() {
   const kopf = `<div class="post-h"><h2>📬 Post zu deinen Projekten</h2><span class="mute">${D.stand ? `seit ${zeitTxt(D.seit)} · Stand ${zeitTxt(D.stand)}` : ''}${D.abruf ? ' · ' + ({ tag: 'automatisch um ' + D.abruf.uhrzeit, zweimal: 'automatisch 2× täglich ab ' + D.abruf.uhrzeit, stuendlich: 'automatisch stündlich', hand: 'nur von Hand' })[D.abruf.rhythmus] : ''}${POSTLAEUFT ? ' · wird abgerufen …' : ''}</span><span style="flex:1"></span>
     ${D.eingerichtet ? `<button class="btn sm" data-post="neu" ${POSTLAEUFT ? 'disabled' : ''} title="Postfächer jetzt lesen">↻ Jetzt abrufen</button>` : ''}</div>`;
   if (!D.eingerichtet) { box.innerHTML = kopf + `<p class="mute" style="margin:.2rem 0 0">Hier stehen jeden Morgen um 8 Uhr die Mails der letzten Tage (beides einstellbar) zu deinen Projekten – Rechnungen, Nachträge, Termine – mit Vorschlägen für Erinnerungen. Dazu einmal unter <a href="#" data-post="pf">⚙ → Startseite → Posteingang</a> dein Büro-Postfach einschalten oder eigene Postfächer eintragen.</p>`; return; }
-  const M = D.mails || [];
+  const M = (D.mails || []).filter((m) => !m.aus), AUS = (D.mails || []).filter((m) => m.aus);   // ausgeblendete Mails unten, zugeklappt
   const grp = {}; M.forEach((m) => { (grp[m.pid] ||= { name: m.projekt, mails: [] }).mails.push(m); });
   const G = Object.values(grp).sort((a, b) => b.mails.filter((m) => WICHTIG.has(m.art)).length - a.mails.filter((m) => WICHTIG.has(m.art)).length || b.mails.length - a.mails.length);
   const zeile = (m) => `<div class="pm"><span class="ic2" title="${esc(m.art)}">${ARTIC[m.art] || '✉️'}</span>
       <span class="t">${m.link ? `<a class="s" href="${esc(m.link)}" target="bp-outlook" title="In Outlook öffnen (immer dieselbe Registerkarte)">` : '<span class="s">'}<span class="art${WICHTIG.has(m.art) ? ' w' : ''}">${esc(m.art)}</span><b>${esc(m.von_name || m.von)}</b> – ${esc(m.betreff || '(ohne Betreff)')}${m.link ? '</a>' : '</span>'}
         <span class="v">${esc(m.vorschau || '')}${m.anhaenge && m.anhaenge.length ? ' · 📎 ' + esc(m.anhaenge.join(', ')) : ''}</span><span class="g">${esc(m.grund || '')}</span></span>
-      <span class="z">${m.quelle ? `<span class="pf" title="Postfach: ${esc(m.quelle)}">📥 ${esc(m.quelle)}</span> · ` : ''}${esc(zeitTxt(m.zeit))}${m.erinnerung ? `<br><span class="erl" title="Bleibt hier, bis die Erinnerung erledigt ist">⏰ ${esc(new Date(m.erinnerung).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }))}</span>` : m.vorschlag ? '' : `<br><button class="ib2" data-post="erinnern" data-mid="${esc(m.id)}" title="Erinnerung zu dieser Mail anlegen">⏰</button>`}<button class="ib2" data-post="aufgabe" data-mid="${esc(m.id)}" title="Aufgabe in den To-dos anlegen">☑</button>${m.link && HANDY ? '<br><a class="app" href="ms-outlook://" title="Outlook-App öffnen">📱 App</a>' : ''}</span>
+      <span class="z"><button class="ib2 pmx" data-post="${m.aus ? 'ein' : 'aus'}" data-mid="${esc(m.id)}" title="${m.aus ? 'Wieder einblenden' : 'Hier ausblenden – die Mail selbst bleibt unverändert'}" aria-label="${m.aus ? 'Einblenden' : 'Ausblenden'}">${m.aus ? '↺' : '✕'}</button>${m.quelle ? `<span class="pf" title="Postfach: ${esc(m.quelle)}">📥 ${esc(m.quelle)}</span> · ` : ''}${esc(zeitTxt(m.zeit))}${m.erinnerung ? `<br><span class="erl" title="Bleibt hier, bis die Erinnerung erledigt ist">⏰ ${esc(new Date(m.erinnerung).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }))}</span>` : m.vorschlag ? '' : `<br><button class="ib2" data-post="erinnern" data-mid="${esc(m.id)}" title="Erinnerung zu dieser Mail anlegen">⏰</button>`}<button class="ib2" data-post="aufgabe" data-mid="${esc(m.id)}" title="Aufgabe in den To-dos anlegen">☑</button>${m.link && HANDY ? '<br><a class="app" href="ms-outlook://" title="Outlook-App öffnen">📱 App</a>' : ''}</span>
       ${m.vorschlag ? `<div class="vs" data-vs="${esc(m.id)}">⏰ <span>Erinnerung:</span><input class="vst" value="${esc(m.vorschlag.titel)}" aria-label="Text der Erinnerung"><span>am</span><input type="date" value="${esc(m.vorschlag.termin)}" aria-label="Datum der Erinnerung"><button class="btn sm pri" data-post="anlegen">Anlegen</button><button class="btn sm" data-post="nein" title="Vorschlag verwerfen">✕</button></div>` : ''}</div>`;
   const body = G.length ? G.map((g) => { const w = g.mails.filter((m) => WICHTIG.has(m.art)).length, zeig = POSTALLE ? g.mails : g.mails.slice(0, 4);
     return `<div class="pg"><div class="pg-h"><b>${esc(g.name)}</b><small>${g.mails.length} Mail${g.mails.length > 1 ? 's' : ''}${w ? ` · ${w} wichtig` : ''}</small></div>${zeig.map(zeile).join('')}${zeig.length < g.mails.length ? `<button class="btn sm" data-post="alle" style="margin-top:.3rem">+ ${g.mails.length - zeig.length} weitere</button>` : ''}</div>`; }).join('')
     : `<p class="mute" style="margin:.2rem 0 0">${D.stand ? `Keine Mails zu deinen Projekten${D.gelesen ? ` (${D.gelesen} Mails gelesen)` : ''}.${D.projekte === 0 ? ' Du bist im Bautagebuch bei keinem Projekt als zuständig eingetragen.' : ''}` : 'Noch nicht abgerufen.'}</p>`;
-  box.innerHTML = kopf + body + ((D.fehler || []).length ? `<div class="fehler">${D.fehler.map(esc).join('<br>')}</div>` : '') + (G.length && !POSTALLE && M.length > 4 ? '<div style="margin-top:.6rem"><button class="btn sm" data-post="alle">Alle anzeigen</button></div>' : '');
+  const ausH = AUS.length ? `<details class="post-aus"${POSTAUSOFFEN ? ' open' : ''}><summary>Ausgeblendet (${AUS.length})</summary>${AUS.map((m) => `<div class="pg-a"><small class="mute">${esc(m.projekt || '')}</small>${zeile(m)}</div>`).join('')}</details>` : '';
+  box.innerHTML = kopf + body + ausH + ((D.fehler || []).length ? `<div class="fehler">${D.fehler.map(esc).join('<br>')}</div>` : '') + (G.length && !POSTALLE && M.length > 4 ? '<div style="margin-top:.6rem"><button class="btn sm" data-post="alle">Alle anzeigen</button></div>' : '');
 }
 async function postLaden(arg) {
   if (arg) { POSTLAEUFT = true; postZeigen(); }
@@ -166,6 +170,12 @@ document.addEventListener('click', async (e) => {
   if (a === 'neu') return postLaden('?neu=1');
   if (a === 'pf') { if (window.BPHead && BPHead.einstellungen) BPHead.einstellungen({ bereich: 'app', teil: 'post' }); return; }
   if (a === 'alle') { POSTALLE = true; postZeigen(); return; }
+  if (a === 'aus' || a === 'ein') {   // nur hier aus-/einblenden
+    const m = (POST.mails || []).find((x) => x.id === b.dataset.mid); if (!m) return;
+    const setz = async (an) => { await api('api/bp/post', 'POST', { id: m.id, wie: an ? 'aus' : 'ein' }); if (an) m.aus = true; else delete m.aus; POSTAUSOFFEN = !!document.querySelector('.post-aus[open]'); postZeigen(); };
+    try { await setz(a === 'aus'); if (a === 'aus') rueckgaengig('Mail ausgeblendet – unten unter „Ausgeblendet“', () => setz(false)); } catch (er) { toast(er.message, true); }
+    return;
+  }
   if (a === 'aufgabe') {   // Mail → To-do (mit Link zur Mail in der Notiz)
     const m = (POST.mails || []).find((x) => x.id === b.dataset.mid); if (!m) return;
     try {

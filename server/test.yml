@@ -56,7 +56,7 @@ x-env: &env
 services:
   bautagebuch_db:
     image: postgres:15
-    container_name: bauportal_db   # Daten der ganzen Bauplattform (früher „Bautagebuch_db“; Volume unverändert)
+    container_name: bauplattform_db   # Daten der ganzen Bauplattform (früher „bauportal_db“/„Bautagebuch_db“; Volume unverändert)
     restart: unless-stopped
     environment:
       POSTGRES_USER: bautagebuch
@@ -73,7 +73,7 @@ services:
 
   bautagebuch:
     image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:001b2f5
-    container_name: bautagebuch
+    container_name: bauplattform_bautagebuch
     restart: unless-stopped
     depends_on:
       bautagebuch_db: { condition: service_healthy }
@@ -87,7 +87,7 @@ services:
 
   gantt:
     image: ghcr.io/matthiasknauff/bauplattform/gantt:001b2f5
-    container_name: bauzeitenplan
+    container_name: bauplattform_bauzeitenplan
     restart: unless-stopped
     depends_on:
       bautagebuch: { condition: service_healthy }

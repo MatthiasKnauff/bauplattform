@@ -16,7 +16,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 VER=$(cat VERSION 2>/dev/null || echo "?")
-DB_NEW=bauportal_db      # Datenbank-Container (früher „Bautagebuch_db“)
+DB_NEW=bauplattform_db   # Datenbank-Container (früher „bauportal_db“, davor „Bautagebuch_db“)
+DB_MID=bauportal_db
 DB_OLD=Bautagebuch_db
 APPS="bautagebuch gantt portal admin adressen baukosten bauportal"
 
@@ -38,7 +39,7 @@ publish_of() {   # Container, Port im Container → "8080" oder "127.0.0.1:8080"
     | awk -F'|' 'NF==2 && $2!="" { if ($1!="" && $1!="0.0.0.0" && $1!="::") print $1":"$2; else print $2; exit }'
 }
 rand()       { head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
-db_container(){ if exists "$DB_NEW"; then echo "$DB_NEW"; elif exists "$DB_OLD"; then echo "$DB_OLD"; else echo "$DB_NEW"; fi; }
+db_container(){ if exists "$DB_NEW"; then echo "$DB_NEW"; elif exists "$DB_MID"; then echo "$DB_MID"; elif exists "$DB_OLD"; then echo "$DB_OLD"; else echo "$DB_NEW"; fi; }
 DB=$(db_container)
 getenv_file(){ sed -n "s/^$1=//p" .env | tail -n1 | sed "s/^'\(.*\)'$/\1/; s/^\"\(.*\)\"$/\1/"; }
 setenv() {     # Schlüssel Wert → .env (Wert in einfachen Anführungszeichen, damit $ & usw. wörtlich gelten)
@@ -156,7 +157,7 @@ docker compose build --pull
 backup
 
 say "Stelle um"
-for c in "$DB_OLD" "$DB_NEW" bautagebuch gantt-app bauzeitenplan bauplattform_portal bauplattform_admin; do
+for c in "$DB_OLD" "$DB_MID" "$DB_NEW" bautagebuch gantt-app bauzeitenplan bauplattform_portal bauplattform_admin; do
   if exists "$c" && [ "$(project_of "$c")" != "bauplattform" ]; then
     info "Entferne bisherigen Container „$c“ (Daten bleiben in den Volumes)"
     docker rm -f "$c" >/dev/null

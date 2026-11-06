@@ -14,7 +14,7 @@ einem eigenen Container für die Verwaltung und einem Skript, das neue Versionen
 | Baudaten (Positionsdatenbank, Kataloge, eigene Preise) | `http://server:8099` | `bauplattform_baudaten` |
 | Verwaltung (nur Administratoren) | `http://server:8091` | `bauplattform_admin` |
 | KI im Büro (Ollama) | nur intern (`http://ollama:11434`) | `bauplattform_ollama` (+ `bauplattform_ollama_modell` lädt das Modell) |
-| Datenbank (PostgreSQL 15) für alle Apps | nur intern | `bauportal_db` (früher `Bautagebuch_db`), Volume `bauportal_pgdata` (früher `bautagebuch_pgdata`) |
+| Datenbank (PostgreSQL 15) für alle Apps | nur intern | `bauplattform_db` (früher `bauportal_db` bzw. `Bautagebuch_db`), Volume `bauportal_pgdata` (früher `bautagebuch_pgdata`) |
 
 ```
             Browser ──► :8090 Startseite ──┐  Anmeldung (Cookie gilt für alle Ports dieses Servers)

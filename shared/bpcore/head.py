@@ -698,8 +698,15 @@ def blueprint(get_user=None):
             txt = (f"Hallo {skizze.name_von(r)},\n\n{wer} hat dir eine Aufgabe zugewiesen:\n\n    {x['titel']}\n\n"
                    + (f"Projekt: {pr['name']}\n" if pr else "") + (f"Fällig: {datetime.fromisoformat(x['faellig']).strftime('%d.%m.%Y')}\n" if x["faellig"] else "")
                    + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {PF.link('portal', '', cf)}\n" if PF.link("portal", "", cf) else ""))
+            inv = None
+            if x["faellig"]:   # mit Fälligkeit: als ganztägiger Termin zum Annehmen (Outlook & Co. tragen ihn in den Kalender ein)
+                from . import ical
+                host = (cf.get("app_url") or "bauplattform").split("//")[-1].split("/")[0] or "bauplattform"
+                inv = ical.einladung(f"todo-{x.get('id') or x['titel'][:20]}-{r['id']}@{host}", x["faellig"], None, 0, f"Aufgabe: {x['titel'][:120]}",
+                                     txt, "", u["email"] or cf.get("mail_user") or "", wer, r["email"], skizze.name_von(r), alarm_min=0, ganztags=True)
+                txt += "\nIm Anhang als Termin – „Annehmen“ trägt die Fälligkeit in deinen Kalender ein (termin.ics öffnen: Kalender selbst wählen).\n"
             try:
-                M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None)
+                M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, ical=inv)
             except Exception as e:
                 fehl.append(f"{skizze.name_von(r)}: {e}")
         return "; ".join(fehl)
@@ -726,7 +733,7 @@ def blueprint(get_user=None):
             r = c.execute("""INSERT INTO todo(titel, notiz, project_id, faellig, prio, personen, mail, status, erstellt, erstellt_von, erstellt_name, geaendert)
                              VALUES(?,?,?,?,?,?,?,'offen',?,?,?,?) RETURNING id""",
                           (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, uid, skizze.name_von(u), jetzt)).fetchone()
-            hinweis = _todo_mail(c, u, x, set(x["personen"])) if x["mail"] and x["personen"] else ""
+            hinweis = _todo_mail(c, u, {**x, "id": r["id"]}, set(x["personen"])) if x["mail"] and x["personen"] else ""
             row = todo.darf(c, u, r["id"])
             return jsonify(aufgabe=todo._zeile(row, todo.benutzer(c), todo.dateien(c, [row['id']])), hinweis=hinweis)
 
@@ -757,7 +764,7 @@ def blueprint(get_user=None):
                 c.execute("UPDATE todo SET titel=?, notiz=?, project_id=?, faellig=?, prio=?, personen=?, mail=?, geaendert=? WHERE id=?",
                           (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, tid))
             neu = set(x["personen"]) - set(todo._ids(alt["personen"]))
-            hinweis = _todo_mail(c, u, x, neu) if x["mail"] and neu else ""
+            hinweis = _todo_mail(c, u, {**x, "id": tid}, neu) if x["mail"] and neu else ""
             return jsonify(aufgabe=todo._zeile(todo.darf(c, u, tid) or alt, todo.benutzer(c), todo.dateien(c, [tid])), hinweis=hinweis)
 
     @bp.post("/api/bp/todo/<int:tid>/datei")

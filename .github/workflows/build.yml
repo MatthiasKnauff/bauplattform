@@ -73,10 +73,65 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
 
+  # Rauchtest: die eben gebauten Images mit frischer Datenbank und Testdaten starten, anmelden, jede App aufrufen.
+  # Schlägt er fehl, wird KEINE Version eingetragen – Test- bzw. Produktivserver laufen mit dem alten Stand weiter.
+  rauchtest:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_PASSWORD: rauchtest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compose-Datei für den Test vorbereiten
+        run: |
+          # genau die Datei, die der Server bekommt: bei Freigabe die Produktiv-Fassung, sonst die des Testservers
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            SRC=server/docker-compose.yml; [ -f server/produktiv-naechste.yml ] && SRC=server/produktiv-naechste.yml
+          else
+            SRC=server/test.yml
+          fi
+          echo "Vorlage: $SRC"
+          cp "$SRC" rauchtest.yml
+          sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${GITHUB_SHA::7}#" rauchtest.yml
+          sed -i '/^\s*external: true/d' rauchtest.yml     # frische, leere Volumes statt der vorhandenen Serverdaten
+          grep -n "image: ${REGISTRY}" rauchtest.yml
+          # Ollama (eigene KI) braucht mehrere GB Modelle – im Rauchtest nicht nötig
+          docker compose -p rauchtest -f rauchtest.yml config --services | grep -v '^ollama' | tr '\n' ' ' > dienste.txt
+          echo "Dienste: $(cat dienste.txt)"
+
+      - name: Plattform starten
+        run: docker compose -p rauchtest -f rauchtest.yml up -d --wait --wait-timeout 300 $(cat dienste.txt)
+
+      - name: Testdaten anlegen
+        run: docker compose -p rauchtest -f rauchtest.yml exec -T bautagebuch python tools/testdaten.py
+
+      - name: Rauchtest
+        run: python3 tools/rauchtest.py http://localhost:${PORTAL_PUBLISH:-8090}
+
+      - name: Fehlermeldungen in den Protokollen
+        if: always()
+        run: |
+          docker compose -p rauchtest -f rauchtest.yml ps -a
+          if docker compose -p rauchtest -f rauchtest.yml logs --no-color 2>&1 | grep -n -B2 -A12 "Traceback"; then
+            echo "::warning::In den Protokollen stehen Python-Fehlermeldungen (siehe oben)."
+          fi
+
+      - name: Protokolle bei Fehler
+        if: failure()
+        run: docker compose -p rauchtest -f rauchtest.yml logs --no-color --tail 150
+
   # Push auf main  -> server/test.yml (Testserver) bekommt den neuen Stand
   # Tag v…         -> server/docker-compose.yml (Produktiv, Docker 2) bekommt die freigegebene Version
   version-eintragen:
-    needs: build
+    needs: [build, rauchtest]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

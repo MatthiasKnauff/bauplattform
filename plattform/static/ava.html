@@ -122,6 +122,8 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .wspin i:nth-child(2){animation-delay:.24s}.wspin i:nth-child(3){animation-delay:.48s}.wspin i:nth-child(4){animation-delay:.72s}.wspin i:nth-child(5){animation-delay:.96s}
 @keyframes wspin{0%{transform:rotate(225deg);opacity:1;animation-timing-function:ease-out}7%{transform:rotate(345deg);animation-timing-function:linear}30%{transform:rotate(455deg);animation-timing-function:ease-in-out}39%{transform:rotate(690deg);animation-timing-function:linear}70%{transform:rotate(815deg);opacity:1;animation-timing-function:ease-out}75%{transform:rotate(945deg);animation-timing-function:ease-out}76%,100%{transform:rotate(945deg);opacity:0}}
 @media (prefers-reduced-motion:reduce){.wspin i{animation-duration:9s}}
+.qu tr.qg td,.qu tr.qb td{cursor:pointer;background:var(--tabs)}.qu tr.qb td{background:color-mix(in srgb,var(--y) 10%,var(--card))}.qu tr.qg.auf td{font-weight:600}.qu tr.qg td:first-child,.qu tr.qb td:first-child{color:var(--mute);text-align:center}
+.qu-favs{display:flex;gap:.3rem;flex-wrap:wrap;padding:.35rem .5rem;border-bottom:1px solid var(--line)}.qu-fav{font:inherit;font-size:.76rem;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:.1rem .55rem;cursor:pointer;color:var(--ink)}.qu-fav.on{border-color:var(--y);background:color-mix(in srgb,var(--y) 14%,transparent)}
 .qu table{width:100%;border-collapse:collapse;font-size:12.5px}
 .qu td,.qu th{padding:.2rem .35rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
 .qu th{position:sticky;top:0;background:var(--tabs);font-weight:500;z-index:1}
@@ -396,7 +398,7 @@ html.mobil .bph{position:sticky;top:0}
 .am-firma{margin:.1rem 0 .55rem;padding:.4rem .55rem;border-radius:8px;background:color-mix(in srgb,var(--y) 10%,transparent);display:flex;flex-wrap:wrap;gap:.3rem .5rem;align-items:center}
 tr.am-lf td input{color:#c0621f}
 .am-zz{position:absolute;cursor:copy;border-radius:2px}.am-zz:hover{background:rgba(31,157,76,.18);outline:1px solid #1f9d4c}.am-zz.ok{background:rgba(31,157,76,.12)}
-.am-zk table{font-size:.84rem}
+.am-zk table{font-size:.84rem}.am-ki{font-size:.78rem;margin-top:.15rem}.am-ki.ok{color:var(--ok)}.am-ki.vs{color:#c0621f}.am-ki .ib{font-size:.8rem;padding:0 .25rem}
 .am-mk{position:absolute;transform:translateY(-55%);font-weight:800;font-size:clamp(11px,1.6vw,17px);line-height:1;pointer-events:none;white-space:nowrap;z-index:2}
 .am-mk.ok{color:#1f9d4c}.am-mk.no{color:#e02424}.am-mk small{position:absolute;right:-.2em;top:110%;font-size:clamp(8px,.72vw,11px);font-weight:700;background:#fff;border:1px solid #e02424;border-radius:4px;padding:0 .3em;box-shadow:0 1px 3px #0003}
 @media (max-width:900px){.am-split{grid-template-columns:1fr}.am-r{position:static;height:70vh}}
@@ -633,6 +635,8 @@ async function avaDokument(f) {
   try { const r = await fetch('api/ava/erkennen', { method: 'POST', body: fd, credentials: 'same-origin' }); E = await r.json(); if (!r.ok) throw new Error(E.error || 'Fehler ' + r.status); }
   catch (e) { toast(e.message, true); return; }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
+  { const vg = { angebote: 'angebot', aufmass: 'rechnung', rechnungen: 'rechnung', lv: 'lv' }[tab];   // Bereich, in dem ich gerade bin = Vorgabe; eindeutiger Text gewinnt
+    if (vg && (!E.sicher || !E.dok)) E.dok = vg; }
   return new Promise((fertig) => {
     let projId = (E.projekte[0] || {}).id || pid || null, lvs = E.lvs || [];
     const ABL = { ordner: null, hand: false, tok: 0 };
@@ -768,6 +772,7 @@ async function avaAblegen(f, E, o) {
     tab = 'angebote'; LS.set('tab', tab); render();
     if (E.format === 'pdf') {
       const fd = new FormData(); fd.append('datei', f); fd.append('bieter', o.firma || f.name); if (K) fd.append('contact_id', K.id);
+      if (window.BPHead && BPHead.ki && BPHead.ki !== 'intern') { fd.append('ki', '1'); toast('Angebot wird gelesen, übrige Zeilen ordnet die KI zu …'); }
       const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
       L = j; render(); toast(j.hinweis || 'Angebot übernommen.'); refreshList(); await ablegen(); return;
     }
@@ -1591,7 +1596,7 @@ function vAmErfassen() {
     return `<tr class="${p.id === amPos ? 'sel' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="oz">${esc(p.oz)}</td><td>${esc(p.kurz)}${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r">${m ? nf(m) : ''}</td><td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}">${pct != null && m ? pct + ' %' : ''}</td></tr>`; }).join('');
   const ep = VP[amPos], t = B.length ? amTreffer(amPos) : null, diff = t && t.menge != null ? t.menge - sum : 0;
   const firma = !B.length ? '' : `<div class="am-firma">${!t ? '<span class="hint">In der PDF der Firma nicht gefunden.</span>'
-    : `lt. Firma <span class="hint">(S. ${t.seite})</span>: ${t.menge != null ? `<b>${nf(t.menge)} ${esc(x.einheit)}</b>${t.ep != null ? ` · EP ${nf2(t.ep)}` : ''}${t.gp != null ? ` · GP ${nf2(t.gp)}` : ''}` : 'gefunden, Menge nicht sicher lesbar'}
+    : `lt. Firma <span class="hint">(S. ${t.seite}${t.ki ? `, per KI zugeordnet ${Math.round(t.ki * 100)} %` : ''})</span>: ${t.menge != null ? `<b>${nf(t.menge)} ${esc(x.einheit)}</b>${t.ep != null ? ` · EP ${nf2(t.ep)}` : ''}${t.gp != null ? ` · GP ${nf2(t.gp)}` : ''}` : 'gefunden, Menge nicht sicher lesbar'}
       ${t.ep != null && ep != null && Math.abs(t.ep - ep) > 0.005 ? ` <span style="color:#e07b3a;font-weight:600">EP weicht vom Auftrag ab (${nf2(ep)})</span>` : ''}
       ${t.menge != null ? (Math.abs(diff) > 1e-6 ? ` <button class="btn sm" data-amueb="${amPos}" title="Differenz als Aufmaßzeile „lt. Firma“ eintragen">Menge der Firma übernehmen (${diff > 0 ? '+' : ''}${nf(diff)})</button>` : ' <span style="color:var(--ok);font-weight:600">✓ stimmt mit dem Aufmaß</span>') : ''}`}</div>`;
   const nav = `<div class="am-nav"><button class="btn sm" data-amstep="-1"${idx <= 0 ? ' disabled' : ''} title="vorige Position (Alt+↑)">◀ vorige</button><span class="hint">${idx + 1} von ${LI.length}</span><button class="btn sm pri" data-amstep="1"${idx < 0 || idx >= LI.length - 1 ? ' disabled' : ''} title="nächste Position (Alt+↓)">nächste ▶</button></div>`;
@@ -1619,13 +1624,24 @@ function vAmErfassen() {
 function amZeilenKarte(R) {
   const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id })));
   if (!Z.length || !R) return '';
-  const sum = Z.reduce((a, z) => a + (z.gp || 0), 0), g = R.status === 'geprueft';
+  const sum = Z.filter((z) => !z.pos).reduce((a, z) => a + (z.gp || 0), 0), g = R.status === 'geprueft', P = Object.fromEntries(posOf().map((x) => [x.id, x]));
+  const kiName = { ollama: 'Ollama', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[(window.BPHead && BPHead.ki) || ''] || '';
+  const kiZ = (z, k) => z.pos && P[z.pos] ? `<div class="am-ki ok">→ ${esc(P[z.pos].oz)} ${esc((P[z.pos].kurz || '').slice(0, 40))} <b>✓ ${Math.round((z.p || 1) * 100)} %</b></div>`
+    : z.vorschlag && P[z.vorschlag.pos] ? `<div class="am-ki vs" title="${esc(z.vorschlag.grund || '')}">→ ${esc(P[z.vorschlag.pos].oz)} ${esc((P[z.vorschlag.pos].kurz || '').slice(0, 40))}? <b>${Math.round(z.vorschlag.p * 100)} %</b> <button class="ib" data-amkiok="${k}" data-pos="${esc(z.vorschlag.pos)}" title="Zuordnung übernehmen">✓</button><button class="ib" data-amkiok="${k}" title="verwerfen">✕</button></div>` : '';
   const knopf = R.art === 'regie' ? `<span style="color:var(--ok);font-weight:600">✓ ${(R.data.zeilen || []).length} Zeilen stehen in der ${esc(reTitel(R))}</span> <button class="btn sm" data-tab="rechnungen">ansehen</button>`
     : g ? '' : `<button class="btn sm pri" data-amz2="regie" title="Rechnung als Regierechnung führen – die Zeilen werden Stundenlohn-/Materialzeilen">Als Regierechnung übernehmen</button><button class="btn sm" data-amz2="frei" title="Ohne Aufmaß: Summe der Zeilen als geprüften Betrag eintragen">Summe frei übernehmen (${eur(sum)})</button>`;
   return `<div class="card am-zk"><b>In der PDF ohne LV-Position</b> <span class="hint">${Z.length} Zeile${Z.length === 1 ? '' : 'n'} · ${eur(sum)} netto${amBelege().some((b) => b.auslese && b.auslese.ocr) ? ' · per Texterkennung aus dem Scan – bitte prüfen' : ''}</span>
     <table class="lv am" style="margin:.4rem 0"><thead><tr><th>Text</th><th class="r">Menge</th><th>Einh.</th><th class="r">EP</th><th class="r">Betrag</th></tr></thead><tbody>
-    ${Z.map((z, k) => `<tr data-amzl="${k}" style="cursor:pointer" title="in der PDF zeigen"><td>${esc(z.text)}</td><td class="r">${nf(z.menge)}</td><td>${esc(z.einheit || '')}</td><td class="r">${nf2(z.ep)}</td><td class="r">${nf2(z.gp)}</td></tr>`).join('')}</tbody></table>
-    <div class="bar" style="margin:0">${knopf}</div></div>`;
+    ${Z.map((z, k) => `<tr data-amzl="${k}" style="cursor:pointer" title="in der PDF zeigen"${z.pos ? ' class="mu"' : ''}><td>${esc(z.text)}${kiZ(z, k)}</td><td class="r">${nf(z.menge)}</td><td>${esc(z.einheit || '')}</td><td class="r">${nf2(z.ep)}</td><td class="r">${nf2(z.gp)}</td></tr>`).join('')}</tbody></table>
+    <div class="bar" style="margin:0">${g ? '' : `<button class="btn sm" data-amki title="Zeilen ohne Ordnungszahl per KI den LV-Positionen zuordnen – mit der oben gewählten KI${kiName === 'Ollama' ? ' (lokal, bleibt im Büro)' : ''}">🤖 Mit KI zuordnen${kiName ? ' (' + kiName + ')' : ''}</button>`}${knopf}</div></div>`;
+}
+async function amKi(bid, still) {
+  const R = amRe(); if (!R) return;
+  if (!(window.BPHead && BPHead.ki && BPHead.ki !== 'intern')) { if (!still) toast('Für den Abgleich oben in der Kopfleiste eine KI wählen – am besten Ollama (bleibt im Büro).', true); return; }
+  const card = document.querySelector('.am-zk [data-amki]'); if (card) { card.disabled = true; card.textContent = '🤖 KI ordnet zu …'; }
+  if (!still) toast('KI ordnet die Zeilen zu – mit Ollama kann das eine Minute dauern …');
+  try { const d = await api(`api/belege/${bid}/ki`, 'POST', {}); L = d; render(); if (d.hinweis) toast(d.hinweis); }
+  catch (e) { toast(e.message, true); if (card) { card.disabled = false; card.textContent = '🤖 Mit KI zuordnen'; } }
 }
 /* Summen der Firma gegen die Prüfung (links) – rechts in der PDF dieselben Haken und Kreuze */
 function amRC(R) { return R && L.calc.rechnungen.find((r) => r.id === R.id); }
@@ -1721,6 +1737,7 @@ async function amBelegHoch(files) {
   render();
   if (nb.auslese && nb.auslese.text === false) return toast('Die PDF hat keine Textebene (Scan) – bitte Schritt für Schritt von Hand durchgehen.');
   await amUebernehmen(null, true);
+  if ((nb.auslese.zeilen || []).length && window.BPHead && BPHead.ki && BPHead.ki !== 'intern') amKi(nb.id, true);   // übrige Zeilen gleich per KI zuordnen
 }
 /* Mengen der Firma als Aufmaßzeilen „lt. Firma“ (Differenz zum bisherigen Aufmaß); ein = nur diese Position, sonst alle mit Mehrforderung */
 async function amUebernehmen(ein, auto) {
@@ -1750,6 +1767,8 @@ document.addEventListener('click', async (e) => {
     f.value = f.value.trim() ? f.value.trim() + ' + ' + w : w; f.dispatchEvent(new Event('input', { bubbles: true })); f.focus(); zz.classList.add('ok'); return; }
   const su = e.target.closest('[data-amsu]'); if (su) { for (const b of amBelege().filter((y) => y.id === AMB)) { const x = ((b.auslese && b.auslese.kopf && b.auslese.kopf.summen) || []).find((y) => y.art === su.dataset.amsu); if (x) return amZeigeBox(b.id, x.seite, x.box); } return; }
   const zl = e.target.closest('[data-amzl]'); if (zl) { const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id }))); const z = Z[+zl.dataset.amzl]; if (z) amZeigeBox(z.bid, z.seite, z.box); return; }
+  if (e.target.closest('[data-amki]')) return amKi(AMB);
+  const ko = e.target.closest('[data-amkiok]'); if (ko) { e.stopPropagation(); try { L = await api(`api/belege/${AMB}/ki`, 'POST', { z: +ko.dataset.amkiok, pos: ko.dataset.pos || null }); render(); } catch (er) { toast(er.message, true); } return; }
   const z2 = e.target.closest('[data-amz2]'); if (z2) { const R = amRe(); if (!R) return; const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push(z)));
     try { if (z2.dataset.amz2 === 'regie') { await call('api/rechnungen/' + R.id, 'PUT', { art: 'regie', zeilen: Z.map((z) => ({ text: z.text, menge: z.menge, einheit: z.einheit || '', ep: z.ep })) }); toast('Als Regierechnung übernommen – unter „Rechnungen“ prüfen.'); }
       else { await call('api/rechnungen/' + R.id, 'PUT', { frei: Z.reduce((a, z) => a + (z.gp || 0), 0) }); toast('Summe als geprüfter Betrag (ohne Aufmaß) eingetragen – unter „Rechnungen“ prüfen.'); } } catch (er) { toast(er.message, true); }
@@ -2372,8 +2391,41 @@ async function quLaden0() {
   const suche = istKat(QU.pid) && QU.lv === `${QU.pid}:suche`;
   if (!suche && !QU.list.some((x) => x.id === QU.lv)) QU.lv = (QU.list[0] || {}).id || null;
   if (istKat(QU.lv) && !suche) QU.gw = String(QU.lv).split(':').slice(2).join(':');
-  QU.L = QU.lv ? await quLvLaden(QU.lv) : null;
+  if (quBaum()) await quBaumBauen(); else QU.L = QU.lv ? await quLvLaden(QU.lv) : null;
   QU.sel = new Set(); LS.set('qu.pid', QU.pid); LS.set('qu.lv', QU.lv); quZeigen();
+  if (quBaum()) setTimeout(quVorladen, 1200);
+}
+/* Kataloge als Baum: erst nur die Gliederung (Bereich › Gewerk/Gruppe), Positionen beim Aufklappen; häufig gebrauchte oben als ★ und im Hintergrund vorgeladen */
+const QUGL = new Map();
+QU.auf = new Set(LS.get('qu.auf', [])); QU.bzu = new Set(LS.get('qu.bzu', []));
+const quBaum = () => istKat(QU.pid) && katId(QU.pid) !== 'bd-korb' && !(QU.lv && String(QU.lv).endsWith(':suche'));
+const quHaeufig = () => LS.get('qu.haeufig', {});
+async function quBaumBauen(laden = true) {
+  const auf = (QU.list || []).filter((g) => QU.auf.has(g.id));
+  if (laden) for (const g of auf) if (!QUGL.has(g.id)) { const x = await quLvLaden(g.id); if (x) QUGL.set(g.id, x); }
+  const items = []; QU.rng = {};
+  for (const g of auf) {
+    const x = QUGL.get(g.id); if (!x) continue; const a = items.length;
+    items.push({ id: 'g:' + g.id, typ: 'titel', lvl: 1, oz: g.nr || '', kurz: g.name });
+    for (const y of (x.data && x.data.items) || []) items.push(y.typ === 'titel' ? { ...y, lvl: Math.min(4, (y.lvl || 1) + 1) } : y);
+    QU.rng[g.id] = [a, items.length];
+  }
+  const k = alleKat().find((x) => x.id === katId(QU.pid)) || {};
+  QU.L = { katalog: true, projekt: k.name || 'Katalog', name: k.name || 'Katalog', nr: '', data: { items }, vergabe: {}, mehr: false };
+}
+async function quGewerkAuf(gid, an, scroll) {
+  if (an === undefined) an = !QU.auf.has(gid);
+  if (an) { QU.auf.add(gid); const H = quHaeufig(); H[gid] = (H[gid] || 0) + 1; LS.set('qu.haeufig', H); } else QU.auf.delete(gid);
+  LS.set('qu.auf', [...QU.auf].slice(-40));
+  if (an && !QUGL.has(gid)) { quBaumBauen(false); quZeigen(); }   // Zeile „lädt …“ sofort zeigen
+  await quBaumBauen(); quZeigen();
+  if (scroll) setTimeout(() => { const r = document.querySelector(`#quelle tr[data-qg="${CSS.escape(gid)}"]`); if (r) r.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
+}
+let QUVOR = false;
+async function quVorladen() {   // die am häufigsten gebrauchten Gewerke dieses Katalogs still in den Zwischenspeicher
+  if (QUVOR || !quBaum()) return; QUVOR = true;
+  try { const H = quHaeufig(); for (const g of (QU.list || []).filter((x) => H[x.id] && !QUGL.has(x.id)).sort((a, b) => H[b.id] - H[a.id]).slice(0, 5)) { const x = await quLvLadenC(g.id).catch(() => null); if (x) QUGL.set(g.id, x); } }
+  finally { QUVOR = false; }
 }
 function quProjMenu(anchor) {   // Kataloge oben, darunter Projekte mit kleinem Filterfeld (wie die Projektauswahl, aber für die Kopierquelle)
   const old = document.querySelector('.pickm'); if (old) { old.remove(); return; }
@@ -2412,9 +2464,21 @@ function quZeigen0() {
   const VP = (QU.L && QU.L.vergabe && QU.L.vergabe.preise) || {};
   const epq = (x) => VP[x.id] ?? x.ep_s;
   const I = quItems();
-  const rows = I.map((x, i) => x.typ === 'titel'
+  const zeile = (x, i) => x.typ === 'titel'
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
-    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.bez || x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
+    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.bez || x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
+  let rows = '', favs = '';
+  if (quBaum()) {   // Baum: Bereich › Gewerk › (aufgeklappt) Positionen
+    const H = quHaeufig(), sichtbar = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
+    favs = sichtbar.filter((g) => H[g.id]).sort((a, b) => H[b.id] - H[a.id]).slice(0, 6).map((g) => `<button type="button" class="qu-fav${QU.auf.has(g.id) ? ' on' : ''}" data-qfav="${esc(g.id)}" title="${esc(g.bereich || '')} · ${g.n_pos} Positionen">★ ${esc(g.name.length > 26 ? g.name.slice(0, 25) + '…' : g.name)}</button>`).join('');
+    const grp = []; sichtbar.forEach((g) => { const b = g.bereich || 'Gewerke'; let x = grp.find((y) => y.b === b); if (!x) grp.push(x = { b, g: [] }); x.g.push(g); });
+    rows = grp.map(({ b, g }) => { const zu = grp.length > 1 && QU.bzu.has(b);
+      return (grp.length > 1 ? `<tr class="qb" data-qb="${esc(b)}"><td>${zu ? '▸' : '▾'}</td><td colspan="5"><b>${esc(b)}</b> <span class="hint">${g.length}</span></td></tr>` : '') + (zu ? '' : g.map((x) => {
+        const auf = QU.auf.has(x.id), r = QU.rng && QU.rng[x.id];
+        return `<tr class="qg${auf ? ' auf' : ''}" data-qg="${esc(x.id)}"><td>${auf ? '▾' : '▸'}</td><td>${esc(x.nr || '')}</td><td colspan="3">${esc(x.name)}</td><td class="hint" style="text-align:right">${x.n_pos}</td></tr>`
+          + (auf ? (r ? I.slice(r[0] + 1, r[1]).map((y, j) => zeile(y, r[0] + 1 + j)).join('') : '<tr><td></td><td colspan="5" class="hint">lädt …</td></tr>') : '');
+      }).join('')); }).join('');
+  } else rows = I.map(zeile).join('');
   const lvo = QU.list.find((x) => x.id === QU.lv);
   const sir = istKat(QU.pid) && /^sirados/i.test((((KAT && KAT.kataloge) || []).find((x) => x.id === katId(QU.pid)) || {}).quelle || '');
   const gwName = QU.gw && ((QU.list || []).find((x) => x.id === `${QU.pid}:${QU.gw}`) || {}).name;
@@ -2427,11 +2491,13 @@ function quZeigen0() {
       <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle (Katalog: mittlerer Preis) – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label>
         <span class="hint" style="flex:1 1 0;text-align:right">${QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext'}</span>
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
-    <div class="qu-l">${QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
+    ${favs ? `<div class="qu-favs" title="häufig gebraucht – werden im Hintergrund vorgeladen">${favs}</div>` : ''}
+    <div class="qu-l">${quBaum() ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
 `;
   const qk = istKat(QU.pid) ? alleKat().find((x) => x.id === katId(QU.pid)) : null, qp = !istKat(QU.pid) ? PROJ.find((p) => p.id === QU.pid) : null;
   pickButton($('#quProj'), qk ? { title: qk.name, sub: 'Katalog' } : qp ? { title: qp.name, sub: qp.archived ? 'Projekt (Archiv)' : 'Projekt' } : { title: 'Quelle wählen', sub: '' });
-  pickButton($('#quSel'), istKat(QU.lv) && QU.lv.endsWith(':suche') ? { title: QU.L ? QU.L.name : 'Suche', sub: QU.L ? `${quItems().filter((x) => x.typ === 'pos').length}${QU.L.mehr ? '+' : ''} Treffer` : '' }
+  if (quBaum()) pickButton($('#quSel'), { title: 'Gliederung', sub: `${QU.list.length} Gewerke · ${QU.auf.size ? QU.auf.size + ' aufgeklappt' : 'aufklappen lädt die Positionen'}` });
+  else pickButton($('#quSel'), istKat(QU.lv) && QU.lv.endsWith(':suche') ? { title: QU.L ? QU.L.name : 'Suche', sub: QU.L ? `${quItems().filter((x) => x.typ === 'pos').length}${QU.L.mehr ? '+' : ''} Treffer` : '' }
     : lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: istKat(QU.pid) ? `${lvo.bereich} · ${lvo.n_pos} Positionen` : [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
 }
 function quAuswahl(nur) {   // gewählte Zeilen in LV-Reihenfolge; ein gewählter Titel bringt seinen Inhalt mit
@@ -2470,12 +2536,16 @@ document.addEventListener('click', (e) => {
   const q = e.target.closest('#quelle'); if (!q) return;
   const b = e.target.closest('[data-qu]');
   if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); quZeigen(); return; }
+  const qg = e.target.closest('[data-qg]'); if (qg) { QU.gw = String(qg.dataset.qg).split(':').slice(2).join(':'); quGewerkAuf(qg.dataset.qg); return; }
+  const qf = e.target.closest('[data-qfav]'); if (qf) { const g = QU.list.find((x) => x.id === qf.dataset.qfav); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); quGewerkAuf(qf.dataset.qfav, true, true); return; }
+  const qb = e.target.closest('[data-qb]'); if (qb) { const k = qb.dataset.qb; if (QU.bzu.has(k)) QU.bzu.delete(k); else QU.bzu.add(k); LS.set('qu.bzu', [...QU.bzu]); quZeigen(); return; }
   if (b && b.dataset.qu === 'ein') { quEinfuegen(quAuswahl(), LASTI); return; }
   if (e.target.closest('#quProj')) { quProjMenu($('#quProj')); return; }
   if (e.target.closest('#quSel')) {
     pickMenu($('#quSel'), { search: QU.list.length > 6 ? (istKat(QU.pid) ? 'Gewerk suchen …' : 'LV suchen …') : '', empty: 'Kein LV in diesem Projekt.',
       items: QU.list.filter((x) => !istKat(QU.pid) || !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || '')).map((x) => ({ group: x.bereich || (x.archived ? 'Archiv' : 'Leistungsverzeichnisse'), title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
-      onPick: async (v) => { QU.lv = v; if (istKat(v)) { QU.gw = String(v).split(':').slice(2).join(':'); QU.q = ''; } QU.L = await quLvLaden(v); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
+      onPick: async (v) => { if (quBaum()) { QU.gw = String(v).split(':').slice(2).join(':'); return quGewerkAuf(v, true, true); }
+        QU.lv = v; if (istKat(v)) { QU.gw = String(v).split(':').slice(2).join(':'); QU.q = ''; } QU.L = await quLvLaden(v); QU.sel = new Set(); LS.set('qu.lv', QU.lv); quZeigen(); } });
     return;
   }
   const cbx = e.target.closest('[data-qs]');
@@ -2485,7 +2555,7 @@ document.addEventListener('click', (e) => {
 });
 async function quSucheNeu() {   // Suche mit den aktuellen Filtern neu laden (oder zurück zum Gewerk)
   const q = (QU.q || '').trim();
-  if (q.length < 3) { if (istKat(QU.lv) && QU.lv.endsWith(':suche')) { QU.lv = QU.gw ? `${QU.pid}:${QU.gw}` : (QU.list[0] || {}).id || null; QU.L = QU.lv ? await quLvLaden(QU.lv) : null; QU.sel = new Set(); quZeigen(); } return; }
+  if (q.length < 3) { if (istKat(QU.lv) && QU.lv.endsWith(':suche')) { QU.lv = QU.gw ? `${QU.pid}:${QU.gw}` : (QU.list[0] || {}).id || null; if (quBaum()) await quBaumBauen(); else QU.L = QU.lv ? await quLvLaden(QU.lv) : null; QU.sel = new Set(); quZeigen(); } return; }
   QU.lv = `${QU.pid}:suche`; QU.L = await quLvLaden(QU.lv); QU.sel = new Set(); quZeigen();
 }
 document.addEventListener('click', async (e) => {

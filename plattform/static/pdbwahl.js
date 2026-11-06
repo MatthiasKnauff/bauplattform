@@ -97,7 +97,7 @@ async function pdbPreiswahl(liste) {
         <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(12rem,17rem);gap:.6rem;align-items:center;padding:.4rem .6rem;border-bottom:1px solid var(--line)">
           <span>${esc(x.kurz)}<small style="display:block;color:var(--mute);font-size:.76rem">${esc([x.code || x.oz, x.einheit].filter(Boolean).join(' · '))}</small></span>
           <select data-pp="${i}">${optionen(x).map((o) => `<option value="${o[0]}">${esc(o[1])} – ${eur(o[2])}</option>`).join('')}</select></div>`).join('')}</div>
-      <label style="display:flex;gap:.4rem;align-items:center;margin-top:.7rem;font-size:.9rem"><input type="checkbox" id="ppStd"> Auswahl „<span id="ppStdN">Katalog Mittel</span>“ als Standard merken und nicht mehr fragen <span class="mute">(änderbar unter ⚙ → Für mich)</span></label>
+      <label style="display:block;margin-top:.7rem;font-size:.9rem;line-height:1.4"><input type="checkbox" id="ppStd" style="width:auto;margin:0 .4rem 0 0;vertical-align:-2px"><span>Auswahl „<span id="ppStdN">Katalog Mittel</span>“ als Standard merken und nicht mehr fragen <span class="mute">(änderbar unter ⚙ → Für mich)</span></span></label>
       <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-top:.7rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
       if (m === 'x') { close(); return; }
       if (m !== 'ok') return;

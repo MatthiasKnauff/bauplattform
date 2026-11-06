@@ -2176,6 +2176,11 @@ def angebot_pdf(i):
             A = _auslesen(data, (_j(r["data"], {}) or {}).get("items") or [])
         except Exception as e:
             return jsonify(error=f"PDF lässt sich nicht lesen: {e}"), 400
+        if request.form.get("ki") == "1" and A.get("zeilen"):
+            try:
+                _ki_zuordnen(c, A, (_j(r["data"], {}) or {}).get("items") or [])
+            except Exception:
+                pass   # KI nicht erreichbar: mit dem weiter, was sicher erkannt ist
         preise = {pid: t["ep"] for pid, t in (A.get("pos") or {}).items() if t.get("ep") is not None}
         if not preise:
             return jsonify(error="In der PDF keine Preise zu den Positionen dieses LV gefunden (Zuordnung über die OZ; Menge × EP = GP muss aufgehen)."), 400
@@ -2191,7 +2196,8 @@ def angebot_pdf(i):
         _touch(c, i)
         out = _payload(c, c.execute("SELECT * FROM ava_lv WHERE id=?", (i,)).fetchone())
         n_lv = sum(1 for x in (_j(r["data"], {}) or {}).get("items") or [] if x.get("typ") == "pos" and x.get("art") != "T")
-        out["hinweis"] = f"{len(preise)} von {n_lv} Preisen von „{bieter}“ aus der PDF übernommen" + (" (Scan, per Texterkennung – bitte prüfen)" if A.get("ocr") else "") + "."
+        out["hinweis"] = (f"{len(preise)} von {n_lv} Preisen von „{bieter}“ aus der PDF übernommen" + (" (Scan, per Texterkennung – bitte prüfen)" if A.get("ocr") else "")
+                          + (f", davon {A['ki']['sicher']} per KI zugeordnet" if A.get("ki", {}).get("sicher") else "") + ".")
         return jsonify(out)
 
 
@@ -2781,6 +2787,84 @@ def ava_erkennen():
         lvs.sort(key=lambda x: -x["punkte"])
         out["lvs"] = lvs[:12]
     return jsonify(out)
+
+
+def _ki_zuordnen(c, A, items, ki=None):
+    """Zeilen ohne erkannte Ordnungszahl (Scan, eigene Texte der Firma) per KI den LV-Positionen zuordnen – lokal mit Ollama oder
+    mit der oben gewählten KI. Sichere Treffer (≥ 80 %) werden übernommen, unsichere als Vorschlag zum Bestätigen."""
+    Z = A.get("zeilen") or []
+    offen = [(k, z) for k, z in enumerate(Z) if not z.get("pos")]
+    P = [x for x in items if x.get("typ") == "pos" and x.get("art") != "T" and x["id"] not in (A.get("pos") or {})]
+    if not offen or not P:
+        return 0, 0
+    ki = ki or ai.choice_of(g.user, c)
+    if ki == "intern":
+        raise ai.AIError("Für den Abgleich oben in der Kopfleiste eine KI wählen – am besten Ollama (bleibt im Büro).")
+    sys_ = ("Du ordnest Zeilen aus einer Rechnung oder einem Angebot einer Baufirma den Positionen eines Leistungsverzeichnisses (LV) zu. "
+            "Die Zeilen können aus einer Texterkennung stammen und Lesefehler enthalten (z. B. „mm?“ statt „mm²“, O statt 0). "
+            "Vergleiche Bedeutung, Material, Maße und Einheit – nicht nur Wörter. Jede LV-Position höchstens einmal. "
+            "Antworte nur mit JSON: {\"zuordnung\": [{\"z\": Zeilennummer, \"pos\": \"LV-ID oder null\", \"p\": Wahrscheinlichkeit 0 bis 1, \"grund\": \"kurz\"}]}")
+    lv = "\n".join(f"{x['id']} | {x.get('oz') or ''} | {(x.get('kurz') or '')[:90]} | {x.get('einheit') or ''}" for x in P[:400])
+    zl = "\n".join(f"{k} | {z['text'][:120]} | {z.get('menge')} {z.get('einheit') or ''} | EP {z.get('ep')}" for k, z in offen[:60])
+    d = ai.ask_json(ki, sys_, f"LV-Positionen (ID | OZ | Kurztext | Einheit):\n{lv}\n\nZeilen der Firma (Nr | Text | Menge | Einheitspreis):\n{zl}", 2500, c) or {}
+    ids, sicher, vorschlag, belegt = {x["id"] for x in P}, 0, 0, set()
+    for r in sorted(d.get("zuordnung") or [], key=lambda r: -_f(r.get("p"), 0) if isinstance(r, dict) else 0):
+        if not isinstance(r, dict):
+            continue
+        k, pid, p_ = r.get("z"), r.get("pos"), max(0.0, min(1.0, _f(r.get("p"), 0)))
+        if not isinstance(k, int) or not (0 <= k < len(Z)) or pid not in ids or pid in belegt or Z[k].get("pos"):
+            continue
+        z = Z[k]
+        if p_ >= 0.8:
+            A.setdefault("pos", {})[pid] = {"seite": z["seite"], "box": z["box"], "menge": z.get("menge"), "ep": z.get("ep"), "gp": z.get("gp"), "ki": round(p_, 2)}
+            z["pos"], z["p"] = pid, round(p_, 2)
+            belegt.add(pid); sicher += 1
+        elif p_ >= 0.35:
+            z["vorschlag"] = {"pos": pid, "p": round(p_, 2), "grund": _s(r.get("grund"), 120)}
+            vorschlag += 1
+    A["ki"] = {"anbieter": ki, "sicher": sicher, "vorschlag": vorschlag}
+    return sicher, vorschlag
+
+
+@app.post("/api/belege/<int:b>/ki")
+def beleg_ki(b):
+    """KI-Abgleich für die Zeilen einer Rechnung/eines Aufmaßes ohne erkannte LV-Position; {z, pos} bestätigt bzw. verwirft (pos null) einen Vorschlag."""
+    body = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        _beleg_tabelle(c)
+        x = c.execute("SELECT b.id, b.auslese, r.lv_id FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
+        lv = _lv(c, x["lv_id"]) if x else None
+        if not lv:
+            return jsonify(error="Nicht gefunden"), 404
+        A = _j(x["auslese"], {}) or {}
+    hinweis = ""
+    if "z" in body:   # Vorschlag bestätigen oder verwerfen
+        Z = A.get("zeilen") or []
+        k = body.get("z")
+        if not isinstance(k, int) or not (0 <= k < len(Z)):
+            return jsonify(error="Zeile nicht gefunden"), 400
+        z = Z[k]
+        pid = body.get("pos")
+        if pid:
+            A.setdefault("pos", {})[pid] = {"seite": z["seite"], "box": z["box"], "menge": z.get("menge"), "ep": z.get("ep"), "gp": z.get("gp"), "ki": 1.0}
+            z["pos"], z["p"] = pid, 1.0
+        z.pop("vorschlag", None)
+    else:
+        items = (_j(lv["data"], {}) or {}).get("items") or []
+        try:
+            with db.tx() as c:
+                s_, v_ = _ki_zuordnen(c, A, items)
+        except ai.AIError as e:
+            return jsonify(error=str(e)), 400
+        hinweis = f"KI: {s_} Zeilen sicher zugeordnet" + (f", {v_} Vorschläge zum Bestätigen (orange)" if v_ else "") + "."
+    with db.tx() as c:
+        c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), b))
+        _touch(c, x["lv_id"])
+        out = _antwort(c, x["lv_id"])
+    if hinweis:
+        d = out.get_json(); d["hinweis"] = hinweis
+        return jsonify(d)
+    return out
 
 
 @app.post("/api/belege/<int:b>/auslesen")

@@ -13,7 +13,8 @@ def ensure_admin():
     """Beim ersten Start: Benutzer „admin“ mit Kennwort „admin“, das sofort geändert werden muss."""
     with db.tx() as c:
         if not c.execute("SELECT 1 FROM users").fetchone():
-            c.execute("INSERT INTO users(name, pass_hash, is_admin, must_change) VALUES('admin',?,1,1)",
+            # ON CONFLICT: gunicorn startet mehrere Prozesse gleichzeitig – nur einer legt den Benutzer an
+            c.execute("INSERT INTO users(name, pass_hash, is_admin, must_change) VALUES('admin',?,1,1) ON CONFLICT (name) DO NOTHING",
                       (generate_password_hash("admin"),))
 
 

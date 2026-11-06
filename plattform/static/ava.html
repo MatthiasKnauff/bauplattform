@@ -376,6 +376,19 @@ html.mobil .bph{position:sticky;top:0}
 .si-sum{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.2rem 0 .5rem}.si-w{background:color-mix(in srgb,#e0a030 18%,transparent);border-radius:8px;padding:.4rem .6rem;margin:.3rem 0}
 .re-bel{display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;margin:.5rem 0;padding:.45rem .55rem;border:1px dashed var(--line);border-radius:8px}.re-bel.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 10%,transparent)}
 .re-b{display:inline-flex;gap:.3rem;align-items:center}.re-z{width:100%;margin:.4rem 0}.re-z input{font:inherit}
+.am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
+.am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
+.am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;align-items:start}
+.am-l{display:flex;flex-direction:column;gap:.8rem;min-width:0}.am-l .tblw{max-height:40vh;overflow:auto}
+.am-r{position:sticky;top:8px;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
+.am-pk{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;padding:.35rem .45rem;border-bottom:1px solid var(--line)}
+.am-pv{flex:1;overflow:auto;background:#7d8288;padding:10px}
+.am-pg{position:relative;margin:0 auto 10px;box-shadow:0 1px 5px #0006;background:#fff}.am-pg canvas{display:block}
+.am-hl{position:absolute;border:2px solid #f5a623;background:rgba(255,196,0,.22);border-radius:3px;pointer-events:none;box-shadow:0 0 0 4px rgba(245,166,35,.25)}
+.am-dk{display:flex;gap:.6rem;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.am-nav{display:flex;gap:.4rem;align-items:center}
+.am-firma{margin:.1rem 0 .55rem;padding:.4rem .55rem;border-radius:8px;background:color-mix(in srgb,var(--y) 10%,transparent);display:flex;flex-wrap:wrap;gap:.3rem .5rem;align-items:center}
+tr.am-lf td input{color:#c0621f}
+@media (max-width:900px){.am-split{grid-template-columns:1fr}.am-r{position:static;height:70vh}}
 </style>
 </head>
 <body>
@@ -599,6 +612,7 @@ function render() {
   if (!L) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   v.innerHTML = { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   sums();
+  if (tab === 'aufmass') amPdfMount();
   if (tab === 'lv') lvAktZeigen();
 }
 
@@ -839,6 +853,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'bieter') return bieterDialog();
     if (a === 'x84') return importDialog('angebot');
     if (a === 'ps') return window.open(`api/lv/${L.id}/pdf?art=preisspiegel`, '_blank');
+    if (a === 'freiVergeben') { try { if (await freiVergeben(L.id, $('#view'))) toast('Auftrag eingetragen – Rechnungen jetzt über „+ Neu ▾“ erfassen.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'amPdf') return window.open(`api/lv/${L.id}/pdf?art=aufmass`, '_blank');
     if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
     if (a === 'vergabeWeg') {
@@ -910,23 +925,28 @@ async function newDialog() {
       <label><input type="radio" name="nlSrc" value="lv"${alle.length ? '' : ' disabled'}> Kopie eines vorhandenen LV (auch aus anderen Projekten – ohne Preise)</label>
       <div class="kgs" id="nlLv" hidden><select id="nlLvSel">${alle.map((x) => `<option value="${x.id}">${esc((x.nr ? x.nr + ' ' : '') + x.name)}${x.project_id !== pid ? ' – ' + esc((PROJ.find((p) => p.id === x.project_id) || {}).name || '') : ''}</option>`).join('')}</select>
         <label><input type="checkbox" id="nlMengen" checked> Mengen übernehmen</label></div>
-      <label><input type="radio" name="nlSrc" value="gaeb"> aus einer GAEB-Datei (X81–X86) oder Excel – wird danach eingelesen</label></div>
+      <label><input type="radio" name="nlSrc" value="gaeb"> aus einer GAEB-Datei (X81–X86) oder Excel – wird danach eingelesen</label>
+      <label><input type="radio" name="nlSrc" value="frei"> ohne LV – nur Rechnungen erfassen (Firma und Auftragssumme frei, z. B. kleine Handwerker)</label>
+      <div class="kgs" id="nlFrei" hidden>${freiFelder()}</div></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     const src = bg.querySelector('[name=nlSrc]:checked').value, body = { project_id: pid, name: $('#nlName').value.trim(), gewerk: $('#nlGw').value.trim(), nr: $('#nlNr').value.trim() };
     if (!body.name && !body.gewerk) { toast('Bitte eine Bezeichnung oder ein Gewerk eingeben.', true); return; }
     if (src === 'lv') { body.kopie_von = +$('#nlLvSel').value; body.mengen = $('#nlMengen').checked; }
+    if (src === 'frei' && !bg.querySelector('#frFirma').value.trim()) { toast('Bitte die Firma angeben.', true); return; }
     try {
       let r = await api('api/lv', 'POST', body);
       if (src === 'bk') r = await api(`api/lv/${r.id}/aus-baukosten`, 'POST', { bk_id: +$('#nlBkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg) });
-      close(); L = r; tab = 'lv'; LS.set('tab', tab); await refreshList(); render();
+      if (src === 'frei' && !(await freiVergeben(r.id, bg))) return;
+      if (src === 'frei') r = await api('api/lv/' + r.id);
+      close(); L = r; tab = src === 'frei' ? 'rechnungen' : 'lv'; LS.set('tab', tab); await refreshList(); render();
       if (src === 'gaeb') importDialog('lv');
     } catch (e) { toast(e.message, true); }
   });
   const kgDraw = () => { const b = BK.find((x) => x.id === +$('#nlBkSel').value); $('#nlKgs').innerHTML = b ? '<br>' + b.kgs.map((k) => `<label><input type="checkbox" data-kg="${k}" checked> KG ${k}</label>`).join(' ') : ''; };
   bg.addEventListener('change', (e) => {
-    if (e.target.name === 'nlSrc') { $('#nlBk').hidden = e.target.value !== 'bk'; $('#nlLv').hidden = e.target.value !== 'lv'; if (e.target.value === 'bk') kgDraw(); }
+    if (e.target.name === 'nlSrc') { $('#nlBk').hidden = e.target.value !== 'bk'; $('#nlLv').hidden = e.target.value !== 'lv'; $('#nlFrei').hidden = e.target.value !== 'frei'; if (e.target.value === 'bk') kgDraw(); }
     if (e.target.id === 'nlBkSel') kgDraw();
   });
   bg.querySelector('.modal').classList.add('wide');
@@ -1155,30 +1175,143 @@ document.addEventListener('dblclick', (e) => {
   amPos = tr.dataset.amp; LS.set('amPos', amPos); amAns = 'erfassen'; LS.set('amAns', amAns); render();
   setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30);
 });
+/* Rechnung / Aufmaß der Firma neben der Prüfung: PDF rechts, Positionen Schritt für Schritt, erkannte Mengen eintragen */
+let AMB = LS.get('amB', 0), amNurR = LS.get('amNurR', false), AMV = null;
+const amRe = () => (L ? L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
+const amBelege = () => { const r = amRe(); return r ? r.belege || [] : []; };
+function amTreffer(pid) { let t = null; for (const b of amBelege()) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
+const amListe = () => posOf().filter((p) => (!amNur || L.aufmass.some((a) => a.pos_id === p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id)));
 function vAmErfassen() {
-  const P = posOf(), AM = L.aufmass, K = L.calc;
+  const P = posOf(), AM = L.aufmass, K = L.calc, B = amBelege(), R = amRe();
   if (!P.length) return '<div class="card empty">Noch keine Positionen im LV.</div>';
   if (!P.some((p) => p.id === amPos)) amPos = (P.find((p) => AM.some((a) => a.pos_id === p.id)) || P[0]).id;
   const x = P.find((p) => p.id === amPos), Z = AM.filter((a) => a.pos_id === amPos), sum = Z.reduce((s, a) => s + (a.menge || 0), 0);
-  const VP = (L.vergabe && L.vergabe.preise) || {};
-  const liste = P.filter((p) => !amNur || AM.some((a) => a.pos_id === p.id)).map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null;
-    return `<tr class="${p.id === amPos ? 'sel' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="oz">${esc(p.oz)}</td><td>${esc(p.kurz)}${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td><td class="r">${m ? nf(m) : ''}</td><td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}">${pct != null && m ? pct + ' %' : ''}</td></tr>`; }).join('');
-  const ep = VP[amPos];
-  return `<div class="bar"><label class="hint"><input type="checkbox" id="amNur"${amNur ? ' checked' : ''}> nur Positionen mit Aufmaß</label><span class="fill"></span>
-      ${L.aufmass.length ? '<button class="btn sm" data-act="amPdf">Massenermittlung PDF</button>' : ''}</div>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:1rem;align-items:start" class="amg">
-      <div class="tblw"><table class="lv am"><thead><tr><th>OZ</th><th>Position</th><th class="r">LV-Menge</th><th class="r">Aufmaß</th><th class="r">%</th></tr></thead><tbody>${liste}</tbody></table></div>
-      <div class="card" style="position:sticky;top:8px"><h3 style="margin:0 0 .2rem">${esc(x.oz)} ${esc(x.kurz)}</h3>
-        <p class="hint" style="margin:0 0 .6rem">LV-Menge ${nf(x.menge)} ${esc(x.einheit)} · aufgemessen <b>${nf(sum)} ${esc(x.einheit)}</b>${x.menge ? ` (${Math.round(sum / x.menge * 100)} %)` : ''}${ep != null ? ` · ${eur(sum * ep)} zum Auftrags-EP ${nf2(ep)} €` : vergeben() ? '' : ' · noch nicht vergeben'}</p>
+  const VP = (L.vergabe && L.vergabe.preise) || {}, LI = amListe(), idx = LI.findIndex((p) => p.id === amPos);
+  const liste = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null;
+    const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
+    return `<tr class="${p.id === amPos ? 'sel' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="oz">${esc(p.oz)}</td><td>${esc(p.kurz)}${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r">${m ? nf(m) : ''}</td><td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}">${pct != null && m ? pct + ' %' : ''}</td></tr>`; }).join('');
+  const ep = VP[amPos], t = B.length ? amTreffer(amPos) : null, diff = t && t.menge != null ? t.menge - sum : 0;
+  const firma = !B.length ? '' : `<div class="am-firma">${!t ? '<span class="hint">In der PDF der Firma nicht gefunden.</span>'
+    : `lt. Firma <span class="hint">(S. ${t.seite})</span>: ${t.menge != null ? `<b>${nf(t.menge)} ${esc(x.einheit)}</b>${t.ep != null ? ` · EP ${nf2(t.ep)}` : ''}${t.gp != null ? ` · GP ${nf2(t.gp)}` : ''}` : 'gefunden, Menge nicht sicher lesbar'}
+      ${t.ep != null && ep != null && Math.abs(t.ep - ep) > 0.005 ? ` <span style="color:#e07b3a;font-weight:600">EP weicht vom Auftrag ab (${nf2(ep)})</span>` : ''}
+      ${t.menge != null ? (Math.abs(diff) > 1e-6 ? ` <button class="btn sm" data-amueb="${amPos}" title="Differenz als Aufmaßzeile „lt. Firma“ eintragen">Menge der Firma übernehmen (${diff > 0 ? '+' : ''}${nf(diff)})</button>` : ' <span style="color:var(--ok);font-weight:600">✓ stimmt mit dem Aufmaß</span>') : ''}`}</div>`;
+  const nav = `<div class="am-nav"><button class="btn sm" data-amstep="-1"${idx <= 0 ? ' disabled' : ''} title="vorige Position (Alt+↑)">◀ vorige</button><span class="hint">${idx + 1} von ${LI.length}</span><button class="btn sm pri" data-amstep="1"${idx < 0 || idx >= LI.length - 1 ? ' disabled' : ''} title="nächste Position (Alt+↓)">nächste ▶</button></div>`;
+  const detail = `<div class="card am-d"${B.length ? '' : ' style="position:sticky;top:8px"'}><div class="am-dk"><h3 style="margin:0 0 .2rem">${esc(x.oz)} ${esc(x.kurz)}</h3>${nav}</div>
+        <p class="hint" style="margin:0 0 .4rem">LV-Menge ${nf(x.menge)} ${esc(x.einheit)} · aufgemessen <b>${nf(sum)} ${esc(x.einheit)}</b>${x.menge ? ` (${Math.round(sum / x.menge * 100)} %)` : ''}${ep != null ? ` · ${eur(sum * ep)} zum Auftrags-EP ${nf2(ep)} €` : vergeben() ? '' : ' · noch nicht vergeben'}</p>${firma}
         <table class="lv am"><thead><tr><th style="width:7.5rem">Datum</th><th>Ort / Bauteil</th><th>Rechenweg</th><th class="r">Menge</th><th></th></tr></thead><tbody>
-        ${Z.map((a) => `<tr><td><input type="date" data-am="datum" data-id="${a.id}" value="${esc(a.datum)}"></td><td><input data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
+        ${Z.map((a) => `<tr${a.quelle === 'beleg' ? ' class="am-lf" title="aus der PDF der Firma übernommen – prüfen"' : ''}><td><input type="date" data-am="datum" data-id="${a.id}" value="${esc(a.datum)}"></td><td><input data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
           <td><input data-am="formel" data-id="${a.id}" value="${esc(a.formel)}" placeholder="z. B. 2 × 3,50 × 2,75"></td><td class="r">${nf(a.menge)}</td><td><button class="ib" data-amdel="${a.id}" title="Zeile löschen">✕</button></td></tr>`).join('')}
         <tr><td><input type="date" data-am-new="datum" value="${new Date().toISOString().slice(0, 10)}"></td><td><input data-am-new="ort" placeholder="z. B. EG Bad, Achse A–C"></td>
           <td><input data-am-new="formel" placeholder="Rechenweg oder Menge, Enter speichert"></td><td class="r" id="amPrev"></td><td></td></tr></tbody></table>
         <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-amraum="1" title="Flächen aus dem Raumbuch der Baukosten übernehmen">Aus dem Raumbuch …</button>
-          <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –.</span></div></div></div>
+          <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –.</span></div></div>`;
+  const tab_ = `<div class="tblw"><table class="lv am"><thead><tr><th>OZ</th><th>Position</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">Aufmaß</th><th class="r">%</th></tr></thead><tbody>${liste}</tbody></table></div>`;
+  const offen = B.reduce((n, b) => n + Object.values((b.auslese && b.auslese.pos) || {}).filter((y) => y.menge != null).length, 0);
+  const hoch = `<label class="btn sm" title="Rechnung oder Aufmaßblätter der Firma als PDF – wird rechts neben der Prüfung angezeigt und im Projektordner abgelegt">📄 Rechnung / Aufmaß der Firma (PDF) …<input type="file" accept=".pdf,application/pdf" multiple hidden data-ambeleg></label>`;
+  const kopf = `<div class="bar"><label class="hint"><input type="checkbox" id="amNur"${amNur ? ' checked' : ''}> nur Positionen mit Aufmaß</label>${B.length ? `<label class="hint"><input type="checkbox" id="amNurR"${amNurR ? ' checked' : ''}> nur Positionen aus der PDF</label>` : ''}<span class="fill"></span>
+      ${B.length && offen ? '<button class="btn sm" data-amueb="*" title="Für alle Positionen, bei denen die Firma mehr fordert als aufgemessen, die Differenz als Zeile „lt. Firma“ eintragen">Alle Mengen der Firma eintragen</button>' : ''}${B.length ? hoch : ''}
+      ${L.aufmass.length ? '<button class="btn sm" data-act="amPdf">Massenermittlung PDF</button>' : ''}</div>`;
+  if (!B.length) return `${kopf}<div class="am-zone" data-amdrop>${hoch}<span class="hint">oder hierher ziehen – sie erscheint rechts neben der Prüfung, erkannte Mengen werden gleich eingetragen${R && R.status !== 'geprueft' ? ` (zur ${esc(reTitel(R))})` : ' (legt eine neue Teilrechnung an)'}. Ohne PDF einfach hier prüfen.</span></div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:1rem;align-items:start" class="amg">${tab_}${detail}</div>
     <style>@media (max-width:900px){.amg{grid-template-columns:1fr!important}}</style>`;
+  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
 }
+/* PDF-Ansicht (pdf.js), bleibt beim Neuzeichnen der Ansicht erhalten */
+async function amPdfMount() {
+  const slot = $('#amPdfSlot'), B = amBelege(); if (!slot || !B.length) return;
+  if (!B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[0]).id;
+  if (!AMV || AMV.bid !== AMB) { AMV = { bid: AMB, el: document.createElement('div'), pages: [], zoom: LS.get('amZoom', 1) }; AMV.el.className = 'am-pv'; AMV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; amPdfLaden(AMV); }
+  const b = B.find((y) => y.id === AMB), A = b.auslese;
+  slot.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
+    <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${Object.keys(A.pos || {}).length} Positionen erkannt`) : ''}</span><span class="fill"></span>
+    <button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF entfernen">✕</button></div>`;
+  slot.appendChild(AMV.el);
+  if (AMV.pdf) amPdfZeige(amPos);
+}
+async function amPdfLaden(V) {
+  try { const lib = await pdfjs(); V.pdf = await lib.getDocument({ url: 'api/belege/' + V.bid, withCredentials: true }).promise; } catch (e) { V.el.innerHTML = `<p class="hint" style="color:#fff">PDF lässt sich nicht anzeigen: ${esc(e.message)}</p>`; return; }
+  if (AMV !== V) return;
+  await amPdfZeichnen(V); amPdfZeige(amPos, true);
+}
+async function amPdfZeichnen(V) {
+  V.el.innerHTML = ''; V.pages = [];
+  const w = Math.max(300, (V.el.clientWidth || 600) - 20), dpr = window.devicePixelRatio || 1;
+  for (let n = 1; n <= Math.min(V.pdf.numPages, 60); n++) {
+    const pg = await V.pdf.getPage(n), vp1 = pg.getViewport({ scale: 1 }), sc = w / vp1.width * V.zoom, vp = pg.getViewport({ scale: sc * dpr });
+    const wrap = document.createElement('div'); wrap.className = 'am-pg'; wrap.style.width = vp1.width * sc + 'px'; wrap.style.height = vp1.height * sc + 'px';
+    const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; cv.style.width = '100%'; cv.style.height = '100%';
+    wrap.appendChild(cv); V.el.appendChild(wrap); V.pages.push(wrap);
+    await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    if (AMV !== V) return;
+  }
+}
+function amPdfZeige(pid, sofort) {
+  const V = AMV; if (!V || !V.pages.length) return;
+  const t = amTreffer(pid); V.el.querySelectorAll('.am-hl').forEach((h) => h.remove());
+  if (!t) return;
+  if (t.bid !== V.bid) { AMB = t.bid; LS.set('amB', AMB); amPdfMount(); return; }
+  const wrap = V.pages[t.seite - 1]; if (!wrap) return;
+  const [x0, y0, x1, y1] = t.box, hl = document.createElement('div'); hl.className = 'am-hl';
+  Object.assign(hl.style, { left: `calc(${x0 * 100}% - 4px)`, top: `calc(${y0 * 100}% - 3px)`, width: `calc(${(x1 - x0) * 100}% + 8px)`, height: `calc(${(y1 - y0) * 100}% + 6px)` });
+  wrap.appendChild(hl);
+  V.el.scrollTo({ top: wrap.offsetTop + y0 * wrap.offsetHeight - V.el.clientHeight * 0.3, behavior: sofort ? 'auto' : 'smooth' });
+}
+async function amBelegHoch(files) {
+  files = [...files].filter((f) => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
+  if (!files.length) return toast('Bitte eine PDF-Datei wählen.', true);
+  if (!vergeben()) return toast('Erst vergeben: geprüft wird gegen die Preise des Auftrags.', true);
+  let R = L.rechnungen.find((r) => r.status !== 'geprueft');
+  if (!R) { try { await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'abschlag' }); } catch (e) { return toast(e.message, true); } R = L.rechnungen.find((r) => r.status !== 'geprueft'); if (!R) return; }
+  for (const f of files) {
+    const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen und im Projektordner abgelegt …`);
+    try { const r = await fetch(`api/rechnungen/${R.id}/beleg`, { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status); L = d; }
+    catch (e) { toast(e.message, true); return; }
+  }
+  const R2 = L.rechnungen.find((r) => r.id === R.id), nb = R2.belege[R2.belege.length - 1];
+  AMB = nb.id; LS.set('amB', AMB); amAns = 'erfassen';
+  if (Object.values((nb.auslese && nb.auslese.pos) || {}).length) { amNurR = true; LS.set('amNurR', true); } LS.set('amAns', amAns);
+  const P = Object.keys((nb.auslese && nb.auslese.pos) || {}); if (P.length) { amPos = posOf().find((p) => P.includes(p.id)).id; LS.set('amPos', amPos); }
+  render();
+  if (nb.auslese && nb.auslese.text === false) return toast('Die PDF hat keine Textebene (Scan) – bitte Schritt für Schritt von Hand durchgehen.');
+  await amUebernehmen(null, true);
+}
+/* Mengen der Firma als Aufmaßzeilen „lt. Firma“ (Differenz zum bisherigen Aufmaß); ein = nur diese Position, sonst alle mit Mehrforderung */
+async function amUebernehmen(ein, auto) {
+  const heute = new Date().toISOString().slice(0, 10), K = L.calc.aufmass || {}, zeilen = [];
+  const pids = ein ? [ein] : posOf().map((p) => p.id);
+  for (const pid of pids) {
+    const t = amTreffer(pid); if (!t || t.menge == null) continue;
+    const d = Math.round((t.menge - (K[pid] || 0)) * 10000) / 10000; if (Math.abs(d) < 1e-6 || (!ein && d < 0)) continue;
+    zeilen.push({ pos_id: pid, datum: heute, ort: `lt. Firma, PDF S. ${t.seite}`, formel: String(d).replace('.', ','), quelle: 'beleg' });
+  }
+  if (!zeilen.length) { if (!auto) toast('Nichts einzutragen – Aufmaß und Forderung stimmen überein.'); else toast('PDF angezeigt – keine Mehrmengen gegenüber dem Aufmaß gefunden.'); return; }
+  const vorher = new Set(L.aufmass.map((a) => a.id));
+  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { zeilen }); } catch (e) { return toast(e.message, true); }
+  const neu = L.aufmass.filter((a) => !vorher.has(a.id)).map((a) => a.id);
+  rueckgaengig(ein ? 'Menge der Firma eingetragen' : `${neu.length} Mengen der Firma eingetragen (orange) – Schritt für Schritt prüfen`, async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(L.id); });
+}
+function amSchritt(d) {
+  const LI = amListe(), i = LI.findIndex((p) => p.id === amPos), n = LI[i + d]; if (!n) return;
+  amPos = n.id; LS.set('amPos', amPos); render();
+  const sel = document.querySelector('tr[data-ampos].sel'); if (sel) sel.scrollIntoView({ block: 'nearest' });
+  setTimeout(() => { const f = document.querySelector('[data-am-new="formel"]'); if (f) f.focus({ preventScroll: true }); }, 30);
+}
+document.addEventListener('click', async (e) => {
+  if (tab !== 'aufmass' || !L) return;
+  const s = e.target.closest('[data-amstep]'); if (s) return amSchritt(+s.dataset.amstep);
+  const u = e.target.closest('[data-amueb]'); if (u) return amUebernehmen(u.dataset.amueb === '*' ? null : u.dataset.amueb);
+  const b = e.target.closest('[data-amb]'); if (b) { AMB = +b.dataset.amb; LS.set('amB', AMB); return amPdfMount(); }
+  const z = e.target.closest('[data-amz]'); if (z && AMV && AMV.pdf) { AMV.zoom = Math.max(0.5, Math.min(3, AMV.zoom * (+z.dataset.amz > 0 ? 1.2 : 1 / 1.2))); LS.set('amZoom', AMV.zoom); await amPdfZeichnen(AMV); amPdfZeige(amPos, true); return; }
+  const d = e.target.closest('[data-ambdel]'); if (d) { const id = +d.dataset.ambdel; try { await call('api/belege/' + id, 'DELETE'); AMV = null; toast('PDF entfernt.'); } catch (er) { toast(er.message, true); } }
+});
+document.addEventListener('change', (e) => {
+  const i = e.target.closest && e.target.closest('[data-ambeleg]'); if (i && i.files.length) { const f = [...i.files]; i.value = ''; amBelegHoch(f); return; }
+  if (e.target.id === 'amNurR') { amNurR = e.target.checked; LS.set('amNurR', amNurR); render(); }
+});
+document.addEventListener('dragover', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (z && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); z.classList.add('over'); } });
+document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-amdrop]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('over'); });
+document.addEventListener('drop', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); z.classList.remove('over'); amBelegHoch(e.dataTransfer.files); });
+document.addEventListener('keydown', (e) => { if (tab === 'aufmass' && amAns === 'erfassen' && e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && !document.querySelector('.modal-bg,.bed')) { e.preventDefault(); amSchritt(e.key === 'ArrowDown' ? 1 : -1); } });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.dataset && e.target.dataset.amNew != null) { e.preventDefault(); amNeu(e.target, true); }
 });
@@ -1252,7 +1385,9 @@ async function siSave(el) {
   try { await call('api/lv/' + L.id, 'PUT', { vergabe: { sicherheit: b } }); } catch (e) { toast(e.message, true); }
 }
 function vRechnungen() {
-  if (!vergeben()) return '<div class="card empty"><p>Rechnungen werden mit den Preisen des Auftrags geprüft – bitte erst unter „Angebote & Vergabe“ vergeben.</p></div>';
+  if (!vergeben()) return `<div class="card empty"><p>Rechnungen werden mit den Preisen des Auftrags geprüft – bitte erst unter „Angebote & Preisspiegel“ vergeben.</p>
+    <p class="hint" style="margin:.8rem 0 .4rem"><b>Ohne LV und Angebot</b> (z. B. kleine Handwerker mit Zettelwirtschaft): Firma und Auftragssumme direkt eintragen – Rechnungen werden dann mit dem geprüften Betrag erfasst und freigegeben und stehen in der Kostenkontrolle.</p>
+    ${freiFelder()}<div class="bar" style="justify-content:center"><button class="btn pri" data-act="freiVergeben">Auftrag frei eintragen</button></div></div>`;
   const K = L.calc, RC = Object.fromEntries(K.rechnungen.map((r) => [r.id, r]));
   const cards = [...L.rechnungen].reverse().map((r) => {
     const c = RC[r.id], g = r.status === 'geprueft', last = r.nr === Math.max(...L.rechnungen.map((x) => x.nr)), ab = r.data.abzuege || [], art = r.art || 'abschlag';
@@ -1260,13 +1395,14 @@ function vRechnungen() {
     const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung abhaken: Summen werden automatisch mit ✔ / ✘ markiert, dann von Hand ergänzen oder streichen – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}
       <label class="btn sm">📎 Rechnung (PDF) hinzufügen<input type="file" accept="application/pdf,.pdf" hidden data-rebeleg="${r.id}"></label><span class="hint">oder hierher ziehen – wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt</span></div>`;
     const kopf = `<h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
-        <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
+        <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' || c.frei ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
       <div class="g"><label>Rechnungsnr. der Firma<input data-re="re_nr" data-id="${r.id}" value="${esc(r.re_nr)}"${dis}></label>
         <label>Rechnungsdatum<input type="date" data-re="datum" data-id="${r.id}" value="${esc(r.datum)}"${dis}></label>
         <label>Eingang<input type="date" data-re="eingang" data-id="${r.id}" value="${esc(r.eingang)}"${dis}></label>
         ${art === 'sicherheit' ? `<label>freizugebender Betrag netto<input data-re="betrag" data-id="${r.id}" value="${nf(r.data.betrag || 0, 2)}" inputmode="decimal"${dis}></label>`
-          : `<label>gefordert (${art === 'regie' ? 'netto' : 'kumuliert, netto'})<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
-        <label>Einbehalt %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>${belege}`;
+          : `<label>gefordert (${c.einzeln ? 'netto' : 'kumuliert, netto'})<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
+        <label>Einbehalt %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>
+      ${art !== 'regie' && art !== 'sicherheit' && !L.vergabe.frei ? `<label class="hint" style="display:inline-flex;gap:.4rem;margin:.4rem 0 0" title="Für Handwerker ohne Aufmaß: den geprüften Betrag direkt eintragen – zählt dann einzeln (nicht kumuliert) in der Kostenkontrolle"><input type="checkbox" data-re="freiAn" data-id="${r.id}"${c.frei ? ' checked' : ''}${dis}> ohne Aufmaß – geprüften Betrag frei eintragen</label>` : ''}${belege}`;
     const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="width:100%;min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
       <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="pdf" data-id="${r.id}">Prüfblatt PDF</button><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag, Prüfblatt und Rechnung der Firma in einer PDF">Rechnungsfreigabe PDF</button>
         ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="${art === 'regie' || art === 'sicherheit' ? 'Prüfung abschließen' : 'Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung'}">✓ Prüfung abschließen</button>`}
@@ -1287,7 +1423,8 @@ function vRechnungen() {
         ${g ? '' : `<tr><td colspan="6"><button class="ib" data-reb="zneu" data-id="${r.id}">+ Zeile (Lohn, Gerät, Material laut Stundenzettel)</button></td></tr>`}</tbody></table>` : '';
     return `<div class="card">${kopf}${zeilen}
       <table><tbody>
-        <tr><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>
+        ${c.frei ? `<tr><td>geprüfter Betrag netto (ohne Aufmaß)</td><td class="r"><input data-re="frei" data-id="${r.id}" value="${nf(r.data.frei || 0, 2)}" inputmode="decimal" style="width:9rem;text-align:right"${dis}></td></tr>`
+          : `<tr><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>`}
         ${c.nachlass ? `<tr><td>– Nachlass ${nf(L.vergabe.nachlass, 2)} %</td><td class="r">${eur(-c.nachlass)}</td></tr>` : ''}
         ${ab.map((z, k) => `<tr><td><div class="abz"><span>–</span><input data-re="abz-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Bauwasser/Strom" style="flex:1"${dis}>
           <input data-re="abz-pct" data-id="${r.id}" data-k="${k}" value="${z.pct != null ? nf(z.pct, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"${dis}>
@@ -1295,8 +1432,8 @@ function vRechnungen() {
           <td class="r">${eur(-(z.pct != null ? L1 * z.pct / 100 : (z.betrag || 0)))}</td></tr>`).join('')}
         ${g ? '' : `<tr><td colspan="2"><button class="ib" data-reb="abzneu" data-id="${r.id}">+ Abzug (Umlage Bauwasser/Strom, Bauleistungsversicherung, Schadensersatz …)</button></td></tr>`}
         <tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %</td><td class="r">${eur(-c.einbehalt)}</td></tr>
-        <tr class="s"><td>= anerkannt${art === 'regie' ? '' : ' (kumuliert)'}</td><td class="r">${eur(c.anerkannt)}</td></tr>
-        ${art === 'regie' ? '' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
+        <tr class="s"><td>= anerkannt${c.einzeln ? '' : ' (kumuliert)'}</td><td class="r">${eur(c.anerkannt)}</td></tr>
+        ${c.einzeln ? '' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
         <tr class="s"><td>= Zahlbetrag netto</td><td class="r">${eur(c.zahlung)}</td></tr>
         <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
         <tr class="s"><td>= Zahlbetrag brutto</td><td class="r">${eur(c.brutto)}</td></tr>
@@ -1306,6 +1443,21 @@ function vRechnungen() {
   return `<div class="bar"><button class="btn sm pri" data-act="reNeu" aria-haspopup="listbox">+ Neu ▾</button>
     <span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
     <div class="re">${cards || '<div class="card empty">Noch keine Rechnung. Teilrechnungen werden kumuliert geprüft: Aufmaß × Auftragspreis, abzüglich Nachlass, Abzügen, Einbehalt und bisheriger Zahlungen.</div>'}${vSicherheiten(K)}</div>`;
+}
+/* Auftrag ohne LV / Angebot („Zettelwirtschaft“) */
+function freiFelder() {
+  return `<datalist id="frFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">${k.trade ? esc(k.trade) : ''}</option>`).join('')}</datalist>
+    <div class="fm" style="max-width:34rem;margin:0 auto .6rem;text-align:left"><label for="frFirma">Firma</label><input id="frFirma" list="frFirmen" placeholder="aus den Adressen oder frei">
+    <label for="frSumme">Auftragssumme netto</label><input id="frSumme" inputmode="decimal" placeholder="optional – sonst zählt, was abgerechnet wird">
+    <label for="frEb">Einbehalt %</label><input id="frEb" inputmode="decimal" value="0" style="max-width:6rem"></div>`;
+}
+async function freiVergeben(lvId, root = document) {
+  const q = (id) => root.querySelector('#' + id);
+  const bieter = (q('frFirma') || {}).value?.trim(); if (!bieter) { toast('Bitte die Firma angeben.', true); return false; }
+  const k = (KONT || []).find((x) => x.name === bieter);
+  const body = { frei: true, bieter, contact_id: k ? k.id : null, summe: pf(q('frSumme').value) || 0, einbehalt: pf(q('frEb').value) ?? 0 };
+  if (L && L.id === lvId) await call(`api/lv/${lvId}/vergabe`, 'POST', body); else await api(`api/lv/${lvId}/vergabe`, 'POST', body);
+  return true;
 }
 function reNeuMenu(anchor) {
   const offen = L.rechnungen.some((r) => r.status !== 'geprueft'), schluss = L.rechnungen.some((r) => r.art === 'schluss');
@@ -1359,6 +1511,8 @@ async function reSave(el) {
   const f = el.dataset.re, body = {};
   if (f.startsWith('z-')) { const zs = (r.data.zeilen || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f.slice(2); zs[k][key] = ['menge', 'ep'].includes(key) ? pf(el.value) : el.value; body.zeilen = zs; }
   else if (f === 'betrag') body.betrag = pf(el.value) || 0;
+  else if (f === 'freiAn') body.frei = el.checked ? (r.gefordert || 0) : null;
+  else if (f === 'frei') body.frei = pf(el.value) || 0;
   else if (f.startsWith('abz-')) { const ab = (r.data.abzuege || []).map((z) => ({ ...z })), k = +el.dataset.k, key = f.slice(4); ab[k][key] = key === 'text' ? el.value : pf(el.value); if (key === 'pct' && ab[k].pct != null) ab[k].betrag = null; if (key === 'betrag' && ab[k].betrag != null) ab[k].pct = null; body.abzuege = ab; }
   else body[f] = ['gefordert', 'einbehalt'].includes(f) ? pf(el.value) : el.value;
   try { await call('api/rechnungen/' + r.id, 'PUT', body); } catch (e) { toast(e.message, true); }

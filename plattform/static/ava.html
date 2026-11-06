@@ -115,6 +115,13 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .qu-seg button.on{background:var(--y);color:var(--on);font-weight:600}
 .qu .lt.voll{display:block;-webkit-line-clamp:unset;overflow:visible;max-height:none;color:var(--ink)}
 .qu-l{flex:1;overflow:auto}
+.qu-busy{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;background:color-mix(in srgb,var(--card) 72%,transparent);color:var(--mute);font-size:.9rem;container-type:inline-size}
+.wspin{position:relative;width:clamp(36px,22cqw,140px);aspect-ratio:1}
+.wspin i{position:absolute;inset:0;opacity:0;animation:wspin 4.4s infinite}
+.wspin i::after{content:'';position:absolute;left:50%;top:0;width:13%;aspect-ratio:1;border-radius:50%;background:var(--y);transform:translateX(-50%)}
+.wspin i:nth-child(2){animation-delay:.24s}.wspin i:nth-child(3){animation-delay:.48s}.wspin i:nth-child(4){animation-delay:.72s}.wspin i:nth-child(5){animation-delay:.96s}
+@keyframes wspin{0%{transform:rotate(225deg);opacity:1;animation-timing-function:ease-out}7%{transform:rotate(345deg);animation-timing-function:linear}30%{transform:rotate(455deg);animation-timing-function:ease-in-out}39%{transform:rotate(690deg);animation-timing-function:linear}70%{transform:rotate(815deg);opacity:1;animation-timing-function:ease-out}75%{transform:rotate(945deg);animation-timing-function:ease-out}76%,100%{transform:rotate(945deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){.wspin i{animation-duration:9s}}
 .qu table{width:100%;border-collapse:collapse;font-size:12.5px}
 .qu td,.qu th{padding:.2rem .35rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
 .qu th{position:sticky;top:0;background:var(--tabs);font-weight:500;z-index:1}
@@ -670,7 +677,7 @@ function render() {
   const v0 = $('#view'); let v = v0;
   if (PJTABS.has(tab) && LIST.some((x) => !x.archived)) {   // wie in ORCA: links der Projektbaum (alle LVs mit Angeboten bzw. Rechnungen), rechts das Gewählte
     if (!v0.querySelector(':scope > .pjw')) v0.innerHTML = '<div class="pjw"><aside class="pj" id="pjTree" aria-label="Projektbaum"></aside><div class="pjm" id="pjMain"></div></div>';
-    v0.querySelector('.pjw').classList.toggle('zu', PJZU);
+    v0.querySelector('.pjw').classList.toggle('zu', PJZU || (tab === 'lv' && QU.an));   // mit Kopierquelle braucht das LV den Platz
     $('#pjTree').innerHTML = pjBaum(); v = $('#pjMain');
   }
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
@@ -1975,8 +1982,19 @@ async function katalogEinstellungen(host) {
     } catch (e) { m.textContent = e.message; }
   };
 }
-const quLvLaden = (v) => { const t = String(v).split(':'); return (istKat(v) ? api(t[2] === 'suche' ? `api/katalog/${t[1]}/suche?q=` + encodeURIComponent(QU.q || '') + (QU.inG && QU.gw ? '&gewerk=' + encodeURIComponent(QU.gw) : '') + (QU.ber ? '&bereich=' + QU.ber : '') : `api/katalog/${t[1]}/gewerk/` + encodeURIComponent(t.slice(2).join(':'))) : api('api/lv/' + v)).catch(() => null); };
-async function quLaden() {
+/* Drehkreis (wie unter Windows) über der Kopierquelle, solange geladen wird – Größe passt sich der Spalte an */
+let QUBUSY = 0;
+function quBusy(d) { QUBUSY = Math.max(0, QUBUSY + d); quDreh(!!QUBUSY); }
+function quDreh(an) {
+  const box = $('#quelle'); if (!box) return;
+  let o = box.querySelector(':scope > .qu-busy');
+  if (an && !o) { o = document.createElement('div'); o.className = 'qu-busy'; o.setAttribute('role', 'status'); o.innerHTML = '<div class="wspin" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><span>Kopierquelle wird geladen …</span>'; box.appendChild(o); }
+  if (!an && o) o.remove();
+}
+const quLvLaden0 = (v) => { const t = String(v).split(':'); return (istKat(v) ? api(t[2] === 'suche' ? `api/katalog/${t[1]}/suche?q=` + encodeURIComponent(QU.q || '') + (QU.inG && QU.gw ? '&gewerk=' + encodeURIComponent(QU.gw) : '') + (QU.ber ? '&bereich=' + QU.ber : '') : `api/katalog/${t[1]}/gewerk/` + encodeURIComponent(t.slice(2).join(':'))) : api('api/lv/' + v)).catch(() => null); };
+const quLvLaden = async (v) => { quBusy(1); try { return await quLvLaden0(v); } finally { quBusy(-1); } };
+async function quLaden() { quBusy(1); try { await quLaden0(); } finally { quBusy(-1); } }
+async function quLaden0() {
   if (!KAT || !Array.isArray(KAT.kataloge)) KAT = await api('api/katalog').catch(() => ({ kataloge: [] })); if (!Array.isArray(KAT.kataloge)) KAT.kataloge = [];
   if (!Array.isArray(KAT.bd)) KAT.bd = await api('api/baudaten/kataloge').catch(() => []);   // Positionsdatenbank und eigene Positionen
   if (QU.pid === 'kat') QU.pid = KAT.kataloge[0] ? 'kat:' + KAT.kataloge[0].id : null;   // vorher: ein einziger Katalog
@@ -2019,11 +2037,12 @@ function quProjMenu(anchor) {   // Kataloge oben, darunter Projekte mit kleinem 
   if (!istKat(QU.pid)) inp.focus();
 }
 const quItems = () => (QU.L && QU.L.data && QU.L.data.items) || [];
-function quZeigen() {
+function quZeigen() { quZeigen0(); quDreh(!!QUBUSY && QU.an && tab === 'lv'); }
+function quZeigen0() {
   const box = $('#quelle'), an = QU.an && tab === 'lv';
   box.hidden = !an; document.querySelector('.body').classList.toggle('mit-quelle', an); $('#quBtn').classList.toggle('on', QU.an);
   if (!an) return;
-  if (!KAT) { box.innerHTML = '<p class="mute" style="padding:1rem">Lade Kopierquelle …</p>'; return; }   // quLaden läuft noch
+  if (!KAT) { box.innerHTML = ''; quDreh(true); return; }   // quLaden läuft noch: nur der Drehkreis
   const VP = (QU.L && QU.L.vergabe && QU.L.vergabe.preise) || {};
   const epq = (x) => VP[x.id] ?? x.ep_s;
   const I = quItems();
@@ -2078,7 +2097,9 @@ async function quEinfuegen(liste, nach) {
   QU.sel = new Set(); quZeigen();
   setTimeout(() => { const r = document.querySelector(`table.lv tr[data-i="${at}"]`); if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
 }
-$('#quBtn').onclick = async () => { QU.an = !QU.an; LS.set('qu.an', QU.an); if (QU.an && tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } if (QU.an && !QU.L) await quLaden(); quZeigen(); };
+$('#quBtn').onclick = async () => { QU.an = !QU.an; LS.set('qu.an', QU.an); if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); } render();
+  quBusy(1); try { quZeigen();   // Spalte sofort öffnen – der Drehkreis zeigt, dass geladen wird
+    if (QU.an && !QU.L) await quLaden(); } finally { quBusy(-1); } quZeigen(); };
 document.addEventListener('click', (e) => {
   const q = e.target.closest('#quelle'); if (!q) return;
   const b = e.target.closest('[data-qu]');

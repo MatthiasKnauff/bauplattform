@@ -594,6 +594,14 @@ def blueprint(get_user=None):
                 b = request.get_json(silent=True) or {}
                 d = posteingang.lesen(c, uid)
                 mid = str(b.get("id") or "")[:200]
+                if b.get("wie") == "zurueck":   # Verwerfen rückgängig: Vorschlag wieder an die Mail
+                    d.setdefault("erledigt", {}).pop(mid, None)
+                    v = b.get("vorschlag") if isinstance(b.get("vorschlag"), dict) else {}
+                    for m in d.get("mails") or []:
+                        if m.get("id") == mid and v.get("titel"):
+                            m["vorschlag"] = {"titel": str(v.get("titel"))[:200], "termin": str(v.get("termin") or "")[:10], "text": str(v.get("text") or "")[:1000]}
+                    konto._put(c, f"post:{uid}", json.dumps(d, ensure_ascii=False), "posteingang")
+                    return jsonify(ok=True)
                 d.setdefault("erledigt", {})[mid] = str(b.get("wie") or "ja")[:40]
                 for m in d.get("mails") or []:
                     if m.get("id") == mid:

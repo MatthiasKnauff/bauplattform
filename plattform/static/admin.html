@@ -234,7 +234,7 @@ async function projForm(p) {
     if (m === 'x') { close(); return; }
     if (m === 'del') { close(); delDlg(p); return; }
     if (m === 'arch') {
-      try { await api('api/projects/' + p.bt.id, 'PUT', { archived: !p.archived }); close(); toast(p.archived ? 'Aus dem Archiv geholt.' : 'Archiviert – in allen Apps unter „Archiv“.'); load(); } catch (e) { toast(e.message, true); }
+      try { await api('api/projects/' + p.bt.id, 'PUT', { archived: !p.archived }); close(); archivRueck(p, p.archived ? 'aus dem Archiv geholt' : 'archiviert – in allen Apps unter „Archiv“'); load(); } catch (e) { toast(e.message, true); }
       return;
     }
     if (m !== 'ok') return;
@@ -263,9 +263,14 @@ function moreMenu(p, anchor) {
     const b = e.target.closest('[data-pm]'); if (!b) return; m.remove();
     if (b.dataset.pm === 'del') delDlg(p);
     else if (b.dataset.pm === 'mkbt') mkBt(p);
-    else { try { await api('api/projects/' + p.bt.id, 'PUT', { archived: !p.archived }); toast(p.archived ? 'Aus dem Archiv geholt.' : 'Archiviert.'); load(); } catch (er) { toast(er.message, true); } }
+    else { try { await api('api/projects/' + p.bt.id, 'PUT', { archived: !p.archived }); archivRueck(p, p.archived ? 'aus dem Archiv geholt' : 'archiviert'); load(); } catch (er) { toast(er.message, true); } }
   };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', off); } }), 0);
+}
+/* Projekt (ent)archiviert → Rückgängig stellt den alten Stand wieder her */
+function archivRueck(p, was) {
+  const id = p.bt.id, alt = !!p.archived;
+  rueckgaengig(`„${p.name}“ ${was}`, async () => { await api('api/projects/' + id, 'PUT', { archived: alt }); load(); });
 }
 const projOf = (el) => data.p.find((p) => p.key === el.closest('[data-key]').dataset.key);
 function mkBt(p, then) {

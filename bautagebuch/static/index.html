@@ -1273,8 +1273,13 @@ async function archProject(flag) {
   toast(on ? `„${name}“ archiviert – zu finden in der Verwaltung → Projekte → Archiv.` : `„${name}“ ist wieder aktiv.`, async () => { pid = id; await archProject(!on); if (!on) await openProject(id); else renderDetail(); });
 }
 async function delProject() {
-  await api('api/projects/' + pid, 'DELETE'); pid = null; rid = null; reports = []; await loadProjects();
+  const id = pid, name = (curProject() || {}).name || 'Projekt';
+  const r = await api('api/projects/' + id, 'DELETE'); pid = null; rid = null; reports = []; await loadProjects();
   if (projects[0]) { tab = 'bericht'; await openProject(projects[0].id); } else renderDetail();
+  if (typeof r.papierkorb === 'number') toast(`„${name}“ liegt im Papierkorb.`, async () => {   // aus dem Papierkorb zurückholen
+    const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; }
+    await loadProjects(); if (projects.some(x => x.id === id)) await openProject(id); else renderDetail();
+  });
 }
 
 /* ---------- Kontakte ---------- */
@@ -1707,7 +1712,11 @@ document.addEventListener('click', async e => {
     const pan = b.closest('.duepanel'), d = new Date(Date.now() + +b.dataset.d * 864e5);
     pan.querySelector('[data-dp=date]').value = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); saveDue(pan, false);
   }
-  else if (a === 'dueClear') { dueEditId = null; await api('api/items/' + id, 'PUT', {due: ''}); openProject(pid, true); }
+  else if (a === 'dueClear') {
+    const it = (curReport()?.items || []).find(x => x.id === id), alt = it && it.due ? {due: it.due, due_time: it.due_time || '09:00'} : null;   // alten Termin merken
+    dueEditId = null; await api('api/items/' + id, 'PUT', {due: ''}); openProject(pid, true);
+    if (alt) toast('Erledigungsdatum entfernt.', async () => { await api('api/items/' + id, 'PUT', alt); openProject(pid, true); });
+  }
   else if (a === 'addPerson') {
     const r = curReport(), v = r.site_manager ? r.site_manager.replace(/[,\s]+$/, '') + ', ' + b.dataset.name : b.dataset.name;
     r.site_manager = v; await api('api/reports/' + r.id, 'PUT', {site_manager: v}); renderDetail();
@@ -1781,11 +1790,15 @@ document.addEventListener('click', async e => {
   else if (a === 'createContact') createContact();
   else if (a === 'ldrDraft') { const i = +b.dataset.id, l = draft.leaders || (draft.leaders = []); l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i); renderDetail(); }
   else if (a === 'ldrEdit') {
-    const p = curProject(), i = +b.dataset.id, l = (p.leaders || []).slice(), self = me.id;
+    const p = curProject(), i = +b.dataset.id, l = (p.leaders || []).slice(), self = me.id, alt = l.slice(), weg = l.includes(i), id = pid;
     l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i);
     const res = await api('api/projects/' + pid, 'PUT', {leaders: l});
     if (res.error) { toast(res.error); return; }
     await loadProjects();
+    if (weg) toast(`${b.textContent.trim() || 'Bauleiter'} entfernt.`, async () => {   // alte Liste der Bauleiter wiederherstellen
+      const x = await api('api/projects/' + id, 'PUT', {leaders: alt}); if (x.error) { toast(x.error); return; }
+      await loadProjects(); if (projects.some(y => y.id === id)) await openProject(id, id === pid); else renderDetail();
+    });
     if (!curProject()) { toast('Du bist bei diesem Projekt nicht mehr eingetragen – es erscheint nicht mehr in deiner Projektauswahl.'); const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
     else renderDetail();
   }
@@ -1846,7 +1859,14 @@ document.addEventListener('click', async e => {
       if (a === 'sollDa') {
         const act = row && row.querySelector('[data-soll-act]'), cnt = row && row.querySelector('[data-soll-cnt]');
         const x = await api('api/reports/' + r.id + '/items', 'POST', {kind: b.dataset.kind, text: firma, activity: act ? act.value.trim() : '', headcount: cnt && cnt.value !== '' ? +cnt.value : null}); if (x.error) { toast(x.error); return; }
-      } else { const x = await api('api/reports/' + r.id + '/soll', 'POST', {firma, status: b.dataset.st}); if (x.error) { toast(x.error); return; } }
+      } else {
+        const vorher = ((SOLL.f || []).find(y => y.firma === firma) || {}).status || 'offen', st = b.dataset.st, rId = r.id;   // alten Stand merken
+        const x = await api('api/reports/' + rId + '/soll', 'POST', {firma, status: st}); if (x.error) { toast(x.error); return; }
+        if (st !== 'offen' && vorher !== st) toast(`${firma}: ${st === 'nein' ? 'nicht nötig' : 'nicht da'}.`, async () => {
+          const y = await api('api/reports/' + rId + '/soll', 'POST', {firma, status: ['fehlt', 'nein'].includes(vorher) ? vorher : 'offen'}); if (y.error) { toast(y.error); return; }
+          SOLL.rid = 0; openProject(pid, true);
+        });
+      }
     } catch (e) { return; }
     SOLL.rid = 0; openProject(pid, true);
   }
@@ -1900,7 +1920,11 @@ document.addEventListener('change', async e => {
     t.replaceWith(n); n.focus(); try { n.showPicker?.(); } catch (_) {} return;
   }
   if (t.dataset.act === 'pick') { rid = +t.value; wxEdit = headEdit = false; renderDetail(); }
-  else if (t.dataset.act === 'toggle') { await api('api/items/' + t.dataset.id, 'PUT', {done: t.checked}); openProject(pid, true); }
+  else if (t.dataset.act === 'toggle') {
+    const id = +t.dataset.id, an = t.checked, it = (curReport()?.items || []).find(x => x.id === id), txt = it ? it.text.slice(0, 40) : 'Eintrag';
+    await api('api/items/' + id, 'PUT', {done: an ? 1 : 0}); openProject(pid, true);   // Spalte „done“ ist INTEGER – 1/0 statt true/false
+    toast(`„${txt}“ ${an ? 'erledigt' : 'wieder offen'}.`, async () => { await api('api/items/' + id, 'PUT', {done: an ? 0 : 1}); openProject(pid, true); });
+  }
   else if (t.dataset.img) { const r = await api('api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
   else if (t.dataset.pf) saveProjectField(t);
   else if (t.dataset.cf) saveContactField(t);

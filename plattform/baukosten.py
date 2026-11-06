@@ -344,9 +344,9 @@ def bk_one(i):
             return jsonify(_out(c, r))
         if request.method == "DELETE":   # in den Papierkorb (mit den hochgeladenen Plänen)
             pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
-            papierkorb.ablegen(c, "bk_projects", i, "Kostenermittlung", r["name"], g.user["name"], pr["name"] if pr else "", "baukosten")
+            pk = papierkorb.ablegen(c, "bk_projects", i, "Kostenermittlung", r["name"], g.user["name"], pr["name"] if pr else "", "baukosten")
             C.audit(g.user["name"], "baukosten", "Kostenermittlung in den Papierkorb", r["name"])
-            return jsonify(ok=True, papierkorb=True)
+            return jsonify(ok=True, papierkorb=pk)   # Papierkorb-ID für „Rückgängig“
         b = request.get_json(silent=True) or {}
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"bk:{i}",))
         r = _row(c, i)

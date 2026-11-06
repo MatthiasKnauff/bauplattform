@@ -1733,11 +1733,18 @@ function taskCtx(e) {
   ]);
 }
 let toastTimer = null;
-function toast(msg, err = false) {
+function toast(msg, err = false, undo = null) {   // mit undo: Knopf „↶ Rückgängig“, 10 s lang
   document.querySelectorAll('.toast').forEach((t) => t.remove());
-  const t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg;
-  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 4500);
+  const t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : '') + (undo ? ' undo' : ''); t.setAttribute('role', 'status');
+  if (undo) {
+    const s = document.createElement('span'); s.textContent = msg; t.appendChild(s);
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '↶ Rückgängig'; t.appendChild(b);
+    b.onclick = async () => { clearTimeout(toastTimer); t.remove(); try { await undo(); } catch (e) { toast(e.message || 'Rückgängig ging nicht', true); } };
+  } else t.textContent = msg;
+  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), undo ? 10000 : 4500);
 }
+/* Plan aus dem Papierkorb zurückholen (Rückgängig nach dem Löschen) */
+const ausPapierkorb = (pk) => fetch(`api/bp/papierkorb/${pk}/zurueck`, { method: 'POST' }).then(j);
 
 /* =====================================================================
    Ereignisse – Tabelle
@@ -2467,10 +2474,12 @@ function reallyDelete() {
   (async () => {
     await flushSave(); clearTimeout(saveTimer); saveTimer = null; const name = P.name;
     const bt = P._bt && P._bt.id;
-    await api.del(P.id); projects = await api.list(); P = null;
+    const id = P.id, r = await api.del(id); projects = await api.list(); P = null;
     const next = bt ? projects.find((p) => !p.archived && p.bt_id === bt) || projects.find((p) => p.bt_id === bt) : projects.find((p) => !p.archived);   // nächste Version desselben Projekts
     if (next) await openProject(next.id); else { await keinPlanFuer(); }
-    refreshProjectList(); toast(`„${name}“ liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.`);
+    refreshProjectList();
+    if (typeof r.papierkorb === 'number') toast(`„${name}“ liegt im Papierkorb.`, false, async () => { await ausPapierkorb(r.papierkorb); projects = await api.list(); await openProject(id); refreshProjectList(); });
+    else toast(`„${name}“ liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.`);
   })().catch((e) => toast(e.message, true));
 }
 async function fileOpen() {
@@ -2497,14 +2506,19 @@ async function fileOpen() {
     if (t.dataset.opa) {
       const id = t.dataset.opa, x = list.find((p) => p.id === id);
       if (P && id === P.id) { act(() => { P.archived = !P.archived; }); await saveNow(); }
-      else await fetch('api/projects/' + encodeURIComponent(id) + '/archiv', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archiviert: !x.archived }) }).then(j);
+      else {
+        const archiv = (a) => fetch('api/projects/' + encodeURIComponent(id) + '/archiv', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archiviert: a }) }).then(j);
+        const alt = !!x.archived; await archiv(!alt);
+        toast(`„${x.name}“ ${alt ? 'zurückgeholt' : 'archiviert'}.`, false, async () => { await archiv(alt); if (bg.isConnected) { list = await api.list(); draw(); } refreshProjectList(); });
+      }
       list = await api.list(); draw(); refreshProjectList(); return;
     }
     if (t.dataset.opd) {
       if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Löschen?'; t.classList.add('danger'); setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = '✕'; t.classList.remove('danger'); } }, 3000); return; }
       const id = t.dataset.opd;
       if (P && id === P.id) { toast('Das geöffnete Projekt bitte über „Projekt löschen“ löschen.', true); return; }
-      await api.del(id); list = await api.list(); draw(); refreshProjectList();
+      const x = list.find((p) => p.id === id), r = await api.del(id); list = await api.list(); draw(); refreshProjectList();
+      if (typeof r.papierkorb === 'number') toast(`„${x ? x.name : 'Plan'}“ liegt im Papierkorb.`, false, async () => { await ausPapierkorb(r.papierkorb); if (bg.isConnected) { list = await api.list(); draw(); } refreshProjectList(); });
     }
   });
   draw(); setTimeout(() => bg.querySelector('#opQ').focus(), 0);

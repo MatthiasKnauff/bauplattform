@@ -1190,15 +1190,22 @@ function verwalten() {
   async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m === 'arch') {
-      close(); clearTimeout(saveT); await saveNow({ archived: !B.archived });
-      toast(B.archived ? 'Aus dem Archiv geholt.' : 'Archiviert.'); await loadList(B.id); return;
+      const id = B.id, alt = !!B.archived, nm = B.name;
+      close(); clearTimeout(saveT); await saveNow({ archived: !alt }); await loadList(id);
+      rueckgaengig(`„${nm}“ ${alt ? 'aus dem Archiv geholt' : 'archiviert'}`, async () => {
+        if (B && B.id === id) { clearTimeout(saveT); await saveNow({ archived: alt }); } else await api('api/bk/' + id, 'PUT', { archived: alt });
+        await loadList(id);
+      });
+      return;
     }
     if (m === 'del') {
       try {
         clearTimeout(saveT); await saveNow(); const id = B.id, name = B.name;
-        await api('api/bk/' + id, 'DELETE'); close();
+        const r = await api('api/bk/' + id, 'DELETE'); close();
         try { localStorage.removeItem('bk.cur'); } catch { /* egal */ }
-        B = null; toast(`„${name}“ liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.`); await loadList();
+        B = null; await loadList();
+        if (typeof r.papierkorb === 'number') rueckgaengig(`„${name}“ liegt im Papierkorb`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await loadList(id); });
+        else toast(`„${name}“ liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.`);
       } catch (e) { toast('Löschen fehlgeschlagen: ' + e.message, true); }
     }
   });

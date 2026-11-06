@@ -305,7 +305,12 @@ document.addEventListener('click', async (e) => {
     try { await navigator.clipboard.writeText(s); toast('In die Zwischenablage kopiert'); } catch { toast('Kopieren nicht möglich', true); } return;
   }
   if (t.closest('[data-fav]')) { SEL = await api('api/position/' + SEL.id, 'PUT', { favorit: !SEL.favorit }); detail(); laden(); return; }
-  if (t.closest('[data-aktiv]')) { SEL = await api('api/position/' + SEL.id, 'PUT', { aktiv: !SEL.aktiv }); detail(); laden(); return; }
+  if (t.closest('[data-aktiv]')) {
+    const id = SEL.id, alt = !!SEL.aktiv, nm = SEL.kurz;
+    SEL = await api('api/position/' + id, 'PUT', { aktiv: !alt }); detail(); laden();
+    rueckgaengig(`„${nm}“ ${alt ? 'ausgeblendet' : 'wieder eingeblendet'}`, async () => { const r = await api('api/position/' + id, 'PUT', { aktiv: alt }); if (SEL && SEL.id === id) { SEL = r; detail(); } laden(); });
+    return;
+  }
   if (t.closest('[data-eigen]')) { try { SEL = await api('api/position', 'POST', { von: SEL.id }); toast('Als eigene Position angelegt (Katalog „Eigene Positionen“)'); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
   if (t.closest('[data-edit]')) { bearbeiten(); return; }
   if (t.closest('[data-del]')) { if (!confirm('Eigene Position löschen?')) return; await api('api/position/' + SEL.id, 'DELETE'); SEL = null; $('#det').innerHTML = '<div class="leer">Gelöscht.</div>'; laden(); start(); return; }
@@ -314,7 +319,14 @@ document.addEventListener('click', async (e) => {
     if (!ep) return toast('Bitte einen Einheitspreis eingeben.', true);
     try { SEL = await api(`api/position/${SEL.id}/preis`, 'POST', { ep, firma: $('#pFi').value, project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || null }); detail(); } catch (er) { toast(er.message, true); } return;
   }
-  const pw = t.closest('[data-pweg]'); if (pw) { try { SEL = await api('api/preis/' + pw.dataset.pweg, 'DELETE'); detail(); } catch (er) { toast(er.message, true); } }
+  const pw = t.closest('[data-pweg]'); if (pw) {
+    const id = SEL.id, p = (SEL.preise || []).find((x) => x.id === +pw.dataset.pweg);   // alten Eintrag merken
+    try { SEL = await api('api/preis/' + pw.dataset.pweg, 'DELETE'); detail(); } catch (er) { toast(er.message, true); return; }
+    if (p) rueckgaengig(`Preis ${eur(p.ep)}${p.firma ? ' (' + p.firma + ')' : ''} gelöscht`, async () => {
+      const r = await api(`api/position/${id}/preis`, 'POST', { ep: p.ep, datum: p.datum, firma: p.firma, menge: p.menge, notiz: p.notiz, project_id: p.project_id });
+      if (SEL && SEL.id === id) { SEL = r; detail(); }
+    });
+  }
 });
 $('#kat').addEventListener('change', (e) => { F.katalog = e.target.value; LS.set('katalog', F.katalog); F.lb = ''; F.gruppe = ''; GR = {}; N = 100; start(); });
 for (const [id, k] of [['einh', 'einheit'], ['gen', 'genauigkeit']]) $('#' + id).addEventListener('change', (e) => { F[k] = e.target.value; N = 100; laden(); });

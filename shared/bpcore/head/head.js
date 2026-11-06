@@ -861,7 +861,13 @@
         const r = neu ? await J('projects', 'POST', body) : await J('projects/' + P.id, 'PUT', body);
         const nid = neu ? r.id : P.id; close(); if (H.projekt && H.projekt.id === nid) H.projekt = null;   // Kopfleiste neu laden (Name/Adresse geändert)
         const t = r.auto_address ? 'Adresse aus dem Projektnamen ermittelt – bitte prüfen.' : r.geocoded === false ? 'Adresse nicht gefunden – bitte prüfen.' : neu ? 'Projekt angelegt.' : 'Gespeichert.';
-        if (window.toast) toast(t);
+        if (!neu && extra && 'archived' in extra && typeof window.rueckgaengig === 'function') {   // Archivieren: mit Rückgängig
+          const alt = d.archived ? 1 : 0;
+          window.rueckgaengig(`„${d.name}“ ${alt ? 'aus dem Archiv geholt' : 'archiviert'}`, async () => {
+            await J('projects/' + nid, 'PUT', { archived: alt });
+            if (opt.onSaved) opt.onSaved(nid); else location.reload();
+          });
+        } else if (window.toast) toast(t);
         if (opt.onSaved) opt.onSaved(nid); else { await H.projektSetzen(nid); location.reload(); }
       } catch (e) { msg = e.message; draw(); }
     }

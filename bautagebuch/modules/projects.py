@@ -141,10 +141,10 @@ def delete_project(i):
         if not r:
             return jsonify(ok=True)
         files = db.image_files(c, "report_id IN (SELECT id FROM reports WHERE project_id=?)", (i,))
-        papierkorb.ablegen(c, "projects", i, "Bautagebuch-Projekt", r["name"], getattr(g, "user", None) and g.user["name"] or "", r["name"],
-                           "bautagebuch", dateien=list(files))
+        pk = papierkorb.ablegen(c, "projects", i, "Bautagebuch-Projekt", r["name"], getattr(g, "user", None) and g.user["name"] or "", r["name"],
+                                "bautagebuch", dateien=list(files))
     papierkorb_dateien()
-    return jsonify(ok=True, papierkorb=True)
+    return jsonify(ok=True, papierkorb=pk)   # Papierkorb-ID für „Rückgängig“
 
 
 def papierkorb_dateien():

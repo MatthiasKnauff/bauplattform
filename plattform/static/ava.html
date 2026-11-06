@@ -471,8 +471,17 @@ async function vleiste(neu) {
         <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${akt.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del"${VERS.length < 2 ? ' disabled title="Die einzige Version lässt sich nicht löschen."' : ''}>🗑 In den Papierkorb</button></div>`, async (m, bg, close) => {
         if (m === 'x') { close(); return; }
         try {
-          if (m === 'arch') { await api('api/versionen/' + akt.id, 'PUT', { archived: !akt.archived }); close(); vleiste(); return; }
-          if (m === 'del') { await flush(); await api('api/versionen/' + akt.id, 'DELETE'); close(); L = null; await loadList(); toast('Version liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.'); }
+          if (m === 'arch') {
+            const vid = akt.id, alt = !!akt.archived;
+            await api('api/versionen/' + vid, 'PUT', { archived: !alt }); close(); vleiste();
+            rueckgaengig(`Version „${akt.name}“ ${alt ? 'aus dem Archiv geholt' : 'archiviert'}`, async () => { await api('api/versionen/' + vid, 'PUT', { archived: alt }); vleiste(); });
+            return;
+          }
+          if (m === 'del') {
+            await flush(); const r = await api('api/versionen/' + akt.id, 'DELETE'); close(); L = null; await loadList();
+            if (r && r.papierkorb) rueckgaengig(`Version „${akt.name}“ liegt im Papierkorb`, async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (akt.aktiv && w.schluessel) await api('api/versionen/' + w.schluessel, 'PUT', { aktiv: true }); L = null; await loadList(); });
+            else toast('Version liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.');
+          }
         } catch (e) { toast(e.message, true); }
       }); } });
   el.style.display = VERS.length ? '' : 'none';
@@ -513,6 +522,11 @@ async function flush() { if (saveT) { clearTimeout(saveT); saveT = 0; if ($('#sa
 async function call(url, m, body) {   // Aktion auf dem Server, Antwort ist das ganze LV
   await flush();
   const r = await api(url, m, body); L = r; render(); histTrack(); if (r.hinweis) toast(r.hinweis); refreshList(); return r;
+}
+/* Felder eines LV zurücksetzen (Rückgängig) – ist es offen, über saveNow, sonst direkt */
+async function lvSetzen(id, extra) {
+  if (L && L.id === id) { await flush(); await saveNow(extra); await refreshList(); render(); return; }
+  await api('api/lv/' + id, 'PUT', extra); await refreshList();
 }
 async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
 
@@ -787,7 +801,12 @@ document.addEventListener('change', (e) => {
 document.addEventListener('click', async (e) => {
   const t = e.target;
   const tb = t.closest('[data-tab]'); if (tb) { await flush(); tab = tb.dataset.tab; LS.set('tab', tab); if (tab === 'uebersicht' || tab === 'auftraege') await refreshList(); render(); return; }
-  const st = t.closest('[data-status]'); if (st && L) { L.status = st.dataset.status; await flush(); saveNow({ status: L.status }); kpis(); return; }
+  const st = t.closest('[data-status]'); if (st && L) {
+    const alt = L.status, id = L.id; if (alt === st.dataset.status) return;
+    L.status = st.dataset.status; await flush(); saveNow({ status: L.status }); kpis();
+    rueckgaengig(`Stand „${(STATUS.find((s) => s[0] === L.status) || [, L.status])[1]}“ gesetzt`, () => lvSetzen(id, { status: alt }));
+    return;
+  }
   const ac = t.closest('[data-act]');
   if (ac) {
     const a = ac.dataset.act;
@@ -802,7 +821,17 @@ document.addEventListener('click', async (e) => {
     if (a === 'ps') return window.open(`api/lv/${L.id}/pdf?art=preisspiegel`, '_blank');
     if (a === 'amPdf') return window.open(`api/lv/${L.id}/pdf?art=aufmass`, '_blank');
     if (a === 'reNeu') return reDialog();
-    if (a === 'vergabeWeg') { if (!confirm('Vergabe aufheben? Die Auftragspreise werden entfernt.')) return; return call(`api/lv/${L.id}/vergabe`, 'DELETE').catch((er) => toast(er.message, true)); }
+    if (a === 'vergabeWeg') {
+      if (!confirm('Vergabe aufheben? Die Auftragspreise werden entfernt.')) return;
+      const id = L.id, V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status;   // alten Stand merken
+      try { await call(`api/lv/${id}/vergabe`, 'DELETE'); } catch (er) { toast(er.message, true); return; }
+      if (V.angebot_id) rueckgaengig(`Vergabe an ${V.bieter || 'den Bieter'} aufgehoben`, async () => {
+        const r = await call(`api/lv/${id}/vergabe`, 'POST', { angebot_id: V.angebot_id, datum: V.datum, einbehalt: V.einbehalt });
+        const P = { ...(V.preise || {}) }; Object.keys((r.vergabe && r.vergabe.preise) || {}).forEach((k) => { if (!(k in P)) P[k] = null; });
+        await call('api/lv/' + id, 'PUT', { status: stAlt, vergabe: { nachlass: V.nachlass || 0, skonto: V.skonto || 0, einbehalt: V.einbehalt ?? 5, preise: P } });
+      });
+      return;
+    }
   }
   const row = t.closest('tr[data-i]'), ib = t.closest('.ib');
   if (row && ib && tab === 'lv') {
@@ -819,10 +848,26 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const vg = t.closest('[data-vergabe]'); if (vg) return vergabeDialog(+vg.dataset.vergabe);
-  const ad = t.closest('[data-angdel]'); if (ad) { if (!confirm('Angebot löschen?')) return; return call('api/angebote/' + ad.dataset.angdel, 'DELETE').catch((er) => toast(er.message, true)); }
+  const ad = t.closest('[data-angdel]'); if (ad) {
+    if (!confirm('Angebot löschen?')) return;
+    const id = L.id, x = JSON.parse(JSON.stringify(L.angebote.find((z) => z.id === +ad.dataset.angdel) || {})), vergeben = L.vergabe && L.vergabe.angebot_id === x.id;
+    try { await call('api/angebote/' + ad.dataset.angdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }
+    if (x.id && !vergeben) rueckgaengig(`Angebot ${x.bieter} gelöscht`, async () => {   // neu anlegen und Preise wieder eintragen
+      const vorher = new Set(L && L.id === id ? L.angebote.map((z) => z.id) : []);
+      const r = await call(`api/lv/${id}/angebote`, 'POST', { contact_id: x.contact_id, bieter: x.bieter, eingang: x.eingang });
+      const neu = r.angebote.filter((z) => !vorher.has(z.id)).sort((p, q) => q.id - p.id)[0];
+      if (neu) await call('api/angebote/' + neu.id, 'PUT', { notiz: x.notiz || '', nachlass: x.nachlass || 0, skonto: x.skonto || 0, preise: x.preise || {} });
+    });
+    return;
+  }
   const ax = t.closest('[data-angx84]'); if (ax) { location.href = `api/lv/${L.id}/gaeb?dp=84&angebot=${ax.dataset.angx84}`; return; }
   const ap = t.closest('[data-ampos]'); if (ap) { amPos = ap.dataset.ampos; LS.set('amPos', amPos); render(); setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30); return; }
-  const amd = t.closest('[data-amdel]'); if (amd) return call('api/aufmass/' + amd.dataset.amdel, 'DELETE').catch((er) => toast(er.message, true));
+  const amd = t.closest('[data-amdel]'); if (amd) {
+    const id = L.id, z = L.aufmass.find((y) => y.id === +amd.dataset.amdel);
+    try { await call('api/aufmass/' + amd.dataset.amdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }
+    if (z) rueckgaengig(`Aufmaßzeile ${z.ort || z.formel || ''} gelöscht`.trim(), () => call(`api/lv/${id}/aufmass`, 'POST', { pos_id: z.pos_id, datum: z.datum, ort: z.ort, formel: z.formel, menge: z.menge, quelle: z.quelle }));
+    return;
+  }
   const amr = t.closest('[data-amraum]'); if (amr) return raumDialog();
   const rb = t.closest('[data-reb]'); if (rb) return reAktion(rb);
   const ue = t.closest('tr[data-ue]'); if (ue) { tab = 'lv'; LS.set('tab', tab); return openLv(+ue.dataset.ue); }
@@ -945,8 +990,19 @@ $('#moreBtn').onclick = () => {
     <p><b>In den Papierkorb</b> nimmt das LV mit Angeboten, Aufmaß und Rechnungen heraus – wiederherstellen lässt es sich auf der Startseite unter „Papierkorb“.</p>
     <div class="acts"><button class="btn danger" data-m="del" style="margin-right:auto">🗑 In den Papierkorb</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="arch">${L.archived ? 'Zurückholen' : 'Archivieren'}</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
-    if (m === 'arch') { await flush(); await saveNow({ archived: !L.archived }); close(); await refreshList(); render(); return; }
-    if (m === 'del') { try { await flush(); await api('api/lv/' + L.id, 'DELETE'); close(); L = null; await loadList(); toast('LV liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.'); } catch (e) { toast(e.message, true); } }
+    if (m === 'arch') {
+      const id = L.id, alt = !!L.archived, nm = L.name;
+      await flush(); await saveNow({ archived: !alt }); close(); await refreshList(); render();
+      rueckgaengig(`LV „${nm}“ ${alt ? 'zurückgeholt' : 'archiviert'}`, () => lvSetzen(id, { archived: alt }));
+      return;
+    }
+    if (m === 'del') {
+      try {
+        const nm = L.name; await flush(); const r = await api('api/lv/' + L.id, 'DELETE'); close(); L = null; await loadList();
+        if (typeof r.papierkorb === 'number') rueckgaengig(`LV „${nm}“ liegt im Papierkorb`, async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await loadList(+w.schluessel || undefined); });
+        else toast('LV liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.');
+      } catch (e) { toast(e.message, true); }
+    }
   });
 };
 
@@ -1212,10 +1268,36 @@ async function reAktion(b) {
   try {
     if (a === 'pdf') return window.open(`api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}`, '_blank');
     if (a === 'abzneu') return call('api/rechnungen/' + r.id, 'PUT', { abzuege: [...(r.data.abzuege || []), { text: '', pct: null, betrag: null }] });
-    if (a === 'abzdel') { const ab = (r.data.abzuege || []).filter((_, k) => k !== +b.dataset.k); return call('api/rechnungen/' + r.id, 'PUT', { abzuege: ab }); }
-    if (a === 'pruefen') { await call('api/rechnungen/' + r.id, 'PUT', { status: 'geprueft' }); toast('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten.'); return; }
+    if (a === 'abzdel') {
+      const alt = JSON.parse(JSON.stringify(r.data.abzuege || [])), ab = alt.filter((_, k) => k !== +b.dataset.k), z = alt[+b.dataset.k] || {};
+      await call('api/rechnungen/' + r.id, 'PUT', { abzuege: ab });
+      rueckgaengig(`Abzug ${z.text ? '„' + z.text + '“ ' : ''}entfernt`, () => call('api/rechnungen/' + r.id, 'PUT', { abzuege: alt }));
+      return;
+    }
+    if (a === 'pruefen') {
+      const id = L.id, stAlt = L.status;
+      const n = await call('api/rechnungen/' + r.id, 'PUT', { status: 'geprueft' });
+      rueckgaengig('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten', async () => {
+        await call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
+        if (n.status !== stAlt) await call('api/lv/' + id, 'PUT', { status: stAlt });   // Schlussrechnung hatte das LV auf „abgerechnet“ gesetzt
+      });
+      return;
+    }
     if (a === 'zurueck') return call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
-    if (a === 'del') { if (!confirm(`${r.nr}. Rechnung löschen?`)) return; return call('api/rechnungen/' + r.id, 'DELETE'); }
+    if (a === 'del') {
+      if (!confirm(`${r.nr}. Rechnung löschen?`)) return;
+      const id = L.id, x = JSON.parse(JSON.stringify(r)), stAlt = L.status;
+      await call('api/rechnungen/' + r.id, 'DELETE');
+      rueckgaengig(`${x.nr}. Rechnung gelöscht`, async () => {   // neu anlegen (gleiche Nummer, da die letzte) und Abzüge/Prüfung wieder setzen
+        const n = await call(`api/lv/${id}/rechnungen`, 'POST', { art: x.art, re_nr: x.re_nr, datum: x.datum, eingang: x.eingang, gefordert: x.gefordert });
+        const neu = n.rechnungen.find((y) => y.nr === x.nr) || n.rechnungen[n.rechnungen.length - 1];
+        const body = { abzuege: (x.data && x.data.abzuege) || [], notiz: x.notiz || '' };
+        if (x.data && x.data.einbehalt != null) body.einbehalt = x.data.einbehalt;
+        await call('api/rechnungen/' + neu.id, 'PUT', body);
+        if (x.status === 'geprueft') { await call('api/rechnungen/' + neu.id, 'PUT', { status: 'geprueft' }); if (stAlt !== L.status) await call('api/lv/' + id, 'PUT', { status: stAlt }); }
+      });
+      return;
+    }
   } catch (e) { toast(e.message, true); }
 }
 

@@ -417,8 +417,8 @@ def project(pid):
         if request.method == "DELETE":   # in den Papierkorb (mit allen Ständen im Verlauf)
             pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
             c.execute("DELETE FROM gantt_presence WHERE gantt_id=?", (pid,))
-            papierkorb.ablegen(c, "gantt_projects", pid, "Bauzeitenplan", r["name"], uname(), pr["name"] if pr else "", "gantt")
-            return jsonify(ok=True, papierkorb=True)
+            pk = papierkorb.ablegen(c, "gantt_projects", pid, "Bauzeitenplan", r["name"], uname(), pr["name"] if pr else "", "gantt")
+            return jsonify(ok=True, papierkorb=pk)   # Papierkorb-ID für „Rückgängig“
         b = body()
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", ("gantt:" + pid,))   # gleichzeitige Speicherungen nacheinander
         r = row_of(c, pid)

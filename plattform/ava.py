@@ -478,12 +478,12 @@ def version_eins(vid):
             if c.execute("SELECT COUNT(*) AS n FROM ava_version WHERE project_id=?", (v["project_id"],)).fetchone()["n"] < 2:
                 return jsonify(error="Die einzige Version lässt sich nicht löschen."), 400
             pr = c.execute("SELECT name FROM projects WHERE id=?", (v["project_id"],)).fetchone()
-            papierkorb.ablegen(c, "ava_version", vid, "AVA-Version", v["name"], g.user["name"], pr["name"] if pr else "", "ava")
+            pk = papierkorb.ablegen(c, "ava_version", vid, "AVA-Version", v["name"], g.user["name"], pr["name"] if pr else "", "ava")
             if v["aktiv"]:
                 c.execute("""UPDATE ava_version SET aktiv=1 WHERE id=(SELECT id FROM ava_version WHERE project_id=?
                              ORDER BY archived, updated DESC NULLS LAST, id DESC LIMIT 1)""", (v["project_id"],))
             C.audit(g.user["name"], "ava", "Version gelöscht", v["name"])
-            return jsonify(ok=True)
+            return jsonify(ok=True, papierkorb=pk)   # Papierkorb-ID für „Rückgängig“
         b = request.get_json(silent=True) or {}
         if _s(b.get("name"), 200):
             c.execute("UPDATE ava_version SET name=?, updated=?, updated_by=? WHERE id=?", (_s(b["name"], 200), _now(), g.user["name"], vid))
@@ -882,9 +882,9 @@ def lv_eins(i):
             return jsonify(_payload(c, r))
         if request.method == "DELETE":
             pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
-            papierkorb.ablegen(c, "ava_lv", i, "Leistungsverzeichnis", f"LV {r['nr']} {r['name']}".strip(), g.user["name"], pr["name"] if pr else "", "ava")
+            pk = papierkorb.ablegen(c, "ava_lv", i, "Leistungsverzeichnis", f"LV {r['nr']} {r['name']}".strip(), g.user["name"], pr["name"] if pr else "", "ava")
             C.audit(g.user["name"], "ava", "LV in den Papierkorb", f"{r['nr']} {r['name']}")
-            return jsonify(ok=True, papierkorb=True)
+            return jsonify(ok=True, papierkorb=pk)   # Papierkorb-ID für „Rückgängig“
         b = request.get_json(silent=True) or {}
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"avalv:{i}",))
         r = _lv(c, i)

@@ -773,6 +773,18 @@
     bg.innerHTML = '<aside class="bph-dr" role="dialog" aria-modal="true" aria-label="Einstellungen"><div class="bph-drh"><b>' + IC.gear + 'Einstellungen</b><button type="button" class="bph-x" data-drx aria-label="Schließen">×</button></div><div class="bph-drs"><input type="search" placeholder="Einstellungen durchsuchen – z. B. Signatur, Erinnerung, Logo, Preis …" aria-label="Einstellungen durchsuchen" autocomplete="off"></div><div class="bph-drt"></div><div class="bph-drn"></div><div class="bph-drb"></div></aside>';
     document.body.appendChild(bg);
     const T = bg.querySelector('.bph-drt'), N = bg.querySelector('.bph-drn'), B = bg.querySelector('.bph-drb');
+    { // Breite am linken Rand ziehen (wie ein Seitenfenster), gemerkt je Browser
+      const D = bg.querySelector('.bph-dr'), z = document.createElement('div'); z.className = 'bph-drz'; z.title = 'Ziehen: breiter / schmaler · Doppelklick: Standard'; D.appendChild(z);
+      try { const w = +localStorage.getItem('bph.drw'); if (w > 300) D.style.width = Math.min(w, innerWidth - 40) + 'px'; } catch { /* egal */ }
+      z.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); z.setPointerCapture(e.pointerId); z.classList.add('on'); D.style.transition = 'none';
+        const mv = (ev) => { D.style.width = Math.max(360, Math.min(innerWidth - 40, innerWidth - ev.clientX)) + 'px'; };
+        const up = () => { z.removeEventListener('pointermove', mv); z.removeEventListener('pointerup', up); z.classList.remove('on'); D.style.transition = '';
+          try { localStorage.setItem('bph.drw', String(parseInt(D.style.width, 10))); } catch { /* egal */ } };
+        z.addEventListener('pointermove', mv); z.addEventListener('pointerup', up);
+      });
+      z.addEventListener('dblclick', () => { D.style.width = ''; try { localStorage.removeItem('bph.drw'); } catch { /* egal */ } });
+    }
     const kopf = () => {
       T.innerHTML = [['app', IC[H.app === 'portal' ? 'home' : H.app] || IC.home, appName], ['ich', IC.user, 'Für mich']].concat(admin ? [['buero', IC.buero, 'Büro']] : [])
         .map(([k, i, l]) => `<button type="button" data-drb="${k}" class="${k === bereich ? 'on' : ''}"${k === bereich ? ' aria-current="true"' : ''}>${i}<span>${esc(l)}</span></button>`).join('');

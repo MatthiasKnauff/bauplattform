@@ -310,3 +310,10 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-treffer{background:color-mix(in srgb,var(--y,var(--bph-acc,#d9772b)) 28%,transparent);border-radius:6px;transition:background .6s}
 
 body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrollbalken (der schob die Knöpfe an den Rand) */
+
+/* Einstellungen: am linken Rand breiter/schmaler ziehen (Breite wird gemerkt) */
+.bph-dr{position:relative}
+.bph-drz{position:absolute;left:-4px;top:0;bottom:0;width:9px;cursor:ew-resize;z-index:5}
+.bph-drz::after{content:'';position:absolute;left:3px;top:50%;width:3px;height:44px;margin-top:-22px;border-radius:2px;background:var(--line,#888);opacity:.6}
+.bph-drz:hover::after,.bph-drz.on::after{background:var(--y,var(--bph-acc,#d9772b));opacity:1}
+@media (max-width:700px){.bph-drz{display:none}}

@@ -601,7 +601,7 @@
         <p class="bph-mu">Nicht weitergeben – wer die Adresse kennt, kann Besuche für dich melden.</p>
         <details class="bph-anl"><summary><b>Anleitung: Kurzbefehl einrichten</b> (einmalig, ca. 5 Minuten)</summary>
           <ol>
-            <li>Auf dem iPhone die App <b>Kurzbefehle</b> öffnen → unten <b>Kurzbefehle</b> → <b>＋</b>. Name: „Baustelle melden“.</li>
+            <li>Auf dem iPhone die App <b>Kurzbefehle</b> öffnen → <b>＋</b> (iOS 27: unten in der Mitte, sonst oben rechts). <b>iOS 27</b> fragt dann „Was soll dein Kurzbefehl tun?“ – nichts eintippen, sondern oben rechts <b>Bearbeiten</b>. Oben auf den Namen tippen → Umbenennen: „Baustelle melden“.</li>
             <li>Aktion <b>„Aktuellen Standort abrufen“</b> hinzufügen.</li>
             <li>Aktion <b>„URL“</b> hinzufügen und die Adresse oben einfügen (endet mit <code>&amp;lat=</code>). Direkt dahinter die Variable <b>Standort → Breitengrad</b> einsetzen, dann <code>&amp;lon=</code> tippen und die Variable <b>Standort → Längengrad</b> einsetzen.</li>
             <li>Aktion <b>„Inhalte von URL abrufen“</b> hinzufügen (nimmt die URL von oben).</li>

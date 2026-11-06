@@ -9,7 +9,7 @@ Rechnen (rechne): Angebots- und Auftragssumme aus Menge × Einheitspreis der Nor
 Wahlpositionen ohne Gesamtbetrag), Nachlass in Prozent. Abrechnung kumuliert: Leistungsstand = Aufmaß × Auftrags-EP,
 - Nachlass - Abzüge - Sicherheitseinbehalt = anerkannt; Zahlbetrag = anerkannt - bisher anerkannt (vorige Rechnungen).
 """
-import ast, io, json, operator, os, re, uuid
+import ast, hashlib, io, json, operator, os, re, uuid
 from collections import Counter
 from datetime import date, datetime
 
@@ -580,8 +580,8 @@ def suche():
             if len(out) >= LIMIT:
                 break
         # Türlisten der Projekte
-        pids = [pid] if pid else [int(x["key"].split(":")[1]) for x in c.execute("SELECT key FROM bp_store WHERE key LIKE 'tueren:%'").fetchall()
-                                  if x["key"].split(":")[1].isdigit()]
+        pids = [pid] if pid else sorted({int(x["key"].split(":")[1]) for x in c.execute("SELECT key FROM bp_store WHERE key LIKE 'tueren:%'").fetchall()
+                                         if x["key"].split(":")[1].isdigit()})
         for p_ in pids:
             if len(out) >= LIMIT:
                 break
@@ -645,14 +645,17 @@ def clean_items(v):
             i = uuid.uuid4().hex[:10]
         seen.add(i)
         if x.get("typ") == "titel":
-            out.append({"id": i, "typ": "titel", "lvl": max(1, min(4, int(_f(x.get("lvl"), 1)))), "oz": _s(x.get("oz"), 40), "kurz": _s(x.get("kurz"), 300)})
+            t_ = {"id": i, "typ": "titel", "lvl": max(1, min(4, int(_f(x.get("lvl"), 1)))), "oz": _s(x.get("oz"), 40), "kurz": _s(x.get("kurz"), 300)}
+            if x.get("tl"):   # Herkunft aus einer Fenster- & Türliste (für „LV aktualisieren“)
+                t_["tl"] = _s(x.get("tl"), 60)
+            out.append(t_)
             continue
         art = x.get("art") if x.get("art") in ARTEN else "N"
         p = {"id": i, "typ": "pos", "oz": _s(x.get("oz"), 40), "kurz": _s(x.get("kurz"), 500), "lang": _s(x.get("lang"), 20000),
              "menge": round(_f(x.get("menge"), 0, 0, 1e9), 3), "einheit": _s(x.get("einheit"), 12), "art": art,
              "kg": re.sub(r"\D", "", str(x.get("kg") or ""))[:3], "ep_s": _fn(x.get("ep_s"))}
         # weitere Eigenschaften (Dialog „Eigenschaften“): nur speichern, was gesetzt ist
-        for k, n in (("kg81", 3), ("lb", 80), ("bezug", 40), ("quelle", 200), ("mf", 500)):
+        for k, n in (("kg81", 3), ("lb", 80), ("bezug", 40), ("quelle", 200), ("mf", 500), ("tl", 60)):
             v = re.sub(r"\D", "", str(x.get(k) or ""))[:3] if k == "kg81" else _s(x.get(k), n)
             if v:
                 p[k] = v
@@ -1077,10 +1080,30 @@ def _tuer_clean(v):
     return out
 
 
-def _tueren_laden(c, pid):
+# Mehrere Listen je Projekt: „tueren:<projekt>“ ist Liste „1“ (wie bisher), weitere „tueren:<projekt>:<liste>“.
+# Name und Reihenfolge stehen in der Liste selbst – so bringt der Papierkorb eine gelöschte Liste vollständig zurück.
+def _tl_key(pid, liste="1"):
+    liste = str(liste or "1")
+    return f"tueren:{pid}" if liste == "1" else f"tueren:{pid}:{liste}"
+
+
+def _tueren_laden(c, pid, liste="1"):
     from bpcore import konto
-    d = _j(konto._get(c, f"tueren:{pid}"), {}) or {}
-    return {"tueren": d.get("tueren") or [], "rev": d.get("rev") or 0, "updated_by": d.get("updated_by") or ""}
+    d = _j(konto._get(c, _tl_key(pid, liste)), {}) or {}
+    return {"tueren": d.get("tueren") or [], "rev": d.get("rev") or 0, "updated_by": d.get("updated_by") or "", "name": d.get("name") or "",
+            "liste": str(liste or "1")}
+
+
+def _tuerlisten(c, pid):
+    """Alle Listen des Projekts [{id, name, n, updated}] – die erste heißt ohne eigenen Namen „Fenster- & Türliste“."""
+    out = []
+    for r in c.execute("SELECT key, data, updated FROM bp_store WHERE key=? OR key LIKE ?", (f"tueren:{pid}", f"tueren:{pid}:%")).fetchall():
+        lid = r["key"].split(":")[2] if r["key"].count(":") == 2 else "1"
+        d = _j(r["data"], {}) or {}
+        out.append({"id": lid, "name": d.get("name") or ("Fenster- & Türliste" if lid == "1" else "Liste"), "n": len(d.get("tueren") or []),
+                    "erstellt": d.get("erstellt") or "", "updated": r["updated"] or ""})
+    out.sort(key=lambda x: (x["id"] != "1", x["erstellt"], x["name"].lower()))
+    return out
 
 
 _GRUPPE_OHNE = {"id", "nr", "geschoss", "raum", "raumname", "zu", "din", "bem", "anzahl"}
@@ -1220,7 +1243,7 @@ def _system_text(gruppe, gemeinsam):
     return ("\n".join(z) if z else "(Hersteller/System, Profile, Oberfläche, Beschläge, Anschlüsse – bitte ergänzen oder aus einem alten LV über die Kopierquelle übernehmen)")
 
 
-def tueren_zu_positionen(tueren, form="merkmale", din_trennen=True):
+def tueren_zu_positionen(tueren, form="merkmale", din_trennen=True, liste="1"):
     """Türen/Fenster zu LV-Positionen: gleiche Ausführung = eine Position (Menge = Stückzahl).
     form „merkmale“ (wie in den bisherigen LVs des Büros): je Gruppe (Fenster, Außentüren, Innentüren) ein Titel mit
     Systembeschreibung (Hinweistext mit allem, was für alle gleich ist), darunter Positionen „… gemäß vorangegangener
@@ -1241,39 +1264,100 @@ def tueren_zu_positionen(tueren, form="merkmale", din_trennen=True):
         if form == "merkmale":
             keys = set().union(*[set(t) for t in T]) - _ORT - {"din", "b", "h", "art", "typ"}
             gemeinsam = {k: T[0][k] for k in keys if all(t.get(k) == T[0].get(k) for t in T)} if len(gruppen) > 1 else {}
-            items.append({"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": gruppe})
-            items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "T", "kurz": f"Systembeschreibung {gruppe}", "lang": _system_text(gruppe, gemeinsam), "menge": 0, "einheit": ""})
-        for liste in gruppen.values():
-            t = liste[0]
-            n = sum(max(1, int(_f(x.get("anzahl"), 1, 1, 999))) for x in liste)
+            items.append({"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": gruppe, "tl": f"{liste}|{gruppe}"})
+            items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "T", "kurz": f"Systembeschreibung {gruppe}", "lang": _system_text(gruppe, gemeinsam), "menge": 0, "einheit": "",
+                          "tl": f"{liste}|{gruppe}|sys"})
+        for gk, zeilen in gruppen.items():
+            tl = f"{liste}|{gruppe}|{hashlib.sha1(gk.encode()).hexdigest()[:10]}"
+            liste_ = zeilen
+            t = liste_[0]
+            n = sum(max(1, int(_f(x.get("anzahl"), 1, 1, 999))) for x in liste_)
             if form == "merkmale":
                 kurz = f"{t.get('art') or ('Fenster' if gruppe == 'Fenster' else 'Tür')} gemäß vorangegangener Systembeschreibung"
-                lang = _positionen_merkmale(liste, gemeinsam, gruppe)
+                lang = _positionen_merkmale(liste_, gemeinsam, gruppe)
             else:
-                kurz, lang = _tuer_kurz(t), _tuer_lang(t, liste)
+                kurz, lang = _tuer_kurz(t), _tuer_lang(t, liste_)
             items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "kurz": kurz[:500], "lang": lang, "menge": n, "einheit": "St",
                           "kg": "334" if gruppe in ("Fenster", "Außentüren") or (t.get("art") or "").startswith(("Außen", "Tor")) else "344",
-                          "bezug": "Türliste", "quelle": "Türliste: " + ", ".join(x.get("nr") or "?" for x in liste)})
+                          "bezug": "Türliste", "quelle": "Türliste: " + ", ".join(x.get("nr") or "?" for x in liste_), "tl": tl})
         out.extend(items)
     return out
+
+
+def _tl_id(v):
+    v = str(v or "1")
+    return v if v == "1" or re.fullmatch(r"[a-z0-9]{6,12}", v) else "1"
 
 
 @app.route("/api/projekt/<int:pid>/tueren", methods=["GET", "PUT"])
 def tueren(pid):
     from bpcore import konto
+    liste = _tl_id(request.args.get("liste"))
     with db.tx() as c:
         if not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
         if request.method == "GET":
-            return jsonify(_tueren_laden(c, pid))
+            return jsonify({**_tueren_laden(c, pid, liste), "listen": _tuerlisten(c, pid)})
         b = request.get_json(silent=True) or {}
-        c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"tueren:{pid}",))
-        alt = _tueren_laden(c, pid)
+        c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (_tl_key(pid, liste),))
+        alt_roh = _j(konto._get(c, _tl_key(pid, liste)), {}) or {}
+        alt = _tueren_laden(c, pid, liste)
+        if liste != "1" and not alt_roh:
+            return jsonify(error="Diese Liste gibt es nicht mehr (gelöscht?).", conflict=True), 409
         if isinstance(b.get("rev"), int) and b["rev"] != alt["rev"] and not b.get("force"):
             return jsonify(error=f"Die Türliste wurde inzwischen von {alt['updated_by'] or 'jemand anderem'} geändert.", conflict=True), 409
-        neu = {"tueren": _tuer_clean(b.get("tueren")), "rev": alt["rev"] + 1, "updated_by": g.user["name"]}
-        konto._put(c, f"tueren:{pid}", json.dumps(neu, ensure_ascii=False), g.user["name"])
-        return jsonify(neu)
+        neu = {**alt_roh, "tueren": _tuer_clean(b.get("tueren")), "rev": alt["rev"] + 1, "updated_by": g.user["name"]}
+        konto._put(c, _tl_key(pid, liste), json.dumps(neu, ensure_ascii=False), g.user["name"])
+        return jsonify({**neu, "liste": liste})
+
+
+@app.route("/api/projekt/<int:pid>/tuerlisten", methods=["GET", "POST"])
+def tuerlisten(pid):
+    """Listen des Projekts; POST {name, kopie_von?} legt eine neue an."""
+    from bpcore import konto
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        if request.method == "GET":
+            return jsonify(_tuerlisten(c, pid))
+        b = request.get_json(silent=True) or {}
+        name = _s(b.get("name"), 120) or "Neue Liste"
+        if not konto._get(c, _tl_key(pid, "1")) and not _tuerlisten(c, pid):   # noch gar keine Liste: die erste anlegen
+            lid = "1"
+        else:
+            lid = uuid.uuid4().hex[:8]
+        T = []
+        if b.get("kopie_von"):
+            T = [{**t, "id": uuid.uuid4().hex[:10]} for t in _tueren_laden(c, pid, _tl_id(b["kopie_von"]))["tueren"]]
+        konto._put(c, _tl_key(pid, lid), json.dumps({"tueren": T, "rev": 1, "updated_by": g.user["name"], "name": name,
+                                                     "erstellt": _now()}, ensure_ascii=False), g.user["name"])
+        C.audit(g.user["name"], "ava", "Türliste angelegt", name)
+        return jsonify(liste=lid, listen=_tuerlisten(c, pid))
+
+
+@app.route("/api/projekt/<int:pid>/tuerlisten/<liste>", methods=["PUT", "DELETE"])
+def tuerliste(pid, liste):
+    """PUT {name} benennt um; DELETE legt die Liste in den Papierkorb."""
+    from bpcore import konto
+    liste = _tl_id(liste)
+    with db.tx() as c:
+        pr = _sees(c, pid)
+        if not pr:
+            return jsonify(error="Projekt nicht gefunden"), 404
+        key = _tl_key(pid, liste)
+        roh = _j(konto._get(c, key), {}) or {}
+        if request.method == "PUT":
+            b = request.get_json(silent=True) or {}
+            roh["name"] = _s(b.get("name"), 120) or roh.get("name") or ""
+            roh.setdefault("tueren", []); roh.setdefault("rev", 0)
+            konto._put(c, key, json.dumps(roh, ensure_ascii=False), g.user["name"])
+            return jsonify(listen=_tuerlisten(c, pid))
+        if not c.execute("SELECT 1 FROM bp_store WHERE key=?", (key,)).fetchone():
+            return jsonify(error="Liste nicht gefunden"), 404
+        name = roh.get("name") or ("Fenster- & Türliste" if liste == "1" else "Türliste")
+        pk = papierkorb.ablegen(c, "bp_store", key, "Fenster- & Türliste", f"{name} ({len(roh.get('tueren') or [])} Zeilen)", g.user["name"], pr["name"], "ava")
+        C.audit(g.user["name"], "ava", "Türliste in den Papierkorb", name)
+        return jsonify(ok=True, papierkorb=pk, listen=_tuerlisten(c, pid))
 
 
 @app.post("/api/tabelle/lesen")
@@ -1343,33 +1427,42 @@ def projekt_raeume(pid):
 @app.post("/api/projekt/<int:pid>/tueren/lv")
 def tueren_ins_lv(pid):
     """Türen (alle oder ausgewählte) zu Positionen zusammenfassen – gleiche Ausführung = eine Position, Menge = Anzahl –
-    und an ein LV anhängen (unter einem Titel „Türen“) oder ein neues LV anlegen."""
+    und an ein LV anhängen (unter einem Titel „Türen“) oder ein neues LV anlegen.
+    aktualisieren: true (mit lv) – das LV enthält schon Positionen aus dieser Liste: Mengen und Texte werden angepasst,
+    neue Ausführungen kommen dazu, weggefallene bekommen Menge 0 (OZ, Preise und Vergabe bleiben)."""
     b = request.get_json(silent=True) or {}
+    liste = _tl_id(b.get("liste"))
     with db.tx() as c:
         if not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
-        T = _tueren_laden(c, pid)["tueren"]
+        T = _tueren_laden(c, pid, liste)["tueren"]
         ids = set(b.get("ids") or [])
-        if ids:
+        if ids and not b.get("aktualisieren"):
             T = [t for t in T if t["id"] in ids]
         if not T:
             return jsonify(error="Keine Türen in der Liste."), 400
         form = "lang" if b.get("form") == "lang" else "merkmale"
-        pos = tueren_zu_positionen(T, form, b.get("din_trennen", True) is not False)
+        pos = tueren_zu_positionen(T, form, b.get("din_trennen", True) is not False, liste)
         titel = _s(b.get("titel"), 300)
-        neu = ([{"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": titel or "Türen"}] if form == "lang" or titel else []) + pos
+        neu = ([{"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "kurz": titel or "Türen", "tl": liste}] if form == "lang" or titel else []) + pos
         if form == "merkmale" and titel:   # Obertitel: Gruppen werden Untertitel
             for x in neu[1:]:
                 if x["typ"] == "titel":
                     x["lvl"] = 2
         now = _now()
+        stat = None
         if isinstance(b.get("lv"), int):
             r = _lv(c, b["lv"])
             if not r or r["project_id"] != pid:
                 return jsonify(error="LV nicht gefunden"), 404
             i = r["id"]
             d = _j(r["data"], {}) or {}
-            d["items"] = clean_items((d.get("items") or []) + neu)
+            I = d.get("items") or []
+            if b.get("aktualisieren"):
+                I, stat = _tl_abgleich(I, neu, liste)
+            else:
+                I = I + neu
+            d["items"] = clean_items(I)
             nummerieren(d["items"])
             versionen.vor(c, f"avalv:{i}")
             c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), now, g.user["name"], i))
@@ -1380,8 +1473,60 @@ def tueren_ins_lv(pid):
                           (pid, str(n + 1).zfill(2), _s(b.get("name"), 200) or "Türen", _s(b.get("gewerk"), 120) or "Türen",
                            json.dumps({"items": items}, ensure_ascii=False), now, now, g.user["name"])).fetchone()["id"]
         versionen.nach(c, f"avalv:{i}", g.user["name"])
-        C.audit(g.user["name"], "ava", "Türliste ins LV", f"{len(T)} Türen/Fenster")
-        return jsonify(ok=True, lv=i, positionen=sum(1 for x in pos if x["typ"] == "pos" and x["art"] != "T"), tueren=len(T))
+        C.audit(g.user["name"], "ava", "Türliste ins LV" + (" (aktualisiert)" if stat else ""), f"{len(T)} Türen/Fenster")
+        return jsonify(ok=True, lv=i, positionen=sum(1 for x in pos if x["typ"] == "pos" and x["art"] != "T"), tueren=len(T), abgleich=stat)
+
+
+@app.get("/api/projekt/<int:pid>/tueren/lv")
+def tueren_lv_verknuepft(pid):
+    """LVs, in denen schon Positionen aus dieser Liste stehen (für „LV aktualisieren“)."""
+    liste = _tl_id(request.args.get("liste"))
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        out = []
+        for r in c.execute("SELECT id, data FROM ava_lv WHERE project_id=? AND " + AKTIV, (pid,)).fetchall():
+            I = (_j(r["data"], {}) or {}).get("items") or []
+            n = sum(1 for x in I if x.get("typ") == "pos" and x.get("art") != "T" and (x.get("tl") or "").startswith(liste + "|"))
+            if n:
+                out.append({"lv": r["id"], "positionen": n})
+    return jsonify(out)
+
+
+def _tl_abgleich(I, neu, liste):
+    """Positionen aus der Türliste im LV auf den Stand der Liste bringen (siehe tueren_ins_lv). Gibt (Items, Zähler) zurück."""
+    vorh = {x["tl"]: x for x in I if x.get("tl") and (x["tl"] == liste or x["tl"].startswith(liste + "|"))}
+    stat = {"angepasst": 0, "neu": 0, "null": 0, "gleich": 0}
+    neu_tl = {x["tl"] for x in neu if x.get("tl")}
+    I = list(I)
+    for x in neu:
+        tl = x.get("tl")
+        alt = vorh.get(tl)
+        if alt is not None:
+            if x["typ"] == "pos":
+                vorher = (alt.get("menge"), alt.get("lang"))
+                alt["menge"], alt["lang"], alt["quelle"] = x["menge"], x["lang"], x.get("quelle", alt.get("quelle"))
+                alt.pop("entf", None)
+                if x["art"] != "T":
+                    stat["angepasst" if vorher != (alt["menge"], alt["lang"]) else "gleich"] += 1
+            continue
+        # neu: hinter das letzte Element derselben Gruppe (oder der Liste) einfügen
+        grp = "|".join(tl.split("|")[:2]) if tl else liste
+        idx = [k for k, y in enumerate(I) if y.get("tl") and (y["tl"] == grp or y["tl"].startswith(grp + "|"))]
+        if not idx:
+            idx = [k for k, y in enumerate(I) if y.get("tl") and (y["tl"] == liste or y["tl"].startswith(liste + "|"))]
+        at = (idx[-1] + 1) if idx else len(I)
+        if x["typ"] == "titel" and idx:   # neue Gruppe: nach allem aus der Liste
+            at = idx[-1] + 1
+        I.insert(at, dict(x))
+        vorh[tl] = I[at]
+        if x["typ"] == "pos" and x["art"] != "T":
+            stat["neu"] += 1
+    for tl, alt in list(vorh.items()):
+        if alt.get("typ") == "pos" and alt.get("art") != "T" and tl not in neu_tl and alt.get("menge"):
+            alt["menge"] = 0
+            stat["null"] += 1
+    return I, stat
 
 
 @app.get("/api/projekt/<int:pid>/tueren.xlsx")
@@ -1392,7 +1537,7 @@ def tueren_excel(pid):
         p = _sees(c, pid)
         if not p:
             return jsonify(error="Projekt nicht gefunden"), 404
-        T = _tueren_laden(c, pid)["tueren"]
+        T = _tueren_laden(c, pid, _tl_id(request.args.get("liste")))["tueren"]
     sp = [("nr", "Tür-Nr."), ("geschoss", "Geschoss"), ("raum", "Raum-Nr."), ("raumname", "Raum"), ("zu", "zu Raum"), ("typ", "Typ"), ("anzahl", "Anz."), ("art", "Art"),
           ("flg", "Flügel"), ("din", "Öffnungsrichtung"), ("b", "Breite"), ("h", "Höhe"), ("wand", "Wand"), ("bruestung", "Brüstung"),
           ("oeffnung", "Öffnungsart"), ("fb_innen", "Innenfensterbank"), ("fb_aussen", "Außenfensterbank"), ("rollo", "Rollo"), ("zarge", "Zarge"), ("blatt", "Türblatt"),

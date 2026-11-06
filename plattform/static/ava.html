@@ -249,6 +249,11 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .menu small{display:block;color:var(--mute);font-size:.75rem}
 .menu hr{border:0;border-top:1px solid var(--line);margin:.25rem 0}
 @media (max-width:760px){.top .fill{display:none}.fm{grid-template-columns:1fr}.hide-m{display:none}}
+.tl-listen{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;margin:0 0 .55rem;padding-bottom:.45rem;border-bottom:1px solid var(--line)}
+.tl-listen [data-tll]{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:.22rem .75rem;font-size:.85rem;color:var(--ink);cursor:pointer}
+.tl-listen [data-tll] small{color:var(--mute);margin-left:.2rem}
+.tl-listen [data-tll].on{background:var(--y);border-color:var(--y);color:#fff}.tl-listen [data-tll].on small{color:#fff;opacity:.85}
+.tl-lplus{border:1px dashed var(--y);background:none;color:var(--y);border-radius:999px;padding:.22rem .75rem;font-size:.85rem;cursor:pointer}
 .tl-bar{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin:0 0 .5rem}
 .tl-bar input[type=search]{width:12rem;padding:.3rem .5rem}
 .tl-bar .sep{width:1px;align-self:stretch;background:var(--line);margin:0 .2rem}
@@ -2066,15 +2071,52 @@ function tlDatalists() {
   d.innerHTML = Object.entries(TA).map(([k, xs]) => `<datalist id="tl-${k}">${xs.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`).join('');
   document.body.appendChild(d);
 }
-async function tlLaden() {
-  const p = pid; TL = { pid: p, tueren: [], rev: 0, laedt: true };
-  try { const r = await api(`api/projekt/${p}/tueren`); if (pid === p) TL = { pid: p, tueren: r.tueren, rev: r.rev }; } catch (e) { toast(e.message, true); }
+async function tlLaden(liste) {   // mehrere Listen je Projekt; zuletzt geöffnete merken
+  const p = pid; liste = liste || LS.get('tl.liste.' + p, '1'); TL = { pid: p, liste, tueren: [], rev: 0, listen: [], laedt: true };
+  try {
+    let r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`);
+    if (r.listen.length && !r.listen.some((x) => x.id === liste)) { liste = r.listen[0].id; r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`); }   // gelöscht → erste
+    if (pid === p) { TL = { pid: p, liste, tueren: r.tueren, rev: r.rev, listen: r.listen }; LS.set('tl.liste.' + p, liste); }
+  } catch (e) { toast(e.message, true); }
   TLA = TLC = null; TLH = []; TLR = []; if (tab === 'tueren') render();
+}
+const tlName = () => ((TL.listen || []).find((x) => x.id === TL.liste) || {}).name || 'Fenster- & Türliste';
+async function tlListeNeu() {
+  if (tlT) { clearTimeout(tlT); await tlJetzt(); }
+  modalBox(`<h3>Neue Fenster- & Türliste</h3><p class="hint">Z. B. je Bauteil, Bauabschnitt oder Stand. Jede Liste lässt sich getrennt ins LV übernehmen und später aktualisieren.</p>
+    <label class="dz-l">Name<input id="tlnN" value="" placeholder="z. B. Fenster Altbau, Haus B, Stand Entwurf"></label>
+    <label class="dz-l" style="margin-top:.6rem">Inhalt<select id="tlnK"><option value="">leer</option>${TL.tueren.length ? `<option value="${esc(TL.liste)}">Kopie von „${esc(tlName())}“ (${TL.tueren.length} Zeilen)</option>` : ''}</select></label>
+    <div class="acts" style="margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') return close();
+    btn.disabled = true;
+    try { const r = await api(`api/projekt/${pid}/tuerlisten`, 'POST', { name: bg.querySelector('#tlnN').value.trim() || 'Neue Liste', kopie_von: bg.querySelector('#tlnK').value || null });
+      close(); await tlLaden(r.liste); toast('Liste angelegt.'); } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  setTimeout(() => { const f = document.getElementById('tlnN'); if (f) f.focus(); }, 30);
+}
+async function tlListeUmbenennen() {
+  const name = prompt('Name der Liste', tlName()); if (name == null || !name.trim()) return;
+  try { const r = await api(`api/projekt/${pid}/tuerlisten/${TL.liste}`, 'PUT', { name: name.trim() }); TL.listen = r.listen; render(); } catch (e) { toast(e.message, true); }
+}
+async function tlListeLoeschen() {
+  const nm = tlName(), n = TL.tueren.length;
+  modalBox(`<h3>Liste löschen?</h3><p>„${esc(nm)}“ mit ${n} Zeile${n === 1 ? '' : 'n'} kommt in den Papierkorb und lässt sich von dort wiederherstellen. Positionen, die schon im LV stehen, bleiben dort.</p>
+    <div class="acts" style="margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="ok">In den Papierkorb</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') return close();
+    btn.disabled = true;
+    try {
+      clearTimeout(tlT); tlT = 0;
+      const r = await api(`api/projekt/${pid}/tuerlisten/${TL.liste}`, 'DELETE'); close();
+      const naechste = (r.listen[0] || {}).id || '1'; await tlLaden(naechste);
+      if (typeof r.papierkorb === 'number') rueckgaengig(`„${nm}“ liegt im Papierkorb`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await tlLaden(); });
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
 }
 function tlSpeichern(sofort) { $('#save').textContent = 'Nicht gespeichert …'; clearTimeout(tlT); tlT = setTimeout(tlJetzt, sofort ? 10 : 600); }
 async function tlJetzt() {
   tlT = 0; if (!TL) return;
-  try { const r = await api(`api/projekt/${TL.pid}/tueren`, 'PUT', { rev: TL.rev, tueren: TL.tueren }); TL.rev = r.rev;
+  try { const r = await api(`api/projekt/${TL.pid}/tueren?liste=${encodeURIComponent(TL.liste || '1')}`, 'PUT', { rev: TL.rev, tueren: TL.tueren }); TL.rev = r.rev;
+    const li = (TL.listen || []).find((x) => x.id === TL.liste); if (li) li.n = TL.tueren.length; else TL.listen = [...(TL.listen || []), { id: TL.liste, name: 'Fenster- & Türliste', n: TL.tueren.length }];
     const d = new Date(); $('#save').textContent = `✓ gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) { $('#save').textContent = 'Nicht gespeichert'; toast(e.message + (e.data && e.data.conflict ? ' Die Liste wird neu geladen.' : ''), true); if (e.data && e.data.conflict) tlLaden(); }
 }
@@ -2164,14 +2206,18 @@ function vTueren(v) {
     if (c[2] === 'm') return `<td data-r="${r}" data-c="${ci}" class="${cl.join(' ')} tlmk"${x ? ` title="${esc(x)}"` : ''}>${TJA.filter(([k]) => t[k]).map(([, l]) => `<span class="tl-tag">${esc(l)}</span>`).join('')}</td>`;
     return `<td data-r="${r}" data-c="${ci}" class="${cl.join(' ')}"${st}${x.length > 6 ? ` title="${esc(x)}"` : ''}>${esc(x)}</td>`; };
   const zeile = (t, r) => { let ci = 0; return `<tr data-t="${esc(t.id)}" class="${B && r >= B.r1 && r <= B.r2 && B.c1 === 0 && B.c2 === S.length - 1 ? 'rs' : ''}"><td class="rn" data-rn="${r}">${r + 1}<i class="tl-rh" title="Ziehen: Zeilenhöhe (alle Zeilen) · Doppelklick: Standard"></i></td>${gr.map(([g, cs]) => (zu(g) ? '<td class="k"></td>' : cs.map((c) => zelle(t, r, c, ci++)).join(''))).join('')}</tr>`; };
-  v.innerHTML = `<div class="tl-bar">
+  const LL = TL.listen && TL.listen.length ? TL.listen : [{ id: '1', name: 'Fenster- & Türliste', n: TL.tueren.length }];
+  v.innerHTML = `<div class="tl-listen" role="tablist">${LL.map((x) => `<button type="button" role="tab" data-tll="${esc(x.id)}" class="${x.id === TL.liste ? 'on' : ''}" aria-selected="${x.id === TL.liste}">${esc(x.name)} <small>${x.id === TL.liste ? TL.tueren.length : x.n}</small></button>`).join('')}
+      <button type="button" class="tl-lplus" data-tl="lneu" title="Weitere Liste anlegen (z. B. je Bauteil oder Stand)">＋ Liste</button><span style="flex:1"></span>
+      <button type="button" class="btn sm" data-tl="lname" title="Liste umbenennen">✎ Umbenennen</button><button type="button" class="btn sm danger" data-tl="ldel" title="Liste in den Papierkorb">Liste löschen</button></div>
+    <div class="tl-bar">
       <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button><button class="btn sm" data-tl="import" title="Fenster-/Türliste aus Excel oder CSV einlesen – Spalten werden erkannt, Maße umgerechnet, alles geprüft">Aus Excel einlesen …</button>
       <span class="sep"></span>
       <button class="btn sm" data-tl="dup" ${nZ ? '' : 'disabled'} title="Markierte Zeilen kopieren">Zeilen duplizieren</button><button class="btn sm" data-tl="mehr" ${nZ ? '' : 'disabled'} title="Ein Feld für alle markierten Zeilen setzen">Ändern …</button><button class="btn sm danger" data-tl="del" ${nZ ? '' : 'disabled'}>Zeilen löschen</button>
       <span class="sep"></span>
       <input type="search" id="tlQ" placeholder="Suchen (Nr., Raum, T30 …)" value="${esc(TLq)}">
       <span style="flex:1"></span><span class="hint">${TL.tueren.length} Zeilen · ${stueck} Stück${nZ > 1 ? ` · ${nZ} Zeilen markiert` : ''}</span>
-      ${TL.tueren.length ? (() => { const n = window.tlWarnungen ? tlWarnungen() : 0; return `<button class="btn sm${n ? ' warnb' : ''}" data-tl="pruef" title="Plausibilität prüfen: fehlende Angaben, ungewöhnliche Maße, 2. Rettungsweg, Absturzsicherung, Brandschutz …">${n ? `⚠ ${n} prüfen` : '✓ Prüfen'}</button>`; })() : ''}<button class="btn sm" data-tl="opt" title="Darstellung: Ansichten, feste Spalten, Ausstattung als Marken, Details, Schriftgröße" aria-haspopup="dialog">⚙ Darstellung</button><a class="btn sm" href="api/projekt/${pid}/tueren.xlsx" title="Liste als Excel">Excel</a><button class="btn sm pri" data-tl="lv" ${TL.tueren.length ? '' : 'disabled'} title="Gleiche Elemente zu Positionen zusammenfassen und ins LV übernehmen">→ In LV übernehmen …</button></div>
+      ${TL.tueren.length ? (() => { const n = window.tlWarnungen ? tlWarnungen() : 0; return `<button class="btn sm${n ? ' warnb' : ''}" data-tl="pruef" title="Plausibilität prüfen: fehlende Angaben, ungewöhnliche Maße, 2. Rettungsweg, Absturzsicherung, Brandschutz …">${n ? `⚠ ${n} prüfen` : '✓ Prüfen'}</button>`; })() : ''}<button class="btn sm" data-tl="opt" title="Darstellung: Ansichten, feste Spalten, Ausstattung als Marken, Details, Schriftgröße" aria-haspopup="dialog">⚙ Darstellung</button><a class="btn sm" href="api/projekt/${pid}/tueren.xlsx?liste=${encodeURIComponent(TL.liste || '1')}" title="Liste als Excel">Excel</a><button class="btn sm pri" data-tl="lv" ${TL.tueren.length ? '' : 'disabled'} title="Gleiche Elemente zu Positionen zusammenfassen und ins LV übernehmen">→ In LV übernehmen …</button></div>
     ${TLO.ansichten && TL.tueren.length ? `<div class="tl-views" role="tablist">${TVIEWS.map(([k, l, ks]) => `<button type="button" role="tab" data-tlv="${k}" class="${k === TLV ? 'on' : ''}" aria-selected="${k === TLV}">${esc(l)}${ks ? ` <small>${ks.length}</small>` : ''}</button>`).join('')}</div>` : ''}
     ${TL.tueren.length ? `<div class="tl-flex"><div class="tl-w" tabindex="0"><table class="tl${TLO.gross ? ' gross' : ''}" style="width:${RN + gr.reduce((a, [g, cs]) => a + (zu(g) ? 16 : cs.reduce((b, c) => b + tlBreite(c), 0)), 0)}px${LS.get('tl.rh', 0) ? `;--tlrh:${LS.get('tl.rh', 0)}px` : ''}"><colgroup><col style="width:${RN}px">${gr.map(([g, cs]) => (zu(g) ? '<col style="width:16px">' : cs.map((c) => `<col style="width:${tlBreite(c)}px">`).join(''))).join('')}</colgroup>
       <thead><tr><th class="rn g" rowspan="1"></th>${kopf1}</tr><tr><th class="rn" title="Alles markieren" data-tl="alles">⊿</th>${kopf2}</tr></thead>
@@ -2370,6 +2416,8 @@ document.addEventListener('paste', (e) => {
 });
 document.addEventListener('click', (e) => {
   if (tab !== 'tueren' || !TL) return;
+  const ll = e.target.closest('[data-tll]'); if (ll) { if (ll.dataset.tll !== TL.liste) { (async () => { if (tlT) { clearTimeout(tlT); await tlJetzt(); } TLq = ''; tlLaden(ll.dataset.tll); })(); } return; }
+  const lb = e.target.closest('[data-tl="lneu"],[data-tl="lname"],[data-tl="ldel"]'); if (lb) { ({ lneu: tlListeNeu, lname: tlListeUmbenennen, ldel: tlListeLoeschen })[lb.dataset.tl](); return; }
   const so = e.target.closest('th[data-tlsort]'); if (so && !e.target.closest('.tl-rz')) { const k = so.dataset.tlsort; if (k === 'aus' || k === 'ausstattung') return;
     TLS = !TLS || TLS.k !== k ? { k, ab: false } : !TLS.ab ? { k, ab: true } : null; LS.set('tl.sort', TLS); TLA = TLC = null; tlZeichnen(); return; }
   const g = e.target.closest('[data-tlg]'); if (g && g.dataset.tlg !== 'Lage') { const n = g.dataset.tlg; if (TLzu.has(n)) TLzu.delete(n); else TLzu.add(n); LS.set('tlzu', [...TLzu]); TLA = TLC = null; tlZeichnen(); return; }
@@ -2435,11 +2483,16 @@ async function tlRaeume() {
     tlMerken(); TL.tueren.push(...neu); close(); tlSpeichern(true); tlZeichnen(); toast(`${neu.length} Türen angelegt.`);
   }).querySelector('#trAlle').addEventListener('change', (e) => { e.target.closest('.modal').querySelectorAll('[data-ri]').forEach((c) => { c.checked = e.target.checked; }); });
 }
-function tlInsLv(sel) {
+async function tlInsLv(sel) {
   const auswahl = sel.length ? sel : TL.tueren, lvs = LIST.filter((x) => !x.archived);
+  if (tlT) { clearTimeout(tlT); await tlJetzt(); }
+  const verk = await api(`api/projekt/${pid}/tueren/lv?liste=${encodeURIComponent(TL.liste || '1')}`).catch(() => []);   // LVs mit Positionen aus dieser Liste
+  const lvName = (id) => { const x = lvs.find((y) => y.id === id); return x ? `LV ${x.nr} ${x.name}` : 'LV'; };
   const bg = modalBox(`<h3>Ins LV übernehmen</h3>
-    <p>${auswahl.length} Zeile${auswahl.length > 1 ? 'n' : ''}${sel.length ? ' (markiert)' : ''}. Gleiche Ausführung wird zu einer Position zusammengefasst, die Stückzahl ist die Menge.</p>
-    <label class="dz-l">Ziel<select id="tlZiel"><option value="">Neues LV „Fenster und Türen“ anlegen</option>${lvs.map((x) => `<option value="${x.id}"${L && L.id === x.id ? ' selected' : ''}>an LV ${esc(x.nr)} ${esc(x.name)} anhängen</option>`).join('')}</select></label>
+    <p>„${esc(tlName())}“: ${auswahl.length} Zeile${auswahl.length > 1 ? 'n' : ''}${sel.length ? ' (markiert)' : ''}. Gleiche Ausführung wird zu einer Position zusammengefasst, die Stückzahl ist die Menge.</p>
+    <label class="dz-l">Ziel<select id="tlZiel">${verk.filter((v) => lvs.some((x) => x.id === v.lv)).map((v, i) => `<option value="akt:${v.lv}"${i === 0 ? ' selected' : ''}>${esc(lvName(v.lv))} aktualisieren (${v.positionen} Positionen aus dieser Liste)</option>`).join('')}
+      <option value="">Neues LV „Fenster und Türen“ anlegen</option>${lvs.map((x) => `<option value="${x.id}"${!verk.length && L && L.id === x.id ? ' selected' : ''}>an LV ${esc(x.nr)} ${esc(x.name)} anhängen</option>`).join('')}</select></label>
+    <p class="hint" id="tlAktH" hidden style="margin:.4rem 0 0">Aktualisieren nimmt die ganze Liste: geänderte Stückzahlen und Texte werden angepasst, neue Ausführungen kommen dazu, weggefallene bekommen Menge 0. OZ, Preise und Vergabe bleiben.</p>
     <label class="dz-l" style="margin-top:.6rem">Textform<select id="tlForm"><option value="merkmale">Systembeschreibung je Titel + Positionen „… gemäß vorangegangener Systembeschreibung“ mit Einbauposition, Raum, Typ, Maße … (wie bisher)</option><option value="lang">ausführlicher Langtext je Position</option></select></label>
     <label class="dz-c" style="margin-top:.6rem"><input type="checkbox" id="tlDin" checked> links und rechts angeschlagene getrennt (eigene Positionen)</label>
     <label class="dz-l" style="margin-top:.6rem">Obertitel (leer = Titel Fenster / Außentüren / Innentüren direkt)<input id="tlTitel" value=""></label>
@@ -2448,12 +2501,16 @@ function tlInsLv(sel) {
     btn.disabled = true;
     try {
       if (tlT) { clearTimeout(tlT); await tlJetzt(); }
-      const z = $('#tlZiel').value;
-      const r = await api(`api/projekt/${pid}/tueren/lv`, 'POST', { ids: sel.map((t) => t.id), lv: z ? +z : null, titel: $('#tlTitel').value, form: $('#tlForm').value, din_trennen: $('#tlDin').checked, name: 'Fenster und Türen' });
+      const z = $('#tlZiel').value, akt = z.startsWith('akt:');
+      const r = await api(`api/projekt/${pid}/tueren/lv`, 'POST', { liste: TL.liste || '1', ids: sel.map((t) => t.id), lv: z ? +(akt ? z.slice(4) : z) : null, aktualisieren: akt,
+        titel: $('#tlTitel').value, form: $('#tlForm').value, din_trennen: $('#tlDin').checked, name: tlName() === 'Fenster- & Türliste' ? 'Fenster und Türen' : tlName() });
       close(); await refreshList(); await openLv(r.lv); tab = 'lv'; LS.set('tab', tab); render();
-      toast(`${r.tueren} Zeile${r.tueren > 1 ? 'n' : ''} → ${r.positionen} Position${r.positionen > 1 ? 'en' : ''} übernommen. Systembeschreibung und Preise jetzt im LV ergänzen.`);
+      const A = r.abgleich;
+      toast(A ? `LV aktualisiert: ${A.angepasst} Position${A.angepasst === 1 ? '' : 'en'} angepasst, ${A.neu} neu${A.null ? `, ${A.null} auf Menge 0 (nicht mehr in der Liste)` : ''}${A.gleich ? `, ${A.gleich} unverändert` : ''}. ↶ macht es rückgängig.`
+        : `${r.tueren} Zeile${r.tueren > 1 ? 'n' : ''} → ${r.positionen} Position${r.positionen > 1 ? 'en' : ''} übernommen. Systembeschreibung und Preise jetzt im LV ergänzen.`);
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
+  const zs = bg.querySelector('#tlZiel'), zh = () => { bg.querySelector('#tlAktH').hidden = !zs.value.startsWith('akt:'); }; zs.addEventListener('change', zh); zh();
   return bg;
 }
 

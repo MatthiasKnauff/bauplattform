@@ -313,8 +313,9 @@ async function tdEinstellungen(host) {
               ${Array.isArray(r.fuer) ? R.benutzer.filter((u) => u.id !== R.ich).map((u) => `<button type="button" class="bph-chip${r.fuer.includes(u.id) ? ' on' : ''}" data-rfu="${u.id}">${esc(u.name)}</button>`).join('') : ''}</div>
             <div style="margin-top:.4rem;font-size:.85em">Für welche Projekte</div>
             <div class="bph-chips"><button type="button" class="bph-chip${r.projekte === 'meine' ? ' on' : ''}" data-rf="pr-meine" title="Projekte, in denen die jeweilige Person als Bauleitung eingetragen ist">Eigene Projekte</button><button type="button" class="bph-chip${r.projekte === 'alle' ? ' on' : ''}" data-rf="pr-alle">Alle Projekte</button><button type="button" class="bph-chip${Array.isArray(r.projekte) ? ' on' : ''}" data-rf="pr-wahl">Bestimmte …</button></div>
-            ${Array.isArray(r.projekte) ? `<div class="bph-chips">${R.projekte.map((p) => `<button type="button" class="bph-chip${r.projekte.includes(p.id) ? ' on' : ''}" data-rfp="${p.id}">${esc(p.name)}</button>`).join('')}</div>` : ''}` : ''}</div>`; }).join('')
-      + `<div class="bph-row" style="margin-top:.6rem"><button type="button" class="bph-btn pri" data-rf="speichern">Speichern</button><span class="bph-mu" data-rmsg style="margin:0"></span></div>`;
+            ${Array.isArray(r.projekte) ? `<div class="bph-chips">${R.projekte.map((p) => `<button type="button" class="bph-chip${r.projekte.includes(p.id) ? ' on' : ''}" data-rfp="${p.id}">${esc(p.name)}</button>`).join('')}</div>` : ''}
+            <div style="margin-top:.5rem"><button type="button" class="bph-btn" data-rf="std" title="Nur diese Regel auf die Voreinstellung zurücksetzen">↺ Auf Standard</button></div>` : ''}</div>`; }).join('')
+      + `<div class="bph-row" style="margin-top:.6rem"><button type="button" class="bph-btn pri" data-rf="speichern">Speichern</button><button type="button" class="bph-btn" data-rf="allestd" title="Alle Regeln auf die Voreinstellung zurücksetzen">↺ Alles auf Standard</button>${window.BPHead && BPHead.verlaufKnopf ? BPHead.verlaufKnopf('bp:todo:regeln', 'Verlauf') : ''}<span class="bph-mu" data-rmsg style="margin:0"></span></div>`;
   };
   zeichnen();
   host.onchange = (e) => { const k = e.target.closest('[data-rk]'); if (!k) return; const r = C[k.dataset.rk]; if (e.target.dataset.rf === 'an') { r.an = e.target.checked; zeichnen(); } if (e.target.dataset.rf === 'wert') r.wert = +e.target.value || 0; };
@@ -322,6 +323,16 @@ async function tdEinstellungen(host) {
     const b = e.target.closest('[data-rf],[data-rfu],[data-rfp]'); if (!b || ['an', 'wert'].includes(b.dataset.rf)) return;   // Haken und Zahl: über „change“ (sonst zeichnet der Klick vorher neu und der Haken springt zurück)
     if (b.dataset.rf === 'speichern') {
       try { const n = await api('api/bp/todo-regeln', 'PUT', C); TDREF = n; host.querySelector('[data-rmsg]').textContent = 'Gespeichert.'; tdLaden(); } catch (er) { host.querySelector('[data-rmsg]').textContent = er.message; }
+      return;
+    }
+    if (b.dataset.rf === 'std' || b.dataset.rf === 'allestd') {   // auf die Voreinstellung zurücksetzen (gespeichert, steht im Verlauf)
+      const k = b.dataset.rf === 'std' ? b.closest('[data-rk]').dataset.rk : 'alle';
+      try {
+        const vorher = JSON.parse(JSON.stringify(C)), n = await api('api/bp/todo-regeln', 'PUT', { _standard: k === 'alle' ? 'alle' : [k] }); TDREF = n;
+        n.regeln.forEach((r) => { if (k === 'alle' || r.key === k) C[r.key] = { ...r, fuer: r.fuer === 'alle' ? 'alle' : [...r.fuer], projekte: Array.isArray(r.projekte) ? [...r.projekte] : r.projekte }; });
+        zeichnen(); tdLaden();
+        if (window.rueckgaengig) rueckgaengig(k === 'alle' ? 'Alle Regeln auf Standard' : `„${C[k].name}“ auf Standard`, async () => { const m = await api('api/bp/todo-regeln', 'PUT', vorher); TDREF = m; Object.assign(C, vorher); zeichnen(); tdLaden(); });
+      } catch (er) { host.querySelector('[data-rmsg]').textContent = er.message; }
       return;
     }
     const r = C[b.closest('[data-rk]').dataset.rk];

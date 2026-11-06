@@ -10,6 +10,7 @@ Bereiche (Schlüssel `bereich`):
   einst:vorlagen    E-Mail-Vorlagen (settings tpl_*)
   gs:<key>          Bauzeitenplan-/KI-Einstellungen (Tabelle gantt_store)
   bp:aufgaben       Einstellungen „Aufgaben & Mängel“ (bp_store)
+  bp:todo:regeln    Regeln der automatischen To-dos (Startseite, bp_store)
   bk:raumtypen      Raumtypen und Kennwerte (bk_store)
   bkp:<id>          eine Kostenermittlung (bk_projects.data)
   avalv:<id>        ein Leistungsverzeichnis (ava_lv: Positionen, Vergabe)
@@ -33,7 +34,7 @@ VORSCHLAEGE = [("Sparsam", 30, 180), ("Empfohlen", 90, 730), ("Großzügig", 365
 GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen (Bauzeitenplan)", "catfirms": "Firmen je Gewerk (Bauzeitenplan)",
       "catscope": "Leistungsumfang je Gewerk (Bauzeitenplan)", "settings": "KI und Bauzeitenplan (Verwaltung)", "plattform": "KI-Anbieter (Verwaltung)",
       "presets": "Vorlagen des Bauzeitenplans", "assistcfg": "Assistent des Bauzeitenplans", "assistcfg_vorlagen": "Vorlagen des Assistenten"}
-BP = {"aufgaben": "Einstellungen „Aufgaben & Mängel“", "plaene": "Einstellungen „Planstand & Versand“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}
+BP = {"todo:regeln": "Regeln der To-dos (Startseite)", "aufgaben": "Einstellungen „Aufgaben & Mängel“", "plaene": "Einstellungen „Planstand & Versand“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}
 BK = {"raumtypen": "Raumtypen und Kennwerte (Baukosten)", "vergleich": "Vergleichsobjekte und importierte Kennwerte (Baukosten)", "dienste": "Zugänge zu Kostendatenbanken (Baukosten)"}
 
 LABELS = {
@@ -56,8 +57,15 @@ LABELS = {
     "phone": "Telefon", "mobile": "Mobil", "email": "E-Mail", "street": "Straße", "zip": "PLZ", "city": "Ort", "notes": "Notizen",
     "website": "Internet", "role": "Rolle", "extra": "Weiteres", "alle_tage": "alle Stände (Tage)", "taeglich_tage": "ein Stand je Tag bis (Tage)",
     "mailsignatur": "E-Mail-Signatur", "funktion": "Funktion", "phasen": "Phasen", "planarten": "Planarten", "kennungen": "Kennungen", "stichworte": "Stichwörter", "max_mb": "Anhänge höchstens (MB)",
+    "fuer": "für wen", "projekte": "für welche Projekte", "wert": "Schwelle", "erinnerung_art": "Erinnerungen als", "erinnerung_an": "Erinnerungen an",
     "betreff": "Betreff", "text": "Text", "auto": "automatisch starten", "on": "anbieten", "steps": "Schritte", "dur": "Dauer", "gw": "Gewerk", "phase": "Phase", "titel": "Titel", "stufe": "Stufe",
 }
+try:   # Namen der To-do-Regeln („maengel“ → „Mängel mit abgelaufener Frist“)
+    from .todo import REGELN as _R
+    for _r in _R:
+        LABELS.setdefault(_r[0], _r[1])
+except Exception:
+    pass
 for _k, _n in (("maengelruege", "Mängelrüge"), ("terminruege", "Terminrüge"), ("termin", "Kalendertermin"), ("planversand", "Planversand")):
     LABELS[f"tpl_{_k}_betreff"] = f"{_n}: Betreff"
     LABELS[f"tpl_{_k}_text"] = f"{_n}: Text"

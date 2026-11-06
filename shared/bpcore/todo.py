@@ -75,6 +75,14 @@ def regeln(c):
 
 
 def regeln_setzen(c, b, wer):
+    """b: je Regel {an, fuer, projekte, wert}; b["_standard"] = "alle" oder [Regel-Schlüssel] setzt auf die Voreinstellung zurück."""
+    st = b.get("_standard")
+    if st:
+        d = _j(konto._get(c, "todo:regeln"), {}) or {}
+        for k in ([x[0] for x in REGELN] if st == "alle" else [x for x in st if isinstance(x, str)]):
+            d.pop(k, None)
+        konto._put(c, "todo:regeln", json.dumps(d), wer)
+        return regeln(c)
     alt = regeln(c)
     neu = {}
     for k in alt:

@@ -833,7 +833,12 @@ def blueprint(get_user=None):
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
-            R = todo.regeln_setzen(c, request.get_json(silent=True) or {}, u["name"]) if request.method == "PUT" else todo.regeln(c)
+            if request.method == "PUT":   # mit Stand im Verlauf (⚙ → Verlauf)
+                versionen.vor(c, "bp:todo:regeln")
+                R = todo.regeln_setzen(c, request.get_json(silent=True) or {}, u["name"])
+                versionen.nach(c, "bp:todo:regeln", u["name"])
+            else:
+                R = todo.regeln(c)
             P = [{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM projects WHERE archived=0 ORDER BY name").fetchall()]
             U = [{"id": r["id"], "name": skizze.name_von(r)} for r in c.execute("SELECT * FROM users WHERE active=1 AND lower(name)<>'admin' ORDER BY name").fetchall()]
         return jsonify(regeln=list(R.values()), projekte=P, benutzer=U, ich=uid)

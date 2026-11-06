@@ -65,7 +65,11 @@ LBS = [{
                      "Oberfläche vorher mit Restfaserbindemittel benetzen, auf Paletten stapeln und mit Folie dicht verpacken.",
              "einheit": "m²", "kg": "394", "gen": "B", "achsen": [MENGE, NUTZ],
              "varianten": [{"art": "Wellplatten Dach", "h": 0.45, "mat": 2.5}, {"art": "ebene Fassadenplatten", "h": 0.55, "mat": 2.5},
-                           {"art": "Dachschindeln/Rauten", "h": 0.65, "mat": 2.5}, {"art": "Fensterbänke", "h": 0.8, "mat": 2.5}]},
+                           {"art": "Dachschindeln/Rauten", "h": 0.65, "mat": 2.5}]},
+            {"kurz": "AZ-Fensterbänke ausbauen, fest gebunden",
+             "lang": "Fensterbänke aus Asbestzement (fest gebunden) nach TRGS 519 zerstörungsarm ausbauen, vorher mit Restfaserbindemittel "
+                     "benetzen, Befestigungen lösen, nicht brechen, staubdicht verpacken. Abrechnung nach Länge.",
+             "einheit": "m", "kg": "394", "gen": "B", "h": 0.35, "mat": 2, "achsen": [NUTZ]},
             {"kurz": "Asbesthaltige Floor-Flex-Platten mit Kleber entfernen",
              "lang": "Asbesthaltige Vinyl-Asbest-Bodenplatten (Floor-Flex) einschließlich asbesthaltigem Kleber nach anerkanntem Verfahren (BT-Verfahren) "
                      "entfernen, Kleberreste abtragen, Untergrund staubfrei feinreinigen, Abfälle staubdicht verpacken.",
@@ -133,12 +137,12 @@ LBS = [{
              "lang": "Ordnungsgemäßes Entsorgen von {art} (Abfallschlüssel {avv}) einschließlich Transport, Nachweisführung im elektronischen "
                      "Abfallnachweisverfahren und Entsorgungsgebühren.",
              "einheit": "t", "kg": "394", "gen": "C", "lohn": "baustelle",
-             "varianten": [{"art": "asbesthaltigen Baustoffen", "avv": "17 06 05*", "h": 0.5, "geraet": 420},
+             "varianten": [{"art": "asbesthaltigen Baustoffen", "avv": "17 06 05*", "h": 0.5, "geraet": 319},
                            {"art": "schwach gebundenem Asbest", "avv": "17 06 01*", "h": 0.6, "geraet": 650},
                            {"art": "KMF alter Bauart", "avv": "17 06 03*", "h": 0.5, "geraet": 520},
-                           {"art": "teerhaltigen Gemischen", "avv": "17 03 01*", "h": 0.4, "geraet": 380},
+                           {"art": "teerhaltigen Gemischen", "avv": "17 03 01*", "h": 0.4, "geraet": 173},
                            {"art": "PCB-haltigen Abfällen", "avv": "17 09 02*", "h": 0.6, "geraet": 1450},
-                           {"art": "Altholz A IV", "avv": "17 02 04*", "h": 0.3, "geraet": 260}]},
+                           {"art": "Altholz A IV", "avv": "17 02 04*", "h": 0.3, "geraet": 161}]},
         ]},
     ],
 }]

@@ -98,6 +98,9 @@ for gr in LBS[0]["gruppen"]:
             p["achsen"] = [LAENGE, ORT]
         elif k.startswith("Obentürschließer"):
             p["achsen"] = [SCHLIESSER_ANW, OBF, ORT]
+            for v in p.get("varianten") or []:   # mit integrierter Feststellung: keine zusätzliche mechanische Feststellung
+                if "Feststellung" in v.get("art", ""):
+                    v["achsen"] = [SCHLIESSER_ANW[:2], OBF, ORT]
         elif k.startswith(("Paniktürverschluss", "Notausgangsverschluss")):
             p["achsen"] = [OBF, ORT]
         elif k.startswith("Türstopper"):

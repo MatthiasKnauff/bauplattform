@@ -34,12 +34,12 @@ LBS = [{
         ]},
         {"name": "Pflaster, Platten", "positionen": [
             {"kurz": "Betonsteinpflaster {d} cm, {art}, Bettung Splitt",
-             "lang": "Pflasterdecke aus Betonsteinen nach DIN EN 1338, {art}, Dicke {d} cm, Farbe nach Bemusterung, "
+             "lang": "Pflasterdecke aus Betonsteinen nach DIN EN 1338, {art}, Dicke {d} cm, "
                      "auf 3–5 cm Bettung aus Brechsand-Splitt 0/5 im Verband verlegen, einschneiden an Einfassungen, "
                      "mit Fugenmaterial einschlämmen und abrütteln. Abrechnung nach Fläche.",
              "einheit": "m²", "kg": "522", "gen": "A",
-             "varianten": [{"d": "6", "art": "Rechteckpflaster grau", "h": 0.40, "mat": 15, "geraet": 1.5},
-                           {"d": "8", "art": "Rechteckpflaster grau", "h": 0.45, "mat": 18, "geraet": 1.5},
+             "varianten": [{"d": "6", "art": "Rechteckpflaster", "h": 0.40, "mat": 15, "geraet": 1.5},
+                           {"d": "8", "art": "Rechteckpflaster", "h": 0.45, "mat": 18, "geraet": 1.5},
                            {"d": "8", "art": "Verbundpflaster", "h": 0.42, "mat": 17, "geraet": 1.5},
                            {"d": "8", "art": "Edelsplittvorsatz, gestrahlt", "h": 0.50, "mat": 32, "geraet": 1.5},
                            {"d": "10", "art": "Rechteckpflaster, befahrbar Lkw", "h": 0.50, "mat": 24, "geraet": 1.8}]},
@@ -143,6 +143,8 @@ FLAECHE = [{}, {"k": "≤ 20 m²", "t": "Ausführung in Einzelflächen bis 20 m�
 MUSTER = [{"k": "", "t": "Verlegung im Reihen- bzw. Läuferverband."},
           {"k": "Fischgrät", "t": "Verlegung im Ellbogen- bzw. Fischgrätverband.", "fh": 1.18},
           {"k": "diagonal", "t": "Verlegung diagonal bzw. im Bogen- oder Segmentverband, erhöhter Schnittanteil.", "fh": 1.30, "fm": 1.05}]
+MUSTER_NS = [{"k": "", "t": "Verlegung im Reihen- bzw. Segmentbogenverband."},
+             {"k": "diagonal", "t": "Verlegung diagonal bzw. in Schmuckverband, erhöhter Schnittanteil.", "fh": 1.12, "fm": 1.03}]
 FARBE_P = [{"k": "grau", "t": "Farbe grau."}, {"k": "anthrazit/rot", "t": "Farbe durchgefärbt anthrazit bzw. rot.", "fm": 1.10},
            {"k": "Colormix", "t": "Farbmischung (Colormix) nach Bemusterung.", "fm": 1.18}]
 OBERFL = [{"k": "", "t": "Oberfläche glatt bzw. werksüblich."}, {"k": "gestrahlt", "t": "Oberfläche kugelgestrahlt.", "fm": 1.25},
@@ -160,21 +162,24 @@ for gr in LBS[0]["gruppen"]:
             p["achsen"] = [FARBE_P, MUSTER, FLAECHE, ORT]
         elif k.startswith("Ökopflaster") or k.startswith("Rasengitter"):
             p["achsen"] = [FARBE_P, FLAECHE, ORT]
-        elif k.startswith("Natursteinpflaster"):
-            p["achsen"] = [MUSTER, FLAECHE, ORT]
+        elif k.startswith("Natursteinpflaster"):   # wird ohnehin von Hand verlegt
+            p["achsen"] = [MUSTER_NS, [{}, {"k": "≤ 20 m²", "t": "Ausführung in Einzelflächen bis 20 m² bzw. mit hohem Schnittanteil.", "fh": 1.2, "gen": "B"}], ORT]
         elif k.startswith("Plattenbelag"):
             p["achsen"] = [MUSTER, BETTUNG, FLAECHE, ORT]
         elif k.startswith(("Schottertragschicht", "Frostschutzschicht", "Asphalttragdeck", "Planum")):
             p["achsen"] = [FLAECHE]
         elif k.startswith(("Bordstein", "Granit-Bordstein", "Einfassung", "Muldenrinne")):
             p["achsen"] = [VERLAUF, ORT]
-        elif k.startswith("Entwässerungsrinne"):
-            p["achsen"] = [[{"k": "", "t": "Rost Stegrost verzinkt."}, {"k": "Guss-Rost", "t": "Rost aus Gusseisen, verschraubt.", "mat": 35},
-                            {"k": "Edelstahl-Schlitz", "t": "Schlitzaufsatz bzw. Designrost Edelstahl.", "mat": 85, "gen": "C"}], ORT]
+        elif k.startswith("Entwässerungsrinne"):   # Rostwahl nur bei Klasse A 15; C 250 / D 400 haben Gussrost im Grundtext
+            p["achsen"] = [ORT]
+            for v in p.get("varianten") or []:
+                if v.get("k") == "A 15":
+                    v["achsen"] = [[{"k": "", "t": ""}, {"k": "Guss-Rost", "t": "Abweichend Rost aus Gusseisen, verschraubt.", "mat": 35},
+                                    {"k": "Edelstahl-Schlitz", "t": "Abweichend Schlitzaufsatz bzw. Designrost Edelstahl.", "mat": 85, "gen": "C"}], ORT]
 
 LBS[0]["gruppen"] += [
     {"name": "Rückbau, Instandsetzung", "positionen": [
-        {"kurz": "Belag aufnehmen und entsorgen: {art}, Dicke bis {d} cm",
+        {"kurz": "Belag aufnehmen und abfahren: {art}, Dicke bis {d} cm",
          "lang": "Vorhandenen Belag aus {art} einschließlich Bettung aufnehmen, laden und abfahren; Entsorgung gesondert "
                  "nach LB 087. Dicke bis {d} cm. Abrechnung nach Fläche.",
          "einheit": "m²", "kg": "212", "gen": "B", "lohn": "abbruch", "tags": ["altbau"], "achsen": [FLAECHE],

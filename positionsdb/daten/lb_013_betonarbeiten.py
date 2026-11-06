@@ -141,7 +141,7 @@ LBS = [{
              "einheit": "m", "kg": "352", "gen": "B",
              "varianten": [{"t": "Kragbalkon, Standardtragstufe", "h": 0.40, "mat": 145}, {"t": "Kragbalkon, hohe Tragstufe", "h": 0.45, "mat": 210},
                            {"t": "gestützter Balkon (Querkraft)", "h": 0.30, "mat": 75}]},
-            {"kurz": "Treppenlauf Ortbeton C30/37 mit Podest, Schalung und Bewehrung",
+            {"kurz": "Treppenlauf Ortbeton C30/37 je Steigung, Schalung und Bewehrung",
              "lang": "Gerade Stahlbetontreppe in Ortbeton C30/37 mit Stufen, Laufbreite bis 1,25 m, einschließlich "
                      "Schalung (Lauf, Stufen, Wangen), Bewehrung nach Statik und Trittschalldämmlager. "
                      "Abrechnung nach Anzahl der Steigungen.",
@@ -170,6 +170,7 @@ LBS = [{
                            {"t": "Stützen, rechteckig", "sb": "ohne Anforderung", "h": 0.90, "mat": 10, "kg": "333"},
                            {"t": "Decken, Raumhöhe bis 3,0 m", "sb": "ohne Anforderung", "h": 0.55, "mat": 9, "kg": "351"},
                            {"t": "Decken, Raumhöhe bis 3,0 m", "sb": "SB 2", "h": 0.70, "mat": 12, "kg": "351"},
+                           {"t": "Decken, Raumhöhe über 3,0 bis 5,0 m", "sb": "ohne Anforderung", "h": 0.70, "mat": 11, "kg": "351"},
                            {"t": "Unterzüge, Überzüge, Balken", "sb": "ohne Anforderung", "h": 1.10, "mat": 11, "kg": "351"},
                            {"t": "Deckenränder und Stirnflächen bis 30 cm", "sb": "ohne Anforderung", "h": 0.85, "mat": 7, "kg": "351"},
                            {"t": "Balkon- und Kragplatten mit Tropfkante", "sb": "SB 2", "h": 1.10, "mat": 14, "kg": "352"}]},
@@ -337,7 +338,7 @@ _ax("Schalung ", [SCHALHAUT, HOEHE, EINSATZ, ORT])
 _ax("Rundstützenschalung", [HOEHE, EINSATZ, ORT])
 _ax("Betonstahl B500B", [LIEFER, MENGE, ORT])
 _ax("Betonstahlmatten", [MENGE, ORT])
-_ax("Sauberkeitsschicht", [EINBAU, KLEINFL, ORT])
+_ax("Sauberkeitsschicht", [EINBAU[:2], KLEINFL, ORT])
 _ax("Lastabtragende Dämmung", [KLEINFL, ORT])
 _ax("Perimeterdämmung", [[{}, {"k": "zweilagig", "t": "Zweilagig mit versetzten Stößen verlegt.", "fh": 1.4, "mat": 2}], KLEINFL, ORT])
 _ax("Aufbeton", [EINBAU, KLEINFL, ORT, WINTER])
@@ -483,3 +484,23 @@ for g in LBS[0]["gruppen"]:
     for p in g["positionen"]:
         if p["kurz"].startswith("Fundament Stahlbeton"):
             p["kurz"] = "Fundament Stahlbeton {b}, {t}"
+
+
+# Expositionsklassen nur mit zulässiger Mindestfestigkeit (DIN 1045-2): C20/25 nur XC1, C25/30 ohne XD1/XF2
+EXPO_C20 = [EXPO[0]]
+EXPO_C25 = [x for x in EXPO if x["k"] != "XD1/XF2"]
+# Schalung: Höhe steckt in der Variante; Schalhaut-Varianten nur bei Sichtbetonklasse
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        if EXPO in (_p.get("achsen") or []):
+            for _v in _p.get("varianten") or []:
+                if _v.get("b") in ("C20/25", "C25/30"):
+                    _v["achsen"] = [EXPO_C20 if a is EXPO and _v["b"] == "C20/25" else EXPO_C25 if a is EXPO else a for a in _p["achsen"]]
+        if _p["kurz"].startswith("Schalung {t}"):
+            for _v in _p["varianten"]:
+                ax = []
+                if _v["sb"] != "ohne Anforderung":
+                    ax.append(SCHALHAUT)
+                if not any(x in _v["t"] for x in ("bis 3,0", "über 3,0", "Fundamente", "Deckenränder", "Balkon")):
+                    ax.append(HOEHE)
+                _v["achsen"] = ax + [EINSATZ, ORT]

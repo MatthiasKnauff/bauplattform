@@ -16,7 +16,7 @@ LBS = [{
              "lang": "ESG nach DIN EN 12150, Dicke {d} mm, klar, Kanten geschliffen und poliert, Ecken gestoßen, "
                      "liefern und in vorhandene Halterungen einsetzen. Abrechnung nach Fläche.",
              "einheit": "m²", "kg": "339", "gen": "B",
-             "varianten": [{"d": "6", "h": 1.0, "mat": 95}, {"d": "8", "h": 1.1, "mat": 120}, {"d": "10", "h": 1.2, "mat": 155}]},
+             "varianten": [{"d": "6", "h": 1.0, "mat": 85}, {"d": "8", "h": 1.1, "mat": 110}, {"d": "10", "h": 1.2, "mat": 143}]},
             {"kurz": "Verbundsicherheitsglas VSG {d}, klar",
              "lang": "VSG aus zwei Floatglas- bzw. TVG-Scheiben mit PVB-Folie, Aufbau {d}, Kanten gesäumt bzw. "
                      "poliert, als absturzsichernde oder Überkopfverglasung nach DIN 18008 einsetzen. "
@@ -41,11 +41,11 @@ LBS = [{
              "einheit": "St", "kg": "344", "gen": "B",
              "varianten": [{"rm": "1,00 × 2,20 m", "h": 5, "mat": 1350}, {"rm": "2-flg. 2,00 × 2,20 m", "h": 9, "mat": 2600}]},
             {"kurz": "Glastrennwand ESG/VSG rahmenlos{zus}, Raumhöhe bis {hh} m",
-             "lang": "Rahmenlose Glastrennwand (Büro) aus ESG bzw. VSG 10–12 mm mit Boden- und Deckenprofil "
+             "lang": "Rahmenlose Glastrennwand (Büro) aus ESG bzw. VSG 10–12 mm{zl} mit Boden- und Deckenprofil "
                      "Aluminium, Stoßfugen mit transparenten Dichtprofilen, Raumhöhe bis {hh} m; Türen gesondert. "
                      "Abrechnung nach Fläche.",
              "einheit": "m²", "kg": "346", "gen": "C",
-             "varianten": [{"hh": "3,0", "zus": "", "h": 1.8, "mat": 310}, {"hh": "3,0", "zus": ", doppelt verglast Rw ≥ 42 dB", "h": 2.6, "mat": 560}]},
+             "varianten": [{"hh": "3,0", "zus": "", "zl": "", "h": 1.8, "mat": 310}, {"hh": "3,0", "zus": ", doppelt verglast Rw ≥ 42 dB", "zl": ", zweischalig (doppelt verglast) mit Schalldämmmaß Rw ≥ 42 dB", "h": 2.6, "mat": 560}]},
             {"kurz": "Glaswand Dusche ESG 8 mm, {art}",
              "lang": "Duschabtrennung aus ESG 8 mm mit Kalkschutzbeschichtung, {art}, Edelstahlbeschläge, Dichtprofile, "
                      "Höhe 2,00 m, an Wand und Fliesenboden befestigt.",
@@ -76,7 +76,7 @@ ZUSATZ = [{}, {"k": "Sonnenschutz", "t": "Mit Sonnenschutzbeschichtung (g ≤ 0,
           {"k": "Schallschutz", "t": "Als Schallschutzglas mit asymmetrischem Aufbau bzw. Schallschutzfolie, Rw nach Vorgabe.", "mat": 45},
           {"k": "Ornament", "t": "Mit Ornamentglas bzw. satiniertem Glas als Sichtschutz.", "mat": 22}]
 ORT = [{}, {"k": "über 3,5 m", "t": "Einbauhöhe über 3,5 m; Gerüst bzw. Hubarbeitsbühne gesondert.", "fh": 1.2}]
-KANTE = [{"k": "gesäumt", "t": "Kanten gesäumt."}, {"k": "geschliffen", "t": "Kanten geschliffen.", "mat": 6}, {"k": "poliert", "t": "Kanten poliert.", "mat": 12}]
+KANTE = [{"ersetze": [[r"Kanten (geschliffen und poliert|gesäumt bzw\. ?poliert),\s*", ""]], "k": "gesäumt", "t": "Kanten gesäumt."}, {"k": "geschliffen", "t": "Kanten geschliffen.", "mat": 6}, {"k": "poliert", "t": "Kanten poliert.", "mat": 12}]
 
 for gr in LBS[0]["gruppen"]:
     for p in gr["positionen"]:
@@ -89,7 +89,7 @@ for gr in LBS[0]["gruppen"]:
         elif k.startswith("Verbundsicherheitsglas"):
             p["achsen"] = [GROESSE, KANTE, ORT]
         elif k.startswith("Glastrennwand"):
-            p["achsen"] = [[{}, {"k": "Streifen sat.", "t": "Mit Sichtschutzstreifen satiniert bzw. Folie.", "mat": 18}], ORT]
+            p["achsen"] = [[{}, {"k": "Streifen sat.", "t": "Mit Sichtschutzstreifen satiniert bzw. Folie.", "mat": 18}]]   # raumhoch bis 3,0 m: keine Zulage Einbauhöhe
         elif k.startswith(("Spiegel", "Küchenrückwand")):
             p["achsen"] = [GROESSE]
 

@@ -89,8 +89,8 @@ LBS[0]["gruppen"] += [
                  "Projektierung und Berechnung der Ansaugöffnungen, Inbetriebnahme.",
          "einheit": "St", "kg": "456", "gen": "C",
          "varianten": [{"m": "500", "h": 16, "mat": 2900}, {"m": "1.500", "h": 28, "mat": 4800}]},
-        {"kurz": "Brandmeldeleitung J-Y(St)Y 2 × 2 × 0,8 BMA rot",
-         "lang": "Brandmeldeleitung J-Y(St)Y 2 × 2 × 0,8 rot, im Ring verlegt, mit Befestigung; Funktionserhalt bei Bedarf gesondert.",
+        {"kurz": "Brandmeldeleitung 2 × 2 × 0,8 BMA rot",
+         "lang": "Brandmeldeleitung 2 × 2 × 0,8 rot, im Ring verlegt, mit Befestigung.",
          "einheit": "m", "kg": "456", "h": 0.08, "mat": 0.9, "gen": "A"},
         {"kurz": "Inbetriebnahme und Abnahme BMA nach DIN 14675, je Melder",
          "lang": "Inbetriebnahme der Brandmeldeanlage, Programmierung, Melderprüfung, Dokumentation, Feuerwehrlaufkarten, "
@@ -131,7 +131,8 @@ HOEHE = [{}, {"k": "über 3,5 m", "t": "Montagehöhe über 3,5 m, Arbeitsbühne 
 zuweisen(LBS, [
     (_K("Rauchwarnmelder"), [[{}, {"k": "funkvernetzt", "t": "Funkvernetzt innerhalb der Nutzungseinheit.", "fm": 1.6}], ORT, [{}, {"k": "inkl. 10 J. Wartung", "t": "Einschließlich jährlicher Inspektion für zehn Jahre.", "mat": 28, "h": 0.5}]]),
     (_K("Automatischer Brandmelder", "Handfeuermelder", "Signalgeber", "Parallelanzeige", "EMA-Melder", "IP-Kamera"), [HOEHE, ORT]),
-    (_K("Brandmeldeleitung"), [VERLEGUNG_KABEL, KABEL_FE[:1] + KABEL_FE[2:], ORT_KLEIN]),
+    (_K("Brandmeldeleitung"), [VERLEGUNG_KABEL, [{"k": "J-Y(St)Y", "t": "Leitung J-Y(St)Y ohne Funktionserhalt."}, {"k": "JE-H(St)H E30", "t": "Leitung JE-H(St)H FE180 mit Funktionserhalt E30 auf geprüftem Verlegesystem nach DIN 4102-12.", "fm": 3.0, "fh": 1.8, "mat": 2.5}], ORT_KLEIN]),
     (_K("Brandmelderzentrale", "EMA-Zentrale", "Videorekorder", "Rauchansaug", "Feststellanlage"), [ORT_KLEIN]),
-    (_K("Türsprechanlage", "Wohnungsstation", "Türöffner"), [[{}, {"k": "Edelstahl/Design", "t": "Außenstation in Edelstahl bzw. Designausführung.", "fm": 1.4}], ORT]),
+    (_K("Türsprechanlage", "Wohnungsstation"), [[{}, {"k": "Design", "t": "Gerät mit Frontblende in Edelstahl- bzw. Designausführung.", "fm": 1.4}], ORT]),
+    (_K("Türöffner"), [ORT]),
 ])

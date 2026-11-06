@@ -69,7 +69,7 @@ LBS = [{
             {"kurz": "Handaushub, Homogenbereich B1",
              "lang": "Bodenaushub in Handschachtung an Leitungen, Fundamenten oder beengten Stellen, Boden seitlich "
                      "lagern bzw. in Behälter laden.",
-             "einheit": "m³", "h": 2.6, "geraet": 3, "gen": "B"},
+             "einheit": "m³", "h": 1.25, "geraet": 3, "gen": "B"},
             {"kurz": "Boden laden und abfahren, Zuordnungsklasse {z}, einschl. Gebühr",
              "lang": "Gelagerten Boden laden, abfahren und einer zugelassenen Verwertungs- bzw. Entsorgungsstelle "
                      "zuführen, Zuordnungsklasse nach LAGA bzw. ErsatzbaustoffV {z}, einschließlich Annahmegebühren "
@@ -105,7 +105,7 @@ LBS = [{
              "varianten": [{"m": "Mineralgemisch 0/32", "h": 0.20, "mat": 28, "geraet": 32},
                            {"m": "Schotter 0/45", "h": 0.20, "mat": 31, "geraet": 32}]},
             {"kurz": "Frostschutzschicht/Tragschicht unter Bodenplatte, d = {d} cm",
-             "lang": "Kapillarbrechende Schicht bzw. Tragschicht unter Bodenplatten aus Kiessand bzw. Schotter 0/32, "
+             "lang": "Frostschutz- bzw. Tragschicht unter Bodenplatten aus frostsicherem Kiessand bzw. Schotter 0/32 (nicht kapillarbrechend, siehe gesonderte Position Kies 16/32), "
                      "Dicke {d} cm, lagenweise einbauen und verdichten, Oberfläche ±2 cm.",
              "einheit": "m²", "gen": "A", "kg": "326",
              "varianten": [{"d": "20", "h": 0.05, "mat": 5.8, "geraet": 1.3}, {"d": "30", "h": 0.06, "mat": 8.5, "geraet": 1.8},
@@ -138,7 +138,8 @@ NAEHE = [{}, {"k": "Leitungen/Bestand", "t": "Arbeiten im Bereich vorhandener Le
 WEG = [{"k": "bis 10 km", "t": "Transportweg bis 10 km."}, {"k": "bis 25 km", "t": "Transportweg über 10 bis 25 km.", "fg": 1.25},
        {"k": "bis 50 km", "t": "Transportweg über 25 bis 50 km.", "fg": 1.55, "gen": "B"}]
 MENGE = [{}, {"k": "bis 50 m³", "t": "Gesamtmenge bis 50 m³ (Kleinmenge), Umsetzen des Geräts eingerechnet.", "fh": 1.3, "fg": 1.35}]
-VERDICHT = [{"k": "Dpr 97 %", "t": "Verdichtungsgrad DPr ≥ 97 %."}, {"k": "Dpr 100 %", "t": "Verdichtungsgrad DPr ≥ 100 %, Ev2 ≥ 100 MN/m² nachweisen.", "fh": 1.2, "fg": 1.2}]
+VERDICHT = [{"ersetze": [[r" auf mindestens 97 % Proctordichte", ""], [r" bis Ev2 ≥ 100 MN/m²", ""]], "k": "Dpr 97 %", "t": "Verdichtungsgrad DPr ≥ 97 %."},
+            {"k": "Dpr 100 %", "t": "Verdichtungsgrad DPr ≥ 100 %, Ev2 ≥ 100 MN/m² nachweisen.", "fh": 1.2, "fg": 1.2, "ohne": ["von Hand"]}]
 
 
 def _ax(prefix, achsen):

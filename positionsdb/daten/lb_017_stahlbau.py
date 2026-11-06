@@ -136,20 +136,28 @@ L["gruppen"].append({"name": "Profile, Bauteile, Anschlüsse", "positionen": [
      "einheit": "kg", "kg": "351", "gen": "B", "achsen": [OBERFL],
      "varianten": [{"a": "Auflagerwinkel", "h": 0.16, "mat": 2.3}, {"a": "Konsole geschweißt", "h": 0.22, "mat": 2.4},
                    {"a": "Randwinkel für Deckenöffnung", "h": 0.18, "mat": 2.3}]},
-    {"kurz": "Ankerplatte / Kopfplatte {g} mm, mit Kopfbolzen",
+    {"kurz": "Ankerplatte {g} mm mit Kopfbolzen, einbetoniert",
      "lang": "Ankerplatte aus Stahl S235, Größe {g} mm, Dicke nach Statik, mit aufgeschweißten Kopfbolzendübeln, "
-             "zum Einbetonieren lagegenau an die Schalung geliefert bzw. nachträglich mit Ankern befestigt.",
-     "einheit": "St", "kg": "351", "gen": "B", "achsen": [OBERFL_F, [{"k": "", "t": ""}, {"k": "nachträglich gedübelt", "t": "Nachträgliche Befestigung mit 4 Verbundankern M12 und Untergießen.", "h": 0.8, "mat": 40}]],
+             "zum Einbetonieren lagegenau an die Schalung geliefert und befestigt.",
+     "einheit": "St", "kg": "351", "gen": "B", "achsen": [OBERFL_F],
      "varianten": [{"g": "150 × 150", "h": 0.4, "mat": 28}, {"g": "200 × 200", "h": 0.5, "mat": 42}, {"g": "300 × 300", "h": 0.7, "mat": 78}]},
+    {"kurz": "Ankerplatte {g} mm nachtr. mit Verbundankern",
+     "lang": "Ankerplatte aus Stahl S235, Größe {g} mm, Dicke nach Statik, mit Bohrungen (ohne Kopfbolzen), auf vorhandenem "
+             "Bauteil mit 4 Verbundankern M12 befestigt und untergossen.",
+     "einheit": "St", "kg": "351", "gen": "B", "achsen": [OBERFL_F, ANKER_UG],
+     "varianten": [{"g": "150 × 150", "h": 1.0, "mat": 40}, {"g": "200 × 200", "h": 1.15, "mat": 52}, {"g": "300 × 300", "h": 1.4, "mat": 80}]},
     {"kurz": "Stütze/Träger untergießen mit Vergussmörtel, Fuge bis 5 cm",
      "lang": "Fußplatten bzw. Auflager mit schwindarmem, fließfähigem Vergussmörtel untergießen, Schalung "
              "herstellen und entfernen. Abrechnung je Auflager bis 0,1 m².",
      "einheit": "St", "kg": "351", "h": 0.8, "mat": 18, "gen": "A"},
-    {"kurz": "Pfettenlage / Dachpfetten Stahl, Profil {p}",
-     "lang": "Dachpfetten als Durchlauf- bzw. Einfeldträger aus {p}, auf Bindern verschraubt, einschließlich "
+    {"kurz": "Pfettenlage / Dachpfetten Stahl, Walzprofil IPE/U",
+     "lang": "Dachpfetten als Durchlauf- bzw. Einfeldträger aus Walzprofilen IPE bzw. U, auf Bindern verschraubt, einschließlich "
              "Pfettenschuhe und Kippsicherungen. Abrechnung nach Gewicht.",
-     "einheit": "kg", "kg": "361", "gen": "B", "achsen": [OBERFL, MONT],
-     "varianten": [{"p": "Walzprofil IPE/U", "h": 0.05, "mat": 1.95}, {"p": "kaltgeformtem Z-/C-Profil, verzinkt", "h": 0.045, "mat": 2.6}]},
+     "einheit": "kg", "kg": "361", "gen": "B", "achsen": [OBERFL, MONT], "h": 0.05, "mat": 1.95},
+    {"kurz": "Pfettenlage / Dachpfetten, Z-/C-Profil bandverzinkt",
+     "lang": "Dachpfetten als Durchlauf- bzw. Einfeldträger aus kaltgeformten Z- bzw. C-Profilen, bandverzinkt (Sendzimir), "
+             "auf Bindern verschraubt, einschließlich Pfettenschuhe und Kippsicherungen. Abrechnung nach Gewicht.",
+     "einheit": "kg", "kg": "361", "gen": "B", "achsen": [MONT], "h": 0.045, "mat": 2.6},
     {"kurz": "Verbände / Zugstangen, Rundstahl mit Spannschloss",
      "lang": "Wind- und Stabilisierungsverbände aus Rundstahl bzw. Flachstahl mit Spannschlössern und "
              "Anschlusslaschen, vorgespannt montiert. Abrechnung nach Gewicht.",

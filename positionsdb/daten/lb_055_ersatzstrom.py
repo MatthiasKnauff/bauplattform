@@ -1,6 +1,7 @@
 # LB 055 Ersatzstromversorgungsanlagen – eigene Texte und Ansätze (Preisstand 11/2026)
 
 ORT = [{}, {"k": "Bestand", "t": "Einbau im Bestand mit Umschaltung im laufenden Betrieb (Nachtarbeit nach Absprache gesondert).", "fh": 1.35, "gen": "C", "tags": ["altbau"]}]
+ORT_LTG = [{}, {"k": "Bestand", "t": "Einbau im Bestand: Anpassung an vorhandene Bauteile, erschwerte Montage.", "fh": 1.25, "gen": "C", "tags": ["altbau"]}]
 AUFST = [{"k": "innen", "t": "Aufstellung in einem Betriebsraum, Zu- und Abluft sowie Abgasführung gesondert."},
          {"k": "Haube außen", "t": "Aufstellung im Freien in schallgedämmter, wetterfester Haube (Schalldruck ≤ 65 dB(A) in 7 m).", "fm": 1.22}]
 TANK = [{"k": "Tagestank 8 h", "t": "Mit integriertem Tagestank für 8 h Volllast."}, {"k": "Tank 24 h", "t": "Mit Tank für 24 h Volllast, doppelwandig mit Leckanzeige.", "fm": 1.08}]
@@ -25,10 +26,11 @@ LBS = [{
              "lang": "Automatische Netzumschalteinrichtung mit motorbetätigten Lastschaltern bzw. Schützen, Bemessungsstrom {i} A, im Verteiler eingebaut.",
              "einheit": "St", "kg": "441", "gen": "C", "achsen": [ORT],
              "varianten": [{"i": "63", "h": 6, "mat": 1650}, {"i": "160", "h": 8, "mat": 3200}, {"i": "400", "h": 12, "mat": 6800}, {"i": "800", "h": 16, "mat": 12500}]},
-            {"kurz": "Abgasanlage NEA Edelstahl, DN {dn}",
-             "lang": "Abgasleitung für Netzersatzanlage aus Edelstahl, doppelwandig gedämmt, mit Schalldämpfer, Kompensator und Regenhaube, DN {dn}, je m Leitung.",
-             "einheit": "m", "kg": "441", "gen": "C", "lohn": "heizung", "achsen": [ORT],
-             "varianten": [{"dn": "80", "h": 1.2, "mat": 145}, {"dn": "125", "h": 1.5, "mat": 210}, {"dn": "200", "h": 2.0, "mat": 340}]},
+            {"kurz": "Abgasleitung NEA Edelstahl, doppelwandig, DN {dn}",
+             "lang": "Abgasleitung für Netzersatzanlage aus Edelstahl, doppelwandig gedämmt, mit Halterungen und Formstücken anteilig, DN {dn}. "
+                     "Schalldämpfer, Kompensator und Regenhaube gesondert. Abrechnung nach Länge.",
+             "einheit": "m", "kg": "441", "gen": "C", "lohn": "heizung", "achsen": [ORT_LTG],
+             "varianten": [{"dn": "80", "h": 1.0, "mat": 115}, {"dn": "125", "h": 1.3, "mat": 165}, {"dn": "200", "h": 1.7, "mat": 270}]},
             {"kurz": "Einspeisesteckdose für mobiles Aggregat, {i} A",
              "lang": "Einspeisevorrichtung CEE für mobiles Ersatzstromaggregat mit Umschalter (Netz – 0 – Aggregat), Bemessungsstrom {i} A.",
              "einheit": "St", "kg": "441", "gen": "B", "achsen": [ORT],
@@ -61,3 +63,12 @@ LBS = [{
         ]},
     ],
 }]
+
+# Prüfbefund: Stückteile der Abgasanlage als eigene Position (am Gruppenende, damit die Codes stabil bleiben)
+LBS[0]["gruppen"][0]["positionen"].append(
+{"kurz": "Abgas-Schalldämpfer NEA mit Kompensator und Regenhaube, DN {dn}",
+             "lang": "Abgas-Schalldämpfer (Absorptions- bzw. Reflexionsdämpfer) für Netzersatzanlage mit Edelstahl-Kompensator am Motorabgang "
+                     "und Regenhaube bzw. Abgasklappe am Mündungsende, DN {dn}, montieren.",
+             "einheit": "St", "kg": "441", "gen": "C", "lohn": "heizung", "achsen": [ORT_LTG],
+             "varianten": [{"dn": "80", "h": 4, "mat": 850}, {"dn": "125", "h": 6, "mat": 1450}, {"dn": "200", "h": 8, "mat": 2600}]}
+)

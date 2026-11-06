@@ -154,6 +154,9 @@ BETRIEB = [{}, {"k": "laufender Betrieb", "t": "Ausführung bei laufendem Betrie
                 "fh": 1.3, "gen": "C"}]
 SCHONEND = [{}, {"k": "schonend für Wiederverwendung", "t": "Bauteile schonend ausbauen, säubern, kennzeichnen und für Wiederverwendung auf der Baustelle lagern.",
                  "fh": 1.7, "gen": "C"}]
+AUSSEN = [{"k": "", "t": "Abtransport über Kran, Bauaufzug bzw. Schuttrutsche."},
+          {"k": "H > 10 m", "t": "Arbeits- bzw. Traufhöhe über 10 m.", "fh": 1.12}]
+NICHT_SCHONEND = ("verklebt", "Stahlbeton", "Bitumen")   # nicht zerstörungsfrei ausbaubar
 VERFAHREN = [{"k": "Kleingerät", "t": "Abbruch mit handgeführtem Gerät (Stemmhammer, Säge)."},
              {"k": "Bagger/Abbruchroboter", "t": "Abbruch mit Abbruchroboter bzw. Bagger mit Abbruchzange, Gerät eingerechnet.", "fh": 0.45, "fg": 2.6, "gen": "B"}]
 
@@ -164,10 +167,17 @@ for _gi in (1, 2):   # Rohbauteile, Ausbau
         _ax = [GESCHOSS, BETRIEB]
         if _p["kurz"].startswith(("Mauerwerk abbrechen", "Stahlbeton abbrechen", "Betonbodenplatte", "Estrich abbrechen")):
             _ax = [VERFAHREN] + _ax
+        if _p["kurz"].startswith(("Dacheindeckung", "Flachdachaufbau")):   # Dacharbeiten: kein Geschosszuschlag
+            _ax = [AUSSEN, BETRIEB]
         if _p["kurz"].startswith(("Tür ausbauen", "Fenster ausbauen", "Bodenbelag entfernen", "Dacheindeckung", "Holzbalkendecke", "Treppe abbrechen")):
+            for _v in _p.get("varianten") or []:
+                if any(w in str(_v.get("t", "")) + str(_v.get("art", "")) for w in NICHT_SCHONEND):
+                    _v["achsen"] = list(_ax)
             _ax = _ax + [SCHONEND]
         _p["achsen"] = _ax
 for _p in LBS[0]["gruppen"][3]["positionen"]:
+    if _p["kurz"].startswith("Asbestzementplatten demontieren"):   # Dach- und Fassadenplatten: außen, kein Geschosszuschlag
+        _p.setdefault("achsen", [AUSSEN, BETRIEB])
     _p.setdefault("achsen", [GESCHOSS, BETRIEB])
 
 LBS[0]["gruppen"].append({"name": "Weitere Rückbauarbeiten", "positionen": [
@@ -201,7 +211,7 @@ LBS[0]["gruppen"].append({"name": "Weitere Rückbauarbeiten", "positionen": [
              "Dämmstoff getrennt erfassen. Dämmung {t}, Dicke bis {d} cm. Gerüst gesondert." + _ABF,
      "einheit": "m²", "gen": "B",
      "achsen": [[{}, {"k": "HBCD-haltig", "t": "EPS mit HBCD-Flammschutz: getrennt erfassen und als gefährlicher bzw. POP-Abfall dokumentieren.", "fh": 1.15, "mat": 1.5}]],
-     "varianten": [{"t": "EPS", "d": "10", "h": 0.40, "geraet": 1.5}, {"t": "EPS", "d": "20", "h": 0.50, "geraet": 2}, {"t": "Mineralwolle", "d": "14", "h": 0.55, "geraet": 2}]},
+     "varianten": [{"t": "EPS", "d": "10", "h": 0.40, "geraet": 1.5}, {"t": "EPS", "d": "20", "h": 0.50, "geraet": 2}, {"t": "Mineralwolle", "d": "14", "h": 0.55, "geraet": 2, "achsen": []}]},
     {"kurz": "Heizungs-/Sanitärleitungen zurückbauen, {t}",
      "lang": "Stillgelegte Leitungen einschließlich Befestigungen und Dämmung zurückbauen, Wanddurchführungen verschließen, {t}." + _ABF,
      "einheit": "m", "gen": "B", "lohn": "sanitaer", "achsen": [[{"k": "aufputz", "t": "Leitungen aufputz verlegt."}, {"k": "unterputz/im Schlitz", "t": "Leitungen im Schlitz bzw. unterputz, freistemmen.", "fh": 2.2}], GESCHOSS],

@@ -157,11 +157,17 @@ LICHTFARBE = [{"ersetze": [[r"(Farbtemperatur |Lichtfarbe |warmweiß |neutralwei
               {"k": "Ra ≥ 90", "t": "Farbwiedergabe Ra ≥ 90, Lichtfarbe nach Wahl des Auftraggebers.", "fm": 1.15}]
 LEUCHTE_MONTAGE = [{}, {"k": "in Gipskartondecke", "t": "Einbau in Gipskarton- bzw. Unterdecke inkl. Ausschnitt und Hohlraum-Verdrahtung.", "fh": 1.1},
                    {"k": "über 3,5 m", "t": "Montagehöhe über 3,5 m bis 6 m, Arbeitsbühne stellt der Auftragnehmer.", "fh": 1.3, "geraet": 3}]
-AUSSEN_LF = [{"k": "3000 K", "t": "Lichtfarbe 3000 K."}, {"k": "2200 K insektenfreundlich", "t": "Lichtfarbe 2200 K bernstein, insekten- und fledermausfreundlich, ULOR 0 %.", "fm": 1.08}]
+AUSSEN_LF = [{"ersetze": [[r",?\s?(warmweiß )?3000 K", ""], [r",?\s?insektenfreundlich(?=,)", ""]], "k": "3000 K", "t": "Lichtfarbe 3000 K warmweiß."}, {"k": "2200 K insektenfreundlich", "t": "Lichtfarbe 2200 K bernstein, insekten- und fledermausfreundlich, ULOR 0 %.", "fm": 1.08}]
 SENSOR = [{}, {"k": "mit Bewegungsmelder", "t": "Mit integriertem Bewegungs- bzw. HF-Sensor, Nachlaufzeit und Helligkeitsschwelle einstellbar.", "mat": 35, "h": 0.1}]
 SIBE_MONTAGE = [{"k": "Wand/Decke", "t": "Aufbaumontage an Wand bzw. Decke."}, {"k": "Einbau Unterdecke", "t": "Einbau in Unterdecke mit Einbaurahmen.", "mat": 22, "fh": 1.1},
                 {"k": "Pendel/abgehängt", "t": "Abgehängt mit Pendelset bis 1 m.", "mat": 28, "fh": 1.2}]
+# Prüfbefund: Hallenleuchten sind schon für große Höhen (eigener Höhenzuschlag), Spiegel-/Badleuchten ohne Arbeitsbühne,
+# Bodeneinbaustrahler ohne Sensor
+HALLE_MONT = [{}, {"k": "über 10 m, Hubsteiger", "t": "Montagehöhe über 10 m, Hubsteiger stellt der Auftragnehmer.", "fh": 1.3, "geraet": 15}]
 zuweisen(LBS, [
+    (_K("Hallenleuchte"), [LICHTFARBE, LEUCHTE_STEUERUNG, HALLE_MONT, ORT_KLEIN]),
+    (_K("Spiegelleuchte"), [LICHTFARBE, ORT_KLEIN]),
+    (_K("Bodeneinbau"), [AUSSEN_LF, LEUCHTE_FARBE]),
     (_K("Einbaudownlight", "LED-Panel"), [LICHTFARBE, LEUCHTE_MONTAGE, ORT_KLEIN]),
     (_K("Rasterleuchte", "Wand-/Deckenleuchte rund", "Langfeld", "Lichtband", "Pendelleuchte", "Hallenleuchte"),
      [LICHTFARBE, LEUCHTE_STEUERUNG, LEUCHTE_MONTAGE, ORT_KLEIN]),

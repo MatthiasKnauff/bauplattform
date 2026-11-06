@@ -59,10 +59,10 @@ LBS = [{
              "einheit": "h", "kg": gkg, "lohn": "baustelle", "h": 0, "geraet": satz / 1.12, "gen": "B", "achsen": [GDAUER]}
             for gname, satz, gkg in GERAETE]},
         {"name": "Stoffe und Zuschläge zu Stundenlohnarbeiten", "positionen": [
-            {"kurz": "Stoffe zu Stundenlohnarbeiten, Zuschlag auf Einkaufspreis {z}",
+            {"kurz": "Stoffe zu Stundenlohnarbeiten, Zuschlag {z}, je 100 € Einkauf",
              "lang": "Vergütung von Stoffen für Stundenlohnarbeiten nach nachgewiesenem Einkaufspreis (netto) zuzüglich Zuschlag für Gemeinkosten, "
-                     "Wagnis und Gewinn {z}. Je 100 € Einkaufswert.",
-             "einheit": "psch", "kg": "399", "gen": "A",
+                     "Wagnis und Gewinn {z}. Abrechnungseinheit: je 100 € nachgewiesener Einkaufswert (Menge = Einkaufswert / 100 €).",
+             "einheit": "St", "hinweis": "Einheit St = je 100 € Einkaufswert", "kg": "399", "gen": "A",
              "varianten": [{"z": "10 %", "h": 0, "mat": 98.2}, {"z": "15 %", "h": 0, "mat": 102.7}, {"z": "20 %", "h": 0, "mat": 107.1}]},
             {"kurz": "Anfahrt Kundendienst/Kleinauftrag, {e}",
              "lang": "Anfahrtspauschale für Stundenlohn- bzw. Kleinaufträge einschließlich Fahrzeug und Fahrzeit, Entfernung {e}.",

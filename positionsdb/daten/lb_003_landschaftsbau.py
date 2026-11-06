@@ -25,7 +25,7 @@ LBS = [{
             {"kurz": "Fertigstellungspflege Rasen bis Abnahme",
              "lang": "Fertigstellungspflege Rasen nach DIN 18917: mähen (mindestens 3 Schnitte), düngen, wässern, "
                      "Fehlstellen nachsäen, bis zur Abnahme. Abrechnung nach Fläche.",
-             "einheit": "m²", "kg": "574", "h": 0.04, "mat": 0.4, "geraet": 0.2, "gen": "B"},
+             "einheit": "m²", "kg": "574", "h": 0.018, "mat": 0.25, "geraet": 0.15, "gen": "B"},
         ]},
         {"name": "Pflanzungen", "positionen": [
             {"kurz": "Bodendecker / Stauden pflanzen, {n} St/m²",
@@ -61,14 +61,14 @@ LBS = [{
              "einheit": "St", "kg": "593", "h": 3.0, "mat": 120, "gen": "B"},
         ]},
         {"name": "Zäune, Ausstattung", "positionen": [
-            {"kurz": "Doppelstabmattenzaun verzinkt/beschichtet, Höhe {hh} m",
-             "lang": "Zaunanlage aus Doppelstabmatten 6/5/6 mm, verzinkt und pulverbeschichtet RAL 6005 bzw. 7016, "
+            {"kurz": "Doppelstabmattenzaun, Höhe {hh} m",
+             "lang": "Zaunanlage aus Doppelstabmatten 6/5/6 mm, "
                      "Pfosten in Betonfundamenten C20/25, Höhe {hh} m, einschließlich Eck- und Endpfosten. "
                      "Abrechnung nach Länge.",
              "einheit": "m", "kg": "531", "gen": "A",
              "varianten": [{"hh": "1,03", "h": 0.40, "mat": 38}, {"hh": "1,43", "h": 0.45, "mat": 48}, {"hh": "1,83", "h": 0.55, "mat": 62}]},
-            {"kurz": "Zauntor Stahl verzinkt, {art}",
-             "lang": "Tor passend zur Zaunanlage aus Stahlrahmen mit Doppelstabmattenfüllung, verzinkt und beschichtet, "
+            {"kurz": "Zauntor Stahl, {art}",
+             "lang": "Tor passend zur Zaunanlage aus Stahlrahmen mit Doppelstabmattenfüllung, "
                      "{art}, mit Schloss und Drücker, Torpfosten in Fundamenten.",
              "einheit": "St", "kg": "531", "gen": "B",
              "varianten": [{"art": "einflügelig 1,0 m breit", "h": 3.0, "mat": 520}, {"art": "zweiflügelig 3,0 m breit", "h": 5.0, "mat": 1350}]},

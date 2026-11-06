@@ -71,10 +71,10 @@ LBS = [{
 LBS[0]["gruppen"] += [
     {"name": "Sensorik, Zähler, Gateways", "positionen": [
         {"kurz": "Raumsensor {art}, Bus-Anschluss",
-         "lang": "Raumsensor {art} für Wandmontage, KNX bzw. Modbus/BACnet-fähig, montieren, anschließen und parametrieren.",
+         "lang": "Raumsensor {art} für {mo}, KNX bzw. Modbus/BACnet-fähig, montieren, anschließen und parametrieren.",
          "einheit": "St", "kg": "481", "gen": "B",
-         "varianten": [{"art": "CO₂/Temperatur/Feuchte", "h": 1.0, "mat": 240}, {"art": "Temperatur/Feuchte", "h": 0.8, "mat": 140},
-                       {"art": "Präsenz/Helligkeit Decke", "h": 1.0, "mat": 165}]},
+         "varianten": [{"art": "CO₂/Temperatur/Feuchte", "mo": "Wandmontage", "h": 1.0, "mat": 240}, {"art": "Temperatur/Feuchte", "mo": "Wandmontage", "h": 0.8, "mat": 140},
+                       {"art": "Präsenz/Helligkeit Decke", "mo": "Deckenmontage", "h": 1.0, "mat": 165, "achsen": None}]},
         {"kurz": "Fensterkontakt/Binäreingang, verdrahtet bzw. Funk",
          "lang": "Fensterkontakt zur Zustandsmeldung (Heizungs- bzw. Lüftungsabschaltung), mit Binäreingang bzw. Funkempfänger, "
                  "montieren und parametrieren.",
@@ -112,10 +112,19 @@ LBS[0]["gruppen"] += [
 ]
 _K = lambda *worte: (lambda g, p: any(w in p["kurz"] for w in worte))
 DESIGN = [{"k": "", "t": "Oberfläche Kunststoff weiß."}, {"k": "Glas/Metall", "t": "Designausführung Glas bzw. Metall nach Bemusterung.", "fm": 1.5}]
+MONT_DECKE = [{"k": "UP Decke", "t": "Montage in Decken-Unterputzdose."}, {"k": "Unterdecke", "t": "Montage in Unterdecke mit Hohlraumdose.", "fh": 0.95, "mat": 0.5},
+              {"k": "Aufputz", "t": "Aufputzmontage mit Aufputzgehäuse.", "fh": 0.9, "mat": 4}]
 zuweisen(LBS, [
+    (lambda g, p: "Decke" in p["kurz"] and ("Präsenzmelder" in p["kurz"]), [DESIGN[:1], MONT_DECKE, ORT_KLEIN]),
     (_K("Tastsensor", "Raumsensor", "Präsenzmelder"), [DESIGN, VERLEGUNG_GERAET[:3], ORT_KLEIN]),
     (_K("Aktor", "Spannungsversorgung", "Gateway", "Heizungsaktor"), [[{}, {"k": "Nachrüstung Bestand", "t": "Nachrüstung in vorhandener Verteilung inkl. Umverdrahtung.", "fh": 1.5, "tags": ["altbau"]}]]),
     (_K("Fensterkontakt", "Raumtemperaturfühler", "Energiezähler", "Feldverkabelung"), [ORT]),
     (_K("Busleitung"), [VERLEGUNG_KABEL, ORT_KLEIN]),
     (_K("Automationsstation", "MSR-Schaltschrank", "Visualisierung"), [ORT_KLEIN]),
 ])
+# Raumsensor-Variante für die Decke: Deckenmontage statt Wanddose und ohne Designrahmen
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        for _v in _p.get("varianten") or []:
+            if _v.get("mo") == "Deckenmontage":
+                _v["achsen"] = [DESIGN[:1], MONT_DECKE, ORT_KLEIN]

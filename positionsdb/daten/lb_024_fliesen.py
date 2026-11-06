@@ -15,12 +15,12 @@ LBS = [{
                            {"art": "Calciumsulfatestrich anschleifen und absaugen", "h": 0.06, "mat": 0, "geraet": 0.8}]},
             {"kurz": "Verbundabdichtung {kw}, {w}",
              "lang": "Abdichtung im Verbund mit Fliesen (AIV) nach DIN 18534 {wo}, Wassereinwirkungsklasse {w}, aus "
-                     "{sys} in mindestens zwei Arbeitsgängen, Mindesttrockenschichtdicke nach Herstellerangabe. "
+                     "{sys} {verf}. "
                      "Dichtbänder, Dichtecken und Manschetten gesondert. Abrechnung nach abgedichteter Fläche.",
              "einheit": "m²", "kg": "345", "gen": "A",
-             "varianten": [{"kw": "Wand flüssig", "wo": "an Wänden", "w": "W1-I/W2-I", "sys": "flüssig zu verarbeitendem Dispersions- bzw. Reaktionsabdichtungsstoff", "h": 0.18, "mat": 6.5},
-                           {"kw": "Boden Dichtschlämme", "wo": "auf Böden", "w": "W2-I/W3-I", "sys": "rissüberbrückender mineralischer Dichtschlämme", "h": 0.16, "mat": 7.5, "kg": "352"},
-                           {"kw": "Boden Dichtbahn", "wo": "als Bahnenabdichtung auf Böden", "w": "W3-I", "sys": "kaschierter Dichtbahn, Stöße mit Dichtband", "h": 0.20, "mat": 14, "kg": "352"}]},
+             "varianten": [{"kw": "Wand flüssig", "wo": "an Wänden", "w": "W1-I/W2-I", "sys": "flüssig zu verarbeitendem Dispersions- bzw. Reaktionsabdichtungsstoff", "verf": "in mindestens zwei Arbeitsgängen, Mindesttrockenschichtdicke nach Herstellerangabe", "h": 0.18, "mat": 6.5},
+                           {"kw": "Boden Dichtschlämme", "wo": "auf Böden", "w": "W2-I/W3-I", "sys": "rissüberbrückender mineralischer Dichtschlämme", "verf": "in mindestens zwei Arbeitsgängen, Mindesttrockenschichtdicke nach Herstellerangabe", "h": 0.16, "mat": 7.5, "kg": "352"},
+                           {"kw": "Boden Dichtbahn", "wo": "als Bahnenabdichtung auf Böden", "w": "W3-I", "sys": "kaschierter Dichtbahn", "verf": "einlagig im Systemkleber (Dünnbettmörtel) verlegt, Stöße überlappend bzw. mit Dichtband verklebt", "h": 0.20, "mat": 14, "kg": "352"}]},
             {"kurz": "Abdichtung Systemzubehör: {ka}",
              "lang": "{art} als Systemkomponente der Verbundabdichtung in den Abdichtungsstoff einbetten, "
                      "Überlappung nach Herstellerangabe.",
@@ -313,3 +313,16 @@ _achsen([
     ("Verbundabdichtung", [ABD_FL, BESTAND]),
     ("Untergrund vorbereiten", [BESTAND]),
 ])
+
+
+# Fischgrätverlegung nur bei Rechteck- bzw. Langformaten: bei quadratischen Formaten (a × a) entfällt die Option.
+import re as _re
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        _ax = _p.get("achsen") or []
+        if not any(a is MUSTER for a in _ax):
+            continue
+        for _v in _p.get("varianten") or []:
+            _m = _re.fullmatch(r"\s*(\d+)\s*×\s*(\d+)\s*", str(_v.get("f", "")))
+            if _m and _m.group(1) == _m.group(2):
+                _v["achsen"] = [MUSTER[:3] if a is MUSTER else a for a in (_v.get("achsen") or _ax)]

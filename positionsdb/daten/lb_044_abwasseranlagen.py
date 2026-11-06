@@ -183,12 +183,19 @@ LBS[0]["gruppen"][2]["positionen"] += [
      "lang": "Regenwassernutzungsanlage: Hauswasserwerk mit Schwimmender Entnahme, Trinkwassernachspeisung mit freiem Auslauf, Steuerung, Betriebswasserleitung bis 15 m.",
      "einheit": "St", "kg": "411", "h": 12, "mat": 2400, "gen": "C"},
 ]
-zuweisen(LBS, vorab() + [
+# Lokale Achsen (Prüfbefund): Demontage ist immer Bestand – nur der Überkopf-Zuschlag; Inline-Bauteile ohne Wandbefestigung
+UEBERKOPF_D = [{}, {"k": "Überkopf", "t": "Leitungen überkopf an der Decke, Abschnitte abfangen und ablassen.", "fh": 1.4}]
+zuweisen(LBS, [
+    (ist(kurz=r"Kernbohrung"), [KERNBOHRUNG, KB_DICKE, ZUGANG, ORT_KLEIN]),
+    (ist(kurz=r"demont|entsorg|stilleg|abtrennen"), [UEBERKOPF_D]),
+    (ist(kurz=r"^Zulage|kennzeichn|Dokumentation|Protokoll|Prüfung|Messung|Inbetriebnahme|Einweisung|Wartung|Berechnung"), [ORT_KLEIN]),
     (ist("m", kurz=r"HT|schallgedämmt|SML|Regenwasser-Fall"), [VERLEGUNG_ABW, ORT, MENGE]),
     (ist("m", kurz=r"Grundleitung"), [ORT_KLEIN, MENGE]),
     (ist("St", kurz=r"Duschrinne|Balkon"), [ABL_ROST[:2], ORT_KLEIN]),
     (ist("St", kurz=r"Bodenablauf"), [ABL_ROST, ORT_KLEIN]),
-    (ist("St", kurz=r"Hebeanlage|Rückstau|Pumpe|abscheider|Neutralisation|Schacht"), [GERAET_AUFSTELLUNG[:2], ORT_KLEIN]),
+    (ist("St", kurz=r"Schacht|abscheider|Neutralisation"), [ORT_KLEIN]),
+    (ist("St", kurz=r"Hebeanlage|Rückstau|Pumpe"), [GERAET_AUFSTELLUNG[:2], ORT_KLEIN]),
+    (ist("St", kurz=r"Reinigungsöffnung|Lüftungsventil|Belüfter|Übergang|[Dd]achablauf|Dachdurchführung|Druckströmung|Probe"), [ORT]),
     (ist("m"), [ORT_KLEIN, MENGE]),
     (ist("St"), [ORT, BEFESTIGUNG]),
     (ist(), [ORT_KLEIN]),

@@ -206,7 +206,7 @@ _neu("Wärmedämmung", [
      "varianten": [{"d": "120", "h": 0.35, "mat": 62}, {"d": "180", "h": 0.40, "mat": 92}]},
     {"kurz": "Vakuumdämmung an Terrassentür, 40 mm",
      "lang": "Vakuumisolationspaneele mit Schutzkaschierung nach Verlegeplan an Terrassen-Türanschlüssen mit geringer Aufbauhöhe.",
-     "einheit": "m²", "kg": "363", "h": 0.40, "mat": 165, "gen": "C"},
+     "einheit": "m²", "kg": "363", "h": 0.40, "mat": 165, "gen": "C", "achsen": [HOEHE, ORT]},
     {"kurz": "Dämmkeil / Dämmstreifen an Aufkantung, 60 × 60 mm",
      "lang": "Dämmkeil aus Mineralwolle bzw. PIR 60 × 60 mm am Übergang Fläche zu Aufkantung.",
      "einheit": "m", "kg": "363", "h": 0.05, "mat": 2.0, "gen": "A"},
@@ -227,9 +227,14 @@ _neu("Abdichtung Fläche", [
      "einheit": "m²", "kg": "363", "gen": "A",
      "varianten": [{"m": "FPO 1,8 mm", "h": 0.20, "mat": 23}, {"m": "PVC-P 1,5 mm", "h": 0.20, "mat": 20}]},
     {"kurz": "Kunststoffdachbahn {m}, lose mit Auflast",
-     "lang": "Kunststoffdachbahn {m}, lose verlegt mit Auflast (Kies bzw. Begrünung), Nähte verschweißt und geprüft.",
-     "einheit": "m²", "kg": "363", "gen": "A",
-     "varianten": [{"m": "FPO 1,8 mm", "h": 0.14, "mat": 16}, {"m": "PVC-P 1,8 mm", "h": 0.14, "mat": 15}, {"m": "EPDM 1,5 mm", "h": 0.15, "mat": 18}]},
+     "lang": "Kunststoffdachbahn {m}, lose verlegt mit Auflast (Kies bzw. Begrünung) auf Dachflächen bis 5° Neigung, "
+             "Nähte verschweißt und geprüft.",
+     "einheit": "m²", "kg": "363", "gen": "A", "achsen": [QUAL, GROESSE, HOEHE, ORT],
+     "varianten": [{"m": "FPO 1,8 mm", "h": 0.14, "mat": 16}, {"m": "PVC-P 1,8 mm", "h": 0.14, "mat": 15}]},
+    {"kurz": "Elastomerbahn EPDM 1,5 mm, lose mit Auflast",
+     "lang": "Dachabdichtung mit EPDM-Elastomerbahn 1,5 mm, lose verlegt mit Auflast (Kies bzw. Begrünung) auf Dachflächen bis "
+             "5° Neigung, Nähte mit Systemnahtband gefügt bzw. vulkanisiert und geprüft.",
+     "einheit": "m²", "kg": "363", "h": 0.15, "mat": 18, "gen": "A", "achsen": [QUAL, GROESSE, HOEHE, ORT]},
     {"kurz": "Wurzelschutzbahn Zulage nach FLL",
      "lang": "Zulage für wurzel- und rhizomfeste Ausführung der obersten Abdichtungslage nach FLL-Verfahren.",
      "einheit": "m²", "kg": "363", "h": 0.02, "mat": 4.5, "gen": "A"},
@@ -261,7 +266,7 @@ _neu("Entwässerung", [
      "varianten": [{"dn": "80", "h": 1.6, "mat": 145}, {"dn": "100", "h": 1.8, "mat": 170}]},
     {"kurz": "Dachablauf im Bestand erneuern (Sanierungseinsatz)",
      "lang": "Vorhandenen Dachablauf mit Sanierungseinsatz (Einsteck-Ablauf mit Dichtring) in bestehende Leitung erneuern.",
-     "einheit": "St", "kg": "363", "h": 1.8, "mat": 160, "gen": "B", "tags": ["altbau"]},
+     "einheit": "St", "kg": "363", "h": 1.8, "mat": 160, "gen": "B", "tags": ["altbau"], "achsen": [HOEHE]},
     {"kurz": "Rinnenausbildung in Dachfläche (Kehlrinne), Abdichtung",
      "lang": "Innenliegende Kehlrinne in der Dachfläche aus Dämmkeilen und Abdichtung, Breite bis 50 cm.",
      "einheit": "m", "kg": "363", "h": 0.80, "mat": 26, "gen": "B"},
@@ -310,6 +315,8 @@ for _g in LBS[0]["gruppen"]:
     for _p in _g["positionen"]:
         if "achsen" not in _p:
             _p["achsen"] = _regel(_g["name"], _p)
+        if ("Bestand" in _p["kurz"] or "altbau" in _p.get("tags", [])) and ORT in _p["achsen"]:
+            _p["achsen"] = [a for a in _p["achsen"] if a is not ORT]   # schon Bestandsleistung
 # Mineralwoll-Dämmung bringt den Brandschutz mit, EPS/PIR: Achse Brandriegel nicht sinnvoll -> nur Abdichtung bekommt BRANDD
 for _p in LBS[0]["gruppen"][2]["positionen"]:
     if _p["kurz"].startswith("Bitumenabdichtung 2-lagig"):

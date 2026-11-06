@@ -33,16 +33,16 @@ LBS = [{
         ]},
         {"name": "Innenputz", "positionen": [
             {"kurz": "Innenputz Wand {ka}, {d} mm, {kq}",
-             "lang": "Innenwandputz als {art}, Maschinenputz einlagig, mittlere Dicke {d} mm, auf Mauerwerk bzw. "
+             "lang": "Innenwandputz als {art}, {lage}, mittlere Dicke {d} mm, auf Mauerwerk bzw. "
                      "Beton, Oberfläche {q}. Ecken und Kanten gerade, Anschlüsse an andere Bauteile mit Kellenschnitt. "
                      "Öffnungen über 2,5 m² werden abgezogen, Leibungen gesondert.",
              "einheit": "m²", "kg": "345", "gen": "A",
-             "varianten": [{"ka": "Gipsputz", "kq": "Q2", "art": "Gipsputz (B4/P IV)", "d": "10", "q": "geglättet Q2", "h": 0.22, "mat": 3.5},
-                           {"ka": "Gipsputz", "kq": "Q3", "art": "Gipsputz (B4/P IV)", "d": "15", "q": "gefilzt/geglättet Q3", "h": 0.27, "mat": 4.8},
-                           {"ka": "Kalk-Gipsputz", "kq": "gefilzt", "art": "Kalk-Gipsputz", "d": "15", "q": "gefilzt", "h": 0.27, "mat": 4.6},
-                           {"ka": "Kalkzementputz CS II", "kq": "abgerieben", "art": "Kalk-Zementputz (CS II) für Feuchträume", "d": "15", "q": "abgerieben", "h": 0.30, "mat": 4.2},
-                           {"ka": "Kalkputz CL", "kq": "gefilzt", "art": "Kalkputz (CL) diffusionsoffen", "d": "15", "q": "gefilzt", "h": 0.32, "mat": 6.5},
-                           {"ka": "Lehmputz 2-lagig", "kq": "gefilzt", "art": "Lehmputz zweilagig", "d": "20", "q": "gefilzt", "h": 0.55, "mat": 12}]},
+             "varianten": [{"ka": "Gipsputz", "kq": "Q2", "art": "Gipsputz (B4/P IV)", "d": "10", "lage": "Maschinenputz einlagig", "q": "geglättet Q2", "h": 0.22, "mat": 3.5},
+                           {"ka": "Gipsputz", "kq": "Q3", "art": "Gipsputz (B4/P IV)", "d": "15", "lage": "Maschinenputz einlagig", "q": "gefilzt/geglättet Q3", "h": 0.27, "mat": 4.8},
+                           {"ka": "Kalk-Gipsputz", "kq": "gefilzt", "art": "Kalk-Gipsputz", "d": "15", "lage": "Maschinenputz einlagig", "q": "gefilzt", "h": 0.27, "mat": 4.6},
+                           {"ka": "Kalkzementputz CS II", "kq": "abgerieben", "art": "Kalk-Zementputz (CS II) für Feuchträume", "d": "15", "lage": "Maschinenputz einlagig", "q": "abgerieben", "h": 0.30, "mat": 4.2},
+                           {"ka": "Kalkputz CL", "kq": "gefilzt", "art": "Kalkputz (CL) diffusionsoffen", "d": "15", "lage": "Maschinenputz einlagig", "q": "gefilzt", "h": 0.32, "mat": 6.5},
+                           {"ka": "Lehmputz 2-lagig", "kq": "gefilzt", "art": "Lehmputz zweilagig", "d": "20", "lage": "aufgebracht als Unter- und Oberputz", "q": "gefilzt", "h": 0.55, "mat": 12}]},
             {"kurz": "Deckenputz {art}, d = {d} mm, auf Beton",
              "lang": "Deckenputz als {art} auf Stahlbetondecke nach Haftbrücke, mittlere Dicke {d} mm, Oberfläche "
                      "geglättet. Öffnungen über 2,5 m² werden abgezogen.",

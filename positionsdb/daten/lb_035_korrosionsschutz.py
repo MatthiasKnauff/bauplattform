@@ -102,3 +102,12 @@ LBS = [{
         ]},
     ],
 }]
+
+
+# Alkydharz-Systeme nur bis Korrosivitätskategorie C3 (DIN EN ISO 12944-5)
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        if _p.get("achsen") == [GLIED, KORR, ORT]:
+            for _v in _p.get("varianten") or []:
+                if str(_v.get("sys", "")).startswith("Alkydharz"):
+                    _v["achsen"] = [GLIED, KORR[:2], ORT]

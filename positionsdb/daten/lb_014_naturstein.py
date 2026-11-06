@@ -106,7 +106,7 @@ OBERFL = [{"k": "poliert", "t": "Oberfläche poliert."}, {"k": "geschliffen", "t
 KANTE = [{}, {"k": "Kante gerundet", "t": "Sichtkante halbrund bzw. mit Radius profiliert und poliert.", "h": 0.10, "mat": 9}]
 RUTSCH = [{"ersetze": [[r"\s?\(?(rutschhemmend|Rutschhemmung) R ?\d+\)?,?", ""]], "k": "R9", "t": "Rutschhemmung R 9."}, {"k": "R10", "t": "Rutschhemmung R 10 durch Oberflächenbearbeitung.", "fm": 1.06},
           {"k": "R11", "t": "Rutschhemmung R 11 durch Oberflächenbearbeitung.", "fm": 1.12}]
-FORMAT = [{"k": "30×60", "t": "Format 30 × 60 cm."}, {"k": "60×60", "t": "Format 60 × 60 cm.", "fh": 1.05, "fm": 1.05},
+FORMAT = [{"ersetze": [[r"Format bis 60 × 60 cm bzw\. Bahnenware nach Bemusterung", "Sortierung nach Bemusterung"]], "k": "30×60", "t": "Format 30 × 60 cm."}, {"k": "60×60", "t": "Format 60 × 60 cm.", "fh": 1.05, "fm": 1.05},
           {"k": "Großformat 60×120", "t": "Großformat 60 × 120 cm, Verlegung mit Saugheber.", "fh": 1.25, "fm": 1.20}]
 
 
@@ -120,7 +120,9 @@ def _ax(lb, gruppe, prefix, achsen):
 
 L = LBS[0]
 _ax(L, "Fensterbänke, Abdeckungen", "Innenfensterbank", [PREIS, KANTE, BESTAND])
-_ax(L, "Fensterbänke, Abdeckungen", "Außenfensterbank", [PREIS, OBERFL[1:], BESTAND])
+OBERFL_AUSSEN = [{"ersetze": [[r" Oberfläche geflammt,", ""]], "k": "geflammt", "t": "Oberfläche geflammt."},
+                 {"k": "sandgestrahlt", "t": "Oberfläche sandgestrahlt.", "fm": 1.08}]
+_ax(L, "Fensterbänke, Abdeckungen", "Außenfensterbank", [PREIS, OBERFL_AUSSEN, BESTAND])
 _ax(L, "Fensterbänke, Abdeckungen", "Mauerabdeckung", [PREIS, BESTAND])
 _ax(L, "Fensterbänke, Abdeckungen", "Waschtischplatte", [PREIS, KANTE])
 _ax(L, "Bodenbeläge, Sockel", "Bodenbelag", [FORMAT, PREIS, BESTAND])
@@ -202,3 +204,16 @@ L["gruppen"].append({"name": "Bestand, Rückbau, Pflege", "positionen": [
                    {"i": "Hydrophobierung für Fassaden (Silan/Siloxan)", "h": 0.10, "mat": 3.2, "kg": "335"},
                    {"i": "Anti-Graffiti-Schutz, permanent", "h": 0.12, "mat": 9, "kg": "335"}]},
 ]})
+
+
+# Großformat 60 × 120 nur ab 3 cm Plattendicke (dünnere Platten im Mörtelbett bruchgefährdet)
+for _gr in LBS[0]["gruppen"]:
+    for _p in _gr["positionen"]:
+        if FORMAT in (_p.get("achsen") or []):
+            for _v in _p.get("varianten") or []:
+                try:
+                    _dd = float(str(_v.get("d", "3")).replace(",", "."))
+                except ValueError:
+                    continue
+                if _dd < 3:
+                    _v["achsen"] = [FORMAT[:2] if a is FORMAT else a for a in _p["achsen"]]

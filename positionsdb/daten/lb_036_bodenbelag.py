@@ -74,11 +74,10 @@ LBS = [{
              "varianten": [{"art": "als Bahnenware, Tufting-Schlinge", "m": "20", "h": 0.25, "mat": 26},
                            {"art": "als Teppichfliesen 50 × 50 cm, fixiert", "m": "25", "h": 0.22, "mat": 30}]},
             {"kurz": "Sauberlaufzone {art}",
-             "lang": "Sauberlaufzone im Eingangsbereich {art}, Größe nach Plan, Oberkante belagsgleich, einschließlich "
-                     "Rahmen bzw. Randabschluss. Abrechnung nach Fläche.",
+             "lang": "Sauberlaufzone im Eingangsbereich {art}, Größe nach Plan, Oberkante belagsgleich, {rahmen}. Abrechnung nach Fläche.",
              "einheit": "m²", "kg": "352", "gen": "C",
-             "varianten": [{"art": "als Reinstreifenteppich (Bahnenware) verklebt", "h": 0.35, "mat": 55},
-                           {"art": "als Aluminium-Profilmatte in Mattenrahmen (Rahmen gesondert)", "h": 0.60, "mat": 380}]},
+             "varianten": [{"art": "als Reinstreifenteppich (Bahnenware) verklebt", "rahmen": "einschließlich Randabschluss", "h": 0.35, "mat": 55},
+                           {"art": "als Aluminium-Profilmatte, eingelegt in Mattenrahmen", "rahmen": "Mattenrahmen gesondert", "h": 0.60, "mat": 380}]},
             {"kurz": "Mattenrahmen Aluminium/Edelstahl für Sauberlaufmatte",
              "lang": "Mattenrahmen aus Aluminium- bzw. Edelstahlwinkel für Sauberlaufmatte in Estrichaussparung "
                      "einbauen, höhengerecht, mit Ankern. Abrechnung nach Länge.",
@@ -154,6 +153,15 @@ BB_UG = [{}, {"k": "auf Heizestrich", "t": "Untergrund Heizestrich, Klebstoff un
           "mat": 1.0, "fh": 1.05, "tags": ["altbau"]}]
 BB_MUSTER = [{}, {"k": "Fischgrät/Muster", "t": "Verlegung im Muster (Fischgrät, Fries, Intarsien) nach Verlegeplan, erhöhter Verschnitt.", "fh": 1.65, "fm": 1.10,
                   "gen": "C"}]
+BB_MUSTER_Q = [{}, {"k": "diagonal/Muster", "t": "Verlegung diagonal bzw. im Muster (Schachbrett, Fries) nach Verlegeplan, erhöhter Verschnitt.",
+                    "fh": 1.40, "fm": 1.08, "gen": "C"}]
+BB_MUSTER_KLICK = [{}, {"k": "Fischgrät (A/B-Dielen)", "t": "Verlegung im Fischgrätmuster mit systemeigenen A/B-Dielen, erhöhter Verschnitt.",
+                        "fh": 1.50, "fm": 1.15, "gen": "C"}]
+BB_UG_SCHW = [{}, {"k": "auf Heizestrich", "t": "Untergrund Heizestrich, Belag und Unterlage für Fußbodenheizung geeignet, Belegreife durch CM-Messung bestätigt.",
+                   "mat": 0.4},
+              {"k": "auf Holzwerkstoff", "t": "Untergrund Holzwerkstoffplatten bzw. Trockenestrich, eben, mit systemgerechter Unterlage.", "fh": 1.05}]
+BB_UG_KORK = [{}, BB_UG[1], {"k": "auf Holzwerkstoff", "t": "Untergrund Holzwerkstoffplatten bzw. Trockenestrich; Grundierung bzw. Unterlage je nach Verlegeart.",
+                             "mat": 0.8, "fh": 1.05}]
 BB_FARBE = [{}, {"k": "Sonderfarbe", "t": "Farbe bzw. Dessin aus Sonderkollektion, Mindestabnahme anteilig.", "fm": 1.12}]
 BB_SOCKEL = [{}, {"k": "mit Gehrung/Endkappen", "t": "Ecken auf Gehrung bzw. mit Formteilen und Endkappen, hoher Eckanteil.", "fh": 1.30, "mat": 0.8}]
 BB_STUFE = [{}, {"k": "gewendelt", "t": "Gewendelte bzw. viertelgewendelte Stufen, Zuschnitt nach Schablone.", "fh": 1.40, "fm": 1.12},
@@ -169,8 +177,8 @@ _r2_setze([
     ("Sportboden-/Sicherheitsbelag", [BB_UG, BB_RAUM, BB_ORT]),
     ("Leitfähiger Belag", [BB_UG[:2], BB_RAUM, BB_ORT]),
     ("Teppichboden", [BB_UG, BB_RAUM, BB_ORT]),
-    ("Laminat NK", [BB_UG, BB_MUSTER, BB_RAUM, BB_ORT]),
-    ("Korkboden", [BB_UG, BB_RAUM, BB_ORT]),
+    ("Laminat NK", [BB_UG_SCHW, BB_MUSTER_KLICK, BB_RAUM, BB_ORT]),
+    ("Korkboden", [BB_UG_KORK, BB_RAUM, BB_ORT]),
     ("Untergrund vorbereiten", [BB_RAUM, BB_ORT]),
     ("Altbelag entfernen", [BB_ENTS, BB_AFLAECHE]),
     ("Sockelleiste", [BB_SOCKEL, BB_ORT]),
@@ -183,7 +191,7 @@ _r2_neu("Elastische Beläge", [
     {"kurz": "{art_k}, {d} mm, Format {f}", "einheit": "m²", "kg": "352", "gen": "B",
      "lang": "{art} nach DIN EN ISO 10582/10874, Dicke {d} mm, Format {f}, vollflächig verklebt, Stöße dicht gestoßen, im Objektbereich "
              "Nutzungsklasse 33/42. Materialpreis im Ansatz enthalten. Abrechnung nach verlegter Fläche.",
-     "achsen": [BB_UG, BB_MUSTER, BB_RAUM, BB_ORT],
+     "achsen": [BB_UG, BB_MUSTER_Q, BB_RAUM, BB_ORT],
      "varianten": [{"art": "Linoleumfliesen", "art_k": "Linoleumfliesen", "d": "2,5", "f": "50 × 50 cm", "h": 0.36, "mat": 34},
                    {"art": "Kautschukfliesen, Oberfläche Hammerschlag", "art_k": "Kautschukfliesen", "d": "3,0", "f": "61 × 61 cm", "h": 0.38, "mat": 52},
                    {"art": "PVC-Fliesen heterogen", "art_k": "PVC-Fliesen", "d": "2,0", "f": "60 × 60 cm", "h": 0.32, "mat": 26},
@@ -196,7 +204,7 @@ _r2_neu("Elastische Beläge", [
     {"kurz": "Vinyl-Klickboden mit Trägerplatte, Nutzschicht {n} mm, schwimmend", "einheit": "m²", "kg": "352", "gen": "B",
      "lang": "Vinyl-Designboden mit starrer Trägerplatte (SPC/Rigid), Klickverbindung, Nutzschicht {n} mm, schwimmend auf systemgerechter "
              "Dämmunterlage verlegt, Randfugen und Bewegungsprofile in Türdurchgängen. Materialpreis im Ansatz enthalten.",
-     "achsen": [BB_UG[:2], BB_MUSTER, BB_RAUM, BB_ORT],
+     "achsen": [BB_UG_SCHW, BB_MUSTER_KLICK, BB_RAUM, BB_ORT],
      "varianten": [{"n": "0,3", "h": 0.25, "mat": 28}, {"n": "0,55", "h": 0.25, "mat": 38}]},
     {"kurz": "Nassraumbelag PVC R{r} mit Hochzug und Sockelkehle", "einheit": "m²", "kg": "352", "gen": "B",
      "lang": "Rutschhemmender PVC-Sicherheitsbelag für Nassbereiche, Bewertungsgruppe R{r}/B, mit Hochzug an Wänden bis 10 cm über "
@@ -204,9 +212,10 @@ _r2_neu("Elastische Beläge", [
      "achsen": [BB_RAUM[:2], BB_ORT],
      "varianten": [{"r": "10", "h": 0.60, "mat": 38}, {"r": "11", "h": 0.62, "mat": 44}]},
     {"kurz": "Bodenleitsystem taktil, {art}", "einheit": "m", "kg": "352", "gen": "C",
-     "lang": "Taktiles Bodenleitsystem nach DIN 32984 als {art}, kontrastreich zum Umgebungsbelag, Breite 30 cm, verklebt.",
+     "lang": "Taktiles Bodenleitsystem nach DIN 32984 als {art}, kontrastreich zum Umgebungsbelag, verklebt. {abr}",
      "achsen": [BB_ORT],
-     "varianten": [{"art": "Leitstreifen aus Kunststoff-Rippenplatten", "h": 0.35, "mat": 55}, {"art": "Aufmerksamkeitsfeld Noppen", "h": 0.40, "mat": 70}]},
+     "varianten": [{"art": "Leitstreifen aus Kunststoff-Rippenplatten, Breite 30 cm", "abr": "Abrechnung nach Länge.", "h": 0.35, "mat": 55},
+                   {"art": "Aufmerksamkeitsfeld Noppen 90 × 90 cm", "abr": "Abrechnung je Feld.", "einheit": "St", "h": 0.9, "mat": 190}]},
     {"kurz": "Intarsie/Logo im Belag nach Vorlage, bis {a}", "einheit": "St", "kg": "352", "gen": "C",
      "lang": "Einarbeitung von Intarsien, Schriftzügen bzw. Logos in elastischen Belag nach Vorlage (Wasserstrahlschnitt bzw. Handschnitt), "
              "Größe bis {a}, Nähte verschweißt.",
@@ -216,7 +225,7 @@ _r2_neu("Textile Beläge, Sauberlaufzonen", [
     {"kurz": "Teppichfliesen {art}, 50 × 50 cm, Material bis {m} €/m²", "einheit": "m²", "kg": "352", "gen": "B",
      "lang": "Textiler Bodenbelag als selbstliegende Teppichfliesen {art}, 50 × 50 cm, mit rutschhemmender Fixierung verlegt, Verlegerichtung "
              "nach Plan. Materialpreis bis {m} €/m² im Ansatz enthalten.",
-     "achsen": [BB_UG[:2], BB_MUSTER, BB_RAUM, BB_ORT],
+     "achsen": [BB_UG[:2], BB_MUSTER_Q, BB_RAUM, BB_ORT],
      "varianten": [{"art": "Tufting-Schlinge, Objekt Klasse 33", "m": "25", "h": 0.20, "mat": 30},
                    {"art": "Tufting-Velours, Objekt Klasse 33", "m": "38", "h": 0.20, "mat": 44}]},
     {"kurz": "Nadelvlies-Belag {d} mm, Bahnenware, verklebt", "einheit": "m²", "kg": "352", "gen": "A",

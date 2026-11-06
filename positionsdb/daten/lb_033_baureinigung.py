@@ -81,6 +81,14 @@ _r2_setze([
     ("Fassaden- und Glasdachreinigung", [RE_VERSCHM]),
     ("Zementschleier", [RE_VERSCHM]),
 ])
+# Sanitär-/Technikbereiche und elastische Beläge mit Einpflege: keine Option „textiler Belag“
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        if _p["kurz"].startswith("Bauendreinigung {art}"):
+            for _v in _p.get("varianten") or []:
+                if _v["art"].startswith(("Sanitär", "elastische")):
+                    _v["achsen"] = [RE_VERSCHM, RE_NUTZ, [RE_BEL[0], RE_BEL[2]] if _v["art"].startswith("Sanitär") else [RE_BEL[0]]]
+
 _r2_neu("Bauendreinigung", [
     {"kurz": "Zwischenreinigung während der Bauzeit, je {e}", "einheit": "m²", "kg": "397", "gen": "B",
      "lang": "Wiederkehrende Zwischenreinigung von Verkehrswegen, Treppenhäusern und fertiggestellten Bereichen während der Bauzeit, "

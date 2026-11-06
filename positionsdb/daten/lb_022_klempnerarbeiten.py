@@ -82,15 +82,15 @@ LBS = [{
                      "bekleiden, einschließlich Abdeckhaube. Abrechnung nach Bekleidungsfläche.",
              "einheit": "m²", "kg": "363", "h": 2.8, "mat": 70, "gen": "C"},
             {"kurz": "Wandanschluss mit Kappleiste und Überhangstreifen",
-             "lang": "Wandanschluss am Flach- bzw. Steildach mit Kappleiste aus Titanzink bzw. Alu, Überhangstreifen "
+             "lang": "Wandanschluss am Flach- bzw. Steildach mit Kappleiste und Überhangstreifen aus Metallblech (Material siehe Ausführung), "
                      "Zuschnitt 200 mm, oberer Abschluss elastisch versiegelt.",
              "einheit": "m", "kg": "363", "h": 0.40, "mat": 15, "gen": "A"},
             {"kurz": "Traufstreifen / Einlaufblech Titanzink, Zuschnitt {z} mm",
              "lang": "Traufstreifen bzw. Rinneneinlaufblech aus Titanzink 0,7 mm, Zuschnitt {z} mm, mit Tropfkante.",
              "einheit": "m", "kg": "363", "gen": "A",
              "varianten": [{"z": "250", "h": 0.20, "mat": 8}, {"z": "333", "h": 0.22, "mat": 10.5}]},
-            {"kurz": "Gaubenbekleidung Titanzink, Stehfalz/Winkelfalz",
-             "lang": "Bekleidung von Gaubenwangen bzw. Gaubendach in Titanzink 0,7 mm, Winkel- oder Stehfalz, auf "
+            {"kurz": "Gaubenbekleidung Metall, Stehfalz/Winkelfalz",
+             "lang": "Bekleidung von Gaubenwangen bzw. Gaubendach aus Metallblech (Material siehe Ausführung), Winkel- oder Stehfalz, auf "
                      "Vollschalung mit Trennlage. Abrechnung nach Fläche.",
              "einheit": "m²", "kg": "363", "h": 1.6, "mat": 54, "gen": "C"},
         ]},
@@ -259,6 +259,8 @@ for _g in LBS[0]["gruppen"]:
     for _p in _g["positionen"]:
         if "achsen" not in _p:
             _p["achsen"] = _regel(_g["name"], _p)
+        if ("Bestand" in _p["kurz"] or "altbau" in _p.get("tags", [])) and ORT in _p["achsen"]:
+            _p["achsen"] = [a for a in _p["achsen"] if a is not ORT]   # schon Bestandsleistung
 # Pulverbeschichtete Alu-Attikaabdeckung: Sonderfarbe als zusätzliche Achse
 for _p in LBS[0]["gruppen"][1]["positionen"]:
     if _p["kurz"].startswith("Attikaabdeckung"):

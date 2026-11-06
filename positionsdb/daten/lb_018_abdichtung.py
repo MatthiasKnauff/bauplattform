@@ -109,10 +109,15 @@ LBS = [{
                      "schließen, Hohlkehle, Abdichtung mit PMBC zweilagig, Noppenbahn, einschließlich Anschluss an "
                      "Sockelabdichtung. Erdarbeiten gesondert.",
              "einheit": "m²", "kg": "335", "h": 1.0, "mat": 26, "gen": "C", "tags": ["altbau"]},
-            {"kurz": "Rissinjektion im Beton, PU-Harz, je m Riss",
-             "lang": "Wasserführende Risse in Beton- bzw. WU-Bauteilen mit Polyurethan-Injektionsharz über Bohrpacker "
-                     "verpressen, Packer anschließend entfernen und Bohrlöcher verschließen.",
+            {"kurz": "Rissinjektion im Beton, je m Riss",
+             "lang": "Wasserführende Risse in Beton- bzw. WU-Bauteilen mit Injektionsharz über Bohrpacker "
+                     "verpressen, Packer anschließend entfernen und Bohrlöcher verschließen. Abrechnung nach Risslänge.",
              "einheit": "m", "kg": "335", "h": 1.0, "mat": 25, "geraet": 6, "gen": "C", "tags": ["altbau"]},
+            {"kurz": "Schleierinjektion Acrylatgel, flächig",
+             "lang": "Flächige Schleierinjektion gegen drückendes bzw. flächig eindringendes Wasser: Bohrlöcher im Raster "
+                     "durch das Bauteil, Packer setzen, Acrylatgel hinter das Bauteil verpressen, Packer entfernen und "
+                     "Bohrlöcher verschließen. Abrechnung nach behandelter Fläche, Injektionsgut bis 15 kg/m² enthalten.",
+             "einheit": "m²", "kg": "335", "h": 1.0, "mat": 45, "geraet": 5, "gen": "C", "tags": ["altbau"]},
         ]},
     ],
 }]
@@ -153,7 +158,7 @@ _ax(L, "Sockel, Balkone, Fugen", "Fugenband", [WE, ORT])
 _ax(L, "Instandsetzung Bestand", "Nachträgliche Horizontalsperre", [[{"k": "Ziegel/KS", "t": ""}, {"k": "Natursteinmauerwerk", "t": "Mischmauerwerk/Naturstein mit Hohlräumen, Vorverfüllung mit Suspension.", "fh": 1.4, "fm": 1.3}], [{}, {"k": "beidseitig gebohrt", "t": "Bohrungen beidseitig versetzt.", "fh": 1.3}]])
 _ax(L, "Instandsetzung Bestand", "Kellerwand von innen", [FLAECHE])
 _ax(L, "Instandsetzung Bestand", "Kellerwand außen", [TIEFE, WE, FLAECHE])
-_ax(L, "Instandsetzung Bestand", "Rissinjektion", [[{"k": "PU-Harz", "t": ""}, {"k": "Epoxidharz kraftschlüssig", "t": "Kraftschlüssige Füllung mit Epoxidharz statt PU.", "fm": 1.3}, {"k": "Acrylatgel", "t": "Schleierinjektion mit Acrylatgel bei flächiger Durchfeuchtung.", "fh": 1.4, "fm": 1.6, "gen": "C"}]])
+_ax(L, "Instandsetzung Bestand", "Rissinjektion", [[{"k": "PU-Harz", "t": "Injektionsharz Polyurethan (abdichtend, dehnfähig)."}, {"k": "Epoxidharz kraftschlüssig", "t": "Kraftschlüssige Füllung mit Epoxidharz.", "fm": 1.3}]])
 
 L["gruppen"].append({"name": "Innenräume, Bahnen, Sonderbauteile", "positionen": [
     {"kurz": "Abdichtung Innenraum Bodenplatte, Bitumenbahn {n}-lagig (W1-E)",

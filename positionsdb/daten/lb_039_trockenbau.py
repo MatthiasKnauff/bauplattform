@@ -371,7 +371,8 @@ _DOPPEL = ("Systemboden als {art} auf Rohbetondecke bzw. Estrich, Gesamthöhe bi
            "Erdung nach Herstellerangabe. Belag gesondert.")
 _r2_neu("Metallständerwände", [
     {"kurz": "Gips-Wandbauplatte d = {d} mm, {typ_k}", "lang": _GIPSDIELE, "einheit": "m²", "kg": "342", "gen": "A",
-     "achsen": [TB_HOEHE[:2], TB_QUAL, TB_ORT],
+     "achsen": [[{}, {"k": "H ≤ 4 m", "t": "Wandhöhe über 2,75 m bis 4,00 m, Plattendicke und Anschlüsse nach Herstellerangabe.", "fh": 1.12, "fm": 1.03}],
+                TB_QUAL, TB_ORT],
      "varianten": [{"d": "60", "typ": "Rohdichte mittel", "typ_k": "Standard", "h": 0.42, "mat": 18},
                    {"d": "80", "typ": "Rohdichte mittel", "typ_k": "Standard", "h": 0.45, "mat": 22},
                    {"d": "100", "typ": "Rohdichte mittel", "typ_k": "Standard", "h": 0.48, "mat": 26},
@@ -467,3 +468,25 @@ _r2_neu("Unterdecken, Deckenbekleidungen", [
              "nach Herstellerangabe, Einlegen der Registerplatten, Spachtelung Q2. Anschluss der Register gesondert.",
      "einheit": "m²", "kg": "353", "h": 0.45, "mat": 6.5, "gen": "C", "achsen": [TB_QUAL, TB_ORT2]},
 ])
+
+
+# Prüfung 11/2026: unpassende Achsen je Variante ausschließen
+def _achsen_je_variante(prefix, wenn, neu):
+    for g in LBS[0]["gruppen"]:
+        for p in g["positionen"]:
+            if p["kurz"].startswith(prefix):
+                for v in p.get("varianten") or []:
+                    if wenn(v):
+                        v["achsen"] = neu(p.get("achsen") or [])
+
+
+_ohne_55 = lambda ax: [TB_HOEHE[:2] if a is TB_HOEHE else a for a in ax]   # Wandhöhe 5,5 m nur mit CW 75/100 doppelt beplankt
+_achsen_je_variante("Metallständerwand {p}, einfach", lambda v: True, _ohne_55)
+_achsen_je_variante("Metallständerwand {p}, doppelt", lambda v: "50" in v.get("p", ""), _ohne_55)
+_achsen_je_variante("Montagewand einseitig beplankt", lambda v: True, _ohne_55)
+_achsen_je_variante("Vorsatzschale {art}", lambda v: "CW 50" in v.get("art", ""), _ohne_55)
+# Beplankung bzw. Kante schon in der Variante: keine Zulage dafür
+_ohne = lambda achse: (lambda ax: [a for a in ax if a is not achse])
+_achsen_je_variante("Holzbalkendecke unterseitig bekleiden", lambda v: "GKF" in v.get("bepl", ""), _ohne(TB_DPLATTE))
+_achsen_je_variante("Deckenbekleidung direkt befestigt", lambda v: "Gipsfaser" in v.get("bepl", ""), _ohne(TB_DPLATTE))
+_achsen_je_variante("Rasterdecke {art}", lambda v: "VT" in v.get("art", "") or "Metall" in v.get("art", ""), _ohne(TB_KANTE))

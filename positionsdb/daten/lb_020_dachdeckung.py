@@ -187,6 +187,9 @@ ORT = [{}, {"k": "Bestand", "t": "Ausführung im Bestand an genutztem Gebäude, 
 FARBE = [{"k": "naturrot", "t": "Farbe naturrot bzw. Standardfarbe."},
          {"k": "engobiert", "t": "Oberfläche engobiert, Farbe nach Bemusterung.", "fm": 1.15},
          {"k": "edelengobiert", "t": "Oberfläche edelengobiert bzw. matt, Farbe nach Bemusterung.", "fm": 1.32}]
+NEIG_REET = [{"k": "45–60°", "t": "Dachneigung 45° bis 60° (Regeldachneigung für Reet)."}, {"k": ">60°", "t": "Dachneigung über 60°.", "fh": 1.15}]
+NEIG_MN = [{"k": "40–45°", "t": "Dachneigung 40° bis 45° (Regeldachneigung)."}, {"k": "45–60°", "t": "Dachneigung über 45° bis 60°, zusätzliche Sicherung.", "fh": 1.12, "fm": 1.03}]
+NEIG_GRUEN = [{"k": "≤15°", "t": "Dachneigung bis 15°."}, {"k": "15–25°", "t": "Dachneigung über 15° bis 25°, Schubsicherung verstärkt.", "fh": 1.12, "fm": 1.08}]
 SPARRENABSTAND = [{}, {"k": "SA>80cm", "t": "Sparrenabstand über 80 cm, Lattung im verstärkten Querschnitt nach Fachregel.", "fm": 1.25}]
 
 _neu("Unterdeckung, Lattung", [
@@ -213,7 +216,7 @@ _neu("Eindeckungen", [
      "einheit": "m²", "kg": "363", "h": 0.75, "mat": 34, "gen": "C", "tags": ["altbau", "denkmal"]},
     {"kurz": "Dacheindeckung Mönch-Nonne-Ziegel, im Mörtelbett",
      "lang": "Dacheindeckung mit Mönch- und Nonnenziegeln, Mönche im Mörtel verlegt und mit Klammern gesichert.",
-     "einheit": "m²", "kg": "363", "h": 1.40, "mat": 58, "gen": "C", "tags": ["denkmal"]},
+     "einheit": "m²", "kg": "363", "h": 1.40, "mat": 58, "gen": "C", "tags": ["denkmal"], "achsen": [NEIG_MN, FORM, TRAUFE, ORT]},
     {"kurz": "Dacheindeckung Bitumenschindeln auf Schalung",
      "lang": "Dacheindeckung mit Bitumenschindeln, beschiefert, auf Vollschalung mit Vordeckbahn, genagelt und selbstklebend, "
              "für Dachneigungen ab 15°.",
@@ -224,10 +227,11 @@ _neu("Eindeckungen", [
      "einheit": "m²", "kg": "363", "h": 0.30, "mat": 21, "gen": "B"},
     {"kurz": "Reetdachdeckung, d = 30 cm, gebunden",
      "lang": "Weichdach aus Reet, Deckdicke ca. 30 cm, mit Edelstahldraht auf Lattung gebunden, First mit Heidesoden bzw. "
-             "Firsthaube nach Wahl.", "einheit": "m²", "kg": "363", "h": 2.6, "mat": 62, "gen": "C", "tags": ["denkmal"]},
+             "Firsthaube nach Wahl.", "einheit": "m²", "kg": "363", "h": 2.6, "mat": 62, "gen": "C", "tags": ["denkmal"], "achsen": [NEIG_REET, FORM, ORT]},
     {"kurz": "Steildachbegrünung extensiv, Schubsicherung",
      "lang": "Extensive Begrünung auf geneigtem Dach bis 25° auf wurzelfester Abdichtung mit Schubschwellen bzw. "
-             "Rasterelementen, Substrat und Sedummatten.", "einheit": "m²", "kg": "363", "h": 0.55, "mat": 48, "gen": "C"},
+             "Rasterelementen, Substrat und Sedummatten.", "einheit": "m²", "kg": "363", "h": 0.55, "mat": 48, "gen": "C",
+     "achsen": [NEIG_GRUEN, [{}, {"k": "Kleinfl.", "t": "Kleinflächen bis 10 m².", "fh": 1.45, "fm": 1.10, "gen": "C"}], TRAUFE, ORT]},
 ])
 _neu("First, Grat, Ortgang, Kehle", [
     {"kurz": "First/Grat im Mörtelbett (Nassverlegung)",

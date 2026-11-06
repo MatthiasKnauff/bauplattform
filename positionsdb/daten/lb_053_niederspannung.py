@@ -4,6 +4,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tga_achsen import *  # noqa: E402,F401,F403
 
 
+# Lokale Achsen (Prüfbefund): Aufputz-/Deckengeräte ohne Schalterprogramm und Unterputzdose
+AP_FARBE = [{"k": "", "t": "Aufputzgehäuse grau bzw. weiß, Schutzart wie angegeben."},
+            {"k": "anthrazit", "t": "Aufputzgehäuse anthrazit bzw. schwarz.", "mat": 6}]
+DECKE_MONT = [{"k": "Decke Aufbau", "t": "Aufbaumontage an der Decke."},
+              {"k": "Decke Einbau", "t": "Einbau in Unterdecke mit Einbaudose.", "fh": 1.05, "mat": 3}]
+
 LBS = [{
     "nr": "053", "name": "Niederspannungsanlagen – Kabel/Leitungen, Verlegesysteme, Installationsgeräte", "atv": "DIN 18382", "lohn": "elektro",
     "gruppen": [
@@ -110,7 +116,7 @@ LBS = [{
              "lang": "Leitungsführungskanal aus PVC bzw. halogenfrei, {m} mm, mit Deckel, auf Wand montieren, "
                      "Form- und Endstücke anteilig. Abrechnung nach Länge.",
              "einheit": "m", "kg": "444", "gen": "A",
-             "varianten": [{"m": "40 × 60", "h": 0.20, "mat": 7}, {"m": "60 × 110 (Brüstungskanal)", "h": 0.35, "mat": 24}]},
+             "varianten": [{"m": "40 × 60", "h": 0.20, "mat": 7}, {"m": "60 × 110 (Brüstungskanal)", "h": 0.35, "mat": 24, "achsen": [ORT, MENGE]}]},
             {"kurz": "Leerrohr erdverlegt KG/PE DN {dn} mit Zugdraht",
              "lang": "Kabelschutzrohr PE bzw. PVC DN {dn} im bauseitigen Graben verlegen, mit Zugdraht und Endkappen. "
                      "Abrechnung nach Länge.",
@@ -136,12 +142,12 @@ LBS = [{
              "einheit": "St", "kg": "444", "gen": "B",
              "varianten": [{"art": "einfach", "h": 0.85, "mat": 22}, {"art": "zweifach", "h": 1.05, "mat": 34},
                            {"art": "dreifach", "h": 1.25, "mat": 46}, {"art": "einfach mit USB-A/C", "h": 0.90, "mat": 55},
-                           {"art": "Feuchtraum/Außen Aufputz IP44 mit Klappdeckel", "h": 0.95, "mat": 30}]},
+                           {"art": "Feuchtraum/Außen Aufputz IP44 mit Klappdeckel", "h": 0.95, "mat": 30, "achsen": [AP_FARBE, ORT_KLEIN]}]},
             {"kurz": "Bewegungsmelder {art}, komplett",
              "lang": "Bewegungs- bzw. Präsenzmelder {art} mit Leitung bis 8 m anteilig, montieren, anschließen und einstellen.",
              "einheit": "St", "kg": "444", "gen": "B",
-             "varianten": [{"art": "Unterputz 180°", "h": 1.0, "mat": 65}, {"art": "Decke 360° Präsenzmelder", "h": 1.2, "mat": 140},
-                           {"art": "Außen IP55", "h": 1.0, "mat": 75}]},
+             "varianten": [{"art": "Unterputz 180°", "h": 1.0, "mat": 65}, {"art": "Decke 360° Präsenzmelder", "h": 1.2, "mat": 140, "achsen": [DECKE_MONT, ORT_KLEIN]},
+                           {"art": "Außen IP55", "h": 1.0, "mat": 75, "achsen": [AP_FARBE, ORT_KLEIN]}]},
             {"kurz": "Brennstellen-Anschluss Decke/Wand (Leuchtenauslass)",
              "lang": "Brennstelle für Decken- bzw. Wandleuchte herstellen: Auslassdose bzw. Geräteanschlussklemme, "
                      "Leitung NYM-J 3 × 1,5 mm² bis 6 m anteilig. Leuchte gesondert.",
@@ -184,12 +190,12 @@ LBS = [{
                      "(Wirkungsgrad ≥ 21 %), Unterkonstruktion mit Dachhaken, DC-Verkabelung, Wechselrichter, AC-Anschluss "
                      "bis Zählerschrank, Überspannungsschutz, Inbetriebnahme und Anmeldung beim Netzbetreiber. "
                      "Gerüst gesondert. Abrechnung je kWp installierter Leistung.",
-             "einheit": "kW", "kg": "442", "gen": "C",
+             "einheit": "kWp", "kg": "442", "gen": "C",
              "varianten": [{"g": "Anlage 8–15 kWp", "h": 9, "mat": 820}, {"g": "Anlage 30–100 kWp", "h": 7, "mat": 660}]},
             {"kurz": "Photovoltaikanlage Flachdach, aufgeständert, ballastiert, je kWp",
              "lang": "Photovoltaikanlage auf Flachdach mit aerodynamischem, ballastiertem Ost-West- bzw. Süd-System ohne "
                      "Durchdringung der Abdichtung, Lastnachweis des Daches bauseits, sonst wie vor. Abrechnung je kWp.",
-             "einheit": "kW", "kg": "442", "h": 8, "mat": 760, "gen": "C"},
+             "einheit": "kWp", "kg": "442", "h": 8, "mat": 760, "gen": "C"},
             {"kurz": "Batteriespeicher Lithium-Eisenphosphat, nutzbar {kwh} kWh",
              "lang": "Stationärer Batteriespeicher (LFP) mit nutzbarer Kapazität {kwh} kWh, Hybrid- bzw. Batteriewechselrichter "
                      "kompatibel, mit Energiemanager, montieren, anschließen und in Betrieb nehmen.",
@@ -333,7 +339,19 @@ MONTAGEHOEHE = [{}, {"k": "über 3,5 m", "t": "Montagehöhe über 3,5 m bis 6 m,
 UNTERGRUND = [{}, {"k": "an Trapezblech/Stahl", "t": "Befestigung an Stahlkonstruktion bzw. Trapezblech mit Trägerklemmen.", "fh": 1.1, "mat": 1.5}]
 NYY_VERLEGUNG = [VERLEGUNG_KABEL[1], VERLEGUNG_KABEL[2], VERLEGUNG_KABEL[3], VERLEGUNG_KABEL[4],
                  {"k": "im Erdreich", "t": "Verlegung im bauseits hergestellten Kabelgraben auf Sandbett mit Trassenwarnband.", "fh": 0.7, "mat": 0.4}]
+# Schalterprogramm: Mehrpreis je Gerät als fester Betrag statt Faktor auf das ganze Gerät (Prüfbefund Dimmer/Design)
+SCHALTER = [{"k": "reinweiß", "t": "Schalterprogramm Kunststoff reinweiß glänzend."},
+            {"k": "anthrazit matt", "t": "Schalterprogramm Kunststoff anthrazit bzw. schwarz matt.", "mat": 8},
+            {"k": "Edelstahl/Alu", "t": "Schalterprogramm Metall (Edelstahl oder Aluminium).", "mat": 28},
+            {"k": "Designrahmen Glas", "t": "Schalterprogramm mit Designrahmen aus Glas bzw. Echtmaterial nach Bemusterung.", "mat": 55, "gen": "C"}]
+PV_MONT = [{}, {"k": "mit Kran", "t": "Materialtransport aufs Dach mit Autokran bzw. Dachlift, anteilig je kWp.", "geraet": 70, "fh": 1.05}]
+LEERROHR_AX = [ORT_KLEIN, MENGE]
 zuweisen(LBS, [
+    (_K("Hauptleitung NYM"), [VERLEGUNG_KABEL, ORT, MENGE]),
+    (_K("Leerrohr erdverlegt"), LEERROHR_AX),
+    (_K("Unterputz-/Hohlwanddose"), [ORT_KLEIN]),
+    (_K("Photovoltaikanlage"), [PV_MONT, ORT_KLEIN]),
+    (_K("Batteriespeicher"), [GERAET_AUFSTELLUNG[:2], ORT_KLEIN]),
     (_K("Zählerschrank", "Unterverteilung", "Zählerplatz"), [MONTAGE_V, ORT]),
     (_K("Kabel NYY"), [NYY_VERLEGUNG, ORT_KLEIN, MENGE]),
     (_K("Installationsleitung", "Halogenfreie", "Steuerleitung"), [VERLEGUNG_KABEL, ORT, MENGE]),
@@ -341,12 +359,11 @@ zuweisen(LBS, [
     (_G("Verlegesysteme"), [MONTAGEHOEHE, UNTERGRUND, ORT_KLEIN]),
     (_K("Kabelbühne", "Stromschienensystem"), [MONTAGEHOEHE, UNTERGRUND, ORT_KLEIN]),
     (_K("Brüstungskanal"), [ORT, MENGE]),
-    (_K("Schalter/Taster", "Steckdose komplett", "Bewegungsmelder"), [SCHALTERPROGRAMM, VERLEGUNG_GERAET, ORT_KLEIN]),
+    (_K("Schalter/Taster", "Steckdose komplett", "Bewegungsmelder"), [SCHALTER, VERLEGUNG_GERAET, ORT_KLEIN]),
     (_K("Brennstellen", "Geräteanschluss", "Rollladen-", "Anschluss Heizungs"), [VERLEGUNG_GERAET, ORT]),
     (_K("CEE-Steckdose", "Not-Aus"), [ORT, MONTAGEHOEHE]),
     (_K("Wallbox", "Leerrohr-Vorbereitung"), [[{}, {"k": "Tiefgarage", "t": "Montage in Tiefgarage an Stahlbetonwand/Stütze, Leitungsführung auf Rinne.", "fh": 1.1, "mat": 20},
                                                {"k": "Außenwand/Carport", "t": "Montage im Außenbereich mit Witterungsschutz bzw. Standsäule.", "fh": 1.2, "mat": 180}], ORT_KLEIN]),
-    (_K("Photovoltaikanlage", "Batteriespeicher"), [GERAET_AUFSTELLUNG, ORT_KLEIN]),
     (_K("Leistungsschalter", "Lasttrennschalter", "Hauptverteilung", "RCM"), [ORT_KLEIN]),
     (_K("Fehlerstrom", "FI/LS", "Leitungsschutzschalter", "Brandschutzschalter"), [[{}, {"k": "Nachrüstung Bestand", "t": "Nachrüstung in vorhandener Verteilung inkl. Anpassung der Verdrahtung.", "fh": 1.6, "tags": ["altbau"]}]]),
     (_K("Bodentank", "Unterflur"), [ORT_KLEIN, MENGE]),

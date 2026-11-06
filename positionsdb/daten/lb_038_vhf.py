@@ -1,3 +1,4 @@
+import re
 # LB 038 Vorgehängte hinterlüftete Fassaden – eigene Texte und Kalkulationsansätze (Preisstand 11/2026)
 
 LBS = [{
@@ -11,7 +12,7 @@ LBS = [{
                      "{a} mm. Abrechnung nach bekleideter Fläche.",
              "einheit": "m²", "gen": "B",
              "varianten": [{"a": "160", "h": 0.55, "mat": 34}, {"a": "220", "h": 0.60, "mat": 40}, {"a": "300", "h": 0.65, "mat": 48}]},
-            {"kurz": "Unterkonstruktion Holz, Traglattung/Konterlattung, gedämmt",
+            {"kurz": "Unterkonstruktion Holz, Traglattung/Konterlattung",
              "lang": "Holz-Unterkonstruktion aus Kanthölzern bzw. Doppellattung, imprägniert, mit Konterlattung für die "
                      "Hinterlüftung, verankert in den Untergrund; Dämmung gesondert. Abrechnung nach Fläche.",
              "einheit": "m²", "h": 0.45, "mat": 15, "gen": "B"},
@@ -136,7 +137,16 @@ _ax(L, "Unterkonstruktion, Dämmung", "Fassadendämmung", [[{}, {"k": "zweilagig
 _ax(L, "Unterkonstruktion, Dämmung", "Winddichtung", [FLAECHE])
 _ax(L, "Unterkonstruktion, Dämmung", "Brandsperre", [[{"k": "", "t": ""}, {"k": "Edelstahl", "t": "Brandsperre aus Edelstahlblech.", "fm": 1.8}], ORT])
 _ax(L, "Bekleidungen", "Fassadenbekleidung", [FORMAT, FARBE, HOEHE, FLAECHE, ORT])
-_ax(L, "Bekleidungen", "Holz-Rhombusleisten", [[{}, {"k": "vorvergraut", "t": "Werkseitig vorvergraut bzw. lasiert.", "mat": 12}], HOEHE, FLAECHE, ORT])
+# brennbare Bekleidungen nicht am Hochhaus; Bahnenware (Sinuswelle/Trapez) ohne Kleinformat-Raster – Achsen je Variante
+for _gr in L["gruppen"]:
+    for _p in _gr["positionen"]:
+        if _p["kurz"].startswith("Fassadenbekleidung aus"):
+            for _v in _p.get("varianten", []):
+                if re.search(r"HPL|Holz", _v.get("m", "")):
+                    _v["achsen"] = [FORMAT, FARBE, HOEHE[:2], FLAECHE, ORT]
+                elif re.search(r"Sinuswelle|Trapez", _v.get("m", "")):
+                    _v["achsen"] = [FORMAT[:2], FARBE, HOEHE, FLAECHE, ORT]
+_ax(L, "Bekleidungen", "Holz-Rhombusleisten", [[{}, {"k": "vorvergraut", "t": "Werkseitig vorvergraut bzw. lasiert.", "mat": 12}], HOEHE[:2], FLAECHE, ORT])
 _ax(L, "Bekleidungen", "Sockelbekleidung", [ORT])
 _ax(L, "Öffnungen, Anschlüsse", "Laibungsbekleidung", [LAIBMAT, ORT])
 _ax(L, "Öffnungen, Anschlüsse", "Sturzbekleidung", [LAIBMAT, ORT])
@@ -153,7 +163,7 @@ L["gruppen"].append({"name": "Weitere Bekleidungen, Zulagen", "positionen": [
      "einheit": "m²", "gen": "C", "achsen": [FORMAT, FARBE, HOEHE, ORT],
      "varianten": [{"m": "Aluminium 2 mm, pulverbeschichtet", "h": 1.25, "mat": 140}, {"m": "Aluminium 3 mm, eloxiert", "h": 1.30, "mat": 185},
                    {"m": "Edelstahl 1,2 mm, geschliffen", "h": 1.35, "mat": 260}, {"m": "Cortenstahl 2 mm", "h": 1.35, "mat": 175},
-                   {"m": "Kupfer/Titanzink, vorbewittert", "h": 1.40, "mat": 210}]},
+                   {"m": "Titanzink, vorbewittert", "h": 1.40, "mat": 190}, {"m": "Kupfer, vorbewittert", "h": 1.40, "mat": 320}]},
     {"kurz": "Streckmetall/Lochblech-Fassade, {m}, als Prallschale",
      "lang": "Vorgehängte Prallschale aus {m} vor geschlossener Wand bzw. Fensterbändern, auf Rahmen aus "
              "Aluminiumprofilen, einschließlich Konsolen. Abrechnung nach Fläche.",

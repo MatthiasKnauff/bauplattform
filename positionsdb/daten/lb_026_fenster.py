@@ -17,10 +17,11 @@ LBS = [{
                            {"uw": "0,95", "farbe": "weiß", "gr": "über 2,5", "h": 1.3, "mat": 230},
                            {"uw": "0,80", "farbe": "weiß", "gr": "1,0–2,5", "h": 1.5, "mat": 290}]},
             {"kurz": "Holzfenster Uw {uw}, {fk}, {gr} m²",
-             "lang": _FE, "rahmen": "Holzfenster aus lamelliertem Kantel (Kiefer oder Fichte, IV 78/IV 92), werkseitig deckend beschichtet",
-             "einheit": "m²", "kg": "334", "gen": "B",
-             "varianten": [{"uw": "0,95", "farbe": "deckend weiß", "fk": "weiß", "gr": "1,0–2,5", "h": 1.7, "mat": 430},
-                           {"uw": "0,80", "farbe": "Lasur nach Wahl", "fk": "lasiert", "gr": "1,0–2,5", "h": 1.7, "mat": 480}]},
+             "lang": _FE, "einheit": "m²", "kg": "334", "gen": "B",
+             "varianten": [{"uw": "0,95", "farbe": "deckend weiß", "fk": "weiß", "gr": "1,0–2,5", "h": 1.7, "mat": 430,
+                            "rahmen": "Holzfenster aus lamelliertem Kantel (Kiefer oder Fichte, IV 78/IV 92), werkseitig deckend beschichtet"},
+                           {"uw": "0,80", "farbe": "Lasur nach Wahl", "fk": "lasiert", "gr": "1,0–2,5", "h": 1.7, "mat": 480,
+                            "rahmen": "Holzfenster aus lamelliertem Kantel (Kiefer oder Fichte, IV 78/IV 92), werkseitig lasiert (Dickschichtlasur)"}]},
             {"kurz": "Holz-Alu-Fenster Uw {uw}, {gr} m²",
              "lang": _FE, "rahmen": "Holz-Aluminium-Fenster, innen Holz (Kiefer/Fichte/Eiche), außen hinterlüftete Aluminium-Deckschale pulverbeschichtet",
              "farbe": "innen Holz lasiert, außen RAL nach Wahl", "einheit": "m²", "kg": "334", "gen": "B",
@@ -185,7 +186,7 @@ LBS = [{
 
 
 # ---------------------------------------------------------------- Runde 2: Ausführungsachsen und weitere Grundpositionen
-OEFF = [{"k": "Dreh-Kipp", "t": "Öffnungsart Dreh-Kipp."},
+OEFF = [{"ersetze": [[r"Dreh-Kipp-Beschlag umlaufend verdeckt", "Beschlag umlaufend verdeckt"]], "k": "Dreh-Kipp", "t": "Öffnungsart Dreh-Kipp."},
         {"k": "Dreh", "t": "Öffnungsart Dreh (ohne Kippfunktion).", "fm": 0.97},
         {"k": "Kipp", "t": "Öffnungsart Kipp mit Oberlichtöffner.", "fm": 0.95},
         {"k": "Stulp", "t": "Zweiflügelig mit Stulp, ohne festen Pfosten, Gehflügel Dreh-Kipp, Standflügel Dreh.", "fm": 1.10, "fh": 1.1},
@@ -247,6 +248,14 @@ for _g in LBS[0]["gruppen"]:
         for _pre, _ax in _A:
             if _p["kurz"].startswith(_pre):
                 _p["achsen"] = _ax
+
+# PSK-Beschläge brauchen große Flügel: bei Fenstergröße bis 1,0 m² entfällt die Option PSK
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        if any(a is OEFF for a in _p.get("achsen") or []):
+            for _v in _p.get("varianten") or []:
+                if str(_v.get("gr", "")).startswith("bis 1"):
+                    _v["achsen"] = [OEFF[:4] if a is OEFF else a for a in _p["achsen"]]
 
 _GR = {g["name"]: g for g in LBS[0]["gruppen"]}
 _GR["Fenster"]["positionen"] += [

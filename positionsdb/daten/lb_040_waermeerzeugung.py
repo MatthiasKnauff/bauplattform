@@ -1,3 +1,4 @@
+import re
 # LB 040 Wärmeversorgungsanlagen – Betriebseinrichtungen (eigene Texte, Preisstand 11/2026)
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -269,10 +270,16 @@ for p in LBS[0]["gruppen"][0]["positionen"]:
     if p["kurz"].startswith("Erdwärmesonde"):
         p["achsen"] = [BODEN]
 zuweisen(LBS, vorab() + [
-    (ist("St", kurz=r"Wärmepumpe (Monoblock|Split)|Sole-Wasser"), [WP_AUSST, GERAET_AUFSTELLUNG, ORT_KLEIN, WARTUNG]),
-    (ist("St", gruppe=r"Wärmepumpen|Kessel|Speicher", kurz=r"kessel|therme|Station|Pelletkessel|speicher|Wärmepumpe", nicht=r"demont"),
-     [GERAET_AUFSTELLUNG, ORT_KLEIN, WARTUNG]),
+    # Außengeräte: mit Kran-/Dachaufstellung; Sole-WP steht innen
+    (ist("St", kurz=r"Wärmepumpe (Monoblock|Split)", nicht=r"Hydraulik|Inneneinheit|Konsole|Fundament|Heizstab|Energiemanager"),
+     [WP_AUSST, GERAET_AUFSTELLUNG, ORT_KLEIN, WARTUNG]),
+    (ist("St", kurz=r"Sole-Wasser"), [WP_AUSST[:2], GERAET_INNEN, ORT_KLEIN, WARTUNG]),
+    # Zubehör und Kleinteile: ohne Kran, ohne Wartung
+    (ist("St", kurz=r"Heizstab|Energiemanager|SG-Ready|Kleinspeicher|Hydraulikmodul|Inneneinheit|Wandkonsole|Fundament|Sockel|Solekreis"), [ORT_KLEIN]),
+    (ist("St", gruppe=r"Wärmepumpen|Kessel|Speicher", kurz=r"kessel|therme|Station|speicher|Wärmepumpe", nicht=r"demont"),
+     [GERAET_INNEN, ORT_KLEIN, WARTUNG]),
     (ist(("m", "m²")), [ORT, MENGE]),
+    (lambda g, p: bool(re.search(INLINE_RX, p.get("kurz", ""), re.I)), [ORT]),
     (ist("St", gruppe=r"Hydraulik|Wärmepumpen|Kessel|Speicher"), [ORT, BEFESTIGUNG]),
     (ist(), [ORT_KLEIN]),
 ])

@@ -102,4 +102,4 @@ _TIEFE = [{}, {"k": "Tiefe über 2 m", "t": "Verlegetiefe bzw. Einbautiefe über
 for _g in LBS[0]["gruppen"]:
     for _p in _g["positionen"]:
         if "achsen" not in _p and _p["einheit"] in ("m", "St") and not _p["kurz"].startswith(("Dichtheitsprüfung", "Kamerabefahrung", "Versickerungsversuch")):
-            _p["achsen"] = [_ORT, _TIEFE] if _p["einheit"] == "m" and "Graben" in _p["kurz"] else [_ORT]
+            _p["achsen"] = [_ORT, _TIEFE] if _p["einheit"] == "m" and "Graben" in _p["kurz"] and "{t}" not in _p["kurz"] else [_ORT]   # Tiefe schon in den Varianten

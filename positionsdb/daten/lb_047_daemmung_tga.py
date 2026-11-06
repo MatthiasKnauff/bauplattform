@@ -75,7 +75,7 @@ LBS = [{
 }]
 
 # ---------------------------------------------------------------- Ergänzungen (Runde 2)
-DICKE = [{"k": "100 % GEG", "t": "Dämmdicke 100 % nach GEG Anlage 8."},
+DICKE = [{"ersetze": [[r",?\s?Dämmdicke \d+ mm \(100 %\)", ""]], "k": "100 % GEG", "t": "Dämmdicke 100 % nach GEG Anlage 8."},
          {"k": "50 % (Durchführung/Kreuzung)", "t": "Dämmdicke 50 % im Bereich von Wand- und Deckendurchführungen bzw. Leitungskreuzungen.", "fm": 0.6, "fh": 0.85},
          {"k": "200 % (erhöhter Wärmeschutz)", "t": "Erhöhte Dämmdicke 200 % (z. B. Förderprogramm, Passivhaus).", "fm": 1.9, "fh": 1.2}]
 MANTEL = [{"k": "", "t": ""},
@@ -123,6 +123,24 @@ LBS[0]["gruppen"][1]["positionen"] += [
      "lang": "Vorhandene Abschottung auf Übereinstimmung mit dem Verwendbarkeitsnachweis prüfen, bei Bedarf nachbessern, dokumentieren und kennzeichnen.",
      "einheit": "St", "kg": "444", "h": 0.6, "mat": 15, "gen": "C", "tags": ["altbau"]},
 ]
+# Prüfbefund: Blechmantel wird nach Mantelfläche abgerechnet und wächst mit dem Durchmesser – je Variante eigener Mantel-Ansatz
+import re as _re
+
+
+def _mantel(d_txt, s_txt):
+    d = max(float(x.replace(",", ".")) for x in _re.findall(r"[\d,]+", d_txt))
+    sd = float(_re.findall(r"\d+", s_txt)[0])
+    u = 3.1416 * (d + 2 * sd * 1.4) / 1000   # Umfang bei mittlerer Dämmdicke (100–200 %), m²/m
+    return [{"k": "", "t": ""},
+            {"k": "PVC-Folienmantel", "t": "Mit PVC-Mantel (Isogenopak) als Oberfläche, Rundbögen vorgefertigt.", "mat": round(14 * u, 2), "h": round(0.12 * u, 3)},
+            {"k": "Blechmantel", "t": "Mit Ummantelung aus Aluminium- bzw. verzinktem Stahlblech, Abrechnung nach Rohrlänge.",
+             "mat": round(52 * u, 2), "h": round(0.9 * u, 3)}]
+
+
+for _p in LBS[0]["gruppen"][0]["positionen"]:
+    if "Mineralwolle-Schale" in _p["kurz"] and "achsen" not in _p:
+        for _v in _p.get("varianten", []):
+            _v["achsen"] = [DICKE, _mantel(_v["d"], _v["s"]), ORT, MENGE]
 zuweisen(LBS, vorab() + [
     (ist("m", kurz=r"Mineralwolle-Schale"), [DICKE, MANTEL, ORT, MENGE]),
     (ist("m", kurz=r"Kautschuk|Kältedämmung"), [MANTEL[:2], ORT, MENGE]),

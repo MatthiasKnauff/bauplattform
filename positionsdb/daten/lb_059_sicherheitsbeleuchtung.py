@@ -1,5 +1,6 @@
 # LB 059 Sicherheitsbeleuchtungsanlagen – eigene Texte und Ansätze (Preisstand 11/2026)
 
+ORT_O = [{}, {"k": "Bestand", "t": "Montage im Bestand bei laufender Nutzung, Untergrund vorbereiten.", "fh": 1.2, "gen": "B", "tags": ["altbau"]}]   # ohne Leitungen
 ORT = [{}, {"k": "Bestand", "t": "Montage im Bestand bei laufender Nutzung, Leitungswege an Vorhandenes anpassen.", "fh": 1.3, "gen": "C", "tags": ["altbau"]}]
 MONT = [{"k": "Decke", "t": "Montage an der Decke."}, {"k": "Wand", "t": "Montage an der Wand."},
         {"k": "Pendelmontage", "t": "Abgependelt mit Seilabhängung bis 1,5 m.", "h": 0.3, "mat": 25},
@@ -53,11 +54,11 @@ LBS = [{
              "varianten": [{"art": "Downlight", "h": 0.3, "mat": 65}, {"art": "Langfeldleuchte", "h": 0.3, "mat": 70}, {"art": "Panel", "h": 0.3, "mat": 70}]},
             {"kurz": "Hinweisschild Fluchtweg nachleuchtend, {g}",
              "lang": "Langnachleuchtendes Sicherheitszeichen nach DIN ISO 7010 / DIN 67510, Größe {g}, auf Wand bzw. Tür geklebt oder geschraubt.",
-             "einheit": "St", "kg": "445", "gen": "A", "achsen": [[{"k": "Kunststoff", "t": "Material Kunststoff."}, {"k": "Aluminium", "t": "Material Aluminium.", "mat": 12}], ORT],
+             "einheit": "St", "kg": "445", "gen": "A", "achsen": [[{"k": "Kunststoff", "t": "Material Kunststoff."}, {"k": "Aluminium", "t": "Material Aluminium.", "mat": 4}], ORT_O],
              "varianten": [{"g": "200 × 100 mm", "h": 0.15, "mat": 9}, {"g": "300 × 150 mm", "h": 0.18, "mat": 15}, {"g": "400 × 200 mm", "h": 0.2, "mat": 24}]},
             {"kurz": "Bodennahe Leitmarkierung, {art}",
              "lang": "Bodennahe Sicherheitsleitmarkierung ({art}) im Verlauf der Rettungswege montieren.",
-             "einheit": "m", "kg": "445", "gen": "B", "achsen": [ORT],
+             "einheit": "m", "kg": "445", "gen": "B", "achsen": [ORT_O],
              "varianten": [{"art": "langnachleuchtendes Profil", "h": 0.12, "mat": 14}, {"art": "LED-Lichtband elektrisch", "h": 0.3, "mat": 48}]},
         ]},
         {"name": "Prüfung, Dokumentation", "positionen": [

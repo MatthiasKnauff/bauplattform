@@ -8,6 +8,26 @@ Preise: Katalogpreis zum Preisstand des Katalogs × Index_aktuell / Index_basis 
 import json
 import re
 
+# Baupreisindex Neubau Wohngebäude Deutschland (Destatis, 2021 = 100): Jahresmittel und einzelne Berichtsmonate.
+# Für die Fortschreibung von Katalogen mit anderem Preisstand (z. B. sirAdos 07/2019 → heute).
+INDEX_REIHE = {"2012": 74.7, "2013": 76.2, "2014": 77.4, "2015": 78.7, "2016": 80.3, "2017": 82.8, "2018": 86.4, "2019": 90.2,
+               "2020": 91.6, "2021": 100.0, "2022": 116.3, "2023": 126.1, "2024": 129.8, "2025": 133.9,
+               "2024-02": 128.5, "2024-05": 129.4, "2024-08": 130.3, "2024-11": 130.8, "2025-02": 132.6, "2025-05": 133.6,
+               "2026-05": 140.3, "2026-08": 141.7}
+
+
+def index_fuer(stand):
+    """Indexwert zum Preisstand 'JJJJ-MM' bzw. 'JJJJ' (Berichtsmonat, sonst Jahresmittel); None, wenn unbekannt."""
+    st = str(stand or "")[:7]
+    if st in INDEX_REIHE:
+        return INDEX_REIHE[st]
+    if st[:4] in INDEX_REIHE:
+        return INDEX_REIHE[st[:4]]
+    if st[:4].isdigit() and int(st[:4]) > 2025:
+        return max((v for k, v in INDEX_REIHE.items() if k[:4] == st[:4]), default=None)
+    return None
+
+
 FELDER = ("id", "katalog", "code", "lb_nr", "gruppe", "titel", "kurz", "einheit", "kg", "gewerk", "ep_von", "ep_mittel", "ep_bis",
           "genauigkeit", "tags", "quelle", "preisstand", "aktiv", "favorit")
 
@@ -41,9 +61,10 @@ def umrechnung(c, katalog=None, E=None):
     """Faktor, mit dem Katalogpreise auf heute (Index) und Region (Faktor) gebracht werden."""
     E = E or einstellungen(c)
     basis = E["index_basis"]
-    if katalog and katalog != "gk3":   # andere Kataloge nur mit eigener Indexbasis fortschreiben, sonst nur der Faktor
-        r = c.execute("SELECT index_basis FROM pdb_kataloge WHERE key=?", (katalog,)).fetchone()
-        basis = r["index_basis"] if r and r["index_basis"] else None
+    if katalog and katalog != "gk3":   # andere Kataloge: eigene Indexbasis, sonst aus dem Preisstand (Destatis-Reihe), sonst nur der Faktor
+        r = c.execute("SELECT index_basis, preisstand FROM pdb_kataloge WHERE key=?", (katalog,)).fetchone()
+        m = c.execute("SELECT value FROM pdb_meta WHERE key=?", ("index:" + katalog,)).fetchone()
+        basis = _f(m["value"]) if m else (r["index_basis"] if r and r["index_basis"] else index_fuer(r["preisstand"]) if r else None)
     return (E["index_aktuell"] / basis if basis else 1.0) * (E["faktor"] or 1.0)
 
 
@@ -71,12 +92,12 @@ def _wo(a):
             w.append("p.code LIKE ?"); p.append(q + "%")
         else:   # jedes Wort muss in Kurztext, Folgetext, Grundtext oder Titel vorkommen (Teilwörter: „Kalksand“ findet „Kalksand-Plansteine“)
             for t in q.lower().split()[:8]:
-                w.append("(lower(p.kurz) LIKE ? OR lower(p.lang) LIKE ? OR lower(p.titel) LIKE ? OR lower(COALESCE(gt.text, '')) LIKE ?)")
-                p += ["%" + t + "%"] * 4
+                w.append("(lower(p.kurz) LIKE ? OR lower(p.bez) LIKE ? OR lower(p.lang) LIKE ? OR lower(p.titel) LIKE ? OR lower(COALESCE(gt.text, '')) LIKE ?)")
+                p += ["%" + t + "%"] * 5
     return " AND ".join(w), p
 
 
-SQL_LISTE = """SELECT p.id, p.katalog, p.code, p.lb_nr, p.gruppe, p.titel, p.kurz, p.einheit, p.kg, p.gewerk, p.ep_von, p.ep_mittel, p.ep_bis,
+SQL_LISTE = """SELECT p.id, p.katalog, p.code, p.lb_nr, p.gruppe, p.titel, p.kurz, p.bez, p.einheit, p.kg, p.gewerk, p.ep_von, p.ep_mittel, p.ep_bis,
        p.genauigkeit, p.tags, p.quelle, p.preisstand, p.aktiv, p.favorit, gr.name AS gruppe_name
   FROM pdb_alle p LEFT JOIN pdb_grundtext gt ON gt.id = p.grund_id LEFT JOIN pdb_gruppe gr ON gr.nr = p.gruppe"""
 

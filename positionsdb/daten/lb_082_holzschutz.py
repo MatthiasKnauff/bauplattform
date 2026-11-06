@@ -45,10 +45,11 @@ LBS = [{
             {"kurz": "Heißluftverfahren gegen Insekten, {art}",
              "lang": "Bekämpfung von Insektenbefall im Heißluftverfahren nach DIN 68800-4: Erwärmung der Holzbauteile auf mindestens 55 °C im Kern "
                      "über mindestens 60 Minuten mit mobilen Heißluftgeneratoren, Temperaturüberwachung mit Messfühlern, Protokoll. {art}. "
-                     "Abrechnung nach Grundfläche des behandelten Bereichs.",
+                     "Abrechnung {abr}.",
              "einheit": "m²", "kg": "394", "gen": "C", "achsen": [NUTZ, MENGE],
-             "varianten": [{"art": "Dachstuhl", "h": 0.45, "mat": 2, "geraet": 9}, {"art": "Holzbalkendecke", "h": 0.55, "mat": 2.5, "geraet": 11},
-                           {"art": "Fachwerkwand", "h": 0.6, "mat": 2.5, "geraet": 12}]},
+             "varianten": [{"art": "Dachstuhl", "abr": "nach Grundfläche des behandelten Bereichs", "h": 0.45, "mat": 2, "geraet": 9},
+                           {"art": "Holzbalkendecke", "abr": "nach Deckenfläche des behandelten Bereichs", "h": 0.55, "mat": 2.5, "geraet": 11},
+                           {"art": "Fachwerkwand", "abr": "nach Wandfläche (Ansichtsfläche einseitig) des behandelten Bereichs", "h": 0.6, "mat": 2.5, "geraet": 12}]},
             {"kurz": "Begasung Gebäude/Objekt gegen Holzschädlinge",
              "lang": "Begasung durch zugelassenen Fachbetrieb mit Sachkunde nach Gefahrstoffverordnung: Abdichten, Begasen, Lüften, Freigabemessung, Behördenanzeige. "
                      "Abrechnung nach begastem Rauminhalt.", "einheit": "m³", "kg": "394", "gen": "C", "lohn": "abbruch",

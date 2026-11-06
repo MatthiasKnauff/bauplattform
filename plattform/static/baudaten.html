@@ -129,7 +129,7 @@ function seite() {
     h += `<button type="button" class="si${F.lb === l.nr ? ' on' : ''}" data-lb="${esc(l.nr)}"><span><span class="nr">${esc(l.nr)}</span>${esc(l.name || '')}</span><i>${l.n.toLocaleString('de-DE')}</i></button>`;
     if (F.lb === l.nr && GR[l.nr]) h += GR[l.nr].map((g) => `<button type="button" class="si sub${F.gruppe === g.nr ? ' on' : ''}" data-gr="${esc(g.nr)}"><span>${esc(g.name || g.nr)}</span><i>${g.n}</i></button>`).join('');
   }
-  h += `<h3>Preise</h3><p class="mute" style="margin:0 .9rem .6rem;font-size:.8rem">Index ${num(E.index_aktuell, 1)} (Basis ${num(E.index_basis, 1)}, 2021 = 100)<br>${esc(E.faktor_name)} × ${num(E.faktor, 3)}${kat.lizenz ? '<br>' + esc(kat.lizenz) : ''}</p>`;
+  h += `<h3>Preise</h3><p class="mute" style="margin:0 .9rem .6rem;font-size:.8rem">Index ${num(E.index_aktuell, 1)} (Basis ${num(E.index_basis, 1)}, 2021 = 100)<br>${esc(E.faktor_name)} × ${num(E.faktor, 3)}${kat.key !== 'gk3' ? `<br>Katalog: Stand ${esc(kat.preisstand || '–')}, ${kat.index_basis ? 'Index ' + num(kat.index_basis, 1) + (kat.index_auto ? ' (aus dem Preisstand)' : '') + ' → fortgeschrieben' : 'ohne Index – nur Faktor'}` : ''}${kat.lizenz ? '<br>' + esc(kat.lizenz) : ''}</p>`;
   $('#side').innerHTML = h;
 }
 async function laden() {
@@ -144,7 +144,7 @@ function liste() {
   if (!L.length) { $('#list').innerHTML = `<div class="leer">${F.q || F.kg || F.einheit || F.fav ? 'Nichts gefunden – Suche oder Filter ändern.' : 'Dieser Katalog ist leer.'}</div>`; $('#mehr').innerHTML = ''; return; }
   $('#list').innerHTML = L.map((x) => `<div class="row${SEL && SEL.id === x.id ? ' on' : ''}" data-id="${x.id}">
     <span class="c">${esc(x.code)}</span>
-    <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${esc(x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
+    <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${esc(x.bez || x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
     <span class="e">${esc(x.einheit)}</span>
     <span class="p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}${x.ep_von_akt != null ? `<small>${num(x.ep_von_akt)} – ${num(x.ep_bis_akt)}</small>` : ''}</span></div>`).join('');
   $('#mehr').innerHTML = GES > L.length ? `<button type="button" class="btn sm" data-mehr style="margin:.6rem 0">+ weitere ${Math.min(200, GES - L.length)} von ${(GES - L.length).toLocaleString('de-DE')}</button>` : '';
@@ -167,7 +167,7 @@ function detail() {
     ${(x.preise || []).length ? `<table>${x.preise.map((p) => `<tr><td>${esc(p.datum)} ${esc(p.firma)}${p.menge ? ' · ' + num(p.menge) + ' ' + esc(x.einheit) : ''}${p.notiz ? '<br><small class="mute">' + esc(p.notiz) + '</small>' : ''}</td><td>${eur(p.ep)} <button type="button" class="btn sm" data-pweg="${p.id}" title="Eintrag löschen">✕</button></td></tr>`).join('')}</table>` : '<p class="mute">Noch keine. Auftragspreise hier eintragen – mit der Zeit werden die Baudaten so zu den Preisen des Büros.</p>'}
     <div class="ed" style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:.4rem;align-items:end"><div><label>EP netto €</label><input id="pEp" inputmode="decimal"></div><div><label>Firma / Projekt</label><input id="pFi"></div><button type="button" class="btn sm" data-pneu>＋</button></div>`;
   $('#det').innerHTML = `<div class="mute"><span class="badge">${esc(x.katalog_name)}</span>${esc(x.code)}${x.lb_name ? ' · ' + esc(x.lb_nr + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}${x.titel && !x.lb_name ? ' · ' + esc(x.titel) : ''}</div>
-    <h2>${esc(x.kurz)}</h2>
+    <h2>${esc(x.bez || x.kurz)}</h2>${x.bez ? `<div class="mute">Kurztext (LV, max. 70 Zeichen): ${esc(x.kurz)}</div>` : ''}
     <div class="mute">Einheit <b>${esc(x.einheit)}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b> <span title="${esc(GEN[x.genauigkeit] || '')}">ⓘ</span>` : ''}${x.tags ? ' · ' + esc(x.tags) : ''}</div>
     <div class="preis"><div><small>von</small><b>${eur(x.ep_von_akt)}</b></div><div class="m"><small>mittel</small><b>${eur(x.ep_mittel_akt)}</b></div><div><small>bis</small><b>${eur(x.ep_bis_akt)}</b></div></div>
     <pre>${esc(x.lang_voll || '')}</pre>
@@ -185,7 +185,8 @@ function bearbeiten() {
   const x = SEL, SP = { A: [0.85, 1.2], B: [0.78, 1.3], C: [0.68, 1.5] };   // Preisspanne je Genauigkeit (wie im Katalog)
   const bg = modalBox(`<h3>Position bearbeiten${x.code ? ` <span class="ed-code">${esc(x.code)}</span>` : ''}</h3><div class="ed">
     <section><div class="ed-h">Text</div>
-      <label for="eK">Kurztext <small id="eKn"></small></label><input id="eK" value="${esc(x.kurz)}" maxlength="300" placeholder="z. B. Innenwand KS 17,5 cm">
+      <label for="eK">Kurztext <small id="eKn"></small></label><input id="eK" value="${esc(x.kurz)}" maxlength="70" placeholder="z. B. Innenwand KS 17,5 cm" title="Für das LV (GAEB): höchstens 70 Zeichen">
+      <label for="eZ">Bezeichnung <small>ausführlich, optional – für Anzeige und Suche</small></label><input id="eZ" value="${esc(x.bez || '')}" maxlength="300">
       <label for="eL">Langtext${x.grund_id ? ' <small>Folgetext – der Grundtext gehört zum Katalog</small>' : ''}</label><textarea id="eL" placeholder="Ausführliche Beschreibung für das Leistungsverzeichnis …">${esc(x.lang || '')}</textarea></section>
     <section><div class="ed-h">Abrechnung</div><div class="r3">
       <div><label for="eE">Einheit</label><select id="eE">${S.einheiten.map((e) => `<option${e === x.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select></div>
@@ -211,7 +212,7 @@ function bearbeiten() {
     if ([von, mi, bis].some((v) => v != null && !Number.isFinite(v))) return toast('Bitte die Preise als Zahl eingeben, z. B. 48,50.', true);
     if (von != null && mi != null && bis != null && !(von <= mi && mi <= bis)) return toast('Die Preise passen nicht: von ≤ mittel ≤ bis.', true);
     try {
-      SEL = await api('api/position/' + x.id, 'PUT', { kurz, lang: bg.querySelector('#eL').value, einheit: bg.querySelector('#eE').value, kg: bg.querySelector('#eG').value.trim(),
+      SEL = await api('api/position/' + x.id, 'PUT', { kurz, bez: bg.querySelector('#eZ').value, lang: bg.querySelector('#eL').value, einheit: bg.querySelector('#eE').value, kg: bg.querySelector('#eG').value.trim(),
         genauigkeit: bg.querySelector('#eA').value, ep_von: von, ep_mittel: mi, ep_bis: bis, hinweis: bg.querySelector('#eH').value, tags: bg.querySelector('#eT').value });
       close(); detail(); laden(); toast('Gespeichert');
     } catch (e) { toast(e.message, true); }
@@ -223,7 +224,7 @@ function bearbeiten() {
     q('#eV').placeholder = mi ? num(mi * sp[0]) : ''; q('#eB').placeholder = mi ? num(mi * sp[1]) : '';
     q('#eTip').textContent = mi ? `Leer gelassen, werden „von“ und „bis“ aus der Genauigkeit gerechnet: ${GEN[q('#eA').value].replace(/^.*\(/, '').replace(')', '')}.` : 'Mindestens den mittleren Preis angeben – „von“ und „bis“ ergeben sich dann aus der Genauigkeit.';
   };
-  const zaehl = () => { const n = q('#eK').value.length; q('#eKn').textContent = n > 200 ? `${n}/300` : ''; };
+  const zaehl = () => { const n = q('#eK').value.length; q('#eKn').textContent = n > 55 ? `${n}/70` : ''; };
   q('#eM').addEventListener('input', tip); q('#eA').addEventListener('change', tip); q('#eE').addEventListener('change', () => { q('#eEh').textContent = q('#eE').value; });
   q('#eK').addEventListener('input', zaehl);
   const hoch = () => { const t = q('#eL'); t.style.height = 'auto'; t.style.height = Math.min(Math.max(t.scrollHeight + 2, 130), innerHeight * 0.45) + 'px'; };
@@ -253,7 +254,7 @@ function einstellungen() {
 }
 async function importieren() {
   let lvs = []; try { lvs = await api('api/lvs'); } catch { /* egal */ }
-  const imp = S.kataloge.filter((k) => k.art === 'import');
+  const imp = S.kataloge.filter((k) => k.art === 'import'), ava = S.kataloge.filter((k) => k.art === 'avakatalog');
   modalBox(`<h3>Katalog importieren</h3><div class="ed">
     <p class="mute" style="font-size:.85rem"><b>sirAdos-Kataloge (*.ava, Positionen und Elemente)</b> werden wie bisher in „Ausschreibung &amp; Abrechnung“ unter ⚙ → Positionskatalog eingelesen und erscheinen hier automatisch als eigene Kataloge. Hier zusätzlich: weitere Kataloge als GAEB DA XML (X81–X86) oder ein vorhandenes LV übernehmen. Die Daten bleiben in der Datenbank des Büros; bitte die Lizenz des Anbieters beachten.</p>
     <label>Name des Katalogs</label><input id="iN" placeholder="z. B. Sirados Neubau 2026" list="iKat"><datalist id="iKat">${imp.map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
@@ -262,10 +263,16 @@ async function importieren() {
     <div class="r3"><div><label>Preisstand (JJJJ-MM)</label><input id="iP" placeholder="2026-01"></div><div><label>Index zum Preisstand</label><input id="iI" placeholder="z. B. 135,8"></div><div><label>Lizenzhinweis</label><input id="iZ" placeholder="z. B. Sirados, 3 Plätze"></div></div>
     <label><input type="checkbox" id="iR" checked style="width:auto"> vorhandenen Katalog gleichen Namens ersetzen</label>
     ${imp.length ? `<label>Importierte Kataloge</label><table class="tbl">${imp.map((k) => `<tr><td>${esc(k.name)} · ${k.n.toLocaleString('de-DE')} Pos.${k.preisstand ? ' · ' + esc(k.preisstand) : ''}</td><td style="width:5rem"><button class="btn sm" data-m="del:${esc(k.key)}">Löschen</button></td></tr>`).join('')}</table>` : ''}
-  </div><div class="acts" style="justify-content:flex-end"><button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="ok">Einlesen</button></div>`, async (m, bg, close, btn) => {
+    ${ava.length ? `<label>Kataloge der Ausschreibung – Index zum Preisstand (für die Umrechnung auf heute; leer = aus dem Preisstand)</label><table class="tbl">${ava.map((k) => `<tr><td>${esc(k.name)} · ${k.n.toLocaleString('de-DE')} Pos.${k.preisstand ? ' · Stand ' + esc(k.preisstand) : ''}</td><td style="width:6.5rem"><input data-avaidx="${esc(k.key)}" value="${k.index_auto ? '' : (k.index_basis ?? '')}" placeholder="${k.index_basis ? String(k.index_basis).replace('.', ',') : '–'}"></td></tr>`).join('')}</table>` : ''}
+  </div><div class="acts" style="justify-content:flex-end"><button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="ok">Einlesen / Übernehmen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') return close();
     if (m.startsWith('del:')) { if (!confirm('Katalog mit allen Positionen löschen?')) return; try { await api('api/katalog/' + encodeURIComponent(m.slice(4)), 'DELETE'); close(); start(); toast('Gelöscht'); } catch (e) { toast(e.message, true); } return; }
     const name = bg.querySelector('#iN').value.trim(), f = bg.querySelector('#iD').files[0], lv = bg.querySelector('#iL').value;
+    const idx = [...bg.querySelectorAll('[data-avaidx]')].filter((i) => i.value.trim() !== (i.defaultValue || '').trim());
+    if (idx.length && !name && !f && !lv) {   // nur die Indexwerte der Ausschreibungs-Kataloge geändert
+      try { for (const i of idx) await api('api/katalog/' + encodeURIComponent(i.dataset.avaidx), 'PUT', { index_basis: i.value.trim() ? +i.value.trim().replace(',', '.') : null }); close(); await start(); toast('Index übernommen'); } catch (e) { toast(e.message, true); }
+      return;
+    }
     if (!name) return toast('Bitte einen Namen angeben.', true);
     if (!f && !lv) return toast('Bitte eine GAEB-Datei oder ein LV wählen.', true);
     const z = (v) => String(v).trim().replace(',', '.');

@@ -26,8 +26,8 @@ LBS = [{
              "lang": "Pfette bzw. Holzunterzug aus Brettschichtholz GL24h, Querschnitt {q} mm, gehobelt, Kanten gefast, "
                      "einschließlich Auflagerausbildung und Verankerung (Stahlformteile gesondert). Abrechnung nach Länge.",
              "einheit": "m", "kg": "361", "gen": "B",
-             "varianten": [{"q": "120 × 240", "h": 0.85, "mat": 23}, {"q": "140 × 280", "h": 1.00, "mat": 31},
-                           {"q": "160 × 320", "h": 1.15, "mat": 40}, {"q": "200 × 400", "h": 1.40, "mat": 63}]},
+             "varianten": [{"q": "120 × 240", "h": 0.42, "mat": 23}, {"q": "140 × 280", "h": 0.50, "mat": 31},
+                           {"q": "160 × 320", "h": 0.60, "mat": 40}, {"q": "200 × 400", "h": 0.70, "mat": 63}]},
             {"kurz": "Fußschwelle / Mauerlatte KVH, {q} mm, mit Verankerung",
              "lang": "Fußschwelle bzw. Mauerlatte aus KVH C24, Querschnitt {q} mm, auf Ringbalken mit Feuchtesperre "
                      "verlegen und mit Ankerschrauben bzw. Schwerlastankern nach Statik befestigen.",
@@ -159,8 +159,12 @@ LBS = [{
              "einheit": "m²", "kg": "351", "gen": "C",
              "varianten": [{"d": "140", "s": "Decke, Nichtsichtqualität", "h": 0.55, "mat": 118},
                            {"d": "200", "s": "Decke, Nichtsichtqualität", "h": 0.60, "mat": 162},
-                           {"d": "160", "s": "Decke, Wohnsichtqualität", "h": 0.65, "mat": 158},
-                           {"d": "100", "s": "Wand, Nichtsichtqualität", "h": 0.55, "mat": 88, "kg": "331"}]},
+                           {"d": "160", "s": "Decke, Wohnsichtqualität", "h": 0.65, "mat": 158}]},
+            {"kurz": "Brettsperrholz (CLT) Wand {d} mm, {s}",
+             "lang": "Wandbauteil aus Brettsperrholz, Dicke {d} mm, {s}, nach Werkplanung vorgefertigt mit Aussparungen, "
+                     "mit Kran montiert, Stöße verschraubt und luftdicht abgeklebt. Öffnungen über 2,5 m² werden abgezogen.",
+             "einheit": "m²", "kg": "341", "gen": "C",
+             "varianten": [{"d": "100", "s": "Nichtsichtqualität", "h": 0.55, "mat": 88}, {"d": "120", "s": "Wohnsichtqualität", "h": 0.62, "mat": 118}]},
             {"kurz": "Holzbalkendecke Bestand: Balkenkopf ausbessern / anlaschen",
              "lang": "Geschädigten Balkenkopf einer Holzbalkendecke freilegen, geschädigtes Holz entfernen und mit "
                      "beidseitigen Laschen aus KVH bzw. Stahlprofilen nach Statik verstärken, Auflager neu herstellen.",
@@ -223,7 +227,7 @@ HOLZ_KVH = [{"k": "Fichte/Tanne", "t": "Holzart Fichte/Tanne."},
             {"k": "Kiefer", "t": "Holzart Kiefer.", "fm": 1.05},
             {"k": "Douglasie", "t": "Holzart Douglasie, kerngetrennt.", "fm": 1.28},
             {"k": "Lärche", "t": "Holzart Lärche, kerngetrennt.", "fm": 1.38},
-            {"k": "Eiche", "t": "Holzart Eiche, getrocknet, Sortierklasse LS10.", "fm": 2.7, "fh": 1.25, "gen": "C"}]
+            {"k": "Eiche D30 statt KVH", "t": "Abweichend Eichen-Vollholz D30 (Laubholz, Sortierung nach DIN 4074-5) statt Nadelholz-KVH C24, getrocknet.", "fm": 2.7, "fh": 1.25, "gen": "C"}]
 HOLZ_BSH = [{"k": "Fichte", "t": "Lamellen aus Fichte."}, {"k": "Lärche", "t": "Lamellen aus Lärche.", "fm": 1.45, "gen": "C"}]
 OBERFL = [{"ersetze": [[r",? gehobelt(,| und)?( Kanten)? gefast", ""], [r",? gehobelt(?=,)", ""]], "k": "nicht sichtbar", "t": "Oberfläche nicht sichtbar, egalisiert bzw. sägerau."},
           {"k": "sichtbar", "t": "Sichtbar bleibend: gehobelt, Kanten gefast, Verbindungsmittel verdeckt soweit möglich.", "fh": 1.12, "fm": 1.06},
@@ -249,12 +253,12 @@ _neu("Dachtragwerke", [
     {"kurz": "Kehlbalken / Zangen KVH, {q} mm",
      "lang": "Kehlbalken bzw. Zangen aus KVH C24, Querschnitt {q} mm, mit Sparren verschraubt bzw. verbolzt nach Statik.",
      "einheit": "m", "kg": "361", "gen": "B",
-     "varianten": [{"q": "60 × 160", "h": 0.50, "mat": 6.5}, {"q": "80 × 200", "h": 0.60, "mat": 10}, {"q": "2 × 60 × 200", "h": 0.75, "mat": 15}]},
+     "varianten": [{"q": "60 × 160", "h": 0.25, "mat": 6.5}, {"q": "80 × 200", "h": 0.32, "mat": 10}, {"q": "2 × 60 × 200", "h": 0.40, "mat": 15}]},
     {"kurz": "Stiel / Holzstütze {m}, {q} mm",
      "lang": "Stiel bzw. Holzstütze aus {m}, Querschnitt {q} mm, mit Stützenfuß und Kopfanschluss nach Statik.",
      "einheit": "m", "kg": "361", "gen": "B",
-     "varianten": [{"m": "KVH C24", "q": "120 × 120", "h": 0.75, "mat": 11}, {"m": "KVH C24", "q": "160 × 160", "h": 0.85, "mat": 19},
-                   {"m": "BSH GL24h", "q": "160 × 160", "h": 0.90, "mat": 26}, {"m": "BSH GL24h", "q": "200 × 200", "h": 1.0, "mat": 40}]},
+     "varianten": [{"m": "KVH C24", "q": "120 × 120", "h": 0.45, "mat": 11}, {"m": "KVH C24", "q": "160 × 160", "h": 0.52, "mat": 19},
+                   {"m": "BSH GL24h", "q": "160 × 160", "h": 0.55, "mat": 26}, {"m": "BSH GL24h", "q": "200 × 200", "h": 0.62, "mat": 40}]},
     {"kurz": "Kopfband / Strebe KVH, Länge bis 1,5 m",
      "lang": "Kopfband bzw. Strebe aus KVH, Querschnitt passend zur Konstruktion, mit Versatz oder Stabdübeln angeschlossen.",
      "einheit": "St", "kg": "361", "h": 1.3, "mat": 18, "gen": "B"},
@@ -302,7 +306,8 @@ _neu("Dämmung am Dach", [
                    {"m": "PIR alukaschiert", "d": "40", "h": 0.22, "mat": 12}]},
     {"kurz": "Sub-and-Top-Luftdichtheitsbahn, Sanierung außen",
      "lang": "Feuchtevariable Luftdichtheitsbahn für die Sanierung von außen, schlaufenförmig über und zwischen den Sparren verlegt, "
-             "an Giebel und Traufe luftdicht angeschlossen.", "einheit": "m²", "kg": "363", "h": 0.20, "mat": 6.5, "gen": "B", "tags": ["altbau"]},
+             "an Giebel und Traufe luftdicht angeschlossen.", "einheit": "m²", "kg": "363", "h": 0.20, "mat": 6.5, "gen": "B", "tags": ["altbau"],
+     "achsen": [DN]},
     {"kurz": "Luftdichter Anschluss, Klebeband",
      "lang": "Luftdichter Anschluss der Dampfbremse an Mauerwerk, Pfetten oder Durchdringungen mit Anschlussklebeband bzw. "
              "Dichtmasse auf grundiertem Untergrund.", "einheit": "m", "kg": "363", "h": 0.10, "mat": 2.8, "gen": "A"},
@@ -311,9 +316,9 @@ _neu("Dämmung am Dach", [
      "einheit": "psch", "kg": "363", "h": 0, "geraet": 580, "gen": "B", "achsen": []},
 ])
 _neu("Holzrahmenbau, Wände", [
-    {"kurz": "Zulage Holzfaser-Putzträger 60 mm",
-     "lang": "Zulage für eine außenseitige Holzfaser-Putzträgerplatte 60 mm statt Standardbeplankung.",
-     "einheit": "m²", "kg": "331", "h": 0.20, "mat": 21, "gen": "B"},
+    {"kurz": "Zulage Holzfaser-Putzträger 100 mm statt 60 mm",
+     "lang": "Zulage zur Holzrahmenwand außen für eine Holzfaser-Putzträgerplatte 100 mm statt der enthaltenen 60 mm.",
+     "einheit": "m²", "kg": "331", "h": 0.06, "mat": 14, "gen": "B"},
     {"kurz": "Öffnung in Holzrahmenwand, Sturz/Brüstungsriegel",
      "lang": "Ausbildung einer Fenster- bzw. Türöffnung in Holzrahmenwand mit Sturz, Brüstungsriegel und Laibungsstielen, "
              "Öffnungsbreite bis 1,5 m.", "einheit": "St", "kg": "331", "h": 2.0, "mat": 45, "gen": "B"},
@@ -344,7 +349,7 @@ _neu("Decken, Massivholz", [
              "Bewehrungsmatte und Aufbeton C25/30, 8 cm.", "einheit": "m²", "kg": "351", "h": 1.6, "mat": 62, "gen": "C", "tags": ["altbau"], "lohn": "rohbau"},
     {"kurz": "Einschub / Fehlboden ausbauen und entsorgen (Bestand)",
      "lang": "Vorhandenen Einschub mit Lehm- bzw. Schlackefüllung ausbauen, staubarm in Behälter laden und entsorgen.",
-     "einheit": "m²", "kg": "394", "h": 1.0, "geraet": 16, "gen": "C", "tags": ["altbau"], "lohn": "abbruch"},
+     "einheit": "m²", "kg": "394", "h": 0.5, "geraet": 16, "gen": "C", "tags": ["altbau"], "lohn": "abbruch"},
     {"kurz": "Massivholzdielen {m}, 21–28 mm, verschraubt",
      "lang": "Dielenboden aus {m}, Nut und Feder, auf Lagerhölzern bzw. Blindboden verdeckt verschraubt, geschliffen und geölt.",
      "einheit": "m²", "kg": "352", "gen": "B",
@@ -393,6 +398,8 @@ def _regel(gruppe, p):
             return [FASS_OF, GEBH, ORT]
         return [ORT, GEBH] if "Fachwerk" not in k else [GEBH]
     if gruppe == "Decken, Massivholz":
+        if k.startswith("Brettsperrholz (CLT) Wand"):
+            return [BRAND, ORT]
         if k.startswith("Holzbalkendecke KVH") or k.startswith("Brettsperrholz"):
             return [BRAND, SCHUETT, ORT]
         return [ORT]
@@ -403,3 +410,5 @@ for _g in LBS[0]["gruppen"]:
     for _p in _g["positionen"]:
         if "achsen" not in _p:
             _p["achsen"] = _regel(_g["name"], _p)
+        if ("Bestand" in _p["kurz"] or "altbau" in _p.get("tags", [])) and ORT in _p["achsen"]:
+            _p["achsen"] = [a for a in _p["achsen"] if a is not ORT]   # schon Bestandsleistung: kein zweiter Bestandszuschlag

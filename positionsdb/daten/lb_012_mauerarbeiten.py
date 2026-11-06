@@ -67,7 +67,7 @@ LBS = [{
              "einheit": "m²", "kg": "331", "gen": "A",
              "achsen": [KS_FK, FLAECHE, ORT],
              "varianten": [{"fk": "20-2,0", "d": "17,5", "h": 0.38, "mat": 30}, {"fk": "20-2,0", "d": "24", "h": 0.45, "mat": 40}]},
-            {"kurz": "Kellerwand Kalksand-Vollsteine KS {fk}, d = {d} cm",
+            {"kurz": "Kellerwand Kalksand-Plansteine KS {fk}, d = {d} cm",
              "lang": "Kelleraußenwand aus Kalksand-Plansteinen KS {fk} im Dünnbettverfahren, Wanddicke {d} cm, "
                      "erdberührt, für außenliegende Abdichtung und Perimeterdämmung. Öffnungen über 2,5 m² werden abgezogen.",
              "einheit": "m²", "kg": "331", "gen": "A",
@@ -96,7 +96,7 @@ LBS = [{
              "lang": "Tragendes Innenmauerwerk aus Kalksand-Plansteinen KS {fk}, Wanddicke {d} cm, im Dünnbettverfahren, "
                      "Stoßfugen vermörtelt bzw. mit Nut und Feder. Öffnungen über 2,5 m² werden abgezogen.",
              "einheit": "m²", "kg": "341", "gen": "A",
-             "achsen": [KS_FK, MOERTEL, FLAECHE, ORT],
+             "achsen": [KS_FK, FLAECHE, ORT],
              "varianten": [{"fk": "12-1,8", "d": "11,5", "h": 0.32, "mat": 19}, {"fk": "20-2,0", "d": "17,5", "h": 0.38, "mat": 28},
                            {"fk": "20-2,0", "d": "24", "h": 0.45, "mat": 38}]},
             {"kurz": "Innenwand tragend, Planziegel, d = {d} cm",
@@ -197,7 +197,7 @@ LBS = [{
 
 # ---------------------------------------------------------------- Runde 2: weitere Achsen und Grundpositionen
 BRAND = [{}, {"k": "Brandwand", "t": "Ausführung als Brandwand bzw. Wand anstelle einer Brandwand (REI-M 90) nach Prüfzeugnis des Steinherstellers.",
-              "fm": 1.08, "fh": 1.05}]
+              "fm": 1.08, "fh": 1.05, "ohne": ["Teilflächen bis 5 m²"]}]
 FORMAT = [{"k": "DF", "t": "Steinformat DF.", "fh": 1.25}, {"k": "NF", "t": "Steinformat NF.", "fh": 1.15}, {"k": "2DF", "t": "Steinformat 2DF."},
           {"k": "3DF", "t": "Steinformat 3DF.", "fh": 0.9}]
 ZUSTAND = [{}, {"k": "Sichtmauerwerk", "t": "Ausführung als Sichtmauerwerk mit Fugenglattstrich, Steine nach Bemusterung.", "fh": 1.3, "fm": 1.4, "gen": "B"}]
@@ -322,3 +322,16 @@ LBS[0]["gruppen"].append({"name": "Mauerwerksinstandsetzung im Bestand", "positi
      "achsen": [[{"k": "Wandfläche", "t": "An Wandflächen."}, {"k": "Gewölbe/Unterseite", "t": "An Gewölben bzw. überkopf.", "fh": 1.4}], FLAECHE],
      "varianten": [{"m": "Kalkmörtel NHL", "h": 1.1, "mat": 5}, {"m": "Trasskalkmörtel", "h": 1.15, "mat": 6}, {"m": "Zementmörtel", "h": 1.0, "mat": 4}]},
 ]})
+
+
+# Brandwand erst ab 17,5 cm Wanddicke (DIN 4102-4 / EC 6-1-2): bei dünneren Varianten die Achse weglassen
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        if BRAND in (_p.get("achsen") or []):
+            for _v in _p.get("varianten") or []:
+                try:
+                    _dd = float(str(_v.get("d", "99")).replace(",", "."))
+                except ValueError:
+                    continue
+                if _dd < 17.5:
+                    _v["achsen"] = [a for a in _p["achsen"] if a is not BRAND]

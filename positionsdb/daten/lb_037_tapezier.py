@@ -44,7 +44,7 @@ LBS = [{
              "lang": "Aufpreis zu den Tapezierpositionen für {art}.",
              "einheit": "m²", "kg": "345", "gen": "B",
              "varianten": [{"art": "Dachschrägen, Gauben und kleinteilige Flächen", "h": 0.06, "mat": 0},
-                           {"art": "Treppenhäuser über 3,5 m Arbeitshöhe mit Gerüst", "h": 0.06, "mat": 0, "geraet": 0.6}]},
+                           {"art": "Treppenhäuser über 3,5 m Arbeitshöhe mit Gerüst", "h": 0.06, "mat": 0, "geraet": 3.8}]},
         ]},
     ],
 }]
@@ -83,7 +83,7 @@ _r2_setze([
     ("Mustertapete", [TP_UG, TP_ORT, TP_HOEHE]),
     ("Fototapete", [TP_UG, TP_ORT]),
     ("Akustik-/Dämmtapete", [TP_UG, TP_ORT, TP_HOEHE]),
-    ("Alte Tapete entfernen", [TP_SCHICHT, TP_ORT[:2]]),
+    ("Alte Tapete entfernen", [[TP_SCHICHT[0], TP_SCHICHT[2]], TP_ORT[:2]]),   # mehrlagig ist bereits Variante
     ("Makulatur", [TP_UG, TP_ORT, [{}, {"k": "Decke", "t": "An Deckenflächen.", "fh": 1.2, "kg": "353"}]]),
 ])
 _r2_neu("Wandbekleidungen", [

@@ -8,7 +8,7 @@ LBS = [{
     "nr": "069", "name": "Aufzüge", "atv": "DIN 18385", "lohn": "aufzug",
     "gruppen": [
         {"name": "Personenaufzüge", "positionen": [
-            {"kurz": "Personenaufzug maschinenraumlos {kg_} kg, {n} Haltestellen, {v} m/s",
+            {"kurz": "Personenaufzug {kg_} kg, {n} Haltest., {v} m/s",
              "lang": "Elektrisch angetriebener Personenaufzug ohne Triebwerksraum nach DIN EN 81-20/-50, Nennlast {kg_} kg, "
                      "{n} Haltestellen, Geschwindigkeit {v} m/s, Fahrkorb und Türen nach DIN EN 81-70 (rollstuhlgerecht ab "
                      "1000 kg mit 1,10 × 2,10 m), Teleskop-Schiebetüren Edelstahl, Notrufsystem mit 24-h-Aufschaltung, "
@@ -44,7 +44,7 @@ LBS = [{
                      "klappbarem Sitz bzw. Plattform, Montage, Einweisung.",
              "einheit": "St", "kg": "461", "gen": "C",
              "varianten": [{"art": "Sitzlift gerade, ein Geschoss", "h": 8, "mat": 4800}, {"art": "Sitzlift kurvig, ein Geschoss", "h": 14, "mat": 10500},
-                           {"art": "Plattformlift für Rollstuhl, gerade", "h": 20, "mat": 16500}]},
+                           {"art": "Plattformlift für Rollstuhl, gerade", "h": 20, "mat": 11500}]},
             {"kurz": "Hebebühne Kleingüteraufzug 50 kg, 2 Haltestellen",
              "lang": "Kleingüteraufzug (Speisenaufzug) Nennlast 50 kg, Fahrkorb 60 × 60 cm, 2 Haltestellen, Schachtgerüst, "
                      "Montage und Inbetriebnahme.",
@@ -84,12 +84,18 @@ LBS[0]["gruppen"] += [
     ]},
 ]
 _K = lambda *worte: (lambda g, p: any(w in p["kurz"] for w in worte))
-KABINE = [{"k": "Kabine Standard", "t": "Kabinenausstattung Standard (Edelstahl geschliffen bzw. Laminat, Spiegel halbhoch, LED-Decke)."},
-          {"k": "Kabine gehoben", "t": "Kabinenausstattung gehoben (Edelstahl/Glas, Spiegel raumhoch, Designdecke, Handlauf beidseitig).", "fm": 1.08},
-          {"k": "Kabine Premium", "t": "Kabinenausstattung nach Bemusterung (Glasrückwand, Naturstein-Boden, Sonderdecke).", "fm": 1.16, "gen": "C"}]
-TUER = [{"k": "Tür 900 mm", "t": "Teleskop- bzw. Zentralschiebetür lichte Breite 900 mm."}, {"k": "Tür 1.100 mm", "t": "Lichte Türbreite 1.100 mm (Bettentransport/Rollstuhl mit Begleitung).", "fm": 1.04}]
+KABINE = [{"ersetze": [[r"Fahrkorbausstattung Standard, ", ""]], "k": "Kab. Standard", "t": "Kabinenausstattung Standard (Edelstahl geschliffen bzw. Laminat, Spiegel halbhoch, LED-Decke)."},
+          {"k": "Kab. gehoben", "t": "Kabinenausstattung gehoben (Edelstahl/Glas, Spiegel raumhoch, Designdecke, Handlauf beidseitig).", "fm": 1.08},
+          {"k": "Kab. Premium", "t": "Kabinenausstattung nach Bemusterung (Glasrückwand, Naturstein-Boden, Sonderdecke).", "fm": 1.16, "gen": "C"}]
+TUER = [{"k": "Tür 900", "t": "Teleskop- bzw. Zentralschiebetür lichte Breite 900 mm."}, {"k": "Tür 1100", "t": "Lichte Türbreite 1.100 mm (Bettentransport/Rollstuhl mit Begleitung).", "fm": 1.04}]
 zuweisen(LBS, [
     (_K("Personenaufzug"), [KABINE, TUER]),
     (_K("Plattform-/Hublift", "Treppenlift"), [[{}, {"k": "Außenbereich", "t": "Ausführung für den Außenbereich, witterungsbeständig.", "fm": 1.15}], ORT_KLEIN]),
     (_K("Aufzugstüren", "Aufzugsmodernisierung"), [[{}, {"k": "bewohnt, Etappen", "t": "Ausführung im genutzten Gebäude in Etappen, Stillstandzeiten minimiert.", "fh": 1.15}]]),
 ])
+# 630 kg (Fahrkorb 1,10 m breit): Tür 1.100 mm nicht ausführbar
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        for _v in _p.get("varianten") or []:
+            if _v.get("kg_") == "630":
+                _v["achsen"] = [KABINE, TUER[:1]]

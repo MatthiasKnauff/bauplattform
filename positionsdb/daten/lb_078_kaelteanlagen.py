@@ -8,6 +8,7 @@ AUFST = [{"k": "AG Boden", "t": "Aufstellung auf bauseitigem Fundament bzw. Bode
 KM = [{"k": "R32", "t": "Kältemittel R32 (GWP 675)."}, {"k": "R290", "t": "Natürliches Kältemittel R290 (Propan), Sicherheitsanforderungen nach DIN EN 378 beachtet.", "fm": 1.12},
       {"k": "R454B", "t": "Kältemittel R454B (A2L).", "fm": 1.04}]
 SCHALL = [{}, {"k": "leise", "t": "Schallreduzierte Ausführung (Nachtabsenkung, gekapselter Verdichter), Schallleistungspegel mindestens 6 dB(A) unter Standard.", "fm": 1.12}]
+SCHALL_RK = [{}, {"k": "leise", "t": "Schallreduzierte Ausführung mit langsamlaufenden EC-Ventilatoren und vergrößerter Wärmetauscherfläche, Schallleistungspegel mindestens 6 dB(A) unter Standard.", "fm": 1.15}]
 WART = [{}, {"k": "Wartung 2 J.", "t": "Einschließlich Wartung und Dichtheitsprüfung nach Verordnung (EU) 2024/573 für die ersten zwei Betriebsjahre.", "h": 4.0, "mat": 220}]
 VERLEG = [{"k": "sichtbar", "t": "Verlegung sichtbar auf Kabelrinne bzw. in Kanal."},
           {"k": "verdeckt", "t": "Verlegung unter Putz, in Schächten bzw. über abgehängter Decke.", "fh": 1.2},
@@ -64,7 +65,7 @@ LBS = [{
             {"kurz": "Rückkühler trocken (Drycooler), {q} kW",
              "lang": "Trockenrückkühler mit Lamellenwärmetauscher Cu/Al, EC-Ventilatoren drehzahlgeregelt, für Glykolgemisch, Leistung {q} kW. "
                      "Einschließlich Regelung, Montage und Inbetriebnahme.",
-             "einheit": "St", "kg": "434", "gen": "C", "achsen": [AUFST[:2], SCHALL, ORT],
+             "einheit": "St", "kg": "434", "gen": "C", "achsen": [AUFST[:2], SCHALL_RK, ORT],
              "varianten": [{"q": "30", "h": 12, "mat": 7800}, {"q": "60", "h": 15, "mat": 12500}, {"q": "120", "h": 20, "mat": 21000}]},
         ]},
         {"name": "Innengeräte, Kühlflächen", "positionen": [
@@ -90,10 +91,12 @@ LBS = [{
                            {"art": "Deckenkassette", "q": "3,5", "h": 7, "mat": 1550}, {"art": "Kanaleinbau", "q": "4,5", "h": 8, "mat": 1450}]},
             {"kurz": "Kühldecke/Kühlsegel {art}",
              "lang": "Wasserdurchströmte Kühldecke bzw. Kühlsegel, Bauart {art}, Kühlleistung ca. 70–90 W/m² bei 16/18 °C, Anschluss mit "
-                     "Schläuchen an bauseitige Verteilleitungen, Oberfläche pulverbeschichtet. Abrechnung nach aktiver Fläche.",
+                     "Schläuchen an bauseitige Verteilleitungen, {ofl}. Abrechnung nach aktiver Fläche.",
              "einheit": "m²", "kg": "434", "gen": "C", "achsen": [HOEHE, ORT, [{}, {"k": "akustisch wirksam", "t": "Perforiert mit Akustikvlies, Schallabsorption αw ≥ 0,6.", "fm": 1.12}]],
-             "varianten": [{"art": "Metall-Kühldecke geschlossen", "h": 1.6, "mat": 175}, {"art": "Kühlsegel frei abgehängt", "h": 1.8, "mat": 230},
-                           {"art": "Kapillarrohrmatten im Putz", "h": 1.2, "mat": 85}]},
+             "varianten": [{"art": "Metall-Kühldecke geschlossen", "ofl": "Oberfläche pulverbeschichtet", "h": 1.6, "mat": 175},
+                           {"art": "Kühlsegel frei abgehängt", "ofl": "Oberfläche pulverbeschichtet", "h": 1.8, "mat": 230},
+                           {"art": "Kapillarrohrmatten im Putz", "ofl": "Matten an der Rohdecke befestigt, Einputzen und Oberfläche gesondert (Putzarbeiten)", "h": 1.2, "mat": 85,
+                            "achsen": [HOEHE, ORT]}]},
         ]},
         {"name": "Leitungen, Zubehör", "positionen": [
             {"kurz": "Kältemittelltg. Cu {d}, gedämmt",

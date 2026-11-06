@@ -4,6 +4,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tga_achsen import *  # noqa: E402,F401,F403
 
 
+E1 = {"hl": "Hahnloch", "mi": "Einhebel-Waschtischmischer", "si": "Röhrensiphon"}
+
 LBS = [{
     "nr": "045", "name": "Gas-, Wasser- und Entwässerungsanlagen – Ausstattung, Elemente", "atv": "DIN 18381", "lohn": "sanitaer",
     "gruppen": [
@@ -37,13 +39,14 @@ LBS = [{
              "lang": "Wand-WC nach DIN 18040 mit Ausladung 700 mm, spülrandlos, WC-Sitz ohne Deckel bzw. mit Rückenstütze, "
                      "Sitzhöhe 46–48 cm, auf barrierefreies Vorwandelement montieren und anschließen.",
              "einheit": "St", "kg": "412", "h": 2.5, "mat": 560, "gen": "B"},
-            {"kurz": "Waschtisch {b} cm mit Einhebelmischer und Siphon",
-             "lang": "Waschtisch aus Sanitärporzellan, Breite {b} cm, mit Hahnloch und Überlauf, Befestigung, "
-                     "Einhebel-Waschtischmischer mit Ablaufgarnitur (Durchfluss ≤ 6 l/min), Röhrensiphon, Eckventilen "
+            {"kurz": "Waschtisch {b} cm mit Armatur und Siphon",
+             "lang": "Waschtisch aus Sanitärporzellan, Breite {b} cm, mit {hl} und Überlauf, Befestigung, "
+                     "{mi} mit Ablaufgarnitur (Durchfluss ≤ 6 l/min), {si}, Eckventilen "
                      "mit Flexschläuchen, montieren und anschließen.",
              "einheit": "St", "kg": "412", "gen": "B",
-             "varianten": [{"b": "45 (Handwaschbecken)", "h": 2.5, "mat": 210}, {"b": "60", "h": 2.8, "mat": 320},
-                           {"b": "80", "h": 3.0, "mat": 460}, {"b": "120 (Doppelwaschtisch)", "h": 4.5, "mat": 920}]},
+             "varianten": [{"b": "45 (Handwaschbecken)", "h": 2.5, "mat": 210, **E1}, {"b": "60", "h": 2.8, "mat": 320, **E1},
+                           {"b": "80", "h": 3.0, "mat": 460, **E1}, {"b": "120 (Doppelwaschtisch)", "h": 5.0, "mat": 1080, "hl": "zwei Hahnlöchern",
+                            "mi": "zwei Einhebel-Waschtischmischern", "si": "zwei Röhrensiphons bzw. Doppelablauf"}]},
             {"kurz": "Waschtisch barrierefrei unterfahrbar, mit Hebelarmatur",
              "lang": "Unterfahrbarer Waschtisch nach DIN 18040, Breite 55–65 cm, mit Griffmulden, Unterputz- bzw. "
                      "Flachaufputzsiphon, Einhebelmischer mit langem Hebel bzw. berührungslos, Kippspiegel gesondert.",
@@ -129,13 +132,15 @@ LBS = [{
 # ---------------------------------------------------------------- Ergänzungen (Runde 2)
 VW_UNTERGRUND = [{"k": "Trockenbau-Vorwand", "t": "Einbau in Trockenbau-Vorwand bzw. Installationswand (Beplankung gesondert)."},
                  {"k": "vor Massivwand", "t": "Befestigung vor Massivwand mit Wandwinkeln, zum Einmauern bzw. Verkleiden.", "fh": 1.1, "mat": 12},
-                 {"k": "Raumhoch/freistehend", "t": "Freistehende bzw. raumhohe Montage mit Bodenbefestigung und Traversen.", "fh": 1.25, "mat": 35}]
+                 {"k": "freistehend", "t": "Freistehende Montage mit Bodenbefestigung und Traversen, Bauhöhe wie angegeben.", "fh": 1.25, "mat": 35}]
 LBS[0]["gruppen"][0]["positionen"] += [
     {"kurz": "Vorwandelement für {art}, Bauhöhe 1120 mm",
-     "lang": "Vorwand-Montageelement für {art} mit Stahlrahmen, Befestigungsmaterial und Anschlüssen, Schallschutzset.",
+     "lang": "Vorwand-Montageelement für {art} mit Stahlrahmen und Befestigungsmaterial{an}.",
      "einheit": "St", "kg": "412", "gen": "B",
-     "varianten": [{"art": "Bidet", "h": 1.6, "mat": 190}, {"art": "Ausgussbecken", "h": 1.5, "mat": 170}, {"art": "Stützgriffe (Befestigungsplatte)", "h": 1.0, "mat": 95},
-                   {"art": "Waschtisch mit Unterputz-Armatur", "h": 1.8, "mat": 230}]},
+     "varianten": [{"art": "Bidet", "h": 1.6, "mat": 190, "an": ", Anschlüssen für Wasser und Abwasser, Schallschutzset"},
+                   {"art": "Ausgussbecken", "h": 1.5, "mat": 170, "an": ", Anschlüssen für Wasser und Abwasser, Schallschutzset"},
+                   {"art": "Stützgriffe (Befestigungsplatte)", "h": 1.0, "mat": 95, "an": " (tragfähige Befestigungsplatte, ohne Wasser- und Abwasseranschlüsse)"},
+                   {"art": "Waschtisch mit Unterputz-Armatur", "h": 1.8, "mat": 230, "an": ", Unterputz-Grundkörper, Anschlüssen für Wasser und Abwasser, Schallschutzset"}]},
     {"kurz": "Revisionsöffnung/Revisionsklappe für Vorwand, {m} cm",
      "lang": "Revisionsklappe befliesbar mit Magnet- bzw. Druckverschluss in Vorwandinstallation, {m} cm.",
      "einheit": "St", "kg": "412", "gen": "A", "varianten": [{"m": "20 × 20", "h": 0.5, "mat": 45}, {"m": "30 × 30", "h": 0.6, "mat": 65}]},
@@ -166,10 +171,10 @@ LBS[0]["gruppen"][1]["positionen"] += [
      "lang": "Wandhängendes Bidet aus Sanitärporzellan mit Einhebel-Bidetarmatur und Ablaufgarnitur, auf Vorwandelement montieren und anschließen.",
      "einheit": "St", "kg": "412", "h": 2.5, "mat": 520, "gen": "B"},
     {"kurz": "{kz}, Breite {b} cm",
-     "lang": "{art} Breite {b} cm, montieren und an vorhandenen Elektroanschluss anschließen.",
+     "lang": "{art} Breite {b} cm, montieren{el}.",
      "einheit": "St", "kg": "412", "gen": "C",
-     "varianten": [{"kz": "Kristallspiegel mit Facette", "art": "Kristallspiegel mit Facette", "b": "60", "h": 0.8, "mat": 85}, {"kz": "LED-Spiegel", "art": "LED-Spiegel mit Antibeschlag", "b": "80", "h": 1.2, "mat": 290},
-                   {"kz": "Spiegelschrank mit LED", "art": "Spiegelschrank mit LED-Beleuchtung und Steckdose", "b": "80", "h": 1.8, "mat": 520}]},
+     "varianten": [{"kz": "Kristallspiegel mit Facette", "art": "Kristallspiegel mit Facette", "b": "60", "h": 0.8, "mat": 85, "el": " (ohne Elektroanschluss)"}, {"kz": "LED-Spiegel", "art": "LED-Spiegel mit Antibeschlag", "b": "80", "h": 1.2, "mat": 290, "el": " und an vorhandenen Elektroanschluss anschließen"},
+                   {"kz": "Spiegelschrank mit LED", "art": "Spiegelschrank mit LED-Beleuchtung und Steckdose", "b": "80", "h": 1.8, "mat": 520, "el": " und an vorhandenen Elektroanschluss anschließen"}]},
     {"kurz": "Wickeltisch/Wickelauflage klappbar, öffentlich",
      "lang": "Klappbarer Wandwickeltisch für öffentliche Sanitärräume, Polyethylen, mit Sicherheitsgurt, montieren.",
      "einheit": "St", "kg": "412", "h": 1.2, "mat": 480, "gen": "B"},
@@ -200,11 +205,28 @@ LBS[0]["gruppen"][2]["positionen"] += [
              "bodengleiche Dusche mit Duschsitz und Haltegriffen, Kippspiegel; Montage auf vorhandenen Vorwandelementen.",
      "einheit": "psch", "kg": "412", "h": 16, "mat": 3800, "gen": "C"},
 ]
-zuweisen(LBS, vorab() + [
-    (ist("St", kurz=r"Vorwandelement"), [VW_UNTERGRUND, ORT]),
-    (ist("St", kurz=r"WC|Waschtisch \d|Bidet|Urinal|Badewanne|Duschwanne"), [STANDARD, OBERFLAECHE_SAN[:2], ORT]),
-    (ist("St", kurz=r"armatur|Thermostat|Duschsystem|Betätigung|Dusche bodengleich|Ausguss"), [STANDARD, OBERFLAECHE_SAN, ORT_KLEIN]),
-    (ist("St", kurz=r"griff|Duschklapp|Spiegel|Accessoire|spender|Wickel"), [STANDARD[:3], BEFESTIGUNG, ORT_KLEIN]),
-    (ist("St", kurz=r"Duschabtrennung"), [OBERFLAECHE_SAN, ORT_KLEIN]),
+# Lokale Achsen (Prüfbefund: Premium-/Oberflächenfaktoren zu hoch, Oberflächen passen nicht zu jedem Objekt)
+STD_SAN = [{"k": "einfach", "t": "Ausstattungsstandard einfach (Objektserie).", "fm": 0.8},
+           {"k": "mittel", "t": "Ausstattungsstandard mittel."},
+           {"k": "gehoben", "t": "Ausstattungsstandard gehoben (Designserie, erweiterte Funktionen).", "fm": 1.4, "fh": 1.05},
+           {"k": "Premium", "t": "Ausstattungsstandard Premium nach Bemusterung.", "fm": 1.8, "fh": 1.1, "gen": "C"}]
+OBER_SAN = [{"ersetze": [[r",? Kunststoff weiß", ""]], "k": "", "t": "Oberfläche weiß bzw. verchromt."},
+            {"k": "Farbe matt", "t": "Oberfläche in matter Sonderfarbe (z. B. schwarz matt) nach Bemusterung.", "fm": 1.15},
+            {"k": "Edelstahl gebürstet", "t": "Oberfläche Edelstahl gebürstet bzw. PVD-beschichtet.", "fm": 1.3}]
+OBER_DUSCH = [{"ersetze": [[r"Beschläge verchromt", "Beschläge"]], "k": "", "t": "Beschläge verchromt."},
+              {"k": "Farbe matt", "t": "Beschläge in matter Sonderfarbe (z. B. schwarz matt).", "fm": 1.1},
+              {"k": "Edelstahl gebürstet", "t": "Beschläge Edelstahl gebürstet bzw. PVD-beschichtet.", "fm": 1.15}]
+ORT_SAN = [ORT[0], ORT[1], ORT[2]]                 # ohne Arbeitshöhe über 3,5 m (Sanitärobjekte)
+BESTAND_BEWOHNT = [{}, ORT[2]]                     # Leistung ist schon Bestandsleistung
+zuweisen(LBS, [
+    (ist(kurz=r"demont|entsorg|tauschen|Bestand austauschen"), [BESTAND_BEWOHNT]),
+    (ist(kurz=r"^Zulage|Dokumentation|Prüfung|Inbetriebnahme|Einweisung|Wartung"), [ORT_KLEIN]),
+    (ist("St", kurz=r"Vorwandelement"), [VW_UNTERGRUND, ORT_SAN]),
+    (ist("St", kurz=r"Schürze|Wannenträger|Trennwand|Silikonfuge"), [ORT_KLEIN]),
+    (ist("St", kurz=r"griff|Duschklapp|Spiegel|Accessoire|spender|Wickel"), [STD_SAN[:3], BEFESTIGUNG, ORT_KLEIN]),
+    (ist("St", kurz=r"Ausguss"), [STD_SAN[:2], ORT_KLEIN]),
+    (ist("St", kurz=r"Duschabtrennung"), [OBER_DUSCH, ORT_KLEIN]),
+    (ist("St", kurz=r"WC|Waschtisch \d|Bidet|Urinal|Badewanne|Duschwanne"), [STD_SAN, OBER_SAN[:2], ORT_SAN]),
+    (ist("St", kurz=r"armatur|Thermostat|Duschsystem|Betätigung|Dusche bodengleich"), [STD_SAN, OBER_SAN, ORT_KLEIN]),
     (ist(), [ORT_KLEIN]),
 ])

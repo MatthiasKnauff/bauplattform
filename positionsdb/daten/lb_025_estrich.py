@@ -103,7 +103,7 @@ LBS = [{
              "einheit": "m²", "kg": "352", "gen": "B", "tags": ["altbau"],
              "varianten": [{"d": "20 mm", "h": 0.25, "mat": 22}, {"d": "25 mm", "h": 0.27, "mat": 27},
                            {"d": "30 mm, holzfaserkaschiert", "h": 0.27, "mat": 36}]},
-            {"kurz": "Industrieestrich mit Hartstoffeinstreuung, Verschleißschicht",
+            {"kurz": "Hartstoffeinstreuung frisch in frisch, Verschleißschicht",
              "lang": "Hartstoffeinstreuung (Korund bzw. Quarz) frisch in frisch auf Beton- bzw. Zementestrichfläche "
                      "einarbeiten und flügelglätten, Menge ca. 4–5 kg/m², für mittlere Beanspruchung, mit Nachbehandlung.",
              "einheit": "m²", "kg": "352", "h": 0.12, "mat": 3.5, "geraet": 1.0, "gen": "B"},
@@ -157,8 +157,11 @@ FESTIG = [{"k": "C25-F4"}, {"k": "C30-F5", "t": "Festigkeitsklasse abweichend CT
           {"k": "C35-F5", "t": "Festigkeitsklasse abweichend CT-C35-F5 für höhere Lasten.", "mat": 1.8}]
 DRUCK = [{"k": "EPS DEO 100"}, {"k": "EPS DEO 150", "t": "Druckspannung abweichend 150 kPa (EPS 150).", "fm": 1.25},
          {"k": "EPS DEO 200", "t": "Druckspannung abweichend 200 kPa (EPS 200).", "fm": 1.50},
-         {"k": "PUR/PIR 023", "t": "Dämmstoff abweichend PUR/PIR-Hartschaum WLS 023, alukaschiert, gleiche Dämmwirkung bei geringerer Dicke.",
+         {"k": "PUR/PIR 023", "t": "Dämmstoff abweichend PUR/PIR-Hartschaum WLS 023, alukaschiert, Dicke wie angegeben.",
           "fm": 1.9, "gen": "B"}]
+BESTAND_KL = [{}, {"k": "Bestand", "t": "Ausführung im Bestand: Kleinmengen, Anschluss an vorhandene Bauteile.", "fh": 1.30, "gen": "B", "tags": ["altbau"]}]
+HARTSTOFF = [{"ersetze": [[r",? für mittlere Beanspruchung", ""]], "k": "4–5 kg/m²", "t": "Einstreumenge ca. 4–5 kg/m² für mittlere Beanspruchung."},
+             {"k": "6–8 kg/m²", "t": "Einstreumenge ca. 6–8 kg/m² für schwere Beanspruchung (Hartstoffe nach DIN 1100).", "h": 0.02, "mat": 1.8}]
 LAGEN = [{}, {"k": "zweilagig", "t": "Verlegung zweilagig mit versetzten Stößen.", "h": 0.03}]
 ESTR_ZUS = [{}, {"k": "Schnellzement", "t": "Mit Schnellzement bzw. Estrichbeschleuniger (früh belegreif).", "mat": 6, "gen": "B"},
             {"k": "Faser", "t": "Mit Kunststofffasern als Schwindrissbremse.", "mat": 1.3}]
@@ -197,8 +200,8 @@ _gruppe("Zementestrich")["positionen"] += [
              "(Korn freigelegt bzw. Schleifbild nach Muster), imprägniert und versiegelt. Rissfreiheit kann nicht zugesichert werden.",
      "einheit": "m²", "kg": "352", "gen": "C", "achsen": [GROESSE],
      "varianten": [{"d": "60", "h": 0.85, "mat": 16, "geraet": 6}, {"d": "70", "h": 0.90, "mat": 18, "geraet": 6}]},
-    {"kurz": "Estrich auf Treppenpodest/Stufen, d bis 50 mm",
-     "lang": "Zementestrich bzw. Ausgleichsmörtel auf Treppenstufen und Podesten als Untergrund für Belag, Kanten scharfkantig "
+    {"kurz": "Estrich auf Treppenstufen, d bis 50 mm",
+     "lang": "Zementestrich bzw. Ausgleichsmörtel auf Treppenstufen als Untergrund für Belag, Kanten scharfkantig "
              "abgezogen. Abrechnung je Stufe (Tritt- und Setzstufe).", "einheit": "St", "kg": "352", "h": 0.80, "mat": 6, "gen": "B",
      "achsen": [BESTAND]},
     {"kurz": "Estrich in Teilflächen ergänzen (Bestand), bis {a} m²",
@@ -287,16 +290,16 @@ for _g in LBS[0]["gruppen"]:
             _p["achsen"] = list(_p["achsen"]) + [RAUM_E]
 _achsen([
     ("Trockenschüttung lose", [GROESSE, BESTAND]),
-    ("Trennlage/Abdeckung", [BESTAND]),
-    ("Randdämmstreifen", [BESTAND]),
-    ("Feuchtigkeitssperre", [BESTAND]),
+    ("Trennlage/Abdeckung", [BESTAND_KL]),
+    ("Randdämmstreifen", [BESTAND_KL]),
+    ("Feuchtigkeitssperre", [BESTAND_KL]),
     ("Aufpreis Estrich", [BESTAND]),
     ("Estrich in Teilflächen", [FESTIG[:2], ESTR_ZUS]),
-    ("Industrieestrich", [GROESSE, FESTIG]),
+    ("Hartstoffeinstreuung", [GROESSE, HARTSTOFF]),
     ("Kunstharzestrich", [GROESSE, BESTAND]),
     ("Magnesiaestrich", [GROESSE, BESTAND]),
     ("Fließestrich-Oberfläche", [GROESSE, BESTAND]),
-    ("Bewegungsfuge", [BESTAND]),
+    ("Bewegungsfuge", [BESTAND_KL]),
     ("Estrich schleifen", [GROESSE, BESTAND]),
     ("Hohlstellen", [GROESSE]),
     ("Dünnestrich", [GROESSE, FOERDER]),

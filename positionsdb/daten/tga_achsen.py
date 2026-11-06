@@ -90,7 +90,7 @@ MENGE = [{}, {"k": "Kleinmenge", "t": "Kleinmengen bzw. Einzellängen bis insges
 DAEMMUNG_VORGEDAEMMT = [
     {"k": "", "t": ""},
     {"k": "vorgedämmt 9 mm", "t": "Rohr werkseitig vorgedämmt (Schutzschlauch bzw. Dämmung 9 mm, Mindestdämmung nach DIN 1988-200 im Fußbodenaufbau).", "fm": 1.3},
-    {"k": "vorgedämmt 100 % GEG", "t": "Rohr werkseitig vorgedämmt mit Dämmung entsprechend GEG Anlage 8 (100 %).", "fm": 1.8},
+    {"k": "vorgedämmt 100 % GEG", "ohne": ["unter Putz im Schlitz"], "t": "Rohr werkseitig vorgedämmt mit Dämmung entsprechend GEG Anlage 8 (100 %).", "fm": 1.8},
 ]
 GERAET_AUFSTELLUNG = [
     {"k": "", "t": ""},
@@ -133,16 +133,30 @@ def ist(einheit=None, kurz=None, gruppe=None, nicht=None):
     return f
 
 KERNBOHRUNG = [{"k": "Mauerwerk", "t": "Bauteil aus Mauerwerk."},
-               {"k": "Stahlbeton", "t": "Bauteil aus Stahlbeton, bewehrt; Bewehrung nach Freigabe durchtrennen.", "fh": 1.25, "fg": 1.45},
-               {"k": "Wanddicke bis 50 cm", "t": "Bauteildicke über 30 cm bis 50 cm.", "fh": 1.5, "fg": 1.6}]
-ZUGANG = [{"k": "", "t": ""}, {"k": "Überkopf", "t": "Ausführung überkopf (Decke) mit Wasserauffang.", "fh": 1.3, "geraet": 10}]
+               {"k": "Stahlbeton", "t": "Bauteil aus Stahlbeton, bewehrt; Bewehrung nach Freigabe durchtrennen.", "fh": 1.25, "fg": 1.45}]
+# Bauteildicke als eigene Achse; feste Dickenangaben im Grund-/Kurztext werden dafür entfernt
+KB_DICKE = [{"k": "", "t": "Bauteildicke bis 30 cm.",
+             "ersetze": [[r"(^|,? )d (bis|≤) ?30 cm", ""], [r",? (Bauteil)?[Dd]icke bis 30 cm", ""]]},
+            {"k": "d ≤ 50 cm", "t": "Bauteildicke über 30 cm bis 50 cm.", "fh": 1.5, "fg": 1.6}]
+ZUGANG = [{"k": "", "t": ""}, {"k": "Decke überkopf", "t": "Ausführung in der Decke, überkopf, mit Wasserauffang.", "fh": 1.3, "geraet": 10}]
+# Demontagen: immer Bestand (kein Bestandszuschlag); überkopf nur bei Leitungen unter der Decke
+ZUGANG_DEM = [{}, {"k": "Überkopf", "t": "Demontage überkopf (Leitungen bzw. Bauteile unter der Decke) mit Wasserauffang.", "fh": 1.4}]
+_BODEN_RX = r"kessel|tank|speicher|boiler|heizkörper|radiator|wanne|dusch|WC|waschtisch|urinal|bidet|verteiler|station|schrank|gerät"
+_DEM_RX = r"demont|entsorg|stilleg|abtrennen|Bestand austauschen"
 
 
 def vorab(achsen_klein=None):
     """Regeln, die vor den Gewerkregeln gelten: Demontage, Kernbohrungen, Zulagen, Dokumentation."""
     k = achsen_klein or [ORT_KLEIN]
     return [
-        (ist(kurz=r"Kernbohrung"), [KERNBOHRUNG, ZUGANG, ORT_KLEIN]),
-        (ist(kurz=r"demont|entsorg|stilleg|abtrennen|Bestand austauschen"), [ORT_KLEIN, ZUGANG]),
-        (ist(kurz=r"^Zulage|Durchführung|kennzeichn|Dokumentation|Protokoll|Prüfung|Messung|Inbetriebnahme|Einweisung|Wartung|Abgleich|Berechnung|Erklärung|Revisionsunterlagen"), k),
+        (ist(kurz=r"Kernbohrung"), [KERNBOHRUNG, KB_DICKE, ZUGANG, ORT_KLEIN]),
+        (lambda g, p: bool(re.search(_DEM_RX, p.get("kurz", ""), re.I) and re.search(_BODEN_RX, p.get("kurz", ""), re.I)), []),
+        (ist(kurz=_DEM_RX), [ZUGANG_DEM]),
+        (ist(kurz=r"Dokumentation|Protokoll|Berechnung|Erklärung|Revisionsunterlagen|Nachweis"), []),   # Büroleistung: ohne Zuschläge
+        (ist(kurz=r"^Zulage|Durchführung|kennzeichn|Prüfung|Messung|Inbetriebnahme|Einweisung|Wartung|Abgleich"), k),
     ]
+
+
+# Inline-Armaturen, Zähler, Köpfe, Proben: ohne Befestigungsachse (keine eigene Wandbefestigung)
+INLINE_RX = r"pumpe|regler|mischer|wächter|fänger|beprob|abscheider|zähler|ventil|filter|absperr|hahn|thermostat|fühler|probe|anschluss an bestand|entlüft|manometer|thermometer|schieber|klappe|rückfluss|druckminder"
+GERAET_INNEN = GERAET_AUFSTELLUNG[:2]   # Geräte im Gebäude: ohne Kran/Dachaufstellung

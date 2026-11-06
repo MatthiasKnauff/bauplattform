@@ -243,6 +243,94 @@ def katalog_suche(kid):
         return jsonify(out)
 
 
+# ---------------------------------------------------------------- Baudaten in der Kopierquelle (Kataloge „bd-gk3“, „bd-eigen“, importierte)
+BD_MAX = 2000   # Positionen je Gruppe bzw. Suche in der Kopierquelle
+
+
+@app.get("/api/baudaten/kataloge")
+def bd_kataloge():
+    """Kataloge der Baudaten für die Kopierquelle – ohne die der Ausschreibung (die stehen schon unter „Kataloge“)."""
+    with db.tx() as c:
+        rows = c.execute("""SELECT k.key, k.name, (SELECT COUNT(*) FROM pdb_position p WHERE p.katalog = k.key AND p.aktiv = 1) AS n
+                            FROM pdb_katalog k ORDER BY k.sort, k.name""").fetchall()
+    return jsonify([{"id": "bd-" + x["key"], "name": "Baudaten: " + x["name"], "quelle": "baudaten", "n_pos": x["n"]} for x in rows if x["n"]])
+
+
+def _bd_items(c, rows, katalog):
+    """Positionen der Baudaten → Zeilen der Kopierquelle (Langtext = Grund- + Folgetext, Preis auf heute umgerechnet)."""
+    f = baudaten.umrechnung(c, katalog)
+    gt = {}
+    ids = sorted({r["grund_id"] for r in rows if r["grund_id"]})
+    for k in range(0, len(ids), 1000):
+        for x in c.execute("SELECT id, text FROM pdb_grundtext WHERE id = ANY(?)", (ids[k:k + 1000],)).fetchall():
+            gt[x["id"]] = x["text"]
+    out, grund = [], None
+    for r in rows:
+        if r["grund_id"] and r["grund_id"] != grund and katalog == "gk3":   # Grundposition als Zwischentitel
+            grund = r["grund_id"]
+        rd = lambda v: round(v * f, 2) if v is not None else None
+        p = {"id": f"b{r['id']}", "typ": "pos", "oz": r["code"], "kurz": r["kurz"], "bez": r["bez"] or "",
+             "lang": (gt.get(r["grund_id"], "") + " " + (r["lang"] or "")).strip(), "menge": 0, "einheit": r["einheit"], "art": "N",
+             "kg": r["kg"], "ep_s": rd(r["ep_mittel"]), "quelle": f"Baudaten {r['code']}"}
+        if r["ep_von"] is not None and r["ep_bis"] is not None:
+            p["spanne"] = [rd(r["ep_von"]), rd(r["ep_bis"])]
+        out.append(p)
+    return out
+
+
+@app.get("/api/katalog/bd-<key>")
+def bd_gruppen(key):
+    """Gruppen eines Baudaten-Katalogs wie die Gewerke eines Katalogs (Auswahl in der Kopierquelle)."""
+    with db.tx() as c:
+        if key == "gk3":
+            rows = c.execute("""SELECT g.nr, g.name, l.nr AS lb, l.name AS lb_name, (SELECT COUNT(*) FROM pdb_position p WHERE p.katalog='gk3' AND p.gruppe=g.nr AND p.aktiv=1) AS n
+                                FROM pdb_gruppe g JOIN pdb_leistungsbereich l ON l.nr = g.lb_nr ORDER BY g.nr""").fetchall()
+            gw = [{"id": f"kat:bd-gk3:{x['nr']}", "nr": x["nr"], "name": x["name"], "n_pos": x["n"], "gewerk": "", "status": "entwurf", "archived": False,
+                   "bereich": f"{x['lb']} {x['lb_name']}"} for x in rows if x["n"]]
+        else:
+            rows = c.execute("""SELECT gruppe, MIN(titel) AS titel, COUNT(*) AS n FROM pdb_position WHERE katalog=? AND aktiv=1 GROUP BY gruppe ORDER BY gruppe""", (key,)).fetchall()
+            gw = [{"id": f"kat:bd-{key}:{x['gruppe'] or '-'}", "nr": x["gruppe"], "name": x["titel"] or x["gruppe"] or "Alle", "n_pos": x["n"], "gewerk": "",
+                   "status": "entwurf", "archived": False, "bereich": "Baudaten"} for x in rows]
+    return jsonify(info={"id": "bd-" + key, "name": "Baudaten"}, gewerke=gw)
+
+
+SQL_BD = "SELECT id, code, grund_id, kurz, bez, lang, einheit, kg, ep_von, ep_mittel, ep_bis FROM pdb_position"
+
+
+@app.get("/api/katalog/bd-<key>/gewerk/<gr>")
+def bd_gruppe(key, gr):
+    with db.tx() as c:
+        rows = c.execute(f"{SQL_BD} WHERE katalog=? AND gruppe=? AND aktiv=1 ORDER BY code LIMIT ?", (key, "" if gr == "-" else gr, BD_MAX + 1)).fetchall()
+        name = (c.execute("SELECT name FROM pdb_gruppe WHERE nr=?", (gr,)).fetchone() or {"name": gr}) if key == "gk3" else {"name": gr}
+        items = _bd_items(c, rows[:BD_MAX], key)
+    return jsonify({"id": f"kat:bd-{key}:{gr}", "nr": gr, "name": name["name"], "projekt": "Baudaten", "katalog": True, "mehr": len(rows) > BD_MAX,
+                    "data": {"items": items}, "vergabe": {}})
+
+
+@app.get("/api/katalog/bd-<key>/suche")
+def bd_suche(key):
+    q = (request.args.get("q") or "").strip()
+    a = {"katalog": key, "q": q}
+    if request.args.get("gewerk"):
+        a["gruppe"] = request.args.get("gewerk")
+    with db.tx() as c:
+        if not q:
+            return jsonify({"id": f"kat:bd-{key}:suche", "nr": "", "name": "Suche", "projekt": "Baudaten", "katalog": True, "data": {"items": []}, "vergabe": {}})
+        treffer, gesamt = baudaten.suche(c, a, 300, 0)
+        ids = [x["id"] for x in treffer]
+        rows = c.execute(f"{SQL_BD} WHERE id = ANY(?) ORDER BY code", (ids,)).fetchall() if ids else []
+        gn = {x["nr"]: x["name"] for x in c.execute("SELECT nr, name FROM pdb_gruppe").fetchall()}
+        items, akt = [], None
+        for p in _bd_items(c, rows, key):
+            g_ = ".".join(p["oz"].split(".")[:2])
+            if g_ != akt:
+                akt = g_
+                items.append({"id": f"g{g_}", "typ": "titel", "lvl": 1, "oz": g_, "kurz": gn.get(g_, g_)})
+            items.append(p)
+    return jsonify({"id": f"kat:bd-{key}:suche", "nr": "", "name": f"Suche „{q}“", "projekt": "Baudaten", "katalog": True, "mehr": gesamt > 300,
+                    "data": {"items": items}, "vergabe": {}})
+
+
 @app.post("/api/katalog/teil")
 def katalog_teil():
     """Katalog in Teilen hochladen (gzip, je unter 1 MB – passt durch jeden Proxy). Der letzte Teil startet das Einlesen.

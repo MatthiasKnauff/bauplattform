@@ -345,19 +345,21 @@ Der Produktivserver bekommt den Container mit der nächsten Freigabe (`server/pr
 Pfad `/baudaten`, Container `bauplattform_baudaten` (Port 8099, gleiches Image wie die Plattform, `APP_MODULE: baudaten`).
 Alle Positions- und Preisdaten an einer Stelle; Ausschreibung & Abrechnung und Baukosten fügen daraus Positionen ein.
 
-- **Positionsdatenbank der Bauplattform** (Katalog „gk3“): rund 68.000 Positionen in 66 Leistungsbereichen (Nummern angelehnt an das
-  StLB-Bau), je Position Kurztext, Langtext (Grundtext + Folgetext), Einheit, DIN-276-Kostengruppe und Preisspanne von – mittel – bis.
+- **Positionsdatenbank der Bauplattform** (Katalog „gk3“): rund 64.000 Positionen in 66 Leistungsbereichen (Nummern angelehnt an das
+  StLB-Bau), je Position Kurztext (max. 70 Zeichen) und ausführliche Bezeichnung, Langtext (Grundtext + Folgetext), Einheit, DIN-276-Kostengruppe und Preisspanne von – mittel – bis.
   Texte und Kalkulation sind eigene, Preisstand 11/2026. Quelle und Pflege: `positionsdb/` (siehe `positionsdb/README.md`).
 - **Importierte Kataloge**, z. B. Sirados: als GAEB-Datei (X81–X86) einlesen oder aus einem LV der Ausschreibung übernehmen (⤒ Import, nur
   Administrator). Die Daten liegen nur in der Datenbank des Büros, nie im Repository – Lizenz des Anbieters beachten.
 - **Eigene Positionen** (Katalog „Eigene Positionen“): neu anlegen oder aus jedem Katalog übernehmen und anpassen; **eigene Preise** aus Vergaben
   je Position notieren (Median wird angezeigt).
-- **Preise auf heute**: aktueller Baupreisindex und Regional-/Projektfaktor (⚙ Preise); der Administrator pflegt Index, Faktoren und die
+- **Preise auf heute**: aktueller Baupreisindex und Regional-/Projektfaktor (⚙ Preise); sirAdos-Kataloge werden aus ihrem Preisstand
+  mit der Destatis-Reihe fortgeschrieben (je Katalog überschreibbar); der Administrator pflegt Index, Faktoren und die
   Verrechnungslöhne je Gewerk – Katalogpreise werden dann aus Zeitansatz × Lohn + Stoff neu gerechnet.
-- In **Ausschreibung & Abrechnung**: Knopf „Baudaten“ bzw. „+ aus Baudaten“ – suchen, mehrere wählen, an der aktiven Stelle einfügen
-  (Text, Einheit, KG, Schätzpreis). In **Baukosten** bei den Bauteilen: „+ aus Baudaten“.
+- In **Ausschreibung & Abrechnung**: in der **Kopierquelle** unter „Kataloge“ („Baudaten: …“) – je Gruppe blättern oder suchen, anhaken oder
+  ziehen; Langtext, Einheit, KG und Preis als Schätzung. Die Auswahl der Kopierquelle hat unter „Projekte“ ein Filterfeld.
+  In **Baukosten** bei den Bauteilen: „+ aus Baudaten“.
 - Wer Baukosten oder Ausschreibung nutzt, bekommt die App automatisch (in der Verwaltung abwählbar).
-- Tabellen `pdb_*` (Migrationen 0023 Schema, 0024 Katalogdaten im Bautagebuch); gemeinsamer Zugriff `shared/bpcore/baudaten.py`.
+- Tabellen `pdb_*` (Migrationen 0023 Schema, 0025 Katalogdaten im Bautagebuch); gemeinsamer Zugriff `shared/bpcore/baudaten.py`.
 
 ## Kommunikation (eigener Container)
 

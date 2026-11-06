@@ -109,7 +109,13 @@ LBS[0]["gruppen"][2]["positionen"] += [
      "lang": "Blitzschutz-Potentialausgleich am Gebäudeeintritt für Wasser-, Gas-, Heizungs- und Telekommunikationsleitungen mit Ableitern bzw. Erdungsschellen.",
      "einheit": "psch", "kg": "446", "h": 3, "mat": 260, "gen": "B"},
 ]
-zuweisen(LBS, vorab() + [
+# Prüfbefund: Betonsockel nur auf Flachdach; Fundamenterder nicht im Bestand; Demontage ist Bestand, kein Überkopf
+DACH_FLACH = [DACH[0], DACH[2]]
+zuweisen(LBS, [
+    (ist(kurz=r"Fundamenterder"), [MENGE]),
+    (ist(kurz=r"demont|entsorg"), [[{}]]),
+    (ist("St", kurz=r"Betonsockel"), [DACH_FLACH, ORT_KLEIN]),
+] + vorab() + [
     (ist("m", kurz=r"Fangleitung"), [LEITER, DACH, ORT_KLEIN]),
     (ist("m", kurz=r"Ableitung"), [LEITER, ORT]),
     (ist("St", kurz=r"Fangstange|Anschluss metall|Dehnung"), [DACH, ORT_KLEIN]),
@@ -148,3 +154,13 @@ zuweisen(LBS, [
     (_K("Potentialausgleich Leitung", "Schutzpotentialausgleich"), [VERLEGUNG_KABEL, ORT_KLEIN]),
     (_K("Erdungsbandschelle", "Örtlicher"), [ORT]),
 ])
+
+# Prüfbefund: Fangleitung je Dachart nur mit passender Dachachse (Betonsockel nur Flachdach, Steildach-Zuschlag nur Steildach)
+for _gr in LBS[0]["gruppen"]:
+    for _p in _gr["positionen"]:
+        if _p["kurz"].startswith("Fangleitung") and _p.get("achsen") and _p.get("varianten"):
+            for _v in _p["varianten"]:
+                if "Flachdach" in _v.get("art", ""):
+                    _v["achsen"] = [LEITER, DACH_FLACH, ORT_KLEIN]
+                elif "Steildach" in _v.get("art", ""):
+                    _v["achsen"] = [LEITER, DACH[:2], ORT_KLEIN]

@@ -22,7 +22,7 @@ LBS = [{
              "einheit": "St", "kg": "431", "gen": "C",
              "varianten": [{"v": "1.500", "h": 30, "mat": 14500}, {"v": "3.000", "h": 40, "mat": 23000}, {"v": "6.000", "h": 56, "mat": 38000},
                            {"v": "10.000", "h": 70, "mat": 56000}]},
-            {"kurz": "Dezentraler Wandlüfter mit WRG, paarweise",
+            {"kurz": "Dezentraler Wandlüfter mit WRG, Pendelbetrieb",
              "lang": "Dezentrales Lüftungsgerät mit regenerativem Wärmespeicher im Pendelbetrieb, Wandeinbau, Luftleistung "
                      "bis 40 m³/h, mit Außenblende und Innenblende, Steuerung je Raumpaar. Abrechnung je Gerät; Kernbohrung gesondert.",
              "einheit": "St", "kg": "431", "h": 2.5, "mat": 560, "gen": "B", "tags": ["altbau"]},
@@ -85,8 +85,8 @@ LBS = [{
              "einheit": "St", "kg": "431", "gen": "C",
              "varianten": [{"m": "400 × 200", "h": 3.5, "mat": 980}, {"m": "800 × 400", "h": 4.5, "mat": 1450}]},
             {"kurz": "Hygienische Reinigung Lüftungsleitungen vor Inbetriebnahme",
-             "lang": "Reinigung des Luftleitungsnetzes nach VDI 6022 vor Inbetriebnahme einschließlich Hygiene-Erstinspektion "
-                     "mit Protokoll. Abrechnung nach Leitungslänge.",
+             "lang": "Reinigung des Luftleitungsnetzes nach VDI 6022 vor Inbetriebnahme mit Reinigungsprotokoll; "
+                     "Hygiene-Erstinspektion gesondert. Abrechnung nach Leitungslänge.",
              "einheit": "m", "kg": "431", "h": 0.05, "mat": 0, "geraet": 1.5, "gen": "C"},
         ]},
         {"name": "Luftdurchlässe, Klima", "positionen": [
@@ -228,7 +228,9 @@ LBS[0]["gruppen"] += [
 
 # ---------------------------------------------------------------- Runde 2: Achsen zuordnen
 _K = lambda *worte: (lambda g, p: any(w in p["kurz"] for w in worte))
-LTG_MAT = [{"k": "", "t": ""}, {"k": "Edelstahl 1.4301", "t": "Ausführung in Edelstahl 1.4301.", "fm": 2.8, "fh": 1.15, "gen": "C"}]
+LTG_MAT = [{"ersetze": [[r" Stahl verzinkt,", ","], [r"verzinktem Stahlblech", "Stahlblech"], [r" verzinkt\b", ""]], "k": "verzinkt", "t": "Werkstoff Stahlblech verzinkt."},
+           {"k": "Edelstahl 1.4301", "t": "Werkstoff Edelstahl 1.4301.", "fm": 2.8, "fh": 1.15, "gen": "C"}]
+WSG_EINBAU = [{"k": "", "t": "Einbau in Mauerwerk bzw. Beton."}, {"k": "in WDVS/VHF", "t": "Einbau in gedämmte Fassade (WDVS bzw. VHF) mit Laibungsdämmung und Anschlussabdichtung.", "fh": 1.2, "mat": 25}]
 LTG_DAEMM = [{}, {"k": "gedämmt 30 mm", "t": "Einschließlich Dämmung mit Mineralwolle alukaschiert 30 mm, Stöße dampfdicht verklebt.", "fm": 1.6, "h": 0.25}]
 LTG_HOEHE = [{}, {"k": "über 3,5 m", "t": "Montagehöhe über 3,5 m bis 6 m, Arbeitsbühne stellt der Auftragnehmer.", "fh": 1.25, "geraet": 1.5}]
 DL_FARBE = [{"k": "", "t": "Sichtteile pulverbeschichtet weiß RAL 9010."}, {"k": "Sonderfarbe RAL", "t": "Sichtteile in Sonderfarbe nach RAL.", "fm": 1.15}]
@@ -239,9 +241,13 @@ zuweisen(LBS, [
     (_K("Formstück"), [LTG_MAT, LTG_HOEHE, ORT_KLEIN]),
     (_K("Flexibles Rohrsystem", "Luftverteilerkasten"), [ORT_KLEIN, MENGE]),
     (_K("Schalldämpfer", "Jalousieklappe", "Brandschutzklappe", "Absperrvorrichtung", "Rauchschutzklappe", "Revisionsöffnung"), [LTG_HOEHE, ORT_KLEIN]),
-    (_K("Tellerventil", "Drallauslass", "Lüftungsgitter", "Wetterschutzgitter"), [DL_FARBE, DL_EINBAU, ORT_KLEIN]),
+    (_K("Wetterschutzgitter"), [DL_FARBE, WSG_EINBAU, ORT_KLEIN]),
+    (_K("Drallauslass"), [DL_FARBE, ORT_KLEIN]),
+    (_K("Tellerventil", "Lüftungsgitter"), [DL_FARBE, DL_EINBAU, ORT_KLEIN]),
     (_K("Volumenstromregler"), [LTG_HOEHE, ORT_KLEIN]),
-    (_K("Wohnungslüftungsgerät", "Lüftungszentralgerät", "Dezentraler Wandlüfter"), [GERAET_REG, GERAET_AUFSTELLUNG, ORT_KLEIN, WARTUNG]),
+    (_K("Wohnungslüftungsgerät"), [GERAET_REG, GERAET_AUFSTELLUNG[:2], ORT_KLEIN, WARTUNG]),
+    (_K("Dezentraler Wandlüfter"), [[{}, {"k": "Feuchte-geführt", "t": "Bedarfsgeführt über Feuchtesensor in der Steuerung.", "mat": 60, "h": 0.3}], ORT_KLEIN, WARTUNG]),
+    (_K("Lüftungszentralgerät"), [GERAET_REG, GERAET_AUFSTELLUNG, ORT_KLEIN, WARTUNG]),
     (_K("Dachventilator", "Split-Klimagerät", "Multisplit"), [GERAET_AUFSTELLUNG, ORT_KLEIN, WARTUNG]),
     (_K("Abluftventilator Bad"), [[{}, {"k": "mit Feuchtesteuerung", "t": "Mit Hygrostat bzw. Feuchte-/Nachlaufsteuerung.", "mat": 35}], VERLEGUNG_GERAET[:3], ORT]),
     (_K("Kältemittelleitung", "Küchen-Abluftanschluss", "Abluftleitung Küche", "Luftleitungsdämmung"), [LTG_HOEHE, ORT_KLEIN]),

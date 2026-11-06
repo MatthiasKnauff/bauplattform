@@ -364,7 +364,6 @@ html.mobil .bph{position:sticky;top:0}
     <div class="rg"><div class="rr">
       <button class="rb" id="newBtn" title="Neues Leistungsverzeichnis / neuer Auftrag"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M12 11v6M9 14h6" class="ac"/></svg>Neu</button>
       <button class="rb" data-act="pos" data-need="lv" title="Position anhängen"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h12"/><path d="M19 15v6M16 18h6" class="ac"/></svg>Position</button>
-      <button class="rb" data-act="pdb" data-need="lv" title="Positionen aus den Baudaten einfügen (Positionsdatenbank, Sirados-Import, eigene Positionen) – mit Langtext, Einheit, KG und Schätzpreis"><svg viewBox="0 0 24 24"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v6c0 1.7 3.6 3 8 3"/><path d="M4 12v6c0 1.7 3.6 3 8 3"/><path d="M18 14v7M14.5 17.5h7" class="ac"/></svg>Baudaten</button>
       <button class="rb" data-act="titel" data-need="lv" title="Titel anhängen"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/><path d="M17 12v5M14.5 14.5h5" class="ac"/></svg>Titel</button>
     </div><div class="rl">Neu</div></div>
     <div class="rg"><div class="rr">
@@ -397,7 +396,6 @@ html.mobil .bph{position:sticky;top:0}
 <datalist id="lbList"></datalist><datalist id="ehList"><option>m</option><option>m2</option><option>m3</option><option>St</option><option>psch</option><option>kg</option><option>t</option><option>h</option><option>lfm</option></datalist>
 <datalist id="gwList"></datalist>
 <script src="static/bp.js"></script>
-<script src="static/pdbwahl.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('ava.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('ava.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschritte, rechts die Tabelle
@@ -611,7 +609,7 @@ function vLv() {
   const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
   const LV = LIST.filter((x) => !x.archived || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
-  return `<div class="bar"><button class="btn sm" data-act="titel">+ Titel</button><button class="btn sm" data-act="pos">+ Position</button><button class="btn sm" data-act="pdb">+ aus Baudaten</button><button class="btn sm" data-act="txt">+ Hinweistext</button>
+  return `<div class="bar"><button class="btn sm" data-act="titel">+ Titel</button><button class="btn sm" data-act="pos">+ Position</button><button class="btn sm" data-act="txt">+ Hinweistext</button>
       ${V ? '<button class="btn sm" data-act="nt" title="Nachtragsposition (geänderte oder zusätzliche Leistung nach § 2 Abs. 5/6 VOB/B)">+ Nachtrag</button>' : ''}
       <button class="btn sm" data-act="num" title="Ordnungszahlen neu vergeben: Titel 01, 02 …, Positionen 0010, 0020 …">Nummerieren</button>
       <button class="btn sm" data-act="bk" title="Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen">Aus Baukosten …</button>
@@ -733,15 +731,6 @@ document.addEventListener('keydown', (e) => {   // Strg+C/X/V, Entf und Esc für
   else if (k === 'escape' && LVSEL.size) { LVSEL = new Set(); lvAktZeigen(); }
 });
 document.addEventListener('focusin', (e) => { if (tab !== 'lv' || !L) return; const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) { const x = items()[+tr.dataset.i]; if (x && x.id !== LVAKT) { LVAKT = x.id; lvAktZeigen(); } } });
-/* Positionen aus den Baudaten (Container „Baudaten“, gleiche Datenbank) an der aktiven Stelle einfügen – Dialog in static/pdbwahl.js */
-function pdbDialog() {
-  pdbWahl({ onInsert(neu) {
-    const I = items(); let at = lvEinfuegeStelle('pos');
-    for (const x of neu) { const it = { ...x, id: uid() }; I.splice(at++, 0, it); LVAKT = it.id; }
-    HIST.next = `${neu.length} Position${neu.length === 1 ? '' : 'en'} aus den Baudaten eingefügt`;
-    numerieren(); changed(true); toast(`${neu.length} Position${neu.length === 1 ? '' : 'en'} eingefügt – Mengen ergänzen.`);
-  } });
-}
 function addItem(kind) {
   const I = items(), at = lvEinfuegeStelle(kind), ref = at > 0 ? I[at - 1] : null;
   let neu;
@@ -806,7 +795,6 @@ document.addEventListener('click', async (e) => {
     if (['titel', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
     if (a === 'num') { numerieren(); changed(true); return; }
     if (a === 'bk') return bkDialog();
-    if (a === 'pdb') { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return pdbDialog(); }
     if (a === 'vorbem') { L.data.showVorbem = !L.data.showVorbem; render(); return; }
     if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); render(); return; }
     if (a === 'bieter') return bieterDialog();
@@ -1509,7 +1497,8 @@ let QU = { ber: LS.get('qu.ber', ''), inG: LS.get('qu.inG', true), gw: null, an:
 document.addEventListener('focusin', (e) => { const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) LASTI = +tr.dataset.i; });
 let KAT = null;   // {kataloge: [...]} – eingelesene Kataloge (sirAdos Positionen, sirAdos Elemente …)
 const istKat = (v) => String(v || '').startsWith('kat:');
-const katId = (v) => +String(v).split(':')[1];
+const katId = (v) => { const t = String(v).split(':')[1] || ''; return /^\d+$/.test(t) ? +t : t; };   // Zahl (Katalog der AVA) oder „bd-gk3“ (Baudaten)
+const alleKat = () => [...((KAT && KAT.kataloge) || []), ...((KAT && KAT.bd) || [])];
 async function katalogEinstellungen(host) {
   const K = await api('api/katalog').catch((e) => ({ kataloge: [], fehler: e.message })); KAT = K;
   const admin = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
@@ -1546,8 +1535,9 @@ async function katalogEinstellungen(host) {
 const quLvLaden = (v) => { const t = String(v).split(':'); return (istKat(v) ? api(t[2] === 'suche' ? `api/katalog/${t[1]}/suche?q=` + encodeURIComponent(QU.q || '') + (QU.inG && QU.gw ? '&gewerk=' + encodeURIComponent(QU.gw) : '') + (QU.ber ? '&bereich=' + QU.ber : '') : `api/katalog/${t[1]}/gewerk/` + encodeURIComponent(t.slice(2).join(':'))) : api('api/lv/' + v)).catch(() => null); };
 async function quLaden() {
   if (!KAT || !Array.isArray(KAT.kataloge)) KAT = await api('api/katalog').catch(() => ({ kataloge: [] })); if (!Array.isArray(KAT.kataloge)) KAT.kataloge = [];
+  if (!Array.isArray(KAT.bd)) KAT.bd = await api('api/baudaten/kataloge').catch(() => []);   // Positionsdatenbank und eigene Positionen
   if (QU.pid === 'kat') QU.pid = KAT.kataloge[0] ? 'kat:' + KAT.kataloge[0].id : null;   // vorher: ein einziger Katalog
-  if (istKat(QU.pid) && !KAT.kataloge.some((x) => x.id === katId(QU.pid))) QU.pid = null;
+  if (istKat(QU.pid) && !alleKat().some((x) => x.id === katId(QU.pid))) QU.pid = null;
   if (!QU.pid) QU.pid = (PROJ.find((p) => p.id !== pid) || PROJ[0] || {}).id || null;
   QU.vers = QU.pid && !istKat(QU.pid) ? await api('api/versionen?project_id=' + QU.pid).catch(() => []) : [];
   if (!QU.vers.some((v) => v.id === QU.ver)) QU.ver = ((QU.vers.find((v) => v.aktiv) || QU.vers[0]) || {}).id || null;
@@ -1557,6 +1547,33 @@ async function quLaden() {
   if (istKat(QU.lv) && !suche) QU.gw = String(QU.lv).split(':').slice(2).join(':');
   QU.L = QU.lv ? await quLvLaden(QU.lv) : null;
   QU.sel = new Set(); LS.set('qu.pid', QU.pid); LS.set('qu.lv', QU.lv); quZeigen();
+}
+function quProjMenu(anchor) {   // Kataloge oben, darunter Projekte mit kleinem Filterfeld (wie die Projektauswahl, aber für die Kopierquelle)
+  const old = document.querySelector('.pickm'); if (old) { old.remove(); return; }
+  const m = document.createElement('div'); m.className = 'pickm qu-pm'; m.setAttribute('role', 'listbox');
+  const opt = (v, t, sub) => `<div class="pm-o${String(v) === String(QU.pid) ? ' on' : ''}" data-v="${esc(v)}" role="option"><span><b>${esc(t)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></div>`;
+  const kat = alleKat();
+  m.innerHTML = `<div class="pm-l">${kat.length ? '<div class="pm-g">Kataloge</div>' + kat.map((x) => opt('kat:' + x.id, x.name, x.n_pos ? `${Number(x.n_pos).toLocaleString('de-DE')} Positionen` : '')).join('') : ''}
+    <div class="pm-g">Projekte</div><div class="pm-q" style="padding:.1rem .6rem .45rem;border:0"><input type="search" placeholder="Projekt filtern – Nr., Straße, Ort …" autocomplete="off" aria-label="Projekte filtern"></div><div class="qu-pl"></div></div>`;
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect(); m.style.top = Math.min(r.bottom + 6, innerHeight - 160) + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+  const zeichne = (q) => {
+    const ps = PROJ.filter((p) => !q || passt(p.name, q));
+    const akt = ps.filter((p) => !p.archived), arc = ps.filter((p) => p.archived);
+    m.querySelector('.qu-pl').innerHTML = (akt.map((p) => opt(p.id, p.name)).join('') || (q ? '<div class="pm-e">Kein Projekt gefunden.</div>' : ''))
+      + (arc.length ? '<div class="pm-g">Archiv</div>' + arc.map((p) => opt(p.id, p.name)).join('') : '');
+  };
+  zeichne('');
+  const inp = m.querySelector('input'); inp.addEventListener('input', () => zeichne(inp.value.trim()));
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const o = m.querySelector('.qu-pl .pm-o'); if (o) o.click(); } if (e.key === 'Escape') zu(); });
+  const zu = () => { m.remove(); document.removeEventListener('pointerdown', weg, true); };
+  const weg = (e) => { if (!m.contains(e.target) && !anchor.contains(e.target)) zu(); };
+  setTimeout(() => document.addEventListener('pointerdown', weg, true), 0);
+  m.addEventListener('click', async (e) => {
+    const o = e.target.closest('.pm-o[data-v]'); if (!o) return; zu();
+    const v = o.dataset.v; QU.pid = istKat(v) ? v : +v; QU.lv = null; QU.ver = null; QU.q = ''; QU.gw = null; await quLaden();
+  });
+  if (!istKat(QU.pid)) inp.focus();
 }
 const quItems = () => (QU.L && QU.L.data && QU.L.data.items) || [];
 function quZeigen() {
@@ -1569,12 +1586,12 @@ function quZeigen() {
   const I = quItems();
   const rows = I.map((x, i) => x.typ === 'titel'
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
-    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
+    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.bez || x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`).join('');
   const lvo = QU.list.find((x) => x.id === QU.lv);
   const sir = istKat(QU.pid) && /^sirados/i.test((((KAT && KAT.kataloge) || []).find((x) => x.id === katId(QU.pid)) || {}).quelle || '');
   const gwName = QU.gw && ((QU.list || []).find((x) => x.id === `${QU.pid}:${QU.gw}`) || {}).name;
   box.innerHTML = `<div class="qu-h">
-      <div class="rr"><select id="quProj" aria-label="Projekt der Kopierquelle">${KAT && KAT.kataloge.length ? `<optgroup label="Kataloge">${KAT.kataloge.map((x) => `<option value="kat:${x.id}"${QU.pid === 'kat:' + x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : ''}${['Projekte', 'Archiv'].map((g) => { const ps = PROJ.filter((p) => !!p.archived === (g === 'Archiv')); return ps.length ? `<optgroup label="${g}">${ps.map((p) => `<option value="${p.id}"${p.id === QU.pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select><button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button><button class="ib" data-qu="zu" title="Kopierquelle schließen (schreibgeschützt – hier lässt sich nichts ändern)">✕</button></div>
+      <div class="rr"><button type="button" id="quProj" aria-label="Katalog oder Projekt der Kopierquelle"></button><button type="button" id="quSel" aria-label="LV der Kopierquelle wählen"></button><button class="ib" data-qu="zu" title="Kopierquelle schließen (schreibgeschützt – hier lässt sich nichts ändern)">✕</button></div>
       ${(QU.vers || []).length > 1 ? `<div class="rr"><label style="display:flex;gap:.5rem;align-items:center;flex:1;font-size:.88rem;color:var(--mute)">Version<select id="quVer" style="flex:1">${QU.vers.map((v, i) => `<option value="${v.id}"${v.id === QU.ver ? ' selected' : ''}>${i + 1} · ${esc(v.name)}${v.aktiv ? ' (aktuell)' : ''}${v.archived ? ' (archiviert)' : ''}</option>`).join('')}</select></label></div>` : ''}
       ${istKat(QU.pid) ? `<div class="rr qu-s"><input type="search" id="quQ" value="${esc(QU.q || '')}" placeholder="Suchen – z. B. Kalksandstein 17,5" autocomplete="off">
         ${gwName ? `<select id="quIn" aria-label="Wo suchen"><option value=""${QU.inG ? '' : ' selected'}>überall</option><option value="g"${QU.inG ? ' selected' : ''}>nur ${esc(gwName.length > 22 ? gwName.slice(0, 21) + '…' : gwName)}</option></select>` : ''}
@@ -1584,6 +1601,8 @@ function quZeigen() {
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
     <div class="qu-l">${QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
 `;
+  const qk = istKat(QU.pid) ? alleKat().find((x) => x.id === katId(QU.pid)) : null, qp = !istKat(QU.pid) ? PROJ.find((p) => p.id === QU.pid) : null;
+  pickButton($('#quProj'), qk ? { title: qk.name, sub: 'Katalog' } : qp ? { title: qp.name, sub: qp.archived ? 'Projekt (Archiv)' : 'Projekt' } : { title: 'Quelle wählen', sub: '' });
   pickButton($('#quSel'), istKat(QU.lv) && QU.lv.endsWith(':suche') ? { title: QU.L ? QU.L.name : 'Suche', sub: QU.L ? `${quItems().filter((x) => x.typ === 'pos').length}${QU.L.mehr ? '+' : ''} Treffer` : '' }
     : lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: istKat(QU.pid) ? `${lvo.bereich} · ${lvo.n_pos} Positionen` : [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
 }
@@ -1617,6 +1636,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-qu]');
   if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); quZeigen(); return; }
   if (b && b.dataset.qu === 'ein') { quEinfuegen(quAuswahl(), LASTI); return; }
+  if (e.target.closest('#quProj')) { quProjMenu($('#quProj')); return; }
   if (e.target.closest('#quSel')) {
     pickMenu($('#quSel'), { search: QU.list.length > 6 ? (istKat(QU.pid) ? 'Gewerk suchen …' : 'LV suchen …') : '', empty: 'Kein LV in diesem Projekt.',
       items: QU.list.filter((x) => !istKat(QU.pid) || !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || '')).map((x) => ({ group: x.bereich || (x.archived ? 'Archiv' : 'Leistungsverzeichnisse'), title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
@@ -1663,8 +1683,7 @@ document.addEventListener('input', (e) => {
   }, 350);
 });
 document.addEventListener('change', async (e) => {
-  if (e.target.id === 'quProj') { QU.pid = istKat(e.target.value) ? e.target.value : +e.target.value; QU.lv = null; QU.ver = null; QU.q = ''; await quLaden(); }
-  else if (e.target.id === 'quIn') { QU.inG = e.target.value === 'g'; LS.set('qu.inG', QU.inG); await quSucheNeu(); }
+  if (e.target.id === 'quIn') { QU.inG = e.target.value === 'g'; LS.set('qu.inG', QU.inG); await quSucheNeu(); }
   else if (e.target.id === 'quVer') { QU.ver = +e.target.value; QU.lv = null; await quLaden(); }
   else if (e.target.id === 'quM') { QU.mengen = e.target.checked; LS.set('qu.mengen', QU.mengen); }
   else if (e.target.id === 'quP') { QU.preise = e.target.checked; LS.set('qu.preise', QU.preise); }

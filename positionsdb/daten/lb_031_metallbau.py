@@ -32,9 +32,9 @@ LBS = [{
                            {"k": "30", "f": "2-flg.", "rm": "2000 × 2125 mm", "h": 8, "mat": 2350},
                            {"k": "90", "f": "1-flg.", "rm": "1000 × 2125 mm", "h": 5.5, "mat": 1450},
                            {"k": "90", "f": "2-flg.", "rm": "2000 × 2125 mm", "h": 9, "mat": 3500}]},
-            {"kurz": "Rauchschutztür Stahl S200, einflügelig, {rm}",
+            {"kurz": "Rauchschutztür Stahl S200, einflügelig",
              "lang": "Rauchschutztür Sa/S200-C5 aus Stahl, einflügelig, mit umlaufender Dichtung, absenkbarer "
-                     "Bodendichtung, Obentürschließer, Prüfzeugnis, Rohbaurichtmaß {rm}.",
+                     "Bodendichtung, Obentürschließer, Prüfzeugnis.",
              "einheit": "St", "kg": "344", "gen": "B", "varianten": [{"rm": "1000 × 2125 mm", "h": 4.0, "mat": 820}]},
             {"kurz": "Rohrrahmentür verglast {bs}, {f}",
              "lang": "Rohrrahmentür aus Stahl- bzw. Aluminiumprofilen, Anforderung {bs}, "
@@ -71,14 +71,14 @@ LBS = [{
              "einheit": "m", "kg": "359", "gen": "B",
              "varianten": [{"fu": "horizontale Relinge Ø 12 mm", "h": 3.0, "mat": 210},
                            {"fu": "VSG-Glas 2 × 8 mm in Glasklemmen", "h": 3.5, "mat": 300}]},
-            {"kurz": "Balkongeländer {art}, Höhe 1,00 m",
-             "lang": "Balkon- bzw. Brüstungsgeländer {art}, Höhe 1,00 m über OK Belag (bzw. 1,10 m bei Absturzhöhe "
-                     "über 12 m), stirnseitig an der Balkonplatte befestigt, Statik durch AN. Abrechnung nach Länge.",
+            {"kurz": "Balkongeländer {ka}",
+             "lang": "Balkon- bzw. Brüstungsgeländer {art}, Höhe über OK Belag, an der Balkonplatte befestigt, "
+                     "Statik durch AN. Abrechnung nach Länge.",
              "einheit": "m", "kg": "359", "gen": "B",
-             "varianten": [{"art": "Stahl verzinkt mit Füllstäben", "h": 2.8, "mat": 200},
-                           {"art": "Stahl verzinkt mit Lochblechfüllung", "h": 2.8, "mat": 240},
-                           {"art": "Aluminium mit VSG-Füllung", "h": 3.0, "mat": 340},
-                           {"art": "Ganzglas-Brüstung im Bodenprofil, VSG", "h": 3.5, "mat": 560}]},
+             "varianten": [{"art": "Stahl verzinkt mit Füllstäben", "ka": "Stahl/Stäbe", "h": 2.8, "mat": 200},
+                           {"art": "Stahl verzinkt mit Lochblechfüllung", "ka": "Stahl/Lochblech", "h": 2.8, "mat": 240},
+                           {"art": "Aluminium mit VSG-Füllung", "ka": "Alu/VSG", "h": 3.0, "mat": 340},
+                           {"art": "Ganzglas-Brüstung im Bodenprofil, VSG", "ka": "Ganzglas Bodenprofil", "h": 3.5, "mat": 560}]},
             {"kurz": "Französischer Balkon, Breite bis {b} m",
              "lang": "Absturzsicherung vor bodentiefen Fenstern aus Edelstahlrahmen mit VSG-Glasfüllung bzw. "
                      "Stahlstäben, in der Leibung oder am Fensterrahmen befestigt, geprüftes System, Breite bis {b} m.",
@@ -201,6 +201,10 @@ BEF = [{"k": "seitlich", "t": "Pfosten seitlich an Wange bzw. Stirnseite befesti
 LAUF = [{"k": "gerade", "t": "Treppenlauf gerade."}, {"k": "gewendelt", "t": "Treppenlauf gewendelt bzw. mit Podestkrümmlingen.", "fh": 1.35, "fm": 1.15, "gen": "C"}]
 ES_OB = [{"k": "V2A", "t": "Werkstoff 1.4301 (V2A), geschliffen K240."}, {"k": "V4A", "t": "Werkstoff 1.4404/1.4571 (V4A), z. B. für Außen- und Chloridbelastung.", "fm": 1.3}]
 HOEHE = [{"k": "1,00 m", "t": "Geländerhöhe 1,00 m."}, {"k": "1,10 m", "t": "Geländerhöhe 1,10 m (Absturzhöhe über 12 m).", "fm": 1.06}]
+BEF_B = [{"k": "stirnseitig", "t": "Pfosten stirnseitig an der Balkonplatte befestigt."}, {"k": "aufgesetzt", "t": "Pfosten von oben auf die Balkonplatte gedübelt.", "fh": 0.9}]
+GEL_AL = [{"k": "eloxiert", "t": "Oberfläche eloxiert E6/EV1.", "fm": 0.88}, {"k": "pulverbeschichtet", "t": "Oberfläche pulverbeschichtet RAL nach Wahl."},
+          {"k": "Sonderfarbe", "t": "Pulverbeschichtung in Sonderfarbe bzw. DB-Farbton.", "fm": 1.06}]
+GLAS_BP = [{"k": "Profil Alu natur", "t": "Bodenprofil Aluminium natur, Glaskante mit Kantenschutzprofil.", "fm": 0.86}, {"k": "Profil Edelstahloptik", "t": "Bodenprofil mit Abdeckung in Edelstahloptik.", "mat": 45}]
 HL_F = [{"k": "gerade", "t": "Handlauf gerade."}, {"k": "gebogen", "t": "Handlauf gebogen bzw. mit Krümmlingen an Podesten.", "fh": 1.5, "fm": 1.2}]
 HL_LED = [{}, {"k": "mit LED", "t": "Mit integriertem LED-Lichtband im Handlauf, Treiber; Anschluss bauseits.", "mat": 85, "h": 0.3}]
 FB_FU = [{"k": "Glas VSG", "t": "Füllung VSG klar bzw. satiniert."}, {"k": "Edelstahlstäbe", "t": "Füllung Edelstahlstäbe bzw. Relinge.", "fm": 0.85}]
@@ -210,8 +214,8 @@ STUFE = [{"k": "Gitterroststufen", "t": "Stufen aus Gitterrost R11 mit Antrittka
          {"k": "Lochblechstufen", "t": "Stufen aus Lochblech gekantet.", "fm": 1.08}, {"k": "Betonwerksteinstufen", "t": "Stufen aus Betonwerkstein in Stahlschalen.", "fm": 1.25, "fh": 1.15}]
 GEL2 = [{"k": "Geländer einseitig", "t": "Geländer einseitig."}, {"k": "Geländer beidseitig", "t": "Geländer beidseitig.", "mat": 900, "h": 6}]
 OB2 = [{"k": "verzinkt", "t": "Oberfläche feuerverzinkt."}, {"k": "Duplex", "t": "Feuerverzinkt und pulverbeschichtet.", "fm": 1.12}]
-LEI_M = [{"k": "Stahl verzinkt", "t": "Werkstoff Stahl feuerverzinkt."}, {"k": "Aluminium", "t": "Werkstoff Aluminium.", "fm": 1.1}, {"k": "Edelstahl", "t": "Werkstoff Edelstahl.", "fm": 1.6}]
-LEI_S = [{"k": "Rückenschutz", "t": "Mit Rückenschutz ab 3 m Höhe."}, {"k": "Steigschutzschiene", "t": "Mit Steigschutzschiene und Läufer statt Rückenschutz.", "mat": 380}]
+LEI_M = [{"ersetze": [[r" aus Stahl verzinkt bzw\. Aluminium", ""]], "k": "Stahl verzinkt", "t": "Werkstoff Stahl feuerverzinkt."}, {"k": "Aluminium", "t": "Werkstoff Aluminium.", "fm": 1.1}, {"k": "Edelstahl", "t": "Werkstoff Edelstahl.", "fm": 1.6}]
+LEI_S = [{"ersetze": [[r" mit Rückenschutz ab 3 m", ""]], "k": "Rückenschutz", "t": "Mit Rückenschutz ab 3 m Höhe."}, {"k": "Steigschutzschiene", "t": "Mit Steigschutzschiene und Läufer statt Rückenschutz.", "mat": 380}]
 GR_MW = [{"k": "MW 30/10", "t": "Maschenweite 30/10 mm."}, {"k": "MW 30/30", "t": "Maschenweite 30/30 mm.", "fm": 0.9}, {"k": "MW 20/10 (fußgängerfreundlich)", "t": "Maschenweite 20/10 mm.", "fm": 1.15}]
 GR_M = [{"k": "verzinkt", "t": "Feuerverzinkt."}, {"k": "Edelstahl", "t": "Edelstahl V2A.", "fm": 2.5, "gen": "C"}]
 LS_R = [{}, {"k": "befahrbar Pkw", "t": "Mit Pkw-befahrbarem Rost und verstärktem Schacht.", "mat": 180}, {"k": "Abhebesicherung RC", "t": "Mit einbruchhemmender Abhebesicherung.", "mat": 45}]
@@ -231,7 +235,7 @@ _A = [("Stahl-Umfassungszarge", [ZWAND, ZBS, OB_Z, ORT]), ("Stahl-Eckzarge", [ZB
       ("Garagen-Sektionaltor", [TOR_OB, TOR_S, TOR_A, ORT]),
       ("Treppengeländer Stahl", [GEL_OB, GEL_FU, BEF, LAUF, ORT]),
       ("Treppengeländer Edelstahl", [ES_OB, BEF, LAUF, ORT]),
-      ("Balkongeländer", [BEF, HOEHE, GEL_OB, ORT]),
+      ("Balkongeländer", [BEF_B, HOEHE, GEL_OB, ORT]),
       ("Französischer Balkon", [FB_FU, FB_BEF, ORT]),
       ("Wandhandlauf", [HL_F, HL_LED, ORT]),
       ("Geländer Bestand", [GEL_OB]),
@@ -247,6 +251,16 @@ for _g in LBS[0]["gruppen"]:
                 _p["achsen"] = _ax
                 break
 
+# Balkongeländer: Aluminium nicht feuerverzinkt; Ganzglas im Bodenprofil ohne Pfosten
+for _g in LBS[0]["gruppen"]:
+    for _p in _g["positionen"]:
+        if _p["kurz"].startswith("Balkongeländer"):
+            for _v in _p.get("varianten") or []:
+                if _v["art"].startswith("Aluminium"):
+                    _v["achsen"] = [BEF_B, HOEHE, GEL_AL, ORT]
+                elif _v["art"].startswith("Ganzglas"):
+                    _v["achsen"] = [HOEHE, GLAS_BP, ORT]
+
 _GR = {g["name"]: g for g in LBS[0]["gruppen"]}
 _GR["Zargen, Stahltüren"]["positionen"] += [
     {"kurz": "Stahlzarge / Stahltür ausbauen und entsorgen, {art}",
@@ -259,7 +273,7 @@ _GR["Zargen, Stahltüren"]["positionen"] += [
              "Schließfolgeregelung, Dichtungen, Kennzeichnung prüfen, einstellen, Prüfbuch führen. {f}.",
      "einheit": "St", "kg": "344", "gen": "A", "tags": ["altbau"],
      "varianten": [{"f": "einflügelig", "h": 0.8, "mat": 5}, {"f": "zweiflügelig", "h": 1.2, "mat": 8}, {"f": "mit Feststellanlage", "h": 1.5, "mat": 10}]},
-    {"kurz": "Stahltür {f} nachrüsten: Obentürschließer, Panik, Dichtung",
+    {"kurz": "Stahltür {f} nachrüsten",
      "lang": "Vorhandene Stahltür ertüchtigen: {f}, Funktion prüfen und einstellen; Zulassungsfragen (Feuerschutz) mit dem Hersteller klären.",
      "einheit": "St", "kg": "344", "gen": "B", "tags": ["altbau"],
      "varianten": [{"f": "Obentürschließer", "h": 1.2, "mat": 170}, {"f": "Panikschloss mit Drücker EN 179", "h": 1.5, "mat": 260},

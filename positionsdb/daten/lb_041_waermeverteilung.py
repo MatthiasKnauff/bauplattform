@@ -1,3 +1,4 @@
+import re
 # LB 041 Wärmeversorgungsanlagen – Leitungen, Armaturen, Heizflächen (eigene Texte, Preisstand 11/2026)
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -245,11 +246,12 @@ LBS[0]["gruppen"][3]["positionen"] += [
     {"kurz": "Heizkörper-Wandkonsolen Zulage Stand-/Bodenkonsole",
      "lang": "Zulage für Standkonsolen zur Bodenmontage vor Glasflächen bzw. Leichtwänden, je Heizkörper ein Paar.",
      "einheit": "St", "kg": "423", "h": 0.5, "mat": 45, "gen": "A"},
-    {"kurz": "Thermostatkopf tauschen bzw. Smart-Thermostat",
+    {"kurz": "Thermostatkopf tauschen, {art_k}",
      "lang": "Thermostatkopf auf vorhandenes Ventilunterteil montieren: {art}.",
      "einheit": "St", "kg": "423", "gen": "A",
-     "varianten": [{"art": "Standard-Flüssigkeitsfühler", "h": 0.25, "mat": 18}, {"art": "Behördenmodell, diebstahlgesichert", "h": 0.3, "mat": 28},
-                   {"art": "elektronisch programmierbar/Funk", "h": 0.4, "mat": 65}]},
+     "varianten": [{"art": "Standard-Flüssigkeitsfühler", "art_k": "Standard", "h": 0.25, "mat": 18},
+                   {"art": "Behördenmodell, diebstahlgesichert", "art_k": "Behördenmodell", "h": 0.3, "mat": 28},
+                   {"art": "elektronisch programmierbar/Funk", "art_k": "elektronisch/Funk", "h": 0.4, "mat": 65}]},
     {"kurz": "Kompaktheizkörper hygienisch (Planfront ohne Konvektor), Typ 20, BL {bl} mm",
      "lang": "Hygieneheizkörper ohne Konvektorbleche (Krankenhaus, Pflege), Typ 20, Bauhöhe 600 mm, Baulänge {bl} mm, montiert.",
      "einheit": "St", "kg": "423", "gen": "B", "varianten": [{"bl": "1000", "h": 1.8, "mat": 260}, {"bl": "1600", "h": 2.2, "mat": 390}]},
@@ -258,10 +260,33 @@ zuweisen(LBS, vorab() + [
     (ist("m", kurz=r"Mehrschichtverbund|Kupfer"), [VERLEGUNG_ROHR, DAEMMUNG_VORGEDAEMMT, ORT, MENGE]),
     (ist("m", kurz=r"C-Stahl|Stahl geschw"), [VERLEGUNG_ROHR, ORT, MENGE]),
     (ist("m", kurz=r"Nahwärme"), [ORT_KLEIN, MENGE]),
-    (ist("St", kurz=r"Flachheiz|Ventilheiz|Badheiz|Röhren|Hygiene"), [HK_FARBE, HK_ANSCHLUSS, BEFESTIGUNG, ORT_KLEIN]),
+    (ist("St", kurz=r"Röhren"), [HK_FARBE, ORT_KLEIN]),   # je Glied: keine Zuschläge je Heizkörper
+    (ist("St", kurz=r"Ventilheiz"), [HK_FARBE, [{}] + HK_ANSCHLUSS[1:], BEFESTIGUNG, ORT_KLEIN]),   # Anschluss unten mittig
+    (ist("St", kurz=r"Flachheiz|Badheiz|Hygiene"), [HK_FARBE, HK_ANSCHLUSS, BEFESTIGUNG, ORT_KLEIN]),
     (ist("m²", kurz=r"Fußbodenheizung (Noppen|Tacker)"), [FBH_UNTERGRUND, ORT_KLEIN, MENGE]),
     (ist(("m²", "m")), [ORT_KLEIN, MENGE]),
+    (lambda g, p: bool(re.search(INLINE_RX, p.get("kurz", ""), re.I)), [ORT]),
     (ist("St", gruppe=r"Armaturen"), [ORT, BEFESTIGUNG]),
     (ist("St"), [ORT, BEFESTIGUNG]),
     (ist(), [ORT_KLEIN]),
 ])
+
+
+# Große Rohrdurchmesser nicht unter Putz im Schlitz (Schlitzmaß, Statik): Achse je Variante ohne diese Verlegeart
+def _ohne_up(lbs, grenze_d=40, grenze_dn=32):
+    for lb in lbs:
+        for gr in lb["gruppen"]:
+            for p in gr["positionen"]:
+                ax = p.get("achsen") or []
+                if VERLEGUNG_ROHR not in ax:
+                    continue
+                for v in p.get("varianten") or [{}]:
+                    try:
+                        gross = float(str(v.get("d", "0")).replace(",", ".")) >= grenze_d or float(str(v.get("dn", "0"))) >= grenze_dn
+                    except ValueError:
+                        gross = False
+                    if gross or re.search(r"Stahl geschw", p["kurz"]):
+                        v["achsen"] = [VERLEGUNG_ROHR[:4] if a is VERLEGUNG_ROHR else a for a in ax]
+
+
+_ohne_up(LBS)

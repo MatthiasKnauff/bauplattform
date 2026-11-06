@@ -21,7 +21,7 @@ app = C.make_app(__name__)
 KEY = "baudaten"
 EINHEIT_GAEB = {"m2": "m²", "qm": "m²", "m3": "m³", "cbm": "m³", "lfm": "m", "lfdm": "m", "lm": "m", "stk": "St", "st.": "St", "stck": "St", "stück": "St",
                 "pausch": "psch", "psch.": "psch", "pauschal": "psch", "pa": "psch", "std": "h", "std.": "h", "wo": "Wo", "to": "t"}
-EINHEITEN = ("m²", "m³", "m", "St", "kg", "t", "psch", "h", "Wo", "StWo", "mWo", "m²Wo", "Tag", "l", "kW")
+EINHEITEN = ("m²", "m³", "m", "St", "kg", "t", "psch", "h", "Wo", "StWo", "mWo", "m²Wo", "m³Wo", "Tag", "Mon", "l", "kW", "kWp")
 
 
 @app.before_request
@@ -78,8 +78,13 @@ def start():
     """Kataloge mit Anzahl, Einstellungen (Index, Faktor) und Leistungsbereiche des gewählten Katalogs."""
     kat = request.args.get("katalog") or "gk3"
     with db.tx() as c:
-        kats = [x.dict() for x in c.execute("""SELECT k.key, k.name, k.art, k.lizenz, k.preisstand, k.index_basis,
+        kats = [x.dict() for x in c.execute("""SELECT k.key, k.name, k.art, k.lizenz, k.preisstand,
+                   COALESCE((SELECT m.value::real FROM pdb_meta m WHERE m.key = 'index:' || k.key), k.index_basis) AS index_basis,
                    (SELECT COUNT(*) FROM pdb_alle p WHERE p.katalog=k.key AND p.aktiv=1) AS n FROM pdb_kataloge k ORDER BY k.sort, k.name""").fetchall()]
+        for k in kats:   # Indexbasis, die tatsächlich verwendet wird (eigene Angabe oder aus dem Preisstand)
+            k["index_auto"] = k["index_basis"] is None and k["key"] != "gk3" and B.index_fuer(k["preisstand"]) is not None
+            if k["index_basis"] is None and k["key"] != "gk3":
+                k["index_basis"] = B.index_fuer(k["preisstand"])
         return jsonify(kataloge=kats, einstellungen=B.einstellungen(c), lbs=B.leistungsbereiche(c, kat), admin=_admin(),
                        einheiten=EINHEITEN, loehne=[x.dict() for x in c.execute("SELECT gewerk, name, verrechnungslohn, stand FROM pdb_lohn ORDER BY name").fetchall()])
 
@@ -135,7 +140,7 @@ def position_aendern(i):
         if not _darf(r) and any(k in b for k in ("kurz", "lang", "hinweis", "tags", "titel", "einheit", "kg", "ep_von", "ep_mittel", "ep_bis", "genauigkeit")):
             return jsonify(error="Katalogpositionen sind schreibgeschützt – für Änderungen „Als eigene Position“ übernehmen."), 403
         if _darf(r):
-            for k, n in (("kurz", 300), ("lang", 20000), ("hinweis", 4000), ("tags", 300), ("titel", 300)):
+            for k, n in (("kurz", 300), ("bez", 300), ("lang", 20000), ("hinweis", 4000), ("tags", 300), ("titel", 300)):
                 if k in b:
                     sets.append(f"{k}=?"); args.append(_s(b[k], n))
             if b.get("einheit") in EINHEITEN:
@@ -174,10 +179,10 @@ def position_neu():
         c.execute("UPDATE pdb_katalog SET index_basis=COALESCE(index_basis, ?), preisstand=COALESCE(NULLIF(preisstand, ''), ?) WHERE key='eigen'",
                   (E["index_aktuell"], date.today().strftime("%Y-%m")))
         f_e = B.umrechnung(c, "eigen", E) or 1.0   # gespeichert wird zum Preisstand des Katalogs „eigen“
-        d = {"lb_nr": "", "gruppe": "", "titel": "", "kurz": "Neue Position", "lang": "", "einheit": "St", "kg": "", "gewerk": "",
+        d = {"lb_nr": "", "gruppe": "", "titel": "", "kurz": "Neue Position", "bez": "", "lang": "", "einheit": "St", "kg": "", "gewerk": "",
              "ep_von": None, "ep_mittel": None, "ep_bis": None, "genauigkeit": "B", "tags": "", "hinweis": ""}
         if src:
-            d.update({k: src[k] for k in ("lb_nr", "gruppe", "kurz", "einheit", "kg", "gewerk", "genauigkeit", "tags", "hinweis")})
+            d.update({k: src.get(k) or "" for k in ("lb_nr", "gruppe", "kurz", "bez", "einheit", "kg", "gewerk", "genauigkeit", "tags", "hinweis")})
             d["titel"] = src.get("titel") or " › ".join(x for x in (src.get("lb_name") or "", src.get("gruppe_name") or "") if x)
             d["lang"] = src["lang_voll"]
             for k in ("ep_von", "ep_mittel", "ep_bis"):
@@ -186,10 +191,10 @@ def position_neu():
             if k in b and k != "von":
                 d[k] = b[k]
         code = _neuer_code(c)
-        i = c.execute("""INSERT INTO pdb_position(katalog, code, lb_nr, gruppe, titel, kurz, lang, einheit, kg, gewerk, ep_von, ep_mittel, ep_bis,
+        i = c.execute("""INSERT INTO pdb_position(katalog, code, lb_nr, gruppe, titel, kurz, bez, lang, einheit, kg, gewerk, ep_von, ep_mittel, ep_bis,
                          genauigkeit, tags, hinweis, quelle, preisstand, created, updated, updated_by)
-                         VALUES('eigen',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'eigen',?,?,?,?) RETURNING id""",
-                      (code, d["lb_nr"], d["gruppe"], _s(d["titel"], 300), _s(d["kurz"], 300), _s(d["lang"], 20000), d["einheit"], d["kg"], d["gewerk"],
+                         VALUES('eigen',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'eigen',?,?,?,?) RETURNING id""",
+                      (code, d["lb_nr"], d["gruppe"], _s(d["titel"], 300), _s(d["kurz"], 300), _s(d["bez"], 300), _s(d["lang"], 20000), d["einheit"], d["kg"], d["gewerk"],
                        _fn(d["ep_von"]), _fn(d["ep_mittel"]), _fn(d["ep_bis"]), d["genauigkeit"], d["tags"], _s(d["hinweis"], 4000),
                        date.today().strftime("%Y-%m"), now, now, C.full_name(g.user))).fetchone()["id"]
         return jsonify(B.position(c, i))
@@ -365,6 +370,16 @@ def katalog(key):
     if not _admin():
         return jsonify(error="Nur Administrator"), 403
     with db.tx() as c:
+        b = request.get_json(silent=True) or {}
+        if re.fullmatch(r"ava\d+", key) and request.method == "PUT":   # Kataloge der Ausschreibung: nur die Indexbasis (Fortschreibung)
+            v = _fn(b.get("index_basis"))
+            if v is None:
+                c.execute("DELETE FROM pdb_meta WHERE key=?", ("index:" + key,))
+            elif 50 <= v <= 500:
+                c.execute("INSERT INTO pdb_meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", ("index:" + key, str(v)))
+            else:
+                return jsonify(error="Index unplausibel (2021 = 100)."), 400
+            return jsonify(ok=True)
         r = c.execute("SELECT * FROM pdb_katalog WHERE key=?", (key,)).fetchone()
         if not r:
             return jsonify(error="Katalog nicht gefunden"), 404
@@ -374,7 +389,6 @@ def katalog(key):
             c.execute("DELETE FROM pdb_katalog WHERE key=?", (key,))
             C.audit(C.full_name(g.user), "baudaten", "Katalog gelöscht", r["name"])
             return jsonify(ok=True)
-        b = request.get_json(silent=True) or {}
         c.execute("UPDATE pdb_katalog SET name=?, lizenz=?, preisstand=?, index_basis=?, updated=?, updated_by=? WHERE key=?",
                   (_s(b.get("name"), 80) or r["name"], _s(b.get("lizenz", r["lizenz"]), 300), _s(b.get("preisstand", r["preisstand"]), 7),
                    _fn(b.get("index_basis")) if "index_basis" in b else r["index_basis"], db.now_iso(), C.full_name(g.user), key))
@@ -390,9 +404,9 @@ def export():
         lang = {r["id"]: r["lang_voll"] for r in c.execute("SELECT id, lang_voll FROM pdb_position_ansicht WHERE id = ANY(?)", ([x["id"] for x in rows],)).fetchall()} if rows else {}
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
-    w.writerow(["Katalog", "Code", "LB", "Gruppe", "Kurztext", "Langtext", "Einheit", "KG DIN 276", "EP von", "EP mittel", "EP bis", "Genauigkeit", "Preisstand"])
+    w.writerow(["Katalog", "Code", "LB", "Gruppe", "Kurztext", "Bezeichnung", "Langtext", "Einheit", "KG DIN 276", "EP von", "EP mittel", "EP bis", "Genauigkeit", "Preisstand"])
     de = lambda v: "" if v is None else str(v).replace(".", ",")
     for x in rows:
-        w.writerow([x["katalog"], x["code"], x["lb_nr"], x["gruppe_name"] or x["titel"], x["kurz"], (lang.get(x["id"]) or "").replace("\r", ""), x["einheit"], x["kg"],
+        w.writerow([x["katalog"], x["code"], x["lb_nr"], x["gruppe_name"] or x["titel"], x["kurz"], x["bez"] or x["kurz"], (lang.get(x["id"]) or "").replace("\r", ""), x["einheit"], x["kg"],
                     de(x["ep_von_akt"]), de(x["ep_mittel_akt"]), de(x["ep_bis_akt"]), x["genauigkeit"], x["preisstand"]])
     return Response("﻿" + buf.getvalue(), mimetype="text/csv; charset=utf-8", headers={"Content-Disposition": "attachment; filename=Baudaten.csv"})

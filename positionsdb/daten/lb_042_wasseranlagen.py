@@ -1,3 +1,4 @@
+import re
 # LB 042 Gas- und Wasseranlagen – Leitungen, Armaturen (eigene Texte, Preisstand 11/2026)
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -164,9 +165,30 @@ LBS[0]["gruppen"][1]["positionen"] += [
      "einheit": "St", "kg": "412", "h": 0.5, "mat": 38, "gen": "A"},
 ]
 zuweisen(LBS, vorab() + [
+    (ist("m", kurz=r"Gasleitung"), [VERLEGUNG_ROHR[:3], ORT, MENGE]),   # vor Edelstahl: Gas ohne GEG-Dämmung, nicht unter Putz
     (ist("m", kurz=r"Mehrschichtverbund|Edelstahl"), [VERLEGUNG_ROHR, DAEMMUNG_VORGEDAEMMT, ORT, MENGE]),
-    (ist("m", kurz=r"Gasleitung"), [VERLEGUNG_ROHR[:3], ORT, MENGE]),
     (ist("m"), [ORT_KLEIN, MENGE]),
+    (lambda g, p: bool(re.search(INLINE_RX, p.get("kurz", ""), re.I)), [ORT]),
     (ist("St", gruppe=r"Armaturen|Hausanschluss|Trinkwasser"), [ORT, BEFESTIGUNG]),
     (ist(), [ORT_KLEIN]),
 ])
+
+
+# Große Rohrdurchmesser nicht unter Putz im Schlitz (Schlitzmaß, Statik): Achse je Variante ohne diese Verlegeart
+def _ohne_up(lbs, grenze_d=40, grenze_dn=32):
+    for lb in lbs:
+        for gr in lb["gruppen"]:
+            for p in gr["positionen"]:
+                ax = p.get("achsen") or []
+                if VERLEGUNG_ROHR not in ax:
+                    continue
+                for v in p.get("varianten") or [{}]:
+                    try:
+                        gross = float(str(v.get("d", "0")).replace(",", ".")) >= grenze_d or float(str(v.get("dn", "0"))) >= grenze_dn
+                    except ValueError:
+                        gross = False
+                    if gross or re.search(r"Stahl geschw", p["kurz"]):
+                        v["achsen"] = [VERLEGUNG_ROHR[:4] if a is VERLEGUNG_ROHR else a for a in ax]
+
+
+_ohne_up(LBS)

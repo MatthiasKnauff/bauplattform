@@ -100,7 +100,7 @@ LBS = [{
              "lang": "Oberflächenschutzsystem {os} nach DIN EN 1504-2 / TR Instandhaltung ({art}) auf vorbereiteten Beton aufbringen, Schichtenfolge "
                      "und Verbrauch nach Systemprüfzeugnis, einschließlich Dokumentation der Verbrauchsmengen.",
              "einheit": "m²", "kg": "395", "gen": "B", "achsen": [LAGE, ZUG, FARBE],
-             "varianten": [{"os": "OS 1 (OS-A)", "art": "Hydrophobierung", "h": 0.08, "mat": 3.5},
+             "varianten": [{"os": "OS 1 (OS-A)", "art": "Hydrophobierung", "h": 0.08, "mat": 3.5, "achsen": [LAGE, ZUG]},
                            {"os": "OS 2 (OS-B)", "art": "Imprägnierung mit Deckbeschichtung", "h": 0.18, "mat": 7.5},
                            {"os": "OS 4 (OS-C)", "art": "Beschichtung mit erhöhter Dichtheit, mit Feinspachtel", "h": 0.40, "mat": 14},
                            {"os": "OS 5a (OS-DII)", "art": "rissüberbrückend, polymer-zementgebunden", "h": 0.55, "mat": 22},
@@ -118,7 +118,9 @@ LBS = [{
             {"kurz": "Balkonplatte Oberseite abdichten, Flüssigkunststoff {art}",
              "lang": "Balkonoberseite mit Flüssigkunststoff-Abdichtung ({art}) einschließlich Vlieseinlage, Anschlüssen an Tür und Brüstung sowie "
                      "Verschleißschicht und Kantenausbildung beschichten.",
-             "einheit": "m²", "kg": "395", "gen": "B", "achsen": [MENGE[1:], ZUG],
+             "einheit": "m²", "kg": "395", "gen": "B",
+             "achsen": [[{"k": "Balkon ≤ 10 m²", "t": "Einzelbalkone bis 10 m² Fläche, hoher Anschlussanteil.", "fh": 1.4},
+                         {"k": "> 10 m²", "t": "Zusammenhängende Flächen über 10 m² (Laubengänge, Dachterrassen).", "fh": 1.0}], ZUG],
              "varianten": [{"art": "PMMA", "h": 1.0, "mat": 58}, {"art": "PUR", "h": 0.9, "mat": 46}]},
             {"kurz": "Tropfkante nachträglich herstellen",
              "lang": "Tropfkante an Balkon- bzw. Deckenrand durch Einschneiden einer Nut oder Aufkleben eines Tropfprofils herstellen.",

@@ -1,7 +1,7 @@
 # Positionsdatenbank (Hochbau)
 
 Eigene Baupositionsdatenbank der Bauplattform, ähnlich aufgebaut wie kommerzielle Baudatenbanken: Leistungsbereich → Gruppe → Grundposition
-→ Variante → Ausführung (rund 68.000 Positionen in 66 Leistungsbereichen, Langtext = Grundtext + Folgetext),
+→ Variante → Ausführung (rund 64.000 Positionen in 66 Leistungsbereichen, Langtext = Grundtext + Folgetext),
 je Position Kurztext, Langtext, Einheit, DIN-276-Kostengruppe (3. Ebene) und eine Preisspanne (von – mittel – bis, netto).
 Gedacht für die Kostenschätzung (Baukosten-App) und als Textbaustein-Katalog für Leistungsverzeichnisse (Ausschreibung/Vergabe).
 
@@ -13,7 +13,7 @@ Nur die Nummerierung der Leistungsbereiche lehnt sich an das StLB-Bau an, damit 
 | Datei | Zweck |
 |---|---|
 | `daten/lb_*.py` | Quelldaten: ein Leistungsbereich je Datei, Positionen mit Varianten (Abmessungen, Güten) |
-| `gen.py` | erzeugt daraus die Migration `bautagebuch/pg_migrations/0024_positionsdb_daten.sql` und `positionsdb.csv` (nicht im Repository) |
+| `gen.py` | erzeugt daraus die Migration `bautagebuch/pg_migrations/0025_positionsdb_daten.sql` und `positionsdb.csv` (nicht im Repository) |
 | `daten/tga_achsen.py` | gemeinsame Ausführungsachsen der TGA-Leistungsbereiche |
 | `../bautagebuch/pg_migrations/0023_positionsdb.sql` | Tabellen `pdb_*` in `bauportal_db` |
 
@@ -44,12 +44,16 @@ EP von/bis = EP mittel × Faktor der Genauigkeitsklasse
   * C: stark abhängig von Produkt, Menge oder Ort (Geräte, TGA, Bestand), etwa −32 % / +50 %
 
   Grundlage: Untersuchungen zur Bandbreite üblicher Einheitspreise im Hochbau zeigen 25 bis 50 %.
+* **Kataloge aus der Ausschreibung** (z. B. sirAdos *.ava) werden mit der Destatis-Reihe aus ihrem Preisstand fortgeschrieben
+  (z. B. Stand 2019: Index 90,2 → heute); der Index lässt sich je Katalog unter ⤒ Import überschreiben.
 * **Regionalfaktor**: Tabelle `pdb_faktor`, die das Büro selbst pflegt (Vorgabe: Bundesdurchschnitt 1,00).
 * **Eigene Preise**: Auftragspreise aus der AVA können je Position in `pdb_preis` gesammelt werden.
   Die Ansicht `pdb_position_ansicht` liefert dazu den Median.
 
-Hinweis Kurztext: Viele Kurztexte sind länger als die in GAEB üblichen 70 Zeichen (Achsen-Zusätze). Im LV lassen sie sich kürzen;
-der vollständige Inhalt steht immer auch im Langtext.
+Kurztext: höchstens 70 Zeichen (GAEB), automatisch mit üblichen Abkürzungen gebildet; die Angaben aus Varianten und Achsen bleiben
+erhalten, feste Nebenangaben entfallen zuerst. Die vollständige Bezeichnung steht in `bez` (Anzeige und Suche), der ganze Inhalt im Langtext.
+
+Einheiten: m², m³, m, St, kg, t, psch, h, Tag, Wo, Mon, l, kW, kWp sowie Vorhalteeinheiten StWo, mWo, m²Wo, m³Wo (Menge × Woche).
 
 Die Preise sind Richtwerte für Kostenschätzung und Kostenberechnung. Sie ersetzen keine Angebotsprüfung.
 Je mehr eigene Vergabepreise erfasst sind, desto belastbarer werden die Ergebnisse.
@@ -60,6 +64,6 @@ Je mehr eigene Vergabepreise erfasst sind, desto belastbarer werden die Ergebnis
 2. `python3 positionsdb/gen.py --pruefen 012` prüft die Datei und zeigt die Preise an.
 3. `python3 positionsdb/gen.py` erzeugt Migration und CSV.
 
-Wichtig: Eine Migration läuft je Datenbank nur einmal. Spätere Katalog-Updates kommen deshalb als neue Migration (0025 …).
+Wichtig: Eine Migration läuft je Datenbank nur einmal. Spätere Katalog-Updates kommen deshalb als neue Migration (0026 …).
 Diese fügt nur fehlende Codes ein (`ON CONFLICT DO NOTHING`) und aktualisiert bei Bedarf gezielt `quelle = 'katalog'`.
 Eigene Positionen (`quelle = 'eigen'`) bleiben immer unberührt.

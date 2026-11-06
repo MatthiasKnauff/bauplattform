@@ -113,6 +113,8 @@ def _r2_neu(gruppe, positionen):
 PA_HOLZ = [{}, {"k": "Esche statt Eiche", "t": "Holzart abweichend Esche.", "fm": 0.97},
            {"k": "Ahorn statt Eiche", "t": "Holzart abweichend Ahorn (kanadisch bzw. europäisch).", "fm": 1.08},
            {"k": "Nussbaum statt Eiche", "t": "Holzart abweichend amerikanischer Nussbaum.", "fm": 1.55, "gen": "C"}]
+# Massivholz: Ahorn (wie Buche) arbeitet stark – nicht auf Heizestrich
+PA_HOLZ_M = [PA_HOLZ[0], PA_HOLZ[1], {**PA_HOLZ[2], "ohne": ["auf Heizestrich"]}, PA_HOLZ[3]]
 PA_SORT = [{}, {"k": "rustikal", "t": "Sortierung rustikal (lebhaftes Bild mit Ästen und Farbunterschieden).", "fm": 0.86},
            {"k": "select", "t": "Sortierung select/exquisit (ruhiges Bild, weitgehend astfrei).", "fm": 1.22}]
 PA_UG = [{}, {"k": "auf Heizestrich", "t": "Untergrund Heizestrich; Belag für Fußbodenheizung freigegeben, Belegreife durch CM-Messung bestätigt.", "mat": 0.8},
@@ -125,7 +127,7 @@ PA_OBERFL = [{}, {"k": "geölt", "t": "Oberflächenbehandlung mit Hartwachsöl s
 PA_ZUST = [{}, {"k": "stark beansprucht", "t": "Fläche stark abgenutzt bzw. mit alter Versiegelung, zusätzlicher Grobschliff.", "fh": 1.30, "fm": 1.10}]
 _r2_setze([
     ("Fertigparkett", [PA_HOLZ, PA_SORT, PA_UG, PA_RAUM, PA_ORT]),
-    ("Massivparkett", [PA_HOLZ, PA_SORT, PA_UG[:2], PA_RAUM, PA_ORT]),
+    ("Massivparkett", [PA_HOLZ_M, PA_SORT, PA_UG[:2], PA_RAUM, PA_ORT]),
     ("Massivholzdielen", [PA_SORT, PA_RAUM, PA_ORT]),
     ("Holzpflaster", [PA_ORT]),
     ("Parkett schleifen und", [PA_OBERFL, PA_ZUST, PA_RAUM, PA_ORT]),
@@ -145,7 +147,7 @@ _r2_neu("Parkett", [
     {"kurz": "Massivholzdiele Eiche {b} mm breit, {d} mm, vollflächig verklebt", "einheit": "m²", "kg": "352", "gen": "B",
      "lang": "Massivholzdiele Eiche, Breite {b} mm, Dicke {d} mm, Nut und Feder, auf Estrich vollflächig mit schubfestem Parkettklebstoff "
              "verklebt, unbehandelt bzw. werkseitig geölt.",
-     "achsen": [PA_HOLZ[:3], PA_SORT, PA_UG[:2], PA_RAUM, PA_ORT],
+     "achsen": [PA_HOLZ_M[:3], PA_SORT, PA_UG[:2], PA_RAUM, PA_ORT],
      "varianten": [{"b": "140", "d": "15", "h": 0.55, "mat": 62}, {"b": "180", "d": "20", "h": 0.58, "mat": 78}, {"b": "240", "d": "20", "h": 0.62, "mat": 98}]},
     {"kurz": "Randfries/Bordüre im Parkett, Breite bis {b} cm", "einheit": "m", "kg": "352", "gen": "C",
      "lang": "Randfries bzw. Bordüre aus Parkettstäben gleicher oder kontrastierender Holzart, Breite bis {b} cm, mit Gehrungsecken.",

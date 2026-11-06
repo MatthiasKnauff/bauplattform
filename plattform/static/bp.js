@@ -77,20 +77,31 @@ function modalBox(html, onClick) {
 function dlgBeweglich(m) {
   if (!m || m.dataset.beweglich) return; m.dataset.beweglich = '1';
   const kopf = () => m.querySelector('h3,h2,.mh');   // Überschrift kann erst nach dem Öffnen gezeichnet werden
-  const key = () => { const k = kopf(); return k ? 'bp.dlg.' + ((k.childNodes[0] && k.childNodes[0].textContent) || k.textContent || '').trim().slice(0, 40) : ''; };
-  const setzen = (r) => { Object.assign(m.style, { position: 'fixed', margin: '0', left: Math.max(0, Math.min(innerWidth - 120, r.l)) + 'px', top: Math.max(0, Math.min(innerHeight - 60, r.t)) + 'px' }); if (r.w) m.style.width = Math.min(innerWidth - 16, r.w) + 'px'; if (r.h) { m.style.height = Math.min(innerHeight - 16, r.h) + 'px'; m.style.maxHeight = 'none'; } };
-  const holen = () => { try { const r = key() && JSON.parse(localStorage.getItem(key()) || 'null'); if (r && innerWidth > 700) setzen(r); } catch { /* egal */ } };
+  const key = () => { const k = kopf(); return k ? 'bp.dlg2.' + ((k.childNodes[0] && k.childNodes[0].textContent) || k.textContent || '').trim().slice(0, 40) : ''; };
+  const lesen = () => { try { return (key() && JSON.parse(localStorage.getItem(key()) || 'null')) || {}; } catch { return {}; } };
+  const setzen = (r) => {
+    if (r.l != null) Object.assign(m.style, { position: 'fixed', margin: '0', left: Math.max(0, Math.min(innerWidth - 120, r.l)) + 'px', top: Math.max(0, Math.min(innerHeight - 60, r.t)) + 'px' });
+    if (r.w) m.style.width = Math.min(innerWidth - 16, r.w) + 'px';
+    if (r.h) { m.style.height = Math.min(innerHeight - 16, r.h) + 'px'; m.style.maxHeight = 'none'; }
+  };
+  const merken = (teil) => { if (!key()) return; try { localStorage.setItem(key(), JSON.stringify({ ...lesen(), ...teil })); } catch { /* egal */ } };
+  const holen = () => { const r = lesen(); if (innerWidth > 700 && (r.l != null || r.w)) setzen(r); };
   if (kopf()) holen(); else setTimeout(holen, 0);
-  const merken = () => { if (!key()) return; try { const r = m.getBoundingClientRect(); localStorage.setItem(key(), JSON.stringify({ l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: m.style.height ? Math.round(r.height) : 0 })); } catch { /* egal */ } };
   m.addEventListener('pointerdown', (e) => {
-    const k = kopf(); if (!k || !k.contains(e.target) || e.target.closest('button,input,select,a') || e.button > 0 || innerWidth <= 700) return;
-    const r = m.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
-    setzen({ l: r.left, t: r.top, w: r.width });
+    if (e.button > 0 || innerWidth <= 700) return;
+    const r = m.getBoundingClientRect();
+    if (e.target === m && e.clientX > r.right - 20 && e.clientY > r.bottom - 20) {   // Ecke rechts unten: Größe ändern – nur dann wird die Größe gemerkt
+      const up = () => { removeEventListener('pointerup', up); const n = m.getBoundingClientRect();
+        if (Math.abs(n.width - r.width) > 2 || Math.abs(n.height - r.height) > 2) merken({ w: Math.round(n.width), h: Math.round(n.height) }); };
+      addEventListener('pointerup', up); return;
+    }
+    const k = kopf(); if (!k || !k.contains(e.target) || e.target.closest('button,input,select,a')) return;
+    const dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
+    setzen({ l: r.left, t: r.top }); m.style.width = r.width + 'px';
     const mv = (ev) => { m.style.left = Math.max(-r.width + 100, Math.min(innerWidth - 100, ev.clientX - dx)) + 'px'; m.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
-    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); merken(); };
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); const n = m.getBoundingClientRect(); merken({ l: Math.round(n.left), t: Math.round(n.top) }); };
     addEventListener('pointermove', mv); addEventListener('pointerup', up);
   });
-  new ResizeObserver(() => { if (m.dataset.gross !== String(m.offsetWidth + 'x' + m.offsetHeight)) { if (m.dataset.gross) merken(); m.dataset.gross = m.offsetWidth + 'x' + m.offsetHeight; } }).observe(m);
 }
 /* wie modalBox, aber im Einstellungsfenster (⚙ → Diese App): gleicher Aufruf, „close“ schließt das Fenster */
 function paneBox(host, html, onClick) {

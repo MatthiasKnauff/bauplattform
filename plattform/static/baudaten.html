@@ -155,7 +155,7 @@ async function zeigen(id) {
   detail();
 }
 function detail() {
-  const x = SEL, ro = !!x.nur_lesen, darf = !ro && (x.katalog === 'eigen' || S.admin);
+  const x = SEL, ro = !!x.nur_lesen, darf = !ro && x.katalog === 'eigen';   // Kataloge sind schreibgeschützt
   const kalk = x.quelle === 'katalog' && x.h != null ? `<h4>Kalkulation (Preisstand ${esc(x.preisstand)})</h4><table>
       <tr><td>Zeitansatz</td><td>${num(x.h, 3)} h/${esc(x.einheit)}</td></tr>
       <tr><td>Verrechnungslohn ${esc(((S.loehne || []).find((l) => l.gewerk === x.gewerk) || {}).name || x.gewerk)}</td><td>${eur(x.verrechnungslohn)}/h</td></tr>
@@ -179,7 +179,7 @@ function detail() {
       ${darf ? '<button type="button" class="btn sm" data-edit>✎ Bearbeiten</button>' : ''}
       ${ro ? '' : `<button type="button" class="btn sm" data-aktiv>${x.aktiv ? 'Ausblenden' : 'Wieder einblenden'}</button>`}
       ${x.katalog === 'eigen' ? '<button type="button" class="btn sm" data-del>Löschen</button>' : ''}
-    </div>${ro ? '<p class="mute">Aus einem Katalog der Ausschreibung (z. B. sirAdos, eingelesen in Ausschreibung &amp; Abrechnung → ⚙ → Positionskatalog). Für eigene Preise oder Änderungen als eigene Position übernehmen.</p>' : ''}${kalk}${ro ? '' : eigen}`;
+    </div>${!ro && x.katalog !== 'eigen' ? '<p class="mute">🔒 Katalogposition – schreibgeschützt. Für eigene Texte oder Preise „Als eigene Position“ übernehmen.</p>' : ''}${ro ? '<p class="mute">🔒 Aus einem Katalog der Ausschreibung (z. B. sirAdos, eingelesen in Ausschreibung &amp; Abrechnung → ⚙ → Positionskatalog). Für eigene Preise oder Änderungen als eigene Position übernehmen.</p>' : ''}${kalk}${ro ? '' : eigen}`;
 }
 function bearbeiten() {
   const x = SEL, SP = { A: [0.85, 1.2], B: [0.78, 1.3], C: [0.68, 1.5] };   // Preisspanne je Genauigkeit (wie im Katalog)

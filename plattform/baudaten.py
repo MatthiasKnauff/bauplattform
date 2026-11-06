@@ -108,8 +108,9 @@ def position(i):
 
 
 def _darf(r):
-    """Eigene Positionen darf jeder ändern, Katalog- und Importpositionen nur der Administrator (aktiv/Favorit jeder)."""
-    return r["katalog"] == "eigen" or _admin()
+    """Nur eigene Positionen lassen sich ändern oder löschen. Katalog- und Importpositionen sind schreibgeschützt –
+    auch für den Administrator; für Änderungen „Als eigene Position“ übernehmen. Ausblenden und Favorit gehen überall."""
+    return r["katalog"] == "eigen"
 
 
 @app.route("/api/position/<int(signed=True):i>", methods=["PUT", "DELETE"])
@@ -123,7 +124,7 @@ def position_aendern(i):
             return jsonify(error="Position nicht gefunden"), 404
         if request.method == "DELETE":
             if not _darf(r):
-                return jsonify(error="Katalogpositionen können nur ausgeblendet werden."), 403
+                return jsonify(error="Katalogpositionen sind schreibgeschützt – sie lassen sich nur ausblenden."), 403
             c.execute("DELETE FROM pdb_position WHERE id=?", (i,))
             C.audit(C.full_name(g.user), "baudaten", "Position gelöscht", f"{r['katalog']} {r['code']} {r['kurz']}")
             return jsonify(ok=True)
@@ -131,6 +132,8 @@ def position_aendern(i):
         for k in ("aktiv", "favorit"):
             if k in b:
                 sets.append(f"{k}=?"); args.append(1 if b[k] else 0)
+        if not _darf(r) and any(k in b for k in ("kurz", "lang", "hinweis", "tags", "titel", "einheit", "kg", "ep_von", "ep_mittel", "ep_bis", "genauigkeit")):
+            return jsonify(error="Katalogpositionen sind schreibgeschützt – für Änderungen „Als eigene Position“ übernehmen."), 403
         if _darf(r):
             for k, n in (("kurz", 300), ("lang", 20000), ("hinweis", 4000), ("tags", 300), ("titel", 300)):
                 if k in b:

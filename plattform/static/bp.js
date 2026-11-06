@@ -56,12 +56,21 @@ function modalBox(html, onClick) {
   const close = () => { bg.remove(); document.removeEventListener('keydown', taste, true); };
   let unten = null; bg.addEventListener('pointerdown', (e) => { unten = e.target; });   // Ziehen/Größe ändern, das außerhalb endet, schließt nicht
   bg.addEventListener('click', (e) => { if (e.target === bg && unten === bg) close(); const b = e.target.closest('[data-m]'); if (b && !b.disabled) onClick(b.dataset.m, bg, close, b); });
-  /* Tastatur (nur für das oberste Fenster): Esc bricht ab; ← → (in Eingabefeldern Alt+← →) oder Bild↑/Bild↓ springen zum vorigen/nächsten Eintrag */
+  /* Tastatur (nur für das oberste Fenster): Esc schließt; ← → (in Eingabefeldern Alt+← →), ↑ ↓ (auch in einzeiligen Feldern) oder Bild↑/Bild↓ springen zum vorigen/nächsten Eintrag;
+     Enter in einem einzeiligen Feld übernimmt und schließt (in Dialogen mit Vor/Zurück) */
   const taste = (e) => {
     const alle = [...document.querySelectorAll('.modal-bg')]; if (alle[alle.length - 1] !== bg) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); const x = bg.querySelector('[data-m="x"],[data-m="zu"],[data-m="abbrechen"]'); if (x) x.click(); if (bg.isConnected) close(); return; }
     const feld = e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"]');
-    const vor = e.key === 'PageUp' || (e.key === 'ArrowLeft' && (!feld || e.altKey)), nach = e.key === 'PageDown' || (e.key === 'ArrowRight' && (!feld || e.altKey));
+    const zeile = feld && feld.tagName === 'INPUT' && !feld.list && !['checkbox', 'radio', 'file', 'button', 'submit', 'number', 'range', 'date', 'time'].includes(feld.type);   // einzeiliges Feld
+    const blaettern = bg.querySelector('[data-m="prev"],[data-m="next"],[data-m="zurueck"],[data-m="weiter"],[data-m="vor"],[data-m="naechst"]');
+    if (e.key === 'Enter' && zeile && blaettern && !e.shiftKey && !e.isComposing) {   // Enter: übernehmen und schließen (Dialoge mit Vor/Zurück)
+      const ok = bg.querySelector('[data-m="ok"]:not([disabled]),[data-m="x"],[data-m="zu"]');
+      if (ok) { e.preventDefault(); e.stopPropagation(); feld.dispatchEvent(new Event('change', { bubbles: true })); ok.click(); }
+      return;
+    }
+    const vor = e.key === 'PageUp' || (e.key === 'ArrowLeft' && (!feld || e.altKey)) || (e.key === 'ArrowUp' && (!feld || zeile) && !!blaettern),
+      nach = e.key === 'PageDown' || (e.key === 'ArrowRight' && (!feld || e.altKey)) || (e.key === 'ArrowDown' && (!feld || zeile) && !!blaettern);
     if (!vor && !nach) return;
     const b = bg.querySelector(vor ? '[data-m="prev"],[data-m="zurueck"],[data-m="vor"]' : '[data-m="next"],[data-m="weiter"],[data-m="naechst"]');
     if (b && !b.disabled) { e.preventDefault(); e.stopPropagation(); if (feld) feld.dispatchEvent(new Event('change', { bubbles: true })); b.click(); }

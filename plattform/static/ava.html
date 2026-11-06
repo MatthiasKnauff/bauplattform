@@ -1839,7 +1839,9 @@ function eigDialog(id) {
     const x = X(); if (!x) return close();
     if (m === 'x') { close(); render(); return; }
     if (m.startsWith('t:')) { tabE = m.slice(2); LS.set('eigTab', tabE); draw(); return; }
-    if (m === 'prev' || m === 'next') { const P = posen(), k = P.findIndex((y) => y.id === id); const n = P[k + (m === 'prev' ? -1 : 1)]; if (n) { id = n.id; draw(); } return; }
+    if (m === 'prev' || m === 'next') { const P = posen(), k = P.findIndex((y) => y.id === id); const n = P[k + (m === 'prev' ? -1 : 1)];
+      const fe = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.e;   // dasselbe Feld wieder fokussieren
+      if (n) { id = n.id; draw(); const f = (fe && box.querySelector(`[data-e="${fe}"]`)) || box.querySelector('input:not([disabled]),textarea,select'); if (f) { f.focus(); if (f.select && f.tagName === 'INPUT') f.select(); } } return; }
     if (m === 'neu') {
       const I = items(), at = I.findIndex((y) => y.id === id) + 1;
       const nx = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: x.einheit || 'm2', kg: x.kg || '' };
@@ -1886,7 +1888,7 @@ function eigDialog(id) {
     box.innerHTML = `<h3 style="display:flex;gap:.5rem;align-items:baseline">Eigenschaften: Position <span class="hint">${esc(x.oz)} ${esc((x.kurz || '').slice(0, 50))}</span></h3>
       <div class="eigtabs">${T.map(([kk, l]) => `<button type="button" data-m="t:${kk}" class="${tabE === kk ? 'on' : ''}">${l}</button>`).join('')}</div>
       <div class="eigbody">${h}</div>
-      <div class="acts"><button class="btn sm" data-m="prev" ${k <= 0 ? 'disabled' : ''} title="vorherige Position">&lt;&lt;</button><button class="btn sm" data-m="next" ${k >= P.length - 1 ? 'disabled' : ''} title="nächste Position">&gt;&gt;</button>
+      <div class="acts"><button class="btn sm" data-m="prev" ${k <= 0 ? 'disabled' : ''} title="vorherige Position (↑ oder Bild↑)">&lt;&lt;</button><button class="btn sm" data-m="next" ${k >= P.length - 1 ? 'disabled' : ''} title="nächste Position (↓ oder Bild↓) · Enter schließt, Esc auch">&gt;&gt;</button>
         <button class="btn sm" data-m="neu" title="neue Position darunter">Neu</button><button class="btn sm" data-m="undo" ${snap[id] ? '' : 'disabled'}>Rückgängig</button><span style="flex:1"></span><button class="btn pri" data-m="x">Schließen</button></div>`;
   }
   const setz = (el) => {
@@ -1909,6 +1911,7 @@ function eigDialog(id) {
   box.addEventListener('change', (e) => setz(e.target));
   box.addEventListener('input', (e) => { if (['kurz', 'lang', 'einheit', 'lb'].includes(e.target.dataset.e)) { const x = X(); merk(); x[e.target.dataset.e] = e.target.value; changed(); } });
   draw();
+  { const f = box.querySelector('input:not([disabled]),textarea,select'); if (f) f.focus(); }
 }
 document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Position öffnet ihre Eigenschaften
   if (tab !== 'lv' || e.target.closest('textarea,select,.lang,.acts-c')) return;

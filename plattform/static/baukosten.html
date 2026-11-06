@@ -694,7 +694,7 @@ function vBauteile() {
 }
 async function btSuggest(ki) {
   if (btBusy) return;
-  if ((B.data.bauteile || []).length && !confirm(ki ? 'Die KI prüft die Liste und schlägt eine neue vor. Die bisherige Bauteilliste wird ersetzt (mit ↶ Rückgängig zurückholbar). Weiter?' : 'Die Bauteilliste wird durch neue Vorschläge aus dem Raumbuch ersetzt (mit ↶ Rückgängig zurückholbar). Weiter?')) return;
+  if ((B.data.bauteile || []).length && !(await bpFrage(ki ? 'Die KI prüft die Liste und schlägt eine neue vor. Die bisherige Bauteilliste wird ersetzt (mit ↶ Rückgängig zurückholbar). Weiter?' : 'Die Bauteilliste wird durch neue Vorschläge aus dem Raumbuch ersetzt (mit ↶ Rückgängig zurückholbar). Weiter?'))) return;
   btBusy = true; render();
   try { clearTimeout(saveT); await saveNow(); const r = await api(`api/bk/${B.id}/bauteile/vorschlag`, 'POST', ki ? { ki: true } : {}); B.data.bauteile = r.rows; toast(r.note); changed(); }
   catch (e) { toast(e.message, true); }
@@ -1017,7 +1017,7 @@ document.addEventListener('click', async (e) => {
     else if (act === 'firstPdf') $('#pdfIn').click();
     else if (act === 'firstRoom') { tab = 'plaene'; history.replaceState(null, '', '#plaene'); B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'openAssist') { AS.open = true; AS.step = null; asSave(); assist(); }
-    else if (act === 'hstdClear') { e.preventDefault(); const v = prompt('Standardhöhe für alle Räume ohne eigene Höhe (m):', String(B.data.hoehe_std || '').replace('.', ',')); if (v != null) { const n = pnum(v); B.data.hoehe_std = n >= 1.5 && n <= 20 ? Math.round(n * 100) / 100 : null; changed(); } }
+    else if (act === 'hstdClear') { e.preventDefault(); const v = (await bpEingabe('Standardhöhe für alle Räume ohne eigene Höhe (m):', String(B.data.hoehe_std || '').replace('.', ','))); if (v != null) { const n = pnum(v); B.data.hoehe_std = n >= 1.5 && n <= 20 ? Math.round(n * 100) / 100 : null; changed(); } }
     else if (act === 'btVor') btSuggest(false);
     else if (act === 'btKi') btSuggest(true);
     else if (act === 'btPdb') { pdbWahl({ titel: 'Bauteile aus den Baudaten', knopf: 'übernehmen', onInsert(neu) {
@@ -1026,11 +1026,11 @@ document.addEventListener('click', async (e) => {
       changed(); toast(`${neu.length} Bauteil${neu.length === 1 ? '' : 'e'} übernommen – Mengen ergänzen.`);
     } }); }
     else if (act === 'btAdd') { const k = $('#btNewKg').value, m = (B.mat || {})[k]; (B.data.bauteile ||= []).push({ id: 'h' + Date.now(), kg: k, name: m ? m.name : '', mat: m && m.opts[0] ? m.opts[0].n : '', formel: '', menge: 0, einheit: m ? m.einheit : 'm²', ep: m && m.opts[0] ? m.opts[0].ep : 0, src: '', notiz: '', geschoss: '' }); changed(); setTimeout(() => { const ins = document.querySelectorAll('[data-bf="formel"]'); const x = [...ins].find((e) => +e.dataset.bi === B.data.bauteile.length - 1); if (x) x.focus(); }, 50); }
-    else if (act === 'btClear') { if (confirm('Alle Bauteile entfernen? Die Kosten kommen dann wieder ganz aus den Kennwerten (mit ↶ Rückgängig zurückholbar).')) { B.data.bauteile = []; changed(); } }
+    else if (act === 'btClear') { if ((await bpFrage('Alle Bauteile entfernen? Die Kosten kommen dann wieder ganz aus den Kennwerten (mit ↶ Rückgängig zurückholbar).'))) { B.data.bauteile = []; changed(); } }
     else if (act === 'raumtypen') { e.preventDefault(); typesDialog(); }
     else if (act === 'toJustage') { e.preventDefault(); goHint({ go: { tab: 'kosten', sel: '#justage' } }); }
     else if (act === 'vgAdd') { try { clearTimeout(saveT); await saveNow(); VG = await api(`api/bk/${B.id}/vergleich`, 'POST', {}); toast('Als Vergleichsobjekt gespeichert.' + (VG.hinweis ? ' ' + VG.hinweis : '')); render(); } catch (er) { toast(er.message, true); } }
-    else if (act === 'vgDel') { if (!confirm('Vergleichsobjekt entfernen? (Im Verlauf wiederherstellbar.)')) return; try { VG = await api('api/vergleich/' + encodeURIComponent(a.dataset.id), 'DELETE'); render(); } catch (er) { toast(er.message, true); } }
+    else if (act === 'vgDel') { if (!(await bpFrage('Vergleichsobjekt entfernen? (Im Verlauf wiederherstellbar.)'))) return; try { VG = await api('api/vergleich/' + encodeURIComponent(a.dataset.id), 'DELETE'); render(); } catch (er) { toast(er.message, true); } }
     else if (act === 'vgUse') {
       let n = 0; Object.values(B.data.types).forEach((t) => { const v = vgOf(t.label); if (v) { t.kw = Math.round(v.mittel); n++; } });
       toast(n ? `${n} Kennwerte auf den Mittelwert der Vergleichsobjekte gesetzt.` : 'Keine passenden Raumtypen in den Vergleichsobjekten.'); if (n) changed();
@@ -1090,14 +1090,14 @@ document.addEventListener('click', async (e) => {
   const mk = e.target.closest('[data-mk]'); if (mk) { selRoom = mk.dataset.mk; render(); const row = document.querySelector('tr.sel'); if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
   if (e.target.closest('#drop')) $('#pdfIn').click();
 });
-document.addEventListener('change', (e) => {
+document.addEventListener('change', async (e) => {
   const el = e.target;
   if (el.id === 'pdfIn') { if (el.files.length) upload([...el.files]); el.value = ''; return; }
   const row = el.closest('[data-row]');
   if (el.dataset.bf) {   // Bauteile & Material
     const b = B.data.bauteile[+el.dataset.bi], f = el.dataset.bf; if (!b) return;
     if (f === 'mat') {
-      if (el.value === '__eigen') { const v = prompt('Material / Ausführung:', b.mat || ''); if (v != null && v.trim()) b.mat = v.trim(); changed(); return; }
+      if (el.value === '__eigen') { const v = (await bpEingabe('Material / Ausführung:', b.mat || '')); if (v != null && v.trim()) b.mat = v.trim(); changed(); return; }
       const o = ((B.mat || {})[b.kg] || { opts: [] }).opts.find((x) => x.n === el.value); b.mat = el.value; if (o) b.ep = o.ep; changed(); return;
     }
     if (f === 'formel') { b.formel = el.value; const v = evalFormel(el.value); if (v != null) b.menge = v; changed(); return; }

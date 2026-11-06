@@ -317,3 +317,9 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-drz::after{content:'';position:absolute;left:3px;top:50%;width:3px;height:44px;margin-top:-22px;border-radius:2px;background:var(--line,#888);opacity:.6}
 .bph-drz:hover::after,.bph-drz.on::after{background:var(--y,var(--bph-acc,#d9772b));opacity:1}
 @media (max-width:700px){.bph-drz{display:none}}
+
+.bph-sktxt{position:absolute;transform:translateY(-100%);z-index:6;background:rgba(255,255,255,.85);border:1.5px dashed;border-radius:4px;padding:0 .2em;font-weight:700;font-family:system-ui,sans-serif;min-width:6em;outline:none;line-height:1.15}
+
+.bph-frage .bph-dlg{animation:bph-pop .12s ease-out}@keyframes bph-pop{from{transform:scale(.97);opacity:0}to{transform:none;opacity:1}}
+.bph-frage .bph-frage-in{border:1px solid var(--line,#ccc);border-radius:9px;padding:.5rem .65rem;font:inherit;background:var(--bg,#fff);color:inherit}
+.bph-btn.bph-gefahr{background:#d64545;border-color:#d64545;color:#fff}

@@ -110,11 +110,11 @@
     if (typeof makeDraggable === 'function') makeDraggable(bg.querySelector('.modal'), bg.querySelector('.mh'), 'dlgPos:assistedit');
     render();
   }
-  function close(force) {
-    if (!force && dirty && !confirmBox()) return;
+  async function close(force) {
+    if (!force && dirty && !(await confirmBox())) return;
     bg.remove(); bg = null;
   }
-  const confirmBox = () => window.confirm('Änderungen an der Einrichtung verwerfen?');
+  const confirmBox = async () => (await bpFrage('Änderungen an der Einrichtung verwerfen?'));
   async function save() {
     try { const v = await api('api/assistcfg', 'PUT', CFG_D); apply(v); dirty = false; say('Einrichtung gespeichert – gilt ab jetzt für neue Planungen.'); close(true); }
     catch (e) { say('Nicht gespeichert: ' + e.message, true); }
@@ -234,7 +234,7 @@
   }
 
   /* ---------- Ereignisse ---------- */
-  function onClick(e) {
+  async function onClick(e) {
     const t = e.target, b = t.closest('button,[data-selp],[data-selg]'); if (!b || !bg.contains(b)) return;
     if (b.dataset.tab) { tab = b.dataset.tab; render(); return; }
     if (b.dataset.aeNew && window.leistungWizard) {   // neue Leistung direkt hier anlegen (landet im Leistungskatalog)
@@ -263,31 +263,31 @@
     if (b.dataset.rmon) { const o = optD(selG, b.dataset.rmon), cur = draftOpts(C.choices.find((g) => g.k === selG)).find((x) => x.k === b.dataset.rmon); o.on = (cur.on || []).filter((x) => x !== b.dataset.id); touch(); render(); return; }
     if (b.dataset.delo) { const d = grpD(selG); d.own = (d.own || []).filter((o) => o.k !== b.dataset.delo); touch(); render(); return; }
     if (b.dataset.vload) { const v = VORL.find((x) => x.id === b.dataset.vload); if (v) { CFG_D = norm(clone(v.data)); touch(); say(`Vorlage „${v.name}“ geladen – mit „Speichern“ übernehmen.`); render(); } return; }
-    if (b.dataset.vdel) { const v = VORL.find((x) => x.id === b.dataset.vdel); if (v && window.confirm(`Vorlage „${v.name}“ löschen?`)) api('api/assistcfg/vorlagen/' + v.id, 'DELETE').then(() => { VORL = VORL.filter((x) => x !== v); render(); }).catch((er) => say(er.message, true)); return; }
+    if (b.dataset.vdel) { const v = VORL.find((x) => x.id === b.dataset.vdel); if (v && (await bpFrage(`Vorlage „${v.name}“ löschen?`))) api('api/assistcfg/vorlagen/' + v.id, 'DELETE').then(() => { VORL = VORL.filter((x) => x !== v); render(); }).catch((er) => say(er.message, true)); return; }
     const a = b.dataset.ae; if (!a) return;
     if (a === 'undo') { undo(false); return; }
     if (a === 'redo') { undo(true); return; }
     if (a === 'cancel') close();
     else if (a === 'save') save();
-    else if (a === 'lib') { if (dirty && !window.confirm('Ungespeicherte Änderungen verwerfen und zum Leistungskatalog wechseln?')) return; close(true);
+    else if (a === 'lib') { if (dirty && !(await bpFrage('Ungespeicherte Änderungen verwerfen und zum Leistungskatalog wechseln?'))) return; close(true);
       const w = typeof showTab === 'function' ? window : window.opener && typeof window.opener.showTab === 'function' ? window.opener : null;   // auch aus dem eigenen Assistenten-Fenster
       if (w) { w.showTab('katalog'); if (w !== window) w.focus(); } }
     else if (a === 'newp') {
       const base = draftProfiles().find((p) => p.k === selP) || draftProfiles()[0], k = uid('eigen_');
-      const n = window.prompt('Name des neuen Gebäudetyps', base.n + ' (Kopie)'); if (!n) return;
+      const n = (await bpEingabe('Name des neuen Gebäudetyps', base.n + ' (Kopie)')); if (!n) return;
       CFG_D.own.push({ k, base: base.base || base.k, n: n.slice(0, 80), ic: base.ic, desc: base.desc, rec: (base.rec || []).slice(), opt: base.opt === '*' ? undefined : (base.opt || []).slice(), choice: { ...(base.choice || {}) }, ord: 900 + CFG_D.own.length });
       selP = k; touch(); render();
-    } else if (a === 'delp') { const p = CFG_D.own.find((o) => o.k === selP); if (p && window.confirm(`Gebäudetyp „${p.n}“ löschen?`)) { CFG_D.own = CFG_D.own.filter((o) => o !== p); selP = null; touch(); render(); } }
+    } else if (a === 'delp') { const p = CFG_D.own.find((o) => o.k === selP); if (p && (await bpFrage(`Gebäudetyp „${p.n}“ löschen?`))) { CFG_D.own = CFG_D.own.filter((o) => o !== p); selP = null; touch(); render(); } }
     else if (a === 'resetp') { delete CFG_D.profiles[selP]; touch(); render(); }
     else if (a === 'resetg') { delete CFG_D.choices[selG]; touch(); render(); }
-    else if (a === 'newo') { const n = window.prompt('Bezeichnung der eigenen Ausführung'); if (!n) return; const d = grpD(selG); (d.own ||= []).push({ k: uid('eig_'), n: n.slice(0, 120), on: [] }); touch(); render(); }
+    else if (a === 'newo') { const n = (await bpEingabe('Bezeichnung der eigenen Ausführung')); if (!n) return; const d = grpD(selG); (d.own ||= []).push({ k: uid('eig_'), n: n.slice(0, 120), on: [] }); touch(); render(); }
     else if (a === 'vsave') {
       const inp = bg.querySelector('[data-vname]'), n = inp.value.trim(); if (!n) { inp.focus(); say('Bitte einen Namen eingeben.', true); return; }
       api('api/assistcfg/vorlagen', 'POST', { name: n, data: CFG_D }).then((v) => { VORL = [v, ...VORL.filter((x) => x.name !== v.name)]; say(`Vorlage „${v.name}“ gespeichert.`); render(); }).catch((er) => say(er.message, true));
     } else if (a === 'export') {
       const url = URL.createObjectURL(new Blob([JSON.stringify({ art: 'bauplattform-assistent', ...CFG_D }, null, 1)], { type: 'application/json' }));
       const l = document.createElement('a'); l.href = url; l.download = 'Assistent-Einrichtung.json'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
-    } else if (a === 'resetall') { if (window.confirm('Ganze Einrichtung auf den eingebauten Standard zurücksetzen? (Erst „Speichern“ macht es wirksam.)')) { CFG_D = empty(); touch(); render(); } }
+    } else if (a === 'resetall') { if ((await bpFrage('Ganze Einrichtung auf den eingebauten Standard zurücksetzen? (Erst „Speichern“ macht es wirksam.)'))) { CFG_D = empty(); touch(); render(); } }
   }
   function onChange(e) {
     const t = e.target, p = draftProfiles().find((x) => x.k === selP);

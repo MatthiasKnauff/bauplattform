@@ -183,7 +183,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'altScan') return altScan();
   if (a === 'altAlle') { const it = A.res.items || []; A.sel = A.sel.size === it.length ? new Set() : new Set(it.map((i) => i.project_id + '|' + i.path)); renderAltPdf(); return; }
   if (a === 'altDel') {
-    if (!confirm(`${A.sel.size} Element(e) endgültig löschen?`)) return;
+    if (!(await bpFrage(`${A.sel.size} Element(e) endgültig löschen?`))) return;
     try {
       const r = await api('api/bt/audit/cleanup', 'POST', { entries: [...A.sel].map((k) => { const n = k.indexOf('|'); return { project_id: +k.slice(0, n), path: k.slice(n + 1) }; }) });
       toast(`${r.deleted.length} gelöscht` + (r.failed.length ? `, ${r.failed.length} fehlgeschlagen (${r.failed[0].error})` : '') + '.');
@@ -518,7 +518,7 @@ function renderBtSettings() {
         if (!r.ok || j.error) return toast(j.error || 'Hochladen fehlgeschlagen', true);
         toast('Briefbogen gespeichert.'); bbDraw(j);
       };
-      const d = $('#bbDel'); if (d) d.onclick = async () => { if (!confirm('Briefbogen entfernen?')) return; bbDraw(await api('api/bp/briefbogen', 'DELETE')); };
+      const d = $('#bbDel'); if (d) d.onclick = async () => { if (!(await bpFrage('Briefbogen entfernen?'))) return; bbDraw(await api('api/bp/briefbogen', 'DELETE')); };
     };
     api('api/bp/briefbogen?info=1').then(bbDraw).catch((er) => { bbBox.textContent = er.message; });
   }

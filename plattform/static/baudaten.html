@@ -329,7 +329,7 @@ async function importieren() {
     ${ava.length ? `<label>Kataloge der Ausschreibung – Index zum Preisstand (für die Umrechnung auf heute; leer = aus dem Preisstand)</label><table class="tbl">${ava.map((k) => `<tr><td>${esc(k.name)} · ${k.n.toLocaleString('de-DE')} Pos.${k.preisstand ? ' · Stand ' + esc(k.preisstand) : ''}</td><td style="width:6.5rem"><input data-avaidx="${esc(k.key)}" value="${k.index_auto ? '' : (k.index_basis ?? '')}" placeholder="${k.index_basis ? String(k.index_basis).replace('.', ',') : '–'}"></td></tr>`).join('')}</table>` : ''}
   </div><div class="acts" style="justify-content:flex-end"><button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="ok">Einlesen / Übernehmen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') return close();
-    if (m.startsWith('del:')) { if (!confirm('Katalog mit allen Positionen löschen?')) return; try { await api('api/katalog/' + encodeURIComponent(m.slice(4)), 'DELETE'); close(); start(); toast('Gelöscht'); } catch (e) { toast(e.message, true); } return; }
+    if (m.startsWith('del:')) { if (!(await bpFrage('Katalog mit allen Positionen löschen?'))) return; try { await api('api/katalog/' + encodeURIComponent(m.slice(4)), 'DELETE'); close(); start(); toast('Gelöscht'); } catch (e) { toast(e.message, true); } return; }
     const name = bg.querySelector('#iN').value.trim(), f = bg.querySelector('#iD').files[0], lv = bg.querySelector('#iL').value;
     const idx = [...bg.querySelectorAll('[data-avaidx]')].filter((i) => i.value.trim() !== (i.defaultValue || '').trim());
     if (idx.length && !name && !f && !lv) {   // nur die Indexwerte der Ausschreibungs-Kataloge geändert
@@ -379,7 +379,7 @@ document.addEventListener('click', async (e) => {
   }
   if (t.closest('[data-eigen]')) { try { SEL = await api('api/position', 'POST', { von: SEL.id }); toast('Als eigene Position angelegt (Katalog „Eigene Positionen“)'); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
   if (t.closest('[data-edit]')) { bearbeiten(); return; }
-  if (t.closest('[data-del]')) { if (!confirm('Eigene Position löschen?')) return; await api('api/position/' + SEL.id, 'DELETE'); SEL = null; $('#det').innerHTML = '<div class="leer">Gelöscht.</div>'; laden(); start(); return; }
+  if (t.closest('[data-del]')) { if (!(await bpFrage('Eigene Position löschen?'))) return; await api('api/position/' + SEL.id, 'DELETE'); SEL = null; $('#det').innerHTML = '<div class="leer">Gelöscht.</div>'; laden(); start(); return; }
   if (t.closest('[data-pneu]')) {
     const ep = +String($('#pEp').value).trim().replace(/\./g, '').replace(',', '.');
     if (!ep) return toast('Bitte einen Einheitspreis eingeben.', true);

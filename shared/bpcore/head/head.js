@@ -13,6 +13,28 @@
 (function () {
   if (window.BPHead) return;
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
+  /* Eigene Abfragefenster statt der Browser-Dialoge (alert/confirm/prompt) – in allen Apps gleich:
+     await bpFrage(text, { ok, gefahr }) → true/false · await bpEingabe(text, vorgabe) → Text oder null · bpHinweis(text) */
+  const DLG = (text, art, vorgabe, opt = {}) => new Promise((fertig) => {
+    const esc2 = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-frage'; bg.style.zIndex = 9000;
+    const zeilen = String(text || '').split('\n');
+    bg.innerHTML = `<div class="bph-dlg" role="alertdialog" aria-modal="true" style="width:min(460px,94vw)"><div class="bph-db" style="padding-top:1.1rem">
+      <p style="margin:0 0 .8rem;font-weight:600;line-height:1.4">${esc2(zeilen[0])}</p>${zeilen.slice(1).join('\n').trim() ? `<p class="bph-mu" style="margin:-.4rem 0 .8rem;white-space:pre-line">${esc2(zeilen.slice(1).join('\n').trim())}</p>` : ''}
+      ${art === 'eingabe' ? `<input class="bph-frage-in" value="${esc2(vorgabe ?? '')}" style="width:100%;box-sizing:border-box;margin-bottom:.8rem">` : ''}
+      <div class="bph-row" style="justify-content:flex-end;gap:.4rem">${art === 'hinweis' ? '' : `<button type="button" class="bph-btn" data-f="nein">${esc2(opt.abbrechen || 'Abbrechen')}</button>`}<button type="button" class="bph-btn pri${opt.gefahr ? ' bph-gefahr' : ''}" data-f="ja">${esc2(opt.ok || 'OK')}</button></div></div></div>`;
+    document.body.appendChild(bg);
+    const inp = bg.querySelector('.bph-frage-in');
+    const zu = (ja) => { bg.remove(); window.removeEventListener('keydown', taste, true); fertig(art === 'eingabe' ? (ja ? inp.value : null) : art === 'frage' ? !!ja : undefined); };
+    const taste = (e) => { if (!bg.isConnected) return; if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); zu(false); } else if (e.key === 'Enter' && !(e.target && e.target.tagName === 'TEXTAREA')) { e.preventDefault(); e.stopPropagation(); zu(true); } };
+    window.addEventListener('keydown', taste, true);   // vor allen anderen Tastenkürzeln der Seite
+    bg.addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) zu(b.dataset.f === 'ja'); else if (e.target === bg && art !== 'hinweis') zu(false); });
+    setTimeout(() => { if (inp) { inp.focus(); inp.select(); } else bg.querySelector('[data-f="ja"]').focus(); }, 0);
+  });
+  window.bpFrage = (t, o) => DLG(t, 'frage', null, o);
+  window.bpEingabe = (t, v, o) => DLG(t, 'eingabe', v, o);
+  window.bpHinweis = (t) => DLG(t, 'hinweis');
+  window.alert = (t) => { DLG(t, 'hinweis'); };   // nicht mehr blockierend – überall gleich aussehend
   const listeners = [];
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const getJ = (u) => fetch(u, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))));
@@ -438,7 +460,7 @@
       if (t.closest('[data-kpw]')) { H.kennwort(); return; }
       const tb = t.closest('[data-ktab]'); if (tb) { tab = tb.dataset.ktab; msg = ''; draw(); return; }
       const sv = t.closest('[data-kset]'); if (sv) { save({ [sv.dataset.kset]: sv.dataset.v }); return; }
-      if (t.closest('[data-kdel]')) { if (!confirm('Unterschrift entfernen?')) return; await KX('api/bp/signatur', { method: 'DELETE' }).catch((er) => { msg = er.message; }); K.signatur = false; draw(); return; }
+      if (t.closest('[data-kdel]')) { if (!(await bpFrage('Unterschrift entfernen?'))) return; await KX('api/bp/signatur', { method: 'DELETE' }).catch((er) => { msg = er.message; }); K.signatur = false; draw(); return; }
       const ph = t.closest('[data-kph]');
       if (ph) {
         const ed = root.querySelector('[data-ksigt]'), s = window.getSelection(), ins = '{' + ph.dataset.kph + '}';
@@ -505,14 +527,14 @@
       return true;
     }
     if (t.closest('[data-vback]')) {
-      if (!confirm('Diesen Stand wiederherstellen? Der jetzige Stand bleibt im Verlauf erhalten und kann ebenso zurückgeholt werden.')) return true;
+      if (!(await bpFrage('Diesen Stand wiederherstellen? Der jetzige Stand bleibt im Verlauf erhalten und kann ebenso zurückgeholt werden.'))) return true;
       try { await JS(`api/bp/versionen/${id}/wiederherstellen`, 'POST'); } catch (er) { alert(er.message); return true; }
       if (opt && opt.nach) { opt.nach(); await reload(); } else location.reload();
       return true;
     }
     const nb = t.closest('[data-vname]');
     if (nb) {
-      const n = prompt('Name für diesen Stand (z. B. „vor der Umstellung“) – benannte Stände werden nie automatisch aufgeräumt. Leer = Name entfernen.', nb.dataset.vname);
+      const n = (await bpEingabe('Name für diesen Stand (z. B. „vor der Umstellung“) – benannte Stände werden nie automatisch aufgeräumt. Leer = Name entfernen.', nb.dataset.vname));
       if (n === null) return true;
       try { await JS(`api/bp/versionen/${id}`, 'PATCH', { name: n }); } catch (er) { alert(er.message); }
       await reload(); return true;
@@ -625,7 +647,7 @@
       if (t.closest('[data-vx]')) return close();
       const tg = t.closest('[data-vt]'); if (tg) { const T = new Set(D.einst.tage), i = +tg.dataset.vt; T.has(i) ? T.delete(i) : T.add(i); return put({ tage: [...T] }); }
       if (t.closest('[data-vcopy]')) { const i = root.querySelector('[data-vadr]'); i.select(); try { await navigator.clipboard.writeText(i.value); msg = 'Adresse kopiert.'; } catch { document.execCommand('copy'); msg = 'Adresse kopiert.'; } draw(); return; }
-      if (t.closest('[data-vneu]')) { if (confirm('Neuen Schlüssel erzeugen? Der Kurzbefehl auf dem iPhone muss dann die neue Adresse bekommen.')) put({ neuer_schluessel: true }); return; }
+      if (t.closest('[data-vneu]')) { if ((await bpFrage('Neuen Schlüssel erzeugen? Der Kurzbefehl auf dem iPhone muss dann die neue Adresse bekommen.'))) put({ neuer_schluessel: true }); return; }
       if (t.closest('[data-vtest]')) {
         if (!navigator.geolocation) { msg = 'Dieses Gerät gibt keinen Standort heraus.'; return draw(); }
         msg = 'Standort wird bestimmt …'; draw();
@@ -1330,9 +1352,9 @@
       try { const r = await SKJ(`api/bp/skizze/${id}`, 'POST'); SK.id = id; SK.striche = []; SK.seq = 0; skUebernehmen(r); alleZeichnen(); skLeiste(); skLauf(); skModus(); }
       catch (e) { alert(e.message); }
     }
-    function skEnde(still) {
+    async function skEnde(still) {
       const warId = SK.id, eigene = SK.striche.some((d) => d.uid === ich());
-      if (!still && warId && !SK.dauerhaft && eigene && confirm('Markierungen dauerhaft am Plan behalten?\n\nDann sieht sie jeder wieder, der diesen Plan öffnet – auch in den anderen Apps.')) {
+      if (!still && warId && !SK.dauerhaft && eigene && (await bpFrage('Markierungen dauerhaft am Plan behalten?\n\nDann sieht sie jeder wieder, der diesen Plan öffnet – auch in den anderen Apps.'))) {
         SKJ(`api/bp/skizze/${warId}/dauerhaft`, 'POST', { an: true }).then(() => skDauerSuchen(tok)).catch((er) => alert(er.message));
       }
       clearInterval(SK.t); if (SK.id) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: 0, x: null, y: null }).catch(() => {});
@@ -1343,10 +1365,23 @@
       if (!SK.id || SK.werkzeug === 'zeigen') return;
       const p = skPunkt(e); if (!p) return;
       e.preventDefault();
-      if (SK.werkzeug === 'text') {
-        const t = prompt('Text auf dem Plan:'); if (!t) return;
-        const d = { seite: p.seite, art: 'text', farbe: SK.farbe, breite: SKW.text[2], pts: [[p.x, p.y]], text: t, tmp: true, uid: ich() };
-        SK.striche.push(d); skZeichnen(p.seite); SKJ(`api/bp/skizze/${SK.id}/strich`, 'POST', d).then((r) => { d.id = r.id; delete d.tmp; }).catch((er) => alert(er.message)); return;
+      if (SK.werkzeug === 'text') {   // direkt an der Stelle im Plan tippen – Enter übernimmt, Esc verwirft
+        const alt = p.wr.querySelector('.bph-sktxt'); if (alt) { alt.blur(); return; }
+        const W = p.wr.getBoundingClientRect().width, fs = Math.max(10, Math.max(1, SKW.text[2] * W) * 4);
+        const inp = document.createElement('input'); inp.className = 'bph-sktxt'; inp.placeholder = 'Text …';
+        Object.assign(inp.style, { left: (p.x * 100) + '%', top: (p.y * 100) + '%', fontSize: fs + 'px', color: SK.farbe, borderColor: SK.farbe });
+        p.wr.appendChild(inp); setTimeout(() => inp.focus(), 0);
+        let fertig = false;
+        const ende = (ok) => {
+          if (fertig) return; fertig = true; const t = inp.value.trim(); inp.remove();
+          if (!ok || !t) return;
+          const d = { seite: p.seite, art: 'text', farbe: SK.farbe, breite: SKW.text[2], pts: [[p.x, p.y]], text: t, tmp: true, uid: ich() };
+          SK.striche.push(d); skZeichnen(p.seite); SKJ(`api/bp/skizze/${SK.id}/strich`, 'POST', d).then((r) => { d.id = r.id; delete d.tmp; }).catch((er) => bpHinweis(er.message));
+        };
+        inp.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); ende(true); } else if (ev.key === 'Escape') { ev.preventDefault(); ende(false); } });
+        inp.addEventListener('blur', () => ende(true));
+        inp.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+        return;
       }
       SK.akt = { seite: p.seite, art: SK.werkzeug, farbe: SK.farbe, breite: SKW[SK.werkzeug][2], pts: [[p.x, p.y]], uid: ich() };
       try { S.setPointerCapture(e.pointerId); } catch { /* egal */ }
@@ -1420,7 +1455,7 @@
       el.appendChild(d);
       d.addEventListener('click', async (e) => {
         if (e.target === d || e.target.closest('[data-kx]')) return d.remove();
-        if (e.target.closest('[data-kl]')) { try { await navigator.clipboard.writeText(link); d.querySelector('[data-km]').textContent = 'Link kopiert – z. B. in Teams oder per Mail schicken. Wer ihn öffnet, ist sofort dabei, eine Einladung ist nicht nötig.'; } catch { prompt('Link:', link); } return; }
+        if (e.target.closest('[data-kl]')) { try { await navigator.clipboard.writeText(link); d.querySelector('[data-km]').textContent = 'Link kopiert – z. B. in Teams oder per Mail schicken. Wer ihn öffnet, ist sofort dabei, eine Einladung ist nicht nötig.'; } catch { (await bpEingabe('Link:', link)); } return; }
         if (e.target.closest('[data-ko]')) {
           const an = [...d.querySelectorAll('input:checked')].map((x) => +x.value); if (!an.length) return;
           try { await SKJ(`api/bp/skizze/${SK.id}/einladen`, 'POST', { an }); d.remove(); if (window.toast) toast('Eingeladen – sobald sie mitmachen, siehst du ihre Zeiger.'); } catch (er) { d.querySelector('[data-km]').textContent = er.message; }
@@ -1439,10 +1474,10 @@
       const b = e.target.closest('[data-sk]'); if (!b) return;
       const a = b.dataset.sk;
       if (a === 'zurueck') { await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'letzter' }).catch((er) => alert(er.message)); return skAbgleich(); }
-      if (a === 'alle') { if (!confirm(SK.owner === ich() ? 'Alle Markierungen auf diesem Plan löschen – auch die der anderen?' : 'Alle deine Markierungen löschen?')) return; await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'alle' }).catch((er) => alert(er.message)); return skAbgleich(); }
+      if (a === 'alle') { if (!(await bpFrage(SK.owner === ich() ? 'Alle Markierungen auf diesem Plan löschen – auch die der anderen?' : 'Alle deine Markierungen löschen?'))) return; await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'alle' }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'einladen') return skEinladen();
       if (a === 'pdf') return skPdf();
-      if (a === 'dauer') { const an = !SK.dauerhaft; if (!an && !confirm('Markierungen nicht mehr dauerhaft am Plan zeigen?')) return; await SKJ(`api/bp/skizze/${SK.id}/dauerhaft`, 'POST', { an }).catch((er) => alert(er.message)); return skAbgleich(); }
+      if (a === 'dauer') { const an = !SK.dauerhaft; if (!an && !(await bpFrage('Markierungen nicht mehr dauerhaft am Plan zeigen?'))) return; await SKJ(`api/bp/skizze/${SK.id}/dauerhaft`, 'POST', { an }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'voll') return skVoll(true);
       if (a === 'ende') { skEnde(false); }
     });

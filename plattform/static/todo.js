@@ -284,7 +284,7 @@ document.addEventListener('click', async (e) => {
   e.preventDefault(); e.stopPropagation();
   const row = a.closest('[data-tk]'), x = row && tdFinde(row.dataset.tk); if (!x) return;
   if (a.dataset.tdx) {
-    if (!confirm('Anhang entfernen?')) return;
+    if (!(await bpFrage('Anhang entfernen?'))) return;
     try { const d = await api(`api/bp/todo/${x.id}/datei/${a.dataset.tdx}`, 'DELETE'); x.dateien = d.dateien; tdZeigen(); } catch (er) { toast(er.message, true); }
     return;
   }

@@ -489,9 +489,9 @@ async function briefEditor(url, body, titel, E, bid) {
     }
   } catch (e) { S.innerHTML = `<div class="bed-l">${esc(e.message || 'Entwurf nicht lesbar')}</div>`; }
   const zu = () => { ov.remove(); document.body.style.overflow = ''; };
-  ov.addEventListener('click', (e) => {
+  ov.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-b]'); if (!b) return;
-    if (b.dataset.b === 'x') { if (confirm(bid ? `Änderungen verwerfen? Die gespeicherte Fassung bleibt.` : `${titel} verwerfen? Es wurde noch nichts gespeichert.`)) { zu(); if (bid) briefFertig(url, body, titel, bid, true); } return; }
+    if (b.dataset.b === 'x') { if ((await bpFrage(bid ? `Änderungen verwerfen? Die gespeicherte Fassung bleibt.` : `${titel} verwerfen? Es wurde noch nichts gespeichert.`))) { zu(); if (bid) briefFertig(url, body, titel, bid, true); } return; }
     const werte = { ...E.felder }; Object.entries(F).forEach(([k, el]) => { werte[k] = el.value; });
     zu(); briefFertig(url, { ...body, werte }, titel, bid);
   });
@@ -583,7 +583,7 @@ function briefeZeigen() {
 }
 document.addEventListener('click', async (e) => {
   const o = e.target.closest('[data-bf]'); if (o) { const b = BRIEFE.find((x) => x.id === o.dataset.bf); if (!b) return; if (!KONTO) await konto(); SIGNME = !!b.signme; briefFertig(b.url, b.body, b.titel, b.id, true); return; }
-  const d = e.target.closest('[data-bfweg]'); if (d) { if (!confirm('Entwurf löschen?')) return; await briefWeg(d.dataset.bfweg); }
+  const d = e.target.closest('[data-bfweg]'); if (d) { if (!(await bpFrage('Entwurf löschen?'))) return; await briefWeg(d.dataset.bfweg); }
 });
 
 /* ---------- Mängelrüge: Dialog → Entwurf im Brief-Editor ---------- */

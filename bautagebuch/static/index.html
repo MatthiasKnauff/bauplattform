@@ -704,7 +704,7 @@ function renderSheet() {
 }
 function projBearbeiten() {   // gemeinsame Projektmaske (Kopfleiste) – true, wenn geöffnet
   if (!(window.BPHead && BPHead.projektBearbeiten) || !pid) return false;
-  BPHead.projektBearbeiten(pid, { onSaved: btGespeichert, onDelete: (p) => { if (confirm(`Projekt „${p.name}“ mit allen Tagesberichten und Fotos in den Papierkorb legen? Wiederherstellen lässt es sich auf der Startseite unter „Papierkorb“.`)) delProject(); } });
+  BPHead.projektBearbeiten(pid, { onSaved: btGespeichert, onDelete: async (p) => { if ((await bpFrage(`Projekt „${p.name}“ mit allen Tagesberichten und Fotos in den Papierkorb legen? Wiederherstellen lässt es sich auf der Startseite unter „Papierkorb“.`))) delProject(); } });
   return true;
 }
 async function btGespeichert(id) { await loadProjects(); await openProject(id); }   // nach der gemeinsamen Projektmaske
@@ -1518,7 +1518,7 @@ function renderProfile(box) {
     bbBox.onclick = async (e) => {
       const b = e.target.closest('[data-bb]'); if (!b) return;
       if (b.dataset.bb === 'pick') return $('#bbFile').click();
-      if (!confirm('Briefbogen entfernen?')) return;
+      if (!(await bpFrage('Briefbogen entfernen?'))) return;
       const r = await fetch('api/bp/briefbogen', { method: 'DELETE' }); bbDraw(await r.json().catch(() => ({})));
     };
     $('#bbFile').onchange = async (e) => {

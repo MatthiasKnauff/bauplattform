@@ -723,7 +723,7 @@ function lvSelLeiste() {   // Leiste für mehrere markierte Zeilen
   el.innerHTML = `<b>${n} Zeilen markiert</b><button class="btn sm" data-ls="kopieren" title="Strg+C">Kopieren</button><button class="btn sm" data-ls="ausschneiden" title="Strg+X">Ausschneiden</button><button class="btn sm danger" data-ls="loeschen" title="Entf">Löschen</button><button class="btn sm" data-ls="weg" title="Esc">✕</button>`;
 }
 let LVCLIP = null;
-function lvSelAktion(a) {
+async function lvSelAktion(a) {
   const M = lvMarkiert(); if (!M.length && a !== 'einfuegen') return;
   if (a === 'weg') { LVSEL = new Set(); lvAktZeigen(); return; }
   if (a === 'kopieren' || a === 'ausschneiden') {
@@ -731,8 +731,8 @@ function lvSelAktion(a) {
     if (a === 'kopieren') return toast(`${M.length} Zeile${M.length > 1 ? 'n' : ''} kopiert – mit Strg+V hinter der markierten Zeile einfügen (auch in einem anderen LV).`);
   }
   if (a === 'ausschneiden' || a === 'loeschen') {
-    if (a === 'loeschen' && M.length > 1 && !confirm(`${M.length} Zeilen löschen? (Strg+Z holt sie zurück)`)) return;
-    if (M.some((x) => L.aufmass.some((z) => z.pos_id === x.id)) && !confirm('Zu markierten Positionen gibt es Aufmaß. Trotzdem entfernen?')) return;
+    if (a === 'loeschen' && M.length > 1 && !(await bpFrage(`${M.length} Zeilen löschen? (Strg+Z holt sie zurück)`))) return;
+    if (M.some((x) => L.aufmass.some((z) => z.pos_id === x.id)) && !(await bpFrage('Zu markierten Positionen gibt es Aufmaß. Trotzdem entfernen?'))) return;
     const weg = new Set(M.map((x) => x.id)), I = items(), vor = I.findIndex((x) => weg.has(x.id)) - 1;
     L.data.items = I.filter((x) => !weg.has(x.id)); LVSEL = new Set(); LVAKT = vor >= 0 ? L.data.items[Math.min(vor, L.data.items.length - 1)]?.id || null : null;
     HIST.next = a === 'loeschen' ? `${M.length} Zeile${M.length > 1 ? 'n' : ''} gelöscht` : `${M.length} Zeile${M.length > 1 ? 'n' : ''} ausgeschnitten`; numerieren(); changed(true);
@@ -837,7 +837,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'amPdf') return window.open(`api/lv/${L.id}/pdf?art=aufmass`, '_blank');
     if (a === 'reNeu') return reDialog();
     if (a === 'vergabeWeg') {
-      if (!confirm('Vergabe aufheben? Die Auftragspreise werden entfernt.')) return;
+      if (!(await bpFrage('Vergabe aufheben? Die Auftragspreise werden entfernt.'))) return;
       const id = L.id, V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status;   // alten Stand merken
       try { await call(`api/lv/${id}/vergabe`, 'DELETE'); } catch (er) { toast(er.message, true); return; }
       if (V.angebot_id) rueckgaengig(`Vergabe an ${V.bieter || 'den Bieter'} aufgehoben`, async () => {
@@ -852,7 +852,7 @@ document.addEventListener('click', async (e) => {
   if (row && ib && tab === 'lv') {
     const i = +row.dataset.i, x = items()[i], a = ib.dataset.a;
     if (a === 'up' || a === 'down') return moveItem(i, a === 'up' ? -1 : 1);
-    if (a === 'del') { if (x.typ === 'titel' && !confirm('Titel löschen? Die Positionen darunter bleiben.')) return; if (L.aufmass.some((z) => z.pos_id === x.id) && !confirm('Zu dieser Position gibt es Aufmaß. Trotzdem löschen?')) return; items().splice(i, 1); numerieren(); changed(true); return; }
+    if (a === 'del') { if (x.typ === 'titel' && !(await bpFrage('Titel löschen? Die Positionen darunter bleiben.'))) return; if (L.aufmass.some((z) => z.pos_id === x.id) && !(await bpFrage('Zu dieser Position gibt es Aufmaß. Trotzdem löschen?'))) return; items().splice(i, 1); numerieren(); changed(true); return; }
     if (a === 'lvl') { x.lvl = (x.lvl || 1) > 1 ? 1 : 2; numerieren(); changed(true); return; }
     if (a === 'lang') { if (OPEN.has(x.id)) OPEN.delete(x.id); else OPEN.add(x.id); render(); return; }
     if (a === 'eig') return eigDialog(x.id);
@@ -864,7 +864,7 @@ document.addEventListener('click', async (e) => {
   }
   const vg = t.closest('[data-vergabe]'); if (vg) return vergabeDialog(+vg.dataset.vergabe);
   const ad = t.closest('[data-angdel]'); if (ad) {
-    if (!confirm('Angebot löschen?')) return;
+    if (!(await bpFrage('Angebot löschen?'))) return;
     const id = L.id, x = JSON.parse(JSON.stringify(L.angebote.find((z) => z.id === +ad.dataset.angdel) || {})), vergeben = L.vergabe && L.vergabe.angebot_id === x.id;
     try { await call('api/angebote/' + ad.dataset.angdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }
     if (x.id && !vergeben) rueckgaengig(`Angebot ${x.bieter} gelöscht`, async () => {   // neu anlegen und Preise wieder eintragen
@@ -1300,7 +1300,7 @@ async function reAktion(b) {
     }
     if (a === 'zurueck') return call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
     if (a === 'del') {
-      if (!confirm(`${r.nr}. Rechnung löschen?`)) return;
+      if (!(await bpFrage(`${r.nr}. Rechnung löschen?`))) return;
       const id = L.id, x = JSON.parse(JSON.stringify(r)), stAlt = L.status;
       await call('api/rechnungen/' + r.id, 'DELETE');
       rueckgaengig(`${x.nr}. Rechnung gelöscht`, async () => {   // neu anlegen (gleiche Nummer, da die letzte) und Abzüge/Prüfung wieder setzen
@@ -1530,7 +1530,7 @@ document.addEventListener('click', async (e) => {
   const z = e.target.closest('[data-fzeig]');
   if (z) { const x = items().find((y) => y.id === z.dataset.fzeig); const fs = fotosVon(x).map((b) => ({ url: `api/bild/${b.id}`, name: b.name, typ: 'bild' })); if (window.BPHead && BPHead.ansehen) BPHead.ansehen(fs, +z.dataset.k); else window.open(fs[+z.dataset.k].url, '_blank'); return; }
   const d = e.target.closest('[data-fdel]');
-  if (d) { if (!confirm('Foto entfernen?')) return; try { await call('api/bild/' + d.dataset.fdel, 'DELETE'); if (window.eigNeu) eigNeu(); } catch (er) { toast(er.message, true); } }
+  if (d) { if (!(await bpFrage('Foto entfernen?'))) return; try { await call('api/bild/' + d.dataset.fdel, 'DELETE'); if (window.eigNeu) eigNeu(); } catch (er) { toast(er.message, true); } }
 });
 document.addEventListener('paste', (e) => {   // Bild aus der Zwischenablage (Screenshot, kopiertes Foto) in den Langtext
   const ta = e.target.closest && e.target.closest('tr.lang'); if (!ta || !L) return;
@@ -1608,8 +1608,8 @@ async function katalogEinstellungen(host) {
       <p class="bph-mu">Katalogdatei, z. B. sirAdos-Positionen oder -Elemente (*.ava). Dieselbe Datei noch einmal einlesen ersetzt den Katalog (z. B. neuer Preisstand). Die Kataloge bleiben nur in der Datenbank des Büros.</p>` : '<p class="bph-mu">Einlesen kann die Verwaltung.</p>'}`;
   host.onclick = async (e) => {
     const r = e.target.closest('[data-kren]'), w = e.target.closest('[data-kweg]');
-    if (r) { const x = K.kataloge.find((y) => y.id === +r.dataset.kren); const n = prompt('Name des Katalogs', x.name); if (!n || !n.trim()) return; await api('api/katalog/' + x.id, 'PUT', { name: n.trim() }).catch((er) => toast(er.message, true)); katalogEinstellungen(host); }
-    if (w) { const x = K.kataloge.find((y) => y.id === +w.dataset.kweg); if (!confirm(`Katalog „${x.name}“ entfernen? Bereits übernommene Positionen in den LVs bleiben.`)) return; await api('api/katalog/' + x.id, 'DELETE').catch((er) => toast(er.message, true)); katalogEinstellungen(host); }
+    if (r) { const x = K.kataloge.find((y) => y.id === +r.dataset.kren); const n = (await bpEingabe('Name des Katalogs', x.name)); if (!n || !n.trim()) return; await api('api/katalog/' + x.id, 'PUT', { name: n.trim() }).catch((er) => toast(er.message, true)); katalogEinstellungen(host); }
+    if (w) { const x = K.kataloge.find((y) => y.id === +w.dataset.kweg); if (!(await bpFrage(`Katalog „${x.name}“ entfernen? Bereits übernommene Positionen in den LVs bleiben.`))) return; await api('api/katalog/' + x.id, 'DELETE').catch((er) => toast(er.message, true)); katalogEinstellungen(host); }
   };
   const inp = host.querySelector('#katDatei');
   if (inp) inp.onchange = async () => {
@@ -2100,7 +2100,7 @@ async function tlListeNeu() {
   setTimeout(() => { const f = document.getElementById('tlnN'); if (f) f.focus(); }, 30);
 }
 async function tlListeUmbenennen() {
-  const name = prompt('Name der Liste', tlName()); if (name == null || !name.trim()) return;
+  const name = (await bpEingabe('Name der Liste', tlName())); if (name == null || !name.trim()) return;
   try { const r = await api(`api/projekt/${pid}/tuerlisten/${TL.liste}`, 'PUT', { name: name.trim() }); TL.listen = r.listen; render(); } catch (e) { toast(e.message, true); }
 }
 async function tlListeLoeschen() {

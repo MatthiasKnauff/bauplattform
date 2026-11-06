@@ -1181,7 +1181,7 @@ def genauigkeit(c, r, d, cal, kinds):
         open_share = sum(x["area"] for x in d["rooms"] if not x["ok"]) / (cal["area"] or 1)
         if open_share > 0:
             v = round(5 * open_share, 1); lo += v; hi += v
-            F.append({"text": f"{round(open_share * 100)} % der Fläche nicht bestätigt", "plus": v, "tipp": "Räume unter „Pläne & Mengen“ bestätigen."})
+            F.append({"text": f"{round(open_share * 100)} % der Fläche nicht bestätigt", "plus": v, "tipp": "Räume unter „Pläne & Raumbuch“ bestätigen."})
     else:
         hi += 40; lo += 20
         F.append({"text": "Noch keine Räume", "plus": 40, "tipp": "Grundriss hochladen."})
@@ -1377,7 +1377,7 @@ def bauteile_vorschlag(i):
         cal = calc(d)
         rows = bauteile_intern(d, cal)
         if not rows:
-            return jsonify(error="Erst Räume mit Flächen erfassen (Pläne & Mengen) – daraus werden die Mengen abgeleitet."), 400
+            return jsonify(error="Erst Räume mit Flächen erfassen (Pläne & Raumbuch) – daraus werden die Mengen abgeleitet."), 400
         note = "Mengen grob aus Raumbuch, Geschossen und Höhen; Materialien und Preise sind Beispiele – bitte je Zeile prüfen."
         if b.get("ki"):
             ki = ai.choice_of(g.user)
@@ -1617,7 +1617,7 @@ def rules(c, r, d, cal, files):
     open_ = [x for x in d["rooms"] if not x["ok"]]
     spaet = r["stufe"] in ("berechnung", "voranschlag", "anschlag", "feststellung")
     if open_:
-        add("hoch" if spaet else "mittel", f"{len(open_)} Räume noch nicht bestätigt", "Aus dem Plan gelesene Räume bitte unter „Pläne & Mengen“ prüfen und bestätigen.", go={"tab": "plaene", "room": open_[0]["id"]})
+        add("hoch" if spaet else "mittel", f"{len(open_)} Räume noch nicht bestätigt", "Aus dem Plan gelesene Räume bitte unter „Pläne & Raumbuch“ prüfen und bestätigen.", go={"tab": "plaene", "room": open_[0]["id"]})
     J = cal.get("justage") or {}
     if J.get("k") and (J["k"] > 1.4 or J["k"] < 0.7):
         add("mittel", f"Bauteile und Kennwerte passen nicht zusammen (Faktor {J['k']:.2f})".replace(".", ","),

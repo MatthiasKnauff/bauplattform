@@ -8,7 +8,7 @@
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="static/bp.css">
 <style>
-.wrap{max-width:1240px}
+.wrap{max-width:1680px}   /* breite Bildschirme nutzen – das Raumbuch hat viele Spalten */
 .num{white-space:nowrap;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
 .r{text-align:right}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.9rem}
@@ -201,7 +201,7 @@ body.as-open .wrap{padding-bottom:45vh}
 <script src="static/bp.js"></script>
 <script src="static/pdbwahl.js"></script>
 <script>
-const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Mengen'], ['bauteile', 'Bauteile & Kostengruppen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
+const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Raumbuch'], ['bauteile', 'Bauteile & Kostengruppen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
 // Was die Stufe bedeutet und bewirkt (Genauigkeit, Gliederungstiefe im PDF, zusätzliche Prüfregeln)
 const STUFE_INFO = {
   rahmen: { lph: 'LPH 1 · Grundlagen', ebene: 1, genau: 35, txt: 'Gesamtkosten aus Fläche × Kennwert, Gliederung nach der 1. Ebene.' },
@@ -425,7 +425,7 @@ function vUebersicht() {
   <section class="card" style="margin-bottom:1.2rem" id="reifeBox">${reifeHtml()}</section>
   <div class="two">
     <section class="card"><h2>Kosten nach Raumtyp</h2><p class="sub">Fläche × Kennwert</p><div class="bars">${c.types.filter((t) => t.n).map((t) => `
-      <div class="bar"><div class="t"><span>${esc(t.label)} <span class="mute">· ${m2(t.area)} m²</span></span><span class="num">${eur(t.sum)}</span></div><div class="tr"><div class="f" style="width:${(t.sum / max * 100).toFixed(1)}%"></div></div></div>`).join('') || '<p class="hint">Noch keine Räume – unter „Pläne & Mengen“ einen Grundriss hochladen.</p>'}</div></section>
+      <div class="bar"><div class="t"><span>${esc(t.label)} <span class="mute">· ${m2(t.area)} m²</span></span><span class="num">${eur(t.sum)}</span></div><div class="tr"><div class="f" style="width:${(t.sum / max * 100).toFixed(1)}%"></div></div></div>`).join('') || '<p class="hint">Noch keine Räume – unter „Pläne & Raumbuch“ einen Grundriss hochladen.</p>'}</div></section>
     <section class="card"><h2>Mittelabfluss je Monat</h2><p class="sub">${B.gantt ? 'aus dem Bauzeitenplan „' + esc(B.gantt.name) + '“' : 'kein Bauzeitenplan verknüpft'}</p><div id="miniFlow">${flowCols(true)}</div></section>
   </div>
   <section class="card" style="margin-top:1.2rem" id="accBox">${accHtml()}</section>
@@ -734,7 +734,7 @@ const STEPS = [
   { k: 'plaene', t: 'Pläne hochladen', done: () => B.files.length > 0,
     txt: () => 'Lade die Grundrisse <b>aller Geschosse</b> als PDF aus dem CAD hoch, dazu Ansichten und Schnitte. Aus Grundrissen werden Raumnummer, Name und Fläche exakt gelesen.',
     st: () => B.files.length ? `${B.files.length} Pläne, ${B.data.rooms.length} Räume gelesen.` : 'Noch keine Pläne.',
-    acts: [['PDF auswählen', 'pdf'], ['Zu „Pläne & Mengen“', 'tab:plaene']] },
+    acts: [['PDF auswählen', 'pdf'], ['Zu „Pläne & Raumbuch“', 'tab:plaene']] },
   { k: 'raeume', t: 'Räume prüfen', done: () => B.data.rooms.some((r) => r.area > 0) && B.data.rooms.every((r) => r.ok && r.area > 0 && r.name),
     txt: () => 'Prüfe Raumtyp und Fläche je Raum. Die Typen sind Vorschläge. Rote Markierungen im Plan zeigen doppelte Raumnummern.',
     st: () => { const o = B.data.rooms.filter((r) => !r.ok || !(r.area > 0) || !r.name).length; return B.data.rooms.length ? (o ? `${o} von ${B.data.rooms.length} Räumen noch offen oder ohne Name/Fläche.` : 'Alle Räume bestätigt.') : 'Noch keine Räume – Grundriss hochladen oder „Räume mit KI lesen“.'; },

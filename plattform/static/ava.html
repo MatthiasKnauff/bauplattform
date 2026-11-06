@@ -2138,19 +2138,19 @@ function vTueren(v) {
     return `<td data-r="${r}" data-c="${ci}" class="${cl.join(' ')}"${st}${x.length > 6 ? ` title="${esc(x)}"` : ''}>${esc(x)}</td>`; };
   const zeile = (t, r) => { let ci = 0; return `<tr data-t="${esc(t.id)}" class="${B && r >= B.r1 && r <= B.r2 && B.c1 === 0 && B.c2 === S.length - 1 ? 'rs' : ''}"><td class="rn" data-rn="${r}">${r + 1}</td>${gr.map(([g, cs]) => (zu(g) ? '<td class="k"></td>' : cs.map((c) => zelle(t, r, c, ci++)).join(''))).join('')}</tr>`; };
   v.innerHTML = `<div class="tl-bar">
-      <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button>
+      <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button><button class="btn sm" data-tl="import" title="Fenster-/Türliste aus Excel oder CSV einlesen – Spalten werden erkannt, Maße umgerechnet, alles geprüft">Aus Excel einlesen …</button>
       <span class="sep"></span>
       <button class="btn sm" data-tl="dup" ${nZ ? '' : 'disabled'} title="Markierte Zeilen kopieren">Zeilen duplizieren</button><button class="btn sm" data-tl="mehr" ${nZ ? '' : 'disabled'} title="Ein Feld für alle markierten Zeilen setzen">Ändern …</button><button class="btn sm danger" data-tl="del" ${nZ ? '' : 'disabled'}>Zeilen löschen</button>
       <span class="sep"></span>
       <input type="search" id="tlQ" placeholder="Suchen (Nr., Raum, T30 …)" value="${esc(TLq)}">
       <span style="flex:1"></span><span class="hint">${TL.tueren.length} Zeilen · ${stueck} Stück${nZ > 1 ? ` · ${nZ} Zeilen markiert` : ''}</span>
-      <button class="btn sm" data-tl="opt" title="Darstellung: Ansichten, feste Spalten, Ausstattung als Marken, Details, Schriftgröße" aria-haspopup="dialog">⚙ Darstellung</button><a class="btn sm" href="api/projekt/${pid}/tueren.xlsx" title="Liste als Excel">Excel</a><button class="btn sm pri" data-tl="lv" ${TL.tueren.length ? '' : 'disabled'} title="Gleiche Elemente zu Positionen zusammenfassen und ins LV übernehmen">→ In LV übernehmen …</button></div>
+      ${TL.tueren.length ? (() => { const n = window.tlWarnungen ? tlWarnungen() : 0; return `<button class="btn sm${n ? ' warnb' : ''}" data-tl="pruef" title="Plausibilität prüfen: fehlende Angaben, ungewöhnliche Maße, 2. Rettungsweg, Absturzsicherung, Brandschutz …">${n ? `⚠ ${n} prüfen` : '✓ Prüfen'}</button>`; })() : ''}<button class="btn sm" data-tl="opt" title="Darstellung: Ansichten, feste Spalten, Ausstattung als Marken, Details, Schriftgröße" aria-haspopup="dialog">⚙ Darstellung</button><a class="btn sm" href="api/projekt/${pid}/tueren.xlsx" title="Liste als Excel">Excel</a><button class="btn sm pri" data-tl="lv" ${TL.tueren.length ? '' : 'disabled'} title="Gleiche Elemente zu Positionen zusammenfassen und ins LV übernehmen">→ In LV übernehmen …</button></div>
     ${TLO.ansichten && TL.tueren.length ? `<div class="tl-views" role="tablist">${TVIEWS.map(([k, l, ks]) => `<button type="button" role="tab" data-tlv="${k}" class="${k === TLV ? 'on' : ''}" aria-selected="${k === TLV}">${esc(l)}${ks ? ` <small>${ks.length}</small>` : ''}</button>`).join('')}</div>` : ''}
     ${TL.tueren.length ? `<div class="tl-flex"><div class="tl-w" tabindex="0"><table class="tl${TLO.gross ? ' gross' : ''}"><colgroup><col style="width:${RN}px">${gr.map(([g, cs]) => (zu(g) ? '<col style="width:16px">' : cs.map((c) => `<col style="width:${tlBreite(c)}px">`).join(''))).join('')}</colgroup>
       <thead><tr><th class="rn g" rowspan="1"></th>${kopf1}</tr><tr><th class="rn" title="Alles markieren" data-tl="alles">⊿</th>${kopf2}</tr></thead>
       <tbody>${T.map(zeile).join('')}</tbody></table></div>${TLO.details ? `<aside class="tl-d" id="tlD">${tlDetails()}</aside>` : ''}</div>
       <p class="hint" style="margin:.5rem 0 0">Wie in Excel: klicken/ziehen markiert (Umschalt erweitert, Zeilennummer markiert ganze Zeilen), Tippen oder Doppelklick schreibt, Entf löscht, Strg+C / Strg+X / Strg+V kopiert und fügt ein – auch aus Excel –, Strg+D füllt nach unten, Strg+Z macht rückgängig. Ja/Nein-Spalten mit Klick oder Leertaste, beim Einfügen gilt x/ja/1 als Ja. Maße in m oder mm.${alle ? ' Gruppenüberschrift anklicken klappt Spalten zu.' : ''}${TLO.marken ? ' Ausstattung: Doppelklick oder Eingabe öffnet die Auswahl.' : ''}</p>`
-    : `<div class="card tl-leer"><p>Noch keine Türen oder Fenster in diesem Projekt.</p><p class="hint">Zeilen anlegen, aus Excel einfügen (Strg+V in die erste Zelle) oder für die Räume aus dem Raumbuch übernehmen. Alles lässt sich später als Positionen ins LV übernehmen.</p><button class="btn pri" data-tl="neu">+ Erste Zeile</button> <button class="btn" data-tl="raeume">Aus Raumbuch …</button> <button class="btn" data-tl="einf">Aus Zwischenablage einfügen</button></div>`}`;
+    : `<div class="card tl-leer"><p>Noch keine Türen oder Fenster in diesem Projekt.</p><p class="hint">Zeilen anlegen, aus Excel einfügen (Strg+V in die erste Zelle) oder für die Räume aus dem Raumbuch übernehmen. Alles lässt sich später als Positionen ins LV übernehmen.</p><button class="btn pri" data-tl="neu">+ Erste Zeile</button> <button class="btn" data-tl="raeume">Aus Raumbuch …</button> <button class="btn" data-tl="einf">Aus Zwischenablage einfügen</button> <button class="btn" data-tl="import">Aus Excel einlesen …</button></div>`}`;
 }
 /* Details rechts: alle Felder der markierten Zeile(n) – eine Änderung gilt für alle markierten */
 function tlAuswahl() { const B = tlBox(), V = tlSicht(); return B ? V.slice(B.r1, B.r2 + 1) : TLC ? [V[TLC.r]].filter(Boolean) : []; }
@@ -2343,6 +2343,8 @@ async function tlAktion(a) {
   if (a === 'del') { tlMerken(); const weg = new Set(sel.map((t) => t.id)); TL.tueren = T.filter((t) => !weg.has(t.id)); TLA = TLC = null; tlSpeichern(true); tlZeichnen(); toast(`${weg.size} Zeile${weg.size > 1 ? 'n' : ''} gelöscht – Strg+Z holt sie zurück.`); return; }
   if (a === 'mehr') return tlMehrfach(sel);
   if (a === 'raeume') return tlRaeume();
+  if (a === 'import') return window.tlImport && tlImport();
+  if (a === 'pruef') return window.tlPruefDialog && tlPruefDialog();
   if (a === 'lv') return tlInsLv(sel.length > 1 ? sel : []);
 }
 function tlMehrfach(sel) {
@@ -2533,5 +2535,6 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
 })().catch((e) => toast(e.message, true));
 addEventListener('beforeunload', () => { if (saveT && L) navigator.sendBeacon && fetch('api/lv/' + L.id, { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rev: L.rev, data: L.data }) }); });
 </script>
+<script src="static/tlimport.js"></script>
 </body>
 </html>

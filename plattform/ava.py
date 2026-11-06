@@ -1238,6 +1238,56 @@ def tueren(pid):
         return jsonify(neu)
 
 
+@app.post("/api/tabelle/lesen")
+def tabelle_lesen():
+    """Beliebige Tabelle (Excel .xlsx/.xlsm oder CSV) roh lesen – alle Blätter, Werte wie angezeigt. Die Zuordnung der Spalten
+    (z. B. für den Import in die Fenster- und Türliste) macht der Browser, damit man sie dort prüfen und ändern kann."""
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei."), 400
+    name = (f.filename or "").lower()
+    roh = f.read(25 * 1024 * 1024 + 1)
+    if len(roh) > 25 * 1024 * 1024:
+        return jsonify(error="Die Datei ist größer als 25 MB."), 400
+
+    def zelle(v):
+        if v is None:
+            return ""
+        if isinstance(v, float):
+            return round(v, 6)
+        if isinstance(v, (int, bool)):
+            return v
+        return str(v).strip()[:500]
+    blaetter = []
+    if name.endswith((".csv", ".txt")):
+        import csv
+        text = roh.decode("utf-8-sig", "replace")
+        try:
+            dia = csv.Sniffer().sniff(text[:5000], delimiters=";,\t")
+        except csv.Error:
+            dia = csv.excel
+        rows = [[zelle(x) for x in r[:80]] for r in list(csv.reader(io.StringIO(text), dia))[:5000]]
+        blaetter.append({"name": f.filename or "CSV", "zeilen": rows})
+    elif name.endswith((".xlsx", ".xlsm")):
+        import openpyxl
+        try:
+            wb = openpyxl.load_workbook(io.BytesIO(roh), data_only=True, read_only=True)
+        except Exception as e:
+            return jsonify(error=f"Die Excel-Datei lässt sich nicht lesen ({str(e)[:120]})."), 400
+        for ws in wb.worksheets[:20]:
+            rows = []
+            for r in ws.iter_rows(max_row=5000, max_col=80, values_only=True):
+                rows.append([zelle(x) for x in r])
+            while rows and not any(x != "" for x in rows[-1]):
+                rows.pop()
+            blaetter.append({"name": ws.title, "zeilen": rows})
+    elif name.endswith(".xls"):
+        return jsonify(error="Alte Excel-Dateien (.xls) bitte in Excel als .xlsx speichern."), 400
+    else:
+        return jsonify(error="Bitte eine Excel-Datei (.xlsx) oder CSV wählen."), 400
+    return jsonify(blaetter=blaetter, datei=f.filename or "")
+
+
 @app.get("/api/projekt/<int:pid>/raeume")
 def projekt_raeume(pid):
     """Räume aus dem Raumbuch der Kostenermittlung des Projekts (für die Türliste)."""

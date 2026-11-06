@@ -978,6 +978,8 @@ async function lvDokHoch(lvId, f) {
 const vergeben = () => !!(L && L.vergabe && L.vergabe.preise);
 /* LV als Baum wie in „Aufträge“: Projekt → LV → Titel (zuklappbar) → Positionen; Kurztext direkt in der Zeile bearbeiten */
 let LVZU = new Set();
+const LVGZ = new Set(LS.get('lvgz', []));   // ganz zugeklappte LVs (im Baum nur noch die Zeile)
+document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('[data-lvganz]'); if (!c || !L) return; e.stopPropagation(); if (LVGZ.has(L.id)) LVGZ.delete(L.id); else LVGZ.add(L.id); LS.set('lvgz', [...LVGZ]); render(); }, true);
 const lvZuLaden = () => { LVZU = new Set(LS.get('lvzu:' + (L && L.id), [])); };
 function vLv() {
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {}, NC = V ? 9 : 8;
@@ -1012,7 +1014,7 @@ function vLv() {
     return h;
   }).join('');
   const kopf = `<tr class="wurzel"><td class="baumz"><div class="bz" style="${einr(0)}"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NC - 1}"></td></tr>
-    <tr class="wurzel lvz"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▾</span>${IC.lv}<b>${esc(L.nr)} ${esc(L.name)}</b></div></td><td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
+    <tr class="wurzel lvz"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car" data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer">${LVGZ.has(L.id) ? '▸' : '▾'}</span>${IC.lv}<b>${esc(L.nr)} ${esc(L.name)}</b></div></td><td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
   const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
   const LV = LIST.filter((x) => !x.archived || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
@@ -1026,12 +1028,12 @@ function vLv() {
       <span class="fill"></span><button class="btn sm" data-act="vorbem">${L.data.vorbem ? '✎ ' : '+ '}Vorbemerkungen</button><button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><b>Vorbemerkungen</b><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
-      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace('<tr class="wurzel lvz">', vorher + '<tr class="wurzel lvz">')}${rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
+      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace('<tr class="wurzel lvz">', vorher + '<tr class="wurzel lvz">')}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
 document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen
   const r = tab === 'lv' && e.target.closest && e.target.closest('[data-lvopen]'); if (!r) return;
-  await flush(); await openLv(+r.dataset.lvopen);
+  LVGZ.delete(+r.dataset.lvopen); LS.set('lvgz', [...LVGZ]); await flush(); await openLv(+r.dataset.lvopen);
 });
 document.addEventListener('click', (e) => {   // Titel auf- und zuklappen
   if (tab !== 'lv' || !L) return;

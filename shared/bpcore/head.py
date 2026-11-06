@@ -819,8 +819,11 @@ def blueprint(get_user=None):
         u = user()
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
-        with db.tx() as c:
-            return jsonify(eintraege=papierkorb.liste(c), einst=papierkorb.einstellungen(c), admin=bool(u["is_admin"]))
+        with db.tx() as c:   # jeder sieht nur, was er selbst gelöscht hat; die Verwaltung alles (nach Benutzer filterbar)
+            L = papierkorb.liste(c)
+            if not u["is_admin"]:
+                L = [x for x in L if (x["von"] or "") == u["name"]]
+            return jsonify(eintraege=L, einst=papierkorb.einstellungen(c), admin=bool(u["is_admin"]), ich=u["name"])
 
     @bp.post("/api/bp/papierkorb/<int:pid>/zurueck")
     def papierkorb_zurueck(pid):
@@ -829,6 +832,9 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         try:
             with db.tx() as c:
+                e = c.execute("SELECT von FROM bp_papierkorb WHERE id=?", (pid,)).fetchone()
+                if e and not u["is_admin"] and (e["von"] or "") != u["name"]:
+                    return jsonify(error="Das hat jemand anderes gelöscht – wiederherstellen kann es die Verwaltung."), 403
                 r = papierkorb.wiederherstellen(c, pid)
         except ValueError as e:
             return jsonify(error=str(e)), 409

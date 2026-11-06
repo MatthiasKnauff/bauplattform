@@ -34,7 +34,7 @@
 </main>
 <script src="static/bp.js"></script>
 <script>
-let D = null, CONF = null;
+let D = null, CONF = null, WER = '';   // Verwaltung: Filter nach Benutzer
 const APP = { bautagebuch: ['📒', 'Bautagebuch'], gantt: ['📅', 'Bauzeitenplan'], baukosten: ['💶', 'Baukosten'], ava: ['📄', 'Ausschreibung & Abrechnung'], aufgaben: ['☑', 'Aufgaben & Mängel'] };
 const wann = (t) => { if (!t) return ''; const d = new Date(t); return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
 const tagGruppe = (t) => { const d = new Date(t), h = new Date(); const tage = Math.floor((new Date(h.toDateString()) - new Date(d.toDateString())) / 864e5); return tage <= 0 ? 'Heute' : tage === 1 ? 'Gestern' : tage < 7 ? 'Diese Woche' : tage < 31 ? 'Diesen Monat' : 'Älter'; };
@@ -48,11 +48,14 @@ function zeigen() {
   $('#leeren').hidden = !A || !D.eintraege.length;
   const T = [[0, 'nie (nur von Hand)'], [7, '7 Tagen'], [14, '14 Tagen'], [30, '30 Tagen'], [60, '60 Tagen'], [90, '90 Tagen'], [180, '180 Tagen'], [365, 'einem Jahr']];
   if (!T.some(([k]) => k === D.einst.tage)) T.push([D.einst.tage, D.einst.tage + ' Tagen']);
-  $('#ein').innerHTML = `Gelöschtes aus allen Apps – mit allem, was daran hing (Berichte, Fotos, Pläne, Angebote …). Wiederherstellen kann jeder; endgültig löschen die Verwaltung.<br>
+  const leute = [...new Set(D.eintraege.map((x) => x.von || ''))].sort((a, b) => a.localeCompare(b, 'de'));
+  $('#ein').innerHTML = (A ? `Gelöschtes aus allen Apps und von allen Benutzern – mit allem, was daran hing. Gelöscht von <select id="wer" aria-label="Gelöscht von"><option value="">allen (${D.eintraege.length})</option>${leute.map((n) => `<option value="${esc(n)}"${n === WER ? ' selected' : ''}>${esc(n || 'unbekannt')} (${D.eintraege.filter((x) => (x.von || '') === n).length})</option>`).join('')}</select><br>`
+    : `Was du gelöscht hast – mit allem, was daran hing (Berichte, Fotos, Pläne, Angebote …). Endgültig löschen kann die Verwaltung.<br>`) + `
     Automatisch endgültig löschen nach ${A ? `<select id="tage" aria-label="Automatisch endgültig löschen nach">${T.map(([k, l]) => `<option value="${k}"${k === D.einst.tage ? ' selected' : ''}>${l}</option>`).join('')}</select>` : `<b>${(T.find(([k]) => k === D.einst.tage) || [, D.einst.tage + ' Tagen'])[1]}</b>`}`;
-  if (!D.eintraege.length) { $('#liste').innerHTML = '<div class="leer">Der Papierkorb ist leer.</div>'; return; }
+  const E = A && WER !== '' ? D.eintraege.filter((x) => (x.von || '') === WER) : D.eintraege;
+  if (!E.length) { $('#liste').innerHTML = '<div class="leer">Der Papierkorb ist leer.</div>'; return; }
   let g = '', h = '';
-  for (const x of D.eintraege) {
+  for (const x of E) {
     const gr = tagGruppe(x.geloescht); if (gr !== g) { g = gr; h += `<div class="pk-g">${g}</div>`; }
     const ap = APP[x.app] || ['🗂', x.app || ''];
     h += `<div class="pk-i" data-id="${x.id}"><span class="ic" aria-hidden="true">${ap[0]}</span>
@@ -79,12 +82,13 @@ document.addEventListener('click', async (e) => {
     try { await api('api/bp/papierkorb/loeschen', 'POST', { ids: [+w.dataset.weg] }); await laden(); } catch (er) { toast(er.message, true); }
   }
 });
-$('#leeren').onclick = () => modalBox(`<h3>Papierkorb leeren</h3><p>Alle ${D.eintraege.length} Einträge werden endgültig gelöscht – mit Berichten, Fotos, Plänen und allem, was daran hängt. Das lässt sich nicht rückgängig machen.</p>
+$('#leeren').onclick = () => { const E = WER !== '' ? D.eintraege.filter((x) => (x.von || '') === WER) : D.eintraege; modalBox(`<h3>Papierkorb leeren</h3><p>${WER !== '' ? `Alle ${E.length} Einträge von ${esc(WER || 'unbekannt')}` : `Alle ${E.length} Einträge`} werden endgültig gelöscht – mit Berichten, Fotos, Plänen und allem, was daran hängt. Das lässt sich nicht rückgängig machen.</p>
   <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="ok">Endgültig löschen</button></div>`, async (m, bg, close) => {
   if (m !== 'ok') { close(); return; }
-  try { const r = await api('api/bp/papierkorb/loeschen', 'POST', { alle: true }); close(); toast(`${r.n} Einträge endgültig gelöscht.`); await laden(); } catch (er) { toast(er.message, true); }
-});
+  try { const r = await api('api/bp/papierkorb/loeschen', 'POST', WER !== '' ? { ids: E.map((x) => x.id) } : { alle: true }); close(); toast(`${r.n} Einträge endgültig gelöscht.`); await laden(); } catch (er) { toast(er.message, true); }
+}); };
 document.addEventListener('change', async (e) => {
+  if (e.target.id === 'wer') { WER = e.target.value; zeigen(); return; }
   if (e.target.id !== 'tage') return;
   try { const r = await api('api/bp/papierkorb/einst', 'PUT', { tage: +e.target.value }); D.einst = r.einst; toast(+e.target.value ? `Einträge werden nach ${e.target.options[e.target.selectedIndex].text} endgültig gelöscht.` : 'Der Papierkorb wird nur noch von Hand geleert.'); await laden(); }
   catch (er) { toast(er.message, true); }

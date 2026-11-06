@@ -24,6 +24,11 @@ function tdProjektAus(t) {
   for (const m of String(t || '').matchAll(/(?:^|[\s(])([A-Za-z]{1,3}\d{2,5}(?:[.-]\d+)?)(?=$|[\s,.:;)])/g)) {
     const p = P.find((x) => kurz(x.name) === m[1].toLowerCase()); if (p) return p;
   }
+  // sonst ein Wort, das genau ein Projekt trifft: „Tierheim anrufen“ → A481 Tierheim Grillostr. 24, Essen („Essen“ allein passt auf viele → nichts)
+  for (const w of String(t || '').toLowerCase().match(/[a-zäöüß][a-zäöüß-]{3,}/g) || []) {
+    const treffer = P.filter((x) => (x.name || '').toLowerCase().includes(w));
+    if (treffer.length === 1) return treffer[0];
+  }
   return null;
 }
 async function tdLaden() {

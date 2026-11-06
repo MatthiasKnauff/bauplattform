@@ -603,8 +603,7 @@
           <ol>
             <li>Auf dem iPhone die App <b>Kurzbefehle</b> öffnen → <b>＋</b> (iOS 27: unten in der Mitte, sonst oben rechts). <b>iOS 27</b> fragt dann „Was soll dein Kurzbefehl tun?“ – nichts eintippen, sondern oben rechts <b>Bearbeiten</b>. Oben auf den Namen tippen → Umbenennen: „Baustelle melden“.</li>
             <li>Aktion <b>„Aktuellen Standort abrufen“</b> hinzufügen.</li>
-            <li>Aktion <b>„URL“</b> hinzufügen und die Adresse oben einfügen (endet mit <code>&amp;lat=</code>). Direkt dahinter die Variable <b>Standort → Breitengrad</b> einsetzen, dann <code>&amp;lon=</code> tippen und die Variable <b>Standort → Längengrad</b> einsetzen.</li>
-            <li>Aktion <b>„Inhalte von URL abrufen“</b> hinzufügen (nimmt die URL von oben).</li>
+            <li>Aktion <b>„Inhalte von URL abrufen“</b> hinzufügen (Suche „Inhalte“ oder Kategorie „Web“). In der Aktion auf das blaue Feld <b>URL</b> tippen und die Adresse oben einfügen (endet mit <code>&amp;lat=</code>). Direkt dahinter die Variable <b>Aktueller Standort → Breitengrad</b> einsetzen, dann <code>&amp;lon=</code> tippen und die Variable <b>Aktueller Standort → Längengrad</b> einsetzen.</li>
             <li>Optional: Aktion <b>„Mitteilung anzeigen“</b> mit dem Ergebnis – dann siehst du „Vor Ort: A481 …“.</li>
             <li>Einmal antippen zum Testen (Standortzugriff erlauben) – unten unter „Letzte Besuche“ erscheint die Baustelle, wenn du dort bist.</li>
             <li><b>Automatisch starten – iOS 27:</b> im Kurzbefehl <b>Bearbeiten</b> → <b>Automation</b> → Auslöser <b>CarPlay</b> → „Trennt“. Zur Sicherheit zwei weitere Auslöser <b>Tageszeit</b> (11:00 und 15:00, wöchentlich Mo–Fr). Dann <b>Bearbeiten</b> → <b>ⓘ</b> → <b>Datenschutz</b> → „Ausführen im gesperrten Zustand erlauben“ einschalten – sonst fragt das iPhone jedes Mal nach.</li>

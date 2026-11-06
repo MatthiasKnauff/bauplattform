@@ -57,7 +57,7 @@ LABELS = {
     "phone": "Telefon", "mobile": "Mobil", "email": "E-Mail", "street": "Straße", "zip": "PLZ", "city": "Ort", "notes": "Notizen",
     "website": "Internet", "role": "Rolle", "extra": "Weiteres", "alle_tage": "alle Stände (Tage)", "taeglich_tage": "ein Stand je Tag bis (Tage)",
     "mailsignatur": "E-Mail-Signatur", "funktion": "Funktion", "phasen": "Phasen", "planarten": "Planarten", "kennungen": "Kennungen", "stichworte": "Stichwörter", "max_mb": "Anhänge höchstens (MB)",
-    "fuer": "für wen", "projekte": "für welche Projekte", "wert": "Schwelle", "erinnerung_art": "Erinnerungen als", "erinnerung_an": "Erinnerungen an",
+    "fuer": "für wen", "projekte": "für welche Projekte", "wert": "Schwelle", "erinnerung_art": "Erinnerungen als", "erinnerung_an": "Erinnerungen an", "pdb_preis": "Preis aus den Baudaten",
     "betreff": "Betreff", "text": "Text", "auto": "automatisch starten", "on": "anbieten", "steps": "Schritte", "dur": "Dauer", "gw": "Gewerk", "phase": "Phase", "titel": "Titel", "stufe": "Stufe",
 }
 try:   # Namen der To-do-Regeln („maengel“ → „Mängel mit abgelaufener Frist“)

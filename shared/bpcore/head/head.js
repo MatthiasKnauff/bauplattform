@@ -400,6 +400,9 @@
           <h4>Mängel- und Terminrügen versenden</h4><p class="bph-mu">Vorauswahl im Dialog der Rüge – dort lässt sie sich jedes Mal ändern.</p>
           ${seg('versand', [['pdf', 'nur PDF'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']])}
           <label class="bph-ck"><input type="checkbox" data-kchk="kopie"${K.kopie ? ' checked' : ''}> bei „direkt an die Firma“ eine Kopie an mich</label>
+          <h4>Preise aus den Baudaten</h4><p class="bph-mu">Welcher Preis beim Übernehmen von Positionen aus den Baudaten ins LV oder in die Baukosten eingesetzt wird. „Fragen“ zeigt jedes Mal die Auswahl.</p>
+          ${seg('pdb_preis', [['', 'fragen'], ['mittel', 'Mittel'], ['von', 'von'], ['bis', 'bis'], ['eigen_median', 'Median eigene'], ['eigen_neu', 'neuester eigener']])}
+          <p class="bph-mu">Bei „eigene Preise“ gilt für Positionen ohne eigene Preise der Katalog-Mittelwert.</p>
           <h4>Erinnerungen</h4><p class="bph-mu">Gilt für alle Apps, die erinnern: Bautagebuch (Mängel, Zu erledigen, Weisungen mit Datum), eigene Erinnerungen, Erinnerungen aus Mails.</p>
           ${(K.erinnerung_art = K.erinnerung_art || (K.kalender ? 'termin' : 'mail'), seg('erinnerung_art', [['mail', 'einfache Mail am Erinnerungstag'], ['termin', 'sofort als Outlook-Termin zum Annehmen']]))}
           ${seg('erinnerung_an', [['ich', 'nur an mich'], ['bauleiter', 'an alle Bauleiter des Projekts']])}
@@ -606,7 +609,7 @@
             <li>Aktion <b>„Inhalte von URL abrufen“</b> hinzufügen (Suche „Inhalte“ oder Kategorie „Web“). In der Aktion auf das blaue Feld <b>URL</b> tippen und die Adresse oben einfügen (endet mit <code>&amp;lat=</code>). Direkt dahinter die Variable <b>Aktueller Standort → Breitengrad</b> einsetzen, dann <code>&amp;lon=</code> tippen und die Variable <b>Aktueller Standort → Längengrad</b> einsetzen.</li>
             <li>Optional: Aktion <b>„Mitteilung anzeigen“</b> mit dem Ergebnis – dann siehst du „Vor Ort: A481 …“.</li>
             <li>Einmal antippen zum Testen (Standortzugriff erlauben) – unten unter „Letzte Besuche“ erscheint die Baustelle, wenn du dort bist.</li>
-            <li><b>Automatisch starten – iOS 27:</b> im Kurzbefehl <b>Bearbeiten</b> → <b>Automation</b> → Auslöser <b>CarPlay</b> → „Trennt“. Zur Sicherheit zwei weitere Auslöser <b>Tageszeit</b> (11:00 und 15:00, wöchentlich Mo–Fr). Dann <b>Bearbeiten</b> → <b>ⓘ</b> → <b>Datenschutz</b> → „Ausführen im gesperrten Zustand erlauben“ einschalten – sonst fragt das iPhone jedes Mal nach.</li>
+            <li><b>Automatisch starten – iOS 27:</b> im Editor oben <b>＋</b> → <b>Automation</b> → unter „Verbindungen“ <b>CarPlay</b> → „Trennt“. Mit dem Pfeil neben „Automation“ <b>„Vor dem Ausführen bestätigen“ ausschalten</b>. Zur Sicherheit zwei weitere Automationen <b>Tageszeit</b> (11:00 und 15:00, wöchentlich Mo–Fr). Dann unten <b>ⓘ</b> → <b>Datenschutz</b> → „Ausführen im gesperrten Zustand erlauben“ einschalten. Tipp: Einstellungen → Apps → Kurzbefehle → „Kurzbefehle öffnen in: Editor“ überspringt die KI-Frage.</li>
             <li><b>Automatisch starten – iOS 17 bis 26:</b> unten <b>Automation</b> → <b>＋</b> → <b>CarPlay</b> → „Trennt“ → <b>Sofort ausführen</b>, „Bei Ausführung benachrichtigen“ aus → Kurzbefehl „Baustelle melden“. Dazu zwei Automationen <b>Tageszeit</b> (11:00 und 15:00, Mo–Fr), ebenfalls sofort ausführen.</li>
             <li><b>Ohne CarPlay:</b> statt CarPlay alle 30 Minuten in der Arbeitszeit einen Auslöser <b>Tageszeit</b> (07:00, 07:30 … 17:00, Mo–Fr). Jede Meldung braucht nur ein paar Sekunden GPS, der Akku merkt davon kaum etwas.</li>
           </ol>
@@ -767,7 +770,7 @@
     if (bereich === 'buero' && !admin) bereich = 'ich';
     let teil = opt.teil || '';
     const bg = document.createElement('div'); bg.className = 'bph-dr-bg';
-    bg.innerHTML = '<aside class="bph-dr" role="dialog" aria-modal="true" aria-label="Einstellungen"><div class="bph-drh"><b>' + IC.gear + 'Einstellungen</b><button type="button" class="bph-x" data-drx aria-label="Schließen">×</button></div><div class="bph-drt"></div><div class="bph-drn"></div><div class="bph-drb"></div></aside>';
+    bg.innerHTML = '<aside class="bph-dr" role="dialog" aria-modal="true" aria-label="Einstellungen"><div class="bph-drh"><b>' + IC.gear + 'Einstellungen</b><button type="button" class="bph-x" data-drx aria-label="Schließen">×</button></div><div class="bph-drs"><input type="search" placeholder="Einstellungen durchsuchen – z. B. Signatur, Erinnerung, Logo, Preis …" aria-label="Einstellungen durchsuchen" autocomplete="off"></div><div class="bph-drt"></div><div class="bph-drn"></div><div class="bph-drb"></div></aside>';
     document.body.appendChild(bg);
     const T = bg.querySelector('.bph-drt'), N = bg.querySelector('.bph-drn'), B = bg.querySelector('.bph-drb');
     const kopf = () => {
@@ -826,6 +829,55 @@
       if (e.target === bg || e.target.closest('[data-drx]')) { close(); return; }
       const b = e.target.closest('[data-drb]'); if (b) { bereich = b.dataset.drb; teil = ''; draw(); return; }
       const t = e.target.closest('[data-drt]'); if (t) { teil = t.dataset.drt; draw(); }
+    });
+    /* Volltextsuche über alle Einstellungen: Stichwortverzeichnis (Bereich › Teil › Abschnitt) – Klick öffnet die Stelle und hebt sie hervor */
+    const IDX = () => [
+      ...appSet.map((x) => ['app', x.render ? x.key : '', appName, x.label, (x.text || '') + ' ' + (x.such || ''), x.render ? x.label : '', x.render ? null : x]),
+      ['ich', 'konto', 'Für mich', 'Unterschrift', 'Unterschrift unterschreiben Bild PDF Rüge Signatur zeichnen', 'Unterschrift'],
+      ['ich', 'konto', 'Für mich', 'E-Mail-Signatur', 'Signatur Mail Grußformel Telefon Funktion Outlook HTML', 'E-Mail-Signatur'],
+      ['ich', 'konto', 'Für mich', 'Absender meiner Mails', 'Absender Mail Büro eigene Adresse Senden als Antwort', 'Absender meiner Mails'],
+      ['ich', 'konto', 'Für mich', 'Mängel- und Terminrügen versenden', 'Rüge Mängelrüge Terminrüge Versand PDF Firma Kopie', 'Mängel- und Terminrügen'],
+      ['ich', 'konto', 'Für mich', 'Preise aus den Baudaten', 'Preis Baudaten Katalog Mittel von bis eigene Preise Median LV Baukosten Standard fragen', 'Preise aus den Baudaten'],
+      ['ich', 'konto', 'Für mich', 'Erinnerungen', 'Erinnerung Termin Outlook Kalender Einladung Bauleiter Mail Frist', 'Erinnerungen'],
+      ['ich', 'konto', 'Für mich', 'Posteingang', 'Post Postfach Mails Abruf Startseite CC ausblenden', 'Posteingang'],
+      ['ich', 'konto', 'Für mich', 'Vor Ort erkennen', 'iPhone Kurzbefehl Standort CarPlay Baustelle Tagesbericht vergessen GPS', 'Vor Ort erkennen'],
+      ['ich', 'konto', 'Für mich', 'Kennwort', 'Kennwort Passwort ändern Anmeldung', 'Kennwort'],
+      ['ich', 'look', 'Für mich', 'Darstellung', 'Darstellung Farbschema hell dunkel Akzentfarbe Farbe Design', 'Darstellung'],
+      ...(admin ? [
+        ['buero', 'firma', 'Büro', 'Firma & Logo', 'Firma Büro Name Anschrift Logo Briefbogen Briefkopf Bank Telefon Internetseite', ''],
+        ['buero', 'ablage', 'Büro', 'Ablage', 'Ablage Dateiserver Projektordner SMB Netzlaufwerk Zugang Ordner', ''],
+        ['buero', 'mail', 'Büro', 'Mailserver', 'Mailserver SMTP Postfach Versand Microsoft 365 Absenderadresse', ''],
+        ['buero', 'allgemein', 'Büro', 'KI', 'KI künstliche Intelligenz Ollama Claude Gemini ChatGPT Schlüssel API Anbieter', ''],
+        ['buero', 'sicherung', 'Büro', 'Datensicherung', 'Datensicherung Backup Sicherung Wiederherstellen Kopie', ''],
+        ['buero', 'vorlagen', 'Büro', 'E-Mail-Vorlagen', 'Vorlage Mail Text Rüge Einladung Platzhalter', ''],
+        ['buero', 'verlauf', 'Büro', 'Verlauf', 'Verlauf Einstellungsverlauf Änderungen zurück Version', ''],
+      ] : []),
+    ];
+    const fq = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const SI = bg.querySelector('.bph-drs input');
+    const suchen = () => {
+      const w = fq(SI.value).split(/\s+/).filter(Boolean);
+      if (!w.length) { draw(); return; }
+      const L = IDX().filter((x) => { const t = fq(x.slice(2, 5).join(' ')); return w.every((a) => t.includes(a)); });
+      T.querySelectorAll('[data-drb]').forEach((b) => b.classList.remove('on')); N.hidden = true;
+      B.innerHTML = L.length ? `<div class="bph-sres">${L.map((x, i) => `<button type="button" data-sres="${i}"><small>${esc(x[2])}</small><b>${esc(x[3])}</b><span>${esc(x[4].split(' ').slice(0, 9).join(' · '))}</span></button>`).join('')}</div>`
+        : `<p class="bph-mu">Keine Einstellung zu „${esc(SI.value)}“ gefunden.</p>`;
+      B._sres = L;
+    };
+    SI.addEventListener('input', suchen);
+    SI.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const b = B.querySelector('[data-sres]'); if (b) b.click(); } });
+    B.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sres]'); if (!b) return;
+      const x = (B._sres || [])[+b.dataset.sres]; if (!x) return;
+      SI.value = '';
+      if (x[6] && x[6].open) { dr.close(); x[6].open(); return; }
+      bereich = x[0]; teil = x[1]; draw();
+      if (!x[5]) return;
+      let n = 0; const such = () => {   // Abschnitt suchen (lädt evtl. noch) und hervorheben
+        const h = [...B.querySelectorAll('h4,h3,label,b')].find((el) => fq(el.textContent).startsWith(fq(x[5])));
+        if (h) { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); h.classList.add('bph-treffer'); setTimeout(() => h.classList.remove('bph-treffer'), 2400); return; }
+        if (++n < 20) setTimeout(such, 150);
+      }; setTimeout(such, 100);
     });
     dr = { close, draw, get bereich() { return bereich; } };
     draw();

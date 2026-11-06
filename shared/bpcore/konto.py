@@ -12,6 +12,7 @@ STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich
             "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
             "mailsignatur_html": "", # dieselbe als HTML (eingefügt aus Outlook/Word); hat Vorrang
             "telefon": "", "funktion": "",   # für die Signatur
+            "pdb_preis": "",         # Preis beim Übernehmen aus den Baudaten: leer = fragen | mittel | von | bis | eigen_median | eigen_neu
             "absender": "buero",     # Absender meiner Mails: buero (Absenderadresse des Büros) | eigen (meine E-Mail-Adresse)
             "hinweise_aus": []}      # Hinweisfenster, die nicht mehr erscheinen sollen (z. B. „baukosten“)
 SIG_STANDARD = "{name}\n{funktion}\n{buero}\n{buero_strasse}, {buero_ort}\nTel. {telefon} · {email}\n{buero_web}"
@@ -50,6 +51,8 @@ def set_prefs(c, uid, d, by=""):
             p[k] = bool(d[k])
     if d.get("erinnerung_art") in ("mail", "termin"):
         p["erinnerung_art"] = d["erinnerung_art"]
+    if d.get("pdb_preis") in ("", "mittel", "von", "bis", "eigen_median", "eigen_neu"):
+        p["pdb_preis"] = d["pdb_preis"]
     if d.get("erinnerung_an") in ("ich", "bauleiter"):
         p["erinnerung_an"] = d["erinnerung_an"]
     if isinstance(d.get("hinweise_aus"), list):

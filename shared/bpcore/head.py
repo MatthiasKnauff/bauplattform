@@ -693,8 +693,8 @@ def blueprint(get_user=None):
             man = todo.manuell(c, u)
         return jsonify(auto=auto, manuell=man, fehler=fehler, heute=datetime.now().date().isoformat())
 
-    def _todo_mail(c, u, x, neu_ids):
-        """Beteiligte (nicht ich selbst) über eine neue oder ihnen neu zugewiesene Aufgabe informieren."""
+    def _todo_mail(c, u, x, neu_ids, ich=False):
+        """Beteiligte über eine neue oder ihnen neu zugewiesene Aufgabe informieren – mit ich=True auch mich selbst (mit Fälligkeit als Termin)."""
         from . import mail as M, platform as PF
         cf = M.conf(c)
         if not M.configured(cf):
@@ -702,9 +702,12 @@ def blueprint(get_user=None):
         pr = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone() if x["project_id"] else None
         wer, fehl = skizze.name_von(u), []
         for r in c.execute("SELECT * FROM users WHERE active=1").fetchall():
-            if r["id"] not in neu_ids or r["id"] == u["id"] or not (r["email"] or "").strip():
+            selbst = r["id"] == u["id"]
+            if not (r["email"] or "").strip() or not ((selbst and ich) or (r["id"] in neu_ids and not selbst)):
                 continue
-            txt = (f"Hallo {skizze.name_von(r)},\n\n{wer} hat dir eine Aufgabe zugewiesen:\n\n    {x['titel']}\n\n"
+            andere = [skizze.name_von(y) for y in c.execute("SELECT * FROM users WHERE active=1").fetchall() if y["id"] in set(x["personen"]) and y["id"] != r["id"]]
+            txt = (f"Hallo {skizze.name_von(r)},\n\n" + ("du hast eine Aufgabe angelegt:" if selbst else f"{wer} hat dir eine Aufgabe zugewiesen:") + f"\n\n    {x['titel']}\n\n"
+                   + (f"Beteiligt: {', '.join(andere)}\n" if andere else "")
                    + (f"Projekt: {pr['name']}\n" if pr else "") + (f"Fällig: {datetime.fromisoformat(x['faellig']).strftime('%d.%m.%Y')}\n" if x["faellig"] else "")
                    + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {PF.link('portal', '', cf)}\n" if PF.link("portal", "", cf) else ""))
             inv = None
@@ -742,7 +745,7 @@ def blueprint(get_user=None):
             r = c.execute("""INSERT INTO todo(titel, notiz, project_id, faellig, prio, personen, mail, status, erstellt, erstellt_von, erstellt_name, geaendert)
                              VALUES(?,?,?,?,?,?,?,'offen',?,?,?,?) RETURNING id""",
                           (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, uid, skizze.name_von(u), jetzt)).fetchone()
-            hinweis = _todo_mail(c, u, {**x, "id": r["id"]}, set(x["personen"])) if x["mail"] and x["personen"] else ""
+            hinweis = _todo_mail(c, u, {**x, "id": r["id"]}, set(x["personen"]), ich=True) if x["mail"] else ""
             row = todo.darf(c, u, r["id"])
             return jsonify(aufgabe=todo._zeile(row, todo.benutzer(c), todo.dateien(c, [row['id']])), hinweis=hinweis)
 
@@ -773,7 +776,9 @@ def blueprint(get_user=None):
                 c.execute("UPDATE todo SET titel=?, notiz=?, project_id=?, faellig=?, prio=?, personen=?, mail=?, geaendert=? WHERE id=?",
                           (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, tid))
             neu = set(x["personen"]) - set(todo._ids(alt["personen"]))
-            hinweis = _todo_mail(c, u, {**x, "id": tid}, neu) if x["mail"] and neu else ""
+            jetzt_an = x["mail"] and not alt["mail"]   # Häkchen gerade gesetzt: mich und alle Beteiligten benachrichtigen
+            hinweis = (_todo_mail(c, u, {**x, "id": tid}, set(x["personen"]), ich=True) if jetzt_an
+                       else _todo_mail(c, u, {**x, "id": tid}, neu) if x["mail"] and neu else "")
             return jsonify(aufgabe=todo._zeile(todo.darf(c, u, tid) or alt, todo.benutzer(c), todo.dateien(c, [tid])), hinweis=hinweis)
 
     @bp.post("/api/bp/todo/<int:tid>/datei")

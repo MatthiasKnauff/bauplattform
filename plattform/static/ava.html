@@ -1718,11 +1718,12 @@ async function quEinfuegen(liste, nach) {
   let neu = liste.map((x) => {
     const y = JSON.parse(JSON.stringify(x)); y.id = uid(); delete y.nt; delete y.nt_status; delete y.nt_grund;
     if (y.typ === 'pos') { if (!QU.mengen) y.menge = 0; const ep = VP[x.id] ?? x.ep_s; y.ep_s = QU.preise && ep != null ? ep : null; y.quelle = (QU.L.katalog ? `${QU.L.projekt}, Pos. ${x.oz || ''}${x.spanne ? ` (von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €)` : ''}` : `aus LV ${QU.L.nr} ${QU.L.name} (${QU.L.projekt || ''}), Pos. ${x.oz || ''}`).slice(0, 200);
-      if (y.eigene && y.spanne) { y.ep_von = y.spanne[0]; y.ep_bis = y.spanne[1]; } delete y.spanne; }
+      if (QU.L.katalog && (y.spanne || y.eigene)) { y._bd = true; if (y.spanne) { y.ep_von = y.spanne[0]; y.ep_bis = y.spanne[1]; } } delete y.spanne; }
     return y;
   });
-  if (QU.preise && neu.some((y) => y.eigene && y.eigene.length)) { neu = await pdbPreiswahl(neu); if (!neu) return; }   // eigene Preise vorhanden → nachfragen
-  neu.forEach((y) => { if (y.eigene) { delete y.ep_von; delete y.ep_bis; } delete y.eigene; delete y.ep_median; });
+  if (QU.preise && neu.some((y) => y._bd)) {   // aus einem Katalog: welcher Preis? (Einstellung oder Nachfrage)
+    const bd = neu.filter((y) => y._bd); if (!(await pdbPreiswahl(bd))) return; }
+  neu.forEach((y) => { if (y._bd) { delete y.ep_von; delete y.ep_bis; } delete y._bd; delete y._mittel; delete y.eigene; delete y.ep_median; });
   const I = items(), at = nach != null && nach >= 0 && nach < I.length ? nach + 1 : I.length;
   I.splice(at, 0, ...neu); HIST.next = `${neu.length} Zeilen übernommen`;
   numerieren(); changed(true);
@@ -1769,6 +1770,8 @@ document.addEventListener('dblclick', (e) => {   // Langtext ganz zeigen / wiede
   const tr = e.target.closest && e.target.closest('#quelle tr[data-qi]'); if (!tr || e.target.closest('input')) return;
   const x = quItems()[+tr.dataset.qi]; if (!x || x.typ !== 'pos') return;
   if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quWahlUi();   // der erste Klick des Doppelklicks hat die Zeile umgeschaltet
+  const kp = QU.L && QU.L.katalog && /^([bk])(\d+)$/.exec(x.id);   // Katalogposition: Detailfenster wie in den Baudaten
+  if (kp && typeof pdbDetail === 'function') { window.getSelection && window.getSelection().removeAllRanges(); pdbDetail(kp[1] === 'k' ? -kp[2] : +kp[2]); return; }
   QU.offen ||= new Set(); if (QU.offen.has(x.id)) QU.offen.delete(x.id); else QU.offen.add(x.id);
   const lt = tr.querySelector('.lt'); if (lt) lt.classList.toggle('voll', QU.offen.has(x.id));
   window.getSelection && window.getSelection().removeAllRanges();
@@ -1849,7 +1852,8 @@ function eigDialog(id) {
     if (m.startsWith('t:')) { tabE = m.slice(2); LS.set('eigTab', tabE); draw(); return; }
     if (m === 'prev' || m === 'next') { const P = posen(), k = P.findIndex((y) => y.id === id); const n = P[k + (m === 'prev' ? -1 : 1)];
       const fe = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.e;   // dasselbe Feld wieder fokussieren
-      if (n) { id = n.id; draw(); const f = (fe && box.querySelector(`[data-e="${fe}"]`)) || box.querySelector('input:not([disabled]),textarea,select'); if (f) { f.focus(); if (f.select && f.tagName === 'INPUT') f.select(); } } return; }
+      if (n) { id = n.id; draw(); const f = fe && box.querySelector(`[data-e="${fe}"]`);   // nur wenn vorher ein Feld aktiv war – sonst bleiben ← → zum Blättern frei
+        if (f) { f.focus(); if (f.select && f.tagName === 'INPUT') f.select(); } else { const md = bg.querySelector('.modal'); md.tabIndex = -1; md.focus({ preventScroll: true }); } } return; }
     if (m === 'neu') {
       const I = items(), at = I.findIndex((y) => y.id === id) + 1;
       const nx = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: x.einheit || 'm2', kg: x.kg || '' };
@@ -1919,7 +1923,7 @@ function eigDialog(id) {
   box.addEventListener('change', (e) => setz(e.target));
   box.addEventListener('input', (e) => { if (['kurz', 'lang', 'einheit', 'lb'].includes(e.target.dataset.e)) { const x = X(); merk(); x[e.target.dataset.e] = e.target.value; changed(); } });
   draw();
-  { const f = box.querySelector('input:not([disabled]),textarea,select'); if (f) f.focus(); }
+  { const md = bg.querySelector('.modal'); md.tabIndex = -1; md.focus({ preventScroll: true }); md.style.outline = 'none'; }   // Fokus aufs Fenster: ← → blättern sofort
 }
 document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Position öffnet ihre Eigenschaften
   if (tab !== 'lv' || e.target.closest('textarea,select,.lang,.acts-c')) return;

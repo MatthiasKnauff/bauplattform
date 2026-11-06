@@ -301,3 +301,10 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 
 .bph-anl{margin:.6rem 0;border:1px solid var(--line,#ddd);border-radius:8px;padding:.5rem .7rem}.bph-anl summary{cursor:pointer}.bph-anl ol{margin:.5rem 0 .3rem 1.1rem;padding:0;line-height:1.5}.bph-anl li{margin:.25rem 0}
 .bph-vlist{display:flex;flex-direction:column;gap:.2rem;font-size:.9rem;max-height:220px;overflow:auto}
+
+/* Suche in den Einstellungen */
+.bph-drs{padding:0 1.1rem .5rem}.bph-drs input{width:100%;box-sizing:border-box;border:1px solid var(--bph-line,#d8d2ca);border-radius:10px;padding:.5rem .7rem;font:inherit;background:var(--bph-card,#fff);color:inherit}
+.bph-sres{display:flex;flex-direction:column;gap:.35rem}
+.bph-sres button{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;text-align:left;border:1px solid var(--bph-line,#ddd);background:var(--bph-card,#fff);color:inherit;border-radius:10px;padding:.5rem .7rem;cursor:pointer;font:inherit}
+.bph-sres button:hover{border-color:var(--y,var(--bph-acc,#d9772b))}.bph-sres small{opacity:.6;font-size:.75rem}.bph-sres span{opacity:.65;font-size:.8rem}
+.bph-treffer{background:color-mix(in srgb,var(--y,var(--bph-acc,#d9772b)) 28%,transparent);border-radius:6px;transition:background .6s}

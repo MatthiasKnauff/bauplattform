@@ -7,6 +7,8 @@ Preise: Katalogpreis zum Preisstand des Katalogs × Index_aktuell / Index_basis 
 """
 import json
 import re
+import threading
+import time
 
 # Baupreisindex Neubau Wohngebäude Deutschland (Destatis, 2021 = 100): Jahresmittel und einzelne Berichtsmonate.
 # Für die Fortschreibung von Katalogen mit anderem Preisstand (z. B. sirAdos 07/2019 → heute).
@@ -74,7 +76,75 @@ def _rund(x):
     return round(x, 2) if x < 100 else round(x, 1) if x < 1000 else round(x)
 
 
-def _wo(a):
+# ---------------------------------------------------------------- Suchtabelle (Cache für die Volltextsuche)
+# pdb_such(id, such): Kurz-, Lang-, Grundtext und Titel jeder Position (eigene, Baudaten, Kataloge der Ausschreibung) in einer
+# Spalte, mit Trigramm-Index (pg_trgm) – „Fliese 60x60“ sucht dann in einer Tabelle statt über Ansicht, Union und Grundtexte.
+# Neu aufgebaut im Hintergrund, sobald sich Positionen oder Kataloge ändern (Stand alle 30 s geprüft); bis dahin sucht die alte Abfrage.
+_SUCH = {"stand": None, "geprueft": 0.0, "laeuft": False}
+
+
+def _such_stand(c):
+    r = c.execute("""SELECT (SELECT count(*) || '/' || COALESCE(max(updated), '') FROM pdb_position) || '|' ||
+                            (SELECT count(*) || '/' || COALESCE(max(id), 0) FROM ava_katalog) || '|' ||
+                            (SELECT count(*) FROM pdb_grundtext) AS s""").fetchone()
+    return r["s"] if r else ""
+
+
+def such_neu():
+    """Suchtabelle neu aufbauen (eigene Verbindung, im Hintergrund) und am Ende austauschen."""
+    from bpcore import db
+    try:
+        with db.tx() as c:
+            stand = _such_stand(c)
+            try:
+                with c.savepoint():
+                    c.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+            except Exception:
+                pass   # ohne Erweiterung: Tabelle ohne Trigramm-Index (immer noch schneller als die Ansicht)
+            c.execute("DROP TABLE IF EXISTS pdb_such_neu")
+            c.execute("""CREATE TABLE pdb_such_neu AS SELECT p.id, lower(p.kurz || ' ' || p.bez || ' ' || p.lang || ' ' || p.titel || ' ' || COALESCE(gt.text, '')) AS such
+                         FROM pdb_alle p LEFT JOIN pdb_grundtext gt ON gt.id = p.grund_id""")
+            c.execute("ALTER TABLE pdb_such_neu ADD PRIMARY KEY (id)")
+            try:
+                with c.savepoint():
+                    c.execute("CREATE INDEX ON pdb_such_neu USING gin (such gin_trgm_ops)")
+            except Exception:
+                pass
+        with db.tx() as c:   # kurz austauschen
+            c.execute("DROP TABLE IF EXISTS pdb_such")
+            c.execute("ALTER TABLE pdb_such_neu RENAME TO pdb_such")
+            c.execute("INSERT INTO pdb_meta(key, value) VALUES('such_stand', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (stand,))
+        _SUCH["stand"] = stand
+    except Exception:
+        _SUCH["stand"] = None
+    finally:
+        _SUCH["laeuft"] = False
+
+
+def _such_bereit(c):
+    """Ist die Suchtabelle aktuell? Sonst Neuaufbau anstoßen und (diesmal) die alte Abfrage nehmen."""
+    jetzt = time.time()
+    if _SUCH["stand"] is not None and jetzt - _SUCH["geprueft"] < 30:
+        return True
+    _SUCH["geprueft"] = jetzt
+    try:
+        with c.savepoint():
+            akt = _such_stand(c)
+            m = c.execute("SELECT value FROM pdb_meta WHERE key='such_stand'").fetchone()
+            da = c.execute("SELECT to_regclass('pdb_such') IS NOT NULL AS da").fetchone()["da"]
+    except Exception:
+        return False
+    if da and m and m["value"] == akt:
+        _SUCH["stand"] = akt
+        return True
+    _SUCH["stand"] = None
+    if not _SUCH["laeuft"]:
+        _SUCH["laeuft"] = True
+        threading.Thread(target=such_neu, daemon=True).start()
+    return bool(da)   # alte Tabelle darf weiter genutzt werden, bis die neue fertig ist (geänderte Texte evtl. noch nicht gefunden)
+
+
+def _wo(a, such=False):
     """WHERE aus Filtern: katalog, lb, gruppe, kg, einheit, q (Volltext + Teilwörter), fav, alle (auch inaktive)."""
     w, p = ["1=1"], []
     if not a.get("alle"):
@@ -90,6 +160,10 @@ def _wo(a):
     if q:
         if re.fullmatch(r"[\d.]+", q):   # Code oder Teil davon
             w.append("p.code LIKE ?"); p.append(q + "%")
+        elif such:   # schnell über die Suchtabelle
+            ts = q.lower().split()[:8]
+            w.append("p.id IN (SELECT id FROM pdb_such WHERE " + " AND ".join(["such LIKE ?"] * len(ts)) + ")")
+            p += ["%" + t + "%" for t in ts]
         else:   # jedes Wort muss in Kurztext, Folgetext, Grundtext oder Titel vorkommen (Teilwörter: „Kalksand“ findet „Kalksand-Plansteine“)
             for t in q.lower().split()[:8]:
                 w.append("(lower(p.kurz) LIKE ? OR lower(p.bez) LIKE ? OR lower(p.lang) LIKE ? OR lower(p.titel) LIKE ? OR lower(COALESCE(gt.text, '')) LIKE ?)")
@@ -104,7 +178,7 @@ SQL_LISTE = """SELECT p.id, p.katalog, p.code, p.lb_nr, p.gruppe, p.titel, p.kur
 
 def suche(c, a, n=200, offset=0):
     """Positionen nach Filtern; Preise umgerechnet (ep_*_akt). Gibt (Liste, Gesamtzahl) zurück."""
-    w, p = _wo(a)
+    w, p = _wo(a, such=bool(a.get("q")) and _such_bereit(c))
     E = einstellungen(c)
     fk = {}
     rows = c.execute(f"{SQL_LISTE} WHERE {w} ORDER BY p.favorit DESC, p.katalog, p.code LIMIT ? OFFSET ?", (*p, int(n), int(offset))).fetchall()
@@ -238,6 +312,13 @@ def register(app):
             rows, gesamt = suche(c, a, n, 0)
             kats = [x.dict() for x in c.execute("SELECT key, name FROM pdb_kataloge ORDER BY sort, name").fetchall()] if a.get("kataloge") else None
         return jsonify(positionen=rows, gesamt=gesamt, kataloge=kats)
+
+    @app.get("/api/baudaten/position/<int:i>")
+    def baudaten_position(i):
+        """Eine Position mit Langtext, Preisspanne, Kalkulation und eigenen Preisen (Detailfenster beim Doppelklick)."""
+        with db.tx() as c:
+            d = position(c, i)
+        return jsonify(d) if d else (jsonify(error="Position nicht gefunden"), 404)
 
     @app.post("/api/baudaten/positionen")
     def baudaten_positionen():

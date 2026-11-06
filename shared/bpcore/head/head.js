@@ -307,20 +307,36 @@
     }).join('');
     sugPlace();
   }
+  /* Wort-Modus (data-bp-projekt="wort", z. B. Zeile „Neue Aufgabe“): vervollständigt nur das Wort am Cursor –
+     ein Projektkürzel wie „A48“ oder ein Name nach „@“ –, der übrige Text bleibt stehen */
+  const sugWort = (inp) => {
+    const pos = inp.selectionStart == null ? inp.value.length : inp.selectionStart, vor = inp.value.slice(0, pos);
+    const m = vor.match(/(?:^|\s)(@[^\s@]{2,}|[A-Za-z]{1,3}\d[\w.-]*)$/);
+    return m ? { a: pos - m[1].length, b: pos, q: m[1].replace(/^@/, '') } : null;
+  };
   function sugPick(i) {
     const x = sugItems[i]; if (!x || !sugFor) return;
     const inp = sugFor;
+    if (inp.getAttribute('data-bp-projekt') === 'wort') {
+      const w = sugWort(inp) || { a: inp.value.length, b: inp.value.length };
+      const rest = inp.value.slice(w.b).replace(/^\s*/, ' ');
+      inp.value = inp.value.slice(0, w.a) + x.name + rest;
+      const c = w.a + x.name.length + 1; try { inp.setSelectionRange(c, c); } catch { /* egal */ }
+      if (x.kind === 'bt') inp.dataset.btId = x.id;
+      sugClose(); inp.focus(); return;
+    }
     inp.value = x.name;
     if (x.kind === 'bt') inp.dataset.btId = x.id; else delete inp.dataset.btId;
     inp.dispatchEvent(new Event('change', { bubbles: true }));
     sugClose(); inp.focus();
   }
   async function sugLoad(inp) {
-    const q = inp.value.trim();
+    const wort = inp.getAttribute('data-bp-projekt') === 'wort', w = wort ? sugWort(inp) : null;
+    const q = wort ? (w ? w.q : '') : inp.value.trim();
     if (q.length < 2) { sugItems = []; sugRender(); return; }
     let d = null;
     try { d = await getJ('api/bp/projektnamen?q=' + encodeURIComponent(q)); } catch { return; }
-    if (sugFor !== inp || inp.value.trim() !== q) return;
+    if (sugFor !== inp || (wort ? (sugWort(inp) || {}).q !== q : inp.value.trim() !== q)) return;
     const seen = new Set();
     sugItems = [...(d.projects || []).map((p) => ({ kind: 'bt', id: p.id, name: p.name, sub: [p.address, p.archived ? 'archiviert' : ''].filter(Boolean).join(' · ') })),
       ...(d.folders || []).map((f) => ({ kind: 'dir', name: f, sub: '' }))].filter((x) => { const k = x.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 25);
@@ -328,7 +344,8 @@
   }
   document.addEventListener('input', (e) => {
     const inp = e.target; if (!inp.matches || !inp.matches('input[data-bp-projekt]')) return;
-    delete inp.dataset.btId; sugFor = inp; clearTimeout(sugT); sugT = setTimeout(() => sugLoad(inp), 220);
+    if (inp.getAttribute('data-bp-projekt') !== 'wort') delete inp.dataset.btId;
+    sugFor = inp; clearTimeout(sugT); sugT = setTimeout(() => sugLoad(inp), 220);
   }, true);
   document.addEventListener('keydown', (e) => {
     if (!sugBox || e.target !== sugFor) return;

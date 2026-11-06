@@ -99,7 +99,7 @@ function tdZeigen() {
   const sort = (a, b) => (b.prio || 0) - (a.prio || 0) || (a.f || '9').localeCompare(b.f || '9') || (a.titel || '').localeCompare(b.titel || '');
   const app = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'aufgaben' && a.allowed), appL = app ? appUrl(app) + '/#todos' : '';
   let html = `<div class="post-h"><h2>☑ To-dos</h2><span class="mute">${offen.length} offen</span></div>
-    <form class="tq" data-td="neuform"><input id="tdNeu" placeholder="+ Neue Aufgabe – z. B. „Statik nachfordern bis Fr“" autocomplete="off" aria-label="Neue Aufgabe"><button class="btn sm pri">Anlegen</button></form>`;
+    <form class="tq" data-td="neuform"><input id="tdNeu" data-bp-projekt="wort" placeholder="+ Neue Aufgabe – z. B. „A480 Statik nachfordern bis Fr“" autocomplete="off" aria-label="Neue Aufgabe" title="Projektkürzel (z. B. A48…) oder @Name tippen – das Projekt wird vorgeschlagen"><button class="btn sm pri">Anlegen</button></form>`;
   if (TDOFFEN === 'neu') html += `<div class="tr">${tdEditor({ titel: (TD._neu || {}).titel, faellig: (TD._neu || {}).faellig, pid: window.BPHead && BPHead.projektId ? BPHead.projektId() : null, personen: [], mail: true })}</div>`;
   let n = 0, rest = TDKLEIN ? 6 : 1e9;   // Startseite: nur die dringendsten sechs
   for (const [name, fn, rot] of G) {
@@ -141,10 +141,10 @@ function tdLesen(te) {
 }
 document.addEventListener('submit', async (e) => {
   if (!e.target.closest('[data-td="neuform"]')) return; e.preventDefault();
-  const t = $('#tdNeu').value.trim(); if (!t) return;
-  const x = tdDatumAus(t);
+  const inp = $('#tdNeu'), t = inp.value.trim(); if (!t) return;
+  const x = tdDatumAus(t), gew = +inp.dataset.btId || null;   // aus der Vorschlagsliste gewähltes Projekt
   await tdRef(); const pk = tdProjektAus(t);   // Kürzel im Text (z. B. A480) schlägt das Projekt oben
-  try { const r = await api('api/bp/todo', 'POST', { ...x, pid: pk ? pk.id : window.BPHead && BPHead.projektId ? BPHead.projektId() : null }); TD.manuell.unshift(r.aufgabe); tdZeigen(); toast(`Aufgabe angelegt${x.faellig ? ' – fällig ' + tdDatum(x.faellig) : ''}. Antippen, um Beteiligte oder Notiz zu ergänzen.`); }
+  try { const r = await api('api/bp/todo', 'POST', { ...x, pid: pk ? pk.id : gew || (window.BPHead && BPHead.projektId ? BPHead.projektId() : null) }); delete inp.dataset.btId; TD.manuell.unshift(r.aufgabe); tdZeigen(); toast(`Aufgabe angelegt${x.faellig ? ' – fällig ' + tdDatum(x.faellig) : ''}. Antippen, um Beteiligte oder Notiz zu ergänzen.`); }
   catch (er) { toast(er.message, true); }
 });
 document.addEventListener('click', async (e) => {

@@ -368,7 +368,7 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 .pvb span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute);font-size:.8rem}
 .pvb button{border:1px solid var(--line);border-radius:10px;padding:.45rem .8rem;color:var(--y);font-weight:600;white-space:nowrap}.pvb .pvc{background:var(--y);color:#111;border-color:var(--y)}
 .pvs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:.6rem .6rem calc(.6rem + env(safe-area-inset-bottom))}
-.pvw{width:max-content;min-width:100%}.pvw canvas{display:block;margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}
+.pvw{width:max-content;min-width:100%}.pvp{margin:0 auto .6rem;background:#fff;box-shadow:0 2px 10px #0008}.pvw canvas{display:block}
 /* Projektauswahl steht nur oben in der Kopfleiste (gemeinsam mit allen Apps) */
 .bph + #leiste #projBtn{display:none}
 /* keine eigene graue Zeile mehr: Berichtsauswahl, Standort und Ordner stehen in der Reiterzeile (am Handy oben im Inhalt) */
@@ -492,16 +492,43 @@ const fmtDist = m => m < 1000 ? Math.max(10, Math.round(m / 10) * 10) + ' m' : (
 const isStandalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
 const loadScript = src => new Promise((ok, no) => { const e = document.createElement('script'); e.src = src; e.onload = ok; e.onerror = no; document.head.appendChild(e); });
 let pv = null;
+/* Seiten erst zeichnen, wenn sie in die Nähe kommen, und weit entfernte wieder freigeben – das iPhone erlaubt nur
+   begrenzt Canvas-Speicher (sonst „Total canvas memory use exceeds the maximum limit“ bei vielen Seiten mit Fotos). */
+const PV_MAXPX = 4.2e6;
 async function pvRender() {
-  const box = pv.el.querySelector('.pvw'), W = pv.el.querySelector('.pvs').clientWidth - 20, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const box = pv.el.querySelector('.pvw'), W = pv.el.querySelector('.pvs').clientWidth - 20;
+  if (pv.io) pv.io.disconnect();
+  box.querySelectorAll('canvas').forEach((c) => { c.width = c.height = 0; });
   box.innerHTML = '';
+  const cssW = W * pv.zoom, slots = [];
   for (let n = 1; n <= pv.doc.numPages; n++) {
-    const pg = await pv.doc.getPage(n), v1 = pg.getViewport({scale: 1}), cssW = W * pv.zoom, sc = cssW / v1.width, vp = pg.getViewport({scale: sc * dpr});
-    const c = document.createElement('canvas'); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
-    c.style.width = cssW + 'px'; c.style.height = (cssW * v1.height / v1.width) + 'px'; box.appendChild(c);
-    await pg.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
+    const pg = await pv.doc.getPage(n), v1 = pg.getViewport({scale: 1});
+    const d = document.createElement('div'); d.className = 'pvp'; d.dataset.n = n;
+    d.style.width = cssW + 'px'; d.style.height = (cssW * v1.height / v1.width) + 'px';
+    box.appendChild(d); slots.push(d);
     if (!pv) return;
   }
+  const zeichne = async (d) => {
+    if (d._an || !pv) return; d._an = true;
+    try {
+      const pg = await pv.doc.getPage(+d.dataset.n), v1 = pg.getViewport({scale: 1});
+      let dpr = Math.min(window.devicePixelRatio || 1, 2), sc = cssW / v1.width;
+      while (v1.width * sc * dpr * v1.height * sc * dpr > PV_MAXPX && dpr > 0.75) dpr -= 0.25;
+      const vp = pg.getViewport({scale: sc * dpr}), c = document.createElement('canvas');
+      c.width = Math.floor(vp.width); c.height = Math.floor(vp.height); c.style.width = '100%'; c.style.height = '100%';
+      const ctx = c.getContext('2d'); if (!ctx) throw new Error('Kein Zeichenspeicher frei');
+      d.appendChild(c); d._task = pg.render({canvasContext: ctx, viewport: vp});
+      await d._task.promise; d._task = null;
+    } catch (e) { if (!/cancel/i.test(String(e && e.name) + String(e && e.message))) { d._an = false; pvMelden(e); } }
+  };
+  const frei = (d) => { if (!d._an) return; if (d._task) { try { d._task.cancel(); } catch { /* egal */ } } const c = d.querySelector('canvas'); if (c) { c.width = c.height = 0; c.remove(); } d._an = false; };
+  pv.io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) zeichne(e.target); else if (Math.abs(e.boundingClientRect.top) > innerHeight * 4) frei(e.target); }),
+    {root: pv.el.querySelector('.pvs'), rootMargin: '150% 0px'});
+  slots.forEach((d) => pv.io.observe(d));
+}
+function pvMelden(e) {   // Fehler der Ansicht an die Verwaltung (System → Fehlermeldungen), damit man sieht, was am Gerät schiefging
+  try { fetch('api/bp/fehler', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, keepalive: true,
+    body: JSON.stringify({app: 'Bautagebuch', meldung: 'PDF-Ansicht: ' + String((e && (e.message || e.name)) || e).slice(0, 400), stack: String((e && e.stack) || '').slice(0, 3000) + '\n' + navigator.userAgent, pfad: location.pathname})}).catch(() => {}); } catch { /* egal */ }
 }
 async function openPdf(url) {
   toast('PDF wird erzeugt …');
@@ -511,16 +538,22 @@ async function openPdf(url) {
     if (!r.ok) { const j = await r.json().catch(() => ({})); toast(j.error || 'Das PDF konnte nicht erzeugt werden.'); return; }
     const m = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get('Content-Disposition') || ''); if (m) name = decodeURIComponent(m[1]);
     blob = await r.blob();
+  } catch (e) { toast('Das PDF konnte nicht geladen werden – Verbindung prüfen.'); return; }
+  closePv();
+  const el = document.createElement('div'); el.id = 'pv';
+  el.innerHTML = `<div class="pvb"><button class="pvc" data-act="pvClose">✕ Schließen</button><span>${esc(name)}</span><button data-act="pvZoom" data-d="-1" aria-label="Verkleinern">−</button><button data-act="pvZoom" data-d="1" aria-label="Vergrößern">+</button><button data-act="pvShare">Teilen</button></div><div class="pvs"><div class="pvw"></div></div>`;
+  document.body.appendChild(el); pv = {el, doc: null, blob, name, zoom: 1};
+  history.pushState({pv: 1}, '');   // Wischgeste „zurück“ schließt die Ansicht ebenfalls
+  try {
     if (!window.pdfjsLib) { await loadScript('/vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.js'; }
-    const doc = await pdfjsLib.getDocument({data: await blob.arrayBuffer()}).promise;
-    const el = document.createElement('div'); el.id = 'pv';
-    el.innerHTML = `<div class="pvb"><button class="pvc" data-act="pvClose">✕ Schließen</button><span>${esc(name)}</span><button data-act="pvZoom" data-d="-1" aria-label="Verkleinern">−</button><button data-act="pvZoom" data-d="1" aria-label="Vergrößern">+</button><button data-act="pvShare">Teilen</button></div><div class="pvs"><div class="pvw"></div></div>`;
-    document.body.appendChild(el); pv = {el, doc, blob, name, zoom: 1};
-    history.pushState({pv: 1}, '');   // Wischgeste „zurück“ schließt die Ansicht ebenfalls
+    pv.doc = await pdfjsLib.getDocument({data: await blob.arrayBuffer()}).promise;
     await pvRender();
-  } catch (e) { toast('Das PDF konnte nicht angezeigt werden.'); closePv(); }
+  } catch (e) {   // Vorschau geht nicht – das PDF ist trotzdem da: teilen, sichern, in Bücher/Dateien öffnen
+    pvMelden(e);
+    if (pv) pv.el.querySelector('.pvw').innerHTML = `<div style="color:#eee;max-width:28rem;margin:2rem auto;text-align:center;line-height:1.5">Die Vorschau lässt sich auf diesem Gerät nicht anzeigen.<br>Das PDF ist aber fertig.<br><br><button class="btn" data-act="pvShare" style="font-size:1.05rem;padding:.7rem 1.4rem">Teilen / Sichern …</button></div>`;
+  }
 }
-function closePv() { if (pv) { pv.el.remove(); pv = null; } }
+function closePv() { if (pv) { if (pv.io) pv.io.disconnect(); pv.el.querySelectorAll('canvas').forEach((c) => { c.width = c.height = 0; }); if (pv.doc) pv.doc.destroy(); pv.el.remove(); pv = null; } }
 window.addEventListener('popstate', closePv);
 async function pvShare() {
   const f = new File([pv.blob], pv.name, {type: 'application/pdf'});
@@ -1904,7 +1937,7 @@ document.addEventListener('click', async e => {
     if (w) w.location = 'api/reports/' + rid + '/pdf'; else location.href = 'api/reports/' + rid + '/pdf';
   }
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
-  else if (a === 'pvZoom') { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }
+  else if (a === 'pvZoom' && pv && pv.doc) { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }
   else if (a === 'pvShare') pvShare();
   else if (a === 'pickLogo') $('#logoFile').click();
   else if (a === 'storeTest') { toast('Verbindung wird getestet …'); const r = await api('api/store/test', 'POST'); toast(r.ok ? 'Verbindung funktioniert, Schreiben ist möglich.' : 'Fehlgeschlagen: ' + (r.error || 'unbekannt')); }

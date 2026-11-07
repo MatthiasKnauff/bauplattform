@@ -793,6 +793,23 @@ def _skonto(V, rd, r, brutto):
     return {"skonto_pct": pct, "skonto_tage": tage, "skonto": sk, "skonto_bis": bis, "brutto_skonto": round(brutto - sk, 2), "bezahlt": rd.get("bezahlt") or ""}
 
 
+ABZUG_ARTEN = ("nachlass", "abzuege", "einbehalt", "vorher")   # was bei der Prüfung abgezogen wird – je Auftrag, je Rechnung änderbar
+
+
+def abzug_wahl(V, rd):
+    """Welche Abzüge gelten: Rechnung (gesetzt) vor Auftrag vor „alle an“."""
+    a = {k: True for k in ABZUG_ARTEN}
+    for q in ((V or {}).get("abzug") or {}, (rd or {}).get("abzug") or {}):
+        for k in ABZUG_ARTEN:
+            if isinstance(q.get(k), bool):
+                a[k] = q[k]
+    return a
+
+
+def _abzug_clean(x):
+    return {k: bool(x[k]) for k in ABZUG_ARTEN if isinstance(x, dict) and k in x and x[k] is not None}
+
+
 def rechne(lv, angebote, aufmass, rechnungen):
     d = _j(lv["data"], {}) or {}
     items = d.get("items") or []
@@ -858,6 +875,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
             continue
         frei_ = rd.get("frei") is not None and art != "regie"   # ohne Aufmaß: geprüfter Betrag frei eingetragen (einzeln, wie Regie)
         einzeln = art == "regie" or frei_
+        AW = abzug_wahl(V, rd)
         if art == "regie":
             L = sum(round(_f(z.get("menge")) * _f(z.get("ep")), 2) for z in rd.get("zeilen") or [])
             N = 0.0
@@ -867,25 +885,27 @@ def rechne(lv, angebote, aufmass, rechnungen):
             stand = rd.get("stand") if g_ and isinstance(rd.get("stand"), dict) else am
             nur = (lambda k: k in ist_nt) if art == "nachtrag" else (lambda k: k not in ist_nt) if nt_kette else None
             L = stand_wert({k: v for k, v in stand.items() if nur is None or nur(k)})
-            N = L * nl
+            N = L * nl if AW["nachlass"] else 0.0
         L1 = L - N
         abz = 0.0
-        for z in rd.get("abzuege") or []:
+        for z in (rd.get("abzuege") or []) if AW["abzuege"] else []:
             abz += L1 * (_f(z.get("pct")) / 100) if z.get("pct") not in (None, "") else _f(z.get("betrag"))
         L2 = L1 - abz
         std = S["pct_schluss"] if art == "schluss" else S["pct_abschlag"]
         if g_ and rd.get("einbehalt") in (None, ""):   # früher geprüft, Satz nicht festgehalten: wie damals gerechnet
             std = _f(V.get("einbehalt"), 5.0)
         eb_pct = _f(rd.get("einbehalt"), std) if rd.get("einbehalt") not in (None, "") else std
+        if not AW["einbehalt"]:
+            eb_pct = 0.0
         E = L2 * eb_pct / 100
         L3 = L2 - E
         kette = "nachtrag" if art == "nachtrag" else "haupt"
-        vh = 0.0 if einzeln else vorher[kette]
+        vh = 0.0 if einzeln or not AW["vorher"] else vorher[kette]
         Z = L3 - vh
         R.append({"id": r["id"], "art": art, "leistung": round(L, 2), "nachlass": round(N, 2), "abzuege": round(abz, 2), "einbehalt_pct": eb_pct, "einbehalt": round(E, 2),
                   "anerkannt": round(L3, 2), "vorher": round(vh, 2), "zahlung": round(Z, 2), "mwst": round(Z * MWST / 100, 2),
                   "brutto": round(Z * (1 + MWST / 100), 2), "differenz": round((r["gefordert"] or 0) - L1, 2) if r["gefordert"] else None,
-                  "live": not g_, "frei": frei_, "einzeln": einzeln, **_skonto(V, rd, r, Z * (1 + MWST / 100))})
+                  "live": not g_, "frei": frei_, "einzeln": einzeln, "abzug": AW, **_skonto(V, rd, r, Z * (1 + MWST / 100))})
         if frei_:
             frei_summe += L
         if g_:
@@ -1165,6 +1185,8 @@ def lv_eins(i):
                     V["summe"] = round(_f(b["vergabe"]["summe"], 0, 0), 2)
                 if b["vergabe"].get("bieter"):
                     V["bieter"] = _s(b["vergabe"]["bieter"], 200)
+            if isinstance(b["vergabe"].get("abzug"), dict):   # welche Abzüge bei der Prüfung gelten (Voreinstellung für die Rechnungen)
+                V["abzug"] = {**(V.get("abzug") or {}), **_abzug_clean(b["vergabe"]["abzug"])}
             if isinstance(b["vergabe"].get("sicherheit"), dict):   # Sicherheiten, Abnahme, Mängelfrist
                 V["sicherheit"] = _sicherheit_clean(b["vergabe"]["sicherheit"], V.get("sicherheit"))
             if isinstance(b["vergabe"].get("preise"), dict):   # Preise des Auftrags (z. B. Nachtrags-EP)
@@ -3694,12 +3716,17 @@ def rechnung(k):
             if _re_nachfolger(c, x):
                 return jsonify(error="Auf dieser Rechnung bauen spätere Rechnungen auf – erst deren Prüfung zurücknehmen."), 400
             status = "offen"; d.pop("stand", None); d.pop("geprueft_am", None); d.pop("geprueft_von", None)
-        elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei")):
+        elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
         if isinstance(b.get("abzuege"), list):
             d["abzuege"] = [{"text": _s(z.get("text"), 200), "pct": _fn(z.get("pct")), "betrag": _fn(z.get("betrag"))} for z in b["abzuege"][:20] if isinstance(z, dict)]
         if "einbehalt" in b:
             d["einbehalt"] = _fn(b["einbehalt"])
+        if isinstance(b.get("abzug"), dict):   # Abzüge dieser Rechnung an/aus (null = wie im Auftrag)
+            A_ = {**(d.get("abzug") or {}), **{k: v for k, v in b["abzug"].items() if k in ABZUG_ARTEN}}
+            d["abzug"] = {k: bool(v) for k, v in A_.items() if v is not None}
+            if not d["abzug"]:
+                d.pop("abzug")
         if isinstance(b.get("zeilen"), list):   # Regierechnung: Stundenlohnzettel / Zeilen
             d["zeilen"] = [{"text": _s(z.get("text"), 300), "menge": _fn(z.get("menge")), "einheit": _s(z.get("einheit"), 12) or "h", "ep": _fn(z.get("ep"))}
                            for z in b["zeilen"][:200] if isinstance(z, dict)]
@@ -3729,6 +3756,7 @@ def rechnung(k):
             if d.get("einbehalt") is None and x["art"] != "sicherheit":   # Satz festhalten – spätere Änderungen an den Sicherheiten ändern geprüfte Rechnungen nicht
                 S_ = sicherheit_conf(_j(r["vergabe"], {}) or {})
                 d["einbehalt"] = S_["pct_schluss"] if x["art"] == "schluss" else S_["pct_abschlag"]
+            d["abzug"] = abzug_wahl(_j(r["vergabe"], {}) or {}, d)   # Wahl festhalten – spätere Änderungen am Auftrag ändern geprüfte Rechnungen nicht
             d["geprueft_am"] = date.today().isoformat()
             d["geprueft_von"] = C.full_name(g.user)
             status = "geprueft"

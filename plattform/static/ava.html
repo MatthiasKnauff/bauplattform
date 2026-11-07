@@ -120,6 +120,7 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .ein-l{display:flex;flex-direction:column;gap:.15rem;max-height:55vh;overflow:auto;margin:0 0 .4rem}.ein-z{display:grid;grid-template-columns:auto 1fr auto auto;gap:.5rem;align-items:center;padding:.3rem .4rem;border-radius:7px;cursor:pointer}.ein-z:hover{background:var(--hover,rgba(127,127,127,.12))}.ein-z.neu .ein-n{font-weight:600}.ein-n{overflow-wrap:anywhere}.ein-z small{color:var(--mute,#999);white-space:nowrap}.ein-dlg{width:min(560px,96vw)!important}
 .ava-ein{display:block;width:100%;margin-top:.35rem;background:none;border:1px dashed var(--line);border-radius:8px;padding:.35rem .5rem;font:inherit;font-size:.85rem;color:inherit;cursor:pointer;text-align:left}.ava-ein:hover{background:var(--hover,rgba(127,127,127,.1))}
 .lv-lauf{display:inline-flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.85rem}.lauf-bar{position:relative;display:inline-block;width:110px;height:7px;border-radius:4px;background:var(--line,#ddd);overflow:hidden;flex:none}.lauf-bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent,#e87722);border-radius:4px;transition:width .4s}.lauf-bar.unb i{width:35%!important;animation:laufunb 1.4s ease-in-out infinite}@keyframes laufunb{0%{left:-35%}100%{left:100%}}.lauf-z{color:var(--mute,#999);font-variant-numeric:tabular-nums}
+.abz-z{display:inline-flex;align-items:center;gap:.35rem;flex-wrap:wrap}.abz-w{display:inline-flex;gap:.25rem;flex-wrap:wrap}.abz-w .chip{font:inherit;font-size:.8rem;padding:.12rem .5rem;border-radius:999px;border:1px solid var(--line);background:none;color:var(--mute,#888);cursor:pointer}.abz-w .chip.on{color:inherit;border-color:var(--accent,#e87722)}.abz-w .chip.abw{box-shadow:0 0 0 2px rgba(232,119,34,.35)}.abz-w .chip:disabled{cursor:default;opacity:.7}tr.aus td{color:var(--mute,#999);font-style:italic}
 .ava-job{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:900;display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;background:var(--card,#252729);color:inherit;border:1px solid var(--line);border-radius:10px;padding:.55rem .9rem;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:.92rem;max-width:92vw}
 .ava-job small{color:var(--mute,#999);margin-left:.4rem}
 .wspin i{position:absolute;inset:0;opacity:0;animation:wspin 4.4s infinite}
@@ -1723,6 +1724,16 @@ async function angebotDaten(aid) {
   BPHead.datenMaske({ titel: 'Angaben zum Angebot', unter: D.titel, gruppen: D.felder, werte: D.werte,
     speichern: async (W) => { D = await api(`api/angebote/${aid}/daten`, 'PUT', { werte: W }); return { werte: D.werte }; } });
 }
+/* Abzüge bei der Prüfung an/aus: je Auftrag (Voreinstellung) und je Rechnung */
+const ABZ = [['nachlass', 'Nachlass'], ['abzuege', 'Abzüge'], ['einbehalt', 'Einbehalt'], ['vorher', 'bisherige Zahlungen']];
+const abzAuftrag = () => Object.fromEntries(ABZ.map(([k]) => [k, !(L.vergabe.abzug && L.vergabe.abzug[k] === false)]));
+function abzChips(wahl, attr, dis, abweich) {
+  return `<span class="abz-w">${ABZ.map(([k, t]) => `<button type="button" class="chip${wahl[k] ? ' on' : ''}${abweich && abweich[k] ? ' abw' : ''}" ${attr}="${k}"${dis ? ' disabled' : ''} aria-pressed="${!!wahl[k]}" title="${wahl[k] ? t + ' wird abgezogen – klicken: nicht abziehen' : t + ' wird nicht abgezogen – klicken: abziehen'}">${wahl[k] ? '✓' : '✗'} ${t}</button>`).join('')}</span>`;
+}
+function abzLeer() {
+  const A = abzAuftrag(), an = ABZ.filter(([k]) => A[k]).map(([, t]) => t), aus = ABZ.filter(([k]) => !A[k]).map(([, t]) => t);
+  return `<div class="card empty">Noch keine Rechnung. Teilrechnungen werden kumuliert geprüft: Aufmaß × Auftragspreis${an.length ? ', abzüglich ' + an.join(', ').replace(/, ([^,]*)$/, ' und $1') : ', ohne Abzüge'}${aus.length ? ` (nicht abgezogen: ${aus.join(', ')})` : ''} – oben unter „Abziehen“ wählbar.</div>`;
+}
 /* Nur diese Rechnung löschen – Aufmaß, Auftrag und LV bleiben; mit Rückgängig */
 async function reLoeschen(rid) {
   const r = L && L.rechnungen.find((y) => y.id === rid); if (!r) return;
@@ -2288,6 +2299,8 @@ function vRechnungen() {
         ${art === 'sicherheit' ? `<label>freizugebender Betrag netto<input data-re="betrag" data-id="${r.id}" value="${nf(r.data.betrag || 0, 2)}" inputmode="decimal"${dis}></label>`
           : `<label>gefordert (${c.einzeln ? 'netto' : 'kumuliert, netto'})<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
         <label>Einbehalt %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>
+      ${art !== 'sicherheit' && c.abzug ? (() => { const A0 = abzAuftrag(), abw = Object.fromEntries(ABZ.map(([k]) => [k, c.abzug[k] !== A0[k]]));
+        return `<div class="hint abz-z">Abziehen:${abzChips(c.abzug, 'data-reabz', g, abw)}${!g && Object.values(abw).some(Boolean) ? `<button type="button" class="ib" data-reabz0="${r.id}" title="Wie im Auftrag eingestellt">↺ wie Auftrag</button>` : ''}</div>`; })().replace(/data-reabz="/g, `data-reid2="${r.id}" data-reabz="`) : ''}
       ${art !== 'regie' && art !== 'sicherheit' && !L.vergabe.frei ? `<label class="hint" style="display:inline-flex;gap:.4rem;margin:.4rem 0 0" title="Für Handwerker ohne Aufmaß: den geprüften Betrag direkt eintragen – zählt dann einzeln (nicht kumuliert) in der Kostenkontrolle"><input type="checkbox" data-re="freiAn" data-id="${r.id}"${c.frei ? ' checked' : ''}${dis}> ohne Aufmaß – geprüften Betrag frei eintragen</label>` : ''}${belege}`;
     const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="width:100%;min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
       <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="pdf" data-id="${r.id}">Prüfblatt PDF</button><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag, Prüfblatt und Rechnung der Firma in einer PDF">Rechnungsfreigabe PDF</button>
@@ -2311,15 +2324,15 @@ function vRechnungen() {
       <table><tbody>
         ${c.frei ? `<tr><td>geprüfter Betrag netto (ohne Aufmaß)</td><td class="r"><input data-re="frei" data-id="${r.id}" value="${nf(r.data.frei || 0, 2)}" inputmode="decimal" style="width:9rem;text-align:right"${dis}></td></tr>`
           : `<tr><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>`}
-        ${c.nachlass ? `<tr><td>– Nachlass ${nlText(L.vergabe)}</td><td class="r">${eur(-c.nachlass)}</td></tr>` : ''}
+        ${c.nachlass ? `<tr><td>– Nachlass ${nlText(L.vergabe)}</td><td class="r">${eur(-c.nachlass)}</td></tr>` : c.abzug && !c.abzug.nachlass && (L.vergabe.nachlass || L.vergabe.nachlass_eur) ? '<tr class="aus"><td>Nachlass – bei dieser Rechnung nicht abgezogen</td><td class="r">–</td></tr>' : ''}
         ${ab.map((z, k) => `<tr><td><div class="abz"><span>–</span><input data-re="abz-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Bauwasser/Strom" style="flex:1"${dis}>
           <input data-re="abz-pct" data-id="${r.id}" data-k="${k}" value="${z.pct != null ? nf(z.pct, 2) : ''}" placeholder="%" style="width:4rem" inputmode="decimal"${dis}>
           <input data-re="abz-betrag" data-id="${r.id}" data-k="${k}" value="${z.betrag != null ? nf(z.betrag, 2) : ''}" placeholder="oder €" style="width:6rem" inputmode="decimal"${dis}>${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
           <td class="r">${eur(-(z.pct != null ? L1 * z.pct / 100 : (z.betrag || 0)))}</td></tr>`).join('')}
         ${g ? '' : `<tr><td colspan="2"><button class="ib" data-reb="abzneu" data-id="${r.id}">+ Abzug (Umlage Bauwasser/Strom, Bauleistungsversicherung, Schadensersatz …)</button></td></tr>`}
-        <tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %</td><td class="r">${eur(-c.einbehalt)}</td></tr>
+        ${c.abzug && !c.abzug.einbehalt ? `<tr class="aus"><td>${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt'} – bei dieser Rechnung nicht einbehalten</td><td class="r">–</td></tr>` : `<tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %</td><td class="r">${eur(-c.einbehalt)}</td></tr>`}
         <tr class="s"><td>= anerkannt${c.einzeln ? '' : ' (kumuliert)'}</td><td class="r">${eur(c.anerkannt)}</td></tr>
-        ${c.einzeln ? '' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
+        ${c.einzeln ? '' : c.abzug && !c.abzug.vorher ? '<tr class="aus"><td>bisher anerkannt – bei dieser Rechnung nicht abgezogen (Achtung: Doppelzahlung bei kumulierten Rechnungen)</td><td class="r">–</td></tr>' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
         <tr class="s"><td>= Zahlbetrag netto</td><td class="r">${eur(c.zahlung)}</td></tr>
         <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
         <tr class="s"><td>= Zahlbetrag brutto</td><td class="r">${eur(c.brutto)}</td></tr>
@@ -2329,8 +2342,9 @@ function vRechnungen() {
       </tbody></table>${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
   return `<div class="bar"><button class="btn sm pri" data-act="reNeu" aria-haspopup="listbox">+ Neu ▾</button>
+    <span class="hint abz-z" title="Voreinstellung für alle Rechnungen dieses Auftrags – je Rechnung änderbar; geprüfte Rechnungen behalten ihre Einstellung">Abziehen:${abzChips(abzAuftrag(), 'data-vabz', false)}</span>
     <span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
-    <div class="re">${cards || '<div class="card empty">Noch keine Rechnung. Teilrechnungen werden kumuliert geprüft: Aufmaß × Auftragspreis, abzüglich Nachlass, Abzügen, Einbehalt und bisheriger Zahlungen.</div>'}${vSicherheiten(K)}</div>`;
+    <div class="re">${cards || abzLeer()}${vSicherheiten(K)}</div>`;
 }
 /* Eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
    oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
@@ -2424,6 +2438,16 @@ async function reBelegHoch(rid, f) {
     L = d; render(); toast(d.hinweis || 'Rechnung gespeichert.', !!(d.hinweis && /nicht im Projektordner/.test(d.hinweis)));
   } catch (e) { toast(e.message, true); }
 }
+document.addEventListener('click', async (e) => {
+  const v = e.target.closest('[data-vabz]');
+  if (v && L) { const k = v.dataset.vabz, A = abzAuftrag(), alt = { ...(L.vergabe.abzug || {}) };
+    try { await call('api/lv/' + L.id, 'PUT', { vergabe: { abzug: { [k]: !A[k] } } }); rueckgaengig(`${ABZ.find((x) => x[0] === k)[1]} ${A[k] ? 'wird nicht mehr' : 'wird wieder'} abgezogen`, () => call('api/lv/' + L.id, 'PUT', { vergabe: { abzug: Object.fromEntries(ABZ.map(([x]) => [x, alt[x] !== false])) } })); } catch (er) { toast(er.message, true); } return; }
+  const r = e.target.closest('[data-reabz]');
+  if (r && L) { const rid = +r.dataset.reid2, c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!c) return; const k = r.dataset.reabz;
+    try { await call('api/rechnungen/' + rid, 'PUT', { abzug: { [k]: !c.abzug[k] } }); } catch (er) { toast(er.message, true); } return; }
+  const r0 = e.target.closest('[data-reabz0]');
+  if (r0 && L) { try { await call('api/rechnungen/' + r0.dataset.reabz0, 'PUT', { abzug: Object.fromEntries(ABZ.map(([k]) => [k, null])) }); } catch (er) { toast(er.message, true); } }
+});
 document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-rebeleg]'); if (i && i.files[0]) { reBelegHoch(+i.dataset.rebeleg, i.files[0]); i.value = ''; } });
 document.addEventListener('change', (e) => { const el = e.target.closest && e.target.closest('[data-si],[data-ve]'); if (!el || !L) return;
   if (el.dataset.ve) { call('api/lv/' + L.id, 'PUT', { vergabe: { einbehalt: pf(el.value) ?? 5 } }).catch((er) => toast(er.message, true)); return; }

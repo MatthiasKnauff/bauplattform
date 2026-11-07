@@ -19,8 +19,6 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/kontakt/<id>/verlauf  Benachrichtigungsverlauf (Planversand, Rügen …)
 /api/bp/kontakte    GET ?q= / ?ids=  Kontakte suchen · POST, PUT /<id>  anlegen/ändern (Kontaktfelder der Stammdaten-Masken)
 /api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
-/api/bp/chat     GET Räume (Gesamtchat + je App einer, fest angepinnt) mit ungelesenen Nachrichten
-/api/bp/chat/<raum>  GET ?nach=/?vor=/?ab= Nachrichten · POST {text, projekt} senden · DELETE …/<id> eigene löschen
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
 """
@@ -30,7 +28,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, chat, contacts, db, fehler, konto, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, contacts, db, fehler, konto, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -354,49 +352,6 @@ def blueprint(get_user=None):
                    for r in c.execute("SELECT * FROM users WHERE active=1 AND id<>? AND lower(name)<>'admin' ORDER BY name", (u["id"],))]
         out.sort(key=lambda x: (not x["online"], x["name"].lower()))
         return jsonify(out)
-
-    # ---- Chat: Gesamtchat und je App ein Raum (bpcore/chat.py)
-    @bp.get("/api/bp/chat")
-    def chat_uebersicht():
-        u = user()
-        if not u:
-            return jsonify(error="Nicht angemeldet"), 401
-        with db.tx() as c:
-            return jsonify(chat.uebersicht(c, u))
-
-    @bp.route("/api/bp/chat/<raum>", methods=["GET", "POST"])
-    def chat_raum(raum):
-        u = user()
-        if not u:
-            return jsonify(error="Nicht angemeldet"), 401
-        if not chat.darf(u, raum):
-            return jsonify(error="Diesen Chat gibt es nicht oder er ist für dich nicht freigeschaltet."), 403
-        a = request.args
-        zahl = lambda k: int(a.get(k)) if str(a.get(k) or "").isdigit() else 0   # noqa: E731
-        with db.tx() as c:
-            if request.method == "POST":
-                b = request.get_json(silent=True) or {}
-                try:
-                    return jsonify(chat.senden(c, u, raum, b.get("text"), b.get("projekt") or "")), 201
-                except ValueError as e:
-                    return jsonify(error=str(e)), 400
-            return jsonify(chat.nachrichten(c, u, raum, nach=zahl("nach"), vor=zahl("vor"), ab=zahl("ab")))
-
-    @bp.delete("/api/bp/chat/<raum>/<int:nid>")
-    def chat_loeschen(raum, nid):
-        u = user()
-        if not u:
-            return jsonify(error="Nicht angemeldet"), 401
-        if not chat.darf(u, raum):
-            return jsonify(error="Kein Zugriff auf diesen Chat."), 403
-        with db.tx() as c:
-            try:
-                chat.loeschen(c, u, raum, nid)
-            except LookupError as e:
-                return jsonify(error=str(e)), 404
-            except PermissionError as e:
-                return jsonify(error=str(e)), 403
-        return jsonify(ok=True)
 
     # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – das Bautagebuch erledigt es, mit der Anmeldung des Benutzers
     import re as _re

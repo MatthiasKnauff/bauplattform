@@ -70,8 +70,6 @@
     grid: SV('<rect x="4" y="4" width="4" height="4" rx="1"/><rect x="10" y="4" width="4" height="4" rx="1"/><rect x="16" y="4" width="4" height="4" rx="1"/><rect x="4" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="16" y="10" width="4" height="4" rx="1"/><rect x="4" y="16" width="4" height="4" rx="1"/><rect x="10" y="16" width="4" height="4" rx="1"/><rect x="16" y="16" width="4" height="4" rx="1"/>'),
     gear: SV('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
     user: SV('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
-    chat: SV('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/>'),
-    pin: SV('<path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/>'),
     buero: SV('<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-5h6v5"/><path d="M9 10h.01M15 10h.01"/>'),
   };
   H.IC = IC;
@@ -277,7 +275,6 @@
       <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div><span class="bph-fill"></span>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
-      <button type="button" class="bph-ic bph-chatb" aria-label="Chat" title="Chat – Gesamtchat und je App einer">${IC.chat}<i class="bph-chat-n" hidden></i></button>
       <button type="button" class="bph-ic bph-appsb" aria-haspopup="menu" aria-label="Apps" title="Apps">${IC.grid}</button>
       <button type="button" class="bph-ic bph-gear" aria-haspopup="dialog" aria-label="Einstellungen" title="Einstellungen">${IC.gear}</button>
       <button type="button" class="bph-who" aria-haspopup="menu" aria-label="Mein Konto"><span class="bph-av">?</span><span class="bph-nm"></span></button>`;
@@ -292,7 +289,6 @@
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
-      if (e.target.closest('.bph-chatb')) { e.stopPropagation(); closeMenus(); H.chat(); return; }
       if (e.target.closest('.bph-appsb')) { e.stopPropagation(); if (band.querySelector('.bph-apps')) closeMenus(); else appsMenu(); return; }
       if (e.target.closest('.bph-gear')) { e.stopPropagation(); closeMenus(); H.einstellungen(); return; }
       if (e.target.closest('.bph-kim')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else kiMenu(); return; }
@@ -321,7 +317,6 @@
       return H;
     })();
     H.ready.then(skWache).catch(() => {});
-    H.ready.then(chatWache).catch(() => {});
     return H.ready;
   };
 
@@ -1820,165 +1815,6 @@
     H.ansehen(items, start);
   }, true);
 
-  /* ---------- Chat: Gesamtchat und je App ein Raum, fest angepinnt (bpcore/chat.py) ----------
-     💬 in der Kopfleiste öffnet eine Leiste rechts, die beim Weiterarbeiten offen bleiben kann. Geöffnet wird der Raum der
-     aktuellen App (auf der Startseite der Gesamtchat). Bei offenem Chat wird alle 3 s Neues geholt, sonst alle 30 s nur die Zahl. */
-  const CH = { el: null, raum: null, raeume: [], letzte: 0, aelteste: 0, t: 0, ladend: false };
-  const chatJ = (u, o) => KX(u, o);
-  const chatZeit = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
-  const chatTag = (iso) => {
-    const d = new Date(iso); if (isNaN(d)) return '';
-    const h = new Date(); h.setHours(0, 0, 0, 0); const t = new Date(d); t.setHours(0, 0, 0, 0);
-    const diff = Math.round((h - t) / 864e5);
-    return diff === 0 ? 'Heute' : diff === 1 ? 'Gestern' : d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: t.getFullYear() === h.getFullYear() ? undefined : 'numeric' });
-  };
-  const chatText = (t) => esc(t).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]"'])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>');
-  function chatZahl(n) {
-    const b = band && band.querySelector('.bph-chat-n'); if (!b) return;
-    b.hidden = !n; b.textContent = n > 99 ? '99+' : String(n || '');
-  }
-  async function chatUebersicht() {
-    const d = await chatJ('api/bp/chat');
-    CH.raeume = d.raeume || []; chatZahl(d.ungelesen || 0); chatLeiste();
-    return d;
-  }
-  function chatReihenfolge() {   // Gesamtchat, dann die aktuelle App, dann die übrigen
-    const l = CH.raeume.slice(), i = l.findIndex((r) => r.raum === H.app);
-    if (i > 0) { const [r] = l.splice(i, 1); l.splice(1, 0, r); }
-    return l;
-  }
-  function chatLeiste() {
-    if (!CH.el) return;
-    CH.el.querySelector('.bph-chat-r').innerHTML = chatReihenfolge().map((r) => `<button type="button" data-raum="${esc(r.raum)}" class="${r.raum === CH.raum ? 'on' : ''}" title="${esc(r.name)} – angepinnt">${r.raum === 'gesamt' ? '' : IC[r.raum] || ''}${r.raum === 'gesamt' ? IC.pin : ''}<span>${esc(r.raum === 'gesamt' ? 'Gesamt' : r.name)}</span>${r.ungelesen && r.raum !== CH.raum ? `<i>${r.ungelesen > 99 ? '99+' : r.ungelesen}</i>` : ''}</button>`).join('');
-    const on = CH.el.querySelector('.bph-chat-r .on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }
-  function chatZeilen(list, vorne) {
-    const box = CH.el.querySelector('.bph-chat-m');
-    let tag = vorne ? '' : (box.dataset.tag || ''), html = '', vorher = vorne ? null : box.lastElementChild;
-    let letzterName = vorne ? '' : (vorher && vorher.dataset.uid) || '';
-    for (const m of list) {
-      const t = chatTag(m.created);
-      if (t !== tag) { html += `<div class="bph-chat-tag">${esc(t)}</div>`; tag = t; letzterName = ''; }
-      const kopf = String(m.uid) !== letzterName;
-      html += `<div class="bph-chat-z${m.ich ? ' ich' : ''}${kopf ? ' kopf' : ''}" data-id="${m.id}" data-uid="${esc(m.uid)}">
-        ${kopf ? `<div class="bph-chat-k"><b>${esc(m.ich ? 'Ich' : m.name)}</b>${m.projekt ? `<span>· ${esc(m.projekt)}</span>` : ''}</div>` : ''}
-        <div class="bph-chat-b">${chatText(m.text)}<small>${chatZeit(m.created)}</small>${m.ich || (H.me && (H.me.is_admin || H.me.admin)) ? '<button type="button" class="bph-chat-x" title="Nachricht löschen" aria-label="Nachricht löschen">×</button>' : ''}</div></div>`;
-      letzterName = String(m.uid);
-    }
-    if (vorne) {
-      const alt = box.scrollHeight, mehr = box.querySelector('.bph-chat-mehr');
-      const erst = mehr ? mehr.nextElementSibling : box.firstElementChild;   // gleicher Tag direkt dahinter → Trenner nur einmal
-      if (erst && erst.classList.contains('bph-chat-tag') && erst.textContent === tag) erst.remove();
-      if (mehr) mehr.insertAdjacentHTML('afterend', html); else box.insertAdjacentHTML('afterbegin', html);
-      box.scrollTop += box.scrollHeight - alt;
-    } else {
-      const unten = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-      box.insertAdjacentHTML('beforeend', html); box.dataset.tag = tag;
-      if (unten || list.some((m) => m.ich)) box.scrollTop = box.scrollHeight;
-    }
-  }
-  async function chatRaum(raum) {
-    CH.raum = raum; CH.letzte = 0; CH.aelteste = 0;
-    try { localStorage.setItem('bph.chat.' + (H.app || 'portal'), raum); } catch { /* egal */ }
-    const box = CH.el.querySelector('.bph-chat-m');
-    box.innerHTML = '<p class="bph-mu" style="text-align:center;margin-top:2rem">Lädt …</p>'; box.dataset.tag = '';
-    chatLeiste();
-    try {
-      const d = await chatJ(`api/bp/chat/${encodeURIComponent(raum)}`);
-      if (CH.raum !== raum) return;
-      const r = CH.raeume.find((x) => x.raum === raum); if (r) r.ungelesen = 0;
-      chatZahl(CH.raeume.reduce((s, x) => s + (x.ungelesen || 0), 0)); chatLeiste();
-      box.innerHTML = d.mehr ? '<button type="button" class="bph-btn bph-chat-mehr">Ältere Nachrichten laden</button>' : '';
-      if (!d.nachrichten.length) box.innerHTML = `<p class="bph-mu bph-chat-leer">Noch keine Nachrichten im ${esc(raum === 'gesamt' ? 'Gesamtchat' : 'Chat „' + d.name + '“')}.<br>${raum === 'gesamt' ? 'Hier lesen alle mit.' : 'Hier lesen alle mit, die diese App nutzen.'}</p>`;
-      chatZeilen(d.nachrichten);
-      CH.letzte = d.nachrichten.length ? d.nachrichten[d.nachrichten.length - 1].id : 0;
-      CH.aelteste = d.nachrichten.length ? d.nachrichten[0].id : 0;
-      box.scrollTop = box.scrollHeight;
-    } catch (e) { box.innerHTML = `<p class="bph-mu" style="text-align:center;margin-top:2rem">${esc(e.message)}</p>`; }
-    const ta = CH.el.querySelector('textarea'); ta.placeholder = `Nachricht an ${raum === 'gesamt' ? 'alle' : (CH.raeume.find((x) => x.raum === raum) || {}).name || raum} …`;
-    if (matchMedia('(pointer:fine)').matches) ta.focus();
-  }
-  async function chatNeu() {
-    if (!CH.el || !CH.raum || CH.ladend || document.visibilityState !== 'visible') return;
-    CH.ladend = true;
-    const raum = CH.raum;
-    try {
-      const d = await chatJ(`api/bp/chat/${encodeURIComponent(raum)}?nach=${CH.letzte}${CH.aelteste ? '&ab=' + CH.aelteste : ''}`);
-      if (CH.raum !== raum || !CH.el) return;
-      (d.geloescht || []).forEach((id) => { const z = CH.el.querySelector(`.bph-chat-z[data-id="${id}"]`); if (z) z.remove(); });
-      const neu = d.nachrichten.filter((m) => m.id > CH.letzte);
-      if (neu.length) {
-        const leer = CH.el.querySelector('.bph-chat-leer'); if (leer) leer.remove();
-        chatZeilen(neu); CH.letzte = neu[neu.length - 1].id; if (!CH.aelteste) CH.aelteste = neu[0].id;
-      }
-    } catch { /* nächster Versuch */ } finally { CH.ladend = false; }
-  }
-  async function chatSenden() {
-    const ta = CH.el.querySelector('textarea'), text = ta.value.trim();
-    if (!text) return;
-    const raum = CH.raum; ta.disabled = true;
-    try {
-      await chatJ(`api/bp/chat/${encodeURIComponent(raum)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, projekt: H.projekt ? H.projekt.name : '' }) });
-      ta.value = ''; ta.style.height = '';
-      await chatNeu();
-    } catch (e) { bpHinweis(e.message); } finally { ta.disabled = false; ta.focus(); }
-  }
-  function chatZu() {
-    if (!CH.el) return;
-    CH.el.remove(); CH.el = null; CH.raum = null; clearInterval(CH.t); CH.t = 0;
-    document.body.classList.remove('bph-chat-offen');
-    chatUebersicht().catch(() => {});
-  }
-  H.chatSchliessen = chatZu;
-  H.chat = async function (raum) {
-    if (CH.el && !raum) { chatZu(); return; }
-    if (!CH.el) {
-      const el = CH.el = document.createElement('aside');
-      el.className = 'bph-chat'; el.setAttribute('aria-label', 'Chat');
-      el.innerHTML = `<div class="bph-chat-h"><b>${IC.chat} Chat</b><button type="button" class="bph-ic" data-zu aria-label="Chat schließen" title="Schließen (Esc)">✕</button></div>
-        <nav class="bph-chat-r" aria-label="Chats (angepinnt)"></nav><div class="bph-chat-m" aria-live="polite"></div>
-        <form class="bph-chat-f"><textarea rows="1" maxlength="4000" placeholder="Nachricht …"></textarea><button type="submit" class="bph-btn pri" title="Senden (Enter)">Senden</button></form>`;
-      document.body.appendChild(el); document.body.classList.add('bph-chat-offen');
-      el.addEventListener('click', async (e) => {
-        if (e.target.closest('[data-zu]')) { chatZu(); return; }
-        const r = e.target.closest('[data-raum]'); if (r) { if (r.dataset.raum !== CH.raum) chatRaum(r.dataset.raum); return; }
-        if (e.target.closest('.bph-chat-mehr')) {
-          const b = e.target.closest('.bph-chat-mehr'); b.disabled = true;
-          try {
-            const d = await chatJ(`api/bp/chat/${encodeURIComponent(CH.raum)}?vor=${CH.aelteste}`);
-            if (!d.mehr) b.remove(); else b.disabled = false;
-            if (d.nachrichten.length) { chatZeilen(d.nachrichten, true); CH.aelteste = d.nachrichten[0].id; }
-          } catch (er) { b.disabled = false; bpHinweis(er.message); }
-          return;
-        }
-        const x = e.target.closest('.bph-chat-x');
-        if (x) {
-          const z = x.closest('.bph-chat-z');
-          if (!(await bpFrage('Diese Nachricht löschen?', { ok: 'Löschen', gefahr: true }))) return;
-          try { await chatJ(`api/bp/chat/${encodeURIComponent(CH.raum)}/${z.dataset.id}`, { method: 'DELETE' }); z.remove(); } catch (er) { bpHinweis(er.message); }
-        }
-      });
-      const ta = el.querySelector('textarea');
-      ta.addEventListener('input', () => { ta.style.height = ''; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; });
-      ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); chatSenden(); } });
-      el.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); chatSenden(); });
-      el.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); chatZu(); } });
-      CH.t = setInterval(chatNeu, 3000);
-    }
-    try { await chatUebersicht(); } catch (e) { bpHinweis(e.message); chatZu(); return; }
-    let ziel = raum;
-    if (!ziel) { try { ziel = localStorage.getItem('bph.chat.' + (H.app || 'portal')); } catch { ziel = null; } }
-    if (!CH.raeume.some((r) => r.raum === ziel)) ziel = CH.raeume.some((r) => r.raum === H.app) ? H.app : 'gesamt';
-    await chatRaum(ziel);
-  };
-  function chatWache() {
-    if (!H.me) return;
-    const m = /#chat=([\w-]+)/.exec(location.hash);
-    if (m) { history.replaceState(null, '', location.pathname + location.search); setTimeout(() => H.chat(m[1]), 300); }
-    const pr = () => { if (document.visibilityState === 'visible' && !CH.el) chatUebersicht().catch(() => {}); };
-    setTimeout(pr, 1500); setInterval(pr, 30000);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (CH.el) chatNeu(); else pr(); } });
-  }
   /* Einladungen zum gemeinsamen Markieren: in jeder App ein Hinweis unten rechts; Link #skizze=<id> öffnet direkt */
   const skGezeigt = new Set();
   function skHinweis(e) {

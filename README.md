@@ -215,23 +215,6 @@ Alle Apps haben oben dieselbe dunkle Leiste: **Bauportal / App** (Klick führt z
 bisherigen Leiste – deren Bedienung bleibt unverändert. Code: `shared/bpcore/head.py` und `shared/bpcore/head/` (jede App liefert
 `/bp/head.js`, `/bp/head.css` und `/api/bp/ki` aus).
 
-## Chat (alle Apps)
-
-💬 in der Kopfleiste öffnet rechts eine Chat-Leiste, die beim Weiterarbeiten offen bleiben kann. Die Räume sind fest angepinnt –
-niemand muss sie anlegen, niemand kann sie löschen:
-
-- **Gesamtchat** für alle Benutzer.
-- **Je App ein Chat** (Bautagebuch, Bauzeitenplan, Adressen, Baukosten, Aufgaben & Mängel, Planstand & Versand, Ausschreibung &
-  Abrechnung, Kommunikation, Baudaten) – sichtbar für alle, die die App nutzen dürfen; **Verwaltung** nur für Administratoren.
-
-Geöffnet wird der Chat der aktuellen App (auf der Startseite der Gesamtchat), die aktuelle App steht gleich hinter dem Gesamtchat.
-Die Zahl am 💬 zeigt ungelesene Nachrichten aller Räume. Enter sendet, Umschalt+Enter macht eine neue Zeile; Links werden anklickbar.
-Zu jeder Nachricht steht das Projekt, in dem der Absender gerade war. Eigene Nachrichten lassen sich löschen (Administratoren: jede).
-Link direkt in einen Raum: `…/#chat=gesamt`, `…/#chat=gantt` usw.
-
-Technik: `shared/bpcore/chat.py`, Schnittstellen `/api/bp/chat…` in `shared/bpcore/head.py`, Oberfläche in `head.js`/`head.css`;
-Tabellen `chat_nachricht` und `chat_gelesen` (Migration 0030). Bei offenem Chat holt die Seite alle 3 s nur Neues, sonst alle 30 s die Zahl.
-
 ## KI für alle Apps
 
 Die Auswahl in der Kopfleiste gilt für den Benutzer in allen Apps und auf allen Geräten (Spalte `users.ai`):
@@ -450,7 +433,6 @@ auf dem Dateiserver zurück – Voraussetzung: die Ablage war eingeschaltet (`im
 | Protokoll | `audit_log` | Bautagebuch, Startseite, Verwaltung, Baukosten |
 | Kostenermittlungen, Pläne, eigene Kennwerte | `bk_projects`, `bk_files`, `bk_store` | Baukosten |
 | KI-Auswahl je Benutzer | `users.ai` | alle (Kopfleiste) |
-| Chat (Nachrichten, gelesen bis) | `chat_nachricht`, `chat_gelesen` | alle (Kopfleiste) |
 
 Das Schema gehört dem Bautagebuch (`bautagebuch/pg_migrations/`). Die anderen Dienste warten beim Start, bis die
 benötigte Version da ist. Neue Tabellen kommen immer als neue Migration dazu (nur ergänzen, nie ändern).

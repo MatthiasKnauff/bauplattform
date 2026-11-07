@@ -73,6 +73,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+          pull: true   # immer das neueste Basis-Image (Sicherheitskorrekturen)
 
   # Rauchtest: die eben gebauten Images mit frischer Datenbank und Testdaten starten, anmelden, jede App aufrufen.
   # Schlägt er fehl, wird KEINE Version eingetragen – Test- bzw. Produktivserver laufen mit dem alten Stand weiter.

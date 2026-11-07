@@ -1,8 +1,9 @@
 # Bautagebuch – wird aus dem Hauptordner der Bauplattform gebaut (docker compose build), damit shared/bpcore mit hinein kommt.
 FROM python:3.12-slim
+# Sicherheitskorrekturen des Betriebssystems bei jedem Bau einspielen (siehe .github/workflows/sicherheit.yml)
 WORKDIR /app
 # pg_dump / pg_restore (Version passend zu postgres:15) für die Datenbankversionen
-RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
 COPY bautagebuch/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY bautagebuch/app.py .

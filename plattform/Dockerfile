@@ -1,8 +1,9 @@
 # Verteiler, Startseite (gemeinsame Anmeldung), Verwaltung und die Plattform-Apps (Adressen, Baukosten, Baudaten …) – ein Image, je App ein Container (siehe docker-compose.yml)
 FROM python:3.12-slim
+# Sicherheitskorrekturen des Betriebssystems bei jedem Bau einspielen (siehe .github/workflows/sicherheit.yml)
 WORKDIR /app
 # Texterkennung für gescannte Rechnungen und Aufmaße (AVA)
-RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-deu && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-deu && rm -rf /var/lib/apt/lists/*
 COPY plattform/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY plattform/common.py plattform/portal.py plattform/admin.py plattform/adressen.py plattform/baukosten.py plattform/aufgaben.py plattform/plaene.py plattform/ava.py plattform/katalog.py plattform/kommunikation.py plattform/baudaten.py plattform/router.py ./

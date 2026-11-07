@@ -1,6 +1,8 @@
 # Bauzeitenplan (Gantt-App) – Python-Server mit der gemeinsamen Datenbank der Bauplattform
 FROM python:3.12-slim
 WORKDIR /app
+# Sicherheitskorrekturen des Betriebssystems bei jedem Bau einspielen (siehe .github/workflows/sicherheit.yml)
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 COPY gantt/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY gantt/app.py .

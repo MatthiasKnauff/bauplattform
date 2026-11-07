@@ -560,11 +560,17 @@ async function vleiste(neu) {
         try { await api('api/versionen/' + akt.id, 'PUT', { name }); close(); vleiste(); } catch (e) { toast(e.message, true); }
       }); setTimeout(() => { const i = document.querySelector('#rnName'); if (i) { i.focus(); i.select(); } }, 50); },
     onVerlauf: () => lvVerlauf(),
-    onVerwalten: () => { if (!akt) return; modalBox(`<h3>Version „${esc(akt.name)}“</h3>
+    onVerwalten: () => { if (!akt) return;
+      const selRe = (tab === 'rechnungen' || tab === 'aufmass') && L && PJSEL && PJSEL[0] === 'r' ? L.rechnungen.find((y) => 'r' + y.id === PJSEL) : null;
+      const selAng = tab === 'angebote' && L && PJSEL && PJSEL[0] === 'b' ? L.angebote.find((y) => 'b' + y.id === PJSEL) : null;
+      const selTxt = selRe ? reTitel(selRe) : selAng ? `Angebot „${selAng.bieter}“` : L ? `LV „${L.name}“` : '';
+      modalBox(`<h3>Version „${esc(akt.name)}“</h3>
+        ${selTxt ? `<div class="si-w" style="margin:0 0 .7rem;padding:.55rem .7rem;border-radius:8px">Hier geht es um die <b>ganze Version</b> (alle LVs). Nur <b>${esc(selTxt)}</b> löschen? <button class="btn sm" data-m="nur" style="margin-left:.4rem">Nur ${esc(selTxt)} …</button></div>` : ''}
         <p><b>Archivieren</b> schiebt die Version in der Auswahl nach unten unter „Archiviert“; sie bleibt erhalten.</p>
         <p><b>In den Papierkorb</b> nimmt die Version mit allen ihren Leistungsverzeichnissen, Angeboten, Aufmaß und Rechnungen heraus – wiederherstellen auf der Startseite unter „Papierkorb“.${VERS.length < 2 ? ' Da es die einzige ist, geht es danach mit einer leeren „Startversion“ weiter.' : ''}</p>
-        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${akt.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del"${VERS.length < 2 ? ' title="Die einzige Version – danach gibt es eine leere „Startversion“"' : ''}>🗑 In den Papierkorb</button></div>`, async (m, bg, close) => {
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn" data-m="arch">${akt.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button><button class="btn danger" data-m="del"${VERS.length < 2 ? ' title="Die einzige Version – danach gibt es eine leere „Startversion“"' : ''}>🗑 Ganze Version in den Papierkorb</button></div>`, async (m, bg, close) => {
         if (m === 'x') { close(); return; }
+        if (m === 'nur') { close(); if (!selRe && !selAng) PJSEL = null; return $('#moreBtn').onclick(); }
         try {
           if (m === 'arch') {
             const vid = akt.id, alt = !!akt.archived;
@@ -955,6 +961,13 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
   e.detail.punkte.push({ text: r.dataset.pjsub && r.dataset.pjsub[0] === 'r' ? 'Rechnungsnummer ändern' : 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`#pjTree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
   if (!r.dataset.pjsub) e.detail.punkte.push({ text: 'LV- & Auftragsdaten …', fn: async () => { if (!L || L.id !== +r.dataset.pjlv) { await flush(); await openLv(+r.dataset.pjlv); } lvDaten(); } });
   if (r.dataset.pjsub && r.dataset.pjsub[0] === 'b') e.detail.punkte.push({ text: 'Angaben zum Angebot …', fn: () => angebotDaten(+r.dataset.pjsub.slice(1)) });
+  if (r.dataset.pjsub) {   // nur dieses Angebot / diese Rechnung löschen (nicht das LV)
+    const sub = r.dataset.pjsub, lvId = +r.dataset.pjlv;
+    e.detail.punkte.push({ text: sub[0] === 'r' ? 'Diese Rechnung löschen …' : 'Dieses Angebot löschen …', gefahr: true, fn: async () => {
+      if (!L || L.id !== lvId) { await flush(); await openLv(lvId); }
+      PJSEL = sub; $('#moreBtn').onclick();
+    } });
+  }
 });
 function pjFokus() {
   const F = PJF; PJF = null; if (!F || !F.sub) return;
@@ -1710,11 +1723,55 @@ async function angebotDaten(aid) {
   BPHead.datenMaske({ titel: 'Angaben zum Angebot', unter: D.titel, gruppen: D.felder, werte: D.werte,
     speichern: async (W) => { D = await api(`api/angebote/${aid}/daten`, 'PUT', { werte: W }); return { werte: D.werte }; } });
 }
+/* Nur diese Rechnung löschen – Aufmaß, Auftrag und LV bleiben; mit Rückgängig */
+async function reLoeschen(rid) {
+  const r = L && L.rechnungen.find((y) => y.id === rid); if (!r) return;
+  const id = L.id, x = JSON.parse(JSON.stringify(r)), stAlt = L.status;
+  try { await call('api/rechnungen/' + r.id, 'DELETE'); } catch (e) { toast(e.message, true); return; }
+  if (PJSEL === 'r' + rid) PJSEL = null;
+  rueckgaengig(`${reTitel(x)} gelöscht – Aufmaß, Auftrag und LV bleiben`, async () => {   // wie sie war: gleiche Nummer, Prüfstand, PDFs
+    await call(`api/lv/${id}/rechnungen`, 'POST', { wiederherstellen: x });
+    if (stAlt !== L.status) await call('api/lv/' + id, 'PUT', { status: stAlt });
+  });
+}
+/* Nur dieses Angebot löschen – mit Rückgängig (Bieter, Preise, Nachlass, Skonto wieder anlegen) */
+async function angLoeschen(aid) {
+  const a = L && L.angebote.find((y) => y.id === aid); if (!a) return;
+  if (L.vergabe && L.vergabe.angebot_id === aid) { toast('Auf dieses Angebot ist der Auftrag erteilt – erst die Vergabe zurücknehmen.', true); return; }
+  const id = L.id, x = JSON.parse(JSON.stringify(a));
+  try { await call('api/angebote/' + aid, 'DELETE'); } catch (e) { toast(e.message, true); return; }
+  if (PJSEL === 'b' + aid) PJSEL = null;
+  rueckgaengig(`Angebot „${x.bieter}“ gelöscht – das LV bleibt`, async () => {
+    const r = await call(`api/lv/${id}/angebote`, 'POST', { bieter: x.bieter, contact_id: x.contact_id || null, eingang: x.eingang || '' });
+    const n = r.angebote.reduce((m, y) => (y.id > m.id ? y : m), r.angebote[0]);
+    await call('api/angebote/' + n.id, 'PUT', { preise: x.preise || {}, nachlass: x.nachlass || 0, skonto: x.skonto || 0, nachlass_eur: x.nachlass_eur || 0, notiz: x.notiz || '' });
+  });
+}
 $('#moreBtn').onclick = () => {
   if (!L) return;
+  if ((tab === 'rechnungen' || tab === 'aufmass') && PJSEL && PJSEL[0] === 'r' && (L.rechnungen || []).some((y) => 'r' + y.id === PJSEL)) {   // im Baum ist eine Rechnung gewählt: nur sie
+    const r = L.rechnungen.find((y) => 'r' + y.id === PJSEL);
+    modalBox(`<h3>${esc(reTitel(r))} löschen?</h3><p>Gelöscht wird <b>nur diese Rechnung</b> (mit ihren PDFs in der Plattform). Aufmaß, Auftrag und das LV „${esc(L.name)}“ bleiben – im Projektordner abgelegte PDFs auch.</p>
+      <div class="acts"><button class="btn" data-m="lv" style="margin-right:auto">ganzes LV …</button><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="del">Rechnung löschen</button></div>`, async (m, bg, close) => {
+      if (m === 'x') return close();
+      if (m === 'lv') { close(); PJSEL = null; return $('#moreBtn').onclick(); }
+      if (m === 'del') { close(); reLoeschen(r.id); }
+    });
+    return;
+  }
+  if (tab === 'angebote' && PJSEL && PJSEL[0] === 'b' && (L.angebote || []).some((y) => 'b' + y.id === PJSEL)) {   // ein Angebot gewählt: nur das
+    const a = L.angebote.find((y) => 'b' + y.id === PJSEL);
+    modalBox(`<h3>Angebot „${esc(a.bieter)}“ löschen?</h3><p>Gelöscht wird <b>nur dieses Angebot</b>. Das LV „${esc(L.name)}“ und die anderen Angebote bleiben.</p>
+      <div class="acts"><button class="btn" data-m="lv" style="margin-right:auto">ganzes LV …</button><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="del">Angebot löschen</button></div>`, async (m, bg, close) => {
+      if (m === 'x') return close();
+      if (m === 'lv') { close(); PJSEL = null; return $('#moreBtn').onclick(); }
+      if (m === 'del') { close(); angLoeschen(a.id); }
+    });
+    return;
+  }
   modalBox(`<h3>Archivieren oder löschen</h3><p><b>${L.archived ? 'Zurückholen' : 'Archivieren'}</b> ${L.archived ? 'stellt das LV wieder zu den laufenden.' : 'nimmt das LV aus der Liste – mit Angeboten, Aufmaß und Rechnungen bleibt alles erhalten.'}</p>
-    <p><b>In den Papierkorb</b> nimmt das LV mit Angeboten, Aufmaß und Rechnungen heraus – wiederherstellen lässt es sich auf der Startseite unter „Papierkorb“.</p>
-    <div class="acts"><button class="btn danger" data-m="del" style="margin-right:auto">🗑 In den Papierkorb</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="arch">${L.archived ? 'Zurückholen' : 'Archivieren'}</button></div>`, async (m, bg, close, btn) => {
+    <p><b>In den Papierkorb</b> nimmt <b>das ganze LV „${esc(L.name)}“</b> mit allen Angeboten, Aufmaß und Rechnungen heraus – wiederherstellen lässt es sich auf der Startseite unter „Papierkorb“. Nur eine Rechnung oder ein Angebot löschen: im Baum links anwählen (oder rechte Maustaste darauf).</p>
+    <div class="acts"><button class="btn danger" data-m="del" style="margin-right:auto">🗑 Ganzes LV in den Papierkorb</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="arch">${L.archived ? 'Zurückholen' : 'Archivieren'}</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m === 'arch') {
       const id = L.id, alt = !!L.archived, nm = L.name;
@@ -2420,15 +2477,7 @@ async function reAktion(b) {
       return;
     }
     if (a === 'zurueck') return call('api/rechnungen/' + r.id, 'PUT', { status: 'offen' });
-    if (a === 'del') {
-      const id = L.id, x = JSON.parse(JSON.stringify(r)), stAlt = L.status;
-      await call('api/rechnungen/' + r.id, 'DELETE');
-      rueckgaengig(`${reTitel(x)} gelöscht`, async () => {   // wie sie war: gleiche Nummer, Prüfstand, PDFs
-        await call(`api/lv/${id}/rechnungen`, 'POST', { wiederherstellen: x });
-        if (stAlt !== L.status) await call('api/lv/' + id, 'PUT', { status: stAlt });
-      });
-      return;
-    }
+    if (a === 'del') return reLoeschen(r.id);
   } catch (e) { toast(e.message, true); }
 }
 

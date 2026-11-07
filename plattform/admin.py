@@ -4,7 +4,7 @@ Benutzer und ihre App-Rechte, Sperren, Kennwort zurücksetzen, angemeldete Sitzu
 Datenbank, Protokoll. Die Benutzer sind dieselben wie im Bautagebuch (gemeinsame Tabelle users).
 """
 import json, os, re, secrets, time, urllib.error, urllib.parse, urllib.request
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
@@ -655,85 +655,6 @@ def layout_eins(b):
         return jsonify({**d, "bereich": {"key": b, "name": B["name"], "art": B.get("art", "brief"), "variablen": B["variablen"]},
                         "felder": {} if B.get("art") == "ava" else layout.FELDER, "typen": layout.TYPEN, "eigene": EG,
                         "standard": layout.standard(b), "beispiel": {**layout.beispiel(b), **{x["key"]: f"‹{x['name']}›" for x in EG}}})
-
-
-@app.route("/api/mail/adressen", methods=["GET", "POST", "DELETE"])
-def mail_adressen():
-    """Empfänger-Adressen prüfen (Microsoft 365 sperrt das Postfach nach wiederholten Mails an ungültige Adressen):
-    GET  gemerkte ungültige Adressen; POST prüfen: Schreibweise, Benutzer gegen Microsoft 365 (gibt es das Postfach?),
-         Unzustellbarkeitsberichte im Postfach des Mailversands (die Adressen daraus werden gesperrt);
-    DELETE ?adresse=… (ohne: alle) wieder freigeben."""
-    from bpcore import mail as M, posteingang as PE
-    if request.method == "DELETE":
-        M.ungueltig_freigeben(request.args.get("adresse") or None)
-        return jsonify(gesperrt=M.ungueltige())
-    if request.method == "GET":
-        return jsonify(gesperrt=M.ungueltige())
-    with db.tx() as c:
-        cf = M.conf(c)
-        nutzer = [{"id": r["id"], "name": C.full_name(r), "email": r["email"]} for r in c.execute("SELECT * FROM users WHERE active=1 ORDER BY name").fetchall()]
-        m365 = PE.m365_conf(c) if PE.m365_ok(c) else None
-    absender = (M.von(cf) or "").lower()
-    dom = absender.split("@")[-1] if "@" in absender else ""
-    probleme, hinweise, ndr = [], [], []
-    for u in nutzer:
-        a = (u.get("email") or "").strip()
-        if not a:
-            continue
-        if not M.ADRESSE.match(a):
-            probleme.append({"adresse": a, "wer": u["name"], "grund": "Schreibweise ungültig"})
-    tok = None
-    if m365:
-        try:
-            tok = PE._token(m365)
-        except Exception as e:   # Grund steht in den Hinweisen der Prüfung
-            hinweise.append(str(e))
-    else:
-        hinweise.append("Microsoft 365 ist nicht verbunden (⚙ → Büro → Posteingang) – Postfächer und Unzustellbarkeitsberichte lassen sich so nicht prüfen.")
-    if tok:
-        H = {"Authorization": "Bearer " + tok}
-        nicht = 0
-        for u in nutzer:   # gibt es das Postfach im eigenen Microsoft-365-Konto?
-            a = (u.get("email") or "").strip().lower()
-            if not a or not dom or a.split("@")[-1] != dom:
-                continue
-            try:
-                PE._json(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(a)}/mailFolders/inbox?$select=id", headers=H, timeout=15)
-            except urllib.error.HTTPError as e:
-                if e.code == 404:
-                    probleme.append({"adresse": a, "wer": u["name"], "grund": "Postfach gibt es in Microsoft 365 nicht"})
-                else:
-                    nicht += 1
-            except Exception:   # wird gezählt und als Hinweis angezeigt
-                nicht += 1
-        if nicht:
-            hinweise.append(f"{nicht} Adresse(n) ließen sich bei Microsoft 365 nicht prüfen (Berechtigung der App-Registrierung).")
-        if absender:   # Unzustellbarkeitsberichte der letzten 14 Tage im Postfach des Mailversands
-            try:
-                seit = (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%dT00:00:00Z")
-                q = urllib.parse.urlencode({"$select": "id,subject,receivedDateTime,from", "$top": "200", "$orderby": "receivedDateTime desc",
-                                            "$filter": f"receivedDateTime ge {seit}"})
-                L = PE._json(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(absender)}/messages?{q}", headers=H).get("value", [])
-                rx = re.compile(r"^(unzustellbar|undeliverable|nicht zustellbar|delivery has failed|zustellung fehlgeschlagen)", re.I)
-                for m in [x for x in L if rx.match((x.get("subject") or "").strip())][:40]:
-                    b = PE._json(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(absender)}/messages/{m['id']}?$select=body",
-                                 headers={**H, "Prefer": 'outlook.body-content-type="text"'}, timeout=15)
-                    txt = (b.get("body") or {}).get("content") or ""
-                    for a in set(x.lower() for x in re.findall(r"[\w.+'-]+@[\w-]+(?:\.[\w-]+)+", txt[:4000])):
-                        if a == absender or a.startswith(("postmaster@", "microsoftexchange", "mailer-daemon@")) or a.endswith((".prod.outlook.com", ".onmicrosoft.com")):
-                            continue
-                        ndr.append({"adresse": a, "am": (m.get("receivedDateTime") or "")[:10], "betreff": (m.get("subject") or "")[:120]})
-            except urllib.error.HTTPError as e:
-                hinweise.append(f"Unzustellbarkeitsberichte im Postfach {absender} nicht lesbar ({e.code}).")
-            except Exception as e:   # Grund steht in den Hinweisen der Prüfung
-                hinweise.append(f"Unzustellbarkeitsberichte nicht lesbar: {str(e)[:120]}")
-    neu = sorted({x["adresse"] for x in probleme if "Postfach" in x["grund"] or "Schreibweise" in x["grund"]} | {x["adresse"] for x in ndr})
-    if neu:
-        M.ungueltig_merken(neu, "bei der Prüfung gefunden")
-    namen = {(u.get("email") or "").strip().lower(): u["name"] for u in nutzer}
-    for x in ndr:
-        x["wer"] = namen.get(x["adresse"], "")
-    return jsonify(probleme=probleme, unzustellbar=ndr, hinweise=hinweise, gesperrt=M.ungueltige(), geprueft=len(nutzer))
 
 
 @app.route("/api/layouts-eigene", methods=["GET", "PUT"])

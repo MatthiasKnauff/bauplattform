@@ -509,9 +509,6 @@ function renderBtSettings() {
         <div class="w sf" data-andere style="grid-column:1/-1;${prov === 'andere' ? '' : 'display:none'}">${stIn('mail_host', 'SMTP-Server', 0, { ph: 'smtp.firma.de' })}${stIn('mail_port', 'Port', 0, { ph: '587 (STARTTLS) oder 465 (SSL)' })}</div>
         ${stIn('mail_user', 'Benutzername / Adresse', 0, { ph: 'bautagebuch@firma.de' })}${stIn('mail_from', 'Absender (leer = Postfach)', 0, { ph: 'mail@gk3-architektur.de' })}${pw('mail_pass', 'Kennwort / App-Passwort')}${stIn('app_url', 'Adresse in den Links (optional)', 1, { ph: 'https://bauportal.firma.de' })}</div>
       <div class="st-a"><button class="btn pri" data-bs="save">Speichern</button><button class="btn" data-bs="mailtest">Testmail an mich</button>${vk('einst:bt')}${S.mail_pass_set ? '<button class="btn danger" data-bs="clear" data-k="mail_pass">Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div>
-      <div style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:8px"><b>Empfänger-Adressen</b>
-        <p class="mute" style="font-size:.85rem;margin:.3rem 0 .5rem">Microsoft 365 sperrt das Postfach für Stunden („Sender throttled“), wenn wiederholt Mails an Adressen gehen, die es nicht gibt. Die Prüfung sucht falsche Adressen bei den Benutzern und in den Unzustellbarkeitsberichten der letzten 14 Tage. Gefundene und vom Server abgelehnte Adressen bekommen keine Mails mehr, bis sie korrigiert oder hier freigegeben sind.</p>
-        <button class="btn" data-bs="adrpruef">🔍 Adressen prüfen</button><div id="adrOut" style="margin-top:.5rem;font-size:.88rem"></div></div>
       <details class="hilfe"><summary>Hilfe</summary><p>Als Absender steht die <b>Absenderadresse</b> in den Mails – jeder Benutzer kann unter ⚙ → Für mich stattdessen seine eigene wählen. Ist der Absender nicht das Postfach selbst, muss das Postfach in seinem Namen senden dürfen (Microsoft 365: „Senden als“ bzw. freigegebenes Postfach; Gmail: „Senden als“-Adresse).</p>
         <p><b>Office 365:</b> „Authentifizierter SMTP-Versand“ muss für das Postfach erlaubt sein. <b>Gmail, GMX, WEB.DE & Co.:</b> meist ein „App-Passwort“ und eingeschaltetes SMTP/IMAP in den Einstellungen des Postfachs. <b>T-Online:</b> eigenes E-Mail-Passwort aus dem Kundencenter. Die Testmail geht an deine Adresse unter „Benutzer & Rechte“.</p></details></section>
     <section class="card st" id="m-ein"><h2>Posteingang lesen <span class="mute" style="font-weight:400;font-size:.85rem">Microsoft 365 · optional</span></h2><p class="mute">Die Startseite zeigt jedem einmal am Tag die Mails zu <b>seinen</b> Projekten – nur lesend.</p>
@@ -542,7 +539,6 @@ function renderBtSettings() {
   };
   if ($('#extBox')) extLoad();
   if ($('#pzBox')) pzLaden();
-  if ($('#adrOut')) api('api/mail/adressen').then(adrZeigen).catch(() => {});
   const bbBox = $('#bbBox');
   if (bbBox) {
     const bbDraw = (v) => {
@@ -603,16 +599,6 @@ $('#main').addEventListener('change', (e) => { if (e.target.matches('[data-provw
 $('#main').addEventListener('click', (e) => {
   const g = e.target.closest('[data-mgo]'); if (g) { e.preventDefault(); const z = document.getElementById(g.dataset.mgo); if (z) z.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 });
-function adrZeigen(r) {
-  const o = $('#adrOut'); if (!o) return;
-  const G = Object.entries(r.gesperrt || {});
-  o.innerHTML = (r.probleme ? `<p style="margin:.2rem 0">${r.probleme.length || r.unzustellbar.length ? '' : '✔ '}${r.geprueft} Benutzer geprüft${r.probleme.length ? ` – <b style="color:var(--red)">${r.probleme.length} Adresse(n) falsch</b>` : ''}${r.unzustellbar.length ? ` · ${r.unzustellbar.length} Unzustellbarkeitsbericht(e)` : ''}.</p>` : '')
-    + (r.probleme || []).map((x) => `<div>✖ <b>${esc(x.adresse)}</b> ${x.wer ? '(' + esc(x.wer) + ')' : ''} – ${esc(x.grund)}</div>`).join('')
-    + (r.unzustellbar || []).map((x) => `<div>✉ <b>${esc(x.adresse)}</b> ${x.wer ? '(' + esc(x.wer) + ')' : ''} – unzustellbar am ${esc(x.am)}: <span class="mute">${esc(x.betreff)}</span></div>`).join('')
-    + (r.hinweise || []).map((x) => `<div class="mute">ℹ ${esc(x)}</div>`).join('')
-    + (G.length ? `<p style="margin:.6rem 0 .2rem"><b>Gesperrt</b> – bekommen keine Mails:</p>` + G.map(([adr, x]) => `<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>${esc(adr)}</b><span class="mute">seit ${esc(x.seit || '')} · ${esc(x.grund || '')}</span><button class="btn sm" data-bs="adrfrei" data-adr="${esc(adr)}">freigeben</button></div>`).join('')
-      : (r.probleme ? '<p class="mute" style="margin:.4rem 0 0">Keine Adresse gesperrt.</p>' : ''));
-}
 $('#main').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-bs]'); if (!b) return;
   const a = b.dataset.bs, out = (t, ok) => { const o = $('#bsOut'); if (o) { o.textContent = t; o.style.color = ok == null ? '' : ok ? 'var(--ok)' : 'var(--red)'; } else toast(t, ok === false); };
@@ -623,14 +609,6 @@ $('#main').addEventListener('click', async (e) => {
     if (a === 'm365test') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } const o = $('#m3Out'); o.textContent = 'lese …'; const r = await api('api/bp/postfaecher/test', 'POST', { m365: true }).catch((e) => ({ error: e.message })); o.textContent = r.ok ? '✔ ' + r.text : '✖ ' + r.error; return; }
     if (a === 'mailtest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('sende …'); const r = await api('api/bt/mail/test', 'POST'); out(r.ok ? '✔ Testmail an ' + r.to + ' gesendet' : '✖ ' + r.error, !!r.ok); return; }
     if (a === 'storetest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('teste …'); const r = await api('api/bt/store/test', 'POST'); out(r.ok ? '✔ Verbindung funktioniert, Schreiben ist möglich' : '✖ ' + (r.error || 'fehlgeschlagen'), !!r.ok); return; }
-    if (a === 'adrpruef' || a === 'adrfrei') {
-      const o = $('#adrOut');
-      let r;
-      if (a === 'adrpruef') { o.textContent = 'prüfe …'; r = await api('api/mail/adressen', 'POST'); }
-      else r = await api('api/mail/adressen?adresse=' + encodeURIComponent(b.dataset.adr || ''), 'DELETE');
-      adrZeigen(r);
-      return;
-    }
     if (a === 'alte' || a === 'alteweg') {
       const o = $('#altOut');
       if (a === 'alteweg') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } if (!(await bpFrage('Alte Stände auf dem Server nach der Einstellung löschen? Gelöschtes lässt sich nicht wiederherstellen.'))) return; }

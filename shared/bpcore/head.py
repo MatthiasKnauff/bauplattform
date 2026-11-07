@@ -817,18 +817,17 @@ def blueprint(get_user=None):
                    + (f"Projekt: {pr['name']}\n" if pr else "") + (f"Fällig: {datetime.fromisoformat(x['faellig']).strftime('%d.%m.%Y')}\n" if x["faellig"] else "")
                    + (f"Erinnerung: {todo.ERINNERUNG[x['erinnerung']][1]}\n" if x.get("faellig") and x.get("erinnerung") in todo.ERINNERUNG else "")
                    + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {PF.link('portal', '', cf)}\n" if PF.link("portal", "", cf) else ""))
-            inv = None
-            if x["faellig"]:   # mit Fälligkeit: als ganztägiger Termin zum Annehmen (Outlook & Co. tragen ihn in den Kalender ein)
-                from . import ical
+            anh = None
+            if x["faellig"]:   # mit Fälligkeit: Termin als Datei im Anhang (termin.ics) – keine Einladung, die Microsoft 365 beim Senden
+                from . import ical   # selbst verarbeitet (daran scheiterten die To-do-Mails, der Planversand ohne Einladung ging)
                 host = (cf.get("app_url") or "bauplattform").split("//")[-1].split("/")[0] or "bauplattform"
-                # Organisator = das Postfach, über das gesendet wird (wie bei den Erinnerungen) – eine Einladung „von“ m.knauff über das
-                # Büro-Postfach an m.knauff selbst hat Exchange Online abgewiesen (als „Sender throttled“ gemeldet)
-                inv = ical.einladung(f"todo-{x.get('id') or x['titel'][:20]}-{r['id']}@{host}", x["faellig"], None, 0, f"Aufgabe: {x['titel'][:120]}",
-                                     txt, "", M.von(cf), cf.get("office_name") or wer, r["email"], skizze.name_von(r),
-                                     alarm_min=todo.ERINNERUNG.get(x.get("erinnerung") or "", (0, ""))[0], ganztags=True)
-                txt += "\nIm Anhang als Termin – „Annehmen“ trägt die Fälligkeit in deinen Kalender ein (termin.ics öffnen: Kalender selbst wählen).\n"
+                ics = ical.einladung(f"todo-{x.get('id') or x['titel'][:20]}-{r['id']}@{host}", x["faellig"], None, 0, f"Aufgabe: {x['titel'][:120]}",
+                                     txt, "", "", "", "", "", alarm_min=todo.ERINNERUNG.get(x.get("erinnerung") or "", (0, ""))[0],
+                                     ganztags=True, einladung_=False)
+                anh = [("termin.ics", ics.encode("utf-8"), "text/calendar")]
+                txt += "\nIm Anhang als Termin (termin.ics) – öffnen trägt die Fälligkeit in deinen Kalender ein.\n"
             try:
-                M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, ical=inv)
+                M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, attachments=anh)
             except Exception as e:
                 if not getattr(e, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst
                     fehler.still(None, "Aufgabe: Benachrichtigung per Mail", e)

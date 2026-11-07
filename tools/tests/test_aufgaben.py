@@ -11,7 +11,7 @@ from urllib.parse import quote
 
 from lib import finde, gleich, pruefe
 
-HEUTE = date.today()
+HEUTE = __import__('datetime').datetime.now(__import__('zoneinfo').ZoneInfo('Europe/Berlin')).date()   # wie die Server (deutsche Zeit) – nicht UTC des Testlaufs
 REGELN = ["maengel", "erinnerungen", "rechnungen", "skonto", "nachtraege", "vergabe", "firma", "terminruege", "verzug",
           "planversand", "vorort", "tagesbericht", "budget", "post"]
 

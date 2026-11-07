@@ -520,5 +520,6 @@ def test_druck_als_pdf(ctx):
         _os.makedirs(_os.environ["RT_ARTEFAKTE"], exist_ok=True)
         open(_os.path.join(_os.environ["RT_ARTEFAKTE"], "bauzeitenplan.pdf"), "wb").write(a.body)
     ctx.admin.post(f"{G}/pdf", {"pages": ["kein svg"]}, expect=400)
+    ctx.admin.post(f"{G}/pdf", {"pages": ['<svg xmlns="http://www.w3.org/2000/svg"><image href="file:///etc/passwd" width="9" height="9"/></svg>']}, expect=400)
     ctx.admin.post(f"{G}/pdf", {}, expect=400)
     ctx.gast().post(f"{G}/pdf", {"pages": d["pages"]}, expect=401)

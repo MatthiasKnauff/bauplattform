@@ -389,12 +389,19 @@ def logout():
     return sso.clear_cookie(jsonify(ok=True, login=_portal_login_url(request.url_root)))
 
 
-def _svg_holen(url, *_, **__):
-    """Für das Umwandeln SVG → PDF: nur eingebettete Bilder (data:…) zulassen – nie Dateien oder Adressen nachladen."""
-    if not str(url).startswith("data:"):
-        raise ValueError("externe Quelle im Druck nicht erlaubt")
-    from cairosvg.url import fetch
-    return fetch(url, "")
+_SVG_QUELLE = re.compile(r"""(?:href\s*=\s*["']([^"']*)["']|url\(\s*["']?([^)"']*))""", re.I)
+
+
+def _svg_sicher(svg):
+    """Für das Umwandeln SVG → PDF: nur eingebettete Bilder (data:image/…) und interne Verweise (#…) – nie Dateien oder
+    Adressen nachladen lassen, keine DOCTYPE/ENTITY-Tricks."""
+    if re.search(r"<!(DOCTYPE|ENTITY)", svg, re.I):
+        return False
+    for m in _SVG_QUELLE.finditer(svg):
+        q = (m.group(1) or m.group(2) or "").strip()
+        if q and not q.startswith("#") and not q.lower().startswith("data:image/"):
+            return False
+    return True
 
 
 @app.post("/api/pdf")
@@ -407,13 +414,15 @@ def druck_pdf():
     pages = b.get("pages")
     if not isinstance(pages, list) or not pages or len(pages) > 400 or not all(isinstance(p, str) and p.lstrip().startswith("<svg") for p in pages):
         return jsonify(error="Keine Druckseiten übergeben"), 400
+    if not all(_svg_sicher(p) for p in pages):
+        return jsonify(error="Keine Druckseiten übergeben"), 400
     import io
     import cairosvg
     from pypdf import PdfReader, PdfWriter
     out = PdfWriter()
     try:
         for p in pages:
-            teil = cairosvg.svg2pdf(bytestring=p.encode("utf-8"), url_fetcher=_svg_holen, unsafe=False)
+            teil = cairosvg.svg2pdf(bytestring=p.encode("utf-8"), unsafe=False)
             for s in PdfReader(io.BytesIO(teil)).pages:
                 out.add_page(s)
     except Exception as e:

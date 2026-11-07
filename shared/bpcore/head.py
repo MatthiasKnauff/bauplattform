@@ -28,7 +28,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, contacts, db, fehler, konto, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, contacts, db, fehler, konto, mail, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -319,12 +319,29 @@ def blueprint(get_user=None):
         u = user()
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
-        an = [int(x) for x in (request.get_json(silent=True) or {}).get("an") or [] if str(x).isdigit()][:20]
+        b = request.get_json(silent=True) or {}
+        an = [int(x) for x in b.get("an") or [] if str(x).isdigit()][:20]
         with db.tx() as c:
             if not skizze.darf(c, sid, u):
                 return jsonify(error="Keine Einladung"), 403
             skizze.einladen(c, sid, u, an)
-        return jsonify(ok=True)
+            empf = [r for r in c.execute("SELECT id, name, email FROM users WHERE active=1").fetchall() if r["id"] in an and (r["email"] or "").strip()] if b.get("mail") else []
+            sk = c.execute("SELECT name FROM skizze WHERE id=?", (sid,)).fetchone()
+            cf = mail.conf(c)
+            von, absname = konto.absender(c, u, cf) if empf else ("", "")
+        gesendet, fehl = [], []
+        if empf:   # zusätzlich per E-Mail – mit dem Link, der direkt in die gemeinsame Markierung führt
+            link = str(b.get("link") or "")[:500]
+            plan = (sk["name"] if sk else "") or "einen Plan"
+            for r in empf:
+                try:
+                    mail.send(cf, r["email"], f"Gemeinsam markieren: {plan}",
+                              f"Hallo {r['name'] or ''},\n\n{u['name']} lädt dich ein, gemeinsam auf „{plan}“ zu markieren.\n\n"
+                              f"Öffnen: {link}\n\nStriche und Zeiger erscheinen bei allen gleichzeitig.", sender=absname or "Bauplattform", from_addr=von or None)
+                    gesendet.append(r["name"])
+                except Exception as e:
+                    fehl.append(f"{r['name']}: {str(e)[:120]}")
+        return jsonify(ok=True, mails=gesendet, fehler=fehl)
 
     @bp.route("/api/bp/skizze-einladungen", methods=["GET", "POST"])
     def skizze_einladungen():

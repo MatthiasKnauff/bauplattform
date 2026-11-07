@@ -1837,15 +1837,19 @@
       d.innerHTML = `<div class="bph-dlg" style="max-width:26rem"><div class="bph-dh"><b>Gemeinsam markieren</b><button type="button" class="bph-x" data-kx>×</button></div><div class="bph-db">
         <p class="bph-mu">Entweder hier Kollegen einladen – sie bekommen in der Bauplattform einen Hinweis – <b>oder</b> den Link kopieren und selbst verschicken: Wer ihn öffnet, ist ohne Einladung dabei. Striche und Zeiger erscheinen bei allen gleichzeitig.</p>
         <div class="bph-skk">${K.map((k) => `<label class="bph-ck"><input type="checkbox" value="${k.id}"> ${esc(k.name)} ${k.online ? '<small style="color:#2f9e5a">● angemeldet</small>' : ''}</label>`).join('') || '<p class="bph-mu">Keine weiteren Benutzer.</p>'}</div>
-        <div class="bph-row"><button type="button" class="bph-btn pri" data-ko>Einladen</button><button type="button" class="bph-btn" data-kl>Link kopieren</button></div>
+        <label class="bph-ck" style="margin:.3rem 0"><input type="checkbox" data-kmail checked> zusätzlich per E-Mail (mit Link)</label>
+        <div class="bph-row"><button type="button" class="bph-btn pri" data-ko>Einladen</button><button type="button" class="bph-btn" data-kl>Link kopieren</button><a class="bph-btn" data-kmailto href="mailto:?subject=${encodeURIComponent('Gemeinsam markieren: ' + (items[i].name || 'Plan'))}&body=${encodeURIComponent('Bitte öffne den Plan, dann markieren wir gemeinsam:\n' + link)}" title="Eigene Mail mit dem Link schreiben – auch an Leute außerhalb">✉ Per Mail …</a></div>
         <p class="bph-mu" data-km></p></div></div>`;
       el.appendChild(d);
       d.addEventListener('click', async (e) => {
         if (e.target === d || e.target.closest('[data-kx]')) return d.remove();
         if (e.target.closest('[data-kl]')) { try { await navigator.clipboard.writeText(link); d.querySelector('[data-km]').textContent = 'Link kopiert – z. B. in Teams oder per Mail schicken. Wer ihn öffnet, ist sofort dabei, eine Einladung ist nicht nötig.'; } catch { (await bpEingabe('Link:', link)); } return; }
         if (e.target.closest('[data-ko]')) {
-          const an = [...d.querySelectorAll('input:checked')].map((x) => +x.value); if (!an.length) return;
-          try { await SKJ(`api/bp/skizze/${SK.id}/einladen`, 'POST', { an }); d.remove(); if (window.toast) toast('Eingeladen – sobald sie mitmachen, siehst du ihre Zeiger.'); } catch (er) { d.querySelector('[data-km]').textContent = er.message; }
+          const an = [...d.querySelectorAll('.bph-skk input:checked')].map((x) => +x.value); if (!an.length) return;
+          try {
+            const r = await SKJ(`api/bp/skizze/${SK.id}/einladen`, 'POST', { an, mail: d.querySelector('[data-kmail]').checked, link });
+            d.remove(); if (window.toast) toast('Eingeladen' + (r.mails && r.mails.length ? ' und per E-Mail benachrichtigt' : '') + ' – sobald sie mitmachen, siehst du ihre Zeiger.' + (r.fehler && r.fehler.length ? ' Mail nicht gesendet: ' + r.fehler.join('; ') : ''), !!(r.fehler && r.fehler.length));
+          } catch (er) { d.querySelector('[data-km]').textContent = er.message; }
         }
       });
     }

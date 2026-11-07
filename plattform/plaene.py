@@ -312,13 +312,19 @@ def plaene():
         f["versendet"] = gesendet.get(f["pfad"], [])
     try:   # dauerhafte Markierungen (gemeinsam markieren) am Plan: wann zuletzt und von wem
         with db.tx() as c:
-            mk = {}
-            for r in c.execute("""SELECT s.name, s.groesse, max(x.created) AS wann, string_agg(DISTINCT x.name, ', ') AS wer, count(x.id) AS n
-                                  FROM skizze s JOIN skizze_strich x ON x.skizze_id = s.id AND x.geloescht = 0
-                                  WHERE s.dauerhaft = 1 GROUP BY s.id, s.name, s.groesse""").fetchall():
+            # je Plan zählt – wie in der Ansicht – nur die zuletzt benutzte dauerhafte Skizze; ältere zum selben Plan bleiben unberücksichtigt
+            mk, zuletzt = {}, {}
+            for r in c.execute("""SELECT s.name, s.groesse, s.updated, max(x.created) AS wann, string_agg(DISTINCT x.name, ', ') AS wer, count(x.id) AS n
+                                  FROM skizze s LEFT JOIN skizze_strich x ON x.skizze_id = s.id AND x.geloescht = 0
+                                  WHERE s.dauerhaft = 1 GROUP BY s.id, s.name, s.groesse, s.updated""").fetchall():
                 k = (r["name"], int(r["groesse"] or 0))
-                if k not in mk or (r["wann"] or "") > mk[k]["wann"]:
+                if k in zuletzt and (r["updated"] or "") <= zuletzt[k]:
+                    continue
+                zuletzt[k] = r["updated"] or ""
+                if r["n"]:
                     mk[k] = {"wann": r["wann"] or "", "wer": r["wer"] or "", "n": r["n"]}
+                else:
+                    mk.pop(k, None)
         if mk:
             for x in pl:
                 for st in x["staende"]:

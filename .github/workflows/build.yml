@@ -13,6 +13,7 @@ on:
     paths-ignore:
       - 'server/**'
       - '**.md'
+      - 'tools/chronik/**'
   workflow_dispatch:
 
 permissions:

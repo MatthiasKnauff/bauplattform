@@ -1,0 +1,85 @@
+{
+ "_hinweis": "Markierungen der Chronik. neu: Release-Tag → [App-Name, Textstück der Änderung]; Änderungen mit „Neue App „…““ im Text werden automatisch erkannt. wichtig: Textstücke von Änderungen, die als „Wichtig“ markiert werden.",
+ "neu": {
+  "v2026.11.11": [
+   "Baukosten",
+   "Baukosten-App"
+  ],
+  "v2026.11.35": [
+   "Mängel & Erinnerungen",
+   "Neue App „Mängel"
+  ],
+  "v2026.11.41": [
+   "Planstand & Versand",
+   "Neue App „Planstand"
+  ],
+  "v2026.11.63": [
+   "Ausschreibung & Abrechnung",
+   "Neue App „Ausschreibung"
+  ],
+  "v2026.11.88": [
+   "Kommunikation",
+   "Neue App „Kommunikation"
+  ],
+  "v2026.11.96": [
+   "Aufgaben & Mängel",
+   "To-dos und Mängel & Erinnerungen zusammengeführt"
+  ],
+  "v2026.11.103": [
+   "Baudaten",
+   "Neue App „Baudaten"
+  ]
+ },
+ "wichtig": [
+  "Alle Apps unter einer Adresse",
+  "Verwaltung – Projekte über alle Apps",
+  "Einstellungen zentral",
+  "Versionierung aller Einstellungen",
+  "Datensicherung: Kopie",
+  "Kopfleiste einheitlich",
+  "Ansicht für Fotos und PDFs",
+  "Kostenpflichtige KI",
+  "Mängel-/Terminrüge mit sign-me",
+  "Startseite: Post zu meinen Projekten",
+  "Eine Projektauswahl",
+  "Plan-Ansicht: gemeinsam markieren",
+  "Startseite: To-do-Liste",
+  "Einheitlich: immer automatisch speichern",
+  "Überall Dateien per Ziehen",
+  "Versionsleiste in Bauzeitenplan",
+  "AVA: Positionskatalog",
+  "Papierkorb für die ganze Plattform",
+  "Terminverfolgung",
+  "Rückgängig überall",
+  "Vor Ort erkennen",
+  "Eigene Abfragefenster",
+  "Verwaltung → System → Fehlermeldungen",
+  "Rechnungen: Teil-, Schluss-, Regie-, Nachtragsrechnung und Freigabe der Sicherheit; Sicherheiten (VOB",
+  "AVA: Rechnung/Aufmaß der Firma als PDF",
+  "AVA: Scans per Texterkennung",
+  "AVA: ein Ablagefeld",
+  "Druck-Layout-Editor",
+  "Abrechnung: Nachlass",
+  "Rauchtest vor jeder Freigabe",
+  "Rechte Maustaste",
+  "Baukosten nach DIN 276",
+  "Rügen per E-Mail",
+  "Bautagebuch: Firmen laut Bauzeitenplan",
+  "Baudaten geprüft",
+  "Bauzeitenplan: Handy-Ansicht",
+  "Container einheitlich",
+  "Anwesenheit laut Bauzeitenplan",
+  "Mängelrüge nach VOB/B",
+  "Bauzeitenplan: Assistent einrichten",
+  "Baukosten: Bauteile & Material",
+  "Baukosten Raumbuch",
+  "AVA: Aufmaßprüfung als Baum",
+  "Ollama liest Pläne",
+  "Posteingang: Microsoft-365",
+  "AVA: Volltextsuche",
+  "Projektstände manuell speichern",
+  "Benachrichtigungsverlauf je Kontakt",
+  "Baukosten: Versionsleiste",
+  "Bautagebuch: PDF-Ansicht lädt pdf.js wieder relativ"
+ ]
+}

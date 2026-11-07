@@ -102,6 +102,23 @@ def run():
     return jsonify(sent=sent, pending=left, error=err)
 
 
+@bp.route("/api/store/alte", methods=["GET", "POST"])
+def alte():
+    """Alte Stände (…_old1) auf dem Server: GET zählt, POST räumt nach den Einstellungen auf."""
+    with db.tx() as c:
+        conf = settings.all(c)
+        if not sync.enabled(conf):
+            return jsonify(error="Die Ablage ist ausgeschaltet."), 400
+        P = c.execute("SELECT id, name, folder FROM projects ORDER BY name").fetchall()
+        D = {}
+        for r in c.execute("SELECT DISTINCT project_id, date FROM reports").fetchall():
+            D.setdefault(r["project_id"], []).append(r["date"])
+    try:
+        return jsonify(sync.alte_staende(conf, [(p, D.get(p["id"], [])) for p in P if D.get(p["id"])], request.method == "POST"))
+    except Exception as e:
+        return jsonify(error=sync._msg(e)), 502
+
+
 @bp.post("/api/store/backfill")
 def backfill():
     """Alle bereits vorhandenen Fotos in die Warteschlange stellen (z. B. nach dem Einrichten)."""

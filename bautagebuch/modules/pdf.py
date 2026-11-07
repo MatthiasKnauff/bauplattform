@@ -19,6 +19,11 @@ def report_pdf(i):
     pdf = bt_pdf.build(dict(proj), dict(rep), items, images, sections, conf, storage.logo_path(), storage.UP)
     code = re.sub(r"[^A-Za-z0-9._-]", "", (proj["name"].split() or ["Projekt"])[0]) or "Projekt"
     name = scheme.pdf_name(conf, dict(proj), rep, f"{code}_BT_{rep['date']}.pdf")  # Standard z. B. A481_BT_2026-10-28.pdf; nach Rückfrage im Schema des Projekts
+    with db.tx() as c:   # unverändert seit dem letzten Export unter demselben Namen: nur ansehen – keine neue Version, kein „_old“ auf dem Server
+        st, ex = versions.status(c, i)
+        unveraendert = st == "exported" and ex and ex["pdf_name"] == name and request.args.get("save") != "1"
+    if unveraendert:
+        return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{name}"', "X-Bt-Unveraendert": "1"})
     with db.tx() as c:   # Version „exportiert“ mit PDF-Dateiname
         versions.snapshot(c, i, "export", g.user["name"], name)
         d = rep["date"] or ""

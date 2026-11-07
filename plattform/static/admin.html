@@ -476,7 +476,11 @@ function renderBtSettings() {
     ${m !== 'off' ? stIn('store_tpl_photos', 'Ordner für Fotos', 1, { def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Fotos/{datum}' })
       + stSel('store_folder_desc', 'Name des Fototag-Ordners', [['1', 'beschreibend: Datum + Gewerke der Anwesenden + erste drei Fotonamen'], ['0', 'nur das Datum']], '1')
       + stIn('store_tpl_pdf', 'Ordner für Bautagebuch-PDFs', 1, { def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Bautagebuch' })
+      + stSel('store_old_mode', 'Bei erneutem PDF-Export', [['behalten', 'alten Stand als „…_old1“ aufheben'], ['ersetzen', 'alten Stand ersetzen (keine „_old“-Kopien)']], 'behalten')
       + stIn('store_keep_old_photos', 'Alte Fototag-Ordner behalten (0 = alle)') + stIn('store_keep_old_pdf', 'Alte Bautagebuch-PDFs behalten (0 = alle)') : ''}</div>
+    ${m !== 'off' ? `<div style="margin-top:.8rem;padding:.7rem .8rem;border:1px solid var(--line);border-radius:8px"><b>Alte Stände auf dem Server</b>
+      <p class="mute" style="font-size:.85rem;margin:.3rem 0 .5rem">Wird ein Bericht nach einer Änderung erneut exportiert, bleibt der vorige Stand als „…_old1“ (PDF und Fototag-Ordner) liegen – je nach Einstellung oben. Bloßes Ansehen des PDFs erzeugt keinen neuen Stand.</p>
+      <button class="btn" data-bs="alte">🔍 Alte Stände suchen</button> <button class="btn danger" data-bs="alteweg">Nach Einstellung aufräumen</button><div id="altOut" class="mute" style="margin-top:.5rem;font-size:.88rem"></div></div>` : ''}
     ${m !== 'off' ? '<p class="mute" style="font-size:.85rem;margin:.6rem 0 0">Platzhalter: <b>{projekt}</b> Projektordner, <b>{kuerzel}</b> erstes Wort des Projektnamens (z. B. A483), <b>{datum}</b>, <b>{jahr}</b>, <b>{monat}</b>. Mit „/“ trennst du Unterordner.</p>' : ''}
     <div class="st-a" style="margin-top:.8rem"><button class="btn pri" data-bs="save">Speichern</button>${vk('einst:bt')}${m !== 'off' ? '<button class="btn" data-bs="storetest">Verbindung testen</button><button class="btn" data-bs="storerun">Jetzt übertragen</button>' : ''}${S.store_pass_set && m === 'smb' ? '<button class="btn danger" data-bs="clear" data-k="store_pass">Gespeichertes Kennwort löschen</button>' : ''}<span class="mute st-r" id="bsOut"></span></div></section>`;
   else if (t === 'mail') {
@@ -593,6 +597,15 @@ $('#main').addEventListener('click', async (e) => {
     if (a === 'm365test') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } const o = $('#m3Out'); o.textContent = 'lese …'; const r = await api('api/bp/postfaecher/test', 'POST', { m365: true }).catch((e) => ({ error: e.message })); o.textContent = r.ok ? '✔ ' + r.text : '✖ ' + r.error; return; }
     if (a === 'mailtest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('sende …'); const r = await api('api/bt/mail/test', 'POST'); out(r.ok ? '✔ Testmail an ' + r.to + ' gesendet' : '✖ ' + r.error, !!r.ok); return; }
     if (a === 'storetest') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } out('teste …'); const r = await api('api/bt/store/test', 'POST'); out(r.ok ? '✔ Verbindung funktioniert, Schreiben ist möglich' : '✖ ' + (r.error || 'fehlgeschlagen'), !!r.ok); return; }
+    if (a === 'alte' || a === 'alteweg') {
+      const o = $('#altOut');
+      if (a === 'alteweg') { collect(); if (Object.keys(pend).length) { await api('api/bt/settings', 'PUT', pend); pend = {}; } if (!(await bpFrage('Alte Stände auf dem Server nach der Einstellung löschen? Gelöschtes lässt sich nicht wiederherstellen.'))) return; }
+      o.textContent = a === 'alte' ? 'Suche in den Projektordnern …' : 'Räume auf …';
+      let r; try { r = await api('api/bt/store/alte', a === 'alte' ? 'GET' : 'POST'); } catch (e) { o.textContent = '✖ ' + e.message; return; }
+      o.innerHTML = `<b>${r.pdf} alte PDF${r.pdf === 1 ? '' : 's'}</b> und <b>${r.fotos} alte Fotoordner</b> in ${r.projekte.length} Projekt${r.projekte.length === 1 ? '' : 'en'}${r.geloescht ? ` · ${r.geloescht} aufgeräumt` : ''}${r.fehler ? ' · Fehler: ' + esc(r.fehler) : ''}.`
+        + (r.projekte.length ? '<ul style="margin:.4rem 0 0;padding-left:1.1rem">' + r.projekte.map((p) => `<li><b>${esc(p.name)}</b>: ${p.pdf} PDF, ${p.fotos} Fotoordner<br><small>${p.beispiele.map(esc).join('<br>')}</small></li>`).join('') + '</ul>' : '');
+      return;
+    }
     if (a === 'storerun') { out('übertrage …'); const r = await api('api/bt/store/run', 'POST'); out(r.error && r.pending ? 'Server nicht erreichbar – wird später erneut versucht' : `✔ ${r.sent} Datei(en) übertragen`, !(r.error && r.pending)); return; }
     if (a === 'bknew') { b.disabled = true; await api('api/bt/backups', 'POST'); toast('Sicherung angelegt.'); return loadSettings(); }
     if (a === 'bkdel') { if (!confirmTwice(b)) return; await api('api/bt/backups/' + encodeURIComponent(b.dataset.n), 'DELETE'); return loadSettings(); }

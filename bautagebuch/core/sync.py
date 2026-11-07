@@ -394,13 +394,20 @@ def _rotate_old(target, conf, job, dst, found):
             if code not in found:
                 found[code] = "/".join(remote.find_project_path(target, code, ex.get("name") or "Projekt"))
             d = d.replace("{projekt}", found[code])
-        if target.exists(d):
+        if target.exists(d) and conf.get("store_old_mode") == "ersetzen":   # keine alten Stände: Fotoordner wird neu befüllt
+            target.delete(d, True)
+            audit.record("System", "export", "Fotoordner der letzten Version ersetzt", d)
+        elif target.exists(d):
             nd = _free(target, d, "dir"); target.rename(d, nd)
             _prune_old(target, d, True, _keep(conf, "store_keep_old_photos"))
             audit.record("System", "export", "Fotoordner der letzten Version umbenannt", f"{d} → {nd.rsplit('/', 1)[-1]}")
-    nf = _free(target, dst, "file"); target.rename(dst, nf)
-    _prune_old(target, dst, False, _keep(conf, "store_keep_old_pdf"))
-    audit.record("System", "export", "PDF der letzten Version umbenannt", f"{dst} → {nf.rsplit('/', 1)[-1]}")
+    if conf.get("store_old_mode") == "ersetzen":
+        target.delete(dst, False)
+        audit.record("System", "export", "PDF der letzten Version ersetzt", dst)
+    else:
+        nf = _free(target, dst, "file"); target.rename(dst, nf)
+        _prune_old(target, dst, False, _keep(conf, "store_keep_old_pdf"))
+        audit.record("System", "export", "PDF der letzten Version umbenannt", f"{dst} → {nf.rsplit('/', 1)[-1]}")
     if r:
         with db.tx() as c:
             for i in c.execute("SELECT id FROM images WHERE report_id=? ORDER BY id", (rid,)).fetchall():
@@ -444,3 +451,63 @@ def start():
             except Exception:
                 pass
     threading.Thread(target=loop, daemon=True, name="bt-sync").start()
+
+
+# ---------- alte Stände („…_old1“) auf dem Server suchen und nach den Einstellungen aufräumen ----------
+_OLD = re.compile(r"^(.*)_old(\d+)(\.[A-Za-z0-9]{1,5})?$")
+
+
+def _ordner(target, conf, proj, dates, found):
+    """PDF- und Foto-Elternordner eines Projekts (für alle vorkommenden Jahre/Monate), {projekt} auf dem Server aufgelöst."""
+    pdf, foto = set(), set()
+    for d in dates or ["2000-01-01"]:
+        pdf.add(render(conf.get("store_tpl_pdf") or DEFAULT_PDF, proj, d, late=True))
+        foto.add(render(conf.get("store_tpl_photos") or DEFAULT_PHOTOS, proj, d, late=True, label="X").rpartition("/")[0])
+    out = []
+    for kind, paths in (("pdf", pdf), ("foto", foto)):
+        for x in paths:
+            if "{projekt}" in x:
+                code = code_of(proj)
+                if code not in found:
+                    found[code] = "/".join(remote.find_project_path(target, code, remote.clean(proj["name"]) or "Projekt"))
+                x = x.replace("{projekt}", found[code])
+            out.append((kind, x))
+    return out
+
+
+def alte_staende(conf, projekte, aufraeumen=False):
+    """Sucht alte Bautagebuch-PDFs („…_old1.pdf“) und alte Fototag-Ordner („…_old1“) in den Projektordnern.
+    projekte: [(row, [daten])]. Mit aufraeumen=True werden je Bericht/Tag nur so viele behalten wie eingestellt
+    (bei „ersetzen“: keine). Ergebnis: {projekte: [{name, pdf, fotos, beispiele}], pdf, fotos, geloescht, fehler}."""
+    target = remote.open_target(conf)
+    if not target:
+        raise ValueError("Die Ablage ist ausgeschaltet.")
+    ersetzen = conf.get("store_old_mode") == "ersetzen"
+    keep = {"pdf": 0 if ersetzen else _keep(conf, "store_keep_old_pdf"), "foto": 0 if ersetzen else _keep(conf, "store_keep_old_photos")}
+    found, res, gel, fehler = {}, [], 0, ""
+    for proj, dates in projekte:
+        z = {"id": proj["id"], "name": proj["name"], "pdf": 0, "fotos": 0, "beispiele": []}
+        for kind, ordner in _ordner(target, conf, proj, dates, found):
+            gruppen = {}
+            for e in target.listdir(ordner):
+                m = _OLD.match(e["name"])
+                if not m or e["dir"] != (kind == "foto"):
+                    continue
+                gruppen.setdefault((m.group(1), m.group(3) or ""), []).append((int(m.group(2)), e["name"]))
+            for (stamm, ext), liste in gruppen.items():
+                liste.sort(reverse=True)
+                weg = liste[keep[kind]:] if aufraeumen and (keep[kind] > 0 or ersetzen) else []
+                for _, nm in weg:
+                    try:
+                        target.delete(f"{ordner}/{nm}", kind == "foto"); gel += 1
+                        audit.record("System", "export", "Alter Stand aufgeräumt", f"{ordner}/{nm}")
+                    except Exception as ex:
+                        fehler = _msg(ex)
+                bleibt = len(liste) - (len(weg) if not fehler else 0)
+                z["pdf" if kind == "pdf" else "fotos"] += bleibt
+                if bleibt and len(z["beispiele"]) < 6:
+                    z["beispiele"].append(f"{stamm}{ext} – {bleibt} alte{'r' if bleibt == 1 else ''} Stand{'' if bleibt == 1 else 'e'}")
+        if z["pdf"] or z["fotos"]:
+            res.append(z)
+    return {"projekte": res, "pdf": sum(x["pdf"] for x in res), "fotos": sum(x["fotos"] for x in res), "geloescht": gel, "fehler": fehler,
+            "behalten": keep, "modus": "ersetzen" if ersetzen else "behalten"}

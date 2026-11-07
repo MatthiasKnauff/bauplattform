@@ -545,12 +545,12 @@ async function openPdf(url) {
   document.body.appendChild(el); pv = {el, doc: null, blob, name, zoom: 1};
   history.pushState({pv: 1}, '');   // Wischgeste „zurück“ schließt die Ansicht ebenfalls
   try {
-    if (!window.pdfjsLib) { await loadScript('/vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.js'; }
+    if (!window.pdfjsLib) { await loadScript('vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.js', location.href).href; }
     pv.doc = await pdfjsLib.getDocument({data: await blob.arrayBuffer()}).promise;
     await pvRender();
   } catch (e) {   // Vorschau geht nicht – das PDF ist trotzdem da: teilen, sichern, in Bücher/Dateien öffnen
     pvMelden(e);
-    if (pv) pv.el.querySelector('.pvw').innerHTML = `<div style="color:#eee;max-width:28rem;margin:2rem auto;text-align:center;line-height:1.5">Die Vorschau lässt sich auf diesem Gerät nicht anzeigen.<br>Das PDF ist aber fertig.<br><br><button class="btn" data-act="pvShare" style="font-size:1.05rem;padding:.7rem 1.4rem">Teilen / Sichern …</button></div>`;
+    if (pv) pv.el.querySelector('.pvw').innerHTML = `<div style="color:#eee;max-width:28rem;margin:2rem auto;text-align:center;line-height:1.5">Die Vorschau lässt sich auf diesem Gerät nicht anzeigen.<br>Das PDF ist aber fertig.<br><small style="opacity:.6">${esc(String((e && e.message) || e).slice(0, 160))}</small><br><br><button class="btn" data-act="pvShare" style="font-size:1.05rem;padding:.7rem 1.4rem">Teilen / Sichern …</button></div>`;
   }
 }
 function closePv() { if (pv) { if (pv.io) pv.io.disconnect(); pv.el.querySelectorAll('canvas').forEach((c) => { c.width = c.height = 0; }); if (pv.doc) pv.doc.destroy(); pv.el.remove(); pv = null; } }
@@ -1522,10 +1522,14 @@ function renderProfile(box) {
       ${stIn('store_tpl_photos', 'Ordner für Fotos', 1, {def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Fotos/{datum}'})}
       <label class="w">Name des Fototag-Ordners<select data-st="store_folder_desc"><option value="1" ${(settings.store_folder_desc || '1') === '1' ? 'selected' : ''}>beschreibend: Datum + Gewerke der Anwesenden + erste drei Fotonamen</option><option value="0" ${settings.store_folder_desc === '0' ? 'selected' : ''}>nur das Datum</option></select></label>
       ${stIn('store_tpl_pdf', 'Ordner für Bautagebuch-PDFs', 1, {def: '{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Bautagebuch'})}
+      <label class="w">Bei erneutem PDF-Export<select data-st="store_old_mode"><option value="behalten" ${settings.store_old_mode !== 'ersetzen' ? 'selected' : ''}>alten Stand als „…_old1“ aufheben</option><option value="ersetzen" ${settings.store_old_mode === 'ersetzen' ? 'selected' : ''}>alten Stand ersetzen (keine „_old“-Kopien)</option></select></label>
       <label class="w">Alte Fototag-Ordner („…_old1“, „…_old2“) behalten<input data-st="store_keep_old_photos" inputmode="numeric" value="${esc(settings.store_keep_old_photos || '0')}" placeholder="0"></label>
       <label class="w">Alte Bautagebuch-PDFs („…_old1.pdf“ …) behalten<input data-st="store_keep_old_pdf" inputmode="numeric" value="${esc(settings.store_keep_old_pdf || '0')}" placeholder="0"></label>
       <div class="info">Bei jedem erneuten PDF-Export benennt die App die bisherige Version in „_old1“, „_old2“ … um. Hier legst du fest, wie viele davon je Bericht auf dem Server bleiben; die ältesten werden danach automatisch gelöscht. <b>0 = alle behalten</b> (nichts wird automatisch gelöscht).</div>
       <div class="info">Platzhalter: <b>{projekt}</b> (Projektordner: der im Projekt eingetragene Ordnername, sonst ein vorhandener Ordner auf dem Server, der mit dem Kürzel beginnt, sonst der Projektname), <b>{kuerzel}</b> (erstes Wort des Projektnamens, z. B. A483), <b>{datum}</b> (2026-10-28), <b>{jahr}</b>, <b>{monat}</b>. Mit „/“ trennst du Unterordner.</div>
+      <div class="info">Eine neue Version entsteht nur, wenn sich der Bericht seit dem letzten Export geändert hat – bloßes Ansehen des PDFs erzeugt keine.</div>
+      <div class="acts"><button data-act="storeAlte">Alte Stände auf dem Server suchen</button><button data-act="storeAlteWeg" class="bad">Nach Einstellung aufräumen</button></div>
+      <div class="info" id="altOut"></div>
       <div class="acts"><button data-act="storeTest">Verbindung testen</button><button data-act="storeRun">Jetzt übertragen</button><button data-act="storeBackfill">Vorhandene Fotos nachträglich übertragen</button></div>
       <div class="info" id="sstat"></div>` : `<div class="info">Aus: Fotos und PDFs bleiben nur in der App.</div>`}
     ${settings.store_pass_set && m === 'smb' ? `<div class="acts"><button class="bad" data-act="storePassClear">Gespeichertes Kennwort löschen</button></div>` : ''}
@@ -1579,6 +1583,11 @@ async function ablageMelden() {
     ablT = setTimeout(schau, 4000);
   };
   ablT = setTimeout(schau, 2500);
+}
+function altText(r) {
+  if (!r || r.error) return '✖ ' + esc((r && r.error) || 'fehlgeschlagen');
+  const kopf = `<b>${r.pdf} alte PDF${r.pdf === 1 ? '' : 's'}</b> und <b>${r.fotos} alte Fotoordner</b> in ${r.projekte.length} Projekt${r.projekte.length === 1 ? '' : 'en'}${r.geloescht ? ` · ${r.geloescht} aufgeräumt` : ''}${r.fehler ? ' · Fehler: ' + esc(r.fehler) : ''}.`;
+  return kopf + (r.projekte.length ? '<ul style="margin:.4rem 0 0;padding-left:1.1rem">' + r.projekte.map((p) => `<li><b>${esc(p.name)}</b>: ${p.pdf} PDF, ${p.fotos} Fotoordner<br><small>${p.beispiele.map(esc).join('<br>')}</small></li>`).join('') + '</ul>' : '');
 }
 async function storeStatus() {
   const el = $('#sstat'); if (!el) return;
@@ -1982,6 +1991,13 @@ document.addEventListener('click', async e => {
     toast(r.ok ? 'Kennwort geändert.' : r.error); if (r.ok) ['#pwNew', '#pwNew2'].forEach(x => $(x).value = '');
   }
   else if (a === 'mailTest') { toast('Testmail wird gesendet …'); const r = await api('api/mail/test', 'POST'); toast(r.ok ? 'Testmail an ' + r.to + ' gesendet.' : 'Fehlgeschlagen: ' + r.error); }
+  else if (a === 'storeAlte' || a === 'storeAlteWeg') {
+    const o = $('#altOut'); if (!o) return;
+    if (a === 'storeAlteWeg' && !(await bpFrage('Alte Stände auf dem Server nach der Einstellung löschen? Gelöschtes lässt sich nicht wiederherstellen.'))) return;
+    o.textContent = a === 'storeAlte' ? 'Suche in den Projektordnern …' : 'Räume auf …';
+    const r = await api('api/store/alte', a === 'storeAlte' ? 'GET' : 'POST');
+    o.innerHTML = altText(r);
+  }
   else if (a === 'mailPassClear') { await api('api/settings', 'PUT', {mail_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
   else if (a === 'storePassClear') { await api('api/settings', 'PUT', {store_pass_clear: '1'}); settings = await api('api/settings'); renderDetail(); }
   else if (a === 'delLogo') { await api('api/logo', 'DELETE'); settings = await api('api/settings'); favicon(); renderDetail(); }

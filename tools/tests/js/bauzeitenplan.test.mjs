@@ -308,3 +308,30 @@ test('Unterbrochene Leistung: Pause zählt Arbeitstage, Dauer = Summe der Abschn
   assert.deepEqual([r.anfang[0], r.ende[0]], ['2026-11-02', '2026-11-10']);
   assert.equal(r.anfang[1], '2026-11-11');
 });
+
+// ------------------------------------------------------------------ Drucken
+// Seitenaufteilung aus gantt/public/print.js (printLayout) – gemeldeter Fehler: A3 quer, „auf 1 Seite hoch“, 82 Zeilen →
+// die letzte Zeile rutschte durch Rundung allein auf Seite 2.
+function seiten(anzahl, opts) {
+  APP.__plan = JSON.stringify({ id: 'druck', name: 'Druck', start: tag('2026-11-09'), nextUid: anzahl + 1, cal: NW,
+                                tasks: Array.from({ length: anzahl }, (_, k) => L(k + 1, 1 + (k % 9), { preds: k ? [nach(k)] : [] })) });
+  APP.__opts = JSON.stringify(opts);
+  return JSON.parse(vm.runInContext(`(() => {
+    P = JSON.parse(__plan); CAL = schedule(); vis = P.tasks.map((t, i) => i);
+    const L = printLayout(Object.assign({}, PDEF, JSON.parse(__opts)));
+    return JSON.stringify({ baender: L.bands.length, breite: L.slices.length });
+  })()`, APP));
+}
+
+for (const [papier, zeilen] of [['A3', 82], ['A3', 40], ['A4', 82], ['A2', 150], ['A3', 1]]) {
+  test(`Drucken ${papier} quer, „auf 1 Seite hoch“: alle ${zeilen} Zeilen auf einer Seite`, () => {
+    const r = seiten(zeilen, { paper: papier, orient: 'landscape', scaleMode: 'fit', pagesW: 1, fitH: true, pagesH: 1, outline: 'all' });
+    assert.equal(r.baender, 1, `${r.baender} Seiten statt 1`);
+    assert.equal(r.breite, 1);
+  });
+}
+
+test('Drucken A3 quer, „auf 2 Seiten hoch“: 82 Zeilen auf genau 2 Seiten', () => {
+  const r = seiten(82, { paper: 'A3', orient: 'landscape', scaleMode: 'fit', pagesW: 1, fitH: true, pagesH: 2, outline: 'all' });
+  assert.equal(r.baender, 2);
+});

@@ -92,7 +92,8 @@ function printLayout(o) {
       const sw = Math.max(20, Wpx - tw);
       slices.push({ tw, x0: x, x1: Math.min(cw, x + sw) }); x += sw; p++;
     }
-    rpp = Math.max(1, Math.floor((Hc / s - HH) / RH));
+    rpp = Math.max(1, Math.floor((Hc / s - HH) / RH + 1e-6));   // + 1e-6: Rundung (81,9999… Zeilen sind 82)
+    if (o.fitH) rpp = Math.max(rpp, Math.ceil(Math.max(1, n) / Math.max(1, +o.pagesH || 1)));   // „auf N Seiten hoch“ ist eine Zusage
   }
   const bands = []; for (let r = 0; r < Math.max(1, n); r += rpp) bands.push([r, Math.min(n, r + rpp)]);
   return { o, rows, cols, tableW, d0, d1, ppd, s, pw, ph, m, slices, bands, PADL, PADR, cw: days * ppd + PADL + PADR, hdr: hdr(pw, ph), total: bands.length * slices.length };

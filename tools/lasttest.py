@@ -99,7 +99,7 @@ class Nutzer:
 
     def eintrag(self):
         self.k += 1
-        self.c.post(f"{BT}/reports/{self.rid}/items", {"kind": random.choice(["notizen", "maengel", "aufgaben"]),
+        self.c.post(f"{BT}/reports/{self.rid}/items", {"kind": random.choice(["notizen", "maengel", "zu_erledigen"]),
                                                          "text": f"Lasttest Eintrag {self.k} von Nutzer {self.n}"})
 
     def foto(self):

@@ -58,7 +58,8 @@ def save(f):
             to_jpg(tmp, dst)              # JPG mit Drehung oder anderes Format
         return base + ".jpg"
     except Exception as e:
-        fehler.still("bautagebuch", "Foto speichern", e)
+        if type(e).__name__ not in ("UnidentifiedImageError", "DecompressionBombError"):   # keine/kaputte Bilddatei = Fehleingabe, wird abgelehnt
+            fehler.still("bautagebuch", "Foto speichern", e)
         return None
     finally:
         try:

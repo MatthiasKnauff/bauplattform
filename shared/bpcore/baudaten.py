@@ -95,6 +95,9 @@ def such_neu():
     from bpcore import db
     try:
         with db.tx() as c:
+            # nur ein Neuaufbau gleichzeitig über alle Container (Baudaten, Baukosten, AVA …) – sonst stoßen sie beim Anlegen zusammen
+            if not c.execute("SELECT pg_try_advisory_xact_lock(727401) AS ok").fetchone()["ok"]:
+                return
             stand = _such_stand(c)
             try:
                 with c.savepoint():

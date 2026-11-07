@@ -88,8 +88,10 @@ def delete_contact(i):
         why = shared.usage(c, i)
         if why:
             return jsonify(error=shared.blocked_message(row["name"], why), orte=shared.orte(c, i)), 409
-        from bpcore import papierkorb
+        from bpcore import papierkorb, versionen
+        versionen.vor(c, f"kontakt:{i}")   # im Verlauf als „gelöscht“
         pk = papierkorb.ablegen(c, "contacts", i, "Kontakt", row["name"], g.user["name"], "", "adressen")
+        versionen.nach(c, f"kontakt:{i}", g.user["name"])
     return jsonify(ok=True, papierkorb=pk)
 
 

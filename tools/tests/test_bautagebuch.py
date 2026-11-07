@@ -430,7 +430,10 @@ def test_bt_kontakte_anlegen_doppelt(ctx):
         s = _suche(ctx.admin, n.lower())["results"]
         gleich(sorted(r.get("contact_id") for r in s if r["type"] == "Kontakt"), sorted(ids), "Suche findet die Kontakte")
         for i in list(ids):
-            gleich(ctx.admin.delete(_a(f"/contacts/{i}"), expect=200).json, {"ok": True}, "unbenutzten Kontakt löschen")
+            weg = ctx.admin.delete(_a(f"/contacts/{i}"), expect=200).json
+            gleich(weg.get("ok"), True, "unbenutzten Kontakt löschen")
+            pruefe(isinstance(weg.get("papierkorb"), int), f"Kontakt nicht in den Papierkorb gelegt: {weg}")
+            ctx.admin.post(_a("/bp/papierkorb/loeschen"), {"ids": [weg["papierkorb"]]}, expect=None)
             ids.remove(i)
         rest = [c for c in ctx.admin.gj(_a("/contacts")) if (c["name"] or "").startswith(n)]
         gleich(rest, [], "Kontakte gelöscht")

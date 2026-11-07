@@ -321,7 +321,9 @@ def delete_contact(i):
         why = shared_contacts.usage(c, i)   # gleiche Regel wie im Bautagebuch und im Bauzeitenplan
         if why:
             return jsonify(error=shared_contacts.blocked_message(r["name"], why), orte=shared_contacts.orte(c, i)), 409
+        versionen.vor(c, f"kontakt:{i}")   # im Verlauf als „gelöscht“
         pk = papierkorb.ablegen(c, "contacts", i, "Kontakt", r["name"], g.user["name"], "", "adressen")   # wiederherstellbar (Papierkorb)
+        versionen.nach(c, f"kontakt:{i}", g.user["name"])
     C.audit(g.user["name"], "kontakte", "Kontakt in den Papierkorb gelegt", f"{r['name']} · Adressen")
     return jsonify(ok=True, papierkorb=pk)
 

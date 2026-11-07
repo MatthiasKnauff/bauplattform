@@ -24,6 +24,9 @@ GEMEINSAM = {
     "projekt": "Projektname (z. B. A497 Maybachstraße 15a, Essen)",
     "bauvorhaben": "Projekt mit Baustellenadresse",
     "dokument": "Überschrift des Ausdrucks (z. B. „Mängelrüge nach VOB/B“)",
+    "grundstueck": "Gemarkung, Flur und Flurstück aus den Projektdaten (z. B. „Gemarkung Altenessen, Flur 3, Flurstück 12/4“)",
+    "gemarkung": "Gemarkung (Projektdaten)", "flur": "Flur (Projektdaten)", "flurstueck": "Flurstück(e) (Projektdaten)",
+    "hoehe_nhn": "Geländehöhe in m über NHN (Projektdaten)",
 }
 BEREICHE = {
     "maengelruege": {"name": "Mängelrüge", "gruppe": "Aufgaben & Mängel", "variablen": {
@@ -39,6 +42,7 @@ AVA = {
     "dokument": "Überschrift des Ausdrucks (z. B. „Rechnungsprüfung – 2. Abschlagsrechnung“)", "untertitel": "Zeile unter der Überschrift (Projekt, LV, Auftragnehmer)",
     "lv": "LV-Nummer und Bezeichnung (z. B. LV 03 Rohbauarbeiten)", "gewerk": "Gewerk des LV", "auftragnehmer": "beauftragte Firma",
     "seite": "Seitenzahl",
+    **{k: GEMEINSAM[k] for k in ("grundstueck", "gemarkung", "flur", "flurstueck", "hoehe_nhn")},
 }
 RE = {"rechnung": "Rechnung (z. B. 2. Abschlagsrechnung)", "re_nr": "Rechnungsnummer der Firma", "re_datum": "Rechnungsdatum", "eingang": "Eingang der Rechnung"}
 BEREICHE.update({
@@ -350,6 +354,17 @@ def eigene_werte(c, pid, extra=None):
     """Werte der eigenen Felder für den Ausdruck: Projektwerte, darüber die beim Ausdruck eingegebenen."""
     W = werte_projekt(c, pid)
     out = {x["key"]: W.get(x["key"], "") for x in eigene(c)}
+    if pid:   # Grundstück aus den Projektdaten (Verwaltung → Projektdaten, „aus ALKIS ermitteln“)
+        from . import stammdaten
+        try:
+            P = stammdaten.projekt_lesen(c, pid) or {}
+        except Exception:
+            P = {}
+        for k in ("gemarkung", "flur", "flurstueck", "hoehe_nhn"):
+            out.setdefault(k, str(P.get(k) or ""))
+        teile = [f"Gemarkung {P['gemarkung']}" if P.get("gemarkung") else "", f"Flur {P['flur']}" if P.get("flur") else "",
+                 (f"Flurstück{'e' if ',' in str(P['flurstueck']) or ';' in str(P['flurstueck']) else ''} {P['flurstueck']}") if P.get("flurstueck") else ""]
+        out.setdefault("grundstueck", ", ".join(t for t in teile if t))
     for k, v in (extra or {}).items():
         out[_slug(k)] = str(v or "")[:500]
     return out
@@ -362,7 +377,8 @@ def beispiel(bereich):
                 "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen", "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "bauherr": "Muster Wohnbau GmbH",
                 "dokument": {"lv": "Leistungsverzeichnis", "aufmass": "Massenermittlung – LV 03 Rohbauarbeiten", "rechnungspruefung": "Rechnungsprüfung – 2. Abschlagsrechnung",
                              "rechnungsfreigabe": "Rechnungsfreigabe – 2. Abschlagsrechnung"}.get(bereich, ""),
-                "untertitel": "A497 Maybachstraße 15a, Essen · LV 03 Rohbauarbeiten", "lv": "LV 03 Rohbauarbeiten", "gewerk": "Rohbau", "auftragnehmer": "Muster Bau GmbH",
+                "untertitel": "A497 Maybachstraße 15a, Essen · LV 03 Rohbauarbeiten", "lv": "LV 03 Rohbauarbeiten", "gewerk": "Rohbau", "auftragnehmer": "Muster Bau GmbH", "grundstueck": "Gemarkung Altenessen, Flur 3, Flurstück 12/4", "gemarkung": "Altenessen", "flur": "3",
+                "flurstueck": "12/4", "hoehe_nhn": "54,30",
                 "seite": "1", "rechnung": "2. Abschlagsrechnung", "re_nr": "RE-2026-117", "re_datum": "02.11.2026", "eingang": "04.11.2026"}
     return {"buero": "GK3 Architektur", "absender": "GK3, Frohnhauser Str. 233, 45144 Essen", "fusszeile": "GK3 Architektur · Frohnhauser Str. 233 · 45144 Essen · 0201 123456 · mail@gk3-architektur.de",
             "datum": datetime.now().strftime("%d.%m.%Y"), "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen",

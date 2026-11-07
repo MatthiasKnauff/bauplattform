@@ -797,12 +797,27 @@
       titel: 'Projektdaten', unter: D.projekt, gruppen: D.felder, werte: D.werte, basis: basis || '',
       zusatz: (k) => {
         if (k === 'baubeginn') return `<span class="bph-dm-z">${D.plan.start ? `Bauzeitenplan: ${tagDe(D.plan.start)} <button type="button" class="bph-btn" data-plan="baubeginn">übernehmen</button>` : ''}${D.plan.plaene.length ? `<label class="bph-ck" style="margin:.2rem 0 0"><input type="checkbox" data-inplan${inPlan ? ' checked' : ''}> beim Speichern als Projektanfang in den Bauzeitenplan übertragen</label>` : '<span class="bph-mu">kein Bauzeitenplan verknüpft</span>'}</span>`;
+        if (k === 'gemarkung') return `<span class="bph-dm-z"><button type="button" class="bph-btn" data-kataster title="Gemarkung, Flur, Flurstück und Geländehöhe über NHN an der Baustelle – amtliche Daten von Geobasis NRW (wie TIM-online)">📍 aus ALKIS ermitteln (TIM-online)</button><span data-katinfo class="bph-mu"></span></span>`;
         if (k === 'fertigstellung' && D.plan.ende) return `<span class="bph-dm-z">Bauzeitenplan: ${tagDe(D.plan.ende)} <button type="button" class="bph-btn" data-plan="fertigstellung">übernehmen</button></span>`;
         return '';
       },
       klick: async (e, ctx) => {
         const b = e.target.closest('[data-plan]'); if (b) { ctx.setzen(b.dataset.plan, b.dataset.plan === 'baubeginn' ? D.plan.start : D.plan.ende); return true; }
         if (e.target.closest('[data-inplan]')) { inPlan = e.target.checked; return true; }
+        const kb = e.target.closest('[data-kataster]');
+        if (kb) {
+          kb.disabled = true; const alt = kb.textContent; kb.textContent = '📍 frage Geobasis NRW …';
+          try {
+            const r = await KX((basis || '') + `api/bp/projekt/${pid}/kataster`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            const W = ctx.werte(), neu = r.werte || {};
+            const alt2 = ['gemarkung', 'flur', 'flurstueck', 'hoehe_nhn'].filter((x) => W[x] && neu[x] && String(W[x]).trim() !== String(neu[x]).trim());
+            if (alt2.length && !confirm('Vorhandene Angaben überschreiben?\n\n' + alt2.map((x) => `${{ gemarkung: 'Gemarkung', flur: 'Flur', flurstueck: 'Flurstück', hoehe_nhn: 'Höhe über NHN' }[x]}: ${W[x]} → ${neu[x]}`).join('\n'))) { kb.disabled = false; kb.textContent = alt; return true; }
+            for (const [x, v] of Object.entries(neu)) ctx.setzen(x, v);
+            const fs = r.flurstuecke || [];
+            ctx.nachricht(`Ermittelt: ${fs.map((f) => `${f.gemarkung}, Flur ${f.flur}, Flurstück ${f.flurstueck}${f.flaeche ? ` (${Math.round(f.flaeche).toLocaleString('de-DE')} m²)` : ''}${f.am_punkt ? '' : ' – gleiche Adresse'}`).join('; ')}${r.hoehe != null ? ` · Gelände ${String(r.hoehe.toFixed(2)).replace('.', ',')} m ü. NHN` : ''}${(r.hinweise || []).length ? ' · ' + r.hinweise.join(' ') : ''} – bitte prüfen und speichern. Quelle: Geobasis NRW (dl-de/zero-2-0).`);
+          } catch (er) { kb.disabled = false; kb.textContent = alt; ctx.nachricht(er.message); }
+          return true;
+        }
         return false;
       },
       speichern: async (W) => { const r = await KX(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ werte: W, in_plan: inPlan }) }); D = r; inPlan = false; return { werte: r.werte, hinweis: r.hinweis || 'Gespeichert – gilt in allen Apps.' }; },

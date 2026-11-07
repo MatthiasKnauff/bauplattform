@@ -41,6 +41,7 @@ PROJEKT = [
         ("massnahme", "Art der Maßnahme", "select", ["", "Neubau", "Umbau", "Erweiterung", "Sanierung / Modernisierung", "Instandsetzung", "Abbruch", "Außenanlagen"]),
         ("nutzung", "Nutzung", "text", "z. B. Wohnen, Büro, Tierheim"),
         ("gemarkung", "Gemarkung", "text", ""), ("flur", "Flur", "text", ""), ("flurstueck", "Flurstück", "text", ""),
+        ("hoehe_nhn", "Geländehöhe über NHN", "text", "in m (DHHN2016) – mit „aus ALKIS ermitteln“ aus dem DGM1 NRW an der Baustelle"),
         ("genehmigung_az", "Baugenehmigung – Aktenzeichen", "text", ""), ("genehmigung_datum", "Baugenehmigung vom", "date", ""),
         ("budget", "Kostenrahmen (brutto)", "eur", ""),
     ]),

@@ -988,6 +988,29 @@ def blueprint(get_user=None):
                 d = stammdaten.projekt_lesen(c, pid)
             return jsonify(projekt=p["name"], felder=stammdaten.felder(stammdaten.PROJEKT), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis)
 
+    @bp.post("/api/bp/projekt/<int:pid>/kataster")
+    def projekt_kataster(pid):
+        """Gemarkung, Flur, Flurstück(e) und Geländehöhe über NHN zur Baustelle – aus den offenen Diensten von Geobasis NRW
+        (ALKIS wie in TIM-online, DGM1). Speichert nichts: die Maske übernimmt die Werte, gespeichert wird mit „Speichern“."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        from . import kataster
+        with db.tx() as c:
+            p = c.execute("SELECT id, name, street, zip, city, lat, lon FROM projects WHERE id=?", (pid,)).fetchone()
+        if not p:
+            return jsonify(error="Projekt nicht gefunden"), 404
+        b = request.get_json(silent=True) or {}
+        lat, lon = b.get("lat", p["lat"]), b.get("lon", p["lon"])
+        try:
+            r = kataster.ermitteln(lat if isinstance(lat, (int, float)) else None, lon if isinstance(lon, (int, float)) else None,
+                                   p["street"] or "", p["zip"] or "", p["city"] or "")
+        except kataster.Fehler as e:
+            return jsonify(error=str(e)), 502
+        if not r["flurstuecke"]:
+            return jsonify(error="An der Baustelle wurde kein Flurstück gefunden – liegt der Standort des Projekts richtig?", **r), 404
+        return jsonify(r)
+
     @bp.route("/api/bp/todo-regeln", methods=["GET", "PUT"])
     def todo_regeln():
         """Einstellungen der automatischen Aufgaben – gelten für alle Benutzer (wer sie sieht, steht je Regel)."""

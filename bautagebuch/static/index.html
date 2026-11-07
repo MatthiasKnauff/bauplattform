@@ -546,7 +546,7 @@ async function openPdf(url) {
   history.pushState({pv: 1}, '');   // Wischgeste „zurück“ schließt die Ansicht ebenfalls
   try {
     if (!window.pdfjsLib) { await loadScript('vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.js', location.href).href; }
-    pv.doc = await pdfjsLib.getDocument({data: await blob.arrayBuffer()}).promise;
+    pv.doc = await pdfjsLib.getDocument({ isEvalSupported: false, data: await blob.arrayBuffer()}).promise;
     await pvRender();
   } catch (e) {   // Vorschau geht nicht – das PDF ist trotzdem da: teilen, sichern, in Bücher/Dateien öffnen
     pvMelden(e);

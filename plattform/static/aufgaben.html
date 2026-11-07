@@ -469,7 +469,7 @@ async function briefEditor(url, body, titel, E, bid) {
   document.body.appendChild(ov); document.body.style.overflow = 'hidden';
   const S = ov.querySelector('.bed-s'), F = {};
   try {
-    const pdf = await lib.getDocument({ data: B64(E.pdf) }).promise;
+    const pdf = await lib.getDocument({ isEvalSupported: false, data: B64(E.pdf) }).promise;
     S.innerHTML = '';
     const breite = Math.min(S.clientWidth - 24, 900);
     for (let n = 1; n <= pdf.numPages; n++) {

@@ -970,7 +970,7 @@ function lvOcrWarten(id, uebernehmen) {
   }, 4000);
 }
 async function lvDokLaden(V) {
-  try { const lib = await pdfjs(); [V.pdf, V.A] = await Promise.all([lib.getDocument({ url: 'api/lvdok/' + V.id, withCredentials: true }).promise, api(`api/lvdok/${V.id}?auslese=1`)]); }
+  try { const lib = await pdfjs(); [V.pdf, V.A] = await Promise.all([lib.getDocument({ isEvalSupported: false, url: 'api/lvdok/' + V.id, withCredentials: true }).promise, api(`api/lvdok/${V.id}?auslese=1`)]); }
   catch (e) { V.el.innerHTML = `<p class="hint" style="color:#fff">PDF lässt sich nicht anzeigen: ${esc(e.message)}</p>`; return; }
   if (LVDV !== V) return; lvDokZeichnen(V);
 }
@@ -1844,7 +1844,7 @@ async function amPdfMount() {
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
 }
 async function amPdfLaden(V) {
-  try { const lib = await pdfjs(); V.pdf = await lib.getDocument({ url: 'api/belege/' + V.bid, withCredentials: true }).promise; } catch (e) { V.el.innerHTML = `<p class="hint" style="color:#fff">PDF lässt sich nicht anzeigen: ${esc(e.message)}</p>`; return; }
+  try { const lib = await pdfjs(); V.pdf = await lib.getDocument({ isEvalSupported: false, url: 'api/belege/' + V.bid, withCredentials: true }).promise; } catch (e) { V.el.innerHTML = `<p class="hint" style="color:#fff">PDF lässt sich nicht anzeigen: ${esc(e.message)}</p>`; return; }
   if (AMV !== V) return;
   await amPdfZeichnen(V); amMarken(); amPdfZeige(amPos, true);
 }
@@ -2264,7 +2264,7 @@ async function druckEditor() {
       const r = await api(`api/lv/${L.id}/druck`, 'POST', { schritt: 'entwurf', layout: lay ? { ...lay, felder: F } : {} });
       if (my !== tok) return;
       const neu = !lay; lay = r.layout; F = r.felder; verg = r.vergeben; if (neu) sideDraw();
-      const pdf = await lib.getDocument({ data: Uint8Array.from(atob(r.pdf), (ch) => ch.charCodeAt(0)) }).promise;
+      const pdf = await lib.getDocument({ isEvalSupported: false, data: Uint8Array.from(atob(r.pdf), (ch) => ch.charCodeAt(0)) }).promise;
       if (my !== tok) return;
       const frag = document.createDocumentFragment(), breite = Math.min(S.clientWidth - 24, 820);
       for (let n = 1; n <= pdf.numPages; n++) {

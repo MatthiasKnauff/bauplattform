@@ -450,7 +450,7 @@ async function openPdf(url) {
     const m = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get('Content-Disposition') || ''); if (m) name = decodeURIComponent(m[1]);
     const blob = await r.blob();
     if (!window.pdfjsLib) { await loadScript('static/vendor/pdfjs/pdf.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = 'static/vendor/pdfjs/pdf.worker.js'; }
-    const doc = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
+    const doc = await pdfjsLib.getDocument({ isEvalSupported: false, data: await blob.arrayBuffer() }).promise;
     const el = document.createElement('div'); el.id = 'pv';
     el.innerHTML = `<div class="pvb"><button class="pvc" data-pv="close">✕ Schließen</button><span>${esc(name)}</span><button data-pv="zoom" data-d="-1" aria-label="Verkleinern">−</button><button data-pv="zoom" data-d="1" aria-label="Vergrößern">+</button><button data-pv="print">Drucken</button><button data-pv="share">Teilen</button></div><div class="pvs"><div class="pvw"></div></div>`;
     document.body.appendChild(el); pv = { el, doc, blob, name, zoom: 1 };

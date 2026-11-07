@@ -1,0 +1,50 @@
+# Sicherheitsprüfung: alle Bestandteile der Bauplattform auf bekannte Sicherheitslücken scannen (Trivy).
+# Geprüft werden die drei eigenen Images (Betriebssystempakete + Python-Bibliotheken), PostgreSQL, Ollama
+# und das Repository selbst (Abhängigkeiten, eingebundene Bibliotheken).
+# Läuft jeden Montag früh und auf Knopfdruck (Actions → Sicherheitsprüfung → Run workflow). Hält keine Freigabe auf –
+# das Ergebnis steht in der Zusammenfassung des Laufs.
+name: Sicherheitsprüfung
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Images ermitteln (Stand des Testservers und der Produktion)
+        run: |
+          { grep -hoE "image: *\S+" server/test.yml server/docker-compose.yml | sed -E 's/image: *//' | sort -u; } > images.txt
+          cat images.txt
+
+      - name: Scannen
+        run: |
+          T="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.cache/trivy:/root/.cache/trivy -v $HOME/.docker:/root/.docker:ro aquasec/trivy:latest"
+          echo "## Sicherheitsprüfung $(date +%d.%m.%Y)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Nur Lücken der Stufe HOCH und KRITISCH, für die es eine Korrektur gibt." >> "$GITHUB_STEP_SUMMARY"
+          while read -r img; do
+            echo "::group::$img"
+            docker pull -q "$img" || { echo "::warning::$img nicht ladbar"; echo "::endgroup::"; continue; }
+            $T image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format table "$img" | tee bericht.txt
+            n=$($T image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format json "$img" | python3 -c "import json,sys; d=json.load(sys.stdin); print(sum(len(r.get('Vulnerabilities') or []) for r in d.get('Results') or []))")
+            echo "- \`$img\`: **$n**" >> "$GITHUB_STEP_SUMMARY"
+            echo "::endgroup::"
+          done < images.txt
+          echo "::group::Repository (Abhängigkeiten, eingebundene Bibliotheken)"
+          docker run --rm -v "$PWD:/src:ro" aquasec/trivy:latest fs --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format table /src
+          echo "::endgroup::"

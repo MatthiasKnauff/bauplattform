@@ -1468,7 +1468,7 @@
         const data = await fetch(x.url, { credentials: 'same-origin' }).then((r) => { if (!r.ok) throw new Error(r.status === 403 ? 'Keine Einladung zu dieser Skizze.' : 'Datei nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
         if (my !== tok) return;
         roh = data.slice(0);
-        pdf = await lib.getDocument({ data }).promise;
+        pdf = await lib.getDocument({ isEvalSupported: false, data }).promise;
         await renderPdf(my);
         if (x.skizze && SK.id !== x.skizze) skBeitreten(x.skizze); else if (!x.skizze) skDauerSuchen(my);
       } catch (e) { if (my === tok) S.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}<br><a href="${esc(x.url)}" download>Datei herunterladen</a></div>`; }

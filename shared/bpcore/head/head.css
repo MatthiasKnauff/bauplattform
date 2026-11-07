@@ -84,7 +84,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-seg button{border:0;border-radius:999px;padding:.35rem .8rem;background:transparent;color:var(--mute,#9a9c9e);cursor:pointer;font:inherit}
 .bph-seg button.on{background:var(--y,var(--bph-acc,#ff5fb3));color:var(--on,#111);font-weight:600}
 .bph-ck{display:flex;gap:.5rem;align-items:flex-start;margin:.5rem 0;font-size:.92em}
-.bph-ck input{margin-top:.2rem}
+.bph-ck input{margin-top:.2rem}.bph-ck input[type=checkbox],.bph-ck input[type=radio]{flex:none;width:1.15rem;height:1.15rem;min-width:1.15rem}
 .bph-tabs{display:flex;gap:.3rem;padding:0 1rem;border-bottom:1px solid var(--line,#3b3e42)}
 .bph-tabs button{border:0;background:none;color:var(--mute,#9a9c9e);padding:.5rem .7rem;cursor:pointer;font:inherit;border-bottom:2px solid transparent}
 .bph-tabs button.on{color:inherit;border-bottom-color:var(--y,var(--bph-acc,#ff5fb3));font-weight:600}
@@ -353,3 +353,16 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-km hr{border:0;border-top:1px solid var(--line,#e2e2e2);margin:.25rem .3rem}
 .bph-km-h{color:var(--mute,#888);font-size:.72rem;padding:.3rem .65rem .15rem}
 @media print{.bph-km{display:none}}
+
+/* Stammdaten-Maske */
+.bph-dm .bph-dlg-h{display:flex;align-items:center;gap:.3rem;margin-bottom:.5rem}.bph-dm .bph-dlg-h .bph-x{margin-left:auto}
+.bph-dm-b{max-height:70vh;overflow:auto;padding-right:.2rem}
+.bph-dm fieldset{border:1px solid var(--line,#3b3e42);border-radius:10px;margin:.5rem 0;padding:.5rem .8rem .7rem}
+.bph-dm legend{font-weight:600;padding:0 .3rem}
+.bph-dm-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.55rem .9rem}
+.bph-dm-f{display:flex;flex-direction:column;gap:.15rem;font-size:.88em;min-width:0}
+.bph-dm-f>span:first-child{color:var(--mute,#9a9c9e)}
+.bph-dm-w{grid-column:1/-1}
+.bph-dm-i{display:flex;align-items:center;gap:.3rem}.bph-dm-i em{font-style:normal;color:var(--mute,#9a9c9e)}
+.bph-dm input:not([type=checkbox]),.bph-dm select,.bph-dm textarea{width:100%;box-sizing:border-box;font:inherit;padding:.4rem .5rem;border:1px solid var(--line,#3b3e42);border-radius:7px;background:var(--bg,transparent);color:inherit}
+.bph-dm-z{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;font-size:.85em;color:var(--mute,#9a9c9e)}.bph-dm-z .bph-btn{padding:.1rem .5rem;font-size:.9em}

@@ -27,7 +27,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, db, fehler, konto, papierkorb, posteingang, skizze, sso, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, db, fehler, konto, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -764,6 +764,7 @@ def blueprint(get_user=None):
             txt = (f"Hallo {skizze.name_von(r)},\n\n" + ("du hast eine Aufgabe angelegt:" if selbst else f"{wer} hat dir eine Aufgabe zugewiesen:") + f"\n\n    {x['titel']}\n\n"
                    + (f"Beteiligt: {', '.join(andere)}\n" if andere else "")
                    + (f"Projekt: {pr['name']}\n" if pr else "") + (f"Fällig: {datetime.fromisoformat(x['faellig']).strftime('%d.%m.%Y')}\n" if x["faellig"] else "")
+                   + (f"Erinnerung: {todo.ERINNERUNG[x['erinnerung']][1]}\n" if x.get("faellig") and x.get("erinnerung") in todo.ERINNERUNG else "")
                    + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {PF.link('portal', '', cf)}\n" if PF.link("portal", "", cf) else ""))
             inv = None
             if x["faellig"]:   # mit Fälligkeit: als ganztägiger Termin zum Annehmen (Outlook & Co. tragen ihn in den Kalender ein)
@@ -772,7 +773,8 @@ def blueprint(get_user=None):
                 # Organisator = das Postfach, über das gesendet wird (wie bei den Erinnerungen) – eine Einladung „von“ m.knauff über das
                 # Büro-Postfach an m.knauff selbst hat Exchange Online abgewiesen (als „Sender throttled“ gemeldet)
                 inv = ical.einladung(f"todo-{x.get('id') or x['titel'][:20]}-{r['id']}@{host}", x["faellig"], None, 0, f"Aufgabe: {x['titel'][:120]}",
-                                     txt, "", M.von(cf), cf.get("office_name") or wer, r["email"], skizze.name_von(r), alarm_min=0, ganztags=True)
+                                     txt, "", M.von(cf), cf.get("office_name") or wer, r["email"], skizze.name_von(r),
+                                     alarm_min=todo.ERINNERUNG.get(x.get("erinnerung") or "", (0, ""))[0], ganztags=True)
                 txt += "\nIm Anhang als Termin – „Annehmen“ trägt die Fälligkeit in deinen Kalender ein (termin.ics öffnen: Kalender selbst wählen).\n"
             try:
                 M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, ical=inv)
@@ -787,7 +789,8 @@ def blueprint(get_user=None):
                 "project_id": b.get("pid") if "pid" in b else alt.get("project_id"),
                 "faellig": f if len(f) == 10 and f[4] == "-" else "", "prio": 1 if b.get("prio", alt.get("prio")) else 0,
                 "personen": [int(i) for i in (b.get("personen") if "personen" in b else todo._ids(alt.get("personen"))) or [] if str(i).isdigit()][:30],
-                "mail": 1 if b.get("mail", alt.get("mail")) else 0}
+                "mail": 1 if b.get("mail", alt.get("mail")) else 0,
+                "erinnerung": (lambda e: e if e in todo.ERINNERUNG else "")(str(b.get("erinnerung") if "erinnerung" in b else alt.get("erinnerung") or ""))}
 
     @bp.post("/api/bp/todo")
     def todo_neu():
@@ -799,9 +802,9 @@ def blueprint(get_user=None):
             return jsonify(error="Bitte einen Titel eingeben."), 400
         jetzt = datetime.now().isoformat(timespec="seconds")
         with db.tx() as c:
-            r = c.execute("""INSERT INTO todo(titel, notiz, project_id, faellig, prio, personen, mail, status, erstellt, erstellt_von, erstellt_name, geaendert)
-                             VALUES(?,?,?,?,?,?,?,'offen',?,?,?,?) RETURNING id""",
-                          (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, uid, skizze.name_von(u), jetzt)).fetchone()
+            r = c.execute("""INSERT INTO todo(titel, notiz, project_id, faellig, prio, personen, mail, erinnerung, status, erstellt, erstellt_von, erstellt_name, geaendert)
+                             VALUES(?,?,?,?,?,?,?,?,'offen',?,?,?,?) RETURNING id""",
+                          (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], x["erinnerung"], jetzt, uid, skizze.name_von(u), jetzt)).fetchone()
             hinweis = _todo_mail(c, u, {**x, "id": r["id"]}, set(x["personen"]), ich=True) if x["mail"] else ""
             row = todo.darf(c, u, r["id"])
             return jsonify(aufgabe=todo._zeile(row, todo.benutzer(c), todo.dateien(c, [row['id']])), hinweis=hinweis)
@@ -827,11 +830,13 @@ def blueprint(get_user=None):
                 c.execute("UPDATE todo SET status=?, erledigt=?, erledigt_name=?, geaendert=? WHERE id=?",
                           ("erledigt" if b["erledigt"] else "offen", jetzt if b["erledigt"] else "", skizze.name_von(u) if b["erledigt"] else "", jetzt, tid))
             x = _todo_body(b, dict(alt))
-            if any(k in b for k in ("titel", "notiz", "pid", "faellig", "prio", "personen", "mail")):
+            if any(k in b for k in ("titel", "notiz", "pid", "faellig", "prio", "personen", "mail", "erinnerung")):
                 if not x["titel"]:
                     return jsonify(error="Bitte einen Titel eingeben."), 400
-                c.execute("UPDATE todo SET titel=?, notiz=?, project_id=?, faellig=?, prio=?, personen=?, mail=?, geaendert=? WHERE id=?",
-                          (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], jetzt, tid))
+                c.execute("UPDATE todo SET titel=?, notiz=?, project_id=?, faellig=?, prio=?, personen=?, mail=?, erinnerung=?, geaendert=? WHERE id=?",
+                          (x["titel"], x["notiz"], x["project_id"], x["faellig"], x["prio"], json.dumps(x["personen"]), x["mail"], x["erinnerung"], jetzt, tid))
+                if x["faellig"] != (alt["faellig"] or "") or x["erinnerung"] != (dict(alt).get("erinnerung") or ""):
+                    c.execute("DELETE FROM bp_store WHERE key=?", (f"todo:erinnert:{tid}",))   # neue Fälligkeit/Erinnerung: wieder erinnern
             neu = set(x["personen"]) - set(todo._ids(alt["personen"]))
             jetzt_an = x["mail"] and not alt["mail"]   # Häkchen gerade gesetzt: mich und alle Beteiligten benachrichtigen
             hinweis = (_todo_mail(c, u, {**x, "id": tid}, set(x["personen"]), ich=True) if jetzt_an
@@ -910,6 +915,29 @@ def blueprint(get_user=None):
                 vorort.einst_setzen(c, uid, b, u["name"])
             return jsonify(einst=vorort.einst(c, uid), schluessel=vorort.schluessel(c, uid), besuche=vorort.besuche(c, uid, 21))
 
+    @bp.route("/api/bp/projekt/<int:pid>/daten", methods=["GET", "PUT"])
+    def projekt_daten(pid):
+        """Projekt- und Bauherrendaten für alle Apps (dieselbe Maske in Verwaltung, AVA, Baukosten).
+        PUT {werte, in_plan}: in_plan=true schreibt den Baubeginn als Projektanfang in die Bauzeitenpläne."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            p = c.execute("SELECT id, name FROM projects WHERE id=?", (pid,)).fetchone()
+            if not p:
+                return jsonify(error="Projekt nicht gefunden"), 404
+            hinweis = ""
+            if request.method == "PUT":
+                b = request.get_json(silent=True) or {}
+                with versionen.aenderung(c, f"bp:projektdaten:{pid}", u["name"]):
+                    d = stammdaten.projekt_schreiben(c, pid, b.get("werte") or {}, u["name"])
+                if b.get("in_plan") and d.get("baubeginn"):
+                    n = stammdaten.baubeginn_in_plan(c, pid, d["baubeginn"])
+                    hinweis = f"Baubeginn in {n} Bauzeitenplan{'' if n == 1 else 'en'} als Projektanfang eingetragen." if n else "Kein Bauzeitenplan zu diesem Projekt gefunden."
+            else:
+                d = stammdaten.projekt_lesen(c, pid)
+            return jsonify(projekt=p["name"], felder=stammdaten.felder(stammdaten.PROJEKT), werte=d, plan=stammdaten.plan_termine(c, pid), hinweis=hinweis)
+
     @bp.route("/api/bp/todo-regeln", methods=["GET", "PUT"])
     def todo_regeln():
         """Einstellungen der automatischen Aufgaben – gelten für alle Benutzer (wer sie sieht, steht je Regel)."""
@@ -925,7 +953,12 @@ def blueprint(get_user=None):
                 R = todo.regeln(c)
             P = [{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM projects WHERE archived=0 ORDER BY name").fetchall()]
             U = [{"id": r["id"], "name": skizze.name_von(r)} for r in c.execute("SELECT * FROM users WHERE active=1 AND lower(name)<>'admin' ORDER BY name").fetchall()]
-        return jsonify(regeln=list(R.values()), projekte=P, benutzer=U, ich=uid)
+            try:
+                from . import posteingang
+                meine = [r["id"] for r in posteingang.meine_projekte(c, uid)]
+            except Exception:
+                meine = []
+        return jsonify(regeln=list(R.values()), projekte=P, benutzer=U, ich=uid, meine=meine, erinnerung=[[k, v[1]] for k, v in todo.ERINNERUNG.items()])
 
     # ---- Papierkorb (alle Apps): ansehen, wiederherstellen, endgültig löschen, Aufbewahrungsdauer
     @bp.get("/api/bp/papierkorb")

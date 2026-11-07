@@ -1013,6 +1013,13 @@ def start_loop():
                         vorort.abend_mails(c)
                 except Exception as e:
                     _loop["vorort_fehler"] = str(e)[:200]
+                try:   # To-dos: Erinnerung zur Fälligkeit per Mail
+                    from bpcore import todo as TODO
+                    with db.tx() as c:
+                        c.execute("SELECT pg_advisory_xact_lock(hashtext('todo:erinnerung'))")
+                        TODO.erinnerungen_senden(c)
+                except Exception as e:
+                    _loop["todo_fehler"] = str(e)[:200]
                 try:   # Posteingang der Startseite zu den eingestellten Zeiten lesen (Standard: täglich 8:00)
                     _loop["post"] = posteingang.alle_faelligen(db.tx)
                 except Exception as e:

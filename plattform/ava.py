@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, gaeb, layout, papierkorb, platform, schrift, sso, versionen
+from bpcore import ai, baudaten, db, gaeb, layout, papierkorb, platform, schrift, sso, stammdaten, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -1145,6 +1145,9 @@ def lv_eins(i):
             sets.append("project_id=?"); args.append(pid)
         if isinstance(b.get("data"), dict):
             d = {"items": clean_items(b["data"].get("items")), "vorbem": _s(b["data"].get("vorbem"), 20000)}
+            alt_meta = (_j(r["data"], {}) or {}).get("meta")
+            if alt_meta:
+                d["meta"] = alt_meta   # Angaben zur Ausschreibung bleiben (eigene Maske)
             if b.get("nummerieren"):
                 nummerieren(d["items"])
             sets.append("data=?"); args.append(json.dumps(d, ensure_ascii=False))
@@ -1179,6 +1182,50 @@ def lv_eins(i):
             c.execute(f"UPDATE ava_lv SET {', '.join(sets)}, rev=rev+1, updated=?, updated_by=? WHERE id=?", (*args, _now(), g.user["name"], i))
             versionen.nach(c, f"avalv:{i}", g.user["name"])
         return _antwort(c, i)
+
+
+# ---------------------------------------------------------------- Stammdaten: LV (Ausschreibung), Auftrag, Angebot
+@app.route("/api/lv/<int:i>/daten", methods=["GET", "PUT"])
+def lv_daten(i):
+    """Angaben zur Ausschreibung (data.meta) und zum Auftrag (vergabe.auftrag) – Maske wie die Projektdaten."""
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
+        D, V = _j(r["data"], {}) or {}, _j(r["vergabe"], {}) or {}
+        if request.method == "PUT":
+            b = request.get_json(silent=True) or {}
+            c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"avalv:{i}",))
+            r = _lv(c, i); D, V = _j(r["data"], {}) or {}, _j(r["vergabe"], {}) or {}
+            versionen.vor(c, f"avalv:{i}")
+            if isinstance(b.get("lv"), dict):
+                D["meta"] = stammdaten.bereinigen(stammdaten.LV, b["lv"], D.get("meta"))
+            if isinstance(b.get("auftrag"), dict) and V.get("bieter"):
+                V["auftrag"] = stammdaten.bereinigen(stammdaten.AUFTRAG, b["auftrag"], V.get("auftrag"))
+            c.execute("UPDATE ava_lv SET data=?, vergabe=?, updated=?, updated_by=? WHERE id=?",   # rev bleibt: offene LV-Bearbeitung nicht stören
+                      (json.dumps(D, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
+            versionen.nach(c, f"avalv:{i}", g.user["name"])
+        A = V.get("auftrag") or {}
+        if V.get("bieter") and not A.get("auftragsdatum") and V.get("datum"):
+            A = {**A, "auftragsdatum": V["datum"]}
+        return jsonify(lv=D.get("meta") or {}, auftrag=A, vergeben=bool(V.get("bieter")), bieter=V.get("bieter") or "",
+                       felder_lv=stammdaten.felder(stammdaten.LV), felder_auftrag=stammdaten.felder(stammdaten.AUFTRAG),
+                       plan=stammdaten.plan_termine(c, r["project_id"], r["gewerk"] or None, r["name"] or None) if r["project_id"] else {"start": "", "ende": "", "plaene": []},
+                       titel=f"LV {r['nr']} {r['name']}".strip())
+
+
+@app.route("/api/angebote/<int:a>/daten", methods=["GET", "PUT"])
+def angebot_daten(a):
+    with db.tx() as c:
+        x = c.execute("SELECT * FROM ava_angebot WHERE id=?", (a,)).fetchone()
+        if not x or not _lv(c, x["lv_id"]):
+            return jsonify(error="Angebot nicht gefunden"), 404
+        alt = _j(_ak(x, "daten"), {}) or {}
+        if request.method == "PUT":
+            d = stammdaten.bereinigen(stammdaten.ANGEBOT, (request.get_json(silent=True) or {}).get("werte") or {}, alt)
+            c.execute("UPDATE ava_angebot SET daten=?, updated=? WHERE id=?", (json.dumps(d, ensure_ascii=False), _now(), a))
+            alt = d
+        return jsonify(werte=alt, felder=stammdaten.felder(stammdaten.ANGEBOT), titel=f"Angebot {x['bieter']}")
 
 
 # ---------------------------------------------------------------- Übernahme aus den Baukosten

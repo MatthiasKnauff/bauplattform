@@ -251,6 +251,9 @@ def quelle(c, bereich):
         return Quelle("E-Mail-Vorlagen", "admin", *_settings(True))
     if a == "gs" and k in GS:
         return Quelle(GS[k], "admin" if k in ("settings", "plattform") else "alle", *_row_store("gantt_store", k))
+    if a == "bp" and k.startswith("projektdaten:") and k[13:].isdigit():
+        r = c.execute("SELECT name FROM projects WHERE id=?", (int(k[13:]),)).fetchone()
+        return Quelle(f"Projektdaten „{r['name'] if r else k[13:]}“", "alle", *_row_store("bp_store", k))
     if a == "bp" and k in BP:
         return Quelle(BP[k], "admin" if k == "versionen_conf" else "alle", *_row_store("bp_store", k))
     if a == "bk" and k in BK:

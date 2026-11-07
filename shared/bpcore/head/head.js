@@ -613,6 +613,74 @@
   /* Meine Postfächer: Microsoft 365 (zentral eingerichtet) an/aus und eigene IMAP-Konten */
   /* opt.into: in ein Element zeichnen (Einstellungen → Startseite → Posteingang) statt als Fenster; opt.nachSpeichern(D) */
   /* ---------- Vor Ort erkennen: iPhone-Kurzbefehl meldet den Standort, fehlt der Tagesbericht, kommt ein To-do (und abends eine Mail) ---------- */
+  /* ---------- Stammdaten-Maske (Projekt mit Bauherr, LV, Angebot, Auftrag) – eine Maske für alle Apps ----------
+     o: { titel, unter, gruppen: [{titel, felder:[{k,l,typ,opt?,hilfe?}]}], werte, zusatz(k, werte) → html neben dem Feld,
+          speichern: async (werte, extra) → {werte?, hinweis?} , knoepfe: html in der Fußzeile, klick(e, ctx) } */
+  H.datenMaske = function (o) {
+    let W = { ...(o.werte || {}) }, msg = '', dirty = false;
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+    bg.innerHTML = '<div class="bph-dlg bph-dm" role="dialog" style="width:min(820px,96vw)"></div>'; document.body.appendChild(bg);
+    const root = bg.firstChild, e1 = (e) => { if (e.key === 'Escape') zu(); };
+    const zu = async () => { if (dirty && !(await (window.bpFrage ? bpFrage('Änderungen verwerfen?', { ok: 'Verwerfen' }) : Promise.resolve(true)))) return; bg.remove(); document.removeEventListener('keydown', e1); };
+    document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) zu(); });
+    const de = (v) => (v == null ? '' : String(v).replace('.', ','));
+    const feld = (f) => {
+      const v = W[f.k], id = 'dm_' + f.k, z = o.zusatz ? o.zusatz(f.k, W) || '' : '';
+      const hilfe = f.hilfe ? `<small class="bph-mu" style="margin:.1rem 0 0">${esc(f.hilfe)}</small>` : '';
+      if (f.typ === 'check') return `<label class="bph-ck bph-dm-w"><input type="checkbox" id="${id}" data-dm="${f.k}"${v ? ' checked' : ''}> ${esc(f.l)}</label>`;
+      let inp;
+      if (f.typ === 'textarea') inp = `<textarea id="${id}" data-dm="${f.k}" rows="3">${esc(v || '')}</textarea>`;
+      else if (f.typ === 'select') inp = `<select id="${id}" data-dm="${f.k}">${(f.opt || []).map((x) => `<option value="${esc(x)}"${(v || '') === x ? ' selected' : ''}>${esc(x || '–')}</option>`).join('')}</select>`;
+      else inp = `<input id="${id}" data-dm="${f.k}" type="${{ date: 'date', time: 'time', mail: 'email', tel: 'tel' }[f.typ] || 'text'}"${['zahl', 'eur', 'prozent'].includes(f.typ) ? ' inputmode="decimal"' : ''} value="${esc(['zahl', 'eur', 'prozent'].includes(f.typ) ? de(v) : v || '')}">`;
+      const einheit = { eur: '€', prozent: '%' }[f.typ];
+      return `<label class="bph-dm-f${f.typ === 'textarea' ? ' bph-dm-w' : ''}" for="${id}"><span>${esc(f.l)}</span><span class="bph-dm-i">${inp}${einheit ? `<em>${einheit}</em>` : ''}</span>${z}${hilfe}</label>`;
+    };
+    const draw = () => {
+      root.innerHTML = `<div class="bph-dlg-h"><b>${esc(o.titel)}</b>${o.unter ? `<span class="bph-mu" style="margin:0 0 0 .5rem">${esc(o.unter)}</span>` : ''}<button class="bph-x" data-dmx aria-label="Schließen">✕</button></div>
+        <div class="bph-dm-b">${o.gruppen.map((g) => `<fieldset><legend>${esc(g.titel)}</legend><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`).join('')}</div>
+        <div class="bph-row" style="align-items:center;margin-top:.6rem"><button class="bph-btn pri" data-dms>Speichern</button><button class="bph-btn" data-dmx>Schließen</button>${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0">${esc(msg)}</span></div>`;
+    };
+    const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); };
+    root.addEventListener('input', () => { dirty = true; });
+    root.addEventListener('change', () => { dirty = true; });
+    root.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-dmx]')) { zu(); return; }
+      const ctx = { werte: () => { lesen(); return W; }, setzen: (k, v) => { lesen(); W[k] = v; dirty = true; draw(); }, nachricht: (t) => { msg = t; const m = root.querySelector('[data-dmm]'); if (m) m.textContent = t; } };
+      if (o.klick && await o.klick(e, ctx)) return;
+      if (e.target.closest('[data-dms]')) {
+        lesen(); ctx.nachricht('speichere …');
+        try { const r = await o.speichern(W, ctx) || {}; if (r.werte) W = { ...r.werte }; dirty = false; msg = r.hinweis || 'Gespeichert.'; draw(); }
+        catch (er) { ctx.nachricht(er.message); }
+      }
+    });
+    draw();
+    setTimeout(() => { const i = root.querySelector('input,textarea,select'); if (i) i.focus(); }, 30);
+    return { zu, neu: (w) => { W = { ...w }; draw(); } };
+  };
+  const tagDe = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
+  /* Projektdaten (Bauherr, Projekt, Termine) – aus Verwaltung, AVA und Baukosten dieselbe Maske */
+  H.projektDaten = async function (pid, basis) {
+    const url = (basis || '') + `api/bp/projekt/${pid}/daten`;
+    let D; try { D = await KX(url); } catch (e) { (window.toast || alert)(e.message, true); return; }
+    let inPlan = false;
+    const M = H.datenMaske({
+      titel: 'Projektdaten', unter: D.projekt, gruppen: D.felder, werte: D.werte,
+      zusatz: (k) => {
+        if (k === 'baubeginn') return `<span class="bph-dm-z">${D.plan.start ? `Bauzeitenplan: ${tagDe(D.plan.start)} <button type="button" class="bph-btn" data-plan="baubeginn">übernehmen</button>` : ''}${D.plan.plaene.length ? `<label class="bph-ck" style="margin:.2rem 0 0"><input type="checkbox" data-inplan${inPlan ? ' checked' : ''}> beim Speichern als Projektanfang in den Bauzeitenplan übertragen</label>` : '<span class="bph-mu">kein Bauzeitenplan verknüpft</span>'}</span>`;
+        if (k === 'fertigstellung' && D.plan.ende) return `<span class="bph-dm-z">Bauzeitenplan: ${tagDe(D.plan.ende)} <button type="button" class="bph-btn" data-plan="fertigstellung">übernehmen</button></span>`;
+        return '';
+      },
+      klick: async (e, ctx) => {
+        const b = e.target.closest('[data-plan]'); if (b) { ctx.setzen(b.dataset.plan, b.dataset.plan === 'baubeginn' ? D.plan.start : D.plan.ende); return true; }
+        if (e.target.closest('[data-inplan]')) { inPlan = e.target.checked; return true; }
+        return false;
+      },
+      speichern: async (W) => { const r = await KX(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ werte: W, in_plan: inPlan }) }); D = r; inPlan = false; return { werte: r.werte, hinweis: r.hinweis || 'Gespeichert – gilt in allen Apps.' }; },
+      knoepfe: H.verlaufKnopf ? H.verlaufKnopf(`bp:projektdaten:${pid}`, 'Verlauf') : '',
+    });
+    return M;
+  };
+
   H.vorort = async function () {
     let D, msg = '';
     try { D = await KX('api/bp/vorort/einst'); } catch (e) { alert(e.message); return; }

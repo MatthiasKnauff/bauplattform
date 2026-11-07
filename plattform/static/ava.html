@@ -402,7 +402,7 @@ tr.am-lf td input{color:#c0621f}
 .am-mk{position:absolute;transform:translateY(-55%);font-weight:800;font-size:clamp(11px,1.6vw,17px);line-height:1;pointer-events:none;white-space:nowrap;z-index:2}
 .am-mk.ok{color:#1f9d4c}.am-mk.no{color:#e02424}.am-mk small{position:absolute;right:-.2em;top:110%;font-size:clamp(8px,.72vw,11px);font-weight:700;background:#fff;border:1px solid #e02424;border-radius:4px;padding:0 .3em;box-shadow:0 1px 3px #0003}
 @media (max-width:900px){.am-split{grid-template-columns:1fr}.am-r{position:static;height:70vh}}
-.nav-baum{margin:.1rem 0 .35rem .85rem;padding-left:.15rem;border-left:1px solid var(--line);font-size:.92rem}
+.pj-ren{width:100%;font:inherit;padding:.05rem .25rem;border:1px solid var(--y);border-radius:4px;background:var(--card);color:inherit}.nav-baum{margin:.1rem 0 .35rem .85rem;padding-left:.15rem;border-left:1px solid var(--line);font-size:.92rem}
 .nav-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr);padding:.26rem .3rem;gap:.3rem}.nav-baum .pj-r.root{grid-template-columns:16px minmax(0,1fr)}.nav-baum .pj-r svg{width:16px;height:16px}
 .nav-baum .pj-r .v{display:none}.nav-baum .pj-r.k{padding-left:1rem}.nav-baum .pj-r .t small{font-size:.8rem}
 .pjw{display:grid;grid-template-columns:17.5rem minmax(0,1fr);gap:.9rem;align-items:start}.pjw.zu{grid-template-columns:2.2rem minmax(0,1fr)}
@@ -459,7 +459,7 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
   <div class="body">
     <aside class="nav" id="tabs" aria-label="Bereiche"></aside>
     <section class="pane">
-      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><span class="save" id="save" role="status"></span></div>
+      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span></div>
       <div class="kpi" id="kpi"></div>
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
@@ -836,6 +836,41 @@ function pjBaum() {
   return out.join('');
 }
 let PJSEL = null;
+/* Umbenennen im Baum: zweiter Klick auf die gewählte Zeile, F2 oder rechte Maustaste → „Umbenennen“ */
+function pjUmbenennen(r) {
+  const id = +r.dataset.pjlv, sub = r.dataset.pjsub || '', x = LIST.find((y) => y.id === id); if (!x) return;
+  const t = r.querySelector('.t'); if (!t || t.querySelector('input')) return;
+  let alt, ziel;
+  if (!sub) { alt = [x.nr, x.name].filter(Boolean).join(' '); ziel = 'lv'; }
+  else if (sub[0] === 'b') { const k = x.angebote.find((y) => 'b' + y.id === sub); if (!k) return; alt = k.bieter; ziel = 'ang'; }
+  else { const k = x.rechnungen.find((y) => 'r' + y.id === sub); if (!k) return; alt = k.re_nr || ''; ziel = 're'; }
+  const html0 = t.innerHTML;
+  t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'Rechnungsnummer der Firma' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
+  const i = t.querySelector('input'); i.focus(); i.select();
+  let fertig = false;
+  const ende = async (ok) => {
+    if (fertig) return; fertig = true;
+    const v = i.value.trim(); if (!ok || !v || v === alt) { t.innerHTML = html0; return; }
+    try {
+      if (ziel === 'lv') { const m = /^(\d[\w.-]{0,8})\s+(.+)$/.exec(v); const neu = m ? { nr: m[1], name: m[2] } : { name: v }; const vorher = { nr: x.nr, name: x.name }; await lvSetzen(id, neu); rueckgaengig(`LV umbenannt in „${v}“`, () => lvSetzen(id, vorher)); }
+      else if (ziel === 'ang') { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: v }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); rueckgaengig(`Angebot umbenannt in „${v}“`, async () => { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: alt }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }); }
+      else { await call('api/rechnungen/' + sub.slice(1), 'PUT', { re_nr: v }); }
+    } catch (er) { toast(er.message, true); t.innerHTML = html0; }
+  };
+  i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ende(true); } if (e.key === 'Escape') { e.preventDefault(); ende(false); } e.stopPropagation(); });
+  i.addEventListener('blur', () => ende(true));
+  i.addEventListener('click', (e) => e.stopPropagation());
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'F2' || !PJTABS.has(tab) || e.target.closest('input,textarea,select')) return;
+  const r = document.querySelector('#pjTree .pj-r.k.on') || document.querySelector('#pjTree .pj-r.lv.akt'); if (r) { e.preventDefault(); pjUmbenennen(r); }
+});
+document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
+  const r = e.detail.ziel.closest && e.detail.ziel.closest('#pjTree [data-pjlv]'); if (!r) return;
+  e.detail.punkte.push({ text: r.dataset.pjsub && r.dataset.pjsub[0] === 'r' ? 'Rechnungsnummer ändern' : 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`#pjTree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
+  if (!r.dataset.pjsub) e.detail.punkte.push({ text: 'LV- & Auftragsdaten …', fn: async () => { if (!L || L.id !== +r.dataset.pjlv) { await flush(); await openLv(+r.dataset.pjlv); } lvDaten(); } });
+  if (r.dataset.pjsub && r.dataset.pjsub[0] === 'b') e.detail.punkte.push({ text: 'Angaben zum Angebot …', fn: () => angebotDaten(+r.dataset.pjsub.slice(1)) });
+});
 function pjFokus() {
   const F = PJF; PJF = null; if (!F || !F.sub) return;
   const id = +F.sub.slice(1); let el = null;
@@ -849,6 +884,7 @@ document.addEventListener('click', async (e) => {
   if (e.target.closest('[data-pjzu]')) { PJZU = !PJZU; LS.set('pjzu', PJZU); render(); return; }
   const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else PJX.add(id); LS.set('pjx', [...PJX].slice(-100)); $('#pjTree').innerHTML = pjBaum(); return; }
   const r = e.target.closest('[data-pjlv]'); if (!r) return;
+  if (e.target.closest('.t') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt') && !e.target.closest('input')) { pjUmbenennen(r); return; }   // zweiter Klick auf die gewählte Zeile: umbenennen
   const id = +r.dataset.pjlv, sub = r.dataset.pjsub || null;
   PJSEL = sub; PJF = { lv: id, sub }; PJX.add(id); LS.set('pjx', [...PJX].slice(-100));
   if (tab === 'aufmass' && sub) { const x = LIST.find((y) => y.id === id); amAns = 'baum'; LS.set('amAns', amAns); (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX); }
@@ -872,6 +908,7 @@ function render() {
   document.querySelectorAll('[data-need="lv"]').forEach((b) => { b.disabled = !L; });
   // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
   $('.rib').classList.toggle('weg', !['lv', 'auftraege'].includes(tab) && document.activeElement !== $('#vq'));
+  $('#phLvD').hidden = !L || !L.id || !NURLV.has(tab); $('#phPrD').hidden = !pid;
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
@@ -1275,6 +1312,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const vg = t.closest('[data-vergabe]'); if (vg) return vergabeDialog(+vg.dataset.vergabe);
+  const adt = t.closest('[data-angdaten]'); if (adt) { angebotDaten(+adt.dataset.angdaten); return; }
   const ad = t.closest('[data-angdel]'); if (ad) {
     const id = L.id, x = JSON.parse(JSON.stringify(L.angebote.find((z) => z.id === +ad.dataset.angdel) || {})), vergeben = L.vergabe && L.vergabe.angebot_id === x.id;
     try { await call('api/angebote/' + ad.dataset.angdel, 'DELETE'); } catch (er) { toast(er.message, true); return; }
@@ -1319,6 +1357,8 @@ async function newDialog() {
       <div class="kgs" id="nlLv" hidden><select id="nlLvSel">${alle.map((x) => `<option value="${x.id}">${esc((x.nr ? x.nr + ' ' : '') + x.name)}${x.project_id !== pid ? ' – ' + esc((PROJ.find((p) => p.id === x.project_id) || {}).name || '') : ''}</option>`).join('')}</select>
         <label><input type="checkbox" id="nlMengen" checked> Mengen übernehmen</label></div>
       <label><input type="radio" name="nlSrc" value="gaeb"> aus einer GAEB-Datei (X81–X86) oder Excel – wird danach eingelesen</label>
+      <label><input type="radio" name="nlSrc" value="pdf"> aus einem PDF oder Scan – Titel und Positionen werden erkannt (Scans per Texterkennung)</label>
+      <div class="kgs" id="nlPdf" hidden><input type="file" id="nlPdfF" accept=".pdf,image/*,application/pdf"><label><input type="checkbox" id="nlPdfUe" checked> erkannte Positionen gleich übernehmen (das PDF bleibt rechts daneben zum Prüfen)</label></div>
       <label><input type="radio" name="nlSrc" value="frei"> ohne LV – nur Rechnungen erfassen (Firma und Auftragssumme frei, z. B. kleine Handwerker)</label>
       <div class="kgs" id="nlFrei" hidden>${freiFelder()}</div></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close) => {
@@ -1328,6 +1368,8 @@ async function newDialog() {
     if (!body.name && !body.gewerk) { toast('Bitte eine Bezeichnung oder ein Gewerk eingeben.', true); return; }
     if (src === 'lv') { body.kopie_von = +$('#nlLvSel').value; body.mengen = $('#nlMengen').checked; }
     if (src === 'frei' && !bg.querySelector('#frFirma').value.trim()) { toast('Bitte die Firma angeben.', true); return; }
+    const pdfF = src === 'pdf' ? (bg.querySelector('#nlPdfF').files || [])[0] : null, pdfUe = src === 'pdf' && bg.querySelector('#nlPdfUe').checked;
+    if (src === 'pdf' && !pdfF) { toast('Bitte das PDF oder den Scan wählen.', true); return; }
     try {
       let r = await api('api/lv', 'POST', body);
       if (src === 'bk') r = await api(`api/lv/${r.id}/aus-baukosten`, 'POST', { bk_id: +$('#nlBkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg) });
@@ -1335,11 +1377,16 @@ async function newDialog() {
       if (src === 'frei') r = await api('api/lv/' + r.id);
       close(); L = r; tab = src === 'frei' ? 'rechnungen' : 'lv'; LS.set('tab', tab); await refreshList(); render();
       if (src === 'gaeb') importDialog('lv');
+      if (src === 'pdf') {
+        await lvDokHoch(r.id, pdfF);
+        const d = ((L && L.dokumente) || []).slice(-1)[0];
+        if (pdfUe && d && d.n_pos) setTimeout(() => { const b = document.querySelector('[data-lvdokueb]'); if (b) b.click(); }, 300);
+      }
     } catch (e) { toast(e.message, true); }
   });
   const kgDraw = () => { const b = BK.find((x) => x.id === +$('#nlBkSel').value); $('#nlKgs').innerHTML = b ? '<br>' + b.kgs.map((k) => `<label><input type="checkbox" data-kg="${k}" checked> KG ${k}</label>`).join(' ') : ''; };
   bg.addEventListener('change', (e) => {
-    if (e.target.name === 'nlSrc') { $('#nlBk').hidden = e.target.value !== 'bk'; $('#nlLv').hidden = e.target.value !== 'lv'; $('#nlFrei').hidden = e.target.value !== 'frei'; if (e.target.value === 'bk') kgDraw(); }
+    if (e.target.name === 'nlSrc') { $('#nlBk').hidden = e.target.value !== 'bk'; $('#nlLv').hidden = e.target.value !== 'lv'; $('#nlFrei').hidden = e.target.value !== 'frei'; $('#nlPdf').hidden = e.target.value !== 'pdf'; if (e.target.value === 'bk') kgDraw(); }
     if (e.target.id === 'nlBkSel') kgDraw();
   });
   bg.querySelector('.modal').classList.add('wide');
@@ -1415,6 +1462,39 @@ function menu(anchor, list) {
 $('#newBtn').onclick = () => newDialog();
 async function lvVerlauf() { if (!L || !window.BPHead) { toast('Erst ein LV öffnen – der Verlauf gilt je Leistungsverzeichnis.'); return; } await flush(); BPHead.verlauf({ bereich: 'avalv:' + L.id, nach: () => openLv(L.id) }); }
 window.bpNachVerlauf = () => (L ? openLv(L.id) : location.reload());
+/* Stammdaten: Projekt (gemeinsame Maske), LV mit Auftrag, Angebot */
+$('#phPrD').onclick = () => { if (pid && window.BPHead && BPHead.projektDaten) BPHead.projektDaten(pid); };
+$('#phLvD').onclick = () => lvDaten();
+async function lvDaten() {
+  if (!L || !window.BPHead || !BPHead.datenMaske) return;
+  const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }
+  const A = (g) => g.map((x) => ({ ...x, felder: x.felder.map((f) => ({ ...f, k: 'a_' + f.k })) }));
+  const werte = () => ({ ...D.lv, ...Object.fromEntries(Object.entries(D.auftrag || {}).map(([k, v]) => ['a_' + k, v])) });
+  const tag = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
+  BPHead.datenMaske({
+    titel: 'LV- & Auftragsdaten', unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
+    gruppen: [...D.felder_lv, ...(D.vergeben ? A(D.felder_auftrag) : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
+    zusatz: (k) => (k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
+      : k === 'ausf_ende' && D.plan.ende ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.ende)} <button type="button" class="bph-btn" data-lvplan="ausf_ende">übernehmen</button></span>`
+      : k === 'a_beginn' && (D.lv.ausf_beginn || D.plan.start) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_beginn">wie Ausführung (${tag(D.lv.ausf_beginn || D.plan.start)})</button></span>`
+      : k === 'a_ende' && (D.lv.ausf_ende || D.plan.ende) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_ende">wie Ausführung (${tag(D.lv.ausf_ende || D.plan.ende)})</button></span>` : ''),
+    klick: async (e, ctx) => {
+      const b = e.target.closest('[data-lvplan]'); if (!b) return false; const k = b.dataset.lvplan, W = ctx.werte();
+      ctx.setzen(k, { ausf_beginn: D.plan.start, ausf_ende: D.plan.ende, a_beginn: W.ausf_beginn || D.plan.start, a_ende: W.ausf_ende || D.plan.ende }[k]); return true;
+    },
+    speichern: async (W) => {
+      const lv = {}, au = {}; Object.entries(W).forEach(([k, v]) => { if (k.startsWith('a_')) au[k.slice(2)] = v; else lv[k] = v; });
+      D = await api(`api/lv/${id}/daten`, 'PUT', { lv, auftrag: au });
+      return { werte: werte(), hinweis: D.vergeben ? 'Gespeichert.' : 'Gespeichert. Angaben zum Auftrag gibt es nach der Vergabe.' };
+    },
+    knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('avalv:' + id, 'Verlauf') : '',
+  });
+}
+async function angebotDaten(aid) {
+  let D; try { D = await api(`api/angebote/${aid}/daten`); } catch (e) { toast(e.message, true); return; }
+  BPHead.datenMaske({ titel: 'Angaben zum Angebot', unter: D.titel, gruppen: D.felder, werte: D.werte,
+    speichern: async (W) => { D = await api(`api/angebote/${aid}/daten`, 'PUT', { werte: W }); return { werte: D.werte }; } });
+}
 $('#moreBtn').onclick = () => {
   if (!L) return;
   modalBox(`<h3>Archivieren oder löschen</h3><p><b>${L.archived ? 'Zurückholen' : 'Archivieren'}</b> ${L.archived ? 'stellt das LV wieder zu den laufenden.' : 'nimmt das LV aus der Liste – mit Angeboten, Aufmaß und Rechnungen bleibt alles erhalten.'}</p>
@@ -1466,7 +1546,7 @@ function vAngebote() {
   const sorted = [...A];
   return head + `<p class="hint" style="margin:-.2rem 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter). <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
     <div class="tblw"><table class="lv ps"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th>
-      ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
+      ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner …">ⓘ</button><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
         <label class="hint" style="font-weight:400">Eingang <input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto"></label></th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody><tfoot>
       <tr><td></td><td colspan="3">Summe netto</td>${sorted.map((a) => `<td class="r">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}</tr>

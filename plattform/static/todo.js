@@ -98,9 +98,10 @@ function tdEditor(x) {
   return `<div class="te" data-te="${x.id || ''}">
     <label>Aufgabe<input data-tf="titel" value="${esc(x.titel || '')}"></label>
     <div class="row"><label>fällig am<input type="date" data-tf="faellig" value="${esc(x.faellig || '')}"></label>
+      <label title="Erinnerung per Mail an dich und die Beteiligten – mit „per Mail benachrichtigen“ steht sie auch im Kalendertermin">Erinnerung<select data-tf="erinnerung"><option value="">keine</option>${((R.erinnerung) || []).map(([k, t]) => `<option value="${k}"${x.erinnerung === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
       <label>Projekt<span style="display:flex;gap:.3rem"><input type="hidden" data-tf="pid" value="${x.pid || ''}"><button type="button" class="tdp" data-td="projekt">${x.pid ? esc(((R.projekte.find((p) => p.id === x.pid)) || {}).name || 'Projekt') : '– ohne Projekt –'} ▾</button>${x.pid ? '<button type="button" class="tdp" data-td="ohneprojekt" title="Ohne Projekt" style="flex:none">✕</button>' : ''}</span></label></div>
     <div><span style="font-size:.8rem;color:var(--mute)">Beteiligte – sehen die Aufgabe und können sie erledigen</span><div class="bph-chips">${R.benutzer.filter((u) => u.id !== R.ich).map((u) => `<button type="button" class="bph-chip${pers.has(u.id) ? ' on' : ''}" data-tp="${u.id}" aria-pressed="${pers.has(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Keine weiteren Benutzer.</small>'}</div></div>
-    <label class="ck2"><input type="checkbox" data-tf="mail"${x.mail ? ' checked' : ''}> mich und alle Beteiligten per Mail benachrichtigen (beim Setzen des Häkchens und für neu Hinzugefügte) – mit Fälligkeit als Termin zum Annehmen</label>
+    <label class="ck2"><input type="checkbox" data-tf="mail"${x.mail ? ' checked' : ''}> mich und alle Beteiligten per Mail benachrichtigen (beim Setzen des Häkchens und für neu Hinzugefügte) – mit Fälligkeit und Erinnerung als Termin zum Annehmen</label>
     <label class="ck2"><input type="checkbox" data-tf="prio"${x.prio ? ' checked' : ''}> ❗ wichtig</label>
     <label>Notiz<textarea data-tf="notiz" rows="2">${esc(x.notiz || '')}</textarea></label>
     <div><span style="font-size:.8rem;color:var(--mute)">Anhänge und Fotos</span>
@@ -154,7 +155,7 @@ function tdSpaeterMenue(btn, fn) {
 }
 function tdLesen(te) {
   const v = (k) => te.querySelector(`[data-tf="${k}"]`);
-  return { titel: v('titel').value.trim(), faellig: v('faellig').value, pid: +v('pid').value || null, mail: v('mail').checked, prio: v('prio').checked, notiz: v('notiz').value,
+  return { titel: v('titel').value.trim(), faellig: v('faellig').value, erinnerung: v('erinnerung') ? v('erinnerung').value : '', pid: +v('pid').value || null, mail: v('mail').checked, prio: v('prio').checked, notiz: v('notiz').value,
     personen: [...te.querySelectorAll('[data-tp].on')].map((b) => +b.dataset.tp) };
 }
 document.addEventListener('submit', async (e) => {
@@ -162,10 +163,22 @@ document.addEventListener('submit', async (e) => {
   const inp = $('#tdNeu'), t = inp.value.trim(); if (!t) return;
   const x = tdDatumAus(t), gew = +inp.dataset.btId || null;   // aus der Vorschlagsliste gewähltes Projekt
   await tdRef();
-  const nurProjekt = tdNurProjekt(t, gew);   // nur ein Projekt getippt („A480“, „Tierheim“) → Projekt vorwählen, keine Aufgabe
-  if (nurProjekt) { TDPROJ = nurProjekt; delete inp.dataset.btId; tdZeigen(); tdFokus(); return; }
-  const pk = tdProjektAus(t) || (gew && (TDREF.projekte || []).find((p) => p.id === gew)) || TDPROJ;   // sonst: Projekt im Text, vorgewählt – nie automatisch das Projekt oben
-  try { const r = await api('api/bp/todo', 'POST', { ...x, pid: pk ? pk.id : null }); delete inp.dataset.btId; TD.manuell.unshift(r.aufgabe); tdZeigen(); tdFokus(); toast(`Aufgabe angelegt${pk ? ' – ' + pk.name : ' – ohne Projekt'}${x.faellig ? ', fällig ' + tdDatum(x.faellig) : ''}.`); }
+  // Projekt im Text erkennen – nur unter meinen aktiven Projekten. Gefunden: Aufgabe „Projekt Notiz“ mit Projekt, sonst nur „Notiz“
+  const MEINE = new Set(TDREF.meine || []), alle = TDREF.projekte || [];
+  TDREF.projekte = alle.filter((p) => MEINE.has(p.id));
+  let pk = null, notiz = x.titel;
+  try {
+    pk = tdNurProjekt(x.titel, gew) || tdProjektAus(x.titel);
+    if (pk) {   // Stichwort des Projekts aus dem Text nehmen („A480“, „Tierheim“)
+      const kurz = ((pk.name || '').trim().split(/\s+/)[0] || '').replace(/[.,:;]+$/, '');
+      const rest = x.titel.toLowerCase() === (pk.name || '').toLowerCase() ? '' : x.titel.replace(new RegExp('(^|\\s)' + kurz.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=$|[\\s,.:;])', 'i'), ' ').trim();
+      notiz = rest.split(/\s+/).filter((w) => !(w.length > 3 && (pk.name || '').toLowerCase().includes(w.toLowerCase())) || rest.split(/\s+/).length > 3).join(' ').trim();
+    }
+  } finally { TDREF.projekte = alle; }
+  if (!pk && gew) pk = alle.find((p) => p.id === gew) || null;   // aus der Vorschlagsliste gewählt
+  if (!pk && TDPROJ) pk = TDPROJ;
+  const titel = pk ? `${pk.name} ${notiz}`.trim() : notiz;
+  try { const r = await api('api/bp/todo', 'POST', { ...x, titel, pid: pk ? pk.id : null }); delete inp.dataset.btId; TD.manuell.unshift(r.aufgabe); tdZeigen(); tdFokus(); toast(`Aufgabe angelegt${pk ? ' – ' + pk.name : ' – ohne Projekt'}${x.faellig ? ', fällig ' + tdDatum(x.faellig) : ''}.`); }
   catch (er) { toast(er.message, true); }
 });
 document.addEventListener('click', async (e) => {

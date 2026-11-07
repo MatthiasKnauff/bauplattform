@@ -496,8 +496,57 @@ def automatisch(c, u):
 
 
 # ---------------------------------------------------------------- manuelle Aufgaben
+# Erinnerung zur Fälligkeit: Schlüssel → (Minuten vor Beginn des Fälligkeitstags für den Kalender-Alarm, Text)
+# Kalender: ganztägiger Termin beginnt um 0 Uhr – „am Tag, 8 Uhr“ = 8 Stunden NACH Beginn (negativ = danach)
+ERINNERUNG = {"tag": (-480, "am Fälligkeitstag, 8 Uhr"), "1t": (960, "1 Tag vorher, 8 Uhr"), "2t": (2400, "2 Tage vorher, 8 Uhr"), "1w": (8160, "1 Woche vorher, 8 Uhr")}
+
+
+def erinnerung_zeit(faellig, art):
+    """Zeitpunkt der Erinnerung (datetime) oder None."""
+    if not faellig or art not in ERINNERUNG:
+        return None
+    try:
+        return datetime.fromisoformat(faellig + "T00:00") - timedelta(minutes=ERINNERUNG[art][0])
+    except ValueError:
+        return None
+
+
+def erinnerungen_senden(c, jetzt=None):
+    """Offene Aufgaben, deren Erinnerung fällig ist: einmal per Mail an Ersteller und Beteiligte (mit E-Mail-Adresse)."""
+    from . import mail as M, platform as PF
+    from .skizze import name_von
+    jetzt = jetzt or datetime.now()
+    cf = M.conf(c)
+    if not M.configured(cf):
+        return 0
+    n = 0
+    for x in c.execute("SELECT * FROM todo WHERE status='offen' AND erinnerung<>'' AND faellig<>''").fetchall():
+        t = erinnerung_zeit(x["faellig"], x["erinnerung"])
+        key = f"todo:erinnert:{x['id']}"
+        if not t or t > jetzt or t < jetzt - timedelta(days=2) or c.execute("SELECT 1 FROM bp_store WHERE key=?", (key,)).fetchone():
+            continue
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO NOTHING", (key, x["faellig"], jetzt.isoformat(timespec="seconds"), "todo"))
+        ids = {x["erstellt_von"], *_ids(x["personen"])}
+        pr = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone() if x["project_id"] else None
+        lk = PF.link("portal", "", cf)
+        for u in c.execute("SELECT * FROM users WHERE active=1").fetchall():
+            if u["id"] not in ids or not (u["email"] or "").strip():
+                continue
+            d = datetime.fromisoformat(x["faellig"])
+            txt = (f"Hallo {name_von(u)},\n\nErinnerung an die Aufgabe\n\n    {x['titel']}\n\n" + (f"Projekt: {pr['name']}\n" if pr else "")
+                   + f"Fällig: {d.strftime('%d.%m.%Y')}\n" + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {lk}\n" if lk else ""))
+            try:
+                M.send(cf, u["email"], f"Erinnerung: {x['titel'][:80]} – fällig {d.strftime('%d.%m.')}", txt, sender=cf.get("office_name") or "Bauplattform")
+                n += 1
+            except Exception:
+                pass
+    return n
+
+
 def _zeile(x, U, D=None):
+    k = set(x.keys()) if hasattr(x, "keys") else set()
     return {"dateien": (D or {}).get(x["id"], []), "id": x["id"], "titel": x["titel"], "notiz": x["notiz"], "pid": x["project_id"], "faellig": x["faellig"], "prio": x["prio"],
+            "erinnerung": (x["erinnerung"] if "erinnerung" in k else "") or "",
             "personen": _ids(x["personen"]), "personen_namen": [U.get(i, "?") for i in _ids(x["personen"])], "mail": bool(x["mail"]),
             "status": x["status"], "erstellt": x["erstellt"], "erstellt_von": x["erstellt_von"], "erstellt_name": x["erstellt_name"],
             "erledigt": x["erledigt"], "erledigt_name": x["erledigt_name"], "auto": False, "key": f"t:{x['id']}"}

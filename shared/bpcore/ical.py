@@ -55,6 +55,6 @@ def einladung(uid, datum, uhrzeit, minuten, titel, text, ort, organisator, organ
           f"ATTENDEE;CN={_esc(teilnehmer_name)};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:{teilnehmer}",
           "STATUS:CONFIRMED", "TRANSP:TRANSPARENT" if ganztags else "TRANSP:OPAQUE"]
     if alarm_min:
-        L += ["BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{_esc(titel)}", f"TRIGGER:-PT{int(alarm_min)}M", "END:VALARM"]
+        L += ["BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{_esc(titel)}", (f"TRIGGER:-PT{int(alarm_min)}M" if alarm_min > 0 else f"TRIGGER;RELATED=START:PT{-int(alarm_min)}M"), "END:VALARM"]
     L += ["END:VEVENT", "END:VCALENDAR"]
     return "\r\n".join(_fold(x) for x in L) + "\r\n"

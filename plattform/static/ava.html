@@ -117,6 +117,8 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .qu-l{flex:1;overflow:auto}
 .qu-busy{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;background:color-mix(in srgb,var(--card) 72%,transparent);color:var(--mute);font-size:.9rem;container-type:inline-size}
 .wspin{position:relative;width:clamp(36px,22cqw,140px);aspect-ratio:1}
+.ava-job{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:900;background:var(--card,#252729);color:inherit;border:1px solid var(--line);border-radius:10px;padding:.55rem .9rem;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:.92rem;max-width:92vw}
+.ava-job small{color:var(--mute,#999);margin-left:.4rem}
 .wspin i{position:absolute;inset:0;opacity:0;animation:wspin 4.4s infinite}
 .wspin i::after{content:'';position:absolute;left:50%;top:0;width:13%;aspect-ratio:1;border-radius:50%;background:var(--y);transform:translateX(-50%)}
 .wspin i:nth-child(2){animation-delay:.24s}.wspin i:nth-child(3){animation-delay:.48s}.wspin i:nth-child(4){animation-delay:.72s}.wspin i:nth-child(5){animation-delay:.96s}
@@ -467,7 +469,7 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
   </div>
 </main>
 <div id="mView" aria-label="Handy-Ansicht"></div>
-<input type="file" id="fileIn" accept=".x81,.x82,.x83,.x84,.x85,.x86,.xml,.xlsx" hidden>
+<input type="file" id="fileIn" accept=".x81,.x82,.x83,.x84,.x85,.x86,.xml,.xlsx,.pdf,image/*,.docx" hidden>
 <datalist id="lbList"></datalist><datalist id="ehList"><option>m</option><option>m2</option><option>m3</option><option>St</option><option>psch</option><option>kg</option><option>t</option><option>h</option><option>lfm</option></datalist>
 <datalist id="gwList"></datalist>
 <script src="static/bp.js"></script>
@@ -786,10 +788,7 @@ async function avaAblegen(f, E, o) {
       if (ausAng && d && !d.laeuft && d.n_pos >= 3) setTimeout(async () => {
         if (!(await bpFrage(`Die Preise auch als Angebot von „${o.firma || 'Firma'}“ eintragen (Preisspiegel)?`, { ok: 'Eintragen' }))) return;
         try {
-          await flush();
-          const fd = new FormData(); fd.append('datei', f); fd.append('bieter', o.firma || f.name); if (K) fd.append('contact_id', K.id);
-          const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await jsonAus(r); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
-          L = j; render(); toast(j.hinweis || 'Angebot eingetragen.'); refreshList();
+          await flush(); await angebotPdf(lvId, f, o.firma || f.name, K ? K.id : null);
         } catch (e) { toast(e.message, true); }
       }, 1500);
     }
@@ -797,12 +796,7 @@ async function avaAblegen(f, E, o) {
   }
   if (o.art === 'angebot') {
     tab = 'angebote'; LS.set('tab', tab); render();
-    if (E.format === 'pdf') {
-      const fd = new FormData(); fd.append('datei', f); fd.append('bieter', o.firma || f.name); if (K) fd.append('contact_id', K.id);
-      if (window.BPHead && BPHead.ki && BPHead.ki !== 'intern') { fd.append('ki', '1'); toast('Angebot wird gelesen, übrige Zeilen ordnet die KI zu …'); }
-      const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await jsonAus(r); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
-      L = j; render(); toast(j.hinweis || 'Angebot übernommen.'); refreshList(); await ablegen(); return;
-    }
+    if (E.format === 'pdf' || E.format === '') { await angebotPdf(lvId, f, o.firma || f.name, K ? K.id : null); await ablegen(); return; }
     IMP = { ziel: 'angebot', bieter: o.firma, contact_id: K ? K.id : null }; await doImport(f); await ablegen(); return;
   }
   // Rechnung / Aufmaß: PDF in die Aufmaßprüfung (offene Rechnung, sonst neue)
@@ -994,18 +988,50 @@ function lvOcrWarten(id, uebernehmen, dokId) {
 /* KI nur auf Nachfrage: welche KI, und dass der Text dorthin geht */
 const DOK_ACCEPT = '.pdf,application/pdf,image/*,.jpg,.jpeg,.png,.tif,.tiff,.docx,.txt,.csv,.x81,.x82,.x83,.x84,.x85,.x86,.d83,.d84,.p83,.p84,.xlsx,.xlsm';
 const istImport = (f) => /\.(x8[1-6]|d8[1-6]|p8[1-6]|x3[12]|xlsx|xlsm)$/i.test(f.name || '');
-function kiWahl(text) {
-  const P = ((window.BPHead && BPHead.providers) || []).filter((p) => p.ok && p.key !== 'intern');
-  if (!P.length) { toast('Keine KI eingerichtet – in der Verwaltung → Einstellungen → KI (z. B. Ollama im Büro).', true); return Promise.resolve(null); }
+function kiWahl(text, opt = {}) {
+  const P = ((window.BPHead && BPHead.providers) || []).filter((p) => p.ok && p.key !== 'intern' && (!opt.bild || p.bild));
+  if (!P.length) { toast(opt.bild ? 'Keine KI eingerichtet, die Bilder liest (Claude, Gemini, ChatGPT oder Ollama mit Bildmodell) – Verwaltung → Einstellungen → KI.' : 'Keine KI eingerichtet – in der Verwaltung → Einstellungen → KI (z. B. Ollama im Büro).', true); return Promise.resolve(null); }
   const vor = (P.find((p) => p.key === (window.BPHead && BPHead.ki)) || P.find((p) => p.key === 'ollama') || P[0]).key;
   return new Promise((fertig) => {
-    modalBox(`<h3>Mit KI lesen?</h3><p>${text}</p><p class="hint" style="margin:.2rem 0 .5rem">Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.</p>
+    modalBox(`<h3>Mit KI lesen?</h3><p>${text}</p><p class="hint" style="margin:.2rem 0 .5rem">${opt.hinweis || 'Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.'}</p>
       <div class="src">${P.map((p) => `<label><input type="radio" name="kiW" value="${p.key}"${p.key === vor ? ' checked' : ''}> <b>${esc(p.label)}</b> <span class="hint">${esc(p.hint || '')}</span></label>`).join('')}</div>
       <div class="acts"><button class="btn" data-m="x">Nein, danke</button><button class="btn pri" data-m="ok">Mit KI lesen</button></div>`, (m, bg, close) => {
       if (m === 'x') { close(); fertig(null); }
       if (m === 'ok') { const k = bg.querySelector('[name=kiW]:checked'); close(); fertig(k ? k.value : null); }
     });
   });
+}
+/* Hintergrundarbeit des Servers (Texterkennung, KI) abwarten */
+function avaJob(jid) {
+  return new Promise((fertig) => {
+    const t = async () => { let J; try { J = await api('api/avajob/' + jid); } catch (e) { J = { status: 'fehler', fehler: e.message }; }
+      if (J.status === 'laeuft') { const st = document.querySelector('#avaJobSt'); if (st && J.stand) st.textContent = J.stand; setTimeout(t, 3000); } else fertig(J); };
+    setTimeout(t, 2500);
+  });
+}
+async function avaJobLeiste(text, jid) {
+  const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = `<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> ${esc(text)} <small id="avaJobSt"></small>`;
+  document.body.appendChild(el);
+  try { return await avaJob(jid); } finally { el.remove(); }
+}
+/* Angebot als PDF/Scan/Foto: Preise erkennen; Scans im Hintergrund; handschriftliche Preise auf Nachfrage per Bild-KI */
+async function angebotPdf(lvId, f, bieter, cid, kiBild) {
+  const fd = new FormData(); fd.append('datei', f); fd.append('bieter', bieter || f.name); if (cid) fd.append('contact_id', cid);
+  if (kiBild) fd.append('ki_bild', kiBild);
+  else if (window.BPHead && BPHead.ki && BPHead.ki !== 'intern') fd.append('ki', '1');
+  toast(`„${f.name}“ wird gelesen …`);
+  let j; try { const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }); j = await jsonAus(r); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); }
+  catch (e) { toast(e.message, true); return; }
+  if (!j.job) { L = j; render(); toast(j.hinweis || 'Angebot übernommen.'); refreshList(); return; }
+  const J = await avaJobLeiste(kiBild ? 'Die KI liest die Preise …' : 'Eingescanntes Angebot – Texterkennung läuft …', j.job);
+  if (L && L.id === lvId) { L = await api('api/lv/' + lvId); render(); } refreshList();
+  const ohne = J.status === 'fehler' ? /KI/.test(J.fehler || '') : /ohne lesbaren Preis/.test(J.hinweis || '');
+  if (J.status === 'fehler' && !ohne) { toast(J.fehler, true); return; }
+  if (J.status !== 'fehler') toast(J.hinweis || 'Angebot übernommen.');
+  if (ohne && !kiBild) {
+    const ki = await kiWahl(`${J.status === 'fehler' ? 'Im Scan sind keine lesbaren Preise' : 'Einige Preise sind nicht lesbar'} – vermutlich handschriftlich eingetragen. Soll eine KI die Preise von den Seitenbildern lesen? Übernommen wird ein Preis, wenn Menge × EP = GP aufgeht.`, { bild: true, hinweis: 'Die Seitenbilder des Angebots gehen an die gewählte KI. Gelesene Preise werden beim Angebot eingetragen – im Preisspiegel prüfen und bei Bedarf ändern.' });
+    if (ki) return angebotPdf(lvId, f, bieter, cid, ki);
+  }
 }
 async function lvKiStarten(dokId, uebernehmen, text) {
   const ki = await kiWahl(text || 'Die KI liest das Dokument und schlägt Titel und Positionen vor – auch bei Angeboten, Listen oder Fotos ohne festes LV-Schema.');
@@ -1504,7 +1530,7 @@ function importDialog(ziel) {
   IMP = { ziel };
   const bieterOpts = (KONT || []).map((k) => `<option value="${k.id}">${esc(k.name)}${k.trade ? ' · ' + esc(k.trade) : ''}</option>`).join('');
   const bg = modalBox(`<h3>${ziel === 'angebot' ? 'Angebot einlesen' : 'Leistungsverzeichnis einlesen'}</h3>
-    <p class="hint" style="margin:0 0 .6rem">${ziel === 'angebot' ? 'GAEB-Angebotsdatei (X84) oder das ausgefüllte Excel der Firma. Die Preise werden über die Ordnungszahl zugeordnet.' : 'GAEB DA XML (X81, X83, X84, X86) aus ORCA, California, AVA-Programmen oder Herstellern – oder eine Excel-Liste mit OZ, Kurztext, Menge, Einheit.'}</p>
+    <p class="hint" style="margin:0 0 .6rem">${ziel === 'angebot' ? 'GAEB-Angebotsdatei (X84), das ausgefüllte Excel der Firma oder das Angebot als PDF, Scan oder Foto (auch das ausgefüllte LV). Die Preise werden über die Ordnungszahl, sonst über den Kurztext zugeordnet.' : 'GAEB DA XML (X81, X83, X84, X86) aus ORCA, California, AVA-Programmen oder Herstellern, eine Excel-Liste mit OZ, Kurztext, Menge, Einheit – oder ein PDF, Scan, Foto oder Word-Dokument.'}</p>
     ${ziel === 'angebot' ? `<div class="fm"><label>Bieter</label><select id="impBieter"><option value="">– aus der Datei –</option>${L.angebote.map((a) => `<option value="a${a.id}">${esc(a.bieter)} (vorhanden)</option>`).join('')}${bieterOpts}</select></div>`
       : (posOf().length ? '<label style="display:flex;gap:.5rem;margin:.4rem 0"><input type="checkbox" id="impErs"> vorhandene Positionen ersetzen (sonst anhängen)</label>' : '')}
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Datei wählen …</button></div>`, (m, bg, close) => {
@@ -1516,6 +1542,8 @@ function importDialog(ziel) {
   });
 }
 async function doImport(file) {
+  if (IMP && IMP.ziel === 'angebot' && !istImport(file)) { const I = IMP; IMP = null; await flush(); return angebotPdf(L.id, file, I.bieter || file.name.replace(/\.[^.]+$/, ''), I.contact_id); }
+  if (IMP && IMP.ziel !== 'angebot' && !istImport(file)) { IMP = null; return lvDokHoch(L.id, file, { uebernehmen: true }); }
   const fd = new FormData(); fd.append('datei', file); fd.append('ziel', IMP ? IMP.ziel : 'lv');
   if (IMP && IMP.ersetzen) fd.append('ersetzen', '1');
   if (IMP && IMP.bieter) fd.append('bieter', IMP.bieter);
@@ -1937,8 +1965,8 @@ function amPdfZeige(pid, sofort, direkt) {
   V.el.scrollTo({ top: wrap.offsetTop + y0 * wrap.offsetHeight - V.el.clientHeight * 0.3, behavior: sofort ? 'auto' : 'smooth' });
 }
 async function amBelegHoch(files) {
-  files = [...files].filter((f) => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
-  if (!files.length) return toast('Bitte eine PDF-Datei wählen.', true);
+  files = [...files].filter((f) => /\.(pdf|jpe?g|png|tiff?|docx)$/i.test(f.name) || /^(application\/pdf|image\/)/.test(f.type));
+  if (!files.length) return toast('Bitte eine PDF-Datei, einen Scan oder ein Foto wählen.', true);
   if (!vergeben()) return toast('Erst vergeben: geprüft wird gegen die Preise des Auftrags.', true);
   let R = L.rechnungen.find((r) => r.status !== 'geprueft');
   if (!R) { try { await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'abschlag' }); } catch (e) { return toast(e.message, true); } R = L.rechnungen.find((r) => r.status !== 'geprueft'); if (!R) return; }
@@ -1948,12 +1976,20 @@ async function amBelegHoch(files) {
     try { const r = await fetch(`api/rechnungen/${R.id}/beleg`, { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await jsonAus(r); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status); L = d; }
     catch (e) { toast(e.message, true); return; }
   }
-  const R2 = L.rechnungen.find((r) => r.id === R.id), nb = R2.belege[R2.belege.length - 1];
+  let R2 = L.rechnungen.find((r) => r.id === R.id), nb = R2.belege[R2.belege.length - 1];
+  if (nb.auslese && nb.auslese.laeuft) {   // Scan/Foto: Texterkennung läuft im Hintergrund
+    const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = '<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Eingescannte Rechnung – Texterkennung läuft …'; document.body.appendChild(el);
+    const lvId = L.id;
+    try { for (let k = 0; k < 200; k++) { await new Promise((ok) => setTimeout(ok, 3000)); const x = await api('api/lv/' + lvId).catch(() => null); const b2 = x && x.rechnungen.flatMap((r) => r.belege || []).find((b) => b.id === nb.id); if (b2 && !(b2.auslese && b2.auslese.laeuft)) { if (L && L.id === lvId) L = x; break; } } }
+    finally { el.remove(); }
+    if (!L || L.id !== lvId) return;
+    R2 = L.rechnungen.find((r) => r.id === R.id); nb = R2 && R2.belege.find((b) => b.id === nb.id); if (!nb) return;
+  }
   AMB = nb.id; LS.set('amB', AMB); amAns = 'erfassen';
   if (Object.values((nb.auslese && nb.auslese.pos) || {}).length) { amNurR = true; LS.set('amNurR', true); } LS.set('amAns', amAns);
   const P = Object.keys((nb.auslese && nb.auslese.pos) || {}); if (P.length) { amPos = posOf().find((p) => P.includes(p.id)).id; LS.set('amPos', amPos); }
   render();
-  if (nb.auslese && nb.auslese.text === false) return toast('Die PDF hat keine Textebene (Scan) – bitte Schritt für Schritt von Hand durchgehen.');
+  if (nb.auslese && nb.auslese.text === false) return toast('In der Datei ist kein lesbarer Text – bitte Schritt für Schritt von Hand durchgehen.');
   await amUebernehmen(null, true);
   if ((nb.auslese.zeilen || []).length && window.BPHead && BPHead.ki && BPHead.ki !== 'intern') amKi(nb.id, true);   // übrige Zeilen gleich per KI zuordnen
 }

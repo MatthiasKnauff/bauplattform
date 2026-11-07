@@ -2110,90 +2110,33 @@ def _lvdok_tabelle(c):
     _LVDOK["ok"] = True
 
 
-def _seiten_zeilen(data, seiten=60):
-    """[(Seite, Breite, Höhe, [[Wörter einer Zeile]])], bei Scans per Texterkennung (bis 30 Seiten)."""
-    import pdfplumber
-    out, ocr = [], False
-    with pdfplumber.open(io.BytesIO(data)) as pdf:
-        for n, pg in enumerate(pdf.pages[:seiten], 1):
-            ws = pg.extract_words(keep_blank_chars=False, use_text_flow=False)
-            if not ws and n <= 30:
-                ws = _ocr_woerter(pg)
-                ocr = ocr or bool(ws)
-            ws = sorted(ws, key=lambda w: (float(w["top"]), float(w["x0"])))
-            zeilen = []
-            for w in ws:
-                m_ = (float(w["top"]) + float(w["bottom"])) / 2
-                if zeilen and abs(m_ - zeilen[-1][0]["_m"]) <= max(3.0, (float(w["bottom"]) - float(w["top"])) * 0.45):
-                    zeilen[-1].append(w)
-                else:
-                    w["_m"] = m_
-                    zeilen.append([w])
-            for z in zeilen:
-                z.sort(key=lambda w: float(w["x0"]))
-            out.append((n, float(pg.width), float(pg.height), zeilen))
-    return out, ocr
-
-
-def _lv_lesen(data):
-    """Zeilen mit Stelle (zum Anklicken) und ein Vorschlag für Titel/Positionen: OZ am Zeilenanfang, Menge + Einheit am Ende,
-    folgende Zeilen bis zur nächsten OZ als Langtext."""
-    S, ocr = _seiten_zeilen(data)
-    rx_oz = re.compile(r"^\d{1,4}(?:\.\d{1,4}){1,4}\.?$")
-    rx_eh = re.compile("^" + _EINHEITEN + "$", re.I)
-    zeilen, alle = {}, []
-    for n, W_, H_, Z in S:
+def _lv_lesen(data, fortschritt=None):
+    """Zeilen mit Stelle (zum Anklicken) und ein Vorschlag für Titel/Positionen – über Positionsblöcke (ava_lesen):
+    OZ in der OZ-Spalte, Menge/Einheit/Preise irgendwo im Block (erste Zeile, letzte Zeile des Langtexts, Spalten)."""
+    import ava_lesen as AL
+    S = AL.seiten(data, max_seiten=80, ocr_seiten=40, fortschritt=fortschritt)
+    zeilen, ocr = {}, False
+    for n, W_, H_, ws, o in S:
+        ocr = ocr or o
         zl = zeilen.setdefault(str(n), [])
-        for z in Z:
-            t = " ".join(w["text"] for w in z).strip()
-            if not t:
-                continue
-            zl.append([round(min(float(w["x0"]) for w in z) / W_, 4), round(min(float(w["top"]) for w in z) / H_, 4),
-                       round(max(float(w["x1"]) for w in z) / W_, 4), round(max(float(w["bottom"]) for w in z) / H_, 4), t[:400]])
-            alle.append((n, [w["text"] for w in z], t))
-    vor, akt = [], None
-    for n, toks, t in alle:
-        oz = toks[0].rstrip(".") if toks and (rx_oz.match(toks[0]) or (re.fullmatch(r"\d{1,2}\.?", toks[0]) and len(toks) > 1 and not any(_zahl(x) is not None for x in toks[1:]))) else None
-        if oz:
-            rest = toks[1:]
-            menge = eh = None
-            # Menge und Einheit am Ende (auch „12,500 m2 ....... ......“)
-            rr = [x for x in rest if not re.fullmatch(r"[._…\-]{2,}|€|eur", x, re.I)]
-            hinten = []
-            for k in range(len(rr) - 1, max(0, len(rr) - 5), -1):   # „12,500 m2“ (dahinter ggf. EP und GP)
-                if rx_eh.match(rr[k]) and k > 0 and _zahl(rr[k - 1]) is not None:
-                    menge, eh, hinten, rr = _zahl(rr[k - 1]), rr[k], rr[k + 1:], rr[:k - 1]
-                    break
-            if menge is None:
-                for k in range(len(rr) - 1, max(1, len(rr) - 3), -1):   # „m2 12,500“
-                    if rx_eh.match(rr[k - 1]) and _zahl(rr[k]) is not None:
-                        menge, eh, hinten, rr = _zahl(rr[k]), rr[k - 1], rr[k + 1:], rr[:k - 1]
-                        break
-            # Angebot: hinter Menge und Einheit stehen Einheitspreis und Gesamtpreis
-            if menge is None:   # „… 12,500 m2 45,00 562,50“ – Menge/Einheit weiter vorn
-                for k in range(len(rr) - 3, 0, -1):
-                    zs = [_zahl(x) for x in rr[k + 1:]]
-                    if rx_eh.match(rr[k]) and _zahl(rr[k - 1]) is not None and len(zs) == 2 and None not in zs:
-                        menge, eh, hinten, rr = _zahl(rr[k - 1]), rr[k], rr[k + 1:], rr[:k - 1]
-                        break
-            ep = None
-            zs = [z for z in (_zahl(x) for x in hinten) if z is not None]
-            if len(zs) >= 2:
-                ep = zs[0]
-            text = " ".join(rr).strip(" .:")
-            if menge is not None and text:
-                akt = {"typ": "pos", "art": "N", "oz": oz, "kurz": text[:250], "lang": "", "menge": menge, "einheit": eh, "seite": n}
-                if ep is not None:
-                    akt["ep_s"] = ep
-                vor.append(akt)
-                continue
-            if text and menge is None and len(rest) <= 14 and not any(_zahl(x) is not None and "," in x for x in rest):
-                akt = None
-                vor.append({"typ": "titel", "oz": oz, "kurz": text[:200], "lvl": min(3, oz.count(".") + 1), "seite": n})
-                continue
-        if akt and len(akt["lang"]) < 4000 and not re.fullmatch(r"[\s._…\-€]*|(seite|übertrag|summe|ep|gp)\b.*", t, re.I):
-            akt["lang"] = (akt["lang"] + "\n" + t).strip()
-    return {"zeilen": zeilen, "vorschlag": vor[:3000], "ocr": ocr}
+        for z in AL.zeilen(ws):
+            t = z["t"].strip()
+            if t:
+                zl.append([round(min(float(w["x0"]) for w in z["w"]) / W_, 4), round(z["top"] / H_, 4),
+                           round(max(float(w["x1"]) for w in z["w"]) / W_, 4), round(z["bottom"] / H_, 4), t[:400]])
+    X = AL.bloecke(S)
+    B = X["bloecke"]
+    vor = []
+    for x in B:
+        if x["titel"]:
+            vor.append({"typ": "titel", "oz": x["oz"], "kurz": x["kurz"][:200], "lvl": max(1, min(4, len(AL.ozn(x["oz"])))), "seite": x["seite"]})
+        elif x["kurz"] or x["menge"] is not None:
+            y = {"typ": "pos", "art": "N", "oz": x["oz"], "kurz": (x["kurz"] or x["lang"][:80])[:250], "lang": x["lang"], "menge": x["menge"] or 0,
+                 "einheit": x["einheit"] or "", "seite": x["seite"]}
+            if x.get("ep") is not None:
+                y["ep_s"] = x["ep"]
+            vor.append(y)
+    return {"zeilen": zeilen, "vorschlag": vor[:3000], "ocr": ocr, "kopf": sorted(X["kopf"] or {})}
 
 
 def _lvdoks(c, i):
@@ -2244,7 +2187,7 @@ def lvdok_neu(i):
                 B = {"zeilen": {}, "vorschlag": [], "ocr": True, "fehler": str(e)[:200]}
             with db.tx() as c2:
                 c2.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(B, ensure_ascii=False), d))
-        threading.Thread(target=lesen, daemon=True).start()
+        threading.Thread(target=_mit_user(lesen), daemon=True).start()
     return antwort
 
 
@@ -2447,7 +2390,7 @@ def lvdok_ki(d):
         c.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), d))
         lv_id = x["lv_id"]
     import threading
-    threading.Thread(target=_lvdok_ki, args=(d, ki), daemon=True).start()
+    threading.Thread(target=_mit_user(lambda: _lvdok_ki(d, ki)), daemon=True).start()
     with db.tx() as c:
         return _antwort(c, lv_id)
 
@@ -2514,9 +2457,151 @@ def ablage_datei():
     return jsonify(ok=True, pfad=(a or {}).get("pfad") or "")
 
 
+def _angebot_eintragen(c, i, A, bieter, cid, ki=False):
+    """Erkannte Einheitspreise als Angebot des Bieters eintragen → Hinweistext (ValueError, wenn nichts passt)."""
+    r = _lv(c, i)
+    items = (_j(r["data"], {}) or {}).get("items") or []
+    ki_fehler = ""
+    if ki and A.get("zeilen"):
+        try:
+            _ki_zuordnen(c, A, items)
+        except Exception as e:   # KI nicht erreichbar: mit dem weiter, was sicher erkannt ist – Grund steht im Hinweis
+            ki_fehler = str(e)[:200]
+            if not isinstance(e, ai.AIError):   # KI aus/nicht eingerichtet ist kein Programmfehler
+                fehler.still("ava", "Angebot aus PDF: KI-Zuordnung", e)
+    preise = {pid: t["ep"] for pid, t in (A.get("pos") or {}).items() if t.get("ep") is not None}
+    if not preise:
+        raise ValueError("In der PDF keine Preise zu den Positionen dieses LV gefunden (Zuordnung über die OZ oder den Kurztext)."
+                         + (" Handschriftlich eingetragene Preise kann nur eine KI lesen – „Mit KI lesen“." if A.get("ocr") else ""))
+    a = c.execute("SELECT id, preise FROM ava_angebot WHERE lv_id=? AND (contact_id=? OR lower(bieter)=lower(?))", (i, cid, bieter)).fetchone()
+    if a:
+        P = {**(_j(a["preise"], {}) or {}), **preise}
+        c.execute("UPDATE ava_angebot SET preise=?, quelle='pdf', updated=? WHERE id=?", (json.dumps(P), _now(), a["id"]))
+    else:
+        c.execute("INSERT INTO ava_angebot(lv_id, contact_id, bieter, eingang, preise, quelle, created, updated) VALUES(?,?,?,?,?,?,?,?)",
+                  (i, cid, bieter, date.today().isoformat(), json.dumps(preise), "pdf", _now(), _now()))
+    _touch(c, i)
+    n_lv = sum(1 for x in items if x.get("typ") == "pos" and x.get("art") != "T")
+    return (f"{len(preise)} von {n_lv} Preisen von „{bieter}“ aus der PDF übernommen" + (" (Scan, per Texterkennung – bitte prüfen)" if A.get("ocr") else "")
+            + (f", davon {A['ki']['sicher']} per KI zugeordnet" if A.get("ki", {}).get("sicher") else "") + "."
+            + (f" KI-Zuordnung nicht möglich: {ki_fehler}" if ki_fehler else ""))
+
+
+def _mit_user(fn):
+    """Für Threads: Anwendungskontext und angemeldeter Benutzer wie in der Anfrage (Rechteprüfung in _lv usw.)."""
+    u = g.get("user")
+
+    def lauf():
+        with app.app_context():
+            g.user = u
+            fn()
+    return lauf
+
+
+def _job(c, jid, **kw):
+    """Hintergrundarbeit (Texterkennung von Scans dauert länger, als der Webserver auf eine Antwort wartet)."""
+    if kw:
+        r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"avajob:{jid}",)).fetchone()
+        d = {**((_j(r["data"], {}) or {}) if r else {}), **kw}
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
+                  (f"avajob:{jid}", json.dumps(d, ensure_ascii=False), _now(), "ava"))
+        return d
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"avajob:{jid}",)).fetchone()
+    return (_j(r["data"], {}) or {}) if r else None
+
+
+def _im_hintergrund(fn, lv_id, art):
+    """fn(fortschritt) → Hinweistext; läuft in einem Thread, Stand unter /api/avajob/<id>."""
+    import threading
+    import uuid as _u
+    jid = _u.uuid4().hex[:16]
+    with db.tx() as c:
+        _job(c, jid, status="laeuft", lv_id=lv_id, art=art, stand="startet …")
+
+    def lauf():
+        def fortschritt(n, N):
+            try:
+                with db.tx() as c2:
+                    _job(c2, jid, stand=f"Texterkennung Seite {n} von {N}")
+            except Exception:
+                pass
+        try:
+            h = fn(fortschritt)
+            with db.tx() as c2:
+                _job(c2, jid, status="fertig", hinweis=h or "", stand="")
+        except Exception as e:
+            if not isinstance(e, (ValueError, ai.AIError)):   # erwartbare Meldungen (nichts gefunden, KI aus) sind keine Programmfehler
+                fehler.still("ava", f"Hintergrundarbeit {art}", e)
+            with db.tx() as c2:
+                _job(c2, jid, status="fehler", fehler=str(e)[:400], stand="")
+    threading.Thread(target=_mit_user(lauf), daemon=True).start()
+    return jid
+
+
+_KI_PREISE = """Du siehst eine Seite eines Angebots oder eines vom Bieter ausgefüllten Leistungsverzeichnisses (deutsches Bauwesen).
+Die Preise können gedruckt oder HANDSCHRIFTLICH eingetragen sein (z. B. „EP 12,25“ und „GP 2.408,25“ auf punktierten Linien).
+Lies für jede Position auf dieser Seite den Einheitspreis (EP) und den Gesamtpreis (GP) in Euro.
+Antworte nur mit JSON: {"preise": [{"oz": "04.1", "ep": 12.25, "gp": 2408.25}]}
+Regeln: nur Positionen, die auf der Seite stehen; Zahlen mit Punkt als Dezimaltrennzeichen; fehlt ein Wert oder ist er gestrichen, null.
+Nichts erfinden – lieber null als raten."""
+
+
+def _ki_preise(data, items, A, ki, fortschritt=None):
+    """Preise per Bild-KI lesen (auf Nachfrage, z. B. handschriftlich ausgefüllte LV-Formulare): je Seite das Bild und
+    die dort erwarteten Positionen; übernommen wird ein Preis, wenn Menge (laut LV) × EP = GP aufgeht."""
+    import pdfplumber
+    P = [x for x in items if x.get("typ") == "pos" and x.get("art") != "T"]
+    idx = {x["id"]: k for k, x in enumerate(P)}
+    seiten = {}
+    for pid, t in (A.get("pos") or {}).items():
+        if pid in idx:
+            seiten.setdefault(t["seite"], []).append(idx[pid])
+    if not seiten:
+        raise ValueError("Keine Positionen des LV im Dokument gefunden – die KI braucht wenigstens die Ordnungszahlen.")
+    S = sorted(seiten)
+    erg, sicher, unsicher = {}, 0, 0
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        for k, n in enumerate(S, 1):
+            if fortschritt:
+                fortschritt(k, len(S))
+            lo, hi = max(0, min(seiten[n]) - 2), min(len(P), max(seiten[n]) + 3)
+            erwartet = "\n".join(f"{x.get('oz')} | {(x.get('kurz') or '')[:60]} | {x.get('menge')} {x.get('einheit') or ''}" for x in P[lo:hi])
+            buf = io.BytesIO()
+            pdf.pages[n - 1].to_image(resolution=130).original.convert("RGB").save(buf, "PNG")
+            with db.tx() as c:
+                d = ai.parse_json(ai.ask_image(ki, _KI_PREISE, f"Positionen, die auf dieser Seite stehen können (OZ | Kurztext | Menge Einheit):\n{erwartet}",
+                                               buf.getvalue(), 2000, c)) or {}
+            for y in d.get("preise") or []:
+                if not isinstance(y, dict):
+                    continue
+                T = _ozn(str(y.get("oz") or ""))
+                x = next((x for x in P[lo:hi] if _ozn(x.get("oz")) == T), None)
+                ep = y.get("ep") if isinstance(y.get("ep"), (int, float)) else _zahl(str(y.get("ep") or ""))
+                gp = y.get("gp") if isinstance(y.get("gp"), (int, float)) else _zahl(str(y.get("gp") or ""))
+                if not x or not ep:
+                    continue
+                m = x.get("menge") or 0
+                if gp and m and abs(m * ep - gp) <= max(0.05, abs(gp) * 0.002):
+                    erg[x["id"]] = {"ep": round(float(ep), 2), "sicher": True}
+                elif x["id"] not in erg:
+                    erg[x["id"]] = {"ep": round(float(ep), 2), "sicher": False}
+    sicher = sum(1 for y in erg.values() if y["sicher"])
+    return erg, sicher, len(erg) - sicher
+
+
+@app.get("/api/avajob/<jid>")
+def avajob(jid):
+    with db.tx() as c:
+        d = _job(c, re.sub(r"\W", "", jid)[:16])
+        if not d or not _lv(c, d.get("lv_id") or 0):
+            return jsonify(error="Nicht gefunden"), 404
+        return jsonify(d)
+
+
 @app.post("/api/lv/<int:i>/angebot-pdf")
 def angebot_pdf(i):
-    """Angebot als PDF (auch Scan): Einheitspreise je LV-Position erkennen (Menge × EP = GP) und als Angebot des Bieters eintragen."""
+    """Angebot als PDF, Scan, Foto oder Word: Einheitspreise je LV-Position erkennen und als Angebot des Bieters eintragen.
+    Scans laufen im Hintergrund (Antwort {job}), sonst sofort."""
     f = request.files.get("datei")
     if not f:
         return jsonify(error="Keine Datei"), 400
@@ -2525,40 +2610,47 @@ def angebot_pdf(i):
         data, _ = _als_pdf(data, f.filename or "")
     except ValueError as e:
         return jsonify(error=str(e)), 400
+    bieter = _s(request.form.get("bieter"), 200) or _s(f.filename, 200)
+    cid = request.form.get("contact_id", type=int)
+    ki = request.form.get("ki") == "1"
     with db.tx() as c:
         r = _lv(c, i)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
+        items = (_j(r["data"], {}) or {}).get("items") or []
+    ki_bild = request.form.get("ki_bild") or ""
+    if ki_bild:   # auf Nachfrage: Preise (auch handschriftliche) per Bild-KI
+        if ki_bild not in ai.KEYS or ki_bild == "intern":
+            return jsonify(error="Bitte eine KI wählen."), 400
+
+        def arbeit_ki(fortschritt):
+            A = _auslesen(data, items, fortschritt)
+            erg, sicher, unsicher = _ki_preise(data, items, A, ki_bild, lambda k, N: fortschritt(k, N) if fortschritt else None)
+            for pid, y in erg.items():
+                A.setdefault("pos", {}).setdefault(pid, {})["ep"] = y["ep"]
+            with db.tx() as c2:
+                h = _angebot_eintragen(c2, i, A, bieter, cid)
+            return h + f" KI: {sicher} Preise geprüft (Menge × EP = GP){f', {unsicher} ohne passenden Gesamtpreis – bitte prüfen' if unsicher else ''}."
+        return jsonify(job=_im_hintergrund(arbeit_ki, i, "angebot"))
+    if _ist_scan(data):
+        def arbeit(fortschritt):
+            A = _auslesen(data, items, fortschritt)
+            with db.tx() as c2:
+                h = _angebot_eintragen(c2, i, A, bieter, cid, ki)
+            n_ohne = sum(1 for t in (A.get("pos") or {}).values() if t.get("ep") is None)
+            return h + (f" {n_ohne} Positionen ohne lesbaren Preis (z. B. handschriftlich)." if n_ohne else "")
+        return jsonify(job=_im_hintergrund(arbeit, i, "angebot"))
+    try:
+        A = _auslesen(data, items)
+    except Exception as e:
+        return jsonify(error=f"PDF lässt sich nicht lesen: {e}"), 400
+    with db.tx() as c:
         try:
-            A = _auslesen(data, (_j(r["data"], {}) or {}).get("items") or [])
-        except Exception as e:
-            return jsonify(error=f"PDF lässt sich nicht lesen: {e}"), 400
-        ki_fehler = ""
-        if request.form.get("ki") == "1" and A.get("zeilen"):
-            try:
-                _ki_zuordnen(c, A, (_j(r["data"], {}) or {}).get("items") or [])
-            except Exception as e:   # KI nicht erreichbar: mit dem weiter, was sicher erkannt ist – Grund steht im Hinweis
-                ki_fehler = str(e)[:200]
-                if not isinstance(e, ai.AIError):   # KI aus/nicht eingerichtet ist kein Programmfehler
-                    fehler.still("ava", "Angebot aus PDF: KI-Zuordnung", e)
-        preise = {pid: t["ep"] for pid, t in (A.get("pos") or {}).items() if t.get("ep") is not None}
-        if not preise:
-            return jsonify(error="In der PDF keine Preise zu den Positionen dieses LV gefunden (Zuordnung über die OZ; Menge × EP = GP muss aufgehen)."), 400
-        bieter = _s(request.form.get("bieter"), 200) or _s(f.filename, 200)
-        cid = request.form.get("contact_id", type=int)
-        a = c.execute("SELECT id, preise FROM ava_angebot WHERE lv_id=? AND (contact_id=? OR lower(bieter)=lower(?))", (i, cid, bieter)).fetchone()
-        if a:
-            P = {**(_j(a["preise"], {}) or {}), **preise}
-            c.execute("UPDATE ava_angebot SET preise=?, quelle='pdf', updated=? WHERE id=?", (json.dumps(P), _now(), a["id"]))
-        else:
-            c.execute("INSERT INTO ava_angebot(lv_id, contact_id, bieter, eingang, preise, quelle, created, updated) VALUES(?,?,?,?,?,?,?,?)",
-                      (i, cid, bieter, date.today().isoformat(), json.dumps(preise), "pdf", _now(), _now()))
-        _touch(c, i)
+            h = _angebot_eintragen(c, i, A, bieter, cid, ki)
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
         out = _payload(c, c.execute("SELECT * FROM ava_lv WHERE id=?", (i,)).fetchone())
-        n_lv = sum(1 for x in (_j(r["data"], {}) or {}).get("items") or [] if x.get("typ") == "pos" and x.get("art") != "T")
-        out["hinweis"] = (f"{len(preise)} von {n_lv} Preisen von „{bieter}“ aus der PDF übernommen" + (" (Scan, per Texterkennung – bitte prüfen)" if A.get("ocr") else "")
-                          + (f", davon {A['ki']['sicher']} per KI zugeordnet" if A.get("ki", {}).get("sicher") else "") + "."
-                          + (f" KI-Zuordnung nicht möglich: {ki_fehler}" if ki_fehler else ""))
+        out["hinweis"] = h
         return jsonify(out)
 
 
@@ -2834,126 +2926,101 @@ def _ozn(t):
     return tuple(p.lstrip("0") or "0" for p in re.split(r"\D+", t or "") if p)
 
 
-def _auslesen(data, items):
-    """Rechnung oder Aufmaß der Firma (PDF mit Textebene) lesen: je LV-Position Seite, Stelle und – wenn Menge × EP = GP
-    aufgeht – die geforderte Menge; dazu Rechnungsnummer, Datum, Netto und ob es eine Schlussrechnung ist."""
-    import pdfplumber
-    P = [x for x in items if x.get("typ") == "pos" and x.get("art") != "T" and _ozn(x.get("oz"))]
-    voll = {}
-    for x in P:
-        voll.setdefault(_ozn(x["oz"]), []).append(x["id"])
-
-    def finde(tok):
-        if not re.match(r"^\d+(?:[.\-/ ]\d+)*\.?$", tok) or ("." not in tok and len(tok) < 3):
-            return None
-        T = _ozn(tok)
-        if not T:
-            return None
-        if T in voll and len(voll[T]) == 1:
-            return voll[T][0]
-        kand = [x["id"] for x in P if (len(T) > len(_ozn(x["oz"])) and T[-len(_ozn(x["oz"])):] == _ozn(x["oz"]))
-                or (len(T) < len(_ozn(x["oz"])) and len(T) >= 2 and _ozn(x["oz"])[-len(T):] == T)]
-        return kand[0] if len(kand) == 1 else None
-
-    treffer, kopf, text1, rzeilen, zahlen, ocr, summen = {}, {}, "", [], {}, False, []
-    with pdfplumber.open(io.BytesIO(data)) as pdf:
-        for n, pg in enumerate(pdf.pages[:40], 1):
-            W_, H_ = float(pg.width), float(pg.height)
-            ws = pg.extract_words(keep_blank_chars=False, use_text_flow=False)
-            if not ws and n <= 10:   # Scan ohne Textebene: Texterkennung (Tesseract)
-                ws = _ocr_woerter(pg)
-                ocr = ocr or bool(ws)
-            ws = sorted(ws, key=lambda w: (float(w["top"]), float(w["x0"])))
-            zeilen = []
-            for w in ws:
-                if zeilen and abs((float(w["top"]) + float(w["bottom"])) / 2 - zeilen[-1][0]["_m"]) <= max(3.0, (float(w["bottom"]) - float(w["top"])) * 0.45):
-                    zeilen[-1].append(w)
-                else:
-                    w["_m"] = (float(w["top"]) + float(w["bottom"])) / 2
-                    zeilen.append([w])
-            for z in zeilen:
-                z.sort(key=lambda w: float(w["x0"]))
-            if n <= 2:
-                text1 += "\n".join(" ".join(w["text"] for w in z) for z in zeilen) + "\n"
-            zl = zahlen.setdefault(n, [])
-            for w in ws:   # alle Zahlen mit Stelle – in der Ansicht anklickbar (in den Rechenweg übernehmen)
-                v = _zahl(w["text"])
-                if v is not None and len(zl) < 1500:
-                    zl.append([round(float(w["x0"]) / W_, 4), round(float(w["top"]) / H_, 4), round(float(w["x1"]) / W_, 4), round(float(w["bottom"]) / H_, 4), v])
-            box_von = lambda ws_: [round(v, 4) for v in (min(float(w["x0"]) for w in ws_) / W_, min(float(w["top"]) for w in ws_) / H_,   # noqa: E731
-                                                         max(float(w["x1"]) for w in ws_) / W_, max(float(w["bottom"]) for w in ws_) / H_)]
-            starts = []
-            for k, z in enumerate(zeilen):
-                pid = None
-                for w in z[:2]:
-                    pid = finde(w["text"].strip())
-                    if pid:
-                        break
-                if pid:
-                    starts.append((k, pid))
-            belegt = set()
-            for j, (k, pid) in enumerate(starts):
-                bis = min(starts[j + 1][0] if j + 1 < len(starts) else len(zeilen), k + 7)
-                belegt.update(range(k, bis))
-                if pid in treffer and treffer[pid].get("menge") is not None:
-                    continue
-                ws_ = [w for z in zeilen[k:bis] for w in z]
-                nums = [(w, _zahl(w["text"])) for w in ws_[1:]]
-                nums = [(w, v) for w, v in nums if v is not None]
-                best = _tripel(nums)
-                bis_w = nums[best[2]][0] if best else (zeilen[k][-1])
-                t = {"seite": n, "box": box_von([w for w in ws_ if float(w["top"]) <= float(bis_w["bottom"])])}
-                if best:
-                    t.update(menge=nums[best[0]][1], ep=nums[best[1]][1], gp=nums[best[2]][1])
-                if pid not in treffer or best:
-                    treffer[pid] = t
-            for z in zeilen:   # Summenzeilen: Netto, Umsatzsteuer, Brutto/Endsumme – mit Stelle des Betrags
-                tx = " ".join(w["text"] for w in z).lower()
-                geld = [w for w in z if _zahl(w["text"]) is not None and "," in w["text"]]
-                if not geld or len(tx) > 90:
-                    continue
-                art = ("mwst" if re.search(r"mwst|mehrwertsteuer|umsatzsteuer|\bust\b", tx) else
-                       "brutto" if re.search(r"endsumme|brutto|gesamtbetrag|zahlbetrag|rechnungsbetrag|zu zahlen", tx) else
-                       "netto" if re.search(r"\bsumme\b|netto|zwischensumme|gesamtsumme", tx) else None)
-                if art and not any(x_["art"] == art for x_ in summen):
-                    w = geld[-1]
-                    summen.append({"art": art, "wert": _zahl(w["text"]), "seite": n, "box": box_von([w])})
-            for k, z in enumerate(zeilen):   # Zeilen ohne LV-Position, in denen Menge × Preis = Betrag aufgeht (Regie, Material …)
-                if k in belegt:
-                    continue
-                nums = [(i, w, _zahl(w["text"])) for i, w in enumerate(z)]
-                nums = [(i, w, v) for i, w, v in nums if v is not None]
-                best = _tripel([(w, v) for _, w, v in nums])
-                if not best or nums[best[2]][2] == 0:
-                    continue
-                ia, ib = nums[best[0]][0], nums[best[1]][0]
-                mitte = [w["text"] for w in z[ia + 1:ib] if _zahl(w["text"]) is None and w["text"].strip() not in ("€", "EUR", "x", "×")]
-                eh = mitte[0] if mitte and len(mitte[0]) <= 6 and len(mitte) > 1 else ""
-                txt = " ".join(mitte[1:] if eh else mitte)
-                if not txt:
-                    continue
-                rzeilen.append({"seite": n, "box": box_von(z), "text": txt[:300], "einheit": eh, "menge": nums[best[0]][2], "ep": nums[best[1]][2], "gp": nums[best[2]][2]})
+def _auslesen(data, items, fortschritt=None):
+    """Rechnung, Aufmaß oder Angebot der Firma (PDF mit Textebene oder Scan) lesen: je LV-Position Seite, Stelle,
+    Menge (bei kumulierten Rechnungen die Gesamtmenge), Einheitspreis und Betrag; dazu Rechnungsnummer, Datum,
+    Netto, Summenzeilen und Zeilen ohne LV-Position (Regie, Material …)."""
+    import ava_lesen as AL
+    S = AL.seiten(data, max_seiten=60, ocr_seiten=40, fortschritt=fortschritt)
+    X = AL.bloecke(S)
+    zu = AL.zuordnen(X["bloecke"], items)
+    treffer = {}
+    LVM = {x["id"]: x.get("menge") for x in items if x.get("typ") == "pos"}
+    for pid, b in zu.items():
+        if b.get("unsicher"):   # Scan, Menge × EP ≠ GP: mit der Menge des LV noch einmal prüfen, sonst Preise verwerfen
+            m_ = LVM.get(pid)
+            if not (m_ and b.get("ep") and b.get("gp") and abs(m_ * b["ep"] - b["gp"]) <= max(0.05, abs(b["gp"]) * 0.002)):
+                b = {**b, "ep": None, "gp": None}
+        t = {"seite": b["seite"], "box": b.get("box")}
+        if b.get("menge") is not None:
+            t["menge"] = b["menge"]
+        if b.get("ep") is not None:
+            t["ep"] = b["ep"]
+        if b.get("gp") is not None:
+            t["gp"] = b["gp"]
+        if b.get("mengen"):
+            t["mengen"] = b["mengen"]
+        if b.get("einheit"):
+            t["einheit"] = b["einheit"]
+        treffer[pid] = t
+    belegt = {}
+    for b in X["bloecke"]:   # Zeilen in Positionsblöcken (auch ohne Zuordnung) sind keine „freien“ Zeilen
+        for sn, bx in (b.get("boxen") or {}).items():
+            belegt.setdefault(sn, []).append(bx)
+    kopf, text1, rzeilen, zahlen, summen = {}, "", [], {}, []
+    ocr = any(o for *_, o in S)
+    for n, W_, H_, ws, _ in S:
+        Z = [z["w"] for z in AL.zeilen(ws)]
+        if n <= 2:
+            text1 += "\n".join(" ".join(w["text"] for w in z) for z in Z) + "\n"
+        zl = zahlen.setdefault(n, [])
+        for w in ws:   # alle Zahlen mit Stelle – in der Ansicht anklickbar (in den Rechenweg übernehmen)
+            v = _zahl(w["text"])
+            if v is not None and len(zl) < 1500:
+                zl.append([round(float(w["x0"]) / W_, 4), round(float(w["top"]) / H_, 4), round(float(w["x1"]) / W_, 4), round(float(w["bottom"]) / H_, 4), v])
+        box_von = lambda ws_: [round(v, 4) for v in (min(float(w["x0"]) for w in ws_) / W_, min(float(w["top"]) for w in ws_) / H_,   # noqa: E731
+                                                     max(float(w["x1"]) for w in ws_) / W_, max(float(w["bottom"]) for w in ws_) / H_)]
+        for z in Z:   # Summenzeilen: Netto, Umsatzsteuer, Brutto/Endsumme – mit Stelle des Betrags
+            tx = " ".join(w["text"] for w in z).lower()
+            geld = [w for w in z if _zahl(w["text"]) is not None and "," in w["text"]]
+            if not geld or len(tx) > 90:
+                continue
+            art = ("mwst" if re.search(r"mwst|mehrwertsteuer|umsatzsteuer|\bust\b", tx) else
+                   "netto" if re.search(r"netto", tx) else
+                   "brutto" if re.search(r"endsumme|brutto|gesamtbetrag|zahlbetrag|rechnungsbetrag|zu zahlen|gesamtsumme", tx) else
+                   "netto" if re.search(r"\bsumme\b|zwischensumme", tx) else None)
+            if art and not any(x_["art"] == art for x_ in summen):
+                w = geld[-1]
+                summen.append({"art": art, "wert": _zahl(w["text"]), "seite": n, "box": box_von([w])})
+        for z in Z:   # Zeilen ohne LV-Position, in denen Menge × Preis = Betrag aufgeht (Regie, Material …)
+            y0, y1 = min(float(w["top"]) for w in z) / H_, max(float(w["bottom"]) for w in z) / H_
+            if any(bx[1] - 0.003 <= y0 and y1 <= bx[3] + 0.003 for bx in belegt.get(n, [])):
+                continue
+            nums = [(i, w, _zahl(w["text"])) for i, w in enumerate(z)]
+            nums = [(i, w, v) for i, w, v in nums if v is not None]
+            best = _tripel([(w, v) for _, w, v in nums])
+            if not best or nums[best[2]][2] == 0:
+                continue
+            ia, ib = nums[best[0]][0], nums[best[1]][0]
+            mitte = [w["text"] for w in z[ia + 1:ib] if _zahl(w["text"]) is None and w["text"].strip() not in ("€", "EUR", "x", "×")]
+            vorn = [w["text"] for w in z[:ia] if _zahl(w["text"]) is None]
+            eh = mitte[0] if mitte and AL.RX_EH.match(mitte[0]) else ""
+            txt = " ".join(vorn + (mitte[1:] if eh else mitte)).strip()
+            if not txt or re.match(r"^(summe|netto|brutto|mwst|ust|zwischensumme|übertrag)", txt, re.I):
+                continue
+            rzeilen.append({"seite": n, "box": box_von(z), "text": txt[:300], "einheit": eh, "menge": nums[best[0]][2], "ep": nums[best[1]][2], "gp": nums[best[2]][2]})
     if re.search(r"schlussrechnung", text1, re.I):
         kopf["schluss"] = True
     if not treffer and rzeilen and re.search(r"regie|stundenlohn|stundenzettel", text1, re.I):
         kopf["regie"] = True
-    m = re.search(r"Rechnung(?:s)?[ \-]?(?:nummer|nr\.?|no\.?)\s*[:.#]?\s*([A-Z0-9][\w\-/]{1,30})", text1, re.I)
+    m = re.search(r"Rechnung(?:s)?[ \-]?(?:nummer|nr\.?|no\.?)\s*[:.#]?\s*([A-Z0-9][\w\-/]{1,30}(?: [\w\-/]*\d[\w\-/]*)?)", text1, re.I)
     if m:
-        kopf["re_nr"] = m.group(1)
-    m = re.search(r"(?:Rechnungsdatum|Datum)\s*[:.]?\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})", text1)
+        kopf["re_nr"] = m.group(1).strip()
+    m = re.search(r"(?:Rechnungsdatum|Datum|\bvom)\s*[:.]?\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})", text1)
     if m:
         y = int(m.group(3)); y = y + 2000 if y < 100 else y
         kopf["datum"] = f"{y:04d}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
     gp = [t["gp"] for t in treffer.values() if t.get("gp") is not None] or [z["gp"] for z in rzeilen]
-    if gp:
-        kopf["netto"] = round(sum(gp), 2)
+    gedruckt = next((x_["wert"] for x_ in summen if x_["art"] == "netto"), None)
+    if gp:   # Summe der Positionen; steht eine passende Nettosumme in der Rechnung, gilt die (Rundung)
+        kopf["netto"] = gedruckt if gedruckt and abs(gedruckt - sum(gp)) <= max(1.0, abs(sum(gp)) * 0.02) else round(sum(gp), 2)
     else:
         m = re.search(r"(?:Summe\s+netto|Nettobetrag|Netto(?:summe|betrag)?|Gesamt\s+netto|Zwischensumme)\s*(?:EUR|€)?\s*:?\s*(-?[\d.]+,\d{2})", text1, re.I)
         if m and _zahl(m.group(1)) is not None:
             kopf["netto"] = _zahl(m.group(1))
     kopf["summen"] = summen
     return {"pos": treffer, "kopf": kopf, "text": bool(text1.strip()), "ocr": ocr, "zeilen": rzeilen[:300],
-            "zahlen": {str(k): v for k, v in zahlen.items() if v}}
+            "zahlen": {str(k): v for k, v in zahlen.items() if v}, "spalten": sorted(X["kopf"] or {})}
 
 
 def _tripel(nums):
@@ -2968,44 +3035,18 @@ def _tripel(nums):
 
 
 def _ocr_woerter(pg, dpi=300, timeout=90):
-    """Wörter einer gescannten Seite per Tesseract (deutsch), in PDF-Koordinaten wie pdfplumber.extract_words."""
-    import shutil
-    import subprocess
-    import tempfile
-    if not shutil.which("tesseract"):
-        return []
-    try:
-        bild = pg.to_image(resolution=dpi).original.convert("L")
-        with tempfile.TemporaryDirectory() as td:
-            f = os.path.join(td, "s.png")
-            bild.save(f)
-            out = subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", "6", "tsv"], capture_output=True, text=True, timeout=timeout).stdout
-    except Exception as e:
-        fehler.still("ava", "Texterkennung (tesseract) einer Seite", e)
-        return []
-    k = 72.0 / dpi
-    ws = []
-    for zeile in out.splitlines()[1:]:
-        t = zeile.split("\t")
-        if len(t) < 12 or t[0] != "5" or not t[11].strip():
-            continue
-        try:
-            x, y, w, h, conf = int(t[6]), int(t[7]), int(t[8]), int(t[9]), float(t[10])
-        except ValueError:
-            continue
-        if conf < 15:
-            continue
-        ws.append({"text": t[11].strip(), "x0": x * k, "x1": (x + w) * k, "top": y * k, "bottom": (y + h) * k})
-    return ws
+    import ava_lesen as AL
+    return AL.ocr_woerter(pg, dpi, timeout)
 
 
-def _auslese_anwenden(c, bid, rid, lv):
-    """PDF lesen, Ergebnis am Beleg merken und leere Felder der Rechnung (Nr., Datum, gefordert) füllen."""
+def _auslese_anwenden(c, bid, rid, lv, A=None):
+    """PDF lesen (oder fertiges Ergebnis A), am Beleg merken und leere Felder der Rechnung (Nr., Datum, gefordert) füllen."""
     x = c.execute("SELECT data, name FROM ava_beleg WHERE id=?", (bid,)).fetchone()
-    try:
-        A = _auslesen(bytes(x["data"]), (_j(lv["data"], {}) or {}).get("items") or [])
-    except Exception as e:
-        A = {"pos": {}, "kopf": {}, "text": False, "fehler": str(e)[:200]}
+    if A is None:
+        try:
+            A = _auslesen(bytes(x["data"]), (_j(lv["data"], {}) or {}).get("items") or [])
+        except Exception as e:
+            A = {"pos": {}, "kopf": {}, "text": False, "fehler": str(e)[:200]}
     c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
     R = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
     K = A["kopf"]
@@ -3278,8 +3319,15 @@ def beleg_neu(k):
     if not f:
         return jsonify(error="Keine Datei."), 400
     roh = f.read(60 * 1024 * 1024 + 1)
-    if len(roh) > 60 * 1024 * 1024 or not roh.startswith(b"%PDF"):
-        return jsonify(error="Bitte eine PDF-Datei (höchstens 60 MB) wählen."), 400
+    if len(roh) > 60 * 1024 * 1024:
+        return jsonify(error="Die Datei ist zu groß (höchstens 60 MB)."), 400
+    if not roh.startswith(b"%PDF") and not re.search(r"\.(jpe?g|png|tiff?|webp|bmp|gif|heic|docx?)$", (f.filename or "").lower()):
+        return jsonify(error="Bitte die Rechnung als PDF, Scan oder Foto wählen."), 400
+    try:
+        roh, fname = _als_pdf(roh, f.filename or "")   # auch Foto/Scan der Rechnung, Word
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    scan = _ist_scan(roh)
     with db.tx() as c:
         x = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (k,)).fetchone()
         r = _lv(c, x["lv_id"]) if x else None
@@ -3288,8 +3336,11 @@ def beleg_neu(k):
         V = _j(r["vergabe"], {}) or {}
         _beleg_tabelle(c)
         bid = c.execute("INSERT INTO ava_beleg(rechnung_id, name, data, created, user_name) VALUES(?,?,?,?,?) RETURNING id",
-                        (k, _s(f.filename, 200) or "Rechnung.pdf", roh, _now(), g.user["name"])).fetchone()["id"]
-        _auslese_anwenden(c, bid, k, r)
+                        (k, _s(fname, 200) or "Rechnung.pdf", roh, _now(), g.user["name"])).fetchone()["id"]
+        if scan:   # Texterkennung dauert – im Hintergrund, die Seite fragt nach
+            c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps({"pos": {}, "kopf": {}, "laeuft": True, "ocr": True}), bid))
+        else:
+            _auslese_anwenden(c, bid, k, r)
         x = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (k,)).fetchone()
         pid = r["project_id"]
         name = " ".join(v for v in (re_titel(x["nr"], x["art"]), V.get("bieter") or "", ("Nr. " + x["re_nr"]) if x["re_nr"] else "", x["datum"] or x["eingang"] or "") if v) + ".pdf"
@@ -3311,6 +3362,20 @@ def beleg_neu(k):
             pass
         except Exception as e:   # Grund geht als Hinweis an den Benutzer
             hinweis = f"In der Plattform gespeichert, aber nicht im Projektordner: {e}"
+    if scan:
+        import threading
+        lv_id, items = x["lv_id"], (_j(r["data"], {}) or {}).get("items") or []
+
+        def lesen():
+            try:
+                A = _auslesen(roh, items)
+            except Exception as e:
+                fehler.still("ava", "Rechnung (Scan) auslesen", e)
+                A = {"pos": {}, "kopf": {}, "text": False, "ocr": True, "fehler": str(e)[:200]}
+            with db.tx() as c2:
+                _auslese_anwenden(c2, bid, k, _lv(c2, lv_id), A)
+                _touch(c2, lv_id)
+        threading.Thread(target=_mit_user(lesen), daemon=True).start()
     with db.tx() as c:
         c.execute("UPDATE ava_beleg SET ablage=? WHERE id=?", (pfad, bid))
         _touch(c, x["lv_id"])

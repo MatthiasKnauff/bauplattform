@@ -6,7 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-deu && rm -rf /var/lib/apt/lists/*
 COPY plattform/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY plattform/common.py plattform/portal.py plattform/admin.py plattform/adressen.py plattform/baukosten.py plattform/aufgaben.py plattform/plaene.py plattform/ava.py plattform/katalog.py plattform/kommunikation.py plattform/baudaten.py plattform/router.py ./
+COPY plattform/common.py plattform/portal.py plattform/admin.py plattform/adressen.py plattform/baukosten.py plattform/aufgaben.py plattform/plaene.py plattform/ava.py plattform/ava_lesen.py plattform/katalog.py plattform/kommunikation.py plattform/baudaten.py plattform/router.py ./
 COPY plattform/static ./static
 COPY plattform/vendor ./vendor
 COPY shared/bpcore ./bpcore

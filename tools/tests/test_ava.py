@@ -125,6 +125,29 @@ def _pdf(zeilen):
     return bytes(out)
 
 
+def _pdf_spalten(zeilen):
+    """PDF mit Spalten: je Zeile [(x, Text, rechtsbündig?)] – wie AVA-Programme Mengen und Preise in Spalten setzen."""
+    esc = lambda t: t.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")   # noqa: E731
+    teile = []
+    for k, z in enumerate(zeilen):
+        for x, t, rechts in z:
+            xx = x - len(t) * 5.6 if rechts else x   # Helvetica 10 pt: etwa 5,6 pt je Zeichen (reicht für die Spalten)
+            teile.append(f"1 0 0 1 {xx:.1f} {800 - 14 * k} Tm ({esc(t)}) Tj")
+    inhalt = ("BT /F1 10 Tf " + " ".join(teile) + " ET").encode("cp1252")
+    objs = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            b"<< /Length %d >>\nstream\n" % len(inhalt) + inhalt + b"\nendstream",
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"]
+    out, lage = bytearray(b"%PDF-1.4\n"), []
+    for i, o in enumerate(objs, 1):
+        lage.append(len(out))
+        out += b"%d 0 obj\n" % i + o + b"\nendobj\n"
+    x = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1) + b"".join(b"%010d 00000 n \n" % v for v in lage)
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, x)
+    return bytes(out)
+
+
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
@@ -581,6 +604,45 @@ def test_lv_aus_dokumenten(ctx):
         gleich(L["dokumente"][-1]["n_pos"], 1, "Text: Position")
         c.post(f"{A}/lv/{lv['id']}/dok", dateien={"datei": ("alt.doc", b"\xd0\xcf\x11\xe0" + b"\x00" * 100, "application/msword")}, expect=400)
         c.post(f"{A}/lvdok/{d['id']}/ki", {"ki": "intern"}, expect=400)   # KI nur mit gewählter KI
+    finally:
+        _weg(c, lv)
+
+
+def test_pdf_spalten_langtext_kumuliert(ctx):
+    """Angebot als LV-Ausdruck (Menge und Preise in der letzten Zeile des Langtexts) und kumulierte Abschlagsrechnung
+    (Menge bisher / aktuell / gesamt): Preise und Gesamtmengen kommen aus den richtigen Spalten."""
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "Spalten", ROHBAU)
+        kopf = [(50, "OZ", False), (110, "Leistungsbeschreibung", False), (390, "Menge", True), (396, "ME", False), (480, "EP", True), (560, "GP", True)]
+        ang = _pdf_spalten([[(50, "Angebot Bau Krause GmbH", False)], kopf, [(50, "01", False), (110, "Mauerarbeiten", False)],
+                            [(50, "01.0010", False), (110, "Mauerwerk KS 17,5 cm", False)], [(110, "Kalksandstein KS 12-1,8, Dicke 17,5 cm,", False)],
+                            [(110, "Höhe bis 3,00 m, liefern und einbauen.", False)],
+                            [(390, "120,000", True), (396, "m2", False), (480, "47,10", True), (560, "5.652,00", True)],
+                            [(50, "01.0020", False), (110, "Innenputz Kalkgips", False)], [(110, "einlagig, 15 mm, Q2", False)],
+                            [(390, "300,000", True), (396, "m2", False), (480, "19,40", True), (560, "5.820,00", True)],
+                            [(110, "Summe netto", False), (560, "11.472,00", True)]])
+        L = c.post(f"{A}/lv/{lv['id']}/angebot-pdf", dateien={"datei": ("Angebot Krause.pdf", ang, "application/pdf")}, felder={"bieter": "Bau Krause GmbH"}).json
+        a = finde(L["angebote"], bieter="Bau Krause GmbH")
+        pruefe(a, f"Angebot aus dem LV-Ausdruck fehlt ({L.get('hinweis')})")
+        gleich(a["preise"], {"p1": 47.1, "p2": 19.4}, "Preise aus der letzten Zeile des Langtexts")
+        _vergeben(c, lv["id"])
+        L, r = _re_neu(c, lv["id"], art="abschlag")
+        sp = [(40, "OZ", False), (85, "Kurztext", False), (215, "ME", False), (290, "EP", True), (365, "Menge bisher", True), (445, "Menge aktuell", True),
+              (522, "Menge gesamt", True), (590, "Betrag ges.", True)]
+        re_ = _pdf_spalten([[(50, "Rohbau Schulte & Söhne", False)], [(50, "3. Abschlagsrechnung (kumuliert)", False)], [(50, "Rechnung Nr. AR 0042/26", False)],
+                            [(50, "Datum 06.11.2026", False)], sp,
+                            [(40, "01.0010", False), (85, "Mauerwerk KS 17,5 cm", False), (215, "m2", False), (290, "48,20", True), (365, "60,000", True),
+                             (445, "30,000", True), (522, "90,000", True), (590, "4.338,00", True)],
+                            [(40, "01.0020", False), (85, "Innenputz Kalkgips", False), (215, "m2", False), (290, "18,75", True), (365, "100,000", True),
+                             (445, "50,000", True), (522, "150,000", True), (590, "2.812,50", True)],
+                            [(300, "Gesamtsumme netto", False), (590, "7.150,50", True)]])
+        L = c.post(f"{A}/rechnungen/{r['id']}/beleg", dateien={"datei": ("AR 0042.pdf", re_, "application/pdf")}, felder={"ordner": '"nein"'}).json
+        R = finde(L["rechnungen"], id=r["id"])
+        P = (R["belege"][0].get("auslese") or {}).get("pos") or {}
+        gleich({k: v.get("menge") for k, v in P.items()}, {"p1": 90.0, "p2": 150.0}, "kumulierte Rechnung: Menge gesamt (nicht bisher/aktuell)")
+        gleich((R["re_nr"], R["datum"], R["gefordert"]), ("AR 0042/26", "2026-11-06", 7150.5), "Nummer, Datum, kumulierter Nettobetrag")
     finally:
         _weg(c, lv)
 

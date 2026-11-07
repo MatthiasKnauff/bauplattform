@@ -341,3 +341,15 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 @keyframes bph-zl-puls{0%,100%{outline-color:#f5c518}50%{outline-color:transparent}}
 @media (prefers-reduced-motion:reduce){.bph-zolli,.bph-zolli-fig,.bph-zl-arm-r,.bph-zolli-ziel{animation:none}}
 @media print{.bph-zolli{display:none}}
+/* Kontextmenü (rechte Maustaste) */
+.bph-km{position:fixed;z-index:2147483100;min-width:220px;max-width:340px;max-height:80vh;overflow:auto;padding:.3rem;background:var(--card,#fff);color:var(--ink,#222);border:1px solid var(--line,#d6d6d6);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.22);font:14px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;animation:bph-km-r .08s ease-out}
+@keyframes bph-km-r{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+.bph-km button{display:flex;width:100%;justify-content:space-between;gap:1.2rem;align-items:center;padding:.42rem .65rem;border:0;border-radius:6px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.bph-km button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bph-km button small{color:var(--mute,#888);font-size:.78rem;flex:none}
+.bph-km button:hover:not([disabled]),.bph-km button:focus-visible{background:var(--hov,#f1f1f1);outline:0}
+.bph-km button[disabled]{opacity:.4;cursor:default}
+.bph-km button.gef{color:#c62828}
+.bph-km hr{border:0;border-top:1px solid var(--line,#e2e2e2);margin:.25rem .3rem}
+.bph-km-h{color:var(--mute,#888);font-size:.72rem;padding:.3rem .65rem .15rem}
+@media print{.bph-km{display:none}}

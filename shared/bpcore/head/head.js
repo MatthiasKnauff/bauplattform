@@ -1671,6 +1671,100 @@
     document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) ende(); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zolliStart); else zolliStart();
+
+  /* ---------- Rechte Maustaste: einheitliches Kontextmenü in allen Apps (nur am PC; Umschalt + Rechtsklick = Menü des Browsers) ----------
+     Inhalt: 1. was die App anbietet (Ereignis 'bph:kontext', detail.punkte.push({text, fn, icon?, gefahr?})),
+     2. die Knöpfe der angeklickten Zeile/Karte (Bearbeiten, Löschen …), 3. Standards: Link, Text, Eingabefeld, Seite. */
+  let kmEl = null;
+  const kmZu = () => { if (kmEl) { kmEl.remove(); kmEl = null; } };
+  const kmText = (b) => (b.getAttribute('aria-label') || b.title || b.textContent || '').replace(/\s+/g, ' ').replace(/\s*[(–].*$/, '').trim().slice(0, 44);
+  const kmSicht = (b) => b.offsetParent !== null && !b.disabled && !b.closest('[hidden],.bph-km');
+  function kmZeile(t) {
+    const z = t.closest('tr,li,.card,.pj-r,[data-id],[data-rid],[data-bid],[data-pid],.row,.item,.zeile,.task,section,article');
+    if (!z || z === document.body) return null;
+    const r = z.getBoundingClientRect();
+    return r.height > innerHeight * 0.7 ? null : z;   // ganze Seiten/Bereiche nicht – nur Zeilen und Karten
+  }
+  async function kmEinfuegen(el) {
+    try { const t = await navigator.clipboard.readText(); el.focus(); if (!document.execCommand('insertText', false, t)) { const a = el.selectionStart ?? el.value.length; el.setRangeText(t, a, el.selectionEnd ?? a, 'end'); el.dispatchEvent(new Event('input', { bubbles: true })); } }
+    catch { if (window.toast) window.toast('Einfügen bitte mit Strg+V – der Browser erlaubt das hier nicht.'); }
+  }
+  const kmKopie = (t) => navigator.clipboard.writeText(t).then(() => window.toast && window.toast('Kopiert.')).catch(() => window.toast && window.toast('Kopieren bitte mit Strg+C.'));
+  document.addEventListener('contextmenu', (e) => {
+    kmZu();
+    if (e.defaultPrevented || e.shiftKey || matchMedia('(pointer: coarse)').matches) return;   // App hat eigenes Menü / Browser-Menü gewünscht / Touch
+    const t = e.target.closest ? e.target : e.target.parentElement; if (!t || t.closest('.bph-km,canvas,iframe,embed,object,video')) return;
+    const G = [];   // Gruppen von Punkten
+    const app = []; t.dispatchEvent(new CustomEvent('bph:kontext', { bubbles: true, detail: { punkte: app, ziel: t, x: e.clientX, y: e.clientY } }));
+    if (app.length) G.push(app);
+    const ed = t.closest('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]),textarea,[contenteditable=""],[contenteditable=true]');
+    const sel = String(getSelection() || '');
+    if (ed) {   // Eingabefeld: Rechtschreibvorschläge gibt es weiter mit Umschalt + Rechtsklick
+      const ro = ed.readOnly || ed.disabled, markiert = ed.isContentEditable ? !!sel : (ed.selectionEnd || 0) > (ed.selectionStart || 0);
+      G.push([
+        { text: 'Rückgängig', k: 'Strg+Z', fn: () => { ed.focus(); document.execCommand('undo'); }, aus: ro },
+        { text: 'Ausschneiden', k: 'Strg+X', fn: () => { ed.focus(); document.execCommand('cut') || kmKopie(sel); }, aus: ro || !markiert },
+        { text: 'Kopieren', k: 'Strg+C', fn: () => { ed.focus(); document.execCommand('copy') || kmKopie(sel); }, aus: !markiert },
+        { text: 'Einfügen', k: 'Strg+V', fn: () => kmEinfuegen(ed), aus: ro },
+        { text: 'Alles markieren', k: 'Strg+A', fn: () => { ed.focus(); if (ed.select) ed.select(); else document.execCommand('selectAll'); } },
+      ]);
+    } else {
+      const lk = t.closest('a[href]'), img = t.closest('img');
+      const x = [];
+      if (sel.trim()) x.push({ text: 'Kopieren', k: 'Strg+C', fn: () => kmKopie(sel) });
+      if (lk && !/^javascript:/i.test(lk.getAttribute('href'))) {
+        x.push({ text: 'Link öffnen', fn: () => { location.href = lk.href; } });
+        x.push({ text: 'Link kopieren', fn: () => kmKopie(lk.href) });
+      }
+      if (img && img.src && !/^data:/.test(img.src)) x.push({ text: 'Bild ansehen', fn: () => H.ansehen ? H.ansehen([{ url: img.currentSrc || img.src, typ: 'bild', name: img.alt || 'Bild' }]) : (location.href = img.src) });
+      const z = kmZeile(t);
+      if (!sel.trim() && z) {   // Text der Zeile kopieren (z. B. Adresse, Position)
+        const zt = (z.innerText || '').replace(/\n{2,}/g, '\n').trim();
+        if (zt && zt.length < 2000) x.push({ text: 'Zeile kopieren', fn: () => kmKopie(zt.replace(/\t/g, ' ')) });
+      }
+      if (x.length) G.push(x);
+    }
+    {
+      const z = kmZeile(t);
+      if (z) {   // Knöpfe der Zeile/Karte – dasselbe wie ein Klick darauf
+        const gesehen = new Set(), k = [];
+        for (const b of z.querySelectorAll('button,[role=button],[data-a],a.btn')) {
+          if (!kmSicht(b) || b.matches('input,select,textarea')) continue;
+          const tx = kmText(b); if (!tx || gesehen.has(tx) || /^[▸▾▴▹◂›‹»«]+$/.test(tx)) continue;
+          gesehen.add(tx);
+          k.push({ text: tx, fn: () => b.click(), gefahr: /lösch|entfern|🗑|✕|weg/i.test(tx + ' ' + (b.title || '')) });
+          if (k.length >= 12) break;
+        }
+        if (k.length) G.push(k);
+      }
+    }
+    G.push([
+      { text: 'Zurück', k: 'Alt+←', fn: () => history.back(), aus: history.length < 2 },
+      { text: 'Neu laden', k: 'F5', fn: () => location.reload() },
+      { text: 'Drucken …', k: 'Strg+P', fn: () => print() },
+    ]);
+    e.preventDefault();
+    kmEl = document.createElement('div'); kmEl.className = 'bph-km'; kmEl.setAttribute('role', 'menu');
+    const alle = [];
+    kmEl.innerHTML = G.map((g) => g.map((p) => { alle.push(p); return `<button type="button" role="menuitem" data-km="${alle.length - 1}"${p.aus ? ' disabled' : ''}${p.gefahr ? ' class="gef"' : ''}><span>${esc(p.text)}</span>${p.k ? `<small>${p.k}</small>` : ''}</button>`; }).join('')).join('<hr>')
+      + '<div class="bph-km-h">Umschalt + Rechtsklick: Menü des Browsers</div>';
+    document.body.appendChild(kmEl);
+    const w = kmEl.offsetWidth, h = kmEl.offsetHeight;
+    kmEl.style.left = Math.max(4, Math.min(e.clientX, innerWidth - w - 4)) + 'px';
+    kmEl.style.top = Math.max(4, e.clientY + h > innerHeight - 4 ? e.clientY - h : e.clientY) + 'px';
+    kmEl.addEventListener('click', (ev) => { const b = ev.target.closest('[data-km]'); if (!b || b.disabled) return; const p = alle[+b.dataset.km]; kmZu(); try { p.fn(); } catch (er) { if (window.toast) window.toast(er.message, true); } });
+    const erste = kmEl.querySelector('button:not([disabled])'); if (erste) erste.focus({ preventScroll: true });
+  });
+  document.addEventListener('mousedown', (e) => { if (kmEl && !e.target.closest('.bph-km')) kmZu(); }, true);
+  document.addEventListener('keydown', (e) => {
+    if (!kmEl) return;
+    if (e.key === 'Escape') { e.preventDefault(); kmZu(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); const bs = [...kmEl.querySelectorAll('button:not([disabled])')], i = bs.indexOf(document.activeElement);
+      bs[(i + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length].focus();
+    }
+  }, true);
+  addEventListener('blur', kmZu); addEventListener('resize', kmZu); addEventListener('scroll', kmZu, { passive: true, capture: true });
   H.setProject = function (p) {
     if (!band) return;
     const box = band.querySelector('.bph-proj');

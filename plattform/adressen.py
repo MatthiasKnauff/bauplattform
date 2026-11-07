@@ -107,8 +107,31 @@ def _kind(r, site):
     return "firma"
 
 
+WEITERE_TYP = ("tel", "mail", "adr", "person")
+
+
+def _weitere(L):
+    """Weitere Telefonnummern, E-Mail-Adressen, Anschriften und Ansprechpartner (contacts.extra.weitere)."""
+    out = []
+    for x in (L if isinstance(L, list) else [])[:40]:
+        if not isinstance(x, dict) or x.get("typ") not in WEITERE_TYP:
+            continue
+        y = {"typ": x["typ"]}
+        for k, mx in (("bez", 80), ("wert", 200), ("street", 200), ("zip", 20), ("city", 200), ("tel", 100), ("mail", 200)):
+            v = " ".join(str(x.get(k) or "").split())[:mx]
+            if v:
+                y[k] = v
+        for k in ("mail",) + (("wert",) if y["typ"] == "mail" else ()):
+            if y.get(k) and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", y[k]):
+                raise ValueError(f"Die E-Mail-Adresse „{y[k]}“ ist ungültig.")
+        if any(y.get(k) for k in ("wert", "street", "city", "tel", "mail")):
+            out.append(y)
+    return out
+
+
 def _out(r, used, site):
     d = {k: (r[k] if k in r.keys() else "") or "" for k in FIELDS}
+    d["weitere"] = _extra(r["extra"] if "extra" in r.keys() else "{}").get("weitere") or []
     n, names = used.get(r["id"], (0, []))
     d.update(id=r["id"], kind=_kind(r, site), used=n, projects=sorted(set(names)), site_of=site.get(r["id"], ""),
              updated=r["updated"] or "")
@@ -162,8 +185,10 @@ def suggest_detail():
 
 @app.post("/api/contacts")
 def create_contact():
+    b = request.get_json(silent=True) or {}
     try:
-        d = _clean(request.get_json(silent=True) or {})
+        d = _clean(b)
+        W = _weitere(b.get("weitere"))
     except ValueError as e:
         return jsonify(error=str(e)), 400
     if not d["name"]:
@@ -174,7 +199,7 @@ def create_contact():
             with c.savepoint():
                 cols = list(d) + ["extra", "created", "updated"]
                 cid = c.execute(f"INSERT INTO contacts({', '.join(cols)}) VALUES({', '.join('?' * len(cols))}) RETURNING id",
-                                (*d.values(), "{}", ts, ts)).fetchone()[0]
+                                (*d.values(), json.dumps({"weitere": W} if W else {}, ensure_ascii=False), ts, ts)).fetchone()[0]
             versionen.nach(c, f"kontakt:{cid}", g.user["name"])
             benachrichtigung.zuordnen(c, cid, d.get("email"))
     except db.IntegrityError:
@@ -185,8 +210,10 @@ def create_contact():
 
 @app.put("/api/contacts/<int:i>")
 def update_contact(i):
+    b = request.get_json(silent=True) or {}
     try:
-        d = _clean(request.get_json(silent=True) or {}, partial=True)
+        d = _clean(b, partial=True)
+        W = _weitere(b.get("weitere")) if "weitere" in b else None
     except ValueError as e:
         return jsonify(error=str(e)), 400
     if "name" in d and not d["name"]:
@@ -196,6 +223,11 @@ def update_contact(i):
     if not old:
         return jsonify(error="Diesen Kontakt gibt es nicht mehr."), 404
     ch = {k: v for k, v in d.items() if (old[k] or "") != v}
+    if W is not None:
+        ex = _extra(old["extra"])
+        if (ex.get("weitere") or []) != W:
+            ex["weitere"] = W
+            ch["extra"] = json.dumps(ex, ensure_ascii=False)
     if not ch:
         return jsonify(ok=True)
     try:
@@ -208,7 +240,7 @@ def update_contact(i):
                 benachrichtigung.zuordnen(c, i, ch["email"])
     except db.IntegrityError:
         return jsonify(error=DUP), 409
-    C.audit(g.user["name"], "kontakte", "Kontakt geändert", f"{ch.get('name') or old['name']} · " + ", ".join(FIELDS[k][1] for k in ch))
+    C.audit(g.user["name"], "kontakte", "Kontakt geändert", f"{ch.get('name') or old['name']} · " + ", ".join(FIELDS[k][1] if k in FIELDS else "Weitere Angaben" for k in ch))
     return jsonify(ok=True)
 
 
@@ -433,6 +465,14 @@ def vcard(i):
         lines.append(f"URL:{_vc(r['website'])}")
     if r["street"] or r["city"]:
         lines.append(f"ADR;TYPE=WORK:;;{_vc(r['street'])};{_vc(r['city'])};;{_vc(r['zip'])};")
+    for x in _extra(r["extra"]).get("weitere") or []:
+        bz = _vc(x.get("bez") or "")
+        if x["typ"] == "tel" and x.get("wert"):
+            lines.append(f"TEL;TYPE=VOICE:{_vc(x['wert'])}")
+        elif x["typ"] == "mail" and x.get("wert"):
+            lines.append(f"EMAIL;TYPE=INTERNET:{_vc(x['wert'])}")
+        elif x["typ"] == "adr" and (x.get("street") or x.get("city")):
+            lines.append(f"ADR:;{bz};{_vc(x.get('street', ''))};{_vc(x.get('city', ''))};;{_vc(x.get('zip', ''))};")
     if r["notes"] or r["trade"]:
         lines.append(f"NOTE:{_vc(' · '.join(x for x in (r['trade'], r['notes']) if x))}")
     lines.append("END:VCARD")

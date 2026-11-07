@@ -96,6 +96,7 @@
   "AVA-Navigation neu (Variante B): vier Arbeitsschritte oben fest, darunter die Bereiche des Schritts; links immer der Projektbaum (Projekt › LV › Angebote/Rechnungen) mit Ablegen und Eingang; Werkzeugleiste immer gleich hoch; Versionen nur noch im Schritt Ausschreibung",
   "Gültige Version (★) je Projekt für Bauzeitenplan und Baukosten (AVA: aktive Version) – Bautagebuch, Erinnerungen und To-dos lesen nur sie; kompaktes Versionsmenü in allen Modulen",
   "Planstand & Versand: eigener Plotauftrag an den Plotdienst (farbig/sw, Fotodruck, gefaltet, gelocht, Sätze – Anschreiben aus den Häkchen, Vorgaben in den Einstellungen); Versanddialog kompakter",
-  "Gemeinsam markieren mit Externen ohne Anmeldung: befristeter Gast-Link (1/7/30 Tage, widerrufbar, nur Prüfsumme gespeichert) nur für diesen einen Plan; Gäste zeichnen und löschen nur eigene Striche; Anfragen begrenzt"
+  "Gemeinsam markieren mit Externen ohne Anmeldung: befristeter Gast-Link (1/7/30 Tage, widerrufbar, nur Prüfsumme gespeichert) nur für diesen einen Plan; Gäste zeichnen und löschen nur eigene Striche; Anfragen begrenzt",
+  "Adressen: beliebig viele weitere Telefonnummern, E-Mail-Adressen, Anschriften und Ansprechpartner je Kontakt (Suche, Schnellknöpfe, Visitenkarte, Planversand)"
  ]
 }

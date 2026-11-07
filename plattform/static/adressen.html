@@ -99,6 +99,11 @@
 .fm label input,.fm label textarea{color:var(--ink);font-size:1rem}
 .fm .w{grid-column:1/-1}
 .fm textarea{min-height:80px;resize:vertical}
+.wt{grid-column:1/-1;display:grid;gap:.4rem}.wt-z{display:grid;grid-template-columns:7.5rem 1fr auto;gap:.4rem;align-items:start;padding:.4rem;border:1px solid var(--line);border-radius:8px}
+.wt-z .wt-f{display:grid;gap:.35rem;grid-template-columns:1fr 1fr}.wt-z .wt-f .w2{grid-column:1/-1}.wt-z input{width:100%;box-sizing:border-box;min-width:0}
+.wt-z .wt-t{font-size:.8rem;color:var(--mute);padding-top:.45rem}.wt-z .wt-t input{margin-top:.2rem;font-size:.85rem}.wt-x{border:0;background:none;color:var(--mute);cursor:pointer;font-size:1.1rem;padding:.2rem .3rem}.wt-x:hover{color:#c0392b}
+.wt-add{display:flex;gap:.35rem;flex-wrap:wrap}.wt-add .btn{font-size:.82rem}
+@media (max-width:560px){.wt-z{grid-template-columns:1fr auto}.wt-z .wt-t{grid-column:1/-1;padding:0}}
 .zc{display:grid;grid-template-columns:90px 1fr;gap:.7rem}
 .mh{display:flex;gap:.5rem;align-items:center;margin-bottom:.8rem}
 table.dup{border-collapse:collapse;width:100%;font-size:.88rem}table.dup th,table.dup td{border-bottom:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}
@@ -167,6 +172,18 @@ const betChip = () => (betN ? `<button class="${bet ? 'on' : ''}" data-bet title
 try { kind = sessionStorage.getItem('adrKind') || ''; } catch { /* egal */ }
 const tel = (n) => String(n || '').replace(/[^\d+]/g, '');
 const addr = (c) => [c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+/* Weitere Nummern, E-Mail-Adressen, Anschriften und Ansprechpartner (beliebig viele) */
+const WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro, privat'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen, Buchhaltung'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift, Lager'], person: ['👤', 'Ansprechpartner', 'Funktion, z. B. Bauleiter'] };
+const wtMails = (c) => [c.email, ...(c.weitere || []).flatMap((x) => (x.typ === 'mail' ? [x.wert] : x.typ === 'person' ? [x.mail] : []))].filter(Boolean);
+const wtTel = (c) => (c.weitere || []).flatMap((x) => (x.typ === 'tel' ? [[x.bez, x.wert]] : x.typ === 'person' && x.tel ? [[x.wert, x.tel]] : [])).filter((x) => x[1]);
+const wtText = (c) => (c.weitere || []).map((x) => [x.bez, x.wert, x.street, x.zip, x.city, x.tel, x.mail].filter(Boolean).join(' ')).join(' ');
+function wtZeile(x, i) {
+  const v = (k) => esc(x[k] || ''), [ic, t, ph] = WT[x.typ] || WT.tel;
+  const f = x.typ === 'adr' ? `<input data-wt="${i}" data-wk="street" class="w2" value="${v('street')}" placeholder="Straße" autocomplete="off"><input data-wt="${i}" data-wk="zip" value="${v('zip')}" placeholder="PLZ" inputmode="numeric" autocomplete="off"><input data-wt="${i}" data-wk="city" value="${v('city')}" placeholder="Ort" autocomplete="off">`
+    : x.typ === 'person' ? `<input data-wt="${i}" data-wk="wert" value="${v('wert')}" placeholder="Name" autocomplete="off"><input data-wt="${i}" data-wk="bez" value="${v('bez')}" placeholder="${ph}" autocomplete="off"><input data-wt="${i}" data-wk="tel" type="tel" value="${v('tel')}" placeholder="Telefon" autocomplete="off"><input data-wt="${i}" data-wk="mail" type="email" value="${v('mail')}" placeholder="E-Mail" autocomplete="off">`
+    : `<input data-wt="${i}" data-wk="wert" class="w2" type="${x.typ === 'mail' ? 'email' : 'tel'}" value="${v('wert')}" placeholder="${t}" autocomplete="off">`;
+  return `<div class="wt-z"><div class="wt-t">${ic} ${t}${x.typ === 'person' ? '' : `<input data-wt="${i}" data-wk="bez" value="${v('bez')}" placeholder="${ph}" autocomplete="off" aria-label="Bezeichnung">`}</div><div class="wt-f">${f}</div><button type="button" class="wt-x" data-wtx="${i}" title="Entfernen" aria-label="Entfernen">✕</button></div>`;
+}
 const trades = (c) => String(c.trade || '').split(/[,;]/).map((x) => x.trim()).filter(Boolean);
 
 async function load() {
@@ -179,7 +196,7 @@ function shown() {
   const s = q.trim();
   return ALL.filter((c) => (!bet || istBet(c)) && (!kind || c.kind === kind) && (!gw || trades(c).includes(gw)) && (!s || sucht(c, s)));
 }
-const sucht = (c, s) => passt([c.name, c.trade, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes].join(' '), s);
+const sucht = (c, s) => passt([c.name, c.trade, c.contact_person, c.role, c.city, c.zip, c.street, c.phone, c.mobile, c.email, c.website, c.notes, wtText(c)].join(' '), s);
 /* nichts gefunden, aber in anderen Arten / ohne Beteiligten- oder Gewerk-Filter schon? */
 function woanders() {
   const s = q.trim(); if (!s || (!kind && !bet && !gw)) return 0;
@@ -199,7 +216,7 @@ function render() {
       ${c.trade ? `<div class="sub">${esc(c.trade)}</div>` : ''}
       ${c.contact_person ? `<div class="sub">${esc(c.contact_person)}${c.role ? ' · ' + esc(c.role) : ''}</div>` : ''}
       ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
-      <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}</div>
+      <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0) > 0 ? `<span class="mu" title="${esc(wtText(c))}">+${wtTel(c).length + wtMails(c).length - (c.email ? 1 : 0)} weitere</span>` : ''}</div>
     </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer.' + `${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && (KINDS.find((x) => x[0] === kind) || [0, kind])[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}` : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
 }
 
@@ -227,7 +244,7 @@ function edit(c, verlaufAuf) {
   const inp = ([k, l, w, t]) => `<label class="${w}">${l}<input data-f="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'trade' ? ' list="gwList"' : ''}></label>`;
   const map = addr(c) ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr(c))}&travelmode=driving` : '';   // wie im Bautagebuch: Google Maps mit Route
   const quick = isNew ? '' : [c.phone && `<a class="btn sm" href="tel:${esc(tel(c.phone))}">☎ Anrufen</a>`, c.mobile && `<a class="btn sm" href="tel:${esc(tel(c.mobile))}">📱 Mobil</a>`,
-    c.email && `<a class="btn sm" href="mailto:${esc(c.email)}">✉ E-Mail</a>`, c.website && `<a class="btn sm" href="${esc(c.website)}" target="_blank" rel="noopener">Internet</a>`,
+    c.email && `<a class="btn sm" href="mailto:${esc(c.email)}">✉ E-Mail</a>`, ...wtTel(c).map(([b, n]) => `<a class="btn sm" href="tel:${esc(tel(n))}">☎ ${esc(b || n)}</a>`), ...wtMails(c).slice(1).map((m) => `<a class="btn sm" href="mailto:${esc(m)}">✉ ${esc(m)}</a>`), c.website && `<a class="btn sm" href="${esc(c.website)}" target="_blank" rel="noopener">Internet</a>`,
     map && `<a class="btn sm" href="${esc(map)}" target="_blank" rel="noopener" title="Route in Google Maps planen">🧭 Route</a>`, `<a class="btn sm" href="api/contacts/${c.id}.vcf">Ins Handy</a>`].filter(Boolean).join('');
   const use = isNew ? '' : [c.site_of && `Baustellenadresse des Projekts „${esc(c.site_of)}“.`,
     c.used ? `Kommt in ${c.used} ${c.used === 1 ? 'Eintrag' : 'Einträgen'} des Bautagebuchs vor${c.projects.length ? ' (' + c.projects.map(esc).join(', ') + ')' : ''}.` : ''].filter(Boolean).join(' ');
@@ -236,6 +253,7 @@ function edit(c, verlaufAuf) {
     ${quick ? `<div class="quick">${quick}</div>` : ''}
     ${!isNew && addr(c) ? `<div class="mapb"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${encodeURIComponent(addr(c))}&hl=de&z=15&output=embed"></iframe><a class="mapr" href="${esc(map)}" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>` : ''}
     <div class="fm">${F.map(inp).join('')}
+      <div class="wt w" id="wtBox"></div>
       <label>Art<input data-f="art" value="${esc(c.art || '')}" list="artList" autocomplete="off" placeholder="${esc(isNew ? 'Firma' : KINDN[c.kind] || c.kind)}" title="Firma, Bauherr, Baustelle, Plotdienst – oder eine eigene Art (z. B. Behörde, Planer); Plotdienste stehen im Planversand immer zur Auswahl; jede Art erscheint oben als Filterknopf. Leer = aus Gewerk bzw. Baustelle des Projekts."></label>${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
       <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
       <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>
@@ -252,6 +270,7 @@ function edit(c, verlaufAuf) {
     if (m === 'close') return close();
     if (m === 'save') {
       const d = {}; bg.querySelectorAll('[data-f]').forEach((el) => { d[el.dataset.f] = el.value; });
+      wtLesen(); d.weitere = WTL.filter((x) => ['wert', 'street', 'city', 'tel', 'mail'].some((k) => (x[k] || '').trim()));
       try {
         if (isNew) await api('api/contacts', 'POST', d); else await api('api/contacts/' + c.id, 'PUT', d);
         if (grund) await api(`api/bp/kontakt/${c.id}/grundstueck`, 'PUT', { werte: grund.werte() });
@@ -260,7 +279,7 @@ function edit(c, verlaufAuf) {
     }
     if (m === 'del') {
       try { await api('api/contacts/' + c.id, 'DELETE'); close(); load();
-        const alt = Object.fromEntries(['name', 'trade', 'contact_person', 'role', 'phone', 'mobile', 'email', 'website', 'street', 'zip', 'city', 'notes', 'art'].map((k) => [k, c[k] || '']));
+        const alt = Object.fromEntries(['name', 'trade', 'contact_person', 'role', 'phone', 'mobile', 'email', 'website', 'street', 'zip', 'city', 'notes', 'art'].map((k) => [k, c[k] || ''])); alt.weitere = c.weitere || [];
         rueckgaengig(`„${c.name}“ gelöscht`, async () => { await api('api/contacts', 'POST', alt); load(); });
       } catch (e) {
         const er = $('#mErr', bg); er.textContent = e.message;
@@ -269,6 +288,21 @@ function edit(c, verlaufAuf) {
       }
     }
   });
+  let WTL = (c.weitere || []).map((x) => ({ ...x }));
+  const wtBox = bgE && bgE.querySelector('#wtBox');
+  function wtLesen() { if (wtBox) wtBox.querySelectorAll('[data-wt]').forEach((el) => { const x = WTL[+el.dataset.wt]; if (x) x[el.dataset.wk] = el.value; }); }
+  function wtZeichnen(fokus) {
+    if (!wtBox) return;
+    wtBox.innerHTML = WTL.map(wtZeile).join('') + `<div class="wt-add">${Object.entries(WT).map(([k, [ic, t]]) => `<button type="button" class="btn sm" data-wtadd="${k}">＋ ${ic} ${{ tel: 'weitere Nummer', mail: 'weitere E-Mail', adr: 'weitere Anschrift', person: 'Ansprechpartner' }[k]}</button>`).join('')}</div>`;
+    if (fokus) { const el = wtBox.querySelector(`[data-wt="${WTL.length - 1}"]:not([data-wk="bez"])`) || wtBox.querySelector(`[data-wt="${WTL.length - 1}"]`); if (el) el.focus(); }
+  }
+  if (wtBox) {
+    wtZeichnen();
+    wtBox.addEventListener('click', (e) => {
+      const a = e.target.closest('[data-wtadd]'); if (a) { wtLesen(); WTL.push({ typ: a.dataset.wtadd }); wtZeichnen(true); return; }
+      const x = e.target.closest('[data-wtx]'); if (x) { wtLesen(); WTL.splice(+x.dataset.wtx, 1); wtZeichnen(); }
+    });
+  }
   let grund = null;
   const gsH = bgE && bgE.querySelector('#gsHost');
   if (gsH && window.BPHead && BPHead.grundstueck) api(`api/bp/kontakt/${c.id}/grundstueck`).then((G) => {

@@ -212,7 +212,19 @@ def projekte():
 def kontakte():
     """Alle Adressen mit E-Mail (Vorschläge für „weitere E-Mail-Adresse“ im Versand)."""
     with db.tx() as c:
-        return jsonify([{"name": r["name"], "email": r["email"]} for r in c.execute("SELECT name, email FROM contacts WHERE email<>'' ORDER BY name")])
+        out = []
+        for r in c.execute("SELECT name, email, extra FROM contacts ORDER BY name"):
+            if r["email"]:
+                out.append({"name": r["name"], "email": r["email"]})
+            try:   # weitere E-Mail-Adressen und Ansprechpartner (Adressen → „weitere E-Mail“)
+                W = (json.loads(r["extra"] or "{}") or {}).get("weitere") or []
+            except (ValueError, TypeError):
+                W = []
+            for x in W:
+                m = x.get("wert") if x.get("typ") == "mail" else x.get("mail") if x.get("typ") == "person" else ""
+                if m:
+                    out.append({"name": f"{r['name']} – {x.get('bez') or x.get('wert') or ''}".strip(" –"), "email": m})
+        return jsonify(out)
 
 
 @app.route("/api/einstellungen", methods=["GET", "PUT"])

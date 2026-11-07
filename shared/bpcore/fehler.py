@@ -45,6 +45,23 @@ def melden(app, art, meldung, stack="", pfad="", user_name="", browser=""):
         pass
 
 
+def still(app, wo, e=None):
+    """Abgefangener Fehler, bei dem das Programm bewusst weiterläuft (z. B. Abgleich mit dem Dateiserver, Postfach abrufen).
+    Hält ihn in den Fehlermeldungen der Verwaltung (Art „still“) und im Container-Protokoll fest – ändert sonst nichts.
+    Aufruf im except-Block:  except Exception as e: fehler.still("bautagebuch", "Ablage: Ordner anlegen", e)
+    Darf selbst nie scheitern."""
+    try:
+        import os, sys
+        app = app or os.environ.get("APP_MODULE") or "bpcore"   # im gemeinsamen Kern: App aus dem Container (plattform) oder „bpcore“
+        e = e if e is not None else sys.exc_info()[1]
+        text = f"{wo}: {type(e).__name__}: {e}" if e is not None else str(wo)
+        print(f"[{app}] {text}", file=sys.stderr, flush=True)
+        stack = "".join(traceback.format_exception(type(e), e, e.__traceback__)) if e is not None else ""
+        melden(app, "still", text, stack)
+    except Exception:
+        pass
+
+
 def ausnahme(app, e, pfad="", user_name=""):
     melden(app, "server", f"{type(e).__name__}: {e}", "".join(traceback.format_exception(type(e), e, e.__traceback__)), pfad, user_name)
 

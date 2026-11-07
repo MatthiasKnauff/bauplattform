@@ -85,7 +85,7 @@ def _smtp_senden(cf, msg, absender, empfaenger):
     except smtplib.SMTPResponseException as e:
         txt = (e.smtp_error.decode("utf-8", "replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error))
         if "5.2.254" in txt or "throttl" in txt.lower():
-            _pause["bis"] = time.time() + PAUSE_S
+            _pause["bis"] = time.time() + PAUSE_S * (3 if "invalid" in txt.lower() else 1)   # jeder weitere Versuch verlängert die Sperre bei Microsoft
             raise MailError(pause_text() + f" – Antwort des Servers: {e.smtp_code} {txt[:240]}", gesperrt=True)
         if isinstance(e, smtplib.SMTPSenderRefused):
             raise MailError(f"Der Mailserver lässt {absender} nicht als Absender zu – im Postfach „Senden als“ erlauben "
@@ -156,7 +156,7 @@ def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=Non
         msg["Reply-To"] = reply_to
     msg.set_content(body)
     if html:   # dieselbe Mail als HTML (Rich-Signatur); eingebettete Bilder (data:) als Inline-Anhang (cid:), das zeigen alle Mailprogramme
-        import base64, re
+        import base64
         from email.utils import make_msgid
         bilder = []
 
@@ -169,6 +169,15 @@ def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=Non
         hp = msg.get_payload()[-1]
         for cid, sub, data in bilder:
             hp.add_related(data, maintype="image", subtype=sub, cid=f"<{cid}>")
+    if ical:
+        # Ist der Organisator selbst Empfänger, nimmt Exchange ihn aus der Einladung heraus – bleibt niemand übrig, lehnt Microsoft 365
+        # die Mail ab („InvalidRecipientsException“) und sperrt das Postfach nach mehreren solchen Fällen („Sender throttled“).
+        # Dann nur als Kalenderdatei zum Eintragen (PUBLISH) mitschicken, nicht als Einladung.
+        org = re.search(r"ORGANIZER[^:\r\n]*:mailto:([^\r\n]+)", ical, re.I)
+        if org and org.group(1).strip().lower() in {x.strip().lower() for x in lst(to) + lst(cc)}:
+            ical = re.sub(r"(?m)^(ORGANIZER|ATTENDEE)[^\r\n]*\r?\n", "", ical).replace("METHOD:REQUEST", "METHOD:PUBLISH")
+            msg.add_attachment(ical.encode("utf-8"), maintype="text", subtype="calendar", filename="termin.ics")
+            ical = None
     if ical:
         msg.add_alternative(ical, subtype="calendar", params={"method": "REQUEST"})
     for name, data, mime in attachments or []:

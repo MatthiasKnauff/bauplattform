@@ -789,9 +789,14 @@ def terminruege_vorlage():
     pid, firma = request.args.get("pid", type=int), (request.args.get("firma") or "").strip().lower()
     rows = [t for t in termine("all").get_json() if t["pid"] == pid and t["key"] == firma]
     vz = _verzug_rows(pid, firma)
-    if not rows and not vz:
-        return jsonify(error="Für diese Firma gibt es weder fehlende Tage noch einen Rückstand laut Arbeitsfortschritt."), 404
-    r0 = rows[0] if rows else vz[0]
+    if not rows and not vz:   # frei (über „Neu“): Rückstand selbst beschreiben
+        with db.tx() as c:
+            p = _projects(c).get(pid)
+        if not p or not _sees(g.user, p) or not firma:
+            return jsonify(error="Projekt oder Firma fehlt."), 404
+        r0 = {"projekt": p["name"], "firma": request.args.get("firma", "").strip()}
+    else:
+        r0 = rows[0] if rows else vz[0]
     with db.tx() as c:
         k = c.execute("SELECT * FROM contacts WHERE id=?", (r0["contact_id"],)).fetchone() if r0.get("contact_id") else None
         k = k or c.execute("SELECT * FROM contacts WHERE lower(name)=? ORDER BY id LIMIT 1", (firma,)).fetchone()
@@ -819,20 +824,28 @@ def terminruege_pdf():
     want, vwant = set(b.get("ids") or []), set(b.get("vids") or [])
     rows = [t for t in termine("all").get_json() if t["pid"] == pid and t["key"] == firma and t["id"] in want] if want else []
     vz = [x for x in _verzug_rows(pid, firma) if x["id"] in vwant] if vwant else []
-    if not rows and not vz:
-        return jsonify(error="Bitte mindestens einen Tag oder einen Vorgang im Verzug wählen."), 400
-    r0 = rows[0] if rows else vz[0]
+    frei = [z.strip()[:300] for z in str(b.get("frei") or "").splitlines() if z.strip()][:30]   # selbst beschriebener Rückstand
+    if not rows and not vz and not frei:
+        return jsonify(error="Bitte mindestens einen Tag, einen Vorgang im Verzug oder den Rückstand in eigenen Worten angeben."), 400
+    if rows or vz:
+        r0 = rows[0] if rows else vz[0]
+    else:
+        with db.tx() as c:
+            p = _projects(c).get(pid)
+        if not p or not _sees(g.user, p):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        r0 = {"projekt": p["name"]}
     E = b.get("empfaenger") if isinstance(b.get("empfaenger"), dict) else {}
     frist = str(b.get("frist") or "").strip()
     auftrag = str(b.get("auftrag") or "").strip()[:80]
-    text = (b.get("text") or "").strip() or terminruege_text(_de(frist), b.get("kuendigung", True) is not False, auftrag, tage=bool(rows), verzug=bool(vz))
+    text = (b.get("text") or "").strip() or terminruege_text(_de(frist), b.get("kuendigung", True) is not False, auftrag, tage=bool(rows), verzug=bool(vz) or bool(frei))
     liste = "\n".join([f"{_wd(t['datum'])}: laut Bauzeitenplan {', '.join(t['leistungen'])[:160]}" for t in rows]
                       + [f"{x['vorgang'][:90]}: geplant {_de(x['s'])}–{_de(x['f'])}, Stand {_de(date.today().isoformat())} {x['ist']} % statt {x['soll']} % "
-                         f"(Rückstand ca. {x['verzug']:g} Arbeitstage)" for x in vz])
+                         f"(Rückstand ca. {x['verzug']:g} Arbeitstage)" for x in vz] + frei)
     schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "pruefen", "senden") else "senden"
     buf, cv, *_, felder = _brief(pid, r0["projekt"], E, auftrag, "Terminrüge", "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
                          "Grundlage: § 5 Abs. 3 und 4 VOB/B (setzt vereinbarte Vertragsfristen voraus).",
-                         text, "Tage ohne Besetzung" if not vz else "Rückstand laut Bauzeitenplan" if not rows else "Tage ohne Besetzung und Rückstand",
+                         text, ("Rückstand" if not rows else "Tage ohne Besetzung") if not vz else "Rückstand laut Bauzeitenplan" if not rows else "Tage ohne Besetzung und Rückstand",
                          "Tage", "Tage (Liste ergänzbar)", liste, "Frist zur Abhilfe:", frist, sig=_sig(),
                          werte=_werte(b), fest=schritt != "entwurf")
     cv.save()

@@ -107,6 +107,11 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .bed-f:hover{background:rgba(255,214,90,.4)}.bed-f:focus{background:rgba(255,236,160,.55);box-shadow:0 0 0 1.5px #e0a800}
 .bed-f.gr{background:rgba(255,226,120,.12)}
 .bed-l{color:#ddd;padding:3rem}
+.nw{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:.6rem;margin:.4rem 0 .2rem}
+.nw button{display:grid;grid-template-columns:2.2rem 1fr;gap:.15rem .6rem;align-items:start;text-align:left;padding:.75rem .8rem;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.nw button:hover,.nw button:focus-visible{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 18%,transparent);outline:none}
+.nw .i{grid-row:span 2;font-size:1.5rem;line-height:1.2;text-align:center}.nw b{font-size:.98rem}.nw small{color:var(--mute);font-size:.8rem;line-height:1.3}
+.nw h4{grid-column:1/-1;margin:.5rem 0 0;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 </style>
 <link rel="stylesheet" href="static/todo.css">
 </head>
@@ -115,7 +120,7 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
   <div class="top">
     <div class="seg" id="scope" role="group" aria-label="Welche Projekte"><button data-scope="mine">Meine Projekte</button><button data-scope="all">Alle Projekte</button></div>
     <span class="fill"></span>
-    <button class="btn sm" id="neuBtn">+ Erinnerung</button>
+    <button class="btn sm pri" id="neuBtn">＋ Neu</button>
   </div>
   <nav class="tabs" id="tabs"></nav>
   <div id="briefe" class="briefe" hidden></div>
@@ -171,7 +176,7 @@ function renderTabs() {
   const nM = M ? M.filter((m) => m.status === 'ueberfaellig').length : 0, nE = E ? E.items.filter((x) => ['ueberfaellig', 'abgelaufen', 'heute'].includes(x.lage)).length : 0;
   const nT = (T ? T.filter((x) => x.status === 'offen').length : 0) + (VZ ? new Set(VZ.vorgaenge.map((x) => x.pid + '|' + x.key)).size : 0);
   const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
-  $('.top').style.display = tab === 'todos' ? 'none' : '';   // gelten nur für Mängel, Termine, Erinnerungen
+  $('#scope').style.visibility = tab === 'todos' ? 'hidden' : '';   // gelten nur für Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
   $('#tabs').innerHTML = [['todos', 'To-dos', nTd], ['maengel', 'Mängel', nM], ['termine', 'Termine', nT], ['erinnerungen', 'Erinnerungen', nE]].map(([k, l, n]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}${n ? `<small class="bad" title="überfällig / fällig">${n}</small>` : ''}</button>`).join('');
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
@@ -249,6 +254,7 @@ async function truegeDialog(k, nur) {
       ${V.verzug.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-tv="${esc(x.id)}"${x.ab_schwelle || (V.nur && V.nur === x.id) ? ' checked' : ''}><span>${esc(x.vorgang)} – ca. ${String(x.verzug).replace('.', ',')} AT<small class="mute" style="display:block">${esc(de(x.s))}–${esc(de(x.f))} · ${x.ist} % statt ${x.soll} %${x.ab_schwelle ? '' : ' · unter der Schwelle'}</small></span></label>`).join('')}</div>` : ''}
     ${V.tage.length ? `<label class="w">Tage (laut Bauzeitenplan erwartet, nicht anwesend)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">
       ${V.tage.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-td="${esc(x.id)}" checked><span>${esc(deW(x.datum))}<small class="mute" style="display:block">${esc(x.leistungen.join(', '))} · ${x.status === 'fehlt' ? 'als „nicht da“ bestätigt' : 'nicht bestätigt'}</small></span></label>`).join('')}</div>` : ''}
+    <label class="w">${(V.verzug || []).length || V.tage.length ? 'Weiterer Rückstand (optional, je Zeile ein Punkt)' : 'Rückstand – was ist in Verzug? (je Zeile ein Punkt)'}</label><textarea class="w" id="tX" rows="3" placeholder="z. B. Estricharbeiten EG sollten bis 06.11. fertig sein, bisher nicht begonnen"></textarea>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
     ${V.tage.length ? '<label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tB" checked> nicht bestätigte Tage als „nicht da“ übernehmen</label>' : ''}
     ${versandHtml(KONTO, E0.email)}
@@ -258,9 +264,10 @@ async function truegeDialog(k, nur) {
     if (m.startsWith('f')) { bg.querySelector('#tF').value = plus(+m.slice(1)); return; }
     if (m !== 'ok') return;
     const ids = [...bg.querySelectorAll('[data-td]:checked')].map((x) => x.dataset.td), vids = [...bg.querySelectorAll('[data-tv]:checked')].map((x) => x.dataset.tv);
-    if (!ids.length && !vids.length) { toast('Bitte mindestens einen Tag oder einen Vorgang wählen.', true); return; }
+    const frei = bg.querySelector('#tX').value.trim();
+    if (!ids.length && !vids.length && !frei) { toast('Bitte mindestens einen Tag oder Vorgang wählen oder den Rückstand beschreiben.', true); return; }
     const vs = versandRead(bg); if (!vs) return;
-    const body = { ...vs, pid, firma, ids, vids, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: !!(bg.querySelector('#tB') || {}).checked,
+    const body = { ...vs, pid, firma, ids, vids, frei, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: !!(bg.querySelector('#tB') || {}).checked,
       empfaenger: { id: bg.querySelector('#tN').value.trim() === E0.name ? E0.id : null, name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
     try { await briefStart('api/terminruege', body, 'Terminrüge', close); } catch (e) { toast(e.message, true); }
   });
@@ -630,9 +637,73 @@ async function ruegeDialog(id) {
   rg.addEventListener('change', kw); kw();
 }
 
+/* ---------- „＋ Neu“: Auswahl, was angelegt werden soll ---------- */
+const NEU = [
+  ['Erinnern & erledigen', [['erinnerung', '⏰', 'Erinnerung', 'Zu einem Datum per Mail oder als Termin erinnern'], ['aufgabe', '☑', 'Aufgabe (To-do)', 'Für mich oder Kollegen, mit Fälligkeit']]],
+  ['Schreiben an Firmen (VOB/B)', [['m4', '⚠', 'Mängelrüge vor Abnahme', '§ 4 Abs. 7 – Mängel während der Ausführung beseitigen, ggf. mit Kündigungsandrohung'],
+    ['m13', '🏁', 'Mängelrüge nach Abnahme', '§ 13 Abs. 5 – Mängelansprüche in der Gewährleistung'],
+    ['termin', '⏱', 'Terminrüge', '§ 5 Abs. 3/4 – Aufforderung zur Abhilfe bei Rückstand oder fehlender Besetzung']]]];
+function neuWahl() {
+  modalBox(`<h3>Neu anlegen</h3><div class="nw">${NEU.map(([g, L]) => `<h4>${g}</h4>${L.map(([k, i, t, d]) => `<button type="button" data-m="${k}"><span class="i">${i}</span><b>${t}</b><small>${d}</small></button>`).join('')}`).join('')}</div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button></div>`, (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    close();
+    if (m === 'erinnerung') neueErinnerung();
+    else if (m === 'aufgabe') { tab = 'todos'; LS.set('tab', tab); location.hash = 'todos'; reload().then(() => { const i = $('#tdNeu'); if (i) i.focus(); }); }
+    else if (m === 'm4' || m === 'm13') ruegeNeu(m === 'm4' ? 'vob4' : 'vob13');
+    else if (m === 'termin') terminNeu();
+  });
+}
+/* Rüge ohne Ausgangspunkt: Projekt und Firma wählen (Mängel aus dem Bautagebuch, Firmen aus Plan und Anwesenheit) */
+async function ruegeNeu(grund) {
+  let L; try { L = (await api('api/maengel?scope=all')).filter((m) => !m.done && !m.archiviert); } catch (e) { toast(e.message, true); return; }
+  if (!L.length) { bpHinweis('Es gibt keine offenen Mängel. Mängel werden im Bautagebuch erfasst – danach lässt sich hier die Rüge schreiben.'); return; }
+  const P = [...new Map(L.map((m) => [m.pid, m.projekt])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'));
+  const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || P[0][0];
+  const firmen = (pid) => [...new Set(L.filter((m) => m.pid === pid && m.firma).map((m) => m.firma))].sort((a, b) => a.localeCompare(b, 'de'));
+  const opt = (pid) => firmen(pid).map((f) => `<option value="${esc(f)}">${esc(f)} (${L.filter((m) => m.pid === pid && m.firma === f).length})</option>`).join('');
+  const bg = modalBox(`<h3>${grund === 'vob4' ? 'Mängelrüge vor Abnahme' : 'Mängelrüge nach Abnahme'}</h3><div class="fm">
+    <label>Projekt</label><select id="nrP">${P.map(([i, n]) => `<option value="${i}"${i === pid0 ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+    <label>Firma</label><select id="nrF">${opt(P.some(([i]) => i === pid0) ? pid0 : P[0][0])}</select>
+    <p class="w mute" style="font-size:.82rem;margin:0">Zur Auswahl stehen Firmen mit offenen Mängeln (in Klammern: Anzahl). Im nächsten Schritt wählst du die Mängel und die Frist.</p></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const pid = +bg.querySelector('#nrP').value, f = bg.querySelector('#nrF').value, x = L.find((y) => y.pid === pid && y.firma === f);
+    if (!x) { toast('Bitte eine Firma wählen.', true); return; }
+    close(); await ruegeDialog(x.id);
+    const rg = [...document.querySelectorAll('#rG')].pop(); if (rg) { rg.value = grund; rg.dispatchEvent(new Event('change')); }
+  });
+  bg.querySelector('#nrP').addEventListener('change', (e) => { bg.querySelector('#nrF').innerHTML = opt(+e.target.value); });
+}
+async function terminNeu() {
+  let P, K = [], VZ0 = null, T0 = [];
+  try { [P, VZ0, T0] = await Promise.all([api('api/projekte'), api('api/verzug?scope=all').catch(() => null), api('api/termine?scope=all').catch(() => [])]); } catch (e) { toast(e.message, true); return; }
+  const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (P[0] || {}).id;
+  const vorschlag = (pid) => [...new Set([...((VZ0 && VZ0.vorgaenge) || []).filter((x) => x.pid === pid).map((x) => x.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])];
+  const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
+    <label>Projekt</label><select id="ntP">${P.map((p) => `<option value="${p.id}"${p.id === pid0 ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+    <label>Firma</label><input id="ntF" list="ntL" placeholder="Firma aus den Adressen" autocomplete="off"><datalist id="ntL"></datalist>
+    <p class="w mute" style="font-size:.82rem;margin:0" id="ntH"></p></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const pid = +bg.querySelector('#ntP').value, f = bg.querySelector('#ntF').value.trim();
+    if (!f) { toast('Bitte eine Firma angeben.', true); return; }
+    close(); truegeDialog(pid + '|' + f.toLowerCase());
+  });
+  const liste = () => { const pid = +bg.querySelector('#ntP').value, v = vorschlag(pid);
+    bg.querySelector('#ntL').innerHTML = [...v, ...(K || []).map((k) => k.name).filter((n) => !v.includes(n))].map((n) => `<option value="${esc(n)}">`).join('');
+    bg.querySelector('#ntH').textContent = v.length ? 'Laut Bauzeitenplan im Rückstand oder nicht anwesend: ' + v.join(', ') : 'Für dieses Projekt meldet der Bauzeitenplan keinen Rückstand – den Rückstand beschreibst du im nächsten Schritt selbst.'; };
+  bg.querySelector('#ntP').addEventListener('change', liste); liste();
+  let kt = 0; bg.querySelector('#ntF').addEventListener('input', (e) => { clearTimeout(kt); const q = e.target.value.trim(); if (q.length < 2) return;
+    kt = setTimeout(async () => { try { K = await api('api/bp/kontakte?q=' + encodeURIComponent(q)); liste(); } catch { /* ohne Vorschläge */ } }, 200); });
+}
+$('#neuBtn').onclick = neuWahl;
+
 /* ---------- Neue Erinnerung ---------- */
 let PRJ = null, USERS = null, CFG = null;
-$('#neuBtn').onclick = async () => {
+async function neueErinnerung() {
   try { PRJ = PRJ || await api('api/projekte'); USERS = USERS || await api('api/benutzer'); } catch (e) { toast(e.message, true); return; }
   modalBox(`<h3>Neue Erinnerung</h3><div class="fm">
     <label for="nT">Woran erinnern?</label><input id="nT" placeholder="z. B. Fliesenleger Termin bestätigen lassen">
@@ -649,7 +720,7 @@ $('#neuBtn').onclick = async () => {
       try { const rr = await api('api/erinnerungen', 'POST', b); close(); toast('Erinnerung gespeichert.' + (rr.hinweis ? ' ' + rr.hinweis : '')); tab = 'erinnerungen'; history.replaceState(null, '', '#erinnerungen'); await reload(); } catch (e) { toast(e.message, true); }
     }
   });
-};
+}
 
 /* ---------- Einstellungen (nur diese App) ---------- */
 async function setDialog(host) {

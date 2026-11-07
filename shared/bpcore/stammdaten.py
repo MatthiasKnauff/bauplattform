@@ -233,7 +233,7 @@ def baubeginn_in_plan(c, pid, tag):
     except (TypeError, ValueError):
         return 0
     n = 0
-    for gid, _, data in plan.plans_mit_id(c, pid):
+    for gid, _, data in plan.plans_mit_id(c, pid, alle=True):   # in jede Version
         if isinstance(data, dict):
             data["start"] = tag
             c.execute("UPDATE gantt_projects SET data=? WHERE id=?", (json.dumps(data, ensure_ascii=False), gid))

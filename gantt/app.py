@@ -348,6 +348,13 @@ def list_projects(c):
                     "assist": bool(isinstance(p.get("assist"), dict) and p["assist"].get("type")),
                     "by": r["updated_by"], "bt": bt.get(r["project_id"]) if r["project_id"] else None, "bt_id": r["project_id"],
                     "archived": bool(p.get("archived"))})
+    # je Bautagebuch-Projekt: welche Version gilt (★) – für Bautagebuch, Erinnerungen, To-dos
+    from bpcore import gueltig
+    for bid in {x["bt_id"] for x in out if x["bt_id"]}:
+        V = [x for x in out if x["bt_id"] == bid]
+        gid = gueltig.waehlen([(x["id"], x["created"], x["archived"]) for x in V], gueltig.lesen(c, "gantt", bid))
+        for x in V:
+            x["gueltig"] = x["id"] == gid
     return out
 
 
@@ -482,6 +489,20 @@ def project(pid):
             return jsonify(error=f"Der Plan wurde inzwischen von {r['updated_by'] or 'jemand anderem'} geändert.", conflict=True,
                            by=r["updated_by"], updated=r["updated"], rev=r["rev"]), 409
         return jsonify(write_project(c, sanitize(b, pid), uname()))
+
+
+@app.put("/api/projects/<pid>/gueltig")
+def project_gueltig(pid):
+    """Diese Version des Bauzeitenplans gilt ab jetzt (für Bautagebuch, Erinnerungen, To-dos des Projekts)."""
+    from bpcore import gueltig
+    with db.tx() as c:
+        r, err = _project_or_error(c, pid)
+        if err:
+            return err
+        if not r["project_id"]:
+            return jsonify(error="Der Plan ist mit keinem Projekt verknüpft – verknüpfen unter Projekt → Bautagebuch."), 400
+        gueltig.setzen(c, "gantt", r["project_id"], pid, uname())
+        return jsonify(ok=True)
 
 
 @app.put("/api/projects/<pid>/archiv")

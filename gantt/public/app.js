@@ -2749,22 +2749,40 @@ function vleiste() {
   const bt = P && P._bt ? P._bt.id : null;
   const L = !P ? [] : (bt ? projects.filter((p) => p.bt_id === bt) : projects.filter((p) => p.id === P.id)).slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id));
   const when = (u) => { if (!u) return ''; const d = new Date(u); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`; };
-  const el = BPHead.versionsleiste({ vor: $('#tabs'), aktuell: P && P.id, rechts: vlKnoepfe,
+  const G = L.find((p) => p.gueltig);
+  const O = { aktuell: P && P.id, gueltig: bt && G ? G.id : null,
     liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
     onWahl: async (id) => { await flushSave(); if (await openProject(String(id)) !== false) refreshProjectList(); },
-    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() });
-  el.style.display = P ? '' : 'none';
+    onGueltig: bt ? versionGilt : null,
+    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() };
+  // kompaktes Versionsmenü vorne in der Werkzeugleiste (wie in der AVA); Drucken/Exportieren rechts in der Reiterzeile
+  const el = BPHead.versionsleiste({ vor: $('#tabs'), ...O }); el.style.display = 'none';
+  let vb = $('#vmGrp');
+  if (!vb) { vb = document.createElement('div'); vb.id = 'vmGrp'; vb.className = 'vm-grp'; vb.innerHTML = '<div class="vm-in"></div><div class="gl">Version</div>'; $('#ribbon').insertBefore(vb, $('#ribbon').firstChild); }
+  vb.style.display = P ? '' : 'none';
+  if (BPHead.versionsMenue) BPHead.versionsMenue({ ...O, in: vb.querySelector('.vm-in') });
+  const tr = document.querySelector('#tabs .tb-r');
+  if (tr && !vlKnoepfe[0].isConnected) { vlKnoepfe.forEach((b) => { b.className = 'tb-k'; tr.insertBefore(b, tr.firstChild); }); }
+}
+async function versionGilt(id) {
+  const p = projects.find((x) => x.id === id); if (!p) return;
+  if (window.bpFrage && !(await bpFrage(`„${p.id === P.id ? P.name : p.name}“ gilt ab jetzt: Das Bautagebuch (Anwesende), die Erinnerungen und die To-dos richten sich nach dieser Version. Die Erinnerungen der bisher gültigen Version entfallen.`, { ok: 'Gilt ab jetzt' }))) return;
+  try { const r = await fetch(`api/projects/${encodeURIComponent(id)}/gueltig`, { method: 'PUT' }); const x = await r.json(); if (!r.ok) throw new Error(x.error || r.status); await refreshProjectList(); toast('Diese Version gilt jetzt.'); }
+  catch (er) { toast('Nicht möglich: ' + er.message, true); }
 }
 window.ganttVleiste = vleiste;
 function neueVersion() {
   if (!P) return;
   modal('Neue Version', `<div class="form" style="max-width:460px"><div class="hint" style="margin:0 0 8px">Kopie von „${esc(P.name)}“ mit allen Leistungen, Verknüpfungen, Firmen und Kalender. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</div>
-    <label>Name der Version</label><input id="nvName" class="full" placeholder="z. B. 1. Überarbeitung, nach den Sommerferien"></div>`, [{ label: 'Anlegen', cls: 'primary', primary: true, fn: (bg) => {
+    <label>Name der Version</label><input id="nvName" class="full" placeholder="z. B. 1. Überarbeitung, nach den Sommerferien">
+    ${P._bt ? '<label></label><label class="full" style="display:flex;gap:6px;align-items:center;white-space:normal"><input type="checkbox" id="nvGilt" style="width:auto" checked> gilt ab sofort (Bautagebuch, Erinnerungen, To-dos)</label>' : ''}</div>`, [{ label: 'Anlegen', cls: 'primary', primary: true, fn: (bg) => {
     const name = bg.querySelector('#nvName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
+    const gilt = !!(bg.querySelector('#nvGilt') || {}).checked, altId = P.id, btId = P._bt ? P._bt.id : null;
     (async () => {
       await flushSave();
       const src = JSON.parse(JSON.stringify(P)); delete src._rev; delete src._by; delete src._bt;
       const p = await api.create({ ...src, name, archived: false, _link: P._bt ? P._bt.id : null });
+      if (btId) await fetch(`api/projects/${encodeURIComponent(gilt ? p.id : (projects.find((x) => x.gueltig && x.bt_id === btId) || { id: altId }).id)}/gueltig`, { method: 'PUT' }).catch(() => {});   // sonst gälte automatisch die neueste
       await openProject(p.id); await refreshProjectList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`);
     })().catch((er) => toast('Anlegen fehlgeschlagen: ' + er.message, true));
   } }, { label: 'Abbrechen' }]);

@@ -235,9 +235,11 @@ def _a_nachtraege(c, u, R, P, ok):
 
 def _gantt(c, ok, P):
     """(Projekt-ID, Planname, Plan-ID, data) aller Bauzeitenpläne der gewählten Projekte."""
-    for r in c.execute("SELECT id, name, data, project_id FROM gantt_projects WHERE project_id IS NOT NULL").fetchall():
-        if ok(r["project_id"]):
-            yield r["project_id"], r["name"], r["id"], _j(r["data"], {}) or {}
+    pids = [r["project_id"] for r in c.execute("SELECT DISTINCT project_id FROM gantt_projects WHERE project_id IS NOT NULL").fetchall()]
+    for pid in pids:   # je Projekt nur die gültige Version des Bauzeitenplans
+        if ok(pid):
+            for gid, name, data in plan.plans_mit_id(c, pid):
+                yield pid, name, gid, data if isinstance(data, dict) else {}
 
 
 def _vorgaenge(data):
@@ -436,7 +438,10 @@ def _a_budget(c, u, R, P, ok):
                            c.execute("SELECT pos_id, menge FROM ava_aufmass WHERE lv_id=?", (lv["id"],)).fetchall(),
                            c.execute("SELECT * FROM ava_rechnung WHERE lv_id=?", (lv["id"],)).fetchall())
             summe += (k.get("auftrag") or 0) + ((k.get("nachtraege") or {}).get("beauftragt") or 0)
-        bk = c.execute("SELECT * FROM bk_projects WHERE project_id=? AND archived=0 ORDER BY updated DESC LIMIT 1", (pid,)).fetchone()
+        from . import gueltig
+        bks = c.execute("SELECT * FROM bk_projects WHERE project_id=? AND archived=0", (pid,)).fetchall()
+        gid = gueltig.waehlen([(x["id"], x["created"], False) for x in bks], gueltig.lesen(c, "bk", pid))
+        bk = next((x for x in bks if x["id"] == gid), None)   # die gültige Kostenermittlung (★, sonst die neueste)
         if not bk or not summe:
             continue
         try:

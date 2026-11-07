@@ -668,6 +668,14 @@
       const n = q('[data-kmf="name"]'); setTimeout(() => { n.focus(); n.setSelectionRange(n.value.length, n.value.length); if (neu) sug(n.value); }, 30);
     });
   };
+  /* Kontaktkarte mit Verweisen: Name/Anschrift öffnet den Kontakt, Telefon wählt, E-Mail schreibt */
+  const kLinks = (k, feld) => {
+    const adr = [k.street, [k.zip, k.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const tel = k.phone || k.mobile, telH = String(tel || '').replace(/[^\d+]/g, '');
+    return [`<a href="#" class="bph-kf-a" data-kfe="${esc(feld)}" title="Kontakt öffnen">${esc(adr || k.name || 'Kontakt')}</a>`, esc(k.contact_person || ''),
+      tel ? `<a href="tel:${esc(telH)}" title="Anrufen">☎ ${esc(tel)}</a>` : '',
+      ...String(k.email || '').split(/[,;]\s*/).filter(Boolean).map((m) => `<a href="mailto:${esc(m.trim())}" title="E-Mail schreiben">✉ ${esc(m.trim())}</a>`)].filter(Boolean).join(' · ');
+  };
   const kAdr = (k) => [[k.street, [k.zip, k.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), k.contact_person, k.phone || k.mobile ? '☎ ' + (k.phone || k.mobile) : '', k.email ? '✉ ' + k.email : ''].filter(Boolean).join(' · ');
 
   /* ---------- Stammdaten-Maske (Projekt mit Bauherr, LV, Angebot, Auftrag) – eine Maske für alle Apps ----------
@@ -694,7 +702,7 @@
       }
       if (f.typ === 'kontakt') {
         const kc = KC[W[f.k + '_kid']];
-        const karte = kc ? `<span class="bph-kf-c"><span>${esc(kAdr(kc)) || '<i>keine Anschrift im Kontakt</i>'}</span><button type="button" class="bph-btn" data-kfe="${f.k}" title="Kontakt bearbeiten (gilt überall)">✎</button><button type="button" class="bph-btn" data-kfx="${f.k}" title="Verbindung lösen">×</button></span>`
+        const karte = kc ? `<span class="bph-kf-c"><span>${kLinks(kc, f.k) || '<i>keine Anschrift im Kontakt</i>'}</span><button type="button" class="bph-btn" data-kfe="${f.k}" title="Kontakt bearbeiten (gilt überall)">✎</button><button type="button" class="bph-btn" data-kfx="${f.k}" title="Verbindung lösen">×</button></span>`
           : v ? `<span class="bph-kf-c bph-kf-oh"><span>noch kein Kontakt</span><button type="button" class="bph-btn" data-kfn="${f.k}">＋ als Kontakt anlegen</button></span>` : '';
         return `<div class="bph-dm-f bph-dm-w"><span>${esc(f.l)}</span><span class="bph-kf" data-kf="${f.k}"><input id="${id}" data-dm="${f.k}" data-kfi="${f.k}" value="${esc(v || '')}" autocomplete="off" placeholder="Name eintippen – sucht in den Kontakten" role="combobox" aria-autocomplete="list"><span class="bph-kf-l" data-kfl hidden></span></span>${karte}${z}${hilfe}</div>`;
       }
@@ -772,7 +780,7 @@
       const kw = e.target.closest('[data-kfw]'); if (kw) { const kc = kfL[+kw.dataset.kfw], k = kw.closest('[data-kf]').dataset.kf; kfZu(); if (kc) { kfSetzen(k, kc); const i = root.querySelector(`[data-kfi="${k}"]`); if (i) i.focus({ preventScroll: true }); } return; }
       const kn = e.target.closest('[data-kfn]'); if (kn) { kfZu(); kfNeu(kn.dataset.kfn); return; }
       const ke = e.target.closest('[data-kfe]');
-      if (ke) { const k = ke.dataset.kfe, kc = await H.kontaktMaske(KC[W[k + '_kid']], { basis: B }); if (kc) kfSetzen(k, kc); return; }
+      if (ke) { e.preventDefault(); const k = ke.dataset.kfe, kc = await H.kontaktMaske(KC[W[k + '_kid']], { basis: B }); if (kc) kfSetzen(k, kc); return; }
       const kx = e.target.closest('[data-kfx]'); if (kx) { kfSetzen(kx.dataset.kfx, null); return; }
       const ch = e.target.closest('[data-dmchip]');
       if (ch) { lesen(); const k = ch.dataset.dmchip, f = Object.values(o.gruppen).flatMap((g) => g.felder).find((x) => x.k === k), id = (f.opt || []).find((u) => String(u.id) === ch.dataset.v);
@@ -1280,6 +1288,48 @@
       <span class="bph-vl-r"></span><span class="bph-vl-st" role="status">${esc(stT)}</span>`;
     const r = el.querySelector('.bph-vl-r');
     if ((o.rechts || []).length) { r.insertAdjacentHTML('beforebegin', '<span class="bph-vl-sp"></span>'); (o.rechts || []).forEach((x) => x && r.appendChild(x)); }
+    return el;
+  };
+  /* Kompaktes Versionsmenü (ein Knopf „1 Version: Startversion ▾“ statt der breiten Leiste) – für alle Module gleich.
+     H.versionsMenue({ in: Element, liste, aktuell, gueltig, onWahl, onNeu, onUmbenennen, onVerlauf, onVerwalten, onGueltig, extra, wahlHinweis })
+     gueltig: die Version, die für Bautagebuch, Erinnerungen, To-dos … gilt (★); onGueltig(id) setzt sie. Erneut aufrufen zum Aktualisieren. */
+  H.versionsMenue = function (o) {
+    const box = o.in; if (!box) return null;
+    let el = box.querySelector(':scope > .bph-vm');
+    if (!el) {
+      el = document.createElement('div'); el.className = 'bph-vm'; box.appendChild(el);
+      el.addEventListener('click', async (e) => {
+        const O = el._o, m = el.querySelector('.bph-vm-m'), b = e.target.closest('[data-vm]'); if (!b || !O) return;
+        const a = b.dataset.vm;
+        if (a === 'dd') {   // fest positioniert, damit es nicht von einer Werkzeugleiste mit overflow abgeschnitten wird
+          m.hidden = !m.hidden;
+          if (!m.hidden) { const r = b.getBoundingClientRect(); Object.assign(m.style, { position: 'fixed', left: Math.max(4, Math.min(r.left, innerWidth - m.offsetWidth - 4)) + 'px', top: r.bottom + 4 + 'px', minWidth: r.width + 'px', maxHeight: Math.max(160, innerHeight - r.bottom - 16) + 'px' }); }
+          return;
+        }
+        m.hidden = true;
+        if (a === 'w') {
+          if (String(b.dataset.id) === String(O.aktuell) || !O.onWahl) return;
+          if (O.wahlHinweis && window.bpFrage && !(await bpFrage(O.wahlHinweis, { ok: 'Wechseln' }))) return;
+          O.onWahl(b.dataset.id); return;
+        }
+        if (a === 'x') { const x = (O.extra || [])[+b.dataset.i]; if (x && x.fn) x.fn(); return; }
+        const f = { neu: O.onNeu, ren: O.onUmbenennen, ver: O.onVerlauf, verw: O.onVerwalten, gilt: O.onGueltig && (() => O.onGueltig(O.aktuell)) }[a]; if (f) f();
+      });
+    }
+    if (!H._vmDoc) {   // einmal für alle Menüs: Klick daneben oder Esc schließt
+      H._vmDoc = true;
+      const zu = (ausser) => document.querySelectorAll('.bph-vm-m:not([hidden])').forEach((m) => { if (!ausser || !m.parentNode.contains(ausser)) m.hidden = true; });
+      document.addEventListener('mousedown', (e) => zu(e.target));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zu(); });
+    }
+    el._o = o;
+    const L = o.liste || [], akt = L.find((x) => String(x.id) === String(o.aktuell)), aktiv = L.filter((x) => !x.archiviert), nr = (x) => aktiv.indexOf(x) + 1;
+    const gilt = (x) => o.gueltig != null && String(x.id) === String(o.gueltig);
+    const zeile = (x) => `<button type="button" class="bph-vm-i${x === akt ? ' on' : ''}" data-vm="w" data-id="${esc(x.id)}" role="menuitem"><span class="n">${x.archiviert ? '🗄' : nr(x)}</span><span class="t">${esc(x.name || 'ohne Namen')}${gilt(x) ? ' <em title="Diese Version gilt">★ gilt</em>' : ''}</span><small>${esc(x.datum || '')}</small></button>`;
+    const hinweis = akt && o.gueltig != null && !gilt(akt) ? `<span class="bph-vm-ng" title="Bautagebuch, Erinnerungen und To-dos richten sich nach der gültigen Version">gilt nicht</span>` : akt && o.gueltig != null ? '<span class="bph-vm-g" title="Diese Version gilt – für Bautagebuch, Erinnerungen und To-dos">★</span>' : '';
+    el.innerHTML = `<button type="button" class="bph-vm-b" data-vm="dd" aria-haspopup="menu" title="Version wechseln, neu anlegen, umbenennen …"${akt ? '' : ' disabled'}><span class="n">${akt ? (akt.archiviert ? '🗄' : nr(akt)) : '–'}</span><span class="t">Version: <b>${esc(akt ? akt.name || 'ohne Namen' : '–')}</b></span>${hinweis}<span class="c">▾</span></button>
+      <div class="bph-vm-m" role="menu" hidden>${aktiv.map(zeile).join('')}${L.some((x) => x.archiviert) ? '<div class="bph-vm-h">Archiviert</div>' + L.filter((x) => x.archiviert).map(zeile).join('') : ''}
+        <hr>${akt && o.onGueltig && !gilt(akt) ? '<button type="button" data-vm="gilt" class="bph-vm-pri">★ Diese Version gilt ab jetzt …</button>' : ''}${akt && o.onNeu ? `<button type="button" data-vm="neu">＋ Neue Version aus „${esc(akt.name || '')}“ …</button>` : ''}${(o.extra || []).map((x, i) => `<button type="button" data-vm="x" data-i="${i}">${esc(x.text)}</button>`).join('')}${akt && o.onUmbenennen ? '<button type="button" data-vm="ren">✎ Umbenennen …</button>' : ''}${o.onVerlauf ? '<button type="button" data-vm="ver">🕘 Verlauf …</button>' : ''}${akt && o.onVerwalten ? '<button type="button" data-vm="verw">🗄 Archivieren / löschen …</button>' : ''}</div>`;
     return el;
   };
   H.versionStatus = (t) => { const s = document.querySelector('#bph-vl .bph-vl-st'); if (s) s.textContent = t || ''; };

@@ -309,7 +309,7 @@ function tableRows() {
 }
 function renderTable() {
   const cols = COLS.filter(([k]) => !TV.hide.includes(k)), rows = tableRows(), ae = document.activeElement, keep = ae && ae.dataset && ae.dataset.fk;
-  $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes`;
+  $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes · Doppelklick öffnet den Kontakt`;
   renderActive();
   const cw = (k, w) => TV.w[k] || w, total = cols.reduce((a, [k, , w]) => a + cw(k, w), 0) + 130;
   $('#tw').innerHTML = `<table class="tt" style="width:${total}px"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col style="width:130px"></colgroup>
@@ -336,7 +336,13 @@ $('#tw').addEventListener('pointerdown', (e) => {
   const up = () => { h.classList.remove('on'); h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); tvSave(); TV.rzT = Date.now(); };
   h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
 });
-$('#tw').addEventListener('dblclick', (e) => { const h = e.target.closest('[data-rz]'); if (!h) return; delete TV.w[h.dataset.rz]; tvSave(); renderTable(); });
+$('#tw').addEventListener('dblclick', (e) => {
+  const h = e.target.closest('[data-rz]'); if (h) { delete TV.w[h.dataset.rz]; tvSave(); renderTable(); return; }
+  const tr = e.target.closest('tbody tr[data-id]'); if (!tr || e.target.closest('a,button')) return;   // Doppelklick auf eine Zeile: Kontakt öffnen
+  const c = ALL.find((x) => x.id === +tr.dataset.id); if (!c) return;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // Zelle vorher speichern
+  window.getSelection && window.getSelection().removeAllRanges(); setTimeout(() => edit(ALL.find((x) => x.id === c.id) || c), 60);
+});
 /* ---------- Filter: gelten in Tabelle UND Karten; einzeln oder alle löschen ---------- */
 const fltField = (k, l) => `<span class="fx">${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${[...Object.entries(KINDN), ...eigeneArten().map((k) => [k, k])].map(([v, n]) => `<option value="${esc(v)}"${TV.flt.kind === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`
   : `<input data-flt="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;

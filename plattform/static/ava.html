@@ -420,14 +420,7 @@ tr.am-lf td input{color:#c0621f}
 .utb button:hover{background:var(--hov);opacity:1}.utb button.on{background:var(--card);font-weight:600;opacity:1;box-shadow:0 0 0 1px var(--line)}
 .utb button small{color:var(--mute);font-size:.76rem;font-variant-numeric:tabular-nums}
 .nav .pjk{display:flex;align-items:baseline;gap:.4rem;padding:.15rem .4rem .45rem;font-size:.82rem}.nav .pjk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nav .pjk small{color:var(--mute)}
-.pjv{position:relative;margin:0 0 .5rem}
-.pjv-b{display:flex;align-items:center;gap:.45rem;width:100%;padding:.35rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--bg);font:inherit;font-size:.82rem;color:var(--ink);cursor:pointer;text-align:left}
-.pjv-b:hover{border-color:var(--y)}.pjv-b .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute)}.pjv-b .t b{color:var(--ink);font-weight:600}.pjv-b .c{color:var(--mute)}
-.pjv .n{flex:none;min-width:1.25rem;height:1.25rem;padding:0 .2rem;border-radius:6px;background:var(--y);color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center}
-.pjv-m{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:40;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px #0003;padding:.3rem;max-height:60vh;overflow:auto}
-.pjv-m button{display:flex;align-items:center;gap:.45rem;width:100%;border:0;background:none;font:inherit;font-size:.84rem;color:var(--ink);text-align:left;padding:.35rem .45rem;border-radius:6px;cursor:pointer}
-.pjv-m button:hover{background:var(--hov)}.pjv-m .pjv-i.on{font-weight:600;background:color-mix(in srgb,var(--y) 12%,transparent)}.pjv-m .pjv-i .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pjv-m .pjv-i small{color:var(--mute)}
-.pjv-m .pjv-i:not(.on) .n{background:var(--line);color:var(--ink)}.pjv-m hr{border:0;border-top:1px solid var(--line);margin:.3rem 0}.pjv-h{font-size:.72rem;color:var(--mute);padding:.3rem .45rem 0}
+.pjv{margin:0 0 .5rem}
 .nav #pjTree{margin:0;padding:0;border:0;font-size:.88rem}
 .nav #pjTree .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.3rem .35rem;border-radius:7px;border-left:0}
 .nav #pjTree .pj-r .v{display:block;font-size:.76rem}.nav #pjTree .pj-r.k{padding:.2rem .35rem .2rem 1.1rem}.nav #pjTree .pj-r.k svg{opacity:.6}
@@ -627,27 +620,13 @@ async function vleiste(neu) {
 }
 /* Versionen braucht man nur beim Ausschreiben – die Leiste steht nur im Schritt „Ausschreibung“ */
 /* Die Versionen stehen links im Projektbaum unter dem Projektnamen (die breite Leiste bleibt verborgen – nichts springt) */
-function vlSicht() { const el = document.getElementById('bph-vl'); if (el) el.style.display = 'none'; const b = document.getElementById('pjVer'); if (b) b.outerHTML = pjVerHtml(); }
-function pjVerHtml() {
-  if (!VERS.length) return '<div id="pjVer"></div>';
-  const akt = VERS.find((v) => v.aktiv) || VERS[0], aktiv = VERS.filter((v) => !v.archived), nr = (v) => aktiv.indexOf(v) + 1;
-  const dk = (t) => (t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
-  const z = (v) => `<button type="button" class="pjv-i${v === akt ? ' on' : ''}" data-pjvw="${v.id}"><span class="n">${v.archived ? '🗄' : nr(v)}</span><span class="t">${esc(v.name || 'ohne Namen')}</span><small>${esc(dk(v.created))}</small></button>`;
-  return `<div id="pjVer" class="pjv"><button type="button" class="pjv-b" data-pjv="dd" aria-haspopup="menu" title="Version der Ausschreibung wechseln, neu anlegen, umbenennen …"><span class="n">${akt.archived ? '🗄' : nr(akt)}</span><span class="t">Version: <b>${esc(akt.name || 'ohne Namen')}</b></span><span class="c">▾</span></button>
-    <div class="pjv-m" role="menu" hidden>${aktiv.map(z).join('')}${VERS.some((v) => v.archived) ? '<div class="pjv-h">Archiviert</div>' + VERS.filter((v) => v.archived).map(z).join('') : ''}
-      <hr><button type="button" data-pjv="neu">＋ Neue Version aus „${esc(akt.name || '')}“ …</button><button type="button" data-pjv="ren">✎ Umbenennen …</button><button type="button" data-pjv="ver">🕘 Verlauf …</button><button type="button" data-pjv="verw">🗄 Archivieren / löschen …</button></div></div>`;
+function vlSicht() {
+  const el = document.getElementById('bph-vl'); if (el) el.style.display = 'none';
+  const box = document.getElementById('pjVer'); if (!box || !el || !el._o || !window.BPHead || !BPHead.versionsMenue) return;
+  if (!VERS.length) { box.innerHTML = ''; return; }
+  BPHead.versionsMenue({ ...el._o, in: box, gueltig: el._o.aktuell, wahlHinweis: 'Die gewählte Version gilt dann für alle, die in diesem Projekt arbeiten (Startseite, To-dos, Kostenkontrolle). Wechseln?' });
 }
-document.addEventListener('click', (e) => {
-  const m = document.querySelector('#pjVer .pjv-m'); if (!m) return;
-  const O = (document.getElementById('bph-vl') || {})._o;
-  const w = e.target.closest('[data-pjvw]'), b = e.target.closest('[data-pjv]');
-  if (b && b.dataset.pjv === 'dd') { m.hidden = !m.hidden; return; }
-  if (!e.target.closest('#pjVer')) { m.hidden = true; return; }
-  m.hidden = true; if (!O) return;
-  if (w) { if (String(w.dataset.pjvw) !== String(O.aktuell) && O.onWahl) O.onWahl(w.dataset.pjvw); return; }
-  const f = b && { neu: O.onNeu, ren: O.onUmbenennen, ver: O.onVerlauf, verw: O.onVerwalten }[b.dataset.pjv]; if (f) f();
-});
-document.addEventListener('keydown', (e) => { const m = document.querySelector('#pjVer .pjv-m'); if (e.key === 'Escape' && m && !m.hidden) m.hidden = true; });
+function pjVerHtml() { return '<div id="pjVer" class="pjv"></div>'; }
 async function loadList(want) {
   LIST = pid ? await api('api/lv?project_id=' + pid) : [];
   vleiste();

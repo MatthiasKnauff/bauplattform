@@ -14,6 +14,7 @@
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.9rem}
 .top .pick{flex:1 1 280px;max-width:520px}
 .top .fill{flex:1}
+.bk-vm{width:280px;max-width:100%}.top #save{margin-left:auto}
 .save{color:var(--mute);font-size:.85rem}
 .stufen{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin:0 0 1rem}
 .reife{display:grid;grid-template-columns:repeat(6,1fr);gap:.45rem;margin-top:.9rem}
@@ -326,11 +327,23 @@ function vleiste() {
   let pd = $('#bkPrD');
   if (!pd) { pd = document.createElement('button'); pd.id = 'bkPrD'; pd.className = 'btn sm'; pd.type = 'button'; pd.textContent = '🏗 Projektdaten'; pd.title = 'Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in Verwaltung und AVA'; pd.onclick = () => { if (B && B.project_id) BPHead.projektDaten(B.project_id); else toast('Diese Kostenermittlung ist keinem Projekt zugeordnet.', true); }; }
   pd.style.display = B && B.project_id ? '' : 'none';
-  const el = BPHead.versionsleiste({ vor: $('main.wrap'), aktuell: B && B.id, rechts: [pd, $('#pdfBtn'), ab],
-    liste: versionen().map((x) => ({ id: x.id, name: x.name, datum: dkurz(x.updated), wer: x.updated_by, archiviert: x.archived })),
+  const V = versionen(), G = V.find((x) => x.gueltig);
+  const O = { aktuell: B && B.id, gueltig: B && B.project_id && G ? G.id : null,
+    liste: V.map((x) => ({ id: x.id, name: x.name, datum: dkurz(x.updated), wer: x.updated_by, archiviert: x.archived })),
     onWahl: async (id) => { clearTimeout(saveT); if (B) await saveNow().catch(() => {}); await openBk(+id); },
-    onNeu: neueVersion, onUmbenennen: umbenennen, onVerlauf: verlauf, onVerwalten: verwalten });
-  el.style.display = B ? '' : 'none';
+    onGueltig: B && B.project_id ? bkGilt : null,
+    onNeu: neueVersion, onUmbenennen: umbenennen, onVerlauf: verlauf, onVerwalten: verwalten };
+  // kompaktes Versionsmenü wie in AVA und Bauzeitenplan: eine Zeile mit Version, Drucken, Ansätze, Projektdaten
+  const el = BPHead.versionsleiste({ vor: $('main.wrap'), ...O }); el.style.display = 'none';
+  const top = $('.top'); top.hidden = !B;
+  let vm = $('#bkVm'); if (!vm) { vm = document.createElement('div'); vm.id = 'bkVm'; vm.className = 'bk-vm'; top.insertBefore(vm, top.firstChild); }
+  [pd, $('#pdfBtn'), ab].forEach((b) => { if (b && b.parentNode !== top) top.insertBefore(b, $('#save')); });
+  if (BPHead.versionsMenue) BPHead.versionsMenue({ ...O, in: vm });
+}
+async function bkGilt(id) {
+  const x = LIST.find((y) => y.id === +id); if (!x) return;
+  if (window.bpFrage && !(await bpFrage(`„${x.name}“ gilt ab jetzt als Kostenermittlung des Projekts (Kostenkontrolle, To-dos).`, { ok: 'Gilt ab jetzt' }))) return;
+  try { await api('api/bk/' + id + '/gueltig', 'PUT'); LIST = await api('api/bk'); vleiste(); toast('Diese Kostenermittlung gilt jetzt.'); } catch (e) { toast(e.message, true); }
 }
 function neueVersion() {
   if (!B) return;

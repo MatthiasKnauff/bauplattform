@@ -911,10 +911,16 @@ def sync_plans(c):
     P = _projects(c)
     today = date.today().isoformat()
     seen = set()
+    gueltige = {}   # je Projekt zählt nur die gültige Version des Bauzeitenplans – die Erinnerungen der anderen entfallen
     for g_ in c.execute("SELECT id, name, project_id, data, updated_by FROM gantt_projects").fetchall():
         data = _j(g_["data"], {})
-        if not isinstance(data, dict) or not data.get("sched"):
+        if not isinstance(data, dict) or not data.get("sched") or data.get("archived"):
             continue
+        if g_["project_id"]:
+            if g_["project_id"] not in gueltige:
+                gueltige[g_["project_id"]] = plan.gueltiger_plan(c, g_["project_id"])
+            if gueltige[g_["project_id"]] != g_["id"]:
+                continue
         p = P.get(g_["project_id"]) if g_["project_id"] else None
         if p and p["archived"]:
             continue

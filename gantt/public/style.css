@@ -881,3 +881,10 @@ html.mobil #tabs .tb-r #saveState{display:none}
 html[data-theme="dunkel"] .md-z>label{color:inherit}
 html[data-theme="dunkel"] .md-f input:not([type=color]),html[data-theme="dunkel"] .md-f textarea,html[data-theme="dunkel"] .md-seg button{background:transparent;color:inherit;border-color:#555}
 html[data-theme="dunkel"] .md-seg button.on{background:var(--accent);color:#fff}
+
+/* Versionsmenü vorne in der Werkzeugleiste, Drucken/Exportieren in der Reiterzeile */
+.vm-grp{display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid #dcdcdc;padding:6px 10px 0 6px;flex:none;width:270px;box-sizing:border-box}
+.vm-grp .vm-in{padding-top:8px}.vm-grp .gl{text-align:center;color:#6a6a6a;font-size:11px;padding:1px 0 4px;white-space:nowrap}
+#tabs .tb-r .tb-k{border:1px solid var(--tab-bd,#ccc);background:transparent;color:var(--tab-fg,inherit);border-radius:8px;padding:4px 10px;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+#tabs .tb-r .tb-k:hover{border-color:var(--accent)}
+html[data-theme="dunkel"] .vm-grp{border-color:#444}

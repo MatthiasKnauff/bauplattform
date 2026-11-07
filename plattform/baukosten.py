@@ -308,7 +308,31 @@ def _out(c, r, full=True):
 @app.get("/api/bk")
 def bk_list():
     with db.tx() as c:
-        return jsonify([_out(c, r, False) for r in c.execute("SELECT * FROM bk_projects ORDER BY archived, updated DESC, id DESC")])
+        rows = c.execute("SELECT * FROM bk_projects ORDER BY archived, updated DESC, id DESC").fetchall()
+        out = [_out(c, r, False) for r in rows]
+        # je Projekt: welche Kostenermittlung gilt (★) – für Kostenkontrolle und To-dos
+        from bpcore import gueltig
+        erst = {r["id"]: r["created"] for r in rows}
+        for pid in {x["project_id"] for x in out if x["project_id"]}:
+            V = [x for x in out if x["project_id"] == pid]
+            gid = gueltig.waehlen([(x["id"], erst.get(x["id"]), x["archived"]) for x in V], gueltig.lesen(c, "bk", pid))
+            for x in V:
+                x["gueltig"] = x["id"] == gid
+        return jsonify(out)
+
+
+@app.put("/api/bk/<int:i>/gueltig")
+def bk_gueltig(i):
+    """Diese Kostenermittlung gilt ab jetzt für das Projekt."""
+    from bpcore import gueltig
+    with db.tx() as c:
+        r = c.execute("SELECT id, project_id, name FROM bk_projects WHERE id=?", (i,)).fetchone()
+        if not r:
+            return jsonify(error="Kostenermittlung nicht gefunden"), 404
+        if not r["project_id"]:
+            return jsonify(error="Die Kostenermittlung ist keinem Projekt zugeordnet."), 400
+        gueltig.setzen(c, "bk", r["project_id"], i, g.user["name"])
+        return jsonify(ok=True)
 
 
 @app.post("/api/bk")

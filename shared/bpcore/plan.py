@@ -29,16 +29,30 @@ def plans(c, project_id):
     return [(n, d) for _, n, d in plans_mit_id(c, project_id)]
 
 
-def plans_mit_id(c, project_id):
-    """wie plans(), aber [(Plan-ID, Name, data)] – zum Zurückschreiben (Arbeitsfortschritt)."""
-    rows = c.execute("SELECT id, name, data FROM gantt_projects WHERE project_id=?", (project_id,)).fetchall()
+def plans_mit_id(c, project_id, alle=False):
+    """wie plans(), aber [(Plan-ID, Name, data)] – zum Zurückschreiben (Arbeitsfortschritt).
+    Die Pläne eines Projekts sind Versionen desselben Bauzeitenplans: es zählt nur die gültige (★, sonst die neueste
+    nicht archivierte). alle=True: alle nicht archivierten (z. B. Baubeginn in jede Version eintragen)."""
+    rows = c.execute("SELECT id, name, data, created FROM gantt_projects WHERE project_id=?", (project_id,)).fetchall()
     if not rows:
         p = c.execute("SELECT name FROM projects WHERE id=?", (project_id,)).fetchone()
         code = ((p["name"] or "").split() or [""])[0].rstrip(".,") if p else ""
         if re.match(r"^[A-Za-z]+\d", code):
-            rows = [r for r in c.execute("SELECT id, name, data FROM gantt_projects WHERE project_id IS NULL").fetchall()
+            rows = [r for r in c.execute("SELECT id, name, data, created FROM gantt_projects WHERE project_id IS NULL").fetchall()
                     if re.match(re.escape(code) + r"(?![\d.])", (r["name"] or "").strip(), re.I)]
-    return [(g["id"], g["name"], _j(g["data"], {})) for g in rows]
+    L = [(g["id"], g["name"], _j(g["data"], {}), g["created"]) for g in rows]
+    L = [x for x in L if not (isinstance(x[2], dict) and x[2].get("archived"))]
+    if not alle and len(L) > 1:
+        from bpcore import gueltig
+        gid = gueltig.waehlen([(x[0], x[3], False) for x in L], gueltig.lesen(c, "gantt", project_id))
+        L = [x for x in L if x[0] == gid]
+    return [(i, n, d) for i, n, d, _ in L]
+
+
+def gueltiger_plan(c, project_id):
+    """ID des gültigen Bauzeitenplans eines Projekts (oder None)."""
+    L = plans_mit_id(c, project_id)
+    return L[0][0] if L else None
 
 
 def _firma(t, trades, firms):

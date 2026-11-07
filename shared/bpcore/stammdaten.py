@@ -12,16 +12,29 @@ from datetime import date, datetime
 
 from . import plan
 
-# Feld: (Schlüssel, Bezeichnung, Typ, Optionen/Hinweis) – Typen: text, textarea, date, time, zahl, eur, prozent, check, select, mail, tel
+# Feld: (Schlüssel, Bezeichnung, Typ, Optionen/Hinweis) – Typen: text, textarea, date, time, zahl, eur, prozent, check, select, mail, tel,
+# kontakt: Firma oder Person aus den Kontakten (Adressen) – Eingabe sucht dort, sonst „neu anlegen?“ mit der gewohnten Kontaktmaske.
+#          Gespeichert werden der Name (<k>) und die Kontakt-ID (<k>_kid); Anschrift, Telefon, E-Mail kommen aus dem Kontakt.
+#          Optionen als dict: {"rolle": Gewerk/Funktion beim Neuanlegen und für die Reihenfolge der Treffer, "hilfe": Hinweis}
+def K(rolle, hilfe=""):
+    return {"rolle": rolle, "hilfe": hilfe}
+
+
 PROJEKT = [
     ("Bauherr", [
-        ("bauherr", "Bauherr (Name / Firma)", "text", "steht auf Briefen, Rügen, LV-Deckblatt und Rechnungsfreigabe"),
-        ("bh_strasse", "Straße, Nr.", "text", ""), ("bh_plz", "PLZ", "text", ""), ("bh_ort", "Ort", "text", ""),
-        ("bh_ansprech", "Ansprechpartner", "text", ""), ("bh_tel", "Telefon", "tel", ""), ("bh_mail", "E-Mail", "mail", ""),
+        ("bauherr", "Bauherr", "kontakt", K("Bauherr", "steht auf Briefen, Rügen, LV-Deckblatt und Rechnungsfreigabe")),
+        ("bh_vertreter", "Vertreten durch", "kontakt", K("Verwalter", "z. B. Hausverwaltung, Geschäftsführer, Bevollmächtigter")),
+        ("bh_ansprech", "Ansprechpartner", "kontakt", K("Bauherr")),
         ("bh_rechnung", "Rechnungsanschrift (falls abweichend)", "textarea", ""),
         ("bh_ustid", "USt-IdNr. / Steuernummer", "text", ""),
-        ("bh_vertreter", "Vertreter des Bauherrn / Projektsteuerung", "text", "z. B. Projektsteuerer mit Vollmacht"),
         ("bh_oeffentlich", "Öffentlicher Auftraggeber (Vergabe nach VOB/A bzw. UVgO)", "check", ""),
+    ]),
+    ("Beteiligte", [
+        ("baustelle", "Baustelle", "kontakt", K("Baustelle", "Baustellenadresse in den Kontakten – wie im Bautagebuch")),
+        ("projektsteuerung", "Projektsteuerung", "kontakt", K("Projektsteuerung")),
+        ("objektplanung", "Objektplanung / Architekt", "kontakt", K("Architekt")),
+        ("tragwerk", "Tragwerksplanung", "kontakt", K("Tragwerksplanung")),
+        ("sigeko", "SiGeKo", "kontakt", K("SiGeKo")),
     ]),
     ("Projekt", [
         ("beschreibung", "Projektbeschreibung", "textarea", "kurz: was wird gebaut – erscheint z. B. auf dem LV-Deckblatt"),
@@ -62,7 +75,7 @@ ANGEBOT = [
     ("Angebot", [
         ("angebotsnr", "Angebotsnummer", "text", ""), ("angebotsdatum", "Angebot vom", "date", ""),
         ("bindefrist", "gebunden bis", "date", ""),
-        ("ansprech", "Ansprechpartner", "text", ""), ("tel", "Telefon", "tel", ""), ("mail", "E-Mail", "mail", ""),
+        ("ansprech", "Ansprechpartner", "kontakt", K("", "Person beim Bieter – Telefon und E-Mail aus den Kontakten")),
         ("nebenangebot", "enthält Nebenangebote", "check", ""), ("geprueft", "rechnerisch geprüft", "check", ""),
         ("vorbehalte", "Vorbehalte / Abweichungen", "textarea", "z. B. eigene Zahlungs- oder Lieferbedingungen"),
     ]),
@@ -75,14 +88,27 @@ AUFTRAG = [
         ("vertragsstrafe", "Vertragsstrafe je Werktag", "prozent", "der Auftragssumme, z. B. 0,2"),
         ("vertragsstrafe_max", "Vertragsstrafe höchstens", "prozent", "z. B. 5"),
         ("zahlungsfrist", "Zahlungsfrist Abschlagsrechnungen (Tage)", "zahl", "VOB/B: 21 Tage"),
-        ("bauleiter_an", "Bauleiter des Auftragnehmers", "text", ""), ("an_tel", "Telefon", "tel", ""), ("an_mail", "E-Mail", "mail", ""),
+        ("bauleiter_an", "Bauleiter des Auftragnehmers", "kontakt", K("Bauleiter", "Telefon und E-Mail aus den Kontakten")),
         ("bemerkung", "Bemerkung", "textarea", ""),
     ]),
 ]
 
 
+def _opt(o):
+    if isinstance(o, list):
+        return {"opt": o}
+    if isinstance(o, dict):
+        return {k: v for k, v in o.items() if v}
+    return {"hilfe": o} if o else {}
+
+
 def felder(defn):
-    return [{"titel": t, "felder": [{"k": k, "l": l, "typ": typ, **({"opt": o} if isinstance(o, list) else {"hilfe": o} if o else {})} for k, l, typ, o in F]} for t, F in defn]
+    return [{"titel": t, "felder": [{"k": k, "l": l, "typ": typ, **_opt(o)} for k, l, typ, o in F]} for t, F in defn]
+
+
+def kontakt_ids(defn, werte):
+    return sorted({int(werte[k + "_kid"]) for _, F in defn for k, _, typ, _ in F
+                   if typ == "kontakt" and str((werte or {}).get(k + "_kid") or "").isdigit()})
 
 
 def bereinigen(defn, werte, alt=None):
@@ -90,6 +116,9 @@ def bereinigen(defn, werte, alt=None):
     out = dict(alt or {})
     for _, F in defn:
         for k, _, typ, o in F:
+            if typ == "kontakt" and k + "_kid" in (werte or {}):
+                kid = str(werte.get(k + "_kid") or "")
+                out[k + "_kid"] = int(kid) if kid.isdigit() else None
             if k not in (werte or {}):
                 continue
             v = werte[k]
@@ -123,6 +152,16 @@ def projekt_lesen(c, pid):
     p = c.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone()
     if p is not None and not d.get("bauherr") and (p["client"] if "client" in p.keys() else ""):
         d["bauherr"] = p["client"]   # bisher nur der Name des Bauherrn am Projekt
+    for k in ("bauherr", "bh_vertreter", "bh_ansprech"):   # früher Freitext: mit gleichnamigem Kontakt verbinden
+        if d.get(k) and not d.get(k + "_kid"):
+            r = c.execute("SELECT id FROM contacts WHERE lower(name)=?", (str(d[k]).strip().lower(),)).fetchone()
+            if r:
+                d[k + "_kid"] = r["id"]
+    if p is not None and not d.get("baustelle_kid"):   # Baustellenadresse des Projekts (Bautagebuch)
+        cid = _j(p["extra"], {}).get("contact_id") if "extra" in p.keys() else None
+        r = c.execute("SELECT id, name FROM contacts WHERE id=?", (cid,)).fetchone() if str(cid or "").isdigit() else None
+        if r:
+            d["baustelle"], d["baustelle_kid"] = r["name"], r["id"]
     return d
 
 
@@ -132,6 +171,15 @@ def projekt_schreiben(c, pid, werte, wer):
               "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (f"projektdaten:{int(pid)}", json.dumps(d, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), wer))
     if "bauherr" in (werte or {}):   # der Name gilt weiter für alle Apps (Bautagebuch „Bauherrschaft“ usw.)
         c.execute("UPDATE projects SET client=? WHERE id=?", (d.get("bauherr") or "", pid))
+    if d.get("baustelle_kid") and "baustelle_kid" in (werte or {}):   # gewählter Kontakt ist die Baustellenadresse des Projekts
+        p = c.execute("SELECT extra, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
+        ex = _j(p["extra"], {}) if p else {}
+        if p is not None and ex.get("contact_id") != d["baustelle_kid"]:
+            ex.update(contact_id=d["baustelle_kid"], contact_declined=None)
+            c.execute("UPDATE projects SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), pid))
+            k = c.execute("SELECT street, zip, city FROM contacts WHERE id=?", (d["baustelle_kid"],)).fetchone()
+            if k and not (p["street"] or p["city"]) and (k["street"] or k["city"]):   # Projekt ohne Adresse: die des Kontakts übernehmen
+                c.execute("UPDATE projects SET street=?, zip=?, city=? WHERE id=?", (k["street"], k["zip"], k["city"], pid))
     return d
 
 

@@ -209,3 +209,42 @@ def zusammenfuehren(c, ziel, quelle):
                     t["firm"] = fz
             c.execute("UPDATE gantt_projects SET data=? WHERE id=?", (json.dumps(d, ensure_ascii=False), g["id"]))
     c.execute("DELETE FROM contacts WHERE id=?", (quelle,))
+
+
+# ---- Felder eines Kontakts (wie in der Adressen-App) – für die Kontaktmaske in allen Apps (BPHead.kontaktMaske)
+FELDER = {"name": 200, "trade": 300, "contact_person": 200, "role": 200, "phone": 100, "mobile": 100, "email": 200,
+          "website": 300, "street": 200, "zip": 20, "city": 200, "notes": 5000}
+
+
+def bereinigen(d, partial=False):
+    import re
+    out = {}
+    for k, mx in FELDER.items():
+        if k in d or not partial:
+            v = str(d.get(k) or "").strip()
+            out[k] = " ".join(v.split())[:mx] if k != "notes" else v[:mx]
+    if out.get("email") and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", out["email"]):
+        raise ValueError("Die E-Mail-Adresse ist ungültig.")
+    if out.get("website") and not re.match(r"https?://", out["website"], re.I):
+        out["website"] = "https://" + out["website"]
+    return out
+
+
+def aus(r):
+    return {"id": r["id"], **{k: (r[k] if k in r.keys() else "") or "" for k in FELDER}}
+
+
+def suchen(c, q, rolle="", n=12):
+    """Kontakte zur Eingabe: Name, Ansprechpartner, Gewerk oder Ort enthält den Text; Namensanfang und passende Rolle zuerst."""
+    q = " ".join(str(q or "").split())[:100].lower()
+    if not q:
+        return []
+    like = f"%{q}%"
+    rows = c.execute("""SELECT * FROM contacts WHERE lower(name) LIKE ? OR lower(contact_person) LIKE ? OR lower(trade) LIKE ?
+                        OR lower(city) LIKE ? ORDER BY name LIMIT 200""", (like, like, like, like)).fetchall()
+    rl = (rolle or "").lower()
+
+    def rang(r):
+        nm = str(r["name"] or "").lower()
+        return (0 if nm.startswith(q) else 1 if q in nm else 2, 0 if rl and rl in str(r["trade"] or "").lower() else 1, nm)
+    return [aus(r) for r in sorted(rows, key=rang)[:n]]

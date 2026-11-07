@@ -17,6 +17,7 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/kacheln GET/PUT Reihenfolge der App-Kacheln auf der Startseite (je Benutzer)
 /api/bp/kontakt    POST {name, email, trade, contact_person}  Kontakt schnell anlegen (nach Versand an eine neue Adresse)
 /api/bp/kontakt/<id>/verlauf  Benachrichtigungsverlauf (Planversand, Rügen …)
+/api/bp/kontakte    GET ?q= / ?ids=  Kontakte suchen · POST, PUT /<id>  anlegen/ändern (Kontaktfelder der Stammdaten-Masken)
 /api/bp/projekt  GET/PUT {id}  aktuelles Projekt des Benutzers – beim Wechsel der App bleibt man im selben Projekt
 /api/bp/ki   GET  Auswahl des Benutzers und welche Anbieter eingerichtet sind
              PUT  {"ki": "intern"|"ollama"|"claude"|"gemini"|"chatgpt"} – gilt in allen Apps und auf allen Geräten
@@ -27,7 +28,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, db, fehler, konto, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, contacts, db, fehler, konto, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -355,7 +356,8 @@ def blueprint(get_user=None):
     # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – das Bautagebuch erledigt es, mit der Anmeldung des Benutzers
     import re as _re
     _BT_ERLAUBT = [("GET", r"projects"), ("POST", r"projects"), ("PUT", r"projects/\d+"), ("GET", r"leaders"), ("GET", r"geocode"), ("GET", r"geo"),
-                   ("GET", r"store/folders"), ("POST", r"projects/\d+/contact"), ("GET", r"logo")]
+                   ("GET", r"store/folders"), ("POST", r"projects/\d+/contact"), ("GET", r"logo"),
+                   ("GET", r"contacts/suggest"), ("GET", r"contacts/suggest/detail")]
 
     @bp.route("/api/bp/bt/<path:pfad>", methods=["GET", "POST", "PUT"])
     def bt_proxy(pfad):
@@ -405,6 +407,54 @@ def blueprint(get_user=None):
         except db.IntegrityError:
             return jsonify(error=f"Einen Kontakt „{f['name']}“ gibt es schon – bitte einen anderen Namen wählen oder die Adresse dort in Adressen eintragen."), 409
         return jsonify(ok=True, id=cid)
+
+    # ---- Kontaktfelder in den Stammdaten-Masken: suchen, anlegen und ändern mit der gewohnten Kontaktmaske
+    @bp.get("/api/bp/kontakte")
+    def kontakte_suchen():
+        """?q=Text[&rolle=Bauherr] Treffer zur Eingabe · ?ids=1,2 die Kontakte zu diesen IDs"""
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        ids = [int(x) for x in request.args.get("ids", "").split(",") if x.strip().isdigit()][:60]
+        with db.tx() as c:
+            if ids:
+                rows = c.execute(f"SELECT * FROM contacts WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()
+                return jsonify([contacts.aus(r) for r in rows])
+            return jsonify(contacts.suchen(c, request.args.get("q", ""), request.args.get("rolle", "")))
+
+    @bp.post("/api/bp/kontakte")
+    @bp.put("/api/bp/kontakte/<int:cid>")
+    def kontakt_speichern(cid=None):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        try:
+            d = contacts.bereinigen(request.get_json(silent=True) or {}, partial=cid is not None)
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        if not d.get("name", "x"):
+            return jsonify(error="Bitte einen Namen eingeben."), 400
+        ts = datetime.now().isoformat(timespec="seconds")
+        try:
+            with db.tx() as c:
+                if cid is None:
+                    with c.savepoint():
+                        cols = list(d) + ["extra", "created", "updated"]
+                        cid = c.execute(f"INSERT INTO contacts({', '.join(cols)}) VALUES({', '.join('?' * len(cols))}) RETURNING id",
+                                        (*d.values(), "{}", ts, ts)).fetchone()[0]
+                else:
+                    if not c.execute("SELECT id FROM contacts WHERE id=?", (cid,)).fetchone():
+                        return jsonify(error="Diesen Kontakt gibt es nicht mehr."), 404
+                    versionen.vor(c, f"kontakt:{cid}")
+                    with c.savepoint():
+                        if d:
+                            c.execute(f"UPDATE contacts SET {', '.join(k + '=?' for k in d)}, updated=? WHERE id=?", (*d.values(), ts, cid))
+                versionen.nach(c, f"kontakt:{cid}", u["name"])
+                if d.get("email"):
+                    benachrichtigung.zuordnen(c, cid, d["email"])
+                r = c.execute("SELECT * FROM contacts WHERE id=?", (cid,)).fetchone()
+        except db.IntegrityError:
+            return jsonify(error=f"Einen Kontakt „{d.get('name')}“ gibt es schon – bitte in der Suche auswählen oder einen anderen Namen wählen."), 409
+        return jsonify(ok=True, kontakt=contacts.aus(r))
 
     @bp.get("/api/bp/kontakt/<int:cid>/verlauf")
     def kontakt_verlauf(cid):

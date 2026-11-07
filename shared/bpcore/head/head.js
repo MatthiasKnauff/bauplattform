@@ -613,11 +613,70 @@
   /* Meine Postfächer: Microsoft 365 (zentral eingerichtet) an/aus und eigene IMAP-Konten */
   /* opt.into: in ein Element zeichnen (Einstellungen → Startseite → Posteingang) statt als Fenster; opt.nachSpeichern(D) */
   /* ---------- Vor Ort erkennen: iPhone-Kurzbefehl meldet den Standort, fehlt der Tagesbericht, kommt ein To-do (und abends eine Mail) ---------- */
+  /* ---------- Kontaktmaske wie in „Adressen“ – aus jeder App: BPHead.kontaktMaske({ name, trade, … } | {id, …}, { basis }) → Kontakt oder null ----------
+     Neu: Vorschläge aus dem Netz (OpenStreetMap) zum Namen, antippen übernimmt Anschrift, Telefon, E-Mail. */
+  const KM_F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk / Rolle', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
+    ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url'],
+    ['street', 'Straße, Nr.', 'w'], ['zip', 'PLZ', '', 'text'], ['city', 'Ort', '']];
+  H.kontaktMaske = function (vor = {}, opt = {}) {
+    const B = opt.basis || '', neu = !vor.id, c = { ...vor };
+    const sugB = H.app === 'bautagebuch' ? 'api/contacts/suggest' : 'api/bp/bt/contacts/suggest';
+    return new Promise((fertig) => {
+      const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+      bg.innerHTML = `<div class="bph-dlg bph-dm bph-kmk" role="dialog" aria-label="Kontakt" style="width:min(640px,96vw)"><div class="bph-dlg-h"><b>${neu ? 'Neuer Kontakt' : esc(c.name || 'Kontakt')}</b><button type="button" class="bph-x" data-kmx aria-label="Schließen">✕</button></div>
+        <div class="bph-dm-b"><div class="bph-dm-g">${KM_F.map(([k, l, w, t]) => `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"><span>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`).join('')}
+          ${neu ? '<div class="bph-dm-w bph-kmsug" data-kmsug></div>' : ''}
+          <label class="bph-dm-f bph-dm-w"><span>Notizen</span><textarea data-kmf="notes" rows="2">${esc(c.notes || '')}</textarea></label></div></div>
+        <p class="bph-err" data-kmerr></p>
+        <div class="bph-row" style="align-items:center"><span class="bph-mu" style="margin:0;flex:1">Dieselben Adressen wie in „Adressen“, im Bautagebuch und im Bauzeitenplan.</span><button type="button" class="bph-btn" data-kmx>Abbrechen</button><button type="button" class="bph-btn pri" data-kms>${neu ? 'Anlegen' : 'Speichern'}</button></div></div>`;
+      document.body.appendChild(bg);
+      const root = bg.firstChild, q = (a) => root.querySelector(a);
+      let SUG = [], sT = 0, done = false;
+      const ende = (k) => { if (done) return; done = true; bg.remove(); document.removeEventListener('keydown', esc1, true); fertig(k || null); };
+      const esc1 = (e) => { if (e.key === 'Escape') { e.stopPropagation(); ende(null); } };
+      document.addEventListener('keydown', esc1, true);
+      bg.addEventListener('mousedown', (e) => { if (e.target === bg) ende(null); });
+      const sug = (t) => {
+        clearTimeout(sT); const box = q('[data-kmsug]'); if (!box) return; t = t.trim(); if (t.length < 3) { box.innerHTML = ''; return; }
+        sT = setTimeout(async () => {
+          let r = {}; try { r = await KX(B + sugB + '?q=' + encodeURIComponent(t)); } catch { return; }
+          SUG = Array.isArray(r.items) ? r.items : [];
+          box.innerHTML = SUG.length ? '<small class="bph-mu">Vorschläge aus dem Netz – antippen zum Übernehmen</small>' + SUG.map((x, i) => `<button type="button" class="bph-kf-o" data-kmsg="${i}"><b>${esc(x.name)}</b><small>${esc([x.trade, [x.street, [x.zip, x.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), x.phone].filter(Boolean).join(' · '))}</small></button>`).join('') : '';
+        }, 350);
+      };
+      root.addEventListener('input', (e) => { if (neu && e.target.dataset.kmf === 'name') sug(e.target.value); });
+      root.addEventListener('click', async (e) => {
+        if (e.target.closest('[data-kmx]')) return ende(null);
+        const sg = e.target.closest('[data-kmsg]');
+        if (sg) {
+          let x = SUG[+sg.dataset.kmsg]; if (!x) return;
+          if (x.osm_id) { try { x = { ...x, ...(await KX(B + sugB + `/detail?type=${encodeURIComponent(x.osm_type)}&id=${x.osm_id}`)) }; } catch { /* egal */ } }
+          const set = (k, v) => { const el = q(`[data-kmf="${k}"]`); if (el && v && !el.value.trim()) el.value = v; };
+          if (x.name) q('[data-kmf="name"]').value = x.name;
+          ['street', 'zip', 'city', 'phone', 'email', 'website'].forEach((k) => set(k, x[k]));
+          q('[data-kmsug]').innerHTML = '<small class="bph-mu">Übernommen – bitte prüfen.</small>'; return;
+        }
+        if (!e.target.closest('[data-kms]')) return;
+        const d = {}; root.querySelectorAll('[data-kmf]').forEach((el) => { d[el.dataset.kmf] = el.value; });
+        if (!d.name.trim()) { q('[data-kmerr]').textContent = 'Bitte einen Namen eingeben.'; q('[data-kmf="name"]').focus(); return; }
+        try {
+          const r = await KX(B + 'api/bp/kontakte' + (neu ? '' : '/' + c.id), { method: neu ? 'POST' : 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+          if (window.toast) toast(neu ? 'Kontakt angelegt.' : 'Kontakt gespeichert.');
+          ende(r.kontakt);
+        } catch (er) { q('[data-kmerr]').textContent = er.message; }
+      });
+      const n = q('[data-kmf="name"]'); setTimeout(() => { n.focus(); n.setSelectionRange(n.value.length, n.value.length); if (neu) sug(n.value); }, 30);
+    });
+  };
+  const kAdr = (k) => [[k.street, [k.zip, k.city].filter(Boolean).join(' ')].filter(Boolean).join(', '), k.contact_person, k.phone || k.mobile ? '☎ ' + (k.phone || k.mobile) : '', k.email ? '✉ ' + k.email : ''].filter(Boolean).join(' · ');
+
   /* ---------- Stammdaten-Maske (Projekt mit Bauherr, LV, Angebot, Auftrag) – eine Maske für alle Apps ----------
      o: { titel, unter, gruppen: [{titel, felder:[{k,l,typ,opt?,hilfe?}]}], werte, zusatz(k, werte) → html neben dem Feld,
           speichern: async (werte, extra) → {werte?, hinweis?} , knoepfe: html in der Fußzeile, klick(e, ctx) } */
   H.datenMaske = function (o) {
     let W = { ...(o.werte || {}) }, msg = '', dirty = false;
+    const KC = {}, KF = {}, gefragt = {}, B = o.basis || '';   // KC: Kontakt-ID → Kontakt · KF: Feld → Felddefinition (Typ kontakt)
+    o.gruppen.forEach((g) => g.felder.forEach((f) => { if (f.typ === 'kontakt') KF[f.k] = f; }));
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
     bg.innerHTML = '<div class="bph-dlg bph-dm" role="dialog" style="width:min(820px,96vw)"></div>'; document.body.appendChild(bg);
     const root = bg.firstChild, e1 = (e) => { if (e.key === 'Escape') zu(); };
@@ -628,6 +687,12 @@
       const v = W[f.k], id = 'dm_' + f.k, z = o.zusatz ? o.zusatz(f.k, W) || '' : '';
       const hilfe = f.hilfe ? `<small class="bph-mu" style="margin:.1rem 0 0">${esc(f.hilfe)}</small>` : '';
       if (f.typ === 'check') return `<label class="bph-ck bph-dm-w"><input type="checkbox" id="${id}" data-dm="${f.k}"${v ? ' checked' : ''}> ${esc(f.l)}</label>`;
+      if (f.typ === 'kontakt') {
+        const kc = KC[W[f.k + '_kid']];
+        const karte = kc ? `<span class="bph-kf-c"><span>${esc(kAdr(kc)) || '<i>keine Anschrift im Kontakt</i>'}</span><button type="button" class="bph-btn" data-kfe="${f.k}" title="Kontakt bearbeiten (gilt überall)">✎</button><button type="button" class="bph-btn" data-kfx="${f.k}" title="Verbindung lösen">×</button></span>`
+          : v ? `<span class="bph-kf-c bph-kf-oh"><span>noch kein Kontakt</span><button type="button" class="bph-btn" data-kfn="${f.k}">＋ als Kontakt anlegen</button></span>` : '';
+        return `<div class="bph-dm-f bph-dm-w"><span>${esc(f.l)}</span><span class="bph-kf" data-kf="${f.k}"><input id="${id}" data-dm="${f.k}" data-kfi="${f.k}" value="${esc(v || '')}" autocomplete="off" placeholder="Name eintippen – sucht in den Kontakten" role="combobox" aria-autocomplete="list"><span class="bph-kf-l" data-kfl hidden></span></span>${karte}${z}${hilfe}</div>`;
+      }
       let inp;
       if (f.typ === 'textarea') inp = `<textarea id="${id}" data-dm="${f.k}" rows="3">${esc(v || '')}</textarea>`;
       else if (f.typ === 'select') inp = `<select id="${id}" data-dm="${f.k}">${(f.opt || []).map((x) => `<option value="${esc(x)}"${(v || '') === x ? ' selected' : ''}>${esc(x || '–')}</option>`).join('')}</select>`;
@@ -643,19 +708,84 @@
     const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); };
     root.addEventListener('input', () => { dirty = true; });
     root.addEventListener('change', () => { dirty = true; });
+    /* Kontaktfelder: tippen sucht in den Kontakten; nichts gefunden → „neu anlegen?“ → gewohnte Kontaktmaske */
+    let kfT = 0, kfL = [], kfI = -1;
+    const kfBox = (k) => root.querySelector(`[data-kf="${k}"] [data-kfl]`);
+    const kfZu = () => root.querySelectorAll('[data-kfl]').forEach((b) => { b.hidden = true; b.innerHTML = ''; });
+    const kfSetzen = (k, kc) => { lesen(); if (kc) { KC[kc.id] = kc; W[k] = kc.name; W[k + '_kid'] = kc.id; } else W[k + '_kid'] = null; gefragt[k] = W[k]; dirty = true; draw(); };
+    const kfZeigen = (k) => {
+      const box = kfBox(k), t = (root.querySelector(`[data-kfi="${k}"]`) || {}).value || ''; if (!box) return;
+      box.innerHTML = kfL.map((x, i) => `<button type="button" class="bph-kf-o${i === kfI ? ' on' : ''}" data-kfw="${i}" tabindex="-1"><b>${esc(x.name)}</b><small>${esc([x.trade, kAdr(x)].filter(Boolean).join(' · '))}</small></button>`).join('')
+        + (t.trim() ? `<button type="button" class="bph-kf-o bph-kf-neu${kfI === kfL.length ? ' on' : ''}" data-kfn="${k}" tabindex="-1">＋ „${esc(t.trim())}“ als neuen Kontakt anlegen</button>` : '');
+      box.hidden = !box.innerHTML;
+    };
+    const kfNeu = async (k) => {
+      lesen(); const f = KF[k], t = (W[k] || '').trim();
+      const vor = { name: t, trade: f.rolle || '' };
+      if (k === 'bauherr') Object.assign(vor, { street: W.bh_strasse || '', zip: W.bh_plz || '', city: W.bh_ort || '', phone: W.bh_tel || '', email: W.bh_mail || '' });   // frühere Freitextangaben
+      if (k === 'ansprech') Object.assign(vor, { contact_person: t, phone: W.tel || '', email: W.mail || '' });
+      if (k === 'bauleiter_an') Object.assign(vor, { contact_person: t, phone: W.an_tel || '', email: W.an_mail || '' });
+      const kc = await H.kontaktMaske(vor, { basis: B });
+      if (kc) kfSetzen(k, kc); else { gefragt[k] = t; setTimeout(() => { const i = root.querySelector(`[data-kfi="${k}"]`); if (i) i.focus(); }, 30); }
+    };
+    root.addEventListener('input', (e) => {
+      const k = e.target.dataset && e.target.dataset.kfi; if (!k) return;
+      W[k + '_kid'] = null; W[k] = e.target.value; const kc = root.querySelector(`[data-kf="${k}"] ~ .bph-kf-c`); if (kc) kc.remove();
+      clearTimeout(kfT); const t = e.target.value.trim(); kfI = -1;
+      if (!t) { kfL = []; kfZu(); return; }
+      kfT = setTimeout(async () => {
+        try { kfL = await KX(B + 'api/bp/kontakte?q=' + encodeURIComponent(t) + '&rolle=' + encodeURIComponent(KF[k].rolle || '')); } catch { kfL = []; }
+        if (document.activeElement === e.target && e.target.value.trim() === t) kfZeigen(k);
+      }, 180);
+    });
+    root.addEventListener('keydown', (e) => {
+      const k = e.target.dataset && e.target.dataset.kfi; if (!k) return;
+      const box = kfBox(k), n = kfL.length + (e.target.value.trim() ? 1 : 0);
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { if (!n) return; e.preventDefault(); const ab = e.key === 'ArrowDown'; kfI = kfI < 0 ? (ab ? 0 : n - 1) : (kfI + (ab ? 1 : -1) + n) % n; kfZeigen(k); return; }
+      if (e.key === 'Enter') { e.preventDefault(); if (box && !box.hidden && kfI >= 0) { const b = box.querySelectorAll('.bph-kf-o')[kfI]; if (b) b.click(); } else e.target.blur(); return; }
+      if (e.key === 'Escape' && box && !box.hidden) { e.stopPropagation(); kfZu(); }
+    });
+    root.addEventListener('mousedown', (e) => { if (e.target.closest('.bph-kf-o')) e.preventDefault(); });   // Fokus bleibt im Feld
+    root.addEventListener('focusout', (e) => {
+      const k = e.target.dataset && e.target.dataset.kfi; if (!k) return;
+      const nach = e.relatedTarget;
+      setTimeout(async () => {
+        if (!root.isConnected || !e.target.isConnected || document.activeElement === e.target) return;
+        kfZu(); const t = (e.target.value || '').trim();
+        if (!t || W[k + '_kid'] || gefragt[k] === t) return;
+        const gleich = kfL.find((x) => x.name.toLowerCase() === t.toLowerCase());
+        if (gleich) { kfSetzen(k, gleich); return; }   // genau dieser Name ist ein Kontakt: verbinden
+        if (nach && nach.closest && nach.closest('[data-dmx]')) return;
+        gefragt[k] = t;
+        if (window.bpFrage && await bpFrage(`„${t}“ gibt es in den Kontakten noch nicht. Als neuen Kontakt anlegen?`, { ok: 'Neu anlegen' })) kfNeu(k);
+      }, 150);
+    });
     root.addEventListener('click', async (e) => {
       if (e.target.closest('[data-dmx]')) { zu(); return; }
+      const kw = e.target.closest('[data-kfw]'); if (kw) { const kc = kfL[+kw.dataset.kfw], k = kw.closest('[data-kf]').dataset.kf; kfZu(); if (kc) kfSetzen(k, kc); return; }
+      const kn = e.target.closest('[data-kfn]'); if (kn) { kfZu(); kfNeu(kn.dataset.kfn); return; }
+      const ke = e.target.closest('[data-kfe]');
+      if (ke) { const k = ke.dataset.kfe, kc = await H.kontaktMaske(KC[W[k + '_kid']], { basis: B }); if (kc) kfSetzen(k, kc); return; }
+      const kx = e.target.closest('[data-kfx]'); if (kx) { kfSetzen(kx.dataset.kfx, null); return; }
       const ctx = { werte: () => { lesen(); return W; }, setzen: (k, v) => { lesen(); W[k] = v; dirty = true; draw(); }, nachricht: (t) => { msg = t; const m = root.querySelector('[data-dmm]'); if (m) m.textContent = t; } };
       if (o.klick && await o.klick(e, ctx)) return;
       if (e.target.closest('[data-dms]')) {
         lesen(); ctx.nachricht('speichere …');
-        try { const r = await o.speichern(W, ctx) || {}; if (r.werte) W = { ...r.werte }; dirty = false; msg = r.hinweis || 'Gespeichert.'; draw(); }
+        try { const r = await o.speichern(W, ctx) || {}; if (r.werte) W = { ...r.werte }; dirty = false; msg = r.hinweis || 'Gespeichert.'; draw(); kLaden(); }
         catch (er) { ctx.nachricht(er.message); }
       }
     });
-    draw();
-    setTimeout(() => { const i = root.querySelector('input,textarea,select'); if (i) i.focus(); }, 30);
-    return { zu, neu: (w) => { W = { ...w }; draw(); } };
+    const kLaden = async () => {   // Anschrift/Telefon der verbundenen Kontakte
+      const ids = Object.keys(KF).map((k) => W[k + '_kid']).filter((x) => x && !KC[x]);
+      if (!ids.length) return;
+      try { (await KX(B + 'api/bp/kontakte?ids=' + ids.join(','))).forEach((x) => { KC[x.id] = x; }); } catch { return; }
+      if (!root.isConnected) return;
+      const a = document.activeElement && root.contains(document.activeElement) ? document.activeElement.id : '';
+      lesen(); draw(); const f = a && root.querySelector('#' + a); if (f) f.focus();
+    };
+    draw(); kLaden();
+    setTimeout(() => { const i = root.querySelector('input:not([data-kfi]),textarea,select'); if (i) i.focus(); }, 30);
+    return { zu, neu: (w) => { W = { ...w }; draw(); kLaden(); } };
   };
   const tagDe = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
   /* Projektdaten (Bauherr, Projekt, Termine) – aus Verwaltung, AVA und Baukosten dieselbe Maske */
@@ -664,7 +794,7 @@
     let D; try { D = await KX(url); } catch (e) { (window.toast || alert)(e.message, true); return; }
     let inPlan = false;
     const M = H.datenMaske({
-      titel: 'Projektdaten', unter: D.projekt, gruppen: D.felder, werte: D.werte,
+      titel: 'Projektdaten', unter: D.projekt, gruppen: D.felder, werte: D.werte, basis: basis || '',
       zusatz: (k) => {
         if (k === 'baubeginn') return `<span class="bph-dm-z">${D.plan.start ? `Bauzeitenplan: ${tagDe(D.plan.start)} <button type="button" class="bph-btn" data-plan="baubeginn">übernehmen</button>` : ''}${D.plan.plaene.length ? `<label class="bph-ck" style="margin:.2rem 0 0"><input type="checkbox" data-inplan${inPlan ? ' checked' : ''}> beim Speichern als Projektanfang in den Bauzeitenplan übertragen</label>` : '<span class="bph-mu">kein Bauzeitenplan verknüpft</span>'}</span>`;
         if (k === 'fertigstellung' && D.plan.ende) return `<span class="bph-dm-z">Bauzeitenplan: ${tagDe(D.plan.ende)} <button type="button" class="bph-btn" data-plan="fertigstellung">übernehmen</button></span>`;

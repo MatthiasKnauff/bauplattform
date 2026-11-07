@@ -233,3 +233,28 @@ def test_kommunikation_nur_sichtbare_projekte(ctx):
         gleich(len(zeilen), 1, "Bernd bekommt die Rüge eines fremden Projekts im CSV-Export")
     finally:
         _aufraeumen(ctx, x)
+
+
+# ---------------------------------------------------------------- Kontaktfelder der Projektdaten
+def test_projektdaten_kontaktfelder(ctx):
+    """Bauherr als Kontakt: anlegen über /api/bp/kontakte, in den Projektdaten verbinden, Suche findet ihn, Name geht ans Projekt."""
+    b = _baustelle(ctx)
+    name = ctx.name("WEG Kontaktfeld")
+    try:
+        k = ctx.admin.pj("/ava/api/bp/kontakte", {"name": name, "trade": "Bauherr", "street": "Teststr. 1", "zip": "46236", "city": "Bottrop"})["kontakt"]
+        treffer = ctx.admin.gj("/ava/api/bp/kontakte?q=" + name[-6:] + "&rolle=Bauherr")
+        pruefe(any(x["id"] == k["id"] for x in treffer), "Kontaktsuche findet den neuen Kontakt nicht")
+        d = ctx.admin.uj(f"/ava/api/bp/projekt/{b['pid']}/daten", {"werte": {"bauherr": name, "bauherr_kid": k["id"]}})
+        gleich((d["werte"]["bauherr"], d["werte"]["bauherr_kid"]), (name, k["id"]), "Bauherr verbunden")
+        pruefe(any(f["typ"] == "kontakt" for g in d["felder"] for f in g["felder"]), "Feldtyp kontakt fehlt")
+        p = finde(ctx.admin.gj("/bautagebuch/api/projects"), id=b["pid"])
+        gleich(p["client"], name, "Bauherrschaft am Projekt")
+        ctx.admin.uj(f"/ava/api/bp/kontakte/{k['id']}", {"phone": "02041 1"})
+        gleich(ctx.admin.gj(f"/ava/api/bp/kontakte?ids={k['id']}")[0]["phone"], "02041 1", "Kontakt geändert")
+        ctx.admin.post("/ava/api/bp/kontakte", {"name": name}, expect=409)
+    finally:
+        ctx.admin.uj(f"/ava/api/bp/projekt/{b['pid']}/daten", {"werte": {"bauherr": "", "bauherr_kid": None}})
+        _baustelle_weg(ctx, b)
+        for x in ctx.admin.gj("/ava/api/bp/kontakte?q=" + name[-6:]):
+            if x["name"] == name:
+                ctx.admin.delete(f"/adressen/api/contacts/{x['id']}", expect=200)

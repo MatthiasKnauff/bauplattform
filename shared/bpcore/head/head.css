@@ -366,3 +366,15 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-dm-i{display:flex;align-items:center;gap:.3rem}.bph-dm-i em{font-style:normal;color:var(--mute,#9a9c9e)}
 .bph-dm input:not([type=checkbox]),.bph-dm select,.bph-dm textarea{width:100%;box-sizing:border-box;font:inherit;padding:.4rem .5rem;border:1px solid var(--line,#3b3e42);border-radius:7px;background:var(--bg,transparent);color:inherit}
 .bph-dm-z{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;font-size:.85em;color:var(--mute,#9a9c9e)}.bph-dm-z .bph-btn{padding:.1rem .5rem;font-size:.9em}
+/* Kontaktfelder in den Stammdaten-Masken: Suche in den Kontakten, Anschrift darunter */
+.bph-kf{position:relative;display:block}
+.bph-kf-l{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:30;max-height:16rem;overflow:auto;background:var(--card,#232527);border:1px solid var(--line,#3b3e42);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.35);padding:.2rem}
+.bph-kf-o{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;border-radius:6px;padding:.35rem .5rem;cursor:pointer;gap:.05rem}
+.bph-kf-o small{color:var(--mute,#9a9c9e);font-size:.85em}
+.bph-kf-o:hover,.bph-kf-o.on{background:var(--hover,rgba(127,127,127,.16))}
+.bph-kf-neu{color:var(--accent,#4c8dff);font-weight:600}
+.bph-kf-c{display:flex;align-items:center;gap:.35rem;font-size:.92em;color:var(--mute,#9a9c9e);margin-top:.15rem}
+.bph-kf-c>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.bph-kf-c .bph-btn{padding:.1rem .45rem;font-size:.9em}
+.bph-kf-oh>span{font-style:italic}
+.bph-kmsug{display:flex;flex-direction:column;gap:.1rem}

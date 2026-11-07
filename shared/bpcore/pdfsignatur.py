@@ -20,7 +20,9 @@ def _signaturfelder(rd):
     out = []
     try:
         fl = rd.get_fields() or {}
-    except Exception:
+    except Exception as e:
+        from . import fehler as _fehler
+        _fehler.still(None, "PDF-Signatur: Formularfelder lesen", e)
         fl = {}
     for nm, f in fl.items():
         if f.get("/FT") != "/Sig" or not f.get("/V"):
@@ -34,7 +36,7 @@ def _cn(name):
     try:
         n = name.native
         return n.get("common_name") or n.get("organization_name") or ", ".join(str(x) for x in n.values())
-    except Exception:
+    except Exception:   # Name nur zur Anzeige
         return ""
 
 
@@ -123,7 +125,7 @@ def _woerter(rd):
     for pg in rd.pages:
         try:
             w.update(re.findall(r"\w+", pg.extract_text() or ""))
-        except Exception:
+        except Exception:   # Text einer Seite nicht lesbar – Vergleich mit dem Rest
             pass
     return w
 
@@ -153,8 +155,12 @@ def pruefen(daten, original=None):
         try:
             o, s = _woerter(PdfReader(io.BytesIO(original))), _woerter(rd)
             inhalt = all(s[k] >= n for k, n in o.items())
-        except Exception:
+        except Exception as e:
+            from . import fehler as _fehler
+            _fehler.still(None, "PDF-Signatur: Text mit dem Original vergleichen", e)
             inhalt = None
+            if not fehler:   # ohne Textvergleich kein „in Ordnung“ melden
+                fehler = "Der Text des signierten PDFs ließ sich nicht mit der gespeicherten Fassung vergleichen."
         if inhalt is False and not fehler:
             fehler = "Das signierte PDF enthält nicht den gespeicherten Text – bitte die zuletzt gespeicherte Fassung unterschreiben."
     return {"ok": not fehler and letzte["gueltig"], "fehler": fehler, "signaturen": sigs, "inhalt": inhalt}

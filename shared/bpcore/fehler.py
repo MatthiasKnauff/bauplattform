@@ -41,7 +41,7 @@ def melden(app, art, meldung, stack="", pfad="", user_name="", browser=""):
                          pfad=EXCLUDED.pfad, user_name=EXCLUDED.user_name, stack=EXCLUDED.stack, browser=EXCLUDED.browser, gelesen=0""",
                       (key, str(app or "")[:40], art, meldung, stack, str(pfad or "")[:300], str(user_name or "")[:120], str(browser or "")[:300], jetzt, jetzt))
             c.execute("DELETE FROM bp_fehler WHERE id IN (SELECT id FROM bp_fehler ORDER BY zuletzt DESC OFFSET 2000)")
-    except Exception:
+    except Exception:   # Meldestelle selbst: darf nie scheitern, melden würde sich im Kreis drehen
         pass
 
 
@@ -58,7 +58,7 @@ def still(app, wo, e=None):
         print(f"[{app}] {text}", file=sys.stderr, flush=True)
         stack = "".join(traceback.format_exception(type(e), e, e.__traceback__)) if e is not None else ""
         melden(app, "still", text, stack)
-    except Exception:
+    except Exception:   # Meldestelle selbst: darf nie scheitern, melden würde sich im Kreis drehen
         pass
 
 

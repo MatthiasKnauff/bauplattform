@@ -130,7 +130,7 @@ def _wetter(lat, lon):
                                                                                   "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"})
         with urllib.request.urlopen(u, timeout=6) as r:
             w = json.loads(r.read())["current"]
-    except Exception:
+    except Exception:   # Wetter nur Beiwerk (ohne Internet leer)
         return {}
     code = w.get("weather_code")
     if code in _WX:
@@ -183,7 +183,7 @@ def _fertig(c, pid, tag):
         try:
             if c.execute("SELECT 1 FROM report_versions WHERE report_id=? AND reason='export'", (x["id"],)).fetchone():
                 return True, True
-        except Exception:
+        except Exception:   # im Zweifel als fertig werten – lieber keine Erinnerung als eine falsche
             return True, True
     return True, False
 
@@ -244,6 +244,9 @@ def abend_mails(c, jetzt=None):
             mail.send(cf, u["email"], f"Tagesbericht {'ergänzen' if all(b.get('angelegt') for b in fehlt) else 'fehlt'}: {fehlt[0]['projekt']}" + (f" (+{len(fehlt) - 1})" if len(fehlt) > 1 else ""), txt,
                       sender=cf.get("office_name") or "Bauplattform")
             n += 1
-        except Exception:
+        except Exception as ex:
+            if not getattr(ex, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst
+                from . import fehler
+                fehler.still(None, "Vor Ort: Erinnerung an den Tagesbericht", ex)
             pass
     return n

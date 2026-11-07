@@ -1,6 +1,7 @@
 from datetime import date
 from flask import Blueprint, g, jsonify, request
 from core import access, db, storage
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 bp = Blueprint("reports", __name__)
 LOCKED = ("project_id",)
@@ -83,7 +84,10 @@ def delete_report(i):
             try:
                 with c.savepoint():
                     snap[t] = _raw(c, f"SELECT * FROM {t} WHERE report_id=? ORDER BY 1", (i,))
-            except Exception:
+            except Exception as e:
+                fehler.still("bautagebuch", "Bericht löschen: Daten für „Rückgängig“ sichern", e)
+                if t in ("items", "images"):   # ohne vollständige Sicherung nicht löschen – „Rückgängig“ brächte den Bericht sonst leer zurück
+                    return jsonify(error="Der Bericht konnte nicht sicher gelöscht werden. Bitte später noch einmal versuchen."), 500
                 snap[t] = []
         c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=EXCLUDED.data",
                   (f"papierkorb:bericht:{i}", json.dumps(snap, ensure_ascii=False, default=str), db.now(), g.user["name"]))
@@ -93,7 +97,8 @@ def delete_report(i):
     t.start()
     try:
         _purge(-1)   # ältere, abgelaufene aufräumen
-    except Exception:
+    except Exception as e:
+        fehler.still("bautagebuch", "Papierkorb: abgelaufene Berichte aufräumen", e)
         pass
     return jsonify(ok=True, undo=i, minuten=UNDO_MIN)
 

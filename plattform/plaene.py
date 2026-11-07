@@ -10,7 +10,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, db, konto, mail, plan, planname, platform, sso, versionen, vorlagen
+from bpcore import benachrichtigung, db, fehler, konto, mail, plan, planname, platform, sso, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -122,7 +122,7 @@ def _bt(path, raw=False):
     except urllib.error.HTTPError as e:
         try:
             msg = json.loads(e.read().decode()).get("error")
-        except Exception:
+        except Exception:   # Fehlertext nicht lesbar: allgemeine Meldung mit Statuscode
             msg = None
         raise ValueError(msg or f"Bautagebuch antwortet mit Fehler {e.code}.")
     except (urllib.error.URLError, OSError) as e:
@@ -146,12 +146,14 @@ def firmen(c, pid):
         if gw and gw not in e["gewerke"]:
             e["gewerke"].append(gw)
     try:
-        fm = plan.firm_map(c)
-        for _, data in plan.plans(c, pid):
-            for gw, tr in ((data or {}).get("trades") or {}).items():
-                if isinstance(tr, dict) and tr.get("firm"):
-                    add(fm.get(tr["firm"], ("", None))[1], gw)
-    except Exception:
+        with c.savepoint():   # scheitert das Auslesen der Pläne, bleibt die Transaktion für die Abfrage unten nutzbar
+            fm = plan.firm_map(c)
+            for _, data in plan.plans(c, pid):
+                for gw, tr in ((data or {}).get("trades") or {}).items():
+                    if isinstance(tr, dict) and tr.get("firm"):
+                        add(fm.get(tr["firm"], ("", None))[1], gw)
+    except Exception as e:
+        fehler.still("plaene", "Empfänger: Firmen aus den Plänen ermitteln", e)
         pass
     for r in c.execute("SELECT DISTINCT i.contact_id FROM items i JOIN reports r ON r.id=i.report_id WHERE r.project_id=? AND i.contact_id IS NOT NULL", (pid,)):
         add(r["contact_id"])
@@ -287,7 +289,7 @@ def plaene():
                 m_ = mk.get((f.get("name"), int(f.get("groesse") or 0)))
                 if m_:
                     f["markiert"] = m_
-    except Exception:
+    except Exception:   # Markierungen sind nur eine Anzeige – Planliste auch ohne
         pass
     try:   # für die To-do-Liste der Startseite („Pläne nicht versendet“): neuester PDF-Stand je Plan
         neu = []
@@ -300,7 +302,8 @@ def plaene():
                             "index": st.get("index") or "", "datum": dt, "gewerk": x.get("gewerk") or ""})
         with db.tx() as c:
             konto._put(c, f"plaene:stand:{pid}", json.dumps({"plaene": neu, "stand": d.get("stand") or ""}), g.user["name"])
-    except Exception:
+    except Exception as e:
+        fehler.still("plaene", "Stand der Pläne für die Startseite speichern", e)
         pass
     gewerke = sorted({*gw_plan, *cf["stichworte"].keys(), *cf["kennungen"].values(), *(x["gewerk"] for x in pl if x["gewerk"])} - {""},
                      key=lambda s: (s == "alle Firmen", s.lower()))

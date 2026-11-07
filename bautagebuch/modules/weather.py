@@ -69,7 +69,7 @@ def geo_info():
         weather, precip = describe(w.get("weather_code"))
         out.update(weather=weather, precip=precip, temp=num(w.get("temperature_2m")),
                    humidity=num(w.get("relative_humidity_2m")), wind=num(w.get("wind_speed_10m")))
-    except Exception:
+    except Exception:   # Dienst nicht erreichbar: steht in „problems“ und wird gemeldet
         problems.append("Wetter")
     try:
         if request.args.get("noaddr") == "1":
@@ -79,7 +79,7 @@ def geo_info():
                    place=", ".join(x for x in (a["street"], a["city"]) if x))
     except LookupError:
         pass
-    except Exception:
+    except Exception:   # Dienst nicht erreichbar: steht in „problems“ und wird gemeldet
         problems.append("Ort")
     if len(problems) == 2 or (request.args.get("noaddr") == "1" and problems):
         return jsonify(error="Wetter- und Ortsdienst sind vom Server aus nicht erreichbar (Internetzugang prüfen)."), 502

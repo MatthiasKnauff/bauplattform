@@ -276,7 +276,7 @@ def _probe(url):
         with urllib.request.urlopen(url, timeout=3) as r:
             body = json.loads(r.read().decode() or "{}")
             return {"ok": r.status == 200, "ms": int((time.time() - t) * 1000), "version": body.get("version", "")}
-    except Exception as e:
+    except Exception as e:   # Ergebnis der Prüfung (nicht erreichbar) – wird in der Zustandsanzeige gezeigt
         return {"ok": False, "ms": int((time.time() - t) * 1000), "error": str(e)[:160]}
 
 
@@ -686,7 +686,7 @@ def mail_adressen():
     if m365:
         try:
             tok = PE._token(m365)
-        except Exception as e:
+        except Exception as e:   # Grund steht in den Hinweisen der Prüfung
             hinweise.append(str(e))
     else:
         hinweise.append("Microsoft 365 ist nicht verbunden (⚙ → Büro → Posteingang) – Postfächer und Unzustellbarkeitsberichte lassen sich so nicht prüfen.")
@@ -704,7 +704,7 @@ def mail_adressen():
                     probleme.append({"adresse": a, "wer": u["name"], "grund": "Postfach gibt es in Microsoft 365 nicht"})
                 else:
                     nicht += 1
-            except Exception:
+            except Exception:   # wird gezählt und als Hinweis angezeigt
                 nicht += 1
         if nicht:
             hinweise.append(f"{nicht} Adresse(n) ließen sich bei Microsoft 365 nicht prüfen (Berechtigung der App-Registrierung).")
@@ -725,7 +725,7 @@ def mail_adressen():
                         ndr.append({"adresse": a, "am": (m.get("receivedDateTime") or "")[:10], "betreff": (m.get("subject") or "")[:120]})
             except urllib.error.HTTPError as e:
                 hinweise.append(f"Unzustellbarkeitsberichte im Postfach {absender} nicht lesbar ({e.code}).")
-            except Exception as e:
+            except Exception as e:   # Grund steht in den Hinweisen der Prüfung
                 hinweise.append(f"Unzustellbarkeitsberichte nicht lesbar: {str(e)[:120]}")
     neu = sorted({x["adresse"] for x in probleme if "Postfach" in x["grund"] or "Schreibweise" in x["grund"]} | {x["adresse"] for x in ndr})
     if neu:

@@ -10,6 +10,7 @@ Fotodateien (data/uploads) sind nicht Teil der Datenbank; sie werden nie übersc
 import fcntl, glob, os, re, subprocess, threading, time
 from datetime import datetime
 from . import db
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 NAME = re.compile(r"^bau-(\d{8})-(\d{6})-([a-z0-9-]+)\.dump$")
 KEEP = {"auto": 30, "manuell": 30, "vor": 10}
@@ -107,7 +108,9 @@ def start():
                         name = create("auto")
                         from . import extern
                         extern.kopieren(name)   # Kopie auf den Dateiserver (falls eingerichtet)
-            except Exception:
+            except Exception as e:
+                if not isinstance(e, StopIteration):   # StopIteration = ein anderer Prozess prüft gerade – kein Fehler
+                    fehler.still("bautagebuch", "Tägliche Datensicherung", e)
                 pass
             time.sleep(900)
     threading.Thread(target=loop, daemon=True).start()

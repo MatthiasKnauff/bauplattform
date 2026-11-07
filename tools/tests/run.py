@@ -5,16 +5,40 @@ Aufruf:  python3 tools/tests/run.py http://localhost:8090 [Filter …]
 Sucht alle tools/tests/test_*.py und führt deren Funktionen test_*(ctx) in der Reihenfolge der Datei aus.
 Rückgabewert 0 = alle bestanden, 1 = mindestens ein Fehler.
 """
-import glob, importlib.util, inspect, os, sys, time, traceback
+import glob, importlib.util, inspect, os, re, sys, time, traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lib import Ctx, Fehler, HIER   # noqa: E402
+
+
+def _fehlerstand(ctx):
+    """Fehlermeldungen der Verwaltung: Schlüssel → Anzahl (vor den Tests)."""
+    try:
+        return {f["schluessel"]: f["anzahl"] for f in ctx.admin.gj("/verwaltung/api/bp/fehler")["fehler"]}
+    except Exception as e:
+        print(f"Hinweis: Fehlermeldungen nicht lesbar ({e})")
+        return None
+
+
+def _neue_fehler(ctx, vorher):
+    """Neue oder häufigere Einträge seit Testbeginn. Fehler = echte Ausnahmen (Art „server“ ohne bewusste 5xx-Antwort)."""
+    if vorher is None:
+        return [], []
+    try:
+        jetzt = ctx.admin.gj("/verwaltung/api/bp/fehler")["fehler"]
+    except Exception:
+        return [], []
+    neu = [f for f in jetzt if f["anzahl"] > vorher.get(f["schluessel"], 0)]
+    server = [f for f in neu if f["art"] == "server" and not re.match(r"^5\d\d: ", f["meldung"] or "")]
+    still = [f for f in neu if f["art"] == "still"]
+    return server, still
 
 
 def main():
     base = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8090"
     filter_ = [f.lower() for f in sys.argv[2:]]
     ctx = Ctx(base)
+    vorher = _fehlerstand(ctx)
     ergebnisse = []   # (datei, test, ok, sekunden, meldung)
     for pfad in sorted(glob.glob(os.path.join(HIER, "test_*.py"))):
         datei = os.path.basename(pfad)[:-3]
@@ -46,6 +70,19 @@ def main():
             if not ok:
                 for z in msg.strip().split("\n"):
                     print(f"            {z}")
+    neu_server, neu_still = _neue_fehler(ctx, vorher)
+    if neu_still:
+        print(f"\nHinweis: {len(neu_still)} abgefangene Fehler (Art „still“) während der Tests – Programm lief weiter:")
+        for f in neu_still:
+            print(f"  - [{f['app']}] {f['meldung'][:300]}")
+    if neu_server:
+        ergebnisse.append(("Fehlermeldungen", "keine unerwarteten Serverfehler", False, 0,
+                           "\n".join(f"[{f['app']}] {f['pfad']} – {f['meldung'][:300]}" for f in neu_server)))
+        print(f"\nFEHLER: {len(neu_server)} unerwartete Serverfehler während der Tests (Verwaltung → Fehlermeldungen):")
+        for f in neu_server:
+            print(f"  - [{f['app']}] {f['pfad']} – {f['meldung'][:300]}")
+            for z in (f.get("stack") or "").strip().splitlines()[-6:]:
+                print(f"      {z}")
     gut = sum(1 for e in ergebnisse if e[2])
     schlecht = [e for e in ergebnisse if not e[2]]
     print(f"\n{gut} Tests bestanden, {len(schlecht)} fehlgeschlagen.")

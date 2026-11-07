@@ -2,6 +2,7 @@
 Kennwörter und Zugangsdaten werden nie protokolliert (bei Einstellungen/Benutzern nur die Feldnamen)."""
 import re
 from . import db
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 KEEP = 100000
 LABEL = {"weather": "Wetter", "precip": "Niederschlag", "temp": "Temperatur", "humidity": "Luftfeuchte", "wind": "Wind",
@@ -61,7 +62,7 @@ def pre(c, method, path):
         if m:
             row = _one(c, f"SELECT * FROM {m.group(1)} WHERE id=?", int(m.group(2)))
             ctx["what"] = row["name"] if row else ""
-    except Exception:
+    except Exception:   # nur Zusatzangaben fürs Protokoll – die Anfrage selbst läuft trotzdem
         pass
     return ctx
 
@@ -167,5 +168,6 @@ def record(user, cat, action, detail="", pid=None, project="", report=""):
     try:
         with db.tx() as c:
             log(c, user, cat, action, detail, pid, project, report)
-    except Exception:
+    except Exception as e:
+        fehler.still("bautagebuch", "Auditprotokoll schreiben (Hintergrund)", e)
         pass

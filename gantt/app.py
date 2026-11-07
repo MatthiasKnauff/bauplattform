@@ -260,7 +260,7 @@ def oops(e):
     try:
         from bpcore import fehler
         fehler.ausnahme("gantt", e, f"{request.method} {request.path}", uname())
-    except Exception:
+    except Exception:   # Fehler beim Festhalten des Fehlers – die 500-Antwort geht trotzdem raus
         pass
     return jsonify(error=str(e)), 500
 
@@ -1212,7 +1212,7 @@ def ai_place():
 def ai_test():
     try:
         b = body()
-    except Exception:
+    except Exception:   # kein/kaputter JSON-Body: mit leeren Angaben testen
         b = {}
     with db.tx() as c:
         k = dict(ai_conf(c))

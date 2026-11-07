@@ -201,7 +201,9 @@ def alle_faelligen(c_fn):
                 if eingerichtet(c, u) and faellig(c, u["id"]):
                     abrufen(c, u)
                     n += 1
-        except Exception:   # einzelnes Postfach gestört – die anderen trotzdem
+        except Exception as e:   # einzelnes Postfach gestört – die anderen trotzdem
+            from . import fehler
+            fehler.still(None, f"Postfach abrufen (Benutzer {u['id']})", e)
             continue
     return n
 
@@ -269,7 +271,7 @@ def m365_lesen(m, adresse, seit):
             try:
                 a = _json(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(adresse)}/messages/{x['id']}/attachments?$select=name", headers=h, timeout=15)
                 anh = [y.get("name") or "" for y in a.get("value") or []][:12]
-            except Exception:
+            except Exception:   # Anhangnamen nur Beiwerk
                 pass
         out.append({"id": "m:" + x["id"][-40:], "quelle": adresse, "von": (f.get("address") or "").lower(), "von_name": f.get("name") or "",
                     "betreff": x.get("subject") or "", "zeit": x.get("receivedDateTime") or "", "vorschau": (x.get("bodyPreview") or "")[:400],
@@ -284,7 +286,7 @@ def m365_lesen(m, adresse, seit):
 def _dec(s):
     try:
         return str(email.header.make_header(email.header.decode_header(s or "")))
-    except Exception:
+    except Exception:   # Kopfzeile nicht dekodierbar: Rohtext zeigen
         return s or ""
 
 
@@ -315,7 +317,7 @@ def imap_lesen(k, seit):
             msg = email.message_from_bytes(head + b"\r\n" + text)
             try:
                 zeit = email.utils.parsedate_to_datetime(msg.get("Date")).astimezone(timezone.utc)
-            except Exception:
+            except Exception:   # Datum nicht lesbar: als neu werten
                 zeit = _now()
             if zeit < seit:
                 continue
@@ -325,7 +327,7 @@ def imap_lesen(k, seit):
                 if p.get_content_type() == "text/plain":
                     try:
                         vorschau = (p.get_payload(decode=True) or b"").decode(p.get_content_charset() or "utf-8", "replace")
-                    except Exception:
+                    except Exception:   # Zeichensatz unbekannt: Rohtext als Vorschau
                         vorschau = str(p.get_payload())[:600]
                     break
             if not vorschau:   # nur HTML – grob entschlackt
@@ -341,7 +343,7 @@ def imap_lesen(k, seit):
     finally:
         try:
             M.logout()
-        except Exception:
+        except Exception:   # Abmelden beim Aufräumen – Verbindung ist ohnehin zu Ende
             pass
 
 

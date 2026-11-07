@@ -232,7 +232,7 @@ def company_detail(osm_type, osm_id):
                 time.sleep(wait)
             _last[0] = time.time()
             hits = fetch_json(NOMINATIM + "/lookup?" + urllib.parse.urlencode({"osm_ids": f"{t}{osm_id}", "format": "jsonv2", "extratags": 1, "addressdetails": 1}))
-    except Exception:
+    except Exception:   # kein Netz: keine Angaben, nicht zwischenspeichern
         return {}
     if not hits:
         return {}

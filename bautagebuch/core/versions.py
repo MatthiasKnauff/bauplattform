@@ -8,6 +8,7 @@ Der Exportstatus ergibt sich aus dem Vergleich des aktuellen Stands mit der letz
 """
 import hashlib, json, re, threading, time
 from . import db
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 IDLE = 60            # Sekunden Ruhe, bevor automatisch eine Version angelegt wird
 KEEP_AUTO = 80       # so viele automatische Versionen je Bericht bleiben erhalten (Exporte nie gelöscht)
@@ -96,7 +97,8 @@ def _sweep():
         try:
             with db.tx() as c:
                 snapshot(c, rid, "auto", user)
-        except Exception:
+        except Exception as e:
+            fehler.still("bautagebuch", "Automatische Berichtsversion speichern", e)
             pass
 
 

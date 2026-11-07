@@ -86,7 +86,7 @@ def app(environ, start_response):
                 con.send(chunk)
                 left -= len(chunk)
         r = con.getresponse()
-    except Exception as e:
+    except Exception as e:   # App startet gerade neu o. ä.: 502 mit Meldung an den Benutzer
         start_response("502 Bad Gateway", [("Content-Type", "text/plain; charset=utf-8")])
         name = prefix.strip("/") or "Startseite"
         return [f"{name} ist gerade nicht erreichbar ({type(e).__name__}). Bitte in einer Minute erneut versuchen.".encode()]

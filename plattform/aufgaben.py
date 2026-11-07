@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import layout, benachrichtigung, briefbogen, db, erinnern, ical, konto, mail, plan, platform, posteingang, schrift, sso, todo, versionen, vorlagen
+from bpcore import layout, benachrichtigung, briefbogen, db, erinnern, fehler as bpfehler, ical, konto, mail, plan, platform, posteingang, schrift, sso, todo, versionen, vorlagen
 import common as C
 
 app = C.make_app(__name__)
@@ -185,7 +185,7 @@ def bild(size, f):
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             return Response(r.read(), mimetype=r.headers.get("Content-Type", "image/jpeg"), headers={"Cache-Control": "private, max-age=3600"})
-    except Exception:
+    except Exception:   # Foto fehlt oder Bautagebuch kurz weg: Vorschau bleibt leer (wie ein fehlendes Bild)
         return "", 404
 
 
@@ -385,7 +385,7 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
             ir = ImageReader(io.BytesIO(sig)); iw, ih = ir.getSize()
             hh = 30 * mm; ww = min(110 * mm, iw * hh / ih); hh = ww * ih / iw
             cv.drawImage(ir, L + 2 * mm, y_oben - 5 * mm - hh, ww, hh, mask="auto")
-        except Exception:
+        except Exception:   # ohne Unterschriftsbild drucken – unterschreiben geht auch von Hand
             pass
 
     def fuss():
@@ -603,7 +603,8 @@ def ruege_pdf():
                 req = urllib.request.Request(C.BT_INTERNAL + "/uploads/" + urllib.parse.quote(im["file"]), headers={"Cookie": f"{sso.COOKIE}={tok}"})
                 with urllib.request.urlopen(req, timeout=20) as r:
                     ir = ImageReader(io.BytesIO(r.read()))
-            except Exception:
+            except Exception as e:
+                bpfehler.still("aufgaben", "Mängelrüge: Foto für die Anlage nicht geladen", e)
                 continue
             if pos % 2 == 0:
                 cv.showPage(); cv.setFont("Helvetica-Bold", 11); cv.setFillColor(ink); cv.drawString(L, H - 18 * mm, "Anlage – Fotos zu den Mängeln")
@@ -1031,6 +1032,7 @@ def start_loop():
                     _loop["aufgeraeumt"] = date.today().isoformat()
                 _loop["last"], _loop["error"] = _now(), ""
             except Exception as e:   # nie den Prozess beenden – beim nächsten Durchlauf erneut
+                bpfehler.still("aufgaben", "Hintergrund: Erinnerungen/Abgleich", e)
                 _loop["error"] = str(e)[:300]
             time.sleep(300)
     threading.Thread(target=run, daemon=True, name="aufgaben-erinnerungen").start()
@@ -1238,7 +1240,8 @@ def _kal_auto(eid):
             if n:
                 c.execute("UPDATE erinnerungen SET gesendet='termin' WHERE id=?", (r["id"],))
         return (f"Als Termin verschickt ({n} Empfänger)." if n else "") + (f" {f}" if f else "")
-    except Exception:
+    except Exception as e:
+        bpfehler.still("aufgaben", "Erinnerung als Termin verschicken", e)
         return ""
 
 

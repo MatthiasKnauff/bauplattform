@@ -5,7 +5,7 @@ from urllib.parse import quote, urlsplit
 from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from bpcore import SCHEMA, db, head, platform, sso
+from bpcore import SCHEMA, db, fehler, head, platform, sso
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "static")
@@ -61,7 +61,7 @@ def make_app(name):
             with db.tx() as c:
                 r = c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone()
             name = (r["value"] if r else "") or ""
-        except Exception:
+        except Exception:   # ohne Büronamen anzeigen – kein Grund abzubrechen
             name = ""
         return jsonify(office=name, version=platform.version())
 
@@ -121,7 +121,7 @@ def print_logo():
                     im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") else "RGB")
                     im.thumbnail((900, 900))
                     out = io.BytesIO(); im.save(out, "PNG"); data = out.getvalue()
-            except Exception:
+            except Exception:   # kein Logo hinterlegt (404) oder nicht lesbar: ohne Logo drucken, später erneut versuchen
                 data = None
             _plogo["data"] = data
             _plogo["t"] = time.time() if data else time.time() - 240   # ohne Logo bald erneut versuchen
@@ -141,7 +141,7 @@ def draw_logo(cv, right, top, h, max_w):
         w = min(max_w, h * iw / ih); hh = w * ih / iw
         cv.drawImage(img, right - w, top - hh, w, hh, mask="auto")
         return True
-    except Exception:
+    except Exception:   # ohne Logo drucken – kein Grund abzubrechen
         return False
 
 
@@ -233,7 +233,8 @@ def audit(user, cat, action, detail=""):
         with db.tx() as c:
             c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
                       (datetime.now().isoformat(timespec="seconds").replace("T", " "), user or "", cat, action, detail or ""))
-    except Exception:
+    except Exception as e:
+        fehler.still(None, "Protokoll (audit_log) schreiben", e)
         pass
 
 

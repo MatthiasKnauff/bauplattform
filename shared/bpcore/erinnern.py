@@ -69,5 +69,8 @@ def termine_senden(c, schluessel, datum, uhrzeit, titel, text, pid, empf_ids, ab
                       sender=absender or buero, ical=inv)
             n += 1
         except Exception as e:
+            if not getattr(e, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst
+                from . import fehler
+                fehler.still(None, "Termin per Mail senden", e)
             fehl.append(f"{u['name']}: {e}")
     return n, "; ".join(fehl)[:300]

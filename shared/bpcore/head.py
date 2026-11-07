@@ -52,11 +52,11 @@ def blueprint(get_user=None):
         from flask import current_app
         try:
             u = user()
-        except Exception:
+        except Exception:   # Anmeldung nicht lesbar: Fehler trotzdem melden, nur ohne Benutzer
             u = None
         try:
             wer = u["name"] if u else ""
-        except Exception:
+        except Exception:   # Benutzername nur Beiwerk der Meldung
             wer = ""
         fehler.ausnahme(current_app.import_name, e, f"{request.method} {request.path}", wer)
         current_app.logger.exception(e)
@@ -74,10 +74,10 @@ def blueprint(get_user=None):
                     try:
                         u = user()
                         wer = u["name"] if u else ""
-                    except Exception:
+                    except Exception:   # Benutzername nur Beiwerk der Meldung
                         wer = ""
                     fehler.melden(current_app.import_name, "server", f"{resp.status_code}: {d['error']}", "", f"{request.method} {request.path}", wer)
-        except Exception:
+        except Exception:   # Melden darf die Antwort nie verhindern (und meldet sich nicht selbst – sonst Schleife)
             pass
         return resp
 
@@ -509,7 +509,8 @@ def blueprint(get_user=None):
             with db.tx() as c:
                 c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
                           (datetime.now().isoformat(timespec="seconds").replace("T", " "), u["name"], "konto", "Kennwort geändert", "⚙ Für mich"))
-        except Exception:
+        except Exception as e:
+            fehler.still(None, "Kennwort geändert: Eintrag im Protokoll", e)
             pass
         return jsonify(ok=True)
 
@@ -829,6 +830,8 @@ def blueprint(get_user=None):
             try:
                 M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, ical=inv)
             except Exception as e:
+                if not getattr(e, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst
+                    fehler.still(None, "Aufgabe: Benachrichtigung per Mail", e)
                 fehl.append(f"{skizze.name_von(r)}: {e}")
         return "; ".join(fehl)
 
@@ -1029,7 +1032,8 @@ def blueprint(get_user=None):
             try:
                 from . import posteingang
                 meine = [r["id"] for r in posteingang.meine_projekte(c, uid)]
-            except Exception:
+            except Exception as e:
+                fehler.still(None, "Aufgabenregeln: eigene Projekte ermitteln", e)
                 meine = []
         return jsonify(regeln=list(R.values()), projekte=P, benutzer=U, ich=uid, meine=meine, erinnerung=[[k, v[1]] for k, v in todo.ERINNERUNG.items()])
 
@@ -1170,7 +1174,8 @@ def blueprint(get_user=None):
                 with urllib.request.urlopen(req, timeout=8) as r:
                     v = json.loads(r.read().decode() or "[]")
                     folders = [str(x) for x in v][:30] if isinstance(v, list) else []
-            except Exception:
+            except Exception as e:
+                fehler.still(None, "Projektnamen: Ordnervorschläge vom Bautagebuch", e)
                 folders = []
         return jsonify(projects=out[:20], folders=folders)
 

@@ -143,10 +143,10 @@ def tx():
     if con is not None and not con._c.closed and time.time() - getattr(con, "_used", 0) > 20:
         try:   # länger unbenutzt: prüfen, ob die Verbindung noch lebt (z. B. nach Neustart der Datenbank)
             con._c.execute("SELECT 1"); con._c.rollback()
-        except Exception:
+        except Exception:   # Verbindung tot (z. B. Datenbank neu gestartet): verwerfen, unten neu verbinden
             try:
                 con.close()
-            except Exception:
+            except Exception:   # Schließen einer toten Verbindung darf scheitern
                 pass
             con = None
     if con is None or con._c.closed or getattr(con._c, "broken", False):
@@ -157,7 +157,7 @@ def tx():
     except Exception:
         try:
             con.rollback()
-        except Exception:
+        except Exception:   # Rollback auf kaputter Verbindung darf scheitern – der eigentliche Fehler wird unten weitergereicht
             pass
         raise
     finally:
@@ -171,7 +171,7 @@ def tx():
         finally:
             if con is not None:
                 try: con.close()
-                except Exception: pass
+                except Exception: pass   # Aufräumen: Schließen darf scheitern
 
 
 # ---------- Migrationen ----------
@@ -243,7 +243,7 @@ def migrate():
     finally:
         try:
             raw.execute("SELECT pg_advisory_unlock(%s)", (LOCK_ID,))
-        except Exception:
+        except Exception:   # Sperre endet ohnehin mit dem Schließen der Verbindung
             pass
         raw.close()
 

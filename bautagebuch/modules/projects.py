@@ -1,5 +1,6 @@
 from flask import Blueprint, Response, g, jsonify, request
 from core import access, db, geo, staticmap, storage
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 bp = Blueprint("projects", __name__)
 ADDR = ("street", "zip", "city")
@@ -155,5 +156,6 @@ def papierkorb_dateien():
             files = papierkorb.dateien_abholen(c, "bautagebuch")
         if files:
             storage.drop(files)
-    except Exception:
+    except Exception as e:
+        fehler.still("bautagebuch", "Papierkorb: Fotos endgültig löschen", e)
         pass

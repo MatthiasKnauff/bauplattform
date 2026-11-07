@@ -7,6 +7,7 @@ erinnert; nachgeholt wird auch, wenn der Server am Tag selbst nicht lief.
 import threading, time
 from datetime import datetime
 from . import db, mail, settings
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 _started = False
 
@@ -34,7 +35,8 @@ def run_once(now=None):
         try:
             from bpcore import erinnern
             emp = {r["id"]: erinnern.empfaenger(c, r["remind_user"], r["pid"]) for r in rows}
-        except Exception:
+        except Exception as e:
+            fehler.still("bautagebuch", "Erinnerungen: Empfänger ermitteln", e)
             emp = {r["id"]: [r["remind_user"]] for r in rows}
         alle = {x for v in emp.values() for x in v}
         users = {x: c.execute("SELECT name, email FROM users WHERE id=?", (x,)).fetchone() for x in alle}
@@ -73,7 +75,7 @@ def run_once(now=None):
                 try:
                     from . import audit
                     audit.record("System", "mail", "Erinnerung nicht zustellbar", f"{u['name']} <{u['email']}>: {e}"[:300])
-                except Exception:
+                except Exception:   # audit.record meldet eigene Fehler selbst – hier nur Absicherung
                     pass
             if e.gesperrt:
                 break
@@ -90,7 +92,8 @@ def start():
         while True:
             try:
                 run_once()
-            except Exception:
+            except Exception as e:
+                fehler.still("bautagebuch", "Erinnerungen (Hintergrund)", e)
                 pass
             time.sleep(600)
     threading.Thread(target=loop, daemon=True, name="bt-reminders").start()

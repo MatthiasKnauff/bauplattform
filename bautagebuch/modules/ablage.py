@@ -27,7 +27,7 @@ def _suche(t, base, depth, test):
         for rel in ebene:
             try:
                 ds = sorted(t.dirs(base + rel))
-            except Exception:
+            except Exception:   # dirs() liefert bei Fehlern schon [] – hier nur Absicherung
                 continue
             for d in ds:
                 if test(d):
@@ -56,7 +56,7 @@ def _passend(t, pfad, text):
             f = _fold(d)
             if all(w in f for w in worte[:2]) or worte[0] in f:
                 return d
-    except Exception:
+    except Exception:   # dirs() liefert bei Fehlern schon [] – hier nur Absicherung
         pass
     return None
 

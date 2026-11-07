@@ -442,7 +442,9 @@ def _a_budget(c, u, R, P, ok):
         try:
             k = BK.calc(BK.clean_data(_j(bk["data"], {}), c))
             budget = (k.get("kg300") or 0) + (k.get("kg400") or 0)
-        except Exception:
+        except Exception as e:
+            from . import fehler
+            fehler.still(None, f"Aufgaben: Budgetprüfung (Projekt {pid})", e)
             continue
         if budget and summe > budget * (1 + (R["wert"] or 0) / 100):
             eu = lambda v: f"{v:,.0f} €".replace(",", ".")
@@ -538,7 +540,10 @@ def erinnerungen_senden(c, jetzt=None):
             try:
                 M.send(cf, u["email"], f"Erinnerung: {x['titel'][:80]} – fällig {d.strftime('%d.%m.')}", txt, sender=cf.get("office_name") or "Bauplattform")
                 n += 1
-            except Exception:
+            except Exception as e:
+                if not getattr(e, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst
+                    from . import fehler
+                    fehler.still(None, "Aufgaben: Erinnerung per Mail", e)
                 pass
     return n
 

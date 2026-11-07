@@ -76,7 +76,7 @@ def ollama_state():
                 has = _hat(names, want)
                 _oll.update(ok=has, models=names,
                             hint=f"Modell {want}" if has else f"Modell {want} wird noch geladen …" if not names else f"Modell {want} fehlt (vorhanden: {', '.join(names[:3])})")
-            except Exception:
+            except Exception:   # Zustand wird als Hinweis angezeigt („nicht erreichbar“)
                 _oll.update(ok=False, models=[], hint="Ollama-Container nicht erreichbar")
             _oll["t"] = time.time()
         return {"ok": _oll["ok"], "hint": _oll["hint"], "models": list(_oll["models"])}
@@ -94,7 +94,9 @@ def store(c, key):
         r = c.execute("SELECT data FROM gantt_store WHERE key=?", (key,)).fetchone()
         v = json.loads(r["data"]) if r else {}
         return v if isinstance(v, dict) else {}
-    except Exception:
+    except Exception as e:
+        from . import fehler
+        fehler.still(None, f"KI-Einstellungen lesen ({key})", e)
         return {}
 
 
@@ -105,7 +107,9 @@ def abgeschaltet(c=None):
         try:
             with db.tx() as c2:
                 return abgeschaltet(c2)
-        except Exception:
+        except Exception as e:
+            from . import fehler
+            fehler.still(None, "KI: abgeschaltete KIs lesen", e)
             return set()
     k = store(c, "plattform").get("ki") or {}
     aus = {x for x in (k.get("aus") or []) if x in SCHALTBAR}
@@ -140,7 +144,9 @@ def claude_conf(c=None):
         try:
             r = c.execute("SELECT data FROM gantt_store WHERE key='settings'").fetchone()
             a = ((json.loads(r["data"]) if r else {}) or {}).get("ai") or {}
-        except Exception:
+        except Exception as e:
+            from . import fehler
+            fehler.still(None, "KI: Claude-Einstellungen lesen", e)
             a = {}
     key = a.get("key") or _env("ANTHROPIC_API_KEY")
     model = a.get("model") or _env("ANTHROPIC_MODEL", "claude-haiku-5-5")

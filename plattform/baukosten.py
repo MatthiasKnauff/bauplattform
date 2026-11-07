@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, papierkorb, platform, sso, versionen
+from bpcore import ai, baudaten, db, fehler, papierkorb, platform, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -967,6 +967,7 @@ def file_ki_rooms(i, fid):
                 except ai.AIError as e:
                     J["error"] = str(e)
                 except Exception as e:
+                    fehler.still("baukosten", "Plan per KI (Ollama) lesen", e)
                     J["error"] = "Fehler beim Lesen: " + str(e)[:200]
                 J["done"] = True
                 with db.tx() as c2:
@@ -1791,7 +1792,7 @@ def _kurz():
     try:
         with db.tx() as c:
             return C.kurzname(c)
-    except Exception:
+    except Exception:   # ohne Kurznamen drucken – kein Grund abzubrechen
         return ""
 
 
@@ -1800,7 +1801,7 @@ def _office():
         with db.tx() as c:
             r = c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone()
         return (r["value"] if r else "") or ""
-    except Exception:
+    except Exception:   # ohne Büronamen drucken – kein Grund abzubrechen
         return ""
 
 
@@ -1876,7 +1877,7 @@ def build_report(c, r, opt):
                 from reportlab.lib.utils import ImageReader
                 ImageReader(io.BytesIO(logo)).getSize()   # nicht lesbares Logo erst beim Bauen des PDFs zu bemerken, ließe alles scheitern
                 story += [Image(io.BytesIO(logo), width=28 * mm, height=28 * mm, kind="proportional", hAlign="RIGHT"), Spacer(1, 18 * mm)]
-            except Exception:
+            except Exception:   # Logo nicht lesbar: Deckblatt ohne Logo
                 story.append(Spacer(1, 46 * mm))
         else:
             story.append(Spacer(1, 46 * mm))
@@ -2026,7 +2027,7 @@ def build_report(c, r, opt):
         for f in files:
             try:
                 png = preview_png(bytes(f["data"]), width=1800)
-            except Exception:
+            except Exception:   # Plan-Datei ohne Vorschau (kein PDF/Bild): im Ausdruck weglassen
                 continue
             from PIL import Image as PI
             w, h = PI.open(io.BytesIO(png)).size

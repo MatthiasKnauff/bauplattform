@@ -63,7 +63,9 @@ def ungueltige():
             r = c.execute("SELECT data FROM bp_store WHERE key=?", (SPERR,)).fetchone()
         d = json.loads(r["data"]) if r and r["data"] else {}
         return d if isinstance(d, dict) else {}
-    except Exception:
+    except Exception as e:
+        from . import fehler
+        fehler.still("mail", "Mail: gesperrte Adressen lesen", e)
         return {}
 
 
@@ -74,7 +76,9 @@ def _sperr_setzen(d):
         with db.tx() as c:
             c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
                       "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (SPERR, json.dumps(d, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), "Mail"))
-    except Exception:
+    except Exception as e:
+        from . import fehler
+        fehler.still("mail", "Mail: gesperrte Adresse merken", e)
         pass
 
 
@@ -185,11 +189,11 @@ def _melden(e, to, subject):
                     g.bp_fehler_gemeldet = True
                     u = getattr(g, "user", None)
                     wer = (u["name"] if u else "") or ""
-            except Exception:
+            except Exception:   # Benutzer nur Beiwerk der Meldung
                 pass
             ziel = ", ".join([to] if isinstance(to, str) else list(to or []))
             fehler.melden("mail", "mail", f"Mailversand gescheitert: {e}", "", f"an {ziel[:200]} · „{str(subject)[:120]}“", wer)
-        except Exception:
+        except Exception:   # Melden darf den Versandfehler nicht überdecken
             pass
 
 

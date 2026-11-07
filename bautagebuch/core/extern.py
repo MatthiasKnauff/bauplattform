@@ -10,6 +10,7 @@ import json, os, re, threading, time
 from datetime import datetime
 
 from . import backups, db, remote, settings, storage
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 KEEP = 30
 _foto = {"laeuft": False, "geholt": 0, "fehler": 0, "offen": 0, "meldung": "", "zeit": ""}
@@ -89,7 +90,8 @@ def kopieren(name=None):
         for n in alt[:-KEEP]:
             try:
                 t.delete("Datenbank/" + n, False)
-            except Exception:
+            except Exception as e:
+                fehler.still("bautagebuch", "Dateiserver: alte Datenbanksicherung löschen", e)
                 pass
         with db.tx() as c:
             _status(c, ok=True, zeit=datetime.now().isoformat(timespec="seconds"), datei=x["name"], fehler="")
@@ -188,6 +190,7 @@ def fotos_holen(limit_s=3600):
             if not _foto["meldung"]:
                 _foto["meldung"] = f"{_foto['geholt']} Fotos zurückgeholt" + (f", {_foto['fehler']} nicht gefunden" if _foto["fehler"] else "") + "."
         except Exception as e:
+            fehler.still("bautagebuch", "Fotos vom Dateiserver zurückholen", e)
             _foto["meldung"] = "Fehler: " + _msg(e)
         finally:
             _foto["laeuft"] = False
@@ -225,12 +228,14 @@ def start():
         time.sleep(90)
         try:
             logo_holen()
-        except Exception:
+        except Exception as e:
+            fehler.still("bautagebuch", "Logo vom Dateiserver holen (beim Start)", e)
             pass
         try:
             if fotos_zaehlen()["holbar"]:
                 fotos_holen()
-        except Exception:
+        except Exception as e:
+            fehler.still("bautagebuch", "Fotos vom Dateiserver holen (beim Start)", e)
             pass
     threading.Thread(target=run, daemon=True).start()
 

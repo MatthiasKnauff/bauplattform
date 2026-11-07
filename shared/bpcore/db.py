@@ -124,10 +124,10 @@ def tx():
     if con is not None and not con._c.closed and time.time() - getattr(con, "_used", 0) > 20:
         try:   # länger unbenutzt: prüfen, ob die Verbindung noch lebt (z. B. nach Neustart der Datenbank)
             con._c.execute("SELECT 1"); con._c.rollback()
-        except Exception:
+        except Exception:   # Verbindung tot (z. B. Datenbank neu gestartet): schließen und neu verbinden
             try:
                 con.close()
-            except Exception:
+            except Exception:   # Schließen einer toten Verbindung – nichts mehr zu retten
                 pass
             con = None
     if con is None or con._c.closed or getattr(con._c, "broken", False):
@@ -138,7 +138,7 @@ def tx():
     except Exception:
         try:
             con.rollback()
-        except Exception:
+        except Exception:   # Rollback scheitert bei kaputter Verbindung – der eigentliche Fehler wird unten weitergereicht
             pass
         raise
     finally:
@@ -153,7 +153,7 @@ def tx():
             if con is not None:
                 try:
                     con.close()
-                except Exception:
+                except Exception:   # Aufräumen: Verbindung schließen – nichts mehr zu retten
                     pass
 
 

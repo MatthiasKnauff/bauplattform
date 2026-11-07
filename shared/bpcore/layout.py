@@ -358,7 +358,9 @@ def eigene_werte(c, pid, extra=None):
         from . import stammdaten
         try:
             P = stammdaten.projekt_lesen(c, pid) or {}
-        except Exception:
+        except Exception as e:
+            from . import fehler
+            fehler.still(None, "Ausdruck: Projektdaten (Grundstück) lesen", e)
             P = {}
         for k in ("gemarkung", "flur", "flurstueck", "hoehe_nhn"):
             out.setdefault(k, str(P.get(k) or ""))

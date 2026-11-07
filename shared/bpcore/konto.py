@@ -87,7 +87,7 @@ def aufbereiten(raw):
     try:
         import pillow_heif   # iPhone-Fotos (HEIC), wenn vorhanden
         pillow_heif.register_heif_opener()
-    except Exception:
+    except Exception:   # HEIC-Unterstützung nur, wenn installiert
         pass
     try:
         im = Image.open(io.BytesIO(raw))

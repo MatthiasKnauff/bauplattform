@@ -129,8 +129,11 @@ def ablegen(c, table, id_, art, titel, wer="", projekt="", app="", dateien=None,
                      len(data), _jetzt(), wer)).fetchone()["id"]
     c.execute(f"DELETE FROM {table} WHERE {pk}=?", (id_,))
     try:
-        aufraeumen(c)
-    except Exception:
+        with c.savepoint():   # scheitert das Aufräumen, bleibt das Löschen oben trotzdem gültig
+            aufraeumen(c)
+    except Exception as e:
+        from . import fehler
+        fehler.still(None, "Papierkorb: abgelaufene Einträge löschen", e)
         pass
     return pid
 
@@ -223,8 +226,11 @@ def dateien_abholen(c, app):
 
 def liste(c):
     try:
-        aufraeumen(c)
-    except Exception:
+        with c.savepoint():   # scheitert das Aufräumen, bleibt das Löschen oben trotzdem gültig
+            aufraeumen(c)
+    except Exception as e:
+        from . import fehler
+        fehler.still(None, "Papierkorb: abgelaufene Einträge löschen", e)
         pass
     return [{"id": r["id"], "art": r["art"], "titel": r["titel"], "projekt": r["projekt"], "app": r["app"], "geloescht": r["geloescht"],
              "von": r["von"], "groesse": r["groesse"]}

@@ -53,7 +53,7 @@ def taetigkeit(r):
         try:
             with c.savepoint():
                 t = plan.taetigkeit(c, rep["project_id"], rep["date"], k["id"] if k else None, k["name"] if k else firma)
-        except Exception:
+        except Exception:   # Tätigkeit ist nur ein Vorschlag – ohne Bauzeitenplan leer
             t = ""
     return jsonify(taetigkeit=t)
 
@@ -70,7 +70,7 @@ def _fs_liste(c, rep):
     try:
         from bpcore import todo
         sw = todo.schwelle(c, rep["project_id"])
-    except Exception:
+    except Exception:   # ohne Einstellung die Standard-Schwelle (5)
         sw = 5
     L = plan.fortschritt(pl, plan.firm_map(c), rep["date"])
     gem = {(r["gantt_id"], r["uid"]): r for r in c.execute("SELECT * FROM bt_fortschritt WHERE report_id=?", (rep["id"],))}

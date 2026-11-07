@@ -9,6 +9,7 @@ Platzhalter: {kuerzel} Projektkürzel (A489) · {nr} Berichtsnummer · {datum:FO
 import json, os, re
 from collections import Counter
 from . import audit, db, remote, settings
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 DATES = [("TT.MM.JJJJ", r"\d{2}\.\d{2}\.\d{4}"), ("JJJJ.MM.TT", r"\d{4}\.\d{2}\.\d{2}"), ("JJJJ-MM-TT", r"\d{4}-\d{2}-\d{2}"),
          ("TT-MM-JJJJ", r"\d{2}-\d{2}-\d{4}"), ("JJJJMMTT", r"(?<!\d)\d{8}(?!\d)"), ("TT.MM.JJ", r"(?<!\d)\d{2}\.\d{2}\.\d{2}(?!\d)")]
@@ -185,7 +186,8 @@ def apply(pid, accept):
         old, new = f"{it['dir']}/{it['from']}", f"{it['dir']}/{it['to']}"
         try:
             target.rename(old, new)
-        except Exception:
+        except Exception as e:
+            fehler.still("bautagebuch", "Ablage: nach Schema umbenennen", e)
             continue
         n += 1
         if it["kind"] == "dir":

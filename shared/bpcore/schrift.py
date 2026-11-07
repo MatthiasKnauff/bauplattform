@@ -35,6 +35,6 @@ def fuer(c):
     try:
         r = c.execute("SELECT value FROM settings WHERE key='co_font'").fetchone()
         art = (r["value"] if r else "") or "lato"
-    except Exception:
+    except Exception:   # Einstellung nicht lesbar: Vorgabeschrift Lato
         art = "lato"
     return registrieren(art)

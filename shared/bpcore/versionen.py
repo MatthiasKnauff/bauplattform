@@ -68,7 +68,7 @@ try:   # Namen der To-do-Regeln („maengel“ → „Mängel mit abgelaufener F
     from .todo import REGELN as _R
     for _r in _R:
         LABELS.setdefault(_r[0], _r[1])
-except Exception:
+except Exception:   # nur schönere Namen im Verlauf
     pass
 for _k, _n in (("maengelruege", "Mängelrüge"), ("terminruege", "Terminrüge"), ("termin", "Kalendertermin"), ("planversand", "Planversand")):
     LABELS[f"tpl_{_k}_betreff"] = f"{_n}: Betreff"

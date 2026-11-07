@@ -99,7 +99,7 @@ def header(logo, office):
             w, h = ImageReader(logo).getSize()
             sc = min(55 * mm / w, 20 * mm / h)
             right = Image(logo, w * sc, h * sc, hAlign="RIGHT", mask="auto")
-        except Exception:
+        except Exception:   # ohne Logo drucken – kein Grund abzubrechen
             pass
     t = Table([[P("<b>BAUTAGEBUCH</b>", 20, color=INK), right]], colWidths=[W * .55, W * .45])
     t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 0), (1, 0), "RIGHT"),
@@ -134,7 +134,7 @@ def info_tables(proj, rep):
     try:
         from . import staticmap
         mp = staticmap.image(proj)       # dekorative, stark abgeflachte Karte; ohne Standort/Netz None
-    except Exception:
+    except Exception:   # Karte ist nur Schmuck (ohne Standort/Netz keine) – PDF trotzdem erstellen
         mp = None
     if mp:
         mw, gap, hh = 56 * mm, 4 * mm, 22 * mm
@@ -273,7 +273,7 @@ def prepare(path, maxpx=560, quality=64):
         im.save(buf, "JPEG", quality=quality, optimize=True, progressive=True, subsampling=2)
         buf.seek(0)
         return buf, im.size
-    except Exception:
+    except Exception:   # Foto fehlt/unlesbar: im PDF weglassen statt abzubrechen (pro Foto, kann oft vorkommen)
         return None
 
 

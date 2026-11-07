@@ -100,6 +100,6 @@ def delete(entries, user):
                 ok.append({"project_id": pid, "path": p})
                 audit.record(user, "export", "Alte Version auf dem Server gelöscht",
                              f"{i['path']}" + (f" ({i['files']} Dateien)" if i["kind"] == "photos" else ""), proj["id"], proj["name"])
-            except Exception as e:
+            except Exception as e:   # Fehler geht in „failed“ an den Aufrufer zurück und wird angezeigt
                 failed.append({"path": p, "error": str(e)[:200]})
     return ok, failed

@@ -108,14 +108,16 @@ def such_neu():
             try:
                 with c.savepoint():
                     c.execute("CREATE INDEX ON pdb_such_neu USING gin (such gin_trgm_ops)")
-            except Exception:
+            except Exception:   # ohne pg_trgm kein Trigramm-Index – Suche geht trotzdem
                 pass
         with db.tx() as c:   # kurz austauschen
             c.execute("DROP TABLE IF EXISTS pdb_such")
             c.execute("ALTER TABLE pdb_such_neu RENAME TO pdb_such")
             c.execute("INSERT INTO pdb_meta(key, value) VALUES('such_stand', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (stand,))
         _SUCH["stand"] = stand
-    except Exception:
+    except Exception as e:
+        from bpcore import fehler
+        fehler.still(None, "Baudaten: Suchtabelle neu aufbauen", e)
         _SUCH["stand"] = None
     finally:
         _SUCH["laeuft"] = False
@@ -132,7 +134,7 @@ def _such_bereit(c):
             akt = _such_stand(c)
             m = c.execute("SELECT value FROM pdb_meta WHERE key='such_stand'").fetchone()
             da = c.execute("SELECT to_regclass('pdb_such') IS NOT NULL AS da").fetchone()["da"]
-    except Exception:
+    except Exception:   # Stand nicht lesbar (z. B. Baudaten noch nicht eingespielt): alte Abfrage nehmen
         return False
     if da and m and m["value"] == akt:
         _SUCH["stand"] = akt

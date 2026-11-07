@@ -1,6 +1,7 @@
 """Dateispeicher für Uploads. In der Datenbank steht nur der Dateiname."""
 import os, uuid
 from .db import DATA
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 UP = os.path.join(DATA, "uploads")
 os.makedirs(UP, exist_ok=True)
@@ -15,7 +16,7 @@ def to_jpg(src, dst, quality=90):
     try:
         import pillow_heif
         pillow_heif.register_heif_opener()
-    except Exception:
+    except Exception:   # HEIC-Unterstützung ist optional – die übrigen Formate gehen auch ohne
         pass
     with Image.open(src) as im:
         im = ImageOps.exif_transpose(im)
@@ -46,7 +47,7 @@ def save(f):
         try:
             import pillow_heif
             pillow_heif.register_heif_opener()
-        except Exception:
+        except Exception:   # HEIC-Unterstützung ist optional – die übrigen Formate gehen auch ohne
             pass
         with Image.open(tmp) as im:
             fmt, orient = im.format, (im.getexif().get(274) or 1)
@@ -56,7 +57,8 @@ def save(f):
         else:
             to_jpg(tmp, dst)              # JPG mit Drehung oder anderes Format
         return base + ".jpg"
-    except Exception:
+    except Exception as e:
+        fehler.still("bautagebuch", "Foto speichern", e)
         return None
     finally:
         try:
@@ -73,7 +75,7 @@ def convert_legacy(con):
         dst = os.path.splitext(src)[0] + ".jpg"
         try:
             to_jpg(src, dst)
-        except Exception:
+        except Exception:   # Datei fehlt/unlesbar (z. B. noch nicht vom Server zurückgeholt): bleibt, wie sie ist
             continue
         con.execute("UPDATE images SET file=? WHERE id=?", (os.path.basename(dst), r["id"]))
         con.commit()
@@ -102,7 +104,7 @@ def thumb(name, size, square=True):
                 im = ImageOps.exif_transpose(im).convert("RGB")
                 im = ImageOps.fit(im, (size, size)) if square else (im.thumbnail((size, size)) or im)
                 im.save(dst, "JPEG", quality=80)
-        except Exception:
+        except Exception:   # kein Vorschaubild, wenn das Foto fehlt/unlesbar ist (pro Bild, kann oft vorkommen)
             return None
     return dst
 

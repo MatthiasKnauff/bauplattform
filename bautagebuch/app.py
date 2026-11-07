@@ -6,6 +6,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import modules
 from core import access, audit, auth, backups, db, extern, reminders, storage, sync, versions
 from bpcore import head, platform, sso   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 OPEN = ("/api/login", "/api/me", "/api/forgot", "/api/reset", "/api/favicon", "/api/platform")   # favicon: auch auf der Anmeldeseite
 NO_SSO = ("/api/login", "/api/forgot", "/api/reset", "/api/favicon", "/api/platform", "/api/logout")   # hier keine Sitzung übernehmen/anlegen
@@ -108,7 +109,8 @@ def create_app():
                     conf = _st.all(c)
                     if sync.enabled(conf) and sync.refresh_day(c, conf, g.vrid):
                         sync.wake()
-            except Exception:
+            except Exception as e:
+                fehler.still("bautagebuch", "Ablage: Fotoordner-Name nachziehen", e)
                 pass
         if getattr(g, "actx", None) is not None and resp.status_code < 400:   # Auditprotokoll
             try:
@@ -116,7 +118,8 @@ def create_app():
                     e = audit.describe(c, request.method, request.path, request.get_json(silent=True), resp.status_code, g.actx)
                     if e:
                         audit.log(c, g.user["name"], *e[:3], e[3], e[4], e[5])
-            except Exception:
+            except Exception as e:
+                fehler.still("bautagebuch", "Auditprotokoll schreiben", e)
                 pass
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")          # kein Einbetten in fremde Seiten (Clickjacking)

@@ -7,6 +7,7 @@ Pfade sind relativ zum Projektordner; „..“ und Laufwerksangaben werden verwo
 import io, mimetypes, re, time
 from flask import Blueprint, g, jsonify, request, send_file
 from core import access, db, remote, settings, sync
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 bp = Blueprint("plaene", __name__)
 EXT = {".pdf", ".dwg", ".dxf", ".dwf", ".pln", ".plt", ".ifc"}
@@ -30,7 +31,7 @@ def _ziel(pid):
         t = remote.open_target(conf)
     except ImportError:
         return None, None, "Das Paket für Windows-Freigaben (smbprotocol) fehlt im Container."
-    except Exception as e:
+    except Exception as e:   # Meldung geht an den Aufrufer und wird angezeigt
         return None, None, sync._msg(e)
     parts = remote.clean_path(p["folder"] or "") or remote.find_project_path(t, sync.code_of(p), remote.clean(p["name"]) or "Projekt")
     return t, parts, ""
@@ -174,7 +175,8 @@ def vorab_einlesen():
             res = scan(t, base, auss[pid])
             if not res.get("error") and not res["abgebrochen"]:
                 cache_put(pid, auss[pid], res); n += 1
-        except Exception:
+        except Exception as e:
+            fehler.still("bautagebuch", "Pläne vorab einlesen", e)
             continue
     return n
 
@@ -199,7 +201,8 @@ def start(stunde=3):
             if now.hour >= stunde and done != now.date().isoformat():
                 try:
                     vorab_einlesen()
-                except Exception:
+                except Exception as e:
+                    fehler.still("bautagebuch", "Pläne vorab einlesen (Hintergrund)", e)
                     pass
                 done = now.date().isoformat()
     threading.Thread(target=loop, daemon=True, name="planscan").start()

@@ -86,6 +86,15 @@ class Folder:
             return f.read(limit or -1)
 
 
+def _fehlt(e):
+    """Meldet der Dateiserver „Ordner/Datei nicht vorhanden“ (und nicht etwa einen Verbindungsfehler)?"""
+    import errno
+    if isinstance(e, (FileNotFoundError, NotADirectoryError)) or getattr(e, "errno", None) in (errno.ENOENT, errno.ENOTDIR):
+        return True
+    t = str(e).upper()
+    return "OBJECT_NAME_NOT_FOUND" in t or "OBJECT_PATH_NOT_FOUND" in t or "NOT_A_DIRECTORY" in t
+
+
 class Smb:
     """Windows-Server über SMB (Port 445), mit Benutzername/Kennwort."""
     def __init__(self, server, share, base, user, password, domain=""):
@@ -133,20 +142,24 @@ class Smb:
 
     def rmdir_if_empty(self, rel):
         try: self.sc.rmdir(self._unc(clean_path(rel)))
-        except Exception: pass
+        except Exception: pass   # Ordner nicht leer oder schon weg – dann bleibt er stehen
 
     def dirs(self, sub=()):
         try:
             return [e.name for e in self.sc.scandir(self._unc(list(sub))) if e.is_dir()]
-        except Exception:
-            return []
+        except OSError as e:   # nur ein fehlender Ordner ist „leer“; Verbindungsfehler weitergeben – sonst legen Aufrufer doppelte Ordner an
+            if _fehlt(e):
+                return []
+            raise
 
     def listdir(self, rel):
         try:
             return [{"name": e.name, "dir": e.is_dir(), "size": 0 if e.is_dir() else e.stat().st_size, "mtime": e.stat().st_mtime}
                     for e in self.sc.scandir(self._unc(clean_path(rel)))]
-        except Exception:
-            return []
+        except OSError as e:   # nur ein fehlender Ordner ist „leer“; Verbindungsfehler weitergeben – sonst legen Aufrufer doppelte Ordner an
+            if _fehlt(e):
+                return []
+            raise
 
     def tree(self, rel):
         n = b = 0

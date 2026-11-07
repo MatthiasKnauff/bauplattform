@@ -214,7 +214,9 @@ def taetigkeit(c, project_id, day, contact_id, name):
                         break
                 if best:
                     return ", ".join(best["leistungen"])[:300]
-    except Exception:
+    except Exception as ex:
+        from . import fehler
+        fehler.still(None, "Tätigkeit aus dem Bauzeitenplan vorschlagen", ex)
         pass
     r = c.execute("SELECT trade FROM contacts WHERE id=?", (contact_id,)).fetchone() if contact_id else None
     tr = ((r["trade"] if r else "") or "").strip()

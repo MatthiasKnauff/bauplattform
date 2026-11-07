@@ -71,6 +71,6 @@ def image(proj):
         with open(path, "wb") as f:
             f.write(buf.getvalue())
         return buf.getvalue()
-    except Exception:
+    except Exception:   # keine Kartenkacheln (kein Netz): ohne Karte weiter, Fehlschlag wird gemerkt
         _fail[key] = time.time()
         return None

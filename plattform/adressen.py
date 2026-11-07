@@ -311,7 +311,7 @@ def _office():
         with db.tx() as c:
             r = c.execute("SELECT value FROM settings WHERE key='office_name'").fetchone()
         return (r["value"] if r else "") or ""
-    except Exception:
+    except Exception:   # ohne Büronamen drucken – kein Grund abzubrechen
         return ""
 
 
@@ -362,7 +362,7 @@ def export_pdf():
     try:
         with db.tx() as c:
             kurz = C.kurzname(c) or office
-    except Exception:
+    except Exception:   # ohne Kurznamen: Büroname reicht für die Kopfzeile
         kurz = office
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=22 * mm, bottomMargin=14 * mm,

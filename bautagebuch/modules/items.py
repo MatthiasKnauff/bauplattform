@@ -2,6 +2,7 @@ import json
 import re
 from flask import Blueprint, g, jsonify, request
 from core import access, contacts, db
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 bp = Blueprint("items", __name__)
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -44,7 +45,8 @@ def _als_termin(c, item_id):
             if n:
                 c.execute("UPDATE items SET reminded='termin' WHERE id=?", (r["id"],))
         return "Als Termin verschickt." if n else f
-    except Exception:
+    except Exception as e:
+        fehler.still("bautagebuch", "Erinnerung sofort als Termin verschicken", e)
         return ""
 
 
@@ -74,7 +76,7 @@ def create_item(r):
                     try:
                         with c.savepoint():
                             d["activity"] = plan.taetigkeit(c, rep["project_id"], rep["date"], cid, name)
-                    except Exception:
+                    except Exception:   # Tätigkeit ist nur ein Vorschlag aus dem Bauzeitenplan – ohne bleibt das Feld leer
                         d["activity"] = ""
                 d.setdefault("headcount", 1)
         d["text"] = text

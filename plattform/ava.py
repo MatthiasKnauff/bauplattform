@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, gaeb, layout, papierkorb, platform, schrift, sso, stammdaten, versionen
+from bpcore import ai, baudaten, db, fehler, gaeb, layout, papierkorb, platform, schrift, sso, stammdaten, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -672,7 +672,7 @@ def formel(s):
                 return _OPS[type(n.op)](ev(n.operand))
             raise ValueError
         return round(ev(node), 4)
-    except Exception:
+    except Exception:   # Formel nicht auswertbar: kein Wert ist die gewollte Antwort
         return None
 
 
@@ -2270,7 +2270,7 @@ def _text_pdf(zeilen, titel=""):
                 cv.showPage(); cv.setFont("Helvetica", 9); y = H_ - 50
             try:
                 cv.drawString(42, y, t.encode("cp1252", "replace").decode("cp1252"))
-            except Exception:
+            except Exception:   # Zeichen nicht in cp1252: ersatzweise ASCII schreiben
                 cv.drawString(42, y, t.encode("ascii", "replace").decode())
             y -= 12
     cv.save()
@@ -2340,7 +2340,7 @@ def _ist_scan(data):
         import pdfplumber
         with pdfplumber.open(io.BytesIO(data)) as pdf:
             return not any((pg.extract_text() or "").strip() for pg in pdf.pages[:3])
-    except Exception:
+    except Exception:   # PDF nicht lesbar: nicht als Scan behandeln, Auslesen meldet den Fehler selbst
         return False
 
 
@@ -2533,11 +2533,14 @@ def angebot_pdf(i):
             A = _auslesen(data, (_j(r["data"], {}) or {}).get("items") or [])
         except Exception as e:
             return jsonify(error=f"PDF lässt sich nicht lesen: {e}"), 400
+        ki_fehler = ""
         if request.form.get("ki") == "1" and A.get("zeilen"):
             try:
                 _ki_zuordnen(c, A, (_j(r["data"], {}) or {}).get("items") or [])
-            except Exception:
-                pass   # KI nicht erreichbar: mit dem weiter, was sicher erkannt ist
+            except Exception as e:   # KI nicht erreichbar: mit dem weiter, was sicher erkannt ist – Grund steht im Hinweis
+                ki_fehler = str(e)[:200]
+                if not isinstance(e, ai.AIError):   # KI aus/nicht eingerichtet ist kein Programmfehler
+                    fehler.still("ava", "Angebot aus PDF: KI-Zuordnung", e)
         preise = {pid: t["ep"] for pid, t in (A.get("pos") or {}).items() if t.get("ep") is not None}
         if not preise:
             return jsonify(error="In der PDF keine Preise zu den Positionen dieses LV gefunden (Zuordnung über die OZ; Menge × EP = GP muss aufgehen)."), 400
@@ -2554,7 +2557,8 @@ def angebot_pdf(i):
         out = _payload(c, c.execute("SELECT * FROM ava_lv WHERE id=?", (i,)).fetchone())
         n_lv = sum(1 for x in (_j(r["data"], {}) or {}).get("items") or [] if x.get("typ") == "pos" and x.get("art") != "T")
         out["hinweis"] = (f"{len(preise)} von {n_lv} Preisen von „{bieter}“ aus der PDF übernommen" + (" (Scan, per Texterkennung – bitte prüfen)" if A.get("ocr") else "")
-                          + (f", davon {A['ki']['sicher']} per KI zugeordnet" if A.get("ki", {}).get("sicher") else "") + ".")
+                          + (f", davon {A['ki']['sicher']} per KI zugeordnet" if A.get("ki", {}).get("sicher") else "") + "."
+                          + (f" KI-Zuordnung nicht möglich: {ki_fehler}" if ki_fehler else ""))
         return jsonify(out)
 
 
@@ -2640,7 +2644,8 @@ def vergabe(i):
             try:
                 with c.savepoint():
                     _preise_in_baudaten(c, i)
-            except Exception:
+            except Exception as e:
+                fehler.still("ava", "Vergabe: Erfahrungspreise in die Baudaten schreiben", e)
                 pass   # Erfahrungspreise sind ein Zusatz – die Vergabe darf daran nicht scheitern
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         return _antwort(c, i)
@@ -2975,7 +2980,8 @@ def _ocr_woerter(pg, dpi=300, timeout=90):
             f = os.path.join(td, "s.png")
             bild.save(f)
             out = subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", "6", "tsv"], capture_output=True, text=True, timeout=timeout).stdout
-    except Exception:
+    except Exception as e:
+        fehler.still("ava", "Texterkennung (tesseract) einer Seite", e)
         return []
     k = 72.0 / dpi
     ws = []
@@ -3303,7 +3309,7 @@ def beleg_neu(k):
             pfad = (a or {}).get("pfad") or ""
         except StopIteration:
             pass
-        except Exception as e:
+        except Exception as e:   # Grund geht als Hinweis an den Benutzer
             hinweis = f"In der Plattform gespeichert, aber nicht im Projektordner: {e}"
     with db.tx() as c:
         c.execute("UPDATE ava_beleg SET ablage=? WHERE id=?", (pfad, bid))
@@ -3340,7 +3346,8 @@ def _beleg_markiert(c, data):
         return data
     try:
         return skizze.pdf_mit_markierungen(c, sk["id"])[1]
-    except Exception:
+    except Exception as e:
+        fehler.still("ava", "Rechnung mit Prüfzeichen erzeugen", e)
         return data
 
 
@@ -3409,7 +3416,7 @@ def beleg_pruefen(b):
             if not (gef and abs(gross[3] - gef) < 0.01):
                 ok = abs(gross[3] - RC["brutto"]) <= 1
                 zeichen.append((gross[0], "haken" if ok else "kreuz", gross[2], None if ok else f"Zahlung lt. Prüfung {_eur(RC['brutto'])} brutto"))
-    except Exception:
+    except Exception:   # Beträge nicht erkennbar (Scan, eigenes Layout): ohne automatische Prüfzeichen
         zeichen = []
     with db.tx() as c:
         for n, art, pos, txt in zeichen:
@@ -3672,7 +3679,7 @@ def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None):
             from reportlab.lib.utils import ImageReader
             ImageReader(io.BytesIO(logo)).getSize()
             kopf[0][1] = Image(io.BytesIO(logo), width=22 * mm, height=22 * mm, kind="proportional", hAlign="RIGHT")
-        except Exception:
+        except Exception:   # ohne Logo drucken – kein Grund abzubrechen
             pass
     kt = Table(kopf, colWidths=[W - 30 * mm, 30 * mm])
     kt.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("SPAN", (1, 0), (1, 1)), ("ALIGN", (1, 0), (1, 0), "RIGHT"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
@@ -3818,7 +3825,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
                 o_ = io.BytesIO(); im.convert("RGB").save(o_, "JPEG", quality=80)
                 w_, h_ = im.size; f = min(sp / w_, 60 * mm / h_)
                 out.append(RLImage(io.BytesIO(o_.getvalue()), width=w_ * f, height=h_ * f))
-            except Exception:
+            except Exception:   # Foto nicht lesbar: ohne dieses Foto drucken
                 continue
         if not out:
             return []
@@ -3970,7 +3977,7 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             try:
                 ir = ImageReader(io.BytesIO(logo)); iw, ih = ir.getSize(); hh = 28 * mm; ww = min(70 * mm, iw * hh / ih); hh = ww * ih / iw
                 cv.drawImage(ir, ps[0] - 20 * mm - ww, ps[1] - 18 * mm - hh, ww, hh, mask="auto")
-            except Exception:
+            except Exception:   # ohne Logo drucken – kein Grund abzubrechen
                 pass
         lab = lambda t, y: (cv.setFont(FN["n"], 8), cv.setFillColor(MUTE), cv.drawString(L + 2, y, t))
         feld("Titel", ps[1] - 105 * mm, 14 * mm, 24, True)
@@ -4265,7 +4272,8 @@ def lv_pdf(i):
                         for pg in PdfReader(io.BytesIO(part)).pages:
                             w.add_page(pg)
                     buf = io.BytesIO(); w.write(buf); pdf = buf.getvalue()
-            except Exception:
+            except Exception as e:
+                fehler.still("ava", "Rechnungsfreigabe: Rechnungen der Firma anhängen", e)
                 pass
     else:
         preise = request.args.get("preise") == "1"
@@ -4291,7 +4299,7 @@ def lv_pdf(i):
                     w_, h_ = im.size
                     f = min(sp / w_, 60 * mm / h_)
                     zellen.append(RLImage(io.BytesIO(o_.getvalue()), width=w_ * f, height=h_ * f))
-                except Exception:
+                except Exception:   # Foto nicht lesbar: ohne dieses Foto drucken
                     continue
             if not zellen:
                 return []

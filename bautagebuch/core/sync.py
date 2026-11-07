@@ -6,6 +6,7 @@ wird mit wachsendem Abstand erneut versucht.
 """
 import json, os, re, threading, time
 from . import audit, db, remote, scheme, settings
+from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
 DEFAULT_PHOTOS = "{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Fotos/{datum}"
 DEFAULT_PDF = "{projekt}/{kuerzel} 8. Fotos + Bautagebuch/{kuerzel} Bautagebuch"
@@ -164,6 +165,7 @@ def run_once(limit_s=25):
         try:
             target = remote.open_target(conf)
         except Exception as e:
+            fehler.still("bautagebuch", "Ablage: Verbindung zum Dateiserver", e)
             target, err = None, _msg(e)
         found = {}
         while target and time.time() - t0 < limit_s:
@@ -222,7 +224,8 @@ def list_dirs(conf):
     if enabled(conf):
         try:
             val = sorted(remote.open_target(conf).dirs(), key=str.lower)
-        except Exception:
+        except Exception as e:
+            fehler.still("bautagebuch", "Ablage: Ordnerliste lesen", e)
             val = []
     _dirs.update(t=time.time(), key=key, val=val)
     return val
@@ -240,7 +243,9 @@ def list_subdirs(conf, code):
             if remote.has_code(d, code):
                 out += t.dirs([d])
         return out
-    except Exception:
+    except Exception as e:
+        if enabled(conf):   # Ablage aus: kein Fehler
+            fehler.still("bautagebuch", "Ablage: Unterordner lesen", e)
         return []
 
 
@@ -265,7 +270,8 @@ def suggest_projects(conf, q):
         if not hit or time.time() - hit[0] > 60:
             try:
                 names = remote.open_target(conf).dirs([d])
-            except Exception:
+            except Exception as e:
+                fehler.still("bautagebuch", "Ablage: Unterordner lesen", e)
                 names = []
             hit = _subs[key] = (time.time(), sorted((n for n in names if n.lower().startswith(code.lower() + ".")), key=_natural))
         for n in hit[1]:
@@ -308,7 +314,8 @@ def _indexed(conf, tops):
                         names += sorted(subs, key=_natural)
                         for n in subs:
                             _pfad[n.lower()] = d + "/" + n
-            except Exception:
+            except Exception as e:
+                fehler.still("bautagebuch", "Ablage: Unterprojekte einlesen (Hintergrund)", e)
                 pass
             _idx.update(t=time.time(), key=key, names=names, parents=parents, busy=False)
         threading.Thread(target=build, daemon=True, name="bt-index").start()
@@ -373,7 +380,8 @@ def _prune_old(target, path, is_dir, keep):
         try:
             target.delete(rel, is_dir)
             audit.record("System", "export", "Alte Version automatisch gelöscht", rel)
-        except Exception:
+        except Exception as e:
+            fehler.still("bautagebuch", "Ablage: alte Version löschen", e)
             pass
 
 
@@ -448,7 +456,8 @@ def start():
             _wake.clear()
             try:
                 run_once()
-            except Exception:
+            except Exception as e:
+                fehler.still("bautagebuch", "Ablage-Übertragung (Hintergrund)", e)
                 pass
     threading.Thread(target=loop, daemon=True, name="bt-sync").start()
 

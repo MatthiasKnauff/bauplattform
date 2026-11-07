@@ -981,7 +981,7 @@
         h += `<details class="as-pre"${presetsOpen ? ' open' : ''}><summary>Meine Vorlagen (${presets.length})</summary>`;
         if (presetsErr) h += `<div class="as-msg err">${esc(presetsErr)}</div>`;
         h += presets.length ? presets.map((pr) => `<div class="as-pr"><div class="as-n">${esc(pr.name)}<small>${pr.scope === 'all' ? 'Ganzes Gebäude' + (pr.data && pr.data.cfg ? ' · ' + esc((CC.profiles.find((p) => p.k === pr.data.cfg.type) || {}).n || '') : '') : 'Abschnitte: ' + esc(pr.phases.map(phaseName).join(', '))} · ${(pr.data && pr.data.sel ? pr.data.sel.length : 0)} Leistungen</small></div><button class="btn sm" data-pre="${pr.id}">Anwenden</button><button class="as-ib sm" data-predel="${pr.id}" title="Vorlage löschen">✕</button></div>`).join('')
-          : '<div class="as-hint" style="margin:4px 0">Noch keine eigenen Vorlagen. Stelle unten Leistungen zusammen und speichere sie mit „Als Vorlage speichern“.</div>';
+          : '<div class="as-hint" style="margin:4px 0">Noch keine eigenen Vorlagen. Stelle unter ③ Leistungen zusammen und speichere sie dort mit dem Knopf „Als Vorlage speichern …“.</div>';
         h += '</details></section>';
         if (cfg) {
           const m = (+cfg.units || 1) > 1;

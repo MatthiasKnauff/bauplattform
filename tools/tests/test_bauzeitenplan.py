@@ -504,3 +504,21 @@ def test_schreiben_nur_von_eigener_seite(ctx):
     finally:
         c.delete(f"{G}/projects/{p['id']}/presence", expect=None)
         weg(ctx, p["id"])
+
+
+def test_druck_als_pdf(ctx):
+    """Drucken → PDF: echte Druckseiten (aus print.js erzeugt) werden zu einer PDF-Datei mit passendem Dateinamen"""
+    import json as _json, os as _os
+    from lib import HIER as _HIER
+    d = _json.load(open(_os.path.join(_HIER, "daten", "gantt_druck.json"), encoding="utf-8"))
+    a = ctx.admin.post(f"{G}/pdf", {"pages": d["pages"] * 2, "name": d["name"]}).ist_pdf()
+    pruefe(a.body.count(b"/Type /Page\n") + a.body.count(b"/Type /Page ") + a.body.count(b"/Type/Page") >= 2 or len(a.body) > 20000,
+           "PDF scheint keine zwei Seiten zu enthalten")
+    pruefe("Testprojekt" in (a.headers.get("Content-Disposition") or "") or "Testprojekt%20Druck" in (a.headers.get("Content-Disposition") or ""),
+           f"Dateiname fehlt: {a.headers.get('Content-Disposition')}")
+    if _os.environ.get("RT_ARTEFAKTE"):   # in der Pipeline zum Ansehen ablegen
+        _os.makedirs(_os.environ["RT_ARTEFAKTE"], exist_ok=True)
+        open(_os.path.join(_os.environ["RT_ARTEFAKTE"], "bauzeitenplan.pdf"), "wb").write(a.body)
+    ctx.admin.post(f"{G}/pdf", {"pages": ["kein svg"]}, expect=400)
+    ctx.admin.post(f"{G}/pdf", {}, expect=400)
+    ctx.gast().post(f"{G}/pdf", {"pages": d["pages"]}, expect=401)

@@ -331,6 +331,7 @@ function printDialog() {
   let L = null;
   const bg = modal('Drucken / PDF', body, [
     { label: 'Standard', left: true, fn: () => { PO = Object.assign({}, PDEF); LS.set('print', PO); setTimeout(printDialog, 0); } },
+    { label: 'PDF', fn: (bg) => { LS.set('print', o); doPdf(L, bg); return false; } },
     { label: 'Drucken…', cls: 'primary', primary: true, fn: () => { LS.set('print', o); doPrint(L); } },
     { label: 'Schließen', fn: () => { LS.set('print', o); } },
   ]);
@@ -386,6 +387,28 @@ function doPrint(L) {
   const done = () => { document.body.classList.remove('printing'); root.innerHTML = ''; removeEventListener('afterprint', done); };
   addEventListener('afterprint', done);
   setTimeout(() => window.print(), 60);
+}
+
+// PDF: dieselben Seiten wie beim Drucken, auf dem Server in eine PDF-Datei umgewandelt (gantt/app.py /api/pdf) und heruntergeladen
+async function doPdf(L, bg) {
+  if (!L) return;
+  const knopf = bg && [...bg.querySelectorAll('.mf .btn')].find((b) => b.textContent === 'PDF' || b.textContent === 'PDF wird erstellt …');
+  if (knopf) { if (knopf.disabled) return; knopf.disabled = true; knopf.textContent = 'PDF wird erstellt …'; }
+  try {
+    const projekt = ((L.o.title || '').trim() || (P._bt && P._bt.name) || '').trim();
+    const name = [projekt, P.name].filter((x, i, a) => x && a.indexOf(x) === i).join(' – ') || 'Bauzeitenplan';
+    const r = await fetch('api/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pages: L.pages || printPages(L), name }) });
+    if (!r.ok) { let m = 'Die PDF konnte nicht erzeugt werden.'; try { m = (await r.json()).error || m; } catch { /* Text der Antwort unlesbar */ } throw new Error(m); }
+    const url = URL.createObjectURL(await r.blob());
+    const a = document.createElement('a'); a.href = url; a.download = name.replace(/[\\/:*?"<>|]+/g, ' ') + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast('PDF erstellt.');
+  } catch (e) {
+    toast(e.message || 'Die PDF konnte nicht erzeugt werden.', true);
+  } finally {
+    if (knopf) { knopf.disabled = false; knopf.textContent = 'PDF'; }
+  }
 }
 
 // Drucken über das Browser-Menü: mit den zuletzt gewählten Einstellungen

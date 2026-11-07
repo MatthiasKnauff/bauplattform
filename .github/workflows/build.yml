@@ -135,7 +135,18 @@ jobs:
       # Ablauftests über die normalen Schnittstellen (anlegen, ändern, rechnen, drucken, Rechte), siehe tools/tests/run.py
       - name: Ablauftests
         if: success() || failure()
+        env:
+          RT_ARTEFAKTE: ${{ runner.temp }}/artefakte
         run: python3 tools/tests/run.py http://localhost:${PORTAL_PUBLISH:-8090}
+
+      # erzeugte Ausdrucke (z. B. Bauzeitenplan-PDF) zum Ansehen am Lauf ablegen
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: ausdrucke
+          path: ${{ runner.temp }}/artefakte
+          if-no-files-found: ignore
+          retention-days: 7
 
       # Lasttest: 8 gleichzeitige Nutzer (Doppelte der Büro-Spitze) arbeiten 60 s, danach alle gleichzeitig Foto + PDF, siehe tools/lasttest.py
       - name: Lasttest

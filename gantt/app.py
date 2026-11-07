@@ -389,6 +389,44 @@ def logout():
     return sso.clear_cookie(jsonify(ok=True, login=_portal_login_url(request.url_root)))
 
 
+def _svg_holen(url, *_, **__):
+    """Für das Umwandeln SVG → PDF: nur eingebettete Bilder (data:…) zulassen – nie Dateien oder Adressen nachladen."""
+    if not str(url).startswith("data:"):
+        raise ValueError("externe Quelle im Druck nicht erlaubt")
+    from cairosvg.url import fetch
+    return fetch(url, "")
+
+
+@app.post("/api/pdf")
+def druck_pdf():
+    """Druckseiten (dieselben SVG-Seiten wie beim Drucken, erzeugt in public/print.js) als eine PDF-Datei.
+    Anfrage: {"pages": ["<svg …>", …], "name": "Dateiname ohne .pdf"} → application/pdf zum Herunterladen."""
+    if request.content_length and request.content_length > 60 * 1024 * 1024:
+        return jsonify(error="Druck zu groß"), 413
+    b = request.get_json(silent=True) or {}
+    pages = b.get("pages")
+    if not isinstance(pages, list) or not pages or len(pages) > 400 or not all(isinstance(p, str) and p.lstrip().startswith("<svg") for p in pages):
+        return jsonify(error="Keine Druckseiten übergeben"), 400
+    import io
+    import cairosvg
+    from pypdf import PdfReader, PdfWriter
+    out = PdfWriter()
+    try:
+        for p in pages:
+            teil = cairosvg.svg2pdf(bytestring=p.encode("utf-8"), url_fetcher=_svg_holen, unsafe=False)
+            for s in PdfReader(io.BytesIO(teil)).pages:
+                out.add_page(s)
+    except Exception as e:
+        from bpcore import fehler
+        fehler.still("gantt", "Druck als PDF umwandeln", e)
+        return jsonify(error="Die PDF konnte nicht erzeugt werden."), 500
+    name = re.sub(r'[\\/:*?"<>|\r\n]+', " ", str(b.get("name") or "Bauzeitenplan")).strip()[:120] or "Bauzeitenplan"
+    buf = io.BytesIO()
+    out.write(buf)
+    return app.response_class(buf.getvalue(), mimetype="application/pdf",
+                              headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name + '.pdf')}"})
+
+
 @app.route("/api/projects", methods=["GET", "POST"])
 def projects():
     with db.tx() as c:

@@ -2,7 +2,12 @@
 FROM python:3.12-slim
 WORKDIR /app
 # Sicherheitskorrekturen des Betriebssystems bei jedem Bau einspielen (siehe .github/workflows/sicherheit.yml)
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+# + cairo und Schriften für „Drucken → PDF“ (SVG-Druckseiten → PDF mit cairosvg); Lato wie in allen PDFs der Plattform
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends libcairo2 fontconfig fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+COPY shared/bpcore/fonts/Lato-*.ttf /usr/local/share/fonts/
+COPY gantt/fonts.conf /etc/fonts/local.conf
+RUN fc-cache -f
 COPY gantt/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY gantt/app.py .

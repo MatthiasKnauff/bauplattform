@@ -160,6 +160,13 @@ def firmen(c, pid):
     return sorted(out.values(), key=lambda e: e["name"].lower())
 
 
+def plotdienste(c):
+    """Kontakte mit der Art „Plotdienst“ (Adressen → Art, auch „Plotservice“, „Plotdienste“) – im Versand immer zur Auswahl,
+    für jedes Projekt, ohne Suchen. Nicht vorausgewählt."""
+    return [{"id": r["id"], "name": r["name"], "email": (r["email"] or "").strip(), "person": r["contact_person"] or "", "gewerke": ["Plotdienst"], "plot": True}
+            for r in c.execute("SELECT id, name, email, contact_person FROM contacts WHERE lower(trim(art)) LIKE 'plot%' ORDER BY lower(name)")]
+
+
 def passt(gewerk, f):
     """Gehört die Firma zum Gewerk? „alle Firmen“ passt immer; sonst Teilwort in beide Richtungen („HLS“ ↔ „HLS-Installation“)."""
     g_ = (gewerk or "").strip().lower()
@@ -247,6 +254,7 @@ def plaene():
             return jsonify(error="Projekt nicht gefunden"), 404
         cf, m = conf(c), _store(c, f"plaene:{pid}", {})
         fl = firmen(c, pid)
+        pd = plotdienste(c)
         gesendet = {}
         for r in c.execute("SELECT datum, art, empfaenger, plaene FROM planversand WHERE project_id=? ORDER BY id", (pid,)):
             an = ", ".join(e.get("name") or e.get("email") or "" for e in _j(r["empfaenger"], []))
@@ -261,7 +269,7 @@ def plaene():
     try:
         d = _bt("/api/plaene/dateien?" + urllib.parse.urlencode(q))
     except ValueError as e:
-        return jsonify(error=str(e), firmen=fl), 502
+        return jsonify(error=str(e), firmen=fl, plotdienste=pd), 502
     pl, sonst = planname.ordnen(d.get("dateien") or [], cf, m.get("zuordnung") or {})
     for x in pl:
         for st in x["staende"]:
@@ -315,7 +323,7 @@ def plaene():
     gewerke = sorted({g_ for g_ in set(gewerke) | {f["gewerk"] for f in sonst if f["gewerk"]} | bet | adr | eig if g_ and len(g_) <= 60},
                      key=lambda s_: (s_ == "alle Firmen", s_.lower()))
     return jsonify(plaene=pl, sonstige=sonst, basis=d.get("basis"), stand=d.get("stand") or "", zwischengespeichert=bool(d.get("zwischengespeichert")), baum=d.get("ordner") or [], aus=d.get("aus") or [], standard=d.get("standard"),
-                   abgebrochen=d.get("abgebrochen"), gewerke=gewerke, firmen=fl)
+                   abgebrochen=d.get("abgebrochen"), gewerke=gewerke, firmen=fl, plotdienste=pd)
 
 
 @app.get("/api/datei")

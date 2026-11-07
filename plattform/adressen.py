@@ -91,7 +91,8 @@ def _usage(c):
     return used, site
 
 
-STANDARD_ART = {"firma": "firma", "firmen": "firma", "bauherr": "bauherr", "bauherrin": "bauherr", "bauherren": "bauherr", "baustelle": "baustelle", "baustellen": "baustelle"}
+STANDARD_ART = {"firma": "firma", "firmen": "firma", "bauherr": "bauherr", "bauherrin": "bauherr", "bauherren": "bauherr", "baustelle": "baustelle", "baustellen": "baustelle",
+                "plotdienst": "Plotdienst", "plotdienste": "Plotdienst", "plotservice": "Plotdienst"}
 
 
 def _kind(r, site):

@@ -258,3 +258,18 @@ def test_projektdaten_kontaktfelder(ctx):
         for x in ctx.admin.gj("/ava/api/bp/kontakte?q=" + name[-6:]):
             if x["name"] == name:
                 ctx.admin.delete(f"/adressen/api/contacts/{x['id']}", expect=200)
+
+
+def test_plotdienst_immer_als_empfaenger(ctx):
+    """Adressen → Art „Plotdienst“: erscheint im Planversand jedes Projekts zur Auswahl (ohne Suchen), als eigene Art in Adressen."""
+    name = ctx.name("Plotdienst")
+    cid = ctx.admin.pj("/adressen/api/contacts", {"name": name, "email": "plot@example.org", "art": "Plotdienst"})["id"]
+    try:
+        k = finde(ctx.admin.gj("/adressen/api/contacts"), id=cid)
+        gleich(k["kind"], "Plotdienst", "Art in Adressen")
+        for p in ctx.projekte[:2]:
+            r = ctx.admin.get(f"/plaene/api/plaene?project_id={p['id']}", expect=(200, 502)).json
+            pd = finde(r.get("plotdienste"), id=cid)
+            pruefe(pd and pd["email"] == "plot@example.org" and pd["plot"], f"Plotdienst fehlt in Projekt {p['id']}: {r.get('plotdienste')}")
+    finally:
+        ctx.admin.delete(f"/adressen/api/contacts/{cid}", expect=None)

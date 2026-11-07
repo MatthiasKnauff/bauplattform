@@ -236,12 +236,12 @@ function edit(c, verlaufAuf) {
     ${quick ? `<div class="quick">${quick}</div>` : ''}
     ${!isNew && addr(c) ? `<div class="mapb"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${encodeURIComponent(addr(c))}&hl=de&z=15&output=embed"></iframe><a class="mapr" href="${esc(map)}" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>` : ''}
     <div class="fm">${F.map(inp).join('')}
-      <label>Art<input data-f="art" value="${esc(c.art || '')}" list="artList" autocomplete="off" placeholder="${esc(isNew ? 'Firma' : KINDN[c.kind] || c.kind)}" title="Firma, Bauherr, Baustelle – oder eine eigene Art (z. B. Behörde, Planer); jede Art erscheint oben als Filterknopf. Leer = aus Gewerk bzw. Baustelle des Projekts."></label>${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
+      <label>Art<input data-f="art" value="${esc(c.art || '')}" list="artList" autocomplete="off" placeholder="${esc(isNew ? 'Firma' : KINDN[c.kind] || c.kind)}" title="Firma, Bauherr, Baustelle, Plotdienst – oder eine eigene Art (z. B. Behörde, Planer); Plotdienste stehen im Planversand immer zur Auswahl; jede Art erscheint oben als Filterknopf. Leer = aus Gewerk bzw. Baustelle des Projekts."></label>${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
       <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
       <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>
       <label class="w">Notizen<textarea data-f="notes">${esc(c.notes || '')}</textarea></label></div>
     ${!isNew && c.kind === 'baustelle' ? `<div class="gsbox"><b>Grundstück</b> <small class="mu">${c.site_of ? 'gleich den Projektdaten von „' + esc(c.site_of) + '“' : 'wird übernommen, sobald die Baustelle einem Projekt zugeordnet ist'}</small><div id="gsHost"></div></div>` : ''}
-    <datalist id="artList">${['Firma', 'Bauherr', 'Baustelle', ...eigeneArten()].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
+    <datalist id="artList">${[...new Set(['Firma', 'Bauherr', 'Baustelle', 'Plotdienst', ...eigeneArten()])].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     <datalist id="gwList">${gwList.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     ${use ? `<div class="info">${use}</div>` : ''}
     ${isNew ? '' : '<details class="bnv" id="bnBox"><summary>Benachrichtigungsverlauf <small class="mu">Pläne, Mängel- und Terminrügen</small></summary><div id="bnHost"></div></details>'}

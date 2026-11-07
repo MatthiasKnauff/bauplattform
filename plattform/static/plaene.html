@@ -234,6 +234,9 @@ async function versandDialog() {
   const passt = (gw, f) => { const a = (gw || '').toLowerCase(); if (!a) return false; if (a === 'alle firmen' || a === 'alle') return true; return f.gewerke.some((x) => x && (x.toLowerCase().includes(a) || (x.length > 2 && a.includes(x.toLowerCase())))); };
   const firmen = D.firmen.map((f) => ({ ...f, vor: gws.some((gw) => passt(gw, f)) }));
   firmen.sort((a, b) => (b.vor - a.vor) || a.name.localeCompare(b.name, 'de'));
+    (D.plotdienste || []).forEach((p) => { const f = firmen.find((x) => x.id === p.id); if (f) Object.assign(f, { plot: true, vor: false }); else firmen.push({ ...p, vor: false }); });   // Plotdienste (Adressen → Art „Plotdienst“): immer zur Auswahl, nicht vorausgewählt
+  const empZeile = (f, i) => `<label><input type="checkbox" data-emp="${i}"${f.vor && f.email ? ' checked' : ''}${f.email ? '' : ' disabled'}> <span><b>${esc(f.name)}</b> <small>${f.plot ? '' : esc(f.gewerke.join(', '))}${f.email ? (f.plot ? '' : ' · ') + esc(f.email) : (f.plot ? '' : ' · ') + 'keine E-Mail-Adresse (in Adressen eintragen)'}</small></span></label>`;
+  const nFirmen = firmen.filter((f) => !f.plot).length, plots = firmen.map((f, i) => [f, i]).filter(([f]) => f.plot);
   const extra = [];
   const cadN = g.filter((x) => x.st.cad.length).length;
   const ohneGw = g.filter((x) => !x.p.gewerk).length;
@@ -242,7 +245,8 @@ async function versandDialog() {
     <div class="full"><h4>Pläne (${g.length})</h4><div class="mu" style="font-size:.88rem">${g.map((x) => x.p.frei ? esc(x.st.pdf.name) : esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div>
       ${ohneGw ? `<p class="warn">${ohneGw > 1 ? ohneGw + ' Plänen' : 'Einem Plan'} ist noch kein Gewerk zugeordnet – Empfänger bitte selbst wählen oder in der Liste das Gewerk eintragen.</p>` : ''}</div>
     <div><h4>Empfänger</h4>${gws.length ? `<p class="mu" style="margin:.1rem 0 .4rem;font-size:.85rem">Vorgeschlagen nach Gewerk: ${esc(gws.join(', '))}</p>` : ''}
-      <div class="emp">${firmen.length ? firmen.map((f, i) => `<label><input type="checkbox" data-emp="${i}"${f.vor && f.email ? ' checked' : ''}${f.email ? '' : ' disabled'}> <span><b>${esc(f.name)}</b> <small>${esc(f.gewerke.join(', '))}${f.email ? ' · ' + esc(f.email) : ' · keine E-Mail-Adresse (in Adressen eintragen)'}</small></span></label>`).join('') : '<span class="mu">Für dieses Projekt sind keine Firmen bekannt (Bauzeitenplan → Gewerke & Firmen oder Anwesende im Bautagebuch).</span>'}
+      <div class="emp">${nFirmen ? firmen.map((f, i) => (f.plot ? '' : empZeile(f, i))).join('') : '<span class="mu">Für dieses Projekt sind keine Firmen bekannt (Bauzeitenplan → Gewerke & Firmen oder Anwesende im Bautagebuch).</span>'}
+      ${plots.length ? `<div class="mu" style="font-size:.8rem;margin:.5rem 0 .1rem;font-weight:600">🖨 Plotdienst</div>${plots.map(([f, i]) => empZeile(f, i)).join('')}` : '<div class="mu" style="font-size:.8rem;margin:.5rem 0 0">🖨 Plotdienst: in Adressen einen Kontakt mit der Art „Plotdienst“ anlegen – dann steht er hier immer zur Auswahl.</div>'}
       ${extra.map((e, i) => `<label><input type="checkbox" data-ext="${i}" checked> <span><b>${esc(e.name || e.email)}</b> <small>${esc(e.email)}</small></span></label>`).join('')}</div>
       <div style="display:flex;gap:.5rem;margin-top:.4rem"><input type="email" id="vAdd" placeholder="weitere E-Mail-Adresse" list="vAddL" style="flex:1"><datalist id="vAddL"></datalist><button class="btn sm" data-m="add">Hinzufügen</button></div></div>
     <div style="display:grid;gap:.8rem;align-content:start">${cadN ? `<div class="opt"><h4>CAD-Dateien</h4><p class="mu" style="margin:0;font-size:.88rem">Zu ${cadN} der gewählten Pläne gibt es passende CAD-Dateien (gleiche Nummer und gleicher Index). Mitsenden?</p>

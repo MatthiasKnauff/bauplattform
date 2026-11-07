@@ -257,6 +257,19 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .src{display:grid;gap:.35rem;margin:.6rem 0}
 .src label{display:flex;gap:.5rem;align-items:baseline}
 .kgs[hidden]{display:none}
+.nlf{display:grid;grid-template-columns:2fr 1.4fr 4.5rem;gap:.6rem;margin:.2rem 0 .9rem}.nlf label{display:grid;gap:.25rem;font-size:.8rem;color:var(--mute)}.nlf input{width:100%;box-sizing:border-box}
+@media (max-width:640px){.nlf{grid-template-columns:1fr 4.5rem}.nlf label:first-child{grid-column:1/-1}}
+.nlw-h{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 .4rem}
+.nlw{display:grid;grid-template-columns:repeat(auto-fill,minmax(13.5rem,1fr));gap:.55rem}
+.nlw label{display:grid;grid-template-columns:2.1rem 1fr;gap:.1rem .55rem;align-items:start;padding:.7rem .75rem;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;position:relative;transition:border-color .12s,box-shadow .12s}
+.nlw input{position:absolute;opacity:0;pointer-events:none}
+.nlw .i{grid-row:span 2;font-size:1.4rem;line-height:1.2;text-align:center}.nlw b{font-size:.95rem}.nlw small{color:var(--mute);font-size:.78rem;line-height:1.3}
+.nlw label:hover{border-color:color-mix(in srgb,var(--y) 60%,var(--line))}
+.nlw label:has(input:checked){border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 22%,transparent);background:color-mix(in srgb,var(--y) 7%,var(--card))}
+.nlw label:has(input:focus-visible){outline:2px solid var(--y);outline-offset:2px}
+.nlw label.aus{opacity:.45;cursor:not-allowed}
+.nlw-d .kgs{margin:.8rem 0 0;padding:.75rem .85rem;border-radius:10px;background:var(--card2,var(--card));border:1px dashed var(--line)}
+.nlw-d .kgs select{max-width:100%}
 .kgs{display:flex;flex-wrap:wrap;gap:.3rem .8rem;margin:.3rem 0 0 1.6rem;font-size:.88rem}
 .hint{color:var(--mute);font-size:.85rem}
 .vb{border:1px solid var(--ok);border-radius:10px;padding:.55rem .8rem;margin-bottom:.8rem;display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}
@@ -1673,21 +1686,24 @@ async function newDialog() {
   const gws = [...new Set((KONT || []).map((k) => k.trade).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
   $('#gwList').innerHTML = gws.map((g) => `<option value="${esc(g)}">`).join('');
   const n = LIST.length + 1;
-  const bg = modalBox(`<h3>Neues Leistungsverzeichnis</h3><div class="fm">
-      <label for="nlName">Bezeichnung</label><input id="nlName" placeholder="z. B. Rohbauarbeiten, Trockenbau, Fliesen">
-      <label for="nlGw">Gewerk</label><input id="nlGw" list="gwList" placeholder="für die Bieterauswahl aus den Adressen">
-      <label for="nlNr">LV-Nummer</label><input id="nlNr" value="${String(n).padStart(2, '0')}" style="max-width:6rem"></div>
-    <div class="src"><b style="margin-top:.4rem">Inhalt</b>
-      <label><input type="radio" name="nlSrc" value="leer" checked> leer anfangen</label>
-      <label><input type="radio" name="nlSrc" value="bk"${BK.some((b) => b.n) ? '' : ' disabled'}> aus den Bauteilen einer Kostenermittlung (Mengen und Preise als Schätzung)</label>
+  const bg = modalBox(`<h3>Neues Leistungsverzeichnis</h3><div class="nlf">
+      <label>Bezeichnung<input id="nlName" placeholder="z. B. Rohbauarbeiten, Trockenbau, Fliesen"></label>
+      <label>Gewerk<input id="nlGw" list="gwList" placeholder="für die Bieterauswahl"></label>
+      <label>Nr.<input id="nlNr" value="${String(n).padStart(2, '0')}"></label></div>
+    <div class="nlw-h">Womit anfangen?</div>
+    <div class="nlw">${[
+      ['leer', '📄', 'Leer anfangen', 'Positionen selbst schreiben oder aus Katalogen holen', true],
+      ['pdf', '📥', 'Aus einer Datei', 'LV, Angebot oder Leistungsliste – PDF, Scan, Foto, Word, Excel, GAEB', true],
+      ['lv', '📑', 'Kopie eines LV', 'auch aus anderen Projekten – ohne Preise', alle.length > 0],
+      ['bk', '🧮', 'Aus der Kostenermittlung', 'Bauteile mit Mengen und Preisen als Schätzung', BK.some((b) => b.n)],
+      ['frei', '🧾', 'Ohne LV', 'nur Rechnungen erfassen – z. B. kleine Handwerker', true],
+    ].map(([v, i, t, d, ok], k) => `<label class="${ok ? '' : 'aus'}"><input type="radio" name="nlSrc" value="${v}"${k ? '' : ' checked'}${ok ? '' : ' disabled'}><span class="i">${i}</span><b>${t}</b><small>${ok ? d : v === 'bk' ? 'keine Kostenermittlung mit Bauteilen im Projekt' : 'noch kein LV vorhanden'}</small></label>`).join('')}</div>
+    <div class="nlw-d">
       <div class="kgs" id="nlBk" hidden><select id="nlBkSel">${BK.filter((b) => b.n).map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><span id="nlKgs"></span></div>
-      <label><input type="radio" name="nlSrc" value="lv"${alle.length ? '' : ' disabled'}> Kopie eines vorhandenen LV (auch aus anderen Projekten – ohne Preise)</label>
       <div class="kgs" id="nlLv" hidden><select id="nlLvSel">${alle.map((x) => `<option value="${x.id}">${esc((x.nr ? x.nr + ' ' : '') + x.name)}${x.project_id !== pid ? ' – ' + esc((PROJ.find((p) => p.id === x.project_id) || {}).name || '') : ''}</option>`).join('')}</select>
         <label><input type="checkbox" id="nlMengen" checked> Mengen übernehmen</label></div>
-      <label><input type="radio" name="nlSrc" value="pdf"> aus einer Datei – LV, Angebot oder Leistungsliste als PDF, Scan, Foto, Word, Excel oder GAEB</label>
       <div class="kgs" id="nlPdf" hidden><input type="file" id="nlPdfF" accept="${DOK_ACCEPT}"><label><input type="checkbox" id="nlPdfUe" checked> erkannte Positionen gleich übernehmen (das Dokument bleibt rechts daneben zum Prüfen; Preise eines Angebots als Schätzpreise)</label>
         <span class="hint">Titel und Positionen werden ohne KI erkannt (Scans per Texterkennung). Klappt das nicht, fragt die AVA, ob eine KI das Dokument lesen darf.</span></div>
-      <label><input type="radio" name="nlSrc" value="frei"> ohne LV – nur Rechnungen erfassen (Firma und Auftragssumme frei, z. B. kleine Handwerker)</label>
       <div class="kgs" id="nlFrei" hidden>${freiFelder()}</div></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }

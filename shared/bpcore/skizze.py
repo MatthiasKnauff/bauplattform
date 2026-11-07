@@ -78,6 +78,8 @@ def beitreten(c, sid, u):
 
 
 def farbe_von(r, uid):
+    if uid < 0:   # Gast
+        return FARBEN[(-uid) % len(FARBEN)]
     t = _teil(r)
     return FARBEN[(t.index(uid) if uid in t else len(t)) % len(FARBEN)]
 
@@ -136,6 +138,8 @@ def loeschen(c, sid, u, was):
             ids = [int(was)]
         except (TypeError, ValueError):
             ids = []
+        if ids and not (r and r["owner"] == u["id"]):   # einzelne Striche: nur eigene (der Besitzer darf alle)
+            ids = [x["id"] for x in c.execute("SELECT id FROM skizze_strich WHERE id=? AND skizze_id=? AND uid=?", (ids[0], sid, u["id"]))]
     if not ids:
         return 0
     seq = _seq(c, sid)
@@ -276,3 +280,114 @@ def pdf_mit_markierungen(c, sid):
     out = io.BytesIO()
     wr.write(out)
     return r["name"], out.getvalue()
+
+
+# ---------------------------------------------------------------- Externe Gäste ohne Anmeldung
+# Sicherheit: Der Gast-Link enthält ein zufälliges Geheimnis (256 Bit); gespeichert wird nur dessen SHA-256 (bp_store
+# „skgast:<hash>“). Ein Link gilt für GENAU eine Skizze, läuft ab (höchstens 30 Tage) und lässt sich jederzeit widerrufen.
+# Gäste sehen nur diesen einen Plan und dürfen zeichnen, zeigen und ihre EIGENEN Striche löschen – sonst nichts
+# (kein Einladen, kein „dauerhaft“, kein Export, keine anderen Daten). Begrenzt sind Größe, Zahl und Takt der Anfragen.
+GAST_TAGE = (1, 7, 30)
+GAST_MAX_STRICHE = 3000          # je Link insgesamt
+_TAKT = {}                       # (Linkhash, Gast) → [Zeitpunkte] – grobe Bremse je Prozess
+
+
+def _gh(token):
+    return hashlib.sha256(str(token or "").encode()).hexdigest()
+
+
+def gast_link(c, sid, u, tage):
+    from datetime import timedelta
+    tage = tage if tage in GAST_TAGE else 7
+    token = secrets.token_urlsafe(32)
+    ab = (datetime.now() + timedelta(days=tage)).isoformat(timespec="seconds")
+    d = {"sid": sid, "ablauf": ab, "von": u["id"], "von_name": name_von(u), "created": _now(), "widerrufen": False}
+    c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?)", ("skgast:" + _gh(token), json.dumps(d), _now(), u["name"]))
+    return token, ab
+
+
+def gast_links(c, sid):
+    out = []
+    for r in c.execute("SELECT key, data FROM bp_store WHERE key LIKE 'skgast:%'").fetchall():
+        try:
+            d = json.loads(r["data"])
+        except ValueError:
+            continue
+        if d.get("sid") == sid and not d.get("widerrufen") and d.get("ablauf", "") > _now():
+            out.append({"id": r["key"][7:19], "ablauf": d["ablauf"], "von": d.get("von_name", ""), "created": d.get("created", "")})
+    return out
+
+
+def gast_widerrufen(c, sid, kurz=None):
+    """kurz = die ersten 12 Zeichen des Hashs (aus gast_links); ohne: alle Links dieser Skizze."""
+    n = 0
+    for r in c.execute("SELECT key, data FROM bp_store WHERE key LIKE 'skgast:%'").fetchall():
+        try:
+            d = json.loads(r["data"])
+        except ValueError:
+            continue
+        if d.get("sid") == sid and not d.get("widerrufen") and (not kurz or r["key"][7:19] == kurz):
+            d["widerrufen"] = True
+            c.execute("UPDATE bp_store SET data=?, updated=? WHERE key=?", (json.dumps(d), _now(), r["key"]))
+            n += 1
+    return n
+
+
+def gast_pruefen(c, token):
+    """(Skizze-ID, Linkhash) für einen gültigen Gast-Link, sonst (None, None)."""
+    if not token or len(token) < 30 or len(token) > 80 or not re.fullmatch(r"[\w-]+", token):
+        return None, None
+    h = _gh(token)
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", ("skgast:" + h,)).fetchone()
+    if not r:
+        return None, None
+    try:
+        d = json.loads(r["data"])
+    except ValueError:
+        return None, None
+    if d.get("widerrufen") or d.get("ablauf", "") <= _now():
+        return None, None
+    if not c.execute("SELECT 1 FROM skizze WHERE id=?", (d.get("sid"),)).fetchone():
+        return None, None
+    return d["sid"], h
+
+
+def gast_user(h, gid, name):
+    """Pseudo-Benutzer des Gasts: negative ID aus Link und Browser-Kennung (nur der eigene Browser kennt sie)."""
+    if not gid or not re.fullmatch(r"[\w-]{16,64}", gid):
+        raise ValueError("Ungültige Gast-Kennung")
+    n = int(hashlib.sha256((h + ":" + gid).encode()).hexdigest()[:12], 16) % 2_000_000_000
+    name = re.sub(r"[\x00-\x1f<>]", "", str(name or "")).strip()[:40] or "Gast"
+    return {"id": -(n + 1), "name": name + " (extern)", "is_admin": 0}
+
+
+def gast_takt(h, uid, max_n=40, sek=10):
+    """True, wenn der Gast zu viele Anfragen schickt (mehr als max_n in sek Sekunden)."""
+    k, jetzt = (h, uid), time.time()
+    L = [t for t in _TAKT.get(k, []) if jetzt - t < sek]
+    L.append(jetzt)
+    _TAKT[k] = L
+    if len(_TAKT) > 5000:
+        for x in list(_TAKT)[:1000]:
+            _TAKT.pop(x, None)
+    return len(L) > max_n
+
+
+def gast_striche_voll(c, sid, h):
+    n = c.execute("SELECT COUNT(*) AS n FROM skizze_strich WHERE skizze_id=? AND uid<0", (sid,)).fetchone()["n"]
+    return n >= GAST_MAX_STRICHE
+
+
+def gast_loeschen(c, sid, u, was):
+    """Gäste löschen nur ihre eigenen Striche (letzter oder alle eigenen)."""
+    if was not in ("letzter", "alle"):
+        raise ValueError("Nicht erlaubt")
+    c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", ("skizze:" + sid,))
+    q = "SELECT id FROM skizze_strich WHERE skizze_id=? AND uid=? AND geloescht=0 ORDER BY id DESC" + (" LIMIT 1" if was == "letzter" else "")
+    ids = [x["id"] for x in c.execute(q, (sid, u["id"]))]
+    if not ids:
+        return 0
+    seq = _seq(c, sid)
+    for i in ids:
+        c.execute("UPDATE skizze_strich SET geloescht=1, seq=? WHERE id=? AND skizze_id=? AND uid=?", (seq, i, sid, u["id"]))
+    return len(ids)

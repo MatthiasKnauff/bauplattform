@@ -1601,6 +1601,15 @@
     return pdfjsP;
   }
   let gv = null;
+  /* Größte Fläche je Zeichenfläche (Pixel): iOS/iPadOS stürzt ab oder bleibt weiß, wenn Canvas zu groß werden – ältere Geräte
+     (iOS/Safari < 15) vertragen deutlich weniger. Aktuelle Geräte behalten die volle Schärfe (bis an die Grenze, die Safari ohnehin hat). */
+  const CANVAS_MAX = (() => {
+    const ua = navigator.userAgent || '', ios = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    if (!ios) return 32e6;
+    const v = /OS (\d+)_\d+.* like Mac OS X/.exec(ua) || /Version\/(\d+)/.exec(ua);
+    return v && +v[1] < 15 ? 4e6 : 16e6;
+  })();
+  const canvasMass = (w, h) => { const f = Math.min(1, Math.sqrt(CANVAS_MAX / Math.max(1, w * h))); return [Math.floor(w * f), Math.floor(h * f), f]; };
   H.ansehen = function (items, start = 0) {
     items = (items || []).filter((x) => x && x.url); if (!items.length) return;
     if (gv) gv.close(true);
@@ -1611,6 +1620,7 @@
       <button type="button" data-gv="dr" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button></div><div class="bph-skl" hidden></div><div class="bph-skm" hidden><button type="button" data-skm="stift" title="Zeichnen">✏️</button><button type="button" data-skm="zeigen" title="Nur zeigen / blättern">☝</button><button type="button" data-skm="zurueck" title="Letzten Strich zurück">↶</button><button type="button" data-skm="voll" title="Leisten wieder einblenden">⤡</button></div>
       <div class="bph-gvs"></div><button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
     document.body.appendChild(el); document.body.classList.add('bph-gv-offen');
+    if (H.GAST) el.querySelectorAll('[data-gv="dr"],[data-gv="dl"],[data-gv="x"]').forEach((b) => { b.hidden = true; });   // Gäste: nur ansehen und markieren
     const S = el.querySelector('.bph-gvs');
     let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null, roh = null;
     const SK = { id: null, striche: [], seq: 0, werkzeug: 'stift', farbe: '#e5484d', leute: [], t: 0, zt: 0, owner: null, aus: false, dauerhaft: false, dauer: null };
@@ -1640,7 +1650,7 @@
       S.innerHTML = '';
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       for (let n = 1; n <= pdf.numPages && my === tok; n++) {
-        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = (fitW() / v0.width) * zoom, v = pg.getViewport({ scale: sc * dpr });
+        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = (fitW() / v0.width) * zoom, f = canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2], v = pg.getViewport({ scale: sc * dpr * f });
         const wr = document.createElement('div'); wr.className = 'bph-pg'; wr.dataset.seite = n; wr.style.width = (zoom * 100) + '%';
         const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-gvc';
         const ov = document.createElement('canvas'); ov.className = 'bph-skc';
@@ -1652,7 +1662,13 @@
     }
     /* ---------- Markieren, auch gemeinsam: Striche relativ zur Seite (0…1), Abgleich alle 0,7 s (siehe bpcore/skizze.py) ---------- */
     const SKW = { stift: ['✏️', 'Stift', 0.0022], marker: ['🖍', 'Marker', 0.011], pfeil: ['↗', 'Pfeil', 0.0025], rechteck: ['▭', 'Rechteck', 0.0025], text: ['T', 'Text', 0.0045], haken: ['✔', 'Haken (grün) – geprüft, in Ordnung', 0.004], kreuz: ['✘', 'Kreuz (rot) – gestrichen / nicht anerkannt', 0.004], zeigen: ['☝', 'Nur zeigen / blättern', 0] };
-    const SKJ = (u, m, b) => KX(u, m ? { method: m, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) } : {});
+    /* Gäste ohne Anmeldung (H.GAST, Seite /gast/<Link>): dieselben Aufrufe gehen an api/bp/gast/<Link>/… – nur Stand, Strich, Löschen (eigene), Zeiger */
+    const gastUrl = (u) => { const m = /^api\/bp\/skizze\/[\w-]+(?:\/(strich|loeschen|zeiger))?(\?.*)?$/.exec(u); if (!m) throw new Error('Für Gäste nicht verfügbar'); return `api/bp/gast/${encodeURIComponent(H.GAST.token)}/${m[1] || 'stand'}${m[2] || ''}`; };
+    const SKJ = (u, m, b) => {
+      if (!H.GAST) return KX(u, m ? { method: m, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) } : {});
+      const h = { 'X-Gast-Id': H.GAST.id, 'X-Gast-Name': encodeURIComponent(H.GAST.name) };
+      return KX(gastUrl(u), m ? { method: m, headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) } : { headers: h });
+    };
     const ich = () => (H.me && H.me.id) || null;
     function skLeiste() {
       const L = el.querySelector('.bph-skl'); L.hidden = !SK.id;
@@ -1662,9 +1678,9 @@
         <span class="bph-skf" style="background:${SK.farbe}" title="deine Farbe"></span>
         <button type="button" data-sk="zurueck" title="Meinen letzten Strich zurücknehmen">↶</button><button type="button" data-sk="alle" title="${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}">🗑</button>
         <span class="bph-skp">${andere.length ? andere.map((p) => `<i style="background:${p.farbe}"></i>${esc(p.name.split(' ')[0])}`).join(' ') : 'nur du'}</span>
-        <button type="button" data-sk="dauer" class="${SK.dauerhaft ? 'on' : ''}" title="${SK.dauerhaft ? 'Markierungen bleiben dauerhaft am Plan – jeder, der den Plan öffnet, sieht sie. Klicken zum Aufheben.' : 'Markierungen dauerhaft am Plan behalten – erscheinen wieder, wenn jemand den Plan öffnet'}">📌 ${SK.dauerhaft ? 'Dauerhaft' : 'Behalten'}</button>
+        ${H.GAST ? '' : `        <button type="button" data-sk="dauer" class="${SK.dauerhaft ? 'on' : ''}" title="${SK.dauerhaft ? 'Markierungen bleiben dauerhaft am Plan – jeder, der den Plan öffnet, sieht sie. Klicken zum Aufheben.' : 'Markierungen dauerhaft am Plan behalten – erscheinen wieder, wenn jemand den Plan öffnet'}">📌 ${SK.dauerhaft ? 'Dauerhaft' : 'Behalten'}</button>
         <button type="button" data-sk="einladen" title="Kollegen einladen – sie sehen den Plan und zeichnen gleichzeitig mit">👥 Einladen</button>
-        <button type="button" data-sk="pdf" title="Plan mit allen Markierungen als PDF">⤓ PDF</button><button type="button" data-sk="voll" title="Leisten ausblenden – mehr Platz zum Zeichnen (z. B. iPhone quer)">⤢</button><button type="button" data-sk="ende" title="Markieren beenden (die Skizze bleibt gespeichert)">✓ Fertig</button>`;
+        <button type="button" data-sk="pdf" title="Plan mit allen Markierungen als PDF">⤓ PDF</button>`}<button type="button" data-sk="voll" title="Leisten ausblenden – mehr Platz zum Zeichnen (z. B. iPhone quer)">⤢</button><button type="button" data-sk="ende" title="Markieren beenden (die Skizze bleibt gespeichert)">✓ Fertig</button>`;
       if (L._h !== html) { L._h = html; L.innerHTML = html; }   // nur bei Änderung neu zeichnen (Knöpfe bleiben klickbar)
     }
     function skModus() {   // Zeichnen fängt Maus/Finger ab, „Zeigen“ lässt blättern
@@ -1676,8 +1692,9 @@
       const wr = S.querySelector(`.bph-pg[data-seite="${seite}"]`); if (!wr) return;
       const ov = wr.querySelector('.bph-skc'), dpr = Math.min(2, window.devicePixelRatio || 1), W = wr.clientWidth, Hh = wr.clientHeight;
       if (!W || !Hh) return;
-      if (ov.width !== Math.round(W * dpr) || ov.height !== Math.round(Hh * dpr)) { ov.width = Math.round(W * dpr); ov.height = Math.round(Hh * dpr); }
-      const g = ov.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, Hh);
+      const k = dpr * canvasMass(W * dpr, Hh * dpr)[2];   // Überlage nicht größer als das Gerät verträgt
+      if (ov.width !== Math.round(W * k) || ov.height !== Math.round(Hh * k)) { ov.width = Math.round(W * k); ov.height = Math.round(Hh * k); }
+      const g = ov.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0); g.clearRect(0, 0, W, Hh);
       const alle = SK.striche.filter((d) => d.seite === seite).concat(SK.akt && SK.akt.seite === seite ? [SK.akt] : []);
       for (const d of alle) skStrich(g, d, W, Hh);
       wr.querySelectorAll('.bph-ptr').forEach((x) => x.remove());
@@ -1705,6 +1722,7 @@
     }
     const alleZeichnen = () => S.querySelectorAll('.bph-pg').forEach((w) => skZeichnen(+w.dataset.seite));
     function skUebernehmen(r) {
+      if (H.GAST && r.ich) { H.me = { ...(H.me || {}), id: r.ich }; if (r.name) el.querySelector('.bph-gvt').textContent = r.name; }
       SK.owner = r.owner; SK.farbe = r.farbe || SK.farbe; SK.leute = r.leute || []; SK.dauerhaft = !!r.dauerhaft;
       const weg = new Set(r.geloescht || []); if (weg.size) SK.striche = SK.striche.filter((d) => !weg.has(d.id));
       for (const d of r.striche || []) {
@@ -1717,11 +1735,12 @@
     async function skAbgleich() {
       if (!SK.id || SK.aus) return;
       try { const r = await SKJ(`api/bp/skizze/${SK.id}?seit=${SK.seq}`); skUebernehmen(r); alleZeichnen(); skLeiste(); }
-      catch (e) { if (/gibt es nicht|Keine Einladung/.test(e.message)) { skEnde(true); alert(e.message); } }
+      catch (e) { if (/gibt es nicht|Keine Einladung|nicht \(mehr\) gültig/.test(e.message)) { skEnde(true); alert(e.message); } }
     }
     function skLauf() { clearInterval(SK.t); SK.t = setInterval(() => { if (document.visibilityState === 'visible') skAbgleich(); }, 700); }
     async function skStart() {
       if (!roh) return;
+      if (H.GAST) return skBeitreten('gast');
       if (SK.dauer) return skBeitreten(SK.dauer);
       const b = el.querySelector('.bph-skb'); b.disabled = true;
       try {
@@ -1737,7 +1756,7 @@
     }
     async function skEnde(still) {
       const warId = SK.id, eigene = SK.striche.some((d) => d.uid === ich());
-      if (!still && warId && !SK.dauerhaft && eigene && (await bpFrage('Markierungen dauerhaft am Plan behalten?\n\nDann sieht sie jeder wieder, der diesen Plan öffnet – auch in den anderen Apps.'))) {
+      if (!still && !H.GAST && warId && !SK.dauerhaft && eigene && (await bpFrage('Markierungen dauerhaft am Plan behalten?\n\nDann sieht sie jeder wieder, der diesen Plan öffnet – auch in den anderen Apps.'))) {
         SKJ(`api/bp/skizze/${warId}/dauerhaft`, 'POST', { an: true }).then(() => skDauerSuchen(tok)).catch((er) => alert(er.message));
       }
       clearInterval(SK.t); if (SK.id) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: 0, x: null, y: null }).catch(() => {});
@@ -1795,7 +1814,7 @@
       try { return crypto.subtle ? [...new Uint8Array(await crypto.subtle.digest('SHA-256', buf))].map((b) => b.toString(16).padStart(2, '0')).join('') : ''; } catch (e) { return ''; }
     }
     async function skDauerSuchen(my) {   // dauerhafte Markierungen zu diesem Plan anzeigen (ohne Zeichenmodus)
-      if (!roh || SK.id) return;
+      if (!roh || SK.id || H.GAST) return;
       try {
         const x = items[i], h = await skHash(roh);
         const q = await SKJ(`api/bp/skizze-dauerhaft?hash=${h}&name=${encodeURIComponent(x.name || '')}&groesse=${roh.byteLength}`);
@@ -1839,10 +1858,25 @@
         <div class="bph-skk">${K.map((k) => `<label class="bph-ck"><input type="checkbox" value="${k.id}"> ${esc(k.name)} ${k.online ? '<small style="color:#2f9e5a">● angemeldet</small>' : ''}</label>`).join('') || '<p class="bph-mu">Keine weiteren Benutzer.</p>'}</div>
         <label class="bph-ck" style="margin:.3rem 0"><input type="checkbox" data-kmail checked> zusätzlich per E-Mail (mit Link)</label>
         <div class="bph-row"><button type="button" class="bph-btn pri" data-ko>Einladen</button><button type="button" class="bph-btn" data-kl>Link kopieren</button><a class="bph-btn" data-kmailto href="mailto:?subject=${encodeURIComponent('Gemeinsam markieren: ' + (items[i].name || 'Plan'))}&body=${encodeURIComponent('Bitte öffne den Plan, dann markieren wir gemeinsam:\n' + link)}" title="Eigene Mail mit dem Link schreiben – auch an Leute außerhalb">✉ Per Mail …</a></div>
-        <p class="bph-mu" data-km></p></div></div>`;
+        <p class="bph-mu" data-km></p>
+        <div class="bph-skx"><b>Externe ohne Anmeldung</b><p class="bph-mu" style="margin:.2rem 0 .4rem">Ein eigener, befristeter Link nur für diesen Plan – z. B. für Fachplaner oder Bauherrn. Externe sehen nichts anderes, zeichnen mit und löschen nur ihre eigenen Striche. Zurückziehen geht jederzeit.</p>
+          <div class="bph-row"><select data-kgt aria-label="gültig"><option value="1">1 Tag gültig</option><option value="7" selected>7 Tage gültig</option><option value="30">30 Tage gültig</option></select><button type="button" class="bph-btn" data-kg>🔗 Link für Externe erzeugen</button></div>
+          <div data-kgl></div></div></div></div>`;
       el.appendChild(d);
+      const gl = (L, neu) => {   // gültige Gast-Links; ein neuer steht einmal im Klartext da (gespeichert wird nur eine Prüfsumme)
+        const de = (t) => new Date(t).toLocaleDateString('de-DE');
+        d.querySelector('[data-kgl]').innerHTML = (neu ? `<div class="bph-skneu"><input readonly value="${esc(neu.url)}" aria-label="Link für Externe"><div class="bph-row"><button type="button" class="bph-btn pri" data-kgc>Kopieren</button><a class="bph-btn" href="mailto:?subject=${encodeURIComponent('Plan gemeinsam markieren: ' + (items[i].name || 'Plan'))}&body=${encodeURIComponent('Bitte öffne den Plan über diesen Link, dann markieren wir gemeinsam (keine Anmeldung nötig, gültig bis ' + de(neu.ablauf) + '):\n' + neu.url)}">✉ Per Mail …</a></div><small class="bph-mu">Den Link nur an die vorgesehenen Personen schicken – wer ihn hat, kommt bis zum ${de(neu.ablauf)} auf diesen Plan.</small></div>` : '')
+          + (L.length ? `<div class="bph-mu" style="margin-top:.4rem">Gültige Links: ${L.map((x) => `<span class="bph-chip">bis ${de(x.ablauf)} · ${esc(x.von)} <button type="button" data-kgx="${esc(x.id)}" title="Link zurückziehen – er funktioniert dann sofort nicht mehr">✕</button></span>`).join(' ')}${L.length > 1 ? ' <button type="button" class="bph-btn" data-kgx="*">alle zurückziehen</button>' : ''}</div>` : '');
+      };
+      SKJ(`api/bp/skizze/${SK.id}/gastlinks`).then((r) => gl(r.links || [])).catch(() => {});
       d.addEventListener('click', async (e) => {
         if (e.target === d || e.target.closest('[data-kx]')) return d.remove();
+        const gb = e.target.closest('[data-kg]');
+        if (gb) { gb.disabled = true; try { const r = await SKJ(`api/bp/skizze/${SK.id}/gastlinks`, 'POST', { tage: +d.querySelector('[data-kgt]').value }); gl(r.links || [], { url: location.origin + '/gast/' + r.token, ablauf: r.ablauf }); } catch (er) { d.querySelector('[data-km]').textContent = er.message; } finally { gb.disabled = false; } return; }
+        const gc = e.target.closest('[data-kgc]'); if (gc) { const inp = d.querySelector('.bph-skneu input'); try { await navigator.clipboard.writeText(inp.value); gc.textContent = 'Kopiert ✓'; } catch { inp.select(); } return; }
+        const gx = e.target.closest('[data-kgx]');
+        if (gx) { if (!(await bpFrage(gx.dataset.kgx === '*' ? 'Alle Links für Externe zurückziehen?' : 'Diesen Link zurückziehen? Er funktioniert dann sofort nicht mehr.', { ok: 'Zurückziehen' }))) return;
+          try { const r = await KX(`api/bp/skizze/${SK.id}/gastlinks`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gx.dataset.kgx === '*' ? {} : { id: gx.dataset.kgx }) }); gl(r.links || []); } catch (er) { d.querySelector('[data-km]').textContent = er.message; } return; }
         if (e.target.closest('[data-kl]')) { try { await navigator.clipboard.writeText(link); d.querySelector('[data-km]').textContent = 'Link kopiert – z. B. in Teams oder per Mail schicken. Wer ihn öffnet, ist sofort dabei, eine Einladung ist nicht nötig.'; } catch { (await bpEingabe('Link:', link)); } return; }
         if (e.target.closest('[data-ko]')) {
           const an = [...d.querySelectorAll('.bph-skk input:checked')].map((x) => +x.value); if (!an.length) return;
@@ -1950,6 +1984,11 @@
       else if (ev.target.closest('[data-nein]')) { d.remove(); KX('api/bp/skizze-einladungen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: e.id }) }).catch(() => {}); }
     });
   }
+  /* Externe ohne Anmeldung (Seite /gast/<Link>): nur dieser eine Plan, Zeichnen gleich an */
+  H.gastStart = (g) => {
+    H.GAST = g; H.me = { id: null, name: g.name };
+    H.ansehen([{ url: `api/bp/gast/${encodeURIComponent(g.token)}/datei`, typ: 'pdf', name: 'Plan', skizze: 'gast' }]);
+  };
   H.skizzeOeffnen = (id, name) => H.ansehen([{ url: `api/bp/skizze/${id}/datei`, typ: 'pdf', name: name || 'Gemeinsame Skizze', skizze: id }]);
   function skWache() {
     const m = /#skizze=([\w-]+)/.exec(location.hash);

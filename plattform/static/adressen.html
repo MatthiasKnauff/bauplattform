@@ -154,7 +154,10 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
 </main>
 <script src="static/bp.js"></script>
 <script>
-const KINDS = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherren'], ['baustelle', 'Baustellen']];
+const KINDS0 = [['', 'Alle'], ['firma', 'Firmen'], ['bauherr', 'Bauherren'], ['baustelle', 'Baustellen']];
+let KINDS = KINDS0;   // + eigene Arten aus den Kontakten (Feld „Art“), automatisch als Filterknopf
+const eigeneArten = () => [...new Set(ALL.map((c) => c.kind).filter((k) => k && !KINDN[k]))].sort((a, b) => a.localeCompare(b, 'de'));
+const artenNeu = () => { KINDS = [...KINDS0, ...eigeneArten().map((k) => [k, k])]; if (kind && !KINDS.some((x) => x[0] === kind)) kind = ''; };
 const F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
   ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url']];
 let conf0 = {};   // Plattform (Adressen der anderen Apps für „verwendet in …“)
@@ -184,20 +187,20 @@ function woanders() {
 }
 function render() {
   if (typeof TV !== 'undefined' && TV.view === 'tabelle') { const n2 = {}; ALL.forEach((c) => { n2[c.kind] = (n2[c.kind] || 0) + 1; });
-    $('#kinds').innerHTML = KINDS.map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${k}">${l}<small>${k ? n2[k] || 0 : ALL.length}</small></button>`).join('') + betChip();
+    $('#kinds').innerHTML = (artenNeu(), KINDS).map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${esc(k)}">${l}<small>${k ? n2[k] || 0 : ALL.length}</small></button>`).join('') + betChip();
     renderTable(); return; }
   const n = {}; ALL.forEach((c) => { n[c.kind] = (n[c.kind] || 0) + 1; });
-  $('#kinds').innerHTML = KINDS.map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${k}">${l}<small>${k ? n[k] || 0 : ALL.length}</small></button>`).join('') + betChip();
+  $('#kinds').innerHTML = (artenNeu(), KINDS).map(([k, l]) => `<button class="${kind === k ? 'on' : ''}" data-k="${esc(k)}">${l}<small>${k ? n[k] || 0 : ALL.length}</small></button>`).join('') + betChip();
   const rows = tableRows();
   $('#cnt').textContent = rows.length === ALL.length ? `${ALL.length} Kontakte` : `${rows.length} von ${ALL.length} Kontakten`;
   renderActive(); renderKbar();
   $('#list').innerHTML = rows.map((c) => `<div class="ct" tabindex="0" data-id="${c.id}">
-      <div class="hd"><b>${esc(c.name)}</b>${c.kind !== 'firma' ? `<span class="pill">${c.kind === 'baustelle' ? 'Baustelle' : 'Bauherr'}</span>` : ''}</div>
+      <div class="hd"><b>${esc(c.name)}</b>${c.kind !== 'firma' ? `<span class="pill">${esc(KINDN[c.kind] || c.kind)}</span>` : ''}</div>
       ${c.trade ? `<div class="sub">${esc(c.trade)}</div>` : ''}
       ${c.contact_person ? `<div class="sub">${esc(c.contact_person)}${c.role ? ' · ' + esc(c.role) : ''}</div>` : ''}
       ${addr(c) ? `<div class="sub">${esc(addr(c))}</div>` : ''}
       <div class="acts">${c.phone ? `<a href="tel:${esc(tel(c.phone))}">☎ ${esc(c.phone)}</a>` : ''}${c.mobile ? `<a href="tel:${esc(tel(c.mobile))}">📱 ${esc(c.mobile)}</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}">✉ E-Mail</a>` : ''}</div>
-    </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer.' + `${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && KINDS.find((x) => x[0] === kind)[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}` : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
+    </div>`).join('') || `<div class="empty">${ALL.length ? 'Keine Treffer.' + `${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && (KINDS.find((x) => x[0] === kind) || [0, kind])[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}` : 'Noch keine Kontakte – mit „+ Neu“ anlegen.'}</div>`;
 }
 
 /* Neuer Kontakt: Firmenvorschläge aus dem Netz (OpenStreetMap, wie im Bautagebuch) – antippen übernimmt Adresse, Telefon, E-Mail */
@@ -220,7 +223,7 @@ async function nkTake(bg, i) {
   bg.querySelector('#nkSug').innerHTML = '<div class="sugh">Übernommen – bitte prüfen und speichern.</div>';
 }
 function edit(c, verlaufAuf) {
-  const isNew = !c; c = c || { kind: kind || 'firma', trade: gw || (kind === 'bauherr' ? 'Bauherr' : '') };
+  const isNew = !c; c = c || { kind: kind || 'firma', trade: gw || (kind === 'bauherr' ? 'Bauherr' : ''), art: kind && !KINDN[kind] ? kind : '' };
   const inp = ([k, l, w, t]) => `<label class="${w}">${l}<input data-f="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'trade' ? ' list="gwList"' : ''}></label>`;
   const map = addr(c) ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr(c))}&travelmode=driving` : '';   // wie im Bautagebuch: Google Maps mit Route
   const quick = isNew ? '' : [c.phone && `<a class="btn sm" href="tel:${esc(tel(c.phone))}">☎ Anrufen</a>`, c.mobile && `<a class="btn sm" href="tel:${esc(tel(c.mobile))}">📱 Mobil</a>`,
@@ -232,11 +235,13 @@ function edit(c, verlaufAuf) {
   const bgE = modalBox(`<div class="mh"><h3>${isNew ? 'Neuer Kontakt' : esc(c.name)}</h3><button class="x" data-m="close" aria-label="Schließen">✕</button></div>
     ${quick ? `<div class="quick">${quick}</div>` : ''}
     ${!isNew && addr(c) ? `<div class="mapb"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${encodeURIComponent(addr(c))}&hl=de&z=15&output=embed"></iframe><a class="mapr" href="${esc(map)}" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>` : ''}
-    <div class="fm">${F.map(inp).join('')}${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
+    <div class="fm">${F.map(inp).join('')}
+      <label>Art<input data-f="art" value="${esc(c.art || '')}" list="artList" autocomplete="off" placeholder="${esc(isNew ? 'Firma' : KINDN[c.kind] || c.kind)}" title="Firma, Bauherr, Baustelle – oder eine eigene Art (z. B. Behörde, Planer); jede Art erscheint oben als Filterknopf. Leer = aus Gewerk bzw. Baustelle des Projekts."></label>${isNew ? '<div class="w sugbox" id="nkSug"></div>' : ''}
       <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
       <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>
       <label class="w">Notizen<textarea data-f="notes">${esc(c.notes || '')}</textarea></label></div>
     ${!isNew && c.kind === 'baustelle' ? `<div class="gsbox"><b>Grundstück</b> <small class="mu">${c.site_of ? 'gleich den Projektdaten von „' + esc(c.site_of) + '“' : 'wird übernommen, sobald die Baustelle einem Projekt zugeordnet ist'}</small><div id="gsHost"></div></div>` : ''}
+    <datalist id="artList">${['Firma', 'Bauherr', 'Baustelle', ...eigeneArten()].map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     <datalist id="gwList">${gwList.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     ${use ? `<div class="info">${use}</div>` : ''}
     ${isNew ? '' : '<details class="bnv" id="bnBox"><summary>Benachrichtigungsverlauf <small class="mu">Pläne, Mängel- und Terminrügen</small></summary><div id="bnHost"></div></details>'}
@@ -255,7 +260,7 @@ function edit(c, verlaufAuf) {
     }
     if (m === 'del') {
       try { await api('api/contacts/' + c.id, 'DELETE'); close(); load();
-        const alt = Object.fromEntries(['name', 'trade', 'contact_person', 'role', 'phone', 'mobile', 'email', 'website', 'street', 'zip', 'city', 'notes'].map((k) => [k, c[k] || '']));
+        const alt = Object.fromEntries(['name', 'trade', 'contact_person', 'role', 'phone', 'mobile', 'email', 'website', 'street', 'zip', 'city', 'notes', 'art'].map((k) => [k, c[k] || '']));
         rueckgaengig(`„${c.name}“ gelöscht`, async () => { await api('api/contacts', 'POST', alt); load(); });
       } catch (e) {
         const er = $('#mErr', bg); er.textContent = e.message;
@@ -313,7 +318,7 @@ function renderTable() {
     <tbody>${rows.map((c) => `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
       : `<td><input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' list="gwAll"' : ''}></td>`).join('')}
       <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" title="E-Mail">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`).join('')
-      || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer.${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && KINDS.find((x) => x[0] === kind)[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}</td></tr>`}</tbody></table>
+      || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer.${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && (KINDS.find((x) => x[0] === kind) || [0, kind])[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}</td></tr>`}</tbody></table>
     <datalist id="gwAll">${[...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de')).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
   fitTw();
@@ -333,14 +338,14 @@ $('#tw').addEventListener('pointerdown', (e) => {
 });
 $('#tw').addEventListener('dblclick', (e) => { const h = e.target.closest('[data-rz]'); if (!h) return; delete TV.w[h.dataset.rz]; tvSave(); renderTable(); });
 /* ---------- Filter: gelten in Tabelle UND Karten; einzeln oder alle löschen ---------- */
-const fltField = (k, l) => `<span class="fx">${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${Object.entries(KINDN).map(([v, n]) => `<option value="${v}"${TV.flt.kind === v ? ' selected' : ''}>${n}</option>`).join('')}</select>`
+const fltField = (k, l) => `<span class="fx">${k === 'kind' ? `<select data-flt="kind" aria-label="Filter Art"><option value="">alle</option>${[...Object.entries(KINDN), ...eigeneArten().map((k) => [k, k])].map(([v, n]) => `<option value="${esc(v)}"${TV.flt.kind === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`
   : `<input data-flt="${k}" value="${esc(TV.flt[k] || '')}" placeholder="Filter" aria-label="Filter ${esc(l)}" autocomplete="off">`}${TV.flt[k] ? `<button type="button" data-clr="f:${k}" title="Filter löschen" aria-label="Filter ${esc(l)} löschen">✕</button>` : ''}</span>`;
 function activeFilters() {
   const a = [];
   if (q.trim()) a.push(['q', 'Suche', q.trim()]);
   if (gw) a.push(['gw', 'Gewerk', gw]);
-  if (kind) a.push(['kind', 'Art', KINDS.find((x) => x[0] === kind)[1]]);
-  Object.entries(TV.flt).filter(([, v]) => v).forEach(([k, v]) => a.push(['f:' + k, COLS.find((c) => c[0] === k)[1], k === 'kind' ? KINDN[v] : v]));
+  if (kind) a.push(['kind', 'Art', (KINDS.find((x) => x[0] === kind) || [0, kind])[1]]);
+  Object.entries(TV.flt).filter(([, v]) => v).forEach(([k, v]) => a.push(['f:' + k, COLS.find((c) => c[0] === k)[1], k === 'kind' ? KINDN[v] || v : v]));
   return a;
 }
 const anyFlt = () => activeFilters().length > 0;
@@ -507,7 +512,7 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
 })().catch((e) => toast(e.message, true));
 /* ---------- Duplikate: ähnliche Adressen finden, Werte wählen, zusammenführen (Verweise in Bautagebuch, Bauzeitenplan, AVA werden umgehängt) ---------- */
 const DF = [['name', 'Firma / Name'], ['trade', 'Gewerk'], ['contact_person', 'Ansprechpartner'], ['role', 'Funktion'], ['phone', 'Telefon'], ['mobile', 'Mobil'],
-  ['email', 'E-Mail'], ['website', 'Internet'], ['street', 'Straße'], ['zip', 'PLZ'], ['city', 'Ort'], ['notes', 'Notizen']];
+  ['email', 'E-Mail'], ['website', 'Internet'], ['street', 'Straße'], ['zip', 'PLZ'], ['city', 'Ort'], ['art', 'Art'], ['notes', 'Notizen']];
 async function duplikate() {
   let G; try { G = await api('api/contacts/duplikate'); } catch (e) { toast(e.message, true); return; }
   if (!G.length) { toast('Keine doppelten oder sehr ähnlichen Adressen gefunden.'); return; }

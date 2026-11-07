@@ -213,7 +213,7 @@ def zusammenfuehren(c, ziel, quelle):
 
 # ---- Felder eines Kontakts (wie in der Adressen-App) – für die Kontaktmaske in allen Apps (BPHead.kontaktMaske)
 FELDER = {"name": 200, "trade": 300, "contact_person": 200, "role": 200, "phone": 100, "mobile": 100, "email": 200,
-          "website": 300, "street": 200, "zip": 20, "city": 200, "notes": 5000}
+          "website": 300, "street": 200, "zip": 20, "city": 200, "notes": 5000, "art": 60}
 
 
 def bereinigen(d, partial=False):

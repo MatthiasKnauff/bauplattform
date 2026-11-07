@@ -24,7 +24,7 @@ app = C.make_app(__name__)
 FIELDS = {   # Feld → (höchste Länge, Bezeichnung für das Protokoll)
     "name": (200, "Name"), "trade": (300, "Gewerk"), "contact_person": (200, "Ansprechpartner"), "role": (200, "Funktion"),
     "phone": (100, "Telefon"), "mobile": (100, "Mobil"), "email": (200, "E-Mail"), "website": (300, "Internet"),
-    "street": (200, "Straße"), "zip": (20, "PLZ"), "city": (200, "Ort"), "notes": (5000, "Notizen"),
+    "street": (200, "Straße"), "zip": (20, "PLZ"), "city": (200, "Ort"), "notes": (5000, "Notizen"), "art": (60, "Art"),
 }
 DUP = "Einen Kontakt mit diesem Namen gibt es schon."
 
@@ -91,7 +91,13 @@ def _usage(c):
     return used, site
 
 
+STANDARD_ART = {"firma": "firma", "firmen": "firma", "bauherr": "bauherr", "bauherrin": "bauherr", "bauherren": "bauherr", "baustelle": "baustelle", "baustellen": "baustelle"}
+
+
 def _kind(r, site):
+    a = " ".join(str((r["art"] if "art" in r.keys() else "") or "").split())
+    if a:   # selbst gewählte Art geht vor; eigene Arten (z. B. „Behörde“) erscheinen in Adressen als eigener Filter
+        return STANDARD_ART.get(a.lower(), a)
     t = [x.strip().lower() for x in re.split(r"[,;]", r["trade"] or "") if x.strip()]
     if r["id"] in site or "baustelle" in t or "bauvorhaben" in t:
         return "baustelle"

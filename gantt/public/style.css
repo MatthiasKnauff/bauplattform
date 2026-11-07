@@ -450,9 +450,11 @@ body.as-window{background:#fafafa}
 .fv-bt input{font:inherit;padding:3px 6px;border:1px solid #b5b5b5;border-radius:2px;width:260px}
 #main[hidden]{display:none}
 .fv-din{display:flex;align-items:center;gap:4px}
-.fv-din input{width:105px!important;min-width:0!important;flex:none;font-weight:600}
+.fv-din input{min-width:0!important;flex:1;font-weight:600}
+.fv-dot{width:16px;height:16px;border-radius:4px;margin-right:2px}
+.fv-lb small.fv-pl{padding-left:4px}
 .fv-dt{font-weight:600;white-space:normal;line-height:1.25}
-.fv-pl{display:block;font-weight:400;color:#999;font-size:10.5px;padding-left:16px}
+.fv-pl{display:block;font-weight:400;color:#999;font-size:10.5px;padding-left:24px}
 
 /* Pfeilspitzen */
 .ahp{fill:#1f3864} .ahp.crit{fill:#c00000}

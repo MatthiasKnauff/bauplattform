@@ -126,13 +126,13 @@ function renderFirms() {
   const tlBar = (r) => `<div class="fv-tl">${ticks.map((n) => `<i style="left:${pos(n)}%"></i>`).join('')}${(r.iv || []).map(([a, b]) => `<b style="left:${pos(a)}%;width:${Math.max(1, pos(b + 1) - pos(a))}%;background:${gwColor(r.gw)}" title="${esc(a === b ? fmtD(a) : fmtShort(a) + ' – ' + fmtD(b))}"></b>`).join('')}</div>`;
   let h = `<div class="fv"><div class="fv-head"><div><h3>Gewerke &amp; Firmen</h3><span>${esc(P.name)} · ${rows.length} Gewerke · ${withFirm} mit Firma · ${booked} beauftragt</span></div>
     <span class="fv-hint">Firma wählen oder neu eintragen – sie wird als Unternehmer bei den Leistungen des Gewerks eingetragen. Kontaktdaten stehen im Adressbuch und gelten für alle Projekte.</span></div>
-    <div class="fv-scroll"><table class="fv-t" data-tk="fv-main"><thead><tr><th style="min-width:230px">Gewerk nach DIN (VOB/C)</th><th style="min-width:150px">Unternehmer</th><th style="min-width:170px">Firma</th>${FV_FIELDS.map(([, l]) => `<th>${l}</th>`).join('')}<th>Vergabe</th><th class="fv-perh">Einsatz im Plan${ticks.length ? tlHead : ''}</th><th style="min-width:140px">Notiz</th><th></th></tr></thead><tbody>`;
+    <div class="fv-scroll"><table class="fv-t" data-tk="fv-main"><thead><tr><th style="min-width:200px">Gewerk</th><th style="min-width:210px">Leistungsbereich nach DIN (VOB/C)</th><th style="min-width:170px">Firma</th>${FV_FIELDS.map(([, l]) => `<th>${l}</th>`).join('')}<th>Vergabe</th><th class="fv-perh">Einsatz im Plan${ticks.length ? tlHead : ''}</th><th style="min-width:140px">Notiz</th><th></th></tr></thead><tbody>`;
   for (const r of rows) {
     const tr = tradeOf(r.gw), f = firmById(tr.firm);
     const cr = craftOf(r.gw), planRes = [...r.res].filter((x) => (!f || x !== f.name) && x !== cr && x !== r.gw && !Object.values(CRAFT).includes(x));
     const din = dinOf(r.gw), dt = dinTitle(din);
-    h += `<tr data-gw="${esc(r.gw)}" class="${tr.status ? 'st-' + tr.status : ''}"><td class="fv-gw"><div class="fv-din"><span class="gwdot" style="background:${gwColor(r.gw)}"></span><input data-f="din" list="fvDinList" value="${esc(din)}" placeholder="DIN 18…" title="ATV DIN – Nummer eintragen oder wählen"><span class="fv-dt">${esc(dt || '–')}</span></div><small class="fv-pl">im Plan: ${esc(r.gw)}</small></td>
-      <td><input data-f="craft" value="${esc(craftOf(r.gw))}" title="Unternehmerbezeichnung, z. B. Fensterbauer, Estrichleger"></td>
+    h += `<tr data-gw="${esc(r.gw)}" class="${tr.status ? 'st-' + tr.status : ''}"><td class="fv-gw"><div class="fv-din"><span class="gwdot fv-dot" style="background:${gwColor(r.gw)}"></span><input data-f="craft" value="${esc(craftOf(r.gw))}" title="Gewerk / Unternehmerbezeichnung, z. B. Fensterbauer, Estrichleger"></div><small class="fv-pl">im Plan: ${esc(r.gw)}</small></td>
+      <td class="fv-lb"><input data-f="dint" list="fvDinList" value="${esc(dt || '')}" placeholder="Leistungsbereich wählen …" title="Leistungsbereich nach VOB/C wählen – die DIN-Nummer wird eingetragen"><small class="fv-pl">${din ? 'DIN ' + esc(din) : '&nbsp;'}</small></td>
       <td><input data-f="firm" list="fvFirmList" value="${esc(f ? f.name : '')}" placeholder="Firma wählen / eintragen">${!f && planRes.length ? `<div class="fv-plan">im Plan: ${planRes.map((x) => `<button class="fv-take" data-take="${esc(x)}" title="Als Firma übernehmen">${esc(x)}</button>`).join(' ')}</div>` : ''}</td>
       ${FV_FIELDS.map(([k]) => `<td><input data-c="${k}" value="${esc(f ? f[k] || '' : '')}"${f ? '' : ' disabled'}${k === 'mail' ? ' type="email"' : ''}></td>`).join('')}
       <td><select data-f="status">${VERGABE.map(([v, l]) => `<option value="${v}"${(tr.status || '') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
@@ -152,7 +152,7 @@ function renderFirms() {
       ${FV_FIELDS.map(([k]) => `<td><input data-dc="${k}" value="${esc(f[k] || '')}"></td>`).join('')}<td><input data-dc="note" value="${esc(f.note || '')}"></td>
       <td><button class="fv-x" data-del="${f.id}" title="Firma aus dem Adressbuch löschen">✕</button></td></tr>`).join('') || `<tr><td colspan="${FV_FIELDS.length + 4}" class="fv-empty">${FIRMS.length ? 'Keine Treffer.' : 'Noch keine Firmen – oben bei einem Gewerk eine Firma eintragen oder „+ Firma“.'}</td></tr>`)
     + '</tbody></table></details></div>';
-  h += `<datalist id="fvDinList">${(window.DIN_ATV || []).map((x) => `<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</datalist>`;
+  h += `<datalist id="fvDinList">${(window.DIN_ATV || []).slice().sort((a, b) => a[1].localeCompare(b[1], 'de')).map((x) => `<option value="${esc(x[1])}">DIN ${x[0]}${x[2] ? ' · ' + esc(x[2]) : ''}</option>`).join('')}</datalist>`;
   h += `<datalist id="fvFirmList">${FIRMS.slice().sort((a, b) => a.name.localeCompare(b.name, 'de')).map((f) => `<option value="${esc(f.name)}">${esc((f.gewerke || []).join(', '))}</option>`).join('')}</datalist></div>`;
   box.innerHTML = h;
   if (typeof enhanceTables === 'function') enhanceTables(box);
@@ -250,6 +250,13 @@ $('#firmView').addEventListener('change', (e) => {
   if (tr.dataset.gw != null) {
     const gw = tr.dataset.gw;
     if (t.dataset.f === 'firm') { setTradeFirm(gw, t.value); renderFirms(); return; }
+    if (t.dataset.f === 'dint') {   // Auswahl über den Namen des Leistungsbereichs; eine DIN-Nummer geht auch
+      if (t.value.trim() === dinTitle(dinOf(gw))) return;
+      const v = t.value.trim(), a = (window.DIN_ATV || []).find((x) => x[1].toLowerCase() === v.toLowerCase()) || (window.DIN_ATV || []).find((x) => v && x[1].toLowerCase().startsWith(v.toLowerCase()));
+      const num = /\d{5}/.test(v) ? v.replace(/^din\s*/i, '') : a ? a[0] : v ? null : '';
+      if (num == null) { toast('Leistungsbereich nicht gefunden – bitte aus der Liste wählen.', true); renderFirms(); return; }
+      act(() => { P.trades = { ...(P.trades || {}) }; P.trades[gw] = { ...tradeOf(gw), din: num }; }); renderFirms(); return;
+    }
     if (t.dataset.f === 'din') { const v = t.value.trim().replace(/^din\s*/i, ''); act(() => { P.trades = { ...(P.trades || {}) }; P.trades[gw] = { ...tradeOf(gw), din: v }; }); renderFirms(); return; }
     if (t.dataset.f === 'craft') { const v = t.value.trim(), old = craftOf(gw); act(() => { P.trades = { ...(P.trades || {}) }; P.trades[gw] = { ...tradeOf(gw), craft: v }; for (const x of P.tasks) if (x.gw === gw && x.res && x.res === old && old !== v) x.res = v; }); renderFirms(); return; }
     if (t.dataset.f === 'status' || t.dataset.f === 'note') {

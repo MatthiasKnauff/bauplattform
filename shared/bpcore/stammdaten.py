@@ -163,6 +163,25 @@ def projekt_lesen(c, pid):
         r = c.execute("SELECT id, name FROM contacts WHERE id=?", (cid,)).fetchone() if str(cid or "").isdigit() else None
         if r:
             d["baustelle"], d["baustelle_kid"] = r["name"], r["id"]
+    if d.get("baustelle_kid") and not any(d.get(k) for k in GRUNDSTUECK):   # Grundstück bisher nur an der Baustelle (Adressen)
+        g = grundstueck_kontakt(c, d["baustelle_kid"])
+        d.update({k: v for k, v in g.items() if v})
+    return d
+
+
+GRUNDSTUECK = ("gemarkung", "flur", "flurstueck", "hoehe_nhn")
+
+
+def grundstueck_kontakt(c, kid):
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"grundstueck:kontakt:{int(kid)}",)).fetchone()
+    d = _j(r["data"], {}) if r else {}
+    return {k: str(d.get(k) or "") for k in GRUNDSTUECK}
+
+
+def grundstueck_kontakt_schreiben(c, kid, werte, wer):
+    d = {k: str((werte or {}).get(k) or "").strip()[:200] for k in GRUNDSTUECK}
+    c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
+              "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (f"grundstueck:kontakt:{int(kid)}", json.dumps(d, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), wer))
     return d
 
 

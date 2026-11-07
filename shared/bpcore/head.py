@@ -998,21 +998,63 @@ def blueprint(get_user=None):
         u, uid = _uid()
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
-        from . import kataster
         with db.tx() as c:
             p = c.execute("SELECT id, name, street, zip, city, lat, lon FROM projects WHERE id=?", (pid,)).fetchone()
         if not p:
             return jsonify(error="Projekt nicht gefunden"), 404
         b = request.get_json(silent=True) or {}
-        lat, lon = b.get("lat", p["lat"]), b.get("lon", p["lon"])
+        adr = {k: str(b[k]).strip() for k in ("strasse", "plz", "ort") if k in b}
+        if adr and (adr.get("strasse"), adr.get("plz"), adr.get("ort")) != (p["street"] or "", p["zip"] or "", p["city"] or ""):
+            b.setdefault("lat", None); b.setdefault("lon", None)   # Adresse in der Maske geändert: neu suchen statt alter Koordinaten
+        return _kataster_antwort(b.get("lat", p["lat"]), b.get("lon", p["lon"]), adr.get("strasse", p["street"] or ""),
+                                 adr.get("plz", p["zip"] or ""), adr.get("ort", p["city"] or ""))
+
+    def _kataster_antwort(lat, lon, strasse, plz, ort):
+        from . import kataster
         try:
-            r = kataster.ermitteln(lat if isinstance(lat, (int, float)) else None, lon if isinstance(lon, (int, float)) else None,
-                                   p["street"] or "", p["zip"] or "", p["city"] or "")
+            r = kataster.ermitteln(lat if isinstance(lat, (int, float)) else None, lon if isinstance(lon, (int, float)) else None, strasse, plz, ort)
         except kataster.Fehler as e:
             return jsonify(error=str(e)), 502
         if not r["flurstuecke"]:
-            return jsonify(error="An der Baustelle wurde kein Flurstück gefunden – liegt der Standort des Projekts richtig?", **r), 404
+            return jsonify(error="An dieser Adresse wurde kein Flurstück gefunden – stimmt die Adresse?", **r), 404
         return jsonify(r)
+
+    @bp.post("/api/bp/kataster")
+    def kataster_adresse():
+        """Wie oben, aber ohne Projekt: {strasse, plz, ort} oder {lat, lon} – z. B. für eine Baustelle in Adressen."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        return _kataster_antwort(b.get("lat"), b.get("lon"), str(b.get("strasse") or ""), str(b.get("plz") or ""), str(b.get("ort") or ""))
+
+    @bp.route("/api/bp/kontakt/<int:kid>/grundstueck", methods=["GET", "PUT"])
+    def kontakt_grundstueck(kid):
+        """Grundstück einer Baustelle (Kontakt): ist sie Baustellenadresse eines Projekts, gelten dessen Projektdaten,
+        sonst ein eigener Eintrag – den übernimmt ein Projekt, sobald die Baustelle ihm zugeordnet wird."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        G = ("gemarkung", "flur", "flurstueck", "hoehe_nhn")
+        with db.tx() as c:
+            k = c.execute("SELECT id, name FROM contacts WHERE id=?", (kid,)).fetchone()
+            if not k:
+                return jsonify(error="Diesen Kontakt gibt es nicht mehr."), 404
+            pids = [r["id"] for r in c.execute("SELECT id, extra FROM projects ORDER BY id DESC") if str(stammdaten._j(r["extra"], {}).get("contact_id") or "") == str(kid)]
+            if request.method == "PUT":
+                w = {x: str((request.get_json(silent=True) or {}).get("werte", {}).get(x) or "").strip()[:200] for x in G}
+                for pid in pids:
+                    with versionen.aenderung(c, f"bp:projektdaten:{pid}", u["name"]):
+                        stammdaten.projekt_schreiben(c, pid, w, u["name"])
+                if not pids:
+                    stammdaten.grundstueck_kontakt_schreiben(c, kid, w, u["name"])
+            if pids:
+                P = stammdaten.projekt_lesen(c, pids[0])
+                werte = {x: P.get(x) or "" for x in G}
+            else:
+                werte = stammdaten.grundstueck_kontakt(c, kid)
+            namen = [r["name"] for r in c.execute("SELECT id, name FROM projects") if r["id"] in pids]
+        return jsonify(werte=werte, projekte=namen)
 
     @bp.route("/api/bp/todo-regeln", methods=["GET", "PUT"])
     def todo_regeln():

@@ -127,6 +127,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
   .modal-bg{padding:0;place-items:end stretch}
   .modal{border-radius:14px 14px 0 0;max-height:94vh;width:100%}
 }
+.gsbox{margin:.6rem 0;padding:.6rem .7rem;border:1px solid var(--line,#ddd);border-radius:8px}.gsbox .fm{margin-top:.3rem}
 </style>
 </head>
 <body>
@@ -235,6 +236,7 @@ function edit(c, verlaufAuf) {
       <label class="w">Straße<input data-f="street" value="${esc(c.street || '')}" autocomplete="off"></label>
       <div class="zc w"><label>PLZ<input data-f="zip" value="${esc(c.zip || '')}" inputmode="numeric" autocomplete="off"></label><label>Ort<input data-f="city" value="${esc(c.city || '')}" autocomplete="off"></label></div>
       <label class="w">Notizen<textarea data-f="notes">${esc(c.notes || '')}</textarea></label></div>
+    ${!isNew && c.kind === 'baustelle' ? `<div class="gsbox"><b>Grundstück</b> <small class="mu">${c.site_of ? 'gleich den Projektdaten von „' + esc(c.site_of) + '“' : 'wird übernommen, sobald die Baustelle einem Projekt zugeordnet ist'}</small><div id="gsHost"></div></div>` : ''}
     <datalist id="gwList">${gwList.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
     ${use ? `<div class="info">${use}</div>` : ''}
     ${isNew ? '' : '<details class="bnv" id="bnBox"><summary>Benachrichtigungsverlauf <small class="mu">Pläne, Mängel- und Terminrügen</small></summary><div id="bnHost"></div></details>'}
@@ -247,6 +249,7 @@ function edit(c, verlaufAuf) {
       const d = {}; bg.querySelectorAll('[data-f]').forEach((el) => { d[el.dataset.f] = el.value; });
       try {
         if (isNew) await api('api/contacts', 'POST', d); else await api('api/contacts/' + c.id, 'PUT', d);
+        if (grund) await api(`api/bp/kontakt/${c.id}/grundstueck`, 'PUT', { werte: grund.werte() });
         close(); toast(isNew ? 'Kontakt angelegt.' : 'Gespeichert.'); load();
       } catch (e) { $('#mErr', bg).textContent = e.message; }
     }
@@ -261,6 +264,12 @@ function edit(c, verlaufAuf) {
       }
     }
   });
+  let grund = null;
+  const gsH = bgE && bgE.querySelector('#gsHost');
+  if (gsH && window.BPHead && BPHead.grundstueck) api(`api/bp/kontakt/${c.id}/grundstueck`).then((G) => {
+    const f = (k) => (bgE.querySelector(`[data-f="${k}"]`) || {}).value || '';
+    grund = BPHead.grundstueck(gsH, { werte: G.werte, klasse: 'fm', knopf: 'btn sm', url: 'api/bp/kataster', adresse: () => ({ strasse: f('street'), plz: f('zip'), ort: f('city') }) });
+  }).catch(() => { gsH.textContent = 'Grundstück konnte nicht geladen werden.'; });
   const first = document.querySelector('.modal [data-f="name"]'); if (first && isNew) first.focus();
   const bnB = bgE && bgE.querySelector('#bnBox');
   if (bnB && window.BPHead && BPHead.benachrichtigungen) {

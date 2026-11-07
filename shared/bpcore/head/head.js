@@ -813,8 +813,7 @@
             const alt2 = ['gemarkung', 'flur', 'flurstueck', 'hoehe_nhn'].filter((x) => W[x] && neu[x] && String(W[x]).trim() !== String(neu[x]).trim());
             if (alt2.length && !confirm('Vorhandene Angaben überschreiben?\n\n' + alt2.map((x) => `${{ gemarkung: 'Gemarkung', flur: 'Flur', flurstueck: 'Flurstück', hoehe_nhn: 'Höhe über NHN' }[x]}: ${W[x]} → ${neu[x]}`).join('\n'))) { kb.disabled = false; kb.textContent = alt; return true; }
             for (const [x, v] of Object.entries(neu)) ctx.setzen(x, v);
-            const fs = r.flurstuecke || [];
-            ctx.nachricht(`Ermittelt: ${fs.map((f) => `${f.gemarkung}, Flur ${f.flur}, Flurstück ${f.flurstueck}${f.flaeche ? ` (${Math.round(f.flaeche).toLocaleString('de-DE')} m²)` : ''}${f.am_punkt ? '' : ' – gleiche Adresse'}`).join('; ')}${r.hoehe != null ? ` · Gelände ${String(r.hoehe.toFixed(2)).replace('.', ',')} m ü. NHN` : ''}${(r.hinweise || []).length ? ' · ' + r.hinweise.join(' ') : ''} – bitte prüfen und speichern. Quelle: Geobasis NRW (dl-de/zero-2-0).`);
+            ctx.nachricht('Ermittelt: ' + H.katasterText(r));
           } catch (er) { kb.disabled = false; kb.textContent = alt; ctx.nachricht(er.message); }
           return true;
         }
@@ -824,6 +823,35 @@
       knoepfe: H.verlaufKnopf ? H.verlaufKnopf(`bp:projektdaten:${pid}`, 'Verlauf') : '',
     });
     return M;
+  };
+
+  /* Grundstück (Gemarkung, Flur, Flurstück, Höhe über NHN) als kleiner Block für eigene Masken – Verwaltung und Adressen.
+     opt: {werte, adresse: () => ({strasse, plz, ort}), url: Kataster-Abfrage (POST), klasse: Formular-Klasse der App, aenderung: () => …} */
+  const GRUND = [['gemarkung', 'Gemarkung'], ['flur', 'Flur'], ['flurstueck', 'Flurstück'], ['hoehe_nhn', 'Höhe ü. NHN (m)']];
+  H.katasterText = (r) => `${(r.flurstuecke || []).map((f) => `${f.gemarkung}, Flur ${f.flur}, Flurstück ${f.flurstueck}${f.flaeche ? ` (${Math.round(f.flaeche).toLocaleString('de-DE')} m²)` : ''}${f.am_punkt ? '' : ' – gleiche Adresse'}`).join('; ')}${r.hoehe != null ? ` · Gelände ${String(r.hoehe.toFixed(2)).replace('.', ',')} m ü. NHN` : ''}${(r.hinweise || []).length ? ' · ' + r.hinweise.join(' ') : ''} – bitte prüfen und speichern. Quelle: Geobasis NRW (dl-de/zero-2-0).`;
+  H.grundstueck = function (host, opt) {
+    const W = { ...(opt.werte || {}) }, e = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    host.innerHTML = `<div class="${e(opt.klasse || '')}" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.2fr);gap:.5rem;align-items:end">
+      ${GRUND.map(([k, l]) => `<label style="grid-column:auto;min-width:0">${l}<input data-gs="${k}" value="${e(W[k])}" autocomplete="off"></label>`).join('')}</div>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.4rem"><button type="button" class="${e(opt.knopf || 'bph-btn')}" data-gskat title="Gemarkung, Flur, Flurstück und Geländehöhe über NHN an dieser Adresse – amtliche Daten von Geobasis NRW (wie TIM-online)">📍 aus ALKIS ermitteln (TIM-online)</button>
+      <span data-gsinfo class="bph-mu" style="font-size:.8rem;flex:1 1 220px"></span></div>`;
+    const info = host.querySelector('[data-gsinfo]'), inp = (k) => host.querySelector(`[data-gs="${k}"]`);
+    host.addEventListener('input', (ev) => { if (ev.target.dataset.gs && opt.aenderung) opt.aenderung(); });
+    host.querySelector('[data-gskat]').addEventListener('click', async (ev) => {
+      const kb = ev.currentTarget, alt = kb.textContent; kb.disabled = true; kb.textContent = '📍 frage Geobasis NRW …'; info.textContent = '';
+      try {
+        const r = await KX(opt.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(opt.adresse ? opt.adresse() : {}) });
+        const neu = r.werte || {};
+        const alt2 = GRUND.filter(([k]) => inp(k).value.trim() && neu[k] && inp(k).value.trim() !== String(neu[k]).trim());
+        if (!alt2.length || confirm('Vorhandene Angaben überschreiben?\n\n' + alt2.map(([k, l]) => `${l}: ${inp(k).value} → ${neu[k]}`).join('\n'))) {
+          GRUND.forEach(([k]) => { if (neu[k] != null && neu[k] !== '') inp(k).value = neu[k]; });
+          if (opt.aenderung) opt.aenderung();
+          info.textContent = 'Ermittelt: ' + H.katasterText(r);
+        }
+      } catch (er) { info.textContent = er.message; }
+      kb.disabled = false; kb.textContent = alt;
+    });
+    return { werte: () => Object.fromEntries(GRUND.map(([k]) => [k, inp(k).value.trim()])) };
   };
 
   H.vorort = async function () {

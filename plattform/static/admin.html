@@ -226,6 +226,7 @@ async function projForm(p) {
       <label>Ort<input id="fCity" value="${esc(p ? p.city : '')}" autocomplete="off"></label>
       <label class="w">Projektordner auf dem Server <span style="font-size:.78rem">(leer = automatisch über das Kürzel)</span><input id="fFolder" value="${esc(p ? p.folder || '' : '')}" autocomplete="off"></label>
     </div>
+    ${isNew || !p.bt ? '' : '<div class="pf-sec">Grundstück <span class="mute">– Gemarkung, Flur, Flurstück und Geländehöhe; gilt in allen Apps und Briefen</span></div><div id="pfGrund"></div>'}
     <div class="pf-sec">Sichtbar für <span class="mute">– niemand angekreuzt = alle mit Zugang zum Bautagebuch</span></div>
     <div class="pf-users">${data.lead.map((u) => `<label class="${u.active ? '' : 'off'}" title="${u.bt ? '' : 'Hat keinen Zugang zum Bautagebuch'}"><input type="checkbox" data-u="${u.id}"${L.has(u.id) ? ' checked' : ''}>${esc(u.name)}${u.admin ? ' <small>Admin</small>' : ''}${u.bt ? '' : ' <small>ohne Bautagebuch</small>'}</label>`).join('') || '<span class="mute">Keine Benutzer.</span>'}</div>
     ${isNew || !p.bt ? '' : `<div class="pf-sec">Bauherr, Projektbeschreibung, Termine <span class="mute">– dieselbe Maske wie in der AVA und den Baukosten</span></div><button type="button" class="btn" data-pfdaten="${p.bt.id}">🏗 Projektdaten …</button>`}
@@ -249,6 +250,7 @@ async function projForm(p) {
       if (isNew) { const r = await api('api/projects/neu', 'POST', body); toast(r.auto_address ? 'Projekt angelegt – Adresse aus dem Namen ermittelt, bitte prüfen.' : 'Projekt angelegt.'); }
       else {
         await api('api/projects/' + p.bt.id, 'PUT', body);
+        if (grund) await api(`api/bp/projekt/${p.bt.id}/daten`, 'PUT', { werte: grund.werte() });
         const dw = [...bgx.querySelectorAll('[data-dw]')];
         if (dw.length) await api('api/layouts-werte/' + p.bt.id, 'PUT', { werte: Object.fromEntries(dw.map((i) => [i.dataset.dw, i.value.trim()])) });
         toast('Gespeichert.');
@@ -256,6 +258,12 @@ async function projForm(p) {
       close(); load();
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
+  let grund = null;
+  const gh = bg.querySelector('#pfGrund');
+  if (gh && window.BPHead && BPHead.grundstueck) api(`api/bp/projekt/${p.bt.id}/daten`).then((D) => {
+    grund = BPHead.grundstueck(gh, { werte: D.werte, klasse: 'pf', knopf: 'btn sm', url: `api/bp/projekt/${p.bt.id}/kataster`,
+      adresse: () => ({ strasse: bg.querySelector('#fStreet').value, plz: bg.querySelector('#fZip').value, ort: bg.querySelector('#fCity').value }) });
+  }).catch(() => { gh.innerHTML = '<span class="mute">Grundstück konnte nicht geladen werden.</span>'; });
   bg.querySelector('.modal').style.width = 'min(640px, 100%)';
   bg.querySelector('#fName').focus();
   bg.addEventListener('click', (e) => { const b = e.target.closest('[data-pfdaten]'); if (b && window.BPHead && BPHead.projektDaten) BPHead.projektDaten(+b.dataset.pfdaten); });

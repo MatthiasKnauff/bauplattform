@@ -48,7 +48,7 @@ def einladung(uid, datum, uhrzeit, minuten, titel, text, ort, organisator, organ
         st = datetime.strptime(f"{datum} {uhrzeit or '08:00'}", "%Y-%m-%d %H:%M")
         en = st + timedelta(minutes=minuten or 30)
         zeit = [f"DTSTART;TZID=Europe/Berlin:{st:%Y%m%dT%H%M%S}", f"DTEND;TZID=Europe/Berlin:{en:%Y%m%dT%H%M%S}"]
-    L = ["BEGIN:VCALENDAR", "PRODID:-//Bauplattform//Termine//DE", "VERSION:2.0", "CALSCALE:GREGORIAN", "METHOD:REQUEST" if einladung_ else "METHOD:PUBLISH", *VTZ.split("\n"),
+    L = ["BEGIN:VCALENDAR", "PRODID:-//Bauplattform//Termine//DE", "VERSION:2.0", "CALSCALE:GREGORIAN", "METHOD:REQUEST" if einladung_ else "METHOD:PUBLISH", *([] if ganztags else VTZ.split("\n")),   # ganztags: ohne Zeitzone (Outlook im Web lehnt sonst den Import ab)
          "BEGIN:VEVENT", f"UID:{uid}", f"SEQUENCE:{int(seq)}", f"DTSTAMP:{now}", *zeit,
          f"SUMMARY:{_esc(titel)}", f"DESCRIPTION:{_esc(text)}"]
     if ort:
@@ -56,8 +56,8 @@ def einladung(uid, datum, uhrzeit, minuten, titel, text, ort, organisator, organ
     if einladung_:
         L += [f"ORGANIZER;CN={_esc(organisator_name)}:mailto:{organisator}",
               f"ATTENDEE;CN={_esc(teilnehmer_name)};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:{teilnehmer}"]
-    L += ["STATUS:CONFIRMED", "TRANSP:TRANSPARENT" if ganztags else "TRANSP:OPAQUE"]
+    L += ["STATUS:CONFIRMED", "TRANSP:TRANSPARENT" if ganztags else "TRANSP:OPAQUE"] + (["X-MICROSOFT-CDO-ALLDAYEVENT:TRUE"] if ganztags else [])
     if alarm_min:
-        L += ["BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{_esc(titel)}", (f"TRIGGER:-PT{int(alarm_min)}M" if alarm_min > 0 else f"TRIGGER;RELATED=START:PT{-int(alarm_min)}M"), "END:VALARM"]
+        L += ["BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{_esc(titel)}", (f"TRIGGER:-PT{int(alarm_min)}M" if alarm_min > 0 else f"TRIGGER:PT{-int(alarm_min)}M"), "END:VALARM"]
     L += ["END:VEVENT", "END:VCALENDAR"]
     return "\r\n".join(_fold(x) for x in L) + "\r\n"

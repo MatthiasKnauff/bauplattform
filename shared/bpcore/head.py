@@ -1003,6 +1003,18 @@ def blueprint(get_user=None):
             return "Mailversand ist nicht eingerichtet – Beteiligte wurden nicht benachrichtigt."
         pr = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone() if x["project_id"] else None
         wer, fehl = skizze.name_von(u), []
+        # Mit Fälligkeit: Termin möglichst direkt in Outlook (Microsoft 365) – eigene Aufgabe steht sofort im Kalender,
+        # Zugewiesene bekommen von Exchange eine echte Besprechungsanfrage mit „Annehmen“. Sonst wie bisher termin.ics.
+        im_kalender = False
+        if x["faellig"]:
+            from . import kalender365
+            empf = [(y["email"].strip(), skizze.name_von(y)) for y in c.execute("SELECT * FROM users WHERE active=1").fetchall()
+                    if (y["email"] or "").strip() and y["id"] in neu_ids and y["id"] != u["id"]]
+            if (u["email"] or "").strip() and (ich or empf):
+                im_kalender = bool(kalender365.termin(
+                    c, u["email"].strip(), f"Aufgabe: {x['titel'][:120]}", f"{x['titel']}" + (f"\nProjekt: {pr['name']}" if pr else "") + (f"\n\n{x['notiz']}" if x["notiz"] else ""),
+                    x["faellig"], empf, ganztags=True, erinnerung_min=(lambda v: None if v is None else max(0, v))(todo.ERINNERUNG.get(x.get("erinnerung") or "", (None, ""))[0]),
+                    schluessel=f"todo-{x.get('id') or x['titel'][:20]}-{x['faellig']}-{len(empf)}"))
         for r in c.execute("SELECT * FROM users WHERE active=1").fetchall():
             selbst = r["id"] == u["id"]
             if not (r["email"] or "").strip() or not ((selbst and ich) or (r["id"] in neu_ids and not selbst)):
@@ -1014,7 +1026,9 @@ def blueprint(get_user=None):
                    + (f"Erinnerung: {todo.ERINNERUNG[x['erinnerung']][1]}\n" if x.get("faellig") and x.get("erinnerung") in todo.ERINNERUNG else "")
                    + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {PF.link('portal', '', cf)}\n" if PF.link("portal", "", cf) else ""))
             anh = None
-            if x["faellig"]:   # mit Fälligkeit: ganztägiger Termin zum Annehmen (Outlook, Gmail, Apple & Co.)
+            if x["faellig"] and im_kalender:
+                txt += ("\nDer Termin steht schon in deinem Outlook-Kalender.\n" if selbst else "\nDie Einladung zum Termin kommt als eigene Besprechungsanfrage von Outlook – dort „Annehmen“.\n")
+            elif x["faellig"]:   # mit Fälligkeit: ganztägiger Termin zum Annehmen (Outlook, Gmail, Apple & Co.)
                 from . import ical
                 # Die Einladung hängt als Datei an (termin.ics, method=REQUEST) und steckt nicht als Kalender-Teil in der Mail:
                 # einen eingebetteten Kalender-Teil verarbeitet Microsoft 365 beim Senden selbst als Besprechung und hat die Mail

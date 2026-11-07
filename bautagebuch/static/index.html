@@ -144,7 +144,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .tg .cn{font-size:.85rem;font-weight:700;background:var(--y);color:var(--on);border-radius:999px;padding:.05rem .55rem;line-height:1.4}
 .tg .cv{margin-left:auto;color:var(--mute);transition:transform .15s;transform:rotate(-90deg)}
 .tg .cv.o{transform:rotate(0)}
-.sec.col{min-height:0}.sec.col .main{padding:.8rem 1rem}.sec.col .main h3{margin:0}.sec.col .side{margin:.4rem 0}
+.sec.col,.sec.leer{min-height:0}.sec.col .main,.sec.leer .main{padding:.8rem 1rem}.sec.col .main h3,.sec.leer .main h3{margin:0}.sec.col .side,.sec.leer .side{margin:.4rem 0}.sec.leer .lines:empty{display:none}.sec.leer .imgs{height:0;overflow:hidden;margin:0;padding:0}
 .sec{display:grid;grid-template-columns:1fr auto;border:1px solid var(--line);border-radius:12px;background:var(--card);min-height:122px;margin:0 0 .6rem}
 .main{position:relative;padding:1rem 1rem 1.1rem;text-align:left;min-width:0}
 .main h3{margin:.1rem 0 .1rem;font-size:1.85rem;font-weight:700;text-transform:uppercase;line-height:1.15}
@@ -910,13 +910,13 @@ function listSec(s, r) {
     : '<div class="hint">Enter = neue Zeile · Strg+Enter = hinzufügen</div>';
   const add = adding === k ? `<div class="addrow">${lk ? '' : coAdd(s)}${field}${extra}${s.extra && s.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}${photoAdd(s)}<button class="ok" data-act="addItem" data-kind="${esc(k)}">Hinzufügen</button></div>` : '';
   const n = r.items.filter(i => i.kind === k).length, open = secIsOpen(k, n) || adding === k;
-  return `<div class="sec ${open ? '' : 'col'}" data-drop="${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
+  return `<div class="sec ${open ? '' : 'col'}${!n && adding !== k && !lk ? ' leer' : ''}" data-drop="${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
     <div class="side"><button data-act="adding" data-kind="${esc(k)}" title="${esc(s.title)} hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
 }
 function imgSec(s, r) {
   const shown = allImgs ? r.images : r.images.slice(0, 6), rest = r.images.length - shown.length;
   const open = secIsOpen(s.key, r.images.length);
-  return `<div class="sec ${open ? '' : 'col'}" data-drop=""><div class="main">${secHead(s, r.images.length, open)}
+  return `<div class="sec ${open ? '' : 'col'}${r.images.length ? '' : ' leer'}" data-drop=""><div class="main">${secHead(s, r.images.length, open)}
     <div class="imgs" ${open ? '' : 'style="display:none"'}>${shown.map(i => `<div><a href="uploads/${esc(i.file)}" target="_blank"><img loading="lazy" src="api/thumb/240/${esc(i.file)}" alt="${esc(i.caption || 'Baustellenfoto')}"></a><button class="rm" data-act="delImg" data-id="${i.id}" title="Bild löschen">✕</button><input class="cap" data-img="${i.id}" value="${esc(i.caption)}" placeholder="Beschreibung" maxlength="120" autocomplete="off" aria-label="Fotobeschreibung (wird der Dateiname)"></div>`).join('')}</div>
     ${open && rest > 0 ? `<button class="bd morei" data-act="moreImgs">Alle ${r.images.length} Bilder anzeigen (+${rest})</button>` : ''}${open && allImgs && r.images.length > 6 ? `<button class="bd morei" data-act="lessImgs">Weniger anzeigen</button>` : ''}
     <input type="file" id="file" class="vh" accept="image/*,.heic,.heif" multiple></div>

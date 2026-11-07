@@ -1677,13 +1677,17 @@
      2. die Knöpfe der angeklickten Zeile/Karte (Bearbeiten, Löschen …), 3. Standards: Link, Text, Eingabefeld, Seite. */
   let kmEl = null;
   const kmZu = () => { if (kmEl) { kmEl.remove(); kmEl = null; } };
-  const kmText = (b) => (b.getAttribute('aria-label') || b.title || b.textContent || '').replace(/\s+/g, ' ').replace(/\s*[(–].*$/, '').trim().slice(0, 44);
+  const kmText = (b) => (b.getAttribute('aria-label') || b.title || b.textContent || '').replace(/\s+/g, ' ').replace(/\s*[(–].*$/, '').replace(/(\p{L})\d+$/u, '$1').trim().slice(0, 44);
   const kmSicht = (b) => b.offsetParent !== null && !b.disabled && !b.closest('[hidden],.bph-km');
-  function kmZeile(t) {
-    const z = t.closest('tr,li,.card,.pj-r,[data-id],[data-rid],[data-bid],[data-pid],.row,.item,.zeile,.task,section,article');
-    if (!z || z === document.body) return null;
-    const r = z.getBoundingClientRect();
-    return r.height > innerHeight * 0.7 ? null : z;   // ganze Seiten/Bereiche nicht – nur Zeilen und Karten
+  const KMB = 'button,[role=button],[data-a],a.btn';
+  function kmZeile(t) {   // nächster umgebender Block (Zeile, Karte, Abschnitt), der eigene Knöpfe hat – in jeder App, ohne Anpassung
+    for (let z = t; z && z !== document.body; z = z.parentElement) {
+      if (z.matches('.bph,.bph-km,.bph-dlg-bg')) return null;
+      if (z.getBoundingClientRect().height > innerHeight * 0.75) return null;   // ganze Seiten/Spalten nicht
+      if (z === t && z.matches(KMB)) continue;
+      if ([...z.querySelectorAll(KMB)].some((b) => kmSicht(b) && kmText(b))) return z;
+    }
+    return null;
   }
   async function kmEinfuegen(el) {
     try { const t = await navigator.clipboard.readText(); el.focus(); if (!document.execCommand('insertText', false, t)) { const a = el.selectionStart ?? el.value.length; el.setRangeText(t, a, el.selectionEnd ?? a, 'end'); el.dispatchEvent(new Event('input', { bubbles: true })); } }
@@ -1720,7 +1724,7 @@
       const z = kmZeile(t);
       if (!sel.trim() && z) {   // Text der Zeile kopieren (z. B. Adresse, Position)
         const zt = (z.innerText || '').replace(/\n{2,}/g, '\n').trim();
-        if (zt && zt.length < 2000) x.push({ text: 'Zeile kopieren', fn: () => kmKopie(zt.replace(/\t/g, ' ')) });
+        if (zt && zt.length < 2000) x.push({ text: 'Text kopieren', fn: () => kmKopie(zt.replace(/\t/g, ' ')) });
       }
       if (x.length) G.push(x);
     }
@@ -1728,7 +1732,7 @@
       const z = kmZeile(t);
       if (z) {   // Knöpfe der Zeile/Karte – dasselbe wie ein Klick darauf
         const gesehen = new Set(), k = [];
-        for (const b of z.querySelectorAll('button,[role=button],[data-a],a.btn')) {
+        for (const b of z.querySelectorAll(KMB)) {
           if (!kmSicht(b) || b.matches('input,select,textarea')) continue;
           const tx = kmText(b); if (!tx || gesehen.has(tx) || /^[▸▾▴▹◂›‹»«]+$/.test(tx)) continue;
           gesehen.add(tx);

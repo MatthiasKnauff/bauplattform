@@ -848,3 +848,34 @@ html.mobil #tabs .tb-r #saveState{display:none}
 .modal .form label{color:#333}
 .modal .form input,.modal .form select,.modal .form textarea{padding:6px 8px;border-radius:5px}
 .modal .mf .btn{padding:6px 18px;font-size:14px}
+
+/* Mehrere Leistungen bearbeiten: eine Spalte, Gruppen, Umschalter statt Auswahllisten, geänderte Felder markiert */
+.md-modal{width:min(600px,94vw)}
+.md-modal .mb{overflow-x:hidden}
+.md-kopf{color:var(--mut);margin-bottom:6px;line-height:1.45}.md-kopf b{color:var(--text)}
+.md-kopf details{display:inline-block;margin-left:6px}.md-kopf summary{cursor:pointer;color:var(--accent);display:inline}
+.md-kopf ol{margin:6px 0 0;padding-left:22px;max-height:120px;overflow:auto;font-size:12px}.md-kopf small{display:block;font-size:12px;margin-top:3px}
+.md h4{margin:14px 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.md-z{display:grid;grid-template-columns:132px minmax(0,1fr) 24px;gap:10px;align-items:center;padding:5px 6px 5px 8px;margin:0 -6px 0 -8px;border-radius:6px;border-left:3px solid transparent}
+.md-z>label{color:#444}
+.md-z.ch{background:color-mix(in srgb,var(--accent) 8%,transparent);border-left-color:var(--accent)}.md-z.ch>label{font-weight:600}
+.md-f{min-width:0;display:flex;flex-direction:column;gap:6px}.md-f small{color:var(--mut);font-size:11px}
+.md-f input:not([type=color]),.md-f textarea{font:inherit;padding:5px 8px;border:1px solid #c4c4c4;border-radius:6px;width:100%;box-sizing:border-box;background:#fff;color:inherit}
+.md-f input:focus,.md-f textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.md-f textarea{resize:vertical;min-height:64px}
+.md-f input.md-k{width:150px;flex:none}
+.md-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.md-row>span{color:var(--mut)}
+.md-row input[type=color]{width:34px;height:28px;padding:0;border:1px solid #c4c4c4;border-radius:6px;background:none;cursor:pointer}
+.md-row input[type=date]{width:auto}
+.md-seg{display:flex;flex-wrap:wrap;gap:5px}
+.md-seg button{border:1px solid #c4c4c4;border-radius:999px;background:#fff;font:inherit;font-size:.9em;padding:3px 11px;cursor:pointer;color:#444;white-space:nowrap}
+.md-seg button:hover{border-color:var(--accent)}
+.md-seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.md-rs{border:0;background:none;cursor:pointer;color:var(--mut);font-size:15px;padding:0;visibility:hidden;border-radius:4px;width:24px;height:24px}
+.md-z.ch .md-rs{visibility:visible}.md-rs:hover{color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.md [hidden]{display:none!important}
+.mf .btn.primary:disabled{opacity:.45;cursor:default}
+@media (max-width:560px){.md-z{grid-template-columns:minmax(0,1fr) 24px}.md-z>label{grid-column:1 / -1}.md-z .md-f{grid-column:1}}
+html[data-theme="dunkel"] .md-z>label{color:inherit}
+html[data-theme="dunkel"] .md-f input:not([type=color]),html[data-theme="dunkel"] .md-f textarea,html[data-theme="dunkel"] .md-seg button{background:transparent;color:inherit;border-color:#555}
+html[data-theme="dunkel"] .md-seg button.on{background:var(--accent);color:#fff}

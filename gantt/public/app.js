@@ -1527,20 +1527,28 @@ function multiDialog(ix) {
   const ph = (x) => (x === undefined ? ' placeholder="(unterschiedlich)"' : '');
   const gw = same((t) => t.gw || ''), res = same((t) => t.res || ''), col = same((t) => t.color || '');
   const dur = sameL((t) => t.dur), pct = sameL((t) => t.pct || 0), cons = same((t) => t.cons ?? null);
-  const body = `<div style="margin-bottom:10px;color:var(--mut)"><b>${ix.length} Leistungen</b> markiert${leaves.length < ix.length ? ` (davon ${ix.length - leaves.length} Leistungsgruppen – Dauer und % gelten nur für Teilleistungen; ein Gewerk wird an alle Teilleistungen weitergegeben)` : ''}. Geändert wird nur, was du anfasst.</div>
-    <div class="form multi">
-      <label>Gewerk</label><input data-f="gw" list="gwList" value="${val(gw)}"${ph(gw)}>
-      <label>Balkenfarbe</label><div class="ro colrow"><select data-f="colm"><option value="keep" selected>unverändert</option><option value="gw">vom Gewerk</option><option value="own">eigene Farbe</option></select><input type="color" data-f="col" value="${col || '#8db3e2'}" style="display:none"></div>
-      <label>Unternehmer</label><input data-f="res" class="full" value="${val(res)}"${ph(res)}>
-      <label>Dauer</label><input data-f="dur" value="${dur === undefined ? '' : fmtDur(dur)}"${dur === undefined ? ' placeholder="(unterschiedlich)"' : ''}${leaves.length ? '' : ' disabled'}>
-      <label>% Abgeschlossen</label><input data-f="pct" type="number" min="0" max="100" value="${pct === undefined ? '' : Math.round(pct)}"${pct === undefined ? ' placeholder="(unterschiedlich)"' : ''}${leaves.length ? '' : ' disabled'}>
-      <label>Anfang nicht früher als</label><div class="ro colrow"><select data-f="consm"><option value="keep" selected>unverändert${cons === undefined ? ' (unterschiedlich)' : cons == null ? ' (keiner)' : ' (' + fmtD(cons) + ')'}</option><option value="clear">entfernen – so früh wie möglich</option><option value="set">setzen auf …</option></select><input type="date" data-f="cons" style="display:none" value="${cons != null && cons !== undefined ? isoD(cons) : ''}"></div>
-      <label>Notizen</label><select data-f="notesm" class="full"><option value="keep" selected>unverändert</option><option value="append">Text anhängen …</option><option value="replace">ersetzen durch …</option><option value="clear">leeren</option></select>
-      <label></label><textarea data-f="notes" class="full" style="display:none;grid-column:2 / span 3"></textarea>
+  const namen = ts.map((t) => t.name || '(ohne Namen)');
+  const seg = (f, opts) => `<div class="md-seg" role="radiogroup" data-seg="${f}">${opts.map(([v, l], k) => `<button type="button" role="radio" data-v="${v}" aria-checked="${k ? 'false' : 'true'}"${k ? '' : ' class="on"'}>${l}</button>`).join('')}</div><input type="hidden" data-f="${f}" value="keep">`;
+  const zeile = (f, label, feld, hilfe) => `<div class="md-z" data-z="${f}"><label>${label}</label><div class="md-f">${feld}${hilfe ? `<small>${hilfe}</small>` : ''}</div><button type="button" class="md-rs" data-rs="${f}" title="Zurück auf unverändert" aria-label="${label} zurücksetzen">↺</button></div>`;
+  const consTxt = cons === undefined ? 'unterschiedlich' : cons == null ? 'keiner' : fmtD(cons);
+  const body = `<div class="md-kopf"><b>${ix.length} Leistungen</b> markiert – geändert wird nur, was du anfasst.
+      <details><summary>welche?</summary><ol>${namen.map((n) => `<li>${esc(n)}</li>`).join('')}</ol></details>
+      ${leaves.length < ix.length ? `<small>Davon ${ix.length - leaves.length} Leistungsgruppen: Dauer und % gelten nur für Teilleistungen, ein Gewerk geht an alle Teilleistungen.</small>` : ''}</div>
+    <div class="md">
+      <h4>Zuordnung</h4>
+      ${zeile('gw', 'Gewerk', `<input data-f="gw" list="gwList" value="${val(gw)}"${ph(gw)}>`)}
+      ${zeile('res', 'Unternehmer', `<input data-f="res" value="${val(res)}"${res === undefined ? ' placeholder="(unterschiedlich)"' : res === '' ? ' placeholder="(bei allen leer)"' : ''}>`)}
+      ${zeile('colm', 'Balkenfarbe', `<div class="md-row">${seg('colm', [['keep', 'unverändert'], ['gw', 'vom Gewerk'], ['own', 'eigene']])}<input type="color" data-f="col" value="${col || '#8db3e2'}" aria-label="eigene Farbe"></div>`)}
+      <h4>Termine</h4>
+      ${zeile('dur', 'Dauer', `<div class="md-row"><input data-f="dur" class="md-k" value="${dur === undefined ? '' : fmtDur(dur)}"${dur === undefined ? ' placeholder="(unterschiedlich)"' : ''}${leaves.length ? '' : ' disabled'}><span>z. B. 5t, 2w</span></div>`)}
+      ${zeile('pct', '% Abgeschlossen', `<div class="md-row"><input data-f="pct" class="md-k" type="number" min="0" max="100" value="${pct === undefined ? '' : Math.round(pct)}"${pct === undefined ? ' placeholder="(unterschiedlich)"' : ''}${leaves.length ? '' : ' disabled'}><span>%</span></div>`)}
+      ${zeile('consm', 'Anfang nicht früher als', `<div class="md-row">${seg('consm', [['keep', 'unverändert'], ['clear', 'so früh wie möglich'], ['set', 'ab Datum …']])}<input type="date" data-f="cons" value="${cons != null && cons !== undefined ? isoD(cons) : ''}" aria-label="Datum"></div>`, `bisher: ${consTxt}`)}
+      <h4>Weiteres</h4>
+      ${zeile('notesm', 'Notizen', `${seg('notesm', [['keep', 'unverändert'], ['append', 'anhängen …'], ['replace', 'ersetzen …'], ['clear', 'leeren']])}<textarea data-f="notes" rows="3" placeholder="Text …"></textarea>`)}
     </div>`;
   updateGwList();
   const dirty = new Set();
-  const bg = modal('Mehrere Leistungen bearbeiten', body, [{ label: 'OK', cls: 'primary', primary: true, fn: (bg) => {
+  const bg = modal('Mehrere Leistungen bearbeiten', body, [{ label: 'Übernehmen', cls: 'primary', primary: true, fn: (bg) => {
     const g = (f) => bg.querySelector(`[data-f="${f}"]`).value;
     let durV = null, pctV = null, consV;
     if (dirty.has('dur')) { durV = parseDur(g('dur')); if (durV == null) { toast('Ungültige Dauer.', true); return false; } }
@@ -1564,14 +1572,31 @@ function multiDialog(ix) {
     if (!ok) return false;
     toast(`${ix.length} Leistungen geändert.`);
   } }, { label: 'Abbrechen' }]);
-  bg.querySelector('.modal').style.width = '620px';
-  bg.querySelectorAll('input[data-f],textarea[data-f]').forEach((el) => el.addEventListener('input', () => dirty.add(el.dataset.f)));
+  const M = bg.querySelector('.modal'); M.classList.add('md-modal');
+  const ok = M.querySelector('.mf .btn.primary');
+  const anfang = {}; bg.querySelectorAll('input[data-f],textarea[data-f]').forEach((el) => { anfang[el.dataset.f] = el.value; });
+  const g = (f) => bg.querySelector(`[data-f="${f}"]`);
   const sync = () => {
-    const g = (f) => bg.querySelector(`[data-f="${f}"]`);
-    g('col').style.display = g('colm').value === 'own' ? '' : 'none';
-    g('cons').style.display = g('consm').value === 'set' ? '' : 'none';
-    g('notes').style.display = ['append', 'replace'].includes(g('notesm').value) ? '' : 'none';
+    const segs = ['colm', 'consm', 'notesm'];
+    g('col').hidden = g('colm').value !== 'own';
+    g('cons').hidden = g('consm').value !== 'set';
+    g('notes').hidden = !['append', 'replace'].includes(g('notesm').value);
+    bg.querySelectorAll('[data-seg]').forEach((w) => w.querySelectorAll('button').forEach((b) => { const on = b.dataset.v === g(w.dataset.seg).value; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }));
+    const geaendert = new Set([...dirty, ...segs.filter((f) => g(f).value !== 'keep')]);
+    bg.querySelectorAll('.md-z').forEach((z) => z.classList.toggle('ch', geaendert.has(z.dataset.z)));
+    ok.textContent = geaendert.size ? `Übernehmen (${geaendert.size} ${geaendert.size === 1 ? 'Änderung' : 'Änderungen'})` : 'Übernehmen';
+    ok.disabled = !geaendert.size;
   };
+  bg.querySelectorAll('input[data-f],textarea[data-f]').forEach((el) => el.addEventListener('input', () => {
+    if (['gw', 'res', 'dur', 'pct'].includes(el.dataset.f)) { if (el.value === anfang[el.dataset.f]) dirty.delete(el.dataset.f); else dirty.add(el.dataset.f); }
+    sync();
+  }));
+  bg.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-seg] button');
+    if (b) { const f = b.closest('[data-seg]').dataset.seg; g(f).value = b.dataset.v; sync(); const z = { colm: 'col', consm: 'cons', notesm: 'notes' }[f]; if (!g(z).hidden) g(z).focus(); return; }
+    const r = e.target.closest('[data-rs]');
+    if (r) { const f = r.dataset.rs; if (['colm', 'consm', 'notesm'].includes(f)) g(f).value = 'keep'; else { g(f).value = anfang[f]; dirty.delete(f); } sync(); }
+  });
   bg.addEventListener('change', sync); sync();
 }
 function infoForSelection() { const ix = selIdx(); if (ix.length > 1) multiDialog(ix); else if (ix.length) taskDialog(ix[0]); }

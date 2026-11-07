@@ -705,10 +705,12 @@
       const einheit = { eur: '€', prozent: '%' }[f.typ];
       return `<label class="bph-dm-f${f.typ === 'textarea' || f.breit ? ' bph-dm-w' : ''}" for="${id}"><span>${esc(f.l)}</span><span class="bph-dm-i">${inp}${einheit ? `<em>${einheit}</em>` : ''}</span>${z}${hilfe}</label>`;
     };
-    const draw = () => {
+    const draw = () => {   // neu zeichnen, ohne dass die Maske nach oben springt
+      const sb = root.querySelector('.bph-dm-b'), st = sb ? sb.scrollTop : 0;
       root.innerHTML = `<div class="bph-dlg-h"><b>${esc(o.titel)}</b>${o.unter ? `<span class="bph-mu" style="margin:0 0 0 .5rem">${esc(o.unter)}</span>` : ''}<button class="bph-x" data-dmx aria-label="Schließen">✕</button></div>
         <div class="bph-dm-b">${o.gruppen.map((g) => `<fieldset><legend>${esc(g.titel)}</legend><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`).join('')}</div>
         <div class="bph-row" style="align-items:center;margin-top:.6rem"><button class="bph-btn pri" data-dms>Speichern</button><button class="bph-btn" data-dmx>Schließen</button>${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0">${esc(msg)}</span></div>`;
+      const nb = root.querySelector('.bph-dm-b'); if (nb && st) nb.scrollTop = st;
     };
     const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); };
     root.addEventListener('input', () => { dirty = true; });
@@ -767,7 +769,7 @@
     });
     root.addEventListener('click', async (e) => {
       if (e.target.closest('[data-dmx]')) { zu(); return; }
-      const kw = e.target.closest('[data-kfw]'); if (kw) { const kc = kfL[+kw.dataset.kfw], k = kw.closest('[data-kf]').dataset.kf; kfZu(); if (kc) kfSetzen(k, kc); return; }
+      const kw = e.target.closest('[data-kfw]'); if (kw) { const kc = kfL[+kw.dataset.kfw], k = kw.closest('[data-kf]').dataset.kf; kfZu(); if (kc) { kfSetzen(k, kc); const i = root.querySelector(`[data-kfi="${k}"]`); if (i) i.focus({ preventScroll: true }); } return; }
       const kn = e.target.closest('[data-kfn]'); if (kn) { kfZu(); kfNeu(kn.dataset.kfn); return; }
       const ke = e.target.closest('[data-kfe]');
       if (ke) { const k = ke.dataset.kfe, kc = await H.kontaktMaske(KC[W[k + '_kid']], { basis: B }); if (kc) kfSetzen(k, kc); return; }

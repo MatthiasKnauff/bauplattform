@@ -119,7 +119,8 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .wspin{position:relative;width:clamp(36px,22cqw,140px);aspect-ratio:1}
 .ein-l{display:flex;flex-direction:column;gap:.15rem;max-height:55vh;overflow:auto;margin:0 0 .4rem}.ein-z{display:grid;grid-template-columns:auto 1fr auto auto;gap:.5rem;align-items:center;padding:.3rem .4rem;border-radius:7px;cursor:pointer}.ein-z:hover{background:var(--hover,rgba(127,127,127,.12))}.ein-z.neu .ein-n{font-weight:600}.ein-n{overflow-wrap:anywhere}.ein-z small{color:var(--mute,#999);white-space:nowrap}.ein-dlg{width:min(560px,96vw)!important}
 .ava-ein{display:block;width:100%;margin-top:.35rem;background:none;border:1px dashed var(--line);border-radius:8px;padding:.35rem .5rem;font:inherit;font-size:.85rem;color:inherit;cursor:pointer;text-align:left}.ava-ein:hover{background:var(--hover,rgba(127,127,127,.1))}
-.ava-job{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:900;background:var(--card,#252729);color:inherit;border:1px solid var(--line);border-radius:10px;padding:.55rem .9rem;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:.92rem;max-width:92vw}
+.lv-lauf{display:inline-flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.85rem}.lauf-bar{position:relative;display:inline-block;width:110px;height:7px;border-radius:4px;background:var(--line,#ddd);overflow:hidden;flex:none}.lauf-bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent,#e87722);border-radius:4px;transition:width .4s}.lauf-bar.unb i{width:35%!important;animation:laufunb 1.4s ease-in-out infinite}@keyframes laufunb{0%{left:-35%}100%{left:100%}}.lauf-z{color:var(--mute,#999);font-variant-numeric:tabular-nums}
+.ava-job{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:900;display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;background:var(--card,#252729);color:inherit;border:1px solid var(--line);border-radius:10px;padding:.55rem .9rem;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:.92rem;max-width:92vw}
 .ava-job small{color:var(--mute,#999);margin-left:.4rem}
 .wspin i{position:absolute;inset:0;opacity:0;animation:wspin 4.4s infinite}
 .wspin i::after{content:'';position:absolute;left:50%;top:0;width:13%;aspect-ratio:1;border-radius:50%;background:var(--y);transform:translateX(-50%)}
@@ -1006,7 +1007,7 @@ function lvSplitMount() {
   if (!LVDV || LVDV.id !== did) { LVDV = { id: did, el: document.createElement('div'), pages: [], zoom: LS.get('lvZoom', 1) }; LVDV.el.className = 'am-pv'; LVDV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; lvDokLaden(LVDV); }
   const d = D.find((x) => x.id === did), n = d.n_pos + d.n_titel;
   r.innerHTML = `<div class="am-pk">${D.map((y) => `<button class="btn sm${y.id === did ? ' pri' : ''}" data-lvdokw="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 26 ? y.name.slice(0, 24) + '…' : y.name)}</button>`).join('')}
-    ${d.laeuft ? `<span class="hint lv-ocr-laeuft"><span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> ${d.ki_stand ? 'KI liest – ' + esc(d.ki_stand) : 'Texterkennung läuft – je Seite einige Sekunden'} …</span>` : ''}${d.fehler ? `<span class="hint" style="color:#e07b3a">Lesen fehlgeschlagen: ${esc(d.fehler)}</span>` : ''}
+    ${d.laeuft ? `<span class="lv-lauf">${laufHtml(d)}</span>` : ''}${d.fehler ? `<span class="hint" style="color:#e07b3a">Lesen fehlgeschlagen: ${esc(d.fehler)}</span>` : ''}${!d.laeuft && (d.abgebrochen || d.fehler || (d.leer && d.ocr)) ? `<button class="btn sm" data-lvdoklesen="${did}" title="Texterkennung neu starten">↻ Neu lesen</button>` : ''}
     ${n ? `<button class="btn sm" data-lvdokueb title="Erkannte Titel und Positionen (OZ, Kurztext, Menge, Einheit, Langtext${d.n_ep ? ', Preise als Schätzung' : ''}) ans LV">Erkannte übernehmen (${d.n_pos} Pos.${d.n_titel ? ', ' + d.n_titel + ' Titel' : ''}${d.ki ? ' · ' + esc(d.ki) : ''})</button>` : ''}
     ${d.laeuft ? '' : `<button class="btn sm" data-lvdokki="${did}" title="Auf Nachfrage: das Dokument von einer KI lesen lassen – findet auch Positionen ohne festes Schema (Angebote, Listen, Fotos)">🤖 mit KI lesen</button>`}
     <span class="fill"></span><button class="ib" data-lvz="-1" title="kleiner">−</button><button class="ib" data-lvz="1" title="größer">＋</button><button class="ib" data-frei title="als freies Fenster verschieben / wieder andocken">⧉</button><button class="ib" data-lvdokdel="${did}" title="PDF entfernen">✕</button></div>
@@ -1027,9 +1028,9 @@ function lvOcrWarten(id, uebernehmen, dokId) {
     if (!L || L.id !== id) return;
     let x; try { x = await api('api/lv/' + id); } catch { return lvOcrWarten(id, uebernehmen, dokId); }
     const d = dokId ? (x.dokumente || []).find((y) => y.id === dokId) : (x.dokumente || []).slice(-1)[0];
-    if (d && d.laeuft) { const st = document.querySelector('.lv-ocr-laeuft'); if (st && d.ki_stand) st.lastChild.textContent = ` KI liest – ${d.ki_stand} …`; return lvOcrWarten(id, uebernehmen, dokId); }
+    if (d && d.laeuft) { const st = document.querySelector('.lv-lauf'); if (st) st.innerHTML = laufHtml(d); return lvOcrWarten(id, uebernehmen, dokId); }
     if (L && L.id === id) { L.dokumente = x.dokumente; render(); }
-    if (!d) return;
+    if (!d || d.abgebrochen) return;
     if (d.fehler) { toast(d.fehler, true); return; }
     if (d.ki) { lvKiFertig(d); return; }
     toast(d.n_pos ? `Texterkennung fertig: ${d.n_pos} Positionen erkannt.` : 'Texterkennung fertig – keine Positionen sicher erkannt.');
@@ -1037,6 +1038,16 @@ function lvOcrWarten(id, uebernehmen, dokId) {
     else if (d.n_pos < 3) lvKiAnbieten(d, uebernehmen);
   }, 4000);
 }
+/* Stand eines laufenden Lesens: Balken (bei mehreren Teilen/Seiten, sonst laufender Balken), Zeit, Abbrechen, Neu starten */
+function laufHtml(d) {
+  const N = d.stand_N || 0, n = d.stand_n || 0, ki = d.lauf_art === 'ki';
+  const st = d.ki_stand && d.ki_stand !== 'startet …' ? d.ki_stand : '';
+  const t = (ki ? 'KI liest' : 'Texterkennung') + (st ? ' – ' + (ki ? st : st.replace(/^Texterkennung /, '')) : ' …');
+  const bar = N > 1 ? `<span class="lauf-bar" title="${n} von ${N} erledigt"><i style="width:${Math.max(6, Math.round(n / N * 100))}%"></i></span>` : '<span class="lauf-bar unb"><i></i></span>';
+  return `${bar}<span class="lauf-t">${esc(t)}</span><span class="lauf-z" data-seit="${esc(d.lauf_seit || '')}">${laufZeit(d.lauf_seit)}</span><button class="btn sm" data-lvdokstop="${d.id}">Abbrechen</button><button class="btn sm" data-lvdokneu="${d.id}" data-art="${ki ? 'ki' : 'ocr'}" title="Abbrechen und neu starten">↻ Neu starten</button>`;
+}
+function laufZeit(seit) { const t = seit ? Math.max(0, Math.round((Date.now() - new Date(seit)) / 1000)) : 0; return seit ? `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}` : ''; }
+setInterval(() => document.querySelectorAll('.lauf-z[data-seit]').forEach((el) => { el.textContent = laufZeit(el.dataset.seit); }), 1000);
 /* KI nur auf Nachfrage: welche KI, und dass der Text dorthin geht */
 const DOK_ACCEPT = '.pdf,application/pdf,image/*,.jpg,.jpeg,.png,.tif,.tiff,.docx,.txt,.csv,.x81,.x82,.x83,.x84,.x85,.x86,.d83,.d84,.p83,.p84,.xlsx,.xlsm';
 const istImport = (f) => /\.(x8[1-6]|d8[1-6]|p8[1-6]|x3[12]|xlsx|xlsm)$/i.test(f.name || '');
@@ -1054,17 +1065,29 @@ function kiWahl(text, opt = {}) {
   });
 }
 /* Hintergrundarbeit des Servers (Texterkennung, KI) abwarten */
-function avaJob(jid) {
+function avaJob(jid, el) {
   return new Promise((fertig) => {
     const t = async () => { let J; try { J = await api('api/avajob/' + jid); } catch (e) { J = { status: 'fehler', fehler: e.message }; }
-      if (J.status === 'laeuft') { const st = document.querySelector('#avaJobSt'); if (st && J.stand) st.textContent = J.stand; setTimeout(t, 3000); } else fertig(J); };
-    setTimeout(t, 2500);
+      if (J.status === 'laeuft') {
+        if (el) { const st = el.querySelector('.lauf-t2'); if (st && J.stand) st.textContent = J.stand; const b = el.querySelector('.lauf-bar'); if (b) { b.classList.toggle('unb', !(J.N > 1)); b.firstChild.style.width = J.N > 1 ? Math.max(6, Math.round(J.n / J.N * 100)) + '%' : ''; } }
+        setTimeout(t, 2500);
+      } else fertig(J); };
+    setTimeout(t, 2000);
   });
 }
-async function avaJobLeiste(text, jid) {
-  const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = `<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> ${esc(text)} <small id="avaJobSt"></small>`;
+/* Leiste unten: Text, Balken, Zeit, Abbrechen und (wenn neustart gegeben) Neu starten → {status, hinweis|fehler} oder {status:'neu'} */
+async function avaJobLeiste(text, jid, neustart) {
+  const seit = new Date().toISOString();
+  const el = document.createElement('div'); el.className = 'ava-job';
+  el.innerHTML = `<span class="lauf-bar unb"><i></i></span><span>${esc(text)}</span><small class="lauf-t2"></small><small class="lauf-z" data-seit="${seit}"></small><button class="btn sm" data-jobstop>Abbrechen</button>${neustart ? '<button class="btn sm" data-jobneu title="Abbrechen und neu starten">↻ Neu starten</button>' : ''}`;
   document.body.appendChild(el);
-  try { return await avaJob(jid); } finally { el.remove(); }
+  let neu = false;
+  el.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-jobstop],[data-jobneu]'); if (!b) return;
+    neu = !!b.dataset.jobneu || b.hasAttribute('data-jobneu'); b.disabled = true;
+    try { await api(`api/avajob/${jid}/abbrechen`, 'POST'); } catch (er) { toast(er.message, true); }
+  });
+  try { const J = await avaJob(jid, el); if (J.status === 'abgebrochen') { if (neu && neustart) { neustart(); return { status: 'neu' }; } toast('Abgebrochen – es wurde nichts eingetragen.'); } return J; } finally { el.remove(); }
 }
 /* Angebot als PDF/Scan/Foto: Preise erkennen; Scans im Hintergrund; handschriftliche Preise auf Nachfrage per Bild-KI */
 async function angebotPdf(lvId, f, bieter, cid, kiBild) {
@@ -1075,7 +1098,8 @@ async function angebotPdf(lvId, f, bieter, cid, kiBild) {
   let j; try { const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }); j = await jsonAus(r); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); }
   catch (e) { toast(e.message, true); return; }
   if (!j.job) { L = j; render(); toast(j.hinweis || 'Angebot übernommen.'); refreshList(); return; }
-  const J = await avaJobLeiste(kiBild ? 'Die KI liest die Preise …' : 'Eingescanntes Angebot – Texterkennung läuft …', j.job);
+  const J = await avaJobLeiste(kiBild ? 'Die KI liest die Preise' : 'Eingescanntes Angebot', j.job, () => angebotPdf(lvId, f, bieter, cid, kiBild));
+  if (J.status === 'abgebrochen' || J.status === 'neu') return;
   if (L && L.id === lvId) { L = await api('api/lv/' + lvId); render(); } refreshList();
   const ohne = J.status === 'fehler' ? /KI/.test(J.fehler || '') : /ohne lesbaren Preis/.test(J.hinweis || '');
   if (J.status === 'fehler' && !ohne) { toast(J.fehler, true); return; }
@@ -1170,6 +1194,10 @@ document.addEventListener('click', async (e) => {
     lvVorschlagRein(dId, false);
   }
   const kb = e.target.closest('[data-lvdokki]'); if (kb) { lvKiStarten(+kb.dataset.lvdokki, false); return; }
+  const ks = e.target.closest('[data-lvdokstop]'); if (ks) { clearTimeout(LVOCRT); try { await call(`api/lvdok/${ks.dataset.lvdokstop}/abbrechen`, 'POST'); toast('Abgebrochen – der bisherige Stand bleibt.'); } catch (er) { toast(er.message, true); } return; }
+  const kn = e.target.closest('[data-lvdokneu]');
+  if (kn) { const id = +kn.dataset.lvdokneu; if (kn.dataset.art === 'ki') { lvKiStarten(id, false); return; } try { await call(`api/lvdok/${id}/lesen`, 'POST'); lvOcrWarten(L.id, false, id); } catch (er) { toast(er.message, true); } return; }
+  const kl = e.target.closest('[data-lvdoklesen]'); if (kl) { const id = +kl.dataset.lvdoklesen; try { await call(`api/lvdok/${id}/lesen`, 'POST'); toast('Wird neu gelesen …'); lvOcrWarten(L.id, false, id); } catch (er) { toast(er.message, true); } return; }
 });
 document.addEventListener('change', async (e) => {
   const i = e.target.closest && e.target.closest('[data-lvdokin]'); if (!i || !i.files.length || !L) return;

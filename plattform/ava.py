@@ -2146,6 +2146,8 @@ def _lvdoks(c, i):
         A = _j(d["auslese"], {}) or {}
         out.append({"id": d["id"], "name": d["name"], "created": d["created"], "ocr": bool(A.get("ocr")), "laeuft": bool(A.get("laeuft")), "fehler": A.get("fehler") or "",
                     "ki": A.get("ki") or "", "ki_stand": A.get("ki_stand") or "", "n_ep": sum(1 for x in A.get("vorschlag") or [] if x.get("ep_s")),
+                    "lauf_art": A.get("lauf_art") or "", "lauf_seit": A.get("lauf_seit") or "", "stand_n": A.get("stand_n") or 0, "stand_N": A.get("stand_N") or 0,
+                    "abgebrochen": bool(A.get("abgebrochen")), "leer": not A.get("zeilen"),
                     "n_pos": sum(1 for x in A.get("vorschlag") or [] if x["typ"] == "pos"), "n_titel": sum(1 for x in A.get("vorschlag") or [] if x["typ"] == "titel")})
     return out
 
@@ -2179,15 +2181,10 @@ def lvdok_neu(i):
         antwort = _antwort(c, i)
     if scan:   # Texterkennung dauert je Seite einige Sekunden – im Hintergrund, die Seite fragt nach (sonst bricht der Webserver nach 60 s ab)
         import threading
-
-        def lesen():
-            try:
-                B = _lv_lesen(data)
-            except Exception as e:
-                B = {"zeilen": {}, "vorschlag": [], "ocr": True, "fehler": str(e)[:200]}
-            with db.tx() as c2:
-                c2.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(B, ensure_ascii=False), d))
-        threading.Thread(target=_mit_user(lesen), daemon=True).start()
+        with db.tx() as c:
+            tok = _lvdok_start(c, d, "ocr")
+            antwort = _antwort(c, i)
+        threading.Thread(target=_mit_user(lambda: _lvdok_ocr(d, tok, data)), daemon=True).start()
     return antwort
 
 
@@ -2318,14 +2315,54 @@ def _ki_items(d):
     return out
 
 
-def _lvdok_ki(d, ki):
+class _Abbruch(Exception):
+    """Lauf wurde abgebrochen (oder neu gestartet) – Ergebnis verwerfen."""
+
+
+def _lvdok_start(c, d, art):
+    """Neuen Lauf (Texterkennung „ocr“ oder „ki“) am Dokument vermerken → Kennung; ein laufender wird damit ungültig."""
+    import uuid as _u
+    tok = _u.uuid4().hex[:12]
+    r = c.execute("SELECT auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+    A = _j(r["auslese"], {}) or {}
+    A.update(laeuft=True, lauf=tok, lauf_art=art, lauf_seit=datetime.now().isoformat(timespec="seconds"), fehler="", abgebrochen=False,
+             ki_stand="startet …", stand_n=0, stand_N=0)
+    c.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), d))
+    return tok
+
+
+def _lvdok_setzen(d, tok, **kw):
+    """Stand/Ergebnis eines Laufs schreiben – nur, solange er noch der aktuelle ist (sonst _Abbruch)."""
+    with db.tx() as c:
+        r = c.execute("SELECT auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+        A = (_j(r["auslese"], {}) or {}) if r else {}
+        if not r or A.get("lauf") != tok:
+            raise _Abbruch()
+        A.update(kw)
+        if kw.get("laeuft") is False:
+            A["lauf"] = None
+        c.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), d))
+
+
+def _lvdok_ocr(d, tok, data):
+    """Hintergrund: Dokument lesen (Scans per Texterkennung), Stand je Seite, abbrechbar."""
+    try:
+        B = _lv_lesen(data, lambda n, N: _lvdok_setzen(d, tok, ki_stand=f"Texterkennung Seite {n} von {N}", stand_n=n - 1, stand_N=N))
+        _lvdok_setzen(d, tok, **B, laeuft=False, ki="", ki_stand="", stand_n=0, stand_N=0, fehler="")
+    except _Abbruch:
+        return
+    except Exception as e:
+        fehler.still("ava", "LV-Dokument lesen", e)
+        try:
+            _lvdok_setzen(d, tok, laeuft=False, ki_stand="", fehler=str(e)[:200])
+        except _Abbruch:
+            pass
+
+
+def _lvdok_ki(d, ki, tok):
     """Hintergrund: Text (oder bei Scans ohne Text die Seitenbilder) an die KI, Ergebnis als Vorschlag im Dokument."""
     def setzen(**kw):
-        with db.tx() as c:
-            r = c.execute("SELECT auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
-            A = _j(r["auslese"], {}) or {}
-            A.update(kw)
-            c.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), d))
+        _lvdok_setzen(d, tok, **kw)
     try:
         with db.tx() as c:
             x = c.execute("SELECT data, auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
@@ -2343,14 +2380,14 @@ def _lvdok_ki(d, ki):
             items = []
             if teile:
                 for k, tl in enumerate(teile, 1):
-                    setzen(ki_stand=f"Teil {k} von {len(teile)}")
+                    setzen(ki_stand=f"Teil {k} von {len(teile)}", stand_n=k - 1, stand_N=len(teile))
                     items += _ki_items(ai.ask_json(ki, _KI_LV, "Text des Dokuments (Teil %d von %d):\n\n%s" % (k, len(teile), "\n".join(tl)), 8000, c))
             elif ai.sieht(ki):   # Scan ohne erkannten Text: Seitenbilder
                 import pdfplumber
                 with pdfplumber.open(io.BytesIO(data)) as pdf:
                     S = pdf.pages[:25]
                     for k, pg in enumerate(S, 1):
-                        setzen(ki_stand=f"Seite {k} von {len(S)}")
+                        setzen(ki_stand=f"Seite {k} von {len(S)}", stand_n=k - 1, stand_N=len(S))
                         buf = io.BytesIO()
                         pg.to_image(resolution=110).original.convert("RGB").save(buf, "PNG")
                         items += [dict(y, seite=k) for y in _ki_items(ai.parse_json(ai.ask_image(ki, _KI_LV, f"Seite {k} des Dokuments.", buf.getvalue(), 6000, c)))]
@@ -2365,9 +2402,16 @@ def _lvdok_ki(d, ki):
                 continue
             V.append(y)
         label = next((l for k_, l, _ in ai.PROVIDERS if k_ == ki), ki)
-        setzen(laeuft=False, ki=label, ki_stand="", fehler="", vorschlag_regel=A.get("vorschlag_regel", A.get("vorschlag") or []), vorschlag=V[:3000])
+        setzen(laeuft=False, ki=label, ki_stand="", stand_n=0, stand_N=0, fehler="", vorschlag_regel=A.get("vorschlag_regel", A.get("vorschlag") or []), vorschlag=V[:3000])
+    except _Abbruch:
+        return
     except Exception as e:
-        setzen(laeuft=False, ki_stand="", fehler=("KI: " + str(e))[:300])
+        if not isinstance(e, ai.AIError):
+            fehler.still("ava", "LV-Dokument per KI lesen", e)
+        try:
+            setzen(laeuft=False, ki_stand="", fehler=("KI: " + str(e))[:300])
+        except _Abbruch:
+            pass
 
 
 @app.post("/api/lvdok/<int:d>/ki")
@@ -2383,14 +2427,40 @@ def lvdok_ki(d):
             return jsonify(error="Bitte eine KI wählen."), 400
         if ki in ai.abgeschaltet(c):
             return jsonify(error="Diese KI ist in der Verwaltung abgeschaltet."), 400
-        A = _j(x["auslese"], {}) or {}
-        if A.get("laeuft"):
-            return jsonify(error="Das Dokument wird gerade schon gelesen."), 409
-        A.update(laeuft=True, fehler="", ki_stand="startet …")
-        c.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), d))
+        tok = _lvdok_start(c, d, "ki")   # läuft schon etwas, gilt nur noch dieser Lauf (= neu starten)
         lv_id = x["lv_id"]
     import threading
-    threading.Thread(target=_mit_user(lambda: _lvdok_ki(d, ki)), daemon=True).start()
+    threading.Thread(target=_mit_user(lambda: _lvdok_ki(d, ki, tok)), daemon=True).start()
+    with db.tx() as c:
+        return _antwort(c, lv_id)
+
+
+@app.post("/api/lvdok/<int:d>/abbrechen")
+def lvdok_abbrechen(d):
+    """Laufende Texterkennung oder KI abbrechen – ihr Ergebnis wird verworfen, der bisherige Vorschlag bleibt."""
+    with db.tx() as c:
+        _lvdok_tabelle(c)
+        x = c.execute("SELECT lv_id, auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+        if not x or not _lv(c, x["lv_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        A = _j(x["auslese"], {}) or {}
+        A.update(laeuft=False, lauf=None, ki_stand="", stand_n=0, stand_N=0, abgebrochen=True)
+        c.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), d))
+        return _antwort(c, x["lv_id"])
+
+
+@app.post("/api/lvdok/<int:d>/lesen")
+def lvdok_lesen(d):
+    """Dokument neu lesen (Texterkennung) – z. B. nach einem Abbruch."""
+    with db.tx() as c:
+        _lvdok_tabelle(c)
+        x = c.execute("SELECT lv_id, data FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+        if not x or not _lv(c, x["lv_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        tok = _lvdok_start(c, d, "ocr")
+        data, lv_id = bytes(x["data"]), x["lv_id"]
+    import threading
+    threading.Thread(target=_mit_user(lambda: _lvdok_ocr(d, tok, data)), daemon=True).start()
     with db.tx() as c:
         return _antwort(c, lv_id)
 
@@ -2548,19 +2618,21 @@ def _im_hintergrund(fn, lv_id, art):
     import uuid as _u
     jid = _u.uuid4().hex[:16]
     with db.tx() as c:
-        _job(c, jid, status="laeuft", lv_id=lv_id, art=art, stand="startet …")
+        _job(c, jid, status="laeuft", lv_id=lv_id, art=art, stand="startet …", n=0, N=0, seit=datetime.now().isoformat(timespec="seconds"))
 
     def lauf():
-        def fortschritt(n, N):
-            try:
-                with db.tx() as c2:
-                    _job(c2, jid, stand=f"Texterkennung Seite {n} von {N}")
-            except Exception:
-                pass
+        def fortschritt(n, N, was="Texterkennung Seite"):
+            with db.tx() as c2:
+                if (_job(c2, jid) or {}).get("status") != "laeuft":
+                    raise _Abbruch()   # abgebrochen: nichts mehr eintragen
+                _job(c2, jid, stand=f"{was} {n} von {N}" if N else was, n=max(0, n - 1), N=N)
         try:
             h = fn(fortschritt)
             with db.tx() as c2:
-                _job(c2, jid, status="fertig", hinweis=h or "", stand="")
+                if (_job(c2, jid) or {}).get("status") == "laeuft":
+                    _job(c2, jid, status="fertig", hinweis=h or "", stand="")
+        except _Abbruch:
+            return
         except Exception as e:
             if not isinstance(e, (ValueError, ai.AIError)):   # erwartbare Meldungen (nichts gefunden, KI aus) sind keine Programmfehler
                 fehler.still("ava", f"Hintergrundarbeit {art}", e)
@@ -2621,6 +2693,18 @@ def _ki_preise(data, items, A, ki, fortschritt=None):
     return erg, sicher, len(erg) - sicher
 
 
+@app.post("/api/avajob/<jid>/abbrechen")
+def avajob_abbrechen(jid):
+    with db.tx() as c:
+        jid = re.sub(r"\W", "", jid)[:16]
+        d = _job(c, jid)
+        if not d or not _lv(c, d.get("lv_id") or 0):
+            return jsonify(error="Nicht gefunden"), 404
+        if d.get("status") == "laeuft":
+            d = _job(c, jid, status="abgebrochen", stand="")
+        return jsonify(d)
+
+
 @app.get("/api/avajob/<jid>")
 def avajob(jid):
     with db.tx() as c:
@@ -2657,9 +2741,10 @@ def angebot_pdf(i):
 
         def arbeit_ki(fortschritt):
             A = _auslesen(data, items, fortschritt)
-            erg, sicher, unsicher = _ki_preise(data, items, A, ki_bild, lambda k, N: fortschritt(k, N) if fortschritt else None)
+            erg, sicher, unsicher = _ki_preise(data, items, A, ki_bild, lambda k, N: fortschritt(k, N, "KI liest Seite"))
             for pid, y in erg.items():
                 A.setdefault("pos", {}).setdefault(pid, {})["ep"] = y["ep"]
+            fortschritt(0, 0, "trägt ein …")
             with db.tx() as c2:
                 h = _angebot_eintragen(c2, i, A, bieter, cid)
             return h + f" KI: {sicher} Preise geprüft (Menge × EP = GP){f', {unsicher} ohne passenden Gesamtpreis – bitte prüfen' if unsicher else ''}."
@@ -2667,6 +2752,7 @@ def angebot_pdf(i):
     if _ist_scan(data):
         def arbeit(fortschritt):
             A = _auslesen(data, items, fortschritt)
+            fortschritt(0, 0, "trägt ein …")
             with db.tx() as c2:
                 h = _angebot_eintragen(c2, i, A, bieter, cid, ki)
             n_ohne = sum(1 for t in (A.get("pos") or {}).values() if t.get("ep") is None)

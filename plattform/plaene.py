@@ -103,7 +103,7 @@ def conf(c):
     return out
 
 
-PLOT_STANDARD = {"farbe": "farbe", "foto": False, "gefaltet": True, "gelocht": False, "saetze": 1}
+PLOT_STANDARD = {"farbe": "farbe", "foto": False, "gefaltet": True, "gelocht": False, "saetze": 1, "lieferung": "abholen"}
 
 
 def _plot(x):
@@ -111,6 +111,7 @@ def _plot(x):
     o = dict(PLOT_STANDARD)
     if isinstance(x, dict):
         o["farbe"] = "sw" if x.get("farbe") == "sw" else "farbe"
+        o["lieferung"] = x.get("lieferung") if x.get("lieferung") in ("abholen", "baustelle", "buero") else "abholen"
         for k in ("foto", "gefaltet", "gelocht"):
             if k in x:
                 o[k] = bool(x[k])
@@ -396,7 +397,7 @@ def vorlage():
         k = konto.prefs(c, g.user["id"])
     W = _werte(p, cf)
     keep = {"planliste": "{planliste}", "anzahl": "{anzahl}", "firma": "{firma}", "signatur": "{signatur}"}
-    return jsonify(betreff=vorlagen.fuellen(T["betreff"], {**W, **keep}), text=vorlagen.fuellen(T["text"], {**W, **keep}), bauvorhaben=W["bauvorhaben"],
+    return jsonify(betreff=vorlagen.fuellen(T["betreff"], {**W, **keep}), text=vorlagen.fuellen(T["text"], {**W, **keep}), bauvorhaben=W["bauvorhaben"], projekt=W["projekt"],
                    versand=k.get("versand_plaene") or ("mich" if k.get("versand") == "mich" else "direkt"), kopie=k.get("kopie_plaene", True), email=g.user["email"] or "",
                    mail=mail.configured(cf))
 

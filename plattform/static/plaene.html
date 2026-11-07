@@ -308,14 +308,16 @@ function vSegBind(box, email) {
 const plotText = (o, bv) => {
   const art = [o.saetze > 1 ? `${o.saetze} Sätze` : '1 Satz', o.farbe === 'sw' ? 'schwarz-weiß' : 'farbig', o.foto ? 'als Fotodruck' : '', o.gefaltet ? 'gefaltet' : 'ungefaltet (gerollt)', o.gelocht ? 'gelocht' : ''].filter(Boolean);
   const aus = art.length > 1 ? art.slice(0, -1).join(', ') + ' und ' + art[art.length - 1] : art[0];
-  return `Sehr geehrte Damen und Herren,\n\nbitte plotten Sie die angehängten Pläne zum Bauvorhaben ${bv}:\n\n{planliste}\n\nAusführung: ${aus}.${o.bem ? '\n\n' + o.bem : ''}\n\nBitte geben Sie uns kurz Bescheid, wann die Pläne fertig sind.\n\nMit freundlichen Grüßen\n\n{signatur}`;
+  const li = { abholen: 'Wir holen die Pläne bei Ihnen ab – bitte geben Sie uns kurz Bescheid, wann sie fertig sind.', baustelle: 'Bitte liefern Sie die Pläne an die Baustelle' + (o.adr ? ' (' + o.adr + ')' : '') + ' und geben Sie uns kurz Bescheid, wann sie dort sind.', buero: 'Bitte liefern Sie die Pläne in unser Büro und geben Sie uns kurz Bescheid, wann sie kommen.' }[o.lieferung || 'abholen'];
+  return `Sehr geehrte Damen und Herren,\n\nbitte plotten Sie die angehängten Pläne zum Bauvorhaben ${bv}:\n\n{planliste}\n\nAusführung: ${aus}.${o.bem ? '\n\n' + o.bem : ''}\n\n${li}\n\nMit freundlichen Grüßen\n\n{signatur}`;
 };
 async function plotDialog() {
   const g = gewaehlt(); if (!g.length) return;
   let V; try { V = await api('api/vorlage?project_id=' + pid); } catch (e) { toast(e.message, true); return; }
   const P = D.plotdienste || [], O = { ...(CFG && CFG.plot || { farbe: 'farbe', foto: false, gefaltet: true, gelocht: false, saetze: 1 }), bem: '' };
   let eigen = false;   // Text von Hand geändert → nicht mehr automatisch überschreiben
-  const bv = V.bauvorhaben || '';
+  const bv = V.projekt || V.bauvorhaben || '';   // Projektname (enthält meist schon die Adresse)
+  O.adr = (V.bauvorhaben || '').startsWith(V.projekt || '\u0000') ? (V.bauvorhaben || '').slice((V.projekt || '').length).replace(/^,\s*/, '') : '';
   const html = `<h3>🖨 Plotauftrag</h3><div class="vd">
     <div class="full"><h4>Pläne (${g.length})</h4><div class="mu pl-l" style="font-size:.88rem">${g.map((x) => x.p.frei ? esc(x.st.pdf.name) : esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div></div>
     <div class="full"><h4>Plotdienst</h4>${P.length ? `<div class="pa-o">${P.map((p, i) => `<label><input type="radio" name="pDienst" value="${i}"${i ? '' : ' checked'}${p.email ? '' : ' disabled'}> <b>${esc(p.name)}</b> <small class="mu">${esc(p.email || 'keine E-Mail-Adresse')}</small></label>`).join('')}</div>`
@@ -324,6 +326,7 @@ async function plotDialog() {
       <label><input type="radio" name="pFarbe" value="farbe"${O.farbe !== 'sw' ? ' checked' : ''}> farbig</label><label><input type="radio" name="pFarbe" value="sw"${O.farbe === 'sw' ? ' checked' : ''}> schwarz-weiß</label>
       <label><input type="checkbox" data-po="foto"${O.foto ? ' checked' : ''}> Fotodruck</label><label><input type="checkbox" data-po="gefaltet"${O.gefaltet ? ' checked' : ''}> gefaltet</label><label><input type="checkbox" data-po="gelocht"${O.gelocht ? ' checked' : ''}> gelocht</label>
       <label><input type="number" id="pSaetze" min="1" max="50" value="${O.saetze}"> Sätze</label></div>
+      <div class="pa-o" style="margin-top:.4rem">${vSeg('pLief', O.lieferung || 'abholen', [['abholen', 'wir holen ab'], ['baustelle', 'an die Baustelle liefern'], ['buero', 'ins Büro liefern']])}</div>
       <input type="text" id="pBem" placeholder="Hinweis, z. B. Lieferung an die Baustelle bis Freitag (optional)" style="margin-top:.4rem"></div>
     <div class="full"><h4>Anschreiben</h4><label>Betreff<input type="text" id="pBetreff" value="${esc('Plotauftrag ' + bv)}"></label>
       <label>Text <small class="mu">– setzt sich aus den Häkchen zusammen, Änderungen von Hand bleiben</small><textarea id="pText">${esc(plotText(O, bv))}</textarea></label></div>
@@ -332,7 +335,7 @@ async function plotDialog() {
       <label data-vsk="pArt"><input type="checkbox" id="pKopie"${V.kopie ? ' checked' : ''}> Kopie an mich</label></div>
     ${V.mail ? '' : '<p class="warn full">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'}
     </div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="send"${P.some((p) => p.email) ? '' : ' disabled'}>Plotauftrag senden</button></div>`;
-  const lese = (bg) => ({ farbe: (bg.querySelector('[name=pFarbe]:checked') || {}).value || 'farbe', foto: $('[data-po=foto]', bg).checked, gefaltet: $('[data-po=gefaltet]', bg).checked, gelocht: $('[data-po=gelocht]', bg).checked, saetze: Math.max(1, +$('#pSaetze', bg).value || 1), bem: $('#pBem', bg).value.trim() });
+  const lese = (bg) => ({ farbe: (bg.querySelector('[name=pFarbe]:checked') || {}).value || 'farbe', foto: $('[data-po=foto]', bg).checked, gefaltet: $('[data-po=gefaltet]', bg).checked, gelocht: $('[data-po=gelocht]', bg).checked, saetze: Math.max(1, +$('#pSaetze', bg).value || 1), bem: $('#pBem', bg).value.trim(), lieferung: (bg.querySelector('[name=pLief]') || {}).value || 'abholen', adr: O.adr });
   const bg = modalBox(html, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'send') return;
@@ -394,7 +397,8 @@ async function setDialog(host) {
     <div><b>Plotauftrag – Vorgaben</b> <span class="mu" style="font-size:.85rem">(im Plotauftrag vorausgewählt, dort änderbar)</span>
       <div class="pa-o" style="margin-top:.3rem"><label><input type="radio" name="sFarbe" value="farbe"${W.plot.farbe !== 'sw' ? ' checked' : ''}${dis}> farbig</label><label><input type="radio" name="sFarbe" value="sw"${W.plot.farbe === 'sw' ? ' checked' : ''}${dis}> schwarz-weiß</label>
       <label><input type="checkbox" data-sp="foto"${W.plot.foto ? ' checked' : ''}${dis}> Fotodruck</label><label><input type="checkbox" data-sp="gefaltet"${W.plot.gefaltet ? ' checked' : ''}${dis}> gefaltet</label><label><input type="checkbox" data-sp="gelocht"${W.plot.gelocht ? ' checked' : ''}${dis}> gelocht</label>
-      <label><input type="number" id="sSaetze" min="1" max="50" value="${W.plot.saetze}"${dis}> Sätze</label></div></div></div>
+      <label><input type="number" id="sSaetze" min="1" max="50" value="${W.plot.saetze}"${dis}> Sätze</label>
+      <label><select id="sLief"${dis}>${[['abholen', 'wir holen ab'], ['baustelle', 'an die Baustelle liefern'], ['buero', 'ins Büro liefern']].map(([k, l]) => `<option value="${k}"${(W.plot.lieferung || 'abholen') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div></div></div>
     <div class="acts"><button type="button" class="btn" data-bph-verlauf="bp:plaene" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button>${CFG.admin ? '<button class="btn" data-m="std">Vorgaben</button>' : ''}<button class="btn" data-m="x">${CFG.admin ? 'Abbrechen' : 'Schließen'}</button>${CFG.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`;
   const box0 = boxIn(host)(html(), async (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -408,7 +412,7 @@ async function setDialog(host) {
     }
   });
   const root = host || (box0 && box0.nodeType ? box0 : [...document.querySelectorAll('.modal-bg')].pop()) || document;
-  const plotLesen = (r) => { const q = (x) => r.querySelector(x); if (!q('#sSaetze')) return W.plot; return { farbe: (q('[name=sFarbe]:checked') || {}).value || 'farbe', foto: q('[data-sp=foto]').checked, gefaltet: q('[data-sp=gefaltet]').checked, gelocht: q('[data-sp=gelocht]').checked, saetze: +q('#sSaetze').value || 1 }; };
+  const plotLesen = (r) => { const q = (x) => r.querySelector(x); if (!q('#sSaetze')) return W.plot; return { farbe: (q('[name=sFarbe]:checked') || {}).value || 'farbe', foto: q('[data-sp=foto]').checked, gefaltet: q('[data-sp=gefaltet]').checked, gelocht: q('[data-sp=gelocht]').checked, saetze: +q('#sSaetze').value || 1, lieferung: q('#sLief').value }; };
   const neuZeichnen = (bg) => { const r = bg || root; const box = r.querySelector('.set'); if (!box) return; const y = box.scrollTop; const mb = r.querySelector('#sMb'); if (mb) W.max_mb = +mb.value; W.plot = plotLesen(r); box.outerHTML = html().split('<div class="acts">')[0].replace(/^<h3>[^<]*<\/h3>/, ''); r.querySelector('.set').scrollTop = y; };
   const zuNeu = () => { const z = root.querySelector('#sZu'); if (z) z.innerHTML = zuordnung(); };
   root.addEventListener('input', (e) => {

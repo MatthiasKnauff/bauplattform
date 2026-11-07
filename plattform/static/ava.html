@@ -39,6 +39,7 @@ tr.vqblink td{animation:vqblink 2.2s ease-out}
 @keyframes vqblink{0%,40%{background:color-mix(in srgb,var(--y) 40%,transparent)}100%{background:transparent}}
 .save{font-size:.78rem;color:var(--mute);align-self:center;padding:0 .6rem;margin-left:auto}
 .rib.weg{display:none}
+main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im Menü „⋯“ rechts in der Bereichsleiste */
 .body{flex:1;display:grid;grid-template-columns:272px minmax(0,1fr);min-height:calc(100vh - 140px)}
 .nav{border-right:1px solid var(--line);background:var(--card);overflow:auto;padding:.5rem .45rem;position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);box-sizing:border-box}
 .nav .ng{margin-bottom:.35rem}
@@ -419,6 +420,17 @@ tr.am-lf td input{color:#c0621f}
 .utb button{display:flex;align-items:center;gap:.4rem;height:30px;padding:0 .75rem;border:0;border-radius:7px;background:none;font:inherit;font-size:.88rem;color:var(--ink);opacity:.8;cursor:pointer;white-space:nowrap}
 .utb button:hover{background:var(--hov);opacity:1}.utb button.on{background:var(--card);font-weight:600;opacity:1;box-shadow:0 0 0 1px var(--line)}
 .utb button small{color:var(--mute);font-size:.76rem;font-variant-numeric:tabular-nums}
+.utb button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;opacity:.75}
+.utb .ufill{flex:1}.utb .uakt{display:flex;gap:.3rem;align-items:center;position:relative}
+.utb .uakt .btn{height:32px;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
+.umenu{position:absolute;right:0;top:calc(100% + 4px);z-index:60;min-width:15rem;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px #0003;padding:.3rem}
+.umenu button{display:flex;align-items:center;gap:.5rem;width:100%;border:0;background:none;font:inherit;font-size:.88rem;color:var(--ink);text-align:left;padding:.42rem .55rem;border-radius:6px;cursor:pointer;height:auto;opacity:1}
+.umenu button:hover:not(:disabled){background:var(--hov)}.umenu button:disabled{opacity:.4;cursor:default}.umenu hr{border:0;border-top:1px solid var(--line);margin:.25rem 0}
+.umenu button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none}
+#navL{display:flex;flex-direction:column;gap:0;background:color-mix(in srgb,var(--tabs) 55%,var(--card))}
+#navL #tabs{flex:1;display:flex;flex-direction:column;min-height:0}#navL .nfuss{margin-top:auto;padding-top:.6rem}
+.nsuche{padding:.1rem .1rem .5rem}.nsuche .vqb{display:flex;flex-direction:column;gap:.25rem}.nsuche input[type=search]{width:100%;box-sizing:border-box;padding:.4rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;font-size:.85rem}
+.nsuche label{font-size:.74rem;color:var(--mute);display:flex;gap:.3rem;align-items:center}
 .nav .pjk{display:flex;align-items:baseline;gap:.4rem;padding:.15rem .4rem .45rem;font-size:.82rem}.nav .pjk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nav .pjk small{color:var(--mute)}
 .pjv{margin:0 0 .5rem}
 .nav #pjTree{margin:0;padding:0;border:0;font-size:.88rem}
@@ -489,7 +501,7 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
     </div>
   <nav class="stp" id="stp" aria-label="Arbeitsschritte"></nav>
   <div class="body">
-    <aside class="nav" id="tabs" aria-label="Projekt"></aside>
+    <aside class="nav" id="navL" aria-label="Projekt"><div class="nsuche" id="nsuche"></div><div id="tabs"></div></aside>
     <section class="pane">
       <div class="utb" id="utb" role="tablist" aria-label="Bereiche des Schritts"></div>
       <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span></div>
@@ -619,6 +631,37 @@ async function vleiste(neu) {
   vlSicht();
 }
 /* Versionen braucht man nur beim Ausschreiben – die Leiste steht nur im Schritt „Ausschreibung“ */
+/* Menü „⋯“ der Bereichsleiste: die Befehle der (ausgeblendeten) Werkzeugleiste */
+const UMENU = [['newBtn', 'Neues LV / neuer Auftrag …'], ['[data-act="pos"]', 'Position anhängen'], ['[data-act="titel"]', 'Titel anhängen'], '-',
+  ['impBtn', 'Einlesen … (GAEB, Excel)'], ['expBtn', 'Speichern unter … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], '-', ['quBtn', 'Kopierquelle (LV daneben)'], ['tlBtn', 'Fenster- & Türliste'], '-', ['moreBtn', 'Archivieren / löschen …']];
+const ribKnopf = (sel) => document.querySelector(sel[0] === '[' ? '.rib ' + sel : '#' + sel);
+document.addEventListener('click', (e) => {
+  const m = document.querySelector('.umenu');
+  const h = e.target.closest('[data-uhaupt]');
+  if (h) { const a = h.dataset.uhaupt; if (a === 'new') return $('#newBtn').click();
+    if (a === 'pos') { const b = ribKnopf('[data-act="pos"]'); if (b) b.click(); return; }
+    const z = document.querySelector(`#view [data-act="${a}"]`); if (z) { z.scrollIntoView({ block: 'nearest' }); z.click(); } return; }
+  if (e.target.closest('[data-umenu]')) {
+    if (m) { m.remove(); return; }
+    const d = document.createElement('div'); d.className = 'umenu'; d.setAttribute('role', 'menu');
+    d.innerHTML = UMENU.map((x) => { if (x === '-') return '<hr>'; const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');
+    const r = e.target.closest('[data-umenu]').getBoundingClientRect(); document.body.appendChild(d);   // am Körper: Neuzeichnen der Leiste schließt es nicht
+    Object.assign(d.style, { position: 'fixed', top: (r.bottom + 4) + 'px', left: Math.max(8, r.right - d.offsetWidth) + 'px', right: 'auto' }); return;
+  }
+  const c = e.target.closest('[data-ucmd]');
+  if (c) {
+    if (m) m.remove(); const b = ribKnopf(c.dataset.ucmd); if (!b || b.disabled) return;
+    const r = (document.querySelector('[data-umenu]') || c).getBoundingClientRect(), vorher = new Set(document.querySelectorAll('.menu'));
+    e.stopPropagation(); b.click();
+    // Untermenüs (z. B. Drucken) hängen sonst am unsichtbaren Knopf der Werkzeugleiste – unter „⋯“ anzeigen
+    setTimeout(() => document.querySelectorAll('.menu').forEach((x) => { if (vorher.has(x)) return; Object.assign(x.style, { position: 'fixed', top: (r.bottom + 4) + 'px', right: 'auto', bottom: 'auto', width: 'auto', minWidth: '16rem', maxWidth: '24rem' }); x.style.left = Math.max(8, r.right - x.offsetWidth) + 'px'; }), 0);
+    return;
+  }
+  if (m && !e.target.closest('.umenu')) m.remove();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { const m = document.querySelector('.umenu'); if (m) m.remove(); } });
+/* Volltextsuche oben in der linken Spalte (statt in der Werkzeugleiste) */
+setTimeout(() => { const q = document.querySelector('.rib .vqb'); if (q && $('#nsuche')) { $('#vq').placeholder = 'Suchen: LV, Firma, OZ, Text …'; $('#nsuche').appendChild(q); } }, 0);
 /* Die Versionen stehen links im Projektbaum unter dem Projektnamen (die breite Leiste bleibt verborgen – nichts springt) */
 function vlSicht() {
   const el = document.getElementById('bph-vl'); if (el) el.style.display = 'none';
@@ -1043,7 +1086,10 @@ function render() {
   const sk = schrittVon(tab)[0]; LS.set('tab:' + sk, tab);
   $('#stp').innerHTML = SCHRITTE.map(([k, l], i) => `${i ? '<span class="pf" aria-hidden="true">›</span>' : ''}<button type="button" data-schritt="${k}"${k === sk ? ' class="on" aria-current="step"' : ''}><i>${i + 1}</i>${esc(l)}</button>`).join('')
     + (bk ? `<a href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung ↗</a>` : '');
-  $('#utb').innerHTML = schrittVon(tab)[2].map((k) => `<button type="button" role="tab" data-tab="${k}"${tab === k ? ' class="on" aria-selected="true"' : ''}>${esc((TABS.find((t) => t[0] === k) || [, k])[1])}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('');
+  const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
+  const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !(LIST.find((x) => x.id === L.id) || {}).vergeben], auftraege: ['new', '＋ Neues LV', !pid], tueren: null, aufmass: null, uebersicht: null }[tab];
+  $('#utb').innerHTML = schrittVon(tab)[2].map((k) => `<button type="button" role="tab" data-tab="${k}"${tab === k ? ' class="on" aria-selected="true"' : ''}>${icn(k)}${esc((TABS.find((t) => t[0] === k) || [, k])[1])}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')
+    + `<span class="ufill"></span><span class="uakt">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle: Einlesen, Speichern unter, Drucken, Kopierquelle, Archiv …">⋯</button></span>`;
   const nLv = LIST.filter((x) => !x.archived).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
     + `<div class="nav-baum" id="pjTree">${pjBaum()}</div><button type="button" class="nneu" data-act="new">＋ Neues LV</button>`

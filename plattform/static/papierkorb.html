@@ -19,6 +19,9 @@
 .pk-i .t{flex:1;min-width:0}
 .pk-i .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pk-i .t small{display:block;color:var(--mute);font-size:.84rem}
+.pk-f{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .8rem}.pk-f input{flex:1;min-width:12rem;max-width:22rem}
+.pk-chips{display:flex;gap:.35rem;flex-wrap:wrap}.pk-chips button{border:1px solid var(--line);border-radius:999px;padding:.3rem .75rem;color:var(--ink);font-size:.88rem}
+.pk-chips button small{color:var(--mute);margin-left:.35rem;font-size:.76rem}.pk-chips button.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:600}.pk-chips button.on small{color:inherit;opacity:.75}
 .pk-i .art{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
 .pk-i .a{display:flex;gap:.4rem;flex:none;flex-wrap:wrap;justify-content:flex-end}
 .pk-g{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:1rem .2rem .2rem}
@@ -34,8 +37,8 @@
 </main>
 <script src="static/bp.js"></script>
 <script>
-let D = null, CONF = null, WER = '';   // Verwaltung: Filter nach Benutzer
-const APP = { bautagebuch: ['📒', 'Bautagebuch'], gantt: ['📅', 'Bauzeitenplan'], baukosten: ['💶', 'Baukosten'], ava: ['📄', 'Ausschreibung & Abrechnung'], aufgaben: ['☑', 'Aufgaben & Mängel'] };
+let D = null, CONF = null, WER = '', ART = '', SUCH = '';   // Filter: Benutzer (Verwaltung), Art, Suchtext
+const APP = { bautagebuch: ['📒', 'Bautagebuch'], gantt: ['📅', 'Bauzeitenplan'], baukosten: ['💶', 'Baukosten'], ava: ['📄', 'Ausschreibung & Abrechnung'], aufgaben: ['☑', 'Aufgaben & Mängel'], adressen: ['📇', 'Adressen'] };
 const wann = (t) => { if (!t) return ''; const d = new Date(t); return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
 const tagGruppe = (t) => { const d = new Date(t), h = new Date(); const tage = Math.floor((new Date(h.toDateString()) - new Date(d.toDateString())) / 864e5); return tage <= 0 ? 'Heute' : tage === 1 ? 'Gestern' : tage < 7 ? 'Diese Woche' : tage < 31 ? 'Diesen Monat' : 'Älter'; };
 function rest(t) {
@@ -52,8 +55,14 @@ function zeigen() {
   $('#ein').innerHTML = (A ? `Gelöschtes aus allen Apps und von allen Benutzern – mit allem, was daran hing. Gelöscht von <select id="wer" aria-label="Gelöscht von"><option value="">allen (${D.eintraege.length})</option>${leute.map((n) => `<option value="${esc(n)}"${n === WER ? ' selected' : ''}>${esc(n || 'unbekannt')} (${D.eintraege.filter((x) => (x.von || '') === n).length})</option>`).join('')}</select><br>`
     : `Was du gelöscht hast – mit allem, was daran hing (Berichte, Fotos, Pläne, Angebote …). Endgültig löschen kann die Verwaltung.<br>`) + `
     Automatisch endgültig löschen nach ${A ? `<select id="tage" aria-label="Automatisch endgültig löschen nach">${T.map(([k, l]) => `<option value="${k}"${k === D.einst.tage ? ' selected' : ''}>${l}</option>`).join('')}</select>` : `<b>${(T.find(([k]) => k === D.einst.tage) || [, D.einst.tage + ' Tagen'])[1]}</b>`}`;
-  const E = A && WER !== '' ? D.eintraege.filter((x) => (x.von || '') === WER) : D.eintraege;
-  if (!E.length) { $('#liste').innerHTML = '<div class="leer">Der Papierkorb ist leer.</div>'; return; }
+  const E0 = A && WER !== '' ? D.eintraege.filter((x) => (x.von || '') === WER) : D.eintraege;
+  const arten = [...new Set(E0.map((x) => x.art || ''))].sort((a, b) => a.localeCompare(b, 'de'));
+  if (ART && !arten.includes(ART)) ART = '';
+  const q = SUCH.trim().toLowerCase();
+  const E = E0.filter((x) => (!ART || x.art === ART) && (!q || [x.titel, x.projekt, x.art, x.von].join(' ').toLowerCase().includes(q)));
+  const filt = E0.length ? `<div class="pk-f"><div class="pk-chips">${[['', 'Alles', E0.length], ...arten.map((a) => [a, a, E0.filter((x) => x.art === a).length])].map(([k, l, n]) => `<button type="button" class="${ART === k ? 'on' : ''}" data-art="${esc(k)}">${esc(l)}<small>${n}</small></button>`).join('')}</div>
+    <input type="search" id="pkq" placeholder="Suchen: Name, Projekt …" value="${esc(SUCH)}" aria-label="Im Papierkorb suchen"></div>` : '';
+  if (!E.length) { $('#liste').innerHTML = filt + `<div class="leer">${E0.length ? 'Nichts gefunden.' : 'Der Papierkorb ist leer.'}</div>`; return; }
   let g = '', h = '';
   for (const x of E) {
     const gr = tagGruppe(x.geloescht); if (gr !== g) { g = gr; h += `<div class="pk-g">${g}</div>`; }
@@ -63,11 +72,14 @@ function zeigen() {
         <small>${x.projekt && x.projekt !== x.titel ? esc(x.projekt) + ' · ' : ''}gelöscht ${esc(wann(x.geloescht))}${x.von ? ' von ' + esc(x.von) : ''}${esc(rest(x.geloescht))}</small></div>
       <div class="a"><button class="btn sm pri" data-zurueck="${x.id}">↩ Wiederherstellen</button>${A ? `<button class="btn sm" data-weg="${x.id}" title="Endgültig löschen – lässt sich nicht rückgängig machen">Endgültig löschen</button>` : ''}</div></div>`;
   }
-  $('#liste').innerHTML = `<div class="pk-l">${h}</div>`;
+  $('#liste').innerHTML = filt + `<div class="pk-l">${h}</div>`;
+  const qi = $('#pkq'); if (qi && document.activeElement === document.body && SUCH) { qi.focus(); qi.setSelectionRange(SUCH.length, SUCH.length); }
 }
 async function laden() { D = await api('api/bp/papierkorb'); zeigen(); }
 const appLink = (k) => { const a = (CONF.apps || []).find((x) => x.key === k && x.allowed); return a ? appUrl(a) + '/' : ''; };
+document.addEventListener('input', (e) => { if (e.target.id === 'pkq') { SUCH = e.target.value; const pos = e.target.selectionStart; zeigen(); const i = $('#pkq'); if (i) { i.focus(); i.setSelectionRange(pos, pos); } } });
 document.addEventListener('click', async (e) => {
+  const ab = e.target.closest('[data-art]'); if (ab) { ART = ab.dataset.art; zeigen(); return; }
   const z = e.target.closest('[data-zurueck]');
   if (z) {
     z.disabled = true;

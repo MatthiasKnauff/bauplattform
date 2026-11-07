@@ -2801,8 +2801,12 @@ def angebot(a):
         x = c.execute("SELECT * FROM ava_angebot WHERE id=?", (a,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
-        if request.method == "DELETE":
-            c.execute("DELETE FROM ava_angebot WHERE id=?", (a,))
+        if request.method == "DELETE":   # in den Papierkorb (mit Preisen) – wiederherstellbar
+            lv_ = _lv(c, x["lv_id"]); pr = c.execute("SELECT name FROM projects WHERE id=?", (lv_["project_id"],)).fetchone() if lv_ and lv_["project_id"] else None
+            pk = papierkorb.ablegen(c, "ava_angebot", a, "Angebot", f"{x['bieter']} · LV {lv_['nr']} {lv_['name']}".strip() if lv_ else x["bieter"], g.user["name"], pr["name"] if pr else "", "ava")
+            _touch(c, x["lv_id"])
+            d_ = _antwort(c, x["lv_id"]).get_json(); d_["papierkorb"] = pk
+            return jsonify(d_)
         else:
             sets, args = [], []
             for k, n in (("bieter", 200), ("eingang", 10), ("notiz", 2000)):
@@ -3707,9 +3711,11 @@ def rechnung(k):
         if request.method == "DELETE":
             if _re_nachfolger(c, x):
                 return jsonify(error="Auf dieser Rechnung bauen spätere Abschlags-/Schlussrechnungen auf – erst die späteren löschen."), 400
-            c.execute("DELETE FROM ava_rechnung WHERE id=?", (k,))
+            pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
+            pk = papierkorb.ablegen(c, "ava_rechnung", k, "Rechnung", f"{x['nr']}. Rechnung{' Nr. ' + x['re_nr'] if x['re_nr'] else ''} · LV {r['nr']} {r['name']}", g.user["name"], pr["name"] if pr else "", "ava")
             _touch(c, x["lv_id"])
-            return _antwort(c, x["lv_id"])
+            d_ = _antwort(c, x["lv_id"]).get_json(); d_["papierkorb"] = pk
+            return jsonify(d_)
         d = _j(x["data"], {}) or {}
         status = x["status"]
         if b.get("status") == "offen" and status == "geprueft":   # Prüfung zurücknehmen (nur die letzte)

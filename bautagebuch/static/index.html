@@ -1890,7 +1890,7 @@ document.addEventListener('click', async e => {
   else if (a === 'backReport') { cfrom = null; cedit = false; tab = 'bericht'; renderDetail(); }
   else if (a === 'editContact') { cedit = !cedit; fillContactDetail(); }
   else if (a === 'addContact') addContact();
-  else if (a === 'delContact') { const r = await api('api/contacts/' + cid, 'DELETE'); if (r.error) { toast(r.error); return; } cid = null; contacts = await api('api/contacts'); renderDetail(); }
+  else if (a === 'delContact') { const r = await api('api/contacts/' + cid, 'DELETE'); if (r.error) { toast(r.error); return; } cid = null; contacts = await api('api/contacts'); renderDetail(); if (r.papierkorb) toast('In den Papierkorb gelegt – dort wiederherstellbar.'); }
   else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); if (bwzPrefs().on && bwzPrefs().auto) bwzOpen(); }
   else if (a === 'delReport') {
     const del = rid, r = await api('api/reports/' + del, 'DELETE'); await openProject(pid);

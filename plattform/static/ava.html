@@ -1836,10 +1836,11 @@ function abzLeer() {
 async function reLoeschen(rid) {
   const r = L && L.rechnungen.find((y) => y.id === rid); if (!r) return;
   const id = L.id, x = JSON.parse(JSON.stringify(r)), stAlt = L.status;
-  try { await call('api/rechnungen/' + r.id, 'DELETE'); } catch (e) { toast(e.message, true); return; }
+  let pk = null; try { pk = (await call('api/rechnungen/' + r.id, 'DELETE')).papierkorb; } catch (e) { toast(e.message, true); return; }
   if (PJSEL === 'r' + rid) PJSEL = null;
-  rueckgaengig(`${reTitel(x)} gelöscht – Aufmaß, Auftrag und LV bleiben`, async () => {   // wie sie war: gleiche Nummer, Prüfstand, PDFs
-    await call(`api/lv/${id}/rechnungen`, 'POST', { wiederherstellen: x });
+  rueckgaengig(`${reTitel(x)} liegt im Papierkorb – Aufmaß, Auftrag und LV bleiben`, async () => {   // wie sie war: gleiche Nummer, Prüfstand, PDFs
+    if (pk) { await api(`api/bp/papierkorb/${pk}/zurueck`, 'POST'); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }
+    else await call(`api/lv/${id}/rechnungen`, 'POST', { wiederherstellen: x });
     if (stAlt !== L.status) await call('api/lv/' + id, 'PUT', { status: stAlt });
   });
 }
@@ -1848,9 +1849,10 @@ async function angLoeschen(aid) {
   const a = L && L.angebote.find((y) => y.id === aid); if (!a) return;
   if (L.vergabe && L.vergabe.angebot_id === aid) { toast('Auf dieses Angebot ist der Auftrag erteilt – erst die Vergabe zurücknehmen.', true); return; }
   const id = L.id, x = JSON.parse(JSON.stringify(a));
-  try { await call('api/angebote/' + aid, 'DELETE'); } catch (e) { toast(e.message, true); return; }
+  let pk = null; try { pk = (await call('api/angebote/' + aid, 'DELETE')).papierkorb; } catch (e) { toast(e.message, true); return; }
   if (PJSEL === 'b' + aid) PJSEL = null;
-  rueckgaengig(`Angebot „${x.bieter}“ gelöscht – das LV bleibt`, async () => {
+  rueckgaengig(`Angebot „${x.bieter}“ liegt im Papierkorb – das LV bleibt`, async () => {
+    if (pk) { await api(`api/bp/papierkorb/${pk}/zurueck`, 'POST'); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); return; }
     const r = await call(`api/lv/${id}/angebote`, 'POST', { bieter: x.bieter, contact_id: x.contact_id || null, eingang: x.eingang || '' });
     const n = r.angebote.reduce((m, y) => (y.id > m.id ? y : m), r.angebote[0]);
     await call('api/angebote/' + n.id, 'PUT', { preise: x.preise || {}, nachlass: x.nachlass || 0, skonto: x.skonto || 0, nachlass_eur: x.nachlass_eur || 0, notiz: x.notiz || '' });

@@ -278,7 +278,8 @@ function edit(c, verlaufAuf) {
       } catch (e) { $('#mErr', bg).textContent = e.message; }
     }
     if (m === 'del') {
-      try { await api('api/contacts/' + c.id, 'DELETE'); close(); load();
+      try { const rr = await api('api/contacts/' + c.id, 'DELETE'); close(); load();
+        if (rr && rr.papierkorb) { rueckgaengig(`„${c.name}“ liegt im Papierkorb`, async () => { await api(`api/bp/papierkorb/${rr.papierkorb}/zurueck`, 'POST'); load(); }); return; }
         const alt = Object.fromEntries(['name', 'trade', 'contact_person', 'role', 'phone', 'mobile', 'email', 'website', 'street', 'zip', 'city', 'notes', 'art'].map((k) => [k, c[k] || ''])); alt.weitere = c.weitere || [];
         rueckgaengig(`„${c.name}“ gelöscht`, async () => { await api('api/contacts', 'POST', alt); load(); });
       } catch (e) {

@@ -15,7 +15,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, db, platform, sso, versionen
+from bpcore import benachrichtigung, db, papierkorb, platform, sso, versionen
 from bpcore import contacts as shared_contacts
 import common as C
 
@@ -321,11 +321,9 @@ def delete_contact(i):
         why = shared_contacts.usage(c, i)   # gleiche Regel wie im Bautagebuch und im Bauzeitenplan
         if why:
             return jsonify(error=shared_contacts.blocked_message(r["name"], why), orte=shared_contacts.orte(c, i)), 409
-        versionen.vor(c, f"kontakt:{i}")
-        c.execute("DELETE FROM contacts WHERE id=?", (i,))
-        versionen.nach(c, f"kontakt:{i}", g.user["name"])
-    C.audit(g.user["name"], "kontakte", "Kontakt gelöscht", f"{r['name']} · Adressen")
-    return jsonify(ok=True)
+        pk = papierkorb.ablegen(c, "contacts", i, "Kontakt", r["name"], g.user["name"], "", "adressen")   # wiederherstellbar (Papierkorb)
+    C.audit(g.user["name"], "kontakte", "Kontakt in den Papierkorb gelegt", f"{r['name']} · Adressen")
+    return jsonify(ok=True, papierkorb=pk)
 
 
 # ---------------------------------------------------------------- Export und Druck (wie im Bautagebuch)

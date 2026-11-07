@@ -992,7 +992,7 @@ def firms():
             if shared_contacts.usage(c, r["id"]):
                 kept.append(r["name"])   # noch verwendet (Bautagebuch, Baustelle, anderer Bauzeitenplan) → bleibt
                 continue
-            c.execute("DELETE FROM contacts WHERE id=?", (r["id"],))
+            papierkorb.ablegen(c, "contacts", r["id"], "Kontakt", r["name"], uname(), "", "adressen")   # wiederherstellbar
         resp = jsonify(all_firms(c))
         if kept:
             resp.headers["X-Kept"] = quote(", ".join(kept))

@@ -404,7 +404,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'save') { const d = $('#rDate').value, tm = $('#rTime').value; if (!d) return toast('Bitte ein Datum wählen.', true); await eSave(id, { termin: d, uhrzeit: tm }, { termin: x.termin, uhrzeit: x.uhrzeit }, 'Neuer Termin'); toast(`Neu terminiert auf ${deW(d)} ${tm}.`); return; }
     if (a === 'done') { await eSave(id, { status: 'erledigt' }, { status: 'offen' }, 'Erledigt'); if (x.quelle === 'bautagebuch') toast('Im Bautagebuch als erledigt abgehakt.'); return; }
     if (a === 'reopen') { await eSave(id, { status: 'offen' }, { status: 'erledigt' }, 'Wieder öffnen'); return; }
-    if (a === 'del') { try { const r = await api('api/erinnerungen/' + id, 'DELETE'); undoable('Löschen', () => api('api/erinnerungen/wiederherstellen', 'POST', r.item)); await reload(); } catch (er2) { toast(er2.message, true); } return; }
+    if (a === 'del') { try { const r = await api('api/erinnerungen/' + id, 'DELETE'); undoable('Löschen', () => (r.papierkorb ? api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST') : api('api/erinnerungen/wiederherstellen', 'POST', r.item))); await reload(); } catch (er2) { toast(er2.message, true); } return; }
   }
 });
 document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Erinnerung: Bericht / Bauzeitenplan / Mail öffnen

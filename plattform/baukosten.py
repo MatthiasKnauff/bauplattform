@@ -1074,8 +1074,9 @@ def file_del(i, fid):
         f = c.execute("SELECT name FROM bk_files WHERE id=? AND bk_id=?", (fid, i)).fetchone()
         if not f:
             return jsonify(error="Nicht gefunden"), 404
-        c.execute("DELETE FROM bk_files WHERE id=?", (fid,))
         r = _row(c, i)
+        pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r and r["project_id"] else None
+        papierkorb.ablegen(c, "bk_files", fid, "Plan (Kostenermittlung)", f["name"], g.user["name"], pr["name"] if pr else "", "baukosten")
         d = clean_data(_j(r["data"], {}), c)
         keep = request.args.get("keep") == "1"   # Räume aus dem Plan behalten?
         if not keep:

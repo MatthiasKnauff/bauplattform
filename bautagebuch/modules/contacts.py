@@ -88,11 +88,9 @@ def delete_contact(i):
         why = shared.usage(c, i)
         if why:
             return jsonify(error=shared.blocked_message(row["name"], why), orte=shared.orte(c, i)), 409
-        from bpcore import versionen
-        versionen.vor(c, f"kontakt:{i}")
-        c.execute("DELETE FROM contacts WHERE id=?", (i,))
-        versionen.nach(c, f"kontakt:{i}", g.user["name"])
-    return jsonify(ok=True)
+        from bpcore import papierkorb
+        pk = papierkorb.ablegen(c, "contacts", i, "Kontakt", row["name"], g.user["name"], "", "adressen")
+    return jsonify(ok=True, papierkorb=pk)
 
 
 # ---------- Export der Adressdatenbank: Excel und Druck (PDF) ----------

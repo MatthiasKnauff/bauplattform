@@ -100,6 +100,7 @@
   "Adressen: beliebig viele weitere Telefonnummern, E-Mail-Adressen, Anschriften und Ansprechpartner je Kontakt (Suche, Schnellknöpfe, Visitenkarte, Planversand)",
   "Aufgaben & Mängel: „＋ Neu“ mit Auswahl – Erinnerung, Aufgabe, Mängelrüge vor/nach Abnahme, Terminrüge (auch frei, Rückstand selbst beschreiben)",
   "AVA Variante B vervollständigt: keine Werkzeugleiste mehr – Hauptaktion und Menü „⋯“ rechts in der Bereichsleiste, Suche oben links, Ablegen/Eingang unten",
-  "Eigene Postfächer per Anmeldung bei Google und Microsoft (OAuth 2.0 mit PKCE, nur lesend, ohne Passwort, widerrufbar)"
+  "Eigene Postfächer per Anmeldung bei Google und Microsoft (OAuth 2.0 mit PKCE, nur lesend, ohne Passwort, widerrufbar)",
+  "Papierkorb für Kontakte, Angebote, Rechnungen, Erinnerungen und Kostenermittlungs-Pläne; Filter nach Art + Suche"
  ]
 }

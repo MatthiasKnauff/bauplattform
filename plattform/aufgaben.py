@@ -1275,8 +1275,10 @@ def erinnerung_del(rid):
         r = c.execute("SELECT * FROM erinnerungen WHERE id=?", (int(rid[1:]),)).fetchone()
         if not r or r["quelle"] != "eigen":
             return jsonify(error="Erinnerungen aus Bauzeitenplänen werden mit „Erledigt“ abgehakt."), 400
-        c.execute("DELETE FROM erinnerungen WHERE id=?", (r["id"],))
-    return jsonify(ok=True, item={k: r[k] for k in r.keys()})
+        from bpcore import papierkorb
+        pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
+        pk = papierkorb.ablegen(c, "erinnerungen", r["id"], "Erinnerung", r["titel"] or "Erinnerung", g.user["name"], pr["name"] if pr else "", "aufgaben")
+    return jsonify(ok=True, item={k: r[k] for k in r.keys()}, papierkorb=pk)
 
 
 @app.post("/api/erinnerungen/wiederherstellen")

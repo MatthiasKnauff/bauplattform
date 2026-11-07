@@ -1900,9 +1900,9 @@ function vAmErfassen() {
         ${Z.map((a) => `<tr${a.quelle === 'beleg' ? ' class="am-lf" title="aus der PDF der Firma übernommen – prüfen"' : ''}><td><input type="date" data-am="datum" data-id="${a.id}" value="${esc(a.datum)}"></td><td><input data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
           <td><input data-am="formel" data-id="${a.id}" value="${esc(a.formel)}" placeholder="z. B. 2 × 3,50 × 2,75"></td><td class="r">${nf(a.menge)}</td><td><button class="ib" data-amdel="${a.id}" title="Zeile löschen">✕</button></td></tr>`).join('')}
         <tr><td><input type="date" data-am-new="datum" value="${new Date().toISOString().slice(0, 10)}"></td><td><input data-am-new="ort" placeholder="z. B. EG Bad, Achse A–C"></td>
-          <td><input data-am-new="formel" placeholder="Rechenweg oder Menge, Enter speichert"></td><td class="r" id="amPrev"></td><td></td></tr></tbody></table>
+          <td><input data-am-new="formel" placeholder="Rechenweg oder Menge – Enter: weiter zur nächsten Position" title="Enter: speichern und nächste Position · Umschalt+Enter: speichern und weitere Zeile dieser Position"></td><td class="r" id="amPrev"></td><td></td></tr></tbody></table>
         <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-amraum="1" title="Flächen aus dem Raumbuch der Baukosten übernehmen">Aus dem Raumbuch …</button>
-          <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –.</span></div></div>`;
+          <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –. <b>Enter</b> speichert und geht zur nächsten Position, <b>Umschalt+Enter</b> für eine weitere Zeile dieser Position.</span></div></div>`;
   const tab_ = `<div class="tblw"><table class="lv am"><thead><tr><th>OZ</th><th>Position</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">Aufmaß</th><th class="r">%</th></tr></thead><tbody>${liste}</tbody></table></div>`;
   const offen = B.reduce((n, b) => n + Object.values((b.auslese && b.auslese.pos) || {}).filter((y) => y.menge != null).length, 0);
   const hoch = `<label class="btn sm" title="Rechnung oder Aufmaßblätter der Firma als PDF – wird rechts neben der Prüfung angezeigt und im Projektordner abgelegt">📄 Rechnung / Aufmaß der Firma (PDF) …<input type="file" accept=".pdf,application/pdf" multiple hidden data-ambeleg></label>`;
@@ -2121,16 +2121,22 @@ document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.
 document.addEventListener('drop', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); z.classList.remove('over'); amBelegHoch(e.dataTransfer.files); });
 document.addEventListener('keydown', (e) => { if (tab === 'aufmass' && amAns === 'erfassen' && e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && !document.querySelector('.modal-bg,.bed')) { e.preventDefault(); amSchritt(e.key === 'ArrowDown' ? 1 : -1); } });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.amNew != null) { e.preventDefault(); amNeu(e.target, true); }
+  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.amNew != null) { e.preventDefault(); amNeu(e.target, true, !e.shiftKey); }
 });
 document.addEventListener('input', (e) => { if (e.target.dataset && e.target.dataset.amNew === 'formel') { const v = formel(e.target.value); const p = $('#amPrev'); if (p) p.textContent = v != null ? nf(v) : ''; } });
 let amBusy = false;
-async function amNeu(el, enter) {
+/* Enter: speichern und zur nächsten Position (leeres Feld: nur weiter) · Umschalt+Enter: speichern, weitere Zeile derselben Position */
+function amWeiter() {
+  const b = document.querySelector('[data-amstep="1"]'); if (!b || b.disabled) { toast('Letzte Position erreicht.'); return; }
+  b.click(); setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 60);
+}
+async function amNeu(el, enter, weiter) {
   if ((el.dataset.amNew !== 'formel' && !enter) || amBusy) return;
-  const f = $('[data-am-new="formel"]').value.trim(); if (!f) return;
+  const f = $('[data-am-new="formel"]').value.trim(); if (!f) { if (weiter) amWeiter(); return; }
   amBusy = true; setTimeout(() => { amBusy = false; }, 800);
   if (formel(f) == null) { toast('Rechenweg nicht verständlich – bitte nur Zahlen, × / + – und Klammern.', true); return; }
-  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: $('[data-am-new="datum"]').value, ort: $('[data-am-new="ort"]').value, formel: f }); const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); } catch (er) { toast(er.message, true); }
+  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: $('[data-am-new="datum"]').value, ort: $('[data-am-new="ort"]').value, formel: f });
+    if (weiter) amWeiter(); else { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); } } catch (er) { toast(er.message, true); }
 }
 async function amSave(el) {
   const body = { [el.dataset.am]: el.value };

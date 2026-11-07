@@ -623,7 +623,7 @@
     const sugB = H.app === 'bautagebuch' ? 'api/contacts/suggest' : 'api/bp/bt/contacts/suggest';
     return new Promise((fertig) => {
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-      bg.innerHTML = `<div class="bph-dlg bph-dm bph-kmk" role="dialog" aria-label="Kontakt" style="width:min(640px,96vw)"><div class="bph-dlg-h"><b>${neu ? 'Neuer Kontakt' : esc(c.name || 'Kontakt')}</b><button type="button" class="bph-x" data-kmx aria-label="Schließen">✕</button></div>
+      bg.innerHTML = `<div class="bph-dlg bph-dm bph-kmk" role="dialog" aria-label="Kontakt" style="width:min(480px,96vw)"><div class="bph-dlg-h"><b>${neu ? 'Neuer Kontakt' : esc(c.name || 'Kontakt')}</b><button type="button" class="bph-x" data-kmx aria-label="Schließen">✕</button></div>
         <div class="bph-dm-b"><div class="bph-dm-g">${KM_F.map(([k, l, w, t]) => `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"><span>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`).join('')}
           ${neu ? '<div class="bph-dm-w bph-kmsug" data-kmsug></div>' : ''}
           <label class="bph-dm-f bph-dm-w"><span>Notizen</span><textarea data-kmf="notes" rows="2">${esc(c.notes || '')}</textarea></label></div></div>
@@ -678,7 +678,7 @@
     const KC = {}, KF = {}, gefragt = {}, B = o.basis || '';   // KC: Kontakt-ID → Kontakt · KF: Feld → Felddefinition (Typ kontakt)
     o.gruppen.forEach((g) => g.felder.forEach((f) => { if (f.typ === 'kontakt') KF[f.k] = f; }));
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-    bg.innerHTML = '<div class="bph-dlg bph-dm" role="dialog" style="width:min(820px,96vw)"></div>'; document.body.appendChild(bg);
+    bg.innerHTML = '<div class="bph-dlg bph-dm" role="dialog" style="width:min(580px,96vw)"></div>'; document.body.appendChild(bg);
     const root = bg.firstChild, e1 = (e) => { if (e.key === 'Escape') zu(); };
     const zu = async () => { if (dirty && !(await (window.bpFrage ? bpFrage('Änderungen verwerfen?', { ok: 'Verwerfen' }) : Promise.resolve(true)))) return; bg.remove(); document.removeEventListener('keydown', e1); };
     document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) zu(); });

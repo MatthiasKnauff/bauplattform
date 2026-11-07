@@ -38,14 +38,17 @@
 .ex{background:none;border:0;color:var(--mute);cursor:pointer;font:inherit;padding:0 .2rem}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card2);border-top:1px solid var(--line);padding:.65rem 1rem calc(.65rem + env(safe-area-inset-bottom));display:flex;gap:.7rem;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 -6px 20px rgba(0,0,0,.18)}
 .bar[hidden]{display:none}
-.vd{display:grid;gap:.8rem}
+.vd{display:grid;gap:.55rem}
 .vd h4{margin:.2rem 0 .3rem}
 .emp{display:grid;gap:.2rem;max-height:15rem;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem}
 .emp label{display:flex;gap:.5rem;align-items:baseline}
 .emp small{color:var(--mute)}
-.vd textarea{width:100%;min-height:12rem;font:inherit}
+.vd textarea{width:100%;min-height:8rem;height:9.5rem;font:inherit;resize:vertical}
+.vd .pl-l{max-height:4.6rem;overflow:auto}
+.vd .opt label{display:flex;gap:.45rem;align-items:center;margin:.12rem 0}
+.pa-o{display:flex;flex-wrap:wrap;gap:.35rem .9rem;align-items:center}.pa-o label{display:flex;gap:.35rem;align-items:center;white-space:nowrap}.pa-o input[type=number]{width:4rem}
 .modal.wide{width:min(980px,96vw);max-width:none}
-@media (min-width:900px){.modal.wide .vd{grid-template-columns:1fr 1fr;column-gap:1.6rem}.modal.wide .vd>.full{grid-column:1/-1}.modal.wide .vd textarea{min-height:16rem}.modal.wide .emp{max-height:22rem}}
+@media (min-width:900px){.modal.wide .vd{grid-template-columns:1fr 1fr;column-gap:1.6rem}.modal.wide .vd>.full{grid-column:1/-1}.modal.wide .vd textarea{min-height:8rem}.modal.wide .emp{max-height:12rem}}
 .vd input[type=text],.vd input[type=email]{width:100%}
 .opt{display:grid;gap:.25rem}
 .opt label{display:flex;gap:.5rem;align-items:baseline}
@@ -196,7 +199,7 @@ function bar() {
   const b = $('#bar'); b.hidden = !g.length;
   if (!g.length) return;
   const size = g.reduce((a, x) => a + x.st.pdf.groesse, 0), cad = g.filter((x) => x.st.cad.length).length;
-  b.innerHTML = `<span><b>${g.length}</b> ${g.length > 1 ? 'Pläne' : 'Plan'} gewählt · ${mb(size)}${cad ? ` · zu ${cad} passende CAD-Dateien` : ''}</span><button class="btn pri" id="vBtn">Versand vorbereiten …</button>`;
+  b.innerHTML = `<span><b>${g.length}</b> ${g.length > 1 ? 'Pläne' : 'Plan'} gewählt · ${mb(size)}${cad ? ` · zu ${cad} passende CAD-Dateien` : ''}</span><span style="display:flex;gap:.5rem"><button class="btn" id="pBtn" title="Plotauftrag an den Plotdienst: Farbe oder schwarz-weiß, Fotodruck, gefaltet, gelocht, Anzahl Sätze">🖨 Plotauftrag …</button><button class="btn pri" id="vBtn">Versand vorbereiten …</button></span>`;
 }
 
 async function laden(neu) {
@@ -234,19 +237,18 @@ async function versandDialog() {
   const passt = (gw, f) => { const a = (gw || '').toLowerCase(); if (!a) return false; if (a === 'alle firmen' || a === 'alle') return true; return f.gewerke.some((x) => x && (x.toLowerCase().includes(a) || (x.length > 2 && a.includes(x.toLowerCase())))); };
   const firmen = D.firmen.map((f) => ({ ...f, vor: gws.some((gw) => passt(gw, f)) }));
   firmen.sort((a, b) => (b.vor - a.vor) || a.name.localeCompare(b.name, 'de'));
-    (D.plotdienste || []).forEach((p) => { const f = firmen.find((x) => x.id === p.id); if (f) Object.assign(f, { plot: true, vor: false }); else firmen.push({ ...p, vor: false }); });   // Plotdienste (Adressen → Art „Plotdienst“): immer zur Auswahl, nicht vorausgewählt
+    // Plotdienste stehen nicht hier – dafür gibt es den eigenen „Plotauftrag“
   const empZeile = (f, i) => `<label><input type="checkbox" data-emp="${i}"${f.vor && f.email ? ' checked' : ''}${f.email ? '' : ' disabled'}> <span><b>${esc(f.name)}</b> <small>${f.plot ? '' : esc(f.gewerke.join(', '))}${f.email ? (f.plot ? '' : ' · ') + esc(f.email) : (f.plot ? '' : ' · ') + 'keine E-Mail-Adresse (in Adressen eintragen)'}</small></span></label>`;
-  const nFirmen = firmen.filter((f) => !f.plot).length, plots = firmen.map((f, i) => [f, i]).filter(([f]) => f.plot);
+  const nFirmen = firmen.length;
   const extra = [];
   const cadN = g.filter((x) => x.st.cad.length).length;
   const ohneGw = g.filter((x) => !x.p.gewerk).length;
   const size = (cad) => g.reduce((a, x) => a + x.st.pdf.groesse + (cad ? x.st.cad.reduce((s, c) => s + c.groesse, 0) : 0), 0);
   const html = () => `<h3>Pläne versenden</h3><div class="vd">
-    <div class="full"><h4>Pläne (${g.length})</h4><div class="mu" style="font-size:.88rem">${g.map((x) => x.p.frei ? esc(x.st.pdf.name) : esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div>
+    <div class="full"><h4>Pläne (${g.length})</h4><div class="mu pl-l" style="font-size:.88rem">${g.map((x) => x.p.frei ? esc(x.st.pdf.name) : esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div>
       ${ohneGw ? `<p class="warn">${ohneGw > 1 ? ohneGw + ' Plänen' : 'Einem Plan'} ist noch kein Gewerk zugeordnet – Empfänger bitte selbst wählen oder in der Liste das Gewerk eintragen.</p>` : ''}</div>
     <div><h4>Empfänger</h4>${gws.length ? `<p class="mu" style="margin:.1rem 0 .4rem;font-size:.85rem">Vorgeschlagen nach Gewerk: ${esc(gws.join(', '))}</p>` : ''}
       <div class="emp">${nFirmen ? firmen.map((f, i) => (f.plot ? '' : empZeile(f, i))).join('') : '<span class="mu">Für dieses Projekt sind keine Firmen bekannt (Bauzeitenplan → Gewerke & Firmen oder Anwesende im Bautagebuch).</span>'}
-      ${plots.length ? `<div class="mu" style="font-size:.8rem;margin:.5rem 0 .1rem;font-weight:600">🖨 Plotdienst</div>${plots.map(([f, i]) => empZeile(f, i)).join('')}` : '<div class="mu" style="font-size:.8rem;margin:.5rem 0 0">🖨 Plotdienst: in Adressen einen Kontakt mit der Art „Plotdienst“ anlegen – dann steht er hier immer zur Auswahl.</div>'}
       ${extra.map((e, i) => `<label><input type="checkbox" data-ext="${i}" checked> <span><b>${esc(e.name || e.email)}</b> <small>${esc(e.email)}</small></span></label>`).join('')}</div>
       <div style="display:flex;gap:.5rem;margin-top:.4rem"><input type="email" id="vAdd" placeholder="weitere E-Mail-Adresse" list="vAddL" style="flex:1"><datalist id="vAddL"></datalist><button class="btn sm" data-m="add">Hinzufügen</button></div></div>
     <div style="display:grid;gap:.8rem;align-content:start">${cadN ? `<div class="opt"><h4>CAD-Dateien</h4><p class="mu" style="margin:0;font-size:.88rem">Zu ${cadN} der gewählten Pläne gibt es passende CAD-Dateien (gleiche Nummer und gleicher Index). Mitsenden?</p>
@@ -258,7 +260,7 @@ async function versandDialog() {
       <label class="dis" title="folgt, sobald die eigene Nextcloud eingerichtet ist"><input type="radio" name="vArt" value="link" disabled> als Download-Link über die Nextcloud des Büros – folgt</label></div></div>
     <div class="full"><h4>E-Mail</h4><label>Betreff<input type="text" id="vBetreff" value="${esc(V.betreff)}"></label>
       <label>Text<textarea id="vText">${esc(V.text)}</textarea></label>
-      <p class="mu" style="font-size:.8rem;margin:.2rem 0 0">{planliste} wird durch die Liste der Pläne ersetzt, {firma} durch den Namen des Empfängers, {anzahl} durch die Zahl der Pläne. Die Vorlage pflegt der Administrator unter Mein Konto → E-Mail-Vorlagen.</p></div>
+      <p class="mu" style="font-size:.76rem;margin:.1rem 0 0">{planliste} = Liste der Pläne · {firma} = Empfänger · {anzahl} = Zahl der Pläne · Vorlage: Mein Konto → E-Mail-Vorlagen</p></div>
     <p id="vSize" class="mu full"></p>${V.mail ? '' : '<p class="warn full">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'}
     </div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="send">Senden</button></div>`;
   const bg = modalBox(html(), async (m, bg, close) => {
@@ -292,6 +294,54 @@ async function versandDialog() {
   api('api/kontakte').then((K) => { const dl = $('#vAddL', bg); if (dl) dl.innerHTML = K.map((k) => `<option value="${esc(k.email)}">${esc(k.name)}</option>`).join(''); }).catch(() => {});
 }
 
+/* ---------- Plotauftrag: eigene Mail an den Plotdienst, das Anschreiben setzt sich aus den Häkchen zusammen ---------- */
+const plotText = (o, bv) => {
+  const art = [o.saetze > 1 ? `${o.saetze} Sätze` : '1 Satz', o.farbe === 'sw' ? 'schwarz-weiß' : 'farbig', o.foto ? 'als Fotodruck' : '', o.gefaltet ? 'gefaltet' : 'ungefaltet (gerollt)', o.gelocht ? 'gelocht' : ''].filter(Boolean);
+  const aus = art.length > 1 ? art.slice(0, -1).join(', ') + ' und ' + art[art.length - 1] : art[0];
+  return `Sehr geehrte Damen und Herren,\n\nbitte plotten Sie die angehängten Pläne zum Bauvorhaben ${bv}:\n\n{planliste}\n\nAusführung: ${aus}.${o.bem ? '\n\n' + o.bem : ''}\n\nBitte geben Sie uns kurz Bescheid, wann die Pläne fertig sind.\n\nMit freundlichen Grüßen\n\n{signatur}`;
+};
+async function plotDialog() {
+  const g = gewaehlt(); if (!g.length) return;
+  let V; try { V = await api('api/vorlage?project_id=' + pid); } catch (e) { toast(e.message, true); return; }
+  const P = D.plotdienste || [], O = { ...(CFG && CFG.plot || { farbe: 'farbe', foto: false, gefaltet: true, gelocht: false, saetze: 1 }), bem: '' };
+  let eigen = false;   // Text von Hand geändert → nicht mehr automatisch überschreiben
+  const bv = V.bauvorhaben || '';
+  const html = `<h3>🖨 Plotauftrag</h3><div class="vd">
+    <div class="full"><h4>Pläne (${g.length})</h4><div class="mu pl-l" style="font-size:.88rem">${g.map((x) => x.p.frei ? esc(x.st.pdf.name) : esc(`${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' Index ' + x.st.index : ''} ${x.p.titel}`)).join('<br>')}</div></div>
+    <div class="full"><h4>Plotdienst</h4>${P.length ? `<div class="pa-o">${P.map((p, i) => `<label><input type="radio" name="pDienst" value="${i}"${i ? '' : ' checked'}${p.email ? '' : ' disabled'}> <b>${esc(p.name)}</b> <small class="mu">${esc(p.email || 'keine E-Mail-Adresse')}</small></label>`).join('')}</div>`
+      : '<p class="warn" style="margin:0">Noch kein Plotdienst: in Adressen einen Kontakt mit der Art „Plotdienst“ anlegen.</p>'}</div>
+    <div class="full"><h4>Ausführung</h4><div class="pa-o">
+      <label><input type="radio" name="pFarbe" value="farbe"${O.farbe !== 'sw' ? ' checked' : ''}> farbig</label><label><input type="radio" name="pFarbe" value="sw"${O.farbe === 'sw' ? ' checked' : ''}> schwarz-weiß</label>
+      <label><input type="checkbox" data-po="foto"${O.foto ? ' checked' : ''}> Fotodruck</label><label><input type="checkbox" data-po="gefaltet"${O.gefaltet ? ' checked' : ''}> gefaltet</label><label><input type="checkbox" data-po="gelocht"${O.gelocht ? ' checked' : ''}> gelocht</label>
+      <label><input type="number" id="pSaetze" min="1" max="50" value="${O.saetze}"> Sätze</label></div>
+      <input type="text" id="pBem" placeholder="Hinweis, z. B. Lieferung an die Baustelle bis Freitag (optional)" style="margin-top:.4rem"></div>
+    <div class="full"><h4>Anschreiben</h4><label>Betreff<input type="text" id="pBetreff" value="${esc('Plotauftrag ' + bv)}"></label>
+      <label>Text <small class="mu">– setzt sich aus den Häkchen zusammen, Änderungen von Hand bleiben</small><textarea id="pText">${esc(plotText(O, bv))}</textarea></label></div>
+    <div class="full opt"><label><input type="radio" name="pArt" value="direkt"${V.versand !== 'mich' ? ' checked' : ''}> direkt an den Plotdienst</label>
+      <label style="margin-left:1.6rem"><input type="checkbox" id="pKopie"${V.kopie ? ' checked' : ''}> Kopie an mich</label>
+      <label><input type="radio" name="pArt" value="mich"${V.versand === 'mich' ? ' checked' : ''}> an mich zum Weiterleiten${V.email ? ` (${esc(V.email)})` : ''}</label></div>
+    ${V.mail ? '' : '<p class="warn full">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'}
+    </div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="send"${P.some((p) => p.email) ? '' : ' disabled'}>Plotauftrag senden</button></div>`;
+  const lese = (bg) => ({ farbe: (bg.querySelector('[name=pFarbe]:checked') || {}).value || 'farbe', foto: $('[data-po=foto]', bg).checked, gefaltet: $('[data-po=gefaltet]', bg).checked, gelocht: $('[data-po=gelocht]', bg).checked, saetze: Math.max(1, +$('#pSaetze', bg).value || 1), bem: $('#pBem', bg).value.trim() });
+  const bg = modalBox(html, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'send') return;
+    const d = P[+((bg.querySelector('[name=pDienst]:checked') || {}).value || 0)]; if (!d || !d.email) { toast('Bitte einen Plotdienst mit E-Mail-Adresse wählen.', true); return; }
+    const btn = bg.querySelector('[data-m=send]'); btn.disabled = true; btn.textContent = 'wird gesendet …';
+    try {
+      const r = await api('api/versand', 'POST', { project_id: pid, versand: (bg.querySelector('[name=pArt]:checked') || {}).value || 'direkt', kopie: $('#pKopie', bg).checked, cad: false,
+        empfaenger: [{ name: d.name, email: d.email, contact_id: d.id }], betreff: $('#pBetreff', bg).value, text: $('#pText', bg).value,
+        plaene: g.map((x) => ({ pfad: x.st.pdf.pfad, nr: x.p.nr, index: x.st.index, titel: x.p.titel, kennung: x.p.kennung, cad: [] })) });
+      close(); toast(`Plotauftrag (${g.length} ${g.length > 1 ? 'Pläne' : 'Plan'}) gesendet an ${r.an.map((e) => e.name || e.email).join(', ')}.` + (r.fehler.length ? ' Nicht gesendet: ' + r.fehler.join('; ') : ''), !!r.fehler.length);
+      SEL.clear(); laden();
+    } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Plotauftrag senden'; }
+  });
+  const box = bg && bg.querySelector ? bg : [...document.querySelectorAll('.modal-bg')].pop();
+  box.querySelector('.modal').classList.add('wide');
+  box.addEventListener('input', (e) => { if (e.target.id === 'pText') { eigen = true; return; } if (!eigen && (e.target.id === 'pBem' || e.target.id === 'pSaetze')) $('#pText', box).value = plotText(lese(box), bv); });
+  box.addEventListener('change', (e) => { if (!eigen && e.target.id !== 'pText') $('#pText', box).value = plotText(lese(box), bv); });
+}
+
 /* ---------- Einstellungen: Planname wie beim CSV-Einlesen zuordnen, Listen als kleine Tabellen ---------- */
 const ROLLEN = [['phase', 'Leistungsphase'], ['variante', 'Gebäudetyp / Variante'], ['planart', 'Planart'], ['lfd', 'Lfd. Nr. (bei Grundrissen Geschoss)'], ['egal', '– ohne Bedeutung –']];
 function nameZerlegen(n) {   // wie planname.lies (vereinfacht): Projekt, Kennung, Nummernstellen, Index, Titel
@@ -305,7 +355,7 @@ function nameZerlegen(n) {   // wie planname.lies (vereinfacht): Projekt, Kennun
 async function setDialog(host) {
   try { CFG = await api('api/einstellungen'); } catch (e) { toast(e.message, true); return; }
   const dis = CFG.admin ? '' : ' disabled';
-  const W = { stellen: [...(CFG.stellen || ['phase', 'variante', 'planart', 'lfd'])], phasen: Object.entries(CFG.phasen), planarten: Object.entries(CFG.planarten), kennungen: Object.entries(CFG.kennungen), stichworte: Object.entries(CFG.stichworte), max_mb: CFG.max_mb };
+  const W = { stellen: [...(CFG.stellen || ['phase', 'variante', 'planart', 'lfd'])], phasen: Object.entries(CFG.phasen), planarten: Object.entries(CFG.planarten), kennungen: Object.entries(CFG.kennungen), stichworte: Object.entries(CFG.stichworte), max_mb: CFG.max_mb, plot: { ...(CFG.plot || {}) } };
   const bsp0 = (D && D.plaene && D.plaene.length && ((D.plaene.find((p) => p.kennung && p.staende.some((x) => x.index)) || D.plaene[0]).staende.find((x) => x.pdf) || {}).pdf || {}).name || 'A526 ELT 5.1.1.2 INDEX B Grundriss EG.pdf';
   let bsp = bsp0;
   const tabelle = (k, k1, k2, breit) => `<table class="zt" data-zt="${k}"><thead><tr><th style="width:${breit || '5.5rem'}">${k1}</th><th>${k2}</th><th style="width:2rem"></th></tr></thead><tbody>
@@ -330,7 +380,11 @@ async function setDialog(host) {
     <div class="g2"><div><b>Leistungsphasen</b>${tabelle('phasen', 'Ziffer', 'Bedeutung')}</div><div><b>Planarten</b>${tabelle('planarten', 'Ziffer', 'Bedeutung')}</div></div>
     <div><b>Kennungen → Gewerk</b> <span class="mu" style="font-size:.85rem">(Buchstaben vor der Nummer, z. B. ELT)</span>${tabelle('kennungen', 'Kennung', 'Gewerk')}</div>
     <div><b>Stichwörter im Titel → Gewerk</b> <span class="mu" style="font-size:.85rem">(passt kein Stichwort, wählt man das Gewerk in der Liste – das wird gemerkt)</span>${tabelle('stichworte', 'Gewerk', 'Stichwörter (mit Komma)', '9rem')}</div>
-    <label>E-Mail-Anhänge höchstens <input type="number" id="sMb" min="1" max="100" value="${W.max_mb}" style="width:5rem"${dis}> MB</label></div>
+    <label>E-Mail-Anhänge höchstens <input type="number" id="sMb" min="1" max="100" value="${W.max_mb}" style="width:5rem"${dis}> MB</label>
+    <div><b>Plotauftrag – Vorgaben</b> <span class="mu" style="font-size:.85rem">(im Plotauftrag vorausgewählt, dort änderbar)</span>
+      <div class="pa-o" style="margin-top:.3rem"><label><input type="radio" name="sFarbe" value="farbe"${W.plot.farbe !== 'sw' ? ' checked' : ''}${dis}> farbig</label><label><input type="radio" name="sFarbe" value="sw"${W.plot.farbe === 'sw' ? ' checked' : ''}${dis}> schwarz-weiß</label>
+      <label><input type="checkbox" data-sp="foto"${W.plot.foto ? ' checked' : ''}${dis}> Fotodruck</label><label><input type="checkbox" data-sp="gefaltet"${W.plot.gefaltet ? ' checked' : ''}${dis}> gefaltet</label><label><input type="checkbox" data-sp="gelocht"${W.plot.gelocht ? ' checked' : ''}${dis}> gelocht</label>
+      <label><input type="number" id="sSaetze" min="1" max="50" value="${W.plot.saetze}"${dis}> Sätze</label></div></div></div>
     <div class="acts"><button type="button" class="btn" data-bph-verlauf="bp:plaene" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button>${CFG.admin ? '<button class="btn" data-m="std">Vorgaben</button>' : ''}<button class="btn" data-m="x">${CFG.admin ? 'Abbrechen' : 'Schließen'}</button>${CFG.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`;
   const box0 = boxIn(host)(html(), async (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -338,13 +392,14 @@ async function setDialog(host) {
     if (m === 'ok') {
       const obj = (k) => Object.fromEntries(W[k].filter(([a, v]) => String(a).trim() && String(v).trim()).map(([a, v]) => [String(a).trim(), String(v).trim()]));
       try {
-        CFG = await api('api/einstellungen', 'PUT', { stellen: W.stellen, phasen: obj('phasen'), planarten: obj('planarten'), kennungen: obj('kennungen'), stichworte: obj('stichworte'), max_mb: +$('#sMb', bg).value });
+        CFG = await api('api/einstellungen', 'PUT', { stellen: W.stellen, phasen: obj('phasen'), planarten: obj('planarten'), kennungen: obj('kennungen'), stichworte: obj('stichworte'), max_mb: +$('#sMb', bg).value, plot: plotLesen(bg) });
         if (!host) close(); toast('Gespeichert.'); laden();
       } catch (e) { toast(e.message, true); }
     }
   });
   const root = host || (box0 && box0.nodeType ? box0 : [...document.querySelectorAll('.modal-bg')].pop()) || document;
-  const neuZeichnen = (bg) => { const r = bg || root; const box = r.querySelector('.set'); if (!box) return; const y = box.scrollTop; const mb = r.querySelector('#sMb'); if (mb) W.max_mb = +mb.value; box.outerHTML = html().split('<div class="acts">')[0].replace(/^<h3>[^<]*<\/h3>/, ''); r.querySelector('.set').scrollTop = y; };
+  const plotLesen = (r) => { const q = (x) => r.querySelector(x); if (!q('#sSaetze')) return W.plot; return { farbe: (q('[name=sFarbe]:checked') || {}).value || 'farbe', foto: q('[data-sp=foto]').checked, gefaltet: q('[data-sp=gefaltet]').checked, gelocht: q('[data-sp=gelocht]').checked, saetze: +q('#sSaetze').value || 1 }; };
+  const neuZeichnen = (bg) => { const r = bg || root; const box = r.querySelector('.set'); if (!box) return; const y = box.scrollTop; const mb = r.querySelector('#sMb'); if (mb) W.max_mb = +mb.value; W.plot = plotLesen(r); box.outerHTML = html().split('<div class="acts">')[0].replace(/^<h3>[^<]*<\/h3>/, ''); r.querySelector('.set').scrollTop = y; };
   const zuNeu = () => { const z = root.querySelector('#sZu'); if (z) z.innerHTML = zuordnung(); };
   root.addEventListener('input', (e) => {
     const t = e.target;
@@ -367,6 +422,7 @@ document.addEventListener('click', async (e) => {
   if (t.id === 'selNeu') { sichtbar().forEach((p) => { const st = p.staende.find((s) => s.pdf); if (st) SEL.add(stKey(p, st)); }); render(); return; }
   if (t.id === 'selNone') { SEL.clear(); render(); return; }
   if (t.id === 'vBtn') { versandDialog(); return; }
+  if (t.id === 'pBtn') { plotDialog(); return; }
   if (t.id === 'reBtn') { laden(true); return; }   // Ordner jetzt neu durchsuchen (sonst Zwischenspeicher vom selben Tag)
   if (t.id === 'ordBaum') { baumDialog(); return; }
   if (t.id === 'ordMerkAlt') { try { await api('api/projekt/' + pid, 'PUT', { ordner: D.ordner }); D.gemerkt = D.ordner; renderOrd(); toast('Planordner gemerkt.'); } catch (er) { toast(er.message, true); } }

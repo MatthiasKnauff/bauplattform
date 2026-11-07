@@ -99,7 +99,26 @@ def conf(c):
             pass
         if isinstance(d.get("stellen"), list) and d["stellen"]:
             out["stellen"] = [str(x) if str(x) in planname.ROLLEN else "egal" for x in d["stellen"][:6]]
+    out["plot"] = _plot(d.get("plot") if isinstance(d, dict) else None)
     return out
+
+
+PLOT_STANDARD = {"farbe": "farbe", "foto": False, "gefaltet": True, "gelocht": False, "saetze": 1}
+
+
+def _plot(x):
+    """Vorgaben für den Plotauftrag (Farbe/SW, Fotodruck, gefaltet, gelocht, Sätze)."""
+    o = dict(PLOT_STANDARD)
+    if isinstance(x, dict):
+        o["farbe"] = "sw" if x.get("farbe") == "sw" else "farbe"
+        for k in ("foto", "gefaltet", "gelocht"):
+            if k in x:
+                o[k] = bool(x[k])
+        try:
+            o["saetze"] = max(1, min(50, int(x.get("saetze", 1))))
+        except (TypeError, ValueError):
+            pass
+    return o
 
 
 def _sees(c, pid):
@@ -209,6 +228,8 @@ def einstellungen():
                     cur[k] = {str(a).strip()[:40]: str(v).strip()[:400] for a, v in b[k].items() if str(a).strip() and str(v).strip()}
             if isinstance(b.get("stellen"), list) and b["stellen"]:
                 cur["stellen"] = [str(x) if str(x) in planname.ROLLEN else "egal" for x in b["stellen"][:6]]
+            if isinstance(b.get("plot"), dict):
+                cur["plot"] = _plot(b["plot"])
             if "max_mb" in b:
                 try:
                     cur["max_mb"] = max(1, min(100, int(b["max_mb"])))
@@ -357,7 +378,7 @@ def vorlage():
         k = konto.prefs(c, g.user["id"])
     W = _werte(p, cf)
     keep = {"planliste": "{planliste}", "anzahl": "{anzahl}", "firma": "{firma}", "signatur": "{signatur}"}
-    return jsonify(betreff=vorlagen.fuellen(T["betreff"], {**W, **keep}), text=vorlagen.fuellen(T["text"], {**W, **keep}),
+    return jsonify(betreff=vorlagen.fuellen(T["betreff"], {**W, **keep}), text=vorlagen.fuellen(T["text"], {**W, **keep}), bauvorhaben=W["bauvorhaben"],
                    versand="mich" if k.get("versand") == "mich" else "direkt", kopie=k.get("kopie", True), email=g.user["email"] or "",
                    mail=mail.configured(cf))
 

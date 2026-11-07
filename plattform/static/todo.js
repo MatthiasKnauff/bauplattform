@@ -55,10 +55,16 @@ function tdAlle() {
   const M = (TD.manuell || []).map((x) => ({ ...x, f: x.faellig || '', projekt: x.pid && TDREF ? ((TDREF.projekte || []).find((p) => p.id === x.pid) || {}).name || '' : '' }));
   return { offen: [...A.filter((x) => !x.spaeter), ...M.filter((x) => x.status === 'offen')], spaeter: A.filter((x) => x.spaeter), erledigt: M.filter((x) => x.status === 'erledigt'), h };
 }
+/* Von wem → für wen, immer sichtbar */
+function tdWer(x) {
+  const ich = TDREF && x.erstellt_von === TDREF.ich, v = x.erstellt_name ? (ich ? 'mir' : x.erstellt_name) : '';
+  const f = (x.personen_namen || []).length ? x.personen_namen.join(', ') : (v ? (ich ? 'mich selbst' : x.erstellt_name) : '');
+  return (v ? 'von ' + v : '') + (v && f ? ' → ' : '') + (f ? 'für ' + f : '');
+}
 function tdZeile(x) {
   const h = tdHeute(), rot = x.f && x.f < h;
-  const unter = [x.auto ? `<span class="rg" title="automatisch erkannt">⚙ ${esc(x.regel_name)}</span>` : '', x.projekt, x.text, !x.auto && x.personen_namen && x.personen_namen.length ? '👥 ' + x.personen_namen.join(', ') : '', !x.auto && (x.dateien || []).length ? '📎 ' + x.dateien.length : '',
-    !x.auto && x.erstellt_name && TDREF && x.erstellt_von !== TDREF.ich ? 'von ' + x.erstellt_name : '', x.spaeter ? 'zurückgestellt bis ' + tdDatum(x.spaeter) : '', x.status === 'erledigt' ? `erledigt ${x.erledigt_name ? 'von ' + x.erledigt_name : ''}` : ''].filter(Boolean);
+  const unter = [x.auto ? `<span class="rg" title="automatisch erkannt">⚙ ${esc(x.regel_name)}</span>` : '', x.projekt, x.text, !x.auto ? tdWer(x) : '', !x.auto && (x.dateien || []).length ? '📎 ' + x.dateien.length : '',
+    x.spaeter ? 'zurückgestellt bis ' + tdDatum(x.spaeter) : '', x.status === 'erledigt' ? `erledigt ${x.erledigt_name ? 'von ' + x.erledigt_name : ''}` : ''].filter(Boolean);
   return `<div class="tr${x.status === 'erledigt' ? ' fertig' : ''}" data-tk="${esc(x.key)}">
     <input type="checkbox" class="ck" data-td="fertig"${x.status === 'erledigt' ? ' checked' : ''} title="${x.auto ? 'Erledigt – ausblenden (kommt nicht wieder)' : 'Erledigt'}" aria-label="erledigt">
     <span class="tt" data-td="${x.regel === 'erinnerungen' ? 'erin' : x.auto ? 'oeffnen' : 'bearbeiten'}" title="${x.regel === 'erinnerungen' ? 'Erinnerung hier öffnen' : x.auto ? 'Zur Stelle in der App' : 'Bearbeiten'}"><b>${x.prio ? '<span class="pr">❗</span>' : ''}${esc(x.titel)}</b><span class="x">${unter.map((u, i) => i === 0 && x.auto ? u : esc(u)).join(' · ')}</span></span>

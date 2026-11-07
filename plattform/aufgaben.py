@@ -1054,7 +1054,7 @@ def erinnerungen(scope_arg=None):
         names = {r["id"]: C.full_name(r) for r in c.execute("SELECT * FROM users")}
         plans = {r["id"]: r for r in c.execute("SELECT id, name, project_id, updated_by FROM gantt_projects")}
         own = c.execute("SELECT * FROM erinnerungen WHERE status IN ('offen','erledigt') ORDER BY termin, id").fetchall()
-        bt = c.execute("""SELECT i.id, i.kind, i.text, i.company, i.due, i.due_time, i.reminded, i.remind_user, r.id AS rid, r.project_id AS pid
+        bt = c.execute("""SELECT i.id, i.kind, i.text, i.company, i.due, i.due_time, i.reminded, i.remind_user, r.id AS rid, r.project_id AS pid, r.site_manager AS bl
             FROM items i JOIN reports r ON r.id=i.report_id WHERE i.due!='' AND i.done=0 ORDER BY i.due""").fetchall()
         secs = {r["key"]: r["title"] for r in c.execute("SELECT key, title FROM sections")}
     today = date.today().isoformat()
@@ -1085,7 +1085,7 @@ def erinnerungen(scope_arg=None):
         out.append({"id": f"b{x['id']}", "quelle": "bautagebuch", "titel": f"{secs.get(x['kind'], 'Eintrag')}: {(x['text'] or '').strip().splitlines()[0][:140] if (x['text'] or '').strip() else ''}",
                     "text": x["text"] or "", "termin": x["due"], "uhrzeit": x["due_time"] or "09:00", "ereignis": "", "status": "offen",
                     "gesendet": x["reminded"] or "", "manuell": False, "projekt": p["name"], "pid": x["pid"], "rid": x["rid"],
-                    "an": [names.get(x["remind_user"], "?")] if x["remind_user"] else [], "an_ids": [x["remind_user"]] if x["remind_user"] else [], "von": "",
+                    "an": [names.get(x["remind_user"], "?")] if x["remind_user"] else [], "an_ids": [x["remind_user"]] if x["remind_user"] else [], "von": x["bl"] or "",
                     "firma": x["company"] or "", "gw": ""})
     for o in out:
         o["lage"] = ("erledigt" if o["status"] == "erledigt" else "ueberfaellig" if o["termin"] < today and not o["gesendet"] and o["quelle"] != "bautagebuch"

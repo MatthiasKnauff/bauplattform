@@ -17,7 +17,11 @@ const appUrl = (a) => {
 };
 async function api(u, m = 'GET', d) {
   const r = await fetch(u, { method: m, headers: d ? { 'Content-Type': 'application/json' } : {}, body: d ? JSON.stringify(d) : undefined });
-  const j = await r.json().catch(() => ({}));
+  const j = await r.json().catch(() => null);
+  if (j === null) {   // keine JSON-Antwort, z. B. Fehlerseite des Webservers (Zeitüberschreitung, Datei zu groß)
+    throw new Error(r.status === 504 || r.status === 502 ? 'Der Server hat zu lange gebraucht – bitte noch einmal versuchen.'
+      : r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : r.ok ? 'Unerwartete Antwort vom Server.' : `Fehler ${r.status} ${r.statusText || ''}`.trim());
+  }
   if (r.status === 401 && j.login) { location.href = j.login; throw new Error('Nicht angemeldet'); }
   if (!r.ok) { const e = new Error(j.error || r.statusText); e.data = j; throw e; }
   return j;

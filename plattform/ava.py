@@ -2185,7 +2185,7 @@ def _lvdoks(c, i):
     out = []
     for d in c.execute("SELECT id, name, auslese, created FROM ava_lvdok WHERE lv_id=? ORDER BY id", (i,)).fetchall():
         A = _j(d["auslese"], {}) or {}
-        out.append({"id": d["id"], "name": d["name"], "created": d["created"], "ocr": bool(A.get("ocr")),
+        out.append({"id": d["id"], "name": d["name"], "created": d["created"], "ocr": bool(A.get("ocr")), "laeuft": bool(A.get("laeuft")), "fehler": A.get("fehler") or "",
                     "n_pos": sum(1 for x in A.get("vorschlag") or [] if x["typ"] == "pos"), "n_titel": sum(1 for x in A.get("vorschlag") or [] if x["typ"] == "titel")})
     return out
 
@@ -2198,18 +2198,43 @@ def lvdok_neu(i):
     data = f.read(80 * 1024 * 1024 + 1)
     if len(data) > 80 * 1024 * 1024 or not data.startswith(b"%PDF"):
         return jsonify(error="Bitte eine PDF-Datei (höchstens 80 MB)."), 400
-    try:
-        A = _lv_lesen(data)
-    except Exception as e:
-        A = {"zeilen": {}, "vorschlag": [], "ocr": False, "fehler": str(e)[:200]}
+    scan = _ist_scan(data)
+    A = {"zeilen": {}, "vorschlag": [], "ocr": True, "laeuft": True} if scan else None
+    if not scan:
+        try:
+            A = _lv_lesen(data)
+        except Exception as e:
+            A = {"zeilen": {}, "vorschlag": [], "ocr": False, "fehler": str(e)[:200]}
     with db.tx() as c:
         if not _lv(c, i):
             return jsonify(error="Nicht gefunden"), 404
         _lvdok_tabelle(c)
-        c.execute("INSERT INTO ava_lvdok(lv_id, name, data, auslese, created, user_name) VALUES(?,?,?,?,?,?)",
-                  (i, _s(f.filename, 200) or "LV.pdf", data, json.dumps(A, ensure_ascii=False), _now(), g.user["name"]))
+        d = c.execute("INSERT INTO ava_lvdok(lv_id, name, data, auslese, created, user_name) VALUES(?,?,?,?,?,?) RETURNING id",
+                      (i, _s(f.filename, 200) or "LV.pdf", data, json.dumps(A, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         _touch(c, i)
-        return _antwort(c, i)
+        antwort = _antwort(c, i)
+    if scan:   # Texterkennung dauert je Seite einige Sekunden – im Hintergrund, die Seite fragt nach (sonst bricht der Webserver nach 60 s ab)
+        import threading
+
+        def lesen():
+            try:
+                B = _lv_lesen(data)
+            except Exception as e:
+                B = {"zeilen": {}, "vorschlag": [], "ocr": True, "fehler": str(e)[:200]}
+            with db.tx() as c2:
+                c2.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(B, ensure_ascii=False), d))
+        threading.Thread(target=lesen, daemon=True).start()
+    return antwort
+
+
+def _ist_scan(data):
+    """Hat die PDF auf den ersten Seiten keinen Text (eingescannt)?"""
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            return not any((pg.extract_text() or "").strip() for pg in pdf.pages[:3])
+    except Exception:
+        return False
 
 
 @app.route("/api/lvdok/<int:d>", methods=["GET", "DELETE"])
@@ -2718,20 +2743,19 @@ def _tripel(nums):
     return None
 
 
-def _ocr_woerter(pg):
+def _ocr_woerter(pg, dpi=300, timeout=90):
     """Wörter einer gescannten Seite per Tesseract (deutsch), in PDF-Koordinaten wie pdfplumber.extract_words."""
     import shutil
     import subprocess
     import tempfile
     if not shutil.which("tesseract"):
         return []
-    dpi = 300
     try:
         bild = pg.to_image(resolution=dpi).original.convert("L")
         with tempfile.TemporaryDirectory() as td:
             f = os.path.join(td, "s.png")
             bild.save(f)
-            out = subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", "6", "tsv"], capture_output=True, text=True, timeout=90).stdout
+            out = subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", "6", "tsv"], capture_output=True, text=True, timeout=timeout).stdout
     except Exception:
         return []
     k = 72.0 / dpi
@@ -2783,15 +2807,19 @@ def _auslese_anwenden(c, bid, rid, lv):
     return A
 
 
-def _pdf_text(data, seiten=10):
-    """Text einer PDF (bei Scans per Texterkennung) – zeilenweise, für die Erkennung von Art, Firma und Projekt."""
+def _pdf_text(data, seiten=10, ocr_seiten=2, ocr_budget=35):
+    """Text einer PDF (bei Scans per Texterkennung) – zeilenweise, für die Erkennung von Art, Firma und Projekt.
+    Für das Erkennen reicht der Anfang: höchstens ocr_seiten Seiten per Texterkennung, zusammen höchstens ocr_budget
+    Sekunden (sonst bricht der Webserver nach 60 s mit einer Fehlerseite ab)."""
+    import time
     import pdfplumber
-    out, ocr = [], False
+    out, ocr, t0 = [], False, time.time()
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         for n, pg in enumerate(pdf.pages[:seiten], 1):
             ws = pg.extract_words(keep_blank_chars=False, use_text_flow=False)
-            if not ws and n <= 4:
-                ws = _ocr_woerter(pg)
+            rest = ocr_budget - (time.time() - t0)
+            if not ws and n <= ocr_seiten and rest > 5:
+                ws = _ocr_woerter(pg, dpi=200, timeout=max(5, int(rest)))
                 ocr = ocr or bool(ws)
             ws.sort(key=lambda w: (round(float(w["top"]) / 4), float(w["x0"])))
             zeile, y = [], None

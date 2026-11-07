@@ -636,8 +636,15 @@ async function avaDokument(f) {
   const fd = new FormData(); fd.append('datei', f); if (pid) fd.append('project_id', pid);
   toast(`„${f.name}“ wird gelesen …`);
   let E;
-  try { const r = await fetch('api/ava/erkennen', { method: 'POST', body: fd, credentials: 'same-origin' }); E = await r.json(); if (!r.ok) throw new Error(E.error || 'Fehler ' + r.status); }
-  catch (e) { toast(e.message, true); return; }
+  try {
+    const r = await fetch('api/ava/erkennen', { method: 'POST', body: fd, credentials: 'same-origin' });
+    E = await r.json().catch(() => null);
+    if (!E) throw new Error(r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : r.status === 504 || r.status === 502 ? 'Das Lesen hat zu lange gedauert.' : `Antwort ${r.status} vom Server.`);
+    if (!r.ok) throw new Error(E.error || 'Fehler ' + r.status);
+  } catch (e) {   // Erkennen ging nicht – trotzdem fragen, wohin die Datei soll (Art, Projekt, LV von Hand)
+    if (/zu groß/.test(e.message) && !/Webserver/.test(e.message)) { toast(e.message, true); return; }
+    E = { name: f.name, format: /\.pdf$/i.test(f.name) ? 'pdf' : '', dok: '', sicher: false, projekte: [], lvs: [], firma: '', hinweis: `Automatisch erkennen ging nicht (${e.message}) – bitte Art, Projekt und LV wählen.` };
+  }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
   { const vg = { angebote: 'angebot', aufmass: 'rechnung', rechnungen: 'rechnung', lv: 'lv' }[tab];   // Bereich, in dem ich gerade bin = Vorgabe; eindeutiger Text gewinnt
     if (vg && (!E.sicher || !E.dok)) E.dok = vg; }
@@ -763,7 +770,7 @@ async function avaAblegen(f, E, o) {
     if (o.ordner === 'nein') return;
     const fd = new FormData(); fd.append('datei', f); fd.append('project_id', o.projId); fd.append('art', o.art); fd.append('firma', o.firma || ''); fd.append('gewerk', L ? L.gewerk || L.name : '');
     if (Array.isArray(o.ordner)) fd.append('ordner', JSON.stringify(o.ordner));
-    try { const r = await fetch('api/ablage', { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); toast('Im Projektordner abgelegt: ' + j.pfad); }
+    try { const r = await fetch('api/ablage', { method: 'POST', body: fd, credentials: 'same-origin' }), j = await jsonAus(r); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); toast('Im Projektordner abgelegt: ' + j.pfad); }
     catch (e) { toast('Nicht im Projektordner abgelegt: ' + e.message, true); }
   };
   if (o.art === 'lv') {
@@ -777,7 +784,7 @@ async function avaAblegen(f, E, o) {
     if (E.format === 'pdf') {
       const fd = new FormData(); fd.append('datei', f); fd.append('bieter', o.firma || f.name); if (K) fd.append('contact_id', K.id);
       if (window.BPHead && BPHead.ki && BPHead.ki !== 'intern') { fd.append('ki', '1'); toast('Angebot wird gelesen, übrige Zeilen ordnet die KI zu …'); }
-      const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
+      const r = await fetch(`api/lv/${lvId}/angebot-pdf`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await jsonAus(r); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
       L = j; render(); toast(j.hinweis || 'Angebot übernommen.'); refreshList(); await ablegen(); return;
     }
     IMP = { ziel: 'angebot', bieter: o.firma, contact_id: K ? K.id : null }; await doImport(f); await ablegen(); return;
@@ -937,10 +944,30 @@ function lvSplitMount() {
   if (!LVDV || LVDV.id !== did) { LVDV = { id: did, el: document.createElement('div'), pages: [], zoom: LS.get('lvZoom', 1) }; LVDV.el.className = 'am-pv'; LVDV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; lvDokLaden(LVDV); }
   const d = D.find((x) => x.id === did), n = d.n_pos + d.n_titel;
   r.innerHTML = `<div class="am-pk">${D.map((y) => `<button class="btn sm${y.id === did ? ' pri' : ''}" data-lvdokw="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 26 ? y.name.slice(0, 24) + '…' : y.name)}</button>`).join('')}
+    ${d.laeuft ? `<span class="hint lv-ocr-laeuft"><span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Texterkennung läuft – je Seite einige Sekunden …</span>` : ''}${d.fehler ? `<span class="hint" style="color:#e07b3a">Lesen fehlgeschlagen: ${esc(d.fehler)}</span>` : ''}
     ${n ? `<button class="btn sm" data-lvdokueb title="Erkannte Titel und Positionen (OZ, Kurztext, Menge, Einheit, Langtext) ans LV anhängen">Erkannte übernehmen (${d.n_pos} Pos.${d.n_titel ? ', ' + d.n_titel + ' Titel' : ''})</button>` : ''}
     <span class="fill"></span><button class="ib" data-lvz="-1" title="kleiner">−</button><button class="ib" data-lvz="1" title="größer">＋</button><button class="ib" data-frei title="als freies Fenster verschieben / wieder andocken">⧉</button><button class="ib" data-lvdokdel="${did}" title="PDF entfernen">✕</button></div>
     <div class="hint" style="padding:.25rem .5rem;border-bottom:1px solid var(--line)">${d.ocr ? 'Scan, per Texterkennung gelesen – bitte prüfen · ' : ''}Zeile anklicken → ins gewählte Feld links (Kurztext, Menge, Einheit, Langtext …) · <b>Alt+Klick</b> → als neue Position</div>`;
   r.appendChild(LVDV.el); teilung(sp, 'lv', () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV));
+}
+/* Antwort als JSON – Fehlerseiten des Webservers (Zeitüberschreitung, Datei zu groß) verständlich melden */
+async function jsonAus(r) {
+  try { return await r.json(); } catch {
+    throw new Error(r.status === 504 || r.status === 502 ? 'Der Server hat zu lange gebraucht – bitte noch einmal versuchen.' : r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : `Unerwartete Antwort vom Server (${r.status}).`);
+  }
+}
+/* Scan wird im Hintergrund gelesen: nachfragen, bis die Erkennung fertig ist, dann neu zeichnen */
+let LVOCRT = 0;
+function lvOcrWarten(id, uebernehmen) {
+  clearTimeout(LVOCRT);
+  LVOCRT = setTimeout(async () => {
+    if (!L || L.id !== id) return;
+    let x; try { x = await api('api/lv/' + id); } catch { return lvOcrWarten(id, uebernehmen); }
+    const d = (x.dokumente || []).slice(-1)[0];
+    if (d && d.laeuft) return lvOcrWarten(id, uebernehmen);
+    if (L && L.id === id) { L.dokumente = x.dokumente; render(); if (d) toast(d.n_pos ? `Texterkennung fertig: ${d.n_pos} Positionen erkannt.` : 'Texterkennung fertig – keine Positionen erkannt, bitte von Hand übertragen.'); }
+    if (uebernehmen && d && d.n_pos) setTimeout(() => { const b = document.querySelector('[data-lvdokueb]'); if (b) b.click(); }, 300);
+  }, 4000);
 }
 async function lvDokLaden(V) {
   try { const lib = await pdfjs(); [V.pdf, V.A] = await Promise.all([lib.getDocument({ url: 'api/lvdok/' + V.id, withCredentials: true }).promise, api(`api/lvdok/${V.id}?auslese=1`)]); }
@@ -1011,9 +1038,11 @@ document.addEventListener('change', async (e) => {
 });
 async function lvDokHoch(lvId, f) {
   const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen …`);
-  try { const r = await fetch(`api/lv/${lvId}/dok`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
+  try { const r = await fetch(`api/lv/${lvId}/dok`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json().catch(() => { throw new Error(r.status === 504 || r.status === 502 ? 'Das Lesen hat zu lange gedauert – bitte noch einmal versuchen.' : r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : 'Fehler ' + r.status); }); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
     L = j; LVDOK = true; LS.set('lvdok', true); LVDV = null; LS.set('lvdokid', j.dokumente[j.dokumente.length - 1].id); tab = 'lv'; LS.set('tab', tab); render();
-    const d = j.dokumente[j.dokumente.length - 1]; toast(d.n_pos ? `${d.n_pos} Positionen erkannt – oben rechts „Erkannte übernehmen“ oder Zeile für Zeile anklicken.` : 'Keine Positionen sicher erkannt – Zeilen anklicken übernimmt sie ins gewählte Feld, Alt+Klick als neue Position.');
+    const d = j.dokumente[j.dokumente.length - 1];
+    if (d.laeuft) { toast('Eingescanntes LV – die Texterkennung läuft im Hintergrund, die erkannten Positionen erscheinen gleich.'); lvOcrWarten(lvId, false); return; }
+    toast(d.n_pos ? `${d.n_pos} Positionen erkannt – oben rechts „Erkannte übernehmen“ oder Zeile für Zeile anklicken.` : 'Keine Positionen sicher erkannt – Zeilen anklicken übernimmt sie ins gewählte Feld, Alt+Klick als neue Position.');
   } catch (e) { toast(e.message, true); }
 }
 
@@ -1380,7 +1409,8 @@ async function newDialog() {
       if (src === 'pdf') {
         await lvDokHoch(r.id, pdfF);
         const d = ((L && L.dokumente) || []).slice(-1)[0];
-        if (pdfUe && d && d.n_pos) setTimeout(() => { const b = document.querySelector('[data-lvdokueb]'); if (b) b.click(); }, 300);
+        if (d && d.laeuft) lvOcrWarten(r.id, pdfUe);
+        else if (pdfUe && d && d.n_pos) setTimeout(() => { const b = document.querySelector('[data-lvdokueb]'); if (b) b.click(); }, 300);
       }
     } catch (e) { toast(e.message, true); }
   });
@@ -1853,7 +1883,7 @@ async function amBelegHoch(files) {
   for (const f of files) {
     const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen und im Projektordner abgelegt …`);
     if (AMABL) { fd.append('art', AMABL.art || 'rechnung'); if (AMABL.ordner) fd.append('ordner', JSON.stringify(AMABL.ordner)); }
-    try { const r = await fetch(`api/rechnungen/${R.id}/beleg`, { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status); L = d; }
+    try { const r = await fetch(`api/rechnungen/${R.id}/beleg`, { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await jsonAus(r); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status); L = d; }
     catch (e) { toast(e.message, true); return; }
   }
   const R2 = L.rechnungen.find((r) => r.id === R.id), nb = R2.belege[R2.belege.length - 1];
@@ -2134,7 +2164,7 @@ async function reBelegHoch(rid, f) {
   toast('Rechnung wird gespeichert und im Projektordner abgelegt …');
   try {
     const r = await fetch(`api/rechnungen/${rid}/beleg`, { method: 'POST', body: fd, credentials: 'same-origin' });
-    const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status);
+    const d = await jsonAus(r); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status);
     L = d; render(); toast(d.hinweis || 'Rechnung gespeichert.', !!(d.hinweis && /nicht im Projektordner/.test(d.hinweis)));
   } catch (e) { toast(e.message, true); }
 }

@@ -39,7 +39,7 @@ tr.vqblink td{animation:vqblink 2.2s ease-out}
 @keyframes vqblink{0%,40%{background:color-mix(in srgb,var(--y) 40%,transparent)}100%{background:transparent}}
 .save{font-size:.78rem;color:var(--mute);align-self:center;padding:0 .6rem;margin-left:auto}
 .rib.weg{display:none}
-.body{flex:1;display:grid;grid-template-columns:230px minmax(0,1fr);min-height:calc(100vh - 140px)}
+.body{flex:1;display:grid;grid-template-columns:272px minmax(0,1fr);min-height:calc(100vh - 140px)}
 .nav{border-right:1px solid var(--line);background:var(--card);overflow:auto;padding:.5rem .45rem;position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);box-sizing:border-box}
 .nav .ng{margin-bottom:.35rem}
 .nav .nh{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;padding:.3rem .55rem;border-radius:5px;background:var(--tabs);color:var(--ink);font-weight:600;border:1px solid var(--line)}
@@ -103,7 +103,7 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 #histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2,var(--card));border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #histBar[hidden]{display:none}
 #histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.body.mit-quelle{grid-template-columns:230px minmax(0,1fr) minmax(320px,36%)}
+.body.mit-quelle{grid-template-columns:272px minmax(0,1fr) minmax(320px,36%)}
 .qu{border-left:1px solid var(--line);background:var(--card);position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);box-sizing:border-box;display:flex;flex-direction:column;min-width:0}
 .qu-h{padding:.45rem .6rem .4rem;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:.35rem;background:var(--tabs)}
 .qu-h .t{display:flex;align-items:center;gap:.4rem;font-weight:600}.qu-h .t .lock{font-size:.75rem;font-weight:500;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:.05rem .45rem;background:var(--card)}
@@ -408,6 +408,30 @@ tr.am-lf td input{color:#c0621f}
 .am-mk{position:absolute;transform:translateY(-55%);font-weight:800;font-size:clamp(11px,1.6vw,17px);line-height:1;pointer-events:none;white-space:nowrap;z-index:2}
 .am-mk.ok{color:#1f9d4c}.am-mk.no{color:#e02424}.am-mk small{position:absolute;right:-.2em;top:110%;font-size:clamp(8px,.72vw,11px);font-weight:700;background:#fff;border:1px solid #e02424;border-radius:4px;padding:0 .3em;box-shadow:0 1px 3px #0003}
 @media (max-width:900px){.am-split{grid-template-columns:1fr}.am-r{position:static;height:70vh}}
+/* Navigation (Variante B): Schritte oben fest, links nur der Projektbaum, darüber die Unterbereiche – alles mit fester Höhe */
+.stp{display:flex;align-items:stretch;height:44px;flex:none;padding:0 .8rem;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto;order:-1}
+.stp button{display:flex;align-items:center;gap:.5rem;padding:0 .9rem;border:0;background:none;font:inherit;font-size:.92rem;color:var(--mute);cursor:pointer;white-space:nowrap;box-shadow:inset 0 -3px 0 transparent}
+.stp button i{font-style:normal;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:600;background:var(--line);color:var(--ink)}
+.stp button.on{color:var(--ink);font-weight:600;box-shadow:inset 0 -3px 0 var(--y)}.stp button.on i{background:var(--y);color:#fff}.stp button:hover{color:var(--ink)}
+.stp .pf{display:flex;align-items:center;color:var(--mute);opacity:.6;padding:0 .1rem}
+.stp a{margin-left:auto;align-self:center;font-size:.85rem;color:var(--mute);text-decoration:none;white-space:nowrap;padding:0 .4rem}.stp a:hover{color:var(--ink)}
+.utb{display:flex;align-items:center;gap:.3rem;height:42px;flex:none;border-bottom:1px solid var(--line);margin:0 -.8rem .2rem;padding:0 .8rem;overflow-x:auto}
+.utb button{display:flex;align-items:center;gap:.4rem;height:30px;padding:0 .75rem;border:0;border-radius:7px;background:none;font:inherit;font-size:.88rem;color:var(--ink);opacity:.8;cursor:pointer;white-space:nowrap}
+.utb button:hover{background:var(--hov);opacity:1}.utb button.on{background:var(--card);font-weight:600;opacity:1;box-shadow:0 0 0 1px var(--line)}
+.utb button small{color:var(--mute);font-size:.76rem;font-variant-numeric:tabular-nums}
+.nav .pjk{display:flex;align-items:baseline;gap:.4rem;padding:.15rem .4rem .45rem;font-size:.82rem}.nav .pjk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nav .pjk small{color:var(--mute)}
+.nav #pjTree{margin:0;padding:0;border:0;font-size:.88rem}
+.nav #pjTree .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.3rem .35rem;border-radius:7px;border-left:0}
+.nav #pjTree .pj-r .v{display:block;font-size:.76rem}.nav #pjTree .pj-r.k{padding:.2rem .35rem .2rem 1.1rem}.nav #pjTree .pj-r.k svg{opacity:.6}
+.nav #pjTree .pj-r.on{background:var(--bg);box-shadow:inset 3px 0 0 var(--y)}
+
+.nav .nfuss{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.7rem}
+.nav .nfuss .ava-drop{margin:0;padding:.5rem .3rem;font-size:.82rem}.nav .nfuss .ava-drop small{display:none}
+.nav .nfuss .ava-ein{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;text-align:center;border-style:solid;border-width:2px;border-color:var(--line);border-radius:10px;font-size:.82rem;color:var(--mute)}
+.nav .nfuss .ava-ein b{color:var(--ink)}.nav .nfuss .ava-ein .nz{font-size:.72rem;padding:0 .45rem;border-radius:999px;background:var(--y);color:#fff}
+.nav .nneu{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.86rem;color:var(--y);cursor:pointer;padding:.35rem .5rem;margin-top:.2rem}
+.rib .rb:disabled{opacity:.35}
+@media (max-width:860px){.body>.nav{display:block;max-height:42vh;overflow:auto;padding:.4rem}.nav .nfuss{margin-top:.4rem}.stp{padding:0 .3rem}.stp button{padding:0 .5rem}}
 .pj-ren{width:100%;font:inherit;padding:.05rem .25rem;border:1px solid var(--y);border-radius:4px;background:var(--card);color:inherit}.nav-baum{margin:.1rem 0 .35rem .85rem;padding-left:.15rem;border-left:1px solid var(--line);font-size:.92rem}
 .nav-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr);padding:.26rem .3rem;gap:.3rem}.nav-baum .pj-r.root{grid-template-columns:16px minmax(0,1fr)}.nav-baum .pj-r svg{width:16px;height:16px}
 .nav-baum .pj-r .v{display:none}.nav-baum .pj-r.k{padding-left:1rem}.nav-baum .pj-r .t small{font-size:.8rem}
@@ -462,9 +486,11 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
     </div><div class="rl">Datenaustausch</div></div>
     <div class="rg"><div class="rr"><div class="vqb"><input type="search" id="vq" placeholder="Volltext: Text, OZ, Firma, Raum …" autocomplete="off" title="Volltextsuche in allen LVs, Angeboten, Aufmaß und Türliste (Strg+Umschalt+F)" aria-label="Volltextsuche"><label><input type="checkbox" id="vqAlle"> in allen Projekten</label></div></div><div class="rl">Suchen</div></div>
     </div>
+  <nav class="stp" id="stp" aria-label="Arbeitsschritte"></nav>
   <div class="body">
-    <aside class="nav" id="tabs" aria-label="Bereiche"></aside>
+    <aside class="nav" id="tabs" aria-label="Projekt"></aside>
     <section class="pane">
+      <div class="utb" id="utb" role="tablist" aria-label="Bereiche des Schritts"></div>
       <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span></div>
       <div class="kpi" id="kpi"></div>
       <div id="view"><p class="mute">Lade …</p></div>
@@ -500,6 +526,9 @@ const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschrit
   ['Vergabe und Abrechnung', [['auftraege', 'Aufträge', '<path d="M3 7h6l2 2h10v10H3z"/>'], ['aufmass', 'Aufmaßprüfung', '<path d="M3 17l14-14 4 4-14 14H3z"/><path d="M13 7l4 4"/>'], ['rechnungen', 'Rechnungen', '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>']]],
   ['Kostenübersicht', [['uebersicht', 'Kostenkontrolle', '<path d="M4 19h16M7 16V9M12 16V5M17 16v-4"/>']]],
 ];
+/* Die vier Arbeitsschritte oben (fest), darunter die Bereiche des gewählten Schritts */
+const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe', ['angebote']], ['abr', 'Abrechnung', ['auftraege', 'aufmass', 'rechnungen']], ['kos', 'Kosten', ['uebersicht']]];
+const schrittVon = (t) => SCHRITTE.find((x) => x[2].includes(t)) || SCHRITTE[0];
 const TABS = NAVI.flatMap((g) => g[1].map((x) => [x[0], x[1]]));
 const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
 const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pauschal', T: 'Hinweistext' };
@@ -586,8 +615,10 @@ async function vleiste(neu) {
           }
         } catch (e) { toast(e.message, true); }
       }); } });
-  el.style.display = VERS.length ? '' : 'none';
+  vlSicht();
 }
+/* Versionen braucht man nur beim Ausschreiben – die Leiste steht nur im Schritt „Ausschreibung“ */
+function vlSicht() { const el = document.getElementById('bph-vl'); if (el) el.style.display = VERS.length && schrittVon(tab)[0] === 'aus' ? '' : 'none'; }
 async function loadList(want) {
   LIST = pid ? await api('api/lv?project_id=' + pid) : [];
   vleiste();
@@ -844,7 +875,7 @@ async function eingangPruefen(manuell) {
   if (r.aus) { if (manuell) toast('Kein Eingangsordner eingerichtet (Verwaltung → Einstellungen → Ablage).', true); return; }
   if (!r.ok) { if (manuell) toast(r.error || 'Eingangsordner nicht erreichbar.', true); return; }
   const D = r.dateien || [], sp = eingangSpaeter(), neu = D.filter((x) => !sp.has(eingangKey(x)));
-  EINGANG.n = D.length; const b = document.querySelector('[data-eingangn]'); if (b) b.textContent = D.length ? ` (${D.length})` : '';
+  EINGANG.n = D.length; const b = document.querySelector('[data-eingangn]'); if (b) b.innerHTML = D.length ? `<span class="nz">${D.length}</span>` : '';
   if (manuell || neu.length) eingangDialog(D, new Set(neu.map(eingangKey)));
 }
 function eingangDialog(D, neu) {
@@ -904,25 +935,23 @@ document.addEventListener('drop', (e) => {
 const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);   // Projektbaum links in der Navigation unter dem gewählten Bereich
 let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
 function pjBaum() {
-  const xs = LIST.filter((x) => !x.archived && (tab === 'lv' || tab === 'angebote' || x.vergeben));
+  const xs = LIST.filter((x) => !x.archived);
   const e0 = (v) => (v ? eur(v).replace(' €', '') : '');
-  const titel = { lv: 'Leistungsverzeichnisse', angebote: 'Angebote', aufmass: 'Aufmaßprüfung', rechnungen: 'Rechnungen' }[tab];
-  const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
   if (L && !PJX.size) PJX.add(L.id);
-  const out = [`<div class="pj-r root" title="${esc(titel)}">${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${e0(xs.reduce((a, x) => a + (tab === 'aufmass' ? x.leistung : tab === 'rechnungen' ? x.abgerechnet : tab === 'angebote' ? x.min_angebot : (x.auftrag || x.schaetzung)), 0))}</span></div>`];
-  if (!xs.length) out.push(`<p class="hint" style="padding:.3rem .5rem">${tab === 'lv' || tab === 'angebote' ? 'Noch kein LV.' : 'Noch nichts vergeben.'}</p>`);
+  const out = [];
+  if (!xs.length) out.push('<p class="hint" style="padding:.3rem .5rem">Noch kein LV.</p>');
   xs.forEach((x) => {
-    const kids = tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : tab === 'lv' ? [] : x.rechnungen;
+    const re = !!x.vergeben, kids = re ? x.rechnungen : [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99));
     const on = L && L.id === x.id, offen = PJX.has(x.id);
-    const wert = tab === 'lv' ? x.auftrag || x.schaetzung : tab === 'angebote' ? x.min_angebot : tab === 'aufmass' ? x.leistung : x.auftrag;
-    const sub = tab === 'lv' ? `${x.n_pos} Pos.${x.auftragnehmer ? ' · ' + x.auftragnehmer : ''}` : tab === 'angebote' ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}${x.auftragnehmer ? ' · an ' + x.auftragnehmer : ''}` : x.auftragnehmer + (x.frei ? ' · ohne LV' : '');
+    const wert = x.auftrag || x.min_angebot || x.schaetzung;
+    const sub = re ? `${x.auftragnehmer || 'vergeben'}${x.frei ? ' · ohne LV' : ' · vergeben'}` : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
     out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : ''}>${kids.length ? (offen ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span></div>`);
     if (!offen) return;
     kids.forEach((k) => {
-      const key = (tab === 'angebote' ? 'b' : 'r') + k.id, sel = on && PJSEL === key;
-      const txt = tab === 'angebote' ? `${k.rang ? k.rang + '. ' : ''}${esc(k.bieter)}${x.angebot_id === k.id ? ' <span class="ok">✓ beauftragt</span>' : ''}`
-        : `${esc(reTitel(k))}${k.re_nr ? ` <small>Nr. ${esc(k.re_nr)}</small>` : ''} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>`;
-      out.push(`<div class="pj-r k${sel ? ' on' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${tab === 'angebote' ? IC.pos : IC.ti}<span class="t">${txt}</span><span class="v">${e0(tab === 'angebote' ? k.netto : tab === 'aufmass' ? k.anerkannt : k.zahlung)}</span></div>`);
+      const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
+      const txt = !re ? `${k.rang ? k.rang + '. ' : ''}${esc(k.bieter)}${x.angebot_id === k.id ? ' <span class="ok">✓</span>' : ''}`
+        : `${esc(reTitel(k))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}" title="${k.status === 'geprueft' ? 'geprüft' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>${k.re_nr ? `<small>Nr. ${esc(k.re_nr)}</small>` : ''}`;
+      out.push(`<div class="pj-r k${sel ? ' on' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span></div>`);
     });
   });
   return out.join('');
@@ -954,7 +983,7 @@ function pjUmbenennen(r) {
   i.addEventListener('click', (e) => e.stopPropagation());
 }
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'F2' || !PJTABS.has(tab) || e.target.closest('input,textarea,select')) return;
+  if (e.key !== 'F2' || e.target.closest('input,textarea,select')) return;
   const r = document.querySelector('#pjTree .pj-r.k.on') || document.querySelector('#pjTree .pj-r.lv.akt'); if (r) { e.preventDefault(); pjUmbenennen(r); }
 });
 document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
@@ -979,12 +1008,19 @@ function pjFokus() {
   if (el) { el.classList.add('pj-blink'); setTimeout(() => el.classList.remove('pj-blink'), 1600); }
 }
 document.addEventListener('click', async (e) => {
-  if (!PJTABS.has(tab)) return;
+  if (!e.target.closest('#pjTree')) return;
   if (e.target.closest('[data-pjzu]')) { PJZU = !PJZU; LS.set('pjzu', PJZU); render(); return; }
   const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else PJX.add(id); LS.set('pjx', [...PJX].slice(-100)); $('#pjTree').innerHTML = pjBaum(); return; }
   const r = e.target.closest('[data-pjlv]'); if (!r) return;
   if (e.target.closest('.t') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt') && !e.target.closest('input')) { pjUmbenennen(r); return; }   // zweiter Klick auf die gewählte Zeile: umbenennen
-  const id = +r.dataset.pjlv, sub = r.dataset.pjsub || null;
+  const id = +r.dataset.pjlv, sub = r.dataset.pjsub || null, x0 = LIST.find((y) => y.id === id);
+  // passenden Bereich wählen: Angebot → Angebote, Rechnung → Rechnungen (oder Aufmaß), LV in Aufträgen/Kosten/Türliste → LV bzw. Rechnungen
+  const t0 = tab;
+  if (sub && sub[0] === 'b' && tab !== 'angebote') tab = 'angebote';
+  else if (sub && sub[0] === 'r' && !['aufmass', 'rechnungen'].includes(tab)) tab = 'rechnungen';
+  else if (!sub && !PJTABS.has(tab)) tab = x0 && x0.vergeben ? 'rechnungen' : 'lv';
+  else if (!sub && x0 && !x0.vergeben && ['aufmass', 'rechnungen'].includes(tab)) tab = x0.angebote.length ? 'angebote' : 'lv';
+  if (tab !== t0) LS.set('tab', tab);
   PJSEL = sub; PJF = { lv: id, sub }; PJX.add(id); LS.set('pjx', [...PJX].slice(-100));
   if (tab === 'aufmass' && sub) { const x = LIST.find((y) => y.id === id); amAns = 'baum'; LS.set('amAns', amAns); (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX); }
   if (!L || L.id !== id) { await flush(); await openLv(id); } else render();
@@ -996,9 +1032,15 @@ function render() {
   selBtn(); kpis();
   const n = { lv: posOf().length, angebote: L ? L.angebote.length : 0, aufmass: L ? new Set(L.aufmass.map((a) => a.pos_id)).size : 0, rechnungen: L ? L.rechnungen.length : 0, auftraege: LIST.filter((x) => !x.archived).length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
-  $('#tabs').innerHTML = (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
-    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>${tab === k && PJTABS.has(k) && LIST.some((x) => !x.archived) ? `<div class="nav-baum" id="pjTree">${pjBaum()}</div>` : ''}`).join('')}</div>`).join('')
-    + `<label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Dokument ablegen</b><small>Angebot, LV, Aufmaß, Rechnung · PDF, Scan, Foto, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 Eingang auf dem Server<span data-eingangn>${EINGANG && EINGANG.n ? ` (${EINGANG.n})` : ''}</span></button>`;
+  const sk = schrittVon(tab)[0]; LS.set('tab:' + sk, tab);
+  $('#stp').innerHTML = SCHRITTE.map(([k, l], i) => `${i ? '<span class="pf" aria-hidden="true">›</span>' : ''}<button type="button" data-schritt="${k}"${k === sk ? ' class="on" aria-current="step"' : ''}><i>${i + 1}</i>${esc(l)}</button>`).join('')
+    + (bk ? `<a href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung ↗</a>` : '');
+  $('#utb').innerHTML = schrittVon(tab)[2].map((k) => `<button type="button" role="tab" data-tab="${k}"${tab === k ? ' class="on" aria-selected="true"' : ''}>${esc((TABS.find((t) => t[0] === k) || [, k])[1])}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('');
+  const nLv = LIST.filter((x) => !x.archived).length;
+  $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>`
+    + `<div class="nav-baum" id="pjTree">${pjBaum()}</div><button type="button" class="nneu" data-act="new">＋ Neues LV</button>`
+    + `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Ablegen</b><small>PDF, Scan, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 <b>Eingang</b><span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`;
+  vlSicht();
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   const mitSel = NURLV.has(tab) && tab !== 'lv' && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
   $('#sel').hidden = !mitSel;
@@ -1006,7 +1048,8 @@ function render() {
   $('#kpi').hidden = !NURLV.has(tab); $('#stat').hidden = !NURLV.has(tab);
   document.querySelectorAll('[data-need="lv"]').forEach((b) => { b.disabled = !L; });
   // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
-  $('.rib').classList.toggle('weg', !['lv', 'auftraege'].includes(tab) && document.activeElement !== $('#vq'));
+  // Werkzeugleiste bleibt immer gleich hoch – was im Bereich nicht greift, ist grau
+  document.querySelectorAll('.rib [data-act="pos"], .rib [data-act="titel"]').forEach((b) => { b.disabled = !L || tab !== 'lv'; });
   $('#phLvD').hidden = !L || !L.id || !NURLV.has(tab); $('#phPrD').hidden = !pid;
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
@@ -1485,6 +1528,7 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('click', async (e) => {
   const t = e.target;
+  const sb = t.closest('[data-schritt]'); if (sb) { const S = SCHRITTE.find((x) => x[0] === sb.dataset.schritt); const z = LS.get('tab:' + S[0], S[2][0]); await flush(); tab = S[2].includes(z) ? z : S[2][0]; LS.set('tab', tab); if (tab === 'uebersicht' || tab === 'auftraege') await refreshList(); render(); return; }
   const tb = t.closest('[data-tab]'); if (tb) { await flush(); tab = tb.dataset.tab; LS.set('tab', tab); if (tab === 'uebersicht' || tab === 'auftraege') await refreshList(); render(); return; }
   const st = t.closest('[data-status]'); if (st && L) {
     const alt = L.status, id = L.id; if (alt === st.dataset.status) return;

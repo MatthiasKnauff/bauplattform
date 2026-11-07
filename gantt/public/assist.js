@@ -794,6 +794,7 @@
       let moved = null;          // { id, choice, origA } – Auswahl „folgt auf“ nach dem Verschieben
       let dragIt = null;          // Formular „eigene Leistung“: { ph, edit, n, gw, din, sc, d, a, b }
       let pform = null;          // Formular „Vorlage speichern“: { name, scope, phases:Set }
+      let presetFilter = '';     // Suche in „Meine Vorlagen“ (ab 6 Vorlagen)
       let presets = [], presetsErr = '', presetsOpen = LSx.get('assistPresetsOpen', true);
       const saveDraft = () => LSx.set('assistDraft', draft);
       // Schritt-für-Schritt-Abfrage: jederzeit pausieren, später an derselben Stelle weitermachen
@@ -980,8 +981,12 @@
         // Meine Vorlagen
         h += `<details class="as-pre"${presetsOpen ? ' open' : ''}><summary>Meine Vorlagen (${presets.length})</summary>`;
         if (presetsErr) h += `<div class="as-msg err">${esc(presetsErr)}</div>`;
-        h += presets.length ? presets.map((pr) => `<div class="as-pr"><div class="as-n">${esc(pr.name)}<small>${pr.scope === 'all' ? 'Ganzes Gebäude' + (pr.data && pr.data.cfg ? ' · ' + esc((CC.profiles.find((p) => p.k === pr.data.cfg.type) || {}).n || '') : '') : 'Abschnitte: ' + esc(pr.phases.map(phaseName).join(', '))} · ${(pr.data && pr.data.sel ? pr.data.sel.length : 0)} Leistungen</small></div><button class="btn sm" data-pre="${pr.id}">Anwenden</button><button class="as-ib sm" data-predel="${pr.id}" title="Vorlage löschen">✕</button></div>`).join('')
+        const viele = presets.length > 5, prSort = presets.slice().sort((x, y) => String(x.name).localeCompare(String(y.name), 'de'));
+        if (viele) h += `<input class="as-prf" data-prf placeholder="Vorlage suchen … (${presets.length})" value="${esc(presetFilter)}" style="width:100%;margin:4px 0 6px">`;
+        if (viele) h += '<div class="as-prl" style="max-height:260px;overflow:auto">';
+        h += presets.length ? prSort.map((pr) => `<div class="as-pr" data-prname="${esc(String(pr.name).toLowerCase())}"${presetFilter && !String(pr.name).toLowerCase().includes(presetFilter.toLowerCase()) ? ' style="display:none"' : ''}><div class="as-n">${esc(pr.name)}<small>${pr.scope === 'all' ? 'Ganzes Gebäude' + (pr.data && pr.data.cfg ? ' · ' + esc((CC.profiles.find((p) => p.k === pr.data.cfg.type) || {}).n || '') : '') : 'Abschnitte: ' + esc(pr.phases.map(phaseName).join(', '))} · ${(pr.data && pr.data.sel ? pr.data.sel.length : 0)} Leistungen</small></div><button class="btn sm" data-pre="${pr.id}">Anwenden</button><button class="as-ib sm" data-predel="${pr.id}" title="Vorlage löschen">✕</button></div>`).join('')
           : '<div class="as-hint" style="margin:4px 0">Noch keine eigenen Vorlagen. Stelle unter ③ Leistungen zusammen und speichere sie dort mit dem Knopf „Als Vorlage speichern …“.</div>';
+        if (viele) h += '</div>';
         h += '</details></section>';
         if (cfg) {
           const m = (+cfg.units || 1) > 1;
@@ -1364,6 +1369,10 @@
         const t = e.target;
         if (t.dataset.a === 'pname') projName = t.value;
         if (t.dataset.pf === 'name' && pform) pform.name = t.value;
+        if ('prf' in t.dataset) {   // Vorlagen filtern, ohne neu zu zeichnen (Fokus bleibt im Suchfeld)
+          presetFilter = t.value; const q = t.value.trim().toLowerCase();
+          root.querySelectorAll('.as-pr[data-prname]').forEach((el) => { el.style.display = q && !el.dataset.prname.includes(q) ? 'none' : ''; });
+        }
         if (t.dataset.cf && cform && t.type !== 'checkbox' && t.value !== '__toggle') {
           cform[t.dataset.cf] = t.value;
           if (t.dataset.cf === 'n') { const box = root.querySelector('#asSug'); if (box) box.innerHTML = sugHtml(core.dinSuggest(t.value)); }

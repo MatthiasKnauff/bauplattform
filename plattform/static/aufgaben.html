@@ -312,7 +312,7 @@ async function mSave(id, body, undoBody, label) {
 /* Von wem, für wen – bei jeder Erinnerung sichtbar */
 const erWer = (x) => { const v = x.von && !/^(system|automatisch)$/i.test(x.von) ? x.von : ({ plan: 'Bauzeitenplan', bautagebuch: 'Bautagebuch' }[x.quelle] || '');
   return `<span class="wer">${v ? `von <b>${esc(v)}</b>` : ''}${v && x.an.length ? ' → ' : ''}${x.an.length ? `für <b>${esc(x.an.join(', '))}</b>` : ''}</span>`; };
-const SRC = { bautagebuch: ['📒', 'Bautagebuch'], plan: ['📅', 'Bauzeitenplan'], eigen: ['✎', 'eigene Erinnerung'] };
+const SRC = { bautagebuch: ['📒', 'Bautagebuch'], plan: ['📅', 'Bauzeitenplan'], eigen: ['✎', 'von Hand angelegt'] };
 const EAUF = new Set();   // aufgeklappte Erinnerungen
 function renderE() {
   if (!E) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
@@ -335,7 +335,8 @@ function renderE() {
   // Gruppieren und sortieren (gemerkt je Gerät)
   const EV = LS.get('eview', { grp: 'lage', sort: 'termin', q: 'alle' }), dir = EV.sort === 'termin_ab' ? -1 : 1;
   const key = (x) => ({ termin: x.termin + (x.uhrzeit || ''), termin_ab: x.termin + (x.uhrzeit || ''), firma: (x.firma || '~') + x.termin, projekt: (x.projekt || '~') + x.termin, titel: x.titel + x.termin }[EV.sort] || x.termin).toLowerCase();
-  const items = E.items.filter((x) => EV.q === 'alle' || x.quelle === EV.q).slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * dir);
+  const ich = window.BPHead && BPHead.me ? BPHead.me.id : null;
+  const items = E.items.filter((x) => EV.q === 'alle' || (EV.q === 'mir' ? (x.an_ids || []).includes(ich) : x.quelle === EV.q)).slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * dir);
   const open = items.filter((x) => x.status !== 'erledigt'), done = items.filter((x) => x.status === 'erledigt');
   const gname = (x) => (EV.grp === 'projekt' ? x.projekt || 'ohne Projekt' : EV.grp === 'firma' ? x.firma || 'ohne Firma' : EV.grp === 'gewerk' ? x.gw || 'ohne Gewerk' : EV.grp === 'quelle' ? (SRC[x.quelle] || ['', x.quelle])[1] || x.quelle : '');
   const groups = () => {
@@ -347,7 +348,7 @@ function renderE() {
   const sel = (k, o) => `<select data-ev="${k}">${o.map(([v, l]) => `<option value="${v}"${EV[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
   const bar = `<div class="flt"><label class="mute" style="display:flex;gap:.4rem;align-items:center">Gruppieren ${sel('grp', [['lage', 'nach Fälligkeit'], ['projekt', 'nach Projekt'], ['firma', 'nach Firma'], ['gewerk', 'nach Gewerk'], ['quelle', 'nach Herkunft'], ['keine', 'nicht gruppieren']])}</label>
     <label class="mute" style="display:flex;gap:.4rem;align-items:center">Sortieren ${sel('sort', [['termin', 'Termin aufsteigend'], ['termin_ab', 'Termin absteigend'], ['firma', 'Firma'], ['projekt', 'Projekt'], ['titel', 'Text']])}</label>
-    <label class="mute" style="display:flex;gap:.4rem;align-items:center">Zeigen ${sel('q', [['alle', 'alle'], ['plan', '📅 aus Bauzeitenplänen'], ['bautagebuch', '📒 aus dem Bautagebuch'], ['eigen', '✎ eigene']])}</label></div>`;
+    <label class="mute" style="display:flex;gap:.4rem;align-items:center">Zeigen ${sel('q', [['alle', 'alle'], ['mir', '👤 für mich'], ['plan', '📅 aus Bauzeitenplänen'], ['bautagebuch', '📒 aus dem Bautagebuch'], ['eigen', '✎ von Hand angelegt']])}</label></div>`;
   $('#view').innerHTML = (E.mail ? '' : `<div class="note">Der Mailserver ist noch nicht eingerichtet – Erinnerungen werden hier angezeigt, aber nicht per E-Mail verschickt. ${appLink('admin', '') ? `<a href="${esc(appLink('admin', '#einstellungen-mail'))}">Verwaltung → Einstellungen → Mailserver</a>` : ''}</div>`)
     + bar
     + (open.length ? groups().map(([l, xs]) => `${l ? `<div class="grp">${esc(l)} <small>${xs.length}</small></div>` : ''}<div class="ml">${xs.map(row).join('')}</div>`).join('')
@@ -423,14 +424,17 @@ document.addEventListener('input', (e) => { if (e.target.id === 'mq') { F.q = e.
 let KONTO = null;
 async function konto() { try { KONTO = await api('api/bp/konto'); } catch { KONTO = { versand: 'pdf', kopie: true, signatur: false, email: '', mail: false }; } return KONTO; }
 function versandHtml(K, mailFirma) {
-  return `<label>Versand</label><select id="vV">${[['pdf', 'nur PDF – selbst drucken oder versenden'], ['mich', 'per E-Mail an mich – zum Weiterleiten'], ['firma', 'direkt per E-Mail an die Firma']].map(([v, l]) => `<option value="${v}"${K.versand === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+  return `<label>Versand</label><div><div class="bph-seg" role="radiogroup" aria-label="Versand">${[['pdf', 'nur PDF'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']].map(([v, l]) => `<button type="button" role="radio" data-vv="${v}" class="${(K.versand || 'pdf') === v ? 'on' : ''}" aria-checked="${(K.versand || 'pdf') === v}">${l}</button>`).join('')}</div><input type="hidden" id="vV" value="${esc(K.versand || 'pdf')}"></div>
     <label class="vF">E-Mail der Firma</label><input class="vF" id="vM" type="email" value="${esc(mailFirma || '')}" placeholder="aus den Adressen – sonst hier eintragen">
     <label class="vF"></label><label class="chk vF" style="color:var(--ink)"><input type="checkbox" id="vC"${K.kopie ? ' checked' : ''}> Kopie an mich${K.email ? ` (${esc(K.email)})` : ''}</label>
     <p class="w mute" style="font-size:.82rem;margin:0">${K.signatur ? 'Deine Unterschrift wird eingefügt.' : 'Noch keine Unterschrift hinterlegt –'} <a href="#" data-kontolink>Unterschrift, E-Mail & Kalender</a>${K.mail ? '' : ' · Der Mailserver ist noch nicht eingerichtet.'}</p>`;
 }
 function versandBind(bg) {
   const upd = () => { const f = bg.querySelector('#vV').value === 'firma'; bg.querySelectorAll('.vF').forEach((x) => { x.style.display = f ? '' : 'none'; }); };
-  bg.querySelector('#vV').addEventListener('change', upd); upd();
+  bg.querySelectorAll('[data-vv]').forEach((b) => b.addEventListener('click', () => {
+    bg.querySelector('#vV').value = b.dataset.vv; bg.querySelectorAll('[data-vv]').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); }); upd();
+  }));
+  upd();
   bg.querySelector('[data-kontolink]').addEventListener('click', (e) => { e.preventDefault(); window.BPHead && BPHead.konto(); });
 }
 function versandRead(bg) {

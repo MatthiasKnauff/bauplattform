@@ -6,6 +6,8 @@ import base64, io, json
 
 STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich zum Weiterleiten) | firma (direkt an die Firma)
             "kopie": True,           # bei „direkt an die Firma“: Kopie an mich
+            "versand_plaene": "",    # Planversand und Plotauftrag: direkt (an die Empfänger) | mich (zum Weiterleiten); leer = wie bei den Rügen
+            "kopie_plaene": True,    # Planversand „direkt“: Kopie an mich
             "kalender": False,       # alt: eigene Erinnerungen als Kalendertermin (ersetzt durch erinnerung_art)
             "erinnerung_art": "",    # Erinnerungen aller Apps: mail (einfache Mail am Tag) | termin (sofort als Termin zum Annehmen); leer = nach „kalender“
             "erinnerung_an": "ich",  # ich | bauleiter (alle Bauleiter des Projekts)
@@ -44,9 +46,11 @@ def set_prefs(c, uid, d, by=""):
     p = prefs(c, uid)
     if d.get("versand") in ("pdf", "mich", "firma"):
         p["versand"] = d["versand"]
+    if d.get("versand_plaene") in ("direkt", "mich"):
+        p["versand_plaene"] = d["versand_plaene"]
     if d.get("absender") in ("buero", "eigen"):
         p["absender"] = d["absender"]
-    for k in ("kopie", "kalender"):
+    for k in ("kopie", "kalender", "kopie_plaene"):
         if k in d:
             p[k] = bool(d[k])
     if d.get("erinnerung_art") in ("mail", "termin"):

@@ -253,11 +253,9 @@ async function versandDialog() {
       <div style="display:flex;gap:.5rem;margin-top:.4rem"><input type="email" id="vAdd" placeholder="weitere E-Mail-Adresse" list="vAddL" style="flex:1"><datalist id="vAddL"></datalist><button class="btn sm" data-m="add">Hinzufügen</button></div></div>
     <div style="display:grid;gap:.8rem;align-content:start">${cadN ? `<div class="opt"><h4>CAD-Dateien</h4><p class="mu" style="margin:0;font-size:.88rem">Zu ${cadN} der gewählten Pläne gibt es passende CAD-Dateien (gleiche Nummer und gleicher Index). Mitsenden?</p>
       <label><input type="radio" name="vCad" value="1"> ja, CAD-Dateien mitsenden</label><label><input type="radio" name="vCad" value="0" checked> nein, nur die PDFs</label></div>` : ''}
-    <div class="opt"><h4>Versand</h4>
-      <label><input type="radio" name="vArt" value="direkt"${V.versand !== 'mich' ? ' checked' : ''}> direkt an die Empfänger (eine E-Mail je Firma)</label>
-      <label style="margin-left:1.6rem"><input type="checkbox" id="vKopie"${V.kopie ? ' checked' : ''}> Kopie an mich</label>
-      <label><input type="radio" name="vArt" value="mich"${V.versand === 'mich' ? ' checked' : ''}> an mich zum Weiterleiten${V.email ? ` (${esc(V.email)})` : ''}</label>
-      <label class="dis" title="folgt, sobald die eigene Nextcloud eingerichtet ist"><input type="radio" name="vArt" value="link" disabled> als Download-Link über die Nextcloud des Büros – folgt</label></div></div>
+    <div class="opt"><h4>Versand</h4>${vSeg('vArt', V.versand, [['direkt', 'direkt an die Empfänger'], ['mich', 'per E-Mail an mich']])}
+      <p class="mu vs-h" data-vsh="vArt" style="font-size:.8rem;margin:.3rem 0 0"></p>
+      <label data-vsk="vArt"><input type="checkbox" id="vKopie"${V.kopie ? ' checked' : ''}> Kopie an mich</label></div></div>
     <div class="full"><h4>E-Mail</h4><label>Betreff<input type="text" id="vBetreff" value="${esc(V.betreff)}"></label>
       <label>Text<textarea id="vText">${esc(V.text)}</textarea></label>
       <p class="mu" style="font-size:.76rem;margin:.1rem 0 0">{planliste} = Liste der Pläne · {firma} = Empfänger · {anzahl} = Zahl der Pläne · Vorlage: Mein Konto → E-Mail-Vorlagen</p></div>
@@ -267,10 +265,10 @@ async function versandDialog() {
     if (m === 'x') { close(); return; }
     if (m === 'add') {
       const v = $('#vAdd', bg).value.trim(); if (!/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(v)) { toast('Bitte eine gültige E-Mail-Adresse eingeben.', true); return; }
-      const keep = save(bg); extra.push({ name: '', email: v }); bg.querySelector('.modal').innerHTML = html(); restore(bg, keep); sz(bg); return;
+      const keep = save(bg); extra.push({ name: '', email: v }); bg.querySelector('.modal').innerHTML = html(); restore(bg, keep); sz(bg); if (bg._vsync) bg._vsync(); return;
     }
     if (m === 'send') {
-      const art = (bg.querySelector('[name=vArt]:checked') || {}).value || 'direkt', cad = (bg.querySelector('[name=vCad]:checked') || {}).value === '1';
+      const art = (bg.querySelector('[name=vArt]') || {}).value || 'direkt', cad = (bg.querySelector('[name=vCad]:checked') || {}).value === '1';
       const emp = [...bg.querySelectorAll('[data-emp]:checked')].map((x) => ({ name: firmen[+x.dataset.emp].name, email: firmen[+x.dataset.emp].email, contact_id: firmen[+x.dataset.emp].id }))
         .concat([...bg.querySelectorAll('[data-ext]:checked')].map((x) => extra[+x.dataset.ext]));
       const offen = $('#vAdd', bg).value.trim();   // eingetippt, aber nicht „Hinzufügen“ gedrückt
@@ -286,14 +284,26 @@ async function versandDialog() {
       } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Senden'; }
     }
   });
-  const save = (bg) => ({ b: $('#vBetreff', bg).value, t: $('#vText', bg).value, emp: [...bg.querySelectorAll('[data-emp]')].map((x) => x.checked), art: (bg.querySelector('[name=vArt]:checked') || {}).value, cad: (bg.querySelector('[name=vCad]:checked') || {}).value, kopie: $('#vKopie', bg).checked });
-  const restore = (bg, k) => { $('#vBetreff', bg).value = k.b; $('#vText', bg).value = k.t; bg.querySelectorAll('[data-emp]').forEach((x, i) => { x.checked = k.emp[i]; }); const a = bg.querySelector(`[name=vArt][value="${k.art}"]`); if (a) a.checked = true; const c = bg.querySelector(`[name=vCad][value="${k.cad}"]`); if (c) c.checked = true; $('#vKopie', bg).checked = k.kopie; };
+  const save = (bg) => ({ b: $('#vBetreff', bg).value, t: $('#vText', bg).value, emp: [...bg.querySelectorAll('[data-emp]')].map((x) => x.checked), art: (bg.querySelector('[name=vArt]') || {}).value, cad: (bg.querySelector('[name=vCad]:checked') || {}).value, kopie: $('#vKopie', bg).checked });
+  const restore = (bg, k) => { $('#vBetreff', bg).value = k.b; $('#vText', bg).value = k.t; bg.querySelectorAll('[data-emp]').forEach((x, i) => { x.checked = k.emp[i]; }); const a = bg.querySelector('[name=vArt]'); if (a && k.art) a.value = k.art; const c = bg.querySelector(`[name=vCad][value="${k.cad}"]`); if (c) c.checked = true; $('#vKopie', bg).checked = k.kopie; };
   const sz = (bg) => { const cad = (bg.querySelector('[name=vCad]:checked') || {}).value === '1', s = size(cad), lim = (CFG.max_mb || 20) * 1048576; $('#vSize', bg).innerHTML = `Anhänge zusammen etwa <b>${mb(s)}</b>${s > lim ? ` – <b>mehr als ${CFG.max_mb} MB</b>: viele Mailserver nehmen das nicht an. Bitte weniger Pläne auf einmal oder ohne CAD-Dateien senden.` : ''}`; };
   bg.querySelector('.modal').classList.add('wide');
-  bg.addEventListener('change', () => sz(bg)); sz(bg);
+  bg.addEventListener('change', () => sz(bg)); sz(bg); vSegBind(bg, V.email);
   api('api/kontakte').then((K) => { const dl = $('#vAddL', bg); if (dl) dl.innerHTML = K.map((k) => `<option value="${esc(k.email)}">${esc(k.name)}</option>`).join(''); }).catch(() => {});
 }
 
+/* Versandart als Umschalter wie in den Einstellungen (Mein Konto); der Wert steht in einem versteckten Feld name=… */
+const vSeg = (n, v, opts) => { v = opts.some((o) => o[0] === v) ? v : opts[0][0]; return `<div class="bph-seg" role="radiogroup" data-vseg="${n}">${opts.map(([k, l]) => `<button type="button" role="radio" data-vs="${k}" class="${k === v ? 'on' : ''}" aria-checked="${k === v}">${l}</button>`).join('')}</div><input type="hidden" name="${n}" value="${v}">`; };
+function vSegBind(box, email) {
+  const sync = () => box.querySelectorAll('[data-vseg]').forEach((w) => {
+    const n = w.dataset.vseg, v = box.querySelector(`[name="${n}"]`).value, h = box.querySelector(`[data-vsh="${n}"]`), k = box.querySelector(`[data-vsk="${n}"]`);
+    w.querySelectorAll('[data-vs]').forEach((b) => { const on = b.dataset.vs === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    if (h) h.textContent = v === 'mich' ? `Kommt an dich${email ? ' (' + email + ')' : ''} – zum Weiterleiten aus deinem Postfach.` : 'Eine E-Mail je Empfänger, mit den Plänen im Anhang.';
+    if (k) k.hidden = v === 'mich';
+  });
+  box.addEventListener('click', (e) => { const b = e.target.closest('[data-vs]'); if (!b) return; box.querySelector(`[name="${b.closest('[data-vseg]').dataset.vseg}"]`).value = b.dataset.vs; sync(); box.dispatchEvent(new Event('change')); });
+  sync(); box._vsync = sync;
+}
 /* ---------- Plotauftrag: eigene Mail an den Plotdienst, das Anschreiben setzt sich aus den Häkchen zusammen ---------- */
 const plotText = (o, bv) => {
   const art = [o.saetze > 1 ? `${o.saetze} Sätze` : '1 Satz', o.farbe === 'sw' ? 'schwarz-weiß' : 'farbig', o.foto ? 'als Fotodruck' : '', o.gefaltet ? 'gefaltet' : 'ungefaltet (gerollt)', o.gelocht ? 'gelocht' : ''].filter(Boolean);
@@ -317,9 +327,9 @@ async function plotDialog() {
       <input type="text" id="pBem" placeholder="Hinweis, z. B. Lieferung an die Baustelle bis Freitag (optional)" style="margin-top:.4rem"></div>
     <div class="full"><h4>Anschreiben</h4><label>Betreff<input type="text" id="pBetreff" value="${esc('Plotauftrag ' + bv)}"></label>
       <label>Text <small class="mu">– setzt sich aus den Häkchen zusammen, Änderungen von Hand bleiben</small><textarea id="pText">${esc(plotText(O, bv))}</textarea></label></div>
-    <div class="full opt"><label><input type="radio" name="pArt" value="direkt"${V.versand !== 'mich' ? ' checked' : ''}> direkt an den Plotdienst</label>
-      <label style="margin-left:1.6rem"><input type="checkbox" id="pKopie"${V.kopie ? ' checked' : ''}> Kopie an mich</label>
-      <label><input type="radio" name="pArt" value="mich"${V.versand === 'mich' ? ' checked' : ''}> an mich zum Weiterleiten${V.email ? ` (${esc(V.email)})` : ''}</label></div>
+    <div class="full opt"><h4>Versand</h4>${vSeg('pArt', V.versand, [['direkt', 'direkt an den Plotdienst'], ['mich', 'per E-Mail an mich']])}
+      <p class="mu vs-h" data-vsh="pArt" style="font-size:.8rem;margin:.3rem 0 0"></p>
+      <label data-vsk="pArt"><input type="checkbox" id="pKopie"${V.kopie ? ' checked' : ''}> Kopie an mich</label></div>
     ${V.mail ? '' : '<p class="warn full">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'}
     </div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="send"${P.some((p) => p.email) ? '' : ' disabled'}>Plotauftrag senden</button></div>`;
   const lese = (bg) => ({ farbe: (bg.querySelector('[name=pFarbe]:checked') || {}).value || 'farbe', foto: $('[data-po=foto]', bg).checked, gefaltet: $('[data-po=gefaltet]', bg).checked, gelocht: $('[data-po=gelocht]', bg).checked, saetze: Math.max(1, +$('#pSaetze', bg).value || 1), bem: $('#pBem', bg).value.trim() });
@@ -329,7 +339,7 @@ async function plotDialog() {
     const d = P[+((bg.querySelector('[name=pDienst]:checked') || {}).value || 0)]; if (!d || !d.email) { toast('Bitte einen Plotdienst mit E-Mail-Adresse wählen.', true); return; }
     const btn = bg.querySelector('[data-m=send]'); btn.disabled = true; btn.textContent = 'wird gesendet …';
     try {
-      const r = await api('api/versand', 'POST', { project_id: pid, versand: (bg.querySelector('[name=pArt]:checked') || {}).value || 'direkt', kopie: $('#pKopie', bg).checked, cad: false,
+      const r = await api('api/versand', 'POST', { project_id: pid, versand: (bg.querySelector('[name=pArt]') || {}).value || 'direkt', kopie: $('#pKopie', bg).checked, cad: false,
         empfaenger: [{ name: d.name, email: d.email, contact_id: d.id }], betreff: $('#pBetreff', bg).value, text: $('#pText', bg).value,
         plaene: g.map((x) => ({ pfad: x.st.pdf.pfad, nr: x.p.nr, index: x.st.index, titel: x.p.titel, kennung: x.p.kennung, cad: [] })) });
       close(); toast(`Plotauftrag (${g.length} ${g.length > 1 ? 'Pläne' : 'Plan'}) gesendet an ${r.an.map((e) => e.name || e.email).join(', ')}.` + (r.fehler.length ? ' Nicht gesendet: ' + r.fehler.join('; ') : ''), !!r.fehler.length);
@@ -337,7 +347,7 @@ async function plotDialog() {
     } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Plotauftrag senden'; }
   });
   const box = bg && bg.querySelector ? bg : [...document.querySelectorAll('.modal-bg')].pop();
-  box.querySelector('.modal').classList.add('wide');
+  box.querySelector('.modal').classList.add('wide'); vSegBind(box, V.email);
   box.addEventListener('input', (e) => { if (e.target.id === 'pText') { eigen = true; return; } if (!eigen && (e.target.id === 'pBem' || e.target.id === 'pSaetze')) $('#pText', box).value = plotText(lese(box), bv); });
   box.addEventListener('change', (e) => { if (!eigen && e.target.id !== 'pText') $('#pText', box).value = plotText(lese(box), bv); });
 }

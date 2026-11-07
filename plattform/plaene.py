@@ -397,7 +397,7 @@ def vorlage():
     W = _werte(p, cf)
     keep = {"planliste": "{planliste}", "anzahl": "{anzahl}", "firma": "{firma}", "signatur": "{signatur}"}
     return jsonify(betreff=vorlagen.fuellen(T["betreff"], {**W, **keep}), text=vorlagen.fuellen(T["text"], {**W, **keep}), bauvorhaben=W["bauvorhaben"],
-                   versand="mich" if k.get("versand") == "mich" else "direkt", kopie=k.get("kopie", True), email=g.user["email"] or "",
+                   versand=k.get("versand_plaene") or ("mich" if k.get("versand") == "mich" else "direkt"), kopie=k.get("kopie_plaene", True), email=g.user["email"] or "",
                    mail=mail.configured(cf))
 
 

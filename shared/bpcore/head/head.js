@@ -434,6 +434,9 @@
           <h4>Mängel- und Terminrügen versenden</h4><p class="bph-mu">Vorauswahl im Dialog der Rüge – dort lässt sie sich jedes Mal ändern.</p>
           ${seg('versand', [['pdf', 'nur PDF'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']])}
           <label class="bph-ck"><input type="checkbox" data-kchk="kopie"${K.kopie ? ' checked' : ''}> bei „direkt an die Firma“ eine Kopie an mich</label>
+          <h4>Pläne versenden</h4><p class="bph-mu">Vorauswahl im Planversand und im Plotauftrag – dort lässt sie sich jedes Mal ändern.</p>
+          ${(K.versand_plaene = K.versand_plaene || (K.versand === 'mich' ? 'mich' : 'direkt'), seg('versand_plaene', [['direkt', 'direkt an die Empfänger'], ['mich', 'per E-Mail an mich']]))}
+          <label class="bph-ck"><input type="checkbox" data-kchk="kopie_plaene"${K.kopie_plaene !== false ? ' checked' : ''}> bei „direkt an die Empfänger“ eine Kopie an mich</label>
           <h4>Preise aus den Baudaten</h4><p class="bph-mu">Welcher Preis beim Übernehmen von Positionen aus den Baudaten ins LV oder in die Baukosten eingesetzt wird. „Fragen“ zeigt jedes Mal die Auswahl.</p>
           ${seg('pdb_preis', [['', 'fragen'], ['mittel', 'Mittel'], ['von', 'von'], ['bis', 'bis'], ['eigen_median', 'Median eigene'], ['eigen_neu', 'neuester eigener']])}
           <p class="bph-mu">Bei „eigene Preise“ gilt für Positionen ohne eigene Preise der Katalog-Mittelwert.</p>

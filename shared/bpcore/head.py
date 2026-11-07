@@ -1383,7 +1383,43 @@ def blueprint(get_user=None):
                 d = posteingang.postfaecher_oeffentlich(c, uid)
             m = posteingang.m365_ok(c)
             zug = posteingang.zuweisung(c)["zuordnung"].get(str(uid), [])
-        return jsonify(**d, m365_zentral=m, email=u["email"] or "", zugewiesen=zug)
+            from . import postoauth
+            ob = postoauth.bereit(c)
+        return jsonify(**d, m365_zentral=m, email=u["email"] or "", zugewiesen=zug, oauth=ob)
+
+    # ---- Eigene Postfächer per Anmeldung beim Anbieter (OAuth 2.0 mit PKCE) – siehe postoauth.py
+    @bp.get("/api/bp/oauth/<anbieter>/start")
+    def oauth_start(anbieter):
+        from flask import redirect
+        from . import postoauth
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if anbieter not in postoauth.ANBIETER:
+            return jsonify(error="Unbekannter Anbieter"), 404
+        try:
+            with db.tx() as c:
+                url = postoauth.start(c, u, anbieter, request.args.get("zurueck") or "/")
+        except Exception as e:
+            return jsonify(error=str(e)), 400
+        return redirect(url, code=302)
+
+    @bp.get("/api/bp/oauth/rueck")
+    def oauth_rueck():
+        from flask import redirect
+        from urllib.parse import quote as q
+        from . import postoauth
+        u, uid = _uid()
+        if not u:
+            return redirect("/?bp-oauth=" + q("Bitte erst anmelden und dann noch einmal verbinden."), code=302)
+        if request.args.get("error"):
+            return redirect("/#bp-oauth=" + q("Anmeldung abgebrochen: " + (request.args.get("error_description") or request.args.get("error"))[:200]), code=302)
+        try:
+            with db.tx() as c:
+                ziel, msg = postoauth.rueck(c, u, request.args.get("state", ""), request.args.get("code", ""))
+        except Exception as e:
+            return redirect("/#bp-oauth=" + q("Verbinden fehlgeschlagen: " + str(e)[:250]), code=302)
+        return redirect(ziel + "#bp-oauth=" + q(msg), code=302)
 
     @bp.post("/api/bp/postfaecher/test")
     def postfaecher_test():
@@ -1398,6 +1434,11 @@ def blueprint(get_user=None):
                 if b.get("m365"):
                     return jsonify(ok=True, text=posteingang.m365_test(c, (b.get("adresse") if u["is_admin"] and b.get("adresse") else u["email"]) or ""))
                 k = dict(b.get("konto") or {})
+                gesp = next((x for x in posteingang.postfaecher(c, uid)["konten"] if x.get("id") == k.get("id")), None)
+                if gesp and gesp.get("art") == "oauth":   # per Anmeldung verbunden
+                    from . import postoauth
+                    n = len(postoauth.lesen(c, uid, gesp, datetime.now(timezone.utc) - timedelta(days=1)))
+                    return jsonify(ok=True, text=f"Verbindung klappt – {n} Mails seit gestern im Posteingang.")
                 if not k.get("pass"):
                     k["pass"] = next((x.get("pass") for x in posteingang.postfaecher(c, uid)["konten"] if x.get("id") == k.get("id")), "")
                 k.setdefault("id", "test")

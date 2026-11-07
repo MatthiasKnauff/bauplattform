@@ -99,6 +99,7 @@
   "Gemeinsam markieren mit Externen ohne Anmeldung: befristeter Gast-Link (1/7/30 Tage, widerrufbar, nur Prüfsumme gespeichert) nur für diesen einen Plan; Gäste zeichnen und löschen nur eigene Striche; Anfragen begrenzt",
   "Adressen: beliebig viele weitere Telefonnummern, E-Mail-Adressen, Anschriften und Ansprechpartner je Kontakt (Suche, Schnellknöpfe, Visitenkarte, Planversand)",
   "Aufgaben & Mängel: „＋ Neu“ mit Auswahl – Erinnerung, Aufgabe, Mängelrüge vor/nach Abnahme, Terminrüge (auch frei, Rückstand selbst beschreiben)",
-  "AVA Variante B vervollständigt: keine Werkzeugleiste mehr – Hauptaktion und Menü „⋯“ rechts in der Bereichsleiste, Suche oben links, Ablegen/Eingang unten"
+  "AVA Variante B vervollständigt: keine Werkzeugleiste mehr – Hauptaktion und Menü „⋯“ rechts in der Bereichsleiste, Suche oben links, Ablegen/Eingang unten",
+  "Eigene Postfächer per Anmeldung bei Google und Microsoft (OAuth 2.0 mit PKCE, nur lesend, ohne Passwort, widerrufbar)"
  ]
 }

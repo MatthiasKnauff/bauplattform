@@ -769,8 +769,10 @@ def blueprint(get_user=None):
             if x["faellig"]:   # mit Fälligkeit: als ganztägiger Termin zum Annehmen (Outlook & Co. tragen ihn in den Kalender ein)
                 from . import ical
                 host = (cf.get("app_url") or "bauplattform").split("//")[-1].split("/")[0] or "bauplattform"
+                # Organisator = das Postfach, über das gesendet wird (wie bei den Erinnerungen) – eine Einladung „von“ m.knauff über das
+                # Büro-Postfach an m.knauff selbst hat Exchange Online abgewiesen (als „Sender throttled“ gemeldet)
                 inv = ical.einladung(f"todo-{x.get('id') or x['titel'][:20]}-{r['id']}@{host}", x["faellig"], None, 0, f"Aufgabe: {x['titel'][:120]}",
-                                     txt, "", u["email"] or cf.get("mail_user") or "", wer, r["email"], skizze.name_von(r), alarm_min=0, ganztags=True)
+                                     txt, "", M.von(cf), cf.get("office_name") or wer, r["email"], skizze.name_von(r), alarm_min=0, ganztags=True)
                 txt += "\nIm Anhang als Termin – „Annehmen“ trägt die Fälligkeit in deinen Kalender ein (termin.ics öffnen: Kalender selbst wählen).\n"
             try:
                 M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, ical=inv)

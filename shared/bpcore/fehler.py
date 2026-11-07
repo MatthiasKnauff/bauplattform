@@ -37,7 +37,7 @@ def melden(app, art, meldung, stack="", pfad="", user_name="", browser=""):
         with db.tx() as c:
             _tabelle(c)
             c.execute("""INSERT INTO bp_fehler(schluessel, app, art, meldung, stack, pfad, user_name, browser, zuerst, zuletzt)
-                         VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT (schluessel) DO UPDATE SET anzahl=bp_fehler.anzahl+1, zuletzt=EXCLUDED.zuletzt,
+                         VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT (schluessel) DO UPDATE SET anzahl=bp_fehler.anzahl+1, zuletzt=EXCLUDED.zuletzt, meldung=EXCLUDED.meldung,
                          pfad=EXCLUDED.pfad, user_name=EXCLUDED.user_name, stack=EXCLUDED.stack, browser=EXCLUDED.browser, gelesen=0""",
                       (key, str(app or "")[:40], art, meldung, stack, str(pfad or "")[:300], str(user_name or "")[:120], str(browser or "")[:300], jetzt, jetzt))
             c.execute("DELETE FROM bp_fehler WHERE id IN (SELECT id FROM bp_fehler ORDER BY zuletzt DESC OFFSET 2000)")

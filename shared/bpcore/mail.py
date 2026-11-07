@@ -86,7 +86,7 @@ def _smtp_senden(cf, msg, absender, empfaenger):
         txt = (e.smtp_error.decode("utf-8", "replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error))
         if "5.2.254" in txt or "throttl" in txt.lower():
             _pause["bis"] = time.time() + PAUSE_S
-            raise MailError(pause_text(), gesperrt=True)
+            raise MailError(pause_text() + f" – Antwort des Servers: {e.smtp_code} {txt[:240]}", gesperrt=True)
         if isinstance(e, smtplib.SMTPSenderRefused):
             raise MailError(f"Der Mailserver lässt {absender} nicht als Absender zu – im Postfach „Senden als“ erlauben "
                             "oder unter ⚙ → Für mich den Absender auf das Büro stellen.")

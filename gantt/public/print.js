@@ -33,6 +33,26 @@ function tiersFor(ppd) {
 const fit = (s, px, cw = 6.1) => { s = String(s ?? ''); const n = Math.floor((px - 8) / cw); return n <= 1 ? '' : s.length > n ? s.slice(0, n - 1) + '…' : s; };
 
 /* ---------- Layout berechnen ---------- */
+/* Legende des Ausdrucks: Einträge und ihre Aufteilung auf Zeilen (Breite geschätzt) */
+const PR_FUSS_W = (u) => u * 21;
+function printLegendZeilen(o, rows, u, W) {
+  const E = [];
+  if (o.legend) {
+    const gws = [...new Set(rows.map((i) => P.tasks[i].gw).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+    if (!gws.length) E.push({ k: 'leist', t: 'Leistung / Fortschritt' });
+    if (o.crit) E.push({ k: 'krit', t: 'Kritisch (roter Rand)' });
+    gws.forEach((g) => E.push({ k: 'gw', t: g }));
+    E.push({ k: 'gruppe', t: 'Leistungsgruppe' }, { k: 'ms', t: 'Meilenstein' });
+    if (o.today) E.push({ k: 'heute', t: 'Heute' });
+  }
+  const h = u * 0.9, breite = (e) => h * 3.2 + e.t.length * u * 0.5 + u * 2;
+  const Z = []; let z = [], x = 0;
+  E.forEach((e) => { const b = breite(e); if (z.length && x + b > W) { Z.push(z); z = []; x = 0; } e.x = x; z.push(e); x += b; });
+  if (z.length) Z.push(z);
+  let fussEigen = false;
+  if (o.footer) { if (!Z.length) fussEigen = true; else { const l = Z[Z.length - 1], e = l[l.length - 1]; if (e.x + breite(e) + PR_FUSS_W(u) > W) fussEigen = true; } }
+  return { Z, fussEigen, n: Z.length + (fussEigen ? 1 : 0) };
+}
 function printLayout(o) {
   const T = P.tasks, c = CAL;
   const rows = o.outline === 'all' ? T.map((t, i) => i) : vis.slice();
@@ -51,7 +71,8 @@ function printLayout(o) {
   const baseS = 0.2646 * 0.85 * (Math.max(30, Math.min(300, +o.font || 100)) / 100); // mm je Bildpunkt
   let pw, ph, s = baseS, ppd, rpp, slices = [];
   const days = Math.max(1, d1 - d0);
-  const hdr = (w, h) => { const u = Math.max(2.4, Math.min(w, h) * 0.011); return { u, hb: o.header ? u * 3.4 : 0, fb: (o.footer || o.legend) ? u * 3 : 0 }; };
+  // Fuß: Legende bricht in weitere Zeilen um statt abgeschnitten zu werden; „Seite … gedruckt …“ steht rechts in der letzten Zeile (oder darunter)
+  const hdr = (w, h) => { const u = Math.max(2.4, Math.min(w, h) * 0.011); const lg = printLegendZeilen(o, rows, u, w - 2 * m); return { u, lg, hb: o.header ? u * 3.4 : 0, fb: lg.n ? u * (1.5 + 1.6 * lg.n) : 0 }; };
 
   if (o.paper === 'roll') {
     const rw = Math.max(50, +o.roll || 914);
@@ -222,24 +243,24 @@ let PRINT_LOGO = null;
   } catch { /* ohne Logo drucken */ }
 })();
 function printPages(L) {
-  const { o, s, pw, ph, m, slices, bands, tableW } = L, { u, hb, fb } = L.hdr;
+  const { o, s, pw, ph, m, slices, bands, tableW } = L, { u, hb, fb, lg } = L.hdr;
   const tab = printTable(L), ch = printChart(L);
   const title = (o.title || '').trim() || (P._bt && P._bt.name) || P.name;   // Projektname (die Version steht im Kopf des Plans nicht)
   const now = new Date(), stamp = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const span = P.tasks.length ? `${fmtD(CAL.sd[L.rows[0]] ?? P.start)} – ${fmtD(CAL.peDay)}` : '';
   const defs = `<defs><marker id="pah" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.6L8,4L0,7.4z" fill="#1f3864"/></marker><marker id="pahc" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0.6L8,4L0,7.4z" fill="#c00000"/></marker></defs>`;
+  const fussY = (k) => ph - m - fb + u * 2.1 + k * u * 1.6;   // Grundlinie der k-ten Fußzeile
   const legend = () => {
-    if (!o.legend) return '';
-    const gws = [...new Set(L.rows.map((i) => P.tasks[i].gw).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
-    const y = ph - m - fb * 0.45, h = u * 0.9; let x = m, out = '';
-    const maxX = pw - m - (o.footer ? u * 20 : 0); let full = false;
-    const item = (shape, label) => { if (full) return; if (x + h * 3.2 + label.length * u * 0.5 > maxX) { full = true; out += `<text x="${x}" y="${y}" font-size="${u * 0.85}" fill="#333">…</text>`; return; } out += shape(x, y - h * 0.8, h) + `<text x="${x + h * 3.2}" y="${y}" font-size="${u * 0.85}" fill="#333">${label}</text>`; x += h * 3.2 + label.length * u * 0.5 + u * 2; };
-    if (!gws.length) item((x0, y0, hh) => `<rect x="${x0}" y="${y0}" width="${hh * 2.6}" height="${hh}" fill="#8db3e2" stroke="#4f7fb8" stroke-width="${hh * 0.08}"/><rect x="${x0}" y="${y0 + hh * 0.33}" width="${hh * 1.3}" height="${hh * 0.34}" fill="#1f3864"/>`, 'Leistung / Fortschritt');
-    if (o.crit) item((x0, y0, hh) => `<rect x="${x0}" y="${y0}" width="${hh * 2.6}" height="${hh}" fill="#fff" stroke="#c00000" stroke-width="${hh * 0.16}"/>`, 'Kritisch (roter Rand)');
-    gws.forEach((gname) => { const gc = gwColor(gname); item((x0, y0, hh) => `<rect x="${x0}" y="${y0}" width="${hh * 2.6}" height="${hh}" fill="${gc}" stroke="${shade(gc, 0.7)}" stroke-width="${hh * 0.08}"/>`, gname); });
-    item((x0, y0, hh) => `<path fill="#262626" d="M${x0},${y0}h${hh * 2.6}v${hh}l${-hh * 0.4},${-hh * 0.4}h${-hh * 1.8}l${-hh * 0.4},${hh * 0.4}z"/>`, 'Leistungsgruppe');
-    item((x0, y0, hh) => `<path fill="#262626" d="M${x0 + hh * 1.3},${y0 - hh * 0.1}l${hh * 0.6},${hh * 0.6}l${-hh * 0.6},${hh * 0.6}l${-hh * 0.6},${-hh * 0.6}z"/>`, 'Meilenstein');
-    if (o.today) item((x0, y0, hh) => `<line x1="${x0 + hh * 1.3}" y1="${y0 - hh * 0.2}" x2="${x0 + hh * 1.3}" y2="${y0 + hh * 1.2}" stroke="#f08a00" stroke-width="${hh * 0.12}" stroke-dasharray="${hh * 0.3} ${hh * 0.2}"/>`, 'Heute');
+    const h = u * 0.9, F = {
+      leist: (x0, y0, hh) => `<rect x="${x0}" y="${y0}" width="${hh * 2.6}" height="${hh}" fill="#8db3e2" stroke="#4f7fb8" stroke-width="${hh * 0.08}"/><rect x="${x0}" y="${y0 + hh * 0.33}" width="${hh * 1.3}" height="${hh * 0.34}" fill="#1f3864"/>`,
+      krit: (x0, y0, hh) => `<rect x="${x0}" y="${y0}" width="${hh * 2.6}" height="${hh}" fill="#fff" stroke="#c00000" stroke-width="${hh * 0.16}"/>`,
+      gw: (x0, y0, hh, e) => { const gc = gwColor(e.t); return `<rect x="${x0}" y="${y0}" width="${hh * 2.6}" height="${hh}" fill="${gc}" stroke="${shade(gc, 0.7)}" stroke-width="${hh * 0.08}"/>`; },
+      gruppe: (x0, y0, hh) => `<path fill="#262626" d="M${x0},${y0}h${hh * 2.6}v${hh}l${-hh * 0.4},${-hh * 0.4}h${-hh * 1.8}l${-hh * 0.4},${hh * 0.4}z"/>`,
+      ms: (x0, y0, hh) => `<path fill="#262626" d="M${x0 + hh * 1.3},${y0 - hh * 0.1}l${hh * 0.6},${hh * 0.6}l${-hh * 0.6},${hh * 0.6}l${-hh * 0.6},${-hh * 0.6}z"/>`,
+      heute: (x0, y0, hh) => `<line x1="${x0 + hh * 1.3}" y1="${y0 - hh * 0.2}" x2="${x0 + hh * 1.3}" y2="${y0 + hh * 1.2}" stroke="#f08a00" stroke-width="${hh * 0.12}" stroke-dasharray="${hh * 0.3} ${hh * 0.2}"/>`,
+    };
+    let out = '';
+    lg.Z.forEach((zeile, k) => { const y = fussY(k); zeile.forEach((e) => { const x = m + e.x; out += F[e.k](x, y - h * 0.8, h, e) + `<text x="${x + h * 3.2}" y="${y}" font-size="${u * 0.85}" fill="#333">${esc(e.t)}</text>`; }); });
     return out;
   };
   const pages = []; let pg = 0;
@@ -268,7 +289,7 @@ function printPages(L) {
       if (sl.tw) svg += `<line x1="${sl.tw}" y1="0" x2="${sl.tw}" y2="${Hpx}" stroke="#9a9a9a" stroke-width="1.2"/>`;
       svg += `<rect x="0.5" y="0.5" width="${sl.tw + sw - 1}" height="${Hpx - 1}" fill="none" stroke="#9a9a9a"/></g>`;
       svg += legend();
-      if (o.footer) svg += `<text x="${pw - m}" y="${ph - m - fb * 0.45}" font-size="${u * 0.85}" fill="#555" text-anchor="end">Seite ${pg} von ${L.total}  ·  gedruckt ${stamp}</text>`;
+      if (o.footer) svg += `<text x="${pw - m}" y="${fussY(Math.max(0, lg.n - 1))}" font-size="${u * 0.85}" fill="#555" text-anchor="end">Seite ${pg} von ${L.total}  ·  gedruckt ${stamp}</text>`;
       pages.push(svg + '</svg>');
     });
   });

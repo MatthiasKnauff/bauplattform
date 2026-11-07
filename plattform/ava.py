@@ -2411,6 +2411,38 @@ def lvdok(d):
     return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
 
 
+# ---------------------------------------------------------------- Eingangsordner auf dem Server (Scans vom Kopierer …)
+@app.get("/api/eingang")
+def eingang():
+    """Dateien im Eingangsordner (das Bautagebuch kennt den Server), neueste oben."""
+    try:
+        return jsonify(C.bt_api("GET", "/api/eingang") or {"ok": False, "dateien": []})
+    except RuntimeError as e:
+        return jsonify(ok=False, error=str(e), dateien=[])
+
+
+@app.get("/api/eingang/datei")
+def eingang_datei():
+    import base64
+    import urllib.parse
+    try:
+        d = C.bt_api("GET", "/api/eingang/datei?" + urllib.parse.urlencode({"name": request.args.get("name") or ""}))
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    roh = base64.b64decode(d.get("datei") or "")
+    n = d.get("name") or "Dokument"
+    mt = {"pdf": "application/pdf", "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "tif": "image/tiff", "tiff": "image/tiff"}.get(n.rsplit(".", 1)[-1].lower(), "application/octet-stream")
+    return Response(roh, mimetype=mt, headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(n)}"})
+
+
+@app.post("/api/eingang/erledigt")
+def eingang_erledigt():
+    try:
+        return jsonify(C.bt_api("POST", "/api/eingang/erledigt", {"name": (request.get_json(silent=True) or {}).get("name") or ""}))
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+
+
 @app.get("/api/ablage/vorschlag")
 def ablage_vorschlag():
     """Ordnervorschlag im Projektordner (vom Bautagebuch, das die Ablage kennt)."""

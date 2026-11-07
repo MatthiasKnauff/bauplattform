@@ -117,6 +117,8 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .qu-l{flex:1;overflow:auto}
 .qu-busy{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;background:color-mix(in srgb,var(--card) 72%,transparent);color:var(--mute);font-size:.9rem;container-type:inline-size}
 .wspin{position:relative;width:clamp(36px,22cqw,140px);aspect-ratio:1}
+.ein-l{display:flex;flex-direction:column;gap:.15rem;max-height:55vh;overflow:auto;margin:0 0 .4rem}.ein-z{display:grid;grid-template-columns:auto 1fr auto auto;gap:.5rem;align-items:center;padding:.3rem .4rem;border-radius:7px;cursor:pointer}.ein-z:hover{background:var(--hover,rgba(127,127,127,.12))}.ein-z.neu .ein-n{font-weight:600}.ein-n{overflow-wrap:anywhere}.ein-z small{color:var(--mute,#999);white-space:nowrap}.ein-dlg{width:min(560px,96vw)!important}
+.ava-ein{display:block;width:100%;margin-top:.35rem;background:none;border:1px dashed var(--line);border-radius:8px;padding:.35rem .5rem;font:inherit;font-size:.85rem;color:inherit;cursor:pointer;text-align:left}.ava-ein:hover{background:var(--hover,rgba(127,127,127,.1))}
 .ava-job{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:900;background:var(--card,#252729);color:inherit;border:1px solid var(--line);border-radius:10px;padding:.55rem .9rem;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:.92rem;max-width:92vw}
 .ava-job small{color:var(--mute,#999);margin-left:.4rem}
 .wspin i{position:absolute;inset:0;opacity:0;animation:wspin 4.4s infinite}
@@ -682,8 +684,9 @@ async function avaDokument(f) {
       if (!projId) { toast('Bitte ein Projekt wählen.', true); return; }
       const ordner = bg.querySelector('#adAblNein').checked ? 'nein' : ABL.ordner && ABL.ordner.length ? ABL.ordner : null;
       close();
-      try { await avaAblegen(f, E, { art, projId, lv: lvv === 'neu' || !lvv ? null : +lvv, firma, ordner }); } catch (e) { toast(e.message, true); }
-      fertig();
+      let ok = true;
+      try { await avaAblegen(f, E, { art, projId, lv: lvv === 'neu' || !lvv ? null : +lvv, firma, ordner }); } catch (e) { ok = false; toast(e.message, true); }
+      fertig(ok ? 'ok' : undefined);
     });
     const zeichne = async () => {
       const art = bg.querySelector('#adArt').value;
@@ -807,6 +810,55 @@ async function avaAblegen(f, E, o) {
   tab = 'aufmass'; amAns = 'erfassen'; LS.set('tab', tab); LS.set('amAns', amAns); render();
   AMABL = { ordner: o.ordner, art: o.art }; try { await amBelegHoch([f]); } finally { AMABL = null; }
 }
+/* ---------- Eingangsordner auf dem Server (z. B. Scans vom Kopierer): beim Wechsel in die AVA nachsehen und fragen ---------- */
+var EINGANG = { n: 0, t: 0 };   // var: wird schon beim ersten Zeichnen gelesen
+const eingangSpaeter = () => { try { return new Set(JSON.parse(sessionStorage.getItem('avaEingangSpaeter') || '[]')); } catch { return new Set(); } };
+const eingangKey = (x) => x.name + '|' + x.mtime;
+async function eingangPruefen(manuell) {
+  if (!manuell && Date.now() - EINGANG.t < 60000) return;
+  EINGANG.t = Date.now();
+  let r; try { r = await api('api/eingang'); } catch (e) { if (manuell) toast(e.message, true); return; }
+  if (r.aus) { if (manuell) toast('Kein Eingangsordner eingerichtet (Verwaltung → Einstellungen → Ablage).', true); return; }
+  if (!r.ok) { if (manuell) toast(r.error || 'Eingangsordner nicht erreichbar.', true); return; }
+  const D = r.dateien || [], sp = eingangSpaeter(), neu = D.filter((x) => !sp.has(eingangKey(x)));
+  EINGANG.n = D.length; const b = document.querySelector('[data-eingangn]'); if (b) b.textContent = D.length ? ` (${D.length})` : '';
+  if (manuell || neu.length) eingangDialog(D, new Set(neu.map(eingangKey)));
+}
+function eingangDialog(D, neu) {
+  if (document.querySelector('.ein-dlg')) return;
+  if (!D.length) { toast('Der Eingangsordner ist leer.'); return; }
+  const kb = (n) => (n > 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' kB');
+  const dt = (t) => { const d = new Date(t); return isNaN(d) ? '' : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
+  const bg = modalBox(`<h3>📥 Eingang auf dem Server</h3><p class="hint" style="margin:0 0 .5rem">${D.length} Datei${D.length === 1 ? '' : 'en'} im Eingangsordner – welche sollen verarbeitet werden? Jede wird wie beim Hineinziehen erkannt und nachgefragt; danach wandert sie nach „verarbeitet“.</p>
+    <div class="ein-l">${D.map((x, i) => `<label class="ein-z${neu.has(eingangKey(x)) ? ' neu' : ''}"><input type="checkbox" data-ein="${i}"${neu.has(eingangKey(x)) ? ' checked' : ''}><span class="ein-n">${esc(x.name)}</span><small>${dt(x.mtime)} · ${kb(x.size)}</small><button type="button" class="btn sm" data-einsieh="${i}" title="Ansehen">👁</button></label>`).join('')}</div>
+    <div class="acts"><button class="btn" data-m="spaeter">Später</button><button class="btn" data-m="erledigt" title="Ausgewählte ohne Verarbeiten nach „verarbeitet“ verschieben">Als erledigt ablegen</button><button class="btn pri" data-m="ok">Verarbeiten</button></div>`, async (m, bg2, close) => {
+    const wahl = [...bg2.querySelectorAll('[data-ein]:checked')].map((c) => D[+c.dataset.ein]);
+    if (m === 'spaeter') { const sp = eingangSpaeter(); D.forEach((x) => sp.add(eingangKey(x))); try { sessionStorage.setItem('avaEingangSpaeter', JSON.stringify([...sp])); } catch { /* egal */ } close(); return; }
+    if (m === 'erledigt') {
+      if (!wahl.length) return toast('Bitte Dateien auswählen.', true);
+      close(); let n = 0;
+      for (const x of wahl) { try { await api('api/eingang/erledigt', 'POST', { name: x.name }); n++; } catch (e) { toast(e.message, true); } }
+      toast(`${n} Datei${n === 1 ? '' : 'en'} nach „verarbeitet“ verschoben.`); EINGANG.t = 0; return;
+    }
+    if (m !== 'ok') return;
+    if (!wahl.length) return toast('Bitte Dateien auswählen.', true);
+    close();
+    for (const x of wahl) {
+      let f; try { const r = await fetch('api/eingang/datei?name=' + encodeURIComponent(x.name), { credentials: 'same-origin' }); if (!r.ok) throw new Error((await jsonAus(r)).error || 'Fehler ' + r.status); const bl = await r.blob(); f = new File([bl], x.name, { type: bl.type }); }
+      catch (e) { toast(`„${x.name}“: ${e.message}`, true); continue; }
+      const erg = await avaDokument(f);
+      if (erg === 'ok') { try { await api('api/eingang/erledigt', 'POST', { name: x.name }); } catch (e) { toast(`„${x.name}“ verarbeitet, aber nicht verschoben: ${e.message}`, true); } }
+      if (erg === false) break;
+    }
+    EINGANG.t = 0;
+  });
+  bg.querySelector('.modal').classList.add('ein-dlg');
+  bg.addEventListener('click', (e) => { const v = e.target.closest('[data-einsieh]'); if (!v) return; e.preventDefault(); const x = D[+v.dataset.einsieh];
+    const u = 'api/eingang/datei?name=' + encodeURIComponent(x.name); if (window.BPHead && BPHead.ansehen && /\.(pdf|jpe?g|png)$/i.test(x.name)) BPHead.ansehen([{ url: u, name: x.name, typ: /\.pdf$/i.test(x.name) ? 'pdf' : 'bild' }]); });
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') eingangPruefen(false); });
+setTimeout(() => eingangPruefen(false), 2500);
+document.addEventListener('click', (e) => { if (e.target.closest('[data-eingang]')) { e.preventDefault(); e.stopPropagation(); eingangPruefen(true); } }, true);
 document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-avadropin]'); if (i && i.files.length) { const fs = [...i.files]; i.value = ''; avaDokumente(fs); } });
 /* irgendwo auf die Seite ziehen (außer auf eigene Ablagen wie Rechnung, Aufmaß, Foto am Langtext): das gemeinsame Ablagefeld */
 const AVAEIGEN = '[data-amdrop],[data-redrop],tr.lang,.modal-bg,.bph-dlg-bg,.bed';
@@ -916,7 +968,7 @@ function render() {
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
   $('#tabs').innerHTML = (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
     + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>${tab === k && PJTABS.has(k) && LIST.some((x) => !x.archived) ? `<div class="nav-baum" id="pjTree">${pjBaum()}</div>` : ''}`).join('')}</div>`).join('')
-    + `<label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Dokument ablegen</b><small>Angebot, LV, Aufmaß, Rechnung · PDF, Scan, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,application/pdf"></label>`;
+    + `<label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Dokument ablegen</b><small>Angebot, LV, Aufmaß, Rechnung · PDF, Scan, Foto, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 Eingang auf dem Server<span data-eingangn>${EINGANG && EINGANG.n ? ` (${EINGANG.n})` : ''}</span></button>`;
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   const mitSel = NURLV.has(tab) && tab !== 'lv' && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links
   $('#sel').hidden = !mitSel;

@@ -532,7 +532,7 @@ def test_bt_rechte_eintrag_wiederherstellen(ctx):
         iid = _eintrag(ctx.admin, rid, "notizen", "nur für Anna")["id"]
         item = ctx.admin.delete(_a(f"/items/{iid}")).json["item"]
         b = ctx.anmelden("Bernd Krämer")
-        b.post(_a("/items/restore"), {**item, "text": "von Bernd eingeschleust"}, expect=403)
+        b.post(_a("/items/restore"), {**item, "text": "von Bernd eingeschleust"}, expect=(403, 404))   # 404: fremdes Projekt wie nicht vorhanden
         gleich(_bericht(ctx.admin, pid, rid)["items"], [], "kein Eintrag in Annas Projekt angekommen")
     finally:
         _weg(ctx, pid)

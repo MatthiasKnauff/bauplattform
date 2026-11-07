@@ -232,7 +232,8 @@ def test_druck_layout_benannte_versionen(ctx):
         neu_id = neu["id"]
         gleich(d1["aktiv"], neu_id, "neue Version ist aktiv")
         gleich(len(d1["versionen"]), n0 + 1, "Anzahl der Versionen")
-        gleich(neu["data"], akt["data"], "neue Version ist eine Kopie der bisher aktiven")
+        ohne_id = lambda d: {**d, "elemente": [{k: v for k, v in e.items() if k != "id"} for e in d.get("elemente") or []]}   # noqa: E731 – Kopie bekommt neue Element-IDs
+        gleich(ohne_id(neu["data"]), ohne_id(akt["data"]), "neue Version ist eine Kopie der bisher aktiven")
         gleich((neu["archiviert"], neu["wer"]), (False, "Test-Admin"), "Angaben der neuen Version")
         e = finde(a.gj("/verwaltung/api/layouts"), key="terminruege")
         gleich((e["version"], e["n"]), (name, n0 + 1), "Übersicht zeigt die aktive Version")

@@ -54,7 +54,7 @@ backup() {
   if ! running "$DB"; then info "Keine laufende Datenbank – keine Sicherung nötig."; return 0; fi
   local f="backups/bauplattform-$(date +%Y%m%d-%H%M%S)-vor-$VER.dump"
   say "Sichere die Datenbank → $f"
-  docker exec "$DB" pg_dump -U bautagebuch -d bautagebuch -Fc > "$f" || { rm -f "$f"; die "Sicherung fehlgeschlagen – Update abgebrochen."; }
+  docker exec "$DB" pg_dump -U bautagebuch -d bautagebuch -Fc --exclude-table=pdb_such --exclude-table=pdb_such_neu > "$f" || { rm -f "$f"; die "Sicherung fehlgeschlagen – Update abgebrochen."; }
   [ -s "$f" ] || { rm -f "$f"; die "Sicherung ist leer – Update abgebrochen."; }
   info "$(du -h "$f" | cut -f1) gesichert."
   ls -1t backups/bauplattform-*.dump 2>/dev/null | tail -n +11 | xargs -r rm -f   # die letzten 10 behalten

@@ -188,10 +188,16 @@ def _wait_for_db(seconds=90):
 
 
 def dump(path):
-    """Datenbank mit pg_dump in eine Datei sichern (Custom-Format, komprimiert)."""
-    r = subprocess.run(["pg_dump", "-Fc", "--no-owner", "-f", path, DSN], capture_output=True, text=True)
-    if r.returncode:
-        raise RuntimeError("pg_dump: " + (r.stderr or "").strip()[:300])
+    """Datenbank mit pg_dump in eine Datei sichern (Custom-Format, komprimiert).
+    Ohne die Suchtabelle der Baudaten (pdb_such/_neu): die wird im Hintergrund ausgetauscht – lief eine Sicherung genau dann,
+    brach pg_dump ab („relation … does not exist“). Sie wird nach einer Wiederherstellung von selbst neu aufgebaut."""
+    cmd = ["pg_dump", "-Fc", "--no-owner", "--exclude-table=pdb_such", "--exclude-table=pdb_such_neu", "-f", path, DSN]
+    for versuch in range(3):   # zur Sicherheit: kurz warten und erneut versuchen (z. B. gleichzeitige Änderungen am Schema)
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if not r.returncode:
+            return
+        time.sleep(3)
+    raise RuntimeError("pg_dump: " + (r.stderr or "").strip()[:300])
 
 
 def _backup(tag):

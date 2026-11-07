@@ -2159,16 +2159,32 @@ def _lv_lesen(data):
             menge = eh = None
             # Menge und Einheit am Ende (auch „12,500 m2 ....... ......“)
             rr = [x for x in rest if not re.fullmatch(r"[._…\-]{2,}|€|eur", x, re.I)]
-            for k in range(len(rr) - 1, max(0, len(rr) - 5), -1):
+            hinten = []
+            for k in range(len(rr) - 1, max(0, len(rr) - 5), -1):   # „12,500 m2“ (dahinter ggf. EP und GP)
                 if rx_eh.match(rr[k]) and k > 0 and _zahl(rr[k - 1]) is not None:
-                    menge, eh, rr = _zahl(rr[k - 1]), rr[k], rr[:k - 1]
+                    menge, eh, hinten, rr = _zahl(rr[k - 1]), rr[k], rr[k + 1:], rr[:k - 1]
                     break
-                if rx_eh.match(rr[k - 1]) and _zahl(rr[k]) is not None and k > 1:
-                    menge, eh, rr = _zahl(rr[k]), rr[k - 1], rr[:k - 1]
-                    break
+            if menge is None:
+                for k in range(len(rr) - 1, max(1, len(rr) - 3), -1):   # „m2 12,500“
+                    if rx_eh.match(rr[k - 1]) and _zahl(rr[k]) is not None:
+                        menge, eh, hinten, rr = _zahl(rr[k]), rr[k - 1], rr[k + 1:], rr[:k - 1]
+                        break
+            # Angebot: hinter Menge und Einheit stehen Einheitspreis und Gesamtpreis
+            if menge is None:   # „… 12,500 m2 45,00 562,50“ – Menge/Einheit weiter vorn
+                for k in range(len(rr) - 3, 0, -1):
+                    zs = [_zahl(x) for x in rr[k + 1:]]
+                    if rx_eh.match(rr[k]) and _zahl(rr[k - 1]) is not None and len(zs) == 2 and None not in zs:
+                        menge, eh, hinten, rr = _zahl(rr[k - 1]), rr[k], rr[k + 1:], rr[:k - 1]
+                        break
+            ep = None
+            zs = [z for z in (_zahl(x) for x in hinten) if z is not None]
+            if len(zs) >= 2:
+                ep = zs[0]
             text = " ".join(rr).strip(" .:")
             if menge is not None and text:
                 akt = {"typ": "pos", "art": "N", "oz": oz, "kurz": text[:250], "lang": "", "menge": menge, "einheit": eh, "seite": n}
+                if ep is not None:
+                    akt["ep_s"] = ep
                 vor.append(akt)
                 continue
             if text and menge is None and len(rest) <= 14 and not any(_zahl(x) is not None and "," in x for x in rest):
@@ -2186,6 +2202,7 @@ def _lvdoks(c, i):
     for d in c.execute("SELECT id, name, auslese, created FROM ava_lvdok WHERE lv_id=? ORDER BY id", (i,)).fetchall():
         A = _j(d["auslese"], {}) or {}
         out.append({"id": d["id"], "name": d["name"], "created": d["created"], "ocr": bool(A.get("ocr")), "laeuft": bool(A.get("laeuft")), "fehler": A.get("fehler") or "",
+                    "ki": A.get("ki") or "", "ki_stand": A.get("ki_stand") or "", "n_ep": sum(1 for x in A.get("vorschlag") or [] if x.get("ep_s")),
                     "n_pos": sum(1 for x in A.get("vorschlag") or [] if x["typ"] == "pos"), "n_titel": sum(1 for x in A.get("vorschlag") or [] if x["typ"] == "titel")})
     return out
 
@@ -2196,8 +2213,12 @@ def lvdok_neu(i):
     if not f:
         return jsonify(error="Keine Datei"), 400
     data = f.read(80 * 1024 * 1024 + 1)
-    if len(data) > 80 * 1024 * 1024 or not data.startswith(b"%PDF"):
-        return jsonify(error="Bitte eine PDF-Datei (höchstens 80 MB)."), 400
+    if len(data) > 80 * 1024 * 1024:
+        return jsonify(error="Die Datei ist zu groß (höchstens 80 MB)."), 400
+    try:
+        data, dname = _als_pdf(data, f.filename or "")
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
     scan = _ist_scan(data)
     A = {"zeilen": {}, "vorschlag": [], "ocr": True, "laeuft": True} if scan else None
     if not scan:
@@ -2210,7 +2231,7 @@ def lvdok_neu(i):
             return jsonify(error="Nicht gefunden"), 404
         _lvdok_tabelle(c)
         d = c.execute("INSERT INTO ava_lvdok(lv_id, name, data, auslese, created, user_name) VALUES(?,?,?,?,?,?) RETURNING id",
-                      (i, _s(f.filename, 200) or "LV.pdf", data, json.dumps(A, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
+                      (i, _s(dname, 200) or "LV.pdf", data, json.dumps(A, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
         _touch(c, i)
         antwort = _antwort(c, i)
     if scan:   # Texterkennung dauert je Seite einige Sekunden – im Hintergrund, die Seite fragt nach (sonst bricht der Webserver nach 60 s ab)
@@ -2227,6 +2248,92 @@ def lvdok_neu(i):
     return antwort
 
 
+# ---- Dokumente in beliebiger Form für LV und Angebot: Fotos/Scans, Word, Text werden zu einer PDF (rechts daneben anzeigen,
+#      Zeilen anklicken, Texterkennung) – GAEB und Excel gehen weiter über den Import
+_BILD = (".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff", ".bmp", ".gif")
+
+
+def _text_pdf(zeilen, titel=""):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    import textwrap
+    buf = io.BytesIO()
+    cv = canvas.Canvas(buf, pagesize=A4)
+    if titel:
+        cv.setTitle(titel)
+    W_, H_ = A4
+    y = H_ - 50
+    cv.setFont("Helvetica", 9)
+    for z in zeilen:
+        for t in (textwrap.wrap(z, 120, break_long_words=True) or [""]):
+            if y < 45:
+                cv.showPage(); cv.setFont("Helvetica", 9); y = H_ - 50
+            try:
+                cv.drawString(42, y, t.encode("cp1252", "replace").decode("cp1252"))
+            except Exception:
+                cv.drawString(42, y, t.encode("ascii", "replace").decode())
+            y -= 12
+    cv.save()
+    return buf.getvalue()
+
+
+def _docx_zeilen(data):
+    import zipfile
+    import xml.etree.ElementTree as ET
+    ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    try:
+        x = zipfile.ZipFile(io.BytesIO(data)).read("word/document.xml")
+    except Exception:
+        raise ValueError("Die Word-Datei lässt sich nicht öffnen.")
+    body = ET.fromstring(x).find(ns + "body")
+    out = []
+    txt = lambda el: "".join(t.text or "" for t in el.iter(ns + "t")).strip()
+    for el in list(body if body is not None else []):
+        if el.tag == ns + "p":
+            out.append(txt(el))
+        elif el.tag == ns + "tbl":
+            for tr in el.iter(ns + "tr"):
+                zellen = [txt(tc) for tc in tr.findall(ns + "tc")]
+                if any(zellen):
+                    out.append("   ".join(z for z in zellen if z))
+    return out
+
+
+def _als_pdf(data, name):
+    """(PDF-Bytes, Dateiname) – PDF bleibt, Bild/Foto/Scan, Word (.docx) und Text (.txt/.csv) werden umgewandelt.
+    ValueError mit Hinweis bei Formaten, die nicht gehen."""
+    nl = (name or "").lower()
+    stamm = re.sub(r"\.[^.]+$", "", name or "Dokument") or "Dokument"
+    if data.startswith(b"%PDF"):
+        return data, name or "Dokument.pdf"
+    if nl.endswith(_BILD) or data[:3] == b"\xff\xd8\xff" or data[:8] == b"\x89PNG\r\n\x1a\n":
+        from PIL import Image, ImageOps, ImageSequence
+        try:
+            im = Image.open(io.BytesIO(data))
+            seiten = [ImageOps.exif_transpose(f.copy()).convert("RGB") for f in ImageSequence.Iterator(im)][:60]
+        except Exception:
+            raise ValueError("Das Bild lässt sich nicht öffnen (am iPhone ggf. als JPG statt HEIC teilen).")
+        buf = io.BytesIO()
+        seiten[0].save(buf, "PDF", resolution=200, save_all=True, append_images=seiten[1:])
+        return buf.getvalue(), stamm + ".pdf"
+    if nl.endswith(".heic"):
+        raise ValueError("HEIC-Fotos bitte als JPG teilen (iPhone: Einstellungen → Kamera → Formate → „Maximale Kompatibilität“).")
+    if nl.endswith(".docx"):
+        return _text_pdf(_docx_zeilen(data), stamm), stamm + ".pdf"
+    if nl.endswith(".doc"):
+        raise ValueError("Alte Word-Dateien (.doc) bitte in Word als .docx oder PDF speichern.")
+    if nl.endswith((".txt", ".csv")) or ("." not in nl.rsplit("/", 1)[-1] and b"\x00" not in data[:4000]):
+        for enc in ("utf-8", "cp1252"):
+            try:
+                t = data.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+        return _text_pdf([z.replace(";", "   ").replace("\t", "   ") for z in t.splitlines()], stamm), stamm + ".pdf"
+    raise ValueError("Dieses Format geht nicht – bitte PDF, Foto/Scan, Word (.docx), Excel oder GAEB.")
+
+
+
 def _ist_scan(data):
     """Hat die PDF auf den ersten Seiten keinen Text (eingescannt)?"""
     try:
@@ -2235,6 +2342,114 @@ def _ist_scan(data):
             return not any((pg.extract_text() or "").strip() for pg in pdf.pages[:3])
     except Exception:
         return False
+
+
+_KI_LV = """Du liest ein Leistungsverzeichnis, ein Angebot oder eine Leistungsliste (deutsches Bauwesen) und überträgst es in ein LV.
+Antworte nur mit JSON: {"items": [ ... ]} in der Reihenfolge des Dokuments. Einträge:
+{"typ": "titel", "oz": "01", "kurz": "Erdarbeiten"}  – Titel/Abschnitt
+{"typ": "pos", "oz": "01.0010", "kurz": "Kurztext, höchstens 120 Zeichen", "lang": "vollständiger Langtext", "menge": 12.5, "einheit": "m2", "ep": 45.0}
+Regeln: nur übernehmen, was im Text steht – nichts erfinden. Fehlt die Ordnungszahl, "oz": "". Fehlt die Menge, "menge": 0.
+"ep" nur bei einem Einheitspreis im Dokument (Angebot), sonst null. Zahlen als JSON-Zahl mit Punkt (12,50 → 12.5).
+Kopf- und Fußzeilen, Seitenzahlen, Überträge, Summen, Anschreiben und Vertragsbedingungen weglassen."""
+
+
+def _ki_items(d):
+    out = []
+    for x in (d or {}).get("items") or []:
+        if not isinstance(x, dict):
+            continue
+        typ = "titel" if x.get("typ") == "titel" else "pos"
+        oz = _s(x.get("oz"), 40).rstrip(".")
+        kurz = _s(x.get("kurz"), 250).strip()
+        if not kurz:
+            continue
+        if typ == "titel":
+            out.append({"typ": "titel", "oz": oz, "kurz": kurz, "lvl": min(3, oz.count(".") + 1) if oz else 1})
+            continue
+        num = lambda v: v if isinstance(v, (int, float)) else _zahl(str(v)) if v not in (None, "") else None
+        y = {"typ": "pos", "art": "N", "oz": oz, "kurz": kurz, "lang": _s(x.get("lang"), 8000), "menge": num(x.get("menge")) or 0,
+             "einheit": _s(x.get("einheit"), 12)}
+        if num(x.get("ep")):
+            y["ep_s"] = num(x.get("ep"))
+        out.append(y)
+    return out
+
+
+def _lvdok_ki(d, ki):
+    """Hintergrund: Text (oder bei Scans ohne Text die Seitenbilder) an die KI, Ergebnis als Vorschlag im Dokument."""
+    def setzen(**kw):
+        with db.tx() as c:
+            r = c.execute("SELECT auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+            A = _j(r["auslese"], {}) or {}
+            A.update(kw)
+            c.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), d))
+    try:
+        with db.tx() as c:
+            x = c.execute("SELECT data, auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+            A = _j(x["auslese"], {}) or {}
+            data = bytes(x["data"])
+            Z = [z[4] for n in sorted((A.get("zeilen") or {}), key=lambda k: int(k)) for z in A["zeilen"][n]]
+            # Stücke von etwa 7000 Zeichen (lokale Modelle haben wenig Kontext), Grenze an einer Zeile mit Ordnungszahl
+            teile, akt = [], []
+            for t in Z:
+                if sum(len(y) for y in akt) > 7000 and re.match(r"^\d{1,4}(\.\d{1,4})+\.?\s", t):
+                    teile.append(akt); akt = []
+                akt.append(t)
+            if akt:
+                teile.append(akt)
+            items = []
+            if teile:
+                for k, tl in enumerate(teile, 1):
+                    setzen(ki_stand=f"Teil {k} von {len(teile)}")
+                    items += _ki_items(ai.ask_json(ki, _KI_LV, "Text des Dokuments (Teil %d von %d):\n\n%s" % (k, len(teile), "\n".join(tl)), 8000, c))
+            elif ai.sieht(ki):   # Scan ohne erkannten Text: Seitenbilder
+                import pdfplumber
+                with pdfplumber.open(io.BytesIO(data)) as pdf:
+                    S = pdf.pages[:25]
+                    for k, pg in enumerate(S, 1):
+                        setzen(ki_stand=f"Seite {k} von {len(S)}")
+                        buf = io.BytesIO()
+                        pg.to_image(resolution=110).original.convert("RGB").save(buf, "PNG")
+                        items += [dict(y, seite=k) for y in _ki_items(ai.parse_json(ai.ask_image(ki, _KI_LV, f"Seite {k} des Dokuments.", buf.getvalue(), 6000, c)))]
+            else:
+                raise ai.AIError("Im Dokument ist kein Text erkannt – für Scans ohne Texterkennung eine KI wählen, die Bilder liest (Claude, Gemini, ChatGPT oder Ollama mit Bildmodell).")
+        # über Teilgrenzen doppelt gelesene Positionen zusammenführen
+        V = []
+        for y in items:
+            if V and y.get("oz") and V[-1].get("oz") == y["oz"] and V[-1]["typ"] == y["typ"]:
+                if y["typ"] == "pos" and len(y.get("lang") or "") > len(V[-1].get("lang") or ""):
+                    V[-1] = y
+                continue
+            V.append(y)
+        label = next((l for k_, l, _ in ai.PROVIDERS if k_ == ki), ki)
+        setzen(laeuft=False, ki=label, ki_stand="", fehler="", vorschlag_regel=A.get("vorschlag_regel", A.get("vorschlag") or []), vorschlag=V[:3000])
+    except Exception as e:
+        setzen(laeuft=False, ki_stand="", fehler=("KI: " + str(e))[:300])
+
+
+@app.post("/api/lvdok/<int:d>/ki")
+def lvdok_ki(d):
+    """Auf Nachfrage: Dokument mit der gewählten KI auslesen (läuft im Hintergrund, die Seite fragt nach)."""
+    ki = (request.get_json(silent=True) or {}).get("ki") or ""
+    with db.tx() as c:
+        _lvdok_tabelle(c)
+        x = c.execute("SELECT lv_id, auslese FROM ava_lvdok WHERE id=?", (d,)).fetchone()
+        if not x or not _lv(c, x["lv_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        if ki not in ai.KEYS or ki == "intern":
+            return jsonify(error="Bitte eine KI wählen."), 400
+        if ki in ai.abgeschaltet(c):
+            return jsonify(error="Diese KI ist in der Verwaltung abgeschaltet."), 400
+        A = _j(x["auslese"], {}) or {}
+        if A.get("laeuft"):
+            return jsonify(error="Das Dokument wird gerade schon gelesen."), 409
+        A.update(laeuft=True, fehler="", ki_stand="startet …")
+        c.execute("UPDATE ava_lvdok SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), d))
+        lv_id = x["lv_id"]
+    import threading
+    threading.Thread(target=_lvdok_ki, args=(d, ki), daemon=True).start()
+    with db.tx() as c:
+        return _antwort(c, lv_id)
 
 
 @app.route("/api/lvdok/<int:d>", methods=["GET", "DELETE"])
@@ -2306,6 +2521,10 @@ def angebot_pdf(i):
     if not f:
         return jsonify(error="Keine Datei"), 400
     data = f.read(80 * 1024 * 1024)
+    try:
+        data, _ = _als_pdf(data, f.filename or "")
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
     with db.tx() as c:
         r = _lv(c, i)
         if not r:
@@ -2872,7 +3091,12 @@ def ava_erkennen():
                    n_pos=sum(1 for x in G["items"] if x["typ"] == "pos"))
         items_d = G["items"]
         text = name
-    elif data.startswith(b"%PDF"):
+    else:
+        try:
+            data, _ = _als_pdf(data, name)
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        out["umgewandelt"] = not nl.endswith(".pdf")
         try:
             text, ocr = _pdf_text(data)
         except Exception as e:
@@ -2890,9 +3114,7 @@ def ava_erkennen():
                    punkte=punkte, nachtrag=bool(re.search(r"nachtrag", kopf)), regie=bool(re.search(r"regie|stundenlohn", kopf + nl)),
                    schluss=bool(re.search(r"schlussrechnung", kopf)), text=bool(text.strip()))
         if not text.strip():
-            out["hinweis"] = "Die PDF hat keinen lesbaren Text – bitte Art, Projekt und LV wählen."
-    else:
-        return jsonify(error="Unbekanntes Format – bitte PDF, GAEB (X81–X86) oder Excel."), 400
+            out["hinweis"] = "Kein lesbarer Text – bitte Art, Projekt und LV wählen."
     tl = text.lower()
     with db.tx() as c:
         # Firma: bekannte Adresse, deren Name im Text steht (die längste gewinnt); sonst die erste Zeile (Briefkopf)

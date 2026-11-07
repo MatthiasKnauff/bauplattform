@@ -549,6 +549,42 @@ def test_angebot_aus_excel_und_pdf(ctx):
         _weg(c, lv)
 
 
+def test_lv_aus_dokumenten(ctx):
+    """LV aus beliebigen Dokumenten: Angebots-PDF (Preise als Schätzung), Word, Textliste – ohne KI erkannt; KI nur auf Nachfrage."""
+    import io, zipfile
+    c = ctx.admin
+    lv = None
+    try:
+        lv = _lv(c, ctx, "AusDokument")
+        pdf = _pdf(["Rohbau Schulte & Söhne", "Angebot Nr. 2026-311", "01 Mauerarbeiten", "01.0010 Mauerwerk KS 17,5 cm 120,000 m2 48,20 5.784,00",
+                    "01.0020 Innenputz Kalkgips 300,000 m2 18,75 5.625,00", "Summe netto 11.409,00"])
+        L = c.post(f"{A}/lv/{lv['id']}/dok", dateien={"datei": ("Angebot Schulte.pdf", pdf, "application/pdf")}).json
+        d = L["dokumente"][-1]
+        gleich((d["n_pos"], d["n_titel"], d["n_ep"]), (2, 1, 2), "Angebots-PDF: Positionen, Titel, Preise")
+        V = c.gj(f"{A}/lvdok/{d['id']}?auslese=1")["vorschlag"]
+        p = [x for x in V if x["typ"] == "pos"]
+        gleich([(x["oz"], x["kurz"], x["menge"], x["einheit"], x["ep_s"]) for x in p],
+               [("01.0010", "Mauerwerk KS 17,5 cm", 120.0, "m2", 48.2), ("01.0020", "Innenputz Kalkgips", 300.0, "m2", 18.75)], "Angebots-PDF: Werte")
+        # Word (.docx) mit Tabelle
+        W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+        par = lambda t: f"<w:p><w:r><w:t>{t}</w:t></w:r></w:p>"   # noqa: E731
+        zeile = lambda *z: "<w:tr>" + "".join(f"<w:tc>{par(x)}</w:tc>" for x in z) + "</w:tr>"   # noqa: E731
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("word/document.xml", f'<?xml version="1.0" encoding="UTF-8"?><w:document {W}><w:body>{par("03 Malerarbeiten")}<w:tbl>'
+                       + zeile("03.0010", "Wandflächen streichen", "250,000", "m2") + zeile("03.0020", "Decken streichen", "80,000", "m2") + "</w:tbl></w:body></w:document>")
+        L = c.post(f"{A}/lv/{lv['id']}/dok", dateien={"datei": ("Maler.docx", buf.getvalue(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}).json
+        d = L["dokumente"][-1]
+        gleich((d["n_pos"], d["n_titel"], d["name"]), (2, 1, "Maler.pdf"), "Word: Positionen und Titel")
+        # Textliste
+        L = c.post(f"{A}/lv/{lv['id']}/dok", dateien={"datei": ("liste.txt", "04.0010 Wandfliesen verlegen 45,000 m2\n".encode(), "text/plain")}).json
+        gleich(L["dokumente"][-1]["n_pos"], 1, "Text: Position")
+        c.post(f"{A}/lv/{lv['id']}/dok", dateien={"datei": ("alt.doc", b"\xd0\xcf\x11\xe0" + b"\x00" * 100, "application/msword")}, expect=400)
+        c.post(f"{A}/lvdok/{d['id']}/ki", {"ki": "intern"}, expect=400)   # KI nur mit gewählter KI
+    finally:
+        _weg(c, lv)
+
+
 def test_rechnung_pdf_beleg_auslesen(ctx):
     """Rechnungs-PDF der Firma an die Rechnung hängen: Nummer, Datum und Forderung werden erkannt; Datei erkennen ordnet sie dem LV zu."""
     c = ctx.admin

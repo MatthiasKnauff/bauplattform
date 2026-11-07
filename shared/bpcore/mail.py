@@ -48,9 +48,66 @@ def pause_text():
             "Bitte die E-Mail-Adressen der Benutzer prüfen (Verwaltung → Benutzer & Rechte) – die abgelehnten stehen im Protokoll.")
 
 
-def smtp_senden(cf, msg, absender, empfaenger):
+# ---------- Adressen, die der Mailserver abgelehnt hat: nicht noch einmal versuchen ----------
+# Microsoft 365 sperrt das Postfach („Sender throttled … continuous invalid recipients errors“), wenn wiederholt Mails an
+# Adressen gehen, die es nicht gibt. Deshalb merkt sich die Plattform jede abgelehnte Adresse und schickt nichts mehr dorthin,
+# bis sie korrigiert oder unter ⚙ → Büro → Mailserver freigegeben ist.
+SPERR = "mail:ungueltig"
+
+
+def ungueltige():
     try:
-        return _smtp_senden(cf, msg, absender, empfaenger)
+        from . import db
+        import json
+        with db.tx() as c:
+            r = c.execute("SELECT data FROM bp_store WHERE key=?", (SPERR,)).fetchone()
+        d = json.loads(r["data"]) if r and r["data"] else {}
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def _sperr_setzen(d):
+    try:
+        from . import db
+        import json
+        with db.tx() as c:
+            c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
+                      "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (SPERR, json.dumps(d, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), "Mail"))
+    except Exception:
+        pass
+
+
+def ungueltig_merken(adressen, grund):
+    d = ungueltige()
+    for a in adressen:
+        a = a.strip().lower()
+        if a:
+            x = d.get(a) or {"seit": datetime.now().strftime("%d.%m.%Y %H:%M"), "anzahl": 0}
+            x["anzahl"] = x.get("anzahl", 0) + 1; x["grund"] = str(grund)[:200]
+            d[a] = x
+    _sperr_setzen(d)
+
+
+def ungueltig_freigeben(adresse=None):
+    d = ungueltige()
+    if adresse:
+        d.pop(adresse.strip().lower(), None)
+    else:
+        d = {}
+    _sperr_setzen(d)
+    return d
+
+
+def smtp_senden(cf, msg, absender, empfaenger):
+    U = ungueltige()
+    weg = [a for a in empfaenger if a.strip().lower() in U]
+    ok = [a for a in empfaenger if a.strip().lower() not in U]
+    try:
+        if not ok:   # nur gesperrte Empfänger: gar nicht erst versuchen – jeder Versuch verlängert die Sperre bei Microsoft
+            raise MailError(f"Nicht gesendet: {', '.join(weg)} wurde vom Mailserver als ungültig abgelehnt (am {U[weg[0].strip().lower()].get('seit', '')}). "
+                            "Adresse korrigieren (Verwaltung → Benutzer & Rechte bzw. Adressen) oder unter ⚙ → Büro → Mailserver freigeben.", dauerhaft=True)
+        return _smtp_senden(cf, msg, absender, ok)
     except MailError as e:
         _melden(e, empfaenger, msg.get("Subject", ""))
         raise
@@ -71,16 +128,17 @@ def _smtp_senden(cf, msg, absender, empfaenger):
         if port == 465:   # SSL von Anfang an (z. B. T-Online, Strato)
             with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as s:
                 s.login(cf["mail_user"], cf["mail_pass"])
-                s.send_message(msg)
+                s.send_message(msg, to_addrs=empfaenger)
         else:             # STARTTLS (Port 587)
             with smtplib.SMTP(host, port, timeout=20) as s:
                 s.ehlo(); s.starttls(context=ssl.create_default_context()); s.ehlo()
                 s.login(cf["mail_user"], cf["mail_pass"])
-                s.send_message(msg)
+                s.send_message(msg, to_addrs=empfaenger)
     except smtplib.SMTPAuthenticationError:
         hint = HINWEIS.get(prov, "Bei vielen Anbietern ist ein „App-Passwort“ nötig oder SMTP muss im Postfach erlaubt werden.")
         raise MailError("Anmeldung am Mailserver abgelehnt – Zugangsdaten unter ⚙ → Büro → Mailserver prüfen. " + hint)
     except smtplib.SMTPRecipientsRefused as e:
+        ungueltig_merken(list(e.recipients), "vom Mailserver abgelehnt")
         raise MailError("Empfänger vom Mailserver abgelehnt: " + ", ".join(e.recipients), dauerhaft=True)
     except smtplib.SMTPResponseException as e:
         txt = (e.smtp_error.decode("utf-8", "replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error))
@@ -91,6 +149,8 @@ def _smtp_senden(cf, msg, absender, empfaenger):
             raise MailError(f"Der Mailserver lässt {absender} nicht als Absender zu – im Postfach „Senden als“ erlauben "
                             "oder unter ⚙ → Für mich den Absender auf das Büro stellen.")
         if e.smtp_code >= 500 and re.search(r"5\.1\.\d|recipient|mailbox unavailable|not found", txt, re.I):
+            if len(empfaenger) == 1:
+                ungueltig_merken(empfaenger, f"{e.smtp_code} {txt[:150]}")
             raise MailError(f"Empfänger abgelehnt ({e.smtp_code} {txt[:160]})", dauerhaft=True)
         raise MailError(f"Mailserver-Fehler {e.smtp_code}: {txt}"[:300])
     except (OSError, smtplib.SMTPException) as e:

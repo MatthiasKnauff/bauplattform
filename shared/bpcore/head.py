@@ -363,6 +363,54 @@ def blueprint(get_user=None):
                 skizze.gast_widerrufen(c, sid, kurz)
             return jsonify(links=skizze.gast_links(c, sid))
 
+    @bp.post("/api/bp/skizze/<sid>/gastmail")
+    def skizze_gastmail(sid):
+        """{an: [E-Mail-Adressen], tage}: je Empfänger ein eigener Gast-Link (einzeln zurückziehbar), per E-Mail verschickt."""
+        import re as _re
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        an = []
+        for x in (b.get("an") or [])[:10]:
+            x = str(x or "").strip()[:200]
+            if x and _re.fullmatch(r"[^@\s,;<>]+@[^@\s,;<>]+\.[^@\s,;<>]+", x) and x.lower() not in [y.lower() for y in an]:
+                an.append(x)
+        if not an:
+            return jsonify(error="Bitte mindestens eine gültige E-Mail-Adresse angeben."), 400
+        basis = str(b.get("basis") or "").strip()[:200]
+        if not _re.fullmatch(r"https?://[\w.:-]+", basis):
+            return jsonify(error="Ungültige Adresse"), 400
+        with db.tx() as c:
+            r = skizze.darf(c, sid, u)
+            if not r:
+                return jsonify(error="Keine Einladung zu dieser Skizze."), 403
+            cf = mail.conf(c)
+            if not mail.configured(cf):
+                return jsonify(error="Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver)."), 400
+            von, absname = konto.absender(c, u, cf)
+            tage = b.get("tage") if isinstance(b.get("tage"), int) else 7
+            links = [(m, *skizze.gast_link(c, sid, u, tage)) for m in an]
+        plan = r["name"] or "einen Plan"
+        gesendet, fehl = [], []
+        for m, token, ab in links:
+            try:
+                mail.send(cf, m, f"Plan gemeinsam markieren: {plan}",
+                          f"Guten Tag,\n\n{u['name']} lädt Sie ein, den Plan „{plan}“ gemeinsam anzusehen und darin zu markieren.\n\n"
+                          f"Öffnen (ohne Anmeldung): {basis}/gast/{token}\n\nDer Link gilt nur für Sie und bis zum {ab[8:10]}.{ab[5:7]}.{ab[:4]}. "
+                          "Bitte nicht weitergeben.", sender=absname or "Bauplattform", from_addr=von or None, reply_to=u["email"] or None)
+                gesendet.append(m)
+            except Exception as e:
+                fehl.append(f"{m}: {str(e)[:120]}")
+        if fehl:   # nicht zugestellte Links gleich wieder zurückziehen
+            with db.tx() as c:
+                for m, token, _ in links:
+                    if m not in gesendet:
+                        skizze.gast_widerrufen_token(c, token)
+        with db.tx() as c:
+            L = skizze.gast_links(c, sid)
+        return jsonify(ok=True, gesendet=gesendet, fehler=fehl, links=L)
+
     def _gast(token, schreiben=False):
         """(Skizze-ID, Gast, Fehlerantwort) – prüft Link, Kennung und Anfragetakt."""
         with db.tx() as c:
@@ -532,6 +580,31 @@ def blueprint(get_user=None):
         return jsonify(ok=True, id=cid)
 
     # ---- Kontaktfelder in den Stammdaten-Masken: suchen, anlegen und ändern mit der gewohnten Kontaktmaske
+    @bp.get("/api/bp/mailadressen")
+    def mailadressen():
+        """?q=Text → [{name, email}] aus den Adressen (auch weitere E-Mails und Ansprechpartner) – für Mail-Felder mit Vorschlägen."""
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        q = " ".join(str(request.args.get("q") or "").split())[:100].lower()
+        if len(q) < 2:
+            return jsonify([])
+        like = f"%{q}%"
+        out = []
+        with db.tx() as c:
+            for r in c.execute("""SELECT name, contact_person, email, extra FROM contacts WHERE lower(name) LIKE ? OR lower(email) LIKE ?
+                                  OR lower(contact_person) LIKE ? OR lower(extra) LIKE ? ORDER BY name LIMIT 60""", (like, like, like, like)).fetchall():
+                if r["email"]:
+                    out.append({"name": " – ".join(x for x in (r["name"], r["contact_person"]) if x), "email": r["email"]})
+                try:
+                    W = (json.loads(r["extra"] or "{}") or {}).get("weitere") or []
+                except (ValueError, TypeError):
+                    W = []
+                for x in W:
+                    m = x.get("wert") if x.get("typ") == "mail" else x.get("mail") if x.get("typ") == "person" else ""
+                    if m:
+                        out.append({"name": f"{r['name']} – {x.get('wert') if x.get('typ') == 'person' else x.get('bez') or ''}".strip(" –"), "email": m})
+        return jsonify([x for x in out if q in (x["name"] + " " + x["email"]).lower()][:15])
+
     @bp.get("/api/bp/kontakte")
     def kontakte_suchen():
         """?q=Text[&rolle=Bauherr] Treffer zur Eingabe · ?ids=1,2 die Kontakte zu diesen IDs"""

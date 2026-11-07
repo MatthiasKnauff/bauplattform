@@ -333,6 +333,15 @@ def gast_widerrufen(c, sid, kurz=None):
     return n
 
 
+def gast_widerrufen_token(c, token):
+    k = "skgast:" + _gh(token)
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (k,)).fetchone()
+    if r:
+        d = json.loads(r["data"])
+        d["widerrufen"] = True
+        c.execute("UPDATE bp_store SET data=?, updated=? WHERE key=?", (json.dumps(d), _now(), k))
+
+
 def gast_pruefen(c, token):
     """(Skizze-ID, Linkhash) für einen gültigen Gast-Link, sonst (None, None)."""
     if not token or len(token) < 30 or len(token) > 80 or not re.fullmatch(r"[\w-]+", token):

@@ -1860,7 +1860,8 @@
         <div class="bph-row"><button type="button" class="bph-btn pri" data-ko>Einladen</button><button type="button" class="bph-btn" data-kl>Link kopieren</button><a class="bph-btn" data-kmailto href="mailto:?subject=${encodeURIComponent('Gemeinsam markieren: ' + (items[i].name || 'Plan'))}&body=${encodeURIComponent('Bitte öffne den Plan, dann markieren wir gemeinsam:\n' + link)}" title="Eigene Mail mit dem Link schreiben – auch an Leute außerhalb">✉ Per Mail …</a></div>
         <p class="bph-mu" data-km></p>
         <div class="bph-skx"><b>Externe ohne Anmeldung</b><p class="bph-mu" style="margin:.2rem 0 .4rem">Ein eigener, befristeter Link nur für diesen Plan – z. B. für Fachplaner oder Bauherrn. Externe sehen nichts anderes, zeichnen mit und löschen nur ihre eigenen Striche. Zurückziehen geht jederzeit.</p>
-          <div class="bph-row"><select data-kgt aria-label="gültig"><option value="1">1 Tag gültig</option><option value="7" selected>7 Tage gültig</option><option value="30">30 Tage gültig</option></select><button type="button" class="bph-btn" data-kg>🔗 Link für Externe erzeugen</button></div>
+          <div class="bph-gm"><span data-gmc></span><input data-gmi list="bphGmL" placeholder="E-Mail oder Name aus den Adressen …" autocomplete="off" aria-label="E-Mail-Adresse"><datalist id="bphGmL"></datalist></div>
+          <div class="bph-row"><select data-kgt aria-label="gültig"><option value="1">1 Tag gültig</option><option value="7" selected>7 Tage gültig</option><option value="30">30 Tage gültig</option></select><button type="button" class="bph-btn pri" data-kgm>✉ Per E-Mail einladen</button><button type="button" class="bph-btn" data-kg>🔗 Nur Link erzeugen</button></div>
           <div data-kgl></div></div></div></div>`;
       el.appendChild(d);
       const gl = (L, neu) => {   // gültige Gast-Links; ein neuer steht einmal im Klartext da (gespeichert wird nur eine Prüfsumme)
@@ -1869,8 +1870,33 @@
           + (L.length ? `<div class="bph-mu" style="margin-top:.4rem">Gültige Links: ${L.map((x) => `<span class="bph-chip">bis ${de(x.ablauf)} · ${esc(x.von)} <button type="button" data-kgx="${esc(x.id)}" title="Link zurückziehen – er funktioniert dann sofort nicht mehr">✕</button></span>`).join(' ')}${L.length > 1 ? ' <button type="button" class="bph-btn" data-kgx="*">alle zurückziehen</button>' : ''}</div>` : '');
       };
       SKJ(`api/bp/skizze/${SK.id}/gastlinks`).then((r) => gl(r.links || [])).catch(() => {});
+      /* Empfänger für die Einladung per E-Mail: aus den Adressen (auch weitere E-Mails) oder frei eingetippt */
+      const GM = [], gmI = d.querySelector('[data-gmi]'), gmOk = (v) => /^[^@\s,;<>]+@[^@\s,;<>]+\.[^@\s,;<>]+$/.test(v);
+      const gmZeigen = () => { d.querySelector('[data-gmc]').innerHTML = GM.map((m, k) => `<span class="bph-chip">${esc(m)} <button type="button" data-gmx="${k}" aria-label="entfernen">✕</button></span>`).join(''); };
+      const gmAdd = () => { const v = gmI.value.trim().replace(/[,;]$/, ''); if (!v) return true; if (!gmOk(v)) return false; if (!GM.some((x) => x.toLowerCase() === v.toLowerCase())) GM.push(v); gmI.value = ''; gmZeigen(); return true; };
+      let gmT = 0;
+      gmI.addEventListener('input', () => {
+        if (/[,;\s]$/.test(gmI.value) && gmOk(gmI.value.trim().replace(/[,;]$/, ''))) { gmAdd(); return; }
+        if (gmOk(gmI.value.trim()) && [...d.querySelectorAll('#bphGmL option')].some((o) => o.value === gmI.value.trim())) { gmAdd(); return; }   // aus der Liste gewählt
+        clearTimeout(gmT); const q = gmI.value.trim(); if (q.length < 2) return;
+        gmT = setTimeout(async () => { try { const L = await KX('api/bp/mailadressen?q=' + encodeURIComponent(q)); d.querySelector('#bphGmL').innerHTML = L.map((x) => `<option value="${esc(x.email)}">${esc(x.name)}</option>`).join(''); } catch { /* ohne Vorschläge */ } }, 200);
+      });
+      gmI.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); if (!gmAdd()) d.querySelector('[data-km]').textContent = 'Bitte eine gültige E-Mail-Adresse eingeben.'; } });
       d.addEventListener('click', async (e) => {
         if (e.target === d || e.target.closest('[data-kx]')) return d.remove();
+        const gx0 = e.target.closest('[data-gmx]'); if (gx0) { GM.splice(+gx0.dataset.gmx, 1); gmZeigen(); return; }
+        const gmb = e.target.closest('[data-kgm]');
+        if (gmb) {
+          if (!gmAdd()) { d.querySelector('[data-km]').textContent = 'Bitte eine gültige E-Mail-Adresse eingeben.'; return; }
+          if (!GM.length) { d.querySelector('[data-km]').textContent = 'Bitte eine E-Mail-Adresse eingeben oder aus den Adressen wählen.'; gmI.focus(); return; }
+          gmb.disabled = true;
+          try {
+            const r = await SKJ(`api/bp/skizze/${SK.id}/gastmail`, 'POST', { an: GM, tage: +d.querySelector('[data-kgt]').value, basis: location.origin });
+            gl(r.links || []); GM.length = 0; gmZeigen();
+            d.querySelector('[data-km]').textContent = (r.gesendet.length ? 'Eingeladen per E-Mail: ' + r.gesendet.join(', ') + '. Jeder hat einen eigenen Link, einzeln zurückziehbar.' : '') + (r.fehler.length ? ' Nicht gesendet: ' + r.fehler.join('; ') : '');
+          } catch (er) { d.querySelector('[data-km]').textContent = er.message; } finally { gmb.disabled = false; }
+          return;
+        }
         const gb = e.target.closest('[data-kg]');
         if (gb) { gb.disabled = true; try { const r = await SKJ(`api/bp/skizze/${SK.id}/gastlinks`, 'POST', { tage: +d.querySelector('[data-kgt]').value }); gl(r.links || [], { url: location.origin + '/gast/' + r.token, ablauf: r.ablauf }); } catch (er) { d.querySelector('[data-km]').textContent = er.message; } finally { gb.disabled = false; } return; }
         const gc = e.target.closest('[data-kgc]'); if (gc) { const inp = d.querySelector('.bph-skneu input'); try { await navigator.clipboard.writeText(inp.value); gc.textContent = 'Kopiert ✓'; } catch { inp.select(); } return; }

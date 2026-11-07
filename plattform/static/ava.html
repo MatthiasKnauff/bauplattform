@@ -477,6 +477,21 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
 <datalist id="gwList"></datalist>
 <script src="static/bp.js"></script>
 <script>
+/* Wird die App gerade neu gestartet (Update eingespielt), antwortet der Verteiler sofort mit 502 „… nicht erreichbar (ConnectionRefusedError)“ –
+   die Anfrage ist dann nicht angekommen und wird nach ein paar Sekunden still wiederholt (bis zu einer Minute). */
+(() => {
+  const roh = window.fetch.bind(window);
+  window.fetch = async (url, opt) => {
+    for (let k = 0; ; k++) {
+      const r = await roh(url, opt);
+      if (r.status !== 502 || k >= 12) return r;
+      const t = await r.clone().text().catch(() => '');
+      if (!/nicht erreichbar \((ConnectionRefusedError|ConnectionResetError|RemoteDisconnected)/.test(t) || (/RemoteDisconnected|Reset/.test(t) && opt && opt.method && opt.method !== 'GET')) return r;
+      if (k === 0 && window.toast) toast('Die AVA startet gerade neu (Update) – die Anfrage wird gleich wiederholt …');
+      await new Promise((ok) => setTimeout(ok, 5000));
+    }
+  };
+})();
 const LS = { get(k, d) { try { const v = localStorage.getItem('ava.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('ava.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschritte, rechts die Tabelle
   ['Ausschreibung', [['lv', 'Leistungsverzeichnis', '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/>'], ['tueren', 'Fenster- & Türliste', '<rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="15" cy="12" r=".8"/>']]],
@@ -1017,7 +1032,7 @@ function lvSplitMount() {
 /* Antwort als JSON – Fehlerseiten des Webservers (Zeitüberschreitung, Datei zu groß) verständlich melden */
 async function jsonAus(r) {
   try { return await r.json(); } catch {
-    throw new Error(r.status === 504 || r.status === 502 ? 'Der Server hat zu lange gebraucht – bitte noch einmal versuchen.' : r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : `Unerwartete Antwort vom Server (${r.status}).`);
+    throw new Error(r.status === 502 ? 'Die AVA war gerade nicht erreichbar (Neustart nach einem Update oder abgestürzte Verarbeitung) – bitte noch einmal versuchen.' : r.status === 504 ? 'Der Server hat zu lange gebraucht – bitte noch einmal versuchen.' : r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : `Unerwartete Antwort vom Server (${r.status}).`);
   }
 }
 /* Scan wird im Hintergrund gelesen: nachfragen, bis die Erkennung fertig ist, dann neu zeichnen */
@@ -2343,7 +2358,7 @@ function reDialog(art = 'abschlag') {
 }
 async function reBelegHoch(rid, f) {
   if (!f) return;
-  if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') return toast('Bitte eine PDF-Datei wählen.', true);
+  if (!/\.(pdf|jpe?g|png|tiff?|docx)$/i.test(f.name) && !/^(application\/pdf|image\/)/.test(f.type)) return toast('Bitte eine PDF-Datei, einen Scan oder ein Foto wählen.', true);
   const fd = new FormData(); fd.append('datei', f);
   toast('Rechnung wird gespeichert und im Projektordner abgelegt …');
   try {

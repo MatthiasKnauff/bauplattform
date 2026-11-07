@@ -12,6 +12,8 @@ def status():
     with db.tx() as c:
         conf = settings.all(c)
         p = c.execute("SELECT id, name, folder FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
+        if p and not access.can_see(c, g.user, p["id"]):   # fremde Projekte: wie nicht vorhanden
+            p = None
     out["enabled"] = sync.enabled(conf)
     if p and date:
         shown = f"[Ordner „{sync.code_of(p)} …“]"
@@ -27,6 +29,8 @@ def path():
     with db.tx() as c:
         conf = settings.all(c)
         p = c.execute("SELECT id, name, folder FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
+        if p and not access.can_see(c, g.user, p["id"]):   # fremde Projekte: wie nicht vorhanden
+            p = None
     if not p or conf.get("store_mode") != "smb":
         return jsonify(path="")
     try:
@@ -44,6 +48,8 @@ def names():
     with db.tx() as c:
         conf = settings.all(c)
         p = c.execute("SELECT id, name, folder FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
+        if p and not access.can_see(c, g.user, p["id"]):   # fremde Projekte: wie nicht vorhanden
+            p = None
         rep = c.execute("SELECT date, number FROM reports WHERE project_id=? ORDER BY date DESC, number DESC LIMIT 1", (pid,)).fetchone() if p else None
     if not p:
         return jsonify({})

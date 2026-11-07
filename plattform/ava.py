@@ -1908,13 +1908,22 @@ def _excel_lesen(data):
         raise ValueError("In der Excel-Datei fehlt die Kopfzeile (OZ, Kurztext, Menge, Einheit, EP).")
     k0, h = head
 
-    def col(*names):
+    def col(*names, genau=False):
+        for n in names:   # zuerst genaue Treffer („ME“ ist nicht „Einheitspreis“), dann Anfänge („Menge (m²)“)
+            for j, x in enumerate(h):
+                if x == n:
+                    return j
+        if genau:
+            return None
         for n in names:
             for j, x in enumerate(h):
-                if x == n or x.startswith(n):
+                if x.startswith(n) and not (n == "me" and x.startswith("menge")):
                     return j
         return None
     cz, ck, cl, cm, ce, cp = col("oz", "pos"), col("kurztext", "bezeichnung", "text"), col("langtext"), col("menge"), col("einheit", "me"), col("ep", "einheitspreis")
+    ca = col("art", genau=True)
+    if ce is not None and ce == cp:   # „Einheit“ und „EP“ dürfen nicht dieselbe Spalte sein
+        ce = None
     items = []
     for row in rows[k0 + 1:]:
         g_ = lambda j: row[j] if j is not None and j < len(row) else None
@@ -1922,11 +1931,17 @@ def _excel_lesen(data):
         if not oz and not kurz:
             continue
         menge = _fn(g_(cm))
-        if menge is None and not g_(ce):   # Zeile ohne Menge und Einheit: Titel
-            items.append({"typ": "titel", "lvl": max(1, oz.count(".") + 1) if oz else 1, "oz": oz, "kurz": kurz})
+        if menge is None and not g_(ce):
+            if not oz and re.match(r"(?i)^(summe|gesamt|zwischensumme|übertrag|uebertrag)\b", kurz):   # Summenzeilen (z. B. aus dem eigenen Export)
+                continue
+            if not oz:   # Zeile ohne OZ, Menge und Einheit: Hinweistext
+                items.append({"typ": "pos", "oz": "", "kurz": kurz, "lang": str(g_(cl) or "").strip(), "menge": 0, "einheit": "", "art": "T", "ep": None})
+            else:        # mit OZ: Titel
+                items.append({"typ": "titel", "lvl": max(1, oz.count(".") + 1), "oz": oz, "kurz": kurz})
         else:
+            art = str(g_(ca) or "").strip().upper()
             items.append({"typ": "pos", "oz": oz, "kurz": kurz, "lang": str(g_(cl) or "").strip(), "menge": menge or 0, "einheit": str(g_(ce) or "").strip(),
-                          "art": "N", "ep": _fn(g_(cp))})
+                          "art": art if art in ARTEN and art != "T" else "N", "ep": _fn(g_(cp))})
     if not any(x["typ"] == "pos" for x in items):
         raise ValueError("In der Excel-Datei wurden keine Positionen gefunden.")
     return {"dp": "", "projekt": "", "lv_name": "", "bieter": "", "items": items}
@@ -2326,6 +2341,8 @@ def vergabe(i):
                     P[k] = v
             V = {"angebot_id": a["id"], "contact_id": a["contact_id"], "bieter": a["bieter"], "datum": _s(b.get("datum"), 10) or date.today().isoformat(),
                  "nachlass": a["nachlass"] or 0, "nachlass_eur": _ak(a, "nachlass_eur") or 0, "skonto": a["skonto"] or 0, "skonto_tage": _ak(a, "skonto_tage") or 0, "einbehalt": round(_f(b.get("einbehalt"), alt.get("einbehalt", 5.0), 0, 30), 2), "preise": P}
+            if isinstance(alt.get("sicherheit"), dict):   # schon eingetragene Sicherheiten, Abnahme, Mängelfrist behalten
+                V["sicherheit"] = alt["sicherheit"]
             c.execute("UPDATE ava_lv SET vergabe=?, status='vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?",
                       (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
             C.audit(g.user["name"], "ava", "Vergabe", f"LV {r['nr']} {r['name']} an {a['bieter']}")
@@ -3612,14 +3629,14 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         if x.get("np_nach"):   # Druckoption „Neue Seite nachher“
             tabelle_schliessen(); story.append(PageBreak())
     if preis != "leer":
-        rows.append(["", Paragraph("<b>Summe netto</b>", S["p"]), "", "", "", eur(gesamt * ((1 - (V.get("nachlass") or 0) / 100) if preis == "auftrag" else 1))])
+        rows.append(["", Paragraph("<b>Summe netto</b>", S["p"]), "", "", "", eur(gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1))])   # Nachlass in % und € (wie in der Abrechnung)
         band.append(len(rows) - 1)
     tabelle_schliessen()
     if lay["zusammenstellung"] and titel:
         z = [["OZ", "Titel", "Betrag netto"]]
         for t_ in titel:
             z.append([t_.get("oz") or "", t_["kurz"], eur(tsum.get(t_["id"])) if preis != "leer" else "........................"])
-        sn = gesamt * ((1 - (V.get("nachlass") or 0) / 100) if preis == "auftrag" else 1)
+        sn = gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1)
         for lab, val in (("Summe netto", sn), (f"zzgl. {MWST:g} % USt.", sn * MWST / 100), ("Summe brutto", sn * (1 + MWST / 100))):
             z.append(["", lab, eur(val) if preis != "leer" else "........................"])
         t = Table(z, colWidths=[20 * mm, W - 20 * mm - 45 * mm, 45 * mm])

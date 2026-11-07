@@ -1,7 +1,7 @@
 import json
 import re
 from flask import Blueprint, g, jsonify, request
-from core import contacts, db
+from core import access, contacts, db
 
 bp = Blueprint("items", __name__)
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -110,7 +110,8 @@ def restore_item():
     """Gerade gelöschten Eintrag unverändert (mit alter ID und Reihenfolge) wiederherstellen."""
     d = request.json or {}
     with db.tx() as c:
-        if not c.execute("SELECT 1 FROM reports WHERE id=?", (d.get("report_id"),)).fetchone():
+        rp = c.execute("SELECT project_id FROM reports WHERE id=?", (d.get("report_id"),)).fetchone()
+        if not rp or not access.can_see(c, g.user, rp["project_id"]):   # fremde Projekte: wie nicht vorhanden
             return jsonify(error="Der Bericht existiert nicht mehr."), 404
         if c.execute("SELECT 1 FROM items WHERE id=?", (d.get("id"),)).fetchone():
             return jsonify(error="Eintrag ist schon wieder da."), 409

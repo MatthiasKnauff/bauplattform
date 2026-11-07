@@ -103,7 +103,7 @@ def name_norm(n):
 
 
 def _ziffern(t):
-    d = _re.sub(r"\D", "", t or "")
+    d = _re.sub(r"\D", "", _re.sub(r"\(\s*0\s*\)", "", t or ""))   # „+49 (0)201 …“ = „0201 …“
     if d.startswith("0049"):
         d = "0" + d[4:]
     elif d.startswith("49") and len(d) > 10:

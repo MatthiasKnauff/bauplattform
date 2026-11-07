@@ -135,6 +135,7 @@ def restore(c, vid, user):
         if c.execute("SELECT 1 FROM items WHERE id=? AND report_id=?", (it["id"], rid)).fetchone():
             c.execute(f"UPDATE items SET {','.join(k + '=?' for k in vals)} WHERE id=?", list(vals.values()) + [it["id"]])
         elif not c.execute("SELECT 1 FROM items WHERE id=?", (it["id"],)).fetchone():
+            vals.pop("id", None)   # id kommt gleich ausdrücklich dazu (sonst doppelt → Fehler beim Wiederherstellen)
             c.execute(f"INSERT INTO items({','.join(vals)}, id) VALUES({','.join('?' * (len(vals) + 1))})", list(vals.values()) + [it["id"]])
     for im in snap["images"]:   # Foto-Zuordnung zu Einträgen wiederherstellen (soweit Foto und Eintrag noch existieren)
         if im.get("item_id") and c.execute("SELECT 1 FROM items WHERE id=?", (im["item_id"],)).fetchone():

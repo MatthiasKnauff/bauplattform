@@ -193,6 +193,10 @@ def position_neu():
         for k in d:
             if k in b and k != "von":
                 d[k] = b[k]
+        for k in ("ep_von", "ep_mittel", "ep_bis"):   # mitgeschickte Preise sind heutige Preise (wie beim Ändern) → auf den Preisstand umrechnen
+            if k in b:
+                v = _fn(b[k])
+                d[k] = round(v / f_e, 4) if v is not None else None
         code = _neuer_code(c)
         i = c.execute("""INSERT INTO pdb_position(katalog, code, lb_nr, gruppe, titel, kurz, bez, lang, einheit, kg, gewerk, ep_von, ep_mittel, ep_bis,
                          genauigkeit, tags, hinweis, quelle, preisstand, created, updated, updated_by)

@@ -399,6 +399,9 @@ def projects():
         link = b.get("_link") if is_int(b.get("_link")) else None
         if link is not None and not c.execute("SELECT 1 FROM projects WHERE id=?", (int(link),)).fetchone():
             link = None
+        vis = visible_bt(c, g.user) if link is not None else None   # nur mit Projekten verknüpfen, die der Benutzer sehen darf
+        if vis is not None and int(link) not in vis:
+            return jsonify(error="Bautagebuch-Projekt nicht gefunden"), 404
         return jsonify(write_project(c, p, uname(), int(link) if link is not None else None, insert=True)), 201
 
 

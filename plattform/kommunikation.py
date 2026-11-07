@@ -4,7 +4,7 @@ Quelle ist der Benachrichtigungsverlauf (Tabelle benachrichtigungen, bpcore/bena
 Sendung eintragen: Planversand, Mängelrügen, Terminrügen – per E-Mail, an mich zum Weiterleiten oder als PDF.
 Diese App liest nur; neue Arten (z. B. LV-Versand) erscheinen hier, sobald eine App sie protokolliert.
 """
-import csv, io
+import csv, io, json
 from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
@@ -50,9 +50,24 @@ def platform_conf():
     return jsonify(platform.config(g.user))
 
 
+def _leiter(raw):
+    try:
+        v = json.loads(raw or "[]")
+    except ValueError:
+        return []
+    return [int(x) for x in v if str(x).isdigit()] if isinstance(v, list) else []
+
+
 def _filter(a):
     """WHERE-Teil aus den Abfrageparametern: pid (Projekt), cid (Kontakt), email, art, q (Suche)."""
     w, p = ["1=1"], []
+    if not g.user["is_admin"]:   # nur Sendungen aus Projekten, die der Benutzer sehen darf (wie im Bautagebuch)
+        with db.tx() as c:
+            fremd = [r["id"] for r in c.execute("SELECT id, leaders FROM projects")
+                     if (lambda L: L and g.user["id"] not in L)(_leiter(r["leaders"]))]
+        if fremd:
+            w.append("(b.project_id IS NULL OR b.project_id NOT IN (" + ",".join("?" * len(fremd)) + "))")
+            p += fremd
     if a.get("cid", type=int):
         cid = a.get("cid", type=int)
         with db.tx() as c:

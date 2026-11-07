@@ -1,6 +1,6 @@
 from datetime import date
 from flask import Blueprint, g, jsonify, request
-from core import db, storage
+from core import access, db, storage
 
 bp = Blueprint("reports", __name__)
 LOCKED = ("project_id",)
@@ -109,7 +109,8 @@ def restore_report(i):
         snap = json.loads(r["data"])
         if c.execute("SELECT 1 FROM reports WHERE id=?", (i,)).fetchone():
             return jsonify(error="Der Bericht ist schon wieder da."), 409
-        if not c.execute("SELECT 1 FROM projects WHERE id=?", (snap["report"]["project_id"],)).fetchone():
+        if not c.execute("SELECT 1 FROM projects WHERE id=?", (snap["report"]["project_id"],)).fetchone() \
+                or not access.can_see(c, g.user, snap["report"]["project_id"]):
             return jsonify(error="Das Projekt gibt es nicht mehr."), 404
         for t, rows in (("reports", [snap["report"]]), *((t, snap.get(t) or []) for t in TABLES)):
             have = set(db.cols(c, t))

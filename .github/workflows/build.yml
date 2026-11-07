@@ -117,6 +117,25 @@ jobs:
       - name: Rauchtest
         run: python3 tools/rauchtest.py http://localhost:${PORTAL_PUBLISH:-8090}
 
+      # Rechentests im Container der jeweiligen App (echter Programmcode), siehe tools/tests/einheit/run.py
+      - name: Rechentests
+        if: success() || failure()
+        run: |
+          rc=0
+          for paar in plattform:ava gantt:gantt bautagebuch:bautagebuch; do
+            art=${paar%%:*}; dienst=${paar#*:}
+            ls tools/tests/einheit/${art}_*.py >/dev/null 2>&1 || continue
+            docker compose -p rauchtest -f rauchtest.yml run --rm -T --no-deps -v "$PWD/tools/tests:/tests:ro" \
+              --entrypoint python "$dienst" /tests/einheit/run.py "$art" || rc=1
+          done
+          if ls tools/tests/js/*.test.mjs >/dev/null 2>&1; then node --test tools/tests/js/*.test.mjs || rc=1; fi
+          exit $rc
+
+      # Ablauftests über die normalen Schnittstellen (anlegen, ändern, rechnen, drucken, Rechte), siehe tools/tests/run.py
+      - name: Ablauftests
+        if: success() || failure()
+        run: python3 tools/tests/run.py http://localhost:${PORTAL_PUBLISH:-8090}
+
       - name: Fehlermeldungen in den Protokollen
         if: always()
         run: |

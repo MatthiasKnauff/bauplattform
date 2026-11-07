@@ -1776,6 +1776,14 @@ def kg_rows(d, cal, depth):
         for x in L1:   # Beträge direkt auf der 1. Ebene (z. B. KG 300 nicht weiter aufgeteilt)
             if x[0] == g1:
                 rows.append((2, "", x[1], x[2], x[2] is None))
+    # Positionen ohne gültige Kostengruppe (z. B. „+ Position“ ohne KG): zählen in der Gesamtsumme mit, also auch hier zeigen
+    ohne = [it for it in d["items"] if len(re.sub(r"\D", "", it["kg"] or "")[:3]) != 3]
+    if ohne:
+        L = [("", it["name"] or "Position", it["amount"]) for it in ohne]
+        rows.append((1, "", "Ohne Kostengruppe", tot(L), any(x[2] is None for x in L)))
+        if depth >= 2:
+            for x in L:
+                rows.append((2, "", x[1], x[2], x[2] is None))
     return rows
 
 

@@ -401,3 +401,14 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-skneu{margin-top:.5rem;padding:.5rem;border-radius:8px;background:color-mix(in srgb,var(--af,#d9692a) 9%,transparent)}.bph-skneu input{width:100%;box-sizing:border-box;font:12.5px ui-monospace,monospace;padding:.35rem .4rem;border:1px solid var(--line,#ccc);border-radius:6px;margin-bottom:.4rem}
 .bph-skx .bph-chip button{border:0;background:none;cursor:pointer;color:inherit;padding:0 .1rem}
 .bph-gm{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;margin:.2rem 0 .45rem;padding:.3rem .4rem;border:1px solid var(--line,#ccc);border-radius:8px;background:var(--bg,#fff)}.bph-gm input{flex:1;min-width:12rem;border:0;outline:0;background:none;font:inherit;color:inherit;padding:.2rem}.bph-gm [data-gmc]{display:contents}.bph-gm .bph-chip button{border:0;background:none;cursor:pointer;color:inherit;padding:0 .1rem}
+
+/* Farbschemen (Darstellung) */
+.bph-skg{display:grid;grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr));gap:.4rem}
+.bph-sk{display:flex;gap:.5rem;align-items:center;text-align:left;padding:.35rem;border:1px solid var(--line,#3b3e42);border-radius:10px;background:transparent;color:inherit;font:inherit;font-size:.82rem;cursor:pointer;line-height:1.2}
+.bph-sk:hover{border-color:var(--bph-acc,var(--y,#ff5fb3))}.bph-sk.on{box-shadow:0 0 0 2px var(--bph-acc,var(--y,#ff5fb3));border-color:transparent}
+.bph-sk small{display:block;color:var(--mute,#9a9c9e);font-size:.72rem;margin-top:.1rem}
+.bph-skv{position:relative;flex:none;width:44px;height:34px;border-radius:7px;border:1px solid;overflow:hidden}
+.bph-skv i{position:absolute;left:5px;top:5px;width:24px;height:22px;border-radius:4px;border:1px solid;display:flex;flex-direction:column;gap:3px;padding:4px 3px;box-sizing:border-box}
+.bph-skv em{display:block;height:3px;border-radius:2px}.bph-skv em+em{width:70%}
+.bph-skv b{position:absolute;right:4px;bottom:4px;width:10px;height:10px;border-radius:50%}
+.bph-look{max-width:min(36rem,94vw)}

@@ -134,13 +134,16 @@ def blueprint(get_user=None):
             prov = ai.providers(c)
         return jsonify(choice=k, providers=prov)
 
-    @bp.put("/api/bp/darstellung")
+    @bp.route("/api/bp/darstellung", methods=["GET", "PUT"])
     def darstellung():
-        """Farbschema und Akzentfarbe des angemeldeten Benutzers (gilt in allen Apps)."""
+        """Farbschema (Hell/Dunkel + benanntes Schema) und Akzentfarbe des angemeldeten Benutzers (gilt in allen Apps)."""
         import re
         u = user()
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
+        if request.method == "GET":
+            with db.tx() as c:
+                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=konto.prefs(c, u["id"]).get("farbschema", ""))
         d = request.get_json(silent=True) or {}
         sets, args = [], []
         if "theme" in d:
@@ -158,8 +161,11 @@ def blueprint(get_user=None):
             if sets:
                 with versionen.aenderung(c, f"konto:{u['id']}", u["name"]):
                     c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, u["id"]))
+            if "farbschema" in d:
+                konto.set_prefs(c, u["id"], {"farbschema": str(d.get("farbschema") or "")}, u["name"])
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
-        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "")
+            fs = konto.prefs(c, u["id"]).get("farbschema", "")
+        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=fs)
 
     # ---- aktuelles Projekt des Benutzers (Projekt des Bautagebuchs; gilt in allen Apps)
     @bp.route("/api/bp/projekt", methods=["GET", "PUT"])

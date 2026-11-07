@@ -14,6 +14,7 @@ STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich
             "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
             "mailsignatur_html": "", # dieselbe als HTML (eingefügt aus Outlook/Word); hat Vorrang
             "telefon": "", "funktion": "",   # für die Signatur
+            "farbschema": "",        # Farbschema der Oberfläche (head.js SCHEMEN), leer = Standard (nur Hell/Dunkel)
             "pdb_preis": "",         # Preis beim Übernehmen aus den Baudaten: leer = fragen | mittel | von | bis | eigen_median | eigen_neu
             "absender": "buero",     # Absender meiner Mails: buero (Absenderadresse des Büros) | eigen (meine E-Mail-Adresse)
             "hinweise_aus": []}      # Hinweisfenster, die nicht mehr erscheinen sollen (z. B. „baukosten“)
@@ -48,6 +49,8 @@ def set_prefs(c, uid, d, by=""):
         p["versand"] = d["versand"]
     if d.get("versand_plaene") in ("direkt", "mich"):
         p["versand_plaene"] = d["versand_plaene"]
+    if d.get("farbschema") in ("", 'sand', 'nebel', 'schiefer', 'papier', 'bauhaus', 'graphit', 'mitternacht', 'aubergine', 'mint', 'terrakotta', 'neon'):
+        p["farbschema"] = d["farbschema"]
     if d.get("absender") in ("buero", "eigen"):
         p["absender"] = d["absender"]
     for k in ("kopie", "kalender", "kopie_plaene"):

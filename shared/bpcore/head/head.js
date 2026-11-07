@@ -166,18 +166,56 @@
   /* Darstellung: Farbschema und Akzentfarbe des Benutzers – kleines Fenster an der Kopfleiste oder im Einstellungsfenster, gilt in allen Apps */
   const THEMES = [['dunkel', 'Dunkel'], ['hell', 'Hell'], ['auto', 'Automatisch'], ['klassisch', 'Klassisch Grün']];
   const ACCENTS = [['#ff5fb3', 'Pink'], ['#ffd200', 'Gelb'], ['#ff9a2e', 'Orange'], ['#ff6b5e', 'Rot'], ['#3ddc84', 'Grün'], ['#2fd6c9', 'Türkis'], ['#4da3ff', 'Blau'], ['#b18cff', 'Violett'], ['#f3f3f1', 'Weiß']];
+  /* Farbschemen nach Gestaltungslehre: je Schema ein ruhiger Grund (60 %), Flächen/Karten (30 %) und EINE Akzentfarbe (10 %) –
+     die 60-30-10-Regel. Gedämpfte Schemen sind analog (benachbarte, entsättigte Töne), die kräftigen setzen den Akzent
+     komplementär zum Grund. Alle Kombinationen erfüllen WCAG 2.1: Text ≥ 7:1 (AAA), Nebentext ≥ 4,5:1, Akzent ≥ 3:1 (Bedienelemente). */
+  const SCHEMEN = [
+    ['Gedämpft', [
+      ['sand', 'Sand & Salbei', 'warm, ruhig, naturnah', 'hell', { bg: '#f1eee7', card: '#fbfaf6', line: '#ddd7cb', ink: '#2b2a26', mute: '#66625a', tabs: '#e6e1d5' }, '#56775f'],
+      ['nebel', 'Nebel', 'kühles Grau-Blau, sachlich', 'hell', { bg: '#eef1f4', card: '#ffffff', line: '#d5dbe2', ink: '#1f2730', mute: '#58636f', tabs: '#e2e7ed' }, '#3f6496'],
+      ['schiefer', 'Schiefer', 'dunkel, entsättigt, augenschonend', 'dunkel', { bg: '#22262b', card: '#2a2f35', line: '#3a414a', ink: '#e8eaed', mute: '#9ea7b1', tabs: '#2d333a' }, '#8fb3c9']]],
+    ['Klassisch', [
+      ['papier', 'Papier & Tusche', 'wie ein Plan: Schwarz auf Weiß, Rot als Korrektur', 'hell', { bg: '#f6f5f1', card: '#ffffff', line: '#d8d6cf', ink: '#161616', mute: '#5c5c57', tabs: '#ebe9e3' }, '#c8372a'],
+      ['bauhaus', 'Bauhaus', 'Grundfarbe Blau auf warmem Weiß', 'hell', { bg: '#f4f1ea', card: '#fffdf8', line: '#ddd8cc', ink: '#1d1d1b', mute: '#5e5b55', tabs: '#e9e4d8' }, '#2a5caa'],
+      ['graphit', 'Graphit', 'neutrales Dunkel mit Bernstein', 'dunkel', { bg: '#1c1c1e', card: '#252527', line: '#38383b', ink: '#f2f2f0', mute: '#a09f9b', tabs: '#29292b' }, '#f0b429']]],
+    ['Modern & kräftig', [
+      ['mitternacht', 'Mitternacht', 'tiefes Blau, Indigo-Akzent', 'dunkel', { bg: '#0f1420', card: '#161c2b', line: '#273049', ink: '#e6e9f2', mute: '#939cb2', tabs: '#141a28' }, '#7c9cff'],
+      ['aubergine', 'Aubergine', 'dunkles Violett mit Pink', 'dunkel', { bg: '#1d1724', card: '#251e2e', line: '#3a3047', ink: '#f1ecf6', mute: '#aaa0b8', tabs: '#221b2b' }, '#ff7ab6'],
+      ['mint', 'Mint & Koralle', 'frisch, komplementär', 'hell', { bg: '#f2f7f5', card: '#ffffff', line: '#d3e3dd', ink: '#1d2b27', mute: '#56695f', tabs: '#e3efea' }, '#e5533d'],
+      ['terrakotta', 'Terrakotta', 'erdig-warm, wie Ziegel', 'hell', { bg: '#f6efe8', card: '#fffaf5', line: '#e4d6c8', ink: '#2e2420', mute: '#715f55', tabs: '#eee2d6' }, '#b8562a'],
+      ['neon', 'Neon', 'Schwarz mit Limette – hoher Kontrast', 'dunkel', { bg: '#0d0d0f', card: '#151518', line: '#2a2a30', ink: '#f5f5f7', mute: '#9d9da6', tabs: '#121215' }, '#c6ff3d']]]];
+  const SCH = Object.fromEntries(SCHEMEN.flatMap((g) => g[1]).map((x) => [x[0], x]));
+  const SCH_VARS = ['--bg', '--card', '--card2', '--line', '--ink', '--mute', '--tabs', '--inp', '--hov', '--pan'];
+  function schemaAnwenden(k) {   // Farben als Inline-Variablen am Dokument – gelten über den Farben der App (bp.css, Bautagebuch)
+    const root = document.documentElement, S = SCH[k];
+    SCH_VARS.forEach((v) => root.style.removeProperty(v));
+    root.dataset.schema = S ? k : '';
+    if (!S) return;
+    const f = S[4], dunkel = S[3] === 'dunkel';
+    const mix = (a, b, t) => '#' + [0, 2, 4].map((i) => Math.round(parseInt(a.slice(1 + i, 3 + i), 16) * (1 - t) + parseInt(b.slice(1 + i, 3 + i), 16) * t).toString(16).padStart(2, '0')).join('');
+    const W = { '--bg': f.bg, '--card': f.card, '--card2': dunkel ? mix(f.card, f.ink, 0.05) : f.card, '--line': f.line, '--ink': f.ink, '--mute': f.mute, '--tabs': f.tabs,
+      '--inp': dunkel ? mix(f.bg, '#000000', 0.25) : '#ffffff', '--hov': dunkel ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)', '--pan': f.card };
+    Object.entries(W).forEach(([v, x]) => root.style.setProperty(v, x));
+  }
+  H.schemaAnwenden = schemaAnwenden;
+  try { schemaAnwenden(localStorage.getItem('bpSchema') || ''); } catch { /* egal */ }   // sofort, ohne Aufblitzen
   let lookDirty = false;
   const lookHtml = () => {
-    const me = H.me || {}, t = me.theme || 'dunkel', a = String(me.accent || ACCENTS[0][0]).toLowerCase();
-    return `<div class="bph-lk">${THEMES.map(([k, n]) => `<button type="button" class="bph-th${k === t ? ' on' : ''}" data-th="${k}">${esc(n)}</button>`).join('')}</div>
+    const me = H.me || {}, t = me.theme || 'dunkel', a = String(me.accent || ACCENTS[0][0]).toLowerCase(), fs = me.farbschema || '';
+    const karte = ([k, n, d, b, f, acc]) => `<button type="button" class="bph-sk${fs === k ? ' on' : ''}" data-fs="${k}" title="${esc(d)}"><span class="bph-skv" style="background:${f.bg};border-color:${f.line}"><i style="background:${f.card};border-color:${f.line}"><em style="background:${f.ink}"></em><em style="background:${f.mute}"></em></i><b style="background:${acc}"></b></span><span>${esc(n)}<small>${esc(d)}</small></span></button>`;
+    return `<div class="bph-info" style="padding:.2rem 0 .3rem">Grundeinstellung</div><div class="bph-lk">${THEMES.map(([k, n]) => `<button type="button" class="bph-th${k === t && !fs ? ' on' : ''}" data-th="${k}">${esc(n)}</button>`).join('')}</div>
+      ${SCHEMEN.map(([g, L]) => `<div class="bph-info" style="padding:.5rem 0 .3rem">${esc(g)}</div><div class="bph-skg">${L.map(karte).join('')}</div>`).join('')}
+      <div class="bph-info" style="padding:.5rem 0 .3rem">Akzentfarbe${fs ? ' <small>(das Schema bringt eine passende mit – hier änderbar)</small>' : ''}</div>
       <div class="bph-sw">${ACCENTS.map(([c, n]) => `<button type="button" class="${c === a ? 'on' : ''}" style="background:${c}" data-acc="${c}" title="${n}" aria-label="${n}"></button>`).join('')}
         <label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}" data-accc></label></div>`;
   };
   function lookWire(m, redraw) {
     m.addEventListener('click', (e) => {
       const th = e.target.closest('[data-th]'), ac = e.target.closest('[data-acc]');
-      if (th || ac) e.stopPropagation();
-      if (th) saveLook({ theme: th.dataset.th }, redraw); else if (ac) saveLook({ accent: ac.dataset.acc }, redraw);
+      const fs = e.target.closest('[data-fs]');
+      if (th || ac || fs) e.stopPropagation();
+      if (fs) { const S = SCH[fs.dataset.fs]; saveLook({ theme: S[3], accent: S[5], farbschema: S[0] }, redraw); }
+      else if (th) saveLook({ theme: th.dataset.th, farbschema: '' }, redraw); else if (ac) saveLook({ accent: ac.dataset.acc }, redraw);
     });
     m.addEventListener('change', (e) => { if (e.target.matches('[data-accc]')) saveLook({ accent: e.target.value }, redraw); });
   }
@@ -193,7 +231,8 @@
     try {
       const r = await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then((x) => x.json());
       if (r.error) throw new Error(r.error);
-      H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent });
+      H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent, farbschema: r.farbschema || '' });
+      schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ }
       setTimeout(eigeneFarben, 50);
       if (typeof window.applyLook === 'function') window.applyLook(H.me); else lookDirty = true;
       (redraw || lookMenu)();
@@ -300,6 +339,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
+      if (H.me) getJ('api/bp/darstellung').then((d) => { H.me.farbschema = d.farbschema || ''; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');

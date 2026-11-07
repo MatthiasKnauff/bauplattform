@@ -181,9 +181,10 @@ def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=Non
             ical = None
     if ical:
         msg.add_alternative(ical, subtype="calendar", params={"method": "REQUEST"})
-    for name, data, mime in attachments or []:
-        mt, st = (mime or "application/octet-stream").split("/", 1)
-        msg.add_attachment(data, maintype=mt, subtype=st, filename=name)
+    for name, data, mime in attachments or []:   # mime auch mit Parametern, z. B. "text/calendar; method=REQUEST"
+        typ, *par = [x.strip() for x in (mime or "application/octet-stream").split(";")]
+        mt, st = typ.split("/", 1)
+        msg.add_attachment(data, maintype=mt, subtype=st, filename=name, params=dict(x.split("=", 1) for x in par if "=" in x))
     if ical:
         msg.add_attachment(ical.encode("utf-8"), maintype="text", subtype="calendar", filename="termin.ics")
     smtp_senden(cf, msg, from_addr or von(cf), lst(to) + lst(cc))

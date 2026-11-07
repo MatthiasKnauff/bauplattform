@@ -1565,6 +1565,21 @@ function renderProfile(box) {
     fetch('api/bp/briefbogen?info=1').then((r) => r.json()).then(bbDraw).catch(() => { bbBox.textContent = ''; });
   }
 }
+/* Nach dem PDF: Stand „exportiert“ neu laden und melden, ob Bericht und Fotos im Projektordner auf dem Server angekommen sind */
+let ablT = 0;
+async function ablageMelden() {
+  loadVer();
+  clearTimeout(ablT);
+  const t0 = Date.now();
+  const schau = async () => {
+    let s; try { s = await api('api/store/status'); } catch { return; }
+    if (!s.enabled) return;   // keine Ablage auf dem Server eingerichtet
+    if (!s.pending) { toast('✓ Bericht und Fotos sind im Projektordner auf dem Server abgelegt.'); return; }
+    if (Date.now() - t0 > 60000) { toast(`Ablage im Projektordner wartet noch (${s.pending} Datei${s.pending === 1 ? '' : 'en'})${s.error ? ': ' + s.error : ''} – wird automatisch erneut versucht.`); return; }
+    ablT = setTimeout(schau, 4000);
+  };
+  ablT = setTimeout(schau, 2500);
+}
 async function storeStatus() {
   const el = $('#sstat'); if (!el) return;
   const s = await api('api/store/status');
@@ -1932,9 +1947,10 @@ document.addEventListener('click', async e => {
     if (r && typeof r.papierkorb === 'number') toast('Foto im Papierkorb.', async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; } openProject(pid, true); }); }
   else if (a === 'print') {
     if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }
-    if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('api/reports/' + rid + '/pdf'); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf
+    if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('api/reports/' + rid + '/pdf'); ablageMelden(); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf
     const w = window.open('', '_blank'); await Promise.allSettled([...saving]);  // erst fertig speichern, dann PDF laden
     if (w) w.location = 'api/reports/' + rid + '/pdf'; else location.href = 'api/reports/' + rid + '/pdf';
+    setTimeout(ablageMelden, 2500);
   }
   else if (a === 'pvClose') { if (history.state && history.state.pv) history.back(); else closePv(); }
   else if (a === 'pvZoom' && pv && pv.doc) { pv.zoom = Math.min(2.6, Math.max(1, +(pv.zoom + (+b.dataset.d) * .6).toFixed(1))); pvRender(); }

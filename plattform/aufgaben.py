@@ -1070,7 +1070,10 @@ def erinnerungen(scope_arg=None):
             c.execute("SELECT pg_advisory_xact_lock(hashtext('aufgaben:sync'))")
             sync_plans(c)
         P = _projects(c)
-        names = {r["id"]: C.full_name(r) for r in c.execute("SELECT * FROM users")}
+        _U = c.execute("SELECT * FROM users").fetchall()
+        names = {r["id"]: C.full_name(r) for r in _U}
+        voll = {(r["nachname"] or "").lower(): C.full_name(r) for r in _U if "nachname" in r.keys() and r["nachname"]}
+        voll.update({(r["name"] or "").lower(): C.full_name(r) for r in _U})   # Anmeldename (Vorrang) / Nachname → Vor- und Nachname
         plans = {r["id"]: r for r in c.execute("SELECT id, name, project_id, updated_by FROM gantt_projects")}
         own = c.execute("SELECT * FROM erinnerungen WHERE status IN ('offen','erledigt') ORDER BY termin, id").fetchall()
         bt = c.execute("""SELECT i.id, i.kind, i.text, i.company, i.due, i.due_time, i.reminded, i.remind_user, r.id AS rid, r.project_id AS pid, r.site_manager AS bl
@@ -1094,7 +1097,7 @@ def erinnerungen(scope_arg=None):
         out.append({"id": f"r{r['id']}", "quelle": r["quelle"], "titel": r["titel"], "text": r["text"], "termin": r["termin"], "uhrzeit": r["uhrzeit"],
                     "ereignis": r["ereignis"], "status": r["status"], "gesendet": r["gesendet"], "manuell": bool(r["manuell"]),
                     "projekt": p["name"] if p else (d.get("plan") or ""), "pid": r["project_id"], "gantt_id": r["gantt_id"],
-                    "an": [names.get(x, "?") for x in rec], "an_ids": rec, "von": r["erstellt_von"],
+                    "an": [names.get(x, "?") for x in rec], "an_ids": rec, "von": voll.get((r["erstellt_von"] or "").lower(), r["erstellt_von"]),
                     "firma": d.get("firma") or (f"Gewerk {d['gw']}" if d.get("gw") else ""), "gw": d.get("gw") or "",
                     "mail": d.get("link") or ""})
     for x in bt:
@@ -1104,7 +1107,7 @@ def erinnerungen(scope_arg=None):
         out.append({"id": f"b{x['id']}", "quelle": "bautagebuch", "titel": f"{secs.get(x['kind'], 'Eintrag')}: {(x['text'] or '').strip().splitlines()[0][:140] if (x['text'] or '').strip() else ''}",
                     "text": x["text"] or "", "termin": x["due"], "uhrzeit": x["due_time"] or "09:00", "ereignis": "", "status": "offen",
                     "gesendet": x["reminded"] or "", "manuell": False, "projekt": p["name"], "pid": x["pid"], "rid": x["rid"],
-                    "an": [names.get(x["remind_user"], "?")] if x["remind_user"] else [], "an_ids": [x["remind_user"]] if x["remind_user"] else [], "von": x["bl"] or "",
+                    "an": [names.get(x["remind_user"], "?")] if x["remind_user"] else [], "an_ids": [x["remind_user"]] if x["remind_user"] else [], "von": voll.get((x["bl"] or "").lower(), x["bl"] or ""),
                     "firma": x["company"] or "", "gw": ""})
     for o in out:
         o["lage"] = ("erledigt" if o["status"] == "erledigt" else "ueberfaellig" if o["termin"] < today and not o["gesendet"] and o["quelle"] != "bautagebuch"

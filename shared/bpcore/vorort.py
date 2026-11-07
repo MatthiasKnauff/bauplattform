@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta
 
 from . import konto
 
-STANDARD = {"an": True, "von": "07:00", "bis": "18:00", "tage": [0, 1, 2, 3, 4], "radius": 250, "mail": True}
+STANDARD = {"an": True, "von": "07:00", "bis": "18:00", "tage": [0, 1, 2, 3, 4], "radius": 250, "mail": True, "bericht": True}
 
 
 def _j(v, d):
@@ -42,8 +42,9 @@ def einst_setzen(c, uid, b, wer=""):
         e["tage"] = sorted({int(x) for x in b["tage"] if str(x).isdigit() and 0 <= int(x) <= 6})
     if isinstance(b.get("radius"), (int, float)):
         e["radius"] = max(50, min(2000, int(b["radius"])))
-    if "mail" in b:
-        e["mail"] = bool(b["mail"])
+    for k in ("mail", "bericht"):
+        if k in b:
+            e[k] = bool(b[k])
     konto._put(c, f"vorort:{uid}", json.dumps(e), wer)
     return e
 
@@ -105,7 +106,86 @@ def melden(c, key, lat, lon, jetzt=None):
     log = {k: v for k, v in log.items() if k >= grenze}
     konto._put(c, f"vorort:log:{uid}", json.dumps(log), "vorort")
     hat = c.execute("SELECT 1 FROM reports WHERE project_id=? AND date=?", (p["id"], tag)).fetchone()
+    auto = log[tag].setdefault("_auto", [])   # je Projekt und Tag höchstens einmal anlegen – auch wenn er wieder gelöscht wurde
+    if not hat and e.get("bericht") and str(p["id"]) not in auto:
+        try:
+            nr = _bericht_anlegen(c, uid, p, tag, hm)
+            auto.append(str(p["id"]))
+            konto._put(c, f"vorort:log:{uid}", json.dumps(log), "vorort")
+            return 200, f"Vor Ort: {p['name']} – Tagesbericht Nr. {nr} angelegt (Wetter, Anwesende laut Bauzeitenplan). Bitte heute ergänzen."
+        except Exception as ex:   # Bericht nicht anlegbar: Meldung trotzdem merken, Erinnerung kommt wie bisher
+            import logging
+            logging.getLogger("vorort").warning("Tagesbericht nicht automatisch angelegt: %s", ex)
     return 200, f"Vor Ort: {p['name']}" + ("" if hat else " – Tagesbericht nicht vergessen")
+
+
+_WX = {0: ("Heiter", "trocken"), 1: ("Heiter", "trocken"), 2: ("Wolkig", "trocken"), 3: ("Bedeckt", "trocken"), 45: ("Nebel", "trocken"), 48: ("Nebel", "trocken")}
+
+
+def _wetter(lat, lon):
+    """Aktuelles Wetter an der Baustelle (Open-Meteo) in den Feldern des Tagesberichts; {} wenn nicht erreichbar."""
+    import urllib.parse, urllib.request
+    try:
+        u = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode({"latitude": lat, "longitude": lon, "wind_speed_unit": "kmh", "timezone": "auto",
+                                                                                  "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"})
+        with urllib.request.urlopen(u, timeout=6) as r:
+            w = json.loads(r.read())["current"]
+    except Exception:
+        return {}
+    code = w.get("weather_code")
+    if code in _WX:
+        wx, pr = _WX[code]
+    elif code in (51, 53, 55, 56, 57, 61, 80):
+        wx, pr = "Bedeckt", "leichter Regen"
+    elif code in (63, 66, 67, 81):
+        wx, pr = "Bedeckt", "Regen"
+    elif code in (65, 82):
+        wx, pr = "Bedeckt", "Starkregen"
+    elif code in (71, 73, 75, 77, 85, 86):
+        wx, pr = "Bedeckt", "Schnee"
+    elif code in (95, 96, 99):
+        wx, pr = "Gewitter", "Regen"
+    else:
+        wx, pr = "", ""
+    n = lambda v: "" if v is None else (str(int(round(v))) if abs(v) >= 10 else str(round(v, 1)))
+    return {"weather": wx, "precip": pr, "temp": n(w.get("temperature_2m")), "humidity": n(w.get("relative_humidity_2m")), "wind": n(w.get("wind_speed_10m"))}
+
+
+def _bericht_anlegen(c, uid, p, tag, hm):
+    """Tagesbericht wie in der App angelegt: nächste Nummer, Datum, Ankunftszeit (Viertelstunde), Bauleitung = der Gemeldete,
+    PLZ/Ort, Wetter an der Baustelle. Die Anwesenden laut Bauzeitenplan erscheinen beim Öffnen als Vorschläge zum Bestätigen."""
+    u = c.execute("SELECT name FROM users WHERE id=?", (uid,)).fetchone()
+    pr = c.execute("SELECT * FROM projects WHERE id=?", (p["id"],)).fetchone()
+    n = c.execute("SELECT COALESCE(MAX(number),0)+1 FROM reports WHERE project_id=?", (p["id"],)).fetchone()[0]
+    last = c.execute("SELECT site_manager, plz FROM reports WHERE project_id=? ORDER BY date DESC, number DESC LIMIT 1", (p["id"],)).fetchone()
+    h, m = hm.split(":")
+    zeit = f"{h}:{int(m) // 15 * 15:02d}"
+    keys = pr.keys() if hasattr(pr, "keys") else []
+    g = lambda k: (pr[k] if k in keys else None) or ""
+    ort = ", ".join(x for x in (g("street"), g("city")) if x)
+    d = {"project_id": p["id"], "number": n, "date": tag, "time": zeit, "site_manager": (u["name"] if u else "") or (last["site_manager"] if last else ""),
+         "plz": g("zip") or (last["plz"] if last else "") or "", "extra": json.dumps({**({"place": ort} if ort else {}), "wx_auto": 1, "auto": "vorort", "ankunft": hm}),
+         "created": datetime.now().isoformat(timespec="seconds"), "updated": datetime.now().isoformat(timespec="seconds"),
+         **_wetter(float(p["lat"]), float(p["lon"]))}
+    c.execute(f"INSERT INTO reports({', '.join(d)}) VALUES({', '.join('?' * len(d))})", tuple(d.values()))
+    return n
+
+
+def _fertig(c, pid, tag):
+    """(gibt es einen Bericht, ist er fertig): ein automatisch angelegter Bericht gilt erst als fertig, wenn er als PDF erstellt wurde."""
+    r = c.execute("SELECT id, extra FROM reports WHERE project_id=? AND date=? ORDER BY id", (pid, tag)).fetchall()
+    if not r:
+        return False, False
+    for x in r:
+        ex = _j(x["extra"], {}) if isinstance(x["extra"], str) else (x["extra"] or {})
+        if not (isinstance(ex, dict) and ex.get("auto")):
+            return True, True
+        try:
+            if c.execute("SELECT 1 FROM report_versions WHERE report_id=? AND reason='export'", (x["id"],)).fetchone():
+                return True, True
+        except Exception:
+            return True, True
+    return True, False
 
 
 def besuche(c, uid, tage=14):
@@ -117,10 +197,13 @@ def besuche(c, uid, tage=14):
     for tag in sorted(log, reverse=True):
         if tag < grenze:
             continue
-        for pid, (von, bis) in log[tag].items():
+        for pid, z in log[tag].items():
+            if not pid.isdigit():
+                continue
+            von, bis = z
             pid = int(pid)
-            hat = c.execute("SELECT 1 FROM reports WHERE project_id=? AND date=?", (pid, tag)).fetchone()
-            out.append({"datum": tag, "pid": pid, "projekt": namen.get(pid, f"Projekt {pid}"), "von": von, "bis": bis, "bericht": bool(hat)})
+            hat, fertig = _fertig(c, pid, tag)
+            out.append({"datum": tag, "pid": pid, "projekt": namen.get(pid, f"Projekt {pid}"), "von": von, "bis": bis, "bericht": fertig, "angelegt": hat and not fertig})
     return out
 
 
@@ -153,11 +236,12 @@ def abend_mails(c, jetzt=None):
         zeilen = []
         for b in fehlt:
             lk = platform.link("bautagebuch", f"#projekt={b['pid']}", cf)
-            zeilen.append(f"• {b['projekt']} – vor Ort {b['von']}{'–' + b['bis'] if b['bis'] != b['von'] else ''} Uhr" + (f"\n  {lk}" if lk else ""))
+            zeilen.append(f"• {b['projekt']} – vor Ort {b['von']}{'–' + b['bis'] if b['bis'] != b['von'] else ''} Uhr"
+                          + (" – automatisch angelegt, noch zu ergänzen und als PDF zu erstellen" if b.get("angelegt") else " – noch kein Tagesbericht") + (f"\n  {lk}" if lk else ""))
         txt = (f"Hallo {u['name']},\n\ndu warst heute laut Standort auf {'der Baustelle' if len(fehlt) == 1 else 'diesen Baustellen'}, "
-               f"es gibt aber noch keinen Tagesbericht:\n\n" + "\n".join(zeilen) + "\n\nDie Erinnerung lässt sich unter ⚙ → Für mich → Vor Ort erkennen abschalten.\n")
+               f"der Tagesbericht ist aber noch nicht fertig:\n\n" + "\n".join(zeilen) + "\n\nDie Erinnerung lässt sich unter ⚙ → Für mich → Vor Ort erkennen abschalten.\n")
         try:
-            mail.send(cf, u["email"], f"Tagesbericht fehlt: {fehlt[0]['projekt']}" + (f" (+{len(fehlt) - 1})" if len(fehlt) > 1 else ""), txt,
+            mail.send(cf, u["email"], f"Tagesbericht {'ergänzen' if all(b.get('angelegt') for b in fehlt) else 'fehlt'}: {fehlt[0]['projekt']}" + (f" (+{len(fehlt) - 1})" if len(fehlt) > 1 else ""), txt,
                       sender=cf.get("office_name") or "Bauplattform")
             n += 1
         except Exception:

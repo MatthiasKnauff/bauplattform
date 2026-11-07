@@ -413,7 +413,7 @@ def _a_vorort(c, u, R, P, ok):
         if isinstance(R["projekte"], list) and b["pid"] not in R["projekte"]:
             continue
         d = date.fromisoformat(b["datum"])
-        out.append(_e("vorort", f"{b['pid']}:{b['datum']}", f"Tagesbericht vom {d.strftime('%d.%m.')} schreiben",
+        out.append(_e("vorort", f"{b['pid']}:{b['datum']}", f"Tagesbericht vom {d.strftime('%d.%m.')} {'ergänzen (automatisch angelegt)' if b.get('angelegt') else 'schreiben'}",
                       f"Du warst {'heute' if d == _heute() else 'am ' + d.strftime('%d.%m.')} {b['von']}{'–' + b['bis'] if b['bis'] != b['von'] else ''} Uhr vor Ort",
                       b["pid"], P, b["datum"], f"bautagebuch:#projekt={b['pid']}", 1))
     return out

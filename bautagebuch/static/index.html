@@ -947,7 +947,7 @@ function headSec(s, r) {
       <label>Uhrzeit${timeSelect(r.time, 'data-f="time"', true)}</label>
       <label>Bauleitung vor Ort<input data-f="site_manager" value="${esc(r.site_manager)}"></label>
       <div class="chips">${people.filter(n => !(r.site_manager || '').toLowerCase().includes(n.toLowerCase())).map(n => `<button class="chip" data-act="addPerson" data-name="${esc(n)}">+ ${esc(n)}</button>`).join('')}<small>Mehrere Personen mit Komma trennen oder oben antippen.</small></div></div>`
-    : `<div class="meta">Nummer: ${r.number}<br>Datum: ${fmt(r.date)}${r.time ? ' · ' + esc(r.time) + ' Uhr' : ''}${r.site_manager ? '<br>Bauleitung vor Ort: ' + esc(r.site_manager) : ''}${p && p.client ? '<br>Bauherrschaft: ' + esc(p.client) : ''}</div>`;
+    : `<div class="meta">Nummer: ${r.number}<br>Datum: ${fmt(r.date)}${r.time ? ' · ' + esc(r.time) + ' Uhr' : ''}${r.site_manager ? '<br>Bauleitung vor Ort: ' + esc(r.site_manager) : ''}${p && p.client ? '<br>Bauherrschaft: ' + esc(p.client) : ''}${r.extra && r.extra.auto === 'vorort' && !(verData && verData.last_export && verData.versions && verData.status === 'exported') ? `<br><small style="color:var(--mute)">Automatisch angelegt bei der Ankunft (${esc(r.extra.ankunft || r.time || '')} Uhr) – bitte ergänzen und als PDF erstellen.</small>` : ''}</div>`;
   return `<div class="sec"><div class="main"><div class="hgrid">${headMap(p)}<h3>${esc(s.title)}</h3>${info}
       <div class="checks">${CHECKS.map(([k, l]) => `<label><input type="checkbox" data-f="${k}" ${r[k] ? 'checked' : ''}>${l}</label>`).join('')}</div></div></div>
     <div class="side q3"><button data-act="addReport" title="Neuer Bericht">${ic('plus', 24, 3)}</button>

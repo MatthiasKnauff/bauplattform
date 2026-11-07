@@ -635,7 +635,8 @@
         <div class="bph-row" style="flex-wrap:wrap;gap:.6rem;align-items:center">Arbeitszeit <input type="time" data-vf="von" value="${esc(E.von)}" style="width:8.5rem"> bis <input type="time" data-vf="bis" value="${esc(E.bis)}" style="width:8.5rem">
           <span class="bph-chips">${TG.map((t, i) => `<button type="button" class="bph-chip${E.tage.includes(i) ? ' on' : ''}" data-vt="${i}">${t}</button>`).join('')}</span></div>
         <div class="bph-row" style="gap:.6rem;align-items:center">Baustelle erkannt bis <select data-vf="radius">${[100, 150, 250, 400, 600, 1000].map((r) => `<option value="${r}"${E.radius === r ? ' selected' : ''}>${r} m</option>`).join('')}</select> Entfernung (Projektadresse)</div>
-        <label class="bph-ck"><input type="checkbox" data-vf="mail"${E.mail ? ' checked' : ''}> am Ende der Arbeitszeit per Mail erinnern, wenn der Tagesbericht fehlt</label>
+        <label class="bph-ck"><input type="checkbox" data-vf="bericht"${E.bericht ? ' checked' : ''}> Tagesbericht automatisch anlegen – einmal am Tag je Baustelle, mit Ankunftszeit, Wetter und den Anwesenden laut Bauzeitenplan als Vorschlag</label>
+        <label class="bph-ck"><input type="checkbox" data-vf="mail"${E.mail ? ' checked' : ''}> am Ende der Arbeitszeit per Mail erinnern, wenn der Tagesbericht fehlt oder noch nicht fertig ist (nicht als PDF erstellt)</label>
         <h4>Deine persönliche Adresse für den Kurzbefehl</h4>
         <div class="bph-row" style="gap:.4rem"><input readonly value="${esc(adresse())}" data-vadr style="flex:1;font-family:monospace;font-size:.82rem"><button type="button" class="bph-btn" data-vcopy>Kopieren</button><button type="button" class="bph-btn" data-vneu title="Alte Adresse wird ungültig – z. B. wenn das iPhone weg ist">Neuer Schlüssel</button></div>
         <p class="bph-mu">Nicht weitergeben – wer die Adresse kennt, kann Besuche für dich melden.</p>
@@ -653,7 +654,7 @@
           <p class="bph-mu">Ist der Kurzbefehl fertig, lässt er sich unter „Teilen → iCloud-Link kopieren“ an Kollegen weitergeben – jeder trägt dann nur seine eigene Adresse ein. Die Automationen legt jeder selbst an (das erlaubt Apple nicht anders).</p></details>
         <div class="bph-row"><button type="button" class="bph-btn" data-vtest title="Mit dem Standort dieses Geräts ausprobieren">📍 Jetzt mit diesem Gerät testen</button></div>
         <h4>Letzte Besuche</h4>
-        ${D.besuche.length ? `<div class="bph-vlist">${D.besuche.map((b) => `<div>${esc(de(b.datum))} · <b>${esc(b.projekt)}</b> · ${esc(b.von)}${b.bis !== b.von ? '–' + esc(b.bis) : ''} Uhr · ${b.bericht ? '✓ Bericht' : '<span style="color:#d64545">kein Bericht</span>'}</div>`).join('')}</div>` : '<p class="bph-mu">Noch keine – sobald der Kurzbefehl eine Baustelle meldet, steht sie hier.</p>'}
+        ${D.besuche.length ? `<div class="bph-vlist">${D.besuche.map((b) => `<div>${esc(de(b.datum))} · <b>${esc(b.projekt)}</b> · ${esc(b.von)}${b.bis !== b.von ? '–' + esc(b.bis) : ''} Uhr · ${b.bericht ? '✓ Bericht' : b.angelegt ? '<span style="color:#d08a1e">Bericht angelegt – ergänzen</span>' : '<span style="color:#d64545">kein Bericht</span>'}</div>`).join('')}</div>` : '<p class="bph-mu">Noch keine – sobald der Kurzbefehl eine Baustelle meldet, steht sie hier.</p>'}
         ${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}</div>`;
     }
     draw();

@@ -107,8 +107,8 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 #histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .body.mit-quelle{grid-template-columns:var(--navw,272px) minmax(0,1fr) var(--quw,minmax(320px,36%))}
 .body.zieh-l,.body.zieh-l *,.body.zieh-r,.body.zieh-r *{cursor:col-resize!important;user-select:none!important}
-.body{position:relative}.rand-griff{position:absolute;top:0;bottom:0;width:16px;z-index:6;cursor:col-resize;touch-action:none}.rand-griff[data-seite="l"]{left:calc(var(--navw,272px) - 8px)}
-.rand-griff::after{content:'';position:sticky;top:calc(50vh - 28px);display:block;margin:0 auto;width:12px;height:56px;border-radius:7px;background:var(--card,#fff) radial-gradient(circle,var(--mute) 1.3px,transparent 1.6px) center/6px 7px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.14)}   /* Anfasser in der Mitte – bleibt beim Scrollen im Blick */
+.body{position:relative}.rand-griff{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:col-resize;touch-action:none}.rand-griff[data-seite="l"]{left:calc(var(--navw,272px) - 6px)}
+.rand-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:4px;background:var(--card,#fff) radial-gradient(circle,var(--mute) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.14)}   /* Anfasser in der Mitte – bleibt beim Scrollen im Blick */
 .rand-griff:hover::after,.body.zieh-l .rand-griff[data-seite="l"]::after,.body.zieh-r .rand-griff[data-seite="r"]::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 22%,var(--card,#fff))}
 @media (max-width:1100px){.rand-griff{display:none}}
 .qu[hidden]{display:none!important}   /* sonst steht die Kopierquelle auch in anderen Bereichen (display:flex schlägt hidden) */
@@ -514,7 +514,7 @@ tr.am-lf td input{color:#c0621f}
 .ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:6px;font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
 .sp-griff{cursor:col-resize;align-self:stretch;border-radius:4px;background:linear-gradient(90deg,transparent 7px,var(--line) 7px,var(--line) 9px,transparent 9px);min-height:200px;touch-action:none}
 .sp-griff:hover{background:linear-gradient(90deg,transparent 6px,var(--y) 6px,var(--y) 10px,transparent 10px)}
-.sp-griff::after{content:'';position:sticky;top:calc(50vh - 28px);display:block;margin:0 auto;width:12px;height:56px;border-radius:7px;background:var(--card,#fff) radial-gradient(circle,var(--mute) 1.3px,transparent 1.6px) center/6px 7px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.12)}   /* Anfasser in der Mitte der Trennung – bleibt beim Scrollen im Blick */
+.sp-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:4px;background:var(--card,#fff) radial-gradient(circle,var(--mute) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.12)}   /* Anfasser in der Mitte der Trennung – bleibt beim Scrollen im Blick */
 .sp-griff:hover::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 18%,var(--card,#fff))}
 .am-split.frei,.lv-split.frei{grid-template-columns:1fr!important}.am-split.frei>.sp-griff,.lv-split.frei>.sp-griff{display:none}
 .am-split.frei>.am-r,.lv-split.frei>.am-r{position:fixed;z-index:60;resize:both;overflow:hidden;min-width:300px;min-height:240px;box-shadow:0 12px 40px #0005}
@@ -672,7 +672,7 @@ const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
   document.addEventListener('dblclick', (e) => { const a = amRand(e); if (!a) return; e.preventDefault(); setz(a[0] === 'l' ? '--navw' : '--quw', 0); LS.set(a[0] === 'l' ? 'navw' : 'quw', 0); }, true);
   const rechts = () => {   // Anfasser rechts folgt dem linken Rand der Kopierquelle
     const g = document.querySelector('.rand-griff[data-seite="r"]'), q = document.getElementById('quelle'), b = body(); if (!g || !q || !b) return;
-    g.hidden = q.hidden || !b.classList.contains('mit-quelle'); if (!g.hidden) g.style.left = (q.getBoundingClientRect().left - b.getBoundingClientRect().left - 8) + 'px';
+    g.hidden = q.hidden || !b.classList.contains('mit-quelle'); if (!g.hidden) g.style.left = (q.getBoundingClientRect().left - b.getBoundingClientRect().left - 6) + 'px';
   };
   const start = () => { lade(); const q = document.getElementById('quelle'); if (q) { new ResizeObserver(rechts).observe(q); new MutationObserver(rechts).observe(q, { attributes: true, attributeFilter: ['hidden'] }); } if (body()) new MutationObserver(rechts).observe(body(), { attributes: true, attributeFilter: ['class', 'style'] }); addEventListener('resize', rechts); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();

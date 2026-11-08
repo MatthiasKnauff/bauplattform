@@ -546,7 +546,7 @@ def blueprint(get_user=None):
     import re as _re
     _BT_ERLAUBT = [("GET", r"projects"), ("POST", r"projects"), ("PUT", r"projects/\d+"), ("GET", r"leaders"), ("GET", r"geocode"), ("GET", r"geo"),
                    ("GET", r"store/folders"), ("POST", r"projects/\d+/contact"), ("GET", r"logo"),
-                   ("GET", r"contacts/suggest"), ("GET", r"contacts/suggest/detail")]
+                   ("GET", r"contacts/suggest"), ("GET", r"contacts/suggest/detail"), ("GET", r"ablage/projektordner")]
 
     @bp.route("/api/bp/bt/<path:pfad>", methods=["GET", "POST", "PUT"])
     def bt_proxy(pfad):

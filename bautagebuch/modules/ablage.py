@@ -104,6 +104,18 @@ def ablage_vorschlag():
     return jsonify(ok=True, projekt="/".join(base), ordner=[x for x, _ in teile], neu=[not v for _, v in teile])
 
 
+@bp.get("/api/ablage/projektordner")
+def ablage_projektordner():
+    """Welcher Ordner auf dem Server gehört zum Projekt (eingetragen oder automatisch über das Kürzel gefunden)?"""
+    pid = request.args.get("project_id", type=int)
+    if not pid:
+        return jsonify(ok=False, error="Projekt fehlt")
+    t, base, p, err = _projekt(pid)
+    if err:
+        return jsonify(ok=False, error=err)
+    return jsonify(ok=True, projekt="/".join(base), eingetragen=bool((p["folder"] or "").strip()) if p else False)
+
+
 @bp.get("/api/ablage/ordner")
 def ablage_ordner():
     """Unterordner zum Durchklicken (Pfad relativ zum Projektordner, Teile mit / getrennt)."""

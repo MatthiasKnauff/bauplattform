@@ -960,6 +960,7 @@
       zusatz: (k) => {
         if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button><button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
           <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Adresse eintragen und „Adresse suchen“ oder „Aktuellen Standort übernehmen“.'}</span></span>${karte()}`;
+        if (k === 'p_folder') return '<span class="bph-dm-z bph-mu" data-pordner>Ordner wird gesucht …</span>';
         if (k === 'baubeginn') return `<span class="bph-dm-z">${D.plan.start ? `Bauzeitenplan: ${tagDe(D.plan.start)} <button type="button" class="bph-btn" data-plan="baubeginn">übernehmen</button>` : ''}${D.plan.plaene.length ? `<label class="bph-ck" style="margin:.2rem 0 0"><input type="checkbox" data-inplan${inPlan ? ' checked' : ''}> beim Speichern als Projektanfang in den Bauzeitenplan übertragen</label>` : '<span class="bph-mu">kein Bauzeitenplan verknüpft</span>'}</span>`;
         if (k === 'gemarkung') return `<span class="bph-dm-z"><button type="button" class="bph-btn" data-kataster title="Gemarkung, Flur, Flurstück und Geländehöhe über NHN an der Baustelle – amtliche Daten von Geobasis NRW (wie TIM-online)">📍 aus ALKIS ermitteln (TIM-online)</button><span data-katinfo class="bph-mu"></span></span>`;
         if (k === 'fertigstellung' && D.plan.ende) return `<span class="bph-dm-z">Bauzeitenplan: ${tagDe(D.plan.ende)} <button type="button" class="bph-btn" data-plan="fertigstellung">übernehmen</button></span>`;
@@ -1027,6 +1028,11 @@
         + (opt.archiv && P ? `<button type="button" class="bph-btn" data-parch>${P.archived ? 'Aus dem Archiv holen' : 'Projekt archivieren'}</button>` : '')
         + (opt.onDelete && P ? '<button type="button" class="bph-btn bph-bad" data-pdel>🗑 In den Papierkorb …</button>' : ''),
     });
+    if (P) J('ablage/projektordner?project_id=' + pid).then((r) => {   // den automatisch gefundenen Ordner zeigen
+      const el = document.querySelector('[data-pordner]'); if (!el) return;
+      el.innerHTML = r && r.ok ? `${r.eingetragen ? 'Ordner' : 'Automatisch gefunden'}: <b>${esc(r.projekt)}</b>` : `<span style="color:#e07b3a">${esc((r && r.error) || 'Kein Ordner gefunden')}</span>`;
+      const inp = document.querySelector('[data-dm="p_folder"]'); if (inp && r && r.ok && !r.eingetragen) inp.placeholder = r.projekt;
+    }).catch(() => { const el = document.querySelector('[data-pordner]'); if (el) el.textContent = ''; });
     return M;
   };
 

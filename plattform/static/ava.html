@@ -508,6 +508,15 @@ tr.am-lf td input{color:#c0621f}
 .pj-r .v{font-variant-numeric:tabular-nums;color:var(--mute);font-size:.8rem}.pj-r.k{padding-left:1.6rem}
 .pj-r:hover{background:var(--hov)}.pj-r.akt{font-weight:600}.pj-r.on{background:color-mix(in srgb,var(--y) 14%,transparent);border-left-color:var(--y)}
 .pj-r .car{cursor:pointer;color:var(--mute);text-align:center}.pj-r .ok{color:var(--ok);font-weight:600}.pj-r .offen{color:#e0a030}
+.lvx{border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:clip;margin-bottom:.8rem}
+.lvx-h{display:grid;grid-template-columns:1.6rem minmax(0,1fr) minmax(8rem,22%) 8rem;gap:.4rem;padding:.4rem .6rem;font-weight:600;font-size:.82rem;color:var(--mute);border-bottom:1px solid var(--line);background:var(--bg)}.lvx-h .r{text-align:right}
+.lvx .pj-r{grid-template-columns:1.1rem 16px minmax(0,1fr) 8rem;padding:.32rem .6rem;border-bottom:1px solid var(--line);border-left:3px solid transparent;position:relative}
+.lvx .pj-r .t{display:grid;grid-template-columns:minmax(0,1fr) minmax(8rem,24%);gap:.4rem;font-weight:600}.lvx .pj-r .t small{display:block;font-size:.84rem;font-weight:400;color:var(--mute)}
+.lvx .pj-r .v{text-align:right;font-size:.88rem;color:inherit}.lvx .pj-r.k{padding-left:2.4rem}.lvx .pj-r.k .t{font-weight:400}
+.lvx .pj-r.lvx-root{cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent)}.lvx .pj-r.lvx-root .t{font-weight:700}
+.lvx .pj-r.akt{background:color-mix(in srgb,var(--y) 10%,transparent)}.lvx .pj-r.lv{padding-left:1.4rem}.lvx .pj-r .car{font-size:.8rem}
+.lvx .pj-r:hover .pj-del,.lvx .pj-r.on .pj-del{display:block}.lvx .pj-r:hover .v,.lvx .pj-r.on:has(.pj-del) .v{visibility:hidden}
+.lvx-akt{padding:.5rem .6rem .7rem 1.6rem;border-bottom:1px solid var(--line);border-left:3px solid var(--y);background:var(--bg)}
 .pj-blink{animation:pjb 1.5s ease}@keyframes pjb{0%,60%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 .ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
@@ -946,7 +955,7 @@ async function lvSetzen(id, extra) {
   if (L && L.id === id) { await flush(); await saveNow(extra); await refreshList(); render(); return; }
   await api('api/lv/' + id, 'PUT', extra); await refreshList();
 }
-async function refreshList() { try { LIST = await lvListe(); selBtn(); einUeb(); const pt = $('#pjTree'); if (pt && PJTABS.has(tab)) pt.innerHTML = pjBaum(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
+async function refreshList() { try { LIST = await lvListe(); selBtn(); einUeb(); if (PJTABS.has(tab) || tab === 'tueren') pjZeichnen(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
 
 /* ---------- Kopf ---------- */
 function selBtn() {
@@ -1229,7 +1238,7 @@ let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
 /* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
 function navUnter(k) {
   const nb = { lv: ['new', '＋ Neues LV', !pid], tueren: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()], rechnungen: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()] }[k];
-  const baum = PJTABS.has(k) || k === 'tueren' ? `<div class="nav-baum" id="pjTree">${pjBaum()}</div>` : '';
+  const baum = k === 'tueren' ? `<div class="nav-baum pjtree" id="pjTree">${pjBaum().replace('\u0001', '')}</div>` : '';   // LV, Angebote, Rechnungen: die LVs stehen im Tabellenfeld
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }
 function pjBaum() {
@@ -1244,18 +1253,39 @@ function pjBaum() {
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
     const sub = x.aufgehoben ? `⏸ ${x.aufgehoben.bieter || 'Auftrag'} · aufgehoben` : x.vergeben ? `${x.auftragnehmer || 'vergeben'}${ohneLvTxt(x)}` : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
-    out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : ''}>${kids.length ? (offen ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
-    if (!offen) return;
+    const haupt = tab !== 'tueren';   // im Tabellenfeld: jedes LV mit Pfeil – das geöffnete klappt seinen Inhalt auf/zu
+    out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
+    if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
       const txt = !re ? `${k.rang ? k.rang + '. ' : ''}${esc(k.bieter)}${x.angebot_id === k.id ? ' <span class="ok">✓</span>' : ''}`
         : `${esc(reTitel(k))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}" title="${k.status === 'geprueft' ? 'geprüft' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>${k.re_nr ? `<small>Nr. ${esc(k.re_nr)}</small>` : ''}`;
       out.push(`<div class="pj-r k${sel ? ' on' : ''}${re && x.aufgehoben ? ' deakt-k' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span><button type="button" class="pj-del" data-pjdel="${re ? 're' : 'ang'}" title="${re ? 'Diese Rechnung' : 'Dieses Angebot'} in den Papierkorb – mit Rückgängig">🗑</button></div>`);
     });
+    if (on) out.push('\u0001');
   });
   return out.join('');
 }
-let PJSEL = null;
+let PJSEL = null, LVXZU = LS.get('lvxzu', false);
+/* LVs im Tabellenfeld (Leistungsverzeichnis, Angebote, Aufmaß, Rechnungen): Zeilen vor dem geöffneten LV, dessen Inhalt, Zeilen danach */
+function pjTeile() { const h = pjBaum(), i = h.indexOf('\u0001'); return i < 0 ? [h, ''] : [h.slice(0, i), h.slice(i + 1)]; }
+function pjZeichnen() {
+  if (tab === 'tueren') { const t = document.getElementById('pjTree'); if (t) t.innerHTML = pjBaum().replace('\u0001', ''); return; }
+  const a = document.querySelector('.pjtree[data-teil="a"]'), b = document.querySelector('.pjtree[data-teil="b"]'); if (!a || !b) return;
+  const [x, y] = pjTeile(); a.innerHTML = lvxKopf() + x; b.innerHTML = y;
+}
+function lvxKopf() {
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)));
+  const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
+  const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
+  return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
+}
+function lvxHtml(inhalt) {
+  const [a, b] = pjTeile();
+  const sp = { lv: 'Stand', angebote: 'Bieter', aufmass: 'Auftragnehmer', rechnungen: 'Auftragnehmer' }[tab] || '';
+  return `<div class="lvx"><div class="lvx-h"><span></span><span>Bezeichnung</span><span>${sp}</span><span class="r">EUR</span></div>
+    <div class="pjtree" data-teil="a">${lvxKopf()}${a}</div>${inhalt != null && !LVXZU ? `<div class="lvx-akt">${inhalt}</div>` : ''}<div class="pjtree" data-teil="b">${b}</div></div>`;
+}
 /* Umbenennen im Baum: zweiter Klick auf die gewählte Zeile, F2 oder rechte Maustaste → „Umbenennen“ */
 function pjUmbenennen(r) {
   const id = +r.dataset.pjlv, sub = r.dataset.pjsub || '', x = LIST.find((y) => y.id === id); if (!x) return;
@@ -1297,11 +1327,11 @@ function pjUmbenennen(r) {
 }
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'F2' || e.target.closest('input,textarea,select')) return;
-  const r = document.querySelector('#pjTree .pj-r.k.on') || document.querySelector('#pjTree .pj-r.lv.akt'); if (r) { e.preventDefault(); pjUmbenennen(r); }
+  const r = document.querySelector('.pjtree .pj-r.k.on') || document.querySelector('.pjtree .pj-r.lv.akt'); if (r) { e.preventDefault(); pjUmbenennen(r); }
 });
 document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
-  const r = e.detail.ziel.closest && e.detail.ziel.closest('#pjTree [data-pjlv]'); if (!r) return;
-  e.detail.punkte.push({ text: r.dataset.pjsub && r.dataset.pjsub[0] === 'r' ? 'Rechnungsnummer ändern' : 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`#pjTree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
+  const r = e.detail.ziel.closest && e.detail.ziel.closest('.pjtree [data-pjlv]'); if (!r) return;
+  e.detail.punkte.push({ text: r.dataset.pjsub && r.dataset.pjsub[0] === 'r' ? 'Rechnungsnummer ändern' : 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`.pjtree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
   if (!r.dataset.pjsub) e.detail.punkte.push({ text: 'LV- & Auftragsdaten …', fn: async () => { if (!L || L.id !== +r.dataset.pjlv) { await flush(); await openLv(+r.dataset.pjlv); } lvDaten(); } });
   if (r.dataset.pjsub && r.dataset.pjsub[0] === 'b') e.detail.punkte.push({ text: 'Angaben zum Angebot …', fn: () => angebotDaten(+r.dataset.pjsub.slice(1)) });
   if (r.dataset.pjsub) {   // nur dieses Angebot / diese Rechnung löschen (nicht das LV)
@@ -1323,7 +1353,7 @@ function pjFokus() {
 /* Doppelklick auf einen Namen im Projektbaum: gleich umbenennen (wie im Explorer; zweiter Klick auf die gewählte Zeile geht weiterhin) */
 /* Löschen direkt im Baum: Rechnung/Angebot mit Rückgängig, ganzes LV mit kurzer Nachfrage – alles landet im Papierkorb */
 document.addEventListener('click', async (e) => {
-  const d = e.target.closest && e.target.closest('#pjTree [data-pjdel]'); if (!d) return;
+  const d = e.target.closest && e.target.closest('.pjtree [data-pjdel]'); if (!d) return;
   e.preventDefault(); e.stopPropagation();
   const r = d.closest('[data-pjlv]'), lvId = +r.dataset.pjlv, sub = r.dataset.pjsub || '', x = LIST.find((y) => y.id === lvId); if (!x) return;
   if (d.dataset.pjdel === 'lv') return lvWegFragen(lvId);
@@ -1337,27 +1367,29 @@ document.addEventListener('click', async (e) => {
 /* Umbenennen im Baum wie im Explorer: zweiter, langsamer Klick auf den Namen des schon gewählten Eintrags. Ein Doppelklick benennt nicht um. */
 let pjKlick = null;
 document.addEventListener('pointerdown', (e) => {
-  const r = e.target.closest && e.target.closest('#pjTree [data-pjlv]');
-  const sel = r && `#pjTree [data-pjlv="${r.dataset.pjlv}"]` + (r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'), jetzt = Date.now();
+  const r = e.target.closest && e.target.closest('.pjtree [data-pjlv]');
+  const sel = r && `.pjtree [data-pjlv="${r.dataset.pjlv}"]` + (r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'), jetzt = Date.now();
   const ok = r && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.target.closest('.t') && !e.target.closest('input') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt');
   const vorher = window._pjLetzter;   // voriger Klick auf denselben, schon gewählten Eintrag (langsam: 0,45–5 s)
   pjKlick = ok && vorher && vorher.sel === sel && jetzt - vorher.t > 450 && jetzt - vorher.t < 5000 ? { sel, t: jetzt } : null;
   window._pjLetzter = ok ? { sel, t: jetzt } : r ? { sel, t: jetzt } : null;
 }, true);
 document.addEventListener('click', (e) => {
-  if (!pjKlick || !e.target.closest || !e.target.closest('#pjTree')) return;
+  if (!pjKlick || !e.target.closest || !e.target.closest('.pjtree')) return;
   if (e.detail > 1) { clearTimeout(pjKlick.tm); pjKlick = null; return; }
   const k = pjKlick; clearTimeout(k.tm);
   k.tm = setTimeout(() => { if (pjKlick !== k) return; pjKlick = null; const r = document.querySelector(k.sel); if (r && !r.querySelector('input') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) pjUmbenennen(r); }, 550);
 });
 document.addEventListener('dblclick', () => { if (pjKlick) { clearTimeout(pjKlick.tm); pjKlick = null; } }, true);
 document.addEventListener('click', async (e) => {
-  if (!e.target.closest('#pjTree')) return;
+  if (!e.target.closest('.pjtree')) return;
   if (e.target.closest('[data-pjzu]')) { PJZU = !PJZU; LS.set('pjzu', PJZU); render(); return; }
-  const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else PJX.add(id); LS.set('pjx', [...PJX].slice(-100)); $('#pjTree').innerHTML = pjBaum(); return; }
+  const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else PJX.add(id); LS.set('pjx', [...PJX].slice(-100)); pjZeichnen(); return; }
+  const z = e.target.closest('[data-lvzu]'); if (z) { LVXZU = !LVXZU; LS.set('lvxzu', LVXZU); render(); return; }
   const r = e.target.closest('[data-pjlv]'); if (!r) return;
   if (e.target.closest('.t') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt') && !e.target.closest('input')) return;   // Klick auf die schon gewählte Zeile: nichts neu laden (langsamer zweiter Klick benennt um, s. o.)
   const id = +r.dataset.pjlv, sub = r.dataset.pjsub || null, x0 = LIST.find((y) => y.id === id);
+  if (!L || L.id !== id) { LVXZU = false; LS.set('lvxzu', false); }   // anderes LV gewählt: dessen Inhalt aufgeklappt zeigen
   // passenden Bereich wählen: Angebot → Angebote, Rechnung → Rechnungen (oder Aufmaß), LV in Aufträgen/Kosten/Türliste → LV bzw. Rechnungen
   const t0 = tab;
   if (sub && sub[0] === 'b' && tab !== 'angebote') tab = 'angebote';
@@ -1435,8 +1467,9 @@ function render() {
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); return; }
   if (tab === 'tueren') { vTueren(v); return; }
-  if (!L) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
-  v.innerHTML = { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
+  if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
+  if (!L) { v.innerHTML = lvxHtml(null); return; }
+  v.innerHTML = PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') amPdfMount();
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);

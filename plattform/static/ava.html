@@ -74,6 +74,7 @@ main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im
 .dz-l{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--mute)}
 .dz-l select,.dz-l textarea{font:inherit;font-size:.9rem;color:var(--ink)}
 .dz-g{display:flex;flex-direction:column;gap:.3rem}.dz-c{display:flex;gap:.45rem;align-items:center;font-size:.9rem}.dz-c.aus{opacity:.55;flex-wrap:wrap}
+.bed-s.bed-lädt>*{opacity:.45;transition:opacity .15s}.bed-s.bed-lädt::before{content:'Vorschau wird aktualisiert …';position:sticky;top:0;z-index:3;align-self:center;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.85rem}
 .bed-s{overflow:auto;padding:1rem .75rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
 .bed-p{position:relative;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.35);flex:none}
 .bed-p canvas{width:100%;height:100%;display:block}
@@ -3033,13 +3034,29 @@ async function druckEditor() {
         }
       }
       if (my !== tok) return;
-      S.replaceChildren(frag); S.scrollTop = top;
-    } catch (e) { if (my === tok) S.innerHTML = `<div class="bed-l">${esc(e.message || 'Vorschau nicht möglich')}</div>`; }
+      S.replaceChildren(frag); S.scrollTop = top; S.classList.remove('bed-lädt');
+    } catch (e) { if (my === tok) { S.classList.remove('bed-lädt'); } if (my === tok) S.innerHTML = `<div class="bed-l">${esc(e.message || 'Vorschau nicht möglich')}</div>`; }
   }
   let t0 = 0; const spaeter = (ms = 500) => { clearTimeout(t0); t0 = setTimeout(laden, ms); };
   function textBearbeiten(ziel) {   // Kurz-/Langtext direkt in der Vorschau – schreibt in die Position (mit ↶ Rückgängig)
     const x = (L.data.items || []).find((y) => String(y.id) === ziel.dataset.pos); if (!x) return toast('Position nicht gefunden.', true);
     const feld = ziel.dataset.feld, sc = +ziel.dataset.sc || 1, box = ziel.parentNode;
+    if (feld === 'lang') {   // Langtexte laufen oft über die Seite – eigenes Fenster statt eines Felds auf einer Seite
+      const bg = modalBox(`<h3>${esc(x.oz || '')} ${esc(x.kurz || '')}</h3><p class="hint" style="margin:0 0 .5rem">Langtext – die Änderung geht ins LV (↶ Rückgängig möglich).</p>
+        <textarea id="dLang" rows="16" style="width:100%;box-sizing:border-box;font:inherit;line-height:1.45">${esc(x.lang || '')}</textarea>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, b2, close) => {
+        if (m === 'x') { close(); return; }
+        if (m !== 'ok') return;
+        const neu = b2.querySelector('#dLang').value.replace(/\s+$/, ''); close();
+        if (neu === (x.lang || '')) return;
+        x.lang = neu; HIST.next = `${x.oz || 'Position'}: Langtext im Druck geändert`; changed(true);
+        clearTimeout(saveT); saveT = 0; try { await saveNow(); } catch (er) { toast(er.message, true); }
+        laden();
+      });
+      bg.querySelector('.modal').style.width = 'min(760px,100%)'; bg.style.zIndex = 9500;
+      setTimeout(() => { const t = bg.querySelector('#dLang'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 30);
+      return;
+    }
     box.querySelectorAll('.bed-t,.bed-tb').forEach((n) => n.remove());
     const ta = document.createElement('textarea'); ta.className = 'bed-t'; ta.value = feld === 'lang' ? (x.lang || '') : (x.kurz || '');
     const l = parseFloat(ziel.style.left), t = parseFloat(ziel.style.top), w = Math.max(parseFloat(ziel.style.width), 260);
@@ -3071,7 +3088,7 @@ async function druckEditor() {
   ov.addEventListener('input', (e) => { const f = e.target.dataset.f; if (f && F) F[f] = e.target.value; if (f && e.target.closest('.dz-side')) spaeter(1200); });
   ov.addEventListener('change', (e) => {
     const l = e.target.dataset.l, f = e.target.dataset.f;
-    if (l) { lay[l] = e.target.type === 'checkbox' ? e.target.checked : l === 'schrift' ? +e.target.value : e.target.value; spaeter(150); }
+    if (l) { lay[l] = e.target.type === 'checkbox' ? e.target.checked : l === 'schrift' ? +e.target.value : e.target.value; S.classList.add('bed-lädt'); spaeter(0); }
     else if (f && !e.target.closest('.dz-side')) spaeter(150);   // Deckblatt-Feld verlassen → Vorschau neu
   });
   const zu = () => { clearTimeout(t0); tok++; ov.remove(); document.body.style.overflow = ''; };

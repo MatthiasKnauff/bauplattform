@@ -83,6 +83,15 @@ function modalBox(html, onClick) {
   new MutationObserver((m, o) => { if (!bg.isConnected) { document.removeEventListener('keydown', taste, true); o.disconnect(); } }).observe(document.body, { childList: true });
   document.body.appendChild(bg);
   dlgBeweglich(bg.querySelector('.modal'));
+  /* Großes Textfeld (≥ 6 Zeilen) wächst mit dem Fenster mit – ohne eigenen Ziehpunkt */
+  { const md = bg.querySelector('.modal'); let h0 = 0;
+    const passen = () => { const ta = [...md.querySelectorAll('textarea')].filter((t) => (t.rows || 2) >= 6 && t.offsetParent).sort((a, b) => b.offsetHeight - a.offsetHeight)[0]; if (!ta) return;
+      ta.style.resize = 'none'; if (!h0) h0 = ta.offsetHeight;
+      const cs = getComputedStyle(md), last = [...md.children].filter((c) => c.offsetParent).pop(); if (!last) return;
+      const frei = md.getBoundingClientRect().bottom - parseFloat(cs.paddingBottom) - parseFloat(cs.borderBottomWidth) - last.getBoundingClientRect().bottom - parseFloat(getComputedStyle(last).marginBottom || 0);
+      const neu = Math.max(h0, ta.offsetHeight + frei); if (Math.abs(neu - ta.offsetHeight) > 2) ta.style.height = neu + 'px'; };
+    try { new ResizeObserver(() => requestAnimationFrame(passen)).observe(md); } catch { /* alte Browser: wie bisher */ }
+    new MutationObserver(() => requestAnimationFrame(passen)).observe(md, { childList: true, subtree: true }); }
   const f = bg.querySelector('input,select,button'); if (f) f.focus();
   return bg;
 }

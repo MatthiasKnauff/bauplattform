@@ -461,11 +461,14 @@ def schicht_familien(c):
                     continue
                 if dk is not None and (mm or dk >= 50):
                     dk = dk / 10   # Millimeter (Dämmung 80, CLT 100 …) → cm
+                alt_key = schicht_schluessel(name)   # Kürzel-Schlüssel der ersten Fassung (S-KS …) – beim Import weiter gültig
                 name = _sch_lesbar(name)
                 key = schicht_schluessel(name)
                 x = F.setdefault(key, {"name": name, "gruppe": next(g for g, rx in SCHICHT_GRUPPEN if re.search(rx, s["name"], re.I)), "kgs": set(), "opts": []})
                 x["kgs"].add(v["kg"])
                 x["opts"].append((v["id"], v["kg"], sn, on, dk, [tuple(t) for t in o["teile"]]))
+                if alt_key != key and alt_key not in x.setdefault("auch", []):
+                    x["auch"].append(alt_key)
                 erste.setdefault(key, o["teile"])
     P = _pos_preise(c, [t[0] for T in erste.values() for t in T])
     texte = {}
@@ -488,7 +491,7 @@ def schicht_familien(c):
             ziel = F[texte[F[key]["text"]]]
             ziel["kgs"] |= F[key]["kgs"]
             ziel["opts"] += F[key]["opts"]
-            ziel.setdefault("auch", []).append(key)
+            ziel.setdefault("auch", []).extend([key] + F[key].get("auch", []))
             del F[key]
         else:
             texte[F[key]["text"]] = key

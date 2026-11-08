@@ -13,6 +13,19 @@
 (function () {
   if (window.BPHead) return;
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
+  /* Warte-Hinweis für alles, was der Benutzer gerade angestoßen hat (Klick/Taste) und länger braucht:
+     nach 0,4 s ein kleines „Einen Moment …“ oben in der Mitte, bis die Antwort da ist. Hintergrund-Abfragen zählen nicht. */
+  {
+    let tUser = 0, offen = 0, tm = 0, el = null;
+    const merk = () => { tUser = Date.now(); };
+    ['pointerdown', 'keydown', 'change', 'drop'].forEach((e) => window.addEventListener(e, merk, true));
+    const zeig = () => { if (!offen) return; if (!el) { el = document.createElement('div'); el.className = 'bph-warten'; el.setAttribute('role', 'status'); el.innerHTML = '<span class="bph-wsp"></span>Einen Moment …'; }
+      if (!el.isConnected) document.body.appendChild(el); };
+    const fertig = () => { offen = Math.max(0, offen - 1); if (!offen) { clearTimeout(tm); tm = 0; if (el) el.remove(); } };
+    H.warten = (p) => { offen++; if (!tm) tm = setTimeout(() => { tm = 0; zeig(); }, 400); return Promise.resolve(p).finally(fertig); };   // auch für eigene lange Schritte
+    const f0 = window.fetch && window.fetch.bind(window);
+    if (f0) window.fetch = function (u, o) { const p = f0(u, o); return Date.now() - tUser < 1200 ? H.warten(p) : p; };
+  }
   /* Eigene Abfragefenster statt der Browser-Dialoge (alert/confirm/prompt) – in allen Apps gleich:
      await bpFrage(text, { ok, gefahr }) → true/false · await bpEingabe(text, vorgabe) → Text oder null · bpHinweis(text) */
   const DLG = (text, art, vorgabe, opt = {}) => new Promise((fertig) => {

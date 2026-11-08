@@ -4,6 +4,7 @@
 const KAT_ART = { katalog: 'Bauplattform', eigen: 'eigene Positionen', import: 'GAEB / LV', avakatalog: 'sirAdos / Ausschreibung' };
 window.KatalogeEinst = async function katalogeEinst(host, o = {}) {
   o = { bd: '', ava: '../ava/', gaeb: null, nachher: async () => {}, ...o };
+  host.innerHTML = '<p class="bph-mu"><span class="bph-wsp"></span>Lade die Kataloge …</p>';
   let S; try { S = await api(o.bd + 'api/start?katalog=gk3'); } catch (e) { host.innerHTML = `<p class="bph-mu">${esc(e.message)}</p>`; return; }
   const LSA = { get: () => { try { return JSON.parse(localStorage.getItem('bd.ausgeblendet') || '[]'); } catch { return []; } }, set: (v) => { try { localStorage.setItem('bd.ausgeblendet', JSON.stringify(v)); } catch { /* egal */ } } };
   const aus = new Set(LSA.get());

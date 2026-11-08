@@ -84,7 +84,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-seg button{border:0;border-radius:999px;padding:.35rem .8rem;background:transparent;color:var(--mute,#9a9c9e);cursor:pointer;font:inherit}
 .bph-seg button.on{background:var(--y,var(--bph-acc,#ff5fb3));color:var(--on,#111);font-weight:600}
 .bph-ck{display:flex;gap:.5rem;align-items:flex-start;margin:.5rem 0;font-size:.92em}
-.bph-ck input{margin-top:.2rem}.bph-ck input[type=checkbox],.bph-ck input[type=radio]{flex:none;width:1.15rem;height:1.15rem;min-width:1.15rem}
+.bph-ck input{margin-top:.2rem}.bph-ck input[type=checkbox],.bph-ck input[type=radio]{flex:none;width:1.1rem;height:1.1rem;min-width:1.1rem}
 .bph-tabs{display:flex;gap:.3rem;padding:0 1rem;border-bottom:1px solid var(--line,#3b3e42)}
 .bph-tabs button{border:0;background:none;color:var(--mute,#9a9c9e);padding:.5rem .7rem;cursor:pointer;font:inherit;border-bottom:2px solid transparent}
 .bph-tabs button.on{color:inherit;border-bottom-color:var(--y,var(--bph-acc,#ff5fb3));font-weight:600}
@@ -471,3 +471,6 @@ tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAcht
 .bph-testwz>div{display:grid;justify-items:center;gap:.3em;transform:rotate(-22deg);color:#d23c3c;opacity:.13;white-space:nowrap;font-family:Ubuntu,"Segoe UI",system-ui,sans-serif}
 .bph-testwz b{font-weight:800;font-size:clamp(56px,12vw,190px);line-height:1;letter-spacing:.05em}.bph-testwz span{font-weight:700;font-size:clamp(18px,2.6vw,40px)}
 @media print{.bph-testwz{display:none}}
+
+/* systemweit: Häkchen und Optionsknöpfe überall gleich groß – sie schrumpfen nicht neben langen Texten (Flex) */
+:where(input[type=checkbox],input[type=radio]){flex:none;width:1.1rem;height:1.1rem;min-width:1.1rem}

@@ -716,8 +716,8 @@ async function vleiste(neu) {
             return;
           }
           if (m === 'del') {
-            await flush(); const r = await api('api/versionen/' + akt.id, 'DELETE'); close(); L = null; await loadList();
-            if (r && r.papierkorb) rueckgaengig(`Version „${akt.name}“ liegt im Papierkorb`, async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (akt.aktiv && w.schluessel) await api('api/versionen/' + w.schluessel, 'PUT', { aktiv: true }); L = null; await loadList(); });
+            await flush(); const r = await api('api/versionen/' + akt.id, 'DELETE'); close(); L = null; VSICHT = null; await vleiste(); await loadList();   // nicht weiter die gelöschte Version abfragen
+            if (r && r.papierkorb) rueckgaengig(`Version „${akt.name}“ liegt im Papierkorb`, async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (akt.aktiv && w.schluessel) await api('api/versionen/' + w.schluessel, 'PUT', { aktiv: true }); else if (w.schluessel) VSICHT = { pid, id: +w.schluessel }; L = null; await vleiste(); await loadList(); });
             else toast('Version liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.');
           }
         } catch (e) { toast(e.message, true); }
@@ -1059,7 +1059,7 @@ async function avaAblegen(f, E, o) {
   let lvId = o.lv;
   if (!lvId) {   // neues LV
     const name = (o.art === 'lv' || o.art === 'angebot' ? E.lv_name : '') || (o.art === 'rechnung' ? (o.firma || 'Rechnung') : o.art === 'angebot' && o.firma ? `Angebot ${o.firma}` : f.name.replace(/\.[^.]+$/, ''));
-    const r = await api('api/lv', 'POST', { project_id: o.projId, name, gewerk: K ? K.trade || '' : '', nr: String(LIST.length + 1).padStart(2, '0') }); lvId = r.id;
+    const r = await api('api/lv', 'POST', { project_id: o.projId, name, gewerk: K ? K.trade || '' : '', nr: String(LIST.length + 1).padStart(2, '0'), ...(o.projId === pid && vSicht() ? { version_id: vSicht() } : {}) }); lvId = r.id;
     if (o.art === 'rechnung') await api(`api/lv/${lvId}/vergabe`, 'POST', { frei: true, bieter: o.firma || 'Firma', contact_id: K ? K.id : null, summe: 0, einbehalt: 0 });
     await refreshList();
   }

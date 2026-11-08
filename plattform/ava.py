@@ -1159,6 +1159,10 @@ def lv_liste():
         if pid and not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
         vid = request.args.get("version_id", type=int)   # Kopierquelle: auch eine andere als die aktive Version
+        if pid:   # LVs ohne Version (früher z. B. über „Dokument ablegen“ angelegt) gehören zur gültigen Version
+            av = c.execute("SELECT id FROM ava_version WHERE project_id=? AND aktiv=1 ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
+            if av:
+                c.execute("UPDATE ava_lv SET version_id=? WHERE project_id=? AND version_id IS NULL", (av["id"], pid))
         if pid and vid:
             rows = c.execute("SELECT * FROM ava_lv WHERE project_id=? AND version_id=? ORDER BY archived, nr, id", (pid, vid)).fetchall()
         else:
@@ -1226,6 +1230,10 @@ def lv_neu():
                               (i, neu_id[x["pos_id"]], x["name"], x["w"], x["h"], x["data"], x["klein"], now, g.user["name"]))
         if isinstance(b.get("version_id"), int) and pid and c.execute("SELECT 1 FROM ava_version WHERE id=? AND project_id=?", (b["version_id"], pid)).fetchone():
             c.execute("UPDATE ava_lv SET version_id=? WHERE id=?", (b["version_id"], i))   # in der gerade angesehenen Version anlegen
+        elif pid:   # sonst in die gültige Version – ein LV ohne Version wäre in jeder Ansicht anders sichtbar (Fehler beim Wechseln/Löschen)
+            av = c.execute("SELECT id FROM ava_version WHERE project_id=? AND aktiv=1 ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
+            if av:
+                c.execute("UPDATE ava_lv SET version_id=? WHERE id=?", (av["id"], i))
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         C.audit(g.user["name"], "ava", "LV angelegt", f"{nr} {name}")
         return _antwort(c, i)

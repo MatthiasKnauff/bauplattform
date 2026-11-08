@@ -2212,7 +2212,7 @@
       });
       gmI.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); if (!gmAdd()) d.querySelector('[data-km]').textContent = 'Bitte eine gültige E-Mail-Adresse eingeben.'; } });
       d.addEventListener('click', async (e) => {
-        if (e.target === d || e.target.closest('[data-kx]')) return d.remove();
+        if (e.target.closest('[data-kx]')) return d.remove();   // daneben klicken schließt nicht
         const gx0 = e.target.closest('[data-gmx]'); if (gx0) { GM.splice(+gx0.dataset.gmx, 1); gmZeigen(); return; }
         const gmb = e.target.closest('[data-kgm]');
         if (gmb) {

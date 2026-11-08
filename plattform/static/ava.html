@@ -1944,11 +1944,12 @@ document.addEventListener('click', async (e) => {
     if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
     if (a === 'vergabeWeg') {
       const id = L.id, V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status;   // alten Stand merken
-      try { await call(`api/lv/${id}/vergabe`, 'DELETE'); } catch (er) { toast(er.message, true); return; }
-      if (V.angebot_id) rueckgaengig(`Vergabe an ${V.bieter || 'den Bieter'} aufgehoben`, async () => {
-        const r = await call(`api/lv/${id}/vergabe`, 'POST', { angebot_id: V.angebot_id, datum: V.datum, einbehalt: V.einbehalt });
-        const P = { ...(V.preise || {}) }; Object.keys((r.vergabe && r.vergabe.preise) || {}).forEach((k) => { if (!(k in P)) P[k] = null; });
-        await call('api/lv/' + id, 'PUT', { status: stAlt, vergabe: { nachlass: V.nachlass || 0, skonto: V.skonto || 0, einbehalt: V.einbehalt ?? 5, preise: P } });
+      const nRe = (L.rechnungen || []).length;
+      if (nRe && !(await bpFrage(`An diesem Auftrag hängen ${nRe} Rechnung${nRe === 1 ? '' : 'en'}.\n\nOhne Vergabe verschwindet der Auftrag mitsamt den Rechnungen aus „Aufträge“, „Rechnungen“ und der Aufmaßprüfung. Gespeichert bleibt alles – sichtbar wird es erst wieder, wenn du neu vergibst oder die Aufhebung rückgängig machst.\n\nWirklich aufheben?`, { ok: 'Vergabe aufheben', gefahr: true }))) return;
+      try { await call(`api/lv/${id}/vergabe`, 'DELETE', { trotz_rechnungen: true }); } catch (er) { toast(er.message, true); return; }
+      rueckgaengig(`Vergabe an ${V.bieter || 'die Firma'} aufgehoben`, async () => {   // vollständig zurück – auch bei frei/aus der Rechnung angelegten Aufträgen
+        await call(`api/lv/${id}/vergabe`, 'POST', { wiederherstellen: V });
+        if (stAlt && stAlt !== 'vergeben') await call('api/lv/' + id, 'PUT', { status: stAlt });
       });
       return;
     }

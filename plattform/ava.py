@@ -2991,8 +2991,20 @@ def vergabe(i):
         if request.method == "DELETE":
             if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND status='geprueft'", (i,)).fetchone():
                 return jsonify(error="Es gibt schon geprüfte Rechnungen – die Vergabe lässt sich nicht mehr aufheben."), 400
+            n_re = c.execute("SELECT COUNT(*) AS n FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone()["n"]
+            if n_re and not b.get("trotz_rechnungen"):   # sonst verschwindet der Auftrag mitsamt seinen Rechnungen aus den Listen
+                return jsonify(error=f"An diesem Auftrag hängen {n_re} Rechnung{'en' if n_re != 1 else ''} – bitte bestätigen.", rechnungen=n_re), 409
             c.execute("UPDATE ava_lv SET vergabe='{}', status='versendet', rev=rev+1, updated=?, updated_by=? WHERE id=?", (_now(), g.user["name"], i))
             c.execute("DELETE FROM pdb_preis WHERE user_name IN (?, ?)", (f"ava:{i}:auftrag", f"ava:{i}:median"))
+        elif isinstance(b.get("wiederherstellen"), dict):   # „Rückgängig“ nach „Vergabe aufheben“: den alten Stand vollständig zurück
+            if (_j(r["vergabe"], {}) or {}).get("bieter"):
+                return jsonify(error="Inzwischen ist wieder vergeben – nichts zurückzunehmen."), 400
+            V = b["wiederherstellen"]
+            if len(json.dumps(V)) > 2_000_000 or not (V.get("bieter") or V.get("frei")):
+                return jsonify(error="Vergabe nicht lesbar."), 400
+            c.execute("UPDATE ava_lv SET vergabe=?, status='vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?",
+                      (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
+            C.audit(g.user["name"], "ava", "Vergabe wiederhergestellt", f"LV {r['nr']} {r['name']} an {V.get('bieter') or ''}")
         elif b.get("frei"):   # Zettelwirtschaft: Auftrag ohne LV und Angebot – Firma und Summe frei eintragen
             bieter = _s(b.get("bieter"), 200)
             if not bieter:

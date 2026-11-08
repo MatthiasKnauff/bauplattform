@@ -3244,7 +3244,9 @@ document.addEventListener('focusin', (e) => { const tr = e.target.closest && e.t
 let KAT = null;   // {kataloge: [...]} – eingelesene Kataloge (sirAdos Positionen, sirAdos Elemente …)
 const istKat = (v) => String(v || '').startsWith('kat:');
 const katId = (v) => { const t = String(v).split(':')[1] || ''; return /^\d+$/.test(t) ? +t : t; };   // Zahl (Katalog der AVA) oder „bd-gk3“ (Baudaten)
-const alleKat = () => [...((KAT && KAT.kataloge) || []), ...((KAT && KAT.bd) || [])];
+/* in den Einstellungen → Kataloge ausgeblendete Kataloge (je Browser, gemeinsam mit den Baudaten): Schlüssel gk3e, eigen … bzw. ava<id> */
+const katAus = () => { try { return new Set(JSON.parse(localStorage.getItem('bd.ausgeblendet') || '[]')); } catch { return new Set(); } };
+const alleKat = () => { const a = katAus(); return [...((KAT && KAT.kataloge) || []).filter((x) => !a.has('ava' + x.id)), ...((KAT && KAT.bd) || []).filter((x) => x.id === 'bd-korb' || !a.has(String(x.id).replace(/^bd-/, '')))]; };
 /* Drehkreis (wie unter Windows) über der Kopierquelle, solange geladen wird – Größe passt sich der Spalte an */
 let QUBUSY = 0;
 function quBusy(d) { QUBUSY = Math.max(0, QUBUSY + d); quDreh(!!QUBUSY); }
@@ -4391,7 +4393,7 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   const me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform');
   await header('Ausschreibung & Abrechnung', me, conf);
-  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '../baudaten/', ava: '', nachher: async () => { try { KAT = await api('api/katalog'); } catch { /* alter Stand bleibt */ } } }); } }]);
+  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '../baudaten/', ava: '', nachher: async () => { try { KAT = await api('api/katalog'); } catch { /* alter Stand bleibt */ } if (QU.pid) quLaden().catch(() => {}); } }); } }]);
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();

@@ -712,6 +712,14 @@ const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pau
 const artW = (x) => (x.art === 'T' && x.vb ? 'V' : x.art);
 const STATUS = [['entwurf', 'Entwurf'], ['versendet', 'An Bieter versendet'], ['vergeben', 'Vergeben'], ['abgerechnet', 'Abgerechnet'], ['nicht_vergeben', 'Nicht vergeben']];
 const NICHT_GRUENDE = [['', '– ohne Angabe –'], ['entfallen', 'Leistung entfällt'], ['aufgehoben', 'Ausschreibung aufgehoben'], ['anderweitig', 'anderweitig vergeben'], ['zurueckgestellt', 'zurückgestellt']];
+/* Einheitlicher Name für alle PDFs: „<Projektnr.> <Art> <Firma> – LV <Nr> <Name> – <Zusatz>.pdf“ – im ganzen Projekt gleich */
+function pdfName(art, zusatz = '', lv = L) {
+  const pn = (PROJ.find((p) => p.id === pid) || {}).name || '', m = /^\s*([A-Z]{1,2}\d{2,5}(?:[.\-]\d+)?)\b/.exec(pn);
+  const proj = m ? m[1] : pn.split(/\s+/)[0] || '';
+  const firma = lv && lv.vergabe && (lv.vergabe.bieter || lv.auftragnehmer) || '';
+  const t = [proj, art, firma].filter(Boolean).join(' ') + (lv ? ` – LV ${[lv.nr, lv.name].filter(Boolean).join(' ')}` : '') + (zusatz ? ` – ${zusatz}` : '');
+  return t.replace(/\s+/g, ' ').replace(/[\\/:*?"<>|]+/g, '-').trim().slice(0, 150) + '.pdf';
+}
 const ohneLvTxt = (x) => (x.frei ? (x.ohne_lv === false ? ' · vergeben' : ' · ohne LV') : ' · vergeben');
 const ohneLv = (x) => !!(x.frei && x.ohne_lv !== false);   // Auftrag ohne LV: nur unter Prüfung und Abrechnung, nicht in Ausschreibung/Vergabe
 let PROJ = [], pid = null, LIST = [], L = null, tab = LS.get('tab', 'auftraege'), PC = {}, EXP = new Set(LS.get('exp', [])), TSEL = null, saveT = 0, saving = false, KONT = null, OPEN = new Set(), amPos = LS.get('amPos', null), amNur = LS.get('amNur', false);
@@ -2105,9 +2113,9 @@ document.addEventListener('click', async (e) => {
     if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); render(); return; }
     if (a === 'bieter') return bieterDialog();
     if (a === 'x84') return importDialog('angebot');
-    if (a === 'ps') return pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel`, `Preisspiegel LV ${L.nr}.pdf`);
+    if (a === 'ps') return pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel`, pdfName('Preisspiegel'));
     if (a === 'freiVergeben') { try { if (await freiVergeben(L.id, $('#view'))) toast('Auftrag eingetragen – Rechnungen jetzt über „+ Neu ▾“ erfassen.'); } catch (er) { toast(er.message, true); } return; }
-    if (a === 'amPdf') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, `Massenermittlung LV ${L.nr}.pdf`);
+    if (a === 'amPdf') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, pdfName('Massenermittlung'));
     if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
     if (a === 'reaktiv') { try { await call(`api/lv/${L.id}/vergabe`, 'POST', { reaktivieren: true }); toast('Beauftragung wieder in Kraft – Auftrag und Rechnungen zählen wieder.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'nichtVergeben') { nichtVergebenDialog(); return; }
@@ -2289,7 +2297,7 @@ $('#druBtn').onclick = () => {   // Drucken / PDF
   if (!L) return;
   const m = menu($('#druBtn'), [['druck', 'LV drucken / PDF …', 'Layout wählen, Deckblatt und Texte bearbeiten'],
     ['ps', 'Preisspiegel', L.angebote.length ? '' : 'erst mit Angeboten', !L.angebote.length], ['am', 'Massenermittlung', L.aufmass.length ? '' : 'erst mit Aufmaß', !L.aufmass.length]]);
-  m.onpick = (k) => { if (k === 'druck') return druckEditor(); if (k === 'am') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, `Massenermittlung LV ${L.nr}.pdf`); pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel`, `Preisspiegel LV ${L.nr}.pdf`); };
+  m.onpick = (k) => { if (k === 'druck') return druckEditor(); if (k === 'am') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, pdfName('Massenermittlung')); pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel`, pdfName('Preisspiegel')); };
 };
 function menu(anchor, list) {
   document.querySelectorAll('.menu').forEach((x) => x.remove());
@@ -3174,7 +3182,8 @@ function vRechnungen0() {
           <input data-re="abz-betrag" data-id="${r.id}" data-k="${k}" value="${z.betrag != null ? nf(z.betrag, 2) : ''}" placeholder="oder €" style="width:6rem;flex:0 1 6rem" inputmode="decimal"${dis}>${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
           <td class="r">${eur(-(z.pct != null ? L1 * z.pct / 100 : (z.betrag || 0)))}</td></tr>`).join('')}
         ${g ? '' : `<tr><td colspan="2"><button class="ib" data-reb="abzneu" data-id="${r.id}">+ Abzug (Umlage Bauwasser/Strom, Bauleistungsversicherung, Schadensersatz …)</button></td></tr>`}
-        ${c.abzug && !c.abzug.einbehalt ? `<tr class="aus"><td>${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt'} – bei dieser Rechnung nicht einbehalten</td><td class="r">–</td></tr>` : `<tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %</td><td class="r">${eur(-c.einbehalt)}</td></tr>`}
+        ${c.abzug && !c.abzug.einbehalt ? `<tr class="aus"><td>${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt'} – bei dieser Rechnung nicht einbehalten</td><td class="r">–</td></tr>` : (() => { const SK = (L.calc.sicherheit || {}), soll = art === 'schluss' ? SK.pct_schluss : SK.pct_abschlag, abw = r.data.einbehalt != null && soll != null && Math.abs((r.data.einbehalt || 0) - soll) > 0.004;
+          return `<tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %${abw ? ` <span class="hint" style="color:#e07b3a">bei dieser Rechnung fest eingetragen – Auftrag: ${nf(soll, 2)} %</span>${g ? '' : ` <button type="button" class="ib" data-reb="ebAuftrag" data-id="${r.id}" title="Satz dieser Rechnung löschen – es gilt wieder die Sicherheit des Auftrags">wie Auftrag</button>`}` : ''}</td><td class="r">${eur(-c.einbehalt)}</td></tr>`; })()}
         <tr class="s"><td>= anerkannt${c.einzeln ? '' : ' (kumuliert)'}</td><td class="r">${eur(c.anerkannt)}</td></tr>
         ${c.einzeln ? '' : c.abzug && !c.abzug.vorher ? '<tr class="aus"><td>bisher anerkannt – bei dieser Rechnung nicht abgezogen (Achtung: Doppelzahlung bei kumulierten Rechnungen)</td><td class="r">–</td></tr>' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
         <tr class="s"><td>= Zahlbetrag netto</td><td class="r">${eur(c.zahlung)}</td></tr>
@@ -3437,13 +3446,14 @@ async function reAktion(b) {
     if (a === 'pdf' || a === 'freigabe') return reDruck(r);
     if (a === '_alt') { const lw = await druckfelder(a === 'freigabe' ? 'rechnungsfreigabe' : 'rechnungspruefung', ''); if (lw == null) return;
       const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}${a === 'freigabe' ? '&freigabe=1' : ''}${lw}`;
-      if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: (a === 'freigabe' ? 'Rechnungsfreigabe ' : 'Prüfblatt ') + reTitel(r) + '.pdf' }]); else location.href = url; return; }
+      if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: pdfName(a === 'freigabe' ? 'Rechnungsfreigabe' : 'Prüfblatt', reTitel(r) + (r.re_nr ? ' Nr. ' + r.re_nr : '')) }]); else location.href = url; return; }
     if (a === 'abzneu') return call('api/rechnungen/' + r.id, 'PUT', { abzuege: [...(r.data.abzuege || []), { text: '', pct: null, betrag: null }] });
     if (a === 'fzneu') return call('api/rechnungen/' + r.id, 'PUT', { zeilen: [...(r.data.zeilen || []), { text: '', menge: null, einheit: '', ep: null }] });
     if (a === 'zlv') return reZeilenInsLv(r.id, b.dataset.k != null ? +b.dataset.k : null);
     if (a === 'zneu') return call('api/rechnungen/' + r.id, 'PUT', { zeilen: [...(r.data.zeilen || []), { text: '', menge: null, einheit: 'h', ep: null }] });
     if (a === 'zdel') { const alt = JSON.parse(JSON.stringify(r.data.zeilen || [])); await call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt.filter((_, k) => k !== +b.dataset.k) });
       rueckgaengig('Zeile entfernt', () => call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt })); return; }
+    if (a === 'ebAuftrag') { try { await call('api/rechnungen/' + r.id, 'PUT', { einbehalt: null }); toast('Sicherheitseinbehalt wie im Auftrag.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'beleg') { const x = (r.belege || []).find((y) => y.id === +b.dataset.bid); if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url: 'api/belege/' + b.dataset.bid, typ: 'pdf', name: x ? x.name : 'Rechnung.pdf' }]); else location.href = 'api/belege/' + b.dataset.bid; return; }
     if (a === 'belegpruef') {
       const d = await api(`api/belege/${b.dataset.bid}/pruefen`, 'POST');
@@ -3608,9 +3618,9 @@ async function druckEditor() {
       const r = await fetch(`api/lv/${L.id}/druck${lw ? '?' + lw.slice(1) : ''}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ layout: { ...lay, felder: F } }) });
       if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
       const href = URL.createObjectURL(await r.blob());
-      if (!w && window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: href, typ: 'pdf', name: `LV ${L.nr} ${L.name}.pdf` }]); return; }
+      if (!w && window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: href, typ: 'pdf', name: pdfName('LV') }]); return; }
       if (w && !w.closed) { w.location.href = href; if (a === 'druck') setTimeout(() => { try { w.print(); } catch { /* Betrachter druckt selbst */ } }, 1200); }
-      else { const ln = document.createElement('a'); ln.href = href; ln.download = `LV ${L.nr} ${L.name}.pdf`; document.body.appendChild(ln); ln.click(); ln.remove(); }
+      else { const ln = document.createElement('a'); ln.href = href; ln.download = pdfName('LV'); document.body.appendChild(ln); ln.click(); ln.remove(); }
     } catch (er) { if (w && !w.closed) w.close(); toast(er.message, true); }
   });
   laden();
@@ -3693,7 +3703,7 @@ async function paketDruck(o) {
 }
 function reDruck(r) {   // Rechnungsfreigabe als PDF-Paket: Freigabe, Prüfblatt, Massenermittlung, Rechnung der Firma
   const c = (L.calc.rechnungen || []).find((x) => x.id === r.id) || {}, nb = (r.belege || []).length;
-  paketDruck({ titel: `${reTitel(r)} – Rechnungsfreigabe drucken`, bereich: 'rechnungsfreigabe', merk: 'rePaket', name: `Rechnungsfreigabe ${reTitel(r)}.pdf`,
+  paketDruck({ titel: `${reTitel(r)} – Rechnungsfreigabe drucken`, bereich: 'rechnungsfreigabe', merk: 'rePaket', name: pdfName('Rechnungsfreigabe', reTitel(r) + (r.re_nr ? ' Nr. ' + r.re_nr : '')),
     hinweis: 'Links ankreuzen, was ins PDF-Paket soll – die Auswahl wird gemerkt.',
     teile: [['freigabe', 'Rechnungsfreigabe (Zahlbetrag, Unterschriften)', true], ['pruef', 'Prüfblatt (Prüfung im Einzelnen)', true],
       ['aufmass', 'Massenermittlung (Aufmaß)', true, !L.aufmass.length || c.frei, c.frei ? 'Rechnung ohne Aufmaß' : 'noch kein Aufmaß'],

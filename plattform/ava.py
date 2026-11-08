@@ -2873,6 +2873,18 @@ def ablage_ordner():
         return jsonify(ok=False, error=str(e))
 
 
+def _pdf_name(projekt, art, firma="", lv=None, zusatz=""):
+    """Einheitlicher Dateiname für alle PDFs: „<Projektnr.> <Art> <Firma> – LV <Nr> <Name> – <Zusatz>.pdf“ (wie in der Oberfläche)."""
+    m = re.match(r"^\s*([A-Z]{1,2}\d{2,5}(?:[.\-]\d+)?)\b", projekt or "")
+    proj = m.group(1) if m else ((projekt or "").split() or [""])[0]
+    t = " ".join(x for x in (proj, art, (firma or "").strip()) if x)
+    if lv is not None:
+        t += " – LV " + " ".join(x for x in (lv["nr"], lv["name"]) if x)
+    if zusatz:
+        t += " – " + zusatz
+    return re.sub(r'[\\/:*?"<>|]+', "-", re.sub(r"\s+", " ", t)).strip()[:150] + ".pdf"
+
+
 def _ablage_name(art, firma="", was="", nr="", datum="", orig=""):
     """Einheitlicher Dateiname im Projektordner statt Scanner-Namen: „JJJJ-MM-TT Art Firma – Leistung Nr. …“ (Endung wie das Original)."""
     endung = (orig.rsplit(".", 1)[1].lower() if "." in (orig or "") else "pdf")[:6] or "pdf"
@@ -4307,12 +4319,16 @@ def rechnung(k):
             if _re_nachfolger(c, x):
                 return jsonify(error="Auf dieser Rechnung bauen spätere Rechnungen auf – erst deren Prüfung zurücknehmen."), 400
             status = "offen"; d.pop("stand", None); d.pop("geprueft_am", None); d.pop("geprueft_von", None)
+            if d.pop("einbehalt_fest", None):   # beim Abschließen festgehaltener Satz: wieder die Sicherheit des Auftrags
+                d.pop("einbehalt", None)
+            if d.pop("abzug_fest", None):
+                d.pop("abzug", None)
         elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
         if isinstance(b.get("abzuege"), list):
             d["abzuege"] = [{"text": _s(z.get("text"), 200), "pct": _fn(z.get("pct")), "betrag": _fn(z.get("betrag"))} for z in b["abzuege"][:20] if isinstance(z, dict)]
         if "einbehalt" in b:
-            d["einbehalt"] = _fn(b["einbehalt"])
+            d["einbehalt"] = _fn(b["einbehalt"]); d.pop("einbehalt_fest", None)   # von Hand gesetzt (oder gelöscht = wie Auftrag)
         if isinstance(b.get("abzug"), dict):   # Abzüge dieser Rechnung an/aus (null = wie im Auftrag)
             A_ = {**(d.get("abzug") or {}), **{k: v for k, v in b["abzug"].items() if k in ABZUG_ARTEN}}
             d["abzug"] = {k: bool(v) for k, v in A_.items() if v is not None}
@@ -4350,6 +4366,9 @@ def rechnung(k):
             if d.get("einbehalt") is None and x["art"] != "sicherheit":   # Satz festhalten – spätere Änderungen an den Sicherheiten ändern geprüfte Rechnungen nicht
                 S_ = sicherheit_conf(_j(r["vergabe"], {}) or {})
                 d["einbehalt"] = S_["pct_schluss"] if x["art"] == "schluss" else S_["pct_abschlag"]
+                d["einbehalt_fest"] = True   # nur festgehalten, nicht von Hand – beim Zurücknehmen der Prüfung wieder frei
+            if not isinstance(d.get("abzug"), dict):
+                d["abzug_fest"] = True
             d["abzug"] = abzug_wahl(_j(r["vergabe"], {}) or {}, d)   # Wahl festhalten – spätere Änderungen am Auftrag ändern geprüfte Rechnungen nicht
             d["geprueft_am"] = date.today().isoformat()
             d["geprueft_von"] = C.full_name(g.user)
@@ -4870,7 +4889,7 @@ def lv_druck(i):
             import traceback
             traceback.print_exc()
             return jsonify(error=f"Der Ausdruck konnte nicht erstellt werden ({type(e).__name__}: {str(e)[:200]})."), 500
-    name = re.sub(r"[\\/:*?\"<>|]+", "_", f"LV {r['nr']} {r['name']}") + ".pdf"
+    name = _pdf_name(P["projekt"], "LV", (_j(r["vergabe"], {}) or {}).get("bieter") or "", r)
     if b.get("schritt") == "entwurf":
         return jsonify(pdf=base64.b64encode(pdf).decode(), felder=F, layout={k: v for k, v in lay.items() if k != "felder"}, rev=rev,
                        vergeben=bool((_j(r["vergabe"], {}) or {}).get("preise")), datei=name)
@@ -5032,10 +5051,10 @@ def lv_pdf(i):
             if K["schaetzung"]:
                 story.append(Paragraph(f"Kostenschätzung des Planers für dieses LV: {eur(K['schaetzung'])} netto.", S["l"]))
         pdf = _pdf(r, f"Preisspiegel – LV {r['nr']} {r['name']}", f"{P['projekt']} · {len(P['angebote'])} Angebote · Stand {date.today().strftime('%d.%m.%Y')}", st, quer=True, a3=a3, bereich="preisspiegel")
-        fn = "Preisspiegel"
+        fn = "Preisspiegel"; zusatz_ = ""
     elif art == "aufmass":
         pdf = _am_pdf()
-        fn = "Massenermittlung"
+        fn = "Massenermittlung"; zusatz_ = ""
     elif art == "rechnung":
         rid = request.args.get("rid", type=int)
         R = next((x for x in P["rechnungen"] if x["id"] == rid), None)
@@ -5092,6 +5111,7 @@ def lv_pdf(i):
                           *([Paragraph("Anlagen: " + ", ".join(ANL), S["l"])] if ANL else [])] + ([PageBreak()] if "pruef" in teile else [])
                 if "pruef" not in teile:
                     return
+                story += [Paragraph(f"Prüfblatt – {re_titel(R['nr'], R['art'])}", S["h2"]), Spacer(1, 2 * mm)]   # Anlage hat eine eigene Überschrift
             info = [["Auftragnehmer", V.get("bieter") or "—"], ["Rechnung", re_titel(R['nr'], R['art'])
                      + (f" · Nr. {R['re_nr']}" if R["re_nr"] else "") + (f" vom {_de(R['datum'])}" if R["datum"] else "")],
                     ["Eingang", _de(R["eingang"])], ["Auftragssumme", eur(K["auftrag"]) + (f" · Nachträge beauftragt {eur(K['nachtraege']['beauftragt'])}" if K["nachtraege"]["beauftragt"] else "")]]
@@ -5155,7 +5175,8 @@ def lv_pdf(i):
         pdf = None if not teile & {"freigabe", "pruef"} else _pdf(r, f"{'Rechnungsfreigabe' if 'freigabe' in teile else 'Rechnungsprüfung'} – {re_titel(R['nr'], R['art'])}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st,
                    bereich="rechnungsfreigabe" if "freigabe" in teile else "rechnungspruefung",
                    werte={"rechnung": re_titel(R["nr"], R["art"]), "re_nr": R["re_nr"] or "", "re_datum": _de(R["datum"]), "eingang": _de(R["eingang"])})
-        fn = f"{'Rechnungsfreigabe' if freigabe else 'Pruefung'} Rechnung {R['nr']}"
+        fn = "Rechnungsfreigabe" if freigabe else "Prüfblatt"
+        zusatz_ = re_titel(R["nr"], R["art"]) + (f" Nr. {R['re_nr']}" if R["re_nr"] else "")
         if teile & {"aufmass", "rechnung"}:   # Anlagen: Massenermittlung, Rechnung(en) der Firma
             try:
                 from pypdf import PdfReader, PdfWriter
@@ -5242,7 +5263,7 @@ def lv_pdf(i):
                 story += [Spacer(1, 10 * mm), Paragraph("Bieter (Firma, Anschrift): ______________________________________________", S["p"]), Spacer(1, 6 * mm),
                           Paragraph("Ort, Datum, Unterschrift: ______________________________________________", S["p"])]
         pdf = _pdf(r, f"Leistungsverzeichnis {r['nr']} – {r['name']}", f"{P['projekt']}{' · Gewerk ' + r['gewerk'] if r['gewerk'] else ''}" + (" · mit Kostenschätzung" if preise else ""), st)
-        fn = "LV"
+        fn = "LV"; zusatz_ = ""
     from urllib.parse import quote
-    name = re.sub(r"[\\/:*?\"<>|]+", "_", f"{fn} {r['nr']} {r['name']}") + ".pdf"
+    name = _pdf_name(P["projekt"], fn, V.get("bieter") or "", r, zusatz_)
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(name)}"})

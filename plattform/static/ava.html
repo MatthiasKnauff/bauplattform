@@ -540,7 +540,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 .kgws{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.35rem;margin:.6rem 0 .2rem}
 .kgw{display:flex;gap:.5rem;align-items:flex-start;padding:.45rem .6rem;border:1px solid var(--line);border-radius:10px;cursor:pointer;line-height:1.25}
 .kgw:has(input:checked){border-color:color-mix(in srgb,var(--y) 55%,var(--line));background:color-mix(in srgb,var(--y) 7%,transparent)}
-.kgw input{margin-top:.15rem;flex:none}.kgw span{display:flex;flex-direction:column;min-width:0}.kgw b{font-weight:600;font-size:.9rem}.kgw small{color:var(--mute);font-size:.75rem}
+.kgw input{margin-top:.15rem;flex:none;width:1.1rem;height:1.1rem}.kgw span{display:flex;flex-direction:column;min-width:0}.kgw b{font-weight:600;font-size:.9rem;overflow-wrap:anywhere;hyphens:auto}.kgw small{color:var(--mute);font-size:.75rem}
 
 /* „Rückgängig“ unten links neben dem Projektbaum – verdeckt nicht das Ablagefeld darin */
 @media (min-width:861px){html:not([data-modus="einfach"]) #histBar{left:288px}}
@@ -1939,7 +1939,7 @@ async function bkDialog() {
   if (!BK.length) { toast('Keine Kostenermittlung mit Bauteilen gefunden (Baukosten → Bauteile & Material).', true); return; }
   const bg = modalBox(`<h3>Aus den Baukosten übernehmen</h3><p class="hint" style="margin:0 0 .6rem">Bauteile mit Menge, Einheit und Einheitspreis werden als Positionen angehängt – je Kostengruppe ein Titel. Der Preis wird zur Schätzung im LV.</p>
     <select id="bkSel" style="width:100%">${BK.map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><div class="kgws" id="bkKgs"></div>
-    <label style="display:flex;gap:.5rem;margin:.5rem 0 0;font-size:.88rem"><input type="checkbox" id="bkAuf" checked> Bauteile mit Aufbau aus dem Baukasten in Einzelpositionen auflösen (Menge = Faktor × Bauteilmenge, Langtexte aus den Baudaten)</label>
+    <label style="display:flex;gap:.6rem;align-items:flex-start;margin:.7rem 0 0;font-size:.88rem;cursor:pointer"><input type="checkbox" id="bkAuf" checked style="width:1.15rem;height:1.15rem;flex:none;margin-top:.1rem"> Bauteile mit Aufbau aus dem Baukasten in Einzelpositionen auflösen (Menge = Faktor × Bauteilmenge, Langtexte aus den Baudaten)</label>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;

@@ -37,11 +37,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Versionsanzeige (Verwaltung, Fußzeilen): bei einer Freigabe immer der Tag, sonst „<VERSION>-test (abc1234)“
+      # Versionsanzeige (Verwaltung, Fußzeilen): bei einer Freigabe immer der Tag, sonst die Nummer, die die nächste Freigabe
+      # bekommt, mit „-test“: „2026.11.192-test (abc1234)“ – auf Docker 1 steht so dieselbe Nummer, die man dann freigibt
       - name: Version setzen
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "${GITHUB_REF_NAME#v}" > VERSION
-          else echo "$(tr -d '[:space:]' < VERSION)-test (${GITHUB_SHA::7})" > VERSION; fi
+          else
+            git fetch --tags --quiet origin || true
+            LETZTE=$(git tag -l 'v*' --sort=-v:refname | head -1); LETZTE=${LETZTE#v}
+            if [ -n "$LETZTE" ]; then NAECHSTE="${LETZTE%.*}.$(( ${LETZTE##*.} + 1 ))"; else NAECHSTE=$(tr -d '[:space:]' < VERSION); fi
+            echo "${NAECHSTE}-test (${GITHUB_SHA::7})" > VERSION
+          fi
           cat VERSION
 
       - uses: docker/login-action@v3

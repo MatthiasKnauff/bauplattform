@@ -444,7 +444,7 @@ html.mobil .bph{position:sticky;top:0}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
 .tree tr.nt-neu td{background:color-mix(in srgb,var(--y) 7%,var(--card));padding:.3rem .45rem}.nt-st{font:inherit;font-size:.82rem;padding:.05rem .3rem;border-radius:6px;border:1px solid var(--line);background:var(--card);color:inherit}
-.nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}
+.nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}.nt-st.gemischt{border-color:var(--mute);color:var(--mute);font-style:italic}
 .si-dok{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.4rem}.si-sum .btn{margin-left:auto}
 .aufh-b{display:flex;gap:.8rem;align-items:center;padding:.7rem 1rem;margin:0 0 .8rem;border:1.5px solid #e0a030;border-radius:12px;background:color-mix(in srgb,#e0a030 12%,var(--card,transparent))}.aufh-b>div{flex:1}.aufh-i{font-size:1.4rem}
 .deakt{opacity:.5;filter:grayscale(.7);pointer-events:none;user-select:none}.pj-r.deakt-k{opacity:.5;text-decoration:line-through}
@@ -4422,10 +4422,10 @@ function vAuftraege() {
     const G = new Map();   // je Nachtragsnummer eine Gruppe: Stand wird für den ganzen Nachtrag gesetzt (auch auf Gliederungsebene)
     ALLE.forEach((y) => { const g = G.get(y.nt) || { nt: y.nt, titel: null, pos: [] }; if (y.typ === 'titel' && !g.titel) g.titel = y; else if (y.typ === 'pos') g.pos.push(y); G.set(y.nt, g); });
     const NT = [...G.values()];
-    const stVon = (gq) => (gq.titel || gq.pos[0] || {}).nt_status || 'angemeldet';
+    const stVon = (gq) => { const st = [...new Set([gq.titel, ...gq.pos].filter(Boolean).map((y) => y.nt_status || 'angemeldet'))]; return st.length === 1 ? st[0] : 'gemischt'; };   // Stand des ganzen Nachtrags; einzelne Positionen können abweichen
     const zahl = (st) => NT.filter((gq) => stVon(gq) === st).length;
     out.push(`<tr class="nt-neu"><td colspan="10"><span class="tw" style="padding-left:2.2rem"><button type="button" class="btn sm" data-ntneu="${x.id}" title="Nachtrag von Hand erfassen – aus Rechnungen und Aufmaßen der Firma entstehen Nachträge automatisch">＋ Nachtrag erfassen</button><span class="hint" style="margin-left:.6rem">${NT.length ? `${NT.length} Nachtr${NT.length === 1 ? 'ag' : 'äge'} · angemeldet ${zahl('angemeldet')} · beauftragt ${zahl('beauftragt')} · abgelehnt ${zahl('abgelehnt')}` : 'noch keine Nachträge – Positionen aus Rechnungen/Aufmaßen, die nicht im LV stehen, werden automatisch Nachträge'}</span></span></td></tr>`);
-    const ntSel = (st, key, grund) => `<select class="nt-st ${st}" data-ntst="${key}" title="${esc(grund || '')}">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s3) => `<option value="${s3}"${st === s3 ? ' selected' : ''}>${s3}</option>`).join('')}</select>`;
+    const ntSel = (st, key, grund, t = '') => `<select class="nt-st ${st}" data-ntst="${key}" title="${esc(t || grund || '')}">${st === 'gemischt' ? '<option value="gemischt" selected>gemischt</option>' : ''}${['angemeldet', 'beauftragt', 'abgelehnt'].map((s3) => `<option value="${s3}"${st === s3 ? ' selected' : ''}>${s3}</option>`).join('')}</select>`;
     NT.forEach((gq) => {
       const st = stVon(gq), ab = st === 'abgelehnt', kopf = gq.titel || (gq.pos.length === 1 ? gq.pos[0] : null), kk = `${k}:nt:${gq.nt}`;
       const summe = gq.pos.reduce((a, y) => { const r = R.find((q) => q.x === y) || {}; return a + (r.nt || r.gRoh || 0); }, 0);
@@ -4434,8 +4434,9 @@ function vAuftraege() {
       const bez = einzeln ? `${esc(gq.nt)} · ${esc(kopf.oz || '')} ${esc(kopf.kurz || '')}`
         : `<b>${esc(gq.nt)}</b>${gq.titel ? ` · ${esc(gq.titel.oz || '')} ${esc(gq.titel.kurz || '')}` : ''} <small class="mu">${gq.titel ? 'Gliederungspunkt · ' : ''}${gq.pos.length} Pos.</small>`;
       row(kk, 2, !einzeln, gq.titel ? IC.ti : IC.pos, `<span class="${ab ? 'mu' : ''}" title="${esc(grund)}">${bez}</span>`,
-        ['', '', ntSel(st, `${x.id}:nt=${encodeURIComponent(gq.nt)}`, grund), e2(summe), e2(summe), gq.titel ? 'Nachtrag (Gliederungspunkt)' : 'Nachtrag', '', esc((kopf || {}).kg || ''), '']);
-      if (!einzeln && EXP.has(kk)) gq.pos.forEach((y) => { const r = R.find((q) => q.x === y) || {}; row(`${k}:${y.id}`, 3, false, IC.pos, `<span class="${ab ? 'mu' : ''}">${esc(y.oz || '')} ${esc(y.kurz || '')}</span>`, ['', '', '', e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Position', jn(y.art === 'E'), esc(y.kg || ''), '']); });
+        ['', '', ntSel(st, `${x.id}:nt=${encodeURIComponent(gq.nt)}`, grund, einzeln ? grund : 'Stand für den ganzen Nachtrag – gilt für alle Positionen darunter' + (grund ? ' · ' + grund : '')), e2(summe), e2(summe), gq.titel ? 'Nachtrag (Gliederungspunkt)' : 'Nachtrag', '', esc((kopf || {}).kg || ''), '']);
+      if (!einzeln && EXP.has(kk)) gq.pos.forEach((y) => { const r = R.find((q) => q.x === y) || {}, sy = y.nt_status || 'angemeldet';
+        row(`${k}:${y.id}`, 3, false, IC.pos, `<span class="${sy === 'abgelehnt' ? 'mu' : ''}">${esc(y.oz || '')} ${esc(y.kurz || '')}</span>`, ['', '', ntSel(sy, `${x.id}:${y.id}`, y.nt_grund, 'Stand nur dieser Position (weicht dann vom Nachtrag ab)'), e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Position', jn(y.art === 'E'), esc(y.kg || ''), '']); });
     });
     R.forEach((r) => {
       if (!sicht.has(r.par)) return;
@@ -4505,7 +4506,7 @@ function ntDialog(lvId) {
 }
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntneu]'); if (b) { e.stopPropagation(); ntDialog(+b.dataset.ntneu); } });
 document.addEventListener('change', async (e) => {
-  const s = e.target.closest && e.target.closest('[data-ntst]'); if (!s) return;
+  const s = e.target.closest && e.target.closest('[data-ntst]'); if (!s || s.value === 'gemischt') return;
   const [lvId, pid_] = s.dataset.ntst.split(':');
   try { const r = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: s.value }); PC[+lvId] = r; if (L && L.id === +lvId) L = r; await refreshList(); render(); toast(`Nachtrag ${s.value}.`); }
   catch (er) { toast(er.message, true); }

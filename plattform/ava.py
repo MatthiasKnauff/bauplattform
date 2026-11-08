@@ -2775,6 +2775,8 @@ def nachtrag_status(i, pid):
             y["nt_status"] = st
             if "grund" in b:
                 y["nt_grund"] = _s(b.get("grund"), 300)
+            if x is not None and y.get("nt_erbe"):   # einzelne Position aus einem Nachtrags-Gliederungspunkt: eigener Stand, erbt nicht mehr
+                y.pop("nt_erbe", None)
         nt_erben(d["items"])   # Gliederungspunkt: Stand an die Positionen darunter
         c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), _now(), g.user["name"], i))
         versionen.nach(c, f"avalv:{i}", g.user["name"])

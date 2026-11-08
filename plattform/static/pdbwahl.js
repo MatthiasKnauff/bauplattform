@@ -119,11 +119,20 @@ async function pdbPreiswahl(liste) {
   });
 }
 
-/* Detailfenster einer Position der Baudaten (wie im Modul Baudaten) – Doppelklick in der Kopierquelle oder im Auswahldialog */
+/* Detailfenster einer Position der Baudaten (wie im Modul Baudaten) – Doppelklick in der Kopierquelle oder im Auswahldialog.
+   Mit „Eigene Preise aus Vergaben“ wie in den Baudaten: Preis mit Firma notieren, eigenen Eintrag löschen. */
 async function pdbDetail(id) {
   let x; try { x = await api('api/baudaten/position/' + id); } catch (e) { toast(e.message, true); return; }
   const eur = (v) => (v == null ? '–' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
   const num = (v, n = 2) => (v == null ? '' : Number(v).toLocaleString('de-DE', { maximumFractionDigits: n }));
+  const ro = !!x.nur_lesen || x.id < 0;
+  const projekt = () => (window.BPHead && BPHead.projekt && BPHead.projekt.id) || (typeof pid !== 'undefined' && Number.isInteger(+pid) ? +pid : null);
+  let FIRMEN = null;
+  const eigen = () => `<h4 style="margin:.9rem 0 .3rem">Eigene Preise aus Vergaben${x.n_preise ? ` · Median ${eur(x.ep_eigen_median)}` : ''}</h4>
+    ${(x.preise || []).length ? `<table style="width:100%;font-size:.9rem">${x.preise.map((p) => `<tr${p.alt ? ' style="opacity:.45" title="älter als 5 Jahre – zählt nicht mehr"' : ''}><td>${p.auto ? '<small class="mute" title="automatisch aus der Vergabe in der Ausschreibung">AVA</small> ' : ''}${esc(p.datum || '')} ${esc(p.firma || '')}${p.menge ? ' · ' + num(p.menge) + ' ' + esc(x.einheit) : ''}${p.notiz ? '<br><small class="mute">' + esc(p.notiz) + '</small>' : ''}</td><td style="text-align:right;white-space:nowrap">${eur(p.ep)} <button type="button" class="btn sm" data-pweg="${p.id}" title="Eintrag löschen">✕</button></td></tr>`).join('')}</table>`
+      : '<p class="mute" style="font-size:.86rem">Noch keine. Bei jeder Vergabe kommen Auftragspreis und Median der Angebote automatisch hierher. Von Hand eintragen geht auch.</p>'}
+    ${ro ? '<p class="mute" style="font-size:.86rem">🔒 Aus einem Katalog der Ausschreibung (z. B. sirAdos) – für eigene Preise in den Baudaten als eigene Position übernehmen.</p>'
+      : `<div style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:.4rem;align-items:end"><div><label style="font-size:.82rem">EP netto €</label><input data-pep inputmode="decimal" style="width:100%"></div><div><label style="font-size:.82rem">Firma</label><input data-pfi list="pdbFiL" autocomplete="off" placeholder="Firma wählen oder neu eintragen" style="width:100%"><datalist id="pdbFiL"></datalist></div><button type="button" class="btn" data-pneu title="Preis notieren">＋</button></div>`}`;
   const teile = (x.teile || []).length ? `<h4 style="margin:.9rem 0 .3rem">Bestandteile – je 1 ${esc(x.einheit)}</h4><table style="width:100%;font-size:.86rem">${x.teile.map((t) => `<tr><td>${esc(t.kurz)} <small class="mute">${esc(t.code)} · ${String(t.faktor).replace('.', ',')} ${esc(t.einheit)} × ${eur(t.ep_mittel)}</small></td><td style="text-align:right">${eur(t.anteil)}</td></tr>`).join('')}</table>` : '';
   const kalk = !x.teile && x.quelle === 'katalog' && x.h ? `<h4 style="margin:.9rem 0 .3rem">Kalkulation (Preisstand ${esc(x.preisstand || '')})</h4><table style="width:100%;font-size:.9rem">
       <tr><td>Zeitansatz</td><td style="text-align:right">${num(x.h, 3)} h/${esc(x.einheit)}</td></tr>
@@ -132,15 +141,36 @@ async function pdbDetail(id) {
       <tr><td>Stoff + Gerät (+ 12 %)</td><td style="text-align:right">${eur(((x.stoff || 0) + (x.geraet || 0)) * 1.12)}</td></tr>
       <tr><td><b>EP zum Preisstand</b></td><td style="text-align:right"><b>${eur(x.ep_mittel)}</b></td></tr>
       <tr><td>Umrechnung auf heute</td><td style="text-align:right">× ${num(x.umrechnung, 4)}</td></tr></table>` : '';
-  const eig = (x.preise || []).length ? `<h4 style="margin:.9rem 0 .3rem">Eigene Preise aus Vergaben · Median ${eur(x.ep_eigen_median)}</h4><table style="width:100%;font-size:.9rem">${x.preise.map((p) => `<tr${p.alt ? ' style="opacity:.45" title="älter als 5 Jahre – zählt nicht mehr"' : ''}><td>${p.auto ? '<small class="mute">AVA</small> ' : ''}${esc(p.datum || '')} ${esc(p.firma || '')}${p.menge ? ' · ' + num(p.menge) + ' ' + esc(x.einheit) : ''}</td><td style="text-align:right">${eur(p.ep)}</td></tr>`).join('')}</table>` : '';
   const bg = modalBox(`<div class="mute" style="font-size:.82rem">${esc(x.katalog_name || '')} · ${esc(x.code || '')}${x.lb_name ? ' · ' + esc((x.lb_nr || '') + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}</div>
     <h3 style="margin:.3rem 0">${esc(x.bez || x.kurz)}</h3>${x.bez ? `<div class="mute" style="font-size:.85rem">Kurztext (LV): ${esc(x.kurz)}</div>` : ''}
     <div class="mute" style="margin:.3rem 0 .6rem;font-size:.88rem">Einheit <b>${esc(x.einheit || '')}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b>` : ''}</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center;margin-bottom:.7rem">${[['von', x.ep_von_akt], ['mittel', x.ep_mittel_akt], ['bis', x.ep_bis_akt]].map(([l, v]) => `<div style="border:${l === 'mittel' ? '2px solid var(--y)' : '1px solid var(--line)'};border-radius:10px;padding:.45rem"><small class="mute">${l}</small><div style="font-size:1.15rem;font-weight:600">${eur(v)}</div></div>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center;margin-bottom:.7rem">${[['von', x.ep_von_akt], ['mittel', x.ep_mittel_akt], ['bis', x.ep_bis_akt]].map(([l, v]) => `<div style="border:${l === 'mittel' ? '2px solid var(--y)' : '1px solid var(--line)'};border-radius:10px;padding:.45rem"><small class="mute">${l}</small><div style="font-size:1.15rem;font-weight:700">${eur(v)}</div></div>`).join('')}</div>
     <pre style="white-space:pre-wrap;font:inherit;font-size:.92rem;max-height:34vh;overflow:auto;margin:0;background:var(--hov,transparent);padding:.5rem .6rem;border-radius:8px">${esc(x.lang_voll || x.lang || '')}</pre>
-    ${x.hinweis && !x.teile ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}${teile}${kalk}${eig}
+    ${x.hinweis && !x.teile ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}${teile}${kalk}<div data-eig>${eigen()}</div>
     <div style="display:flex;justify-content:flex-end;margin-top:.8rem"><button class="btn pri" data-m="x">Schließen</button></div>`, (m, bg, close) => { if (m === 'x') close(); });
   bg.querySelector('.modal').style.width = 'min(720px,100%)';
+  const firmen = async () => {
+    const dl = bg.querySelector('#pdbFiL'); if (!dl) return;
+    if (!FIRMEN) { try { FIRMEN = await api('api/baudaten/firmen?position=' + x.id); } catch { FIRMEN = []; } }
+    dl.innerHTML = FIRMEN.map((f) => `<option value="${esc(f.name)}" label="${esc([f.rang === 0 ? '★ schon Preise in diesem Bereich' : f.rang === 1 ? '✓ passendes Gewerk' : '', f.gewerk].filter(Boolean).join(' · '))}"></option>`).join('');
+  };
+  const neu = () => { bg.querySelector('[data-eig]').innerHTML = eigen(); firmen(); };
+  firmen();
+  bg.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-pneu]')) {
+      const ep = +String(bg.querySelector('[data-pep]').value).trim().replace(/\./g, '').replace(',', '.');
+      if (!ep) { toast('Bitte einen Einheitspreis eingeben.', true); return; }
+      const firma = bg.querySelector('[data-pfi]').value.trim(), b = { ep, firma, project_id: projekt() };
+      if (firma && FIRMEN && FIRMEN.length && !FIRMEN.some((f) => f.name.toLowerCase() === firma.toLowerCase())) {
+        if (await bpFrage(`„${firma}“ ist noch nicht in den Adressen. Dort anlegen?`, { ok: 'In Adressen anlegen', abbrechen: 'Nur hier eintragen' })) { b.neue_firma = true; FIRMEN = null; }
+      }
+      try { x = await api(`api/baudaten/position/${x.id}/preis`, 'POST', b); neu(); toast('Preis notiert.'); } catch (er) { toast(er.message, true); }
+      return;
+    }
+    const w = e.target.closest('[data-pweg]'); if (w) {
+      try { x = await api('api/baudaten/preis/' + w.dataset.pweg, 'DELETE'); neu(); } catch (er) { toast(er.message, true); }
+    }
+  });
 }
 
 /* Bauteil-Baukasten: Vorlage wählen, je Schicht eine Ausführung – Preis live aus den Positionen der Baudaten.

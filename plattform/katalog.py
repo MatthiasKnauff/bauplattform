@@ -15,10 +15,31 @@ def _txt(v):
     return (v or "").replace("\r\n", "\n").replace("\r", "\n").replace("\xa0", " ").strip() if isinstance(v, str) else ""
 
 
+def _lt(b):
+    """Langtext aus dem Feld LT (sirAdos-Textformat): Kopf b1 04 …, ab Byte 14 Länge mit Kennung (Bit 17 = UTF-16), dann der Text,
+    danach Formatierung. Gibt None zurück, wenn das Feld nicht so aussieht – dann gilt txt4TT (dort sind lange Texte gekürzt)."""
+    if not isinstance(b, (bytes, bytearray)) or len(b) < 19 or b[:2] != b"\xb1\x04":
+        return None
+    v = int.from_bytes(b[14:18], "little")
+    try:
+        if v & 0x20000:
+            n = v & 0x1FFFF
+            t = bytes(b[18:18 + 2 * n]).decode("utf-16-le")
+        else:
+            n = v & 0x1FFFF
+            t = bytes(b[18:18 + n]).decode("cp1252")
+    except UnicodeDecodeError:
+        return None
+    t = t.split("\x00", 1)[0].replace("\xad", "").replace("\x1f", "").replace("\xa0", " ")   # weiche Trennstriche raus
+    if not t.strip() or sum(1 for ch in t if ch.isprintable() or ch in "\n\r\t") < 0.97 * len(t):   # sieht nicht nach Text aus
+        return None
+    return _txt(t)
+
+
 def lesen(pfad, dateiname=""):
     """Access-Katalog → (quelle, stand, zeilen, art). zeilen: Liste von Dicts in Katalog-Reihenfolge:
     {typ: 'gewerk'|'titel'|'pos', ebene, oz, kurz, lang, einheit, kg, ep_von, ep, ep_bis}; Gewerke mit „key“ (eindeutig).
-    art: 'positionen' (Tabelle LV, z. B. sirAdos Positionen) oder 'elemente' (Tabelle Ele, z. B. sirAdos Elemente:
+    art: 'positionen' (Tabelle LV, z. B. sirAdos Positionen), 'vorbemerkungen' (nur Texte, z. B. sirAdos Vorbemerkungen) oder 'elemente' (Tabelle Ele, z. B. sirAdos Elemente:
     Kostengruppe → Gruppen → Element mit Einheit und Preis → Feinelemente als Varianten)."""
     import logging
     logging.getLogger("access_parser").setLevel(logging.CRITICAL)
@@ -33,7 +54,11 @@ def lesen(pfad, dateiname=""):
     if not (L.get("id") or []):
         raise ValueError("Im Katalog wurden keine Positionen gefunden.")
     T = db.parse_table("Texte")
-    texte = {i: t for i, t in zip(T.get("ID") or [], T.get("txt4TT") or [])}
+    ids, tt, lt = T.get("ID") or [], T.get("txt4TT") or [], T.get("LT") or []
+    texte = {}
+    for k, i in enumerate(ids):   # voller Text aus LT, sonst die (bei langen Texten gekürzte) Vorschau txt4TT
+        voll = _lt(lt[k]) if k < len(lt) else None
+        texte[i] = voll if voll else (tt[k] if k < len(tt) else "")
     preise = {}
     if "EPreise" in db.catalog:
         E = db.parse_table("EPreise")
@@ -97,5 +122,15 @@ def lesen(pfad, dateiname=""):
     if not any(x["typ"] == "pos" for x in out):
         raise ValueError("Im Katalog wurden keine Positionen gefunden.")
     name = dateiname or os.path.basename(pfad)
+    if all(x.get("art") == "T" for x in out if x["typ"] == "pos"):   # nur Texte, z. B. sirAdos Vorbemerkungen: je Gewerk ein großer Text
+        art_k = "vorbemerkungen"
+    if not any(x["typ"] == "gewerk" for x in out):   # ohne Gewerke (Texte direkt unter der Wurzel): ein Bereich für alle
+        for x in out:
+            x["ebene"] = (x.get("ebene") or 0) + 1
+        out.insert(0, {"typ": "gewerk", "ebene": 0, "oz": "", "key": "VB" if art_k == "vorbemerkungen" else "A", "kurz": "Vorbemerkungen" if art_k == "vorbemerkungen" else "Katalog"})
+    if not stand:   # Stand aus dem Dateinamen, z. B. „…_07-19.ava“ → 2019-07
+        m = re.search(r"(?<!\d)(\d{2})-(\d{2})(?:\.\w+)?$", name)
+        if m and 1 <= int(m.group(1)) <= 12:
+            stand = f"20{m.group(2)}-{m.group(1)}"
     quelle = "sirAdos" if "sirados" in name.lower() else re.sub(r"\.[^.]+$", "", name)[:60]
     return quelle, stand, out, art_k

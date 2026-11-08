@@ -124,6 +124,8 @@ def _schnipsel(text, worte, n=70):
 def _kat_bereich(key):
     """sirAdos Positionen: Gewerke 000–299 Neubau, ab 300 dieselben Gewerke für Altbau/Sanierung (Abbruch, Arbeiten im Bestand).
     sirAdos Elemente: Kostengruppen, die ein zweites Mal vorkommen (Schlüssel „A…“), sind die für Altbau/Sanierung."""
+    if key == "VB":
+        return "Vorbemerkungen"
     return "Altbau / Sanierung" if key.startswith("A") or (key.isdigit() and int(key) >= 300) else "Neubau"
 
 
@@ -203,7 +205,8 @@ def katalog_eins(kid):
                 c.execute("UPDATE ava_kataloge SET name=? WHERE id=?", (name, kid))
             return jsonify(kataloge=_kat_liste(c))
         def lesen():
-            n = {r["gewerk"]: r["n"] for r in c.execute("SELECT gewerk, COUNT(*) AS n FROM ava_katalog WHERE katalog_id=? AND typ='pos' AND art<>'T' GROUP BY gewerk", (kid,)).fetchall()}
+            n = {r["gewerk"]: r["n"] for r in c.execute("SELECT gewerk, COUNT(*) AS n FROM ava_katalog WHERE katalog_id=? AND typ='pos' AND (art<>'T' OR ?) GROUP BY gewerk",
+                                                        (kid, info.get("art") == "vorbemerkungen")).fetchall()}
             return [{"gewerk": r["gewerk"], "oz": r["oz"], "kurz": r["kurz"], "n": n.get(r["gewerk"], 0)}
                     for r in c.execute("SELECT gewerk, oz, kurz FROM ava_katalog WHERE katalog_id=? AND typ='gewerk' ORDER BY nr", (kid,)).fetchall()]
         gw = _memo(("katgw", kid, info.get("importiert")), 3600, lesen)
@@ -492,11 +495,11 @@ def _kat_einlesen(pfad, dateiname):
             gew = x.get("key") or x["oz"]
         if not gew:   # Hinweise vor dem ersten Gewerk
             continue
-        zeilen.append([k, gew, x["typ"], int(x.get("ebene") or 0), x["oz"][:40], x["kurz"][:500], x.get("lang", "")[:20000], x.get("art", "N"),
+        zeilen.append([k, gew, x["typ"], int(x.get("ebene") or 0), x["oz"][:40], x["kurz"][:500], x.get("lang", "")[:200000 if art == "vorbemerkungen" else 20000], x.get("art", "N"),
                        x.get("einheit", "")[:12], x.get("kg", ""), x.get("ep_von"), x.get("ep"), x.get("ep_bis")])
     st = f" {stand[5:7]}/{stand[:4]}" if len(stand or "") >= 7 else ""
-    name = f"{quelle} {'Elemente' if art == 'elemente' else 'Positionen'}{st}".strip()
-    n_pos = sum(1 for z in zeilen if z[2] == "pos" and z[7] != "T")
+    name = f"{quelle} {'Elemente' if art == 'elemente' else 'Vorbemerkungen' if art == 'vorbemerkungen' else 'Positionen'}{st}".strip()
+    n_pos = sum(1 for z in zeilen if z[2] == "pos" and (z[7] != "T" or art == "vorbemerkungen"))
     n_gew = sum(1 for z in zeilen if z[2] == "gewerk")
     try:
         with db.tx() as c:

@@ -1700,7 +1700,10 @@ function addItem(kind) {
   let neu;
   const ober = [...I.slice(0, at)].reverse().find((x) => x.typ === 'titel');   // Titel, in dem eingefügt wird
   if (kind === 'utitel') { const lv = ober ? (ober.lvl || 1) + 1 : 1; if (lv > 4) { toast('GAEB erlaubt höchstens 4 Titelebenen – hier geht kein weiterer Untertitel.', true); return; } neu = { id: uid(), typ: 'titel', lvl: lv, oz: '', kurz: '' }; }
-  else if (kind === 'titel') neu = { id: uid(), typ: 'titel', lvl: ref && ref.typ === 'titel' ? (ref.lvl || 1) : ober ? (ober.lvl || 1) : 1, oz: '', kurz: '' };
+  else if (kind === 'titel') {   // gleiche Ebene wie der markierte Titel (nach seinem ganzen Inhalt), sonst wie der Titel davor
+    const akt = I.find((x) => x.id === LVAKT);
+    neu = { id: uid(), typ: 'titel', lvl: akt && akt.typ === 'titel' ? (akt.lvl || 1) : ref && ref.typ === 'titel' ? (ref.lvl || 1) : ober ? (ober.lvl || 1) : 1, oz: '', kurz: '' };
+  }
   else if (kind === 'txt') neu = { id: uid(), typ: 'pos', art: 'T', oz: '', kurz: '', lang: '', menge: 0, einheit: '' };
   else if (kind === 'nt') { const n = I.filter((x) => x.nt).length + 1; neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 1, einheit: 'psch', nt: 'NT' + n, nt_status: 'angemeldet' }; }
   else { const last = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T') || [...I].reverse().find((x) => x.typ === 'pos' && x.art !== 'T'); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: last ? last.einheit : 'm2', kg: last ? last.kg : '' }; }
@@ -1727,15 +1730,24 @@ function numDialog() {
       <label>Stellen je Titel<select id="ozTS">${[1, 2, 3].map((k) => `<option${k === (M.t[0] || 2) ? ' selected' : ''}>${k}</option>`).join('')}</select></label>
       <label>Stellen der Position<select id="ozP">${[3, 4, 5].map((k) => `<option${k === M.p ? ' selected' : ''}>${k}</option>`).join('')}</select></label>
       <label>Schrittweite<select id="ozS">${[1, 5, 10].map((k) => `<option${k === M.s ? ' selected' : ''}>${k}</option>`).join('')}</select></label></div>
-    <p class="hint" style="margin:.7rem 0 .2rem">Beispiel: <b id="ozV"></b>${tiefe > 1 ? ` · im LV gibt es ${tiefe} Titelstufen` : ''}</p>
+    <p class="hint" style="margin:.7rem 0 .2rem">Beispiel: <b id="ozV"></b>${tiefe > 1 ? ` · im LV gibt es ${tiefe} Titelstufen` : ''}</p><p id="ozW" class="ferr" style="color:var(--red,#d64545);margin:.3rem 0 0;font-size:.9rem" hidden></p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Nummerieren</button></div>`, (m, bg2, close) => {
     if (m === 'x') { close(); return; }
-    if (m !== 'ok') return;
+    if (m !== 'ok' || bg2.querySelector('[data-m="ok"]').disabled) return;
     const t = +bg2.querySelector('#ozT').value, ts = +bg2.querySelector('#ozTS').value;
     L.data.ozm = { t: Array(t).fill(ts), p: +bg2.querySelector('#ozP').value, s: +bg2.querySelector('#ozS').value };
     close(); HIST.next = 'Nummeriert'; numerieren(); changed(true);
   });
-  const vor = () => { const t = +bg.querySelector('#ozT').value, ts = +bg.querySelector('#ozTS').value, p = +bg.querySelector('#ozP').value, st = +bg.querySelector('#ozS').value;
+  // passt das Schema zum LV? Titelstufen, Titel je Stufe und Positionen je Titel müssen in die Stellen passen
+  const I = items(), stapel = []; let maxT = 0, maxP = 0; const nT = {}, nP = {};
+  I.forEach((x, k) => { if (x.typ === 'titel') { const lv = x.lvl || 1; while (stapel.length && stapel[stapel.length - 1][0] >= lv) stapel.pop(); const par = stapel.length ? stapel[stapel.length - 1][1] : 'w'; nT[par] = (nT[par] || 0) + 1; maxT = Math.max(maxT, nT[par]); stapel.push([lv, 't' + k]); }
+    else if (x.art !== 'T') { const par = stapel.length ? stapel[stapel.length - 1][1] : 'w'; nP[par] = (nP[par] || 0) + 1; maxP = Math.max(maxP, nP[par]); } });
+  const pruef = () => { const t = +bg.querySelector('#ozT').value, ts = +bg.querySelector('#ozTS').value, p = +bg.querySelector('#ozP').value, st = +bg.querySelector('#ozS').value, w = [];
+    if (t < tiefe) w.push(`Im LV gibt es ${tiefe} Titelstufen – bitte mindestens ${tiefe} wählen.`);
+    if (maxT >= 10 ** ts) w.push(`Auf einer Stufe stehen ${maxT} Titel – dafür reichen ${ts} Stelle${ts > 1 ? 'n' : ''} nicht (höchstens ${10 ** ts - 1}).`);
+    if (maxP * st >= 10 ** p) w.push(`Ein Titel hat ${maxP} Positionen – mit Schrittweite ${st} reichen ${p} Stellen nicht (bis ${maxP * st}).`);
+    const el = bg.querySelector('#ozW'); el.hidden = !w.length; el.textContent = w.length ? '⚠ ' + w.join(' ') : ''; bg.querySelector('[data-m="ok"]').disabled = !!w.length; };
+  const vor = () => { pruef(); const t = +bg.querySelector('#ozT').value, ts = +bg.querySelector('#ozTS').value, p = +bg.querySelector('#ozP').value, st = +bg.querySelector('#ozS').value;
     bg.querySelector('#ozV').textContent = [...Array(t)].map((_, i) => String(i + 1).padStart(ts, '0')).join('.') + '.' + String(st).padStart(p, '0') + ` (Titel ${'1'.padStart(ts, '0')}, Positionen ${String(st).padStart(p, '0')}, ${String(2 * st).padStart(p, '0')} …)`; };
   bg.addEventListener('change', vor); vor();
 }

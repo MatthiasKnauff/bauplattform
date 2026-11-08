@@ -392,63 +392,104 @@ def aufloesen(c, teile, menge, titel=""):
     return out
 
 
+ALLPLAN_KATALOGE = [   # Kundenkataloge 1–5 nach Bauteilart – in Allplan je Bauteil zuordnen
+    ("kukat1", "Wände", lambda k: (k[:2] in ("33", "34")) and k not in ("334", "338", "344", "347")),
+    ("kukat2", "Decken, Böden, Gründung", lambda k: k[:2] in ("32", "35") and k != "352"),
+    ("kukat3", "Dächer", lambda k: k[:2] == "36" and k not in ("362", "366")),
+    ("kukat4", "Fenster, Türen, Öffnungen", lambda k: k in ("334", "338", "344", "347", "352", "362", "366")),
+    ("kukat5", "Weitere (Baugrube, Einbauten, Technik)", lambda k: True),
+]
+
+
+def _allplan_auswahl(rows, ziel=320):
+    """Je Vorlage nur die gängigen Aufbauten: zuerst verschiedene Tragschichten (erste Schicht), höchstens ~ziel Einträge je Katalog."""
+    je = {}
+    for r in rows:
+        m = re.match(r"Aufbau ([\d.]+?):([\d.]*)$", r["hinweis"] or "")
+        if m:
+            je.setdefault(m.group(1), []).append((r, [int(x) for x in m.group(2).split(".") if x != ""]))
+    if not je:
+        return rows
+    k = max(2, min(8, ziel // len(je)))
+    out = []
+    for vid in sorted(je):
+        L, gesehen, wahl = je[vid], set(), []
+        for r, w in L:   # erst je Tragschicht eine Variante
+            if (w[:1] or [0])[0] not in gesehen:
+                gesehen.add((w[:1] or [0])[0]); wahl.append(r)
+        wahl += [r for r, _ in L if r not in wahl]
+        out += wahl[:k]
+    return out
+
+
 def allplan_katalog(c, kg=""):
-    """Bauteil-Elemente (Katalog gk3e) als Allplan-Katalog im Textformat wie der Elementkatalog NEM_ELE:
+    """Bauteil-Elemente (Katalog gk3e) als Allplan-Kundenkataloge im Textformat des Elementkatalogs NEM_ELE:
     .KAT (REFNAM 18 Zeichen + Kurztext 60), .KTX (Langtext in Zeilen zu 40 Zeichen, um 18 eingerückt), .KTM (Attribute, leer).
-    Der Kurztext beginnt mit dem Code – er landet in Allplan als Material/Qualität und im IFC-Export, der Import in den
-    Baukosten erkennt daran den Aufbau. Gibt ein ZIP (bytes) zurück: kukat1/KUKAT1.* und LIESMICH.txt."""
+    Fünf Kataloge nach Bauteilart (kukat1–5), je Vorlage nur die gängigen Aufbauten – Allplan zeigt Kataloge als flache Liste.
+    Der Kurztext beginnt mit dem Code; der IFC-Import der Baukosten erkennt daran den Aufbau. Gibt (ZIP-bytes, Anzahl) zurück."""
     import io
     import textwrap
     import zipfile
     w, p = ["katalog='gk3e'", "aktiv=1"], []
     if kg:
         w.append("kg LIKE ?"); p.append(re.sub(r"\D", "", kg)[:3].rstrip("0") + "%")
-    rows = c.execute(f"SELECT code, kurz, bez, lang, einheit, kg FROM pdb_position WHERE {' AND '.join(w)} ORDER BY code", p).fetchall()
+    rows = c.execute(f"SELECT code, kurz, bez, lang, einheit, kg, hinweis FROM pdb_position WHERE {' AND '.join(w)} ORDER BY code", p).fetchall()
     T = {}
     for r in c.execute("SELECT t.element_code, t.faktor, p.kurz, p.einheit FROM pdb_element_teil t JOIN pdb_position p ON p.katalog='gk3' AND p.code=t.position_code "
                        "ORDER BY t.element_code, t.nr").fetchall():
         T.setdefault(r["element_code"], []).append(r)
-    enc = lambda t: str(t).replace("–", "-").replace("„", '"').replace("“", '"').replace("’", "'").replace("×", "x").replace("²", "2").replace("³", "3").replace("≤", "<=").replace("≥", ">=").replace("Ø", "D").encode("cp1252", "replace")
-    kat, ktx = [b"#", b"REFNAM            KURZT", b""], [b"#", b"REFNAM            LANGT", b""]
-    for r in rows:
-        ref = r["code"][:17].ljust(18)
-        kurz = f"{r['code']} {r['kurz']}"
-        kat.append(enc(ref + kurz[:60].ljust(60)))
-        ktx.append(enc(ref))
-        zeilen = []
-        for absatz in (r["lang"] or "").split("\n"):
-            zeilen += textwrap.wrap(absatz, 40) or [""]
-        zeilen.append(f"Einheit: {r['einheit']}, KG {r['kg']}")
-        zeilen.append("Bestandteile je " + r["einheit"] + ":")
-        for t in T.get(r["code"], []):
-            zeilen += textwrap.wrap(f"{str(round(t['faktor'], 3)).replace('.', ',')} {t['einheit']} {t['kurz']}", 40)
-        ktx += [enc(" " * 18 + z[:40]) for z in zeilen if z is not None]
-    ktm = [b">", b"REFNAM             KUPD GEW ABR PRIOR SCH     DICKE LAYER BER SMF", b"", b""]
+    ers = lambda t: (str(t).replace("–", "-").replace("„", '"').replace("“", '"').replace("’", "'").replace("×", "x").replace("²", "2").replace("³", "3")
+                     .replace("≤", "<=").replace("≥", ">=").replace("Ø", "D"))
+    enc = lambda t: ers(t).encode("cp1252", "replace")
     crlf = lambda L: b"\r\n".join(L) + b"\r\n"
-    hilfe = f"""Bauteilkatalog der Bauplattform fuer Allplan ({len(rows)} Elemente{', KG ' + kg if kg else ''})
+    gruppen, rest = {}, list(rows)
+    for key, _, passt in ALLPLAN_KATALOGE:
+        gruppen[key] = [r for r in rest if passt(r["kg"] or "")]
+        ids = {id(r) for r in gruppen[key]}
+        rest = [r for r in rest if id(r) not in ids]
+    buf, n_ges, uebersicht = io.BytesIO(), 0, []
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for key, titel, _ in ALLPLAN_KATALOGE:
+            sel = _allplan_auswahl(gruppen[key])
+            if not sel:
+                continue
+            kat, ktx = [b"#", b"REFNAM            KURZT", b""], [b"#", b"REFNAM            LANGT", b""]
+            for r in sel:
+                ref = r["code"][:17].ljust(18)
+                kat.append(enc(ref + ers(f"{r['code']} {r['kurz']}")[:60].ljust(60)))   # erst ersetzen, dann auf 60 Zeichen
+                ktx.append(enc(ref))
+                zeilen = []
+                for absatz in (r["bez"] or r["kurz"], *(r["lang"] or "").split("\n")):
+                    zeilen += textwrap.wrap(ers(absatz), 40) or [""]
+                zeilen.append(ers(f"Einheit: {r['einheit']}, KG {r['kg']}"))
+                zeilen.append(ers("Bestandteile je " + r["einheit"] + ":"))
+                for t in T.get(r["code"], []):
+                    zeilen += textwrap.wrap(ers(f"{str(round(t['faktor'], 3)).replace('.', ',')} {t['einheit']} {t['kurz']}"), 40)
+                ktx += [enc(" " * 18 + x[:40]) for x in zeilen]
+            N = key.upper()
+            z.writestr(f"{key}/{N}.KAT", crlf(kat))
+            z.writestr(f"{key}/{N}.KTX", crlf(ktx))
+            z.writestr(f"{key}/{N}.KTM", crlf([b">", b"REFNAM             KUPD GEW ABR PRIOR SCH     DICKE LAYER BER SMF", b"", b""]))
+            n_ges += len(sel)
+            uebersicht.append(f"  {key}  {titel}: {len(sel)} Eintraege")
+        hilfe = ("Bauteilkataloge der Bauplattform fuer Allplan\n\n" + "\n".join(uebersicht) + """
 
 Einrichten (einmal):
-1. Den Ordner kukat1 in den Buerostandard kopieren: ...\\Allplan\\Daten\\std\\kukat1
-   (liegt dort schon ein Kundenkatalog 1, vorher sichern oder kukat2 ... kukat5 verwenden und die Dateien
-   entsprechend in KUKAT2.KAT/.KTX/.KTM umbenennen).
-2. Allplan: Optionen -> Kataloge -> Katalogzuordnung: fuer Wand, Decke, Stuetze, Dach, Raum usw.
-   den Kundenkatalog 1 waehlen.
-3. Beim Bauteil unter Material/Qualitaet den Eintrag aus dem Katalog waehlen.
+1. Die Ordner kukat1 ... kukat5 in den Buerostandard kopieren (...\\Allplan\\Daten\\std\\).
+   Liegen dort schon eigene Kundenkataloge, diese vorher sichern.
+2. Allplan: Optionen -> Kataloge -> Katalogzuordnung:
+     Wand -> Kundenkatalog 1, Decke/Bodenplatte -> 2, Dach -> 3, Fenster/Tuer/Oeffnung -> 4, Sonstiges -> 5.
+3. Beim Bauteil unter Material/Qualitaet den Eintrag waehlen. Je Vorlage stehen nur die gaengigen Aufbauten
+   drin; die genaue Ausfuehrung (Schichten) legt man spaeter in den Baukosten mit dem Baustein-Knopf fest.
 
 Rueckweg: Der Text beginnt mit dem Code (z. B. 331.02.004). Im IFC-Export steht er am Material bzw. an der
-Qualitaet; die Baukosten der Bauplattform erkennen daran beim IFC-Import genau diesen Aufbau mit Preis.
+Qualitaet; die Baukosten der Bauplattform uebernehmen beim IFC-Import genau diesen Aufbau mit Preis.
 
-Falls Allplan den Kundenkatalog nicht anzeigt: dieselben drei Dateien als NEM_ELE.KAT/.KTX/.KTM in den
-Ordner std\\nem_ele legen (den vorhandenen Elementkatalog vorher sichern) und in der Katalogzuordnung
-NEM_ELE waehlen.
-"""
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("kukat1/KUKAT1.KAT", crlf(kat))
-        z.writestr("kukat1/KUKAT1.KTX", crlf(ktx))
-        z.writestr("kukat1/KUKAT1.KTM", crlf(ktm))
+Falls Allplan einen Kundenkatalog nicht anzeigt: die drei Dateien eines Katalogs als NEM_ELE.KAT/.KTX/.KTM
+in den Ordner std\\nem_ele legen (den vorhandenen Elementkatalog vorher sichern).
+""")
         z.writestr("LIESMICH.txt", hilfe.replace("\n", "\r\n").encode("cp1252", "replace"))
-    return buf.getvalue(), len(rows)
+    return buf.getvalue(), n_ges
 
 
 def vorbemerkungen(c, key=None):

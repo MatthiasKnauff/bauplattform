@@ -2785,8 +2785,9 @@ function reSperre(art) {
 function reNeuMenu(anchor) {
   const schluss = L.rechnungen.some((r) => r.art === 'schluss');
   const it = [['abschlag', 'Teilrechnung', 'kumuliert über das Aufmaß', schluss], ['schluss', 'Schlussrechnung', 'kumuliert über das Aufmaß, danach keine Teilrechnung mehr', schluss],
-    ['regie', 'Regierechnung', 'Stundenlohnarbeiten nach Stundenzetteln', false], ['nachtrag', 'Nachtragsrechnung', 'kumuliert nur über die Nachtragspositionen', schluss],
-    ['sicherheit', 'Freigabe der Sicherheit', `noch einbehalten ${eur((L.calc.sicherheit || {}).offen || 0)}`, false]];
+    ['regie', 'Regierechnung', 'Stundenlohnarbeiten nach Stundenzetteln', false],
+    ['sicherheit', 'Freigabe der Sicherheit', `noch einbehalten ${eur((L.calc.sicherheit || {}).offen || 0)}`, false],
+    ['nachtrag', 'Nachtragsrechnung (selten)', 'nur wenn die Firma Nachträge getrennt abrechnet – sonst stecken sie in der Teilrechnung', schluss]];
   pickMenu(anchor, { items: it.map(([v, t, sub, dis]) => { const sp = !dis && reSperre(v); return { value: dis ? '' : v, title: t, sub: dis ? 'nach der Schlussrechnung nicht mehr' : sp ? `erst „${reTitel(sp)}“ abschließen – wird gefragt` : sub }; }),
     onPick: async (v) => {
       if (!v) return;

@@ -67,3 +67,29 @@ Je mehr eigene Vergabepreise erfasst sind, desto belastbarer werden die Ergebnis
 Wichtig: Eine Migration läuft je Datenbank nur einmal. Spätere Katalog-Updates kommen deshalb als neue Migration (0026 …).
 Diese fügt nur fehlende Codes ein (`ON CONFLICT DO NOTHING`) und aktualisiert bei Bedarf gezielt `quelle = 'katalog'`.
 Eigene Positionen (`quelle = 'eigen'`) bleiben immer unberührt.
+
+## Bauteil-Baukasten und Standardelemente
+
+Für die Kostenberechnung nach Bauteilen (DIN 276, 3. Ebene) gibt es einen Baukasten statt starrer Elemente:
+
+* **Vorlage** (`bauteile/kg_*.py`, Tabelle `pdb_vorlage`): ein Bauteil, z. B. „AW Mauerwerk + WDVS“ je m², mit **Schichten**
+  (Tragschicht, Dämmung, Bekleidung …) und je Schicht mehreren **Optionen**.
+* Jede Option hängt an Positionen dieser Datenbank mit einem **Mengenfaktor**: Menge der Position je 1 Einheit des Bauteils.
+  Beispiele: Beton m³ je m² Wand = Dicke, Schalung 2 m² je m² Wand, Kimmschicht 0,36 m je m² Wand.
+* **Preis** eines Aufbaus = Σ Faktor × EP (von, mittel, bis getrennt). Er stimmt also immer mit den Positionspreisen überein
+  und wird mit dem Index fortgeschrieben.
+* **Standardelemente** (Katalog `gk3e`, Bestandteile in `pdb_element_teil`): die üblichen Kombinationen (Optionen mit `"std": True`)
+  zum schnellen Auswählen und Durchsuchen – in Baudaten, Baukosten und als Kopierquelle der Ausschreibung.
+* **Kompakte Vorbemerkungen** je Leistungsbereich und Muster für Baubeschreibung/BVB/ZTV (`vorbemerkungen.py`, Tabelle `pdb_vorbemerkung`).
+
+Verwendung:
+
+* **Baukosten** → Bauteile & Material → „+ aus Baukasten“ (oder Material „Aufbau aus dem Baukasten …“): Vorlage und Schichten wählen,
+  Preis von–mittel–bis live; mit 🧱 später ändern.
+* **Ausschreibung** → „Aus Baukosten …“: Bauteile mit Aufbau werden in Einzelpositionen aufgelöst (Menge = Faktor × Bauteilmenge).
+  In der Kopierquelle „Baudaten: Bauteile & Elemente“ steht je Element ein Titel mit seinen Positionen (Menge je 1 Einheit).
+  LV → Vorbemerkungen → „aus den Baudaten einfügen“.
+* **Baudaten**: Elemente zeigen ihre Bestandteile; je Leistungsbereich „📄 Vorbemerkungen“.
+
+Ändern: Datei in `bauteile/` bearbeiten → `python3 positionsdb/bauteile_gen.py --pruefen kg_330.py` → `python3 positionsdb/bauteile_gen.py`
+(schreibt die Migration und `bauteile.csv`). Auch hier gilt: für ein späteres Update eine neue Migrationsnummer verwenden.

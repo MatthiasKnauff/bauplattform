@@ -92,6 +92,15 @@ def start():
                        einheiten=EINHEITEN, loehne=[x.dict() for x in c.execute("SELECT gewerk, name, verrechnungslohn, stand FROM pdb_lohn ORDER BY name").fetchall()])
 
 
+@app.get("/api/vorbemerkungen")
+def vorbemerkungen():
+    """Kompakte Vorbemerkungen: ohne key die Liste, mit key (LB-Nummer, 'bb', 'bvb', 'zvb') der Text."""
+    k = request.args.get("key")
+    with db.tx() as c:
+        d = B.vorbemerkungen(c, k) if k else B.vorbemerkungen(c)
+    return jsonify(d) if d is not None else (jsonify(error="Zu diesem Leistungsbereich gibt es noch keine Vorbemerkungen."), 404)
+
+
 @app.get("/api/gruppen")
 def gruppen():
     with db.tx() as c:

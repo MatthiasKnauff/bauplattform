@@ -1423,7 +1423,7 @@ function vLv() {
       ${(L.dokumente || []).length ? `<button class="btn sm${LVDOK ? ' pri' : ''}" data-lvdokan title="PDF rechts ein- oder ausblenden">${LVDOK ? 'PDF ausblenden' : 'PDF zeigen'}</button>` : ''}
       <span class="fill"></span><button class="btn sm" data-act="vorbem">${L.data.vorbem ? '✎ ' : '+ '}Vorbemerkungen</button><button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
     ${lvGaebHinweis()}
-    ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><b>Vorbemerkungen</b><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
+    ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
       <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^<tr class="wurzel">.*?<\/tr>\s*/s, '')}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
@@ -1574,6 +1574,11 @@ function moveItem(i, dir) {
 document.addEventListener('input', (e) => {
   const el = e.target;
   if (el.dataset.vorbem != null) { L.data.vorbem = el.value; changed(); return; }
+  if (el.dataset.vbwahl != null) {   // Vorbemerkung aus den Baudaten anhängen
+    const k = el.value; el.value = ''; if (!k) return;
+    api('api/baudaten/vorbemerkungen?key=' + encodeURIComponent(k)).then((v) => { L.data.vorbem = ((L.data.vorbem || '').trim() ? L.data.vorbem.trim() + '\n\n' : '') + v.titel + '\n\n' + v.text; changed(); render(); toast(`„${v.titel}“ eingefügt – bitte an das Projekt anpassen (Angaben in [eckigen Klammern]).`); }).catch((e) => toast(e.message, true));
+    return;
+  }
   const row = el.closest('tr[data-i]'); if (!row || !L || tab !== 'lv') return;
   const x = items()[+row.dataset.i]; if (!x) return;
   if (el.dataset.f) { const f = el.dataset.f; x[f] = ['menge'].includes(f) ? (pf(el.value) ?? 0) : f === 'ep_s' ? pf(el.value) : el.value; changed(); return; }
@@ -1610,7 +1615,7 @@ document.addEventListener('click', async (e) => {
     if (['titel', 'utitel', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
     if (a === 'num') { numerieren(); changed(true); return; }
     if (a === 'bk') return bkDialog();
-    if (a === 'vorbem') { L.data.showVorbem = !L.data.showVorbem; render(); return; }
+    if (a === 'vorbem') { L.data.showVorbem = !L.data.showVorbem; if (L.data.showVorbem && !window.VBL) api('api/baudaten/vorbemerkungen').then((v) => { window.VBL = v; render(); }).catch(() => { window.VBL = []; }); render(); return; }
     if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); render(); return; }
     if (a === 'bieter') return bieterDialog();
     if (a === 'x84') return importDialog('angebot');
@@ -1738,10 +1743,11 @@ async function bkDialog() {
   if (!BK.length) { toast('Keine Kostenermittlung mit Bauteilen gefunden (Baukosten → Bauteile & Material).', true); return; }
   const bg = modalBox(`<h3>Aus den Baukosten übernehmen</h3><p class="hint" style="margin:0 0 .6rem">Bauteile mit Menge, Einheit und Einheitspreis werden als Positionen angehängt – je Kostengruppe ein Titel. Der Preis wird zur Schätzung im LV.</p>
     <select id="bkSel" style="width:100%">${BK.map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><div class="kgs" id="bkKgs" style="margin-left:0"></div>
+    <label style="display:flex;gap:.5rem;margin:.5rem 0 0;font-size:.88rem"><input type="checkbox" id="bkAuf" checked> Bauteile mit Aufbau aus dem Baukasten in Einzelpositionen auflösen (Menge = Faktor × Bauteilmenge, Langtexte aus den Baudaten)</label>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
-    try { await call(`api/lv/${L.id}/aus-baukosten`, 'POST', { bk_id: +$('#bkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg) }); close(); toast('Bauteile übernommen.'); } catch (e) { toast(e.message, true); }
+    try { await call(`api/lv/${L.id}/aus-baukosten`, 'POST', { bk_id: +$('#bkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), aufloesen: $('#bkAuf').checked }); close(); toast('Bauteile übernommen.'); } catch (e) { toast(e.message, true); }
   });
   const draw = () => { const b = BK.find((x) => x.id === +$('#bkSel').value); $('#bkKgs').innerHTML = b.kgs.map((k) => `<label><input type="checkbox" data-kg="${k}" checked> KG ${k}</label>`).join(' '); };
   bg.addEventListener('change', (e) => { if (e.target.id === 'bkSel') draw(); }); draw();

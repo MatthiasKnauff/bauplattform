@@ -3,3 +3,4 @@ backups/
 __pycache__/
 *.pyc
 positionsdb/positionsdb.csv
+positionsdb/bauteile.csv

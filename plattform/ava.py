@@ -291,8 +291,37 @@ def bd_kataloge():
                    + [{"id": "bd-" + x["key"], "name": "Baudaten: " + x["name"], "quelle": "baudaten", "n_pos": x["n"]} for x in rows if x["n"]])
 
 
+def _bd_elemente(c, rows):
+    """Standardelemente (Bauteil-Baukasten, Katalog gk3e) in der Kopierquelle: je Element ein Titel, darunter seine Positionen
+    mit der Menge je 1 Einheit des Elements (Faktor) – beim Herüberkopieren nur noch mit der Bauteilmenge multiplizieren."""
+    codes = [r["code"] for r in rows]
+    T = {}
+    for k in range(0, len(codes), 1000):
+        for x in c.execute("SELECT element_code, position_code, faktor FROM pdb_element_teil WHERE element_code = ANY(?) ORDER BY element_code, nr", (codes[k:k + 1000],)).fetchall():
+            T.setdefault(x["element_code"], []).append((x["position_code"], x["faktor"]))
+    pc = sorted({p for v in T.values() for p, _ in v})
+    P = {}
+    for k in range(0, len(pc), 1000):
+        for r in c.execute(f"{SQL_BD} WHERE katalog='gk3' AND code = ANY(?)", (pc[k:k + 1000],)).fetchall():
+            P[r["code"]] = r
+    fertig = {p["oz"]: p for p in _bd_items(c, list(P.values()), "gk3")}
+    f = baudaten.umrechnung(c, "gk3e")
+    out = []
+    for r in rows:
+        teile = T.get(r["code"]) or []
+        summe = sum((fertig[x]["ep_s"] or 0) * fk for x, fk in teile if x in fertig)
+        out.append({"id": f"e{r['id']}", "typ": "titel", "lvl": 2, "oz": r["code"],
+                    "kurz": f"{r['bez'] or r['kurz']} – je 1 {r['einheit']}: " + f"{round(summe or (r['ep_mittel'] or 0) * f, 2):.2f} €".replace(".", ",")})
+        for k, (x, fk) in enumerate(teile):
+            if x in fertig:
+                out.append({**fertig[x], "id": f"e{r['id']}_{k}", "menge": fk, "quelle": f"Baudaten {x} · Bauteil {r['code']}: Menge je 1 {r['einheit']}"})
+    return out
+
+
 def _bd_items(c, rows, katalog):
     """Positionen der Baudaten → Zeilen der Kopierquelle (Langtext = Grund- + Folgetext, Preis auf heute umgerechnet)."""
+    if katalog == "gk3e":
+        return _bd_elemente(c, rows)
     fk = {}   # Umrechnungsfaktor je Katalog (der Korb mischt Kataloge)
     gt = {}
     ids = sorted({r["grund_id"] for r in rows if r["grund_id"]})
@@ -401,6 +430,9 @@ def bd_suche(key):
         items, akt = [], None
         for p in _bd_items(c, rows, key):
             g_ = ".".join(p["oz"].split(".")[:2])
+            if key == "gk3e":
+                items.append(p)
+                continue
             if g_ != akt:
                 akt = g_
                 items.append({"id": f"g{g_}", "typ": "titel", "lvl": 1, "oz": g_, "kurz": gn.get(g_, g_)})
@@ -1299,6 +1331,14 @@ def aus_baukosten(i):
                 kurz = x.get("name") or ""
                 if x.get("mat") and x["mat"] not in kurz:
                     kurz = f"{kurz} – {x['mat']}" if kurz else x["mat"]
+                a = x.get("aufbau") if b.get("aufloesen", True) else None
+                A = baudaten.aufbau(c, a.get("v"), a.get("w")) if isinstance(a, dict) and a.get("v") else None
+                if A and A["teile"]:   # Aufbau aus dem Bauteil-Baukasten: Einzelpositionen mit Menge = Faktor × Bauteilmenge
+                    items.append({"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 2, "kurz": kurz[:200]})
+                    for y in baudaten.aufloesen(c, A["teile"], x.get("menge") or 0, kurz):
+                        items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "kurz": y["kurz"], "lang": y["lang"], "menge": y["menge"],
+                                      "einheit": y["einheit"], "art": "N", "kg": y["kg"] or x.get("kg") or "", "ep_s": y["ep_s"]})
+                    continue
                 items.append({"id": uuid.uuid4().hex[:10], "typ": "pos", "kurz": kurz, "lang": x.get("notiz") or "", "menge": x.get("menge") or 0,
                               "einheit": x.get("einheit") or "", "art": "N", "kg": x.get("kg") or "", "ep_s": x.get("ep")})
         d["items"] = nummerieren(clean_items(items))

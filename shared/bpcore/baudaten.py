@@ -217,7 +217,177 @@ def position(c, pid):
     d["ep_eigen_median"] = (v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2) if v else None
     d["n_preise"] = len(v)
     d["ep_eigen_median_akt"] = _rund(d["ep_eigen_median"]) if d["ep_eigen_median"] is not None else None
+    if d["katalog"] == "gk3e":   # Standardelement: Bestandteile und Preis aus den heutigen Positionspreisen
+        d["teile"] = element_teile(c, d["code"])
+        if d["teile"]:
+            for k in ("ep_von", "ep_mittel", "ep_bis"):
+                d[k + "_akt"] = _rund(sum((t[k] or 0) * t["faktor"] for t in d["teile"]))
     return d
+
+
+# ---------------------------------------------------------------- Bauteil-Baukasten (Vorlagen mit Schichten) und Standardelemente (Katalog gk3e)
+# Menge einer Position im Aufbau = Faktor × Menge des Bauteils; Preis = Σ Faktor × EP (heutiger Preis, also mit Index und Faktor).
+def _pos_preise(c, codes):
+    codes = sorted({x for x in codes if x})
+    if not codes:
+        return {}
+    f = umrechnung(c, "gk3")
+    out = {}
+    for r in c.execute(f"SELECT id, code, kurz, bez, einheit, kg, ep_von, ep_mittel, ep_bis, lb_nr FROM pdb_position WHERE katalog='gk3' AND code IN ({','.join('?' * len(codes))})", codes).fetchall():
+        d = r.dict()
+        for k in ("ep_von", "ep_mittel", "ep_bis"):
+            d[k] = (d[k] or 0) * f
+        out[d["code"]] = d
+    return out
+
+
+def _summe(teile, P):
+    s = {"ep_von": 0.0, "ep_mittel": 0.0, "ep_bis": 0.0}
+    for code, fk in teile:
+        p = P.get(code)
+        if p:
+            for k in s:
+                s[k] += p[k] * fk
+    return {k: _rund(v) for k, v in s.items()}
+
+
+def element_teile(c, code):
+    """Bestandteile eines Standardelements: [{code, kurz, einheit, kg, faktor, ep_*}] (Preise heute)."""
+    T = [(r["position_code"], r["faktor"]) for r in c.execute("SELECT position_code, faktor FROM pdb_element_teil WHERE element_code=? ORDER BY nr", (code,)).fetchall()]
+    P = _pos_preise(c, [t[0] for t in T])
+    return [{**{k: P[x][k] for k in ("id", "code", "kurz", "bez", "einheit", "kg", "lb_nr")}, "faktor": f,
+             "ep_mittel": _rund(P[x]["ep_mittel"]), "ep_von": _rund(P[x]["ep_von"]), "ep_bis": _rund(P[x]["ep_bis"]),
+             "anteil": _rund(P[x]["ep_mittel"] * f)} for x, f in T if x in P]
+
+
+def vorlagen(c, kg=None, q=""):
+    """Vorlagen des Baukastens (optional je KG der 2. oder 3. Ebene) mit dem Preis jeder Option (EP mittel je Einheit des Bauteils)."""
+    w, p = ["1=1"], []
+    if kg:
+        k = re.sub(r"\D", "", str(kg))[:3]
+        w.append("kg LIKE ?"); p.append(k.rstrip("0") + "%" if len(k) == 3 and k.endswith("0") else k + "%")
+    if q:
+        w.append("(lower(name) LIKE ? OR lower(lang) LIKE ? OR lower(daten) LIKE ?)"); p += ["%" + q.lower() + "%"] * 3
+    rows = [r.dict() for r in c.execute(f"SELECT id, kg, name, einheit, lang, bezug, daten, tags FROM pdb_vorlage WHERE {' AND '.join(w)} ORDER BY sort, id", p).fetchall()]
+    codes = []
+    for r in rows:
+        r["daten"] = json.loads(r["daten"] or "{}")
+        codes += [t[0] for t in r["daten"].get("fest") or []]
+        for s in r["daten"].get("schichten") or []:
+            for o in s.get("optionen") or []:
+                codes += [t[0] for t in o.get("teile") or []]
+    P = _pos_preise(c, codes)
+    out = []
+    for r in rows:
+        D = r.pop("daten")
+        r["fest"] = _summe(D.get("fest") or [], P)["ep_mittel"]
+        r["schichten"] = [{"name": s["name"], "optionen": [{"k": o.get("k", ""), "t": o.get("t", ""), "std": bool(o.get("std")),
+                                                            "ep": _summe(o.get("teile") or [], P)["ep_mittel"], "n": len(o.get("teile") or [])}
+                                                           for o in s["optionen"]]} for s in D.get("schichten") or []]
+        out.append(r)
+    return out
+
+
+def aufbau(c, vid, wahl):
+    """Gewählter Aufbau einer Vorlage → Bauteil mit Texten, Preisspanne (heute) und Bestandteilen."""
+    r = c.execute("SELECT * FROM pdb_vorlage WHERE id=?", (str(vid),)).fetchone()
+    if not r:
+        return None
+    D = json.loads(r["daten"] or "{}")
+    S = D.get("schichten") or []
+    wahl = [int(x) if str(x).lstrip("-").isdigit() else 0 for x in (wahl or [])][:len(S)] + [0] * max(0, len(S) - len(wahl or []))
+    teile, ks, ts = [tuple(t) for t in D.get("fest") or []], [], []
+    for s, i in zip(S, wahl):
+        o = s["optionen"][max(0, min(i, len(s["optionen"]) - 1))]
+        teile += [tuple(t) for t in o.get("teile") or []]
+        if o.get("k"):
+            ks.append(o["k"])
+        if o.get("t"):
+            ts.append(f"{s['name']}: {o['t']}")
+    P = _pos_preise(c, [t[0] for t in teile])
+    su = _summe(teile, P)
+    bez = ", ".join([r["name"]] + ks)
+    return {"vorlage": r["id"], "wahl": wahl, "kg": r["kg"], "einheit": r["einheit"], "name": r["name"], "kurz": bez[:200], "bez": bez,
+            "lang": (r["lang"] + ("\n" + "\n".join(ts) if ts else "") + (f"\nMenge: {r['bezug']}" if r["bezug"] else "")).strip(),
+            **su, "teile": [{**{k: P[x][k] for k in ("id", "code", "kurz", "einheit", "kg")}, "faktor": f, "ep_mittel": _rund(P[x]["ep_mittel"]),
+                             "anteil": _rund(P[x]["ep_mittel"] * f)} for x, f in teile if x in P]}
+
+
+_SYN = [(r"kalksand\w*", "ks"), (r"hochlochziegel|planziegel|ziegel\w*", "ziegel"), (r"mineralwolle|steinwolle|glaswolle", "mw"),
+        (r"polystyrol\w*|styropor", "eps"), (r"holzfaser\w*", "hf"), (r"stahlbeton|ortbeton|\bstb\b", "stahlbeton"), (r"porenbeton|gasbeton|ytong", "porenbeton"),
+        (r"gipskarton\w*|gk-?platte|\bgkb\b|\bgkf\b", "gk"), (r"wärmedämmverbund\w*", "wdvs"), (r"brettsperrholz|clt", "bsp"),
+        (r"kunststoff|pvc-?fenster", "kunststoff"), (r"alu\w*", "alu"), (r"keramik\w*|feinsteinzeug|fliese\w*", "fliese"), (r"parkett\w*", "parkett"),
+        (r"linoleum", "linoleum"), (r"vinyl|design ?belag", "vinyl"), (r"teppich\w*|textil\w*", "textil"), (r"zementestrich|\bct\b", "estrich"),
+        (r"dispersion\w*", "anstrich"), (r"metallständer|\bcw\b", "metallständer")]
+
+
+def _tok(t):
+    t = str(t or "").lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+    for rx, rep in _SYN:
+        t = re.sub(rx.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue"), " " + rep + " ", t)
+    W = set(re.findall(r"[a-z]{2,}", t))
+    for w in list(W):   # zusammengesetzte Wörter: „Innentür“ trifft auch „Tür“, „Außenwand“ auch „Wand“
+        for kopf in ("tuer", "fenster", "wand", "decke", "dach", "platte", "belag", "putz", "estrich", "heizung", "leitung", "stuetze", "treppe", "gelaender"):
+            if w.endswith(kopf) and w != kopf:
+                W.add(kopf)
+    W |= {x.replace(".", ",") for x in re.findall(r"\d+(?:[.,]\d+)?", t)}
+    return W - {"cm", "mm", "mit", "und", "aus", "der", "die", "das", "je", "fuer", "ohne", "0", "0,0", "1"}
+
+
+def aufbau_vorschlag(c, kg, text, V=None):
+    """Passenden Aufbau aus dem Baukasten zu einer Beschreibung (z. B. IFC-Material „Kalksandstein 17,5 cm, WDVS EPS 16 cm“, KG 331).
+    Gibt (vorlage, wahl, punkte) oder None zurück. Je Schicht die Option mit den meisten gemeinsamen Begriffen, sonst die Standardoption."""
+    k = re.sub(r"\D", "", str(kg or ""))[:3]
+    if not k:
+        return None
+    if V is None:
+        V = [r.dict() for r in c.execute("SELECT id, kg, name, lang, daten FROM pdb_vorlage WHERE kg = ? OR kg LIKE ? ORDER BY sort", (k, k[:2] + "%")).fetchall()]
+    W = _tok(text)
+    best = None
+    for v in V:
+        if v["kg"] != k and best and best[3]:   # gleiche KG bevorzugen
+            continue
+        D = v["daten"] if isinstance(v["daten"], dict) else json.loads(v["daten"] or "{}")
+        im_namen = W & _tok(v["name"])
+        treffer, wahl = set(im_namen), []
+        for s_ in D.get("schichten") or []:   # je Schicht die Option mit den meisten Begriffen; jeder Begriff zählt nur einmal
+            sc = [W & _tok((o.get("k") or "") + " " + (o.get("t") or "")) for o in s_["optionen"]]
+            sc = [x if any(not t[0].isdigit() for t in x - treffer) else set() for x in sc]   # Zahlen zählen nur zusammen mit einem neuen passenden Begriff
+            n = [len(x - treffer) * 10 + len(x) for x in sc]
+            m = max(n) if n else 0
+            if m:
+                j = n.index(m)
+                wahl.append(j)
+                treffer |= sc[j]
+            else:
+                wahl.append(next((j for j, o in enumerate(s_["optionen"]) if o.get("std")), 0))
+        pk = len(treffer) + 0.5 * len(im_namen)
+        gleich = v["kg"] == k
+        if best is None or (gleich, pk) > (best[3], best[2]):
+            best = (v["id"], wahl, pk, gleich)
+    return best[:3] if best and best[3] else None
+
+
+def aufloesen(c, teile, menge, titel=""):
+    """Bestandteile → LV-Positionen (Menge = Faktor × Menge des Bauteils), Langtext und KG aus der Positionsdatenbank."""
+    out = []
+    for t in teile:
+        d = position(c, t["id"])
+        if not d:
+            continue
+        x = als_lv_position(d)
+        m = round((menge or 0) * t["faktor"], 3)
+        out.append({"typ": "pos", "art": "N", "kurz": x["kurz"], "lang": x["lang"], "menge": m, "einheit": x["einheit"], "kg": x["kg"],
+                    "ep_s": x["ep"], "ep_von": d.get("ep_von_akt"), "ep_bis": d.get("ep_bis_akt"), "code": d["code"],
+                    "quelle": (f"aus {titel} – " if titel else "") + f"Faktor {str(t['faktor']).replace('.', ',')}"})
+    return out
+
+
+def vorbemerkungen(c, key=None):
+    if key:
+        r = c.execute("SELECT key, titel, text FROM pdb_vorbemerkung WHERE key=?", (key,)).fetchone()
+        return r.dict() if r else None
+    return [r.dict() for r in c.execute("SELECT key, titel, length(text) AS laenge FROM pdb_vorbemerkung ORDER BY sort, key").fetchall()]
 
 
 def _vor_jahren(n):
@@ -335,6 +505,37 @@ def register(app):
             kats = [x.dict() for x in c.execute("SELECT key, name FROM pdb_kataloge ORDER BY sort, name").fetchall()] if a.get("kataloge") else None
         return jsonify(positionen=rows, gesamt=gesamt, kataloge=kats)
 
+    @app.get("/api/baudaten/vorlagen")
+    def baudaten_vorlagen():
+        """Bauteil-Baukasten: Vorlagen (optional ?kg=330 bzw. 331, ?q=) mit Schichten und dem Preis je Option."""
+        with db.tx() as c:
+            return jsonify(vorlagen(c, request.args.get("kg"), (request.args.get("q") or "").strip()[:80]))
+
+    @app.post("/api/baudaten/aufbau")
+    def baudaten_aufbau():
+        """{vorlage, wahl: [Index je Schicht]} → Bauteil mit Preisspanne und Bestandteilen. Mit menge: auch als LV-Positionen (aufgeloest)."""
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            if b.get("code"):   # Standardelement
+                r = c.execute("SELECT hinweis FROM pdb_position WHERE katalog='gk3e' AND code=?", (str(b["code"]),)).fetchone()
+                m = re.match(r"Aufbau ([\d.]+):([\d.]*)", r["hinweis"] if r else "")
+                if not m:
+                    return jsonify(error="Element nicht gefunden"), 404
+                b["vorlage"], b["wahl"] = m.group(1), [int(x) for x in m.group(2).split(".") if x != ""]
+            d = aufbau(c, b.get("vorlage"), b.get("wahl"))
+            if not d:
+                return jsonify(error="Vorlage nicht gefunden"), 404
+            if b.get("menge") is not None:
+                d["positionen"] = aufloesen(c, d["teile"], _f(b.get("menge"), 0) or 0, d["name"])
+        return jsonify(d)
+
+    @app.get("/api/baudaten/vorbemerkungen")
+    def baudaten_vorbemerkungen():
+        with db.tx() as c:
+            k = request.args.get("key")
+            d = vorbemerkungen(c, k) if k else vorbemerkungen(c)
+        return jsonify(d) if d is not None else (jsonify(error="Keine Vorbemerkung"), 404)
+
     @app.get("/api/baudaten/position/<int:i>")
     def baudaten_position(i):
         """Eine Position mit Langtext, Preisspanne, Kalkulation und eigenen Preisen (Detailfenster beim Doppelklick)."""
@@ -357,4 +558,7 @@ def register(app):
                                 "ep_von": d.get("ep_von_akt"), "ep_bis": d.get("ep_bis_akt"), "genauigkeit": d.get("genauigkeit") or "",
                                 "code": d.get("code"), "eigene": [{"ep": p["ep"], "firma": p["firma"] or "", "datum": p["datum"] or ""} for p in d["preise"] if not p["alt"]][:12],
                                 "ep_median": d.get("ep_eigen_median")})
+                    m = re.match(r"Aufbau ([\d.]+?):([\d.]*)$", d.get("hinweis") or "") if d["katalog"] == "gk3e" else None
+                    if m:   # Standardelement: Aufbau merken (Baukosten: Schichten änderbar, Ausschreibung: auflösen)
+                        out[-1]["aufbau"] = {"v": m.group(1), "w": [int(x) for x in m.group(2).split(".") if x != ""]}
         return jsonify(out)

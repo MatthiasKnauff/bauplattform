@@ -23,7 +23,7 @@ import common as C
 
 app = C.make_app(__name__)
 baudaten.register(app)   # Bauteile aus den Baudaten (Dialog static/pdbwahl.js)
-app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024   # IFC-Modelle können groß sein
 
 from bpcore import kosten   # Raumtypen des Büros mit Kennwerten (⚙ Einstellungen in dieser App)
 STUFEN = ("rahmen", "schaetzung", "berechnung", "voranschlag", "anschlag", "feststellung")   # DIN 276:2018-12, 3.4
@@ -161,7 +161,9 @@ def clean_data(d, c):
                       "pos": r.get("pos") if isinstance(r.get("pos"), list) and len(r["pos"]) == 2 else None,
                       "h": round(_num(r.get("h"), 0, 0, 20), 2) or None,
                       "std": r.get("std") if r.get("std") in STD_F else "", "mass": r.get("mass") if r.get("mass") in MASS_F else "",
-                      "notiz": _s(r.get("notiz"), 500)})
+                      "notiz": _s(r.get("notiz"), 500),
+                      "umfang": round(_num(r.get("umfang"), 0, 0, 1e5), 2) or None,
+                      "aus": _clean_aus(r.get("aus"))})
     kg = d.get("kg") if isinstance(d.get("kg"), dict) else {}
     k300 = _num(kg.get("300"), 70, 0, 100)
     items = []
@@ -185,9 +187,23 @@ def clean_data(d, c):
             "kostenstand": d["kostenstand"] if re.fullmatch(r"20\d\d-(0[1-9]|1[0-2])", str(d.get("kostenstand") or "")) else datetime.now().strftime("%Y-%m"),
             "risiko": _num(d.get("risiko"), 0, 0, 50), "risiko_text": _s(d.get("risiko_text"), 500),
             "bauteile": _clean_bt(d.get("bauteile")),
+            "ausstattung": {str(k)[:40]: _clean_aus(v) for k, v in list((d.get("ausstattung") if isinstance(d.get("ausstattung"), dict) else {}).items())[:60] if str(k) in types},
             "justage": _clean_ju(d.get("justage")),
             "hoehe_std": round(_num(d.get("hoehe_std"), 0, 0, 20), 2) or None,   # erste eingetragene Raumhöhe gilt für alle ohne eigene
             "hoehen": {str(k)[:8]: round(_num(v, 0, 0, 20), 2) for k, v in list((d.get("hoehen") if isinstance(d.get("hoehen"), dict) else {}).items())[:20] if _num(v, 0, 0, 20)}}
+
+
+AUS_SLOTS = {"boden": ("353", "Bodenbelag"), "wand": ("345", "Wandbekleidung innen"), "decke": ("354", "Deckenbekleidung")}
+
+
+def _clean_aus(v):
+    """Ausstattung eines Raums bzw. Raumtyps: je Fläche (Boden, Wand, Decke) ein Aufbau aus dem Bauteil-Baukasten {v, w} oder „ohne“ ({v: ""})."""
+    out = {}
+    for k in AUS_SLOTS:
+        a = (v or {}).get(k) if isinstance(v, dict) else None
+        if isinstance(a, dict) and (a.get("v") == "" or re.fullmatch(r"\d{3}\.\d{2}", str(a.get("v") or ""))):
+            out[k] = {"v": a["v"], "w": [int(x) for x in (a.get("w") or [])[:12] if isinstance(x, (int, float))], "t": _s(a.get("t"), 200)}
+    return out
 
 
 def _clean_ju(v):
@@ -211,6 +227,9 @@ def _clean_bt(v):
                     "mat": _s(b.get("mat"), 200), "formel": _s(b.get("formel"), 200), "menge": round(_num(b.get("menge"), 0, 0, 1e7), 3),
                     "einheit": _s(b.get("einheit"), 10) or "m²", "ep": round(_num(b.get("ep"), 0, 0, 1e7), 2), "notiz": _s(b.get("notiz"), 500),
                     "src": _s(b.get("src"), 40), "geschoss": _s(b.get("geschoss"), 40)})
+        a = b.get("aufbau")   # gewählter Aufbau aus dem Bauteil-Baukasten (Baudaten): Vorlage + Wahl je Schicht
+        if isinstance(a, dict) and re.fullmatch(r"\d{3}\.\d{2}", str(a.get("v") or "")):
+            out[-1]["aufbau"] = {"v": a["v"], "w": [int(x) for x in (a.get("w") or [])[:12] if isinstance(x, (int, float))]}
     return out
 
 
@@ -857,8 +876,10 @@ def file_add(i):
         return jsonify(error="Keine Datei"), 400
     data = f.read()
     name = _s(f.filename, 200) or "Plan.pdf"
+    if data[:40].lstrip().startswith(b"ISO-10303-21") or name.lower().endswith((".ifc", ".dxf")):
+        return cad_import(i, name, data)
     if not data.startswith(b"%PDF"):
-        return jsonify(error="Bitte eine PDF-Datei wählen (Plan aus dem CAD als PDF)."), 400
+        return jsonify(error="Bitte eine PDF-, IFC- oder DXF-Datei wählen (Plan bzw. Modell aus dem CAD)."), 400
     try:
         meta = read_plan(data)
     except Exception as e:
@@ -896,6 +917,66 @@ def file_add(i):
         out = _out(c, _row(c, i))
     C.audit(g.user["name"], "baukosten", "Plan hochgeladen", f"{name} · {added} Räume übernommen · {r['name']}")
     return jsonify(added=added, found=len(found), note=meta["note"], bk=out)
+
+
+def cad_import(i, name, data):
+    """IFC (BIM-Modell) bzw. DXF (Grundriss) aus dem CAD: Räume ins Raumbuch (Fläche, Umfang, Höhe, Geschoss), bei IFC dazu
+    die Bauteile mit Mengen – je Bauteiltyp eine Zeile, mit einem passenden Aufbau aus dem Bauteil-Baukasten (Preis aus den Positionen).
+    Ein erneuter Import derselben Art ersetzt die Bauteile aus dem letzten Import; vorhandene Räume bleiben, neue kommen dazu."""
+    import cadimport
+    ist_ifc = data[:40].lstrip().startswith(b"ISO-10303-21") or name.lower().endswith(".ifc")
+    try:
+        R = cadimport.ifc_lesen(data) if ist_ifc else cadimport.dxf_lesen(data)
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    except Exception as e:
+        return jsonify(error="Die Datei konnte nicht gelesen werden: " + str(e).splitlines()[0][:150]), 400
+    art = "ifc" if ist_ifc else "dxf"
+    with db.tx() as c:
+        r = _row(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        d = clean_data(_j(r["data"], {}), c)
+        d["rooms"] = [x for x in d["rooms"] if x["name"] or x["nr"] or x["area"]]
+        have = {(x["floor"], x["nr"], x["name"], round(x["area"], 2)) for x in d["rooms"]}
+        floor0 = re.sub(r"\.(ifc|dxf)$", "", name, flags=re.I)[:40]
+        added = 0
+        for k, x in enumerate(R["raeume"]):
+            fl = (x.get("geschoss") or ("" if ist_ifc else floor0))[:40]
+            key = (fl, x["nr"], x["name"], round(x["flaeche"] or 0, 2))
+            if key in have or not (x["flaeche"] or 0):
+                continue
+            have.add(key)
+            d["rooms"].append({"id": f"{art}{int(time.time())}-{k}", "nr": x["nr"], "name": x["name"], "area": x["flaeche"], "typ": guess_type(x["name"], c),
+                               "ok": False, "src": art, "floor": fl, "pos": None, "h": x.get("hoehe"), "umfang": x.get("umfang")})
+            added += 1
+        n_bt = 0
+        if ist_ifc and R["bauteile"]:
+            alt = d.get("bauteile") or []
+            neu = []
+            for k, b in enumerate(R["bauteile"]):
+                if not b["menge"]:
+                    continue
+                row = {"id": f"ifc{k}", "kg": b["kg"], "name": b["name"][:200], "mat": b["material"][:200], "formel": f"IFC: {b['anzahl']} Objekte" + (f" ({', '.join(b['namen'][:3])})" if b["namen"] else ""),
+                       "menge": round(b["menge"], 2), "einheit": b["einheit"], "ep": 0, "src": "IFC", "geschoss": "", "notiz": ""}
+                v = baudaten.aufbau_vorschlag(c, b["kg"], f"{b['art']} {b['material']}" + (f" {round(b['dicke'] * 100, 1):g}".replace(".", ",") if b["dicke"] else "")) if _baukasten(c) else None
+                if v and b["kg"] in ("331", "332", "341", "342"):
+                    v = (v[0], _ohne_innen(c, v[0], v[1]), v[2])   # Innenbekleidung kommt aus der Raumbuch-Ausstattung
+                A = baudaten.aufbau(c, v[0], v[1]) if v and v[2] >= (2 if b["material"] else 1.5) else None   # ohne Material: Standardaufbau der KG
+                if A and A["einheit"] == b["einheit"] and A["ep_mittel"]:
+                    row.update(ep=A["ep_mittel"], aufbau={"v": A["vorlage"], "w": A["wahl"]},
+                               notiz=f"Aufbau-Vorschlag {A['vorlage']}: {A['bez'][len(A['name']):].lstrip(', ')} · Spanne {str(A['ep_von']).replace('.', ',')}–{str(A['ep_bis']).replace('.', ',')} € – bitte prüfen"[:500])
+                neu.append(row)
+            d["bauteile"] = [x for x in alt if x.get("src") != "IFC"] + neu
+            n_bt = len(neu)
+        versionen.vor(c, f"bkp:{i}")
+        c.execute("UPDATE bk_projects SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(clean_data(d, c)), _now(), g.user["name"], i))
+        versionen.nach(c, f"bkp:{i}", g.user["name"])
+        out = _out(c, _row(c, i))
+    note = (f"{'IFC' if ist_ifc else 'DXF'}: {len(R['raeume'])} Räume gelesen, {added} neu übernommen"
+            + (f", {n_bt} Bauteile mit Mengen (Aufbau-Vorschläge bitte prüfen)" if n_bt else "") + ("" if not R["hinweise"] else " · " + " ".join(R["hinweise"])))
+    C.audit(g.user["name"], "baukosten", "CAD eingelesen", f"{name} · {added} Räume, {n_bt} Bauteile · {r['name']}")
+    return jsonify(added=added, found=len(R["raeume"]), bauteile=n_bt, note=note, bk=out, cad=art)
 
 
 @app.post("/api/bk/<int:i>/files/<int:fid>/neu-lesen")
@@ -1339,11 +1420,125 @@ BELAG = {"sanitaer": "Fliesen auf Zementestrich", "kueche": "Fliesen auf Zemente
          "wohnen": "Parkett auf Estrich", "buero": "Linoleum auf Estrich", "verkehr": "Designbelag / Vinyl auf Estrich", "aufenthalt": "Linoleum auf Estrich"}
 
 
-def bauteile_intern(d, cal):
-    """Bauteilliste aus Raumbuch, Geschossen und Höhen – Mengen grob, Material und Preise als Startwerte."""
+# Standard-Ausstattung je Raumtyp, wenn weder Raum noch Raumtyp eine haben: Suchbegriffe für den Bauteil-Baukasten
+AUS_STD = {"boden": {"sanitaer": "Estrich Fliesen", "kueche": "Estrich Fliesen", "wohnen": "Estrich Parkett", "buero": "Estrich Linoleum elastisch",
+                     "aufenthalt": "Estrich Linoleum elastisch", "verkehr": "Estrich Fliesen", "neben": "Nutzestrich Beschichtung", "garage": "Nutzestrich Beschichtung",
+                     "": "Estrich elastisch Vinyl"},
+           "wand": {"sanitaer": "Fliesen Nassbereich", "": "Innenputz Gipsputz Anstrich"},
+           "decke": {"buero": "abgehängte Gipskartondecke", "": "Deckenputz Anstrich"}}
+
+
+def _baukasten(c):
+    if c is None:
+        return False
+    try:
+        return bool(c.execute("SELECT 1 FROM pdb_vorlage LIMIT 1").fetchone())
+    except Exception:
+        return False
+
+
+def ausstattung_bauteile(d, cal, c):
+    """Bauteile aus der Raumbuch-Ausstattung: je Raum Boden, Wand und Decke mit dem Aufbau des Raums, sonst des Raumtyps, sonst dem Standard –
+    gleiche Aufbauten werden zusammengezählt (Menge aus Fläche bzw. Umfang × lichte Höhe). Gibt (Bauteile, Hinweise) zurück."""
+    G = _geo(d, cal)
+    std_cache, A_cache, rows, by = {}, {}, [], {}
+
+    def std(slot, typ):
+        q = AUS_STD[slot].get(typ) or AUS_STD[slot][""]
+        if (slot, q) not in std_cache:
+            r = baudaten.aufbau_vorschlag(c, AUS_SLOTS[slot][0], q)
+            std_cache[(slot, q)] = {"v": r[0], "w": r[1]} if r else None
+        return std_cache[(slot, q)]
+
+    def aufbau(a):
+        k = (a["v"], tuple(a.get("w") or []))
+        if k not in A_cache:
+            A_cache[k] = baudaten.aufbau(c, a["v"], a.get("w"))
+        return A_cache[k]
+    for r in d["rooms"]:
+        if not r.get("area"):
+            continue
+        h = (r.get("h") or d.get("hoehe_std") or G["geschosshoehe"] or 2.9)
+        licht = max(2.2, h - 0.3)   # Geschosshöhe → lichte Raumhöhe (Decke und Fußbodenaufbau)
+        um = r.get("umfang") or 4 * (r["area"] ** 0.5)
+        wandfl = max(0.0, um * licht - 1.8)   # je Raum etwa eine Tür
+        for slot in AUS_SLOTS:
+            a = (r.get("aus") or {}).get(slot) or (d.get("ausstattung", {}).get(r["typ"]) or {}).get(slot) or std(slot, r["typ"])
+            if not a or not a.get("v"):
+                continue
+            menge = r["area"] if slot != "wand" else wandfl
+            A = aufbau(a)
+            if not A:
+                continue
+            rest = 0.0
+            if slot == "wand" and "fliese" in (A["bez"] or "").lower() and licht > 2.0 and not (r.get("aus") or {}).get("wand"):
+                rest, menge = um * (licht - 2.0), max(0.0, um * 2.0 - 1.8)   # Fliesen bis 2,0 m, darüber Putz
+            for aa, m in ((a, menge), (std("wand", "") if rest else None, rest)):
+                if not aa or not m:
+                    continue
+                key = (slot, aa["v"], tuple(aa.get("w") or []))
+                x = by.setdefault(key, {"a": aa, "menge": 0.0, "n": 0, "raeume": []})
+                x["menge"] += m
+                x["n"] += 1
+                x["raeume"].append(r.get("nr") or r.get("name") or "")
+    for (slot, v, w), x in sorted(by.items(), key=lambda kv: (AUS_SLOTS[kv[0][0]][0], -kv[1]["menge"])):
+        A = aufbau(x["a"])
+        aus = A["bez"][len(A["name"]):].lstrip(", ") or A["name"]
+        rows.append({"id": f"a{len(rows) + 1}", "kg": A["kg"], "name": f"{AUS_SLOTS[slot][1]}: {A['name']}"[:200], "mat": aus[:200],
+                     "formel": f"{x['n']} {'Raum' if x['n'] == 1 else 'Räume'} ({', '.join(z for z in x['raeume'][:8] if z)}{' …' if len(x['raeume']) > 8 else ''})"[:200],
+                     "menge": round(x["menge"], 1), "einheit": A["einheit"], "ep": A["ep_mittel"], "src": "Ausstattung", "geschoss": "",
+                     "notiz": f"Baukasten {A['vorlage']} · Spanne {str(A['ep_von']).replace('.', ',')}–{str(A['ep_bis']).replace('.', ',')} €"[:500],
+                     "aufbau": {"v": A["vorlage"], "w": A["wahl"]}})
+    return rows
+
+
+INNEN_SCHICHT = re.compile(r"innen|bekleidung|oberfläche|putz|anstrich|beschichtung", re.I)
+
+
+def _ohne_innen(c, vid, wahl):
+    """Wände in der Bauteilliste ohne Innenbekleidung – die kommt raumweise aus der Ausstattung (sonst doppelt gezählt)."""
+    r = c.execute("SELECT daten FROM pdb_vorlage WHERE id=?", (vid,)).fetchone()
+    S = (_j(r["daten"], {}) or {}).get("schichten") or [] if r else []
+    w = list(wahl)
+    for k, s_ in enumerate(S[:len(w)]):
+        if k and INNEN_SCHICHT.search(s_.get("name") or ""):
+            j = next((j for j, o in enumerate(s_.get("optionen") or []) if not o.get("teile")), None)
+            if j is not None:
+                w[k] = j
+    return w
+
+
+def _mit_aufbau(c, rows):
+    """Vorschlagszeilen mit einem passenden Aufbau aus dem Baukasten versehen (Preis aus den Positionen statt Beispielpreis)."""
+    for b in rows:
+        if b.get("aufbau"):
+            continue
+        such = f"{b.get('name', '')} {b.get('mat', '')}"
+        if b["kg"] == "331":   # Außenwand komplett mit Dämmung/Bekleidung außen (statt 331 + 335 getrennt)
+            such += " WDVS EPS 16"
+        r = baudaten.aufbau_vorschlag(c, b["kg"], such)
+        if not r or r[2] < 2:   # nur bei deutlicher Übereinstimmung, sonst bleibt der Beispielpreis
+            continue
+        if b["kg"] in ("331", "332", "341", "342"):
+            r = (r[0], _ohne_innen(c, r[0], r[1]), r[2])
+        A = baudaten.aufbau(c, r[0], r[1])
+        if not A or not A["ep_mittel"] or (A["einheit"] != b["einheit"] and not (A["einheit"] == "St" and b["einheit"] == "Stk")):
+            continue
+        b.update(mat=(A["bez"][len(A["name"]):].lstrip(", ") or A["name"])[:200], ep=A["ep_mittel"], aufbau={"v": A["vorlage"], "w": A["wahl"]},
+                 notiz=f"Baukasten {A['vorlage']} · Spanne {str(A['ep_von']).replace('.', ',')}–{str(A['ep_bis']).replace('.', ',')} €")
+    return rows
+
+
+def bauteile_intern(d, cal, c=None):
+    """Bauteilliste aus Raumbuch, Geschossen und Höhen – Mengen grob, Material und Preise als Startwerte.
+    Mit dem Bauteil-Baukasten (Baudaten): Boden, Wand und Decke aus der Raumbuch-Ausstattung, übrige Bauteile mit passendem Aufbau."""
     G = _geo(d, cal)
     if not cal["area"]:
         return []
+    if _baukasten(c):
+        aus = ausstattung_bauteile(d, cal, c)
+        rest = [b for b in bauteile_intern(d, cal, None) if b["kg"] not in ("352", "353", "345", "336", "335")]   # Boden, Wand innen, Decke: aus der Ausstattung; Fassade im Aufbau der Außenwand
+        return _mit_aufbau(c, rest) + aus
     A, fl, gh = cal["area"], G["geschosse"], G["geschosshoehe"]
     rooms = d["rooms"]
     wand = sum(4 * (r["area"] ** 0.5) * ((r.get("h") or 0) or gh) for r in rooms if r["area"]) / 2   # Wandflächen der Räume, je Wand zwei Räume
@@ -1401,10 +1596,17 @@ def bauteile_vorschlag(i):
             return jsonify(error="Nicht gefunden"), 404
         d = clean_data(_j(r["data"], {}), c)
         cal = calc(d)
-        rows = bauteile_intern(d, cal)
+        rows = bauteile_intern(d, cal, c)
         if not rows:
             return jsonify(error="Erst Räume mit Flächen erfassen (Pläne & Raumbuch) – daraus werden die Mengen abgeleitet."), 400
         note = "Mengen grob aus Raumbuch, Geschossen und Höhen; Materialien und Preise sind Beispiele – bitte je Zeile prüfen."
+        ifc = [x for x in d.get("bauteile") or [] if x.get("src") == "IFC"]
+        if ifc:   # Bauteile aus dem IFC-Modell bleiben (genaue Mengen); geschätzte Zeilen derselben Kostengruppen entfallen
+            da = {x["kg"] for x in ifc} | ({"335"} if any(x["kg"] == "331" for x in ifc) else set())
+            rows = ifc + [x for x in rows if x.get("src") == "Ausstattung" or x["kg"] not in da]
+            note = f"{len(ifc)} Bauteile aus dem IFC-Modell behalten, dazu Ausstattung und übrige Bauteile aus dem Raumbuch – bitte je Zeile prüfen."
+        elif any(x.get("src") == "Ausstattung" for x in rows):
+            note = "Boden, Wand und Decke aus der Raumbuch-Ausstattung (Baukasten), übrige Bauteile mit passendem Aufbau – Mengen grob aus Raumbuch, Geschossen und Höhen; bitte je Zeile prüfen."
         if b.get("ki"):
             ki = ai.choice_of(g.user)
             prov = {p["key"]: p for p in ai.providers(c)}

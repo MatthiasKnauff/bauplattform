@@ -101,6 +101,10 @@
   "Aufgaben & Mängel: „＋ Neu“ mit Auswahl – Erinnerung, Aufgabe, Mängelrüge vor/nach Abnahme, Terminrüge (auch frei, Rückstand selbst beschreiben)",
   "AVA Variante B vervollständigt: keine Werkzeugleiste mehr – Hauptaktion und Menü „⋯“ rechts in der Bereichsleiste, Suche oben links, Ablegen/Eingang unten",
   "Eigene Postfächer per Anmeldung bei Google und Microsoft (OAuth 2.0 mit PKCE, nur lesend, ohne Passwort, widerrufbar)",
-  "Papierkorb für Kontakte, Angebote, Rechnungen, Erinnerungen und Kostenermittlungs-Pläne; Filter nach Art + Suche"
+  "Papierkorb für Kontakte, Angebote, Rechnungen, Erinnerungen und Kostenermittlungs-Pläne; Filter nach Art + Suche",
+  "Bauteil-Baukasten",
+  "Raumbuch-Ausstattung",
+  "IFC- und DXF-Import",
+  "Kompakte Vorbemerkungen"
  ]
 }

@@ -198,7 +198,7 @@ body.as-open .wrap{padding-bottom:45vh}
   <nav class="tabs" id="tabs" aria-label="Bereiche"></nav>
   <div id="view"></div>
 </main>
-<input type="file" id="pdfIn" accept="application/pdf,.pdf" multiple class="hidden">
+<input type="file" id="pdfIn" accept="application/pdf,.pdf,.ifc,.dxf" multiple class="hidden">
 <script src="static/bp.js"></script>
 <script src="static/pdbwahl.js"></script>
 <script>
@@ -491,7 +491,7 @@ function vPlaene() {
   return `<div class="layout"><aside class="side"><span class="hint" style="text-transform:uppercase;letter-spacing:.04em">Pläne</span><div class="files">${B.files.map((x) => `
     <div class="card fc ${x.id === selFile ? 'on' : ''}" data-file="${x.id}" tabindex="0" role="button" aria-pressed="${x.id === selFile}"><b>${esc(x.meta.kind ? x.meta.kind + ' · ' : '')}${esc(x.name)}</b><small>${esc(x.meta.note || '')}</small>
       <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" data-ansehen="pdf" data-name="${esc(x.name)}">PDF</a>${x.meta.kind !== 'Ansicht' && x.meta.kind !== 'Schnitt' ? `<button class="btn sm${x.meta.found ? '' : ' pri'}" data-kiroom="${x.id}" title="Räume mit der oben gewählten KI aus dem Planbild lesen – für Pläne, deren Beschriftung nicht als Text vorliegt">✨ KI lesen</button>` : ''}${x.meta.found ? '' : `<button class="btn sm" data-reread="${x.id}" title="Plan mit der aktuellen Erkennung erneut auswerten">Neu einlesen</button>`}<button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
-    <div class="drop" id="drop" role="button" tabindex="0">+ PDF hinzufügen<br><small>Grundrisse, Ansichten, Schnitte – Vektor-PDF aus dem CAD</small></div></div>
+    <div class="drop" id="drop" role="button" tabindex="0">+ PDF, IFC oder DXF hinzufügen<br><small>Vektor-PDF (Grundrisse, Ansichten, Schnitte), IFC-Modell mit Räumen und Bauteilen oder DXF-Grundriss mit Raumpolygonen – z. B. aus Allplan</small></div></div>
     <p class="hint">Räume (Name und m², mit oder ohne Nummer) werden aus Vektor-PDFs exakt gelesen. Der Raumtyp ist ein Vorschlag – bitte jeden Raum bestätigen. Plan: Mausrad zoomt, ziehen verschiebt.</p></aside>
   ${(() => {
     const PV = pvMode(), plan = f ? `<div class="plan card" id="planBox" style="padding:0" title="Mausrad oder zwei Finger: zoomen · ziehen: verschieben · Doppelklick: vergrößern"><div class="pz" id="pz"><img src="api/bk/${B.id}/files/${f.id}/preview.png" alt="Vorschau ${esc(f.name)}" draggable="false">${rooms.filter((r) => r.src === 'pdf:' + f.id && r.pos).map((r) => `<span class="mk ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : r.ok ? 'ok' : ''} ${r.id === selRoom ? 'sel' : ''}" style="left:${r.pos[0] * 100}%;top:${r.pos[1] * 100}%" title="${esc(r.nr + ' ' + r.name)}" data-mk="${r.id}">${esc(r.nr || '•')}</span>`).join('')}</div>
@@ -501,23 +501,25 @@ function vPlaene() {
     if (PV === 'seite' && f) return `<div class="main split"><div class="sp-r">${modes}${plan}</div><div class="sp-l">`;
     return `<div class="main">${f ? `<div class="pbar">${modes}</div>` : ''}${plan}`;
   })()}
-    <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'} · ${m2(B.calc.area)} m²${volume() ? ` · ${m2(volume()).replace(/,\d+$/, '')} m³` : ''}${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="addRoom">+ Raum</button></div>
+    <div class="row"><b>Raumbuch</b><span class="hint">${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'} · ${m2(B.calc.area)} m²${volume() ? ` · ${m2(volume()).replace(/,\d+$/, '')} m³` : ''}${open ? ` · ${open} offen` : ''}</span><span style="flex:1"></span>${open ? '<button class="btn sm" data-act="okAll">Alle bestätigen</button>' : ''}<button class="btn sm" data-act="ausTyp" title="Boden, Wand und Decke je Raumtyp aus dem Bauteil-Baukasten – daraus entstehen unter „Bauteile & Material“ die Mengen und Preise">Ausstattung je Raumtyp …</button><button class="btn sm" data-act="addRoom">+ Raum</button></div>
     ${hoehenInfo()}
     ${rooms.length ? `<div class="alle hint">Für alle Räume setzen: <select data-alle="std" aria-label="Standard für alle"><option value="-">Standard …</option>${STD_L.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
       <select data-alle="mass" aria-label="Maßnahme für alle"><option value="-">Maßnahme …</option>${MASS_L.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
       <span>Standard und Maßnahme gewichten den Kennwert des Raumtyps, Besonderheiten liest die KI bei Bauteilen und Prüfung mit.</span></div>` : ''}
-    <div class="tbl"><table><thead><tr><th title="Geschoss – aus dem Plan erkannt oder eingetragen (z. B. KG, EG, 1.OG, DG)">Geschoss</th><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th class="r" title="Geschosshöhe (Fertigfußboden bis Fertigfußboden) – aus dem Schnitt oder eingetragen">Höhe m</th><th title="Ausbaustandard – Faktor auf den Kennwert: einfach 0,85 · mittel 1 · gehoben 1,2 · hoch 1,45">Standard</th><th title="Maßnahme – Faktor auf den Kennwert: Neubau 1 · Umbau 0,8 · Sanierung 0,6 · Bestand bleibt 0">Maßnahme</th><th title="z. B. Fußbodenheizung, Fliesen raumhoch, Akustikdecke – hilft der KI bei Bauteilen und Prüfung">Besonderheiten</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
+    <div class="tbl"><table><thead><tr><th title="Geschoss – aus dem Plan erkannt oder eingetragen (z. B. KG, EG, 1.OG, DG)">Geschoss</th><th>Nr.</th><th>Raum</th><th>Raumtyp</th><th class="r">Fläche m²</th><th class="r" title="Umfang des Raums (aus IFC/DXF oder eingetragen) – für die Wandflächen; leer = aus der Fläche geschätzt">Umfang m</th><th title="Boden, Wand und Decke aus dem Bauteil-Baukasten – leer = Ausstattung des Raumtyps">Ausstattung</th><th class="r" title="Geschosshöhe (Fertigfußboden bis Fertigfußboden) – aus dem Schnitt oder eingetragen">Höhe m</th><th title="Ausbaustandard – Faktor auf den Kennwert: einfach 0,85 · mittel 1 · gehoben 1,2 · hoch 1,45">Standard</th><th title="Maßnahme – Faktor auf den Kennwert: Neubau 1 · Umbau 0,8 · Sanierung 0,6 · Bestand bleibt 0">Maßnahme</th><th title="z. B. Fußbodenheizung, Fliesen raumhoch, Akustikdecke – hilft der KI bei Bauteilen und Prüfung">Besonderheiten</th><th>Status</th><th></th></tr></thead><tbody>${rooms.map((r, i) => `
       <tr data-row="${i}" class="${r.id === selRoom ? 'sel' : ''} ${dup[r.floor + '|' + r.nr] > 1 ? 'warn' : ''}"><td><input class="n" style="width:72px;text-align:left" value="${esc(r.floor || '')}" data-f="floor" list="bkGeschosse" placeholder="EG" aria-label="Geschoss"></td><td><input class="n" style="width:64px;text-align:left" value="${esc(r.nr)}" data-f="nr" aria-label="Nummer"></td>
       <td><input class="w" value="${esc(r.name)}" data-f="name" aria-label="Raumname">${dup[r.floor + '|' + r.nr] > 1 ? '<span class="wn">Raumnummer doppelt</span>' : ''}</td>
       <td><select data-f="typ" aria-label="Raumtyp">${typeOpts(r.typ)}</select></td>
       <td class="r"><input class="n" value="${m2(r.area)}" data-f="area" inputmode="decimal" aria-label="Fläche"></td>
+      <td class="r"><input class="n" style="width:58px" value="${r.umfang ? m2(r.umfang) : ''}" placeholder="${r.area ? m2(4 * Math.sqrt(r.area)).replace(/,\d+$/, '') : ''}" data-f="umfang" inputmode="decimal" aria-label="Umfang" title="leer = aus der Fläche geschätzt (quadratisch)"></td>
+      <td><button class="btn sm" data-ausr="${i}" title="${esc(ausTitel(r))}" style="white-space:nowrap">${ausKurz(r)}</button></td>
       <td class="r">${(() => { const a = hAuto(r); return `<input class="n" style="width:64px" value="${r.h ? String(r.h).replace('.', ',') : ''}" placeholder="${a.v ? String(a.v).replace('.', ',') : '–'}" title="${esc(r.h ? 'eigener Wert – leeren übernimmt wieder ' + (a.v ? String(a.v).replace('.', ',') + ' m (' + a.src + ')' : 'den Standard') : a.v ? a.src : 'Höhe eintragen – der erste Wert gilt für alle Räume, bis du ihn änderst')}" data-h="${i}" inputmode="decimal" aria-label="Höhe">`; })()}</td>
       <td><select data-f="std" aria-label="Standard" class="${r.std ? 'set' : ''}">${STD_L.map(([k, l]) => `<option value="${k}"${(r.std || '') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
       <td><select data-f="mass" aria-label="Maßnahme" class="${r.mass ? 'set' : ''}">${MASS_L.map(([k, l]) => `<option value="${k}"${(r.mass || '') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
       <td><input class="w nz" value="${esc(r.notiz || '')}" data-f="notiz" placeholder="z. B. Fußbodenheizung" aria-label="Besonderheiten" maxlength="500"></td>
       <td><button class="okb ${r.ok ? 'on' : ''}" data-ok="${i}">${r.ok ? '✓ Bestätigt' : 'Prüfen'}</button></td>
-      <td><button class="btn sm" data-delroom="${i}" aria-label="Raum löschen" title="Raum löschen">✕</button></td></tr>`).join('') || '<tr><td colspan="11" class="empty">Noch keine Räume.</td></tr>'}</tbody>
-      <tfoot><tr><td></td><td></td><td>Summe</td><td></td><td class="r num">${m2(B.calc.area)}</td><td class="r num" title="Raumvolumen (Fläche × Höhe)">${volume() ? m2(volume()).replace(/,\d+$/, '') + ' m³' : ''}</td><td colspan="5"></td></tr></tfoot></table><datalist id="bkGeschosse">${[...new Set(['UG', 'KG', 'EG', '1.OG', '2.OG', '3.OG', 'DG', 'SB', ...rooms.map((x) => x.floor).filter(Boolean)])].map((g) => `<option value="${esc(g)}">`).join('')}</datalist></div>${pvMode() === 'seite' && f ? '</div>' : ''}</div></div>`;
+      <td><button class="btn sm" data-delroom="${i}" aria-label="Raum löschen" title="Raum löschen">✕</button></td></tr>`).join('') || '<tr><td colspan="13" class="empty">Noch keine Räume.</td></tr>'}</tbody>
+      <tfoot><tr><td></td><td></td><td>Summe</td><td></td><td class="r num">${m2(B.calc.area)}</td><td></td><td></td><td class="r num" title="Raumvolumen (Fläche × Höhe)">${volume() ? m2(volume()).replace(/,\d+$/, '') + ' m³' : ''}</td><td colspan="5"></td></tr></tfoot></table><datalist id="bkGeschosse">${[...new Set(['UG', 'KG', 'EG', '1.OG', '2.OG', '3.OG', 'DG', 'SB', ...rooms.map((x) => x.floor).filter(Boolean)])].map((g) => `<option value="${esc(g)}">`).join('')}</datalist></div>${pvMode() === 'seite' && f ? '</div>' : ''}</div></div>`;
 }
 /* Anordnung des Plans beim Raumbuch: oben · nebeneinander (geteilte Ansicht) · eigenes Fenster (frei beweglich, Größe änderbar) */
 const pvMode = () => { try { const v = localStorage.getItem('bk.planAnsicht'); return ['seite', 'fenster'].includes(v) ? (v === 'seite' && innerWidth < 900 ? 'oben' : v) : 'oben'; } catch { return 'oben'; } };
@@ -673,10 +675,46 @@ function evalFormel(t) {   // „12,5 * 2,75 + 3“ → Zahl; sonst null (Text i
   if (!x || !/^[\d.+\-*/()]+$/.test(x) || !/\d/.test(x)) return null;
   try { const v = Function('"use strict";return (' + x + ')')(); return isFinite(v) && v >= 0 ? Math.round(v * 1000) / 1000 : null; } catch { return null; }
 }
+/* Raumbuch-Ausstattung: je Raum bzw. Raumtyp Boden (353), Wand (345) und Decke (354) als Aufbau aus dem Bauteil-Baukasten.
+   Gespeichert als {v: Vorlage, w: Wahl je Schicht, t: Text}; {v: ''} = ohne. Daraus macht „Vorschläge aus dem Raumbuch“ die Bauteile. */
+const AUS_SL = [['boden', 'Boden', '353'], ['wand', 'Wand', '345'], ['decke', 'Decke', '354']];
+function ausEff(r, k) { const a = (r.aus || {})[k]; if (a) return [a, 'Raum']; const t = ((B.data.ausstattung || {})[r.typ] || {})[k]; return t ? [t, 'Raumtyp'] : [null, 'Standard']; }
+function ausKurz(r) { const n = AUS_SL.filter(([k]) => (r.aus || {})[k]).length; return n ? `◧ ${n} eigene` : (B.data.ausstattung || {})[r.typ] ? '◧ Raumtyp' : '◧ Standard'; }
+function ausTitel(r) { return AUS_SL.map(([k, l]) => { const [a, q] = ausEff(r, k); return `${l}: ${a ? (a.v ? a.t || a.v : 'ohne') : 'Standard des Baukastens'}${a ? ` (${q})` : ''}`; }).join('\n'); }
+function ausDialog(ri) {
+  const r = ri == null ? null : B.data.rooms[ri];
+  const typen = [...new Set(B.data.rooms.map((x) => x.typ))].filter((t) => B.data.types[t]);
+  const zeile = (ziel, k, l) => { const a = ziel ? ziel[k] : null; return `<tr><td>${l}</td><td style="font-size:.86rem">${a ? (a.v ? esc(a.t || a.v) : '<i>ohne</i>') : `<span class="hint">${r ? (() => { const [x, q] = ausEff({ ...r, aus: {} }, k); return x ? (x.v ? esc(x.t || x.v) + ' (Raumtyp)' : 'ohne (Raumtyp)') : 'Standard des Baukastens'; })() : 'Standard des Baukastens'}</span>`}</td>
+    <td style="white-space:nowrap"><button class="btn sm" data-aw="${k}" data-at="${ziel === null ? '' : ''}">wählen …</button> <button class="btn sm" data-ao="${k}" title="Diese Fläche nicht ausstatten (z. B. Sichtbeton, gesondert erfasst)">ohne</button>${a ? ` <button class="btn sm" data-ax="${k}" title="Eigene Angabe entfernen">↺</button>` : ''}</td></tr>`; };
+  let typ = r ? null : typen[0] || Object.keys(B.data.types)[0];
+  const ziel = () => (r ? (r.aus ||= {}) : ((B.data.ausstattung ||= {})[typ] ||= {}));
+  const html = () => `<h3>${r ? `Ausstattung ${esc([r.nr, r.name].filter(Boolean).join(' '))}` : 'Ausstattung je Raumtyp'}</h3>
+    <p class="hint" style="margin:.2rem 0 .6rem">${r ? 'Eigene Aufbauten nur für diesen Raum – sonst gilt die Ausstattung des Raumtyps.' : 'Gilt für alle Räume dieses Typs ohne eigene Angabe.'} Mengen: Boden und Decke = Fläche, Wand = Umfang × lichte Höhe (Geschosshöhe − 0,30 m) − 1 Tür; Fliesen ohne eigene Angabe bis 2,0 m Höhe.</p>
+    ${r ? '' : `<select id="ausT" style="margin-bottom:.5rem">${Object.entries(B.data.types).map(([k, t]) => `<option value="${k}"${k === typ ? ' selected' : ''}>${esc(t.label)}${typen.includes(k) ? ` · ${B.data.rooms.filter((x) => x.typ === k).length} Räume` : ''}</option>`).join('')}</select>`}
+    <table style="width:100%"><tbody>${AUS_SL.map(([k, l]) => zeile(r ? r.aus || {} : (B.data.ausstattung || {})[typ] || {}, k, l)).join('')}</tbody></table>
+    <p class="hint" style="margin:.6rem 0 0">Unter „Bauteile & Material“ → „Vorschläge neu aus dem Raumbuch“ entstehen daraus die Bauteile mit Mengen und Preisen.</p>
+    <div class="acts" style="justify-content:flex-end"><button class="btn pri" data-m="x">Fertig</button></div>`;
+  const bg = modalBox(html(), (m, bgx, close) => { if (m === 'x') close(); });
+  const neu = () => { bg.querySelector('.modal').innerHTML = html(); };
+  bg.addEventListener('change', (e) => { if (e.target.id === 'ausT') { typ = e.target.value; neu(); } });
+  bg.addEventListener('click', (e) => {
+    const w = e.target.closest('[data-aw]'), o = e.target.closest('[data-ao]'), x = e.target.closest('[data-ax]');
+    if (o) { ziel()[o.dataset.ao] = { v: '', w: [] }; changed(); neu(); return; }
+    if (x) { delete ziel()[x.dataset.ax]; if (r && !Object.keys(r.aus).length) delete r.aus; changed(); neu(); return; }
+    if (w) { const k = w.dataset.aw, sl = AUS_SL.find((z) => z[0] === k), a = ziel()[k];
+      aufbauWahl({ kg: sl[2], vorlage: a && a.v, wahl: a && a.w, titel: `${sl[1]}: Aufbau wählen`, knopf: 'Übernehmen', onOk(A) { ziel()[k] = { v: A.vorlage, w: A.wahl, t: A.bez }; changed(); neu(); } }); }
+  });
+}
+function btAusAufbau(b, a) {   // gewählter Aufbau → Bauteil (Name aus der Vorlage, Ausführung = gewählte Schichten, EP mittel, Spanne als Notiz)
+  const aus = a.bez.slice(a.name.length).replace(/^,\s*/, '');
+  return Object.assign(b, { kg: a.kg, name: b.name && b.aufbau ? b.name : a.name, mat: aus || a.name, einheit: a.einheit, ep: a.ep_mittel,
+    notiz: `Baukasten ${a.vorlage} · Spanne ${String(a.ep_von).replace('.', ',')}–${String(a.ep_bis).replace('.', ',')} € · ${a.teile.length} Positionen`, aufbau: { v: a.vorlage, w: a.wahl } });
+}
+function btAufbauOeffnen(b) { aufbauWahl({ kg: b.kg, vorlage: b.aufbau && b.aufbau.v, wahl: b.aufbau && b.aufbau.w, knopf: 'Übernehmen', onOk(a) { btAusAufbau(b, a); changed(); } }); }
 function vBauteile() {
   const d = B.data, c = B.calc, bt = d.bauteile || [], M = B.mat || {}, J0 = c.justage || {};
   const matSel = (b, i) => { const m = M[b.kg]; const opts = m ? m.opts : []; const own = b.mat && !opts.some((o) => o.n === b.mat);
-    return `<select data-bf="mat" data-bi="${i}" aria-label="Material">${opts.map((o) => `<option value="${esc(o.n)}"${o.n === b.mat ? ' selected' : ''}>${esc(o.n)} · ${eur(o.ep)}</option>`).join('')}${own || !opts.length ? `<option value="${esc(b.mat)}" selected>${esc(b.mat || '– eigenes –')}</option>` : ''}<option value="__eigen">eigenes Material …</option></select>`; };
+    return `<select data-bf="mat" data-bi="${i}" aria-label="Material">${opts.map((o) => `<option value="${esc(o.n)}"${o.n === b.mat ? ' selected' : ''}>${esc(o.n)} · ${eur(o.ep)}</option>`).join('')}${own || !opts.length ? `<option value="${esc(b.mat)}" selected>${esc(b.mat || '– eigenes –')}</option>` : ''}<option value="__eigen">eigenes Material …</option><option value="__aufbau">${b.aufbau ? 'Aufbau ändern …' : 'Aufbau aus dem Baukasten …'}</option></select>${b.aufbau ? `<button class="btn sm" data-btauf="${i}" title="Aufbau im Baukasten ändern (Schichten, Preis aus den Positionen)" aria-label="Aufbau ändern" style="margin-left:.2rem">🧱</button>` : ''}`; };
   const groups = {}; bt.forEach((b, i) => { const k = (b.kg || '').slice(0, 2) + '0'; (groups[k] ||= []).push([b, i]); });
   const row = ([b, i]) => `<tr data-bi="${i}"><td><input class="n" style="width:52px;text-align:left" data-bf="kg" data-bi="${i}" value="${esc(b.kg)}" aria-label="KG"></td>
       <td><input data-bf="name" data-bi="${i}" value="${esc(b.name)}" style="min-width:170px" aria-label="Bauteil">${b.src ? `<div class="hint" style="font-size:.7rem">${esc(b.src)}${b.notiz ? ' · ' + esc(b.notiz) : ''}</div>` : ''}</td>
@@ -702,7 +740,7 @@ function vBauteile() {
     ${bt.length ? `<div class="tbl"><table class="bt"><thead><tr><th>KG</th><th>Bauteil</th><th>Material / Ausführung</th><th>Ermittlung</th><th class="r">Menge</th><th>Einh.</th><th class="r">€ / Einh.</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
       ${Object.keys(groups).sort().map((k) => { const g = c.kg2[k] || {}; return `<tr class="bt-g"><td>${k}</td><td colspan="6"><b>${esc(KG2N[k] || 'KG ' + k)}</b>${g.kennwert ? ` <span class="hint">· Kennwert-Anteil ${eur(g.kennwert)} · ${vglTxt(groups[k].reduce((a, [b]) => a + btBetrag(b), 0), g.kennwert)}</span>` : ''}</td><td class="r num"><b>${eur(groups[k].reduce((a, [b]) => a + btBetrag(b), 0))}</b></td><td></td></tr>` + groups[k].map(row).join(''); }).join('')}
       </tbody></table></div>` : '<div class="card empty"><p>Noch keine Bauteile. „Vorschläge aus Raumbuch & Plänen“ legt eine Liste mit Mengen aus Flächen, Geschossen und Höhen an – Material und Preis wählst du je Zeile.</p></div>'}
-    <div class="row" style="margin-top:.7rem;gap:.4rem"><select id="btNewKg" aria-label="Kostengruppe für neues Bauteil">${kgOpts}</select><button class="btn sm" data-act="btAdd">+ Bauteil</button><button class="btn sm" data-act="btPdb" title="Bauteile aus den Baudaten (Positionsdatenbank, Sirados-Import, eigene Positionen) mit Einheit, KG und Preis übernehmen">+ aus Baudaten</button>${bt.length ? '<span style="flex:1"></span><button class="btn sm danger" data-act="btClear">Alle Bauteile entfernen</button>' : ''}</div>
+    <div class="row" style="margin-top:.7rem;gap:.4rem"><select id="btNewKg" aria-label="Kostengruppe für neues Bauteil">${kgOpts}</select><button class="btn sm" data-act="btAdd">+ Bauteil</button><button class="btn sm" data-act="btAufbau" title="Bauteil aus dem Baukasten: Vorlage nach DIN 276 wählen, je Schicht die Ausführung – Preis von–mittel–bis aus den Positionen der Baudaten">+ aus Baukasten</button><button class="btn sm" data-act="btPdb" title="Bauteile aus den Baudaten (Positionsdatenbank, Sirados-Import, eigene Positionen) mit Einheit, KG und Preis übernehmen">+ aus Baudaten</button>${bt.length ? '<span style="flex:1"></span><button class="btn sm danger" data-act="btClear">Alle Bauteile entfernen</button>' : ''}</div>
     ${c.kg2 && Object.keys(c.kg2).length ? `<section class="card" style="margin-top:1rem"><h2 style="margin:0 0 .5rem">Kostengruppen der 2. Ebene</h2><p class="hint" style="margin:0 0 .5rem">Abweichung = Bauteile im Vergleich zum Kennwert-Anteil derselben Kostengruppe.</p><div class="tbl"><table><thead><tr><th>KG</th><th>Bezeichnung</th><th>Quelle</th><th class="r">Kennwert-Anteil</th><th class="r">Bauteile</th><th class="r">Abweichung</th><th class="r">Betrag</th></tr></thead><tbody>
       ${Object.entries(c.kg2).sort().map(([k, x]) => { const dv = x.kennwert ? Math.round((x.wert / x.kennwert - 1) * 100) : null;
         return `<tr><td>${k}</td><td>${esc(KG2N[k] || '')}</td><td>${x.quelle === 'bauteile' ? `${x.n} Bauteile` : '<span class="hint">Kennwert-Anteil</span>'}</td><td class="r num">${eur(x.kennwert)}</td><td class="r num">${x.quelle === 'bauteile' ? eur(x.wert) : '–'}</td><td class="r"${dv != null && Math.abs(dv) > 40 ? ' style="color:#e07b3a"' : ''}>${x.quelle === 'bauteile' ? vglTxt(x.wert, x.kennwert) : x.wert !== x.kennwert ? `angeglichen ${vglTxt(x.wert, x.kennwert, true)}` : '–'}</td><td class="r num">${eur(x.wert)}</td></tr>`; }).join('')}</tbody>
@@ -730,7 +768,9 @@ async function upload(files) {
       clearTimeout(saveT); await saveNow();
       const r = await fetch(`api/bk/${B.id}/files`, { method: 'POST', body: fd }); const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || r.statusText);
-      B = d.bk; selFile = B.files[B.files.length - 1].id; CHECK = null;
+      B = d.bk; CHECK = null;
+      if (d.cad) { toast(`${f.name}: ${d.note}`); continue; }
+      selFile = B.files[B.files.length - 1].id;
       toast(`${f.name}: ${d.note}${d.added ? ` – ${d.added} Räume übernommen` : ''}`);
     } catch (e) { toast(`${f.name}: ${e.message}`, true); }
   }
@@ -1036,9 +1076,11 @@ document.addEventListener('click', async (e) => {
     else if (act === 'hstdClear') { e.preventDefault(); const v = (await bpEingabe('Standardhöhe für alle Räume ohne eigene Höhe (m):', String(B.data.hoehe_std || '').replace('.', ','))); if (v != null) { const n = pnum(v); B.data.hoehe_std = n >= 1.5 && n <= 20 ? Math.round(n * 100) / 100 : null; changed(); } }
     else if (act === 'btVor') btSuggest(false);
     else if (act === 'btKi') btSuggest(true);
+    else if (act === 'ausTyp') ausDialog(null);
+    else if (act === 'btAufbau') aufbauWahl({ kg: $('#btNewKg').value, knopf: 'Bauteil anlegen', onOk(a) { (B.data.bauteile ||= []).push(btAusAufbau({ id: 'h' + Date.now(), formel: '', menge: 0, src: '', geschoss: '' }, a)); changed(); toast('Bauteil angelegt – Menge ergänzen.'); } });
     else if (act === 'btPdb') { pdbWahl({ titel: 'Bauteile aus den Baudaten', knopf: 'übernehmen', onInsert(neu) {
       const L = (B.data.bauteile ||= []);
-      neu.forEach((x, k) => L.push({ id: 'h' + Date.now() + k, kg: x.kg || $('#btNewKg').value, name: x.kurz, mat: '', formel: '', menge: 0, einheit: x.einheit, ep: x.ep_s ?? 0, src: '', notiz: [x.quelle, x.ep_von != null ? `Spanne ${x.ep_von}–${x.ep_bis} €` : ''].filter(Boolean).join(' · '), geschoss: '' }));
+      neu.forEach((x, k) => L.push({ id: 'h' + Date.now() + k, kg: x.kg || $('#btNewKg').value, name: x.kurz, mat: '', formel: '', menge: 0, einheit: x.einheit, ep: x.ep_s ?? 0, src: '', notiz: [x.quelle, x.ep_von != null ? `Spanne ${x.ep_von}–${x.ep_bis} €` : ''].filter(Boolean).join(' · '), geschoss: '', ...(x.aufbau ? { aufbau: x.aufbau } : {}) }));
       changed(); toast(`${neu.length} Bauteil${neu.length === 1 ? '' : 'e'} übernommen – Mengen ergänzen.`);
     } }); }
     else if (act === 'btAdd') { const k = $('#btNewKg').value, m = (B.mat || {})[k]; (B.data.bauteile ||= []).push({ id: 'h' + Date.now(), kg: k, name: m ? m.name : '', mat: m && m.opts[0] ? m.opts[0].n : '', formel: '', menge: 0, einheit: m ? m.einheit : 'm²', ep: m && m.opts[0] ? m.opts[0].ep : 0, src: '', notiz: '', geschoss: '' }); changed(); setTimeout(() => { const ins = document.querySelectorAll('[data-bf="formel"]'); const x = [...ins].find((e) => +e.dataset.bi === B.data.bauteile.length - 1); if (x) x.focus(); }, 50); }
@@ -1092,7 +1134,9 @@ document.addEventListener('click', async (e) => {
   }
   const dr = e.target.closest('[data-delroom]'); if (dr) { B.data.rooms.splice(+dr.dataset.delroom, 1); changed(); return; }
   const bdl = e.target.closest('[data-btdel]'); if (bdl) { B.data.bauteile.splice(+bdl.dataset.btdel, 1); changed(); return; }
-  const bdu = e.target.closest('[data-btdup]'); if (bdu) { const i = +bdu.dataset.btdup; B.data.bauteile.splice(i + 1, 0, { ...B.data.bauteile[i], id: 'h' + Date.now(), src: '' }); changed(); return; }
+  const ar = e.target.closest('[data-ausr]'); if (ar) { ausDialog(+ar.dataset.ausr); return; }
+  const bau = e.target.closest('[data-btauf]'); if (bau) { const b = B.data.bauteile[+bau.dataset.btauf]; if (b) btAufbauOeffnen(b); return; }
+  const bdu = e.target.closest('[data-btdup]'); if (bdu) { const i = +bdu.dataset.btdup; B.data.bauteile.splice(i + 1, 0, { ...B.data.bauteile[i], id: 'h' + Date.now(), src: '', aufbau: B.data.bauteile[i].aufbau ? { ...B.data.bauteile[i].aufbau } : undefined }); changed(); return; }
   const di = e.target.closest('[data-delit]'); if (di) { B.data.items.splice(+di.dataset.delit, 1); changed(); return; }
   const df = e.target.closest('[data-delfile]');
   if (df) {
@@ -1113,6 +1157,7 @@ document.addEventListener('change', async (e) => {
   if (el.dataset.bf) {   // Bauteile & Material
     const b = B.data.bauteile[+el.dataset.bi], f = el.dataset.bf; if (!b) return;
     if (f === 'mat') {
+      if (el.value === '__aufbau') { el.value = b.mat; btAufbauOeffnen(b); return; }
       if (el.value === '__eigen') { const v = (await bpEingabe('Material / Ausführung:', b.mat || '')); if (v != null && v.trim()) b.mat = v.trim(); changed(); return; }
       const o = ((B.mat || {})[b.kg] || { opts: [] }).opts.find((x) => x.n === el.value); b.mat = el.value; if (o) b.ep = o.ep; changed(); return;
     }
@@ -1129,7 +1174,7 @@ document.addEventListener('change', async (e) => {
     changed(); return;
   }
   if (el.dataset.alle) { const k = el.dataset.alle, v = el.value; if (v === '-') return; B.data.rooms.forEach((r) => { r[k] = v; }); toast(`${k === 'std' ? 'Standard' : 'Maßnahme'} „${el.options[el.selectedIndex].text}“ für alle ${B.data.rooms.length} Räume gesetzt.`); changed(); return; }
-  if (row && el.dataset.f) { const r = B.data.rooms[+row.dataset.row]; r[el.dataset.f] = el.dataset.f === 'area' ? pnum(el.value) : el.value; changed(); return; }
+  if (row && el.dataset.f) { const r = B.data.rooms[+row.dataset.row]; r[el.dataset.f] = el.dataset.f === 'area' ? pnum(el.value) : el.dataset.f === 'umfang' ? (el.value.trim() ? pnum(el.value) : null) : el.value; changed(); return; }
   if (el.dataset.kw) { B.data.types[el.dataset.kw].kw = pnum(el.value); changed(); return; }
   if (el.dataset.it) { const it = B.data.items[+el.dataset.it]; if (el.dataset.f === 'amount') delete it.est; it[el.dataset.f] = el.dataset.f === 'amount' ? (el.value.trim() === '' ? null : pnum(el.value)) : el.value; changed(); return; }
   if (el.dataset.kg2) { B.data.kg2 ||= {}; if (el.value.trim() === '') delete B.data.kg2[el.dataset.kg2]; else B.data.kg2[el.dataset.kg2] = pnum(el.value); changed(); return; }

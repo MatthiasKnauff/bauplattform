@@ -129,11 +129,22 @@ async function start() {
   $('#impBtn').hidden = !S.admin;
   seite(); laden();
 }
+async function vorbemerkung(k) {
+  let v; try { v = await api('api/vorbemerkungen?key=' + encodeURIComponent(k)); } catch (e) { toast(e.message, true); return; }
+  const bg = modalBox(`<h3>Vorbemerkungen ${esc(/^\d/.test(v.key) ? v.key + ' ' : '')}${esc(v.titel)}</h3><pre style="white-space:pre-wrap;font:inherit;font-size:.92rem;max-height:62vh;overflow:auto">${esc(v.text)}</pre>
+    <p class="mute" style="font-size:.82rem">Eigene, kompakte Texte – Angaben in [eckigen Klammern] je Projekt ergänzen. In der Ausschreibung: LV → Vorbemerkungen → „aus den Baudaten einfügen“.</p>
+    <div style="display:flex;gap:.4rem;justify-content:flex-end"><button class="btn" data-m="copy">⧉ Kopieren</button><button class="btn pri" data-m="x">Schließen</button></div>`, async (m, bg, close) => {
+    if (m === 'copy') { try { await navigator.clipboard.writeText(v.titel + '\n\n' + v.text); toast('Kopiert.'); } catch { toast('Kopieren nicht möglich.', true); } return; }
+    close();
+  });
+  bg.querySelector('.modal').style.width = 'min(760px,100%)';
+}
 function seite() {
   const E = S.einstellungen, kat = S.kataloge.find((k) => k.key === F.katalog) || {};
   let h = `<h3>${esc(kat.name || '')}</h3><button type="button" class="si${!F.lb ? ' on' : ''}" data-lb=""><span>Alle Leistungsbereiche</span><i>${(kat.n || 0).toLocaleString('de-DE')}</i></button>`;
   for (const l of S.lbs) {
     h += `<button type="button" class="si${F.lb === l.nr ? ' on' : ''}" data-lb="${esc(l.nr)}"><span><span class="nr">${esc(l.nr)}</span>${esc(l.name || '')}</span><i>${l.n.toLocaleString('de-DE')}</i></button>`;
+    if (F.lb === l.nr && F.katalog === 'gk3') h += `<button type="button" class="si sub" data-vb="${esc(l.nr)}" title="Kompakte Technische Vorbemerkungen zu diesem Leistungsbereich – in der Ausschreibung unter „Vorbemerkungen“ einfügbar"><span>📄 Vorbemerkungen</span><i></i></button>`;
     if (F.lb === l.nr && GR[l.nr]) h += GR[l.nr].map((g) => `<button type="button" class="si sub${F.gruppe === g.nr ? ' on' : ''}" data-gr="${esc(g.nr)}"><span>${esc(g.name || g.nr)}</span><i>${g.n}</i></button>`).join('');
   }
   h += `<h3>Preise</h3><p class="mute" style="margin:0 .9rem .6rem;font-size:.8rem">Index ${num(E.index_aktuell, 1)} (Basis ${num(E.index_basis, 1)}, 2021 = 100)<br>${esc(E.faktor_name)} × ${num(E.faktor, 3)}${kat.key !== 'gk3' ? `<br>Katalog: Stand ${esc(kat.preisstand || '–')}, ${kat.index_basis ? 'Index ' + num(kat.index_basis, 1) + (kat.index_auto ? ' (aus dem Preisstand)' : '') + ' → fortgeschrieben' : 'ohne Index – nur Faktor'}` : ''}${kat.lizenz ? '<br>' + esc(kat.lizenz) : ''}</p>`;
@@ -217,7 +228,8 @@ function firmaNeuFragen(name) {   // → Gewerk (anlegen), false (nur eintragen)
 }
 function detail() {
   const x = SEL, ro = !!x.nur_lesen, darf = !ro && x.katalog === 'eigen';   // Kataloge sind schreibgeschützt
-  const kalk = x.quelle === 'katalog' && x.h != null ? `<h4>Kalkulation (Preisstand ${esc(x.preisstand)})</h4><table>
+  const teile = (x.teile || []).length ? `<h4>Bestandteile (Positionsdatenbank) – je 1 ${esc(x.einheit)}</h4><table>${x.teile.map((t) => `<tr><td>${esc(t.kurz)}<br><small class="mute">${esc(t.code)} · ${String(t.faktor).replace('.', ',')} ${esc(t.einheit)} × ${eur(t.ep_mittel)}</small></td><td>${eur(t.anteil)}</td></tr>`).join('')}<tr><td><b>Summe heute</b></td><td><b>${eur(x.ep_mittel_akt)}</b></td></tr></table><p class="mute">In den Baukosten unter „Bauteile & Material → + aus Baukasten“ lassen sich die Schichten ändern; die Ausschreibung löst das Bauteil in diese Positionen auf.</p>` : '';
+  const kalk = !x.teile && x.quelle === 'katalog' && x.h != null ? `<h4>Kalkulation (Preisstand ${esc(x.preisstand)})</h4><table>
       <tr><td>Zeitansatz</td><td>${num(x.h, 3)} h/${esc(x.einheit)}</td></tr>
       <tr><td>Verrechnungslohn ${esc(((S.loehne || []).find((l) => l.gewerk === x.gewerk) || {}).name || x.gewerk)}</td><td>${eur(x.verrechnungslohn)}/h</td></tr>
       <tr><td>Lohn</td><td>${eur(x.h * x.verrechnungslohn)}</td></tr>
@@ -232,7 +244,7 @@ function detail() {
     <div class="mute">Einheit <b>${esc(x.einheit)}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b> <span title="${esc(GEN[x.genauigkeit] || '')}">ⓘ</span>` : ''}${x.tags ? ' · ' + esc(x.tags) : ''}</div>
     <div class="preis"><div><small>von</small><b>${eur(x.ep_von_akt)}</b></div><div class="m"><small>mittel</small><b>${eur(x.ep_mittel_akt)}</b></div><div><small>bis</small><b>${eur(x.ep_bis_akt)}</b></div></div>
     <pre>${esc(x.lang_voll || '')}</pre>
-    ${x.hinweis ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}
+    ${x.hinweis && !x.teile ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}${teile}
     <div class="acts">
       <button type="button" class="btn sm${KORB.has(x.id) ? ' pri' : ''}" data-korbd title="Im Korb sammeln – in der Ausschreibung (Kopierquelle → Baudaten-Korb) und in den Baukosten (Aus Baudaten → Korb) übernehmen">${KORB.has(x.id) ? '✓ Im Korb' : '＋ In den Korb'}</button>
       <button type="button" class="btn sm" data-copy title="Kurz- und Langtext, Einheit und Preis kopieren">⧉ Text kopieren</button>
@@ -354,6 +366,7 @@ async function importieren() {
 
 document.addEventListener('click', async (e) => {
   const t = e.target;
+  const vb = t.closest('[data-vb]'); if (vb) { vorbemerkung(vb.dataset.vb); return; }
   const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } } seite(); laden(); return; }
   const gr = t.closest('[data-gr]'); if (gr) { F.gruppe = F.gruppe === gr.dataset.gr ? '' : gr.dataset.gr; N = 100; seite(); laden(); return; }
   const kb = t.closest('[data-korb]'); if (kb) { const id = +kb.dataset.korb; korbAendern(KORB.has(id) ? { weg: [id] } : { dazu: [id] }); return; }

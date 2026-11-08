@@ -124,7 +124,8 @@ async function pdbDetail(id) {
   let x; try { x = await api('api/baudaten/position/' + id); } catch (e) { toast(e.message, true); return; }
   const eur = (v) => (v == null ? '–' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
   const num = (v, n = 2) => (v == null ? '' : Number(v).toLocaleString('de-DE', { maximumFractionDigits: n }));
-  const kalk = x.quelle === 'katalog' && x.h ? `<h4 style="margin:.9rem 0 .3rem">Kalkulation (Preisstand ${esc(x.preisstand || '')})</h4><table style="width:100%;font-size:.9rem">
+  const teile = (x.teile || []).length ? `<h4 style="margin:.9rem 0 .3rem">Bestandteile – je 1 ${esc(x.einheit)}</h4><table style="width:100%;font-size:.86rem">${x.teile.map((t) => `<tr><td>${esc(t.kurz)} <small class="mute">${esc(t.code)} · ${String(t.faktor).replace('.', ',')} ${esc(t.einheit)} × ${eur(t.ep_mittel)}</small></td><td style="text-align:right">${eur(t.anteil)}</td></tr>`).join('')}</table>` : '';
+  const kalk = !x.teile && x.quelle === 'katalog' && x.h ? `<h4 style="margin:.9rem 0 .3rem">Kalkulation (Preisstand ${esc(x.preisstand || '')})</h4><table style="width:100%;font-size:.9rem">
       <tr><td>Zeitansatz</td><td style="text-align:right">${num(x.h, 3)} h/${esc(x.einheit)}</td></tr>
       <tr><td>Verrechnungslohn</td><td style="text-align:right">${eur(x.verrechnungslohn)}/h</td></tr>
       <tr><td>Lohn</td><td style="text-align:right">${eur(x.h * x.verrechnungslohn)}</td></tr>
@@ -137,7 +138,69 @@ async function pdbDetail(id) {
     <div class="mute" style="margin:.3rem 0 .6rem;font-size:.88rem">Einheit <b>${esc(x.einheit || '')}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b>` : ''}</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center;margin-bottom:.7rem">${[['von', x.ep_von_akt], ['mittel', x.ep_mittel_akt], ['bis', x.ep_bis_akt]].map(([l, v]) => `<div style="border:${l === 'mittel' ? '2px solid var(--y)' : '1px solid var(--line)'};border-radius:10px;padding:.45rem"><small class="mute">${l}</small><div style="font-size:1.15rem;font-weight:600">${eur(v)}</div></div>`).join('')}</div>
     <pre style="white-space:pre-wrap;font:inherit;font-size:.92rem;max-height:34vh;overflow:auto;margin:0;background:var(--hov,transparent);padding:.5rem .6rem;border-radius:8px">${esc(x.lang_voll || x.lang || '')}</pre>
-    ${x.hinweis ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}${kalk}${eig}
+    ${x.hinweis && !x.teile ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}${teile}${kalk}${eig}
     <div style="display:flex;justify-content:flex-end;margin-top:.8rem"><button class="btn pri" data-m="x">Schließen</button></div>`, (m, bg, close) => { if (m === 'x') close(); });
   bg.querySelector('.modal').style.width = 'min(720px,100%)';
+}
+
+/* Bauteil-Baukasten: Vorlage wählen, je Schicht eine Ausführung – Preis live aus den Positionen der Baudaten.
+   aufbauWahl({ kg, vorlage, wahl, titel, knopf, onOk(a) }) – a: {vorlage, wahl, kg, einheit, name, kurz, bez, lang, ep_von, ep_mittel, ep_bis, teile[]}.
+   Die App liefert api/baudaten/vorlagen und api/baudaten/aufbau (bpcore/baudaten.py). */
+async function aufbauWahl(opt = {}) {
+  const eur = (v) => (v == null ? '' : Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
+  const kg2 = (k) => String(k || '').replace(/\D/g, '').slice(0, 2);
+  let V; try { V = await api('api/baudaten/vorlagen'); } catch (e) { toast(e.message, true); return; }
+  if (!V.length) { toast('Der Bauteil-Baukasten ist noch leer.', true); return; }
+  let vid = opt.vorlage && V.some((v) => v.id === opt.vorlage) ? opt.vorlage : null, wahl = Array.isArray(opt.wahl) ? opt.wahl.slice() : [], q = '', A = null, tk = 0;
+  let fkg = vid ? kg2(V.find((v) => v.id === vid).kg) : opt.kg ? kg2(opt.kg) : '';
+  if (!vid) { const v = V.find((x) => fkg && kg2(x.kg) === fkg && (!opt.kg || String(opt.kg).length < 3 || /0$/.test(opt.kg) || x.kg === opt.kg)) || V.find((x) => !fkg || kg2(x.kg) === fkg) || V[0]; vid = v.id; fkg = kg2(v.kg); }
+  const gruppen = [...new Set(V.map((v) => kg2(v.kg)))].sort();
+  const KGN = { 31: 'Baugrube/Erdbau', 32: 'Gründung', 33: 'Außenwände', 34: 'Innenwände', 35: 'Decken', 36: 'Dächer', 37: 'Infrastruktur', 38: 'Einbauten', 39: 'Sonstige Baukonstruktion',
+    41: 'Abwasser, Wasser, Gas', 42: 'Wärme', 43: 'Lüftung, Klima', 44: 'Elektro', 45: 'Kommunikation, Sicherheit', 46: 'Förderanlagen', 47: 'Nutzungsspezifisch', 48: 'Automation', 49: 'Sonstige TGA' };
+  const ab = (v) => (v.fest || 0) + v.schichten.reduce((a, s) => a + Math.min(...s.optionen.map((o) => o.ep || 0)), 0);
+  const bg = modalBox(`<h3>${esc(opt.titel || 'Bauteil aus dem Baukasten')}</h3>
+    <div style="display:grid;grid-template-columns:minmax(14rem,19rem) minmax(0,1fr);gap:.8rem;min-width:min(940px,92vw)">
+      <div><div style="display:flex;gap:.3rem;margin-bottom:.4rem"><select id="abK" style="flex:1;min-width:0"><option value="">Alle Kostengruppen</option>${gruppen.map((g) => `<option value="${g}"${g === fkg ? ' selected' : ''}>${g}0 ${esc(KGN[g] || '')}</option>`).join('')}</select></div>
+        <input type="search" id="abQ" placeholder="Bauteil suchen …" autocomplete="off" style="width:100%;margin-bottom:.4rem">
+        <div id="abL" style="max-height:56vh;overflow:auto;border:1px solid var(--line);border-radius:8px"></div></div>
+      <div id="abR" style="max-height:62vh;overflow:auto"></div></div>
+    <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-top:.6rem;align-items:center"><span id="abS" class="mute" style="flex:1;font-size:.82rem"></span><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok" id="abOk">${esc(opt.knopf || 'Übernehmen')}</button></div>`, async (m, bg, close) => {
+    if (m === 'x') return close();
+    if (m !== 'ok') return;
+    if (!A) await rechne(); if (!A) return;
+    close(); if (opt.onOk) opt.onOk(A);
+  });
+  const liste = () => {
+    const s = q.toLowerCase(), L = V.filter((v) => (!fkg || kg2(v.kg) === fkg) && (!s || `${v.id} ${v.name} ${v.lang} ${v.kg}`.toLowerCase().includes(s)));
+    bg.querySelector('#abL').innerHTML = L.map((v) => `<div data-abv="${esc(v.id)}" style="padding:.4rem .6rem;border-bottom:1px solid var(--line);cursor:pointer;${v.id === vid ? 'background:var(--sel,rgba(80,140,255,.12))' : ''}">
+      <b style="font-weight:600">${esc(v.name)}</b><small style="display:block;color:var(--mute);font-size:.75rem">KG ${esc(v.kg)} · ${esc(v.einheit)} · ab ${eur(ab(v))}</small></div>`).join('') || '<p class="mute" style="padding:.8rem">Nichts gefunden.</p>';
+  };
+  const rechts = () => {
+    const v = V.find((x) => x.id === vid); if (!v) return;
+    v.schichten.forEach((s, i) => { if (wahl[i] == null || wahl[i] >= s.optionen.length) { const j = s.optionen.findIndex((o) => o.std); wahl[i] = j < 0 ? 0 : j; } }); wahl.length = v.schichten.length;
+    bg.querySelector('#abR').innerHTML = `<div style="font-size:1.05rem;font-weight:600">${esc(v.name)} <span class="mute" style="font-weight:400;font-size:.85rem">KG ${esc(v.kg)} · je ${esc(v.einheit)}</span></div>
+      <p style="margin:.3rem 0 .5rem;font-size:.88rem">${esc(v.lang)}${v.bezug ? `<br><span class="mute">Menge: ${esc(v.bezug)}</span>` : ''}</p>
+      ${v.schichten.map((s, i) => `<label style="display:grid;grid-template-columns:9.5rem minmax(0,1fr);gap:.5rem;align-items:center;margin:.3rem 0"><span style="font-size:.85rem">${esc(s.name)}</span>
+        <select data-abs="${i}">${s.optionen.map((o, j) => `<option value="${j}"${j === wahl[i] ? ' selected' : ''}>${esc(o.t || o.k || 'ohne')}${o.n ? ' · ' + eur(o.ep) : ''}</option>`).join('')}</select></label>`).join('')}
+      <div id="abP" style="margin:.7rem 0 .3rem;padding:.6rem .7rem;border:1px solid var(--line);border-radius:8px"></div><div id="abT"></div>`;
+    rechne();
+  };
+  async function rechne() {
+    const my = ++tk; A = null; bg.querySelector('#abOk').disabled = true;
+    try {
+      const a = await api('api/baudaten/aufbau', 'POST', { vorlage: vid, wahl }); if (my !== tk) return;
+      A = a; bg.querySelector('#abOk').disabled = false;
+      bg.querySelector('#abP').innerHTML = `<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:baseline"><span><span class="mute" style="font-size:.78rem">von</span><br>${eur(a.ep_von)}</span><span><span class="mute" style="font-size:.78rem">mittel</span><br><b style="font-size:1.15rem">${eur(a.ep_mittel)}</b></span><span><span class="mute" style="font-size:.78rem">bis</span><br>${eur(a.ep_bis)}</span><span class="mute" style="font-size:.8rem;flex:1">je ${esc(a.einheit)} netto, heutiger Preis (Index, Faktor) aus den Positionen</span></div>`;
+      bg.querySelector('#abT').innerHTML = `<table style="width:100%;font-size:.8rem;border-collapse:collapse"><thead><tr class="mute"><th style="text-align:left">Bestandteil (Positionsdatenbank)</th><th style="text-align:right">Faktor</th><th>Einh.</th><th style="text-align:right">EP</th><th style="text-align:right">je ${esc(a.einheit)}</th></tr></thead><tbody>
+        ${a.teile.map((t) => `<tr style="border-top:1px solid var(--line)"><td>${esc(t.kurz)} <span class="mute">${esc(t.code)}</span></td><td style="text-align:right">${String(t.faktor).replace('.', ',')}</td><td>${esc(t.einheit)}</td><td style="text-align:right">${eur(t.ep_mittel)}</td><td style="text-align:right">${eur(t.anteil)}</td></tr>`).join('')}</tbody></table>`;
+      bg.querySelector('#abS').textContent = a.kurz;
+    } catch (e) { if (my === tk) bg.querySelector('#abP').textContent = e.message; }
+  }
+  bg.addEventListener('click', (e) => { const d = e.target.closest('[data-abv]'); if (!d) return; if (d.dataset.abv !== vid) { vid = d.dataset.abv; wahl = []; liste(); rechts(); } });
+  bg.addEventListener('change', (e) => {
+    const s = e.target.closest('[data-abs]'); if (s) { wahl[+s.dataset.abs] = +s.value; rechne(); return; }
+    if (e.target.id === 'abK') { fkg = e.target.value; liste(); }
+  });
+  bg.querySelector('#abQ').addEventListener('input', (e) => { q = e.target.value.trim(); liste(); });
+  liste(); rechts();
 }

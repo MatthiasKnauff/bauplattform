@@ -516,20 +516,20 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
 /* Einfache Ansicht */
 .einu{display:none}
 .ein-wg{margin:.45rem 0 0;font-size:.85rem;color:var(--mute);display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}.ein-wg button{border:1px solid var(--line);background:var(--card);font:inherit;font-size:.82rem;color:var(--ink);cursor:pointer;padding:.15rem .6rem;border-radius:999px}.ein-wg button:hover{border-color:var(--y)}
-html[data-modus="einfach"] .einu{display:block;margin:0 0 0 272px;padding:.8rem 1rem .3rem}@media (max-width:860px){html[data-modus="einfach"] .einu{margin-left:0}}
+html[data-modus="einfach"] .einu{display:block;margin:0;padding:.6rem 1rem .2rem}@media (max-width:860px){html[data-modus="einfach"] .einu{margin-left:0}}
 .einh{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem}.einh>div{flex:1;min-width:16rem}
 .einh h2{margin:0;font-size:1.35rem;letter-spacing:-.02em}.einh p{margin:.3rem 0 0;color:var(--mute)}
 .einh .btn{padding:.45rem .9rem;font-size:.92rem;border-radius:10px}
-.einu h3{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:.9rem 0 .45rem}
-.eing{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,220px));gap:.5rem}
-.eink{display:flex;flex-direction:column;gap:.4rem;text-align:left;padding:.7rem .85rem;border-radius:12px;font-size:.9rem;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.einu h3{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:.6rem 0 .35rem}
+.eing{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,230px));gap:.45rem;align-items:start}
+.eink{display:flex;flex-direction:column;gap:.25rem;text-align:left;padding:.45rem .65rem;border-radius:10px;font-size:.9rem;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
 .eink:hover{border-color:var(--y)}.eink.on{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 20%,transparent)}
-.eink .eh{display:flex;gap:.7rem;align-items:flex-start}.eink .eh b{display:block;font-size:.95rem}.eink .eh small{color:var(--mute);font-size:.82rem}
-.enr{width:30px;height:30px;border-radius:9px;font-size:.85rem;background:var(--tabs);display:grid;place-items:center;font-weight:700;flex:none}
-.es{display:flex;justify-content:space-between;align-items:baseline}.es small{color:var(--mute);font-size:.82rem}.es b{font-size:1.1rem;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.eb{height:6px;border-radius:99px;background:var(--tabs);overflow:hidden}.eb i{display:block;height:100%;background:var(--y);border-radius:99px}
-.ef{display:flex;justify-content:space-between;gap:.5rem;font-size:.8rem;color:var(--mute)}
-.en{padding:.35rem .6rem;border-radius:8px;background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink);font-weight:600;font-size:.84rem}
+.eink .eh{display:flex;gap:.55rem;align-items:center;min-width:0}.eink .eh>span:last-child{min-width:0}.eink .eh b{display:block;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eink .eh small{display:block;color:var(--mute);font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.enr{width:24px;height:24px;border-radius:7px;font-size:.78rem;background:var(--tabs);display:grid;place-items:center;font-weight:700;flex:none}
+.es{display:flex;justify-content:space-between;align-items:baseline;gap:.4rem;min-width:0}.es small{color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.es b{white-space:nowrap}.es b{font-size:1rem;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.eb{height:4px;border-radius:99px;background:var(--tabs);overflow:hidden}.eb i{display:block;height:100%;background:var(--y);border-radius:99px}
+.ef{display:flex;justify-content:space-between;gap:.5rem;font-size:.76rem;color:var(--mute);white-space:nowrap;overflow:hidden}.ef>span{overflow:hidden;text-overflow:ellipsis}.ef:has(>span:empty+span:empty){display:none}
+.en{padding:.2rem .5rem;border-radius:7px;background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink);font-weight:600;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 html[data-modus="einfach"] [data-umenu]{display:none}
 
@@ -1259,9 +1259,9 @@ function einUeb() {
   const G = [['In Ausschreibung', A.filter((x) => !x.vergeben && !x.frei && !(x.n_angebote > 0))], ['In Vergabe', A.filter((x) => !x.vergeben && !x.frei && x.n_angebote > 0)], ['In Abrechnung', A.filter((x) => x.vergeben || x.frei)]];
   const karte = (x) => {
     let wert, lab, bal, f1, f2, next, t;
-    if (x.vergeben || x.frei) { const auf = x.auftrag || 0, ab = x.abgerechnet || 0; wert = eu(ab); lab = 'abgerechnet'; bal = auf ? Math.min(100, ab / auf * 100) : 0; f1 = x.auftragnehmer || (x.frei ? 'ohne LV' : ''); f2 = auf ? 'Auftrag ' + eu(auf) : ''; next = '🧾 Rechnung erfassen oder prüfen'; t = 'rechnungen'; }
-    else if (x.n_angebote > 0) { wert = eu(x.min_angebot); lab = 'günstigstes Angebot'; bal = 100; f1 = `${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}`; f2 = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; next = '✓ Preisspiegel ansehen & vergeben'; t = 'angebote'; }
-    else { wert = String(x.n_pos || 0); lab = 'Positionen'; bal = 0; f1 = x.gewerk || ''; f2 = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; next = x.n_pos ? '✉ LV prüfen und verschicken' : '＋ Positionen eintragen'; t = 'lv'; }
+    if (x.vergeben || x.frei) { const auf = x.auftrag || 0, ab = x.abgerechnet || 0; wert = eu(ab); lab = 'abgerechnet'; bal = auf ? Math.min(100, ab / auf * 100) : 0; f1 = x.auftragnehmer || (x.frei ? 'ohne LV' : ''); f2 = auf ? 'Auftrag ' + eu(auf) : ''; next = '🧾 Rechnung erfassen / prüfen'; t = 'rechnungen'; }
+    else if (x.n_angebote > 0) { wert = eu(x.min_angebot); lab = 'günstigstes Angebot'; bal = 100; f1 = `${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}`; f2 = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; next = '✓ Preisspiegel & vergeben'; t = 'angebote'; }
+    else { wert = String(x.n_pos || 0); lab = 'Positionen'; bal = 0; f1 = x.gewerk || ''; f2 = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; next = x.n_pos ? '✉ LV prüfen & verschicken' : '＋ Positionen eintragen'; t = 'lv'; }
     return `<button type="button" class="eink${L && L.id === x.id ? ' on' : ''}" data-einlv="${x.id}" data-eintab="${t}"><span class="eh"><span class="enr">${esc(x.nr || '·')}</span><span><b>${esc(x.name)}</b><small>${esc(x.gewerk || '')}</small></span></span>
       <span class="es"><small>${lab}</small><b>${wert}</b></span><span class="eb"><i style="width:${bal}%"></i></span><span class="ef"><span>${esc(f1)}</span><span>${esc(f2)}</span></span><span class="en">${next} ›</span></button>`;
   };

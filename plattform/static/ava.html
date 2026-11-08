@@ -942,9 +942,16 @@ async function avaDokument(f) {
         }
         projId = +e.target.value;
       }
+      if (e.target.id === 'adLv' || e.target.id === 'adArt') firmaAusLv();
       zeichne();
     });
-    bg.addEventListener('input', (e) => { if (e.target.id === 'adFirma') { clearTimeout(ABL.t); ABL.t = setTimeout(ablSuchen, 500); } });
+    // Rechnung/Aufmaß zu einem vergebenen LV: die Firma ist der Auftragnehmer – eintragen, solange nicht selbst getippt
+    let fAuto = null;
+    const firmaAusLv = () => { const fi = bg.querySelector('#adFirma'), art = bg.querySelector('#adArt').value, x = lvs.find((y) => y.id === +bg.querySelector('#adLv').value);
+      if (art === 'angebot' || !x || !x.bieter || !fi) return;
+      if (!fi.value.trim() || fi.value === fAuto) { fi.value = x.bieter; fAuto = x.bieter; clearTimeout(ABL.t); ABL.t = setTimeout(ablSuchen, 100); } };
+    setTimeout(firmaAusLv, 0);
+    bg.addEventListener('input', (e) => { if (e.target.id === 'adFirma') { fAuto = null; clearTimeout(ABL.t); ABL.t = setTimeout(ablSuchen, 500); } });
     bg.addEventListener('click', async (e) => {
       if (!e.target.closest('#adAblWahl')) return;
       const w = await ordnerWahl(projId, ABL.ordner ? ABL.ordner.filter((_, i) => !(ABL.neu && ABL.neu[i])) : []);

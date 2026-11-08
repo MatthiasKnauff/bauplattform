@@ -850,7 +850,7 @@ async function btGespeichert(id) { await loadProjects(); await openProject(id); 
 function newProject() {   // dieselbe Projektmaske wie in allen Apps; ohne Kopfleiste: Eingabe im Reiter „Projekt“
   closeSheet(); $('#menu').classList.add('hidden');
   if (window.BPHead && BPHead.projektBearbeiten) return BPHead.projektBearbeiten(null, { onSaved: btGespeichert });
-  draft = {name: '', client: '', street: '', zip: '', city: '', leaders: me.is_admin ? [] : [me.id]}; tab = 'projekt'; renderDetail();
+  draft = {name: '', client: '', street: '', zip: '', city: '', leaders: [me.id]}; tab = 'projekt'; renderDetail();
   document.querySelector('[data-dp=name]')?.focus();
 }
 async function createProject() {

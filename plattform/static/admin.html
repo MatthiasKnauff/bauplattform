@@ -216,7 +216,7 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
 }
 async function projForm(p) {
   if (!data.lead) { try { data.lead = await api('api/leaders'); } catch { data.lead = []; } }
-  const isNew = !p, L = new Set(p ? p.leaders : []);
+  const isNew = !p, L = new Set(p ? p.leaders : [me && me.id].filter(Boolean));   // neu: wer anlegt, ist zuständiger Bauleiter
   const bg = modalBox(`<div class="pf-h"><h3 style="margin:0">${isNew ? 'Projekt anlegen' : esc(p.name)}</h3>${isNew ? '' : `<span class="mute" style="font-size:.85rem">${p.bt.reports} Tagesberichte · ${p.bt.images} Fotos</span>`}</div>
     <div class="pf">
       <label class="w">Bauvorhaben<input id="fName" value="${esc(p ? p.name : '')}" data-bp-projekt autocomplete="off" placeholder="Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop"></label>

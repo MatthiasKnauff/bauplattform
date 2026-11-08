@@ -1611,7 +1611,7 @@
     try { [P, LEAD] = await Promise.all([id ? J('projects').then((l) => l.find((x) => x.id === +id)) : null, J('leaders')]); } catch (e) { alert(e.message); return; }
     if (id && !P) { alert('Projekt nicht gefunden.'); return; }
     const neu = !P, me = H.me || {};
-    const d = P ? { ...P, leaders: [...(P.leaders || [])] } : { name: opt.name || '', client: '', street: '', zip: '', city: '', folder: '', leaders: me.is_admin ? [] : [me.id].filter(Boolean) };
+    const d = P ? { ...P, leaders: [...(P.leaders || [])] } : { name: opt.name || '', client: '', street: '', zip: '', city: '', folder: '', leaders: [me.id].filter(Boolean) };   // wer anlegt, ist zuständiger Bauleiter (abwählbar)
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
     bg.innerHTML = '<div class="bph-dlg bph-pe" role="dialog" aria-label="Projekt"></div>'; document.body.appendChild(bg);
     const root = bg.firstChild, close = () => { bg.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => { if (e.key === 'Escape') close(); };

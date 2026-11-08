@@ -276,6 +276,17 @@ def ruege_text(grund, frist, kuendigung=True, auftrag=""):
 def ruege_vorlage():
     """Daten für den Dialog: Empfänger (aus den Kontakten), Projekt, offene Mängel derselben Firma im Projekt."""
     i = request.args.get("id", type=int)
+    if not i:   # ohne Ausgangspunkt: Projekt und Firma (z. B. Firma ohne erfasste Mängel)
+        pid, firma = request.args.get("pid", type=int), (request.args.get("firma") or "").strip()[:200]
+        with db.tx() as c:
+            pr = _projects(c).get(pid)
+            if not pr or not _sees(g.user, pr):
+                return jsonify(error="Projekt nicht gefunden"), 404
+            k = c.execute("SELECT * FROM contacts WHERE lower(name)=lower(?) ORDER BY id LIMIT 1", (firma,)).fetchone() if firma else None
+        alle = [m for m in maengel("all").get_json() if m["pid"] == pid and not m["done"] and m["art"] == "maengel"]
+        return jsonify(firma=firma, pid=pid, empfaenger={"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
+                                                         "email": k["email"] or ""} if k else {"name": firma, "person": "", "strasse": "", "ort": "", "email": ""},
+                       maengel=alle, gewaehlt=[m["id"] for m in alle if firma and (m["firma"] or "").lower() == firma.lower()], signme=_signme())
     with db.tx() as c:
         x = c.execute("""SELECT i.id, i.company, r.project_id AS pid, ct.name AS contact FROM items i JOIN reports r ON r.id=i.report_id
                          LEFT JOIN contacts ct ON ct.id=i.contact_id WHERE i.id=?""", (i,)).fetchone()
@@ -286,8 +297,8 @@ def ruege_vorlage():
             return jsonify(error="Nicht gefunden"), 404
         firma = x["company"] or x["contact"] or ""
         k = c.execute("SELECT * FROM contacts WHERE lower(name)=lower(?) ORDER BY id LIMIT 1", (firma,)).fetchone() if firma else None
-    alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"] and m["art"] == "maengel"]
-    return jsonify(firma=firma, empfaenger={"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
+    alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"] and (m["art"] == "maengel" or m["id"] == i)]
+    return jsonify(firma=firma, pid=x["pid"], empfaenger={"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
                                            "email": k["email"] or ""} if k else {"name": firma, "person": "", "strasse": "", "ort": "", "email": ""},
                    maengel=alle, gewaehlt=[m["id"] for m in alle if m["id"] == i or (firma and m["firma"] == firma)], signme=_signme())
 
@@ -592,21 +603,31 @@ def ruege_pdf():
     """Mängelrüge: Entwurf für den Brief-Editor, Ausdruck oder Versand (auch des mit sign-me unterschriebenen PDFs)."""
     b, signiert = _rueckgabe()
     ids = [int(x) for x in b.get("ids") or [] if str(x).isdigit()]
-    ms = [m for m in maengel("all").get_json() if m["id"] in ids and m["art"] == "maengel"]
-    if not ms:
-        return jsonify(error="Bitte mindestens einen Mangel wählen."), 400
+    ms = [m for m in maengel("all").get_json() if m["id"] in ids]   # auch Weisungen / Aufgaben, die gerügt werden sollen
+    frei = [z.strip()[:500] for z in str(b.get("frei") or "").splitlines() if z.strip()][:40]   # selbst eingetragene Mängel
+    if not ms and not frei:
+        return jsonify(error="Bitte mindestens einen Mangel wählen oder selbst eintragen."), 400
+    if ms:
+        r_pid, r_projekt = ms[0]["pid"], ms[0]["projekt"]
+    else:
+        with db.tx() as c:
+            pr = _projects(c).get(b.get("pid"))
+        if not pr or not _sees(g.user, pr):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        r_pid, r_projekt = b.get("pid"), pr["name"]
     E = b.get("empfaenger") if isinstance(b.get("empfaenger"), dict) else {}
     frist = str(b.get("frist") or "").strip()
     grund, grund_n = GRUND.get(b.get("grund"), GRUND["vob4"])
-    liste = "\n".join(f"{n}. {m['text'].strip()}" + (f"  (festgestellt am {_de(m['datum'])})" if m["datum"] else "") for n, m in enumerate(ms, 1))
+    liste = "\n".join([f"{n}. {m['text'].strip()}" + (f"  (festgestellt am {_de(m['datum'])})" if m["datum"] else "") for n, m in enumerate(ms, 1)]
+                      + [f"{n}. {z}" for n, z in enumerate(frei, len(ms) + 1)])
     auftrag = str(b.get("auftrag") or "").strip()[:80]
     text = (b.get("text") or "").strip() or ruege_text(b.get("grund") if b.get("grund") in GRUND else "vob4", _de(frist), b.get("kuendigung", True) is not False, auftrag)
     schritt = b.get("schritt") if b.get("schritt") in ("entwurf", "drucken", "pruefen", "senden") else "senden"
-    buf, cv, W, H, L, R, ink, mm, ImageReader, felder = _brief(ms[0]["pid"], ms[0]["projekt"], E, auftrag, "Mängelrüge", "Mängelrüge nach VOB/B",
+    buf, cv, W, H, L, R, ink, mm, ImageReader, felder = _brief(r_pid, r_projekt, E, auftrag, "Mängelrüge", "Mängelrüge nach VOB/B",
                                                       f"Grundlage: {grund} – {grund_n}.",
                                                       text, "Festgestellte Mängel", "Maengel", "Mängel (Liste ergänzbar)", liste, "Frist zur Beseitigung:", frist, sig=_sig(),
                                                       werte=_werte(b), fest=schritt != "entwurf")
-    if b.get("fotos"):   # Anlage: Fotos zu den Mängeln
+    if b.get("fotos") and ms:   # Anlage: Fotos zu den Mängeln
         with db.tx() as c:
             tok = sso.current_token(request, c)
             imgs = c.execute(f"SELECT item_id, file FROM images WHERE item_id IN ({','.join('?' * len(ms))}) ORDER BY item_id, id", tuple(m["id"] for m in ms)).fetchall()
@@ -643,8 +664,8 @@ def ruege_pdf():
                     C.bt_api("PUT", f"/api/items/{m['id']}", {"due": frist})
                 except RuntimeError:
                     pass
-    C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{ms[0]['projekt']} · {E.get('name') or ''} · {len(ms)} Mängel")
-    hinweis, fehler, neu = _versenden(b, "Mängelrüge", E, ms[0]["projekt"], ms[0]["pid"], frist, len(ms), buf.getvalue(), fn, inhalt=("Mit sign-me qualifiziert signiert.\n" if signiert else "") + (felder.get("Maengel") or liste))
+    C.audit(g.user["name"], "export", "Mängelrüge erstellt", f"{r_projekt} · {E.get('name') or ''} · {len(ms) + len(frei)} Mängel")
+    hinweis, fehler, neu = _versenden(b, "Mängelrüge", E, r_projekt, r_pid, frist, len(ms) + len(frei), buf.getvalue(), fn, inhalt=("Mit sign-me qualifiziert signiert.\n" if signiert else "") + (felder.get("Maengel") or liste))
     return _pdf_antwort(buf.getvalue(), fn, hinweis, fehler, neu)
 
 

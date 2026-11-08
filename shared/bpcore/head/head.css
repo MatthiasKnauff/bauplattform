@@ -444,3 +444,8 @@ html[data-modus="einfach"] .bph-ki,html[data-modus="einfach"] .bph-kim{display:n
 .bph-kiw label.aus{opacity:.5;cursor:default}
 .bph-kiw span{display:flex;flex-direction:column}.bph-kiw small{color:var(--mute,#9a9c9e);font-size:.8rem}
 .bph-ck{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap}
+
+/* Scrollbalken in allen Apps schmal, ohne eigene Spur – Fenster und Karten behalten ihre runden Ecken */
+html{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,currentColor 32%,transparent) transparent}
+html *{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,currentColor 32%,transparent) transparent}
+.modal,.bph-dlg,.bph-pa-box,.bph-menu,.bph-km,.umenu{scrollbar-gutter:auto}

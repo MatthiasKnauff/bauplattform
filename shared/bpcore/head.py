@@ -633,6 +633,8 @@ def blueprint(get_user=None):
             if ids:
                 rows = c.execute(f"SELECT * FROM contacts WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()
                 return jsonify([contacts.aus(r) for r in rows])
+            if request.args.get("namen"):   # alle Kontakte kurz (Name, Gewerk) – für Auswahlfelder mit Suche
+                return jsonify([{"id": r["id"], "name": r["name"], "trade": r["trade"] or ""} for r in c.execute("SELECT id, name, trade FROM contacts ORDER BY lower(name) LIMIT 5000")])
             return jsonify(contacts.suchen(c, request.args.get("q", ""), request.args.get("rolle", "")))
 
     @bp.post("/api/bp/kontakte")

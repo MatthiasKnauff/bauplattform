@@ -1504,7 +1504,7 @@
     const sw = sel.getBoundingClientRect().width; if (sw > 40 && !sel.closest('.fm,.bph-dm,.bph-row')) w.style.width = Math.max(sw, 200) + 'px';
     sel.after(w); sel.style.display = 'none'; sel.tabIndex = -1;
     let box = null, L = [], ak = -1, mein = null;
-    const text = () => { const o = sel.selectedOptions[0]; inp.value = o ? o.textContent.trim() : ''; inp.placeholder = 'Projekt suchen …'; };
+    const text = () => { const o = sel.selectedOptions[0]; inp.value = o ? o.textContent.trim() : ''; inp.placeholder = sel.dataset.ph || 'Projekt suchen …'; };
     const eintraege = () => {
       const out = [];
       [...sel.querySelectorAll('option')].forEach((o) => {
@@ -1524,12 +1524,14 @@
       const ord = ['', ...new Set(E.filter((x) => !x.p && x.g && x.g !== '…').map((x) => x.g)), 'Meine Projekte', 'Projekte', 'Andere Projekte', '…'];
       L = []; let h = '';
       ord.forEach((gr) => { const G = E.filter((x) => x.g === gr); if (!G.length) return; if (gr && gr !== '…') h += `<div class="bph-pa-g">${esc(gr)}</div>`; G.forEach((x) => { L.push(x); h += `<button type="button" class="bph-pa-o${x.v === sel.value ? ' on' : ''}" data-pa="${L.length - 1}" tabindex="-1">${esc(x.t)}</button>`; }); });
-      box.innerHTML = h || '<div class="bph-pa-n">Kein Projekt gefunden.</div>';
+      box.innerHTML = h || `<div class="bph-pa-n">${sel.dataset.leer || 'Kein Projekt gefunden.'}</div>`;
       ak = ws.length ? (L.findIndex((x) => x.p) >= 0 ? L.findIndex((x) => x.p) : 0) : L.findIndex((x) => x.v === sel.value); mark();
     };
     const mark = () => { if (!box) return; box.querySelectorAll('.bph-pa-o').forEach((b, i) => b.classList.toggle('ak', i === ak)); const b = box.querySelector('.ak'); if (b) b.scrollIntoView({ block: 'nearest' }); };
+    let oeffnet = null;
     const auf = async () => {
-      if (box) return; mein = await paMein();
+      if (box) return; if (oeffnet) return oeffnet;   // schnelles Tippen: nur eine Liste öffnen
+      oeffnet = paMein(); mein = await oeffnet; oeffnet = null; if (box) return;
       box = document.createElement('div'); box.className = 'bph-pa-box'; box.setAttribute('role', 'listbox'); document.body.appendChild(box);
       inp.setAttribute('aria-expanded', 'true'); lage(); zeichnen(''); inp.select();
       document.addEventListener('mousedown', aussen, true); window.addEventListener('scroll', lage, true);

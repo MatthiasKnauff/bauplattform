@@ -120,6 +120,9 @@ html[data-modus="einfach"] .einq{display:flex;gap:.4rem;flex-wrap:wrap}
 html[data-modus="einfach"] .einkopf{display:block;margin:.2rem 0 1rem}.einkopf h1{margin:0;font-size:1.8rem;letter-spacing:-.02em}.einkopf p{margin:.3rem 0 0;color:var(--mute)}
 html[data-modus="einfach"] #scope{display:none!important}
 html[data-modus="einfach"] .top{order:-1}
+
+.ferr{color:var(--red,#c8372a);font-weight:600;font-size:.88rem;margin:.25rem 0 0}
+.feld-fehler,.feld-fehler .bph-pa input{outline:2px solid var(--red,#c8372a);outline-offset:2px;border-radius:8px}
 </style>
 <link rel="stylesheet" href="static/todo.css">
 </head>
@@ -612,8 +615,8 @@ document.addEventListener('click', async (e) => {
 });
 
 /* ---------- Mängelrüge: Dialog → Entwurf im Brief-Editor ---------- */
-async function ruegeDialog(id) {
-  let V; try { [V] = await Promise.all([api('api/maengelruege/vorlage?id=' + id), konto()]); } catch (e) { toast(e.message, true); return; }
+async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Eintrag: { pid, firma }
+  let V; try { [V] = await Promise.all([api('api/maengelruege/vorlage?' + (id ? 'id=' + id : `pid=${ohne.pid}&firma=${encodeURIComponent(ohne.firma || '')}`)), konto()]); } catch (e) { toast(e.message, true); return; }
   SIGNME = !!V.signme;
   const E = V.empfaenger, sel = new Set(V.gewaehlt);
   const ms = () => V.maengel.map((m) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-rm="${m.id}"${sel.has(m.id) ? ' checked' : ''}><span>${esc(m.text)}<small class="mute" style="display:block">${esc(m.firma || 'ohne Firma')} · festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''}</small></span></label>`).join('');
@@ -626,7 +629,8 @@ async function ruegeDialog(id) {
     <label>Auftrag</label><input id="rA" placeholder="z. B. Nr. 12/2026 vom 03.03.2026 (optional)">
     <label></label><label class="chk" style="color:var(--ink)" id="rKw"><input type="checkbox" id="rK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
     <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="rF" value="${plus(14)}">${[[7, '1 Woche'], [14, '2 Wochen'], [21, '3 Wochen']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
-    <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">${ms()}</div>
+    <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" id="rMl" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">${V.maengel.length ? ms() : '<span class="mute" style="font-size:.88rem">In diesem Projekt sind keine offenen Mängel erfasst – trag sie unten selbst ein.</span>'}</div>
+    <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt"></textarea>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>
     ${versandHtml(KONTO, E.email)}
@@ -635,9 +639,10 @@ async function ruegeDialog(id) {
     if (m === 'x') { close(); return; }
     if (m.startsWith('f')) { bg.querySelector('#rF').value = plus(+m.slice(1)); return; }
     if (m === 'ok') {
-      const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm); if (!ids.length) { toast('Bitte mindestens einen Mangel wählen.', true); return; }
+      const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm), frei = bg.querySelector('#rX').value.trim();
+      if (!ids.length && !frei) { fehlerAm(bg, bg.querySelector('#rX'), 'Bitte mindestens einen Mangel anhaken oder selbst eintragen.'); return; }
       const vs = versandRead(bg); if (!vs) return;
-      const body = { ...vs, ids, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
+      const body = { ...vs, ids, frei, pid: V.pid, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
         empfaenger: { id: bg.querySelector('#rN').value.trim() === E.name ? E.id : null, name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
       try { await briefStart('api/maengelruege', body, 'Mängelrüge', close); } catch (e) { toast(e.message, true); }
     }
@@ -666,49 +671,67 @@ function neuWahl() {
   });
 }
 /* Rüge ohne Ausgangspunkt: Projekt und Firma wählen (Mängel aus dem Bautagebuch, Firmen aus Plan und Anwesenheit) */
+/* Firmenauswahl mit Suche: oben die Firmen dieses Vorgangs, dann die am Projekt Beteiligten, unten alle übrigen aus den Adressen */
+function firmaSelect(id, gruppen, wert) {
+  const seen = new Set();
+  return `<select id="${id}" data-bp-projekte data-ph="Firma suchen …" data-leer="Keine Firma gefunden." aria-label="Firma"><option value="">– Firma wählen –</option>${gruppen.map(([g, L]) => { const o = L.filter(([n]) => n && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase())); return o.length ? `<optgroup label="${esc(g)}">${o.map(([n, t]) => `<option value="${esc(n)}"${wert && n.toLowerCase() === wert.toLowerCase() ? ' selected' : ''}>${esc(t || n)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>`;
+}
+let KNAMEN = null;
+const kontaktNamen = async () => (KNAMEN = KNAMEN || await api('api/bp/kontakte?namen=1').catch(() => []));
+/* Fehler direkt am Feld zeigen (nicht nur als Meldung unten) */
+function fehlerAm(bg, el, msg) {
+  bg.querySelectorAll('.ferr').forEach((x) => x.remove()); bg.querySelectorAll('.feld-fehler').forEach((x) => x.classList.remove('feld-fehler'));
+  if (el) { el.classList.add('feld-fehler'); el.insertAdjacentHTML('afterend', `<p class="ferr w" role="alert">⚠ ${esc(msg)}</p>`); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); const f = el.matches('input,textarea,select') ? el : el.querySelector('input,textarea,select'); if (f) setTimeout(() => f.focus(), 250); }
+  toast(msg, true);
+}
+/* Rüge ohne Ausgangspunkt: Projekt und Firma wählen – Firmen mit offenen Mängeln oben, dann Beteiligte, dann alle Adressen */
 async function ruegeNeu(grund) {
-  let L; try { L = (await api('api/maengel?scope=all')).filter((m) => !m.done && !m.archiviert); } catch (e) { toast(e.message, true); return; }
-  if (!L.length) { bpHinweis('Es gibt keine offenen Mängel. Mängel werden im Bautagebuch erfasst – danach lässt sich hier die Rüge schreiben.'); return; }
-  const P = [...new Map(L.map((m) => [m.pid, m.projekt])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'));
-  const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || P[0][0];
-  const firmen = (pid) => [...new Set(L.filter((m) => m.pid === pid && m.firma).map((m) => m.firma))].sort((a, b) => a.localeCompare(b, 'de'));
-  const opt = (pid) => firmen(pid).map((f) => `<option value="${esc(f)}">${esc(f)} (${L.filter((m) => m.pid === pid && m.firma === f).length})</option>`).join('');
+  let LA, P, T0 = [], KN = [];
+  try { [LA, P, T0, KN] = await Promise.all([api('api/maengel?scope=all'), api('api/projekte'), api('api/termine?scope=all').catch(() => []), kontaktNamen()]); } catch (e) { toast(e.message, true); return; }
+  const L = LA.filter((m) => !m.done && !m.archiviert && m.art === 'maengel');
+  const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (L[0] || {}).pid || (P[0] || {}).id;
+  const gruppen = (pid) => {
+    const offen = [...new Set(L.filter((m) => m.pid === pid && m.firma).map((m) => m.firma))].sort((a, b) => a.localeCompare(b, 'de')).map((f) => [f, `${f} (${L.filter((m) => m.pid === pid && m.firma === f).length} offen)`]);
+    const bet = [...new Set([...LA.filter((m) => m.pid === pid && m.firma).map((m) => m.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])].sort((a, b) => a.localeCompare(b, 'de')).map((f) => [f]);
+    return [['Mit offenen Mängeln', offen], ['Im Projekt beteiligt', bet], ['Weitere Firmen aus den Adressen', (KN || []).map((k) => [k.name, k.trade ? `${k.name} · ${k.trade}` : k.name])]];
+  };
   const bg = modalBox(`<h3>${grund === 'vob4' ? 'Mängelrüge vor Abnahme' : 'Mängelrüge nach Abnahme'}</h3><div class="fm">
-    <label>Projekt</label><select id="nrP" data-bp-projekte>${P.map(([i, n]) => `<option value="${i}"${i === pid0 ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
-    <label>Firma</label><select id="nrF">${opt(P.some(([i]) => i === pid0) ? pid0 : P[0][0])}</select>
-    <p class="w mute" style="font-size:.82rem;margin:0">Zur Auswahl stehen Firmen mit offenen Mängeln (in Klammern: Anzahl). Im nächsten Schritt wählst du die Mängel und die Frist.</p></div>
+    <label for="nrP">Projekt</label><select id="nrP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === pid0 ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+    <label for="nrF_pa">Firma</label><span id="nrFw">${firmaSelect('nrF', gruppen(pid0))}</span>
+    <p class="w mute" style="font-size:.82rem;margin:0">Oben Firmen mit offenen Mängeln (Anzahl), dann die am Projekt Beteiligten, darunter alle anderen aus den Adressen. Im nächsten Schritt wählst du die Mängel – oder trägst sie selbst ein – und die Frist.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
-    const pid = +bg.querySelector('#nrP').value, f = bg.querySelector('#nrF').value, x = L.find((y) => y.pid === pid && y.firma === f);
-    if (!x) { toast('Bitte eine Firma wählen.', true); return; }
-    close(); await ruegeDialog(x.id);
+    const pid = +bg.querySelector('#nrP').value, f = bg.querySelector('#nrF').value;
+    if (!f) { fehlerAm(bg, bg.querySelector('#nrFw'), 'Bitte eine Firma wählen.'); return; }
+    const x = L.find((y) => y.pid === pid && y.firma === f);
+    close(); await ruegeDialog(x ? x.id : null, { pid, firma: f });
     const rg = [...document.querySelectorAll('#rG')].pop(); if (rg) { rg.value = grund; rg.dispatchEvent(new Event('change')); }
   });
-  bg.querySelector('#nrP').addEventListener('change', (e) => { bg.querySelector('#nrF').innerHTML = opt(+e.target.value); });
+  bg.querySelector('#nrP').addEventListener('change', (e) => { bg.querySelector('#nrFw').innerHTML = firmaSelect('nrF', gruppen(+e.target.value)); });
 }
 async function terminNeu() {
   let P, K = [], VZ0 = null, T0 = [];
-  try { [P, VZ0, T0] = await Promise.all([api('api/projekte'), api('api/verzug?scope=all').catch(() => null), api('api/termine?scope=all').catch(() => [])]); } catch (e) { toast(e.message, true); return; }
+  try { [P, VZ0, T0, K] = await Promise.all([api('api/projekte'), api('api/verzug?scope=all').catch(() => null), api('api/termine?scope=all').catch(() => []), kontaktNamen()]); } catch (e) { toast(e.message, true); return; }
   const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (P[0] || {}).id;
   const vorschlag = (pid) => [...new Set([...((VZ0 && VZ0.vorgaenge) || []).filter((x) => x.pid === pid).map((x) => x.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])];
   const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
     <label>Projekt</label><select id="ntP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === pid0 ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
-    <label>Firma</label><input id="ntF" list="ntL" placeholder="Firma aus den Adressen" autocomplete="off"><datalist id="ntL"></datalist>
+    <label for="ntF_pa">Firma</label><span id="ntFw"></span>
     <p class="w mute" style="font-size:.82rem;margin:0" id="ntH"></p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     const pid = +bg.querySelector('#ntP').value, f = bg.querySelector('#ntF').value.trim();
-    if (!f) { toast('Bitte eine Firma angeben.', true); return; }
+    if (!f) { fehlerAm(bg, bg.querySelector('#ntFw'), 'Bitte eine Firma wählen.'); return; }
     close(); truegeDialog(pid + '|' + f.toLowerCase());
   });
   const liste = () => { const pid = +bg.querySelector('#ntP').value, v = vorschlag(pid);
-    bg.querySelector('#ntL').innerHTML = [...v, ...(K || []).map((k) => k.name).filter((n) => !v.includes(n))].map((n) => `<option value="${esc(n)}">`).join('');
+    const bet = [...new Set((T0 || []).filter((x) => x.pid === pid).map((x) => x.firma))].filter((n) => !v.includes(n));
+    bg.querySelector('#ntFw').innerHTML = firmaSelect('ntF', [['Laut Bauzeitenplan im Rückstand / nicht da', v.map((n) => [n])], ['Im Projekt beteiligt', bet.map((n) => [n])], ['Weitere Firmen aus den Adressen', (K || []).map((k) => [k.name, k.trade ? `${k.name} · ${k.trade}` : k.name])]], v[0] || '');
     bg.querySelector('#ntH').textContent = v.length ? 'Laut Bauzeitenplan im Rückstand oder nicht anwesend: ' + v.join(', ') : 'Für dieses Projekt meldet der Bauzeitenplan keinen Rückstand – den Rückstand beschreibst du im nächsten Schritt selbst.'; };
   bg.querySelector('#ntP').addEventListener('change', liste); liste();
-  let kt = 0; bg.querySelector('#ntF').addEventListener('input', (e) => { clearTimeout(kt); const q = e.target.value.trim(); if (q.length < 2) return;
-    kt = setTimeout(async () => { try { K = await api('api/bp/kontakte?q=' + encodeURIComponent(q)); liste(); } catch { /* ohne Vorschläge */ } }, 200); });
+
 }
 $('#neuBtn').onclick = neuWahl;
 

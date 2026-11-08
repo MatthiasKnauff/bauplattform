@@ -728,7 +728,7 @@ async function vleiste(neu) {
 }
 /* Versionen braucht man nur beim Ausschreiben – die Leiste steht nur im Schritt „Ausschreibung“ */
 /* Menü „⋯“ der Bereichsleiste: die Befehle der (ausgeblendeten) Werkzeugleiste */
-const UMENU = [['impBtn', 'Import … (GAEB, Excel)'], ['expBtn', 'Export … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], '-', ['quBtn', 'Kopierquelle (LV daneben)'], '-', [() => lvVerlauf(), 'Verlauf …'], ['moreBtn', 'Archivieren / löschen …']];
+const UMENU = [['impBtn', 'Import … (GAEB, Excel)'], ['expBtn', 'Export … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], '-', ['quBtn', 'Kopierquelle (LV daneben)'], '-', ['moreBtn', 'Archivieren / löschen …']];
 /* Befehle je Phase sichtbar in der Bereichsleiste (Symbol + Wort); der Rest unter „⋯“ */
 /* Obere Leiste je Bereich: nur Datei rein/raus, Drucken und „daneben öffnen“ – alles „＋ Neu“ steht links, „＋ Titel/Position“ in der Seite.
    Eintrag: [Knopf-Selektor der Werkzeugleiste, Text] oder [Funktion, Text, Symbol, gesperrt?] */
@@ -782,13 +782,14 @@ const reGewaehlt = () => { if (!L || !L.rechnungen || !L.rechnungen.length) retu
 const reBefehl = (art) => () => { const r = reGewaehlt(); if (!r) return; const b = document.createElement('button'); b.dataset.reb = art; b.dataset.id = r.id; reAktion(b); };
 function uMenuPunkte() {   // nur, was nicht schon oben, links oder in der Seite steht
   const archiv = ['moreBtn', 'LV archivieren / löschen …'], verlauf = [() => lvVerlauf(), 'Verlauf …', !L];
-  if (tab === 'rechnungen' || tab === 'aufmass' || tab === 'angebote' || tab === 'tueren') return [verlauf, archiv];
-  if (tab === 'auftraege' || tab === 'uebersicht') return [['expBtn', 'Export … (GAEB, Excel)'], '-', verlauf];
+  if (tab === 'rechnungen' || tab === 'aufmass' || tab === 'angebote' || tab === 'tueren') return [archiv];
+  if (tab === 'auftraege') return [['expBtn', 'Export … (GAEB, Excel)']];
+  if (tab === 'uebersicht') return [['expBtn', 'Export … (GAEB, Excel)'], '-', verlauf];
   return UMENU;
 }
 function uLeiste() {
   UFN2 = [];
-  const liste = [...(UTAB[tab] ? UTAB[tab]() : []), ...(L && tab !== 'tueren' && tab !== 'uebersicht' ? [[uLoeschen, uLoeschText(), IC_DEL, false, 'rot']] : [])];
+  const liste = [...(UTAB[tab] ? UTAB[tab]() : []), ...(L && tab !== 'uebersicht' ? [[() => lvVerlauf(), 'Verlauf', '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>']] : []), ...(L && tab !== 'tueren' && tab !== 'uebersicht' ? [[uLoeschen, uLoeschText(), IC_DEL, false, 'rot']] : [])];
   return liste.map(([sel, l, ic, aus, rot]) => {
     if (typeof sel === 'function') { UFN2.push(sel); return `<button type="button" class="btn sm ug${rot ? ' u-rot' : ''}" data-ufn2="${UFN2.length - 1}"${aus ? ' disabled' : ''} title="${esc(rot ? l + ' – in den Papierkorb, mit Rückgängig' : l)}"><svg viewBox="0 0 24 24">${ic || ''}</svg>${esc(l)}</button>`; }
     const b = ribKnopf(sel); if (!b) return '';
@@ -818,7 +819,7 @@ document.addEventListener('click', (e) => {
     const sicht = new Set((UTAB[tab] ? UTAB[tab]() : []).map((x) => x[0]).filter((x) => typeof x === 'string'));   // im Menü nicht doppelt
     UFN = [];
     const oben = eng ? [...(UTAB[tab] ? UTAB[tab]() : []).map(([a, b, , c]) => [a, b, c]), '-'] : [];
-    const unten = L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : [];
+    const unten = [...(eng && L && tab !== 'uebersicht' ? ['-', [() => lvVerlauf(), '🕘 Verlauf …', false]] : []), ...(L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : [])];
     d.innerHTML = [...oben, ...uMenuPunkte().filter((x) => x === '-' || typeof x[0] === 'function' || !sicht.has(x[0])), ...unten].map((x) => { if (x === '-') return '<hr>';
       if (typeof x[0] === 'function') { UFN.push(x[0]); return `<button type="button" role="menuitem" data-ufn="${UFN.length - 1}"${x[2] ? ' disabled' : ''}>${esc(x[1])}</button>`; }
       const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');

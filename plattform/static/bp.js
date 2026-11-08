@@ -112,7 +112,7 @@ function dlgBeweglich(m) {
   const key = () => { const k = kopf(); return k ? 'bp.dlg2.' + ((k.childNodes[0] && k.childNodes[0].textContent) || k.textContent || '').trim().slice(0, 40) : ''; };
   const lesen = () => { try { return (key() && JSON.parse(localStorage.getItem(key()) || 'null')) || {}; } catch { return {}; } };
   const setzen = (r) => {
-    if (r.l != null) Object.assign(m.style, { position: 'fixed', margin: '0', left: Math.max(0, Math.min(innerWidth - 120, r.l)) + 'px', top: Math.max(0, Math.min(innerHeight - 60, r.t)) + 'px' });
+    if (r.l != null) Object.assign(m.style, { position: 'fixed', margin: '0', left: Math.max(100 - (r.w || m.offsetWidth || 400), Math.min(innerWidth - 100, r.l)) + 'px', top: Math.max(0, Math.min(innerHeight - 40, r.t)) + 'px' });
     if (r.w) m.style.width = Math.min(innerWidth - 16, r.w) + 'px';
     if (r.h) { m.style.height = Math.min(innerHeight - 16, r.h) + 'px'; m.style.maxHeight = 'none'; }
   };
@@ -127,12 +127,20 @@ function dlgBeweglich(m) {
         if (Math.abs(n.width - r.width) > 2 || Math.abs(n.height - r.height) > 2) merken({ w: Math.round(n.width), h: Math.round(n.height) }); };
       addEventListener('pointerup', up); return;
     }
-    const k = kopf(); if (!k || !k.contains(e.target) || e.target.closest('button,input,select,a')) return;
+    // Anfassen: Überschrift oder der ganze obere Streifen des Dialogs (nicht auf Knöpfen/Feldern) – vorher musste man die Schrift genau treffen
+    const k = kopf(), kr = k && k.getBoundingClientRect();
+    const oben = e.clientY < Math.max(r.top + 34, kr ? kr.bottom + 4 : 0);
+    if (!(k && k.contains(e.target)) && !oben) return;
+    if (e.target.closest('button,input,select,textarea,a,label,[contenteditable],[data-m]')) return;
     const dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
     setzen({ l: r.left, t: r.top }); m.style.width = r.width + 'px';
-    const mv = (ev) => { m.style.left = Math.max(-r.width + 100, Math.min(innerWidth - 100, ev.clientX - dx)) + 'px'; m.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
-    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); const n = m.getBoundingClientRect(); merken({ l: Math.round(n.left), t: Math.round(n.top) }); };
-    addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    try { m.setPointerCapture(e.pointerId); } catch { /* egal */ }   // Bewegung geht nicht verloren, auch über PDF-Ansicht oder bei schnellem Ziehen
+    document.body.style.userSelect = 'none';
+    // über den Rand hinaus schieben: links/rechts/unten bis auf 100 px, oben bleibt die Überschrift greifbar
+    const mv = (ev) => { m.style.left = Math.max(100 - r.width, Math.min(innerWidth - 100, ev.clientX - dx)) + 'px'; m.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
+    const up = () => { m.removeEventListener('pointermove', mv); m.removeEventListener('pointerup', up); m.removeEventListener('pointercancel', up); document.body.style.userSelect = '';
+      const n = m.getBoundingClientRect(); merken({ l: Math.round(n.left), t: Math.round(n.top) }); };
+    m.addEventListener('pointermove', mv); m.addEventListener('pointerup', up); m.addEventListener('pointercancel', up);
   });
 }
 /* wie modalBox, aber im Einstellungsfenster (⚙ → Diese App): gleicher Aufruf, „close“ schließt das Fenster */

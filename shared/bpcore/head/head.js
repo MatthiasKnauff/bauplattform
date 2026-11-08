@@ -1498,8 +1498,9 @@
       const r = m.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
       Object.assign(m.style, { position: 'fixed', margin: '0', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
       const mv = (ev) => { m.style.left = Math.max(-r.width + 100, Math.min(innerWidth - 100, ev.clientX - dx)) + 'px'; m.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
-      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
-      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+      try { m.setPointerCapture(e.pointerId); } catch { /* egal */ }   // Ziehen reißt nicht ab (schnelle Bewegung, über PDF-Ansichten)
+      const up = () => { m.removeEventListener('pointermove', mv); m.removeEventListener('pointerup', up); m.removeEventListener('pointercancel', up); };
+      m.addEventListener('pointermove', mv); m.addEventListener('pointerup', up); m.addEventListener('pointercancel', up);
     });
   }
   const dlgBeob = () => new MutationObserver((ms) => ms.forEach((x) => x.addedNodes.forEach((n) => { if (n.nodeType === 1 && n.classList.contains('bph-dlg-bg')) setTimeout(() => dlgBeweglich(n.querySelector('.bph-dlg')), 0); })))

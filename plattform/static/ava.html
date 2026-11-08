@@ -511,13 +511,13 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
 
 /* Einfache Ansicht */
 .einu{display:none}
-.ein-wg{margin:.35rem 0 0;font-size:.9rem;color:var(--mute)}.ein-wg button{border:0;background:none;font:inherit;color:var(--y);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
-html[data-modus="einfach"] .einu{display:block;max-width:1180px;margin:0 auto;padding:1rem 1.2rem .4rem}
+.ein-wg{margin:.45rem 0 0;font-size:.85rem;color:var(--mute);display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}.ein-wg button{border:1px solid var(--line);background:var(--card);font:inherit;font-size:.82rem;color:var(--ink);cursor:pointer;padding:.15rem .6rem;border-radius:999px}.ein-wg button:hover{border-color:var(--y)}
+html[data-modus="einfach"] .einu{display:block;margin:0 0 0 272px;padding:.8rem 1rem .3rem}@media (max-width:860px){html[data-modus="einfach"] .einu{margin-left:0}}
 .einh{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem}.einh>div{flex:1;min-width:16rem}
 .einh h2{margin:0;font-size:1.35rem;letter-spacing:-.02em}.einh p{margin:.3rem 0 0;color:var(--mute)}
 .einh .btn{padding:.45rem .9rem;font-size:.92rem;border-radius:10px}
 .einu h3{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:.9rem 0 .45rem}
-.eing{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.6rem}
+.eing{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,220px));gap:.5rem}
 .eink{display:flex;flex-direction:column;gap:.4rem;text-align:left;padding:.7rem .85rem;border-radius:12px;font-size:.9rem;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
 .eink:hover{border-color:var(--y)}.eink.on{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 20%,transparent)}
 .eink .eh{display:flex;gap:.7rem;align-items:flex-start}.eink .eh b{display:block;font-size:.95rem}.eink .eh small{color:var(--mute);font-size:.82rem}
@@ -527,7 +527,6 @@ html[data-modus="einfach"] .einu{display:block;max-width:1180px;margin:0 auto;pa
 .ef{display:flex;justify-content:space-between;gap:.5rem;font-size:.8rem;color:var(--mute)}
 .en{padding:.35rem .6rem;border-radius:8px;background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink);font-weight:600;font-size:.84rem}
 
-html[data-modus="einfach"] .body.mit-quelle{grid-template-columns:minmax(0,1fr) minmax(320px,36%)}html[data-modus="einfach"] .body.mit-quelle>.qu{grid-column:2}
 html[data-modus="einfach"] [data-umenu]{display:none}
 
 /* sichtbare Befehle der Phase in der Bereichsleiste */
@@ -1254,7 +1253,7 @@ function einUeb() {
     return `<button type="button" class="eink${L && L.id === x.id ? ' on' : ''}" data-einlv="${x.id}" data-eintab="${t}"><span class="eh"><span class="enr">${esc(x.nr || '·')}</span><span><b>${esc(x.name)}</b><small>${esc(x.gewerk || '')}</small></span></span>
       <span class="es"><small>${lab}</small><b>${wert}</b></span><span class="eb"><i style="width:${bal}%"></i></span><span class="ef"><span>${esc(f1)}</span><span>${esc(f2)}</span></span><span class="en">${next} ›</span></button>`;
   };
-  box.innerHTML = `<div class="einh"><div><h2>Leistungsverzeichnisse</h2><p>Je Gewerk eine Karte – darauf steht, was als Nächstes zu tun ist. Darunter das gewählte LV.</p><p class="ein-wg">Weiter zu: ${[['angebote', 'Angebote & Preisspiegel'], ['auftraege', 'Aufträge'], ['aufmass', 'Aufmaßprüfung'], ['rechnungen', 'Rechnungen'], ['uebersicht', 'Kostenkontrolle']].map(([k, l]) => `<button type="button" data-tab="${k}">${l}</button>`).join(' · ')}</p></div><button type="button" class="btn pri" data-einneu>＋ Neues LV</button></div>`
+  box.innerHTML = `<div class="einh"><div><h2>Leistungsverzeichnisse</h2><p>Je Gewerk eine Karte – darauf steht, was als Nächstes zu tun ist. Darunter das gewählte LV.</p><p class="ein-wg">Weiter zu: ${[['angebote', 'Angebote & Preisspiegel'], ['auftraege', 'Aufträge'], ['aufmass', 'Aufmaßprüfung'], ['rechnungen', 'Rechnungen'], ['uebersicht', 'Kostenkontrolle']].map(([k, l]) => `<button type="button" data-tab="${k}">${l}</button>`).join('')}</p></div><button type="button" class="btn pri" data-einneu>＋ Neues LV</button></div>`
     + G.filter(([, l]) => l.length).map(([n, l]) => `<h3>${n}</h3><div class="eing">${l.map(karte).join('')}</div>`).join('') + (A.length ? '' : '<p class="mute">Noch kein LV in diesem Projekt.</p>');
 }
 document.addEventListener('click', async (e) => {

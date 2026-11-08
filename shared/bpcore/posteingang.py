@@ -222,9 +222,6 @@ def postfaecher_setzen(c, uid, b, by):
         if not isinstance(k, dict):
             continue
         kid = re.sub(r"[^a-z0-9]", "", str(k.get("id") or ""))[:12] or __import__("uuid").uuid4().hex[:8]
-        if (altk.get(kid) or {}).get("art") == "oauth":   # per Anmeldung verbunden: nur Ein/Aus ändern, Token bleibt auf dem Server
-            neu.append({**altk[kid], "an": k.get("an", True) is not False})
-            continue
         x = {"id": kid, "name": str(k.get("name") or "")[:60], "host": str(k.get("host") or "").strip()[:120],
              "port": int(k.get("port") or 993) if str(k.get("port") or "993").isdigit() else 993, "user": str(k.get("user") or "").strip()[:160],
              "ordner": str(k.get("ordner") or "INBOX").strip()[:80] or "INBOX", "an": k.get("an", True) is not False}
@@ -232,10 +229,6 @@ def postfaecher_setzen(c, uid, b, by):
         x["pass"] = pw if isinstance(pw, str) and pw else (altk.get(kid) or {}).get("pass", "")
         if x["host"] and x["user"]:
             neu.append(x)
-    from . import postoauth
-    for x in alt["konten"]:   # entfernte Anmeldungen beim Anbieter widerrufen
-        if x.get("art") == "oauth" and not any(y.get("id") == x.get("id") for y in neu):
-            postoauth.widerrufen(x)
     d = {"m365": b.get("m365", alt["m365"]) is not False, "konten": neu, "abruf": _abruf(b.get("abruf") or alt["abruf"]),
          "eigene": _eigene(b.get("eigene") if b.get("eigene") is not None else alt["eigene"]),
          "anzeige": _anzeige(b.get("anzeige") if b.get("anzeige") is not None else alt["anzeige"])}
@@ -539,11 +532,7 @@ def abrufen(c, u):
             if not k.get("an", True):
                 continue
             try:
-                if k.get("art") == "oauth":
-                    from . import postoauth
-                    mails += postoauth.lesen(c, uid, k, seit)
-                else:
-                    mails += imap_lesen(k, seit)
+                mails += imap_lesen(k, seit)
             except Exception as e:
                 fehler.append(f"{k.get('name') or k['user']}: {e}")
         gesehen, uniq = set(), []

@@ -1159,12 +1159,7 @@
         ${D.m365_zentral ? `<label class="bph-ck"><input type="checkbox" data-pm${D.m365 ? ' checked' : ''}> mein Postfach <b>${esc(D.email || '–')}</b> einbeziehen</label>${(D.zugewiesen || []).length ? `<p class="bph-mu">Dazu vom Administrator zugewiesen: <b>${D.zugewiesen.map(esc).join(', ')}</b></p>` : ''}<div class="bph-row"><button type="button" class="bph-btn" data-ptm>Probeweise lesen</button></div>`
           : '<p class="bph-mu">Noch nicht eingerichtet – das macht der Administrator einmal unter ⚙ → Büro → Mailserver.</p>'}
         <h4>Weitere eigene Postfächer (IMAP)</h4>
-        <h4>Eigene Postfächer per Anmeldung <span class="bph-mu" style="font-weight:400">– ohne Passwort, nur lesend</span></h4>
-        ${D.konten.map((k, i) => k.art !== 'oauth' ? '' : `<div class="bph-tpl"><div class="bph-row" style="align-items:center"><label class="bph-ck" style="flex:1"><input type="checkbox" data-pf="an" data-pi="${i}"${k.an !== false ? ' checked' : ''}> <b>${esc(k.user || k.name)}</b> <span class="bph-mu">${k.anbieter === 'google' ? 'Google' : 'Microsoft'} · ${k.verbunden ? '🔐 verbunden' : 'Verbindung fehlt'}</span></label><button type="button" class="bph-btn" data-pt="${i}">Testen</button><button type="button" class="bph-btn" data-pd="${i}" title="Verbindung trennen – der Zugriff wird beim Anbieter zurückgezogen">Trennen</button></div></div>`).join('')}
-        <div class="bph-row">${[['google', 'Mit Google verbinden (Gmail)'], ['microsoft', 'Mit Microsoft verbinden (Outlook.com, Hotmail, andere Microsoft-Konten)']].map(([a, l]) => `<button type="button" class="bph-btn" data-poa="${a}"${(D.oauth || {})[a] ? '' : ' disabled title="Richtet der Administrator einmal ein: Verwaltung → Einstellungen → Mailserver → Anmeldung bei Google/Microsoft"'}>🔐 ${l}</button>`).join('')}</div>
-        ${(D.oauth || {}).google && (D.oauth || {}).microsoft ? '' : '<p class="bph-mu">Noch nicht für alle Anbieter eingerichtet – das macht der Administrator einmal unter Verwaltung → Einstellungen → Mailserver.</p>'}
-        <h4>Weitere Postfächer mit Passwort (IMAP)</h4>
-        ${D.konten.map((k, i) => k.art === 'oauth' ? '' : `<div class="bph-tpl"><div class="bph-row"><label class="bph-ck" style="flex:1"><input type="checkbox" data-pf="an" data-pi="${i}"${k.an !== false ? ' checked' : ''}> <b>${esc(k.name || k.user)}</b></label><button type="button" class="bph-btn" data-pt="${i}">Testen</button><button type="button" class="bph-btn" data-pd="${i}">Entfernen</button></div>
+        ${D.konten.map((k, i) => `<div class="bph-tpl"><div class="bph-row"><label class="bph-ck" style="flex:1"><input type="checkbox" data-pf="an" data-pi="${i}"${k.an !== false ? ' checked' : ''}> <b>${esc(k.name || k.user)}</b></label><button type="button" class="bph-btn" data-pt="${i}">Testen</button><button type="button" class="bph-btn" data-pd="${i}">Entfernen</button></div>
           <div class="bph-row">${feld('name', i, 'Bezeichnung', 'text', 'z. B. Projektpostfach')}${feld('user', i, 'Benutzername / Adresse')}</div>
           <div class="bph-row">${feld('host', i, 'IMAP-Server', 'text', 'imap.example.de')}<label style="width:6rem">Port<input data-pf="port" data-pi="${i}" value="${esc(k.port || 993)}" inputmode="numeric"></label>${feld('ordner', i, 'Ordner', 'text', 'INBOX')}</div>
           <div class="bph-row">${feld('pass', i, k.pass_set ? 'Kennwort (gespeichert – zum Ändern neu eingeben)' : 'Kennwort / App-Passwort', 'password', k.pass_set ? '••••••••' : '')}</div></div>`).join('') || '<p class="bph-mu">Keine weiteren Postfächer.</p>'}
@@ -1176,11 +1171,6 @@
     root.addEventListener('click', async (e) => {
       const t = e.target;
       if (t.closest('[data-pc]')) return close();
-      const oa = t.closest('[data-poa]');
-      if (oa) {   // zur Anmeldeseite des Anbieters (im selben Fenster) – danach geht es hierher zurück
-        lesen(); try { await JS('api/bp/postfaecher', 'PUT', { m365: D.m365, konten: D.konten, abruf: AB, eigene: EG, anzeige: AZ }); } catch { /* egal */ }
-        location.href = `api/bp/oauth/${oa.dataset.poa}/start?zurueck=${encodeURIComponent(location.pathname)}`; return;
-      }
       if (t.closest('[data-pd]')) { lesen(); D.konten.splice(+t.closest('[data-pd]').dataset.pd, 1); draw(); return; }
       if (t.closest('[data-ps]')) { lesen(); try { D = { ...D, ...(await JS('api/bp/postfaecher', 'PUT', { m365: D.m365, konten: D.konten, abruf: AB, eigene: EG, anzeige: AZ })) }; Object.assign(AB, D.abruf || {}); Object.assign(EG, D.eigene || {}); Object.assign(AZ, D.anzeige || {}); msg = 'Gespeichert.'; if (opt.nachSpeichern) opt.nachSpeichern(D); } catch (er) { msg = er.message; } draw(); return; }
       if (t.closest('[data-ptm]')) { msg = 'lese …'; draw(); try { const r = await JS('api/bp/postfaecher/test', 'POST', { m365: true }); msg = r.ok ? '✔ ' + r.text : '✖ ' + r.error; } catch (er) { msg = er.message; } draw(); return; }
@@ -2257,12 +2247,6 @@
     H.ansehen([{ url: `api/bp/gast/${encodeURIComponent(g.token)}/datei`, typ: 'pdf', name: 'Plan', skizze: 'gast' }]);
   };
   H.skizzeOeffnen = (id, name) => H.ansehen([{ url: `api/bp/skizze/${id}/datei`, typ: 'pdf', name: name || 'Gemeinsame Skizze', skizze: id }]);
-  /* Rückkehr von der Anmeldung bei Google/Microsoft: Meldung zeigen und die Postfächer öffnen */
-  (() => {
-    const m = /#bp-oauth=([^&]*)/.exec(location.hash); if (!m) return;
-    history.replaceState(null, '', location.pathname + location.search);
-    setTimeout(async () => { const t = decodeURIComponent(m[1]); await (window.bpHinweis ? bpHinweis(t) : alert(t)); if (H.postfaecher) H.postfaecher(); }, 800);
-  })();
   function skWache() {
     const m = /#skizze=([\w-]+)/.exec(location.hash);
     if (m) { history.replaceState(null, '', location.pathname + location.search); setTimeout(() => H.skizzeOeffnen(m[1]), 300); }

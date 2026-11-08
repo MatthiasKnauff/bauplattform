@@ -388,6 +388,11 @@ SCHICHT_GRUPPEN = [("Tragschicht", r"trag|wand|schale|beton|platte|ständer|holz
                    ("Bekleidung, Fassade", r"bekleid|fassade|vormauer|klinker|riemchen|beplank|außen|unterkonstr|lattung"),
                    ("Abdichtung, Folien", r"abdicht|dampf|trenn|luftdicht"), ("Estrich, Belag", r"estrich|belag|fliesen|parkett|dielen|untergrund"),
                    ("Dachdeckung", r"deckung|kies|begrün"), ("Oberfläche innen", r".")]
+_SCH_GRUPPE_TEXT = [("Dachdeckung", r"eindeckung|deckung|stehfalz|dachbahn|begrünung|kiesschütt|sandwich|trapezblech|unterdeck"),
+                    ("Putz", r"putz(?!träger)|spachtelung q|dünnlagen"), ("Dämmung", r"dämm|wdvs"), ("Abdichtung, Folien", r"abdicht|sperre|bremse|folie|trennlage"),
+                    ("Estrich, Belag", r"estrich|belag|parkett|bodenfliesen|dielen|laminat|teppich|vinyl|linoleum|kautschuk|kork|naturfaser|terrazzo|mosaik"),
+                    ("Oberfläche innen", r"anstrich|tapete|lasur|farbe|vlies|beschichtung|ölen|spachteltechnik|wandfliesen"),
+                    ("Bekleidung, Fassade", r"bekleid|fassade|riemchen|klinker|vorsatzschale|akustik|unterkonstruktion")]
 SCHICHT_RX = re.compile(r"(?<![\w-])(S-[A-Za-z0-9ÄÖÜäöüß+-]{1,16})")
 _SCH = {"stand": None, "F": None}
 
@@ -400,17 +405,51 @@ def _sch_familie(k):
 
 
 def schicht_schluessel(name):
-    return "S-" + re.sub(r"[^A-Za-z0-9ÄÖÜäöüß+]+", "-", re.sub(r"\s*\+\s*", "+", name)).strip("-")[:16].rstrip("-")
+    return "S-" + re.sub(r"[^A-Za-z0-9ÄÖÜäöüß+]+", "-", re.sub(r"\s*\+\s*", "+", name)).strip("-")[:15].rstrip("-")   # 17 Zeichen: eine Leerstelle vor dem Kurztext
+
+
+# Kürzel der Baukasten-Optionen → verständliche Namen (Allplan zeigt im Katalogbaum nur die 18 Zeichen der Materialbezeichnung)
+_SCH_ABK = [(r"\bKS\b", "Kalksandstein"), (r"\bHlz\b", "Hochlochziegel"), (r"\bMz\b", "Vollziegel"), (r"\bHbl\b", "Hohlblock"), (r"\bPP\d?\b", "Porenbeton"),
+            (r"\bStB\b", "Stahlbeton"), (r"\bWU\b", "WU-Beton"), (r"\bCW\b", "Metallständer"), (r"\bGWP\b", "Gipswandbauplatte"), (r"\bGF\b", "Gipsfaser"),
+            (r"\bGKB\b", "Gipskarton"), (r"\bGKF\b", "Gipskarton Brandschutz"), (r"\bGK\b", "Gipskarton"), (r"\bBSP\b|\bCLT\b", "Brettsperrholz"),
+            (r"\bMW\b", "Mineralwolle"), (r"\bHF\b", "Holzfaser"), (r"\bEPS\b", "EPS"), (r"\bXPS\b", "XPS"), (r"\bPIR\b", "PIR"), (r"\bKZ\b", "Kalkzement"),
+            (r"\bLP\b", "Leichtputz"), (r"\bZE\b", "Zementestrich"), (r"\bCA\b", "Anhydritestrich"), (r"\bKD\b", "Kerndämmung"), (r"\bID\b", "Innendämmung"),
+            (r"\bFZ\b", "Faserzement"), (r"\bVHF\b", "vorgehängt"), (r"\bNSi\b", "Nichtsicht"), (r"\bWSi\b", "Sichtqualität"), (r"\bOSB\b", "OSB"),
+            (r"\bHPL\b", "HPL-Platte"), (r"\bKMB\b", "Bitumendickbesch."), (r"\bMDS\b", "Dichtschlämme"), (r"\bDS\b", "Dampfsperre"), (r"\bTSD\b", "Trittschalldämmung"),
+            (r"\bSFB\b", "Stahlfaserbeton"), (r"\bEP\b", "Epoxid"), (r"\bPU\b", "PU"), (r"\bBit\b", "Bitumen")]
+_SCH_KG = re.compile(r"^(322|324|325|33[1-35-7]|34[1-35]|35[1345]|36[134])$")   # Bauteile, die man in Schichten zeichnet
+_SCH_MUELL = re.compile(r"mess|injekt|demont|kantteil|kofferung|zulage|anschluss|freileg|rückbau|abbruch|ausbau|ausbesser|sockel|aufzug|pumpensumpf|"
+                        r"bestand|beids|blower|höhe|verglast|fuge|durchdring|nach zeichnung|×$|vorbereit|vorbehandel|abschlag|aufpreis|abwasch|aufnehmen|"
+                        r"entfern|kugelstrahl|fräsen|treppenstufe|trittstufe|armierungsgewebe|risssanier|lüftungshaube|attika|gesims|haftbrücke|"
+                        r"grundierung|spritzbewurf|schleifen|stelzlager|balkonbelag|warnmark|lasurtechnik|wischtechnik|egalis|\bab$|-ab\b|wieder", re.I)
+
+
+def _sch_lesbar(name):
+    t = name
+    for rx, rep in _SCH_ABK:
+        t = re.sub(rx, rep, t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _sch_text(kurz):
+    """Positionskurztext ohne Dicken- und Mengenangaben: „Innenputz Wand Gipsputz, 15 mm, Q2“ → „Innenputz Wand Gipsputz, Q2“."""
+    t = re.sub(r"(d\s*=\s*)?\d+(?:[.,]\d+)?\s*(?:[×x/–-]\s*\d+(?:[.,]\d+)?\s*)?(mm|cm|m)\b", "", str(kurz or ""))
+    t = re.sub(r"[<>≤≥]\s*\d+\S*|\.\.\.|…", "", t)
+    t = re.sub(r"\s+", " ", t).replace(" ,", ",").replace("( ", "(").replace(" )", ")").replace("()", "")
+    t = re.sub(r",\s*(,\s*)+", ", ", t)
+    return re.sub(r"(\s+(bis|ca\.|i\. M\.|≤|–|-|d =))+\s*$|[,/–\s]+$", "", t).strip(" ,")
 
 
 def schicht_familien(c):
-    """{Schlüssel: {name, gruppe, kgs, opts: [(vorlage, kg, schicht_nr, option_nr, dicke_cm, teile)]}} – je Vorlagenstand einmal berechnet."""
+    """{Schlüssel: {name, text, gruppe, kgs, opts: [(vorlage, kg, schicht_nr, option_nr, dicke_cm, teile)]}} – je Vorlagenstand einmal berechnet."""
     st = c.execute("SELECT COUNT(*) AS n, MAX(id) AS m FROM pdb_vorlage").fetchone()
     stand = (st["n"], st["m"])
     if _SCH["stand"] == stand:
         return _SCH["F"]
-    F = {}
+    F, erste = {}, {}
     for v in c.execute("SELECT id, kg, daten FROM pdb_vorlage WHERE kg LIKE '3%' ORDER BY sort, id").fetchall():
+        if not _SCH_KG.match(v["kg"] or ""):
+            continue
         for sn, s in enumerate(json.loads(v["daten"] or "{}").get("schichten") or []):
             if not _SCH_PHYS.search(s["name"]) or _SCH_NICHT.search(s["name"]):
                 continue
@@ -418,14 +457,41 @@ def schicht_familien(c):
                 if not (o.get("k") or "").strip() or not o.get("teile"):
                     continue
                 name, dk, mm = _sch_familie(o["k"])
-                if len(name) < 2 or not re.search(r"[A-Za-zÄÖÜäöü]{2}", name) or re.search(r"m³|^d =|×$", name):
+                if len(name) < 2 or not re.search(r"[A-Za-zÄÖÜäöü]{2}", name) or re.search(r"m³|^d =", name) or _SCH_MUELL.search(name):
                     continue
                 if dk is not None and (mm or dk >= 50):
                     dk = dk / 10   # Millimeter (Dämmung 80, CLT 100 …) → cm
+                name = _sch_lesbar(name)
                 key = schicht_schluessel(name)
                 x = F.setdefault(key, {"name": name, "gruppe": next(g for g, rx in SCHICHT_GRUPPEN if re.search(rx, s["name"], re.I)), "kgs": set(), "opts": []})
                 x["kgs"].add(v["kg"])
                 x["opts"].append((v["id"], v["kg"], sn, on, dk, [tuple(t) for t in o["teile"]]))
+                erste.setdefault(key, o["teile"])
+    P = _pos_preise(c, [t[0] for T in erste.values() for t in T])
+    texte = {}
+    def rang(key):   # beim Zusammenlegen bleibt der Name, der im Positionstext vorkommt (S-Gipsputz vor S-Gips-Q2), sonst der kürzere
+        T = [t for t in erste[key] if t[0] in P]
+        h = max(T, key=lambda t: (P[t[0]]["ep_mittel"] or 0) * t[1]) if T else None
+        txt = (P[h[0]]["kurz"] if h else "").lower()
+        n_ = F[key]["name"].lower()
+        return (n_ not in txt, -len(n_) if n_ in txt else len(n_))
+    for key in sorted(F, key=rang):
+        T = [t for t in erste[key] if t[0] in P]
+        haupt = max(T, key=lambda t: (P[t[0]]["ep_mittel"] or 0) * t[1]) if T else None   # Text der teuersten Position = das eigentliche Material
+        kurz = P[haupt[0]]["kurz"] if haupt else ""
+        if _SCH_MUELL.search(kurz):
+            del F[key]
+            continue
+        F[key]["text"] = _sch_text(kurz) or F[key]["name"]
+        F[key]["gruppe"] = next((g for g, rx in _SCH_GRUPPE_TEXT if re.search(rx, f"{F[key]['name']} {kurz}", re.I)), F[key]["gruppe"])
+        if F[key]["text"] in texte:   # gleiche Position unter anderem Kürzel – zusammenlegen, kürzester Name bleibt
+            ziel = F[texte[F[key]["text"]]]
+            ziel["kgs"] |= F[key]["kgs"]
+            ziel["opts"] += F[key]["opts"]
+            ziel.setdefault("auch", []).append(key)
+            del F[key]
+        else:
+            texte[F[key]["text"]] = key
     _SCH.update(stand=stand, F=F)
     return F
 
@@ -448,7 +514,8 @@ def aus_schichten(c, kg, lagen):
     """Allplan-Schichten [(Schlüssel, Dicke in m)] → passender Aufbau aus dem Baukasten.
     Gibt {"vorlage", "wahl", "text"} zurück, wenn eine Vorlage alle Schichten abdeckt, sonst {"teile", "text"} (frei zusammengesetzt) oder None."""
     F = schicht_familien(c)
-    L = [(k, d) for k, d in lagen if k in F]
+    alias = {a: k for k, x in F.items() for a in x.get("auch", [])}
+    L = [(alias.get(k, k), d) for k, d in lagen if alias.get(k, k) in F]
     if not L:
         return None
     dk = lambda d: f"{round(d * 100, 1):g} cm".replace(".", ",") if d else ""   # noqa: E731
@@ -603,11 +670,11 @@ def allplan_katalog(c, kg=""):
                     dn = f"k000{gn:02d}"
                     gr_.append(zeile(dn, gname))
                     kat, ktx = list(KOPF_E), [b"#", b"REFNAM            LANGT", b""]
-                    for k, x in sorted(L_, key=lambda t: t[1]["name"].lower()):
+                    for k, x in sorted(L_, key=lambda t: t[0].lower()):
                         dd = _sch_dicken(x)
-                        kat.append(zeile(k, f"{k} {x['name']}" + (f" ({'/'.join(f'{v:g}' for v in dd[:6])} cm)".replace(".", ",") if dd else "")))
+                        kat.append(zeile(k, x["text"]))
                         ktx.append(enc(k.ljust(18)))
-                        zeilen = textwrap.wrap(ers(f"Schichtmaterial {x['name']} – Dicke kommt aus der Allplan-Schicht."), 40)
+                        zeilen = textwrap.wrap(ers(f"{x['name']}: {x['text']}"), 40) + textwrap.wrap(ers("Dicke kommt aus der Allplan-Schicht."), 40)
                         if dd:
                             zeilen += textwrap.wrap(ers("Im Baukasten: " + ", ".join(f"{v:g}".replace(".", ",") for v in dd) + " cm"), 40)
                         zeilen += textwrap.wrap(ers("KG " + ", ".join(sorted(x["kgs"]))), 40)

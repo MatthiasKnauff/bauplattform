@@ -3317,7 +3317,7 @@ def _ocr_woerter(pg, dpi=300, timeout=90):
     return AL.ocr_woerter(pg, dpi, timeout)
 
 
-def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung"):
+def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung", als_nt=False):
     """Positionen, die in der Rechnung/dem Aufmaß der Firma stehen, aber im LV fehlen, als LV-Positionen anlegen – mit OZ,
     Text, Einheit und dem EP der Firma als Auftragspreis – und die Rechnung gleich mit ihnen verbinden (Aufmaßprüfung).
     Was nicht passt, bearbeitet oder löscht man danach im LV. Gibt die Zahl der neuen Positionen zurück."""
@@ -3333,7 +3333,16 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung"):
     if not B and not Z:
         return 0
     da = {(x.get("oz") or "").strip() for x in items if x.get("oz")}
-    frei_v = bool(V.get("frei"))   # Auftrag ohne LV (Summe frei): Positionen mit Menge 0, damit die Auftragssumme bleibt
+    frei_v = bool(V.get("frei")) and _f(V.get("summe"), 0) > 0 and not als_nt   # Auftrag ohne LV mit Summe: Positionen mit Menge 0, damit die Summe nicht doppelt zählt
+    if als_nt:   # LV hat schon Positionen: was in der Rechnung zusätzlich steht, kommt als Nachtrag (beauftragt) unter „Nachträge“
+        B = [b for b in B if not b.get("titel")]
+        R0 = c.execute("SELECT nr, art, re_nr FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
+        herkunft = f"aus {re_titel(R0['nr'], R0['art'])}{' Nr. ' + R0['re_nr'] if R0 and R0['re_nr'] else ''}" if R0 else "aus der Rechnung"
+        n_nt = sum(1 for x in items if x.get("nt"))
+        if (B or Z) and not any(x.get("typ") == "titel" and (x.get("kurz") or "").strip().lower() == "nachträge" for x in items):
+            erste = [re.split(r"[.\s]+", (x.get("oz") or "").strip())[0] for x in items if (x.get("oz") or "").strip()]   # nach der höchsten ersten OZ-Stelle
+            nr_ = max([int(e) for e in erste if e.isdigit() and len(e) <= 3] + [0]) + 1
+            items.append({"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "oz": str(nr_).zfill(2), "kurz": "Nachträge"})
     VP, treffer, neu, ohne_oz = dict(V.get("preise") or {}), dict(A.get("pos") or {}), 0, False
     for b in B:
         oz = (b.get("oz") or "").strip()
@@ -3347,6 +3356,9 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung"):
         m = _f(b.get("menge"), 0)
         items.append({"id": i, "typ": "pos", "art": "N", "oz": oz, "kurz": b.get("kurz") or (b.get("lang") or "")[:80], "lang": b.get("lang") or "",
                       "menge": 0 if frei_v else m, "einheit": b.get("einheit") or "", "aus_rechnung": rid})
+        if als_nt:
+            n_nt += 1
+            items[-1].update(nt=f"NT{n_nt}", nt_status="beauftragt", nt_grund=herkunft)
         ohne_oz = ohne_oz or not oz
         if oz:
             da.add(oz)
@@ -3362,6 +3374,9 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung"):
         i = uuid.uuid4().hex[:10]
         items.append({"id": i, "typ": "pos", "art": "N", "oz": "", "kurz": z["text"][:500], "lang": "", "menge": 0 if frei_v else _f(z.get("menge"), 0),
                       "einheit": z.get("einheit") or "", "aus_rechnung": rid})
+        if als_nt:
+            n_nt += 1
+            items[-1].update(nt=f"NT{n_nt}", nt_status="beauftragt", nt_grund=herkunft)
         VP[i] = z.get("ep")
         treffer[i] = {"seite": z.get("seite"), "box": z.get("box"), "menge": z.get("menge"), "ep": z.get("ep"), "gp": z.get("gp"), "einheit": z.get("einheit") or ""}
         z["pos"] = i
@@ -3375,6 +3390,8 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung"):
     c.execute("UPDATE ava_lv SET data=?, vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
               (json.dumps(d, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), wer, lv["id"]))
     c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
+    if (V.get("bieter") or V.get("frei")) and (lv["status"] or "entwurf") in ("entwurf", "versendet"):   # Rechnung zu einem Auftrag: LV ist vergeben
+        c.execute("UPDATE ava_lv SET status='vergeben' WHERE id=?", (lv["id"],))
     R = c.execute("SELECT status, data FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
     if R and R["status"] != "geprueft":   # Rechnung jetzt nach Aufmaß prüfen statt als freie Summe
         rd = _j(R["data"], {}) or {}
@@ -3711,10 +3728,12 @@ def beleg_positionen(b):
         A = _j(x["auslese"], {}) or {}
         if A.get("laeuft"):
             return jsonify(error="Die Texterkennung läuft noch – bitte gleich noch einmal."), 409
-        n = _lv_aus_beleg(c, b, x["rechnung_id"], lv, A, g.user["name"])
+        leer = not any(y.get("typ") == "pos" and y.get("art") != "T" for y in (_j(lv["data"], {}) or {}).get("items") or [])
+        n = _lv_aus_beleg(c, b, x["rechnung_id"], lv, A, g.user["name"], als_nt=not leer)
         _touch(c, x["lv_id"])
         d = _antwort(c, x["lv_id"]).get_json()
-    d["hinweis"] = (f"{n} Position{'' if n == 1 else 'en'} aus der Rechnung ins LV übernommen – was nicht passt, im Leistungsverzeichnis bearbeiten oder löschen."
+    d["hinweis"] = ((f"{n} Position{'' if n == 1 else 'en'} als Nachtrag (beauftragt) unter „Nachträge“ ins LV übernommen – ablehnen im LV: dann zählt sie in der Rechnung nicht." if not leer else
+                     f"{n} Position{'' if n == 1 else 'en'} aus der Rechnung ins LV übernommen – was nicht passt, im Leistungsverzeichnis bearbeiten oder löschen.")
                     if n else "In der Rechnung sind keine weiteren Positionen erkannt, die im LV fehlen.")
     C.audit(g.user["name"], "ava", "Positionen aus Rechnung", f"LV {x['lv_id']} · {n} Positionen")
     return jsonify(d)
@@ -3860,7 +3879,7 @@ def beleg_pruefen(b):
             A = _auslese_anwenden(c, b, x["rid"], lv)
         R0 = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (x["rid"],)).fetchone()
         VP = (_j(lv["vergabe"], {}) or {}).get("preise") or {}
-    zeichen = _pruefzeichen(A, K, RC, R0, VP)
+    zeichen = _pruefzeichen(A, K, RC, R0, VP, {y["id"]: y for y in (_j(lv["data"], {}) or {}).get("items") or [] if y.get("id")})
     if zeichen:
         with db.tx() as c:
             for n, art, pos, txt in zeichen:
@@ -3902,7 +3921,7 @@ def beleg_pruefen(b):
     return jsonify(skizze=sid, name=x["name"], automatisch=sum(1 for z in zeichen if z[1] != "_geld"))
 
 
-def _pruefzeichen(A, K, RC, R, VP):
+def _pruefzeichen(A, K, RC, R, VP, I=None):
     """✔/✘ je erkannter Position (Menge lt. Firma = Aufmaß, EP = Auftrags-EP), je Regiezeile und je Summe (Netto, Brutto)."""
     if not A or not RC:
         return []
@@ -3913,6 +3932,10 @@ def _pruefzeichen(A, K, RC, R, VP):
     mitte = lambda t: [min(0.985, t["box"][2] + 0.012), (t["box"][1] + t["box"][3]) / 2]   # noqa: E731
     for pid, t in (A.get("pos") or {}).items():
         if t.get("menge") is None:
+            continue
+        x_ = (I or {}).get(pid) or {}
+        if x_.get("nt") and x_.get("nt_status") == "abgelehnt":   # Nachtrag abgelehnt: zählt in der Rechnung nicht
+            out.append((t["seite"], "kreuz", mitte(t), f"Nachtrag {x_['nt']} abgelehnt"))
             continue
         m, ep = stand.get(pid, 0) or 0, _fn(VP.get(pid))
         ok_m, ok_ep = abs(t["menge"] - m) < 1e-6, ep is None or t.get("ep") is None or abs(t["ep"] - ep) < 0.005
@@ -4730,7 +4753,7 @@ def lv_pdf(i):
                 ep = _fn(VP.get(x["id"]))
                 if not m:
                     continue
-                rows.append([x["oz"] + (f" {x['nt']}" if x.get("nt") else ""), Paragraph(X(x["kurz"]), S["p"]), num(m), x["einheit"], ep2(ep) if ep is not None else "—",
+                rows.append([x["oz"] + (f" {x['nt']}" if x.get("nt") else ""), Paragraph(X(x["kurz"]) + (" <b>– Nachtrag abgelehnt, nicht anerkannt</b>" if x.get("nt") and x.get("nt_status") == "abgelehnt" else ""), S["p"]), num(m), x["einheit"], ep2(ep) if ep is not None else "—",
                              eur(round(m * ep, 2)) if ep is not None and not (x.get("nt") and x.get("nt_status") == "abgelehnt") else "—"])
             if art_ not in ("regie", "sicherheit") and not RC.get("frei"):
                 story.append(table(rows, [20 * mm, W - 20 * mm - 96 * mm, 20 * mm, 12 * mm, 24 * mm, 40 * mm], num=(2, 4, 5)))

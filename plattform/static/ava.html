@@ -2414,7 +2414,7 @@ function vAmErfassen() {
   if (!B.length) return `${kopf}<div class="am-zone" data-amdrop>${hoch}<span class="hint">oder hierher ziehen – sie erscheint rechts neben der Prüfung, erkannte Mengen werden gleich eingetragen${R && R.status !== 'geprueft' ? ` (zur ${esc(reTitel(R))})` : ' (legt eine neue Teilrechnung an)'}. Ohne PDF einfach hier prüfen.</span></div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:1rem;align-items:start" class="amg">${tab_}${detail}</div>
     <style>@media (max-width:900px){.amg{grid-template-columns:1fr!important}}</style>`;
-  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amSummenKarte(R)}${amZeilenKarte(R)}${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
+  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amSummenKarte(R)}${amFehltKarte(R)}${amZeilenKarte(R)}${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
 }
 /* Geteilte Ansicht: Trennung verschiebbar (Breite gemerkt) oder die PDF als freies Fenster über der Seite (verschieben, Größe ziehen) */
 function teilung(sp, key, neuZeichnen) {
@@ -2449,6 +2449,13 @@ function teilung(sp, key, neuZeichnen) {
 function reKette(r) { if (r.art === 'regie' || r.art === 'sicherheit' || (r.data && r.data.frei != null)) return null; return r.art === 'nachtrag' ? 'nachtrag' : 'haupt'; }
 function reNachfolger(r) { const k = reKette(r); return !!k && L.rechnungen.some((y) => y.nr > r.nr && reKette(y) === k); }
 /* Zeilen der PDF ohne LV-Position (Regie, Material …): in die Rechnung übernehmen */
+function amFehltKarte(R) {   // Positionen der Rechnung, die im LV fehlen → als Nachträge (beauftragt) unter „Nachträge“
+  const b = amBelege().find((y) => y.id === AMB); if (!b || !b.auslese || !R || R.status === 'geprueft') return '';
+  const F = (b.auslese.bloecke || []).filter((y) => !y.titel && y.kurz && y.menge != null && !/rechnung|netto|brutto|summe|mwst|umsatzsteuer|übertrag/i.test(y.kurz));
+  if (!F.length) return '';
+  return `<div class="card am-zk"><b>${F.length} Position${F.length === 1 ? '' : 'en'} der Rechnung stehen nicht im LV</b> <span class="hint">${F.slice(0, 4).map((y) => esc([y.oz, y.kurz].filter(Boolean).join(' '))).join(' · ')}${F.length > 4 ? ' …' : ''}</span>
+    <div class="bar" style="margin:.4rem 0 0"><button class="btn sm pri" data-ambpos="${b.id}" title="Unter dem Gliederungspunkt „Nachträge“ ins LV – mit Menge, Einheit und EP der Rechnung, Status „beauftragt“. Abwählen (ablehnen) im LV: dann zählt sie in der Rechnung nicht und ist in der PDF als abgelehnt markiert.">Als Nachträge ins LV übernehmen (beauftragt)</button></div></div>`;
+}
 function amZeilenKarte(R) {
   const Z = []; amBelege().filter((b) => b.id === AMB).forEach((b) => ((b.auslese && b.auslese.zeilen) || []).forEach((z) => Z.push({ ...z, bid: b.id })));
   if (!Z.length || !R) return '';
@@ -2493,6 +2500,7 @@ function amMarken() {
   const geprueft = new Set(L.aufmass.map((a) => a.pos_id)), irgendwas = geprueft.size > 0 || R.status === 'geprueft';
   for (const [pid, t] of Object.entries(A.pos || {})) { if (t.menge == null) continue; const m = stand[pid] || 0, ep = VP[pid];
     const okE = ep == null || t.ep == null || Math.abs(t.ep - ep) < 0.005;
+    const xi = posOf().find((y) => y.id === pid); if (xi && xi.nt && xi.nt_status === 'abgelehnt') { M.push([t, false, `Nachtrag ${xi.nt} abgelehnt`]); continue; }
     if (!geprueft.has(pid) && R.status !== 'geprueft') { M.push([t, okE ? null : false, okE ? '' : `EP Auftrag ${nf2(ep)}`]); continue; }   // noch nicht aufgemessen: offen (nur EP schon prüfbar)
     const okM = Math.abs(t.menge - m) < 1e-6; M.push([t, okM && okE, [okM ? '' : `geprüft ${nf(m)}`, okE ? '' : `EP Auftrag ${nf2(ep)}`].filter(Boolean).join(' · ')]); }
   if (R.art === 'regie') for (const t of A.zeilen || []) { const z = (R.data.zeilen || []).find((y) => (y.text || '').trim().toLowerCase() === t.text.trim().toLowerCase());
@@ -2560,7 +2568,7 @@ function amPdfZeige(pid, sofort, direkt) {
 function amNachtragNeu() {
   if (!L) return;
   const frei = !!(L.vergabe && L.vergabe.frei && !Object.keys(L.vergabe.preise || {}).length);
-  modalBox(`<h3>Position als Nachtrag</h3><p class="hint" style="margin:0 0 .7rem">Kommt als Nachtrag „angemeldet“ in den Auftrag${frei ? ' (Auftrag ohne LV-Preise: ohne Preis, nur zur Dokumentation)' : ' und zählt je nach Einstellung gleich oder erst nach Beauftragung in der Rechnung'}. Danach das Aufmaß erfassen.</p>
+  modalBox(`<h3>Position als Nachtrag</h3><p class="hint" style="margin:0 0 .7rem">Kommt als Nachtrag „beauftragt“ in den Auftrag${frei ? ' (Auftrag ohne LV-Preise: ohne Preis, nur zur Dokumentation)' : ' und zählt je nach Einstellung gleich oder erst nach Beauftragung in der Rechnung'}. Danach das Aufmaß erfassen.</p>
     <div class="fm"><label>Kurztext</label><input id="ntK" placeholder="z. B. Mehrmenge Bodenaustausch"></div>
     <div class="nlf" style="grid-template-columns:repeat(3,minmax(0,1fr))"><label>LV-Menge<input id="ntM" inputmode="decimal" placeholder="0"></label><label>Einheit<input id="ntE" value="m²"></label><label>EP €${frei ? ' (entfällt)' : ''}<input id="ntP" inputmode="decimal"${frei ? ' disabled' : ''}></label></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Als Nachtrag anlegen</button></div>`, async (m, bg, close) => {
@@ -2569,7 +2577,7 @@ function amNachtragNeu() {
     const kurz = bg.querySelector('#ntK').value.trim(); if (!kurz) { bg.querySelector('#ntK').focus(); return; }
     const I = L.data.items, id = uid(), n = I.filter((x) => x.nt).length + 1, ep = pf(bg.querySelector('#ntP').value);
     const p = { id, typ: 'pos', art: 'N', oz: '', kurz, lang: '', menge: pf(bg.querySelector('#ntM').value) || 0, einheit: bg.querySelector('#ntE').value.trim() || 'psch' };
-    if (!frei) { p.nt = 'NT' + n; p.nt_status = 'angemeldet'; }
+    if (!frei) { p.nt = 'NT' + n; p.nt_status = 'beauftragt'; }
     close(); await flush(); I.push(p); numerieren();
     try { await saveNow(); if (!frei && ep != null) await saveVp(id, ep); } catch (e) { return toast(e.message, true); }
     amPos = id; LS.set('amPos', amPos); amNur = false; LS.set('amNur', false); amNurR = false; LS.set('amNurR', false); render(); toast(frei ? 'Position im LV angelegt – jetzt das Aufmaß erfassen.' : `Als Nachtrag ${p.nt} angelegt – jetzt das Aufmaß erfassen.`);
@@ -2606,12 +2614,12 @@ async function reZeilenInsLv(rid, nur) {
   if (!ks.length) return toast('Nichts zu übernehmen – alle Positionen stehen schon im LV.');
   const frei = !!(L.vergabe && L.vergabe.frei && !Object.keys(L.vergabe.preise || {}).length);
   const t = frei ? `${ks.length === 1 ? 'Position' : ks.length + ' Positionen'} ins LV übernehmen?\nDer Auftrag ist frei mit einer Summe eingetragen – die Positionen kommen ohne Preis ins LV (nur zur Dokumentation), sonst zählten sie in der Kostenkontrolle doppelt.`
-    : `${ks.length === 1 ? 'Position' : ks.length + ' Positionen'} als Nachtrag ins LV übernehmen?\nSie stehen dann als Nachtrag „angemeldet“ mit dem Einheitspreis der Rechnung im LV und zählen in der Kostenkontrolle (Prognose). Beauftragen oder ablehnen später im LV.`;
+    : `${ks.length === 1 ? 'Position' : ks.length + ' Positionen'} als Nachtrag ins LV übernehmen?\nSie stehen dann als Nachtrag „beauftragt“ mit dem Einheitspreis der Rechnung im LV und zählen in der Kostenkontrolle (Prognose). Ablehnen im LV – dann zählt er in der Rechnung nicht.`;
   if (!(await bpFrage(t, { ok: frei ? 'Ins LV übernehmen' : 'Als Nachtrag übernehmen' }))) return;
   await flush(); const I = L.data.items; let n = I.filter((x) => x.nt).length; const preise = {};
   for (const k of ks) { const z = zs[k], id = uid();
     const p = { id, typ: 'pos', art: 'N', oz: '', kurz: z.text.trim(), lang: `aus ${reTitel(r)}${r.re_nr ? ' Nr. ' + r.re_nr : ''}`, menge: z.menge ?? 1, einheit: z.einheit || 'psch' };
-    if (!frei) { p.nt = 'NT' + (++n); p.nt_status = 'angemeldet'; if (z.ep != null) preise[id] = z.ep; }
+    if (!frei) { p.nt = 'NT' + (++n); p.nt_status = 'beauftragt'; if (z.ep != null) preise[id] = z.ep; }
     I.push(p); z.pos = id; }
   try { await saveNow(); if (Object.keys(preise).length) await api('api/lv/' + L.id, 'PUT', { vergabe: { preise } }); await call('api/rechnungen/' + rid, 'PUT', { zeilen: zs }); toast(frei ? 'Ins LV übernommen.' : 'Als Nachtrag ins LV übernommen – steht in der Kostenkontrolle.'); }
   catch (e) { toast(e.message, true); }

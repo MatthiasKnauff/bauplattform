@@ -2431,7 +2431,8 @@ function vAmErfassen() {
   const VP = (L.vergabe && L.vergabe.preise) || {}, LI = amListe(), idx = LI.findIndex((p) => p.id === amPos);
   const liste = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null;
     const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
-    return `<tr class="${p.id === amPos ? 'sel' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="oz">${esc(p.oz)}</td><td>${esc(p.kurz)}${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${((e, fe) => `<td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td>`)(VP[p.id], t && t.ep)}${fz}<td class="r">${m ? nf(m) : ''}</td><td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}">${pct != null && m ? pct + ' %' : ''}</td></tr>`; }).join('');
+    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="oz">${esc(p.oz)}</td><td>${esc(p.kurz)}${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${((e, fe) => `<td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td>`)(VP[p.id], t && t.ep)}${fz}<td class="r">${m ? nf(m) : ''}</td><td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}">${pct != null && m ? pct + ' %' : ''}</td></tr>`; }).join('');
+  setTimeout(amSichtbar, 0);   // nach dem Neuzeichnen: aktive Position in der Liste sichtbar
   const ep = VP[amPos], t = B.length ? amTreffer(amPos) : null, diff = t && t.menge != null ? t.menge - sum : 0;
   const firma = !B.length ? '' : `<div class="am-firma">${!t ? '<span class="hint">In der PDF der Firma nicht gefunden.</span>'
     : `lt. Firma <span class="hint">(S. ${t.seite}${t.ki ? `, per KI zugeordnet ${Math.round(t.ki * 100)} %` : ''})</span>: ${t.menge != null ? `<b>${nf(t.menge)} ${esc(x.einheit)}</b>${t.ep != null ? ` · EP ${nf2(t.ep)}` : ''}${t.gp != null ? ` · GP ${nf2(t.gp)}` : ''}` : 'gefunden, Menge nicht sicher lesbar'}
@@ -2456,7 +2457,7 @@ function vAmErfassen() {
   if (!B.length) return `${kopf}<div class="am-zone" data-amdrop>${hoch}<span class="hint">oder hierher ziehen – sie erscheint rechts neben der Prüfung, erkannte Mengen werden gleich eingetragen${R && R.status !== 'geprueft' ? ` (zur ${esc(reTitel(R))})` : ' (legt eine neue Teilrechnung an)'}. Ohne PDF einfach hier prüfen.</span></div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:1rem;align-items:start" class="amg">${tab_}${detail}</div>
     <style>@media (max-width:900px){.amg{grid-template-columns:1fr!important}}</style>`;
-  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amSummenKarte(R)}${amFehltKarte(R)}${amZeilenKarte(R)}${detail}${tab_}</div><div class="am-r" id="amPdfSlot"></div></div>`;
+  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amSummenKarte(R)}${amFehltKarte(R)}${amZeilenKarte(R)}${tab_}${detail}</div><div class="am-r" id="amPdfSlot"></div></div>`;
 }
 /* Geteilte Ansicht: Trennung verschiebbar (Breite gemerkt) oder die PDF als freies Fenster über der Seite (verschieben, Größe ziehen) */
 function teilung(sp, key, neuZeichnen) {
@@ -2731,7 +2732,6 @@ async function amUebernehmen(ein, auto) {
 function amSchritt(d) {
   const LI = amListe(), i = LI.findIndex((p) => p.id === amPos), n = LI[i + d]; if (!n) return;
   amPos = n.id; LS.set('amPos', amPos); render();
-  const sel = document.querySelector('tr[data-ampos].sel'); if (sel) sel.scrollIntoView({ block: 'nearest' });
   setTimeout(() => { const f = document.querySelector('[data-am-new="formel"]'); if (f) f.focus({ preventScroll: true }); }, 30);
 }
 document.addEventListener('click', (e) => {   // PDF neben der Prüfung zuklappen / wieder öffnen – in Aufmaßprüfung und Rechnungen
@@ -2777,8 +2777,17 @@ document.addEventListener('input', (e) => { if (e.target.dataset && e.target.dat
 let amBusy = false;
 /* Enter: speichern und zur nächsten Position (leeres Feld: nur weiter) · Umschalt+Enter: speichern, weitere Zeile derselben Position */
 function amWeiter() {
-  const b = document.querySelector('[data-amstep="1"]'); if (!b || b.disabled) { toast('Letzte Position erreicht.'); return; }
-  b.click(); setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 60);
+  const fokus = () => setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus({ preventScroll: true }); amSichtbar(); }, 60);
+  const b = document.querySelector('[data-amstep="1"]');
+  if (b && !b.disabled) { b.click(); fokus(); return; }
+  const o = amListe().find((p) => p.id !== amPos && !(L.calc.aufmass[p.id] || 0));   // am Ende: zur ersten noch offenen Position
+  if (!o) { toast('Alle Positionen haben ein Aufmaß – durch.'); return; }
+  amPos = o.id; LS.set('amPos', amPos); render(); toast('Letzte Position – weiter mit der ersten noch offenen.'); fokus();
+}
+function amSichtbar() {   // aktive Zeile in der Positionsliste sichtbar halten
+  const z = document.querySelector('table.am tr.akt[data-ampos]'), w = z && z.closest('.tblw'); if (!w) return;
+  const a = z.offsetTop - w.querySelector('thead').offsetHeight, b = z.offsetTop + z.offsetHeight;
+  if (a < w.scrollTop || b > w.scrollTop + w.clientHeight) w.scrollTop = Math.max(0, a - w.clientHeight / 3);
 }
 async function amNeu(el, enter, weiter) {
   if ((el.dataset.amNew !== 'formel' && !enter) || amBusy) return;

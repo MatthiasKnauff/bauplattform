@@ -2593,10 +2593,16 @@ async function amBelegHoch(files) {
   }
   let R2 = L.rechnungen.find((r) => r.id === R.id), nb = R2.belege[R2.belege.length - 1];
   if (nb.auslese && nb.auslese.laeuft) {   // Scan/Foto: Texterkennung läuft im Hintergrund
-    const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = '<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Eingescannte Rechnung – Texterkennung läuft <small title="Tesseract auf dem Server der Plattform – keine KI, die Rechnung verlässt das Büro nicht" style="opacity:.75">(Tesseract, ohne KI)</small> …<button type="button" class="btn sm" data-j="hand" title="Nicht warten: die Rechnung gleich ohne Aufmaß mit Positionen von Hand erfassen">Von Hand erfassen</button><button type="button" class="btn sm" data-j="ab" title="Nicht mehr warten – die PDF bleibt an der Rechnung">Abbrechen</button>'; document.body.appendChild(el);
+    const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = '<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Eingescannte Rechnung – Texterkennung läuft <small title="Tesseract auf dem Server der Plattform – keine KI, die Rechnung verlässt das Büro nicht" style="opacity:.75">(Tesseract, ohne KI)</small> <b class="jst"></b> …<button type="button" class="btn sm" data-j="hand" title="Nicht warten: die Rechnung gleich ohne Aufmaß mit Positionen von Hand erfassen">Von Hand erfassen</button><button type="button" class="btn sm" data-j="ab" title="Nicht mehr warten – die PDF bleibt an der Rechnung">Abbrechen</button>'; document.body.appendChild(el);
     const lvId = L.id; let stop = '';
     el.addEventListener('click', (e) => { const j = e.target.closest('[data-j]'); if (j) stop = j.dataset.j; });
-    try { for (let k = 0; k < 400 && !stop; k++) { await new Promise((ok) => setTimeout(ok, 1500)); if (stop || k % 2) continue; const x = await api('api/lv/' + lvId).catch(() => null); const b2 = x && x.rechnungen.flatMap((r) => r.belege || []).find((b) => b.id === nb.id); if (b2 && !(b2.auslese && b2.auslese.laeuft)) { if (L && L.id === lvId) L = x; break; } } }
+    try { for (let k = 0; k < 800 && (!stop || stop === 'neu'); k++) { await new Promise((ok) => setTimeout(ok, 1500)); if ((stop && stop !== 'neu') || (k % 2 && stop !== 'neu')) continue; const x = await api('api/lv/' + lvId).catch(() => null); const b2 = x && x.rechnungen.flatMap((r) => r.belege || []).find((b) => b.id === nb.id); if (b2 && !(b2.auslese && b2.auslese.laeuft)) { if (L && L.id === lvId) L = x; break; }
+      const A2 = (b2 && b2.auslese) || {}, st = el.querySelector('.jst'); if (st) st.textContent = A2.stand_N ? `Seite ${A2.stand_n} von ${A2.stand_N}` : '';
+      const zuletzt = Date.parse(A2.stand_zeit || A2.seit || '') || 0;
+      if (zuletzt && Date.now() - zuletzt > 180000 && !el.querySelector('[data-j="neu"]')) {   // 3 Minuten ohne Fortschritt: hängt (z. B. Server neu gestartet)
+        if (st) st.textContent = 'scheint zu hängen'; const nb_ = document.createElement('button'); nb_.type = 'button'; nb_.className = 'btn sm pri'; nb_.dataset.j = 'neu'; nb_.textContent = '↻ Neu starten'; nb_.title = 'Texterkennung noch einmal starten'; el.insertBefore(nb_, el.querySelector('[data-j]'));
+      }
+      if (stop === 'neu') { stop = ''; el.querySelector('[data-j="neu"]')?.remove(); if (st) st.textContent = 'startet neu …'; await api(`api/belege/${nb.id}/auslesen`, 'POST').catch(() => {}); } } }
     finally { el.remove(); }
     if (!L || L.id !== lvId) return;
     if (stop === 'hand') return reVonHand(R.id);

@@ -3309,6 +3309,8 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung"):
     items = d.get("items") or []
     V = _j(lv["vergabe"], {}) or {}
     B = [b for b in A.get("bloecke") or [] if b.get("titel") or (b.get("kurz") and b.get("menge") is not None)]
+    B = [b for b in B if not re.search(r"(?i)rechnung|netto|brutto|summe|mwst|umsatzsteuer|abz(ü|ue|ii)g|übertrag|uebertrag|zwischensumme|gesamtbetrag|zahlbetrag",
+                                       b.get("kurz") or "")]   # Summen- und Kopfzeilen der Rechnung sind keine Positionen
     poz = [(b.get("oz") or "").strip() for b in B if not b.get("titel")]
     B = [b for b in B if not b.get("titel") or (b.get("oz") and any(o_.startswith(b["oz"].strip() + ".") for o_ in poz))]   # nur Titel, unter denen Positionen stehen (nicht „1. Abschlagsrechnung“)
     Z = [z for z in A.get("zeilen") or [] if not z.get("pos")] if not any(not b.get("titel") for b in B) else []
@@ -3634,6 +3636,21 @@ def beleg_ki(b):
     return out
 
 
+def _beleg_stand(bid):
+    """Fortschritt der Texterkennung am Beleg festhalten („Seite n von N“) – die Seite zeigt ihn beim Warten."""
+    def f(n, N):
+        try:
+            with db.tx() as c:
+                r = c.execute("SELECT auslese FROM ava_beleg WHERE id=?", (bid,)).fetchone()
+                A = _j(r["auslese"], {}) if r else None
+                if A and A.get("laeuft"):
+                    A.update(stand_n=n, stand_N=N, stand_zeit=_now())
+                    c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
+        except Exception:
+            pass
+    return f
+
+
 @app.post("/api/belege/<int:b>/auslesen")
 def beleg_auslesen(b):
     with db.tx() as c:
@@ -3645,12 +3662,12 @@ def beleg_auslesen(b):
         roh = bytes(c.execute("SELECT data FROM ava_beleg WHERE id=?", (b,)).fetchone()["data"])
         if _ist_scan(roh):   # Scan: Texterkennung (noch einmal) im Hintergrund – die Seite fragt nach
             import threading
-            c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps({"zeilen": {}, "vorschlag": [], "ocr": True, "laeuft": True}), b))
+            c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps({"zeilen": {}, "vorschlag": [], "ocr": True, "laeuft": True, "seit": _now()}), b))
             lv_id, rid, items = x["lv_id"], x["rechnung_id"], (_j(lv["data"], {}) or {}).get("items") or []
 
             def lesen():
                 try:
-                    A = _auslesen(roh, items)
+                    A = _auslesen(roh, items, _beleg_stand(b))
                 except Exception as e:
                     fehler.still("ava", "Rechnung (Scan) neu auslesen", e)
                     A = {"pos": {}, "kopf": {}, "text": False, "ocr": True, "fehler": str(e)[:200]}
@@ -3714,7 +3731,7 @@ def beleg_neu(k):
         bid = c.execute("INSERT INTO ava_beleg(rechnung_id, name, data, created, user_name) VALUES(?,?,?,?,?) RETURNING id",
                         (k, _s(fname, 200) or "Rechnung.pdf", roh, _now(), g.user["name"])).fetchone()["id"]
         if scan:   # Texterkennung dauert – im Hintergrund, die Seite fragt nach
-            c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps({"pos": {}, "kopf": {}, "laeuft": True, "ocr": True}), bid))
+            c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps({"pos": {}, "kopf": {}, "laeuft": True, "ocr": True, "seit": _now()}), bid))
         else:
             _auslese_anwenden(c, bid, k, r)
         x = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (k,)).fetchone()
@@ -3744,7 +3761,7 @@ def beleg_neu(k):
 
         def lesen():
             try:
-                A = _auslesen(roh, items)
+                A = _auslesen(roh, items, _beleg_stand(bid))
             except Exception as e:
                 fehler.still("ava", "Rechnung (Scan) auslesen", e)
                 A = {"pos": {}, "kopf": {}, "text": False, "ocr": True, "fehler": str(e)[:200]}

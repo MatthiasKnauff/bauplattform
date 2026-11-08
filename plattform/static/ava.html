@@ -897,7 +897,7 @@ async function avaDokument(f) {
   { const vg = { angebote: 'angebot', aufmass: 'rechnung', rechnungen: 'rechnung', lv: 'lv' }[tab];   // Bereich, in dem ich gerade bin = Vorgabe; eindeutiger Text gewinnt
     if (vg && (!E.sicher || !E.dok)) E.dok = vg; }
   return new Promise((fertig) => {
-    let projId = (E.projekte[0] || {}).id || pid || null, lvs = E.lvs || [];
+    let projId = pid || (E.projekte[0] || {}).id || null, lvs = E.lvs || [];   // abgelegt wird im Projekt, in dem ich gerade bin
     const ABL = { ordner: null, hand: false, tok: 0 };
     const ablZeigen = () => { const el = bg.querySelector('#adAblPfad'); if (!el) return;
       el.innerHTML = ABL.fehler ? `<span style="color:#e07b3a">${esc(ABL.fehler)}</span>` : ABL.ordner ? `📁 ${ABL.ordner.map((x, i) => `<span${ABL.neu && ABL.neu[i] ? ' class="ad-neu" title="wird angelegt"' : ''}>${esc(x)}</span>`).join(' / ')}${ABL.hand ? ' <small>(von Hand)</small>' : ''}${ABL.neu && ABL.neu.some(Boolean) ? ' <small>– kursiv: wird angelegt</small>' : ''}` : 'wird gesucht …'; };
@@ -916,7 +916,7 @@ async function avaDokument(f) {
     const was = [E.format === 'gaeb' ? `GAEB X${E.dp}` : E.format === 'excel' ? 'Excel' : E.ocr ? 'PDF-Scan (Texterkennung)' : 'PDF', E.n_pos ? `${E.n_pos} Positionen` : '', E.regie ? 'Regie/Stundenlohn' : '', E.schluss ? 'Schlussrechnung' : '', E.nachtrag ? 'Nachtrag' : ''].filter(Boolean).join(' · ');
     const bg = modalBox(`<h3>Dokument ablegen</h3><p class="hint" style="margin:0 0 .6rem"><b>${esc(f.name)}</b> · ${esc(was)}${E.sicher ? '' : ' · <span style="color:#e07b3a">Art nicht sicher erkannt – bitte prüfen</span>'}${E.hinweis ? ' · ' + esc(E.hinweis) : ''}</p>
       <div class="fm"><label for="adArt">Was ist es?</label><select id="adArt">${Object.entries(DOKN).map(([k, l]) => `<option value="${k}"${k === (E.dok || 'rechnung') ? ' selected' : ''}>${l}</option>`).join('')}</select>
-      <label for="adProj">Projekt</label><select id="adProj" data-bp-projekte>${projOpts()}</select>
+      <label for="adProj">Projekt</label>${pid ? `<div style="align-self:center"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'aktuelles Projekt')}</b></div><select id="adProj" hidden><option value="${pid}">aktuell</option></select>` : `<select id="adProj" data-bp-projekte>${projOpts()}</select>`}
       <label for="adLv">LV / Auftrag</label><select id="adLv"></select>
       <label for="adFirma">Firma</label><input id="adFirma" list="adFirmen" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer"><datalist id="adFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
       <label style="align-self:start;padding-top:.15rem">Projektordner</label><div class="ad-abl"><span id="adAblPfad" class="hint">wird gesucht …</span><span class="ad-abl-k"><button class="btn sm" type="button" id="adAblWahl" title="Ordner selbst wählen">ändern …</button><label class="hint ad-nein"><input type="checkbox" id="adAblNein"> nicht ablegen</label></span></div></div>

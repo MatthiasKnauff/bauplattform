@@ -389,7 +389,7 @@ html.mobil .bph{position:sticky;top:0}
 .mv-seg{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:3px;background:var(--card);margin-top:.5rem}
 .mv-seg button{flex:1;border:0;background:transparent;border-radius:999px;padding:.45rem .2rem;font:inherit;font-size:.88rem;color:var(--mute)}
 .mv-seg button.on{background:var(--y);color:var(--on);font-weight:600}
-.mv-b{padding:.4rem .7rem 2rem}
+.mv-b{padding:.4rem .7rem 2rem}.mv-zur{border:0;background:none;color:var(--y);font:inherit;font-weight:600;padding:.4rem 0;cursor:pointer}
 .mv-k{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin:.5rem 0}
 .mv-k div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.45rem .6rem}
 .mv-k small{display:block;color:var(--mute);font-size:.75rem}
@@ -4481,16 +4481,20 @@ async function tlInsLv(sel) {
    (Tippen zeigt den Langtext) · Nachträge · Rechnungen. Bearbeiten geht am Computer („Desktop-Ansicht“ schaltet um). */
 const MOB = (() => {
   const LSK = 'ava.mobilAus';
-  try { if (localStorage.getItem(LSK) === '1') return null; } catch { /* egal */ }
   const schmal = Math.min(window.innerWidth, screen.width || 9999) <= 760, touch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
   if (!((schmal && touch) || /iPhone|Android.+Mobile/i.test(navigator.userAgent))) return null;
+  let aus = false; try { aus = localStorage.getItem(LSK) === '1'; } catch { /* egal */ }
+  if (aus) {   // am Handy bewusst die Desktop-Ansicht gewählt: Weg zurück anbieten
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '📱 Handy-Ansicht'; b.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:90;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:.45rem .8rem;font:inherit;box-shadow:0 4px 14px #0004';
+    b.onclick = () => window.bpMobilAn(); document.body.appendChild(b); return null;
+  }
   document.documentElement.classList.add('mobil');
-  const box = $('#mView'), st = { modus: LS.get('mModus', 'auftraege'), auf: new Set(), q: '', alle: LS.get('vqAlle', false), T: 0, tok: 0, R: [] };
+  const box = $('#mView'), st = { modus: LS.get('mModus', 'lvs'), auf: new Set(), q: '', alle: LS.get('vqAlle', false), T: 0, tok: 0, R: [] };
   const pct = (a, b) => (b ? Math.max(0, Math.min(100, Math.round(a / b * 100))) : 0);
   const stLbl = (k) => (STATUS.find((x) => x[0] === k) || [, k])[1];
   function vAuf() {
-    const A = LIST.filter((x) => !x.archived);
-    if (!A.length) return '<p class="mu" style="padding:1rem;color:var(--mute)">In diesem Projekt gibt es noch kein Leistungsverzeichnis.</p>';
+    const A = LIST.filter((x) => !x.archived && (x.vergeben || x.frei));
+    if (!A.length) return '<p class="mu" style="padding:1rem;color:var(--mute)">In diesem Projekt ist noch nichts vergeben.</p>';
     const S = A.reduce((s, x) => ({ a: s.a + (x.auftrag || 0), sch: s.sch + (x.auftrag ? 0 : x.schaetzung || 0), n: s.n + (x.nachtraege || 0), ab: s.ab + (x.abgerechnet || 0), p: s.p + (x.prognose || 0) }), { a: 0, sch: 0, n: 0, ab: 0, p: 0 });
     return `<div class="mv-k"><div><small>Aufträge</small><b>${eur0(S.a)}</b>${S.sch ? `<span class="sub"> · ${eur0(S.sch)} noch nicht vergeben</span>` : ''}</div><div><small>Nachträge beauftragt</small><b>${eur0(S.n)}</b></div>
         <div><small>Prognose</small><b>${eur0(S.p)}</b></div><div><small>abgerechnet</small><b>${eur0(S.ab)}</b><span class="sub"> · ${pct(S.ab, S.a + S.n)} %</span></div></div>
@@ -4546,11 +4550,37 @@ const MOB = (() => {
         ${r.gefordert ? `<div class="mk-r"><span>gefordert (kumuliert)</span>${eur(r.gefordert)}</div>` : ''}
         <div class="mk-r"><span>anerkannt (kumuliert)</span>${eur(c.anerkannt)}</div><div class="mk-r"><span>Zahlbetrag netto · brutto</span><b>${eur(c.zahlung)} · ${eur(c.brutto)}</b></div></div>`; }).join('');
   }
+  function vLvs() {   // alle LVs des Projekts – Tippen öffnet die Positionen
+    const A = LIST.filter((x) => !x.archived);
+    if (!A.length) return '<p style="padding:1rem;color:var(--mute)">In diesem Projekt gibt es noch kein Leistungsverzeichnis.</p>';
+    return A.map((x) => `<button class="mk" data-mlv="${x.id}" style="--gw:${x.vergeben || x.frei ? '#2f9e5a' : x.n_angebote ? '#e0a030' : 'var(--line)'}"><div class="mk-h"><b>${esc(x.nr)} ${esc(x.name)}</b><span class="mk-tag${x.vergeben || x.frei ? ' ok' : ''}">${esc(stLbl(x.status))}</span></div>
+      <div class="mk-z">${esc([x.gewerk, x.auftragnehmer].filter(Boolean).join(' · ') || (x.n_angebote ? `${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}` : 'in Ausschreibung'))}</div>
+      <div class="mk-r"><span>${x.n_pos} Positionen</span>${x.auftrag ? eur0(x.auftrag) : x.schaetzung ? 'Schätzung ' + eur0(x.schaetzung) : ''}</div></button>`).join('');
+  }
+  function vAm() {   // Aufmaß je Position des gewählten LV: LV-Menge, aufgemessen, Anteil
+    if (!L) return '<p style="padding:1rem;color:var(--mute)">Kein LV gewählt.</p>';
+    const P = items().filter((x) => x.typ === 'pos' && x.art !== 'T'), AM = L.calc.aufmass || {}, VP = (L.vergabe && L.vergabe.preise) || {};
+    if (!P.length) return '<p style="padding:1rem;color:var(--mute)">Dieses LV hat keine Positionen.</p>';
+    const mit = P.filter((x) => AM[x.id]), ges = P.reduce((a, x) => a + (AM[x.id] || 0) * (VP[x.id] || 0), 0);
+    return `<div class="mv-k"><div><small>Positionen mit Aufmaß</small><b>${mit.length}</b><span class="sub"> von ${P.length}</span></div><div><small>Leistungsstand</small><b>${eur0(L.calc.leistung)}</b></div></div>`
+      + P.map((x) => { const m = AM[x.id] || 0, q = x.menge ? Math.round(m / x.menge * 100) : null;
+        return `<div class="mp${m ? '' : ' grau'}" data-mp="${esc(x.id)}"><div class="o">${esc(x.oz)}${x.nt ? ` · <b style="color:#e07b3a">${esc(x.nt)}</b>` : ''}</div><div class="t">${esc(x.kurz)}</div>
+          <div class="z"><span>LV ${nf(x.menge)} ${esc(x.einheit || '')} · aufgemessen <b>${nf(m)}</b></span><b${q != null && q > 110 ? ' style="color:#e07b3a"' : ''}>${q != null ? q + ' %' : ''}</b></div>
+          ${x.menge ? `<div class="mk-b"><i style="width:${Math.min(100, q || 0)}%"></i></div>` : ''}${st.lang === x.id && x.lang ? `<div class="lt">${esc(x.lang)}</div>` : ''}</div>`; }).join('');
+  }
+  function vReAlle() {   // alle Rechnungen im Projekt, je LV
+    const A = LIST.filter((x) => !x.archived && (x.rechnungen || []).length);
+    if (!A.length) return '<p style="padding:1rem;color:var(--mute)">Noch keine Rechnungen in diesem Projekt.</p>';
+    return A.map((x) => `<div class="mv-g">${esc(x.nr)} ${esc(x.name)}${x.auftragnehmer ? ' · ' + esc(x.auftragnehmer) : ''}</div>` + [...x.rechnungen].reverse().map((r) => { const g = r.status === 'geprueft';
+      return `<button class="mk" data-mre="${x.id}" style="--gw:${g ? '#2f9e5a' : '#e0a030'}"><div class="mk-h"><b>${esc(reTitel(r))}</b><span class="mk-tag ${g ? 'ok' : 'w'}">${g ? 'geprüft' : 'in Prüfung'}</span></div>
+        ${r.re_nr ? `<div class="mk-z">Nr. ${esc(r.re_nr)}</div>` : ''}<div class="mk-r"><span>anerkannt (kumuliert)</span>${eur(r.anerkannt)}</div><div class="mk-r"><span>Zahlbetrag netto</span><b>${eur(r.zahlung)}</b></div></button>`; }).join('')).join('');
+  }
   function zeichnen() {
+    if (st.modus === 'nt') st.modus = 'auftraege';
     const lvSel = LIST.length ? `<select id="mLv" aria-label="Leistungsverzeichnis">${LIST.filter((x) => !x.archived || (L && x.id === L.id)).map((x) => `<option value="${x.id}"${L && x.id === L.id ? ' selected' : ''}>${esc(x.nr)} · ${esc(x.name)}</option>`).join('')}</select>` : '';
-    const M = [['auftraege', 'Aufträge'], ['lv', 'LV'], ['nt', 'Nachträge'], ['re', 'Rechnungen']];
-    box.innerHTML = `<div class="mv-top"><div class="mv-q"><input type="search" id="mQ" placeholder="🔍 Suchen – Text, OZ, Firma …" value="${esc(st.q)}" autocomplete="off" enterkeyhint="search"><label><input type="checkbox" id="mQa"${st.alle ? ' checked' : ''}> alle Projekte</label></div>${st.modus === 'auftraege' ? '' : lvSel}<div class="mv-seg">${M.map(([k, l]) => `<button data-mm="${k}" class="${k === st.modus ? 'on' : ''}">${l}</button>`).join('')}</div></div>
-      <div class="mv-b">${st.q.length > 1 ? '<p style="color:var(--mute)">Suche …</p>' : st.modus === 'lv' ? vLvM() : st.modus === 'nt' ? vNt() : st.modus === 're' ? vRe() : vAuf()}
+    const M = [['lvs', 'LVs'], ['auftraege', 'Aufträge'], ['am', 'Aufmaß'], ['re', 'Rechnungen']], mAkt = st.modus === 'lv' ? (st.von || 'lvs') : st.modus;
+    box.innerHTML = `<div class="mv-top"><div class="mv-q"><input type="search" id="mQ" placeholder="🔍 Suchen – Text, OZ, Firma …" value="${esc(st.q)}" autocomplete="off" enterkeyhint="search"><label><input type="checkbox" id="mQa"${st.alle ? ' checked' : ''}> alle Projekte</label></div>${st.modus === 'lv' || st.modus === 'am' ? lvSel : ''}<div class="mv-seg">${M.map(([k, l]) => `<button data-mm="${k}" class="${k === mAkt ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="mv-b">${st.q.length > 1 ? '<p style="color:var(--mute)">Suche …</p>' : st.modus === 'lv' ? `<button class="mv-zur" data-mm="${st.von || 'lvs'}">‹ ${st.von === 'auftraege' ? 'Aufträge' : 'alle LVs'}</button>${vLvM()}${items().some((x) => x.nt) ? '<div class="mv-g">Nachträge</div>' + vNt() : ''}` : st.modus === 'am' ? vAm() : st.modus === 're' ? vReAlle() : st.modus === 'lvs' ? vLvs() : vAuf()}
       <p class="mv-f">Nur Ansicht – bearbeiten am Computer. <button data-mdesk>Desktop-Ansicht</button></p></div>`;
     if (st.q.trim().length > 1) suchen();
   }
@@ -4582,12 +4612,17 @@ const MOB = (() => {
   box.addEventListener('click', async (e) => {
     const mr = e.target.closest('[data-mr]'); if (mr) { gehe(st.R[+mr.dataset.mr]); return; }
     const m = e.target.closest('[data-mm]'); if (m) { st.q = ''; st.modus = m.dataset.mm; LS.set('mModus', st.modus); zeichnen(); scrollTo(0, 0); return; }
-    const k = e.target.closest('[data-mlv]'); if (k) { st.modus = 'lv'; LS.set('mModus', 'lv'); await openLv(+k.dataset.mlv); scrollTo(0, 0); return; }
+    const k = e.target.closest('[data-mlv]'); if (k) { st.von = st.modus === 'auftraege' ? 'auftraege' : 'lvs'; st.modus = 'lv'; LS.set('mModus', 'lv'); await openLv(+k.dataset.mlv); scrollTo(0, 0); return; }
+    const kr = e.target.closest('[data-mre]'); if (kr) { if (!L || L.id !== +kr.dataset.mre) await openLv(+kr.dataset.mre); st.modus = 'rlv'; zeichnenRe(); scrollTo(0, 0); return; }
     const t = e.target.closest('[data-mt]'); if (t) { const id = t.dataset.mt; if (st.auf.has(id)) st.auf.delete(id); else st.auf.add(id); zeichnen(); return; }
     const p = e.target.closest('[data-mp]'); if (p) { st.lang = st.lang === p.dataset.mp ? null : p.dataset.mp; zeichnen(); return; }
     if (e.target.closest('[data-mdesk]')) { try { localStorage.setItem(LSK, '1'); } catch { /* egal */ } location.reload(); }
   });
-  return { zeichnen };
+  function zeichnenRe() {   // Rechnungen eines LV im Detail (wie bisher), mit Zurück
+    zeichnen(); const b = box.querySelector('.mv-b'); if (b) b.innerHTML = `<button class="mv-zur" data-mm="re">‹ alle Rechnungen</button><div class="mv-g">${esc(L.nr)} ${esc(L.name)}</div>${vRe()}<p class="mv-f">Nur Ansicht – bearbeiten am Computer. <button data-mdesk>Desktop-Ansicht</button></p>`;
+    const sg = box.querySelector('[data-mm="re"].on, .mv-seg [data-mm="re"]'); if (sg) sg.classList.add('on');
+  }
+  return { zeichnen: () => (st.modus === 'rlv' ? zeichnenRe() : zeichnen()) };
 })();
 window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catch { /* egal */ } location.reload(); };
 

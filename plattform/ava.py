@@ -3622,7 +3622,8 @@ def beleg_ki(b):
                 s_, v_ = _ki_zuordnen(c, A, items)
         except ai.AIError as e:
             return jsonify(error=str(e)), 400
-        hinweis = f"KI: {s_} Zeilen sicher zugeordnet" + (f", {v_} Vorschläge zum Bestätigen (orange)" if v_ else "") + "."
+        kn = {"ollama": "Ollama (im Büro)", "claude": "Claude", "gemini": "Gemini", "chatgpt": "ChatGPT", "openai": "ChatGPT"}.get((A.get("ki") or {}).get("anbieter"), (A.get("ki") or {}).get("anbieter") or "KI")
+        hinweis = f"{kn}: {s_} Zeilen sicher zugeordnet" + (f", {v_} Vorschläge zum Bestätigen (orange)" if v_ else "") + "."
     with db.tx() as c:
         c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A, ensure_ascii=False), b))
         _touch(c, x["lv_id"])

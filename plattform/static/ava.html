@@ -3360,17 +3360,19 @@ function reNeuMenu(anchor) {
 }
 function reDialog(art = 'abschlag', vorgabe = null) {
   const n = L.rechnungen.length + 1, offen = (L.calc.sicherheit || {}).offen || 0;
-  modalBox(`<h3>${art === 'abschlag' ? n + '. Teilrechnung' : RE_NAME[art]} erfassen</h3><div class="fm">
+  const bgR = modalBox(`<h3>${art === 'abschlag' ? n + '. Teilrechnung' : RE_NAME[art]} erfassen</h3><div class="fm">
       <label>Rechnung (PDF)</label><input type="file" id="reF" accept="application/pdf,.pdf">
       <label>Rechnungsnr.</label><input id="reNr">
       <label>Rechnungsdatum</label><input type="date" id="reD">
       <label>Eingang</label><input type="date" id="reE" value="${new Date().toISOString().slice(0, 10)}">
-      ${art === 'sicherheit' ? `<label>Freigabe netto</label><input id="reB" value="${nf(vorgabe && vorgabe.betrag != null ? Math.min(offen, vorgabe.betrag) : offen, 2)}" inputmode="decimal">
+      ${art === 'sicherheit' ? `<label>Freigegeben wird</label><select id="reWas"><option value="einbehalt"${offen > 0.5 ? ' selected' : ''}>Sicherheitseinbehalt – noch einbehalten ${eur(offen)}</option><option value="frei"${offen > 0.5 ? '' : ' selected'}>freier Betrag</option></select>
+      <label>Freigabe netto</label><input id="reB" value="${nf(vorgabe && vorgabe.betrag != null ? Math.min(offen, vorgabe.betrag) : offen, 2)}" inputmode="decimal">
       <label>Grund</label><select id="reGr"><option value="austausch"${vorgabe && vorgabe.grund === 'austausch' ? ' selected' : ''}>Austausch gegen Bürgschaft (§ 17 Abs. 3 VOB/B)</option><option value="frist"${!vorgabe || vorgabe.grund !== 'austausch' ? ' selected' : ''}>Ablauf der Verjährungsfrist für Mängelansprüche</option><option value="teil">Teilfreigabe (z. B. nach Teilabnahme)</option></select>` : `<label>gefordert netto</label><input id="reG" placeholder="${art === 'regie' ? 'Betrag laut Rechnung' : 'kumulierter Betrag laut Rechnung'}" inputmode="decimal">`}</div>
     <p class="hint">${art === 'regie' ? 'Die Stundenzettel danach als Zeilen eintragen.' : art === 'sicherheit' ? 'Austausch: der einbehaltene Betrag wird gegen die vorgelegte Bürgschaft ausgezahlt. Frist: Freigabe nach Ablauf der Verjährungsfrist für Mängelansprüche (Begehung vorher).' : 'Geprüft wird mit dem Aufmaß unter „Aufmaß“ – bitte dort die Mengen der Firma prüfen und eintragen.'} Die PDF wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
+    if (art === 'sicherheit' && !(pf($('#reB').value) > 0)) { toast($('#reWas').value === 'einbehalt' ? 'Es ist nichts einbehalten – „freier Betrag“ wählen und den Betrag eintragen.' : 'Bitte den Betrag eintragen.', true); return; }
     btn.disabled = true;
     try {
       const r = await call(`api/lv/${L.id}/rechnungen`, 'POST', { art, re_nr: $('#reNr').value, datum: $('#reD').value, eingang: $('#reE').value,
@@ -3381,6 +3383,8 @@ function reDialog(art = 'abschlag', vorgabe = null) {
       if (f && neu) await reBelegHoch(neu.id, f);
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
+  bgR.querySelector('.modal').classList.add('breit');   // von Anfang an breit genug – nichts läuft über
+  bgR.addEventListener('change', (e) => { if (e.target.id === 'reWas') { const b = $('#reB'); if (e.target.value === 'einbehalt') { b.value = nf(offen, 2); b.readOnly = false; } else { b.value = ''; b.focus(); } } });
 }
 async function reBelegHoch(rid, f) {
   if (!f) return;

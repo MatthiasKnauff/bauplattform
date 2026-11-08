@@ -661,20 +661,36 @@
   const KM_F = [['name', 'Firma / Name', 'w'], ['trade', 'Gewerk / Rolle', ''], ['role', 'Funktion', ''], ['contact_person', 'Ansprechpartner', 'w'],
     ['phone', 'Telefon', '', 'tel'], ['mobile', 'Mobil', '', 'tel'], ['email', 'E-Mail', '', 'email'], ['website', 'Internet', '', 'url'],
     ['street', 'Straße, Nr.', 'w'], ['zip', 'PLZ', '', 'text'], ['city', 'Ort', '']];
-  H.kontaktMaske = function (vor = {}, opt = {}) {
-    const B = opt.basis || '', neu = !vor.id, c = { ...vor };
+  /* weitere Nummern, Mails, Anschriften, Ansprechpartner – wie in „Adressen“ */
+  const KM_WT = { tel: ['☎', 'Telefon', 'z. B. Zentrale, Büro'], mail: ['✉', 'E-Mail', 'z. B. Rechnungen'], adr: ['📍', 'Anschrift', 'z. B. Rechnungsanschrift'], person: ['👤', 'Ansprechpartner', 'Funktion, z. B. Bauleiter'] };
+  const kmWtZeile = (x, i) => {
+    const v = (k) => esc(x[k] || ''), [ic, t, ph] = KM_WT[x.typ] || KM_WT.tel, inp = (k, pl, ty, cl) => `<input data-kwt="${i}" data-wk="${k}"${ty ? ` type="${ty}"` : ''}${cl ? ` class="${cl}"` : ''} value="${v(k)}" placeholder="${pl}" autocomplete="off" aria-label="${pl}">`;
+    const f = x.typ === 'adr' ? inp('street', 'Straße, Nr.', '', 'w2') + inp('zip', 'PLZ') + inp('city', 'Ort')
+      : x.typ === 'person' ? inp('wert', 'Name') + inp('bez', ph) + inp('tel', 'Telefon', 'tel') + inp('mail', 'E-Mail', 'email')
+      : inp('wert', t, x.typ === 'mail' ? 'email' : 'tel', 'w2');
+    return `<div class="bph-kwt-z"><div class="bph-kwt-t"><span>${ic} ${t}</span>${x.typ === 'person' ? '' : inp('bez', ph)}<button type="button" class="bph-x" data-kwtx="${i}" title="Entfernen" aria-label="Entfernen">✕</button></div><div class="bph-kwt-f">${f}</div></div>`;
+  };
+  H.kontaktMaske = async function (vor = {}, opt = {}) {
+    const B = opt.basis || '', neu = !vor.id;
+    if (!neu) { try { const v = await KX(B + 'api/bp/kontakte?ids=' + vor.id); if (Array.isArray(v) && v[0]) vor = { ...vor, ...v[0] }; } catch { /* mit dem arbeiten, was da ist */ } }
+    const c = { ...vor };
+    let WTL = (c.weitere || []).map((x) => ({ ...x }));
     const sugB = H.app === 'bautagebuch' ? 'api/contacts/suggest' : 'api/bp/bt/contacts/suggest';
     return new Promise((fertig) => {
       const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-      bg.innerHTML = `<div class="bph-dlg bph-dm bph-kmk" role="dialog" aria-label="Kontakt" style="width:min(480px,96vw)"><div class="bph-dlg-h"><b>${neu ? 'Neuer Kontakt' : esc(c.name || 'Kontakt')}</b><button type="button" class="bph-x" data-kmx aria-label="Schließen">✕</button></div>
+      bg.innerHTML = `<div class="bph-dlg bph-dm bph-kmk" role="dialog" aria-label="Kontakt" style="width:min(580px,96vw)"><div class="bph-dlg-h"><b>${neu ? 'Neuer Kontakt' : esc(c.name || 'Kontakt')}</b><button type="button" class="bph-x" data-kmx aria-label="Schließen">✕</button></div>
         <div class="bph-dm-b"><div class="bph-dm-g">${KM_F.map(([k, l, w, t]) => `<label class="bph-dm-f${w ? ' bph-dm-w' : ''}"><span>${l}</span><input data-kmf="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'zip' ? ' inputmode="numeric"' : ''}></label>`).join('')}
           ${neu ? '<div class="bph-dm-w bph-kmsug" data-kmsug></div>' : ''}
+          <div class="bph-dm-w bph-kwt"><div data-kwtbox></div><div class="bph-kwt-add">${Object.entries(KM_WT).map(([k, [ic]]) => `<button type="button" class="bph-btn" data-kwtadd="${k}">＋ ${ic} ${{ tel: 'Nummer', mail: 'E-Mail', adr: 'Anschrift', person: 'Ansprechpartner' }[k]}</button>`).join('')}</div></div>
           <label class="bph-dm-f bph-dm-w"><span>Notizen</span><textarea data-kmf="notes" rows="2">${esc(c.notes || '')}</textarea></label></div></div>
         <p class="bph-err" data-kmerr></p>
         <div class="bph-row" style="align-items:center"><span class="bph-mu" style="margin:0;flex:1">Dieselben Adressen wie in „Adressen“, im Bautagebuch und im Bauzeitenplan.</span><button type="button" class="bph-btn" data-kmx>Abbrechen</button><button type="button" class="bph-btn pri" data-kms>${neu ? 'Anlegen' : 'Speichern'}</button></div></div>`;
       document.body.appendChild(bg);
       const root = bg.firstChild, q = (a) => root.querySelector(a);
       let SUG = [], sT = 0, done = false;
+      const wtLesen = () => root.querySelectorAll('[data-kwt]').forEach((el) => { const x = WTL[+el.dataset.kwt]; if (x) x[el.dataset.wk] = el.value; });
+      const wtZeichnen = (fokus) => { const bx = q('[data-kwtbox]'); bx.innerHTML = WTL.map(kmWtZeile).join(''); if (fokus) { const l = bx.querySelectorAll('.bph-kwt-z'); const i = l[l.length - 1]?.querySelector('.bph-kwt-f input'); if (i) i.focus(); } };
+      wtZeichnen();
       const ende = (k) => { if (done) return; done = true; bg.remove(); document.removeEventListener('keydown', esc1, true); fertig(k || null); };
       const esc1 = (e) => { if (e.key === 'Escape') { e.stopPropagation(); ende(null); } };
       document.addEventListener('keydown', esc1, true);
@@ -690,6 +706,8 @@
       root.addEventListener('input', (e) => { if (neu && e.target.dataset.kmf === 'name') sug(e.target.value); });
       root.addEventListener('click', async (e) => {
         if (e.target.closest('[data-kmx]')) return ende(null);
+        const wa = e.target.closest('[data-kwtadd]'); if (wa) { wtLesen(); WTL.push({ typ: wa.dataset.kwtadd }); wtZeichnen(true); return; }
+        const wx = e.target.closest('[data-kwtx]'); if (wx) { wtLesen(); WTL.splice(+wx.dataset.kwtx, 1); wtZeichnen(); return; }
         const sg = e.target.closest('[data-kmsg]');
         if (sg) {
           let x = SUG[+sg.dataset.kmsg]; if (!x) return;
@@ -701,6 +719,7 @@
         }
         if (!e.target.closest('[data-kms]')) return;
         const d = {}; root.querySelectorAll('[data-kmf]').forEach((el) => { d[el.dataset.kmf] = el.value; });
+        wtLesen(); d.weitere = WTL.filter((x) => ['wert', 'street', 'city', 'tel', 'mail'].some((k) => (x[k] || '').trim()));
         if (!d.name.trim()) { q('[data-kmerr]').textContent = 'Bitte einen Namen eingeben.'; q('[data-kmf="name"]').focus(); return; }
         try {
           const r = await KX(B + 'api/bp/kontakte' + (neu ? '' : '/' + c.id), { method: neu ? 'POST' : 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });

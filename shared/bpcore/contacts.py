@@ -231,7 +231,32 @@ def bereinigen(d, partial=False):
 
 
 def aus(r):
-    return {"id": r["id"], **{k: (r[k] if k in r.keys() else "") or "" for k in FELDER}}
+    d = {"id": r["id"], **{k: (r[k] if k in r.keys() else "") or "" for k in FELDER}}
+    d["weitere"] = (_json(r["extra"]).get("weitere") or []) if "extra" in r.keys() else []
+    return d
+
+
+WEITERE_TYP = ("tel", "mail", "adr", "person")
+
+
+def weitere_bereinigen(L):
+    """Weitere Telefonnummern, E-Mail-Adressen, Anschriften und Ansprechpartner (contacts.extra.weitere) – wie in „Adressen“."""
+    import re
+    out = []
+    for x in (L if isinstance(L, list) else [])[:40]:
+        if not isinstance(x, dict) or x.get("typ") not in WEITERE_TYP:
+            continue
+        y = {"typ": x["typ"]}
+        for k, mx in (("bez", 80), ("wert", 200), ("street", 200), ("zip", 20), ("city", 200), ("tel", 100), ("mail", 200)):
+            v = " ".join(str(x.get(k) or "").split())[:mx]
+            if v:
+                y[k] = v
+        for k in ("mail",) + (("wert",) if y["typ"] == "mail" else ()):
+            if y.get(k) and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", y[k]):
+                raise ValueError(f"Die E-Mail-Adresse „{y[k]}“ ist ungültig.")
+        if any(y.get(k) for k in ("wert", "street", "city", "tel", "mail")):
+            out.append(y)
+    return out
 
 
 def suchen(c, q, rolle="", n=12):

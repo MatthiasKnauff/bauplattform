@@ -629,8 +629,10 @@ def blueprint(get_user=None):
         u = user()
         if not u:
             return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
         try:
-            d = contacts.bereinigen(request.get_json(silent=True) or {}, partial=cid is not None)
+            d = contacts.bereinigen(b, partial=cid is not None)
+            wt = contacts.weitere_bereinigen(b["weitere"]) if isinstance(b.get("weitere"), list) else None
         except ValueError as e:
             return jsonify(error=str(e)), 400
         if not d.get("name", "x"):
@@ -650,6 +652,10 @@ def blueprint(get_user=None):
                     with c.savepoint():
                         if d:
                             c.execute(f"UPDATE contacts SET {', '.join(k + '=?' for k in d)}, updated=? WHERE id=?", (*d.values(), ts, cid))
+                if wt is not None:   # weitere Nummern, Mails, Anschriften, Ansprechpartner – im extra-JSON, Rest bleibt
+                    ex = json.loads(c.execute("SELECT extra FROM contacts WHERE id=?", (cid,)).fetchone()["extra"] or "{}") or {}
+                    ex["weitere"] = wt
+                    c.execute("UPDATE contacts SET extra=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), cid))
                 versionen.nach(c, f"kontakt:{cid}", u["name"])
                 if d.get("email"):
                     benachrichtigung.zuordnen(c, cid, d["email"])

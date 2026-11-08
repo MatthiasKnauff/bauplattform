@@ -356,13 +356,18 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 
 /* Stammdaten-Maske */
 .bph-dm .bph-dlg-h{display:flex;align-items:center;gap:.3rem;margin-bottom:.5rem}.bph-dm .bph-dlg-h .bph-x{margin-left:auto}
-.bph-dm-b{max-height:70vh;overflow:auto;padding-right:.2rem}
+.bph-dm-b{max-height:calc(92vh - 8.5rem);overflow:auto;padding:.2rem .35rem;margin:-.2rem -.35rem}   /* Rand, damit der Fokusrahmen der Felder nicht abgeschnitten wird */
 .bph-dm fieldset{border:1px solid var(--line,#3b3e42);border-radius:10px;margin:.5rem 0;padding:.5rem .8rem .7rem}
 .bph-dm legend{font-weight:600;padding:0 .3rem}
 .bph-dm-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.45rem .8rem}
 .bph-dm-f{display:flex;flex-direction:column;gap:.15rem;font-size:.88em;min-width:0}
 .bph-dm-f>span:first-child{color:var(--mute,#9a9c9e)}
 .bph-dm-w{grid-column:1/-1}
+.bph-kwt{display:grid;gap:.45rem;font-size:.88em}.bph-kwt [data-kwtbox]{display:grid;gap:.45rem}.bph-kwt [data-kwtbox]:empty{display:none}
+.bph-kwt-z{border:1px solid var(--line,#3b3e42);border-radius:10px;padding:.45rem .55rem;display:grid;gap:.35rem}
+.bph-kwt-t{display:flex;align-items:center;gap:.5rem;font-size:.85em;color:var(--mute,#9a9c9e)}.bph-kwt-t>span{flex:none}.bph-kwt-t input{flex:1;min-width:0}.bph-kwt-t .bph-x{margin-left:auto}
+.bph-kwt-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.35rem}.bph-kwt-f .w2{grid-column:span 2}
+.bph-kwt-add{display:flex;flex-wrap:wrap;gap:.3rem}.bph-kwt-add .bph-btn{font-size:.82em;padding:.2rem .6rem}
 .bph-dm-i{display:flex;align-items:center;gap:.3rem}.bph-dm-i em{font-style:normal;color:var(--mute,#9a9c9e)}
 .bph-dm input:not([type=checkbox]),.bph-dm select,.bph-dm textarea{width:100%;box-sizing:border-box;font:inherit;padding:.4rem .5rem;border:1px solid var(--line,#3b3e42);border-radius:7px;background:var(--bg,transparent);color:inherit}
 .bph-dm-z{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;font-size:.85em;color:var(--mute,#9a9c9e)}.bph-dm-z .bph-btn{padding:.1rem .5rem;font-size:.9em}

@@ -425,7 +425,8 @@ def _allplan_auswahl(rows, ziel=320):
 def allplan_katalog(c, kg=""):
     """Bauteil-Elemente (Katalog gk3e) als Allplan-Kundenkataloge im Textformat des Elementkatalogs NEM_ELE:
     .KAT (REFNAM 18 Zeichen + Kurztext 60), .KTX (Langtext in Zeilen zu 40 Zeichen, um 18 eingerückt), .KTM (Attribute, leer).
-    Fünf Kataloge nach Bauteilart (kukat1–5), je Vorlage nur die gängigen Aufbauten – Allplan zeigt Kataloge als flache Liste.
+    Fünf Kataloge nach Bauteilart (kukat1–5), je Vorlage nur die gängigen Aufbauten. Drei Ebenen wie in Allplan vorgesehen
+    (Nummer der Ebene darüber ist Teil der Nummer): Kostengruppe 331 → Vorlage 331.02 → Element 331.02.004.
     Der Kurztext beginnt mit dem Code; der IFC-Import der Baukosten erkennt daran den Aufbau. Gibt (ZIP-bytes, Anzahl) zurück."""
     import io
     import textwrap
@@ -442,6 +443,10 @@ def allplan_katalog(c, kg=""):
                      .replace("≤", "<=").replace("≥", ">=").replace("Ø", "D"))
     enc = lambda t: ers(t).encode("cp1252", "replace")
     crlf = lambda L: b"\r\n".join(L) + b"\r\n"
+    VNAMEN = {x["id"]: x["name"] for x in c.execute("SELECT id, name FROM pdb_vorlage").fetchall()}
+    KG_NAMEN = {}
+    for x in c.execute("SELECT DISTINCT gruppe, titel FROM pdb_position WHERE katalog='gk3e'").fetchall():
+        KG_NAMEN[x["gruppe"]] = (x["titel"] or "").split(" › ")[-1].split(" ", 1)[-1]
     gruppen, rest = {}, list(rows)
     for key, _, passt in ALLPLAN_KATALOGE:
         gruppen[key] = [r for r in rest if passt(r["kg"] or "")]
@@ -450,13 +455,26 @@ def allplan_katalog(c, kg=""):
     buf, n_ges, uebersicht = io.BytesIO(), 0, []
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for key, titel, _ in ALLPLAN_KATALOGE:
-            sel = _allplan_auswahl(gruppen[key])
+            sel = sorted(_allplan_auswahl(gruppen[key]), key=lambda r: r["code"])
             if not sel:
                 continue
             kat, ktx = [b"#", b"REFNAM            KURZT", b""], [b"#", b"REFNAM            LANGT", b""]
+            akt_kg = akt_v = None
             for r in sel:
+                kg3, vid = r["code"][:3], r["code"][:6]
+                if kg3 != akt_kg:   # Ebene 1 (Katalog-Stamm): Kostengruppe, z. B. „331 Tragende Außenwände“
+                    akt_kg = kg3
+                    kat.append(enc(kg3.ljust(18) + ers(f"{kg3} {KG_NAMEN.get(kg3, '')}".strip())[:60].ljust(60)))
+                    ktx.append(enc(kg3.ljust(18)))
+                if vid != akt_v:    # Ebene 2 (Zweig): Vorlage, z. B. „331.02 AW monolithisch, verputzt“
+                    akt_v = vid
+                    kat.append(enc(vid.ljust(18) + ers(f"{vid} {VNAMEN.get(vid, '')}".strip())[:60].ljust(60)))
+                    ktx.append(enc(vid.ljust(18)))
                 ref = r["code"][:17].ljust(18)
-                kat.append(enc(ref + ers(f"{r['code']} {r['kurz']}")[:60].ljust(60)))   # erst ersetzen, dann auf 60 Zeichen
+                vn = VNAMEN.get(vid, "")
+                txt = (r["bez"] or r["kurz"])
+                txt = txt[len(vn):].lstrip(", ") if vn and txt.startswith(vn) and len(txt) > len(vn) + 2 else r["kurz"]   # Vorlage steht eine Ebene höher
+                kat.append(enc(ref + ers(f"{r['code']} {txt}")[:60].ljust(60)))   # erst ersetzen, dann auf 60 Zeichen
                 ktx.append(enc(ref))
                 zeilen = []
                 for absatz in (r["bez"] or r["kurz"], *(r["lang"] or "").split("\n")):

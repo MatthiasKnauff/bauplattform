@@ -100,6 +100,36 @@ def allplan_katalog():
     return Response(z, mimetype="application/zip", headers={"Content-Disposition": 'attachment; filename="allplan-bauteilkatalog.zip"'})
 
 
+@app.get("/api/allplan/ziel")
+def allplan_ziel():
+    """Wo liegt der Allplan-Bürostandard? (über das Bautagebuch, das die Freigabe kennt)"""
+    if not _admin():
+        return jsonify(error="Nur für die Verwaltung."), 403
+    try:
+        return jsonify(C.bt_api("GET", "/api/allplan/ziel"))
+    except RuntimeError as e:
+        return jsonify(ok=False, error=str(e))
+
+
+@app.post("/api/allplan/uebertragen")
+def allplan_uebertragen():
+    """Kundenkataloge kukat1–5 neu erzeugen und in den Allplan-Bürostandard schreiben (vorher .bak/.bak2 sichern)."""
+    import base64
+    import zipfile
+    if not _admin():
+        return jsonify(error="Nur für die Verwaltung."), 403
+    with db.tx() as c:
+        z, n = B.allplan_katalog(c)
+    with zipfile.ZipFile(io.BytesIO(z)) as zf:
+        dateien = {x: base64.b64encode(zf.read(x)).decode() for x in zf.namelist() if x.startswith("kukat")}
+    try:
+        r = C.bt_api("POST", "/api/allplan/uebertragen", {"dateien": dateien})
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    C.audit(C.full_name(g.user), "baudaten", "Allplan-Kataloge übertragen", f"{n} Einträge")
+    return jsonify({**(r or {}), "eintraege": n})
+
+
 @app.get("/api/vorbemerkungen")
 def vorbemerkungen():
     """Kompakte Vorbemerkungen: ohne key die Liste, mit key (LB-Nummer, 'bb', 'bvb', 'zvb') der Text."""

@@ -19,7 +19,9 @@ window.KatalogeEinst = async function katalogeEinst(host, o = {}) {
       <p class="bph-mu">sirAdos Positionen oder Elemente: dieselbe Datei noch einmal einlesen ersetzt den Katalog (neuer Preisstand). Die Kataloge bleiben nur in der Datenbank des Büros – bitte die Lizenz des Anbieters beachten.</p>` : '<p class="bph-mu">Kataloge hinzufügen und löschen kann die Verwaltung.</p>'}
     <h4 style="margin:1.1rem 0 .3rem">Bauteilkatalog für Allplan</h4>
     <p class="bph-mu">Die gängigen Bauteil-Aufbauten als fünf Allplan-Kundenkataloge nach Bauteilart (Wände, Decken/Böden, Dächer, Öffnungen, Weitere – je etwa 300 Einträge, Format wie der Elementkatalog NEM_ELE). In Allplan unter Material/Qualität wählbar; der Code am Anfang geht mit dem IFC-Export zurück, und die Baukosten übernehmen dann genau diesen Aufbau mit Preis. Anleitung im ZIP.</p>
-    <a class="bph-btn" href="${o.bd}api/allplan-katalog.zip" download>⤓ Kataloge für Allplan (ZIP)</a>`;
+    <div class="bph-row" style="gap:.5rem;flex-wrap:wrap;align-items:center"><a class="bph-btn" href="${o.bd}api/allplan-katalog.zip" download>⤓ Kataloge für Allplan (ZIP)</a>
+    ${S.admin ? '<button type="button" class="bph-btn pri" data-kallplan>⇪ Kataloge neu nach Allplan übertragen …</button>' : ''}<span class="bph-mu" id="kApMsg" style="margin:0"></span></div>
+    ${S.admin ? '<p class="bph-mu">Schreibt kukat1–kukat5 direkt in den Allplan-Bürostandard auf dem Dateiserver (Zugangsdaten der Ablage). Vorhandene Dateien werden vorher gesichert: die letzte als .bak, die vorletzte als .bak2. Allplan danach neu starten.</p>' : ''}`;
   const neu = async () => { await o.nachher(); katalogeEinst(host, o); };
   host.onchange = (e) => {
     const z = e.target.closest('[data-kzeig]'); if (!z) return;
@@ -28,6 +30,18 @@ window.KatalogeEinst = async function katalogeEinst(host, o = {}) {
   host.onclick = async (e) => {
     const r = e.target.closest('[data-kren]'), w = e.target.closest('[data-kweg]');
     if (e.target.closest('[data-kgaeb]')) { if (o.gaeb) o.gaeb(); return; }
+    if (e.target.closest('[data-kallplan]')) {   // Kundenkataloge direkt in den Allplan-Bürostandard (mit .bak/.bak2)
+      const m = host.querySelector('#kApMsg'); m.textContent = 'Suche den Allplan-Bürostandard …';
+      try {
+        const z = await api(o.bd + 'api/allplan/ziel'); if (!z.ok) { m.textContent = z.error || 'Nicht gefunden.'; return; }
+        const ort = `${z.unc}\\${(z.std || '').replace(/\//g, '\\')}`;
+        if (!(await bpFrage(`Kataloge kukat1–kukat5 nach ${ort} übertragen?${z.vorhanden.length ? `\n\nVorhandene ${z.vorhanden.length} Dateien werden gesichert (.bak, die vorige als .bak2).` : ''}\n\nAllplan danach neu starten.`))) { m.textContent = ''; return; }
+        m.textContent = 'Übertrage …';
+        const r = await api(o.bd + 'api/allplan/uebertragen', 'POST', {});
+        m.textContent = `✓ ${r.eintraege.toLocaleString('de-DE')} Einträge in ${r.geschrieben} Dateien übertragen${r.gesichert ? `, ${r.gesichert} gesichert` : ''}.`;
+      } catch (er) { m.textContent = er.message; }
+      return;
+    }
     const k = S.kataloge.find((x) => x.key === (r || w || {}).dataset?.[r ? 'kren' : 'kweg']); if (!k) return;
     const ava = k.art === 'avakatalog' ? k.key.replace(/^ava/, '') : null;
     try {

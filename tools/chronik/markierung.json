@@ -110,6 +110,7 @@
   "Ansicht Einfach | Profi (je Benutzer, Vorgabe des Büros) mit Einfach-Startansichten in Startseite, Bautagebuch, AVA, Aufgaben, Pläne",
   "Bautagebuch neu gestaltet: Monatskalender und Abschnitte links, Karten mit Symbolen, Wetter groß, Fortschrittsbalken",
   "KI-Auswahl aus der Kopfleiste an die Stelle der Nutzung verlegt (mit „immer verwenden“), Vorgabe unter ⚙ → Für mich → KI",
-  "Bauteilkatalog für Allplan (Kundenkatalog, Rückweg über IFC)"
+  "Bauteilkatalog für Allplan (Kundenkatalog, Rückweg über IFC)",
+  "Allplan-Kataloge mit Gliederung (KG → Vorlage → Aufbau) und direkt in den Bürostandard übertragen (.bak/.bak2)"
  ]
 }

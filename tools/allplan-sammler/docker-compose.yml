@@ -2,7 +2,7 @@
 # Unabhängig von der Bauplattform, danach den Stack einfach wieder löschen.
 #
 # Portainer → Stacks → Add stack → Web editor: diesen Inhalt einfügen, unten bei „Environment variables“
-#   SMB_USER, SMB_PASS (und ggf. SMB_DOMAIN) eintragen → Deploy.
+#   SMB_USER und SMB_PASS eintragen → Deploy.
 # Dann im Browser:  http://<Docker-Server>:8199
 # Der Ordner wird nur lesend eingebunden. Kennwort ohne Komma (sonst in der Zeile „o:“ anders angeben).
 services:
@@ -100,4 +100,4 @@ volumes:
     driver_opts:
       type: cifs
       device: "//192.168.233.88/Allplan"
-      o: "username=${SMB_USER},password=${SMB_PASS},domain=${SMB_DOMAIN:-},vers=3.0,ro,iocharset=utf8"
+      o: "addr=192.168.233.88,username=${SMB_USER},password=${SMB_PASS},vers=3.0,ro"   # Docker mountet ohne Hilfsprogramm: addr= nötig; bei Domänenkonto „,domain=FIRMA“ ergänzen

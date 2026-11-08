@@ -107,6 +107,10 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 #histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .body.mit-quelle{grid-template-columns:var(--navw,272px) minmax(0,1fr) var(--quw,minmax(320px,36%))}
 .body.zieh-l,.body.zieh-l *,.body.zieh-r,.body.zieh-r *{cursor:col-resize!important;user-select:none!important}
+.body{position:relative}.rand-griff{position:absolute;top:0;bottom:0;width:16px;z-index:6;cursor:col-resize;touch-action:none}.rand-griff[data-seite="l"]{left:calc(var(--navw,272px) - 8px)}
+.rand-griff::after{content:'';position:sticky;top:calc(50vh - 28px);display:block;margin:0 auto;width:12px;height:56px;border-radius:7px;background:var(--card,#fff) radial-gradient(circle,var(--mute) 1.3px,transparent 1.6px) center/6px 7px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.14)}   /* Anfasser in der Mitte – bleibt beim Scrollen im Blick */
+.rand-griff:hover::after,.body.zieh-l .rand-griff[data-seite="l"]::after,.body.zieh-r .rand-griff[data-seite="r"]::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 22%,var(--card,#fff))}
+@media (max-width:1100px){.rand-griff{display:none}}
 .qu[hidden]{display:none!important}   /* sonst steht die Kopierquelle auch in anderen Bereichen (display:flex schlägt hidden) */
 .qu{border-left:1px solid var(--line);background:var(--card);position:sticky;top:52px;align-self:start;max-height:calc(100vh - 52px);box-sizing:border-box;display:flex;flex-direction:column;min-width:0;grid-row:1;grid-column:3}
 .body>.nav{grid-row:1;grid-column:1}.body>.pane{grid-row:1;grid-column:2}   /* feste Spalten: nichts rutscht in eine zweite Zeile */
@@ -599,6 +603,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
     <aside class="qu" id="quelle" hidden aria-label="Kopierquelle"></aside>
+    <div class="rand-griff" data-seite="l" title="Breite der Navigation ziehen (Doppelklick: Standard)"></div><div class="rand-griff" data-seite="r" hidden title="Breite der Kopierquelle ziehen (Doppelklick: Standard)"></div>
   </div>
 </main>
 <div id="mView" aria-label="Handy-Ansicht"></div>
@@ -642,6 +647,8 @@ const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
   const lade = () => { const w = LS.get('navw', 0), q = LS.get('quw', 0); if (w) setz('--navw', w); if (q) setz('--quw', q); };
   const amRand = (e) => {
     if (innerWidth <= 1100) return null;
+    const gr = e.target.closest && e.target.closest('.rand-griff');   // der sichtbare Anfasser
+    if (gr) { const el = document.getElementById(gr.dataset.seite === 'l' ? 'navL' : 'quelle'); return el && !el.hidden ? [gr.dataset.seite, el] : null; }
     const n = e.target.closest && e.target.closest('#navL'), q = e.target.closest && e.target.closest('#quelle');
     if (n) { const r = n.getBoundingClientRect(); return r.right - e.clientX <= RAND ? ['l', n] : null; }
     if (q) { const r = q.getBoundingClientRect(); return e.clientX - r.left <= RAND ? ['r', q] : null; }
@@ -663,7 +670,12 @@ const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
     addEventListener('pointermove', mv); addEventListener('pointerup', up);
   }, true);
   document.addEventListener('dblclick', (e) => { const a = amRand(e); if (!a) return; e.preventDefault(); setz(a[0] === 'l' ? '--navw' : '--quw', 0); LS.set(a[0] === 'l' ? 'navw' : 'quw', 0); }, true);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lade); else lade();
+  const rechts = () => {   // Anfasser rechts folgt dem linken Rand der Kopierquelle
+    const g = document.querySelector('.rand-griff[data-seite="r"]'), q = document.getElementById('quelle'), b = body(); if (!g || !q || !b) return;
+    g.hidden = q.hidden || !b.classList.contains('mit-quelle'); if (!g.hidden) g.style.left = (q.getBoundingClientRect().left - b.getBoundingClientRect().left - 8) + 'px';
+  };
+  const start = () => { lade(); const q = document.getElementById('quelle'); if (q) { new ResizeObserver(rechts).observe(q); new MutationObserver(rechts).observe(q, { attributes: true, attributeFilter: ['hidden'] }); } if (body()) new MutationObserver(rechts).observe(body(), { attributes: true, attributeFilter: ['class', 'style'] }); addEventListener('resize', rechts); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
 const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pauschal', T: 'Hinweistext', V: 'Vorbemerkung' };
 /* Vorbemerkung = Hinweistext mit Kennzeichen vb (GAEB: Hinweistext) – im Druck breit und abschaltbar (Layout → „Vorbemerkungen im LV“) */

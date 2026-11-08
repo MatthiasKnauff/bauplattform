@@ -1517,9 +1517,9 @@
 
   /* ---------- Testserver: Stand als durchsichtiges Wasserzeichen über jeder Seite (Freigaben haben eine reine Versionsnummer) ---------- */
   function testBanner(v) {
-    const m = /-test\s*\(([0-9a-f]{7})(?:,\s*([^)]+))?\)/.exec(String(v || '')); if (!m || document.querySelector('.bph-testwz')) return;
+    const m = /^\s*(\S+?)-test\s*\(([0-9a-f]{7})(?:,\s*([^)]+))?\)/.exec(String(v || '')); if (!m || document.querySelector('.bph-testwz')) return;
     const d = document.createElement('div'); d.className = 'bph-testwz'; d.setAttribute('aria-hidden', 'true');
-    d.innerHTML = `<div><b>TESTSERVER</b><span>Stand ${m[1]}${m[2] ? ' · gebaut ' + esc(m[2]) : ''}</span></div>`;
+    d.innerHTML = `<div><b>TESTSERVER</b><span>wird v${esc(m[1])} · Stand ${m[2]}${m[3] ? ' · gebaut ' + esc(m[3]) : ''}</span></div>`;
     document.body.appendChild(d);
   }
 

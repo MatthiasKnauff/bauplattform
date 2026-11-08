@@ -230,7 +230,7 @@ table.lv.baum tr.wurzel td b{vertical-align:middle}
 table.lv.baum tr:not(.wurzel):not(.lang):hover td{background:var(--hov)}
 table.lv.baum .badge{margin-left:.3rem}
 table.lv tr.akt td{background:color-mix(in srgb,#4da3ff 16%,transparent)!important}
-table.lv tr.akt:not(.lang) td.oz{box-shadow:inset 4px 0 0 #4da3ff;font-weight:700}
+table.lv tr.akt:not(.lang) td.oz{font-weight:700}table.lv tr.akt td{box-shadow:inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}table.lv tr.akt td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:7px 0 0 7px}table.lv tr.akt td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 7px 7px 0}table.lv tr.akt:has(+tr.lang.akt) td{box-shadow:inset 0 1.5px 0 var(--y)}table.lv tr.akt:has(+tr.lang.akt) td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y);border-radius:7px 0 0 0}table.lv tr.akt:has(+tr.lang.akt) td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y);border-radius:0 7px 0 0}table.lv tr.lang.akt td{box-shadow:inset 1.5px 0 0 var(--y),inset -1.5px 0 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 0 7px 7px}table.lv tr:not(.akt) td :is(input,select){cursor:default}
 table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .ib:hover{color:var(--ink);background:var(--hov)}
 .ib.on{color:var(--y)}
@@ -469,7 +469,7 @@ tr.am-lf td input{color:#c0621f}
 .nav #pjTree{margin:0;padding:0;border:0;font-size:.88rem}
 .nav #pjTree .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.3rem .35rem;border-radius:7px;border-left:0}
 .nav #pjTree .pj-r .v{display:block;font-size:.76rem}.nav #pjTree .pj-r.k{padding:.2rem .35rem .2rem 1.1rem}.nav #pjTree .pj-r.k svg{opacity:.6}
-.nav #pjTree .pj-r.on{background:var(--bg);box-shadow:inset 3px 0 0 var(--y)}
+.nav #pjTree .pj-r.on{background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--y)}
 
 .nav .nfuss{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.7rem}
 .nav .nfuss .ava-drop{margin:0;padding:.5rem .3rem;font-size:.82rem}.nav .nfuss .ava-drop small{display:none}
@@ -1214,18 +1214,26 @@ function pjFokus() {
   if (el) { el.classList.add('pj-blink'); setTimeout(() => el.classList.remove('pj-blink'), 1600); }
 }
 /* Doppelklick auf einen Namen im Projektbaum: gleich umbenennen (wie im Explorer; zweiter Klick auf die gewählte Zeile geht weiterhin) */
-document.addEventListener('dblclick', (e) => {
-  const r0 = e.target.closest('#pjTree [data-pjlv]'); if (!r0 || !e.target.closest('.t') || e.target.closest('input')) return;
-  const sel = `#pjTree [data-pjlv="${r0.dataset.pjlv}"]` + (r0.dataset.pjsub ? `[data-pjsub="${r0.dataset.pjsub}"]` : ':not([data-pjsub])');
-  let n = 0; const vers = () => { const r = document.querySelector(sel); if (r && r.querySelector('input')) return; if (r && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) { pjUmbenennen(r); return; } if (++n < 20) setTimeout(vers, 100); };
-  setTimeout(vers, 50);
+/* Umbenennen im Baum wie im Explorer: zweiter, langsamer Klick auf den Namen des schon gewählten Eintrags. Ein Doppelklick benennt nicht um. */
+let pjKlick = null;
+document.addEventListener('pointerdown', (e) => {
+  const r = e.target.closest && e.target.closest('#pjTree [data-pjlv]');
+  pjKlick = r && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.target.closest('.t') && !e.target.closest('input') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')
+    ? { sel: `#pjTree [data-pjlv="${r.dataset.pjlv}"]` + (r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'), t: Date.now() } : null;
+}, true);
+document.addEventListener('click', (e) => {
+  if (!pjKlick || !e.target.closest || !e.target.closest('#pjTree')) return;
+  if (e.detail > 1) { clearTimeout(pjKlick.tm); pjKlick = null; return; }
+  const k = pjKlick; clearTimeout(k.tm);
+  k.tm = setTimeout(() => { if (pjKlick !== k) return; pjKlick = null; const r = document.querySelector(k.sel); if (r && !r.querySelector('input') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) pjUmbenennen(r); }, 550);
 });
+document.addEventListener('dblclick', () => { if (pjKlick) { clearTimeout(pjKlick.tm); pjKlick = null; } }, true);
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('#pjTree')) return;
   if (e.target.closest('[data-pjzu]')) { PJZU = !PJZU; LS.set('pjzu', PJZU); render(); return; }
   const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else PJX.add(id); LS.set('pjx', [...PJX].slice(-100)); $('#pjTree').innerHTML = pjBaum(); return; }
   const r = e.target.closest('[data-pjlv]'); if (!r) return;
-  if (e.target.closest('.t') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt') && !e.target.closest('input')) { pjUmbenennen(r); return; }   // zweiter Klick auf die gewählte Zeile: umbenennen
+  if (e.target.closest('.t') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt') && !e.target.closest('input')) return;   // Klick auf die schon gewählte Zeile: nichts neu laden (langsamer zweiter Klick benennt um, s. o.)
   const id = +r.dataset.pjlv, sub = r.dataset.pjsub || null, x0 = LIST.find((y) => y.id === id);
   // passenden Bereich wählen: Angebot → Angebote, Rechnung → Rechnungen (oder Aufmaß), LV in Aufträgen/Kosten/Türliste → LV bzw. Rechnungen
   const t0 = tab;
@@ -1723,6 +1731,20 @@ document.addEventListener('keydown', (e) => {   // Strg+C/X/V, Entf und Esc für
   else if ((k === 'delete') && lvMarkiert().length) { e.preventDefault(); lvSelAktion('loeschen'); }
   else if (k === 'escape' && LVSEL.size) { LVSEL = new Set(); lvAktZeigen(); }
 });
+/* LV-Tabelle: der erste Klick wählt nur die Zeile; erst ein zweiter, langsamer Klick in ein Feld schreibt (schneller Doppelklick = Eigenschaften).
+   Innerhalb der Zeile, in der man schon schreibt, geht jedes Feld sofort. Tab springt wie gewohnt weiter. */
+let lvKlick = { id: null, t: 0 };
+document.addEventListener('mousedown', (e) => {
+  if (tab !== 'lv' || !L || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  const f = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang) :is(input,select)'); if (!f || f === document.activeElement) return;
+  const tr = f.closest('tr[data-i]'), x = items()[+tr.dataset.i]; if (!x) return;
+  const a = document.activeElement, jetzt = Date.now();
+  const frei = (a && a.closest && a.closest('table.lv tr[data-i]') === tr) || (x.id === LVAKT && lvKlick.id === x.id && jetzt - lvKlick.t > 450);
+  lvKlick = { id: x.id, t: jetzt };
+  if (frei) return;
+  e.preventDefault(); if (a && a !== document.body && a.blur) a.blur();
+  LVSEL = new Set(); LVAKT = x.id; LVANK = x.id; lvAktZeigen();
+}, true);
 document.addEventListener('focusin', (e) => { if (tab !== 'lv' || !L) return; const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) { const x = items()[+tr.dataset.i]; if (x && x.id !== LVAKT) { LVAKT = x.id; lvAktZeigen(); } } });
 function addItem(kind) {
   const I = items(), at = lvEinfuegeStelle(kind), ref = at > 0 ? I[at - 1] : null;

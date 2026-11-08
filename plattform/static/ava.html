@@ -475,6 +475,7 @@ tr.am-lf td input{color:#c0621f}
 .nav .nneu{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.86rem;color:var(--y);cursor:pointer;padding:.25rem .5rem .25rem 1.4rem;margin-top:.1rem}.nav .nneu:disabled{opacity:.45;cursor:default}.nav .nav-u #pjTree{max-height:44vh;overflow:auto}.nav .ng a.nh{text-decoration:none}.nav-u{margin-bottom:.3rem}
 .rib .rb:disabled{opacity:.35}
 @media (max-width:860px){.body>.nav{display:block;max-height:42vh;overflow:auto;padding:.4rem}.nav .nfuss{margin-top:.4rem}.stp{padding:0 .3rem}.stp button{padding:0 .5rem}}
+.pj-gw{position:fixed;z-index:9000;background:var(--card);border:1px solid var(--line);border-radius:7px;box-shadow:0 8px 24px #0004;padding:.2rem;font-size:.86rem}.pj-gw div{padding:.3rem .5rem;border-radius:5px;cursor:pointer}.pj-gw div:hover,.pj-gw div.on{background:var(--hov)}
 .pj-ren{width:100%;font:inherit;padding:.05rem .25rem;border:1px solid var(--y);border-radius:4px;background:var(--card);color:inherit}.nav-baum{margin:.1rem 0 .35rem .85rem;padding-left:.15rem;border-left:1px solid var(--line);font-size:.92rem}
 .nav-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr);padding:.26rem .3rem;gap:.3rem}.nav-baum .pj-r.root{grid-template-columns:16px minmax(0,1fr)}.nav-baum .pj-r svg{width:16px;height:16px}
 .nav-baum .pj-r .v{display:none}.nav-baum .pj-r.k{padding-left:1rem}.nav-baum .pj-r .t small{font-size:.8rem}
@@ -1148,12 +1149,26 @@ function pjUmbenennen(r) {
   const html0 = t.innerHTML;
   t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'Rechnungsnummer der Firma' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
   const i = t.querySelector('input'); i.focus(); i.select();
-  let fertig = false;
+  let fertig = false, gw = null;
+  if (ziel === 'lv') {   // Gewerke aus den Kontakten vorschlagen – die Nummer davor bleibt
+    const G = [...new Set([...(KONT || []).map((k) => k.trade), ...LIST.map((y) => y.gewerk)].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+    const box = document.createElement('div'); box.className = 'pj-gw'; box.hidden = true; document.body.appendChild(box); let akt = -1, tr = [];   // am Körper: der Baum schneidet sonst ab
+    i.addEventListener('blur', () => setTimeout(() => box.remove(), 150));
+    const teil = () => { const m = /^(\d[\w.-]{0,8})\s*(.*)$/.exec(i.value); return m ? [m[1], m[2]] : ['', i.value]; };
+    const zeig = () => { const q = teil()[1].trim().toLowerCase(); tr = q ? G.filter((g) => g.toLowerCase().includes(q) && g.toLowerCase() !== q).slice(0, 8) : [];
+      akt = -1; box.hidden = !tr.length; box.innerHTML = tr.map((g, k) => `<div data-gwk="${k}">${esc(g)}</div>`).join(''); const r = i.getBoundingClientRect(); Object.assign(box.style, { left: r.left + 'px', top: r.bottom + 3 + 'px', width: Math.max(r.width, 200) + 'px' }); };
+    const nimm = (k) => { const [nr] = teil(); gw = tr[k]; i.value = (nr ? nr + ' ' : '') + gw; box.hidden = true; i.focus(); };
+    i.addEventListener('input', zeig);
+    i.addEventListener('keydown', (e) => { if (box.hidden) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); akt = Math.max(0, Math.min(tr.length - 1, akt + (e.key === 'ArrowDown' ? 1 : -1))); box.querySelectorAll('[data-gwk]').forEach((d) => d.classList.toggle('on', +d.dataset.gwk === akt)); }
+      else if (e.key === 'Enter' && akt >= 0) { e.preventDefault(); e.stopImmediatePropagation(); nimm(akt); } else if (e.key === 'Escape') { e.stopImmediatePropagation(); box.hidden = true; } });
+    box.addEventListener('mousedown', (e) => { const d = e.target.closest('[data-gwk]'); if (d) { e.preventDefault(); nimm(+d.dataset.gwk); } });
+  }
   const ende = async (ok) => {
     if (fertig) return; fertig = true;
     const v = i.value.trim(); if (!ok || !v || v === alt) { t.innerHTML = html0; return; }
     try {
-      if (ziel === 'lv') { const m = /^(\d[\w.-]{0,8})\s+(.+)$/.exec(v); const neu = m ? { nr: m[1], name: m[2] } : { name: v }; const vorher = { nr: x.nr, name: x.name }; await lvSetzen(id, neu); rueckgaengig(`LV umbenannt in „${v}“`, () => lvSetzen(id, vorher)); }
+      if (ziel === 'lv') { const m = /^(\d[\w.-]{0,8})\s+(.+)$/.exec(v); const neu = m ? { nr: m[1], name: m[2] } : { name: v }; if (gw && !x.gewerk) neu.gewerk = gw; const vorher = { nr: x.nr, name: x.name, ...(neu.gewerk ? { gewerk: x.gewerk || '' } : {}) }; await lvSetzen(id, neu); rueckgaengig(`LV umbenannt in „${v}“`, () => lvSetzen(id, vorher)); }
       else if (ziel === 'ang') { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: v }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); rueckgaengig(`Angebot umbenannt in „${v}“`, async () => { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: alt }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }); }
       else { await call('api/rechnungen/' + sub.slice(1), 'PUT', { re_nr: v }); }
     } catch (er) { toast(er.message, true); t.innerHTML = html0; }

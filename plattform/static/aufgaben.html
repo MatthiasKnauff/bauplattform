@@ -299,7 +299,7 @@ function renderM() {
   $('#view').innerHTML = `<div class="kpi">${[['offen', 'Offen'], ['ueberfaellig', 'Überfällig'], ['erledigt', 'Erledigt'], ['alle', 'Alle']].map(([k, l]) => `<button class="${F.status === k ? 'on' : ''}" data-st="${k}">${l}<b>${n[k]}</b></button>`).join('')}</div>
     <div class="flt"><input type="search" id="mq" placeholder="Suchen: Text, Firma, Projekt …" value="${esc(F.q)}">
       <select id="mart"><option value="maengel"${F.art === 'maengel' ? ' selected' : ''}>Mängel</option><option value="zu_erledigen"${F.art === 'zu_erledigen' ? ' selected' : ''}>Zu erledigen</option><option value="weisungen"${F.art === 'weisungen' ? ' selected' : ''}>Weisungen</option><option value=""${!F.art ? ' selected' : ''}>alles</option></select>
-      <select id="mproj"><option value="">Alle Projekte (${projs.length})</option>${projs.map(([k, v]) => `<option value="${k}"${String(k) === F.projekt ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select>
+      <select id="mproj" data-bp-projekte><option value="">Alle Projekte (${projs.length})</option>${projs.map(([k, v]) => `<option value="${k}"${String(k) === F.projekt ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select>
       <select id="mfirm"><option value="">Alle Firmen</option>${firms.map((f) => `<option${f === F.firma ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select>
       <button class="btn sm" id="mpdf" title="Die angezeigte Liste als PDF – z. B. für eine Firma">🖨 Drucken / PDF</button></div>
     ${scope === 'mine' && !M.length ? '<div class="note">In „Meine Projekte“ stehen Projekte, bei denen du im Bautagebuch als zuständig eingetragen bist. Oben auf „Alle Projekte“ umschalten, um alles zu sehen.</div>' : ''}
@@ -663,7 +663,7 @@ async function ruegeNeu(grund) {
   const firmen = (pid) => [...new Set(L.filter((m) => m.pid === pid && m.firma).map((m) => m.firma))].sort((a, b) => a.localeCompare(b, 'de'));
   const opt = (pid) => firmen(pid).map((f) => `<option value="${esc(f)}">${esc(f)} (${L.filter((m) => m.pid === pid && m.firma === f).length})</option>`).join('');
   const bg = modalBox(`<h3>${grund === 'vob4' ? 'Mängelrüge vor Abnahme' : 'Mängelrüge nach Abnahme'}</h3><div class="fm">
-    <label>Projekt</label><select id="nrP">${P.map(([i, n]) => `<option value="${i}"${i === pid0 ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+    <label>Projekt</label><select id="nrP" data-bp-projekte>${P.map(([i, n]) => `<option value="${i}"${i === pid0 ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
     <label>Firma</label><select id="nrF">${opt(P.some(([i]) => i === pid0) ? pid0 : P[0][0])}</select>
     <p class="w mute" style="font-size:.82rem;margin:0">Zur Auswahl stehen Firmen mit offenen Mängeln (in Klammern: Anzahl). Im nächsten Schritt wählst du die Mängel und die Frist.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter</button></div>`, async (m, bg, close) => {
@@ -682,7 +682,7 @@ async function terminNeu() {
   const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (P[0] || {}).id;
   const vorschlag = (pid) => [...new Set([...((VZ0 && VZ0.vorgaenge) || []).filter((x) => x.pid === pid).map((x) => x.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])];
   const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
-    <label>Projekt</label><select id="ntP">${P.map((p) => `<option value="${p.id}"${p.id === pid0 ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+    <label>Projekt</label><select id="ntP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === pid0 ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
     <label>Firma</label><input id="ntF" list="ntL" placeholder="Firma aus den Adressen" autocomplete="off"><datalist id="ntL"></datalist>
     <p class="w mute" style="font-size:.82rem;margin:0" id="ntH"></p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter</button></div>`, async (m, bg, close) => {
@@ -708,7 +708,7 @@ async function neueErinnerung() {
   modalBox(`<h3>Neue Erinnerung</h3><div class="fm">
     <label for="nT">Woran erinnern?</label><input id="nT" placeholder="z. B. Fliesenleger Termin bestätigen lassen">
     <label for="nX">Notiz</label><textarea id="nX" placeholder="optional"></textarea>
-    <label for="nP">Projekt</label><select id="nP"><option value="">– ohne Projekt –</option>${PRJ.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>
+    <label for="nP">Projekt</label><select id="nP" data-bp-projekte><option value="">– ohne Projekt –</option>${PRJ.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>
     <label for="nD">Wann?</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="nD" value="${plus(7)}"><input type="time" id="nZ" value="08:00">${[[1, 'morgen'], [7, '+1 Woche'], [14, '+2 Wochen']].map(([d, l]) => `<button class="btn sm" data-m="d${d}">${l}</button>`).join('')}</div>
     <label>An wen (E-Mail)?</label><div class="uchk">${USERS.map((u) => `<label><input type="checkbox" data-u="${u.id}"${u.id === ME.id ? ' checked' : ''}> ${esc(u.name)}</label>`).join('')}</div></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {

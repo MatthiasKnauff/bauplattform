@@ -1433,6 +1433,68 @@
     return H.projekt;
   };
   H.projektId = () => (H.projekt && H.projekt.id) || null;
+  /* ---------- Einheitliches Projektfeld: jede <select data-bp-projekte> wird zum Suchfeld mit Vervollständigung,
+     darunter „Meine Projekte“ und „Andere Projekte“. Die <select> bleibt unsichtbar die Quelle (value + change-Ereignis),
+     App-Code ändert sich also nicht. Gruppen der App (z. B. „erkannt“) und Sondereinträge („Alle Projekte“, „＋ neu“) bleiben. */
+  let PA_MEIN = null;
+  const paMein = () => (PA_MEIN = PA_MEIN || KX('api/bp/projekte').then((P) => new Set(P.filter((p) => p.mein).map((p) => String(p.id)))).catch(() => null));
+  H.projektAuswahl = function (sel) {
+    if (!sel || sel._bpPa) return; sel._bpPa = true;
+    const w = document.createElement('span'); w.className = 'bph-pa';
+    w.innerHTML = '<input type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false"><span class="bph-pa-c" aria-hidden="true">▾</span>';
+    const inp = w.firstChild; inp.setAttribute('aria-label', sel.getAttribute('aria-label') || 'Projekt'); if (sel.id) { inp.id = sel.id + '_pa'; const lb = document.querySelector(`label[for="${sel.id}"]`); if (lb) lb.htmlFor = inp.id; }
+    const sw = sel.getBoundingClientRect().width; if (sw > 40 && !sel.closest('.fm,.bph-dm,.bph-row')) w.style.width = Math.max(sw, 200) + 'px';
+    sel.after(w); sel.style.display = 'none'; sel.tabIndex = -1;
+    let box = null, L = [], ak = -1, mein = null;
+    const text = () => { const o = sel.selectedOptions[0]; inp.value = o ? o.textContent.trim() : ''; inp.placeholder = 'Projekt suchen …'; };
+    const eintraege = () => {
+      const out = [];
+      [...sel.querySelectorAll('option')].forEach((o) => {
+        if (o.disabled && !o.value) return;
+        const og = o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '';
+        const projekt = /^\d+$/.test(o.value) && !(og && !/alle|projekte/i.test(og));
+        out.push({ v: o.value, t: o.textContent.trim(), g: projekt ? (mein ? (mein.has(o.value) ? 'Meine Projekte' : 'Andere Projekte') : 'Projekte') : og || (o.value === '' ? '' : '…'), p: projekt });
+      });
+      return out;
+    };
+    const zu = () => { if (box) { box.remove(); box = null; } inp.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', aussen, true); window.removeEventListener('scroll', lage, true); };
+    const aussen = (e) => { if (!w.contains(e.target) && !(box && box.contains(e.target))) { zu(); text(); } };
+    const lage = () => { if (!box) return; const r = inp.getBoundingClientRect(), un = innerHeight - r.bottom; box.style.left = r.left + 'px'; box.style.width = Math.min(innerWidth - r.left - 8, Math.max(r.width, 340)) + 'px';
+      if (un < 220 && r.top > un) { box.style.top = ''; box.style.bottom = (innerHeight - r.top + 2) + 'px'; box.style.maxHeight = Math.min(360, r.top - 10) + 'px'; } else { box.style.bottom = ''; box.style.top = (r.bottom + 2) + 'px'; box.style.maxHeight = Math.min(360, un - 10) + 'px'; } };
+    const zeichnen = (q) => {
+      const ws = q.trim().toLowerCase().split(/\s+/).filter(Boolean), E = eintraege().filter((x) => !ws.length || ws.every((t) => x.t.toLowerCase().includes(t)));
+      const ord = ['', ...new Set(E.filter((x) => !x.p && x.g && x.g !== '…').map((x) => x.g)), 'Meine Projekte', 'Projekte', 'Andere Projekte', '…'];
+      L = []; let h = '';
+      ord.forEach((gr) => { const G = E.filter((x) => x.g === gr); if (!G.length) return; if (gr && gr !== '…') h += `<div class="bph-pa-g">${esc(gr)}</div>`; G.forEach((x) => { L.push(x); h += `<button type="button" class="bph-pa-o${x.v === sel.value ? ' on' : ''}" data-pa="${L.length - 1}" tabindex="-1">${esc(x.t)}</button>`; }); });
+      box.innerHTML = h || '<div class="bph-pa-n">Kein Projekt gefunden.</div>';
+      ak = ws.length ? (L.findIndex((x) => x.p) >= 0 ? L.findIndex((x) => x.p) : 0) : L.findIndex((x) => x.v === sel.value); mark();
+    };
+    const mark = () => { if (!box) return; box.querySelectorAll('.bph-pa-o').forEach((b, i) => b.classList.toggle('ak', i === ak)); const b = box.querySelector('.ak'); if (b) b.scrollIntoView({ block: 'nearest' }); };
+    const auf = async () => {
+      if (box) return; mein = await paMein();
+      box = document.createElement('div'); box.className = 'bph-pa-box'; box.setAttribute('role', 'listbox'); document.body.appendChild(box);
+      inp.setAttribute('aria-expanded', 'true'); lage(); zeichnen(''); inp.select();
+      document.addEventListener('mousedown', aussen, true); window.addEventListener('scroll', lage, true);
+      box.addEventListener('mousedown', (e) => { e.preventDefault(); const b = e.target.closest('[data-pa]'); if (b) waehle(L[+b.dataset.pa]); });
+    };
+    const waehle = (x) => { if (!x) return; zu(); if (sel.value !== x.v) { sel.value = x.v; sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true })); } text(); };
+    inp.addEventListener('focus', auf); inp.addEventListener('click', auf);
+    w.querySelector('.bph-pa-c').addEventListener('mousedown', (e) => { e.preventDefault(); if (box) { zu(); text(); } else inp.focus(); });
+    inp.addEventListener('input', () => { if (!box) auf().then(() => zeichnen(inp.value)); else zeichnen(inp.value); });
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!box) { auf(); return; } ak = Math.max(0, Math.min(L.length - 1, ak + (e.key === 'ArrowDown' ? 1 : -1))); mark(); }
+      else if (e.key === 'Enter') { if (box) { e.preventDefault(); e.stopPropagation(); waehle(L[ak]); } }
+      else if (e.key === 'Escape') { if (box) { e.preventDefault(); e.stopPropagation(); zu(); text(); } }
+      else if (e.key === 'Tab') { zu(); text(); }
+    });
+    sel.addEventListener('change', text);
+    new MutationObserver(() => { if (!box) text(); }).observe(sel, { childList: true, subtree: true, attributes: true });
+    if (sel.disabled) inp.disabled = true;
+    text();
+  };
+  const paScan = (r) => { (r.matches && r.matches('select[data-bp-projekte]') ? [r] : []).concat([...(r.querySelectorAll ? r.querySelectorAll('select[data-bp-projekte]') : [])]).forEach(H.projektAuswahl); };
+  new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) paScan(n); }))).observe(document.documentElement, { childList: true, subtree: true });
+  if (document.body) paScan(document.body); else document.addEventListener('DOMContentLoaded', () => paScan(document.body));
   /* Die Kopfleiste zeigt immer das aktuelle Projekt (eine Projektauswahl für alle Apps); Apps wählen darunter nur ihr LV, ihren Plan … */
   function kopfProjekt() { const p = H.projekt; H.setProject(p ? { title: p.name, sub: p.adresse || 'Keine Adresse hinterlegt' } : null); }
   /* ---------- Projekt bearbeiten / anlegen – EINE Maske für alle Apps (Bautagebuch, Verwaltung, Projektauswahl) ----------

@@ -641,7 +641,7 @@ function vMittel() {
   if (!SRC) loadSources();
   const F = FLOW && FLOW.ok ? FLOW : null;
   return `<section class="card" style="margin-bottom:1.2rem"><h2>Verknüpfung</h2><p class="sub">Der Bauzeitenplan liefert die Termine; die Kosten werden über seine Leistungen verteilt.</p><div class="row">
-    <label>Projekt (Bautagebuch)<select data-link="project_id"><option value="">– keines –</option>${S.projects.map((p) => `<option value="${p.id}"${p.id === B.project_id ? ' selected' : ''}>${esc(p.name)}${p.archived ? ' (archiviert)' : ''}</option>`).join('')}</select></label>
+    <label>Projekt (Bautagebuch)<select data-link="project_id" data-bp-projekte><option value="">– keines –</option>${S.projects.map((p) => `<option value="${p.id}"${p.id === B.project_id ? ' selected' : ''}>${esc(p.name)}${p.archived ? ' (archiviert)' : ''}</option>`).join('')}</select></label>
     <label>Bauzeitenplan<select data-link="gantt_id"><option value="">– keiner –</option>${S.plans.map((p) => `<option value="${esc(p.id)}"${p.id === B.gantt_id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
     <label>Baupreisindex % p. a.<input class="n" style="width:110px" value="${B.data.rate}" data-set="rate" inputmode="decimal"></label></div></section>
   <section class="card" style="margin-bottom:1.2rem"><h2>Mittelabfluss je Monat</h2>${F ? `<p class="sub">${esc(F.plan)} · ${new Date(F.start).toLocaleDateString('de-DE')} bis ${new Date(F.end).toLocaleDateString('de-DE')} · verteilt: ${eur(F.base)} (KG 300+400 und Positionen, ohne KG 700)</p>` : ''}${flowCols(false)}

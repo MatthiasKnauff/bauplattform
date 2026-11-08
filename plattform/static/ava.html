@@ -790,7 +790,7 @@ async function avaDokument(f) {
     const was = [E.format === 'gaeb' ? `GAEB X${E.dp}` : E.format === 'excel' ? 'Excel' : E.ocr ? 'PDF-Scan (Texterkennung)' : 'PDF', E.n_pos ? `${E.n_pos} Positionen` : '', E.regie ? 'Regie/Stundenlohn' : '', E.schluss ? 'Schlussrechnung' : '', E.nachtrag ? 'Nachtrag' : ''].filter(Boolean).join(' · ');
     const bg = modalBox(`<h3>Dokument ablegen</h3><p class="hint" style="margin:0 0 .6rem"><b>${esc(f.name)}</b> · ${esc(was)}${E.sicher ? '' : ' · <span style="color:#e07b3a">Art nicht sicher erkannt – bitte prüfen</span>'}${E.hinweis ? ' · ' + esc(E.hinweis) : ''}</p>
       <div class="fm"><label for="adArt">Was ist es?</label><select id="adArt">${Object.entries(DOKN).map(([k, l]) => `<option value="${k}"${k === (E.dok || 'rechnung') ? ' selected' : ''}>${l}</option>`).join('')}</select>
-      <label for="adProj">Projekt</label><select id="adProj">${projOpts()}</select>
+      <label for="adProj">Projekt</label><select id="adProj" data-bp-projekte>${projOpts()}</select>
       <label for="adLv">LV / Auftrag</label><select id="adLv"></select>
       <label for="adFirma">Firma</label><input id="adFirma" list="adFirmen" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer"><datalist id="adFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
       <label style="align-self:start;padding-top:.15rem">Projektordner</label><div class="ad-abl"><span id="adAblPfad" class="hint">wird gesucht …</span><span class="ad-abl-k"><button class="btn sm" type="button" id="adAblWahl" title="Ordner selbst wählen">ändern …</button><label class="hint ad-nein"><input type="checkbox" id="adAblNein"> nicht ablegen</label></span></div></div>

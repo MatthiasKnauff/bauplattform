@@ -296,7 +296,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-vl-sep2{border-top:1px solid var(--line,#ddd);margin:.3rem 0}
 @media (max-width:640px){.bph-vleiste{padding:.45rem .7rem}.bph-vl-l,.bph-vl-sp{display:none}.bph-vl-dd{min-width:0;flex:1 1 100%;max-width:none}.bph-vl-w{flex:1 1 100%}}
 
-@media (min-width:701px){.bph-dlg{resize:both;min-width:280px;min-height:140px}.bph-dh{cursor:move;user-select:none}.bph-dh button{cursor:pointer}}
+@media (min-width:701px){.bph-dlg{resize:both;min-width:280px;min-height:140px}.bph-dh,.bph-dlg-h{cursor:move;user-select:none}.bph-dh button{cursor:pointer}}
 
 
 .bph-anl{margin:.6rem 0;border:1px solid var(--line,#ddd);border-radius:8px;padding:.5rem .7rem}.bph-anl summary{cursor:pointer}.bph-anl ol{margin:.5rem 0 .3rem 1.1rem;padding:0;line-height:1.5}.bph-anl li{margin:.25rem 0}

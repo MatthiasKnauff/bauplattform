@@ -337,7 +337,7 @@ $('#vs').onclick = async () => {
     if (!r.ok) throw new Error('Vorschau nicht möglich (' + r.status + ')');
     const u = URL.createObjectURL(await r.blob()), bg = document.createElement('div'); bg.className = 'vs-bg';
     bg.innerHTML = `<div class="vs"><header><b>Vorschau mit Beispieldaten</b><span class="hint">· so wird gedruckt (Briefbogen darunter, falls hinterlegt)</span><span style="flex:1"></span><button class="btn sm" data-x>Schließen</button></header><iframe src="${u}#view=FitH"></iframe></div>`;
-    bg.addEventListener('click', (e) => { if (e.target === bg || e.target.closest('[data-x]')) { bg.remove(); URL.revokeObjectURL(u); } }); document.body.appendChild(bg);
+    bg.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) { bg.remove(); URL.revokeObjectURL(u); } }); document.body.appendChild(bg);
   } catch (e) { toast(e.message, true); }
 };
 addEventListener('beforeunload', () => { if (speichT) { sofort(); } });

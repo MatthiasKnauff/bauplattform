@@ -59,7 +59,7 @@ function modalBox(html, onClick) {
   bg.innerHTML = `<div class="modal" role="dialog">${html}</div>`;
   const close = () => { bg.remove(); document.removeEventListener('keydown', taste, true); };
   let unten = null; bg.addEventListener('pointerdown', (e) => { unten = e.target; });   // Ziehen/Größe ändern, das außerhalb endet, schließt nicht
-  bg.addEventListener('click', (e) => { if (e.target === bg && unten === bg && !bg.querySelector('input:not([type=hidden]),textarea,select')) close();   /* mit Eingabefeldern schließt nur Abbrechen/Esc – sonst wäre alles Eingetragene weg */ const b = e.target.closest('[data-m]'); if (b && !b.disabled) onClick(b.dataset.m, bg, close, b); });
+  bg.addEventListener('click', (e) => { /* daneben klicken schließt nie – nur Abbrechen, ✕ oder Esc */ const b = e.target.closest('[data-m]'); if (b && !b.disabled) onClick(b.dataset.m, bg, close, b); });
   /* Tastatur (nur für das oberste Fenster): Esc schließt; ← → (in Eingabefeldern Alt+← →), ↑ ↓ (auch in einzeiligen Feldern) oder Bild↑/Bild↓ springen zum vorigen/nächsten Eintrag;
      Enter in einem einzeiligen Feld übernimmt und schließt (in Dialogen mit Vor/Zurück) */
   const taste = (e) => {

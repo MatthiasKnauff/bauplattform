@@ -1345,7 +1345,7 @@ function modal(title, body, buttons) {
     const vor = e.key === 'PageUp' || (e.key === 'ArrowLeft' && (!feld || e.altKey)), nach = e.key === 'PageDown' || (e.key === 'ArrowRight' && (!feld || e.altKey));
     if (vor || nach) { const b = buttons.find((x) => (vor ? /^◀/ : /▶$/).test(x.label || '')); if (b) { e.preventDefault(); if (feld) feld.dispatchEvent(new Event('change', { bubbles: true })); run(b); } }
   });
-  bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+
   document.body.appendChild(bg);
   makeDraggable(bg.querySelector('.modal'), bg.querySelector('.mh'), 'dlgPos:' + title);
   setTimeout(() => { const f = bg.querySelector('input:not([disabled]),select,textarea'); if (f) { f.focus(); if (f.select) f.select(); } }, 0);

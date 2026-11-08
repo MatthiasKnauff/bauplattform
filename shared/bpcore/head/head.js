@@ -41,7 +41,7 @@
     const zu = (ja) => { bg.remove(); window.removeEventListener('keydown', taste, true); fertig(art === 'eingabe' ? (ja ? inp.value : null) : art === 'frage' ? (ja === 'drei' ? 'drei' : !!ja) : undefined); };
     const taste = (e) => { if (!bg.isConnected) return; if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); zu(false); } else if (e.key === 'Enter' && !(e.target && e.target.tagName === 'TEXTAREA')) { e.preventDefault(); e.stopPropagation(); zu(true); } };
     window.addEventListener('keydown', taste, true);   // vor allen anderen Tastenkürzeln der Seite
-    bg.addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) zu(b.dataset.f === 'ja' ? true : b.dataset.f === 'drei' ? 'drei' : false); else if (e.target === bg && art !== 'hinweis') zu(false); });
+    bg.addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) zu(b.dataset.f === 'ja' ? true : b.dataset.f === 'drei' ? 'drei' : false);; });
     setTimeout(() => { if (inp) { inp.focus(); inp.select(); } else bg.querySelector('[data-f="ja"]').focus(); }, 0);
   });
   window.bpFrage = (t, o) => DLG(t, 'frage', null, o);
@@ -162,7 +162,7 @@
       document.body.appendChild(bg);
       const zu = (k) => { bg.remove(); fertig(k); };
       bg.addEventListener('click', async (e) => {
-        if (e.target === bg || e.target.closest('[data-kx]')) return zu(null);
+        if (e.target.closest('[data-kx]')) return zu(null);   // daneben klicken schließt nicht
         if (!e.target.closest('[data-kok]')) return;
         const k = (bg.querySelector('[name=bphKi]:checked') || {}).value || null;
         if (k && k !== H.ki) await setKi(k);   // die gewählte KI ist danach vorgewählt (gilt für den Server-Auftrag)
@@ -519,7 +519,7 @@
       const close = () => { bg.remove(); document.removeEventListener('keydown', esc1); };
       const esc1 = (e) => { if (e.key === 'Escape') close(); };
       document.addEventListener('keydown', esc1);
-      bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+     
       root.close = close;
     }
     const seg = (k, opts) => `<div class="bph-seg">${opts.map(([v, l]) => `<button type="button" data-kset="${k}" data-v="${v}" class="${String(K[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
@@ -674,7 +674,7 @@
     const close = () => { bg.remove(); document.removeEventListener('keydown', esc1); };
     const esc1 = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', esc1);
-    bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+   
     let D = null, msg = '';
     const draw = () => {
       root.innerHTML = `<div class="bph-dh"><b>Verlauf${D ? ' – ' + esc(D.titel) : ''}</b><button type="button" class="bph-x" data-kclose aria-label="Schließen">×</button></div><div class="bph-db">
@@ -709,7 +709,7 @@
       <div class="bph-row"><button type="button" class="bph-btn" data-kc>Abbrechen</button><button type="button" class="bph-btn pri" data-ks>Kennwort ändern</button></div></div></div>`;
     document.body.appendChild(bg);
     const q = (a) => bg.querySelector(a), close = () => bg.remove(), m = q('[data-km]');
-    bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+   
     bg.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); if (e.key === 'Enter') q('[data-ks]').click(); });
     bg.addEventListener('click', async (e) => {
       if (e.target.closest('[data-kc]')) return close();
@@ -762,7 +762,7 @@
       const ende = (k) => { if (done) return; done = true; bg.remove(); document.removeEventListener('keydown', esc1, true); fertig(k || null); };
       const esc1 = (e) => { if (e.key === 'Escape') { e.stopPropagation(); ende(null); } };
       document.addEventListener('keydown', esc1, true);
-      bg.addEventListener('mousedown', (e) => { if (e.target === bg) ende(null); });
+     
       const sug = (t) => {
         clearTimeout(sT); const box = q('[data-kmsug]'); if (!box) return; t = t.trim(); if (t.length < 3) { box.innerHTML = ''; return; }
         sT = setTimeout(async () => {
@@ -819,7 +819,7 @@
     bg.innerHTML = '<div class="bph-dlg bph-dm" role="dialog" style="width:min(580px,96vw)"></div>'; document.body.appendChild(bg);
     const root = bg.firstChild, e1 = (e) => { if (e.key === 'Escape') zu(); };
     const zu = async () => { if (dirty && !(await (window.bpFrage ? bpFrage('Änderungen verwerfen?', { ok: 'Verwerfen' }) : Promise.resolve(true)))) return; bg.remove(); document.removeEventListener('keydown', e1); };
-    document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) zu(); });
+    document.addEventListener('keydown', e1);
     const de = (v) => (v == null ? '' : String(v).replace('.', ','));
     const feld = (f) => {
       const v = W[f.k], id = 'dm_' + f.k, z = o.zusatz ? o.zusatz(f.k, W) || '' : '';
@@ -1073,7 +1073,7 @@
     bg.innerHTML = '<div class="bph-dlg" role="dialog" aria-label="Vor Ort erkennen" style="width:min(760px,96vw)"></div>'; document.body.appendChild(bg);
     const root = bg.firstChild, e1 = (e) => { if (e.key === 'Escape') close(); };
     const close = () => { bg.remove(); document.removeEventListener('keydown', e1); };
-    document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    document.addEventListener('keydown', e1);
     const portal = ((H.conf || {}).apps || []).find((a) => a.key === 'portal');
     const basis = () => new URL((portal ? appUrl(portal) : '') + '/api/bp/vorort', location.href).href;
     const adresse = () => `${basis()}?k=${encodeURIComponent(D.schluessel)}&lat=`;
@@ -1142,7 +1142,7 @@
       bg.innerHTML = '<div class="bph-dlg" role="dialog" aria-label="Meine Postfächer"></div>'; document.body.appendChild(bg);
       const e1 = (e) => { if (e.key === 'Escape') close(); };
       root = bg.firstChild; close = () => { bg.remove(); document.removeEventListener('keydown', e1); };
-      document.addEventListener('keydown', e1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+      document.addEventListener('keydown', e1);
     }
     const AB = D.abruf || { rhythmus: 'tag', uhrzeit: '08:00' }, EG = D.eigene || { aus: true, postfaecher: [], cc: true }, AZ = D.anzeige || { tage: 1, wochenende: true };
     const abrufText = () => ({ tag: `einmal am Tag um ${AB.uhrzeit} Uhr`, zweimal: `zweimal am Tag, um ${AB.uhrzeit} und 5 Stunden später`, stuendlich: 'stündlich von 7 bis 19 Uhr', hand: 'nur, wenn du ↻ Jetzt abrufen drückst' })[AB.rhythmus];
@@ -1198,7 +1198,7 @@
       const close = () => { bg.remove(); document.removeEventListener('keydown', esc1); };
       const esc1 = (e) => { if (e.key === 'Escape' && !document.querySelector('.bph-dlg-bg ~ .bph-dlg-bg')) close(); };
       document.addEventListener('keydown', esc1);
-      bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+     
       bg.querySelector('.bph-x').onclick = close;
     }
     const draw = () => {
@@ -1341,7 +1341,7 @@
     const key = (e) => { if (e.key === 'Escape' && !document.querySelector('.modal-bg,.bph-dlg-bg,#sheet:not(.hidden)')) close(); };
     document.addEventListener('keydown', key);
     bg.addEventListener('click', (e) => {
-      if (e.target === bg || e.target.closest('[data-drx]')) { close(); return; }
+      if (e.target.closest('[data-drx]')) { close(); return; }   // daneben klicken schließt nicht
       const b = e.target.closest('[data-drb]'); if (b) { bereich = b.dataset.drb; teil = ''; draw(); return; }
       const t = e.target.closest('[data-drt]'); if (t) { teil = t.dataset.drt; draw(); }
     });
@@ -1491,8 +1491,10 @@
   function dlgBeweglich(m) {
     if (!m || m.dataset.beweglich || innerWidth <= 700) return; m.dataset.beweglich = '1';
     m.addEventListener('pointerdown', (e) => {
-      const k = m.querySelector('.bph-dh'); if (!k || !k.contains(e.target) || e.target.closest('button,input,select,a') || e.button > 0) return;
-      const r = m.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
+      if (e.button > 0 || e.target.closest('button,input,select,textarea,a,label,[contenteditable]')) return;
+      const k = m.querySelector('.bph-dh,.bph-dlg-h,.bph-pe-h,h3,h2'), r = m.getBoundingClientRect(), kr = k && k.getBoundingClientRect();
+      if (!(k && k.contains(e.target)) && !(e.clientY < Math.max(r.top + 34, kr ? kr.bottom + 4 : 0))) return;   // Kopf oder oberer Streifen des Fensters
+      const dx = e.clientX - r.left, dy = e.clientY - r.top; e.preventDefault();
       Object.assign(m.style, { position: 'fixed', margin: '0', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
       const mv = (ev) => { m.style.left = Math.max(-r.width + 100, Math.min(innerWidth - 100, ev.clientX - dx)) + 'px'; m.style.top = Math.max(0, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; };
       try { m.setPointerCapture(e.pointerId); } catch { /* egal */ }   // Ziehen reißt nicht ab (schnelle Bewegung, über PDF-Ansichten)
@@ -1615,7 +1617,7 @@
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
     bg.innerHTML = '<div class="bph-dlg bph-pe" role="dialog" aria-label="Projekt"></div>'; document.body.appendChild(bg);
     const root = bg.firstChild, close = () => { bg.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('keydown', k1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    document.addEventListener('keydown', k1);
     const adr = () => [d.street, [d.zip, d.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
     const hatPos = () => d.lat != null && d.lon != null;
     const karte = () => { const q = hatPos() ? d.lat + ',' + d.lon : adr(); if (!q) return ''; const e = encodeURIComponent(q);
@@ -1708,7 +1710,7 @@
       <div class="bph-pwf"><button type="button" class="bph-btn" data-pneu>＋ Neues Projekt</button><button type="button" class="bph-btn" data-pstand>Nach Standort wählen</button><button type="button" class="bph-btn" data-pedit style="grid-column:1/-1">Projekt bearbeiten</button></div></div>`;
     document.body.appendChild(bg);
     const L = bg.querySelector('[data-pl]'), close = () => { bg.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('keydown', k1); bg.addEventListener('mousedown', (e) => { if (e.target === bg) close(); });
+    document.addEventListener('keydown', k1);
     const rad = (x) => x * Math.PI / 180, dist = (p) => (hier && p.lat != null && p.lon != null ? 12742000 * Math.asin(Math.sqrt(Math.sin(rad(p.lat - hier.lat) / 2) ** 2 + Math.cos(rad(hier.lat)) * Math.cos(rad(p.lat)) * Math.sin(rad(p.lon - hier.lon) / 2) ** 2)) : null);
     const fd = (m) => (m < 1000 ? Math.max(10, Math.round(m / 10) * 10) + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km');
     const adr = (p) => [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');

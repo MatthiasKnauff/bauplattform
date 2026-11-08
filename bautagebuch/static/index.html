@@ -1123,7 +1123,7 @@ function bwzOpen() { if (!curReport()) { toast('Lege zuerst einen Tagesbericht a
 function bwzClose() { BWZ.open = false; BWZ.set = false; $('#bwz')?.remove(); }
 function bwzRender() {
   if (!BWZ.open) return;
-  let box = $('#bwz'); if (!box) { box = document.createElement('div'); box.id = 'bwz'; document.body.appendChild(box); box.addEventListener('mousedown', e => { if (e.target === box) bwzClose(); }); }
+  let box = $('#bwz'); if (!box) { box = document.createElement('div'); box.id = 'bwz'; document.body.appendChild(box); }
   const keep = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.bk : null;
   if (BWZ.set) { box.innerHTML = bwzSetHtml(); return; }
   const S = bwzSteps(); if (!S.length) { BWZ.set = true; box.innerHTML = bwzSetHtml(); return; }
@@ -1915,8 +1915,7 @@ document.addEventListener('focusout', e => {   // leere Eingabezeile schließt s
 document.addEventListener('click', async e => {
   if (e.target.matches && e.target.matches('input[type=date],input[type=time],input[type=datetime-local]')) { try { e.target.showPicker(); } catch {} }   // Auswahl-Dialog direkt öffnen
   if (!e.target.closest('.menu') && !e.target.closest('#i-g')) $('#menu').classList.add('hidden');
-  if (e.target.id === 'sheet') closeSheet();
-  if (e.target.id === 'qs' && q && q.step !== 'add') { q = null; renderQ(); }   // Eingabe offen: daneben klicken schließt nicht (nur ✕)
+   // Fenster schließen nie durch Daneben-Klicken – nur mit ✕ bzw. Esc
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT') return;
   const a = b.dataset.act, id = +b.dataset.id;
   if (DANGER.has(a) && !arm(b, a + (b.dataset.id || ''))) return;

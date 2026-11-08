@@ -185,6 +185,17 @@ def test_erinnerung_aus_mail_vorschlagen():
     gleich(posteingang.vorschlag({"art": "Nachricht", "zeit": zeit, "betreff": "Info", "vorschau": "Anbei die Unterlagen."}), None, "reine Info")
 
 
+def test_pruefpflicht_todo_aus_mail():
+    """Mails mit Prüfpflicht werden To-dos: Fälligkeit = Frist ab Eingang (SR 30 Tage, Abschlag 21, Plan 10 Werktage), Grundlage in der Notiz."""
+    zeit = "2026-03-02T09:15:00Z"   # Montag
+    t = posteingang.pruefpflicht({"art": "Schlussrechnung", "zeit": zeit, "von_name": "Muster Bau", "betreff": "SR 12"})
+    gleich((t["faellig"], t["erinnerung"]), ("2026-04-01", "1w"), "Schlussrechnung 30 Tage")
+    pruefe("§ 16 Abs. 3" in t["notiz"] and "01.04.2026" in t["notiz"], "Grundlage und Frist in der Notiz")
+    gleich(posteingang.pruefpflicht({"art": "Rechnung", "zeit": zeit, "betreff": "AR 2"})["faellig"], "2026-03-23", "Abschlag 21 Tage")
+    gleich(posteingang.pruefpflicht({"art": "Plan", "zeit": zeit, "betreff": "Werkplan"})["faellig"], "2026-03-16", "Plan 10 Werktage")
+    gleich(posteingang.pruefpflicht({"art": "Mangel", "zeit": zeit, "betreff": "Riss"}), None, "keine Prüfpflicht")
+
+
 def test_abrufzeiten_postfach():
     """Letzter planmäßiger Abruf: täglich, zweimal (Uhrzeit und 5 h später), stündlich 7–19 Uhr, nur von Hand."""
     T = lambda r, z="08:00": posteingang._abruf({"rhythmus": r, "uhrzeit": z})   # noqa: E731

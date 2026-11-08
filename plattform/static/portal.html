@@ -191,6 +191,7 @@ function postZeigen() {
       <span class="t">${m.link ? `<a class="s" href="${esc(m.link)}" target="bp-outlook" title="In Outlook öffnen (immer dieselbe Registerkarte)">` : '<span class="s">'}<span class="art${WICHTIG.has(m.art) ? ' w' : ''}">${esc(m.art)}</span><b>${esc(m.von_name || m.von)}</b> – ${esc(m.betreff || '(ohne Betreff)')}${m.link ? '</a>' : '</span>'}
         <span class="v">${esc(m.vorschau || '')}${m.anhaenge && m.anhaenge.length ? ' · 📎 ' + esc(m.anhaenge.join(', ')) : ''}</span><span class="g">${esc(m.grund || '')}</span></span>
       <span class="z"><button class="ib2 pmx" data-post="${m.aus ? 'ein' : 'aus'}" data-mid="${esc(m.id)}" title="${m.aus ? 'Wieder einblenden' : 'Hier ausblenden – die Mail selbst bleibt unverändert'}" aria-label="${m.aus ? 'Einblenden' : 'Ausblenden'}">${m.aus ? '↺' : '✕'}</button>${m.quelle ? `<span class="pf" title="Postfach: ${esc(m.quelle)}">📥 ${esc(m.quelle)}</span> · ` : ''}${esc(zeitTxt(m.zeit))}${m.erinnerung ? `<br><span class="erl" title="Bleibt hier, bis die Erinnerung erledigt ist">⏰ ${esc(new Date(m.erinnerung).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }))}</span>` : m.vorschlag ? '' : `<br><button class="ib2" data-post="erinnern" data-mid="${esc(m.id)}" title="Erinnerung zu dieser Mail anlegen">⏰</button>`}<button class="ib2" data-post="aufgabe" data-mid="${esc(m.id)}" title="Als Aufgabe in die To-dos übernehmen" aria-label="Als Aufgabe übernehmen"><span class="pm-td">↗</span></button>${m.link && HANDY ? '<br><a class="app" href="ms-outlook://" title="Outlook-App öffnen">📱 App</a>' : ''}</span>
+      ${m.todo && m.todo.status !== 'geloescht' ? `<div class="vs" data-vt="${esc(m.id)}">${m.todo.status === 'erledigt' ? '✓' : '📋'} <span>To-do ${m.todo.status === 'erledigt' ? 'erledigt' : 'angelegt'} – Prüffrist bis <b>${esc(String(m.todo.faellig || '').split('-').reverse().join('.'))}</b></span><button class="btn sm" data-post="todoauf">Öffnen</button>${m.todo.status === 'erledigt' ? '' : '<button class="btn sm" data-post="todoweg" title="Das To-do zu dieser Mail löschen">✕ Nicht nötig</button>'}</div>` : ''}
       ${m.vorschlag ? `<div class="vs" data-vs="${esc(m.id)}">⏰ <span>Erinnerung:</span><input class="vst" value="${esc(m.vorschlag.titel)}" aria-label="Text der Erinnerung"><span>am</span><input type="date" value="${esc(m.vorschlag.termin)}" aria-label="Datum der Erinnerung"><button class="btn sm pri" data-post="anlegen">Anlegen</button><button class="btn sm" data-post="nein" title="Vorschlag verwerfen">✕</button></div>` : ''}</div>`;
   const body = G.length ? G.map((g) => { const w = g.mails.filter((m) => WICHTIG.has(m.art)).length, zeig = POSTALLE ? g.mails : g.mails.slice(0, 4);
     return `<div class="pg"><div class="pg-h"><b>${esc(g.name)}</b><small>${g.mails.length} Mail${g.mails.length > 1 ? 's' : ''}${w ? ` · ${w} wichtig` : ''}</small></div>${zeig.map(zeile).join('')}${zeig.length < g.mails.length ? `<button class="btn sm" data-post="alle" style="margin-top:.3rem">+ ${g.mails.length - zeig.length} weitere</button>` : ''}</div>`; }).join('')
@@ -202,6 +203,7 @@ async function postLaden(arg) {
   if (arg) { POSTLAEUFT = true; postZeigen(); }
   try { POST = await api('api/bp/post' + (arg || '')); } catch (e) { POST = { ...(POST || {}), fehler: [e.message] }; }
   POSTLAEUFT = false; postZeigen();
+  if (arg && (POST.mails || []).some((m) => m.todo) && typeof tdLaden === 'function') tdLaden();   // neue To-dos zu Prüfpflichten gleich rechts zeigen
 }
 async function postStart() { await postLaden(''); if (POST && POST.eingerichtet) postLaden('?auto=1'); }
 document.addEventListener('click', async (e) => {
@@ -229,6 +231,15 @@ document.addEventListener('click', async (e) => {
     const d = new Date(Date.now() + 3 * 864e5), wer = m.von_name || m.von || 'Absender';
     m.vorschlag = { titel: `Mail von ${wer}: ${m.betreff || ''}`.slice(0, 200), termin: new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10), text: `${m.betreff || ''}\nvon ${wer} (${m.von || ''})` };
     postZeigen(); const inp = document.querySelector(`[data-vs="${CSS.escape(m.id)}"] .vst`); if (inp) { inp.focus(); inp.select(); } return;
+  }
+  const vt = b.closest('[data-vt]');
+  if (vt) {   // automatisch angelegtes To-do zur Prüfpflicht
+    const m = (POST.mails || []).find((x) => x.id === vt.dataset.vt); if (!m || !m.todo) return;
+    if (a === 'todoauf') { TDOFFEN = 't:' + m.todo.id; await tdLaden(); tdZeigen(); const el = document.querySelector(`[data-tk="t:${m.todo.id}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
+    if (a === 'todoweg') {
+      try { await api('api/bp/todo/' + m.todo.id, 'DELETE'); await api('api/bp/post', 'POST', { id: m.id, wie: 'verworfen' }).catch(() => {}); m.todo.status = 'geloescht'; postZeigen(); tdLaden(); toast('To-do gelöscht.'); } catch (er) { toast(er.message, true); }
+      return;
+    }
   }
   const vs = b.closest('[data-vs]'); if (!vs) return;
   const m = (POST.mails || []).find((x) => x.id === vs.dataset.vs); if (!m) return;

@@ -495,7 +495,78 @@ def vorschlag(m):
     return {"titel": titel[:200], "termin": termin.isoformat(), "text": f"{m.get('betreff') or ''}\nvon {wer} ({m.get('von') or ''}), eingegangen {t0.strftime('%d.%m.%Y')}"[:1000]}
 
 
-# ---------------------------------------------------------------- Übersicht (einmal am Tag oder auf Knopfdruck)
+# ---------------------------------------------------------------- Prüfpflichten: erkannte Mails werden gleich zum To-do mit Frist
+PRUEF = ("Schlussrechnung", "Rechnung", "Nachtrag", "Angebot", "Plan")
+
+
+def _werktage(d, n):
+    while n > 0:
+        d += timedelta(days=1)
+        if d.weekday() < 5:
+            n -= 1
+    return d
+
+
+def pruefpflicht(m):
+    """To-do zu einer Mail mit Prüfpflicht: {titel, faellig, erinnerung, notiz} – Frist ab Eingang der Mail, Grundlage im Text."""
+    a = m.get("art")
+    if a not in PRUEF:
+        return None
+    try:
+        t0 = datetime.fromisoformat((m.get("zeit") or "").replace("Z", "+00:00")).astimezone().date()
+    except ValueError:
+        t0 = _now().date()
+    wer = m.get("von_name") or m.get("von") or "Absender"
+    F = {"Schlussrechnung": (t0 + timedelta(days=30), "1w", f"Schlussrechnung von {wer} prüfen",
+                             "Prüfpflicht: Die Schlussrechnung ist binnen 30 Tagen nach Zugang zu prüfen und zu bezahlen; Einwände gegen die Prüfbarkeit "
+                             "nur bis dahin (§ 16 Abs. 3 Nr. 1 VOB/B, § 650g Abs. 4 BGB)."),
+         "Rechnung": (t0 + timedelta(days=21), "1w", f"Rechnung von {wer} prüfen und freigeben",
+                      "Prüfpflicht: Abschlagszahlungen sind binnen 21 Tagen nach Zugang der Aufstellung fällig (§ 16 Abs. 1 Nr. 3 VOB/B)."),
+         "Nachtrag": (t0 + timedelta(days=14), "2t", f"Nachtrag von {wer} prüfen",
+                      "Prüfpflicht: Nachtragsangebot dem Grunde und der Höhe nach prüfen (§ 2 Abs. 5/6 VOB/B); "
+                      "Einigung binnen 30 Tagen anstreben, danach kann angeordnet werden (§ 650b BGB)."),
+         "Angebot": (t0 + timedelta(days=7), "2t", f"Angebot von {wer} prüfen und werten",
+                     "Prüfpflicht: Angebot prüfen und werten – Bindefrist des Angebots beachten."),
+         "Plan": (_werktage(t0, 10), "2t", f"Pläne von {wer} prüfen und freigeben",
+                  "Prüfpflicht: Pläne prüfen, freigeben oder Bedenken mitteilen – übliche Frist 10 Werktage, sofern der Vertrag nichts anderes regelt.")}[a]
+    faellig, er, titel, grund = F
+    notiz = "\n".join(x for x in (grund, f"Frist bis {faellig.strftime('%d.%m.%Y')} (Eingang {t0.strftime('%d.%m.%Y')})",
+                                   f"Mail: {m.get('betreff') or ''}", f"von {wer} ({m.get('von') or ''})", m.get("link") or "") if x)
+    return {"titel": f"{titel}: {m.get('betreff') or ''}"[:280], "faellig": faellig.isoformat(), "erinnerung": er, "notiz": notiz[:4000]}
+
+
+def _todo_key(mid):
+    return "post:todo:" + __import__("hashlib").sha256(str(mid).encode()).hexdigest()[:32]
+
+
+def todos_anlegen(c, u, mails, erl):
+    """Für neue Mails mit Prüfpflicht je ein To-do anlegen (einmal je Mail, auch wenn sie in mehreren Postfächern steht)
+    und bei allen Mails das zugehörige To-do anhängen: m["todo"] = {id, faellig, status}."""
+    from . import erinnern, skizze
+    jetzt = datetime.now().isoformat(timespec="seconds")
+    for m in mails:
+        k = _todo_key(m.get("id"))
+        tid = konto._get(c, k)
+        if tid is None and m.get("art") in PRUEF and m.get("id") not in erl:
+            t = pruefpflicht(m)
+            if not t:
+                continue
+            pid = m.get("pid") or None
+            leute = [x for x in erinnern.empfaenger(c, u["id"], pid) if x != u["id"]]
+            r = c.execute("""INSERT INTO todo(titel, notiz, project_id, faellig, prio, personen, mail, erinnerung, status, erstellt, erstellt_von, erstellt_name, geaendert)
+                             VALUES(?,?,?,?,1,?,0,?,'offen',?,?,?,?) RETURNING id""",
+                          (t["titel"], t["notiz"], pid, t["faellig"], json.dumps(leute), t["erinnerung"], jetzt, u["id"], skizze.name_von(u), jetzt)).fetchone()
+            tid = str(r["id"])
+            konto._put(c, k, tid, "posteingang")
+        if tid and str(tid).isdigit():
+            r = c.execute("SELECT id, faellig, status FROM todo WHERE id=?", (int(tid),)).fetchone()
+            if r:
+                m["todo"] = {"id": r["id"], "faellig": r["faellig"], "status": r["status"]}
+                m.pop("vorschlag", None)
+            else:
+                m.pop("todo", None)
+
+
 def lesen(c, uid):
     v = konto._get(c, f"post:{uid}")
     try:
@@ -556,9 +627,10 @@ def abrufen(c, u):
         konto._put(c, f"post:gelernt:{uid}", json.dumps(dict(list(gelernt.items())[-800:])), "posteingang")
         erl = alt.get("erledigt") or {}
         for m in zu:
-            s = vorschlag(m)
+            s = None if m.get("art") in PRUEF else vorschlag(m)   # Prüfpflicht → To-do statt Vorschlag
             if s and m["id"] not in erl:
                 m["vorschlag"] = s
+        todos_anlegen(c, u, zu, erl)
         neu_ids = {m["id"] for m in zu}
         zu = sichtbar(c, uid, zu + [m for m in alt.get("mails") or [] if m.get("id") not in neu_ids])   # ältere mit offener Erinnerung bleiben
         zu.sort(key=lambda m: m.get("zeit") or "", reverse=True)

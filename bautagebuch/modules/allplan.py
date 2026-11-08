@@ -13,7 +13,7 @@ from core import db, remote, settings, sync
 
 bp = Blueprint("allplan", __name__)
 STANDARD = r"\\192.168.233.88\Allplan"
-ERLAUBT = re.compile(r"^kukat[1-5]/KUKAT[1-5]\.(KAT|KTX|KTM)$")   # nur die Kundenkataloge – sonst wird nichts geschrieben
+ERLAUBT = re.compile(r"^kukat[1-5]/(KUKAT[1-5]\.(KAT|KTX|KTM)|k\d{3,5}\.(kat|ktx|ktm))$")   # nur die Kundenkataloge (Stamm + Ebenen-Dateien) – sonst wird nichts geschrieben
 
 
 def _admin():
@@ -100,21 +100,23 @@ def uebertragen():
         if std is None:
             return jsonify(error=f"Unter {unc} wurde kein Allplan-Bürostandard gefunden."), 404
         pfad = lambda rel: f"{std}/{rel}" if std else rel   # noqa: E731
-        gesichert, geschrieben = 0, 0
-        for rel, b64 in sorted(D.items()):
-            p = pfad(rel)
-            if t.exists(p):   # zwei Stände zurück: .bak2 ← .bak ← aktuelle Datei
+        gesichert = 0
+        for k in sorted({rel.split("/")[0] for rel in D}):   # ganzer Katalogordner zwei Stände zurück: kukatN.bak2 ← kukatN.bak ← kukatN
+            p = pfad(k)
+            if t.exists(p):
                 if t.exists(p + ".bak"):
                     if t.exists(p + ".bak2"):
-                        t.delete(p + ".bak2", False)
+                        t.delete(p + ".bak2", True)
                     t.rename(p + ".bak", p + ".bak2")
                 t.rename(p, p + ".bak")
                 gesichert += 1
-            t.put_bytes(base64.b64decode(b64), p)
-            geschrieben += 1
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(8) as ex:   # gut 1000 kleine Dateien – parallel, damit es in der Anfragezeit bleibt
+            list(ex.map(lambda kv: t.put_bytes(base64.b64decode(kv[1]), pfad(kv[0])), sorted(D.items())))
+        geschrieben = len(D)
     except Exception as e:
         return jsonify(error=f"Übertragen nicht möglich: {sync._msg(e)}"), 502
     from core import audit
     with db.tx() as c:
-        audit.log(c, g.user["name"], "export", "Allplan-Kataloge übertragen", f"{unc}\\{std} · {geschrieben} Dateien, {gesichert} gesichert", None, "", "")
+        audit.log(c, g.user["name"], "export", "Allplan-Kataloge übertragen", f"{unc}\\{std} · {geschrieben} Dateien, {gesichert} Ordner gesichert", None, "", "")
     return jsonify(ok=True, unc=unc, std=std, geschrieben=geschrieben, gesichert=gesichert)

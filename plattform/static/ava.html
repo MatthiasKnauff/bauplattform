@@ -489,7 +489,7 @@ tr.am-lf td input{color:#c0621f}
 .nav #pjTree{margin:0;padding:0;border:0;font-size:.88rem}
 .nav #pjTree .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.3rem .35rem;border-radius:7px;border-left:0}
 .nav #pjTree .pj-r .v{display:block;font-size:.76rem}.nav #pjTree .pj-r.k{padding:.2rem .35rem .2rem 1.1rem}.nav #pjTree .pj-r.k svg{opacity:.6}
-.nav #pjTree .pj-r.on{background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--y)}
+.nav #pjTree .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .nav #pjTree .pj-r{position:relative}.pj-del{display:none;position:absolute;right:.3rem;top:50%;transform:translateY(-50%);border:1px solid var(--line);background:var(--card);border-radius:6px;padding:.1rem .35rem;cursor:pointer;font-size:.85rem;line-height:1.2}
 .pj-del:hover{border-color:#e02424}.nav #pjTree .pj-r:hover .pj-del,.nav #pjTree .pj-r.on .pj-del{display:block}.nav #pjTree .pj-r:hover .v,.nav #pjTree .pj-r.on:has(.pj-del) .v{visibility:hidden}
 @media (pointer:coarse){.pj-del{display:none!important}}
@@ -510,19 +510,19 @@ tr.am-lf td input{color:#c0621f}
 .pj{position:sticky;top:.5rem;max-height:calc(100vh - 140px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.25rem 0 .4rem;font-size:.86rem}
 .pjw.zu .pj>:not(.pj-h){display:none}.pjw.zu .pj-h b{display:none}.pjw.zu .pj-h{justify-content:center;padding:.2rem 0}
 .pj-h{display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding:.25rem .3rem .35rem .6rem;border-bottom:1px solid var(--line);margin-bottom:.2rem}
-.pj-r{display:grid;grid-template-columns:1rem 16px minmax(0,1fr) auto;gap:.3rem;align-items:center;padding:.22rem .5rem;cursor:pointer;border-left:3px solid transparent}
+.pj-r{display:grid;grid-template-columns:1rem 16px minmax(0,1fr) auto;gap:.3rem;align-items:center;padding:.22rem .5rem;cursor:pointer}
 .pj-r.root{grid-template-columns:16px minmax(0,1fr) auto;font-weight:600;cursor:default}
 .pj-r svg{width:15px;height:15px}.pj-r .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pj-r .t small{display:block;color:var(--mute);font-size:.74rem;overflow:hidden;text-overflow:ellipsis}
 .pj-r .v{font-variant-numeric:tabular-nums;color:var(--mute);font-size:.8rem}.pj-r.k{padding-left:1.6rem}
-.pj-r:hover{background:var(--hov)}.pj-r.akt{font-weight:600}.pj-r.on{background:color-mix(in srgb,var(--y) 14%,transparent);border-left-color:var(--y)}
+.pj-r:hover{background:var(--hov)}.pj-r.akt{font-weight:600}.pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y);border-radius:6px}   /* geöffnetes LV: vollständiger Rahmen in der Akzentfarbe (kein Balken links) */
 .pj-r .car{cursor:pointer;color:var(--mute);text-align:center}.pj-r .ok{color:var(--ok);font-weight:600}.pj-r .offen{color:#e0a030}
 .lvx{border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:clip;margin-bottom:.8rem}
 .lvx-h{display:grid;grid-template-columns:1.6rem minmax(0,1fr) minmax(8rem,22%) 8rem;gap:.4rem;padding:.4rem .6rem;font-weight:600;font-size:.82rem;color:var(--mute);border-bottom:1px solid var(--line);background:var(--bg)}.lvx-h .r{text-align:right}
-.lvx .pj-r{grid-template-columns:1.1rem 16px minmax(0,1fr) 8rem;padding:.32rem .6rem;border-bottom:1px solid var(--line);border-left:3px solid transparent;position:relative}
+.lvx .pj-r{grid-template-columns:1.1rem 16px minmax(0,1fr) 8rem;padding:.32rem .6rem .32rem calc(.6rem + 3px);border-bottom:1px solid var(--line);position:relative}
 .lvx .pj-r .t{display:grid;grid-template-columns:minmax(0,1fr) minmax(8rem,24%);gap:.4rem;font-weight:600}.lvx .pj-r .t small{display:block;font-size:.84rem;font-weight:400;color:var(--mute)}
 .lvx .pj-r .v{text-align:right;font-size:.88rem;color:inherit}.lvx .pj-r.k{padding-left:2.4rem}.lvx .pj-r.k .t{font-weight:400}
 .lvx .pj-r.lvx-root{cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent)}.lvx .pj-r.lvx-root .t{font-weight:700}
-.lvx .pj-r.akt{background:color-mix(in srgb,var(--y) 10%,transparent)}.lvx .pj-r.lv{padding-left:1.4rem}.lvx .pj-r .car{font-size:.8rem}
+.lvx .pj-r.akt{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y);border-radius:0}.lvx .pj-r.lv{padding-left:1.4rem}.lvx .pj-r .car{font-size:.8rem}
 .lvx .pj-r:hover .pj-del,.lvx .pj-r.on .pj-del{display:block}.lvx .pj-r:hover .v,.lvx .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .lvx-akt .tblw{max-height:none;overflow:visible}   /* im Tabellenfeld scrollt die Seite: die übrigen LVs laufen weg, Knopfleiste und Spaltenköpfe bleiben stehen */
 .lvx-akt table.tree th,.lvx-akt table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
@@ -535,7 +535,7 @@ tr.am-lf td input{color:#c0621f}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:.9rem}
 .re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;border-left:3px solid transparent;position:relative}
-.re2-baum .pj-r.k{padding-left:1.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 14%,transparent);border-left-color:var(--y)}
+.re2-baum .pj-r.k{padding-left:1.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* nur die Seite scrollt – rechts kein zweiter Scrollbalken */
 @media (max-width:1100px){.re2{grid-template-columns:1fr}.re2-baum{position:static;max-height:40vh}}

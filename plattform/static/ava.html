@@ -421,7 +421,7 @@ html.mobil .bph{position:sticky;top:0}
 .si-g{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:flex-end;margin:.3rem 0}.si-g label{display:flex;flex-direction:column;font-size:.8rem;color:var(--mute);gap:.15rem}.si-g input,.si-g select{font-size:.9rem}
 .si-sum{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.2rem 0 .5rem}.si-w{background:color-mix(in srgb,#e0a030 18%,transparent);border-radius:8px;padding:.4rem .6rem;margin:.3rem 0}
 .re-bel{display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;margin:.5rem 0;padding:.45rem .55rem;border:1px dashed var(--line);border-radius:8px}.re-bel.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 10%,transparent)}
-.re-b{display:inline-flex;gap:.3rem;align-items:center}.re-z{width:100%;margin:.4rem 0}.re-z td:first-child{min-width:18rem}.re-z input{font:inherit}
+.re-b{display:inline-flex;gap:.3rem;align-items:center}.re-bel-neu{flex-basis:100%;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;padding-top:.45rem;border-top:1px dashed var(--line)}.re-z{width:100%;margin:.4rem 0}.re-z td:first-child{min-width:18rem}.re-z input{font:inherit}
 .am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
@@ -2415,10 +2415,10 @@ async function amPdfMount() {
   if (!B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[0]).id;
   if (!AMV || AMV.bid !== AMB) { AMV = { bid: AMB, el: document.createElement('div'), pages: [], zoom: LS.get('amZoom', 1) }; AMV.el.className = 'am-pv'; AMV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; amPdfLaden(AMV); }
   const b = B.find((y) => y.id === AMB), A = b.auslese;
-  if (!A || !A.zahlen || !A.kopf || !A.kopf.summen) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
+  if ((!A || !A.zahlen || !A.kopf || !A.kopf.summen) && !(A && A.laeuft)) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
   slot.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
     <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? 'Scan, per Texterkennung gelesen · ' : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · Zahlen anklicken übernimmt sie in den Rechenweg`) : ''}</span><span class="fill"></span>
-    <button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-frei title="als freies Fenster verschieben / wieder andocken">⧉</button><button class="ib" data-ambdel="${AMB}" title="PDF entfernen">✕</button></div>`;
+    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻ neu lesen</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-frei title="als freies Fenster verschieben / wieder andocken">⧉</button><button class="ib" data-ambdel="${AMB}" title="PDF entfernen">✕</button></div>`;
   slot.appendChild(AMV.el); teilung(slot.closest('.am-split'), 'am', () => AMV && AMV.pdf && amPdfZeichnen(AMV).then(() => { amMarken(); amPdfZeige(amPos, true); }));
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
 }
@@ -2452,6 +2452,18 @@ function amPdfZeige(pid, sofort, direkt) {
   Object.assign(hl.style, { left: `calc(${x0 * 100}% - 4px)`, top: `calc(${y0 * 100}% - 3px)`, width: `calc(${(x1 - x0) * 100}% + 8px)`, height: `calc(${(y1 - y0) * 100}% + 6px)` });
   wrap.appendChild(hl);
   V.el.scrollTo({ top: wrap.offsetTop + y0 * wrap.offsetHeight - V.el.clientHeight * 0.3, behavior: sofort ? 'auto' : 'smooth' });
+}
+/* PDF der Firma noch einmal lesen – bei Scans läuft die Texterkennung im Hintergrund, unten steht ein Hinweis mit Abbrechen */
+async function belegNeuLesen(bid) {
+  const lvId = L.id; AMNEU.add(bid); AMNEU.add('x' + bid);   // kein zusätzliches automatisches Nachlesen
+  try { L = await api(`api/belege/${bid}/auslesen`, 'POST'); } catch (e) { return toast(e.message, true); }
+  AMV = null; render();
+  const lauf = () => { const b = L && L.rechnungen.flatMap((r) => r.belege || []).find((y) => y.id === bid); return !!(b && b.auslese && b.auslese.laeuft); };
+  if (!lauf()) return toast('Neu gelesen.');
+  const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = '<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Texterkennung läuft …<button type="button" class="btn sm" data-j="ab">Nicht warten</button>'; document.body.appendChild(el);
+  let stop = false; el.addEventListener('click', (e) => { if (e.target.closest('[data-j]')) stop = true; });
+  try { for (let k = 0; k < 200 && !stop; k++) { await new Promise((ok) => setTimeout(ok, 3000)); if (stop) break; const x = await api('api/lv/' + lvId).catch(() => null); if (!x) continue; const b = x.rechnungen.flatMap((r) => r.belege || []).find((y) => y.id === bid); if (b && !(b.auslese && b.auslese.laeuft)) { if (L && L.id === lvId) { L = x; AMV = null; render(); } toast('Texterkennung fertig.'); break; } } }
+  finally { el.remove(); }
 }
 /* Rechnung ohne Aufmaß: Positionen von Hand (Kurztext, Menge, EH, EP) – die Summe ist der geprüfte Betrag */
 async function reVonHand(rid) {
@@ -2564,6 +2576,7 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('dragover', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (z && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); z.classList.add('over'); } });
 document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-amdrop]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('over'); });
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-amneu]'); if (b && L) belegNeuLesen(+b.dataset.amneu); });
 document.addEventListener('drop', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); z.classList.remove('over'); amBelegHoch(e.dataTransfer.files); });
 document.addEventListener('keydown', (e) => { if (tab === 'aufmass' && amAns === 'erfassen' && e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && !document.querySelector('.modal-bg,.bed')) { e.preventDefault(); amSchritt(e.key === 'ArrowDown' ? 1 : -1); } });
 document.addEventListener('keydown', (e) => {
@@ -2665,7 +2678,7 @@ function vRechnungen() {
     const c = RC[r.id], g = r.status === 'geprueft', last = !reNachfolger(r), ab = r.data.abzuege || [], art = r.art || 'abschlag';
     const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
     const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung abhaken: Summen werden automatisch mit ✔ / ✘ markiert, dann von Hand ergänzen oder streichen – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}
-      <label class="btn sm">📎 Rechnung (PDF) hinzufügen<input type="file" accept="application/pdf,.pdf" hidden data-rebeleg="${r.id}"></label><span class="hint">oder hierher ziehen – wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt</span></div>`;
+      <div class="re-bel-neu"><label class="btn sm">📎 Rechnung (PDF) hinzufügen<input type="file" accept="application/pdf,.pdf" hidden data-rebeleg="${r.id}"></label><span class="hint">oder hierher ziehen – wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt</span></div></div>`;
     const kopf = `<div class="re-wo">${esc(L.vergabe && L.vergabe.bieter || L.auftragnehmer || '')}${L.nr || L.name ? ' · LV ' + esc([L.nr, L.name].filter(Boolean).join(' ')) : ''}</div><h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
         <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' || c.frei ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
       <div class="g"><label>Rechnungsnr. der Firma<input data-re="re_nr" data-id="${r.id}" value="${esc(r.re_nr)}"${dis}></label>

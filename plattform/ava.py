@@ -3549,7 +3549,24 @@ def beleg_auslesen(b):
         lv = _lv(c, x["lv_id"]) if x else None
         if not lv:
             return jsonify(error="Nicht gefunden"), 404
-        _auslese_anwenden(c, b, x["rechnung_id"], lv)
+        roh = bytes(c.execute("SELECT data FROM ava_beleg WHERE id=?", (b,)).fetchone()["data"])
+        if _ist_scan(roh):   # Scan: Texterkennung (noch einmal) im Hintergrund – die Seite fragt nach
+            import threading
+            c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps({"zeilen": {}, "vorschlag": [], "ocr": True, "laeuft": True}), b))
+            lv_id, rid, items = x["lv_id"], x["rechnung_id"], (_j(lv["data"], {}) or {}).get("items") or []
+
+            def lesen():
+                try:
+                    A = _auslesen(roh, items)
+                except Exception as e:
+                    fehler.still("ava", "Rechnung (Scan) neu auslesen", e)
+                    A = {"pos": {}, "kopf": {}, "text": False, "ocr": True, "fehler": str(e)[:200]}
+                with db.tx() as c2:
+                    _auslese_anwenden(c2, b, rid, _lv(c2, lv_id), A)
+                    _touch(c2, lv_id)
+            threading.Thread(target=_mit_user(lesen), daemon=True).start()
+        else:
+            _auslese_anwenden(c, b, x["rechnung_id"], lv)
         _touch(c, x["lv_id"])
         return _antwort(c, x["lv_id"])
 

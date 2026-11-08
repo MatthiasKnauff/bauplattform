@@ -744,15 +744,33 @@ const UTAB = {
   uebersicht: () => [['druBtn', 'Drucken'], ['expBtn', 'Export']],
 };
 let UFN2 = [];
+/* LV aus der Liste nehmen: mit Auftrag/Rechnungen zuerst „Archivieren“ (bleibt vollständig erhalten), Löschen nur ausdrücklich */
+async function lvWegFragen(id) {
+  const x = LIST.find((y) => y.id === id) || (L && L.id === id ? L : null); if (!x) return;
+  const nm = [x.nr, x.name].filter(Boolean).join(' '), nRe = (x.rechnungen || []).length, nAng = x.n_angebote != null ? x.n_angebote : (x.angebote || []).length;
+  const nAm = L && L.id === id ? new Set((L.aufmass || []).map((a) => a.pos_id)).size : null, mitAuftrag = !!(x.vergeben || x.frei || nRe);
+  const wegDamit = async () => { try { if (L && L.id === id) await flush(); const w = await api('api/lv/' + id, 'DELETE'); if (L && L.id === id) L = null; await loadList();
+    if (typeof w.papierkorb === 'number') rueckgaengig(`LV „${x.name}“ liegt im Papierkorb`, async () => { const z = await api(`api/bp/papierkorb/${w.papierkorb}/zurueck`, 'POST'); await loadList(+z.schluessel || undefined); }); } catch (er) { toast(er.message, true); } };
+  if (!mitAuftrag) {
+    if (await bpFrage(`LV „${nm}“${nAng ? ` mit ${nAng} Angebot${nAng === 1 ? '' : 'en'}` : ''} in den Papierkorb legen?\nWiederherstellen geht über Rückgängig oder den Papierkorb auf der Startseite.`, { ok: 'In den Papierkorb' })) await wegDamit();
+    return;
+  }
+  const was = [nRe ? `${nRe} Rechnung${nRe === 1 ? '' : 'en'}` : '', nAng ? `${nAng} Angebot${nAng === 1 ? '' : 'e'}` : '', nAm ? `Aufmaß zu ${nAm} Position${nAm === 1 ? '' : 'en'}` : ''].filter(Boolean).join(', ');
+  modalBox(`<h3>LV „${esc(nm)}“ aus der Liste nehmen?</h3>
+    <p>Das LV ist beauftragt${x.auftragnehmer || (x.vergabe && x.vergabe.bieter) ? ' an <b>' + esc(x.auftragnehmer || x.vergabe.bieter) + '</b>' : ''}${was ? ' und hat ' + esc(was) : ''}. Angebote, Aufmaß und Rechnungen hängen an seinen Positionen – ohne das LV ließen sie sich nicht mehr nachrechnen.</p>
+    <p class="hint"><b>Archivieren</b> nimmt es aus allen Listen, alles bleibt vollständig erhalten und lässt sich jederzeit zurückholen.</p>
+    <div class="acts"><button class="btn danger sm" data-m="del" style="margin-right:auto" title="Mit allem in den Papierkorb – wiederherstellbar über den Papierkorb">trotzdem in den Papierkorb</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="arch">Archivieren</button></div>`, async (m, bg, close) => {
+    if (m === 'x') return close();
+    if (m === 'arch') { close(); await lvSetzen(id, { archived: true }); if (L && L.id === id) { await refreshList(); } render(); rueckgaengig(`LV „${x.name}“ archiviert`, () => lvSetzen(id, { archived: false })); return; }
+    if (m === 'del') { close(); if (await bpFrage(`Wirklich das ganze LV „${nm}“ mit ${was || 'allem'} in den Papierkorb?`, { ok: 'In den Papierkorb' })) await wegDamit(); }
+  });
+}
 /* Löschen in der Titelzeile – je Bereich das Gewählte: Rechnung, Angebot, sonst das ganze LV (immer in den Papierkorb) */
 async function uLoeschen() {
   if (!L) return toast('Kein LV gewählt.', true);
   if ((tab === 'rechnungen' || tab === 'aufmass') && L.rechnungen && L.rechnungen.length && (PJSEL && PJSEL[0] === 'r')) return reLoeschen(+PJSEL.slice(1));
   if (tab === 'angebote' && PJSEL && PJSEL[0] === 'b') return angLoeschen(+PJSEL.slice(1));
-  const x = L, nm = [x.nr, x.name].filter(Boolean).join(' ');
-  if (!(await bpFrage(`LV „${nm}“ mit allen Angeboten, Aufmaß und Rechnungen in den Papierkorb legen?\nWiederherstellen geht über Rückgängig oder den Papierkorb auf der Startseite.`, { ok: 'In den Papierkorb' }))) return;
-  try { await flush(); const w = await api('api/lv/' + x.id, 'DELETE'); L = null; await loadList();
-    if (typeof w.papierkorb === 'number') rueckgaengig(`LV „${x.name}“ liegt im Papierkorb`, async () => { const z = await api(`api/bp/papierkorb/${w.papierkorb}/zurueck`, 'POST'); await loadList(+z.schluessel || undefined); }); } catch (er) { toast(er.message, true); }
+  return lvWegFragen(L.id);
 }
 const uLoeschText = () => ((tab === 'rechnungen' || tab === 'aufmass') && PJSEL && PJSEL[0] === 'r' ? 'Rechnung löschen' : tab === 'angebote' && PJSEL && PJSEL[0] === 'b' ? 'Angebot löschen' : 'LV löschen');
 /* „⋯“ passend zum Bereich: im LV die LV-Befehle, in Vergabe/Abrechnung/Kosten die dortigen – [Knopf-Selektor | Funktion, Text, gesperrt] */
@@ -1254,12 +1272,7 @@ document.addEventListener('click', async (e) => {
   const d = e.target.closest && e.target.closest('#pjTree [data-pjdel]'); if (!d) return;
   e.preventDefault(); e.stopPropagation();
   const r = d.closest('[data-pjlv]'), lvId = +r.dataset.pjlv, sub = r.dataset.pjsub || '', x = LIST.find((y) => y.id === lvId); if (!x) return;
-  if (d.dataset.pjdel === 'lv') {
-    if (!(await bpFrage(`LV „${[x.nr, x.name].filter(Boolean).join(' ')}“ mit allen Angeboten, Aufmaß und Rechnungen in den Papierkorb legen?\nWiederherstellen geht über Rückgängig oder den Papierkorb auf der Startseite.`, { ok: 'In den Papierkorb' }))) return;
-    try { await flush(); const w = await api('api/lv/' + lvId, 'DELETE'); if (L && L.id === lvId) L = null; await loadList();
-      if (typeof w.papierkorb === 'number') rueckgaengig(`LV „${x.name}“ liegt im Papierkorb`, async () => { const z = await api(`api/bp/papierkorb/${w.papierkorb}/zurueck`, 'POST'); await loadList(+z.schluessel || undefined); }); } catch (er) { toast(er.message, true); }
-    return;
-  }
+  if (d.dataset.pjdel === 'lv') return lvWegFragen(lvId);
   if (!L || L.id !== lvId) { await flush(); await openLv(lvId); }
   if (d.dataset.pjdel === 're') {
     const rid = +sub.slice(1);   // ob spätere Rechnungen darauf aufbauen, prüft der Server (Meldung mit Grund)

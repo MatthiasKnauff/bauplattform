@@ -2761,14 +2761,35 @@ async function freiVergeben(lvId, root = document) {
   if (L && L.id === lvId) await call(`api/lv/${lvId}/vergabe`, 'POST', body); else await api(`api/lv/${lvId}/vergabe`, 'POST', body);
   return true;
 }
+/* Welche offene Rechnung hält eine neue dieser Art auf? Nur die eigene kumulierte Kette (Teil-/Schluss- bzw. Nachtragsrechnungen);
+   Regierechnungen und Rechnungen ohne Aufmaß zählen einzeln, die Freigabe der Sicherheit braucht alle geprüft – wie auf dem Server */
+function reSperre(art) {
+  const RC = Object.fromEntries((L.calc.rechnungen || []).map((x) => [x.id, x]));
+  return L.rechnungen.find((o) => { if (o.status === 'geprueft') return false;
+    if (art === 'sicherheit') return true;
+    const einzeln = o.art === 'regie' || o.art === 'sicherheit' || (RC[o.id] || {}).frei;
+    return !einzeln && ['abschlag', 'schluss', 'nachtrag'].includes(art) && (o.art === 'nachtrag') === (art === 'nachtrag'); });
+}
 function reNeuMenu(anchor) {
-  const offeneRe = L.rechnungen.find((r) => r.status !== 'geprueft'), offen = !!offeneRe, schluss = L.rechnungen.some((r) => r.art === 'schluss');
-  const grund = offen ? `erst „${reTitel(offeneRe)}“ prüfen (✓ Prüfung abschließen)` : '';
-  const it = [...(offen ? [['zu:' + offeneRe.id, `→ ${reTitel(offeneRe)} öffnen`, 'ist noch in Prüfung – eine neue Rechnung geht erst danach (kumulierte Abrechnung)', false]] : []),['abschlag', 'Teilrechnung', 'kumuliert über das Aufmaß', offen || schluss], ['schluss', 'Schlussrechnung', 'mit Sicherheit für Mängelansprüche', offen || schluss],
-    ['regie', 'Regierechnung', 'Stundenlohnarbeiten nach Stundenzetteln', offen], ['nachtrag', 'Nachtragsrechnung', 'kumuliert nur über die Nachtragspositionen', offen || schluss],
-    ['sicherheit', 'Freigabe der Sicherheit', `noch einbehalten ${eur((L.calc.sicherheit || {}).offen || 0)}`, offen]];
-  pickMenu(anchor, { items: it.map(([v, t, sub, dis]) => ({ value: dis ? '' : v, title: t, sub: dis ? (grund || 'nach der Schlussrechnung nicht mehr') : sub })),
-    onPick: (v) => { if (!v) return; if (v.startsWith('zu:')) { PJSEL = 'r' + v.slice(3); render(); return; } reDialog(v); } });
+  const schluss = L.rechnungen.some((r) => r.art === 'schluss');
+  const it = [['abschlag', 'Teilrechnung', 'kumuliert über das Aufmaß', schluss], ['schluss', 'Schlussrechnung', 'kumuliert über das Aufmaß, danach keine Teilrechnung mehr', schluss],
+    ['regie', 'Regierechnung', 'Stundenlohnarbeiten nach Stundenzetteln', false], ['nachtrag', 'Nachtragsrechnung', 'kumuliert nur über die Nachtragspositionen', schluss],
+    ['sicherheit', 'Freigabe der Sicherheit', `noch einbehalten ${eur((L.calc.sicherheit || {}).offen || 0)}`, false]];
+  pickMenu(anchor, { items: it.map(([v, t, sub, dis]) => { const sp = !dis && reSperre(v); return { value: dis ? '' : v, title: t, sub: dis ? 'nach der Schlussrechnung nicht mehr' : sp ? `erst „${reTitel(sp)}“ abschließen – wird gefragt` : sub }; }),
+    onPick: async (v) => {
+      if (!v) return;
+      const sp = reSperre(v);
+      if (sp) {   // kumuliert: erst die offene Rechnung derselben Kette abschließen – fragen, ob das jetzt passieren soll
+        const c = (L.calc.rechnungen || []).find((x) => x.id === sp.id) || {};
+        const ja = await bpFrage(`„${reTitel(sp)}“ ist noch in Prüfung.\nEine neue ${v === 'sicherheit' ? 'Freigabe der Sicherheit' : 'Rechnung dieser Art'} geht erst, wenn sie abgeschlossen ist – sonst würde doppelt abgerechnet. Anerkannt sind zurzeit ${eur(c.anerkannt || 0)}, Zahlbetrag ${eur(c.zahlung || 0)} netto.`, { ok: 'Prüfung abschließen, dann weiter', abbrechen: 'Abbrechen', drei: `${reTitel(sp)} öffnen` });
+        if (ja === 'drei') { PJSEL = 'r' + sp.id; tab = 'rechnungen'; LS.set('tab', tab); render(); return; }
+        if (!ja) return;
+        try { await call('api/rechnungen/' + sp.id, 'PUT', { status: 'geprueft' }); toast(`${reTitel(sp)}: Prüfung abgeschlossen – der Aufmaßstand ist festgehalten.`); }
+        catch (e) { toast(e.message, true); return; }
+        if (reSperre(v)) return reNeuMenu(anchor);   // noch eine offen (z. B. bei der Sicherheit)
+      }
+      reDialog(v);
+    } });
 }
 function reDialog(art = 'abschlag') {
   const n = L.rechnungen.length + 1, offen = (L.calc.sicherheit || {}).offen || 0;

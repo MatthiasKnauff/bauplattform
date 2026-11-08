@@ -408,6 +408,9 @@ def test_regie_frei_und_sicherheit(ctx):
         gleich((L["status"], L["calc"]["auftrag"]), ("vergeben", 5000.00), "freier Auftrag")
         c.post(f"{A}/lv/{lv['id']}/vergabe", {"frei": True, "bieter": ""}, expect=400)
         L, r1 = _re_neu(c, lv["id"], art="regie")
+        L, rx = _re_neu(c, lv["id"], art="abschlag")   # offene Regierechnung hält eine Teilrechnung nicht auf (eigene Kette)
+        c.post(f"{A}/lv/{lv['id']}/rechnungen", {"art": "sicherheit"}, expect=400)   # die Freigabe der Sicherheit braucht alle geprüft
+        c.delete(f"{A}/rechnungen/{rx['id']}")
         L = c.uj(f"{A}/rechnungen/{r1['id']}", {"zeilen": [{"text": "Facharbeiter", "menge": 8, "einheit": "h", "ep": 52.50},
                                                            {"text": "Helfer", "menge": 8, "einheit": "h", "ep": 41.00},
                                                            {"text": "Bauschutt entsorgen", "menge": 2, "einheit": "t", "ep": 85.00}]})

@@ -3079,9 +3079,14 @@ def rechnung_neu(i):
         V0 = _j(r["vergabe"], {}) or {}
         if not (V0.get("preise") or V0.get("frei")):
             return jsonify(error="Erst vergeben – oder ohne LV „Auftrag frei eintragen“ (Firma und Summe)."), 400
-        if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND status<>'geprueft'", (i,)).fetchone():
-            return jsonify(error="Es gibt noch eine ungeprüfte Rechnung – bitte erst diese prüfen."), 400
         art = b.get("art") if b.get("art") in RE_ARTEN else "abschlag"
+        # Nur die eigene kumulierte Kette muss geprüft sein (Teil-/Schlussrechnungen bzw. Nachtragsrechnungen);
+        # Regierechnungen und Rechnungen ohne Aufmaß zählen einzeln, die Freigabe der Sicherheit braucht alle geprüft
+        for o in c.execute("SELECT nr, art, data FROM ava_rechnung WHERE lv_id=? AND status<>'geprueft'", (i,)).fetchall():
+            einzeln_ = o["art"] in ("regie", "sicherheit") or (_j(o["data"], {}) or {}).get("frei") is not None
+            kette_ = "nachtrag" if o["art"] == "nachtrag" else "haupt"
+            if art == "sicherheit" or (not einzeln_ and art in ("abschlag", "schluss", "nachtrag") and kette_ == ("nachtrag" if art == "nachtrag" else "haupt")):
+                return jsonify(error=f"{re_titel(o['nr'], o['art'])} ist noch in Prüfung – bitte erst diese abschließen."), 400
         if art in ("abschlag", "schluss", "nachtrag") and c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND art='schluss'", (i,)).fetchone():
             return jsonify(error="Die Schlussrechnung ist schon erfasst – danach nur noch Regierechnung oder Freigabe der Sicherheit."), 400
         nr = (c.execute("SELECT MAX(nr) AS n FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone()["n"] or 0) + 1

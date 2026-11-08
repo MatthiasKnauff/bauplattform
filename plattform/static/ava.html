@@ -3054,8 +3054,8 @@ function vSicherheiten(K) {
     <div class="si-sum"><span>einbehalten <b>${eur(S.einbehalten)}</b></span><span>freigegeben <b>${eur(S.freigegeben)}</b></span><span>noch einbehalten <b>${eur(S.offen)}</b></span>
       ${S.offen > 0.5 ? `<button type="button" class="btn sm pri" data-act="siFrei" title="Freigabe der Sicherheit als eigene Rechnung – gegen Bürgschaft (Austausch, VOB/B § 17 Abs. 3) oder nach Ablauf der Verjährungsfrist">Sicherheit freigeben …</button>` : ''}</div>
     <p class="hint" style="margin:.2rem 0 .6rem">Einbehalt wird gegen eine Bürgschaft ausgetauscht oder nach Ablauf der Verjährungsfrist freigegeben – beides als „Freigabe der Sicherheit“ unter den Rechnungen. Eingescannte Urkunden hier ablegen: Art, Betrag, Bürge und Nummer werden erkannt.</p>
-    ${block('ve', ve, 'Vertragserfüllung', 'Einbehalt in jeder Teil-, Nachtrags- und Regierechnung – oder abgelöst durch Bürgschaft')}
-    ${block('ma', ma, 'Mängelansprüche (Gewährleistung)', 'Einbehalt in der Schlussrechnung – oder abgelöst durch Bürgschaft')}
+    ${block('ve', ve, 'Vertragserfüllungssicherheit', 'Sicherheit für die Vertragserfüllung: Einbehalt in jeder Teil-, Nachtrags- und Regierechnung – oder abgelöst durch Bürgschaft')}
+    ${block('ma', ma, 'Sicherheit für Mängelansprüche (Gewährleistung)', 'Einbehalt in der Schlussrechnung – oder abgelöst durch Bürgschaft')}
     <div class="si-g"><label>Abnahme am${ein('', 'abnahme', S.abnahme, '', 'date')}</label><label>Verjährung Jahre${ein('', 'gw_jahre', S.gw_jahre, '4', 'text', '4rem')}</label>
       <label>Frist endet am<input data-si=".gw_ende" type="date" value="${esc(ende)}"></label></div></div>`;
 }
@@ -3073,7 +3073,7 @@ async function buergschaftHoch(f, o = {}) {
   const heute = new Date().toISOString().slice(0, 10);
   const was = E.text ? (E.sicher ? 'Angaben aus der Urkunde gelesen – bitte prüfen.' : 'Urkunde gelesen, aber nicht alles sicher erkannt – bitte ergänzen.') : 'Kein lesbarer Text in der Datei – bitte die Angaben eintragen.';
   const bg = modalBox(`<h3>Bürgschaft eintragen</h3><p class="hint" style="margin:0 0 .6rem"><b>${esc(r.name || f.name)}</b>${r.ablage ? ' · im Projektordner: ' + esc(r.ablage) : ''}${E.ablage_fehler ? ` · <span style="color:#e07b3a">nicht im Projektordner abgelegt: ${esc(E.ablage_fehler)}</span>` : ''}<br>${was}${E.ocr ? ' (Texterkennung)' : ''}</p>
-    <div class="fm"><label>Sicherheit für</label><select id="bgArt"><option value="ve"${art !== 'ma' ? ' selected' : ''}>Vertragserfüllung</option><option value="ma"${art === 'ma' ? ' selected' : ''}>Mängelansprüche (Gewährleistung)</option></select>
+    <div class="fm"><label>Sicherheit für</label><select id="bgArt"><option value="ve"${art !== 'ma' ? ' selected' : ''}>Vertragserfüllungssicherheit</option><option value="ma"${art === 'ma' ? ' selected' : ''}>Sicherheit für Mängelansprüche (Gewährleistung)</option></select>
       <label>Höchstbetrag €</label><input id="bgBetrag" value="${E.betrag != null ? nf(E.betrag, 2) : ''}" inputmode="decimal">
       <label>Bürge</label><input id="bgBuerge" value="${esc(E.buerge || '')}" placeholder="Bank / Versicherung">
       <label>Bürgschafts-Nr.</label><input id="bgNr" value="${esc(E.nr || '')}">

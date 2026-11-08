@@ -2690,8 +2690,13 @@ function amSchritt(d) {
   const sel = document.querySelector('tr[data-ampos].sel'); if (sel) sel.scrollIntoView({ block: 'nearest' });
   setTimeout(() => { const f = document.querySelector('[data-am-new="formel"]'); if (f) f.focus({ preventScroll: true }); }, 30);
 }
+document.addEventListener('click', (e) => {   // PDF neben der Prüfung zuklappen / wieder öffnen – in Aufmaßprüfung und Rechnungen
+  if (!e.target.closest) return;
+  if (e.target.closest('[data-ampdfzu]')) { LS.set('amPdfZu', true); AMV = null; render(); return; }
+  if (e.target.closest('[data-ampdfauf]')) { LS.set('amPdfZu', false); AMV = null; render(); }
+});
 document.addEventListener('click', async (e) => {
-  if (tab !== 'aufmass' || !L) return;
+  if (!L || (tab !== 'aufmass' && !(e.target.closest && e.target.closest('#amPdfSlot')))) return;   // PDF-Leiste gilt auch unter „Rechnungen“
   const s = e.target.closest('[data-amstep]'); if (s) return amSchritt(+s.dataset.amstep);
   const zz = e.target.closest('.am-zz'); if (zz) { const f = document.querySelector('[data-am-new="formel"]'); if (!f) return; const w = String(+zz.dataset.v).replace('.', ',');
     f.value = f.value.trim() ? f.value.trim() + ' + ' + w : w; f.dispatchEvent(new Event('input', { bubbles: true })); f.focus(); zz.classList.add('ok'); return; }
@@ -2707,8 +2712,6 @@ document.addEventListener('click', async (e) => {
   const u = e.target.closest('[data-amueb]'); if (u) return amUebernehmen(u.dataset.amueb === '*' ? null : u.dataset.amueb);
   const b = e.target.closest('[data-amb]'); if (b) { AMB = +b.dataset.amb; LS.set('amB', AMB); return render(); }
   const z = e.target.closest('[data-amz]'); if (z && AMV && AMV.pdf) { AMV.zoom = Math.max(0.5, Math.min(3, AMV.zoom * (+z.dataset.amz > 0 ? 1.2 : 1 / 1.2))); LS.set('amZoom', AMV.zoom); await amPdfZeichnen(AMV); amMarken(); amPdfZeige(amPos, true); return; }
-  if (e.target.closest('[data-ampdfzu]')) { LS.set('amPdfZu', true); AMV = null; render(); return; }
-  if (e.target.closest('[data-ampdfauf]')) { LS.set('amPdfZu', false); AMV = null; render(); return; }
   const d = e.target.closest('[data-ambdel]'); if (d) { const id = +d.dataset.ambdel; try { await call('api/belege/' + id, 'DELETE'); AMV = null; toast('PDF entfernt.'); } catch (er) { toast(er.message, true); } }
 });
 document.addEventListener('change', (e) => {

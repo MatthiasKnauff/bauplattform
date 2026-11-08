@@ -566,7 +566,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
     <div class="rg"><div class="rr">
       <button class="rb" id="newBtn" title="Neues Leistungsverzeichnis / neuer Auftrag"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M12 11v6M9 14h6" class="ac"/></svg>Neu</button>
       <button class="rb" data-act="pos" data-need="lv" title="Position anhängen"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h12"/><path d="M19 15v6M16 18h6" class="ac"/></svg>Position</button>
-      <button class="rb" data-act="titel" data-need="lv" title="Titel anhängen"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/><path d="M17 12v5M14.5 14.5h5" class="ac"/></svg>Titel</button>
+      <button class="rb" data-act="glied" data-need="lv" title="Gliederungspunkt eine Ebene unter der markierten Zeile"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/><path d="M17 12v5M14.5 14.5h5" class="ac"/></svg>Gliederung</button>
     </div><div class="rl">Neu</div></div>
     <div class="rg"><div class="rr">
       <button class="rb" id="tlBtn" title="Türliste des Projekts: alle Türen mit Raum, Maßen, Anschlag, Brand- und Schallschutz, Ausstattung – später als Positionen ins LV"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="11" height="18" rx="1"/><circle cx="13" cy="12" r=".9"/><path d="M19 8h3M19 12h3M19 16h3" class="ac"/></svg>Türliste</button>
@@ -1374,7 +1374,7 @@ function render() {
   document.querySelectorAll('[data-need="lv"]').forEach((b) => { b.disabled = !L; });
   // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
   // Werkzeugleiste bleibt immer gleich hoch – was im Bereich nicht greift, ist grau
-  document.querySelectorAll('.rib [data-act="pos"], .rib [data-act="titel"]').forEach((b) => { b.disabled = !L || tab !== 'lv'; });
+  document.querySelectorAll('.rib [data-act="pos"], .rib [data-act="glied"]').forEach((b) => { b.disabled = !L || tab !== 'lv'; });
   $('#phLvD').hidden = !L || !L.id || !NURLV.has(tab); $('#phPrD').hidden = !pid;
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
@@ -1679,12 +1679,12 @@ function vLv() {
     return h;
   }).join('');
   const kopf = `<tr class="wurzel"><td class="baumz"><div class="bz" style="${einr(0)}"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NC - 1}"></td></tr>
-    <tr class="wurzel lvz"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car" data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer">${LVGZ.has(L.id) ? '▸' : '▾'}</span>${IC.lv}<b>${esc(L.nr)} ${esc(L.name)}</b></div></td><td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
+    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car" data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer">${LVGZ.has(L.id) ? '▸' : '▾'}</span>${IC.lv}<b>${esc(L.nr)} ${esc(L.name)}</b></div></td><td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
   const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
   const LV = LIST.filter((x) => !x.archived || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
-  return `<div class="bar"><button class="btn sm" data-act="titel">+ Titel</button><button class="btn sm" data-act="utitel" title="Untertitel unter dem aktuellen Titel (GAEB: höchstens 4 Titelebenen)">+ Untertitel</button><button class="btn sm" data-act="pos">+ Position</button>
+  return `<div class="bar"><button class="btn sm" data-act="glied" title="Gliederungspunkt eine Ebene unter der markierten Zeile – oben auf das LV klicken für die oberste Ebene (GAEB: höchstens 4 Ebenen)">+ Gliederungspunkt</button><button class="btn sm" data-act="pos">+ Position</button>
       ${V ? '<button class="btn sm" data-act="nt" title="Nachtragsposition (geänderte oder zusätzliche Leistung nach § 2 Abs. 5/6 VOB/B)">+ Nachtrag</button>' : ''}
       <button class="btn sm" data-act="num" title="Ordnungszahlen neu vergeben – nach einem Schema wie in GAEB (Titelstufen, Stellen, Schrittweite)">Nummerieren …</button>
       <button class="btn sm" data-act="bk" title="Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen">Aus Baukosten …</button>
@@ -1732,10 +1732,18 @@ function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
 let LVAKT = null, LVSEL = new Set(), LVANK = null;   // aktive Zeile (dahinter wird eingefügt), Mehrfachmarkierung (Strg/Umschalt), Anker für Umschalt
 function lvAktZeigen() {
   const I = items(); document.querySelectorAll('table.lv tr[data-i]').forEach((tr) => { const x = I[+tr.dataset.i]; tr.classList.toggle('akt', !!x && (x.id === LVAKT || LVSEL.has(x.id))); });
+  const w = document.querySelector('table.lv tr[data-lvwurzel]'); if (w) w.classList.toggle('akt', LVAKT === '__lv');
   lvSelLeiste();
   const n = I.findIndex((x) => x.id === LVAKT), h = n >= 0 ? `nach ${I[n].oz || (I[n].art === 'T' ? 'dem Hinweistext' : 'der markierten Zeile')} einfügen` : 'am Ende anhängen';
   document.querySelectorAll('[data-act="titel"],[data-act="pos"],[data-act="txt"]').forEach((b) => { b.title = h; });
+  document.querySelectorAll('[data-act="glied"]').forEach((gb) => { const x = I[n]; const el = x ? (x.typ === 'titel' ? x : [...I.slice(0, n)].reverse().find((y) => y.typ === 'titel')) : null;
+    gb.title = LVAKT === '__lv' || !x ? 'Gliederungspunkt der obersten Ebene am Ende anlegen' : `Gliederungspunkt unter ${el ? el.oz + ' ' + (el.kurz || '') : 'der obersten Ebene'} anlegen (Ebene ${el ? (el.lvl || 1) + 1 : 1})`; });
 }
+document.addEventListener('click', (e) => {   // Klick auf die LV-Zeile ganz oben markiert das LV selbst (oberste Ebene)
+  if (tab !== 'lv' || !L) return;
+  const w = e.target.closest && e.target.closest('tr[data-lvwurzel]'); if (!w || e.target.closest('button,input,[data-lvganz]')) return;
+  LVSEL = new Set(); LVAKT = '__lv'; lvAktZeigen();
+});
 function lvEinfuegeStelle(kind) {
   const I = items(), n = I.findIndex((x) => x.id === LVAKT); if (n < 0) return I.length;
   const x = I[n];
@@ -1825,6 +1833,23 @@ function addItem(kind) {
   const I = items(), at = lvEinfuegeStelle(kind), ref = at > 0 ? I[at - 1] : null;
   let neu;
   const ober = [...I.slice(0, at)].reverse().find((x) => x.typ === 'titel');   // Titel, in dem eingefügt wird
+  if (kind === 'glied') {   // immer eine Ebene tiefer als die markierte Zeile; LV oben markiert (oder nichts): oberste Ebene, am Ende
+    const n = LVAKT === '__lv' ? -1 : I.findIndex((x) => x.id === LVAKT), akt = n >= 0 ? I[n] : null;
+    const eltern = akt ? (akt.typ === 'titel' ? akt : [...I.slice(0, n)].reverse().find((x) => x.typ === 'titel')) : null;
+    const lv = eltern ? (eltern.lvl || 1) + 1 : 1;
+    if (lv > 4) { toast('GAEB erlaubt höchstens 4 Gliederungsebenen – hier geht keine weitere.', true); return; }
+    let stelle = I.length, mit = 0;
+    if (akt && akt.typ === 'titel') {
+      let e = n + 1; while (e < I.length && !(I[e].typ === 'titel' && (I[e].lvl || 1) <= (akt.lvl || 1))) e++;
+      const hatUnter = I.slice(n + 1, e).some((x) => x.typ === 'titel');
+      if (hatUnter) stelle = e; else { stelle = n + 1; mit = I.slice(n + 1, e).filter((x) => x.typ === 'pos').length; }   // nur Positionen darin: sie kommen unter den neuen Punkt (gleiche Tiefe, GAEB)
+    } else if (akt) stelle = n + 1;
+    const neuT = { id: uid(), typ: 'titel', lvl: lv, oz: '', kurz: '' };
+    I.splice(stelle, 0, neuT); LVAKT = neuT.id; numerieren(); changed(true);
+    if (mit) toast(`Die ${mit} Position${mit === 1 ? '' : 'en'} von ${akt.oz} ${mit === 1 ? 'steht' : 'stehen'} jetzt unter ${neuT.oz} – rückgängig mit Strg+Z.`);
+    setTimeout(() => { const el = document.querySelector(`tr[data-i="${stelle}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
+    return;
+  }
   if (kind === 'utitel') { const lv = ober ? (ober.lvl || 1) + 1 : 1; if (lv > 4) { toast('GAEB erlaubt höchstens 4 Titelebenen – hier geht kein weiterer Untertitel.', true); return; } neu = { id: uid(), typ: 'titel', lvl: lv, oz: '', kurz: '' }; }
   else if (kind === 'titel') {   // gleiche Ebene wie der markierte Titel (nach seinem ganzen Inhalt), sonst wie der Titel davor
     const akt = I.find((x) => x.id === LVAKT);
@@ -1931,7 +1956,7 @@ document.addEventListener('click', async (e) => {
   if (ac) {
     const a = ac.dataset.act;
     if (a === 'new') return newDialog();
-    if (['titel', 'utitel', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
+    if (['titel', 'utitel', 'glied', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
     if (a === 'num') { numDialog(); return; }
     if (a === 'bk') return bkDialog();
     if (a === 'vorbem') { L.data.showVorbem = !L.data.showVorbem; if (L.data.showVorbem && !window.VBL) api('api/baudaten/vorbemerkungen').then((v) => { window.VBL = v; render(); }).catch(() => { window.VBL = []; }); render(); return; }

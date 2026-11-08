@@ -91,18 +91,16 @@ async function warte() {
 function vorschau() {
   const P = D.projekt, L = D.lvs;
   const S = L.reduce((s, x) => ({ a: s.a + (x.auftrag || 0), ab: s.ab + (x.abgerechnet || 0), r: s.r + x.n_rechnungen, an: s.an + x.n_angebote, h: s.h + x.hinweise.length }), { a: 0, ab: 0, r: 0, an: 0, h: 0 });
-  const pOpt = D.projekte.map((p) => `<option value="${p.id}"${p.id === D.projekt_vorschlag ? ' selected' : ''}>${esc(p.name)}${p.archived ? ' (archiviert)' : ''}</option>`).join('');
   const kOpt = (sel) => D.kontakte.map((k) => `<option value="${k.id}"${k.id === sel ? ' selected' : ''}>${esc(k.name)}</option>`).join('');
   $('#s2').innerHTML = `<div class="card"><h2 style="margin-top:0">${esc(P.nr)} ${esc(P.name)}</h2>
     <div class="mute">${esc(P.bauvorhaben)}${P.bauherr ? '<br>Bauherr: ' + esc(P.bauherr) : ''}${P.bauherr_kontakt ? ' · ' + esc(P.bauherr_kontakt) : ''}<br>ORCA ${esc(P.orca_version)} · Datei ${esc(P.datei)}</div>
     <div class="sum"><div><small>LVs / Aufträge</small><b>${L.length}</b></div><div><small>Angebote</small><b>${S.an}</b></div><div><small>Rechnungen</small><b>${S.r}</b></div>
       <div><small>Aufträge + Nachträge</small><b>${eur(S.a)}</b></div><div><small>abgerechnet (netto)</small><b>${eur(S.ab)}</b></div></div></div>
   <div class="card"><h2 style="margin-top:0">Wohin?</h2><div class="g2">
-    <label>Projekt der Bauplattform<select id="pid"><option value="">– bitte wählen –</option>${pOpt}</select></label>
-    <label>Name der AVA-Version<input id="vname" value="ORCA-Import ${esc(P.nr)} ${new Date().toLocaleDateString('de-DE')}"></label>
-    <label style="align-self:end;display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="aktiv"> als gültige Version setzen
-      <small class="mute">(zählt dann für To-dos, Budget und Suche)</small></label></div>
-    <p class="mute" style="margin:.6rem 0 0">Hat das Projekt noch keine AVA-Daten, wird die Import-Version automatisch die gültige.</p></div>
+    <label>Neues Projekt in der Bauplattform<input id="pname" maxlength="200" value="${esc(D.projekt_neu || '')}"></label>
+    <label>Name der AVA-Version<input id="vname" value="ORCA-Import ${esc(P.nr)} ${new Date().toLocaleDateString('de-DE')}"></label></div>
+    <p class="mute" style="margin:.6rem 0 0">Der Import legt immer ein <b>neues Projekt</b> an – vorhandene Projekte bleiben unberührt. Gibt es den Namen schon, bekommt das neue Projekt die Endung <b>_IMPORT</b>.
+      Du wirst dort als Bauleitung eingetragen; Adresse und weitere Bauleiter ergänzt du danach in den Projektdaten.</p></div>
   <div class="card"><h2 style="margin-top:0">Leistungsverzeichnisse und Aufträge</h2>
     <p class="mute" style="margin:.2rem 0 .6rem">Jeder ORCA-Auftrag wird ein LV mit Vergabe; Aufträge ohne Positionen erhalten das Häkchen „ohne Angebot und LV“. LVs ohne Auftrag kommen als „nicht vergeben“ (mit Angeboten) bzw. als Entwurf.
       Nachgerechnet mit den Rechenfunktionen der AVA – Abweichungen zu ORCA stehen in Orange.</p>
@@ -119,26 +117,22 @@ function vorschau() {
     ${D.firmen.map((f) => `<tr><td>${f.namen.map(esc).join('<br>')}</td><td><select data-fk="${esc(f.key)}">
       <option value="neu"${f.kontakt ? '' : ' selected'}>＋ neu anlegen als „${esc(f.neu_name)}“</option><option value="nur_name">nur Name, ohne Kontakt</option>
       <optgroup label="vorhandene Adresse">${kOpt(f.kontakt)}</optgroup></select>${f.kontakt && !f.sicher ? ' <span class="tag y" title="nur ähnlich – bitte prüfen">ähnlich</span>' : ''}</td></tr>`).join('')}</tbody></table></div></div>
-  <div class="acts"><span class="err" id="e2" style="margin-right:auto"></span><button class="btn" id="neuDatei">Andere Datei</button><button class="btn pri" id="go">In die Bauplattform eintragen</button></div>`;
+  <div class="acts"><span class="err" id="e2" style="margin-right:auto"></span><button class="btn" id="neuDatei">Andere Datei</button><button class="btn pri" id="go">Als neues Projekt eintragen</button></div>`;
   $('#s2').hidden = false;
   $('#alle').onchange = (e) => document.querySelectorAll('[data-lv]').forEach((c) => { c.checked = e.target.checked; });
   $('#neuDatei').onclick = () => { $('#s2').hidden = true; inp.value = ''; inp.click(); };
   $('#go').onclick = eintragen;
 }
 async function eintragen() {
-  const pid = +$('#pid').value;
-  if (!pid) { $('#e2').textContent = 'Bitte das Projekt wählen.'; return; }
   const lvs = [...document.querySelectorAll('[data-lv]:checked')].map((c) => c.dataset.lv);
   if (!lvs.length) { $('#e2').textContent = 'Bitte mindestens ein LV auswählen.'; return; }
   const firmen = {};
   document.querySelectorAll('[data-fk]').forEach((s) => { firmen[s.dataset.fk] = /^\d+$/.test(s.value) ? +s.value : s.value; });
-  const pn = $('#pid').selectedOptions[0].textContent;
-  if (!confirm(`${lvs.length} LVs/Aufträge mit Angeboten und Rechnungen als Version „${$('#vname').value}“ in „${pn}“ eintragen?`)) return;
   $('#go').disabled = true; $('#e2').textContent = '';
   try {
-    const r = await api(`api/job/${JOB}/eintragen`, 'POST', { project_id: pid, version: $('#vname').value, aktiv: $('#aktiv').checked, lvs, firmen });
+    const r = await api(`api/job/${JOB}/eintragen`, 'POST', { projekt_name: $('#pname').value, version: $('#vname').value, aktiv: true, lvs, firmen });
     $('#s2').hidden = true;
-    $('#s3').innerHTML = `<h2 style="margin-top:0" class="ok">✓ Eingetragen</h2><p>In <b>${esc(r.projekt)}</b> steht jetzt die AVA-Version <b>„${esc(r.version)}“</b>${r.aktiv ? ' (gültig)' : ''}:
+    $('#s3').innerHTML = `<h2 style="margin-top:0" class="ok">✓ Eingetragen</h2><p>Neues Projekt <b>${esc(r.projekt)}</b> angelegt – darin steht jetzt die AVA-Version <b>„${esc(r.version)}“</b>${r.aktiv ? ' (gültig)' : ''}:
       ${r.lvs} LVs/Aufträge, ${r.angebote} Angebote, ${r.rechnungen} Rechnungen${r.neue_firmen ? `, ${r.neue_firmen} neue Firmen in den Adressen` : ''}.</p>
       <p class="mute">In der AVA oben das Projekt wählen; die Version steht in der Versionsleiste${r.aktiv ? '' : ' – zum Ansehen anklicken'}.</p>
       <div class="acts"><a class="btn pri" href="${esc(r.ava)}">Zur Ausschreibung &amp; Abrechnung</a><button class="btn" onclick="location.reload()">Weitere Datei</button></div>`;

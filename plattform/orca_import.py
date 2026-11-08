@@ -107,6 +107,23 @@ def _abgleich(E):
     return out
 
 
+def _projektname(E):
+    P = E["projekt"]
+    return (f"{P.get('nr') or ''} {P.get('name') or ''}".strip() or (P.get("bauvorhaben") or "").strip() or "ORCA-Import")[:200]
+
+
+def _freier_name(c, name):
+    """Gibt es den Namen schon (Groß/klein egal), bekommt das neue Projekt „_IMPORT“ (dann _IMPORT2, _IMPORT3 …)."""
+    belegt = {(r["name"] or "").casefold() for r in c.execute("SELECT name FROM projects").fetchall()}
+    if name.casefold() not in belegt:
+        return name
+    for n in range(1, 1000):
+        k = f"{name}_IMPORT" + ("" if n == 1 else str(n))
+        if k.casefold() not in belegt:
+            return k
+    return f"{name}_IMPORT_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+
 def _vorschlaege(E):
     """Zielprojekt und Firmen-Zuordnung vorschlagen."""
     with db.tx() as c:
@@ -136,7 +153,9 @@ def _vorschlaege(E):
             aehnlich = kand[0]["id"] if len(kand) == 1 else None
         neu_name = min(namen, key=lambda n: (len(_norm(n)) == 0, "neu" in n.casefold(), len(n)))
         firmen.append({"key": key, "namen": namen, "kontakt": exakt or aehnlich, "sicher": bool(exakt), "neu_name": re.sub(r"\s+NEU\b.*$", "", neu_name, flags=re.I).strip() or neu_name})
-    return {"projekte": projekte, "projekt_vorschlag": best, "kontakte": kontakte, "firmen": firmen}
+    with db.tx() as c:
+        neu = _freier_name(c, _projektname(E))
+    return {"projekte": projekte, "projekt_vorschlag": best, "projekt_neu": neu, "kontakte": kontakte, "firmen": firmen}
 
 
 def _lesen_job(jid, pfad, name):
@@ -206,17 +225,19 @@ def eintragen(jid):
     if not j or j["status"] not in ("fertig",):
         return jsonify(error="Nichts einzutragen (Vorgang unbekannt, abgelaufen oder schon eingetragen)."), 400
     E = j["E"]
-    pid = b.get("project_id")
-    if not isinstance(pid, int):
-        return jsonify(error="Bitte das Projekt wählen, in das importiert wird."), 400
+    pname_wunsch = re.sub(r"\s+", " ", str(b.get("projekt_name") or "")).strip()[:200] or _projektname(E)   # immer ein neues Projekt
     vname = (b.get("version") or "").strip()[:200] or f"ORCA-Import {E['projekt']['nr']} {datetime.now().strftime('%d.%m.%Y')}".strip()
     aktiv = bool(b.get("aktiv"))
     wahl = b.get("firmen") if isinstance(b.get("firmen"), dict) else {}
     nur = set(b.get("lvs")) if isinstance(b.get("lvs"), list) else None
     now, wer = ava._now(), g.user["name"]
     with db.tx() as c:
-        if not c.execute("SELECT 1 FROM projects WHERE id=?", (pid,)).fetchone():
-            return jsonify(error="Projekt nicht gefunden."), 404
+        c.execute("SELECT pg_advisory_xact_lock(hashtext('orca:projekt'))")   # zwei Importe gleichzeitig: nicht denselben Namen vergeben
+        P = E["projekt"]
+        pid = c.execute("INSERT INTO projects(name, client, extra, leaders, updated) VALUES(?,?,?,?,?) RETURNING id",
+                        (_freier_name(c, pname_wunsch), (P.get("bauherr") or "")[:300],
+                         json.dumps({"quelle": "ORCA-Import", "orca_nr": P.get("nr") or "", "bauvorhaben": P.get("bauvorhaben") or "", "datei": P.get("datei") or ""}, ensure_ascii=False),
+                         json.dumps([g.user["id"]]), now)).fetchone()["id"]   # wer importiert, ist Bauleitung (sieht das Projekt sicher)
         c.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (f"avaver:{pid}",))
         # Firmen: vorhandener Kontakt, neu anlegen (nur Name) oder ohne Kontakt
         cid_von = {}

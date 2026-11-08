@@ -1093,6 +1093,13 @@ function pjFokus() {
   else if (tab === 'aufmass') { el = document.querySelector(`tr[data-amr="r${id}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
   if (el) { el.classList.add('pj-blink'); setTimeout(() => el.classList.remove('pj-blink'), 1600); }
 }
+/* Doppelklick auf einen Namen im Projektbaum: gleich umbenennen (wie im Explorer; zweiter Klick auf die gewählte Zeile geht weiterhin) */
+document.addEventListener('dblclick', (e) => {
+  const r0 = e.target.closest('#pjTree [data-pjlv]'); if (!r0 || !e.target.closest('.t') || e.target.closest('input')) return;
+  const sel = `#pjTree [data-pjlv="${r0.dataset.pjlv}"]` + (r0.dataset.pjsub ? `[data-pjsub="${r0.dataset.pjsub}"]` : ':not([data-pjsub])');
+  let n = 0; const vers = () => { const r = document.querySelector(sel); if (r && r.querySelector('input')) return; if (r && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) { pjUmbenennen(r); return; } if (++n < 20) setTimeout(vers, 100); };
+  setTimeout(vers, 50);
+});
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('#pjTree')) return;
   if (e.target.closest('[data-pjzu]')) { PJZU = !PJZU; LS.set('pjzu', PJZU); render(); return; }

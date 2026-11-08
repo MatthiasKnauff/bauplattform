@@ -962,7 +962,7 @@ def cad_import(i, name, data):
                 v = baudaten.aufbau_vorschlag(c, b["kg"], f"{b['art']} {b['material']}" + (f" {round(b['dicke'] * 100, 1):g}".replace(".", ",") if b["dicke"] else "")) if _baukasten(c) else None
                 if v and b["kg"] in ("331", "332", "341", "342"):
                     v = (v[0], _ohne_innen(c, v[0], v[1]), v[2])   # Innenbekleidung kommt aus der Raumbuch-Ausstattung
-                A = baudaten.aufbau(c, v[0], v[1]) if v and v[2] >= (2 if b["material"] else 1.5) else None   # ohne Material: Standardaufbau der KG
+                A = baudaten.aufbau(c, v[0], v[1]) if v and v[2] >= 1.5 else None   # ohne Material: Standardaufbau der KG
                 if A and A["einheit"] == b["einheit"] and A["ep_mittel"]:
                     row.update(ep=A["ep_mittel"], aufbau={"v": A["vorlage"], "w": A["wahl"]},
                                notiz=f"Aufbau-Vorschlag {A['vorlage']}: {A['bez'][len(A['name']):].lstrip(', ')} · Spanne {str(A['ep_von']).replace('.', ',')}–{str(A['ep_bis']).replace('.', ',')} € – bitte prüfen"[:500])
@@ -1603,7 +1603,7 @@ def bauteile_vorschlag(i):
         ifc = [x for x in d.get("bauteile") or [] if x.get("src") == "IFC"]
         if ifc:   # Bauteile aus dem IFC-Modell bleiben (genaue Mengen); geschätzte Zeilen derselben Kostengruppen entfallen
             da = {x["kg"] for x in ifc} | ({"335"} if any(x["kg"] == "331" for x in ifc) else set())
-            rows = ifc + [x for x in rows if x.get("src") == "Ausstattung" or x["kg"] not in da]
+            rows = ifc + [x for x in rows if x["kg"] not in da]   # auch Ausstattung nur, wo das Modell keine Bekleidung/Beläge hat
             note = f"{len(ifc)} Bauteile aus dem IFC-Modell behalten, dazu Ausstattung und übrige Bauteile aus dem Raumbuch – bitte je Zeile prüfen."
         elif any(x.get("src") == "Ausstattung" for x in rows):
             note = "Boden, Wand und Decke aus der Raumbuch-Ausstattung (Baukasten), übrige Bauteile mit passendem Aufbau – Mengen grob aus Raumbuch, Geschossen und Höhen; bitte je Zeile prüfen."

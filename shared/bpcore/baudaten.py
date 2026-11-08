@@ -330,6 +330,8 @@ def _tok(t):
         for kopf in ("tuer", "fenster", "wand", "decke", "dach", "platte", "belag", "putz", "estrich", "heizung", "leitung", "stuetze", "treppe", "gelaender"):
             if w.endswith(kopf) and w != kopf:
                 W.add(kopf)
+    if W & {"ks", "ziegel", "hlz", "porenbeton", "pp", "pp2", "pp4", "hbl", "kalksandstein", "lehmstein"}:
+        W.add("mauerwerk")
     W |= {x.replace(".", ",") for x in re.findall(r"\d+(?:[.,]\d+)?", t)}
     return W - {"cm", "mm", "mit", "und", "aus", "der", "die", "das", "je", "fuer", "ohne", "0", "0,0", "1"}
 
@@ -341,7 +343,7 @@ def aufbau_vorschlag(c, kg, text, V=None):
     if not k:
         return None
     if V is None:
-        V = [r.dict() for r in c.execute("SELECT id, kg, name, lang, daten FROM pdb_vorlage WHERE kg = ? OR kg LIKE ? ORDER BY sort", (k, k[:2] + "%")).fetchall()]
+        V = [r.dict() for r in c.execute("SELECT id, kg, name, lang, daten, tags FROM pdb_vorlage WHERE kg = ? OR kg LIKE ? ORDER BY sort", (k, k[:2] + "%")).fetchall()]
     W = _tok(text)
     best = None
     for v in V:
@@ -350,9 +352,10 @@ def aufbau_vorschlag(c, kg, text, V=None):
         D = v["daten"] if isinstance(v["daten"], dict) else json.loads(v["daten"] or "{}")
         im_namen = W & _tok(v["name"])
         treffer, wahl = set(im_namen), []
-        for s_ in D.get("schichten") or []:   # je Schicht die Option mit den meisten Begriffen; jeder Begriff zählt nur einmal
+        for nr_s, s_ in enumerate(D.get("schichten") or []):   # je Schicht die Option mit den meisten Begriffen; jeder Begriff zählt nur einmal
             sc = [W & _tok((o.get("k") or "") + " " + (o.get("t") or "")) for o in s_["optionen"]]
-            sc = [x if any(not t[0].isdigit() for t in x - treffer) else set() for x in sc]   # Zahlen zählen nur zusammen mit einem neuen passenden Begriff
+            if nr_s:   # Zahlen (Dicken) entscheiden nur in der ersten Schicht (Tragschicht) allein, sonst nur mit einem neuen passenden Begriff
+                sc = [x if any(not t[0].isdigit() for t in x - treffer) else set() for x in sc]
             n = [len(x - treffer) * 10 + len(x) for x in sc]
             m = max(n) if n else 0
             if m:
@@ -362,6 +365,12 @@ def aufbau_vorschlag(c, kg, text, V=None):
             else:
                 wahl.append(next((j for j, o in enumerate(s_["optionen"]) if o.get("std")), 0))
         pk = len(treffer) + 0.5 * len(im_namen)
+        tags = (v.get("tags") or "").lower()
+        nur_bestand = "altbau" in tags and "neubau" not in tags
+        for wort in ("keller", "bestand", "instand", "sanier", "erneuer", "tausch"):   # Sonderfälle nur, wenn danach gefragt ist
+            if (wort in v["name"].lower() or (nur_bestand and wort == "bestand")) and not any(wort in w for w in W):
+                pk -= 2
+                break
         gleich = v["kg"] == k
         if best is None or (gleich, pk) > (best[3], best[2]):
             best = (v["id"], wahl, pk, gleich)

@@ -1280,8 +1280,10 @@ function render() {
   if (typeof histUi === 'function') setTimeout(histUi, 0);
   if (tab !== 'lv' && $('#lvSel')) $('#lvSel').hidden = true;
   selBtn(); kpis();
-  const NZT = { lv: 'Positionen im geöffneten LV', angebote: 'Angebote zum geöffneten LV', aufmass: 'Positionen mit Aufmaß im geöffneten LV', rechnungen: 'Rechnungen zum geöffneten LV', auftraege: 'LVs im Projekt', tueren: 'Türen in der Türliste' };
-  const n = { lv: posOf().length, angebote: L ? L.angebote.length : 0, aufmass: L ? new Set(L.aufmass.map((a) => a.pos_id)).size : 0, rechnungen: L ? L.rechnungen.length : 0, auftraege: LIST.filter((x) => !x.archived).length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
+  const PL = LIST.filter((x) => !x.archived), RE = PL.flatMap((x) => x.rechnungen || []);   // Zahlen fürs ganze Projekt
+  const NZT = { lv: 'LVs im Projekt', angebote: 'Angebote im Projekt', auftraege: 'vergebene LVs (Aufträge) im Projekt', aufmass: 'Rechnungen in Prüfung im Projekt', rechnungen: 'Rechnungen im Projekt', tueren: 'Türen in der Türliste' };
+  const n = { lv: PL.length, angebote: PL.reduce((a, x) => a + (x.n_angebote || 0), 0), auftraege: PL.filter((x) => x.vergeben || x.frei).length,
+    aufmass: RE.filter((r) => r.status !== 'geprueft').length, rechnungen: RE.length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
   const sk = schrittVon(tab)[0]; LS.set('tab:' + sk, tab);
   $('#stp').innerHTML = SCHRITTE.map(([k, l], i) => `${i ? '<span class="pf" aria-hidden="true">›</span>' : ''}<button type="button" data-schritt="${k}"${k === sk ? ' class="on" aria-current="step"' : ''}><i>${i + 1}</i>${esc(l)}</button>`).join('')
@@ -1293,7 +1295,7 @@ function render() {
   const nLv = LIST.filter((x) => !x.archived).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
     + (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
-    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"${tab === k ? ' aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small title="${esc(NZT[k] || '')}">${n[k]}${k === 'lv' ? ' Pos.' : ''}</small>` : ''}</button>${tab === k ? navUnter(k) : ''}`).join('')}</div>`).join('')
+    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"${tab === k ? ' aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small title="${esc(NZT[k] || '')}">${n[k]}</small>` : ''}</button>${tab === k ? navUnter(k) : ''}`).join('')}</div>`).join('')
     + `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Ablegen</b><small>PDF, Scan, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 <b>Eingang</b><span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`;
   vlSicht();
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';

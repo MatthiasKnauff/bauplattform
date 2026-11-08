@@ -470,6 +470,9 @@ tr.am-lf td input{color:#c0621f}
 .nav #pjTree .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.3rem .35rem;border-radius:7px;border-left:0}
 .nav #pjTree .pj-r .v{display:block;font-size:.76rem}.nav #pjTree .pj-r.k{padding:.2rem .35rem .2rem 1.1rem}.nav #pjTree .pj-r.k svg{opacity:.6}
 .nav #pjTree .pj-r.on{background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--y)}
+.nav #pjTree .pj-r{position:relative}.pj-del{display:none;position:absolute;right:.3rem;top:50%;transform:translateY(-50%);border:1px solid var(--line);background:var(--card);border-radius:6px;padding:.1rem .35rem;cursor:pointer;font-size:.85rem;line-height:1.2}
+.pj-del:hover{border-color:#e02424}.nav #pjTree .pj-r:hover .pj-del,.nav #pjTree .pj-r.on .pj-del{display:block}.nav #pjTree .pj-r:hover .v,.nav #pjTree .pj-r.on:has(.pj-del) .v{visibility:hidden}
+@media (pointer:coarse){.pj-del{display:none!important}}
 
 .nav .nfuss{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.7rem}
 .nav .nfuss .ava-drop{margin:0;padding:.5rem .3rem;font-size:.82rem}.nav .nfuss .ava-drop small{display:none}
@@ -1141,13 +1144,13 @@ function pjBaum() {
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
     const sub = x.vergeben ? `${x.auftragnehmer || 'vergeben'}${x.frei ? ' · ohne LV' : ' · vergeben'}` : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
-    out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : ''}>${kids.length ? (offen ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span></div>`);
+    out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : ''}>${kids.length ? (offen ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) return;
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
       const txt = !re ? `${k.rang ? k.rang + '. ' : ''}${esc(k.bieter)}${x.angebot_id === k.id ? ' <span class="ok">✓</span>' : ''}`
         : `${esc(reTitel(k))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}" title="${k.status === 'geprueft' ? 'geprüft' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>${k.re_nr ? `<small>Nr. ${esc(k.re_nr)}</small>` : ''}`;
-      out.push(`<div class="pj-r k${sel ? ' on' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span></div>`);
+      out.push(`<div class="pj-r k${sel ? ' on' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span><button type="button" class="pj-del" data-pjdel="${re ? 're' : 'ang'}" title="${re ? 'Diese Rechnung' : 'Dieses Angebot'} in den Papierkorb – mit Rückgängig">🗑</button></div>`);
     });
   });
   return out.join('');
@@ -1218,6 +1221,24 @@ function pjFokus() {
   if (el) { el.classList.add('pj-blink'); setTimeout(() => el.classList.remove('pj-blink'), 1600); }
 }
 /* Doppelklick auf einen Namen im Projektbaum: gleich umbenennen (wie im Explorer; zweiter Klick auf die gewählte Zeile geht weiterhin) */
+/* Löschen direkt im Baum: Rechnung/Angebot mit Rückgängig, ganzes LV mit kurzer Nachfrage – alles landet im Papierkorb */
+document.addEventListener('click', async (e) => {
+  const d = e.target.closest && e.target.closest('#pjTree [data-pjdel]'); if (!d) return;
+  e.preventDefault(); e.stopPropagation();
+  const r = d.closest('[data-pjlv]'), lvId = +r.dataset.pjlv, sub = r.dataset.pjsub || '', x = LIST.find((y) => y.id === lvId); if (!x) return;
+  if (d.dataset.pjdel === 'lv') {
+    if (!(await bpFrage(`LV „${[x.nr, x.name].filter(Boolean).join(' ')}“ mit allen Angeboten, Aufmaß und Rechnungen in den Papierkorb legen?\nWiederherstellen geht über Rückgängig oder den Papierkorb auf der Startseite.`, { ok: 'In den Papierkorb' }))) return;
+    try { await flush(); const w = await api('api/lv/' + lvId, 'DELETE'); if (L && L.id === lvId) L = null; await loadList();
+      if (typeof w.papierkorb === 'number') rueckgaengig(`LV „${x.name}“ liegt im Papierkorb`, async () => { const z = await api(`api/bp/papierkorb/${w.papierkorb}/zurueck`, 'POST'); await loadList(+z.schluessel || undefined); }); } catch (er) { toast(er.message, true); }
+    return;
+  }
+  if (!L || L.id !== lvId) { await flush(); await openLv(lvId); }
+  if (d.dataset.pjdel === 're') {
+    const rid = +sub.slice(1);   // ob spätere Rechnungen darauf aufbauen, prüft der Server (Meldung mit Grund)
+    return reLoeschen(rid);
+  }
+  return angLoeschen(+sub.slice(1));
+}, true);
 /* Umbenennen im Baum wie im Explorer: zweiter, langsamer Klick auf den Namen des schon gewählten Eintrags. Ein Doppelklick benennt nicht um. */
 let pjKlick = null;
 document.addEventListener('pointerdown', (e) => {
@@ -2792,7 +2813,7 @@ function vRechnungen() {
     const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="width:100%;min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
       <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag – dazu wählbar Prüfblatt, Massenermittlung und Rechnung der Firma in einer PDF">🖨 Rechnungsfreigabe / PDF …</button>
         ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="${art === 'regie' || art === 'sicherheit' ? 'Prüfung abschließen' : 'Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung'}">✓ Prüfung abschließen</button>`}
-        ${last ? `<button class="btn sm danger" data-reb="del" data-id="${r.id}">Löschen</button>` : ''}</div>`;
+        ${last ? `<button class="btn sm danger" data-reb="del" data-id="${r.id}" title="Rechnung in den Papierkorb – mit Rückgängig">🗑 In den Papierkorb</button>` : ''}</div>`;
     if (art === 'sicherheit') {
       return `<div class="card" data-reid="${r.id}">${kopf}<table><tbody>
         <tr><td>noch einbehalten (alle geprüften Rechnungen)</td><td class="r">${eur(K.sicherheit.offen + (g ? c.zahlung : 0))}</td></tr>

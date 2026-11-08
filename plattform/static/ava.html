@@ -472,7 +472,7 @@ tr.am-lf td input{color:#c0621f}
 .nav .nfuss .ava-drop{margin:0;padding:.5rem .3rem;font-size:.82rem}.nav .nfuss .ava-drop small{display:none}
 .nav .nfuss .ava-ein{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;text-align:center;border-style:solid;border-width:2px;border-color:var(--line);border-radius:10px;font-size:.82rem;color:var(--mute)}
 .nav .nfuss .ava-ein b{color:var(--ink)}.nav .nfuss .ava-ein .nz{font-size:.72rem;padding:0 .45rem;border-radius:999px;background:var(--y);color:#fff}
-.nav .nneu{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.86rem;color:var(--y);cursor:pointer;padding:.35rem .5rem;margin-top:.2rem}
+.nav .nneu{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.86rem;color:var(--y);cursor:pointer;padding:.25rem .5rem .25rem 1.4rem;margin-top:.1rem}.nav .nneu:disabled{opacity:.45;cursor:default}.nav .nav-u #pjTree{max-height:44vh;overflow:auto}.nav .ng a.nh{text-decoration:none}.nav-u{margin-bottom:.3rem}
 .rib .rb:disabled{opacity:.35}
 @media (max-width:860px){.body>.nav{display:block;max-height:42vh;overflow:auto;padding:.4rem}.nav .nfuss{margin-top:.4rem}.stp{padding:0 .3rem}.stp button{padding:0 .5rem}}
 .pj-ren{width:100%;font:inherit;padding:.05rem .25rem;border:1px solid var(--y);border-radius:4px;background:var(--card);color:inherit}.nav-baum{margin:.1rem 0 .35rem .85rem;padding-left:.15rem;border-left:1px solid var(--line);font-size:.92rem}
@@ -531,7 +531,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 .uakt .ug svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .uakt .ug:disabled{opacity:.45}
 .uakt .ug{white-space:nowrap}
-@media (max-width:1500px){.uakt.viele .ug{font-size:0;gap:0;padding:.35rem .45rem}.uakt.viele .ug svg{width:18px;height:18px}}
+@media (max-width:1150px){.uakt.viele .ug{font-size:0;gap:0;padding:.35rem .45rem}.uakt.viele .ug svg{width:18px;height:18px}}
 @media (max-width:1100px){.uakt .ug{font-size:0;gap:0;padding:.35rem .45rem}.uakt .ug svg{width:18px;height:18px}}
 
 /* Kostengruppen-Auswahl: Name groß, Nummer klein */
@@ -607,7 +607,7 @@ const LS = { get(k, d) { try { const v = localStorage.getItem('ava.' + k); retur
 const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschritte, rechts die Tabelle
   ['Ausschreibung', [['lv', 'Leistungsverzeichnis', '<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/>'], ['tueren', 'Fenster- & Türliste', '<rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="15" cy="12" r=".8"/>']]],
   ['Vergabe', [['angebote', 'Angebote & Preisspiegel', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>']]],
-  ['Vergabe und Abrechnung', [['auftraege', 'Aufträge', '<path d="M3 7h6l2 2h10v10H3z"/>'], ['aufmass', 'Aufmaßprüfung', '<path d="M3 17l14-14 4 4-14 14H3z"/><path d="M13 7l4 4"/>'], ['rechnungen', 'Rechnungen', '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>']]],
+  ['Prüfung und Abrechnung', [['auftraege', 'Aufträge', '<path d="M3 7h6l2 2h10v10H3z"/>'], ['aufmass', 'Aufmaßprüfung', '<path d="M3 17l14-14 4 4-14 14H3z"/><path d="M13 7l4 4"/>'], ['rechnungen', 'Rechnungen', '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>']]],
   ['Kostenübersicht', [['uebersicht', 'Kostenkontrolle', '<path d="M4 19h16M7 16V9M12 16V5M17 16v-4"/>']]],
 ];
 /* Die vier Arbeitsschritte oben (fest), darunter die Bereiche des gewählten Schritts */
@@ -1104,6 +1104,12 @@ document.addEventListener('drop', (e) => {
 /* ---------- Projektbaum links (LV, Angebote, Aufmaßprüfung, Rechnungen) ---------- */
 const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);   // Projektbaum links in der Navigation unter dem gewählten Bereich
 let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
+/* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
+function navUnter(k) {
+  const nb = { lv: ['new', '＋ Neues LV', !pid], tueren: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()], rechnungen: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()] }[k];
+  const baum = PJTABS.has(k) || k === 'tueren' ? `<div class="nav-baum" id="pjTree">${pjBaum()}</div>` : '';
+  return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
+}
 function pjBaum() {
   const xs = LIST.filter((x) => !x.archived);
   const e0 = (v) => (v ? eur(v).replace(' €', '') : '');
@@ -1239,12 +1245,12 @@ function render() {
     + (bk ? `<a href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung ↗</a>` : '');
   const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
   const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !vergeben()], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], tueren: null, aufmass: ['reNeu', '＋ Rechnung', !L || !vergeben()], uebersicht: null }[tab];
-  $('#utb').innerHTML = schrittVon(tab)[2].map((k) => `<button type="button" role="tab" data-tab="${k}"${tab === k ? ' class="on" aria-selected="true"' : ''}>${icn(k)}${esc((TABS.find((t) => t[0] === k) || [, k])[1])}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')
-    + `<span class="ufill"></span><span class="uakt${(UPHASE[sk] || []).length > 3 ? ' viele' : ''}">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}${uLeiste(sk)}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle">⋯</button></span>`;
+  $('#stp').style.display = 'none';   // die Arbeitsschritte stehen links als Bereiche (wie in den gewohnten AVA-Programmen)
+  $('#utb').innerHTML = `<span class="ufill"></span><span class="uakt${(UPHASE[sk] || []).length > 3 ? ' viele' : ''}">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}${uLeiste(sk)}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle">⋯</button></span>`;
   const nLv = LIST.filter((x) => !x.archived).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
-    + `<div class="nav-baum" id="pjTree">${pjBaum()}</div>${(() => { const nb = { lv: ['new', '＋ Neues LV', !pid], tueren: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()], rechnungen: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()] }[tab];
-      return nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''; })()}`
+    + (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
+    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"${tab === k ? ' aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small>${n[k]}</small>` : ''}</button>${tab === k ? navUnter(k) : ''}`).join('')}</div>`).join('')
     + `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Ablegen</b><small>PDF, Scan, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 <b>Eingang</b><span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`;
   vlSicht();
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';

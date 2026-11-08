@@ -73,29 +73,43 @@ def config(user=None):
         if user is not None:
             a["allowed"] = a["key"] in allowed or (a["key"] == "admin" and bool(user["is_admin"]))
         out.append(a)
-    return {"version": version(), "apps": out, "proxied": proxied_hosts(), "schrift": schrift(),
+    return {"version": version(), "apps": out, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(),
             "domain": os.environ.get("SSO_COOKIE_DOMAIN", "").strip().lstrip(".").lower()}
 
 
 SCHRIFTEN = ("ubuntu", "system", "arial", "verdana", "calibri", "georgia")
-_schrift = {"t": 0.0, "v": ""}
+GROESSEN = ("klein", "normal", "gross")
+_schrift = {"t": 0.0, "v": "", "g": ""}
+
+
+def _schrift_lesen():
+    import time
+    if time.time() - _schrift["t"] < 3:
+        return
+    v = g_ = ""
+    try:
+        from . import db
+        with db.tx() as c:
+            for r in c.execute("SELECT key, value FROM settings WHERE key IN ('ui_schrift','ui_groesse')").fetchall():
+                if r["key"] == "ui_schrift":
+                    v = (r["value"] or "").strip().lower()
+                else:
+                    g_ = (r["value"] or "").strip().lower()
+    except Exception:
+        v = g_ = ""
+    _schrift.update(t=time.time(), v=v if v in SCHRIFTEN else "", g=g_ if g_ in GROESSEN else "")
 
 
 def schrift():
     """Schrift der Oberfläche in allen Apps (Büro-Einstellung ui_schrift aus der Verwaltung); leer = Standard (Ubuntu)."""
-    import time
-    if time.time() - _schrift["t"] < 3:
-        return _schrift["v"]
-    v = ""
-    try:
-        from . import db
-        with db.tx() as c:
-            r = c.execute("SELECT value FROM settings WHERE key='ui_schrift'").fetchone()
-            v = (r["value"] or "").strip().lower() if r else ""
-    except Exception:
-        v = ""
-    _schrift.update(t=time.time(), v=v if v in SCHRIFTEN else "")
+    _schrift_lesen()
     return _schrift["v"]
+
+
+def schrift_groesse():
+    """Schriftgröße der Oberfläche (Büro-Einstellung ui_groesse: klein | normal | gross); leer = normal."""
+    _schrift_lesen()
+    return _schrift["g"]
 
 
 def link(app, frag="", conf=None):

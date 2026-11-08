@@ -370,15 +370,17 @@
   /* Schrift der Oberfläche: Büro-Einstellung (Verwaltung → Firmendaten), gilt in allen Apps; bis die Antwort da ist, die zuletzt gemerkte */
   const SCHRIFT = { ubuntu: '', system: 'system-ui,"Segoe UI",-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif', arial: 'Arial,Helvetica,sans-serif', verdana: 'Verdana,Geneva,sans-serif',
     calibri: 'Calibri,Carlito,"Segoe UI",system-ui,sans-serif', georgia: 'Georgia,"Times New Roman",serif' };
-  function schriftAnwenden(k) {
-    k = SCHRIFT[k] != null ? k : 'ubuntu';
+  const GROESSE = { klein: '12px', normal: '', gross: '14.5px' };   // Schriftgröße der Apps (--bp-fs; die AVA leitet alle Größen davon ab)
+  function schriftAnwenden(k, g) {
+    k = SCHRIFT[k] != null ? k : 'ubuntu'; g = GROESSE[g] != null ? g : 'normal';
     let st = document.getElementById('bphSchrift');
-    if (!SCHRIFT[k]) { if (st) st.remove(); }
-    else { if (!st) { st = document.createElement('style'); st.id = 'bphSchrift'; document.head.appendChild(st); } st.textContent = `html body{font-family:${SCHRIFT[k]}}`; }
-    try { localStorage.setItem('bpSchrift', k); } catch { /* egal */ }
+    const css = (SCHRIFT[k] ? `html body{font-family:${SCHRIFT[k]}}` : '') + (GROESSE[g] ? `html{--bp-fs:${GROESSE[g]}}` : '');
+    if (!css) { if (st) st.remove(); }
+    else { if (!st) { st = document.createElement('style'); st.id = 'bphSchrift'; document.head.appendChild(st); } st.textContent = css; }
+    try { localStorage.setItem('bpSchrift', k); localStorage.setItem('bpSchriftG', g); } catch { /* egal */ }
   }
   H.schriftAnwenden = schriftAnwenden;
-  try { const k0 = localStorage.getItem('bpSchrift'); if (k0 && k0 !== 'ubuntu') schriftAnwenden(k0); } catch { /* egal */ }
+  try { const k0 = localStorage.getItem('bpSchrift') || 'ubuntu', g0 = localStorage.getItem('bpSchriftG') || 'normal'; if (k0 !== 'ubuntu' || g0 !== 'normal') schriftAnwenden(k0, g0); } catch { /* egal */ }
   try { schemaAnwenden(localStorage.getItem('bpSchema') || ''); } catch { /* egal */ }   // sofort, ohne Aufblitzen
   /* Ansicht „Einfach“ oder „Profi“ – je Benutzer (Mein Konto), Vorgabe des Büros. Apps fragen H.einfach() und zeigen ihre
      Einfach-Startansicht; CSS blendet Profi-Teile über html[data-modus="einfach"] aus. */
@@ -537,7 +539,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
-      schriftAnwenden(conf.schrift || '');
+      schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
       if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();

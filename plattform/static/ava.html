@@ -247,12 +247,14 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .ps th.bh{min-width:9rem;white-space:normal}
 .ps th.bh .bn{display:flex;gap:.3rem;align-items:center;justify-content:space-between}
 .ps th.win{box-shadow:inset 0 -3px 0 var(--ok)}
-.empty{padding:2rem;text-align:center;color:var(--mute)}
+.empty{padding:2rem;text-align:center;color:var(--mute)}.am-leer{padding:1rem 1.2rem;max-width:56rem}.am-leer h3{margin:0 0 .2rem}.am-leer ol{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.6rem}
+.am-leer li{display:flex;gap:.7rem;align-items:flex-start}.am-leer li>b{flex:none;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--y);color:var(--on);display:grid;place-items:center;font-size:.85rem}
+.re-split .am-l,.am-split .am-l{min-width:0}.am-l .re>.card{min-width:0;overflow-x:auto}
 .am td{font-size:.88rem}
 .am tr.ph td{background:var(--hov);font-weight:600}
 .am tr.ph .ok{color:var(--ok)}
 .am tr.ph .ueb{color:#e07b3a}
-.re{display:grid;gap:1rem}
+.re{display:grid;gap:1rem;grid-template-columns:minmax(0,1fr)}
 .re-leiste{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 .6rem}
 .re-tab{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;padding:.4rem .75rem;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font:inherit;text-align:left}
 .re-tab small{color:var(--mute);font-size:.76rem}.re-tab.on{border:2px solid var(--blue,#2c5fb3);background:color-mix(in srgb,var(--blue,#2c5fb3) 8%,var(--card));padding:calc(.4rem - 1px) calc(.75rem - 1px)}
@@ -260,6 +262,9 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .re .card h3{margin:0 0 .3rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
 .re .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem .8rem;margin:.6rem 0}
 .re .g label{display:flex;flex-direction:column;font-size:.78rem;color:var(--mute);gap:.15rem}
+.re .g.re-kopf{display:flex;flex-wrap:wrap;gap:.3rem;margin:.4rem 0}.re .g.re-kopf>label{flex:1 1 5rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.re .g.re-kopf>label:nth-child(2),.re .g.re-kopf>label:nth-child(3){flex:0 0 7.7rem}.re .g.re-kopf>label:nth-child(5){flex:0 0 4rem}
+.re .g.re-kopf input{padding:.28rem .35rem;font-size:.88rem;min-width:0;width:100%;box-sizing:border-box}
 .re table{width:100%;border-collapse:collapse;font-size:.9rem;max-width:620px}
 .re table td{padding:.25rem .3rem;border-bottom:1px solid var(--line)}
 .re table td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -2364,8 +2369,15 @@ function vAmErfassen() {
   if (!P.length) {   // LV ohne Positionen (z. B. Auftrag ohne LV): Positionen aus der Rechnung der Firma anlegen
     const bb = B.find((b) => b.id === AMB) || B[B.length - 1], A = (bb && bb.auslese) || {};
     const n = (A.bloecke || []).filter((y) => !y.titel && y.kurz && y.menge != null).length || (A.zeilen || []).filter((z) => !z.pos).length;
-    if (!bb) return `<div class="card empty">Noch keine Positionen im LV. Lies die Rechnung oder das Aufmaß der Firma ein (PDF hierher ziehen oder oben „Import“) – die Positionen daraus werden im LV angelegt.</div>`;
-    return `<div class="card empty">Noch keine Positionen im LV.${A.laeuft ? ' Die Texterkennung der Rechnung läuft noch …' : n ? ` In der Rechnung der Firma sind <b>${n} Position${n === 1 ? '' : 'en'}</b> erkannt.<div class="bar" style="justify-content:center;margin-top:.6rem"><button class="btn pri" data-ambpos="${bb.id}">Positionen aus der Rechnung ins LV übernehmen</button></div><p class="hint" style="margin:.5rem 0 0">Mit OZ, Text, Menge, Einheit und EP der Firma (als Auftragspreis). Was nicht passt, bearbeitest oder löschst du danach im Leistungsverzeichnis.</p>` : ' In der Rechnung sind keine Positionen sicher erkannt – „↻ neu lesen“ am Beleg oder die Rechnung ohne Aufmaß prüfen.'}</div>`;
+    const hochL = `<label class="btn pri" title="Rechnung oder Aufmaßblätter der Firma als PDF, Scan oder Foto">📄 Rechnung / Aufmaß der Firma einlesen …<input type="file" accept=".pdf,application/pdf,image/*" multiple hidden data-ambeleg></label>`;
+    const schritt = (n, t, x) => `<li><b>${n}</b><span>${t}${x ? `<div class="bar" style="margin:.35rem 0 0">${x}</div>` : ''}</span></li>`;
+    const wieGeht = `<p class="hint" style="margin:.2rem 0 .6rem">In der Aufmaßprüfung prüfst du <b>je Position</b>: Menge lt. Firma ↔ dein Aufmaß, mal Auftrags-EP. Dafür braucht das LV Positionen – dieses hat noch keine.</p>`;
+    if (!bb) return `<div class="card am-leer"><h3>Aufmaßprüfung – so geht es</h3>${wieGeht}<ol>
+      ${schritt(1, 'Rechnung oder Aufmaß der Firma einlesen – die Positionen daraus (OZ, Text, Menge, Einheit, EP) werden im LV angelegt. Was nicht passt, änderst oder löschst du danach.', hochL)}
+      ${schritt(2, 'Oder die Positionen selbst im Leistungsverzeichnis eintragen.', '<button class="btn sm" data-tab="lv">→ Leistungsverzeichnis</button>')}
+      ${schritt(3, 'Dann je Position prüfen: „Menge der Firma übernehmen“ oder eigenen Rechenweg eintragen – rechts in der PDF erscheint ✔ (stimmt), ✘ (weicht ab) oder ○ (noch offen).', '')}</ol>
+      <p class="hint" style="margin:.6rem 0 0">Pauschale oder Rechnung ohne Mengen? Dann unter <button class="btn sm" data-tab="rechnungen">Rechnungen</button> „ohne Aufmaß“ prüfen.</p></div>`;
+    return `<div class="card am-leer"><h3>Aufmaßprüfung – noch keine Positionen im LV</h3>${wieGeht}${A.laeuft ? '<p>Die Texterkennung der Rechnung läuft noch …</p>' : n ? `<p>In der Rechnung der Firma sind <b>${n} Position${n === 1 ? '' : 'en'}</b> erkannt.</p><div class="bar"><button class="btn pri" data-ambpos="${bb.id}">Positionen aus der Rechnung ins LV übernehmen</button></div><p class="hint" style="margin:.5rem 0 0">Mit OZ, Text, Menge, Einheit und EP der Firma (als Auftragspreis). Was nicht passt, bearbeitest oder löschst du danach im Leistungsverzeichnis.</p>` : `<p>In der Rechnung sind keine Positionen sicher erkannt.</p><div class="bar"><button class="btn sm" data-amneu="${bb.id}">↻ Rechnung neu lesen</button>${hochL}<button class="btn sm" data-tab="lv">→ Positionen im LV eintragen</button><button class="btn sm" data-tab="rechnungen">ohne Aufmaß prüfen</button></div>`}</div>`;
   }
   if (B.length && !B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[B.length - 1]).id;
   if (!P.some((p) => p.id === amPos)) amPos = (P.find((p) => AM.some((a) => a.pos_id === p.id)) || P[0]).id;
@@ -2801,12 +2813,12 @@ function vRechnungen() {
       <div class="re-bel-neu"><label class="btn sm">📎 Rechnung (PDF) hinzufügen<input type="file" accept="application/pdf,.pdf" hidden data-rebeleg="${r.id}"></label><span class="hint">oder hierher ziehen – wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt</span></div></div>`;
     const kopf = `<div class="re-wo">${esc(L.vergabe && L.vergabe.bieter || L.auftragnehmer || '')}${L.nr || L.name ? ' · LV ' + esc([L.nr, L.name].filter(Boolean).join(' ')) : ''}</div><h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
         <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' || c.frei ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
-      <div class="g"><label>Rechnungsnr. der Firma<input data-re="re_nr" data-id="${r.id}" value="${esc(r.re_nr)}"${dis}></label>
-        <label>Rechnungsdatum<input type="date" data-re="datum" data-id="${r.id}" value="${esc(r.datum)}"${dis}></label>
+      <div class="g re-kopf"><label title="Rechnungsnummer der Firma">Rechnungsnr.<input data-re="re_nr" data-id="${r.id}" value="${esc(r.re_nr)}"${dis}></label>
+        <label title="Rechnungsdatum">Datum<input type="date" data-re="datum" data-id="${r.id}" value="${esc(r.datum)}"${dis}></label>
         <label>Eingang<input type="date" data-re="eingang" data-id="${r.id}" value="${esc(r.eingang)}"${dis}></label>
         ${art === 'sicherheit' ? `<label>freizugebender Betrag netto<input data-re="betrag" data-id="${r.id}" value="${nf(r.data.betrag || 0, 2)}" inputmode="decimal"${dis}></label>`
-          : `<label>gefordert (${c.einzeln ? 'netto' : 'kumuliert, netto'})<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
-        <label>Einbehalt %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>
+          : `<label title="gefordert ${c.einzeln ? 'netto' : 'kumuliert, netto'}">gefordert<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
+        <label title="Sicherheitseinbehalt in Prozent">Einb. %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>
       ${art !== 'sicherheit' && c.abzug ? (() => { const A0 = abzAuftrag(), abw = Object.fromEntries(ABZ.map(([k]) => [k, c.abzug[k] !== A0[k]]));
         return `<div class="hint abz-z">Abziehen:${abzChips(c.abzug, 'data-reabz', g, abw)}${!g && Object.values(abw).some(Boolean) ? `<button type="button" class="ib" data-reabz0="${r.id}" title="Wie im Auftrag eingestellt">↺ wie Auftrag</button>` : ''}</div>`; })().replace(/data-reabz="/g, `data-reid2="${r.id}" data-reabz="`) : ''}
       ${art !== 'regie' && art !== 'sicherheit' && !L.vergabe.frei ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;

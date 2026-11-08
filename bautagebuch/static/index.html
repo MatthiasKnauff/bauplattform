@@ -497,6 +497,7 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
   .hgrid>.checks{grid-column:1/-1;grid-row:3}.hmap{grid-column:2;grid-row:1/3;align-self:start;margin-top:0}.hmap img{width:84px;height:84px}.hgrid>h3{grid-column:1}
   .wxs{grid-template-columns:minmax(0,1fr)}.wxs .side.wx{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:.6rem;margin:0 1rem 1rem;width:auto;padding:0}}
 .wxs .side.wx>span:nth-child(2){display:none}   /* PLZ steht schon als Chip in der Überschrift */
+.qziel{margin:.1rem 0 .7rem;font-size:.9rem;line-height:1.4}.qziel small{color:var(--mute)}
 </style>
 <link rel="stylesheet" href="bp/head.css">
 <script src="bp/head.js"></script>
@@ -757,7 +758,7 @@ const showApp = async () => {
   else if (!hp) autoPick(true);   // Projekt per GPS wählen, wenn man vor Ort ist
   if (await backfillAddresses()) autoPick(true);
   const einfach = window.BPHead && BPHead.einfach && BPHead.einfach();
-  if (hMangel && curReport()) { tab = 'bericht'; adding = 'maengel'; setSecOpen('maengel', true); renderDetail(); setTimeout(() => { const el = document.getElementById('sec-maengel'); if (el) el.scrollIntoView({ block: 'start' }); el && el.querySelector('[data-add]')?.focus(); }, 60); }
+  if (hMangel) mangelMelden();   // Startseite „Mangel melden“: eigenes Fenster mit Projekt und Bericht, danach klare Wahl wie weiter
   else if ((hSchritt || einfach) && curReport() && bwzPrefs().on) bwzOpen();   // einfache Ansicht: Bericht gleich Schritt für Schritt
 };
 async function loadProjects() {
@@ -1758,8 +1759,10 @@ async function addItem(kind) {
   if (addFiles.length && res.id) { const fs = addFiles; addFiles = []; await uploadPhotos(fs, res.id); }
   if (res.contact_created) toast(`„${res.name}“ wurde zu den Kontakten hinzugefügt.`);
   if (res.contact_id) contacts = await api('api/contacts');
+  const war = q && q.mangel ? (q.n || 0) + 1 : 0;
   adding = null; q = null; renderQ(); setSecOpen(kind, true); document.activeElement?.blur();   // Eingabezeile und iPhone-Tastatur schließen sich nach dem Hinzufügen
   await openProject(pid, true);
+  if (war) { q = {step: 'mangel-ok', n: war}; renderQ(); }
 }
 // iPhone: Am Anfang/Ende einer Liste „gummiert“ Safari sonst die ganze App mit (Kopf verschwindet, leere Fläche). Solche Wischer werden gestoppt.
 (() => {
@@ -1775,6 +1778,15 @@ async function addItem(kind) {
 /* ---------- Schnell hinzufügen (runder Knopf + Fenster von unten) ---------- */
 let q = null, qFiles = [], qTyping = false;   // q: {step: 'menu' | 'add' | 'assign', kind}
 const listSecs = () => meta.sections.filter(x => x.type === 'list');
+const heuteIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+async function mangelMelden(n = 0) {   // von der Startseite: Bericht von heute (sonst neu anlegen) und gleich das Mängelfenster
+  if (!pid) { toast('Bitte zuerst ein Projekt wählen.'); return; }
+  const heute = reports.find((x) => x.date === heuteIso());
+  if (heute) rid = heute.id;
+  else { const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); if (r.error) { toast(r.error); return; } rid = r.id; await openProject(pid, true); }
+  tab = 'bericht'; renderDetail(); adding = null; addFiles = [];
+  q = {step: 'add', kind: 'maengel', mangel: true, n}; renderQ();
+}
 function renderQ() {
   const box = $('#qs'); if (!q) { qTyping = false; box.classList.remove('typing'); box.classList.add('hidden'); box.innerHTML = ''; return; }
   box.classList.remove('hidden');
@@ -1790,7 +1802,11 @@ function renderQ() {
       : `<textarea data-add="${esc(x.key)}" rows="4" placeholder="${esc(x.placeholder)}"></textarea>`;
     const due = x.extra && x.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}
         <span class="chips"><button class="chip" data-act="qDate" data-d="0">Heute</button><button class="chip" data-act="qDate" data-d="1">Morgen</button><button class="chip" data-act="qDate" data-d="7">+1 Woche</button></span></label>` : '';
-    h = `<h4>${esc(x.title)}${close}</h4><div class="qadd">${lk ? '' : coAdd(x)}${first}${due}${photoAdd(x)}<div class="qact"><button class="ok" data-act="addItem" data-kind="${esc(x.key)}">Hinzufügen</button></div></div>`;
+    const ziel = q.mangel && curReport() ? `<p class="qziel">Projekt <b>${esc(curProject()?.name || '')}</b> · Bautagebuch Nr. ${curReport().number} vom ${fmt(curReport().date)}${curReport().date === heuteIso() ? ' (heute)' : ''}<br><small>Foto, Firma und Beschreibung genügen – die Mängelrüge schreibst du später unter Aufgaben &amp; Mängel.</small></p>` : '';
+    h = `<h4>${q.mangel ? 'Mangel melden' : esc(x.title)}${close}</h4>${ziel}<div class="qadd">${lk ? '' : coAdd(x)}${first}${due}${photoAdd(x)}<div class="qact"><button class="ok" data-act="addItem" data-kind="${esc(x.key)}">${q.mangel ? 'Mangel speichern' : 'Hinzufügen'}</button></div></div>`;
+  } else if (q.step === 'mangel-ok') {
+    h = `<h4>Mangel gespeichert${close}</h4><p class="qziel">Er steht im Bautagebuch Nr. ${curReport()?.number ?? ''} vom ${fmt(curReport()?.date)} von <b>${esc(curProject()?.name || '')}</b>${q.n > 1 ? ` – ${q.n} Mängel in dieser Runde` : ''}.</p>
+      <div class="qpick"><button data-act="mangelNoch">${ic('plus', 20, 2.6)} Weiteren Mangel melden</button><button data-act="mangelBericht">${ic('doc', 20)} Im Bericht ansehen</button><button data-act="mangelStart">${ic('home', 20)} Zurück zur Startseite</button></div>`;
   } else if (q.step === 'assign') {
     const cands = listSecs().filter(t => fotoOk(t)).flatMap(t => curReport().items.filter(i => i.kind === t.key).map((i, n) => ({id: i.id, label: ((t.extra && t.extra.photo_label) || t.title) + ' ' + (n + 1), text: i.text})));
     h = `<h4>Foto zuordnen${close}</h4><div class="qpick"><button data-act="qAssign" data-id="">Nur unter „Bilder“ ablegen</button>
@@ -2106,6 +2122,9 @@ document.addEventListener('click', async e => {
   }
   else if (a === 'qOpen') { adding = null; q = {step: 'menu'}; renderQ(); }
   else if (a === 'qClose') { q = null; renderQ(); }
+  else if (a === 'mangelNoch') mangelMelden(q && q.n || 0);
+  else if (a === 'mangelBericht') { q = null; renderQ(); setSecOpen('maengel', true); renderDetail(); setTimeout(() => document.getElementById('sec-maengel')?.scrollIntoView({ block: 'start' }), 60); }
+  else if (a === 'mangelStart') { q = null; renderQ(); location.href = '../'; }
   else if (a === 'qCam') { $('#qcam').click(); }
   else if (a === 'qLib') { $('#qlib').click(); }
   else if (a === 'qAdd') { adding = null; addFiles = []; renderDetail(); setSecOpen(b.dataset.kind, true); q = {step: 'add', kind: b.dataset.kind}; renderQ(); renderApv(); }

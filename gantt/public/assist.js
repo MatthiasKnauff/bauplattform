@@ -795,6 +795,13 @@
       let dragIt = null;          // Formular „eigene Leistung“: { ph, edit, n, gw, din, sc, d, a, b }
       let pform = null;          // Formular „Vorlage speichern“: { name, scope, phases:Set }
       let presetFilter = '';     // Suche in „Meine Vorlagen“ (ab 6 Vorlagen)
+      let lstQ = '';             // Suche in den Leistungen (auch in „Weitere Leistungen“)
+      const lstFiltern = () => {   // ohne neu zu zeichnen – Fokus bleibt im Suchfeld
+        const ws = lstQ.trim().toLowerCase().split(/\s+/).filter(Boolean), passt = (el) => { const t = el.textContent.toLowerCase(); return ws.every((w) => t.includes(w)); };
+        root.querySelectorAll('.as-ph').forEach((ph) => { let n = 0; ph.querySelectorAll('.as-it').forEach((it) => { const ok = !ws.length || passt(it); it.style.display = ok ? '' : 'none'; if (ok) n++; }); ph.style.display = ws.length && !n ? 'none' : ''; });
+        const mo = root.querySelector('.as-more'); if (mo) { let n = 0; mo.querySelectorAll('.as-it').forEach((it) => { const ok = !ws.length || passt(it); it.style.display = ok ? '' : 'none'; if (ok) n++; }); if (ws.length) { mo.open = n > 0; mo.style.display = n ? '' : 'none'; } else mo.style.display = ''; }
+        const z = root.querySelector('.as-lq-n'); if (z) z.textContent = ws.length ? `${[...root.querySelectorAll('.as-it')].filter((x) => x.style.display !== 'none').length} Treffer` : '';
+      };
       let presets = [], presetsErr = '', presetsOpen = LSx.get('assistPresetsOpen', true);
       const saveDraft = () => LSx.set('assistDraft', draft);
       // Schritt-für-Schritt-Abfrage: jederzeit pausieren, später an derselben Stelle weitermachen
@@ -1045,7 +1052,8 @@
               + (it.custom ? `<button class="as-ib sm" data-cedit="${it.id}" title="Bearbeiten">✎</button><button class="as-ib sm" data-cdel="${it.id}" title="Eigene Leistung löschen">✕</button>` : '')
               + (!live && st.nTasks ? `<button class="as-plus" data-ins="${it.id}" title="In „${esc(st.name)}“ an der markierten Zeile einfügen">＋</button>` : '') + '</label>';
           };
-          h += `<section><h4><span>3</span>Leistungen<span class="as-cnt">${sel.size} gewählt</span></h4><div class="as-tools"><button class="btn sm" data-a="rec">Empfehlung übernehmen</button>${live ? '' : '<button class="btn sm" data-a="none">Keine</button>'}<button class="btn sm" data-a="pf-open">Als Vorlage speichern …</button></div>`;
+          h += `<section><h4><span>3</span>Leistungen<span class="as-cnt">${sel.size} gewählt</span></h4><div class="as-tools"><button class="btn sm" data-a="rec">Empfehlung übernehmen</button>${live ? '' : '<button class="btn sm" data-a="none">Keine</button>'}<button class="btn sm" data-a="pf-open">Als Vorlage speichern …</button></div>`
+            + `<div class="as-lq"><input type="search" data-lq placeholder="Leistung suchen – z. B. Estrich, Fenster, DIN 18353" value="${esc(lstQ)}" autocomplete="off"><small class="as-lq-n"></small></div>`;
           if (pform) h += pformHtml();
           for (const ph of CC.phases) {
             const its = items.filter((i) => i.ph === ph.k && up(i.id) && !(isExtra(i.id) && hideRest(i) && !SH.has(i.id)));
@@ -1078,6 +1086,7 @@
         if (msg) h += `<div class="as-msg${msgErr ? ' err' : ''}">${esc(msg)}</div>`;
         h += '</div></div>';
         root.innerHTML = h;
+        if (lstQ) lstFiltern();
         root.querySelectorAll('input[data-part]').forEach((x) => { x.indeterminate = true; });
         const body = root.querySelector('.as-body'); if (body) body.scrollTop = sc;
         if (focus && focus.sel) { const el = root.querySelector(focus.sel); if (el) el.focus(); }
@@ -1369,6 +1378,7 @@
         const t = e.target;
         if (t.dataset.a === 'pname') projName = t.value;
         if (t.dataset.pf === 'name' && pform) pform.name = t.value;
+        if ('lq' in t.dataset) { lstQ = t.value; lstFiltern(); return; }
         if ('prf' in t.dataset) {   // Vorlagen filtern, ohne neu zu zeichnen (Fokus bleibt im Suchfeld)
           presetFilter = t.value; const q = t.value.trim().toLowerCase();
           root.querySelectorAll('.as-pr[data-prname]').forEach((el) => { el.style.display = q && !el.dataset.prname.includes(q) ? 'none' : ''; });

@@ -55,7 +55,7 @@
 @media (max-width:1400px){.bph-ki{display:none}.bph-kim{display:inline-flex;align-items:center}}
 @media (max-width:900px){.bph-nm{display:none}}
 @media (max-width:640px){.bph{gap:.5rem;padding:.3rem .6rem;min-height:46px}.bph-app,.bph-plat,.bph-sl{display:none}.bph-proj{margin-left:0}.bph-proj small{font-size:.7rem}}
-@media (max-width:420px){.bph-proj small{display:none}}
+@media (max-width:420px){.bph-proj small{display:none}.bph-bugb{display:none!important}}
 .bph-sug{position:fixed;z-index:4000;background:#fff;color:#1c1c1a;border:1px solid #cfcbc2;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.25);
   max-height:320px;overflow:auto;padding:.25rem;font:14px/1.35 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;box-sizing:border-box}
 .bph-sug-g{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b675f;padding:.5rem .6rem .2rem}

@@ -119,7 +119,7 @@ const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer & Rechte'], ['sessio
 let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
-const SYS = [['health', 'Server-Status'], ['fehler', 'Fehlermeldungen'], ['protokoll', 'Protokoll'], ['altpdf', 'Alte PDFs aufräumen']];
+const SYS = [['health', 'Server-Status'], ['bugs', 'Bug-Meldungen'], ['fehler', 'Fehlermeldungen'], ['protokoll', 'Protokoll'], ['altpdf', 'Alte PDFs aufräumen']];
 const sysNav = () => `<div class="bar" style="margin-bottom:1.2rem">${SYS.map(([k, l]) => `<button class="btn sm ${k === (data.sys || 'health') ? 'pri' : ''}" data-a="sys" data-sys="${k}">${l}</button>`).join('')}</div>`;
 const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
 function renderTabs() {
@@ -144,6 +144,7 @@ async function load() {
     else if ((data.sys || 'health') === 'health') { m.innerHTML = sysNav() + '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
     else if (data.sys === 'altpdf') { renderAltPdf(); }
     else if (data.sys === 'fehler') { data.f = await api('api/bp/fehler'); renderFehler(); }
+    else if (data.sys === 'bugs') { data.b = await api('api/bp/bug'); renderBugs(); }
     else { data.a = await api('api/audit?cat=' + (data.cat || '')); renderAudit(); }
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
@@ -753,6 +754,39 @@ document.addEventListener('click', async (e) => {
   if (a === 'fart') { data.fart = b.dataset.fart; renderFehler(); return; }
   if (a === 'fleeren' && !(await bpFrage('Alle Fehlermeldungen löschen?', { ok: 'Löschen', gefahr: true }))) return;
   try { data.f = await api('api/bp/fehler', 'PUT', a === 'fgelesen' ? { gelesen: true } : a === 'fleeren' ? { leeren: true } : { weg: +b.dataset.fid }); renderFehler(); } catch (er) { toast(er.message, true); }
+});
+
+/* ---------- Bug-Meldungen der Kolleg:innen (🐞 in der Kopfleiste) ---------- */
+function renderBugs() {
+  const M = data.b.meldungen || [], dt = (t) => (t ? new Date(t).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '');
+  const f = data.bfilt || 'offen', L = M.filter((x) => f === 'alle' || x.status === f);
+  const nOff = M.filter((x) => x.status === 'offen').length;
+  $('#main').innerHTML = `${sysNav()}<h1>Bug-Meldungen</h1>
+    <p class="mute" style="margin-top:-.3rem">Was Kolleg:innen über 🐞 in der Kopfleiste melden – mit Bildschirmfoto und automatisch gesammelten Angaben (Adresse, Browser, letzte Fehler und Klicks). Die ZIP enthält alles in einer Datei <code>bug-meldungen.md</code> plus Bilder, dazu die Serverfehler dieser Person um die Zeit der Meldung – zum Weitergeben an die Entwicklung (Claude).</p>
+    <div class="bar">${[['offen', `Offen (${nOff})`], ['erledigt', 'Erledigt'], ['alle', `Alle (${M.length})`]].map(([k, l]) => `<button class="btn sm ${k === f ? 'pri' : ''}" data-a="bfilt" data-bf="${k}">${l}</button>`).join('')}
+      <span style="flex:1"></span>${L.length ? `<a class="btn sm pri" href="api/bp/bug/export?${f === 'offen' ? '' : 'ids=' + L.map((x) => x.id).join(',')}" download>📦 ${f === 'offen' ? 'Offene' : 'Diese'} als ZIP für Claude</a>` : ''}${nOff ? '<button class="btn sm" data-a="balleerl">Alle als erledigt markieren</button>' : ''}</div>
+    ${L.length ? L.map((x) => { const k = x.kontext || {}; return `<div class="card" style="margin:.6rem 0;padding:.8rem 1rem;${x.status === 'erledigt' ? 'opacity:.65' : ''}">
+      <div style="display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap"><b>#${x.id}</b><span class="badge">${esc(x.app || '?')}</span><span>${esc(x.user_name)}</span><small class="mute">${esc(dt(x.ts))}</small><span style="flex:1"></span>
+        <button class="btn sm" data-a="bstat" data-bid="${x.id}" data-bs="${x.status === 'offen' ? 'erledigt' : 'offen'}">${x.status === 'offen' ? '✓ Erledigt' : '↺ Wieder offen'}</button><a class="btn sm" href="api/bp/bug/export?ids=${x.id}" download>ZIP</a><button class="btn sm danger" data-a="bweg" data-bid="${x.id}">Löschen</button></div>
+      <div style="display:flex;gap:1rem;margin-top:.5rem;flex-wrap:wrap"><div style="flex:1 1 22rem;white-space:pre-wrap">${esc(x.text)}</div>
+        ${x.bild_typ ? `<a href="api/bp/bug/${x.id}/bild" data-a="bbild" data-bid="${x.id}"><img src="api/bp/bug/${x.id}/bild" alt="Bildschirmfoto" loading="lazy" style="max-width:260px;max-height:170px;border:1px solid var(--line);border-radius:6px"></a>` : ''}</div>
+      <details style="margin-top:.5rem"><summary class="mute" style="cursor:pointer">Angaben aus dem Browser${(k.fehler || []).length ? ` · ${k.fehler.length} Fehler` : ''}${(k.anfragen || []).length ? ` · ${k.anfragen.length} fehlgeschlagene Anfragen` : ''}</summary>
+        <pre style="white-space:pre-wrap;font-size:.75rem;max-height:20rem;overflow:auto">${esc([`Adresse: ${k.url || ''}`, `Projekt: ${k.projekt || ''}`, `Ansicht: ${k.modus || ''} · Version ${k.version || ''} · ${k.fenster || ''}`, `Browser: ${k.browser || ''}`,
+          k.zustand ? 'Zustand: ' + JSON.stringify(k.zustand) : '', ...(k.fehler || []).map((e) => `Fehler ${e.t}: ${e.m}`), ...(k.anfragen || []).map((a) => `Anfrage ${a.t}: ${a.methode} ${a.url} → ${a.status} ${a.text || ''}`), ...(k.klicks || []).map((c) => `Klick ${c.t}: ${c.was}`)].filter(Boolean).join('\n'))}</pre></details>
+      <label style="display:block;margin-top:.4rem"><small class="mute">Notiz (kommt mit in die ZIP)</small><input data-bnotiz="${x.id}" value="${esc(x.notiz || '')}" maxlength="2000" style="width:100%" placeholder="z. B. tritt nur in Edge auf"></label></div>`; }).join('') : '<p class="mute">Keine Meldungen.</p>'}`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-a="bfilt"],[data-a="bstat"],[data-a="bweg"],[data-a="balleerl"],[data-a="bbild"]'); if (!b) return;
+  const a = b.dataset.a;
+  if (a === 'bfilt') { data.bfilt = b.dataset.bf; renderBugs(); return; }
+  if (a === 'bbild') { e.preventDefault(); const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);display:grid;place-items:center;cursor:zoom-out';
+    bg.innerHTML = `<img src="api/bp/bug/${b.dataset.bid}/bild" alt="Bildschirmfoto" style="max-width:96vw;max-height:94vh;box-shadow:0 4px 30px #000">`; bg.addEventListener('click', () => bg.remove()); document.body.appendChild(bg); return; }
+  if (a === 'bweg' && !(await bpFrage('Diese Meldung löschen?', { ok: 'Löschen', gefahr: true }))) return;
+  try { data.b = await api('api/bp/bug', 'PUT', a === 'bstat' ? { id: +b.dataset.bid, status: b.dataset.bs } : a === 'bweg' ? { weg: +b.dataset.bid } : { alle_erledigt: true }); renderBugs(); } catch (er) { toast(er.message, true); }
+});
+document.addEventListener('change', async (e) => {
+  const i = e.target.closest('[data-bnotiz]'); if (!i) return;
+  try { data.b = await api('api/bp/bug', 'PUT', { id: +i.dataset.bnotiz, notiz: i.value }); toast('Notiz gespeichert'); } catch (er) { toast(er.message, true); }
 });
 
 /* ---------- Protokoll ---------- */

@@ -48,10 +48,32 @@
   window.bpEingabe = (t, v, o) => DLG(t, 'eingabe', v, o);
   window.bpHinweis = (t) => DLG(t, 'hinweis');
   window.alert = (t) => { DLG(t, 'hinweis'); };   // nicht mehr blockierend – überall gleich aussehend
+  /* Für Bug-Meldungen (🐞): die letzten Fehler, fehlgeschlagenen Anfragen und Klicks dieser Seite – bleibt im Browser, bis jemand meldet */
+  const BUGP = { fehler: [], anfragen: [], klicks: [] };
+  function bugPuffer(art, x) { const L = BUGP[art]; L.push({ t: new Date().toTimeString().slice(0, 8), ...x }); if (L.length > 25) L.shift(); }
+  {
+    const roh = window.fetch.bind(window);
+    window.fetch = async (url, opt) => {
+      const u = String(url && url.url ? url.url : url).replace(/([?&](token|key|pw|passwort|kennwort)=)[^&]*/gi, '$1…').slice(0, 300), m = (opt && opt.method) || 'GET';
+      try {
+        const r = await roh(url, opt);
+        if (!r.ok && !/api\/bp\/(fehler|bug)/.test(u)) r.clone().text().then((t) => { let x = t; try { const j = JSON.parse(t); x = j.error || j.message || t; } catch { /* Text */ } bugPuffer('anfragen', { methode: m, url: u, status: r.status, text: String(x).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300) }); }).catch(() => {});
+        return r;
+      } catch (e) { bugPuffer('anfragen', { methode: m, url: u, status: 'keine Verbindung', text: String(e && e.message || e).slice(0, 200) }); throw e; }
+    };
+    document.addEventListener('click', (e) => {
+      const el = e.target && e.target.closest ? e.target.closest('button,a,[role=button],[data-tab],[data-a],[data-m],summary,label,td,li,input,select') : null; if (!el || el.closest('.bph-bugdlg,.bph-bugb,[data-bug]')) return;
+      const feld = /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);   // bei Feldern nie den Inhalt, nur die Bezeichnung
+      const txt = (el.getAttribute('aria-label') || el.getAttribute('title') || (feld ? el.getAttribute('placeholder') || el.name || el.type : el.textContent) || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+      const ds = Object.entries(el.dataset || {}).slice(0, 3).map(([k, v]) => `${k}=${String(v).slice(0, 30)}`).join(' ');
+      bugPuffer('klicks', { was: `${el.tagName.toLowerCase()}${txt ? ' „' + txt + '“' : ''}${ds ? ' [' + ds + ']' : ''} ${location.hash}`.trim() });
+    }, true);
+  }
   { // Fehler im Browser an die Verwaltung melden (System → Fehlermeldungen) – höchstens 10 je Seite, gleiche nur einmal
     const gemeldet = new Set();
     const melden = (meldung, stack) => {
-      meldung = String(meldung || '').slice(0, 600); if (!meldung || gemeldet.has(meldung) || gemeldet.size >= 10) return;
+      meldung = String(meldung || '').slice(0, 600); if (meldung) bugPuffer('fehler', { m: meldung, s: String(stack || '').slice(0, 1500) });
+      if (!meldung || gemeldet.has(meldung) || gemeldet.size >= 10) return;
       if (/ResizeObserver loop|Script error\.?$|NetworkError|Failed to fetch|Load failed|AbortError/i.test(meldung)) return;   // harmlos bzw. Verbindung
       gemeldet.add(meldung);
       try { fetch('api/bp/fehler', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, keepalive: true,
@@ -81,6 +103,7 @@
     out: SV('<path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/>'),
     look: SV('<circle cx="12" cy="12" r="9"/><path d="M12 3v18M12 3a9 9 0 0 1 0 18"/>'),
     konto: SV('<path d="M4 19c3-1 4-6 6-6s1 5 3 5 2-3 3-3 2 2 4 2"/><path d="M4 22h16"/>'),
+    bug: SV('<path d="M8 8a4 4 0 0 1 8 0"/><rect x="7" y="8" width="10" height="12" rx="5"/><path d="M12 12v8M3 13h4M17 13h4M4 7l3 2M20 7l-3 2M4 19l3-2M20 19l-3-2"/>'),
     grid: SV('<rect x="4" y="4" width="4" height="4" rx="1"/><rect x="10" y="4" width="4" height="4" rx="1"/><rect x="16" y="4" width="4" height="4" rx="1"/><rect x="4" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="16" y="10" width="4" height="4" rx="1"/><rect x="4" y="16" width="4" height="4" rx="1"/><rect x="10" y="16" width="4" height="4" rx="1"/><rect x="16" y="16" width="4" height="4" rx="1"/>'),
     gear: SV('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
     user: SV('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
@@ -196,6 +219,7 @@
       + `<button type="button" role="menuitem" data-konto>${IC.user}Mein Konto <small class="bph-ms">Unterschrift, Signatur, Versand, Kalender</small></button>`
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung</button>`
       + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Einfach</button><button type="button" data-modus="profi">Profi</button></div>`
+      + `<button type="button" role="menuitem" data-bug>${IC.bug}Fehler melden <small class="bph-ms">kurz beschreiben, gern mit Bildschirmfoto</small></button>`
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
     void apps; void portal;
@@ -381,6 +405,7 @@
       <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Einfache Ansicht: große Karten, eine Hauptaufgabe je Seite">Einfach</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
+      <button type="button" class="bph-ic bph-bugb" aria-haspopup="dialog" aria-label="Fehler melden" title="Fehler melden – kurz beschreiben, gern mit Bildschirmfoto">${IC.bug}</button>
       <button type="button" class="bph-ic bph-appsb" aria-haspopup="menu" aria-label="Apps" title="Apps">${IC.grid}</button>
       <button type="button" class="bph-ic bph-gear" aria-haspopup="dialog" aria-label="Einstellungen" title="Einstellungen">${IC.gear}</button>
       <button type="button" class="bph-who" aria-haspopup="menu" aria-label="Mein Konto"><span class="bph-av">?</span><span class="bph-nm"></span></button>`;
@@ -396,6 +421,8 @@
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
+      if (e.target.closest('[data-bug]')) { e.stopPropagation(); closeMenus(); H.bugMelden(); return; }
+      if (e.target.closest('.bph-bugb')) { e.stopPropagation(); closeMenus(); H.bugMelden(); return; }
       if (e.target.closest('.bph-appsb')) { e.stopPropagation(); if (band.querySelector('.bph-apps')) closeMenus(); else appsMenu(); return; }
       if (e.target.closest('.bph-gear')) { e.stopPropagation(); closeMenus(); H.einstellungen(); return; }
       if (e.target.closest('.bph-kim')) { e.stopPropagation(); if (band.querySelector('.bph-menu')) closeMenus(); else kiMenu(); return; }
@@ -1486,6 +1513,68 @@
     return el;
   };
   H.versionStatus = (t) => { const s = document.querySelector('#bph-vl .bph-vl-st'); if (s) s.textContent = t || ''; };
+
+  /* ---------- Fehler melden (🐞): Beschreibung, Bildschirmfoto, dazu automatisch die wichtigen Angaben für die Entwicklung ---------- */
+  H.bugMelden = function () {
+    if (document.querySelector('.bph-bugdlg')) return;
+    let bild = '';
+    const kontext = () => {
+      let zustand = null; try { zustand = typeof window.bpBugZustand === 'function' ? window.bpBugZustand() : null; } catch (e) { zustand = { fehler: String(e) }; }
+      return { url: location.href.replace(/([?&](token|key|pw)=)[^&#]*/gi, '$1…'), titel: document.title, app: H.app || '', projekt: H.projekt ? `${H.projekt.name || ''} (${H.projekt.id})` : '',
+        modus: H.modus || '', version: (H.conf && H.conf.version) || '', fenster: `${innerWidth}×${innerHeight}, Zoom ${Math.round(devicePixelRatio * 100)} %`, zustand,
+        fehler: BUGP.fehler.slice(), anfragen: BUGP.anfragen.slice(), klicks: BUGP.klicks.slice(-20) };
+    };
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-bugdlg';
+    bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Fehler melden" style="width:min(560px,96vw)"><div class="bph-dh"><b>🐞 Fehler melden</b><button type="button" class="bph-x" data-bx aria-label="Schließen">✕</button></div><div class="bph-db">
+      <label style="display:block">Was ist passiert – und was hättest du erwartet?<textarea data-btext rows="5" maxlength="8000" style="width:100%;margin-top:.3rem" placeholder="z. B. Ich habe im LV auf „Speichern“ geklickt, dann war die Position weg."></textarea></label>
+      <div class="bph-row" style="margin-top:.6rem;flex-wrap:wrap;gap:.4rem"><button type="button" class="bph-btn" data-bshot>📷 Diese Ansicht aufnehmen</button><label class="bph-btn">🖼 Bild wählen<input type="file" accept="image/png,image/jpeg,image/webp" data-bfile hidden></label><small class="bph-mu" style="align-self:center">oder ein Bild mit Strg+V einfügen</small></div>
+      <div data-bvor style="margin-top:.5rem"></div>
+      <details style="margin-top:.6rem"><summary class="bph-mu" style="cursor:pointer">Was automatisch mitgeschickt wird</summary><pre data-bk style="white-space:pre-wrap;font-size:.72rem;max-height:14rem;overflow:auto;margin:.4rem 0 0"></pre>
+        <small class="bph-mu">Adresse, App, Projekt, Browser, Fenstergröße, Version, die letzten Fehlermeldungen und Klicks auf dieser Seite – keine Eingaben aus Feldern. Die Meldung sieht nur die Verwaltung.</small></details>
+      <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-bx>Abbrechen</button><button type="button" class="bph-btn pri" data-bok>Melden</button></div></div></div>`;
+    document.body.appendChild(bg);
+    const dlg = bg.querySelector('.bph-dlg'); dlgBeweglich(dlg);
+    const kz = (k) => [`Adresse: ${k.url}`, `App: ${k.app || k.titel}`, k.projekt && `Projekt: ${k.projekt}`, `Ansicht: ${k.modus}`, `Version: ${k.version}`, `Fenster: ${k.fenster}`, `Browser: ${navigator.userAgent}`,
+      `Fehler auf dieser Seite: ${k.fehler.length}`, `Fehlgeschlagene Anfragen: ${k.anfragen.length}`, `Letzte Klicks: ${k.klicks.length}`].filter(Boolean).join('\n');
+    bg.querySelector('[data-bk]').textContent = kz(kontext());
+    const vorschau = () => { const v = bg.querySelector('[data-bvor]'); v.innerHTML = bild ? `<div style="position:relative;display:inline-block"><img src="${bild}" alt="Bildschirmfoto" style="max-width:100%;max-height:220px;border:1px solid var(--bph-line,#ccc);border-radius:6px"><button type="button" class="bph-x" data-bweg title="Bild entfernen" aria-label="Bild entfernen" style="position:absolute;top:4px;right:4px;background:#fff">✕</button></div>` : ''; };
+    const verkleinern = (src) => new Promise((ok, bad) => { const im = new Image(); im.onload = () => { const f = Math.min(1, 2000 / Math.max(im.width, im.height)); const cv = document.createElement('canvas'); cv.width = Math.round(im.width * f); cv.height = Math.round(im.height * f); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); ok(cv.toDataURL('image/jpeg', 0.85)); }; im.onerror = () => bad(new Error('Das Bild konnte nicht gelesen werden.')); im.src = src; });
+    const ausDatei = (f) => { if (!f || !/^image\//.test(f.type)) return; const r = new FileReader(); r.onload = async () => { try { bild = await verkleinern(r.result); vorschau(); } catch (e) { bpHinweis(e.message); } }; r.readAsDataURL(f); };
+    const zu = () => { bg.remove(); document.removeEventListener('paste', einfuegen, true); };
+    const einfuegen = (e) => { const it = [...((e.clipboardData && e.clipboardData.items) || [])].find((x) => x.type.startsWith('image/')); if (it) { e.preventDefault(); ausDatei(it.getAsFile()); } };
+    document.addEventListener('paste', einfuegen, true);
+    bg.addEventListener('dragover', (e) => e.preventDefault());
+    bg.addEventListener('drop', (e) => { e.preventDefault(); ausDatei(e.dataTransfer.files[0]); });
+    bg.querySelector('[data-bfile]').addEventListener('change', (e) => ausDatei(e.target.files[0]));
+    bg.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-bx]')) { if (!bg.querySelector('[data-btext]').value.trim() && !bild || await bpFrage('Meldung verwerfen?', { ok: 'Verwerfen' })) zu(); return; }   // daneben klicken schließt nicht
+      if (e.target.closest('[data-bweg]')) { bild = ''; vorschau(); return; }
+      if (e.target.closest('[data-bshot]')) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { bpHinweis('Dieser Browser kann die Ansicht nicht selbst aufnehmen. Bitte mit Win+Umschalt+S ein Bildschirmfoto machen und hier mit Strg+V einfügen.'); return; }
+        bg.style.visibility = 'hidden';
+        try {
+          const st = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' });
+          const v = document.createElement('video'); v.srcObject = st; v.muted = true; await v.play(); await new Promise((ok) => setTimeout(ok, 350));
+          const cv = document.createElement('canvas'); cv.width = v.videoWidth; cv.height = v.videoHeight; cv.getContext('2d').drawImage(v, 0, 0);
+          st.getTracks().forEach((t) => t.stop());
+          bild = await verkleinern(cv.toDataURL('image/png')); vorschau();
+        } catch (er) { if (er && er.name !== 'NotAllowedError') bpHinweis('Aufnehmen hat nicht geklappt – bitte mit Win+Umschalt+S ein Bildschirmfoto machen und hier mit Strg+V einfügen.'); }
+        bg.style.visibility = ''; return;
+      }
+      if (e.target.closest('[data-bok]')) {
+        const text = bg.querySelector('[data-btext]').value.trim();
+        if (text.length < 3) { bpHinweis('Bitte kurz beschreiben, was passiert ist.'); return; }
+        const k = bg.querySelector('[data-bok]'); k.disabled = true; k.textContent = 'wird gesendet …';
+        try {
+          const r = await fetch('api/bp/bug', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: H.app || document.title, text, bild, kontext: kontext() }) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(j.error || 'Senden hat nicht geklappt (' + r.status + ').');
+          zu(); if (window.toast) toast('Danke! Die Meldung ist bei der Verwaltung angekommen (Nr. ' + j.id + ').'); else bpHinweis('Danke! Die Meldung ist angekommen (Nr. ' + j.id + ').');
+        } catch (er) { k.disabled = false; k.textContent = 'Melden'; bpHinweis(er.message); }
+      }
+    });
+    setTimeout(() => bg.querySelector('[data-btext]').focus(), 0);
+  };
 
   /* ---------- Dialoge der Kopfleiste (Projekt, Verlauf, Konto …): an der Titelzeile verschieben, an der Ecke in der Größe ändern ---------- */
   function dlgBeweglich(m) {

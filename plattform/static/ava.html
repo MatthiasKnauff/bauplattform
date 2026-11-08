@@ -669,6 +669,8 @@ async function loadProj() {
 let VERS = [];
 /* Angesehene Version (nicht unbedingt die gültige): nur in diesem Fenster, beim nächsten Wechsel wird wieder gefragt */
 let VSICHT = null;
+window.bpBugZustand = () => ({ ansicht: tab, projekt_id: pid, lv: L ? { id: L.id, nr: L.nr, name: L.name, status: L.status, version_id: L.version_id } : null,   // für 🐞 Fehler melden
+  version: VSICHT && VSICHT.pid === pid ? 'angesehen ' + VSICHT.id : 'gültige', versionen: (VERS || []).map((v) => `${v.id}${v.aktiv ? '*' : ''} ${v.name}`).slice(0, 10), lvs: (LIST || []).length, aktive_zeile: LVAKT, markiert: LVSEL ? LVSEL.size : 0 });
 const vSicht = () => (VSICHT && VSICHT.pid === pid && VERS.some((v) => v.id === VSICHT.id && !v.aktiv) ? VSICHT.id : null);
 const lvListe = () => api('api/lv?project_id=' + pid + (vSicht() ? '&version_id=' + vSicht() : ''));
 async function vleiste(neu) {

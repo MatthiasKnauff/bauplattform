@@ -28,7 +28,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, contacts, db, fehler, konto, mail, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, konto, mail, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -100,6 +100,53 @@ def blueprint(get_user=None):
             if request.method == "PUT":
                 fehler.aktion(c, request.get_json(silent=True) or {})
             return jsonify(fehler=fehler.liste(c), ungelesen=fehler.ungelesen(c))
+
+    @bp.post("/api/bp/bug")
+    def bug_melden():
+        """Bug-Meldung aus der Kopfleiste (🐞): Text, optional Bildschirmfoto, automatisch gesammelte Angaben."""
+        u = user()
+        if not u:
+            return jsonify(error="Bitte anmelden."), 401
+        b = request.get_json(silent=True) or {}
+        try:
+            with db.tx() as c:
+                i = bugmeldung.anlegen(c, u, b, request.headers.get("User-Agent", ""))
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        return jsonify(ok=True, id=i)
+
+    @bp.route("/api/bp/bug", methods=["GET", "PUT"])
+    def bug_liste():
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Nur für die Verwaltung."), 403
+        with db.tx() as c:
+            if request.method == "PUT":
+                bugmeldung.aktion(c, request.get_json(silent=True) or {})
+            return jsonify(meldungen=bugmeldung.liste(c), offen=bugmeldung.offen(c))
+
+    @bp.get("/api/bp/bug/<int:i>/bild")
+    def bug_bild(i):
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Nur für die Verwaltung."), 403
+        with db.tx() as c:
+            daten, typ = bugmeldung.bild(c, i)
+        if not daten:
+            return jsonify(error="Kein Bild"), 404
+        return Response(daten, mimetype=typ, headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})
+
+    @bp.get("/api/bp/bug/export")
+    def bug_export():
+        """ZIP: bug-meldungen.md (Beschreibung + Angaben + Serverfehler um diese Zeit) und die Bilder."""
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Nur für die Verwaltung."), 403
+        ids = [int(x) for x in (request.args.get("ids") or "").split(",") if x.strip().isdigit()][:500]
+        with db.tx() as c:
+            daten, n = bugmeldung.export(c, ids or None, request.args.get("alle") != "1")
+        name = f"bug-meldungen-{datetime.now().strftime('%Y-%m-%d')}.zip"
+        return Response(daten, mimetype="application/zip", headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
     @bp.get("/bp/<name>")
     def asset(name):

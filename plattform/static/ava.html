@@ -690,6 +690,27 @@ const UPHASE = {
   abr: [['impBtn', 'Einlesen'], ['druBtn', 'Drucken']],
   kos: [['druBtn', 'Drucken'], ['expBtn', 'Speichern unter']],
 };
+/* „⋯“ passend zum Bereich: im LV die LV-Befehle, in Vergabe/Abrechnung/Kosten die dortigen – [Knopf-Selektor | Funktion, Text, gesperrt] */
+let UFN = [];
+const reGewaehlt = () => { if (!L || !L.rechnungen || !L.rechnungen.length) return null; const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
+  return (PJSEL && PJSEL[0] === 'r' && RS.find((r) => 'r' + r.id === PJSEL)) || RS.find((r) => r.status !== 'geprueft') || RS[RS.length - 1]; };
+const reBefehl = (art) => () => { const r = reGewaehlt(); if (!r) return; const b = document.createElement('button'); b.dataset.reb = art; b.dataset.id = r.id; reAktion(b); };
+function uMenuPunkte() {
+  const archiv = ['moreBtn', 'LV archivieren / löschen …'];
+  if (tab === 'rechnungen') {
+    const r = reGewaehlt(), t = r ? reTitel(r) : 'Rechnung', g = r && r.status === 'geprueft';
+    const letzte = r && !L.rechnungen.some((x) => x.nr > r.nr);
+    return [[() => reNeuMenu(document.querySelector('[data-uhaupt="reNeu"]') || document.querySelector('[data-umenu]')), 'Neue Rechnung …', !L || !vergeben()], '-',
+      [reBefehl('pdf'), `Prüfblatt ${t} (PDF)`, !r], [reBefehl('freigabe'), `Rechnungsfreigabe ${t} (PDF)`, !r],
+      [reBefehl(g ? 'zurueck' : 'pruefen'), g ? `Prüfung von ${t} zurücknehmen` : `${t}: Prüfung abschließen`, !r || (g && !letzte)],
+      [reBefehl('del'), `${t} löschen …`, !r || !letzte], '-',
+      [() => lvDaten(), 'LV- & Auftragsdaten …', !L], ['druBtn', 'Drucken / PDF …'], '-', archiv];
+  }
+  if (tab === 'aufmass') return [['impBtn', 'Aufmaß einlesen …'], ['druBtn', 'Aufmaß drucken / PDF …'], ['expBtn', 'Speichern unter … (GAEB, Excel)'], '-', [() => lvDaten(), 'LV- & Auftragsdaten …', !L], '-', archiv];
+  if (tab === 'angebote') return [['impBtn', 'Angebot einlesen …'], ['druBtn', 'Preisspiegel drucken / PDF …'], ['expBtn', 'Speichern unter … (GAEB, Excel)'], '-', [() => lvDaten(), 'LV- & Auftragsdaten …', !L], '-', archiv];
+  if (tab === 'auftraege' || tab === 'uebersicht') return [['newBtn', 'Neues LV / neuer Auftrag …'], ['impBtn', 'Einlesen … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], ['expBtn', 'Speichern unter … (GAEB, Excel)']];
+  return UMENU;
+}
 function uLeiste(sk) {
   return (UPHASE[sk] || []).map(([sel, l]) => { const b = ribKnopf(sel); if (!b) return '';
     return `<button type="button" class="btn sm ug" data-ucmd="${esc(sel)}" data-udr${b.disabled ? ' disabled' : ''} title="${esc(b.title || l)}">${(b.querySelector('svg') || {}).outerHTML || ''}${esc(l)}</button>`; }).join('');
@@ -700,16 +721,22 @@ document.addEventListener('click', (e) => {
   const h = e.target.closest('[data-uhaupt]');
   if (h) { const a = h.dataset.uhaupt; if (a === 'new') return $('#newBtn').click();
     if (a === 'pos') { const b = ribKnopf('[data-act="pos"]'); if (b) b.click(); return; }
+    if (a === 'reNeu') { e.stopPropagation(); return reNeuMenu(h); }
     const z = document.querySelector(`#view [data-act="${a}"]`); if (z) { z.scrollIntoView({ block: 'nearest' }); z.click(); } return; }
   if (e.target.closest('[data-umenu]')) {
     if (m) { m.remove(); return; }
     const d = document.createElement('div'); d.className = 'umenu'; d.setAttribute('role', 'menu');
     const sicht = new Set((UPHASE[schrittVon(tab)[0]] || []).map((x) => x[0]));
-    d.innerHTML = UMENU.filter((x) => x === '-' || !sicht.has(x[0])).map((x) => { if (x === '-') return '<hr>'; const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');
+    UFN = [];
+    d.innerHTML = uMenuPunkte().filter((x) => x === '-' || typeof x[0] === 'function' || !sicht.has(x[0])).map((x) => { if (x === '-') return '<hr>';
+      if (typeof x[0] === 'function') { UFN.push(x[0]); return `<button type="button" role="menuitem" data-ufn="${UFN.length - 1}"${x[2] ? ' disabled' : ''}>${esc(x[1])}</button>`; }
+      const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');
     d.innerHTML = d.innerHTML.replace(/(<hr>)+/g, '<hr>').replace(/^<hr>|<hr>$/g, '');
     const r = e.target.closest('[data-umenu]').getBoundingClientRect(); document.body.appendChild(d);   // am Körper: Neuzeichnen der Leiste schließt es nicht
     Object.assign(d.style, { position: 'fixed', top: (r.bottom + 4) + 'px', left: Math.max(8, r.right - d.offsetWidth) + 'px', right: 'auto' }); return;
   }
+  const fz = e.target.closest('[data-ufn]');
+  if (fz) { if (m) m.remove(); const f = UFN[+fz.dataset.ufn]; if (f && !fz.disabled) { e.stopPropagation(); f(); } return; }
   const c = e.target.closest('[data-ucmd]');
   if (c) {
     if (m) m.remove(); const b = ribKnopf(c.dataset.ucmd); if (!b || b.disabled) return;
@@ -1181,7 +1208,7 @@ function render() {
   $('#stp').innerHTML = SCHRITTE.map(([k, l], i) => `${i ? '<span class="pf" aria-hidden="true">›</span>' : ''}<button type="button" data-schritt="${k}"${k === sk ? ' class="on" aria-current="step"' : ''}><i>${i + 1}</i>${esc(l)}</button>`).join('')
     + (bk ? `<a href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung ↗</a>` : '');
   const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
-  const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !(LIST.find((x) => x.id === L.id) || {}).vergeben], auftraege: ['new', '＋ Neues LV', !pid], tueren: null, aufmass: null, uebersicht: null }[tab];
+  const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !vergeben()], auftraege: ['new', '＋ Neues LV', !pid], tueren: null, aufmass: null, uebersicht: null }[tab];
   $('#utb').innerHTML = schrittVon(tab)[2].map((k) => `<button type="button" role="tab" data-tab="${k}"${tab === k ? ' class="on" aria-selected="true"' : ''}>${icn(k)}${esc((TABS.find((t) => t[0] === k) || [, k])[1])}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')
     + `<span class="ufill"></span><span class="uakt${(UPHASE[sk] || []).length > 3 ? ' viele' : ''}">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}${uLeiste(sk)}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle">⋯</button></span>`;
   const nLv = LIST.filter((x) => !x.archived).length;

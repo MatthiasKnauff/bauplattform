@@ -3175,8 +3175,12 @@ async function quGewerkAuf(gid, an, scroll) {
   await quBaumBauen(); quZeigen();
   if (scroll) setTimeout(() => {   // Überschrift unter dem festen Tabellenkopf sichtbar lassen, kurz rot markieren
     const r = document.querySelector(`#quelle tr[data-qg="${CSS.escape(gid)}"]`); if (!r) return;
-    const th = r.closest('table')?.querySelector('thead'); r.style.scrollMarginTop = ((th ? th.offsetHeight : 0) + 2) + 'px';
-    r.scrollIntoView({ block: 'start', behavior: 'smooth' }); window.BPHead?.achtung?.(r, { bis: document.getElementById('quelle') || r });
+    const th = r.closest('table')?.querySelector('thead'), sc = r.closest('.qu-l'), h0 = (th ? th.offsetHeight : 0) + 2;
+    if (sc) {   // nur wenn die Überschrift nicht zu sehen ist – dann ohne Rutschen direkt unter den Tabellenkopf
+      const a = sc.getBoundingClientRect(), b = r.getBoundingClientRect();
+      if (b.top < a.top + h0 || b.bottom > a.bottom) sc.scrollTop += b.top - a.top - h0;
+    } else { r.style.scrollMarginTop = h0 + 'px'; r.scrollIntoView({ block: 'start' }); }
+    window.BPHead?.achtung?.(r, { bis: document.getElementById('quelle') || r });
   }, 30);
 }
 let QUVOR = false;
@@ -3256,7 +3260,8 @@ function quProjMenu(anchor) {   // Kataloge oben, darunter Projekte mit kleinem 
   if (!istKat(QU.pid)) inp.focus();
 }
 const quItems = () => (QU.L && QU.L.data && QU.L.data.items) || [];
-function quZeigen() { quZeigen0(); quDreh(!!QUBUSY && QU.an && tab === 'lv'); }
+let QUSK = '';
+function quZeigen() { const k = `${QU.pid}|${quBaum() ? 'baum' : QU.lv}`, st = k === QUSK ? document.querySelector('#quelle .qu-l')?.scrollTop || 0 : 0; QUSK = k; quZeigen0(); const l = document.querySelector('#quelle .qu-l'); if (l && st) l.scrollTop = st; quDreh(!!QUBUSY && QU.an && tab === 'lv'); }
 function quZeigen0() {
   const box = $('#quelle'), an = QU.an && tab === 'lv';
   box.hidden = !an; document.querySelector('.body').classList.toggle('mit-quelle', an); $('#quBtn').classList.toggle('on', QU.an);

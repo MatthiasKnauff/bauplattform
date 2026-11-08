@@ -55,9 +55,9 @@ main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im
 .ph-firma{margin:0 auto;padding:.2rem .9rem;border-radius:999px;background:var(--y);color:var(--on);font-weight:700;font-size:1rem;white-space:nowrap;max-width:40vw;overflow:hidden;text-overflow:ellipsis}.ph-firma small{font-weight:500;opacity:.85;margin-left:.4rem}   /* Auftragnehmer oben in der Mitte – auffällig statt klein im Baum */
 .ph b{font-size:.95rem}
 #view{min-height:0}
-.tree{width:100%;border-collapse:collapse;font-size:.9rem;background:var(--card);border:1px solid var(--line)}   /* wie der Projektbaum links */
+.tree{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);border:1px solid var(--line)}   /* wie die LV-Tabelle (table.lv): gleiche Schriftgröße und Zeilenhöhe */
 .tree th{position:sticky;top:0;z-index:2;background:var(--tabs);color:var(--ink);font-weight:500;text-align:left;padding:.25rem .45rem;border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap;font-size:12.5px}
-.tree td{padding:.12rem .45rem;border-right:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:28rem;line-height:1.55}
+.tree td{padding:.1rem .4rem;border-right:1px solid color-mix(in srgb,var(--line) 60%,transparent);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:28rem;line-height:1.5}
 .tree td.r,.tree th.r{text-align:right;font-variant-numeric:tabular-nums}
 .tree tr:hover td{background:var(--hov)}
 .tree tr.sel td{background:#cfe2f6;color:#10283f}
@@ -237,12 +237,12 @@ table.lv.baum tr:not(.wurzel):not(.lang):hover td{background:var(--hov)}
 table.lv.baum .badge{margin-left:.3rem}
 table.lv tr.akt td{background:color-mix(in srgb,#4da3ff 16%,transparent)!important}
 table.lv tr.akt:not(.lang) td.oz{font-weight:700}table.lv tr.akt td{box-shadow:inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}table.lv tr.akt td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:7px 0 0 7px}table.lv tr.akt td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 7px 7px 0}table.lv tr.akt:has(+tr.lang.akt) td{box-shadow:inset 0 1.5px 0 var(--y)}table.lv tr.akt:has(+tr.lang.akt) td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y);border-radius:7px 0 0 0}table.lv tr.akt:has(+tr.lang.akt) td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y);border-radius:0 7px 0 0}table.lv tr.lang.akt td{box-shadow:inset 1.5px 0 0 var(--y),inset -1.5px 0 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 0 7px 7px}table.lv tr:not(.akt) td :is(input,select){cursor:default}
-table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
+table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-davor td{box-shadow:inset 0 3px 0 var(--y)}
 .ib:hover{color:var(--ink);background:var(--hov)}
 .ib.on{color:var(--y)}
 .acts-c{white-space:nowrap;text-align:right}
 .badge{display:inline-block;font-size:.7rem;border-radius:999px;padding:.02rem .4rem;border:1px solid var(--line);color:var(--mute);margin-left:.25rem;vertical-align:1px;font-style:normal;font-weight:500}
-.badge.nt{border-color:#e07b3a;color:#e07b3a}
+.badge.nt{border-color:#e07b3a;color:#e07b3a}table.lv .ib[data-a="ntti"]{font-size:.68rem;font-weight:700;letter-spacing:.02em;color:#e07b3a;opacity:.4}table.lv .ib[data-a="ntti"]:hover,table.lv .ib.an[data-a="ntti"]{opacity:1}table.lv .ib.an[data-a="ntti"]{background:#fdf0e6;border-color:#e07b3a}
 .tblw{overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:4px;max-height:calc(100vh - 210px)}
 .ps td.bp{min-width:8.5rem}
 .ps input.ep{width:6.5rem}
@@ -528,6 +528,10 @@ tr.am-lf td input{color:#c0621f}
 .lvx-akt table.tree th,.lvx-akt table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
 .re2.mit-lvbar table.tree th,.re2.mit-lvbar table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
 .lv-split>.lv-sl{overflow-x:clip}   /* breite LV-Tabelle neben der PDF: rechts sauber abschneiden statt über die PDF zu ragen (Trennung ziehen zeigt mehr) */
+.au2{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:.7rem;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto}
+.au-k h3{margin:.1rem 0 .5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.au-k h4{margin:.9rem 0 .35rem;font-size:.9rem}.au-sum{display:grid;grid-template-columns:1fr;gap:.15rem;font-size:.86rem}.au-sum span{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--line);padding:.1rem 0}.au-sum b{font-variant-numeric:tabular-nums}
+.au-kond .vk{font-size:.86rem}.au-kond .vk input,.au-kond .vk select{font-size:.86rem}
+@media (max-width:1100px){.au2{grid-template-columns:1fr}.au2-re{position:static;max-height:none}}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:.9rem}
 .re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;border-left:3px solid transparent;position:relative}
@@ -723,7 +727,6 @@ function pdfName(art, zusatz = '', lv = L) {
   t = t.replace(/(\s*[–\-·|]\s*)(?:LV\s*)?(?=\s*[–\-·|]|\s*$)/g, '').replace(/^\s*[–\-·|]\s*/, '');   // leere Teile samt Trennzeichen weg
   return t.replace(/\s+/g, ' ').replace(/[\\/:*?"<>|]+/g, '-').trim().slice(0, 150) + '.pdf';
 }
-const ohneLvTxt = (x) => (x.frei ? (x.ohne_lv === false ? ' · vergeben' : ' · ohne LV') : ' · vergeben');
 const ohneLv = (x) => !!(x.frei && x.ohne_lv !== false);   // Auftrag ohne LV: nur unter Prüfung und Abrechnung, nicht in Ausschreibung/Vergabe
 let PROJ = [], pid = null, LIST = [], L = null, tab = LS.get('tab', 'auftraege'), PC = {}, EXP = new Set(LS.get('exp', [])), TSEL = null, saveT = 0, saving = false, KONT = null, OPEN = new Set(), amPos = LS.get('amPos', null), amNur = LS.get('amNur', false);
 if (!TABS.some((t) => t[0] === tab)) tab = 'auftraege';
@@ -1278,8 +1281,8 @@ const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);   // Projek
 let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
 /* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
 function navUnter(k) {
-  const nb = { lv: ['new', '＋ Neues LV', !pid], tueren: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()], rechnungen: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()] }[k];
-  const baum = k === 'tueren' ? `<div class="nav-baum pjtree" id="pjTree">${pjBaum().replace('\u0001', '')}</div>` : '';   // LV, Angebote, Rechnungen: die LVs stehen im Tabellenfeld
+  const nb = { lv: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()], rechnungen: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()] }[k];
+  const baum = '';   // die LVs stehen im Tabellenfeld; die Fenster- & Türliste gilt für das ganze Projekt und braucht keinen LV-Baum
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }
 function pjBaum() {
@@ -1294,7 +1297,7 @@ function pjBaum() {
     const re = tab === 'aufmass' || tab === 'rechnungen', kids = re ? x.rechnungen : tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : [];
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
-    const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? ohneLvTxt(x).replace(' · ', '') : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // Firma steht oben in der Mitte; im Leistungsverzeichnis einzeilig wie in Aufträge
+    const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : '') : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
     out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
@@ -1808,13 +1811,13 @@ function vLv() {
       const lv = x.lvl || 1; if (zuAb && lv <= zuAb) zuAb = 0;
       const versteckt = !!zuAb; tief = lv; const zu = LVZU.has(x.id); if (!zuAb && zu) zuAb = lv;
       if (versteckt) return '';
-      return `<tr class="ti l${lv}" data-i="${i}"><td class="oz baumz"><div class="bz" style="${einr(lv + 1)}"><span class="car" data-zu="${x.id}" title="${zu ? 'aufklappen' : 'zuklappen'}">${zu ? '▸' : '▾'}</span>${IC.ti}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten"></div></td><td colspan="${V ? 6 : 5}"></td>
-      <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib" data-a="lvlauf" title="eine Ebene höher (mit seinen Untertiteln)"${lv > 1 ? '' : ' disabled'}>⇤</button><button class="ib" data-a="lvlab" title="zum Untertitel machen – eine Ebene tiefer (GAEB: höchstens 4 Ebenen)"${lv < 4 ? '' : ' disabled'}>⇥</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
+      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}" data-i="${i}"><td class="oz baumz"><div class="bz" style="${einr(lv + 1)}"><span class="car" data-zu="${x.id}" title="${zu ? 'aufklappen' : 'zuklappen'}">${zu ? '▸' : '▾'}</span>${IC.ti}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:.78rem" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td><td colspan="${V ? 6 : 5}"></td>
+      <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib${x.nt ? ' an' : ''}" data-a="ntti" title="${x.nt ? 'Nachtrag aufheben – die Positionen darunter werden wieder normale Positionen' : 'Diesen Gliederungspunkt als Nachtrag kennzeichnen – alle Positionen darunter gehören dann zum Nachtrag'}">NT</button><button class="ib" data-a="lvlauf" title="eine Ebene höher (mit seinen Untertiteln)"${lv > 1 ? '' : ' disabled'}>⇤</button><button class="ib" data-a="lvlab" title="zum Untertitel machen – eine Ebene tiefer (GAEB: höchstens 4 Ebenen)"${lv < 4 ? '' : ' disabled'}>⇥</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     }
     if (zuAb) return '';
     const open = OPEN.has(x.id), t = x.art === 'T';
     const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
-    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz baumz" title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"><div class="bz" style="${einr(tief + 2)}"><span class="car"></span>${icArt(x)}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:.78rem">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td>
+    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz baumz" title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"><div class="bz" style="${einr(tief + 2)}"><span class="car"></span>${icArt(x)}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt && x.nt_erbe ? `<span class="badge nt" title="gehört zum Nachtrag des Gliederungspunkts (${esc(x.nt_status || '')})">${esc(x.nt)}</span>` : x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:.78rem">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td>
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
       <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" list="ehList" style="width:3.8rem">`}</td>
       <td><select data-f="art" title="${esc(ARTEN[artW(x)])}" style="width:4.2rem">${Object.entries(ARTEN).map(([k, l]) => `<option value="${k}"${artW(x) === k ? ' selected' : ''} title="${l}">${k}</option>`).join('')}</select></td>
@@ -2006,7 +2009,7 @@ function addItem(kind) {
     neu = { id: uid(), typ: 'titel', lvl: akt && akt.typ === 'titel' ? (akt.lvl || 1) : ref && ref.typ === 'titel' ? (ref.lvl || 1) : ober ? (ober.lvl || 1) : 1, oz: '', kurz: '' };
   }
   else if (kind === 'txt') neu = { id: uid(), typ: 'pos', art: 'T', oz: '', kurz: '', lang: '', menge: 0, einheit: '' };
-  else if (kind === 'nt') { const n = I.filter((x) => x.nt).length + 1; neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 1, einheit: 'psch', nt: 'NT' + n, nt_status: 'angemeldet' }; }
+  else if (kind === 'nt') { const n = ntNr(); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 1, einheit: 'psch', nt: 'NT' + n, nt_status: 'angemeldet' }; }
   else { const last = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T') || [...I].reverse().find((x) => x.typ === 'pos' && x.art !== 'T'); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: last ? last.einheit : 'm2', kg: last ? last.kg : '' }; }
   I.splice(at, 0, neu); if (LVAKT) LVAKT = neu.id;
   numerieren(); changed(true);
@@ -2052,6 +2055,19 @@ function numDialog() {
     bg.querySelector('#ozV').textContent = [...Array(t)].map((_, i) => String(i + 1).padStart(ts, '0')).join('.') + '.' + String(st).padStart(p, '0') + ` (Titel ${'1'.padStart(ts, '0')}, Positionen ${String(st).padStart(p, '0')}, ${String(2 * st).padStart(p, '0')} …)`; };
   bg.addEventListener('change', vor); vor();
 }
+/* Nachträge: Nummer vergeben (nur eigene, nicht geerbte zählen) und Vererbung vom Gliederungspunkt auf die Positionen darunter (Spiegel von nt_erben im Server) */
+function ntNr() { const I = items(); let n = 0; I.forEach((y) => { if (y.nt && !y.nt_erbe) n++; }); let k = n + 1; while (I.some((y) => y.nt === 'NT' + k)) k++; return k; }
+function ntErben(I) {
+  const st = [];
+  I.forEach((x) => {
+    if (x.typ === 'titel') { const lv = x.lvl || 1; while (st.length && st[st.length - 1][0] >= lv) st.pop(); st.push([lv, x]); return; }
+    if (x.typ !== 'pos') return;
+    const erbe = [...st].reverse().map((p) => p[1]).find((t) => t.nt);
+    if (x.nt_erbe && !erbe) { delete x.nt; delete x.nt_status; delete x.nt_grund; delete x.nt_erbe; }
+    else if (erbe && (!x.nt || x.nt_erbe)) { x.nt = erbe.nt; x.nt_status = erbe.nt_status || 'angemeldet'; x.nt_grund = erbe.nt_grund || ''; x.nt_erbe = true; }
+  });
+  return I;
+}
 function moveItem(i, dir) {
   const I = items(), x = I[i];
   if (x.typ === 'titel') {   // Titel samt Inhalt verschieben
@@ -2085,7 +2101,7 @@ document.addEventListener('change', (e) => {
   if (el.id === 'proj') { pid = +el.value; LS.set('pid', pid); if (window.BPHead) BPHead.projektSetzen(pid); loadList(); return; }
   if (el.id === 'fileIn') { if (el.files[0]) { const f = el.files[0], z = IMP ? IMP.ziel : 'lv', bi = IMP && IMP.bieter; doImport(f).then(() => inOrdner(f, z, bi)); } el.value = ''; return; }
   const row = el.closest('tr[data-i]');
-  if (row && tab === 'lv' && (el.dataset.f === 'art' || el.dataset.f === 'nt_status')) { render(); }
+  if (row && tab === 'lv' && (el.dataset.f === 'art' || el.dataset.f === 'nt_status')) { if (el.dataset.f === 'nt_status') ntErben(items()); render(); }
   if (el.dataset.am != null) { amSave(el); return; }
   if (el.dataset.amNew != null) { amNeu(el); return; }
   if (el.dataset.ang) { angSave(el); return; }
@@ -2110,6 +2126,7 @@ document.addEventListener('click', async (e) => {
   if (ac) {
     const a = ac.dataset.act;
     if (a === 'new') return newDialog();
+    if (a === 'lvDaten') return lvDaten();
     if (['titel', 'utitel', 'glied', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
     if (a === 'num') { numDialog(); return; }
     if (a === 'bk') return bkDialog();
@@ -2141,6 +2158,10 @@ document.addEventListener('click', async (e) => {
     const i = +row.dataset.i, x = items()[i], a = ib.dataset.a;
     if (a === 'up' || a === 'down') return moveItem(i, a === 'up' ? -1 : 1);
     if (a === 'del') { items().splice(i, 1); numerieren(); changed(true); return; }
+    if (a === 'ntti') {   // Gliederungspunkt als Nachtrag: die Positionen darunter erben Nummer und Stand (Server: nt_erben)
+      if (x.nt) { delete x.nt; delete x.nt_status; delete x.nt_grund; } else { x.nt = 'NT' + ntNr(); x.nt_status = 'angemeldet'; }
+      ntErben(items()); HIST.next = x.nt ? `${x.nt}: Gliederungspunkt als Nachtrag` : 'Nachtrag am Gliederungspunkt aufgehoben'; changed(true); return;
+    }
     if (a === 'lvlauf' || a === 'lvlab') {   // Titel samt seinen Untertiteln eine Ebene höher/tiefer
       const I = items(), alt = x.lvl || 1, d = a === 'lvlab' ? 1 : -1;
       const vor = [...I.slice(0, i)].reverse().find((y) => y.typ === 'titel');
@@ -4235,25 +4256,28 @@ document.addEventListener('dragstart', (e) => {
 });
 document.addEventListener('dragover', (e) => {
   if (ZIEH == null || ![...(e.dataTransfer.types || [])].includes('text/x-ava-zeile')) return;
-  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); document.querySelectorAll('.zieh-hier').forEach((r) => r.classList.remove('zieh-hier'));
-  if (tr) { e.preventDefault(); tr.classList.add('zieh-hier'); }
+  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'), kopf = !tr && e.target.closest && e.target.closest('table.lv thead, table.lv tr.wurzel');
+  document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor'));
+  if (tr) { e.preventDefault(); const r = tr.getBoundingClientRect(); tr.classList.add(e.clientY < r.top + r.height / 2 ? 'zieh-davor' : 'zieh-hier'); }   // obere Hälfte: davor einfügen (so geht es auch ganz nach oben)
+  else if (kopf) { e.preventDefault(); const t0 = kopf.closest('table').querySelector('tbody tr[data-i]'); if (t0) t0.classList.add('zieh-davor'); }
 });
 document.addEventListener('drop', (e) => {
   if (ZIEH == null || !e.dataTransfer.getData('text/x-ava-zeile')) return;
-  e.preventDefault(); document.querySelectorAll('.zieh-hier').forEach((r) => r.classList.remove('zieh-hier'));
-  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); const von = ZIEH; ZIEH = null; if (!tr) return;
+  e.preventDefault(); const markiert = document.querySelector('.zieh-davor,.zieh-hier'); const davor = !!(markiert && markiert.classList.contains('zieh-davor'));
+  document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor'));
+  const tr = (e.target.closest && e.target.closest('table.lv tr[data-i]')) || markiert; const von = ZIEH; ZIEH = null; if (!tr || !tr.dataset || tr.dataset.i == null) return;
   const I = items(), x = I[von]; let nach = +tr.dataset.i;
   if (LVSEL.size > 1 && LVSEL.has(x.id)) {   // mehrere markierte Zeilen zusammen verschieben
     const ziel = I[nach]; if (LVSEL.has(ziel.id)) return;
     const blk = I.filter((y) => LVSEL.has(y.id)), rest = I.filter((y) => !LVSEL.has(y.id));
-    rest.splice(rest.indexOf(ziel) + 1, 0, ...blk); L.data.items = rest; HIST.next = `${blk.length} Zeilen verschoben`; numerieren(); changed(true); return;
+    rest.splice(rest.indexOf(ziel) + (davor ? 0 : 1), 0, ...blk); L.data.items = rest; HIST.next = `${blk.length} Zeilen verschoben`; numerieren(); changed(true); return;
   }
   let ende = von + 1; if (x.typ === 'titel') { const lv = x.lvl || 1; while (ende < I.length && !(I[ende].typ === 'titel' && (I[ende].lvl || 1) <= lv)) ende++; }
   if (nach >= von && nach < ende) return;   // in sich selbst
   const blk = I.splice(von, ende - von); if (nach >= ende) nach -= blk.length;
-  I.splice(nach + 1, 0, ...blk); HIST.next = 'Verschoben'; numerieren(); changed(true);
+  I.splice(nach + (davor ? 0 : 1), 0, ...blk); HIST.next = 'Verschoben'; numerieren(); changed(true);
 });
-document.addEventListener('dragend', () => { ZIEH = null; document.querySelectorAll('table.lv tr[draggable="true"]').forEach((r) => { r.draggable = false; }); document.querySelectorAll('.zieh-hier').forEach((r) => r.classList.remove('zieh-hier')); });
+document.addEventListener('dragend', () => { ZIEH = null; document.querySelectorAll('table.lv tr[draggable="true"]').forEach((r) => { r.draggable = false; }); document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor')); });
 
 /* ---------- Eigenschaften einer Position (wie in ORCA: Allgemein · Weiteres · Menge · Grafik) ---------- */
 const LB = ['000 Baustelleneinrichtung', '002 Erdarbeiten', '006 Spezialtiefbau', '009 Entwässerungskanalarbeiten', '012 Mauerarbeiten', '013 Betonarbeiten', '014 Natur-, Betonwerksteinarbeiten', '016 Zimmer- und Holzbauarbeiten', '017 Stahlbauarbeiten', '018 Abdichtungsarbeiten', '020 Dachdeckungsarbeiten', '021 Dachabdichtungsarbeiten', '022 Klempnerarbeiten', '023 Putz- und Stuckarbeiten, Wärmedämmsysteme', '024 Fliesen- und Plattenarbeiten', '025 Estricharbeiten', '026 Fenster, Außentüren', '027 Tischlerarbeiten', '028 Parkett-, Holzpflasterarbeiten', '029 Beschlagarbeiten', '030 Rollladenarbeiten', '031 Metallbauarbeiten', '032 Verglasungsarbeiten', '034 Maler- und Lackierarbeiten', '036 Bodenbelagarbeiten', '037 Tapezierarbeiten', '038 Vorgehängte hinterlüftete Fassaden', '039 Trockenbauarbeiten', '040 Wärmeversorgungsanlagen', '042 Gas- und Wasserinstallation', '044 Abwasserinstallation', '045 Sanitärausstattung', '053 Niederspannungsanlagen', '069 Aufzüge', '080 Straßen, Wege, Plätze', '081 Betonerhaltungsarbeiten', '084 Abbruch- und Rückbauarbeiten', '087 Abfallentsorgung'];
@@ -4328,7 +4352,7 @@ function eigDialog(id) {
     else if (e === 'kg' || e === 'kg81') x[e] = String(v).replace(/\D/g, '').slice(0, 3);
     else if (e === 'pa') { if (v === 'V') { x.art = 'T'; x.vb = true; } else { x.art = v; delete x.vb; } if (v !== 'N') delete x.gb; }
     else if (e === 'bed') { if (['N', 'E'].includes(x.art)) x.art = v ? 'E' : 'N'; if (!v) delete x.gb; }
-    else if (e === 'nt') { if (v) { x.nt = 'NT' + (items().filter((y) => y.nt).length + 1); x.nt_status = 'angemeldet'; } else { delete x.nt; delete x.nt_status; delete x.nt_grund; } }
+    else if (e === 'nt') { if (v) { x.nt = 'NT' + ntNr(); x.nt_status = 'angemeldet'; } else { delete x.nt; delete x.nt_status; delete x.nt_grund; } }
     else if (['gb', 'entf', 'sp', 'np_vor', 'np_nach'].includes(e)) { if (v) x[e] = true; else delete x[e]; }
     else if (e === 'bezug' || e === 'lb') { if (v) x[e] = v; else delete x[e]; }
     else x[e] = v;
@@ -4394,15 +4418,28 @@ function vAuftraege() {
     const lv = PC[x.id];
     if (!lv) { out.push(`<tr><td colspan="10" class="mu" style="padding-left:3.4rem">wird geladen …</td></tr>`); return; }
     const R = lvBaum(lv), sicht = new Set([k]);
-    const NT = (lv.data.items || []).filter((y) => y.typ === 'pos' && y.nt);
-    out.push(`<tr class="nt-neu"><td colspan="10"><span class="tw" style="padding-left:2.2rem"><button type="button" class="btn sm" data-ntneu="${x.id}" title="Nachtrag von Hand erfassen – aus Rechnungen und Aufmaßen der Firma entstehen Nachträge automatisch">＋ Nachtrag erfassen</button><span class="hint" style="margin-left:.6rem">${NT.length ? `${NT.length} Nachtr${NT.length === 1 ? 'ag' : 'äge'} · angemeldet ${NT.filter((y) => y.nt_status === 'angemeldet').length} · beauftragt ${NT.filter((y) => y.nt_status === 'beauftragt').length} · abgelehnt ${NT.filter((y) => y.nt_status === 'abgelehnt').length}` : 'noch keine Nachträge – Positionen aus Rechnungen/Aufmaßen, die nicht im LV stehen, werden automatisch Nachträge'}</span></span></td></tr>`);
-    NT.forEach((y) => { const r = R.find((q) => q.x === y) || { nt: 0, g: 0, gRoh: null }; const ab = y.nt_status === 'abgelehnt';
-      row(`${k}:${y.id}`, 2, false, IC.pos, `<span class="${ab ? 'mu' : ''}" title="${esc(y.nt_grund || '')}">${esc(y.nt)} · ${esc(y.oz || '')} ${esc(y.kurz || '')}</span>`,
-        ['', '', `<select class="nt-st ${y.nt_status || 'angemeldet'}" data-ntst="${x.id}:${y.id}" title="${esc(y.nt_grund || '')}"><option value="angemeldet"${(y.nt_status || 'angemeldet') === 'angemeldet' ? ' selected' : ''}>angemeldet</option><option value="beauftragt"${y.nt_status === 'beauftragt' ? ' selected' : ''}>beauftragt</option><option value="abgelehnt"${ab ? ' selected' : ''}>abgelehnt</option></select>`,
-          e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Nachtrag', '', esc(y.kg || ''), '']); });
+    const ALLE = (lv.data.items || []).filter((y) => y.nt && (y.typ === 'pos' || y.typ === 'titel'));
+    const G = new Map();   // je Nachtragsnummer eine Gruppe: Stand wird für den ganzen Nachtrag gesetzt (auch auf Gliederungsebene)
+    ALLE.forEach((y) => { const g = G.get(y.nt) || { nt: y.nt, titel: null, pos: [] }; if (y.typ === 'titel' && !g.titel) g.titel = y; else if (y.typ === 'pos') g.pos.push(y); G.set(y.nt, g); });
+    const NT = [...G.values()];
+    const stVon = (gq) => (gq.titel || gq.pos[0] || {}).nt_status || 'angemeldet';
+    const zahl = (st) => NT.filter((gq) => stVon(gq) === st).length;
+    out.push(`<tr class="nt-neu"><td colspan="10"><span class="tw" style="padding-left:2.2rem"><button type="button" class="btn sm" data-ntneu="${x.id}" title="Nachtrag von Hand erfassen – aus Rechnungen und Aufmaßen der Firma entstehen Nachträge automatisch">＋ Nachtrag erfassen</button><span class="hint" style="margin-left:.6rem">${NT.length ? `${NT.length} Nachtr${NT.length === 1 ? 'ag' : 'äge'} · angemeldet ${zahl('angemeldet')} · beauftragt ${zahl('beauftragt')} · abgelehnt ${zahl('abgelehnt')}` : 'noch keine Nachträge – Positionen aus Rechnungen/Aufmaßen, die nicht im LV stehen, werden automatisch Nachträge'}</span></span></td></tr>`);
+    const ntSel = (st, key, grund) => `<select class="nt-st ${st}" data-ntst="${key}" title="${esc(grund || '')}">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s3) => `<option value="${s3}"${st === s3 ? ' selected' : ''}>${s3}</option>`).join('')}</select>`;
+    NT.forEach((gq) => {
+      const st = stVon(gq), ab = st === 'abgelehnt', kopf = gq.titel || (gq.pos.length === 1 ? gq.pos[0] : null), kk = `${k}:nt:${gq.nt}`;
+      const summe = gq.pos.reduce((a, y) => { const r = R.find((q) => q.x === y) || {}; return a + (r.nt || r.gRoh || 0); }, 0);
+      const grund = (gq.titel || gq.pos[0] || {}).nt_grund || '';
+      const einzeln = !gq.titel && gq.pos.length === 1;   // einzelne Nachtragsposition: wie bisher eine Zeile
+      const bez = einzeln ? `${esc(gq.nt)} · ${esc(kopf.oz || '')} ${esc(kopf.kurz || '')}`
+        : `<b>${esc(gq.nt)}</b>${gq.titel ? ` · ${esc(gq.titel.oz || '')} ${esc(gq.titel.kurz || '')}` : ''} <small class="mu">${gq.titel ? 'Gliederungspunkt · ' : ''}${gq.pos.length} Pos.</small>`;
+      row(kk, 2, !einzeln, gq.titel ? IC.ti : IC.pos, `<span class="${ab ? 'mu' : ''}" title="${esc(grund)}">${bez}</span>`,
+        ['', '', ntSel(st, `${x.id}:nt=${encodeURIComponent(gq.nt)}`, grund), e2(summe), e2(summe), gq.titel ? 'Nachtrag (Gliederungspunkt)' : 'Nachtrag', '', esc((kopf || {}).kg || ''), '']);
+      if (!einzeln && EXP.has(kk)) gq.pos.forEach((y) => { const r = R.find((q) => q.x === y) || {}; row(`${k}:${y.id}`, 3, false, IC.pos, `<span class="${ab ? 'mu' : ''}">${esc(y.oz || '')} ${esc(y.kurz || '')}</span>`, ['', '', '', e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Position', jn(y.art === 'E'), esc(y.kg || ''), '']); });
+    });
     R.forEach((r) => {
       if (!sicht.has(r.par)) return;
-      if (r.typ !== 'ti' && r.x.nt) return;   // Nachträge stehen oben unter „Nachtrag erfassen“
+      if (r.x.nt) return;   // Nachträge (Positionen und Gliederungspunkte samt Inhalt) stehen oben unter „Nachtrag erfassen“
       const tief = r.typ === 'ti' ? r.lvl + 1 : (R.find((q) => q.k === r.par) || { lvl: 0 }).lvl + 2;
       const kids = r.typ === 'ti' && R.some((q) => q.par === r.k);
       if (r.typ === 'ti') {
@@ -4415,29 +4452,54 @@ function vAuftraege() {
       }
     });
   });
-  return `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:22rem">Bezeichnung</th><th>Firma</th><th class="r">Gesamt (EUR)</th><th>Nachtrag</th><th class="r">Nachtrag Gesamt</th><th class="r">Prognose (EUR)</th><th>Art</th><th>Bedarfsposition</th><th>KG</th><th class="r">abgerechnet</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
+  const tabelle = `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:22rem">Bezeichnung</th><th>Firma</th><th class="r">Gesamt (EUR)</th><th>Nachtrag</th><th class="r">Nachtrag Gesamt</th><th class="r">Prognose (EUR)</th><th>Art</th><th>Bedarfsposition</th><th>KG</th><th class="r">abgerechnet</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
     <p class="hint" style="margin:.5rem 0 0">▸ klappt auf · Klick wählt das LV · Doppelklick öffnet es im Leistungsverzeichnis. Gesamt = Auftragssumme (nach Nachlass), ohne Auftrag die Schätzung. Prognose = Auftrag + beauftragte und angemeldete Nachträge. Grau: Bedarfs-/Wahlpositionen (nicht in der Summe).</p>`;
+  return `<div class="au2" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div><aside class="au2-re">${auftragKarte()}</aside></div>`;
+}
+/* Rechts neben der Aufträge-Tabelle: Bedingungen des gewählten Auftrags (wie die Rechnungskarte rechts unter Rechnungen) – Konditionen direkt änderbar */
+function auftragKarte() {
+  const x = L && LIST.find((y) => y.id === L.id);
+  if (!x) return '<div class="card empty au-k"><p>Links einen Auftrag wählen – hier stehen dann Firma, Summen und Auftragsbedingungen (Nachlass, Skonto, Sicherheiten).</p></div>';
+  const V = L.vergabe || {}, K = L.calc || {}, nt = K.nachtraege || {}, an = !!(V.bieter && (V.preise || V.frei));
+  const kopf = `<div class="re-wo">${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.gewerk ? ' · ' + esc(x.gewerk) : ''}</div>`;
+  if (!an) return `<div class="card au-k">${kopf}<h3>Noch kein Auftrag</h3><p class="hint">${x.status === 'nicht_vergeben' ? 'Als „nicht vergeben“ gekennzeichnet.' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'} – vergeben unter „Angebote & Preisspiegel“.` : 'Noch keine Angebote.'}</p>
+    <div class="au-sum"><span>Schätzung<b>${eur(K.schaetzung || 0)}</b></span></div></div>`;
+  const ges = (K.auftrag || 0) + (nt.beauftragt || 0), rest = ges - (K.abgerechnet || 0);
+  const zeile = (l, v, t = '') => `<span${t ? ` title="${esc(t)}"` : ''}>${l}<b>${v}</b></span>`;
+  return `<div class="card au-k">${kopf}<h3>${x.aufgehoben ? '⏸ ' : ''}${esc(V.bieter)} <span class="pill ${x.aufgehoben ? 'mu' : 'ok'}">${x.aufgehoben ? 'Beauftragung aufgehoben' : V.frei && !V.preise ? 'Auftrag frei eingetragen' : 'beauftragt' + (V.datum ? ' am ' + de(V.datum) : '')}</span></h3>
+    <div class="au-sum">${zeile('Auftrag netto', eur(K.auftrag || 0), V.nachlass || V.nachlass_eur ? 'nach ' + nlText(V) + ' Nachlass' : '')}${zeile('Nachträge beauftragt', eur(nt.beauftragt || 0))}${nt.angemeldet ? zeile('angemeldet', eur(nt.angemeldet)) : ''}${zeile('Prognose', eur(ges + (nt.angemeldet || 0)), 'Auftrag + beauftragte und angemeldete Nachträge')}${zeile('Leistungsstand', eur(K.leistung || 0))}${zeile('abgerechnet', eur(K.abgerechnet || 0))}${zeile('noch offen', eur(rest), 'Auftrag + beauftragte Nachträge − abgerechnet')}</div>
+    <h4>Auftragsbedingungen</h4>
+    <div class="au-kond">${auftragKonditionen(V)}</div>
+    <p class="hint" style="margin:.4rem 0 0">Auftragsnummer, Vertragsart, Fristen, Vertragsstrafe und Zahlungsfrist: <button type="button" class="btn sm" data-act="lvDaten">LV- &amp; Auftragsdaten …</button></p>
+  </div>${vSicherheiten(K)}`;
 }
 /* Nachtrag von Hand (Aufträge): Text, Menge × EP oder Pauschale, Status – Position unter „Nachträge“, EP wird Auftragspreis */
 function ntDialog(lvId) {
   const x = LIST.find((y) => y.id === lvId) || {};
   const bg = modalBox(`<h3>Nachtrag erfassen <span class="hint">· ${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.auftragnehmer ? ' · ' + esc(x.auftragnehmer) : ''}</span></h3><div class="fm">
+      <label>Umfang</label><select id="ntU"><option value="pos">eine Position (unter dem Titel „Nachträge“)</option><option value="titel">eigener Gliederungspunkt (mehrere Positionen folgen im LV)</option></select>
       <label>Bezeichnung</label><input id="ntK" placeholder="z. B. Zusätzliche Kernbohrungen DN 150">
       <label>Menge</label><input id="ntM" value="1" inputmode="decimal" style="width:7rem">
       <label>Einheit</label><input id="ntE" value="psch" list="ntEH" style="width:7rem"><datalist id="ntEH">${['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join('')}</datalist>
       <label>EP netto €</label><input id="ntP" inputmode="decimal" style="width:9rem" placeholder="Preis der Firma">
       <label>Stand</label><select id="ntS"><option value="angemeldet">angemeldet (Firma hat angekündigt)</option><option value="beauftragt">beauftragt</option><option value="abgelehnt">abgelehnt</option></select>
       <label>Grund / Bemerkung</label><input id="ntG" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></div>
-    <p class="hint" style="margin:.6rem 0 0">Kommt als Position unter den Titel „Nachträge“ des LV; beauftragte und angemeldete Nachträge zählen in Prognose und Rechnungsprüfung, abgelehnte nicht. Langtext und Details danach im Leistungsverzeichnis.</p>
+    <p class="hint" style="margin:.6rem 0 0" id="ntH">Kommt als Position unter den Titel „Nachträge“ des LV; beauftragte und angemeldete Nachträge zählen in Prognose und Rechnungsprüfung, abgelehnte nicht. Langtext und Details danach im Leistungsverzeichnis.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Erfassen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     const kurz = $('#ntK').value.trim(); if (!kurz) { toast('Bitte eine Bezeichnung eintragen.', true); return; }
     btn.disabled = true;
     try {
-      const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz, menge: pf($('#ntM').value), einheit: $('#ntE').value.trim(), ep: $('#ntP').value.trim() === '' ? null : pf($('#ntP').value), status: $('#ntS').value, grund: $('#ntG').value.trim() });
+      const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz, menge: pf($('#ntM').value), einheit: $('#ntE').value.trim(), ep: $('#ntP').value.trim() === '' ? null : pf($('#ntP').value), status: $('#ntS').value, grund: $('#ntG').value.trim(), als_titel: $('#ntU').value === 'titel' });
       close(); PC[lvId] = r; if (L && L.id === lvId) L = r; EXP.add('l' + lvId); await refreshList(); render(); toast('Nachtrag erfasst.');
     } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  bg.querySelector('#ntU').addEventListener('change', (ev) => {   // Gliederungspunkt: Menge/Einheit nur für eine optionale Pauschalposition
+    const t = ev.target.value === 'titel'; ['#ntM', '#ntE'].forEach((q) => { const el = bg.querySelector(q); el.disabled = t; });
+    bg.querySelector('#ntP').placeholder = t ? 'optional: Pauschale als erste Position' : 'Preis der Firma';
+    bg.querySelector('#ntH').textContent = t ? 'Legt unter dem Titel „Nachträge“ einen eigenen Gliederungspunkt als Nachtrag an; alle Positionen, die Sie danach im Leistungsverzeichnis darunter eintragen, gehören zum Nachtrag und übernehmen seinen Stand. Mit EP wird gleich eine Pauschalposition darunter angelegt.'
+      : 'Kommt als Position unter den Titel „Nachträge“ des LV; beauftragte und angemeldete Nachträge zählen in Prognose und Rechnungsprüfung, abgelehnte nicht. Langtext und Details danach im Leistungsverzeichnis.';
   });
   setTimeout(() => $('#ntK').focus(), 30);
 }
@@ -4462,7 +4524,8 @@ document.addEventListener('click', async (e) => {
   TSEL = tr.dataset.tr; const m = /^l(\d+)/.exec(TSEL);
   // nur die Markierung umsetzen – kein Neuaufbau, sonst geht der Doppelklick ins Leere
   document.querySelectorAll('.tree tr.sel').forEach((r) => r.classList.remove('sel')); tr.classList.add('sel');
-  if (m && (!L || L.id !== +m[1])) { await flush(); L = await api('api/lv/' + m[1]); LS.set('lv:' + pid, L.id); PC[L.id] = L; selBtn(); kpis(); $('#phT').textContent = 'Aufträge: ' + ((PROJ.find((p) => p.id === pid) || {}).name || ''); }
+  if (m && (!L || L.id !== +m[1])) { await flush(); L = await api('api/lv/' + m[1]); LS.set('lv:' + pid, L.id); PC[L.id] = L; selBtn(); kpis(); $('#phT').textContent = 'Aufträge: ' + ((PROJ.find((p) => p.id === pid) || {}).name || '');
+    const re = document.querySelector('.au2-re'); if (re) re.innerHTML = auftragKarte(); }   // Karte rechts folgt der Auswahl, die Tabelle bleibt stehen
 });
 document.addEventListener('dblclick', async (e) => {
   if (tab !== 'auftraege') return;

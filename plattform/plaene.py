@@ -440,11 +440,34 @@ def versand():
         return jsonify(error="Der E-Mail-Versand ist nicht eingerichtet (Verwaltung → Einstellungen → Mailserver)."), 400
     # Dateien beim Bautagebuch holen
     anh, liste, total = [], [], 0
+    frisch = {"liste": None}
+
+    def _lesen(q):
+        """Datei lesen; liegt sie nicht mehr an der gemerkten Stelle (inzwischen verschoben, z. B. nach „überholt“),
+        den Ordner neu einlesen und die Datei gleichen Namens nehmen – sonst eine verständliche Meldung."""
+        try:
+            return _bt("/api/plaene/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": q}), raw=True), q
+        except ValueError as e:
+            if "nicht lesbar" not in str(e) and "No such file" not in str(e):
+                raise
+            name = q.rsplit("/", 1)[-1]
+            if frisch["liste"] is None:
+                try:
+                    d = _bt("/api/plaene/dateien?" + urllib.parse.urlencode({"project_id": pid, "neu": "1"}))
+                    frisch["liste"] = [str(f.get("pfad") or "") for f in (d.get("dateien") or [])]
+                except ValueError:
+                    frisch["liste"] = []
+            treffer = [f for f in frisch["liste"] if f.rsplit("/", 1)[-1] == name and f != q]
+            treffer.sort(key=lambda f: ("überholt" in f.lower() or "ueberholt" in f.lower() or "alt" in f.lower().split("/"), len(f)))   # aktueller Ordner vor „überholt“
+            if treffer:
+                return _bt("/api/plaene/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": treffer[0]}), raw=True), treffer[0]
+            raise ValueError(f"Der Plan „{name}“ liegt nicht mehr an der gemerkten Stelle im Projektordner (verschoben oder gelöscht). "
+                             "Bitte die Planliste neu einlesen (↻) und den aktuellen Stand wählen.")
     try:
         for x in sel:
             pfade = [x["pfad"]] + ([str(y) for y in x.get("cad") or []] if b.get("cad") else [])
             for q in pfade:
-                data = _bt("/api/plaene/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": q}), raw=True)
+                data, q = _lesen(q)
                 total += len(data)
                 if total > cf["max_mb"] * 1024 * 1024:
                     return jsonify(error=f"Die Anhänge sind größer als {cf['max_mb']} MB – bitte weniger Pläne auf einmal oder ohne CAD-Dateien senden. "

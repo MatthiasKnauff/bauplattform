@@ -743,6 +743,10 @@ def clean_items(v):
             t_ = {"id": i, "typ": "titel", "lvl": max(1, min(4, int(_f(x.get("lvl"), 1)))), "oz": _s(x.get("oz"), 40), "kurz": _s(x.get("kurz"), 300)}
             if x.get("tl"):   # Herkunft aus einer Fenster- & Türliste (für „LV aktualisieren“)
                 t_["tl"] = _s(x.get("tl"), 60)
+            if x.get("nt"):   # ganzer Gliederungspunkt ist ein Nachtrag: alle Positionen darunter erben Kennung und Stand
+                t_["nt"] = _s(x.get("nt"), 20)
+                t_["nt_status"] = x.get("nt_status") if x.get("nt_status") in ("angemeldet", "beauftragt", "abgelehnt") else "angemeldet"
+                t_["nt_grund"] = _s(x.get("nt_grund"), 1000)
             out.append(t_)
             continue
         art = x.get("art") if x.get("art") in ARTEN else "N"
@@ -761,12 +765,34 @@ def clean_items(v):
             p["vb"] = True
         if isinstance(x.get("pdb"), int) and x["pdb"] > 0:   # Herkunft: Position der Baudaten (für Auftrags-/Angebotspreise)
             p["pdb"] = x["pdb"]
-        if x.get("nt"):   # Nachtrag
+        if x.get("nt") and not x.get("nt_erbe"):   # Nachtrag (eigene Position)
             p["nt"] = _s(x.get("nt"), 20)
             p["nt_status"] = x.get("nt_status") if x.get("nt_status") in ("angemeldet", "beauftragt", "abgelehnt") else "angemeldet"
             p["nt_grund"] = _s(x.get("nt_grund"), 1000)
         out.append(p)
-    return out
+    return nt_erben(out)
+
+
+def nt_erben(items):
+    """Positionen unter einem Nachtrags-Gliederungspunkt tragen dessen Kennung und Stand (nt_erbe), eigene Nachträge bleiben wie sie sind;
+    fällt die Kennung des Titels weg, verlieren sie sie wieder."""
+    st = []   # Titelstapel: (lvl, titel)
+    for x in items:
+        if x.get("typ") == "titel":
+            lvl = x.get("lvl") or 1
+            while st and st[-1][0] >= lvl:
+                st.pop()
+            st.append((lvl, x))
+            continue
+        if x.get("typ") != "pos":
+            continue
+        erbe = next((t for _, t in reversed(st) if t.get("nt")), None)
+        if x.get("nt_erbe") and not erbe:
+            for k in ("nt", "nt_status", "nt_grund", "nt_erbe"):
+                x.pop(k, None)
+        elif erbe and (not x.get("nt") or x.get("nt_erbe")):
+            x["nt"], x["nt_status"], x["nt_grund"], x["nt_erbe"] = erbe["nt"], erbe.get("nt_status") or "angemeldet", erbe.get("nt_grund") or "", True
+    return items
 
 
 def oz_maske(m):
@@ -2699,20 +2725,30 @@ def nachtrag_neu(i):
         ende = ti + 1
         while ende < len(items) and not (items[ende].get("typ") == "titel" and (items[ende].get("lvl") or 1) <= (t.get("lvl") or 1)):
             ende += 1
-        n_nt = sum(1 for x in items if x.get("nt")) + 1
-        pos = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit,
-               "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": _s(b.get("grund"), 300) or f"von Hand erfasst ({date.today().strftime('%d.%m.%Y')}, {g.user['name']})"}
-        if ep is not None:
-            pos["ep_s"] = ep
-        items.insert(ende, pos)
+        n_nt = sum(1 for x in items if x.get("nt") and not x.get("nt_erbe")) + 1
+        grund = _s(b.get("grund"), 300) or f"von Hand erfasst ({date.today().strftime('%d.%m.%Y')}, {g.user['name']})"
+        if b.get("als_titel"):   # ganzer Gliederungspunkt als Nachtrag (Positionen danach im LV darunter eintragen)
+            pos = {"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": (t.get("lvl") or 1) + 1, "oz": "", "kurz": kurz, "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund}
+            items.insert(ende, pos)
+            if ep is not None:   # mit Betrag: gleich eine Pauschalposition darunter
+                p2 = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit, "ep_s": ep}
+                items.insert(ende + 1, p2)
+                pos = p2
+        else:
+            pos = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit,
+                   "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund}
+            if ep is not None:
+                pos["ep_s"] = ep
+            items.insert(ende, pos)
+        nt_erben(items)
         nummerieren(items, maske=d.get("ozm"))
         d["items"] = items
-        if ep is not None and (V.get("preise") is not None or V.get("bieter") or V.get("frei")):
+        if ep is not None and pos.get("typ") == "pos" and (V.get("preise") is not None or V.get("bieter") or V.get("frei")):
             VP = dict(V.get("preise") or {}); VP[pos["id"]] = ep; V["preise"] = VP
         c.execute("UPDATE ava_lv SET data=?, vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
                   (json.dumps(d, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
         versionen.nach(c, f"avalv:{i}", g.user["name"])
-        C.audit(g.user["name"], "ava", "Nachtrag erfasst", f"LV {r['nr']} {r['name']}: {pos['nt']} {kurz} ({status})")
+        C.audit(g.user["name"], "ava", "Nachtrag erfasst", f"LV {r['nr']} {r['name']}: NT{n_nt} {kurz} ({status})")
         return _antwort(c, i)
 
 
@@ -2728,13 +2764,18 @@ def nachtrag_status(i, pid):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         d = _j(r["data"], {}) or {}
-        x = next((y for y in d.get("items") or [] if y.get("id") == pid and y.get("nt")), None)
-        if not x:
+        items = d.get("items") or []
+        x = next((y for y in items if y.get("id") == pid and y.get("nt")), None)
+        # pid darf auch die Nachtragsnummer sein (nt=NT3): dann der ganze Nachtrag – alle Positionen und Gliederungspunkte dieser Nummer
+        gruppe = [y for y in items if y.get("nt") and (y is x or (x is None and pid.startswith("nt=") and str(y.get("nt")) == pid[3:]))]
+        if not gruppe:
             return jsonify(error="Nachtrag nicht gefunden"), 404
         versionen.vor(c, f"avalv:{i}")
-        x["nt_status"] = st
-        if "grund" in b:
-            x["nt_grund"] = _s(b.get("grund"), 300)
+        for y in gruppe:
+            y["nt_status"] = st
+            if "grund" in b:
+                y["nt_grund"] = _s(b.get("grund"), 300)
+        nt_erben(d["items"])   # Gliederungspunkt: Stand an die Positionen darunter
         c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), _now(), g.user["name"], i))
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         return _antwort(c, i)

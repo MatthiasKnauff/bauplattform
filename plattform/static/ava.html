@@ -241,6 +241,10 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .am tr.ph .ok{color:var(--ok)}
 .am tr.ph .ueb{color:#e07b3a}
 .re{display:grid;gap:1rem}
+.re-leiste{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 .6rem}
+.re-tab{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;padding:.4rem .75rem;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font:inherit;text-align:left}
+.re-tab small{color:var(--mute);font-size:.76rem}.re-tab.on{border:2px solid var(--blue,#2c5fb3);background:color-mix(in srgb,var(--blue,#2c5fb3) 8%,var(--card));padding:calc(.4rem - 1px) calc(.75rem - 1px)}
+.re-wo{font-size:.8rem;color:var(--mute);margin:0 0 .15rem}.re .card[data-reid]{border-left:4px solid var(--blue,#2c5fb3)}
 .re .card h3{margin:0 0 .3rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
 .re .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem .8rem;margin:.6rem 0}
 .re .g label{display:flex;flex-direction:column;font-size:.78rem;color:var(--mute);gap:.15rem}
@@ -1749,6 +1753,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const amr = t.closest('[data-amraum]'); if (amr) return raumDialog();
+  const rs = t.closest('[data-resel]'); if (rs) { PJSEL = 'r' + rs.dataset.resel; render(); return; }
   const rb = t.closest('[data-reb]'); if (rb) return reAktion(rb);
   const ue = t.closest('tr[data-ue]'); if (ue) { tab = 'lv'; LS.set('tab', tab); return openLv(+ue.dataset.ue); }
 });
@@ -2487,12 +2492,16 @@ function vRechnungen() {
     <p class="hint" style="margin:.8rem 0 .4rem"><b>Ohne LV und Angebot</b> (z. B. kleine Handwerker mit Zettelwirtschaft): Firma und Auftragssumme direkt eintragen – Rechnungen werden dann mit dem geprüften Betrag erfasst und freigegeben und stehen in der Kostenkontrolle.</p>
     ${freiFelder()}<div class="bar" style="justify-content:center"><button class="btn pri" data-act="freiVergeben">Auftrag frei eintragen</button></div></div>`;
   const K = L.calc, RC = Object.fromEntries(K.rechnungen.map((r) => [r.id, r]));
-  const cards = [...L.rechnungen].reverse().map((r) => {
+  const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
+  const SEL = (PJSEL && PJSEL[0] === 'r' && RS.find((r) => 'r' + r.id === PJSEL)) || RS.find((r) => r.status !== 'geprueft') || RS[RS.length - 1];
+  const leiste = RS.length ? `<div class="re-leiste" role="tablist" aria-label="Rechnungen dieses Auftrags">${RS.map((r) => { const c = RC[r.id] || {}, g = r.status === 'geprueft';
+    return `<button type="button" role="tab" class="re-tab${r === SEL ? ' on' : ''}" data-resel="${r.id}" aria-selected="${r === SEL}"><b>${esc(reTitel(r))}</b><small>${g ? '✓ geprüft' : '● in Prüfung'}${r.re_nr ? ' · Nr. ' + esc(r.re_nr) : ''} · ${eur(c.zahlung || 0)}</small></button>`; }).join('')}</div>` : '';
+  const cards = (SEL ? [SEL] : []).map((r) => {
     const c = RC[r.id], g = r.status === 'geprueft', last = !reNachfolger(r), ab = r.data.abzuege || [], art = r.art || 'abschlag';
     const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
     const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung abhaken: Summen werden automatisch mit ✔ / ✘ markiert, dann von Hand ergänzen oder streichen – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}
       <label class="btn sm">📎 Rechnung (PDF) hinzufügen<input type="file" accept="application/pdf,.pdf" hidden data-rebeleg="${r.id}"></label><span class="hint">oder hierher ziehen – wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt</span></div>`;
-    const kopf = `<h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
+    const kopf = `<div class="re-wo">${esc(L.vergabe && L.vergabe.bieter || L.auftragnehmer || '')}${L.nr || L.name ? ' · LV ' + esc([L.nr, L.name].filter(Boolean).join(' ')) : ''}</div><h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
         <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' || c.frei ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
       <div class="g"><label>Rechnungsnr. der Firma<input data-re="re_nr" data-id="${r.id}" value="${esc(r.re_nr)}"${dis}></label>
         <label>Rechnungsdatum<input type="date" data-re="datum" data-id="${r.id}" value="${esc(r.datum)}"${dis}></label>
@@ -2542,8 +2551,7 @@ function vRechnungen() {
         ${r.gefordert ? `<tr><td>gefordert ${eur(r.gefordert)} · Differenz zum geprüften Leistungsstand</td><td class="r" style="color:${c.differenz > 0.5 ? 'var(--red)' : 'inherit'}">${eur(c.differenz)}</td></tr>` : ''}
       </tbody></table>${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
-  return `<div class="bar"><button class="btn sm pri" data-act="reNeu" aria-haspopup="listbox">+ Neu ▾</button>
-    <span class="hint abz-z" title="Voreinstellung für alle Rechnungen dieses Auftrags – je Rechnung änderbar; geprüfte Rechnungen behalten ihre Einstellung">Abziehen:${abzChips(abzAuftrag(), 'data-vabz', false)}</span>
+  return `${leiste}<div class="bar"><span class="hint abz-z" title="Voreinstellung für alle Rechnungen dieses Auftrags – je Rechnung änderbar; geprüfte Rechnungen behalten ihre Einstellung">Abziehen:${abzChips(abzAuftrag(), 'data-vabz', false)}</span>
     <span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
     <div class="re">${cards || abzLeer()}${vSicherheiten(K)}</div>`;
 }
@@ -2600,12 +2608,13 @@ async function freiVergeben(lvId, root = document) {
   return true;
 }
 function reNeuMenu(anchor) {
-  const offen = L.rechnungen.some((r) => r.status !== 'geprueft'), schluss = L.rechnungen.some((r) => r.art === 'schluss');
-  const grund = offen ? 'erst die offene Rechnung prüfen' : '';
-  const it = [['abschlag', 'Teilrechnung', 'kumuliert über das Aufmaß', offen || schluss], ['schluss', 'Schlussrechnung', 'mit Sicherheit für Mängelansprüche', offen || schluss],
+  const offeneRe = L.rechnungen.find((r) => r.status !== 'geprueft'), offen = !!offeneRe, schluss = L.rechnungen.some((r) => r.art === 'schluss');
+  const grund = offen ? `erst „${reTitel(offeneRe)}“ prüfen (✓ Prüfung abschließen)` : '';
+  const it = [...(offen ? [['zu:' + offeneRe.id, `→ ${reTitel(offeneRe)} öffnen`, 'ist noch in Prüfung – eine neue Rechnung geht erst danach (kumulierte Abrechnung)', false]] : []),['abschlag', 'Teilrechnung', 'kumuliert über das Aufmaß', offen || schluss], ['schluss', 'Schlussrechnung', 'mit Sicherheit für Mängelansprüche', offen || schluss],
     ['regie', 'Regierechnung', 'Stundenlohnarbeiten nach Stundenzetteln', offen], ['nachtrag', 'Nachtragsrechnung', 'kumuliert nur über die Nachtragspositionen', offen || schluss],
     ['sicherheit', 'Freigabe der Sicherheit', `noch einbehalten ${eur((L.calc.sicherheit || {}).offen || 0)}`, offen]];
-  pickMenu(anchor, { items: it.map(([v, t, sub, dis]) => ({ value: dis ? '' : v, title: t, sub: dis ? (grund || 'nach der Schlussrechnung nicht mehr') : sub })), onPick: (v) => { if (v) reDialog(v); } });
+  pickMenu(anchor, { items: it.map(([v, t, sub, dis]) => ({ value: dis ? '' : v, title: t, sub: dis ? (grund || 'nach der Schlussrechnung nicht mehr') : sub })),
+    onPick: (v) => { if (!v) return; if (v.startsWith('zu:')) { PJSEL = 'r' + v.slice(3); render(); return; } reDialog(v); } });
 }
 function reDialog(art = 'abschlag') {
   const n = L.rechnungen.length + 1, offen = (L.calc.sicherheit || {}).offen || 0;
@@ -2624,7 +2633,9 @@ function reDialog(art = 'abschlag') {
       const r = await call(`api/lv/${L.id}/rechnungen`, 'POST', { art, re_nr: $('#reNr').value, datum: $('#reD').value, eingang: $('#reE').value,
         gefordert: art === 'sicherheit' ? 0 : (pf($('#reG').value) || 0), betrag: art === 'sicherheit' ? (pf($('#reB').value) || 0) : undefined });
       const f = $('#reF').files[0]; close();
-      if (f) { const neu = r.rechnungen.reduce((a, x) => (x.nr > a.nr ? x : a), r.rechnungen[0]); await reBelegHoch(neu.id, f); }
+      const neu = r.rechnungen.reduce((a, x) => (x.nr > a.nr ? x : a), r.rechnungen[0]);
+      if (neu) { PJSEL = 'r' + neu.id; render(); toast(`${reTitel(neu)} angelegt.`); }
+      if (f && neu) await reBelegHoch(neu.id, f);
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
 }

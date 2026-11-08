@@ -2577,6 +2577,7 @@ function amNachtragNeu() {
     const kurz = bg.querySelector('#ntK').value.trim(); if (!kurz) { bg.querySelector('#ntK').focus(); return; }
     const I = L.data.items, id = uid(), n = I.filter((x) => x.nt).length + 1, ep = pf(bg.querySelector('#ntP').value);
     const p = { id, typ: 'pos', art: 'N', oz: '', kurz, lang: '', menge: pf(bg.querySelector('#ntM').value) || 0, einheit: bg.querySelector('#ntE').value.trim() || 'psch' };
+    if (ep != null) p.ep_s = ep;
     if (!frei) { p.nt = 'NT' + n; p.nt_status = 'beauftragt'; }
     close(); await flush(); I.push(p); numerieren();
     try { await saveNow(); if (!frei && ep != null) await saveVp(id, ep); } catch (e) { return toast(e.message, true); }
@@ -2619,6 +2620,7 @@ async function reZeilenInsLv(rid, nur) {
   await flush(); const I = L.data.items; let n = I.filter((x) => x.nt).length; const preise = {};
   for (const k of ks) { const z = zs[k], id = uid();
     const p = { id, typ: 'pos', art: 'N', oz: '', kurz: z.text.trim(), lang: `aus ${reTitel(r)}${r.re_nr ? ' Nr. ' + r.re_nr : ''}`, menge: z.menge ?? 1, einheit: z.einheit || 'psch' };
+    if (z.ep != null) p.ep_s = z.ep;   // EP der Rechnung auch als Schätzpreis
     if (!frei) { p.nt = 'NT' + (++n); p.nt_status = 'beauftragt'; if (z.ep != null) preise[id] = z.ep; }
     I.push(p); z.pos = id; }
   try { await saveNow(); if (Object.keys(preise).length) await api('api/lv/' + L.id, 'PUT', { vergabe: { preise } }); await call('api/rechnungen/' + rid, 'PUT', { zeilen: zs }); toast(frei ? 'Ins LV übernommen.' : 'Als Nachtrag ins LV übernommen – steht in der Kostenkontrolle.'); }

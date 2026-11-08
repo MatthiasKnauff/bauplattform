@@ -3364,6 +3364,7 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung", als_nt=False):
             da.add(oz)
         if b.get("ep") is not None:
             VP[i] = b["ep"]
+            items[-1]["ep_s"] = b["ep"]   # auch als Schätzpreis im LV (Spalte EP Schätz.)
         t = {"seite": b.get("seite"), "box": b.get("box"), "menge": m}
         for k_ in ("ep", "gp", "einheit"):
             if b.get(k_) is not None:
@@ -3378,6 +3379,8 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung", als_nt=False):
             n_nt += 1
             items[-1].update(nt=f"NT{n_nt}", nt_status="beauftragt", nt_grund=herkunft)
         VP[i] = z.get("ep")
+        if z.get("ep") is not None:
+            items[-1]["ep_s"] = z["ep"]
         treffer[i] = {"seite": z.get("seite"), "box": z.get("box"), "menge": z.get("menge"), "ep": z.get("ep"), "gp": z.get("gp"), "einheit": z.get("einheit") or ""}
         z["pos"] = i
         ohne_oz, neu = True, neu + 1

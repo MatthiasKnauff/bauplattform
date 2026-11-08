@@ -911,6 +911,11 @@ def einst_abrechnung():
     return jsonify(nt_nur_beauftragt=nt_nur_beauftragt(), admin=bool(g.user["is_admin"]))
 
 
+def _ist_vergeben(V):
+    """Aktiver Auftrag: Preise eines Bieters oder frei eingetragen – und nicht aufgehoben."""
+    return bool((V.get("preise") or V.get("frei")) and not V.get("aufgehoben"))
+
+
 def rechne(lv, angebote, aufmass, rechnungen):
     d = _j(lv["data"], {}) or {}
     items = d.get("items") or []
@@ -1020,6 +1025,10 @@ def rechne(lv, angebote, aufmass, rechnungen):
                 eb_stand[kette] = E
     einbehalten = eb_stand["haupt"] + eb_stand["nachtrag"] + eb_regie
     leistung = stand_wert(am) + frei_summe / (1 - nl if nl < 1 else 1)
+    if V.get("aufgehoben"):   # Beauftragung aufgehoben: Auftrag, Nachträge und Rechnungen bleiben sichtbar, zählen aber nirgends mehr
+        return {"schaetzung": round(schaetz, 2), "ohne_schaetzung": ohne_s, "angebote": A, "auftrag": 0.0, "nachtraege": {k: 0.0 for k in nt},
+                "aufmass": {k: round(v, 4) for k, v in am.items()}, "leistung": 0.0, "rechnungen": R, "abgerechnet": 0.0, "aufgehoben": True,
+                "sicherheit": {"einbehalten": 0.0, "freigegeben": 0.0, "offen": 0.0, **S}}
     return {"schaetzung": round(schaetz, 2), "ohne_schaetzung": ohne_s, "angebote": A, "auftrag": round(auftrag, 2),
             "nachtraege": {k: round(v, 2) for k, v in nt.items()}, "aufmass": {k: round(v, 4) for k, v in am.items()},
             "leistung": round(leistung * (1 - nl), 2), "rechnungen": R,
@@ -1188,15 +1197,16 @@ def lv_liste():
             d = _j(r["data"], {}) or {}
             out.append({"id": r["id"], "project_id": r["project_id"], "nr": r["nr"], "name": r["name"], "gewerk": r["gewerk"], "status": r["status"],
                         "archived": bool(r["archived"]), "updated": r["updated"], "n_pos": sum(1 for x in d.get("items") or [] if x["typ"] == "pos" and x.get("art") != "T"),
-                        "n_angebote": len(ang), "auftragnehmer": V.get("bieter") or "", "schaetzung": k["schaetzung"], "auftrag": k["auftrag"],
+                        "n_angebote": len(ang), "auftragnehmer": (V.get("bieter") or "") if _ist_vergeben(V) else "", "schaetzung": k["schaetzung"], "auftrag": k["auftrag"],
                         "nachtraege": k["nachtraege"]["beauftragt"], "nt_angemeldet": k["nachtraege"]["angemeldet"],
                         "n_nt": sum(1 for x in d.get("items") or [] if x.get("nt")), "leistung": k["leistung"],
                         # Prognose wie in der AVA üblich: Auftrag + beauftragte und angemeldete Nachträge; ohne Auftrag die Schätzung
                         "prognose": round(max(k["auftrag"] + k["nachtraege"]["beauftragt"] + k["nachtraege"]["angemeldet"], k["abgerechnet"] if V.get("frei") else 0)
-                                          if (V.get("preise") or V.get("frei")) else k["schaetzung"], 2),
+                                          if _ist_vergeben(V) else k["schaetzung"], 2),
                         "abgerechnet": k["abgerechnet"], "min_angebot": min([a["netto"] for a in k["angebote"] if a["summe"]] or [0]),
                         # für die Projektbäume in Angebote / Aufmaßprüfung / Rechnungen
-                        "vergeben": bool(V.get("preise") or V.get("frei")), "frei": bool(V.get("frei")), "angebot_id": V.get("angebot_id"),
+                        "vergeben": _ist_vergeben(V), "frei": bool(V.get("frei")) and _ist_vergeben(V), "angebot_id": V.get("angebot_id"),
+                        "aufgehoben": {**V["aufgehoben"], "bieter": V.get("bieter") or ""} if isinstance(V.get("aufgehoben"), dict) else None,
                         "angebote": [{"id": a["id"], "bieter": a["bieter"], **{f: x[f] for f in ("netto", "rang", "fehlt") if f in x}}
                                      for a in ang for x in k["angebote"] if x["id"] == a["id"]],
                         "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "status": x["status"], "re_nr": x["re_nr"],
@@ -1352,7 +1362,7 @@ def lv_daten(i):
         A = V.get("auftrag") or {}
         if V.get("bieter") and not A.get("auftragsdatum") and V.get("datum"):
             A = {**A, "auftragsdatum": V["datum"]}
-        return jsonify(lv={**(D.get("meta") or {}), "gewerk": r["gewerk"] or ""}, auftrag=A, kg_namen=KG_NAMEN, vergeben=bool(V.get("bieter")), bieter=V.get("bieter") or "",
+        return jsonify(lv={**(D.get("meta") or {}), "gewerk": r["gewerk"] or ""}, auftrag=A, kg_namen=KG_NAMEN, vergeben=bool(V.get("bieter")) and not V.get("aufgehoben"), bieter=V.get("bieter") or "",
                        felder_lv=stammdaten.felder(stammdaten.LV), felder_auftrag=stammdaten.felder(stammdaten.AUFTRAG),
                        plan=stammdaten.plan_termine(c, r["project_id"], r["gewerk"] or None, r["name"] or None) if r["project_id"] else {"start": "", "ende": "", "plaene": []},
                        titel=f"LV {r['nr']} {r['name']}".strip())
@@ -2994,10 +3004,22 @@ def vergabe(i):
             n_re = c.execute("SELECT COUNT(*) AS n FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone()["n"]
             if n_re and not b.get("trotz_rechnungen"):   # sonst verschwindet der Auftrag mitsamt seinen Rechnungen aus den Listen
                 return jsonify(error=f"An diesem Auftrag hängen {n_re} Rechnung{'en' if n_re != 1 else ''} – bitte bestätigen.", rechnungen=n_re), 409
-            c.execute("UPDATE ava_lv SET vergabe='{}', status='versendet', rev=rev+1, updated=?, updated_by=? WHERE id=?", (_now(), g.user["name"], i))
+            if n_re:   # Auftrag mit Rechnungen bleibt erhalten, wird nur deaktiviert – zählt nirgends mehr, „wieder beauftragen“ holt ihn zurück
+                V = _j(r["vergabe"], {}) or {}
+                V["aufgehoben"] = {"am": date.today().isoformat(), "von": g.user["name"]}
+                c.execute("UPDATE ava_lv SET vergabe=?, status='versendet', rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
+                C.audit(g.user["name"], "ava", "Beauftragung aufgehoben", f"LV {r['nr']} {r['name']} ({V.get('bieter') or ''}), {n_re} Rechnung(en) deaktiviert")
+            else:
+                c.execute("UPDATE ava_lv SET vergabe='{}', status='versendet', rev=rev+1, updated=?, updated_by=? WHERE id=?", (_now(), g.user["name"], i))
             c.execute("DELETE FROM pdb_preis WHERE user_name IN (?, ?)", (f"ava:{i}:auftrag", f"ava:{i}:median"))
+        elif b.get("reaktivieren"):   # aufgehobene Beauftragung wieder in Kraft setzen
+            V = _j(r["vergabe"], {}) or {}
+            if not V.pop("aufgehoben", None):
+                return jsonify(error="Die Beauftragung ist nicht aufgehoben."), 400
+            c.execute("UPDATE ava_lv SET vergabe=?, status='vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
+            C.audit(g.user["name"], "ava", "Beauftragung wieder in Kraft", f"LV {r['nr']} {r['name']} ({V.get('bieter') or ''})")
         elif isinstance(b.get("wiederherstellen"), dict):   # „Rückgängig“ nach „Vergabe aufheben“: den alten Stand vollständig zurück
-            if (_j(r["vergabe"], {}) or {}).get("bieter"):
+            if _ist_vergeben(_j(r["vergabe"], {}) or {}):
                 return jsonify(error="Inzwischen ist wieder vergeben – nichts zurückzunehmen."), 400
             V = b["wiederherstellen"]
             if len(json.dumps(V)) > 2_000_000 or not (V.get("bieter") or V.get("frei")):
@@ -3005,6 +3027,8 @@ def vergabe(i):
             c.execute("UPDATE ava_lv SET vergabe=?, status='vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?",
                       (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
             C.audit(g.user["name"], "ava", "Vergabe wiederhergestellt", f"LV {r['nr']} {r['name']} an {V.get('bieter') or ''}")
+        elif (_j(r["vergabe"], {}) or {}).get("aufgehoben") and c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone():
+            return jsonify(error="An der aufgehobenen Beauftragung hängen noch Rechnungen – erst „Wieder beauftragen“ oder die deaktivierten Rechnungen löschen."), 400
         elif b.get("frei"):   # Zettelwirtschaft: Auftrag ohne LV und Angebot – Firma und Summe frei eintragen
             bieter = _s(b.get("bieter"), 200)
             if not bieter:
@@ -3174,6 +3198,8 @@ def rechnung_neu(i):
             _touch(c, i)
             return _antwort(c, i)
         V0 = _j(r["vergabe"], {}) or {}
+        if V0.get("aufgehoben"):
+            return jsonify(error="Die Beauftragung ist aufgehoben – erst wieder beauftragen."), 400
         if not (V0.get("preise") or V0.get("frei")):
             return jsonify(error="Erst vergeben – oder ohne LV „Auftrag frei eintragen“ (Firma und Summe)."), 400
         art = b.get("art") if b.get("art") in RE_ARTEN else "abschlag"
@@ -3425,7 +3451,7 @@ def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung", als_nt=False):
     c.execute("UPDATE ava_lv SET data=?, vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
               (json.dumps(d, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), wer, lv["id"]))
     c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
-    if (V.get("bieter") or V.get("frei")) and (lv["status"] or "entwurf") in ("entwurf", "versendet"):   # Rechnung zu einem Auftrag: LV ist vergeben
+    if (V.get("bieter") or V.get("frei")) and not V.get("aufgehoben") and (lv["status"] or "entwurf") in ("entwurf", "versendet"):   # Rechnung zu einem Auftrag: LV ist vergeben
         c.execute("UPDATE ava_lv SET status='vergeben' WHERE id=?", (lv["id"],))
     R = c.execute("SELECT status, data FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
     if R and R["status"] != "geprueft":   # Rechnung jetzt nach Aufmaß prüfen statt als freie Summe
@@ -3619,7 +3645,7 @@ def ava_erkennen():
                 gw = bool(r["gewerk"]) and r["gewerk"].lower() in tl or bool(r["name"]) and r["name"].lower() in tl
                 sc = tr + (20 if firma_ok else 0) + (5 if gw else 0)
                 lvs.append({"id": r["id"], "project_id": r["project_id"], "nr": r["nr"], "name": r["name"], "treffer": tr, "firma": firma_ok,
-                            "vergeben": bool(V.get("preise") or V.get("frei")), "bieter": V.get("bieter") or "", "punkte": sc})
+                            "vergeben": _ist_vergeben(V), "bieter": V.get("bieter") or "", "punkte": sc})
         lvs.sort(key=lambda x: -x["punkte"])
         out["lvs"] = lvs[:12]
     return jsonify(out)

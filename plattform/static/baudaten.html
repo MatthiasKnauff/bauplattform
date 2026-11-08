@@ -105,6 +105,7 @@
   </div>
 </main>
 <script src="static/bp.js"></script>
+<script src="static/kataloge.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('bd.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('bd.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const F = { katalog: LS.get('katalog', 'gk3'), lb: '', gruppe: '', q: '', kg: '', einheit: '', genauigkeit: '', fav: false };
@@ -129,64 +130,6 @@ async function start() {
   $('#einh').innerHTML = '<option value="">alle</option>' + S.einheiten.map((e) => `<option${e === F.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('');
   $('#impBtn').hidden = !S.admin;
   seite(); laden();
-}
-/* Einstellungen → Kataloge: alle Kataloge anzeigen, ein-/ausblenden, hinzufügen (sirAdos *.ava, GAEB, LV), umbenennen, löschen */
-const KAT_ART = { katalog: 'Bauplattform', eigen: 'eigene Positionen', import: 'GAEB / LV', avakatalog: 'sirAdos / Ausschreibung' };
-function katalogeEinstellungen(host) {
-  const aus = new Set(LS.get('ausgeblendet', []));
-  const mb = (k) => k.art === 'import' || k.art === 'avakatalog';
-  host.innerHTML = `<p class="bph-mu">Alle Kataloge der Baudaten. Ausgeblendete erscheinen nicht in der Auswahl oben (gilt für diesen Browser). sirAdos-Kataloge (*.ava) stehen auch in der Ausschreibung als Kopierquelle zur Verfügung.</p>
-    ${S.kataloge.map((k) => `<div style="border:1px solid var(--line);border-radius:10px;padding:.6rem .8rem;margin:.45rem 0;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
-      <label style="display:flex;gap:.4rem;align-items:center;margin:0" title="In der Katalogauswahl anzeigen"><input type="checkbox" data-kzeig="${esc(k.key)}"${aus.has(k.key) ? '' : ' checked'} style="width:auto"></label>
-      <div style="flex:1;min-width:13rem"><b>${esc(k.name)}</b><br><span class="bph-mu" style="margin:0">${esc(KAT_ART[k.art] || k.art)} · ${k.n.toLocaleString('de-DE')} ${k.key === 'gk3e' ? 'Elemente' : 'Positionen'}${k.preisstand ? ' · Preisstand ' + esc(k.preisstand) : ''}${k.index_basis && k.key !== 'gk3' ? ' · Index ' + String(k.index_basis).replace('.', ',') : ''}${k.lizenz ? ' · ' + esc(k.lizenz) : ''}</span></div>
-      ${S.admin && mb(k) ? `<button type="button" class="bph-btn" data-kren="${esc(k.key)}">Umbenennen</button><button type="button" class="bph-btn" data-kweg="${esc(k.key)}">Löschen</button>` : ''}</div>`).join('')}
-    ${S.admin ? `<div class="bph-row" style="gap:.5rem;flex-wrap:wrap;margin-top:.7rem;align-items:center">
-      <label class="bph-btn pri" style="cursor:pointer">＋ sirAdos-Katalog (*.ava) …<input type="file" id="kAva" accept=".ava,.mdb,.accdb" hidden></label>
-      <button type="button" class="bph-btn" data-kgaeb>＋ GAEB-Datei oder LV …</button><span class="bph-mu" id="kMsg" style="margin:0"></span></div>
-      <p class="bph-mu">sirAdos Positionen oder Elemente: dieselbe Datei noch einmal einlesen ersetzt den Katalog (neuer Preisstand). Die Kataloge bleiben nur in der Datenbank des Büros – bitte die Lizenz des Anbieters beachten.</p>` : '<p class="bph-mu">Kataloge hinzufügen und löschen kann die Verwaltung.</p>'}
-    <h4 style="margin:1.1rem 0 .3rem">Bauteilkatalog für Allplan</h4>
-    <p class="bph-mu">Die Bauteil-Elemente der Bauplattform als Allplan-Kundenkatalog (Textformat wie der Elementkatalog NEM_ELE). In Allplan unter Material/Qualität wählbar; der Code am Anfang geht mit dem IFC-Export zurück, und die Baukosten übernehmen dann genau diesen Aufbau mit Preis. Anleitung im ZIP.</p>
-    <a class="bph-btn" href="api/allplan-katalog.zip" download>⤓ Katalog für Allplan (ZIP)</a>`;
-  const neu = async () => { await start(); katalogeEinstellungen(host); };
-  host.onchange = (e) => {
-    const z = e.target.closest('[data-kzeig]'); if (!z) return;
-    const a = new Set(LS.get('ausgeblendet', [])); if (z.checked) a.delete(z.dataset.kzeig); else a.add(z.dataset.kzeig); LS.set('ausgeblendet', [...a]); start();
-  };
-  host.onclick = async (e) => {
-    const r = e.target.closest('[data-kren]'), w = e.target.closest('[data-kweg]');
-    if (e.target.closest('[data-kgaeb]')) { importieren(); return; }
-    const k = S.kataloge.find((x) => x.key === (r || w || {}).dataset?.[r ? 'kren' : 'kweg']); if (!k) return;
-    const ava = k.art === 'avakatalog' ? k.key.replace(/^ava/, '') : null;
-    try {
-      if (r) {
-        const n = await bpEingabe('Name des Katalogs', k.name); if (!n || !n.trim()) return;
-        if (ava) await api(`../ava/api/katalog/${ava}`, 'PUT', { name: n.trim() }); else await api('api/katalog/' + encodeURIComponent(k.key), 'PUT', { name: n.trim() });
-      } else {
-        if (!(await bpFrage(`Katalog „${k.name}“ mit ${k.n.toLocaleString('de-DE')} Positionen löschen? Bereits übernommene Positionen in LVs und Baukosten bleiben.`))) return;
-        if (ava) await api(`../ava/api/katalog/${ava}`, 'DELETE'); else await api('api/katalog/' + encodeURIComponent(k.key), 'DELETE');
-        if (F.katalog === k.key) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); }
-      }
-      await neu(); toast(r ? 'Umbenannt' : 'Gelöscht');
-    } catch (er) { toast(er.message, true); }
-  };
-  const inp = host.querySelector('#kAva');
-  if (inp) inp.onchange = async () => {   // wie in der Ausschreibung: gepackt und in Teilen unter 1 MB an die Ausschreibung (gleiche Datenbank)
-    const f = inp.files[0]; if (!f) return; const m = host.querySelector('#kMsg'); m.textContent = `Packe „${f.name}“ (${Math.round(f.size / 1048576)} MB) …`;
-    try {
-      const gz = new Uint8Array(await new Response(f.stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
-      const T = 900 * 1024, n = Math.max(1, Math.ceil(gz.length / T)), id = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
-      let j = null;
-      for (let i = 0; i < n; i++) {
-        m.textContent = i < n - 1 ? `Lade hoch … ${Math.round(i / n * 100)} %` : 'Lese den Katalog ein … (bis zu einer halben Minute)';
-        const rr = await fetch(`../ava/api/katalog/teil?id=${id}&i=${i}&n=${n}&name=${encodeURIComponent(f.name)}`, { method: 'POST', body: gz.subarray(i * T, (i + 1) * T), headers: { 'Content-Type': 'application/octet-stream' }, credentials: 'same-origin' });
-        const txt = await rr.text(); try { j = JSON.parse(txt); } catch { throw new Error(`Der Server hat den Teil ${i + 1} von ${n} abgelehnt (${rr.status}).`); }
-        if (!rr.ok) throw new Error(j.error || 'Fehler ' + rr.status);
-      }
-      const x = (j.kataloge || []).find((y) => y.id === j.neu);
-      toast(x ? `„${x.name}“ eingelesen: ${(x.n_pos || 0).toLocaleString('de-DE')} ${x.art === 'elemente' ? 'Elemente' : 'Positionen'}.` : 'Katalog eingelesen.');
-      await neu();
-    } catch (er) { m.textContent = er.message; }
-  };
 }
 async function vorbemerkung(k) {
   let v; try { v = await api('api/vorbemerkungen?key=' + encodeURIComponent(k)); } catch (e) { toast(e.message, true); return; }
@@ -483,7 +426,7 @@ for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('
   await header('Baudaten', ME, PC);
   await start();
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
-    { key: 'kataloge', label: 'Kataloge', render: (h) => katalogeEinstellungen(h) },
+    { key: 'kataloge', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '', ava: '../ava/', gaeb: () => importieren(), nachher: () => start(), geloescht: (k) => { if (F.katalog === k) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); } } }); } },
     { key: 'preise', label: 'Preise, Index & Löhne', text: 'Baupreisindex, Regionalfaktor und Verrechnungslöhne', open: () => einstellungen() }]);
 })().catch((e) => toast(e.message, true));
 </script>

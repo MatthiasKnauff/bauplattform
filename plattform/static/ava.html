@@ -435,7 +435,7 @@ tr.am-lf td input{color:#c0621f}
 .stp button.on{color:var(--ink);font-weight:600;box-shadow:inset 0 -3px 0 var(--y)}.stp button.on i{background:var(--y);color:#fff}.stp button:hover{color:var(--ink)}
 .stp .pf{display:flex;align-items:center;color:var(--mute);opacity:.6;padding:0 .1rem}
 .stp a{margin-left:auto;align-self:center;font-size:.85rem;color:var(--mute);text-decoration:none;white-space:nowrap;padding:0 .4rem}.stp a:hover{color:var(--ink)}
-.utb{display:flex;align-items:center;gap:.3rem;height:42px;flex:none;border-bottom:1px solid var(--line);margin:0 -.8rem .2rem;padding:0 .8rem;overflow-x:auto}
+.utb{display:flex;align-items:center;gap:.3rem;min-height:42px;flex:none;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:0 -.8rem .2rem;padding:.2rem .8rem;overflow:visible}   /* bricht um statt zu scrollen */
 .utb button{display:flex;align-items:center;gap:.4rem;height:30px;padding:0 .75rem;border:0;border-radius:7px;background:none;font:inherit;font-size:.88rem;color:var(--ink);opacity:.8;cursor:pointer;white-space:nowrap}
 .utb button:hover{background:var(--hov);opacity:1}.utb button.on{background:var(--card);font-weight:600;opacity:1;box-shadow:0 0 0 1px var(--line)}
 .utb button small{color:var(--mute);font-size:.76rem;font-variant-numeric:tabular-nums}
@@ -522,6 +522,16 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 .uakt .ug{white-space:nowrap}
 @media (max-width:1500px){.uakt.viele .ug{font-size:0;gap:0;padding:.35rem .45rem}.uakt.viele .ug svg{width:18px;height:18px}}
 @media (max-width:1100px){.uakt .ug{font-size:0;gap:0;padding:.35rem .45rem}.uakt .ug svg{width:18px;height:18px}}
+
+/* Kostengruppen-Auswahl: Name groß, Nummer klein */
+.kgws{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.35rem;margin:.6rem 0 .2rem}
+.kgw{display:flex;gap:.5rem;align-items:flex-start;padding:.45rem .6rem;border:1px solid var(--line);border-radius:10px;cursor:pointer;line-height:1.25}
+.kgw:has(input:checked){border-color:color-mix(in srgb,var(--y) 55%,var(--line));background:color-mix(in srgb,var(--y) 7%,transparent)}
+.kgw input{margin-top:.15rem;flex:none}.kgw span{display:flex;flex-direction:column;min-width:0}.kgw b{font-weight:600;font-size:.9rem}.kgw small{color:var(--mute);font-size:.75rem}
+
+/* „Rückgängig“ unten links neben dem Projektbaum – verdeckt nicht das Ablagefeld darin */
+@media (min-width:861px){html:not([data-modus="einfach"]) #histBar{left:288px}}
+#navL{padding-bottom:1rem}
 </style>
 </head>
 <body>
@@ -565,6 +575,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 <datalist id="lbList"></datalist><datalist id="ehList"><option>m</option><option>m2</option><option>m3</option><option>St</option><option>psch</option><option>kg</option><option>t</option><option>h</option><option>lfm</option></datalist>
 <datalist id="gwList"></datalist>
 <script src="static/bp.js"></script>
+<script src="static/kataloge.js"></script>
 <script>
 /* Wird die App gerade neu gestartet (Update eingespielt), antwortet der Verteiler sofort mit 502 „… nicht erreichbar (ConnectionRefusedError)“ –
    die Anfrage ist dann nicht angekommen und wird nach ein paar Sekunden still wiederholt (bis zu einer Minute). */
@@ -1832,7 +1843,7 @@ async function newDialog() {
       else if (src === 'pdf') await lvDokHoch(r.id, pdfF, { uebernehmen: pdfUe });
     } catch (e) { toast(e.message, true); }
   });
-  const kgDraw = () => { const b = BK.find((x) => x.id === +$('#nlBkSel').value); $('#nlKgs').innerHTML = b ? '<br>' + b.kgs.map((k) => `<label><input type="checkbox" data-kg="${k}" checked> KG ${k}</label>`).join(' ') : ''; };
+  const kgDraw = () => { const b = BK.find((x) => x.id === +$('#nlBkSel').value); $('#nlKgs').innerHTML = b ? `<span class="kgws">${b.kgs.map(kgWahl).join('')}</span>` : ''; };
   bg.addEventListener('change', (e) => {
     if (e.target.name === 'nlSrc') { $('#nlBk').hidden = e.target.value !== 'bk'; $('#nlLv').hidden = e.target.value !== 'lv'; $('#nlFrei').hidden = e.target.value !== 'frei'; $('#nlPdf').hidden = e.target.value !== 'pdf'; if (e.target.value === 'bk') kgDraw(); }
     if (e.target.id === 'nlBkSel') kgDraw();
@@ -1840,18 +1851,21 @@ async function newDialog() {
   bg.querySelector('.modal').classList.add('wide');
   setTimeout(() => $('#nlName').focus(), 30);
 }
+/* Kostengruppen DIN 276, 3. Ebene – Namen für die Auswahl */
+const KG3 = {"311": "Herstellung", "312": "Umschließung", "313": "Wasserhaltung", "314": "Vortrieb", "319": "Baugrube, Sonstiges", "321": "Baugrundverbesserung", "322": "Flachgründungen und Bodenplatten", "323": "Tiefgründungen", "324": "Gründungsbeläge", "325": "Abdichtungen und Bekleidungen", "326": "Dränagen", "329": "Gründung, Sonstiges", "331": "Tragende Außenwände", "332": "Nichttragende Außenwände", "333": "Außenstützen", "334": "Außenwandöffnungen", "335": "Außenwandbekleidungen außen", "336": "Außenwandbekleidungen innen", "337": "Elementierte Außenwände", "338": "Lichtschutz Außenwände", "339": "Außenwände, Sonstiges", "341": "Tragende Innenwände", "342": "Nichttragende Innenwände", "343": "Innenstützen", "344": "Innenwandöffnungen", "345": "Innenwandbekleidungen", "346": "Elementierte Innenwände", "347": "Lichtschutz Innenwände", "349": "Innenwände, Sonstiges", "351": "Deckenkonstruktionen", "352": "Deckenöffnungen", "353": "Deckenbeläge", "354": "Deckenbekleidungen", "355": "Elementierte Decken", "359": "Decken, Sonstiges", "361": "Dachkonstruktionen", "362": "Dachöffnungen", "363": "Dachbeläge", "364": "Dachbekleidungen", "365": "Elementierte Dächer", "366": "Lichtschutz Dächer", "369": "Dächer, Sonstiges", "381": "Allgemeine Einbauten", "382": "Besondere Einbauten", "389": "Einbauten, Sonstiges", "391": "Baustelleneinrichtung", "392": "Gerüste", "393": "Sicherungsmaßnahmen", "394": "Abbruchmaßnahmen", "395": "Instandsetzungen", "396": "Materialentsorgung", "397": "Zusätzliche Maßnahmen", "398": "Provisorische Baukonstruktionen", "399": "Baukonstruktionen, Sonstiges", "411": "Abwasseranlagen", "412": "Wasseranlagen", "413": "Gasanlagen", "419": "Abwasser, Wasser, Gas, Sonstiges", "421": "Wärmeerzeugungsanlagen", "422": "Wärmeverteilnetze", "423": "Raumheizflächen", "424": "Verkehrsheizflächen", "429": "Wärmeversorgung, Sonstiges", "431": "Lüftungsanlagen", "432": "Teilklimaanlagen", "433": "Klimaanlagen", "434": "Kälteanlagen", "439": "Raumlufttechnik, Sonstiges", "441": "Hoch- und Mittelspannungsanlagen", "442": "Eigenstromversorgung", "443": "Niederspannungsschaltanlagen", "444": "Niederspannungsinstallation", "445": "Beleuchtungsanlagen", "446": "Blitzschutz und Erdung", "449": "Elektrische Anlagen, Sonstiges", "451": "Telekommunikationsanlagen", "452": "Such- und Signalanlagen", "454": "Elektroakustische Anlagen", "455": "Audiovisuelle Medien, Antennen", "456": "Gefahrenmelde- und Alarmanlagen", "457": "Datenübertragungsnetze", "459": "Kommunikation, Sonstiges", "461": "Aufzugsanlagen", "462": "Fahrtreppen, Fahrsteige", "469": "Förderanlagen, Sonstiges", "481": "Automationssysteme", "482": "Schaltschränke, Automationsschwerpunkte"};
+const kgWahl = (k) => `<label class="kgw"><input type="checkbox" data-kg="${k}" checked><span><b>${esc(KG3[k] || 'Kostengruppe')}</b><small>KG ${k}</small></span></label>`;
 async function bkDialog() {
   let BK = []; try { BK = (await api('api/baukosten?project_id=' + pid)).filter((b) => b.n); } catch (e) { toast(e.message, true); return; }
   if (!BK.length) { toast('Keine Kostenermittlung mit Bauteilen gefunden (Baukosten → Bauteile & Material).', true); return; }
   const bg = modalBox(`<h3>Aus den Baukosten übernehmen</h3><p class="hint" style="margin:0 0 .6rem">Bauteile mit Menge, Einheit und Einheitspreis werden als Positionen angehängt – je Kostengruppe ein Titel. Der Preis wird zur Schätzung im LV.</p>
-    <select id="bkSel" style="width:100%">${BK.map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><div class="kgs" id="bkKgs" style="margin-left:0"></div>
+    <select id="bkSel" style="width:100%">${BK.map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><div class="kgws" id="bkKgs"></div>
     <label style="display:flex;gap:.5rem;margin:.5rem 0 0;font-size:.88rem"><input type="checkbox" id="bkAuf" checked> Bauteile mit Aufbau aus dem Baukasten in Einzelpositionen auflösen (Menge = Faktor × Bauteilmenge, Langtexte aus den Baudaten)</label>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     try { await call(`api/lv/${L.id}/aus-baukosten`, 'POST', { bk_id: +$('#bkSel').value, kgs: [...bg.querySelectorAll('[data-kg]:checked')].map((x) => x.dataset.kg), aufloesen: $('#bkAuf').checked }); close(); toast('Bauteile übernommen.'); } catch (e) { toast(e.message, true); }
   });
-  const draw = () => { const b = BK.find((x) => x.id === +$('#bkSel').value); $('#bkKgs').innerHTML = b.kgs.map((k) => `<label><input type="checkbox" data-kg="${k}" checked> KG ${k}</label>`).join(' '); };
+  const draw = () => { const b = BK.find((x) => x.id === +$('#bkSel').value); $('#bkKgs').innerHTML = b.kgs.map(kgWahl).join(''); };
   bg.addEventListener('change', (e) => { if (e.target.id === 'bkSel') draw(); }); draw();
 }
 
@@ -3026,39 +3040,6 @@ let KAT = null;   // {kataloge: [...]} – eingelesene Kataloge (sirAdos Positio
 const istKat = (v) => String(v || '').startsWith('kat:');
 const katId = (v) => { const t = String(v).split(':')[1] || ''; return /^\d+$/.test(t) ? +t : t; };   // Zahl (Katalog der AVA) oder „bd-gk3“ (Baudaten)
 const alleKat = () => [...((KAT && KAT.kataloge) || []), ...((KAT && KAT.bd) || [])];
-async function katalogEinstellungen(host) {
-  const K = await api('api/katalog').catch((e) => ({ kataloge: [], fehler: e.message })); KAT = K;
-  const admin = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
-  const st = (x) => (x.stand && x.stand.length >= 7 ? `Preisstand ${x.stand.slice(5, 7)}/${x.stand.slice(0, 4)} · ` : '');
-  host.innerHTML = `<p class="bph-mu">Texte für die Leistungsverzeichnisse – beliebig viele Kataloge, z. B. sirAdos Positionen und sirAdos Elemente. Im LV unter <b>Kopierquelle</b> den Katalog wählen, durchsuchen und Positionen herüberziehen; der mittlere Preis wird zur Schätzung.</p>
-    ${K.kataloge.length ? K.kataloge.map((x) => `<div style="border:1px solid var(--line);border-radius:10px;padding:.7rem .9rem;margin:.5rem 0;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap" data-kid="${x.id}">
-      <div style="flex:1;min-width:14rem"><b>${esc(x.name)}</b><br><span class="bph-mu" style="margin:0">${st(x)}${x.n_gewerke} ${x.art === 'elemente' ? 'Kostengruppen' : 'Gewerke'}, ${(x.n_pos || 0).toLocaleString('de-DE')} ${x.art === 'elemente' ? 'Elemente' : 'Positionen'} · eingelesen ${x.importiert ? new Date(x.importiert).toLocaleDateString('de-DE') : ''} von ${esc(x.von)}${x.datei ? ' · ' + esc(x.datei) : ''}</span></div>
-      ${admin ? `<button type="button" class="bph-btn" data-kren="${x.id}">Umbenennen</button><button type="button" class="bph-btn" data-kweg="${x.id}">Entfernen</button>` : ''}</div>`).join('') : '<p><b>Noch kein Katalog eingelesen.</b></p>'}
-    ${admin ? `<div class="bph-row" style="gap:.5rem;flex-wrap:wrap;margin-top:.6rem"><label class="bph-btn pri" style="cursor:pointer">＋ Katalog einlesen …<input type="file" id="katDatei" accept=".ava,.mdb,.accdb" hidden></label><span class="bph-mu" id="katMsg" style="margin:0"></span></div>
-      <p class="bph-mu">Katalogdatei, z. B. sirAdos-Positionen oder -Elemente (*.ava). Dieselbe Datei noch einmal einlesen ersetzt den Katalog (z. B. neuer Preisstand). Die Kataloge bleiben nur in der Datenbank des Büros.</p>` : '<p class="bph-mu">Einlesen kann die Verwaltung.</p>'}`;
-  host.onclick = async (e) => {
-    const r = e.target.closest('[data-kren]'), w = e.target.closest('[data-kweg]');
-    if (r) { const x = K.kataloge.find((y) => y.id === +r.dataset.kren); const n = (await bpEingabe('Name des Katalogs', x.name)); if (!n || !n.trim()) return; await api('api/katalog/' + x.id, 'PUT', { name: n.trim() }).catch((er) => toast(er.message, true)); katalogEinstellungen(host); }
-    if (w) { const x = K.kataloge.find((y) => y.id === +w.dataset.kweg); if (!(await bpFrage(`Katalog „${x.name}“ entfernen? Bereits übernommene Positionen in den LVs bleiben.`))) return; await api('api/katalog/' + x.id, 'DELETE').catch((er) => toast(er.message, true)); katalogEinstellungen(host); }
-  };
-  const inp = host.querySelector('#katDatei');
-  if (inp) inp.onchange = async () => {
-    const f = inp.files[0]; if (!f) return; const m = host.querySelector('#katMsg'); m.textContent = `Packe „${f.name}“ (${Math.round(f.size / 1048576)} MB) …`;
-    try {   // gepackt und in Teilen unter 1 MB – große Kataloge (100 MB und mehr) kommen so durch jeden Proxy
-      const gz = new Uint8Array(await new Response(f.stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
-      const T = 900 * 1024, n = Math.max(1, Math.ceil(gz.length / T)), id = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
-      let j = null;
-      for (let i = 0; i < n; i++) {
-        m.textContent = i < n - 1 ? `Lade hoch … ${Math.round(i / n * 100)} %` : 'Lese den Katalog ein … (bis zu einer halben Minute)';
-        const r = await fetch(`api/katalog/teil?id=${id}&i=${i}&n=${n}&name=${encodeURIComponent(f.name)}`, { method: 'POST', body: gz.subarray(i * T, (i + 1) * T), headers: { 'Content-Type': 'application/octet-stream' }, credentials: 'same-origin' });
-        const txt = await r.text(); try { j = JSON.parse(txt); } catch { throw new Error(`Der Server hat den Teil ${i + 1} von ${n} abgelehnt (${r.status}${r.status === 413 ? ' – zu groß für den Proxy' : ''}).`); }
-        if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
-      }
-      const neu = (j.kataloge || []).find((x) => x.id === j.neu);
-      KAT = { kataloge: j.kataloge }; toast(neu ? `„${neu.name}“ eingelesen: ${(neu.n_pos || 0).toLocaleString('de-DE')} ${neu.art === 'elemente' ? 'Elemente' : 'Positionen'}.` : 'Katalog eingelesen.'); katalogEinstellungen(host);
-    } catch (e) { m.textContent = e.message; }
-  };
-}
 /* Drehkreis (wie unter Windows) über der Kopierquelle, solange geladen wird – Größe passt sich der Spalte an */
 let QUBUSY = 0;
 function quBusy(d) { QUBUSY = Math.max(0, QUBUSY + d); quDreh(!!QUBUSY); }
@@ -3411,7 +3392,7 @@ function eigDialog(id) {
     box.innerHTML = `<h3 style="display:flex;gap:.5rem;align-items:baseline">Eigenschaften: Position <span class="hint">${esc(x.oz)} ${esc((x.kurz || '').slice(0, 50))}</span></h3>
       <div class="eigtabs">${T.map(([kk, l]) => `<button type="button" data-m="t:${kk}" class="${tabE === kk ? 'on' : ''}">${l}</button>`).join('')}</div>
       <div class="eigbody">${h}</div>
-      <div class="acts"><button class="btn sm" data-m="prev" ${k <= 0 ? 'disabled' : ''} title="vorherige Position (↑ oder Bild↑)">&lt;&lt;</button><button class="btn sm" data-m="next" ${k >= P.length - 1 ? 'disabled' : ''} title="nächste Position (↓ oder Bild↓) · Enter schließt, Esc auch">&gt;&gt;</button>
+      <div class="acts"><button class="btn sm" data-m="prev" ${k <= 0 ? 'disabled' : ''} title="vorherige Position (↑ oder Bild↑)" aria-label="vorherige Position">↑</button><button class="btn sm" data-m="next" ${k >= P.length - 1 ? 'disabled' : ''} title="nächste Position (↓ oder Bild↓) · Enter schließt, Esc auch" aria-label="nächste Position">↓</button>
         <button class="btn sm" data-m="neu" title="neue Position darunter">Neu</button><button class="btn sm" data-m="undo" ${snap[id] ? '' : 'disabled'}>Rückgängig</button><span style="flex:1"></span><button class="btn pri" data-m="x">Schließen</button></div>`;
   }
   const setz = (el) => {
@@ -4150,7 +4131,7 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   const me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform');
   await header('Ausschreibung & Abrechnung', me, conf);
-  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => katalogEinstellungen(h) }]);
+  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '../baudaten/', ava: '', nachher: async () => { try { KAT = await api('api/katalog'); } catch { /* alter Stand bleibt */ } } }); } }]);
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();

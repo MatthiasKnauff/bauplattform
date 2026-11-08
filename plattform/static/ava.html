@@ -1282,7 +1282,7 @@ let PJSEL = null, LVXZU = LS.get('lvxzu', false), LVXHOCH = false;
 /* LVs im Tabellenfeld (Leistungsverzeichnis, Angebote, Aufmaß, Rechnungen): Zeilen vor dem geöffneten LV, dessen Inhalt, Zeilen danach */
 function pjTeile() { const h = pjBaum(), i = h.indexOf('\u0001'); return i < 0 ? [h, ''] : [h.slice(0, i), h.slice(i + 1)]; }
 function pjZeichnen() {
-  if (tab === 'tueren' || tab === 'aufmass' || tab === 'rechnungen') { const t = document.getElementById('pjTree'); if (t) t.innerHTML = pjBaum().replace('\u0001', ''); return; }
+  if (tab === 'tueren' || PJTABS.has(tab)) { const t = document.getElementById('pjTree'); if (t) t.innerHTML = pjBaum().replace('\u0001', ''); return; }
   const a = document.querySelector('.pjtree[data-teil="a"]'), b = document.querySelector('.pjtree[data-teil="b"]'); if (!a || !b) return;
   const [x, y] = pjTeile(); a.innerHTML = lvxKopf() + x; b.innerHTML = y;
 }
@@ -1483,9 +1483,9 @@ function render() {
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); return; }
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
-  const RE2 = tab === 'aufmass' || tab === 'rechnungen';   // Aufmaß und Rechnungen: eigener Baum (LVs mit Rechnungen) links, Bearbeitung rechts daneben
+  const RE2 = ['lv', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
   if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); return; }
-  v.innerHTML = RE2 ? re2Html({ aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
+  v.innerHTML = RE2 ? re2Html({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') amPdfMount();
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);

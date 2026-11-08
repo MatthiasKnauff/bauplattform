@@ -44,6 +44,7 @@ body{margin:0}
 .vs-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;display:flex;align-items:center;justify-content:center}
 .vs-bg .vs{width:min(900px,94vw);height:92vh;background:var(--card);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
 .vs-bg .vs header{display:flex;align-items:center;gap:.5rem;padding:.5rem .8rem;border-bottom:1px solid var(--line)}.vs-bg iframe{flex:1;border:0;background:#fff}
+body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display:none!important}
 @media (max-width:1100px){.lw{grid-template-columns:200px minmax(0,1fr) 240px}}
 </style>
 </head>
@@ -91,6 +92,7 @@ body{margin:0}
 <script src="static/bp.js"></script>
 <script>
 const LS = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* egal */ } } };
+const EMB = new URLSearchParams(location.search).has('einbetten');
 let B = location.hash.slice(1) || LS.get('lay.b', 'maengelruege'), D = null, V = null, SEL = new Set(), K = 3.2, HIST = [], REDO = [], speichT = 0;
 const ELN = { text: 'Text', feld: 'Feld', logo: 'Logo', linie: 'Linie', falzmarken: 'Falzmarken', inhalt: 'Inhalt' };
 const r1 = (v) => Math.round(v * 100) / 100;
@@ -290,16 +292,16 @@ $('#blatt').addEventListener('pointerdown', (ev) => {
   const id = d.dataset.id;
   if (ev.shiftKey) { if (SEL.has(id)) SEL.delete(id); else SEL.add(id); zeichne(); props(); return; }
   if (!SEL.has(id)) { SEL = new Set([id]); zeichne(); props(); }
-  const gr = ev.target.dataset.gr, sx = ev.clientX, sy = ev.clientY, start = E().filter((x) => SEL.has(x.id)).map((x) => ({ x, ...x }));
+  const gr = ev.target.dataset.gr, sx = ev.clientX, sy = ev.clientY, start = E().filter((x) => SEL.has(x.id)).map((el) => ({ el }));   // el = das Element selbst (vorher überschrieb „...x“ den Verweis mit der Zahl x – Ziehen ging ins Leere)
   let bewegt = false; ev.preventDefault(); $('#blatt').setPointerCapture(ev.pointerId);
   const mv = (m) => {
     const dx = (m.clientX - sx) / K, dy = (m.clientY - sy) / K; if (!bewegt && Math.abs(dx) + Math.abs(dy) < 0.4) return;
     if (!bewegt) { merken(); bewegt = true; }
-    if (gr) start.forEach((s) => { if (gr !== 's') s.x.w = Math.max(ras(), snap(s.w + dx)); if (gr !== 'e') s.x.h = Math.max(0.5, snap(s.h + dy)); });
-    else start.forEach((s) => { s.x.x = Math.max(0, Math.min(208, snap(s.ox + dx))); s.x.y = Math.max(0, Math.min(295, snap(s.oy + dy))); });
+    if (gr) start.forEach((s) => { if (gr !== 's') s.el.w = Math.max(ras(), snap(s.w + dx)); if (gr !== 'e') s.el.h = Math.max(0.5, snap(s.h + dy)); });
+    else start.forEach((s) => { s.el.x = Math.max(0, Math.min(PW() - 2, snap(s.ox + dx))); s.el.y = Math.max(0, Math.min(PH() - 2, snap(s.oy + dy))); });
     zeichne();
   };
-  start.forEach((s) => { s.ox = s.x.x; s.oy = s.x.y; s.w = s.x.w; s.h = s.x.h; });
+  start.forEach((s) => { s.ox = s.el.x; s.oy = s.el.y; s.w = s.el.w; s.h = s.el.h; });
   const up = () => { $('#blatt').removeEventListener('pointermove', mv); $('#blatt').removeEventListener('pointerup', up); if (bewegt) geaendert(false); };
   $('#blatt').addEventListener('pointermove', mv); $('#blatt').addEventListener('pointerup', up);
 });
@@ -353,8 +355,10 @@ $('#vs').onclick = async () => {
   } catch (e) { toast(e.message, true); }
 };
 addEventListener('beforeunload', () => { if (speichT) { sofort(); } });
+window.layoutSichern = () => sofort();   // „Fertig“ im Fenster der App: erst speichern, dann schließen
 (async () => {
   const me = await api('api/me'); applyLook(me);
+  if (EMB) document.body.classList.add('emb');   // eingebettet (Verwaltung → Büro-Einstellungen → Druck, oder aus dem Druckdialog): Kopfleiste ausgeblendet, Versionen bleiben
   await header('Verwaltung', me, await api('api/platform'));
   window.bpNachVerlauf = () => laden();
   await laden();

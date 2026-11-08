@@ -194,6 +194,19 @@
       });
     });
   };
+  /* Layout-Editor der Verwaltung als großes Fenster über der App (kein neues Browserfenster) */
+  H.layoutEditor = function (adminUrl, bereich, zu) {
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+    bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Druck-Layout bearbeiten" style="width:min(1500px,97vw);height:94vh;max-height:none;display:flex;flex-direction:column">
+      <div class="bph-dh"><b>Druck-Layout bearbeiten</b><span class="bph-mu" style="font-size:.8rem;margin-left:.6rem">wird laufend gespeichert</span><span style="flex:1"></span><button type="button" class="bph-btn pri" data-lx>Fertig</button></div>
+      <iframe title="Druck-Layout" src="${esc(adminUrl)}/layout?einbetten=1#${encodeURIComponent(bereich)}" style="flex:1;border:0;width:100%;background:var(--bph-card,#fff)"></iframe></div>`;
+    document.body.appendChild(bg); try { dlgBeweglich(bg.querySelector('.bph-dlg')); } catch { /* egal */ }
+    bg.addEventListener('click', async (e) => {   // daneben klicken schließt nicht
+      if (!e.target.closest('[data-lx]')) return;
+      try { const w = bg.querySelector('iframe').contentWindow; if (w && w.layoutSichern) await w.layoutSichern(); } catch { /* anderer Ursprung – speichert selbst beim Schließen */ }
+      bg.remove(); if (zu) zu();
+    });
+  };
   /* Druckdialog für alle Apps: Layout des Ausdrucks wählen (⚙ → Büro → Druck-Layouts, je Ausdruck mehrere) und seine Inhaltseinstellungen
      (z. B. Langtexte, Preise) – gespeichert im Layout, hier für diesen Ausdruck änderbar. Die letzte Wahl je Ausdruck wird gemerkt.
      Ergebnis: { layout, opt, qs } (qs = „&layout=…&opt=…“ zum Anhängen an die PDF-Adresse) oder null (abgebrochen).
@@ -223,7 +236,7 @@
       bg.addEventListener('change', (e) => { if (e.target.matches('[data-dlay]')) { vid = e.target.value; zeichne(); } });
       bg.addEventListener('click', (e) => {   // daneben klicken schließt nicht
         if (e.target.closest('[data-dx]')) { bg.remove(); fertig(null); return; }
-        if (e.target.closest('[data-dedit]')) { const a = ((H.conf || {}).apps || []).find((x) => x.key === 'admin'); if (a) window.open(appUrl(a) + '/layout#' + encodeURIComponent(bereich), '_blank'); return; }
+        if (e.target.closest('[data-dedit]')) { const a = ((H.conf || {}).apps || []).find((x) => x.key === 'admin'); if (a) { bg.remove(); H.layoutEditor(appUrl(a), bereich, () => H.druckWahl(bereich, o).then(fertig)); } return; }   // Editor im Fenster, danach Druckdialog mit den neuen Layouts
         if (!e.target.closest('[data-dok]')) return;
         const opt = lesen(); try { localStorage.setItem(LK, JSON.stringify({ layout: vid, opt })); } catch { /* egal */ }
         bg.remove(); fertig({ layout: vid, opt, qs: qs(vid, opt) });

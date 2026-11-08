@@ -4209,9 +4209,9 @@ def _druck_werte(c, r, titel="", sub="", extra=None):
     return W
 
 
-def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None):
+def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None, a3=False):
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.pagesizes import A3, A4, landscape
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import mm
     from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
@@ -4223,7 +4223,7 @@ def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None):
          "l": ParagraphStyle("l", fontName="Helvetica", fontSize=8, leading=10.3, textColor=MUTE),
          "r": ParagraphStyle("r", fontName="Helvetica", fontSize=8.5, leading=10.5, textColor=INK, alignment=2),
          "h2": ParagraphStyle("h2", fontName="Helvetica-Bold", fontSize=11, leading=14, textColor=ACC, spaceBefore=8, spaceAfter=4)}
-    ps = landscape(A4) if quer else A4
+    ps = landscape(A3 if a3 else A4) if quer else (A3 if a3 else A4)
     W = ps[0] - 32 * mm
     buf = io.BytesIO()
 
@@ -4706,11 +4706,36 @@ def lv_pdf(i):
         return _pdf(r, f"Massenermittlung – LV {r['nr']} {r['name']}", f"{P['projekt']}{' · Auftragnehmer: ' + V['bieter'] if V.get('bieter') else ''}", st, bereich="aufmass")
 
     if art == "preisspiegel":
-        A = sorted(P["angebote"], key=lambda a: next((x.get("rang") or 99 for x in K["angebote"] if x["id"] == a["id"]), 99))[:6]
+        A = sorted(P["angebote"], key=lambda a: next((x.get("rang") or 99 for x in K["angebote"] if x["id"] == a["id"]), 99))
+        a3 = len(A) > 6   # mehr als 6 Bieter: A3 quer, damit Kurztext und Preise lesbar bleiben
 
         def st(story, S, X, table, W, mm, p):
-            head = ["OZ", "Kurztext", "Menge", "EH"] + [a["bieter"][:22] for a in A]
-            w0 = [16 * mm, W - 40 * mm - 27 * mm * len(A), 14 * mm, 10 * mm]
+            from reportlab.platypus import Flowable
+            from reportlab.pdfbase.pdfmetrics import stringWidth
+
+            class Senkrecht(Flowable):
+                """Bietername im Kopf senkrecht (von unten nach oben) – lange Namen überlappen nicht."""
+                def __init__(self, text, hoehe):
+                    super().__init__()
+                    self.text, self.hoehe = text, hoehe
+
+                def wrap(self, aw, ah):
+                    self._aw = aw
+                    return aw, self.hoehe
+
+                def draw(self):
+                    cv = self.canv
+                    cv.saveState()
+                    cv.setFont("Helvetica-Bold", 8)
+                    cv.translate(self._aw - 2, 1)
+                    cv.rotate(90)
+                    cv.drawString(0, 0, self.text)
+                    cv.restoreState()
+            namen = [str(a["bieter"] or "")[:45] for a in A]
+            hoehe = min(60 * mm, max(12 * mm, max((stringWidth(n, "Helvetica-Bold", 8) for n in namen), default=0) + 3 * mm))
+            wb = max(18 * mm, min(27 * mm, (W - 40 * mm - 60 * mm) / max(1, len(A))))   # Breite je Bieter, Kurztext mindestens 6 cm
+            head = ["OZ", "Kurztext", "Menge", "EH"] + [Senkrecht(n, hoehe) for n in namen]
+            w0 = [16 * mm, W - 40 * mm - wb * len(A), 14 * mm, 10 * mm]
             rows = [head]
             for x in items:
                 if x["typ"] == "titel":
@@ -4741,12 +4766,14 @@ def lv_pdf(i):
             rows.append(["", "Wertung netto", "", ""] + [eur(sums[a["id"]]["netto"]) for a in A])
             rows.append(["", "Rang · fehlende Preise", "", ""] + [f"{sums[a['id']].get('rang', '–')} · {sums[a['id']]['fehlt']}" for a in A])
             n = len(rows)
-            story.append(table(rows, w0 + [27 * mm] * len(A), num=tuple(range(2, 4 + len(A))), bold=(n - 2,), band=(n - 4, n - 3, n - 1)))
+            tb = table(rows, w0 + [wb] * len(A), num=tuple(range(2, 4 + len(A))), bold=(n - 2,), band=(n - 4, n - 3, n - 1))
+            tb.setStyle([("VALIGN", (0, 0), (-1, 0), "BOTTOM")])
+            story.append(tb)
             story.append(Spacer(1, 4 * mm))
             story.append(Paragraph("<font color='#1e7a3c'><b>grün</b></font> = niedrigster Einheitspreis · <font color='#c0392b'>!</font> mehr als 30 % vom Mittel der Bieter entfernt · je Zelle: Einheitspreis, darunter Gesamtpreis.", S["l"]))
             if K["schaetzung"]:
                 story.append(Paragraph(f"Kostenschätzung des Planers für dieses LV: {eur(K['schaetzung'])} netto.", S["l"]))
-        pdf = _pdf(r, f"Preisspiegel – LV {r['nr']} {r['name']}", f"{P['projekt']} · {len(P['angebote'])} Angebote · Stand {date.today().strftime('%d.%m.%Y')}", st, quer=True)
+        pdf = _pdf(r, f"Preisspiegel – LV {r['nr']} {r['name']}", f"{P['projekt']} · {len(P['angebote'])} Angebote · Stand {date.today().strftime('%d.%m.%Y')}", st, quer=True, a3=a3)
         fn = "Preisspiegel"
     elif art == "aufmass":
         pdf = _am_pdf()

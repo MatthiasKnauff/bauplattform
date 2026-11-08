@@ -105,7 +105,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .rnb{margin:0 0 1rem;padding:.8rem 1rem;border:1px solid var(--y);border-radius:10px;font-size:.9rem;display:grid;gap:.6rem}.rnb .acts{display:flex;gap:.5rem;flex-wrap:wrap}.rnb .acts button{border:1px solid var(--line);border-radius:8px;padding:.45rem .8rem;color:var(--y);font-weight:700}.rnb .acts .pri{background:var(--y);color:var(--on);border-color:var(--y)}
 .pi.arch{color:var(--mute);justify-content:flex-start;align-items:center;font-size:.9rem}.pi.old b{color:var(--mute)}
 .pi.on{color:var(--ink);box-shadow:inset 3px 0 var(--y);background:var(--hov)}
-.pi .l{min-width:0;display:flex;flex-direction:column}
+.pi .l{min-width:0;display:flex;flex-direction:column}.pi-del{flex:none;align-self:center;display:grid;place-items:center;width:32px;height:32px;border-radius:8px;color:var(--mute);opacity:.55}.pi:hover .pi-del,.pi.on .pi-del{opacity:1}.pi-del:hover{color:#d33;background:rgba(220,50,50,.1)}
 .pi .l b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pi .l small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.8rem}
 .pi .dist{color:var(--y);white-space:nowrap;font-size:.85rem;align-self:center}
@@ -815,7 +815,7 @@ function renderSheet() {
     const q = sheetQ.toLowerCase().trim(), cur = curReport();
     const list = [...reports].sort((a, b) => (b.date + String(b.number).padStart(6, '0')).localeCompare(a.date + String(a.number).padStart(6, '0')))
       .filter(x => !q || `nr. ${x.number} ${x.number} ${fmt(x.date)} ${x.date} ${x.site_manager || ''}`.toLowerCase().includes(q));
-    $('#pl').innerHTML = list.length ? list.map(x => `<button class="pi ${cur && x.id === cur.id ? 'on' : ''}" data-act="pickReport" data-id="${x.id}"><span class="l"><b>Nr. ${x.number} – ${fmt(x.date)}</b>${[x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).length ? `<small>${esc([x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).join(' · '))}</small>` : ''}</span></button>`).join('')
+    $('#pl').innerHTML = list.length ? list.map(x => `<button class="pi ${cur && x.id === cur.id ? 'on' : ''}" data-act="pickReport" data-id="${x.id}"><span class="l"><b>Nr. ${x.number} – ${fmt(x.date)}</b>${[x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).length ? `<small>${esc([x.time && x.time + ' Uhr', x.weather, x.site_manager].filter(Boolean).join(' · '))}</small>` : ''}</span><span class="pi-del" role="button" tabindex="0" data-act="delReportId" data-id="${x.id}" title="Bericht Nr. ${x.number} löschen (mit Rückgängig)">${ic('trash', 18)}</span></button>`).join('')
       : `<div class="empty">${reports.length ? 'Keine Treffer.' : 'Noch kein Tagesbericht.'}</div>`;
     return;
   }
@@ -2036,6 +2036,13 @@ document.addEventListener('click', async e => {
   else if (a === 'addContact') addContact();
   else if (a === 'delContact') { const r = await api('api/contacts/' + cid, 'DELETE'); if (r.error) { toast(r.error); return; } cid = null; contacts = await api('api/contacts'); renderDetail(); if (r.papierkorb) toast('In den Papierkorb gelegt – dort wiederherstellbar.'); }
   else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); if (bwzPrefs().on && bwzPrefs().auto) bwzOpen(); }
+  else if (a === 'delReportId') {   // aus der Berichtsliste: diesen Bericht löschen (Rückgängig über die Meldung)
+    const del = +b.dataset.id, nr = (reports.find(x => x.id === del) || {}).number, r = await api('api/reports/' + del, 'DELETE');
+    if (r && r.error) { toast(r.error); return; }
+    if (rid === del) rid = null;
+    await openProject(pid); if (!$('#sheet').classList.contains('hidden')) renderSheet();
+    if (r && r.undo) toast(`Bericht Nr. ${nr} gelöscht.`, async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } await openProject(pid, true); if (!$('#sheet').classList.contains('hidden')) renderSheet(); toast('Bericht wiederhergestellt.'); });
+  }
   else if (a === 'delReport') {
     const del = rid, r = await api('api/reports/' + del, 'DELETE'); await openProject(pid);
     if (r && r.undo) toast('Bericht gelöscht.', async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } rid = del; await openProject(pid, true); toast('Bericht wiederhergestellt.'); });

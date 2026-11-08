@@ -913,3 +913,5 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .as-lq small{color:#888;font-size:11px;white-space:nowrap}
 
 .ph-entw{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;border-radius:999px;background:rgba(224,160,32,.16);color:inherit;font-size:12.5px}
+
+.lv-ro{margin:8px 16px 0;padding:8px 12px;border-radius:8px;background:rgba(127,127,127,.12);font-size:13px}

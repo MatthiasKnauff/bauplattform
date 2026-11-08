@@ -24,7 +24,11 @@ function applyPhaseList(saved) {
   CATALOG.phases.splice(0, CATALOG.phases.length, ...out);
 }
 let phSaveT = null;
+/* Katalog für alle Projekte: nur der Administrator ändert ihn – alle anderen sehen ihn (der Server prüft es ebenfalls) */
+const libDarf = () => !!(window.BP && BP.me && BP.me.is_admin);
+const libNurAdmin = () => { toast('Den Leistungskatalog für alle Projekte pflegt der Administrator.', true); return false; };
 function savePhases() {
+  if (!libDarf()) return;
   clearTimeout(phSaveT);
   phSaveT = setTimeout(() => fetch('api/phases', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATALOG.phases.map((p) => ({ k: p.k, n: p.n, own: !!p.own }))) }).then(j)
     .catch((e) => toast('Abschnitte nicht gespeichert: ' + e.message, true)), 300);
@@ -37,6 +41,7 @@ async function loadLibrary() {
   if (!$('#libView').hidden) renderLib();
 }
 function libSet(list, now) {
+  if (!libDarf()) { libNurAdmin(); return; }
   window.LIBRARY = list;   // immer neues Array – der Assistent erkennt Änderungen an der Identität
   if (window.AssistCore) AssistCore.notifySoon();
   clearTimeout(libSaveT);
@@ -48,12 +53,14 @@ function libSet(list, now) {
 // Bezug der Standardleistungen (Gebäude / je Einheit) – Vorgabe für neue Planungen im Assistenten
 let catsSaveT = null;
 function saveCatScope() {
+  if (!libDarf()) return libNurAdmin();
   clearTimeout(catsSaveT);
   catsSaveT = setTimeout(() => fetch('api/catscope', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(window.CATSCOPE || {}) }).then(j)
     .catch((e) => toast('Bezug nicht gespeichert: ' + e.message, true)), 300);
 }
 const stdScope = (i) => ((window.CATSCOPE || {})[i.id] || i.sc);
 function saveCatFirms() {
+  if (!libDarf()) return libNurAdmin();
   clearTimeout(catfSaveT);
   catfSaveT = setTimeout(() => fetch('api/catfirms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(CATFIRMS) }).then(j)
     .catch((e) => toast('Firmen-Vorgaben nicht gespeichert: ' + e.message, true)), 400);
@@ -71,7 +78,7 @@ function libFirmFor(id, gw) {
 }
 window.Library = {
   firmFor: libFirmFor,
-  async add(it) { const x = libClean({ ...it, id: it.id || newLibId() }); await libSet([...window.LIBRARY, x], true); if (!$('#libView').hidden) renderLib(); return x; },
+  async add(it) { if (!libDarf()) throw new Error('Den Leistungskatalog für alle Projekte pflegt der Administrator – die Leistung bleibt in diesem Plan.'); const x = libClean({ ...it, id: it.id || newLibId() }); await libSet([...window.LIBRARY, x], true); if (!$('#libView').hidden) renderLib(); return x; },
 };
 function libClean(x) {
   return { id: x.id || newLibId(), n: String(x.n || 'Leistung'), ph: x.ph || 'ausbau', gw: x.gw || '', din: x.din || '', craft: x.craft || '', firm: x.firm || '',
@@ -103,7 +110,12 @@ function renderLib() {
   const L = window.LIBRARY, profs = CATALOG.profiles.filter((p) => p.k !== 'frei');
   const sub = libSub === 'abs' ? 'abs' : P && libSub === 'prj' ? 'prj' : 'alle';
   let h = `<div class="fv"><nav class="lv-sub"><button class="lv-st${sub === 'alle' ? ' on' : ''}" data-lsub="alle">Vorgaben für alle Projekte</button>${P ? `<button class="lv-st${sub === 'prj' ? ' on' : ''}" data-lsub="prj">Projekt: ${esc(P.name)}</button>` : ''}<button class="lv-st${sub === 'abs' ? ' on' : ''}" data-lsub="abs">Abschnitte</button></nav>`;
-  if (sub === 'abs') { box.innerHTML = h + libPhasesHtml() + '</div>'; libAfter(box, st); return; }
+  const nurLesen = () => { if (libDarf()) return;   // Katalog für alle Projekte: nur ansehen
+    const fv = box.querySelector('.fv'); fv.insertAdjacentHTML('afterbegin', '<div class="lv-ro">🔒 Nur ansehen – den Katalog für alle Projekte (Leistungen, Abschnitte, Vorgaben) pflegt der Administrator.</div>');
+    fv.querySelectorAll('input:not(#libQ),select,textarea').forEach((x) => { x.disabled = true; });
+    fv.querySelectorAll('button:not([data-lsub])').forEach((x) => { if (!/^(lstd|lsort)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
+    fv.querySelectorAll('[draggable]').forEach((x) => x.removeAttribute('draggable')); };
+  if (sub === 'abs') { box.innerHTML = h + libPhasesHtml() + '</div>'; nurLesen(); libAfter(box, st); return; }
   if (sub === 'prj') { box.innerHTML = h + `<div class="fv-head"><div><h3>Firmen im Projekt</h3><span>${esc(P.name)}</span></div><input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}"><span class="fv-hint">Gilt nur für dieses Projekt. Rechts in jeder Zeile: „← Vorgabe übernehmen“ trägt die Firma aus der Vorgabe ein, „↑ als Vorgabe speichern“ macht die Projekt-Firma zur Vorgabe für alle Projekte.</span></div><div class="fv-scroll">${libProjectHtml()}</div></div>` + libLists(); libAfter(box, st); return; }
   h += `<div class="fv-head"><div><h3>Leistungskatalog</h3><span>${L.length} eigene Leistungen · Firmen-Vorgaben für alle Projekte</span></div>
     <input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}">
@@ -140,7 +152,7 @@ function renderLib() {
   }
   if (!shown && !libStd) h += `<tr><td colspan="12" class="fv-empty">${q ? 'Keine Treffer.' : 'Noch keine eigenen Leistungen. Mit „Neue Leistung“ anlegen, mit „Aus Projekten übernehmen“ aus vorhandenen Plänen holen oder im Planungsassistenten mit „＋ eigene“ – dort ist „auch im Leistungskatalog speichern“ vorgewählt. Mit „Standardkatalog“ siehst du die mitgelieferten Leistungen und kannst sie als eigene Variante kopieren.'}</td></tr>`;
   h += '</tbody></table></div></div>' + libLists();
-  box.innerHTML = h; libAfter(box, st);
+  box.innerHTML = h; nurLesen(); libAfter(box, st);
 }
 function libLists() {
   return `<datalist id="lvGwList">${AssistCore.gewerke().map((g) => `<option value="${esc(g)}">`).join('')}</datalist>

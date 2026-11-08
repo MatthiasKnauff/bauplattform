@@ -1075,6 +1075,8 @@ def library(sub=None):
         if request.method == "GET":
             v = store_get(c, "library", [])
             return jsonify(v if isinstance(v, list) else [])
+        if not g.user["is_admin"]:
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) pflegt der Administrator."), 403
         b = body()
         if not isinstance(b, list) or len(b) > 5000:
             return jsonify(error="Ungültige Liste"), 400
@@ -1089,6 +1091,8 @@ def phases():
         if request.method == "GET":
             v = store_get(c, "phases", [])
             return jsonify(v if isinstance(v, list) else [])
+        if not g.user["is_admin"]:
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) pflegt der Administrator."), 403
         b = body()
         if not isinstance(b, list) or len(b) > 200:
             return jsonify(error="Ungültige Liste"), 400
@@ -1109,6 +1113,8 @@ def catfirms():
         if request.method == "GET":
             v = store_get(c, "catfirms", {})
             return jsonify(v if isinstance(v, dict) else {})
+        if not g.user["is_admin"]:
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) pflegt der Administrator."), 403
         b = body()
         if not isinstance(b, dict):
             return jsonify(error="Ungültig"), 400
@@ -1124,6 +1130,8 @@ def catscope():
         if request.method == "GET":
             v = store_get(c, "catscope", {})
             return jsonify(v if isinstance(v, dict) else {})
+        if not g.user["is_admin"]:
+            return jsonify(error="Den Leistungskatalog für alle Projekte (Leistungen, Abschnitte, Firmen- und Bezugsvorgaben) pflegt der Administrator."), 403
         b = body()
         if not isinstance(b, dict):
             return jsonify(error="Ungültig"), 400

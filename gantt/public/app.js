@@ -2332,7 +2332,7 @@ const ACTIONS = {
   fileClose: () => closeProject(),
   bpVerknuepfen: () => { if (window.bpLinkDialog) window.bpLinkDialog(); },
   projMenu: (b) => projMenu(b),
-  libNew: () => libNew(), libFromProjects: () => libFromProjects(), libStd: () => libToggleStd(), libExport: () => libExport(), libImport: () => libImportFile(),
+  libNew: () => (libDarf() ? libNew() : libNurAdmin()), libFromProjects: () => (libDarf() ? libFromProjects() : libNurAdmin()), libStd: () => libToggleStd(), libExport: () => libExport(), libImport: () => (libDarf() ? libImportFile() : libNurAdmin()),
 };
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;

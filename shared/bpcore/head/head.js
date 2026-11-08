@@ -61,6 +61,7 @@
     window.addEventListener('unhandledrejection', (e) => { const r = e && e.reason; if (r && (r.status || r.data)) return; melden(r && r.message ? r.message : String(r), r && r.stack); });   // API-Fehlermeldungen (400/403 …) sind keine Systemfehler
   }
   const listeners = [];
+  const hatBT = () => !H.conf || !(H.conf.apps || []).length || (H.conf.apps || []).some((a) => a.key === 'bautagebuch');   // Bautagebuch im Büro vorhanden (Standort-Funktionen)
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const getJ = (u) => fetch(u, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))));
   const SV = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
@@ -958,8 +959,8 @@
     const M = H.datenMaske({
       titel: 'Projektdaten', unter: D.projekt, gruppen: [...vorn, ...D.felder], werte: { ...W0, ...D.werte }, basis: basis || '',
       zusatz: (k) => {
-        if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button><button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
-          <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Adresse eintragen und „Adresse suchen“ oder „Aktuellen Standort übernehmen“.'}</span></span>${karte()}`;
+        if (k === 'p_karte') return `<span class="bph-dm-z" style="flex-wrap:wrap"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button>${hatBT() ? `<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>
+          <span class="bph-mu">${pos.lat != null ? 'Standort gespeichert – das Bautagebuch wählt das Projekt automatisch, wenn du vor Ort bist.' : 'Noch kein Standort: Adresse eintragen und „Adresse suchen“ oder „Aktuellen Standort übernehmen“.'}</span>` : ''}</span>${karte()}`;
         if (k === 'p_folder') return '<span class="bph-dm-z bph-mu" data-pordner>Ordner wird gesucht …</span>';
         if (k === 'baubeginn') return `<span class="bph-dm-z">${D.plan.start ? `Bauzeitenplan: ${tagDe(D.plan.start)} <button type="button" class="bph-btn" data-plan="baubeginn">übernehmen</button>` : ''}${D.plan.plaene.length ? `<label class="bph-ck" style="margin:.2rem 0 0"><input type="checkbox" data-inplan${inPlan ? ' checked' : ''}> beim Speichern als Projektanfang in den Bauzeitenplan übertragen</label>` : '<span class="bph-mu">kein Bauzeitenplan verknüpft</span>'}</span>`;
         if (k === 'gemarkung') return `<span class="bph-dm-z"><button type="button" class="bph-btn" data-kataster title="Gemarkung, Flur, Flurstück und Geländehöhe über NHN an der Baustelle – amtliche Daten von Geobasis NRW (wie TIM-online)">📍 aus ALKIS ermitteln (TIM-online)</button><span data-katinfo class="bph-mu"></span></span>`;
@@ -1620,7 +1621,7 @@
     const karte = () => { const q = hatPos() ? d.lat + ',' + d.lon : adr(); if (!q) return ''; const e = encodeURIComponent(q);
       return `<div class="bph-map"><iframe loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Karte" src="https://www.google.com/maps?q=${e}&hl=de&z=15&output=embed"></iframe><a href="https://www.google.com/maps/dir/?api=1&destination=${e}&travelmode=driving" target="_blank" rel="noopener">Route dorthin planen ↗</a></div>`; };
     const posInfo = () => ((d.extra && d.extra.addr_auto) ? 'Adresse und PLZ wurden automatisch aus dem Projektnamen ermittelt – bitte prüfen. ' : '')
-      + (hatPos() ? 'Standort gespeichert – damit wählt das Bautagebuch dieses Projekt automatisch, wenn du vor Ort bist.' : neu ? 'Ohne Adresse wird sie beim Anlegen aus dem Projektnamen ermittelt.' : 'Noch kein Standort: Adresse eintragen oder „Aktuellen Standort übernehmen“.');
+      + (!hatBT() ? (neu ? 'Ohne Adresse wird sie beim Anlegen aus dem Projektnamen ermittelt.' : '') : hatPos() ? 'Standort gespeichert – damit wählt das Bautagebuch dieses Projekt automatisch, wenn du vor Ort bist.' : neu ? 'Ohne Adresse wird sie beim Anlegen aus dem Projektnamen ermittelt.' : 'Noch kein Standort: Adresse eintragen oder „Aktuellen Standort übernehmen“.');
     const f = (k, l, w, extra = '') => `<label class="${w ? 'w' : ''}">${l}<input data-pe="${k}" value="${esc(d[k] || '')}" autocomplete="off"${extra}></label>`;
     let msg = '', ordT = 0;
     const ordnerVorschlag = (inp) => {   // Ordner auf dem Server zur Eingabe (Name: nur bei neuen Projekten; Projektordner: mit Hauptordner)
@@ -1634,7 +1635,7 @@
     function draw() {
       root.innerHTML = `<div class="bph-dh"><b>${neu ? 'Neues Projekt' : esc(d.name || 'Projekt')}</b><button type="button" class="bph-x" data-pc aria-label="Schließen">×</button></div><div class="bph-db">
         <div class="bph-pef">${f('name', 'Bauvorhaben *', 1, ' placeholder="Projektnummer und Name, z. B. A541 Schürmannstr. 4, Bottrop"' + (neu ? ' list="bph-dl-name"' : ''))}<datalist id="bph-dl-name"></datalist>${f('client', 'Bauherrschaft (Name und Anschrift)', 1)}${f('street', 'Straße und Hausnummer', 1)}${f('zip', 'PLZ', 0, ' inputmode="numeric"')}${f('city', 'Ort')}</div>
-        <div class="bph-row"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button><button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button></div>
+        <div class="bph-row"><button type="button" class="bph-btn" data-pgeo>Adresse suchen</button>${hatBT() ? '<button type="button" class="bph-btn" data-phier>Aktuellen Standort übernehmen</button>' : ''}</div>
         <p class="bph-mu">${esc(posInfo())}</p>${karte()}
         <h4>Zuständige Bauleiter</h4><div class="bph-chips">${LEAD.map((u) => `<button type="button" class="bph-chip${d.leaders.includes(u.id) ? ' on' : ''}" data-pl="${u.id}" aria-pressed="${d.leaders.includes(u.id)}">${esc(u.name)}</button>`).join('') || '<small>Noch keine Benutzer.</small>'}</div>
         <p class="bph-mu">${d.leaders.length ? 'Nur die ausgewählten Bauleiter und die Administratoren sehen dieses Projekt in der Projektauswahl.' : 'Niemand ausgewählt: alle Benutzer sehen dieses Projekt.'}</p>

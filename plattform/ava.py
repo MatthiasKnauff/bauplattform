@@ -750,8 +750,16 @@ def clean_items(v):
     return out
 
 
-def nummerieren(items, schritt=10):
-    """Ordnungszahlen neu vergeben: Titel 01, 02 … (Untertitel 01.01), Positionen 0010, 0020 … je Titel."""
+def oz_maske(m):
+    """Nummerierungsschema (GAEB-OZ-Maske): Stellen je Titelstufe, Stellen der Position, Schrittweite."""
+    m = m if isinstance(m, dict) else {}
+    t = [min(4, max(1, int(_f(x, 2)))) for x in (m.get("t") if isinstance(m.get("t"), list) else [2, 2, 2, 2])[:4]] or [2]
+    return {"t": t, "p": min(6, max(1, int(_f(m.get("p"), 4)))), "s": min(1000, max(1, int(_f(m.get("s"), 10))))}
+
+
+def nummerieren(items, schritt=10, maske=None):
+    """Ordnungszahlen neu vergeben: Titel 01, 02 … (Untertitel 01.01), Positionen 0010, 0020 … je Titel – oder nach der OZ-Maske des LV."""
+    M = oz_maske(maske) if maske else {"t": [2, 2, 2, 2], "p": 4, "s": schritt}
     stack, cnt = [], {}
     for x in items:
         if x["typ"] == "titel":
@@ -760,7 +768,7 @@ def nummerieren(items, schritt=10):
                 stack.pop()
             par = stack[-1][1] if stack else ""
             cnt[par] = cnt.get(par, 0) + 1
-            x["oz"] = (par + "." if par else "") + str(cnt[par]).zfill(2)
+            x["oz"] = (par + "." if par else "") + str(cnt[par]).zfill(M["t"][min(len(stack), len(M["t"]) - 1)])
             stack.append((lvl, x["oz"]))
             cnt[x["oz"] + "#p"] = 0
         elif x.get("art") == "T":
@@ -768,8 +776,8 @@ def nummerieren(items, schritt=10):
         else:
             par = stack[-1][1] if stack else ""
             k = par + "#p"
-            cnt[k] = cnt.get(k, 0) + schritt
-            x["oz"] = (par + "." if par else "") + str(cnt[k]).zfill(4)
+            cnt[k] = cnt.get(k, 0) + M["s"]
+            x["oz"] = (par + "." if par else "") + str(cnt[k]).zfill(M["p"])
     return items
 
 
@@ -1208,8 +1216,11 @@ def lv_eins(i):
             alt_meta = (_j(r["data"], {}) or {}).get("meta")
             if alt_meta:
                 d["meta"] = alt_meta   # Angaben zur Ausschreibung bleiben (eigene Maske)
+            alt_ozm = b["data"].get("ozm") if isinstance(b["data"].get("ozm"), dict) else (_j(r["data"], {}) or {}).get("ozm")
+            if alt_ozm:
+                d["ozm"] = oz_maske(alt_ozm)   # Nummerierungsschema des LV
             if b.get("nummerieren"):
-                nummerieren(d["items"])
+                nummerieren(d["items"], maske=d.get("ozm"))
             sets.append("data=?"); args.append(json.dumps(d, ensure_ascii=False))
         if isinstance(b.get("vergabe"), dict):
             V = _j(r["vergabe"], {}) or {}

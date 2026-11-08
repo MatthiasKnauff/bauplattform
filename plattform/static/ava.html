@@ -507,6 +507,7 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
 
 /* Einfache Ansicht */
 .einu{display:none}
+.ein-wg{margin:.35rem 0 0;font-size:.9rem;color:var(--mute)}.ein-wg button{border:0;background:none;font:inherit;color:var(--y);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
 html[data-modus="einfach"] .einu{display:block;max-width:1180px;margin:0 auto;padding:1.4rem 1.2rem .6rem}
 .einh{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem}.einh>div{flex:1;min-width:16rem}
 .einh h2{margin:0;font-size:1.7rem;letter-spacing:-.02em}.einh p{margin:.3rem 0 0;color:var(--mute)}
@@ -521,7 +522,7 @@ html[data-modus="einfach"] .einu{display:block;max-width:1180px;margin:0 auto;pa
 .eb{height:6px;border-radius:99px;background:var(--tabs);overflow:hidden}.eb i{display:block;height:100%;background:var(--y);border-radius:99px}
 .ef{display:flex;justify-content:space-between;gap:.5rem;font-size:.8rem;color:var(--mute)}
 .en{padding:.5rem .7rem;border-radius:10px;background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink);font-weight:600;font-size:.88rem}
-html[data-modus="einfach"] #navL{display:none}html[data-modus="einfach"] .body{grid-template-columns:minmax(0,1fr)}html[data-modus="einfach"] .body>.pane{grid-column:1}
+
 html[data-modus="einfach"] .body.mit-quelle{grid-template-columns:minmax(0,1fr) minmax(320px,36%)}html[data-modus="einfach"] .body.mit-quelle>.qu{grid-column:2}
 html[data-modus="einfach"] [data-umenu]{display:none}
 
@@ -1226,7 +1227,7 @@ function einUeb() {
     return `<button type="button" class="eink${L && L.id === x.id ? ' on' : ''}" data-einlv="${x.id}" data-eintab="${t}"><span class="eh"><span class="enr">${esc(x.nr || '·')}</span><span><b>${esc(x.name)}</b><small>${esc(x.gewerk || '')}</small></span></span>
       <span class="es"><small>${lab}</small><b>${wert}</b></span><span class="eb"><i style="width:${bal}%"></i></span><span class="ef"><span>${esc(f1)}</span><span>${esc(f2)}</span></span><span class="en">${next} ›</span></button>`;
   };
-  box.innerHTML = `<div class="einh"><div><h2>Leistungsverzeichnisse</h2><p>Je Gewerk eine Karte – darauf steht, was als Nächstes zu tun ist. Darunter das gewählte LV.</p></div><button type="button" class="btn pri" data-einneu>＋ Neues LV</button></div>`
+  box.innerHTML = `<div class="einh"><div><h2>Leistungsverzeichnisse</h2><p>Je Gewerk eine Karte – darauf steht, was als Nächstes zu tun ist. Darunter das gewählte LV.</p><p class="ein-wg">Weiter zu: ${[['angebote', 'Angebote & Preisspiegel'], ['auftraege', 'Aufträge'], ['aufmass', 'Aufmaßprüfung'], ['rechnungen', 'Rechnungen'], ['uebersicht', 'Kostenkontrolle']].map(([k, l]) => `<button type="button" data-tab="${k}">${l}</button>`).join(' · ')}</p></div><button type="button" class="btn pri" data-einneu>＋ Neues LV</button></div>`
     + G.filter(([, l]) => l.length).map(([n, l]) => `<h3>${n}</h3><div class="eing">${l.map(karte).join('')}</div>`).join('') + (A.length ? '' : '<p class="mute">Noch kein LV in diesem Projekt.</p>');
 }
 document.addEventListener('click', async (e) => {
@@ -1558,7 +1559,7 @@ function vLv() {
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   return `<div class="bar"><button class="btn sm" data-act="titel">+ Titel</button><button class="btn sm" data-act="utitel" title="Untertitel unter dem aktuellen Titel (GAEB: höchstens 4 Titelebenen)">+ Untertitel</button><button class="btn sm" data-act="pos">+ Position</button><button class="btn sm" data-act="txt">+ Hinweistext</button>
       ${V ? '<button class="btn sm" data-act="nt" title="Nachtragsposition (geänderte oder zusätzliche Leistung nach § 2 Abs. 5/6 VOB/B)">+ Nachtrag</button>' : ''}
-      <button class="btn sm" data-act="num" title="Ordnungszahlen neu vergeben: Titel 01, 02 …, Positionen 0010, 0020 …">Nummerieren</button>
+      <button class="btn sm" data-act="num" title="Ordnungszahlen neu vergeben – nach einem Schema wie in GAEB (Titelstufen, Stellen, Schrittweite)">Nummerieren …</button>
       <button class="btn sm" data-act="bk" title="Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen">Aus Baukosten …</button>
       <label class="btn sm" title="Ein LV oder Angebot als PDF, Scan, Foto oder Word rechts daneben legen – Zeilen anklicken übernimmt sie, erkannte Positionen auf einmal">📄 LV / Angebot daneben …<input type="file" accept="${DOK_ACCEPT}" hidden data-lvdokin></label>
       ${(L.dokumente || []).length ? `<button class="btn sm${LVDOK ? ' pri' : ''}" data-lvdokan title="PDF rechts ein- oder ausblenden">${LVDOK ? 'PDF ausblenden' : 'PDF zeigen'}</button>` : ''}
@@ -1692,13 +1693,36 @@ function addItem(kind) {
   numerieren(); changed(true);
   setTimeout(() => { const el = document.querySelector(`tr[data-i="${at}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
 }
-function numerieren() {   // wie nummerieren() auf dem Server – sofort sichtbar, ohne zu warten
-  const st = [], cnt = {};
+const ozMaske = () => { const m = (L && L.data && L.data.ozm) || {}; return { t: Array.isArray(m.t) && m.t.length ? m.t : [2, 2, 2, 2], p: m.p || 4, s: m.s || 10 }; };
+function numerieren() {   // wie nummerieren() auf dem Server – nach der OZ-Maske des LV, sofort sichtbar
+  const st = [], cnt = {}, M = ozMaske();
   for (const x of items()) {
-    if (x.typ === 'titel') { const lv = x.lvl || 1; while (st.length && st[st.length - 1][0] >= lv) st.pop(); const par = st.length ? st[st.length - 1][1] : ''; cnt[par] = (cnt[par] || 0) + 1; x.oz = (par ? par + '.' : '') + String(cnt[par]).padStart(2, '0'); st.push([lv, x.oz]); cnt[x.oz + '#p'] = 0; }
+    if (x.typ === 'titel') { const lv = x.lvl || 1; while (st.length && st[st.length - 1][0] >= lv) st.pop(); const par = st.length ? st[st.length - 1][1] : ''; cnt[par] = (cnt[par] || 0) + 1; x.oz = (par ? par + '.' : '') + String(cnt[par]).padStart(M.t[Math.min(st.length, M.t.length - 1)], '0'); st.push([lv, x.oz]); cnt[x.oz + '#p'] = 0; }
     else if (x.art === 'T') x.oz = '';
-    else { const par = st.length ? st[st.length - 1][1] : ''; const k = par + '#p'; cnt[k] = (cnt[k] || 0) + 10; x.oz = (par ? par + '.' : '') + String(cnt[k]).padStart(4, '0'); }
+    else { const par = st.length ? st[st.length - 1][1] : ''; const k = par + '#p'; cnt[k] = (cnt[k] || 0) + M.s; x.oz = (par ? par + '.' : '') + String(cnt[k]).padStart(M.p, '0'); }
   }
+}
+/* Nummerieren: erst das Schema (GAEB-OZ-Maske) – Titelstufen mit ihren Stellen, Stellen der Position, Schrittweite – mit Vorschau */
+function numDialog() {
+  const M = ozMaske(), tiefe = Math.max(1, ...items().filter((x) => x.typ === 'titel').map((x) => x.lvl || 1));
+  const n = Math.max(tiefe, Math.min(4, M.t.length));
+  const bg = modalBox(`<h3>Nummerieren</h3><p class="hint" style="margin:0 0 .7rem">Ordnungszahlen nach einem Schema wie in GAEB (OZ-Maske). Das Schema wird beim LV gemerkt.</p>
+    <div class="nlf" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <label>Titelstufen<select id="ozT">${[1, 2, 3, 4].map((k) => `<option${k === n ? ' selected' : ''}>${k}</option>`).join('')}</select></label>
+      <label>Stellen je Titel<select id="ozTS">${[1, 2, 3].map((k) => `<option${k === (M.t[0] || 2) ? ' selected' : ''}>${k}</option>`).join('')}</select></label>
+      <label>Stellen der Position<select id="ozP">${[3, 4, 5].map((k) => `<option${k === M.p ? ' selected' : ''}>${k}</option>`).join('')}</select></label>
+      <label>Schrittweite<select id="ozS">${[1, 5, 10].map((k) => `<option${k === M.s ? ' selected' : ''}>${k}</option>`).join('')}</select></label></div>
+    <p class="hint" style="margin:.7rem 0 .2rem">Beispiel: <b id="ozV"></b>${tiefe > 1 ? ` · im LV gibt es ${tiefe} Titelstufen` : ''}</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Nummerieren</button></div>`, (m, bg2, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const t = +bg2.querySelector('#ozT').value, ts = +bg2.querySelector('#ozTS').value;
+    L.data.ozm = { t: Array(t).fill(ts), p: +bg2.querySelector('#ozP').value, s: +bg2.querySelector('#ozS').value };
+    close(); HIST.next = 'Nummeriert'; numerieren(); changed(true);
+  });
+  const vor = () => { const t = +bg.querySelector('#ozT').value, ts = +bg.querySelector('#ozTS').value, p = +bg.querySelector('#ozP').value, st = +bg.querySelector('#ozS').value;
+    bg.querySelector('#ozV').textContent = [...Array(t)].map((_, i) => String(i + 1).padStart(ts, '0')).join('.') + '.' + String(st).padStart(p, '0') + ` (Titel ${'1'.padStart(ts, '0')}, Positionen ${String(st).padStart(p, '0')}, ${String(2 * st).padStart(p, '0')} …)`; };
+  bg.addEventListener('change', vor); vor();
 }
 function moveItem(i, dir) {
   const I = items(), x = I[i];
@@ -1754,7 +1778,7 @@ document.addEventListener('click', async (e) => {
     const a = ac.dataset.act;
     if (a === 'new') return newDialog();
     if (['titel', 'utitel', 'pos', 'txt', 'nt'].includes(a)) { if (!L) return; if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); render(); } return addItem(a); }
-    if (a === 'num') { numerieren(); changed(true); return; }
+    if (a === 'num') { numDialog(); return; }
     if (a === 'bk') return bkDialog();
     if (a === 'vorbem') { L.data.showVorbem = !L.data.showVorbem; if (L.data.showVorbem && !window.VBL) api('api/baudaten/vorbemerkungen').then((v) => { window.VBL = v; render(); }).catch(() => { window.VBL = []; }); render(); return; }
     if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); render(); return; }

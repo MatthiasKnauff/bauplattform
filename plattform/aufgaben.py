@@ -120,6 +120,15 @@ def _scope():
     return "all" if request.args.get("scope") == "all" else "mine"
 
 
+@app.get("/api/kontakte")
+def kontakte_anschrift():
+    """Firmen aus den Adressen für die Anschrift in Mängel- und Terminrüge (Name, Ansprechpartner, Straße, Ort, E-Mail)."""
+    with db.tx() as c:
+        rows = c.execute("SELECT id, name, contact_person, street, zip, city, email FROM contacts ORDER BY lower(name)").fetchall()
+    return jsonify([{"id": r["id"], "name": r["name"], "person": r["contact_person"] or "", "strasse": r["street"] or "",
+                     "ort": " ".join(v for v in (r["zip"], r["city"]) if v), "email": r["email"] or ""} for r in rows])
+
+
 # ---------------------------------------------------------------- Mängel
 @app.get("/api/maengel")
 def maengel(scope=None):

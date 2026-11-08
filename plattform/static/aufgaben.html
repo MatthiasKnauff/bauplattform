@@ -254,13 +254,12 @@ async function tSet(id, status) {
 }
 async function truegeDialog(k, nur) {
   const [pid, firma] = [+k.split('|')[0], k.split('|').slice(1).join('|')];
-  let V; try { [V] = await Promise.all([api(`api/terminruege/vorlage?pid=${pid}&firma=${encodeURIComponent(firma)}`), konto()]); } catch (e) { toast(e.message, true); return; }
+  let V; try { [V] = await Promise.all([api(`api/terminruege/vorlage?pid=${pid}&firma=${encodeURIComponent(firma)}`), konto(), kadrLaden()]); } catch (e) { toast(e.message, true); return; }
   V.nur = nur || '';
   SIGNME = !!V.signme;
   const E0 = V.empfaenger;
   const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
-    <label>An</label><input id="tN" value="${esc(E0.name)}"><label>z. Hd.</label><input id="tP" value="${esc(E0.person)}" placeholder="optional">
-    <label>Straße</label><input id="tS" value="${esc(E0.strasse)}"><label>PLZ Ort</label><input id="tO" value="${esc(E0.ort)}">
+    ${adrHtml('t', E0)}
     <label>Auftrag</label><input id="tA" placeholder="z. B. Nr. 12/2026 vom 03.03.2026 (optional)">
     <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="tF" value="${plus(3)}">${[[2, '2 Tage'], [3, '3 Tage'], [7, '1 Woche']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
     ${(V.verzug || []).length ? `<label class="w">Rückstand laut Arbeitsfortschritt</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">
@@ -284,7 +283,7 @@ async function truegeDialog(k, nur) {
       empfaenger: { id: bg.querySelector('#tN').value.trim() === E0.name ? E0.id : null, name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
     try { await briefStart('api/terminruege', body, 'Terminrüge', close); } catch (e) { toast(e.message, true); }
   });
-  bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg);
+  bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg); adrBind(bg, 't');
 }
 
 /* ---------- Mängel ---------- */
@@ -614,17 +613,42 @@ document.addEventListener('click', async (e) => {
   const d = e.target.closest('[data-bfweg]'); if (d) { if (!(await bpFrage('Entwurf löschen?'))) return; await briefWeg(d.dataset.bfweg); }
 });
 
+/* ---------- Anschrift aus den Adressen: nur Firma und Ansprechpartner eintippen, Straße/Ort/E-Mail kommen aus „Adressen“ ---------- */
+let KADR = null;
+async function kadrLaden() { if (!KADR) KADR = await api('api/kontakte').catch(() => []); return KADR; }
+const adrHtml = (p, E) => `<label>An</label><div><input id="${p}N" value="${esc(E.name)}" placeholder="Firma – tippen, Vorschläge aus den Adressen" list="${p}Nl" autocomplete="off"><datalist id="${p}Nl">${(KADR || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
+    <div class="mute" id="${p}Adr" style="font-size:.82rem;margin-top:.25rem"></div></div>
+    <label>z. Hd.</label><input id="${p}P" value="${esc(E.person)}" placeholder="Ansprechpartner (optional)">
+    <label class="${p}Hand" hidden>Straße</label><input class="${p}Hand" id="${p}S" value="${esc(E.strasse)}" hidden><label class="${p}Hand" hidden>PLZ Ort</label><input class="${p}Hand" id="${p}O" value="${esc(E.ort)}" hidden>`;
+function adrBind(bg, p) {   // Firma gewählt → Anschrift (und E-Mail) aus den Adressen; unbekannt → Felder zum Eintragen
+  const n = bg.querySelector('#' + p + 'N'), info = bg.querySelector('#' + p + 'Adr');
+  const hand = (an) => bg.querySelectorAll('.' + p + 'Hand').forEach((x) => { x.hidden = !an; });
+  const zeig = () => {
+    const k = (KADR || []).find((y) => y.name.toLowerCase() === n.value.trim().toLowerCase());
+    if (k) {
+      bg.querySelector('#' + p + 'S').value = k.strasse; bg.querySelector('#' + p + 'O').value = k.ort;
+      const pp = bg.querySelector('#' + p + 'P'); if (!pp.value.trim() && k.person) pp.value = k.person;
+      const vm = bg.querySelector('#vM'); if (vm && !vm.value.trim() && k.email) vm.value = k.email;
+      hand(false);
+      info.innerHTML = [k.strasse, k.ort].filter(Boolean).length ? `📍 ${esc([k.strasse, k.ort].filter(Boolean).join(', '))} <a href="#" data-adrhand>ändern</a>` : 'In den Adressen ohne Anschrift – <a href="#" data-adrhand>hier eintragen</a>';
+    } else if (n.value.trim()) {
+      const S = bg.querySelector('#' + p + 'S').value.trim(), O = bg.querySelector('#' + p + 'O').value.trim();
+      if (S || O) { hand(false); info.innerHTML = `📍 ${esc([S, O].filter(Boolean).join(', '))} <a href="#" data-adrhand>ändern</a>`; }
+      else { hand(true); info.textContent = 'Nicht in den Adressen – Anschrift bitte eintragen.'; }
+    } else { hand(false); info.textContent = ''; }
+  };
+  n.addEventListener('change', zeig); n.addEventListener('input', () => { if ((KADR || []).some((y) => y.name.toLowerCase() === n.value.trim().toLowerCase())) zeig(); });
+  info.addEventListener('click', (e) => { if (e.target.closest('[data-adrhand]')) { e.preventDefault(); hand(true); bg.querySelector('#' + p + 'S').focus(); } });
+  zeig();
+}
 /* ---------- Mängelrüge: Dialog → Entwurf im Brief-Editor ---------- */
 async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Eintrag: { pid, firma }
-  let V; try { [V] = await Promise.all([api('api/maengelruege/vorlage?' + (id ? 'id=' + id : `pid=${ohne.pid}&firma=${encodeURIComponent(ohne.firma || '')}`)), konto()]); } catch (e) { toast(e.message, true); return; }
+  let V; try { [V] = await Promise.all([api('api/maengelruege/vorlage?' + (id ? 'id=' + id : `pid=${ohne.pid}&firma=${encodeURIComponent(ohne.firma || '')}`)), konto(), kadrLaden()]); } catch (e) { toast(e.message, true); return; }
   SIGNME = !!V.signme;
   const E = V.empfaenger, sel = new Set(V.gewaehlt);
   const ms = () => V.maengel.map((m) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-rm="${m.id}"${sel.has(m.id) ? ' checked' : ''}><span>${esc(m.text)}<small class="mute" style="display:block">${esc(m.firma || 'ohne Firma')} · festgestellt ${de(m.datum)}${m.fotos ? ` · ${m.fotos} Foto${m.fotos > 1 ? 's' : ''}` : ''}</small></span></label>`).join('');
   const bg = modalBox(`<h3>Mängelrüge</h3><div class="fm">
-    <label>An</label><input id="rN" value="${esc(E.name)}" placeholder="Firma">
-    <label>z. Hd.</label><input id="rP" value="${esc(E.person)}" placeholder="Ansprechpartner (optional)">
-    <label>Straße</label><input id="rS" value="${esc(E.strasse)}">
-    <label>PLZ Ort</label><input id="rO" value="${esc(E.ort)}">
+    ${adrHtml('r', E)}
     <label>Nach VOB/B</label><select id="rG"><option value="vob4">§ 4 Abs. 7 – vor der Abnahme (während der Ausführung)</option><option value="vob13">§ 13 Abs. 5 – nach der Abnahme (Mängelansprüche)</option></select>
     <label>Auftrag</label><input id="rA" placeholder="z. B. Nr. 12/2026 vom 03.03.2026 (optional)">
     <label></label><label class="chk" style="color:var(--ink)" id="rKw"><input type="checkbox" id="rK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
@@ -647,7 +671,7 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
       try { await briefStart('api/maengelruege', body, 'Mängelrüge', close); } catch (e) { toast(e.message, true); }
     }
   });
-  bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg);
+  bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg); adrBind(bg, 'r');
   const rg = bg.querySelector('#rG'), kw = () => { bg.querySelector('#rKw').style.display = rg.value === 'vob4' ? '' : 'none'; };
   rg.addEventListener('change', kw); kw();
 }

@@ -4549,11 +4549,7 @@ const MOB = (() => {
   const LSK = 'ava.mobilAus';
   const schmal = Math.min(window.innerWidth, screen.width || 9999) <= 760, touch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
   if (!((schmal && touch) || /iPhone|Android.+Mobile/i.test(navigator.userAgent))) return null;
-  let aus = false; try { aus = localStorage.getItem(LSK) === '1'; } catch { /* egal */ }
-  if (aus) {   // am Handy bewusst die Desktop-Ansicht gewählt: Weg zurück anbieten
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = '📱 Handy-Ansicht'; b.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:90;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:.45rem .8rem;font:inherit;box-shadow:0 4px 14px #0004';
-    b.onclick = () => window.bpMobilAn(); document.body.appendChild(b); return null;
-  }
+  try { localStorage.removeItem(LSK); } catch { /* egal */ }   // am Handy immer die Ansicht – bearbeitet wird am Computer
   document.documentElement.classList.add('mobil');
   const box = $('#mView'), st = { modus: LS.get('mModus', 'lvs'), auf: new Set(), q: '', alle: LS.get('vqAlle', false), T: 0, tok: 0, R: [] };
   const pct = (a, b) => (b ? Math.max(0, Math.min(100, Math.round(a / b * 100))) : 0);
@@ -4647,7 +4643,7 @@ const MOB = (() => {
     const M = [['lvs', 'LVs'], ['auftraege', 'Aufträge'], ['am', 'Aufmaß'], ['re', 'Rechnungen']], mAkt = st.modus === 'lv' ? (st.von || 'lvs') : st.modus;
     box.innerHTML = `<div class="mv-top"><div class="mv-q"><input type="search" id="mQ" placeholder="🔍 Suchen – Text, OZ, Firma …" value="${esc(st.q)}" autocomplete="off" enterkeyhint="search"><label><input type="checkbox" id="mQa"${st.alle ? ' checked' : ''}> alle Projekte</label></div>${st.modus === 'lv' || st.modus === 'am' ? lvSel : ''}<div class="mv-seg">${M.map(([k, l]) => `<button data-mm="${k}" class="${k === mAkt ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <div class="mv-b">${st.q.length > 1 ? '<p style="color:var(--mute)">Suche …</p>' : st.modus === 'lv' ? `<button class="mv-zur" data-mm="${st.von || 'lvs'}">‹ ${st.von === 'auftraege' ? 'Aufträge' : 'alle LVs'}</button>${vLvM()}${items().some((x) => x.nt) ? '<div class="mv-g">Nachträge</div>' + vNt() : ''}` : st.modus === 'am' ? vAm() : st.modus === 're' ? vReAlle() : st.modus === 'lvs' ? vLvs() : vAuf()}
-      <p class="mv-f">Nur Ansicht – bearbeiten am Computer. <button data-mdesk>Desktop-Ansicht</button></p></div>`;
+      <p class="mv-f">Nur Ansicht – bearbeitet wird am Computer.</p></div>`;
     if (st.q.trim().length > 1) suchen();
   }
   async function suchen() {   // Volltextsuche wie am Computer (api/suche) – Ergebnisse statt der Liste
@@ -4682,10 +4678,9 @@ const MOB = (() => {
     const kr = e.target.closest('[data-mre]'); if (kr) { if (!L || L.id !== +kr.dataset.mre) await openLv(+kr.dataset.mre); st.modus = 'rlv'; zeichnenRe(); scrollTo(0, 0); return; }
     const t = e.target.closest('[data-mt]'); if (t) { const id = t.dataset.mt; if (st.auf.has(id)) st.auf.delete(id); else st.auf.add(id); zeichnen(); return; }
     const p = e.target.closest('[data-mp]'); if (p) { st.lang = st.lang === p.dataset.mp ? null : p.dataset.mp; zeichnen(); return; }
-    if (e.target.closest('[data-mdesk]')) { try { localStorage.setItem(LSK, '1'); } catch { /* egal */ } location.reload(); }
   });
   function zeichnenRe() {   // Rechnungen eines LV im Detail (wie bisher), mit Zurück
-    zeichnen(); const b = box.querySelector('.mv-b'); if (b) b.innerHTML = `<button class="mv-zur" data-mm="re">‹ alle Rechnungen</button><div class="mv-g">${esc(L.nr)} ${esc(L.name)}</div>${vRe()}<p class="mv-f">Nur Ansicht – bearbeiten am Computer. <button data-mdesk>Desktop-Ansicht</button></p>`;
+    zeichnen(); const b = box.querySelector('.mv-b'); if (b) b.innerHTML = `<button class="mv-zur" data-mm="re">‹ alle Rechnungen</button><div class="mv-g">${esc(L.nr)} ${esc(L.name)}</div>${vRe()}<p class="mv-f">Nur Ansicht – bearbeitet wird am Computer.</p>`;
     const sg = box.querySelector('[data-mm="re"].on, .mv-seg [data-mm="re"]'); if (sg) sg.classList.add('on');
   }
   return { zeichnen: () => (st.modus === 'rlv' ? zeichnenRe() : zeichnen()) };

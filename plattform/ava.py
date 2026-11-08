@@ -1214,7 +1214,10 @@ def lv_liste():
             av = c.execute("SELECT id FROM ava_version WHERE project_id=? AND aktiv=1 ORDER BY id DESC LIMIT 1", (pid,)).fetchone()
             if av:
                 c.execute("UPDATE ava_lv SET version_id=? WHERE project_id=? AND version_id IS NULL", (av["id"], pid))
-        if pid and vid:
+        nur = request.args.get("id", type=int)   # nur ein LV (z. B. nach einem Nachtrag: die Liste nicht komplett neu rechnen)
+        if nur:
+            rows = c.execute("SELECT * FROM ava_lv WHERE id=?", (nur,)).fetchall()
+        elif pid and vid:
             rows = c.execute("SELECT * FROM ava_lv WHERE project_id=? AND version_id=? ORDER BY archived, nr, id", (pid, vid)).fetchall()
         else:
             rows = c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + AKTIV + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall()
@@ -2725,15 +2728,27 @@ def nachtrag_neu(i):
         ende = ti + 1
         while ende < len(items) and not (items[ende].get("typ") == "titel" and (items[ende].get("lvl") or 1) <= (t.get("lvl") or 1)):
             ende += 1
-        n_nt = sum(1 for x in items if x.get("nt") and not x.get("nt_erbe")) + 1
+        vorhanden = {str(x.get("nt")) for x in items if x.get("nt")}   # Nummer = nächste freie Nachtragsnummer (nicht Zahl der Positionen)
+        n_nt = len(vorhanden) + 1
+        while f"NT{n_nt}" in vorhanden:
+            n_nt += 1
         grund = _s(b.get("grund"), 300) or f"von Hand erfasst ({date.today().strftime('%d.%m.%Y')}, {g.user['name']})"
-        if b.get("als_titel"):   # ganzer Gliederungspunkt als Nachtrag (Positionen danach im LV darunter eintragen)
+        neue_preise = {}
+        if b.get("als_titel"):   # ganzer Gliederungspunkt als Nachtrag – mit den gleich mitgegebenen Positionen (oder einer Pauschale aus dem EP)
             pos = {"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": (t.get("lvl") or 1) + 1, "oz": "", "kurz": kurz, "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund}
             items.insert(ende, pos)
-            if ep is not None:   # mit Betrag: gleich eine Pauschalposition darunter
-                p2 = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit, "ep_s": ep}
-                items.insert(ende + 1, p2)
-                pos = p2
+            zeilen = [z for z in (b.get("positionen") or []) if isinstance(z, dict) and _s(z.get("kurz"), 300)][:200]
+            if not zeilen and ep is not None:
+                zeilen = [{"kurz": kurz, "menge": menge, "einheit": einheit, "ep": ep}]
+            for n, z in enumerate(zeilen, 1):
+                p2 = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": _s(z.get("kurz"), 300), "lang": _s(z.get("lang"), 4000),
+                      "menge": _f(z.get("menge"), 1), "einheit": _s(z.get("einheit"), 10) or "psch"}
+                ep2 = _fn(z.get("ep"))
+                if ep2 is not None:
+                    p2["ep_s"] = ep2
+                    neue_preise[p2["id"]] = ep2
+                items.insert(ende + n, p2)
+            ep = None   # Preise stehen in neue_preise
         else:
             pos = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit,
                    "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund}
@@ -2743,8 +2758,10 @@ def nachtrag_neu(i):
         nt_erben(items)
         nummerieren(items, maske=d.get("ozm"))
         d["items"] = items
-        if ep is not None and pos.get("typ") == "pos" and (V.get("preise") is not None or V.get("bieter") or V.get("frei")):
-            VP = dict(V.get("preise") or {}); VP[pos["id"]] = ep; V["preise"] = VP
+        if ep is not None and pos.get("typ") == "pos":
+            neue_preise[pos["id"]] = ep
+        if neue_preise and (V.get("preise") is not None or V.get("bieter") or V.get("frei")):   # EP wird Auftragspreis (so rechnet die Prüfung damit)
+            V["preise"] = {**(V.get("preise") or {}), **neue_preise}
         c.execute("UPDATE ava_lv SET data=?, vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
                   (json.dumps(d, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
         versionen.nach(c, f"avalv:{i}", g.user["name"])

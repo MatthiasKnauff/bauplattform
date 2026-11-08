@@ -444,7 +444,8 @@ html.mobil .bph{position:sticky;top:0}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
 .tree tr.nt-neu td{background:color-mix(in srgb,var(--y) 7%,var(--card));padding:.3rem .45rem}.nt-st{font:inherit;font-size:.82rem;padding:.05rem .3rem;border-radius:6px;border:1px solid var(--line);background:var(--card);color:inherit}
-.nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}.nt-st.gemischt{border-color:var(--mute);color:var(--mute);font-style:italic}
+.nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}.nt-pos{width:100%;border-collapse:collapse;margin:.3rem 0 .4rem;font-size:.88rem}.nt-pos th{text-align:left;font-weight:500;color:var(--mute);padding:.1rem .25rem}.nt-pos td{padding:.1rem .25rem}.nt-pos input{width:100%;box-sizing:border-box}.nt-pos .ib{padding:.1rem .35rem}
+.nt-st.gemischt{border-color:var(--mute);color:var(--mute);font-style:italic}
 .si-dok{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.4rem}.si-sum .btn{margin-left:auto}
 .aufh-b{display:flex;gap:.8rem;align-items:center;padding:.7rem 1rem;margin:0 0 .8rem;border:1.5px solid #e0a030;border-radius:12px;background:color-mix(in srgb,#e0a030 12%,var(--card,transparent))}.aufh-b>div{flex:1}.aufh-i{font-size:1.4rem}
 .deakt{opacity:.5;filter:grayscale(.7);pointer-events:none;user-select:none}.pj-r.deakt-k{opacity:.5;text-decoration:line-through}
@@ -769,6 +770,12 @@ window.bpBugZustand = () => ({ ansicht: tab, projekt_id: pid, lv: L ? { id: L.id
   version: VSICHT && VSICHT.pid === pid ? 'angesehen ' + VSICHT.id : 'gültige', versionen: (VERS || []).map((v) => `${v.id}${v.aktiv ? '*' : ''} ${v.name}`).slice(0, 10), lvs: (LIST || []).length, aktive_zeile: LVAKT, markiert: LVSEL ? LVSEL.size : 0 });
 const vSicht = () => (VSICHT && VSICHT.pid === pid && VERS.some((v) => v.id === VSICHT.id && !v.aktiv) ? VSICHT.id : null);
 const lvListe = () => api('api/lv?project_id=' + pid + (vSicht() ? '&version_id=' + vSicht() : ''));
+/* Nur einen Eintrag der LV-Liste nachladen (nach Nachtrag/Stand): schneller als die ganze Liste mit allen Summen neu zu rechnen */
+async function lvEintrag(id) {
+  const l = await api('api/lv?project_id=' + pid + '&id=' + id); const n = l && l[0]; if (!n) return;
+  const i = LIST.findIndex((x) => x.id === id); if (i >= 0) LIST[i] = n; else LIST.push(n);
+  selBtn(); einUeb();
+}
 async function vleiste(neu) {
   if (!window.BPHead || !BPHead.versionsleiste) return;
   if (neu !== false) { try { VERS = pid ? await api('api/versionen?project_id=' + pid) : []; } catch { VERS = []; } }
@@ -1811,7 +1818,7 @@ function vLv() {
       const lv = x.lvl || 1; if (zuAb && lv <= zuAb) zuAb = 0;
       const versteckt = !!zuAb; tief = lv; const zu = LVZU.has(x.id); if (!zuAb && zu) zuAb = lv;
       if (versteckt) return '';
-      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}" data-i="${i}"><td class="oz baumz"><div class="bz" style="${einr(lv + 1)}"><span class="car" data-zu="${x.id}" title="${zu ? 'aufklappen' : 'zuklappen'}">${zu ? '▸' : '▾'}</span>${IC.ti}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:.78rem" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td><td colspan="${V ? 6 : 5}"></td>
+      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}" data-i="${i}"><td class="oz baumz" title="Doppelklick: Eigenschaften des Gliederungspunkts (Bezeichnung, Nachtrag) · zum Verschieben hier greifen und ziehen"><div class="bz" style="${einr(lv + 1)}"><span class="car" data-zu="${x.id}" title="${zu ? 'aufklappen' : 'zuklappen'}">${zu ? '▸' : '▾'}</span>${IC.ti}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:.78rem" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td><td colspan="${V ? 6 : 5}"></td>
       <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib${x.nt ? ' an' : ''}" data-a="ntti" title="${x.nt ? 'Nachtrag aufheben – die Positionen darunter werden wieder normale Positionen' : 'Diesen Gliederungspunkt als Nachtrag kennzeichnen – alle Positionen darunter gehören dann zum Nachtrag'}">NT</button><button class="ib" data-a="lvlauf" title="eine Ebene höher (mit seinen Untertiteln)"${lv > 1 ? '' : ' disabled'}>⇤</button><button class="ib" data-a="lvlab" title="zum Untertitel machen – eine Ebene tiefer (GAEB: höchstens 4 Ebenen)"${lv < 4 ? '' : ' disabled'}>⇥</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     }
     if (zuAb) return '';
@@ -2056,7 +2063,7 @@ function numDialog() {
   bg.addEventListener('change', vor); vor();
 }
 /* Nachträge: Nummer vergeben (nur eigene, nicht geerbte zählen) und Vererbung vom Gliederungspunkt auf die Positionen darunter (Spiegel von nt_erben im Server) */
-function ntNr() { const I = items(); let n = 0; I.forEach((y) => { if (y.nt && !y.nt_erbe) n++; }); let k = n + 1; while (I.some((y) => y.nt === 'NT' + k)) k++; return k; }
+function ntNr() { const I = items(), v = new Set(I.filter((y) => y.nt).map((y) => String(y.nt))); let k = v.size + 1; while (v.has('NT' + k)) k++; return k; }
 function ntErben(I) {
   const st = [];
   I.forEach((x) => {
@@ -4365,11 +4372,38 @@ function eigDialog(id) {
   draw();
   { const md = bg.querySelector('.modal'); md.tabIndex = -1; md.focus({ preventScroll: true }); md.style.outline = 'none'; }   // Fokus aufs Fenster: ← → blättern sofort
 }
-document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Position öffnet ihre Eigenschaften
+document.addEventListener('dblclick', (e) => {   // Doppelklick auf eine Position öffnet ihre Eigenschaften, auf einen Titel die des Gliederungspunkts
   if (tab !== 'lv' || e.target.closest('textarea,select,.lang,.acts-c')) return;
-  const tr = e.target.closest('tr[data-i]'); const x = tr && items()[+tr.dataset.i]; if (!x || x.typ !== 'pos') return;
-  e.preventDefault(); if (window.getSelection) window.getSelection().removeAllRanges(); eigDialog(x.id);
+  const tr = e.target.closest('tr[data-i]'); const x = tr && items()[+tr.dataset.i]; if (!x || (x.typ !== 'pos' && x.typ !== 'titel')) return;
+  e.preventDefault(); if (window.getSelection) window.getSelection().removeAllRanges(); if (x.typ === 'titel') titelDialog(x.id); else eigDialog(x.id);
 });
+/* Eigenschaften eines Gliederungspunkts: Bezeichnung, Ebene, Nachtrag (Nummer, Stand, Grund – gilt für alle Positionen darunter) */
+function titelDialog(id) {
+  const x = items().find((y) => y.id === id); if (!x) return;
+  const I = items(), i = I.indexOf(x), lv = x.lvl || 1; let e = i + 1; while (e < I.length && !(I[e].typ === 'titel' && (I[e].lvl || 1) <= lv)) e++;
+  const nPos = I.slice(i + 1, e).filter((y) => y.typ === 'pos').length, nTi = I.slice(i + 1, e).filter((y) => y.typ === 'titel').length;
+  const bg = modalBox(`<h3>Gliederungspunkt <span class="hint">· ${esc(x.oz || '')} · Ebene ${lv} · ${nPos} Position${nPos === 1 ? '' : 'en'}${nTi ? `, ${nTi} Untertitel` : ''}</span></h3><div class="fm">
+      <label>Bezeichnung</label><input id="tiK" value="${esc(x.kurz || '')}" placeholder="z. B. Erdarbeiten">
+      <label>Nachtrag</label><label class="chk"><input type="checkbox" id="tiNt"${x.nt ? ' checked' : ''}> Dieser Gliederungspunkt ist ein Nachtrag <span class="hint">– alle Positionen darunter gehören dazu</span></label>
+      <label>Nummer</label><input id="tiNr" value="${esc(x.nt || '')}" placeholder="NT${ntNr()}" style="width:7rem"${x.nt ? '' : ' disabled'}>
+      <label>Stand</label><select id="tiSt"${x.nt ? '' : ' disabled'}>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${(x.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>
+      <label>Grund / Bemerkung</label><input id="tiG" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"${x.nt ? '' : ' disabled'}></div>
+    <p class="hint" style="margin:.6rem 0 0">Nachträge auf Gliederungsebene erscheinen unter Aufträge als ein Nachtrag mit allen Positionen; der Stand lässt sich dort für den ganzen Nachtrag oder je Position setzen.</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const q = (k) => bg.querySelector('#' + k);
+    x.kurz = q('tiK').value.trim();
+    if (q('tiNt').checked) {
+      const nr = q('tiNr').value.trim() || 'NT' + ntNr();
+      if (items().some((y) => y !== x && y.nt === nr && !y.nt_erbe && !(y.typ === 'pos' && I.indexOf(y) > i && I.indexOf(y) < e))) { toast(`Die Nummer „${nr}“ ist schon vergeben.`, true); return; }
+      x.nt = nr; x.nt_status = q('tiSt').value; x.nt_grund = q('tiG').value.trim();
+    } else { delete x.nt; delete x.nt_status; delete x.nt_grund; }
+    ntErben(items()); HIST.next = `Gliederungspunkt ${x.oz || ''} ${x.kurz}`.trim(); close(); changed(true);
+  });
+  bg.querySelector('#tiNt').addEventListener('change', (ev) => { ['tiNr', 'tiSt', 'tiG'].forEach((k) => { bg.querySelector('#' + k).disabled = !ev.target.checked; }); if (ev.target.checked && !bg.querySelector('#tiNr').value) bg.querySelector('#tiNr').value = 'NT' + ntNr(); });
+  setTimeout(() => bg.querySelector('#tiK').focus(), 30);
+}
 
 /* ---------- Aufträge: Baum über alle Vergabeeinheiten (wie in ORCA: Projekt › LV › Titel › Position) ---------- */
 const IC = {
@@ -4416,7 +4450,7 @@ function vAuftraege() {
       [x.aufgehoben ? `<span class="mu" title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || ''), e2(x.auftrag || x.schaetzung), jn(x.n_nt), e2(x.nachtraege + x.nt_angemeldet), e2(x.prognose), aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? 'aufgehoben' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung', '', '', e2(x.abgerechnet)]);
     if (!EXP.has(k)) return;
     const lv = PC[x.id];
-    if (!lv) { out.push(`<tr><td colspan="10" class="mu" style="padding-left:3.4rem">wird geladen …</td></tr>`); return; }
+    if (!lv) { out.push(`<tr><td colspan="10" class="mu" style="padding-left:3.4rem">wird geladen …</td></tr>`); pcLaden(x.id); return; }
     const R = lvBaum(lv), sicht = new Set([k]);
     const ALLE = (lv.data.items || []).filter((y) => y.nt && (y.typ === 'pos' || y.typ === 'titel'));
     const G = new Map();   // je Nachtragsnummer eine Gruppe: Stand wird für den ganzen Nachtrag gesetzt (auch auf Gliederungsebene)
@@ -4457,6 +4491,8 @@ function vAuftraege() {
     <p class="hint" style="margin:.5rem 0 0">▸ klappt auf · Klick wählt das LV · Doppelklick öffnet es im Leistungsverzeichnis. Gesamt = Auftragssumme (nach Nachlass), ohne Auftrag die Schätzung. Prognose = Auftrag + beauftragte und angemeldete Nachträge. Grau: Bedarfs-/Wahlpositionen (nicht in der Summe).</p>`;
   return `<div class="au2" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div><aside class="au2-re">${auftragKarte()}</aside></div>`;
 }
+const PCL = new Set();   // LVs, die gerade für die Aufträge-Tabelle geladen werden (aufgeklappt gemerkt, Daten noch nicht da)
+function pcLaden(id) { if (PCL.has(id) || PC[id]) return; PCL.add(id); api('api/lv/' + id).then((r) => { PC[id] = r; if (tab === 'auftraege') render(); }).catch(() => {}).finally(() => PCL.delete(id)); }
 /* Rechts neben der Aufträge-Tabelle: Bedingungen des gewählten Auftrags (wie die Rechnungskarte rechts unter Rechnungen) – Konditionen direkt änderbar */
 function auftragKarte() {
   const x = L && LIST.find((y) => y.id === L.id);
@@ -4485,6 +4521,9 @@ function ntDialog(lvId) {
       <label>EP netto €</label><input id="ntP" inputmode="decimal" style="width:9rem" placeholder="Preis der Firma">
       <label>Stand</label><select id="ntS"><option value="angemeldet">angemeldet (Firma hat angekündigt)</option><option value="beauftragt">beauftragt</option><option value="abgelehnt">abgelehnt</option></select>
       <label>Grund / Bemerkung</label><input id="ntG" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></div>
+    <div id="ntPos" hidden style="margin-top:.7rem"><b style="font-size:.9rem">Positionen des Nachtrags</b> <span class="hint">– Tab/Enter springt weiter, in der letzten Zeile kommt eine neue dazu; Zeilen ohne Bezeichnung werden übergangen</span>
+      <table class="nt-pos"><thead><tr><th>Bezeichnung</th><th style="width:5.5rem">Menge</th><th style="width:4.5rem">EH</th><th style="width:7rem">EP netto €</th><th></th></tr></thead><tbody id="ntPosB"></tbody></table>
+      <button type="button" class="btn sm" data-ntz="+">＋ Zeile</button></div>
     <p class="hint" style="margin:.6rem 0 0" id="ntH">Kommt als Position unter den Titel „Nachträge“ des LV; beauftragte und angemeldete Nachträge zählen in Prognose und Rechnungsprüfung, abgelehnte nicht. Langtext und Details danach im Leistungsverzeichnis.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Erfassen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
@@ -4492,15 +4531,27 @@ function ntDialog(lvId) {
     const kurz = $('#ntK').value.trim(); if (!kurz) { toast('Bitte eine Bezeichnung eintragen.', true); return; }
     btn.disabled = true;
     try {
-      const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz, menge: pf($('#ntM').value), einheit: $('#ntE').value.trim(), ep: $('#ntP').value.trim() === '' ? null : pf($('#ntP').value), status: $('#ntS').value, grund: $('#ntG').value.trim(), als_titel: $('#ntU').value === 'titel' });
-      close(); PC[lvId] = r; if (L && L.id === lvId) L = r; EXP.add('l' + lvId); await refreshList(); render(); toast('Nachtrag erfasst.');
+      const titel = $('#ntU').value === 'titel';
+      const positionen = titel ? [...bg.querySelectorAll('#ntPosB tr')].map((tr) => ({ kurz: tr.querySelector('[data-np="kurz"]').value.trim(), menge: pf(tr.querySelector('[data-np="menge"]').value) ?? 1, einheit: tr.querySelector('[data-np="einheit"]').value.trim() || 'psch', ep: tr.querySelector('[data-np="ep"]').value.trim() === '' ? null : pf(tr.querySelector('[data-np="ep"]').value) })).filter((z) => z.kurz) : [];
+      const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz, menge: pf($('#ntM').value), einheit: $('#ntE').value.trim(), ep: $('#ntP').value.trim() === '' ? null : pf($('#ntP').value), status: $('#ntS').value, grund: $('#ntG').value.trim(), als_titel: titel, positionen });
+      close(); PC[lvId] = r; if (L && L.id === lvId) L = r; EXP.add('l' + lvId); EXP.add(`l${lvId}:nt:${(r.data.items.filter((y) => y.nt && !y.nt_erbe).pop() || {}).nt}`);
+      render(); toast(titel && positionen.length ? `Nachtrag mit ${positionen.length} Position${positionen.length === 1 ? '' : 'en'} erfasst.` : 'Nachtrag erfasst.');
+      lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});   // Summen des LV nachziehen, ohne die ganze Liste neu zu rechnen
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
-  bg.querySelector('#ntU').addEventListener('change', (ev) => {   // Gliederungspunkt: Menge/Einheit nur für eine optionale Pauschalposition
-    const t = ev.target.value === 'titel'; ['#ntM', '#ntE'].forEach((q) => { const el = bg.querySelector(q); el.disabled = t; });
-    bg.querySelector('#ntP').placeholder = t ? 'optional: Pauschale als erste Position' : 'Preis der Firma';
-    bg.querySelector('#ntH').textContent = t ? 'Legt unter dem Titel „Nachträge“ einen eigenen Gliederungspunkt als Nachtrag an; alle Positionen, die Sie danach im Leistungsverzeichnis darunter eintragen, gehören zum Nachtrag und übernehmen seinen Stand. Mit EP wird gleich eine Pauschalposition darunter angelegt.'
+  const zeile = () => { const tr = document.createElement('tr'); tr.innerHTML = '<td><input data-np="kurz" placeholder="Bezeichnung"></td><td><input data-np="menge" value="1" inputmode="decimal"></td><td><input data-np="einheit" value="psch" list="ntEH"></td><td><input data-np="ep" inputmode="decimal" placeholder="EP"></td><td><button type="button" class="ib" data-ntz="-" title="Zeile entfernen">✕</button></td>'; bg.querySelector('#ntPosB').appendChild(tr); return tr; };
+  bg.querySelector('#ntPos').addEventListener('click', (ev) => { const b = ev.target.closest('[data-ntz]'); if (!b) return; ev.stopPropagation(); if (b.dataset.ntz === '+') zeile().querySelector('input').focus(); else { b.closest('tr').remove(); if (!bg.querySelector('#ntPosB tr')) zeile(); } });
+  bg.querySelector('#ntPos').addEventListener('keydown', (ev) => {   // Enter/Tab in der letzten Zeile: neue Zeile
+    if (!ev.target.matches('[data-np]')) return; const tr = ev.target.closest('tr'), letzte = tr === bg.querySelector('#ntPosB tr:last-child'), letztesFeld = ev.target.dataset.np === 'ep';
+    if (ev.key === 'Enter' || (ev.key === 'Tab' && !ev.shiftKey && letzte && letztesFeld)) { if (letzte && (letztesFeld || ev.key === 'Enter')) { ev.preventDefault(); if (tr.querySelector('[data-np="kurz"]').value.trim()) zeile().querySelector('input').focus(); } else if (ev.key === 'Enter') { ev.preventDefault(); const f = [...tr.querySelectorAll('[data-np]')]; (f[f.indexOf(ev.target) + 1] || tr.nextElementSibling.querySelector('input')).focus(); } }
+  });
+  bg.querySelector('#ntU').addEventListener('change', (ev) => {   // Gliederungspunkt: Positionen gleich mit erfassen, Menge/Einheit/EP oben entfallen
+    const t = ev.target.value === 'titel'; ['#ntM', '#ntE', '#ntP'].forEach((q) => { const el = bg.querySelector(q); el.disabled = t; });
+    bg.querySelector('#ntK').placeholder = t ? 'Bezeichnung des Nachtrags, z. B. Umbau Lüftung Keller' : 'z. B. Zusätzliche Kernbohrungen DN 150';
+    const box = bg.querySelector('#ntPos'); box.hidden = !t; if (t && !box.querySelector('tbody tr')) { zeile(); zeile(); zeile(); }
+    bg.querySelector('#ntH').textContent = t ? 'Legt unter dem Titel „Nachträge“ einen eigenen Gliederungspunkt als Nachtrag an – mit den Positionen aus der Tabelle; die EPs werden Auftragspreise. Weitere Positionen später im Leistungsverzeichnis darunter eintragen – sie gehören automatisch zum Nachtrag.'
       : 'Kommt als Position unter den Titel „Nachträge“ des LV; beauftragte und angemeldete Nachträge zählen in Prognose und Rechnungsprüfung, abgelehnte nicht. Langtext und Details danach im Leistungsverzeichnis.';
+    const md = bg.querySelector('.modal'); if (md) md.classList.toggle('breit', t);
   });
   setTimeout(() => $('#ntK').focus(), 30);
 }
@@ -4508,7 +4559,7 @@ document.addEventListener('click', (e) => { const b = e.target.closest && e.targ
 document.addEventListener('change', async (e) => {
   const s = e.target.closest && e.target.closest('[data-ntst]'); if (!s || s.value === 'gemischt') return;
   const [lvId, pid_] = s.dataset.ntst.split(':');
-  try { const r = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: s.value }); PC[+lvId] = r; if (L && L.id === +lvId) L = r; await refreshList(); render(); toast(`Nachtrag ${s.value}.`); }
+  try { const r = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: s.value }); PC[+lvId] = r; if (L && L.id === +lvId) L = r; render(); toast(`Nachtrag ${s.value}.`); lvEintrag(+lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); }
   catch (er) { toast(er.message, true); }
 });
 async function treeCar(k) {

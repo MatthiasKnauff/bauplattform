@@ -438,6 +438,7 @@ html.mobil .bph{position:sticky;top:0}
 .am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
+.si-dok{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.4rem}.si-sum .btn{margin-left:auto}
 .aufh-b{display:flex;gap:.8rem;align-items:center;padding:.7rem 1rem;margin:0 0 .8rem;border:1.5px solid #e0a030;border-radius:12px;background:color-mix(in srgb,#e0a030 12%,var(--card,transparent))}.aufh-b>div{flex:1}.aufh-i{font-size:1.4rem}
 .deakt{opacity:.5;filter:grayscale(.7);pointer-events:none;user-select:none}.pj-r.deakt-k{opacity:.5;text-decoration:line-through}
 .am-l{display:flex;flex-direction:column;gap:.8rem;min-width:0}.am-l .tblw{max-height:40vh;overflow:auto}
@@ -995,7 +996,7 @@ function kpis() {
   $('#stat').innerHTML = '<span class="hint">Stand:</span>' + STATUS.map(([k, l]) => `<button type="button" data-status="${k}" class="${L.status === k ? 'on' : ''}">${l}</button>`).join('');
 }
 /* ---------- Ein Ablagefeld für die ganze AVA: Datei erkennen (Art, Firma, Projekt, LV), nachfragen, an die richtige Stelle ---------- */
-const DOKN = { angebot: 'Angebot', rechnung: 'Rechnung', aufmass: 'Aufmaß', lv: 'Leistungsverzeichnis (Muster-LV)' };
+const DOKN = { angebot: 'Angebot', rechnung: 'Rechnung', aufmass: 'Aufmaß', lv: 'Leistungsverzeichnis (Muster-LV)', buergschaft: 'Bürgschaft (Sicherheit)' };
 async function avaDokumente(files) { for (const f of [...files]) { const ok = await avaDokument(f); if (ok === false) break; } }
 async function avaDokument(f) {
   const fd = new FormData(); fd.append('datei', f); if (pid) fd.append('project_id', pid); if (pid && vSicht()) fd.append('version_id', vSicht());
@@ -1060,7 +1061,8 @@ async function avaDokument(f) {
       if ((art === 'lv' || art === 'angebot') && !sel.value) sel.value = 'neu';
       const x = lvs.find((y) => y.id === +sel.value);
       ablSuchen();
-      bg.querySelector('#adWohin').innerHTML = art === 'lv' ? (sel.value === 'neu' ? 'Wird als neues LV angelegt' + (E.format === 'pdf' ? ' – die PDF steht dann rechts daneben: erkannte Positionen übernehmen oder Zeile für Zeile anklicken.' : '.') : 'Positionen werden an das gewählte LV angehängt.')
+      bg.querySelector('#adWohin').innerHTML = art === 'buergschaft' ? `Kommt zu den Sicherheiten des Auftrags (VOB/B § 17)${E.buergschaft && E.buergschaft.betrag ? ` – erkannt: ${E.buergschaft.art === 'ma' ? 'Mängelansprüche' : E.buergschaft.art === 've' ? 'Vertragserfüllung' : 'Art unklar'}, ${eur(E.buergschaft.betrag)}${E.buergschaft.buerge ? ', ' + esc(E.buergschaft.buerge) : ''}` : ''}. Die Angaben werden danach zum Prüfen gezeigt; ein noch einbehaltener Betrag kann gegen die Bürgschaft freigegeben werden.`
+        : art === 'lv' ? (sel.value === 'neu' ? 'Wird als neues LV angelegt' + (E.format === 'pdf' ? ' – die PDF steht dann rechts daneben: erkannte Positionen übernehmen oder Zeile für Zeile anklicken.' : '.') : 'Positionen werden an das gewählte LV angehängt.')
         : art === 'angebot' && sel.value === 'neu' ? 'Aus dem Angebot wird ein neues LV erzeugt (Positionen, Mengen, Preise als Schätzung) – danach kann es als Angebot der Firma eingetragen werden.'
         : art === 'angebot' ? 'Preise werden als Angebot der Firma eingetragen (Zuordnung über die Ordnungszahl) – danach im Preisspiegel.'
         : sel.value === 'neu' ? 'Neues LV ohne Positionen, Auftrag frei an die Firma – die Rechnung wird mit dem Betrag erfasst (Kostenkontrolle).'
@@ -1169,6 +1171,11 @@ async function avaAblegen(f, E, o) {
     tab = 'angebote'; LS.set('tab', tab); render();
     if (E.format === 'pdf' || E.format === '') { await angebotPdf(lvId, f, o.firma || f.name, K ? K.id : null); await ablegen(); return; }
     IMP = { ziel: 'angebot', bieter: o.firma, contact_id: K ? K.id : null }; await doImport(f); await ablegen(); return;
+  }
+  if (o.art === 'buergschaft') {   // Bürgschaftsurkunde zu den Sicherheiten des Auftrags
+    if (!vergeben()) { await call(`api/lv/${lvId}/vergabe`, 'POST', { frei: true, bieter: o.firma || 'Firma', contact_id: K ? K.id : null, summe: 0, einbehalt: 0 }); toast(`Auftrag frei an „${o.firma || 'Firma'}“ eingetragen.`); }
+    tab = 'rechnungen'; LS.set('tab', tab); render();
+    await buergschaftHoch(f, { ordner: o.ordner, erkannt: E.buergschaft }); return;
   }
   // Rechnung / Aufmaß: PDF in die Aufmaßprüfung (offene Rechnung, sonst neue)
   if (E.format !== 'pdf') throw new Error('Rechnungen und Aufmaße bitte als PDF ablegen.');
@@ -2946,10 +2953,18 @@ function amWeiter() {
   if (!o) { toast('Alle Positionen haben ein Aufmaß – durch.'); return; }
   amPos = o.id; LS.set('amPos', amPos); render(); toast('Letzte Position – weiter mit der ersten noch offenen.'); fokus();
 }
-function amSichtbar() {   // aktive Zeile in der Positionsliste sichtbar halten
+function amSichtbar() {   // aktive Zeile in der Positionsliste sichtbar halten – die Tabelle folgt beim Durchlaufen (Enter / nächste)
   const z = document.querySelector('table.am tr.akt[data-ampos]'), w = z && z.closest('.tblw'); if (!w) return;
-  const a = z.offsetTop - w.querySelector('thead').offsetHeight, b = z.offsetTop + z.offsetHeight;
-  if (a < w.scrollTop || b > w.scrollTop + w.clientHeight) w.scrollTop = Math.max(0, a - w.clientHeight / 3);
+  const kopf = w.querySelector('thead');
+  if (w.scrollHeight > w.clientHeight + 2 && getComputedStyle(w).overflowY !== 'visible') {   // eigener Scrollbereich
+    const a = z.offsetTop - (kopf ? kopf.offsetHeight : 0), b = z.offsetTop + z.offsetHeight;
+    if (a < w.scrollTop || b > w.scrollTop + w.clientHeight) w.scrollTop = Math.max(0, a - w.clientHeight / 3);
+    return;
+  }
+  // Tabelle scrollt mit der Seite (Baum-Ansicht): Fenster so rollen, dass die Zeile im oberen Drittel steht – unter Kopfleiste und Spaltenköpfen
+  const r = z.getBoundingClientRect(), oben = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--phh')) || 52, kh = kopf ? kopf.offsetHeight : 0;
+  const frei = oben + kh + 8, unten = innerHeight - 40;
+  if (r.top < frei || r.bottom > unten) scrollTo({ top: Math.max(0, scrollY + r.top - frei - (innerHeight - frei) / 3), behavior: 'smooth' });
 }
 async function amNeu(el, enter, weiter) {
   if ((el.dataset.amNew !== 'formel' && !enter) || amBusy) return;
@@ -3022,15 +3037,63 @@ function vSicherheiten(K) {
       ${k === 've' ? `<label>Einbehalt %<input data-ve="einbehalt" value="${esc(nf(ve.pct, 2))}" inputmode="decimal" style="width:5rem"></label>` : `<label>Einbehalt %${ein(k, 'pct', nf(x.pct, 2), '3', 'text', '5rem')}</label>`}
       ${x.form === 'buergschaft' ? `<label>Betrag €${ein(k, 'betrag', x.betrag != null ? nf(x.betrag, 2) : '', '', 'text', '8rem')}</label><label>Bürge (Bank/Versicherung)${ein(k, 'buerge', x.buerge, 'z. B. Sparkasse Essen')}</label>
         <label>Nr.${ein(k, 'nr', x.nr, '', 'text', '8rem')}</label><label>erhalten am${ein(k, 'eingang', x.eingang, '', 'date')}</label><label>zurückgegeben am${ein(k, 'rueckgabe', x.rueckgabe, '', 'date')}</label>` : ''}</div>
-      ${x.form === 'buergschaft' && x.eingang ? `<span class="hint">${k === 've' ? 'Bürgschaft liegt vor – in Teilrechnungen wird nichts einbehalten.' : 'Bürgschaft liegt vor – in der Schlussrechnung wird nichts einbehalten.'}</span>` : ''}</div>`;
+      ${x.form === 'buergschaft' && x.eingang ? `<span class="hint">${k === 've' ? 'Bürgschaft liegt vor – in Teilrechnungen wird nichts einbehalten.' : 'Bürgschaft liegt vor – in der Schlussrechnung wird nichts einbehalten.'}</span>` : ''}
+      <div class="si-dok">${(L.buergschaften || []).filter((d) => d.art === k || (!d.art && x.dok === d.id)).map((d) => `<span class="re-b"><a href="api/buergschaft/${d.id}" target="_blank" rel="noopener" title="${esc(d.ablage ? 'Im Projektordner: ' + d.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(d.name)}</a><button type="button" class="pj-del" data-bgweg="${d.id}" title="Urkunde entfernen">🗑</button></span>`).join('')}
+        <label class="btn sm" title="Bürgschaftsurkunde als PDF, Scan oder Foto – Art, Betrag, Bürge und Nummer werden gelesen und zum Prüfen gezeigt">📎 Bürgschaft ablegen<input type="file" accept="application/pdf,.pdf,image/*,.docx" hidden data-bghoch="${k}"></label></div></div>`;
   return `<div class="card si"><h3>Sicherheiten <span class="hint">VOB/B § 17</span></h3>
     ${warn.map((w) => `<p class="si-w">⚠ ${esc(w)}</p>`).join('')}
-    <div class="si-sum"><span>einbehalten <b>${eur(S.einbehalten)}</b></span><span>freigegeben <b>${eur(S.freigegeben)}</b></span><span>noch einbehalten <b>${eur(S.offen)}</b></span></div>
+    <div class="si-sum"><span>einbehalten <b>${eur(S.einbehalten)}</b></span><span>freigegeben <b>${eur(S.freigegeben)}</b></span><span>noch einbehalten <b>${eur(S.offen)}</b></span>
+      ${S.offen > 0.5 ? `<button type="button" class="btn sm pri" data-act="siFrei" title="Freigabe der Sicherheit als eigene Rechnung – gegen Bürgschaft (Austausch, VOB/B § 17 Abs. 3) oder nach Ablauf der Verjährungsfrist">Sicherheit freigeben …</button>` : ''}</div>
+    <p class="hint" style="margin:.2rem 0 .6rem">Einbehalt wird gegen eine Bürgschaft ausgetauscht oder nach Ablauf der Verjährungsfrist freigegeben – beides als „Freigabe der Sicherheit“ unter den Rechnungen. Eingescannte Urkunden hier ablegen: Art, Betrag, Bürge und Nummer werden erkannt.</p>
     ${block('ve', ve, 'Vertragserfüllung', 'Einbehalt in jeder Teil-, Nachtrags- und Regierechnung – oder abgelöst durch Bürgschaft')}
     ${block('ma', ma, 'Mängelansprüche (Gewährleistung)', 'Einbehalt in der Schlussrechnung – oder abgelöst durch Bürgschaft')}
     <div class="si-g"><label>Abnahme am${ein('', 'abnahme', S.abnahme, '', 'date')}</label><label>Verjährung Jahre${ein('', 'gw_jahre', S.gw_jahre, '4', 'text', '4rem')}</label>
       <label>Frist endet am<input data-si=".gw_ende" type="date" value="${esc(ende)}"></label></div></div>`;
 }
+/* Bürgschaftsurkunde hochladen: Server liest Art, Betrag, Bürge, Nr., Datum – hier prüfen, dann Sicherheit eintragen und ggf. Einbehalt freigeben */
+async function buergschaftHoch(f, o = {}) {
+  if (!f || !L) return;
+  const fd = new FormData(); fd.append('datei', f); if (o.art) fd.append('art', o.art);
+  if (o.ordner === 'nein') fd.append('ordner', 'nein'); else if (Array.isArray(o.ordner)) fd.append('ordner', JSON.stringify(o.ordner));
+  toast(`„${f.name}“ wird gelesen …`);
+  let r;
+  try { const x = await fetch(`api/lv/${L.id}/buergschaft`, { method: 'POST', body: fd, credentials: 'same-origin' }); r = await jsonAus(x); if (!x.ok) throw new Error(r.error || 'Fehler ' + x.status); }
+  catch (e) { toast(e.message, true); return; }
+  await openLv(L.id); render();
+  const E = { ...(r.erkannt || {}), ...(o.erkannt || {}) }, art = o.art || E.art || 've', S = (L.calc.sicherheit || {});
+  const heute = new Date().toISOString().slice(0, 10);
+  const was = E.text ? (E.sicher ? 'Angaben aus der Urkunde gelesen – bitte prüfen.' : 'Urkunde gelesen, aber nicht alles sicher erkannt – bitte ergänzen.') : 'Kein lesbarer Text in der Datei – bitte die Angaben eintragen.';
+  const bg = modalBox(`<h3>Bürgschaft eintragen</h3><p class="hint" style="margin:0 0 .6rem"><b>${esc(r.name || f.name)}</b>${r.ablage ? ' · im Projektordner: ' + esc(r.ablage) : ''}${E.ablage_fehler ? ` · <span style="color:#e07b3a">nicht im Projektordner abgelegt: ${esc(E.ablage_fehler)}</span>` : ''}<br>${was}${E.ocr ? ' (Texterkennung)' : ''}</p>
+    <div class="fm"><label>Sicherheit für</label><select id="bgArt"><option value="ve"${art !== 'ma' ? ' selected' : ''}>Vertragserfüllung</option><option value="ma"${art === 'ma' ? ' selected' : ''}>Mängelansprüche (Gewährleistung)</option></select>
+      <label>Höchstbetrag €</label><input id="bgBetrag" value="${E.betrag != null ? nf(E.betrag, 2) : ''}" inputmode="decimal">
+      <label>Bürge</label><input id="bgBuerge" value="${esc(E.buerge || '')}" placeholder="Bank / Versicherung">
+      <label>Bürgschafts-Nr.</label><input id="bgNr" value="${esc(E.nr || '')}">
+      <label>Urkunde vom</label><input type="date" id="bgDatum" value="${esc(E.datum || '')}">
+      <label>erhalten am</label><input type="date" id="bgEingang" value="${heute}"></div>
+    <p class="hint" id="bgFrei" style="margin:.6rem 0 0"></p>
+    <div class="acts"><button class="btn" data-m="x">Verwerfen</button><button class="btn pri" data-m="ok">Eintragen</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') { close(); try { await call('api/buergschaft/' + r.id, 'DELETE'); } catch { /* egal */ } return; }
+    if (m !== 'ok') return;
+    const k = $('#bgArt').value, betrag = pf($('#bgBetrag').value);
+    if (!(betrag > 0)) { toast('Bitte den Höchstbetrag der Bürgschaft eintragen.', true); return; }
+    btn.disabled = true;
+    try {
+      await call('api/lv/' + L.id, 'PUT', { vergabe: { sicherheit: { [k]: { form: 'buergschaft', betrag, buerge: $('#bgBuerge').value.trim(), nr: $('#bgNr').value.trim(), datum: $('#bgDatum').value, eingang: $('#bgEingang').value || heute, dok: r.id } } } });
+      close(); toast('Bürgschaft eingetragen.');
+      const offen = (L.calc.sicherheit || {}).offen || 0, sp = offen > 0.5 && reSperre('sicherheit');
+      if (sp) { bpHinweis(`Noch einbehalten sind ${eur(offen)}. Die Freigabe gegen die Bürgschaft geht, sobald alle Rechnungen geprüft sind – „${reTitel(sp)}“ ist noch in Prüfung. Danach oben „Sicherheit freigeben …“.`); return; }
+      if (offen > 0.5 && await bpFrage(`Noch einbehalten sind ${eur(offen)}. Den Einbehalt gegen die Bürgschaft freigeben (Austausch nach § 17 Abs. 3 VOB/B)?\n\nEs wird eine „Freigabe der Sicherheit“ über höchstens ${eur(Math.min(offen, betrag))} angelegt – zur Prüfung wie jede Rechnung.`, { ok: 'Freigabe anlegen' })) reDialog('sicherheit', { betrag, grund: 'austausch' });
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  const frei = () => { const k = $('#bgArt').value, offen = S.offen || 0; $('#bgFrei').textContent = offen > 0.5 ? `Noch einbehalten: ${eur(offen)} – nach dem Eintragen kann der Einbehalt gegen die Bürgschaft freigegeben werden.` : k === 've' ? 'In Teil-, Nachtrags- und Regierechnungen wird dann nichts mehr einbehalten.' : 'In der Schlussrechnung wird dann nichts mehr einbehalten.'; };
+  bg.addEventListener('change', (e) => { if (e.target.id === 'bgArt') frei(); }); frei();
+}
+document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-bghoch]'); if (i && i.files[0]) { const f = i.files[0], k = i.dataset.bghoch; i.value = ''; buergschaftHoch(f, { art: k }); } });
+document.addEventListener('click', async (e) => {
+  const w = e.target.closest && e.target.closest('[data-bgweg]');
+  if (w) { if (!(await bpFrage('Diese Bürgschaftsurkunde aus der Plattform entfernen? (Eine Kopie im Projektordner bleibt.)', { ok: 'Entfernen', gefahr: true }))) return; try { await call('api/buergschaft/' + w.dataset.bgweg, 'DELETE'); } catch (er) { toast(er.message, true); } return; }
+  if (e.target.closest && e.target.closest('[data-act="siFrei"]')) { e.stopPropagation(); const sp = reSperre('sicherheit'); if (sp) { toast(`Erst „${reTitel(sp)}“ abschließen – alle Rechnungen müssen geprüft sein.`, true); return; } reDialog('sicherheit'); }
+});
 async function siSave(el) {
   const [k, f] = el.dataset.si.split('.'), b = {};
   const v = el.value;
@@ -3060,7 +3123,7 @@ function vRechnungen0() {
       <div class="g re-kopf"><label title="Rechnungsnummer der Firma">Rechnungsnr.<input data-re="re_nr" data-id="${r.id}" value="${esc(r.re_nr)}"${dis}></label>
         <label title="Rechnungsdatum">Datum<input type="date" data-re="datum" data-id="${r.id}" value="${esc(r.datum)}"${dis}></label>
         <label>Eingang<input type="date" data-re="eingang" data-id="${r.id}" value="${esc(r.eingang)}"${dis}></label>
-        ${art === 'sicherheit' ? `<label>freizugebender Betrag netto<input data-re="betrag" data-id="${r.id}" value="${nf(r.data.betrag || 0, 2)}" inputmode="decimal"${dis}></label>`
+        ${art === 'sicherheit' ? `<label>freizugebender Betrag netto<input data-re="betrag" data-id="${r.id}" value="${nf(r.data.betrag || 0, 2)}" inputmode="decimal"${dis}></label><label>Grund<select data-re="grund" data-id="${r.id}"${dis}>${[['austausch', 'Austausch gegen Bürgschaft'], ['frist', 'Ablauf der Verjährungsfrist'], ['teil', 'Teilfreigabe']].map(([k, l]) => `<option value="${k}"${(r.data.grund || 'frist') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`
           : `<label title="gefordert ${c.einzeln ? 'netto' : 'kumuliert, netto'}">gefordert<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
         <label title="Sicherheitseinbehalt in Prozent">Einb. %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>
       ${art !== 'sicherheit' && c.abzug ? (() => { const A0 = abzAuftrag(), abw = Object.fromEntries(ABZ.map(([k]) => [k, c.abzug[k] !== A0[k]]));
@@ -3290,22 +3353,23 @@ function reNeuMenu(anchor) {
       reDialog(v);
     } });
 }
-function reDialog(art = 'abschlag') {
+function reDialog(art = 'abschlag', vorgabe = null) {
   const n = L.rechnungen.length + 1, offen = (L.calc.sicherheit || {}).offen || 0;
   modalBox(`<h3>${art === 'abschlag' ? n + '. Teilrechnung' : RE_NAME[art]} erfassen</h3><div class="fm">
       <label>Rechnung (PDF)</label><input type="file" id="reF" accept="application/pdf,.pdf">
       <label>Rechnungsnr.</label><input id="reNr">
       <label>Rechnungsdatum</label><input type="date" id="reD">
       <label>Eingang</label><input type="date" id="reE" value="${new Date().toISOString().slice(0, 10)}">
-      ${art === 'sicherheit' ? `<label>Freigabe netto</label><input id="reB" value="${nf(offen, 2)}" inputmode="decimal">` : `<label>gefordert netto</label><input id="reG" placeholder="${art === 'regie' ? 'Betrag laut Rechnung' : 'kumulierter Betrag laut Rechnung'}" inputmode="decimal">`}</div>
-    <p class="hint">${art === 'regie' ? 'Die Stundenzettel danach als Zeilen eintragen.' : art === 'sicherheit' ? 'Freigabe nach Ablauf der Verjährungsfrist für Mängelansprüche (Begehung vorher).' : 'Geprüft wird mit dem Aufmaß unter „Aufmaß“ – bitte dort die Mengen der Firma prüfen und eintragen.'} Die PDF wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt.</p>
+      ${art === 'sicherheit' ? `<label>Freigabe netto</label><input id="reB" value="${nf(vorgabe && vorgabe.betrag != null ? Math.min(offen, vorgabe.betrag) : offen, 2)}" inputmode="decimal">
+      <label>Grund</label><select id="reGr"><option value="austausch"${vorgabe && vorgabe.grund === 'austausch' ? ' selected' : ''}>Austausch gegen Bürgschaft (§ 17 Abs. 3 VOB/B)</option><option value="frist"${!vorgabe || vorgabe.grund !== 'austausch' ? ' selected' : ''}>Ablauf der Verjährungsfrist für Mängelansprüche</option><option value="teil">Teilfreigabe (z. B. nach Teilabnahme)</option></select>` : `<label>gefordert netto</label><input id="reG" placeholder="${art === 'regie' ? 'Betrag laut Rechnung' : 'kumulierter Betrag laut Rechnung'}" inputmode="decimal">`}</div>
+    <p class="hint">${art === 'regie' ? 'Die Stundenzettel danach als Zeilen eintragen.' : art === 'sicherheit' ? 'Austausch: der einbehaltene Betrag wird gegen die vorgelegte Bürgschaft ausgezahlt. Frist: Freigabe nach Ablauf der Verjährungsfrist für Mängelansprüche (Begehung vorher).' : 'Geprüft wird mit dem Aufmaß unter „Aufmaß“ – bitte dort die Mengen der Firma prüfen und eintragen.'} Die PDF wird im Projektordner unter „Rechnungsprüfung / Firma“ abgelegt.</p>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     btn.disabled = true;
     try {
       const r = await call(`api/lv/${L.id}/rechnungen`, 'POST', { art, re_nr: $('#reNr').value, datum: $('#reD').value, eingang: $('#reE').value,
-        gefordert: art === 'sicherheit' ? 0 : (pf($('#reG').value) || 0), betrag: art === 'sicherheit' ? (pf($('#reB').value) || 0) : undefined });
+        gefordert: art === 'sicherheit' ? 0 : (pf($('#reG').value) || 0), betrag: art === 'sicherheit' ? (pf($('#reB').value) || 0) : undefined, grund: art === 'sicherheit' ? $('#reGr').value : undefined });
       const f = $('#reF').files[0]; close();
       const neu = r.rechnungen.reduce((a, x) => (x.nr > a.nr ? x : a), r.rechnungen[0]);
       if (neu) { PJSEL = 'r' + neu.id; render(); toast(`${reTitel(neu)} angelegt.`); }

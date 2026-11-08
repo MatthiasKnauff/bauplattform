@@ -43,6 +43,7 @@ ARTEN = {
     "aufmass": (["rechnungspr", "aufmass", "abrechnung", "rechnung"], "Rechnungsprüfung", "firma"),
     "angebot": (["angebot", "vergabe", "ausschreib"], "Angebote", "gewerk"),
     "lv": (["leistungsverz", "ausschreib", "vergabe"], "Ausschreibung", "gewerk"),
+    "buergschaft": (["bürgschaft", "buergschaft", "sicherheit", "vertr"], "Bürgschaften", "firma"),
 }
 
 
@@ -169,7 +170,7 @@ def _ablegen(b):
         return jsonify(error=f"Ablage nicht erreichbar: {sync._msg(e)}"), 502
     pfad = "/".join(ordner + [ziel])
     with db.tx() as c:
-        audit.log(c, g.user["name"], "export", {"rechnung": "Rechnung abgelegt", "aufmass": "Aufmaß abgelegt", "angebot": "Angebot abgelegt", "lv": "LV abgelegt"}.get(art, "Datei abgelegt"), pfad, p["id"], p["name"], "")
+        audit.log(c, g.user["name"], "export", {"rechnung": "Rechnung abgelegt", "aufmass": "Aufmaß abgelegt", "angebot": "Angebot abgelegt", "lv": "LV abgelegt", "buergschaft": "Bürgschaft abgelegt"}.get(art, "Datei abgelegt"), pfad, p["id"], p["name"], "")
     return jsonify(ok=True, pfad=pfad)
 
 

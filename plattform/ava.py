@@ -1078,7 +1078,7 @@ def _sicherheit_clean(b, alt):
     for k in ("ve", "ma"):
         if isinstance(b.get(k), dict):
             x = dict(S.get(k) or {})
-            for f, n in (("form", 20), ("buerge", 200), ("nr", 80), ("eingang", 10), ("rueckgabe", 10), ("notiz", 500)):
+            for f, n in (("form", 20), ("buerge", 200), ("nr", 80), ("eingang", 10), ("rueckgabe", 10), ("notiz", 500), ("datum", 10)):
                 if f in b[k]:
                     x[f] = _s(b[k][f], n)
             if x.get("form") not in ("einbehalt", "buergschaft"):
@@ -1086,6 +1086,8 @@ def _sicherheit_clean(b, alt):
             for f in ("betrag", "pct"):
                 if f in b[k]:
                     x[f] = _fn(b[k][f])
+            if "dok" in b[k]:   # Verweis auf die abgelegte Urkunde
+                x["dok"] = int(b[k]["dok"]) if isinstance(b[k]["dok"], int) else None
             S[k] = x
     for f in ("abnahme", "gw_ende"):
         if f in b:
@@ -1116,7 +1118,7 @@ def _payload(c, r):
             "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "datum": x["datum"], "eingang": x["eingang"], "re_nr": x["re_nr"], "gefordert": x["gefordert"],
                             "data": _j(x["data"], {}), "status": x["status"], "notiz": x["notiz"], "updated": x["updated"], "updated_by": x["updated_by"],
                             "belege": belege.get(x["id"], [])} for x in re_],
-            "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"]), "dokumente": _lvdoks(c, r["id"])}
+            "calc": rechne(r, ang, am, re_), "bilder": _bilder(c, r["id"]), "dokumente": _lvdoks(c, r["id"]), "buergschaften": _buergschaften(c, r["id"])}
 
 
 def _bilder(c, i):
@@ -2651,6 +2653,94 @@ def lvdok(d):
     return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
 
 
+# ---------------------------------------------------------------- Bürgschaften (Sicherheiten VOB/B § 17): Urkunde als PDF, Felder erkannt
+_BUERG = {"ok": False}
+
+
+def _buerg_tabelle(c):
+    if _BUERG["ok"]:
+        return
+    c.execute("""CREATE TABLE IF NOT EXISTS ava_buergschaft(id SERIAL PRIMARY KEY, lv_id INTEGER NOT NULL, art TEXT NOT NULL DEFAULT '',
+                 name TEXT NOT NULL DEFAULT '', data BYTEA, ablage TEXT NOT NULL DEFAULT '', erkannt TEXT NOT NULL DEFAULT '{}',
+                 created TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '')""")
+    _BUERG["ok"] = True
+
+
+def _buergschaften(c, i):
+    _buerg_tabelle(c)
+    return [{"id": d["id"], "art": d["art"], "name": d["name"], "ablage": d["ablage"], "created": d["created"], "user_name": d["user_name"]}
+            for d in c.execute("SELECT id, art, name, ablage, created, user_name FROM ava_buergschaft WHERE lv_id=? ORDER BY id", (i,)).fetchall()]
+
+
+@app.post("/api/lv/<int:i>/buergschaft")
+def buergschaft_neu(i):
+    """Bürgschaftsurkunde (PDF/Scan/Foto) zum Auftrag: lesen, Felder erkennen (Art, Betrag, Bürge, Nr., Datum), speichern;
+    die Seite zeigt die erkannten Angaben zum Bestätigen und trägt die Sicherheit dann ein."""
+    import base64
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei"), 400
+    data = f.read(80 * 1024 * 1024 + 1)
+    if len(data) > 80 * 1024 * 1024:
+        return jsonify(error="Die Datei ist zu groß (höchstens 80 MB)."), 400
+    try:
+        data, dname = _als_pdf(data, f.filename or "")
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    try:
+        text, ocr = _pdf_text(data, seiten=4, ocr_seiten=3, ocr_budget=40)
+    except Exception as e:
+        text, ocr = "", False
+        fehler.still("ava", "Bürgschaft lesen", e)
+    E = _buergschaft_lesen(text)
+    E["ocr"] = ocr
+    E["text"] = bool(text.strip())
+    art = request.form.get("art") or E.get("art") or ""
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        V = _j(r["vergabe"], {}) or {}
+        _buerg_tabelle(c)
+        d = c.execute("INSERT INTO ava_buergschaft(lv_id, art, name, data, erkannt, created, user_name) VALUES(?,?,?,?,?,?,?) RETURNING id",
+                      (i, art if art in ("ve", "ma") else "", _s(dname, 200) or "Bürgschaft.pdf", data, json.dumps(E, ensure_ascii=False), _now(), g.user["name"])).fetchone()["id"]
+        # im Projektordner ablegen (Bürgschaften / Firma) – wenn eine Ablage eingerichtet ist
+        ablage = ""
+        if request.form.get("ordner") != "nein" and r["project_id"]:
+            try:
+                ordner = json.loads(request.form.get("ordner") or "null")
+            except ValueError:
+                ordner = None
+            was = {"ve": "Vertragserfüllung", "ma": "Mängelansprüche"}.get(art, "")
+            try:
+                a = C.bt_api("POST", "/api/ablage/datei", {"project_id": r["project_id"], "art": "buergschaft", "firma": V.get("bieter") or "",
+                                                          "gewerk": r["gewerk"] or r["name"] or "",
+                                                          "name": _ablage_name("buergschaft", V.get("bieter") or "", was, E.get("nr") or "", E.get("datum") or "", orig=dname),
+                                                          "datei": base64.b64encode(data).decode(), "ordner": ordner if isinstance(ordner, list) else None})
+                ablage = (a or {}).get("pfad") or ""
+                if ablage:
+                    c.execute("UPDATE ava_buergschaft SET ablage=? WHERE id=?", (ablage, d))
+            except RuntimeError as e:
+                E["ablage_fehler"] = str(e)[:200]
+        _touch(c, i)
+        C.audit(g.user["name"], "ava", "Bürgschaft abgelegt", f"LV {r['nr']} {r['name']}: {dname}" + (f" → {ablage}" if ablage else ""))
+    return jsonify(ok=True, id=d, erkannt=E, ablage=ablage, name=dname)
+
+
+@app.route("/api/buergschaft/<int:d>", methods=["GET", "DELETE"])
+def buergschaft(d):
+    with db.tx() as c:
+        _buerg_tabelle(c)
+        x = c.execute("SELECT * FROM ava_buergschaft WHERE id=?", (d,)).fetchone()
+        if not x or not _lv(c, x["lv_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        if request.method == "DELETE":
+            c.execute("DELETE FROM ava_buergschaft WHERE id=?", (d,))
+            _touch(c, x["lv_id"])
+            return _antwort(c, x["lv_id"])
+    return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
+
+
 # ---------------------------------------------------------------- Eingangsordner auf dem Server (Scans vom Kopierer …)
 @app.get("/api/eingang")
 def eingang():
@@ -2708,7 +2798,7 @@ def _ablage_name(art, firma="", was="", nr="", datum="", orig=""):
     """Einheitlicher Dateiname im Projektordner statt Scanner-Namen: „JJJJ-MM-TT Art Firma – Leistung Nr. …“ (Endung wie das Original)."""
     endung = (orig.rsplit(".", 1)[1].lower() if "." in (orig or "") else "pdf")[:6] or "pdf"
     d = (datum or "")[:10] if re.match(r"^\d{4}-\d{2}-\d{2}", datum or "") else date.today().isoformat()
-    art_ = {"rechnung": "Rechnung", "aufmass": "Aufmaß", "angebot": "Angebot", "lv": "LV"}.get(art, art or "Dokument")
+    art_ = {"rechnung": "Rechnung", "aufmass": "Aufmaß", "angebot": "Angebot", "lv": "LV", "buergschaft": "Bürgschaft"}.get(art, art or "Dokument")
     teile = [d, art_, (firma or "").strip(), (("– " if (firma or "").strip() else "") + was.strip()) if was and was.strip() and was.strip() != (firma or "").strip() else "", ("Nr. " + nr.strip()) if nr and nr.strip() else ""]
     name = re.sub(r"\s+", " ", " ".join(t for t in teile if t)).strip()
     return re.sub(r'[\\/:*?"<>|]+', "-", name)[:150] + "." + endung
@@ -3240,6 +3330,8 @@ def rechnung_neu(i):
             data["zeilen"] = []
         if art == "sicherheit":
             data["betrag"] = round(_f(b.get("betrag"), 0, 0), 2)
+            if b.get("grund") in ("austausch", "frist", "teil"):   # Austausch gegen Bürgschaft, Ablauf der Verjährungsfrist, Teilfreigabe
+                data["grund"] = b["grund"]
         if art not in ("regie", "sicherheit") and (b.get("frei") is not None or (V0.get("frei") and not V0.get("preise"))):
             data["frei"] = round(_f(b.get("frei"), 0), 2)
         if b.get("einbehalt") is not None:
@@ -3556,7 +3648,44 @@ _DOKARTEN = {
     "angebot": r"\b(nachtrags)?angebot\b|angebots(nummer|nr|datum|summe)|bindefrist|gültig bis|wir bieten",
     "aufmass": r"aufma(ß|ss)|mengenermittlung|massenermittlung|abrechnungszeichnung",
     "lv": r"leistungsverzeichnis|leistungsbeschreibung|angebotsaufforderung|ausschreibung",
+    "buergschaft": r"b(ü|ue)rgschaft|b(ü|ue)rgschaftsurkunde|b(ü|ue)rge\b|verb(ü|ue)rg|avalkredit|\baval\b|hauptschuldner|b(ü|ue)rgschaftsnummer|b(ü|ue)rgschaftsnr",
 }
+
+
+def _buergschaft_lesen(text):
+    """Bürgschaftsurkunde lesen: Art (Vertragserfüllung ve / Mängelansprüche ma), Höchstbetrag, Bürge, Nummer, Datum, Hauptschuldner (Firma)."""
+    t = text or ""
+    tl = t.lower().replace("ue", "ü")
+    ma = len(re.findall(r"gewährleistung|mängelansprüch|mängelhaftung|mängelbeseitigung|nach der abnahme", tl))
+    ve = len(re.findall(r"vertragserfüllung|erfüllungsbürgschaft|ausführungsbürgschaft|vertragsgemäße ausführung|anzahlung|vorauszahlung", tl))
+    art = "ma" if ma > ve else "ve" if ve else ""
+    # Höchstbetrag: Zahl hinter „in Höhe von / bis zu / Höchstbetrag / EUR“, sonst der größte Betrag
+    betraege = []
+    for m in re.finditer(r"(?:(h(ö|oe)chstbetrag|in h(ö|oe)he von|bis zu(?:r h(ö|oe)he von)?|betrag(?: von| in h(ö|oe)he von)?|summe von)\D{0,30})?(?:eur|euro|€)?\s*(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+,\d{2})\s*(?:eur|euro|€)?", t, re.I):
+        v = _zahl(m.group(6))
+        if v and v >= 100:
+            betraege.append((2 if m.group(1) else 1, v))
+    betrag = max(betraege, key=lambda x: (x[0], x[1]))[1] if betraege else None
+    # Bürge: Zeile mit Bank/Versicherung (am Anfang – Briefkopf) oder „Bürge:“
+    buerge = ""
+    m = re.search(r"(?:^|\n)\s*(?:der |als )?b(?:ü|ue)rg(?:e|in)\s*[:\-–]\s*(.{4,90})", t, re.I)
+    if m:
+        buerge = m.group(1)
+    else:
+        for z in t.splitlines()[:40]:
+            if re.search(r"\b(bank|sparkasse|volksbank|raiffeisen|versicherung|kreditanstalt|landesbank|hypo|r\+v|allianz|vhv|zurich|euler hermes|atradius|coface|credendo|signal iduna|ergo|axa|hdi)\b", z, re.I) and len(z.strip()) < 90:
+                buerge = z.strip(); break
+    buerge = re.sub(r"\s{2,}", " ", buerge).strip(" ,;:-–")[:120]
+    m = re.search(r"(?:b(?:ü|ue)rgschafts|aval|urkunden|garantie)[- ]?(?:nr|nummer|no)\.?\s*[:.]?\s*([A-Z0-9][A-Z0-9/\-. ]{2,30}[A-Z0-9])", t, re.I)
+    nr = (m.group(1).strip() if m else "")[:60]
+    m = re.search(r"\b(\d{1,2})\.\s?(\d{1,2})\.\s?(20\d{2})\b", t)
+    datum = f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}" if m else ""
+    m = re.search(r"(?:hauptschuldner(?:in)?|auftragnehmer(?:in)?|f(?:ü|ue)r die firma|im auftrag der firma)\s*[:\-–]?\s*(?:die |der |firma )?([A-ZÄÖÜ][^\n,;]{2,80})", t, re.I)
+    firma = (m.group(1).strip() if m else "")[:120]
+    if re.search(r"erf(ü|ue)llung|m(ä|ae)ngel|zahlung|b(ü|ue)rgschaft", firma, re.I):   # Satzfetzen, keine Firma
+        firma = ""
+    return {"art": art, "betrag": betrag, "buerge": buerge, "nr": nr, "datum": datum, "firma": firma,
+            "sicher": bool(art and betrag)}
 
 
 @app.post("/api/ava/erkennen")
@@ -3609,12 +3738,18 @@ def ava_erkennen():
             punkte["angebot"] += 5
         if re.search(r"aufma", nl):
             punkte["aufmass"] += 5
+        if re.search(r"b(ü|ue)rgschaft|aval|sicherheit", nl):
+            punkte["buergschaft"] += 5
         best = sorted(punkte.items(), key=lambda kv: -kv[1])
         out.update(format="pdf", ocr=ocr, dok=best[0][0] if best[0][1] else "", sicher=bool(best[0][1] and best[0][1] >= 2 * max(1, best[1][1])),
                    punkte=punkte, nachtrag=bool(re.search(r"nachtrag", kopf)), regie=bool(re.search(r"regie|stundenlohn", kopf + nl)),
                    schluss=bool(re.search(r"schlussrechnung", kopf)), text=bool(text.strip()))
         if not text.strip():
             out["hinweis"] = "Kein lesbarer Text – bitte Art, Projekt und LV wählen."
+        if out["dok"] == "buergschaft":
+            out["buergschaft"] = _buergschaft_lesen(text)
+            if out["buergschaft"].get("firma") and not out.get("firma"):
+                out["firma"] = out["buergschaft"]["firma"]
     tl = text.lower()
     with db.tx() as c:
         # Firma: bekannte Adresse, deren Name im Text steht (die längste gewinnt); sonst die erste Zeile (Briefkopf)
@@ -4126,6 +4261,8 @@ def rechnung(k):
                 d.pop("bezahlt", None)
         if "betrag" in b:   # Freigabe der Sicherheit
             d["betrag"] = round(_f(b["betrag"], 0, 0), 2)
+        if b.get("grund") in ("austausch", "frist", "teil"):
+            d["grund"] = b["grund"]
         if b.get("status") == "geprueft" and status != "geprueft":   # Prüfung abschließen: Aufmaßstand festhalten
             am = {}
             for z in c.execute("SELECT pos_id, menge FROM ava_aufmass WHERE lv_id=?", (x["lv_id"],)):
@@ -4910,7 +5047,8 @@ def lv_pdf(i):
             if art_ not in ("regie", "sicherheit") and not RC.get("frei"):
                 story.append(table(rows, [20 * mm, W - 20 * mm - 96 * mm, 20 * mm, 12 * mm, 24 * mm, 40 * mm], num=(2, 4, 5)))
             story += [Spacer(1, 5 * mm), Paragraph("Prüfung", S["h2"])]
-            z = [["Freigabe der Sicherheit netto" if art_ == "sicherheit" else "Summe Stundenlohnarbeiten" if art_ == "regie" else "geprüfter Betrag netto" if RC.get("frei") else "Leistungsstand netto",
+            gr_ = {"austausch": " – Austausch gegen Bürgschaft (§ 17 Abs. 3 VOB/B)", "frist": " – nach Ablauf der Verjährungsfrist für Mängelansprüche", "teil": " – Teilfreigabe"}.get((R["data"] or {}).get("grund") or "", "")
+            z = [[("Freigabe der Sicherheit netto" + gr_) if art_ == "sicherheit" else "Summe Stundenlohnarbeiten" if art_ == "regie" else "geprüfter Betrag netto" if RC.get("frei") else "Leistungsstand netto",
                   eur(RC["zahlung"] if art_ == "sicherheit" else RC["leistung"])]]
             if RC["nachlass"]:
                 z.append([f"- Nachlass {nachlass_text(V)}", eur(-RC["nachlass"])])

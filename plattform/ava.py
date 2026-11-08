@@ -528,6 +528,15 @@ def _kat_einlesen(pfad, dateiname):
 AKTIV = "(version_id IS NULL OR version_id IN (SELECT id FROM ava_version WHERE aktiv=1))"
 
 
+def _vf(c, pid, vid=None):
+    """Versionsfilter: angesehene Version (vid, muss zum Projekt gehören) – sonst die gültige."""
+    if vid is None:
+        vid = request.args.get("version_id", type=int) or request.form.get("version_id", type=int)
+    if isinstance(vid, int) and pid and c.execute("SELECT 1 FROM ava_version WHERE id=? AND project_id=?", (vid, pid)).fetchone():
+        return f"version_id={int(vid)}"
+    return AKTIV
+
+
 @app.route("/api/versionen", methods=["GET", "POST"])
 def versionen_liste():
     """Versionen der AVA eines Projekts. POST {project_id, name}: Kopie der aktiven Version (alle LVs mit Angeboten, Aufmaß,
@@ -628,7 +637,7 @@ def suche():
     out, LIMIT = [], 300
     with db.tx() as c:
         projekte = {}
-        for r in c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + AKTIV + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall():
+        for r in c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + (_vf(c, pid) if pid else AKTIV) + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall():
             if r["project_id"] not in projekte:
                 projekte[r["project_id"]] = _sees(c, r["project_id"]) if r["project_id"] else True
             pr = projekte[r["project_id"]]
@@ -1217,7 +1226,7 @@ def lv_neu():
                         x["menge"] = 0
         nr = _s(b.get("nr"), 20)
         if not nr:
-            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id IS NOT DISTINCT FROM ? AND " + AKTIV, (pid,)).fetchone()["n"]
+            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id IS NOT DISTINCT FROM ? AND " + _vf(c, pid, b.get("version_id") if isinstance(b.get("version_id"), int) else 0), (pid,)).fetchone()["n"]
             nr = str(n + 1).zfill(2)
         name = _s(b.get("name"), 200) or _s(b.get("gewerk"), 120) or "Leistungsverzeichnis"
         now = _now()
@@ -1870,11 +1879,14 @@ def tueren_ins_lv(pid):
             versionen.vor(c, f"avalv:{i}")
             c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), now, g.user["name"], i))
         else:
-            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id=? AND " + AKTIV, (pid,)).fetchone()["n"]
+            n = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id=? AND " + _vf(c, pid, b.get("version_id") if isinstance(b.get("version_id"), int) else 0), (pid,)).fetchone()["n"]
             items = nummerieren(clean_items(neu))
             i = c.execute("INSERT INTO ava_lv(project_id, nr, name, gewerk, data, created, updated, updated_by) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
                           (pid, str(n + 1).zfill(2), _s(b.get("name"), 200) or "Türen", _s(b.get("gewerk"), 120) or "Türen",
                            json.dumps({"items": items}, ensure_ascii=False), now, now, g.user["name"])).fetchone()["id"]
+            vf = _vf(c, pid, b.get("version_id") if isinstance(b.get("version_id"), int) else 0)
+            if vf != AKTIV:   # in der gerade angesehenen Version anlegen
+                c.execute("UPDATE ava_lv SET version_id=? WHERE id=?", (b["version_id"], i))
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         C.audit(g.user["name"], "ava", "Türliste ins LV" + (" (aktualisiert)" if stat else ""), f"{len(T)} Türen/Fenster")
         return jsonify(ok=True, lv=i, positionen=sum(1 for x in pos if x["typ"] == "pos" and x["art"] != "T"), tueren=len(T), abgleich=stat)
@@ -1888,7 +1900,7 @@ def tueren_lv_verknuepft(pid):
         if not _sees(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
         out = []
-        for r in c.execute("SELECT id, data FROM ava_lv WHERE project_id=? AND " + AKTIV, (pid,)).fetchall():
+        for r in c.execute("SELECT id, data FROM ava_lv WHERE project_id=? AND " + _vf(c, pid), (pid,)).fetchall():
             I = (_j(r["data"], {}) or {}).get("items") or []
             n = sum(1 for x in I if x.get("typ") == "pos" and x.get("art") != "T" and (x.get("tl") or "").startswith(liste + "|"))
             if n:
@@ -3586,7 +3598,7 @@ def ava_erkennen():
         fl = (out.get("firma") or "").lower()
         lvs = []
         for pr in (P[:3] or ([{"id": request.form.get("project_id", type=int)}] if request.form.get("project_id") else [])):
-            for r in c.execute("SELECT * FROM ava_lv WHERE project_id=? AND " + AKTIV + " AND archived=0 ORDER BY nr, id", (pr["id"],)).fetchall():
+            for r in c.execute("SELECT * FROM ava_lv WHERE project_id=? AND " + _vf(c, pr["id"]) + " AND archived=0 ORDER BY nr, id", (pr["id"],)).fetchall():
                 I = [x for x in (_j(r["data"], {}) or {}).get("items") or [] if x.get("typ") == "pos" and x.get("oz")]
                 tr = sum(1 for x in I if _ozn(x["oz"]) in tn or any(len(t) > len(_ozn(x["oz"])) and t[-len(_ozn(x["oz"])):] == _ozn(x["oz"]) for t in tn if len(_ozn(x["oz"])) >= 2))
                 V = _j(r["vergabe"], {}) or {}

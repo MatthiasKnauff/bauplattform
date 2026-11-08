@@ -922,7 +922,7 @@ function kpis() {
 const DOKN = { angebot: 'Angebot', rechnung: 'Rechnung', aufmass: 'Aufmaß', lv: 'Leistungsverzeichnis (Muster-LV)' };
 async function avaDokumente(files) { for (const f of [...files]) { const ok = await avaDokument(f); if (ok === false) break; } }
 async function avaDokument(f) {
-  const fd = new FormData(); fd.append('datei', f); if (pid) fd.append('project_id', pid);
+  const fd = new FormData(); fd.append('datei', f); if (pid) fd.append('project_id', pid); if (pid && vSicht()) fd.append('version_id', vSicht());
   toast(`„${f.name}“ wird gelesen …`);
   let E;
   try {
@@ -976,7 +976,7 @@ async function avaDokument(f) {
     const zeichne = async () => {
       const art = bg.querySelector('#adArt').value;
       if (projId && !lvs.some((x) => x.project_id === projId)) {   // LVs des gewählten Projekts nachladen
-        const L2 = await api('api/lv?project_id=' + projId).catch(() => []);
+        const L2 = await api('api/lv?project_id=' + projId + (projId == pid && vSicht() ? '&version_id=' + vSicht() : '')).catch(() => []);
         lvs = lvs.concat(L2.filter((x) => !x.archived).map((x) => ({ id: x.id, project_id: projId, nr: x.nr, name: x.name, bieter: x.auftragnehmer, vergeben: x.vergeben, treffer: 0 })));
       }
       bg.querySelector('#adProj').value = projId ? String(projId) : '';
@@ -3363,7 +3363,7 @@ function vqZeigen(q, r) {
 async function vqSuchen() {
   const q = $('#vq').value.trim(); if (q.length < 2) return vqZu();
   const my = ++VQ.tok;
-  try { const r = await api('api/suche?q=' + encodeURIComponent(q) + ($('#vqAlle').checked || !pid ? '' : '&pid=' + pid)); if (my === VQ.tok && $('#vq').value.trim() === q) vqZeigen(q, r); }
+  try { const r = await api('api/suche?q=' + encodeURIComponent(q) + ($('#vqAlle').checked || !pid ? '' : '&pid=' + pid + (vSicht() ? '&version_id=' + vSicht() : ''))); if (my === VQ.tok && $('#vq').value.trim() === q) vqZeigen(q, r); }
   catch (e) { toast(e.message, true); }
 }
 async function vqGehe(t) {
@@ -4527,7 +4527,7 @@ async function tlRaeume() {
 async function tlInsLv(sel) {
   const auswahl = sel.length ? sel : TL.tueren, lvs = LIST.filter((x) => !x.archived);
   if (tlT) { clearTimeout(tlT); await tlJetzt(); }
-  const verk = await api(`api/projekt/${pid}/tueren/lv?liste=${encodeURIComponent(TL.liste || '1')}`).catch(() => []);   // LVs mit Positionen aus dieser Liste
+  const verk = await api(`api/projekt/${pid}/tueren/lv?liste=${encodeURIComponent(TL.liste || '1')}${vSicht() ? '&version_id=' + vSicht() : ''}`).catch(() => []);   // LVs mit Positionen aus dieser Liste
   const lvName = (id) => { const x = lvs.find((y) => y.id === id); return x ? `LV ${x.nr} ${x.name}` : 'LV'; };
   const bg = modalBox(`<h3>Ins LV übernehmen</h3>
     <p>„${esc(tlName())}“: ${auswahl.length} Zeile${auswahl.length > 1 ? 'n' : ''}${sel.length ? ' (markiert)' : ''}. Gleiche Ausführung wird zu einer Position zusammengefasst, die Stückzahl ist die Menge.</p>
@@ -4543,7 +4543,7 @@ async function tlInsLv(sel) {
     try {
       if (tlT) { clearTimeout(tlT); await tlJetzt(); }
       const z = $('#tlZiel').value, akt = z.startsWith('akt:');
-      const r = await api(`api/projekt/${pid}/tueren/lv`, 'POST', { liste: TL.liste || '1', ids: sel.map((t) => t.id), lv: z ? +(akt ? z.slice(4) : z) : null, aktualisieren: akt,
+      const r = await api(`api/projekt/${pid}/tueren/lv`, 'POST', { version_id: vSicht() || undefined, liste: TL.liste || '1', ids: sel.map((t) => t.id), lv: z ? +(akt ? z.slice(4) : z) : null, aktualisieren: akt,
         titel: $('#tlTitel').value, form: $('#tlForm').value, din_trennen: $('#tlDin').checked, name: tlName() === 'Fenster- & Türliste' ? 'Fenster und Türen' : tlName() });
       close(); await refreshList(); await openLv(r.lv); tab = 'lv'; LS.set('tab', tab); render();
       const A = r.abgleich;

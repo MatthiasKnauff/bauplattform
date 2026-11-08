@@ -518,6 +518,13 @@ tr.am-lf td input{color:#c0621f}
 .lvx .pj-r:hover .pj-del,.lvx .pj-r.on .pj-del{display:block}.lvx .pj-r:hover .v,.lvx .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .lvx-akt .tblw{max-height:none;overflow:visible}   /* im Tabellenfeld scrollt die Seite: die übrigen LVs laufen weg, Knopfleiste und Spaltenköpfe bleiben stehen */
 .lvx-akt table.tree th,.lvx-akt table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
+.re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
+.re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:.9rem}
+.re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;border-left:3px solid transparent;position:relative}
+.re2-baum .pj-r.k{padding-left:1.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 14%,transparent);border-left-color:var(--y)}
+.re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
+.re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* nur die Seite scrollt – rechts kein zweiter Scrollbalken */
+@media (max-width:1100px){.re2{grid-template-columns:1fr}.re2-baum{position:static;max-height:40vh}}
 .lvx-bar{position:sticky;top:var(--phh,3.2rem);z-index:4;background:var(--bg);margin:0 0 .5rem;padding:.35rem 0}   /* Knopfleiste des geöffneten LV über der LV-Liste */
 .lvx-akt{padding:.5rem .6rem .7rem 1.6rem;border-bottom:1px solid var(--line);border-left:3px solid var(--y);background:var(--bg)}
 .pj-blink{animation:pjb 1.5s ease}@keyframes pjb{0%,60%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
@@ -1245,7 +1252,8 @@ function navUnter(k) {
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }
 function pjBaum() {
-  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)));
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x))
+    && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei || (L && L.id === x.id))));   // Abrechnung: nur Aufträge
   const e0 = (v) => (v ? eur(v).replace(' €', '') : '');
   if (L && !PJX.size) PJX.add(L.id);
   const out = [];
@@ -1256,7 +1264,7 @@ function pjBaum() {
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
     const sub = x.aufgehoben ? `⏸ ${x.aufgehoben.bieter || 'Auftrag'} · aufgehoben` : x.vergeben ? `${x.auftragnehmer || 'vergeben'}${ohneLvTxt(x)}` : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
-    const haupt = tab !== 'tueren';   // im Tabellenfeld: jedes LV mit Pfeil – das geöffnete klappt seinen Inhalt auf/zu
+    const haupt = PJTABS.has(tab) && tab !== 'aufmass' && tab !== 'rechnungen';   // im Tabellenfeld: jedes LV mit Pfeil – das geöffnete klappt seinen Inhalt auf/zu
     out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
@@ -1273,7 +1281,7 @@ let PJSEL = null, LVXZU = LS.get('lvxzu', false), LVXHOCH = false;
 /* LVs im Tabellenfeld (Leistungsverzeichnis, Angebote, Aufmaß, Rechnungen): Zeilen vor dem geöffneten LV, dessen Inhalt, Zeilen danach */
 function pjTeile() { const h = pjBaum(), i = h.indexOf('\u0001'); return i < 0 ? [h, ''] : [h.slice(0, i), h.slice(i + 1)]; }
 function pjZeichnen() {
-  if (tab === 'tueren') { const t = document.getElementById('pjTree'); if (t) t.innerHTML = pjBaum().replace('\u0001', ''); return; }
+  if (tab === 'tueren' || tab === 'aufmass' || tab === 'rechnungen') { const t = document.getElementById('pjTree'); if (t) t.innerHTML = pjBaum().replace('\u0001', ''); return; }
   const a = document.querySelector('.pjtree[data-teil="a"]'), b = document.querySelector('.pjtree[data-teil="b"]'); if (!a || !b) return;
   const [x, y] = pjTeile(); a.innerHTML = lvxKopf() + x; b.innerHTML = y;
 }
@@ -1282,6 +1290,9 @@ function lvxKopf() {
   const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
   return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
+}
+function re2Html(inhalt) {
+  return `<div class="re2"><aside class="re2-baum pjtree" id="pjTree">${pjBaum().replace('\u0001', '')}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();
@@ -1471,8 +1482,9 @@ function render() {
   if (tab === 'auftraege') { v.innerHTML = vAuftraege(); return; }
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
-  if (!L) { v.innerHTML = lvxHtml(null); return; }
-  v.innerHTML = PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
+  const RE2 = tab === 'aufmass' || tab === 'rechnungen';   // Aufmaß und Rechnungen: eigener Baum (LVs mit Rechnungen) links, Bearbeitung rechts daneben
+  if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); return; }
+  v.innerHTML = RE2 ? re2Html({ aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') amPdfMount();
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);

@@ -637,6 +637,7 @@ const artW = (x) => (x.art === 'T' && x.vb ? 'V' : x.art);
 const STATUS = [['entwurf', 'Entwurf'], ['versendet', 'An Bieter versendet'], ['vergeben', 'Vergeben'], ['abgerechnet', 'Abgerechnet'], ['nicht_vergeben', 'Nicht vergeben']];
 const NICHT_GRUENDE = [['', '– ohne Angabe –'], ['entfallen', 'Leistung entfällt'], ['aufgehoben', 'Ausschreibung aufgehoben'], ['anderweitig', 'anderweitig vergeben'], ['zurueckgestellt', 'zurückgestellt']];
 const ohneLvTxt = (x) => (x.frei ? (x.ohne_lv === false ? ' · vergeben' : ' · ohne LV') : ' · vergeben');
+const ohneLv = (x) => !!(x.frei && x.ohne_lv !== false);   // Auftrag ohne LV: nur unter Prüfung und Abrechnung, nicht in Ausschreibung/Vergabe
 let PROJ = [], pid = null, LIST = [], L = null, tab = LS.get('tab', 'auftraege'), PC = {}, EXP = new Set(LS.get('exp', [])), TSEL = null, saveT = 0, saving = false, KONT = null, OPEN = new Set(), amPos = LS.get('amPos', null), amNur = LS.get('amNur', false);
 if (!TABS.some((t) => t[0] === tab)) tab = 'auftraege';
 const eur = (v) => (v == null || isNaN(v) ? '–' : (Math.abs(v) < 0.005 ? 0 : v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
@@ -1186,7 +1187,7 @@ function navUnter(k) {
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }
 function pjBaum() {
-  const xs = LIST.filter((x) => !x.archived);
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)));
   const e0 = (v) => (v ? eur(v).replace(' €', '') : '');
   if (L && !PJX.size) PJX.add(L.id);
   const out = [];
@@ -1356,7 +1357,7 @@ function render() {
   selBtn(); kpis();
   const PL = LIST.filter((x) => !x.archived), RE = PL.flatMap((x) => x.rechnungen || []);   // Zahlen fürs ganze Projekt
   const NZT = { lv: 'LVs im Projekt', angebote: 'Angebote im Projekt', auftraege: 'vergebene LVs (Aufträge) im Projekt', aufmass: 'Rechnungen in Prüfung im Projekt', rechnungen: 'Rechnungen im Projekt', tueren: 'Türen in der Türliste' };
-  const n = { lv: PL.length, angebote: PL.reduce((a, x) => a + (x.n_angebote || 0), 0), auftraege: PL.filter((x) => x.vergeben || x.frei).length,
+  const n = { lv: PL.filter((x) => !ohneLv(x)).length, angebote: PL.reduce((a, x) => a + (x.n_angebote || 0), 0), auftraege: PL.filter((x) => x.vergeben || x.frei).length,
     aufmass: RE.filter((r) => r.status !== 'geprueft').length, rechnungen: RE.length, tueren: TL && TL.pid === pid ? TL.tueren.length : 0 };
   const bk = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'baukosten' && a.allowed);
   const sk = schrittVon(tab)[0]; LS.set('tab:' + sk, tab);
@@ -1367,7 +1368,7 @@ function render() {
   $('#utb').style.display = 'none';   // keine eigene Leiste mehr: Datei-Befehle rechts in der Titelzeile
   $('#phAkt').innerHTML = `<span class="uakt${UTAB[tab] && UTAB[tab]().length > 3 ? ' viele' : ''}">${uLeiste()}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Befehle">⋯<span class="u-eng-t"> Befehle</span></button></span>`;
   uEng();
-  const nLv = LIST.filter((x) => !x.archived).length;
+  const nLv = LIST.filter((x) => !x.archived && !ohneLv(x)).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
     + (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
     + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"${tab === k ? ' aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small title="${esc(NZT[k] || '')}">${n[k]}</small>` : ''}</button>${tab === k ? navUnter(k) : ''}`).join('')}</div>`).join('')
@@ -1959,7 +1960,11 @@ document.addEventListener('change', (e) => {
 document.addEventListener('click', async (e) => {
   const t = e.target;
   const sb = t.closest('[data-schritt]'); if (sb) { const S = SCHRITTE.find((x) => x[0] === sb.dataset.schritt); const z = LS.get('tab:' + S[0], S[2][0]); await flush(); tab = S[2].includes(z) ? z : S[2][0]; LS.set('tab', tab); render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
-  const tb = t.closest('[data-tab]'); if (tb) { await flush(); tab = tb.dataset.tab; if (tab === 'aufmass') amAns = 'erfassen'; LS.set('tab', tab); render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
+  const tb = t.closest('[data-tab]'); if (tb) { await flush(); tab = tb.dataset.tab; if (tab === 'aufmass') amAns = 'erfassen'; LS.set('tab', tab);
+    if ((tab === 'lv' || tab === 'angebote') && L && ohneLv(L)) {   // Auftrag ohne LV gehört nicht in Ausschreibung/Vergabe: ein echtes LV öffnen, sonst keins
+      const n = LIST.find((x) => !x.archived && !ohneLv(x)); if (n) await openLv(n.id); else { L = null; }
+    }
+    render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
   const st = t.closest('[data-status]'); if (st && L) {
     const alt = L.status, id = L.id; if (alt === st.dataset.status) return;
     L.status = st.dataset.status; await flush(); saveNow({ status: L.status }); kpis();

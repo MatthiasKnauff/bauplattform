@@ -465,3 +465,9 @@ tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAcht
 .bph-wsp{width:13px;height:13px;border-radius:50%;border:2px solid color-mix(in srgb,currentColor 25%,transparent);border-top-color:currentColor;animation:bphWsp .8s linear infinite}
 .bph-mu .bph-wsp{display:inline-block;vertical-align:-2px;margin-right:.45rem}
 @keyframes bphWsp{to{transform:rotate(360deg)}}@keyframes bphWIn{from{opacity:0;transform:translate(-50%,4px)}}
+
+/* Testserver: durchsichtiges Wasserzeichen mit dem Stand – klickt man einfach durch */
+.bph-testwz{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:2147480000;overflow:hidden;user-select:none}
+.bph-testwz>div{display:grid;justify-items:center;gap:.3em;transform:rotate(-22deg);color:#d23c3c;opacity:.13;white-space:nowrap;font-family:Ubuntu,"Segoe UI",system-ui,sans-serif}
+.bph-testwz b{font-weight:800;font-size:clamp(56px,12vw,190px);line-height:1;letter-spacing:.05em}.bph-testwz span{font-weight:700;font-size:clamp(18px,2.6vw,40px)}
+@media print{.bph-testwz{display:none}}

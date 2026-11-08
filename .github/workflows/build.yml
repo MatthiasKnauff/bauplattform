@@ -46,7 +46,7 @@ jobs:
             git fetch --tags --quiet origin || true
             LETZTE=$(git tag -l 'v*' --sort=-v:refname | head -1); LETZTE=${LETZTE#v}
             if [ -n "$LETZTE" ]; then NAECHSTE="${LETZTE%.*}.$(( ${LETZTE##*.} + 1 ))"; else NAECHSTE=$(tr -d '[:space:]' < VERSION); fi
-            echo "${NAECHSTE}-test (${GITHUB_SHA::7})" > VERSION
+            echo "${NAECHSTE}-test (${GITHUB_SHA::7}, $(TZ=Europe/Berlin date '+%d.%m.%Y %H:%M'))" > VERSION
           fi
           cat VERSION
 

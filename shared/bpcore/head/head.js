@@ -434,6 +434,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
+      testBanner(conf.version);
       if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
@@ -1513,6 +1514,14 @@
     return el;
   };
   H.versionStatus = (t) => { const s = document.querySelector('#bph-vl .bph-vl-st'); if (s) s.textContent = t || ''; };
+
+  /* ---------- Testserver: Stand als durchsichtiges Wasserzeichen über jeder Seite (Freigaben haben eine reine Versionsnummer) ---------- */
+  function testBanner(v) {
+    const m = /-test\s*\(([0-9a-f]{7})(?:,\s*([^)]+))?\)/.exec(String(v || '')); if (!m || document.querySelector('.bph-testwz')) return;
+    const d = document.createElement('div'); d.className = 'bph-testwz'; d.setAttribute('aria-hidden', 'true');
+    d.innerHTML = `<div><b>TESTSERVER</b><span>Stand ${m[1]}${m[2] ? ' · gebaut ' + esc(m[2]) : ''}</span></div>`;
+    document.body.appendChild(d);
+  }
 
   /* ---------- Fehler melden (🐞): Beschreibung, Bildschirmfoto, dazu automatisch die wichtigen Angaben für die Entwicklung ---------- */
   H.bugMelden = function () {

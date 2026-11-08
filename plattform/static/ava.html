@@ -508,7 +508,10 @@ tr.am-lf td input{color:#c0621f}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 .ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
 .ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:6px;font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
-.sp-griff{cursor:col-resize;align-self:stretch;border-radius:4px;background:linear-gradient(90deg,transparent 4px,var(--line) 4px,var(--line) 6px,transparent 6px);min-height:200px}.sp-griff:hover{background:linear-gradient(90deg,transparent 3px,var(--y) 3px,var(--y) 7px,transparent 7px)}
+.sp-griff{cursor:col-resize;align-self:stretch;border-radius:4px;background:linear-gradient(90deg,transparent 7px,var(--line) 7px,var(--line) 9px,transparent 9px);min-height:200px;touch-action:none}
+.sp-griff:hover{background:linear-gradient(90deg,transparent 6px,var(--y) 6px,var(--y) 10px,transparent 10px)}
+.sp-griff::after{content:'';position:sticky;top:calc(50vh - 28px);display:block;margin:0 auto;width:12px;height:56px;border-radius:7px;background:var(--card,#fff) radial-gradient(circle,var(--mute) 1.3px,transparent 1.6px) center/6px 7px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.12)}   /* Anfasser in der Mitte der Trennung – bleibt beim Scrollen im Blick */
+.sp-griff:hover::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 18%,var(--card,#fff))}
 .am-split.frei,.lv-split.frei{grid-template-columns:1fr!important}.am-split.frei>.sp-griff,.lv-split.frei>.sp-griff{display:none}
 .am-split.frei>.am-r,.lv-split.frei>.am-r{position:fixed;z-index:60;resize:both;overflow:hidden;min-width:300px;min-height:240px;box-shadow:0 12px 40px #0005}
 .am-split.frei>.am-r .am-pk,.lv-split.frei>.am-r .am-pk{cursor:move;background:var(--tabs)}
@@ -855,7 +858,7 @@ document.addEventListener('click', (e) => {
     const sicht = new Set((UTAB[tab] ? UTAB[tab]() : []).map((x) => x[0]).filter((x) => typeof x === 'string'));   // im Menü nicht doppelt
     UFN = [];
     const oben = eng ? [...(UTAB[tab] ? UTAB[tab]() : []).map(([a, b, , c]) => [a, b, c]), '-'] : [];
-    const unten = [...(eng && L && tab !== 'uebersicht' ? ['-', [() => lvVerlauf(), '🕘 Verlauf …', false]] : []), ...(L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : [])];
+    const unten = [...(eng && L && tab !== 'uebersicht' ? ['-', [() => lvVerlauf(), '🕘 Verlauf …', false]] : []), ...(eng && L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : [])];   // breit: „Löschen“ steht schon rot in der Leiste – nicht doppelt
     d.innerHTML = [...oben, ...uMenuPunkte().filter((x) => x === '-' || typeof x[0] === 'function' || !sicht.has(x[0])), ...unten].map((x) => { if (x === '-') return '<hr>';
       if (typeof x[0] === 'function') { UFN.push(x[0]); return `<button type="button" role="menuitem" data-ufn="${UFN.length - 1}"${x[2] ? ' disabled' : ''}>${esc(x[1])}</button>`; }
       const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');
@@ -2554,7 +2557,7 @@ function teilung(sp, key, neuZeichnen) {
   const frei = LS.get('frei.' + key, false), f = Math.max(0.2, Math.min(0.8, LS.get('teil.' + key, 0.52)));
   sp.classList.toggle('frei', frei);
   const schmal = innerWidth < 900; g.hidden = schmal;
-  sp.style.gridTemplateColumns = frei || schmal ? '' : `minmax(0,${f}fr) 10px minmax(0,${1 - f}fr)`;
+  sp.style.gridTemplateColumns = frei || schmal ? '' : `minmax(0,${f}fr) 16px minmax(0,${1 - f}fr)`;
   if (frei) { const q = LS.get('freipos.' + key, null) || { x: innerWidth - 700, y: 120, w: 640, h: innerHeight - 180 };
     Object.assign(r.style, { left: Math.max(120 - q.w, Math.min(innerWidth - 120, q.x)) + 'px', top: Math.max(0, Math.min(innerHeight - 60, q.y)) + 'px', width: q.w + 'px', height: q.h + 'px' }); }
   else Object.assign(r.style, { left: '', top: '', width: '', height: '' });
@@ -2562,7 +2565,7 @@ function teilung(sp, key, neuZeichnen) {
   if (!r._ro) { r._ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { const w = r.clientWidth; if (Math.abs(w - breite) > 40) { breite = w; neuZeichnen(); }
       if (sp.classList.contains('frei')) LS.set('freipos.' + key, { x: r.offsetLeft, y: r.offsetTop, w: r.offsetWidth, h: r.offsetHeight }); }, 350); }); r._ro.observe(r); }
   g.onpointerdown = (e) => { e.preventDefault(); g.setPointerCapture(e.pointerId); const b = sp.getBoundingClientRect();
-    g.onpointermove = (m) => { const v = Math.max(0.2, Math.min(0.8, (m.clientX - b.left) / b.width)); sp.style.gridTemplateColumns = `minmax(0,${v}fr) 10px minmax(0,${1 - v}fr)`; LS.set('teil.' + key, v); };
+    g.onpointermove = (m) => { const v = Math.max(0.2, Math.min(0.8, (m.clientX - b.left) / b.width)); sp.style.gridTemplateColumns = `minmax(0,${v}fr) 16px minmax(0,${1 - v}fr)`; LS.set('teil.' + key, v); };
     g.onpointerup = () => { g.onpointermove = null; }; };
   g.ondblclick = () => { LS.set('teil.' + key, 0.52); teilung(sp, key, neuZeichnen); };
   const kopf = r.querySelector('.am-pk');

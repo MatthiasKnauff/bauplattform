@@ -1873,7 +1873,7 @@ document.addEventListener('focusout', e => { if (e.target.dataset && e.target.da
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.sug, .adrsug')) e.preventDefault(); });   // Eingabefeld behält den Fokus
 // Schnell-Fenster: Beim Tippen rückt es nach OBEN unter die Kopfzeile, damit die iPhone-Tastatur es nie verdeckt (Safari verschiebt sonst die Seite)
 document.addEventListener('focusin', e => { if (e.target.closest && e.target.closest('#qs') && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { qTyping = true; $('#qs').classList.add('typing'); } });
-document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('#qs')) setTimeout(() => { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest('#qs') || !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) { qTyping = false; $('#qs').classList.remove('typing'); } }, 200); });
+// Eingabelage (oben, Platz für die Tastatur) bleibt, bis das Fenster zu ist – sonst springt es beim Klick in eine freie Stelle
 const fitApp = () => {   // App-Höhe = sichtbarer Bereich (mit Tastatur kleiner, ohne wieder voll)
   const vv = window.visualViewport, a = $('#app'); if (!vv || !a) return;
   const bz = $('#bwz');   // Assistent: genau in den sichtbaren Bereich über der Tastatur legen, beim Tippen nach oben
@@ -1916,7 +1916,7 @@ document.addEventListener('click', async e => {
   if (e.target.matches && e.target.matches('input[type=date],input[type=time],input[type=datetime-local]')) { try { e.target.showPicker(); } catch {} }   // Auswahl-Dialog direkt öffnen
   if (!e.target.closest('.menu') && !e.target.closest('#i-g')) $('#menu').classList.add('hidden');
   if (e.target.id === 'sheet') closeSheet();
-  if (e.target.id === 'qs') { q = null; renderQ(); }
+  if (e.target.id === 'qs' && q && q.step !== 'add') { q = null; renderQ(); }   // Eingabe offen: daneben klicken schließt nicht (nur ✕)
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT') return;
   const a = b.dataset.act, id = +b.dataset.id;
   if (DANGER.has(a) && !arm(b, a + (b.dataset.id || ''))) return;

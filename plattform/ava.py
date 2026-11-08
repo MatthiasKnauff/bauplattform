@@ -155,6 +155,8 @@ def _kat_info(c, kid):
 def _kat_pos(x):
     p = {"id": f"k{x['id']}", "typ": "pos", "oz": x["oz"], "kurz": x["kurz"], "lang": x["lang"], "menge": 0, "einheit": x["einheit"],
          "art": "T" if x["art"] == "T" else "N", "kg": x["kg"], "ep_s": round(x["ep"], 2) if x["ep"] else None}
+    if x["art"] == "T" and x["gewerk"] == "VB":   # aus sirAdos Vorbemerkungen: im LV als Vorbemerkung (Hinweistext mit Kennzeichen)
+        p["vb"] = True
     if x["ep_von"] or x["ep_bis"]:
         p["spanne"] = [round(x["ep_von"] or 0, 2), round(x["ep_bis"] or 0, 2)]
     return p
@@ -743,6 +745,8 @@ def clean_items(v):
         for k in ("gb", "entf", "sp", "np_vor", "np_nach"):
             if x.get(k):
                 p[k] = True
+        if x.get("vb") and p.get("art") == "T":   # Vorbemerkung (Hinweistext mit Kennzeichen)
+            p["vb"] = True
         if isinstance(x.get("pdb"), int) and x["pdb"] > 0:   # Herkunft: Position der Baudaten (für Auftrags-/Angebotspreise)
             p["pdb"] = x["pdb"]
         if x.get("nt"):   # Nachtrag
@@ -4058,7 +4062,7 @@ def _de(iso):
 
 
 # ---------------------------------------------------------------- LV-Druck mit Layout-Editor
-DRUCK_STD = {"preise": "leer", "deckblatt": True, "langtext": True, "fotos": True, "vorbem": True, "zusammenstellung": True,
+DRUCK_STD = {"preise": "leer", "deckblatt": True, "langtext": True, "fotos": True, "vorbem": True, "vbpos": True, "zusammenstellung": True,
              "seite_je_titel": False, "bieter": True, "schrift": 9}
 DRUCK_FELDER = ("Titel", "Untertitel", "Bauvorhaben", "Bauherr", "Aufsteller", "Datum", "Hinweis", "Vorbemerkungen", "Schlusstext")
 SCHLUSS_STD = "Bieter (Firma, Anschrift):\n\n\n\nOrt, Datum, Unterschrift:"
@@ -4069,7 +4073,7 @@ def _druck_layout(d, b=None):
     lay = dict(DRUCK_STD)
     for src in ((d.get("druck") or {}) if isinstance(d.get("druck"), dict) else {}, b or {}):
         for k, v in src.items():
-            if k in ("deckblatt", "langtext", "fotos", "vorbem", "zusammenstellung", "seite_je_titel", "bieter"):
+            if k in ("deckblatt", "langtext", "fotos", "vorbem", "vbpos", "zusammenstellung", "seite_je_titel", "bieter"):
                 lay[k] = bool(v)
             elif k == "preise" and v in ("leer", "schaetzung", "auftrag"):
                 lay[k] = v
@@ -4227,6 +4231,16 @@ def _lv_druck(c, r, P, lay, entwurf=False):
             if lv_ == 1:
                 titel.append(x)
             rows.append([x.get("oz") or "", PE(f"<b>{X(x['kurz'])}</b>", S["pb"], x.get("id"), "kurz"), "", "", "", ""]); band.append(len(rows) - 1)
+            continue
+        if x.get("art") == "T" and x.get("vb"):   # Vorbemerkung: über die ganze Breite (nicht in der Textspalte), im Layout abschaltbar
+            if not lay.get("vbpos", True):
+                continue
+            tabelle_schliessen()
+            story.append(Paragraph(f"<b>{X(x['kurz'])}</b>", S["h2"]))
+            for ab in re.split(r"\n\s*\n", str(x.get("lang") or "")):
+                if ab.strip():
+                    story.append(Paragraph(X(ab.strip()), S["p"]))
+            story.append(Spacer(1, 4 * mm))
             continue
         if x.get("art") == "T":   # Hinweistext (z. B. lange Vorbemerkung aus GAEB) – ebenfalls in Abschnitten
             for k_, st_ in enumerate(stuecke_von(x.get("lang") or x["kurz"])):

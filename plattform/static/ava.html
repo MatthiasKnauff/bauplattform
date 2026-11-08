@@ -618,7 +618,9 @@ const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe',
 const schrittVon = (t) => SCHRITTE.find((x) => x[2].includes(t)) || SCHRITTE[0];
 const TABS = NAVI.flatMap((g) => g[1].map((x) => [x[0], x[1]]));
 const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
-const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pauschal', T: 'Hinweistext' };
+const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pauschal', T: 'Hinweistext', V: 'Vorbemerkung' };
+/* Vorbemerkung = Hinweistext mit Kennzeichen vb (GAEB: Hinweistext) – im Druck breit und abschaltbar (Layout → „Vorbemerkungen im LV“) */
+const artW = (x) => (x.art === 'T' && x.vb ? 'V' : x.art);
 const STATUS = [['entwurf', 'Entwurf'], ['versendet', 'An Bieter versendet'], ['vergeben', 'Vergeben'], ['abgerechnet', 'Abgerechnet']];
 let PROJ = [], pid = null, LIST = [], L = null, tab = LS.get('tab', 'auftraege'), PC = {}, EXP = new Set(LS.get('exp', [])), TSEL = null, saveT = 0, saving = false, KONT = null, OPEN = new Set(), amPos = LS.get('amPos', null), amNur = LS.get('amNur', false);
 if (!TABS.some((t) => t[0] === tab)) tab = 'auftraege';
@@ -1563,7 +1565,7 @@ function vLv() {
     let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz baumz" title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"><div class="bz" style="${einr(tief + 2)}"><span class="car"></span>${t ? ICT : IC.pos}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:.78rem">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td>
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
       <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" list="ehList" style="width:3.8rem">`}</td>
-      <td><select data-f="art" title="${esc(ARTEN[x.art])}" style="width:4.2rem">${Object.entries(ARTEN).map(([k, l]) => `<option value="${k}"${x.art === k ? ' selected' : ''} title="${l}">${k}</option>`).join('')}</select></td>
+      <td><select data-f="art" title="${esc(ARTEN[artW(x)])}" style="width:4.2rem">${Object.entries(ARTEN).map(([k, l]) => `<option value="${k}"${artW(x) === k ? ' selected' : ''} title="${l}">${k}</option>`).join('')}</select></td>
       <td class="hide-m"><input data-f="kg" value="${esc(x.kg || '')}" placeholder="KG" style="width:3.4rem" inputmode="numeric" title="Kostengruppe DIN 276"></td>
       <td>${t ? '' : V ? `<input class="n" data-vp="${x.id}" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.5rem" title="Einheitspreis des Auftrags${x.nt ? ' (Nachtragspreis)' : ''}">` : `<input class="n" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="EP" title="geschätzter Einheitspreis (Kostenanschlag)">`}</td>
       ${V ? `<td class="r hint" title="geschätzter EP">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>` : ''}
@@ -1589,7 +1591,7 @@ function vLv() {
       <span class="fill"></span><button class="btn sm" data-act="vorbem">${L.data.vorbem ? '✎ ' : '+ '}Vorbemerkungen</button><button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
     ${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
-    <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext">Art</th><th class="hide-m">KG</th>
+    <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung">Art</th><th class="hide-m">KG</th>
       <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^<tr class="wurzel">.*?<\/tr>\s*/s, '')}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
@@ -1781,6 +1783,7 @@ document.addEventListener('input', (e) => {
   }
   const row = el.closest('tr[data-i]'); if (!row || !L || tab !== 'lv') return;
   const x = items()[+row.dataset.i]; if (!x) return;
+  if (el.dataset.f === 'art') { if (el.value === 'V') { x.art = 'T'; x.vb = true; } else { x.art = el.value; delete x.vb; } changed(); return; }
   if (el.dataset.f) { const f = el.dataset.f; x[f] = ['menge'].includes(f) ? (pf(el.value) ?? 0) : f === 'ep_s' ? pf(el.value) : el.value; changed(); return; }
   if (el.dataset.vp) { L.vergabe.preise = { ...(L.vergabe.preise || {}), [el.dataset.vp]: pf(el.value) }; clearTimeout(vpT); vpT = setTimeout(() => saveVp(el.dataset.vp, el.value), 700); sums(); }
 });
@@ -2148,7 +2151,7 @@ function vAngebote() {
     if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${3 + A.length}">${esc(x.kurz)}</td></tr>`;
     if (x.art === 'T') return '';
     const b = best(x.id);
-    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[x.art])}</span>` : ''}</td><td class="r">${nf(x.menge)}</td><td>${esc(x.einheit)}</td>`
+    return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${nf(x.menge)}</td><td>${esc(x.einheit)}</td>`
       + A.map((a) => { const e = a.preise[x.id]; const cls = e != null && b.mn != null && e === b.mn ? 'min' : e != null && b.mit && Math.abs(e / b.mit - 1) > 0.3 ? 'aus' : '';
         return `<td class="bp ${cls}"><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''}"><span class="gp">${e != null && zaehlt(x) ? eur((x.menge || 0) * e) : ''}</span></td>`; }).join('') + '</tr>';
   }).join('');
@@ -2948,7 +2951,7 @@ async function druckEditor() {
     <div class="dz"><aside class="dz-side"></aside><div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
   document.body.appendChild(ov); document.body.style.overflow = 'hidden';
   const side = ov.querySelector('.dz-side'), S = ov.querySelector('.bed-s');
-  const CH = [['deckblatt', 'Deckblatt'], ['vorbem', 'Vorbemerkungen'], ['langtext', 'Langtexte'], ['fotos', 'Fotos zu den Positionen'], ['zusammenstellung', 'Zusammenstellung der Titel'], ['bieter', 'Bieterangaben und Unterschrift am Ende'], ['seite_je_titel', 'Jeden Titel auf neuer Seite']];
+  const CH = [['deckblatt', 'Deckblatt'], ['vorbem', 'Vorbemerkungen'], ['vbpos', 'Vorbemerkungen im LV (Art „V“)'], ['langtext', 'Langtexte'], ['fotos', 'Fotos zu den Positionen'], ['zusammenstellung', 'Zusammenstellung der Titel'], ['bieter', 'Bieterangaben und Unterschrift am Ende'], ['seite_je_titel', 'Jeden Titel auf neuer Seite']];
   const sideDraw = () => {
     side.innerHTML = `<label class="dz-l">Preise<select data-l="preise"><option value="leer">leer – zum Ausfüllen durch die Bieter</option><option value="schaetzung">mit Schätzpreisen (Kostenanschlag)</option><option value="auftrag"${verg ? '' : ' disabled'}>mit Auftragspreisen${verg ? '' : ' (erst nach der Vergabe)'}</option></select></label>
       <div class="dz-g">${CH.map(([k, l]) => `<label class="dz-c"><input type="checkbox" data-l="${k}"${lay[k] ? ' checked' : ''}> ${l}</label>`).join('')}</div>
@@ -3450,7 +3453,7 @@ function quZeigen0() {
   const I = quItems();
   const zeile = (x, i) => x.typ === 'titel'
     ? `<tr class="ti${QU.sel.has(x.id) ? ' on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Titel mit Positionen wählen"></td><td>${esc(x.oz || '')}</td><td colspan="4" style="padding-left:${((x.lvl || 1) - 1) * .9 + .35}rem">${esc(x.kurz)}</td></tr>`
-    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.bez || x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
+    : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.bez || x.kurz || '')}${x.lang ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
   let rows = '', favs = '';
   if (quBaum()) {   // Baum: Bereich › Gewerk › (aufgeklappt) Positionen
     const H = quHaeufig(), alle = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
@@ -3563,7 +3566,7 @@ document.addEventListener('dblclick', (e) => {   // Langtext ganz zeigen / wiede
   const x = quItems()[+tr.dataset.qi]; if (!x || x.typ !== 'pos') return;
   if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quWahlUi();   // der erste Klick des Doppelklicks hat die Zeile umgeschaltet
   const kp = QU.L && QU.L.katalog && /^([bk])(\d+)$/.exec(x.id);   // Katalogposition: Detailfenster wie in den Baudaten
-  if (kp && typeof pdbDetail === 'function') { window.getSelection && window.getSelection().removeAllRanges(); pdbDetail(kp[1] === 'k' ? -kp[2] : +kp[2]); return; }
+  if (kp && x.art !== 'T' && typeof pdbDetail === 'function') { window.getSelection && window.getSelection().removeAllRanges(); pdbDetail(kp[1] === 'k' ? -kp[2] : +kp[2]); return; }
   QU.offen ||= new Set(); if (QU.offen.has(x.id)) QU.offen.delete(x.id); else QU.offen.add(x.id);
   const lt = tr.querySelector('.lt'); if (lt) lt.classList.toggle('voll', QU.offen.has(x.id));
   window.getSelection && window.getSelection().removeAllRanges();
@@ -3675,7 +3678,7 @@ function eigDialog(id) {
         <tr><td>DIN 276 (2018-12)</td><td><input data-e="kg" value="${esc(x.kg || '')}" inputmode="numeric" placeholder="z. B. 331"></td></tr>
         <tr><td>DIN 276 (1981)</td><td><input data-e="kg81" value="${esc(x.kg81 || '')}" inputmode="numeric"></td></tr>
         <tr><td>Leistungsbereiche</td><td><input data-e="lb" value="${esc(x.lb || '')}" list="lbList" placeholder="z. B. 012 Mauerarbeiten"></td></tr></tbody></table>
-      <label>Positionsart</label><select data-e="pa"><option value="N"${['N', 'E'].includes(x.art) ? ' selected' : ''}>Position</option><option value="P"${x.art === 'P' ? ' selected' : ''}>Pauschalposition</option><option value="A"${x.art === 'A' ? ' selected' : ''}>Wahlposition (Alternative)</option><option value="T"${x.art === 'T' ? ' selected' : ''}>Hinweistext</option></select>
+      <label>Positionsart</label><select data-e="pa"><option value="N"${['N', 'E'].includes(x.art) ? ' selected' : ''}>Position</option><option value="P"${x.art === 'P' ? ' selected' : ''}>Pauschalposition</option><option value="A"${x.art === 'A' ? ' selected' : ''}>Wahlposition (Alternative)</option><option value="T"${x.art === 'T' && !x.vb ? ' selected' : ''}>Hinweistext</option><option value="V"${x.art === 'T' && x.vb ? ' selected' : ''}>Vorbemerkung</option></select>
       <label></label><div class="eiggrid">
         ${cb('nt', 'Die Position ist eine Nachtragsposition', !!x.nt)}<span></span>
         ${cb('bed', 'Die Position ist eine Bedarfsposition', x.art === 'E', !['N', 'E'].includes(x.art))}${cb('gb', 'Mit Gesamtpreis', !!x.gb, x.art !== 'E', 'Bedarfsposition zählt in die Summe')}
@@ -3702,7 +3705,7 @@ function eigDialog(id) {
     if (e === 'ep_s') x.ep_s = pf(v);
     else if (e === 'menge') { x.menge = pf(v) ?? 0; }
     else if (e === 'kg' || e === 'kg81') x[e] = String(v).replace(/\D/g, '').slice(0, 3);
-    else if (e === 'pa') { x.art = v; if (v !== 'N') delete x.gb; }
+    else if (e === 'pa') { if (v === 'V') { x.art = 'T'; x.vb = true; } else { x.art = v; delete x.vb; } if (v !== 'N') delete x.gb; }
     else if (e === 'bed') { if (['N', 'E'].includes(x.art)) x.art = v ? 'E' : 'N'; if (!v) delete x.gb; }
     else if (e === 'nt') { if (v) { x.nt = 'NT' + (items().filter((y) => y.nt).length + 1); x.nt_status = 'angemeldet'; } else { delete x.nt; delete x.nt_status; delete x.nt_grund; } }
     else if (['gb', 'entf', 'sp', 'np_vor', 'np_nach'].includes(e)) { if (v) x[e] = true; else delete x[e]; }

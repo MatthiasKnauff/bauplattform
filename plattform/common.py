@@ -153,7 +153,7 @@ def bt_api(method, path, body=None):
     req = urllib.request.Request(BT_INTERNAL + path, method=method, data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=180) as r:
+        with urllib.request.urlopen(req, timeout=60) as r:
             return json.loads(r.read().decode() or "null")
     except urllib.error.HTTPError as e:
         try:

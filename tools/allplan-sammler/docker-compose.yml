@@ -1,0 +1,103 @@
+# Allplan-Sammler – einmalig: Katalogdateien des Allplan-Bürostandards (std) finden und als ZIP herunterladen.
+# Unabhängig von der Bauplattform, danach den Stack einfach wieder löschen.
+#
+# Portainer → Stacks → Add stack → Web editor: diesen Inhalt einfügen, unten bei „Environment variables“
+#   SMB_USER, SMB_PASS (und ggf. SMB_DOMAIN) eintragen → Deploy.
+# Dann im Browser:  http://<Docker-Server>:8199
+# Der Ordner wird nur lesend eingebunden. Kennwort ohne Komma (sonst in der Zeile „o:“ anders angeben).
+services:
+  allplan-sammler:
+    image: python:3.12-alpine
+    container_name: allplan-sammler
+    ports:
+      - "8199:8199"
+    volumes:
+      - allplan:/allplan:ro
+    environment:
+      START: "Daten"          # Unterordner der Freigabe, in dem gesucht wird (leer = ganze Freigabe)
+    command:
+      - python
+      - -c
+      - |
+        import html, io, os, zipfile
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        WURZEL = os.path.join("/allplan", os.environ.get("START", "").strip("/\\"))
+        ORDNER = {"nem_ele", "nem_pos", "xml", "xml catalog data", "kukat1", "kukat2", "kukat3", "kukat4", "kukat5", "catalog", "kataloge", "katalog"}
+        ENDUNG = (".kat", ".ktm", ".ktx", ".db3", ".xml", ".dat", ".csv", ".txt", ".ini", ".sqlite", ".dbf", ".cdx", ".fpt")
+        def ist_std(p):
+            try:
+                n = {x.lower() for x in os.listdir(p) if os.path.isdir(os.path.join(p, x))}
+            except OSError:
+                return False
+            return bool(n & {"nem_ele", "nem_pos"}) or {"xml", "library"} <= n
+        def finde_std():
+            for tiefe in range(4):
+                for wurzel, dirs, _ in os.walk(WURZEL):
+                    if wurzel[len(WURZEL):].count(os.sep) > tiefe:
+                        dirs[:] = []
+                        continue
+                    for d in sorted(dirs, key=lambda x: x.lower() != "std"):
+                        p = os.path.join(wurzel, d)
+                        if d.lower() == "std" and ist_std(p):
+                            return p
+            return WURZEL if ist_std(WURZEL) else None
+        def dateien(std):
+            out = []
+            for x in sorted(os.listdir(std)):
+                p = os.path.join(std, x)
+                if os.path.isfile(p) and x.lower().endswith(ENDUNG):
+                    out.append(p)
+                elif os.path.isdir(p) and x.lower() in ORDNER:
+                    for w, dirs, files in os.walk(p):
+                        if w[len(p):].count(os.sep) >= 2:
+                            dirs[:] = []
+                        out += [os.path.join(w, f) for f in sorted(files)]
+            return out
+        class H(BaseHTTPRequestHandler):
+            def do_GET(self):
+                std = finde_std()
+                if self.path.startswith("/zip") and std:
+                    buf = io.BytesIO()
+                    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+                        for f in dateien(std):
+                            try:
+                                if os.path.getsize(f) <= 80 * 1024 * 1024:
+                                    z.write(f, os.path.relpath(f, os.path.dirname(std)))
+                            except OSError:
+                                pass
+                    d = buf.getvalue()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/zip")
+                    self.send_header("Content-Disposition", 'attachment; filename="allplan-std-kataloge.zip"')
+                    self.send_header("Content-Length", str(len(d)))
+                    self.end_headers()
+                    self.wfile.write(d)
+                    return
+                if not std:
+                    try:
+                        oben = ", ".join(sorted(os.listdir(WURZEL))[:60])
+                    except OSError as e:
+                        oben = "nicht lesbar: " + str(e)
+                    inhalt = "<p><b>Kein Bürostandard (std mit nem_ele/xml) gefunden</b> unter " + html.escape(WURZEL) + ".</p><p>Dort liegt: " + html.escape(oben) + "</p><p>START in den Umgebungsvariablen anpassen.</p>"
+                else:
+                    L = dateien(std)
+                    mb = sum(os.path.getsize(f) for f in L) / 1048576
+                    inhalt = ("<p>Gefunden: <b>" + html.escape(std) + "</b> – " + str(len(L)) + " Dateien, " + str(round(mb, 1)) + " MB</p>"
+                              + '<p><a href="/zip" style="font-size:1.3rem">⤓ Katalogdateien als ZIP herunterladen</a></p><ul>'
+                              + "".join("<li>" + html.escape(os.path.relpath(f, std)) + "</li>" for f in L) + "</ul>")
+                d = ("<!doctype html><meta charset=utf-8><title>Allplan-Sammler</title><body style='font-family:sans-serif;max-width:900px;margin:2rem auto'>"
+                     "<h1>Allplan-Sammler</h1>" + inhalt + "<p style='color:#888'>Nach dem Herunterladen den Stack in Portainer wieder löschen.</p>").encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(d)))
+                self.end_headers()
+                self.wfile.write(d)
+        print("Allplan-Sammler auf Port 8199, sucht in", WURZEL, flush=True)
+        ThreadingHTTPServer(("", 8199), H).serve_forever()
+volumes:
+  allplan:
+    driver: local
+    driver_opts:
+      type: cifs
+      device: "//192.168.233.88/Allplan"
+      o: "username=${SMB_USER},password=${SMB_PASS},domain=${SMB_DOMAIN:-},vers=3.0,ro,iocharset=utf8"

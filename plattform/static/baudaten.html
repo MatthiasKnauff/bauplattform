@@ -185,18 +185,6 @@ function katalogeEinstellungen(host) {
     } catch (er) { m.textContent = er.message; }
   };
 }
-async function allplanStd() {   // Allplan-Bürostandard auf dem Dateiserver: Kataloge finden und als ZIP holen
-  const bg = modalBox(`<h3>Allplan-Bürostandard</h3><p id="apT">Suche auf dem Dateiserver …</p><div class="acts" style="display:flex;gap:.4rem;justify-content:flex-end"><button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="zip" id="apZip" disabled>⤓ Katalogdateien als ZIP</button></div>`, (m, bgx, close) => {
-    if (m === 'x') close();
-    if (m === 'zip') { location.href = 'api/allplan/paket'; toast('Das ZIP wird zusammengestellt – das kann einen Moment dauern.'); }
-  });
-  let r; try { r = await api('api/allplan/suche'); } catch (e) { bg.querySelector('#apT').textContent = e.message; return; }
-  if (!r.ok) { bg.querySelector('#apT').innerHTML = esc(r.error || 'Nicht gefunden.') + (r.ordner ? `<br><small class="mute">Ordner dort: ${esc(r.ordner.join(', '))}</small>` : ''); return; }
-  const mb = (b) => (b / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB';
-  bg.querySelector('#apT').innerHTML = `Gefunden: <b>${esc(r.unc)}\\${esc(r.std.replace(/\//g, '\\'))}</b> – ${r.dateien.length} Katalogdateien (${mb(r.summe)}).
-    <div style="max-height:40vh;overflow:auto;font-size:.82rem;margin-top:.5rem">${r.dateien.map((x) => `<div>${esc(x.pfad)} <span class="mute">${mb(x.size)}</span></div>`).join('')}</div>`;
-  bg.querySelector('#apZip').disabled = !r.dateien.length;
-}
 async function vorbemerkung(k) {
   let v; try { v = await api('api/vorbemerkungen?key=' + encodeURIComponent(k)); } catch (e) { toast(e.message, true); return; }
   const bg = modalBox(`<h3>Vorbemerkungen ${esc(/^\d/.test(v.key) ? v.key + ' ' : '')}${esc(v.titel)}</h3><pre style="white-space:pre-wrap;font:inherit;font-size:.92rem;max-height:62vh;overflow:auto">${esc(v.text)}</pre>
@@ -493,8 +481,7 @@ for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('
   await start();
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
     { key: 'kataloge', label: 'Kataloge', render: (h) => katalogeEinstellungen(h) },
-    { key: 'preise', label: 'Preise, Index & Löhne', text: 'Baupreisindex, Regionalfaktor und Verrechnungslöhne', open: () => einstellungen() },
-    ...(S.admin ? [{ key: 'allplan', label: 'Allplan-Bürostandard', text: 'Kataloge auf dem Dateiserver suchen und als ZIP holen', open: () => allplanStd() }] : [])]);
+    { key: 'preise', label: 'Preise, Index & Löhne', text: 'Baupreisindex, Regionalfaktor und Verrechnungslöhne', open: () => einstellungen() }]);
 })().catch((e) => toast(e.message, true));
 </script>
 </body>

@@ -393,7 +393,31 @@ _SCH_GRUPPE_TEXT = [("Dachdeckung", r"eindeckung|deckung|stehfalz|dachbahn|begr�
                     ("Estrich, Belag", r"estrich|belag|parkett|bodenfliesen|dielen|laminat|teppich|vinyl|linoleum|kautschuk|kork|naturfaser|terrazzo|mosaik"),
                     ("Oberfläche innen", r"anstrich|tapete|lasur|farbe|vlies|beschichtung|ölen|spachteltechnik|wandfliesen"),
                     ("Bekleidung, Fassade", r"bekleid|fassade|riemchen|klinker|vorsatzschale|akustik|unterkonstruktion")]
-SCHICHT_RX = re.compile(r"(?<![\w-])(S-[A-Za-z0-9ÄÖÜäöüß+-]{1,16})")
+SCHICHT_KATEGORIEN = [   # Reihenfolge = Ordner im Katalog, erster Treffer zählt
+    ("Mauerwerk", r"mauerwerk|kalksand|\bKS\b|ziegel(?!.*eindeck)|\bHlz\b|\bMz\b|porenbeton|\bPP\d?\b|hohlblock|\bHbl\b|planstein|lehmstein|ausmauerung|glasbaustein"),
+    ("Beton", r"beton|\bStB\b|elementwand|elementdecke|filigran|bodenplatte|\bWU\b"),
+    ("Trockenbau", r"metallständer|montagewand|\bCW\b|wandbauplatte|\bGWP\b|vorsatzschale|installationswand|installationsschacht|schachtwand|trockenputz|gipsfaser|feuchtraumwand"),
+    ("Holzbau", r"brettsperr|\bCLT\b|\bBSP\b|\bKVH\b|holzständer|sparren|balken|dachschalung|rauspund|sichtschalung"),
+    ("Dämmung", r"dämm|\bWDVS\b|\bEPS\b|\bXPS\b|\bPIR\b|mineralwolle|holzfaser|schaumglas"),
+    ("Putz", r"putz(?!träger)|spachtelung q|dünnlagen"),
+    ("Estrich", r"estrich"),
+    ("Belag", r"belag|parkett|bodenfliesen|dielen?\b|laminat|teppich|vinyl|linoleum|kautschuk|kork|naturfaser|terrazzo|mosaik|granit|kalkstein|solnhofer|betonwerkstein"),
+    ("Fliesen", r"fliesen|feinsteinzeug|dünnplatte"),
+    ("Abdichtung", r"abdicht|sperre|bremse|folie|trennlage|\bKMB\b|\bMDS\b|\bFPO\b|\bEPDM\b|\bPVC\b|bitumen|dichtschlämme"),
+    ("Dach", r"eindeckung|deckung|dachlattung|stehfalz|dachbahn|begrünung|kiesschütt|sandwich|trapez|unterdeck|dachziegel|schiefer|pfanne|biber|wellplatte"),
+    ("Fassade", r"fassade|holzschalung|vorgehängt|\bVHF\b|riemchen|klinker|unterkonstruktion|faserzement|\bHPL\b|kassette|lochblech|streckmetall"),
+    ("Bekleidung", r"bekleid|akustik|gipskarton|\bGK[BF]?\b|holzwolle|\bOSB\b|dreischicht|furnier|profilbrett|lamellen|prallwand|rasterdecke|siebdruck|spanplatte"),
+    ("Anstrich", r"anstrich|tapete|lasur|farbe|vlies|beschichtung|versiegel|ölen|geölt|spachteltechnik|dispersion|silikat|silikon|reinacrylat|glasgewebe"),
+]
+_KAT_VORRANG = [("Anstrich", r"lasier|lasur|\bölen\b|pigmentiert"), ("Dämmung", r"dämm"), ("Abdichtung", r"abdicht|sperre"), ("Putz", r"putz(?!träger)"),
+               ("Estrich", r"estrich"), ("Fassade", r"fassade|stülpschalung"), ("Bekleidung", r"bekleidung")]
+_SCH_GAENGIG = [   # im Büro gängig: kommen in ihrem Ordner nach oben (sonst zählt, in wie vielen Vorlagen das Material vorkommt)
+    r"Mauerwerk KS", r"Mauerwerk Hlz", r"Mauerwerk PP4", r"Beton StB", r"Beton StB C25", r"Beton WU", r"Trockenbau CW", r"Trockenbau Vorsat.*",
+    r"Dämmung WDVS EPS", r"Dämmung WDVS MW", r"Dämmung XPS", r"Dämmung EPS-T", r"Putz Gips", r"Putz Kalkzement", r"Putz LP \+ Scheibe",
+    r"Estrich ZE", r"Estrich CA", r"Belag Fliesen", r"Belag Linoleum", r"Belag Vinyl LVT", r"Anstrich Dispersi.*", r"Anstrich Malervli.*"]
+_KAT_WORT = {"Mauerwerk": ["Mauerwerk"], "Beton": ["Beton"], "Trockenbau": ["Trockenbau"], "Holzbau": ["Holzbau"], "Dämmung": ["Dämmung"], "Putz": ["Putz"],
+             "Estrich": ["Estrich"], "Belag": ["Belag"], "Fliesen": ["Fliesen"], "Abdichtung": ["Abdichtung"], "Dach": ["Dach"], "Fassade": ["Fassade"],
+             "Bekleidung": ["Bekleidung"], "Anstrich": ["Anstrich"]}
 _SCH = {"stand": None, "F": None}
 
 
@@ -464,7 +488,7 @@ def schicht_familien(c):
                 alt_key = schicht_schluessel(name)   # Kürzel-Schlüssel der ersten Fassung (S-KS …) – beim Import weiter gültig
                 name = _sch_lesbar(name)
                 key = schicht_schluessel(name)
-                x = F.setdefault(key, {"name": name, "gruppe": next(g for g, rx in SCHICHT_GRUPPEN if re.search(rx, s["name"], re.I)), "kgs": set(), "opts": []})
+                x = F.setdefault(key, {"name": name, "roh": _sch_familie(o["k"])[0], "gruppe": next(g for g, rx in SCHICHT_GRUPPEN if re.search(rx, s["name"], re.I)), "kgs": set(), "opts": []})
                 x["kgs"].add(v["kg"])
                 x["opts"].append((v["id"], v["kg"], sn, on, dk, [tuple(t) for t in o["teile"]]))
                 if alt_key != key and alt_key not in x.setdefault("auch", []):
@@ -495,8 +519,34 @@ def schicht_familien(c):
             del F[key]
         else:
             texte[F[key]["text"]] = key
-    _SCH.update(stand=stand, F=F)
-    return F
+    # Verständliche Materialbezeichnung „Kategorie Material“ (Mauerwerk KS, Putz Gips, Dämmung WDVS EPS …) – ohne „S-“, Kategorie = Ordner
+    G = {}
+    for key, x in F.items():
+        such = f"{x['text']} {x['name']}"
+        treffer = [(m.start(), n_, k) for n_, (k, rx) in enumerate(SCHICHT_KATEGORIEN) for m in [re.search(rx, such, re.I)] if m]
+        kat = min(treffer)[2] if treffer else "Sonstiges"   # das Wort, mit dem der Positionstext anfängt, entscheidet
+        w1 = such.split()[0] if such.split() else ""
+        for k_vor, rx_vor in _KAT_VORRANG:   # z. B. „Aufsparrendämmung“ ist Dämmung, nicht Holzbau; „… lasieren“ ist Anstrich
+            if re.search(rx_vor, w1 if k_vor != "Anstrich" else such, re.I):
+                kat = k_vor
+                break
+        roh = x.get("roh") or x["name"]
+        kw = "|".join(re.escape(w) for w in _KAT_WORT.get(kat, [kat]))
+        kurz = re.sub(r"(?i)\b(" + kw + r")\b", "", roh)
+        if kat in ("Putz", "Estrich"):
+            kurz = re.sub(r"(?i)(\w{3,})(" + kw + r")\b", r"\1", kurz)   # Gipsputz → Gips, Schnellestrich → Schnell
+        kurz = re.sub(r"\s+", " ", kurz).strip(" ,+-/") or roh
+        neu = (f"{kat} {kurz}".strip())[:17].rstrip(" ,+-")
+        n_ = 2
+        while neu in G:   # gleich nach dem Kürzen: Nummer anhängen
+            neu = f"{neu[:15].rstrip()} {n_}"
+            n_ += 1
+        x["gruppe"] = kat
+        x["auch"] = list(dict.fromkeys([key] + x.get("auch", [])))   # alte Schlüssel (S-…) bleiben beim Import gültig
+        x["haeufig"] = len({o[0] for o in x["opts"]}) + next((1000 - 10 * j for j, rx in enumerate(_SCH_GAENGIG) if re.fullmatch(rx, neu, re.I)), 0)
+        G[neu] = x
+    _SCH.update(stand=stand, F=G)
+    return G
 
 
 def _sch_dicken(x):
@@ -514,11 +564,23 @@ def _sch_teile(c, opt, d_m):
 
 
 def aus_schichten(c, kg, lagen):
-    """Allplan-Schichten [(Schlüssel, Dicke in m)] → passender Aufbau aus dem Baukasten.
+    """Allplan-Schichten [(Materialname, Dicke in m)] → passender Aufbau aus dem Baukasten. Materialname = Bezeichnung aus dem Katalog
+    (z. B. „Mauerwerk KS“), dessen Kurztext oder ein früherer Schlüssel; Schichten ohne Material zählen nicht.
     Gibt {"vorlage", "wahl", "text"} zurück, wenn eine Vorlage alle Schichten abdeckt, sonst {"teile", "text"} (frei zusammengesetzt) oder None."""
     F = schicht_familien(c)
-    alias = {a: k for k, x in F.items() for a in x.get("auch", [])}
-    L = [(alias.get(k, k), d) for k, d in lagen if alias.get(k, k) in F]
+    such = {}   # Materialname der Schicht → Schlüssel: Bezeichnung, Kurztext, frühere Schlüssel (S-…) – ohne Groß-/Kleinschreibung
+    for k, x in F.items():
+        for a in [k, x["text"], *x.get("auch", [])]:
+            such.setdefault(re.sub(r"\s+", " ", a).strip().lower(), k)
+    L = []
+    for nm, d in lagen:
+        n_ = re.sub(r"\s+", " ", str(nm or "")).strip().lower()
+        if not n_:
+            continue
+        k = such.get(n_) or such.get(n_[:17].rstrip())
+        if k is None:   # eine Schicht mit fremdem Material: nicht aus dem Katalog – dann lieber gar nicht zusammensetzen
+            return None
+        L.append((k, d))
     if not L:
         return None
     dk = lambda d: f"{round(d * 100, 1):g} cm".replace(".", ",") if d else ""   # noqa: E731
@@ -666,14 +728,14 @@ def allplan_katalog(c, kg=""):
             if fam and not kg:   # Ebene 0: Schichtmaterialien für mehrschichtige Bauteile – Dicke kommt aus der Allplan-Schicht
                 stamm.append(zeile("k000", "Schichtmaterialien (je Schicht wählen, Dicke aus Allplan)"))
                 gr_ = list(KOPF_I)
-                for gn, (gname, _) in enumerate(SCHICHT_GRUPPEN, 1):
-                    L_ = sorted((k, x) for k, x in fam.items() if x["gruppe"] == gname)
+                for gn, gname in enumerate([k_ for k_, _ in SCHICHT_KATEGORIEN] + ["Sonstiges"], 1):
+                    L_ = [(k, x) for k, x in fam.items() if x["gruppe"] == gname]
                     if not L_:
                         continue
                     dn = f"k000{gn:02d}"
                     gr_.append(zeile(dn, gname))
                     kat, ktx = list(KOPF_E), [b"#", b"REFNAM            LANGT", b""]
-                    for k, x in sorted(L_, key=lambda t: t[0].lower()):
+                    for k, x in sorted(L_, key=lambda t: (-t[1]["haeufig"], t[0].lower())):   # häufig gebrauchte zuerst
                         dd = _sch_dicken(x)
                         kat.append(zeile(k, x["text"]))
                         ktx.append(enc(k.ljust(18)))

@@ -152,7 +152,6 @@ def _wert(v):
 
 
 CODE_RX = re.compile(r"(?<![\d.])(\d{3}\.\d{2}\.\d{3})(?![\d.])")
-SCHICHT_RX = re.compile(r"(?<![\w-])(S-[A-Za-z0-9ÄÖÜäöüß+-]{1,16})")   # Schichtmaterial aus dem Allplan-Katalog der Bauplattform (wie bpcore.baudaten)
 ART = {"IFCWALL": "Wand", "IFCWALLSTANDARDCASE": "Wand", "IFCWALLELEMENTEDCASE": "Wand", "IFCSLAB": "Decke", "IFCSLABSTANDARDCASE": "Decke",
        "IFCROOF": "Dach", "IFCWINDOW": "Fenster", "IFCWINDOWSTANDARDCASE": "Fenster", "IFCDOOR": "Tür", "IFCDOORSTANDARDCASE": "Tür",
        "IFCCOLUMN": "Stütze", "IFCCOLUMNSTANDARDCASE": "Stütze", "IFCBEAM": "Träger", "IFCBEAMSTANDARDCASE": "Träger",
@@ -592,13 +591,11 @@ def ifc_lesen(raw):
             aussen = prop(i, "IsExternal")
             tragend = prop(i, "LoadBearing")
             namen, dicke = mat.get(i, ([], 0.0))
-            lagen = []   # Schichtmaterialien aus dem Katalog (S-…) mit Dicke je Schicht
+            lagen = []   # Material je Schicht mit Dicke – die Baukosten prüfen, ob es Schichtmaterialien aus dem Katalog sind
             for k_, x_ in enumerate(namen):
                 if isinstance(x_, tuple):
-                    nm_ = x_[0] or str(props.get(i, {}).get(f"Object Layer Attributes #{k_ + 1}/Material") or "")
-                    ms_ = SCHICHT_RX.search(nm_)
-                    if ms_:
-                        lagen.append((ms_.group(1), round(x_[1], 4)))
+                    nm_ = (x_[0] or str(props.get(i, {}).get(f"Object Layer Attributes #{k_ + 1}/Material") or "")).strip()
+                    lagen.append((nm_[:80], round(x_[1], 4)))
             namen = schichten(i, namen)
             if not dicke:
                 dicke = menge(i, "Width", "Thickness", "Depth") or 0.0

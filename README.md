@@ -324,6 +324,23 @@ Pfad `/ava`, Container `bauplattform_ava` (Port 8097, gleiches Image wie die Pla
 - PDFs: LV (mit Preisfeldern oder Schätzpreisen), Preisspiegel, Massenermittlung, Rechnungsprüfblatt. Übersicht aller LV eines Projekts (Kostenkontrolle).
 - Neue App: Wer Baukosten oder Bauzeitenplan nutzen darf, bekommt sie automatisch; abwählbar in der Verwaltung.
 
+- Aufträge auch ohne LV und Angebot: „＋ Neuer Auftrag“ (Bereich Aufträge) mit Häkchen **ohne Angebot und LV** – nur Firma und Summe;
+  ohne Häkchen ein vorhandenes LV (mit Angebot) wählen oder ein neues LV anlegen, das gleich an die Firma vergeben ist.
+- LV-Stand **nicht vergeben** (mit Grund): ausgeschrieben, aber nicht beauftragt – zählt nicht für Budget, Prognose und To-dos; Angebote bleiben.
+
+## ORCA-Import (eigener Container)
+
+Container `bauplattform_orca` (Port 8100, gleiches Image wie die Plattform, `APP_MODULE: orca_import`, **ein** Arbeitsprozess) – nur für
+Administratoren, direkt über `http://<Server>:8100` (nicht über den Verteiler). Bleibt dauerhaft, für die Übernahme laufender Projekte aus ORCA AVA.
+
+- Hochladen: ORCA-Projektsicherung (`*.zip`) oder Projektdatei (`*.ava`, Access 97). Gelesen wird ohne Zusatzpakete (`orca_jet3.py`).
+- Umsetzen (`orca_lesen.py`): je ORCA-Auftrag ein LV mit Vergabe (Auftragspreise, Nachlass, Einbehalt, Skonto), Nachtragspositionen als
+  beauftragte Nachträge, Preisspiegel als Angebote, Rechnungen mit Prüfstand je Position (Teil-, Schluss-, Regie-, Nachtragsrechnungen,
+  Freigabe der Sicherheit). Aufträge ohne Positionen bekommen das Häkchen „ohne Angebot und LV“, LVs ohne Auftrag den Stand „nicht vergeben“.
+- Vorschau: nachgerechnet mit den Rechenfunktionen der AVA, Abweichungen zu ORCA je Rechnung; Firmen werden mit den Adressen abgeglichen
+  (ORCA hat die Adressen in einer eigenen Datenbank – übernommen werden die Namen, neue Firmen nur mit Namen).
+- Eintragen: als **eigene AVA-Version** im gewählten Projekt – vorhandene LVs bleiben unberührt; wahlweise gleich als gültige Version.
+
 ## Pläne & Dateien (eigener Container)
 
 Pfad `/plaene`, Container `bauplattform_plaene` (Port 8096, gleiches Image wie die Plattform, `APP_MODULE: plaene`).

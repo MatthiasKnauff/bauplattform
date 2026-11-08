@@ -21,7 +21,10 @@ import common as C
 app = C.make_app(__name__)
 MWST = 19.0
 ARTEN = {"N": "Normalposition", "E": "Bedarfsposition (ohne GB)", "A": "Wahlposition (ohne GB)", "P": "Pauschal", "T": "Hinweistext"}
-STATUS = ("entwurf", "versendet", "vergeben", "abgerechnet")
+STATUS = ("entwurf", "versendet", "vergeben", "abgerechnet", "nicht_vergeben")
+# ausgeschrieben, aber nicht beauftragt – zählt nicht für Budget, Prognose und To-dos; Angebote bleiben für Preisvergleiche
+NICHT_GRUENDE = {"entfallen": "Leistung entfällt", "aufgehoben": "Ausschreibung aufgehoben", "anderweitig": "anderweitig vergeben",
+                 "zurueckgestellt": "zurückgestellt", "": ""}
 
 
 @app.before_request
@@ -1202,11 +1205,12 @@ def lv_liste():
                         "n_nt": sum(1 for x in d.get("items") or [] if x.get("nt")), "leistung": k["leistung"],
                         # Prognose wie in der AVA üblich: Auftrag + beauftragte und angemeldete Nachträge; ohne Auftrag die Schätzung
                         "prognose": round(max(k["auftrag"] + k["nachtraege"]["beauftragt"] + k["nachtraege"]["angemeldet"], k["abgerechnet"] if V.get("frei") else 0)
-                                          if _ist_vergeben(V) else k["schaetzung"], 2),
+                                          if _ist_vergeben(V) else 0.0 if r["status"] == "nicht_vergeben" else k["schaetzung"], 2),
                         "abgerechnet": k["abgerechnet"], "min_angebot": min([a["netto"] for a in k["angebote"] if a["summe"]] or [0]),
                         # für die Projektbäume in Angebote / Aufmaßprüfung / Rechnungen
                         "vergeben": _ist_vergeben(V), "frei": bool(V.get("frei")) and _ist_vergeben(V), "angebot_id": V.get("angebot_id"),
                         "aufgehoben": {**V["aufgehoben"], "bieter": V.get("bieter") or ""} if isinstance(V.get("aufgehoben"), dict) else None,
+                        "ohne_lv": bool(V.get("frei") and V.get("ohne_lv", True)), "nicht_vergeben": V.get("nicht_vergeben") if r["status"] == "nicht_vergeben" else None,
                         "angebote": [{"id": a["id"], "bieter": a["bieter"], **{f: x[f] for f in ("netto", "rang", "fehlt") if f in x}}
                                      for a in ang for x in k["angebote"] if x["id"] == a["id"]],
                         "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "status": x["status"], "re_nr": x["re_nr"],
@@ -2998,7 +3002,22 @@ def vergabe(i):
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         versionen.vor(c, f"avalv:{i}")
-        if request.method == "DELETE":
+        alt_v = _j(r["vergabe"], {}) or {}
+        if request.method == "DELETE" and r["status"] == "nicht_vergeben":   # „nicht vergeben“ zurücknehmen
+            alt_v.pop("nicht_vergeben", None)
+            c.execute("UPDATE ava_lv SET vergabe=?, status='versendet', rev=rev+1, updated=?, updated_by=? WHERE id=?",
+                      (json.dumps(alt_v, ensure_ascii=False), _now(), g.user["name"], i))
+            C.audit(g.user["name"], "ava", "Nicht vergeben zurückgenommen", f"LV {r['nr']} {r['name']}")
+        elif request.method == "POST" and b.get("nicht"):   # ausgeschrieben, wird aber nicht beauftragt
+            if _ist_vergeben(alt_v) or alt_v.get("aufgehoben"):
+                return jsonify(error="Das LV ist vergeben – bitte zuerst die Vergabe aufheben." if _ist_vergeben(alt_v)
+                               else "Die Beauftragung ist aufgehoben, Rechnungen hängen noch daran – erst die deaktivierten Rechnungen löschen."), 400
+            grund = b.get("grund") if b.get("grund") in NICHT_GRUENDE else ""
+            alt_v["nicht_vergeben"] = {"grund": grund, "notiz": _s(b.get("notiz"), 300), "datum": date.today().isoformat(), "von": g.user["name"]}
+            c.execute("UPDATE ava_lv SET vergabe=?, status='nicht_vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?",
+                      (json.dumps(alt_v, ensure_ascii=False), _now(), g.user["name"], i))
+            C.audit(g.user["name"], "ava", "Nicht vergeben", f"LV {r['nr']} {r['name']}" + (f" ({NICHT_GRUENDE[grund]})" if grund else ""))
+        elif request.method == "DELETE":
             if c.execute("SELECT 1 FROM ava_rechnung WHERE lv_id=? AND status='geprueft'", (i,)).fetchone():
                 return jsonify(error="Es gibt schon geprüfte Rechnungen – die Vergabe lässt sich nicht mehr aufheben."), 400
             n_re = c.execute("SELECT COUNT(*) AS n FROM ava_rechnung WHERE lv_id=?", (i,)).fetchone()["n"]
@@ -3034,8 +3053,11 @@ def vergabe(i):
             if not bieter:
                 return jsonify(error="Bitte die Firma angeben."), 400
             alt = _j(r["vergabe"], {}) or {}
+            alt.pop("nicht_vergeben", None)
             cid = b.get("contact_id") if isinstance(b.get("contact_id"), int) else None
-            V = {**alt, "frei": True, "contact_id": cid, "bieter": bieter, "datum": _s(b.get("datum"), 10) or date.today().isoformat(),
+            # ohne_lv: Häkchen „ohne Angebot und LV“ (nur Summe); False = LV gehört dazu, Positionen folgen
+            V = {**alt, "frei": True, "ohne_lv": bool(b.get("ohne_lv", alt.get("ohne_lv", True))),
+                 "contact_id": cid, "bieter": bieter, "datum": _s(b.get("datum"), 10) or date.today().isoformat(),
                  "summe": round(_f(b.get("summe"), 0, 0), 2), "nachlass": alt.get("nachlass", 0), "nachlass_eur": alt.get("nachlass_eur", 0),
                  "skonto": _f(b.get("skonto"), alt.get("skonto", 0), 0, 100), "skonto_tage": int(_f(b.get("skonto_tage"), alt.get("skonto_tage", 0), 0, 365)),
                  "einbehalt": round(_f(b.get("einbehalt"), alt.get("einbehalt", 0.0), 0, 30), 2), "preise": alt.get("preise") or {}}

@@ -269,7 +269,7 @@ def _a_vergabe(c, u, R, P, ok):
         for gw, b in beginn.items():
             f = _fold(gw)
             treffer = [lv for lv in lvs.get(pid, []) if f and (f in _fold(lv["gewerk"]) or f in _fold(lv["name"]) or _fold(lv["gewerk"]) and _fold(lv["gewerk"]) in f)]
-            if any(lv["status"] in ("vergeben", "abgerechnet") for lv in treffer):
+            if any(lv["status"] in ("vergeben", "abgerechnet", "nicht_vergeben") for lv in treffer):   # nicht vergeben: bewusst entschieden
                 continue
             st = "LV noch im Entwurf" if treffer and all(lv["status"] == "entwurf" for lv in treffer) else "LV versendet, noch nicht vergeben" if treffer else "noch kein LV im AVA"
             out.append(_e("vergabe", f"{pid}:{f}", f"{gw}: Vergabe vor Baubeginn {date.fromisoformat(b).strftime('%d.%m.')}", f"{st} · {pname}",

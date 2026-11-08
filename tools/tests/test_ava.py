@@ -444,6 +444,44 @@ def test_regie_frei_und_sicherheit(ctx):
         _weg(c, lv)
 
 
+def test_auftrag_ohne_lv_und_nicht_vergeben(ctx):
+    """Neuer Auftrag mit Häkchen „ohne Angebot und LV“ bzw. mit neuem LV; ausgeschriebenes LV als „nicht vergeben“ markieren und zurücknehmen."""
+    c = ctx.admin
+    lv1 = lv2 = lv3 = None
+    try:
+        # Häkchen gesetzt: nur Firma, Summe, Skonto
+        lv1 = _lv(c, ctx, "Auftrag ohne LV")
+        L = c.pj(f"{A}/lv/{lv1['id']}/vergabe", {"frei": True, "ohne_lv": True, "bieter": "Metallbau Nowak", "summe": 14435.40, "einbehalt": 0,
+                                                 "skonto": 2, "skonto_tage": 14, "datum": "2026-09-01"})
+        gleich((L["status"], L["calc"]["auftrag"], L["vergabe"]["ohne_lv"], L["vergabe"]["skonto"], L["vergabe"]["skonto_tage"], L["vergabe"]["datum"]),
+               ("vergeben", 14435.40, True, 2.0, 14, "2026-09-01"), "Auftrag ohne Angebot und LV")
+        x = finde(c.gj(f"{A}/lv?project_id={_pid(ctx)}"), id=lv1["id"])
+        gleich((x["vergeben"], x["frei"], x["ohne_lv"]), (True, True, True), "LV-Liste: Auftrag ohne LV")
+        # Häkchen weg, neues LV: an die Firma vergeben, Positionen folgen
+        lv2 = _lv(c, ctx, "Auftrag mit neuem LV")
+        L = c.pj(f"{A}/lv/{lv2['id']}/vergabe", {"frei": True, "ohne_lv": False, "bieter": "Tischlerei Blank", "summe": 0})
+        x = finde(c.gj(f"{A}/lv?project_id={_pid(ctx)}"), id=lv2["id"])
+        gleich((L["status"], x["frei"], x["ohne_lv"]), ("vergeben", True, False), "Auftrag mit neuem LV")
+        # ausgeschrieben, nicht beauftragt
+        lv3 = _lv(c, ctx, "Nicht vergeben", ROHBAU)
+        _angebot(c, lv3["id"], "Bau Müller GmbH", {"p1": 47.50, "p2": 19.90})
+        c.post(f"{A}/lv/{lv1['id']}/vergabe", {"nicht": True}, expect=400)   # vergebenes LV: erst Vergabe aufheben
+        L = c.pj(f"{A}/lv/{lv3['id']}/vergabe", {"nicht": True, "grund": "entfallen", "notiz": "in Rohbau enthalten"})
+        gleich((L["status"], L["vergabe"]["nicht_vergeben"]["grund"], L["vergabe"]["nicht_vergeben"]["notiz"]), ("nicht_vergeben", "entfallen", "in Rohbau enthalten"),
+               "nicht vergeben mit Grund")
+        x = finde(c.gj(f"{A}/lv?project_id={_pid(ctx)}"), id=lv3["id"])
+        gleich((x["status"], x["vergeben"], x["prognose"], x["n_angebote"]), ("nicht_vergeben", False, 0, 1), "LV-Liste: nicht vergeben zählt nicht in der Prognose")
+        L = c.delete(f"{A}/lv/{lv3['id']}/vergabe").json
+        gleich((L["status"], "nicht_vergeben" in L["vergabe"]), ("versendet", False), "nicht vergeben zurückgenommen")
+        # erneut nicht vergeben, dann doch vergeben: Kennzeichen verschwindet
+        c.pj(f"{A}/lv/{lv3['id']}/vergabe", {"nicht": True, "grund": "zurueckgestellt"})
+        L = c.pj(f"{A}/lv/{lv3['id']}/vergabe", {"frei": True, "bieter": "Bau Müller GmbH", "summe": 100})
+        gleich((L["status"], "nicht_vergeben" in L["vergabe"]), ("vergeben", False), "Vergabe nach „nicht vergeben“")
+    finally:
+        for x in (lv1, lv2, lv3):
+            _weg(c, x)
+
+
 def test_nachlass_skonto_in_rechnung(ctx):
     """Auftrag mit 2 % Nachlass und 3 % Skonto in 14 Tagen: Abzug in der Rechnung, Skontofrist ab Eingang, Änderung je Rechnung."""
     c = ctx.admin

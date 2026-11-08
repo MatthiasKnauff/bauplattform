@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORCA-Import – Bauplattform</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
+<style>
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1180px;margin:0 auto;padding:1.4rem 1.2rem 4rem}
+h1{font-size:1.45rem;margin:.2rem 0 .3rem}h2{font-size:1.1rem;margin:1.6rem 0 .6rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;margin:.8rem 0}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:2.2rem 1rem;text-align:center;cursor:pointer}
+.drop.on{border-color:var(--y);background:var(--hov)}
+.bar{height:8px;border-radius:99px;background:var(--tabs);overflow:hidden;margin:.6rem 0}.bar i{display:block;height:100%;background:var(--y);width:0;transition:width .3s}
+table{border-collapse:collapse;width:100%;font-size:.88rem}th,td{border-bottom:1px solid var(--line);padding:.35rem .45rem;text-align:left;vertical-align:top}
+th{color:var(--mute);font-weight:500;position:sticky;top:0;background:var(--card)}td.r,th.r{text-align:right;white-space:nowrap}
+.tag{display:inline-block;font-size:.75rem;border-radius:99px;padding:.05rem .5rem;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.tag.ok{border-color:var(--ok);color:var(--ok)}.tag.y{border-color:var(--y);color:var(--y)}
+.hw{color:#e0a03a;font-size:.82rem;margin:.15rem 0 0}.hw li{margin:.1rem 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem 1.2rem}
+.g2 label{display:grid;gap:.25rem;font-size:.82rem;color:var(--mute)}
+.acts{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap}
+.err{color:var(--red)}.ok{color:var(--ok)}
+.sum{display:flex;gap:1.6rem;flex-wrap:wrap;margin:.4rem 0}.sum div small{display:block;color:var(--mute);font-size:.78rem}.sum div b{font-size:1.15rem}
+select{max-width:100%}
+</style>
+</head>
+<body>
+<main>
+  <h1>ORCA-Import</h1>
+  <p class="mute" style="margin:0">ORCA-AVA-Projekte in die Ausschreibung &amp; Abrechnung übernehmen: Leistungsverzeichnisse, Preisspiegel, Aufträge mit Nachträgen und Rechnungen.
+    Der Import landet als <b>eigene Version</b> im gewählten Projekt – vorhandene LVs bleiben unberührt.</p>
+
+  <section id="s1" class="card">
+    <div class="drop" id="drop"><b>ORCA-Projektsicherung (*.zip) oder Projektdatei (*.ava) hierher ziehen</b><br><span class="mute">oder klicken zum Auswählen</span>
+      <input type="file" id="datei" accept=".zip,.ava" hidden></div>
+    <div id="lauf" hidden><div id="lt"></div><div class="bar"><i id="lb"></i></div><div class="mute" id="ls"></div></div>
+    <p class="err" id="e1"></p>
+  </section>
+
+  <section id="s2" hidden></section>
+  <section id="s3" hidden class="card"></section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const eur = (v) => (v || v === 0 ? Number(v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' : '–');
+const STATUS = { vergeben: ['Auftrag', 'ok'], abgerechnet: ['Auftrag, abgerechnet', 'ok'], nicht_vergeben: ['nicht vergeben', ''], entwurf: ['Entwurf', ''] };
+let JOB = null, D = null;
+async function api(url, m = 'GET', body) {
+  const r = await fetch(url, { method: m, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && j.login) { location.href = j.login; throw new Error('Bitte anmelden'); }
+  if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
+  return j;
+}
+// ---------- 1. Hochladen
+const drop = $('#drop'), inp = $('#datei');
+drop.onclick = () => inp.click();
+drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('on'); };
+drop.ondragleave = () => drop.classList.remove('on');
+drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('on'); if (e.dataTransfer.files[0]) hoch(e.dataTransfer.files[0]); };
+inp.onchange = () => { if (inp.files[0]) hoch(inp.files[0]); };
+function hoch(f) {
+  $('#e1').textContent = ''; $('#s2').hidden = true; $('#s3').hidden = true;
+  $('#lauf').hidden = false; $('#lt').textContent = `Lade „${f.name}“ hoch (${(f.size / 1048576).toFixed(0)} MB) …`; $('#lb').style.width = '0';
+  const fd = new FormData(); fd.append('datei', f);
+  const x = new XMLHttpRequest();
+  x.open('POST', 'api/datei');
+  x.upload.onprogress = (e) => { if (e.lengthComputable) { $('#lb').style.width = (e.loaded / e.total * 60) + '%'; $('#ls').textContent = `${(e.loaded / 1048576).toFixed(0)} von ${(e.total / 1048576).toFixed(0)} MB`; } };
+  x.onload = () => {
+    let j = {}; try { j = JSON.parse(x.responseText); } catch { /* egal */ }
+    if (x.status === 401 && j.login) { location.href = j.login; return; }
+    if (x.status !== 200) { $('#e1').textContent = j.error || 'Hochladen fehlgeschlagen (' + x.status + ')'; $('#lauf').hidden = true; return; }
+    JOB = j.job; $('#lt').textContent = 'Datei wird gelesen …'; warte();
+  };
+  x.onerror = () => { $('#e1').textContent = 'Hochladen fehlgeschlagen – Verbindung unterbrochen.'; $('#lauf').hidden = true; };
+  x.send(fd);
+}
+async function warte() {
+  try {
+    const j = await api('api/job/' + JOB);
+    if (j.status === 'läuft') { $('#lb').style.width = (60 + 40 * (j.anteil || 0)) + '%'; $('#ls').textContent = j.schritt || ''; setTimeout(warte, 700); return; }
+    if (j.status === 'fehler') { $('#e1').textContent = j.fehler; $('#lauf').hidden = true; return; }
+    $('#lauf').hidden = true; D = j; vorschau();
+  } catch (e) { $('#e1').textContent = e.message; $('#lauf').hidden = true; }
+}
+// ---------- 2. Vorschau
+function vorschau() {
+  const P = D.projekt, L = D.lvs;
+  const S = L.reduce((s, x) => ({ a: s.a + (x.auftrag || 0), ab: s.ab + (x.abgerechnet || 0), r: s.r + x.n_rechnungen, an: s.an + x.n_angebote, h: s.h + x.hinweise.length }), { a: 0, ab: 0, r: 0, an: 0, h: 0 });
+  const pOpt = D.projekte.map((p) => `<option value="${p.id}"${p.id === D.projekt_vorschlag ? ' selected' : ''}>${esc(p.name)}${p.archived ? ' (archiviert)' : ''}</option>`).join('');
+  const kOpt = (sel) => D.kontakte.map((k) => `<option value="${k.id}"${k.id === sel ? ' selected' : ''}>${esc(k.name)}</option>`).join('');
+  $('#s2').innerHTML = `<div class="card"><h2 style="margin-top:0">${esc(P.nr)} ${esc(P.name)}</h2>
+    <div class="mute">${esc(P.bauvorhaben)}${P.bauherr ? '<br>Bauherr: ' + esc(P.bauherr) : ''}${P.bauherr_kontakt ? ' · ' + esc(P.bauherr_kontakt) : ''}<br>ORCA ${esc(P.orca_version)} · Datei ${esc(P.datei)}</div>
+    <div class="sum"><div><small>LVs / Aufträge</small><b>${L.length}</b></div><div><small>Angebote</small><b>${S.an}</b></div><div><small>Rechnungen</small><b>${S.r}</b></div>
+      <div><small>Aufträge + Nachträge</small><b>${eur(S.a)}</b></div><div><small>abgerechnet (netto)</small><b>${eur(S.ab)}</b></div></div></div>
+  <div class="card"><h2 style="margin-top:0">Wohin?</h2><div class="g2">
+    <label>Projekt der Bauplattform<select id="pid"><option value="">– bitte wählen –</option>${pOpt}</select></label>
+    <label>Name der AVA-Version<input id="vname" value="ORCA-Import ${esc(P.nr)} ${new Date().toLocaleDateString('de-DE')}"></label>
+    <label style="align-self:end;display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="aktiv"> als gültige Version setzen
+      <small class="mute">(zählt dann für To-dos, Budget und Suche)</small></label></div>
+    <p class="mute" style="margin:.6rem 0 0">Hat das Projekt noch keine AVA-Daten, wird die Import-Version automatisch die gültige.</p></div>
+  <div class="card"><h2 style="margin-top:0">Leistungsverzeichnisse und Aufträge</h2>
+    <p class="mute" style="margin:.2rem 0 .6rem">Jeder ORCA-Auftrag wird ein LV mit Vergabe; Aufträge ohne Positionen erhalten das Häkchen „ohne Angebot und LV“. LVs ohne Auftrag kommen als „nicht vergeben“ (mit Angeboten) bzw. als Entwurf.
+      Nachgerechnet mit den Rechenfunktionen der AVA – Abweichungen zu ORCA stehen in Orange.</p>
+    <div style="overflow:auto;max-height:70vh"><table><thead><tr><th><input type="checkbox" id="alle" checked title="alle"></th><th>Nr</th><th>Bezeichnung</th><th>Stand</th><th>Firma</th><th class="r">Pos.</th><th class="r">Ang.</th><th class="r">Rg.</th><th class="r">Auftrag + NT</th><th class="r">abgerechnet</th></tr></thead>
+    <tbody>${L.map((x) => `<tr><td><input type="checkbox" data-lv="${esc(x.key)}" checked></td><td>${esc(x.nr)}</td><td><b>${esc(x.name)}</b>${x.hinweise.length ? `<ul class="hw">${x.hinweise.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}</td>
+      <td><span class="tag ${(STATUS[x.status] || ['', ''])[1]}">${esc((STATUS[x.status] || [x.status])[0])}</span>${x.ohne_lv ? ' <span class="tag y">ohne LV</span>' : ''}</td><td>${esc(x.bieter)}</td>
+      <td class="r">${x.n_pos}${x.n_nt ? `<br><small class="mute">${x.n_nt} NT</small>` : ''}</td><td class="r">${x.n_angebote || ''}</td><td class="r">${x.n_rechnungen || ''}</td>
+      <td class="r">${x.auftrag ? eur(x.auftrag) : ''}</td><td class="r">${x.abgerechnet ? eur(x.abgerechnet) : ''}</td></tr>`).join('')}</tbody></table></div>
+    ${D.warnungen.length ? `<ul class="hw">${D.warnungen.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}</div>
+  <div class="card"><h2 style="margin-top:0">Firmen (${D.firmen.length})</h2>
+    <p class="mute" style="margin:.2rem 0 .6rem">ORCA hält die Adressen in einer eigenen Datenbank – in der Projektdatei stehen nur die Namen. Gleich lautende Firmen werden mit den Adressen verknüpft;
+      neue werden nur mit Namen angelegt (Adresse später in „Adressen“ ergänzen).</p>
+    <div style="overflow:auto;max-height:60vh"><table><thead><tr><th>Name in ORCA</th><th>in der Bauplattform</th></tr></thead><tbody>
+    ${D.firmen.map((f) => `<tr><td>${f.namen.map(esc).join('<br>')}</td><td><select data-fk="${esc(f.key)}">
+      <option value="neu"${f.kontakt ? '' : ' selected'}>＋ neu anlegen als „${esc(f.neu_name)}“</option><option value="nur_name">nur Name, ohne Kontakt</option>
+      <optgroup label="vorhandene Adresse">${kOpt(f.kontakt)}</optgroup></select>${f.kontakt && !f.sicher ? ' <span class="tag y" title="nur ähnlich – bitte prüfen">ähnlich</span>' : ''}</td></tr>`).join('')}</tbody></table></div></div>
+  <div class="acts"><span class="err" id="e2" style="margin-right:auto"></span><button class="btn" id="neuDatei">Andere Datei</button><button class="btn pri" id="go">In die Bauplattform eintragen</button></div>`;
+  $('#s2').hidden = false;
+  $('#alle').onchange = (e) => document.querySelectorAll('[data-lv]').forEach((c) => { c.checked = e.target.checked; });
+  $('#neuDatei').onclick = () => { $('#s2').hidden = true; inp.value = ''; inp.click(); };
+  $('#go').onclick = eintragen;
+}
+async function eintragen() {
+  const pid = +$('#pid').value;
+  if (!pid) { $('#e2').textContent = 'Bitte das Projekt wählen.'; return; }
+  const lvs = [...document.querySelectorAll('[data-lv]:checked')].map((c) => c.dataset.lv);
+  if (!lvs.length) { $('#e2').textContent = 'Bitte mindestens ein LV auswählen.'; return; }
+  const firmen = {};
+  document.querySelectorAll('[data-fk]').forEach((s) => { firmen[s.dataset.fk] = /^\d+$/.test(s.value) ? +s.value : s.value; });
+  const pn = $('#pid').selectedOptions[0].textContent;
+  if (!confirm(`${lvs.length} LVs/Aufträge mit Angeboten und Rechnungen als Version „${$('#vname').value}“ in „${pn}“ eintragen?`)) return;
+  $('#go').disabled = true; $('#e2').textContent = '';
+  try {
+    const r = await api(`api/job/${JOB}/eintragen`, 'POST', { project_id: pid, version: $('#vname').value, aktiv: $('#aktiv').checked, lvs, firmen });
+    $('#s2').hidden = true;
+    $('#s3').innerHTML = `<h2 style="margin-top:0" class="ok">✓ Eingetragen</h2><p>In <b>${esc(r.projekt)}</b> steht jetzt die AVA-Version <b>„${esc(r.version)}“</b>${r.aktiv ? ' (gültig)' : ''}:
+      ${r.lvs} LVs/Aufträge, ${r.angebote} Angebote, ${r.rechnungen} Rechnungen${r.neue_firmen ? `, ${r.neue_firmen} neue Firmen in den Adressen` : ''}.</p>
+      <p class="mute">In der AVA oben das Projekt wählen; die Version steht in der Versionsleiste${r.aktiv ? '' : ' – zum Ansehen anklicken'}.</p>
+      <div class="acts"><a class="btn pri" href="${esc(r.ava)}">Zur Ausschreibung &amp; Abrechnung</a><button class="btn" onclick="location.reload()">Weitere Datei</button></div>`;
+    $('#s3').hidden = false;
+  } catch (e) { $('#e2').textContent = e.message; $('#go').disabled = false; }
+}
+</script>
+</body>
+</html>

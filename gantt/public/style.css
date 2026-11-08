@@ -911,3 +911,5 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 /* Planungsassistent: Suche in den Leistungen */
 .as-lq{display:flex;align-items:center;gap:6px;margin:6px 0 4px}.as-lq input{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:4px 8px;border:1px solid var(--bd,#ccc);border-radius:999px;background:transparent;color:inherit}
 .as-lq small{color:#888;font-size:11px;white-space:nowrap}
+
+.ph-entw{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;border-radius:999px;background:rgba(224,160,32,.16);color:inherit;font-size:12.5px}

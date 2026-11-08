@@ -369,7 +369,7 @@
     band.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.bph-proj')) { e.preventDefault(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); } });
     band.addEventListener('click', (e) => {
       if (e.target.closest('.bph-proj')) { closeMenus(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); return; }
-      const mo = e.target.closest('[data-modus]'); if (mo) { e.preventDefault(); closeMenus(); if (mo.dataset.modus !== H.modus) H.modusSetzen(mo.dataset.modus); return; }
+      const mo = e.target.closest('button[data-modus]'); if (mo) { e.preventDefault(); closeMenus(); if (mo.dataset.modus !== H.modus) H.modusSetzen(mo.dataset.modus); return; }
       const k = e.target.closest('[data-ki]');
       if (k) { e.preventDefault(); closeMenus(); setKi(k.dataset.ki); return; }
       if (e.target.closest('[data-out]')) { logout(); return; }

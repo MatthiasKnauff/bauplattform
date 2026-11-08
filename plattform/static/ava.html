@@ -3032,6 +3032,20 @@ async function druckEditor() {
   laden();
 }
 
+/* Einstellungen → Abrechnung (Büro): welche Nachträge in der Rechnungsprüfung als Leistung zählen */
+async function abrEinst(h) {
+  h.innerHTML = '<p class="bph-mu"><span class="bph-wsp"></span>Lade …</p>';
+  let E; try { E = await api('api/einstellungen/abrechnung'); } catch (e) { h.innerHTML = `<p class="bph-mu">${esc(e.message)}</p>`; return; }
+  const zeich = () => { h.innerHTML = `<p class="bph-mu">Gilt für das ganze Büro und alle Rechnungsprüfungen (Teil- und Schlussrechnungen, Leistungsstand, Prognose bleibt unberührt).</p>
+    <div style="font-weight:600;margin:.6rem 0 .3rem">Nachträge in der Rechnungsprüfung</div>
+    <label class="bph-ck" style="display:flex;gap:.5rem;align-items:flex-start;margin:.3rem 0"><input type="radio" name="ntz" value="0"${E.nt_nur_beauftragt ? '' : ' checked'}${E.admin ? '' : ' disabled'} style="width:auto;margin-top:.2rem"><span><b>Angemeldete und beauftragte</b> zählen als Leistung<br><small class="bph-mu" style="margin:0">angemeldete Nachträge mit Aufmaß werden gleich mit vergütet</small></span></label>
+    <label class="bph-ck" style="display:flex;gap:.5rem;align-items:flex-start;margin:.3rem 0"><input type="radio" name="ntz" value="1"${E.nt_nur_beauftragt ? ' checked' : ''}${E.admin ? '' : ' disabled'} style="width:auto;margin-top:.2rem"><span><b>Nur beauftragte</b> zählen als Leistung<br><small class="bph-mu" style="margin:0">angemeldete Nachträge werden erst vergütet, wenn sie im LV auf „beauftragt“ stehen</small></span></label>
+    ${E.admin ? '' : '<p class="bph-mu">Ändern kann die Verwaltung.</p>'}<span class="bph-mu" id="ntzMsg"></span>`; };
+  zeich();
+  h.onchange = async (e) => { const r = e.target.closest('[name=ntz]'); if (!r) return;
+    try { E = await api('api/einstellungen/abrechnung', 'PUT', { nt_nur_beauftragt: r.value === '1' }); zeich(); h.querySelector('#ntzMsg').textContent = '✓ gespeichert'; if (L) { L = await api('api/lv/' + L.id); render(); } }
+    catch (er) { toast(er.message, true); } };
+}
 /* PDF-Paket drucken – derselbe Dialog wie beim LV: links ankreuzen, was hinein soll, rechts die Vorschau */
 async function paketDruck(o) {
   const lib = await pdfjs().catch((e) => { toast(e.message, true); return null; }); if (!lib) return;
@@ -4393,7 +4407,8 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   const me = await api('api/me'); applyLook(me);
   const conf = await api('api/platform');
   await header('Ausschreibung & Abrechnung', me, conf);
-  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '../baudaten/', ava: '', nachher: async () => { try { KAT = await api('api/katalog'); } catch { /* alter Stand bleibt */ } if (QU.pid) quLaden().catch(() => {}); } }); } }]);
+  if (BPHead.appEinstellungen) BPHead.appEinstellungen([{ key: 'katalog', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '../baudaten/', ava: '', nachher: async () => { try { KAT = await api('api/katalog'); } catch { /* alter Stand bleibt */ } if (QU.pid) quLaden().catch(() => {}); } }); } },
+    { key: 'abrechnung', label: 'Abrechnung', render: (h) => { abrEinst(h); } }]);
   api('api/kontakte').then((k) => { KONT = k; }).catch(() => { KONT = []; });
   await loadProj();
   await loadList();

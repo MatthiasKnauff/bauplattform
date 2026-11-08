@@ -857,6 +857,36 @@ def _abzug_clean(x):
     return {k: bool(x[k]) for k in ABZUG_ARTEN if isinstance(x, dict) and k in x and x[k] is not None}
 
 
+_NTM = {"t": 0.0, "v": False}
+
+
+def nt_nur_beauftragt():
+    """Büro-Einstellung: zählen in der Rechnungsprüfung nur beauftragte Nachträge (sonst auch angemeldete)? – kurz zwischengespeichert."""
+    import time
+    if time.time() - _NTM["t"] > 3:
+        try:
+            with db.tx() as c:
+                r = c.execute("SELECT value FROM settings WHERE key='ava_nt_nur_beauftragt'").fetchone()
+            _NTM["v"] = bool(r and r["value"] == "1")
+        except Exception:
+            pass
+        _NTM["t"] = time.time()
+    return _NTM["v"]
+
+
+@app.route("/api/einstellungen/abrechnung", methods=["GET", "PUT"])
+def einst_abrechnung():
+    if request.method == "PUT":
+        if not g.user["is_admin"]:
+            return jsonify(error="Nur die Verwaltung kann das ändern."), 403
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value",
+                      ("ava_nt_nur_beauftragt", "1" if b.get("nt_nur_beauftragt") else "0"))
+        _NTM["t"] = 0.0
+    return jsonify(nt_nur_beauftragt=nt_nur_beauftragt(), admin=bool(g.user["is_admin"]))
+
+
 def rechne(lv, angebote, aufmass, rechnungen):
     d = _j(lv["data"], {}) or {}
     items = d.get("items") or []
@@ -890,11 +920,11 @@ def rechne(lv, angebote, aufmass, rechnungen):
         am[r["pos_id"]] = am.get(r["pos_id"], 0.0) + (r["menge"] or 0)
 
     def stand_wert(stand):
-        """Leistungsstand: Menge × Auftrags-EP (abgelehnte Nachträge zählen nicht)."""
+        """Leistungsstand: Menge × Auftrags-EP (abgelehnte Nachträge zählen nicht, je nach Einstellung auch angemeldete nicht)."""
         s = 0.0
         for p in pos:
             m = stand.get(p["id"])
-            if not m or (p.get("nt") and p.get("nt_status") == "abgelehnt"):
+            if not m or (p.get("nt") and (p.get("nt_status") == "abgelehnt" or (NTB and (p.get("nt_status") or "angemeldet") == "angemeldet"))):
                 continue
             ep = _fn(VP.get(p["id"]))
             if ep is not None:
@@ -903,6 +933,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
     # Rechnungen: Teil-/Schlussrechnungen kumuliert (Hauptauftrag), Nachtragsrechnungen kumuliert nur über Nachtragspositionen
     # (dann zählen die Nachträge nicht mehr im Hauptauftrag), Regierechnungen einzeln (Stundenlohnzettel), Freigabe der Sicherheit
     ist_nt = {p["id"] for p in pos if p.get("nt")}
+    NTB = nt_nur_beauftragt()
     nt_kette = any(r["art"] == "nachtrag" for r in rechnungen)
     S = sicherheit_conf(V)
     vorher = {"haupt": 0.0, "nachtrag": 0.0}

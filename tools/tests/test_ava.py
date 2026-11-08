@@ -487,6 +487,16 @@ def test_nachtraege(ctx):
         x = finde(c.gj(f"{A}/lv?project_id={_pid(ctx)}"), id=lv["id"])
         gleich((x["nachtraege"], x["nt_angemeldet"], x["n_nt"]), (270.00, 240.00, 3), "Nachträge in der LV-Liste")
         gleich(x["prognose"], 11919.00, "Prognose 11.409 + 270 + 240")
+        # Rechnungsprüfung: angemeldete Nachträge zählen je nach Büro-Einstellung mit oder erst nach Beauftragung
+        import time
+        L = c.pj(f"{A}/lv/{lv['id']}/aufmass", {"zeilen": [{"pos_id": "n1", "formel": "6"}, {"pos_id": "n2", "formel": "2"}]})
+        l0 = L["calc"]["leistung"]
+        try:
+            c.uj(f"{A}/einstellungen/abrechnung", {"nt_nur_beauftragt": True}); time.sleep(3.5)
+            l1 = c.gj(f"{A}/lv/{lv['id']}")["calc"]["leistung"]
+            gleich(round(l0 - l1, 2), 240.00, "nur beauftragte Nachträge: angemeldeter NT02 (2 × 120) zählt nicht")
+        finally:
+            c.uj(f"{A}/einstellungen/abrechnung", {"nt_nur_beauftragt": False})
         x86 = c.get(f"{A}/lv/{lv['id']}/gaeb?dp=86").body.decode("utf-8")
         pruefe("Zusätzliche Abdichtung Kelleraußenwand" in x86, "Nachtrag fehlt im Auftrags-GAEB X86")
         pruefe("<UP>48.20</UP>" in x86, "Auftragspreis fehlt im X86")

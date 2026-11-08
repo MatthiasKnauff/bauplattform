@@ -126,6 +126,13 @@
   };
   /* KI wählen: an der Stelle, an der eine KI gebraucht wird – mit „immer diese verwenden“. Liefert den Schlüssel oder null.
      opt: { text, hinweis, bild (nur KI, die Bilder liest), knopf } */
+  /* Aufmerksamkeit: roter Rahmen blinkt kurz, bis im Bereich (bis) zum ersten Mal geklickt oder getippt wird (höchstens ms) */
+  H.achtung = function (el, opt = {}) {
+    if (!el) return; const bis = opt.bis || el, ms = opt.ms || 6000;
+    el.classList.remove('bph-achtung'); void el.offsetWidth; el.classList.add('bph-achtung');
+    let t = 0; const weg = () => { clearTimeout(t); el.classList.remove('bph-achtung'); ['pointerdown', 'keydown', 'change'].forEach((e) => bis.removeEventListener(e, weg, true)); };
+    ['pointerdown', 'keydown', 'change'].forEach((e) => bis.addEventListener(e, weg, true)); t = setTimeout(weg, ms);
+  };
   H.kiFragen = function (opt = {}) {
     const P = (H.providers || []).filter((p) => p.ok && p.key !== 'intern' && (!opt.bild || p.bild));
     if (!P.length) return Promise.resolve(null);

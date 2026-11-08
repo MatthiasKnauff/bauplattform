@@ -3106,7 +3106,11 @@ async function quGewerkAuf(gid, an, scroll) {
   LS.set('qu.auf', [...QU.auf].slice(-40));
   if (an && !QUGL.has(gid)) { quBaumBauen(false); quZeigen(); }   // Zeile „lädt …“ sofort zeigen
   await quBaumBauen(); quZeigen();
-  if (scroll) setTimeout(() => { const r = document.querySelector(`#quelle tr[data-qg="${CSS.escape(gid)}"]`); if (r) r.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
+  if (scroll) setTimeout(() => {   // Überschrift unter dem festen Tabellenkopf sichtbar lassen, kurz rot markieren
+    const r = document.querySelector(`#quelle tr[data-qg="${CSS.escape(gid)}"]`); if (!r) return;
+    const th = r.closest('table')?.querySelector('thead'); r.style.scrollMarginTop = ((th ? th.offsetHeight : 0) + 2) + 'px';
+    r.scrollIntoView({ block: 'start', behavior: 'smooth' }); window.BPHead?.achtung?.(r, { bis: document.getElementById('quelle') || r });
+  }, 30);
 }
 let QUVOR = false;
 async function quVorladen() {   // die am häufigsten gebrauchten Gewerke dieses Katalogs still in den Zwischenspeicher

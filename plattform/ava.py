@@ -3277,7 +3277,11 @@ def _auslesen(data, items, fortschritt=None):
         if m and _zahl(m.group(1)) is not None:
             kopf["netto"] = _zahl(m.group(1))
     kopf["summen"] = summen
-    return {"pos": treffer, "kopf": kopf, "text": bool(text1.strip()), "ocr": ocr, "zeilen": rzeilen[:300],
+    zugeordnet = {id(b) for b in zu.values()}
+    frei_b = [{"titel": bool(b.get("titel")), "oz": b.get("oz") or "", "kurz": (b.get("kurz") or "")[:500], "lang": (b.get("lang") or "")[:8000],
+               "menge": b.get("menge"), "einheit": b.get("einheit") or "", "ep": b.get("ep"), "gp": b.get("gp"), "seite": b.get("seite"), "box": b.get("box")}
+              for b in X["bloecke"] if id(b) not in zugeordnet and (b.get("titel") or b.get("kurz") or b.get("menge") is not None)]
+    return {"pos": treffer, "kopf": kopf, "text": bool(text1.strip()), "ocr": ocr, "zeilen": rzeilen[:300], "bloecke": frei_b[:1500],
             "zahlen": {str(k): v for k, v in zahlen.items() if v}, "spalten": sorted(X["kopf"] or {})}
 
 
@@ -3297,6 +3301,71 @@ def _ocr_woerter(pg, dpi=300, timeout=90):
     return AL.ocr_woerter(pg, dpi, timeout)
 
 
+def _lv_aus_beleg(c, bid, rid, lv, A, wer="Texterkennung"):
+    """Positionen, die in der Rechnung/dem Aufmaß der Firma stehen, aber im LV fehlen, als LV-Positionen anlegen – mit OZ,
+    Text, Einheit und dem EP der Firma als Auftragspreis – und die Rechnung gleich mit ihnen verbinden (Aufmaßprüfung).
+    Was nicht passt, bearbeitet oder löscht man danach im LV. Gibt die Zahl der neuen Positionen zurück."""
+    d = _j(lv["data"], {}) or {}
+    items = d.get("items") or []
+    V = _j(lv["vergabe"], {}) or {}
+    B = [b for b in A.get("bloecke") or [] if b.get("titel") or (b.get("kurz") and b.get("menge") is not None)]
+    poz = [(b.get("oz") or "").strip() for b in B if not b.get("titel")]
+    B = [b for b in B if not b.get("titel") or (b.get("oz") and any(o_.startswith(b["oz"].strip() + ".") for o_ in poz))]   # nur Titel, unter denen Positionen stehen (nicht „1. Abschlagsrechnung“)
+    Z = [z for z in A.get("zeilen") or [] if not z.get("pos")] if not any(not b.get("titel") for b in B) else []
+    if not B and not Z:
+        return 0
+    da = {(x.get("oz") or "").strip() for x in items if x.get("oz")}
+    frei_v = bool(V.get("frei"))   # Auftrag ohne LV (Summe frei): Positionen mit Menge 0, damit die Auftragssumme bleibt
+    VP, treffer, neu, ohne_oz = dict(V.get("preise") or {}), dict(A.get("pos") or {}), 0, False
+    for b in B:
+        oz = (b.get("oz") or "").strip()
+        if oz and oz in da:
+            continue
+        i = uuid.uuid4().hex[:10]
+        if b.get("titel"):
+            items.append({"id": i, "typ": "titel", "lvl": max(1, min(4, len([x for x in re.split(r"[.\s]+", oz) if x]) or 1)), "oz": oz, "kurz": b.get("kurz") or ""})
+            da.add(oz)
+            continue
+        m = _f(b.get("menge"), 0)
+        items.append({"id": i, "typ": "pos", "art": "N", "oz": oz, "kurz": b.get("kurz") or (b.get("lang") or "")[:80], "lang": b.get("lang") or "",
+                      "menge": 0 if frei_v else m, "einheit": b.get("einheit") or "", "aus_rechnung": rid})
+        ohne_oz = ohne_oz or not oz
+        if oz:
+            da.add(oz)
+        if b.get("ep") is not None:
+            VP[i] = b["ep"]
+        t = {"seite": b.get("seite"), "box": b.get("box"), "menge": m}
+        for k_ in ("ep", "gp", "einheit"):
+            if b.get(k_) is not None:
+                t[k_] = b[k_]
+        treffer[i] = t
+        neu += 1
+    for z in Z:   # Rechnung ohne Ordnungszahlen: jede Zeile mit Menge × EP = Betrag wird eine Position
+        i = uuid.uuid4().hex[:10]
+        items.append({"id": i, "typ": "pos", "art": "N", "oz": "", "kurz": z["text"][:500], "lang": "", "menge": 0 if frei_v else _f(z.get("menge"), 0),
+                      "einheit": z.get("einheit") or "", "aus_rechnung": rid})
+        VP[i] = z.get("ep")
+        treffer[i] = {"seite": z.get("seite"), "box": z.get("box"), "menge": z.get("menge"), "ep": z.get("ep"), "gp": z.get("gp"), "einheit": z.get("einheit") or ""}
+        z["pos"] = i
+        ohne_oz, neu = True, neu + 1
+    if not neu:
+        return 0
+    if ohne_oz:
+        nummerieren(items, maske=d.get("ozm"))
+    d["items"], V["preise"] = items, VP
+    A["pos"], A["bloecke"] = treffer, []
+    c.execute("UPDATE ava_lv SET data=?, vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
+              (json.dumps(d, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), wer, lv["id"]))
+    c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
+    R = c.execute("SELECT status, data FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
+    if R and R["status"] != "geprueft":   # Rechnung jetzt nach Aufmaß prüfen statt als freie Summe
+        rd = _j(R["data"], {}) or {}
+        if "frei" in rd and not rd.get("zeilen"):
+            rd.pop("frei", None)
+            c.execute("UPDATE ava_rechnung SET data=? WHERE id=?", (json.dumps(rd, ensure_ascii=False), rid))
+    return neu
+
+
 def _auslese_anwenden(c, bid, rid, lv, A=None):
     """PDF lesen (oder fertiges Ergebnis A), am Beleg merken und leere Felder der Rechnung (Nr., Datum, gefordert) füllen."""
     x = c.execute("SELECT data, name FROM ava_beleg WHERE id=?", (bid,)).fetchone()
@@ -3307,6 +3376,14 @@ def _auslese_anwenden(c, bid, rid, lv, A=None):
             A = {"pos": {}, "kopf": {}, "text": False, "fehler": str(e)[:200]}
     c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
     R = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
+    leer = not any(x.get("typ") == "pos" and x.get("art") != "T" for x in (_j(lv["data"], {}) or {}).get("items") or [])
+    if leer and R and R["status"] != "geprueft" and R["art"] != "regie" and not A.get("fehler"):   # LV ohne Positionen: die der Rechnung anlegen
+        try:
+            with c.savepoint():
+                A["lv_neu"] = _lv_aus_beleg(c, bid, rid, lv, A)
+        except Exception as e:
+            fehler.still("ava", "Positionen aus der Rechnung anlegen", e)
+        R = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
     K = A["kopf"]
     if R and R["status"] != "geprueft":
         if K.get("re_nr") and not R["re_nr"]:
@@ -3584,6 +3661,29 @@ def beleg_auslesen(b):
             _auslese_anwenden(c, b, x["rechnung_id"], lv)
         _touch(c, x["lv_id"])
         return _antwort(c, x["lv_id"])
+
+
+@app.post("/api/belege/<int:b>/positionen")
+def beleg_positionen(b):
+    """Positionen aus der Rechnung/dem Aufmaß der Firma, die im LV fehlen, als LV-Positionen anlegen (EP der Firma als Auftragspreis)."""
+    with db.tx() as c:
+        _beleg_tabelle(c)
+        x = c.execute("SELECT b.id, b.auslese, b.rechnung_id, r.lv_id, r.status FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
+        lv = _lv(c, x["lv_id"]) if x else None
+        if not lv:
+            return jsonify(error="Nicht gefunden"), 404
+        if x["status"] == "geprueft":
+            return jsonify(error="Die Rechnung ist schon geprüft."), 400
+        A = _j(x["auslese"], {}) or {}
+        if A.get("laeuft"):
+            return jsonify(error="Die Texterkennung läuft noch – bitte gleich noch einmal."), 409
+        n = _lv_aus_beleg(c, b, x["rechnung_id"], lv, A, g.user["name"])
+        _touch(c, x["lv_id"])
+        d = _antwort(c, x["lv_id"]).get_json()
+    d["hinweis"] = (f"{n} Position{'' if n == 1 else 'en'} aus der Rechnung ins LV übernommen – was nicht passt, im Leistungsverzeichnis bearbeiten oder löschen."
+                    if n else "In der Rechnung sind keine weiteren Positionen erkannt, die im LV fehlen.")
+    C.audit(g.user["name"], "ava", "Positionen aus Rechnung", f"LV {x['lv_id']} · {n} Positionen")
+    return jsonify(d)
 
 
 @app.post("/api/rechnungen/<int:k>/beleg")

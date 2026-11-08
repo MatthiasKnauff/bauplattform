@@ -1556,7 +1556,18 @@ function vLv() {
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {}, NC = V ? 9 : 8;
   if (LVZU._lv !== L.id) { lvZuLaden(); LVZU._lv = L.id; }
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || L.projekt || 'Ohne Projekt';
-  const ICT = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
+  /* Art der Position am Symbol erkennbar: Normal, Bedarf (gestrichelt), Wahl, Pauschal, Hinweistext (i), Vorbemerkung (Textzeilen), Nachtrag (orange +) */
+  const icArt = (x) => { const a = x.art || 'N', tt = (x.nt ? 'Nachtrag · ' : '') + (ARTEN[a] || a);
+    const doc = (extra, st = '#7a8a99', fill = '#fff', dash = '') => `<svg class="ico" viewBox="0 0 24 24" fill="${fill}" stroke="${st}"${dash ? ` stroke-dasharray="${dash}"` : ''}><title>${tt}</title><path d="M6 3h9l4 4v14H6z"/>${extra}</svg>`;
+    const buch = (b, c) => `<text x="12.5" y="17" text-anchor="middle" font-size="9" font-weight="700" fill="${c}" stroke="none">${b}</text>`;
+    if (a === 'T') return `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><title>${tt}</title><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`;
+    if (a === 'V') return doc('<path d="M9 10h7M9 13h7M9 16h5" stroke-width="1.4"/>', '#5b7fa8', '#eef3f9');
+    if (x.nt) return doc('<path d="M12.5 10v7M9 13.5h7" stroke="#d9822b" stroke-width="2"/>', '#d9822b', '#fdf3e7');
+    if (a === 'E') return doc(buch('E', '#8a6d00'), '#8a6d00', '#fff', '2 1.6');
+    if (a === 'A') return doc(buch('A', '#6d4fa8'), '#6d4fa8', '#f4f0fb');
+    if (a === 'P') return doc(buch('P', '#2f8f4e'), '#2f8f4e', '#eef7f0');
+    return doc('', '#7a8a99'); };
+  const ICT = '<svg class="ico\" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
   const einr = (d) => `padding-left:${d * 1.15}rem`;
   let tief = 0, zuAb = 0;   // zuAb: ab dieser Titelebene ist zugeklappt (0 = nichts)
   const rows = I.map((x, i) => {
@@ -1570,7 +1581,7 @@ function vLv() {
     if (zuAb) return '';
     const open = OPEN.has(x.id), t = x.art === 'T';
     const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
-    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz baumz" title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"><div class="bz" style="${einr(tief + 2)}"><span class="car"></span>${t ? ICT : IC.pos}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:.78rem">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td>
+    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz baumz" title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"><div class="bz" style="${einr(tief + 2)}"><span class="car"></span>${icArt(x)}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:.78rem">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td>
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
       <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" list="ehList" style="width:3.8rem">`}</td>
       <td><select data-f="art" title="${esc(ARTEN[artW(x)])}" style="width:4.2rem">${Object.entries(ARTEN).map(([k, l]) => `<option value="${k}"${artW(x) === k ? ' selected' : ''} title="${l}">${k}</option>`).join('')}</select></td>
@@ -1596,7 +1607,7 @@ function vLv() {
       <button class="btn sm" data-act="bk" title="Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen">Aus Baukosten …</button>
       <label class="btn sm" title="Ein LV oder Angebot als PDF, Scan, Foto oder Word rechts daneben legen – Zeilen anklicken übernimmt sie, erkannte Positionen auf einmal">📄 LV / Angebot daneben …<input type="file" accept="${DOK_ACCEPT}" hidden data-lvdokin></label>
       ${(L.dokumente || []).length ? `<button class="btn sm${LVDOK ? ' pri' : ''}" data-lvdokan title="PDF rechts ein- oder ausblenden">${LVDOK ? 'PDF ausblenden' : 'PDF zeigen'}</button>` : ''}
-      <span class="fill"></span><button class="btn sm" data-act="vorbem">${L.data.vorbem ? '✎ ' : '+ '}Vorbemerkungen</button><button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
+      <span class="fill"></span>${L.data.vorbem ? '<button class="btn sm" data-act="vorbem" title="Vorbemerkungen dieses LV (älterer Stand) – neue Vorbemerkungen als Position der Art „V Vorbemerkung“">✎ Vorbemerkungen</button>' : ''}<button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
     ${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung">Art</th><th class="hide-m">KG</th>

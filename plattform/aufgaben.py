@@ -440,16 +440,29 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
         unterschrift(y[0])
         absatz(V["Gruss"])
         fuss()
-    else:
-        k = 0.83 if bb else 1.0
-        yt = oben_in + 2 * mm - 58 * mm * k
-        feld("Text", L, yt, R - L, 58 * mm * k, 9.5, True, "Anschreiben")
-        cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, yt - 6 * mm, liste_titel)
-        yl = yt - 8 * mm - 34 * mm * k
-        feld(liste_feld, L, yl, R - L, 34 * mm * k, 9.5, True, liste_tip)
-        cv.setFont(FN["b"], 10); cv.drawString(L, yl - 8 * mm, frist_label)
-        feld("Frist", L + 42 * mm, yl - 10 * mm, 40 * mm, 7 * mm, 10, tip="Frist")
-        yg = yl - 14 * mm
+    else:   # Entwurf für den Brief-Editor: Felder so hoch wie ihr Text (kein Scrollbalken), was nicht passt, kommt auf Seite 2
+        zh = 9.5 * 1.2   # Zeilenhöhe im Formularfeld
+        def hoehe(t, mind):
+            return max(mind, len(umbruch(t, R - L, 9.5)) * zh + 6)
+        y = oben_in + 2 * mm
+
+        def platz(h):
+            if y - h < unten:
+                cv.showPage(); seite[0] += 1; kopf_zeichnen()
+                return H - 25 * mm
+            return y
+        ht = min(hoehe(V["Text"], 30 * mm), y - unten - 2 * mm)
+        feld("Text", L, y - ht, R - L, ht, 9.5, True, "Anschreiben"); y -= ht
+        hl = hoehe(V[liste_feld], 14 * mm)
+        y = platz(8 * mm + min(hl, 40 * mm))   # Überschrift nicht allein am Seitenende
+        cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, y - 6 * mm, liste_titel)
+        y -= 8 * mm
+        hl = min(hl, y - unten - 2 * mm)
+        feld(liste_feld, L, y - hl, R - L, hl, 9.5, True, liste_tip); y -= hl
+        y = platz(12 * mm + 45 * mm)   # Frist und Gruß mit Unterschrift bleiben zusammen
+        cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, y - 8 * mm, frist_label)
+        feld("Frist", L + 42 * mm, y - 10 * mm, 40 * mm, 7 * mm, 10, tip="Frist")
+        yg = y - 14 * mm
         unterschrift(yg)
         feld("Gruss", L, max(yg - 50 * mm, unten - 2 * mm), 120 * mm, min(50 * mm, yg - unten + 2 * mm), 9.5, True, "Gruß und Unterschrift")
         fuss()

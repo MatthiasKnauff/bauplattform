@@ -211,7 +211,7 @@
       const c = spalten(), tr = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean);
       if (c.length < 2 || tr.length < 2 || innerWidth < ab) { g.hidden = true; return; }
       g.hidden = false; const gr = grid.getBoundingClientRect(), a = c[0].getBoundingClientRect(), b = c[1].getBoundingClientRect();
-      g.style.left = ((a.right + Math.max(a.right, b.left)) / 2 - gr.left - 8) + 'px';
+      g.style.left = ((a.right + Math.max(a.right, b.left)) / 2 - gr.left - 6) + 'px';
     };
     let w0 = 0; try { w0 = +localStorage.getItem(LK) || 0; } catch { /* egal */ }
     if (w0) setz(w0);

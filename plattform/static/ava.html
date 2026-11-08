@@ -518,6 +518,8 @@ tr.am-lf td input{color:#c0621f}
 .lvx .pj-r:hover .pj-del,.lvx .pj-r.on .pj-del{display:block}.lvx .pj-r:hover .v,.lvx .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .lvx-akt .tblw{max-height:none;overflow:visible}   /* im Tabellenfeld scrollt die Seite: die übrigen LVs laufen weg, Knopfleiste und Spaltenköpfe bleiben stehen */
 .lvx-akt table.tree th,.lvx-akt table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
+.re2.mit-lvbar table.tree th,.re2.mit-lvbar table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
+.lv-split>.lv-sl{overflow-x:clip}   /* breite LV-Tabelle neben der PDF: rechts sauber abschneiden statt über die PDF zu ragen (Trennung ziehen zeigt mehr) */
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:.9rem}
 .re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;border-left:3px solid transparent;position:relative}
@@ -534,7 +536,7 @@ body.ph-frei .ph{position:static}
 .ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:6px;font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
 .sp-griff{cursor:col-resize;align-self:stretch;border-radius:4px;background:linear-gradient(90deg,transparent 7px,var(--line) 7px,var(--line) 9px,transparent 9px);min-height:200px;touch-action:none}
 .sp-griff:hover{background:linear-gradient(90deg,transparent 6px,var(--y) 6px,var(--y) 10px,transparent 10px)}
-.sp-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:4px;background:var(--card,#fff) radial-gradient(circle,var(--mute) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.12)}   /* Anfasser in der Mitte der Trennung – bleibt beim Scrollen im Blick */
+.sp-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:4px;background:var(--card,#fff) radial-gradient(circle,var(--mute) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.14)}   /* Anfasser in der Mitte der Trennung – bleibt beim Scrollen im Blick */
 .sp-griff:hover::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 18%,var(--card,#fff))}
 .am-split.frei,.lv-split.frei{grid-template-columns:1fr!important}.am-split.frei>.sp-griff,.lv-split.frei>.sp-griff{display:none}
 .am-split.frei>.am-r,.lv-split.frei>.am-r{position:fixed;z-index:60;resize:both;overflow:hidden;min-width:300px;min-height:240px;box-shadow:0 12px 40px #0005}
@@ -1494,8 +1496,9 @@ function render() {
   if (PJTABS.has(tab)) {   // Knopfleiste des geöffneten LV bleibt beim Scrollen unter der Kopfzeile stehen; die übrigen LVs scrollen weg
     const ph = null, kopf = document.querySelector('.bph');   // Titelzeile scrollt hier mit weg – oben (unter der Kopfleiste der Plattform) bleiben nur Knopfleiste und Spaltenköpfe
     document.documentElement.style.setProperty('--phh', (kopf ? Math.round(kopf.getBoundingClientRect().bottom) : 52) + 'px');
-    const lb0 = tab === 'lv' && v.querySelector('.lvx-akt>.bar:first-child'), lx = v.querySelector('.lvx');   // LV-Knopfleiste zwischen Kennzahlen und LV-Liste
+    const lb0 = tab === 'lv' && (v.querySelector('.lvx-akt>.bar:first-child') || v.querySelector('.re2-ed>.bar:first-child')), lx = v.querySelector('.lvx');   // LV-Knopfleiste zwischen Kennzahlen und LV-Liste
     if (lb0 && lx) { lb0.classList.add('lvx-bar'); lx.before(lb0); }
+    else if (lb0) { lb0.classList.add('lvx-bar'); const r2 = v.querySelector('.re2'); if (r2) r2.classList.add('mit-lvbar'); }   // Baum-Ansicht: Knopfleiste bleibt oben im Inhalt stehen, Spaltenköpfe darunter
     const lb = v.querySelector('.lvx-bar'); if (lb) document.documentElement.style.setProperty('--lvbar', lb.offsetHeight + 'px');
     if (LVXHOCH) { LVXHOCH = false; const a = v.querySelector('.lvx .pj-r.akt'); if (a) setTimeout(() => { const y = a.getBoundingClientRect().top + scrollY - (ph ? ph.offsetHeight : 0) - 60; scrollTo({ top: Math.max(0, y), behavior: 'smooth' }); }, 30); }
   }

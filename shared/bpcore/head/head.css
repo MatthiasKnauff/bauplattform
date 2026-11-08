@@ -476,10 +476,10 @@ tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAcht
 :where(input[type=checkbox],input[type=radio]){flex:none;width:1.1rem;height:1.1rem;min-width:1.1rem}
 
 /* Ziehbare Trennung zwischen zwei Spalten (H.trennGriff) – Anfasser in der Mitte bleibt beim Scrollen im Blick */
-.bph-trenn{position:absolute;top:0;bottom:0;width:16px;z-index:6;cursor:col-resize;touch-action:none}
-.bph-trenn::before{content:'';position:absolute;top:0;bottom:0;left:7px;width:2px;background:transparent;transition:background .15s}
+.bph-trenn{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:col-resize;touch-action:none}
+.bph-trenn::before{content:'';position:absolute;top:0;bottom:0;left:5px;width:2px;background:transparent;transition:background .15s}
 .bph-trenn:hover::before,.bph-trennzieh .bph-trenn::before{background:var(--y,var(--bph-acc,#c8f031))}
-.bph-trenn::after{content:'';position:sticky;top:calc(50vh - 28px);display:block;margin:0 auto;width:12px;height:56px;border-radius:7px;background:var(--card,#fff) radial-gradient(circle,var(--mute,#888) 1.3px,transparent 1.6px) center/6px 7px;border:1px solid var(--line,#ccc);box-shadow:0 1px 4px rgba(0,0,0,.14)}
+.bph-trenn::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:4px;background:var(--card,#fff) radial-gradient(circle,var(--mute,#888) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line,#ccc);box-shadow:0 1px 4px rgba(0,0,0,.14)}   /* gleich groß wie in der AVA (6 × 28 px) */
 .bph-trenn:hover::after,.bph-trennzieh .bph-trenn::after{border-color:var(--y,var(--bph-acc,#c8f031))}
 .bph-trennzieh,.bph-trennzieh *{cursor:col-resize!important;user-select:none!important}
 @media print{.bph-trenn{display:none}}

@@ -654,7 +654,7 @@ def layout_eins(b):
         EG = layout.eigene(c)
         return jsonify({**d, "bereich": {"key": b, "name": B["name"], "art": B.get("art", "brief"), "variablen": B["variablen"]},
                         "felder": {} if B.get("art") == "ava" else layout.FELDER, "typen": layout.TYPEN, "eigene": EG,
-                        "standard": layout.standard(b), "beispiel": {**layout.beispiel(b), **{x["key"]: f"‹{x['name']}›" for x in EG}}})
+                        "standard": layout.standard(b), "beispiel": {**layout.beispiel(b, c), **{x["key"]: f"‹{x['name']}›" for x in EG}}})
 
 
 @app.route("/api/layouts-eigene", methods=["GET", "PUT"])
@@ -695,8 +695,8 @@ def layout_vorschau(b):
     ava = layout.BEREICHE[b].get("art") == "ava"
     if ava:
         bogen = None   # AVA-Ausdrucke ohne Briefbogen
-    werte = layout.beispiel(b)
     with db.tx() as c:
+        werte = layout.beispiel(b, c)
         werte.update({x["key"]: f"‹{x['name']}›" for x in layout.eigene(c)})
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=A4)

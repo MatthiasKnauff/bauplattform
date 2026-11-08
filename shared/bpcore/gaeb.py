@@ -221,7 +221,7 @@ def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
     ctr = f"<CTR><Address><Name1>{escape(bieter)}</Name1></Address></CTR>" if bieter and dp in ("84", "86") else ""
     nl = f"<DiscountPcnt>{_f(float(nachlass), 2)}</DiscountPcnt>" if mit_preis and nachlass else ""
     xml = (f'<?xml version="1.0" encoding="UTF-8"?>\n<GAEB xmlns="{ns}"><GAEBInfo><Version>3.3</Version><VersDate>2021-05</VersDate>'
-           f"<Date>{date.today().isoformat()}</Date><ProgSystem>GK3 Bauplattform</ProgSystem></GAEBInfo>"
+           f"<Date>{date.today().isoformat()}</Date><ProgSystem>Bauplattform</ProgSystem></GAEBInfo>"
            f"<PrjInfo><NamePrj>{escape(projekt)}</NamePrj><LblPrj>{escape(projekt)}</LblPrj><Cur>EUR</Cur><CurLbl>Euro</CurLbl></PrjInfo>"
            f"<Award><DP>{dp}</DP><AwardInfo><Cur>EUR</Cur><CurLbl>Euro</CurLbl></AwardInfo>{ctr}"
            f'<BoQ ID="{uuid.uuid4()}"><BoQInfo><Name>{escape(lv.get("nr") or "")}</Name><LblBoQ>{escape(lv.get("name") or "")}</LblBoQ>{bkdn}{nl}</BoQInfo>'

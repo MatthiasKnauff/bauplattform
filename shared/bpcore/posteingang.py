@@ -106,7 +106,7 @@ def eigene_filtern(c, u, mails):
     for m in mails:
         von, pf = (m.get("von") or "").lower(), (m.get("postfach") or m.get("quelle") or "").lower()
         if e["aus"] and (von in ich or (von and von == pf)) and (not nur or pf in nur):
-            continue   # selbst geschickt – auch aus dem gemeinsamen Postfach (GK3-Mail an …, Kopie an mail@)
+            continue   # selbst geschickt – auch aus dem gemeinsamen Postfach (z. B. Mail aus dem Büro-Postfach, Kopie an mail@)
         if e["cc"] and _nur_kenntnis(m, ich | {pf}) and not m.get("persoenlich") and not angesprochen(m, namen):
             continue   # nur in CC – außer ich werde im Text persönlich angesprochen
         out.append(m)

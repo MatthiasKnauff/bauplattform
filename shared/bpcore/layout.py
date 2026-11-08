@@ -372,17 +372,33 @@ def eigene_werte(c, pid, extra=None):
     return out
 
 
-def beispiel(bereich):
+def _buero_beispiel(c):
+    """Büroname, Absender und Fußzeile für die Vorschau – aus Verwaltung → Büro, sonst neutrale Musterwerte (kein fest eingebautes Büro)."""
+    S = {}
+    if c is not None:
+        try:
+            S = {r[0]: r[1] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('office_name','co_short','co_street','co_zip','co_city','co_phone','co_email','co_web')")}
+        except Exception:
+            S = {}
+    name = S.get("office_name") or "Musterbüro Architektur"
+    ort = " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x) or "12345 Musterstadt"
+    strasse = S.get("co_street") or "Musterstraße 1"
+    fuss = " · ".join(v for v in (name, strasse, ort, S.get("co_phone") or "0123 456789", S.get("co_email") or "mail@musterbuero.de", S.get("co_web")) if v)
+    return name, f"{S.get('co_short') or name}, {strasse}, {ort}", fuss
+
+
+def beispiel(bereich, c=None):
     """Werte für die Vorschau im Editor."""
+    BN, ABS, FUSS = _buero_beispiel(c)
     if (BEREICHE.get(bereich) or {}).get("art") == "ava":
-        return {"buero": "GK3 Architektur", "fusszeile": "GK3 Architektur · Frohnhauser Str. 233 · 45144 Essen · 0201 123456", "datum": datetime.now().strftime("%d.%m.%Y"),
+        return {"buero": BN, "fusszeile": FUSS, "datum": datetime.now().strftime("%d.%m.%Y"),
                 "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen", "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "bauherr": "Muster Wohnbau GmbH",
                 "dokument": {"lv": "Leistungsverzeichnis", "aufmass": "Massenermittlung – LV 03 Rohbauarbeiten", "rechnungspruefung": "Rechnungsprüfung – 2. Abschlagsrechnung",
                              "rechnungsfreigabe": "Rechnungsfreigabe – 2. Abschlagsrechnung"}.get(bereich, ""),
                 "untertitel": "A497 Maybachstraße 15a, Essen · LV 03 Rohbauarbeiten", "lv": "LV 03 Rohbauarbeiten", "gewerk": "Rohbau", "auftragnehmer": "Muster Bau GmbH", "grundstueck": "Gemarkung Altenessen, Flur 3, Flurstück 12/4", "gemarkung": "Altenessen", "flur": "3",
                 "flurstueck": "12/4", "hoehe_nhn": "54,30",
                 "seite": "1", "rechnung": "2. Abschlagsrechnung", "re_nr": "RE-2026-117", "re_datum": "02.11.2026", "eingang": "04.11.2026"}
-    return {"buero": "GK3 Architektur", "absender": "GK3, Frohnhauser Str. 233, 45144 Essen", "fusszeile": "GK3 Architektur · Frohnhauser Str. 233 · 45144 Essen · 0201 123456 · mail@gk3-architektur.de",
+    return {"buero": BN, "absender": ABS, "fusszeile": FUSS,
             "datum": datetime.now().strftime("%d.%m.%Y"), "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen",
             "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "dokument": "Mängelrüge nach VOB/B" if bereich == "maengelruege" else "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
             "firma": "Muster Bau GmbH", "grundlage": "§ 4 Abs. 7 VOB/B" if bereich == "maengelruege" else "§ 5 Abs. 3 VOB/B",

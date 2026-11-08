@@ -92,6 +92,31 @@ def start():
                        einheiten=EINHEITEN, loehne=[x.dict() for x in c.execute("SELECT gewerk, name, verrechnungslohn, stand FROM pdb_lohn ORDER BY name").fetchall()])
 
 
+@app.get("/api/allplan/suche")
+def allplan_suche():
+    """Allplan-Bürostandard auf dem Dateiserver suchen (über das Bautagebuch, das die Freigabe kennt)."""
+    if not _admin():
+        return jsonify(error="Nur für die Verwaltung."), 403
+    try:
+        return jsonify(C.bt_api("GET", "/api/allplan/suche"))
+    except RuntimeError as e:
+        return jsonify(ok=False, error=str(e)), 502
+
+
+@app.get("/api/allplan/paket")
+def allplan_paket():
+    """Katalogdateien des Allplan-Bürostandards als ZIP herunterladen."""
+    import base64
+    if not _admin():
+        return jsonify(error="Nur für die Verwaltung."), 403
+    try:
+        d = C.bt_api("GET", "/api/allplan/paket")
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    return Response(base64.b64decode(d["datei"]), mimetype="application/zip",
+                    headers={"Content-Disposition": 'attachment; filename="allplan-std-kataloge.zip"'})
+
+
 @app.get("/api/vorbemerkungen")
 def vorbemerkungen():
     """Kompakte Vorbemerkungen: ohne key die Liste, mit key (LB-Nummer, 'bb', 'bvb', 'zvb') der Text."""

@@ -90,6 +90,7 @@
     <button class="btn sm" id="csvBtn" title="Gefilterte Positionen für Excel speichern">⤓ Excel (CSV)</button>
     <button class="btn sm" id="setBtn" title="Baupreisindex, Regionalfaktor und Verrechnungslöhne">⚙ Preise</button>
     <button class="btn sm" id="impBtn" hidden title="Katalog importieren (z. B. Sirados als GAEB)">⤒ Import</button>
+    <button class="btn sm" id="allplanBtn" hidden title="Allplan-Bürostandard auf dem Dateiserver suchen und die Katalogdateien (Elementkatalog, Smart Catalog, Attribute) als ZIP holen">Allplan …</button>
   </div>
   <div class="fl">
     <label>KG <input class="kg" id="kg" placeholder="z. B. 331" inputmode="numeric"></label>
@@ -127,7 +128,20 @@ async function start() {
   $('#kat').innerHTML = S.kataloge.map((k) => `<option value="${esc(k.key)}"${k.key === F.katalog ? ' selected' : ''}>${esc(k.name)} (${k.n.toLocaleString('de-DE')})</option>`).join('');
   $('#einh').innerHTML = '<option value="">alle</option>' + S.einheiten.map((e) => `<option${e === F.einheit ? ' selected' : ''}>${esc(e)}</option>`).join('');
   $('#impBtn').hidden = !S.admin;
+  $('#allplanBtn').hidden = !S.admin;
   seite(); laden();
+}
+async function allplanStd() {   // Allplan-Bürostandard auf dem Dateiserver: Kataloge finden und als ZIP holen
+  const bg = modalBox(`<h3>Allplan-Bürostandard</h3><p id="apT">Suche auf dem Dateiserver …</p><div class="acts" style="display:flex;gap:.4rem;justify-content:flex-end"><button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="zip" id="apZip" disabled>⤓ Katalogdateien als ZIP</button></div>`, (m, bgx, close) => {
+    if (m === 'x') close();
+    if (m === 'zip') { location.href = 'api/allplan/paket'; toast('Das ZIP wird zusammengestellt – das kann einen Moment dauern.'); }
+  });
+  let r; try { r = await api('api/allplan/suche'); } catch (e) { bg.querySelector('#apT').textContent = e.message; return; }
+  if (!r.ok) { bg.querySelector('#apT').innerHTML = esc(r.error || 'Nicht gefunden.') + (r.ordner ? `<br><small class="mute">Ordner dort: ${esc(r.ordner.join(', '))}</small>` : ''); return; }
+  const mb = (b) => (b / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB';
+  bg.querySelector('#apT').innerHTML = `Gefunden: <b>${esc(r.unc)}\\${esc(r.std.replace(/\//g, '\\'))}</b> – ${r.dateien.length} Katalogdateien (${mb(r.summe)}).
+    <div style="max-height:40vh;overflow:auto;font-size:.82rem;margin-top:.5rem">${r.dateien.map((x) => `<div>${esc(x.pfad)} <span class="mute">${mb(x.size)}</span></div>`).join('')}</div>`;
+  bg.querySelector('#apZip').disabled = !r.dateien.length;
 }
 async function vorbemerkung(k) {
   let v; try { v = await api('api/vorbemerkungen?key=' + encodeURIComponent(k)); } catch (e) { toast(e.message, true); return; }
@@ -377,6 +391,7 @@ document.addEventListener('click', async (e) => {
   if (t.closest('#csvBtn')) { location.href = 'api/export.csv?' + params(); return; }
   if (t.closest('#setBtn')) { einstellungen(); return; }
   if (t.closest('#impBtn')) { importieren(); return; }
+  if (t.closest('#allplanBtn')) { allplanStd(); return; }
   if (t.closest('#neuBtn')) { try { SEL = await api('api/position', 'POST', {}); detail(); bearbeiten(); start(); } catch (er) { toast(er.message, true); } return; }
   if (!SEL) return;
   if (t.closest('[data-copy]')) {

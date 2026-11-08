@@ -421,7 +421,8 @@ html.mobil .bph{position:sticky;top:0}
 .si-g{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:flex-end;margin:.3rem 0}.si-g label{display:flex;flex-direction:column;font-size:.8rem;color:var(--mute);gap:.15rem}.si-g input,.si-g select{font-size:.9rem}
 .si-sum{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.2rem 0 .5rem}.si-w{background:color-mix(in srgb,#e0a030 18%,transparent);border-radius:8px;padding:.4rem .6rem;margin:.3rem 0}
 .re-bel{display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;margin:.5rem 0;padding:.45rem .55rem;border:1px dashed var(--line);border-radius:8px}.re-bel.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 10%,transparent)}
-.re-b{display:inline-flex;gap:.3rem;align-items:center}.re-art{display:flex;align-items:center;gap:.6rem;margin:.5rem 0 0}.re-art .seg button:disabled{opacity:.6;cursor:default}
+.re-b{display:inline-flex;gap:.3rem;align-items:center}.qtw{max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem}.qtw-t{margin:.35rem 0 .15rem}.qtw-p{display:flex;gap:.45rem;align-items:baseline;padding:.15rem 0 .15rem 1.2rem;font-size:.9rem}.qtw-p span{color:var(--mute);min-width:6.5rem}.qtw input{width:auto}
+.re-art{display:flex;align-items:center;gap:.6rem;margin:.5rem 0 0}.re-art .seg button:disabled{opacity:.6;cursor:default}
 .re-bel-neu{flex-basis:100%;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;padding-top:.45rem;border-top:1px dashed var(--line)}.re-z{width:100%;margin:.4rem 0}.re-z td:first-child{min-width:18rem}.re-z input{font:inherit}
 .am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
@@ -1508,9 +1509,16 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('change', async (e) => {
   const i = e.target.closest && e.target.closest('[data-lvdokin]'); if (!i || !i.files.length || !L) return;
   const f = i.files[0]; i.value = '';
-  if (istImport(f)) { IMP = { ziel: 'lv', ersetzen: false }; await doImport(f); IMP = null; return; }
-  await lvDokHoch(L.id, f);
+  if (istImport(f)) { IMP = { ziel: 'lv', ersetzen: false }; await doImport(f); IMP = null; inOrdner(f, 'lv'); return; }
+  await lvDokHoch(L.id, f); inOrdner(f, 'lv');
 });
+/* Eingelesene Datei (LV, Angebot) auch im Projektordner ablegen – wie beim Ablegen, mit einheitlichem Namen; still, nur Hinweis */
+async function inOrdner(f, art, firma) {
+  if (!f || !pid || !L) return;
+  const fd = new FormData(); fd.append('datei', f); fd.append('project_id', pid); fd.append('art', art === 'angebot' ? 'angebot' : 'lv'); fd.append('firma', firma || ''); fd.append('gewerk', [L.nr, L.name].filter(Boolean).join(' '));
+  try { const r = await fetch('api/ablage', { method: 'POST', body: fd, credentials: 'same-origin' }), j = await jsonAus(r); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status); if (j.pfad) toast('Auch im Projektordner abgelegt: ' + j.pfad); }
+  catch (e) { toast('Nicht im Projektordner abgelegt: ' + e.message, true); }
+}
 async function lvDokHoch(lvId, f, opt = {}) {
   const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen …`);
   try { const r = await fetch(`api/lv/${lvId}/dok`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json().catch(() => { throw new Error(r.status === 504 || r.status === 502 ? 'Das Lesen hat zu lange gedauert – bitte noch einmal versuchen.' : r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : 'Fehler ' + r.status); }); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
@@ -1792,7 +1800,7 @@ async function saveVp(id, v) { try { await flush(); const r = await api('api/lv/
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'proj') { pid = +el.value; LS.set('pid', pid); if (window.BPHead) BPHead.projektSetzen(pid); loadList(); return; }
-  if (el.id === 'fileIn') { if (el.files[0]) doImport(el.files[0]); el.value = ''; return; }
+  if (el.id === 'fileIn') { if (el.files[0]) { const f = el.files[0], z = IMP ? IMP.ziel : 'lv', bi = IMP && IMP.bieter; doImport(f).then(() => inOrdner(f, z, bi)); } el.value = ''; return; }
   const row = el.closest('tr[data-i]');
   if (row && tab === 'lv' && (el.dataset.f === 'art' || el.dataset.f === 'nt_status')) { render(); }
   if (el.dataset.am != null) { amSave(el); return; }
@@ -2315,7 +2323,7 @@ function vAmErfassen() {
           <td><input data-am-new="formel" placeholder="Rechenweg oder Menge – Enter: weiter zur nächsten Position" title="Enter: speichern und nächste Position · Umschalt+Enter: speichern und weitere Zeile dieser Position"></td><td class="r" id="amPrev"></td><td></td></tr></tbody></table>
         <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-amraum="1" title="Flächen aus dem Raumbuch der Baukosten übernehmen">Aus dem Raumbuch …</button>
           <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –. <b>Enter</b> speichert und geht zur nächsten Position, <b>Umschalt+Enter</b> für eine weitere Zeile dieser Position.</span></div></div>`;
-  const tab_ = `<div class="tblw"><table class="lv am"><thead><tr><th>OZ</th><th>Position</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">Aufmaß</th><th class="r">%</th></tr></thead><tbody>${liste}</tbody></table></div>`;
+  const tab_ = `<div class="tblw"><table class="lv am"><thead><tr><th>OZ</th><th>Position</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">Aufmaß</th><th class="r">%</th></tr></thead><tbody>${liste}<tr><td colspan="${B.length ? 6 : 5}"><button type="button" class="ib" data-amnt title="Leistung, die nicht im LV steht: kommt als Nachtrag „angemeldet“ in den Auftrag, Aufmaß gleich darunter erfassen">＋ Position (Nachtrag)</button></td></tr></tbody></table></div>`;
   const offen = B.reduce((n, b) => n + Object.values((b.auslese && b.auslese.pos) || {}).filter((y) => y.menge != null).length, 0);
   const hoch = `<label class="btn sm" title="Rechnung oder Aufmaßblätter der Firma als PDF – wird rechts neben der Prüfung angezeigt und im Projektordner abgelegt">📄 Rechnung / Aufmaß der Firma (PDF) …<input type="file" accept=".pdf,application/pdf" multiple hidden data-ambeleg></label>`;
   const kopf = `<div class="bar"><label class="hint"><input type="checkbox" id="amNur"${amNur ? ' checked' : ''}> nur Positionen mit Aufmaß</label>${B.length ? `<label class="hint"><input type="checkbox" id="amNurR"${amNurR ? ' checked' : ''}> nur Positionen aus der PDF</label>` : ''}<span class="fill"></span>
@@ -2457,6 +2465,27 @@ function amPdfZeige(pid, sofort, direkt) {
   wrap.appendChild(hl);
   V.el.scrollTo({ top: wrap.offsetTop + y0 * wrap.offsetHeight - V.el.clientHeight * 0.3, behavior: sofort ? 'auto' : 'smooth' });
 }
+/* Aufmaßprüfung: Leistung, die nicht im LV steht → Nachtrag „angemeldet“ in den Auftrag (mit EP), dann gleich ihr Aufmaß erfassen */
+function amNachtragNeu() {
+  if (!L) return;
+  const frei = !!(L.vergabe && L.vergabe.frei && !Object.keys(L.vergabe.preise || {}).length);
+  modalBox(`<h3>Position als Nachtrag</h3><p class="hint" style="margin:0 0 .7rem">Kommt als Nachtrag „angemeldet“ in den Auftrag${frei ? ' (Auftrag ohne LV-Preise: ohne Preis, nur zur Dokumentation)' : ' und zählt je nach Einstellung gleich oder erst nach Beauftragung in der Rechnung'}. Danach das Aufmaß erfassen.</p>
+    <div class="fm"><label>Kurztext</label><input id="ntK" placeholder="z. B. Mehrmenge Bodenaustausch"></div>
+    <div class="nlf" style="grid-template-columns:repeat(3,minmax(0,1fr))"><label>LV-Menge<input id="ntM" inputmode="decimal" placeholder="0"></label><label>Einheit<input id="ntE" value="m²"></label><label>EP €${frei ? ' (entfällt)' : ''}<input id="ntP" inputmode="decimal"${frei ? ' disabled' : ''}></label></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Als Nachtrag anlegen</button></div>`, async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const kurz = bg.querySelector('#ntK').value.trim(); if (!kurz) { bg.querySelector('#ntK').focus(); return; }
+    const I = L.data.items, id = uid(), n = I.filter((x) => x.nt).length + 1, ep = pf(bg.querySelector('#ntP').value);
+    const p = { id, typ: 'pos', art: 'N', oz: '', kurz, lang: '', menge: pf(bg.querySelector('#ntM').value) || 0, einheit: bg.querySelector('#ntE').value.trim() || 'psch' };
+    if (!frei) { p.nt = 'NT' + n; p.nt_status = 'angemeldet'; }
+    close(); await flush(); I.push(p); numerieren();
+    try { await saveNow(); if (!frei && ep != null) await saveVp(id, ep); } catch (e) { return toast(e.message, true); }
+    amPos = id; LS.set('amPos', amPos); amNur = false; LS.set('amNur', false); amNurR = false; LS.set('amNurR', false); render(); toast(frei ? 'Position im LV angelegt – jetzt das Aufmaß erfassen.' : `Als Nachtrag ${p.nt} angelegt – jetzt das Aufmaß erfassen.`);
+    setTimeout(() => { const f = document.querySelector('[data-am-new="formel"]'); if (f) f.focus(); }, 80);
+  });
+  setTimeout(() => { const i = document.querySelector('#ntK'); if (i) i.focus(); }, 50);
+}
 /* PDF der Firma noch einmal lesen – bei Scans läuft die Texterkennung im Hintergrund, unten steht ein Hinweis mit Abbrechen */
 async function belegNeuLesen(bid) {
   const lvId = L.id; AMNEU.add(bid); AMNEU.add('x' + bid);   // kein zusätzliches automatisches Nachlesen
@@ -2580,7 +2609,7 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('dragover', (e) => { if (tab !== 'aufmass') return; const z = e.target.closest && e.target.closest('[data-amdrop]'); if (z && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); z.classList.add('over'); } });
 document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-amdrop]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('over'); });
-document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-amneu]'); if (b && L) belegNeuLesen(+b.dataset.amneu); });
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-amneu]'); if (b && L) belegNeuLesen(+b.dataset.amneu); if (e.target.closest && e.target.closest('[data-amnt]')) amNachtragNeu(); });
 document.addEventListener('click', async (e) => { const b = e.target.closest && e.target.closest('[data-refrei]'); if (!b || !L || b.disabled || b.classList.contains('on')) return;
   const r = L.rechnungen.find((x) => x.id === +b.dataset.id); if (!r) return;
   try { await call('api/rechnungen/' + r.id, 'PUT', { frei: b.dataset.refrei === '1' ? (r.gefordert || 0) : null }); } catch (er) { toast(er.message, true); } });
@@ -3497,20 +3526,52 @@ function quAuswahl(nur) {   // gewählte Zeilen in LV-Reihenfolge; ein gewählte
   }
   return out;
 }
+/* Bauteil (Element) der Baudaten: woraus es besteht – Teilpositionen mit Menge je Einheit, EP und Anteil */
+function quBauteilZeigen(i) {
+  const I = quItems(), t = I[i], T = [];
+  for (let j = i + 1; j < I.length && I[j].typ !== 'titel'; j++) T.push(I[j]);
+  const sum = T.reduce((a, x) => a + (x.menge || 0) * (x.ep_s || 0), 0);
+  const bg = modalBox(`<h3>${esc(t.oz || '')} ${esc((t.kurz || '').replace(/ – je 1 .*$/, ''))}</h3><p class="hint" style="margin:0 0 .5rem">${esc((/ – (je 1 .*)$/.exec(t.kurz || '') || [, ''])[1])} · Doppelklick auf eine Teilposition zeigt ihre Details</p>
+    <div class="tblw"><table class="lv"><thead><tr><th>Pos.</th><th>Teilleistung</th><th class="r">Menge je Einheit</th><th class="r">EP</th><th class="r">Anteil</th></tr></thead><tbody>
+    ${T.map((x) => `<tr data-qbsrc="${esc(x.src || '')}" style="cursor:pointer" title="Doppelklick: Details der Position"><td>${esc(x.oz || '')}</td><td>${esc(x.bez || x.kurz || '')}</td><td class="r">${nf(x.menge)} ${esc(x.einheit || '')}</td><td class="r">${x.ep_s != null ? nf2(x.ep_s) : '–'}</td><td class="r">${x.ep_s != null ? nf2((x.menge || 0) * x.ep_s) : '–'}</td></tr>`).join('')}
+    <tr><td></td><td><b>Summe je Einheit</b></td><td></td><td></td><td class="r"><b>${nf2(sum)}</b></td></tr></tbody></table></div>
+    <div class="acts"><button class="btn pri" data-m="x">Schließen</button></div>`, (m, b, close) => { if (m === 'x') close(); });
+  bg.addEventListener('dblclick', (e) => { const r = e.target.closest('[data-qbsrc]'), m = r && /^b(\d+)$/.exec(r.dataset.qbsrc); if (m && typeof pdbDetail === 'function') pdbDetail(+m[1]); });
+}
+/* Ein ganzer Titel oder ein Bauteil wird übernommen: vorher die Einzelpositionen ankreuzen lassen (alle vorgewählt) */
+function quTeileWahl(liste) {
+  return new Promise((fertig) => {
+    const zeilen = liste.map((x, i) => x.typ === 'titel' ? `<div class="qtw-t" style="padding-left:${((x.lvl || 1) - 1) * .8}rem"><label><input type="checkbox" data-qtt="${i}" checked> <b>${esc(x.oz || '')} ${esc(x.kurz || '')}</b></label></div>`
+      : `<label class="qtw-p"><input type="checkbox" data-qtp="${i}" checked> <span>${esc(x.oz || '')}</span> ${esc(x.bez || x.kurz || '')}${x.art !== 'T' && x.menge ? ` <small class="hint">${nf(x.menge)} ${esc(x.einheit || '')}</small>` : ''}</label>`).join('');
+    let ok = false;
+    const bg = modalBox(`<h3>Welche Positionen übernehmen?</h3><p class="hint" style="margin:0 0 .5rem">Alle sind angehakt – abwählen, was nicht ins LV soll.</p>
+      <div class="qtw">${zeilen}</div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, (m, b2, close) => {
+      if (m === 'x') { close(); return; }
+      if (m !== 'ok') return;
+      const an = new Set([...b2.querySelectorAll('[data-qtp]:checked')].map((c) => +c.dataset.qtp));
+      const raus = liste.filter((x, i) => x.typ !== 'titel' ? an.has(i) : liste.some((y, j) => j > i && y.typ !== 'titel' && an.has(j) && !liste.slice(i + 1, j).some((z) => z.typ === 'titel' && (z.lvl || 1) <= (x.lvl || 1))));
+      ok = true; close(); fertig(raus);
+    });
+    bg.addEventListener('change', (e) => { const t = e.target.closest('[data-qtt]'); if (!t) return; const i = +t.dataset.qtt, lv = liste[i].lvl || 1;
+      for (let j = i + 1; j < liste.length && !(liste[j].typ === 'titel' && (liste[j].lvl || 1) <= lv); j++) { const c = bg.querySelector(`[data-qtp="${j}"],[data-qtt="${j}"]`); if (c) c.checked = t.checked; } });
+    new MutationObserver(() => { if (!bg.isConnected && !ok) fertig(null); }).observe(document.body, { childList: true });
+  });
+}
 async function quEinfuegen(liste, nach) {
   if (!L || !liste.length) return;
+  if (liste.some((x) => x.typ === 'titel') && liste.filter((x) => x.typ === 'pos').length > 1) { liste = await quTeileWahl(liste); if (!liste || !liste.length) return; }
   const VP = (QU.L.vergabe && QU.L.vergabe.preise) || {};
   let neu = liste.map((x) => {
     const y = JSON.parse(JSON.stringify(x)); y.id = uid(); delete y.nt; delete y.nt_status; delete y.nt_grund;
     if (y.typ === 'pos') { if (!QU.mengen) y.menge = 0; const ep = VP[x.id] ?? x.ep_s; y.ep_s = QU.preise && ep != null ? ep : null; y.quelle = (QU.L.katalog ? `${QU.L.projekt}, Pos. ${x.oz || ''}${x.spanne ? ` (von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €)` : ''}` : `aus LV ${QU.L.nr} ${QU.L.name} (${QU.L.projekt || ''}), Pos. ${x.oz || ''}`).slice(0, 200);
-      { const m = /^b(\d+)$/.exec(x.id); if (QU.L.katalog && m) y.pdb = +m[1]; }   // Herkunft merken: Auftrags-/Angebotspreise fließen später in die Baudaten zurück
+      { const m = /^b(\d+)$/.exec(x.src || x.id); if (QU.L.katalog && m) y.pdb = +m[1]; } delete y.src;   // Herkunft merken: Auftrags-/Angebotspreise fließen später in die Baudaten zurück
       if (QU.L.katalog && (y.spanne || y.eigene)) { y._bd = true; if (y.spanne) { y.ep_von = y.spanne[0]; y.ep_bis = y.spanne[1]; } } delete y.spanne; }
     return y;
   });
   if (QU.preise && neu.some((y) => y._bd)) {   // aus einem Katalog: welcher Preis? (Einstellung oder Nachfrage)
     const bd = neu.filter((y) => y._bd); if (!(await pdbPreiswahl(bd))) return; }
   neu.forEach((y) => { if (y._bd) { delete y.ep_von; delete y.ep_bis; } delete y._bd; delete y._mittel; delete y.eigene; delete y.ep_median; });
-  const I = items(), at = nach != null && nach >= 0 && nach < I.length ? nach + 1 : I.length;
+  const I = items(), at = nach === -1 ? 0 : nach != null && nach >= 0 && nach < I.length ? nach + 1 : I.length;   // -1: ganz an den Anfang (auf die Kopfzeile gezogen)
   I.splice(at, 0, ...neu); HIST.next = `${neu.length} Zeilen übernommen`;
   numerieren(); changed(true);
   { const n = neu.filter((y) => y.typ === 'pos').length; toast(`${n === 1 ? '1 Position' : n + ' Positionen'} übernommen – ↶ Rückgängig nimmt es zurück.`); }
@@ -3563,9 +3624,11 @@ function quWahlUi() {   // Auswahl anzeigen, ohne die Liste neu zu zeichnen (son
 }
 document.addEventListener('dblclick', (e) => {   // Langtext ganz zeigen / wieder kürzen
   const tr = e.target.closest && e.target.closest('#quelle tr[data-qi]'); if (!tr || e.target.closest('input')) return;
-  const x = quItems()[+tr.dataset.qi]; if (!x || x.typ !== 'pos') return;
+  const x = quItems()[+tr.dataset.qi]; if (!x) return;
+  if (x.typ === 'titel' && /^e\d+$/.test(x.id)) { quBauteilZeigen(+tr.dataset.qi); return; }
+  if (x.typ !== 'pos') return;
   if (QU.sel.has(x.id)) QU.sel.delete(x.id); else QU.sel.add(x.id); quWahlUi();   // der erste Klick des Doppelklicks hat die Zeile umgeschaltet
-  const kp = QU.L && QU.L.katalog && /^([bk])(\d+)$/.exec(x.id);   // Katalogposition: Detailfenster wie in den Baudaten
+  const kp = QU.L && QU.L.katalog && /^([bk])(\d+)$/.exec(x.src || x.id);   // Katalogposition: Detailfenster wie in den Baudaten
   if (kp && x.art !== 'T' && typeof pdbDetail === 'function') { window.getSelection && window.getSelection().removeAllRanges(); pdbDetail(kp[1] === 'k' ? -kp[2] : +kp[2]); return; }
   QU.offen ||= new Set(); if (QU.offen.has(x.id)) QU.offen.delete(x.id); else QU.offen.add(x.id);
   const lt = tr.querySelector('.lt'); if (lt) lt.classList.toggle('voll', QU.offen.has(x.id));
@@ -3594,15 +3657,15 @@ document.addEventListener('dragstart', (e) => {
 });
 document.addEventListener('dragover', (e) => {
   if (![...(e.dataTransfer.types || [])].includes('text/x-ava-quelle')) return;
-  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]');
+  const tr = e.target.closest && (e.target.closest('table.lv tr[data-i]') || e.target.closest('table.lv thead tr, table.lv tr.wurzel'));
   document.querySelectorAll('.drop-hier').forEach((r) => r.classList.remove('drop-hier'));
   if (tr || e.target.closest('.pane')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (tr) tr.classList.add('drop-hier'); }
 });
 document.addEventListener('drop', (e) => {
   const d = e.dataTransfer.getData('text/x-ava-quelle'); if (!d) return;
   e.preventDefault(); document.querySelectorAll('.drop-hier').forEach((r) => r.classList.remove('drop-hier'));
-  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]');
-  quEinfuegen(quAuswahl(new Set(JSON.parse(d))), tr ? +tr.dataset.i : null);
+  const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'), kopf = !tr && e.target.closest && e.target.closest('table.lv thead tr, table.lv tr.wurzel');
+  quEinfuegen(quAuswahl(new Set(JSON.parse(d))), tr ? +tr.dataset.i : kopf ? -1 : null);
 });
 
 /* ---------- Zeilen verschieben: an der Ordnungszahl greifen und an die neue Stelle ziehen (Titel nehmen ihren Inhalt mit) ---------- */

@@ -319,7 +319,7 @@ def _bd_elemente(c, rows):
                     "kurz": f"{r['bez'] or r['kurz']} – je 1 {r['einheit']}: " + f"{round(summe or (r['ep_mittel'] or 0) * f, 2):.2f} €".replace(".", ",")})
         for k, (x, fk) in enumerate(teile):
             if x in fertig:
-                out.append({**fertig[x], "id": f"e{r['id']}_{k}", "menge": fk, "quelle": f"Baudaten {x} · Bauteil {r['code']}: Menge je 1 {r['einheit']}"})
+                out.append({**fertig[x], "id": f"e{r['id']}_{k}", "src": fertig[x]["id"], "menge": fk, "quelle": f"Baudaten {x} · Bauteil {r['code']}: Menge je 1 {r['einheit']}"})
     return out
 
 
@@ -2654,6 +2654,16 @@ def ablage_ordner():
         return jsonify(ok=False, error=str(e))
 
 
+def _ablage_name(art, firma="", was="", nr="", datum="", orig=""):
+    """Einheitlicher Dateiname im Projektordner statt Scanner-Namen: „JJJJ-MM-TT Art Firma – Leistung Nr. …“ (Endung wie das Original)."""
+    endung = (orig.rsplit(".", 1)[1].lower() if "." in (orig or "") else "pdf")[:6] or "pdf"
+    d = (datum or "")[:10] if re.match(r"^\d{4}-\d{2}-\d{2}", datum or "") else date.today().isoformat()
+    art_ = {"rechnung": "Rechnung", "aufmass": "Aufmaß", "angebot": "Angebot", "lv": "LV"}.get(art, art or "Dokument")
+    teile = [d, art_, (firma or "").strip(), (("– " if (firma or "").strip() else "") + was.strip()) if was and was.strip() and was.strip() != (firma or "").strip() else "", ("Nr. " + nr.strip()) if nr and nr.strip() else ""]
+    name = re.sub(r"\s+", " ", " ".join(t for t in teile if t)).strip()
+    return re.sub(r'[\\/:*?"<>|]+', "-", name)[:150] + "." + endung
+
+
 @app.post("/api/ablage")
 def ablage_datei():
     """Angebot oder Muster-LV (oder anderes) im Projektordner ablegen – Ordner wie vorgeschlagen oder von Hand gewählt."""
@@ -2672,7 +2682,8 @@ def ablage_datei():
     roh = f.read(80 * 1024 * 1024)
     try:
         a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "art": request.form.get("art") or "", "firma": request.form.get("firma") or "",
-                                                  "gewerk": request.form.get("gewerk") or "", "name": f.filename or "Dokument.pdf",
+                                                  "gewerk": request.form.get("gewerk") or "",
+                                                  "name": _ablage_name(request.form.get("art") or "", request.form.get("firma") or "", request.form.get("gewerk") or "", orig=f.filename or ""),
                                                   "datei": base64.b64encode(roh).decode(), "ordner": ordner if isinstance(ordner, list) else None})
     except RuntimeError as e:
         return jsonify(error=str(e)), 502
@@ -3607,7 +3618,7 @@ def beleg_neu(k):
             _auslese_anwenden(c, bid, k, r)
         x = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (k,)).fetchone()
         pid = r["project_id"]
-        name = " ".join(v for v in (re_titel(x["nr"], x["art"]), V.get("bieter") or "", ("Nr. " + x["re_nr"]) if x["re_nr"] else "", x["datum"] or x["eingang"] or "") if v) + ".pdf"
+        name = _ablage_name("aufmass" if request.form.get("art") == "aufmass" else re_titel(x["nr"], x["art"]), V.get("bieter") or "", "", x["re_nr"] or "", x["datum"] or x["eingang"] or "", "x.pdf")
     hinweis, pfad = "", ""
     if pid:
         try:

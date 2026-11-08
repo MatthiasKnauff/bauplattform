@@ -91,12 +91,12 @@ async function pdbPreiswahl(liste) {
   return new Promise((fertig) => {
     let ok = false;
     const bg = modalBox(`<h3>Welche Preise verwenden?</h3>
-      <p class="mute" style="margin:.1rem 0 .6rem;font-size:.86rem">${mit.length === 1 ? 'Eine Position' : mit.length + ' Positionen'} aus den Baudaten${hatEigene ? ' – für einige gibt es eigene Preise aus Vergaben' : ''}. Für alle wählen oder je Position.</p>
-      <div id="ppAlle" style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem"><span class="mute" style="font-size:.86rem">Für alle:</span>${PDBART.filter((a) => hatEigene || !a[0].startsWith('eigen')).map(([k, l], i) => `<button class="btn sm${i === 0 ? ' pri' : ''}" data-pa="${k}">${l}</button>`).join('')}</div>
+      <p class="mute" style="margin:.1rem 0 .6rem;font-size:.86rem">${mit.length === 1 ? 'Eine Position' : mit.length + ' Positionen'} aus den Baudaten${hatEigene ? ' – für einige gibt es eigene Preise aus Vergaben' : ''}. Gilt für alle.</p>
+      <div id="ppAlle" style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem"><span class="mute" style="font-size:.86rem">Preise:</span>${PDBART.filter((a) => hatEigene || !a[0].startsWith('eigen')).map(([k, l], i) => `<button class="btn sm${i === 0 ? ' pri' : ''}" data-pa="${k}">${l}</button>`).join('')}</div>
       <div style="max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px">${mit.map((x, i) => `
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(12rem,17rem);gap:.6rem;align-items:center;padding:.4rem .6rem;border-bottom:1px solid var(--line)">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem;align-items:center;padding:.35rem .6rem;border-bottom:1px solid var(--line)">
           <span>${esc(x.kurz)}<small style="display:block;color:var(--mute);font-size:.76rem">${esc([x.code || x.oz, x.einheit].filter(Boolean).join(' · '))}</small></span>
-          <select data-pp="${i}">${optionen(x).map((o) => `<option value="${o[0]}">${esc(o[1])} – ${eur(o[2])}</option>`).join('')}</select></div>`).join('')}</div>
+          <select data-pp="${i}" hidden>${optionen(x).map((o) => `<option value="${o[0]}">${esc(o[1])} – ${eur(o[2])}</option>`).join('')}</select></div>`).join('')}</div>
       <label style="display:block;margin-top:.7rem;font-size:.9rem;line-height:1.4"><input type="checkbox" id="ppStd" style="width:auto;margin:0 .4rem 0 0;vertical-align:-2px"><span>Auswahl „<span id="ppStdN">Katalog Mittel</span>“ als Standard merken und nicht mehr fragen <span class="mute">(änderbar unter ⚙ → Für mich)</span></span></label>
       <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-top:.7rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close) => {
       if (m === 'x') { close(); return; }
@@ -108,7 +108,7 @@ async function pdbPreiswahl(liste) {
       ok = true; close();
     });
     let aktiv = 'mittel';
-    bg.querySelector('.modal').style.width = 'min(760px,100%)';
+    bg.querySelector('.modal').style.width = 'min(580px,100%)';
     bg.querySelector('#ppAlle').addEventListener('click', (e) => {
       const b = e.target.closest('[data-pa]'); if (!b) return;
       aktiv = b.dataset.pa; bg.querySelector('#ppStdN').textContent = b.textContent;

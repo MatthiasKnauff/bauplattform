@@ -1304,7 +1304,7 @@ function pjBaum() {
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
       const txt = !re ? `${k.rang ? k.rang + '. ' : ''}${esc(k.bieter)}${x.angebot_id === k.id ? ' <span class="ok">✓</span>' : ''}`
-        : `${esc(reTitel(k))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}" title="${k.status === 'geprueft' ? 'geprüft' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>${k.re_nr ? `<small>Nr. ${esc(k.re_nr)}</small>` : ''}`;
+        : `${esc(reTitel(k))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}" title="${k.status === 'geprueft' ? 'geprüft' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>`;   // Rechnungsnummer steht rechts in der Karte – im Baum einzeilig
       out.push(`<div class="pj-r k${sel ? ' on' : ''}${re && x.aufgehoben ? ' deakt-k' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span><button type="button" class="pj-del" data-pjdel="${re ? 're' : 'ang'}" title="${re ? 'Diese Rechnung' : 'Dieses Angebot'} in den Papierkorb – mit Rückgängig">🗑</button></div>`);
     });
     if (on) out.push('\u0001');

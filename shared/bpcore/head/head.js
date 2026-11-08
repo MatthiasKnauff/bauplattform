@@ -1550,6 +1550,26 @@
     if (sel.disabled) inp.disabled = true;
     text();
   };
+  /* Enter in Tabellen wie in einer Tabellenkalkulation: Wert übernehmen und eine Zeile tiefer ins Feld derselben Spalte
+     (Umschalt+Enter: eine Zeile höher). Apps, die Enter selbst behandeln, rufen preventDefault – dann passiert hier nichts;
+     data-enter="eigen" an einem Feld oder Bereich schaltet es ab. Läuft am window, also nach den Handlern der Apps. */
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
+    const el = e.target; if (!el || !el.closest) return;
+    const istFeld = (el.tagName === 'INPUT' && !/^(button|submit|reset|file|image|hidden|range|color)$/i.test(el.type)) || el.tagName === 'SELECT';
+    if (!istFeld || el.closest('[data-enter="eigen"]') || el.getAttribute('role') === 'combobox' || el.list) return;
+    const td = el.closest('td,th'), tr = td && td.parentElement; if (!tr || !tr.closest('table')) return;
+    const col = td.cellIndex, feldIn = (z) => { const c = z.cells && z.cells[col]; return c ? [...c.querySelectorAll('input:not([type=hidden]):not([disabled]):not([readonly]),select:not([disabled]),textarea:not([disabled]):not([readonly])')].find((x) => x.offsetParent !== null) : null; };
+    let z = e.shiftKey ? tr.previousElementSibling : tr.nextElementSibling, ziel = null;
+    while (z && !ziel) { ziel = feldIn(z); z = e.shiftKey ? z.previousElementSibling : z.nextElementSibling; }
+    e.preventDefault();
+    const fokus = (f) => { f.focus(); if (f.select && f.type !== 'date') try { f.select(); } catch { /* egal */ } };
+    if (!ziel) { el.blur(); return; }   // letzte Zeile: nur übernehmen
+    // Zeichnet die App die Tabelle nach dem Speichern neu, das Feld über seine data-Merkmale wiederfinden
+    const sel = ziel.tagName.toLowerCase() + [...ziel.attributes].filter((a) => a.name.startsWith('data-')).map((a) => `[${a.name}="${CSS.escape(a.value)}"]`).join('');
+    fokus(ziel);
+    if (sel.includes('[')) [60, 250, 600].forEach((t) => setTimeout(() => { if (document.body.contains(ziel)) return; const n = document.querySelector(sel); if (n && document.activeElement !== n) fokus(n); }, t));
+  });
   const paScan = (r) => { (r.matches && r.matches('select[data-bp-projekte]') ? [r] : []).concat([...(r.querySelectorAll ? r.querySelectorAll('select[data-bp-projekte]') : [])]).forEach(H.projektAuswahl); };
   new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) paScan(n); }))).observe(document.documentElement, { childList: true, subtree: true });
   if (document.body) paScan(document.body); else document.addEventListener('DOMContentLoaded', () => paScan(document.body));

@@ -105,6 +105,7 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 #histBar[hidden]{display:none}
 #histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .body.mit-quelle{grid-template-columns:272px minmax(0,1fr) minmax(320px,36%)}
+.qu[hidden]{display:none!important}   /* sonst steht die Kopierquelle auch in anderen Bereichen (display:flex schlägt hidden) */
 .qu{border-left:1px solid var(--line);background:var(--card);position:sticky;top:52px;align-self:start;max-height:calc(100vh - 52px);box-sizing:border-box;display:flex;flex-direction:column;min-width:0;grid-row:1;grid-column:3}
 .body>.nav{grid-row:1;grid-column:1}.body>.pane{grid-row:1;grid-column:2}   /* feste Spalten: nichts rutscht in eine zweite Zeile */
 .qu-h{padding:.45rem .6rem .4rem;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:.35rem;background:var(--tabs)}
@@ -686,7 +687,7 @@ document.addEventListener('click', (e) => {
   const c = e.target.closest('[data-ucmd]');
   if (c) {
     if (m) m.remove(); const b = ribKnopf(c.dataset.ucmd); if (!b || b.disabled) return;
-    const r = (document.querySelector('[data-umenu]') || c).getBoundingClientRect(), vorher = new Set(document.querySelectorAll('.menu'));
+    const r = (c.hasAttribute('data-udr') ? c : document.querySelector('[data-umenu]') || c).getBoundingClientRect(), vorher = new Set(document.querySelectorAll('.menu'));
     e.stopPropagation(); b.click();
     // Untermenüs (z. B. Drucken) hängen sonst am unsichtbaren Knopf der Werkzeugleiste – unter „⋯“ anzeigen
     setTimeout(() => document.querySelectorAll('.menu').forEach((x) => { if (vorher.has(x)) return; Object.assign(x.style, { position: 'fixed', top: (r.bottom + 4) + 'px', right: 'auto', bottom: 'auto', width: 'auto', minWidth: '16rem', maxWidth: '24rem' }); x.style.left = Math.max(8, r.right - x.offsetWidth) + 'px'; }), 0);
@@ -1156,7 +1157,7 @@ function render() {
   const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
   const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !(LIST.find((x) => x.id === L.id) || {}).vergeben], auftraege: ['new', '＋ Neues LV', !pid], tueren: null, aufmass: null, uebersicht: null }[tab];
   $('#utb').innerHTML = schrittVon(tab)[2].map((k) => `<button type="button" role="tab" data-tab="${k}"${tab === k ? ' class="on" aria-selected="true"' : ''}>${icn(k)}${esc((TABS.find((t) => t[0] === k) || [, k])[1])}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')
-    + `<span class="ufill"></span><span class="uakt">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle: Einlesen, Speichern unter, Drucken, Kopierquelle, Archiv …">⋯</button></span>`;
+    + `<span class="ufill"></span><span class="uakt">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}${L ? '<button type="button" class="btn sm" data-ucmd="druBtn" data-udr title="Drucken oder als PDF – LV, Preisspiegel, Aufmaß, Rechnungsprüfung, Freigabe …">🖨 Drucken</button>' : ''}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle: Einlesen, Speichern unter, Drucken, Kopierquelle, Archiv …">⋯</button></span>`;
   const nLv = LIST.filter((x) => !x.archived).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
     + `<div class="nav-baum" id="pjTree">${pjBaum()}</div><button type="button" class="nneu" data-act="new">＋ Neues LV</button>`
@@ -2149,9 +2150,9 @@ function vAmErfassen() {
   const detail = `<div class="card am-d"${B.length ? '' : ' style="position:sticky;top:8px"'}><div class="am-dk"><h3 style="margin:0 0 .2rem">${esc(x.oz)} ${esc(x.kurz)}</h3>${nav}</div>
         <p class="hint" style="margin:0 0 .4rem">LV-Menge ${nf(x.menge)} ${esc(x.einheit)} · aufgemessen <b>${nf(sum)} ${esc(x.einheit)}</b>${x.menge ? ` (${Math.round(sum / x.menge * 100)} %)` : ''}${ep != null ? ` · ${eur(sum * ep)} zum Auftrags-EP ${nf2(ep)} €` : vergeben() ? '' : ' · noch nicht vergeben'}</p>${firma}
         <table class="lv am"><thead><tr><th style="width:7.5rem">Datum</th><th>Ort / Bauteil</th><th>Rechenweg</th><th class="r">Menge</th><th></th></tr></thead><tbody>
-        ${Z.map((a) => `<tr${a.quelle === 'beleg' ? ' class="am-lf" title="aus der PDF der Firma übernommen – prüfen"' : ''}><td><input type="date" data-am="datum" data-id="${a.id}" value="${esc(a.datum)}"></td><td><input data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
+        ${Z.map((a) => `<tr${a.quelle === 'beleg' ? ' class="am-lf" title="aus der PDF der Firma übernommen – prüfen"' : ''}><td><input data-am="datum" data-id="${a.id}" value="${esc(amDatumZeig(a.datum))}" placeholder="TT.MM.JJJJ" title="Datum (z. B. 8.11.) oder freier Text (z. B. KW 45, Okt. 2026)" autocomplete="off"></td><td><input data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
           <td><input data-am="formel" data-id="${a.id}" value="${esc(a.formel)}" placeholder="z. B. 2 × 3,50 × 2,75"></td><td class="r">${nf(a.menge)}</td><td><button class="ib" data-amdel="${a.id}" title="Zeile löschen">✕</button></td></tr>`).join('')}
-        <tr><td><input type="date" data-am-new="datum" value="${new Date().toISOString().slice(0, 10)}"></td><td><input data-am-new="ort" placeholder="z. B. EG Bad, Achse A–C"></td>
+        <tr><td><input data-am-new="datum" value="${esc(amDatumZeig(((x) => (x && x[0] === new Date().toDateString() ? x[1] : ''))(LS.get('amDatum', null)) || new Date().toISOString().slice(0, 10)))}" placeholder="TT.MM.JJJJ" title="Datum (z. B. 8.11.) oder freier Text (z. B. KW 45, Okt. 2026) – gilt auch für die nächsten Zeilen" autocomplete="off"></td><td><input data-am-new="ort" placeholder="z. B. EG Bad, Achse A–C"></td>
           <td><input data-am-new="formel" placeholder="Rechenweg oder Menge – Enter: weiter zur nächsten Position" title="Enter: speichern und nächste Position · Umschalt+Enter: speichern und weitere Zeile dieser Position"></td><td class="r" id="amPrev"></td><td></td></tr></tbody></table>
         <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-amraum="1" title="Flächen aus dem Raumbuch der Baukosten übernehmen">Aus dem Raumbuch …</button>
           <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –. <b>Enter</b> speichert und geht zur nächsten Position, <b>Umschalt+Enter</b> für eine weitere Zeile dieser Position.</span></div></div>`;
@@ -2388,11 +2389,19 @@ async function amNeu(el, enter, weiter) {
   const f = $('[data-am-new="formel"]').value.trim(); if (!f) { if (weiter) amWeiter(); return; }
   amBusy = true; setTimeout(() => { amBusy = false; }, 800);
   if (formel(f) == null) { toast('Rechenweg nicht verständlich – bitte nur Zahlen, × / + – und Klammern.', true); return; }
-  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: $('[data-am-new="datum"]').value, ort: $('[data-am-new="ort"]').value, formel: f });
+  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: (LS.set('amDatum', [new Date().toDateString(), amDatumWert($('[data-am-new="datum"]').value)]), amDatumWert($('[data-am-new="datum"]').value)), ort: $('[data-am-new="ort"]').value, formel: f });
     if (weiter) amWeiter(); else { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); } } catch (er) { toast(er.message, true); }
 }
+/* Aufmaß-Datum: Datum oder freier Text – „8.11.“ / „08.11.2026“ wird als Datum gespeichert, alles andere wie getippt */
+function amDatumZeig(v) { return /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v.slice(8, 10) + '.' + v.slice(5, 7) + '.' + v.slice(0, 4) : (v || ''); }
+function amDatumWert(v) {
+  v = String(v || '').trim(); const m = /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})?$/.exec(v);
+  if (!m) return v.slice(0, 40);
+  const j = m[3] ? (m[3].length === 2 ? '20' + m[3] : m[3]) : String(new Date().getFullYear());
+  return `${j}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+}
 async function amSave(el) {
-  const body = { [el.dataset.am]: el.value };
+  const body = { [el.dataset.am]: el.dataset.am === 'datum' ? amDatumWert(el.value) : el.value };
   if (el.dataset.am === 'formel' && el.value.trim() && formel(el.value) == null) { toast('Rechenweg nicht verständlich.', true); return; }
   try { await call('api/aufmass/' + el.dataset.id, 'PUT', body); } catch (er) { toast(er.message, true); }
 }

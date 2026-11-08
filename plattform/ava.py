@@ -3001,7 +3001,7 @@ def aufmass_neu(i):
             m = formel(z.get("formel"))
             menge = m if m is not None else round(_f(z.get("menge"), 0), 4)
             c.execute("INSERT INTO ava_aufmass(lv_id, pos_id, datum, ort, formel, menge, quelle, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
-                      (i, z["pos_id"], _s(z.get("datum"), 10) or date.today().isoformat(), _s(z.get("ort"), 200), _s(z.get("formel"), 500), menge,
+                      (i, z["pos_id"], _s(z.get("datum"), 40) or date.today().isoformat(), _s(z.get("ort"), 200), _s(z.get("formel"), 500), menge,
                        _s(z.get("quelle"), 40) or "hand", _now(), g.user["name"]))
             n += 1
         if not n:
@@ -3024,7 +3024,7 @@ def aufmass(a):
             m = formel(fo)
             menge = m if m is not None else round(_f(b.get("menge", x["menge"]), 0), 4)
             c.execute("UPDATE ava_aufmass SET datum=?, ort=?, formel=?, menge=? WHERE id=?",
-                      (_s(b.get("datum", x["datum"]), 10), _s(b.get("ort", x["ort"]), 200), fo, menge, a))
+                      (_s(b.get("datum", x["datum"]), 40), _s(b.get("ort", x["ort"]), 200), fo, menge, a))
         _touch(c, x["lv_id"])
         return _antwort(c, x["lv_id"])
 

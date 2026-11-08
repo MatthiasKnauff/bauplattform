@@ -911,7 +911,7 @@ def einst_abrechnung():
             c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value",
                       ("ava_nt_nur_beauftragt", "1" if b.get("nt_nur_beauftragt") else "0"))
         _NTM["t"] = 0.0
-    return jsonify(nt_nur_beauftragt=nt_nur_beauftragt(), admin=bool(g.user["is_admin"]))
+    return jsonify(nt_nur_beauftragt=nt_nur_beauftragt(), admin=bool(g.user["is_admin"]), pdf_name_tpl=pdf_name_tpl())
 
 
 def _ist_vergeben(V):
@@ -1006,7 +1006,9 @@ def rechne(lv, angebote, aufmass, rechnungen):
         std = S["pct_schluss"] if art == "schluss" else S["pct_abschlag"]
         if g_ and rd.get("einbehalt") in (None, ""):   # früher geprüft, Satz nicht festgehalten: wie damals gerechnet
             std = _f(V.get("einbehalt"), 5.0)
-        eb_pct = _f(rd.get("einbehalt"), std) if rd.get("einbehalt") not in (None, "") else std
+        # offene Rechnung: immer der aktuelle Satz der Sicherheiten – außer er wurde bei dieser Rechnung von Hand eingetragen;
+        # geprüfte Rechnung: der beim Abschließen festgehaltene Satz
+        eb_pct = _f(rd.get("einbehalt"), std) if rd.get("einbehalt") not in (None, "") and (g_ or rd.get("einbehalt_hand")) else std
         if not AW["einbehalt"]:
             eb_pct = 0.0
         E = L2 * eb_pct / 100
@@ -2653,6 +2655,12 @@ def lvdok(d):
     return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
 
 
+# ---------------------------------------------------------------- Baudaten-API durchreichen (Kataloge in den Einstellungen), wenn die AVA direkt über ihren Port läuft
+@app.route("/baudaten/api/<path:p>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+def baudaten_proxy(p):
+    return C.weiterleiten(os.environ.get("BAUDATEN_INTERNAL", "http://baudaten:8099"), "api/" + p)
+
+
 # ---------------------------------------------------------------- Nachträge von Hand (Aufträge): Position unter „Nachträge“, Status ändern
 def _nt_titel(items):
     """Titel „Nachträge“ (anlegen, wenn er fehlt) – nach der höchsten ersten OZ-Stelle."""
@@ -2873,15 +2881,34 @@ def ablage_ordner():
         return jsonify(ok=False, error=str(e))
 
 
+PDF_NAME_STD = "{projektnr} {art} {firma} – LV {lv} – {zusatz}"
+_PDFTPL = {"t": 0.0, "v": PDF_NAME_STD}
+
+
+def pdf_name_tpl():
+    """Büro-Einstellung (Verwaltung → Ablage): Schema für die Namen aller PDFs – kurz zwischengespeichert."""
+    import time
+    if time.time() - _PDFTPL["t"] > 3:
+        try:
+            with db.tx() as c:
+                r = c.execute("SELECT value FROM settings WHERE key='pdf_name_tpl'").fetchone()
+            _PDFTPL["v"] = (r["value"].strip() if r and r["value"] and r["value"].strip() else PDF_NAME_STD)
+        except Exception:
+            pass
+        _PDFTPL["t"] = time.time()
+    return _PDFTPL["v"]
+
+
 def _pdf_name(projekt, art, firma="", lv=None, zusatz=""):
-    """Einheitlicher Dateiname für alle PDFs: „<Projektnr.> <Art> <Firma> – LV <Nr> <Name> – <Zusatz>.pdf“ (wie in der Oberfläche)."""
+    """Einheitlicher Dateiname für alle PDFs nach dem Schema aus den Büro-Einstellungen, Vorgabe
+    „{projektnr} {art} {firma} – LV {lv} – {zusatz}.pdf“. Platzhalter: {projektnr} {projekt} {art} {firma} {lv} {lvnr} {lvname} {zusatz} {datum}."""
     m = re.match(r"^\s*([A-Z]{1,2}\d{2,5}(?:[.\-]\d+)?)\b", projekt or "")
-    proj = m.group(1) if m else ((projekt or "").split() or [""])[0]
-    t = " ".join(x for x in (proj, art, (firma or "").strip()) if x)
-    if lv is not None:
-        t += " – LV " + " ".join(x for x in (lv["nr"], lv["name"]) if x)
-    if zusatz:
-        t += " – " + zusatz
+    w = {"projektnr": m.group(1) if m else ((projekt or "").split() or [""])[0], "projekt": projekt or "", "art": art or "", "firma": (firma or "").strip(),
+         "lvnr": (lv["nr"] if lv is not None else "") or "", "lvname": (lv["name"] if lv is not None else "") or "", "zusatz": zusatz or "", "datum": date.today().isoformat()}
+    w["lv"] = " ".join(x for x in (w["lvnr"], w["lvname"]) if x)
+    t = re.sub(r"\{(\w+)\}", lambda mm: w.get(mm.group(1), ""), pdf_name_tpl())
+    t = re.sub(r"(\s*[–\-·|]\s*)(?:LV\s*)?(?=\s*[–\-·|]|\s*$)", "", t)   # leere Teile samt Trennzeichen weg (z. B. „– LV –“, „ – “ am Ende)
+    t = re.sub(r"^\s*[–\-·|]\s*", "", t)
     return re.sub(r'[\\/:*?"<>|]+', "-", re.sub(r"\s+", " ", t)).strip()[:150] + ".pdf"
 
 
@@ -4319,9 +4346,10 @@ def rechnung(k):
             if _re_nachfolger(c, x):
                 return jsonify(error="Auf dieser Rechnung bauen spätere Rechnungen auf – erst deren Prüfung zurücknehmen."), 400
             status = "offen"; d.pop("stand", None); d.pop("geprueft_am", None); d.pop("geprueft_von", None)
-            if d.pop("einbehalt_fest", None):   # beim Abschließen festgehaltener Satz: wieder die Sicherheit des Auftrags
-                d.pop("einbehalt", None)
-            if d.pop("abzug_fest", None):
+            # Prüfung zurückgenommen: alles Festgehaltene weg – Änderungen an Sicherheiten und Abzügen des Auftrags gelten sofort wieder
+            for k_ in ("einbehalt", "einbehalt_fest", "einbehalt_hand", "abzug_fest"):
+                d.pop(k_, None)
+            if not d.get("abzug_hand"):
                 d.pop("abzug", None)
         elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
@@ -4329,9 +4357,14 @@ def rechnung(k):
             d["abzuege"] = [{"text": _s(z.get("text"), 200), "pct": _fn(z.get("pct")), "betrag": _fn(z.get("betrag"))} for z in b["abzuege"][:20] if isinstance(z, dict)]
         if "einbehalt" in b:
             d["einbehalt"] = _fn(b["einbehalt"]); d.pop("einbehalt_fest", None)   # von Hand gesetzt (oder gelöscht = wie Auftrag)
+            if d["einbehalt"] is None:
+                d.pop("einbehalt", None); d.pop("einbehalt_hand", None)
+            else:
+                d["einbehalt_hand"] = True
         if isinstance(b.get("abzug"), dict):   # Abzüge dieser Rechnung an/aus (null = wie im Auftrag)
             A_ = {**(d.get("abzug") or {}), **{k: v for k, v in b["abzug"].items() if k in ABZUG_ARTEN}}
             d["abzug"] = {k: bool(v) for k, v in A_.items() if v is not None}
+            d["abzug_hand"] = bool(d["abzug"]); d.pop("abzug_fest", None)
             if not d["abzug"]:
                 d.pop("abzug")
         if isinstance(b.get("zeilen"), list):   # Regierechnung: Stundenlohnzettel / Zeilen
@@ -4367,7 +4400,7 @@ def rechnung(k):
                 S_ = sicherheit_conf(_j(r["vergabe"], {}) or {})
                 d["einbehalt"] = S_["pct_schluss"] if x["art"] == "schluss" else S_["pct_abschlag"]
                 d["einbehalt_fest"] = True   # nur festgehalten, nicht von Hand – beim Zurücknehmen der Prüfung wieder frei
-            if not isinstance(d.get("abzug"), dict):
+            if not d.get("abzug_hand"):
                 d["abzug_fest"] = True
             d["abzug"] = abzug_wahl(_j(r["vergabe"], {}) or {}, d)   # Wahl festhalten – spätere Änderungen am Auftrag ändern geprüfte Rechnungen nicht
             d["geprueft_am"] = date.today().isoformat()

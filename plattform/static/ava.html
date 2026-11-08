@@ -713,11 +713,14 @@ const artW = (x) => (x.art === 'T' && x.vb ? 'V' : x.art);
 const STATUS = [['entwurf', 'Entwurf'], ['versendet', 'An Bieter versendet'], ['vergeben', 'Vergeben'], ['abgerechnet', 'Abgerechnet'], ['nicht_vergeben', 'Nicht vergeben']];
 const NICHT_GRUENDE = [['', '– ohne Angabe –'], ['entfallen', 'Leistung entfällt'], ['aufgehoben', 'Ausschreibung aufgehoben'], ['anderweitig', 'anderweitig vergeben'], ['zurueckgestellt', 'zurückgestellt']];
 /* Einheitlicher Name für alle PDFs: „<Projektnr.> <Art> <Firma> – LV <Nr> <Name> – <Zusatz>.pdf“ – im ganzen Projekt gleich */
+let PDFTPL = '{projektnr} {art} {firma} – LV {lv} – {zusatz}';   // Schema aus den Büro-Einstellungen (Verwaltung → Ablage), wird beim Start geladen
 function pdfName(art, zusatz = '', lv = L) {
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '', m = /^\s*([A-Z]{1,2}\d{2,5}(?:[.\-]\d+)?)\b/.exec(pn);
-  const proj = m ? m[1] : pn.split(/\s+/)[0] || '';
-  const firma = lv && lv.vergabe && (lv.vergabe.bieter || lv.auftragnehmer) || '';
-  const t = [proj, art, firma].filter(Boolean).join(' ') + (lv ? ` – LV ${[lv.nr, lv.name].filter(Boolean).join(' ')}` : '') + (zusatz ? ` – ${zusatz}` : '');
+  const w = { projektnr: m ? m[1] : pn.split(/\s+/)[0] || '', projekt: pn, art: art || '', firma: (lv && lv.vergabe && (lv.vergabe.bieter || lv.auftragnehmer) || '').trim(),
+    lvnr: lv ? lv.nr || '' : '', lvname: lv ? lv.name || '' : '', zusatz: zusatz || '', datum: new Date().toISOString().slice(0, 10) };
+  w.lv = [w.lvnr, w.lvname].filter(Boolean).join(' ');
+  let t = PDFTPL.replace(/\{(\w+)\}/g, (_, k) => w[k] ?? '');
+  t = t.replace(/(\s*[–\-·|]\s*)(?:LV\s*)?(?=\s*[–\-·|]|\s*$)/g, '').replace(/^\s*[–\-·|]\s*/, '');   // leere Teile samt Trennzeichen weg
   return t.replace(/\s+/g, ' ').replace(/[\\/:*?"<>|]+/g, '-').trim().slice(0, 150) + '.pdf';
 }
 const ohneLvTxt = (x) => (x.frei ? (x.ohne_lv === false ? ' · vergeben' : ' · ohne LV') : ' · vergeben');
@@ -747,6 +750,7 @@ function formel(s) {
 /* ---------- Laden / Speichern ---------- */
 async function loadProj() {
   PROJ = await api('api/projekte');
+  api('api/einstellungen/abrechnung').then((E) => { if (E && E.pdf_name_tpl) PDFTPL = E.pdf_name_tpl; }).catch(() => {});   // Namensschema der PDFs (Büro)
   const gp = window.BPHead && BPHead.projektId();
   pid = PROJ.some((p) => p.id === gp) ? gp : PROJ.some((p) => p.id === LS.get('pid')) ? LS.get('pid') : (PROJ.find((p) => !p.archived) || {}).id || null;
   $('#proj').innerHTML = `<optgroup label="Projekte">${PROJ.filter((p) => !p.archived).map((p) => `<option value="${p.id}"${p.id === pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>`
@@ -1290,9 +1294,9 @@ function pjBaum() {
     const re = tab === 'aufmass' || tab === 'rechnungen', kids = re ? x.rechnungen : tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : [];
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
-    const sub = x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? ohneLvTxt(x).replace(' · ', '') : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // Firma steht oben in der Mitte
+    const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? ohneLvTxt(x).replace(' · ', '') : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // Firma steht oben in der Mitte; im Leistungsverzeichnis einzeilig wie in Aufträge
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
-    out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
+    out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
@@ -3604,7 +3608,7 @@ async function druckEditor() {
   ov.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-d]'); if (!b || !lay) return; const a = b.dataset.d;
     if (a === 'x') return zu();
-    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) window.open(BPHead.appUrl(ad) + '/layout#lv', '_blank'); return; }
+    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), 'lv'); return; }
     if (a === 'save') {
       try {
         const r = await api(`api/lv/${L.id}/druck`, 'POST', { schritt: 'entwurf', speichern: 1, layout: { ...lay, felder: F } });
@@ -3692,7 +3696,7 @@ async function paketDruck(o) {
   ov.addEventListener('click', (e) => {
     const b = e.target.closest('[data-d]'); if (!b) return; const a = b.dataset.d;
     if (a === 'x') return zu();
-    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) window.open(BPHead.appUrl(ad) + '/layout#' + o.bereich, '_blank'); return; }
+    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), o.bereich); return; }
     if (!blob) return toast(teile().length || !o.teile.length ? 'Die Vorschau lädt noch …' : 'Bitte mindestens einen Teil ankreuzen.', true);
     const href = URL.createObjectURL(blob);
     if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: href, typ: 'pdf', name: o.name }]); return; }

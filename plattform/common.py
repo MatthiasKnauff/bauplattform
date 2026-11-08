@@ -147,6 +147,24 @@ def draw_logo(cv, right, top, h, max_w):
         return False
 
 
+def weiterleiten(base, path):
+    """Anfrage an eine andere App im Docker-Netz durchreichen (z. B. /baudaten/api/… aus der AVA, wenn die App direkt über ihren
+    Port und nicht über den Verteiler aufgerufen wird): Methode, Abfrage, Body und die Anmeldung (Cookie) gehen mit."""
+    from flask import Response
+    qs = request.query_string.decode()
+    hdr = {k: v for k, v in request.headers.items() if k.lower() in ("content-type", "cookie", "accept", "x-requested-with")}
+    hdr["X-Forwarded-Prefix"] = request.headers.get("X-Forwarded-Prefix", "")
+    req = urllib.request.Request(base.rstrip("/") + "/" + path.lstrip("/") + ("?" + qs if qs else ""), method=request.method,
+                                 data=request.get_data() if request.method in ("POST", "PUT", "PATCH", "DELETE") else None, headers=hdr)
+    try:
+        with urllib.request.urlopen(req, timeout=300) as r:
+            return Response(r.read(), status=r.status, headers={k: v for k, v in r.getheaders() if k.lower() in ("content-type", "content-disposition", "cache-control")})
+    except urllib.error.HTTPError as e:
+        return Response(e.read(), status=e.code, headers={k: v for k, v in e.headers.items() if k.lower() == "content-type"})
+    except (urllib.error.URLError, OSError) as e:
+        return jsonify(error=f"App nicht erreichbar: {e}"), 502
+
+
 def bt_api(method, path, body=None):
     """Bautagebuch im Docker-Netz aufrufen – mit der Anmeldung des aktuellen Benutzers (gemeinsame Sitzung, Cookie bp_sso).
     So gelten dort dieselben Rechte, und das Bautagebuch erledigt Anlegen/Löschen selbst (inkl. Dateien im eigenen Laufwerk)."""

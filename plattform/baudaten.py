@@ -9,7 +9,7 @@ Positionen in eigene übernehmen und bearbeiten, Export als CSV. Ausschreibung/V
 über bpcore/baudaten.py direkt aus derselben Datenbank ein.
 Importierte Daten kommerzieller Anbieter bleiben im Büro: Sie liegen nur in der Datenbank, nicht im Programmcode.
 """
-import csv, io, json, re
+import csv, io, json, os, re
 from datetime import date
 
 from flask import Response, g, jsonify, redirect, request
@@ -74,6 +74,12 @@ def me():
 @app.get("/api/platform")
 def platform_conf():
     return jsonify(platform.config(g.user))
+
+
+@app.route("/ava/api/<path:p>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+def ava_proxy(p):
+    """AVA-API durchreichen (Kataloge in den Einstellungen), wenn die Baudaten direkt über ihren Port laufen."""
+    return C.weiterleiten(os.environ.get("AVA_INTERNAL", "http://ava:8097"), "api/" + p)
 
 
 @app.get("/api/start")

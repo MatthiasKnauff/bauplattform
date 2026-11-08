@@ -141,6 +141,13 @@ async function vorbemerkung(k) {
   });
   bg.querySelector('.modal').style.width = 'min(760px,100%)';
 }
+/* Beim Auf-/Zuklappen bleibt die angeklickte Zeile unter der Maus stehen (sonst springt die Liste, wenn oben ein anderer Bereich zuklappt) */
+function festhalten(sel, y0) {
+  const el = $('#side').querySelector(sel); if (!el) return;
+  const d = el.getBoundingClientRect().top - y0; if (!d) return;
+  const sd = $('#side'), vor = sd.scrollTop; sd.scrollTop += d;
+  const rest = d - (sd.scrollTop - vor); if (rest) scrollBy(0, rest);   // die Liste selbst scrollt nicht weit genug: die Seite gleicht aus
+}
 function seite() {
   const E = S.einstellungen, kat = S.kataloge.find((k) => k.key === F.katalog) || {};
   let h = `<h3>${esc(kat.name || '')}</h3><button type="button" class="si${!F.lb ? ' on' : ''}" data-lb=""><span>Alle Leistungsbereiche</span><i>${(kat.n || 0).toLocaleString('de-DE')}</i></button>`;
@@ -369,7 +376,7 @@ async function importieren() {
 document.addEventListener('click', async (e) => {
   const t = e.target;
   const vb = t.closest('[data-vb]'); if (vb) { vorbemerkung(vb.dataset.vb); return; }
-  const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } } seite(); laden(); return; }
+  const lb = t.closest('[data-lb]'); if (lb) { F.lb = lb.dataset.lb; F.gruppe = ''; N = 100; const y0 = lb.getBoundingClientRect().top; if (F.lb && !GR[F.lb]) { try { GR[F.lb] = await api(`api/gruppen?katalog=${encodeURIComponent(F.katalog)}&lb=${encodeURIComponent(F.lb)}`); } catch { GR[F.lb] = []; } } seite(); festhalten(`[data-lb="${CSS.escape(F.lb)}"]`, y0); laden(); return; }
   const gr = t.closest('[data-gr]'); if (gr) { F.gruppe = F.gruppe === gr.dataset.gr ? '' : gr.dataset.gr; N = 100; seite(); laden(); return; }
   const kb = t.closest('[data-korb]'); if (kb) { const id = +kb.dataset.korb; korbAendern(KORB.has(id) ? { weg: [id] } : { dazu: [id] }); return; }
   if (t.closest('[data-korbd]') && SEL) { korbAendern(KORB.has(SEL.id) ? { weg: [SEL.id] } : { dazu: [SEL.id] }); return; }

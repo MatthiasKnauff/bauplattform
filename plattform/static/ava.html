@@ -525,6 +525,7 @@ tr.am-lf td input{color:#c0621f}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* nur die Seite scrollt – rechts kein zweiter Scrollbalken */
 @media (max-width:1100px){.re2{grid-template-columns:1fr}.re2-baum{position:static;max-height:40vh}}
+body.ph-frei .ph{position:static}
 .lvx-bar{position:sticky;top:var(--phh,3.2rem);z-index:4;background:var(--bg);margin:0 0 .5rem;padding:.35rem 0}   /* Knopfleiste des geöffneten LV über der LV-Liste */
 .lvx-akt{padding:.5rem .6rem .7rem 1.6rem;border-bottom:1px solid var(--line);border-left:3px solid var(--y);background:var(--bg)}
 .pj-blink{animation:pjb 1.5s ease}@keyframes pjb{0%,60%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
@@ -1489,8 +1490,10 @@ function render() {
   if (tab === 'aufmass' || tab === 'rechnungen') amPdfMount();
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);
   if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); }
+  document.body.classList.toggle('ph-frei', PJTABS.has(tab));
   if (PJTABS.has(tab)) {   // Knopfleiste des geöffneten LV bleibt beim Scrollen unter der Kopfzeile stehen; die übrigen LVs scrollen weg
-    const ph = document.querySelector('.ph'); if (ph) document.documentElement.style.setProperty('--phh', ph.offsetHeight + 'px');
+    const ph = null, kopf = document.querySelector('.bph');   // Titelzeile scrollt hier mit weg – oben (unter der Kopfleiste der Plattform) bleiben nur Knopfleiste und Spaltenköpfe
+    document.documentElement.style.setProperty('--phh', (kopf ? Math.round(kopf.getBoundingClientRect().bottom) : 52) + 'px');
     const lb0 = tab === 'lv' && v.querySelector('.lvx-akt>.bar:first-child'), lx = v.querySelector('.lvx');   // LV-Knopfleiste zwischen Kennzahlen und LV-Liste
     if (lb0 && lx) { lb0.classList.add('lvx-bar'); lx.before(lb0); }
     const lb = v.querySelector('.lvx-bar'); if (lb) document.documentElement.style.setProperty('--lvbar', lb.offsetHeight + 'px');

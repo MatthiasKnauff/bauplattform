@@ -2328,6 +2328,7 @@ const ACTIONS = {
   toggleAutoLink: () => { autoLink = !autoLink; LS.set('autolink', autoLink); updateRibbon(); toast(autoLink ? 'Automatisch verknüpfen: EIN – beim Einfügen und Löschen werden Verknüpfungen angepasst.' : 'Automatisch verknüpfen: AUS'); },
   gwDialog, gwAuto,
   settings: () => settingsDialog(),
+  verlaufPlan: () => { if (P) versionHistory(); },
   verlaufKatalog: () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'gs', titel: 'Verlauf der Kataloge und Einstellungen' }); },
   fileClose: () => closeProject(),
   bpVerknuepfen: () => { if (window.bpLinkDialog) window.bpLinkDialog(); },
@@ -2744,7 +2745,7 @@ function vleiste() {
   if (!window.BPHead || !BPHead.versionsleiste) return;
   if (!vlKnoepfe) {
     const mk = (act, txt, tip) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'bph-vl-b'; b.dataset.act = act; b.textContent = txt; b.title = tip; return b; };
-    vlKnoepfe = [mk('printDialog', '🖨 Drucken / PDF …', 'Bauzeitenplan drucken oder als PDF (Strg+P)'), mk('fileExport', '⤓ Exportieren …', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei')];
+    vlKnoepfe = [mk('printDialog', '🖨 Drucken / PDF …', 'Bauzeitenplan drucken oder als PDF (Strg+P)'), mk('fileExport', '⤓ Exportieren …', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), mk('verlaufPlan', '🕘 Verlauf', 'Frühere Stände dieses Bauzeitenplans ansehen, vergleichen und wiederherstellen')];
   }
   const bt = P && P._bt ? P._bt.id : null;
   const L = !P ? [] : (bt ? projects.filter((p) => p.bt_id === bt) : projects.filter((p) => p.id === P.id)).slice().sort((a, b) => (a.created || '').localeCompare(b.created || '') || a.id.localeCompare(b.id));

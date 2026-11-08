@@ -193,6 +193,7 @@ body.as-open .wrap{padding-bottom:45vh}
   <div class="top" hidden>   <!-- wandern in die Versionsleiste unter der Kopfleiste -->
     <button class="btn sm pri" id="pdfBtn" title="Kostenermittlung für den Bauherrn drucken oder als PDF – die Stufe nach DIN 276 wählst du dort">🖨 Drucken / PDF …</button>
     <button class="btn sm" id="ansBtn" title="Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus einer anderen Kostenermittlung übernehmen">↪ Ansätze übernehmen …</button>
+    <button class="btn sm" id="verlBtn" title="Frühere Stände dieser Kostenermittlung ansehen, vergleichen und wiederherstellen">🕘 Verlauf</button>
     <span class="save" id="save" role="status"></span>
   </div>
   <nav class="tabs" id="tabs" aria-label="Bereiche"></nav>
@@ -1502,6 +1503,7 @@ async function verlauf() {
   BPHead.verlauf({ bereich: 'bkp:' + B.id, nach: () => openBk(B.id) });
 }
 window.bpNachVerlauf = () => (B ? openBk(B.id) : location.reload());
+document.addEventListener('click', (e) => { if (e.target.closest('#verlBtn')) verlauf(); });
 /* Kostenansätze aus einer anderen Kostenermittlung übernehmen – wie jede Änderung mit ↶ Rückgängig umkehrbar */
 $('#ansBtn').onclick = () => {
   if (!B) return;

@@ -2,9 +2,17 @@ import json
 import re
 from flask import Blueprint, g, jsonify, request
 from core import access, contacts, db
-from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
+from bpcore import fehler, versionen   # stille Fehler für die Verwaltung festhalten; Verlauf je Mangel/Aufgabe
 
 bp = Blueprint("items", __name__)
+
+
+def _verl(c, i, kind=None):
+    """Mängel, Aufgaben und Weisungen haben einen Verlauf (Startseite → Aufgaben & Mängel → 🕘 Verlauf)."""
+    if kind is None:
+        r = c.execute("SELECT kind FROM items WHERE id=?", (i,)).fetchone()
+        kind = r["kind"] if r else None
+    return f"mangel:{i}" if kind in versionen.MANGEL_KINDS else None
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
@@ -81,6 +89,8 @@ def create_item(r):
                 d.setdefault("headcount", 1)
         d["text"] = text
         neu = db.insert(c, "items", d, forced=forced)
+        if _verl(c, neu, d.get("kind")):
+            versionen.nach(c, f"mangel:{neu}", g.user["name"])
         if d.get("due"):
             out["hinweis"] = _als_termin(c, neu)
         return jsonify(id=neu, **out)
@@ -93,7 +103,12 @@ def update_item(i):
     if err:
         return jsonify(error=err), 400
     with db.tx() as c:
+        vb = _verl(c, i)
+        if vb:
+            versionen.vor(c, vb)
         db.update(c, "items", i, d, protected=("report_id",))
+        if vb:
+            versionen.nach(c, vb, g.user["name"])
         hinweis = _als_termin(c, i) if d.get("due") or ("due_time" in d and "due" not in d) else ""
     return jsonify(ok=True, hinweis=hinweis)
 
@@ -103,7 +118,12 @@ def delete_item(i):
     with db.tx() as c:
         row = c.execute("SELECT * FROM items WHERE id=?", (i,)).fetchone()
         imgs = [r["id"] for r in c.execute("SELECT id FROM images WHERE item_id=?", (i,))]   # Fotos bleiben im Bericht
+        vb = _verl(c, i, row["kind"] if row else None)
+        if vb:
+            versionen.vor(c, vb)
         c.execute("DELETE FROM items WHERE id=?", (i,))
+        if vb:
+            versionen.nach(c, vb, g.user["name"])   # im Verlauf als „gelöscht“ – von dort wiederherstellbar
     return jsonify(ok=True, item=dict(row, image_ids=imgs) if row else None)   # für "Rückgängig"
 
 
@@ -125,4 +145,6 @@ def restore_item():
         c.execute(f"INSERT INTO items({','.join(vals)}) VALUES({','.join('?' * len(vals))})", list(vals.values()))
         for n in ids:   # Fotos wieder dem Eintrag zuordnen
             c.execute("UPDATE images SET item_id=? WHERE id=? AND report_id=?", (vals["id"], n, vals["report_id"]))
+        if _verl(c, vals["id"], vals.get("kind")):
+            versionen.nach(c, f"mangel:{vals['id']}", g.user["name"])
     return jsonify(ok=True)

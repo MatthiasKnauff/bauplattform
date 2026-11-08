@@ -15,6 +15,7 @@ Bereiche (Schlüssel `bereich`):
   bkp:<id>          eine Kostenermittlung (bk_projects.data)
   avalv:<id>        ein Leistungsverzeichnis (ava_lv: Positionen, Vergabe)
   kontakt:<id>      eine Adresse (contacts)
+  mangel:<id>       ein Mangel / eine Aufgabe / Weisung aus dem Bautagebuch (items – Text, Firma, Frist, erledigt)
   konto:<uid>       persönliche Einstellungen eines Benutzers (Versand, Kalender, Darstellung, KI, Assistent, Unterschrift)
   versionen:conf    Aufbewahrung der Stände (bp_store)
 
@@ -180,6 +181,32 @@ def _kontakt(i):
     return load, save
 
 
+MANGEL_KINDS = {"maengel": "Mangel", "zu_erledigen": "Aufgabe", "weisungen": "Weisung"}
+MANGEL_COLS = ("report_id", "kind", "text", "done", "due", "due_time", "company", "contact_id")
+
+
+def _mangel(i):
+    def load(c):
+        r = c.execute("SELECT * FROM items WHERE id=?", (i,)).fetchone()
+        return {k: r[k] for k in MANGEL_COLS if k in r.keys()} if r else None
+
+    def save(c, v, by):
+        if v is None:
+            c.execute("DELETE FROM items WHERE id=?", (i,))
+            return
+        v = dict(v)
+        if v.get("contact_id") and not c.execute("SELECT 1 FROM contacts WHERE id=?", (v["contact_id"],)).fetchone():
+            v["contact_id"] = None   # Adresse inzwischen gelöscht – Firmenname bleibt im Text/Feld „Firma“
+        cols = [k for k in MANGEL_COLS if k in v and k != "report_id"]
+        if c.execute("SELECT 1 FROM items WHERE id=?", (i,)).fetchone():
+            c.execute(f"UPDATE items SET {', '.join(k + '=?' for k in cols)}, updated=? WHERE id=?", (*[v[k] for k in cols], _now(), i))
+        elif v.get("report_id") and c.execute("SELECT 1 FROM reports WHERE id=?", (v["report_id"],)).fetchone():   # gelöscht: in denselben Bericht zurück
+            c.execute(f"INSERT INTO items(id, report_id, {', '.join(cols)}) VALUES(?, ?, {', '.join('?' * len(cols))})", (i, v["report_id"], *[v[k] for k in cols]))
+        else:
+            raise ValueError("Der Bautagesbericht dazu existiert nicht mehr.")
+    return load, save
+
+
 def _bkp(i):
     def load(c):
         r = c.execute("SELECT data FROM bk_projects WHERE id=?", (i,)).fetchone()
@@ -261,6 +288,13 @@ def quelle(c, bereich):
     if a == "avalv" and k.isdigit():
         r = c.execute("SELECT name, nr FROM ava_lv WHERE id=?", (int(k),)).fetchone()
         return Quelle(f"Leistungsverzeichnis „{((r['nr'] + ' ') if r and r['nr'] else '') + (r['name'] if r else k)}“", "alle", *_avalv(int(k)))
+    if a == "mangel" and k.isdigit():
+        r = c.execute("SELECT i.kind, i.text, i.report_id FROM items i WHERE i.id=?", (int(k),)).fetchone()
+        last = None if r else c.execute("SELECT daten FROM versionen WHERE bereich=? ORDER BY id DESC LIMIT 1", (bereich,)).fetchone()
+        d = dict(r) if r else (_j(last["daten"], {}) or {}) if last else {}
+        t = (d.get("text") or "").strip().splitlines()[0][:60] if d.get("text") else f"Nr. {k}"
+        p = c.execute("SELECT p.leaders FROM reports r JOIN projects p ON p.id=r.project_id WHERE r.id=?", (d.get("report_id"),)).fetchone() if d.get("report_id") else None
+        return Quelle(f"{MANGEL_KINDS.get(d.get('kind'), 'Eintrag')} „{t}“", "leiter:" + ((p["leaders"] or "[]") if p else "[]"), *_mangel(int(k)))   # nur wer das Projekt sieht
     if a in ("bkp", "kontakt", "konto") and k.isdigit():
         i = int(k)
         if a == "bkp":
@@ -281,6 +315,12 @@ def darf(u, q):
         return False
     if q.recht == "alle":
         return True
+    if q.recht.startswith("leiter:"):   # Projekt mit Bauleitern: wie im Bautagebuch – Verwaltung, alle bei leerer Liste, sonst nur die Eingetragenen
+        try:
+            L = [int(x) for x in json.loads(q.recht[7:] or "[]") if str(x).isdigit()]
+        except (ValueError, TypeError):
+            L = []
+        return bool(u["is_admin"]) or not L or u["id"] in L
     if q.recht.startswith("eigen:"):
         return str(u["id"]) == q.recht[6:]
     return bool(u["is_admin"])
@@ -288,6 +328,9 @@ def darf(u, q):
 
 # ---------------------------------------------------------------- Änderungen in Worten
 _FEHLT = object()
+
+
+LABELS.update({"kind": "Art", "done": "erledigt", "due": "Frist", "due_time": "Uhrzeit", "company": "Firma", "contact_id": "Adresse", "report_id": "Bautagesbericht"})
 
 
 def _lab(k):
@@ -556,7 +599,7 @@ def statistik(c):
 
 
 TEILE = {"einst": "Allgemeine Einstellungen und Vorlagen", "gs": "Bauzeitenplan und KI", "bp": "Aufgaben & Mängel, Pläne & Dateien", "bk": "Raumtypen",
-         "bkp": "Kostenermittlungen", "avalv": "Leistungsverzeichnisse", "kontakt": "Adressen", "konto": "Persönliche Einstellungen"}
+         "bkp": "Kostenermittlungen", "avalv": "Leistungsverzeichnisse", "mangel": "Mängel und Aufgaben", "kontakt": "Adressen", "konto": "Persönliche Einstellungen"}
 
 
 def uebersicht(c, u, teil="", wer="", q="", n=300):

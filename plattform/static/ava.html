@@ -132,7 +132,18 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 @keyframes wspin{0%{transform:rotate(225deg);opacity:1;animation-timing-function:ease-out}7%{transform:rotate(345deg);animation-timing-function:linear}30%{transform:rotate(455deg);animation-timing-function:ease-in-out}39%{transform:rotate(690deg);animation-timing-function:linear}70%{transform:rotate(815deg);opacity:1;animation-timing-function:ease-out}75%{transform:rotate(945deg);animation-timing-function:ease-out}76%,100%{transform:rotate(945deg);opacity:0}}
 @media (prefers-reduced-motion:reduce){.wspin i{animation-duration:9s}}
 .qu tr.qg td,.qu tr.qb td{cursor:pointer;background:var(--tabs)}.qu tr.qb td{background:color-mix(in srgb,var(--y) 10%,var(--card))}.qu tr.qg.auf td{font-weight:600}.qu tr.qg td:first-child,.qu tr.qb td:first-child{color:var(--mute);text-align:center}
-.qu-favs{display:flex;gap:.3rem;flex-wrap:wrap;padding:.35rem .5rem;border-bottom:1px solid var(--line)}.qu-fav{font:inherit;font-size:.76rem;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:.1rem .55rem;cursor:pointer;color:var(--ink)}.qu-fav.on{border-color:var(--y);background:color-mix(in srgb,var(--y) 14%,transparent)}
+.qu-favs{display:flex;gap:.3rem;flex-wrap:wrap;align-items:center;padding:.35rem .5rem;border-bottom:1px solid var(--line)}
+.qu-fav{display:inline-flex;align-items:center;font-size:.76rem;border:1px solid var(--line);background:var(--card);border-radius:999px;overflow:hidden}.qu-fav button{font:inherit;border:0;background:none;color:var(--ink);cursor:pointer;padding:.1rem .2rem .1rem .55rem}
+.qu-fav .qu-favx{padding:.1rem .45rem .1rem .25rem;color:var(--mute);font-size:.9rem;line-height:1}.qu-fav .qu-favx:hover{color:#e5484d}.qu-fav.on{border-color:var(--y);background:color-mix(in srgb,var(--y) 14%,transparent)}
+.qu-favf{font:inherit;font-size:.76rem;border:0;background:none;color:var(--mute);cursor:pointer;padding:.1rem .3rem}.qu-favf.on{color:var(--ink);font-weight:600}.qu-favf{display:inline-flex;align-items:center;gap:.3rem}.qu-favf input{width:auto;margin:0;pointer-events:none}
+.qu-gm{width:min(430px,calc(100vw - 16px));max-height:min(70vh,560px);display:flex;flex-direction:column}.qu-gm .gm-l{flex:1;min-height:0}
+.gm-f{display:flex;align-items:center;gap:.5rem;padding:.4rem .7rem;border-bottom:1px solid var(--line);font-size:.85rem}.gm-f label{display:flex;gap:.35rem;align-items:center;margin:0;cursor:pointer}.gm-f input{width:auto}
+.gm-b{display:flex;align-items:center;gap:.4rem;padding:.45rem .35rem .2rem;font-size:.8rem}.gm-b b{flex:1;cursor:pointer;font-weight:600}.gm-b input{width:auto;margin:0}
+.gm-t{border:0;background:none;color:var(--mute);cursor:pointer;width:1.1rem;padding:0;font:inherit}
+.gm-k{padding-left:1.5rem;border-left:1px solid var(--line);margin-left:.85rem}
+.gm-g{display:flex;align-items:center;gap:.45rem;padding:.28rem .4rem;border-radius:7px;cursor:pointer;margin:0;font-size:.88rem}.gm-g:hover{background:var(--hov)}.gm-g input{width:auto;margin:0}
+.gm-n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gm-n small{color:var(--mute)}
+.gm-s{border:0;background:none;cursor:pointer;color:var(--mute);font-size:1rem;padding:0 .15rem;line-height:1}.gm-s.on{color:var(--y)}
 .qu table{width:100%;border-collapse:collapse;font-size:12.5px}
 .qu td,.qu th{padding:.2rem .35rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
 .qu th{position:sticky;top:0;background:var(--tabs);font-weight:500;z-index:1}
@@ -3084,7 +3095,7 @@ async function quLaden0() {
 }
 /* Kataloge als Baum: erst nur die Gliederung (Bereich › Gewerk/Gruppe), Positionen beim Aufklappen; häufig gebrauchte oben als ★ und im Hintergrund vorgeladen */
 const QUGL = new Map();
-QU.auf = new Set(LS.get('qu.auf', [])); QU.bzu = new Set(LS.get('qu.bzu', []));
+QU.auf = new Set(LS.get('qu.auf', [])); QU.bzu = new Set(LS.get('qu.bzu', [])); QU.nurFav = LS.get('qu.nurFav', false);
 const quBaum = () => istKat(QU.pid) && katId(QU.pid) !== 'bd-korb' && !(QU.lv && String(QU.lv).endsWith(':suche'));
 const quHaeufig = () => LS.get('qu.haeufig', {});
 async function quBaumBauen(laden = true) {
@@ -3117,6 +3128,49 @@ async function quVorladen() {   // die am häufigsten gebrauchten Gewerke dieses
   if (QUVOR || !quBaum()) return; QUVOR = true;
   try { const H = quHaeufig(); for (const g of (QU.list || []).filter((x) => H[x.id] && !QUGL.has(x.id)).sort((a, b) => H[b.id] - H[a.id]).slice(0, 5)) { const x = await quLvLadenC(g.id).catch(() => null); if (x) QUGL.set(g.id, x); } }
   finally { QUVOR = false; }
+}
+function quGliedMenu(anchor) {   // Gliederung als kleine Hierarchie: Bereich › Gewerk mit Häkchen (= aufgeklappt), ★ = oft geöffnet, Filter oben
+  const old = document.querySelector('.pickm'); if (old) { old.remove(); return; }
+  const m = document.createElement('div'); m.className = 'pickm qu-pm qu-gm'; document.body.appendChild(m);
+  let q = '';
+  const zeichne = () => {
+    const H = quHaeufig(), nf = Object.keys(H).length;
+    const alle = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
+    const ls = alle.filter((g) => (!QU.nurFav || H[g.id] || QU.auf.has(g.id)) && (!q || passt(`${g.nr || ''} ${g.name}`, q)));
+    const grp = []; ls.forEach((g) => { const b = g.bereich || 'Gewerke'; let x = grp.find((y) => y.b === b); if (!x) grp.push(x = { b, g: [] }); x.g.push(g); });
+    const zeile = (g) => `<label class="gm-g"><input type="checkbox" data-gmg="${esc(g.id)}"${QU.auf.has(g.id) ? ' checked' : ''}><span class="gm-n">${g.nr ? `<small>${esc(g.nr)}</small> ` : ''}${esc(g.name)}</span><span class="hint">${g.n_pos}</span><button type="button" class="gm-s${H[g.id] ? ' on' : ''}" data-gms="${esc(g.id)}" title="${H[g.id] ? 'Aus „Oft geöffnet“ entfernen' : 'Zu „Oft geöffnet“ hinzufügen'}">${H[g.id] ? '★' : '☆'}</button></label>`;
+    m.querySelector('.gm-l').innerHTML = grp.map(({ b, g }) => { const n = g.filter((x) => QU.auf.has(x.id)).length, zu = grp.length > 1 && !q && QU.bzu.has(b);
+      return (grp.length > 1 ? `<div class="gm-b"><button type="button" class="gm-t" data-gmt="${esc(b)}">${zu ? '▸' : '▾'}</button><input type="checkbox" data-gmb="${esc(b)}"${n === g.length ? ' checked' : ''}${n && n < g.length ? ' data-halb="1"' : ''} title="Alle Gewerke dieses Bereichs auf- oder zuklappen"><b data-gmt="${esc(b)}">${esc(b)}</b><span class="hint">${n ? n + ' / ' : ''}${g.length}</span></div>` : '')
+        + (zu ? '' : `<div class="gm-k">${g.map(zeile).join('')}</div>`); }).join('') || `<div class="pm-e">${QU.nurFav ? 'Noch nichts oft geöffnet – ☆ antippen merkt ein Gewerk.' : 'Nichts gefunden.'}</div>`;
+    m.querySelectorAll('[data-halb]').forEach((c) => { c.indeterminate = true; });
+    m.querySelector('.gm-f').innerHTML = `<label><input type="checkbox" data-gmfav${QU.nurFav ? ' checked' : ''}> nur ★ oft geöffnet${nf ? ` <span class="hint">(${nf})</span>` : ''}</label><span style="flex:1"></span>${QU.auf.size ? `<button type="button" class="btn sm" data-gmzu>Alle zuklappen</button>` : ''}`;
+  };
+  m.innerHTML = `<div class="pm-q"><input type="search" placeholder="Gewerk suchen …" autocomplete="off" aria-label="Gewerk suchen"></div><div class="gm-f"></div><div class="pm-l gm-l"></div>`;
+  const r = anchor.getBoundingClientRect(); m.style.top = Math.min(r.bottom + 6, innerHeight - 200) + 'px';
+  zeichne(); m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+  const inp = m.querySelector('input'); inp.focus(); inp.addEventListener('input', () => { q = inp.value.trim(); zeichne(); });
+  const zu = () => { m.remove(); document.removeEventListener('pointerdown', weg, true); document.removeEventListener('keydown', esc_, true); };
+  const weg = (e) => { if (!m.contains(e.target) && !e.target.closest('#quSel')) zu(); };
+  const esc_ = (e) => { if (e.key === 'Escape') zu(); };
+  setTimeout(() => { document.addEventListener('pointerdown', weg, true); document.addEventListener('keydown', esc_, true); }, 0);
+  const neu = async () => { await quBaumBauen(); quZeigen(); if (document.body.contains(m)) zeichne(); };
+  m.addEventListener('click', async (e) => {
+    const s = e.target.closest('[data-gms]'); if (s) { e.preventDefault(); const H = quHaeufig(); if (H[s.dataset.gms]) delete H[s.dataset.gms]; else H[s.dataset.gms] = 1; LS.set('qu.haeufig', H); quZeigen(); zeichne(); return; }
+    const t = e.target.closest('[data-gmt]'); if (t) { e.preventDefault(); const b = t.dataset.gmt; if (QU.bzu.has(b)) QU.bzu.delete(b); else QU.bzu.add(b); LS.set('qu.bzu', [...QU.bzu]); zeichne(); return; }
+    if (e.target.closest('[data-gmzu]')) { QU.auf.clear(); LS.set('qu.auf', []); await neu(); return; }
+    const n = e.target.closest('.gm-n'); if (n) { e.preventDefault(); const id = n.closest('.gm-g').querySelector('[data-gmg]').dataset.gmg; zu(); QU.gw = String(id).split(':').slice(2).join(':'); const g = QU.list.find((x) => x.id === id); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); quGewerkAuf(id, true, true); }
+  });
+  m.addEventListener('change', async (e) => {
+    const c = e.target;
+    if (c.matches('[data-gmfav]')) { QU.nurFav = c.checked; LS.set('qu.nurFav', QU.nurFav); quZeigen(); zeichne(); return; }
+    if (c.matches('[data-gmg]')) { const id = c.dataset.gmg; if (c.checked) { const g = QU.list.find((x) => x.id === id); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); } await quGewerkAuf(id, c.checked); if (document.body.contains(m)) zeichne(); return; }
+    if (c.matches('[data-gmb]')) {
+      const gs = QU.list.filter((x) => (x.bereich || 'Gewerke') === c.dataset.gmb && (!QU.nurFav || quHaeufig()[x.id] || QU.auf.has(x.id)));
+      if (c.checked && gs.length > 12 && !(await bpFrage(`Alle ${gs.length} Gewerke von „${c.dataset.gmb}“ aufklappen? Das lädt viele Positionen.`))) { zeichne(); return; }
+      gs.forEach((g) => { if (c.checked) QU.auf.add(g.id); else QU.auf.delete(g.id); }); if (c.checked) QU.bzu.delete(c.dataset.gmb);
+      LS.set('qu.auf', [...QU.auf].slice(-40)); quBaumBauen(false); quZeigen(); zeichne(); await neu();
+    }
+  });
 }
 function quProjMenu(anchor) {   // Kataloge oben, darunter Projekte mit kleinem Filterfeld (wie die Projektauswahl, aber für die Kopierquelle)
   const old = document.querySelector('.pickm'); if (old) { old.remove(); return; }
@@ -3160,8 +3214,9 @@ function quZeigen0() {
     : `<tr class="${QU.sel.has(x.id) ? 'on' : ''}" draggable="true" data-qi="${i}"><td><input type="checkbox" data-qs="${i}"${QU.sel.has(x.id) ? ' checked' : ''} aria-label="Position wählen"></td><td>${esc(x.oz || '')}</td><td>${esc(x.bez || x.kurz || '')}${x.lang && x.art !== 'T' ? `<div class="lt${QU.offen && QU.offen.has(x.id) ? ' voll' : ''}">${esc(x.lang)}</div>` : ''}</td><td style="text-align:right">${x.art === 'T' ? '' : nf(x.menge)}</td><td>${esc(x.einheit || '')}</td><td style="text-align:right"${x.spanne ? ` title="Katalog: von ${nf2(x.spanne[0])} bis ${nf2(x.spanne[1])} €"` : ''}>${epq(x) != null && x.art !== 'T' ? nf2(epq(x)) : ''}</td></tr>`;
   let rows = '', favs = '';
   if (quBaum()) {   // Baum: Bereich › Gewerk › (aufgeklappt) Positionen
-    const H = quHaeufig(), sichtbar = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
-    favs = sichtbar.filter((g) => H[g.id]).sort((a, b) => H[b.id] - H[a.id]).slice(0, 6).map((g) => `<button type="button" class="qu-fav${QU.auf.has(g.id) ? ' on' : ''}" data-qfav="${esc(g.id)}" title="${esc(g.bereich || '')} · ${g.n_pos} Positionen">★ ${esc(g.name.length > 26 ? g.name.slice(0, 25) + '…' : g.name)}</button>`).join('');
+    const H = quHaeufig(), alle = QU.list.filter((x) => !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || ''));
+    const sichtbar = QU.nurFav && alle.some((g) => H[g.id]) ? alle.filter((g) => H[g.id] || QU.auf.has(g.id)) : alle;
+    favs = alle.filter((g) => H[g.id]).sort((a, b) => H[b.id] - H[a.id]).slice(0, 6).map((g) => `<span class="qu-fav${QU.auf.has(g.id) ? ' on' : ''}"><button type="button" data-qfav="${esc(g.id)}" title="${esc(g.bereich || '')} · ${g.n_pos} Positionen – öffnen">★ ${esc(g.name.length > 26 ? g.name.slice(0, 25) + '…' : g.name)}</button><button type="button" class="qu-favx" data-qfavx="${esc(g.id)}" title="Aus „Oft geöffnet“ entfernen" aria-label="Aus „Oft geöffnet“ entfernen">×</button></span>`).join('');
     const grp = []; sichtbar.forEach((g) => { const b = g.bereich || 'Gewerke'; let x = grp.find((y) => y.b === b); if (!x) grp.push(x = { b, g: [] }); x.g.push(g); });
     rows = grp.map(({ b, g }) => { const zu = grp.length > 1 && QU.bzu.has(b);
       return (grp.length > 1 ? `<tr class="qb" data-qb="${esc(b)}"><td>${zu ? '▸' : '▾'}</td><td colspan="5"><b>${esc(b)}</b> <span class="hint">${g.length}</span></td></tr>` : '') + (zu ? '' : g.map((x) => {
@@ -3182,12 +3237,12 @@ function quZeigen0() {
       <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle (Katalog: mittlerer Preis) – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label>
         <span class="hint" style="flex:1 1 0;text-align:right">${QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext'}</span>
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
-    ${favs ? `<div class="qu-favs" title="Die Gewerke, die du in Katalogen am häufigsten aufklappst (in diesem Browser gezählt) – antippen öffnet sie"><span class="hint" style="font-size:.76rem">Oft geöffnet:</span>${favs}<button type="button" class="qu-fav" data-qfavweg title="Liste „Oft geöffnet“ leeren">✕</button></div>` : ''}
+    ${favs ? `<div class="qu-favs" title="Die Gewerke, die du in Katalogen am häufigsten aufklappst (in diesem Browser gezählt) – antippen öffnet sie"><button type="button" class="qu-favf${QU.nurFav ? ' on' : ''}" data-qnurfav title="${QU.nurFav ? 'Wieder alle Gewerke zeigen' : 'Nur die oft geöffneten Gewerke in der Liste zeigen'}"><input type="checkbox" tabindex="-1" aria-hidden="true"${QU.nurFav ? ' checked' : ''}> Oft geöffnet</button>${favs}</div>` : ''}
     <div class="qu-l">${quBaum() ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
 `;
   const qk = istKat(QU.pid) ? alleKat().find((x) => x.id === katId(QU.pid)) : null, qp = !istKat(QU.pid) ? PROJ.find((p) => p.id === QU.pid) : null;
   pickButton($('#quProj'), qk ? { title: qk.name, sub: 'Katalog' } : qp ? { title: qp.name, sub: qp.archived ? 'Projekt (Archiv)' : 'Projekt' } : { title: 'Quelle wählen', sub: '' });
-  if (quBaum()) pickButton($('#quSel'), { title: 'Gliederung', sub: `${QU.list.length} Gewerke · ${QU.auf.size ? QU.auf.size + ' aufgeklappt' : 'aufklappen lädt die Positionen'}` });
+  if (quBaum()) pickButton($('#quSel'), { title: QU.nurFav ? 'Gliederung · ★ oft geöffnet' : 'Gliederung', sub: `${QU.list.length} Gewerke · ${QU.auf.size ? QU.auf.size + ' aufgeklappt' : 'anhaken klappt auf'}` });
   else pickButton($('#quSel'), istKat(QU.lv) && QU.lv.endsWith(':suche') ? { title: QU.L ? QU.L.name : 'Suche', sub: QU.L ? `${quItems().filter((x) => x.typ === 'pos').length}${QU.L.mehr ? '+' : ''} Treffer` : '' }
     : lvo ? { title: `${lvo.nr ? lvo.nr + ' · ' : ''}${lvo.name}`, sub: istKat(QU.pid) ? `${lvo.bereich} · ${lvo.n_pos} Positionen` : [lvo.gewerk, STATUS.find((x) => x[0] === lvo.status)[1], lvo.auftragnehmer].filter(Boolean).join(' · ') } : { title: 'Kein LV', sub: '' });
 }
@@ -3232,6 +3287,7 @@ document.addEventListener('click', (e) => {
   const qb = e.target.closest('[data-qb]'); if (qb) { const k = qb.dataset.qb; if (QU.bzu.has(k)) QU.bzu.delete(k); else QU.bzu.add(k); LS.set('qu.bzu', [...QU.bzu]); quZeigen(); return; }
   if (b && b.dataset.qu === 'ein') { quEinfuegen(quAuswahl(), LASTI); return; }
   if (e.target.closest('#quProj')) { quProjMenu($('#quProj')); return; }
+  if (e.target.closest('#quSel') && quBaum()) { quGliedMenu($('#quSel')); return; }
   if (e.target.closest('#quSel')) {
     pickMenu($('#quSel'), { search: QU.list.length > 6 ? (istKat(QU.pid) ? 'Gewerk suchen …' : 'LV suchen …') : '', empty: 'Kein LV in diesem Projekt.',
       items: QU.list.filter((x) => !istKat(QU.pid) || !QU.ber || (QU.ber === 'altbau') === /^Altbau/.test(x.bereich || '')).map((x) => ({ group: x.bereich || (x.archived ? 'Archiv' : 'Leistungsverzeichnisse'), title: `${x.nr ? x.nr + ' · ' : ''}${x.name}`, sub: [x.gewerk, x.n_pos + ' Pos.'].filter(Boolean).join(' · '), value: x.id, on: x.id === QU.lv })),
@@ -3250,7 +3306,8 @@ async function quSucheNeu() {   // Suche mit den aktuellen Filtern neu laden (od
   QU.lv = `${QU.pid}:suche`; QU.L = await quLvLaden(QU.lv); QU.sel = new Set(); quZeigen();
 }
 document.addEventListener('click', async (e) => {
-  if (e.target.closest('#quelle [data-qfavweg]')) { LS.set('qu.haeufig', {}); quZeigen(); return; }
+  const fx = e.target.closest('#quelle [data-qfavx]'); if (fx) { const H = quHaeufig(); delete H[fx.dataset.qfavx]; LS.set('qu.haeufig', H); quZeigen(); return; }
+  if (e.target.closest('#quelle [data-qnurfav]')) { QU.nurFav = !QU.nurFav; LS.set('qu.nurFav', QU.nurFav); quZeigen(); return; }
   const b = e.target.closest('#quelle [data-qber]'); if (!b) return;
   QU.ber = b.dataset.qber; LS.set('qu.ber', QU.ber);
   if (QU.ber && QU.gw && QU.inG) { const x = QU.list.find((y) => y.id === `${QU.pid}:${QU.gw}`); if (x && (QU.ber === 'altbau') !== /^Altbau/.test(x.bereich || '')) QU.inG = false; }

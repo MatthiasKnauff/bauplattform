@@ -433,6 +433,8 @@ html.mobil .bph{position:sticky;top:0}
 .am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
+.aufh-b{display:flex;gap:.8rem;align-items:center;padding:.7rem 1rem;margin:0 0 .8rem;border:1.5px solid #e0a030;border-radius:12px;background:color-mix(in srgb,#e0a030 12%,var(--card,transparent))}.aufh-b>div{flex:1}.aufh-i{font-size:1.4rem}
+.deakt{opacity:.5;filter:grayscale(.7);pointer-events:none;user-select:none}.pj-r.deakt-k{opacity:.5;text-decoration:line-through}
 .am-l{display:flex;flex-direction:column;gap:.8rem;min-width:0}.am-l .tblw{max-height:40vh;overflow:auto}
 .am-r{position:sticky;top:8px;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
 .am-pk{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;padding:.35rem .45rem;border-bottom:1px solid var(--line)}
@@ -915,7 +917,7 @@ function kpis() {
   const nt = K.nachtraege, ges = K.auftrag + nt.beauftragt;
   $('#kpi').innerHTML = `<div><small>Schätzung</small><b>${eur0(K.schaetzung)}</b>${K.ohne_schaetzung ? `<span class="sub"> · ${K.ohne_schaetzung} Pos. ohne Preis</span>` : ''}</div>
     <div><small>Bestes Angebot</small><b>${best ? eur0(best.netto) : '–'}</b><span class="sub">${bA ? ' · ' + esc(bA.bieter) : L.angebote.length ? '' : ' · noch keine'}</span></div>
-    <div><small>Auftrag${L.vergabe.bieter ? ' · ' + esc(L.vergabe.bieter) : ''}</small><b>${L.vergabe.preise ? eur0(K.auftrag) : '–'}</b>${L.vergabe.preise && K.schaetzung ? `<span class="sub"> · ${Math.round((K.auftrag / K.schaetzung - 1) * 100)} % zur Schätzung</span>` : ''}</div>
+    <div><small>Auftrag${L.vergabe.bieter ? ' · ' + esc(L.vergabe.bieter) : ''}</small><b>${aufgehoben() ? '⏸ aufgehoben' : L.vergabe.preise ? eur0(K.auftrag) : '–'}</b>${vergeben() && K.schaetzung ? `<span class="sub"> · ${Math.round((K.auftrag / K.schaetzung - 1) * 100)} % zur Schätzung</span>` : ''}</div>
     <div><small>Nachträge beauftragt</small><b>${nt.beauftragt ? eur0(nt.beauftragt) : '–'}</b>${nt.angemeldet ? `<span class="sub"> · angemeldet ${eur0(nt.angemeldet)}</span>` : ''}</div>
     <div><small>Leistungsstand</small><b>${K.leistung ? eur0(K.leistung) : '–'}</b>${ges && K.leistung ? `<span class="sub"> · ${Math.round(K.leistung / ges * 100)} %</span>` : ''}</div>
     <div><small>abgerechnet</small><b>${K.abgerechnet ? eur0(K.abgerechnet) : '–'}</b></div>`;
@@ -1192,14 +1194,14 @@ function pjBaum() {
     const re = tab === 'aufmass' || tab === 'rechnungen', kids = re ? x.rechnungen : tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : [];
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
-    const sub = x.vergeben ? `${x.auftragnehmer || 'vergeben'}${x.frei ? ' · ohne LV' : ' · vergeben'}` : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
+    const sub = x.aufgehoben ? `⏸ ${x.aufgehoben.bieter || 'Auftrag'} · aufgehoben` : x.vergeben ? `${x.auftragnehmer || 'vergeben'}${x.frei ? ' · ohne LV' : ' · vergeben'}` : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
     out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : ''}>${kids.length ? (offen ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) return;
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
       const txt = !re ? `${k.rang ? k.rang + '. ' : ''}${esc(k.bieter)}${x.angebot_id === k.id ? ' <span class="ok">✓</span>' : ''}`
         : `${esc(reTitel(k))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}" title="${k.status === 'geprueft' ? 'geprüft' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>${k.re_nr ? `<small>Nr. ${esc(k.re_nr)}</small>` : ''}`;
-      out.push(`<div class="pj-r k${sel ? ' on' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span><button type="button" class="pj-del" data-pjdel="${re ? 're' : 'ang'}" title="${re ? 'Diese Rechnung' : 'Dieses Angebot'} in den Papierkorb – mit Rückgängig">🗑</button></div>`);
+      out.push(`<div class="pj-r k${sel ? ' on' : ''}${re && x.aufgehoben ? ' deakt-k' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span><button type="button" class="pj-del" data-pjdel="${re ? 're' : 'ang'}" title="${re ? 'Diese Rechnung' : 'Dieses Angebot'} in den Papierkorb – mit Rückgängig">🗑</button></div>`);
     });
   });
   return out.join('');
@@ -1630,7 +1632,14 @@ function lvGaebHinweis() {
 }
 
 /* ---------- Leistungsverzeichnis ---------- */
-const vergeben = () => !!(L && L.vergabe && L.vergabe.preise);
+const aufgehoben = () => !!(L && L.vergabe && L.vergabe.aufgehoben);   // Beauftragung aufgehoben: Auftrag und Rechnungen bleiben sichtbar, zählen aber nicht mehr
+const vergeben = () => !!(L && L.vergabe && L.vergabe.preise) && !aufgehoben();
+function aufhBanner() {
+  const A = L.vergabe.aufgehoben || {}, d = A.am ? A.am.split('-').reverse().join('.') : '';
+  return `<div class="aufh-b"><span class="aufh-i">⏸</span><div><b>Beauftragung an ${esc(L.vergabe.bieter || 'die Firma')} aufgehoben</b>${d ? ` am ${d}` : ''}${A.von ? ` von ${esc(A.von)}` : ''}.
+    <div class="hint">Auftrag, Nachträge und die ${(L.rechnungen || []).length} Rechnung${(L.rechnungen || []).length === 1 ? '' : 'en'} bleiben zum Nachsehen erhalten, sind aber deaktiviert – sie zählen nicht mehr in Kostenkontrolle, Prognose und To-dos. Das LV steht wieder in der Ausschreibung.</div></div>
+    <button class="btn sm pri" data-act="reaktiv">▶ Wieder beauftragen</button></div>`;
+}
 /* LV als Baum wie in „Aufträge“: Projekt → LV → Titel (zuklappbar) → Positionen; Kurztext direkt in der Zeile bearbeiten */
 let LVZU = new Set();
 const LVGZ = new Set(LS.get('lvgz', []));   // ganz zugeklappte LVs (im Baum nur noch die Zeile)
@@ -1968,13 +1977,14 @@ document.addEventListener('click', async (e) => {
     if (a === 'freiVergeben') { try { if (await freiVergeben(L.id, $('#view'))) toast('Auftrag eingetragen – Rechnungen jetzt über „+ Neu ▾“ erfassen.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'amPdf') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, `Massenermittlung LV ${L.nr}.pdf`);
     if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
+    if (a === 'reaktiv') { try { await call(`api/lv/${L.id}/vergabe`, 'POST', { reaktivieren: true }); toast('Beauftragung wieder in Kraft – Auftrag und Rechnungen zählen wieder.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'vergabeWeg') {
       const id = L.id, V = JSON.parse(JSON.stringify(L.vergabe || {})), stAlt = L.status;   // alten Stand merken
       const nRe = (L.rechnungen || []).length;
-      if (nRe && !(await bpFrage(`An diesem Auftrag hängen ${nRe} Rechnung${nRe === 1 ? '' : 'en'}.\n\nOhne Vergabe verschwindet der Auftrag mitsamt den Rechnungen aus „Aufträge“, „Rechnungen“ und der Aufmaßprüfung. Gespeichert bleibt alles – sichtbar wird es erst wieder, wenn du neu vergibst oder die Aufhebung rückgängig machst.\n\nWirklich aufheben?`, { ok: 'Vergabe aufheben', gefahr: true }))) return;
+      if (nRe && !(await bpFrage(`Beauftragung an ${V.bieter || 'die Firma'} aufheben?\n\nAuftrag, Nachträge und die ${nRe} Rechnung${nRe === 1 ? '' : 'en'} bleiben sichtbar, werden aber deaktiviert – sie zählen nicht mehr in Kostenkontrolle, Prognose und To-dos. Das LV steht wieder in der Ausschreibung. „Wieder beauftragen“ holt alles zurück.`, { ok: 'Beauftragung aufheben', gefahr: true }))) return;
       try { await call(`api/lv/${id}/vergabe`, 'DELETE', { trotz_rechnungen: true }); } catch (er) { toast(er.message, true); return; }
-      rueckgaengig(`Vergabe an ${V.bieter || 'die Firma'} aufgehoben`, async () => {   // vollständig zurück – auch bei frei/aus der Rechnung angelegten Aufträgen
-        await call(`api/lv/${id}/vergabe`, 'POST', { wiederherstellen: V });
+      rueckgaengig(`${nRe ? 'Beauftragung' : 'Vergabe'} an ${V.bieter || 'die Firma'} aufgehoben`, async () => {   // vollständig zurück – auch bei frei/aus der Rechnung angelegten Aufträgen
+        await call(`api/lv/${id}/vergabe`, 'POST', nRe ? { reaktivieren: true } : { wiederherstellen: V });
         if (stAlt && stAlt !== 'vergeben') await call('api/lv/' + id, 'PUT', { status: stAlt });
       });
       return;
@@ -2362,6 +2372,10 @@ function vergabeDialog(aid) {
 /* ---------- Aufmaßprüfung: Baum wie in ORCA (LV › Teilrechnungen › Titel › Positionen) oder Aufmaß erfassen ---------- */
 let amAns = 'erfassen', AMX = LS.get('amx', {});
 function vAufmass() {
+  if (aufgehoben()) return aufhBanner() + `<div class="deakt" aria-disabled="true">${vAufmass0()}</div>`;
+  return vAufmass0();
+}
+function vAufmass0() {
   const um = `<div class="seg" role="group" aria-label="Ansicht" style="margin-bottom:.6rem"><button type="button" class="${amAns === 'erfassen' ? 'on' : ''}" data-amans="erfassen">Aufmaß erfassen</button><button type="button" class="${amAns === 'baum' ? 'on' : ''}" data-amans="baum">Prüfung je Rechnung</button></div>`;
   return um + (amAns === 'baum' ? vAmBaum() : vAmErfassen());
 }
@@ -2903,7 +2917,11 @@ async function siSave(el) {
   try { await call('api/lv/' + L.id, 'PUT', { vergabe: { sicherheit: b } }); } catch (e) { toast(e.message, true); }
 }
 function vRechnungen() {
-  if (!vergeben()) return `<div class="card empty"><p>Rechnungen werden mit den Preisen des Auftrags geprüft – bitte erst unter „Angebote & Preisspiegel“ vergeben.</p>
+  if (aufgehoben()) { const h = vRechnungen0(); return aufhBanner() + `<div class="deakt" aria-disabled="true">${h}</div>`; }
+  return vRechnungen0();
+}
+function vRechnungen0() {
+  if (!vergeben() && !aufgehoben()) return `<div class="card empty"><p>Rechnungen werden mit den Preisen des Auftrags geprüft – bitte erst unter „Angebote & Preisspiegel“ vergeben.</p>
     <p class="hint" style="margin:.8rem 0 .4rem"><b>Ohne LV und Angebot</b> (z. B. kleine Handwerker mit Zettelwirtschaft): Firma und Auftragssumme direkt eintragen – Rechnungen werden dann mit dem geprüften Betrag erfasst und freigegeben und stehen in der Kostenkontrolle.</p>
     ${freiFelder()}<div class="bar" style="justify-content:center"><button class="btn pri" data-act="freiVergeben">Auftrag frei eintragen</button></div></div>`;
   const K = L.calc, RC = Object.fromEntries(K.rechnungen.map((r) => [r.id, r]));
@@ -4048,7 +4066,7 @@ function vAuftraege() {
   if (auf) xs.forEach((x) => {
     const k = 'l' + x.id, aufgetragen = !!x.auftrag;
     row(k, 1, true, IC.lv, `<b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b>`,
-      [esc(x.auftragnehmer || ''), e2(x.auftrag || x.schaetzung), jn(x.n_nt), e2(x.nachtraege + x.nt_angemeldet), e2(x.prognose), aufgetragen ? 'Auftrag' : 'Ausschreibung', '', '', e2(x.abgerechnet)]);
+      [x.aufgehoben ? `<span class="mu" title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || ''), e2(x.auftrag || x.schaetzung), jn(x.n_nt), e2(x.nachtraege + x.nt_angemeldet), e2(x.prognose), aufgetragen ? 'Auftrag' : x.aufgehoben ? 'aufgehoben' : 'Ausschreibung', '', '', e2(x.abgerechnet)]);
     if (!EXP.has(k)) return;
     const lv = PC[x.id];
     if (!lv) { out.push(`<tr><td colspan="10" class="mu" style="padding-left:3.4rem">wird geladen …</td></tr>`); return; }

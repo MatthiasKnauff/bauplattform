@@ -166,7 +166,7 @@ def _a_erinnerungen(c, u, R, P, ok):
 
 def _lvs(c, ok):
     for r in c.execute("SELECT * FROM ava_lv WHERE archived=0 AND (version_id IS NULL OR version_id IN (SELECT id FROM ava_version WHERE aktiv=1))").fetchall():
-        if r["project_id"] and ok(r["project_id"]):
+        if r["project_id"] and ok(r["project_id"]) and not (_j(r["vergabe"], {}) or {}).get("aufgehoben"):   # aufgehobene Beauftragung: deaktiviert, keine To-dos
             yield r
 
 

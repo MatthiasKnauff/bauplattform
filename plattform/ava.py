@@ -1340,7 +1340,8 @@ def aus_baukosten(i):
                 if x.get("mat") and x["mat"] not in kurz:
                     kurz = f"{kurz} – {x['mat']}" if kurz else x["mat"]
                 a = x.get("aufbau") if b.get("aufloesen", True) else None
-                A = baudaten.aufbau(c, a.get("v"), a.get("w")) if isinstance(a, dict) and a.get("v") else None
+                A = (baudaten.aufbau(c, a.get("v"), a.get("w")) if isinstance(a, dict) and a.get("v")
+                     else baudaten.teile_aufbau(c, a["t"]) if isinstance(a, dict) and a.get("t") else None)
                 if A and A["teile"]:   # Aufbau aus dem Bauteil-Baukasten: Einzelpositionen mit Menge = Faktor × Bauteilmenge
                     items.append({"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 2, "kurz": kurz[:200]})
                     for y in baudaten.aufloesen(c, A["teile"], x.get("menge") or 0, kurz):

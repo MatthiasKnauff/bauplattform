@@ -230,6 +230,10 @@ def _clean_bt(v):
         a = b.get("aufbau")   # gewählter Aufbau aus dem Bauteil-Baukasten (Baudaten): Vorlage + Wahl je Schicht
         if isinstance(a, dict) and re.fullmatch(r"\d{3}\.\d{2}", str(a.get("v") or "")):
             out[-1]["aufbau"] = {"v": a["v"], "w": [int(x) for x in (a.get("w") or [])[:12] if isinstance(x, (int, float))]}
+        elif isinstance(a, dict) and isinstance(a.get("t"), list):   # frei aus Allplan-Schichten: [[Positionscode, Faktor]]
+            t = [[_s(x[0], 30), round(_num(x[1], 0, 0, 1e4), 4)] for x in a["t"][:40] if isinstance(x, (list, tuple)) and len(x) == 2 and x[0]]
+            if t:
+                out[-1]["aufbau"] = {"t": t}
     return out
 
 
@@ -965,15 +969,27 @@ def cad_import(i, name, data):
                     m_ = re.match(r"Aufbau ([\d.]+?):([\d.]*)$", e["hinweis"] if e else "")
                     if m_:
                         v = (m_.group(1), [int(x) for x in m_.group(2).split(".") if x != ""], 99)
+                S = baudaten.aus_schichten(c, b["kg"], b.get("lagen") or []) if v is None and b.get("lagen") and _baukasten(c) else None
+                if S and S.get("vorlage"):   # Schichtmaterialien aus dem Allplan-Katalog → Vorlage, die alle Schichten abdeckt
+                    v = (S["vorlage"], S["wahl"], 98)
+                    row["mat"] = S["text"][:200]
+                elif S and S.get("teile"):   # keine Vorlage passt: Schicht für Schicht frei zusammengesetzt
+                    T = baudaten.teile_aufbau(c, S["teile"])
+                    if T["ep_mittel"] and b["einheit"] == "m²":
+                        row.update(ep=T["ep_mittel"], mat=S["text"][:200], aufbau={"t": S["teile"]},
+                                   notiz=(f"Aufbau aus Allplan-Schichten (frei, {len(T['teile'])} Positionen) · Spanne {str(T['ep_von']).replace('.', ',')}–"
+                                          f"{str(T['ep_bis']).replace('.', ',')} € – bitte prüfen")[:500])
+                        neu.append(row)
+                        continue
                 if v is None:
                     v = baudaten.aufbau_vorschlag(c, b["kg"], f"{b['art']} {b['material']}" + (f" {round(b['dicke'] * 100, 1):g}".replace(".", ",") if b["dicke"] else "")) if _baukasten(c) else None
-                if v and v[2] < 99 and b["kg"] in ("331", "332", "341", "342"):
+                if v and v[2] < 98 and b["kg"] in ("331", "332", "341", "342"):
                     v = (v[0], _ohne_innen(c, v[0], v[1]), v[2])   # Innenbekleidung kommt aus der Raumbuch-Ausstattung
                 A = baudaten.aufbau(c, v[0], v[1]) if v and v[2] >= 1.5 else None   # ohne Material: Standardaufbau der KG
                 if A and A["einheit"] == b["einheit"] and A["ep_mittel"]:
                     row.update(ep=A["ep_mittel"], aufbau={"v": A["vorlage"], "w": A["wahl"]},
-                               notiz=((f"Aufbau aus Allplan-Katalog {b['code']}" if v[2] == 99 else f"Aufbau-Vorschlag {A['vorlage']}: {A['bez'][len(A['name']):].lstrip(', ')}")
-                                      + f" · Spanne {str(A['ep_von']).replace('.', ',')}–{str(A['ep_bis']).replace('.', ',')} €" + ("" if v[2] == 99 else " – bitte prüfen"))[:500])
+                               notiz=((f"Aufbau aus Allplan-Katalog {b['code']}" if v[2] == 99 else f"Aufbau aus Allplan-Schichten {S['text']} → {A['vorlage']}" if v[2] == 98 else f"Aufbau-Vorschlag {A['vorlage']}: {A['bez'][len(A['name']):].lstrip(', ')}")
+                                      + f" · Spanne {str(A['ep_von']).replace('.', ',')}–{str(A['ep_bis']).replace('.', ',')} €" + ("" if v[2] >= 98 else " – bitte prüfen"))[:500])
                 neu.append(row)
             d["bauteile"] = [x for x in alt if x.get("src") != "IFC"] + neu
             n_bt = len(neu)

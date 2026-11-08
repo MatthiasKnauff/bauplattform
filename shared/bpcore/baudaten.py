@@ -377,6 +377,133 @@ def aufbau_vorschlag(c, kg, text, V=None):
     return best[:3] if best and best[3] else None
 
 
+# ------------------------------------------------ Schichtmaterialien (Allplan: mehrschichtige Bauteile, je Schicht ein Material)
+# Aus den Optionen der Baukasten-Vorlagen: „WDVS EPS 12/16/20“ → ein Schichtmaterial „WDVS EPS“, die Dicke kommt aus der Allplan-Schicht.
+_SCH_PHYS = re.compile(r"tragschicht|^wand$|innenschale|vormauer|schale$|dämm|putz|bekleidung|beplankung|belag|estrich|abdichtung|^beton|platte$|deckung|"
+                       r"dampfsperre|trennlage|fliesen|parkett|anstrich|oberfläche|untergrund|innenseite|außenseite|fassade|klinker|riemchen|lattung|^kies|"
+                       r"begrünung|ständerwerk|unterkonstruktion|wandbaustoff|tapete|dielen|aufbeton|luftdicht|installationsebene|sparren|balkenlage", re.I)
+_SCH_NICHT = re.compile(r"fuge|sockel|kopf|rand|leibung|anschluss|durch|zulage|einbau|schalung|bewehrung", re.I)
+_SCH_ZAHL = re.compile(r"(?<![\w,])(\d+(?:,\d+)?)(?![\w,])")
+SCHICHT_GRUPPEN = [("Tragschicht", r"trag|wand|schale|beton|platte|ständer|holz|sparren|balken"), ("Dämmung", r"dämm"), ("Putz", r"putz"),
+                   ("Bekleidung, Fassade", r"bekleid|fassade|vormauer|klinker|riemchen|beplank|außen|unterkonstr|lattung"),
+                   ("Abdichtung, Folien", r"abdicht|dampf|trenn|luftdicht"), ("Estrich, Belag", r"estrich|belag|fliesen|parkett|dielen|untergrund"),
+                   ("Dachdeckung", r"deckung|kies|begrün"), ("Oberfläche innen", r".")]
+SCHICHT_RX = re.compile(r"(?<![\w-])(S-[A-Za-z0-9ÄÖÜäöüß+-]{1,16})")
+_SCH = {"stand": None, "F": None}
+
+
+def _sch_familie(k):
+    """„WDVS EPS 16“ → („WDVS EPS“, 16.0, mm?) – Familie ohne Dickenangabe, Dicke in der Einheit der Option."""
+    d = _SCH_ZAHL.search(k)
+    f = re.sub(r"\s+", " ", _SCH_ZAHL.sub("", k.replace(" mm", " ").replace(" cm", " "))).strip(" ,+-×")
+    return f, (float(d.group(1).replace(",", ".")) if d else None), " mm" in f" {k} " or "mm" in k.split()
+
+
+def schicht_schluessel(name):
+    return "S-" + re.sub(r"[^A-Za-z0-9ÄÖÜäöüß+]+", "-", re.sub(r"\s*\+\s*", "+", name)).strip("-")[:16].rstrip("-")
+
+
+def schicht_familien(c):
+    """{Schlüssel: {name, gruppe, kgs, opts: [(vorlage, kg, schicht_nr, option_nr, dicke_cm, teile)]}} – je Vorlagenstand einmal berechnet."""
+    st = c.execute("SELECT COUNT(*) AS n, MAX(id) AS m FROM pdb_vorlage").fetchone()
+    stand = (st["n"], st["m"])
+    if _SCH["stand"] == stand:
+        return _SCH["F"]
+    F = {}
+    for v in c.execute("SELECT id, kg, daten FROM pdb_vorlage WHERE kg LIKE '3%' ORDER BY sort, id").fetchall():
+        for sn, s in enumerate(json.loads(v["daten"] or "{}").get("schichten") or []):
+            if not _SCH_PHYS.search(s["name"]) or _SCH_NICHT.search(s["name"]):
+                continue
+            for on, o in enumerate(s["optionen"]):
+                if not (o.get("k") or "").strip() or not o.get("teile"):
+                    continue
+                name, dk, mm = _sch_familie(o["k"])
+                if len(name) < 2 or not re.search(r"[A-Za-zÄÖÜäöü]{2}", name) or re.search(r"m³|^d =|×$", name):
+                    continue
+                if dk is not None and (mm or dk >= 50):
+                    dk = dk / 10   # Millimeter (Dämmung 80, CLT 100 …) → cm
+                key = schicht_schluessel(name)
+                x = F.setdefault(key, {"name": name, "gruppe": next(g for g, rx in SCHICHT_GRUPPEN if re.search(rx, s["name"], re.I)), "kgs": set(), "opts": []})
+                x["kgs"].add(v["kg"])
+                x["opts"].append((v["id"], v["kg"], sn, on, dk, [tuple(t) for t in o["teile"]]))
+    _SCH.update(stand=stand, F=F)
+    return F
+
+
+def _sch_dicken(x):
+    return sorted({o[4] for o in x["opts"] if o[4]})
+
+
+def _sch_teile(c, opt, d_m):
+    """Teile einer Option, Mengen in m³ (Beton, Dämmung als Volumen) auf die Allplan-Dicke umgerechnet."""
+    teile = list(opt[5])
+    if not d_m or not opt[4]:
+        return teile
+    P = _pos_preise(c, [t[0] for t in teile])
+    f = d_m * 100 / opt[4]
+    return [(code, round(fk * f, 4) if (P.get(code) or {}).get("einheit") == "m³" else fk) for code, fk in teile]
+
+
+def aus_schichten(c, kg, lagen):
+    """Allplan-Schichten [(Schlüssel, Dicke in m)] → passender Aufbau aus dem Baukasten.
+    Gibt {"vorlage", "wahl", "text"} zurück, wenn eine Vorlage alle Schichten abdeckt, sonst {"teile", "text"} (frei zusammengesetzt) oder None."""
+    F = schicht_familien(c)
+    L = [(k, d) for k, d in lagen if k in F]
+    if not L:
+        return None
+    dk = lambda d: f"{round(d * 100, 1):g} cm".replace(".", ",") if d else ""   # noqa: E731
+    text = " + ".join(f"{F[k]['name']} {dk(d)}".strip() for k, d in L)
+    k3 = re.sub(r"\D", "", str(kg or ""))[:3]
+    # 1. Vorlage, in der jede Schicht ein eigenes Baukasten-Feld trifft – gleiche KG zuerst, dann wenigste Abweichung
+    kand = {}
+    for k, d in L:
+        for vid, vkg, sn, on, odk, _ in F[k]["opts"]:
+            kand.setdefault(vid, {"kg": vkg})
+    best = None
+    for vid, info in kand.items():
+        r = c.execute("SELECT daten FROM pdb_vorlage WHERE id=?", (vid,)).fetchone()
+        S = json.loads(r["daten"] or "{}").get("schichten") or []
+        wahl, belegt, abw = [None] * len(S), set(), 0.0
+        ok = True
+        for k, d in L:
+            opts = [o for o in F[k]["opts"] if o[0] == vid and o[2] not in belegt]
+            if not opts:
+                ok = False
+                break
+            o = min(opts, key=lambda o: abs((o[4] or 0) - d * 100) if d and o[4] else 0)
+            abw += abs((o[4] or 0) - d * 100) if d and o[4] else 0
+            wahl[o[2]] = o[3]
+            belegt.add(o[2])
+        if not ok:
+            continue
+        for sn, s in enumerate(S):   # übrige Felder: Standard („“-Option bzw. ohne Teile), sonst die erste
+            if wahl[sn] is None:
+                O = s["optionen"]
+                wahl[sn] = next((j for j, o in enumerate(O) if not (o.get("k") or "").strip() and o.get("teile")), None)
+                if wahl[sn] is None:
+                    wahl[sn] = next((j for j, o in enumerate(O) if not o.get("teile")), next((j for j, o in enumerate(O) if o.get("std")), 0))
+        rang = (info["kg"] != k3, info["kg"][:2] != k3[:2], len(S) - len(belegt), abw)
+        if best is None or rang < best[0]:
+            best = (rang, vid, wahl)
+    if best and best[0][1] is False:
+        return {"vorlage": best[1], "wahl": best[2], "text": text}
+    # 2. frei: je Schicht die Option mit passender KG und der nächsten Dicke
+    teile = []
+    for k, d in L:
+        O = F[k]["opts"]
+        o = min(O, key=lambda o: (o[1] != k3, o[1][:2] != k3[:2], abs((o[4] or 0) - d * 100) if d and o[4] else 0))
+        teile += _sch_teile(c, o, d)
+    return {"teile": [[a, b] for a, b in teile], "text": text}
+
+
+def teile_aufbau(c, teile):
+    """Frei zusammengesetzter Aufbau [[Positionscode, Faktor]] → Preis und Bestandteile wie aufbau()."""
+    T = [(str(a), float(b)) for a, b in teile if a]
+    P = _pos_preise(c, [t[0] for t in T])
+    return {**_summe(T, P), "teile": [{**{k: P[x][k] for k in ("id", "code", "kurz", "einheit", "kg")}, "faktor": f, "ep_mittel": _rund(P[x]["ep_mittel"]),
+                                       "anteil": _rund(P[x]["ep_mittel"] * f)} for x, f in T if x in P]}
+
+
 def aufloesen(c, teile, menge, titel=""):
     """Bestandteile → LV-Positionen (Menge = Faktor × Menge des Bauteils), Langtext und KG aus der Positionsdatenbank."""
     out = []
@@ -464,6 +591,31 @@ def allplan_katalog(c, kg=""):
             KTM = crlf([b">", b"REFNAM             KUPD GEW ABR PRIOR SCH     DICKE LAYER BER SMF", b"", b""])
             zeile = lambda ref, t: enc(ref.ljust(18) + ers(t)[:60].ljust(60))   # erst ersetzen, dann auf 60 Zeichen
             stamm, kgs = list(KOPF_I), {}
+            passt = next(p for k_, _, p in ALLPLAN_KATALOGE if k_ == key)
+            fam = {k: x for k, x in schicht_familien(c).items() if key in ("kukat1", "kukat2", "kukat3") and any(passt(g) for g in x["kgs"])}
+            if fam and not kg:   # Ebene 0: Schichtmaterialien für mehrschichtige Bauteile – Dicke kommt aus der Allplan-Schicht
+                stamm.append(zeile("k000", "Schichtmaterialien (je Schicht wählen, Dicke aus Allplan)"))
+                gr_ = list(KOPF_I)
+                for gn, (gname, _) in enumerate(SCHICHT_GRUPPEN, 1):
+                    L_ = sorted((k, x) for k, x in fam.items() if x["gruppe"] == gname)
+                    if not L_:
+                        continue
+                    dn = f"k000{gn:02d}"
+                    gr_.append(zeile(dn, gname))
+                    kat, ktx = list(KOPF_E), [b"#", b"REFNAM            LANGT", b""]
+                    for k, x in sorted(L_, key=lambda t: t[1]["name"].lower()):
+                        dd = _sch_dicken(x)
+                        kat.append(zeile(k, f"{k} {x['name']}" + (f" ({'/'.join(f'{v:g}' for v in dd[:6])} cm)".replace(".", ",") if dd else "")))
+                        ktx.append(enc(k.ljust(18)))
+                        zeilen = textwrap.wrap(ers(f"Schichtmaterial {x['name']} – Dicke kommt aus der Allplan-Schicht."), 40)
+                        if dd:
+                            zeilen += textwrap.wrap(ers("Im Baukasten: " + ", ".join(f"{v:g}".replace(".", ",") for v in dd) + " cm"), 40)
+                        zeilen += textwrap.wrap(ers("KG " + ", ".join(sorted(x["kgs"]))), 40)
+                        ktx += [enc(" " * 18 + z_[:40]) for z_ in zeilen]
+                    z.writestr(f"{key}/{dn}.kat", crlf(kat))
+                    z.writestr(f"{key}/{dn}.ktx", crlf(ktx))
+                z.writestr(f"{key}/k000.kat", crlf(gr_))
+                n_ges += len(fam)
             for r in sel:
                 kgs.setdefault(r["code"][:3], {}).setdefault(r["code"][:6], []).append(r)
             for kg3, vorlagen in kgs.items():      # Ebene 1: Kostengruppe, z. B. „331 Tragende Außenwände“ → Datei k331.kat
@@ -506,6 +658,10 @@ Einrichten (einmal):
      Wand -> Kundenkatalog 1, Decke/Bodenplatte -> 2, Dach -> 3, Fenster/Tuer/Oeffnung -> 4, Sonstiges -> 5.
 3. Beim Bauteil unter Material/Qualitaet den Eintrag waehlen. Je Vorlage stehen nur die gaengigen Aufbauten
    drin; die genaue Ausfuehrung (Schichten) legt man spaeter in den Baukosten mit dem Baustein-Knopf fest.
+
+Mehrschichtige Bauteile: Ganz oben im Katalog stehen die Schichtmaterialien (S-...). Je Schicht eins waehlen;
+die Dicke nimmt die Bauplattform aus der Allplan-Schicht. Beim IFC-Import wird daraus der Aufbau zusammengesetzt.
+Ein ganzes Element (z. B. 331.01.001) in einer Schicht hat Vorrang.
 
 Rueckweg: Der Text beginnt mit dem Code (z. B. 331.02.004). Im IFC-Export steht er am Material bzw. an der
 Qualitaet; die Baukosten der Bauplattform uebernehmen beim IFC-Import genau diesen Aufbau mit Preis.

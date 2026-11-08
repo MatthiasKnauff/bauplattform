@@ -152,6 +152,7 @@ def _wert(v):
 
 
 CODE_RX = re.compile(r"(?<![\d.])(\d{3}\.\d{2}\.\d{3})(?![\d.])")
+SCHICHT_RX = re.compile(r"(?<![\w-])(S-[A-Za-z0-9ÄÖÜäöüß+-]{1,16})")   # Schichtmaterial aus dem Allplan-Katalog der Bauplattform (wie bpcore.baudaten)
 ART = {"IFCWALL": "Wand", "IFCWALLSTANDARDCASE": "Wand", "IFCWALLELEMENTEDCASE": "Wand", "IFCSLAB": "Decke", "IFCSLABSTANDARDCASE": "Decke",
        "IFCROOF": "Dach", "IFCWINDOW": "Fenster", "IFCWINDOWSTANDARDCASE": "Fenster", "IFCDOOR": "Tür", "IFCDOORSTANDARDCASE": "Tür",
        "IFCCOLUMN": "Stütze", "IFCCOLUMNSTANDARDCASE": "Stütze", "IFCBEAM": "Träger", "IFCBEAMSTANDARDCASE": "Träger",
@@ -591,6 +592,13 @@ def ifc_lesen(raw):
             aussen = prop(i, "IsExternal")
             tragend = prop(i, "LoadBearing")
             namen, dicke = mat.get(i, ([], 0.0))
+            lagen = []   # Schichtmaterialien aus dem Katalog (S-…) mit Dicke je Schicht
+            for k_, x_ in enumerate(namen):
+                if isinstance(x_, tuple):
+                    nm_ = x_[0] or str(props.get(i, {}).get(f"Object Layer Attributes #{k_ + 1}/Material") or "")
+                    ms_ = SCHICHT_RX.search(nm_)
+                    if ms_:
+                        lagen.append((ms_.group(1), round(x_[1], 4)))
             namen = schichten(i, namen)
             if not dicke:
                 dicke = menge(i, "Width", "Thickness", "Depth") or 0.0
@@ -690,9 +698,9 @@ def ifc_lesen(raw):
             such = " ".join([mtxt] + [str(v) for v in props.get(i, {}).values() if isinstance(v, str)])
             mc = CODE_RX.search(such)
             code = mc.group(1) if mc else ""
-            key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code)
+            key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code, tuple(lagen))
             gr = gruppen.setdefault(key, {"kg": kg, "art": art, "material": mtxt, "dicke": round(dicke or 0, 3), "einheit": einheit, "menge": 0.0, "anzahl": 0,
-                                          "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code})
+                                          "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code, "lagen": list(lagen)})
             gr["menge"] += m or 0
             gr["anzahl"] += 1
             gr["ohne_menge"] += 0 if m else 1

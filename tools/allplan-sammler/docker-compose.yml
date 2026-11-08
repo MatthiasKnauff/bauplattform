@@ -12,7 +12,7 @@ services:
     ports:
       - "8199:8199"
     volumes:
-      - allplan:/allplan:ro
+      - allplan_daten:/allplan:ro
     environment:
       START: "Daten"          # Unterordner der Freigabe, in dem gesucht wird (leer = ganze Freigabe)
     command:
@@ -95,7 +95,7 @@ services:
         print("Allplan-Sammler auf Port 8199, sucht in", WURZEL, flush=True)
         ThreadingHTTPServer(("", 8199), H).serve_forever()
 volumes:
-  allplan:
+  allplan_daten:
     driver: local
     driver_opts:
       type: cifs

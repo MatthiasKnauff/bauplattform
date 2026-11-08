@@ -136,8 +136,8 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .qu table{width:100%;border-collapse:collapse;font-size:12.5px}
 .qu td,.qu th{padding:.2rem .35rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
 .qu th{position:sticky;top:0;background:var(--tabs);font-weight:500;z-index:1}
-.qu tr.ti td{background:var(--band,#f2efe8);font-weight:600}
-.qu tr[draggable="true"]{cursor:grab}.qu tr.on td{background:#cfe2f6}
+.qu tr.ti td{background:var(--band,var(--tabs));font-weight:600}
+.qu tr[draggable="true"]{cursor:grab}.qu tr.on td{background:color-mix(in srgb,var(--y) 22%,var(--card))}
 .qu .lt{color:var(--mute);font-size:11.5px;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .qu-f{padding:.55rem .7rem;border-top:1px solid var(--line);display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;background:var(--tabs)}
 table.lv tr.drop-hier td{box-shadow:inset 0 -3px 0 #1e5aa0}
@@ -509,6 +509,15 @@ html[data-modus="einfach"] .einu{display:block;max-width:1180px;margin:0 auto;pa
 html[data-modus="einfach"] #navL{display:none}html[data-modus="einfach"] .body{grid-template-columns:minmax(0,1fr)}html[data-modus="einfach"] .body>.pane{grid-column:1}
 html[data-modus="einfach"] .body.mit-quelle{grid-template-columns:minmax(0,1fr) minmax(320px,36%)}html[data-modus="einfach"] .body.mit-quelle>.qu{grid-column:2}
 html[data-modus="einfach"] [data-umenu]{display:none}
+
+/* sichtbare Befehle der Phase in der Bereichsleiste */
+.uakt{display:flex;gap:.3rem;align-items:center;flex-wrap:nowrap;justify-content:flex-end}
+.uakt .ug{display:inline-flex;align-items:center;gap:.35rem;background:transparent}
+.uakt .ug svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.uakt .ug:disabled{opacity:.45}
+.uakt .ug{white-space:nowrap}
+@media (max-width:1500px){.uakt.viele .ug{font-size:0;gap:0;padding:.35rem .45rem}.uakt.viele .ug svg{width:18px;height:18px}}
+@media (max-width:1100px){.uakt .ug{font-size:0;gap:0;padding:.35rem .45rem}.uakt .ug svg{width:18px;height:18px}}
 </style>
 </head>
 <body>
@@ -670,6 +679,17 @@ async function vleiste(neu) {
 /* Menü „⋯“ der Bereichsleiste: die Befehle der (ausgeblendeten) Werkzeugleiste */
 const UMENU = [['newBtn', 'Neues LV / neuer Auftrag …'], ['[data-act="pos"]', 'Position anhängen'], ['[data-act="titel"]', 'Titel anhängen'], '-',
   ['impBtn', 'Einlesen … (GAEB, Excel)'], ['expBtn', 'Speichern unter … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], '-', ['quBtn', 'Kopierquelle (LV daneben)'], ['tlBtn', 'Fenster- & Türliste'], '-', ['moreBtn', 'Archivieren / löschen …']];
+/* Befehle je Phase sichtbar in der Bereichsleiste (Symbol + Wort); der Rest unter „⋯“ */
+const UPHASE = {
+  aus: [['[data-act="titel"]', 'Titel'], ['impBtn', 'Einlesen'], ['expBtn', 'Speichern unter'], ['druBtn', 'Drucken'], ['quBtn', 'Kopierquelle']],
+  ver: [['impBtn', 'Angebot einlesen'], ['druBtn', 'Drucken'], ['expBtn', 'Speichern unter']],
+  abr: [['impBtn', 'Einlesen'], ['druBtn', 'Drucken']],
+  kos: [['druBtn', 'Drucken'], ['expBtn', 'Speichern unter']],
+};
+function uLeiste(sk) {
+  return (UPHASE[sk] || []).map(([sel, l]) => { const b = ribKnopf(sel); if (!b) return '';
+    return `<button type="button" class="btn sm ug" data-ucmd="${esc(sel)}" data-udr${b.disabled ? ' disabled' : ''} title="${esc(b.title || l)}">${(b.querySelector('svg') || {}).outerHTML || ''}${esc(l)}</button>`; }).join('');
+}
 const ribKnopf = (sel) => document.querySelector(sel[0] === '[' ? '.rib ' + sel : '#' + sel);
 document.addEventListener('click', (e) => {
   const m = document.querySelector('.umenu');
@@ -680,7 +700,9 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-umenu]')) {
     if (m) { m.remove(); return; }
     const d = document.createElement('div'); d.className = 'umenu'; d.setAttribute('role', 'menu');
-    d.innerHTML = UMENU.map((x) => { if (x === '-') return '<hr>'; const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');
+    const sicht = new Set((UPHASE[schrittVon(tab)[0]] || []).map((x) => x[0]));
+    d.innerHTML = UMENU.filter((x) => x === '-' || !sicht.has(x[0])).map((x) => { if (x === '-') return '<hr>'; const b = ribKnopf(x[0]); if (!b) return ''; return `<button type="button" role="menuitem" data-ucmd="${esc(x[0])}"${b.disabled ? ' disabled' : ''}>${(b.querySelector('svg') || {}).outerHTML || ''}${esc(x[1])}</button>`; }).join('');
+    d.innerHTML = d.innerHTML.replace(/(<hr>)+/g, '<hr>').replace(/^<hr>|<hr>$/g, '');
     const r = e.target.closest('[data-umenu]').getBoundingClientRect(); document.body.appendChild(d);   // am Körper: Neuzeichnen der Leiste schließt es nicht
     Object.assign(d.style, { position: 'fixed', top: (r.bottom + 4) + 'px', left: Math.max(8, r.right - d.offsetWidth) + 'px', right: 'auto' }); return;
   }
@@ -1157,7 +1179,7 @@ function render() {
   const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
   const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !(LIST.find((x) => x.id === L.id) || {}).vergeben], auftraege: ['new', '＋ Neues LV', !pid], tueren: null, aufmass: null, uebersicht: null }[tab];
   $('#utb').innerHTML = schrittVon(tab)[2].map((k) => `<button type="button" role="tab" data-tab="${k}"${tab === k ? ' class="on" aria-selected="true"' : ''}>${icn(k)}${esc((TABS.find((t) => t[0] === k) || [, k])[1])}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')
-    + `<span class="ufill"></span><span class="uakt">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}${L ? '<button type="button" class="btn sm" data-ucmd="druBtn" data-udr title="Drucken oder als PDF – LV, Preisspiegel, Aufmaß, Rechnungsprüfung, Freigabe …">🖨 Drucken</button>' : ''}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle: Einlesen, Speichern unter, Drucken, Kopierquelle, Archiv …">⋯</button></span>`;
+    + `<span class="ufill"></span><span class="uakt${(UPHASE[sk] || []).length > 3 ? ' viele' : ''}">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}${uLeiste(sk)}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle">⋯</button></span>`;
   const nLv = LIST.filter((x) => !x.archived).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
     + `<div class="nav-baum" id="pjTree">${pjBaum()}</div><button type="button" class="nneu" data-act="new">＋ Neues LV</button>`

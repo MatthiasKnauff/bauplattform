@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#84827c">
-<title>Planstand & Versand</title>
+<title>Pläne & Dateien</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="static/bp.css">
 <style>
@@ -80,7 +80,7 @@
 @media (max-width:760px){.pl .hide-m{display:none}.set .g2{grid-template-columns:1fr}.top select{min-width:0;flex:1 1 100%;width:100%}.top .fill{display:none}.ord code{max-width:100%}.pl td,.pl th{padding:.45rem .3rem}.pl .nr b{font-size:.9rem}}
 .mkd{display:inline-block;margin-left:.5rem;padding:0 .5rem;border-radius:999px;background:color-mix(in srgb,#ff5fb3 18%,transparent);color:#c2185b;font-size:.78rem;font-weight:600;white-space:nowrap}
 
-/* Einfache Ansicht: nur der aktuelle Planstand und Versand */
+/* Einfache Ansicht: nur der aktuelle Pläne und Dateien */
 html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}
 </style>
 </head>
@@ -389,7 +389,7 @@ async function setDialog(host) {
       ['Titel', z.titel || '–', '<span class="mu">Titel</span>', '']];
     return `<div class="zm"><table><tr>${spalten.map((x) => `<td><div class="zs">${esc(x[1])}</div></td>`).join('')}</tr><tr>${spalten.map((x) => `<td>${x[2]}</td>`).join('')}</tr><tr class="zb">${spalten.map((x) => `<td>${x[3]}</td>`).join('')}</tr></table></div>`;
   };
-  const html = () => `<h3>Einstellungen – Planstand & Versand</h3><div class="set vd">
+  const html = () => `<h3>Einstellungen – Pläne & Dateien</h3><div class="set vd">
     <div><b>So sind eure Plannamen aufgebaut</b><p class="mu" style="margin:.2rem 0 .5rem;font-size:.88rem">Wie beim Einlesen einer Excel-Datei: unter jede Stelle der Plannummer wählen, was sie bedeutet. Darunter steht, was die App daraus liest.</p>
       <label style="display:grid;gap:.2rem">Beispiel (Dateiname eines Plans – zum Ausprobieren änderbar)<input id="sBsp" value="${esc(bsp)}" autocomplete="off" style="width:100%"></label>
       <div id="sZu">${zuordnung()}</div></div>
@@ -464,7 +464,7 @@ window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
 (async () => {
   ME = await api('api/me'); applyLook(ME);
   const PC = await api('api/platform');
-  await header('Planstand & Versand', ME, PC);
+  await header('Pläne & Dateien', ME, PC);
   BPHead.appEinstellungen([{ key: 'plannr', label: 'Plannummerierung & Gewerke', render: (h) => setDialog(h) }]);
   [PROJ, CFG] = await Promise.all([api('api/projekte'), api('api/einstellungen')]);
   const gp = BPHead.projektId(); if (gp && PROJ.some((p) => p.id === gp)) pid = gp;   // Projekt aus der zuletzt benutzten App

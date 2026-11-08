@@ -324,7 +324,7 @@ Pfad `/ava`, Container `bauplattform_ava` (Port 8097, gleiches Image wie die Pla
 - PDFs: LV (mit Preisfeldern oder Schätzpreisen), Preisspiegel, Massenermittlung, Rechnungsprüfblatt. Übersicht aller LV eines Projekts (Kostenkontrolle).
 - Neue App: Wer Baukosten oder Bauzeitenplan nutzen darf, bekommt sie automatisch; abwählbar in der Verwaltung.
 
-## Planstand & Versand (eigener Container)
+## Pläne & Dateien (eigener Container)
 
 Pfad `/plaene`, Container `bauplattform_plaene` (Port 8096, gleiches Image wie die Plattform, `APP_MODULE: plaene`).
 Liest über das Bautagebuch (nur das hat Zugang zur Ablage) die Pläne im Projektordner:

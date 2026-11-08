@@ -15,7 +15,7 @@ COOKIE = os.environ.get("SSO_COOKIE_NAME", "bp_sso")
 DOMAIN = os.environ.get("SSO_COOKIE_DOMAIN", "").strip() or None
 SECURE = os.environ.get("COOKIE_SECURE") == "1"
 DAYS = int(os.environ.get("SSO_DAYS", "30") or 30)
-APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"), ("aufgaben", "Aufgaben & Mängel"), ("plaene", "Planstand & Versand"), ("ava", "Ausschreibung & Abrechnung"), ("kommunikation", "Kommunikation"), ("baudaten", "Baudaten"))   # Apps mit Zugriffsrecht je Benutzer
+APPS = (("bautagebuch", "Bautagebuch"), ("gantt", "Bauzeitenplan"), ("adressen", "Adressen"), ("baukosten", "Baukosten"), ("aufgaben", "Aufgaben & Mängel"), ("plaene", "Pläne & Dateien"), ("ava", "Ausschreibung & Abrechnung"), ("kommunikation", "Kommunikation"), ("baudaten", "Baudaten"))   # Apps mit Zugriffsrecht je Benutzer
 _TOUCH = 300   # „zuletzt gesehen“ höchstens alle 5 Minuten schreiben
 
 

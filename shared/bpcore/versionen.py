@@ -34,7 +34,7 @@ VORSCHLAEGE = [("Sparsam", 30, 180), ("Empfohlen", 90, 730), ("Großzügig", 365
 GS = {"library": "Bibliothek der Leistungen (Bauzeitenplan)", "phases": "Phasen (Bauzeitenplan)", "catfirms": "Firmen je Gewerk (Bauzeitenplan)",
       "catscope": "Leistungsumfang je Gewerk (Bauzeitenplan)", "settings": "KI und Bauzeitenplan (Verwaltung)", "plattform": "KI-Anbieter (Verwaltung)",
       "presets": "Vorlagen des Bauzeitenplans", "assistcfg": "Assistent des Bauzeitenplans", "assistcfg_vorlagen": "Vorlagen des Assistenten"}
-BP = {"todo:regeln": "Regeln der To-dos (Startseite)", "aufgaben": "Einstellungen „Aufgaben & Mängel“", "plaene": "Einstellungen „Planstand & Versand“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}
+BP = {"todo:regeln": "Regeln der To-dos (Startseite)", "aufgaben": "Einstellungen „Aufgaben & Mängel“", "plaene": "Einstellungen „Pläne & Dateien“", "ava": "Einstellungen „Ausschreibung & Abrechnung“", "versionen_conf": "Aufbewahrung der Versionen"}
 BP.update({"layout:maengelruege": "Druck-Layout „Mängelrüge“", "layout:terminruege": "Druck-Layout „Terminrüge“",
            "layout:lv": "Druck-Layout „Leistungsverzeichnis“", "layout:aufmass": "Druck-Layout „Massenermittlung“",
            "layout:rechnungspruefung": "Druck-Layout „Rechnungsprüfung“", "layout:rechnungsfreigabe": "Druck-Layout „Rechnungsfreigabe“",
@@ -555,7 +555,7 @@ def statistik(c):
             "teile": teile, "vorschlaege": vorschlaege}
 
 
-TEILE = {"einst": "Allgemeine Einstellungen und Vorlagen", "gs": "Bauzeitenplan und KI", "bp": "Aufgaben & Mängel, Planstand & Versand", "bk": "Raumtypen",
+TEILE = {"einst": "Allgemeine Einstellungen und Vorlagen", "gs": "Bauzeitenplan und KI", "bp": "Aufgaben & Mängel, Pläne & Dateien", "bk": "Raumtypen",
          "bkp": "Kostenermittlungen", "avalv": "Leistungsverzeichnisse", "kontakt": "Adressen", "konto": "Persönliche Einstellungen"}
 
 

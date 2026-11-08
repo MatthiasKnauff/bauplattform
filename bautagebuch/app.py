@@ -56,7 +56,7 @@ def create_app():
     extern.start()     # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
     versions.start()   # Versionsverlauf der Berichte (automatische Momentaufnahmen)
     from modules import plaene as _pl
-    _pl.start()        # Planordner der laufenden Projekte nachts vorab einlesen (Planstand & Versand)
+    _pl.start()        # Planordner der laufenden Projekte nachts vorab einlesen (Pläne & Dateien)
     app = Flask(__name__, static_folder="static", static_url_path="")
     app.secret_key = _secret_key()
     app.permanent_session_lifetime = timedelta(days=30)

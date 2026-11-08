@@ -22,7 +22,7 @@ SERVICES = [  # interne Adressen im Docker-Netz
     ("adressen", "Adressen", os.environ.get("ADRESSEN_INTERNAL", "http://adressen:8093") + "/api/health"),
     ("baukosten", "Baukosten", os.environ.get("BAUKOSTEN_INTERNAL", "http://baukosten:8094") + "/api/health"),
     ("aufgaben", "Aufgaben & Mängel", os.environ.get("AUFGABEN_INTERNAL", "http://aufgaben:8095") + "/api/health"),
-    ("plaene", "Planstand & Versand", os.environ.get("PLAENE_INTERNAL", "http://plaene:8096") + "/api/health"),
+    ("plaene", "Pläne & Dateien", os.environ.get("PLAENE_INTERNAL", "http://plaene:8096") + "/api/health"),
     ("ava", "Ausschreibung & Abrechnung", os.environ.get("AVA_INTERNAL", "http://ava:8097") + "/api/health"),
     ("kommunikation", "Kommunikation", os.environ.get("KOMMUNIKATION_INTERNAL", "http://kommunikation:8098") + "/api/health"),
     ("baudaten", "Baudaten", os.environ.get("BAUDATEN_INTERNAL", "http://baudaten:8099") + "/api/health"),

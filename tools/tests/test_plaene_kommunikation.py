@@ -1,4 +1,4 @@
-"""Ablauftests: Planstand & Versand (ohne Ablage) und Kommunikation.
+"""Ablauftests: Pläne & Dateien (ohne Ablage) und Kommunikation.
 
 Pläne: Projekte und Rechte, Adressen mit E-Mail, Einstellungen, Planordner je Projekt, Planversandliste (Liste und PDF),
 Mail-Vorlage. Alles, was die Ablage auf dem Dateiserver braucht (Planliste, Dateien, echter Versand), gibt es im Test
@@ -72,7 +72,7 @@ def test_plaene_projekte_und_rechte(ctx):
     t101, t102, t103 = (ctx.projekt(k)["id"] for k in ("T101", "T102", "T103"))
     admin = {p["id"] for p in ctx.admin.gj("/plaene/api/projekte")}
     pruefe({t101, t102, t103} <= admin, "Administrator sieht nicht alle Testprojekte")
-    bernd = ctx.anmelden("Bernd Krämer")   # nur Bautagebuch – „Planstand & Versand“ kommt automatisch dazu
+    bernd = ctx.anmelden("Bernd Krämer")   # nur Bautagebuch – „Pläne & Dateien“ kommt automatisch dazu
     L = bernd.gj("/plaene/api/projekte")
     pruefe(not finde(L, id=t101), "Bernd sieht T101")
     gleich((finde(L, id=t102)["mine"], finde(L, id=t103)["mine"]), (True, False), "Bernd: T102 eigene Bauleitung, T103 frei")

@@ -78,7 +78,7 @@ def test_app_rechte_nur_adressen(ctx):
         gleich(c.gj("/api/me")["apps"], ["adressen", "plaene"], "Apps nach der Änderung")
         c.get("/plaene/api/projekte", expect=200)
         c.get("/maengel/api/maengel", expect=403)   # „Aufgaben & Mängel“ bleibt bewusst abgewählt
-        pruefe(_protokoll(ctx, "Benutzer geändert", f"{name}: Apps: Adressen, Planstand & Versand"), "Rechteänderung fehlt im Protokoll")
+        pruefe(_protokoll(ctx, "Benutzer geändert", f"{name}: Apps: Adressen, Pläne & Dateien"), "Rechteänderung fehlt im Protokoll")
         # alle Apps angehakt = „alle“ (dann gelten auch künftige Apps)
         ctx.admin.uj(f"/verwaltung/api/users/{uid}", {"apps": APP_KEYS})
         u = _benutzer(ctx, uid=uid)

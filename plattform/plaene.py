@@ -1,4 +1,4 @@
-"""Planstand & Versand: Pläne im Projektordner finden, den neuesten Index zeigen, an die Firmen schicken, Planversandliste führen.
+"""Pläne & Dateien: Pläne im Projektordner finden, den neuesten Index zeigen, an die Firmen schicken, Planversandliste führen.
 
 Die Dateien liegen auf dem Server des Büros; nur das Bautagebuch hat Zugang zur Ablage. Diese App fragt es mit der
 Anmeldung des Benutzers (/api/plaene/dateien, /api/plaene/datei) und liest die Plannamen nach der Plannummerierung
@@ -27,7 +27,7 @@ def guard():
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base("plaene") + "/")), 401
         return redirect(C.login_url(request.url))
     if not sso.has_app(u, "plaene"):
-        msg = "Für „Planstand & Versand“ ist dein Konto nicht freigeschaltet."
+        msg = "Für „Pläne & Dateien“ ist dein Konto nicht freigeschaltet."
         if p.startswith("/api/"):
             return jsonify(error=msg), 403
         return (f'{msg} <a href="{C.app_base("portal")}/">Zur Startseite</a>', 403, {"Content-Type": "text/html; charset=utf-8"})

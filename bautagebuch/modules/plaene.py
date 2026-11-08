@@ -1,4 +1,4 @@
-"""Pläne im Projektordner auf dem Server (für die App „Planstand & Versand“ der Bauplattform).
+"""Pläne im Projektordner auf dem Server (für die App „Pläne & Dateien“ der Bauplattform).
 
 GET /api/plaene/dateien?project_id=&aus=[…]   Plan- und CAD-Dateien im ganzen Projektordner (rekursiv) und der Verzeichnisbaum
 GET /api/plaene/datei?project_id=&pfad=       eine Datei (zum Ansehen und als Mail-Anhang)

@@ -24,7 +24,7 @@ REGELN = [
     ("firma", "Vorgänge ohne Firma", "Vorgänge im Bauzeitenplan, die bald beginnen und noch keine Firma haben", False, ("Tage vor Beginn", "Tage", 14)),
     ("terminruege", "Terminrüge vorschlagen", "Firmen, die laut gemeldetem Arbeitsfortschritt (Bautagebuch) so viele Arbeitstage hinter dem Bauzeitenplan liegen", True, ("Arbeitstage Verzug", "AT", 5)),
     ("verzug", "Vorgänge im Verzug", "Vorgänge, deren Ende laut Bauzeitenplan vorbei ist und die nicht als fertig gemeldet sind", False, None),
-    ("planversand", "Pläne nicht versendet", "Neue Planstände im Projektordner, die noch an niemanden verschickt wurden (aus der letzten Einlesung von „Planstand & Versand“)", False, ("Tage alt höchstens", "Tage", 30)),
+    ("planversand", "Pläne nicht versendet", "Neue Planstände im Projektordner, die noch an niemanden verschickt wurden (aus der letzten Einlesung von „Pläne & Dateien“)", False, ("Tage alt höchstens", "Tage", 30)),
     ("vorort", "Tagesbericht nach Baustellenbesuch", "Ich war laut Standort (iPhone-Kurzbefehl, ⚙ → Für mich → Vor Ort erkennen) auf der Baustelle, aber für den Tag gibt es keinen Tagesbericht", True, ("Tage zurück", "Tage", 7)),
     ("tagesbericht", "Tagesbericht fehlt", "Laufende Baustelle (Firmen laut Bauzeitenplan da), aber seit so vielen Arbeitstagen kein Tagesbericht", False, ("Arbeitstage", "Tage", 3)),
     ("budget", "Budget überschritten", "Aufträge + beauftragte Nachträge im AVA liegen über der Kostenermittlung (KG 300 + 400)", False, ("Toleranz", "%", 0)),
@@ -359,7 +359,7 @@ def _a_terminruege(c, u, R, P, ok):
 
 
 def _a_planversand(c, u, R, P, ok):
-    """Aus der letzten Einlesung („plaene:stand:<pid>“, von Planstand & Versand gemerkt): neueste PDF je Plan, noch nie versendet."""
+    """Aus der letzten Einlesung („plaene:stand:<pid>“, von Pläne & Dateien gemerkt): neueste PDF je Plan, noch nie versendet."""
     out = []
     grenze = _iso(_heute() - timedelta(days=R["wert"] or 30))
     for pid in [p for p in P if ok(p)]:

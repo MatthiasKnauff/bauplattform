@@ -188,7 +188,7 @@ services:
       APP_MODULE: aufgaben
       APP_PORT: "8095"
 
-  # Planstand & Versand: Pläne im Projektordner (über das Bautagebuch), neuester Index, Versand an die Firmen, Planversandliste
+  # Pläne & Dateien: Pläne im Projektordner (über das Bautagebuch), neuester Index, Versand an die Firmen, Planversandliste
   plaene:
     image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.186
     container_name: bauplattform_plaene

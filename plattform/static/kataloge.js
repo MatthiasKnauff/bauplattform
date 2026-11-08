@@ -18,8 +18,8 @@ window.KatalogeEinst = async function katalogeEinst(host, o = {}) {
       ${o.gaeb ? '<button type="button" class="bph-btn" data-kgaeb>＋ GAEB-Datei oder LV …</button>' : ''}<span class="bph-mu" id="kMsg" style="margin:0"></span></div>
       <p class="bph-mu">sirAdos Positionen oder Elemente: dieselbe Datei noch einmal einlesen ersetzt den Katalog (neuer Preisstand). Die Kataloge bleiben nur in der Datenbank des Büros – bitte die Lizenz des Anbieters beachten.</p>` : '<p class="bph-mu">Kataloge hinzufügen und löschen kann die Verwaltung.</p>'}
     <h4 style="margin:1.1rem 0 .3rem">Bauteilkatalog für Allplan</h4>
-    <p class="bph-mu">Die Bauteil-Elemente der Bauplattform als Allplan-Kundenkatalog (Textformat wie der Elementkatalog NEM_ELE). In Allplan unter Material/Qualität wählbar; der Code am Anfang geht mit dem IFC-Export zurück, und die Baukosten übernehmen dann genau diesen Aufbau mit Preis. Anleitung im ZIP.</p>
-    <a class="bph-btn" href="${o.bd}api/allplan-katalog.zip" download>⤓ Katalog für Allplan (ZIP)</a>`;
+    <p class="bph-mu">Die gängigen Bauteil-Aufbauten als fünf Allplan-Kundenkataloge nach Bauteilart (Wände, Decken/Böden, Dächer, Öffnungen, Weitere – je etwa 300 Einträge, Format wie der Elementkatalog NEM_ELE). In Allplan unter Material/Qualität wählbar; der Code am Anfang geht mit dem IFC-Export zurück, und die Baukosten übernehmen dann genau diesen Aufbau mit Preis. Anleitung im ZIP.</p>
+    <a class="bph-btn" href="${o.bd}api/allplan-katalog.zip" download>⤓ Kataloge für Allplan (ZIP)</a>`;
   const neu = async () => { await o.nachher(); katalogeEinst(host, o); };
   host.onchange = (e) => {
     const z = e.target.closest('[data-kzeig]'); if (!z) return;

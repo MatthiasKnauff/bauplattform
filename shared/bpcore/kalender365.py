@@ -17,7 +17,9 @@ _GESPERRT = {"bis": 0.0}   # nach „keine Berechtigung“ eine Weile nicht erne
 def termin(c, organisator, titel, text, datum, teilnehmer=(), ganztags=True, uhrzeit=None, minuten=30, erinnerung_min=None, schluessel=""):
     """Termin im Kalender von `organisator` (E-Mail) anlegen. teilnehmer: [(E-Mail, Name)] ohne den Organisator.
     Gibt die Event-ID zurück oder None (dann bitte termin.ics verwenden)."""
-    import time
+    import os, time
+    if os.environ.get("TESTSERVER") == "1":   # Testserver: keine Termine in echten Kalendern
+        return None
     from . import posteingang as PE
     if not organisator or time.time() < _GESPERRT["bis"] or not PE.m365_ok(c):
         return None

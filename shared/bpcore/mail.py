@@ -1,5 +1,5 @@
 """E-Mail-Versand für die Plattform-Apps – mit dem Postfach aus Verwaltung → Einstellungen → Mailserver (gleiche Daten wie im Bautagebuch)."""
-import re, smtplib, ssl, time
+import os, re, smtplib, ssl, time
 from datetime import datetime
 from email.message import EmailMessage
 
@@ -59,6 +59,9 @@ def smtp_senden(cf, msg, absender, empfaenger):
 
 def _smtp_senden(cf, msg, absender, empfaenger):
     """Mail über den eingetragenen Server verschicken. Fehler als MailError (dauerhaft / gesperrt, siehe oben)."""
+    if os.environ.get("TESTSERVER") == "1":   # Testserver: nichts verschicken (Kopie mit echten Adressen)
+        print(f"Testserver: Mail nicht verschickt – an {', '.join(empfaenger)[:200]} · „{msg.get('Subject', '')}“", flush=True)
+        return None
     if time.time() < _pause["bis"]:
         raise MailError(pause_text(), gesperrt=True)
     falsch = [a for a in empfaenger if not ADRESSE.match(a.strip())]

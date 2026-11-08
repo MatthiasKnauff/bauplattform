@@ -63,7 +63,9 @@ def make_app(name):
             name = (r["value"] if r else "") or ""
         except Exception:   # ohne Büronamen anzeigen – kein Grund abzubrechen
             name = ""
-        return jsonify(office=name, version=platform.version())
+        if os.environ.get("TESTSERVER") == "1":
+            name = "TESTSERVER · " + name if name else "TESTSERVER"
+        return jsonify(office=name, version=platform.version(), testserver=os.environ.get("TESTSERVER") == "1")
 
     @app.get("/logo.png")
     def logo():

@@ -6,12 +6,17 @@
 # spielt die neue Version ein.
 #
 # Einstellungen kommen aus den Umgebungsvariablen des Stacks in Portainer
-# (mindestens DB_PASSWORD, siehe README → „Testserver mit Portainer“).
+# (mindestens DB_PASSWORD, siehe README → „Testserver (Docker 1)“).
+#
+# SCHUTZ: TESTSERVER=1 (unten fest eingetragen) – die Ablage auf dem Dateiserver wird nur gelesen, es gehen keine Mails und
+# keine Kalendertermine hinaus. Eigene Volumes (bauplattform_test_*): die Daten des Produktivservers werden nie berührt.
+# Die eigene KI (Ollama) startet nur mit dem Profil „ki“ (COMPOSE_PROFILES=ki) – sie braucht 7 GB Speicher.
 # Für die Installation per Skript (update.sh) gilt die docker-compose.yml im Hauptordner.
 # =============================================================================
 name: bauplattform
 
 x-env: &env
+  TESTSERVER: "1"                         # Kopie zum Ausprobieren: Ablage nur lesen, keine Mails, keine Kalendertermine
   TZ: ${TZ:-Europe/Berlin}
   DATABASE_URL: "postgresql://bautagebuch@bautagebuch_db:5432/bautagebuch"
   PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt – in Portainer unter Environment variables eintragen}
@@ -274,6 +279,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: bauplattform_ollama
+    profiles: ["ki"]
     restart: unless-stopped
     environment:
       OLLAMA_KEEP_ALIVE: 30m          # Modell 30 Minuten im Speicher halten
@@ -291,6 +297,7 @@ services:
   ollama_modell:
     image: ollama/ollama:latest
     container_name: bauplattform_ollama_modell
+    profiles: ["ki"]
     restart: "no"
     depends_on:
       ollama: { condition: service_healthy }
@@ -298,16 +305,12 @@ services:
       OLLAMA_HOST: http://ollama:11434
     entrypoint: ["/bin/sh", "-c", "ollama pull \"${OLLAMA_MODEL:-qwen2.5:3b}\" && echo \"Modell ${OLLAMA_MODEL:-qwen2.5:3b} bereit\"; V=\"${OLLAMA_VISION_MODEL-qwen3-vl:4b}\"; [ -z \"$$V\" ] || ollama pull \"$$V\" && echo \"Bildmodell $$V bereit\""]
 
-volumes:
+volumes:   # eigene Volumes des Testservers – werden beim ersten Start leer angelegt
   bautagebuch_data:
-    name: bautagebuch_data
-    external: true
+    name: ${DATA_VOLUME:-bauplattform_test_data}
   bautagebuch_pgdata:
-    # Daten der ganzen Bauplattform. Umstellen auf „bauportal_pgdata“: siehe README → „Datenbank-Volume umbenennen“
-    name: ${DB_VOLUME:-bautagebuch_pgdata}
-    external: true
+    name: ${DB_VOLUME:-bauplattform_test_pgdata}
   gantt_legacy:
-    name: ${GANTT_LEGACY_VOLUME:-gantt-app_gantt-data}
-    external: true
+    name: ${GANTT_LEGACY_VOLUME:-bauplattform_test_gantt_alt}
   ollama_data:
-    name: bauplattform_ollama           # Modelle der eigenen KI
+    name: bauplattform_test_ollama      # Modelle der eigenen KI

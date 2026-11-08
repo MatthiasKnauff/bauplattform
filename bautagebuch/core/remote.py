@@ -4,6 +4,21 @@ import os, re, shutil
 BAD = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 
 
+# Testserver (Umgebungsvariable TESTSERVER=1, z. B. Kopie der Bauplattform auf Docker 1): die Ablage auf dem Dateiserver wird nur gelesen –
+# Speichern, Umbenennen, Löschen werden übersprungen, damit eine Kopie mit echten Einstellungen nichts in den echten Projektordnern verändert.
+NUR_LESEN = os.environ.get("TESTSERVER") == "1"
+
+
+def _schreibschutz(fn):
+    def w(self, *a, **k):
+        if NUR_LESEN:
+            print(f"Testserver: Ablage nur lesend – {fn.__name__} übersprungen ({a[-1] if a else ''})", flush=True)
+            return False if fn.__name__ == "rmdir_if_empty" else None
+        return fn(self, *a, **k)
+    w.__name__ = fn.__name__
+    return w
+
+
 def clean(seg):
     """Ordner-/Dateiname Windows-tauglich machen."""
     seg = BAD.sub(" ", seg or "")
@@ -24,6 +39,7 @@ class Folder:
     def _p(self, rel):
         return os.path.join(self.base, *clean_path(rel))
 
+    @_schreibschutz
     def put(self, local, rel):
         dst = self._p(rel)
         os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -40,10 +56,12 @@ class Folder:
     def exists(self, rel):
         return os.path.exists(self._p(rel))
 
+    @_schreibschutz
     def rename(self, rel, new_rel):
         os.makedirs(os.path.dirname(self._p(new_rel)), exist_ok=True)
         os.rename(self._p(rel), self._p(new_rel))
 
+    @_schreibschutz
     def rmdir_if_empty(self, rel):
         try: os.rmdir(self._p(rel))
         except OSError: pass
@@ -54,6 +72,7 @@ class Folder:
         except OSError:
             return []
 
+    @_schreibschutz
     def put_bytes(self, data, rel):
         dst = self._p(rel)
         os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -78,6 +97,7 @@ class Folder:
                 except OSError: pass
         return n, b
 
+    @_schreibschutz
     def delete(self, rel, is_dir):
         shutil.rmtree(self._p(rel)) if is_dir else os.remove(self._p(rel))
 
@@ -109,6 +129,7 @@ class Smb:
     def _unc(self, rel_parts):
         return "\\\\" + self.server + "\\" + "\\".join([self.share, *self.base, *rel_parts])
 
+    @_schreibschutz
     def put(self, local, rel):
         parts = clean_path(rel)
         dst = self._unc(parts)
@@ -119,6 +140,7 @@ class Smb:
                 b.write(chunk)
         self.sc.replace(tmp, dst)
 
+    @_schreibschutz
     def put_bytes(self, data, rel):
         parts = clean_path(rel)
         self.sc.makedirs(self._unc(parts[:-1]), exist_ok=True)
@@ -126,6 +148,9 @@ class Smb:
             f.write(data)
 
     def test(self):
+        if NUR_LESEN:   # Testserver: nur Lesen prüfen
+            self.sc.listdir(self._unc([]))
+            return
         self.put_bytes(b"ok", ".bautagebuch-test")
         self.sc.remove(self._unc([".bautagebuch-test"]))
 
@@ -136,10 +161,12 @@ class Smb:
         except OSError:
             return False
 
+    @_schreibschutz
     def rename(self, rel, new_rel):
         self.sc.makedirs(self._unc(clean_path(new_rel)[:-1]), exist_ok=True)
         self.sc.rename(self._unc(clean_path(rel)), self._unc(clean_path(new_rel)))
 
+    @_schreibschutz
     def rmdir_if_empty(self, rel):
         try: self.sc.rmdir(self._unc(clean_path(rel)))
         except Exception: pass   # Ordner nicht leer oder schon weg – dann bleibt er stehen
@@ -175,6 +202,7 @@ class Smb:
         with self.sc.open_file(self._unc(clean_path(rel)), mode="rb") as f:
             return f.read(limit or -1)
 
+    @_schreibschutz
     def delete(self, rel, is_dir):
         unc = self._unc(clean_path(rel))
         if not is_dir:

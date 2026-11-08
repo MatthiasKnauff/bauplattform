@@ -4352,6 +4352,26 @@ def lv_pdf(i):
     V = P["vergabe"]
     VP = V.get("preise") or {}
 
+    def _am_pdf():   # Massenermittlung (auch als Anlage der Rechnungsfreigabe)
+        am = P["aufmass"]
+
+        def st(story, S, X, table, W, mm, p):
+            rows = [["OZ / Datum", "Kurztext / Ort", "Rechenweg", "Menge", "EH"]]
+            bold = []
+            for x in items:
+                if x["typ"] != "pos" or x.get("art") == "T":
+                    continue
+                zs = [z for z in am if z["pos_id"] == x["id"]]
+                if not zs:
+                    continue
+                rows.append([x["oz"], Paragraph(f"<b>{X(x['kurz'])}</b>", S["p"]), f"LV-Menge {num(x['menge'])}", "", x["einheit"]])
+                for z in zs:
+                    rows.append([_de(z["datum"]), Paragraph(X(z["ort"]), S["p"]), Paragraph(X(z["formel"]), S["p"]), num(z["menge"]), x["einheit"]])
+                rows.append(["", "Summe", "", num(sum(z["menge"] for z in zs)), x["einheit"]])
+                bold.append(len(rows) - 1)
+            story.append(table(rows, [24 * mm, W - 24 * mm - 70 * mm - 40 * mm, 70 * mm, 24 * mm, 16 * mm], num=(3,), bold=tuple(bold)))
+        return _pdf(r, f"Massenermittlung – LV {r['nr']} {r['name']}", f"{P['projekt']}{' · Auftragnehmer: ' + V['bieter'] if V.get('bieter') else ''}", st, bereich="aufmass")
+
     if art == "preisspiegel":
         A = sorted(P["angebote"], key=lambda a: next((x.get("rang") or 99 for x in K["angebote"] if x["id"] == a["id"]), 99))[:6]
 
@@ -4396,24 +4416,7 @@ def lv_pdf(i):
         pdf = _pdf(r, f"Preisspiegel – LV {r['nr']} {r['name']}", f"{P['projekt']} · {len(P['angebote'])} Angebote · Stand {date.today().strftime('%d.%m.%Y')}", st, quer=True)
         fn = "Preisspiegel"
     elif art == "aufmass":
-        am = P["aufmass"]
-
-        def st(story, S, X, table, W, mm, p):
-            rows = [["OZ / Datum", "Kurztext / Ort", "Rechenweg", "Menge", "EH"]]
-            bold = []
-            for x in items:
-                if x["typ"] != "pos" or x.get("art") == "T":
-                    continue
-                zs = [z for z in am if z["pos_id"] == x["id"]]
-                if not zs:
-                    continue
-                rows.append([x["oz"], Paragraph(f"<b>{X(x['kurz'])}</b>", S["p"]), f"LV-Menge {num(x['menge'])}", "", x["einheit"]])
-                for z in zs:
-                    rows.append([_de(z["datum"]), Paragraph(X(z["ort"]), S["p"]), Paragraph(X(z["formel"]), S["p"]), num(z["menge"]), x["einheit"]])
-                rows.append(["", "Summe", "", num(sum(z["menge"] for z in zs)), x["einheit"]])
-                bold.append(len(rows) - 1)
-            story.append(table(rows, [24 * mm, W - 24 * mm - 70 * mm - 40 * mm, 70 * mm, 24 * mm, 16 * mm], num=(3,), bold=tuple(bold)))
-        pdf = _pdf(r, f"Massenermittlung – LV {r['nr']} {r['name']}", f"{P['projekt']}{' · Auftragnehmer: ' + V['bieter'] if V.get('bieter') else ''}", st, bereich="aufmass")
+        pdf = _am_pdf()
         fn = "Massenermittlung"
     elif art == "rechnung":
         rid = request.args.get("rid", type=int)
@@ -4423,9 +4426,15 @@ def lv_pdf(i):
             return jsonify(error="Rechnung nicht gefunden"), 404
         stand = R["data"].get("stand") if R["status"] == "geprueft" else K["aufmass"]
         freigabe = request.args.get("freigabe") == "1"   # Rechnungsfreigabe für den Bauherrn: Deckblatt + Prüfung + Rechnung der Firma
+        # Was ins PDF-Paket kommt (Druckdialog): Freigabe, Prüfblatt, Massenermittlung, Rechnung der Firma (PDF/Scan)
+        teile = {t for t in (request.args.get("teile") or "").split(",") if t in ("freigabe", "pruef", "aufmass", "rechnung")} or \
+            ({"freigabe", "pruef", "rechnung"} if freigabe else {"pruef"})
+        if not freigabe:
+            teile.discard("freigabe")
+        ANL = [n for k, n in (("pruef", "Prüfblatt"), ("aufmass", "Massenermittlung"), ("rechnung", "Rechnung des Auftragnehmers")) if k in teile]
 
         def st(story, S, X, table, W, mm, p):
-            if freigabe:
+            if "freigabe" in teile:
                 from reportlab.platypus import PageBreak
                 try:
                     from datetime import timedelta
@@ -4462,7 +4471,9 @@ def lv_pdf(i):
                                         f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto'])}</b> brutto" + (f" bis zum {frist}" if frist else "")) + "."
                                      + ("" if R["status"] == "geprueft" else " <i>(Entwurf – Prüfung noch nicht abgeschlossen)</i>")), S["p"]),
                           Spacer(1, 18 * mm), table([["Ort, Datum", "Bauleitung / Objektüberwachung", "zur Zahlung angewiesen (Bauherr)"]], [W / 3] * 3, head=False),
-                          Paragraph("Anlagen: Prüfblatt, Rechnung des Auftragnehmers", S["l"]), PageBreak()]
+                          *([Paragraph("Anlagen: " + ", ".join(ANL), S["l"])] if ANL else [])] + ([PageBreak()] if "pruef" in teile else [])
+                if "pruef" not in teile:
+                    return
             info = [["Auftragnehmer", V.get("bieter") or "—"], ["Rechnung", re_titel(R['nr'], R['art'])
                      + (f" · Nr. {R['re_nr']}" if R["re_nr"] else "") + (f" vom {_de(R['datum'])}" if R["datum"] else "")],
                     ["Eingang", _de(R["eingang"])], ["Auftragssumme", eur(K["auftrag"]) + (f" · Nachträge beauftragt {eur(K['nachtraege']['beauftragt'])}" if K["nachtraege"]["beauftragt"] else "")]]
@@ -4522,25 +4533,31 @@ def lv_pdf(i):
             story += [Spacer(1, 10 * mm), Paragraph(
                 ("Sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))} von {X(R['data'].get('geprueft_von'))}" if R["status"] == "geprueft" else " – Entwurf, Prüfung noch nicht abgeschlossen")) +
                 (f"<br/>Bemerkung: {X(R['notiz'])}" if R["notiz"] else ""), S["p"])]
-        pdf = _pdf(r, f"{'Rechnungsfreigabe' if freigabe else 'Rechnungsprüfung'} – {re_titel(R['nr'], R['art'])}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st,
-                   bereich="rechnungsfreigabe" if freigabe else "rechnungspruefung",
+        pdf = None if not teile & {"freigabe", "pruef"} else _pdf(r, f"{'Rechnungsfreigabe' if 'freigabe' in teile else 'Rechnungsprüfung'} – {re_titel(R['nr'], R['art'])}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st,
+                   bereich="rechnungsfreigabe" if "freigabe" in teile else "rechnungspruefung",
                    werte={"rechnung": re_titel(R["nr"], R["art"]), "re_nr": R["re_nr"] or "", "re_datum": _de(R["datum"]), "eingang": _de(R["eingang"])})
         fn = f"{'Rechnungsfreigabe' if freigabe else 'Pruefung'} Rechnung {R['nr']}"
-        if freigabe:   # Rechnung(en) der Firma anhängen
+        if teile & {"aufmass", "rechnung"}:   # Anlagen: Massenermittlung, Rechnung(en) der Firma
             try:
                 from pypdf import PdfReader, PdfWriter
-                with db.tx() as c2:
-                    _beleg_tabelle(c2)
-                    bl = [_beleg_markiert(c2, bytes(b["data"])) for b in c2.execute("SELECT data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
-                if bl:
+                bl = []
+                if "rechnung" in teile:
+                    with db.tx() as c2:
+                        _beleg_tabelle(c2)
+                        bl = [_beleg_markiert(c2, bytes(b["data"])) for b in c2.execute("SELECT data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
+                am_ = [_am_pdf()] if "aufmass" in teile and P["aufmass"] else []
+                teile_ = [x for x in [pdf] + am_ + bl if x]
+                if len(teile_) > 1 or (teile_ and not pdf):
                     w = PdfWriter()
-                    for part in [pdf] + bl:
+                    for part in teile_:
                         for pg in PdfReader(io.BytesIO(part)).pages:
                             w.add_page(pg)
                     buf = io.BytesIO(); w.write(buf); pdf = buf.getvalue()
             except Exception as e:
                 fehler.still("ava", "Rechnungsfreigabe: Rechnungen der Firma anhängen", e)
                 pass
+        if not pdf:
+            return jsonify(error="Nichts zu drucken – bitte mindestens einen Teil wählen (die Massenermittlung braucht ein Aufmaß, die Rechnung der Firma eine PDF)."), 400
     else:
         preise = request.args.get("preise") == "1"
         BILD = {}

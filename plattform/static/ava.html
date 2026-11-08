@@ -4564,6 +4564,12 @@ document.addEventListener('change', async (e) => {
 });
 async function treeCar(k) {
   if (EXP.has(k)) EXP.delete(k); else EXP.add(k);
+  // Zuklappen räumt die Unterebenen ab: beim nächsten Aufklappen kommt die kompakte Liste, aufgeklappt wird dann gezielt einzeln
+  if (k.startsWith('-p') && EXP.has(k)) { [...EXP].forEach((q) => { if (/^l\d+/.test(q)) EXP.delete(q); }); }   // Projekt zu → alle LVs samt Titeln/Nachträgen zu
+  else if (/^l\d+$/.test(k) && !EXP.has(k)) { [...EXP].forEach((q) => { if (q.startsWith(k + ':')) EXP.delete(q); }); }   // LV zu → seine Titel und Nachträge zu
+  else if (/^l\d+:/.test(k) && !EXP.has(k)) {   // Titel zu → seine Untertitel zu
+    const lv = PC[+k.slice(1).split(':')[0]]; if (lv) { const R = lvBaum(lv), unter = new Set([k]); R.forEach((r) => { if (unter.has(r.par)) unter.add(r.k); }); unter.forEach((q) => EXP.delete(q)); }
+  }
   LS.set('exp', [...EXP].slice(-300));
   const m = /^l(\d+)$/.exec(k);
   if (m && EXP.has(k) && !PC[+m[1]]) { render(); try { PC[+m[1]] = await api('api/lv/' + m[1]); } catch (e) { toast(e.message, true); } }

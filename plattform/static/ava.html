@@ -2069,7 +2069,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); render(); return; }
     if (a === 'bieter') return bieterDialog();
     if (a === 'x84') return importDialog('angebot');
-    if (a === 'ps') return pdfZeigen('', `api/lv/${L.id}/pdf?art=preisspiegel`, `Preisspiegel LV ${L.nr}.pdf`);
+    if (a === 'ps') return pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel`, `Preisspiegel LV ${L.nr}.pdf`);
     if (a === 'freiVergeben') { try { if (await freiVergeben(L.id, $('#view'))) toast('Auftrag eingetragen – Rechnungen jetzt über „+ Neu ▾“ erfassen.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'amPdf') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, `Massenermittlung LV ${L.nr}.pdf`);
     if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
@@ -2253,7 +2253,7 @@ $('#druBtn').onclick = () => {   // Drucken / PDF
   if (!L) return;
   const m = menu($('#druBtn'), [['druck', 'LV drucken / PDF …', 'Layout wählen, Deckblatt und Texte bearbeiten'],
     ['ps', 'Preisspiegel', L.angebote.length ? '' : 'erst mit Angeboten', !L.angebote.length], ['am', 'Massenermittlung', L.aufmass.length ? '' : 'erst mit Aufmaß', !L.aufmass.length]]);
-  m.onpick = (k) => { if (k === 'druck') return druckEditor(); if (k === 'am') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, `Massenermittlung LV ${L.nr}.pdf`); pdfZeigen('', `api/lv/${L.id}/pdf?art=preisspiegel`, `Preisspiegel LV ${L.nr}.pdf`); };
+  m.onpick = (k) => { if (k === 'druck') return druckEditor(); if (k === 'am') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, `Massenermittlung LV ${L.nr}.pdf`); pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel`, `Preisspiegel LV ${L.nr}.pdf`); };
 };
 function menu(anchor, list) {
   document.querySelectorAll('.menu').forEach((x) => x.remove());
@@ -3121,9 +3121,9 @@ async function druckfelder(bereich, _x) {
     setTimeout(() => { const i = document.querySelector('[data-df]'); if (i) i.focus(); }, 50);
   });
 }
-async function pdfZeigen(bereich, url, name) {
-  const lw = bereich ? await druckfelder(bereich, '') : ''; if (lw == null) return;
-  if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url: url + lw, typ: 'pdf', name }]); else location.href = url + lw;
+async function pdfZeigen(bereich, url, name) {   // mit Druck-Layout: derselbe Druckdialog wie beim PDF-Paket (Layout, Einstellungen, Vorschau)
+  if (bereich) return paketDruck({ titel: name.replace(/\.pdf$/, '') + ' drucken', bereich, merk: 'pk.' + bereich, name, teile: [], url: () => url });
+  if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name }]); else location.href = url;
 }
 /* Skonto je Rechnung (leer = wie im Auftrag) und „bezahlt am“ – danach keine Erinnerung mehr */
 function reSkonto(r, c) {
@@ -3391,8 +3391,11 @@ async function druckEditor() {
   document.body.appendChild(ov); document.body.style.overflow = 'hidden';
   const side = ov.querySelector('.dz-side'), S = ov.querySelector('.bed-s');
   const CH = [['deckblatt', 'Deckblatt'], ['vorbem', 'Vorbemerkungen'], ['vbpos', 'Vorbemerkungen im LV (Art „V“)'], ['langtext', 'Langtexte'], ['fotos', 'Fotos zu den Positionen'], ['zusammenstellung', 'Zusammenstellung der Titel'], ['bieter', 'Bieterangaben und Unterschrift am Ende'], ['seite_je_titel', 'Jeden Titel auf neuer Seite']];
+  let WL = null, layNeu = false; try { WL = await api('api/bp/layouts/lv/wahl'); } catch { WL = null; }   // Druck-Layouts des LV (⚙ → Büro → Druck-Layouts)
+  const adminJa = !!(window.BPHead && BPHead.me && BPHead.me.is_admin);
   const sideDraw = () => {
-    side.innerHTML = `<label class="dz-l">Preise<select data-l="preise"><option value="leer">leer – zum Ausfüllen durch die Bieter</option><option value="schaetzung">mit Schätzpreisen (Kostenanschlag)</option><option value="auftrag"${verg ? '' : ' disabled'}>mit Auftragspreisen${verg ? '' : ' (erst nach der Vergabe)'}</option></select></label>
+    side.innerHTML = (WL && (WL.layouts.length > 1 || adminJa) ? `<label class="dz-l">Layout<select data-lid>${WL.layouts.map((x) => `<option value="${esc(x.id)}"${x.id === (lay.layout_id || WL.vorgabe) ? ' selected' : ''}>${esc(x.name)} · ${esc(x.format)}</option>`).join('')}</select>${adminJa ? '<button type="button" class="btn sm" data-d="layedit" style="margin-top:.3rem">Layouts bearbeiten …</button>' : ''}</label>` : '')
+      + `<label class="dz-l">Preise<select data-l="preise"><option value="leer">leer – zum Ausfüllen durch die Bieter</option><option value="schaetzung">mit Schätzpreisen (Kostenanschlag)</option><option value="auftrag"${verg ? '' : ' disabled'}>mit Auftragspreisen${verg ? '' : ' (erst nach der Vergabe)'}</option></select></label>
       <div class="dz-g">${CH.map(([k, l]) => `<label class="dz-c"><input type="checkbox" data-l="${k}"${lay[k] ? ' checked' : ''}> ${l}</label>`).join('')}</div>
       <label class="dz-l">Schriftgröße<select data-l="schrift">${[[8, 'klein'], [9, 'normal'], [10, 'groß']].map(([v, n]) => `<option value="${v}"${lay.schrift === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
       <label class="dz-l">Vorbemerkungen<textarea data-f="Vorbemerkungen" rows="7" placeholder="z. B. Allgemeine Angaben zur Baustelle, Ausführungszeit, Zufahrt …">${esc(F.Vorbemerkungen)}</textarea></label>
@@ -3404,7 +3407,7 @@ async function druckEditor() {
     try {
       const r = await api(`api/lv/${L.id}/druck`, 'POST', { schritt: 'entwurf', layout: lay ? { ...lay, felder: F } : {} });
       if (my !== tok) return;
-      const neu = !lay; lay = r.layout; F = r.felder; verg = r.vergeben; if (neu) sideDraw();
+      const neu = !lay || layNeu; layNeu = false; lay = r.layout; F = r.felder; verg = r.vergeben; if (neu) sideDraw();
       const pdf = await lib.getDocument({ isEvalSupported: false, data: Uint8Array.from(atob(r.pdf), (ch) => ch.charCodeAt(0)) }).promise;
       if (my !== tok) return;
       const frag = document.createDocumentFragment(), breite = Math.min(S.clientWidth - 24, 820);
@@ -3486,6 +3489,7 @@ async function druckEditor() {
   ov.addEventListener('input', (e) => { const f = e.target.dataset.f; if (f && F) F[f] = e.target.value; if (f && e.target.closest('.dz-side')) spaeter(1200); });
   ov.addEventListener('change', (e) => {
     const l = e.target.dataset.l, f = e.target.dataset.f;
+    if (e.target.matches('[data-lid]')) { lay = { ...lay, layout_id: e.target.value, layout_neu: true }; layNeu = true; S.classList.add('bed-lädt'); spaeter(0); return; }   // anderes Layout: dessen Einstellungen übernehmen
     if (l) { lay[l] = e.target.type === 'checkbox' ? e.target.checked : l === 'schrift' ? +e.target.value : e.target.value; S.classList.add('bed-lädt'); spaeter(0); }
     else if (f && !e.target.closest('.dz-side')) spaeter(150);   // Deckblatt-Feld verlassen → Vorschau neu
   });
@@ -3493,6 +3497,7 @@ async function druckEditor() {
   ov.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-d]'); if (!b || !lay) return; const a = b.dataset.d;
     if (a === 'x') return zu();
+    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) window.open(BPHead.appUrl(ad) + '/layout#lv', '_blank'); return; }
     if (a === 'save') {
       try {
         const r = await api(`api/lv/${L.id}/druck`, 'POST', { schritt: 'entwurf', speichern: 1, layout: { ...lay, felder: F } });
@@ -3534,19 +3539,29 @@ async function paketDruck(o) {
   const lw = o.bereich ? await druckfelder(o.bereich, '') : ''; if (lw == null) return;
   const wahl = new Set(LS.get(o.merk, null) || o.teile.filter((t) => t[2] && !t[3]).map((t) => t[0]));
   let tok = 0, blob = null;
+  /* Druck-Layout des Ausdrucks (⚙ → Büro → Druck-Layouts): Auswahl und Inhaltseinstellungen, gemerkt je Ausdruck */
+  let W = null; try { if (o.bereich) W = await api('api/bp/layouts/' + o.bereich + '/wahl'); } catch { W = null; }
+  const DM = LS.get('druck.' + o.bereich, {}) || {};
+  let vid = W && W.layouts.some((l) => l.id === DM.layout) ? DM.layout : W ? ((W.layouts.find((l) => l.id === W.vorgabe) || W.layouts[0] || {}).id || '') : '';
+  let OPT = W ? { ...(W.werte[vid] || {}), ...(DM.layout === vid ? DM.opt || {} : {}) } : {};
+  const layHtml = () => !W ? '' : `${W.layouts.length > 1 || (window.BPHead && BPHead.me && BPHead.me.is_admin) ? `<label class="dz-l">Layout<select data-lay>${W.layouts.map((l) => `<option value="${esc(l.id)}"${l.id === vid ? ' selected' : ''}>${esc(l.name)} · ${esc(l.format)}</option>`).join('')}</select></label>` : ''}
+    ${W.optionen.length ? `<div class="dz-g">${W.optionen.map((x) => x.typ === 'bool' ? `<label class="dz-c"><input type="checkbox" data-opt="${esc(x.key)}"${OPT[x.key] ? ' checked' : ''}> ${esc(x.name)}</label>`
+      : `<label class="dz-l">${esc(x.name)}<select data-opt="${esc(x.key)}">${x.wahl.map(([k, l]) => `<option value="${esc(k)}"${String(OPT[x.key]) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>` : ''}
+    ${window.BPHead && BPHead.me && BPHead.me.is_admin ? '<button type="button" class="btn sm" data-d="layedit" style="margin-top:.4rem">Layouts bearbeiten …</button>' : ''}`;
+  const layQs = () => (W ? `&layout=${encodeURIComponent(vid)}${Object.keys(OPT).length ? '&opt=' + encodeURIComponent(JSON.stringify(OPT)) : ''}` : '');
   const ov = document.createElement('div'); ov.className = 'bed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', o.titel);
   ov.innerHTML = `<div class="bed-bar"><b>${esc(o.titel)}</b><span class="hint">${esc(o.hinweis || 'Links ankreuzen, was ins PDF soll – rechts die Vorschau.')}</span><span style="flex:1"></span>
     <button class="btn" data-d="x">Schließen</button><button class="btn" data-d="pdf">⤓ PDF</button><button class="btn pri" data-d="druck">🖨 Drucken</button></div>
-    <div class="dz"><aside class="dz-side"><div class="dz-l">Im PDF</div><div class="dz-g">${o.teile.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${k}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="display:block;margin-left:1.5rem">${esc(warum)}</small>` : ''}</label>`).join('')}</div></aside>
+    <div class="dz"><aside class="dz-side"><div data-layw>${layHtml()}</div><div${o.teile.length ? '' : ' hidden'}><div class="dz-l">Im PDF</div><div class="dz-g">${o.teile.map(([k, l, , aus, warum]) => `<label class="dz-c${aus ? ' aus' : ''}" title="${esc(aus ? warum || '' : '')}"><input type="checkbox" data-t="${k}"${wahl.has(k) && !aus ? ' checked' : ''}${aus ? ' disabled' : ''}> ${esc(l)}${aus && warum ? `<small class="hint" style="display:block;margin-left:1.5rem">${esc(warum)}</small>` : ''}</label>`).join('')}</div></div></aside>
     <div class="bed-s"><div class="bed-l">Lade Vorschau …</div></div></div>`;
   document.body.appendChild(ov); document.body.style.overflow = 'hidden';
   const S = ov.querySelector('.bed-s');
   const teile = () => [...ov.querySelectorAll('[data-t]:checked')].map((x) => x.dataset.t);
   async function laden() {
     const my = ++tok, top = S.scrollTop; blob = null;
-    if (!teile().length) { S.innerHTML = '<div class="bed-l">Bitte links mindestens einen Teil ankreuzen.</div>'; return; }
+    if (o.teile.length && !teile().length) { S.innerHTML = '<div class="bed-l">Bitte links mindestens einen Teil ankreuzen.</div>'; return; }
     try {
-      const r = await fetch(o.url(teile()) + lw, { credentials: 'same-origin' });
+      const r = await fetch(o.url(teile()) + lw + layQs(), { credentials: 'same-origin' });
       if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
       const b = await r.blob(); if (my !== tok) return; blob = b;
       const pdf = await lib.getDocument({ isEvalSupported: false, data: new Uint8Array(await b.arrayBuffer()) }).promise; if (my !== tok) return;
@@ -3561,11 +3576,17 @@ async function paketDruck(o) {
     } catch (e) { if (my === tok) S.innerHTML = `<div class="bed-l">${esc(e.message || 'Vorschau nicht möglich')}</div>`; }
   }
   const zu = () => { tok++; ov.remove(); document.body.style.overflow = ''; };
-  ov.addEventListener('change', (e) => { if (e.target.dataset.t) { LS.set(o.merk, teile()); laden(); } });
+  const layMerken = () => LS.set('druck.' + o.bereich, { layout: vid, opt: OPT });
+  ov.addEventListener('change', (e) => {
+    if (e.target.dataset.t) { LS.set(o.merk, teile()); laden(); return; }
+    if (e.target.matches('[data-lay]')) { vid = e.target.value; OPT = { ...(W.werte[vid] || {}) }; ov.querySelector('[data-layw]').innerHTML = layHtml(); layMerken(); laden(); return; }
+    const op = e.target.dataset.opt; if (op) { OPT[op] = e.target.type === 'checkbox' ? e.target.checked : e.target.value; layMerken(); laden(); }
+  });
   ov.addEventListener('click', (e) => {
     const b = e.target.closest('[data-d]'); if (!b) return; const a = b.dataset.d;
     if (a === 'x') return zu();
-    if (!blob) return toast(teile().length ? 'Die Vorschau lädt noch …' : 'Bitte mindestens einen Teil ankreuzen.', true);
+    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) window.open(BPHead.appUrl(ad) + '/layout#' + o.bereich, '_blank'); return; }
+    if (!blob) return toast(teile().length || !o.teile.length ? 'Die Vorschau lädt noch …' : 'Bitte mindestens einen Teil ankreuzen.', true);
     const href = URL.createObjectURL(blob);
     if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: href, typ: 'pdf', name: o.name }]); return; }
     const ln = document.createElement('a'); ln.href = href; ln.download = o.name; document.body.appendChild(ln); ln.click(); ln.remove();

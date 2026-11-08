@@ -2407,6 +2407,7 @@
     ['avadrop', '[data-avadrop]', 'Psst! Angebote, LVs, Aufmaße und Rechnungen kannst du einfach <b>hierher ziehen</b> – oder irgendwo auf die Seite. Ich erkenne, was es ist, und frage, wohin damit.'],
     ['amdrop', '[data-amdrop]', 'Rechnung oder Aufmaß der Firma als PDF <b>hier hineinziehen</b> – auch Scans. Dann gehen wir Position für Position durch, mit ✔ und ✘.'],
     ['redrop', '[data-redrop]', 'Die Rechnung der Firma als PDF einfach <b>hier hineinziehen</b> – sie landet auch gleich im Projektordner.'],
+    ['bkdrop', '.bk-drop,.bk-plaene #drop', 'Grundrisse als PDF, IFC- oder DXF-Dateien (z. B. aus Allplan) einfach <b>hierher ziehen</b> – ich lese Räume und Flächen daraus.'],
     ['btdrop', '.sec[data-drop]', 'Fotos kannst du direkt <b>auf einen Eintrag oder Abschnitt ziehen</b> – dann hängen sie gleich dran.'],
   ];
   const ZSVG = `<svg class="bph-zolli-fig" viewBox="0 0 80 112" aria-hidden="true">

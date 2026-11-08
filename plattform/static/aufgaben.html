@@ -486,6 +486,10 @@ function pdfjs() {
 }
 const B64 = (b) => Uint8Array.from(atob(b), (ch) => ch.charCodeAt(0));
 async function briefStart(url, body, titel, close) {   // aus dem Dialog: Entwurf holen und im Editor öffnen
+  if (window.BPHead && BPHead.druckWahl && !body.layout) {   // mehrere Druck-Layouts für Rügen: erst wählen (bei nur einem ohne Rückfrage)
+    const w = await BPHead.druckWahl(url.includes('terminruege') ? 'terminruege' : 'maengelruege', { titel, knopf: 'Weiter' }); if (!w) return;
+    if (w.layout) body.layout = w.layout;
+  }
   const r = await api(url, 'POST', { ...body, schritt: 'entwurf' });
   close();
   briefEditor(url, body, titel, r);

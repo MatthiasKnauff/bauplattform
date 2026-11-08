@@ -432,7 +432,8 @@ function vUebersicht() {
   if (!B.data.rooms.length) {   // noch leer: statt 0-€-Kacheln den Einstieg zeigen
     return `<section class="card" style="padding:1.6rem 1.6rem 1.4rem"><h2 style="font-size:1.3rem">Los geht's mit „${esc(B.name)}“</h2>
       <p class="sub" style="max-width:640px">Für eine erste Summe reicht ein Grundriss als PDF. Räume, Flächen und Nutzungen liest die App daraus, die Kosten rechnet sie mit Kennwerten je Raumtyp.</p>
-      <div class="row" style="gap:.6rem;margin-top:.4rem"><button class="btn pri" data-act="firstPdf">Grundriss (PDF) hochladen</button><button class="btn" data-act="firstRoom">Räume von Hand eintragen</button>${AS.open ? '' : '<button class="btn" data-act="openAssist">Mit dem Assistenten</button>'}</div></section>`;
+      <div class="drop bk-drop" role="button" tabindex="0" style="margin:.6rem 0 .7rem;max-width:640px">+ Grundriss hierher ziehen oder klicken<br><small>Vektor-PDF (Grundrisse, Ansichten, Schnitte), IFC-Modell mit Räumen und Bauteilen oder DXF-Grundriss mit Raumpolygonen – z. B. aus Allplan</small></div>
+      <div class="row" style="gap:.6rem;margin-top:.4rem"><button class="btn" data-act="firstRoom">Räume von Hand eintragen</button>${AS.open ? '' : '<button class="btn" data-act="openAssist">Mit dem Assistenten</button>'}</div></section>`;
   }
   return `<div class="kpis">
     <div class="card kpi"><span class="lbl">Bauwerk KG 300 + 400</span><b class="num">${eur(c.bauwerk)}</b><span>${B.data.rooms.length} Räume × Kennwerte</span></div>
@@ -489,7 +490,7 @@ function vPlaene() {
   const dup = {}; rooms.forEach((r) => { if (r.nr) { const k = r.floor + '|' + r.nr; dup[k] = (dup[k] || 0) + 1; } });
   const typeOpts = (sel) => Object.entries(B.data.types).map(([k, t]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
   const open = rooms.filter((r) => !r.ok).length;
-  return `<div class="layout"><aside class="side"><span class="hint" style="text-transform:uppercase;letter-spacing:.04em">Pläne</span><div class="files">${B.files.map((x) => `
+  return `<div class="layout"><aside class="side bk-plaene"><span class="hint" style="text-transform:uppercase;letter-spacing:.04em">Pläne</span><div class="files">${B.files.map((x) => `
     <div class="card fc ${x.id === selFile ? 'on' : ''}" data-file="${x.id}" tabindex="0" role="button" aria-pressed="${x.id === selFile}"><b>${esc(x.meta.kind ? x.meta.kind + ' · ' : '')}${esc(x.name)}</b><small>${esc(x.meta.note || '')}</small>
       <div class="acts"><a class="btn sm" href="api/bk/${B.id}/files/${x.id}" data-ansehen="pdf" data-name="${esc(x.name)}">PDF</a>${x.meta.kind !== 'Ansicht' && x.meta.kind !== 'Schnitt' ? `<button class="btn sm${x.meta.found ? '' : ' pri'}" data-kiroom="${x.id}" title="Räume mit der oben gewählten KI aus dem Planbild lesen – für Pläne, deren Beschriftung nicht als Text vorliegt">✨ KI lesen</button>` : ''}${x.meta.found ? '' : `<button class="btn sm" data-reread="${x.id}" title="Plan mit der aktuellen Erkennung erneut auswerten">Neu einlesen</button>`}<button class="btn sm danger" data-delfile="${x.id}">Entfernen</button></div></div>`).join('')}
     <div class="drop" id="drop" role="button" tabindex="0">+ PDF, IFC oder DXF hinzufügen<br><small>Vektor-PDF (Grundrisse, Ansichten, Schnitte), IFC-Modell mit Räumen und Bauteilen oder DXF-Grundriss mit Raumpolygonen – z. B. aus Allplan</small></div></div>
@@ -1150,7 +1151,7 @@ document.addEventListener('click', async (e) => {
   }
   const fc = e.target.closest('[data-file]'); if (fc && !e.target.closest('a')) { selFile = +fc.dataset.file; render(); return; }
   const mk = e.target.closest('[data-mk]'); if (mk) { selRoom = mk.dataset.mk; render(); const row = document.querySelector('tr.sel'); if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
-  if (e.target.closest('#drop')) $('#pdfIn').click();
+  if (e.target.closest('#drop,.bk-drop')) $('#pdfIn').click();
 });
 document.addEventListener('change', async (e) => {
   const el = e.target;
@@ -1204,11 +1205,11 @@ document.addEventListener('change', async (e) => {
   }
 });
 ['dragover', 'dragleave', 'drop'].forEach((ev) => document.addEventListener(ev, (e) => {
-  const d = e.target.closest && e.target.closest('#drop'); if (!d) return;
+  const d = e.target.closest && e.target.closest('#drop,.bk-drop'); if (!d) return;
   e.preventDefault(); d.classList.toggle('on', ev === 'dragover');
   if (ev === 'drop' && e.dataTransfer.files.length) upload([...e.dataTransfer.files]);
 }));
-document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-file],#drop')) { e.preventDefault(); e.target.click(); } });
+document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-file],#drop,.bk-drop')) { e.preventDefault(); e.target.click(); } });
 $('#pdfBtn').onclick = () => pdfDialog();
 /* ---------- ⚙ Raumtypen: Liste des Büros (gilt für alle Kostenermittlungen) ---------- */
 const guessTyp = (name, cat) => { const n = (name || '').toLowerCase().trim(); if (n) for (const t of cat) for (const w of (t.worte || '').split(',')) { const x = w.trim(); if (x && n.includes(x)) return t.key; } return 'sonst'; };

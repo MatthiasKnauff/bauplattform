@@ -1313,8 +1313,8 @@ def blueprint(get_user=None):
         from . import kataster
         try:
             r = kataster.ermitteln(lat if isinstance(lat, (int, float)) else None, lon if isinstance(lon, (int, float)) else None, strasse, plz, ort)
-        except kataster.Fehler as e:
-            return jsonify(error=str(e)), 502
+        except kataster.Fehler as e:   # Adresse unbekannt = Hinweis an den Benutzer (kein Serverfehler); sonst Dienst nicht erreichbar
+            return jsonify(error=str(e)), 422 if "nicht gefunden" in str(e) else 502
         if not r["flurstuecke"]:
             return jsonify(error="An dieser Adresse wurde kein Flurstück gefunden – stimmt die Adresse?", **r), 404
         return jsonify(r)

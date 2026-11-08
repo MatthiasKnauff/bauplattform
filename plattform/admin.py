@@ -652,7 +652,7 @@ def layout_eins(b):
                 layout.schreiben(c, b, d, g.user["name"])
         B = layout.BEREICHE[b]
         EG = layout.eigene(c)
-        return jsonify({**d, "bereich": {"key": b, "name": B["name"], "art": B.get("art", "brief"), "variablen": B["variablen"]},
+        return jsonify({**d, "bereich": {"key": b, "name": B["name"], "art": B.get("art", "brief"), "variablen": B["variablen"], "optionen": B.get("optionen", [])},
                         "felder": {} if B.get("art") == "ava" else layout.FELDER, "typen": layout.TYPEN, "eigene": EG,
                         "standard": layout.standard(b), "beispiel": {**layout.beispiel(b, c), **{x["key"]: f"‹{x['name']}›" for x in EG}}})
 
@@ -691,7 +691,7 @@ def layout_vorschau(b):
     with db.tx() as c:
         bogen = briefbogen.holen(c)
         FN = schrift.fuer(c)
-    W, H = A4
+    W, H = layout.seite_pt(lay)
     ava = layout.BEREICHE[b].get("art") == "ava"
     if ava:
         bogen = None   # AVA-Ausdrucke ohne Briefbogen
@@ -699,7 +699,7 @@ def layout_vorschau(b):
         werte = layout.beispiel(b, c)
         werte.update({x["key"]: f"‹{x['name']}›" for x in layout.eigene(c)})
     buf = io.BytesIO()
-    cv = canvas.Canvas(buf, pagesize=A4)
+    cv = canvas.Canvas(buf, pagesize=(W, H))
 
     def feld(nm, x, y, w, h, size, multi, tip):
         cv.setFont(FN["n"], size); cv.setFillColor(colors.HexColor("#1e1e1e"))

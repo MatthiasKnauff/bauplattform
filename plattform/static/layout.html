@@ -77,7 +77,7 @@ body{margin:0}
       <span class="sep"></span><button data-al="bw" title="gleiche Breite">⟷=</button><button data-al="bh" title="gleiche Höhe">↕=</button>
       <span class="sep"></span><button data-al="dup" title="duplizieren (Strg+D)">⧉</button><button data-al="del" title="löschen (Entf)">🗑</button>
       <button data-al="undo" title="rückgängig (Strg+Z)">↶</button><button data-al="redo" title="wiederholen (Strg+Y)">↷</button>
-      <span class="sep"></span><label>Raster<select id="raster"><option value="1">1 mm</option><option value="2">2 mm</option><option value="2.5">2,5 mm</option><option value="5">5 mm</option><option value="10">10 mm</option></select></label>
+      <span class="sep"></span><label title="Papierformat dieses Layouts">Format<select id="fmt"><option value="A4">A4 hoch</option><option value="A4q">A4 quer</option><option value="A3">A3 hoch</option><option value="A3q">A3 quer</option></select></label><label>Raster<select id="raster"><option value="1">1 mm</option><option value="2">2 mm</option><option value="2.5">2,5 mm</option><option value="5">5 mm</option><option value="10">10 mm</option></select></label>
       <label>Zoom<select id="zoom"><option value="0">Seite</option><option value="2.4">75 %</option><option value="3.2">100 %</option><option value="4.8">150 %</option></select></label>
       <span style="flex:1"></span>
       <button id="std" title="Vorgabe (DIN 5008) in diese Version laden – mit Rückgängig">Vorgabe</button>
@@ -95,6 +95,8 @@ let B = location.hash.slice(1) || LS.get('lay.b', 'maengelruege'), D = null, V =
 const ELN = { text: 'Text', feld: 'Feld', logo: 'Logo', linie: 'Linie', falzmarken: 'Falzmarken', inhalt: 'Inhalt' };
 const r1 = (v) => Math.round(v * 100) / 100;
 const ras = () => +(V && V.data.raster) || 2.5;
+const FMT = { A4: ['A4 hoch', 210, 297], A4q: ['A4 quer', 297, 210], A3: ['A3 hoch', 297, 420], A3q: ['A3 quer', 420, 297] };
+const PW = () => (FMT[(V && V.data.format) || 'A4'] || FMT.A4)[1], PH = () => (FMT[(V && V.data.format) || 'A4'] || FMT.A4)[2];
 const snap = (v) => r1(Math.round(v / ras()) * ras());
 const E = () => V.data.elemente;
 const folgeOben = () => { const ib = E().find((x) => x.typ === 'inhalt'); return V.data.folge_oben ?? Math.min(ib ? ib.y : 25, 25); };
@@ -183,18 +185,18 @@ $('#eig').addEventListener('click', async (e) => {
 function massstab() {
   const z = +$('#zoom').value;
   if (z) return z;
-  const b = $('#bue'); return Math.max(1.2, Math.min((b.clientWidth - 48) / 210, (b.clientHeight - 48) / 297));
+  const b = $('#bue'); return Math.max(0.8, Math.min((b.clientWidth - 48) / PW(), (b.clientHeight - 48) / PH()));
 }
 function zeichne() {
   K = massstab(); const bl = $('#blatt'), r = ras();
-  bl.style.width = 210 * K + 'px'; bl.style.height = 297 * K + 'px';
+  bl.style.width = PW() * K + 'px'; bl.style.height = PH() * K + 'px'; $('#fmt').value = (V.data.format || 'A4');
   $('#raster').value = String(r);
-  let g = ''; for (let x = 0; x <= 210; x += r) g += `<line x1="${x * K}" y1="0" x2="${x * K}" y2="${297 * K}" stroke="${x % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
-  for (let y = 0; y <= 297; y += r) g += `<line x1="0" y1="${y * K}" x2="${210 * K}" y2="${y * K}" stroke="${y % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
+  let g = ''; for (let x = 0; x <= PW(); x += r) g += `<line x1="${x * K}" y1="0" x2="${x * K}" y2="${PH() * K}" stroke="${x % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
+  for (let y = 0; y <= PH(); y += r) g += `<line x1="0" y1="${y * K}" x2="${PW() * K}" y2="${y * K}" stroke="${y % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
   if (D.bereich.art !== 'ava') g += `<rect x="${20 * K}" y="${45 * K}" width="${85 * K}" height="${45 * K}" fill="none" stroke="#9fc0e8" stroke-dasharray="4 3"/><text x="${21 * K}" y="${44 * K}" font-size="${2.6 * K}" fill="#7aa0cc">Fensterbereich DIN 5008</text>`;
   const ib = E().find((x) => x.typ === 'inhalt'), fo = folgeOben();
   if (ib) g += `<line x1="${ib.x * K}" y1="${fo * K}" x2="${(ib.x + ib.w) * K}" y2="${fo * K}" stroke="#e07b3a" stroke-dasharray="6 4" stroke-width="1.5"/><text x="${(ib.x + 1) * K}" y="${(fo - 0.8) * K}" font-size="${2.4 * K}" fill="#e07b3a">Folgeseiten: Inhalt beginnt hier (${String(fo).replace('.', ',')} mm)</text>`;
-  $('#git').setAttribute('width', 210 * K); $('#git').setAttribute('height', 297 * K); $('#git').innerHTML = g;
+  $('#git').setAttribute('width', PW() * K); $('#git').setAttribute('height', PH() * K); $('#git').innerHTML = g;
   bl.querySelectorAll('.el').forEach((x) => x.remove());
   E().forEach((e) => {
     const d = document.createElement('div'); d.dataset.id = e.id;
@@ -226,10 +228,18 @@ async function sofort() {
     if (window.BPHead) BPHead.versionStatus('✓ gespeichert ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })); }
   catch (e) { toast(e.message, true); }
 }
+/* Inhalt des Ausdrucks (z. B. Langtexte, Preise): je Layout gespeichert, beim Drucken für den einzelnen Ausdruck änderbar */
+function optHtml() {
+  const O = (D.bereich && D.bereich.optionen) || []; if (!O.length) return '';
+  const W = { ...Object.fromEntries(O.map((o) => [o.key, o.std])), ...(V.data.optionen || {}) };
+  return `<h3 style="margin-top:1.2rem">Inhalt</h3><p class="hint">Vorgaben dieses Layouts – beim Drucken änderbar.</p><div class="fm">${O.map((o) => o.typ === 'bool'
+    ? `<label class="ck ganz"><input type="checkbox" data-lopt="${o.key}"${W[o.key] ? ' checked' : ''}> ${esc(o.name)}</label>`
+    : `<label class="ganz">${esc(o.name)}<select data-lopt="${o.key}">${o.wahl.map(([k, l]) => `<option value="${esc(k)}"${String(W[o.key]) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>`;
+}
 function props() {
   const P = $('#props'), S = E().filter((e) => SEL.has(e.id));
   if (!S.length) { P.innerHTML = `<h3>Eigenschaften</h3><p class="hint">Element anklicken (mit Umschalt mehrere), ziehen zum Verschieben, an den orangen Griffen die Größe ändern. Pfeiltasten verschieben um ein Rasterfeld, mit Umschalt um 0,5 mm.</p>
-    <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen.</p>`; return; }
+    <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen.</p>${optHtml()}`; return; }
   if (S.length > 1) { P.innerHTML = `<h3>${S.length} Elemente gewählt</h3><p class="hint">Oben ausrichten, gleiche Abstände oder gleiche Größe.</p>`; return; }
   const e = S[0], nz = (k, l, st = 0.5) => `<label>${l}<input type="number" step="${st}" data-p="${k}" value="${e[k] ?? ''}"></label>`;
   P.innerHTML = `<h3>${esc(e.name || ELN[e.typ])} <span class="hint">· ${ELN[e.typ]}</span></h3><div class="fm">
@@ -248,6 +258,7 @@ function props() {
     </div><div style="display:flex;gap:.4rem;margin-top:.8rem"><button class="btn sm" data-al="dup">⧉ Duplizieren</button><button class="btn sm danger" data-al="del"${e.typ === 'inhalt' ? ' disabled title="Der Inhalt muss bleiben"' : ''}>🗑 Löschen</button></div>`;
 }
 $('#props').addEventListener('change', (e) => {
+  const lo = e.target.dataset.lopt; if (lo) { merken(); V.data.optionen = { ...(V.data.optionen || {}), [lo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }; return geaendert(); }
   if (e.target.id === 'pfolge') { merken(); V.data.folge_oben = Math.max(5, Math.min(150, +e.target.value || 20)); return geaendert(); }
   const f = e.target.dataset.p; if (!f) return; const el = E().find((x) => SEL.has(x.id)); if (!el) return;
   merken();
@@ -326,6 +337,7 @@ document.addEventListener('keydown', (e) => {
   E().filter((x) => SEL.has(x.id)).forEach((x) => { x.x = r1(Math.max(0, x.x + d[0] * st)); x.y = r1(Math.max(0, x.y + d[1] * st)); }); geaendert();
 });
 $('#raster').onchange = (e) => { merken(); V.data.raster = +e.target.value; geaendert(); };
+$('#fmt').onchange = (e) => { merken(); V.data.format = e.target.value; geaendert(); };
 $('#zoom').onchange = () => zeichne();
 addEventListener('resize', () => { if (!+$('#zoom').value) zeichne(); });
 $('#ber').onchange = async (e) => { await sofort(); B = e.target.value; LS.set('lay.b', B); history.replaceState(null, '', '#' + B); laden(); };

@@ -416,7 +416,9 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
 
     # Lage der Felder aus dem Druck-Layout (Verwaltung → Büro → Druck-Layouts); Vorgabe wie bisher (DIN 5008 Form B)
     with db.tx() as c:
-        LAY = layout.aktiv(c, "maengelruege" if doc == "Mängelrüge" else "terminruege")
+        from flask import has_request_context
+        vid = str((request.get_json(silent=True) or {}).get("layout") or "")[:40] if has_request_context() else ""   # im Druckdialog gewähltes Layout
+        LAY = layout.aktiv(c, "maengelruege" if doc == "Mängelrüge" else "terminruege", vid or None)
         EIG = layout.eigene_werte(c, pid)   # eigene Felder (je Projekt eingetragen)
     foot = " · ".join(v for v in (kurz, S.get("co_street"), " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x), S.get("co_phone"), S.get("co_email"), S.get("co_web")) if v)
     LW = {"buero": office, "absender": absender, "fusszeile": foot, "datum": V["Datum"], "bearbeiter": name, "projekt": projekt, "bauvorhaben": bv,

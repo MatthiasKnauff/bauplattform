@@ -247,7 +247,7 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}
 .ps th.bh{min-width:9rem;white-space:normal}
 .ps th.bh .bn{display:flex;gap:.3rem;align-items:center;justify-content:space-between}
 .ps th.win{box-shadow:inset 0 -3px 0 var(--ok)}
-.empty{padding:2rem;text-align:center;color:var(--mute)}.am-dt{white-space:nowrap}.am-dt input{width:calc(100% - 1.9rem)!important;display:inline-block}.am-cal{border:0;background:none;cursor:pointer;padding:0 .15rem;font-size:.95rem;vertical-align:middle}.am-leer{padding:1rem 1.2rem;max-width:56rem}.am-leer h3{margin:0 0 .2rem}.am-leer ol{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.6rem}
+.empty{padding:2rem;text-align:center;color:var(--mute)}.vb-k{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}.vb-k select{width:auto;font-size:.85rem}.am-dt{white-space:nowrap}.am-dt input{width:calc(100% - 1.9rem)!important;display:inline-block}.am-cal{border:0;background:none;cursor:pointer;padding:0 .15rem;font-size:.95rem;vertical-align:middle}.am-leer{padding:1rem 1.2rem;max-width:56rem}.am-leer h3{margin:0 0 .2rem}.am-leer ol{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.6rem}
 .am-leer li{display:flex;gap:.7rem;align-items:flex-start}.am-leer li>b{flex:none;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--y);color:var(--on);display:grid;place-items:center;font-size:.85rem}
 .re-split .am-l,.am-split .am-l{min-width:0}.am-l .re>.card{min-width:0;overflow-x:auto}
 .am td{font-size:.88rem}
@@ -2213,14 +2213,15 @@ const auftragKonditionen = (V) => `<span class="vk hint" style="display:inline-f
   <input data-ang="v_nachlass" value="${V.nachlass ? nf(V.nachlass, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal" title="Nachlass in Prozent">
   <input data-ang="v_nachlass_eur" value="${V.nachlass_eur ? nf(V.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag netto – wird anteilig auf jede Rechnung umgelegt">
   · Skonto <input data-ang="v_skonto" value="${V.skonto ? nf(V.skonto, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal"> % in
-  <input data-ang="v_skonto_tage" value="${V.skonto_tage || ''}" placeholder="Tage" style="width:3.6rem" inputmode="numeric" title="Tage ab Rechnungseingang"> Tagen</span>`;
+  <input data-ang="v_skonto_tage" value="${V.skonto_tage || ''}" placeholder="Anzahl" style="width:3.6rem" inputmode="numeric" title="Frist ab Rechnungseingang">
+  <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (Mo–So)'], ['wt', 'Werktagen (Mo–Sa)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>`;
 function vAngebote() {
   const P = posOf().filter((x) => !x.nt), A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe;
   const head = `<div class="bar"><button class="btn sm pri" data-act="bieter">+ Bieter</button>
     <span class="fill"></span></div>
     ${V.bieter ? `<div class="vb"><span>✓ Vergeben an <b>${esc(V.bieter)}</b> am ${de(V.datum)} · Auftrag ${eur(K.auftrag)}${V.nachlass || V.nachlass_eur ? ` (nach ${nlText(V)} Nachlass)` : ''}</span>
-      ${auftragKonditionen(V)}
-      <label class="hint">Sicherheitseinbehalt <input data-ang="einbehalt" value="${nf(V.einbehalt ?? 5, 2)}" style="width:4rem" inputmode="decimal"> %</label><span class="fill"></span><button class="btn sm" data-act="vergabeWeg">Vergabe aufheben</button></div>` : ''}`;
+      <span class="vb-k">${auftragKonditionen(V)}
+      <label class="hint">Sicherheitseinbehalt <input data-ang="einbehalt" value="${nf(V.einbehalt ?? 5, 2)}" style="width:4rem" inputmode="decimal"> %</label><span class="fill"></span><button class="btn sm" data-act="vergabeWeg">Vergabe aufheben</button></span></div>` : ''}`;
   if (!A.length) return head + `<div class="card empty"><p>Noch keine Angebote. Bieter hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
     <p class="hint">Das LV gibst du oben rechts unter „Export“ als GAEB X83, Excel oder PDF an die Bieter.</p></div>`;
   const best = (id) => { const v = A.map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
@@ -2249,7 +2250,7 @@ async function angSave(el) {
   const a = el.dataset.ang;
   try {
     if (a === 'einbehalt') return call('api/lv/' + L.id, 'PUT', { vergabe: { einbehalt: pf(el.value) ?? 5 } });
-    if (a.startsWith('v_')) return call('api/lv/' + L.id, 'PUT', { vergabe: { [a.slice(2)]: pf(el.value) ?? 0 } });
+    if (a.startsWith('v_')) return call('api/lv/' + L.id, 'PUT', { vergabe: { [a.slice(2)]: a === 'v_skonto_art' ? el.value : pf(el.value) ?? 0 } });
     const body = a === 'ep' ? { preise: { [el.dataset.pid]: el.value } } : { [a]: ['nachlass', 'nachlass_eur', 'skonto', 'skonto_tage'].includes(a) ? pf(el.value) ?? 0 : el.value };
     const r = await api('api/angebote/' + el.dataset.aid, 'PUT', body);
     const pos = document.activeElement && document.activeElement.dataset ? { aid: document.activeElement.dataset.aid, pid: document.activeElement.dataset.pid, f: document.activeElement.dataset.ang } : null;
@@ -2919,7 +2920,7 @@ function reSkonto(r, c) {
   const V = L.vergabe || {}, rest = c.skonto_bis && !c.bezahlt ? Math.round((new Date(c.skonto_bis) - new Date(new Date().toISOString().slice(0, 10))) / 864e5) : null;
   return `<div class="g re-sk" style="margin-top:.5rem">
     <label title="Leer: wie im Auftrag (${nf(V.skonto || 0, 2)} %)">Skonto %<input data-re="skonto" data-id="${r.id}" value="${r.data.skonto != null ? nf(r.data.skonto, 2) : ''}" placeholder="${nf(V.skonto || 0, 2)}" inputmode="decimal"></label>
-    <label title="Tage ab Rechnungseingang. Leer: wie im Auftrag (${V.skonto_tage || 0} Tage)">Skontofrist (Tage ab Eingang)<input data-re="skonto_tage" data-id="${r.id}" value="${r.data.skonto_tage != null ? r.data.skonto_tage : ''}" placeholder="${V.skonto_tage || ''}" inputmode="numeric"></label>
+    <label title="Frist ab Rechnungseingang. Leer: wie im Auftrag (${V.skonto_tage || 0} ${{ kt: 'Kalendertage', wt: 'Werktage', wo: 'Wochen' }[V.skonto_art || 'kt']})">Skontofrist (${{ kt: 'Kalendertage', wt: 'Werktage Mo–Sa', wo: 'Wochen' }[V.skonto_art || 'kt']} ab Eingang)<input data-re="skonto_tage" data-id="${r.id}" value="${r.data.skonto_tage != null ? r.data.skonto_tage : ''}" placeholder="${V.skonto_tage || ''}" inputmode="numeric"></label>
     <label>bezahlt am<input type="date" data-re="bezahlt" data-id="${r.id}" value="${esc(r.data.bezahlt || '')}"></label>
     <span class="hint" style="align-self:end;padding-bottom:.45rem">${c.skonto && !r.eingang ? '⚠ Eingangsdatum fehlt – ohne Eingang keine Skontofrist' : c.bezahlt ? '✓ bezahlt' : rest == null ? '' : rest < 0 ? `Skontofrist abgelaufen am ${de(c.skonto_bis)}` : `<b style="color:${rest <= 3 ? 'var(--red)' : 'inherit'}">Skonto noch ${rest === 0 ? 'heute' : rest + ' Tag' + (rest === 1 ? '' : 'e')}</b> (bis ${de(c.skonto_bis)})`}</span></div>`;
 }

@@ -837,11 +837,22 @@ def _skonto(V, rd, r, brutto):
     try:
         from datetime import timedelta
         if r["eingang"] and tage:
-            bis = (date.fromisoformat(r["eingang"]) + timedelta(days=tage)).isoformat()
+            d0, art = date.fromisoformat(r["eingang"]), V.get("skonto_art") or "kt"
+            if art == "wo":   # Wochen
+                d0 += timedelta(weeks=tage)
+            elif art == "wt":   # Werktage Mo–Sa (Sonntage zählen nicht)
+                n = tage
+                while n > 0:
+                    d0 += timedelta(days=1)
+                    if d0.weekday() < 6:
+                        n -= 1
+            else:   # Kalendertage
+                d0 += timedelta(days=tage)
+            bis = d0.isoformat()
     except (TypeError, ValueError, KeyError, IndexError):
         bis = ""
     sk = round(brutto * pct / 100, 2)
-    return {"skonto_pct": pct, "skonto_tage": tage, "skonto": sk, "skonto_bis": bis, "brutto_skonto": round(brutto - sk, 2), "bezahlt": rd.get("bezahlt") or ""}
+    return {"skonto_pct": pct, "skonto_tage": tage, "skonto_art": V.get("skonto_art") or "kt", "skonto": sk, "skonto_bis": bis, "brutto_skonto": round(brutto - sk, 2), "bezahlt": rd.get("bezahlt") or ""}
 
 
 ABZUG_ARTEN = ("nachlass", "abzuege", "einbehalt", "vorher")   # was bei der Prüfung abgezogen wird – je Auftrag, je Rechnung änderbar
@@ -1269,6 +1280,8 @@ def lv_eins(i):
                 V["nachlass_eur"] = round(_f(b["vergabe"]["nachlass_eur"], 0, 0), 2)
             if "skonto_tage" in b["vergabe"]:
                 V["skonto_tage"] = int(_f(b["vergabe"]["skonto_tage"], 0, 0, 365))
+            if b["vergabe"].get("skonto_art") in ("kt", "wt", "wo"):
+                V["skonto_art"] = b["vergabe"]["skonto_art"]
             if V.get("frei"):
                 if "summe" in b["vergabe"]:
                     V["summe"] = round(_f(b["vergabe"]["summe"], 0, 0), 2)

@@ -187,6 +187,11 @@ label.chk input{flex:none;margin:.15rem 0 0}
 #bwz textarea,#bwz input:not([type=checkbox]),#bwz select{width:100%}
 #bwz .add{display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem}
 #bwz .add .ok{background:var(--y);color:var(--on);font-weight:700;padding:.7rem;border-radius:10px;border:0}
+#bwz .add .ok{align-self:flex-end;padding:.5rem 1.2rem}
+#bwz .add:has([data-add-cnt]){display:grid;grid-template-columns:minmax(0,1fr) 4.5rem auto;align-items:center;gap:.45rem}
+#bwz .add:has([data-add-cnt])>.sgw{grid-column:1/-1}
+#bwz .add [data-add-cnt]{width:4.5rem!important;text-align:right}#bwz .add [data-add-act]{min-height:0;resize:none;border:1px solid var(--line);background:var(--inp);border-radius:8px;padding:.45rem .6rem}
+@media(max-width:420px){#bwz .add:has([data-add-cnt]){grid-template-columns:minmax(0,1fr) 4rem}#bwz .add:has([data-add-cnt]) .ok{grid-column:1/-1;justify-self:end}}
 #bwz .chk{display:flex;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--line);font-size:1.02rem}
 #bwz .chk input{width:22px;height:22px}
 #bwz .wg{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}

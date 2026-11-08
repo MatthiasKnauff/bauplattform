@@ -297,7 +297,7 @@ def ruege_vorlage():
             return jsonify(error="Nicht gefunden"), 404
         firma = x["company"] or x["contact"] or ""
         k = c.execute("SELECT * FROM contacts WHERE lower(name)=lower(?) ORDER BY id LIMIT 1", (firma,)).fetchone() if firma else None
-    alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"] and (m["art"] == "maengel" or m["id"] == i)]
+    alle = [m for m in maengel("all").get_json() if m["pid"] == x["pid"] and not m["done"] and (m["art"] == "maengel" or (m["id"] == i and m["art"] == "weisungen"))]
     return jsonify(firma=firma, pid=x["pid"], empfaenger={"id": k["id"], "name": k["name"], "person": k["contact_person"] or "", "strasse": k["street"] or "", "ort": " ".join(v for v in (k["zip"], k["city"]) if v),
                                            "email": k["email"] or ""} if k else {"name": firma, "person": "", "strasse": "", "ort": "", "email": ""},
                    maengel=alle, gewaehlt=[m["id"] for m in alle if m["id"] == i or (firma and m["firma"] == firma)], signme=_signme())
@@ -603,7 +603,7 @@ def ruege_pdf():
     """Mängelrüge: Entwurf für den Brief-Editor, Ausdruck oder Versand (auch des mit sign-me unterschriebenen PDFs)."""
     b, signiert = _rueckgabe()
     ids = [int(x) for x in b.get("ids") or [] if str(x).isdigit()]
-    ms = [m for m in maengel("all").get_json() if m["id"] in ids]   # auch Weisungen / Aufgaben, die gerügt werden sollen
+    ms = [m for m in maengel("all").get_json() if m["id"] in ids and m["art"] in ("maengel", "weisungen")]   # Mängel und nicht befolgte Weisungen – Aufgaben nicht
     frei = [z.strip()[:500] for z in str(b.get("frei") or "").splitlines() if z.strip()][:40]   # selbst eingetragene Mängel
     if not ms and not frei:
         return jsonify(error="Bitte mindestens einen Mangel wählen oder selbst eintragen."), 400

@@ -488,6 +488,26 @@ tr.am-lf td input{color:#c0621f}
 .ava-drop b{color:var(--ink)}.ava-drop small{font-size:.72rem;line-height:1.25}.ava-drop:hover{border-color:var(--y);color:var(--ink)}
 body.ava-ziehen .ava-drop{border-color:var(--y);background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink)}
 body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV, Aufmaß oder Rechnung und fragt, wohin";position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);padding:.6rem 1rem;border-radius:10px;font-size:.9rem;pointer-events:none;box-shadow:0 6px 20px #0004}
+
+/* Einfache Ansicht */
+.einu{display:none}
+html[data-modus="einfach"] .einu{display:block;max-width:1180px;margin:0 auto;padding:1.4rem 1.2rem .6rem}
+.einh{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem}.einh>div{flex:1;min-width:16rem}
+.einh h2{margin:0;font-size:1.7rem;letter-spacing:-.02em}.einh p{margin:.3rem 0 0;color:var(--mute)}
+.einh .btn{padding:.7rem 1.2rem;font-size:1rem;border-radius:12px}
+.einu h3{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:1.3rem 0 .6rem}
+.eing{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:.8rem}
+.eink{display:flex;flex-direction:column;gap:.6rem;text-align:left;padding:1rem 1.1rem;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.eink:hover{border-color:var(--y)}.eink.on{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 20%,transparent)}
+.eink .eh{display:flex;gap:.7rem;align-items:flex-start}.eink .eh b{display:block;font-size:1.02rem}.eink .eh small{color:var(--mute);font-size:.82rem}
+.enr{width:38px;height:38px;border-radius:11px;background:var(--tabs);display:grid;place-items:center;font-weight:700;flex:none}
+.es{display:flex;justify-content:space-between;align-items:baseline}.es small{color:var(--mute);font-size:.82rem}.es b{font-size:1.35rem;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.eb{height:6px;border-radius:99px;background:var(--tabs);overflow:hidden}.eb i{display:block;height:100%;background:var(--y);border-radius:99px}
+.ef{display:flex;justify-content:space-between;gap:.5rem;font-size:.8rem;color:var(--mute)}
+.en{padding:.5rem .7rem;border-radius:10px;background:color-mix(in srgb,var(--y) 12%,transparent);color:var(--ink);font-weight:600;font-size:.88rem}
+html[data-modus="einfach"] #navL{display:none}html[data-modus="einfach"] .body{grid-template-columns:minmax(0,1fr)}html[data-modus="einfach"] .body>.pane{grid-column:1}
+html[data-modus="einfach"] .body.mit-quelle{grid-template-columns:minmax(0,1fr) minmax(320px,36%)}html[data-modus="einfach"] .body.mit-quelle>.qu{grid-column:2}
+html[data-modus="einfach"] [data-umenu]{display:none}
 </style>
 </head>
 <body>
@@ -514,6 +534,7 @@ body.ava-ziehen::after{content:"Loslassen – die Plattform erkennt Angebot, LV,
     <div class="rg"><div class="rr"><div class="vqb"><input type="search" id="vq" placeholder="Volltext: Text, OZ, Firma, Raum …" autocomplete="off" title="Volltextsuche in allen LVs, Angeboten, Aufmaß und Türliste (Strg+Umschalt+F)" aria-label="Volltextsuche"><label><input type="checkbox" id="vqAlle"> in allen Projekten</label></div></div><div class="rl">Suchen</div></div>
     </div>
   <nav class="stp" id="stp" aria-label="Arbeitsschritte"></nav>
+  <section class="einu" id="einu" aria-label="Leistungsverzeichnisse im Überblick"></section>
   <div class="body">
     <aside class="nav" id="navL" aria-label="Projekt"><div class="nsuche" id="nsuche"></div><div id="tabs"></div></aside>
     <section class="pane">
@@ -726,7 +747,7 @@ async function lvSetzen(id, extra) {
   if (L && L.id === id) { await flush(); await saveNow(extra); await refreshList(); render(); return; }
   await api('api/lv/' + id, 'PUT', extra); await refreshList();
 }
-async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); const pt = $('#pjTree'); if (pt && PJTABS.has(tab)) pt.innerHTML = pjBaum(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
+async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); einUeb(); const pt = $('#pjTree'); if (pt && PJTABS.has(tab)) pt.innerHTML = pjBaum(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
 
 /* ---------- Kopf ---------- */
 function selBtn() {
@@ -1090,7 +1111,32 @@ document.addEventListener('click', async (e) => {
   if (tab === 'aufmass' && sub) { const x = LIST.find((y) => y.id === id); amAns = 'baum'; LS.set('amAns', amAns); (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX); }
   if (!L || L.id !== id) { await flush(); await openLv(id); } else render();
 });
+/* Einfache Ansicht: je LV eine Karte mit Summe, Balken und dem nächsten Schritt – darunter bleibt das gewohnte LV */
+function einUeb() {
+  const box = $('#einu'); if (!box) return;
+  if (!(window.BPHead && BPHead.einfach && BPHead.einfach())) { box.innerHTML = ''; return; }
+  const eu = (v) => (v || v === 0 ? Math.round(v).toLocaleString('de-DE') + ' €' : '–');
+  const A = LIST.filter((x) => !x.archived);
+  const G = [['In Ausschreibung', A.filter((x) => !x.vergeben && !x.frei && !(x.n_angebote > 0))], ['In Vergabe', A.filter((x) => !x.vergeben && !x.frei && x.n_angebote > 0)], ['In Abrechnung', A.filter((x) => x.vergeben || x.frei)]];
+  const karte = (x) => {
+    let wert, lab, bal, f1, f2, next, t;
+    if (x.vergeben || x.frei) { const auf = x.auftrag || 0, ab = x.abgerechnet || 0; wert = eu(ab); lab = 'abgerechnet'; bal = auf ? Math.min(100, ab / auf * 100) : 0; f1 = x.auftragnehmer || (x.frei ? 'ohne LV' : ''); f2 = auf ? 'Auftrag ' + eu(auf) : ''; next = '🧾 Rechnung erfassen oder prüfen'; t = 'rechnungen'; }
+    else if (x.n_angebote > 0) { wert = eu(x.min_angebot); lab = 'günstigstes Angebot'; bal = 100; f1 = `${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}`; f2 = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; next = '✓ Preisspiegel ansehen & vergeben'; t = 'angebote'; }
+    else { wert = String(x.n_pos || 0); lab = 'Positionen'; bal = 0; f1 = x.gewerk || ''; f2 = x.schaetzung ? 'Schätzung ' + eu(x.schaetzung) : ''; next = x.n_pos ? '✉ LV prüfen und verschicken' : '＋ Positionen eintragen'; t = 'lv'; }
+    return `<button type="button" class="eink${L && L.id === x.id ? ' on' : ''}" data-einlv="${x.id}" data-eintab="${t}"><span class="eh"><span class="enr">${esc(x.nr || '·')}</span><span><b>${esc(x.name)}</b><small>${esc(x.gewerk || '')}</small></span></span>
+      <span class="es"><small>${lab}</small><b>${wert}</b></span><span class="eb"><i style="width:${bal}%"></i></span><span class="ef"><span>${esc(f1)}</span><span>${esc(f2)}</span></span><span class="en">${next} ›</span></button>`;
+  };
+  box.innerHTML = `<div class="einh"><div><h2>Leistungsverzeichnisse</h2><p>Je Gewerk eine Karte – darauf steht, was als Nächstes zu tun ist. Darunter das gewählte LV.</p></div><button type="button" class="btn pri" data-einneu>＋ Neues LV</button></div>`
+    + G.filter(([, l]) => l.length).map(([n, l]) => `<h3>${n}</h3><div class="eing">${l.map(karte).join('')}</div>`).join('') + (A.length ? '' : '<p class="mute">Noch kein LV in diesem Projekt.</p>');
+}
+document.addEventListener('click', async (e) => {
+  if (e.target.closest('[data-einneu]')) { newDialog(); return; }
+  const k = e.target.closest('[data-einlv]'); if (!k) return;
+  await flush(); tab = k.dataset.eintab; LS.set('tab', tab); await openLv(+k.dataset.einlv);
+  const pn = document.querySelector('.body'); if (pn) pn.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 function render() {
+  einUeb();
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
   if (typeof histUi === 'function') setTimeout(histUi, 0);
   if (tab !== 'lv' && $('#lvSel')) $('#lvSel').hidden = true;
@@ -1194,15 +1240,8 @@ const istImport = (f) => /\.(x8[1-6]|d8[1-6]|p8[1-6]|x3[12]|xlsx|xlsm)$/i.test(f
 function kiWahl(text, opt = {}) {
   const P = ((window.BPHead && BPHead.providers) || []).filter((p) => p.ok && p.key !== 'intern' && (!opt.bild || p.bild));
   if (!P.length) { toast(opt.bild ? 'Keine KI eingerichtet, die Bilder liest (Claude, Gemini, ChatGPT oder Ollama mit Bildmodell) – Verwaltung → Einstellungen → KI.' : 'Keine KI eingerichtet – in der Verwaltung → Einstellungen → KI (z. B. Ollama im Büro).', true); return Promise.resolve(null); }
-  const vor = (P.find((p) => p.key === (window.BPHead && BPHead.ki)) || P.find((p) => p.key === 'ollama') || P[0]).key;
-  return new Promise((fertig) => {
-    modalBox(`<h3>Mit KI lesen?</h3><p>${text}</p><p class="hint" style="margin:.2rem 0 .5rem">${opt.hinweis || 'Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.'}</p>
-      <div class="src">${P.map((p) => `<label><input type="radio" name="kiW" value="${p.key}"${p.key === vor ? ' checked' : ''}> <b>${esc(p.label)}</b> <span class="hint">${esc(p.hint || '')}</span></label>`).join('')}</div>
-      <div class="acts"><button class="btn" data-m="x">Nein, danke</button><button class="btn pri" data-m="ok">Mit KI lesen</button></div>`, (m, bg, close) => {
-      if (m === 'x') { close(); fertig(null); }
-      if (m === 'ok') { const k = bg.querySelector('[name=kiW]:checked'); close(); fertig(k ? k.value : null); }
-    });
-  });
+  if (window.BPHead && BPHead.kiFragen) return BPHead.kiFragen({ text, hinweis: opt.hinweis || 'Der Text des Dokuments (bei Scans ohne Text die Seitenbilder) geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.', bild: opt.bild });
+  return Promise.resolve(null);
 }
 /* Hintergrundarbeit des Servers (Texterkennung, KI) abwarten */
 function avaJob(jid, el) {
@@ -2165,11 +2204,12 @@ function amZeilenKarte(R) {
   return `<div class="card am-zk"><b>In der PDF ohne LV-Position</b> <span class="hint">${Z.length} Zeile${Z.length === 1 ? '' : 'n'} · ${eur(sum)} netto${amBelege().some((b) => b.auslese && b.auslese.ocr) ? ' · per Texterkennung aus dem Scan – bitte prüfen' : ''}</span>
     <table class="lv am" style="margin:.4rem 0"><thead><tr><th>Text</th><th class="r">Menge</th><th>Einh.</th><th class="r">EP</th><th class="r">Betrag</th></tr></thead><tbody>
     ${Z.map((z, k) => `<tr data-amzl="${k}" style="cursor:pointer" title="in der PDF zeigen"${z.pos ? ' class="mu"' : ''}><td>${esc(z.text)}${kiZ(z, k)}</td><td class="r">${nf(z.menge)}</td><td>${esc(z.einheit || '')}</td><td class="r">${nf2(z.ep)}</td><td class="r">${nf2(z.gp)}</td></tr>`).join('')}</tbody></table>
-    <div class="bar" style="margin:0">${g ? '' : `<button class="btn sm" data-amki title="Zeilen ohne Ordnungszahl per KI den LV-Positionen zuordnen – mit der oben gewählten KI${kiName === 'Ollama' ? ' (lokal, bleibt im Büro)' : ''}">🤖 Mit KI zuordnen${kiName ? ' (' + kiName + ')' : ''}</button>`}${knopf}</div></div>`;
+    <div class="bar" style="margin:0">${g ? '' : `<button class="btn sm" data-amki title="Zeilen ohne Ordnungszahl per KI den LV-Positionen zuordnen – die KI wählst du beim Klick">🤖 Mit KI zuordnen${kiName ? ' (' + kiName + ')' : ''}</button>`}${knopf}</div></div>`;
 }
 async function amKi(bid, still) {
   const R = amRe(); if (!R) return;
-  if (!(window.BPHead && BPHead.ki && BPHead.ki !== 'intern')) { if (!still) toast('Für den Abgleich oben in der Kopfleiste eine KI wählen – am besten Ollama (bleibt im Büro).', true); return; }
+  if (still && !(window.BPHead && BPHead.ki && BPHead.ki !== 'intern' && BPHead.kiImmer)) return;   // automatisch nur, wenn „immer diese KI“ gewählt ist
+  if (!still) { const k = await kiWahl('Die Zeilen ohne Ordnungszahl den Positionen des LV zuordnen.', { hinweis: 'Die Zeilen der Rechnung und die Kurztexte des LV gehen an die gewählte KI – Ollama bleibt im Büro. Übernommen wird erst nach deiner Bestätigung.' }); if (!k) return; }
   const card = document.querySelector('.am-zk [data-amki]'); if (card) { card.disabled = true; card.textContent = '🤖 KI ordnet zu …'; }
   if (!still) toast('KI ordnet die Zeilen zu – mit Ollama kann das eine Minute dauern …');
   try { const d = await api(`api/belege/${bid}/ki`, 'POST', {}); L = d; render(); if (d.hinweis) toast(d.hinweis); }

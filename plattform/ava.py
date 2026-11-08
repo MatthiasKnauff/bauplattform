@@ -3414,7 +3414,7 @@ def _ki_zuordnen(c, A, items, ki=None):
         return 0, 0
     ki = ki or ai.choice_of(g.user, c)
     if ki == "intern":
-        raise ai.AIError("Für den Abgleich oben in der Kopfleiste eine KI wählen – am besten Ollama (bleibt im Büro).")
+        raise ai.AIError("Für den Abgleich eine KI wählen (⚙ → Für mich → KI) – am besten Ollama, bleibt im Büro.")
     sys_ = ("Du ordnest Zeilen aus einer Rechnung oder einem Angebot einer Baufirma den Positionen eines Leistungsverzeichnisses (LV) zu. "
             "Die Zeilen können aus einer Texterkennung stammen und Lesefehler enthalten (z. B. „mm?“ statt „mm²“, O statt 0). "
             "Vergleiche Bedeutung, Material, Maße und Einheit – nicht nur Wörter. Jede LV-Position höchstens einmal. "
@@ -3837,7 +3837,7 @@ def ki_langtext():
     with db.tx() as c:
         ki = ai.choice_of(g.user, c)
     if ki == "intern":
-        return jsonify(error="Für Textvorschläge oben in der Kopfleiste eine KI wählen (z. B. Ollama)."), 400
+        return jsonify(error="Für Textvorschläge eine KI wählen (⚙ → Für mich → KI), z. B. Ollama."), 400
     sys_ = ("Du bist Architekt in Deutschland und schreibst Langtexte für Leistungsverzeichnisse nach VOB/C (ATV DIN 18299 ff.). "
             "Schreibe einen sachlichen, ausschreibungsreifen Langtext auf Deutsch: Leistung, Material/Qualität mit Platzhaltern (z. B. „Fabrikat: ……“), "
             "Ausführung, Abrechnungseinheit. Keine Preise, keine Einleitung, keine Aufzählungszeichen-Orgie, höchstens 12 Zeilen.")

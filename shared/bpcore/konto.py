@@ -14,6 +14,8 @@ STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich
             "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
             "mailsignatur_html": "", # dieselbe als HTML (eingefügt aus Outlook/Word); hat Vorrang
             "telefon": "", "funktion": "",   # für die Signatur
+            "ki_immer": False,       # gewählte KI ohne Nachfrage verwenden (sonst fragen die Apps beim Lesen mit KI)
+            "modus": "",             # Ansicht: einfach | profi; leer = Vorgabe des Büros (Einstellung modus_standard, sonst profi)
             "farbschema": "",        # Farbschema der Oberfläche (head.js SCHEMEN), leer = Standard (nur Hell/Dunkel)
             "pdb_preis": "",         # Preis beim Übernehmen aus den Baudaten: leer = fragen | mittel | von | bis | eigen_median | eigen_neu
             "absender": "buero",     # Absender meiner Mails: buero (Absenderadresse des Büros) | eigen (meine E-Mail-Adresse)
@@ -51,6 +53,10 @@ def set_prefs(c, uid, d, by=""):
         p["versand_plaene"] = d["versand_plaene"]
     if d.get("farbschema") in ("", 'sand', 'nebel', 'schiefer', 'papier', 'bauhaus', 'graphit', 'mitternacht', 'aubergine', 'mint', 'terrakotta', 'neon'):
         p["farbschema"] = d["farbschema"]
+    if "ki_immer" in d:
+        p["ki_immer"] = bool(d["ki_immer"])
+    if d.get("modus") in ("", "einfach", "profi"):
+        p["modus"] = d["modus"]
     if d.get("absender") in ("buero", "eigen"):
         p["absender"] = d["absender"]
     for k in ("kopie", "kalender", "kopie_plaene"):

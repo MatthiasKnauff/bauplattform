@@ -404,6 +404,91 @@ html[data-theme="hell"] #leiste{--lb:#e7e5e0}
 #btq{font:inherit;font-size:.88rem;padding:.4rem .75rem;border-radius:999px;border:1px solid var(--line);background:var(--inp);color:var(--ink);margin-right:.2rem}
 #btq:focus{border-color:var(--y);outline:none}
 .sec.over,.ln.over{outline:2px dashed var(--acc,#e8a57e);outline-offset:2px;background:color-mix(in srgb,var(--acc,#e8a57e) 10%,transparent)}
+
+/* ===== Neue Gestaltung (passend zu den übrigen Apps): Abschnitte als Karten mit Symbol, ruhige Überschriften ===== */
+:root{--c-y:var(--y);--c-b:#6aa7ff;--c-r:#ff7a6b;--c-o:#ffad5c;--c-v:#b18cff;--c-g:#3ddc84;--ok:#3ddc84}
+html[data-theme="hell"]{--c-b:#2f6fd6;--c-r:#c8372a;--c-o:#c46a10;--c-v:#7a4fd6;--c-g:#1f9d55;--ok:#1f9d55}
+.si{width:38px;height:38px;border-radius:12px;display:inline-grid;place-items:center;flex:none}
+.si.c-y{background:color-mix(in srgb,var(--c-y) 15%,transparent);color:var(--c-y)}.si.c-b{background:color-mix(in srgb,var(--c-b) 15%,transparent);color:var(--c-b)}
+.si.c-r{background:color-mix(in srgb,var(--c-r) 15%,transparent);color:var(--c-r)}.si.c-o{background:color-mix(in srgb,var(--c-o) 15%,transparent);color:var(--c-o)}
+.si.c-v{background:color-mix(in srgb,var(--c-v) 15%,transparent);color:var(--c-v)}.si.c-g{background:color-mix(in srgb,var(--c-g) 15%,transparent);color:var(--c-g)}
+.sec{border-radius:18px;margin:0 0 .9rem;min-height:0}
+.main{padding:1.1rem 1.3rem 1.2rem}
+.main h3,.sec h3.tg{display:flex;align-items:center;gap:.7rem;font-size:1.15rem;font-weight:700;text-transform:none;letter-spacing:-.01em;line-height:1.2;margin:0 0 .3rem}
+.main h3 .st{min-width:0}.main h3 .nr{color:var(--mute);font-weight:600;font-size:.95rem;margin-left:.3rem}
+.sec.col .main,.sec.leer .main{padding:.75rem 1.1rem}
+.tg .cn{font-size:.78rem;padding:.1rem .6rem;background:color-mix(in srgb,var(--y) 18%,transparent);color:var(--y)}
+.chip0{font-size:.75rem;font-weight:600;color:var(--mute);background:var(--hov);border-radius:999px;padding:.15rem .6rem}
+.side{border-left:0;width:56px;margin:.7rem .5rem .7rem 0}
+.side>button{border-radius:12px}
+.side.q3{margin:.7rem .6rem .7rem 0;gap:.35rem}.side.q3 button{flex:0 0 40px;border:1px solid var(--line)!important;border-radius:12px}
+.hm{display:flex;flex-wrap:wrap;gap:.3rem 1.1rem;color:var(--mute);font-size:.92rem;margin:.15rem 0 0}
+.hm span{display:inline-flex;align-items:center;gap:.4rem}.hm svg{flex:none;opacity:.85}
+.hsec .checks{gap:.45rem;margin-top:.9rem}
+.hsec .checks label{border:1px solid var(--line);border-radius:999px;padding:.38rem .85rem .38rem .55rem;font-size:.88rem;color:var(--mute);cursor:pointer;background:transparent}
+.hsec .checks label:has(input:checked){border-color:color-mix(in srgb,var(--ok) 55%,var(--line));background:color-mix(in srgb,var(--ok) 10%,transparent);color:var(--ink)}
+.hsec .checks input{accent-color:var(--ok)}
+/* Wetter */
+.wxs{grid-template-columns:1fr auto}
+.wxs .side.wx{width:auto;padding:0 .8rem;font-size:.8rem;color:var(--mute)}.wxs .side.wx .cl{display:none}
+.wx2{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:.8rem 1.2rem;align-items:center;margin-top:.5rem}
+.wx-big{display:flex;align-items:center;gap:.7rem;padding-right:1.2rem;border-right:1px solid var(--line);color:var(--y)}
+.wx-big b{font-size:2.3rem;font-weight:700;letter-spacing:-.03em;color:var(--ink);line-height:1}
+.kv small{display:block;color:var(--mute);font-size:.76rem}.kv b{font-weight:600;font-size:.98rem}
+@media(max-width:640px){.wx2{grid-template-columns:1fr 1fr}.wx-big{grid-column:1/-1;border:0;padding:0}}
+/* Anwesende: Firmenkürzel */
+.ln.firm{padding:.45rem .55rem;border-radius:12px;background:var(--hov);margin:.3rem 0}
+.ln.firm .fn{display:flex;align-items:center;gap:.6rem;min-width:0;font-weight:600}
+.fav{width:34px;height:34px;border-radius:10px;display:inline-grid;place-items:center;flex:none;font-size:.78rem;font-weight:700;background:color-mix(in srgb,var(--c-o) 18%,transparent);color:var(--c-o)}
+.ln.firm:nth-child(3n+2) .fav{background:color-mix(in srgb,var(--c-v) 18%,transparent);color:var(--c-v)}.ln.firm:nth-child(3n) .fav{background:color-mix(in srgb,var(--c-b) 18%,transparent);color:var(--c-b)}
+.lines{max-width:none}
+.soll-r.pend textarea{min-height:0!important;height:2.3rem!important;max-height:4.5rem;resize:none;overflow:hidden;line-height:1.35}
+.soll{border:1px dashed color-mix(in srgb,var(--y) 40%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--y) 5%,transparent);padding:.6rem .8rem}
+.fs{border-radius:14px;padding:.6rem .8rem}
+.fs-bar{display:block;position:relative;height:6px;border-radius:99px;background:var(--hov);margin:.35rem 0 .1rem;max-width:340px}
+.fs-bar i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--y)}.fs-bar i.ok{background:var(--ok)}.fs-bar i.rot{background:var(--c-r)}
+.fs-bar u{position:absolute;top:-4px;width:2px;height:14px;background:var(--ink);opacity:.55;border-radius:1px}
+/* Bilder */
+.imgs img{border-radius:12px}
+/* Seitenleiste (breite Bildschirme): Kalender und Abschnitte */
+.btl{display:grid;grid-template-columns:1fr;gap:0}
+.btside{display:none}
+@media(min-width:1180px){
+  .btl{grid-template-columns:270px minmax(0,1fr);gap:1.6rem;max-width:1240px;margin:0 auto}
+  .btl>.wrap{max-width:none;margin:0}
+  .btside{display:flex;flex-direction:column;gap:1rem;position:sticky;top:.8rem;align-self:start;max-height:calc(100vh - 140px);overflow:auto;padding:.2rem .1rem 1rem}
+}
+.bcal{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:.8rem}
+.bcal-h{display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem}.bcal-h b{flex:1;text-align:center;font-size:.95rem}
+.bcal-h button{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);color:var(--ink);display:grid;place-items:center}
+.bcal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:.8rem}
+.bcal-g i{font-style:normal;color:var(--mute);font-size:.68rem;padding-bottom:3px}
+.bcal-g span,.bcal-g button{padding:.32rem 0;border-radius:8px;color:var(--mute);position:relative;font:inherit;font-variant-numeric:tabular-nums}
+.bcal-g button{color:var(--ink);font-weight:600;cursor:pointer}
+.bcal-g button::after{content:"";position:absolute;left:50%;bottom:2px;width:4px;height:4px;border-radius:50%;background:var(--y);transform:translateX(-50%)}
+.bcal-g button:hover{background:var(--hov)}.bcal-g button.on{background:var(--y);color:var(--on)}.bcal-g button.on::after{background:var(--on)}
+.bcal-g .heute{outline:1px solid var(--line)}
+.btoc{display:flex;flex-direction:column;gap:2px}
+.btoc button{display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border-radius:10px;color:var(--mute);font-size:.9rem;text-align:left}
+.btoc button:hover{background:var(--card);color:var(--ink)}
+.btoc button .si{width:26px;height:26px;border-radius:8px}.btoc button .si svg{width:15px;height:15px}
+.btoc button .n{margin-left:auto;font-size:.75rem;min-width:20px;height:20px;border-radius:99px;display:grid;place-items:center;background:var(--hov);color:var(--mute);padding:0 .35rem}
+.btoc button .n.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.bsum{display:flex;align-items:center;gap:.8rem;padding:.2rem .3rem}
+.ring{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ring b{width:38px;height:38px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font-size:.78rem}
+.bsum small{display:block;color:var(--mute);font-size:.78rem}
+html[data-modus="einfach"] .btside{display:none!important}
+/* einfache Ansicht: Assistent groß – eine Frage pro Bildschirm */
+html[data-modus="einfach"] #bwz{background:var(--bg);top:52px}
+html[data-modus="einfach"] #bwz .bp{width:min(760px,100%);border:0;background:transparent;max-height:100%;height:100%;border-radius:0}
+html[data-modus="einfach"] #bwz .bh{padding:1.4rem 1.2rem .6rem}html[data-modus="einfach"] #bwz .bh b{font-size:1.9rem;letter-spacing:-.02em}
+html[data-modus="einfach"] #bwz .dots{padding:0 1.2rem 1rem}html[data-modus="einfach"] #bwz .dots i{height:6px}
+html[data-modus="einfach"] #bwz .bb{padding:.4rem 1.2rem 1.4rem;font-size:1.05rem}
+html[data-modus="einfach"] #bwz .bf{border-top:0;padding:1rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom,0px))}
+html[data-modus="einfach"] #bwz .bf button{padding:.9rem 1.4rem;font-size:1.05rem;border-radius:14px}html[data-modus="einfach"] #bwz .bf .nx{flex:1}
+html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,html[data-modus="einfach"] #bwz textarea{font-size:1.05rem;padding:.65rem .75rem;border-radius:12px}html[data-modus="einfach"] .btl{display:block}
+@media(max-width:640px){.hsec .checks{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}.hsec .checks label{border-radius:12px;align-items:flex-start;font-size:.84rem;line-height:1.25}.main{padding:1rem}.side{width:48px}.hsec{grid-template-columns:minmax(0,1fr)}.hsec .side.q3{flex-direction:row;width:auto;margin:0 1rem 1rem;border:0;justify-content:flex-start}.hsec .side.q3 button{flex:0 0 44px;height:40px}}
 </style>
 <link rel="stylesheet" href="bp/head.css">
 <script src="bp/head.js"></script>
@@ -467,8 +552,15 @@ const IC = {
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
   out:'<path d="M10 4H4v16h6M14 8l5 4-5 4M19 12H9"/>', chev:'<path d="M6 9l6 6 6-6"/>',
   grid:'<rect x="3.5" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="16" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="16" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="16" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="16" width="4.5" height="4.5" rx="1"/><rect x="16" y="16" width="4.5" height="4.5" rx="1"/>',
-  pin:'<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'
+  pin:'<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  warn:'<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17v.01"/>', check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>', note:'<path d="M5 4h14v12l-4 4H5z"/><path d="M15 20v-4h4M8 9h8M8 13h5"/>',
+  flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>', cloudo:'<path d="M7 18h10a4 4 0 00.6-8A6 6 0 006 9.5 4.3 4.3 0 007 18z"/>', bar:'<path d="M4 6h10M4 12h16M4 18h7"/>',
+  wind:'<path d="M3 9h11a3 3 0 10-3-3M3 15h15a3 3 0 11-3 3"/>', drop:'<path d="M12 3s6 7 6 11a6 6 0 01-12 0c0-4 6-11 6-11z"/>', send:'<path d="M4 12l16-8-6 16-3-7z"/>'
 };
+/* Abschnitte: Symbol und Farbe (neue Gestaltung) */
+const SECIC = { header: ['doc', 'c-y'], weather: ['cloudo', 'c-b'], anwesende: ['users', 'c-g'], notizen: ['note', 'c-v'], images: ['cam', 'c-o'], bilder: ['cam', 'c-o'], maengel: ['warn', 'c-r'], zu_erledigen: ['check', 'c-y'], weisungen: ['flag', 'c-b'] };
+const secIc = (s) => { const [n, c] = SECIC[s.key] || SECIC[s.type] || ['doc', 'c-y']; return `<span class="si ${c}">${ic(n, 20, 2)}</span>`; };
+const kuerzel = (t) => String(t || '').replace(/\b(GmbH|AG|KG|UG|mbH|Co|e\.K\.|&)\b/gi, ' ').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '·';
 const ic = (n, s = 22, w = 2.4) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
 const TABS = [['bericht','Bericht','doc'],['kontakte','Kontakte','users']];   // Suche: Feld rechts in der Reiterzeile
 const WX = ['Heiter','Sonnig','Wolkig','Bedeckt','Regen','Gewitter','Schnee','Nebel'];
@@ -646,7 +738,8 @@ const showApp = async () => {
   try { meta = await api('api/meta'); contacts = await api('api/contacts'); settings = await api('api/settings'); people = await api('api/people'); leaderUsers = await api('api/leaders'); await loadProjects(); } catch { return; }
   const hp = /^#projekt=(\d+)(?:&bericht=(\d+))?/.exec(location.hash), hEdit = /bearbeiten=1/.test(location.hash), hNeu = location.hash === '#neues-projekt';   // Link aus Verwaltung / Mängelliste: dieses Projekt (und diesen Bericht) öffnen
   const hs = location.hash === '#einstellungen';    // Link aus der Verwaltung → Einstellungen
-  if (hp || hs || hNeu) history.replaceState(null, '', location.pathname);
+  const hSchritt = location.hash === '#schritt', hMangel = location.hash === '#mangel';   // Startseite (einfache Ansicht): Bericht Schritt für Schritt / Mangel melden
+  if (hp || hs || hNeu || hSchritt || hMangel) history.replaceState(null, '', location.pathname);
   const gp = window.BPHead && BPHead.projektId && BPHead.projektId();   // Projekt aus der zuletzt benutzten App
   const start = (hp && projects.find(p => p.id === +hp[1])) || (gp && projects.find(p => p.id === gp)) || projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
   if (start) await openProject(start.id); else renderDetail();
@@ -655,6 +748,9 @@ const showApp = async () => {
   if (hp && hp[2] && start && start.id === +hp[1] && reports.some((x) => x.id === +hp[2])) { tab = 'bericht'; rid = +hp[2]; renderDetail(); }
   else if (!hp) autoPick(true);   // Projekt per GPS wählen, wenn man vor Ort ist
   if (await backfillAddresses()) autoPick(true);
+  const einfach = window.BPHead && BPHead.einfach && BPHead.einfach();
+  if (hMangel && curReport()) { tab = 'bericht'; adding = 'maengel'; setSecOpen('maengel', true); renderDetail(); setTimeout(() => { const el = document.getElementById('sec-maengel'); if (el) el.scrollIntoView({ block: 'start' }); el && el.querySelector('[data-add]')?.focus(); }, 60); }
+  else if ((hSchritt || einfach) && curReport() && bwzPrefs().on) bwzOpen();   // einfache Ansicht: Bericht gleich Schritt für Schritt
 };
 async function loadProjects() {
   projects = await api('api/projects');
@@ -834,7 +930,7 @@ function photoUi(i, s, r) {   // kleine Fotos am Eintrag (Mangel, Notiz); das gr
 let secOpen = {}; try { secOpen = JSON.parse(localStorage.getItem('secOpen') || '{}'); } catch {}
 const secIsOpen = (k, n) => (k in secOpen ? secOpen[k] : n > 0);
 const setSecOpen = (k, v) => { secOpen[k] = v; try { localStorage.setItem('secOpen', JSON.stringify(secOpen)); } catch {} };
-const secHead = (s, n, open) => `<h3 class="tg" data-act="secToggle" data-key="${esc(s.key)}" data-open="${open ? 1 : 0}" role="button" aria-expanded="${open}">${esc(s.title)}${n ? `<span class="cn">${n}</span>` : ''}<span class="cv ${open ? 'o' : ''}">${ic('chev', 20, 3)}</span></h3>`;
+const secHead = (s, n, open) => `<h3 class="tg" data-act="secToggle" data-key="${esc(s.key)}" data-open="${open ? 1 : 0}" role="button" aria-expanded="${open}">${secIc(s)}<span class="st">${esc(s.title)}</span>${n ? `<span class="cn">${n}</span>` : ''}<span class="cv ${open ? 'o' : ''}">${ic('chev', 20, 3)}</span></h3>`;
 let addFiles = [];   // Fotos, die beim Anlegen eines Eintrags gleich mitgeschickt werden
 const photoAdd = s => fotoOk(s) ? `<div class="padd"><button type="button" data-act="aCam">${ic('cam', 20)} Foto aufnehmen</button><button type="button" data-act="aLib">${ic('pdf', 20)} Aus Mediathek</button><div id="apv" class="apv"></div></div>` : '';
 function renderApv() {
@@ -874,7 +970,9 @@ function fsInner() {
   const zeile = (x) => {
     const wert = x.pct_bericht != null ? x.pct_bericht : null, sollR = Math.round(x.soll / 25) * 25;
     const vz = x.verzug >= FS.sw ? `<span class="vz">≈ ${fsVz(x.verzug)} im Verzug – Terminrüge möglich</span>` : x.verzug >= 1 ? `≈ ${fsVz(x.verzug)} hinterher` : '';
+    const pz = wert != null ? wert : x.ist, kl = pz >= 100 ? 'ok' : x.verzug >= 1 ? 'rot' : '';
     return `<div class="fs-r" data-fsg="${esc(x.gantt_id)}" data-fsu="${x.uid}"><span class="fs-n"><b>${esc(x.vorgang)}</b> <span class="mute">· ${esc(x.firma)}</span>
+        <span class="fs-bar" title="gemeldet ${pz} % · Plan ${x.soll} %"><i class="${kl}" style="width:${Math.max(0, Math.min(100, pz))}%"></i><u style="left:calc(${Math.max(0, Math.min(100, x.soll))}% - 1px)"></u></span>
         <small>laut Plan ${x.soll} %${x.f ? ' · Ende ' + esc(x.f.slice(8, 10) + '.' + x.f.slice(5, 7) + '.') : ''} · im Bauzeitenplan ${x.ist} %${vz ? ' · ' + vz : ''}</small></span>
       <span class="fs-p" role="group" aria-label="Fortschritt">${[0, 25, 50, 75, 100].map((p) => `<button type="button" data-act="fsSet" data-p="${p}" class="${wert === p ? 'on' : ''}${p === sollR ? ' soll' : ''}" title="${p} % fertig${p === sollR ? ' – etwa laut Plan' : ''}">${p}</button>`).join('')}</span>
       <span class="fs-a" role="group" aria-label="Stand">${[['plan', 'im Plan'], ['hinterher', 'hinterher'], ['fertig', 'fertig']].map(([k, l]) => `<button type="button" data-act="fsSet" data-am="${k}" class="${x.ampel === k ? 'on' : ''}">${l}</button>`).join('')}</span></div>`;
@@ -892,13 +990,13 @@ async function loadSoll(rid) {
   if (sollBusy === rid) return; sollBusy = rid;
   try { const d = await api('api/reports/' + rid + '/soll'); SOLL = { rid, f: d.firmen || [], o: d.ohne_firma || [] }; } catch (e) { SOLL = { rid, f: [], o: [] }; }
   sollBusy = 0;
-  document.querySelectorAll('.soll-box').forEach(b => { b.innerHTML = sollInner(b.dataset.soll); });   // nur die Vorschläge auffrischen – keine Eingabe verlieren
+  document.querySelectorAll('.soll-box[data-soll]').forEach(b => { b.innerHTML = sollInner(b.dataset.soll); });   // nur die Vorschläge auffrischen – keine Eingabe verlieren
   if (BWZ.open) bwzRender();
 }
 function listSec(s, r) {
   const k = s.key, lk = s.extra && s.extra.link_contacts;
   const link = i => i.contact_id ? `<button class="lnk" data-act="gotoContact" data-id="${i.contact_id}" title="Kontakt öffnen">${esc(i.text)}</button>` : esc(i.text);
-  const rows = r.items.filter(i => i.kind === k).map(i => lk ? `<div class="ln firm"><span>${link(i)}</span>
+  const rows = r.items.filter(i => i.kind === k).map(i => lk ? `<div class="ln firm"><span class="fn"><span class="fav" aria-hidden="true">${esc(kuerzel(i.text))}</span>${link(i)}</span>
     <textarea class="act ed" rows="1" data-it="${i.id}" data-k="activity" placeholder="Art der Tätigkeit" aria-label="Art der Tätigkeit">${esc(i.activity)}</textarea>
     <input class="cnt" data-it="${i.id}" data-k="headcount" type="number" min="0" placeholder="Anz." value="${i.headcount ?? ''}" aria-label="Anzahl Mitarbeiter">
     ${photoUi(i, s, r)}<button class="x" data-act="delItem" data-id="${i.id}" title="Entfernen">✕</button></div>` : `<div class="ln ${i.done ? 'done' : ''}">
@@ -910,13 +1008,13 @@ function listSec(s, r) {
     : '<div class="hint">Enter = neue Zeile · Strg+Enter = hinzufügen</div>';
   const add = adding === k ? `<div class="addrow">${lk ? '' : coAdd(s)}${field}${extra}${s.extra && s.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}${photoAdd(s)}<button class="ok" data-act="addItem" data-kind="${esc(k)}">Hinzufügen</button></div>` : '';
   const n = r.items.filter(i => i.kind === k).length, open = secIsOpen(k, n) || adding === k;
-  return `<div class="sec ${open ? '' : 'col'}${!n && adding !== k && !lk ? ' leer' : ''}" data-drop="${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
+  return `<div class="sec ${open ? '' : 'col'}${!n && adding !== k && !lk ? ' leer' : ''}" data-drop="${esc(k)}" id="sec-${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
     <div class="side"><button data-act="adding" data-kind="${esc(k)}" title="${esc(s.title)} hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
 }
 function imgSec(s, r) {
   const shown = allImgs ? r.images : r.images.slice(0, 6), rest = r.images.length - shown.length;
   const open = secIsOpen(s.key, r.images.length);
-  return `<div class="sec ${open ? '' : 'col'}${r.images.length ? '' : ' leer'}" data-drop=""><div class="main">${secHead(s, r.images.length, open)}
+  return `<div class="sec ${open ? '' : 'col'}${r.images.length ? '' : ' leer'}" data-drop="" id="sec-${esc(s.key)}"><div class="main">${secHead(s, r.images.length, open)}
     <div class="imgs" ${open ? '' : 'style="display:none"'}>${shown.map(i => `<div><a href="uploads/${esc(i.file)}" target="_blank"><img loading="lazy" src="api/thumb/240/${esc(i.file)}" alt="${esc(i.caption || 'Baustellenfoto')}"></a><button class="rm" data-act="delImg" data-id="${i.id}" title="Bild löschen">✕</button><input class="cap" data-img="${i.id}" value="${esc(i.caption)}" placeholder="Beschreibung" maxlength="120" autocomplete="off" aria-label="Fotobeschreibung (wird der Dateiname)"></div>`).join('')}</div>
     ${open && rest > 0 ? `<button class="bd morei" data-act="moreImgs">Alle ${r.images.length} Bilder anzeigen (+${rest})</button>` : ''}${open && allImgs && r.images.length > 6 ? `<button class="bd morei" data-act="lessImgs">Weniger anzeigen</button>` : ''}
     <input type="file" id="file" class="vh" accept="image/*,.heic,.heif" multiple></div>
@@ -930,8 +1028,10 @@ function wxSec(s, r) {
       <label>Luftfeuchtigkeit (%)<input data-f="humidity" inputmode="decimal" value="${esc(r.humidity)}"></label>
       <label>Wind (km/h)<input data-f="wind" inputmode="decimal" value="${esc(r.wind)}"></label>
       <label>PLZ<input data-f="plz" inputmode="numeric" value="${esc(r.plz)}"></label></div>`
-    : `<div class="meta">${r.weather || r.precip ? [r.weather, r.precip].filter(Boolean).map(esc).join(' / ') + '<br>' : ''}Temperatur: ${r.temp ? esc(r.temp) + ' °C' : '–'}<br>Luftfeuchtigkeit: ${r.humidity ? esc(r.humidity) + ' %' : '–'}<br>Wind: ${r.wind ? esc(r.wind) + ' km/h' : '–'}</div>`;
-  return `<div class="sec"><div class="main"><h3>${esc(s.title)}</h3>${body}</div>
+    : `<div class="wx2"><div class="wx-big">${ic(/regen|schnee|gewitter/i.test((r.weather || '') + (r.precip || '')) ? 'drop' : 'cloudo', 44, 1.5)}<b>${r.temp ? esc(String(r.temp).replace('.', ',')) + '°' : '–'}</b></div>
+      <div class="kv"><small>Himmel</small><b>${esc(r.weather || '–')}</b></div><div class="kv"><small>Niederschlag</small><b>${esc(r.precip || '–')}</b></div>
+      <div class="kv"><small>Wind</small><b>${r.wind ? esc(r.wind) + ' km/h' : '–'}</b></div><div class="kv"><small>Luftfeuchte</small><b>${r.humidity ? esc(r.humidity) + ' %' : '–'}</b></div></div>`;
+  return `<div class="sec wxs" id="sec-${esc(s.key)}"><div class="main"><h3>${secIc(s)}<span class="st">${esc(s.title)}</span>${r.plz ? `<span class="chip0">PLZ ${esc(r.plz)}</span>` : ''}</h3>${body}</div>
     <div class="side wx"><span class="cl">${ic('cloud', 64)}</span><span>PLZ: ${esc(r.plz) || '–'}</span><span style="display:flex"><button data-act="gps" title="Wetter für die Projektadresse laden">${ic('pin', 20)}</button><button data-act="wxEdit" title="${wxEdit ? 'Fertig' : 'Wetter bearbeiten'}">${wxEdit ? '✓' : ic('pencil', 18)}</button></span>${r.extra && r.extra.place ? `<small style="color:var(--mute);text-align:center;padding:0 .4rem">${esc(r.extra.place)}</small>` : ''}</div></div>`;
 }
 const headMap = p => {   // dieselbe abgeflachte Karte wie in der PDF; Antippen = Route
@@ -947,21 +1047,40 @@ function headSec(s, r) {
       <label>Uhrzeit${timeSelect(r.time, 'data-f="time"', true)}</label>
       <label>Bauleitung vor Ort<input data-f="site_manager" value="${esc(r.site_manager)}"></label>
       <div class="chips">${people.filter(n => !(r.site_manager || '').toLowerCase().includes(n.toLowerCase())).map(n => `<button class="chip" data-act="addPerson" data-name="${esc(n)}">+ ${esc(n)}</button>`).join('')}<small>Mehrere Personen mit Komma trennen oder oben antippen.</small></div></div>`
-    : `<div class="meta">Nummer: ${r.number}<br>Datum: ${fmt(r.date)}${r.time ? ' · ' + esc(r.time) + ' Uhr' : ''}${r.site_manager ? '<br>Bauleitung vor Ort: ' + esc(r.site_manager) : ''}${p && p.client ? '<br>Bauherrschaft: ' + esc(p.client) : ''}${r.extra && r.extra.auto === 'vorort' && !(verData && verData.last_export && verData.versions && verData.status === 'exported') ? `<br><small style="color:var(--mute)">Automatisch angelegt bei der Ankunft (${esc(r.extra.ankunft || r.time || '')} Uhr) – bitte ergänzen und als PDF erstellen.</small>` : ''}</div>`;
-  return `<div class="sec"><div class="main"><div class="hgrid">${headMap(p)}<h3>${esc(s.title)}</h3>${info}
+    : `<div class="meta hm"><span>${ic('cal', 16, 2)}${fmt(r.date)}${r.time ? ' · ' + esc(r.time) + ' Uhr' : ''}</span>${r.site_manager ? `<span title="Bauleitung vor Ort">${ic('user', 16, 2)}${esc(r.site_manager)}</span>` : ''}${p && p.client ? `<span title="Bauherrschaft">${ic('home', 16, 2)}${esc(p.client)}</span>` : ''}${r.extra && r.extra.auto === 'vorort' && !(verData && verData.last_export && verData.versions && verData.status === 'exported') ? `<br><small style="color:var(--mute)">Automatisch angelegt bei der Ankunft (${esc(r.extra.ankunft || r.time || '')} Uhr) – bitte ergänzen und als PDF erstellen.</small>` : ''}</div>`;
+  return `<div class="sec hsec" id="sec-${esc(s.key)}"><div class="main"><div class="hgrid">${headMap(p)}<h3>${secIc(s)}<span class="st">${esc(s.title)}${r.number ? ` <span class="nr">Nr. ${esc(r.number)}</span>` : ''}</span></h3>${info}
       <div class="checks">${CHECKS.map(([k, l]) => `<label><input type="checkbox" data-f="${k}" ${r[k] ? 'checked' : ''}>${l}</label>`).join('')}</div></div></div>
     <div class="side q3"><button data-act="addReport" title="Neuer Bericht">${ic('plus', 24, 3)}</button>
       <button data-act="editHead" title="${headEdit ? 'Fertig' : 'Bericht bearbeiten (Datum, Uhrzeit, Bauleitung)'}">${headEdit ? '✓' : ic('pencil', 20)}</button><button data-act="delReport" title="Bericht löschen">${ic('trash', 20)}</button></div></div><div id="vbox" class="vbox"></div>`;
 }
 // Register: neuer Abschnitts-Typ = ein Eintrag hier + eine Zeile in der Tabelle "sections". Unbekannte Typen werden übersprungen.
 const RENDER = {header: headSec, weather: wxSec, list: listSec, images: imgSec};
+/* Seitenleiste (nur auf breiten Bildschirmen): Monat mit Berichten, Abschnitte mit Anzahl, Fortschritt */
+let calOff = 0;
+function sideHtml(r) {
+  if (!r) return '';
+  const d0 = new Date(r.date + 'T12:00'), m = new Date(d0.getFullYear(), d0.getMonth() + calOff, 1), y = m.getFullYear(), mo = m.getMonth();
+  const tage = new Date(y, mo + 1, 0).getDate(), vor = (m.getDay() + 6) % 7, iso = (t) => `${y}-${String(mo + 1).padStart(2, '0')}-${String(t).padStart(2, '0')}`;
+  const B = {}; reports.forEach((x) => { if (!B[x.date] || x.id === r.id) B[x.date] = x; });
+  const heute = todayISO();
+  let g = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((t) => `<i>${t}</i>`).join('') + '<span></span>'.repeat(vor);
+  for (let t = 1; t <= tage; t++) { const k = iso(t), x = B[k]; g += x ? `<button type="button" class="${x.id === r.id ? 'on' : ''}${k === heute ? ' heute' : ''}" data-act="pickReport" data-id="${x.id}" title="Bericht Nr. ${esc(x.number)}">${t}</button>` : `<span class="${k === heute ? 'heute' : ''}">${t}</span>`; }
+  const n = (s) => s.type === 'list' ? r.items.filter((i) => i.kind === s.key).length : s.type === 'images' ? r.images.length : s.type === 'weather' ? (r.temp || r.weather ? 1 : 0) : 1;
+  const L = meta.sections.filter((s) => RENDER[s.type]);
+  const fertig = L.filter((s) => n(s) > 0 || ['maengel', 'zu_erledigen', 'weisungen', 'notizen'].includes(s.key)).length, pr = Math.round(fertig / Math.max(1, L.length) * 100);
+  return `<aside class="btside" aria-label="Berichte und Abschnitte">
+    <div class="bcal"><div class="bcal-h"><button type="button" data-act="calM" data-d="-1" aria-label="Voriger Monat">‹</button><b>${m.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" data-act="calM" data-d="1" aria-label="Nächster Monat">›</button></div><div class="bcal-g">${g}</div></div>
+    <div class="bsum"><span class="ring" style="background:conic-gradient(var(--y) 0 ${pr}%,var(--hov) 0)"><b>${fertig}/${L.length}</b></span><span><b>${r.number ? 'Nr. ' + esc(r.number) + ' · ' : ''}${fmt(r.date)}</b><small>${pr >= 100 ? 'alle Abschnitte ausgefüllt' : 'Abschnitte ausgefüllt'}</small></span></div>
+    <nav class="btoc">${L.map((s) => { const k = n(s), z = s.type === 'list' || s.type === 'images'; return `<button type="button" data-act="gehZu" data-k="${esc(s.key)}">${secIc(s)}<span>${esc(s.title)}</span>${z ? `<span class="n${k ? ' ok' : ''}">${k}</span>` : `<span class="n${k ? ' ok' : ''}">${k ? '✓' : '–'}</span>`}</button>`; }).join('')}</nav>
+  </aside>`;
+}
 function renderReport(box) {
   const p = curProject();
   if (!p) { box.innerHTML = `<div class="empty">Noch kein Projekt gewählt.<br><br><button class="bd" data-act="projPicker">Projekt wählen</button> <button class="bd" data-act="newProject">Neues Projekt</button></div>`; return; }
   const r = curReport();
   if (!r) { box.innerHTML = `<div class="empty">Noch kein Tagesbericht.<br><br><button class="bd" data-act="addReport">Ersten Tagesbericht anlegen</button></div>`; return; }
   const bwzBar = bwzPrefs().on ? `<div class="bwz-bar"><button class="go" data-act="bwzStart">▶ Bericht Schritt für Schritt</button><button data-act="bwzSet" title="Schritte wählen oder Assistent ausschalten">⚙</button></div>` : '';
-  box.innerHTML = `<div class="wrap">` + renameBanner() + bwzBar + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('') + `</div>`;
+  box.innerHTML = `<div class="btl">${sideHtml(r)}<div class="wrap">` + renameBanner() + bwzBar + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('') + `</div></div>`;
   box.insertAdjacentHTML('beforeend', '<input type="file" id="ifile" class="vh" accept="image/*,.heic,.heif" multiple>');
   $('#ifile').onchange = async e => {
     const fd = new FormData(); [...e.target.files].forEach(x => fd.append('files', x)); fd.append('item_id', itemPhotoFor);
@@ -1784,7 +1903,9 @@ document.addEventListener('click', async e => {
   else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
   else if (a === 'projPicker') { if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) }); else openSheet('proj'); }
   else if (a === 'repPicker') openSheet('rep');
-  else if (a === 'pickReport') { closeSheet(); rid = id; wxEdit = headEdit = false; tab = 'bericht'; renderDetail(); }
+  else if (a === 'pickReport') { closeSheet(); rid = id; wxEdit = headEdit = false; tab = 'bericht'; calOff = 0; renderDetail(); }
+  else if (a === 'calM') { calOff += +b.dataset.d; const sd = document.querySelector('.btside'); if (sd) sd.outerHTML = sideHtml(curReport()); }
+  else if (a === 'gehZu') { const el = document.getElementById('sec-' + b.dataset.k); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   else if (a === 'editProject') { closeSheet(); $('#menu').classList.add('hidden'); if (!pid) return toast('Bitte zuerst ein Projekt wählen.'); if (projBearbeiten()) return; draft = null; tab = 'projekt'; renderDetail(); }
   else if (a === 'closeSheet') closeSheet();
   else if (a === 'pickProject') pickProject(id);

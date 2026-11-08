@@ -118,6 +118,38 @@
     tip(`KI: ${p.label} – gilt jetzt in allen Apps.${p.paid ? ' Anfragen kosten je Nutzung Geld.' : ''}`);
     listeners.forEach((f) => { try { f(H.ki, prov(H.ki)); } catch { /* App-Fehler nicht weitergeben */ } });
   }
+  H.kiSetzen = setKi;
+  H.kiImmer = false;
+  H.kiImmerSetzen = async function (v) {
+    H.kiImmer = !!v;
+    try { await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ki_immer: H.kiImmer }) }); } catch { /* egal */ }
+  };
+  /* KI wählen: an der Stelle, an der eine KI gebraucht wird – mit „immer diese verwenden“. Liefert den Schlüssel oder null.
+     opt: { text, hinweis, bild (nur KI, die Bilder liest), knopf } */
+  H.kiFragen = function (opt = {}) {
+    const P = (H.providers || []).filter((p) => p.ok && p.key !== 'intern' && (!opt.bild || p.bild));
+    if (!P.length) return Promise.resolve(null);
+    const vor = (P.find((p) => p.key === H.ki) || P.find((p) => p.key === 'ollama') || P[0]).key;
+    if (H.kiImmer && P.some((p) => p.key === H.ki)) return Promise.resolve(H.ki);
+    return new Promise((fertig) => {
+      const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+      bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="KI wählen" style="width:min(520px,96vw)"><div class="bph-dh"><b>${esc(opt.titel || 'Mit KI lesen?')}</b><button type="button" class="bph-x" data-kx aria-label="Schließen">✕</button></div><div class="bph-db">
+        ${opt.text ? `<p style="margin:.2rem 0 .5rem">${opt.text}</p>` : ''}<p class="bph-mu" style="margin:0 0 .6rem">${opt.hinweis || 'Der Text des Dokuments geht an die gewählte KI. Das Ergebnis kommt als Vorschlag – übernommen wird erst nach deiner Bestätigung.'}</p>
+        <div class="bph-kiw">${P.map((p) => `<label><input type="radio" name="bphKi" value="${p.key}"${p.key === vor ? ' checked' : ''}><span><b>${esc(p.label)}</b>${p.hint ? `<small>${esc(p.hint)}</small>` : ''}</span></label>`).join('')}</div>
+        <label class="bph-ck" style="margin-top:.7rem"><input type="checkbox" data-kimmer> Immer diese KI verwenden, nicht mehr fragen <small class="bph-mu">(änderbar unter ⚙ → Für mich → KI)</small></label>
+        <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-kx>Nein, danke</button><button type="button" class="bph-btn pri" data-kok>${esc(opt.knopf || 'Mit KI lesen')}</button></div></div></div>`;
+      document.body.appendChild(bg);
+      const zu = (k) => { bg.remove(); fertig(k); };
+      bg.addEventListener('click', async (e) => {
+        if (e.target === bg || e.target.closest('[data-kx]')) return zu(null);
+        if (!e.target.closest('[data-kok]')) return;
+        const k = (bg.querySelector('[name=bphKi]:checked') || {}).value || null;
+        if (k && k !== H.ki) await setKi(k);   // die gewählte KI ist danach vorgewählt (gilt für den Server-Auftrag)
+        if (k && bg.querySelector('[data-kimmer]').checked) await H.kiImmerSetzen(true);
+        zu(k);
+      });
+    });
+  };
   /* KI-Auswahl neu laden (z. B. nachdem der Administrator kostenpflichtige KI abgeschaltet hat) – auch im Fenster, das die Büro-Einstellungen eingebettet hat */
   H.kiLaden = async function () {
     try {
@@ -142,6 +174,7 @@
     m.innerHTML = `<div class="bph-info">Angemeldet als <b>${esc(me.full || me.name || '')}</b>${me.full && me.full !== me.name ? ` <small>(${esc(me.name)})</small>` : ''}</div>`
       + `<button type="button" role="menuitem" data-konto>${IC.user}Mein Konto <small class="bph-ms">Unterschrift, Signatur, Versand, Kalender</small></button>`
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung</button>`
+      + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Einfach</button><button type="button" data-modus="profi">Profi</button></div>`
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
     void apps; void portal;
@@ -199,6 +232,18 @@
   }
   H.schemaAnwenden = schemaAnwenden;
   try { schemaAnwenden(localStorage.getItem('bpSchema') || ''); } catch { /* egal */ }   // sofort, ohne Aufblitzen
+  /* Ansicht „Einfach“ oder „Profi“ – je Benutzer (Mein Konto), Vorgabe des Büros. Apps fragen H.einfach() und zeigen ihre
+     Einfach-Startansicht; CSS blendet Profi-Teile über html[data-modus="einfach"] aus. */
+  H.modus = 'profi';
+  try { H.modus = localStorage.getItem('bpModus') === 'einfach' ? 'einfach' : 'profi'; } catch { /* egal */ }
+  document.documentElement.dataset.modus = H.modus;
+  H.einfach = () => H.modus === 'einfach';
+  H.modusSetzen = async function (m, neuLaden = true) {
+    m = m === 'einfach' ? 'einfach' : 'profi';
+    try { localStorage.setItem('bpModus', m); } catch { /* egal */ }
+    try { await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modus: m }) }); } catch { /* egal */ }
+    if (neuLaden) location.reload(); else { H.modus = m; document.documentElement.dataset.modus = m; }
+  };
   let lookDirty = false;
   const lookHtml = () => {
     const me = H.me || {}, t = me.theme || 'dunkel', a = String(me.accent || ACCENTS[0][0]).toLowerCase(), fs = me.farbschema || '';
@@ -312,6 +357,7 @@
     band.className = 'bph' + (opt.sticky ? ' bph-sticky' : '');
     band.innerHTML = `<a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span><span class="bph-app">${esc(opt.name || '')}</span></a>
       <div class="bph-proj" role="button" tabindex="0" title="Projekt wählen"><small></small><span></span></div><span class="bph-fill"></span>
+      <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Einfache Ansicht: große Karten, eine Hauptaufgabe je Seite">Einfach</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
       <button type="button" class="bph-ic bph-appsb" aria-haspopup="menu" aria-label="Apps" title="Apps">${IC.grid}</button>
@@ -323,6 +369,7 @@
     band.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.bph-proj')) { e.preventDefault(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); } });
     band.addEventListener('click', (e) => {
       if (e.target.closest('.bph-proj')) { closeMenus(); if (typeof opt.projektwahl === 'function') opt.projektwahl(); else H.projektWahl(); return; }
+      const mo = e.target.closest('[data-modus]'); if (mo) { e.preventDefault(); closeMenus(); if (mo.dataset.modus !== H.modus) H.modusSetzen(mo.dataset.modus); return; }
       const k = e.target.closest('[data-ki]');
       if (k) { e.preventDefault(); closeMenus(); setKi(k.dataset.ki); return; }
       if (e.target.closest('[data-out]')) { logout(); return; }
@@ -339,7 +386,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
-      if (H.me) getJ('api/bp/darstellung').then((d) => { H.me.farbschema = d.farbschema || ''; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
+      if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
@@ -1242,7 +1289,18 @@
         return;
       }
       if (bereich === 'ich') {
-        nav([['konto', 'Mein Konto'], ['look', 'Darstellung']]);
+        nav([['konto', 'Mein Konto'], ['look', 'Darstellung'], ['ki', 'KI']]);
+        if (teil === 'ki') {
+          const zeichne = () => {
+            B.innerHTML = `<h4>KI</h4><p class="bph-mu">Wo eine KI helfen kann (Dokumente lesen, Texte vorschlagen), fragt die Plattform an Ort und Stelle, welche du verwenden willst. Hier stellst du ein, welche vorgewählt ist – und ob ohne Nachfrage.</p>
+              <div class="bph-kiw">${(H.providers.length ? H.providers : [prov('intern')]).map((p) => `<label class="${p.ok ? '' : 'aus'}"><input type="radio" name="bphKiE" value="${p.key}"${p.key === H.ki ? ' checked' : ''}${p.ok ? '' : ' disabled'}><span><b>${esc(p.label)}</b><small>${esc(p.hint || (p.key === 'intern' ? 'ohne KI – nur die eingebaute Erkennung' : ''))}</small></span></label>`).join('')}</div>
+              <label class="bph-ck" style="margin-top:.8rem"><input type="checkbox" data-kie${H.kiImmer ? ' checked' : ''}> Diese KI immer ohne Nachfrage verwenden</label>
+              <p class="bph-mu" style="margin-top:.6rem">Welche KI überhaupt erlaubt ist (und ob kostenpflichtige), legt die Verwaltung fest.</p>`;
+            B.querySelectorAll('[name=bphKiE]').forEach((r) => r.addEventListener('change', async () => { await setKi(r.value); }));
+            B.querySelector('[data-kie]').addEventListener('change', (e) => H.kiImmerSetzen(e.target.checked));
+          };
+          zeichne(); return;
+        }
         if (teil === 'look') {
           B.innerHTML = '<h4>Darstellung</h4><p class="bph-mu">Farbschema und Akzentfarbe – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>';
           const lp = B.querySelector('.bph-lookp'); const re = () => { lp.innerHTML = lookHtml(); }; re(); lookWire(lp, re);

@@ -72,12 +72,32 @@
 .th label:hover{color:var(--ink)}
 .th label.on{border-color:var(--y);color:var(--ink)}
 .th input{position:absolute;opacity:0;pointer-events:none}
+/* Einfache Ansicht: vier Aufgaben groß, Apps klein unten */
+.ein{display:none}
+html[data-modus="einfach"] .ein{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin:0 0 1.6rem}
+.ein a{position:relative;display:flex;flex-direction:column;gap:.75rem;min-height:170px;padding:1.3rem;border-radius:18px;background:var(--card);border:1px solid var(--line);color:var(--ink);text-decoration:none;transition:transform .12s,border-color .12s}
+.ein a:hover,.ein a:focus-visible{border-color:var(--y);transform:translateY(-2px)}
+.ein a:first-child{background:linear-gradient(145deg,color-mix(in srgb,var(--y) 20%,var(--card)) 0%,var(--card) 70%);border-color:color-mix(in srgb,var(--y) 40%,var(--line))}
+.ein .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:1.6rem}
+.ein b{font-size:1.15rem;letter-spacing:-.01em}.ein small{color:var(--mute);font-size:.9rem;line-height:1.35}
+.ein .go{position:absolute;right:1.1rem;top:1.3rem;color:var(--mute);font-size:1.2rem}
+@media (max-width:980px){html[data-modus="einfach"] .ein{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){html[data-modus="einfach"] .ein{grid-template-columns:1fr}.ein a{min-height:0}}
+html[data-modus="einfach"] .hello p{font-size:1.05rem}
+html[data-modus="einfach"] #ordnen{display:none}
+html[data-modus="einfach"] main.wrap{display:flex;flex-direction:column}
+html[data-modus="einfach"] #tiles{order:5;margin:1.6rem 0 0;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.45rem}
+html[data-modus="einfach"] #tiles::before{content:"Alle Apps";grid-column:1/-1;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600}
+html[data-modus="einfach"] .tile{padding:.45rem .6rem;grid-template-columns:30px minmax(0,1fr)}html[data-modus="einfach"] .tile .ic{width:30px;height:30px}html[data-modus="einfach"] .tile .ic svg{width:18px;height:18px}html[data-modus="einfach"] .tile span.d{display:none}
+html[data-modus="einfach"] .tile.leer{display:none}
+html[data-modus="einfach"] .foot{order:6}
 .foot{margin-top:2.4rem;color:var(--mute);font-size:.82rem;display:flex;gap:1rem;flex-wrap:wrap}
 </style>
 </head>
 <body>
 <main class="wrap">
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="ordnen" id="ordnen" title="Kacheln anordnen (ziehen und ablegen)" aria-pressed="false">✎</button></div>
+  <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="tiles" id="tiles"></div>
   <div class="unten"><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section><section class="post todo" id="todo" aria-label="To-dos"></section></div>
   <div class="foot"><span id="ver"></span></div>
@@ -225,6 +245,17 @@ document.addEventListener('click', async (e) => {
     } catch (er) { toast(er.message, true); }
   }
 });
+/* Einfache Ansicht: die vier häufigsten Aufgaben als große Karten (Ziel: die jeweilige App) */
+function einfachZeigen(conf) {
+  const box = $('#ein'); if (!box || !(window.BPHead && BPHead.einfach && BPHead.einfach())) return;
+  $('.hello p').textContent = 'Was steht heute an?';
+  const A = (k) => (conf.apps || []).find((a) => a.key === k && a.allowed);
+  const K = [['bautagebuch', '#schritt', '📝', 'c-y', 'Tagesbericht schreiben', 'Schritt für Schritt – Wetter und Firmen laut Bauzeitenplan sind schon vorgeschlagen.'],
+    ['bautagebuch', '#mangel', '⚠️', 'c-r', 'Mangel melden', 'Foto machen, Firma wählen, fertig. Die Rüge schreibst du danach unter Aufgaben & Mängel.'],
+    ['plaene', '', '📐', 'c-b', 'Pläne verschicken', 'Neue Pläne sind markiert – Empfänger und Anschreiben stehen bereit.'],
+    ['ava', '', '🧾', 'c-o', 'Rechnung prüfen', 'Rechnungen und Angebote ablegen, prüfen und freigeben.']].filter((k) => A(k[0]));
+  box.innerHTML = K.map(([k, h, i, c, t, d]) => `<a href="${esc(appUrl(A(k)))}/${h}"><span class="ic" style="background:color-mix(in srgb,var(--${c === 'c-y' ? 'y' : 'mute'}) 14%,transparent)">${i}</span><span class="go">›</span><b>${t}</b><small>${d}</small></a>`).join('');
+}
 (async () => {
   const me = await api('api/me'); if (!me.ok) { location.href = '/login'; return; }
   applyLook(me);
@@ -236,6 +267,7 @@ document.addEventListener('click', async (e) => {
   APPS = conf.apps.filter(a => DESC[a.key] && (a.key !== 'admin' || a.allowed)).concat([{ key: 'papierkorb', allowed: true }]);   // wie im Apps-Menü: auch Verwaltung und Papierkorb
   REIHE = await api('api/bp/kacheln').then((r) => r.reihenfolge || []).catch(() => []);
   kachelnZeigen();
+  einfachZeigen(conf);
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
     { key: 'post', label: 'Posteingang', render: (host) => { BPHead.postfaecher({ into: host, nachSpeichern: () => postStart() }); } },
     { key: 'todo', label: 'To-dos', render: (host) => { tdEinstellungen(host); } },

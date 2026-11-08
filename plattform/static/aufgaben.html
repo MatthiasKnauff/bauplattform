@@ -112,6 +112,14 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .nw button:hover,.nw button:focus-visible{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 18%,transparent);outline:none}
 .nw .i{grid-row:span 2;font-size:1.5rem;line-height:1.2;text-align:center}.nw b{font-size:.98rem}.nw small{color:var(--mute);font-size:.8rem;line-height:1.3}
 .nw h4{grid-column:1/-1;margin:.5rem 0 0;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+
+/* Einfache Ansicht */
+.einq,.einkopf{display:none}
+html[data-modus="einfach"] .einq{display:flex;gap:.4rem;flex-wrap:wrap}
+.einq button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:.35rem .85rem;font:inherit;font-size:.88rem;cursor:pointer}.einq button:hover{border-color:var(--y)}
+html[data-modus="einfach"] .einkopf{display:block;margin:.2rem 0 1rem}.einkopf h1{margin:0;font-size:1.8rem;letter-spacing:-.02em}.einkopf p{margin:.3rem 0 0;color:var(--mute)}
+html[data-modus="einfach"] #scope{display:none!important}
+html[data-modus="einfach"] .top{order:-1}
 </style>
 <link rel="stylesheet" href="static/todo.css">
 </head>
@@ -120,8 +128,10 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
   <div class="top">
     <div class="seg" id="scope" role="group" aria-label="Welche Projekte"><button data-scope="mine">Meine Projekte</button><button data-scope="all">Alle Projekte</button></div>
     <span class="fill"></span>
+    <div class="einq" aria-label="Schnell anlegen"><button type="button" data-einq="m4">⚠ Mangel rügen</button><button type="button" data-einq="termin">⏱ Terminrüge</button><button type="button" data-einq="erinnerung">⏰ Erinnerung</button></div>
     <button class="btn sm pri" id="neuBtn">＋ Neu</button>
   </div>
+  <div class="einkopf"><h1>Meine Aufgaben</h1><p>Was du erledigen musst – und was andere dir schulden.</p></div>
   <nav class="tabs" id="tabs"></nav>
   <div id="briefe" class="briefe" hidden></div>
   <div id="view"><p class="mute">Lade …</p></div>
@@ -643,6 +653,7 @@ const NEU = [
   ['Schreiben an Firmen (VOB/B)', [['m4', '⚠', 'Mängelrüge vor Abnahme', '§ 4 Abs. 7 – Mängel während der Ausführung beseitigen, ggf. mit Kündigungsandrohung'],
     ['m13', '🏁', 'Mängelrüge nach Abnahme', '§ 13 Abs. 5 – Mängelansprüche in der Gewährleistung'],
     ['termin', '⏱', 'Terminrüge', '§ 5 Abs. 3/4 – Aufforderung zur Abhilfe bei Rückstand oder fehlender Besetzung']]]];
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-einq]'); if (!b) return; const m = b.dataset.einq; if (m === 'm4') ruegeNeu('vob4'); else if (m === 'termin') terminNeu(); else neueErinnerung(); });
 function neuWahl() {
   modalBox(`<h3>Neu anlegen</h3><div class="nw">${NEU.map(([g, L]) => `<h4>${g}</h4>${L.map(([k, i, t, d]) => `<button type="button" data-m="${k}"><span class="i">${i}</span><b>${t}</b><small>${d}</small></button>`).join('')}`).join('')}</div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button></div>`, (m, bg, close) => {

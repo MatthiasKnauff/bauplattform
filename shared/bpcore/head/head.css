@@ -427,3 +427,20 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-pa-o{display:block;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.45rem .6rem;border-radius:7px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bph-pa-o:hover,.bph-pa-o.ak{background:var(--hov,#f1f1f1)}.bph-pa-o.on{font-weight:600}
 .bph-pa-n{padding:.6rem;color:var(--mute,#888)}
+
+/* Ansicht Einfach | Profi */
+.bph-mode{display:flex;padding:3px;border-radius:999px;border:1px solid var(--bph-line,rgba(127,127,127,.3));flex:none;margin-right:.3rem}
+.bph-mode button{border:0;background:none;color:inherit;opacity:.65;font:inherit;font-size:.82rem;padding:.22rem .7rem;border-radius:999px;cursor:pointer}
+html:not([data-modus="einfach"]) .bph-mode [data-modus="profi"],html[data-modus="einfach"] .bph-mode [data-modus="einfach"]{background:var(--bph-acc);color:var(--bph-on);opacity:1;font-weight:600}
+html[data-modus="einfach"] .bph-ki,html[data-modus="einfach"] .bph-kim{display:none!important}
+.bph-mode-m{display:none;margin:.3rem .6rem;justify-content:stretch}.bph-mode-m button{flex:1}
+@media (max-width:700px){.bph>.bph-mode{display:none}.bph-mode-m{display:flex}}
+
+/* KI-Auswahl nicht mehr in der Kopfleiste: gefragt wird dort, wo eine KI gebraucht wird (H.kiFragen), Vorgabe unter ⚙ → Für mich → KI */
+.bph>.bph-ki,.bph>.bph-kim{display:none!important}
+.bph-kiw{display:grid;gap:.35rem}
+.bph-kiw label{display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .7rem;border:1px solid var(--line,#3b3e42);border-radius:10px;cursor:pointer}
+.bph-kiw label:has(input:checked){border-color:var(--bph-acc,currentColor)}
+.bph-kiw label.aus{opacity:.5;cursor:default}
+.bph-kiw span{display:flex;flex-direction:column}.bph-kiw small{color:var(--mute,#9a9c9e);font-size:.8rem}
+.bph-ck{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap}

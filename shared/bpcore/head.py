@@ -143,7 +143,8 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         if request.method == "GET":
             with db.tx() as c:
-                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=konto.prefs(c, u["id"]).get("farbschema", ""))
+                pr = konto.prefs(c, u["id"])
+                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")))
         d = request.get_json(silent=True) or {}
         sets, args = [], []
         if "theme" in d:
@@ -163,9 +164,20 @@ def blueprint(get_user=None):
                     c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, u["id"]))
             if "farbschema" in d:
                 konto.set_prefs(c, u["id"], {"farbschema": str(d.get("farbschema") or "")}, u["name"])
+            if "modus" in d:
+                konto.set_prefs(c, u["id"], {"modus": str(d.get("modus") or "")}, u["name"])
+            if "ki_immer" in d:
+                konto.set_prefs(c, u["id"], {"ki_immer": bool(d.get("ki_immer"))}, u["name"])
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
-            fs = konto.prefs(c, u["id"]).get("farbschema", "")
-        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=fs)
+            pr = konto.prefs(c, u["id"])
+        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")))
+
+    def _modus(c, pr):
+        """Ansicht des Benutzers: eigene Wahl, sonst Vorgabe des Büros (Einstellung modus_standard), sonst profi."""
+        if pr.get("modus") in ("einfach", "profi"):
+            return pr["modus"]
+        r = c.execute("SELECT value FROM settings WHERE key='modus_standard'").fetchone()
+        return r["value"] if r and r["value"] in ("einfach", "profi") else "profi"
 
     # ---- aktuelles Projekt des Benutzers (Projekt des Bautagebuchs; gilt in allen Apps)
     @bp.route("/api/bp/projekt", methods=["GET", "PUT"])

@@ -45,13 +45,42 @@ AVA = {
     **{k: GEMEINSAM[k] for k in ("grundstueck", "gemarkung", "flur", "flurstueck", "hoehe_nhn")},
 }
 RE = {"rechnung": "Rechnung (z. B. 2. Abschlagsrechnung)", "re_nr": "Rechnungsnummer der Firma", "re_datum": "Rechnungsdatum", "eingang": "Eingang der Rechnung"}
+def _o(key, name, std, wahl=None):
+    """Inhaltseinstellung eines Ausdrucks (im Layout gespeichert, beim Drucken änderbar)."""
+    return {"key": key, "name": name, "typ": "wahl" if wahl else "bool", "std": std, **({"wahl": wahl} if wahl else {})}
+
+
 BEREICHE.update({
-    "lv": {"name": "Leistungsverzeichnis (Seiten nach dem Deckblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA)},
-    "aufmass": {"name": "Massenermittlung / Aufmaß", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA)},
+    "lv": {"name": "Leistungsverzeichnis (Seiten nach dem Deckblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA),
+           "optionen": [_o("preise", "Preise", "leer", [["leer", "leer – zum Ausfüllen"], ["schaetzung", "Schätzpreise"], ["auftrag", "Auftragspreise"]]),
+                        _o("deckblatt", "Deckblatt", True), _o("vorbem", "Vorbemerkungen", True), _o("vbpos", "Vorbemerkungen im LV (Art „V“)", True),
+                        _o("langtext", "Langtexte", True), _o("fotos", "Fotos zu den Positionen", True), _o("zusammenstellung", "Zusammenstellung der Titel", True),
+                        _o("bieter", "Bieterangaben am Schluss", True), _o("seite_je_titel", "Jeder Titel auf neuer Seite", False),
+                        _o("schrift", "Schriftgröße", "9", [["8", "klein"], ["9", "normal"], ["10", "groß"]])]},
+    "preisspiegel": {"name": "Preisspiegel", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA),
+                     "optionen": [_o("werte", "Je Bieter", "ep_gp", [["ep_gp", "Einheitspreis und Gesamtpreis"], ["ep", "nur Einheitspreis"], ["gp", "nur Gesamtpreis"]]),
+                                  _o("markierung", "Niedrigsten Preis und Ausreißer (über 30 %) markieren", True), _o("mittel", "Spalte Mittelwert der Bieter", False),
+                                  _o("a3", "Ab 7 Bietern auf A3 quer", True)]},
+    "aufmass": {"name": "Massenermittlung / Aufmaß", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": dict(AVA),
+                "optionen": [_o("rechenweg", "Rechenweg zeigen", True)]},
     "rechnungspruefung": {"name": "Rechnungsprüfung (Prüfblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
     "rechnungsfreigabe": {"name": "Rechnungsfreigabe für den Bauherrn", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
 })
 FELDER = {"Empfaenger": "Empfänger (Anschrift, mehrzeilig)", "Datum": "Datum", "Bearbeiter": "Bearbeitet von", "Betreff": "Betreff / Bauvorhaben"}
+FORMATE = {"A4": ("A4 hoch", 210, 297), "A4q": ("A4 quer", 297, 210), "A3": ("A3 hoch", 297, 420), "A3q": ("A3 quer", 420, 297)}
+
+
+def seite_mm(data):
+    """(Breite, Höhe) der Seite in mm nach dem Format des Layouts (Vorgabe A4 hoch)."""
+    f = FORMATE.get((data or {}).get("format")) or FORMATE["A4"]
+    return f[1], f[2]
+
+
+def seite_pt(data):
+    w, h = seite_mm(data)
+    return w * MM, h * MM
+
+
 TYPEN = {"text": "Text", "feld": "Feld (im Brief änderbar)", "logo": "Logo", "linie": "Linie", "falzmarken": "Falz- und Lochmarken", "inhalt": "Inhalt (fließt)"}
 
 
@@ -67,6 +96,15 @@ def standard(bereich="maengelruege"):
 
 def _standard_ava(bereich):
     """Wie die AVA-Ausdrucke bisher aussehen: Überschrift + Logo oben, Fußzeile mit Seitenzahl, Inhalt dazwischen."""
+    if bereich == "preisspiegel":   # A4 quer
+        return {"raster": 2.5, "format": "A4q", "folge_oben": 14, "elemente": [
+            _e("text", 16, 12, 220, 8, text="{dokument}", groesse=16, fett=True, name="Überschrift"),
+            _e("text", 16, 21, 220, 8, text="{untertitel}", groesse=9.5, farbe="mute", name="Untertitel"),
+            _e("logo", 251, 12, 30, 18, name="Logo"),
+            _e("inhalt", 16, 34, 265, 160, name="Inhalt"),
+            _e("text", 16, 199, 180, 4, text="{buero} · {projekt} · {lv}", groesse=7.5, farbe="mute", seiten="alle", name="Fußzeile"),
+            _e("text", 221, 199, 60, 4, text="Seite {seite} · {datum}", groesse=7.5, farbe="mute", ausrichtung="rechts", seiten="alle", name="Seitenzahl"),
+        ]}
     if bereich == "lv":   # 25 mm Heftrand links, 15 mm rechts; Kopf- und Fußzeile auf allen Seiten nach dem Deckblatt
         return {"raster": 2.5, "folge_oben": 16, "elemente": [
             _e("text", 25, 7, 95, 4, text="{lv}", groesse=7.5, farbe="mute", seiten="alle", name="Kopfzeile links"),
@@ -124,16 +162,53 @@ def schreiben(c, bereich, d, wer):
               "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (_key(bereich), json.dumps(d, ensure_ascii=False), datetime.now().isoformat(timespec="seconds"), wer))
 
 
-def aktiv(c, bereich):
-    """Elemente der aktiven Version – nach ihr wird gedruckt."""
+def aktiv(c, bereich, vid=None):
+    """Layout, nach dem gedruckt wird: die beim Drucken gewählte Version (vid), sonst die aktive (Vorgabe)."""
     d = lesen(c, bereich)
-    v = next((x for x in d["versionen"] if x["id"] == d.get("aktiv")), None) or d["versionen"][0]
+    v = (next((x for x in d["versionen"] if x["id"] == vid), None) if vid else None) \
+        or next((x for x in d["versionen"] if x["id"] == d.get("aktiv")), None) or d["versionen"][0]
     return pruefen(v.get("data") or standard(bereich))
+
+
+def skaliert(lay, fmt):
+    """Layout auf ein anderes Format strecken (z. B. A4 quer → A3 quer bei vielen Bietern): Lage und Größe der Felder, Schrift bleibt."""
+    if lay.get("format") == fmt or fmt not in FORMATE:
+        return lay
+    w0, h0 = seite_mm(lay)
+    w1, h1 = FORMATE[fmt][1], FORMATE[fmt][2]
+    fx, fy = w1 / w0, h1 / h0
+    out = copy.deepcopy(lay)
+    out["format"] = fmt
+    for e in out["elemente"]:
+        e["x"], e["w"], e["y"], e["h"] = e["x"] * fx, e["w"] * fx, e["y"] * fy, e["h"] * fy
+    if out.get("folge_oben") is not None:
+        out["folge_oben"] = out["folge_oben"] * fy
+    return out
+
+
+def optionen(c, bereich, vid=None, extra=None):
+    """Inhaltseinstellungen eines Layouts (z. B. Langtexte, Preise) mit den Vorgaben des Ausdrucks ergänzt, darüber extra."""
+    std = {o["key"]: o["std"] for o in (BEREICHE.get(bereich) or {}).get("optionen", [])}
+    std.update((aktiv(c, bereich, vid).get("optionen") or {}))
+    std.update({k: v for k, v in (extra or {}).items() if k in std})
+    return std
+
+
+def wahl(c, bereich):
+    """Für den Druckdialog: Layouts (nicht archivierte Versionen) eines Ausdrucks, die Vorgabe zuerst markiert."""
+    d = lesen(c, bereich)
+    B = BEREICHE.get(bereich) or {}
+    return {"bereich": bereich, "name": B.get("name", bereich), "vorgabe": d.get("aktiv"),
+            "layouts": [{"id": v["id"], "name": v["name"], "format": FORMATE[pruefen(v.get("data") or {}).get("format", "A4")][0]}
+                        for v in d["versionen"] if not v.get("archiviert")],
+            "optionen": B.get("optionen", [])}
 
 
 def pruefen(data):
     """Nur bekannte Typen und Felder, Maße innerhalb der Seite, höchstens ein Inhalt."""
     out, inhalt = [], False
+    fmt = (data or {}).get("format") if (data or {}).get("format") in FORMATE else "A4"
+    PW, PH = FORMATE[fmt][1], FORMATE[fmt][2]
     for e in (data or {}).get("elemente") or []:
         if not isinstance(e, dict) or e.get("typ") not in TYPEN:
             continue
@@ -142,8 +217,8 @@ def pruefen(data):
                 continue
             inhalt = True
         f = lambda k, d, lo, hi: max(lo, min(hi, float(e.get(k) if isinstance(e.get(k), (int, float)) else d)))   # noqa: E731
-        x = {"id": str(e.get("id") or uuid.uuid4().hex[:8])[:16], "typ": e["typ"], "x": f("x", 20, 0, 205), "y": f("y", 20, 0, 292),
-             "w": f("w", 40, 1, 210), "h": f("h", 6, 0.2, 297), "seiten": "alle" if e.get("seiten") == "alle" else "erste",
+        x = {"id": str(e.get("id") or uuid.uuid4().hex[:8])[:16], "typ": e["typ"], "x": f("x", 20, 0, PW - 5), "y": f("y", 20, 0, PH - 5),
+             "w": f("w", 40, 1, PW), "h": f("h", 6, 0.2, PH), "seiten": "alle" if e.get("seiten") == "alle" else "erste",
              "name": str(e.get("name") or "")[:60], "nur_ohne_bogen": bool(e.get("nur_ohne_bogen"))}
         if e["typ"] == "text":
             x.update(text=str(e.get("text") or "")[:2000])
@@ -159,11 +234,16 @@ def pruefen(data):
             x["staerke"] = f("staerke", 0.3, 0.1, 3)
         out.append(x)
     if not inhalt:
-        out.append(_e("inhalt", 25, 118, 165, 154, name="Inhalt"))
+        out.append(_e("inhalt", 20, 25, PW - 35, PH - 45, name="Inhalt") if fmt != "A4" else _e("inhalt", 25, 118, 165, 154, name="Inhalt"))
     r = (data or {}).get("raster")
     fo = (data or {}).get("folge_oben")
     fo = max(5.0, min(150.0, float(fo))) if isinstance(fo, (int, float)) else None
-    return {"raster": r if r in (1, 2, 2.5, 5, 10) else 2.5, "elemente": out, **({"folge_oben": fo} if fo is not None else {})}
+    opt = {}
+    for k, v in ((data or {}).get("optionen") or {}).items() if isinstance((data or {}).get("optionen"), dict) else ():
+        if isinstance(k, str) and len(k) <= 30 and isinstance(v, (bool, int, float, str)):
+            opt[k] = v[:200] if isinstance(v, str) else v
+    return {"raster": r if r in (1, 2, 2.5, 5, 10) else 2.5, "format": fmt, "elemente": out, **({"folge_oben": fo} if fo is not None else {}),
+            **({"optionen": opt} if opt else {})}
 
 
 def fuellen(t, werte):
@@ -256,9 +336,8 @@ def rahmen(lay):
 def platypus_seiten(lay, werte, fonts, logo_fn=None, bogen=False, erste_seite=1, ps=None):
     """PageTemplates („erste“, „folge“) für reportlab-Platypus nach dem Layout. erste_seite: Seitennummer, ab der das
     Layout zählt (z. B. 2, wenn ein Deckblatt davor steht – das Deckblatt zeichnet der Aufrufer selbst)."""
-    from reportlab.lib.pagesizes import A4
     from reportlab.platypus import Frame, PageTemplate
-    ps = ps or A4
+    ps = ps or seite_pt(lay)
     H = ps[1]
     x, y1, y2, w, u = rahmen(lay)
 

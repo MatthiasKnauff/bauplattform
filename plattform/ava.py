@@ -4248,11 +4248,13 @@ def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None, a3=False
     with db.tx() as c:
         p = _sees(c, r["project_id"]) if r["project_id"] else None
         office = C.kurzname(c)
-        LAY = layout.aktiv(c, bereich) if bereich and not quer else None
+        LAY = layout.aktiv(c, bereich, request.args.get("layout")) if bereich else None   # das im Druckdialog gewählte Layout, sonst die Vorgabe
+        if LAY and a3 and LAY.get("format") == "A4q":
+            LAY = layout.skaliert(LAY, "A3q")
         LW = _druck_werte(c, r, titel, sub, werte) if LAY else None
     if LAY:   # nach dem Druck-Layout (⚙ → Büro → Druck-Layouts): feste Elemente je Seite, Inhalt im Inhaltsbereich
         from reportlab.platypus import BaseDocTemplate
-        doc = BaseDocTemplate(buf, pagesize=A4, title=titel, author=office or "Bauplattform")
+        doc = BaseDocTemplate(buf, pagesize=layout.seite_pt(LAY), title=titel, author=office or "Bauplattform")
         tpl, W = layout.platypus_seiten(LAY, LW, {"n": "Helvetica", "b": "Helvetica-Bold"},
                                         logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_))
         doc.addPageTemplates(tpl)
@@ -4319,10 +4321,19 @@ DRUCK_FELDER = ("Titel", "Untertitel", "Bauvorhaben", "Bauherr", "Aufsteller", "
 SCHLUSS_STD = "Bieter (Firma, Anschrift):\n\n\n\nOrt, Datum, Unterschrift:"
 
 
-def _druck_layout(d, b=None):
-    """Gespeichertes Layout des LV (data.druck) mit den Vorgaben ergänzen, dann die übergebenen Änderungen darüber."""
+def _druck_layout(d, b=None, c=None):
+    """Gespeichertes Layout des LV (data.druck) mit den Vorgaben ergänzen, dann die übergebenen Änderungen darüber.
+    Vorgaben: die Inhaltseinstellungen des gewählten Druck-Layouts (⚙ → Büro → Druck-Layouts → Leistungsverzeichnis)."""
     lay = dict(DRUCK_STD)
-    for src in ((d.get("druck") or {}) if isinstance(d.get("druck"), dict) else {}, b or {}):
+    gesp = (d.get("druck") or {}) if isinstance(d.get("druck"), dict) else {}
+    vid = str((b or {}).get("layout_id") or gesp.get("layout_id") or "")[:40]
+    quellen = [gesp, b or {}]
+    if c is not None:
+        quellen.insert(0, layout.optionen(c, "lv", vid or None))
+        if (b or {}).get("layout_neu"):   # anderes Layout gewählt: dessen Einstellungen statt der beim LV gemerkten
+            quellen = [quellen[0], {k: v for k, v in (b or {}).items() if k in ("felder", "layout_id")}]
+    lay["layout_id"] = vid
+    for src in quellen:
         for k, v in src.items():
             if k in ("deckblatt", "langtext", "fotos", "vorbem", "vbpos", "zusammenstellung", "seite_je_titel", "bieter"):
                 lay[k] = bool(v)
@@ -4394,9 +4405,9 @@ def _lv_druck(c, r, P, lay, entwurf=False):
          "h2": ParagraphStyle("h2", fontName=FN["b"], fontSize=12, leading=15, textColor=ACC, spaceBefore=6, spaceAfter=4),
          "h1": ParagraphStyle("h1", fontName=FN["b"], fontSize=15, leading=19, textColor=INK)}
     X = lambda t: escape(str(t or "")).replace("\n", "<br/>")
-    LAY = layout.aktiv(c, "lv")
+    LAY = layout.aktiv(c, "lv", lay.get("layout_id") or None)
     LW = _druck_werte(c, r, F["Titel"], F["Untertitel"], {"datum": F["Datum"]})
-    ps = A4; W = layout.rahmen(LAY)[3] * mm   # Breite des Inhalts laut Druck-Layout (Vorgabe 170 mm: 25 mm Heftrand links, 15 mm rechts)
+    ps = layout.seite_pt(LAY); W = layout.rahmen(LAY)[3] * mm   # Seitenformat und Breite des Inhalts laut Druck-Layout (Vorgabe 170 mm: 25 mm Heftrand links, 15 mm rechts)
     preis = lay["preise"]
     ep_of = (lambda x: _fn(VP.get(x["id"]))) if preis == "auftrag" else (lambda x: x.get("ep_s")) if preis == "schaetzung" else (lambda x: None)
     BILD = {}
@@ -4624,7 +4635,7 @@ def lv_druck(i):
         if not r:
             return jsonify(error="Leistungsverzeichnis nicht gefunden"), 404
         d = _j(r["data"], {}) or {}
-        lay = _druck_layout(d, b.get("layout") if isinstance(b.get("layout"), dict) else {})
+        lay = _druck_layout(d, b.get("layout") if isinstance(b.get("layout"), dict) else {}, c)
         if lay["preise"] == "auftrag" and not (_j(r["vergabe"], {}) or {}).get("preise"):
             lay["preise"] = "schaetzung"
         rev = r["rev"]
@@ -4685,10 +4696,31 @@ def lv_pdf(i):
     V = P["vergabe"]
     VP = V.get("preise") or {}
 
+    def _opt(bereich):   # Inhaltseinstellungen: Layout (Druckdialog) + die beim Drucken geänderten
+        try:
+            ex = json.loads(request.args.get("opt") or "{}")
+        except ValueError:
+            ex = {}
+        with db.tx() as c_:
+            return layout.optionen(c_, bereich, request.args.get("layout"), ex if isinstance(ex, dict) else {})
+
     def _am_pdf():   # Massenermittlung (auch als Anlage der Rechnungsfreigabe)
         am = P["aufmass"]
+        rw = bool(_opt("aufmass").get("rechenweg", True))
 
         def st(story, S, X, table, W, mm, p):
+            if not rw:   # ohne Rechenweg: Ort und Menge
+                rows, bold = [["OZ / Datum", "Kurztext / Ort", "Menge", "EH"]], []
+                for x in items:
+                    zs = [z for z in am if z["pos_id"] == x["id"]] if x["typ"] == "pos" and x.get("art") != "T" else []
+                    if not zs:
+                        continue
+                    rows.append([x["oz"], Paragraph(f"<b>{X(x['kurz'])}</b> <font color='#6b6b66'>LV-Menge {num(x['menge'])}</font>", S["p"]), "", x["einheit"]])
+                    rows += [[_de(z["datum"]), Paragraph(X(z["ort"]), S["p"]), num(z["menge"]), x["einheit"]] for z in zs]
+                    rows.append(["", "Summe", num(sum(z["menge"] for z in zs)), x["einheit"]])
+                    bold.append(len(rows) - 1)
+                story.append(table(rows, [24 * mm, W - 24 * mm - 40 * mm, 24 * mm, 16 * mm], num=(2,), bold=tuple(bold)))
+                return
             rows = [["OZ / Datum", "Kurztext / Ort", "Rechenweg", "Menge", "EH"]]
             bold = []
             for x in items:
@@ -4707,7 +4739,9 @@ def lv_pdf(i):
 
     if art == "preisspiegel":
         A = sorted(P["angebote"], key=lambda a: next((x.get("rang") or 99 for x in K["angebote"] if x["id"] == a["id"]), 99))
-        a3 = len(A) > 6   # mehr als 6 Bieter: A3 quer, damit Kurztext und Preise lesbar bleiben
+        O = _opt("preisspiegel")
+        a3 = len(A) > 6 and bool(O.get("a3", True))   # mehr als 6 Bieter: A3 quer, damit Kurztext und Preise lesbar bleiben
+        mit_ep, mit_gp, mark, mittel = O.get("werte") != "gp", O.get("werte") != "ep", bool(O.get("markierung", True)), bool(O.get("mittel"))
 
         def st(story, S, X, table, W, mm, p):
             from reportlab.platypus import Flowable
@@ -4734,12 +4768,14 @@ def lv_pdf(i):
             namen = [str(a["bieter"] or "")[:45] for a in A]
             hoehe = min(60 * mm, max(12 * mm, max((stringWidth(n, "Helvetica-Bold", 8) for n in namen), default=0) + 3 * mm))
             wb = max(18 * mm, min(27 * mm, (W - 40 * mm - 60 * mm) / max(1, len(A))))   # Breite je Bieter, Kurztext mindestens 6 cm
-            head = ["OZ", "Kurztext", "Menge", "EH"] + [Senkrecht(n, hoehe) for n in namen]
-            w0 = [16 * mm, W - 40 * mm - wb * len(A), 14 * mm, 10 * mm]
+            nsp = len(A) + (1 if mittel else 0)
+            wb = max(18 * mm, min(27 * mm, (W - 40 * mm - 60 * mm) / max(1, nsp)))
+            head = ["OZ", "Kurztext", "Menge", "EH"] + [Senkrecht(n, hoehe) for n in namen] + ([Senkrecht("Mittel der Bieter (EP)", hoehe)] if mittel else [])
+            w0 = [16 * mm, W - 40 * mm - wb * nsp, 14 * mm, 10 * mm]
             rows = [head]
             for x in items:
                 if x["typ"] == "titel":
-                    rows.append([x["oz"], Paragraph(f"<b>{X(x['kurz'])}</b>", S["p"]), "", ""] + [""] * len(A))
+                    rows.append([x["oz"], Paragraph(f"<b>{X(x['kurz'])}</b>", S["p"]), "", ""] + [""] * nsp)
                     continue
                 if x.get("art") == "T" or x.get("nt"):
                     continue
@@ -4752,28 +4788,34 @@ def lv_pdf(i):
                     if e is None:
                         cells.append("—")
                     else:
-                        t = f"{ep2(e)}<br/>{ep2(e * (x['menge'] or 0)) if x.get('art') in ('N', 'P') else '(ohne GB)'}"
-                        if mit and abs(e / mit - 1) > 0.3:
+                        gp = ep2(e * (x['menge'] or 0)) if x.get('art') in ('N', 'P') else '(ohne GB)'
+                        t = "<br/>".join(v for v in ((ep2(e) if mit_ep else ""), (gp if mit_gp else "")) if v)
+                        if mark and mit and abs(e / mit - 1) > 0.3:
                             t = "<font color='#c0392b'>! </font>" + t
-                        if e == mn and len(vals) > 1:
+                        if mark and e == mn and len(vals) > 1:
                             t = f"<font color='#1e7a3c'><b>{t}</b></font>"
                         cells.append(Paragraph(t, S["r"]))
+                if mittel:
+                    cells.append(Paragraph(ep2(mit) if mit is not None else "—", S["r"]))
                 rows.append([x["oz"], Paragraph(X(x["kurz"]) + (f" <font color='#6b6b66'>({ARTEN[x['art']]})</font>" if x.get("art") in ("E", "A", "P") else ""), S["p"]),
                              num(x["menge"]), x["einheit"]] + cells)
             sums = {a["id"]: a for a in K["angebote"]}
-            rows.append(["", "Summe netto (ohne Bedarfs-/Wahlpositionen)", "", ""] + [eur(sums[a["id"]]["summe"]) for a in A])
-            rows.append(["", "Nachlass", "", ""] + [f"{num(a['nachlass'], 2)} %" if a["nachlass"] else "–" for a in A])
-            rows.append(["", "Wertung netto", "", ""] + [eur(sums[a["id"]]["netto"]) for a in A])
-            rows.append(["", "Rang · fehlende Preise", "", ""] + [f"{sums[a['id']].get('rang', '–')} · {sums[a['id']]['fehlt']}" for a in A])
+            leer = [""] if mittel else []
+            rows.append(["", "Summe netto (ohne Bedarfs-/Wahlpositionen)", "", ""] + [eur(sums[a["id"]]["summe"]) for a in A] + leer)
+            rows.append(["", "Nachlass", "", ""] + [f"{num(a['nachlass'], 2)} %" if a["nachlass"] else "–" for a in A] + leer)
+            rows.append(["", "Wertung netto", "", ""] + [eur(sums[a["id"]]["netto"]) for a in A] + leer)
+            rows.append(["", "Rang · fehlende Preise", "", ""] + [f"{sums[a['id']].get('rang', '–')} · {sums[a['id']]['fehlt']}" for a in A] + leer)
             n = len(rows)
-            tb = table(rows, w0 + [wb] * len(A), num=tuple(range(2, 4 + len(A))), bold=(n - 2,), band=(n - 4, n - 3, n - 1))
+            tb = table(rows, w0 + [wb] * nsp, num=tuple(range(2, 4 + nsp)), bold=(n - 2,), band=(n - 4, n - 3, n - 1))
             tb.setStyle([("VALIGN", (0, 0), (-1, 0), "BOTTOM")])
             story.append(tb)
             story.append(Spacer(1, 4 * mm))
-            story.append(Paragraph("<font color='#1e7a3c'><b>grün</b></font> = niedrigster Einheitspreis · <font color='#c0392b'>!</font> mehr als 30 % vom Mittel der Bieter entfernt · je Zelle: Einheitspreis, darunter Gesamtpreis.", S["l"]))
+            zelle = "Einheitspreis, darunter Gesamtpreis" if mit_ep and mit_gp else "Einheitspreis" if mit_ep else "Gesamtpreis"
+            story.append(Paragraph(("<font color='#1e7a3c'><b>grün</b></font> = niedrigster Einheitspreis · <font color='#c0392b'>!</font> mehr als 30 % vom Mittel der Bieter entfernt · " if mark else "")
+                                   + f"je Zelle: {zelle}.", S["l"]))
             if K["schaetzung"]:
                 story.append(Paragraph(f"Kostenschätzung des Planers für dieses LV: {eur(K['schaetzung'])} netto.", S["l"]))
-        pdf = _pdf(r, f"Preisspiegel – LV {r['nr']} {r['name']}", f"{P['projekt']} · {len(P['angebote'])} Angebote · Stand {date.today().strftime('%d.%m.%Y')}", st, quer=True, a3=a3)
+        pdf = _pdf(r, f"Preisspiegel – LV {r['nr']} {r['name']}", f"{P['projekt']} · {len(P['angebote'])} Angebote · Stand {date.today().strftime('%d.%m.%Y')}", st, quer=True, a3=a3, bereich="preisspiegel")
         fn = "Preisspiegel"
     elif art == "aufmass":
         pdf = _am_pdf()

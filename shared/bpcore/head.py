@@ -148,6 +148,17 @@ def blueprint(get_user=None):
         name = f"bug-meldungen-{datetime.now().strftime('%Y-%m-%d')}.zip"
         return Response(daten, mimetype="application/zip", headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
+    @bp.get("/api/bp/layouts/<b>/wahl")
+    def layout_wahl(b):
+        """Druckdialog: Layouts eines Ausdrucks zur Auswahl und seine Inhaltseinstellungen (je Layout gespeichert)."""
+        from . import layout
+        if b not in layout.BEREICHE:
+            return jsonify(error="Unbekannter Ausdruck"), 404
+        with db.tx() as c:
+            W = layout.wahl(c, b)
+            W["werte"] = {v["id"]: layout.optionen(c, b, v["id"]) for v in W["layouts"]}
+        return jsonify(W)
+
     @bp.get("/bp/<name>")
     def asset(name):
         if name not in ("head.js", "head.css"):

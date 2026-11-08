@@ -194,6 +194,42 @@
       });
     });
   };
+  /* Druckdialog für alle Apps: Layout des Ausdrucks wählen (⚙ → Büro → Druck-Layouts, je Ausdruck mehrere) und seine Inhaltseinstellungen
+     (z. B. Langtexte, Preise) – gespeichert im Layout, hier für diesen Ausdruck änderbar. Die letzte Wahl je Ausdruck wird gemerkt.
+     Ergebnis: { layout, opt, qs } (qs = „&layout=…&opt=…“ zum Anhängen an die PDF-Adresse) oder null (abgebrochen).
+     Gibt es nur ein Layout und keine Einstellungen, kommt ohne Dialog sofort { layout, opt: {}, qs }. */
+  H.druckWahl = function (bereich, o = {}) {
+    return new Promise(async (fertig) => {
+      let W; try { W = await KX('api/bp/layouts/' + encodeURIComponent(bereich) + '/wahl'); } catch { fertig({ layout: '', opt: {}, qs: '' }); return; }
+      const LK = 'bph.druck.' + bereich; let mem = {}; try { mem = JSON.parse(localStorage.getItem(LK) || '{}'); } catch { /* egal */ }
+      let vid = W.layouts.some((l) => l.id === mem.layout) ? mem.layout : (W.layouts.find((l) => l.id === W.vorgabe) || W.layouts[0] || {}).id || '';
+      const qs = (v, opt) => `&layout=${encodeURIComponent(v)}${opt && Object.keys(opt).length ? '&opt=' + encodeURIComponent(JSON.stringify(opt)) : ''}`;
+      if (W.layouts.length <= 1 && !W.optionen.length) { fertig({ layout: vid, opt: {}, qs: qs(vid) }); return; }
+      const adm = ((H.conf || {}).apps || []).find((a) => a.key === 'admin' && a.allowed) && H.me && H.me.is_admin;
+      const werte = () => ({ ...(W.werte[vid] || {}), ...((mem.layout === vid && mem.opt) || {}) });
+      const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+      const zeichne = () => {
+        const w = werte();
+        bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Drucken" style="width:min(480px,96vw)"><div class="bph-dh"><b>${esc(o.titel || W.name)} drucken</b><button type="button" class="bph-x" data-dx aria-label="Schließen">✕</button></div>
+          <label class="bph-dl" style="display:flex;flex-direction:column;gap:.25rem;font-weight:600">Layout<select data-dlay style="font-weight:400">${W.layouts.map((l) => `<option value="${esc(l.id)}"${l.id === vid ? ' selected' : ''}>${esc(l.name)} · ${esc(l.format)}${l.id === W.vorgabe ? ' (Vorgabe)' : ''}</option>`).join('')}</select></label>
+          ${W.optionen.length ? `<div style="display:grid;gap:.45rem;margin:.8rem 0 .2rem">${W.optionen.map((x) => x.typ === 'bool'
+            ? `<label class="bph-ck"><input type="checkbox" data-dopt="${esc(x.key)}"${w[x.key] ? ' checked' : ''}> ${esc(x.name)}</label>`
+            : `<label style="display:flex;flex-direction:column;gap:.2rem">${esc(x.name)}<select data-dopt="${esc(x.key)}">${x.wahl.map(([k, l]) => `<option value="${esc(k)}"${String(w[x.key]) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>` : ''}
+          <p class="bph-mu" style="margin:.6rem 0 0;font-size:.82rem">Die Einstellungen sind im Layout hinterlegt und gelten hier nur für diesen Ausdruck. Layouts anlegen und gestalten: ⚙ → Büro → Druck-Layouts.</p>
+          <div class="bph-row" style="justify-content:flex-end;gap:.4rem;margin-top:.9rem">${adm ? '<button type="button" class="bph-btn" data-dedit style="margin-right:auto">Layout bearbeiten …</button>' : ''}<button type="button" class="bph-btn" data-dx>Abbrechen</button><button type="button" class="bph-btn pri" data-dok>${esc(o.knopf || 'Drucken / PDF')}</button></div></div>`;
+      };
+      zeichne(); document.body.appendChild(bg);
+      const lesen = () => Object.fromEntries([...bg.querySelectorAll('[data-dopt]')].map((i) => [i.dataset.dopt, i.type === 'checkbox' ? i.checked : i.value]));
+      bg.addEventListener('change', (e) => { if (e.target.matches('[data-dlay]')) { vid = e.target.value; zeichne(); } });
+      bg.addEventListener('click', (e) => {   // daneben klicken schließt nicht
+        if (e.target.closest('[data-dx]')) { bg.remove(); fertig(null); return; }
+        if (e.target.closest('[data-dedit]')) { const a = ((H.conf || {}).apps || []).find((x) => x.key === 'admin'); if (a) window.open(appUrl(a) + '/layout#' + encodeURIComponent(bereich), '_blank'); return; }
+        if (!e.target.closest('[data-dok]')) return;
+        const opt = lesen(); try { localStorage.setItem(LK, JSON.stringify({ layout: vid, opt })); } catch { /* egal */ }
+        bg.remove(); fertig({ layout: vid, opt, qs: qs(vid, opt) });
+      });
+    });
+  };
   /* KI-Auswahl neu laden (z. B. nachdem der Administrator kostenpflichtige KI abgeschaltet hat) – auch im Fenster, das die Büro-Einstellungen eingebettet hat */
   H.kiLaden = async function () {
     try {

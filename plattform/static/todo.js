@@ -3,6 +3,7 @@
    Braucht bp.js (api, esc, toast, appUrl) und ein Element #todo. */
 var TDKLEIN = false;
 /* ---------- To-dos: automatisch aus den Daten der Apps + eigene Aufgaben (rechts neben der Post) ---------- */
+let TDFRISCH = new Set();   // gerade angelegte Aufgaben: bleiben sichtbar, auch wenn die Liste gekürzt ist (Startseite)
 let TD = null, TDREF = null, TDOFFEN = null, TDZEIG = { spaeter: false, erledigt: false };
 const tdHeute = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 const tdPlus = (n) => { const d = new Date(Date.now() + n * 864e5); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
@@ -129,8 +130,9 @@ function tdZeigen() {
   let n = 0, rest = TDKLEIN ? 6 : 1e9;   // Startseite: nur die dringendsten sechs
   for (const [name, fn, rot] of G) {
     const L = offen.filter(fn).sort(sort); if (!L.length) continue; n += L.length;
-    if (rest <= 0 && !L.some((x) => x.key === TDOFFEN)) continue;
-    const zeig = L.slice(0, Math.max(0, rest)), o = L.find((x) => x.key === TDOFFEN); if (o && !zeig.includes(o)) zeig.push(o);   // geöffnete Aufgabe immer zeigen
+    const immer = (x) => x.key === TDOFFEN || TDFRISCH.has(x.key);   // geöffnete und gerade angelegte Aufgaben immer zeigen
+    if (rest <= 0 && !L.some(immer)) continue;
+    const zeig = L.slice(0, Math.max(0, rest)); L.filter(immer).forEach((o) => { if (!zeig.includes(o)) zeig.unshift(o); });
     html += `<div class="tg${rot ? ' rot' : ''}">${name} · ${L.length}</div>` + zeig.map(tdZeile).join('');
     rest -= L.length;
   }
@@ -184,7 +186,7 @@ document.addEventListener('submit', async (e) => {
   if (!pk && gew) pk = alle.find((p) => p.id === gew) || null;   // aus der Vorschlagsliste gewählt
   if (!pk && TDPROJ) pk = TDPROJ;
   const titel = pk ? `${pk.name} ${notiz}`.trim() : notiz;
-  try { const r = await api('api/bp/todo', 'POST', { ...x, titel, pid: pk ? pk.id : null }); delete inp.dataset.btId; TD.manuell.unshift(r.aufgabe); tdZeigen(); tdFokus(); toast(`Aufgabe angelegt${pk ? ' – ' + pk.name : ' – ohne Projekt'}${x.faellig ? ', fällig ' + tdDatum(x.faellig) : ''}.`); }
+  try { const r = await api('api/bp/todo', 'POST', { ...x, titel, pid: pk ? pk.id : null }); delete inp.dataset.btId; TD.manuell.unshift(r.aufgabe); TDFRISCH.add(r.aufgabe.key); tdZeigen(); tdFokus(); toast(`Aufgabe angelegt${pk ? ' – ' + pk.name : ' – ohne Projekt'}${x.faellig ? ', fällig ' + tdDatum(x.faellig) : ''}.`); }
   catch (er) { toast(er.message, true); }
 });
 document.addEventListener('click', async (e) => {
@@ -245,7 +247,7 @@ document.addEventListener('click', async (e) => {
     const te = b.closest('.te'), body = tdLesen(te); if (!body.titel) return toast('Bitte einen Titel eingeben.', true);
     try {
       const r = x ? await api('api/bp/todo/' + x.id, 'PUT', body) : await api('api/bp/todo', 'POST', body);
-      if (x) Object.assign(x, r.aufgabe); else TD.manuell.unshift(r.aufgabe);
+      if (x) Object.assign(x, r.aufgabe); else { TD.manuell.unshift(r.aufgabe); TDFRISCH.add(r.aufgabe.key); }
       TDOFFEN = null; tdZeigen(); if (r.hinweis) toast(r.hinweis, true);
     } catch (er) { toast(er.message, true); }
     return;

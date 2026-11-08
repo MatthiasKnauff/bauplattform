@@ -421,7 +421,7 @@ html.mobil .bph{position:sticky;top:0}
 .si-g{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:flex-end;margin:.3rem 0}.si-g label{display:flex;flex-direction:column;font-size:.8rem;color:var(--mute);gap:.15rem}.si-g input,.si-g select{font-size:.9rem}
 .si-sum{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.2rem 0 .5rem}.si-w{background:color-mix(in srgb,#e0a030 18%,transparent);border-radius:8px;padding:.4rem .6rem;margin:.3rem 0}
 .re-bel{display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;margin:.5rem 0;padding:.45rem .55rem;border:1px dashed var(--line);border-radius:8px}.re-bel.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 10%,transparent)}
-.re-b{display:inline-flex;gap:.3rem;align-items:center}.re-z{width:100%;margin:.4rem 0}.re-z input{font:inherit}
+.re-b{display:inline-flex;gap:.3rem;align-items:center}.re-z{width:100%;margin:.4rem 0}.re-z td:first-child{min-width:18rem}.re-z input{font:inherit}
 .am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
@@ -2377,6 +2377,33 @@ function amPdfZeige(pid, sofort, direkt) {
   wrap.appendChild(hl);
   V.el.scrollTo({ top: wrap.offsetTop + y0 * wrap.offsetHeight - V.el.clientHeight * 0.3, behavior: sofort ? 'auto' : 'smooth' });
 }
+/* Rechnung ohne Aufmaß: Positionen von Hand (Kurztext, Menge, EH, EP) – die Summe ist der geprüfte Betrag */
+async function reVonHand(rid) {
+  const r = L.rechnungen.find((x) => x.id === rid); if (!r) return;
+  const body = { zeilen: (r.data.zeilen || []).length ? r.data.zeilen : [{ text: '', menge: null, einheit: '', ep: null }] };
+  if (r.data.frei == null) body.frei = r.gefordert || 0;
+  PJSEL = 'r' + rid; tab = 'rechnungen'; LS.set('tab', tab);
+  try { await call('api/rechnungen/' + rid, 'PUT', body); } catch (e) { return toast(e.message, true); }
+  setTimeout(() => { const i = document.querySelector(`[data-reid="${rid}"] [data-re="z-text"]`); if (i) { i.focus(); window.BPHead?.achtung?.(i.closest('table'), { bis: i.closest('.card') }); } }, 60);
+}
+/* Positionen von Hand ins LV zurückführen (Kostenkontrolle): mit Auftragspreisen als Nachtrag „angemeldet“ samt EP,
+   bei frei eingetragenem Auftrag (Summe ohne LV) nur zur Dokumentation ohne Preis – sonst zählte es doppelt */
+async function reZeilenInsLv(rid, nur) {
+  const r = L.rechnungen.find((x) => x.id === rid); if (!r) return;
+  const zs = (r.data.zeilen || []).map((z) => ({ ...z })), ks = (nur != null ? [nur] : zs.map((_, k) => k)).filter((k) => !zs[k].pos && (zs[k].text || '').trim());
+  if (!ks.length) return toast('Nichts zu übernehmen – alle Positionen stehen schon im LV.');
+  const frei = !!(L.vergabe && L.vergabe.frei && !Object.keys(L.vergabe.preise || {}).length);
+  const t = frei ? `${ks.length === 1 ? 'Position' : ks.length + ' Positionen'} ins LV übernehmen?\nDer Auftrag ist frei mit einer Summe eingetragen – die Positionen kommen ohne Preis ins LV (nur zur Dokumentation), sonst zählten sie in der Kostenkontrolle doppelt.`
+    : `${ks.length === 1 ? 'Position' : ks.length + ' Positionen'} als Nachtrag ins LV übernehmen?\nSie stehen dann als Nachtrag „angemeldet“ mit dem Einheitspreis der Rechnung im LV und zählen in der Kostenkontrolle (Prognose). Beauftragen oder ablehnen später im LV.`;
+  if (!(await bpFrage(t, { ok: frei ? 'Ins LV übernehmen' : 'Als Nachtrag übernehmen' }))) return;
+  await flush(); const I = L.data.items; let n = I.filter((x) => x.nt).length; const preise = {};
+  for (const k of ks) { const z = zs[k], id = uid();
+    const p = { id, typ: 'pos', art: 'N', oz: '', kurz: z.text.trim(), lang: `aus ${reTitel(r)}${r.re_nr ? ' Nr. ' + r.re_nr : ''}`, menge: z.menge ?? 1, einheit: z.einheit || 'psch' };
+    if (!frei) { p.nt = 'NT' + (++n); p.nt_status = 'angemeldet'; if (z.ep != null) preise[id] = z.ep; }
+    I.push(p); z.pos = id; }
+  try { await saveNow(); if (Object.keys(preise).length) await api('api/lv/' + L.id, 'PUT', { vergabe: { preise } }); await call('api/rechnungen/' + rid, 'PUT', { zeilen: zs }); toast(frei ? 'Ins LV übernommen.' : 'Als Nachtrag ins LV übernommen – steht in der Kostenkontrolle.'); }
+  catch (e) { toast(e.message, true); }
+}
 async function amBelegHoch(files) {
   files = [...files].filter((f) => /\.(pdf|jpe?g|png|tiff?|docx)$/i.test(f.name) || /^(application\/pdf|image\/)/.test(f.type));
   if (!files.length) return toast('Bitte eine PDF-Datei, einen Scan oder ein Foto wählen.', true);
@@ -2391,11 +2418,14 @@ async function amBelegHoch(files) {
   }
   let R2 = L.rechnungen.find((r) => r.id === R.id), nb = R2.belege[R2.belege.length - 1];
   if (nb.auslese && nb.auslese.laeuft) {   // Scan/Foto: Texterkennung läuft im Hintergrund
-    const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = '<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Eingescannte Rechnung – Texterkennung läuft …'; document.body.appendChild(el);
-    const lvId = L.id;
-    try { for (let k = 0; k < 200; k++) { await new Promise((ok) => setTimeout(ok, 3000)); const x = await api('api/lv/' + lvId).catch(() => null); const b2 = x && x.rechnungen.flatMap((r) => r.belege || []).find((b) => b.id === nb.id); if (b2 && !(b2.auslese && b2.auslese.laeuft)) { if (L && L.id === lvId) L = x; break; } } }
+    const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = '<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Eingescannte Rechnung – Texterkennung läuft …<button type="button" class="btn sm" data-j="hand" title="Nicht warten: die Rechnung gleich ohne Aufmaß mit Positionen von Hand erfassen">Von Hand erfassen</button><button type="button" class="btn sm" data-j="ab" title="Nicht mehr warten – die PDF bleibt an der Rechnung">Abbrechen</button>'; document.body.appendChild(el);
+    const lvId = L.id; let stop = '';
+    el.addEventListener('click', (e) => { const j = e.target.closest('[data-j]'); if (j) stop = j.dataset.j; });
+    try { for (let k = 0; k < 400 && !stop; k++) { await new Promise((ok) => setTimeout(ok, 1500)); if (stop || k % 2) continue; const x = await api('api/lv/' + lvId).catch(() => null); const b2 = x && x.rechnungen.flatMap((r) => r.belege || []).find((b) => b.id === nb.id); if (b2 && !(b2.auslese && b2.auslese.laeuft)) { if (L && L.id === lvId) L = x; break; } } }
     finally { el.remove(); }
     if (!L || L.id !== lvId) return;
+    if (stop === 'hand') return reVonHand(R.id);
+    if (stop) return toast('Texterkennung nicht abgewartet – die PDF hängt an der Rechnung.');
     R2 = L.rechnungen.find((r) => r.id === R.id); nb = R2 && R2.belege.find((b) => b.id === nb.id); if (!nb) return;
   }
   AMB = nb.id; LS.set('amB', AMB); amAns = 'erfassen';
@@ -2581,10 +2611,18 @@ function vRechnungen() {
           <td><input data-re="z-einheit" data-id="${r.id}" data-k="${k}" value="${esc(z.einheit || 'h')}" style="width:3.5rem"${dis}></td>
           <td class="r"><input data-re="z-ep" data-id="${r.id}" data-k="${k}" value="${z.ep != null ? nf(z.ep, 2) : ''}" inputmode="decimal" style="width:6rem;text-align:right"${dis}></td>
           <td class="r">${eur((z.menge || 0) * (z.ep || 0))}</td><td>${g ? '' : `<button class="ib" data-reb="zdel" data-id="${r.id}" data-k="${k}">✕</button>`}</td></tr>`).join('')}
-        ${g ? '' : `<tr><td colspan="6"><button class="ib" data-reb="zneu" data-id="${r.id}">+ Zeile (Lohn, Gerät, Material laut Stundenzettel)</button></td></tr>`}</tbody></table>` : '';
+        ${g ? '' : `<tr><td colspan="6"><button class="ib" data-reb="zneu" data-id="${r.id}">+ Zeile (Lohn, Gerät, Material laut Stundenzettel)</button></td></tr>`}</tbody></table>`
+      : c.frei && (r.data.zeilen || []).length ? `<table class="re-z"><thead><tr><th>Positionen der Rechnung (von Hand)</th><th class="r">Menge</th><th>EH</th><th class="r">EP €</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
+        ${(r.data.zeilen || []).map((z, k) => `<tr><td><input data-re="z-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="Kurztext der Leistung" style="width:100%"${dis}></td>
+          <td class="r"><input data-re="z-menge" data-id="${r.id}" data-k="${k}" value="${z.menge != null ? nf(z.menge, 3) : ''}" inputmode="decimal" style="width:5rem;text-align:right"${dis}></td>
+          <td><input data-re="z-einheit" data-id="${r.id}" data-k="${k}" value="${esc(z.einheit || '')}" placeholder="m²" style="width:3.5rem"${dis}></td>
+          <td class="r"><input data-re="z-ep" data-id="${r.id}" data-k="${k}" value="${z.ep != null ? nf(z.ep, 2) : ''}" inputmode="decimal" style="width:6rem;text-align:right"${dis}></td>
+          <td class="r">${eur((z.menge || 0) * (z.ep || 0))}</td><td style="white-space:nowrap">${z.pos ? `<span class="hint" title="Steht im LV">✓ ${esc(((L.data.items || []).find((y) => y.id === z.pos) || {}).nt || 'im LV')}</span>` : (z.text || '').trim() ? `<button class="ib" data-reb="zlv" data-id="${r.id}" data-k="${k}" title="Ins LV übernehmen (Kostenkontrolle)">→ LV</button>` : ''}${g ? '' : `<button class="ib" data-reb="zdel" data-id="${r.id}" data-k="${k}">✕</button>`}</td></tr>`).join('')}
+        <tr><td colspan="6">${g ? '' : `<button class="ib" data-reb="fzneu" data-id="${r.id}">+ Position</button>`}${(r.data.zeilen || []).some((z) => !z.pos && (z.text || '').trim()) ? `<button class="ib" data-reb="zlv" data-id="${r.id}" title="Alle noch nicht übernommenen Positionen ins LV – für die Kostenkontrolle">→ alle ins LV</button>` : ''}</td></tr></tbody></table>` : '';
     return `<div class="card" data-reid="${r.id}">${kopf}${zeilen}
       <table><tbody>
-        ${c.frei ? `<tr><td>geprüfter Betrag netto (ohne Aufmaß)</td><td class="r"><input data-re="frei" data-id="${r.id}" value="${nf(r.data.frei || 0, 2)}" inputmode="decimal" style="width:9rem;text-align:right"${dis}></td></tr>`
+        ${c.frei && (r.data.zeilen || []).length ? `<tr><td>Summe der Positionen netto (ohne Aufmaß)</td><td class="r">${eur(c.leistung)}</td></tr>`
+          : c.frei ? `<tr><td>geprüfter Betrag netto (ohne Aufmaß)${g ? '' : ` <button class="ib" data-reb="fzneu" data-id="${r.id}" title="Statt eines Betrags die Positionen der Rechnung einzeln eintragen">+ Positionen von Hand</button>`}</td><td class="r"><input data-re="frei" data-id="${r.id}" value="${nf(r.data.frei || 0, 2)}" inputmode="decimal" style="width:9rem;text-align:right"${dis}></td></tr>`
           : `<tr><td>${art === 'regie' ? 'Summe Stundenlohnarbeiten' : art === 'nachtrag' ? 'Leistungsstand Nachträge (Aufmaß × Nachtrags-EP)' : 'Leistungsstand netto (Aufmaß × Auftrags-EP)'}</td><td class="r">${eur(c.leistung)}</td></tr>`}
         ${c.nachlass ? `<tr><td>– Nachlass ${nlText(L.vergabe)}</td><td class="r">${eur(-c.nachlass)}</td></tr>` : c.abzug && !c.abzug.nachlass && (L.vergabe.nachlass || L.vergabe.nachlass_eur) ? '<tr class="aus"><td>Nachlass – bei dieser Rechnung nicht abgezogen</td><td class="r">–</td></tr>' : ''}
         ${ab.map((z, k) => `<tr><td><div class="abz"><span>–</span><input data-re="abz-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Bauwasser/Strom" style="flex:1"${dis}>
@@ -2739,6 +2777,8 @@ async function reAktion(b) {
       const url = `api/lv/${L.id}/pdf?art=rechnung&rid=${r.id}${a === 'freigabe' ? '&freigabe=1' : ''}${lw}`;
       if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url, typ: 'pdf', name: (a === 'freigabe' ? 'Rechnungsfreigabe ' : 'Prüfblatt ') + reTitel(r) + '.pdf' }]); else location.href = url; return; }
     if (a === 'abzneu') return call('api/rechnungen/' + r.id, 'PUT', { abzuege: [...(r.data.abzuege || []), { text: '', pct: null, betrag: null }] });
+    if (a === 'fzneu') return call('api/rechnungen/' + r.id, 'PUT', { zeilen: [...(r.data.zeilen || []), { text: '', menge: null, einheit: '', ep: null }] });
+    if (a === 'zlv') return reZeilenInsLv(r.id, b.dataset.k != null ? +b.dataset.k : null);
     if (a === 'zneu') return call('api/rechnungen/' + r.id, 'PUT', { zeilen: [...(r.data.zeilen || []), { text: '', menge: null, einheit: 'h', ep: null }] });
     if (a === 'zdel') { const alt = JSON.parse(JSON.stringify(r.data.zeilen || [])); await call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt.filter((_, k) => k !== +b.dataset.k) });
       rueckgaengig('Zeile entfernt', () => call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt })); return; }

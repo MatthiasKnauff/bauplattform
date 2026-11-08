@@ -911,8 +911,10 @@ def rechne(lv, angebote, aufmass, rechnungen):
         if art == "regie":
             L = sum(round(_f(z.get("menge")) * _f(z.get("ep")), 2) for z in rd.get("zeilen") or [])
             N = 0.0
-        elif frei_:
-            L, N = round(_f(rd.get("frei"), 0), 2), 0.0
+        elif frei_:   # Positionen von Hand eingetragen: deren Summe, sonst der frei eingetragene Betrag
+            zs_ = [z for z in rd.get("zeilen") or [] if isinstance(z, dict)]
+            L = round(sum(round(_f(z.get("menge")) * _f(z.get("ep")), 2) for z in zs_), 2) if zs_ else round(_f(rd.get("frei"), 0), 2)
+            N = 0.0
         else:
             stand = rd.get("stand") if g_ and isinstance(rd.get("stand"), dict) else am
             nur = (lambda k: k in ist_nt) if art == "nachtrag" else (lambda k: k not in ist_nt) if nt_kette else None
@@ -3774,7 +3776,8 @@ def rechnung(k):
             if not d["abzug"]:
                 d.pop("abzug")
         if isinstance(b.get("zeilen"), list):   # Regierechnung: Stundenlohnzettel / Zeilen
-            d["zeilen"] = [{"text": _s(z.get("text"), 300), "menge": _fn(z.get("menge")), "einheit": _s(z.get("einheit"), 12) or "h", "ep": _fn(z.get("ep"))}
+            d["zeilen"] = [{"text": _s(z.get("text"), 300), "menge": _fn(z.get("menge")), "einheit": _s(z.get("einheit"), 12) if "einheit" in z else "h", "ep": _fn(z.get("ep")),
+                            **({"pos": _s(z.get("pos"), 40)} if z.get("pos") else {})}
                            for z in b["zeilen"][:200] if isinstance(z, dict)]
         if "frei" in b:   # Betrag ohne Aufmaß frei geprüft (None: zurück zur Prüfung über das Aufmaß)
             if b["frei"] is None or b["frei"] == "":

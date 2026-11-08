@@ -92,6 +92,14 @@ def start():
                        einheiten=EINHEITEN, loehne=[x.dict() for x in c.execute("SELECT gewerk, name, verrechnungslohn, stand FROM pdb_lohn ORDER BY name").fetchall()])
 
 
+@app.get("/api/allplan-katalog.zip")
+def allplan_katalog():
+    """Bauteil-Elemente als Allplan-Katalog (Textformat wie der Elementkatalog NEM_ELE), optional ?kg=330."""
+    with db.tx() as c:
+        z, n = B.allplan_katalog(c, (request.args.get("kg") or "").strip()[:3])
+    return Response(z, mimetype="application/zip", headers={"Content-Disposition": 'attachment; filename="allplan-bauteilkatalog.zip"'})
+
+
 @app.get("/api/vorbemerkungen")
 def vorbemerkungen():
     """Kompakte Vorbemerkungen: ohne key die Liste, mit key (LB-Nummer, 'bb', 'bvb', 'zvb') der Text."""

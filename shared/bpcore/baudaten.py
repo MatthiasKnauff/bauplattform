@@ -392,6 +392,65 @@ def aufloesen(c, teile, menge, titel=""):
     return out
 
 
+def allplan_katalog(c, kg=""):
+    """Bauteil-Elemente (Katalog gk3e) als Allplan-Katalog im Textformat wie der Elementkatalog NEM_ELE:
+    .KAT (REFNAM 18 Zeichen + Kurztext 60), .KTX (Langtext in Zeilen zu 40 Zeichen, um 18 eingerückt), .KTM (Attribute, leer).
+    Der Kurztext beginnt mit dem Code – er landet in Allplan als Material/Qualität und im IFC-Export, der Import in den
+    Baukosten erkennt daran den Aufbau. Gibt ein ZIP (bytes) zurück: kukat1/KUKAT1.* und LIESMICH.txt."""
+    import io
+    import textwrap
+    import zipfile
+    w, p = ["katalog='gk3e'", "aktiv=1"], []
+    if kg:
+        w.append("kg LIKE ?"); p.append(re.sub(r"\D", "", kg)[:3].rstrip("0") + "%")
+    rows = c.execute(f"SELECT code, kurz, bez, lang, einheit, kg FROM pdb_position WHERE {' AND '.join(w)} ORDER BY code", p).fetchall()
+    T = {}
+    for r in c.execute("SELECT t.element_code, t.faktor, p.kurz, p.einheit FROM pdb_element_teil t JOIN pdb_position p ON p.katalog='gk3' AND p.code=t.position_code "
+                       "ORDER BY t.element_code, t.nr").fetchall():
+        T.setdefault(r["element_code"], []).append(r)
+    enc = lambda t: str(t).replace("–", "-").replace("„", '"').replace("“", '"').replace("’", "'").replace("×", "x").replace("²", "2").replace("³", "3").replace("≤", "<=").replace("≥", ">=").replace("Ø", "D").encode("cp1252", "replace")
+    kat, ktx = [b"#", b"REFNAM            KURZT", b""], [b"#", b"REFNAM            LANGT", b""]
+    for r in rows:
+        ref = r["code"][:17].ljust(18)
+        kurz = f"{r['code']} {r['kurz']}"
+        kat.append(enc(ref + kurz[:60].ljust(60)))
+        ktx.append(enc(ref))
+        zeilen = []
+        for absatz in (r["lang"] or "").split("\n"):
+            zeilen += textwrap.wrap(absatz, 40) or [""]
+        zeilen.append(f"Einheit: {r['einheit']}, KG {r['kg']}")
+        zeilen.append("Bestandteile je " + r["einheit"] + ":")
+        for t in T.get(r["code"], []):
+            zeilen += textwrap.wrap(f"{str(round(t['faktor'], 3)).replace('.', ',')} {t['einheit']} {t['kurz']}", 40)
+        ktx += [enc(" " * 18 + z[:40]) for z in zeilen if z is not None]
+    ktm = [b">", b"REFNAM             KUPD GEW ABR PRIOR SCH     DICKE LAYER BER SMF", b"", b""]
+    crlf = lambda L: b"\r\n".join(L) + b"\r\n"
+    hilfe = f"""Bauteilkatalog der Bauplattform fuer Allplan ({len(rows)} Elemente{', KG ' + kg if kg else ''})
+
+Einrichten (einmal):
+1. Den Ordner kukat1 in den Buerostandard kopieren: ...\\Allplan\\Daten\\std\\kukat1
+   (liegt dort schon ein Kundenkatalog 1, vorher sichern oder kukat2 ... kukat5 verwenden und die Dateien
+   entsprechend in KUKAT2.KAT/.KTX/.KTM umbenennen).
+2. Allplan: Optionen -> Kataloge -> Katalogzuordnung: fuer Wand, Decke, Stuetze, Dach, Raum usw.
+   den Kundenkatalog 1 waehlen.
+3. Beim Bauteil unter Material/Qualitaet den Eintrag aus dem Katalog waehlen.
+
+Rueckweg: Der Text beginnt mit dem Code (z. B. 331.02.004). Im IFC-Export steht er am Material bzw. an der
+Qualitaet; die Baukosten der Bauplattform erkennen daran beim IFC-Import genau diesen Aufbau mit Preis.
+
+Falls Allplan den Kundenkatalog nicht anzeigt: dieselben drei Dateien als NEM_ELE.KAT/.KTX/.KTM in den
+Ordner std\\nem_ele legen (den vorhandenen Elementkatalog vorher sichern) und in der Katalogzuordnung
+NEM_ELE waehlen.
+"""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("kukat1/KUKAT1.KAT", crlf(kat))
+        z.writestr("kukat1/KUKAT1.KTX", crlf(ktx))
+        z.writestr("kukat1/KUKAT1.KTM", crlf(ktm))
+        z.writestr("LIESMICH.txt", hilfe.replace("\n", "\r\n").encode("cp1252", "replace"))
+    return buf.getvalue(), len(rows)
+
+
 def vorbemerkungen(c, key=None):
     if key:
         r = c.execute("SELECT key, titel, text FROM pdb_vorbemerkung WHERE key=?", (key,)).fetchone()

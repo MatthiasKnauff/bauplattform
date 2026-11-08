@@ -151,6 +151,7 @@ def _wert(v):
     return v
 
 
+CODE_RX = re.compile(r"(?<![\d.])(\d{3}\.\d{2}\.\d{3})(?![\d.])")
 ART = {"IFCWALL": "Wand", "IFCWALLSTANDARDCASE": "Wand", "IFCWALLELEMENTEDCASE": "Wand", "IFCSLAB": "Decke", "IFCSLABSTANDARDCASE": "Decke",
        "IFCROOF": "Dach", "IFCWINDOW": "Fenster", "IFCWINDOWSTANDARDCASE": "Fenster", "IFCDOOR": "Tür", "IFCDOORSTANDARDCASE": "Tür",
        "IFCCOLUMN": "Stütze", "IFCCOLUMNSTANDARDCASE": "Stütze", "IFCBEAM": "Träger", "IFCBEAMSTANDARDCASE": "Träger",
@@ -281,7 +282,7 @@ def ifc_lesen(raw):
                     nm = next((v for key, v in GEWERK if key in gw), "")
                 if not nm and dk and dk <= 0.03:
                     nm = "Putz"
-            out.append(f"{nm} {round(dk * 100, 1):g} cm".replace(".", ",").strip() if dk else nm)
+            out.append((nm + " " + f"{round(dk * 100, 1):g} cm".replace(".", ",")).strip() if dk else nm)
         return out
     mat = {}
     for _, a in E.alle("IFCRELASSOCIATESMATERIAL"):
@@ -685,9 +686,13 @@ def ifc_lesen(raw):
             if abbruch:
                 kg, art = "394", f"Abbruch {art}"
             mtxt = ", ".join(n for n in namen if n)[:200]
-            key = (kg, art, mtxt, round(dicke or 0, 3), einheit)
+            # Code aus dem Bauteilkatalog der Bauplattform (Allplan Material/Qualität, z. B. „331.02.004 AW …“)
+            such = " ".join([mtxt] + [str(v) for v in props.get(i, {}).values() if isinstance(v, str)])
+            mc = CODE_RX.search(such)
+            code = mc.group(1) if mc else ""
+            key = (kg, art, mtxt, round(dicke or 0, 3), einheit, code)
             gr = gruppen.setdefault(key, {"kg": kg, "art": art, "material": mtxt, "dicke": round(dicke or 0, 3), "einheit": einheit, "menge": 0.0, "anzahl": 0,
-                                          "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set()})
+                                          "aussen": bool(aussen), "tragend": bool(tragend), "ohne_menge": 0, "namen": set(), "code": code})
             gr["menge"] += m or 0
             gr["anzahl"] += 1
             gr["ohne_menge"] += 0 if m else 1

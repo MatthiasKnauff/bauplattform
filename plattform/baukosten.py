@@ -959,13 +959,21 @@ def cad_import(i, name, data):
                     continue
                 row = {"id": f"ifc{k}", "kg": b["kg"], "name": b["name"][:200], "mat": b["material"][:200], "formel": f"IFC: {b['anzahl']} Objekte" + (f" ({', '.join(b['namen'][:3])})" if b["namen"] else ""),
                        "menge": round(b["menge"], 2), "einheit": b["einheit"], "ep": 0, "src": "IFC", "geschoss": "", "notiz": ""}
-                v = baudaten.aufbau_vorschlag(c, b["kg"], f"{b['art']} {b['material']}" + (f" {round(b['dicke'] * 100, 1):g}".replace(".", ",") if b["dicke"] else "")) if _baukasten(c) else None
-                if v and b["kg"] in ("331", "332", "341", "342"):
+                v = None
+                if b.get("code") and _baukasten(c):   # Aufbau aus dem Allplan-Bauteilkatalog der Bauplattform: genau dieser
+                    e = c.execute("SELECT hinweis FROM pdb_position WHERE katalog='gk3e' AND code=?", (b["code"],)).fetchone()
+                    m_ = re.match(r"Aufbau ([\d.]+?):([\d.]*)$", e["hinweis"] if e else "")
+                    if m_:
+                        v = (m_.group(1), [int(x) for x in m_.group(2).split(".") if x != ""], 99)
+                if v is None:
+                    v = baudaten.aufbau_vorschlag(c, b["kg"], f"{b['art']} {b['material']}" + (f" {round(b['dicke'] * 100, 1):g}".replace(".", ",") if b["dicke"] else "")) if _baukasten(c) else None
+                if v and v[2] < 99 and b["kg"] in ("331", "332", "341", "342"):
                     v = (v[0], _ohne_innen(c, v[0], v[1]), v[2])   # Innenbekleidung kommt aus der Raumbuch-Ausstattung
                 A = baudaten.aufbau(c, v[0], v[1]) if v and v[2] >= 1.5 else None   # ohne Material: Standardaufbau der KG
                 if A and A["einheit"] == b["einheit"] and A["ep_mittel"]:
                     row.update(ep=A["ep_mittel"], aufbau={"v": A["vorlage"], "w": A["wahl"]},
-                               notiz=f"Aufbau-Vorschlag {A['vorlage']}: {A['bez'][len(A['name']):].lstrip(', ')} · Spanne {str(A['ep_von']).replace('.', ',')}–{str(A['ep_bis']).replace('.', ',')} € – bitte prüfen"[:500])
+                               notiz=((f"Aufbau aus Allplan-Katalog {b['code']}" if v[2] == 99 else f"Aufbau-Vorschlag {A['vorlage']}: {A['bez'][len(A['name']):].lstrip(', ')}")
+                                      + f" · Spanne {str(A['ep_von']).replace('.', ',')}–{str(A['ep_bis']).replace('.', ',')} €" + ("" if v[2] == 99 else " – bitte prüfen"))[:500])
                 neu.append(row)
             d["bauteile"] = [x for x in alt if x.get("src") != "IFC"] + neu
             n_bt = len(neu)

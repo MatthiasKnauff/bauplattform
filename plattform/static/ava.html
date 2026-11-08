@@ -1101,7 +1101,7 @@ async function avaAblegen(f, E, o) {
   if (!vergeben()) { await call(`api/lv/${lvId}/vergabe`, 'POST', { frei: true, bieter: o.firma || 'Firma', contact_id: K ? K.id : null, summe: 0, einbehalt: 0 }); toast(`Auftrag frei an „${o.firma || 'Firma'}“ eingetragen.`); }
   if (!L.rechnungen.some((r) => r.status !== 'geprueft') && E.regie && !(L.calc.auftrag && posOf().length)) await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'regie' });
   if (!L.rechnungen.some((r) => r.status !== 'geprueft') && E.schluss) await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'schluss' });
-  tab = 'aufmass'; amAns = 'erfassen'; LS.set('tab', tab); LS.set('amAns', amAns); render();
+  tab = 'aufmass'; amAns = 'erfassen'; LS.set('tab', tab); render();
   AMABL = { ordner: o.ordner, art: o.art }; try { await amBelegHoch([f]); } finally { AMABL = null; }
 }
 /* ---------- Eingangsordner auf dem Server (z. B. Scans vom Kopierer): beim Wechsel in die AVA nachsehen und fragen ---------- */
@@ -1314,7 +1314,7 @@ document.addEventListener('click', async (e) => {
   else if (!sub && x0 && !x0.vergeben && ['aufmass', 'rechnungen'].includes(tab)) tab = x0.angebote.length ? 'angebote' : 'lv';
   if (tab !== t0) LS.set('tab', tab);
   PJSEL = sub; PJF = { lv: id, sub }; PJX.add(id); LS.set('pjx', [...PJX].slice(-100));
-  if (tab === 'aufmass' && sub) { const x = LIST.find((y) => y.id === id); amAns = 'baum'; LS.set('amAns', amAns); (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX); }
+  if (tab === 'aufmass' && sub) { const x = LIST.find((y) => y.id === id); amAns = 'erfassen'; (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX); }
   if (!L || L.id !== id) { await flush(); await openLv(id); } else render();
 });
 /* Einfache Ansicht: je LV eine Karte mit Summe, Balken und dem nächsten Schritt – darunter bleibt das gewohnte LV */
@@ -1920,7 +1920,7 @@ document.addEventListener('change', (e) => {
 document.addEventListener('click', async (e) => {
   const t = e.target;
   const sb = t.closest('[data-schritt]'); if (sb) { const S = SCHRITTE.find((x) => x[0] === sb.dataset.schritt); const z = LS.get('tab:' + S[0], S[2][0]); await flush(); tab = S[2].includes(z) ? z : S[2][0]; LS.set('tab', tab); render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
-  const tb = t.closest('[data-tab]'); if (tb) { await flush(); tab = tb.dataset.tab; LS.set('tab', tab); render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
+  const tb = t.closest('[data-tab]'); if (tb) { await flush(); tab = tb.dataset.tab; if (tab === 'aufmass') amAns = 'erfassen'; LS.set('tab', tab); render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
   const st = t.closest('[data-status]'); if (st && L) {
     const alt = L.status, id = L.id; if (alt === st.dataset.status) return;
     L.status = st.dataset.status; await flush(); saveNow({ status: L.status }); kpis();
@@ -2333,9 +2333,9 @@ function vergabeDialog(aid) {
 
 /* ---------- Aufmaß ---------- */
 /* ---------- Aufmaßprüfung: Baum wie in ORCA (LV › Teilrechnungen › Titel › Positionen) oder Aufmaß erfassen ---------- */
-let amAns = LS.get('amAns', 'baum'), AMX = LS.get('amx', {});
+let amAns = 'erfassen', AMX = LS.get('amx', {});
 function vAufmass() {
-  const um = `<div class="seg" role="group" aria-label="Ansicht" style="margin-bottom:.6rem"><button type="button" class="${amAns === 'baum' ? 'on' : ''}" data-amans="baum">Prüfung je Rechnung</button><button type="button" class="${amAns === 'erfassen' ? 'on' : ''}" data-amans="erfassen">Aufmaß erfassen</button></div>`;
+  const um = `<div class="seg" role="group" aria-label="Ansicht" style="margin-bottom:.6rem"><button type="button" class="${amAns === 'erfassen' ? 'on' : ''}" data-amans="erfassen">Aufmaß erfassen</button><button type="button" class="${amAns === 'baum' ? 'on' : ''}" data-amans="baum">Prüfung je Rechnung</button></div>`;
   return um + (amAns === 'baum' ? vAmBaum() : vAmErfassen());
 }
 function vAmBaum() {
@@ -2394,19 +2394,19 @@ function vAmBaum() {
     <p class="hint" style="margin:.5rem 0 0">Menge = aufgemessen bis zu dieser Rechnung (bei geprüften Rechnungen der festgehaltene Stand), Zuwachsmenge = neu seit der vorigen geprüften Rechnung. Prognose = größere aus LV- und Aufmaßmenge × Auftragspreis. Orange: mehr als 110 % der LV-Menge. Doppelklick auf eine Position öffnet ihr Aufmaß.</p>`;
 }
 document.addEventListener('click', (e) => {
-  const a = e.target.closest('[data-amans]'); if (a) { amAns = a.dataset.amans; LS.set('amAns', amAns); render(); return; }
+  const a = e.target.closest('[data-amans]'); if (a) { amAns = a.dataset.amans; render(); return; }
   const c = e.target.closest('[data-amx]'); if (c) { const k = c.dataset.amx, cur = c.textContent === '▾'; AMX[k] = !cur; LS.set('amx', AMX); render(); }
 });
 document.addEventListener('dblclick', (e) => {
   const tr = e.target.closest('tr[data-amp]'); if (!tr || tab !== 'aufmass') return;
-  amPos = tr.dataset.amp; LS.set('amPos', amPos); amAns = 'erfassen'; LS.set('amAns', amAns); render();
+  amPos = tr.dataset.amp; LS.set('amPos', amPos); amAns = 'erfassen'; render();
   setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30);
 });
 /* Rechnung / Aufmaß der Firma neben der Prüfung: PDF rechts, Positionen Schritt für Schritt, erkannte Mengen eintragen */
 const AMNEU = new Set();
 let AMABL = null;   // Ablage im Projektordner, aus dem gemeinsamen Ablagefeld gewählt
 let AMB = LS.get('amB', 0), amNurR = LS.get('amNurR', false), AMV = null;
-const amRe = () => (L ? (tab === 'rechnungen' && PJSEL && PJSEL[0] === 'r' && L.rechnungen.find((r) => 'r' + r.id === PJSEL)) || L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
+const amRe = () => (L ? (['rechnungen', 'aufmass'].includes(tab) && PJSEL && PJSEL[0] === 'r' && L.rechnungen.find((r) => 'r' + r.id === PJSEL)) || L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
 const amBelege = () => { const r = amRe(); return r ? r.belege || [] : []; };
 function amTreffer(pid) { let t = null; for (const b of [...amBelege()].sort((x, y) => (y.id === AMB) - (x.id === AMB))) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
 const amListe = () => posOf().filter((p) => (!amNur || L.aufmass.some((a) => a.pos_id === p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id)));
@@ -2707,7 +2707,7 @@ async function amBelegHoch(files) {
     tab = 'rechnungen'; LS.set('tab', tab); render(); return;
   }
   amAns = 'erfassen';
-  if (Object.values((nb.auslese && nb.auslese.pos) || {}).length) { amNurR = true; LS.set('amNurR', true); } LS.set('amAns', amAns);
+  if (Object.values((nb.auslese && nb.auslese.pos) || {}).length) { amNurR = true; LS.set('amNurR', true); }
   const P = Object.keys((nb.auslese && nb.auslese.pos) || {}); if (P.length) { amPos = posOf().find((p) => P.includes(p.id)).id; LS.set('amPos', amPos); }
   render();
   if (nb.auslese && nb.auslese.text === false) return toast('In der Datei ist kein lesbarer Text – bitte Schritt für Schritt von Hand durchgehen.');

@@ -518,7 +518,7 @@ tr.am-lf td input{color:#c0621f}
 .lvx .pj-r:hover .pj-del,.lvx .pj-r.on .pj-del{display:block}.lvx .pj-r:hover .v,.lvx .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .lvx-akt .tblw{max-height:none;overflow:visible}   /* im Tabellenfeld scrollt die Seite: die übrigen LVs laufen weg, Knopfleiste und Spaltenköpfe bleiben stehen */
 .lvx-akt table.tree th,.lvx-akt table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
-.lvx-akt>.bar:first-child{position:sticky;top:var(--phh,3.2rem);z-index:4;background:var(--bg);margin:-.5rem -.6rem .4rem -1.6rem;padding:.45rem .6rem .45rem 1.6rem;border-bottom:1px solid var(--line)}
+.lvx-bar{position:sticky;top:var(--phh,3.2rem);z-index:4;background:var(--bg);margin:0 0 .5rem;padding:.35rem 0}   /* Knopfleiste des geöffneten LV über der LV-Liste */
 .lvx-akt{padding:.5rem .6rem .7rem 1.6rem;border-bottom:1px solid var(--line);border-left:3px solid var(--y);background:var(--bg)}
 .pj-blink{animation:pjb 1.5s ease}@keyframes pjb{0%,60%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
@@ -1479,7 +1479,9 @@ function render() {
   if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); }
   if (PJTABS.has(tab)) {   // Knopfleiste des geöffneten LV bleibt beim Scrollen unter der Kopfzeile stehen; die übrigen LVs scrollen weg
     const ph = document.querySelector('.ph'); if (ph) document.documentElement.style.setProperty('--phh', ph.offsetHeight + 'px');
-    const lb = v.querySelector('.lvx-akt>.bar:first-child'); if (lb) document.documentElement.style.setProperty('--lvbar', lb.offsetHeight + 'px');
+    const lb0 = tab === 'lv' && v.querySelector('.lvx-akt>.bar:first-child'), lx = v.querySelector('.lvx');   // LV-Knopfleiste zwischen Kennzahlen und LV-Liste
+    if (lb0 && lx) { lb0.classList.add('lvx-bar'); lx.before(lb0); }
+    const lb = v.querySelector('.lvx-bar'); if (lb) document.documentElement.style.setProperty('--lvbar', lb.offsetHeight + 'px');
     if (LVXHOCH) { LVXHOCH = false; const a = v.querySelector('.lvx .pj-r.akt'); if (a) setTimeout(() => { const y = a.getBoundingClientRect().top + scrollY - (ph ? ph.offsetHeight : 0) - 60; scrollTo({ top: Math.max(0, y), behavior: 'smooth' }); }, 30); }
   }
 }

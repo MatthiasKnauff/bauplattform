@@ -194,6 +194,48 @@
       });
     });
   };
+  /* Ziehbare Trennung zwischen zwei Spalten eines Grids (wie in der AVA): sichtbarer Anfasser in der Mitte, Breite je Browser gemerkt,
+     Doppelklick = Standard. Bei einspaltigem Layout (schmales Fenster) unsichtbar. H.trennGriff(grid, { key, min: 200, max: 0.6 }) */
+  H.trennGriff = function (grid, o = {}) {
+    if (!grid || grid.querySelector(':scope > .bph-trenn')) return;
+    const LK = 'bph.trenn.' + (o.key || 'x'), min = o.min || 200, maxA = o.max || 0.65;
+    const g = document.createElement('div'); g.className = 'bph-trenn'; g.title = 'Breite ziehen (Doppelklick: Standard)'; g.setAttribute('aria-hidden', 'true');
+    if (getComputedStyle(grid).position === 'static') grid.style.position = 'relative';
+    grid.appendChild(g);
+    const spalten = () => [...grid.children].filter((x) => x !== g && getComputedStyle(x).display !== 'none' && getComputedStyle(x).position !== 'absolute')
+      .sort((p, q) => p.getBoundingClientRect().left - q.getBoundingClientRect().left);   // sichtbare Reihenfolge (CSS „order“)
+    const ab = o.ab || 1100;   // darunter stapelt die Seite einspaltig – dann keine feste Breite (sonst bliebe sie zweispaltig)
+    let breite = 0;
+    const setz = (w) => { breite = w || 0; grid.style.gridTemplateColumns = breite && innerWidth >= ab ? `${Math.round(breite)}px minmax(0,1fr)` : ''; lage(); };
+    const lage = () => {
+      const c = spalten(), tr = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean);
+      if (c.length < 2 || tr.length < 2 || innerWidth < ab) { g.hidden = true; return; }
+      g.hidden = false; const gr = grid.getBoundingClientRect(), a = c[0].getBoundingClientRect(), b = c[1].getBoundingClientRect();
+      g.style.left = ((a.right + Math.max(a.right, b.left)) / 2 - gr.left - 8) + 'px';
+    };
+    let w0 = 0; try { w0 = +localStorage.getItem(LK) || 0; } catch { /* egal */ }
+    if (w0) setz(w0);
+    g.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return; e.preventDefault(); g.setPointerCapture(e.pointerId); document.body.classList.add('bph-trennzieh');
+      const gr = grid.getBoundingClientRect();
+      g.onpointermove = (m) => setz(Math.max(min, Math.min(gr.width * maxA, m.clientX - gr.left)));
+      g.onpointerup = () => { g.onpointermove = null; document.body.classList.remove('bph-trennzieh');
+        try { localStorage.setItem(LK, String(Math.round(breite))); } catch { /* egal */ } };
+    });
+    g.addEventListener('dblclick', () => { setz(0); try { localStorage.removeItem(LK); } catch { /* egal */ } });
+    new ResizeObserver(lage).observe(grid); addEventListener('resize', () => setz(breite)); setTimeout(lage, 0);
+    return g;
+  };
+
+  /* Grids mit data-bph-trenn="schlüssel" (optional data-bph-trenn-min / -max) bekommen den Anfasser von selbst – auch nach Neuzeichnen */
+  {
+    let t = 0;
+    const such = () => { t = 0; document.querySelectorAll('[data-bph-trenn]').forEach((el) => { if (el.querySelector(':scope > .bph-trenn')) return;
+      H.trennGriff(el, { key: el.dataset.bphTrenn, min: +el.dataset.bphTrennMin || 200, max: +el.dataset.bphTrennMax || 0.65, ab: +el.dataset.bphTrennAb || 0 }); }); };
+    const los = () => { such(); new MutationObserver(() => { if (!t) t = requestAnimationFrame(such); }).observe(document.body, { childList: true, subtree: true }); };
+    if (document.body) los(); else document.addEventListener('DOMContentLoaded', los);
+  }
+
   /* Layout-Editor der Verwaltung als großes Fenster über der App (kein neues Browserfenster) */
   H.layoutEditor = function (adminUrl, bereich, zu) {
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';

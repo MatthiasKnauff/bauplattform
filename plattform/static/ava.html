@@ -1293,7 +1293,7 @@ function lvxKopf() {
   return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
 function re2Html(inhalt) {
-  return `<div class="re2"><aside class="re2-baum pjtree" id="pjTree">${pjBaum().replace('\u0001', '')}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
+  return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjBaum().replace('\u0001', '')}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();

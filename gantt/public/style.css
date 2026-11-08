@@ -916,3 +916,8 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .ph-entw{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;border-radius:999px;background:rgba(224,160,32,.16);color:inherit;font-size:12.5px}
 
 .lv-ro{margin:8px 16px 0;padding:8px 12px;border-radius:8px;background:rgba(127,127,127,.12);font-size:13px}
+
+/* Anfasser in der Mitte der Trennung Tabelle | Balken (wie in der AVA) */
+#split,#split2{position:relative;width:10px}
+#split::after,#split2::after{content:'';position:absolute;left:50%;top:calc(50% - 28px);transform:translateX(-50%);width:12px;height:56px;border-radius:7px;background:#fff radial-gradient(circle,#8a8f98 1.3px,transparent 1.6px) center/6px 7px;border:1px solid var(--bd);box-shadow:0 1px 4px rgba(0,0,0,.14);pointer-events:none}
+#split:hover::after,#split.drag::after,#split2:hover::after{border-color:var(--accent)}

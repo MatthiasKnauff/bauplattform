@@ -840,7 +840,7 @@
       else if (f.typ === 'select') inp = `<select id="${id}" data-dm="${f.k}">${(f.opt || []).map((x) => `<option value="${esc(x)}"${(v || '') === x ? ' selected' : ''}>${esc(x || '–')}</option>`).join('')}</select>`;
       else inp = `<input id="${id}" data-dm="${f.k}" type="${{ date: 'date', time: 'time', mail: 'email', tel: 'tel' }[f.typ] || 'text'}"${['zahl', 'eur', 'prozent'].includes(f.typ) ? ' inputmode="decimal"' : ''} value="${esc(['zahl', 'eur', 'prozent'].includes(f.typ) ? de(v) : v || '')}">`;
       const einheit = { eur: '€', prozent: '%' }[f.typ];
-      return `<label class="bph-dm-f${f.typ === 'textarea' || f.breit ? ' bph-dm-w' : ''}" for="${id}"><span>${esc(f.l)}</span><span class="bph-dm-i">${inp}${einheit ? `<em>${einheit}</em>` : ''}</span>${z}${hilfe}</label>`;
+      return `<label class="bph-dm-f bph-dm-sg${f.typ === 'textarea' || f.breit ? ' bph-dm-w' : ''}" for="${id}"><span>${esc(f.l)}</span><span class="bph-dm-i">${inp}${einheit ? `<em>${einheit}</em>` : ''}</span><span class="bph-dm-x">${z}${hilfe}</span></label>`;
     };
     const draw = () => {   // neu zeichnen, ohne dass die Maske nach oben springt
       const sb = root.querySelector('.bph-dm-b'), st = sb ? sb.scrollTop : 0;

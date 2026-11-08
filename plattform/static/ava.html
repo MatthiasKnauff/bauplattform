@@ -37,7 +37,7 @@
 .vqe .leer{padding:1rem;color:var(--mute);font-size:.9rem}
 tr.vqblink td{animation:vqblink 2.2s ease-out}
 @keyframes vqblink{0%,40%{background:color-mix(in srgb,var(--y) 40%,transparent)}100%{background:transparent}}
-.save{font-size:.78rem;color:var(--mute);align-self:center;padding:0 .6rem;margin-left:auto}
+.save{font-size:.78rem;color:var(--mute);align-self:center;padding:0 .6rem;margin-left:auto}.ph-akt{display:flex;align-items:center;margin-left:auto}.ph-akt .uakt{gap:.1rem}.ph-akt .uakt .btn{height:30px;border-color:transparent;background:transparent;padding:0 .5rem}.ph-akt .uakt .btn:hover:not(:disabled){background:var(--hov);border-color:var(--line)}
 .rib.weg{display:none}
 main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im Menü „⋯“ rechts in der Bereichsleiste */
 .body{flex:1;display:grid;grid-template-columns:272px minmax(0,1fr);min-height:calc(100vh - 140px)}
@@ -562,8 +562,8 @@ html[data-modus="einfach"] [data-umenu]{display:none}
       <button class="rb" id="moreBtn" title="Archivieren oder löschen"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Archiv / Löschen</button>
     </div><div class="rl">Bearbeiten</div></div>
     <div class="rg"><div class="rr">
-      <button class="rb" id="impBtn" title="GAEB-Datei (X81–X86) oder ausgefülltes Excel einlesen"><svg viewBox="0 0 24 24"><path d="M5 14v6h14v-6"/><path d="M12 3v11M8 10l4 4 4-4" class="ac"/></svg>Einlesen …</button>
-      <button class="rb" id="expBtn" title="Als Datei speichern: GAEB X83/X86 oder Excel zum Ausfüllen"><svg viewBox="0 0 24 24"><path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4" class="ac"/></svg>Speichern unter …</button>
+      <button class="rb" id="impBtn" title="GAEB-Datei (X81–X86) oder ausgefülltes Excel einlesen"><svg viewBox="0 0 24 24"><path d="M5 14v6h14v-6"/><path d="M12 3v11M8 10l4 4 4-4" class="ac"/></svg>Import …</button>
+      <button class="rb" id="expBtn" title="Als Datei speichern: GAEB X83/X86 oder Excel zum Ausfüllen"><svg viewBox="0 0 24 24"><path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4" class="ac"/></svg>Export …</button>
       <button class="rb" id="druBtn" data-need="lv" title="LV drucken oder als PDF – Layout wählen, Deckblatt und Texte bearbeiten; Preisspiegel, Massenermittlung"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M7 14h10v7H7z" class="ac"/></svg>Drucken / PDF</button>
     </div><div class="rl">Datenaustausch</div></div>
     <div class="rg"><div class="rr"><div class="vqb"><input type="search" id="vq" placeholder="Volltext: Text, OZ, Firma, Raum …" autocomplete="off" title="Volltextsuche in allen LVs, Angeboten, Aufmaß und Türliste (Strg+Umschalt+F)" aria-label="Volltextsuche"><label><input type="checkbox" id="vqAlle"> in allen Projekten</label></div></div><div class="rl">Suchen</div></div>
@@ -574,7 +574,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
     <aside class="nav" id="navL" aria-label="Projekt"><div class="nsuche" id="nsuche"></div><div id="tabs"></div></aside>
     <section class="pane">
       <div class="utb" id="utb" role="tablist" aria-label="Bereiche des Schritts"></div>
-      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span></div>
+      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span><span class="ph-akt" id="phAkt"></span></div>
       <div class="kpi" id="kpi"></div>
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
@@ -710,38 +710,39 @@ async function vleiste(neu) {
 }
 /* Versionen braucht man nur beim Ausschreiben – die Leiste steht nur im Schritt „Ausschreibung“ */
 /* Menü „⋯“ der Bereichsleiste: die Befehle der (ausgeblendeten) Werkzeugleiste */
-const UMENU = [['newBtn', 'Neues LV / neuer Auftrag …'], ['[data-act="pos"]', 'Position anhängen'], ['[data-act="titel"]', 'Titel anhängen'], '-',
-  ['impBtn', 'Einlesen … (GAEB, Excel)'], ['expBtn', 'Speichern unter … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], '-', ['quBtn', 'Kopierquelle (LV daneben)'], ['tlBtn', 'Fenster- & Türliste'], '-', ['moreBtn', 'Archivieren / löschen …']];
+const UMENU = [['impBtn', 'Import … (GAEB, Excel)'], ['expBtn', 'Export … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], '-', ['quBtn', 'Kopierquelle (LV daneben)'], '-', [() => lvVerlauf(), 'Verlauf …'], ['moreBtn', 'Archivieren / löschen …']];
 /* Befehle je Phase sichtbar in der Bereichsleiste (Symbol + Wort); der Rest unter „⋯“ */
-const UPHASE = {
-  aus: [['[data-act="titel"]', 'Titel'], ['impBtn', 'Einlesen'], ['expBtn', 'Speichern unter'], ['druBtn', 'Drucken'], ['quBtn', 'Kopierquelle']],
-  ver: [['impBtn', 'Angebot einlesen'], ['druBtn', 'Drucken'], ['expBtn', 'Speichern unter']],
-  abr: [['impBtn', 'Einlesen'], ['druBtn', 'Drucken']],
-  kos: [['druBtn', 'Drucken'], ['expBtn', 'Speichern unter']],
+/* Obere Leiste je Bereich: nur Datei rein/raus, Drucken und „daneben öffnen“ – alles „＋ Neu“ steht links, „＋ Titel/Position“ in der Seite.
+   Eintrag: [Knopf-Selektor der Werkzeugleiste, Text] oder [Funktion, Text, Symbol, gesperrt?] */
+const IC_IMP = '<path d="M5 14v6h14v-6"/><path d="M12 3v11M8 10l4 4 4-4"/>', IC_DRU = '<path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M7 14h10v7H7z"/>';
+function dateiWahl(accept, mehr, fn) { const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.multiple = !!mehr; i.hidden = true; document.body.appendChild(i); i.onchange = () => { const f = [...i.files]; i.remove(); if (f.length) fn(f); }; i.click(); }
+const UTAB = {
+  lv: () => [['impBtn', 'Import'], ['expBtn', 'Export'], ['druBtn', 'Drucken'], ['quBtn', 'Kopierquelle']],
+  tueren: () => [[() => window.tlImport && tlImport(), 'Import (Excel)', IC_IMP]],
+  angebote: () => [['impBtn', 'Import (Angebot)'], ['expBtn', 'Export'], ['druBtn', 'Drucken']],
+  auftraege: () => [['impBtn', 'Import'], ['druBtn', 'Drucken']],
+  aufmass: () => [[() => dateiWahl('.pdf,application/pdf', true, (f) => amBelegHoch(f)), 'Import (Rechnung / Aufmaß der Firma)', IC_IMP, !L || !vergeben()], ['druBtn', 'Drucken']],
+  rechnungen: () => [[() => { const r = reGewaehlt(); if (!r) return toast('Erst eine Rechnung anlegen (links „＋ Neue Rechnung“).', true); dateiWahl('application/pdf,.pdf', false, (f) => reBelegHoch(r.id, f[0])); }, 'Import (Rechnung der Firma)', IC_IMP, !L || !vergeben()],
+    [() => { const r = reGewaehlt(); if (r) reDruck(r); else toast('Noch keine Rechnung.', true); }, 'Drucken', IC_DRU, !L || !(L.rechnungen || []).length]],
+  uebersicht: () => [['druBtn', 'Drucken'], ['expBtn', 'Export']],
 };
+let UFN2 = [];
 /* „⋯“ passend zum Bereich: im LV die LV-Befehle, in Vergabe/Abrechnung/Kosten die dortigen – [Knopf-Selektor | Funktion, Text, gesperrt] */
 let UFN = [];
 const reGewaehlt = () => { if (!L || !L.rechnungen || !L.rechnungen.length) return null; const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
   return (PJSEL && PJSEL[0] === 'r' && RS.find((r) => 'r' + r.id === PJSEL)) || RS.find((r) => r.status !== 'geprueft') || RS[RS.length - 1]; };
 const reBefehl = (art) => () => { const r = reGewaehlt(); if (!r) return; const b = document.createElement('button'); b.dataset.reb = art; b.dataset.id = r.id; reAktion(b); };
-function uMenuPunkte() {
-  const archiv = ['moreBtn', 'LV archivieren / löschen …'];
-  if (tab === 'rechnungen') {
-    const r = reGewaehlt(), t = r ? reTitel(r) : 'Rechnung', g = r && r.status === 'geprueft';
-    const letzte = r && !L.rechnungen.some((x) => x.nr > r.nr);
-    return [[() => reNeuMenu(document.querySelector('[data-uhaupt="reNeu"]') || document.querySelector('[data-umenu]')), 'Neue Rechnung …', !L || !vergeben()], '-',
-      [reBefehl('freigabe'), `Rechnungsfreigabe ${t} drucken / PDF …`, !r],
-      [reBefehl(g ? 'zurueck' : 'pruefen'), g ? `Prüfung von ${t} zurücknehmen` : `${t}: Prüfung abschließen`, !r || (g && !letzte)],
-      [reBefehl('del'), `${t} löschen …`, !r || !letzte], '-',
-      [() => lvDaten(), 'LV- & Auftragsdaten …', !L], ['druBtn', 'Drucken / PDF …'], '-', archiv];
-  }
-  if (tab === 'aufmass') return [['impBtn', 'Aufmaß einlesen …'], ['druBtn', 'Aufmaß drucken / PDF …'], ['expBtn', 'Speichern unter … (GAEB, Excel)'], '-', [() => lvDaten(), 'LV- & Auftragsdaten …', !L], '-', archiv];
-  if (tab === 'angebote') return [['impBtn', 'Angebot einlesen …'], ['druBtn', 'Preisspiegel drucken / PDF …'], ['expBtn', 'Speichern unter … (GAEB, Excel)'], '-', [() => lvDaten(), 'LV- & Auftragsdaten …', !L], '-', archiv];
-  if (tab === 'auftraege' || tab === 'uebersicht') return [['newBtn', 'Neues LV / neuer Auftrag …'], ['impBtn', 'Einlesen … (GAEB, Excel)'], ['druBtn', 'Drucken / PDF …'], ['expBtn', 'Speichern unter … (GAEB, Excel)']];
+function uMenuPunkte() {   // nur, was nicht schon oben, links oder in der Seite steht
+  const archiv = ['moreBtn', 'LV archivieren / löschen …'], verlauf = [() => lvVerlauf(), 'Verlauf …', !L];
+  if (tab === 'rechnungen' || tab === 'aufmass' || tab === 'angebote' || tab === 'tueren') return [verlauf, archiv];
+  if (tab === 'auftraege' || tab === 'uebersicht') return [['expBtn', 'Export … (GAEB, Excel)'], '-', verlauf];
   return UMENU;
 }
-function uLeiste(sk) {
-  return (UPHASE[sk] || []).map(([sel, l]) => { const b = ribKnopf(sel); if (!b) return '';
+function uLeiste() {
+  UFN2 = [];
+  return (UTAB[tab] ? UTAB[tab]() : []).map(([sel, l, ic, aus]) => {
+    if (typeof sel === 'function') { UFN2.push(sel); return `<button type="button" class="btn sm ug" data-ufn2="${UFN2.length - 1}"${aus ? ' disabled' : ''} title="${esc(l)}"><svg viewBox="0 0 24 24">${ic || ''}</svg>${esc(l)}</button>`; }
+    const b = ribKnopf(sel); if (!b) return '';
     return `<button type="button" class="btn sm ug" data-ucmd="${esc(sel)}" data-udr${b.disabled ? ' disabled' : ''} title="${esc(b.title || l)}">${(b.querySelector('svg') || {}).outerHTML || ''}${esc(l)}</button>`; }).join('');
 }
 const ribKnopf = (sel) => document.querySelector(sel[0] === '[' ? '.rib ' + sel : '#' + sel);
@@ -756,7 +757,7 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-umenu]')) {
     if (m) { m.remove(); return; }
     const d = document.createElement('div'); d.className = 'umenu'; d.setAttribute('role', 'menu');
-    const sicht = new Set((UPHASE[schrittVon(tab)[0]] || []).map((x) => x[0]));
+    const sicht = new Set((UTAB[tab] ? UTAB[tab]() : []).map((x) => x[0]).filter((x) => typeof x === 'string'));
     UFN = [];
     d.innerHTML = uMenuPunkte().filter((x) => x === '-' || typeof x[0] === 'function' || !sicht.has(x[0])).map((x) => { if (x === '-') return '<hr>';
       if (typeof x[0] === 'function') { UFN.push(x[0]); return `<button type="button" role="menuitem" data-ufn="${UFN.length - 1}"${x[2] ? ' disabled' : ''}>${esc(x[1])}</button>`; }
@@ -765,6 +766,7 @@ document.addEventListener('click', (e) => {
     const r = e.target.closest('[data-umenu]').getBoundingClientRect(); document.body.appendChild(d);   // am Körper: Neuzeichnen der Leiste schließt es nicht
     Object.assign(d.style, { position: 'fixed', top: (r.bottom + 4) + 'px', left: Math.max(8, r.right - d.offsetWidth) + 'px', right: 'auto' }); return;
   }
+  const f2 = e.target.closest('[data-ufn2]'); if (f2 && !f2.disabled) { const f = UFN2[+f2.dataset.ufn2]; if (f) f(); return; }
   const fz = e.target.closest('[data-ufn]');
   if (fz) { if (m) m.remove(); const f = UFN[+fz.dataset.ufn]; if (f && !fz.disabled) { e.stopPropagation(); f(); } return; }
   const c = e.target.closest('[data-ucmd]');
@@ -1117,10 +1119,11 @@ function pjBaum() {
   const out = [];
   if (!xs.length) out.push('<p class="hint" style="padding:.3rem .5rem">Noch kein LV.</p>');
   xs.forEach((x) => {
-    const re = !!x.vergeben, kids = re ? x.rechnungen : [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99));
+    // je Bereich: Ausschreibung nur die LVs, Vergabe mit Bietern, Prüfung und Abrechnung mit Rechnungen
+    const re = tab === 'aufmass' || tab === 'rechnungen', kids = re ? x.rechnungen : tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : [];
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
-    const sub = re ? `${x.auftragnehmer || 'vergeben'}${x.frei ? ' · ohne LV' : ' · vergeben'}` : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
+    const sub = x.vergeben ? `${x.auftragnehmer || 'vergeben'}${x.frei ? ' · ohne LV' : ' · vergeben'}` : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
     out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : ''}>${kids.length ? (offen ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span></div>`);
     if (!offen) return;
     kids.forEach((k) => {
@@ -1244,9 +1247,9 @@ function render() {
   $('#stp').innerHTML = SCHRITTE.map(([k, l], i) => `${i ? '<span class="pf" aria-hidden="true">›</span>' : ''}<button type="button" data-schritt="${k}"${k === sk ? ' class="on" aria-current="step"' : ''}><i>${i + 1}</i>${esc(l)}</button>`).join('')
     + (bk ? `<a href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung ↗</a>` : '');
   const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
-  const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !vergeben()], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], tueren: null, aufmass: ['reNeu', '＋ Rechnung', !L || !vergeben()], uebersicht: null }[tab];
   $('#stp').style.display = 'none';   // die Arbeitsschritte stehen links als Bereiche (wie in den gewohnten AVA-Programmen)
-  $('#utb').innerHTML = `<span class="ufill"></span><span class="uakt${(UPHASE[sk] || []).length > 3 ? ' viele' : ''}">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}${uLeiste(sk)}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle">⋯</button></span>`;
+  $('#utb').style.display = 'none';   // keine eigene Leiste mehr: Datei-Befehle rechts in der Titelzeile
+  $('#phAkt').innerHTML = `<span class="uakt${UTAB[tab] && UTAB[tab]().length > 3 ? ' viele' : ''}">${uLeiste()}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle">⋯</button></span>`;
   const nLv = LIST.filter((x) => !x.archived).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
     + (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
@@ -2075,12 +2078,12 @@ const auftragKonditionen = (V) => `<span class="vk hint" style="display:inline-f
 function vAngebote() {
   const P = posOf().filter((x) => !x.nt), A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe;
   const head = `<div class="bar"><button class="btn sm pri" data-act="bieter">+ Bieter</button>
-    <span class="fill"></span>${A.length ? '<button class="btn sm" data-act="ps">Preisspiegel PDF</button>' : ''}</div>
+    <span class="fill"></span></div>
     ${V.bieter ? `<div class="vb"><span>✓ Vergeben an <b>${esc(V.bieter)}</b> am ${de(V.datum)} · Auftrag ${eur(K.auftrag)}${V.nachlass || V.nachlass_eur ? ` (nach ${nlText(V)} Nachlass)` : ''}</span>
       ${auftragKonditionen(V)}
       <label class="hint">Sicherheitseinbehalt <input data-ang="einbehalt" value="${nf(V.einbehalt ?? 5, 2)}" style="width:4rem" inputmode="decimal"> %</label><span class="fill"></span><button class="btn sm" data-act="vergabeWeg">Vergabe aufheben</button></div>` : ''}`;
   if (!A.length) return head + `<div class="card empty"><p>Noch keine Angebote. Bieter hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
-    <p class="hint">Das LV gibst du oben unter „⇡ Ausgeben …“ als GAEB X83, Excel oder PDF an die Bieter.</p></div>`;
+    <p class="hint">Das LV gibst du oben rechts unter „Export“ als GAEB X83, Excel oder PDF an die Bieter.</p></div>`;
   const best = (id) => { const v = A.map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
   const rows = items().filter((x) => !x.nt).map((x) => {
     if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${3 + A.length}">${esc(x.kurz)}</td></tr>`;
@@ -2255,7 +2258,7 @@ function vAmErfassen() {
   const hoch = `<label class="btn sm" title="Rechnung oder Aufmaßblätter der Firma als PDF – wird rechts neben der Prüfung angezeigt und im Projektordner abgelegt">📄 Rechnung / Aufmaß der Firma (PDF) …<input type="file" accept=".pdf,application/pdf" multiple hidden data-ambeleg></label>`;
   const kopf = `<div class="bar"><label class="hint"><input type="checkbox" id="amNur"${amNur ? ' checked' : ''}> nur Positionen mit Aufmaß</label>${B.length ? `<label class="hint"><input type="checkbox" id="amNurR"${amNurR ? ' checked' : ''}> nur Positionen aus der PDF</label>` : ''}<span class="fill"></span>
       ${B.length && offen ? '<button class="btn sm" data-amueb="*" title="Für alle Positionen, bei denen die Firma mehr fordert als aufgemessen, die Differenz als Zeile „lt. Firma“ eintragen">Alle Mengen der Firma eintragen</button>' : ''}
-      ${L.aufmass.length ? '<button class="btn sm" data-act="amPdf">Massenermittlung PDF</button>' : ''}</div>`;
+</div>`;
   if (!B.length) return `${kopf}<div class="am-zone" data-amdrop>${hoch}<span class="hint">oder hierher ziehen – sie erscheint rechts neben der Prüfung, erkannte Mengen werden gleich eingetragen${R && R.status !== 'geprueft' ? ` (zur ${esc(reTitel(R))})` : ' (legt eine neue Teilrechnung an)'}. Ohne PDF einfach hier prüfen.</span></div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:1rem;align-items:start" class="amg">${tab_}${detail}</div>
     <style>@media (max-width:900px){.amg{grid-template-columns:1fr!important}}</style>`;
@@ -3891,7 +3894,7 @@ function vTueren(v) {
       <button type="button" class="tl-lplus" data-tl="lneu" title="Weitere Liste anlegen (z. B. je Bauteil oder Stand)">＋ Liste</button><span style="flex:1"></span>
       <button type="button" class="btn sm" data-tl="lname" title="Liste umbenennen">✎ Umbenennen</button><button type="button" class="btn sm danger" data-tl="ldel" title="Liste in den Papierkorb">Liste löschen</button></div>
     <div class="tl-bar">
-      <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button><button class="btn sm" data-tl="import" title="Fenster-/Türliste aus Excel oder CSV einlesen – Spalten werden erkannt, Maße umgerechnet, alles geprüft">Aus Excel einlesen …</button>
+      <button class="btn sm pri" data-tl="neu" title="Neue Zeile unter der markierten (übernimmt deren Ausführung)">+ Zeile</button><button class="btn sm" data-tl="raeume" title="Für Räume aus dem Raumbuch der Kostenermittlung je eine Tür anlegen">Aus Raumbuch …</button>
       <span class="sep"></span>
       <button class="btn sm" data-tl="dup" ${nZ ? '' : 'disabled'} title="Markierte Zeilen kopieren">Zeilen duplizieren</button><button class="btn sm" data-tl="mehr" ${nZ ? '' : 'disabled'} title="Ein Feld für alle markierten Zeilen setzen">Ändern …</button><button class="btn sm danger" data-tl="del" ${nZ ? '' : 'disabled'}>Zeilen löschen</button>
       <span class="sep"></span>

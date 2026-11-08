@@ -363,6 +363,10 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 .bph-dm-f{display:flex;flex-direction:column;gap:.15rem;font-size:.88em;min-width:0}
 .bph-dm-f>span:first-child{color:var(--mute,#9a9c9e)}
 .bph-dm-w{grid-column:1/-1}
+/* Felder nebeneinander bündig: Beschriftung, Eingabe und Hinweis je Zeile auf gleicher Höhe (auch wenn eine Beschriftung zweizeilig ist) */
+.bph-dm-g{row-gap:0}.bph-dm-g>*{margin-bottom:.45rem}
+.bph-dm-sg:not(.bph-dm-w){display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:.15rem}
+.bph-dm-sg>span:first-child{align-self:end}.bph-dm-x:empty{display:none}.bph-dm-x{display:flex;flex-direction:column;gap:.1rem}
 .bph-kwt{display:grid;gap:.45rem;font-size:.88em}.bph-kwt [data-kwtbox]{display:grid;gap:.45rem}.bph-kwt [data-kwtbox]:empty{display:none}
 .bph-kwt-z{border:1px solid var(--line,#3b3e42);border-radius:10px;padding:.45rem .55rem;display:grid;gap:.35rem}
 .bph-kwt-t{display:flex;align-items:center;gap:.5rem;font-size:.85em;color:var(--mute,#9a9c9e)}.bph-kwt-t>span{flex:none}.bph-kwt-t input{flex:1;min-width:0}.bph-kwt-t .bph-x{margin-left:auto}

@@ -3081,7 +3081,7 @@ function quZeigen0() {
       <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle (Katalog: mittlerer Preis) – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label>
         <span class="hint" style="flex:1 1 0;text-align:right">${QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext'}</span>
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
-    ${favs ? `<div class="qu-favs" title="häufig gebraucht – werden im Hintergrund vorgeladen">${favs}</div>` : ''}
+    ${favs ? `<div class="qu-favs" title="Die Gewerke, die du in Katalogen am häufigsten aufklappst (in diesem Browser gezählt) – antippen öffnet sie"><span class="hint" style="font-size:.76rem">Oft geöffnet:</span>${favs}<button type="button" class="qu-fav" data-qfavweg title="Liste „Oft geöffnet“ leeren">✕</button></div>` : ''}
     <div class="qu-l">${quBaum() ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : QU.L ? (I.length ? `<table><thead><tr><th></th><th>OZ</th><th>Kurztext</th><th style="text-align:right">Menge</th><th>EH</th><th style="text-align:right">EP</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="hint" style="padding:1rem">Dieses LV ist leer.</p>') : `<p class="hint" style="padding:1rem">${QU.list.length ? 'LV wählen.' : 'In diesem Projekt gibt es kein LV.'}</p>`}</div>
 `;
   const qk = istKat(QU.pid) ? alleKat().find((x) => x.id === katId(QU.pid)) : null, qp = !istKat(QU.pid) ? PROJ.find((p) => p.id === QU.pid) : null;
@@ -3149,6 +3149,7 @@ async function quSucheNeu() {   // Suche mit den aktuellen Filtern neu laden (od
   QU.lv = `${QU.pid}:suche`; QU.L = await quLvLaden(QU.lv); QU.sel = new Set(); quZeigen();
 }
 document.addEventListener('click', async (e) => {
+  if (e.target.closest('#quelle [data-qfavweg]')) { LS.set('qu.haeufig', {}); quZeigen(); return; }
   const b = e.target.closest('#quelle [data-qber]'); if (!b) return;
   QU.ber = b.dataset.qber; LS.set('qu.ber', QU.ber);
   if (QU.ber && QU.gw && QU.inG) { const x = QU.list.find((y) => y.id === `${QU.pid}:${QU.gw}`); if (x && (QU.ber === 'altbau') !== /^Altbau/.test(x.bereich || '')) QU.inG = false; }

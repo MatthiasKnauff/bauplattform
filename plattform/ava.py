@@ -1311,6 +1311,9 @@ def lv_daten(i):
             versionen.vor(c, f"avalv:{i}")
             if isinstance(b.get("lv"), dict):
                 D["meta"] = stammdaten.bereinigen(stammdaten.LV, b["lv"], D.get("meta"))
+                if "gewerk" in b["lv"]:   # Gewerk gehört zum LV selbst (Liste, Bauzeitenplan, Ablage)
+                    c.execute("UPDATE ava_lv SET gewerk=? WHERE id=?", (_s(b["lv"].get("gewerk"), 120), i))
+                    r = _lv(c, i)
             if isinstance(b.get("auftrag"), dict) and V.get("bieter"):
                 V["auftrag"] = stammdaten.bereinigen(stammdaten.AUFTRAG, b["auftrag"], V.get("auftrag"))
             c.execute("UPDATE ava_lv SET data=?, vergabe=?, updated=?, updated_by=? WHERE id=?",   # rev bleibt: offene LV-Bearbeitung nicht stören
@@ -1319,7 +1322,7 @@ def lv_daten(i):
         A = V.get("auftrag") or {}
         if V.get("bieter") and not A.get("auftragsdatum") and V.get("datum"):
             A = {**A, "auftragsdatum": V["datum"]}
-        return jsonify(lv=D.get("meta") or {}, auftrag=A, vergeben=bool(V.get("bieter")), bieter=V.get("bieter") or "",
+        return jsonify(lv={**(D.get("meta") or {}), "gewerk": r["gewerk"] or ""}, auftrag=A, kg_namen=KG_NAMEN, vergeben=bool(V.get("bieter")), bieter=V.get("bieter") or "",
                        felder_lv=stammdaten.felder(stammdaten.LV), felder_auftrag=stammdaten.felder(stammdaten.AUFTRAG),
                        plan=stammdaten.plan_termine(c, r["project_id"], r["gewerk"] or None, r["name"] or None) if r["project_id"] else {"start": "", "ende": "", "plaene": []},
                        titel=f"LV {r['nr']} {r['name']}".strip())

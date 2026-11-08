@@ -839,7 +839,7 @@
       let inp;
       if (f.typ === 'textarea') inp = `<textarea id="${id}" data-dm="${f.k}" rows="3">${esc(v || '')}</textarea>`;
       else if (f.typ === 'select') inp = `<select id="${id}" data-dm="${f.k}">${(f.opt || []).map((x) => `<option value="${esc(x)}"${(v || '') === x ? ' selected' : ''}>${esc(x || '–')}</option>`).join('')}</select>`;
-      else inp = `<input id="${id}" data-dm="${f.k}" type="${{ date: 'date', time: 'time', mail: 'email', tel: 'tel' }[f.typ] || 'text'}"${['zahl', 'eur', 'prozent'].includes(f.typ) ? ' inputmode="decimal"' : ''} value="${esc(['zahl', 'eur', 'prozent'].includes(f.typ) ? de(v) : v || '')}">`;
+      else inp = `<input id="${id}" data-dm="${f.k}" type="${{ date: 'date', time: 'time', mail: 'email', tel: 'tel' }[f.typ] || 'text'}"${['zahl', 'eur', 'prozent'].includes(f.typ) ? ' inputmode="decimal"' : ''}${f.liste && (o.listen || {})[f.liste] ? ` list="${id}-l" autocomplete="off"` : ''} value="${esc(['zahl', 'eur', 'prozent'].includes(f.typ) ? de(v) : v || '')}">${f.liste && (o.listen || {})[f.liste] ? `<datalist id="${id}-l">${o.listen[f.liste].map((x) => (Array.isArray(x) ? `<option value="${esc(x[0])}" label="${esc(x[0] + ' ' + x[1])}">${esc(x[1])}</option>` : `<option value="${esc(x)}">`)).join('')}</datalist>` : ''}`;   // Textergänzung: o.listen[f.liste] = ['…'] oder [[Wert, Bezeichnung]]
       const einheit = { eur: '€', prozent: '%' }[f.typ];
       return `<label class="bph-dm-f bph-dm-sg${f.typ === 'textarea' || f.breit ? ' bph-dm-w' : ''}" for="${id}"><span>${esc(f.l)}</span><span class="bph-dm-i">${inp}${einheit ? `<em>${einheit}</em>` : ''}</span><span class="bph-dm-x">${z}${hilfe}</span></label>`;
     };

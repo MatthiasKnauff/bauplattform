@@ -2098,12 +2098,15 @@ $('#phLvD').onclick = () => lvDaten();
 async function lvDaten() {
   if (!L || !window.BPHead || !BPHead.datenMaske) return;
   const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }
+  if (!KONT) KONT = await api('api/kontakte').catch(() => []);
   const A = (g) => g.map((x) => ({ ...x, felder: x.felder.map((f) => ({ ...f, k: 'a_' + f.k })) }));
   const werte = () => ({ ...D.lv, ...Object.fromEntries(Object.entries(D.auftrag || {}).map(([k, v]) => ['a_' + k, v])) });
   const tag = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
   BPHead.datenMaske({
     titel: 'LV- & Auftragsdaten', unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
     gruppen: [...D.felder_lv, ...(D.vergeben ? A(D.felder_auftrag) : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
+    listen: { gw: [...new Set([...(KONT || []).map((k) => k.trade), ...LIST.map((x) => x.gewerk)].map((g) => String(g || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')),
+      kg: Object.entries(D.kg_namen || {}) },
     zusatz: (k) => (k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
       : k === 'ausf_ende' && D.plan.ende ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.ende)} <button type="button" class="bph-btn" data-lvplan="ausf_ende">übernehmen</button></span>`
       : k === 'a_beginn' && (D.lv.ausf_beginn || D.plan.start) ? `<span class="bph-dm-z"><button type="button" class="bph-btn" data-lvplan="a_beginn">wie Ausführung (${tag(D.lv.ausf_beginn || D.plan.start)})</button></span>`

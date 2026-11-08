@@ -57,7 +57,9 @@ VERTRAG = ["", "Einheitspreisvertrag (VOB/B)", "Pauschalvertrag (VOB/B)", "Stund
 LV = [
     ("Ausschreibung", [
         ("vergabeart", "Vergabeart", "select", VERGABEART), ("vergabenr", "Vergabenummer", "text", ""),
-        ("kg", "Kostengruppe DIN 276", "text", "z. B. 330"), ("budget", "Kostenansatz (netto)", "eur", "für den Vergleich mit den Angeboten"),
+        ("gewerk", "Gewerk", "text", {"hilfe": "Tippen – Vorschläge aus den Adressen und den anderen LVs", "liste": "gw"}),
+        ("kg", "Kostengruppe DIN 276", "text", {"hilfe": "z. B. 330 – Vorschläge beim Tippen", "liste": "kg"}),
+        ("budget", "Kostenansatz (netto)", "eur", "für den Vergleich mit den Angeboten"),
         ("versand", "Versand an die Bieter", "date", ""),
         ("abgabe", "Angebotsabgabe bis", "date", ""), ("abgabe_zeit", "Uhrzeit", "time", ""),
         ("eroeffnung", "Eröffnungstermin (Submission)", "date", ""),

@@ -1248,8 +1248,11 @@ document.addEventListener('click', async (e) => {
 let pjKlick = null;
 document.addEventListener('pointerdown', (e) => {
   const r = e.target.closest && e.target.closest('#pjTree [data-pjlv]');
-  pjKlick = r && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.target.closest('.t') && !e.target.closest('input') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')
-    ? { sel: `#pjTree [data-pjlv="${r.dataset.pjlv}"]` + (r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'), t: Date.now() } : null;
+  const sel = r && `#pjTree [data-pjlv="${r.dataset.pjlv}"]` + (r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'), jetzt = Date.now();
+  const ok = r && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.target.closest('.t') && !e.target.closest('input') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt');
+  const vorher = window._pjLetzter;   // voriger Klick auf denselben, schon gewählten Eintrag (langsam: 0,45–5 s)
+  pjKlick = ok && vorher && vorher.sel === sel && jetzt - vorher.t > 450 && jetzt - vorher.t < 5000 ? { sel, t: jetzt } : null;
+  window._pjLetzter = ok ? { sel, t: jetzt } : r ? { sel, t: jetzt } : null;
 }, true);
 document.addEventListener('click', (e) => {
   if (!pjKlick || !e.target.closest || !e.target.closest('#pjTree')) return;
@@ -1771,9 +1774,9 @@ document.addEventListener('mousedown', (e) => {
   if (tab !== 'lv' || !L || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
   const f = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang) :is(input,select)'); if (!f || f === document.activeElement) return;
   const tr = f.closest('tr[data-i]'), x = items()[+tr.dataset.i]; if (!x) return;
-  const a = document.activeElement, jetzt = Date.now();
-  const frei = (a && a.closest && a.closest('table.lv tr[data-i]') === tr) || (x.id === LVAKT && lvKlick.id === x.id && jetzt - lvKlick.t > 450);
-  lvKlick = { id: x.id, t: jetzt };
+  const a = document.activeElement, jetzt = Date.now(), fk = (f.dataset.f || f.dataset.vp || '') + ':' + x.id;
+  const frei = lvKlick.f === fk && jetzt - lvKlick.t > 450 && jetzt - lvKlick.t < 5000;   // zwei langsame Klicks auf dasselbe Feld – nicht einer
+  lvKlick = { id: x.id, f: fk, t: jetzt };
   if (frei) return;
   e.preventDefault(); if (a && a !== document.body && a.blur) a.blur();
   LVSEL = new Set(); LVAKT = x.id; LVANK = x.id; lvAktZeigen();
@@ -2848,7 +2851,7 @@ function vRechnungen() {
         <label title="Sicherheitseinbehalt in Prozent">Einb. %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>
       ${art !== 'sicherheit' && c.abzug ? (() => { const A0 = abzAuftrag(), abw = Object.fromEntries(ABZ.map(([k]) => [k, c.abzug[k] !== A0[k]]));
         return `<div class="hint abz-z">Abziehen:${abzChips(c.abzug, 'data-reabz', g, abw)}${!g && Object.values(abw).some(Boolean) ? `<button type="button" class="ib" data-reabz0="${r.id}" title="Wie im Auftrag eingestellt">↺ wie Auftrag</button>` : ''}</div>`; })().replace(/data-reabz="/g, `data-reid2="${r.id}" data-reabz="`) : ''}
-      ${art !== 'regie' && art !== 'sicherheit' && !L.vergabe.frei ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;
+      ${art !== 'regie' && art !== 'sicherheit' ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;
     const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="width:100%;min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
       <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag – dazu wählbar Prüfblatt, Massenermittlung und Rechnung der Firma in einer PDF">🖨 Rechnungsfreigabe / PDF …</button>
         ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="${art === 'regie' || art === 'sicherheit' ? 'Prüfung abschließen' : 'Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung'}">✓ Prüfung abschließen</button>`}

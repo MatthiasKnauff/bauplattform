@@ -2653,6 +2653,85 @@ def lvdok(d):
     return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
 
 
+# ---------------------------------------------------------------- Nachträge von Hand (Aufträge): Position unter „Nachträge“, Status ändern
+def _nt_titel(items):
+    """Titel „Nachträge“ (anlegen, wenn er fehlt) – nach der höchsten ersten OZ-Stelle."""
+    for x in items:
+        if x.get("typ") == "titel" and (x.get("kurz") or "").strip().lower() == "nachträge":
+            return x
+    erste = [re.split(r"[.\s]+", (x.get("oz") or "").strip())[0] for x in items if (x.get("oz") or "").strip()]
+    nr_ = max([int(e) for e in erste if e.isdigit() and len(e) <= 3] + [0]) + 1
+    t = {"id": uuid.uuid4().hex[:10], "typ": "titel", "lvl": 1, "oz": str(nr_).zfill(2), "kurz": "Nachträge"}
+    items.append(t)
+    return t
+
+
+@app.post("/api/lv/<int:i>/nachtrag")
+def nachtrag_neu(i):
+    """Nachtrag von Hand erfassen (Aufträge): Text, Menge × EP (oder Pauschale), Status, Grund – als Position unter „Nachträge“,
+    der EP wird Auftragspreis (so rechnet die Prüfung damit)."""
+    b = request.get_json(silent=True) or {}
+    kurz = _s(b.get("kurz"), 300)
+    if not kurz:
+        return jsonify(error="Bitte eine Bezeichnung eintragen."), 400
+    status = b.get("status") if b.get("status") in ("angemeldet", "beauftragt", "abgelehnt") else "angemeldet"
+    menge, ep = _f(b.get("menge"), 1), _fn(b.get("ep"))
+    einheit = _s(b.get("einheit"), 10) or "psch"
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        versionen.vor(c, f"avalv:{i}")
+        d = _j(r["data"], {}) or {}
+        items = d.get("items") or []
+        V = _j(r["vergabe"], {}) or {}
+        t = _nt_titel(items)
+        # hinter den letzten Eintrag des Titels „Nachträge“
+        ti = items.index(t)
+        ende = ti + 1
+        while ende < len(items) and not (items[ende].get("typ") == "titel" and (items[ende].get("lvl") or 1) <= (t.get("lvl") or 1)):
+            ende += 1
+        n_nt = sum(1 for x in items if x.get("nt")) + 1
+        pos = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit,
+               "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": _s(b.get("grund"), 300) or f"von Hand erfasst ({date.today().strftime('%d.%m.%Y')}, {g.user['name']})"}
+        if ep is not None:
+            pos["ep_s"] = ep
+        items.insert(ende, pos)
+        nummerieren(items, maske=d.get("ozm"))
+        d["items"] = items
+        if ep is not None and (V.get("preise") is not None or V.get("bieter") or V.get("frei")):
+            VP = dict(V.get("preise") or {}); VP[pos["id"]] = ep; V["preise"] = VP
+        c.execute("UPDATE ava_lv SET data=?, vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
+                  (json.dumps(d, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
+        versionen.nach(c, f"avalv:{i}", g.user["name"])
+        C.audit(g.user["name"], "ava", "Nachtrag erfasst", f"LV {r['nr']} {r['name']}: {pos['nt']} {kurz} ({status})")
+        return _antwort(c, i)
+
+
+@app.put("/api/lv/<int:i>/nachtrag/<pid>")
+def nachtrag_status(i, pid):
+    """Status eines Nachtrags (angemeldet / beauftragt / abgelehnt) – aus der Aufträge-Übersicht."""
+    b = request.get_json(silent=True) or {}
+    st = b.get("status")
+    if st not in ("angemeldet", "beauftragt", "abgelehnt"):
+        return jsonify(error="Status unbekannt"), 400
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        d = _j(r["data"], {}) or {}
+        x = next((y for y in d.get("items") or [] if y.get("id") == pid and y.get("nt")), None)
+        if not x:
+            return jsonify(error="Nachtrag nicht gefunden"), 404
+        versionen.vor(c, f"avalv:{i}")
+        x["nt_status"] = st
+        if "grund" in b:
+            x["nt_grund"] = _s(b.get("grund"), 300)
+        c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), _now(), g.user["name"], i))
+        versionen.nach(c, f"avalv:{i}", g.user["name"])
+        return _antwort(c, i)
+
+
 # ---------------------------------------------------------------- Bürgschaften (Sicherheiten VOB/B § 17): Urkunde als PDF, Felder erkannt
 _BUERG = {"ok": False}
 

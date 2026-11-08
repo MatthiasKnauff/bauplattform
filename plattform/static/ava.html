@@ -52,9 +52,10 @@ main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im
 .nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
 .pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}
 .ph{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;padding:.45rem 0 .35rem;position:sticky;top:0;background:var(--bg);z-index:3}
+.ph-firma{margin:0 auto;padding:.2rem .9rem;border-radius:999px;background:var(--y);color:var(--on);font-weight:700;font-size:1rem;white-space:nowrap;max-width:40vw;overflow:hidden;text-overflow:ellipsis}.ph-firma small{font-weight:500;opacity:.85;margin-left:.4rem}   /* Auftragnehmer oben in der Mitte – auffällig statt klein im Baum */
 .ph b{font-size:.95rem}
 #view{min-height:0}
-.tree{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);border:1px solid var(--line)}
+.tree{width:100%;border-collapse:collapse;font-size:.9rem;background:var(--card);border:1px solid var(--line)}   /* wie der Projektbaum links */
 .tree th{position:sticky;top:0;z-index:2;background:var(--tabs);color:var(--ink);font-weight:500;text-align:left;padding:.25rem .45rem;border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap;font-size:12.5px}
 .tree td{padding:.12rem .45rem;border-right:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:28rem;line-height:1.55}
 .tree td.r,.tree th.r{text-align:right;font-variant-numeric:tabular-nums}
@@ -438,6 +439,8 @@ html.mobil .bph{position:sticky;top:0}
 .am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
+.tree tr.nt-neu td{background:color-mix(in srgb,var(--y) 7%,var(--card));padding:.3rem .45rem}.nt-st{font:inherit;font-size:.82rem;padding:.05rem .3rem;border-radius:6px;border:1px solid var(--line);background:var(--card);color:inherit}
+.nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}
 .si-dok{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.4rem}.si-sum .btn{margin-left:auto}
 .aufh-b{display:flex;gap:.8rem;align-items:center;padding:.7rem 1rem;margin:0 0 .8rem;border:1.5px solid #e0a030;border-radius:12px;background:color-mix(in srgb,#e0a030 12%,var(--card,transparent))}.aufh-b>div{flex:1}.aufh-i{font-size:1.4rem}
 .deakt{opacity:.5;filter:grayscale(.7);pointer-events:none;user-select:none}.pj-r.deakt-k{opacity:.5;text-decoration:line-through}
@@ -621,7 +624,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
     <aside class="nav" id="navL" aria-label="Projekt"><div class="nsuche" id="nsuche"></div><div id="tabs"></div></aside>
     <section class="pane">
       <div class="utb" id="utb" role="tablist" aria-label="Bereiche des Schritts"></div>
-      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span><span class="ph-akt" id="phAkt"></span></div>
+      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><span id="phFirma" class="ph-firma" hidden></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span><span class="ph-akt" id="phAkt"></span></div>
       <div class="kpi" id="kpi"></div>
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
@@ -984,6 +987,8 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
   footer: '<button class="btn sm" data-new>+ Neues LV</button>', onPick: (v) => openLv(v), onFooter: (e) => { if (e.target.closest('[data-new]')) newDialog(); },
 }));
 function kpis() {
+  { const f = $('#phFirma'); if (f) { const V = L && L.vergabe || {}, firma = V.bieter || (L && L.auftragnehmer) || ''; const an = L && (V.preise || V.frei) && firma;
+      f.hidden = !an; if (an) f.innerHTML = V.aufgehoben ? `⏸ ${esc(firma)} <small>Beauftragung aufgehoben</small>` : `${esc(firma)} <small>${V.frei && !V.preise ? 'Auftrag frei eingetragen' : 'beauftragt' + (V.datum ? ' am ' + de(V.datum) : '')}</small>`; } }
   if (!L) { $('#kpi').innerHTML = ''; $('#stat').innerHTML = ''; return; }
   const K = L.calc, best = K.angebote.filter((a) => a.summe).sort((a, b) => a.netto - b.netto)[0], bA = best && L.angebote.find((a) => a.id === best.id);
   const nt = K.nachtraege, ges = K.auftrag + nt.beauftragt;
@@ -1273,8 +1278,8 @@ function pjBaum() {
     const re = tab === 'aufmass' || tab === 'rechnungen', kids = re ? x.rechnungen : tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : [];
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
-    const sub = x.aufgehoben ? `⏸ ${x.aufgehoben.bieter || 'Auftrag'} · aufgehoben` : x.vergeben ? `${x.auftragnehmer || 'vergeben'}${ohneLvTxt(x)}` : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;
-    const haupt = PJTABS.has(tab) && tab !== 'aufmass' && tab !== 'rechnungen';   // im Tabellenfeld: jedes LV mit Pfeil – das geöffnete klappt seinen Inhalt auf/zu
+    const sub = x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? ohneLvTxt(x).replace(' · ', '') : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // Firma steht oben in der Mitte
+    const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
     out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}<small>${esc(sub)}</small></span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
@@ -4367,8 +4372,15 @@ function vAuftraege() {
     const lv = PC[x.id];
     if (!lv) { out.push(`<tr><td colspan="10" class="mu" style="padding-left:3.4rem">wird geladen …</td></tr>`); return; }
     const R = lvBaum(lv), sicht = new Set([k]);
+    const NT = (lv.data.items || []).filter((y) => y.typ === 'pos' && y.nt);
+    out.push(`<tr class="nt-neu"><td colspan="10"><span class="tw" style="padding-left:2.2rem"><button type="button" class="btn sm" data-ntneu="${x.id}" title="Nachtrag von Hand erfassen – aus Rechnungen und Aufmaßen der Firma entstehen Nachträge automatisch">＋ Nachtrag erfassen</button><span class="hint" style="margin-left:.6rem">${NT.length ? `${NT.length} Nachtr${NT.length === 1 ? 'ag' : 'äge'} · angemeldet ${NT.filter((y) => y.nt_status === 'angemeldet').length} · beauftragt ${NT.filter((y) => y.nt_status === 'beauftragt').length} · abgelehnt ${NT.filter((y) => y.nt_status === 'abgelehnt').length}` : 'noch keine Nachträge – Positionen aus Rechnungen/Aufmaßen, die nicht im LV stehen, werden automatisch Nachträge'}</span></span></td></tr>`);
+    NT.forEach((y) => { const r = R.find((q) => q.x === y) || { nt: 0, g: 0, gRoh: null }; const ab = y.nt_status === 'abgelehnt';
+      row(`${k}:${y.id}`, 2, false, IC.pos, `<span class="${ab ? 'mu' : ''}" title="${esc(y.nt_grund || '')}">${esc(y.nt)} · ${esc(y.oz || '')} ${esc(y.kurz || '')}</span>`,
+        ['', '', `<select class="nt-st ${y.nt_status || 'angemeldet'}" data-ntst="${x.id}:${y.id}" title="${esc(y.nt_grund || '')}"><option value="angemeldet"${(y.nt_status || 'angemeldet') === 'angemeldet' ? ' selected' : ''}>angemeldet</option><option value="beauftragt"${y.nt_status === 'beauftragt' ? ' selected' : ''}>beauftragt</option><option value="abgelehnt"${ab ? ' selected' : ''}>abgelehnt</option></select>`,
+          e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Nachtrag', '', esc(y.kg || ''), '']); });
     R.forEach((r) => {
       if (!sicht.has(r.par)) return;
+      if (r.typ !== 'ti' && r.x.nt) return;   // Nachträge stehen oben unter „Nachtrag erfassen“
       const tief = r.typ === 'ti' ? r.lvl + 1 : (R.find((q) => q.k === r.par) || { lvl: 0 }).lvl + 2;
       const kids = r.typ === 'ti' && R.some((q) => q.par === r.k);
       if (r.typ === 'ti') {
@@ -4377,13 +4389,43 @@ function vAuftraege() {
       } else {
         const x2 = r.x, mu = !zaehlt(x2) && !x2.nt;
         row(r.k, tief, false, IC.pos, `<span class="${mu ? 'mu' : ''}">${esc(x2.oz || '')} ${esc(x2.kurz || '')}</span>`,
-          ['', r.gRoh != null ? `<span class="${mu ? 'mu' : ''}">${e2(r.gRoh)}</span>` : '', jn(x2.nt), e2(r.nt), e2((r.g || 0) + r.nt), x2.nt ? 'Nachtrag' : x2.art === 'P' ? 'Pauschal' : 'Position', jn(x2.art === 'E'), esc(x2.kg || ''), '']);
+          ['', r.gRoh != null ? `<span class="${mu ? 'mu' : ''}">${e2(r.gRoh)}</span>` : '', x2.nt ? `<select class="nt-st ${x2.nt_status || 'angemeldet'}" data-ntst="${x.id}:${x2.id}" title="${esc(x2.nt_grund || '')}"><option value="angemeldet"${(x2.nt_status || 'angemeldet') === 'angemeldet' ? ' selected' : ''}>angemeldet</option><option value="beauftragt"${x2.nt_status === 'beauftragt' ? ' selected' : ''}>beauftragt</option><option value="abgelehnt"${x2.nt_status === 'abgelehnt' ? ' selected' : ''}>abgelehnt</option></select>` : '', e2(r.nt), e2((r.g || 0) + r.nt), x2.nt ? `Nachtrag ${esc(x2.nt)}` : x2.art === 'P' ? 'Pauschal' : 'Position', jn(x2.art === 'E'), esc(x2.kg || ''), '']);
       }
     });
   });
   return `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:22rem">Bezeichnung</th><th>Firma</th><th class="r">Gesamt (EUR)</th><th>Nachtrag</th><th class="r">Nachtrag Gesamt</th><th class="r">Prognose (EUR)</th><th>Art</th><th>Bedarfsposition</th><th>KG</th><th class="r">abgerechnet</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
     <p class="hint" style="margin:.5rem 0 0">▸ klappt auf · Klick wählt das LV · Doppelklick öffnet es im Leistungsverzeichnis. Gesamt = Auftragssumme (nach Nachlass), ohne Auftrag die Schätzung. Prognose = Auftrag + beauftragte und angemeldete Nachträge. Grau: Bedarfs-/Wahlpositionen (nicht in der Summe).</p>`;
 }
+/* Nachtrag von Hand (Aufträge): Text, Menge × EP oder Pauschale, Status – Position unter „Nachträge“, EP wird Auftragspreis */
+function ntDialog(lvId) {
+  const x = LIST.find((y) => y.id === lvId) || {};
+  const bg = modalBox(`<h3>Nachtrag erfassen <span class="hint">· ${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.auftragnehmer ? ' · ' + esc(x.auftragnehmer) : ''}</span></h3><div class="fm">
+      <label>Bezeichnung</label><input id="ntK" placeholder="z. B. Zusätzliche Kernbohrungen DN 150">
+      <label>Menge</label><input id="ntM" value="1" inputmode="decimal" style="width:7rem">
+      <label>Einheit</label><input id="ntE" value="psch" list="ntEH" style="width:7rem"><datalist id="ntEH">${['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join('')}</datalist>
+      <label>EP netto €</label><input id="ntP" inputmode="decimal" style="width:9rem" placeholder="Preis der Firma">
+      <label>Stand</label><select id="ntS"><option value="angemeldet">angemeldet (Firma hat angekündigt)</option><option value="beauftragt">beauftragt</option><option value="abgelehnt">abgelehnt</option></select>
+      <label>Grund / Bemerkung</label><input id="ntG" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></div>
+    <p class="hint" style="margin:.6rem 0 0">Kommt als Position unter den Titel „Nachträge“ des LV; beauftragte und angemeldete Nachträge zählen in Prognose und Rechnungsprüfung, abgelehnte nicht. Langtext und Details danach im Leistungsverzeichnis.</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Erfassen</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const kurz = $('#ntK').value.trim(); if (!kurz) { toast('Bitte eine Bezeichnung eintragen.', true); return; }
+    btn.disabled = true;
+    try {
+      const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz, menge: pf($('#ntM').value), einheit: $('#ntE').value.trim(), ep: $('#ntP').value.trim() === '' ? null : pf($('#ntP').value), status: $('#ntS').value, grund: $('#ntG').value.trim() });
+      close(); PC[lvId] = r; if (L && L.id === lvId) L = r; EXP.add('l' + lvId); await refreshList(); render(); toast('Nachtrag erfasst.');
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  setTimeout(() => $('#ntK').focus(), 30);
+}
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntneu]'); if (b) { e.stopPropagation(); ntDialog(+b.dataset.ntneu); } });
+document.addEventListener('change', async (e) => {
+  const s = e.target.closest && e.target.closest('[data-ntst]'); if (!s) return;
+  const [lvId, pid_] = s.dataset.ntst.split(':');
+  try { const r = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: s.value }); PC[+lvId] = r; if (L && L.id === +lvId) L = r; await refreshList(); render(); toast(`Nachtrag ${s.value}.`); }
+  catch (er) { toast(er.message, true); }
+});
 async function treeCar(k) {
   if (EXP.has(k)) EXP.delete(k); else EXP.add(k);
   LS.set('exp', [...EXP].slice(-300));

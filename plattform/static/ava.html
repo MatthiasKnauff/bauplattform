@@ -40,7 +40,7 @@ tr.vqblink td{animation:vqblink 2.2s ease-out}
 .save{font-size:.78rem;color:var(--mute);align-self:center;padding:0 .6rem;margin-left:auto}.ph-akt{display:flex;align-items:center;margin-left:auto}.ph-akt .uakt{gap:.1rem}.ph-akt .uakt .btn{height:30px;border-color:transparent;background:transparent;padding:0 .5rem}.ph-akt .uakt .btn:hover:not(:disabled){background:var(--hov);border-color:var(--line)}
 .rib.weg{display:none}
 main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im Menü „⋯“ rechts in der Bereichsleiste */
-.body{flex:1;display:grid;grid-template-columns:272px minmax(0,1fr);min-height:calc(100vh - 140px)}
+.body{flex:1;display:grid;grid-template-columns:var(--navw,272px) minmax(0,1fr);min-height:calc(100vh - 140px)}
 .nav{border-right:1px solid var(--line);background:var(--card);overflow:auto;padding:.5rem .45rem;position:sticky;top:52px;align-self:stretch;max-height:calc(100vh - 52px);box-sizing:border-box}
 .nav .ng{margin-bottom:.35rem}
 .nav .nh{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;padding:.3rem .55rem;border-radius:5px;background:var(--tabs);color:var(--ink);font-weight:600;border:1px solid var(--line)}
@@ -105,7 +105,8 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 #histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2,var(--card));border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #histBar[hidden]{display:none}
 #histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.body.mit-quelle{grid-template-columns:272px minmax(0,1fr) minmax(320px,36%)}
+.body.mit-quelle{grid-template-columns:var(--navw,272px) minmax(0,1fr) var(--quw,minmax(320px,36%))}
+.body.zieh-l,.body.zieh-l *,.body.zieh-r,.body.zieh-r *{cursor:col-resize!important;user-select:none!important}
 .qu[hidden]{display:none!important}   /* sonst steht die Kopierquelle auch in anderen Bereichen (display:flex schlägt hidden) */
 .qu{border-left:1px solid var(--line);background:var(--card);position:sticky;top:52px;align-self:start;max-height:calc(100vh - 52px);box-sizing:border-box;display:flex;flex-direction:column;min-width:0;grid-row:1;grid-column:3}
 .body>.nav{grid-row:1;grid-column:1}.body>.pane{grid-row:1;grid-column:2}   /* feste Spalten: nichts rutscht in eine zweite Zeile */
@@ -631,6 +632,36 @@ const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe',
 const schrittVon = (t) => SCHRITTE.find((x) => x[2].includes(t)) || SCHRITTE[0];
 const TABS = NAVI.flatMap((g) => g[1].map((x) => [x[0], x[1]]));
 const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
+/* Breite der Navigation links und der Kopierquelle rechts: am Rand ziehen (Doppelklick = Standard), gemerkt je Browser */
+(() => {
+  const body = () => document.querySelector('.body'), RAND = 6;
+  const setz = (k, v) => { const b = body(); if (!b) return; if (v) b.style.setProperty(k, v + 'px'); else b.style.removeProperty(k); };
+  const lade = () => { const w = LS.get('navw', 0), q = LS.get('quw', 0); if (w) setz('--navw', w); if (q) setz('--quw', q); };
+  const amRand = (e) => {
+    if (innerWidth <= 1100) return null;
+    const n = e.target.closest && e.target.closest('#navL'), q = e.target.closest && e.target.closest('#quelle');
+    if (n) { const r = n.getBoundingClientRect(); return r.right - e.clientX <= RAND ? ['l', n] : null; }
+    if (q) { const r = q.getBoundingClientRect(); return e.clientX - r.left <= RAND ? ['r', q] : null; }
+    return null;
+  };
+  document.addEventListener('pointermove', (e) => { if (e.buttons) return; const a = amRand(e); const el = e.target.closest && e.target.closest('#navL,#quelle'); if (el) el.style.cursor = a ? 'col-resize' : ''; });
+  document.addEventListener('pointerdown', (e) => {
+    const a = amRand(e); if (!a || e.button !== 0) return;
+    e.preventDefault(); const b = body(), [seite, el] = a, r0 = el.getBoundingClientRect();
+    b.classList.add('zieh-' + seite);
+    const mv = (ev) => {
+      if (seite === 'l') setz('--navw', Math.round(Math.max(200, Math.min(innerWidth * 0.5, ev.clientX - r0.left))));
+      else setz('--quw', Math.round(Math.max(300, Math.min(innerWidth * 0.6, r0.right - ev.clientX))));
+    };
+    const up = () => {
+      b.classList.remove('zieh-' + seite); removeEventListener('pointermove', mv); removeEventListener('pointerup', up);
+      const v = parseInt(getComputedStyle(b).getPropertyValue(seite === 'l' ? '--navw' : '--quw'), 10); if (v) LS.set(seite === 'l' ? 'navw' : 'quw', v);
+    };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  }, true);
+  document.addEventListener('dblclick', (e) => { const a = amRand(e); if (!a) return; e.preventDefault(); setz(a[0] === 'l' ? '--navw' : '--quw', 0); LS.set(a[0] === 'l' ? 'navw' : 'quw', 0); }, true);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lade); else lade();
+})();
 const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pauschal', T: 'Hinweistext', V: 'Vorbemerkung' };
 /* Vorbemerkung = Hinweistext mit Kennzeichen vb (GAEB: Hinweistext) – im Druck breit und abschaltbar (Layout → „Vorbemerkungen im LV“) */
 const artW = (x) => (x.art === 'T' && x.vb ? 'V' : x.art);

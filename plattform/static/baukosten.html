@@ -340,9 +340,9 @@ function vleiste() {
   [pd, $('#pdfBtn'), ab].forEach((b) => { if (b && b.parentNode !== top) top.insertBefore(b, $('#save')); });
   if (BPHead.versionsMenue) BPHead.versionsMenue({ ...O, in: vm });
 }
-async function bkGilt(id) {
+async function bkGilt(id, schon) {
   const x = LIST.find((y) => y.id === +id); if (!x) return;
-  if (window.bpFrage && !(await bpFrage(`„${x.name}“ gilt ab jetzt als Kostenermittlung des Projekts (Kostenkontrolle, To-dos).`, { ok: 'Gilt ab jetzt' }))) return;
+  if (!schon && window.bpFrage && !(await bpFrage(`„${x.name}“ gilt ab jetzt als Kostenermittlung des Projekts (Kostenkontrolle, To-dos).`, { ok: 'Gilt ab jetzt' }))) return;
   try { await api('api/bk/' + id + '/gueltig', 'PUT'); LIST = await api('api/bk'); vleiste(); toast('Diese Kostenermittlung gilt jetzt.'); } catch (e) { toast(e.message, true); }
 }
 function neueVersion() {

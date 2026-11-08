@@ -2764,9 +2764,9 @@ function vleiste() {
   const tr = document.querySelector('#tabs .tb-r');
   if (tr && !vlKnoepfe[0].isConnected) { vlKnoepfe.forEach((b) => { b.className = 'tb-k'; tr.insertBefore(b, tr.firstChild); }); }
 }
-async function versionGilt(id) {
-  const p = projects.find((x) => x.id === id); if (!p) return;
-  if (window.bpFrage && !(await bpFrage(`„${p.id === P.id ? P.name : p.name}“ gilt ab jetzt: Das Bautagebuch (Anwesende), die Erinnerungen und die To-dos richten sich nach dieser Version. Die Erinnerungen der bisher gültigen Version entfallen.`, { ok: 'Gilt ab jetzt' }))) return;
+async function versionGilt(id, schon) {
+  const p = projects.find((x) => String(x.id) === String(id)); if (!p) return;
+  if (!schon && window.bpFrage && !(await bpFrage(`„${p.id === P.id ? P.name : p.name}“ gilt ab jetzt: Das Bautagebuch (Anwesende), die Erinnerungen und die To-dos richten sich nach dieser Version. Die Erinnerungen der bisher gültigen Version entfallen.`, { ok: 'Gilt ab jetzt' }))) return;
   try { const r = await fetch(`api/projects/${encodeURIComponent(id)}/gueltig`, { method: 'PUT' }); const x = await r.json(); if (!r.ok) throw new Error(x.error || r.status); await refreshProjectList(); toast('Diese Version gilt jetzt.'); }
   catch (er) { toast('Nicht möglich: ' + er.message, true); }
 }

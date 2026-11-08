@@ -651,21 +651,28 @@ async function loadProj() {
 }
 /* ---------- Versionsleiste: je Projekt EINE AVA, darin Versionen (Startversion, Bauherrenwünsche eingearbeitet …) – jede mit eigenen LVs ---------- */
 let VERS = [];
+/* Angesehene Version (nicht unbedingt die gültige): nur in diesem Fenster, beim nächsten Wechsel wird wieder gefragt */
+let VSICHT = null;
+const vSicht = () => (VSICHT && VSICHT.pid === pid && VERS.some((v) => v.id === VSICHT.id && !v.aktiv) ? VSICHT.id : null);
+const lvListe = () => api('api/lv?project_id=' + pid + (vSicht() ? '&version_id=' + vSicht() : ''));
 async function vleiste(neu) {
   if (!window.BPHead || !BPHead.versionsleiste) return;
   if (neu !== false) { try { VERS = pid ? await api('api/versionen?project_id=' + pid) : []; } catch { VERS = []; } }
-  const akt = VERS.find((v) => v.aktiv) || VERS[0];
+  const gilt = VERS.find((v) => v.aktiv) || VERS[0], akt = VERS.find((v) => v.id === vSicht()) || gilt;
   const dk = (t) => (t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
-  const el = BPHead.versionsleiste({ vor: $('main.ava'), aktuell: akt && akt.id,
+  const el = BPHead.versionsleiste({ vor: $('main.ava'), aktuell: akt && akt.id, gueltig: gilt && gilt.id,
     liste: VERS.map((v) => ({ id: v.id, name: v.name, datum: dk(v.created), wer: v.updated_by, archiviert: v.archived })),
-    onWahl: async (id) => { await flush(); await api('api/versionen/' + id, 'PUT', { aktiv: true }); L = null; await loadList(); toast('Version gewechselt – gilt für alle, die in diesem Projekt arbeiten.'); },
+    onWahl: async (id, gilt_) => { await flush(); VSICHT = gilt_ || +id === (gilt && gilt.id) ? null : { pid, id: +id }; if (gilt_) return; L = null; await vleiste(); await loadList(); toast(VSICHT ? 'Version gewechselt – nur zum Ansehen und Bearbeiten, gültig bleibt die bisherige.' : 'Gültige Version.'); },
+    onGueltig: async (id, schon) => { const v = VERS.find((x) => x.id === +id); if (!v) return;
+      if (!schon && !(await bpFrage(`„${v.name}“ gilt ab jetzt?\nSie gilt dann für alle, die in diesem Projekt arbeiten (Startseite, To-dos, Kostenkontrolle).`, { ok: 'Gilt ab jetzt' }))) return;
+      await flush(); await api('api/versionen/' + id, 'PUT', { aktiv: true }); VSICHT = null; L = null; await vleiste(); await loadList(); toast(`„${v.name}“ gilt jetzt für alle, die in diesem Projekt arbeiten.`); },
     onNeu: () => { if (!akt) return; modalBox(`<h3>Neue Version</h3><p class="hint" style="margin:0 0 .7rem">Kopie von „${esc(akt.name)}“ mit allen Leistungsverzeichnissen, Angeboten, Aufmaß, Rechnungen und Fotos. Danach arbeitest du in der neuen Version weiter, die alte bleibt, wie sie ist.</p>
         <div class="fm"><label for="nvName">Name der Version</label><input id="nvName" maxlength="120" placeholder="z. B. Bauherrenwünsche eingearbeitet"></div>
         <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close, btn) => {
         if (m === 'x') { close(); return; }
         const name = bg.querySelector('#nvName').value.trim(); if (!name) { bg.querySelector('#nvName').focus(); return; }
         btn.disabled = true;
-        try { await flush(); await api('api/versionen', 'POST', { project_id: pid, name }); close(); L = null; await loadList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`); } catch (e) { btn.disabled = false; toast(e.message, true); }
+        try { await flush(); await api('api/versionen', 'POST', { project_id: pid, name, ...(vSicht() ? { von: vSicht() } : {}) }); VSICHT = null; close(); L = null; await loadList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`); } catch (e) { btn.disabled = false; toast(e.message, true); }
       }); setTimeout(() => { const i = document.querySelector('#nvName'); if (i) i.focus(); }, 50); },
     onUmbenennen: () => { if (!akt) return; modalBox(`<h3>Version umbenennen</h3><div class="fm"><label for="rnName">Name der Version</label><input id="rnName" maxlength="120" value="${esc(akt.name)}"></div>
         <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
@@ -741,7 +748,8 @@ const ribKnopf = (sel) => document.querySelector(sel[0] === '[' ? '.rib ' + sel 
 document.addEventListener('click', (e) => {
   const m = document.querySelector('.umenu');
   const h = e.target.closest('[data-uhaupt]');
-  if (h) { const a = h.dataset.uhaupt; if (a === 'new') return $('#newBtn').click();
+  if (h) { const a = h.dataset.uhaupt; if (a === 'new') return newDialog();
+    if (a === 'auftrag') return newDialog({ auftrag: true });
     if (a === 'pos') { const b = ribKnopf('[data-act="pos"]'); if (b) b.click(); return; }
     if (a === 'reNeu') { e.stopPropagation(); return reNeuMenu(h); }
     const z = document.querySelector(`#view [data-act="${a}"]`); if (z) { z.scrollIntoView({ block: 'nearest' }); z.click(); } return; }
@@ -778,11 +786,11 @@ function vlSicht() {
   const el = document.getElementById('bph-vl'); if (el) el.style.display = 'none';
   const box = document.getElementById('pjVer'); if (!box || !el || !el._o || !window.BPHead || !BPHead.versionsMenue) return;
   if (!VERS.length) { box.innerHTML = ''; return; }
-  BPHead.versionsMenue({ ...el._o, in: box, gueltig: el._o.aktuell, wahlHinweis: 'Die gewählte Version gilt dann für alle, die in diesem Projekt arbeiten (Startseite, To-dos, Kostenkontrolle). Wechseln?' });
+  BPHead.versionsMenue({ ...el._o, in: box, wahlHinweis: 'Sie gilt dann für alle, die in diesem Projekt arbeiten (Startseite, To-dos, Kostenkontrolle).' });
 }
 function pjVerHtml() { return '<div id="pjVer" class="pjv"></div>'; }
 async function loadList(want) {
-  LIST = pid ? await api('api/lv?project_id=' + pid) : [];
+  LIST = pid ? await lvListe() : [];
   vleiste();
   want = want || LS.get('lv:' + pid);
   const pick = LIST.find((x) => x.id === want) || LIST.find((x) => !x.archived) || LIST[0];
@@ -823,7 +831,7 @@ async function lvSetzen(id, extra) {
   if (L && L.id === id) { await flush(); await saveNow(extra); await refreshList(); render(); return; }
   await api('api/lv/' + id, 'PUT', extra); await refreshList();
 }
-async function refreshList() { try { LIST = await api('api/lv?project_id=' + pid); selBtn(); einUeb(); const pt = $('#pjTree'); if (pt && PJTABS.has(tab)) pt.innerHTML = pjBaum(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
+async function refreshList() { try { LIST = await lvListe(); selBtn(); einUeb(); const pt = $('#pjTree'); if (pt && PJTABS.has(tab)) pt.innerHTML = pjBaum(); if (!VERS.length && LIST.length) vleiste(); } catch { /* egal */ } }
 
 /* ---------- Kopf ---------- */
 function selBtn() {
@@ -975,7 +983,7 @@ async function projGehe(id) {
   await flush(); pid = id; LS.set('pid', pid); if (window.BPHead) await BPHead.projektSetzen(pid);
   if (!PROJ.some((p) => p.id === id)) PROJ = await api('api/projekte');
   const sel = $('#proj'); if (sel && ![...sel.options].some((o) => +o.value === id)) { const o = document.createElement('option'); o.value = id; o.textContent = (PROJ.find((p) => p.id === id) || {}).name || ''; sel.appendChild(o); } if (sel) sel.value = String(id);
-  LIST = await api('api/lv?project_id=' + pid); vleiste();
+  LIST = await lvListe(); vleiste();
 }
 async function avaAblegen(f, E, o) {
   await projGehe(o.projId);
@@ -1230,12 +1238,13 @@ function render() {
   $('#stp').innerHTML = SCHRITTE.map(([k, l], i) => `${i ? '<span class="pf" aria-hidden="true">›</span>' : ''}<button type="button" data-schritt="${k}"${k === sk ? ' class="on" aria-current="step"' : ''}><i>${i + 1}</i>${esc(l)}</button>`).join('')
     + (bk ? `<a href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung ↗</a>` : '');
   const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
-  const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !vergeben()], auftraege: ['new', '＋ Neues LV', !pid], tueren: null, aufmass: null, uebersicht: null }[tab];
+  const haupt = { lv: ['pos', '＋ Position', !L], angebote: ['bieter', '＋ Bieter', !L], rechnungen: ['reNeu', '＋ Rechnung', !L || !vergeben()], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], tueren: null, aufmass: ['reNeu', '＋ Rechnung', !L || !vergeben()], uebersicht: null }[tab];
   $('#utb').innerHTML = schrittVon(tab)[2].map((k) => `<button type="button" role="tab" data-tab="${k}"${tab === k ? ' class="on" aria-selected="true"' : ''}>${icn(k)}${esc((TABS.find((t) => t[0] === k) || [, k])[1])}${n[k] ? `<small>${n[k]}</small>` : ''}</button>`).join('')
     + `<span class="ufill"></span><span class="uakt${(UPHASE[sk] || []).length > 3 ? ' viele' : ''}">${haupt ? `<button type="button" class="btn sm pri" data-uhaupt="${haupt[0]}"${haupt[2] ? ' disabled' : ''}>${haupt[1]}</button>` : ''}${uLeiste(sk)}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Weitere Befehle">⋯</button></span>`;
   const nLv = LIST.filter((x) => !x.archived).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
-    + `<div class="nav-baum" id="pjTree">${pjBaum()}</div><button type="button" class="nneu" data-act="new">＋ Neues LV</button>`
+    + `<div class="nav-baum" id="pjTree">${pjBaum()}</div>${(() => { const nb = { lv: ['new', '＋ Neues LV', !pid], tueren: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()], rechnungen: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()] }[tab];
+      return nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''; })()}`
     + `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin">📥 <b>Ablegen</b><small>PDF, Scan, GAEB, Excel</small><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 <b>Eingang</b><span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`;
   vlSicht();
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
@@ -1256,7 +1265,7 @@ function render() {
   if (!L) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   v.innerHTML = { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   sums();
-  if (tab === 'aufmass') amPdfMount();
+  if (tab === 'aufmass' || tab === 'rechnungen') amPdfMount();
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);
   if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); }
 }
@@ -1808,14 +1817,14 @@ document.addEventListener('click', async (e) => {
 });
 
 /* ---------- Neues LV ---------- */
-async function newDialog() {
+async function newDialog(o = {}) {
   if (!pid) { toast('Bitte zuerst oben ein Projekt wählen.', true); return; }
   let BK = []; try { BK = await api('api/baukosten?project_id=' + pid); } catch { /* egal */ }
   const alle = await api('api/lv').catch(() => []);
   const gws = [...new Set((KONT || []).map((k) => k.trade).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
   $('#gwList').innerHTML = gws.map((g) => `<option value="${esc(g)}">`).join('');
   const n = LIST.length + 1;
-  const bg = modalBox(`<h3>Neues Leistungsverzeichnis</h3><div class="nlf">
+  const bg = modalBox(`<h3>${o.auftrag ? 'Neuer Auftrag' : 'Neues Leistungsverzeichnis'}</h3>${o.auftrag ? '<p class="hint" style="margin:-.2rem 0 .7rem">Ohne LV: Firma und Auftragssumme eintragen, Rechnungen dann mit Betrag oder Positionen von Hand. Ein vorhandenes LV vergibst du unter „2 Vergabe“.</p>' : ''}<div class="nlf">
       <label>Bezeichnung<input id="nlName" placeholder="z. B. Rohbauarbeiten, Trockenbau, Fliesen"></label>
       <label>Gewerk<input id="nlGw" list="gwList" placeholder="für die Bieterauswahl"></label>
       <label>Nr.<input id="nlNr" value="${String(n).padStart(2, '0')}"></label></div>
@@ -1826,18 +1835,18 @@ async function newDialog() {
       ['lv', '📑', 'Kopie eines LV', 'auch aus anderen Projekten – ohne Preise', alle.length > 0],
       ['bk', '🧮', 'Aus der Kostenermittlung', 'Bauteile mit Mengen und Preisen als Schätzung', BK.some((b) => b.n)],
       ['frei', '🧾', 'Ohne LV', 'nur Rechnungen erfassen – z. B. kleine Handwerker', true],
-    ].map(([v, i, t, d, ok], k) => `<label class="${ok ? '' : 'aus'}"><input type="radio" name="nlSrc" value="${v}"${k ? '' : ' checked'}${ok ? '' : ' disabled'}><span class="i">${i}</span><b>${t}</b><small>${ok ? d : v === 'bk' ? 'keine Kostenermittlung mit Bauteilen im Projekt' : 'noch kein LV vorhanden'}</small></label>`).join('')}</div>
+    ].map(([v, i, t, d, ok], k) => `<label class="${ok ? '' : 'aus'}"><input type="radio" name="nlSrc" value="${v}"${(o.auftrag ? v === 'frei' : !k) ? ' checked' : ''}${ok ? '' : ' disabled'}><span class="i">${i}</span><b>${t}</b><small>${ok ? d : v === 'bk' ? 'keine Kostenermittlung mit Bauteilen im Projekt' : 'noch kein LV vorhanden'}</small></label>`).join('')}</div>
     <div class="nlw-d">
       <div class="kgs" id="nlBk" hidden><select id="nlBkSel">${BK.filter((b) => b.n).map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><span id="nlKgs"></span></div>
       <div class="kgs" id="nlLv" hidden><select id="nlLvSel">${alle.map((x) => `<option value="${x.id}">${esc((x.nr ? x.nr + ' ' : '') + x.name)}${x.project_id !== pid ? ' – ' + esc((PROJ.find((p) => p.id === x.project_id) || {}).name || '') : ''}</option>`).join('')}</select>
         <label><input type="checkbox" id="nlMengen" checked> Mengen übernehmen</label></div>
       <div class="kgs" id="nlPdf" hidden><input type="file" id="nlPdfF" accept="${DOK_ACCEPT}"><label><input type="checkbox" id="nlPdfUe" checked> erkannte Positionen gleich übernehmen (das Dokument bleibt rechts daneben zum Prüfen; Preise eines Angebots als Schätzpreise)</label>
         <span class="hint">Titel und Positionen werden ohne KI erkannt (Scans per Texterkennung). Klappt das nicht, fragt die AVA, ob eine KI das Dokument lesen darf.</span></div>
-      <div class="kgs" id="nlFrei" hidden>${freiFelder()}</div></div>
+      <div class="kgs" id="nlFrei"${o.auftrag ? "" : " hidden"}>${freiFelder()}</div></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
-    const src = bg.querySelector('[name=nlSrc]:checked').value, body = { project_id: pid, name: $('#nlName').value.trim(), gewerk: $('#nlGw').value.trim(), nr: $('#nlNr').value.trim() };
+    const src = bg.querySelector('[name=nlSrc]:checked').value, body = { project_id: pid, name: $('#nlName').value.trim(), gewerk: $('#nlGw').value.trim(), nr: $('#nlNr').value.trim(), ...(vSicht() ? { version_id: vSicht() } : {}) };
     if (!body.name && !body.gewerk) { toast('Bitte eine Bezeichnung oder ein Gewerk eingeben.', true); return; }
     if (src === 'lv') { body.kopie_von = +$('#nlLvSel').value; body.mengen = $('#nlMengen').checked; }
     if (src === 'frei' && !bg.querySelector('#frFirma').value.trim()) { toast('Bitte die Firma angeben.', true); return; }
@@ -2206,7 +2215,7 @@ document.addEventListener('dblclick', (e) => {
 const AMNEU = new Set();
 let AMABL = null;   // Ablage im Projektordner, aus dem gemeinsamen Ablagefeld gewählt
 let AMB = LS.get('amB', 0), amNurR = LS.get('amNurR', false), AMV = null;
-const amRe = () => (L ? L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
+const amRe = () => (L ? (tab === 'rechnungen' && PJSEL && PJSEL[0] === 'r' && L.rechnungen.find((r) => 'r' + r.id === PJSEL)) || L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
 const amBelege = () => { const r = amRe(); return r ? r.belege || [] : []; };
 function amTreffer(pid) { let t = null; for (const b of [...amBelege()].sort((x, y) => (y.id === AMB) - (x.id === AMB))) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
 const amListe = () => posOf().filter((p) => (!amNur || L.aufmass.some((a) => a.pos_id === p.id)) && (!amNurR || !amBelege().length || amTreffer(p.id)));
@@ -2428,7 +2437,14 @@ async function amBelegHoch(files) {
     if (stop) return toast('Texterkennung nicht abgewartet – die PDF hängt an der Rechnung.');
     R2 = L.rechnungen.find((r) => r.id === R.id); nb = R2 && R2.belege.find((b) => b.id === nb.id); if (!nb) return;
   }
-  AMB = nb.id; LS.set('amB', AMB); amAns = 'erfassen';
+  AMB = nb.id; LS.set('amB', AMB);
+  const RC2 = (L.calc.rechnungen || []).find((x) => x.id === R.id);
+  if ((RC2 && RC2.frei) || !posOf().length || (R2 && R2.art === 'regie')) {   // ohne Aufmaß: Rechnung mit der PDF daneben – Positionen von Hand
+    AMV = null; PJSEL = 'r' + R.id;
+    if (R2 && R2.art !== 'regie') return reVonHand(R.id);
+    tab = 'rechnungen'; LS.set('tab', tab); render(); return;
+  }
+  amAns = 'erfassen';
   if (Object.values((nb.auslese && nb.auslese.pos) || {}).length) { amNurR = true; LS.set('amNurR', true); } LS.set('amAns', amAns);
   const P = Object.keys((nb.auslese && nb.auslese.pos) || {}); if (P.length) { amPos = posOf().find((p) => P.includes(p.id)).id; LS.set('amPos', amPos); }
   render();
@@ -2643,7 +2659,7 @@ function vRechnungen() {
   }).join('');
   return `${leiste}<div class="bar"><span class="hint abz-z" title="Voreinstellung für alle Rechnungen dieses Auftrags – je Rechnung änderbar; geprüfte Rechnungen behalten ihre Einstellung">Abziehen:${abzChips(abzAuftrag(), 'data-vabz', false)}</span>
     <span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
-    <div class="re">${cards || abzLeer()}${vSicherheiten(K)}</div>`;
+    ${SEL && (SEL.belege || []).length ? `<div class="am-split re-split"><div class="am-l"><div class="re">${cards}</div></div><div class="am-r" id="amPdfSlot"></div></div><div class="re">${vSicherheiten(K)}</div>` : `<div class="re">${cards || abzLeer()}${vSicherheiten(K)}</div>`}`;
 }
 /* Eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
    oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
@@ -2968,7 +2984,7 @@ async function vqGehe(t) {
   if (t.pid && t.pid !== pid) {   // anderes Projekt: wird auch oben im Kopf gewählt
     pid = t.pid; LS.set('pid', pid); if (window.BPHead) BPHead.projektSetzen(pid);
     const sel = $('#proj'); if (sel && ![...sel.options].some((o) => +o.value === pid)) { const o = document.createElement('option'); o.value = pid; o.textContent = t.projekt; sel.appendChild(o); } if (sel) sel.value = String(pid);
-    LIST = await api('api/lv?project_id=' + pid);
+    LIST = await lvListe();
   }
   if (t.art === 'tuer') { tab = 'tueren'; LS.set('tab', tab); TLq = t.titel.replace(/^Tür\s*/, ''); render(); return; }
   if (t.lv_id && (!L || L.id !== t.lv_id)) await openLv(t.lv_id);
@@ -4206,7 +4222,7 @@ const MOB = (() => {
   }
   async function gehe(t) {
     st.q = ''; document.activeElement && document.activeElement.blur && document.activeElement.blur();
-    if (t.pid && t.pid !== pid) { pid = t.pid; LS.set('pid', pid); if (window.BPHead) BPHead.projektSetzen(pid); LIST = await api('api/lv?project_id=' + pid); }
+    if (t.pid && t.pid !== pid) { pid = t.pid; LS.set('pid', pid); if (window.BPHead) BPHead.projektSetzen(pid); LIST = await lvListe(); }
     st.modus = t.art === 'rechnung' ? 're' : 'lv'; LS.set('mModus', st.modus); st.auf.clear(); st.lang = t.pos_id || null;
     if (t.lv_id) await openLv(t.lv_id);
     zeichnen();

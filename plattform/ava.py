@@ -545,6 +545,10 @@ def versionen_liste():
                 alt = c.execute("INSERT INTO ava_version(project_id, name, aktiv, created, updated, updated_by) VALUES(?,?,1,?,?,?) RETURNING id",
                                 (pid, "Startversion", now, now, wer)).fetchone()
                 c.execute("UPDATE ava_lv SET version_id=? WHERE project_id=? AND version_id IS NULL", (alt["id"], pid))
+            if isinstance(b.get("von"), int):   # Kopie der gerade angesehenen (nicht gültigen) Version
+                q_ = c.execute("SELECT id FROM ava_version WHERE id=? AND project_id=?", (b["von"], pid)).fetchone()
+                if q_:
+                    alt = q_
             vid = c.execute("INSERT INTO ava_version(project_id, name, aktiv, von, created, updated, updated_by) VALUES(?,?,0,?,?,?,?) RETURNING id",
                             (pid, name, alt["id"], now, now, wer)).fetchone()["id"]
             for r in c.execute("SELECT * FROM ava_lv WHERE version_id=? ORDER BY id", (alt["id"],)).fetchall():
@@ -1163,6 +1167,8 @@ def lv_neu():
                 if x["pos_id"] in neu_id:
                     c.execute("INSERT INTO ava_bild(lv_id, pos_id, name, w, h, data, klein, created, user_name) VALUES(?,?,?,?,?,?,?,?,?)",
                               (i, neu_id[x["pos_id"]], x["name"], x["w"], x["h"], x["data"], x["klein"], now, g.user["name"]))
+        if isinstance(b.get("version_id"), int) and pid and c.execute("SELECT 1 FROM ava_version WHERE id=? AND project_id=?", (b["version_id"], pid)).fetchone():
+            c.execute("UPDATE ava_lv SET version_id=? WHERE id=?", (b["version_id"], i))   # in der gerade angesehenen Version anlegen
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         C.audit(g.user["name"], "ava", "LV angelegt", f"{nr} {name}")
         return _antwort(c, i)

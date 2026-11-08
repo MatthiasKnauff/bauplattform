@@ -19,16 +19,16 @@
     const esc2 = (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-frage'; bg.style.zIndex = 9000;
     const zeilen = String(text || '').split('\n');
-    bg.innerHTML = `<div class="bph-dlg" role="alertdialog" aria-modal="true" style="width:min(460px,94vw)"><div class="bph-db" style="padding-top:1.1rem">
+    bg.innerHTML = `<div class="bph-dlg" role="alertdialog" aria-modal="true" style="width:min(${opt.drei ? 560 : 460}px,94vw)"><div class="bph-db" style="padding-top:1.1rem">
       <p style="margin:0 0 .8rem;font-weight:600;line-height:1.4">${esc2(zeilen[0])}</p>${zeilen.slice(1).join('\n').trim() ? `<p class="bph-mu" style="margin:-.4rem 0 .8rem;white-space:pre-line">${esc2(zeilen.slice(1).join('\n').trim())}</p>` : ''}
       ${art === 'eingabe' ? `<input class="bph-frage-in" value="${esc2(vorgabe ?? '')}" style="width:100%;box-sizing:border-box;margin-bottom:.8rem">` : ''}
-      <div class="bph-row" style="justify-content:flex-end;gap:.4rem">${art === 'hinweis' ? '' : `<button type="button" class="bph-btn" data-f="nein">${esc2(opt.abbrechen || 'Abbrechen')}</button>`}<button type="button" class="bph-btn pri${opt.gefahr ? ' bph-gefahr' : ''}" data-f="ja">${esc2(opt.ok || 'OK')}</button></div></div></div>`;
+      <div class="bph-row" style="justify-content:flex-end;gap:.4rem">${art === 'hinweis' ? '' : `<button type="button" class="bph-btn" data-f="nein">${esc2(opt.abbrechen || 'Abbrechen')}</button>`}${opt.drei ? `<button type="button" class="bph-btn" data-f="drei">${esc2(opt.drei)}</button>` : ''}<button type="button" class="bph-btn pri${opt.gefahr ? ' bph-gefahr' : ''}" data-f="ja">${esc2(opt.ok || 'OK')}</button></div></div></div>`;
     document.body.appendChild(bg);
     const inp = bg.querySelector('.bph-frage-in');
-    const zu = (ja) => { bg.remove(); window.removeEventListener('keydown', taste, true); fertig(art === 'eingabe' ? (ja ? inp.value : null) : art === 'frage' ? !!ja : undefined); };
+    const zu = (ja) => { bg.remove(); window.removeEventListener('keydown', taste, true); fertig(art === 'eingabe' ? (ja ? inp.value : null) : art === 'frage' ? (ja === 'drei' ? 'drei' : !!ja) : undefined); };
     const taste = (e) => { if (!bg.isConnected) return; if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); zu(false); } else if (e.key === 'Enter' && !(e.target && e.target.tagName === 'TEXTAREA')) { e.preventDefault(); e.stopPropagation(); zu(true); } };
     window.addEventListener('keydown', taste, true);   // vor allen anderen Tastenkürzeln der Seite
-    bg.addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) zu(b.dataset.f === 'ja'); else if (e.target === bg && art !== 'hinweis') zu(false); });
+    bg.addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) zu(b.dataset.f === 'ja' ? true : b.dataset.f === 'drei' ? 'drei' : false); else if (e.target === bg && art !== 'hinweis') zu(false); });
     setTimeout(() => { if (inp) { inp.focus(); inp.select(); } else bg.querySelector('[data-f="ja"]').focus(); }, 0);
   });
   window.bpFrage = (t, o) => DLG(t, 'frage', null, o);
@@ -1446,8 +1446,14 @@
         m.hidden = true;
         if (a === 'w') {
           if (String(b.dataset.id) === String(O.aktuell) || !O.onWahl) return;
-          if (O.wahlHinweis && window.bpFrage && !(await bpFrage(O.wahlHinweis, { ok: 'Wechseln' }))) return;
-          O.onWahl(b.dataset.id); return;
+          const id = b.dataset.id, ziel = (O.liste || []).find((x) => String(x.id) === String(id)) || {};
+          // Wechseln heißt nicht gleich „gilt“: jedes Mal fragen – Nein wechselt trotzdem (nur ansehen/bearbeiten)
+          if (O.onGueltig && O.gueltig != null && String(id) !== String(O.gueltig) && window.bpFrage) {
+            const r = await bpFrage(`Soll „${ziel.name || 'diese Version'}“ ab jetzt gelten?\n${O.wahlHinweis || 'Sie gilt dann für alle, die im Projekt arbeiten.'}\nMit „Nein“ wechselst du nur – die bisherige Version gilt weiter. Beim nächsten Wechsel wird wieder gefragt.`, { ok: 'Ja, gilt ab jetzt', drei: 'Nein, nur wechseln', abbrechen: 'Abbrechen' });
+            if (!r) return;
+            await O.onWahl(id, r === true); if (r === true) await O.onGueltig(id, true); return;
+          }
+          O.onWahl(id); return;
         }
         if (a === 'x') { const x = (O.extra || [])[+b.dataset.i]; if (x && x.fn) x.fn(); return; }
         const f = { neu: O.onNeu, ren: O.onUmbenennen, ver: O.onVerlauf, verw: O.onVerwalten, gilt: O.onGueltig && (() => O.onGueltig(O.aktuell)) }[a]; if (f) f();

@@ -94,7 +94,9 @@ html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}
 <script src="static/bp.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('pl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('pl.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
-let ME = null, CFG = null, PROJ = [], pid = LS.get('pid', null), tab = (location.hash || '').slice(1) || 'plaene';
+const AN = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&')).get('an') || '';   // aus „Adressen“: Firma als Empfänger vorwählen
+let ME = null, CFG = null, PROJ = [], pid = LS.get('pid', null), tab = (location.hash || '').slice(1).split('&')[0] || 'plaene';
+if (AN) { history.replaceState(null, '', '#plaene'); setTimeout(() => toast(`Pläne auswählen und „Versenden“ – „${AN}“ ist als Empfänger vorgewählt.`), 1500); }
 let D = null, VL = null, busy = false, F = LS.get('filter', { q: '', gw: '', phase: '', alle: false }), SEL = new Set(), OPEN = new Set();
 const de = (s) => { if (!s) return ''; const d = typeof s === 'number' ? new Date(s * 1000) : new Date(s); return isNaN(d) ? s : d.toLocaleDateString('de-DE'); };
 const mb = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
@@ -238,7 +240,7 @@ async function versandDialog() {
   let V; try { V = await api('api/vorlage?project_id=' + pid); } catch (e) { toast(e.message, true); return; }
   const gws = [...new Set(g.map((x) => x.p.gewerk).filter(Boolean))];
   const passt = (gw, f) => { const a = (gw || '').toLowerCase(); if (!a) return false; if (a === 'alle firmen' || a === 'alle') return true; return f.gewerke.some((x) => x && (x.toLowerCase().includes(a) || (x.length > 2 && a.includes(x.toLowerCase())))); };
-  const firmen = D.firmen.map((f) => ({ ...f, vor: gws.some((gw) => passt(gw, f)) }));
+  const firmen = D.firmen.map((f) => ({ ...f, vor: (AN && f.name.toLowerCase() === AN.toLowerCase()) || (!AN && gws.some((gw) => passt(gw, f))) }));
   firmen.sort((a, b) => (b.vor - a.vor) || a.name.localeCompare(b.name, 'de'));
     // Plotdienste stehen nicht hier – dafür gibt es den eigenen „Plotauftrag“
   const empZeile = (f, i) => `<label><input type="checkbox" data-emp="${i}"${f.vor && f.email ? ' checked' : ''}${f.email ? '' : ' disabled'}> <span><b>${esc(f.name)}</b> <small>${f.plot ? '' : esc(f.gewerke.join(', '))}${f.email ? (f.plot ? '' : ' · ') + esc(f.email) : (f.plot ? '' : ' · ') + 'keine E-Mail-Adresse (in Adressen eintragen)'}</small></span></label>`;

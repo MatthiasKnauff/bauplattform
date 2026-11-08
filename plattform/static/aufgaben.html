@@ -145,7 +145,7 @@ html[data-modus="einfach"] .top{order:-1}
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('auf.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('auf.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const HASH = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&'));   // z. B. #termine&ruege=12|firma oder &gid=…&uid=…
-let tab = (location.hash || '').slice(1).split('&')[0] === 'termine' ? 'termine' : (location.hash || '').slice(1) || LS.get('tab', 'todos'), scope = LS.get('scope', 'mine');
+let tab = (location.hash || '').slice(1).split('&')[0] || LS.get('tab', 'todos'), scope = LS.get('scope', 'mine');
 let VZ = null;
 let M = null, E = null, T = null, CONF = null, ME = null, F = LS.get('filter', { q: '', projekt: '', firma: '', art: 'maengel', status: 'offen' }), OPEN = null;
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
@@ -818,6 +818,10 @@ async function setDialog(host) {
   if (tab !== 'todos') tdRef().then(tdLaden).then(renderTabs).catch(() => {});
   if (gp && M && !M.some((m) => m.pid === gp)) { F.projekt = ''; if (tab === 'maengel') renderM(); }
   if (deep) zeige(deep[1], deep[2]);
+  if (HASH.get('mruege')) {   // aus „Adressen“ → E-Mail → Mängelrüge an diese Firma
+    const [mp, ...mf] = HASH.get('mruege').split('|'); history.replaceState(null, '', '#maengel');
+    ruegeDialog(null, { pid: +mp, firma: mf.join('|') });
+  }
   if (tab === 'termine' && (HASH.get('ruege') || HASH.get('gid'))) {   // aus To-do oder Bauzeitenplan: Terminrüge gleich öffnen
     history.replaceState(null, '', '#termine');
     if (HASH.get('ruege')) truegeDialog(HASH.get('ruege'));

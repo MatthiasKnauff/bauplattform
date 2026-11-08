@@ -244,7 +244,7 @@ function edit(c, verlaufAuf) {
   const inp = ([k, l, w, t]) => `<label class="${w}">${l}<input data-f="${k}" type="${t || 'text'}" value="${esc(c[k] || '')}" autocomplete="off"${k === 'trade' ? ' list="gwList"' : ''}></label>`;
   const map = addr(c) ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr(c))}&travelmode=driving` : '';   // wie im Bautagebuch: Google Maps mit Route
   const quick = isNew ? '' : [c.phone && `<a class="btn sm" href="tel:${esc(tel(c.phone))}">☎ Anrufen</a>`, c.mobile && `<a class="btn sm" href="tel:${esc(tel(c.mobile))}">📱 Mobil</a>`,
-    c.email && `<a class="btn sm" href="mailto:${esc(c.email)}">✉ E-Mail</a>`, ...wtTel(c).map(([b, n]) => `<a class="btn sm" href="tel:${esc(tel(n))}">☎ ${esc(b || n)}</a>`), ...wtMails(c).slice(1).map((m) => `<a class="btn sm" href="mailto:${esc(m)}">✉ ${esc(m)}</a>`), c.website && `<a class="btn sm" href="${esc(c.website)}" target="_blank" rel="noopener">Internet</a>`,
+    c.email && `<button type="button" class="btn sm" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – normal über Outlook oder ein Schreiben aus der Plattform">✉ E-Mail</button>`, ...wtTel(c).map(([b, n]) => `<a class="btn sm" href="tel:${esc(tel(n))}">☎ ${esc(b || n)}</a>`), ...wtMails(c).slice(1).map((m) => `<a class="btn sm" href="mailto:${esc(m)}">✉ ${esc(m)}</a>`), c.website && `<a class="btn sm" href="${esc(c.website)}" target="_blank" rel="noopener">Internet</a>`,
     map && `<a class="btn sm" href="${esc(map)}" target="_blank" rel="noopener" title="Route in Google Maps planen">🧭 Route</a>`, `<a class="btn sm" href="api/contacts/${c.id}.vcf">Ins Handy</a>`].filter(Boolean).join('');
   const use = isNew ? '' : [c.site_of && `Baustellenadresse des Projekts „${esc(c.site_of)}“.`,
     c.used ? `Kommt in ${c.used} ${c.used === 1 ? 'Eintrag' : 'Einträgen'} des Bautagebuchs vor${c.projects.length ? ' (' + c.projects.map(esc).join(', ') + ')' : ''}.` : ''].filter(Boolean).join(' ');
@@ -352,7 +352,7 @@ function renderTable() {
     <tr class="f">${cols.map(([k, l]) => `<th>${fltField(k, l)}</th>`).join('')}<th>${anyFlt() ? '<button class="btn sm" data-clr="*" title="Alle Filter und die Suche löschen">✕ Alle</button>' : ''}</th></tr></thead>
     <tbody>${rows.map((c) => `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`
       : `<td><input data-fk="${c.id}:${k}" value="${esc(c[k] || '')}" aria-label="${esc(COLS.find((x) => x[0] === k)[1])} von ${esc(c.name)}" autocomplete="off"${k === 'trade' ? ' list="gwAll"' : ''}></td>`).join('')}
-      <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" title="E-Mail">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`).join('')
+      <td class="act">${c.phone || c.mobile ? `<a href="tel:${esc(tel(c.mobile || c.phone))}" title="Anrufen">☎</a>` : ''}${c.email ? `<a href="mailto:${esc(c.email)}" data-mailwahl="${esc(c.email)}" data-firma="${esc(c.name)}" title="E-Mail – Outlook oder Schreiben aus der Plattform">✉</a>` : ''}<button class="btn sm" data-open="${c.id}" title="Alle Angaben, Visitenkarte, Löschen">Details</button></td></tr>`).join('')
       || `<tr><td colspan="${cols.length + 1}" class="ro" style="text-align:center;padding:1.5rem">Keine Treffer.${(() => { const n = woanders(); return n ? `<div class="wo">${n} Treffer ohne die Auswahl ${[kind && (KINDS.find((x) => x[0] === kind) || [0, kind])[1], gw && 'Gewerk ' + gw, bet && 'Beteiligte'].filter(Boolean).join(', ')} – <button class="btn sm" data-clr="nurq">überall suchen</button></div>` : ''; })()}</td></tr>`}</tbody></table>
     <datalist id="gwAll">${[...new Set(ALL.flatMap(trades))].sort((a, b) => a.localeCompare(b, 'de')).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>`;
   if (keep) { const n = document.querySelector(`[data-fk="${keep}"]`) || document.querySelector(`[data-flt="${keep}"]`); if (n) n.focus(); }
@@ -603,6 +603,24 @@ async function duplikate() {
 $('#dup').onclick = duplikate;
 $('#verl').onclick = () => { if (window.BPHead && BPHead.verlaufAlle) BPHead.verlaufAlle({ teil: 'kontakt', titel: 'Verlauf der Adressen' }); };
 window.bpNachVerlauf = () => load();
+/* E-Mail an einen Kontakt: normal (Outlook) oder ein Schreiben aus der Plattform – Firma und aktuelles Projekt vorausgefüllt */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-mailwahl]'); if (!b) return;
+  e.preventDefault();
+  const mail = b.dataset.mailwahl, firma = b.dataset.firma || '', pj = window.BPHead && BPHead.projektId ? BPHead.projektId() : null;
+  const apps = ((window.BPHead && BPHead.conf) || {}).apps || [], A = (k) => apps.find((a) => a.key === k && a.allowed !== false);
+  const ziel = (k, frag) => (A(k) ? appUrl(A(k)) + '/' + frag : '');
+  const W = [['outlook', '✉ Normal schreiben (Outlook)', `mailto:${mail}`, ''],
+    ['mr', '⚠ Mängelrüge', pj && ziel('aufgaben', `#maengel&mruege=${encodeURIComponent(pj + '|' + firma)}`), 'öffnet „Aufgaben & Mängel“ – Mängel dieser Firma vorgewählt'],
+    ['tr', '⏱ Terminrüge', pj && ziel('aufgaben', `#termine&ruege=${encodeURIComponent(pj + '|' + firma)}`), 'öffnet „Aufgaben & Mängel“ – Rückstand dieser Firma'],
+    ['pl', '📐 Pläne senden', pj && ziel('plaene', `#plaene&an=${encodeURIComponent(firma)}`), 'öffnet „Pläne & Dateien“ – Firma als Empfänger vorgewählt']];
+  modalBox(`<h3>E-Mail an ${esc(firma || mail)}</h3><div style="display:flex;flex-direction:column;gap:.45rem">${W.map(([k, l, u, t]) => `<button class="btn${k === 'outlook' ? ' pri' : ''}" data-m="${k}"${u ? '' : ' disabled'} style="justify-content:flex-start;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:.1rem"><span>${l}</span>${t || !u ? `<small class="hint" style="font-weight:400">${!u && k !== 'outlook' ? (pj ? 'App nicht freigeschaltet' : 'erst oben ein Projekt wählen') : t}</small>` : ''}</button>`).join('')}</div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button></div>`, (m, bg, close) => {
+    if (m === 'x') return close();
+    const w = W.find((x) => x[0] === m); if (!w || !w[2]) return;
+    close(); location.href = w[2];
+  });
+});
 </script>
 </body>
 </html>

@@ -56,6 +56,7 @@ async function api(url, m = 'GET', body) {
   if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
   return j;
 }
+document.addEventListener('click', (e) => { if (e.target.closest('[data-neu]')) location.reload(); });
 // ---------- 1. Hochladen
 const drop = $('#drop'), inp = $('#datei');
 drop.onclick = () => inp.click();
@@ -135,7 +136,7 @@ async function eintragen() {
     $('#s3').innerHTML = `<h2 style="margin-top:0" class="ok">✓ Eingetragen</h2><p>Neues Projekt <b>${esc(r.projekt)}</b> angelegt – darin steht jetzt die AVA-Version <b>„${esc(r.version)}“</b>${r.aktiv ? ' (gültig)' : ''}:
       ${r.lvs} LVs/Aufträge, ${r.angebote} Angebote, ${r.rechnungen} Rechnungen${r.neue_firmen ? `, ${r.neue_firmen} neue Firmen in den Adressen` : ''}.</p>
       <p class="mute">In der AVA oben das Projekt wählen; die Version steht in der Versionsleiste${r.aktiv ? '' : ' – zum Ansehen anklicken'}.</p>
-      <div class="acts"><a class="btn pri" href="${esc(r.ava)}">Zur Ausschreibung &amp; Abrechnung</a><button class="btn" onclick="location.reload()">Weitere Datei</button></div>`;
+      <div class="acts"><a class="btn pri" href="${esc(r.ava)}">Zur Ausschreibung &amp; Abrechnung</a><button type="button" class="btn" data-neu>Weitere Datei</button></div>`;
     $('#s3').hidden = false;
   } catch (e) { $('#e2').textContent = e.message; $('#go').disabled = false; }
 }

@@ -37,6 +37,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Ordnungsprüfung: Regeln für den ganzen Code (keine heiklen Dateien, keine Systemdialoge, keine Kopien von Baukasten-Funktionen …)
+      - name: Ordnungsprüfung
+        run: python3 tools/tests/ordnung.py
+
       # Versionsanzeige (Verwaltung, Fußzeilen): bei einer Freigabe immer der Tag, sonst die Nummer, die die nächste Freigabe
       # bekommt, mit „-test“: „2026.11.192-test (abc1234)“ – auf Docker 1 steht so dieselbe Nummer, die man dann freigibt
       - name: Version setzen

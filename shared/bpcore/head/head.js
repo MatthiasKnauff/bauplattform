@@ -1283,7 +1283,7 @@
             const r = await KX((basis || '') + `api/bp/projekt/${pid}/kataster`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
             const W = ctx.werte(), neu = r.werte || {};
             const alt2 = ['gemarkung', 'flur', 'flurstueck', 'hoehe_nhn'].filter((x) => W[x] && neu[x] && String(W[x]).trim() !== String(neu[x]).trim());
-            if (alt2.length && !confirm('Vorhandene Angaben überschreiben?\n\n' + alt2.map((x) => `${{ gemarkung: 'Gemarkung', flur: 'Flur', flurstueck: 'Flurstück', hoehe_nhn: 'Höhe über NHN' }[x]}: ${W[x]} → ${neu[x]}`).join('\n'))) { kb.disabled = false; kb.textContent = alt; return true; }
+            if (alt2.length && !(await bpFrage('Vorhandene Angaben überschreiben?\n\n' + alt2.map((x) => `${{ gemarkung: 'Gemarkung', flur: 'Flur', flurstueck: 'Flurstück', hoehe_nhn: 'Höhe über NHN' }[x]}: ${W[x]} → ${neu[x]}`).join('\n')))) { kb.disabled = false; kb.textContent = alt; return true; }
             for (const [x, v] of Object.entries(neu)) ctx.setzen(x, v);
             ctx.nachricht('Ermittelt: ' + H.katasterText(r));
           } catch (er) { kb.disabled = false; kb.textContent = alt; ctx.nachricht(er.message); }
@@ -1342,7 +1342,7 @@
         const r = await KX(opt.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(opt.adresse ? opt.adresse() : {}) });
         const neu = r.werte || {};
         const alt2 = GRUND.filter(([k]) => inp(k).value.trim() && neu[k] && inp(k).value.trim() !== String(neu[k]).trim());
-        if (!alt2.length || confirm('Vorhandene Angaben überschreiben?\n\n' + alt2.map(([k, l]) => `${l}: ${inp(k).value} → ${neu[k]}`).join('\n'))) {
+        if (!alt2.length || await bpFrage('Vorhandene Angaben überschreiben?\n\n' + alt2.map(([k, l]) => `${l}: ${inp(k).value} → ${neu[k]}`).join('\n'))) {
           GRUND.forEach(([k]) => { if (neu[k] != null && neu[k] !== '') inp(k).value = neu[k]; });
           if (opt.aenderung) opt.aenderung();
           info.textContent = 'Ermittelt: ' + H.katasterText(r);

@@ -95,16 +95,52 @@ function modalBox(html, onClick) {
   const f = bg.querySelector('input,select,button'); if (f) f.focus();
   return bg;
 }
-/* Rückgängig-Leiste unten: rueckgaengig('„X“ erledigt', async () => {…}) – 10 s lang, danach weg */
-let _undo = null;
-function rueckgaengig(text, fn, ms = 10000) {
-  if (_undo) { clearTimeout(_undo.t); _undo.el.remove(); }
-  const el = document.createElement('div'); el.className = 'bp-undo'; el.setAttribute('role', 'status');
-  el.innerHTML = `<span>${esc(text)}</span><button type="button">↶ Rückgängig</button>`;
-  document.body.appendChild(el);
-  const u = _undo = { el, t: setTimeout(() => { el.remove(); if (_undo === u) _undo = null; }, ms) };
-  el.querySelector('button').onclick = async () => { clearTimeout(u.t); el.remove(); if (_undo === u) _undo = null; try { await fn(); } catch (e) { toast(e.message || 'Rückgängig ging nicht', true); } };
+/* Rückgängig mit Verlauf: rueckgaengig('„X“ erledigt', async () => {…}) merkt bis zu 50 Schritte je geöffneter Seite.
+   Leiste unten (10 s): neuester Schritt, Anzahl, „↶ Rückgängig“, ▴ Verlauf (bis zu einem Schritt zurück).
+   Danach bleibt an derselben Stelle ein kleiner Knopf „↶ n“. Strg+Z außerhalb von Eingabefeldern nimmt den neuesten Schritt zurück
+   (Seiten mit eigenem Strg+Z setzen window.BP_UNDO_EIGEN). Neu laden der Seite: Verlauf weg – Gelöschtes liegt im Papierkorb. */
+const UNDO = { s: [], t: 0, offen: false, busy: false, el: null };
+const UNDO_MAX = 50;
+function _undoAlter(t) { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'gerade' : m < 60 ? `vor ${m} Min.` : `vor ${Math.round(m / 60)} Std.`; }
+function _undoZeichnen(kurz) {
+  let el = UNDO.el; const n = UNDO.s.length;
+  if (!n) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; return; }
+  if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo'; el.setAttribute('role', 'status'); document.body.appendChild(el);
+    el.addEventListener('click', _undoKlick); }
+  const top = UNDO.s[n - 1], klein = !kurz && !UNDO.offen;
+  el.classList.toggle('klein', klein);
+  el.innerHTML = klein ? `<button type="button" class="bp-undo-chip" data-u="auf" title="Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'} (Strg+Z)">↶ ${n}</button>`
+    : `${UNDO.offen ? `<div class="bp-undo-l" role="list">${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><span>${esc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}</div>` : ''}
+      <div class="bp-undo-z"><span>${esc(top.text)}</span>${n > 1 ? `<small>· ${n} Schritte</small>` : ''}<button type="button" class="bp-undo-b" data-u="eins">↶ Rückgängig</button>${n > 1 ? `<button type="button" class="bp-undo-v" data-u="liste" title="Verlauf" aria-expanded="${UNDO.offen}">${UNDO.offen ? '▾' : '▴'}</button>` : ''}<button type="button" class="bp-undo-v" data-u="zu" title="Ausblenden">✕</button></div>`;
 }
+function _undoZeigen(ms = 10000) { clearTimeout(UNDO.t); _undoZeichnen(true); UNDO.t = setTimeout(() => { if (!UNDO.offen) _undoZeichnen(false); }, ms); }
+async function _undoBis(k) {   // k = 0: nur der neueste Schritt; k = 2: die drei neuesten
+  if (UNDO.busy) return; UNDO.busy = true; let n = 0;
+  try { for (let i = 0; i <= k && UNDO.s.length; i++) { const u = UNDO.s.pop(); if (window.bpUndoWeg) window.bpUndoWeg(u); await u.fn(); n++; } }
+  catch (e) { toast(e.message || 'Rückgängig ging nicht', true); }
+  finally { UNDO.busy = false; UNDO.offen = false; }
+  if (n > 1) toast(`${n} Schritte rückgängig gemacht.`);
+  if (UNDO.s.length) _undoZeigen(); else _undoZeichnen(false);
+}
+function _undoKlick(e) {
+  const b = e.target.closest('[data-u]'); if (!b) return; e.stopPropagation(); const a = b.dataset.u;
+  if (a === 'eins') return _undoBis(0);
+  if (a === 'bis') return _undoBis(+b.dataset.i);
+  if (a === 'liste') { UNDO.offen = !UNDO.offen; clearTimeout(UNDO.t); _undoZeichnen(true); if (!UNDO.offen) _undoZeigen(); return; }
+  if (a === 'auf') { _undoZeigen(15000); return; }
+  if (a === 'zu') { UNDO.offen = false; clearTimeout(UNDO.t); _undoZeichnen(false); }
+}
+function rueckgaengig(text, fn, ms = 10000) {
+  const u = { text, fn, t: Date.now() }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift();
+  if (window.bpUndoHook) window.bpUndoHook(u);
+  UNDO.offen = false; _undoZeigen(ms);
+}
+document.addEventListener('keydown', (e) => {   // Strg+Z: neuester Schritt – nicht beim Tippen und nicht in offenen Dialogen
+  if (window.BP_UNDO_EIGEN || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || (e.key || '').toLowerCase() !== 'z' || !UNDO.s.length) return;
+  const t = e.target; if (t && (t.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]') || t.isContentEditable)) return;
+  if (document.querySelector('.modal-bg,.bph-dlg-bg')) return;
+  e.preventDefault(); _undoBis(0);
+});
 /* Dialoge an der Überschrift verschieben und an der Ecke rechts unten in der Größe ändern – je Dialogtitel gemerkt */
 function dlgBeweglich(m) {
   if (!m || m.dataset.beweglich) return; m.dataset.beweglich = '1';

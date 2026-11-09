@@ -225,6 +225,7 @@ function wzUi() {
   $('#wz').querySelectorAll('[data-al]').forEach((b) => { const a = b.dataset.al;
     b.disabled = a === 'undo' ? !HIST.length : a === 'redo' ? !REDO.length : ['vh', 'vv'].includes(a) ? n < 3 : ['bw', 'bh'].includes(a) ? n < 2 : !n; });
 }
+window.BP_UNDO_EIGEN = true;   // eigenes Strg+Z (Layout-Schritte)
 function merken() { HIST.push(JSON.stringify(V.data)); if (HIST.length > 80) HIST.shift(); REDO = []; }
 function geaendert(neuZeichnen = true) { if (neuZeichnen) zeichne(); props(); speichern(); }
 function speichern() { clearTimeout(speichT); if (window.BPHead) BPHead.versionStatus('…'); speichT = setTimeout(sofort, 700); }

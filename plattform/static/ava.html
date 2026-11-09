@@ -4186,6 +4186,10 @@ async function mitUndo(el, fn, was) {
   else { AKT.undo.push({ key, label, alt, neu, rueck: () => fn(proxy(alt)), wieder: () => fn(proxy(neu)) }); if (AKT.undo.length > 80) AKT.undo.shift(); }
   AKT.t = now; AKT.redo = []; histUi();
 }
+/* Rückgängig-Verlauf der Plattform (bp.js) und der AVA zusammen: Löschen, Archivieren … stehen auch hier in Strg+Z / „↶“ */
+window.BP_UNDO_EIGEN = true;
+window.bpUndoHook = (u) => { AKT.undo.push({ key: '', label: u.text, u, rueck: async () => { UNDO.s = UNDO.s.filter((x) => x !== u); _undoZeichnen(false); await u.fn(); } }); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); };
+window.bpUndoWeg = (u) => { AKT.undo = AKT.undo.filter((x) => x.u !== u); histUi(); };
 function aktMerken(label, rueck, wieder) { AKT.undo.push({ key: '', label, rueck, wieder }); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); }
 async function aktGo(dir) {
   const from = dir < 0 ? AKT.undo : AKT.redo, to = dir < 0 ? AKT.redo : AKT.undo, st = from.pop(); if (!st) return;

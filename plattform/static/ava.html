@@ -673,6 +673,11 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 /* „Rückgängig“ unten links neben dem Projektbaum – verdeckt nicht das Ablagefeld darin */
 @media (min-width:861px){html:not([data-modus="einfach"]) #histBar{left:288px}}
 #navL{padding-bottom:1rem}
+.re-hand td{background:color-mix(in srgb,#e07b3a 12%,var(--card))!important;border-top:2px solid #e07b3a;border-bottom:2px solid #e07b3a}
+.re-hand td:first-child{border-left:2px solid #e07b3a}.re-hand td:last-child{border-right:2px solid #e07b3a}
+.re-hand-t{display:inline-block;background:#e07b3a;color:#fff;border-radius:999px;padding:0 .5rem;font-size:var(--fs-s);font-weight:600;margin-left:.3rem;text-transform:uppercase;letter-spacing:.03em}
+.re-hand-g{display:flex;gap:.4rem;align-items:center;margin-top:.3rem;font-weight:400;font-size:var(--fs-s2)}.re-hand-g input{flex:1;min-width:0;font:inherit}
+.re-hand-a{font-weight:400;font-size:var(--fs-s2);color:#e07b3a;margin-top:.2rem}
 </style>
 </head>
 <body>
@@ -2608,6 +2613,34 @@ async function angebotDaten(aid) {
   BPHead.datenMaske({ titel: 'Angaben zum Angebot', unter: D.titel, gruppen: D.felder, werte: D.werte,
     speichern: async (W) => { D = await api(`api/angebote/${aid}/daten`, 'PUT', { werte: W }); return { werte: D.werte }; } });
 }
+/* Freigabe netto von Hand festsetzen – Grund ist Pflicht; im Prüfblatt und in der Rechnungsfreigabe deutlich vermerkt */
+document.addEventListener('click', async (e) => {
+  const a = e.target.closest && e.target.closest('[data-rehand1]');
+  if (a && L) { e.stopPropagation(); const rid = +a.dataset.rehand1, c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!c) return;
+    modalBox(`<h2 style="margin-top:0">Betrag von Hand freigeben</h2><p class="hint" style="margin-top:0">Rechnerisch ${c.frei ? '' : 'nach Aufmaß '}<b>${eur(c.zahlung)}</b> netto. Der abweichende Betrag wird im Prüfblatt und in der Rechnungsfreigabe deutlich vermerkt.${c.einzeln ? '' : ' Die nächste kumulierte Rechnung rechnet mit dem tatsächlich Freigegebenen weiter.'}</p>
+      <div class="row"><label>Zahlbetrag netto</label><input id="rhB" value="${nf(c.zahlung, 2)}" inputmode="decimal" style="text-align:right"></div>
+      <div class="row"><label>Grund</label><input id="rhG" placeholder="z. B. Estrich Achse 3 noch nicht abgenommen"></div>
+      <div class="bar" style="justify-content:flex-end;margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Festsetzen</button></div>`, async (m, bg, close) => {
+      if (m === 'x') { close(); return; }
+      const betrag = pf(bg.querySelector('#rhB').value), grund = bg.querySelector('#rhG').value.trim();
+      if (betrag == null) { toast('Bitte einen Betrag eingeben.', true); return; }
+      if (!grund) { toast('Bitte einen Grund angeben.', true); bg.querySelector('#rhG').focus(); return; }
+      try { await call('api/rechnungen/' + rid, 'PUT', { hand: { betrag, grund } }); close(); rueckgaengig('Zahlbetrag von Hand festgesetzt', () => call('api/rechnungen/' + rid, 'PUT', { hand: null })); } catch (er) { toast(er.message, true); }
+    });
+    setTimeout(() => { const i = document.querySelector('#rhB'); if (i) i.select(); }, 30); return; }
+  const z = e.target.closest && e.target.closest('[data-rehand0]');
+  if (z && L) { e.stopPropagation(); const rid = +z.dataset.rehand0, c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!c || !c.hand) return; const alt = { betrag: c.zahlung, grund: c.hand.grund };
+    try { await call('api/rechnungen/' + rid, 'PUT', { hand: null }); rueckgaengig('Wieder der rechnerische Betrag', () => call('api/rechnungen/' + rid, 'PUT', { hand: alt })); } catch (er) { toast(er.message, true); } }
+});
+document.addEventListener('change', async (e) => {
+  const el = e.target.closest && e.target.closest('[data-rehand]'); if (!el || !L) return;
+  const rid = +el.dataset.id, c = (L.calc.rechnungen || []).find((x) => x.id === rid); if (!c || !c.hand) return;
+  const card = el.closest('[data-reid]'), betrag = pf(card.querySelector('[data-rehand="betrag"]').value), grund = card.querySelector('[data-rehand="grund"]').value.trim();
+  if (!grund) { toast('Bitte einen Grund angeben.', true); el.value = el.dataset.rehand === 'grund' ? c.hand.grund : el.value; return; }
+  if (betrag == null) { toast('Bitte einen Betrag eingeben.', true); return; }
+  const alt = { betrag: c.zahlung, grund: c.hand.grund };
+  try { await call('api/rechnungen/' + rid, 'PUT', { hand: { betrag, grund } }); rueckgaengig('Festgesetzter Betrag geändert', () => call('api/rechnungen/' + rid, 'PUT', { hand: alt })); } catch (er) { toast(er.message, true); }
+});
 /* Abzüge bei der Prüfung an/aus: je Auftrag (Voreinstellung) und je Rechnung */
 const ABZ = [['nachlass', 'Nachlass'], ['abzuege', 'Abzüge'], ['einbehalt', 'Einbehalt'], ['vorher', 'bisherige Zahlungen']];
 const abzAuftrag = () => Object.fromEntries(ABZ.map(([k]) => [k, !(L.vergabe.abzug && L.vergabe.abzug[k] === false)]));
@@ -3453,7 +3486,11 @@ function vRechnungen0() {
           return `<tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %${abw ? ` <span class="hint" style="color:#e07b3a">bei dieser Rechnung fest eingetragen – Auftrag: ${nf(soll, 2)} %</span>${g ? '' : ` <button type="button" class="ib" data-reb="ebAuftrag" data-id="${r.id}" title="Satz dieser Rechnung löschen – es gilt wieder die Sicherheit des Auftrags">wie Auftrag</button>`}` : ''}</td><td class="r">${eur(-c.einbehalt)}</td></tr>`; })()}
         <tr class="s"><td>= anerkannt${c.einzeln ? '' : ' (kumuliert)'}</td><td class="r">${eur(c.anerkannt)}</td></tr>
         ${c.einzeln ? '' : c.abzug && !c.abzug.vorher ? '<tr class="aus"><td>bisher anerkannt – bei dieser Rechnung nicht abgezogen (Achtung: Doppelzahlung bei kumulierten Rechnungen)</td><td class="r">–</td></tr>' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
-        <tr class="s"><td>= Zahlbetrag netto</td><td class="r">${eur(c.zahlung)}</td></tr>
+        ${c.hand ? `<tr class="mute"><td>rechnerisch ${c.frei ? '' : 'nach Aufmaß'}</td><td class="r"><s>${eur(c.hand.rechnerisch)}</s></td></tr>
+        <tr class="s re-hand"><td>= Zahlbetrag netto <span class="re-hand-t">von Hand festgesetzt</span>${g ? '' : ` <button type="button" class="ib" data-rehand0="${r.id}" title="Wieder den rechnerischen Betrag freigeben">✕ wieder rechnerisch</button>`}
+          <label class="re-hand-g">Grund: <input data-rehand="grund" data-id="${r.id}" value="${esc(c.hand.grund)}" placeholder="Pflicht: warum weicht der Betrag ab?"${dis}></label></td>
+          <td class="r"><input data-rehand="betrag" data-id="${r.id}" value="${nf(c.zahlung, 2)}" inputmode="decimal" style="width:8.5rem;text-align:right"${dis}><div class="re-hand-a">Abweichung ${eur(c.hand.abweichung)}</div></td></tr>`
+        : `<tr class="s"><td>= Zahlbetrag netto${g ? '' : ` <button type="button" class="ib" data-rehand1="${r.id}" title="Einen anderen Betrag freigeben als das Aufmaß ergibt – mit Grund, deutlich vermerkt">✎ Betrag von Hand</button>`}</td><td class="r">${eur(c.zahlung)}</td></tr>`}
         <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
         <tr class="s"><td>= Zahlbetrag brutto</td><td class="r">${eur(c.brutto)}</td></tr>
         ${c.skonto ? `<tr><td>– Skonto ${nf(c.skonto_pct, 2)} %${c.skonto_bis ? ` bei Zahlung bis <b>${de(c.skonto_bis)}</b>` : ''}</td><td class="r">${eur(-c.skonto)}</td></tr>

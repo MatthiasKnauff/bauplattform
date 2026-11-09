@@ -1076,17 +1076,24 @@ def rechne(lv, angebote, aufmass, rechnungen):
         kette = "nachtrag" if art == "nachtrag" else "haupt"
         vh = 0.0 if einzeln or not AW["vorher"] else vorher[kette]
         Z = L3 - vh
+        H = rd.get("hand") if isinstance(rd.get("hand"), dict) and rd["hand"].get("betrag") is not None else None
+        Zr = Z   # rechnerisch
+        if H:   # Freigabe netto von Hand festgesetzt – die nächste kumulierte Rechnung rechnet mit dem tatsächlich Freigegebenen weiter
+            Z = round(_f(H.get("betrag"), 0), 2)
+        dZ = Z - Zr
         R.append({"id": r["id"], "art": art, "leistung": round(L, 2), "nachlass": round(N, 2), "abzuege": round(abz, 2), "einbehalt_pct": eb_pct, "einbehalt": round(E, 2),
                   "anerkannt": round(L3, 2), "vorher": round(vh, 2), "zahlung": round(Z, 2), "mwst": round(Z * MWST / 100, 2),
                   "brutto": round(Z * (1 + MWST / 100), 2), "differenz": round((r["gefordert"] or 0) - L1, 2) if r["gefordert"] else None,
-                  "live": not g_, "frei": frei_, "einzeln": einzeln, "abzug": AW, **_skonto(V, rd, r, Z * (1 + MWST / 100))})
+                  "live": not g_, "frei": frei_, "einzeln": einzeln, "abzug": AW, "anerkannt_eff": round(L3 + dZ, 2),
+                  **({"hand": {"rechnerisch": round(Zr, 2), "abweichung": round(dZ, 2), "grund": H.get("grund") or ""}} if H else {}),
+                  **_skonto(V, rd, r, Z * (1 + MWST / 100))})
         if frei_:
             frei_summe += L
         if g_:
             if einzeln:
                 eb_regie += E
             else:
-                vorher[kette] = L3
+                vorher[kette] = L3 + dZ
                 eb_stand[kette] = E
     einbehalten = eb_stand["haupt"] + eb_stand["nachtrag"] + eb_regie
     leistung = stand_wert(am) + frei_summe / (1 - nl if nl < 1 else 1)
@@ -1097,7 +1104,7 @@ def rechne(lv, angebote, aufmass, rechnungen):
     return {"schaetzung": round(schaetz, 2), "ohne_schaetzung": ohne_s, "angebote": A, "auftrag": round(auftrag, 2),
             "nachtraege": {k: round(v, 2) for k, v in nt.items()}, "aufmass": {k: round(v, 4) for k, v in am.items()},
             "leistung": round(leistung * (1 - nl), 2), "rechnungen": R,
-            "abgerechnet": round(vorher["haupt"] + vorher["nachtrag"] + sum(x["anerkannt"] for x in R if not x["live"] and x.get("einzeln")), 2),
+            "abgerechnet": round(vorher["haupt"] + vorher["nachtrag"] + sum(x.get("anerkannt_eff", x["anerkannt"]) for x in R if not x["live"] and x.get("einzeln")), 2),
             "sicherheit": {"einbehalten": round(einbehalten, 2), "freigegeben": round(frei, 2), "offen": round(einbehalten - frei, 2), **S}}
 
 
@@ -4528,7 +4535,7 @@ def rechnung(k):
                 d.pop(k_, None)
             if not d.get("abzug_hand"):
                 d.pop("abzug", None)
-        elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug")):
+        elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug", "hand")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
         if isinstance(b.get("abzuege"), list):
             d["abzuege"] = [{"text": _s(z.get("text"), 200), "pct": _fn(z.get("pct")), "betrag": _fn(z.get("betrag"))} for z in b["abzuege"][:20] if isinstance(z, dict)]
@@ -4564,6 +4571,15 @@ def rechnung(k):
                 d["bezahlt"] = _s(b["bezahlt"], 10)
             else:
                 d.pop("bezahlt", None)
+        if "hand" in b and x["art"] != "sicherheit":   # Freigabe netto von Hand festsetzen (None: wieder rechnerisch) – Grund ist Pflicht
+            h_ = b["hand"]
+            if not h_:
+                d.pop("hand", None)
+            else:
+                gr = _s((h_ or {}).get("grund"), 500).strip() if isinstance(h_, dict) else ""
+                if not gr:
+                    return jsonify(error="Bitte einen Grund für den abweichenden Betrag angeben."), 400
+                d["hand"] = {"betrag": round(_f(h_.get("betrag"), 0), 2), "grund": gr, "von": C.full_name(g.user), "am": date.today().isoformat()}
         if "betrag" in b:   # Freigabe der Sicherheit
             d["betrag"] = round(_f(b["betrag"], 0, 0), 2)
         if b.get("grund") in ("austausch", "frist", "teil"):
@@ -4676,7 +4692,7 @@ def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None, a3=False
         from xml.sax.saxutils import escape
         return escape(str(s or "")).replace("\n", "<br/>")
 
-    def table(data, widths, num=(), bold=(), head=True, band=()):
+    def table(data, widths, num=(), bold=(), head=True, band=(), hand=()):
         t = Table(data, colWidths=widths, repeatRows=1 if head else 0, splitInRow=1)   # lange Langtexte dürfen über die Seite laufen
         st = [("FONT", (0, 0), (-1, -1), "Helvetica", 8.5), ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
               ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3), ("LINEBELOW", (0, 0), (-1, -1), 0.3, LINE)]
@@ -4688,6 +4704,8 @@ def _pdf(r, titel, sub, story_fn, quer=False, bereich=None, werte=None, a3=False
             st += [("FONT", (0, ri), (-1, ri), "Helvetica-Bold", 9), ("BACKGROUND", (0, ri), (-1, ri), BAND)]
         for ri in band:
             st += [("BACKGROUND", (0, ri), (-1, ri), BAND)]
+        for ri in hand:   # von Hand festgesetzter Betrag: deutlich markiert (orange Rahmen, heller Grund)
+            st += [("FONT", (0, ri), (-1, ri), "Helvetica-Bold", 9), ("BACKGROUND", (0, ri), (-1, ri), colors.HexColor("#FFF4E5")), ("BOX", (0, ri), (-1, ri), 1.2, colors.HexColor("#E07B3A"))]
         t.setStyle(TableStyle(st))
         return t
     with db.tx() as c:
@@ -5304,12 +5322,17 @@ def lv_pdf(i):
                     z.append(["geprüft und anerkannt netto" + ("" if RC.get("einzeln") else " (kumuliert)"), eur(RC["anerkannt"])])
                     if not RC.get("einzeln"):
                         z.append(["abzüglich bereits anerkannt", eur(-RC["vorher"])])
-                z += [["zur Zahlung freigegeben netto", eur(RC["zahlung"])], [f"zuzüglich Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])],
-                      ["zur Zahlung freigegeben brutto", eur(RC["brutto"])]]
+                HF = RC.get("hand"); hz = ()
+                if HF:
+                    z.append(["rechnerisch zur Zahlung", eur(HF["rechnerisch"])]); hz = (len(z),)
+                    z.append([Paragraph(f"<b>zur Zahlung freigegeben netto – abweichend festgesetzt</b><br/>Grund: {X(HF['grund'])}", S["p"]), f"{eur(RC['zahlung'])}\n({eur(HF['abweichung'])})"])
+                else:
+                    z.append(["zur Zahlung freigegeben netto", eur(RC["zahlung"])])
+                z += [[f"zuzüglich Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])], ["zur Zahlung freigegeben brutto", eur(RC["brutto"])]]
                 if RC.get("skonto"):
                     z += [[f"bei Zahlung bis {_de(RC['skonto_bis'])} abzüglich {num(RC['skonto_pct'], 2)} % Skonto" if RC.get("skonto_bis") else f"abzüglich {num(RC['skonto_pct'], 2)} % Skonto", eur(-RC["skonto"])],
                           ["Zahlbetrag brutto mit Skonto", eur(RC["brutto_skonto"])]]
-                story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - 1,) if not RC.get("skonto") else (len(z) - 3, len(z) - 1)))
+                story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - 1,) if not RC.get("skonto") else (len(z) - 3, len(z) - 1), hand=hz))
                 story += [Spacer(1, 3 * mm), Paragraph(f"Sicherheiten: einbehalten {eur(SK.get('einbehalten', 0))}, freigegeben {eur(SK.get('freigegeben', 0))}, "
                                                        f"noch einbehalten {eur(SK.get('offen', 0))}.", S["l"]), Spacer(1, 6 * mm),
                           Paragraph(("Die Rechnung wurde sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))}" if R["status"] == "geprueft" else "")
@@ -5370,7 +5393,12 @@ def lv_pdf(i):
                 z.append(["= anerkannt" + ("" if RC.get("einzeln") else " (kumuliert)"), eur(RC["anerkannt"])])
                 if not RC.get("einzeln"):
                     z.append(["- bisher anerkannt", eur(-RC["vorher"])])
-            z.append(["= Zahlbetrag netto", eur(RC["zahlung"])])
+            HF = RC.get("hand"); hz = ()
+            if HF:
+                z.append(["rechnerisch", eur(HF["rechnerisch"])]); hz = (len(z),)
+                z.append([Paragraph(f"<b>= Zahlbetrag netto – von Hand festgesetzt</b> (Abweichung {eur(HF['abweichung'])})<br/>Grund: {X(HF['grund'])}", S["p"]), eur(RC["zahlung"])])
+            else:
+                z.append(["= Zahlbetrag netto", eur(RC["zahlung"])])
             z.append([f"+ Umsatzsteuer {num(MWST, 0)} %", eur(RC["mwst"])])
             z.append(["= Zahlbetrag brutto", eur(RC["brutto"])])
             if RC.get("skonto"):
@@ -5378,7 +5406,7 @@ def lv_pdf(i):
                 z.append(["= Zahlbetrag brutto mit Skonto", eur(RC["brutto_skonto"])])
             if R["gefordert"]:
                 z.append([f"zum Vergleich: gefordert ({'netto' if RC.get('einzeln') else 'kumuliert netto'}) {eur(R['gefordert'])}", f"Differenz {eur(RC['differenz'])}"])
-            story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - (2 if R["gefordert"] else 1),)))
+            story.append(table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(len(z) - (2 if R["gefordert"] else 1),), hand=hz))
             story += [Spacer(1, 10 * mm), Paragraph(
                 ("Sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))} von {X(R['data'].get('geprueft_von'))}" if R["status"] == "geprueft" else " – Entwurf, Prüfung noch nicht abgeschlossen")) +
                 (f"<br/>Bemerkung: {X(R['notiz'])}" if R["notiz"] else ""), S["p"])]

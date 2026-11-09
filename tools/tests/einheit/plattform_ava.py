@@ -198,6 +198,27 @@ def test_abschlag_und_schlussrechnung_kumuliert():
     gleich(K["leistung"], 11409.00, "Leistungsstand laut Aufmaß")
 
 
+def test_zahlbetrag_von_hand_festgesetzt():
+    """Freigabe netto von Hand: zählt statt des rechnerischen Betrags; die nächste kumulierte Rechnung holt den Rückhalt nach."""
+    V = {"preise": AUFTRAG, "einbehalt": 5}
+    aufmass = [{"pos_id": "p1", "menge": 120}, {"pos_id": "p2", "menge": 300}]
+    r1 = _re(11, 1, status="geprueft", data={"stand": {"p1": 60, "p2": 100}, "einbehalt": 5, "hand": {"betrag": 4000, "grund": "Achse 3 nicht abgenommen"}})
+    r2 = _re(12, 2, art="schluss", data={"abzuege": [{"text": "Bauwesenversicherung", "pct": 0.3}]})
+    K = ava.rechne(_lv(ROHBAU, V), [], aufmass, [r1, r2])
+    a = _rc(K, 11)
+    # rechnerisch 4.528,65 (wie oben), von Hand 4.000,00 → Abweichung −528,65
+    gleich(a["zahlung"], 4000.00, "1. TR Zahlbetrag von Hand")
+    gleich(a["hand"]["rechnerisch"], 4528.65, "1. TR rechnerisch")
+    gleich(a["hand"]["abweichung"], -528.65, "1. TR Abweichung")
+    gleich(a["mwst"], 760.00, "1. TR USt auf den festgesetzten Betrag")
+    gleich(a["anerkannt"], 4528.65, "anerkannt bleibt rechnerisch (Anzeige)")
+    b = _rc(K, 12)
+    # Schluss: anerkannt 10.806,03; bisher tatsächlich freigegeben 4.000,00 → 6.806,03 (= 6.277,38 + nachgeholte 528,65)
+    gleich(b["vorher"], 4000.00, "SR bisher anerkannt = tatsächlich freigegeben")
+    gleich(b["zahlung"], 6806.03, "SR holt den Rückhalt nach")
+    gleich(K["abgerechnet"], 4000.00, "abgerechnet = tatsächlich freigegeben")
+
+
 def test_schlussrechnung_eigener_satz_maengel():
     """Schlussrechnung mit eigenem Einbehalt für Mängelansprüche (3 %) statt 5 % Vertragserfüllung."""
     V = {"preise": AUFTRAG, "einbehalt": 5, "sicherheit": {"ma": {"form": "einbehalt", "pct": 3}}}

@@ -22,6 +22,7 @@
 .kb{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;background:var(--card);border:1px solid var(--y);border-radius:12px;padding:.6rem .9rem;margin:0 0 .8rem}
 .kb b{font-size:1.05rem}.kb .mute{font-size:.88rem}
 .kb .x{margin-left:auto}
+.btn.zur{border-color:var(--red);color:var(--red);font-weight:600}.btn.zur:hover{background:color-mix(in srgb,var(--red) 12%,transparent)}
 .grid{display:grid;grid-template-columns:290px minmax(0,1fr);gap:1rem;align-items:start}
 .side{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.5rem 0;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
 .side h3{margin:.3rem .9rem .4rem;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600}
@@ -108,7 +109,7 @@ function zeichnen() {
   $('#chips').innerHTML = (D.arten || []).map((a) => `<button type="button" class="chip${F.arten.has(a.key) ? ' on' : ''}" data-art="${esc(a.key)}">${IC[a.key] || '✉️'} ${esc(a.name)} <small>${a.n}</small></button>`).join('')
     + `<label class="ck"><input type="checkbox" id="ich"${F.ich ? ' checked' : ''}> nur von mir</label>`;
   $('#kbox').innerHTML = K ? `<div class="kb"><span style="font-size:1.4rem">👤</span><span><b>${esc(K.name)}</b><br><span class="mute">${esc([K.ansprech, K.gewerk, K.email].filter(Boolean).join(' · '))}</span></span>
-    <span class="mute">${D.gesamt} Sendung${D.gesamt === 1 ? '' : 'en'}${KP ? ' in diesem Projekt' : ' in allen Projekten'}</span><button type="button" class="btn sm x" data-kx>✕ Zurück zur Übersicht</button></div>` : '';
+    <span class="mute">${D.gesamt} Sendung${D.gesamt === 1 ? '' : 'en'}${KP ? ' in diesem Projekt' : ' in allen Projekten'}</span><button type="button" class="btn sm x zur" data-kx title="Zurück zur Übersicht aller Sendungen">← Zurück zur Übersicht</button></div>` : '';
   // links: mit wem (Projekt/alle) bzw. in welchen Projekten (Kontakt)
   const side = $('#side');
   if (K) {

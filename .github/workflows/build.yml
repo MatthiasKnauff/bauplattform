@@ -158,6 +158,18 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      # Oberflächentests: jede App im echten Browser (PC und Handy) laden – ohne JavaScript-Fehler, ohne fehlende Dateien, siehe tools/tests/ui/oberflaeche.mjs
+      # Einführungsphase: ein Fehler hier hält den Stand noch nicht auf (continue-on-error), steht aber als Warnung am Lauf.
+      - name: Oberflächentests
+        if: success() || failure()
+        continue-on-error: true
+        env:
+          RT_ARTEFAKTE: ${{ runner.temp }}/artefakte
+        run: |
+          mkdir -p "$RUNNER_TEMP/ui" && cd "$RUNNER_TEMP/ui" && npm init -y >/dev/null && npm install --no-audit --no-fund playwright@1.63.0 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          NODE_PATH="$RUNNER_TEMP/ui/node_modules" node "$GITHUB_WORKSPACE/tools/tests/ui/oberflaeche.mjs" http://localhost:${PORTAL_PUBLISH:-8090} || { echo "::warning::Oberflächentests melden Fehler (siehe Schritt „Oberflächentests“)."; exit 1; }
+
       # Lasttest: 8 gleichzeitige Nutzer (Doppelte der Büro-Spitze) arbeiten 60 s, danach alle gleichzeitig Foto + PDF, siehe tools/lasttest.py
       - name: Lasttest
         run: python3 tools/lasttest.py http://localhost:${PORTAL_PUBLISH:-8090} 8 60

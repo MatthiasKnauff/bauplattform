@@ -53,7 +53,7 @@ main.ava{overflow-x:clip}   /* die Seite selbst rollt nie seitlich – breite Ta
 .nav .ni.on{background:color-mix(in srgb,var(--y) 22%,transparent);font-weight:600}
 .nav .ni small{margin-left:auto;color:var(--mute);font-size:var(--fs-s)}
 .nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
-.pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}.pane:has(.bp-feld,.au2){padding-bottom:0}   /* Felder rollen in sich: unten nur der schmale Rand */
+.pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}.pane:has(.bp-feld,.au2,.am-zwei,.am-b){padding-bottom:0}   /* Felder rollen in sich: unten nur der schmale Rand */
 .ph{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;padding:.45rem 0 .35rem;position:sticky;top:0;background:var(--bg);z-index:3}
 .ph-firma{margin:0 auto;padding:.2rem .9rem;border-radius:999px;background:var(--y);color:var(--on);font-weight:700;font-size:var(--fs-l);white-space:nowrap;max-width:40vw;overflow:hidden;text-overflow:ellipsis}.ph-firma small{font-weight:500;opacity:.85;margin-left:.4rem}   /* Auftragnehmer oben in der Mitte – auffällig statt klein im Baum */
 .ph b{font-size:var(--fs-l)}
@@ -582,6 +582,15 @@ tr.am-lf td input{color:#c0621f}
 .re2-baum .pj-r.root{font-weight:600;cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:6px}.re2-baum .pj-r.root .car{cursor:pointer}.re2-baum .pj-r.lv{padding-left:1.3rem}.re2-baum .pj-r.k{padding-left:2.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* im Feld rollt nur das Feld selbst – kein zweiter Scrollbalken darin */
+#view .am-box{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto;min-width:0;min-height:0;box-sizing:border-box}
+#view .am-box>.card,#view .am-box>.tblw{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}#view .am-box>*+*{border-top:1px solid var(--line)!important}
+#view .am-box table.lv th{position:sticky!important;top:0!important;z-index:2}
+.am-zwei{display:flex;min-height:0;margin-top:.5rem}.am-zwei>.am-tab{flex:none;width:var(--amw,46%);max-width:calc(100% - 280px)}.am-zwei>.am-det{flex:1}
+.am-sch,.am-sch-h{flex:none;display:flex;align-items:center;justify-content:center;touch-action:none}.am-sch{width:12px;cursor:ew-resize}.am-sch-h{height:12px;cursor:ns-resize}
+.am-sch::before,.am-sch-h::before{content:"";border-radius:2px;opacity:.55}.am-sch::before{width:3px;height:26px;background:repeating-linear-gradient(var(--mute) 0 2px,transparent 2px 4px)}.am-sch-h::before{height:3px;width:26px;background:repeating-linear-gradient(90deg,var(--mute) 0 2px,transparent 2px 4px)}
+.am-sch:hover::before,.am-sch-h:hover::before,.am-sch.on::before,.am-sch-h.on::before{opacity:1;filter:none;background-color:transparent}.am-sch:hover::before,.am-sch.on::before{background:repeating-linear-gradient(var(--y) 0 2px,transparent 2px 4px)}.am-sch-h:hover::before,.am-sch-h.on::before{background:repeating-linear-gradient(90deg,var(--y) 0 2px,transparent 2px 4px)}
+.am-l.am-b{display:flex;flex-direction:column;gap:0!important}.am-l.am-b>.am-oben{flex:none;height:var(--amh,55%)}.am-l.am-b>.am-det{flex:1}
+@media (max-width:1100px){.am-zwei{flex-direction:column;height:auto!important}.am-zwei>.am-tab{width:auto;max-width:none}.am-sch{display:none}.am-l.am-b{height:auto!important}.am-l.am-b>.am-oben{height:auto}.am-sch-h{display:none}}
 #view .bp-feld{overflow:auto!important;border:1px solid var(--line);border-radius:10px;background:var(--card);box-sizing:border-box}   /* Hauptfeld je Bereich: rollt in sich, unten 10 px Rand, Ecken rund */
 #view .bp-feld table.lv th,#view .bp-feld table.tree th{position:sticky!important;top:0!important;transform:none!important}
 #view .bp-feld .tblw{border:0;border-radius:0}
@@ -2783,7 +2792,7 @@ function vAmErfassen() {
       ${t.ep != null && ep != null && Math.abs(t.ep - ep) > 0.005 ? ` <span style="color:#e07b3a;font-weight:600">EP weicht vom Auftrag ab (${nf2(ep)})</span>` : ''}
       ${t.menge != null ? (Math.abs(diff) > 1e-6 ? ` <button class="btn sm" data-amueb="${amPos}" title="Differenz als Aufmaßzeile „lt. Firma“ eintragen">Menge der Firma übernehmen (${diff > 0 ? '+' : ''}${nf(diff)})</button>` : ' <span style="color:var(--ok);font-weight:600">✓ stimmt mit dem Aufmaß</span>') : ''}`}</div>`;
   const nav = `<div class="am-nav"><button class="btn sm" data-amstep="-1"${idx <= 0 ? ' disabled' : ''} title="vorige Position (Alt+↑)">◀ vorige</button><span class="hint">${idx + 1} von ${LI.length}</span><button class="btn sm pri" data-amstep="1"${idx < 0 || idx >= LI.length - 1 ? ' disabled' : ''} title="nächste Position (Alt+↓)">nächste ▶</button></div>`;
-  const detail = `<div class="card am-d"${B.length ? '' : ' style="position:sticky;top:8px"'}><div class="am-dk"><h3 style="margin:0 0 .2rem">${esc(x.oz)} ${esc(x.kurz)}</h3>${nav}</div>
+  const detail = `<div class="card am-d"><div class="am-dk"><h3 style="margin:0 0 .2rem">${esc(x.oz)} ${esc(x.kurz)}</h3>${nav}</div>
         <p class="hint" style="margin:0 0 .4rem">LV-Menge ${nf(x.menge)} ${esc(x.einheit)} · aufgemessen <b>${nf(sum)} ${esc(x.einheit)}</b>${x.menge ? ` (${Math.round(sum / x.menge * 100)} %)` : ''}${ep != null ? ` · ${eur(sum * ep)} zum Auftrags-EP ${nf2(ep)} €` : vergeben() ? '' : ' · noch nicht vergeben'}</p>${firma}
         <table class="lv am"><thead><tr><th style="width:8.5rem" title="Datum (📅 oder tippen, z. B. 8.11.) oder freier Text, z. B. Blatt 3, KW 45">Datum / Text</th><th>Ort / Bauteil</th><th>Rechenweg</th><th class="r">Menge</th><th></th></tr></thead><tbody>
         ${Z.map((a) => `<tr${a.quelle === 'beleg' ? ' class="am-lf" title="aus der PDF der Firma übernommen – prüfen"' : ''}><td class="am-dt"><input data-am="datum" data-id="${a.id}" value="${esc(amDatumZeig(a.datum))}" placeholder="Datum oder Text" title="Datum (z. B. 8.11.) oder freier Text (z. B. KW 45, Okt. 2026)" autocomplete="off"><button type="button" class="am-cal" data-amcal title="Datum aus dem Kalender wählen">📅</button></td><td><input data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
@@ -2799,10 +2808,18 @@ function vAmErfassen() {
       ${B.length && offen ? '<button class="btn sm" data-amueb="*" title="Für alle Positionen, bei denen die Firma mehr fordert als aufgemessen, die Differenz als Zeile „lt. Firma“ eintragen">Alle Mengen der Firma eintragen</button>' : ''}
 </div>`;
   if (!B.length) return `${kopf}<div class="am-zone" data-amdrop>${hoch}<span class="hint">oder hierher ziehen – sie erscheint rechts neben der Prüfung, erkannte Mengen werden gleich eingetragen${R && R.status !== 'geprueft' ? ` (zur ${esc(reTitel(R))})` : ' (legt eine neue Teilrechnung an)'}. Ohne PDF einfach hier prüfen.</span></div>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:1rem;align-items:start" class="amg">${tab_}${detail}</div>
-    <style>@media (max-width:900px){.amg{grid-template-columns:1fr!important}}</style>`;
-  return `${kopf}<div class="am-split" data-amdrop><div class="am-l">${amSummenKarte(R)}${amFehltKarte(R)}${amZeilenKarte(R)}${tab_}${detail}</div><div class="am-r" id="amPdfSlot"></div></div>`;
+    <div class="am-zwei"${LS.get('am.w', 0) ? ` style="--amw:${LS.get('am.w', 0)}px"` : ''}><div class="am-tab am-box">${tab_}</div><div class="am-sch" title="Breite ziehen · Doppelklick: Standard"></div><div class="am-det am-box">${detail}</div></div>`;   // Positionen links, Mengeneingabe rechts – Schieber dazwischen
+  return `${kopf}<div class="am-split" data-amdrop><div class="am-l am-b"${LS.get('am.h', 0) ? ` style="--amh:${LS.get('am.h', 0)}px"` : ''}><div class="am-oben am-box">${amSummenKarte(R)}${amFehltKarte(R)}${amZeilenKarte(R)}${tab_}</div><div class="am-sch-h" title="Höhe ziehen · Doppelklick: Standard"></div><div class="am-det am-box">${detail}</div></div><div class="am-r" id="amPdfSlot"></div></div>`;   // mit PDF: links Positionen über der Mengeneingabe
 }
+/* Aufmaß: Schieber zwischen Positionen und Mengeneingabe (ohne PDF waagerecht verschieben, mit PDF die Höhe) – gemerkt, Doppelklick = Standard */
+document.addEventListener('pointerdown', (e) => {
+  const g = e.target.closest && e.target.closest('.am-sch, .am-sch-h'); if (!g || e.button !== 0) return;
+  e.preventDefault(); g.setPointerCapture(e.pointerId); g.classList.add('on');
+  const quer = g.classList.contains('am-sch'), box = g.parentElement, a = g.previousElementSibling, r0 = box.getBoundingClientRect(), s0 = a.getBoundingClientRect();
+  g.onpointermove = (m) => { const v = quer ? Math.max(260, Math.min(r0.width - 280, s0.width + m.clientX - e.clientX)) : Math.max(120, Math.min(r0.height - 160, s0.height + m.clientY - e.clientY)); box.style.setProperty(quer ? '--amw' : '--amh', Math.round(v) + 'px'); };
+  g.onpointerup = () => { g.onpointermove = null; g.classList.remove('on'); const v = parseInt(box.style.getPropertyValue(quer ? '--amw' : '--amh'), 10) || 0; LS.set(quer ? 'am.w' : 'am.h', v); };
+});
+document.addEventListener('dblclick', (e) => { const g = e.target.closest && e.target.closest('.am-sch, .am-sch-h'); if (!g) return; const quer = g.classList.contains('am-sch'); g.parentElement.style.removeProperty(quer ? '--amw' : '--amh'); LS.set(quer ? 'am.w' : 'am.h', 0); });
 /* Geteilte Ansicht: Trennung verschiebbar (Breite gemerkt) oder die PDF als freies Fenster über der Seite (verschieben, Größe ziehen) */
 function teilung(sp, key, neuZeichnen) {
   if (!sp) return;
@@ -3129,7 +3146,7 @@ function amWeiter() {
   amPos = o.id; LS.set('amPos', amPos); render(); toast('Letzte Position – weiter mit der ersten noch offenen.'); fokus();
 }
 function amSichtbar() {   // aktive Zeile in der Positionsliste sichtbar halten – die Tabelle folgt beim Durchlaufen (Enter / nächste)
-  const z = document.querySelector('table.am tr.akt[data-ampos]'), w = z && z.closest('.tblw'); if (!w) return;
+  const z = document.querySelector('table.am tr.akt[data-ampos]'), w = z && (z.closest('.am-tab, .am-oben') || z.closest('.tblw')); if (!w) return;
   const kopf = w.querySelector('thead');
   if (w.scrollHeight > w.clientHeight + 2 && getComputedStyle(w).overflowY !== 'visible') {   // eigener Scrollbereich
     const a = z.offsetTop - (kopf ? kopf.offsetHeight : 0), b = z.offsetTop + z.offsetHeight;
@@ -4628,7 +4645,7 @@ function auHoehe() {
 }
 addEventListener('resize', () => requestAnimationFrame(auHoehe));
 /* Unten derselbe kleine Rand wie oben: die Bäume links (LV/Angebote/Rechnungen) enden 10 px über dem Fensterrand und rollen in sich */
-const FELDER = { lv: ['.re2-ed .lv-split > .lv-sl'], angebote: ['.re2-ed > .tblw'], aufmass: ['.re2-ed .am-split > .am-l'], rechnungen: ['.re2-ed .am-split > .am-l'],
+const FELDER = { lv: ['.re2-ed .lv-split > .lv-sl'], angebote: ['.re2-ed > .tblw'], rechnungen: ['.re2-ed .am-split > .am-l'],
   uebersicht: ['#view > .tblw'], tueren: ['.tl-w', '.tl-d'] };   // je Bereich das Feld, das in sich rollt (wie in Aufträge)
 function randUnten() {
   document.querySelectorAll('#view .re2-baum, #view .pj').forEach((el) => {
@@ -4647,6 +4664,9 @@ function randUnten() {
       for (let n = a.nextElementSibling; n; n = n.nextElementSibling) { const q = n.getBoundingClientRect(); if (q.height && q.top >= r.bottom - 2) nach += q.height + (parseFloat(getComputedStyle(n).marginTop) || 0); }
     }
     el.style.maxHeight = Math.max(240, Math.floor(innerHeight - (r.top + scrollY) - nach - 10)) + 'px';
+  });
+  document.querySelectorAll('#view .am-zwei, #view .am-l.am-b').forEach((el) => {   // Aufmaß: Positionen und Mengeneingabe füllen die Höhe bis 10 px über dem Rand
+    el.style.height = breit ? Math.max(320, Math.floor(innerHeight - (el.getBoundingClientRect().top + scrollY) - 10)) + 'px' : '';
   });
   document.querySelectorAll('#view .am-split > .am-r, #view .lv-split > .am-r').forEach((el) => {   // PDF daneben: gleich hoch, unten derselbe Rand
     if (!breit || el.closest('.frei') || el.parentElement.classList.contains('pdf-zu')) { el.style.height = ''; return; }

@@ -307,6 +307,7 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-dav
 .fm{display:grid;grid-template-columns:9rem 1fr;gap:.5rem .8rem;align-items:center}
 .fm .w{grid-column:1/-1}
 .fm input,.fm select,.fm textarea{width:100%;box-sizing:border-box}
+.fm>*{min-width:0}.fm .chk{display:flex;gap:.5rem;align-items:center;white-space:normal;text-align:left;padding:0}.fm .chk input{width:auto;flex:none;margin:0}
 .src{display:grid;gap:.35rem;margin:.6rem 0}
 .src label{display:flex;gap:.5rem;align-items:baseline}
 .kgs[hidden]{display:none}
@@ -5052,6 +5053,7 @@ function titelDialog(id) {
     } else { delete x.nt; delete x.nt_status; delete x.nt_grund; }
     ntErben(items()); HIST.next = `Gliederungspunkt ${x.oz || ''} ${x.kurz}`.trim(); close(); changed(true);
   });
+  { const md = bg.querySelector('.modal'); md.classList.add('fest'); Object.assign(md.style, { width: '', height: '', maxHeight: '' }); }   // feste Größe, nur verschiebbar
   bg.querySelector('#tiNt').addEventListener('change', (ev) => { ['tiNr', 'tiSt', 'tiG'].forEach((k) => { bg.querySelector('#' + k).disabled = !ev.target.checked; }); if (ev.target.checked && !bg.querySelector('#tiNr').value) bg.querySelector('#tiNr').value = 'NT' + ntNr(); });
   setTimeout(() => bg.querySelector('#tiK').focus(), 30);
 }

@@ -153,12 +153,12 @@ function dlgBeweglich(m) {
     if (r.h) { m.style.height = Math.min(innerHeight - 16, r.h) + 'px'; m.style.maxHeight = 'none'; }
   };
   const merken = (teil) => { if (!key()) return; try { localStorage.setItem(key(), JSON.stringify({ ...lesen(), ...teil })); } catch { /* egal */ } };
-  const holen = () => { const r = lesen(); if (innerWidth > 700 && (r.l != null || r.w)) setzen(r); };
+  const holen = () => { const r = lesen(); if (m.classList.contains('fest')) { delete r.w; delete r.h; } if (innerWidth > 700 && (r.l != null || r.w)) setzen(r); };   // .fest: feste Größe, nur verschiebbar
   if (kopf()) holen(); else setTimeout(holen, 0);
   m.addEventListener('pointerdown', (e) => {
     if (e.button > 0 || innerWidth <= 700) return;
     const r = m.getBoundingClientRect();
-    if (e.target === m && e.clientX > r.right - 20 && e.clientY > r.bottom - 20) {   // Ecke rechts unten: Größe ändern – nur dann wird die Größe gemerkt
+    if (e.target === m && e.clientX > r.right - 20 && e.clientY > r.bottom - 20 && !m.classList.contains('fest')) {   // Ecke rechts unten: Größe ändern – nur dann wird die Größe gemerkt
       const up = () => { removeEventListener('pointerup', up); const n = m.getBoundingClientRect();
         if (Math.abs(n.width - r.width) > 2 || Math.abs(n.height - r.height) > 2) merken({ w: Math.round(n.width), h: Math.round(n.height) }); };
       addEventListener('pointerup', up); return;

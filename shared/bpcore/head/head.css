@@ -573,16 +573,12 @@ html[data-fenster="mac"] :is(input:not([type="checkbox"]):not([type="radio"]),se
 html[data-fenster="mac"] :is(.bph-menu,.umenu,.bph-km){-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
 html[data-fenster="mac"] .bph-menu{background:color-mix(in srgb,#2a2a28 86%,transparent)}   /* Menüs der Kopfleiste sind immer dunkel – Milchglas in ihrer eigenen Farbe, sonst wird helle Schrift auf hellem Grund unlesbar */
 html[data-fenster="mac"] :is(.umenu,.bph-km){background:color-mix(in srgb,var(--card,#2d2f33) 86%,transparent)}
-/* Ampel (funktioniert: schließen · zusammenklappen · groß) – nur im Mac-Stil */
+/* drei Punkte in Akzentfarbe im Fenstertitel (reine Zierde, ohne Funktion) – nur im Mac-Stil */
 .bp-ampel{display:none}
-html[data-fenster="mac"] .bp-ampel{display:inline-flex;gap:8px;align-items:center;margin-right:.8rem;flex:none}
+html[data-fenster="mac"] .bp-ampel{display:inline-flex;gap:7px;align-items:center;margin-right:.8rem;flex:none;pointer-events:none}
 html[data-fenster="mac"] :is(.modal,.bph-dlg)>.bp-ampel{position:absolute;top:.85rem;left:.9rem;z-index:2}
 html[data-fenster="mac"] :is(.modal,.bph-dlg):has(>.bp-ampel){position:relative;padding-top:2.4rem}
-.bp-ampel button{all:unset;cursor:pointer;width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.3);display:grid;place-items:center;font:700 9px/1 system-ui;color:transparent}
-.bp-ampel [data-amp="zu"]{background:#ff5f57}.bp-ampel [data-amp="min"]{background:#febc2e}.bp-ampel [data-amp="max"]{background:#28c840}
-.bp-ampel:hover [data-amp="zu"]::after{content:'×';color:#4d0000}.bp-ampel:hover [data-amp="min"]::after{content:'−';color:#5a3d00}.bp-ampel:hover [data-amp="max"]::after{content:'+';color:#004d0a}
-.bp-min>:not(.mh):not(.bph-dh):not(.sr-fk):not(.bp-ampel){display:none!important}.bp-min{height:auto!important;min-height:0!important;resize:none!important}
-.bp-max{width:96vw!important;height:92vh!important;max-width:none!important;max-height:none!important;left:2vw!important;top:4vh!important}
+.bp-ampel i{width:10px;height:10px;border-radius:50%;background:var(--y,#d4f02a)}
 /* Zolly und das Ablagefeld folgen dem Stil: mit Verlauf/Glas/Mac die Kartenfarben statt Notizzettel-Gelb (sonst wäre der Text unlesbar) */
 html[data-verlauf]:not([data-verlauf=""]) .bph-zolli-bl,html[data-rahmen="glas"] .bph-zolli-bl,html[data-rahmen="mac"] .bph-zolli-bl,html[data-rahmen="verlauf"] .bph-zolli-bl{background-color:var(--card,#2d2f33);color:var(--ink,#f3f3f1);border-color:color-mix(in srgb,var(--y,#d4f02a) 55%,var(--line,#3b3e42))}
 html[data-rahmen="kantig"] .bph-zolli-bl{box-shadow:4px 4px 0 rgba(0,0,0,.45)}

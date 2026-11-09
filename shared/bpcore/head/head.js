@@ -417,27 +417,18 @@
     try { localStorage.setItem('bpStil', JSON.stringify(st)); } catch { /* egal */ }
   }
   H.stilAnwenden = stilAnwenden; H.STIL = STIL;
-  /* Fensterelemente „Mac-Stil“: die Ampel funktioniert – rot schließt (wie Esc bzw. ✕), gelb klappt auf die Titelzeile
-     zusammen, grün macht das Fenster groß (noch einmal: zurück). Gilt für alle Fenster aller Apps. */
+  /* Fensterelemente „Mac-Stil“: drei Punkte in Akzentfarbe im Fenstertitel – reine Zierde, ohne Funktion
+     (Schließen bleibt beim ✕ bzw. den Knöpfen). Gilt für alle Fenster aller Apps. */
   const FENSTER = '.modal, .bph-dlg, .sr-flo';
   function ampel(d) {
     if (d.querySelector(':scope > .bp-ampel, :scope > * > .bp-ampel')) return;
-    const a = document.createElement('span'); a.className = 'bp-ampel';
-    a.innerHTML = '<button type="button" data-amp="zu" title="Schließen" aria-label="Schließen"></button><button type="button" data-amp="min" title="Auf die Titelzeile zusammenklappen" aria-label="Zusammenklappen"></button><button type="button" data-amp="max" title="Groß / wieder normal" aria-label="Vergrößern"></button>';
+    const a = document.createElement('span'); a.className = 'bp-ampel'; a.setAttribute('aria-hidden', 'true');
+    a.innerHTML = '<i></i><i></i><i></i>';
     const kopf = d.querySelector(':scope > .mh, :scope > .bph-dh, :scope > .sr-fk');
     if (kopf) kopf.prepend(a); else d.prepend(a);
   }
   function ampelnSetzen() { if (document.documentElement.dataset.fenster !== 'mac') return; document.querySelectorAll(FENSTER).forEach(ampel); }
   try { new MutationObserver(() => ampelnSetzen()).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-fenster'] }); } catch { /* egal */ }
-  document.addEventListener('click', (e) => {
-    const b = e.target.closest && e.target.closest('.bp-ampel [data-amp]'); if (!b) return;
-    e.preventDefault(); e.stopPropagation();
-    const d = b.closest(FENSTER); if (!d) return;
-    if (b.dataset.amp === 'min') { d.classList.toggle('bp-min'); return; }
-    if (b.dataset.amp === 'max') { d.classList.toggle('bp-max'); d.classList.remove('bp-min'); return; }
-    const x = d.querySelector('[data-sra="an"], .bph-x, .mx, [data-kclose], [data-m="x"], [data-m="abbr"]');   // vorhandenes Schließen benutzen
-    if (x) x.click(); else d.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-  }, true);
   try { stilAnwenden(JSON.parse(localStorage.getItem('bpStil') || '{}')); } catch { /* egal */ }
   /* Ansicht „Einfach“ oder „Profi“ – je Benutzer (Mein Konto), Vorgabe des Büros. Apps fragen H.einfach() und zeigen ihre
      Einfach-Startansicht; CSS blendet Profi-Teile über html[data-modus="einfach"] aus. */

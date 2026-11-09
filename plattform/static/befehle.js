@@ -60,5 +60,16 @@
     if (f && !f.disabled) { const fn = FN[+f.dataset.bffn]; if (fn) fn(e); }
     document.querySelectorAll('.bf-pop:not([hidden])').forEach((p) => { if (!p.contains(e.target)) p.hidden = true; });
   });
+  /* Mitte zu schmal (Kacheln ausgeblendet): beim Drüberfahren rollt darunter die ganze Reihe auf – zum Lesen, ohne Klick */
+  let AUF = null, aufT = 0;
+  const zu = () => { clearTimeout(aufT); aufT = setTimeout(() => { if (AUF) { AUF.remove(); AUF = null; } }, 220); };
+  document.addEventListener('mouseover', (e) => {
+    const t = e.target.closest && e.target.closest('.bf-mitte, .bf-auf'); if (!t) { if (AUF) zu(); return; }
+    clearTimeout(aufT); if (t.classList.contains('bf-auf') || AUF) return;
+    const q = t.firstElementChild; if (!q || !q.querySelector('.bf-weg')) return;   // alles sichtbar: nichts aufzurollen
+    const r = t.getBoundingClientRect(), k = q.cloneNode(true); k.removeAttribute('id'); k.querySelectorAll('.bf-weg').forEach((x) => x.classList.remove('bf-weg'));
+    AUF = document.createElement('div'); AUF.className = 'bf-auf'; AUF.appendChild(k); document.body.appendChild(AUF);
+    Object.assign(AUF.style, { left: Math.max(8, r.left) + 'px', top: (r.bottom + 2) + 'px', maxWidth: Math.max(r.width, Math.min(innerWidth - r.left - 16, 640)) + 'px' });
+  });
   window.befehle = befehle;
 })();

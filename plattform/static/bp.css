@@ -141,7 +141,9 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bf-g{display:flex;flex-direction:column;flex:none;padding:0 .45rem;border-right:1px solid var(--line)}.bf-g:last-of-type,.bf-g:has(+ .bf-mehr:not([hidden])),.bf-g:has(+ .bf-sp){border-right:0}
 .bf-sp{flex:1;min-width:.5rem}
 .bf-mitte{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 .4rem;border-right:1px solid var(--line)}   /* füllt die Mitte (z. B. Kennzahlen), gibt als Erstes Platz ab */
-.bf-mitte:has(+ .bf-g.r){border-right:0}.bf-mitte .bf-weg{display:none!important}.bf-g.r{border-left:1px solid var(--line);border-right:0}
+.bf-mitte:has(+ .bf-g.r){border-right:0}.bf-mitte .bf-weg{display:none!important}
+.bf-auf{position:fixed;z-index:85;padding:.4rem;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 12px 30px rgba(0,0,0,.35));animation:bf-auf .14s ease-out}.bf-auf>*{flex-wrap:wrap!important;overflow:visible!important;max-width:none!important}
+@keyframes bf-auf{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}.bf-g.r{border-left:1px solid var(--line);border-right:0}
 .bf-ks{display:flex;align-items:center;gap:.1rem;flex:1}
 .bf-gt{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);text-align:center;white-space:nowrap;line-height:1.2;padding-top:.05rem}
 .bf-k{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.05rem;min-width:2.6rem;padding:.2rem .45rem;border-radius:calc(7px*var(--rk,1));color:var(--ink);font-size:var(--fs-s2,.8rem);white-space:nowrap;line-height:1.15}

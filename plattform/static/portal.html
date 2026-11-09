@@ -19,20 +19,18 @@
 .tile .ic{grid-row:1/3;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--af,var(--y)) 13%,transparent);color:var(--af,var(--y))}
 .tile .ic svg{width:24px;height:24px}
 .tile b{font-size:1rem;line-height:1.2;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
-/* Kacheln anordnen (✎) */
 .hello{position:relative}
-.ordnen{position:absolute;right:0;top:.1rem;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:999px;width:44px;height:44px;cursor:pointer;font-size:1.35rem;line-height:1}
-.ordnen:hover,.ordnen.on{color:var(--y);border-color:var(--y)}
-.ordnen.on{background:var(--y);color:var(--on)}
-.tiles.edit .tile{cursor:grab;border-style:dashed;user-select:none;-webkit-user-select:none;touch-action:none}
+.tile{position:relative}.tile .kx{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--mute);font-size:.72rem;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .12s;box-shadow:0 1px 4px rgba(0,0,0,.2);padding:0}
+.tile:hover .kx,.tile:focus-within .kx{opacity:1}.tile .kx:hover{color:var(--red);border-color:var(--red)}@media (hover:none){.tile .kx{opacity:.45;top:4px;right:4px;border:0;box-shadow:none;background:transparent}}
+.tile.kadd{display:flex;align-items:center;justify-content:center;gap:.3rem;border:2px dashed var(--line);background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer;min-height:62px}.tile.kadd:hover{border-color:var(--y);color:var(--y)}.tile.kadd small{font-weight:400}
+.tiles:not(.edit) .tile[data-key]{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.tiles.touchzieh,.tiles.edit{touch-action:none}
+.tiles.edit .tile{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}.tiles.edit .tile .kx{display:none}
 .tiles.edit .tile:hover{transform:none}
 .tiles.edit .tile.zieh{opacity:.35}
 .tiles.edit .tile.ziel{border-color:var(--y);border-style:solid}
 .tile.leer{visibility:hidden;min-height:62px}
 .tiles.edit .tile.leer{visibility:visible;background:transparent;border:1px dashed color-mix(in srgb,var(--line) 70%,transparent);cursor:default}
 .tiles.edit .tile.leer.ziel{border:2px dashed var(--y);background:color-mix(in srgb,var(--y) 8%,transparent)}
-.ordnen-h{grid-column:1/-1;color:var(--mute);font-size:.85rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
-.ordnen-h button{border:0;background:none;color:var(--y);cursor:pointer;font:inherit;padding:0;text-decoration:underline}
 .tile span.d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* unten: links Post, rechts To-dos – zusammen so breit wie die Kacheln */
 .unten{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.8rem;align-items:start}
@@ -86,7 +84,7 @@ html[data-modus="einfach"] .ein{display:grid;grid-template-columns:repeat(4,minm
 @media (max-width:980px){html[data-modus="einfach"] .ein{grid-template-columns:1fr 1fr}}
 @media (max-width:520px){html[data-modus="einfach"] .ein{grid-template-columns:1fr}.ein a{min-height:0}}
 html[data-modus="einfach"] .hello p{font-size:1.05rem}
-html[data-modus="einfach"] #ordnen{display:none}
+
 html[data-modus="einfach"] main.wrap{display:flex;flex-direction:column}
 html[data-modus="einfach"] #tiles{order:5;margin:1.6rem 0 0;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:.45rem}
 html[data-modus="einfach"] #tiles::before{content:"Alle Apps";grid-column:1/-1;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600}
@@ -98,7 +96,7 @@ html[data-modus="einfach"] .foot{order:6}
 </head>
 <body>
 <main class="wrap">
-  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="ordnen" id="ordnen" title="Startseite anpassen: Kacheln anordnen, Blöcke ein-/ausblenden" aria-haspopup="menu" aria-pressed="false">✎</button></div>
+  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="tiles" id="tiles"></div>
   <div class="unten"><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section><div id="desk" class="desk" aria-label="Schreibtisch: To-dos, Hinweise, Erinnerungen"></div></div>
@@ -121,67 +119,84 @@ const DESC = {
   admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
   papierkorb: ['Papierkorb', 'Gelöschtes aus allen Apps – wiederherstellen oder endgültig löschen.'],
 };
-/* ---------- Kacheln: eigene Reihenfolge (✎ – ziehen und ablegen, auch mit dem Finger) ---------- */
-let APPS = [], REIHE = [], ORDNEN = false;
-/* Plätze im Raster: REIHE enthält App-Schlüssel und '' für leere Felder (Lücken bleiben stehen) */
+/* ---------- Kacheln: direkt mit der Maus (oder lange drücken am Handy) verschieben, ✕ blendet aus, „＋ App“ holt zurück ---------- */
+let APPS = [], REIHE = [], ORDNEN = false;   // ORDNEN: nur während des Ziehens (zeigt leere Felder zum Ablegen)
+/* REIHE: App-Schlüssel, '' für leere Felder (Lücken bleiben stehen), '-schlüssel' für ausgeblendete Kacheln */
+const wegK = () => new Set(REIHE.filter((k) => k && k[0] === '-').map((k) => k.slice(1)));
 function plaetze() {
-  const da = new Set(APPS.map((a) => a.key)), S = REIHE.map((k) => (da.has(k) ? k : '')), dabei = new Set(S);
-  APPS.forEach((a) => { if (!dabei.has(a.key)) S.push(a.key); });
+  const da = new Set(APPS.map((a) => a.key)), weg = wegK(), S = REIHE.filter((k) => !k || k[0] !== '-').map((k) => (da.has(k) && !weg.has(k) ? k : '')), dabei = new Set(S);
+  APPS.forEach((a) => { if (!dabei.has(a.key) && !weg.has(a.key)) S.push(a.key); });
   while (S.length && !S[S.length - 1]) S.pop();
   return S;
 }
 function kachelnZeigen() {
-  const S = plaetze(), A = Object.fromEntries(APPS.map((a) => [a.key, a]));
+  const S = plaetze(), A = Object.fromEntries(APPS.map((a) => [a.key, a])), weg = wegK();
   $('#tiles').innerHTML = S.map((k, i) => !k ? `<div class="tile leer" data-i="${i}" aria-hidden="true"></div>` : ((a) => `
     <a class="tile ${a.allowed ? '' : 'off'}" data-i="${i}" data-key="${esc(a.key)}" data-af="${esc(a.key)}" href="${a.key === 'papierkorb' ? 'papierkorb' : esc(appUrl(a)) + '/'}"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
-      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`)(A[k])).join('')
-    + (ORDNEN ? '<div class="ordnen-h">Kacheln auf eine andere Kachel (tauschen) oder ein leeres Feld ziehen – auch neben oder unter die anderen. <button type="button" data-ord="fertig">Fertig</button><button type="button" data-ord="zurueck">Ursprüngliche Reihenfolge</button></div>' : '');
+      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span><button type="button" class="kx" data-kx="${esc(a.key)}" title="Kachel ausblenden (über „＋ App“ wieder holen)" aria-label="${esc(DESC[a.key][0])} ausblenden">✕</button></a>`)(A[k])).join('')
+    + (ORDNEN ? '' : `<button type="button" class="tile kadd" data-kadd title="Ausgeblendete Kacheln wieder zeigen">＋ App${weg.size ? ` <small>(${weg.size})</small>` : ''}</button>`);
   $('#tiles').classList.toggle('edit', ORDNEN);
-  if (ORDNEN) {   // leere Felder bis zum Zeilenende und eine ganze Zeile darunter zum Ablegen
+  if (ORDNEN) {   // während des Ziehens: leere Felder bis zum Zeilenende und eine ganze Zeile darunter zum Ablegen
     const T = $('#tiles'), sp = getComputedStyle(T).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
-    const n = S.length + ((sp - S.length % sp) % sp) + sp, h = T.querySelector('.ordnen-h');
-    for (let i = S.length; i < n; i++) { const d = document.createElement('div'); d.className = 'tile leer'; d.dataset.i = i; T.insertBefore(d, h); }
+    const n = S.length + ((sp - S.length % sp) % sp) + sp;
+    for (let i = S.length; i < n; i++) { const d = document.createElement('div'); d.className = 'tile leer'; d.dataset.i = i; T.appendChild(d); }
   }
 }
 async function reiheSpeichern(r) { REIHE = r; try { await api('api/bp/kacheln', 'PUT', { reihenfolge: r }); } catch (e) { toast(e.message, true); } }
-function ordnen(an) { ORDNEN = an; const b = $('#ordnen'); b.classList.toggle('on', an); b.setAttribute('aria-pressed', an); b.textContent = an ? '✓' : '✎'; b.title = an ? 'Anordnen beenden' : 'Startseite anpassen: Kacheln anordnen, Blöcke ein-/ausblenden'; kachelnZeigen(); }
-$('#ordnen').addEventListener('click', (e) => {   // ✎: Kacheln anordnen oder die Blöcke rechts (To-dos, Erinnerungen …) ein-/ausblenden
-  if (ORDNEN) { ordnen(false); return; }
-  pickMenu(e.currentTarget, { items: [
-    { value: 'kacheln', title: 'Kacheln anordnen', sub: 'App-Kacheln ziehen und ablegen' },
-    { value: 'bloecke', title: 'Blöcke ein- und ausblenden …', sub: 'To-dos, Erinnerungen und Hinweise rechts – verschieben am ⋮⋮' },
-  ], onPick: (v) => { if (v === 'kacheln') ordnen(true); else if (typeof ueBloeckeDialog === 'function') ueBloeckeDialog(); } });
-});
 $('#tiles').addEventListener('click', async (e) => {
-  const o = e.target.closest('[data-ord]'); if (o) { if (o.dataset.ord === 'fertig') ordnen(false); else { await reiheSpeichern([]); kachelnZeigen(); } return; }
-  if (ORDNEN && e.target.closest('.tile')) e.preventDefault();   // beim Anordnen nicht in die App springen
+  const x = e.target.closest('[data-kx]');
+  if (x) { e.preventDefault(); e.stopPropagation(); const k = x.dataset.kx, alt = REIHE.slice();
+    await reiheSpeichern([...plaetze(), ...[...wegK()].map((w) => '-' + w), '-' + k].map((y) => (y === k ? '' : y))); kachelnZeigen();
+    rueckgaengig(`„${DESC[k][0]}“ ausgeblendet`, async () => { await reiheSpeichern(alt); kachelnZeigen(); }); return; }
+  const ad = e.target.closest('[data-kadd]');
+  if (ad) { const weg = [...wegK()];
+    if (!weg.length) { toast('Alle Kacheln sind schon zu sehen.'); return; }
+    pickMenu(ad, { items: weg.filter((k) => DESC[k]).map((k) => ({ value: k, title: DESC[k][0], sub: DESC[k][1] })), onPick: async (k) => {
+      const S = plaetze(), frei = S.indexOf(''); if (frei >= 0) S[frei] = k; else S.push(k);
+      await reiheSpeichern([...S, ...weg.filter((w) => w !== k).map((w) => '-' + w)]); kachelnZeigen(); } });
+    return; }
+  if (SPERRE) { e.preventDefault(); SPERRE = false; }   // nach dem Ziehen nicht in die App springen
 });
-(() => {   // Ziehen mit Maus, Stift und Finger (Pointer-Events – geht auch auf dem iPhone)
-  let zieh = null, geist = null, dx = 0, dy = 0;
+let SPERRE = false;
+(() => {   // Ziehen ohne Bearbeiten-Modus: Maus ab 6 px Bewegung, Finger nach langem Drücken (sonst rollt die Seite)
+  let zieh = null, geist = null, dx = 0, dy = 0, start = null, lang = 0;
   const T = $('#tiles');
+  const los = (e) => {
+    ORDNEN = true; const key = start.t.dataset.key; kachelnZeigen();
+    zieh = T.querySelector(`.tile[data-key="${CSS.escape(key)}"]`); if (!zieh) return;
+    const r = zieh.getBoundingClientRect(); dx = start.x - r.left; dy = start.y - r.top;
+    geist = zieh.cloneNode(true); Object.assign(geist.style, { position: 'fixed', left: (e.clientX - dx) + 'px', top: (e.clientY - dy) + 'px', width: r.width + 'px', height: r.height + 'px', pointerEvents: 'none', zIndex: 60, boxShadow: '0 10px 30px rgba(0,0,0,.3)', opacity: '.95' });
+    document.body.appendChild(geist); zieh.classList.add('zieh'); try { T.setPointerCapture(start.id); } catch { /* egal */ }
+    if (navigator.vibrate && e.pointerType === 'touch') navigator.vibrate(15);
+  };
   T.addEventListener('pointerdown', (e) => {
-    const t = ORDNEN && e.target.closest('.tile:not(.leer)'); if (!t || e.button > 0) return;
-    e.preventDefault(); zieh = t; const r = t.getBoundingClientRect(); dx = e.clientX - r.left; dy = e.clientY - r.top;
-    geist = t.cloneNode(true); Object.assign(geist.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', pointerEvents: 'none', zIndex: 60, boxShadow: '0 10px 30px rgba(0,0,0,.3)', opacity: '.95' });
-    document.body.appendChild(geist); t.classList.add('zieh'); T.setPointerCapture(e.pointerId);
+    const t = e.target.closest('.tile[data-key]'); if (!t || e.button > 0 || e.target.closest('[data-kx]')) return;
+    start = { t, x: e.clientX, y: e.clientY, id: e.pointerId, typ: e.pointerType };
+    if (e.pointerType === 'touch') { clearTimeout(lang); lang = setTimeout(() => { if (start) { T.classList.add('touchzieh'); los(e); } }, 450); }
   });
   T.addEventListener('pointermove', (e) => {
-    if (!zieh) return;
+    if (!start) return;
+    if (!zieh) { if (start.typ === 'touch') { if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) { clearTimeout(lang); start = null; } return; }
+      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return; los(e); if (!zieh) return; }
+    e.preventDefault();
     geist.style.left = (e.clientX - dx) + 'px'; geist.style.top = (e.clientY - dy) + 'px';
-    const unter = document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.classList && x.classList.contains('tile') && x !== zieh && x !== geist);
+    const unter = document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.classList && x.classList.contains('tile') && x.dataset.i != null && x !== zieh && x !== geist);
     T.querySelectorAll('.ziel').forEach((x) => x.classList.remove('ziel'));
     if (unter) unter.classList.add('ziel');
   });
   const ende = () => {
-    if (!zieh) return; const z = T.querySelector('.ziel'), von = +zieh.dataset.i;
-    zieh.classList.remove('zieh'); geist.remove(); zieh = null;
-    if (!z) return;
+    clearTimeout(lang); T.classList.remove('touchzieh');
+    if (!zieh) { start = null; return; }
+    const z = T.querySelector('.ziel'), von = +zieh.dataset.i;
+    zieh.classList.remove('zieh'); geist.remove(); zieh = null; start = null; ORDNEN = false; SPERRE = true; setTimeout(() => { SPERRE = false; }, 400);
+    if (!z) { kachelnZeigen(); return; }
     const S = [...T.querySelectorAll('[data-i]')].map((x) => x.dataset.key || ''), nach = +z.dataset.i;
     [S[von], S[nach]] = [S[nach], S[von]];   // tauschen bzw. auf das leere Feld setzen – die alte Stelle bleibt leer
     while (S.length && !S[S.length - 1]) S.pop();
-    reiheSpeichern(S); kachelnZeigen();
+    reiheSpeichern([...S, ...[...wegK()].map((w) => '-' + w)]); kachelnZeigen();
   };
   T.addEventListener('pointerup', ende); T.addEventListener('pointercancel', ende);
+  T.addEventListener('contextmenu', (e) => { if (start && start.typ === 'touch') e.preventDefault(); });
 })();
 /* ---------- Post zu meinen Projekten: einmal am Tag aus den Postfächern, mit Vorschlägen für Erinnerungen ---------- */
 let POST = null, POSTALLE = false, POSTLAEUFT = false, POSTAUSOFFEN = false;
@@ -312,9 +327,8 @@ function einfachZeigen(conf) {
     { key: 'post', label: 'Posteingang', render: (host) => { BPHead.postfaecher({ into: host, nachSpeichern: () => postStart() }); } },
     { key: 'todo', label: 'To-dos', render: (host) => { tdEinstellungen(host); } },
     { key: 'kacheln', label: 'Kacheln', render: (host) => {
-      host.innerHTML = `<p class="bph-mu">Die Reihenfolge der App-Kacheln stellst du direkt auf der Startseite ein: rechts oben auf <b>✎</b> klicken und die Kacheln an die gewünschte Stelle ziehen. Sie gilt auf allen deinen Geräten.</p>
-        <div class="bph-row"><button type="button" class="bph-btn pri" data-k1>✎ Jetzt anordnen</button><button type="button" class="bph-btn" data-k2${REIHE.length ? '' : ' disabled'}>Ursprüngliche Reihenfolge</button></div>`;
-      host.querySelector('[data-k1]').onclick = () => { BPHead.einstellungenSchliessen(); ordnen(true); };
+      host.innerHTML = `<p class="bph-mu">Die App-Kacheln ziehst du direkt auf der Startseite an die gewünschte Stelle (am Handy: lange drücken). Das ✕ oben rechts an einer Kachel blendet sie aus, „＋ App“ holt sie zurück. Gilt auf allen deinen Geräten.</p>
+        <div class="bph-row"><button type="button" class="bph-btn" data-k2${REIHE.length ? '' : ' disabled'}>Ursprüngliche Reihenfolge, alle Kacheln zeigen</button></div>`;
       host.querySelector('[data-k2]').onclick = async () => { await reiheSpeichern([]); kachelnZeigen(); BPHead.einstellungenSchliessen(); toast('Ursprüngliche Reihenfolge wiederhergestellt.'); };
     } },
   ]);
@@ -341,7 +355,7 @@ function einfachZeigen(conf) {
       B.push({ k: 'zeiten', name: 'Zeiten', n: O.length, rot: O.length > 0, max: 5, link: zl(''), linkText: 'Mein Tag ›', leer: 'alles bestätigt',
         items: [`<a class="ue-r" href="${esc(zl(''))}" style="text-decoration:none;color:inherit"><span class="ue-t">Heute${H.abw ? '' : H.kommen ? ' seit ' + esc(H.kommen) : ''}<small>${H.abw ? 'abwesend' : 'bisher ' + hm(H.arbeit) + ' h von ' + hm(H.soll) + ' h'}</small></span></a>`]
           .concat(O.map((t) => `<a class="ue-r" href="${esc(zl(t))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(dk(t))} – noch nicht bestätigt<small>Vorschläge prüfen und bestätigen</small></span><span class="ue-d rot">offen</span></a>`)) }); }
-    ueRender(host, B);   // ⚙ Blöcke steckt auf der Startseite im ✎ oben
+    ueRender(host, B);   // ✕ am Widget blendet aus, „＋ Widget hinzufügen“ holt zurück
     if (TD) tdZeigen();
   }
   const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); if (POSTWEG && TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== POSTWEG.alt.id); tdZeigen(); } deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen; ein gerade „nicht nötiges“ To-do bleibt weg

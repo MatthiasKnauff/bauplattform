@@ -387,7 +387,7 @@ function ueInit(key, lade) { UE.key = key; UE.order = ueLS.get('order', []); UE.
 const ueSort = (B) => { const pos = (k) => { const i = UE.order.indexOf(k); return i < 0 ? 1e3 : i; }; return B.slice().sort((a, b) => pos(a.k) - pos(b.k)); };
 function ueBlockHtml(b) {
   const [ic, farbe] = BLK_IC[b.k] || b.ic || ['•', '#777'], max = UE.mehr.has(b.k) ? 1e9 : (b.max || 5), items = b.items || [], rest = items.length - Math.min(items.length, max);
-  return `<section class="ue-b${b.breit ? ' w2' : ''}" data-blk="${esc(b.k)}" draggable="true"><h3><span class="ue-ic" style="background:${farbe}">${ic}</span>${esc(b.name)}<span class="ue-n${b.rot ? ' rot' : ''}">${b.n || 0}</span><span class="ue-grip" title="Block verschieben">⋮⋮</span></h3>
+  return `<section class="ue-b${b.breit ? ' w2' : ''}" data-blk="${esc(b.k)}" draggable="true"><h3><span class="ue-ic" style="background:${farbe}">${ic}</span>${esc(b.name)}<span class="ue-n${b.rot ? ' rot' : ''}">${b.n || 0}</span><span class="ue-grip" title="Widget verschieben: ziehen (am Handy lange drücken)">⋮⋮</span><button type="button" class="ue-x" data-uex="${esc(b.k)}" title="Widget ausblenden (über „＋ Widget hinzufügen“ wieder holen)" aria-label="${esc(b.name)} ausblenden">✕</button></h3>
     ${b.html || ''}${items.length ? items.slice(0, max).join('') : b.html ? '' : `<p class="mute ue-leer">${esc(b.leer || 'nichts offen 🎉')}</p>`}
     ${rest > 0 ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">alle ${items.length} anzeigen ›</button>` : UE.mehr.has(b.k) && items.length > (b.max || 5) ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">weniger</button>` : ''}
     ${b.ziel ? `<button type="button" class="ue-mehr" data-uetab="${esc(b.ziel)}">${esc(b.zielText || 'zum Reiter ›')}</button>` : ''}${b.link ? `<a class="ue-mehr" href="${esc(b.link)}">${esc(b.linkText || 'alle ›')}</a>` : ''}${b.mehr ? `<span class="mute ue-leer">${esc(b.mehr)}</span>` : ''}</section>`;
@@ -397,15 +397,24 @@ function ueRender(host, B, opts = {}) {
   UE._B = B;
   const sicht = ueSort(B).filter((b) => !UE.weg.includes(b.k));
   host.innerHTML = (opts.vor || '') + (opts.top ? `<div class="ue-top">${opts.alle ? `<label class="chk" title="Auch Erledigtes, Abgelaufenes und Zurückgestelltes in den Blöcken zeigen"><input type="checkbox" data-uealle${UE.alle ? ' checked' : ''}> erledigte / abgelaufene anzeigen</label>` : ''}<span class="mute" style="font-size:.85rem">Blöcke am ⋮⋮ verschieben</span><span class="fill"></span><button type="button" class="btn sm" data-uebloecke>⚙ Blöcke</button></div>` : '')
-    + `<div class="ue-grid${opts.cols === 2 ? ' zwei' : ''}">${sicht.map(ueBlockHtml).join('')}</div>${opts.fehler ? `<div class="fehler">${opts.fehler.map(esc).join('<br>')}</div>` : ''}`;
+    + `<div class="ue-grid${opts.cols === 2 ? ' zwei' : ''}">${sicht.map(ueBlockHtml).join('')}${opts.plus === false ? '' : `<button type="button" class="ue-add" data-ueadd>＋ Widget hinzufügen${UE.weg.filter((k) => B.some((x) => x.k === k)).length ? ` <small>(${UE.weg.filter((k) => B.some((x) => x.k === k)).length} ausgeblendet)</small>` : ''}</button>`}</div>${opts.fehler ? `<div class="fehler">${opts.fehler.map(esc).join('<br>')}</div>` : ''}`;
 }
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-uealle]')) { UE.alle = e.target.checked; ueLS.set('alle', UE.alle); UE.lade && UE.lade(); } });
 document.addEventListener('click', (e) => {
   const m = e.target.closest && e.target.closest('[data-uemehr]'); if (m) { if (UE.mehr.has(m.dataset.uemehr)) UE.mehr.delete(m.dataset.uemehr); else UE.mehr.add(m.dataset.uemehr); UE.lade && UE.lade(); return; }
+  const x = e.target.closest && e.target.closest('[data-uex]');
+  if (x) { const k = x.dataset.uex, alt = UE.weg.slice(), n = ((UE._B || []).find((y) => y.k === k) || {}).name || 'Widget';
+    UE.weg = [...UE.weg.filter((y) => y !== k), k]; ueLS.set('weg', UE.weg); UE.lade && UE.lade();
+    rueckgaengig(`„${n}“ ausgeblendet`, () => { UE.weg = alt; ueLS.set('weg', UE.weg); UE.lade && UE.lade(); }); return; }
+  const ad = e.target.closest && e.target.closest('[data-ueadd]');
+  if (ad) { const weg = (UE._B || []).filter((y) => UE.weg.includes(y.k));
+    pickMenu(ad, { items: weg.map((y) => ({ value: y.k, title: y.name, sub: y.n ? y.n + ' offen' : '' })), empty: 'Alle Widgets sind schon zu sehen.',
+      onPick: (k) => { UE.weg = UE.weg.filter((y) => y !== k); UE.order = [...UE.order.filter((y) => y !== k), k]; ueLS.set('weg', UE.weg); ueLS.set('order', UE.order); UE.lade && UE.lade(); } });
+    return; }
   const b = e.target.closest && e.target.closest('[data-uebloecke]'); if (!b) return;
   ueBloeckeDialog();
 });
-/* Blöcke ein-/ausblenden, Reihenfolge zurücksetzen (⚙ Blöcke; auf der Startseite über ✎) */
+/* Blöcke ein-/ausblenden, Reihenfolge zurücksetzen (⚙ Blöcke in „Aufgaben & Mängel“) */
 function ueBloeckeDialog() {
   const alle = UE._B || [];
   modalBox(`<h3>Blöcke</h3><p class="mute" style="margin:0 0 .6rem">Ausgeblendete Blöcke lassen sich hier jederzeit wieder einblenden.</p>${alle.map((x) => `<label class="chk" style="display:flex;gap:.5rem;padding:.25rem 0"><input type="checkbox" data-ueblk="${esc(x.k)}"${UE.weg.includes(x.k) ? '' : ' checked'}> ${esc(x.name)} <small class="mute">${x.n || 0}</small></label>`).join('')}
@@ -421,6 +430,28 @@ document.addEventListener('drop', (e) => { if (!UEZ) return; const b = e.target.
   const order = [...document.querySelectorAll('.ue-b')].map((x) => x.dataset.blk).filter((k) => k !== UEZ); const i = order.indexOf(b.dataset.blk); const r = b.getBoundingClientRect(); order.splice(e.clientX > r.left + r.width / 2 || e.clientY > r.top + r.height / 2 ? i + 1 : i, 0, UEZ);
   UE.order = [...order, ...UE.order.filter((k) => !order.includes(k))]; ueLS.set('order', UE.order); UEZ = null; UE.lade && UE.lade(); });
 document.addEventListener('dragend', () => { UEZ = null; document.querySelectorAll('.ue-b.zieh,.ue-b.ziel').forEach((x) => x.classList.remove('zieh', 'ziel')); });
+(() => {   // Handy: Widget am Kopf lange drücken und ziehen (HTML5-Drag geht dort nicht)
+  let st = null, lang = 0, geist = null, dx = 0, dy = 0;
+  document.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') return; const h = e.target.closest && e.target.closest('.ue-b h3'); if (!h || e.target.closest('.ue-x')) return;
+    const b = h.closest('.ue-b'); st = { b, x: e.clientX, y: e.clientY }; clearTimeout(lang);
+    lang = setTimeout(() => { if (!st) return; const r = b.getBoundingClientRect(); dx = st.x - r.left; dy = st.y - r.top;
+      geist = b.cloneNode(true); geist.classList.add('tzieh'); Object.assign(geist.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', maxHeight: '40vh', overflow: 'hidden' });
+      document.body.appendChild(geist); b.classList.add('zieh'); UEZ = b.dataset.blk; if (navigator.vibrate) navigator.vibrate(15); }, 450); }, true);
+  document.addEventListener('pointermove', (e) => { if (!st) return;
+    if (!geist) { if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) { clearTimeout(lang); st = null; } return; }
+    e.preventDefault(); geist.style.left = (e.clientX - dx) + 'px'; geist.style.top = (e.clientY - dy) + 'px';
+    document.querySelectorAll('.ue-b.ziel').forEach((x) => x.classList.remove('ziel'));
+    const z = document.elementsFromPoint(e.clientX, e.clientY).map((x) => x.closest && x.closest('.ue-b')).find((x) => x && x !== geist && x.dataset.blk !== UEZ); if (z) z.classList.add('ziel'); }, { passive: false });
+  document.addEventListener('touchmove', (e) => { if (geist) e.preventDefault(); }, { passive: false });
+  const ende = () => { clearTimeout(lang); if (!geist) { st = null; return; }
+    const z = document.querySelector('.ue-b.ziel'); geist.remove(); geist = null; st = null;
+    document.querySelectorAll('.ue-b.zieh,.ue-b.ziel').forEach((x) => x.classList.remove('zieh', 'ziel'));
+    if (z) { const order = [...document.querySelectorAll('.ue-grid .ue-b')].map((x) => x.dataset.blk).filter((k) => k !== UEZ); order.splice(order.indexOf(z.dataset.blk), 0, UEZ);
+      UE.order = [...order, ...UE.order.filter((k) => !order.includes(k))]; ueLS.set('order', UE.order); UE.lade && UE.lade(); }
+    UEZ = null; };
+  document.addEventListener('pointerup', ende, true); document.addEventListener('pointercancel', ende, true);
+  document.addEventListener('contextmenu', (e) => { if (st || geist) e.preventDefault(); }, true);
+})();
 (() => { const st = document.createElement('style'); st.textContent = `.ue-top{display:flex;align-items:center;gap:1rem;margin:0 0 .8rem;flex-wrap:wrap}.ue-top .fill{flex:1}
 .ue-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem;align-items:start}
 .ue-b{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.6rem .8rem .5rem;min-width:0;position:relative}.ue-b.w2{grid-column:span 2}
@@ -428,6 +459,10 @@ document.addEventListener('dragend', () => { UEZ = null; document.querySelectorA
 .ue-ic{width:24px;height:24px;border-radius:7px;display:inline-grid;place-items:center;color:#fff;font-size:.72rem;font-weight:700;flex:none}
 .ue-n{margin-left:auto;background:var(--hov);border-radius:999px;padding:0 .5rem;font-size:.78rem;color:var(--mute)}.ue-n.rot{background:var(--red);color:#fff}
 .ue-grip{color:var(--mute);letter-spacing:-2px;font-size:.95rem;opacity:.6}
+.ue-x{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--mute);font-size:.72rem;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .12s;box-shadow:0 1px 4px rgba(0,0,0,.2);padding:0;z-index:2}
+.ue-b:hover .ue-x,.ue-b:focus-within .ue-x{opacity:1}.ue-x:hover{color:var(--red);border-color:var(--red)}@media (hover:none){.ue-x{opacity:.45;top:4px;right:4px;border:0;box-shadow:none;background:transparent}}
+.ue-add{border:2px dashed var(--line);border-radius:12px;background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer;min-height:64px;padding:.6rem}.ue-add:hover{border-color:var(--y);color:var(--y)}.ue-add small{font-weight:400}
+.ue-b h3{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.ue-b.tzieh{position:fixed;z-index:60;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 .ue-b.zieh{opacity:.45}.ue-b.ziel{outline:2px dashed var(--y);outline-offset:2px}
 .ue-r{display:flex;gap:.6rem;align-items:baseline;padding:.3rem 0;border-top:1px dashed var(--line);cursor:pointer}.ue-r:first-of-type{border-top:0}.ue-r:hover{background:var(--hov)}
 .ue-r .ue-t{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ue-r .ue-t small{display:block;color:var(--mute);font-size:.78rem;overflow:hidden;text-overflow:ellipsis}

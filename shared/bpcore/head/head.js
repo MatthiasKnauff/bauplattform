@@ -1081,7 +1081,38 @@
   };
   const tagDe = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
   /* Projektdaten (Bauherr, Projekt, Termine) – aus Verwaltung, AVA und Baukosten dieselbe Maske */
+  /* Projekt löschen (nur Administratoren): ankreuzen, aus welchen Apps – angekreuzte Teile kommen in den Papierkorb (Startseite), der Rest bleibt.
+     Derselbe Ablauf wie in der Verwaltung → Projekte. */
+  H.projektLoeschen = async function (pid, fertig) {
+    let T; try { T = await KX(`api/bp/projekt/${pid}/teile`); } catch (e) { bpHinweis(e.message); return; }
+    const opts = [['bt', T.bt.id, `<b>Bautagebuch-Projekt</b><small>mit ${T.bt.reports} Tagesberichten und ${T.bt.images} Fotos – dazu gehören auch LVs, Aufgaben und Pläne dieses Projekts</small>`],
+      ...T.plans.map((x) => ['plan', x.id, `<b>Bauzeitenplan „${esc(x.name)}“</b><small>mit ${x.versions} gespeicherten Versionen</small>`]),
+      ...T.bks.map((x) => ['bk', x.id, `<b>Kostenermittlung „${esc(x.name)}“</b><small>mit Raumbuch, Schätzungen und ${x.files} Plänen (PDF)</small>`])];
+    const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
+    bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Projekt löschen" style="width:min(520px,96vw)"><div class="bph-dh"><b>Aus welchen Apps löschen?</b><button type="button" class="bph-x" data-lx aria-label="Schließen">✕</button></div><div class="bph-db">
+      <p class="bph-mu" style="margin-top:0">„${esc(T.name)}“ – angekreuzte Teile kommen in den Papierkorb (Startseite) und lassen sich dort wiederherstellen, alles andere bleibt.</p>
+      <div class="bph-ldl">${opts.map(([, , l], n) => `<label><input type="checkbox" data-ln="${n}"><span>${l}</span></label>`).join('')}</div>
+      <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-lx>Abbrechen</button><button type="button" class="bph-btn bph-bad" data-lok disabled>🗑 In den Papierkorb</button></div></div></div>`;
+    document.body.appendChild(bg);
+    const sel = () => [...bg.querySelectorAll('[data-ln]:checked')].map((c) => opts[+c.dataset.ln]);
+    bg.addEventListener('change', () => { bg.querySelector('[data-lok]').disabled = !sel().length; });
+    bg.addEventListener('click', async (e) => {   // daneben klicken schließt nicht
+      if (e.target.closest('[data-lx]')) { bg.remove(); return; }
+      const ok = e.target.closest('[data-lok]'); if (!ok) return;
+      const S = sel(); if (!S.length) return;
+      ok.disabled = true; ok.textContent = 'Lösche …';
+      try {
+        const r = await KX(`api/bp/projekt/${pid}/loeschen`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bt: S.some((o) => o[0] === 'bt'), plans: S.filter((o) => o[0] === 'plan').map((o) => o[1]), bks: S.filter((o) => o[0] === 'bk').map((o) => o[1]) }) });
+        bg.remove();
+        const t = 'Im Papierkorb: ' + r.done.join(', ') + (r.errors.length ? ' – Fehler: ' + r.errors.join('; ') : '');
+        if (window.toast) toast(t, !!r.errors.length); else bpHinweis(t);
+        if (S.some((o) => o[0] === 'bt') && H.projekt && H.projekt.id === +pid) { H.projekt = null; try { await KX('api/bp/projekt', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: null }) }); } catch { /* egal */ } }
+        if (fertig) fertig(r); else setTimeout(() => location.reload(), 1200);
+      } catch (er) { ok.disabled = false; ok.textContent = '🗑 In den Papierkorb'; bpHinweis(er.message); }
+    });
+  };
   H.projektDaten = async function (pid, basis, opt = {}) {
+    if (!opt.onDelete && H.me && H.me.is_admin) opt = { ...opt, onDelete: (P) => H.projektLoeschen(P.id) };   // Administratoren: „In den Papierkorb …“ auch hier
     const url = (basis || '') + `api/bp/projekt/${pid}/daten`;
     const B = (basis || '') + (H.app === 'bautagebuch' ? 'api/' : 'api/bp/bt/');
     const J = (u, m, b) => KX(B + u, m ? { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined } : {});

@@ -524,3 +524,6 @@ tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAcht
 .bph-htoast{position:fixed;right:16px;top:64px;z-index:2147482000;display:flex;gap:.7rem;align-items:center;max-width:min(440px,calc(100vw - 32px));background:#1c1c1a;color:#f4f3ef;border-left:4px solid #e5322d;border-radius:12px;padding:.65rem .8rem;box-shadow:0 10px 30px rgba(0,0,0,.4);font:14px/1.35 Ubuntu,"Segoe UI",system-ui,sans-serif}
 .bph-htoast span{flex:1}.bph-htoast small{display:block;opacity:.7}.bph-htoast .bph-btn.pri{background:#f4f3ef;color:#111;border-color:#f4f3ef}
 @media (max-width:700px){.bph-hk{grid-template-columns:1fr}.bph-hc{min-height:0}.bph-lb{grid-template-columns:1fr;grid-template-rows:1fr 40%}.bph-lc{border-left:0;border-top:1px solid var(--line,#3b3e42)}}
+.bph-ldl{display:flex;flex-direction:column;gap:.5rem;margin:.4rem 0}
+.bph-ldl label{display:flex;gap:.6rem;align-items:flex-start;border:1px solid var(--line,#3b3e42);border-radius:8px;padding:.55rem .7rem;cursor:pointer}
+.bph-ldl label small{display:block;opacity:.7;font-size:.85em}.bph-ldl input{margin-top:.25rem}

@@ -8,7 +8,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import briefbogen, db, layout, papierkorb, platform, schrift, sso, versionen
+from bpcore import briefbogen, db, layout, papierkorb, platform, projektteile, schrift, sso, versionen
 import common as C
 
 app = C.make_app(__name__)
@@ -430,33 +430,10 @@ def project_create_bt():
 
 @app.post("/api/projects/delete")
 def project_delete():
-    """Teile eines Projekts löschen – je App getrennt wählbar."""
+    """Teile eines Projekts löschen – je App getrennt wählbar (derselbe Ablauf wie im Dialog „Projekt bearbeiten“, bpcore.projektteile)."""
     b = request.get_json(silent=True) or {}
-    done, errors = [], []
-    with db.tx() as c:
-        for x in [str(v)[:80] for v in (b.get("plans") or [])][:50]:
-            r = c.execute("SELECT name FROM gantt_projects WHERE id=?", (x,)).fetchone()
-            if r:
-                c.execute("DELETE FROM gantt_presence WHERE gantt_id=?", (x,))
-                papierkorb.ablegen(c, "gantt_projects", x, "Bauzeitenplan", r["name"], g.user["name"], "", "gantt")   # mit Verlauf
-                done.append(f"Bauzeitenplan „{r['name']}“")
-        for x in [int(v) for v in (b.get("bks") or []) if isinstance(v, int)][:200]:
-            r = c.execute("SELECT name FROM bk_projects WHERE id=?", (x,)).fetchone()
-            if r:
-                papierkorb.ablegen(c, "bk_projects", x, "Kostenermittlung", r["name"], g.user["name"], "", "baukosten")   # mit Plänen (PDF)
-                done.append(f"Kostenermittlung „{r['name']}“")
     bt = b.get("bt")
-    if isinstance(bt, int):
-        with db.tx() as c:
-            r = c.execute("SELECT name FROM projects WHERE id=?", (bt,)).fetchone()
-        if r:
-            try:
-                _bt("DELETE", f"/api/projects/{bt}")
-                done.append(f"Bautagebuch-Projekt „{r['name']}“ mit Berichten und Fotos")
-            except RuntimeError as e:
-                errors.append(str(e))
-    for d in done:
-        C.audit(g.user["name"], "verwaltung", "Gelöscht", d)
+    done, errors = projektteile.loeschen(request, g.user["name"], b.get("plans") or [], b.get("bks") or [], bt if isinstance(bt, int) else None)
     if errors and not done:
         return jsonify(error="; ".join(errors)), 502
     return jsonify(ok=True, done=done, errors=errors)

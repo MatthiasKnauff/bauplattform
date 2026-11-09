@@ -28,7 +28,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, hilfe, konto, mail, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, hilfe, konto, mail, papierkorb, projektteile, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -237,6 +237,33 @@ def blueprint(get_user=None):
         if not daten:
             return jsonify(error="Kein Bild"), 404
         return Response(daten, mimetype=typ, headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})
+
+    # ---------- Projekt löschen (Dialog „Projekt bearbeiten“ in jeder App – derselbe Ablauf wie in der Verwaltung, nur Administratoren) ----------
+    @bp.get("/api/bp/projekt/<int:pid>/teile")
+    def projekt_teile(pid):
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Projekte löschen dürfen nur Administratoren."), 403
+        with db.tx() as c:
+            t = projektteile.teile(c, pid)
+        return jsonify(t) if t else (jsonify(error="Projekt nicht gefunden."), 404)
+
+    @bp.post("/api/bp/projekt/<int:pid>/loeschen")
+    def projekt_loeschen(pid):
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Projekte löschen dürfen nur Administratoren."), 403
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            t = projektteile.teile(c, pid)
+        if not t:
+            return jsonify(error="Projekt nicht gefunden."), 404
+        erlaubt_p, erlaubt_k = {x["id"] for x in t["plans"]}, {x["id"] for x in t["bks"]}   # nur Teile dieses Projekts
+        done, errors = projektteile.loeschen(request, u["name"], [x for x in (b.get("plans") or []) if x in erlaubt_p],
+                                             [x for x in (b.get("bks") or []) if x in erlaubt_k], pid if b.get("bt") else None)
+        if errors and not done:
+            return jsonify(error="; ".join(errors)), 502
+        return jsonify(ok=True, done=done, errors=errors)
 
     @bp.post("/api/bp/bug")
     def bug_melden():

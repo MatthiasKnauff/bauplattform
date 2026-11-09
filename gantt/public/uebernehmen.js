@@ -59,7 +59,7 @@
   }
   // Gewerke-Angaben ohne Firmen (Unternehmerbezeichnung, DIN bleiben; Firma, Vergabe, Kontakt nicht)
   const ohneFirmen = (tr) => Object.fromEntries(Object.entries(tr || {}).map(([gw, v]) => [gw, Object.fromEntries(Object.entries(v || {}).filter(([k]) => ['craft', 'din', 'extra'].includes(k)))]));
-  const firmenFrage = (n) => `<div class="ub-q" style="margin-top:.6rem;border:1px solid var(--line,#ccc);border-radius:8px;padding:.5rem .7rem">
+  const firmenFrage = (n) => `<div class="ub-q" style="margin-top:.6rem;border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem">
       <b>Firmen (Unternehmer)?</b>
       <label class="cb"><input type="radio" name="ubF" value="0" checked> leer lassen – Firmen trage ich ein, sobald vergeben ist</label>
       <label class="cb"><input type="radio" name="ubF" value="1"> aus ${n} übernehmen – nur, wenn dieselben Firmen bauen</label></div>`;
@@ -149,7 +149,7 @@
       const top = T.map((t, i) => ({ t, i })).filter(({ t }) => (t.lvl || 0) === 0);
       const anz = (i) => { let n = 0; const l0 = T[i].lvl || 0; for (let j = i + 1; j < T.length && (T[j].lvl || 0) > l0; j++) if (!(T[j + 1] && T[j + 1].lvl > T[j].lvl)) n++; return n; };
       box.innerHTML = top.length ? `<div class="hint" style="margin-bottom:.3rem">Abschnitte aus „${E(SRC.name)}“ <button type="button" class="btn sm" data-uball>alle</button> <button type="button" class="btn sm" data-ubnone>keine</button></div>
-        <div style="max-height:46vh;overflow:auto;border:1px solid var(--line,#ccc);border-radius:8px;padding:.4rem .6rem">${top.map(({ t, i }) => { const n = anz(i);
+        <div style="max-height:46vh;overflow:auto;border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));padding:.4rem .6rem">${top.map(({ t, i }) => { const n = anz(i);
           return `<label class="cb" style="display:flex;gap:.4rem;padding:.15rem 0"><input type="checkbox" data-ubg="${i}"> <span><b>${E(t.name)}</b>${n ? ` <small class="hint">${n} Leistung${n > 1 ? 'en' : ''}</small>` : t.gw ? ` <small class="hint">${E(t.gw)}</small>` : ''}</span></label>`; }).join('')}</div>`
         : '<p class="hint">Dieser Plan hat keine Leistungen.</p>';
     });

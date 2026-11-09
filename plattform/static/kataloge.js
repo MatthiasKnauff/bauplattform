@@ -10,7 +10,7 @@ window.KatalogeEinst = async function katalogeEinst(host, o = {}) {
   const aus = new Set(LSA.get());
   const mb = (k) => k.art === 'import' || k.art === 'avakatalog';
   host.innerHTML = `<p class="bph-mu">Alle Kataloge der Baudaten. Ausgeblendete erscheinen nicht in der Auswahl oben (gilt für diesen Browser). sirAdos-Kataloge (*.ava) stehen auch in der Ausschreibung als Kopierquelle zur Verfügung.</p>
-    ${S.kataloge.map((k) => `<div style="border:1px solid var(--line);border-radius:10px;padding:.6rem .8rem;margin:.45rem 0;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+    ${S.kataloge.map((k) => `<div style="border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.6rem .8rem;margin:.45rem 0;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
       <label style="display:flex;gap:.4rem;align-items:center;margin:0" title="In der Katalogauswahl anzeigen"><input type="checkbox" data-kzeig="${esc(k.key)}"${aus.has(k.key) ? '' : ' checked'} style="width:auto"></label>
       <div style="flex:1;min-width:13rem"><b>${esc(k.name)}</b><br><span class="bph-mu" style="margin:0">${esc(KAT_ART[k.art] || k.art)} · ${k.n.toLocaleString('de-DE')} ${k.key === 'gk3e' ? 'Elemente' : 'Positionen'}${k.preisstand ? ' · Preisstand ' + esc(k.preisstand) : ''}${k.index_basis && k.key !== 'gk3' ? ' · Index ' + String(k.index_basis).replace('.', ',') : ''}${k.lizenz ? ' · ' + esc(k.lizenz) : ''}</span></div>
       ${S.admin && mb(k) ? `<button type="button" class="bph-btn" data-kren="${esc(k.key)}">Umbenennen</button><button type="button" class="bph-btn" data-kweg="${esc(k.key)}">Löschen</button>` : ''}</div>`).join('')}

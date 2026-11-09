@@ -10,13 +10,13 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:1180px;margin:0 auto;padding:1.4rem 1.2rem 4rem}
 h1{font-size:1.45rem;margin:.2rem 0 .3rem}h2{font-size:1.1rem;margin:1.6rem 0 .6rem}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;margin:.8rem 0}
-.drop{border:2px dashed var(--line);border-radius:12px;padding:2.2rem 1rem;text-align:center;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:1rem 1.2rem;margin:.8rem 0}
+.drop{border:2px dashed var(--line);border-radius:calc(12px*var(--rk,1));padding:2.2rem 1rem;text-align:center;cursor:pointer}
 .drop.on{border-color:var(--y);background:var(--hov)}
-.bar{height:8px;border-radius:99px;background:var(--tabs);overflow:hidden;margin:.6rem 0}.bar i{display:block;height:100%;background:var(--y);width:0;transition:width .3s}
+.bar{height:8px;border-radius:calc(99px*var(--rkp,1));background:var(--tabs);overflow:hidden;margin:.6rem 0}.bar i{display:block;height:100%;background:var(--y);width:0;transition:width .3s}
 table{border-collapse:collapse;width:100%;font-size:.88rem}th,td{border-bottom:1px solid var(--line);padding:.35rem .45rem;text-align:left;vertical-align:top}
 th{color:var(--mute);font-weight:500;position:sticky;top:0;background:var(--card)}td.r,th.r{text-align:right;white-space:nowrap}
-.tag{display:inline-block;font-size:.75rem;border-radius:99px;padding:.05rem .5rem;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.tag{display:inline-block;font-size:.75rem;border-radius:calc(99px*var(--rkp,1));padding:.05rem .5rem;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
 .tag.ok{border-color:var(--ok);color:var(--ok)}.tag.y{border-color:var(--y);color:var(--y)}
 .hw{color:#e0a03a;font-size:.82rem;margin:.15rem 0 0}.hw li{margin:.1rem 0}
 .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem 1.2rem}

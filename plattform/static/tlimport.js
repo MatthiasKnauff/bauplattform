@@ -253,7 +253,7 @@
 .tli-map label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tli-map select{font-size:.82rem;padding:.2rem .3rem;width:100%}
 .tli-sum{margin:0 0 .4rem}.tli-sum .tli-nw{padding:.1rem .5rem;font-size:.84rem}.tli-sum .tli-nw:not(.pri){color:var(--red,#c0392b);border-color:var(--red,#c0392b)}.tli-sum .w,.tli-v .w{color:var(--red,#c0392b)}
-.tli-v{max-height:58vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.tli-v{max-height:58vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))}
 .tli-v table{border-collapse:collapse;width:100%;font-size:.84rem}
 .tli-v th{position:sticky;top:0;background:var(--tabs,var(--card));text-align:left;padding:.3rem .4rem;font-weight:500}
 .tli-v td{padding:.25rem .4rem;border-top:1px solid var(--line);vertical-align:top}

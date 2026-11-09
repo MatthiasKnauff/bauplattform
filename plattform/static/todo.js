@@ -332,7 +332,7 @@ async function tdEinstellungen(host) {
   const zeichnen = () => {
     host.innerHTML = `<p class="bph-mu">Die To-do-Liste der Startseite zeigt deine eigenen Aufgaben und – je nach Einstellung – Aufgaben, die die Plattform selbst aus den Daten der Apps erkennt. Die Einstellungen gelten für das ganze Büro; „für wen“ legt fest, wer die Aufgaben sieht.</p>`
       + R.regeln.map((r0) => { const r = C[r0.key], o = offen.has(r.key);
-        return `<div style="border:1px solid var(--line);border-radius:10px;padding:.55rem .7rem;margin:.45rem 0" data-rk="${r.key}">
+        return `<div style="border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.55rem .7rem;margin:.45rem 0" data-rk="${r.key}">
           <div style="display:flex;gap:.6rem;align-items:center"><label class="bph-ck" style="flex:1;margin:0"><input type="checkbox" data-rf="an"${r.an ? ' checked' : ''}> <b>${esc(r.name)}</b></label>
             <small class="bph-mu" style="margin:0">${r.an ? `${r.fuer === 'alle' ? 'alle Benutzer' : r.fuer.length === 1 && r.fuer[0] === R.ich ? 'nur ich' : r.fuer.length + ' Person(en)'} · ${r.projekte === 'meine' ? 'eigene Projekte' : r.projekte === 'alle' ? 'alle Projekte' : r.projekte.length + ' Projekt(e)'}` : 'aus'}</small>
             <button type="button" class="bph-btn" data-rf="mehr" style="padding:.15rem .55rem">${o ? '▴' : '▾'}</button></div>
@@ -454,15 +454,15 @@ document.addEventListener('dragend', () => { UEZ = null; document.querySelectorA
 })();
 (() => { const st = document.createElement('style'); st.textContent = `.ue-top{display:flex;align-items:center;gap:1rem;margin:0 0 .8rem;flex-wrap:wrap}.ue-top .fill{flex:1}
 .ue-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem;align-items:start}
-.ue-b{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.6rem .8rem .5rem;min-width:0;position:relative}.ue-b.w2{grid-column:span 2}
+.ue-b{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.6rem .8rem .5rem;min-width:0;position:relative}.ue-b.w2{grid-column:span 2}
 .ue-b h3{margin:0 0 .4rem;font-size:.95rem;display:flex;align-items:center;gap:.5rem;cursor:grab}.ue-b h3:active{cursor:grabbing}
-.ue-ic{width:24px;height:24px;border-radius:7px;display:inline-grid;place-items:center;color:#fff;font-size:.72rem;font-weight:700;flex:none}
-.ue-n{margin-left:auto;background:var(--hov);border-radius:999px;padding:0 .5rem;font-size:.78rem;color:var(--mute)}.ue-n.rot{background:var(--red);color:#fff}
+.ue-ic{width:24px;height:24px;border-radius:calc(7px*var(--rk,1));display:inline-grid;place-items:center;color:#fff;font-size:.72rem;font-weight:700;flex:none}
+.ue-n{margin-left:auto;background:var(--hov);border-radius:calc(999px*var(--rkp,1));padding:0 .5rem;font-size:.78rem;color:var(--mute)}.ue-n.rot{background:var(--red);color:#fff}
 .ue-grip{color:var(--mute);letter-spacing:-2px;font-size:.95rem;opacity:.6}
 .ue-x{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--mute);font-size:.72rem;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .12s;box-shadow:0 1px 4px rgba(0,0,0,.2);padding:0;z-index:2}
 .ue-b:hover .ue-x,.ue-b:focus-within .ue-x{opacity:1}.ue-x:hover{color:var(--red);border-color:var(--red)}@media (hover:none){.ue-x{opacity:.45;top:4px;right:4px;border:0;box-shadow:none;background:transparent}}
-.ue-add{border:2px dashed var(--line);border-radius:12px;background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer;min-height:64px;padding:.6rem}.ue-add:hover{border-color:var(--y);color:var(--y)}.ue-add small{font-weight:400}
-.ue-b h3{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.ue-b.tzieh{position:fixed;z-index:60;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.ue-add{border:2px dashed var(--line);border-radius:calc(12px*var(--rk,1));background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer;min-height:64px;padding:.6rem}.ue-add:hover{border-color:var(--y);color:var(--y)}.ue-add small{font-weight:400}
+.ue-b h3{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.ue-b.tzieh{position:fixed;z-index:60;pointer-events:none;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.3))}
 .ue-b.zieh{opacity:.45}.ue-b.ziel{outline:2px dashed var(--y);outline-offset:2px}
 .ue-r{display:flex;gap:.6rem;align-items:baseline;padding:.3rem 0;border-top:1px dashed var(--line);cursor:pointer}.ue-r:first-of-type{border-top:0}.ue-r:hover{background:var(--hov)}
 .ue-r .ue-t{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ue-r .ue-t small{display:block;color:var(--mute);font-size:.78rem;overflow:hidden;text-overflow:ellipsis}

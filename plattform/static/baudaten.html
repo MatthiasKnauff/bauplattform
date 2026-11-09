@@ -10,14 +10,14 @@
 <style>
 .wrap{max-width:1500px;padding-bottom:5rem}
 .top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .7rem}
-.top input[type=search]{flex:1 1 280px;min-width:0;font:inherit;padding:.5rem .8rem;border-radius:999px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
-.top select,.fl select,.fl input{font:inherit;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.top input[type=search]{flex:1 1 280px;min-width:0;font:inherit;padding:.5rem .8rem;border-radius:calc(999px*var(--rkp,1));border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.top select,.fl select,.fl input{font:inherit;padding:.35rem .5rem;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line);background:var(--inp);color:var(--ink)}
 .fl{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem;font-size:.9rem;color:var(--mute)}
 .fl label{display:inline-flex;gap:.3rem;align-items:center}
 .fl input.kg{width:5.5rem}
 .info{font-size:.85rem;color:var(--mute);margin-left:auto}
 .grid{display:grid;grid-template-columns:280px minmax(0,1fr) minmax(0,520px);gap:1rem;align-items:start}
-.side{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.4rem 0;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
+.side{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.4rem 0;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
 .side h3{margin:.5rem .9rem .3rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600}
 .si{display:flex;gap:.5rem;align-items:center;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.38rem .9rem;cursor:pointer;font-size:.92rem}
 .si:hover{background:var(--hov)}.si.on{background:var(--hov)}
@@ -25,14 +25,14 @@
 .si i{font-style:normal;font-size:.75rem;color:var(--mute)}
 .si.sub{padding-left:1.8rem;font-size:.86rem}
 .si .nr{font-variant-numeric:tabular-nums;color:var(--mute);margin-right:.3rem}
-.list{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.list{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));overflow:hidden}
 .row{display:grid;grid-template-columns:8.5rem minmax(0,1fr) 3.2rem 9.5rem;gap:.6rem;padding:.5rem .8rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline}
 .row{grid-template-columns:7.6rem minmax(0,1fr) 3rem 8rem 1.6rem;touch-action:manipulation}.row .k b{overflow-wrap:anywhere;hyphens:auto}
 .kb-z{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.6rem;padding:.4rem .6rem;border-bottom:1px solid var(--line);align-items:center}.kb-z:last-child{border-bottom:0}.kb-t{min-width:0;overflow-wrap:anywhere}.kb-t small,.kb-p small{display:block;font-size:.76rem}.kb-p{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .row-det{padding:.8rem 1rem 1rem;background:var(--card2,var(--card));border-bottom:1px solid var(--line)}.row-det h2{font-size:1.05rem;margin:.3rem 0 .4rem}.row-det pre{white-space:pre-wrap}
 .kb{width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;font-size:.85rem;line-height:1;padding:0;align-self:start}
 .kb:hover{border-color:var(--y);color:var(--y)}.kb.on{background:var(--y);border-color:var(--y);color:#fff}
-#korbN{display:inline-block;min-width:1.2rem;padding:0 .3rem;border-radius:9px;background:var(--hov);font-size:.78rem;text-align:center}
+#korbN{display:inline-block;min-width:1.2rem;padding:0 .3rem;border-radius:calc(9px*var(--rk,1));background:var(--hov);font-size:.78rem;text-align:center}
 #korbBtn.voll #korbN{background:var(--y);color:#fff}
 .row:hover{background:var(--hov)}.row.on{background:var(--hov)}
 .row .c{font-size:.78rem;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -42,25 +42,25 @@
 .row .p{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .row .p small{display:block;color:var(--mute);font-size:.74rem}
 .star{color:var(--y)}
-.det{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
+.det{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:1rem;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
 .det h2{font-size:1.05rem;margin:.1rem 0 .4rem;line-height:1.35}
 .det .mute{font-size:.85rem}
-.det pre{white-space:pre-wrap;font:inherit;font-size:.92rem;line-height:1.45;margin:.5rem 0;background:var(--inp);padding:.6rem .7rem;border-radius:8px}
+.det pre{white-space:pre-wrap;font:inherit;font-size:.92rem;line-height:1.45;margin:.5rem 0;background:var(--inp);padding:.6rem .7rem;border-radius:calc(8px*var(--rk,1))}
 .det table{width:100%;border-collapse:collapse;font-size:.88rem;margin:.4rem 0}
 .det td{padding:.25rem .3rem;border-bottom:1px solid var(--line)}.det td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .preis{display:flex;gap:.5rem;margin:.6rem 0}
-.preis div{flex:1;background:var(--inp);border-radius:10px;padding:.5rem .6rem;text-align:center}
+.preis div{flex:1;background:var(--inp);border-radius:calc(10px*var(--rk,1));padding:.5rem .6rem;text-align:center}
 .preis div b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
 .preis div.m{outline:2px solid var(--y)}
 .preis small{color:var(--mute);font-size:.75rem}
 .acts{display:flex;gap:.4rem;flex-wrap:wrap;margin:.7rem 0}
 .det h4{margin:1rem 0 .3rem;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
 .ed label{display:block;font-size:.82rem;color:var(--mute);margin:.5rem 0 .15rem}
-.ed input,.ed textarea,.ed select{width:100%;box-sizing:border-box;font:inherit;padding:.4rem .5rem;border-radius:8px;border:1px solid var(--line);background:var(--inp);color:var(--ink)}
+.ed input,.ed textarea,.ed select{width:100%;box-sizing:border-box;font:inherit;padding:.4rem .5rem;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line);background:var(--inp);color:var(--ink)}
 .ed textarea{min-height:8rem}
 .ed .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem}
 .leer{padding:2rem 1rem;text-align:center;color:var(--mute)}
-.badge{display:inline-block;font-size:.72rem;border:1px solid var(--line);border-radius:999px;padding:0 .45rem;color:var(--mute);margin-right:.3rem}
+.badge{display:inline-block;font-size:.72rem;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:0 .45rem;color:var(--mute);margin-right:.3rem}
 .modal:has(.ed){width:min(640px,100%)}
 .modal.ed-modal{width:min(720px,100%);padding:1.1rem 1.4rem 1rem}
 .ed-modal h3{display:flex;align-items:baseline;gap:.6rem}
@@ -84,7 +84,7 @@
 @media (min-width:1201px){html,body{overflow:hidden}main.wrap{max-width:min(2000px,96vw);padding-bottom:0}
   .grid{grid-template-columns:clamp(280px,19vw,400px) minmax(0,1fr) clamp(420px,30vw,640px);align-items:stretch}
   .side,.det{position:static;max-height:none;overflow:auto}
-  .grid>section{display:flex;flex-direction:column;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+  .grid>section{display:flex;flex-direction:column;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1))}
   .grid>section .list{border:0;border-radius:0;overflow:visible}}
 @media (max-width:760px){.grid{grid-template-columns:1fr}.side{position:static;max-height:260px}.row{grid-template-columns:minmax(0,1fr) 7.5rem 1.8rem}.row .c,.row .e{display:none}}
 </style>
@@ -228,7 +228,7 @@ async function korbDialog() {
       <button type="button" class="btn sm" data-m="weg:${x.id}" title="Aus dem Korb nehmen" style="padding:.1rem .4rem">✕</button></div>`;
   const bg = modalBox(`<h3>Korb</h3>
     <p class="mute" style="margin:.1rem 0 .6rem;font-size:.86rem">Hier gesammelte Positionen stehen in der <b>Ausschreibung</b> in der Kopierquelle unter „Kataloge → Baudaten-Korb“ und in den <b>Baukosten</b> unter „Aus Baudaten“ → Korb zur Übernahme bereit. Gefragt wird dabei, ob Katalog- oder eigene Preise gelten.</p>
-    <div id="kbL" style="max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:8px">${P.length ? P.map(zeile).join('') : '<p class="mute" style="padding:1rem">Der Korb ist leer. Positionen mit ＋ in der Liste oder „In den Korb“ sammeln.</p>'}</div>
+    <div id="kbL" style="max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))">${P.length ? P.map(zeile).join('') : '<p class="mute" style="padding:1rem">Der Korb ist leer. Positionen mit ＋ in der Liste oder „In den Korb“ sammeln.</p>'}</div>
     <div style="display:flex;gap:.4rem;margin-top:.7rem"><button class="btn" data-m="leeren"${P.length ? '' : ' disabled'} style="color:var(--red,#c0392b)">Korb leeren</button><span style="flex:1"></span><button class="btn pri" data-m="x">Schließen</button></div>`, async (m, bg, close) => {
     if (m === 'x') return close();
     if (m === 'leeren') { close(); korbAendern({ leeren: true }); return; }

@@ -33,6 +33,11 @@ from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
 
+# Stil je Benutzer (⚙ → Darstellung → Stil) – erlaubte Werte, leer = wie bisher; die Regeln dazu stehen in head/head.css
+STIL = {"ecken": {"rund", "dezent", "eckig"}, "schatten": {"aus"}, "sb": {"faden", "pille", "mac", "verlauf", "rinne", "glas"},
+        "rahmen": {"mac", "verlauf", "strich", "kantig", "glas"}, "verlauf": {"akzent", "app", "kopf", "licht", "zwei"}, "fenster": {"mac"}}
+
+
 def blueprint(get_user=None):
     bp = Blueprint("bphead", __name__)
 
@@ -367,7 +372,7 @@ def blueprint(get_user=None):
             with db.tx() as c:
                 pr = konto.prefs(c, u["id"])
                 return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")),
-                               schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""))
+                               schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {})
         d = request.get_json(silent=True) or {}
         sets, args = [], []
         if "theme" in d:
@@ -398,10 +403,13 @@ def blueprint(get_user=None):
             if "schrift_g" in d:
                 k = str(d.get("schrift_g") or "").strip().lower()
                 konto.set_prefs(c, u["id"], {"schrift_g": k if k in GROESSEN else ""}, u["name"])
+            if "stil" in d:   # Stil je Benutzer: nur bekannte Schlüssel und Werte (leer = wie bisher)
+                st = d.get("stil") if isinstance(d.get("stil"), dict) else {}
+                konto.set_prefs(c, u["id"], {"stil": {k: str(st[k]) for k, erlaubt in STIL.items() if str(st.get(k) or "") in erlaubt and st.get(k)}}, u["name"])
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
             pr = konto.prefs(c, u["id"])
         return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")),
-                       schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""))
+                       schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""), stil=pr.get("stil") or {})
 
     def _modus(c, pr):
         """Ansicht des Benutzers: eigene Wahl, sonst Vorgabe des Büros (Einstellung modus_standard), sonst profi."""

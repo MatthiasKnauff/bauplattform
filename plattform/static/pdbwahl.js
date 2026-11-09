@@ -9,7 +9,7 @@ function pdbWahl(opt = {}) {
   const bg = modalBox(`<h3>${esc(opt.titel || 'Positionen aus den Baudaten')}</h3>
     <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:.2rem 0 .5rem"><select id="pdbK" style="max-width:15rem"><option value="">Alle Kataloge</option></select>
       <input type="search" id="pdbQ" placeholder="Suchen – z. B. „Mauerwerk KS 24“, „Fliese 60x60“, Code …" value="${esc(PDB.q)}" style="flex:1;min-width:14rem" autocomplete="off"></div>
-    <div id="pdbL" style="max-height:55vh;overflow:auto;min-width:min(760px,88vw);border:1px solid var(--line);border-radius:8px"></div>
+    <div id="pdbL" style="max-height:55vh;overflow:auto;min-width:min(760px,88vw);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"></div>
     <p class="mute" id="pdbI" style="font-size:.82rem;margin:.4rem 0"></p>
     <div style="display:flex;gap:.4rem;justify-content:flex-end"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok" id="pdbOk" disabled>Einfügen</button></div>`, async (m, bg, close) => {
     if (m === 'x') return close();
@@ -93,7 +93,7 @@ async function pdbPreiswahl(liste) {
     const bg = modalBox(`<h3>Welche Preise verwenden?</h3>
       <p class="mute" style="margin:.1rem 0 .6rem;font-size:.86rem">${mit.length === 1 ? 'Eine Position' : mit.length + ' Positionen'} aus den Baudaten${hatEigene ? ' – für einige gibt es eigene Preise aus Vergaben' : ''}. Gilt für alle.</p>
       <div id="ppAlle" style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem"><span class="mute" style="font-size:.86rem">Preise:</span>${PDBART.filter((a) => hatEigene || !a[0].startsWith('eigen')).map(([k, l], i) => `<button class="btn sm${i === 0 ? ' pri' : ''}" data-pa="${k}">${l}</button>`).join('')}</div>
-      <div style="max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px">${mit.map((x, i) => `
+      <div style="max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))">${mit.map((x, i) => `
         <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem;align-items:center;padding:.35rem .6rem;border-bottom:1px solid var(--line)">
           <span>${esc(x.kurz)}<small style="display:block;color:var(--mute);font-size:.76rem">${esc([x.code || x.oz, x.einheit].filter(Boolean).join(' · '))}</small></span>
           <select data-pp="${i}" hidden>${optionen(x).map((o) => `<option value="${o[0]}">${esc(o[1])} – ${eur(o[2])}</option>`).join('')}</select></div>`).join('')}</div>
@@ -144,8 +144,8 @@ async function pdbDetail(id) {
   const bg = modalBox(`<div class="mute" style="font-size:.82rem">${esc(x.katalog_name || '')} · ${esc(x.code || '')}${x.lb_name ? ' · ' + esc((x.lb_nr || '') + ' ' + x.lb_name) : ''}${x.gruppe_name ? ' › ' + esc(x.gruppe_name) : ''}</div>
     <h3 style="margin:.3rem 0">${esc(x.bez || x.kurz)}</h3>${x.bez ? `<div class="mute" style="font-size:.85rem">Kurztext (LV): ${esc(x.kurz)}</div>` : ''}
     <div class="mute" style="margin:.3rem 0 .6rem;font-size:.88rem">Einheit <b>${esc(x.einheit || '')}</b>${x.kg ? ` · DIN 276 KG <b>${esc(x.kg)}</b>` : ''}${x.genauigkeit ? ` · Genauigkeit <b>${esc(x.genauigkeit)}</b>` : ''}</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center;margin-bottom:.7rem">${[['von', x.ep_von_akt], ['mittel', x.ep_mittel_akt], ['bis', x.ep_bis_akt]].map(([l, v]) => `<div style="border:${l === 'mittel' ? '2px solid var(--y)' : '1px solid var(--line)'};border-radius:10px;padding:.45rem"><small class="mute">${l}</small><div style="font-size:1.15rem;font-weight:700">${eur(v)}</div></div>`).join('')}</div>
-    <pre style="white-space:pre-wrap;font:inherit;font-size:.92rem;max-height:34vh;overflow:auto;margin:0;background:var(--hov,transparent);padding:.5rem .6rem;border-radius:8px">${esc(x.lang_voll || x.lang || '')}</pre>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center;margin-bottom:.7rem">${[['von', x.ep_von_akt], ['mittel', x.ep_mittel_akt], ['bis', x.ep_bis_akt]].map(([l, v]) => `<div style="border:${l === 'mittel' ? '2px solid var(--y)' : '1px solid var(--line)'};border-radius:calc(10px*var(--rk,1));padding:.45rem"><small class="mute">${l}</small><div style="font-size:1.15rem;font-weight:700">${eur(v)}</div></div>`).join('')}</div>
+    <pre style="white-space:pre-wrap;font:inherit;font-size:.92rem;max-height:34vh;overflow:auto;margin:0;background:var(--hov,transparent);padding:.5rem .6rem;border-radius:calc(8px*var(--rk,1))">${esc(x.lang_voll || x.lang || '')}</pre>
     ${x.hinweis && !x.teile ? `<p class="mute">Hinweis: ${esc(x.hinweis)}</p>` : ''}${teile}${kalk}<div data-eig>${eigen()}</div>
     <div style="display:flex;justify-content:flex-end;margin-top:.8rem"><button class="btn pri" data-m="x">Schließen</button></div>`, (m, bg, close) => { if (m === 'x') close(); });
   bg.querySelector('.modal').style.width = 'min(720px,100%)';
@@ -192,7 +192,7 @@ async function aufbauWahl(opt = {}) {
     <div style="display:grid;grid-template-columns:minmax(14rem,19rem) minmax(0,1fr);gap:.8rem;min-width:min(940px,92vw)">
       <div><div style="display:flex;gap:.3rem;margin-bottom:.4rem"><select id="abK" style="flex:1;min-width:0"><option value="">Alle Kostengruppen</option>${gruppen.map((g) => `<option value="${g}"${g === fkg ? ' selected' : ''}>${g}0 ${esc(KGN[g] || '')}</option>`).join('')}</select></div>
         <input type="search" id="abQ" placeholder="Bauteil suchen …" autocomplete="off" style="width:100%;margin-bottom:.4rem">
-        <div id="abL" style="max-height:56vh;overflow:auto;border:1px solid var(--line);border-radius:8px"></div></div>
+        <div id="abL" style="max-height:56vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"></div></div>
       <div id="abR" style="max-height:62vh;overflow:auto"></div></div>
     <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-top:.6rem;align-items:center"><span id="abS" class="mute" style="flex:1;font-size:.82rem"></span><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok" id="abOk">${esc(opt.knopf || 'Übernehmen')}</button></div>`, async (m, bg, close) => {
     if (m === 'x') return close();
@@ -212,7 +212,7 @@ async function aufbauWahl(opt = {}) {
       <p style="margin:.3rem 0 .5rem;font-size:.88rem">${esc(v.lang)}${v.bezug ? `<br><span class="mute">Menge: ${esc(v.bezug)}</span>` : ''}</p>
       ${v.schichten.map((s, i) => `<label style="display:grid;grid-template-columns:9.5rem minmax(0,1fr);gap:.5rem;align-items:center;margin:.3rem 0"><span style="font-size:.85rem">${esc(s.name)}</span>
         <select data-abs="${i}">${s.optionen.map((o, j) => `<option value="${j}"${j === wahl[i] ? ' selected' : ''}>${esc(o.t || o.k || 'ohne')}${o.n ? ' · ' + eur(o.ep) : ''}</option>`).join('')}</select></label>`).join('')}
-      <div id="abP" style="margin:.7rem 0 .3rem;padding:.6rem .7rem;border:1px solid var(--line);border-radius:8px"></div><div id="abT"></div>`;
+      <div id="abP" style="margin:.7rem 0 .3rem;padding:.6rem .7rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1))"></div><div id="abT"></div>`;
     rechne();
   };
   async function rechne() {

@@ -14,18 +14,18 @@
 .pk-ein{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;color:var(--mute);font-size:.92rem;margin:0 0 1rem}
 .pk-ein select{width:auto}
 .pk-l{display:flex;flex-direction:column;gap:.5rem}
-.pk-i{display:flex;gap:.8rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem}
+.pk-i{display:flex;gap:.8rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.7rem .9rem}
 .pk-i .ic{font-size:1.4rem;width:2rem;text-align:center;flex:none}
 .pk-i .t{flex:1;min-width:0}
 .pk-i .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pk-i .t small{display:block;color:var(--mute);font-size:.84rem}
 .pk-f{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .8rem}.pk-f input{flex:1;min-width:12rem;max-width:22rem}
-.pk-chips{display:flex;gap:.35rem;flex-wrap:wrap}.pk-chips button{border:1px solid var(--line);border-radius:999px;padding:.3rem .75rem;color:var(--ink);font-size:.88rem}
+.pk-chips{display:flex;gap:.35rem;flex-wrap:wrap}.pk-chips button{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.3rem .75rem;color:var(--ink);font-size:.88rem}
 .pk-chips button small{color:var(--mute);margin-left:.35rem;font-size:.76rem}.pk-chips button.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:600}.pk-chips button.on small{color:inherit;opacity:.75}
 .pk-i .art{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
 .pk-i .a{display:flex;gap:.4rem;flex:none;flex-wrap:wrap;justify-content:flex-end}
 .pk-g{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:1rem .2rem .2rem}
-.leer{text-align:center;color:var(--mute);padding:3rem 1rem;background:var(--card);border:1px dashed var(--line);border-radius:12px}
+.leer{text-align:center;color:var(--mute);padding:3rem 1rem;background:var(--card);border:1px dashed var(--line);border-radius:calc(12px*var(--rk,1))}
 @media (max-width:640px){.pk-i{flex-wrap:wrap}.pk-i .a{width:100%;justify-content:flex-start}}
 </style>
 </head>

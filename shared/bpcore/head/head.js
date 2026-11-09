@@ -398,6 +398,26 @@
   H.schriftAnwenden = schriftAnwenden;
   try { const k0 = localStorage.getItem('bpSchrift') || 'ubuntu', g0 = localStorage.getItem('bpSchriftG') || 'normal'; if (k0 !== 'ubuntu' || g0 !== 'normal') schriftAnwenden(k0, g0); } catch { /* egal */ }
   try { schemaAnwenden(localStorage.getItem('bpSchema') || ''); } catch { /* egal */ }   // sofort, ohne Aufblitzen
+  /* Stil je Benutzer: Ecken, Schatten, Scrollbalken, Rahmen, Verläufe, Fensterelemente – als data-Attribute am <html>,
+     die Regeln dazu stehen in head.css. Leer = wie bisher (Bestandsbenutzer behalten ihr gewohntes Aussehen). */
+  const STIL = [
+    ['ecken', 'Ecken', [['', 'wie bisher'], ['rund', 'runder'], ['dezent', 'dezent'], ['eckig', 'eckig']]],
+    ['schatten', 'Schatten', [['', 'an'], ['aus', 'aus']]],
+    ['sb', 'Scrollbalken', [['', 'wie bisher'], ['faden', 'Faden'], ['pille', 'Pille'], ['mac', 'macOS'], ['verlauf', 'Verlauf'], ['rinne', 'Rinne'], ['glas', 'Glas']]],
+    ['rahmen', 'Rahmen', [['', 'Linie'], ['mac', 'Mac'], ['verlauf', 'Verlaufskante'], ['strich', 'Akzentstrich'], ['kantig', 'kantig'], ['glas', 'Glas']]],
+    ['verlauf', 'Verläufe', [['', 'keine'], ['akzent', 'Akzent'], ['app', 'App-Farbe'], ['kopf', 'nur oben'], ['licht', 'Lichtfleck'], ['zwei', 'zweifarbig']]],
+    ['fenster', 'Fensterelemente', [['', 'wie bisher'], ['mac', 'Mac-Stil']]],
+  ];
+  /* fertige Zusammenstellungen – nur der Stil, Farben und Schrift bleiben, wie jeder sie gewählt hat */
+  const STIL_PAKETE = [['Standard (wie Bautagebuch)', {}], ['Mac', { sb: 'mac', rahmen: 'mac', fenster: 'mac', verlauf: 'app' }], ['Kacheln', { sb: 'pille', verlauf: 'akzent', ecken: 'rund' }],
+    ['Technisch', { ecken: 'eckig', sb: 'rinne', rahmen: 'kantig' }], ['Ruhig', { ecken: 'dezent', schatten: 'aus', sb: 'faden', rahmen: 'strich' }]];
+  function stilAnwenden(st) {
+    st = st || {}; const R = document.documentElement;
+    STIL.forEach(([k, , L]) => { const v = L.some((o) => o[0] === st[k]) ? st[k] : ''; if (v) R.dataset[k] = v; else delete R.dataset[k]; });
+    try { localStorage.setItem('bpStil', JSON.stringify(st)); } catch { /* egal */ }
+  }
+  H.stilAnwenden = stilAnwenden; H.STIL = STIL;
+  try { stilAnwenden(JSON.parse(localStorage.getItem('bpStil') || '{}')); } catch { /* egal */ }
   /* Ansicht „Einfach“ oder „Profi“ – je Benutzer (Mein Konto), Vorgabe des Büros. Apps fragen H.einfach() und zeigen ihre
      Einfach-Startansicht; CSS blendet Profi-Teile über html[data-modus="einfach"] aus. */
   H.modus = 'profi';
@@ -420,15 +440,20 @@
       <div class="bph-sw">${ACCENTS.map(([c, n]) => `<button type="button" class="${c === a ? 'on' : ''}" style="background:${c}" data-acc="${c}" title="${n}" aria-label="${n}"></button>`).join('')}
         <label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}" data-accc></label></div>
       <div class="bph-info" style="padding:.5rem 0 .3rem">Schrift</div><div class="bph-lk">${SCHRIFT_N.map(([k, n]) => `<button type="button" class="bph-th${k === sAkt() ? ' on' : ''}" data-sf="${k}" style="font-family:${SCHRIFT[k] || 'Ubuntu,system-ui,sans-serif'}">${esc(n)}</button>`).join('')}</div>
-      <div class="bph-info" style="padding:.5rem 0 .3rem">Schriftgröße</div><div class="bph-lk">${[['klein', 'klein', '12px'], ['normal', 'normal', '13px'], ['gross', 'groß', '14.5px']].map(([k, n, px]) => `<button type="button" class="bph-th${k === gAkt() ? ' on' : ''}" data-sg="${k}" style="font-size:${px}">${n}</button>`).join('')}</div>`;
+      <div class="bph-info" style="padding:.5rem 0 .3rem">Schriftgröße</div><div class="bph-lk">${[['klein', 'klein', '12px'], ['normal', 'normal', '13px'], ['gross', 'groß', '14.5px']].map(([k, n, px]) => `<button type="button" class="bph-th${k === gAkt() ? ' on' : ''}" data-sg="${k}" style="font-size:${px}">${n}</button>`).join('')}</div>
+      <div class="bph-info" style="padding:.7rem 0 .1rem"><b>Stil</b> <small>– Aussehen von Flächen, Rahmen und Bedienelementen</small></div>
+      <div class="bph-lk">${STIL_PAKETE.map(([n, P], i) => { const v = (me.stil || {}), gleich = STIL.every(([k]) => (v[k] || '') === (P[k] || '')); return `<button type="button" class="bph-th${gleich ? ' on' : ''}" data-stilp="${i}">${esc(n)}</button>`; }).join('')}</div>
+      ${STIL.map(([k, n, L]) => { const v = ((me.stil || {})[k]) || ''; return `<div class="bph-info" style="padding:.35rem 0 .2rem">${esc(n)}</div><div class="bph-lk">${L.map(([w, t]) => `<button type="button" class="bph-th${w === v ? ' on' : ''}" data-stil="${k}" data-w="${w}">${esc(t)}</button>`).join('')}</div>`; }).join('')}`;
   };
   const SCHRIFT_N = [['ubuntu', 'Ubuntu'], ['system', 'Systemschrift'], ['arial', 'Arial'], ['verdana', 'Verdana'], ['calibri', 'Calibri'], ['georgia', 'Georgia']];
   const sAkt = () => (H.me && H.me.schrift) || (H.conf && H.conf.schrift) || 'ubuntu', gAkt = () => (H.me && H.me.schrift_g) || (H.conf && H.conf.schrift_groesse) || 'normal';
   function lookWire(m, redraw) {
     m.addEventListener('click', (e) => {
       const th = e.target.closest('[data-th]'), ac = e.target.closest('[data-acc]');
-      const fs = e.target.closest('[data-fs]'), sf = e.target.closest('[data-sf]'), sg = e.target.closest('[data-sg]');
-      if (th || ac || fs || sf || sg) e.stopPropagation();
+      const fs = e.target.closest('[data-fs]'), sf = e.target.closest('[data-sf]'), sg = e.target.closest('[data-sg]'), sl = e.target.closest('[data-stil]');
+      if (th || ac || fs || sf || sg || sl) e.stopPropagation();
+      const sp = e.target.closest('[data-stilp]'); if (sp) { e.stopPropagation(); const st = Object.assign({}, STIL_PAKETE[+sp.dataset.stilp][1]); stilAnwenden(st); saveLook({ stil: st }, redraw); return; }
+      if (sl) { const st = Object.assign({}, (H.me && H.me.stil) || {}, { [sl.dataset.stil]: sl.dataset.w }); stilAnwenden(st); saveLook({ stil: st }, redraw); return; }   // sofort sichtbar, dann gespeichert
       if (sf || sg) { saveLook(sf ? { schrift: sf.dataset.sf } : { schrift_g: sg.dataset.sg }, redraw); return; }   // Schrift und Größe: je Benutzer
       if (fs) { const S = SCH[fs.dataset.fs]; saveLook({ theme: S[3], accent: S[5], farbschema: S[0] }, redraw); }
       else if (th) saveLook({ theme: th.dataset.th, farbschema: '' }, redraw); else if (ac) saveLook({ accent: ac.dataset.acc }, redraw);
@@ -447,7 +472,8 @@
     try {
       const r = await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then((x) => x.json());
       if (r.error) throw new Error(r.error);
-      H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent, farbschema: r.farbschema || '', schrift: r.schrift || '', schrift_g: r.schrift_g || '' });
+      H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent, farbschema: r.farbschema || '', schrift: r.schrift || '', schrift_g: r.schrift_g || '', stil: r.stil || {} });
+      stilAnwenden(H.me.stil);
       schriftAnwenden(sAkt(), gAkt());
       schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ }
       setTimeout(eigeneFarben, 50);
@@ -540,6 +566,7 @@
     opt = opt || {};
     if (band) return H.ready;
     H.app = opt.app || '';
+    if (H.app && !document.documentElement.dataset.af) document.documentElement.dataset.af = H.app;   // App-Farbe (--af) für Verläufe und Akzentstrich
     band = document.createElement('header');
     band.className = 'bph' + (opt.sticky ? ' bph-sticky' : '');
     band.innerHTML = `<a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span><span class="bph-app">${esc(opt.name || '')}</span></a>
@@ -579,7 +606,7 @@
       setTimeout(pulsStarten, 0);
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
-      if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
+      if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.stil = d.stil || {}; stilAnwenden(H.me.stil); H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
@@ -1361,10 +1388,10 @@
       root.innerHTML = `${opt.into ? '' : '<div class="bph-dh"><b>Meine Postfächer</b><button type="button" class="bph-x" data-pc aria-label="Schließen">×</button></div>'}<div class="bph-db"${opt.into ? ' style="padding:0"' : ''}>
         <p class="bph-mu">Aus diesen Postfächern stellt die Startseite die Mails zu <b>deinen</b> Projekten zusammen – ${abrufText()} (und jederzeit mit ↻). Gelesen wird nur – nichts wird verschoben, gelöscht oder als gelesen markiert. Nur du siehst die Übersicht.</p>
         <h4>Abruf</h4>
-        <div class="bph-row" style="align-items:flex-end"><label style="flex:1;min-width:12rem">Wie oft<select data-pab="rhythmus" style="width:100%;font:inherit;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line,#3b3e42);background:var(--inp,transparent);color:inherit">${[['tag', 'einmal am Tag'], ['zweimal', 'zweimal am Tag'], ['stuendlich', 'stündlich (7–19 Uhr)'], ['hand', 'nur von Hand (↻)']].map(([k, l]) => `<option value="${k}"${AB.rhythmus === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <div class="bph-row" style="align-items:flex-end"><label style="flex:1;min-width:12rem">Wie oft<select data-pab="rhythmus" style="width:100%;font:inherit;padding:.35rem .5rem;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line,#3b3e42);background:var(--inp,transparent);color:inherit">${[['tag', 'einmal am Tag'], ['zweimal', 'zweimal am Tag'], ['stuendlich', 'stündlich (7–19 Uhr)'], ['hand', 'nur von Hand (↻)']].map(([k, l]) => `<option value="${k}"${AB.rhythmus === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
           ${AB.rhythmus === 'tag' || AB.rhythmus === 'zweimal' ? `<label style="width:8rem">${AB.rhythmus === 'zweimal' ? 'ab' : 'um'}<input type="time" data-pab="uhrzeit" value="${esc(AB.uhrzeit)}"></label>` : ''}</div>
         <h4>Anzeige</h4>
-        <div class="bph-row" style="align-items:center"><label style="display:flex;align-items:center;gap:.5rem">Mails stehen<select data-paz="tage" style="font:inherit;padding:.3rem .5rem;border-radius:8px;border:1px solid var(--line,#3b3e42);background:var(--inp,transparent);color:inherit">${[1, 2, 3, 5, 7, 14].map((t) => `<option value="${t}"${AZ.tage === t ? ' selected' : ''}>${t} Tag${t > 1 ? 'e' : ''}</option>`).join('')}</select>in der Übersicht</label></div>
+        <div class="bph-row" style="align-items:center"><label style="display:flex;align-items:center;gap:.5rem">Mails stehen<select data-paz="tage" style="font:inherit;padding:.3rem .5rem;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line,#3b3e42);background:var(--inp,transparent);color:inherit">${[1, 2, 3, 5, 7, 14].map((t) => `<option value="${t}"${AZ.tage === t ? ' selected' : ''}>${t} Tag${t > 1 ? 'e' : ''}</option>`).join('')}</select>in der Übersicht</label></div>
         <label class="bph-ck"><input type="checkbox" data-pazw${AZ.wochenende ? ' checked' : ''}> Wochenende nicht mitzählen – die Mails vom Freitag stehen am Montag noch da</label>
         <p class="bph-mu">Mails, zu denen du eine Erinnerung angelegt hast, bleiben stehen, bis die Erinnerung erledigt ist.</p>
         <h4>Eigene Mails</h4>
@@ -1750,7 +1777,7 @@
     const kz = (k) => [`Adresse: ${k.url}`, `App: ${k.app || k.titel}`, k.projekt && `Projekt: ${k.projekt}`, `Ansicht: ${k.modus}`, `Version: ${k.version}`, `Fenster: ${k.fenster}`, `Browser: ${navigator.userAgent}`,
       `Fehler auf dieser Seite: ${k.fehler.length}`, `Fehlgeschlagene Anfragen: ${k.anfragen.length}`, `Letzte Klicks: ${k.klicks.length}`].filter(Boolean).join('\n');
     bg.querySelector('[data-bk]').textContent = kz(kontext());
-    const vorschau = () => { const v = bg.querySelector('[data-bvor]'); v.innerHTML = bild ? `<div style="position:relative;display:inline-block"><img src="${bild}" alt="Bildschirmfoto" style="max-width:100%;max-height:220px;border:1px solid var(--bph-line,#ccc);border-radius:6px"><button type="button" class="bph-x" data-bweg title="Bild entfernen" aria-label="Bild entfernen" style="position:absolute;top:4px;right:4px;background:#fff">✕</button></div>` : ''; };
+    const vorschau = () => { const v = bg.querySelector('[data-bvor]'); v.innerHTML = bild ? `<div style="position:relative;display:inline-block"><img src="${bild}" alt="Bildschirmfoto" style="max-width:100%;max-height:220px;border:1px solid var(--bph-line,#ccc);border-radius:calc(6px*var(--rk,1))"><button type="button" class="bph-x" data-bweg title="Bild entfernen" aria-label="Bild entfernen" style="position:absolute;top:4px;right:4px;background:#fff">✕</button></div>` : ''; };
     const verkleinern = (src) => bildVerkleinern(src);
     const ausDatei = (f) => { if (!f || !/^image\//.test(f.type)) return; const r = new FileReader(); r.onload = async () => { try { bild = await verkleinern(r.result); vorschau(); } catch (e) { bpHinweis(e.message); } }; r.readAsDataURL(f); };
     const zu = () => { bg.remove(); document.removeEventListener('paste', einfuegen, true); };
@@ -1815,7 +1842,7 @@
           <label style="display:block;margin-top:.4rem">${live ? 'Worum geht es? (kurz, optional)' : 'Deine Frage'}<textarea data-ht rows="${live ? 2 : 5}" maxlength="8000" style="width:100%;margin-top:.3rem" placeholder="${live ? 'z. B. Ich finde im Auftrag den Nachtrag nicht.' : 'z. B. Wie bekomme ich den Nachtrag NT3 in die Teilrechnung?'}"></textarea></label>
           ${live ? `<p class="bph-mu" style="font-size:.85em">Nach „Bildschirm teilen“ fragt der Browser, was geteilt wird – am besten <b>diesen Tab</b>. Die Helfer bekommen sofort Bescheid. Sie sehen nur, was du teilst, können aber nichts anklicken. Beenden jederzeit über den roten Balken oben; aufbewahrt wird nichts.</p>`
             : `<div class="bph-row" style="margin-top:.5rem"><button type="button" class="bph-btn" data-ha="shot">📷 Diese Ansicht aufnehmen</button><label class="bph-btn">🖼 Bild wählen<input type="file" accept="image/png,image/jpeg,image/webp" data-hfile hidden></label><small class="bph-mu" style="align-self:center">oder mit Strg+V einfügen</small></div>
-            ${bild ? `<div style="position:relative;display:inline-block;margin-top:.4rem"><img src="${bild}" alt="Bild zur Frage" style="max-width:100%;max-height:200px;border:1px solid var(--line,#ccc);border-radius:6px"><button type="button" class="bph-x" data-ha="bildweg" aria-label="Bild entfernen" style="position:absolute;top:4px;right:4px;background:#fff;color:#111">✕</button></div>` : ''}
+            ${bild ? `<div style="position:relative;display:inline-block;margin-top:.4rem"><img src="${bild}" alt="Bild zur Frage" style="max-width:100%;max-height:200px;border:1px solid var(--line,#ccc);border-radius:calc(6px*var(--rk,1))"><button type="button" class="bph-x" data-ha="bildweg" aria-label="Bild entfernen" style="position:absolute;top:4px;right:4px;background:#fff;color:#111">✕</button></div>` : ''}
             <p class="bph-mu" style="font-size:.8em;margin:.5rem 0 0">Mitgeschickt werden automatisch Seite, App, Projekt und Browser – wie beim Fehlermelden, keine Eingaben aus Feldern.</p>`}
           <div class="bph-row" style="justify-content:flex-end;margin-top:.7rem"><button type="button" class="bph-btn" data-ha="start">Abbrechen</button><button type="button" class="bph-btn pri" data-ha="${live ? 'livelos' : 'senden'}">${live ? '🖥️ Bildschirm teilen' : 'Senden'}</button></div>`;
         setTimeout(() => { const t = B.querySelector('[data-ht]'); if (t) t.focus(); }, 0);

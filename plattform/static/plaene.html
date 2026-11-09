@@ -14,11 +14,11 @@
 .top select{min-width:16rem;max-width:100%}
 .ord{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--mute)}
 /* Reiter und Ordner-Knöpfe in einer Zeile */
-.tabrow{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;background:var(--tabs);border-bottom:1px solid var(--line);border-radius:10px 10px 0 0;margin:0 -.2rem 1rem;padding-right:.6rem}
+.tabrow{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;background:var(--tabs);border-bottom:1px solid var(--line);border-radius:calc(10px*var(--rk,1)) calc(10px*var(--rk,1)) 0 0;margin:0 -.2rem 1rem;padding-right:.6rem}
 .tabrow .tabs{margin:0;border-bottom:0;background:transparent;flex:1;min-width:0}
-.ord code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.1rem .4rem;color:var(--ink);word-break:break-all}
-.tabs{margin:0 -.2rem 1rem;border-radius:10px 10px 0 0}
-.tab small{margin-left:.35rem;font-size:.75rem;border-radius:999px;padding:.05rem .45rem;background:var(--hov);color:var(--mute)}
+.ord code{background:var(--card);border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:.1rem .4rem;color:var(--ink);word-break:break-all}
+.tabs{margin:0 -.2rem 1rem;border-radius:calc(10px*var(--rk,1)) calc(10px*var(--rk,1)) 0 0}
+.tab small{margin-left:.35rem;font-size:.75rem;border-radius:calc(999px*var(--rkp,1));padding:.05rem .45rem;background:var(--hov);color:var(--mute)}
 .flt{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.7rem}
 .flt input[type=search]{flex:1;min-width:12rem}
 .pl{width:100%;border-collapse:collapse}
@@ -29,18 +29,18 @@
 .pl .nr{white-space:nowrap;font-variant-numeric:tabular-nums}
 .pl .ti b{font-weight:600}
 .pl .mu{color:var(--mute);font-size:.8rem}
-.idx{display:inline-block;min-width:1.7rem;text-align:center;border-radius:6px;padding:.05rem .35rem;font-weight:700;border:1px solid var(--y);color:var(--y)}
+.idx{display:inline-block;min-width:1.7rem;text-align:center;border-radius:calc(6px*var(--rk,1));padding:.05rem .35rem;font-weight:700;border:1px solid var(--y);color:var(--y)}
 .idx.o{border-color:var(--line);color:var(--mute);font-weight:500}
 .gw select,.gw input{max-width:11rem;font-size:.85rem;padding:.25rem .35rem}
 .gw small{display:block;color:var(--mute);font-size:.72rem;margin-top:.15rem}
 .gw.leer select{border-color:var(--y)}
 .sent{font-size:.78rem;color:var(--ok)}
 .ex{background:none;border:0;color:var(--mute);cursor:pointer;font:inherit;padding:0 .2rem}
-.bar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card2);border-top:1px solid var(--line);padding:.65rem 1rem calc(.65rem + env(safe-area-inset-bottom));display:flex;gap:.7rem;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 -6px 20px rgba(0,0,0,.18)}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card2);border-top:1px solid var(--line);padding:.65rem 1rem calc(.65rem + env(safe-area-inset-bottom));display:flex;gap:.7rem;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:var(--sh0,0 -6px 20px rgba(0,0,0,.18))}
 .bar[hidden]{display:none}
 .vd{display:grid;gap:.55rem}
 .vd h4{margin:.2rem 0 .3rem}
-.emp{display:grid;gap:.2rem;max-height:15rem;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem}
+.emp{display:grid;gap:.2rem;max-height:15rem;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.4rem .6rem}
 .emp label{display:flex;gap:.5rem;align-items:baseline}
 .emp small{color:var(--mute)}
 .vd textarea{width:100%;min-height:8rem;height:9.5rem;font:inherit;resize:vertical}
@@ -53,32 +53,32 @@
 .opt{display:grid;gap:.25rem}
 .opt label{display:flex;gap:.5rem;align-items:baseline}
 .opt label.dis{opacity:.5}
-.warn{border:1px solid var(--y);border-radius:8px;padding:.5rem .7rem;font-size:.9rem}
+.warn{border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem;font-size:.9rem}
 .so summary{cursor:pointer;color:var(--mute);margin:1.2rem 0 .4rem}
 .so-h{cursor:pointer;user-select:none;white-space:nowrap}.so-h:hover{color:var(--ink)}
-.baum{display:grid;gap:.15rem;max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem}
+.baum{display:grid;gap:.15rem;max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem}
 .baum label{display:flex;gap:.45rem;align-items:baseline}.baum label span{min-width:0;overflow-wrap:anywhere}.baum label.off{opacity:.55}.baum small{color:var(--mute)}
 .so li{margin:.15rem 0}
 .vl td{font-size:.9rem}
 .set textarea{width:100%;min-height:7rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
 .set .g2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
 /* Zuordnung wie beim CSV-Einlesen */
-.zm{overflow-x:auto;margin:.5rem 0 0;border:1px solid var(--line);border-radius:10px}
+.zm{overflow-x:auto;margin:.5rem 0 0;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1))}
 .zm table{border-collapse:collapse;min-width:100%}
 .zm td{padding:.35rem .45rem;border-right:1px solid var(--line);vertical-align:top;font-size:.85rem}
 .zm td:last-child{border-right:0}
-.zm .zs{font-family:ui-monospace,Consolas,monospace;font-weight:700;font-size:.95rem;background:var(--hov);border-radius:6px;padding:.2rem .45rem;white-space:nowrap}
-.zm select{font:inherit;font-size:.82rem;padding:.2rem;border-radius:6px;border:1px solid var(--y);background:var(--inp);color:var(--ink);max-width:12rem}
+.zm .zs{font-family:ui-monospace,Consolas,monospace;font-weight:700;font-size:.95rem;background:var(--hov);border-radius:calc(6px*var(--rk,1));padding:.2rem .45rem;white-space:nowrap}
+.zm select{font:inherit;font-size:.82rem;padding:.2rem;border-radius:calc(6px*var(--rk,1));border:1px solid var(--y);background:var(--inp);color:var(--ink);max-width:12rem}
 .zm tr.zb td{color:#2f9e5a;font-weight:600;font-size:.82rem}
 /* kleine Tabellen statt Textfelder */
 .zt{width:100%;border-collapse:collapse;margin:.3rem 0 .3rem}
 .zt th{font-size:.75rem;color:var(--mute);text-align:left;font-weight:600;padding:.15rem .3rem;border-bottom:1px solid var(--line)}
 .zt td{padding:.1rem .15rem;border-bottom:1px solid var(--line)}
-.zt input{width:100%;border:1px solid transparent;background:transparent;color:var(--ink);font:inherit;font-size:.88rem;padding:.25rem .35rem;border-radius:5px}
+.zt input{width:100%;border:1px solid transparent;background:transparent;color:var(--ink);font:inherit;font-size:.88rem;padding:.25rem .35rem;border-radius:calc(5px*var(--rk,1))}
 .zt input:focus{border-color:var(--y);background:var(--inp);outline:none}
 .zt .zx{border:0;background:none;color:var(--mute);cursor:pointer;font-size:1rem;padding:0 .3rem}.zt .zx:hover{color:#d33}
 @media (max-width:760px){.pl .hide-m{display:none}.set .g2{grid-template-columns:1fr}.top select{min-width:0;flex:1 1 100%;width:100%}.top .fill{display:none}.ord code{max-width:100%}.pl td,.pl th{padding:.45rem .3rem}.pl .nr b{font-size:.9rem}}
-.mkd{display:inline-block;margin-left:.5rem;padding:0 .5rem;border-radius:999px;background:color-mix(in srgb,#ff5fb3 18%,transparent);color:#c2185b;font-size:.78rem;font-weight:600;white-space:nowrap}
+.mkd{display:inline-block;margin-left:.5rem;padding:0 .5rem;border-radius:calc(999px*var(--rkp,1));background:color-mix(in srgb,#ff5fb3 18%,transparent);color:#c2185b;font-size:.78rem;font-weight:600;white-space:nowrap}
 
 /* Einfache Ansicht: nur der aktuelle Pläne und Dateien */
 html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}

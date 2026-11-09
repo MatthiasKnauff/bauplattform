@@ -11,14 +11,14 @@
 .wrap{max-width:1180px}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 1rem}
 .top .fill{flex:1}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--card)}
-.seg button{border-radius:999px;padding:.4rem .95rem;color:var(--mute);font-size:.92rem;white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:3px;gap:2px;background:var(--card)}
+.seg button{border-radius:calc(999px*var(--rkp,1));padding:.4rem .95rem;color:var(--mute);font-size:.92rem;white-space:nowrap}
 .seg button.on{background:var(--y);color:var(--on);font-weight:600}
-.tabs{margin:0 -.2rem 1rem;border-radius:10px 10px 0 0}
-.tab small{margin-left:.35rem;font-size:.75rem;border-radius:999px;padding:.05rem .45rem;background:var(--hov);color:var(--mute)}
+.tabs{margin:0 -.2rem 1rem;border-radius:calc(10px*var(--rk,1)) calc(10px*var(--rk,1)) 0 0}
+.tab small{margin-left:.35rem;font-size:.75rem;border-radius:calc(999px*var(--rkp,1));padding:.05rem .45rem;background:var(--hov);color:var(--mute)}
 .tab small.bad{background:var(--red);color:#fff}
 .kpi{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.8rem}
-.kpi button{border:1px solid var(--line);border-radius:999px;padding:.35rem .85rem;color:var(--mute);font-size:.9rem;background:var(--card)}
+.kpi button{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.35rem .85rem;color:var(--mute);font-size:.9rem;background:var(--card)}
 .kpi button b{color:var(--ink);margin-left:.3rem}
 .kpi button.on{border-color:var(--y);color:var(--y)}
 .kpi button.on b{color:var(--y)}
@@ -30,11 +30,11 @@
 .grp a{font-weight:400;font-size:.85rem;margin-left:auto}
 .ml{display:flex;flex-direction:column;gap:.45rem}
 .mr.hl,.er.hl{outline:3px solid var(--y);outline-offset:2px;transition:outline-color 1s}
-.mr{display:grid;grid-template-columns:auto 64px 1fr auto;gap:.4rem .9rem;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem}
+.mr{display:grid;grid-template-columns:auto 64px 1fr auto;gap:.4rem .9rem;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.7rem .9rem}
 .mr.done{opacity:.6}
 .mr.ueberfaellig{border-color:color-mix(in srgb,var(--red) 55%,var(--line))}
 .mr .ck{width:26px;height:26px;margin-top:.15rem;accent-color:var(--ok);cursor:pointer}
-.mr .th{width:64px;height:64px;border-radius:8px;background:var(--hov) center/cover no-repeat;display:grid;place-items:center;color:var(--mute);font-size:.75rem}
+.mr .th{width:64px;height:64px;border-radius:calc(8px*var(--rk,1));background:var(--hov) center/cover no-repeat;display:grid;place-items:center;color:var(--mute);font-size:.75rem}
 .mr .tx{min-width:0}
 .mr .tx p{margin:0;white-space:pre-wrap;line-height:1.35}
 .mr .tx small{display:block;color:var(--mute);font-size:.8rem;margin-top:.3rem}
@@ -43,11 +43,11 @@
 .mr .ed label{display:flex;gap:.4rem;align-items:center;font-size:.8rem;color:var(--mute)}
 .mr .ed label span{width:42px}
 .mr .ed input{flex:1;padding:.3rem .45rem;font-size:.9rem;min-width:0}
-.st{font-size:.75rem;border-radius:999px;padding:.05rem .5rem;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.st{font-size:.75rem;border-radius:calc(999px*var(--rkp,1));padding:.05rem .5rem;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
 .st.ueberfaellig,.st.abgelaufen{border-color:var(--red);color:var(--red)}
 .st.erledigt{border-color:var(--ok);color:var(--ok)}
 .st.heute{border-color:var(--y);color:var(--y)}
-.er{display:grid;grid-template-columns:36px 1fr auto;gap:.3rem .9rem;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem}
+.er{display:grid;grid-template-columns:36px 1fr auto;gap:.3rem .9rem;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.7rem .9rem}
 .er.ueberfaellig,.er.abgelaufen{border-color:color-mix(in srgb,var(--red) 55%,var(--line))}
 .er.erledigt{opacity:.6}
 .er .ic{font-size:1.35rem;text-align:center;line-height:1.3}
@@ -59,22 +59,22 @@
 .er .ac .dt{font-weight:600;white-space:nowrap}
 .er .ac .bt{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
 .er{cursor:pointer}.er:not(.auf):hover{border-color:var(--y)}.er:not(.auf) .tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.er:not(.auf){padding:.5rem .9rem}
-.er.auf{cursor:default;box-shadow:0 4px 16px rgba(0,0,0,.08)}.er .tx{min-width:0}
+.er.auf{cursor:default;box-shadow:var(--sh0,0 4px 16px rgba(0,0,0,.08))}.er .tx{min-width:0}
 .e-ed{display:grid;gap:.35rem;margin:.4rem 0 .2rem}.e-ed label{display:grid;gap:.1rem;font-size:.8rem;color:var(--mute)}.e-ed input,.e-ed textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.92rem}
-.resch{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.5rem;padding:.5rem;border:1px dashed var(--y);border-radius:8px;grid-column:2/-1}
+.resch{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.5rem;padding:.5rem;border:1px dashed var(--y);border-radius:calc(8px*var(--rk,1));grid-column:2/-1}
 .resch input{padding:.3rem .45rem}
 details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
-.empty{color:var(--mute);padding:1.2rem;text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:12px}
-.note{background:var(--hov);border:1px solid var(--line);border-radius:10px;padding:.7rem 1rem;color:var(--mute);font-size:.9rem;margin-bottom:1rem}
-.tgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem;margin-bottom:.7rem}
+.empty{color:var(--mute);padding:1.2rem;text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:calc(12px*var(--rk,1))}
+.note{background:var(--hov);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.7rem 1rem;color:var(--mute);font-size:.9rem;margin-bottom:1rem}
+.tgrp{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.7rem .9rem;margin-bottom:.7rem}
 .trow{display:grid;grid-template-columns:110px 1fr auto auto;gap:.4rem .8rem;align-items:center;padding:.45rem 0;border-top:1px solid var(--line);margin-top:.45rem}
 .trow .tdat{font-weight:600;white-space:nowrap}.trow .tl{color:var(--mute);font-size:.86rem;min-width:0}
 .trow .tact{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
 .vzh{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap;margin:.2rem 0 .5rem}.vzh h3{margin:0;font-size:1rem}
 .vzh select{width:auto;padding:.2rem .4rem}
 .vzrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3rem .8rem;align-items:center;padding:.45rem 0;border-top:1px solid var(--line);margin-top:.45rem}
-.vzrow .vb{height:6px;border-radius:3px;background:var(--line);position:relative;margin-top:.3rem;max-width:320px}
-.vzrow .vb i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--y)}
+.vzrow .vb{height:6px;border-radius:calc(3px*var(--rk,1));background:var(--line);position:relative;margin-top:.3rem;max-width:320px}
+.vzrow .vb i{position:absolute;left:0;top:0;bottom:0;border-radius:calc(3px*var(--rk,1));background:var(--y)}
 .vzrow .vb s{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);text-decoration:none}
 .vzrow .vt{font-weight:700;color:var(--red);white-space:nowrap}
 @media (max-width:760px){.trow{grid-template-columns:1fr auto}.trow .tl{grid-column:1/-1;grid-row:2}.trow .tact{grid-column:1/-1}}
@@ -82,30 +82,30 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .fm label{color:var(--mute);font-size:.88rem}
 .fm .w{grid-column:1/-1}
 .fm textarea{min-height:70px}
-.uchk{display:flex;flex-wrap:wrap;gap:.3rem .9rem;max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem}
+.uchk{display:flex;flex-wrap:wrap;gap:.3rem .9rem;max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem}
 .uchk label{display:flex;gap:.35rem;align-items:center;color:var(--ink)}
 @media (max-width:760px){.mr{grid-template-columns:auto 1fr}.mr .th{display:none}.mr .ed{grid-column:1/-1;min-width:0}.er{grid-template-columns:30px 1fr}.er .ac{grid-column:1/-1;align-items:flex-start}.er .ac .bt{justify-content:flex-start}.fm{grid-template-columns:1fr}}
 .sm-steps{margin:.2rem 0 .8rem;padding-left:1.3rem;display:flex;flex-direction:column;gap:.8rem;line-height:1.45}
 .sm-steps .btn{margin-top:.35rem}
-.sm-drop{display:flex;align-items:center;justify-content:center;margin-top:.4rem;padding:1rem;border:2px dashed var(--line);border-radius:10px;cursor:pointer;color:var(--mute);text-align:center}
+.sm-drop{display:flex;align-items:center;justify-content:center;margin-top:.4rem;padding:1rem;border:2px dashed var(--line);border-radius:calc(10px*var(--rk,1));cursor:pointer;color:var(--mute);text-align:center}
 .sm-drop.on,.sm-drop:hover{border-color:var(--accent,#e33);color:var(--ink)}
-.sm-ok,.sm-bad{margin-top:.5rem;padding:.6rem .75rem;border-radius:8px;font-size:.9rem;line-height:1.45}
+.sm-ok,.sm-bad{margin-top:.5rem;padding:.6rem .75rem;border-radius:calc(8px*var(--rk,1));font-size:.9rem;line-height:1.45}
 .sm-ok{background:#e5f4e4;color:#1d4d1a}.sm-bad{background:#fbebeb;color:#7a1c1c}
-.briefe{margin:.2rem 0 .9rem;padding:.6rem .85rem;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.briefe{margin:.2rem 0 .9rem;padding:.6rem .85rem;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card)}
 .briefe .bf{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.35rem 0;border-top:1px solid var(--line);margin-top:.35rem}
 .briefe .bf span:last-child{display:flex;gap:.35rem}
 .bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
-.bed-bar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;padding:.55rem .9rem;background:var(--card,#fff);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.bed-bar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;padding:.55rem .9rem;background:var(--card,#fff);color:var(--ink);box-shadow:var(--sh0,0 2px 8px rgba(0,0,0,.25))}
 .bed-bar .mute{font-size:.85rem}
 .bed-s{flex:1;overflow:auto;padding:1rem .75rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
-.bed-p{position:relative;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.35);flex:none}
+.bed-p{position:relative;background:#fff;box-shadow:var(--sh0,0 4px 18px rgba(0,0,0,.35));flex:none}
 .bed-p canvas{width:100%;height:100%;display:block}
-.bed-f{position:absolute;box-sizing:border-box;margin:0;border:0;border-radius:2px;background:rgba(255,226,120,.28);color:#1e1e1e;font-family:Helvetica,Arial,sans-serif;line-height:1.2;resize:none;outline:none;overflow:auto;scrollbar-width:thin}
+.bed-f{position:absolute;box-sizing:border-box;margin:0;border:0;border-radius:calc(2px*var(--rk,1));background:rgba(255,226,120,.28);color:#1e1e1e;font-family:Helvetica,Arial,sans-serif;line-height:1.2;resize:none;outline:none;overflow:auto;scrollbar-width:thin}
 .bed-f:hover{background:rgba(255,214,90,.4)}.bed-f:focus{background:rgba(255,236,160,.55);box-shadow:0 0 0 1.5px #e0a800}
 .bed-f.gr{background:rgba(255,226,120,.12)}
 .bed-l{color:#ddd;padding:3rem}
 .nw{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:.6rem;margin:.4rem 0 .2rem}
-.nw button{display:grid;grid-template-columns:2.2rem 1fr;gap:.15rem .6rem;align-items:start;text-align:left;padding:.75rem .8rem;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.nw button{display:grid;grid-template-columns:2.2rem 1fr;gap:.15rem .6rem;align-items:start;text-align:left;padding:.75rem .8rem;border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
 .nw button:hover,.nw button:focus-visible{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,var(--y) 18%,transparent);outline:none}
 .nw .i{grid-row:span 2;font-size:1.5rem;line-height:1.2;text-align:center}.nw b{font-size:.98rem}.nw small{color:var(--mute);font-size:.8rem;line-height:1.3}
 .nw h4{grid-column:1/-1;margin:.5rem 0 0;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
@@ -113,13 +113,13 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 /* Einfache Ansicht */
 .einq,.einkopf{display:none}
 html[data-modus="einfach"] .einq{display:flex;gap:.4rem;flex-wrap:wrap}
-.einq button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:.35rem .85rem;font:inherit;font-size:.88rem;cursor:pointer}.einq button:hover{border-color:var(--y)}
+.einq button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(999px*var(--rkp,1));padding:.35rem .85rem;font:inherit;font-size:.88rem;cursor:pointer}.einq button:hover{border-color:var(--y)}
 html[data-modus="einfach"] .einkopf{display:block;margin:.2rem 0 1rem}.einkopf h1{margin:0;font-size:1.8rem;letter-spacing:-.02em}.einkopf p{margin:.3rem 0 0;color:var(--mute)}
 html[data-modus="einfach"] #scope{display:none!important}
 html[data-modus="einfach"] .top{order:-1}
 
 .ferr{color:var(--red,#c8372a);font-weight:600;font-size:.88rem;margin:.25rem 0 0}
-.feld-fehler,.feld-fehler .bph-pa input{outline:2px solid var(--red,#c8372a);outline-offset:2px;border-radius:8px}
+.feld-fehler,.feld-fehler .bph-pa input{outline:2px solid var(--red,#c8372a);outline-offset:2px;border-radius:calc(8px*var(--rk,1))}
 </style>
 <link rel="stylesheet" href="static/todo.css">
 </head>
@@ -315,9 +315,9 @@ async function truegeDialog(k, nur) {
     ${adrHtml('t', E0)}
     <label>Auftrag</label><input id="tA" placeholder="z. B. Nr. 12/2026 vom 03.03.2026 (optional)">
     <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="tF" value="${plus(3)}">${[[2, '2 Tage'], [3, '3 Tage'], [7, '1 Woche']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
-    ${(V.verzug || []).length ? `<label class="w">Rückstand laut Arbeitsfortschritt</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">
+    ${(V.verzug || []).length ? `<label class="w">Rückstand laut Arbeitsfortschritt</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem">
       ${V.verzug.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-tv="${esc(x.id)}"${x.ab_schwelle || (V.nur && V.nur === x.id) ? ' checked' : ''}><span>${esc(x.vorgang)} – ca. ${String(x.verzug).replace('.', ',')} AT<small class="mute" style="display:block">${esc(de(x.s))}–${esc(de(x.f))} · ${x.ist} % statt ${x.soll} %${x.ab_schwelle ? '' : ' · unter der Schwelle'}</small></span></label>`).join('')}</div>` : ''}
-    ${V.tage.length ? `<label class="w">Tage (laut Bauzeitenplan erwartet, nicht anwesend)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">
+    ${V.tage.length ? `<label class="w">Tage (laut Bauzeitenplan erwartet, nicht anwesend)</label><div class="w" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem">
       ${V.tage.map((x) => `<label class="chk" style="color:var(--ink);align-items:flex-start"><input type="checkbox" data-td="${esc(x.id)}" checked><span>${esc(deW(x.datum))}<small class="mute" style="display:block">${esc(x.leistungen.join(', '))} · ${x.status === 'fehlt' ? 'als „nicht da“ bestätigt' : 'nicht bestätigt'}</small></span></label>`).join('')}</div>` : ''}
     <label class="w">${(V.verzug || []).length || V.tage.length ? 'Weiterer Rückstand (optional, je Zeile ein Punkt)' : 'Rückstand – was ist in Verzug? (je Zeile ein Punkt)'}</label><textarea class="w" id="tX" rows="3" placeholder="z. B. Estricharbeiten EG sollten bis 06.11. fertig sein, bisher nicht begonnen"></textarea>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
@@ -714,7 +714,7 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     <label>Auftrag</label><input id="rA" placeholder="z. B. Nr. 12/2026 vom 03.03.2026 (optional)">
     <label></label><label class="chk" style="color:var(--ink)" id="rKw"><input type="checkbox" id="rK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
     <label>Frist bis</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="rF" value="${plus(14)}">${[[7, '1 Woche'], [14, '2 Wochen'], [21, '3 Wochen']].map(([d, l]) => `<button class="btn sm" data-m="f${d}">${l}</button>`).join('')}</div>
-    <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" id="rMl" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem">${V.maengel.length ? ms() : '<span class="mute" style="font-size:.88rem">In diesem Projekt sind keine offenen Mängel erfasst – trag sie unten selbst ein.</span>'}</div>
+    <label class="w">Mängel (offene im Projekt – vorausgewählt: dieselbe Firma)</label><div class="w" id="rMl" style="display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem">${V.maengel.length ? ms() : '<span class="mute" style="font-size:.88rem">In diesem Projekt sind keine offenen Mängel erfasst – trag sie unten selbst ein.</span>'}</div>
     <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt"></textarea>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>

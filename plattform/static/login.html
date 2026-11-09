@@ -11,7 +11,7 @@
 body{display:flex;min-height:100vh;align-items:flex-start;justify-content:center}
 #box{width:100%;max-width:360px;margin:14vh 1.25rem 2rem}
 .logo{display:flex;align-items:center;gap:.8rem;margin-bottom:1.4rem}
-.logo img{width:52px;height:52px;border-radius:10px;background:#fff;object-fit:contain}
+.logo img{width:52px;height:52px;border-radius:calc(10px*var(--rk,1));background:#fff;object-fit:contain}
 .logo [hidden]{display:none}
 .logo b{font-size:1.05rem;display:block}
 .logo small{color:var(--mute)}
@@ -21,7 +21,7 @@ form .btn{width:100%;justify-content:center;padding:.75rem;margin-top:.2rem}
 p{color:var(--mute);margin:0 0 .9rem}
 .lnks{margin-top:1rem;text-align:center}
 .apps{display:flex;gap:.5rem;justify-content:center;margin-top:2.2rem;color:var(--mute);font-size:.85rem;flex-wrap:wrap}
-.apps span{border:1px solid var(--line);border-radius:999px;padding:.15rem .6rem}
+.apps span{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.15rem .6rem}
 </style>
 </head>
 <body>

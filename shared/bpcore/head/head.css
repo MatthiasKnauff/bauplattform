@@ -566,11 +566,12 @@ html[data-verlauf="kopf"]:not([data-rahmen="verlauf"]) :is(.card,.sec,.sr-r,.sr-
 html[data-verlauf="licht"]:not([data-rahmen="verlauf"]) :is(.card,.sec,.sr-r,.sr-flo,.bp-flaeche,.ava-drop,.bph-zolli-bl){background-image:radial-gradient(120% 90% at 0 0,color-mix(in srgb,#ff5fb3 16%,var(--card,#2d2f33)),var(--card,#2d2f33) 60%)}
 html[data-verlauf="zwei"]:not([data-rahmen="verlauf"]) :is(.card,.sec,.sr-r,.sr-flo,.bp-flaeche,.ava-drop,.bph-zolli-bl){background-image:linear-gradient(145deg,color-mix(in srgb,var(--vf) 13%,var(--card,#2d2f33)) 0%,var(--card,#2d2f33) 45%,color-mix(in srgb,#4f8cff 11%,var(--card,#2d2f33)) 100%)}
 html[data-verlauf]:not([data-verlauf=""]) .sr-rt{background:linear-gradient(145deg,color-mix(in srgb,var(--af,var(--y,#d4f02a)) 20%,var(--tabs,#303236)) 0%,var(--tabs,#303236) 75%)}
-/* Fensterelemente im Mac-Stil: Schalter statt Häkchen, Leuchtrand im Feld, Menüs mit Milchglas, Ampel in Fenstertiteln */
-html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt){-webkit-appearance:none;appearance:none;width:2.1em;height:1.25em;border-radius:99px;background:color-mix(in srgb,currentColor 28%,transparent);position:relative;cursor:pointer;flex:none;vertical-align:middle;margin:0 .25em 0 0;transition:background .15s}
-html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt)::after{content:'';position:absolute;top:.125em;left:.125em;width:1em;height:1em;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:left .15s}
-html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt):checked{background:var(--y,#d4f02a)}html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt):checked::after{left:.975em}
-html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt):disabled{opacity:.45;cursor:default}
+/* Häkchen als Schalter: eigene Auswahl (data-schalter), unabhängig vom Fensterstil */
+/* Fensterelemente im Mac-Stil: Leuchtrand im Feld, Menüs mit Milchglas, Ampel in Fenstertiteln */
+html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt){-webkit-appearance:none;appearance:none;width:2.1em;height:1.25em;border-radius:99px;background:color-mix(in srgb,currentColor 28%,transparent);position:relative;cursor:pointer;flex:none;vertical-align:middle;margin:0 .25em 0 0;transition:background .15s}
+html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt)::after{content:'';position:absolute;top:.125em;left:.125em;width:1em;height:1em;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:left .15s}
+html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):checked{background:var(--y,#d4f02a)}html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):checked::after{left:.975em}
+html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):disabled{opacity:.45;cursor:default}
 html[data-fenster="mac"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--y,#d4f02a) 45%,transparent),inset 0 0 0 1px var(--y,#d4f02a)}
 html[data-fenster="mac"] :is(.bph-menu,.umenu,.bph-km){-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
 html[data-fenster="mac"] .bph-menu{background:color-mix(in srgb,#2a2a28 86%,transparent)}   /* Menüs der Kopfleiste sind immer dunkel – Milchglas in ihrer eigenen Farbe, sonst wird helle Schrift auf hellem Grund unlesbar */

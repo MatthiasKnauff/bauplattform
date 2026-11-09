@@ -37,7 +37,7 @@ ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
 # Stil je Benutzer (⚙ → Darstellung → Stil) – erlaubte Werte, leer = wie bisher; die Regeln dazu stehen in head/head.css
 STIL = {"ecken": {"rund", "dezent", "eckig"}, "schatten": {"aus"}, "sb": {"faden", "pille", "mac", "verlauf", "rinne", "glas"},
-        "rahmen": {"mac", "verlauf", "strich", "kantig", "glas"}, "verlauf": {"akzent", "app", "kopf", "licht", "zwei"}, "fenster": {"mac"}}
+        "rahmen": {"mac", "verlauf", "strich", "kantig", "glas"}, "verlauf": {"akzent", "app", "kopf", "licht", "zwei"}, "fenster": {"mac"}, "schalter": {"an"}}
 
 
 def blueprint(get_user=None):

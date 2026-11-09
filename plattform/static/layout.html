@@ -25,6 +25,7 @@ body{margin:0}
 .buehne{flex:1;overflow:auto;padding:24px;display:flex;justify-content:center}
 .blatt{position:relative;background:#fff;box-shadow:0 4px 18px #0006;flex:none;user-select:none}
 .blatt .gitter{position:absolute;inset:0;pointer-events:none}
+.rahmen{position:fixed;z-index:50;pointer-events:none;border:1.5px solid #2f6fd6;background:rgba(47,111,214,.10)}.rahmen.kreuz{border:1.5px dashed #1e9e5a;background:rgba(30,158,90,.10)}
 .el{position:absolute;box-sizing:border-box;border:1px dashed rgba(0,0,0,.25);color:#1e1e1e;overflow:hidden;cursor:move;line-height:1.2;white-space:pre-wrap;word-break:break-word}
 .el.mute{color:#6b6f76}.el.fett{font-weight:700}.el.mitte{text-align:center}.el.rechts{text-align:right}.el.ul span{border-bottom:1px solid #6b6f76}
 .el.feld{background:rgba(70,130,220,.08);border-color:rgba(70,130,220,.55)}
@@ -240,7 +241,7 @@ function optHtml() {
 }
 function props() {
   const P = $('#props'), S = E().filter((e) => SEL.has(e.id));
-  if (!S.length) { P.innerHTML = `<h3>Eigenschaften</h3><p class="hint">Element anklicken (mit Umschalt mehrere), ziehen zum Verschieben, an den orangen Griffen die Größe ändern. Pfeiltasten verschieben um ein Rasterfeld, mit Umschalt um 0,5 mm.</p>
+  if (!S.length) { P.innerHTML = `<h3>Eigenschaften</h3><p class="hint">Element anklicken (mit Umschalt mehrere) oder einen Rahmen aufziehen – nach rechts unten nur ganz eingeschlossene, nach links oben auch angeschnittene; ziehen zum Verschieben, an den orangen Griffen die Größe ändern. Pfeiltasten verschieben um ein Rasterfeld, mit Umschalt um 0,5 mm.</p>
     <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen.</p>${optHtml()}`; return; }
   if (S.length > 1) { P.innerHTML = `<h3>${S.length} Elemente gewählt</h3><p class="hint">Oben ausrichten, gleiche Abstände oder gleiche Größe.</p>`; return; }
   const e = S[0], nz = (k, l, st = 0.5) => `<label>${l}<input type="number" step="${st}" data-p="${k}" value="${e[k] ?? ''}"></label>`;
@@ -288,7 +289,7 @@ document.querySelector('.pal').addEventListener('click', (e) => {
 /* Ziehen: verschieben (alle gewählten) und Größe ändern – rastet am Raster ein */
 $('#blatt').addEventListener('pointerdown', (ev) => {
   const d = ev.target.closest('.el');
-  if (!d) { SEL.clear(); zeichne(); props(); return; }
+  if (!d) return;   // leere Fläche: Auswahlrahmen (unten, auf der ganzen Bühne)
   const id = d.dataset.id;
   if (ev.shiftKey) { if (SEL.has(id)) SEL.delete(id); else SEL.add(id); zeichne(); props(); return; }
   if (!SEL.has(id)) { SEL = new Set([id]); zeichne(); props(); }
@@ -304,6 +305,34 @@ $('#blatt').addEventListener('pointerdown', (ev) => {
   start.forEach((s) => { s.ox = s.el.x; s.oy = s.el.y; s.w = s.el.w; s.h = s.el.h; });
   const up = () => { $('#blatt').removeEventListener('pointermove', mv); $('#blatt').removeEventListener('pointerup', up); if (bewegt) geaendert(false); };
   $('#blatt').addEventListener('pointermove', mv); $('#blatt').addEventListener('pointerup', up);
+});
+/* Auswahlrahmen auf der leeren Fläche (Blatt oder Bühne drumherum):
+   von links oben nach rechts unten = nur komplett eingeschlossene Elemente (blauer Rahmen),
+   von rechts unten nach links oben = auch angeschnittene (grüner, gestrichelter Rahmen). Mit Umschalt zur Auswahl hinzu. */
+$('#bue').addEventListener('pointerdown', (ev) => {
+  if (ev.button > 0 || ev.target.closest('.el')) return;
+  const bue = $('#bue'), sx = ev.clientX, sy = ev.clientY, plus = ev.shiftKey, vorher = new Set(SEL);
+  let rb = null; ev.preventDefault(); bue.setPointerCapture(ev.pointerId);
+  const mm = (cx, cy) => { const r = $('#blatt').getBoundingClientRect(); return { x: (cx - r.left) / K, y: (cy - r.top) / K }; };
+  const mv = (m) => {
+    if (!rb && Math.abs(m.clientX - sx) + Math.abs(m.clientY - sy) < 4) return;
+    if (!rb) {
+      rb = document.createElement('div'); rb.className = 'rahmen'; document.body.appendChild(rb);
+      if (LS.get('lay.rahmenhinweis', '') !== '1') { LS.set('lay.rahmenhinweis', '1'); toast('Rahmen nach rechts unten: nur ganz eingeschlossene Elemente. Nach links oben: auch angeschnittene. Mit Umschalt zur Auswahl hinzu.'); }
+    }
+    const kreuz = m.clientX < sx;   // nach links aufgezogen = auch geschnittene
+    Object.assign(rb.style, { left: Math.min(sx, m.clientX) + 'px', top: Math.min(sy, m.clientY) + 'px', width: Math.abs(m.clientX - sx) + 'px', height: Math.abs(m.clientY - sy) + 'px' });
+    rb.classList.toggle('kreuz', kreuz);
+    const a = mm(Math.min(sx, m.clientX), Math.min(sy, m.clientY)), b = mm(Math.max(sx, m.clientX), Math.max(sy, m.clientY));
+    const treffer = E().filter((e) => kreuz ? (e.x < b.x && e.x + e.w > a.x && e.y < b.y && e.y + e.h > a.y) : (e.x >= a.x && e.x + e.w <= b.x && e.y >= a.y && e.y + e.h <= b.y)).map((e) => e.id);
+    SEL = new Set([...(plus ? vorher : []), ...treffer]); zeichne();
+  };
+  const up = () => {
+    bue.removeEventListener('pointermove', mv); bue.removeEventListener('pointerup', up);
+    if (rb) rb.remove(); else if (!plus) SEL.clear();   // nur geklickt: Auswahl aufheben
+    zeichne(); props();
+  };
+  bue.addEventListener('pointermove', mv); bue.addEventListener('pointerup', up);
 });
 /* Ausrichten, Verteilen, gleiche Größe – bezogen auf die Auswahl (ein Element: auf den Satzspiegel 25–190 mm) */
 function ausrichten(a) {

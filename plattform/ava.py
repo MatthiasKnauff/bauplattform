@@ -2903,6 +2903,90 @@ def _nachtrag_dazu(c, r, i, zu_nt, b):
     return _antwort(c, i)
 
 
+@app.post("/api/lv/<int:i>/nachtrag/verschieben")
+def nachtrag_verschieben(i):
+    """Nachtragsposition bzw. Nachtrags-Gliederungspunkt (mit Inhalt) an eine andere Stelle ziehen (Aufträge, Drag & Drop).
+    wo = davor / danach (neben eine Zeile) oder in (in einen Gliederungspunkt). Landet eine Position in einem Nachtrags-Gliederungspunkt,
+    übernimmt sie dessen Nummer und Stand; verlässt sie ihren Nachtrag, wird sie ein eigener Nachtrag (nächste freie Nummer).
+    Aufmaß, Preise und Rechnungen hängen an der Position und bleiben."""
+    b = request.get_json(silent=True) or {}
+    vid, zid, wo = _s(b.get("id"), 40), _s(b.get("ziel"), 40), b.get("wo")
+    if wo not in ("davor", "danach", "in"):
+        return jsonify(error="Ziel unklar"), 400
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        d = _j(r["data"], {}) or {}
+        items = d.get("items") or []
+        x = next((y for y in items if y.get("id") == vid), None)
+        z = next((y for y in items if y.get("id") == zid), None)
+        if not x or not z or not x.get("nt"):
+            return jsonify(error="Nur Nachträge lassen sich hier verschieben."), 400
+        if wo == "in" and z.get("typ") != "titel":
+            wo = "danach"
+        def block(t):   # Titel mit allem darunter
+            a_ = items.index(t); e_ = a_ + 1
+            if t.get("typ") == "titel":
+                while e_ < len(items) and not (items[e_].get("typ") == "titel" and (items[e_].get("lvl") or 1) <= (t.get("lvl") or 1)):
+                    e_ += 1
+            return a_, e_
+        a0, e0 = block(x)
+        if z in items[a0:e0]:
+            return jsonify(error="Nicht in sich selbst verschieben."), 400
+        versionen.vor(c, f"avalv:{i}")
+        blk = items[a0:e0]; del items[a0:e0]
+        alt_nt = str(x.get("nt"))
+        # Ebene der Gliederungspunkte im Block anpassen
+        if x.get("typ") == "titel":
+            neu_lvl = ((z.get("lvl") or 1) + 1) if wo == "in" else ((z.get("lvl") or 1) if z.get("typ") == "titel" else None)
+            if neu_lvl is None:   # Gliederungspunkt neben eine Position: Ebene unter deren Gliederungspunkt
+                k = items.index(z); neu_lvl = next(((y.get("lvl") or 1) + 1 for y in reversed(items[:k]) if y.get("typ") == "titel"), 1)
+            dl = neu_lvl - (x.get("lvl") or 1)
+            for y in blk:
+                if y.get("typ") == "titel":
+                    y["lvl"] = max(1, min(4, (y.get("lvl") or 1) + dl))
+        # Einfügestelle
+        if wo == "in":
+            za, ze = block(z)
+            pos_ = ze
+            if x.get("typ") == "pos":   # Positionen vor die Untergliederungen
+                pos_ = next((j for j in range(za + 1, ze) if items[j].get("typ") == "titel"), ze)
+        elif wo == "davor":
+            pos_ = items.index(z)
+        else:
+            pos_ = block(z)[1] if z.get("typ") == "titel" else items.index(z) + 1
+        items[pos_:pos_] = blk
+        # In welchem Nachtrags-Gliederungspunkt steht der Block jetzt?
+        st = []
+        for y in items[:items.index(x)]:
+            if y.get("typ") == "titel":
+                while st and (st[-1].get("lvl") or 1) >= (y.get("lvl") or 1):
+                    st.pop()
+                st.append(y)
+        if x.get("typ") == "titel":
+            while st and (st[-1].get("lvl") or 1) >= (x.get("lvl") or 1):
+                st.pop()
+        huelle = next((t for t in reversed(st) if t.get("nt")), None)
+        if huelle and x.get("typ") == "pos":   # in einen Nachtrag: übernimmt Nummer und Stand
+            for k in ("nt", "nt_status", "nt_grund"):
+                x.pop(k, None)
+            x["nt_erbe"] = True
+        elif not huelle and (x.get("nt_erbe") or (x.get("typ") == "pos" and str(x.get("nt")) == alt_nt and any(y is not x and str(y.get("nt")) == alt_nt and y.get("typ") == "titel" for y in items))):
+            vorhanden = {str(y.get("nt")) for y in items if y.get("nt")}
+            n = 1
+            while f"NT{n}" in vorhanden:
+                n += 1
+            x["nt"] = f"NT{n}"; x.pop("nt_erbe", None)   # eigener Nachtrag, Stand bleibt
+        nt_erben(items)
+        nummerieren(items, maske=d.get("ozm"))
+        d["items"] = items
+        c.execute("UPDATE ava_lv SET data=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(d, ensure_ascii=False), _now(), g.user["name"], i))
+        versionen.nach(c, f"avalv:{i}", g.user["name"])
+        C.audit(g.user["name"], "ava", "Nachtrag verschoben", f"LV {r['nr']} {r['name']}: {x.get('oz') or ''} {x.get('kurz') or ''} ({alt_nt} → {x.get('nt')})")
+        return _antwort(c, i)
+
+
 @app.put("/api/lv/<int:i>/nachtrag/<pid>")
 def nachtrag_status(i, pid):
     """Status eines Nachtrags (angemeldet / beauftragt / abgelehnt) – aus der Aufträge-Übersicht."""

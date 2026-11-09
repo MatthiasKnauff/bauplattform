@@ -680,6 +680,8 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 .re-hand-a{font-weight:400;font-size:var(--fs-s2);color:#e07b3a;margin-top:.2rem}
 .re2-baum .pj-r.oa-g{padding-left:1.3rem;cursor:default}.re2-baum .pj-r.oa-g .car{cursor:pointer}.re2-baum .pj-r.lv.oa{padding-left:2.4rem}.re2-baum .pj-r.k.oa{padding-left:3.5rem}
 .re2-baum .pj-r.lv.oa .t small{display:inline}
+table.au-t tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.au-t tr.zieh-davor td{box-shadow:inset 0 3px 0 var(--y)}table.au-t tr.zieh-in td{background:color-mix(in srgb,var(--y) 18%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
+table.au-t tr.nt-zieh td:first-child{cursor:grab}
 </style>
 </head>
 <body>
@@ -4697,6 +4699,56 @@ document.addEventListener('drop', (e) => {
 });
 document.addEventListener('dragend', () => { ZIEH = null; document.querySelectorAll('table.lv tr[draggable="true"]').forEach((r) => { r.draggable = false; }); document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor')); });
 
+
+/* ---------- Aufträge: Nachtragsposition bzw. Nachtrag (Gliederungspunkt mit Inhalt) per Drag & Drop verschieben ----------
+   auf einen Nachtrags-Gliederungspunkt: übernimmt dessen Nummer und Stand · zwischen Zeilen: Reihenfolge / Stelle im LV · mit Rückgängig */
+let NTZIEH = null;
+const auItem = (key) => { const m = /^l(\d+):(.+)$/.exec(key || ''); if (!m) return null; const lvId = +m[1], lv = PC[lvId] || (L && L.id === lvId ? L : null); if (!lv) return null;
+  const I = lv.data.items || []; let x;
+  if (m[2].startsWith('nt:')) { const nt = decodeURIComponent(m[2].slice(3)); x = I.find((y) => y.nt === nt && y.typ === 'titel') || I.find((y) => y.nt === nt); }
+  else x = I.find((y) => y.id === m[2]);
+  return x ? { lvId, lv, x } : null; };
+document.addEventListener('mousedown', (e) => {
+  if (tab !== 'auftraege') return; const tr = e.target.closest && e.target.closest('table.au-t tr[data-tr]'); if (!tr || e.target.closest('input,select,button,a,[data-car]')) return;
+  const it = auItem(tr.dataset.tr); if (it && it.x.nt) tr.draggable = true;
+});
+document.addEventListener('dragstart', (e) => {
+  const tr = e.target.closest && e.target.closest('table.au-t tr[data-tr]'); if (!tr || !tr.draggable || tab !== 'auftraege') return;
+  const it = auItem(tr.dataset.tr); if (!it) return;
+  NTZIEH = { lvId: it.lvId, id: it.x.id }; e.dataTransfer.setData('text/x-ava-nt', it.x.id); e.dataTransfer.effectAllowed = 'move';
+});
+const ntZiel = (e) => { const tr = e.target.closest && e.target.closest('table.au-t tr[data-tr]'); if (!tr || !NTZIEH) return null;
+  const it = auItem(tr.dataset.tr); if (!it || it.lvId !== NTZIEH.lvId || it.x.id === NTZIEH.id) return null;
+  const r = tr.getBoundingClientRect(), y = (e.clientY - r.top) / r.height;
+  const wo = it.x.typ === 'titel' ? (y < 0.25 ? 'davor' : y > 0.75 ? 'danach' : 'in') : (y < 0.5 ? 'davor' : 'danach');
+  return { tr, it, wo }; };
+document.addEventListener('dragover', (e) => {
+  if (!NTZIEH || ![...(e.dataTransfer.types || [])].includes('text/x-ava-nt')) return;
+  document.querySelectorAll('table.au-t .zieh-hier,table.au-t .zieh-davor,table.au-t .zieh-in').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor', 'zieh-in'));
+  const z = ntZiel(e); if (!z) return; e.preventDefault();
+  z.tr.classList.add(z.wo === 'in' ? 'zieh-in' : z.wo === 'davor' ? 'zieh-davor' : 'zieh-hier');
+});
+document.addEventListener('drop', async (e) => {
+  if (!NTZIEH || !e.dataTransfer.getData('text/x-ava-nt')) return;
+  e.preventDefault(); const z = ntZiel(e), von = NTZIEH; NTZIEH = null;
+  document.querySelectorAll('table.au-t .zieh-hier,table.au-t .zieh-davor,table.au-t .zieh-in').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor', 'zieh-in'));
+  if (!z) return;
+  const lv = z.it.lv, I = lv.data.items || [], x = I.find((y) => y.id === von.id); if (!x) return;
+  const am = (lv.calc && lv.calc.aufmass) || {}, mitAm = x.typ === 'pos' ? (am[x.id] || 0) > 0 : false;
+  const zielNt = z.wo === 'in' ? z.it.x.nt : z.it.x.nt_erbe ? z.it.x.nt : null;
+  if (mitAm && x.nt_status === 'beauftragt' && zielNt && zielNt !== x.nt
+    && !(await bpFrage(`„${x.kurz || x.oz}“ ist beauftragt und hat schon Aufmaß.\nSie wird Teil von ${zielNt} und übernimmt dessen Stand. Aufmaß und Rechnungen bleiben an der Position.`, { ok: 'Verschieben' }))) return;
+  const alt = JSON.parse(JSON.stringify(lv.data));
+  try {
+    const r = await api(`api/lv/${von.lvId}/nachtrag/verschieben`, 'POST', { id: von.id, ziel: z.it.x.id, wo: z.wo });
+    PC[von.lvId] = r; if (L && L.id === von.lvId) L = r; render();
+    const neu = (r.data.items || []).find((y) => y.id === von.id) || x;
+    rueckgaengig(`${neu.oz || ''} ${x.kurz || ''} verschoben${neu.nt !== x.nt ? ` (${x.nt} → ${neu.nt})` : ''}`.trim(), async () => {
+      const w = await api('api/lv/' + von.lvId, 'PUT', { data: alt, rev: (PC[von.lvId] || r).rev }); const r2 = await api('api/lv/' + von.lvId); PC[von.lvId] = r2; if (L && L.id === von.lvId) L = r2; render(); });
+    lvEintrag(von.lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});
+  } catch (er) { toast(er.message, true); }
+});
+document.addEventListener('dragend', () => { if (!NTZIEH && !document.querySelector('table.au-t tr[draggable="true"]')) return; NTZIEH = null; document.querySelectorAll('table.au-t tr[draggable="true"]').forEach((r) => { r.draggable = false; }); document.querySelectorAll('table.au-t .zieh-hier,table.au-t .zieh-davor,table.au-t .zieh-in').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor', 'zieh-in')); });
 /* ---------- Eigenschaften einer Position (wie in ORCA: Allgemein · Weiteres · Menge · Grafik) ---------- */
 const LB = ['000 Baustelleneinrichtung', '002 Erdarbeiten', '006 Spezialtiefbau', '009 Entwässerungskanalarbeiten', '012 Mauerarbeiten', '013 Betonarbeiten', '014 Natur-, Betonwerksteinarbeiten', '016 Zimmer- und Holzbauarbeiten', '017 Stahlbauarbeiten', '018 Abdichtungsarbeiten', '020 Dachdeckungsarbeiten', '021 Dachabdichtungsarbeiten', '022 Klempnerarbeiten', '023 Putz- und Stuckarbeiten, Wärmedämmsysteme', '024 Fliesen- und Plattenarbeiten', '025 Estricharbeiten', '026 Fenster, Außentüren', '027 Tischlerarbeiten', '028 Parkett-, Holzpflasterarbeiten', '029 Beschlagarbeiten', '030 Rollladenarbeiten', '031 Metallbauarbeiten', '032 Verglasungsarbeiten', '034 Maler- und Lackierarbeiten', '036 Bodenbelagarbeiten', '037 Tapezierarbeiten', '038 Vorgehängte hinterlüftete Fassaden', '039 Trockenbauarbeiten', '040 Wärmeversorgungsanlagen', '042 Gas- und Wasserinstallation', '044 Abwasserinstallation', '045 Sanitärausstattung', '053 Niederspannungsanlagen', '069 Aufzüge', '080 Straßen, Wege, Plätze', '081 Betonerhaltungsarbeiten', '084 Abbruch- und Rückbauarbeiten', '087 Abfallentsorgung'];
 function eigDialog(id) {

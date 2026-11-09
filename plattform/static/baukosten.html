@@ -17,7 +17,8 @@
 .bk-vm{width:280px;max-width:100%}.top #save{margin-left:auto}
 .save{color:var(--mute);font-size:.85rem}
 .stufen{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin:0 0 1rem}
-.reife{display:grid;grid-template-columns:repeat(6,1fr);gap:.45rem;margin-top:.9rem}
+.reife{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,7.5rem),1fr));gap:.45rem;margin-top:.9rem}
+.reife .rf{min-width:0;overflow-wrap:anywhere}
 .rf{position:relative;border:1px solid var(--line);border-radius:10px;padding:.55rem .6rem;font-size:.82rem;color:var(--mute);display:flex;flex-direction:column;gap:.15rem}
 .rf b{font-size:.86rem;font-weight:600}.rf.ok{border-color:color-mix(in srgb,var(--ok) 55%,transparent);background:color-mix(in srgb,var(--ok) 10%,transparent);color:var(--ink)}
 .rf.ok b{color:var(--ink)}.rf.cur{outline:2px solid var(--ok);outline-offset:-1px}

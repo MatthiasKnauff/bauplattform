@@ -26,6 +26,8 @@
 .k .vs{color:var(--mute);font-weight:400}
 .k.plus b{color:var(--ok)}.k.minus b{color:var(--red)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;margin:0 0 .8rem}
+.card{min-width:0;overflow-x:auto}.zwei>*{min-width:0}   /* breite Tabellen rollen in ihrer Karte, nie die ganze Seite */
+@media (max-width:700px){table.t th,table.t td{padding:.3rem .3rem}.card{padding:.7rem .7rem}}
 .tl{position:relative;height:58px;margin:1.3rem 0 .4rem;border-radius:8px;background:var(--hov)}
 .tl .h{position:absolute;top:-1.15rem;font-size:.72rem;color:var(--mute);transform:translateX(-50%)}
 .tl .hl{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}

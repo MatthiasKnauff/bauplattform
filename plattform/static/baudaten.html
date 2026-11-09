@@ -78,6 +78,7 @@
 .ed-tip{margin:.35rem 0 0;font-size:.8rem;color:var(--mute)}
 @media (max-width:560px){.ed .r3{grid-template-columns:1fr 1fr}.ed .r3>div:last-child:nth-child(3){grid-column:1/-1}.ed .ep{grid-template-columns:1fr 1fr 1fr}.ed .ep>div:last-child:nth-child(3){grid-column:auto}}
 .tbl{width:100%;border-collapse:collapse;font-size:.88rem}.tbl td{padding:.2rem .3rem}.tbl input{width:100%;box-sizing:border-box}
+#det{scroll-margin-top:72px}
 @media (max-width:1200px){.grid{grid-template-columns:240px minmax(0,1fr)}.det{grid-column:1/-1;position:static;max-height:none}}
 /* breiter Bildschirm: volle Breite, Baum links und Details rechts wachsen mit; die drei Boxen enden 10 px über dem Fensterrand, jede rollt für sich – kein Scrollbalken im Hauptfenster */
 @media (min-width:1201px){html,body{overflow:hidden}main.wrap{max-width:min(2000px,96vw);padding-bottom:0}
@@ -189,7 +190,11 @@ async function zeigen(id) {
   try { SEL = await api('api/position/' + id); } catch (e) { toast(e.message, true); return; }
   document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
   detail();
+  if (innerWidth <= 1200) {   // schmaler Bildschirm: Details stehen unter der Liste – hinrollen, mit „↑ zur Liste“ zurück
+    const d = $('#det'); if (!d.querySelector('[data-zurliste]')) d.insertAdjacentHTML('afterbegin', '<button type="button" class="btn sm" data-zurliste style="margin:0 0 .5rem">↑ zurück zur Liste</button>');
+    d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
+document.addEventListener('click', (e) => { if (!e.target.closest('[data-zurliste]')) return; const r = document.querySelector('.row.on'); (r || document.body).scrollIntoView({ behavior: 'smooth', block: 'center' }); });
 /* Doppelklick (am Handy: Doppeltipp) auf eine Zeile: Details direkt unter der Zeile aufklappen – die Detailkarte liegt auf schmalen Bildschirmen sonst weit unten */
 async function aufklappen(row) {
   const id = +row.dataset.id, alt = document.querySelector('.row-det');

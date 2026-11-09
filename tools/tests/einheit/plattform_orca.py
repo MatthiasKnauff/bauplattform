@@ -76,7 +76,7 @@ def test_orca_projekt_und_lvs():
     pos = [x for x in L["01"]["items"] if x["typ"] == "pos"]
     gleich([(x["oz"], x["kurz"], x["menge"]) for x in pos], [("01.1", "Mauerwerk", 100.0), ("01.2", "Putz", 200.0), ("09.1", "Zusätzliche Öffnung", 1.0)], "Positionen des Auftrags")
     gleich(pos[0]["lang"], "Kalksandstein 17,5 cm, KS 12-1,8", "Langtext aus dem formatierten ORCA-Text (Tabulator → Leerzeichen)")
-    gleich((pos[2].get("nt"), pos[2].get("nt_status"), pos[2]["art"]), ("1", "beauftragt", "P"), "Nachtragsposition (Flags 4) unter „Nachtrag 1“, Einheit psch → Pauschal")
+    gleich((pos[2].get("nt"), pos[2].get("nt_status"), pos[2]["art"]), ("NT1", "beauftragt", "P"), "Nachtragsposition (Flags 4) unter „Nachtrag 1“ → Kennung NT1, Einheit psch → Pauschal")
     gleich(sorted(E["firmen"]), ["Bau Müller GmbH", "Bau Schulte", "Gerüstbau Ruhr", "Metallbau Nowak", "Müller"], "Firmen aus Aufträgen und Preisspiegel")
 
 

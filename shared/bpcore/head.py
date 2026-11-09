@@ -28,7 +28,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, konto, mail, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, hilfe, konto, mail, papierkorb, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -100,6 +100,143 @@ def blueprint(get_user=None):
             if request.method == "PUT":
                 fehler.aktion(c, request.get_json(silent=True) or {})
             return jsonify(fehler=fehler.liste(c), ungelesen=fehler.ungelesen(c))
+
+    # ---------- Hilfe & Fehler (🐞?): Fragen an die Helfer, Live-Hilfe mit geteiltem Bildschirm ----------
+    def _hilfe_mail(cf, an, betreff, text):
+        """Mail an Helfer/Fragesteller – im Hintergrund, damit die Antwort nicht auf den Mailserver wartet."""
+        if not an or not mail.configured(cf):
+            return
+        import threading
+
+        def lauf():
+            for e in an:
+                try:
+                    mail.send(cf, e, betreff, text)
+                except Exception as er:   # noqa: BLE001 – steht unter Verwaltung → Fehlermeldungen
+                    print("Hilfe-Mail:", er, flush=True)
+        threading.Thread(target=lauf, daemon=True).start()
+
+    @bp.route("/api/bp/hilfe", methods=["GET", "POST"])
+    def hilfe_api():
+        """GET: eigene Anfragen, bin ich Helfer, offene Anfragen für Helfer (?alle=1 Verwaltung: alle). POST: neue Anfrage."""
+        u = user()
+        if not u:
+            return jsonify(error="Bitte anmelden."), 401
+        if request.method == "POST":
+            b = request.get_json(silent=True) or {}
+            try:
+                with db.tx() as c:
+                    r = hilfe.anlegen(c, u, b, request.headers.get("User-Agent", ""))
+                    an, cf = hilfe.helfer_mails(c, ohne=u["id"]), mail.conf(c)
+                betreff, text = hilfe.mail_text(cf, r, r["user_name"], r["text"] or ("möchte den Bildschirm teilen." if r["art"] == "live" else ""))
+                _hilfe_mail(cf, an, betreff, text)
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
+            return jsonify(ok=True, anfrage=r)
+        with db.tx() as c:
+            helfer = hilfe.ist_helfer(c, u)
+            out = {"helfer": helfer, "meine": [] if request.args.get("kurz") else hilfe.meine(c, u)}
+            if request.args.get("kurz"):
+                out["neu"] = sum(x["neu"] for x in hilfe.meine(c, u))
+            if helfer:
+                out["offen"] = hilfe.fuer_helfer(c, u, alle=bool(request.args.get("alle")) and bool(u["is_admin"]))
+            if request.args.get("alle") and u["is_admin"]:
+                out["benutzer"], out["helfer_ids"] = hilfe.benutzer(c), hilfe.helfer_ids(c)
+        return jsonify(**out)
+
+    @bp.put("/api/bp/hilfe/helfer")
+    def hilfe_helfer():
+        u = user()
+        if not u or not u["is_admin"]:
+            return jsonify(error="Nur für die Verwaltung."), 403
+        b = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            hilfe.helfer_setzen(c, b.get("ids") or [], u["name"])
+            return jsonify(ok=True, helfer_ids=hilfe.helfer_ids(c))
+
+    @bp.route("/api/bp/hilfe/<int:hid>", methods=["GET", "PUT", "DELETE"])
+    def hilfe_eine(hid):
+        """GET ?seit=<msg-id>: Anfrage + Verlauf (ab seit) + Live-Stand. PUT {status} oder {text}. DELETE: Verwaltung."""
+        u = user()
+        if not u:
+            return jsonify(error="Bitte anmelden."), 401
+        b = request.get_json(silent=True) or {}
+        try:
+            with db.tx() as c:
+                r = hilfe.darf(c, u, hid)
+                if not r:
+                    return jsonify(error="Diese Anfrage gibt es nicht oder sie ist nicht für dich."), 404
+                if request.method == "DELETE":
+                    if not u["is_admin"]:
+                        return jsonify(error="Nur für die Verwaltung."), 403
+                    hilfe.loeschen(c, hid)
+                    return jsonify(ok=True)
+                post = None
+                if request.method == "PUT":
+                    if b.get("text"):
+                        hilfe.nachricht(c, u, r, b["text"])
+                        cf = mail.conf(c)
+                        if r["user_id"] == u["id"]:   # Fragesteller schreibt → sein Helfer, sonst alle Helfer
+                            an = [x["email"] for x in hilfe.benutzer(c) if x["id"] == r["helfer_id"] and x["email"]] if r["helfer_id"] else hilfe.helfer_mails(c, ohne=u["id"])
+                            post = (cf, an) + hilfe.mail_text(cf, r, r["user_name"], b["text"])
+                        else:
+                            an = [x["email"] for x in hilfe.benutzer(c) if x["id"] == r["user_id"] and x["email"]]
+                            from .skizze import name_von
+                            post = (cf, an) + hilfe.mail_text(cf, r, name_von(u), b["text"], antwort=True)
+                    if b.get("status"):
+                        hilfe.status(c, u, r, b["status"])
+                    if b.get("zeiger") is not None or "zeiger" in b:
+                        hilfe.zeiger_setzen(c, r, b.get("zeiger"))
+                    r = hilfe.darf(c, u, hid)
+                d = hilfe.lesen(c, u, r, request.args.get("seit") or b.get("seit") or 0)
+                d["live"] = hilfe.live_stand(c, r) if r["art"] == "live" else None
+                d["ich_helfer"] = hilfe.ist_helfer(c, u) and r["user_id"] != u["id"]
+            if post:
+                _hilfe_mail(*post)
+            return jsonify(**d)
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+
+    @bp.route("/api/bp/hilfe/<int:hid>/live", methods=["GET", "POST"])
+    def hilfe_live(hid):
+        """POST {bild}: der Hilfesuchende schickt sein aktuelles Bild, bekommt Zeiger und neue Nachrichten (?seit=) zurück.
+        GET ?seq=: der Helfer holt das Bild, wenn es neuer ist."""
+        u = user()
+        if not u:
+            return jsonify(error="Bitte anmelden."), 401
+        try:
+            with db.tx() as c:
+                r = hilfe.darf(c, u, hid)
+                if not r or r["art"] != "live":
+                    return jsonify(error="Keine Live-Hilfe."), 404
+                if r["status"] in ("erledigt", "beendet"):
+                    return jsonify(ende=True, status=r["status"])
+                if request.method == "POST":
+                    if r["user_id"] != u["id"]:
+                        return jsonify(error="Nur der Hilfesuchende schickt Bilder."), 403
+                    b = request.get_json(silent=True) or {}
+                    seq = hilfe.live_bild_setzen(c, r, b.get("bild") or "") if b.get("bild") else hilfe.live_stand(c, r)["seq"]
+                    d = hilfe.lesen(c, u, r, b.get("seit") or 0)
+                    return jsonify(seq=seq, status=r["status"], helfer=r["helfer_name"], live=hilfe.live_stand(c, r), nachrichten=d["nachrichten"])
+                if r["user_id"] == u["id"] and not u["is_admin"]:
+                    return jsonify(error="Das Bild sehen nur Helfer."), 403
+                x = hilfe.live_bild(c, r, request.args.get("seq") or 0)
+                return jsonify(status=r["status"], helfer=r["helfer_name"], neu=bool(x), **(x or {}))
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+
+    @bp.get("/api/bp/hilfe/<int:hid>/bild")
+    def hilfe_bild(hid):
+        u = user()
+        if not u:
+            return jsonify(error="Bitte anmelden."), 401
+        with db.tx() as c:
+            if not hilfe.darf(c, u, hid):
+                return jsonify(error="Nicht für dich."), 404
+            daten, typ = hilfe.bild(c, hid)
+        if not daten:
+            return jsonify(error="Kein Bild"), 404
+        return Response(daten, mimetype=typ, headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})
 
     @bp.post("/api/bp/bug")
     def bug_melden():

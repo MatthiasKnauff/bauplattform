@@ -120,7 +120,7 @@ const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer & Rechte'], ['sessio
 let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
-const SYS = [['health', 'Server-Status'], ['bugs', 'Bug-Meldungen'], ['fehler', 'Fehlermeldungen'], ['protokoll', 'Protokoll'], ['altpdf', 'Alte PDFs aufräumen']];
+const SYS = [['health', 'Server-Status'], ['bugs', 'Bug-Meldungen'], ['hilfe', 'Hilfe-Anfragen'], ['fehler', 'Fehlermeldungen'], ['protokoll', 'Protokoll'], ['altpdf', 'Alte PDFs aufräumen']];
 const sysNav = () => `<div class="bar" style="margin-bottom:1.2rem">${SYS.map(([k, l]) => `<button class="btn sm ${k === (data.sys || 'health') ? 'pri' : ''}" data-a="sys" data-sys="${k}">${l}</button>`).join('')}</div>`;
 const ago = (t) => { if (!t) return '–'; const s = Date.now() / 1000 - t; return s < 90 ? 'gerade eben' : s < 3600 ? `vor ${Math.round(s / 60)} Min.` : s < 86400 ? `vor ${Math.round(s / 3600)} Std.` : new Date(t * 1000).toLocaleDateString('de-DE'); };
 function renderTabs() {
@@ -146,6 +146,7 @@ async function load() {
     else if (data.sys === 'altpdf') { renderAltPdf(); }
     else if (data.sys === 'fehler') { data.f = await api('api/bp/fehler'); renderFehler(); }
     else if (data.sys === 'bugs') { data.b = await api('api/bp/bug'); renderBugs(); }
+    else if (data.sys === 'hilfe') { data.h = await api('api/bp/hilfe?alle=1'); renderHilfe(); }
     else { data.a = await api('api/audit?cat=' + (data.cat || '')); renderAudit(); }
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
@@ -827,6 +828,36 @@ function renderBugs() {
           k.zustand ? 'Zustand: ' + JSON.stringify(k.zustand) : '', ...(k.fehler || []).map((e) => `Fehler ${e.t}: ${e.m}`), ...(k.anfragen || []).map((a) => `Anfrage ${a.t}: ${a.methode} ${a.url} → ${a.status} ${a.text || ''}`), ...(k.klicks || []).map((c) => `Klick ${c.t}: ${c.was}`)].filter(Boolean).join('\n'))}</pre></details>
       <label style="display:block;margin-top:.4rem"><small class="mute">Notiz (kommt mit in die ZIP)</small><input data-bnotiz="${x.id}" value="${esc(x.notiz || '')}" maxlength="2000" style="width:100%" placeholder="z. B. tritt nur in Edge auf"></label></div>`; }).join('') : '<p class="mute">Keine Meldungen.</p>'}`;
 }
+/* Hilfe-Anfragen (🐞? in der Kopfleiste): Verlauf aller Fragen und Live-Hilfen, Auswahl der Helfer */
+function renderHilfe() {
+  const D = data.h || {}, L = (D.offen || []), dt = (t) => (t ? new Date(t).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '');
+  const f = data.hfilt || 'offen', Z = L.filter((x) => f === 'alle' || (f === 'offen' ? ['offen', 'laeuft'].includes(x.status) : ['erledigt', 'beendet'].includes(x.status)));
+  const hs = new Set(D.helfer_ids || []);
+  $('#main').innerHTML = `${sysNav()}<h1>Hilfe-Anfragen</h1>
+    <p class="mute" style="margin-top:-.3rem">Fragen und Live-Hilfen, die Kolleg:innen über 🐞? in der Kopfleiste stellen. Helfer bekommen neue Anfragen als Hinweis oben rechts und per Mail und können in jeder App über 🐞? antworten. Live-Bilder werden nicht aufbewahrt.</p>
+    <div class="card" style="padding:.8rem 1rem;margin:.6rem 0"><b>Helfer</b> <small class="mute">– ohne Auswahl helfen alle Administratoren</small>
+      <div class="bar" style="margin-top:.4rem;flex-wrap:wrap">${(D.benutzer || []).map((u) => `<label class="chk" style="margin-right:.8rem"><input type="checkbox" data-hhelfer="${u.id}"${hs.has(u.id) ? ' checked' : ''}> ${esc(u.name)}${u.admin ? ' <small class="mute">Admin</small>' : ''}${u.email ? '' : ' <small class="mute">(keine Mail)</small>'}</label>`).join('')}</div></div>
+    <div class="bar">${[['offen', `Offen (${L.filter((x) => ['offen', 'laeuft'].includes(x.status)).length})`], ['zu', 'Abgeschlossen'], ['alle', `Alle (${L.length})`]].map(([k, l]) => `<button class="btn sm ${k === f ? 'pri' : ''}" data-a="hfilt" data-hf="${k}">${l}</button>`).join('')}</div>
+    ${Z.length ? `<div class="tbl" style="margin-top:.6rem"><table><thead><tr><th>#</th><th>Art</th><th>Von</th><th>Worum</th><th>Stand</th><th>Zuletzt</th><th></th></tr></thead><tbody>${Z.map((x) => `<tr>
+      <td>${x.id}</td><td>${x.art === 'live' ? '🖥️ Live' : '✉️ Frage'}</td><td>${esc(x.user_name)}<br><small class="mute">${esc([x.app, x.projekt].filter(Boolean).join(' · '))}</small></td>
+      <td style="max-width:28rem">${esc((x.text || '').slice(0, 200))}${x.letzte && x.letzte.text !== x.text ? `<br><small class="mute">${esc(x.letzte.von)}: ${esc(x.letzte.text.slice(0, 120))}</small>` : ''}</td>
+      <td>${esc(x.status_name)}${x.helfer_name ? '<br><small class="mute">' + esc(x.helfer_name) + '</small>' : ''}</td><td><small>${esc(dt(x.geaendert || x.ts))}</small></td>
+      <td style="white-space:nowrap"><button class="btn sm" data-a="hauf" data-hid="${x.id}">Öffnen</button> <button class="btn sm danger" data-a="hweg" data-hid="${x.id}" title="Anfrage samt Verlauf löschen">Löschen</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="mute" style="margin-top:.8rem">Keine Anfragen.</p>'}`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-a="hfilt"],[data-a="hauf"],[data-a="hweg"]'); if (!b) return;
+  const a = b.dataset.a;
+  if (a === 'hfilt') { data.hfilt = b.dataset.hf; renderHilfe(); return; }
+  let H = null; try { H = window.top !== window && window.top.BPHead ? window.top.BPHead : window.BPHead; } catch { H = window.BPHead; }
+  if (a === 'hauf') { if (H && H.hilfe) H.hilfe({ id: +b.dataset.hid }); return; }
+  if (!(await bpFrage('Diese Anfrage samt Verlauf löschen?', { ok: 'Löschen', gefahr: true }))) return;
+  try { await api('api/bp/hilfe/' + b.dataset.hid, 'DELETE'); data.h = await api('api/bp/hilfe?alle=1'); renderHilfe(); toast('Anfrage gelöscht.'); } catch (er) { toast(er.message, true); }
+});
+document.addEventListener('change', async (e) => {
+  if (!e.target.closest('[data-hhelfer]')) return;
+  const ids = [...document.querySelectorAll('[data-hhelfer]:checked')].map((x) => +x.dataset.hhelfer);
+  try { const r = await api('api/bp/hilfe/helfer', 'PUT', { ids }); data.h.helfer_ids = r.helfer_ids; toast(ids.length ? 'Helfer gespeichert.' : 'Keine Auswahl – es helfen alle Administratoren.'); } catch (er) { toast(er.message, true); }
+});
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a="bfilt"],[data-a="bstat"],[data-a="bweg"],[data-a="balleerl"],[data-a="bbild"]'); if (!b) return;
   const a = b.dataset.a;

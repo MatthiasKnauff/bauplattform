@@ -42,6 +42,7 @@ tr.vqblink td{animation:vqblink 2.2s ease-out}
 .save{font-size:var(--fs-s2);color:var(--mute);align-self:center;padding:0 .6rem;margin-left:auto}.ph-akt{display:flex;align-items:center;margin-left:auto}.ph-akt .uakt{gap:.1rem}.ph-akt .uakt .btn{height:30px;border-color:transparent;background:transparent;padding:0 .5rem}.ph-akt .uakt .btn:hover:not(:disabled){background:var(--hov);border-color:var(--line)}
 .rib.weg{display:none}
 main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im Menü „⋯“ rechts in der Bereichsleiste */
+main.ava{overflow-x:clip}   /* die Seite selbst rollt nie seitlich – breite Tabellen rollen in ihrem Feld */
 .body{flex:1;display:grid;grid-template-columns:var(--navw,272px) minmax(0,1fr);min-height:calc(100vh - 140px)}
 .nav{border-right:1px solid var(--line);background:var(--card);overflow:auto;padding:.5rem .45rem;position:sticky;top:52px;align-self:stretch;max-height:calc(100vh - 52px);box-sizing:border-box}
 .nav .ng{margin-bottom:.35rem}
@@ -52,7 +53,7 @@ main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im
 .nav .ni.on{background:color-mix(in srgb,var(--y) 22%,transparent);font-weight:600}
 .nav .ni small{margin-left:auto;color:var(--mute);font-size:var(--fs-s)}
 .nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
-.pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}
+.pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}.pane:has(.bp-feld,.au2){padding-bottom:0}   /* Felder rollen in sich: unten nur der schmale Rand */
 .ph{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;padding:.45rem 0 .35rem;position:sticky;top:0;background:var(--bg);z-index:3}
 .ph-firma{margin:0 auto;padding:.2rem .9rem;border-radius:999px;background:var(--y);color:var(--on);font-weight:700;font-size:var(--fs-l);white-space:nowrap;max-width:40vw;overflow:hidden;text-overflow:ellipsis}.ph-firma small{font-weight:500;opacity:.85;margin-left:.4rem}   /* Auftragnehmer oben in der Mitte – auffällig statt klein im Baum */
 .ph b{font-size:var(--fs-l)}
@@ -562,7 +563,8 @@ tr.am-lf td input{color:#c0621f}
 .re2.mit-lvbar table.tree th,.re2.mit-lvbar table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
 .lv-split>.lv-sl{overflow-x:auto;overflow-y:hidden}   /* breites LV neben der PDF/den Baudaten: waagerecht rollen statt abschneiden – senkrecht rollt nur die Seite (ein Scrollbalken) */
 .lv-split>.lv-sl table.lv th,.lv-split>.lv-sl table.tree th{top:0;position:relative;z-index:3}   /* hier „klebt“ der Spaltenkopf per Skript (lvKopfKleben), weil das waagerechte Rollen das CSS-Kleben aufhebt */
-.au2{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:.7rem;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto}
+.au2{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:0;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.au2-re>.card{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}.au2-re>.card+.card{border-top:1px solid var(--line)!important}.au2-tab .tblw{border-radius:10px}   /* rechts eine durchgehende Box; unten gleichmäßiger Rand, Ecken rund */
 .au-k h3{margin:.1rem 0 .5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.au-k h4{margin:.9rem 0 .35rem;font-size:var(--fs)}.au-sum{display:grid;grid-template-columns:1fr;gap:.15rem;font-size:var(--fs)}.au-sum span{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--line);padding:.1rem 0}.au-sum b{font-variant-numeric:tabular-nums}
 .au-kond .vk{font-size:var(--fs)}.au-kond .vk input,.au-kond .vk select{font-size:var(--fs)}
 .au2.zu{grid-template-columns:minmax(0,1fr)!important}
@@ -572,7 +574,11 @@ tr.am-lf td input{color:#c0621f}
 .re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;border-left:3px solid transparent;position:relative}
 .re2-baum .pj-r.root{font-weight:600;cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:6px}.re2-baum .pj-r.root .car{cursor:pointer}.re2-baum .pj-r.lv{padding-left:1.3rem}.re2-baum .pj-r.k{padding-left:2.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
-.re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* nur die Seite scrollt – rechts kein zweiter Scrollbalken */
+.re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* im Feld rollt nur das Feld selbst – kein zweiter Scrollbalken darin */
+#view .bp-feld{overflow:auto!important;border:1px solid var(--line);border-radius:10px;background:var(--card);box-sizing:border-box}   /* Hauptfeld je Bereich: rollt in sich, unten 10 px Rand, Ecken rund */
+#view .bp-feld table.lv th,#view .bp-feld table.tree th{position:sticky!important;top:0!important;transform:none!important}
+#view .bp-feld .tblw{border:0;border-radius:0}
+#view .am-l.bp-feld{gap:0;padding:0}#view .am-l.bp-feld>.card,#view .am-l.bp-feld>.tblw{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}#view .am-l.bp-feld>*+*{border-top:1px solid var(--line)!important}#view .am-l.bp-feld>.re{gap:0;margin:0}#view .am-l.bp-feld>.re>.card{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}#view .am-l.bp-feld>.re>.card+.card{border-top:1px solid var(--line)!important}
 @media (max-width:1100px){.re2{grid-template-columns:1fr}.re2-baum{position:static;max-height:40vh}}
 body.ph-frei .ph{position:static}
 .lvx-bar{position:sticky;top:var(--phh,3.2rem);z-index:4;background:var(--bg);margin:0 0 .5rem;padding:.35rem 0}   /* Knopfleiste des geöffneten LV über der LV-Liste */
@@ -1343,7 +1349,7 @@ document.addEventListener('drop', (e) => {
 
 /* ---------- Projektbaum links (LV, Angebote, Aufmaßprüfung, Rechnungen) ---------- */
 const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);   // Projektbaum links in der Navigation unter dem gewählten Bereich
-let PJX = new Set(LS.get('pjx', [])), PJZU = LS.get('pjzu', false), PJF = null;
+let PJX = new Set(LS.get('pjx', [])), PJXG = LS.get('pjx', null) !== null, PJZU = LS.get('pjzu', false), PJF = null;   // PJXG: schon einmal selbst auf-/zugeklappt – dann auch alle zu erlaubt
 /* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
 function navUnter(k) {
   const nb = { lv: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()], rechnungen: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()] }[k];
@@ -1354,7 +1360,7 @@ function pjBaum() {
   const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x))
     && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei || (L && L.id === x.id))));   // Abrechnung: nur Aufträge
   const e0 = (v) => (v ? eur(v).replace(' €', '') : '');
-  if (L && !PJX.size) PJX.add(L.id);
+  if (L && !PJX.size && !PJXG) PJX.add(L.id);
   const out = [];
   if (!xs.length) out.push('<p class="hint" style="padding:.3rem .5rem">Noch kein LV.</p>');
   xs.forEach((x) => {
@@ -1362,7 +1368,7 @@ function pjBaum() {
     const re = tab === 'aufmass' || tab === 'rechnungen', kids = re ? x.rechnungen : tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : [];
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
-    const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : '') : x.status === 'nicht_vergeben' ? 'nicht vergeben' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
+    const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : '') : x.status === 'nicht_vergeben' ? '' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
     out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
@@ -1484,12 +1490,24 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
     } });
   }
 });
+/* Element sichtbar machen, ohne die ganze Seite seitlich zu verschieben (scrollIntoView rollt auch das Fenster): waagerecht nur im
+   eigenen Feld, senkrecht im eigenen Feld, sonst die Seite – nur nach oben/unten */
+function inFeldZeigen(el, mitte) {
+  const r = el.getBoundingClientRect();
+  const feld = (achse) => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { const cs = getComputedStyle(p); if (/(auto|scroll)/.test(achse === 'x' ? cs.overflowX : cs.overflowY) && (achse === 'x' ? p.scrollWidth > p.clientWidth : p.scrollHeight > p.clientHeight)) return p; } return null; };
+  const d = (a0, a1, b0, b1) => (mitte ? (a0 + a1) / 2 - (b0 + b1) / 2 : a0 < b0 ? a0 - b0 : a1 > b1 ? Math.min(a1 - b1, a0 - b0) : 0);
+  const fx = feld('x'); if (fx) { const q = fx.getBoundingClientRect(), dx = d(r.left, r.right, q.left + 20, q.right - 20); if (dx) fx.scrollBy({ left: dx, behavior: 'smooth' }); }
+  const fy = feld('y');
+  if (fy) { const q = fy.getBoundingClientRect(), dy = d(r.top, r.bottom, q.top + 30, q.bottom - 10); if (dy && !mitte) fy.scrollBy({ top: dy, behavior: 'smooth' }); }
+  else if (!mitte) { const dy = d(r.top, r.bottom, 120, innerHeight - 20); if (dy) scrollBy({ top: dy, behavior: 'smooth' }); }
+  if (scrollX) scrollTo({ left: 0 });   // die Seite selbst nie seitlich verschoben lassen
+}
 function pjFokus() {
   const F = PJF; PJF = null; if (!F || !F.sub) return;
   const id = +F.sub.slice(1); let el = null;
-  if (tab === 'angebote') { const i = document.querySelector(`th input[data-aid="${id}"]`); el = i && i.closest('th'); if (el) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); }
-  else if (tab === 'rechnungen') { el = document.querySelector(`.card[data-reid="${id}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
-  else if (tab === 'aufmass') { el = document.querySelector(`tr[data-amr="r${id}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  if (tab === 'angebote') { const i = document.querySelector(`th input[data-aid="${id}"]`); el = i && i.closest('th'); if (el) inFeldZeigen(el, true); }
+  else if (tab === 'rechnungen') { el = document.querySelector(`.card[data-reid="${id}"]`); if (el) inFeldZeigen(el); }
+  else if (tab === 'aufmass') { el = document.querySelector(`tr[data-amr="r${id}"]`); if (el) inFeldZeigen(el); }
   if (el) { el.classList.add('pj-blink'); setTimeout(() => el.classList.remove('pj-blink'), 1600); }
 }
 /* Doppelklick auf einen Namen im Projektbaum: gleich umbenennen (wie im Explorer; zweiter Klick auf die gewählte Zeile geht weiterhin) */
@@ -1526,7 +1544,7 @@ document.addEventListener('dblclick', () => { if (pjKlick) { clearTimeout(pjKlic
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('.pjtree')) return;
   if (e.target.closest('[data-pjzu]')) { e.stopPropagation(); PJZU = !PJZU; LS.set('pjzu', PJZU); pjZeichnen(); return; }
-  const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else { PJX.clear(); PJX.add(id); } LS.set('pjx', [...PJX].slice(-100)); pjZeichnen(); return; }   // immer nur ein LV aufgeklappt – die anderen klappen zu
+  const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else { PJX.clear(); PJX.add(id); } LS.set('pjx', [...PJX].slice(-100)); PJXG = true; pjZeichnen(); return; }   // immer nur ein LV aufgeklappt – die anderen klappen zu
   const z = e.target.closest('[data-lvzu]'); if (z) { LVXZU = !LVXZU; LS.set('lvxzu', LVXZU); render(); return; }
   const r = e.target.closest('[data-pjlv]'); if (!r) return;
   if (e.target.closest('.t') && r.classList.contains(r.dataset.pjsub ? 'on' : 'akt') && !e.target.closest('input')) return;   // Klick auf die schon gewählte Zeile: nichts neu laden (langsamer zweiter Klick benennt um, s. o.)
@@ -1636,6 +1654,7 @@ let LVDOK = LS.get('lvdok', true), LVDV = null, LVFELD = null;
 function lvKopfKleben() {
   document.querySelectorAll('.lv-split>.lv-sl').forEach((sl) => {
     const t = sl.querySelector('table.lv, table.tree'); if (!t || !t.tHead) return;
+    if (sl.classList.contains('bp-feld')) { t.tHead.querySelectorAll('th').forEach((th) => { th.style.transform = ''; }); return; }   // Feld rollt in sich: der Kopf klebt per CSS
     const oben = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--phh')) || 52) + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lvbar')) || 0);
     const r = t.getBoundingClientRect(), hk = t.tHead.getBoundingClientRect().height;
     const dy = Math.max(0, Math.min(oben - r.top, r.height - hk * 2));
@@ -3328,7 +3347,7 @@ function vRechnungen0() {
   }).join('');
   return `${leiste}<div class="bar"><span class="hint abz-z" title="Voreinstellung für alle Rechnungen dieses Auftrags – je Rechnung änderbar; geprüfte Rechnungen behalten ihre Einstellung">Abziehen:${abzChips(abzAuftrag(), 'data-vabz', false)}</span>
     <span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
-    ${SEL && (SEL.belege || []).length ? `<div class="am-split re-split"><div class="am-l"><div class="re">${cards}</div></div><div class="am-r" id="amPdfSlot"></div></div><div class="re">${vSicherheiten(K)}</div>` : `<div class="re">${cards || abzLeer()}${vSicherheiten(K)}</div>`}`;
+    ${SEL && (SEL.belege || []).length ? `<div class="am-split re-split"><div class="am-l"><div class="re">${cards}${vSicherheiten(K)}</div></div><div class="am-r" id="amPdfSlot"></div></div>` : `<div class="re">${cards || abzLeer()}${vSicherheiten(K)}</div>`}`;
 }
 /* Eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
    oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
@@ -4595,18 +4614,37 @@ function auHoehe() {
   if (tab !== 'auftraege') return;
   const w = document.querySelector('#view .au2-tab .tblw'), re = document.querySelector('#view .au2-re'); if (!w) return;
   const nach = [...w.parentElement.children].slice([...w.parentElement.children].indexOf(w) + 1).reduce((a, el) => a + el.getBoundingClientRect().height, 0);
-  w.style.maxHeight = Math.max(240, innerHeight - w.getBoundingClientRect().top - nach - 14) + 'px';
-  if (re && getComputedStyle(re).position === 'sticky') re.style.maxHeight = Math.max(240, innerHeight - re.getBoundingClientRect().top - 14) + 'px';
+  w.style.maxHeight = Math.max(240, innerHeight - w.getBoundingClientRect().top - nach - 10) + 'px';
+  if (re && getComputedStyle(re).position === 'sticky') re.style.maxHeight = Math.max(240, innerHeight - re.getBoundingClientRect().top - 10) + 'px';
   const zuviel = document.documentElement.scrollHeight - innerHeight;   // noch etwas über (Innenabstand der Seite)? Tabelle und Karte entsprechend kürzer
   if (zuviel > 0) { w.style.maxHeight = Math.max(240, parseFloat(w.style.maxHeight) - zuviel) + 'px'; if (re && re.style.maxHeight) re.style.maxHeight = Math.max(240, parseFloat(re.style.maxHeight) - zuviel) + 'px'; }
 }
 addEventListener('resize', () => requestAnimationFrame(auHoehe));
 /* Unten derselbe kleine Rand wie oben: die Bäume links (LV/Angebote/Rechnungen) enden 10 px über dem Fensterrand und rollen in sich */
+const FELDER = { lv: ['.re2-ed .lv-split > .lv-sl'], angebote: ['.re2-ed > .tblw'], aufmass: ['.re2-ed .am-split > .am-l'], rechnungen: ['.re2-ed .am-split > .am-l'],
+  uebersicht: ['#view > .tblw'], tueren: ['.tl-w', '.tl-d'] };   // je Bereich das Feld, das in sich rollt (wie in Aufträge)
 function randUnten() {
   document.querySelectorAll('#view .re2-baum, #view .pj').forEach((el) => {
     const cs = getComputedStyle(el); if (cs.position !== 'sticky') { el.style.maxHeight = ''; return; }
     const top = Math.max(el.getBoundingClientRect().top, parseFloat(cs.top) || 0);
     el.style.maxHeight = Math.max(200, Math.floor(innerHeight - top - 10)) + 'px';
+  });
+  // Hauptfeld des Bereichs: endet 10 px über dem Fensterrand, rollt in sich, Ecken rund – die Seite selbst rollt nicht mehr
+  const breit = innerWidth >= 1100 && !document.documentElement.classList.contains('mobil');
+  const F = breit ? (FELDER[tab] || []).flatMap((q) => [...document.querySelectorAll(q)]) : [];
+  document.querySelectorAll('#view .bp-feld').forEach((el) => { if (!F.includes(el)) { el.classList.remove('bp-feld'); el.style.maxHeight = ''; } });
+  F.forEach((el) => {
+    el.classList.add('bp-feld');
+    const r = el.getBoundingClientRect(); let nach = 0;
+    for (let a = el; a && a.id !== 'view' && a !== document.body; a = a.parentElement) {
+      for (let n = a.nextElementSibling; n; n = n.nextElementSibling) { const q = n.getBoundingClientRect(); if (q.height && q.top >= r.bottom - 2) nach += q.height + (parseFloat(getComputedStyle(n).marginTop) || 0); }
+    }
+    el.style.maxHeight = Math.max(240, Math.floor(innerHeight - (r.top + scrollY) - nach - 10)) + 'px';
+  });
+  document.querySelectorAll('#view .am-split > .am-r, #view .lv-split > .am-r').forEach((el) => {   // PDF daneben: gleich hoch, unten derselbe Rand
+    if (!breit || el.closest('.frei') || el.parentElement.classList.contains('pdf-zu')) { el.style.height = ''; return; }
+    const top = el.parentElement.getBoundingClientRect().top + scrollY;
+    el.style.height = Math.max(300, Math.floor(innerHeight - top - 10)) + 'px';
   });
 }
 { let t = 0; const los = () => { if (!t) t = requestAnimationFrame(() => { t = 0; randUnten(); }); };
@@ -4771,7 +4809,7 @@ function vAuftraege() {
     zeig(k);
   });
   const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:22rem"' : ''} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein- und ausblenden">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
-    <p class="hint" style="margin:.5rem 0 0">▸ klappt auf · Klick wählt das LV · Doppelklick öffnet es im Leistungsverzeichnis. Gesamt = Auftragssumme (nach Nachlass), ohne Auftrag die Schätzung. Prognose = Auftrag + beauftragte und angemeldete Nachträge. Grau: Bedarfs-/Wahlpositionen (nicht in der Summe).</p>`;
+`;
   if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
   return `<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auftragKarte()}</aside>` : ''}</div>`;
 }

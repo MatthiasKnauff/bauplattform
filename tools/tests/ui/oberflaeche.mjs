@@ -67,7 +67,16 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
       }));
       if (st.login) probleme.push('landet auf der Anmeldeseite');
       else if (!st.kopf && pfad) probleme.push('gemeinsame Kopfleiste fehlt');
-      if (gname === 'Handy' && st.breit > 2) probleme.push(`Seite ${st.breit}px breiter als das Handy (waagerechte Scrollleiste)`);
+      if (gname === 'Handy' && st.breit > 2) {
+        const wer = await p.evaluate(() => {   // welche Elemente ragen heraus? (nur solche, die kein rollender Bereich abschneidet)
+          const w = document.documentElement.clientWidth, out = [];
+          document.querySelectorAll('body *').forEach((e) => { const r = e.getBoundingClientRect(); if (r.right <= w + 2 || !r.width) return;
+            for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) if (getComputedStyle(a).overflowX !== 'visible') return;
+            out.push(`${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}.${String(e.className).split(' ')[0]} (${Math.round(r.width)}px)`); });
+          return out.slice(0, 4).join(', ');
+        });
+        probleme.push(`Seite ${st.breit}px breiter als das Handy (waagerechte Scrollleiste)${wer ? ' – ragt heraus: ' + wer : ''}`);
+      }
     } catch (e) { probleme.push('lädt nicht: ' + String(e.message).split('\n')[0]); }
     const titel = `${name} (${gname})`;
     if (probleme.length) {

@@ -559,7 +559,8 @@ def test_gaeb_export_und_reimport(ctx):
         L = c.post(f"{A}/lv/{neu['id']}/import", dateien={"datei": ("Rohbau.x83", x83.body, "application/xml")}, felder={"ziel": "lv"}).json
         pruefe("eingelesen" in (L.get("hinweis") or ""), f"Hinweis nach dem Einlesen: {L.get('hinweis')!r}")
         gleich(L["name"], lv["name"], "LV-Name aus der GAEB-Datei")
-        soll = [(x["typ"], x["oz"], x["kurz"], x.get("menge"), x.get("einheit"), x.get("art")) for x in lv["data"]["items"]]
+        GAEB_EH = {"m²": "m2", "m³": "m3", "qm": "m2", "Stk": "St", "lfm": "m", "Std": "h"}   # Export schreibt GAEB-Einheiten
+        soll = [(x["typ"], x["oz"], x["kurz"], x.get("menge"), GAEB_EH.get(x.get("einheit"), x.get("einheit")), x.get("art")) for x in lv["data"]["items"]]
         ist = [(x["typ"], x["oz"], x["kurz"], x.get("menge"), x.get("einheit"), x.get("art")) for x in L["data"]["items"]]
         gleich(ist, soll, "Inhalt nach GAEB hin und zurück")
         gleich(finde(L["data"]["items"], oz="01.01.0010").get("gb"), True, "Bedarfsposition mit Gesamtbetrag")

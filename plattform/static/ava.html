@@ -244,6 +244,7 @@ table.lv.baum tr:not(.wurzel):not(.lang):hover td{background:var(--hov)}
 table.lv.baum .badge{margin-left:.3rem}
 table.lv tr.akt td{background:color-mix(in srgb,#4da3ff 16%,transparent)!important}
 table.lv tr.akt:not(.lang) td.oz{font-weight:700}table.lv tr.akt td{box-shadow:inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}table.lv tr.akt td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:calc(7px*var(--rk,1)) 0 0 calc(7px*var(--rk,1))}table.lv tr.akt td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 calc(7px*var(--rk,1)) calc(7px*var(--rk,1)) 0}table.lv tr.akt:has(+tr.lang.akt) td{box-shadow:inset 0 1.5px 0 var(--y)}table.lv tr.akt:has(+tr.lang.akt) td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y);border-radius:calc(7px*var(--rk,1)) 0 0 0}table.lv tr.akt:has(+tr.lang.akt) td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y);border-radius:0 calc(7px*var(--rk,1)) 0 0}table.lv tr.lang.akt td{box-shadow:inset 1.5px 0 0 var(--y),inset -1.5px 0 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 0 calc(7px*var(--rk,1)) calc(7px*var(--rk,1))}table.lv tr:not(.akt) td :is(input,select){cursor:default}
+table.lv tr.zl td{opacity:.8;background:color-mix(in srgb,var(--ok,#2f9e44) 6%,transparent)}
 table.lv tr.zieh-lv td{background:color-mix(in srgb,var(--ok,#2f9e44) 20%,transparent);box-shadow:inset 0 0 0 2px var(--ok,#2f9e44)}
 table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-davor td{box-shadow:inset 0 3px 0 var(--y)}
 .ib:hover{color:var(--ink);background:var(--hov)}
@@ -2128,7 +2129,7 @@ function vLv() {
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   return `${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
-    <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung">Art</th><th class="hide-m">KG</th>
+    <div class="tblw"><table class="lv baum" data-sp="ava.lv"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung">Art</th><th class="hide-m">KG</th>
       <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^(<tr class="wurzel">.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
@@ -4242,6 +4243,10 @@ const histLabel = (a, b) => {
 };
 /* Spaltenbreiten in den Tabellen (LV, Angebote, Aufträge, Aufmaß, Rechnungen) am Spaltenkopf ziehen – je Bereich und Tabelle gemerkt; Doppelklick auf den Griff: zurücksetzen */
 const SB = LS.get('sb', {});
+document.addEventListener('bp-spalten', () => {   // Spalten gewählt/umgeordnet (/bp/spalten.js): gemerkte Breiten dieses Bereichs passen nicht mehr → verwerfen und neu zeichnen
+  const sb = LS.get('sb', {}); let weg = false; Object.keys(sb).forEach((k) => { if (k.startsWith(tab + ':')) { delete sb[k]; if (typeof SB !== 'undefined') delete SB[k]; weg = true; } }); if (weg) LS.set('sb', sb);
+  render();
+});
 function spaltenGriffe() {
   document.querySelectorAll('table.lv thead tr, table.tree thead tr, table.re-z thead tr').forEach((tr) => {
     const t = tr.closest('table'); if (t.dataset.sb) return; t.dataset.sb = '1';
@@ -4716,8 +4721,27 @@ document.addEventListener('drop', (e) => {
 
 /* ---------- Zeilen verschieben: an der Ordnungszahl greifen und an die neue Stelle ziehen (Titel nehmen ihren Inhalt mit) ---------- */
 let ZIEH = null;
+/* Beim Ziehen über einem zugeklappten LV-Ordner kurz verweilen: er klappt auf und zeigt seine Zeilen als Ziele (nur zum Ablegen, ohne das LV zu wechseln) */
+let LVZT = 0, LVZR = null;
+function lvZielAuf(tr) {
+  if (LVZR === tr || tr.dataset.zielauf) return;
+  clearTimeout(LVZT); LVZR = tr;
+  LVZT = setTimeout(async () => {
+    if (LVZR !== tr || !tr.isConnected || !tr.classList.contains('zieh-lv')) { LVZR = null; return; }
+    tr.dataset.zielauf = '1'; const id = +tr.dataset.lvopen, car = tr.querySelector('.car'); if (car) car.textContent = '▾';
+    try {
+      const T = await api('api/lv/' + id), nc = tr.children.length, I = T.data.items || [];
+      const h = I.map((x, k) => { const tief = x.typ === 'titel' ? (x.lvl || 1) : 1 + Math.max(1, ...I.slice(0, k).filter((y) => y.typ === 'titel').slice(-1).map((y) => y.lvl || 1));
+        return `<tr class="zl${x.typ === 'titel' ? ' ti' : ''}" data-ziellv="${id}" data-zi="${k}"><td class="baumz"><div class="bz" style="padding-left:${(1 + tief) * 1.15}rem">${x.typ === 'titel' ? IC.ti : IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(x.oz || '')}</span><span>${esc(x.kurz || '')}</span></div></td><td class="r">${x.typ === 'titel' || !x.menge ? '' : nf(x.menge)}</td><td>${esc(x.typ === 'titel' ? '' : x.einheit || '')}</td><td colspan="${Math.max(1, nc - 3)}"></td></tr>`; }).join('')
+        || `<tr class="zl" data-ziellv="${id}" data-zi="0"><td colspan="${nc}" class="hint" style="padding-left:3rem">noch leer – hier ablegen</td></tr>`;
+      if (tr.isConnected) tr.insertAdjacentHTML('afterend', h);
+    } catch (er) { delete tr.dataset.zielauf; }
+    LVZR = null;
+  }, 650);
+}
+document.addEventListener('dragend', () => { clearTimeout(LVZT); LVZR = null; if (document.querySelector('table.lv tr[data-ziellv]')) render(); });
 /* Zeilen auf ein anderes LV des Projekts ziehen: verschieben oder kopieren (beauftragte LVs: nur kopieren) – mit Rückgängig */
-async function lvZiehNach(zielId, von) {
+async function lvZiehNach(zielId, von, an) {   // an: Stelle im Ziel-LV (Index), ohne = ans Ende
   const Z = LIST.find((x) => x.id === zielId), I = items(), x = I[von]; if (!Z || !L || !x) return;
   let blk;
   if (LVSEL.size > 1 && LVSEL.has(x.id)) blk = I.filter((y) => LVSEL.has(y.id));
@@ -4731,7 +4755,7 @@ async function lvZiehNach(zielId, von) {
   await flush();
   const T = await api('api/lv/' + zielId), entwurf = (Z.status || 'entwurf') === 'entwurf';
   const neu = blk.map((y) => ({ ...JSON.parse(JSON.stringify(y)), id: uid(), ...(entwurf ? {} : { oz: '' }) }));   // im Entwurf wird neu nummeriert, sonst bleiben die vorhandenen OZ unangetastet (neue Zeilen ohne OZ)
-  await api('api/lv/' + zielId, 'PUT', { rev: T.rev, data: { ...T.data, items: [...(T.data.items || []), ...neu] }, ...(entwurf ? { nummerieren: true } : {}) });
+  await api('api/lv/' + zielId, 'PUT', { rev: T.rev, data: { ...T.data, items: (() => { const Q = [...(T.data.items || [])]; Q.splice(an == null ? Q.length : Math.max(0, Math.min(Q.length, an)), 0, ...neu); return Q; })() }, ...(entwurf ? { nummerieren: true } : {}) });
   const vorher = move ? JSON.parse(JSON.stringify(I)) : null;
   if (move) { const weg = new Set(blk.map((y) => y.id)); L.data.items = I.filter((y) => !weg.has(y.id)); LVSEL = new Set(); if (weg.has(LVAKT)) LVAKT = null; HIST.next = `${was} nach „${ziel}“ verschoben`; changed(true); await flush(); }
   delete PC[zielId]; await refreshList(); render();
@@ -4752,7 +4776,9 @@ document.addEventListener('dragover', (e) => {
   if (ZIEH == null || ![...(e.dataTransfer.types || [])].includes('text/x-ava-zeile')) return;
   document.querySelectorAll('.zieh-lv').forEach((r) => r.classList.remove('zieh-lv'));
   const anderes = e.target.closest && e.target.closest('table.lv tr[data-lvopen]');   // auf ein anderes LV des Projekts: dorthin verschieben oder kopieren
-  if (anderes) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor')); anderes.classList.add('zieh-lv'); return; }
+  if (anderes) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor')); anderes.classList.add('zieh-lv'); lvZielAuf(anderes); return; }
+  const zz = e.target.closest && e.target.closest('table.lv tr[data-ziellv]');   // Zeile im aufgeklappten Ziel-LV: davor oder dahinter einfügen
+  if (zz) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor')); const r = zz.getBoundingClientRect(); zz.classList.add(e.clientY < r.top + r.height / 2 ? 'zieh-davor' : 'zieh-hier'); return; }
   const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'), kopf = !tr && e.target.closest && e.target.closest('table.lv thead, table.lv tr.wurzel');
   document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor'));
   if (tr) { e.preventDefault(); const r = tr.getBoundingClientRect(); tr.classList.add(e.clientY < r.top + r.height / 2 ? 'zieh-davor' : 'zieh-hier'); }   // obere Hälfte: davor einfügen (so geht es auch ganz nach oben)
@@ -4763,6 +4789,9 @@ document.addEventListener('drop', (e) => {
   const anderes = e.target.closest && e.target.closest('table.lv tr[data-lvopen]');
   document.querySelectorAll('.zieh-lv').forEach((r) => r.classList.remove('zieh-lv'));
   if (anderes) { e.preventDefault(); const von = ZIEH; ZIEH = null; lvZiehNach(+anderes.dataset.lvopen, von).catch((er) => toast(er.message, true)); return; }
+  const zz = e.target.closest && e.target.closest('table.lv tr[data-ziellv]');
+  if (zz) { e.preventDefault(); const von = ZIEH, davor = zz.classList.contains('zieh-davor'); ZIEH = null; document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor'));
+    lvZiehNach(+zz.dataset.ziellv, von, +zz.dataset.zi + (davor ? 0 : 1)).catch((er) => toast(er.message, true)); return; }
   e.preventDefault(); const markiert = document.querySelector('.zieh-davor,.zieh-hier'); const davor = !!(markiert && markiert.classList.contains('zieh-davor'));
   document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor'));
   const tr = (e.target.closest && e.target.closest('table.lv tr[data-i]')) || markiert; const von = ZIEH; ZIEH = null; if (!tr || !tr.dataset || tr.dataset.i == null) return;

@@ -682,3 +682,12 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bp-vs-z{display:flex;gap:.6rem;align-items:baseline;padding:.18rem .45rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;white-space:nowrap}
 .bp-vs-z b{min-width:2.4em;font-weight:600}.bp-vs-z span{color:var(--mute);font-size:.92em}
 .bp-vs-z:hover{background:color-mix(in srgb,var(--af,var(--acc,#888)) 12%,transparent)}.bp-vs-z.an{background:color-mix(in srgb,var(--af,var(--acc,#888)) 24%,transparent)}
+
+/* Spalten wählen und ordnen (/bp/spalten.js) */
+.bp-sp-aus{display:none!important}
+.bp-spm{position:fixed;z-index:1200;background:var(--card,#2d2f33);color:var(--ink,#f3f3f1);border:1px solid var(--line,#3b3e42);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 12px 32px rgba(0,0,0,.22));padding:.3rem;min-width:13rem;max-height:80vh;overflow:auto;font:14px/1.3 Ubuntu,"Segoe UI",system-ui,sans-serif}
+.bp-spm-k{display:flex;align-items:center;justify-content:space-between;padding:.15rem .35rem .3rem;border-bottom:1px solid var(--line,#3b3e42);margin-bottom:.2rem}
+.bp-spm-x,.bp-spm-f button{all:unset;cursor:pointer;padding:0 .3rem;color:var(--mute,#9a9c9e)}.bp-spm-f{padding:.3rem .35rem .1rem;border-top:1px solid var(--line,#3b3e42);margin-top:.2rem}.bp-spm-f button{text-decoration:underline}
+.bp-spm-z{display:flex;align-items:center;gap:.45rem;padding:.22rem .35rem;border-radius:calc(6px*var(--rk,1));cursor:default;user-select:none}.bp-spm-z:hover{background:color-mix(in srgb,currentColor 8%,transparent)}
+.bp-spm-z .g{color:var(--mute,#9a9c9e);cursor:grab;letter-spacing:-.15em;font-size:.9em}.bp-spm-z input{margin:0;accent-color:var(--y,#d4f02a)}
+.bp-spm-z.vor{box-shadow:inset 0 2px 0 var(--y,#d4f02a)}.bp-spm-z.nach{box-shadow:inset 0 -2px 0 var(--y,#d4f02a)}.bp-spm-z.zieh{opacity:.5}

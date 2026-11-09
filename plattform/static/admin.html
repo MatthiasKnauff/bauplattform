@@ -98,7 +98,7 @@ details.hilfe p{margin:.4rem 0 0}
 .pf-users label{display:flex;gap:.45rem;align-items:center;font-size:.92rem}
 .pf-users label.off{opacity:.55}
 .pf-users small{color:var(--mute);font-size:.72rem;white-space:nowrap}
-@media (max-width:820px){.prow{grid-template-columns:1fr}.pact{justify-content:flex-start}}
+@media (max-width:820px){.prow{grid-template-columns:minmax(0,1fr)}.pmain,.papps{min-width:0}.pmain b,.pmain small{overflow-wrap:anywhere}.papps .chip{max-width:100%;white-space:normal;overflow-wrap:anywhere}.pact{justify-content:flex-start}}
 @media (max-width:760px){.hide-s{display:none}}
 /* eingebettet im Einstellungsfenster (⚙ → Büro): nur die Einstellungen, ohne Kopfleiste, Reiter und Unternavigation */
 html.embed .bph,html.embed #tabs,html.embed .stnav{display:none!important}

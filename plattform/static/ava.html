@@ -467,6 +467,13 @@ html.mobil .bph{position:sticky;top:0}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
 .au-sk{cursor:pointer;user-select:none}.au-sk:hover{color:var(--y)}.au-spw{margin-left:.6rem;font-size:var(--fs-s2);font-weight:400;opacity:.8}.au-ed{font:inherit;padding:.05rem .35rem;border:1px solid var(--y);border-radius:5px;background:var(--inp);color:var(--ink);min-width:12rem}
+.au-spm{position:fixed;z-index:120;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.22);padding:.3rem;min-width:13rem;font-size:var(--fs-s2)}
+.au-spm-k{display:flex;align-items:center;justify-content:space-between;padding:.15rem .35rem .3rem;border-bottom:1px solid var(--line);margin-bottom:.2rem}.au-spm-k .ib{padding:0 .3rem}
+.au-spm-z{display:flex;align-items:center;gap:.45rem;padding:.22rem .35rem;border-radius:6px;cursor:default;user-select:none}.au-spm-z:hover{background:var(--hov)}
+.au-spm-z .g{color:var(--mute);cursor:grab;letter-spacing:-.15em;font-size:.9em}.au-spm-z input{margin:0;accent-color:var(--y)}
+.au-spm-z.zieh{opacity:.4}.au-spm-z.vor{box-shadow:inset 0 2px 0 var(--y)}.au-spm-z.nach{box-shadow:inset 0 -2px 0 var(--y)}
+.au-spm-f{border-top:1px solid var(--line);margin-top:.2rem;padding:.3rem .35rem .1rem}.au-spm-f .lnk{border:0;background:none;color:var(--y);cursor:pointer;font:inherit;padding:0}
+table.au-t thead th.zieh{opacity:.4}table.au-t thead th.ziel-l{box-shadow:inset 3px 0 0 var(--y)}table.au-t thead th.ziel-r{box-shadow:inset -3px 0 0 var(--y)}
 .tree tr.ntz .tw svg.ico{stroke:#e07b3a}.tree tr.ntz .tw svg.ico[fill="#fff"]{fill:#fdf0e6}.tree .badge.nt{margin:0 .35rem 0 0}   /* Nachträge wie im LV: oranges Symbol und Kennzeichen „NT n“ */
 table.au-t input.aui{font:inherit;font-size:inherit;padding:.05rem .3rem;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;box-sizing:border-box;min-width:0}
 table.au-t input.aui.r{text-align:right}table.au-t input.au-k{width:clamp(8rem,22vw,20rem)}table.au-t .au-oz{font-weight:400;margin-right:.3rem;white-space:nowrap}
@@ -1626,7 +1633,7 @@ function render() {
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
-  if (tab === 'auftraege') { v.innerHTML = vAuftraege(); requestAnimationFrame(auHoehe); return; }
+  if (tab === 'auftraege') { v.innerHTML = vAuftraege(); auSpaltenAnwenden(); requestAnimationFrame(auHoehe); return; }
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   const RE2 = ['lv', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
@@ -4663,19 +4670,49 @@ let AUSORT = LS.get('au.sort', null), AUAUS = new Set(LS.get('au.aus', []));
 const auVergl = (a, b) => (typeof a === 'number' && typeof b === 'number' ? a - b : String(a ?? '').localeCompare(String(b ?? ''), 'de', { numeric: true, sensitivity: 'base' })) * (AUSORT ? AUSORT.d : 1);
 function auWertLv(x) { return [[x.nr, x.name].filter(Boolean).join(' '), '', '', '', x.auftragnehmer || '', x.auftrag || x.schaetzung || 0, x.n_nt || 0, (x.nachtraege || 0) + (x.nt_angemeldet || 0), x.prognose || 0, x.vergeben ? 1 : 0, '', '', x.abgerechnet || 0][AUSORT.c]; }
 function auWertR(r) { const x = r.x; return [`${x.oz || ''} ${x.kurz || ''}`, r.typ === 'ti' ? '' : x.menge ?? 0, r.typ === 'ti' ? '' : x.einheit || '', r.typ === 'ti' ? '' : r.ep ?? 0, '', r.typ === 'ti' ? r.g : (r.gRoh ?? 0), r.ntj ? 1 : 0, r.nt || 0, (r.g || 0) + (r.nt || 0), r.typ === 'ti' ? 'Titel' : x.art === 'P' ? 'Pauschal' : 'Position', x.art === 'E' ? 1 : 0, x.kg || '', 0][AUSORT.c]; }
-function auSpaltenStil() { return AUAUS.size ? `<style>${[...AUAUS].map((n) => `table.au-t thead th:nth-child(${n + 1}),table.au-t tr[data-tr]>td:nth-child(${n + 1})`).join(',')}{display:none}</style>` : ''; }
-function auSpaltenWahl(anker) {
-  const bg = modalBox(`<h3>Spalten in „Aufträge“</h3><div class="fm" style="grid-template-columns:1fr">${AU_SP.map(([t], n) => n === 0 ? '' : `<label class="ck"><input type="checkbox" data-ausp="${n}"${AUAUS.has(n) ? '' : ' checked'}> ${t}</label>`).join('')}</div>
-    <div class="acts"><button class="btn" data-m="alle">Alle zeigen</button><span style="flex:1"></span><button class="btn pri" data-m="x">Fertig</button></div>`, (m, b2, close) => {
-    if (m === 'alle') { AUAUS.clear(); LS.set('au.aus', []); b2.querySelectorAll('[data-ausp]').forEach((c) => { c.checked = true; }); render(); return; }
-    if (m === 'x') close();
+function auSpaltenStil() { return AUAUS.size ? `<style>${[...AUAUS].map((n) => `table.au-t .sp${n}`).join(',')}{display:none}</style>` : ''; }
+/* Spaltenreihenfolge (wie in Excel/Explorer): Spaltenkopf ziehen oder im Spalten-Menü verschieben – „Bezeichnung“ bleibt vorn */
+let AUORD = (() => { const o = (LS.get('au.ord', []) || []).filter((n) => n > 0 && n < AU_SP.length); AU_SP.forEach((_, n) => { if (n && !o.includes(n)) o.push(n); }); return [0, ...o]; })();
+function auOrdSetzen(o) { AUORD = [0, ...o.filter((n) => n > 0)]; LS.set('au.ord', AUORD.slice(1)); const sb = LS.get('sb', {}); if (sb['auftraege:tree.au-t']) { delete sb['auftraege:tree.au-t']; LS.set('sb', sb); delete SB['auftraege:tree.au-t']; } render(); }
+function auSpaltenAnwenden() {   // Zellen jeder Zeile in die gewählte Reihenfolge bringen und je Spalte kennzeichnen (Ein-/Ausblenden über die Klasse)
+  const t = document.querySelector('table.au-t'); if (!t) return;
+  t.querySelectorAll('thead tr, tbody tr[data-tr]').forEach((tr) => {
+    const c = [...tr.children]; if (c.length !== AU_SP.length) return;
+    c.forEach((td, n) => td.classList.add('sp' + n));
+    AUORD.forEach((n) => tr.appendChild(c[n]));
   });
-  bg.addEventListener('change', (e) => { const c = e.target.closest('[data-ausp]'); if (!c) return; const n = +c.dataset.ausp; if (c.checked) AUAUS.delete(n); else AUAUS.add(n); LS.set('au.aus', [...AUAUS]); render(); });
-  const md = bg.querySelector('.modal'); if (md) md.style.width = 'min(340px,100%)';
 }
+function auSpaltenWahl(x, y) {   // kleines Menü an der Maus bzw. am Knopf: Häkchen = sichtbar, ⋮⋮ ziehen = Reihenfolge
+  document.querySelectorAll('.au-spm').forEach((m) => m.remove());
+  const m = document.createElement('div'); m.className = 'au-spm'; m.setAttribute('role', 'menu');
+  const zeichne = () => { m.innerHTML = `<div class="au-spm-k"><b>Spalten</b><button type="button" class="ib" data-spx title="Schließen">✕</button></div>${AUORD.slice(1).map((n) => `<label class="au-spm-z" draggable="true" data-spn="${n}"><span class="g" title="ziehen: Reihenfolge">⋮⋮</span><input type="checkbox" data-ausp="${n}"${AUAUS.has(n) ? '' : ' checked'}><span>${AU_SP[n][0]}</span></label>`).join('')}<div class="au-spm-f"><button type="button" class="lnk" data-spstd>Standard</button></div>`; };
+  zeichne(); document.body.appendChild(m);
+  const b = m.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(innerWidth - b.width - 8, x)) + 'px'; m.style.top = Math.max(8, Math.min(innerHeight - b.height - 8, y)) + 'px';
+  const zu = () => { m.remove(); document.removeEventListener('pointerdown', aus, true); document.removeEventListener('keydown', esc_); };
+  const aus = (e) => { if (!m.contains(e.target)) zu(); }, esc_ = (e) => { if (e.key === 'Escape') zu(); };
+  setTimeout(() => { document.addEventListener('pointerdown', aus, true); document.addEventListener('keydown', esc_); }, 0);
+  m.addEventListener('click', (e) => { if (e.target.closest('[data-spx]')) zu(); if (e.target.closest('[data-spstd]')) { AUAUS.clear(); LS.set('au.aus', []); auOrdSetzen(AU_SP.map((_, n) => n).slice(1)); zeichne(); } });
+  m.addEventListener('change', (e) => { const c = e.target.closest('[data-ausp]'); if (!c) return; const n = +c.dataset.ausp; if (c.checked) AUAUS.delete(n); else AUAUS.add(n); LS.set('au.aus', [...AUAUS]); render(); });
+  let zn = null;
+  m.addEventListener('dragstart', (e) => { const z = e.target.closest('[data-spn]'); if (!z) return; zn = +z.dataset.spn; z.classList.add('zieh'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(zn)); } catch { /* egal */ } });
+  m.addEventListener('dragover', (e) => { const z = e.target.closest('[data-spn]'); if (!z || zn == null) return; e.preventDefault(); const r = z.getBoundingClientRect(), un = e.clientY > r.top + r.height / 2; m.querySelectorAll('[data-spn]').forEach((q) => q.classList.remove('vor', 'nach')); z.classList.add(un ? 'nach' : 'vor'); });
+  m.addEventListener('drop', (e) => { const z = e.target.closest('[data-spn]'); if (!z || zn == null) return; e.preventDefault(); const r = z.getBoundingClientRect(), un = e.clientY > r.top + r.height / 2, ziel = +z.dataset.spn;
+    const o = AUORD.slice(1).filter((n) => n !== zn); if (ziel !== zn) o.splice(o.indexOf(ziel) + (un ? 1 : 0), 0, zn); else o.splice(AUORD.slice(1).indexOf(zn), 0, zn); zn = null; auOrdSetzen(o); zeichne(); });
+  m.addEventListener('dragend', () => { zn = null; m.querySelectorAll('[data-spn]').forEach((q) => q.classList.remove('vor', 'nach', 'zieh')); });
+}
+addEventListener('contextmenu', (e) => {   // rechte Maustaste auf einen Spaltenkopf: Spalten-Menü (Standard wie in Excel und im Explorer)
+  if (tab !== 'auftraege') return; const th = e.target.closest && e.target.closest('table.au-t thead th'); if (!th) return;
+  e.preventDefault(); e.stopImmediatePropagation(); auSpaltenWahl(e.clientX, e.clientY);
+}, true);
+{ let zs = null;   // Spaltenkopf ziehen: Spalte verschieben
+  document.addEventListener('dragstart', (e) => { const th = e.target.closest && e.target.closest('table.au-t thead th[data-ausort]'); if (!th || th.dataset.ausort === '0') return; zs = +th.dataset.ausort; th.classList.add('zieh'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'sp' + zs); } catch { /* egal */ } });
+  document.addEventListener('dragover', (e) => { if (zs == null) return; const th = e.target.closest && e.target.closest('table.au-t thead th[data-ausort]'); if (!th || th.dataset.ausort === '0') return; e.preventDefault(); const r = th.getBoundingClientRect(), re = e.clientX > r.left + r.width / 2; document.querySelectorAll('table.au-t thead th').forEach((q) => q.classList.remove('ziel-l', 'ziel-r')); if (+th.dataset.ausort !== zs) th.classList.add(re ? 'ziel-r' : 'ziel-l'); });
+  document.addEventListener('drop', (e) => { if (zs == null) return; const th = e.target.closest && e.target.closest('table.au-t thead th[data-ausort]'); if (!th) return; e.preventDefault(); const r = th.getBoundingClientRect(), re = e.clientX > r.left + r.width / 2, ziel = +th.dataset.ausort, z0 = zs; zs = null;
+    if (ziel === z0 || ziel === 0) { render(); return; } const o = AUORD.slice(1).filter((n) => n !== z0); o.splice(o.indexOf(ziel) + (re ? 1 : 0), 0, z0); auOrdSetzen(o); });
+  document.addEventListener('dragend', () => { if (zs != null) { zs = null; document.querySelectorAll('table.au-t thead th').forEach((q) => q.classList.remove('zieh', 'ziel-l', 'ziel-r')); } }); }
 document.addEventListener('click', (e) => {
   if (tab !== 'auftraege') return;
-  if (e.target.closest('[data-auspw]')) { e.stopPropagation(); auSpaltenWahl(e.target); return; }
+  if (e.target.closest('[data-auspw]')) { e.stopPropagation(); const r = e.target.closest('[data-auspw]').getBoundingClientRect(); auSpaltenWahl(r.left, r.bottom + 4); return; }
   const th = e.target.closest('th[data-ausort]'); if (!th || e.target.closest('.sb-griff')) return;
   const c = +th.dataset.ausort;
   AUSORT = !AUSORT || AUSORT.c !== c ? { c, d: 1 } : AUSORT.d > 0 ? { c, d: -1 } : null;   // auf – ab – wie im LV
@@ -4808,7 +4845,7 @@ function vAuftraege() {
     });
     zeig(k);
   });
-  const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:22rem"' : ''} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein- und ausblenden">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
+  const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:22rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
 `;
   if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
   return `<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auftragKarte()}</aside>` : ''}</div>`;

@@ -31,7 +31,7 @@
     const mi = el.querySelector('.bf-mitte');
     if (mitte) { mi.appendChild(mitte); el.querySelector('.bf-sp').remove(); } else mi.remove();
     passen(el);
-    if (!el._ro) { let t = 0; el._ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => passen(el), 80); }); el._ro.observe(el); }
+    if (!el._ro) { let t = 0; el._bw = el.clientWidth; el._ro = new ResizeObserver(() => { if (el.clientWidth === el._bw) return; el._bw = el.clientWidth; clearTimeout(t); t = setTimeout(() => passen(el), 80); }); el._ro.observe(el); }   // nur auf die Breite reagieren – sonst schaukelt sich das Ein-/Ausblenden der Texte (Höhe) auf
   }
   function passen(el) {   // eng? erst Texte weg, dann linke Gruppen von hinten in „»“
     const bf = el.querySelector('.bf'); if (!bf) return;

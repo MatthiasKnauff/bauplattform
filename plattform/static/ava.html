@@ -965,7 +965,8 @@ const reBefehl = (art) => () => { const r = reGewaehlt(); if (!r) return; const 
 const uSicht = () => new Set(uSlots().map((x) => x[0]).filter((x) => typeof x === 'string'));
 /* was früher unter „⋯“ stand, steht jetzt direkt in der Leiste (wird es eng, sammelt „»“ die Gruppen ein) */
 const BIC_ARCH = '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>';
-const uWeitere = () => { const S = uSicht(); S.add('quBtn'); return uMenuPunkte().filter((x) => x !== '-' && (typeof x[0] === 'function' ? !/Verlauf/.test(x[1]) : !S.has(x[0]))).map((x) => {   // Kopierquelle und Verlauf stehen schon in der Leiste
+const uWeitere = () => { const S = uSicht(); S.add('quBtn'); S.add('moreBtn');   // Archivieren bietet „Löschen“ selbst an (bei Aufträgen zuerst) – kein zweiter Knopf
+  return uMenuPunkte().filter((x) => x !== '-' && (typeof x[0] === 'function' ? !/Verlauf/.test(x[1]) : !S.has(x[0]))).map((x) => {   // Kopierquelle und Verlauf stehen schon in der Leiste
   if (typeof x[0] === 'function') return { t: x[1].replace(/^\W+\s*/, '').replace(/ …$/, ''), fn: x[0], aus: !!x[2], ic: BIC_ARCH, tip: x[1] };
   const b = ribKnopf(x[0]); if (!b) return null; const sv = b.querySelector('svg');
   return { t: x[0] === 'moreBtn' ? 'Archivieren' : x[1].replace(/ ….*$/, ''), attrs: `data-ucmd="${esc(x[0])}" data-udr`, aus: b.disabled, ic: x[0] === 'moreBtn' || !sv ? BIC_ARCH : sv.innerHTML, tip: x[1] }; }).filter(Boolean); };

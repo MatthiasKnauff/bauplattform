@@ -112,13 +112,13 @@ table.eigkg input{border:0;width:100%;padding:.2rem;background:transparent}
 .lv .lt{font-size:var(--fs-s2);line-height:1.35;color:var(--mute);margin:.1rem .35rem .2rem;max-height:4.05em;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:default}
 .badge.sp{background:#1e5aa0;color:#fff}
 tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
-.body.mit-quelle{grid-template-columns:var(--navw,272px) minmax(0,1fr) var(--quw,minmax(320px,36%))}
 .body.zieh-l,.body.zieh-l *,.body.zieh-r,.body.zieh-r *{cursor:col-resize!important;user-select:none!important}
 .body{position:relative}.rand-griff{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:col-resize;touch-action:none}.rand-griff[data-seite="l"]{left:calc(var(--navw,272px) - 6px)}
 .rand-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:calc(4px*var(--rk,1));background:var(--card,#fff) radial-gradient(circle,var(--mute) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.14)}   /* Anfasser in der Mitte – bleibt beim Scrollen im Blick */
 .rand-griff:hover::after,.body.zieh-l .rand-griff[data-seite="l"]::after,.body.zieh-r .rand-griff[data-seite="r"]::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 22%,var(--card,#fff))}
 @media (max-width:1100px){.rand-griff{display:none}}
 .qu[hidden]{display:none!important}   /* sonst steht die Kopierquelle auch in anderen Bereichen (display:flex schlägt hidden) */
+.sr-b>.qu{position:static;max-height:none;border-left:0;flex:1;min-height:0;grid-row:auto;grid-column:auto}   /* Kopierquelle als Reiter im Bereich rechts */
 .qu{border-left:1px solid var(--line);background:var(--card);position:sticky;top:52px;align-self:start;max-height:calc(100vh - 52px);box-sizing:border-box;display:flex;flex-direction:column;min-width:0;grid-row:1;grid-column:3}
 .body>.nav{grid-row:1;grid-column:1}.body>.pane{grid-row:1;grid-column:2}   /* feste Spalten: nichts rutscht in eine zweite Zeile */
 .qu-h{padding:.45rem .6rem .4rem;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:.35rem;background:var(--tabs)}
@@ -165,7 +165,6 @@ tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .qu .lt{color:var(--mute);font-size:var(--fs-s);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .qu-f{padding:.55rem .7rem;border-top:1px solid var(--line);display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;background:var(--tabs)}
 table.lv tr.drop-hier td{box-shadow:inset 0 -3px 0 #1e5aa0}
-@media (max-width:1100px){.body.mit-quelle{grid-template-columns:1fr}.body.mit-quelle>.nav,.body.mit-quelle>#navL{display:none}.body.mit-quelle>.pane{grid-column:1}.body.mit-quelle>.qu{position:static;max-height:70vh;grid-column:1;grid-row:2}}
 .fotos{display:flex;flex-wrap:wrap;gap:.45rem;margin:.4rem 0 0}
 .fotos figure{position:relative;margin:0;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));overflow:hidden;background:var(--card)}
 .fotos img{display:block;height:92px;width:auto;max-width:180px;object-fit:cover;cursor:zoom-in}
@@ -616,13 +615,6 @@ body.ph-frei .ph{position:static}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 .ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
 .ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:calc(6px*var(--rk,1));font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
-.sp-griff{cursor:col-resize;align-self:stretch;border-radius:calc(4px*var(--rk,1));background:linear-gradient(90deg,transparent 7px,var(--line) 7px,var(--line) 9px,transparent 9px);min-height:200px;touch-action:none}
-.sp-griff:hover{background:linear-gradient(90deg,transparent 6px,var(--y) 6px,var(--y) 10px,transparent 10px)}
-.sp-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:calc(4px*var(--rk,1));background:var(--card,#fff) radial-gradient(circle,var(--mute) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.14)}   /* Anfasser in der Mitte der Trennung – bleibt beim Scrollen im Blick */
-.sp-griff:hover::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 18%,var(--card,#fff))}
-.am-split.frei,.lv-split.frei{grid-template-columns:1fr!important}.am-split.frei>.sp-griff,.lv-split.frei>.sp-griff{display:none}
-.am-split.frei>.am-r,.lv-split.frei>.am-r{position:fixed;z-index:60;resize:both;overflow:hidden;min-width:300px;min-height:240px;box-shadow:var(--sh0,0 12px 40px #0005)}
-.am-split.frei>.am-r .am-pk,.lv-split.frei>.am-r .am-pk{cursor:move;background:var(--tabs)}
 .am-mk.of{color:#8a8f96}
 .lv-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:.35rem;align-items:start}.lv-sl{min-width:0}
 .lv-zz{position:absolute;cursor:copy;border-radius:calc(2px*var(--rk,1))}.lv-zz:hover{background:rgba(245,166,35,.22);outline:1px solid #f5a623}.lv-zz.ok{background:rgba(31,157,76,.1)}
@@ -1755,7 +1747,7 @@ function render() {
 }
 
 /* ---------- LV als PDF/Scan daneben: Zeilen anklicken → ins gewählte Feld, Alt+Klick → neue Position, erkannte Positionen übernehmen ---------- */
-let LVDOK = LS.get('lvdok', true), LVDV = null, LVFELD = null;
+let LVDV = null, LVFELD = null;
 /* Spaltenkopf des LV neben der PDF beim Rollen der Seite oben halten (das waagerecht rollende LV-Feld hebt position:sticky auf) */
 function lvKopfKleben() {
   document.querySelectorAll('.lv-split>.lv-sl').forEach((sl) => {
@@ -1769,25 +1761,38 @@ function lvKopfKleben() {
 }
 addEventListener('scroll', () => requestAnimationFrame(lvKopfKleben), { passive: true });
 addEventListener('resize', () => requestAnimationFrame(lvKopfKleben));
+/* LV: Bereich rechts (seite.js) – „Details“ (dieselbe Karte wie in den Aufträgen), „Kopierquelle“, „📄 Dokument“ (LV/Angebot als PDF) */
+const QUBOX = document.getElementById('quelle');   // Kopierquelle: ihr Feld wandert in den Reiter (bleibt beim Umschalten erhalten)
 function lvSplitMount() {
-  const D = (L && L.dokumente) || []; if (!D.length || !LVDOK) return;
   const tbl = document.querySelector('#view table.lv.baum'); if (!tbl) return;
-  const w = tbl.closest('.tblw'); if (!w || w.parentNode.classList.contains('lv-sl')) return;
-  const sp = document.createElement('div'); sp.className = 'lv-split'; w.parentNode.insertBefore(sp, w);
-  const l = document.createElement('div'); l.className = 'lv-sl'; l.appendChild(w); sp.appendChild(l);
-  const sum = sp.nextElementSibling; if (sum && sum.matches && sum.matches('.lvsum,.lv-summe')) l.appendChild(sum);
-  const r = document.createElement('div'); r.className = 'am-r lv-sr'; sp.appendChild(r);
+  const w = tbl.closest('.tblw'); if (!w) return;
+  let sp = w.parentNode.classList.contains('lv-sl') ? w.parentNode.parentNode : null;
+  if (!sp) { sp = document.createElement('div'); sp.className = 'lv-split'; w.parentNode.insertBefore(sp, w);
+    const l = document.createElement('div'); l.className = 'lv-sl'; l.appendChild(w); sp.appendChild(l);
+    const sum = sp.nextElementSibling; if (sum && sum.matches && sum.matches('.lvsum,.lv-summe')) l.appendChild(sum); }
+  const D = (L && L.dokumente) || [];
   if (LVDV && !D.some((d) => d.id === LVDV.id)) LVDV = null;
+  seite(sp, 'lv', [{ id: 'details', titel: 'Details', mount: (el) => { el.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; } },
+    { id: 'quelle', titel: 'Kopierquelle', mount: (el) => { el.appendChild(QUBOX); QUBOX.hidden = false; if (!QU.an) { QU.an = true; LS.set('qu.an', true); } if (!QU.L && !QUBUSY) quLaden().then(quZeigen).catch(() => {}); quZeigen(); } },
+    D.length ? { id: 'dok', titel: '📄 Dokument', mount: lvDokReiter, neu: () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV) } : null], { start: D.length ? 'dok' : 'details', w: 0.62, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); requestAnimationFrame(lvKopfKleben); } });
+}
+function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter „Aufträge“ (Felder, Langtext, Nachtrag-Häkchen)
+  const x = LVAKT && items().find((y) => y.id === LVAKT);
+  if (!x || x.typ === 'txt') return '<div class="card empty"><p class="hint">Im LV eine Position oder einen Gliederungspunkt anklicken – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
+  PC[L.id] = L; return auPosKarte(L, x);
+}
+function lvDokReiter(el) {
+  const D = (L && L.dokumente) || []; if (!D.length) return;
   const did = LVDV ? LVDV.id : (D.find((d) => d.id === LS.get('lvdokid')) || D[D.length - 1]).id;
   if (!LVDV || LVDV.id !== did) { LVDV = { id: did, el: document.createElement('div'), pages: [], zoom: LS.get('lvZoom', 1) }; LVDV.el.className = 'am-pv'; LVDV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; lvDokLaden(LVDV); }
   const d = D.find((x) => x.id === did), n = d.n_pos + d.n_titel;
-  r.innerHTML = `<div class="am-pk">${D.map((y) => `<button class="btn sm${y.id === did ? ' pri' : ''}" data-lvdokw="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 26 ? y.name.slice(0, 24) + '…' : y.name)}</button>`).join('')}
+  el.innerHTML = `<div class="am-pk">${D.map((y) => `<button class="btn sm${y.id === did ? ' pri' : ''}" data-lvdokw="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 26 ? y.name.slice(0, 24) + '…' : y.name)}</button>`).join('')}
     ${d.laeuft ? `<span class="lv-lauf">${laufHtml(d)}</span>` : ''}${d.fehler ? `<span class="hint" style="color:#e07b3a">Lesen fehlgeschlagen: ${esc(d.fehler)}</span>` : ''}${!d.laeuft && (d.abgebrochen || d.fehler || (d.leer && d.ocr)) ? `<button class="btn sm" data-lvdoklesen="${did}" title="Texterkennung neu starten">↻ Neu lesen</button>` : ''}
     ${n ? `<button class="btn sm" data-lvdokueb title="Erkannte Titel und Positionen (OZ, Kurztext, Menge, Einheit, Langtext${d.n_ep ? ', Preise als Schätzung' : ''}) ans LV">Erkannte übernehmen (${d.n_pos} Pos.${d.n_titel ? ', ' + d.n_titel + ' Titel' : ''}${d.ki ? ' · ' + esc(d.ki) : ''})</button>` : ''}
     ${d.laeuft ? '' : `<button class="btn sm" data-lvdokki="${did}" title="Auf Nachfrage: das Dokument von einer KI lesen lassen – findet auch Positionen ohne festes Schema (Angebote, Listen, Fotos)">🤖 mit KI lesen</button>`}
-    <span class="fill"></span><button class="ib" data-lvz="-1" title="kleiner">−</button><button class="ib" data-lvz="1" title="größer">＋</button><button class="ib" data-frei title="als freies Fenster verschieben / wieder andocken">⧉</button><button class="ib" data-lvdokdel="${did}" title="PDF entfernen">✕</button></div>
+    <span class="fill"></span><button class="ib" data-lvz="-1" title="kleiner">−</button><button class="ib" data-lvz="1" title="größer">＋</button><button class="ib" data-lvdokdel="${did}" title="Dokument entfernen">🗑</button></div>
     <div class="hint" style="padding:.25rem .5rem;border-bottom:1px solid var(--line)">${d.ocr ? 'Scan, per Texterkennung gelesen – bitte prüfen · ' : ''}Zeile anklicken → ins gewählte Feld links (Kurztext, Menge, Einheit, Langtext …) · <b>Alt+Klick</b> → als neue Position</div>`;
-  r.appendChild(LVDV.el); teilung(sp, 'lv', () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV));
+  el.appendChild(LVDV.el);
 }
 /* Antwort als JSON – Fehlerseiten des Webservers (Zeitüberschreitung, Datei zu groß) verständlich melden */
 async function jsonAus(r) {
@@ -1952,7 +1957,6 @@ document.addEventListener('click', async (e) => {
     LVFELD.dispatchEvent(new Event('input', { bubbles: true })); LVFELD.dispatchEvent(new Event('change', { bubbles: true })); LVFELD.focus({ preventScroll: true });
     return;
   }
-  if (e.target.closest('[data-lvdokan]')) { LVDOK = !LVDOK; LS.set('lvdok', LVDOK); render(); return; }
   const w = e.target.closest('[data-lvdokw]'); if (w) { LVDV = null; LS.set('lvdokid', +w.dataset.lvdokw); render(); return; }
   const zz = e.target.closest('[data-lvz]'); if (zz && LVDV && LVDV.pdf) { LVDV.zoom = Math.max(0.5, Math.min(3, LVDV.zoom * (+zz.dataset.lvz > 0 ? 1.2 : 1 / 1.2))); LS.set('lvZoom', LVDV.zoom); lvDokZeichnen(LVDV); return; }
   const dl = e.target.closest('[data-lvdokdel]'); if (dl) { try { await call('api/lvdok/' + dl.dataset.lvdokdel, 'DELETE'); LVDV = null; } catch (er) { toast(er.message, true); } return; }
@@ -1983,7 +1987,7 @@ async function inOrdner(f, art, firma) {
 async function lvDokHoch(lvId, f, opt = {}) {
   const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen …`);
   try { const r = await fetch(`api/lv/${lvId}/dok`, { method: 'POST', body: fd, credentials: 'same-origin' }), j = await r.json().catch(() => { throw new Error(r.status === 504 || r.status === 502 ? 'Das Lesen hat zu lange gedauert – bitte noch einmal versuchen.' : r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : 'Fehler ' + r.status); }); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
-    L = j; LVDOK = true; LS.set('lvdok', true); LVDV = null; LS.set('lvdokid', j.dokumente[j.dokumente.length - 1].id); tab = 'lv'; LS.set('tab', tab); render();
+    L = j; seiteReiter('lv', 'dok'); LVDV = null; LS.set('lvdokid', j.dokumente[j.dokumente.length - 1].id); tab = 'lv'; LS.set('tab', tab); render();
     const d = j.dokumente[j.dokumente.length - 1];
     if (d.laeuft) { toast('Eingescannt – die Texterkennung (Tesseract, ohne KI) läuft im Hintergrund, die erkannten Positionen erscheinen gleich.'); lvOcrWarten(lvId, !!opt.uebernehmen); return d; }
     toast(d.n_pos ? `${d.n_pos} Positionen erkannt – oben rechts „Erkannte übernehmen“ oder Zeile für Zeile anklicken.` : 'Keine Positionen sicher erkannt – Zeilen anklicken übernimmt sie ins gewählte Feld, Alt+Klick als neue Position.');
@@ -2094,11 +2098,9 @@ function vLv() {
   const LV = LIST.filter((x) => !x.archived || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   return `<div class="bar"><button class="btn sm" data-act="glied" title="Gliederungspunkt eine Ebene unter der markierten Zeile – oben auf das LV klicken für die oberste Ebene (GAEB: höchstens 4 Ebenen)">+ Gliederungspunkt</button><button class="btn sm" data-act="pos">+ Position</button>
-      ${V ? '<button class="btn sm" data-act="nt" title="Nachtragsposition (geänderte oder zusätzliche Leistung nach § 2 Abs. 5/6 VOB/B)">+ Nachtrag</button>' : ''}
       <button class="btn sm" data-act="num" title="Ordnungszahlen neu vergeben – nach einem Schema wie in GAEB (Titelstufen, Stellen, Schrittweite)">Nummerieren …</button>
       <button class="btn sm" data-act="bk" title="Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen">Aus Baukosten …</button>
-      <label class="btn sm" title="Ein LV oder Angebot als PDF, Scan, Foto oder Word rechts daneben legen – Zeilen anklicken übernimmt sie, erkannte Positionen auf einmal">📄 LV / Angebot daneben …<input type="file" accept="${DOK_ACCEPT}" hidden data-lvdokin></label>
-      ${(L.dokumente || []).length ? `<button class="btn sm${LVDOK ? ' pri' : ''}" data-lvdokan title="PDF rechts ein- oder ausblenden">${LVDOK ? 'PDF ausblenden' : 'PDF zeigen'}</button>` : ''}
+      <label class="btn sm" title="Ein LV oder Angebot als PDF, Scan, Foto oder Word rechts als Reiter „📄 Dokument“ ablegen – Zeilen anklicken übernimmt sie, erkannte Positionen auf einmal">📄 Dokument ablegen …<input type="file" accept="${DOK_ACCEPT}" hidden data-lvdokin></label>
       <span class="fill"></span>${L.data.vorbem ? '<button class="btn sm" data-act="vorbem" title="Vorbemerkungen dieses LV (älterer Stand) – neue Vorbemerkungen als Position der Art „V Vorbemerkung“">✎ Vorbemerkungen</button>' : ''}<button class="btn sm" data-act="alleLang">${OPEN.size ? 'Langtexte zu' : 'Langtexte auf'}</button></div>
     ${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
@@ -2140,6 +2142,7 @@ function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
 /* Aktive Zeile: Klick auf die OZ (oder Bearbeiten in der Zeile) – neue Titel, Positionen und Hinweistexte kommen dahinter */
 let LVAKT = null, LVSEL = new Set(), LVANK = null;   // aktive Zeile (dahinter wird eingefügt), Mehrfachmarkierung (Strg/Umschalt), Anker für Umschalt
 function lvAktZeigen() {
+  if (tab === 'lv' && document.querySelector('#view .lv-split .sr-tab.on[data-srt="details"]')) { const b = document.querySelector('#view .lv-split > .sr-r .sr-b'); const fa = document.activeElement; if (b && !(fa && b.contains(fa) && /^(INPUT|TEXTAREA|SELECT)$/.test(fa.tagName))) b.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; }
   const I = items(); document.querySelectorAll('table.lv tr[data-i]').forEach((tr) => { const x = I[+tr.dataset.i]; tr.classList.toggle('akt', !!x && (x.id === LVAKT || LVSEL.has(x.id))); });
   const w = document.querySelector('table.lv tr[data-lvwurzel]'); if (w) w.classList.toggle('akt', LVAKT === '__lv');
   lvSelLeiste();
@@ -3005,34 +3008,6 @@ document.addEventListener('pointerdown', (e) => {
   g.onpointerup = () => { g.onpointermove = null; g.classList.remove('on'); const v = parseInt(box.style.getPropertyValue(quer ? '--amw' : '--amh'), 10) || 0; LS.set(quer ? 'am.w' : 'am.h', v); };
 });
 document.addEventListener('dblclick', (e) => { const g = e.target.closest && e.target.closest('.am-sch, .am-sch-h'); if (!g) return; const quer = g.classList.contains('am-sch'); g.parentElement.style.removeProperty(quer ? '--amw' : '--amh'); LS.set(quer ? 'am.w' : 'am.h', 0); });
-/* Geteilte Ansicht: Trennung verschiebbar (Breite gemerkt) oder die PDF als freies Fenster über der Seite (verschieben, Größe ziehen) */
-function teilung(sp, key, neuZeichnen) {
-  if (!sp) return;
-  const r = sp.querySelector(':scope > .am-r'), l = sp.firstElementChild; if (!r || !l) return;
-  let g = sp.querySelector(':scope > .sp-griff');
-  if (!g) { g = document.createElement('div'); g.className = 'sp-griff'; g.title = 'Trennung verschieben (Doppelklick: Mitte)'; sp.insertBefore(g, r); }
-  const frei = LS.get('frei.' + key, false), f = Math.max(0.2, Math.min(0.8, LS.get('teil.' + key, 0.52)));
-  sp.classList.toggle('frei', frei);
-  const schmal = innerWidth < 900; g.hidden = schmal;
-  sp.style.gridTemplateColumns = frei || schmal ? '' : `minmax(0,${f}fr) 16px minmax(0,${1 - f}fr)`;
-  if (frei) { const q = LS.get('freipos.' + key, null) || { x: innerWidth - 700, y: 120, w: 640, h: innerHeight - 180 };
-    Object.assign(r.style, { left: Math.max(120 - q.w, Math.min(innerWidth - 120, q.x)) + 'px', top: Math.max(0, Math.min(innerHeight - 60, q.y)) + 'px', width: q.w + 'px', height: q.h + 'px' }); }
-  else Object.assign(r.style, { left: '', top: '', width: '', height: '' });
-  let breite = r.clientWidth, t = 0;
-  if (!r._ro) { r._ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { const w = r.clientWidth; if (Math.abs(w - breite) > 40) { breite = w; neuZeichnen(); }
-      if (sp.classList.contains('frei')) LS.set('freipos.' + key, { x: r.offsetLeft, y: r.offsetTop, w: r.offsetWidth, h: r.offsetHeight }); }, 350); }); r._ro.observe(r); }
-  g.onpointerdown = (e) => { e.preventDefault(); g.setPointerCapture(e.pointerId); const b = sp.getBoundingClientRect();
-    g.onpointermove = (m) => { const v = Math.max(0.2, Math.min(0.8, (m.clientX - b.left) / b.width)); sp.style.gridTemplateColumns = `minmax(0,${v}fr) 16px minmax(0,${1 - v}fr)`; LS.set('teil.' + key, v); };
-    g.onpointerup = () => { g.onpointermove = null; }; };
-  g.ondblclick = () => { LS.set('teil.' + key, 0.52); teilung(sp, key, neuZeichnen); };
-  const kopf = r.querySelector('.am-pk');
-  if (kopf) kopf.onpointerdown = (e) => { if (!sp.classList.contains('frei') || e.target.closest('button,input,select,a')) return; e.preventDefault();
-    const sx = e.clientX - r.offsetLeft, sy = e.clientY - r.offsetTop; kopf.setPointerCapture(e.pointerId);
-    kopf.onpointermove = (m) => { r.style.left = Math.max(120 - r.offsetWidth, Math.min(innerWidth - 120, m.clientX - sx)) + 'px'; r.style.top = Math.max(0, Math.min(innerHeight - 50, m.clientY - sy)) + 'px'; };
-    kopf.onpointerup = () => { kopf.onpointermove = null; LS.set('freipos.' + key, { x: r.offsetLeft, y: r.offsetTop, w: r.offsetWidth, h: r.offsetHeight }); }; };
-  const knopf = r.querySelector('[data-frei]');
-  if (knopf) { knopf.textContent = frei ? '⧈' : '⧉'; knopf.title = frei ? 'wieder andocken (geteilte Ansicht)' : 'als freies Fenster verschieben'; knopf.onclick = (e) => { e.stopPropagation(); LS.set('frei.' + key, !frei); teilung(sp, key, neuZeichnen); setTimeout(neuZeichnen, 60); }; }
-}
 
 /* Rechnung ohne Nachfolger in ihrer Kette (Abschlag/Schluss bzw. Nachtrag bauen kumuliert aufeinander auf; Regie, frei geprüfte, Sicherheit stehen für sich) */
 function reKette(r) { if (r.art === 'regie' || r.art === 'sicherheit' || (r.data && r.data.frei != null)) return null; return r.art === 'nachtrag' ? 'nachtrag' : 'haupt'; }
@@ -4541,8 +4516,8 @@ const quItems = () => (QU.L && QU.L.data && QU.L.data.items) || [];
 let QUSK = '';
 function quZeigen() { const k = `${QU.pid}|${quBaum() ? 'baum' : QU.lv}`, st = k === QUSK ? document.querySelector('#quelle .qu-l')?.scrollTop || 0 : 0; QUSK = k; quZeigen0(); const l = document.querySelector('#quelle .qu-l'); if (l && st) l.scrollTop = st; quDreh(!!QUBUSY && QU.an && tab === 'lv'); }
 function quZeigen0() {
-  const box = $('#quelle'), an = QU.an && tab === 'lv';
-  box.hidden = !an; document.querySelector('.body').classList.toggle('mit-quelle', an); $('#quBtn').classList.toggle('on', QU.an);
+  const box = QUBOX, an = QU.an && tab === 'lv' && box.isConnected && !!box.closest('.sr-b');
+  if (box.closest('.sr-b')) box.hidden = !an; $('#quBtn').classList.toggle('on', an);
   if (!an) return;
   if (!KAT) { box.innerHTML = ''; quDreh(true); return; }   // quLaden läuft noch: nur der Drehkreis
   const VP = (QU.L && QU.L.vergabe && QU.L.vergabe.preise) || {};
@@ -4646,13 +4621,13 @@ async function quEinfuegen(liste, nach) {
   QU.sel = new Set(); quZeigen();
   setTimeout(() => { const r = document.querySelector(`table.lv tr[data-i="${at}"]`); if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
 }
-$('#quBtn').onclick = async () => { QU.an = !QU.an; LS.set('qu.an', QU.an); if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); } render();
+$('#quBtn').onclick = async () => { QU.an = true; LS.set('qu.an', true); if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); } seiteReiter('lv', 'quelle'); render();
   quBusy(1); try { quZeigen();   // Spalte sofort öffnen – der Drehkreis zeigt, dass geladen wird
     if (QU.an && !QU.L) await quLaden(); } finally { quBusy(-1); } quZeigen(); };
 document.addEventListener('click', (e) => {
   const q = e.target.closest('#quelle'); if (!q) return;
   const b = e.target.closest('[data-qu]');
-  if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); quZeigen(); return; }
+  if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); seiteReiter('lv', 'details'); render(); return; }
   const qg = e.target.closest('[data-qg]'); if (qg) { QU.gw = String(qg.dataset.qg).split(':').slice(2).join(':'); quGewerkAuf(qg.dataset.qg); return; }
   const qf = e.target.closest('[data-qfav]'); if (qf) { const g = QU.list.find((x) => x.id === qf.dataset.qfav); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); quGewerkAuf(qf.dataset.qfav, true, true); return; }
   const qb = e.target.closest('[data-qb]'); if (qb) { const k = qb.dataset.qb; if (QU.bzu.has(k)) QU.bzu.delete(k); else QU.bzu.add(k); LS.set('qu.bzu', [...QU.bzu]); quZeigen(); return; }
@@ -5300,6 +5275,7 @@ document.addEventListener('click', (e) => {
   const n = e.target.closest && e.target.closest('[data-aupn]');
   if (n) { const [lvId, xid] = n.dataset.aupx.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === xid); if (!x) return;
     const I = (lv.data.items || []).filter((y) => y.typ === x.typ), y = I[I.indexOf(x) + +n.dataset.aupn]; if (!y) return;
+    if (tab === 'lv') { LVAKT = y.id; LVSEL = new Set([y.id]); lvAktZeigen(); const k = items().indexOf(y), tr = document.querySelector(`table.lv tr[data-i="${k}"]`); if (tr) tr.scrollIntoView({ block: 'nearest' }); return; }
     TSEL = `l${lv.id}:${y.id}`; document.querySelectorAll('.tree tr.sel').forEach((q) => q.classList.remove('sel')); const tr = document.querySelector(`.tree tr[data-tr="${CSS.escape(TSEL)}"]`); if (tr) { tr.classList.add('sel'); tr.scrollIntoView({ block: 'nearest' }); } auSeite(); return; }
   const lg = e.target.closest && e.target.closest('[data-aulang]');
   if (lg) { const [lvId, id] = lg.dataset.aulang.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === id); if (!x) return; const alt = x.lang || '';

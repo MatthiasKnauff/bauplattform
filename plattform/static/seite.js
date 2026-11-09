@@ -95,9 +95,13 @@
   }
   function seiteDa() { return sichtbar().length > 0; }
   function seiteOffen() { const s = sichtbar()[0]; return !!s && !lies(s[0] + '.zu', false); }
+  function seiteReiter(key, id) {   // einen Reiter nach vorn holen (und den Bereich aufklappen) – z. B. Knopf „Kopierquelle“
+    merk(key + '.r', id); merk(key + '.zu', false); merk(key + '.frei', lies(key + '.frei', []).filter((x) => x !== id));
+    const x = AKTIV.get(key); if (x && x.sp.isConnected) seite(x.sp, key, x.reiter, x.opt);
+  }
   function seiteUmschalten() {
     const s = sichtbar()[0]; if (!s) return;
     const [key, x] = s; merk(key + '.zu', !lies(key + '.zu', false)); seite(x.sp, key, x.reiter, x.opt); if (x.opt.wechsel) x.opt.wechsel();
   }
-  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten });
+  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter });
 })();

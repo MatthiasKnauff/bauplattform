@@ -21,7 +21,7 @@
 .tile b{font-size:1rem;line-height:1.2;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
 /* Kacheln anordnen (✎) */
 .hello{position:relative}
-.ordnen{position:absolute;right:0;top:.2rem;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:.95rem}
+.ordnen{position:absolute;right:0;top:.1rem;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:999px;width:44px;height:44px;cursor:pointer;font-size:1.35rem;line-height:1}
 .ordnen:hover,.ordnen.on{color:var(--y);border-color:var(--y)}
 .ordnen.on{background:var(--y);color:var(--on)}
 .tiles.edit .tile{cursor:grab;border-style:dashed;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -98,7 +98,7 @@ html[data-modus="einfach"] .foot{order:6}
 </head>
 <body>
 <main class="wrap">
-  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="ordnen" id="ordnen" title="Kacheln anordnen (ziehen und ablegen)" aria-pressed="false">✎</button></div>
+  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="ordnen" id="ordnen" title="Startseite anpassen: Kacheln anordnen, Blöcke ein-/ausblenden" aria-haspopup="menu" aria-pressed="false">✎</button></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="tiles" id="tiles"></div>
   <div class="unten"><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section><div id="desk" class="desk" aria-label="Schreibtisch: To-dos, Hinweise, Erinnerungen"></div></div>
@@ -143,8 +143,14 @@ function kachelnZeigen() {
   }
 }
 async function reiheSpeichern(r) { REIHE = r; try { await api('api/bp/kacheln', 'PUT', { reihenfolge: r }); } catch (e) { toast(e.message, true); } }
-function ordnen(an) { ORDNEN = an; const b = $('#ordnen'); b.classList.toggle('on', an); b.setAttribute('aria-pressed', an); b.textContent = an ? '✓' : '✎'; b.title = an ? 'Anordnen beenden' : 'Kacheln anordnen (ziehen und ablegen)'; kachelnZeigen(); }
-$('#ordnen').addEventListener('click', () => ordnen(!ORDNEN));
+function ordnen(an) { ORDNEN = an; const b = $('#ordnen'); b.classList.toggle('on', an); b.setAttribute('aria-pressed', an); b.textContent = an ? '✓' : '✎'; b.title = an ? 'Anordnen beenden' : 'Startseite anpassen: Kacheln anordnen, Blöcke ein-/ausblenden'; kachelnZeigen(); }
+$('#ordnen').addEventListener('click', (e) => {   // ✎: Kacheln anordnen oder die Blöcke rechts (To-dos, Erinnerungen …) ein-/ausblenden
+  if (ORDNEN) { ordnen(false); return; }
+  pickMenu(e.currentTarget, { items: [
+    { value: 'kacheln', title: 'Kacheln anordnen', sub: 'App-Kacheln ziehen und ablegen' },
+    { value: 'bloecke', title: 'Blöcke ein- und ausblenden …', sub: 'To-dos, Erinnerungen und Hinweise rechts – verschieben am ⋮⋮' },
+  ], onPick: (v) => { if (v === 'kacheln') ordnen(true); else if (typeof ueBloeckeDialog === 'function') ueBloeckeDialog(); } });
+});
 $('#tiles').addEventListener('click', async (e) => {
   const o = e.target.closest('[data-ord]'); if (o) { if (o.dataset.ord === 'fertig') ordnen(false); else { await reiheSpeichern([]); kachelnZeigen(); } return; }
   if (ORDNEN && e.target.closest('.tile')) e.preventDefault();   // beim Anordnen nicht in die App springen
@@ -324,7 +330,7 @@ function einfachZeigen(conf) {
     if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(x.termin).localeCompare(String(y.termin)));
       B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => x.lage === 'ueberfaellig'), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
         items: L.map((x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(x.termin ? new Date(x.termin + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></a>`) }); }
-    ueRender(host, B, { top: true });
+    ueRender(host, B);   // ⚙ Blöcke steckt auf der Startseite im ✎ oben
     if (TD) tdZeigen();
   }
   const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); if (POSTWEG && TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== POSTWEG.alt.id); tdZeigen(); } deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen; ein gerade „nicht nötiges“ To-do bleibt weg

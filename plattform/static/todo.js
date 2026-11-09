@@ -403,13 +403,17 @@ document.addEventListener('change', (e) => { if (e.target.matches && e.target.ma
 document.addEventListener('click', (e) => {
   const m = e.target.closest && e.target.closest('[data-uemehr]'); if (m) { if (UE.mehr.has(m.dataset.uemehr)) UE.mehr.delete(m.dataset.uemehr); else UE.mehr.add(m.dataset.uemehr); UE.lade && UE.lade(); return; }
   const b = e.target.closest && e.target.closest('[data-uebloecke]'); if (!b) return;
+  ueBloeckeDialog();
+});
+/* Blöcke ein-/ausblenden, Reihenfolge zurücksetzen (⚙ Blöcke; auf der Startseite über ✎) */
+function ueBloeckeDialog() {
   const alle = UE._B || [];
   modalBox(`<h3>Blöcke</h3><p class="mute" style="margin:0 0 .6rem">Ausgeblendete Blöcke lassen sich hier jederzeit wieder einblenden.</p>${alle.map((x) => `<label class="chk" style="display:flex;gap:.5rem;padding:.25rem 0"><input type="checkbox" data-ueblk="${esc(x.k)}"${UE.weg.includes(x.k) ? '' : ' checked'}> ${esc(x.name)} <small class="mute">${x.n || 0}</small></label>`).join('')}
     <div class="acts"><button class="btn" data-m="reset">Reihenfolge zurücksetzen</button><span style="flex:1"></span><button class="btn pri" data-m="x">Fertig</button></div>`, (m2, bg, close) => {
     if (m2 === 'reset') { UE.order = []; ueLS.set('order', []); UE.lade && UE.lade(); return; }
     if (m2 === 'x') { UE.weg = [...bg.querySelectorAll('[data-ueblk]')].filter((c) => !c.checked).map((c) => c.dataset.ueblk); ueLS.set('weg', UE.weg); close(); UE.lade && UE.lade(); }
   });
-});
+}
 let UEZ = null;   // Blöcke ziehen (HTML5-Drag am Griff/Kopf)
 document.addEventListener('dragstart', (e) => { const b = e.target.closest && e.target.closest('.ue-b'); if (!b || !e.target.closest('.ue-grip, h3')) { if (b) e.preventDefault(); return; } UEZ = b.dataset.blk; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-ue', UEZ); b.classList.add('zieh'); });
 document.addEventListener('dragover', (e) => { if (!UEZ) return; const b = e.target.closest && e.target.closest('.ue-b'); document.querySelectorAll('.ue-b.ziel').forEach((x) => x.classList.remove('ziel')); if (b && b.dataset.blk !== UEZ) { e.preventDefault(); b.classList.add('ziel'); } });

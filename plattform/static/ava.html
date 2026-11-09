@@ -4752,10 +4752,72 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der A
   kmLvPunkte(P, lvId);
   P.push({ text: 'LV- & Auftragsdaten …', fn: () => kmLv(lvId, () => lvDaten()) });
 });
+/* Aufträge: Doppelklick auf einen Nachtrag → abgespeckter Dialog für die Ebene Nachtrag (Bezeichnung, Nummer, Stand, Grund);
+   auf eine Nachtragsposition → Bezeichnung, Menge, Einheit, EP, Stand. Gespeichert wird über das LV (data + Auftragspreis). */
+async function ntSpeichern(lvId, aendern) {
+  let lv = L && L.id === lvId ? L : PC[lvId]; if (!lv) { lv = await api('api/lv/' + lvId); PC[lvId] = lv; }
+  if (L && L.id === lvId) await flush();
+  const data = JSON.parse(JSON.stringify(lv.data)), preise = {};
+  aendern(data.items || [], preise);
+  const body = { rev: lv.rev, data, nummerieren: true }; if (Object.keys(preise).length) body.vergabe = { preise };
+  const r = await api('api/lv/' + lvId, 'PUT', body); PC[lvId] = r; if (L && L.id === lvId) L = r; render();
+  lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});
+}
+function ntKopfDialog(lvId, nt) {
+  const lv = PC[lvId] || (L && L.id === lvId ? L : null); if (!lv) return;
+  const I = lv.data.items || [], grp = I.filter((y) => String(y.nt) === nt), titel = grp.find((y) => y.typ === 'titel'), kopf = titel || grp[0]; if (!kopf) return;
+  const nPos = grp.filter((y) => y.typ === 'pos').length, einzeln = !titel && nPos === 1;
+  const bg = modalBox(`<h3>Nachtrag ${esc(nt)} <span class="hint">· ${titel ? 'Gliederungspunkt · ' : ''}${nPos} Position${nPos === 1 ? '' : 'en'}</span></h3><div class="fm">
+      <label>Bezeichnung</label><input id="nkK" value="${esc(kopf.kurz || '')}"${!titel && !einzeln ? ' disabled title="mehrere Einzelpositionen – Bezeichnung je Position"' : ''}>
+      <label>Nummer</label><input id="nkN" value="${esc(nt)}" style="width:7rem">
+      <label>Stand</label><select id="nkS">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${(kopf.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>
+      <label>Grund / Bemerkung</label><input id="nkG" value="${esc(kopf.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></div>
+    <p class="hint" style="margin:.6rem 0 0">Stand und Grund gelten für alle Positionen des Nachtrags. Langtexte und Details der Positionen im Leistungsverzeichnis (Doppelklick auf eine Position).</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const q = (k) => bg.querySelector('#' + k), nr = q('nkN').value.trim() || nt, st = q('nkS').value, gr = q('nkG').value.trim(), kz = q('nkK').value.trim();
+    if (nr !== nt && I.some((y) => String(y.nt) === nr)) { toast(`Die Nummer „${nr}“ ist schon vergeben.`, true); return; }
+    btn.disabled = true;
+    try {
+      await ntSpeichern(lvId, (items) => items.forEach((y) => { if (String(y.nt) !== nt) return; y.nt = nr; y.nt_status = st; y.nt_grund = gr; if ((titel && y.typ === 'titel') || (einzeln && y.typ === 'pos')) y.kurz = kz || y.kurz; }));
+      if (nr !== nt) { EXP.delete(`l${lvId}:nt:${nt}`); EXP.add(`l${lvId}:nt:${nr}`); render(); }
+      close(); toast(`Nachtrag ${nr} übernommen.`);
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  setTimeout(() => bg.querySelector('#nkK:not([disabled]), #nkS').focus(), 30);
+}
+function ntPosDialog(lvId, posId) {
+  const lv = PC[lvId] || (L && L.id === lvId ? L : null); if (!lv) return;
+  const y = (lv.data.items || []).find((q) => q.id === posId); if (!y) return;
+  const VP = (lv.vergabe || {}).preise || {}, ep = VP[y.id] ?? y.ep_s;
+  const bg = modalBox(`<h3>Nachtragsposition <span class="hint">· ${esc(y.nt || '')} · ${esc(y.oz || '')}</span></h3><div class="fm">
+      <label>Bezeichnung</label><input id="npK" value="${esc(y.kurz || '')}">
+      <label>Menge</label><input id="npM" value="${nf(y.menge || 0, 3).replace(/,?0+$/, '')}" inputmode="decimal" style="width:7rem">
+      <label>Einheit</label><input id="npE" value="${esc(y.einheit || '')}" list="ntEH2" style="width:7rem">
+      <label>EP netto €</label><input id="npP" value="${ep != null ? nf(ep, 2) : ''}" inputmode="decimal" style="width:9rem" placeholder="Preis der Firma">
+      <label>Stand</label><select id="npS"${y.nt_erbe ? ' title="erbt vom Gliederungspunkt – ein eigener Stand löst die Position davon"' : ''}>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${(y.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select></div>
+    <p class="hint" style="margin:.6rem 0 0">Langtext, Kostengruppe und alles Weitere im Leistungsverzeichnis.</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const q = (k) => bg.querySelector('#' + k).value.trim(); const kz = q('npK'); if (!kz) { toast('Bitte eine Bezeichnung eintragen.', true); return; }
+    const menge = pf(q('npM')) ?? y.menge, einheit = q('npE') || y.einheit, epN = q('npP') === '' ? null : pf(q('npP')), st = q('npS');
+    btn.disabled = true;
+    try {
+      await ntSpeichern(lvId, (items, preise) => { const z = items.find((w) => w.id === posId); if (!z) return; z.kurz = kz; z.menge = menge; z.einheit = einheit; if (epN != null) { z.ep_s = epN; preise[posId] = epN; } if (st !== (z.nt_status || 'angemeldet')) { z.nt_status = st; delete z.nt_erbe; } });
+      close(); toast('Position übernommen.');
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  setTimeout(() => bg.querySelector('#npK').focus(), 30);
+}
 document.addEventListener('dblclick', async (e) => {
   if (tab !== 'auftraege') return;
   const tr = e.target.closest('tr[data-tr]'); if (!tr) return;
+  if (e.target.closest('select,input,button')) return;
+  const g = /^l(\d+):nt:(.+)$/.exec(tr.dataset.tr); if (g) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); ntKopfDialog(+g[1], decodeURIComponent(g[2])); return; }
   const m = /^l(\d+)(?::(.+))?$/.exec(tr.dataset.tr);
+  if (m && m[2]) { const lv = PC[+m[1]], y = lv && (lv.data.items || []).find((q) => q.id === m[2]); if (y && y.nt && y.typ === 'pos') { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); ntPosDialog(+m[1], y.id); return; } }
   if (!m) { if (tr.dataset.tr.startsWith('p')) treeCar('-' + tr.dataset.tr); return; }
   if (!m[2]) { treeCar(tr.dataset.tr); }
   await flush(); if (!L || L.id !== +m[1]) await openLv(+m[1]);

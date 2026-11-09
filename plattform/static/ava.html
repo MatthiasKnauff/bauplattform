@@ -2529,11 +2529,26 @@ async function lvDaten() {
   const id = L.id; let D; try { D = await api(`api/lv/${id}/daten`); } catch (e) { toast(e.message, true); return; }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
   const A = (g) => g.map((x) => ({ ...x, felder: x.felder.map((f) => ({ ...f, k: 'a_' + f.k })) }));
-  const werte = () => ({ ...D.lv, ...Object.fromEntries(Object.entries(D.auftrag || {}).map(([k, v]) => ['a_' + k, v])) });
+  // Auftragsbedingungen und Sicherheiten – dieselben Werte wie in der Auftragskarte (vergabe), hier zusätzlich zum Eintragen
+  const SKA = { kt: 'Kalendertagen (Mo–So)', wt: 'Werktagen (Mo–Sa)', wo: 'Wochen' }, FORM = { einbehalt: 'Einbehalt', buergschaft: 'Bürgschaft' };
+  const zk = (v, n = 2) => (v || v === 0 ? nf(v, n) : '');
+  const kond = () => { const V = L && L.id === id ? L.vergabe || {} : {}, S = V.sicherheit || {}, ve = S.ve || {}, ma = S.ma || {};
+    return { k_nachlass: zk(V.nachlass || ''), k_nachlass_eur: zk(V.nachlass_eur || ''), k_skonto: zk(V.skonto || ''), k_skonto_tage: V.skonto_tage ? String(V.skonto_tage) : '',
+      k_skonto_art: SKA[V.skonto_art || 'kt'], k_ve_form: FORM[ve.form === 'buergschaft' ? 'buergschaft' : 'einbehalt'], k_ve_pct: zk(V.einbehalt ?? 5),
+      k_ma_form: FORM[ma.form === 'buergschaft' ? 'buergschaft' : 'einbehalt'], k_ma_pct: zk(ma.pct ?? ''), k_gw_jahre: S.gw_jahre != null ? String(S.gw_jahre) : '' }; };
+  const KOND = [{ titel: 'Auftragsbedingungen', felder: [
+    { k: 'k_nachlass', l: 'Nachlass', typ: 'prozent' }, { k: 'k_nachlass_eur', l: 'Nachlass als Betrag (netto)', typ: 'eur', hilfe: 'wird anteilig auf jede Rechnung umgelegt' },
+    { k: 'k_skonto', l: 'Skonto', typ: 'prozent' }, { k: 'k_skonto_tage', l: 'Skontofrist', typ: 'zahl', hilfe: 'ab Rechnungseingang' },
+    { k: 'k_skonto_art', l: 'Skontofrist gezählt in', typ: 'select', opt: Object.values(SKA) }] },
+  { titel: 'Sicherheiten (VOB/B § 17)', felder: [
+    { k: 'k_ve_form', l: 'Vertragserfüllung: Art', typ: 'select', opt: Object.values(FORM) }, { k: 'k_ve_pct', l: 'Vertragserfüllung: Einbehalt', typ: 'prozent', hilfe: 'in jeder Teil-, Nachtrags- und Regierechnung' },
+    { k: 'k_ma_form', l: 'Mängelansprüche: Art', typ: 'select', opt: Object.values(FORM) }, { k: 'k_ma_pct', l: 'Mängelansprüche: Einbehalt', typ: 'prozent', hilfe: 'in der Schlussrechnung, z. B. 3' },
+    { k: 'k_gw_jahre', l: 'Verjährung Mängelansprüche (Jahre)', typ: 'zahl', hilfe: 'VOB/B: 4 Jahre' }] }];
+  const werte = () => ({ ...D.lv, ...Object.fromEntries(Object.entries(D.auftrag || {}).map(([k, v]) => ['a_' + k, v])), ...(D.vergeben ? kond() : {}) });
   const tag = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
   BPHead.datenMaske({
     titel: 'LV- & Auftragsdaten', unter: D.titel + (D.vergeben ? ' · beauftragt: ' + D.bieter : ''),
-    gruppen: [...D.felder_lv, ...(D.vergeben ? A(D.felder_auftrag) : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
+    gruppen: [...D.felder_lv, ...(D.vergeben ? [...A(D.felder_auftrag), ...KOND] : [{ titel: 'Auftrag', felder: [] }])], werte: werte(),
     listen: { gw: [...new Set([...(KONT || []).map((k) => k.trade), ...LIST.map((x) => x.gewerk)].map((g) => String(g || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')),
       kg: Object.entries(D.kg_namen || {}) },
     zusatz: (k) => (k === 'ausf_beginn' && D.plan.start ? `<span class="bph-dm-z">Bauzeitenplan: ${tag(D.plan.start)} <button type="button" class="bph-btn" data-lvplan="ausf_beginn">übernehmen</button></span>`
@@ -2545,8 +2560,26 @@ async function lvDaten() {
       ctx.setzen(k, { ausf_beginn: D.plan.start, ausf_ende: D.plan.ende, a_beginn: W.ausf_beginn || D.plan.start, a_ende: W.ausf_ende || D.plan.ende }[k]); return true;
     },
     speichern: async (W) => {
-      const lv = {}, au = {}; Object.entries(W).forEach(([k, v]) => { if (k.startsWith('a_')) au[k.slice(2)] = v; else lv[k] = v; });
+      const lv = {}, au = {}, K = {}; Object.entries(W).forEach(([k, v]) => { if (k.startsWith('a_')) au[k.slice(2)] = v; else if (k.startsWith('k_')) K[k.slice(2)] = v; else lv[k] = v; });
       D = await api(`api/lv/${id}/daten`, 'PUT', { lv, auftrag: au });
+      if (D.vergeben && Object.keys(K).length) {   // Auftragsbedingungen und Sicherheiten wie in der Auftragskarte speichern
+        const alt = kond(), geaendert = Object.keys(K).filter((k) => String(K[k] ?? '') !== String(alt['k_' + k] ?? ''));
+        if (geaendert.length) {
+          const art = (t) => Object.keys(SKA).find((x) => SKA[x] === t) || 'kt', form = (t) => (t === FORM.buergschaft ? 'buergschaft' : 'einbehalt'), n = (v) => pf(v) ?? 0;
+          const v = {}, si = {};
+          if (geaendert.includes('nachlass')) v.nachlass = n(K.nachlass);
+          if (geaendert.includes('nachlass_eur')) v.nachlass_eur = n(K.nachlass_eur);
+          if (geaendert.includes('skonto')) v.skonto = n(K.skonto);
+          if (geaendert.includes('skonto_tage')) v.skonto_tage = n(K.skonto_tage);
+          if (geaendert.includes('skonto_art')) v.skonto_art = art(K.skonto_art);
+          if (geaendert.includes('ve_pct')) v.einbehalt = pf(K.ve_pct) ?? 5;
+          if (geaendert.includes('ve_form')) si.ve = { form: form(K.ve_form) };
+          if (geaendert.includes('ma_form') || geaendert.includes('ma_pct')) si.ma = { ...(geaendert.includes('ma_form') ? { form: form(K.ma_form) } : {}), ...(geaendert.includes('ma_pct') ? { pct: pf(K.ma_pct) } : {}) };
+          if (geaendert.includes('gw_jahre')) si.gw_jahre = pf(K.gw_jahre);
+          if (Object.keys(si).length) v.sicherheit = si;
+          await call('api/lv/' + id, 'PUT', { vergabe: v });   // lädt das LV neu – Auftragskarte und Rechnungen rechnen mit den neuen Werten
+        }
+      }
       return { werte: werte(), hinweis: D.vergeben ? 'Gespeichert.' : 'Gespeichert. Angaben zum Auftrag gibt es nach der Vergabe.' };
     },
     knoepfe: BPHead.verlaufKnopf ? BPHead.verlaufKnopf('avalv:' + id, 'Verlauf') : '',

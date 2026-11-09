@@ -70,8 +70,8 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .secret{font:600 1.25rem/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;background:#1d1f21;border:1px dashed var(--y);border-radius:8px;padding:.6rem .8rem;letter-spacing:.06em;user-select:all;text-align:center;background:var(--inp)}
 
 #toasts{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);display:flex;flex-direction:column;gap:.4rem;z-index:60}
-.toast{background:#111;color:#fff;padding:.6rem 1rem;border-radius:8px;border-left:4px solid var(--y);box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:90vw}
-.toast.bad{border-left-color:var(--red)}
+.toast{background:#111;color:#fff;padding:.6rem 1rem;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:90vw}
+.toast.bad{}
 @media (max-width:640px){.hdr .who span.nm{display:none}.wrap{padding:1rem .8rem 2rem}}
 
 /* Auswahlknopf wie im Bauzeitenplan (Titel + Unterzeile + Pfeil) mit aufklappender Liste und Suche */

@@ -226,7 +226,7 @@ function tradePrint() {
     table{border-collapse:collapse;width:100%}thead{display:table-header-group}tr{break-inside:avoid}
     th{font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:#666;text-align:left;font-weight:600;padding:5px 7px;border-bottom:1.5px solid #333}
     td{padding:6px 7px;border-bottom:1px solid #e4e4e4;vertical-align:top}tbody tr:nth-child(even) td{background:#fafafa}
-    td.gw{border-left:4px solid #999;width:27%}.din{display:inline-block;font-size:8.5px;font-weight:700;background:#f1efed;border-radius:3px;padding:0 5px;margin-bottom:2px;color:#444}
+    td.gw{width:27%}.din{display:inline-block;font-size:8.5px;font-weight:700;background:#f1efed;border-radius:3px;padding:0 5px;margin-bottom:2px;color:#444}
     .gt{font-weight:600}.sub{color:#777;font-size:9px}.fn{font-weight:700}.nf{color:#b0b0b0;font-style:italic}.c1{font-weight:600}.ml{color:#1f5fa8}
     .kt{width:17%}.ein{width:22%}.nt{width:12%;color:#444}
     .pill{display:inline-block;border-radius:9px;padding:1px 8px;font-weight:600;font-size:9px;white-space:nowrap}

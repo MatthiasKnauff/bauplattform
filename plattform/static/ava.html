@@ -210,7 +210,7 @@ table.lv tr.ti td{background:var(--hov);font-weight:700}
 table.lv tr.ti input{font-weight:700}
 table.lv tr.ti.l2 td{background:transparent}
 table.lv tr.txt td{color:var(--mute);font-style:italic}
-table.lv tr.nt td:first-child{box-shadow:inset 3px 0 0 #e07b3a}
+table.lv tr.nt td:first-child{}
 table.lv tr.lang td{border-bottom:1px solid var(--line);padding-top:0}
 table.lv textarea{min-height:5.5rem;resize:vertical;border-color:var(--line)}
 .oz{font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap;font-size:var(--fs-s2);padding-top:.45rem!important}
@@ -276,7 +276,7 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-dav
 .re-leiste{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 .6rem}
 .re-tab{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;padding:.4rem .75rem;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);cursor:pointer;font:inherit;text-align:left}
 .re-tab small{color:var(--mute);font-size:var(--fs-s2)}.re-tab.on{border:2px solid var(--blue,#2c5fb3);background:color-mix(in srgb,var(--blue,#2c5fb3) 8%,var(--card));padding:calc(.4rem - 1px) calc(.75rem - 1px)}
-.re-wo{font-size:var(--fs-s2);color:var(--mute);margin:0 0 .15rem}.re .card[data-reid]{border-left:4px solid var(--blue,#2c5fb3)}
+.re-wo{font-size:var(--fs-s2);color:var(--mute);margin:0 0 .15rem}.re .card[data-reid]{}
 .re .card h3{margin:0 0 .3rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
 .re .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem .8rem;margin:.6rem 0}
 .re .g label{display:flex;flex-direction:column;font-size:var(--fs-s2);color:var(--mute);gap:.15rem}
@@ -433,7 +433,7 @@ html.mobil .bph{position:sticky;top:0}
 .mv-k small{display:block;color:var(--mute);font-size:var(--fs-s)}
 .mv-k b{font-size:var(--fs-l);font-variant-numeric:tabular-nums}
 .mv-k .sub{color:var(--mute);font-size:var(--fs-s)}
-.mk{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--gw,var(--y));border-radius:10px;padding:.55rem .7rem;margin:.45rem 0;display:block;width:100%;text-align:left;color:var(--ink);font:inherit}
+.mk{background:var(--card);border:1px solid color-mix(in srgb,var(--gw,var(--y)) 50%,var(--line));border-radius:10px;padding:.55rem .7rem;margin:.45rem 0;display:block;width:100%;text-align:left;color:var(--ink);font:inherit}
 .mk-h{display:flex;align-items:center;gap:.45rem}
 .mk-h b{font-weight:600;line-height:1.25;flex:1;min-width:0}
 .mk-tag{font-size:var(--fs-s);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:0 .45rem;white-space:nowrap}
@@ -537,11 +537,14 @@ tr.am-lf td input{color:#c0621f}
 .pj-del:hover{border-color:#e02424}.nav #pjTree .pj-r:hover .pj-del,.nav #pjTree .pj-r.on .pj-del{display:block}.nav #pjTree .pj-r:hover .v,.nav #pjTree .pj-r.on:has(.pj-del) .v{visibility:hidden}
 @media (pointer:coarse){.pj-del{display:none!important}}
 
-.nav .nfuss{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.7rem;position:sticky;bottom:0;background:var(--card);padding:.3rem 0 .1rem}   /* bleibt sichtbar, auch wenn die Leiste rollt */
-.nav .nfuss .ava-drop,.nav .nfuss .ava-ein{margin:0;flex-direction:row;justify-content:center;gap:.35rem;padding:.38rem .5rem;border:1px solid var(--y);border-radius:8px;background:transparent;color:var(--y);font:inherit;font-size:var(--fs-s2);cursor:pointer;white-space:nowrap}
-.nav .nfuss .ava-drop b,.nav .nfuss .ava-ein b{color:inherit;font-weight:500}.nav .nfuss .ava-drop:hover,.nav .nfuss .ava-ein:hover{background:color-mix(in srgb,var(--y) 9%,transparent)}
-body.ava-ziehen .nav .nfuss .ava-drop{background:var(--y);color:#fff}
-.nav .nfuss .ava-ein{display:flex;align-items:center}.nav .nfuss .ava-ein .nz{font-size:var(--fs-s);padding:0 .45rem;border-radius:999px;background:var(--y);color:#fff}
+.nav .nfuss{display:grid;grid-template-columns:1fr;gap:.2rem;margin-top:.7rem;position:sticky;bottom:0;background:inherit;padding:.4rem 0 .1rem}   /* bleibt sichtbar, auch wenn die Leiste rollt; gleicher Hintergrund wie die Leiste */
+#navL .nfuss{background:color-mix(in srgb,var(--tabs) 55%,var(--card))}
+.nav .nfuss .ava-drop{margin:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:.6rem;padding:.55rem .7rem;text-align:left;border:2px dashed var(--line);border-radius:10px;background:transparent}
+.nav .nfuss .ava-drop .ad-i{font-size:1.35rem;line-height:1}.nav .nfuss .ava-drop .ad-t{display:flex;flex-direction:column;min-width:0}
+.nav .nfuss .ava-drop b{color:var(--ink);font-size:var(--fs)}.nav .nfuss .ava-drop small{display:block;color:var(--mute);font-size:var(--fs-s);line-height:1.25}
+.nav .nfuss .ava-drop:hover{border-color:var(--y)}
+.nav .nfuss .ava-ein{display:flex;align-items:center;justify-content:center;gap:.35rem;margin:0;padding:.3rem;border:0;border-radius:8px;background:transparent;color:var(--mute);font:inherit;font-size:var(--fs-s2);cursor:pointer}
+.nav .nfuss .ava-ein:hover{background:var(--hov);color:var(--ink)}.nav .nfuss .ava-ein .nz{font-size:var(--fs-s);padding:0 .45rem;border-radius:999px;background:var(--y);color:#fff}
 .nav .nneu{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--fs);color:var(--y);cursor:pointer;padding:.25rem .5rem .25rem 1.4rem;margin-top:.1rem}.nav .nneu:disabled{opacity:.45;cursor:default}.nav .nav-u #pjTree{max-height:44vh;overflow:auto}.nav .ng a.nh{text-decoration:none}.nav-u{margin-bottom:.3rem}
 .rib .rb:disabled{opacity:.35}
 @media (max-width:860px){.body>.nav{display:block;max-height:42vh;overflow:auto;padding:.4rem}.nav .nfuss{margin-top:.4rem}.stp{padding:0 .3rem}.stp button{padding:0 .5rem}}
@@ -581,7 +584,7 @@ body.ava-ziehen .nav .nfuss .ava-drop{background:var(--y);color:#fff}
 @media (max-width:1100px){.au2{grid-template-columns:1fr}.au2-re{position:static;max-height:none}}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:var(--fs)}
-.re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;border-left:3px solid transparent;position:relative}
+.re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;position:relative}
 .re2-baum .pj-r.root{font-weight:600;cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:6px}.re2-baum .pj-r.root .car{cursor:pointer}.re2-baum .pj-r.lv{padding-left:1.3rem}.re2-baum .pj-r.k{padding-left:2.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* im Feld rollt nur das Feld selbst – kein zweiter Scrollbalken darin */
@@ -601,7 +604,7 @@ body.ava-ziehen .nav .nfuss .ava-drop{background:var(--y);color:#fff}
 @media (max-width:1100px){.re2{grid-template-columns:1fr}.re2-baum{position:static;max-height:40vh}}
 body.ph-frei .ph{position:static}
 .lvx-bar{position:sticky;top:var(--phh,3.2rem);z-index:4;background:var(--bg);margin:0 0 .5rem;padding:.35rem 0}   /* Knopfleiste des geöffneten LV über der LV-Liste */
-.lvx-akt{padding:.5rem .6rem .7rem 1.6rem;border-bottom:1px solid var(--line);border-left:3px solid var(--y);background:var(--bg)}
+.lvx-akt{padding:.5rem .6rem .7rem 1.6rem;border-bottom:1px solid var(--line);background:var(--bg)}
 .pj-blink{animation:pjb 1.5s ease}@keyframes pjb{0%,60%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 .ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
@@ -1633,7 +1636,7 @@ function render() {
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
     + (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
     + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"${tab === k ? ' aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small title="${esc(NZT[k] || '')}">${n[k]}</small>` : ''}</button>${tab === k ? navUnter(k) : ''}`).join('')}</div>`).join('')
-    + `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung, Bürgschaft · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin">📎 <b>Ablegen …</b><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 <b>Eingang</b><span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`;
+    + `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung, Bürgschaft · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin"><span class="ad-i">📥</span><span class="ad-t"><b>Datei ablegen</b><small>hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung …</small></span><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 Eingang vom Kopierer<span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`;
   vlSicht();
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   const mitSel = NURLV.has(tab) && tab !== 'lv' && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links

@@ -258,7 +258,7 @@
 .tli-v th{position:sticky;top:0;background:var(--tabs,var(--card));text-align:left;padding:.3rem .4rem;font-weight:500}
 .tli-v td{padding:.25rem .4rem;border-top:1px solid var(--line);vertical-align:top}
 .tli-v td.r,.tli-v th.r{text-align:right;white-space:nowrap}
-.tli-v tr.w td:first-child{box-shadow:inset 3px 0 0 var(--red,#c0392b)}
+.tli-v tr.w td:first-child{background:color-mix(in srgb,#e07b3a 10%,transparent)}
 .tli-v .pl span,.tlp-z span{display:block;font-size:.8rem}.tli-v .pl span.i,.tlp-z span.i{color:var(--mute)}
 .tlp-z{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;padding:.45rem .6rem;cursor:pointer;font:inherit}
 .btn.warnb{border-color:var(--red,#c0392b);color:var(--red,#c0392b)}

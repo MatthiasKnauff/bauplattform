@@ -1296,6 +1296,9 @@
         <label class="bph-ck"><input type="checkbox" data-vf="mail"${E.mail ? ' checked' : ''}> am Ende der Arbeitszeit per Mail erinnern, wenn der Tagesbericht fehlt oder noch nicht fertig ist (nicht als PDF erstellt)</label>
         <h4>Deine persönliche Adresse für den Kurzbefehl</h4>
         <div class="bph-row" style="gap:.4rem"><input readonly value="${esc(adresse())}" data-vadr style="flex:1;font-family:monospace;font-size:.82rem"><button type="button" class="bph-btn" data-vcopy>Kopieren</button><button type="button" class="bph-btn" data-vneu title="Alte Adresse wird ungültig – z. B. wenn das iPhone weg ist">Neuer Schlüssel</button></div>
+        <h4>🚗 Fahrten automatisch (CarPlay)</h4>
+        <p class="bph-mu">Ein zweiter Kurzbefehl „Fahrt beginnt“ bei <b>CarPlay verbindet</b> startet die Fahrt, „Baustelle melden“ bei <b>CarPlay trennt</b> beendet sie. Richtung und Projekt ergeben sich aus dem Ziel: an einer Baustelle „zur Baustelle“, am Büro „zurück ins Büro“ (Projekt der letzten Baustelle), sonst „Fahrt“ zum Bestätigen. Die Fahrt steht dann in der Zeiterfassung (erfasst, nicht geschätzt).</p>
+        <div class="bph-row" style="gap:.4rem"><input readonly value="${esc(adresse().replace('&lat=', '&e=ein&lat='))}" data-vadr2 style="flex:1;font-family:monospace;font-size:.82rem"><button type="button" class="bph-btn" data-vcopy2>Kopieren</button></div>
         <p class="bph-mu">Nicht weitergeben – wer die Adresse kennt, kann Besuche für dich melden.</p>
         <details class="bph-anl"><summary><b>Anleitung: Kurzbefehl einrichten</b> (einmalig, ca. 5 Minuten)</summary>
           <ol>
@@ -1306,6 +1309,7 @@
             <li>Einmal antippen zum Testen (Standortzugriff erlauben) – unten unter „Letzte Besuche“ erscheint die Baustelle, wenn du dort bist.</li>
             <li><b>Automatisch starten – iOS 27:</b> im Editor oben <b>＋</b> → <b>Automation</b> → unter „Verbindungen“ <b>CarPlay</b> → „Trennt“. Mit dem Pfeil neben „Automation“ <b>„Vor dem Ausführen bestätigen“ ausschalten</b>. Zur Sicherheit zwei weitere Automationen <b>Tageszeit</b> (11:00 und 15:00, wöchentlich Mo–Fr). Dann unten <b>ⓘ</b> → <b>Datenschutz</b> → „Ausführen im gesperrten Zustand erlauben“ einschalten. Tipp: Einstellungen → Apps → Kurzbefehle → „Kurzbefehle öffnen in: Editor“ überspringt die KI-Frage.</li>
             <li><b>Automatisch starten – iOS 17 bis 26:</b> unten <b>Automation</b> → <b>＋</b> → <b>CarPlay</b> → „Trennt“ → <b>Sofort ausführen</b>, „Bei Ausführung benachrichtigen“ aus → Kurzbefehl „Baustelle melden“. Dazu zwei Automationen <b>Tageszeit</b> (11:00 und 15:00, Mo–Fr), ebenfalls sofort ausführen.</li>
+            <li><b>Fahrten (CarPlay verbindet):</b> den Kurzbefehl „Baustelle melden“ duplizieren (lange drücken → Duplizieren), umbenennen in „Fahrt beginnt“ und in der URL die Adresse aus „Fahrten automatisch“ einsetzen (mit <code>&amp;e=ein</code>). Dann eine Automation <b>CarPlay → „Verbindet“</b> → sofort ausführen → „Fahrt beginnt“. Die vorhandene Automation „Trennt“ beendet die Fahrt.</li>
             <li><b>Ohne CarPlay:</b> statt CarPlay alle 30 Minuten in der Arbeitszeit einen Auslöser <b>Tageszeit</b> (07:00, 07:30 … 17:00, Mo–Fr). Jede Meldung braucht nur ein paar Sekunden GPS, der Akku merkt davon kaum etwas.</li>
           </ol>
           <p class="bph-mu">Ist der Kurzbefehl fertig, lässt er sich unter „Teilen → iCloud-Link kopieren“ an Kollegen weitergeben – jeder trägt dann nur seine eigene Adresse ein. Die Automationen legt jeder selbst an (das erlaubt Apple nicht anders).</p></details>
@@ -1319,6 +1323,7 @@
       const t = e.target;
       if (t.closest('[data-vx]')) return close();
       const tg = t.closest('[data-vt]'); if (tg) { const T = new Set(D.einst.tage), i = +tg.dataset.vt; T.has(i) ? T.delete(i) : T.add(i); return put({ tage: [...T] }); }
+      if (t.closest('[data-vcopy2]')) { const i = root.querySelector('[data-vadr2]'); i.select(); try { await navigator.clipboard.writeText(i.value); } catch { document.execCommand('copy'); } msg = 'Adresse für „Fahrt beginnt“ kopiert.'; draw(); return; }
       if (t.closest('[data-vcopy]')) { const i = root.querySelector('[data-vadr]'); i.select(); try { await navigator.clipboard.writeText(i.value); msg = 'Adresse kopiert.'; } catch { document.execCommand('copy'); msg = 'Adresse kopiert.'; } draw(); return; }
       if (t.closest('[data-vneu]')) { if ((await bpFrage('Neuen Schlüssel erzeugen? Der Kurzbefehl auf dem iPhone muss dann die neue Adresse bekommen.'))) put({ neuer_schluessel: true }); return; }
       if (t.closest('[data-vtest]')) {

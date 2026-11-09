@@ -67,8 +67,110 @@ def _abstand(lat1, lon1, lat2, lon2):
     return 6371000 * 2 * math.asin(math.sqrt(a))
 
 
-def melden(c, key, lat, lon, jetzt=None):
-    """Meldung vom Kurzbefehl. Gibt (Status-Code, Text für die Mitteilung auf dem iPhone) zurück."""
+# ---------------------------------------------------------------- Fahrten über CarPlay: „verbindet“ = Einsteigen, „trennt“ = Aussteigen
+FAHRT_TEXT = {"hin": "zur Baustelle", "zurueck": "zurück ins Büro", "andere": "Fahrt"}
+TOLERANZ = 60   # Minuten vor bzw. nach der Arbeitszeit zählen Fahrten noch mit
+
+
+def buero(c):
+    """Lage des Büros aus der Büroadresse (einmal über OpenStreetMap ermittelt und gemerkt)."""
+    S = {r["key"]: r["value"] or "" for r in c.execute("SELECT key, value FROM settings WHERE key IN ('co_street','co_zip','co_city','co_lat','co_lon','co_geo_adr')").fetchall()}
+    adr = "|".join((S.get("co_street", ""), S.get("co_zip", ""), S.get("co_city", "")))
+    if S.get("co_lat") and S.get("co_geo_adr") == adr:
+        try:
+            return float(S["co_lat"]), float(S["co_lon"])
+        except ValueError:
+            pass
+    if not (S.get("co_street") or S.get("co_city")):
+        return None
+    try:
+        from . import kataster
+        hit = kataster.adresse_suchen(S.get("co_street", ""), S.get("co_zip", ""), S.get("co_city", ""))
+    except Exception:   # noqa: BLE001 – ohne Internet: Büro unbekannt, Fahrt wird „andere“
+        return None
+    if hit:
+        for k, v in (("co_lat", str(hit[0])), ("co_lon", str(hit[1])), ("co_geo_adr", adr)):
+            c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (k, v))
+    return hit
+
+
+def _naechste_baustelle(c, lat, lon, radius):
+    best = None
+    for p in c.execute("SELECT id, name, lat, lon FROM projects WHERE archived=0 AND lat IS NOT NULL AND lon IS NOT NULL").fetchall():
+        try:
+            d = _abstand(lat, lon, float(p["lat"]), float(p["lon"]))
+        except (TypeError, ValueError):
+            continue
+        if d <= radius and (not best or d < best[0]):
+            best = (d, p)
+    return best[1] if best else None
+
+
+def _hm(m):
+    return f"{int(m) // 60:02d}:{int(m) % 60:02d}"
+
+
+def _min(hm):
+    return int(hm[:2]) * 60 + int(hm[3:5])
+
+
+def fahrt_ein(c, uid, lat, lon, e, jetzt):
+    """CarPlay verbindet: Fahrt starten (läuft wie die Stoppuhr auf dem Server). Eine laufende Stoppuhr (z. B. „vor Ort“) wird beendet und eingetragen."""
+    r = c.execute("SELECT * FROM zeit_lauf WHERE user_id=?", (uid,)).fetchone()
+    if r and r["fahrt"]:
+        return f"Fahrt läuft schon seit {r['start'][11:16]}."
+    tag, hm = jetzt.date().isoformat(), jetzt.strftime("%H:%M")
+    if r:   # andere Zeit läuft (z. B. vor Ort): bis jetzt eintragen
+        if r["start"][:10] == tag and _min(hm) > _min(r["start"][11:16]):
+            c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle) VALUES(?,?,?,?,?,?,?,?)",
+                      (uid, tag, r["start"][11:16], hm, r["project_id"], r["art"], r["notiz"], "stoppuhr"))
+        c.execute("DELETE FROM zeit_lauf WHERE user_id=?", (uid,))
+    ab = _naechste_baustelle(c, lat, lon, e["radius"])   # Start an einer Baustelle: wahrscheinlich die Rückfahrt
+    F = {"richtung": "", "auto": True, "ab": {"lat": round(lat, 4), "lng": round(lon, 4), "acc": 0}}
+    c.execute("INSERT INTO zeit_lauf(user_id, start, project_id, art, notiz, fahrt) VALUES(?,?,?,?,?,?)",
+              (uid, jetzt.strftime("%Y-%m-%d %H:%M"), ab["id"] if ab else None, "fahrt", "", json.dumps(F)))
+    return f"🚗 Fahrt gestartet {hm}" + (f" (ab {ab['name']})" if ab else "")
+
+
+def fahrt_aus(c, uid, lat, lon, e, jetzt):
+    """CarPlay trennt: laufende Fahrt beenden und eintragen – Richtung und Projekt aus dem Ziel (Baustelle / Büro). None, wenn keine Fahrt lief."""
+    r = c.execute("SELECT * FROM zeit_lauf WHERE user_id=?", (uid,)).fetchone()
+    if not r or not r["fahrt"]:
+        return None
+    F = _j(r["fahrt"], {}) or {}
+    c.execute("DELETE FROM zeit_lauf WHERE user_id=?", (uid,))
+    t, v = r["start"][:10], r["start"][11:16]
+    bis = jetzt.strftime("%H:%M") if jetzt.date().isoformat() == t else "23:59"
+    if _min(bis) - _min(v) < 2:   # nur kurz verbunden (Motor an/aus, Parkplatz)
+        return None
+    F["an"] = {"lat": round(lat, 4), "lng": round(lon, 4), "acc": 0}
+    a_ = F.get("ab") or {}
+    if a_.get("lat") is not None:
+        F["km"] = round(_abstand(a_["lat"], a_["lng"], lat, lon) / 1000, 1)
+    pid = r["project_id"]
+    if not F.get("richtung"):   # automatisch: Ziel entscheidet
+        ziel = _naechste_baustelle(c, lat, lon, e["radius"])
+        b = buero(c)
+        am_buero = bool(b) and _abstand(lat, lon, b[0], b[1]) <= max(e["radius"], 300)
+        if ziel:
+            F["richtung"], pid = "hin", ziel["id"]
+        elif am_buero:
+            F["richtung"] = "zurueck"
+            if not pid:   # Projekt der letzten Baustelle heute
+                log = (_j(konto._get(c, f"vorort:log:{uid}"), {}) or {}).get(t) or {}
+                letzte = sorted(((z[-1], k) for k, z in log.items() if k.isdigit() and isinstance(z, list)), reverse=True)
+                pid = int(letzte[0][1]) if letzte else None
+        else:
+            F["richtung"] = "andere"
+    c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle, fahrt) VALUES(?,?,?,?,?,?,?,?,?)",
+              (uid, t, v, bis, pid, "fahrt", FAHRT_TEXT.get(F["richtung"], "Fahrt"), "unterwegs", json.dumps(F)))
+    pn = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
+    return f"🚗 Fahrt {v}–{bis} {FAHRT_TEXT.get(F['richtung'], 'Fahrt')}" + (f" · {pn['name']}" if pn else "")
+
+
+def melden(c, key, lat, lon, jetzt=None, ereignis=None):
+    """Meldung vom Kurzbefehl. Gibt (Status-Code, Text für die Mitteilung auf dem iPhone) zurück.
+    ereignis: „ein“ (CarPlay verbindet) startet eine Fahrt; sonst (CarPlay trennt, Tageszeit) endet eine laufende Fahrt hier."""
     uid = konto._get(c, f"vorort:k:{key}") if key else None
     if not uid or not str(uid).isdigit():
         return 403, "Unbekannter Schlüssel – bitte den Kurzbefehl neu einrichten (⚙ → Für mich → Vor Ort erkennen)."
@@ -81,23 +183,25 @@ def melden(c, key, lat, lon, jetzt=None):
     hm = jetzt.strftime("%H:%M")
     if not e["an"]:
         return 200, "Vor-Ort-Erkennung ist ausgeschaltet."
-    if jetzt.weekday() not in e["tage"] or not (e["von"] <= hm <= e["bis"]):
-        return 200, "Außerhalb der Arbeitszeit – nichts gespeichert."
     try:
         lat, lon = float(str(lat).replace(",", ".")), float(str(lon).replace(",", "."))
     except (TypeError, ValueError):
         return 400, "Kein Standort übermittelt."
-    best = None
-    for p in c.execute("SELECT id, name, lat, lon FROM projects WHERE archived=0 AND lat IS NOT NULL AND lon IS NOT NULL").fetchall():
-        try:
-            d = _abstand(lat, lon, float(p["lat"]), float(p["lon"]))
-        except (TypeError, ValueError):
-            continue
-        if d <= e["radius"] and (not best or d < best[0]):
-            best = (d, p)
-    if not best:
-        return 200, "Keine Baustelle in der Nähe."
-    p = best[1]
+    fahrt = None
+    try:
+        im_fenster = jetzt.weekday() in e["tage"] and _min(e["von"]) - TOLERANZ <= _min(hm) <= _min(e["bis"]) + TOLERANZ
+        if ereignis == "ein":
+            return 200, fahrt_ein(c, uid, lat, lon, e, jetzt) if im_fenster else "Außerhalb der Arbeitszeit – keine Fahrt erfasst."
+        fahrt = fahrt_aus(c, uid, lat, lon, e, jetzt)   # läuft eine Fahrt, endet sie hier (auch kurz nach Feierabend)
+    except Exception as ex:   # noqa: BLE001 – Zeiterfassung noch nicht eingerichtet (alte Datenbank): Vor-Ort wie bisher
+        import logging
+        logging.getLogger("vorort").warning("Fahrt nicht erfasst: %s", ex)
+    vor = (fahrt + "\n") if fahrt else ""
+    if jetzt.weekday() not in e["tage"] or not (e["von"] <= hm <= e["bis"]):
+        return 200, vor + "Außerhalb der Arbeitszeit – nichts gespeichert."
+    p = _naechste_baustelle(c, lat, lon, e["radius"])
+    if not p:
+        return 200, fahrt or "Keine Baustelle in der Nähe."
     log = _j(konto._get(c, f"vorort:log:{uid}"), {}) or {}
     tag = jetzt.date().isoformat()
     z = log.setdefault(tag, {}).setdefault(str(p["id"]), [hm, hm])
@@ -112,11 +216,11 @@ def melden(c, key, lat, lon, jetzt=None):
             nr = _bericht_anlegen(c, uid, p, tag, hm)
             auto.append(str(p["id"]))
             konto._put(c, f"vorort:log:{uid}", json.dumps(log), "vorort")
-            return 200, f"Vor Ort: {p['name']} – Tagesbericht Nr. {nr} angelegt (Wetter, Anwesende laut Bauzeitenplan). Bitte heute ergänzen."
+            return 200, vor + f"Vor Ort: {p['name']} – Tagesbericht Nr. {nr} angelegt (Wetter, Anwesende laut Bauzeitenplan). Bitte heute ergänzen."
         except Exception as ex:   # Bericht nicht anlegbar: Meldung trotzdem merken, Erinnerung kommt wie bisher
             import logging
             logging.getLogger("vorort").warning("Tagesbericht nicht automatisch angelegt: %s", ex)
-    return 200, f"Vor Ort: {p['name']}" + ("" if hat else " – Tagesbericht nicht vergessen")
+    return 200, vor + f"Vor Ort: {p['name']}" + ("" if hat else " – Tagesbericht nicht vergessen")
 
 
 _WX = {0: ("Heiter", "trocken"), 1: ("Heiter", "trocken"), 2: ("Wolkig", "trocken"), 3: ("Bedeckt", "trocken"), 45: ("Nebel", "trocken"), 48: ("Nebel", "trocken")}

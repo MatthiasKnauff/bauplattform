@@ -1442,7 +1442,7 @@ def blueprint(get_user=None):
         b = request.get_json(silent=True) or {}
         v = lambda k: request.values.get(k) or b.get(k)
         with db.tx() as c:
-            code, txt = vorort.melden(c, str(v("k") or "")[:60], v("lat"), v("lon"))
+            code, txt = vorort.melden(c, str(v("k") or "")[:60], v("lat"), v("lon"), ereignis=(v("e") or "").strip().lower() or None)
         return Response(txt, status=code, mimetype="text/plain")
 
     @bp.route("/api/bp/vorort/einst", methods=["GET", "PUT"])

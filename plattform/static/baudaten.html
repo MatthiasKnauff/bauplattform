@@ -28,6 +28,7 @@
 .list{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .row{display:grid;grid-template-columns:8.5rem minmax(0,1fr) 3.2rem 9.5rem;gap:.6rem;padding:.5rem .8rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline}
 .row{grid-template-columns:7.6rem minmax(0,1fr) 3rem 8rem 1.6rem;touch-action:manipulation}.row .k b{overflow-wrap:anywhere;hyphens:auto}
+.kb-z{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.6rem;padding:.4rem .6rem;border-bottom:1px solid var(--line);align-items:center}.kb-z:last-child{border-bottom:0}.kb-t{min-width:0;overflow-wrap:anywhere}.kb-t small,.kb-p small{display:block;font-size:.76rem}.kb-p{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .row-det{padding:.8rem 1rem 1rem;background:var(--card2,var(--card));border-bottom:1px solid var(--line);box-shadow:inset 3px 0 0 var(--y)}.row-det h2{font-size:1.05rem;margin:.3rem 0 .4rem}.row-det pre{white-space:pre-wrap}
 .kb{width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;font-size:.85rem;line-height:1;padding:0;align-self:start}
 .kb:hover{border-color:var(--y);color:var(--y)}.kb.on{background:var(--y);border-color:var(--y);color:#fff}
@@ -210,9 +211,9 @@ async function korbAendern(b, still) {
 async function korbDialog() {
   let P = [];
   try { P = await api('api/baudaten/korb'); } catch (er) { toast(er.message, true); return; }
-  const zeile = (x) => `<div style="display:grid;grid-template-columns:7rem minmax(0,1fr) 3rem 6.5rem 1.8rem;gap:.5rem;padding:.4rem .6rem;border-bottom:1px solid var(--line);align-items:baseline">
-      <span class="mute" style="font-size:.76rem">${esc(x.code)}</span><span>${esc(x.bez || x.kurz)}<small class="mute" style="display:block;font-size:.76rem">${esc(x.gruppe_name || x.titel || '')}</small></span>
-      <span class="mute">${esc(x.einheit)}</span><span style="text-align:right">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}</span>
+  const zeile = (x) => `<div class="kb-z">
+      <span class="kb-t">${esc(x.bez || x.kurz)}<small class="mute">${esc(x.code)}${x.gruppe_name || x.titel ? ' · ' + esc(x.gruppe_name || x.titel) : ''}</small></span>
+      <span class="kb-p">${x.ep_mittel_akt == null ? '–' : eur(x.ep_mittel_akt)}<small class="mute">je ${esc(x.einheit)}</small></span>
       <button type="button" class="btn sm" data-m="weg:${x.id}" title="Aus dem Korb nehmen" style="padding:.1rem .4rem">✕</button></div>`;
   const bg = modalBox(`<h3>Korb</h3>
     <p class="mute" style="margin:.1rem 0 .6rem;font-size:.86rem">Hier gesammelte Positionen stehen in der <b>Ausschreibung</b> in der Kopierquelle unter „Kataloge → Baudaten-Korb“ und in den <b>Baukosten</b> unter „Aus Baudaten“ → Korb zur Übernahme bereit. Gefragt wird dabei, ob Katalog- oder eigene Preise gelten.</p>

@@ -445,6 +445,7 @@ html.mobil .bph{position:sticky;top:0}
 .am-zone{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .7rem;padding:.55rem .7rem;border:1px dashed var(--line);border-radius:10px}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
+.au-sk{cursor:pointer;user-select:none}.au-sk:hover{color:var(--y)}.au-spw{margin-left:.6rem;font-size:var(--fs-s2);font-weight:400;opacity:.8}.au-ed{font:inherit;padding:.05rem .35rem;border:1px solid var(--y);border-radius:5px;background:var(--inp);color:var(--ink);min-width:12rem}
 .tree tr.ntz td{background:color-mix(in srgb,#f0b429 12%,var(--card))}.tree tr.ntz td:first-child{box-shadow:inset 3px 0 0 #e0a030}.tree tr.ntz.sel td{background:color-mix(in srgb,#f0b429 22%,var(--card))}
 .tree tr.nt-neu td{background:color-mix(in srgb,var(--y) 7%,var(--card));padding:.3rem .45rem}.nt-st{font:inherit;font-size:var(--fs-s2);padding:.05rem .3rem;border-radius:6px;border:1px solid var(--line);background:var(--card);color:inherit}
 .nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}.tree .nt-del{opacity:0;padding:0 .3rem;font-size:.85em}.tree tr:hover .nt-del,.tree tr.sel .nt-del{opacity:.75}.tree .nt-del:hover{opacity:1}
@@ -4551,6 +4552,54 @@ function auHoehe() {
   if (zuviel > 0) { w.style.maxHeight = Math.max(240, parseFloat(w.style.maxHeight) - zuviel) + 'px'; if (re && re.style.maxHeight) re.style.maxHeight = Math.max(240, parseFloat(re.style.maxHeight) - zuviel) + 'px'; }
 }
 addEventListener('resize', () => requestAnimationFrame(auHoehe));
+/* Aufträge-Tabelle: Spalten sortieren (Klick auf den Kopf, je Ebene) und ein-/ausblenden (⚙ Spalten) – gemerkt im Browser */
+const AU_SP = [['Bezeichnung'], ['Firma'], ['Gesamt (EUR)', 1], ['Nachtrag'], ['Nachtrag Gesamt', 1], ['Prognose (EUR)', 1], ['Art'], ['Bedarfsposition'], ['KG'], ['abgerechnet', 1]];
+let AUSORT = LS.get('au.sort', null), AUAUS = new Set(LS.get('au.aus', []));
+const auVergl = (a, b) => (typeof a === 'number' && typeof b === 'number' ? a - b : String(a ?? '').localeCompare(String(b ?? ''), 'de', { numeric: true, sensitivity: 'base' })) * (AUSORT ? AUSORT.d : 1);
+function auWertLv(x) { return [[x.nr, x.name].filter(Boolean).join(' '), x.auftragnehmer || '', x.auftrag || x.schaetzung || 0, x.n_nt || 0, (x.nachtraege || 0) + (x.nt_angemeldet || 0), x.prognose || 0, x.vergeben ? 1 : 0, '', '', x.abgerechnet || 0][AUSORT.c]; }
+function auWertR(r) { const x = r.x; return [`${x.oz || ''} ${x.kurz || ''}`, '', r.typ === 'ti' ? r.g : (r.gRoh ?? 0), r.ntj ? 1 : 0, r.nt || 0, (r.g || 0) + (r.nt || 0), r.typ === 'ti' ? 'Titel' : x.art === 'P' ? 'Pauschal' : 'Position', x.art === 'E' ? 1 : 0, x.kg || '', 0][AUSORT.c]; }
+function auSpaltenStil() { return AUAUS.size ? `<style>${[...AUAUS].map((n) => `table.au-t thead th:nth-child(${n + 1}),table.au-t tr[data-tr]>td:nth-child(${n + 1})`).join(',')}{display:none}</style>` : ''; }
+function auSpaltenWahl(anker) {
+  const bg = modalBox(`<h3>Spalten in „Aufträge“</h3><div class="fm" style="grid-template-columns:1fr">${AU_SP.map(([t], n) => n === 0 ? '' : `<label class="ck"><input type="checkbox" data-ausp="${n}"${AUAUS.has(n) ? '' : ' checked'}> ${t}</label>`).join('')}</div>
+    <div class="acts"><button class="btn" data-m="alle">Alle zeigen</button><span style="flex:1"></span><button class="btn pri" data-m="x">Fertig</button></div>`, (m, b2, close) => {
+    if (m === 'alle') { AUAUS.clear(); LS.set('au.aus', []); b2.querySelectorAll('[data-ausp]').forEach((c) => { c.checked = true; }); render(); return; }
+    if (m === 'x') close();
+  });
+  bg.addEventListener('change', (e) => { const c = e.target.closest('[data-ausp]'); if (!c) return; const n = +c.dataset.ausp; if (c.checked) AUAUS.delete(n); else AUAUS.add(n); LS.set('au.aus', [...AUAUS]); render(); });
+  const md = bg.querySelector('.modal'); if (md) md.style.width = 'min(340px,100%)';
+}
+document.addEventListener('click', (e) => {
+  if (tab !== 'auftraege') return;
+  if (e.target.closest('[data-auspw]')) { e.stopPropagation(); auSpaltenWahl(e.target); return; }
+  const th = e.target.closest('th[data-ausort]'); if (!th || e.target.closest('.sb-griff')) return;
+  const c = +th.dataset.ausort;
+  AUSORT = !AUSORT || AUSORT.c !== c ? { c, d: 1 } : AUSORT.d > 0 ? { c, d: -1 } : null;   // auf – ab – wie im LV
+  LS.set('au.sort', AUSORT); render();
+});
+/* Aufträge: Bezeichnung (Kurztext) und Kostengruppe direkt in der Tabelle ändern – Klick auf die schon markierte Zeile bzw. auf die KG */
+async function auBearb(span) {
+  const tr = span.closest('tr[data-tr]'), m = /^l(\d+):(.+)$/.exec(tr ? tr.dataset.tr : ''); if (!m) return;
+  const lvId = +m[1], id = m[2], feld = span.dataset.aued;
+  const lv = PC[lvId]; const y0 = lv && (lv.data.items || []).find((q) => q.id === id); if (!y0) return;
+  const inp = document.createElement('input'); inp.className = 'au-ed'; inp.value = y0[feld] || ''; if (feld === 'kg') { inp.maxLength = 3; inp.inputMode = 'numeric'; inp.style.width = '4rem'; }
+  span.replaceWith(inp); inp.focus(); inp.select();
+  let fertig = false;
+  const ende = async (ok) => {
+    if (fertig) return; fertig = true;
+    const v = feld === 'kg' ? inp.value.replace(/\D/g, '').slice(0, 3) : inp.value.trim();
+    if (!ok || v === (y0[feld] || '') || (feld === 'kurz' && !v)) { render(); return; }
+    await kmLv(lvId, async () => { const x = items().find((q) => q.id === id); if (!x) return; x[feld] = v; HIST.next = `${x.oz || 'Position'}: ${feld === 'kg' ? 'Kostengruppe' : 'Bezeichnung'} in „Aufträge“ geändert`; changed(true); clearTimeout(saveT); saveT = 0; try { await saveNow(); } catch (er) { toast(er.message, true); } PC[lvId] = L; render(); });
+  };
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ende(true); } else if (e.key === 'Escape') { e.preventDefault(); ende(false); } });
+  inp.addEventListener('blur', () => ende(true));
+}
+document.addEventListener('click', (e) => {
+  if (tab !== 'auftraege') return;
+  const sp = e.target.closest('span[data-aued]'); if (!sp) return;
+  const tr = sp.closest('tr[data-tr]'); if (!tr) return;
+  if (sp.dataset.aued === 'kurz' && !tr.classList.contains('sel')) return;   // erster Klick wählt nur die Zeile (wie im Explorer)
+  e.stopPropagation(); clearTimeout(auBearb.t); auBearb.t = setTimeout(() => auBearb(sp), 260);   // nicht beim Doppelklick
+}, true);
 function vAuftraege() {
   const xs = LIST.filter((x) => !x.archived);
   if (!xs.length) return '<div class="card empty">Noch keine Leistungsverzeichnisse in diesem Projekt. Oben „Neu“ legt eines an.</div>';
@@ -4564,7 +4613,7 @@ function vAuftraege() {
   const row = (k, lvl, kids, ico, bez, c) => out.push(`<tr data-tr="${k}" class="${k === pk ? 'root' : ''}${TSEL === k ? ' sel' : ''}${NTZ ? ' ntz' : ''}"><td><span class="tw" style="padding-left:${lvl * 1.1}rem"><span class="car" ${kids ? `data-car="${k}"` : ''}>${kids ? (EXP.has(k) ? '▾' : '▸') : ''}</span>${ico}<span>${bez}</span></span></td>${c.map((v, i) => `<td class="${[1, 3, 4, 8].includes(i) ? 'r' : ''}${i === 2 && v === 'Ja' ? ' nt' : ''}">${v}</td>`).join('')}</tr>`);
   const auf = !EXP.has('-' + pk);   // Projekt ist standardmäßig aufgeklappt
   out.push(`<tr data-tr="${pk}" class="root${TSEL === pk ? ' sel' : ''}"><td><span class="tw"><span class="car" data-car="-${pk}">${auf ? '▾' : '▸'}</span>${IC.proj}<span>${esc(pn)}</span></span></td><td></td><td class="r">${e2(S.g)}</td><td></td><td class="r">${e2(S.nt)}</td><td class="r">${e2(S.pr)}</td><td></td><td></td><td></td><td class="r">${e2(S.ab)}</td></tr>`);
-  if (auf) xs.forEach((x) => {
+  if (auf) (AUSORT ? [...xs].sort((p1, p2) => auVergl(auWertLv(p1), auWertLv(p2))) : xs).forEach((x) => {
     const k = 'l' + x.id, aufgetragen = !!x.auftrag;
     row(k, 1, true, IC.lv, `${esc([x.nr, x.name].filter(Boolean).join(' '))}`,
       [x.aufgehoben ? `<span class="mu" title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || ''), e2(x.auftrag || x.schaetzung), jn(x.n_nt), e2(x.nachtraege + x.nt_angemeldet), e2(x.prognose), aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? 'aufgehoben' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung', '', '', e2(x.abgerechnet)]);
@@ -4596,22 +4645,22 @@ function vAuftraege() {
     });
     NTZ = false;
     out.push(ntZeile(x.id, '', 2, 'angemeldet'));   // neuer Nachtrag: Bezeichnung tippen, Enter
-    R.forEach((r) => {
-      if (!sicht.has(r.par)) return;
-      if (r.x.nt) return;   // Nachträge (Positionen und Gliederungspunkte samt Inhalt) stehen oben unter „Nachtrag erfassen“
+    const kinder = (par) => { const L2 = R.filter((q) => q.par === par && !q.x.nt); return AUSORT ? L2.sort((p1, p2) => auVergl(auWertR(p1), auWertR(p2))) : L2; };   // Nachträge stehen oben
+    const zeig = (par) => kinder(par).forEach((r) => {
       const tief = r.typ === 'ti' ? r.lvl + 1 : (R.find((q) => q.k === r.par) || { lvl: 0 }).lvl + 2;
       const kids = r.typ === 'ti' && R.some((q) => q.par === r.k);
       if (r.typ === 'ti') {
-        row(r.k, tief, kids, IC.ti, `${esc(r.x.oz || '')} ${esc(r.x.kurz || '')}`, ['', e2(r.g), jn(r.ntj), e2(r.nt), e2(r.g + r.nt), 'Titel', '', esc(r.x.kg || ''), '']);
-        if (EXP.has(r.k)) sicht.add(r.k);
+        row(r.k, tief, kids, IC.ti, `${esc(r.x.oz || '')} <span data-aued="kurz" title="Klick auf die markierte Zeile: Bezeichnung ändern · Doppelklick: Dialog">${esc(r.x.kurz || '')}</span>`, ['', e2(r.g), jn(r.ntj), e2(r.nt), e2(r.g + r.nt), 'Titel', '', `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(r.x.kg || '')}</span>`, '']);
+        if (EXP.has(r.k)) zeig(r.k);
       } else {
         const x2 = r.x, mu = !zaehlt(x2) && !x2.nt;
-        row(r.k, tief, false, IC.pos, `<span class="${mu ? 'mu' : ''}">${esc(x2.oz || '')} ${esc(x2.kurz || '')}</span>`,
-          ['', r.gRoh != null ? `<span class="${mu ? 'mu' : ''}">${e2(r.gRoh)}</span>` : '', x2.nt ? `<select class="nt-st ${x2.nt_status || 'angemeldet'}" data-ntst="${x.id}:${x2.id}" title="${esc(x2.nt_grund || '')}"><option value="angemeldet"${(x2.nt_status || 'angemeldet') === 'angemeldet' ? ' selected' : ''}>angemeldet</option><option value="beauftragt"${x2.nt_status === 'beauftragt' ? ' selected' : ''}>beauftragt</option><option value="abgelehnt"${x2.nt_status === 'abgelehnt' ? ' selected' : ''}>abgelehnt</option></select>` : '', e2(r.nt), e2((r.g || 0) + r.nt), x2.nt ? `Nachtrag ${esc(x2.nt)}` : x2.art === 'P' ? 'Pauschal' : 'Position', jn(x2.art === 'E'), esc(x2.kg || ''), '']);
+        row(r.k, tief, false, IC.pos, `<span class="${mu ? 'mu' : ''}">${esc(x2.oz || '')} <span data-aued="kurz" title="Klick auf die markierte Zeile: Kurztext ändern · Doppelklick: Eigenschaften wie im LV">${esc(x2.kurz || '')}</span></span>`,
+          ['', r.gRoh != null ? `<span class="${mu ? 'mu' : ''}">${e2(r.gRoh)}</span>` : '', '', e2(r.nt), e2((r.g || 0) + r.nt), x2.art === 'P' ? 'Pauschal' : 'Position', jn(x2.art === 'E'), `<span data-aued="kg" title="Klick: Kostengruppe ändern">${esc(x2.kg || '')}</span>`, '']);
       }
     });
+    zeig(k);
   });
-  const tabelle = `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:22rem">Bezeichnung</th><th>Firma</th><th class="r">Gesamt (EUR)</th><th>Nachtrag</th><th class="r">Nachtrag Gesamt</th><th class="r">Prognose (EUR)</th><th>Art</th><th>Bedarfsposition</th><th>KG</th><th class="r">abgerechnet</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
+  const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:22rem"' : ''} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein- und ausblenden">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
     <p class="hint" style="margin:.5rem 0 0">▸ klappt auf · Klick wählt das LV · Doppelklick öffnet es im Leistungsverzeichnis. Gesamt = Auftragssumme (nach Nachlass), ohne Auftrag die Schätzung. Prognose = Auftrag + beauftragte und angemeldete Nachträge. Grau: Bedarfs-/Wahlpositionen (nicht in der Summe).</p>`;
   if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
   return `<div class="au2" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div><aside class="au2-re">${auftragKarte()}</aside></div>`;
@@ -4970,7 +5019,10 @@ document.addEventListener('dblclick', async (e) => {
   if (e.target.closest('select,input,button')) return;
   const g = /^l(\d+):nt:(.+)$/.exec(tr.dataset.tr); if (g) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); ntKopfDialog(+g[1], decodeURIComponent(g[2])); return; }
   const m = /^l(\d+)(?::(.+))?$/.exec(tr.dataset.tr);
-  if (m && m[2]) { const lv = PC[+m[1]], y = lv && (lv.data.items || []).find((q) => q.id === m[2]); if (y && y.nt && y.typ === 'pos') { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); ntPosDialog(+m[1], y.id); return; } }
+  clearTimeout(auBearb.t);   // kein Bearbeiten im Feld, wenn doppelt geklickt wurde
+  if (m && m[2]) { const lv = PC[+m[1]], y = lv && (lv.data.items || []).find((q) => q.id === m[2]); if (y && y.nt && y.typ === 'pos') { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); ntPosDialog(+m[1], y.id); return; }
+    if (y && !y.nt) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); const lvId = +m[1];   // wie im LV: Eigenschaften der Position bzw. des Gliederungspunkts
+      kmLv(lvId, () => (y.typ === 'titel' ? titelDialog(y.id) : eigDialog(y.id))); return; } }
   if (!m) { if (tr.dataset.tr.startsWith('p')) treeCar('-' + tr.dataset.tr); return; }
   if (!m[2]) { treeCar(tr.dataset.tr); }
   await flush(); if (!L || L.id !== +m[1]) await openLv(+m[1]);

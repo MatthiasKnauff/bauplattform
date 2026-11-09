@@ -248,6 +248,7 @@ table.lv.baum tr:not(.wurzel):not(.lang):hover td{background:var(--hov)}
 table.lv.baum .badge{margin-left:.3rem}
 table.lv tr.akt td{background:color-mix(in srgb,#4da3ff 16%,transparent)!important}
 table.lv tr.akt:not(.lang) td.oz{font-weight:700}table.lv tr.akt td{box-shadow:inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}table.lv tr.akt td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:calc(7px*var(--rk,1)) 0 0 calc(7px*var(--rk,1))}table.lv tr.akt td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 calc(7px*var(--rk,1)) calc(7px*var(--rk,1)) 0}table.lv tr.akt:has(+tr.lang.akt) td{box-shadow:inset 0 1.5px 0 var(--y)}table.lv tr.akt:has(+tr.lang.akt) td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y);border-radius:calc(7px*var(--rk,1)) 0 0 0}table.lv tr.akt:has(+tr.lang.akt) td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y);border-radius:0 calc(7px*var(--rk,1)) 0 0}table.lv tr.lang.akt td{box-shadow:inset 1.5px 0 0 var(--y),inset -1.5px 0 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 0 calc(7px*var(--rk,1)) calc(7px*var(--rk,1))}table.lv tr:not(.akt) td :is(input,select){cursor:default}
+table.lv tr.zieh-lv td{background:color-mix(in srgb,var(--ok,#2f9e44) 20%,transparent);box-shadow:inset 0 0 0 2px var(--ok,#2f9e44)}
 table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-davor td{box-shadow:inset 0 3px 0 var(--y)}
 .ib:hover{color:var(--ink);background:var(--hov)}
 .ib.on{color:var(--y)}
@@ -588,6 +589,7 @@ tr.am-lf td input{color:#c0621f}
 .re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:calc(6px*var(--rk,1));position:relative}
 .re2-baum .pj-r.root{font-weight:600;cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:calc(6px*var(--rk,1))}.re2-baum .pj-r.root .car{cursor:pointer}.re2-baum .pj-r.lv{padding-left:1.3rem}.re2-baum .pj-r.k{padding-left:2.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
+.re2.re2-ein{grid-template-columns:minmax(0,1fr)}
 .re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* im Feld rollt nur das Feld selbst – kein zweiter Scrollbalken darin */
 #view .am-box{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:auto;min-width:0;min-height:0;box-sizing:border-box}
 #view .am-box>.card,#view .am-box>.tblw{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}#view .am-box>*+*{border-top:1px solid var(--line)!important}
@@ -1515,7 +1517,13 @@ function lvxKopf() {
   return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
 function re2Html(inhalt) {
+  if (tab === 'lv') return `<div class="re2 re2-ein"><div class="re2-ed">${inhalt == null ? lvNurOrdner() : inhalt}</div></div>`;   // LV: die LVs stehen als Ordner in der Tabelle (wie bei den Aufträgen) – kein eigener Baum daneben
   return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjBaumMitWurzel()}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
+}
+function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
+  const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
+  return `<div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Summe</th></tr></thead><tbody><tr class="wurzel"><td class="baumz"><div class="bz"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td></td></tr>
+    ${LIST.filter((x) => !x.archived && !ohneLv(x)).map((x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, (STATUS.find((st) => st[0] === x.status) || [, ''])[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();
@@ -2111,12 +2119,12 @@ function vLv() {
     <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car" data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer">${LVGZ.has(L.id) ? '▸' : '▾'}</span>${IC.lv}<b>${esc(L.nr)} ${esc(L.name)}</b></div></td><td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
   const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
-  const LV = LIST.filter((x) => !x.archived || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
+  const LV = LIST.filter((x) => (!x.archived && !ohneLv(x)) || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   return `${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung">Art</th><th class="hide-m">KG</th>
-      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^<tr class="wurzel">.*?<\/tr>\s*/s, '')}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}</tbody>
+      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^(<tr class="wurzel">.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
 document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen
@@ -4731,6 +4739,33 @@ document.addEventListener('drop', (e) => {
 
 /* ---------- Zeilen verschieben: an der Ordnungszahl greifen und an die neue Stelle ziehen (Titel nehmen ihren Inhalt mit) ---------- */
 let ZIEH = null;
+/* Zeilen auf ein anderes LV des Projekts ziehen: verschieben oder kopieren (beauftragte LVs: nur kopieren) – mit Rückgängig */
+async function lvZiehNach(zielId, von) {
+  const Z = LIST.find((x) => x.id === zielId), I = items(), x = I[von]; if (!Z || !L || !x) return;
+  let blk;
+  if (LVSEL.size > 1 && LVSEL.has(x.id)) blk = I.filter((y) => LVSEL.has(y.id));
+  else { let ende = von + 1; if (x.typ === 'titel') { const lv = x.lvl || 1; while (ende < I.length && !(I[ende].typ === 'titel' && (I[ende].lvl || 1) <= lv)) ende++; } blk = I.slice(von, ende); }
+  const nurKopie = vergeben() || !!Z.vergeben, quelle = L.id;
+  const was = blk.length === 1 ? `„${x.kurz || x.oz || 'Zeile'}“` : `${blk.length} Zeilen`, ziel = `${Z.nr || ''} ${Z.name || ''}`.trim();
+  const a = await bpFrage(`${was} nach „${ziel}“?\n` + (nurKopie ? 'Eines der beiden LVs ist beauftragt – deshalb wird kopiert, nicht verschoben.' : 'Verschieben nimmt die Zeilen aus diesem LV heraus. Kopieren lässt sie hier stehen.'),
+    nurKopie ? { ok: 'Kopieren' } : { ok: 'Verschieben', drei: 'Kopieren' });
+  if (!a) return;
+  const move = !nurKopie && a === true;
+  await flush();
+  const T = await api('api/lv/' + zielId), entwurf = (Z.status || 'entwurf') === 'entwurf';
+  const neu = blk.map((y) => ({ ...JSON.parse(JSON.stringify(y)), id: uid(), ...(entwurf ? {} : { oz: '' }) }));   // im Entwurf wird neu nummeriert, sonst bleiben die vorhandenen OZ unangetastet (neue Zeilen ohne OZ)
+  await api('api/lv/' + zielId, 'PUT', { rev: T.rev, data: { ...T.data, items: [...(T.data.items || []), ...neu] }, ...(entwurf ? { nummerieren: true } : {}) });
+  const vorher = move ? JSON.parse(JSON.stringify(I)) : null;
+  if (move) { const weg = new Set(blk.map((y) => y.id)); L.data.items = I.filter((y) => !weg.has(y.id)); LVSEL = new Set(); if (weg.has(LVAKT)) LVAKT = null; HIST.next = `${was} nach „${ziel}“ verschoben`; changed(true); await flush(); }
+  delete PC[zielId]; await refreshList(); render();
+  toast(`${was} ${move ? 'verschoben' : 'kopiert'} nach „${ziel}“${entwurf ? '' : ' – dort ohne OZ angehängt (Nummerieren vergibt sie)'}`);
+  rueckgaengig(`${was} nach „${ziel}“ ${move ? 'verschoben' : 'kopiert'}`, async () => {
+    const T2 = await api('api/lv/' + zielId), ids = new Set(neu.map((y) => y.id));
+    await api('api/lv/' + zielId, 'PUT', { rev: T2.rev, data: { ...T2.data, items: (T2.data.items || []).filter((y) => !ids.has(y.id)) }, ...(entwurf ? { nummerieren: true } : {}) });
+    if (move) { await flush(); if (!L || L.id !== quelle) await openLv(quelle); L.data.items = vorher; changed(true); await flush(); }
+    delete PC[zielId]; await refreshList(); render();
+  });
+}
 document.addEventListener('mousedown', (e) => { const td = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang) td.oz'); if (td && tab === 'lv' && !e.target.closest('input,select,button')) td.parentElement.draggable = true; });
 document.addEventListener('dragstart', (e) => {
   const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (!tr || !tr.draggable || tab !== 'lv') return;
@@ -4738,6 +4773,9 @@ document.addEventListener('dragstart', (e) => {
 });
 document.addEventListener('dragover', (e) => {
   if (ZIEH == null || ![...(e.dataTransfer.types || [])].includes('text/x-ava-zeile')) return;
+  document.querySelectorAll('.zieh-lv').forEach((r) => r.classList.remove('zieh-lv'));
+  const anderes = e.target.closest && e.target.closest('table.lv tr[data-lvopen]');   // auf ein anderes LV des Projekts: dorthin verschieben oder kopieren
+  if (anderes) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor')); anderes.classList.add('zieh-lv'); return; }
   const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'), kopf = !tr && e.target.closest && e.target.closest('table.lv thead, table.lv tr.wurzel');
   document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor'));
   if (tr) { e.preventDefault(); const r = tr.getBoundingClientRect(); tr.classList.add(e.clientY < r.top + r.height / 2 ? 'zieh-davor' : 'zieh-hier'); }   // obere Hälfte: davor einfügen (so geht es auch ganz nach oben)
@@ -4745,6 +4783,9 @@ document.addEventListener('dragover', (e) => {
 });
 document.addEventListener('drop', (e) => {
   if (ZIEH == null || !e.dataTransfer.getData('text/x-ava-zeile')) return;
+  const anderes = e.target.closest && e.target.closest('table.lv tr[data-lvopen]');
+  document.querySelectorAll('.zieh-lv').forEach((r) => r.classList.remove('zieh-lv'));
+  if (anderes) { e.preventDefault(); const von = ZIEH; ZIEH = null; lvZiehNach(+anderes.dataset.lvopen, von).catch((er) => toast(er.message, true)); return; }
   e.preventDefault(); const markiert = document.querySelector('.zieh-davor,.zieh-hier'); const davor = !!(markiert && markiert.classList.contains('zieh-davor'));
   document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor'));
   const tr = (e.target.closest && e.target.closest('table.lv tr[data-i]')) || markiert; const von = ZIEH; ZIEH = null; if (!tr || !tr.dataset || tr.dataset.i == null) return;

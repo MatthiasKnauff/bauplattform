@@ -36,7 +36,9 @@
 .tile span.d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* unten: links Post, rechts To-dos – zusammen so breit wie die Kacheln */
 .unten{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.8rem;align-items:start}
-.unten>.post[hidden]+.todo{grid-column:1/-1}
+.unten>.post[hidden]+.desk{grid-column:1/-1}
+.desk .ue-grid{grid-template-columns:1fr}.desk .ue-b.w2{grid-column:auto}.desk .ue-top{margin-bottom:.5rem}.desk #todo{padding:0}
+.unten>.post[hidden]+.desk .ue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@media (max-width:980px){.unten>.post[hidden]+.desk .ue-grid{grid-template-columns:1fr}}
 @media (max-width:980px){.unten{grid-template-columns:1fr}}
 /* Post zu meinen Projekten */
 .post{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem 1rem}
@@ -99,7 +101,7 @@ html[data-modus="einfach"] .foot{order:6}
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="ordnen" id="ordnen" title="Kacheln anordnen (ziehen und ablegen)" aria-pressed="false">✎</button></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="tiles" id="tiles"></div>
-  <div class="unten"><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section><section class="post todo" id="todo" aria-label="To-dos"></section></div>
+  <div class="unten"><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section><div id="desk" class="desk" aria-label="Schreibtisch: To-dos, Hinweise, Erinnerungen"></div></div>
   <div class="foot"><span id="ver"></span></div>
 </main>
 <script src="static/bp.js"></script>
@@ -290,7 +292,24 @@ function einfachZeigen(conf) {
     } },
   ]);
   postStart();
-  TDKLEIN = true; tdZeigen(); tdRef().then(() => tdLaden());
+  /* Schreibtisch rechts: Blöcke wie in „Aufgaben & Mängel → Übersicht“ */
+  let ERIN = null;
+  const aufgApp = () => (conf.apps || []).find((y) => y.key === 'aufgaben' && y.allowed);
+  async function erinLaden() { const a = aufgApp(); if (!a) return; try { ERIN = await api(appUrl(a) + '/api/erinnerungen?scope=mine'); } catch { ERIN = null; } deskZeigen(); }
+  function deskZeigen() {
+    const host = $('#desk'); if (!host) return;
+    const a = aufgApp(), link = (h) => (a ? appUrl(a) + '/#' + h : '');
+    const B = [{ k: 'todos', name: 'Meine To-dos', html: '<section class="todo" id="todo"></section>', n: TD ? tdAlle().offen.length : 0 }];
+    if (TD) tdAutoGruppen().forEach((g) => B.push({ k: g.key, name: g.name, n: g.offen.length, rot: g.offen.some((x) => x.f && x.f < tdHeute()), max: 4, items: g.offen.sort((x, y) => (y.prio || 0) - (x.prio || 0) || (x.f || '9').localeCompare(y.f || '9')).map(tdZeile), link: link('uebersicht'), linkText: 'Übersicht ›' }));
+    if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(x.termin).localeCompare(String(y.termin)));
+      B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => x.lage === 'ueberfaellig'), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
+        items: L.map((x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(x.termin ? new Date(x.termin + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></a>`) }); }
+    ueRender(host, B, { top: true });
+    if (TD) tdZeigen();
+  }
+  const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen
+  TDKLEIN = true; TDNURMANUELL = true;   // Startseite: Block „Meine To-dos“ nur eigene Aufgaben, die automatischen Hinweise je Rubrik daneben
+  ueInit('portal', deskZeigen); deskZeigen(); tdRef().then(() => tdLaden()); erinLaden();
   setInterval(() => { if (document.visibilityState === 'visible' && !TDOFFEN && !(document.activeElement && document.activeElement.id === 'tdNeu')) tdLaden(); }, 5 * 60 * 1000);
   setInterval(() => { if (document.visibilityState === 'visible' && POST && POST.eingerichtet && !POSTLAEUFT) postLaden('?auto=1'); }, 10 * 60 * 1000);   // Seite bleibt offen: zur eingestellten Zeit nachladen
   $('#ver').textContent = 'Version ' + conf.version;

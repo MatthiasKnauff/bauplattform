@@ -65,20 +65,6 @@
 .resch input{padding:.3rem .45rem}
 details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .empty{color:var(--mute);padding:1.2rem;text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:12px}
-.ue-top{display:flex;align-items:center;gap:1rem;margin:0 0 .8rem;flex-wrap:wrap}.ue-top .fill{flex:1}
-.ue-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem;align-items:start}
-.ue-b{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.6rem .8rem .5rem;min-width:0;position:relative}.ue-b.w2{grid-column:span 2}
-.ue-b h3{margin:0 0 .4rem;font-size:.95rem;display:flex;align-items:center;gap:.5rem;cursor:grab}.ue-b h3:active{cursor:grabbing}
-.ue-ic{width:24px;height:24px;border-radius:7px;display:inline-grid;place-items:center;color:#fff;font-size:.72rem;font-weight:700;flex:none}
-.ue-n{margin-left:auto;background:var(--hov);border-radius:999px;padding:0 .5rem;font-size:.78rem;color:var(--mute)}.ue-n.rot{background:var(--red);color:#fff}
-.ue-grip{color:var(--mute);letter-spacing:-2px;font-size:.95rem;opacity:.6}
-.ue-b.zieh{opacity:.45}.ue-b.ziel{outline:2px dashed var(--y);outline-offset:2px}
-.ue-r{display:flex;gap:.6rem;align-items:baseline;padding:.3rem 0;border-top:1px dashed var(--line);cursor:pointer}.ue-r:first-of-type{border-top:0}.ue-r:hover{background:var(--hov)}
-.ue-r .ue-t{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ue-r .ue-t small{display:block;color:var(--mute);font-size:.78rem;overflow:hidden;text-overflow:ellipsis}
-.ue-r .ue-d{white-space:nowrap;color:var(--mute);font-size:.82rem}.ue-r .ue-d.rot{color:var(--red);font-weight:600}.ue-r.aus{opacity:.5}
-.ue-mehr{border:0;background:none;color:var(--y);cursor:pointer;font:inherit;font-size:.84rem;padding:.3rem 0 0;margin-right:.8rem}.ue-leer{font-size:.84rem;margin:.2rem 0 0;display:inline-block}
-.ue-b #todo .post-h{display:none}.ue-b #todo .tg{font-size:.78rem}
-@media (max-width:1100px){.ue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:760px){.ue-grid{grid-template-columns:1fr}.ue-b.w2{grid-column:auto}}
 .note{background:var(--hov);border:1px solid var(--line);border-radius:10px;padding:.7rem 1rem;color:var(--mute);font-size:.9rem;margin-bottom:1rem}
 #undoBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #undoBar[hidden]{display:none}
@@ -223,9 +209,7 @@ function render() {
   if (tab === 'maengel') renderM(); else if (tab === 'termine') renderT(); else renderE(); }
 
 /* ---------- Übersicht: ein Schreibtisch aus Blöcken (je Rubrik einer), verschiebbar wie das Nextcloud-Dashboard, Reihenfolge/Ausblenden je Benutzer gemerkt ---------- */
-const BLK_IC = { todos: ['✓', '#2b4a7a'], maengel: ['!', '#e07b3a'], erinnerungen: ['⏰', '#c8372a'], rechnungen: ['€', '#6b4bbf'], skonto: ['%', '#6b4bbf'], nachtraege: ['NT', '#b7791f'], vergabe: ['LV', '#50808e'], firma: ['F', '#50808e'],
-  terminruege: ['⚑', '#8a6d3b'], verzug: ['⏳', '#8a6d3b'], planversand: ['📄', '#1e8a4c'], vorort: ['📍', '#3a7bd5'], tagesbericht: ['📒', '#3a7bd5'], budget: ['Σ', '#c0392b'], post: ['✉', '#3a7bd5'], termine: ['📅', '#50808e'], mfrist: ['!', '#e07b3a'], erin: ['⏰', '#c8372a'] };
-let UE = { order: LS.get('ue.order', []), weg: LS.get('ue.weg', []), alle: LS.get('ue.alle', false), mehr: new Set() };
+ueInit('aufgaben', () => render());
 function ueBloecke() {
   const h = tdHeute(), B = [];
   const auto = tdAutoGruppen();
@@ -257,42 +241,16 @@ function ueBloecke() {
   return B.sort((a, b) => pos(a.k) - pos(b.k));
 }
 function renderUe() {
-  const B = ueBloecke(), sicht = B.filter((b) => !UE.weg.includes(b.k));
-  const blk = (b) => {
-    const [ic, farbe] = BLK_IC[b.k] || ['•', '#777'], max = UE.mehr.has(b.k) ? 1e9 : 5, items = b.items || [], rest = items.length - Math.min(items.length, max);
-    return `<section class="ue-b${b.breit ? ' w2' : ''}" data-blk="${esc(b.k)}" draggable="true"><h3><span class="ue-ic" style="background:${farbe}">${ic}</span>${esc(b.name)}<span class="ue-n${b.rot ? ' rot' : ''}">${b.n || 0}</span><span class="ue-grip" title="Block verschieben">⋮⋮</span></h3>
-      ${b.html || ''}${items.length ? items.slice(0, max).join('') : b.html ? '' : '<p class="mute ue-leer">nichts offen 🎉</p>'}
-      ${rest > 0 ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">alle ${items.length} anzeigen ›</button>` : UE.mehr.has(b.k) && items.length > 5 ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">weniger</button>` : ''}
-      ${b.ziel ? `<button type="button" class="ue-mehr" data-uetab="${b.ziel}">zum Reiter ›</button>` : ''}${b.mehr ? `<span class="mute ue-leer">${esc(b.mehr)}</span>` : ''}</section>`;
-  };
-  $('#view').innerHTML = `<div class="ue-top"><label class="chk" title="Auch Erledigtes, Abgelaufenes und Zurückgestelltes in den Blöcken zeigen"><input type="checkbox" data-uealle${UE.alle ? ' checked' : ''}> erledigte / abgelaufene anzeigen</label><span class="mute" style="font-size:.85rem">Blöcke am ⋮⋮ verschieben</span><span class="fill"></span><button type="button" class="btn sm" data-uebloecke>⚙ Blöcke</button></div>
-    <div class="ue-grid">${sicht.map(blk).join('')}</div>${(TD && (TD.fehler || []).length) ? `<div class="fehler">${TD.fehler.map(esc).join('<br>')}</div>` : ''}`;
+  const B = ueBloecke();
+  ueRender($('#view'), B, { top: true, alle: true, fehler: TD && (TD.fehler || []).length ? TD.fehler : null });
   window.TDMAX = UE.mehr.has('todos') ? 1e9 : 8;
   if (TD) tdZeigen();   // füllt den Block „Meine To-dos“
 }
-document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-uealle]')) { UE.alle = e.target.checked; LS.set('ue.alle', UE.alle); renderUe(); } });
 document.addEventListener('click', (e) => {
-  const m = e.target.closest && e.target.closest('[data-uemehr]'); if (m) { if (UE.mehr.has(m.dataset.uemehr)) UE.mehr.delete(m.dataset.uemehr); else UE.mehr.add(m.dataset.uemehr); renderUe(); return; }
   const t = e.target.closest && e.target.closest('[data-uetab]'); if (t) { tab = t.dataset.uetab; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); return; }
   const r = e.target.closest && e.target.closest('[data-ue]'); if (r) { const [zt, id] = r.dataset.ue.split(':'); tab = zt; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); if (zt === 'maengel') F = { ...F, status: 'alle' }; render();
-    setTimeout(() => { const el = id && document.querySelector(zt === 'maengel' ? `[data-m="${id}"]` : zt === 'termine' ? `[data-tid="${id}"]` : `[data-e="${id}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 4000); } }, 50); return; }
-  const b = e.target.closest && e.target.closest('[data-uebloecke]'); if (b) {
-    const alle = ueBloecke();
-    modalBox(`<h3>Blöcke der Übersicht</h3><p class="mute" style="margin:0 0 .6rem">Ausgeblendete Blöcke zählen oben in den Reitern weiter mit.</p>${alle.map((x) => `<label class="chk" style="display:flex;gap:.5rem;padding:.25rem 0"><input type="checkbox" data-ueblk="${esc(x.k)}"${UE.weg.includes(x.k) ? '' : ' checked'}> ${esc(x.name)} <small class="mute">${x.n || 0}</small></label>`).join('')}
-      <div class="acts"><button class="btn" data-m="reset">Reihenfolge zurücksetzen</button><span style="flex:1"></span><button class="btn pri" data-m="x">Fertig</button></div>`, (m, bg, close) => {
-      if (m === 'reset') { UE.order = []; LS.set('ue.order', []); renderUe(); return; }
-      if (m === 'x') { UE.weg = [...bg.querySelectorAll('[data-ueblk]')].filter((c) => !c.checked).map((c) => c.dataset.ueblk); LS.set('ue.weg', UE.weg); close(); renderUe(); }
-    });
-  }
+    setTimeout(() => { const el = id && document.querySelector(zt === 'maengel' ? `[data-m="${id}"]` : zt === 'termine' ? `[data-tid="${id}"]` : `[data-e="${id}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 4000); } }, 50); }
 });
-/* Blöcke ziehen (HTML5-Drag am Block, Griff ⋮⋮) */
-let UEZ = null;
-document.addEventListener('dragstart', (e) => { const b = e.target.closest && e.target.closest('.ue-b'); if (!b || !e.target.closest('.ue-grip, h3')) { if (b) e.preventDefault(); return; } UEZ = b.dataset.blk; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-ue', UEZ); b.classList.add('zieh'); });
-document.addEventListener('dragover', (e) => { if (!UEZ) return; const b = e.target.closest && e.target.closest('.ue-b'); document.querySelectorAll('.ue-b.ziel').forEach((x) => x.classList.remove('ziel')); if (b && b.dataset.blk !== UEZ) { e.preventDefault(); b.classList.add('ziel'); } });
-document.addEventListener('drop', (e) => { if (!UEZ) return; const b = e.target.closest && e.target.closest('.ue-b'); if (!b || b.dataset.blk === UEZ) return; e.preventDefault();
-  const order = [...document.querySelectorAll('.ue-b')].map((x) => x.dataset.blk).filter((k) => k !== UEZ); const i = order.indexOf(b.dataset.blk); const r = b.getBoundingClientRect(); order.splice(e.clientX > r.left + r.width / 2 || e.clientY > r.top + r.height / 2 ? i + 1 : i, 0, UEZ);
-  UE.order = [...order, ...UE.order.filter((k) => !order.includes(k))]; LS.set('ue.order', UE.order); UEZ = null; renderUe(); });
-document.addEventListener('dragend', () => { UEZ = null; document.querySelectorAll('.ue-b.zieh,.ue-b.ziel').forEach((x) => x.classList.remove('zieh', 'ziel')); });
 
 /* ---------- Termine: Verzug laut Arbeitsfortschritt (Bautagebuch → Bauzeitenplan) ---------- */
 function vzHtml() {
@@ -466,9 +424,13 @@ function renderE() {
     <label class="mute" style="display:flex;gap:.4rem;align-items:center">Zeigen ${sel('q', [['alle', 'alle'], ['mir', '👤 für mich'], ['plan', '📅 aus Bauzeitenplänen'], ['bautagebuch', '📒 aus dem Bautagebuch'], ['eigen', '✎ von Hand angelegt']])}</label></div>`;
   $('#view').innerHTML = (E.mail ? '' : `<div class="note">Der Mailserver ist noch nicht eingerichtet – Erinnerungen werden hier angezeigt, aber nicht per E-Mail verschickt. ${appLink('admin', '') ? `<a href="${esc(appLink('admin', '#einstellungen-mail'))}">Verwaltung → Einstellungen → Mailserver</a>` : ''}</div>`)
     + bar
-    + (open.length ? groups().map(([l, xs]) => `${l ? `<div class="grp">${esc(l)} <small>${xs.length}</small></div>` : ''}<div class="ml">${xs.map(row).join('')}</div>`).join('')
+    + (open.length ? (() => {   // Gruppen als verschiebbare Blöcke (wie die Übersicht)
+        const IC = { ueberfaellig: ['!', '#c8372a'], abgelaufen: ['⌛', '#777'], heute: ['⏰', '#e07b3a'], bald: ['📅', '#3a7bd5'], spaeter: ['📅', '#50808e'] };
+        const B = groups().map(([l, xs]) => { const lage = EV.grp === 'lage' ? (G.find(([, n]) => n === l) || [''])[0] : ''; return { k: 'e:' + (lage || l.toLowerCase().replace(/[^a-z0-9äöü]+/g, '-')), name: l || 'Erinnerungen', n: xs.length, rot: lage === 'ueberfaellig' || xs.some((x) => x.lage === 'ueberfaellig'), ic: IC[lage] || ['⏰', '#c8372a'], items: xs.map((x) => `<div class="ml">${row(x)}</div>`), max: 1e9 }; });
+        UE._B = B;
+        return `<div class="ue-grid zwei">${ueSort(B).map(ueBlockHtml).join('')}</div>`; })()
       : '<div class="empty">Keine offenen Erinnerungen. Erinnerungen entstehen aus Erledigungsdaten im Bautagebuch, aus den Bauzeitenplänen (wenn eine Firma zur Baustelle muss) oder mit „+ Erinnerung“.</div>')
-    + (done.length ? `<details class="done-l"><summary>Erledigt (${done.length})</summary><div class="ml">${done.map(row).join('')}</div></details>` : '')
+    + (done.length ? `<details class="done-l" style="margin-top:1rem"><summary>Erledigt (${done.length})</summary><div class="ml">${done.map(row).join('')}</div></details>` : '')
     + `<p class="mute" style="font-size:.82rem;margin-top:1.4rem">📒 aus dem Bautagebuch (Erledigungsdatum, Mail am Fälligkeitstag) · 📅 aus den Bauzeitenplänen: Firma kommt zum ersten Mal oder wieder auf die Baustelle – Erinnerung ${CFG ? CFG.vorlauf : 7} Tage vorher · ✎ eigene. Abgelaufene lassen sich neu terminieren.</p>`;
 }
 async function kalender(id) {   // Einladung an mich – „Annehmen“ trägt den Termin in Outlook & Co. ein

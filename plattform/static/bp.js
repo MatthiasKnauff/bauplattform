@@ -229,3 +229,33 @@ function pickMenu(anchor, opt) {
   });
   return { close };
 }
+
+/* Tabellen: Textspalten nur so breit wie ihr üblicher (durchschnittlicher) Inhalt – Längeres endet mit „…“, der ganze Text steht im Tooltip.
+   Greift von selbst in Listen-Tabellen (mit Kopfzeile, ab 5 Zeilen), auch nach dem Neuzeichnen; abschalten je Tabelle mit data-volle.
+   Zellen mit Eingabefeldern bleiben, wie sie sind. Der Inhalt kommt in ein <span class="sp-in"> – nur so hält Chrome die Breite ein. */
+function spaltenSchnitt(t) {
+  const B = t.tBodies[0]; if (!B || !t.tHead || t.hasAttribute('data-volle') || t.closest('.modal,.modal-bg,.bph-dlg-bg,[data-volle]')) return;
+  const R = [...B.rows].filter((r) => r.cells.length > 1 && !r.classList.contains('lang')); if (R.length < 5) return;
+  const n = Math.max(...R.map((r) => r.cells.length)), S = R.length > 400 ? R.filter((_, i) => i % Math.ceil(R.length / 400) === 0) : R;
+  const frei = (c) => c && c.colSpan === 1 && !c.querySelector('input,select,textarea,canvas,svg,img,table,button');
+  const txt = (c) => c.textContent.replace(/\s+/g, ' ').trim();
+  for (let i = 0; i < n; i++) {
+    const L = S.map((r) => r.cells[i]).filter(frei).map((c) => txt(c).length).filter((x) => x > 0);
+    if (L.length < 5) continue;
+    const avg = L.reduce((a, x) => a + x, 0) / L.length, max = Math.max(...L);
+    if (avg < 12 || max < avg * 1.35) continue;
+    const w = Math.max(14, Math.ceil(avg * 1.15)) + 'ch';
+    R.forEach((r) => { const c = r.cells[i]; if (!frei(c)) return;
+      let s = c.firstElementChild && c.firstElementChild.classList.contains('sp-in') && c.childNodes.length === 1 ? c.firstElementChild : null;
+      if (!s) { s = document.createElement('span'); s.className = 'sp-in'; while (c.firstChild) s.appendChild(c.firstChild); c.appendChild(s); }
+      if (s.style.maxWidth !== w) s.style.maxWidth = w;
+      if (!c.title) { const x = txt(c); if (x.length > avg * 1.15) c.title = x; } });
+  }
+}
+(() => {
+  const st = document.createElement('style'); st.textContent = '.sp-in{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sp-in>small,.sp-in>.mute,.sp-in>.hint{display:block;overflow:hidden;text-overflow:ellipsis}'; document.head.appendChild(st);
+  let t = 0; const alle = () => document.querySelectorAll('table').forEach((x) => { try { spaltenSchnitt(x); } catch { /* egal */ } });
+  const mo = new MutationObserver((M) => { if (M.every((m) => m.target.classList && m.target.classList.contains('sp-in') || [...m.addedNodes].every((x) => x.classList && x.classList.contains('sp-in')))) return; clearTimeout(t); t = setTimeout(alle, 120); });
+  const los = () => { alle(); mo.observe(document.body, { childList: true, subtree: true }); };
+  if (document.body) los(); else document.addEventListener('DOMContentLoaded', los);
+})();

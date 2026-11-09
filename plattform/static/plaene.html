@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#84827c">
 <title>Pläne & Dateien</title>
 <link rel="icon" href="logo.png">
-<link rel="stylesheet" href="static/bp.css">
+<link rel="stylesheet" href="bp/bp.css">
 <style>
 .wrap{max-width:1240px;padding-bottom:6rem}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem}
@@ -91,7 +91,7 @@ html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}
   <div id="view"><p class="mute">Lade …</p></div>
 </main>
 <div class="bar" id="bar" hidden></div>
-<script src="static/bp.js"></script>
+<script src="bp/bp.js"></script>
 <script src="bp/undo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('pl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('pl.' + k, JSON.stringify(v)); } catch { /* egal */ } } };

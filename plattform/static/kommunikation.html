@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#84827c">
 <title>Kommunikation</title>
 <link rel="icon" href="logo.png">
-<link rel="stylesheet" href="static/bp.css">
+<link rel="stylesheet" href="bp/bp.css">
 <style>
 .wrap{max-width:1240px;padding-bottom:5rem}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 .7rem}
@@ -105,7 +105,7 @@
   <div class="grid" data-bph-trenn-ab="821" data-bph-trenn="kom" data-bph-trenn-min="200" data-bph-trenn-max="0.5"><aside class="side" id="side" aria-label="Übersicht"></aside><section id="list" aria-live="polite"></section></div>
 </main>
 <div class="kv-fab"><div class="kv-fm" hidden><button type="button" data-kvneu="n">✉ Nachricht</button><button type="button" data-kvneu="v">📝 Vorgang dokumentieren</button></div><button type="button" class="kv-fb" data-kvfab aria-label="Neu: Nachricht oder Vorgang">＋</button></div>
-<script src="static/bp.js"></script>
+<script src="bp/bp.js"></script>
 <script src="bp/undo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('kom.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('kom.' + k, JSON.stringify(v)); } catch { /* egal */ } } };

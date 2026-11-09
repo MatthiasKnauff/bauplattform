@@ -1,5 +1,5 @@
 'use strict';
-/* Bauplattform – kleine gemeinsame Hilfen für Startseite und Verwaltung */
+/* Bauplattform – gemeinsame Grundhilfen (/bp/bp.js, shared/bpcore/head) – für alle Apps */
 const $ = (s, el = document) => el.querySelector(s);
 /* Suchen ohne Ärger mit Umlauten: „pü“, „pue“ und „Pürzer“ (auch aus anderen Programmen mit zerlegten Umlauten) passen zusammen */
 const fold = (s) => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')

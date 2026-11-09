@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#84827c">
 <title>Zeiten</title>
 <link rel="icon" href="logo.png">
-<link rel="stylesheet" href="static/bp.css">
+<link rel="stylesheet" href="bp/bp.css">
 <style>
 .wrap{max-width:1240px;padding-bottom:5rem}
 .top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem}
@@ -122,7 +122,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
   </div>
   <div id="view"><p class="mute">Lade …</p></div>
 </main>
-<script src="static/bp.js"></script>
+<script src="bp/bp.js"></script>
 <script src="bp/undo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('zeit.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('zeit.' + k, JSON.stringify(v)); } catch { /* egal */ } } };

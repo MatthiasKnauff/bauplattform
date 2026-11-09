@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Druck-Layouts – Bauplattform</title>
 <link rel="icon" href="logo.png">
-<link rel="stylesheet" href="static/bp.css">
+<link rel="stylesheet" href="bp/bp.css">
 <style>
 body{margin:0}
 .lw{display:grid;grid-template-columns:250px minmax(0,1fr) 290px;gap:0;height:calc(100vh - 52px);min-height:520px}
@@ -93,7 +93,7 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
   <aside class="r" id="props"></aside>
 </div>
 <button hidden id="verlBtn"></button>
-<script src="static/bp.js"></script>
+<script src="bp/bp.js"></script>
 <script src="bp/undo.js"></script>
 <script>
 const LS = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* egal */ } } };

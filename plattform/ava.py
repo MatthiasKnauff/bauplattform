@@ -2709,13 +2709,16 @@ def nachtrag_neu(i):
     der EP wird Auftragspreis (so rechnet die Prüfung damit)."""
     b = request.get_json(silent=True) or {}
     kurz = _s(b.get("kurz"), 300)
-    if not kurz:
+    zu_nt = _s(b.get("zu_nt"), 20)   # Positionen zu einem vorhandenen Nachtrag (NT3) hinzufügen
+    if not kurz and not zu_nt:
         return jsonify(error="Bitte eine Bezeichnung eintragen."), 400
     status = b.get("status") if b.get("status") in ("angemeldet", "beauftragt", "abgelehnt") else "angemeldet"
     menge, ep = _f(b.get("menge"), 1), _fn(b.get("ep"))
     einheit = _s(b.get("einheit"), 10) or "psch"
     with db.tx() as c:
         r = _lv(c, i)
+        if zu_nt and r:
+            return _nachtrag_dazu(c, r, i, zu_nt, b)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
         versionen.vor(c, f"avalv:{i}")
@@ -2767,6 +2770,46 @@ def nachtrag_neu(i):
         versionen.nach(c, f"avalv:{i}", g.user["name"])
         C.audit(g.user["name"], "ava", "Nachtrag erfasst", f"LV {r['nr']} {r['name']}: NT{n_nt} {kurz} ({status})")
         return _antwort(c, i)
+
+
+def _nachtrag_dazu(c, r, i, zu_nt, b):
+    """Weitere Positionen zu einem bestehenden Nachtrag: unter seinen Gliederungspunkt (erben) bzw. hinter seine letzte Position (gleiche Nummer, gleicher Stand)."""
+    versionen.vor(c, f"avalv:{i}")
+    d, V = _j(r["data"], {}) or {}, _j(r["vergabe"], {}) or {}
+    items = d.get("items") or []
+    grp = [x for x in items if str(x.get("nt")) == zu_nt]
+    if not grp:
+        return jsonify(error="Nachtrag nicht gefunden"), 404
+    zeilen = [z for z in (b.get("positionen") or []) if isinstance(z, dict) and _s(z.get("kurz"), 300)][:200]
+    if not zeilen:
+        return jsonify(error="Bitte mindestens eine Position mit Bezeichnung eintragen."), 400
+    titel = next((x for x in grp if x.get("typ") == "titel"), None)
+    if titel:
+        ti = items.index(titel); ende = ti + 1
+        while ende < len(items) and not (items[ende].get("typ") == "titel" and (items[ende].get("lvl") or 1) <= (titel.get("lvl") or 1)):
+            ende += 1
+        vorlage = {}
+    else:
+        letzte = grp[-1]; ende = items.index(letzte) + 1
+        vorlage = {"nt": zu_nt, "nt_status": letzte.get("nt_status") or "angemeldet", "nt_grund": letzte.get("nt_grund") or ""}
+    neue_preise = {}
+    for n, z in enumerate(zeilen):
+        p2 = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": _s(z.get("kurz"), 300), "lang": _s(z.get("lang"), 4000),
+              "menge": _f(z.get("menge"), 1), "einheit": _s(z.get("einheit"), 10) or "psch", **vorlage}
+        ep2 = _fn(z.get("ep"))
+        if ep2 is not None:
+            p2["ep_s"] = ep2; neue_preise[p2["id"]] = ep2
+        items.insert(ende + n, p2)
+    nt_erben(items)
+    nummerieren(items, maske=d.get("ozm"))
+    d["items"] = items
+    if neue_preise and (V.get("preise") is not None or V.get("bieter") or V.get("frei")):
+        V["preise"] = {**(V.get("preise") or {}), **neue_preise}
+    c.execute("UPDATE ava_lv SET data=?, vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?",
+              (json.dumps(d, ensure_ascii=False), json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
+    versionen.nach(c, f"avalv:{i}", g.user["name"])
+    C.audit(g.user["name"], "ava", "Nachtrag ergänzt", f"LV {r['nr']} {r['name']}: {zu_nt} + {len(zeilen)} Position(en)")
+    return _antwort(c, i)
 
 
 @app.put("/api/lv/<int:i>/nachtrag/<pid>")

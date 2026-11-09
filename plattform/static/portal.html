@@ -231,7 +231,7 @@ function rasterZeigen() {
   host.classList.toggle('handy', rHandy());
 }
 /* ---------- eigene Widgets: Bauzeitenplan (Handyansicht), Kostenstand ---------- */
-const WXC = {}; let WXP = null;   // WXC: Inhalt je Typ:Projekt (mit Zeit) · WXP: Projektliste für ▾
+const WXC = {}; let WXP = null, WXPL = null;   // WXC: Inhalt je Typ:Projekt (mit Zeit) · WXP: Projektliste für ▾
 const wxPid = (it) => (it.o && it.o.p) || (window.BPHead && BPHead.projektId && BPHead.projektId()) || 0;
 function wxPName(pid, it) {
   const n = (WXP && (WXP.find((p) => p.id === pid) || {}).name) || ((WXC['bauzeit:' + pid] || WXC['kosten:' + pid] || {}).pname) || (pid ? 'Projekt' : 'kein Projekt');
@@ -246,6 +246,7 @@ async function wxLaden(it) {
     document.querySelectorAll(`[data-wxp="${CSS.escape(it.i)}"]`).forEach((el) => { el.textContent = wxPName(pid, it) + ' ▾'; }); };
   if (C && (C.html && Date.now() - C.t < 120000 || C.laeuft)) { if (C.html) fuell(); return; }
   WXC[key] = { ...(C || {}), laeuft: true };
+  if (!WXP) WXP = await (WXPL = WXPL || api('api/bp/projekte').catch(() => []));   // Projektnamen für ▾
   try {
     if (t === 'bauzeit') { const D = await api('api/bp/widget/bauzeit?pid=' + pid); WXC[key] = { t: Date.now(), html: wxBauzeit(D), pname: D.projekt.name }; }
     else { const S = await api('api/bp/widget/kosten?pid=' + pid); WXC[key] = { t: Date.now(), html: wxKosten(S) }; }
@@ -262,16 +263,18 @@ function wxBauzeit(D) {
       + (pl.mehr ? `<p class="mute">… und ${pl.mehr} weitere</p>` : '') : '<p class="mute">In diesen drei Wochen ist nichts geplant.</p>') + '</a>').join('');
 }
 function wxKosten(K) {
-  const S = { s: K.schaetzung || 0, au: K.auftrag || 0, nt: K.nachtraege || 0, ab: K.abgerechnet || 0, n: K.n || 0 };
-  if (!S.n) return '<p class="mute">Noch keine Leistungsverzeichnisse in diesem Projekt.</p>';
-  const ges = S.au + S.nt, m = Math.max(S.s, ges, S.ab, 1), bar = (v, c) => `<span class="ks-b"><i style="width:${Math.max(0.5, v / m * 100)}%;background:${c}"></i></span>`;
-  const abw = ges && S.s ? Math.round((ges / S.s - 1) * 100) : null;
+  const S = { b: K.budget, s: K.schaetzung || 0, au: K.auftrag || 0, nt: K.nachtraege || 0, ab: K.abgerechnet || 0, n: K.n || 0 };
+  if (!S.n && !S.b) return '<p class="mute">Noch keine Kostenermittlung und keine Leistungsverzeichnisse in diesem Projekt.</p>';
+  const ges = S.au + S.nt, m = Math.max(S.b || 0, S.s, ges, S.ab, 1), bar = (v, c) => `<span class="ks-b"><i style="width:${Math.max(0.5, v / m * 100)}%;background:${c}"></i></span>`;
+  const pz = (a, b) => (a && b ? Math.round((a / b - 1) * 100) : null), farbe = (x) => (x > 5 ? 'var(--red)' : x < 0 ? 'var(--ok,#1f9d4c)' : 'inherit');
+  const zb = pz(ges, S.b), zs = pz(ges, S.s), p = (x, w) => (x == null ? '' : `<b style="color:${farbe(x)}">${x >= 0 ? '+' : ''}${x} %</b> zu${w}`);
   return `<a class="wx-ks" href="${esc(wxApp('ava'))}/" title="Kostenkontrolle in der AVA öffnen">
-    <div class="ks-z"><span>Schätzung</span>${bar(S.s, '#9aa3a0')}<b>${eurK(S.s)}</b></div>
+    ${S.b != null ? `<div class="ks-z"><span title="gültige Kostenermittlung der Baukosten, KG 300 + 400${K.budget_name ? ': ' + esc(K.budget_name) : ''}">Budget</span>${bar(S.b, '#6b6f76')}<b>${eurK(S.b)}</b></div>` : ''}
+    <div class="ks-z"><span title="Summe der Schätzungen in den LVs">Schätzung LVs</span>${bar(S.s, '#9aa3a0')}<b>${eurK(S.s)}</b></div>
     <div class="ks-z"><span>Aufträge</span>${bar(S.au, '#3a7bd5')}<b>${eurK(S.au)}</b></div>
     <div class="ks-z"><span>mit Nachträgen</span>${bar(ges, '#e07b3a')}<b>${eurK(ges)}</b></div>
     <div class="ks-z"><span>abgerechnet</span>${bar(S.ab, '#1f9d4c')}<b>${eurK(S.ab)}</b></div>
-    <p class="wx-sub">${abw != null ? `<b style="color:${abw > 5 ? 'var(--red)' : abw < 0 ? 'var(--ok,#1f9d4c)' : 'inherit'}">${abw >= 0 ? '+' : ''}${abw} %</b> zur Schätzung · ` : ''}noch offen ${eurK(ges - S.ab)} · ${S.n} LV${S.n === 1 ? '' : 's'}</p></a>`;
+    <p class="wx-sub">${[p(zb, 'm Budget'), p(zs, 'r Schätzung'), `noch offen ${eurK(ges - S.ab)}`].filter(Boolean).join(' · ')}</p></a>`;
 }
 document.addEventListener('click', async (e) => {
   const b = e.target.closest && e.target.closest('[data-wxp]'); if (!b) return; e.preventDefault(); e.stopPropagation();

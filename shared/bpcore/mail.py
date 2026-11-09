@@ -37,8 +37,9 @@ class MailError(Exception):
 
 
 def pause_aufheben():
-    """Testmail: trotz eigener Pause wirklich versuchen (falls Microsoft die Sperre schon aufgehoben hat)."""
+    """Testmail: trotz eigener Pause wirklich versuchen (falls Microsoft die Sperre schon aufgehoben hat) – auch Graph erneut probieren."""
     _pause["bis"] = 0.0
+    _graph.update(aus_bis=0.0, grund="")
 
 
 def pause_text():
@@ -62,6 +63,22 @@ def _smtp_senden(cf, msg, absender, empfaenger):
     if os.environ.get("TESTSERVER") == "1":   # Testserver: nichts verschicken (Kopie mit echten Adressen)
         print(f"Testserver: Mail nicht verschickt – an {', '.join(empfaenger)[:200]} · „{msg.get('Subject', '')}“", flush=True)
         return None
+    m = _m365(cf)
+    if m and time.time() >= _graph["aus_bis"] and len(msg.as_bytes()) * 4 // 3 < GRAPH_MAX:   # große Mails gleich per SMTP
+        falsch = [a for a in empfaenger if not ADRESSE.match(a.strip())]
+        if falsch:
+            raise MailError("Ungültige E-Mail-Adresse: " + ", ".join(falsch), dauerhaft=True)
+        try:
+            _graph_senden(m, absender, msg)
+            _graph["zuletzt"] = "m365"
+            return "m365"
+        except Exception as e:   # noqa: BLE001 – dann wie bisher per SMTP
+            _graph.update(aus_bis=time.time() + 3600, grund=str(e)[:300])
+            print("Mail über Microsoft 365 nicht möglich, nehme SMTP:", e, flush=True)
+            if not (cf.get("mail_user") and cf.get("mail_pass")):
+                raise MailError(f"Versand über Microsoft 365 nicht möglich: {e}"[:300])
+    if not (cf.get("mail_user") and cf.get("mail_pass")):
+        raise MailError("Versand über Microsoft 365 gerade nicht möglich und kein SMTP eingerichtet: " + (_graph["grund"] or "unbekannt"))
     if time.time() < _pause["bis"]:
         raise MailError(pause_text(), gesperrt=True)
     falsch = [a for a in empfaenger if not ADRESSE.match(a.strip())]
@@ -76,11 +93,15 @@ def _smtp_senden(cf, msg, absender, empfaenger):
             with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as s:
                 s.login(cf["mail_user"], cf["mail_pass"])
                 s.send_message(msg, to_addrs=empfaenger)
+            _graph["zuletzt"] = "smtp"
+            return "smtp"
         else:             # STARTTLS (Port 587)
             with smtplib.SMTP(host, port, timeout=20) as s:
                 s.ehlo(); s.starttls(context=ssl.create_default_context()); s.ehlo()
                 s.login(cf["mail_user"], cf["mail_pass"])
                 s.send_message(msg, to_addrs=empfaenger)
+            _graph["zuletzt"] = "smtp"
+            return "smtp"
     except smtplib.SMTPAuthenticationError:
         hint = HINWEIS.get(prov, "Bei vielen Anbietern ist ein „App-Passwort“ nötig oder SMTP muss im Postfach erlaubt werden.")
         raise MailError("Anmeldung am Mailserver abgelehnt – Zugangsdaten unter ⚙ → Büro → Mailserver prüfen. " + hint)
@@ -102,11 +123,54 @@ def _smtp_senden(cf, msg, absender, empfaenger):
 
 
 def conf(c):
-    return {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key LIKE 'mail_%' OR key IN ('app_url','office_name')")}
+    """Mailserver-Einstellungen (nur für den Server – enthält Kennwörter, nie an den Browser geben)."""
+    return {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key LIKE 'mail_%' OR key IN ('app_url','office_name','m365_tenant','m365_client','m365_secret')")}
 
 
 def configured(cf):
-    return bool(cf.get("mail_user") and cf.get("mail_pass"))
+    return bool(cf.get("mail_user") and cf.get("mail_pass")) or bool(_m365(cf) and von(cf))
+
+
+# ---------------------------------------------------------------- Versand über Microsoft 365 (Graph „sendMail“, Recht Mail.Send)
+# Ist Microsoft 365 eingerichtet (dieselbe App wie für den Posteingang), geht jede Mail zuerst über Graph: sie steht dann im Postfach
+# des Absenders unter „Gesendete Elemente“. Fehlt das Recht (403) oder klappt es aus anderem Grund nicht, nimmt die Plattform SMTP –
+# und versucht Graph erst nach einer Stunde wieder. Ausschalten: Einstellung mail_m365 = "0".
+GRAPH_MAX = 3_500_000                     # Graph nimmt höchstens 4 MB je Anfrage (Base64 eingerechnet) – größere Mails per SMTP
+_graph = {"aus_bis": 0.0, "grund": "", "zuletzt": ""}
+
+
+def _m365(cf):
+    t, cl, se = ((cf.get(k) or "").strip() for k in ("m365_tenant", "m365_client", "m365_secret"))
+    return {"tenant": t, "client": cl, "secret": se} if t and cl and se and cf.get("mail_m365", "1") != "0" else None
+
+
+def graph_aktiv(cf):
+    """Geht die nächste Mail voraussichtlich über Microsoft 365? (dann können Einladungen als echte Besprechungsanfrage in der Mail stecken)"""
+    return bool(_m365(cf)) and time.time() >= _graph["aus_bis"]
+
+
+def graph_status():
+    """Für die Verwaltung: wie die letzte Mail rausging und ob Graph gerade pausiert."""
+    return {"weg": _graph["zuletzt"], "pause_bis": datetime.fromtimestamp(_graph["aus_bis"]).strftime("%H:%M") if time.time() < _graph["aus_bis"] else "",
+            "grund": _graph["grund"] if time.time() < _graph["aus_bis"] else ""}
+
+
+def _graph_senden(m, absender, msg):
+    import base64, urllib.error, urllib.parse, urllib.request
+    from .posteingang import _token
+    roh = base64.b64encode(msg.as_bytes())
+    if len(roh) > GRAPH_MAX:
+        raise RuntimeError("Mail zu groß für Microsoft 365 (über 3,5 MB) – per SMTP verschickt")
+    req = urllib.request.Request(f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(absender)}/sendMail", data=roh, method="POST",
+                                 headers={"Authorization": "Bearer " + _token(m), "Content-Type": "text/plain"})
+    try:
+        with urllib.request.urlopen(req, timeout=40) as r:
+            r.read()
+    except urllib.error.HTTPError as e:
+        txt = e.read().decode("utf-8", "replace")[:300]
+        if e.code == 403:
+            raise RuntimeError(f"Microsoft 365 erlaubt das Senden aus {absender} nicht (Mail.Send fehlt oder Zugriffsrichtlinie) – {txt}")
+        raise RuntimeError(f"Microsoft 365 hat die Mail abgelehnt ({e.code}): {txt}")
 
 
 def von(cf):
@@ -190,4 +254,4 @@ def _send(cf, to, subject, body, sender="Bauplattform", attachments=None, cc=Non
         msg.add_attachment(data, maintype=mt, subtype=st, filename=name, params=dict(x.split("=", 1) for x in par if "=" in x))
     if ical:
         msg.add_attachment(ical.encode("utf-8"), maintype="text", subtype="calendar", filename="termin.ics")
-    smtp_senden(cf, msg, from_addr or von(cf), lst(to) + lst(cc))
+    return smtp_senden(cf, msg, from_addr or von(cf), lst(to) + lst(cc))

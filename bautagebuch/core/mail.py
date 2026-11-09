@@ -15,4 +15,4 @@ def send(conf, to, subject, body):
     msg = EmailMessage()
     msg["From"], msg["To"], msg["Subject"] = f"Bautagebuch <{(conf.get('mail_from') or '').strip() or conf['mail_user']}>", to, subject
     msg.set_content(body)
-    smtp_senden(conf, msg, (conf.get("mail_from") or "").strip() or conf["mail_user"], [to])
+    return smtp_senden(conf, msg, (conf.get("mail_from") or "").strip() or conf["mail_user"], [to])   # „m365“ oder „smtp“

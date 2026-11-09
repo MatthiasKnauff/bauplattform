@@ -6,7 +6,8 @@ unbekannt()  welche der Adressen gehören zu keinem Kontakt (für die Rückfrage
 """
 from datetime import datetime
 
-ARTEN = {"planversand": "Planversand", "maengelruege": "Mängelrüge", "terminruege": "Terminrüge (Behinderung/Verzug)"}
+ARTEN = {"planversand": "Planversand", "maengelruege": "Mängelrüge", "terminruege": "Terminrüge (Behinderung/Verzug)",
+         "nachricht": "Nachricht", "vorgang": "Vorgang"}
 WEGE = {"mail": "per E-Mail", "weiterleiten": "an mich zum Weiterleiten", "pdf": "als PDF (selbst zugestellt)"}
 
 
@@ -20,8 +21,9 @@ def _kontakt_zu(c, email):
 
 def protokoll(c, art, empfaenger, *, project_id=None, projekt="", betreff="", inhalt="", von="", weg="mail",
               status="gesendet", fehler="", link=""):
-    """empfaenger: [{email, name, contact_id?}]. Fehler beim Eintragen dürfen eine Sendung nie verhindern."""
+    """empfaenger: [{email, name, contact_id?}]. Fehler beim Eintragen dürfen eine Sendung nie verhindern. Gibt die neuen Zeilen-IDs zurück."""
     ts = datetime.now().isoformat(timespec="seconds")
+    ids = []
     for e in empfaenger or []:
         try:
             email = str(e.get("email") or "").strip()[:200]
@@ -31,12 +33,15 @@ def protokoll(c, art, empfaenger, *, project_id=None, projekt="", betreff="", in
             cid = cid or _kontakt_zu(c, email)
             if not (cid or email):
                 continue
-            c.execute("""INSERT INTO benachrichtigungen(ts, contact_id, email, name, art, weg, project_id, projekt, betreff, inhalt, von, status, fehler, link)
-                         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            r = c.execute("""INSERT INTO benachrichtigungen(ts, contact_id, email, name, art, weg, project_id, projekt, betreff, inhalt, von, status, fehler, link)
+                         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
                       (ts, cid, email, str(e.get("name") or "")[:200], art, weg, project_id, (projekt or "")[:200], (betreff or "")[:300],
-                       (inhalt or "")[:4000], (von or "")[:200], status, (fehler or "")[:500], (link or "")[:300]))
+                       (inhalt or "")[:4000], (von or "")[:200], status, (fehler or "")[:500], (link or "")[:300])).fetchone()
+            if r:
+                ids.append(r["id"])
         except Exception as er:   # noqa: BLE001 – Protokoll ist Nebensache
             print("Benachrichtigungsverlauf:", er, flush=True)
+    return ids
 
 
 def verlauf(c, cid, n=200):

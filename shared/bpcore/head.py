@@ -1269,18 +1269,8 @@ def blueprint(get_user=None):
             return "Mailversand ist nicht eingerichtet – Beteiligte wurden nicht benachrichtigt."
         pr = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone() if x["project_id"] else None
         wer, fehl = skizze.name_von(u), []
-        # Mit Fälligkeit: Termin möglichst direkt in Outlook (Microsoft 365) – eigene Aufgabe steht sofort im Kalender,
-        # Zugewiesene bekommen von Exchange eine echte Besprechungsanfrage mit „Annehmen“. Sonst wie bisher termin.ics.
-        im_kalender = False
-        if x["faellig"]:
-            from . import kalender365
-            empf = [(y["email"].strip(), skizze.name_von(y)) for y in c.execute("SELECT * FROM users WHERE active=1").fetchall()
-                    if (y["email"] or "").strip() and y["id"] in neu_ids and y["id"] != u["id"]]
-            if (u["email"] or "").strip() and (ich or empf):
-                im_kalender = bool(kalender365.termin(
-                    c, u["email"].strip(), f"Aufgabe: {x['titel'][:120]}", f"{x['titel']}" + (f"\nProjekt: {pr['name']}" if pr else "") + (f"\n\n{x['notiz']}" if x["notiz"] else ""),
-                    x["faellig"], empf, ganztags=True, erinnerung_min=(lambda v: None if v is None else max(0, v))(todo.ERINNERUNG.get(x.get("erinnerung") or "", (None, ""))[0]),
-                    schluessel=f"todo-{x.get('id') or x['titel'][:20]}-{x['faellig']}-{len(empf)}"))
+        # Mit Fälligkeit: Einladung per Mail, die man in Outlook & Co. „Annehmen“ kann (nicht direkt in den Kalender eintragen).
+        # Organisator = das Büro-Postfach, aus dem gesendet wird – so kommt die Einladung auch bei der eigenen Aufgabe als Anfrage an.
         for r in c.execute("SELECT * FROM users WHERE active=1").fetchall():
             selbst = r["id"] == u["id"]
             if not (r["email"] or "").strip() or not ((selbst and ich) or (r["id"] in neu_ids and not selbst)):
@@ -1291,26 +1281,28 @@ def blueprint(get_user=None):
                    + (f"Projekt: {pr['name']}\n" if pr else "") + (f"Fällig: {datetime.fromisoformat(x['faellig']).strftime('%d.%m.%Y')}\n" if x["faellig"] else "")
                    + (f"Erinnerung: {todo.ERINNERUNG[x['erinnerung']][1]}\n" if x.get("faellig") and x.get("erinnerung") in todo.ERINNERUNG else "")
                    + (f"\n{x['notiz']}\n" if x["notiz"] else "") + (f"\nZur Startseite: {PF.link('portal', '', cf)}\n" if PF.link("portal", "", cf) else ""))
-            anh = None
-            if x["faellig"] and im_kalender:
-                txt += ("\nDer Termin steht schon in deinem Outlook-Kalender.\n" if selbst else "\nDie Einladung zum Termin kommt als eigene Besprechungsanfrage von Outlook – dort „Annehmen“.\n")
-            elif x["faellig"]:   # mit Fälligkeit: ganztägiger Termin zum Annehmen (Outlook, Gmail, Apple & Co.)
+            anh, inv = None, None
+            if x["faellig"]:   # mit Fälligkeit: ganztägiger Termin zum Annehmen (Outlook, Gmail, Apple & Co.)
                 from . import ical
                 # Die Einladung hängt als Datei an (termin.ics, method=REQUEST) und steckt nicht als Kalender-Teil in der Mail:
                 # einen eingebetteten Kalender-Teil verarbeitet Microsoft 365 beim Senden selbst als Besprechung und hat die Mail
                 # abgewiesen (InvalidRecipientsException); eine angehängte Datei schickt es unverändert weiter wie die Pläne.
                 # Organisator = das Postfach, über das gesendet wird (wie bei den Erinnerungen). Bin ich das selbst, nur zum Eintragen.
                 host = (cf.get("app_url") or "bauplattform").split("//")[-1].split("/")[0] or "bauplattform"
-                org = (cf.get("mail_user") or M.von(cf) or "").strip()
+                org = (M.von(cf) or cf.get("mail_user") or "").strip()
                 einl = r["email"].strip().lower() != org.lower()
                 ics = ical.einladung(f"todo-{x.get('id') or x['titel'][:20]}-{r['id']}@{host}", x["faellig"], None, 0, f"Aufgabe: {x['titel'][:120]}",
                                      txt, "", org, cf.get("office_name") or wer, r["email"], skizze.name_von(r),
                                      alarm_min=todo.ERINNERUNG.get(x.get("erinnerung") or "", (0, ""))[0], ganztags=True, einladung_=einl)
-                anh = [("termin.ics", ics.encode("utf-8"), "text/calendar; method=REQUEST" if einl else "text/calendar; method=PUBLISH")]
-                txt += ("\nIm Anhang als Termin (termin.ics) – „Annehmen“ trägt die Fälligkeit in deinen Kalender ein.\n" if einl
+                if einl and M.graph_aktiv(cf):   # über Microsoft 365: als echte Besprechungsanfrage in der Mail (Exchange zeigt „Annehmen“)
+                    inv = ics
+                else:   # per SMTP: als Datei anhängen – einen eingebetteten Kalender-Teil hat Microsoft 365 per SMTP abgewiesen
+                    anh = [("termin.ics", ics.encode("utf-8"), "text/calendar; method=REQUEST" if einl else "text/calendar; method=PUBLISH")]
+                txt += ("\nAls Termineinladung – „Annehmen“ trägt die Fälligkeit in deinen Kalender ein.\n" if inv else
+                        "\nIm Anhang als Termin (termin.ics) – „Annehmen“ trägt die Fälligkeit in deinen Kalender ein.\n" if einl
                         else "\nIm Anhang als Termin (termin.ics) – öffnen trägt die Fälligkeit in deinen Kalender ein.\n")
             try:
-                M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, attachments=anh)
+                M.send(cf, r["email"], f"Aufgabe: {x['titel'][:80]}", txt, sender=wer, reply_to=u["email"] or None, attachments=anh, ical=inv)
             except Exception as e:
                 if not getattr(e, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst
                     fehler.still(None, "Aufgabe: Benachrichtigung per Mail", e)
@@ -1703,6 +1695,19 @@ def blueprint(get_user=None):
             S["n"] += 1
             for k in ("schaetzung", "auftrag", "nachtraege", "abgerechnet"):
                 S[k] += float(x.get(k) or 0)
+        S["budget"], S["budget_name"] = None, ""
+        try:   # Budget: gültige Kostenermittlung der Baukosten, KG 300 + 400 (wie die Budget-Prüfung der To-dos)
+            import baukosten as BK
+            from . import gueltig
+            with db.tx() as c:
+                bks = c.execute("SELECT * FROM bk_projects WHERE project_id=? AND archived=0", (pid,)).fetchall()
+                gid = gueltig.waehlen([(x["id"], x["created"], False) for x in bks], gueltig.lesen(c, "bk", pid))
+                bk = next((x for x in bks if x["id"] == gid), None)
+                if bk:
+                    k = BK.calc(BK.clean_data(json.loads(bk["data"]) if isinstance(bk["data"], str) else (bk["data"] or {}), c))
+                    S["budget"], S["budget_name"] = ((k.get("kg300") or 0) + (k.get("kg400") or 0)) or None, bk["name"] if "name" in bk.keys() else ""
+        except Exception as e:   # noqa: BLE001 – ohne Baukosten nur die AVA-Zahlen
+            fehler.still(None, "Widget Kostenstand: Budget", e)
         return jsonify(**S)
 
     def _raster_pruefen(ra):

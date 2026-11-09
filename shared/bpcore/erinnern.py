@@ -62,11 +62,14 @@ def termine_senden(c, schluessel, datum, uhrzeit, titel, text, pid, empf_ids, ab
     for u in c.execute("SELECT id, name, email FROM users WHERE active=1").fetchall():
         if u["id"] not in empf_ids or not (u["email"] or "").strip():
             continue
-        inv = ical.einladung(f"{schluessel}-{u['id']}@{host}", datum, uhrzeit or "08:00", 30, titel, body, ort, cf.get("mail_user") or u["email"],
+        inv = ical.einladung(f"{schluessel}-{u['id']}@{host}", datum, uhrzeit or "08:00", 30, titel, body, ort, mail.von(cf) or cf.get("mail_user") or u["email"],
                              buero, u["email"], u["name"] or "", seq=seq)
         try:
-            mail.send(cf, u["email"], titel, body + "\n\nIm Anhang als Termin – „Annehmen“ trägt ihn in deinen Kalender ein (termin.ics öffnen: Kalender selbst wählen).",
-                      sender=absender or buero, ical=inv)
+            if mail.graph_aktiv(cf):   # über Microsoft 365: echte Besprechungsanfrage in der Mail – „Annehmen“ direkt in Outlook
+                mail.send(cf, u["email"], titel, body + "\n\nAls Termineinladung – „Annehmen“ trägt ihn in deinen Kalender ein.", sender=absender or buero, ical=inv)
+            else:                      # per SMTP: als angehängte termin.ics (einen eingebetteten Kalender-Teil weist Microsoft 365 per SMTP ab)
+                mail.send(cf, u["email"], titel, body + "\n\nIm Anhang als Termin – „Annehmen“ trägt ihn in deinen Kalender ein (termin.ics öffnen: Kalender selbst wählen).",
+                          sender=absender or buero, attachments=[("termin.ics", inv.encode("utf-8"), "text/calendar; method=REQUEST")])
             n += 1
         except Exception as e:
             if not getattr(e, "gemeldet", False):   # Mailfehler meldet mail.send schon selbst

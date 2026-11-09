@@ -258,7 +258,9 @@ def mail_test():
     try:
         from bpcore import mail as bpmail
         bpmail.pause_aufheben()   # Testmail versucht es immer wirklich
-        mail.send(conf, me["email"], "Bautagebuch – Testmail", "Der E-Mail-Versand funktioniert.")
+        weg = mail.send(conf, me["email"], "Bautagebuch – Testmail", "Der E-Mail-Versand funktioniert.")
     except mail.MailError as e:
         return jsonify(ok=False, error=str(e)), 502
-    return jsonify(ok=True, to=me["email"])
+    st = bpmail.graph_status()
+    return jsonify(ok=True, to=me["email"], weg=weg or "", hinweis=("über Microsoft 365 (steht unter „Gesendete Elemente“)" if weg == "m365"
+                   else "per SMTP" + (f" – Microsoft 365 ging nicht: {st['grund']}" if st["grund"] else "") if weg == "smtp" else ""))

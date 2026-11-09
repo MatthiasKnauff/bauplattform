@@ -4,12 +4,12 @@ Quelle ist der Benachrichtigungsverlauf (Tabelle benachrichtigungen, bpcore/bena
 Sendung eintragen: Planversand, Mängelrügen, Terminrügen – per E-Mail, an mich zum Weiterleiten oder als PDF.
 Diese App liest nur; neue Arten (z. B. LV-Versand) erscheinen hier, sobald eine App sie protokolliert.
 """
-import csv, io, json
+import csv, io, json, re, urllib.parse
 from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import benachrichtigung, db, platform, sso
+from bpcore import benachrichtigung, db, konto, mail, platform, sso, vorgang
 import common as C
 
 app = C.make_app(__name__)
@@ -181,3 +181,226 @@ def csv_export():
                      (x["inhalt"] or "").replace("\r", ""), x["von"], "nicht zugestellt: " + x["fehler"] if x["status"] == "fehler" else x["status"]])
     return Response("﻿" + buf.getvalue(), mimetype="text/csv; charset=utf-8",
                     headers={"Content-Disposition": "attachment; filename=Kommunikation.csv"})
+
+
+# ---------------------------------------------------------------- Neue Nachricht / Vorgang dokumentieren (auch vom Handy)
+def _projekt(c, pid):
+    if not pid:
+        return None
+    p = c.execute("SELECT id, name, street, zip, city FROM projects WHERE id=?", (pid,)).fetchone()
+    return p if p and vorgang.sieht(c, g.user, pid) else None
+
+
+@app.get("/api/beteiligte")
+def beteiligte():
+    """Wer im Projekt vorkommt (Bautagebuch, Aufträge der AVA, frühere Sendungen) – mit E-Mail, für „An“."""
+    pid = request.args.get("pid", type=int)
+    with db.tx() as c:
+        if not _projekt(c, pid):
+            return jsonify([])
+        rolle = {}
+        for r in c.execute("SELECT DISTINCT i.contact_id FROM items i JOIN reports r ON r.id=i.report_id WHERE r.project_id=? AND i.contact_id IS NOT NULL", (pid,)):
+            rolle.setdefault(r["contact_id"], "Bautagebuch")
+        for r in c.execute("SELECT name, vergabe FROM ava_lv WHERE project_id=? AND archived=0", (pid,)):
+            try:
+                v = json.loads(r["vergabe"] or "{}")
+            except ValueError:
+                v = {}
+            if isinstance(v, dict) and isinstance(v.get("contact_id"), int):
+                rolle[v["contact_id"]] = "Auftrag " + (r["name"] or "")
+        for r in c.execute("SELECT DISTINCT contact_id FROM benachrichtigungen WHERE project_id=? AND contact_id IS NOT NULL", (pid,)):
+            rolle.setdefault(r["contact_id"], "schon angeschrieben")
+        ids = list(rolle)[:300]
+        rows = c.execute("SELECT id, name, contact_person, email, trade FROM contacts WHERE id IN (" + ",".join("?" * len(ids)) + ")", ids).fetchall() if ids else []
+    out = [{"id": x["id"], "name": x["name"], "ansprech": x["contact_person"] or "", "email": x["email"] or "", "gewerk": x["trade"] or "", "rolle": rolle.get(x["id"], "")}
+           for x in rows]
+    return jsonify(sorted(out, key=lambda x: (not x["email"], x["rolle"].startswith("schon"), x["name"].lower())))
+
+
+def _empfaenger(raw):
+    try:
+        L = json.loads(raw or "[]")
+    except ValueError:
+        return None, "Empfänger nicht lesbar."
+    out = []
+    for e in L if isinstance(L, list) else []:
+        if not isinstance(e, dict):
+            continue
+        a = str(e.get("email") or "").strip()[:200]
+        if not mail.ADRESSE.match(a):
+            return None, f"Ungültige E-Mail-Adresse: {a or '(leer)'}"
+        if a.lower() not in [x["email"].lower() for x in out]:
+            out.append({"email": a, "name": str(e.get("name") or "")[:200], "contact_id": e.get("contact_id") if isinstance(e.get("contact_id"), int) else None})
+    if len(out) > 20:
+        return None, "Höchstens 20 Empfänger."
+    return out, None
+
+
+def _schicken(c, p, an, betreff, text, anh, kopie):
+    """Mail mit Signatur (Rich-Signatur als HTML) vom Absender des Benutzers; gibt (weg, fehler) zurück."""
+    cf = mail.conf(c)
+    if not mail.configured(cf):
+        return None, "Der E-Mail-Versand ist nicht eingerichtet (Verwaltung → Einstellungen → Mailserver)."
+    W = {"projekt": p["name"] if p else "", "absender": C.full_name(g.user), "buero": cf.get("office_name") or "", "datum": datetime.now().strftime("%d.%m.%Y")}
+    tx, html = konto.mail_teile(c, g.user, text + "\n\n{signatur}", W)
+    von, vname = konto.absender(c, g.user, cf)
+    ich = (g.user["email"] or "").strip()
+    cc = [ich] if kopie and ich and ich.lower() not in [x["email"].lower() for x in an] else []
+    try:
+        weg = mail.send(cf, [x["email"] for x in an], betreff, tx, sender=vname, from_addr=von, attachments=[(n, d, m) for n, m, d in anh],
+                        cc=cc, reply_to=ich or None, html=html)
+    except mail.MailError as e:
+        return None, str(e)
+    return weg or "test", None
+
+
+@app.post("/api/nachricht")
+def nachricht():
+    f = request.form
+    pid = f.get("pid", type=int)
+    an, err = _empfaenger(f.get("an"))
+    if err or not an:
+        return jsonify(error=err or "Bitte mindestens einen Empfänger wählen."), 400
+    text = (f.get("text") or "").strip()[:20000]
+    if not text:
+        return jsonify(error="Bitte einen Text schreiben."), 400
+    anh, err = vorgang.dateien_pruefen(request.files.getlist("dateien"))
+    if err:
+        return jsonify(error=err), 400
+    with db.tx() as c:
+        p = _projekt(c, pid)
+        if pid and not p:
+            return jsonify(error="Projekt nicht gefunden"), 404
+        betreff = vorgang.betreff_mit_kuerzel(f.get("betreff") or "", p["name"] if p else "") or "Nachricht"
+        weg, err = _schicken(c, p, an, betreff, text, anh, f.get("kopie") == "1")
+    with db.tx() as c:
+        ids = benachrichtigung.protokoll(c, "nachricht", an, project_id=pid, projekt=p["name"] if p else "", betreff=betreff,
+                                         inhalt=text + (f"\n\nAnhänge: {', '.join(n for n, _, _ in anh)}" if anh else ""), von=C.full_name(g.user),
+                                         weg="mail", status="fehler" if err else "gesendet", fehler=err or "", link="kommunikation:")
+        if ids and not err:
+            jetzt = datetime.now().isoformat(timespec="seconds")
+            for n, m, d in anh:
+                c.execute("INSERT INTO kom_datei(benachrichtigung_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?)",
+                          (ids[0], n, m, len(d), d, jetzt, C.full_name(g.user)))
+        neu = benachrichtigung.unbekannt(c, [x["email"] for x in an]) if not err else []
+    if err:
+        return jsonify(error=err), 502
+    C.audit(g.user["name"], "mail", "Nachricht", f"{betreff} · an {', '.join(x['email'] for x in an)[:200]}")
+    return jsonify(ok=True, weg=weg, betreff=betreff, neue_adressen=neu)
+
+
+@app.get("/api/vorgang/arten")
+def vorgang_arten():
+    return jsonify([{"key": k, "name": n, "ic": i, "muster": m} for k, (n, i, m) in vorgang.ARTEN.items()])
+
+
+@app.post("/api/vorgang")
+def vorgang_neu():
+    f = request.form
+    pid = f.get("pid", type=int)
+    art = f.get("art") if f.get("art") in vorgang.ARTEN else "sonst"
+    text = (f.get("text") or "").strip()[:20000]
+    titel = (f.get("titel") or "").strip()[:200]
+    if not (text or titel):
+        return jsonify(error="Bitte festhalten, was passiert ist."), 400
+    zeit = (f.get("zeit") or datetime.now().isoformat(timespec="minutes"))[:16]
+    frist = (f.get("frist") or "")[:10]
+    try:
+        if frist:
+            datetime.fromisoformat(frist)
+        datetime.fromisoformat(zeit)
+    except ValueError:
+        return jsonify(error="Datum nicht lesbar."), 400
+    senden = f.get("senden") == "1"
+    an, err = _empfaenger(f.get("an")) if senden else ([], None)
+    if err or (senden and not an):
+        return jsonify(error=err or "Bitte mindestens einen Empfänger wählen – oder „nur festhalten“."), 400
+    anh, err = vorgang.dateien_pruefen(request.files.getlist("dateien"))
+    if err:
+        return jsonify(error=err), 400
+    name = C.full_name(g.user)
+    jetzt = datetime.now().isoformat(timespec="seconds")
+    with db.tx() as c:
+        p = _projekt(c, pid)
+        if pid and not p:
+            return jsonify(error="Projekt nicht gefunden"), 404
+        v = {"art": art, "titel": titel, "text": text, "beteiligte": (f.get("beteiligte") or "").strip()[:500], "zeit": zeit,
+             "ort": (f.get("ort") or "").strip()[:200], "frist": frist}
+        vid = c.execute("""INSERT INTO kom_vorgang(project_id, art, titel, text, beteiligte, zeit, ort, frist, an, erstellt, erstellt_von, erstellt_name)
+                           VALUES(?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id""",
+                        (pid, art, titel, text, v["beteiligte"], zeit, v["ort"], frist, json.dumps(an), jetzt, g.user["id"], name)).fetchone()["id"]
+        for n, m, d in anh:
+            c.execute("INSERT INTO kom_datei(vorgang_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?)", (vid, n, m, len(d), d, jetzt, name))
+        tid = None
+        if frist:
+            an_name = ", ".join(x["name"] or x["email"] for x in an) if an else v["beteiligte"]
+            tid = vorgang.frist_todo(c, g.user, pid, f"{vorgang.ARTEN[art][0]}: {titel or text[:60]}" + (f" – {an_name}" if an_name else ""), frist,
+                                     f"Frist aus dem Vorgang vom {vorgang.datum_de(zeit)} (Kommunikation)")
+            c.execute("UPDATE kom_vorgang SET todo_id=? WHERE id=?", (tid, vid))
+    hinweis, err = "", None
+    if senden:
+        aname = vorgang.ARTEN[art][0]
+        with db.tx() as c:
+            p = _projekt(c, pid)
+            pdfb = vorgang.pdf(c, v, p["name"] if p else "", anh, name)
+            muster = vorgang.ARTEN[art][2].format(projekt=p["name"] if p else "", firma="", frist="")
+            anrede = "Sehr geehrte Damen und Herren,"
+            mt = "\n\n".join(x for x in (anrede, muster, titel, text, f"Bitte bis zum {vorgang.datum_de(frist)}." if frist else "", "Mit freundlichen Grüßen") if x)
+            betreff = vorgang.betreff_mit_kuerzel(f"{aname}: {titel or text[:60]}", p["name"] if p else "")
+            fn = re.sub(r"[^\w.-]+", "_", f"{aname}_{vorgang.datum_de(zeit)}")[:80] + ".pdf"
+            weg, err = _schicken(c, p, an, betreff, mt, [(fn, "application/pdf", pdfb)] + [x for x in anh if not x[1].startswith("image/")], f.get("kopie") == "1")
+        with db.tx() as c:
+            benachrichtigung.protokoll(c, "vorgang", an, project_id=pid, projekt=p["name"] if p else "", betreff=betreff, inhalt=mt, von=name, weg="mail",
+                                       status="fehler" if err else "gesendet", fehler=err or "", link=f"kommunikation:#v={vid}")
+            if not err:
+                c.execute("UPDATE kom_vorgang SET gesendet=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), vid))
+        hinweis = "" if err else f"als PDF an {', '.join(x['email'] for x in an)}"
+    C.audit(g.user["name"], "kommunikation", "Vorgang", f"{vorgang.ARTEN[art][0]} · {titel or text[:60]}")
+    return jsonify(ok=not err, id=vid, todo=tid, hinweis=hinweis, error=err or None), (502 if err else 200)
+
+
+def _vorgang_zeile(c, x):
+    D = c.execute("SELECT id, name, mime, groesse FROM kom_datei WHERE vorgang_id=? ORDER BY id", (x["id"],)).fetchall()
+    try:
+        an = json.loads(x["an"] or "[]")
+    except ValueError:
+        an = []
+    n, ic, _ = vorgang.ARTEN.get(x["art"], vorgang.ARTEN["sonst"])
+    return {"id": x["id"], "project_id": x["project_id"], "art": x["art"], "art_name": n, "ic": ic, "titel": x["titel"], "text": x["text"],
+            "beteiligte": x["beteiligte"], "zeit": x["zeit"], "ort": x["ort"], "frist": x["frist"], "todo_id": x["todo_id"], "an": an,
+            "gesendet": x["gesendet"], "von": x["erstellt_name"], "dateien": [{"id": d["id"], "name": d["name"], "mime": d["mime"], "groesse": d["groesse"]} for d in D]}
+
+
+@app.get("/api/vorgaenge")
+def vorgaenge():
+    pid = request.args.get("pid", type=int)
+    with db.tx() as c:
+        if pid and not _projekt(c, pid):
+            return jsonify([])
+        rows = c.execute("SELECT * FROM kom_vorgang WHERE " + ("project_id=?" if pid else "1=1") + " ORDER BY zeit DESC, id DESC LIMIT 500", (pid,) if pid else ()).fetchall()
+        return jsonify([_vorgang_zeile(c, x) for x in rows if vorgang.sieht(c, g.user, x["project_id"])])
+
+
+@app.get("/api/datei/<int:did>")
+def datei(did):
+    with db.tx() as c:
+        d = c.execute("""SELECT d.*, COALESCE(v.project_id, b.project_id) AS pid FROM kom_datei d LEFT JOIN kom_vorgang v ON v.id=d.vorgang_id
+                         LEFT JOIN benachrichtigungen b ON b.id=d.benachrichtigung_id WHERE d.id=?""", (did,)).fetchone()
+        if not d or not vorgang.sieht(c, g.user, d["pid"]):
+            return jsonify(error="Nicht gefunden"), 404
+    data = bytes(d["data"] or b"")
+    return Response(data, mimetype=d["mime"] if d["mime"].startswith("image/") or d["mime"] == "application/pdf" else "application/octet-stream",
+                    headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(d['name'])}", "X-Content-Type-Options": "nosniff",
+                             "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"})
+
+
+@app.get("/api/vorgang/<int:vid>.pdf")
+def vorgang_pdf(vid):
+    with db.tx() as c:
+        x = c.execute("SELECT * FROM kom_vorgang WHERE id=?", (vid,)).fetchone()
+        if not x or not vorgang.sieht(c, g.user, x["project_id"]):
+            return jsonify(error="Nicht gefunden"), 404
+        p = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone() if x["project_id"] else None
+        anh = [(d["name"], d["mime"], bytes(d["data"] or b"")) for d in c.execute("SELECT name, mime, data FROM kom_datei WHERE vorgang_id=? ORDER BY id", (vid,))]
+        out = vorgang.pdf(c, dict(x), p["name"] if p else "", anh, x["erstellt_name"])
+    return Response(out, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename=Vorgang_{vid}.pdf"})

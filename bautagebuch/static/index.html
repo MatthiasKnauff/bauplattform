@@ -2144,7 +2144,7 @@ document.addEventListener('click', async e => {
     const r = await api('api/password', 'POST', {new: $('#pwNew').value});
     toast(r.ok ? 'Kennwort geändert.' : r.error); if (r.ok) ['#pwNew', '#pwNew2'].forEach(x => $(x).value = '');
   }
-  else if (a === 'mailTest') { toast('Testmail wird gesendet …'); const r = await api('api/mail/test', 'POST'); toast(r.ok ? 'Testmail an ' + r.to + ' gesendet.' : 'Fehlgeschlagen: ' + r.error); }
+  else if (a === 'mailTest') { toast('Testmail wird gesendet …'); const r = await api('api/mail/test', 'POST'); toast(r.ok ? 'Testmail an ' + r.to + ' gesendet' + (r.hinweis ? ' – ' + r.hinweis : '') + '.' : 'Fehlgeschlagen: ' + r.error); }
   else if (a === 'storeAlte' || a === 'storeAlteWeg') {
     const o = $('#altOut'); if (!o) return;
     if (a === 'storeAlteWeg' && !(await bpFrage('Alte Stände auf dem Server nach der Einstellung löschen? Gelöschtes lässt sich nicht wiederherstellen.'))) return;

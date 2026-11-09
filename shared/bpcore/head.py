@@ -1005,6 +1005,15 @@ def blueprint(get_user=None):
                 d = posteingang.abrufen(c, u)
             if d.get("mails"):   # „eigene Kopien ausblenden“ und „einen Tag sichtbar“ gelten sofort, auch für schon gelesene Mails
                 d["mails"] = posteingang.sichtbar(c, uid, posteingang.eigene_filtern(c, u, d["mails"]))
+                for m in d["mails"]:   # To-dos zu Prüfpflichten: wer die Mail sieht, ist beteiligt (auch bei früher angelegten)
+                    t = m.get("todo") or {}
+                    if isinstance(t.get("id"), int):
+                        r = c.execute("SELECT id, faellig, status, erstellt_von, personen FROM todo WHERE id=?", (t["id"],)).fetchone()
+                        if r:
+                            posteingang.todo_mit(c, uid, r)
+                            m["todo"] = {"id": r["id"], "faellig": r["faellig"], "status": r["status"]}
+                        else:
+                            m.pop("todo", None)
                 aus = set(json.loads(konto._get(c, f"post:aus:{uid}") or "[]"))
                 d["mails"] = [{**m, "aus": True} if m.get("id") in aus else m for m in d["mails"]]
             abruf = posteingang.postfaecher(c, uid)["abruf"]

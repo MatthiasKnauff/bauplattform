@@ -178,6 +178,13 @@ $('#tiles').addEventListener('click', async (e) => {
 })();
 /* ---------- Post zu meinen Projekten: einmal am Tag aus den Postfächern, mit Vorschlägen für Erinnerungen ---------- */
 let POST = null, POSTALLE = false, POSTLAEUFT = false, POSTAUSOFFEN = false;
+let POSTWEG = null;   // „Nicht nötig“: To-do erst nach 10 s wirklich löschen – solange geht Rückgängig
+function postWegJetzt() {
+  const w = POSTWEG; if (!w) return; POSTWEG = null; clearTimeout(w.t);
+  fetch('api/bp/todo/' + w.alt.id, { method: 'DELETE', credentials: 'same-origin', keepalive: true }).catch(() => {});
+  fetch('api/bp/post', { method: 'POST', credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: w.m.id, wie: 'verworfen' }) }).catch(() => {});
+}
+addEventListener('pagehide', postWegJetzt);
 const ARTIC = { Rechnung: '🧾', Schlussrechnung: '🧾', Nachtrag: '📝', Angebot: '📝', Behinderung: '⚠️', Mangel: '⚠️', Termin: '📅', Plan: '📐', Nachricht: '✉️' };
 const WICHTIG = new Set(['Rechnung', 'Schlussrechnung', 'Nachtrag', 'Angebot', 'Behinderung', 'Mangel', 'Termin']);
 const zeitTxt = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; const h = new Date(); const gleich = d.toDateString() === h.toDateString(); return gleich ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
@@ -237,9 +244,22 @@ document.addEventListener('click', async (e) => {
   const vt = b.closest('[data-vt]');
   if (vt) {   // automatisch angelegtes To-do zur Prüfpflicht
     const m = (POST.mails || []).find((x) => x.id === vt.dataset.vt); if (!m || !m.todo) return;
-    if (a === 'todoauf') { TDOFFEN = 't:' + m.todo.id; await tdLaden(); tdZeigen(); const el = document.querySelector(`[data-tk="t:${m.todo.id}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
-    if (a === 'todoweg') {
-      try { await api('api/bp/todo/' + m.todo.id, 'DELETE'); await api('api/bp/post', 'POST', { id: m.id, wie: 'verworfen' }).catch(() => {}); m.todo.status = 'geloescht'; postZeigen(); tdLaden(); toast('To-do gelöscht.'); } catch (er) { toast(er.message, true); }
+    if (a === 'todoauf') {   // rechts in den To-dos aufklappen – notfalls Post neu lesen (ordnet mich dem To-do zu)
+      const k = 't:' + m.todo.id; b.disabled = true; TDOFFEN = k;
+      try {
+        if (!(TD && (TD.manuell || []).some((x) => x.key === k))) { try { POST = await api('api/bp/post'); } catch (e) {} }
+        await tdLaden(); tdZeigen();
+        const el = document.querySelector(`[data-tk="${k}"]`);
+        if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); else toast('Das To-do ist nicht in deiner Liste – es gehört einem anderen Benutzer.', true);
+      } finally { b.disabled = false; }
+      return;
+    }
+    if (a === 'todoweg') {   // erst nur ausblenden, gelöscht wird nach 10 s – solange geht Rückgängig
+      postWegJetzt();
+      const alt = { ...m.todo }; m.todo.status = 'geloescht'; postZeigen();
+      if (TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== alt.id); tdZeigen(); }
+      POSTWEG = { m, alt, t: setTimeout(postWegJetzt, 10000) };
+      rueckgaengig('To-do gelöscht', () => { const w = POSTWEG; if (!w || w.alt.id !== alt.id) return; POSTWEG = null; clearTimeout(w.t); m.todo = alt; postZeigen(); tdLaden(); toast('Wiederhergestellt.'); });
       return;
     }
   }
@@ -307,7 +327,7 @@ function einfachZeigen(conf) {
     ueRender(host, B, { top: true });
     if (TD) tdZeigen();
   }
-  const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen
+  const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); if (POSTWEG && TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== POSTWEG.alt.id); tdZeigen(); } deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen; ein gerade „nicht nötiges“ To-do bleibt weg
   TDKLEIN = true; TDNURMANUELL = true;   // Startseite: Block „Meine To-dos“ nur eigene Aufgaben, die automatischen Hinweise je Rubrik daneben
   ueInit('portal', deskZeigen); deskZeigen(); tdRef().then(() => tdLaden()); erinLaden();
   setInterval(() => { if (document.visibilityState === 'visible' && !TDOFFEN && !(document.activeElement && document.activeElement.id === 'tdNeu')) tdLaden(); }, 5 * 60 * 1000);

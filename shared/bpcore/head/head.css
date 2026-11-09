@@ -17,7 +17,7 @@
 .bph-proj span:empty::before{content:'Projekt wählen …';opacity:.6}
 .bph-proj small{order:2;font-size:.76rem;color:var(--bph-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bph-proj span{order:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bph-fill{display:none;flex:1 1 auto}
+.bph-fill{display:block;flex:1 1 auto;min-width:0}   /* schiebt KI-Schalter, Symbole und Benutzer nach rechts – auch auf sehr breiten Bildschirmen */
 .bph-ki{display:flex;align-items:center;gap:.35rem;flex:none}
 .bph-lbl{font-size:.78rem;color:var(--bph-mute);margin-right:.15rem}
 .bph-pill{border:1px solid var(--bph-line)!important;border-radius:999px;padding:.32rem .8rem!important;font-size:.85rem;min-height:34px;color:#e4e0d8!important;white-space:nowrap}
@@ -54,7 +54,7 @@
   border-radius:8px;padding:.55rem .8rem;font-size:.88rem;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:71}
 @media (max-width:1400px){.bph-ki{display:none}.bph-kim{display:inline-flex;align-items:center}}
 @media (max-width:900px){.bph-nm{display:none}}
-@media (max-width:640px){.bph{gap:.5rem;padding:.3rem .6rem;min-height:46px}.bph-app,.bph-plat,.bph-sl{display:none}.bph-proj{margin-left:0}.bph-proj small{font-size:.7rem}}
+@media (max-width:640px){.bph{gap:.5rem;padding:.3rem .6rem;min-height:46px}.bph-app,.bph-plat,.bph-sl,.bph-fill{display:none}.bph-proj{margin-left:0}.bph-proj small{font-size:.7rem}}
 @media (max-width:420px){.bph-proj small{display:none}.bph-bugb{display:none!important}}
 .bph-sug{position:fixed;z-index:4000;background:#fff;color:#1c1c1a;border:1px solid #cfcbc2;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.25);
   max-height:320px;overflow:auto;padding:.25rem;font:14px/1.35 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;box-sizing:border-box}

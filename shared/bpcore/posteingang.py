@@ -559,12 +559,26 @@ def todos_anlegen(c, u, mails, erl):
             tid = str(r["id"])
             konto._put(c, k, tid, "posteingang")
         if tid and str(tid).isdigit():
-            r = c.execute("SELECT id, faellig, status FROM todo WHERE id=?", (int(tid),)).fetchone()
+            r = c.execute("SELECT id, faellig, status, erstellt_von, personen FROM todo WHERE id=?", (int(tid),)).fetchone()
             if r:
+                todo_mit(c, u["id"], r)
                 m["todo"] = {"id": r["id"], "faellig": r["faellig"], "status": r["status"]}
                 m.pop("vorschlag", None)
             else:
                 m.pop("todo", None)
+
+
+def todo_mit(c, uid, r):
+    """Wer die Mail in seiner Post sieht, ist am To-do beteiligt – sonst wurde es vom Benutzer angelegt, dessen Abruf zuerst lief,
+    und alle anderen konnten es weder öffnen noch löschen."""
+    try:
+        leute = [int(x) for x in json.loads(r["personen"] or "[]")]
+    except (ValueError, TypeError):
+        leute = []
+    if r["erstellt_von"] == uid or uid in leute:
+        return False
+    c.execute("UPDATE todo SET personen=?, geaendert=? WHERE id=?", (json.dumps(leute + [uid]), datetime.now().isoformat(timespec="seconds"), r["id"]))
+    return True
 
 
 def lesen(c, uid):

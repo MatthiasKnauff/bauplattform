@@ -27,7 +27,8 @@
 .si .nr{font-variant-numeric:tabular-nums;color:var(--mute);margin-right:.3rem}
 .list{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .row{display:grid;grid-template-columns:8.5rem minmax(0,1fr) 3.2rem 9.5rem;gap:.6rem;padding:.5rem .8rem;border-bottom:1px solid var(--line);cursor:pointer;align-items:baseline}
-.row{grid-template-columns:7.6rem minmax(0,1fr) 3rem 8rem 1.6rem}.row .k b{overflow-wrap:anywhere;hyphens:auto}
+.row{grid-template-columns:7.6rem minmax(0,1fr) 3rem 8rem 1.6rem;touch-action:manipulation}.row .k b{overflow-wrap:anywhere;hyphens:auto}
+.row-det{padding:.8rem 1rem 1rem;background:var(--card2,var(--card));border-bottom:1px solid var(--line);box-shadow:inset 3px 0 0 var(--y)}.row-det h2{font-size:1.05rem;margin:.3rem 0 .4rem}.row-det pre{white-space:pre-wrap}
 .kb{width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;font-size:.85rem;line-height:1;padding:0;align-self:start}
 .kb:hover{border-color:var(--y);color:var(--y)}.kb.on{background:var(--y);border-color:var(--y);color:#fff}
 #korbN{display:inline-block;min-width:1.2rem;padding:0 .3rem;border-radius:9px;background:var(--hov);font-size:.78rem;text-align:center}
@@ -169,7 +170,7 @@ async function laden() {
 function liste() {
   $('#info').textContent = `${GES.toLocaleString('de-DE')} Position${GES === 1 ? '' : 'en'} · Preise netto, umgerechnet auf heute`;
   if (!L.length) { $('#list').innerHTML = `<div class="leer">${F.q || F.kg || F.einheit || F.fav ? 'Nichts gefunden – Suche oder Filter ändern.' : 'Dieser Katalog ist leer.'}</div>`; $('#mehr').innerHTML = ''; return; }
-  $('#list').innerHTML = L.map((x) => `<div class="row${SEL && SEL.id === x.id ? ' on' : ''}" data-id="${x.id}">
+  $('#list').innerHTML = L.map((x) => `<div class="row${SEL && SEL.id === x.id ? ' on' : ''}" data-id="${x.id}" title="Klick: Details rechts · Doppelklick/Doppeltipp: hier aufklappen">
     <span class="c">${esc(x.code)}</span>
     <span class="k"><b>${x.favorit ? '<span class="star">★</span> ' : ''}${esc(x.bez || x.kurz)}</b><small>${esc([x.gruppe_name || x.titel, x.kg ? 'KG ' + x.kg : ''].filter(Boolean).join(' · '))}</small></span>
     <span class="e">${esc(x.einheit)}</span>
@@ -182,6 +183,15 @@ async function zeigen(id) {
   document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
   detail();
 }
+/* Doppelklick (am Handy: Doppeltipp) auf eine Zeile: Details direkt unter der Zeile aufklappen – die Detailkarte liegt auf schmalen Bildschirmen sonst weit unten */
+async function aufklappen(row) {
+  const id = +row.dataset.id, alt = document.querySelector('.row-det');
+  if (alt) { const war = +alt.dataset.id === id; alt.remove(); if (war) return; }
+  if (!SEL || SEL.id !== id) await zeigen(id); else document.querySelectorAll('.row').forEach((r) => r.classList.toggle('on', +r.dataset.id === id));
+  if (!SEL || SEL.id !== id) return;
+  const d = document.createElement('div'); d.className = 'row-det'; d.dataset.id = id; d.innerHTML = $('#det').innerHTML; row.after(d);
+}
+document.addEventListener('dblclick', (e) => { const r = e.target.closest && e.target.closest('.row'); if (r && !e.target.closest('button,input,select,a')) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); aufklappen(r); } });
 let KORB = new Set();   // Korb: gesammelte Positionen (je Benutzer, auf dem Server)
 const korbKnopf = (id) => `<button type="button" class="kb${KORB.has(id) ? ' on' : ''}" data-korb="${id}" title="${KORB.has(id) ? 'Aus dem Korb nehmen' : 'In den Korb'}" aria-label="${KORB.has(id) ? 'Aus dem Korb nehmen' : 'In den Korb'}">${KORB.has(id) ? '✓' : '＋'}</button>`;
 function korbZeigen() {
@@ -264,6 +274,7 @@ function detail() {
       ${x.katalog === 'eigen' ? '<button type="button" class="btn sm" data-del>Löschen</button>' : ''}
     </div>${!ro && x.katalog !== 'eigen' ? '<p class="mute">🔒 Katalogposition – schreibgeschützt. Für eigene Texte oder Preise „Als eigene Position“ übernehmen.</p>' : ''}${ro ? '<p class="mute">🔒 Aus einem Katalog der Ausschreibung (z. B. sirAdos, eingelesen in Ausschreibung &amp; Abrechnung → ⚙ → Positionskatalog). Für eigene Preise oder Änderungen als eigene Position übernehmen.</p>' : ''}${kalk}${ro ? '' : eigen}`;
   if (document.getElementById('pFiL')) firmenLaden(x.id);
+  const inl = document.querySelector('.row-det'); if (inl) { if (+inl.dataset.id === x.id) inl.innerHTML = $('#det').innerHTML; else inl.remove(); }
 }
 function bearbeiten() {
   const x = SEL, SP = { A: [0.85, 1.2], B: [0.78, 1.3], C: [0.68, 1.5] };   // Preisspanne je Genauigkeit (wie im Katalog)

@@ -257,6 +257,9 @@ def roh_vorschlaege(c, uid, tag, Z=None):
     if Z is not None and Z.get("vorort") is None:
         Z["vorort"] = _vorort_alle(c, uid)
     vo = (Z["vorort"].get(tag) or {}) if Z is not None else _vorort(c, uid, tag)
+    # tatsächlich erfasste Fahrten (Einsteigen/Aussteigen) ersetzen die geschätzte Fahrzeit dieser Richtung
+    echt = {(r["project_id"], (_j(r["fahrt"], {}) or {}).get("richtung"))
+            for r in c.execute("SELECT project_id, fahrt FROM zeit_eintrag WHERE user_id=? AND tag=? AND quelle='unterwegs'", (uid, tag)).fetchall()}
     for pid, zt in (vo or {}).items():   # Baustelle: überschreibt die Arbeit am Bildschirm
         try:
             pid = int(pid)
@@ -267,9 +270,9 @@ def roh_vorschlaege(c, uid, tag, Z=None):
             continue
         b = max(b or a, a + 30)
         f = _fahrt(c, pid)
-        for m in range(max(0, a - f), a):
+        for m in range(max(0, a - f), a) if (pid, "hin") not in echt else ():
             M[m] = (pid, "fahrt", "fahrt")
-        for m in range(b, min(24 * 60, b + f)):
+        for m in range(b, min(24 * 60, b + f)) if (pid, "zurueck") not in echt else ():
             M[m] = (pid, "fahrt", "fahrt")
         for m in range(a, b):
             M[m] = (pid, "lph8", "vorort")

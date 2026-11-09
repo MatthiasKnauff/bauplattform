@@ -102,6 +102,15 @@ html[data-modus="einfach"] .zr input,html[data-modus="einfach"] .zr select,.hand
 html[data-modus="einfach"] .btn,.handy .akts .btn{padding:.7rem 1.1rem;font-size:1rem}
 html[data-modus="einfach"] .k b{font-size:1.25rem}
 @media (max-width:760px){.zwei{grid-template-columns:1fr}.tlk{display:none}.seg{max-width:100%;overflow-x:auto;scrollbar-width:none}.dnav{width:100%;justify-content:center}.k{min-width:calc(50% - .5rem);box-sizing:border-box}.ws{grid-template-columns:repeat(7,minmax(2.4rem,1fr));overflow-x:auto}.kal button{min-height:3.4rem}.kal button small{display:none}.kal button small.abw-n{display:block}}
+.q-unterwegs{border-color:#e0a030!important;background:color-mix(in srgb,#e0a030 34%,var(--card))}.q.q-unterwegs{color:#a8701a}
+.fahrt-k{display:flex;flex-direction:column;gap:.5rem;border:1px solid var(--line);border-radius:12px;padding:.8rem;background:var(--card);margin:0 0 .8rem;max-width:30rem}
+.fahrt-k.lauf-f{border-color:#e0a030;background:color-mix(in srgb,#e0a030 10%,var(--card))}
+.fahrt-k .fz{font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.fahrt-k .btn.gross{font-size:1.1rem;padding:.8rem 1rem;font-weight:700}
+.fahrt-k select{font:inherit;padding:.5rem;border:1px solid var(--line);border-radius:8px;background:var(--inp);color:var(--ink);width:100%}
+.seg3{display:flex;gap:.25rem;background:var(--inp);border-radius:10px;padding:.2rem}.seg3 button{flex:1;border:0;background:none;color:var(--ink);font:inherit;padding:.55rem .3rem;border-radius:8px;cursor:pointer}.seg3 button.on{background:var(--y);color:var(--on,#111);font-weight:700}
+.fahrt-k .mute{color:var(--mute);font-size:.85rem}
+.schnell{display:flex;gap:.5rem;margin:0 0 .8rem;flex-wrap:wrap}@media (max-width:760px){.schnell .btn{flex:1;padding:.75rem;font-size:1.05rem;font-weight:700}}
 </style>
 </head>
 <body>
@@ -116,7 +125,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
 <script src="static/bp.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('zeit.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('zeit.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
-let ME = null, G = null, D = null, W = null, M = null, A = null, K = null, PSEL = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
+let ME = null, G = null, D = null, W = null, M = null, A = null, K = null, PSEL = null, FSEL = null, ANGEK = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
 const einfach = () => document.documentElement.dataset.modus === 'einfach';
 const handy = () => innerWidth <= 760;
 const h2m = (s) => { const m = /^(\d{1,2}):(\d{2})/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
@@ -132,7 +141,9 @@ const dkurz = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { day: '
 const plus = (t, n) => { const d = new Date(t + 'T12:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 const PJN = () => Object.fromEntries((G.projekte || []).map((p) => [p.id, p.name]));
 const ARTN = () => Object.fromEntries(G.arten);
-const QN = { puls: 'aus der Plattform', vorort: 'vor Ort', fahrt: 'Fahrt (geschätzt)', hand: 'von Hand', stoppuhr: 'Stoppuhr' };
+const QN = { puls: 'aus der Plattform', vorort: 'vor Ort', fahrt: 'Fahrt (geschätzt)', hand: 'von Hand', stoppuhr: 'Stoppuhr', unterwegs: 'Fahrt (erfasst)' };
+const FR = { hin: 'zur Baustelle', zurueck: 'zurück ins Büro', andere: 'Fahrt' };
+const fj = (v) => { try { return v ? JSON.parse(v) : null; } catch { return null; } };
 const artKurz = (a) => (/^lph(\d)$/.exec(a || '') ? 'LPh ' + a.slice(3) : (ARTN()[a] || a || ''));
 
 /* ---------------- Kopf: Reiter und Datum ---------------- */
@@ -191,7 +202,7 @@ function zeitstrahl(d) {
   const pj = PJN();
   h += L.map((x) => `<div class="b q-${x.quelle}${x.fest ? '' : ' v'}" style="left:${p(h2m(x.von))};width:calc(${((h2m(x.bis) - h2m(x.von)) / (b - a) * 100).toFixed(2)}% - 2px)" data-spr="${x.fest ? 'e' + x.id : 'v' + x.vi}" title="${esc(`${x.von}–${x.bis} · ${pj[x.project_id] || 'ohne Projekt'} · ${artKurz(x.art)} · ${QN[x.quelle] || ''}`)}">${esc((pj[x.project_id] || 'Büro').slice(0, 22))}<br>${esc(artKurz(x.art))}</div>`).join('');
   if (d.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) h += `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; }
-  return `<div class="tl" aria-hidden="true">${h}</div><div class="leg"><span><i class="q-puls"></i>aus der Arbeit in der Plattform</span><span><i class="q-vorort"></i>vor Ort (Baustelle)</span><span><i class="q-fahrt"></i>Fahrt (geschätzt)</span><span><i class="q-hand"></i>von Hand / Stoppuhr</span><span>gestrichelt = Vorschlag, noch nicht übernommen</span></div>`;
+  return `<div class="tl" aria-hidden="true">${h}</div><div class="leg"><span><i class="q-puls"></i>aus der Arbeit in der Plattform</span><span><i class="q-vorort"></i>vor Ort (Baustelle)</span><span><i class="q-fahrt"></i>Fahrt (geschätzt)</span><span><i class="q-unterwegs"></i>Fahrt (erfasst)</span><span><i class="q-hand"></i>von Hand / Stoppuhr</span><span>gestrichelt = Vorschlag, noch nicht übernommen</span></div>`;
 }
 function projSel(pid, attr) {
   return `<select ${attr} aria-label="Projekt"><option value="">— ohne Projekt (Büro) —</option>${(G.projekte || []).map((p) => `<option value="${p.id}"${+pid === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}${pid && !PJN()[pid] ? `<option value="${pid}" selected>Projekt ${pid}</option>` : ''}</select>`;
@@ -207,12 +218,32 @@ function zeile(x, art) {   // art: 'e' gespeichert, 'v' Vorschlag, 'n' neu
     <span class="zz"><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-zf="von" value="${x.von || ''}"${dis} aria-label="von">–<input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-zf="bis" value="${x.bis || ''}"${dis} aria-label="bis"></span>
     <span class="pp">${projSel(x.project_id, `data-zf="project_id"${dis}`)}</span>
     <span class="aa">${artSel(x.art, `data-zf="art"${dis}`)}</span>
-    <span class="qq">${x.quelle ? `<span class="q q-${x.quelle}">${QN[x.quelle] || esc(x.quelle)}</span>` : ''}</span>
+    <span class="qq">${x.quelle ? `<span class="q q-${x.quelle}">${x.quelle === 'unterwegs' ? (() => { const F = fj(x.fahrt) || {}; return `🚗 ${esc(FR[F.richtung] || 'Fahrt')}${F.km ? ` · ≈ ${String(F.km).replace('.', ',')} km` : ''}`; })() : QN[x.quelle] || esc(x.quelle)}</span>` : ''}</span>
     <span class="dd r">${x.von && x.bis ? std(dauer(x.von, x.bis)) : ''}</span>
     <span class="akt">${akt}</span></div>`;
 }
+/* Fahrt: Einsteigen (Richtung, Projekt, Standort wenn erlaubt) – Aussteigen – an der Baustelle gleich „vor Ort“ starten */
+function fahrtVorschlag() {
+  const E = (D && D.eintraege) || [], hin = [...E].reverse().find((e) => e.quelle === 'unterwegs' && (fj(e.fahrt) || {}).richtung === 'hin');
+  const zur = hin && !E.some((e) => e.quelle === 'unterwegs' && (fj(e.fahrt) || {}).richtung === 'zurueck' && e.von >= hin.bis);
+  return zur ? { richtung: 'zurueck', pid: hin.project_id || '' } : { richtung: 'hin', pid: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || (hin && hin.project_id) || '' };
+}
+function standort() {   // Standort beim Ein-/Aussteigen – nur wenn auf dem Gerät erlaubt; sonst ohne
+  return new Promise((ok) => { if (!navigator.geolocation || !window.isSecureContext) { ok(null); return; }
+    navigator.geolocation.getCurrentPosition((p) => ok({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }), () => ok(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 }); });
+}
 function laufHtml() {
-  const l = G.lauf;
+  const l = G.lauf, F = l && fj(l.fahrt);
+  if (l && F) { const s = new Date(l.start.replace(' ', 'T')), m = Math.max(0, Math.round((Date.now() - s) / 60000));
+    return `<div class="fahrt-k lauf-f"><div class="mute">🚗 Fahrt ${esc(FR[F.richtung] === 'Fahrt' ? '' : FR[F.richtung])} · ${esc(PJN()[l.project_id] || 'ohne Projekt')}</div><div class="fz">${std(m)}</div><div class="mute">eingestiegen ${l.start.slice(11, 16)}${F.ab ? ' · Standort festgehalten' : ''}</div>
+      <button type="button" class="btn pri gross" data-lauf="aus">Aussteigen ✓</button><button type="button" class="btn" data-lauf="weg">Verwerfen</button></div>`; }
+  if (ANGEK) { const a = ANGEK;
+    return `<div class="fahrt-k"><b>✓ Fahrt ${a.von}–${a.bis} (${std(dauer(a.von, a.bis))} h)</b><div class="mute">${esc(FR[(a.fahrt || {}).richtung] || 'Fahrt')} · ${esc(PJN()[a.project_id] || 'ohne Projekt')}${a.fahrt && a.fahrt.km ? ` · ≈ ${String(a.fahrt.km).replace('.', ',')} km Luftlinie` : ''} · eingetragen</div>
+      ${(a.fahrt || {}).richtung === 'hin' ? `<button type="button" class="btn pri gross" data-lauf="vorort">▶ Vor Ort starten (Baustelle)</button>` : ''}<button type="button" class="btn" data-lauf="fertig">${(a.fahrt || {}).richtung === 'hin' ? 'Später' : 'OK'}</button></div>`; }
+  if (FSEL) return `<div class="fahrt-k"><b>🚗 Fahrt</b><div class="seg3" role="radiogroup" aria-label="Richtung">${Object.entries(FR).map(([k, n]) => `<button type="button" role="radio" aria-checked="${FSEL.richtung === k}" class="${FSEL.richtung === k ? 'on' : ''}" data-fr="${k}">${k === 'andere' ? 'andere' : esc(n)}</button>`).join('')}</div>
+    ${projSel(FSEL.pid, 'id="fP"')}<button type="button" class="btn pri gross" data-lauf="ein">🚗 Einsteigen – Fahrt starten</button><button type="button" class="btn" data-lauf="fabbr">Abbrechen</button>
+    <div class="mute">Beim Ein- und Aussteigen wird der Standort festgehalten, wenn das Handy es erlaubt. Die Fahrt zählt als Arbeitszeit beim Projekt.</div></div>`;
+  if (!l && !PSEL && D && D.tag === G.heute && !(D && D.bestaetigt)) return `<div class="schnell"><button type="button" class="btn pri" data-lauf="fwahl">🚗 Fahrt starten</button><button type="button" class="btn" data-lauf="wahl">▶ Stoppuhr</button></div>`;
   if (l) { const s = new Date(l.start.replace(' ', 'T')), m = Math.max(0, Math.round((Date.now() - s) / 60000));
     return `<div class="lauf"><span>⏱ läuft seit <b>${l.start.slice(11, 16)}</b> (${std(m)} h) · ${esc(PJN()[l.project_id] || 'ohne Projekt')} · ${esc(artKurz(l.art))}</span><button type="button" class="btn sm pri" data-lauf="stop">■ Anhalten und eintragen</button><button type="button" class="btn sm" data-lauf="weg">Verwerfen</button></div>`; }
   if (PSEL) return `<div class="lauf"><span>⏱ Stoppuhr für</span>${projSel(PSEL.pid, 'id="lP"')}${artSel(PSEL.art || 'buero', 'id="lA"')}<button type="button" class="btn sm pri" data-lauf="start">▶ Starten</button><button type="button" class="btn sm" data-lauf="abbr">Abbrechen</button></div>`;
@@ -226,11 +257,11 @@ function vTag() {
   const titel = `<h3>${dlang(d.tag)}${d.feiertag ? ` · <span class="mute">${esc(d.feiertag)}</span>` : ''}</h3>`;
   const band = d.bestaetigt ? `<div class="ok-band">✓ Tag bestätigt am ${esc(d.bestaetigt.slice(8, 10) + '.' + d.bestaetigt.slice(5, 7) + '. ' + d.bestaetigt.slice(11, 16))}<span class="fill"></span><button type="button" class="btn sm" data-ta="auf">Noch einmal bearbeiten</button></div>` : '';
   const liste = `<div class="card"><div class="zl"><div class="zr kopf profi"><span>Zeit</span><span>Projekt</span><span>Tätigkeit / Leistungsphase</span><span>Quelle</span><span class="r">Dauer</span><span></span></div>${neu}${L.map(([a, x]) => zeile(x, a)).join('')}${!L.length && !NEU ? `<div class="leer">${d.abw ? esc(G.abw[d.abw] || '') + ' – keine Zeiten nötig.' : 'Noch nichts erfasst. Sobald du in der Plattform arbeitest, erscheinen hier Vorschläge – oder trage etwas von Hand ein.'}</div>` : ''}</div>
-    <div class="akts">${d.bestaetigt ? '' : '<button type="button" class="btn sm" data-ta="neu">＋ Zeit von Hand</button>'}${!G.lauf && !PSEL && d.tag === G.heute ? '<button type="button" class="btn sm" data-lauf="wahl">▶ Stoppuhr</button>' : ''}<span class="fill"></span>
+    <div class="akts">${d.bestaetigt ? '' : '<button type="button" class="btn sm" data-ta="neu">＋ Zeit von Hand</button>'}<span class="fill"></span>
     ${d.bestaetigt || d.tag > G.heute ? '' : `<button type="button" class="btn pri" data-ta="ok"${V.length ? ` title="${V.length} Vorschläge werden übernommen"` : ''}>✓ Tag bestätigen${V.length ? ` (${V.length} Vorschl${V.length === 1 ? 'ag' : 'äge'})` : ''}</button>`}</div></div>`;
   const ws = W ? `<div class="ws profi" aria-label="Woche">${W.tage.map((x) => { const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.vorschlaege || x.eintraege);
     return `<button type="button" data-geh="${x.tag}" class="${x.tag === d.tag ? 'on' : ''}${x.bestaetigt ? ' bes' : ''}${off ? ' off' : ''}${!x.soll ? ' we' : ''}">${WT[wtag(x.tag)]} ${dkurz(x.tag)}<b style="display:block">${x.abw ? esc((G.abw[x.abw] || '').split(' ')[0]) : x.bestaetigt || x.tag === G.heute ? std(x.ist) : '–'}</b><small>${x.bestaetigt ? '✓ bestätigt' : x.abw ? '' : off ? 'offen' : x.feiertag ? esc(x.feiertag) : x.soll ? 'Soll ' + std(x.soll) : 'frei'}</small></button>`; }).join('')}</div>` : '';
-  return `${titel}${band}${kopfZahlen(d)}${laufHtml()}<div class="card profi tlk" style="padding-top:.4rem">${zeitstrahl(d)}</div>${liste}${ws}`;
+  return `${titel}${band}${laufHtml()}${kopfZahlen(d)}<div class="card profi tlk" style="padding-top:.4rem">${zeitstrahl(d)}</div>${liste}${ws}`;
 }
 let NEU = null;
 function zeileWerte(z) { const o = {}; z.querySelectorAll('[data-zf]').forEach((el) => { o[el.dataset.zf] = el.classList.contains('hm') ? (hmNorm(el.value) || el.value) : el.value; }); return o; }
@@ -333,10 +364,18 @@ document.addEventListener('click', async (e) => {
     } catch (er) { toast(er.message, true); }
     return;
   }
+  const fr = t.closest('[data-fr]'); if (fr && FSEL) { FSEL.pid = $('#fP') ? $('#fP').value : FSEL.pid; FSEL.richtung = fr.dataset.fr; zeichne(); return; }
   const lf = t.closest('[data-lauf]');
   if (lf) {
     const a = lf.dataset.lauf;
     try {
+      if (a === 'fwahl') { FSEL = fahrtVorschlag(); ANGEK = null; zeichne(); return; }
+      if (a === 'fabbr') { FSEL = null; zeichne(); return; }
+      if (a === 'fertig') { ANGEK = null; zeichne(); return; }
+      if (a === 'ein') { lf.disabled = true; const pidF = $('#fP').value, ort = await standort();
+        const r = await api('api/lauf', 'POST', { project_id: pidF, fahrt: { richtung: FSEL.richtung, ort } }); G.lauf = r.lauf; FSEL = null; zeichne(); toast('Gute Fahrt – Aussteigen nicht vergessen.'); return; }
+      if (a === 'aus') { lf.disabled = true; const ort = await standort(); const r = await api('api/lauf?speichern=1', 'DELETE', { ort }); G.lauf = null; ANGEK = r.fertig; await laden(); return; }
+      if (a === 'vorort') { const r = await api('api/lauf', 'POST', { project_id: ANGEK.project_id || '', art: 'lph8' }); G.lauf = r.lauf; ANGEK = null; zeichne(); toast('Vor Ort läuft.'); return; }
       if (a === 'wahl') { PSEL = { pid: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' }; zeichne(); return; }
       if (a === 'abbr') { PSEL = null; zeichne(); return; }
       if (a === 'start') { const r = await api('api/lauf', 'POST', { project_id: $('#lP').value, art: $('#lA').value }); G.lauf = r.lauf; PSEL = null; zeichne(); return; }
@@ -369,7 +408,7 @@ document.addEventListener('change', async (e) => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.zr[data-n]')) { e.preventDefault(); zeileAktion(e.target.closest('.zr'), 'neu'); } });
 addEventListener('resize', () => { const h = handy(); if (h !== document.body.classList.contains('handy')) zeichne(); });
-setInterval(() => { if (tab === 'tag' && tag === G.heute && document.visibilityState === 'visible' && !document.activeElement.closest('.zr,.k,.lauf')) laden(); }, 5 * 60000);   // heute: Vorschläge wachsen mit
+setInterval(() => { if (tab === 'tag' && tag === G.heute && document.visibilityState === 'visible' && !document.activeElement.closest('.zr,.k,.lauf,.fahrt-k')) laden(); }, 5 * 60000);   // heute: Vorschläge wachsen mit
 
 (async () => {
   ME = await api('api/me'); applyLook(ME);

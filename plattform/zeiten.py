@@ -154,7 +154,7 @@ def _eintrag_daten(b):
     except (TypeError, ValueError):
         pid = None
     art = b.get("art") if b.get("art") in Z.ART_NAME else ("buero" if not pid else "sonst")
-    q = b.get("quelle") if b.get("quelle") in ("hand", "puls", "vorort", "fahrt", "stoppuhr") else "hand"
+    q = b.get("quelle") if b.get("quelle") in ("hand", "puls", "vorort", "fahrt", "stoppuhr", "unterwegs") else "hand"
     return {"von": v, "bis": z, "project_id": pid, "art": art, "notiz": str(b.get("notiz") or "")[:300], "quelle": q}, None
 
 
@@ -269,34 +269,78 @@ def abwesenheit():
     return jsonify(ok=True, tage=n, konto=k)
 
 
+FAHRT_RICHTUNG = {"hin": "zur Baustelle", "zurueck": "zurück ins Büro", "andere": "Fahrt"}
+
+
+def _ort(o):
+    """Standort vom Handy (nur wenn erlaubt): auf ~10 m gerundet."""
+    try:
+        lat, lng = float(o["lat"]), float(o["lng"])
+        if -90 <= lat <= 90 and -180 <= lng <= 180:
+            return {"lat": round(lat, 4), "lng": round(lng, 4), "acc": int(min(max(float(o.get("acc") or 0), 0), 100000))}
+    except (TypeError, ValueError, KeyError):
+        pass
+    return None
+
+
+def _km(a, b):
+    """Luftlinie in km zwischen zwei Standorten."""
+    import math
+    if not a or not b:
+        return None
+    p1, p2 = math.radians(a["lat"]), math.radians(b["lat"])
+    dp, dl = p2 - p1, math.radians(b["lng"] - a["lng"])
+    h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return round(2 * 6371 * math.asin(math.sqrt(h)), 1)
+
+
 @app.route("/api/lauf", methods=["GET", "POST", "DELETE"])
 def lauf():
-    """Stoppuhr: starten (POST), anhalten und als Zeit eintragen (DELETE ?speichern=1) oder verwerfen (DELETE)."""
+    """Stoppuhr: starten (POST), anhalten und als Zeit eintragen (DELETE ?speichern=1) oder verwerfen (DELETE).
+    Fahrt (POST mit fahrt={richtung, ort}): Einsteigen; Aussteigen = DELETE ?speichern=1 mit {ort} – Quelle „unterwegs“, Art „Fahrt“."""
     uid = g.user["id"]
     with db.tx() as c:
         r = c.execute("SELECT * FROM zeit_lauf WHERE user_id=?", (uid,)).fetchone()
         if request.method == "GET":
             return jsonify(lauf=dict(r) if r else None)
+        b = request.get_json(silent=True) or {}
         if request.method == "POST":
-            b = request.get_json(silent=True) or {}
             try:
                 pid = int(b["project_id"]) if b.get("project_id") not in (None, "", 0, "0") else None
             except (TypeError, ValueError):
                 pid = None
             art = b.get("art") if b.get("art") in Z.ART_NAME else ("buero" if not pid else "sonst")
-            c.execute("INSERT INTO zeit_lauf(user_id, start, project_id, art, notiz) VALUES(?,?,?,?,?) ON CONFLICT (user_id) DO UPDATE SET "
-                      "start=EXCLUDED.start, project_id=EXCLUDED.project_id, art=EXCLUDED.art, notiz=EXCLUDED.notiz",
-                      (uid, Z.jetzt().strftime("%Y-%m-%d %H:%M"), pid, art, str(b.get("notiz") or "")[:300]))
+            fahrt = ""
+            if isinstance(b.get("fahrt"), dict):
+                ri = b["fahrt"].get("richtung") if b["fahrt"].get("richtung") in FAHRT_RICHTUNG else "andere"
+                fahrt = json.dumps({"richtung": ri, "ab": _ort(b["fahrt"].get("ort") or {})})
+                art = "fahrt"
+            c.execute("INSERT INTO zeit_lauf(user_id, start, project_id, art, notiz, fahrt) VALUES(?,?,?,?,?,?) ON CONFLICT (user_id) DO UPDATE SET "
+                      "start=EXCLUDED.start, project_id=EXCLUDED.project_id, art=EXCLUDED.art, notiz=EXCLUDED.notiz, fahrt=EXCLUDED.fahrt",
+                      (uid, Z.jetzt().strftime("%Y-%m-%d %H:%M"), pid, art, str(b.get("notiz") or "")[:300], fahrt))
             return jsonify(lauf=dict(c.execute("SELECT * FROM zeit_lauf WHERE user_id=?", (uid,)).fetchone()))
         c.execute("DELETE FROM zeit_lauf WHERE user_id=?", (uid,))
+        fertig = None
         if r and request.args.get("speichern"):
             t, v = r["start"][:10], r["start"][11:16]
             n = Z.jetzt()
             bis = n.strftime("%H:%M") if n.strftime("%Y-%m-%d") == t else "23:59"
+            if Z.h2m(bis) <= Z.h2m(v) and r["fahrt"]:   # Fahrt unter einer Minute: trotzdem eine Minute
+                bis = Z.m2h(min(Z.h2m(v) + 1, 24 * 60 - 1))
             if Z.h2m(bis) > Z.h2m(v):
-                c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle) VALUES(?,?,?,?,?,?,?,?)",
-                          (uid, t, v, bis, r["project_id"], r["art"], r["notiz"], "stoppuhr"))
-    return jsonify(lauf=None)
+                quelle, notiz, fahrt = "stoppuhr", r["notiz"], ""
+                if r["fahrt"]:
+                    F = json.loads(r["fahrt"] or "{}") or {}
+                    F["an"] = _ort(b.get("ort") or {})
+                    km = _km(F.get("ab"), F.get("an"))
+                    if km is not None:
+                        F["km"] = km
+                    fahrt, quelle = json.dumps(F), "unterwegs"
+                    notiz = notiz or FAHRT_RICHTUNG.get(F.get("richtung"), "Fahrt")
+                c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle, fahrt) VALUES(?,?,?,?,?,?,?,?,?)",
+                          (uid, t, v, bis, r["project_id"], r["art"], notiz, quelle, fahrt))
+                fertig = {"tag": t, "von": v, "bis": bis, "project_id": r["project_id"], "fahrt": json.loads(fahrt) if fahrt else None}
+    return jsonify(lauf=None, fertig=fertig)
 
 
 @app.get("/api/offen")

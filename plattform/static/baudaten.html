@@ -79,6 +79,12 @@
 @media (max-width:560px){.ed .r3{grid-template-columns:1fr 1fr}.ed .r3>div:last-child:nth-child(3){grid-column:1/-1}.ed .ep{grid-template-columns:1fr 1fr 1fr}.ed .ep>div:last-child:nth-child(3){grid-column:auto}}
 .tbl{width:100%;border-collapse:collapse;font-size:.88rem}.tbl td{padding:.2rem .3rem}.tbl input{width:100%;box-sizing:border-box}
 @media (max-width:1200px){.grid{grid-template-columns:240px minmax(0,1fr)}.det{grid-column:1/-1;position:static;max-height:none}}
+/* breiter Bildschirm: volle Breite, Baum links und Details rechts wachsen mit; die drei Boxen enden 10 px über dem Fensterrand, jede rollt für sich – kein Scrollbalken im Hauptfenster */
+@media (min-width:1201px){html,body{overflow:hidden}main.wrap{max-width:min(2000px,96vw);padding-bottom:0}
+  .grid{grid-template-columns:clamp(280px,19vw,400px) minmax(0,1fr) clamp(420px,30vw,640px);align-items:stretch}
+  .side,.det{position:static;max-height:none;overflow:auto}
+  .grid>section{display:flex;flex-direction:column;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+  .grid>section .list{border:0;border-radius:0;overflow:visible}}
 @media (max-width:760px){.grid{grid-template-columns:1fr}.side{position:static;max-height:260px}.row{grid-template-columns:minmax(0,1fr) 7.5rem 1.8rem}.row .c,.row .e{display:none}}
 </style>
 </head>
@@ -448,6 +454,12 @@ for (const [id, k] of [['q', 'q'], ['kg', 'kg']]) $('#' + id).addEventListener('
     { key: 'kataloge', label: 'Kataloge', render: (h) => { KatalogeEinst(h, { bd: '', ava: '../ava/', gaeb: () => importieren(), nachher: () => start(), geloescht: (k) => { if (F.katalog === k) { F.katalog = 'gk3'; LS.set('katalog', 'gk3'); } } }); } },
     { key: 'preise', label: 'Preise, Index & Löhne', text: 'Baupreisindex, Regionalfaktor und Verrechnungslöhne', open: () => einstellungen() }]);
 })().catch((e) => toast(e.message, true));
+/* Boxen bis 10 px über den Fensterrand (breiter Bildschirm) */
+(() => { const h = () => { const g = document.querySelector('.grid'); if (!g) return; const kids = [...g.children];
+    if (innerWidth <= 1200) { kids.forEach((x) => { x.style.height = ''; }); return; }
+    const H = Math.max(300, innerHeight - g.getBoundingClientRect().top - 10) + 'px'; kids.forEach((x) => { x.style.height = H; }); };
+  h(); addEventListener('resize', h); [200, 800, 2000].forEach((t) => setTimeout(h, t));   // Kopf der Plattform kommt erst nach dem Laden
+  let alt = 0; new ResizeObserver(() => { const t = Math.round(document.querySelector('.grid').getBoundingClientRect().top); if (t !== alt) { alt = t; h(); } }).observe(document.body); })();
 </script>
 </body>
 </html>

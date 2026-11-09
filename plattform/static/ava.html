@@ -699,6 +699,8 @@ table.au-t tr.nt-zieh td:first-child{cursor:grab}
 .am-modus{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .4rem}.am-modus .seg button{padding:.15rem .6rem}.am-st .pos{color:var(--ok)}.am-st .neg{color:#c0392b}
 .am-bar{position:relative;height:.6rem;border-radius:999px;background:color-mix(in srgb,var(--mute) 18%,transparent);overflow:hidden;margin:0 0 .4rem}.am-bar i{position:absolute;top:0;bottom:0}.am-bar .a{left:0;background:color-mix(in srgb,var(--ok) 45%,transparent)}.am-bar .n{background:var(--ok)}.am-bar .n.neg{background:#c0392b}
 input.am-stin{font-weight:600}
+.gaeb-zeig{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blink{0%,40%{background:color-mix(in srgb,#e0a030 45%,transparent)}100%{background:transparent}}
 </style>
 </head>
 <body>
@@ -1989,6 +1991,29 @@ async function lvDokHoch(lvId, f, opt = {}) {
   } catch (e) { toast(e.message, true); return null; }
 }
 
+/* GAEB-Hinweis: die abweichenden Stellen zeigen – Positionen außerhalb der häufigsten Titeltiefe und Titel mit übersprungener Ebene;
+   jeder Klick springt zur nächsten (Titel darüber werden aufgeklappt, die Zeilen markiert) */
+let GAEBZ = { i: -1, n: 0 };
+function lvGaebStellen() {
+  const I = items(), tiefe = {}, D = [], P = []; let akt = 0;
+  I.forEach((x) => { if (x.typ === 'titel') { const lv = x.lvl || 1; if (lv > akt + 1) P.push(x.id); akt = lv; } else if (x.art !== 'T') { tiefe[akt] = (tiefe[akt] || 0) + 1; D.push([x.id, akt]); } });
+  const haupt = +Object.entries(tiefe).sort((a, b) => b[1] - a[1])[0]?.[0];
+  return [...P, ...D.filter(([, t]) => t !== haupt).map(([id]) => id)].filter((id, k, A) => A.indexOf(id) === k)
+    .sort((a, b) => I.findIndex((y) => y.id === a) - I.findIndex((y) => y.id === b));
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest || !e.target.closest('[data-gaebzeig]')) return;
+  e.preventDefault(); e.stopPropagation();
+  const S = lvGaebStellen(); if (!S.length) return;
+  GAEBZ = { i: GAEBZ.n === S.length ? (GAEBZ.i + 1) % S.length : 0, n: S.length };
+  const I = items(), id = S[GAEBZ.i], k = I.findIndex((y) => y.id === id);
+  // alle Titel darüber aufklappen
+  let lv = I[k].typ === 'titel' ? (I[k].lvl || 1) : 99;
+  for (let j = k - 1; j >= 0; j--) { const y = I[j]; if (y.typ === 'titel' && (y.lvl || 1) < lv) { LVZU.delete(y.id); lv = y.lvl || 1; if (lv <= 1) break; } }
+  if (L) LS.set('lvzu:' + L.id, [...LVZU]); LVXZU = false; LVSEL = new Set(S); LVAKT = id; render();
+  setTimeout(() => { const i2 = items().findIndex((y) => y.id === id), tr = document.querySelector(`table.lv tr[data-i="${i2}"]`);
+    if (tr) { tr.scrollIntoView({ block: 'center', behavior: 'smooth' }); tr.classList.add('gaeb-hier'); setTimeout(() => tr.classList.remove('gaeb-hier'), 2500); } }, 60);
+});
 /* GAEB: alle Positionen in derselben Titeltiefe, höchstens 4 Titelebenen, keine übersprungene Ebene */
 function lvGaebHinweis() {
   const I = items(), tiefe = {}, sprung = []; let akt = 0;
@@ -1999,7 +2024,8 @@ function lvGaebHinweis() {
   const T = Object.keys(tiefe).map(Number);
   if (T.length <= 1 && !sprung.length) return '';
   const nz = (t) => (t === 0 ? 'ohne Titel' : t === 1 ? 'direkt unter Titeln' : `unter Untertiteln der ${t}. Ebene`);
-  return `<p class="si-w" style="margin:.2rem 0 .6rem">⚠ Noch nicht GAEB-konform: ${T.length > 1 ? `Positionen stehen in unterschiedlicher Tiefe (${T.sort().map((t) => `${tiefe[t]} ${nz(t)}`).join(', ')}). In GAEB brauchen alle Positionen dieselbe Titeltiefe – z. B. alle Titel mit ⇥ zu Untertiteln machen oder fehlende Untertitel ergänzen.` : ''}${sprung.length ? ` Ebene übersprungen bei ${sprung.slice(0, 3).map(esc).join(', ')} – ein Untertitel braucht einen Titel darüber.` : ''}</p>`;
+  const n = lvGaebStellen().length;
+  return `<p class="si-w" style="margin:.2rem 0 .6rem">${n ? `<button type="button" class="gaeb-zeig" data-gaebzeig><b>${GAEBZ.i >= 0 && GAEBZ.n === n ? `Nächste Stelle zeigen (${(GAEBZ.i + 1) % n + 1} von ${n})` : `Zum Anzeigen hier klicken (${n} Stelle${n === 1 ? '' : 'n'})`}</b></button> ` : ''}⚠ Noch nicht GAEB-konform: ${T.length > 1 ? `Positionen stehen in unterschiedlicher Tiefe (${T.sort().map((t) => `${tiefe[t]} ${nz(t)}`).join(', ')}). In GAEB brauchen alle Positionen dieselbe Titeltiefe – z. B. alle Titel mit ⇥ zu Untertiteln machen oder fehlende Untertitel ergänzen.` : ''}${sprung.length ? ` Ebene übersprungen bei ${sprung.slice(0, 3).map(esc).join(', ')} – ein Untertitel braucht einen Titel darüber.` : ''}</p>`;
 }
 
 /* ---------- Leistungsverzeichnis ---------- */

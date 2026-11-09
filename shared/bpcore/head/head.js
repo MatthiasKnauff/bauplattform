@@ -249,6 +249,15 @@
       bg.remove(); if (zu) zu();
     });
   };
+  /* Die eingebettete Verwaltung (⚙ → Büro) läuft bei Apps auf eigenen Ports in einem anderen Ursprung und kann das Fenster nicht selbst
+     über der Seite öffnen – sie schickt eine Nachricht; nur aus unserer Verwaltung angenommen */
+  addEventListener('message', (e) => {
+    const d = e.data; if (!d || d.bph !== 'layoutEditor' || typeof d.bereich !== 'string') return;
+    const a = ((H.conf || {}).apps || []).find((x) => x.key === 'admin'); if (!a) return;
+    const url = appUrl(a);
+    try { if (new URL(url, location.href).origin !== e.origin) return; } catch { return; }
+    H.layoutEditor(url, d.bereich.slice(0, 60), () => { try { e.source.postMessage({ bph: 'layoutEditorZu' }, e.origin); } catch { /* Rahmen schon weg */ } });
+  });
   /* Druckdialog für alle Apps: Layout des Ausdrucks wählen (⚙ → Büro → Druck-Layouts, je Ausdruck mehrere) und seine Inhaltseinstellungen
      (z. B. Langtexte, Preise) – gespeichert im Layout, hier für diesen Ausdruck änderbar. Die letzte Wahl je Ausdruck wird gemerkt.
      Ergebnis: { layout, opt, qs } (qs = „&layout=…&opt=…“ zum Anhängen an die PDF-Adresse) oder null (abgebrochen).

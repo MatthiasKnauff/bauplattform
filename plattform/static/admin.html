@@ -392,11 +392,13 @@ async function layKacheln() {
 function layOeffnen(key) {
   // in den Einstellungen laufen die Büro-Einstellungen eingebettet: Editor dann über der ganzen Seite öffnen, nicht im schmalen Seitenfeld
   let H = null; try { if (window.top !== window && window.top.BPHead && window.top.BPHead.layoutEditor) H = window.top.BPHead; } catch { /* anderer Ursprung */ }
+  if (!H && window.top !== window) { window.parent.postMessage({ bph: 'layoutEditor', bereich: key }, '*'); return; }   // anderer Ursprung (Apps auf eigenen Ports): das Hauptfenster öffnet das große Fenster
   if (!H && window.BPHead && BPHead.layoutEditor) H = BPHead;
   const basis = new URL('.', location.href).href.replace(/\/$/, '');
   if (H) H.layoutEditor(basis, key, () => layKacheln());
   else location.href = 'layout#' + encodeURIComponent(key);
 }
+addEventListener('message', (e) => { if (e.data && e.data.bph === 'layoutEditorZu' && data.stab === 'druck') layKacheln(); });   // Editor im Hauptfenster geschlossen → Kacheln neu
 const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
 const stNav = () => `<div class="stnav"><h1>Büro-Einstellungen</h1><p class="mute" style="margin-top:-.4rem">Auch erreichbar in jeder App über ⚙ → Büro.</p></div><div class="bar stnav" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {

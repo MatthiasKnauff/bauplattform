@@ -120,7 +120,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .sr-split.sr-leer{grid-template-columns:minmax(0,1fr)!important}.sr-split.sr-leer>.sr-r,.sr-split.sr-leer>.sr-griff,.sr-griff[hidden]{display:none}
 .sr-griff{cursor:col-resize;align-self:stretch;border-radius:calc(4px*var(--rk,1));background:linear-gradient(90deg,transparent 7px,var(--line) 7px,var(--line) 9px,transparent 9px);min-height:200px;touch-action:none}
 .sr-griff:hover{background:linear-gradient(90deg,transparent 6px,var(--y) 6px,var(--y) 10px,transparent 10px)}
-.sr-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:calc(4px*var(--rk,1));background:var(--card,#fff) radial-gradient(circle,var(--mute) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.14)}
+.sr-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px}   /* Aussehen: head.css (alle Anfasser gleich) */
 .sr-r{position:sticky;top:8px;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px;min-width:0;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);overflow:hidden}
 .sr-split.sr-zu>.sr-r{height:auto;min-height:0;border:0;background:none;overflow:visible}
 .sr-rt{display:flex;align-items:flex-end;gap:2px;padding:.3rem .4rem 0;border-bottom:1px solid var(--line);background:var(--tabs)}

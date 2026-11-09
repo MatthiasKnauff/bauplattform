@@ -115,8 +115,8 @@ table.eigkg input{border:0;width:100%;padding:.2rem;background:transparent}
 tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
 .body.zieh-l,.body.zieh-l *,.body.zieh-r,.body.zieh-r *{cursor:col-resize!important;user-select:none!important}
 .body{position:relative}.rand-griff{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:col-resize;touch-action:none}.rand-griff[data-seite="l"]{left:calc(var(--navw,272px) - 6px)}
-.rand-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px;border-radius:calc(4px*var(--rk,1));background:var(--card,#fff) radial-gradient(circle,var(--mute) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.14)}   /* Anfasser in der Mitte – bleibt beim Scrollen im Blick */
-.rand-griff:hover::after,.body.zieh-l .rand-griff[data-seite="l"]::after,.body.zieh-r .rand-griff[data-seite="r"]::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 22%,var(--card,#fff))}
+.rand-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px}   /* Aussehen: head.css (alle Anfasser gleich) */
+.body.zieh-l .rand-griff[data-seite="l"]::after,.body.zieh-r .rand-griff[data-seite="r"]::after{border-color:var(--y);background-color:color-mix(in srgb,var(--y) 22%,var(--card,#fff))}
 @media (max-width:1100px){.rand-griff{display:none}}
 .qu[hidden]{display:none!important}   /* sonst steht die Kopierquelle auch in anderen Bereichen (display:flex schlägt hidden) */
 .sr-b>.qu{position:static;max-height:none;border-left:0;flex:1;min-height:0;grid-row:auto;grid-column:auto}   /* Kopierquelle als Reiter im Bereich rechts */
@@ -594,8 +594,7 @@ tr.am-lf td input{color:#c0621f}
 #view .am-box table.lv th{position:sticky!important;top:0!important;z-index:2}
 .am-zwei{display:flex;min-height:0;margin-top:.5rem}.am-zwei>.am-tab{flex:none;width:var(--amw,fit-content);max-width:calc(100% - 280px)}.am-zwei>.am-det{flex:1}
 .am-sch,.am-sch-h{flex:none;display:flex;align-items:center;justify-content:center;touch-action:none}.am-sch{width:12px;cursor:ew-resize}.am-sch-h{height:12px;cursor:ns-resize}
-.am-sch::before,.am-sch-h::before{content:"";border-radius:calc(2px*var(--rk,1));opacity:.55}.am-sch::before{width:3px;height:26px;background:repeating-linear-gradient(var(--mute) 0 2px,transparent 2px 4px)}.am-sch-h::before{height:3px;width:26px;background:repeating-linear-gradient(90deg,var(--mute) 0 2px,transparent 2px 4px)}
-.am-sch:hover::before,.am-sch-h:hover::before,.am-sch.on::before,.am-sch-h.on::before{opacity:1;filter:none;background-color:transparent}.am-sch:hover::before,.am-sch.on::before{background:repeating-linear-gradient(var(--y) 0 2px,transparent 2px 4px)}.am-sch-h:hover::before,.am-sch-h.on::before{background:repeating-linear-gradient(90deg,var(--y) 0 2px,transparent 2px 4px)}
+.am-sch::before,.am-sch-h::before{content:""}.am-sch::before{width:6px;height:28px}.am-sch-h::before{height:6px;width:28px;background-size:4.5px 4px!important}   /* Aussehen: head.css (alle Anfasser gleich) */
 .am-l.am-b{display:flex;flex-direction:column;gap:0!important}.am-l.am-b>.am-oben{flex:none;height:var(--amh,55%)}.am-l.am-b>.am-det{flex:1}
 @media (max-width:1100px){.am-zwei{flex-direction:column;height:auto!important}.am-zwei>.am-tab{width:auto;max-width:none}.am-sch{display:none}.am-l.am-b{height:auto!important}.am-l.am-b>.am-oben{height:auto}.am-sch-h{display:none}}
 #view .bp-feld{overflow:auto!important;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);box-sizing:border-box}   /* Hauptfeld je Bereich: rollt in sich, unten 10 px Rand, Ecken rund */

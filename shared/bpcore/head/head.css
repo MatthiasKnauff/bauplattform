@@ -124,11 +124,12 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-menu .bph-ms{display:block;color:var(--bph-mute);font-size:.76em;font-weight:400}
 .bph-menu [data-konto]{align-items:flex-start}
 .bph-menu [data-konto] svg{margin-top:.15rem}
-.bph-apps{min-width:0;width:min(440px,calc(100vw - 1.2rem));padding:.3rem .3rem .45rem}
+.bph-apps{min-width:0;width:min(600px,calc(100vw - 1.2rem));padding:.25rem .25rem .35rem}
 .bph-apps .bph-info small{color:var(--bph-mute)}
-.bph-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:.2rem;padding:0 .3rem}@media (max-width:480px){.bph-tiles{grid-template-columns:repeat(3,1fr)}}
-.bph-menu .bph-tiles a{flex-direction:column;justify-content:center;gap:.3rem;text-align:center!important;padding:.5rem .25rem!important;border-radius:calc(10px*var(--rk,1))!important;font-size:.78em;line-height:1.15;min-height:64px}   /* kompakt: 4 je Zeile */
-.bph-menu .bph-tiles a svg{width:24px;height:24px;color:var(--bph-acc)}
+.bph-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.1rem .2rem;padding:0 .25rem}@media (max-width:480px){.bph-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bph-menu .bph-tiles a{flex-direction:column;justify-content:center;gap:.5rem;text-align:left!important;padding:.38rem .5rem!important;border-radius:calc(8px*var(--rk,1))!important;font-size:.82em;line-height:1.15;min-height:0}   /* kompakt: Zeilen mit Symbol links, 3 je Reihe */
+.bph-menu .bph-tiles a{flex-direction:row!important;justify-content:flex-start!important}.bph-menu .bph-tiles a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.bph-menu .bph-tiles a svg{width:19px;height:19px;flex:none;color:var(--bph-acc)}
 /* jede App hat ihre eigene, dezente Farbe (Kacheln der Startseite und App-Umschalter) – zum schnellen Unterscheiden */
 /* gleichmäßig über den Farbkreis verteilt, damit keine zwei Apps ähnlich aussehen; die Startseite bleibt neutral */
 [data-af="aufgaben"]{--af:#e03131}[data-af="ava"]{--af:#f08c00}[data-af="baukosten"]{--af:#b5a000}[data-af="gantt"]{--af:#2f9e44}

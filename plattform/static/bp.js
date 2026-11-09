@@ -134,7 +134,16 @@ function rueckgaengig(text, fn, ms = 10000) {
   const u = { text, fn, t: Date.now() }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift();
   if (window.bpUndoHook) window.bpUndoHook(u);
   UNDO.offen = false; _undoZeigen(ms);
+  return u;
 }
+/* Für Seiten mit eigenem Verlauf (z. B. LV-Bearbeitung): Schritte leise in denselben Verlauf legen – nur der kleine Knopf „↶ n“,
+   keine Leiste bei jedem Tastendruck. art: um alle Schritte einer Sorte auf einmal zu entfernen (anderes LV geöffnet). */
+const bpUndo = {
+  push(text, fn, art = '') { const u = { text, fn, t: Date.now(), art }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); if (!UNDO.offen) _undoZeichnen(false); else _undoZeichnen(true); return u; },
+  text(u, text) { if (u) { u.text = text; u.t = Date.now(); if (UNDO.el) _undoZeichnen(UNDO.offen || !UNDO.el.classList.contains('klein')); } },
+  weg(u) { const i = u ? UNDO.s.lastIndexOf(u) : -1; if (i < 0) return; UNDO.s.splice(i, 1); _undoZeichnen(UNDO.offen || (UNDO.el && !UNDO.el.classList.contains('klein'))); },
+  wegArt(art) { const n = UNDO.s.length; UNDO.s = UNDO.s.filter((u) => u.art !== art); if (UNDO.s.length !== n) _undoZeichnen(false); },
+};
 document.addEventListener('keydown', (e) => {   // Strg+Z: neuester Schritt – nicht beim Tippen und nicht in offenen Dialogen
   if (window.BP_UNDO_EIGEN || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || (e.key || '').toLowerCase() !== 'z' || !UNDO.s.length) return;
   const t = e.target; if (t && (t.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]') || t.isContentEditable)) return;

@@ -97,7 +97,7 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
 <script>
 const LS = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* egal */ } } };
 const EMB = new URLSearchParams(location.search).has('einbetten');
-let B = location.hash.slice(1) || LS.get('lay.b', 'maengelruege'), D = null, V = null, SEL = new Set(), K = 3.2, HIST = [], REDO = [], speichT = 0;
+let B = location.hash.slice(1) || LS.get('lay.b', 'maengelruege'), D = null, V = null, SEL = new Set(), K = 3.2, HIST = [], REDO = [], LG = [], speichT = 0;   // LG: dieselben Schritte im gemeinsamen Verlauf (↶ unten)
 const ELN = { text: 'Text', feld: 'Feld', logo: 'Logo', linie: 'Linie', falzmarken: 'Falzmarken', inhalt: 'Inhalt' };
 const r1 = (v) => Math.round(v * 100) / 100;
 const ras = () => +(V && V.data.raster) || 2.5;
@@ -113,12 +113,12 @@ async function laden() {
   $('#ber').innerHTML = L.map((x) => `<option value="${x.key}"${x.key === B ? ' selected' : ''}>${esc(x.gruppe)} · ${esc(x.name)}</option>`).join('');
   if (!L.some((x) => x.key === B)) B = L[0].key;
   D = await api('api/layouts/' + B); V = D.versionen.find((x) => x.id === D.aktiv) || D.versionen[0];
-  HIST = []; REDO = []; SEL = new Set(); vl(); vars(); zeichne(); props();
+  HIST = []; REDO = []; LG = []; bpUndo.wegArt('lay'); SEL = new Set(); vl(); vars(); zeichne(); props();
 }
 function vl() {
   if (!window.BPHead || !BPHead.versionsleiste) return;
   BPHead.versionsleiste({ vor: $('#vlPlatz'), liste: D.versionen.map((x) => ({ id: x.id, name: x.name, datum: x.datum, wer: x.wer, archiviert: x.archiviert })), aktuell: V.id,
-    onWahl: async (id) => { await sofort(); D = await api('api/layouts/' + B, 'PUT', { aktiv: id }); V = D.versionen.find((x) => x.id === D.aktiv); HIST = []; SEL.clear(); vl(); zeichne(); props(); toast(`Version „${V.name}“ ist aktiv – danach wird gedruckt.`); },
+    onWahl: async (id) => { await sofort(); D = await api('api/layouts/' + B, 'PUT', { aktiv: id }); V = D.versionen.find((x) => x.id === D.aktiv); HIST = []; LG = []; bpUndo.wegArt('lay'); SEL.clear(); vl(); zeichne(); props(); toast(`Version „${V.name}“ ist aktiv – danach wird gedruckt.`); },
     onNeu: async () => { const n = await bpEingabe('Name der neuen Version (Kopie von „' + V.name + '“):', ''); if (!n) return; await sofort(); D = await api('api/layouts/' + B, 'PUT', { neu: { name: n, von: V.id } }); V = D.versionen.find((x) => x.id === D.aktiv); vl(); zeichne(); props(); },
     onUmbenennen: async () => { const n = await bpEingabe('Name der Version:', V.name); if (!n) return; D = await api('api/layouts/' + B, 'PUT', { version: V.id, name: n }); V = D.versionen.find((x) => x.id === V.id); vl(); },
     onVerlauf: () => { const b = $('#verlBtn'); b.dataset.bphVerlauf = 'bp:layout:' + B; b.click(); },
@@ -226,7 +226,7 @@ function wzUi() {
     b.disabled = a === 'undo' ? !HIST.length : a === 'redo' ? !REDO.length : ['vh', 'vv'].includes(a) ? n < 3 : ['bw', 'bh'].includes(a) ? n < 2 : !n; });
 }
 window.BP_UNDO_EIGEN = true;   // eigenes Strg+Z (Layout-Schritte)
-function merken() { HIST.push(JSON.stringify(V.data)); if (HIST.length > 80) HIST.shift(); REDO = []; }
+function merken(text = 'Layout geändert') { HIST.push(JSON.stringify(V.data)); LG.push(bpUndo.push(text, () => ausrichten('undo'), 'lay')); if (HIST.length > 80) { HIST.shift(); bpUndo.weg(LG.shift()); } REDO = []; }
 function geaendert(neuZeichnen = true) { if (neuZeichnen) zeichne(); props(); speichern(); }
 function speichern() { clearTimeout(speichT); if (window.BPHead) BPHead.versionStatus('…'); speichT = setTimeout(sofort, 700); }
 async function sofort() {
@@ -374,8 +374,8 @@ $('#bue').addEventListener('pointerdown', (ev) => {
 /* Ausrichten, Verteilen, gleiche Größe – bezogen auf die Auswahl (ein Element: auf den Satzspiegel 25–190 mm) */
 function ausrichten(a) {
   const S = E().filter((x) => SEL.has(x.id));
-  if (a === 'undo') { if (!HIST.length) return; REDO.push(JSON.stringify(V.data)); V.data = JSON.parse(HIST.pop()); return geaendert(); }
-  if (a === 'redo') { if (!REDO.length) return; HIST.push(JSON.stringify(V.data)); V.data = JSON.parse(REDO.pop()); return geaendert(); }
+  if (a === 'undo') { if (!HIST.length) return; REDO.push(JSON.stringify(V.data)); V.data = JSON.parse(HIST.pop()); bpUndo.weg(LG.pop()); return geaendert(); }
+  if (a === 'redo') { if (!REDO.length) return; HIST.push(JSON.stringify(V.data)); LG.push(bpUndo.push('Layout geändert', () => ausrichten('undo'), 'lay')); V.data = JSON.parse(REDO.pop()); return geaendert(); }
   if (!S.length) return;
   merken();
   if (a === 'del') { V.data.elemente = E().filter((x) => !SEL.has(x.id) || x.typ === 'inhalt'); SEL.clear(); return geaendert(); }
@@ -409,7 +409,7 @@ $('#fmt').onchange = (e) => { merken(); V.data.format = e.target.value; geaender
 $('#zoom').onchange = () => zeichne();
 addEventListener('resize', () => { if (!+$('#zoom').value) zeichne(); });
 $('#ber').onchange = async (e) => { await sofort(); B = e.target.value; LS.set('lay.b', B); history.replaceState(null, '', '#' + B); laden(); };
-$('#std').onclick = () => { merken(); V.data = JSON.parse(JSON.stringify(D.standard)); SEL.clear(); geaendert(); rueckgaengig('Vorgabe geladen', () => ausrichten('undo')); };
+$('#std').onclick = () => { merken('Vorgabe geladen'); V.data = JSON.parse(JSON.stringify(D.standard)); SEL.clear(); geaendert(); };
 $('#vs').onclick = async () => {
   await sofort();
   try {

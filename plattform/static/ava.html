@@ -4324,17 +4324,18 @@ async function mitUndo(el, fn, was) {
   await fn(el);
   const key = JSON.stringify(ds), top = AKT.undo[AKT.undo.length - 1], now = Date.now();
   const label = `${was}: ${alt || 'leer'} → ${neu || 'leer'}`;
-  if (top && top.key === key && now - AKT.t < 3000) { top.neu = neu; top.label = `${was}: ${top.alt || 'leer'} → ${neu || 'leer'}`; top.wieder = () => fn(proxy(neu)); }   // schnelles Weitertippen im selben Feld: ein Schritt
-  else { AKT.undo.push({ key, label, alt, neu, rueck: () => fn(proxy(alt)), wieder: () => fn(proxy(neu)) }); if (AKT.undo.length > 80) AKT.undo.shift(); }
+  if (top && top.key === key && now - AKT.t < 3000) { top.neu = neu; top.label = `${was}: ${top.alt || 'leer'} → ${neu || 'leer'}`; top.wieder = () => fn(proxy(neu)); bpUndo.text(top.g, top.label); }   // schnelles Weitertippen im selben Feld: ein Schritt
+  else { const st = { key, label, alt, neu, rueck: () => fn(proxy(alt)), wieder: () => fn(proxy(neu)) }; st.g = bpUndo.push(label, () => aktGo(-1), 'akt'); AKT.undo.push(st); if (AKT.undo.length > 80) AKT.undo.shift(); }
   AKT.t = now; AKT.redo = []; histUi();
 }
 /* Rückgängig-Verlauf der Plattform (bp.js) und der AVA zusammen: Löschen, Archivieren … stehen auch hier in Strg+Z / „↶“ */
 window.BP_UNDO_EIGEN = true;
 window.bpUndoHook = (u) => { AKT.undo.push({ key: '', label: u.text, u, rueck: async () => { UNDO.s = UNDO.s.filter((x) => x !== u); _undoZeichnen(false); await u.fn(); } }); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); };
 window.bpUndoWeg = (u) => { AKT.undo = AKT.undo.filter((x) => x.u !== u); histUi(); };
-function aktMerken(label, rueck, wieder) { AKT.undo.push({ key: '', label, rueck, wieder }); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); }
+function aktMerken(label, rueck, wieder) { const st = { key: '', label, rueck, wieder }; st.g = bpUndo.push(label, () => aktGo(-1), 'akt'); AKT.undo.push(st); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); }
 async function aktGo(dir) {
   const from = dir < 0 ? AKT.undo : AKT.redo, to = dir < 0 ? AKT.redo : AKT.undo, st = from.pop(); if (!st) return;
+  if (dir < 0) { bpUndo.weg(st.g); bpUndo.weg(st.u); } else if (!st.u) st.g = bpUndo.push(st.label, () => aktGo(-1), 'akt');
   try { await (dir < 0 ? st.rueck() : (st.wieder ? st.wieder() : Promise.resolve())); to.push(st); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${st.label}`); }
   catch (e) { toast(e.message, true); }
   histUi();
@@ -4342,17 +4343,18 @@ async function aktGo(dir) {
 function histTrack() {   // bei jeder Änderung: alten Stand merken (Tippen in einem Feld zählt als ein Schritt)
   if (!L || !L.data) return;
   const cur = JSON.stringify(L.data);
-  if (HIST.id !== L.id) { HIST = { id: L.id, last: cur, undo: [], redo: [], t: 0 }; histUi(); return; }
+  if (HIST.id !== L.id) { bpUndo.wegArt('lv'); HIST = { id: L.id, last: cur, undo: [], redo: [], t: 0 }; histUi(); return; }   // anderes LV: dessen Schritte gelten nicht mehr
   if (cur === HIST.last) return;
   const lab = HIST.next || histLabel(HIST.last, cur), top = HIST.undo[HIST.undo.length - 1], now = Date.now();
-  if (!HIST.next && top && top.label === lab && now - HIST.t < 2000) { /* schnelles Weitertippen: derselbe Schritt */ }
-  else { HIST.undo.push({ data: HIST.last, label: lab }); if (HIST.undo.length > 80) HIST.undo.shift(); }
+  if (!HIST.next && top && top.label === lab && now - HIST.t < 2000) { bpUndo.text(top.u, lab); /* schnelles Weitertippen: derselbe Schritt */ }
+  else { const st = { data: HIST.last, label: lab }; st.u = bpUndo.push(lab, () => histGo(-1), 'lv'); HIST.undo.push(st); if (HIST.undo.length > 80) { const w = HIST.undo.shift(); bpUndo.weg(w.u); } }
   HIST.next = ''; HIST.t = now; HIST.redo = []; HIST.last = cur; histUi();
 }
 function histGo(dir) {
   histTrack();
   const from = dir < 0 ? HIST.undo : HIST.redo, to = dir < 0 ? HIST.redo : HIST.undo, st = from.pop(); if (!st) return;
-  to.push({ data: HIST.last, label: st.label });
+  const neu = { data: HIST.last, label: st.label }; to.push(neu);
+  if (dir < 0) bpUndo.weg(st.u); else neu.u = bpUndo.push(st.label, () => histGo(-1), 'lv');   // gemeinsamer Verlauf (↶ unten) bleibt im Gleichschritt
   L.data = JSON.parse(st.data); HIST.last = st.data; HIST.t = 0;
   changed(true); histUi(); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${st.label}`);
 }
@@ -4362,7 +4364,7 @@ function histUi() {
     el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (!b) return; if (tab === 'tueren' && TL) tlZurueck(+b.dataset.hist > 0); else if (tab === 'lv') histGo(+b.dataset.hist); else aktGo(+b.dataset.hist); }); }
   const tl = tab === 'tueren' && TL, lvT = tab === 'lv';   // Türliste: deren Schritte · LV: Inhalt des LV · sonst: gespeicherte Feldänderungen (Angebote, Aufmaß, Rechnungen)
   const u = tl ? TLH[TLH.length - 1] : lvT ? HIST.undo[HIST.undo.length - 1] : AKT.undo[AKT.undo.length - 1], r = tl ? TLR[TLR.length - 1] : lvT ? HIST.redo[HIST.redo.length - 1] : AKT.redo[AKT.redo.length - 1];
-  el.hidden = tl ? (!u && !r) : (tab === 'tueren' || (!u && !r));
+  el.hidden = tl ? (!u && !r) : true;   // LV und Feldänderungen: gemeinsamer Verlauf (bp.js) – nur die Türliste hat noch ihre eigene Leiste
   const bu = el.querySelector('[data-hist="-1"]'), br = el.querySelector('[data-hist="1"]');
   bu.disabled = !u; bu.title = u ? `Rückgängig: ${u.label} (Strg+Z)` : 'Nichts rückgängig zu machen'; bu.textContent = u ? `↶ ${u.label}` : '↶ Rückgängig';
   br.disabled = !r; br.title = r ? `Wiederholen: ${r.label} (Strg+Y)` : 'Nichts zu wiederholen';

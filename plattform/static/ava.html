@@ -696,6 +696,9 @@ table.au-t tr.nt-zieh td:first-child{cursor:grab}
 .nta-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;margin:.6rem 0}.nta-b{border:1px solid var(--line);border-radius:8px;padding:.3rem .45rem;display:flex;flex-direction:column;gap:.1rem}.nta-b.g{border-color:#e0a030;background:color-mix(in srgb,#e0a030 8%,var(--card))}
 .nta-b small{color:var(--mute);font-size:var(--fs-s)}.nta-b input{border:0;background:transparent;font:inherit;font-weight:700;text-align:right;width:100%;padding:0;color:var(--ink)}
 .nta h4{margin:.8rem 0 .2rem;font-size:var(--fs)}.nta-u{display:flex;flex-direction:column;gap:.25rem;align-items:flex-start}.nta-u>span{display:flex;gap:.4rem;align-items:center}
+.am-modus{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .4rem}.am-modus .seg button{padding:.15rem .6rem}.am-st .pos{color:var(--ok)}.am-st .neg{color:#c0392b}
+.am-bar{position:relative;height:.6rem;border-radius:999px;background:color-mix(in srgb,var(--mute) 18%,transparent);overflow:hidden;margin:0 0 .4rem}.am-bar i{position:absolute;top:0;bottom:0}.am-bar .a{left:0;background:color-mix(in srgb,var(--ok) 45%,transparent)}.am-bar .n{background:var(--ok)}.am-bar .n.neg{background:#c0392b}
+input.am-stin{font-weight:600}
 </style>
 </head>
 <body>
@@ -2951,11 +2954,14 @@ function vAmErfassen() {
   const nav = `<div class="am-nav"><button class="btn sm" data-amstep="-1"${idx <= 0 ? ' disabled' : ''} title="vorige Position (Alt+↑)">◀ vorige</button><span class="hint">${idx + 1} von ${LI.length}</span><button class="btn sm pri" data-amstep="1"${idx < 0 || idx >= LI.length - 1 ? ' disabled' : ''} title="nächste Position (Alt+↓)">nächste ▶</button></div>`;
   const detail = `<div class="card am-d"><div class="am-dk"><h3 style="margin:0 0 .2rem">${esc(x.oz)} ${esc(x.kurz)}</h3>${nav}</div>
         <p class="hint" style="margin:0 0 .4rem">LV-Menge ${nf(x.menge)} ${esc(x.einheit)} · aufgemessen <b>${nf(sum)} ${esc(x.einheit)}</b>${x.menge ? ` (${Math.round(sum / x.menge * 100)} %)` : ''}${ep != null ? ` · ${eur(sum * ep)} zum Auftrags-EP ${nf2(ep)} €` : vergeben() ? '' : ' · noch nicht vergeben'}</p>${firma}
+        <div class="am-modus"><span class="seg" role="radiogroup" aria-label="Eingabe als"><button type="button" class="${AMSTAND ? '' : 'on'}" data-amstand="0" title="Jede Zeile ist das, was dazugekommen ist">+ Zuwachs</button><button type="button" class="${AMSTAND ? 'on' : ''}" data-amstand="1" title="Den neuen Gesamtstand tippen – die Plattform rechnet den Zuwachs aus">= Gesamtstand</button></span>
+          ${AMSTAND ? `<span class="am-st" id="amSt" data-bisher="${sum}" data-lv="${x.menge || 0}" data-eh="${esc(x.einheit)}">bisher <b>${nf(sum)} ${esc(x.einheit)}</b> – neuen Gesamtstand unten eintippen</span>` : ''}</div>
+        ${AMSTAND ? `<div class="am-bar" aria-hidden="true"><i class="a" style="width:${x.menge ? Math.min(100, sum / x.menge * 100) : 0}%"></i><i class="n" id="amBarN" style="left:${x.menge ? Math.min(100, sum / x.menge * 100) : 0}%;width:0"></i></div>` : ''}
         <table class="lv am am-ein"><thead><tr><th style="width:6.9rem" title="Datum (📅 oder tippen, z. B. 8.11.) oder freier Text, z. B. Blatt 3, KW 45">Datum / Text</th><th style="width:6.5rem" title="Ort oder Bauteil, z. B. EG Bad, Achse A–C">Ort / Bauteil</th><th>Rechenweg</th><th class="r" style="width:4.2rem">Menge</th><th style="width:1.8rem"></th></tr></thead><tbody>
         ${Z.map((a) => `<tr${a.quelle === 'beleg' ? ' class="am-lf" title="aus der PDF der Firma übernommen – prüfen"' : ''}><td class="am-dt"><input data-am="datum" data-id="${a.id}" value="${esc(amDatumZeig(a.datum))}" title="Datum (z. B. 8.11.) oder freier Text (z. B. KW 45, Okt. 2026)" autocomplete="off"><button type="button" class="am-cal" data-amcal title="Datum aus dem Kalender wählen">📅</button></td><td><input data-am="ort" data-id="${a.id}" value="${esc(a.ort)}"></td>
           <td><input data-am="formel" data-id="${a.id}" value="${esc(a.formel)}" placeholder="z. B. 2 × 3,50 × 2,75"></td><td class="r">${nf(a.menge)}</td><td><button class="ib" data-amdel="${a.id}" title="Zeile löschen">✕</button></td></tr>`).join('')}
         <tr><td class="am-dt"><input data-am-new="datum" value="${esc(amDatumZeig(((x) => (x && x[0] === new Date().toDateString() ? x[1] : ''))(LS.get('amDatum', null)) || new Date().toISOString().slice(0, 10)))}" title="Datum (z. B. 8.11.) oder freier Text (z. B. Blatt 3, KW 45) – gilt auch für die nächsten Zeilen" autocomplete="off"><button type="button" class="am-cal" data-amcal title="Datum aus dem Kalender wählen">📅</button></td><td><input data-am-new="ort" title="Ort oder Bauteil, z. B. EG Bad, Achse A–C"></td>
-          <td><input data-am-new="formel" placeholder="z. B. 2 × 3,50 × 2,75" title="Enter: speichern und nächste Position · Umschalt+Enter: speichern und weitere Zeile dieser Position"></td><td class="r" id="amPrev"></td><td></td></tr></tbody></table>
+          <td><input data-am-new="formel" placeholder="${AMSTAND ? `neuer Gesamtstand, z. B. ${nf(Math.round(sum * 1.2) || 10)}` : 'z. B. 2 × 3,50 × 2,75'}" title="${AMSTAND ? 'Gesamtstand (Zahl oder Rechenweg) – gespeichert wird der Zuwachs seit dem bisherigen Stand' : 'Enter: speichern und nächste Position · Umschalt+Enter: speichern und weitere Zeile dieser Position'}"${AMSTAND ? ' class="am-stin"' : ''}></td><td class="r" id="amPrev"></td><td></td></tr></tbody></table>
         <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-amraum="1" title="Flächen aus dem Raumbuch der Baukosten übernehmen">Aus dem Raumbuch …</button>
           <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –. <b>Enter</b> speichert und geht zur nächsten Position, <b>Umschalt+Enter</b> für eine weitere Zeile dieser Position.</span></div></div>`;
   const tab_ = `<div class="tblw"><table class="lv am"><thead><tr><th>OZ</th><th>Position</th><th class="r">LV-Menge</th><th class="r" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">Aufmaß</th><th class="r">%</th></tr></thead><tbody>${liste}<tr><td colspan="${B.length ? 7 : 6}"><button type="button" class="ib" data-amnt title="Leistung, die nicht im LV steht: kommt als Nachtrag „angemeldet“ in den Auftrag, Aufmaß gleich darunter erfassen">＋ Position (Nachtrag)</button></td></tr></tbody></table></div>`;
@@ -3285,7 +3291,17 @@ document.addEventListener('keydown', (e) => { if (tab === 'aufmass' && amAns ===
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.dataset && e.target.dataset.amNew != null) { e.preventDefault(); amNeu(e.target, true, !e.shiftKey); }
 });
-document.addEventListener('input', (e) => { if (e.target.dataset && e.target.dataset.amNew === 'formel') { const v = formel(e.target.value); const p = $('#amPrev'); if (p) p.textContent = v != null ? nf(v) : ''; } });
+document.addEventListener('input', (e) => { if (e.target.dataset && e.target.dataset.amNew === 'formel') { const v = formel(e.target.value); const p = $('#amPrev');
+  const st = $('#amSt');
+  if (st) {   // Gesamtstand: Zuwachs = neu − bisher
+    const b = +st.dataset.bisher, lv = +st.dataset.lv, eh = st.dataset.eh, z = v != null ? Math.round((v - b) * 1000) / 1000 : null;
+    if (p) p.textContent = z != null ? (z > 0 ? '+' : '') + nf(z) : '';
+    st.innerHTML = z == null ? `bisher <b>${nf(b)} ${esc(eh)}</b> – neuen Gesamtstand unten eintippen` : `bisher ${nf(b)} → <b class="${z < 0 ? 'neg' : 'pos'}">Zuwachs ${z > 0 ? '+' : ''}${nf(z)} ${esc(eh)}</b>${lv ? ` · jetzt ${Math.round(v / lv * 100)} %` : ''}`;
+    const n = $('#amBarN'); if (n && lv) { const a0 = Math.min(100, b / lv * 100), a1 = Math.min(100, Math.max(0, (v ?? b) / lv * 100)); n.style.left = Math.min(a0, a1) + '%'; n.style.width = Math.abs(a1 - a0) + '%'; n.classList.toggle('neg', (v ?? b) < b); }
+    return; }
+  if (p) p.textContent = v != null ? nf(v) : ''; } });
+let AMSTAND = LS.get('am.stand', false);
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-amstand]'); if (!b) return; AMSTAND = b.dataset.amstand === '1'; LS.set('am.stand', AMSTAND); render(); setTimeout(() => { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); }, 30); });
 let amBusy = false;
 /* Enter: speichern und zur nächsten Position (leeres Feld: nur weiter) · Umschalt+Enter: speichern, weitere Zeile derselben Position */
 function amWeiter() {
@@ -3314,7 +3330,14 @@ async function amNeu(el, enter, weiter) {
   const f = $('[data-am-new="formel"]').value.trim(); if (!f) { if (weiter) amWeiter(); return; }
   amBusy = true; setTimeout(() => { amBusy = false; }, 800);
   if (formel(f) == null) { toast('Rechenweg nicht verständlich – bitte nur Zahlen, × / + – und Klammern.', true); return; }
-  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: (LS.set('amDatum', [new Date().toDateString(), amDatumWert($('[data-am-new="datum"]').value)]), amDatumWert($('[data-am-new="datum"]').value)), ort: $('[data-am-new="ort"]').value, formel: f });
+  let fx = f;
+  if (AMSTAND) {   // Gesamtstand → Zuwachs-Zeile „Stand − bisher“
+    const bisher = (L.calc.aufmass || {})[amPos] || 0, neu = formel(f), z = Math.round((neu - bisher) * 1000) / 1000;
+    if (Math.abs(z) < 1e-9) { toast('Gleich wie bisher – nichts einzutragen.'); if (weiter) amWeiter(); return; }
+    if (z < 0 && !(await bpFrage(`Der neue Stand (${nf(neu)}) ist kleiner als bisher (${nf(bisher)}).\nEs wird eine Minus-Zeile ${nf(z)} eingetragen.`, { ok: 'Minus-Zeile eintragen' }))) return;
+    fx = `${/^[\d.,\s]+$/.test(f) ? f : '(' + f + ')'} - ${String(bisher).replace('.', ',')}`;
+  }
+  try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: (LS.set('amDatum', [new Date().toDateString(), amDatumWert($('[data-am-new="datum"]').value)]), amDatumWert($('[data-am-new="datum"]').value)), ort: $('[data-am-new="ort"]').value, formel: fx });
     if (weiter) amWeiter(); else { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); } } catch (er) { toast(er.message, true); }
 }
 /* Aufmaß-Datum: Datum oder freier Text – „8.11.“ / „08.11.2026“ wird als Datum gespeichert, alles andere wie getippt */

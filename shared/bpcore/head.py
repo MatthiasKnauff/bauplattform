@@ -366,7 +366,8 @@ def blueprint(get_user=None):
         if request.method == "GET":
             with db.tx() as c:
                 pr = konto.prefs(c, u["id"])
-                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")))
+                return jsonify(theme=sso.theme_of(u) or "dunkel", accent=u["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")),
+                               schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""))
         d = request.get_json(silent=True) or {}
         sets, args = [], []
         if "theme" in d:
@@ -390,9 +391,17 @@ def blueprint(get_user=None):
                 konto.set_prefs(c, u["id"], {"modus": str(d.get("modus") or "")}, u["name"])
             if "ki_immer" in d:
                 konto.set_prefs(c, u["id"], {"ki_immer": bool(d.get("ki_immer"))}, u["name"])
+            from .platform import SCHRIFTEN, GROESSEN   # Schrift und Schriftgröße je Benutzer (⚙ → Für mich → Darstellung)
+            if "schrift" in d:
+                k = str(d.get("schrift") or "").strip().lower()
+                konto.set_prefs(c, u["id"], {"schrift": k if k in SCHRIFTEN else ""}, u["name"])
+            if "schrift_g" in d:
+                k = str(d.get("schrift_g") or "").strip().lower()
+                konto.set_prefs(c, u["id"], {"schrift_g": k if k in GROESSEN else ""}, u["name"])
             r = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
             pr = konto.prefs(c, u["id"])
-        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")))
+        return jsonify(ok=True, theme=sso.theme_of(r) or "dunkel", accent=r["accent"] or "", farbschema=pr.get("farbschema", ""), modus=_modus(c, pr), ki_immer=bool(pr.get("ki_immer")),
+                       schrift=pr.get("schrift", ""), schrift_g=pr.get("schrift_g", ""))
 
     def _modus(c, pr):
         """Ansicht des Benutzers: eigene Wahl, sonst Vorgabe des Büros (Einstellung modus_standard), sonst profi."""

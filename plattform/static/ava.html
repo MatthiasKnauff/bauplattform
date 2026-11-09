@@ -181,8 +181,17 @@ tr.lang.drop td{outline:2px dashed var(--y);outline-offset:-3px}
 .stat{display:flex;gap:.25rem;flex-wrap:wrap;align-items:center;font-size:var(--fs-s2)}
 .stat button{border:1px solid var(--line);border-radius:999px;padding:.1rem .6rem;color:var(--mute);font-size:var(--fs-s2)}
 .stat button.on{border-color:var(--y);color:var(--ink);font-weight:600}
-.kpi{display:flex;flex-wrap:wrap;gap:.35rem .5rem;margin:0 0 .6rem}
-.kpi div{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.25rem .6rem;font-size:var(--fs-s2)}
+.kz{flex-basis:100%;display:flex;align-items:center;min-width:0;gap:0}   /* zweite Kopfzeile: Kennzahlen links, Befehle rechts, dazwischen ein Schieber */
+.kpi{display:flex;flex-wrap:nowrap;gap:.35rem;margin:0;flex:0 1 auto;min-width:0;overflow:hidden}
+.kpi div{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.25rem .6rem;font-size:var(--fs-s2);flex:0 1 auto;display:flex;align-items:baseline;white-space:nowrap;overflow:hidden;cursor:grab;user-select:none}
+.kpi div small{flex:0 1 auto;min-width:1.4em;overflow:hidden;text-overflow:ellipsis}.kpi div b{flex:none}.kpi div .sub{flex:0 100 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:pre}   /* der Betrag bleibt immer ganz – gekürzt wird erst der Zusatz, dann die Beschriftung */
+.kpi div.zieh{opacity:.35}.kpi div.ziel-l{box-shadow:inset 3px 0 0 var(--y)}.kpi div.ziel-r{box-shadow:inset -3px 0 0 var(--y)}
+.kz .ph-akt{flex:none;min-width:0;justify-content:flex-end}.kz.fest .ph-akt{flex:1 1 0}.kz.fest .kpi{flex:none}
+.kz-sch{flex:none;width:11px;align-self:stretch;margin:0 .35rem;cursor:ew-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
+.kz-sch::before{content:"";width:3px;height:20px;border-radius:2px;background:repeating-linear-gradient(var(--mute) 0 2px,transparent 2px 4px);opacity:.55}
+.kz-sch:hover::before,.kz-sch.on::before{background:repeating-linear-gradient(var(--y) 0 2px,transparent 2px 4px);opacity:1}
+.kpi[hidden]+.kz-sch{display:none}
+@media (max-width:860px){.kz-sch{display:none}.kpi{flex-wrap:wrap}}
 .kpi small{color:var(--mute);font-size:var(--fs-s);margin-right:.3rem}
 .kpi b{font-variant-numeric:tabular-nums}
 .kpi .sub{font-size:var(--fs-s);color:var(--mute)}
@@ -518,7 +527,7 @@ tr.am-lf td input{color:#c0621f}
 .pj-del:hover{border-color:#e02424}.nav #pjTree .pj-r:hover .pj-del,.nav #pjTree .pj-r.on .pj-del{display:block}.nav #pjTree .pj-r:hover .v,.nav #pjTree .pj-r.on:has(.pj-del) .v{visibility:hidden}
 @media (pointer:coarse){.pj-del{display:none!important}}
 
-.nav .nfuss{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.7rem}
+.nav .nfuss{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.7rem;position:sticky;bottom:0;background:var(--card);padding:.3rem 0 .1rem}   /* bleibt sichtbar, auch wenn die Leiste rollt */
 .nav .nfuss .ava-drop{margin:0;padding:.5rem .3rem;font-size:var(--fs-s2)}.nav .nfuss .ava-drop small{display:none}
 .nav .nfuss .ava-ein{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;text-align:center;border-style:solid;border-width:2px;border-color:var(--line);border-radius:10px;font-size:var(--fs-s2);color:var(--mute)}
 .nav .nfuss .ava-ein b{color:var(--ink)}.nav .nfuss .ava-ein .nz{font-size:var(--fs-s);padding:0 .45rem;border-radius:999px;background:var(--y);color:#fff}
@@ -658,8 +667,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
     <aside class="nav" id="navL" aria-label="Projekt"><div class="nsuche" id="nsuche"></div><div id="tabs"></div></aside>
     <section class="pane">
       <div class="utb" id="utb" role="tablist" aria-label="Bereiche des Schritts"></div>
-      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><span id="phFirma" class="ph-firma" hidden></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span><span class="ph-akt" id="phAkt"></span></div>
-      <div class="kpi" id="kpi"></div>
+      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><span id="phFirma" class="ph-firma" hidden></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span><div class="kz"><div class="kpi" id="kpi"></div><span class="kz-sch" title="Ziehen: mehr Platz für Kennzahlen oder Befehle · Doppelklick: Standard" aria-hidden="true"></span><span class="ph-akt" id="phAkt"></span></div></div>
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
     <aside class="qu" id="quelle" hidden aria-label="Kopierquelle"></aside>
@@ -926,7 +934,7 @@ function uLeiste() {
 function uEng() {   // passt die Leiste nicht mehr in die Titelzeile, klappen die Befehle ins ⋯-Menü
   const ph = document.querySelector('.ph'), u = document.querySelector('#phAkt .uakt'); if (!ph || !u) return;
   u.classList.remove('eng');
-  const pa = document.querySelector('#phAkt'), zu = innerWidth <= (u.classList.contains('viele') ? 1150 : 1100) || u.scrollWidth > pa.clientWidth + 2 || ph.scrollWidth > ph.clientWidth + 2 || u.offsetWidth > ph.clientWidth;   // statt nur Symbolen: Befehle im Menü
+  const pa = document.querySelector('#phAkt'), zu = innerWidth <= (u.classList.contains('viele') ? 1150 : 1100) || u.scrollWidth > pa.clientWidth + 2 || ph.scrollWidth > ph.clientWidth + 2 || u.offsetWidth > ph.clientWidth || (() => { const kz = document.querySelector('.kz'); return kz && kz.scrollWidth > kz.clientWidth + 2; })();   // statt nur Symbolen: Befehle im Menü
   u.classList.toggle('eng', !!zu);
   if (!ph._ro) { let tm = 0; ph._ro = new ResizeObserver(() => { clearTimeout(tm); tm = setTimeout(uEng, 120); }); ph._ro.observe(ph); }
   if (!window._uEngR) { window._uEngR = 1; let tm2 = 0; addEventListener('resize', () => { clearTimeout(tm2); tm2 = setTimeout(uEng, 150); }); }
@@ -1043,14 +1051,39 @@ function kpis() {
   if (!L) { $('#kpi').innerHTML = ''; $('#stat').innerHTML = ''; return; }
   const K = L.calc, best = K.angebote.filter((a) => a.summe).sort((a, b) => a.netto - b.netto)[0], bA = best && L.angebote.find((a) => a.id === best.id);
   const nt = K.nachtraege, ges = K.auftrag + nt.beauftragt;
-  $('#kpi').innerHTML = `<div><small>Schätzung</small><b>${eur0(K.schaetzung)}</b>${K.ohne_schaetzung ? `<span class="sub"> · ${K.ohne_schaetzung} Pos. ohne Preis</span>` : ''}</div>
-    <div><small>Bestes Angebot</small><b>${best ? eur0(best.netto) : '–'}</b><span class="sub">${bA ? ' · ' + esc(bA.bieter) : L.angebote.length ? '' : ' · noch keine'}</span></div>
-    <div><small>Auftrag${L.vergabe.bieter ? ' · ' + esc(L.vergabe.bieter) : ''}</small><b>${aufgehoben() ? '⏸ aufgehoben' : L.vergabe.preise ? eur0(K.auftrag) : '–'}</b>${vergeben() && K.schaetzung ? `<span class="sub"> · ${Math.round((K.auftrag / K.schaetzung - 1) * 100)} % zur Schätzung</span>` : ''}</div>
-    <div><small>Nachträge beauftragt</small><b>${nt.beauftragt ? eur0(nt.beauftragt) : '–'}</b>${nt.angemeldet ? `<span class="sub"> · angemeldet ${eur0(nt.angemeldet)}</span>` : ''}</div>
-    <div><small>Leistungsstand</small><b>${K.leistung ? eur0(K.leistung) : '–'}</b>${ges && K.leistung ? `<span class="sub"> · ${Math.round(K.leistung / ges * 100)} %</span>` : ''}</div>
-    <div><small>abgerechnet</small><b>${K.abgerechnet ? eur0(K.abgerechnet) : '–'}</b></div>`;
+  const KZ = {};   // je Kennzahl ein Kästchen – Reihenfolge per Ziehen, je Browser gemerkt
+  KZ.sch = `<small>Schätzung</small><b>${eur0(K.schaetzung)}</b>${K.ohne_schaetzung ? `<span class="sub"> · ${K.ohne_schaetzung} Pos. ohne Preis</span>` : ''}`;
+  KZ.best = `<small>Bestes Angebot</small><b>${best ? eur0(best.netto) : '–'}</b><span class="sub">${bA ? ' · ' + esc(bA.bieter) : L.angebote.length ? '' : ' · noch keine'}</span>`;
+  KZ.auf = `<small>Auftrag</small><b>${aufgehoben() ? '⏸ aufgehoben' : L.vergabe.preise ? eur0(K.auftrag) : '–'}</b>${vergeben() && K.schaetzung ? `<span class="sub"> · ${Math.round((K.auftrag / K.schaetzung - 1) * 100)} % zur Schätzung</span>` : ''}`;
+  KZ.nt = `<small>Nachträge beauftragt</small><b>${nt.beauftragt ? eur0(nt.beauftragt) : '–'}</b>${nt.angemeldet ? `<span class="sub"> · angemeldet ${eur0(nt.angemeldet)}</span>` : ''}`;
+  KZ.leist = `<small>Leistungsstand</small><b>${K.leistung ? eur0(K.leistung) : '–'}</b>${ges && K.leistung ? `<span class="sub"> · ${Math.round(K.leistung / ges * 100)} %</span>` : ''}`;
+  KZ.abg = `<small>abgerechnet</small><b>${K.abgerechnet ? eur0(K.abgerechnet) : '–'}</b>`;
+  const ord = LS.get('kzOrd', []), keys = Object.keys(KZ).sort((a, b) => { const ia = ord.indexOf(a), ib = ord.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
+  $('#kpi').innerHTML = keys.map((k) => `<div draggable="true" data-kz="${k}" title="${esc(KZ[k].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())} – zum Umsortieren ziehen">${KZ[k]}</div>`).join('');
+  requestAnimationFrame(() => { document.querySelectorAll('#kpi > div').forEach((d) => { const b = d.querySelector('b'); d.style.minWidth = b ? Math.ceil(b.getBoundingClientRect().width + 44) + 'px' : ''; }); if (typeof uEng === 'function') uEng(); });   // der Betrag bleibt immer ganz
   $('#stat').innerHTML = '<span class="hint">Stand:</span>' + STATUS.map(([k, l]) => `<button type="button" data-status="${k}" class="${L.status === k ? 'on' : ''}">${l}</button>`).join('');
 }
+/* Kennzahlen im Kopf: Reihenfolge einfach durch Ziehen ändern (ohne Bearbeiten-Modus), Schieber teilt den Platz mit den Befehlen */
+(() => {
+  let zk = null;
+  const kpiEl = () => document.getElementById('kpi');
+  document.addEventListener('dragstart', (e) => { const d = e.target.closest && e.target.closest('#kpi > div[data-kz]'); if (!d) return; zk = d.dataset.kz; d.classList.add('zieh'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', zk); } catch { /* egal */ } });
+  const weg = () => document.querySelectorAll('#kpi > div').forEach((x) => x.classList.remove('zieh', 'ziel-l', 'ziel-r'));
+  document.addEventListener('dragover', (e) => { if (!zk) return; const d = e.target.closest && e.target.closest('#kpi > div[data-kz]'); if (!d) return; e.preventDefault(); const r = d.getBoundingClientRect(), re = e.clientX > r.left + r.width / 2; document.querySelectorAll('#kpi > div').forEach((x) => x.classList.remove('ziel-l', 'ziel-r')); if (d.dataset.kz !== zk) d.classList.add(re ? 'ziel-r' : 'ziel-l'); });
+  document.addEventListener('drop', (e) => { if (!zk) return; const d = e.target.closest && e.target.closest('#kpi > div[data-kz]'); if (!d) return; e.preventDefault(); e.stopPropagation();
+    const r = d.getBoundingClientRect(), re = e.clientX > r.left + r.width / 2, k = [...kpiEl().children].map((x) => x.dataset.kz).filter((x) => x !== zk);
+    if (d.dataset.kz !== zk) { k.splice(k.indexOf(d.dataset.kz) + (re ? 1 : 0), 0, zk); LS.set('kzOrd', k); const ch = Object.fromEntries([...kpiEl().children].map((x) => [x.dataset.kz, x])); k.forEach((x) => kpiEl().appendChild(ch[x])); }
+    weg(); zk = null; }, true);
+  document.addEventListener('dragend', () => { if (zk) { weg(); zk = null; } });
+  const setz = (w) => { const kz = document.querySelector('.kz'), kp = kpiEl(); if (!kz || !kp) return; if (w) { kz.classList.add('fest'); kp.style.width = w + 'px'; } else { kz.classList.remove('fest'); kp.style.width = ''; } if (typeof uEng === 'function') uEng(); };
+  const init = () => { const sch = document.querySelector('.kz-sch'); if (!sch) return; setz(LS.get('kzw', 0));
+    sch.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; e.preventDefault(); sch.setPointerCapture(e.pointerId); sch.classList.add('on');
+      const kz = document.querySelector('.kz'), x0 = e.clientX, w0 = kpiEl().getBoundingClientRect().width;
+      sch.onpointermove = (m) => setz(Math.round(Math.max(110, Math.min(kz.clientWidth - 160, w0 + m.clientX - x0))));
+      sch.onpointerup = () => { sch.onpointermove = null; sch.classList.remove('on'); LS.set('kzw', parseInt(kpiEl().style.width, 10) || 0); }; });
+    sch.addEventListener('dblclick', () => { LS.set('kzw', 0); setz(0); }); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
 /* ---------- Ein Ablagefeld für die ganze AVA: Datei erkennen (Art, Firma, Projekt, LV), nachfragen, an die richtige Stelle ---------- */
 const DOKN = { angebot: 'Angebot', rechnung: 'Rechnung', aufmass: 'Aufmaß', lv: 'Leistungsverzeichnis (Muster-LV)', buergschaft: 'Bürgschaft (Sicherheit)' };
 async function avaDokumente(files) { for (const f of [...files]) { const ok = await avaDokument(f); if (ok === false) break; } }
@@ -4568,6 +4601,17 @@ function auHoehe() {
   if (zuviel > 0) { w.style.maxHeight = Math.max(240, parseFloat(w.style.maxHeight) - zuviel) + 'px'; if (re && re.style.maxHeight) re.style.maxHeight = Math.max(240, parseFloat(re.style.maxHeight) - zuviel) + 'px'; }
 }
 addEventListener('resize', () => requestAnimationFrame(auHoehe));
+/* Unten derselbe kleine Rand wie oben: die Bäume links (LV/Angebote/Rechnungen) enden 10 px über dem Fensterrand und rollen in sich */
+function randUnten() {
+  document.querySelectorAll('#view .re2-baum, #view .pj').forEach((el) => {
+    const cs = getComputedStyle(el); if (cs.position !== 'sticky') { el.style.maxHeight = ''; return; }
+    const top = Math.max(el.getBoundingClientRect().top, parseFloat(cs.top) || 0);
+    el.style.maxHeight = Math.max(200, Math.floor(innerHeight - top - 10)) + 'px';
+  });
+}
+{ let t = 0; const los = () => { if (!t) t = requestAnimationFrame(() => { t = 0; randUnten(); }); };
+  addEventListener('scroll', los, { passive: true }); addEventListener('resize', los);
+  const v = document.getElementById('view'); if (v) new MutationObserver(los).observe(v, { childList: true, subtree: true }); }
 /* Aufträge: Bereich rechts (Summen, Bedingungen, Sicherheiten) ein- und ausblenden – Knopf oben „Details aus/ein“, gemerkt im Browser */
 let AUDET = LS.get('au.det', true) !== false;
 function auDetails() { AUDET = !AUDET; LS.set('au.det', AUDET); render(); }

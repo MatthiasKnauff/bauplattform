@@ -17,6 +17,7 @@ STANDARD = {"versand": "pdf",        # Mängel-/Terminrüge: pdf | mich (an mich
             "ki_immer": False,       # gewählte KI ohne Nachfrage verwenden (sonst fragen die Apps beim Lesen mit KI)
             "modus": "",             # Ansicht: einfach | profi; leer = Vorgabe des Büros (Einstellung modus_standard, sonst profi)
             "farbschema": "",        # Farbschema der Oberfläche (head.js SCHEMEN), leer = Standard (nur Hell/Dunkel)
+            "schrift": "", "schrift_g": "",   # Schrift und Schriftgröße der Oberfläche (⚙ → Für mich → Darstellung), leer = Vorgabe
             "pdb_preis": "",         # Preis beim Übernehmen aus den Baudaten: leer = fragen | mittel | von | bis | eigen_median | eigen_neu
             "absender": "buero",     # Absender meiner Mails: buero (Absenderadresse des Büros) | eigen (meine E-Mail-Adresse)
             "hinweise_aus": []}      # Hinweisfenster, die nicht mehr erscheinen sollen (z. B. „baukosten“)
@@ -55,6 +56,10 @@ def set_prefs(c, uid, d, by=""):
         p["farbschema"] = d["farbschema"]
     if "ki_immer" in d:
         p["ki_immer"] = bool(d["ki_immer"])
+    if d.get("schrift") in ("", "ubuntu", "system", "arial", "verdana", "calibri", "georgia"):   # Schrift der Oberfläche (leer = Vorgabe)
+        p["schrift"] = d["schrift"]
+    if d.get("schrift_g") in ("", "klein", "normal", "gross"):
+        p["schrift_g"] = d["schrift_g"]
     if d.get("modus") in ("", "einfach", "profi"):
         p["modus"] = d["modus"]
     if d.get("absender") in ("buero", "eigen"):

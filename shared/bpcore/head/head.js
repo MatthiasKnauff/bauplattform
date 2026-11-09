@@ -382,7 +382,7 @@
     Object.entries(W).forEach(([v, x]) => root.style.setProperty(v, x));
   }
   H.schemaAnwenden = schemaAnwenden;
-  /* Schrift der Oberfläche: Büro-Einstellung (Verwaltung → Firmendaten), gilt in allen Apps; bis die Antwort da ist, die zuletzt gemerkte */
+  /* Schrift der Oberfläche: je Benutzer unter ⚙ → Für mich → Darstellung (früher eine Büro-Einstellung – die gilt noch als Vorgabe); bis die Antwort da ist, die zuletzt gemerkte */
   const SCHRIFT = { ubuntu: '', system: 'system-ui,"Segoe UI",-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif', arial: 'Arial,Helvetica,sans-serif', verdana: 'Verdana,Geneva,sans-serif',
     calibri: 'Calibri,Carlito,"Segoe UI",system-ui,sans-serif', georgia: 'Georgia,"Times New Roman",serif' };
   const GROESSE = { klein: '12px', normal: '', gross: '14.5px' };   // Schriftgröße der Apps (--bp-fs; die AVA leitet alle Größen davon ab)
@@ -417,13 +417,18 @@
       ${SCHEMEN.map(([g, L]) => `<div class="bph-info" style="padding:.5rem 0 .3rem">${esc(g)}</div><div class="bph-skg">${L.map(karte).join('')}</div>`).join('')}
       <div class="bph-info" style="padding:.5rem 0 .3rem">Akzentfarbe${fs ? ' <small>(das Schema bringt eine passende mit – hier änderbar)</small>' : ''}</div>
       <div class="bph-sw">${ACCENTS.map(([c, n]) => `<button type="button" class="${c === a ? 'on' : ''}" style="background:${c}" data-acc="${c}" title="${n}" aria-label="${n}"></button>`).join('')}
-        <label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}" data-accc></label></div>`;
+        <label class="${ACCENTS.some((x) => x[0] === a) ? '' : 'on'}" title="Eigene Farbe"><input type="color" value="${esc(a)}" data-accc></label></div>
+      <div class="bph-info" style="padding:.5rem 0 .3rem">Schrift</div><div class="bph-lk">${SCHRIFT_N.map(([k, n]) => `<button type="button" class="bph-th${k === sAkt() ? ' on' : ''}" data-sf="${k}" style="font-family:${SCHRIFT[k] || 'Ubuntu,system-ui,sans-serif'}">${esc(n)}</button>`).join('')}</div>
+      <div class="bph-info" style="padding:.5rem 0 .3rem">Schriftgröße</div><div class="bph-lk">${[['klein', 'klein', '12px'], ['normal', 'normal', '13px'], ['gross', 'groß', '14.5px']].map(([k, n, px]) => `<button type="button" class="bph-th${k === gAkt() ? ' on' : ''}" data-sg="${k}" style="font-size:${px}">${n}</button>`).join('')}</div>`;
   };
+  const SCHRIFT_N = [['ubuntu', 'Ubuntu'], ['system', 'Systemschrift'], ['arial', 'Arial'], ['verdana', 'Verdana'], ['calibri', 'Calibri'], ['georgia', 'Georgia']];
+  const sAkt = () => (H.me && H.me.schrift) || (H.conf && H.conf.schrift) || 'ubuntu', gAkt = () => (H.me && H.me.schrift_g) || (H.conf && H.conf.schrift_groesse) || 'normal';
   function lookWire(m, redraw) {
     m.addEventListener('click', (e) => {
       const th = e.target.closest('[data-th]'), ac = e.target.closest('[data-acc]');
-      const fs = e.target.closest('[data-fs]');
-      if (th || ac || fs) e.stopPropagation();
+      const fs = e.target.closest('[data-fs]'), sf = e.target.closest('[data-sf]'), sg = e.target.closest('[data-sg]');
+      if (th || ac || fs || sf || sg) e.stopPropagation();
+      if (sf || sg) { saveLook(sf ? { schrift: sf.dataset.sf } : { schrift_g: sg.dataset.sg }, redraw); return; }   // Schrift und Größe: je Benutzer
       if (fs) { const S = SCH[fs.dataset.fs]; saveLook({ theme: S[3], accent: S[5], farbschema: S[0] }, redraw); }
       else if (th) saveLook({ theme: th.dataset.th, farbschema: '' }, redraw); else if (ac) saveLook({ accent: ac.dataset.acc }, redraw);
     });
@@ -441,7 +446,8 @@
     try {
       const r = await fetch('api/bp/darstellung', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then((x) => x.json());
       if (r.error) throw new Error(r.error);
-      H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent, farbschema: r.farbschema || '' });
+      H.me = Object.assign(H.me || {}, { theme: r.theme, accent: r.accent, farbschema: r.farbschema || '', schrift: r.schrift || '', schrift_g: r.schrift_g || '' });
+      schriftAnwenden(sAkt(), gAkt());
       schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ }
       setTimeout(eigeneFarben, 50);
       if (typeof window.applyLook === 'function') window.applyLook(H.me); else lookDirty = true;
@@ -556,7 +562,7 @@
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
-      if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
+      if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});
       H.projekt = pj && pj.id ? pj : null; kopfProjekt();
       if (ki) { H.ki = ki.choice || 'intern'; H.providers = ki.providers || []; }
       const portal = (conf.apps || []).find((a) => a.key === 'portal');
@@ -1429,7 +1435,6 @@
   H.einstellungenSchliessen = () => { if (dr) dr.close(); };
   const BUERO = [
     ['firma', 'Firma & Logo', 'Name, Anschrift, Logo und Briefbogen für Briefe und Mails'],
-    ['darstellung', 'Darstellung', 'Schrift und Schriftgröße für alle, Ansicht Einfach/Profi als Vorgabe'],
     ['ablage', 'Ablage', 'Dateiserver (Projektordner), Zugang'],
     ['mail', 'Mailserver', 'Postfach, über das die Plattform Mails verschickt'],
     ['druck', 'Druck-Layouts', 'Wo steht was auf den PDFs (Rügen …) – Editor mit Raster und Versionen'],
@@ -1509,7 +1514,7 @@
           zeichne(); return;
         }
         if (teil === 'look') {
-          B.innerHTML = '<h4>Darstellung</h4><p class="bph-mu">Farbschema und Akzentfarbe – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>';
+          B.innerHTML = '<h4>Darstellung</h4><p class="bph-mu">Farbschema, Akzentfarbe, Schrift und Schriftgröße – gelten für dich in allen Apps und auf allen Geräten.</p><div class="bph-lookp"></div>';
           const lp = B.querySelector('.bph-lookp'); const re = () => { lp.innerHTML = lookHtml(); }; re(); lookWire(lp, re);
         } else { const host = document.createElement('div'); B.appendChild(host); H.konto({ into: host, tab: 'konto', nurKonto: true }); }
         return;

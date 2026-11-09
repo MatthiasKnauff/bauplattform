@@ -200,7 +200,12 @@ function pickMenu(anchor, opt) {
   const m = document.createElement('div'); m.className = 'pickm'; m.setAttribute('role', 'listbox');
   m.innerHTML = (opt.search ? `<div class="pm-q"><input type="search" placeholder="${esc(opt.search)}" autocomplete="off" aria-label="Suchen"></div>` : '') + '<div class="pm-l"></div>' + (opt.footer ? `<div class="pm-f">${opt.footer}</div>` : '');
   document.body.appendChild(m); anchor.setAttribute('aria-expanded', 'true');
-  const place = () => { const r = anchor.getBoundingClientRect(); m.style.top = Math.min(r.bottom + 6, innerHeight - 120) + 'px'; m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px'; };
+  const place = () => {   // immer ganz lesbar: unten, wenn Platz ist, sonst über dem Knopf – höchstens so hoch wie der Platz dort
+    const r = anchor.getBoundingClientRect(); m.style.maxHeight = ''; m.style.bottom = ''; m.style.top = '0px';
+    const h = m.offsetHeight, unten = innerHeight - r.bottom - 14, oben = r.top - 14;
+    if (h <= unten || unten >= oben) { m.style.top = (r.bottom + 6) + 'px'; if (h > unten) m.style.maxHeight = Math.max(120, unten) + 'px'; }
+    else { m.style.top = ''; m.style.bottom = (innerHeight - r.top + 6) + 'px'; if (h > oben) m.style.maxHeight = Math.max(120, oben) + 'px'; }
+    m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px'; };
   let act = -1, shown = [];
   const close = () => { m.remove(); anchor.setAttribute('aria-expanded', 'false'); document.removeEventListener('pointerdown', off, true); removeEventListener('resize', place); };
   const off = (e) => { if (!m.contains(e.target) && !anchor.contains(e.target)) close(); };

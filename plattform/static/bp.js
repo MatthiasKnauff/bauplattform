@@ -99,56 +99,80 @@ function modalBox(html, onClick) {
    Leiste unten (10 s): neuester Schritt, Anzahl, „↶ Rückgängig“, ▴ Verlauf (bis zu einem Schritt zurück).
    Danach bleibt an derselben Stelle ein kleiner Knopf „↶ n“. Strg+Z außerhalb von Eingabefeldern nimmt den neuesten Schritt zurück
    (Seiten mit eigenem Strg+Z setzen window.BP_UNDO_EIGEN). Neu laden der Seite: Verlauf weg – Gelöschtes liegt im Papierkorb. */
-const UNDO = { s: [], t: 0, offen: false, busy: false, el: null };
+const UNDO = { s: [], r: [], t: 0, offen: false, busy: false, el: null };   // s: Schritte zurück · r: Schritte zum Wiederholen
 const UNDO_MAX = 50;
-function _undoAlter(t) { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'gerade' : m < 60 ? `vor ${m} Min.` : `vor ${Math.round(m / 60)} Std.`; }
+function _undoAlter(t) { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'gerade' : m < 60 ? `${m} Min.` : `${Math.round(m / 60)} Std.`; }
+function _undoIc(u) { const t = (u.text || '').toLowerCase();   // Symbol je Art des Schritts
+  return u.ic || (/gelöscht|papierkorb|entfernt|verworfen/.test(t) ? '🗑' : /eingefügt|angelegt|hinzugef|neu |übernommen|eingesetzt/.test(t) ? '＋' : /verschoben|eingerückt|ausgerückt|umsortiert/.test(t) ? '⇥' : /archiv|ausgeblendet/.test(t) ? '▣' : '✎'); }
+// Wiederholen: Seiten mit eigenem Verlauf (AVA, Druck-Layouts) melden sich über window.bpRedo = { kann(), los() }; sonst Schritte mit u.wieder
+const _redoKann = () => (window.bpRedo && window.bpRedo.kann ? window.bpRedo.kann() : UNDO.r.length > 0);
 function _undoZeichnen(kurz) {
-  let el = UNDO.el; const n = UNDO.s.length;
-  if (!n) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; return; }
+  let el = UNDO.el; const n = UNDO.s.length, rk = _redoKann();
+  if (!n && !rk) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; return; }
   if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo'; el.setAttribute('role', 'status'); document.body.appendChild(el);
-    el.addEventListener('click', _undoKlick); }
+    el.addEventListener('click', _undoKlick); el.addEventListener('mouseover', _undoHover); el.addEventListener('mouseout', _undoHover); }
   const top = UNDO.s[n - 1], klein = !kurz && !UNDO.offen;
   el.classList.toggle('klein', klein);
-  el.innerHTML = klein ? `<button type="button" class="bp-undo-chip" data-u="auf" title="Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'} (Strg+Z)">↶ ${n}</button>`
-    : `${UNDO.offen ? `<div class="bp-undo-l" role="list">${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><span>${esc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}</div>` : ''}
-      <div class="bp-undo-z"><span>${esc(top.text)}</span>${n > 1 ? `<small>· ${n} Schritte</small>` : ''}<button type="button" class="bp-undo-b" data-u="eins">↶ Rückgängig</button>${n > 1 ? `<button type="button" class="bp-undo-v" data-u="liste" title="Verlauf" aria-expanded="${UNDO.offen}">${UNDO.offen ? '▾' : '▴'}</button>` : ''}<button type="button" class="bp-undo-v" data-u="zu" title="Ausblenden">✕</button></div>`;
+  const redo = `<button type="button" class="bp-undo-r" data-u="redo"${rk ? '' : ' disabled'} title="Wiederholen (Strg+Y)">↷</button>`;
+  el.innerHTML = klein ? `<div class="bp-undo-mini"><button type="button" class="bp-undo-u" data-u="auf"${n ? '' : ' disabled'} title="Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'} (Strg+Z) · Klick: Verlauf">↶ ${n}</button>${redo}</div>`
+    : `${UNDO.offen ? `<div class="bp-undo-l" role="list"><div class="bp-undo-lk"><span>Verlauf</span><span>Klick = bis hierher zurück</span></div>${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${esc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}</div>` : ''}
+      <div class="bp-undo-z"><span class="bp-undo-t">${UNDO.offen && UNDO.hov != null && UNDO.s[n - 1 - UNDO.hov] ? `bis „${esc(UNDO.s[n - 1 - UNDO.hov].text)}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : top ? esc(top.text) : 'Nichts mehr rückgängig zu machen'}</span>
+        <button type="button" class="bp-undo-u" data-u="eins"${n ? '' : ' disabled'}>↶ Rückgängig${n > 1 ? ` <em>${n}</em>` : ''}</button>${redo}${n > 1 ? `<button type="button" class="bp-undo-r" data-u="liste" title="Verlauf" aria-expanded="${UNDO.offen}">${UNDO.offen ? '▾' : '▴'}</button>` : ''}<button type="button" class="bp-undo-x" data-u="zu" title="Ausblenden">✕</button></div>`;
+}
+function _undoHover(e) {   // im Verlauf: hell, was alles zurückgenommen würde – und unten „bis …: n Schritte“
+  if (!UNDO.offen || !UNDO.el) return; const b = e.type === 'mouseover' && e.target.closest('[data-u="bis"]'), t = UNDO.el.querySelector('.bp-undo-t');
+  UNDO.hov = b ? +b.dataset.i : null; UNDO.el.querySelectorAll('[data-u="bis"]').forEach((x) => x.classList.toggle('hi', b && +x.dataset.i <= UNDO.hov));
+  const n = UNDO.s.length; if (t) t.textContent = b ? `bis „${UNDO.s[n - 1 - UNDO.hov].text}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : (UNDO.s[n - 1] || {}).text || '';
 }
 function _undoZeigen(ms = 10000) { clearTimeout(UNDO.t); _undoZeichnen(true); UNDO.t = setTimeout(() => { if (!UNDO.offen) _undoZeichnen(false); }, ms); }
 async function _undoBis(k) {   // k = 0: nur der neueste Schritt; k = 2: die drei neuesten
-  if (UNDO.busy) return; UNDO.busy = true; let n = 0;
-  try { for (let i = 0; i <= k && UNDO.s.length; i++) { const u = UNDO.s.pop(); if (window.bpUndoWeg) window.bpUndoWeg(u); await u.fn(); n++; } }
+  if (UNDO.busy) return; UNDO.busy = true; UNDO.hov = null; let n = 0;
+  try { for (let i = 0; i <= k && UNDO.s.length; i++) { const u = UNDO.s.pop(); if (window.bpUndoWeg) window.bpUndoWeg(u); await u.fn(); if (u.wieder) UNDO.r.push(u); n++; } }
   catch (e) { toast(e.message || 'Rückgängig ging nicht', true); }
-  finally { UNDO.busy = false; UNDO.offen = false; }
+  finally { UNDO.busy = false; UNDO.offen = false; UNDO.hov = null; }
   if (n > 1) toast(`${n} Schritte rückgängig gemacht.`);
-  if (UNDO.s.length) _undoZeigen(); else _undoZeichnen(false);
+  if (UNDO.s.length || _redoKann()) _undoZeigen(); else _undoZeichnen(false);
+}
+async function _redo() {
+  if (UNDO.busy) return; UNDO.busy = true;
+  try { if (window.bpRedo && window.bpRedo.los) await window.bpRedo.los(); else { const u = UNDO.r.pop(); if (u) { await u.wieder(); UNDO.s.push(u); } } }
+  catch (e) { toast(e.message || 'Wiederholen ging nicht', true); }
+  finally { UNDO.busy = false; }
+  _undoZeigen();
 }
 function _undoKlick(e) {
-  const b = e.target.closest('[data-u]'); if (!b) return; e.stopPropagation(); const a = b.dataset.u;
+  const b = e.target.closest('[data-u]'); if (!b || b.disabled) return; e.stopPropagation(); const a = b.dataset.u;
   if (a === 'eins') return _undoBis(0);
+  if (a === 'redo') return _redo();
   if (a === 'bis') return _undoBis(+b.dataset.i);
-  if (a === 'liste') { UNDO.offen = !UNDO.offen; clearTimeout(UNDO.t); _undoZeichnen(true); if (!UNDO.offen) _undoZeigen(); return; }
-  if (a === 'auf') { _undoZeigen(15000); return; }
+  if (a === 'liste') { UNDO.offen = !UNDO.offen; UNDO.hov = null; clearTimeout(UNDO.t); _undoZeichnen(true); if (!UNDO.offen) _undoZeigen(); return; }
+  if (a === 'auf') { UNDO.offen = UNDO.s.length > 1; clearTimeout(UNDO.t); _undoZeichnen(true); if (!UNDO.offen) _undoZeigen(15000); return; }
   if (a === 'zu') { UNDO.offen = false; clearTimeout(UNDO.t); _undoZeichnen(false); }
 }
-function rueckgaengig(text, fn, ms = 10000) {
-  const u = { text, fn, t: Date.now() }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift();
+/* rueckgaengig('„X“ erledigt', async () => {…}[, ms, wieder]) – wieder: Funktion, die den Schritt erneut ausführt (für ↷) */
+function rueckgaengig(text, fn, ms = 10000, wieder = null) {
+  const u = { text, fn, t: Date.now(), ...(wieder ? { wieder } : {}) }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); UNDO.r = [];
   if (window.bpUndoHook) window.bpUndoHook(u);
   UNDO.offen = false; _undoZeigen(ms);
   return u;
 }
-/* Für Seiten mit eigenem Verlauf (z. B. LV-Bearbeitung): Schritte leise in denselben Verlauf legen – nur der kleine Knopf „↶ n“,
+/* Für Seiten mit eigenem Verlauf (z. B. LV-Bearbeitung): Schritte leise in denselben Verlauf legen – nur der kleine Knopf „↶ n | ↷“,
    keine Leiste bei jedem Tastendruck. art: um alle Schritte einer Sorte auf einmal zu entfernen (anderes LV geöffnet). */
+const _undoNeu = () => _undoZeichnen(UNDO.offen || !!(UNDO.el && !UNDO.el.classList.contains('klein')));
 const bpUndo = {
-  push(text, fn, art = '') { const u = { text, fn, t: Date.now(), art }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); if (!UNDO.offen) _undoZeichnen(false); else _undoZeichnen(true); return u; },
-  text(u, text) { if (u) { u.text = text; u.t = Date.now(); if (UNDO.el) _undoZeichnen(UNDO.offen || !UNDO.el.classList.contains('klein')); } },
-  weg(u) { const i = u ? UNDO.s.lastIndexOf(u) : -1; if (i < 0) return; UNDO.s.splice(i, 1); _undoZeichnen(UNDO.offen || (UNDO.el && !UNDO.el.classList.contains('klein'))); },
+  push(text, fn, art = '') { const u = { text, fn, t: Date.now(), art }; UNDO.s.push(u); if (UNDO.s.length > UNDO_MAX) UNDO.s.shift(); _undoNeu(); return u; },
+  text(u, text) { if (u) { u.text = text; u.t = Date.now(); if (UNDO.el) _undoNeu(); } },
+  weg(u) { const i = u ? UNDO.s.lastIndexOf(u) : -1; if (i < 0) return; UNDO.s.splice(i, 1); _undoNeu(); },
   wegArt(art) { const n = UNDO.s.length; UNDO.s = UNDO.s.filter((u) => u.art !== art); if (UNDO.s.length !== n) _undoZeichnen(false); },
+  zeichnen() { if (UNDO.s.length || _redoKann() || UNDO.el) _undoNeu(); },   // Seite mit eigenem Wiederholen: ↷ neu zeigen
 };
-document.addEventListener('keydown', (e) => {   // Strg+Z: neuester Schritt – nicht beim Tippen und nicht in offenen Dialogen
-  if (window.BP_UNDO_EIGEN || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || (e.key || '').toLowerCase() !== 'z' || !UNDO.s.length) return;
+document.addEventListener('keydown', (e) => {   // Strg+Z / Strg+Y (Strg+Umschalt+Z): nicht beim Tippen und nicht in offenen Dialogen
+  if (window.BP_UNDO_EIGEN || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const k = (e.key || '').toLowerCase(), redo = k === 'y' || (k === 'z' && e.shiftKey); if (k !== 'z' && k !== 'y') return;
   const t = e.target; if (t && (t.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]') || t.isContentEditable)) return;
   if (document.querySelector('.modal-bg,.bph-dlg-bg')) return;
-  e.preventDefault(); _undoBis(0);
+  if (redo) { if (_redoKann()) { e.preventDefault(); _redo(); } return; }
+  if (UNDO.s.length) { e.preventDefault(); _undoBis(0); }
 });
 /* Dialoge an der Überschrift verschieben und an der Ecke rechts unten in der Größe ändern – je Dialogtitel gemerkt */
 function dlgBeweglich(m) {

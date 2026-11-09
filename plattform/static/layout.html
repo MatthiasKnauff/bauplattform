@@ -226,6 +226,7 @@ function wzUi() {
     b.disabled = a === 'undo' ? !HIST.length : a === 'redo' ? !REDO.length : ['vh', 'vv'].includes(a) ? n < 3 : ['bw', 'bh'].includes(a) ? n < 2 : !n; });
 }
 window.BP_UNDO_EIGEN = true;   // eigenes Strg+Z (Layout-Schritte)
+window.bpRedo = { kann: () => REDO.length > 0, los: () => ausrichten('redo') };   // ↷ im gemeinsamen Verlauf
 function merken(text = 'Layout geändert') { HIST.push(JSON.stringify(V.data)); LG.push(bpUndo.push(text, () => ausrichten('undo'), 'lay')); if (HIST.length > 80) { HIST.shift(); bpUndo.weg(LG.shift()); } REDO = []; }
 function geaendert(neuZeichnen = true) { if (neuZeichnen) zeichne(); props(); speichern(); }
 function speichern() { clearTimeout(speichT); if (window.BPHead) BPHead.versionStatus('…'); speichT = setTimeout(sofort, 700); }

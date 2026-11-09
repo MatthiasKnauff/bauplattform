@@ -112,9 +112,6 @@ table.eigkg input{border:0;width:100%;padding:.2rem;background:transparent}
 .lv .lt{font-size:var(--fs-s2);line-height:1.35;color:var(--mute);margin:.1rem .35rem .2rem;max-height:4.05em;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:default}
 .badge.sp{background:#1e5aa0;color:#fff}
 tr.entf input[data-f="kurz"]{text-decoration:line-through;color:var(--mute)}
-#histBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2,var(--card));border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-#histBar[hidden]{display:none}
-#histBar .btn{border-radius:999px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .body.mit-quelle{grid-template-columns:var(--navw,272px) minmax(0,1fr) var(--quw,minmax(320px,36%))}
 .body.zieh-l,.body.zieh-l *,.body.zieh-r,.body.zieh-r *{cursor:col-resize!important;user-select:none!important}
 .body{position:relative}.rand-griff{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:col-resize;touch-action:none}.rand-griff[data-seite="l"]{left:calc(var(--navw,272px) - 6px)}
@@ -408,7 +405,7 @@ table.tl.gross .ed{font-size:var(--fs);padding:0 .45rem}
 .tl-vs{display:grid;grid-template-columns:1fr auto;gap:.3rem .8rem;font-size:var(--fs);max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:.5rem}
 /* ---------- Handy-Ansicht (nur lesen, wie im Bauzeitenplan) ---------- */
 #mView{display:none}
-html.mobil main.ava,html.mobil #histBar,html.mobil #lvSel{display:none!important}
+html.mobil main.ava,html.mobil #lvSel{display:none!important}
 html.mobil #mView{display:block;font-size:var(--fs);line-height:1.4;min-height:calc(100vh - 46px);background:var(--bg)}
 html.mobil .bph{position:sticky;top:0}
 .mv-top{position:sticky;top:46px;z-index:5;background:var(--bg);padding:.6rem .8rem .5rem;border-bottom:1px solid var(--line)}
@@ -672,7 +669,6 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 .kgw input{margin-top:.15rem;flex:none;width:1.1rem;height:1.1rem}.kgw span{display:flex;flex-direction:column;min-width:0}.kgw b{font-weight:600;font-size:var(--fs);overflow-wrap:anywhere;hyphens:auto}.kgw small{color:var(--mute);font-size:var(--fs-s)}
 
 /* „Rückgängig“ unten links neben dem Projektbaum – verdeckt nicht das Ablagefeld darin */
-@media (min-width:861px){html:not([data-modus="einfach"]) #histBar{left:288px}}
 #navL{padding-bottom:1rem}
 .re-hand td{background:color-mix(in srgb,#e07b3a 12%,var(--card))!important;border-top:2px solid #e07b3a;border-bottom:2px solid #e07b3a}
 .re-hand td:first-child{border-left:2px solid #e07b3a}.re-hand td:last-child{border-right:2px solid #e07b3a}
@@ -4356,19 +4352,12 @@ function histGo(dir) {
   const neu = { data: HIST.last, label: st.label }; to.push(neu);
   if (dir < 0) bpUndo.weg(st.u); else neu.u = bpUndo.push(st.label, () => histGo(-1), 'lv');   // gemeinsamer Verlauf (↶ unten) bleibt im Gleichschritt
   L.data = JSON.parse(st.data); HIST.last = st.data; HIST.t = 0;
-  changed(true); histUi(); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${st.label}`);
+  changed(true); HIST.last = JSON.stringify(L.data); histUi(); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${st.label}`);   // Stand nach dem Neuberechnen – sonst zählt der nächste Schritt das als neue Änderung
 }
-function histUi() {
-  let el = $('#histBar');
-  if (!el) { el = document.createElement('div'); el.id = 'histBar'; el.innerHTML = '<button class="btn" data-hist="-1">↶ Rückgängig</button><button class="btn" data-hist="1" title="Wiederholen (Strg+Y)">↷</button>'; document.body.appendChild(el);
-    el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (!b) return; if (tab === 'tueren' && TL) tlZurueck(+b.dataset.hist > 0); else if (tab === 'lv') histGo(+b.dataset.hist); else aktGo(+b.dataset.hist); }); }
-  const tl = tab === 'tueren' && TL, lvT = tab === 'lv';   // Türliste: deren Schritte · LV: Inhalt des LV · sonst: gespeicherte Feldänderungen (Angebote, Aufmaß, Rechnungen)
-  const u = tl ? TLH[TLH.length - 1] : lvT ? HIST.undo[HIST.undo.length - 1] : AKT.undo[AKT.undo.length - 1], r = tl ? TLR[TLR.length - 1] : lvT ? HIST.redo[HIST.redo.length - 1] : AKT.redo[AKT.redo.length - 1];
-  el.hidden = tl ? (!u && !r) : true;   // LV und Feldänderungen: gemeinsamer Verlauf (bp.js) – nur die Türliste hat noch ihre eigene Leiste
-  const bu = el.querySelector('[data-hist="-1"]'), br = el.querySelector('[data-hist="1"]');
-  bu.disabled = !u; bu.title = u ? `Rückgängig: ${u.label} (Strg+Z)` : 'Nichts rückgängig zu machen'; bu.textContent = u ? `↶ ${u.label}` : '↶ Rückgängig';
-  br.disabled = !r; br.title = r ? `Wiederholen: ${r.label} (Strg+Y)` : 'Nichts zu wiederholen';
-}
+function histUi() { bpUndo.zeichnen(); }   // ein gemeinsamer Verlauf unten (bp.js) für LV, Feldänderungen und Türliste
+/* ↷ im gemeinsamen Verlauf: je Bereich der passende eigene Wiederholen-Stapel */
+window.bpRedo = { kann: () => (tab === 'tueren' && TL ? TLR.length : tab === 'lv' ? HIST.redo && HIST.redo.length : AKT.redo.length) > 0,
+  los: () => (tab === 'tueren' && TL ? tlZurueck(true) : tab === 'lv' ? histGo(1) : aktGo(1)) };
 document.addEventListener('keydown', (e) => {
   if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg,.bed')) return;
   const ae = document.activeElement, k = e.key.toLowerCase();
@@ -5798,7 +5787,7 @@ async function tlLaden(liste) {   // mehrere Listen je Projekt; zuletzt geöffne
     if (r.listen.length && !r.listen.some((x) => x.id === liste)) { liste = r.listen[0].id; r = await api(`api/projekt/${p}/tueren?liste=${encodeURIComponent(liste)}`); }   // gelöscht → erste
     if (pid === p) { TL = { pid: p, liste, tueren: r.tueren, rev: r.rev, listen: r.listen }; LS.set('tl.liste.' + p, liste); }
   } catch (e) { toast(e.message, true); }
-  TLA = TLC = null; TLH = []; TLR = []; if (tab === 'tueren') render();
+  TLA = TLC = null; TLH = []; TLR = []; bpUndo.wegArt('tl'); if (tab === 'tueren') render();
 }
 const tlName = () => ((TL.listen || []).find((x) => x.id === TL.liste) || {}).name || 'Fenster- & Türliste';
 async function tlListeNeu() {
@@ -5841,16 +5830,16 @@ async function tlJetzt() {
   } catch (e) { $('#save').textContent = 'Nicht gespeichert'; toast(e.message + (e.data && e.data.conflict ? ' Die Liste wird neu geladen.' : ''), true); if (e.data && e.data.conflict) tlLaden(); }
 }
 /* Rückgängig / Wiederholen (Strg+Z / Strg+Y) – je Änderung ein Stand */
-function tlMerken(label) { TLH.push({ data: JSON.stringify(TL.tueren), label: label || '' }); if (TLH.length > 80) TLH.shift(); TLR = []; setTimeout(tlBeschriften, 0); }
+function tlMerken(label) { const st = { data: JSON.stringify(TL.tueren), label: label || '' }; st.u = bpUndo.push(label || 'Türliste geändert', () => tlZurueck(false), 'tl'); TLH.push(st); if (TLH.length > 80) bpUndo.weg(TLH.shift().u); TLR = []; setTimeout(tlBeschriften, 0); }
 function tlBeschriften() {   // Text für „↶ …“ aus dem Unterschied ermitteln (wie im LV)
   const top = TLH[TLH.length - 1]; if (!top || top.label) return histUi();
   const a = JSON.parse(top.data), n = TL.tueren.length;
   top.label = n < a.length ? `${a.length - n} Zeile${a.length - n > 1 ? 'n' : ''} gelöscht` : n > a.length ? `${n - a.length} Zeile${n - a.length > 1 ? 'n' : ''} hinzugefügt` : 'Türliste geändert';
-  histUi();
+  bpUndo.text(top.u, top.label); histUi();
 }
 function tlZurueck(vor) {
   const von = vor ? TLR : TLH, nach = vor ? TLH : TLR; if (!von.length) return toast(vor ? 'Nichts zum Wiederholen.' : 'Nichts mehr rückgängig zu machen.');
-  const st = von.pop(); nach.push({ data: JSON.stringify(TL.tueren), label: st.label }); TL.tueren = JSON.parse(st.data); tlSpeichern(true); tlZeichnen(); histUi();
+  const st = von.pop(), neu = { data: JSON.stringify(TL.tueren), label: st.label }; nach.push(neu); if (vor) neu.u = bpUndo.push(st.label || 'Türliste geändert', () => tlZurueck(false), 'tl'); else bpUndo.weg(st.u); TL.tueren = JSON.parse(st.data); tlSpeichern(true); tlZeichnen(); histUi();
   toast(`${vor ? 'Wiederholt' : 'Rückgängig'}: ${st.label || 'Änderung'}`);
 }
 let TLS = LS.get('tl.sort', null);   // Sortierung der Ansicht {k, ab} – Klick auf den Spaltenkopf (aufsteigend → absteigend → aus)

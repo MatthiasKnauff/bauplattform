@@ -8,7 +8,7 @@
      key    – Name des Bereichs (z. B. 'am', 're', 'au', 'lv') – getrennt gemerkt
      reiter – [{ id, titel, mount(el), neu?() }]: mount füllt das Feld (im Bereich oder im freien Fenster),
               neu() wird nach einer Größenänderung aufgerufen (z. B. PDF neu zeichnen)
-     opt    – { start?: Reiter beim ersten Öffnen, wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
+     opt    – { start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
    seiteUmschalten() / seiteOffen() / seiteDa() – für den Knopf „Details“ in der Leiste
    seiteAufraeumen() – freie Fenster eines nicht mehr sichtbaren Bereichs schließen (nach dem Neuzeichnen der Seite) */
 (function () {
@@ -25,7 +25,7 @@
     const frei = lies(key + '.frei', []).filter((id) => reiter.some((r) => r.id === id));
     const dock = reiter.filter((r) => !frei.includes(r.id));
     const akt = dock.find((r) => r.id === lies(key + '.r', opt.start || '')) || dock[0];
-    const zu = !!lies(key + '.zu', false), w = grenz(+lies(key + '.w', 0.52) || 0.52, 0.2, 0.8), schmal = innerWidth < 900;
+    const zu = !!lies(key + '.zu', false), w = grenz(+lies(key + '.w', opt.w || 0.52) || 0.52, 0.2, 0.85), schmal = innerWidth < 900;
     sp.classList.add('sr-split'); sp.dataset.sr = key;
     let r = sp.querySelector(':scope > .sr-r');
     if (!r) { r = document.createElement('aside'); r.className = 'sr-r'; sp.appendChild(r); }
@@ -51,9 +51,9 @@
       neu();
     };
     g.onpointerdown = (e) => { if (e.button !== 0) return; e.preventDefault(); g.setPointerCapture(e.pointerId); const b = sp.getBoundingClientRect();
-      g.onpointermove = (m) => { const v = grenz((m.clientX - b.left) / b.width, 0.2, 0.8); sp.style.gridTemplateColumns = `minmax(0,${v}fr) 16px minmax(0,${1 - v}fr)`; merk(key + '.w', v); };
+      g.onpointermove = (m) => { const v = grenz((m.clientX - b.left) / b.width, 0.2, 0.85); sp.style.gridTemplateColumns = `minmax(0,${v}fr) 16px minmax(0,${1 - v}fr)`; merk(key + '.w', v); };
       g.onpointerup = () => { g.onpointermove = null; if (akt && akt.neu) akt.neu(); if (opt.wechsel) opt.wechsel(); }; };
-    g.ondblclick = () => { merk(key + '.w', 0.52); neu(); if (akt && akt.neu) akt.neu(); };
+    g.ondblclick = () => { merk(key + '.w', opt.w || 0.52); neu(); if (akt && akt.neu) akt.neu(); };
     if (akt && akt.neu && !r._ro) {   // Breite des Bereichs ändert sich (Fenster, Trennung): Inhalt neu zeichnen
       let breite = r.clientWidth, t = 0;
       r._ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { const x = AKTIV.get(key), w2 = r.clientWidth; if (Math.abs(w2 - breite) > 40 && x) { breite = w2; const a2 = x.reiter.find((y) => y.id === lies(key + '.r', x.opt.start || '')) || x.reiter.find((y) => !lies(key + '.frei', []).includes(y.id)); if (a2 && a2.neu) a2.neu(); } }, 350); });

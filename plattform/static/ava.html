@@ -583,12 +583,12 @@ tr.am-lf td input{color:#c0621f}
 .re2.mit-lvbar table.tree th,.re2.mit-lvbar table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
 .lv-split>.lv-sl{overflow-x:auto;overflow-y:hidden}   /* breites LV neben der PDF/den Baudaten: waagerecht rollen statt abschneiden – senkrecht rollt nur die Seite (ein Scrollbalken) */
 .lv-split>.lv-sl table.lv th,.lv-split>.lv-sl table.tree th{top:0;position:relative;z-index:3}   /* hier „klebt“ der Spaltenkopf per Skript (lvKopfKleben), weil das waagerechte Rollen das CSS-Kleben aufhebt */
-.au2{display:grid;grid-template-columns:fit-content(calc(100% - 330px)) minmax(320px,1fr);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:0;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card)}
-.au2-re>.card{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}.au2-re>.card+.card{border-top:1px solid var(--line)!important}.au2-tab .tblw{border-radius:calc(10px*var(--rk,1))}   /* rechts eine durchgehende Box; unten gleichmäßiger Rand, Ecken rund */
+.au2-tab{min-width:0}.au2-tab .tblw{border-radius:calc(10px*var(--rk,1))}   /* Aufträge: Tabelle links, rechts der gemeinsame Bereich (seite.js) */
 .au-k h3{margin:.1rem 0 .5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.au-k h4{margin:.9rem 0 .35rem;font-size:var(--fs)}.au-sum{display:grid;grid-template-columns:1fr;gap:.15rem;font-size:var(--fs)}.au-sum span{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--line);padding:.1rem 0}.au-sum b{font-variant-numeric:tabular-nums}
+.au-pk .grp{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;margin:0 0 .45rem}.au-pk h6{margin:0 0 .35rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.au-pk .fd{display:grid;grid-template-columns:6.5rem minmax(0,1fr);gap:.3rem .5rem;align-items:center}.au-pk .fd>span{color:var(--mute)}.au-pk .fd input.aui{width:100%;box-sizing:border-box}.au-pk .lang{white-space:pre-wrap;max-height:12rem;overflow:auto;color:var(--ink);font-size:var(--fs-s2)}
+.au-pk .nv{display:flex;gap:.4rem;align-items:center;margin:0 0 .45rem}.au-pk h3{margin:0 0 .4rem;font-size:calc(var(--fs)*1.08)}
 .au-kond .vk{font-size:var(--fs)}.au-kond .vk input,.au-kond .vk select{font-size:var(--fs)}
-.au2.zu{grid-template-columns:fit-content(100%)!important}
-@media (max-width:1100px){.au2{grid-template-columns:1fr}.au2-re{position:static;max-height:none}}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.3rem .2rem;font-size:var(--fs)}
 .re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:calc(6px*var(--rk,1));position:relative}
@@ -937,7 +937,7 @@ const UTAB = {
   lv: () => [['impBtn', 'Import'], ['expBtn', 'Export'], ['druBtn', 'Drucken'], ['quBtn', 'Kopierquelle']],
   tueren: () => [[() => window.tlImport && tlImport(), 'Import (Excel)', IC_IMP]],
   angebote: () => [['impBtn', 'Import (Angebot)'], ['expBtn', 'Export'], ['druBtn', 'Drucken']],
-  auftraege: () => [['impBtn', 'Import'], ['druBtn', 'Drucken'], [auDetails, AUDET ? 'Details aus' : 'Details ein', '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M14.5 5v14"/>' + (AUDET ? '<path d="M16.8 10l1.6 2-1.6 2"/>' : '<path d="M18.4 10l-1.6 2 1.6 2"/>')]],
+  auftraege: () => [['impBtn', 'Import'], ['druBtn', 'Drucken']],
   aufmass: () => [[() => dateiWahl('.pdf,application/pdf', true, (f) => amBelegHoch(f)), 'Import (Rechnung / Aufmaß der Firma)', IC_IMP, !L || !vergeben()], ['druBtn', 'Drucken']],
   rechnungen: () => [[() => { const r = reGewaehlt(); if (!r) return toast('Erst eine Rechnung anlegen (links „＋ Neue Rechnung“).', true); dateiWahl('application/pdf,.pdf', false, (f) => reBelegHoch(r.id, f[0])); }, 'Import (Rechnung der Firma)', IC_IMP, !L || !vergeben()],
     [() => { const r = reGewaehlt(); if (r) reDruck(r); else toast('Noch keine Rechnung.', true); }, 'Drucken', IC_DRU, !L || !(L.rechnungen || []).length]],
@@ -1002,7 +1002,7 @@ function uSlots() {   // feste Reihenfolge und gleiche Wörter in allen Bereiche
     slot(exp, 'Export', '<path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4"/>', 'Export gibt es im Leistungsverzeichnis, bei Angeboten, Aufträgen und in der Kostenkontrolle'),
     slot(dru, 'Drucken', IC_DRU, 'Hier gibt es nichts zu drucken'),
     seiteDa() ? [() => { seiteUmschalten(); uLeisteNeu(); }, 'Details', IC_DET, false, seiteOffen() ? 'Bereich rechts an den Rand klappen' : 'Bereich rechts zeigen', seiteOffen()]
-      : tab === 'auftraege' ? [auDetails, 'Details', IC_DET, false, AUDET ? 'Auftragskarte rechts ausblenden' : 'Auftragskarte rechts einblenden', AUDET] : [null, 'Details', IC_DET, true, 'Hier gibt es keinen Bereich rechts'],
+      : [null, 'Details', IC_DET, true, 'Hier gibt es keinen Bereich rechts'],
     L && tab !== 'uebersicht' ? [() => lvVerlauf(), 'Verlauf', IC_VER, false, 'Verlauf des LV – alle Änderungen'] : [null, 'Verlauf', IC_VER, true, 'Erst ein LV wählen'],
     L && tab !== 'tueren' && tab !== 'uebersicht' ? [uLoeschen, 'Löschen', IC_DEL, false, uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot'] : [null, 'Löschen', IC_DEL, true, 'Hier gibt es nichts zu löschen'],
   ];
@@ -1730,7 +1730,7 @@ function render() {
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
-  if (tab === 'auftraege') { v.innerHTML = vAuftraege(); auSpaltenAnwenden(); requestAnimationFrame(auHoehe); return; }
+  if (tab === 'auftraege') { v.innerHTML = vAuftraege(); auSeite(); uLeisteNeu(); auSpaltenAnwenden(); requestAnimationFrame(auHoehe); return; }
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   const RE2 = ['lv', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
@@ -4815,11 +4815,41 @@ document.addEventListener('click', async (e) => {
     return; }
 });
 /* Rechte Spalte in Aufträge: Akte des gewählten Nachtrags (Prüfablauf), sonst die Auftragskarte */
+/* Aufträge, Bereich rechts (seite.js): „Position“ folgt der Auswahl in der Tabelle, „Auftrag“ zeigt Summen, Bedingungen, Sicherheiten */
+function auSeite() {
+  const sp = document.querySelector('#view .au2'); if (!sp) return;
+  seite(sp, 'au', [{ id: 'pos', titel: 'Position', mount: (el) => { el.innerHTML = `<div class="sr-pad">${auAuswahl()}</div>`; } },
+    { id: 'auftrag', titel: 'Auftrag', mount: (el) => { el.innerHTML = `<div class="sr-pad">${auftragKarte()}</div>`; } }], { w: 0.7, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
+}
+function auAuswahl() {
+  const m = /^l(\d+):nt:(.+)$/.exec(TSEL || '');
+  if (m) { const lvId = +m[1], nt = decodeURIComponent(m[2]), lv = PC[lvId]; if (!lv) return ''; if (ntPruef(lvId)) return auRechts(); const G = (lv.data.items || []).filter((y) => String(y.nt) === nt); return G.length === 1 ? auPosKarte(lv, G[0]) : auNtKarte(lv, nt); }
+  const p = /^l(\d+):(.+)$/.exec(TSEL || ''), lv = p && PC[+p[1]], x = lv && (lv.data.items || []).find((y) => y.id === p[2]);
+  if (x) return auPosKarte(lv, x);
+  return '<div class="card empty"><p class="hint">In der Tabelle eine Position oder einen Nachtrag wählen – hier stehen dann Menge, Preis, Langtext und ob es ein Nachtrag ist.</p></div>';
+}
+function auPosKarte(lv, x) {   // dieselben Felder wie in der Tabelle (input.aui) – speichern, Rückgängig, Enter/Tab laufen über denselben Weg
+  const f = auFelder(lv, x), I = (lv.data.items || []).filter((y) => y.typ === x.typ), k = I.indexOf(x), ti = x.typ === 'titel';
+  const st = x.nt_status || 'angemeldet', R = lvBaum(lv), rr = R.find((q) => q.x === x) || {};
+  return `<div class="card au-pk"><div class="nv"><button type="button" class="btn sm" data-aupn="-1" data-aupx="${lv.id}:${esc(x.id)}"${k > 0 ? '' : ' disabled'} title="vorige ${ti ? 'Gliederung' : 'Position'}">◀</button><span class="hint">${k + 1} von ${I.length}</span><button type="button" class="btn sm" data-aupn="1" data-aupx="${lv.id}:${esc(x.id)}"${k < I.length - 1 ? '' : ' disabled'} title="nächste">▶</button></div>
+    <h3>${esc(x.oz || '')} ${esc(x.kurz || '')}</h3>
+    <div class="grp"><h6>${ti ? 'Gliederungspunkt' : 'Position'}</h6><div class="fd"><span>Kurztext</span>${f.bz.replace(/<b class="au-oz">.*?<\/b>/, '')}${ti ? '' : `<span>Menge</span>${f.mx[0]}<span>Einheit</span>${f.mx[1]}<span>EP €</span>${f.mx[2]}<span>GP</span><b>${eur(rr.gRoh || 0)}</b><span>Art · KG</span><span style="color:var(--ink)">${esc({ N: 'Normal', E: 'Bedarf', P: 'Pauschal', T: 'Text', A: 'Wahl' }[x.art] || x.art || 'Normal')}${x.kg ? ' · ' + esc(x.kg) : ''}</span>`}</div></div>
+    ${ti ? '' : `<div class="grp"><h6>Langtext</h6><div class="lang">${esc(x.lang || '') || '<span class="hint">kein Langtext</span>'}</div><button type="button" class="btn sm" data-aulang="${lv.id}:${esc(x.id)}" style="margin-top:.35rem">Langtext bearbeiten …</button></div>`}
+    <div class="grp"><h6>Nachtrag</h6><label class="chk"><input type="checkbox" data-aunt1="${lv.id}:${esc(x.id)}"${x.nt ? ' checked' : ''}${x.nt_erbe ? ' disabled title="gehört zum Nachtrag des Gliederungspunkts darüber"' : ''}> ${ti ? 'Dieser Gliederungspunkt ist ein Nachtrag' : 'Diese Position ist ein Nachtrag'}</label>
+      ${x.nt ? `<div class="fd" style="margin-top:.35rem"><span>Nummer</span><b>${esc(x.nt)}</b><span>Stand</span><select class="nt-st ${st}" data-ntst="${lv.id}:${esc(x.id)}">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s3) => `<option value="${s3}"${st === s3 ? ' selected' : ''}>${s3}</option>`).join('')}</select></div>` : '<p class="hint" style="margin:.3rem 0 0">Haken setzen: wird Nachtrag „angemeldet“ mit der nächsten Nummer.</p>'}</div></div>`;
+}
+function auNtKarte(lv, nt) {   // Nachtrag als Ganzes (einfacher Ablauf): Positionen, Summe, Stand
+  const I = (lv.data.items || []).filter((y) => String(y.nt) === nt), P = I.filter((y) => y.typ === 'pos'), R = lvBaum(lv);
+  const summe = P.reduce((a, y) => a + ((R.find((q) => q.x === y) || {}).gRoh || 0), 0);
+  return `<div class="card au-pk"><h3><span class="badge nt">${esc(nt)}</span> ${esc((I.find((y) => y.typ === 'titel') || P[0] || {}).kurz || '')}</h3>
+    <div class="grp"><h6>Nachtrag</h6><div class="fd"><span>Positionen</span><b>${P.length}</b><span>Summe</span><b>${eur(summe)}</b></div></div>
+    <div class="grp"><h6>Positionen</h6>${P.map((y) => `<div style="display:flex;gap:.5rem;justify-content:space-between;padding:.15rem 0"><span>${esc(y.oz || '')} ${esc(y.kurz || '')}</span><b>${eur((R.find((q) => q.x === y) || {}).gRoh || 0)}</b></div>`).join('') || '<p class="hint">noch keine</p>'}</div></div>`;
+}
 function auRechts() {
   const m = /^l(\d+):nt:(.+)$/.exec(TSEL || ''); if (!m || !ntPruef(+m[1])) return auftragKarte();
   const lvId = +m[1], nt = decodeURIComponent(m[2]), lv = PC[lvId]; if (!lv) return auftragKarte();
   const key = lvId + ':' + nt, D = NTA[key];
-  if (!D) { api(`api/lv/${lvId}/ntakte/${encodeURIComponent(nt)}`).then((d) => { NTA[key] = d; const re = document.querySelector('.au2-re'); if (re && TSEL === `l${lvId}:nt:${m[2]}`) re.innerHTML = auRechts(); }).catch((er) => toast(er.message, true)); return '<div class="card"><p class="hint">Akte wird geladen …</p></div>'; }
+  if (!D) { api(`api/lv/${lvId}/ntakte/${encodeURIComponent(nt)}`).then((d) => { NTA[key] = d; if (TSEL === `l${lvId}:nt:${m[2]}`) auSeite(); }).catch((er) => toast(er.message, true)); return '<div class="card"><p class="hint">Akte wird geladen …</p></div>'; }
   return ntAkteHtml(lv, nt, D);
 }
 function ntAkteHtml(lv, nt, D) {
@@ -5087,7 +5117,7 @@ function lvBaum(lv) {   // Titel/Positionen eines LV mit Summen
 /* Aufträge: Tabelle und Karte rechts rollen in sich – so hoch, dass die Seite selbst nicht rollt (nur ein Scrollbalken je Bereich) */
 function auHoehe() {
   if (tab !== 'auftraege') return;
-  const w = document.querySelector('#view .au2-tab .tblw'), re = document.querySelector('#view .au2-re'); if (!w) return;
+  const w = document.querySelector('#view .au2-tab .tblw'), re = null; if (!w) return;   // Bereich rechts: Höhe über randUnten (seite.js)
   { const t = w.querySelector('table.au-t'), K = [...w.querySelectorAll('input.au-k')].map((i) => i.value.length).filter((x) => x > 0);   // Kurztext-Feld so breit wie der übliche Kurztext
     if (t && K.length) t.style.setProperty('--auk', Math.max(12, Math.min(48, Math.ceil(K.reduce((a, x) => a + x, 0) / K.length * 1.15))) + 'ch'); }
   const nach = [...w.parentElement.children].slice([...w.parentElement.children].indexOf(w) + 1).reduce((a, el) => a + el.getBoundingClientRect().height, 0);
@@ -5130,9 +5160,6 @@ function randUnten() {
 { let t = 0; const los = () => { if (!t) t = requestAnimationFrame(() => { t = 0; randUnten(); }); };
   addEventListener('scroll', los, { passive: true }); addEventListener('resize', los);
   const v = document.getElementById('view'); if (v) new MutationObserver(los).observe(v, { childList: true, subtree: true }); }
-/* Aufträge: Bereich rechts (Summen, Bedingungen, Sicherheiten) ein- und ausblenden – Knopf oben „Details aus/ein“, gemerkt im Browser */
-let AUDET = LS.get('au.det', true) !== false;
-function auDetails() { AUDET = !AUDET; LS.set('au.det', AUDET); render(); }
 /* Aufträge-Tabelle: Spalten sortieren (Klick auf den Kopf, je Ebene) und ein-/ausblenden (⚙ Spalten) – gemerkt im Browser */
 const AU_SP = [['Bezeichnung'], ['Menge', 1], ['EH'], ['EP (EUR)', 1], ['Firma'], ['Gesamt (EUR)', 1], ['Nachtrag'], ['Nachtrag Gesamt', 1], ['Prognose (EUR)', 1], ['Art'], ['Bedarfsposition'], ['KG'], ['abgerechnet', 1]];
 if (!LS.get('au.sp2', false)) {   // einmalig: Menge/EH/EP kamen hinter „Bezeichnung“ dazu – gemerkte Spaltennummern und -breiten verschieben
@@ -5251,12 +5278,34 @@ async function auFeldFertig(inp) {
   } catch (e) { toast(e.message, true); render(); }
 }
 document.addEventListener('keydown', (e) => {
-  const inp = e.target.closest && e.target.closest('table.au-t input.aui'); if (!inp) return;
+  const inp = e.target.closest && e.target.closest('table.au-t input.aui, .au-pk input.aui'); if (!inp) return;
+  if (inp.closest('.au-pk')) { if (e.key === 'Escape') { e.preventDefault(); inp.value = inp.defaultValue; inp.blur(); } else if (e.key === 'Enter') { e.preventDefault(); AUZIEL = null; inp.blur(); } return; }   // Karte rechts: Enter speichert, springt nicht in die Tabelle
   if (e.key === 'Escape') { e.preventDefault(); inp.value = inp.defaultValue; AUZIEL = null; inp.blur(); return; }
   if (e.key === 'Tab') { AUZIEL = auZielVon(inp, e.shiftKey); return; }   // der Browser springt selbst – nach dem Neuzeichnen geht es dort weiter
   if (e.key === 'Enter') { e.preventDefault(); AUZIEL = auZielRunter(inp); if (inp.value === inp.defaultValue) { auZielFokus(); return; } inp.blur(); }
 });
-document.addEventListener('change', (e) => { const inp = e.target.closest && e.target.closest('table.au-t input.aui'); if (inp) auFeldFertig(inp); });
+document.addEventListener('change', (e) => { const inp = e.target.closest && e.target.closest('table.au-t input.aui, .au-pk input.aui'); if (inp) auFeldFertig(inp); });
+/* Karte „Position“: Nachtrag an/aus (wie in den Eigenschaften im LV), Langtext, blättern */
+async function auNtSetzen(lvId, id, an) {   // an: true = neuer Nachtrag, false = keiner, {nt, nt_status, nt_grund} = genau so (Rückgängig)
+  await kmLv(lvId, async () => { const x = items().find((q) => q.id === id); if (!x) return;
+    delete x.nt; delete x.nt_status; delete x.nt_grund;
+    if (an === true) { x.nt = 'NT' + ntNr(); x.nt_status = 'angemeldet'; } else if (an) Object.entries(an).forEach(([k, v]) => { if (v != null) x[k] = v; });
+    ntErben(items()); HIST.next = `${x.oz || 'Position'}: ${an ? 'als Nachtrag markiert' : 'kein Nachtrag mehr'}`; changed(true); clearTimeout(saveT); saveT = 0; await saveNow(); PC[lvId] = L; });
+  render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});
+}
+document.addEventListener('change', async (e) => { const c = e.target.closest && e.target.closest('[data-aunt1]'); if (!c) return;
+  const [lvId, id] = c.dataset.aunt1.split(':'), an = c.checked, x0 = ((PC[+lvId] || {}).data.items || []).find((q) => q.id === id) || {}, vor = x0.nt ? { nt: x0.nt, nt_status: x0.nt_status, nt_grund: x0.nt_grund } : false;
+  try { await auNtSetzen(+lvId, id, an); rueckgaengig(an ? 'Als Nachtrag markiert' : `${vor.nt} aufgehoben`, () => auNtSetzen(+lvId, id, vor)); } catch (er) { toast(er.message, true); render(); } });
+document.addEventListener('click', (e) => {
+  const n = e.target.closest && e.target.closest('[data-aupn]');
+  if (n) { const [lvId, xid] = n.dataset.aupx.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === xid); if (!x) return;
+    const I = (lv.data.items || []).filter((y) => y.typ === x.typ), y = I[I.indexOf(x) + +n.dataset.aupn]; if (!y) return;
+    TSEL = `l${lv.id}:${y.id}`; document.querySelectorAll('.tree tr.sel').forEach((q) => q.classList.remove('sel')); const tr = document.querySelector(`.tree tr[data-tr="${CSS.escape(TSEL)}"]`); if (tr) { tr.classList.add('sel'); tr.scrollIntoView({ block: 'nearest' }); } auSeite(); return; }
+  const lg = e.target.closest && e.target.closest('[data-aulang]');
+  if (lg) { const [lvId, id] = lg.dataset.aulang.split(':'), lv = PC[+lvId], x = lv && (lv.data.items || []).find((y) => y.id === id); if (!x) return; const alt = x.lang || '';
+    langFenster(`${x.oz || ''} ${x.kurz || ''}`, alt, async (t) => { await kmLv(+lvId, async () => { const z = items().find((q) => q.id === id); z.lang = t; HIST.next = `${z.oz || 'Position'}: Langtext geändert`; changed(true); clearTimeout(saveT); saveT = 0; await saveNow(); PC[+lvId] = L; }); render();
+      rueckgaengig('Langtext geändert', () => kmLv(+lvId, async () => { const z = items().find((q) => q.id === id); z.lang = alt; changed(true); await saveNow(); PC[+lvId] = L; render(); })); }); }
+});
 function vAuftraege() {
   const xs = LIST.filter((x) => !x.archived);
   if (!xs.length) return '<div class="card empty">Noch keine Leistungsverzeichnisse in diesem Projekt. Oben „Neu“ legt eines an.</div>';
@@ -5322,7 +5371,7 @@ function vAuftraege() {
   const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:12rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
 `;
   if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
-  return `${auNtLeiste()}<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auRechts()}</aside>` : ''}</div>`;
+  return `${auNtLeiste()}<div class="au2"><div class="au2-tab">${tabelle}</div></div>`;   // rechts: auSeite() – Reiter „Position“ und „Auftrag“
 }
 
 /* Aufträge: Leiste wie im LV – alles, was hier angelegt wird, ist ein Nachtrag des gewählten Auftrags */
@@ -5333,7 +5382,7 @@ function auNtLeiste() {
   if (x && lv) { const NT = [...new Set((lv.data.items || []).filter((y) => y.nt).map((y) => y.nt))], st = (nt) => ((lv.data.items || []).find((y) => y.nt === nt && (y.typ === 'titel' || !y.nt_erbe)) || {}).nt_status || 'angemeldet';
     const z = (s2) => NT.filter((n) => st(n) === s2).length;
     info = `<span class="hint">Nachträge zu <b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b>: ${NT.length ? `${NT.length} · angemeldet ${z('angemeldet')} · beauftragt ${z('beauftragt')} · abgelehnt ${z('abgelehnt')}` : 'noch keine'}</span>${ntModusKopf(x.id, lv)}`; }
-  return `<div class="bar au-ntbar"><button type="button" class="btn sm" data-aunt="glied"${dis} title="Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter">＋ Gliederungspunkt</button><button type="button" class="btn sm" data-aunt="pos"${dis} title="Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag">＋ Position</button><button type="button" class="btn sm" data-aunt="nt"${dis} title="Nachtrag mit Menge, Preis, Stand und Grund erfassen">＋ Nachtrag</button><button type="button" class="btn sm" data-aunt="ang"${dis} title="Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen">📄 Nachtragsangebot einlesen …</button>${info}</div>`;
+  return `<div class="bar au-ntbar"><button type="button" class="btn sm" data-aunt="glied"${dis} title="Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter">＋ Gliederungspunkt</button><button type="button" class="btn sm" data-aunt="pos"${dis} title="Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag">＋ Position</button><button type="button" class="btn sm" data-aunt="ang"${dis} title="Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen">📄 Nachtragsangebot einlesen …</button>${info}</div>`;
 }
 async function auNtNeu(art) {
   const x = auNtLv(); if (!x) return; const lvId = x.id;
@@ -5627,8 +5676,8 @@ document.addEventListener('click', async (e) => {
   // nur die Markierung umsetzen – kein Neuaufbau, sonst geht der Doppelklick ins Leere
   document.querySelectorAll('.tree tr.sel').forEach((r) => r.classList.remove('sel')); tr.classList.add('sel');
   if (m && (!L || L.id !== +m[1])) { await flush(); L = await api('api/lv/' + m[1]); LS.set('lv:' + pid, L.id); PC[L.id] = L; selBtn(); kpis(); $('#phT').textContent = 'Aufträge: ' + ((PROJ.find((p) => p.id === pid) || {}).name || '');
-    const re = document.querySelector('.au2-re'); if (re) re.innerHTML = auRechts(); }   // Karte rechts folgt der Auswahl, die Tabelle bleibt stehen
-  else if (/:nt:/.test(TSEL) || /:nt:/.test(e.target.closest('tr[data-tr]').dataset.tr)) { const re = document.querySelector('.au2-re'); if (re) re.innerHTML = auRechts(); }
+  }
+  auSeite();   // Bereich rechts folgt der Auswahl, die Tabelle bleibt stehen
   { const nb = document.querySelector('.au-ntbar'); if (nb) nb.outerHTML = auNtLeiste(); }   // Leiste folgt dem gewählten Auftrag
 });
 document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der Aufträge-Tabelle

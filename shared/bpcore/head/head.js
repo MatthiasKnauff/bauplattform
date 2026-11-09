@@ -1429,6 +1429,7 @@
   H.einstellungenSchliessen = () => { if (dr) dr.close(); };
   const BUERO = [
     ['firma', 'Firma & Logo', 'Name, Anschrift, Logo und Briefbogen für Briefe und Mails'],
+    ['darstellung', 'Darstellung', 'Schrift und Schriftgröße für alle, Ansicht Einfach/Profi als Vorgabe'],
     ['ablage', 'Ablage', 'Dateiserver (Projektordner), Zugang'],
     ['mail', 'Mailserver', 'Postfach, über das die Plattform Mails verschickt'],
     ['druck', 'Druck-Layouts', 'Wo steht was auf den PDFs (Rügen …) – Editor mit Raster und Versionen'],

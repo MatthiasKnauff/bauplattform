@@ -587,6 +587,7 @@ tr.am-lf td input{color:#c0621f}
 .re2-baum .pj-r.root{font-weight:600;cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:calc(6px*var(--rk,1))}.re2-baum .pj-r.root .car{cursor:pointer}.re2-baum .pj-r.lv{padding-left:1.3rem}.re2-baum .pj-r.k{padding-left:2.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .re2.re2-ein{grid-template-columns:minmax(0,1fr)}
+.am-split.am-baum>.am-l{min-width:0;overflow-x:auto}.am-split.am-baum>.am-l table{width:100%}.am-split.am-baum td.baumz{max-width:0;width:99%}.am-split.am-baum td.baumz .bz{display:flex;align-items:center;min-width:0;white-space:nowrap}.am-split.am-baum td.baumz .bz>span:last-of-type,.am-split.am-baum td.baumz .bz>b{overflow:hidden;text-overflow:ellipsis;min-width:0}.am-split.am-baum td:not(.baumz),.am-split.am-baum th{white-space:nowrap}.am-split.am-baum tr.am-rz.an td{background:color-mix(in srgb,var(--y) 7%,transparent)}
 .ang-l{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:clip}
 .ang-kopf{display:flex;justify-content:space-between;padding:.4rem .7rem;font-weight:600;font-size:var(--fs-s2);color:var(--mute);border-bottom:1px solid var(--line);background:var(--tabs,transparent)}
 .re2-baum.ang-baum{position:static;max-height:none;overflow:visible;border:0;border-radius:0;background:none;padding:.3rem .2rem}
@@ -1503,6 +1504,7 @@ function pjImBlick(top, glatt) {
   else if (r.bottom > b.bottom - 4) t.scrollBy({ top: r.bottom - b.bottom + 10, behavior: glatt ? 'smooth' : 'auto' });
 }
 function pjZeichnen() {
+  if (tab === 'aufmass' && !document.getElementById('pjTree')) { render(); return; }
   if (tab === 'tueren' || PJTABS.has(tab)) { const t = document.getElementById('pjTree'); if (t) { const top = t.scrollTop; t.innerHTML = pjBaumMitWurzel(); pjImBlick(top); } return; }
   const a = document.querySelector('.pjtree[data-teil="a"]'), b = document.querySelector('.pjtree[data-teil="b"]'); if (!a || !b) return;
   const [x, y] = pjTeile(); a.innerHTML = lvxKopf() + x; b.innerHTML = y;
@@ -1515,6 +1517,7 @@ function lvxKopf() {
 }
 function re2Html(inhalt) {
   if (tab === 'angebote') return `<div class="ang-sp"><div class="ang-l"><div class="ang-kopf"><span>Bezeichnung</span><span>Summe</span></div><aside class="re2-baum pjtree ang-baum" id="pjTree">${pjBaumMitWurzel()}</aside></div></div>`;   // wie Aufträge: Baum links, rechts der abdockbare Bereich mit dem Preisspiegel
+  if (tab === 'aufmass' && L && amAns !== 'baum' && inhalt != null && inhalt.includes('am-baum')) return `<div class="re2 re2-ein"><div class="re2-ed">${inhalt}</div></div>`;   // Aufmaß erfassen: die LVs und Rechnungen stehen im Baum der Tabelle
   if (tab === 'lv') return `<div class="re2 re2-ein"><div class="re2-ed">${inhalt == null ? lvNurOrdner() : inhalt}</div></div>`;   // LV: die LVs stehen als Ordner in der Tabelle (wie bei den Aufträgen) – kein eigener Baum daneben
   return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjBaumMitWurzel()}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
 }
@@ -2975,6 +2978,7 @@ document.addEventListener('dblclick', (e) => {
 });
 /* Rechnung / Aufmaß der Firma neben der Prüfung: PDF rechts, Positionen Schritt für Schritt, erkannte Mengen eintragen */
 const AMNEU = new Set();
+let AMTEIL = { ein: '', rech: '' };   // Aufmaß: Inhalte für den Bereich rechts (Eingabe, Karten der Rechnung)
 let AMABL = null;   // Ablage im Projektordner, aus dem gemeinsamen Ablagefeld gewählt
 let AMB = LS.get('amB', 0), amNurR = LS.get('amNurR', false), AMV = null;
 const amRe = () => (L ? (['rechnungen', 'aufmass'].includes(tab) && PJSEL && PJSEL[0] === 'r' && L.rechnungen.find((r) => 'r' + r.id === PJSEL)) || L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
@@ -3000,9 +3004,10 @@ function vAmErfassen() {
   if (!P.some((p) => p.id === amPos)) amPos = (P.find((p) => AM.some((a) => a.pos_id === p.id)) || P[0]).id;
   const x = P.find((p) => p.id === amPos), Z = AM.filter((a) => a.pos_id === amPos), sum = Z.reduce((s, a) => s + (a.menge || 0), 0);
   const VP = (L.vergabe && L.vergabe.preise) || {}, LI = amListe(), idx = LI.findIndex((p) => p.id === amPos);
-  const liste = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null;
+  const R0 = R ? 3 : 2;   // Einrückung der Positionen: unter der Rechnung (oder direkt unter dem LV)
+  const liste = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
     const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
-    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="oz">${esc(p.oz)}</td><td>${esc(p.kurz)}${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${((e, fe) => `<td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td>`)(VP[p.id], t && t.ep)}${fz}<td class="r">${m ? nf(m) : ''}</td><td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}">${pct != null && m ? pct + ' %' : ''}</td></tr>`; }).join('');
+    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${R0 * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge"` : ''}>${m ? nf(m) : ''}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td></tr>`; }).join('');
   setTimeout(amSichtbar, 0);   // nach dem Neuzeichnen: aktive Position in der Liste sichtbar
   const ep = VP[amPos], t = B.length ? amTreffer(amPos) : null, diff = t && t.menge != null ? t.menge - sum : 0;
   const firma = !B.length ? '' : `<div class="am-firma">${!t ? '<span class="hint">In der PDF der Firma nicht gefunden.</span>'
@@ -3022,9 +3027,22 @@ function vAmErfassen() {
           <td><input data-am-new="formel" placeholder="${AMSTAND ? `neuer Gesamtstand, z. B. ${nf(Math.round(sum * 1.2) || 10)}` : 'z. B. 2 × 3,50 × 2,75'}" title="${AMSTAND ? 'Gesamtstand (Zahl oder Rechenweg) – gespeichert wird der Zuwachs seit dem bisherigen Stand' : 'Enter: speichern und nächste Position · Umschalt+Enter: speichern und weitere Zeile dieser Position'}"${AMSTAND ? ' class="am-stin"' : ''}></td><td class="r" id="amPrev"></td><td></td></tr></tbody></table>
         <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-amraum="1" title="Flächen aus dem Raumbuch der Baukosten übernehmen">Aus dem Raumbuch …</button>
           <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –. <b>Enter</b> speichert und geht zur nächsten Position, <b>Umschalt+Enter</b> für eine weitere Zeile dieser Position.</span></div></div>`;
-  const tab_ = `<div class="tblw"><table class="lv am"><thead><tr><th>OZ</th><th>Position</th><th class="r">LV-Menge</th><th class="r" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">Aufmaß</th><th class="r">%</th></tr></thead><tbody>${liste}<tr><td colspan="${B.length ? 7 : 6}"><button type="button" class="ib" data-amnt title="Leistung, die nicht im LV steht: kommt als Nachtrag „angemeldet“ in den Auftrag, Aufmaß gleich darunter erfassen">＋ Position (Nachtrag)</button></td></tr></tbody></table></div>`;
-  if (!B.length) return `<div class="am-zwei" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"${LS.get('am.w', 0) ? ` style="--amw:${LS.get('am.w', 0)}px"` : ''}><div class="am-tab am-box">${tab_}</div><div class="am-sch" title="Breite ziehen · Doppelklick: Standard"></div><div class="am-det am-box">${detail}</div></div>`;   // Positionen links, Mengeneingabe rechts – Schieber dazwischen
-  return `<div class="am-split" data-amdrop><div class="am-l am-b"${LS.get('am.h', 0) ? ` style="--amh:${LS.get('am.h', 0)}px"` : ''}><div class="am-oben am-box">${amSummenKarte(R)}${amFehltKarte(R)}${amZeilenKarte(R)}${tab_}</div><div class="am-sch-h" title="Höhe ziehen · Doppelklick: Standard"></div><div class="am-det am-box">${detail}</div></div></div>`;   // mit PDF: links Positionen über der Mengeneingabe
+  // Baum wie bei den Aufträgen: Projekt → LV → Rechnung → Positionen; die Eingabe steht im Bereich rechts (seite.js)
+  const NCa = B.length ? 6 : 5, pn = (PROJ.find((q) => q.id === pid) || {}).name || '';
+  const mehr = `<tr><td colspan="${NCa}"><div class="bz" style="padding-left:${R0 * 1.15}rem"><button type="button" class="ib" data-amnt title="Leistung, die nicht im LV steht: kommt als Nachtrag „angemeldet“ in den Auftrag, Aufmaß gleich darunter erfassen">＋ Position (Nachtrag)</button></div></td></tr>`;
+  const zeilen = [`<tr class="wurzel"><td class="baumz"><div class="bz"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NCa - 1}"></td></tr>`];
+  LIST.filter((y) => !y.archived && (y.vergeben || y.frei || y.id === L.id)).forEach((y) => {
+    const on = y.id === L.id, offen = on || PJX.has(y.id);
+    zeilen.push(`<tr class="wurzel lvz${on ? ' an' : ' zu'}" data-pjlv="${y.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">${offen ? '▾' : '▸'}</span>${IC.lv}<b class="t">${esc([y.nr, y.name].filter(Boolean).join(' '))}</b><span class="hint" style="margin-left:.5rem">${esc(y.auftragnehmer || '')}</span></div></td><td colspan="${NCa - 2}"></td><td class="r">${y.auftrag ? nf2(y.auftrag) : ''}</td></tr>`);
+    if (!offen) return;
+    const RR = on ? L.rechnungen : (y.rechnungen || []);
+    RR.forEach((k) => { const akt = on && R && R.id === k.id;
+      zeilen.push(`<tr class="am-rz${akt ? ' an' : ''}" data-pjlv="${y.id}" data-pjsub="r${k.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:2.3rem"><span class="car">${akt ? '▾' : '▸'}</span>${IC.ti}<span class="t"${akt ? ' style="font-weight:600"' : ''}>${esc(reTitel(k, y.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span></span></div></td><td colspan="${NCa - 2}"></td><td class="r">${k.zahlung != null ? nf2(k.zahlung) : ''}</td></tr>`);
+      if (akt) zeilen.push(liste + mehr); });
+    if (on && !R) zeilen.push(liste + mehr);
+  });
+  AMTEIL = { ein: detail, rech: R ? amSummenKarte(R) + amFehltKarte(R) + amZeilenKarte(R) : '' };
+  return `<div class="am-split am-baum" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"><div class="am-l"><div class="tblw"><table class="lv am baum pjtree" data-sp="ava.am"><thead><tr><th style="min-width:16rem">Bezeichnung</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">aufgemessen</th><th class="r" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r">Betrag</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
 }
 /* Aufmaß: Schieber zwischen Positionen und Mengeneingabe (ohne PDF waagerecht verschieben, mit PDF die Höhe) – gemerkt, Doppelklick = Standard */
 document.addEventListener('pointerdown', (e) => {
@@ -3111,8 +3129,10 @@ function amPdfMount() {
   const sp = document.querySelector('#view .am-split'); if (!sp) return;
   const R = [];
   if (tab === 'rechnungen') R.push({ id: 'auftrag', titel: 'Auftrag', mount: (el) => { el.innerHTML = `<div class="sr-pad">${auftragKarte()}</div>`; } });
+  if (tab === 'aufmass' && sp.classList.contains('am-baum')) R.push({ id: 'ein', titel: 'Aufmaß', mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.ein || ''}</div>`; } });
   const d = amDokDef(); if (d) R.push(d);
-  seite(sp, tab === 'rechnungen' ? 're' : 'am', R, { start: 'dok', wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
+  if (tab === 'aufmass' && sp.classList.contains('am-baum') && AMTEIL.rech) R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.rech}</div>`; } });
+  seite(sp, tab === 'rechnungen' ? 're' : 'am', R, { start: tab === 'aufmass' ? 'ein' : 'dok', w: tab === 'aufmass' ? 0.58 : undefined, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
 }
 /* PDF der Firma als Reiter „📄 Dokument“ – die Ansicht (pdf.js) bleibt beim Neuzeichnen erhalten */
 function amDokDef() {

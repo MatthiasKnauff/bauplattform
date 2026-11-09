@@ -4251,11 +4251,17 @@ function spaltenGriffe() {
     const breite = () => { const sum = ths.slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = Math.max(sum + 90, platz()) + 'px'; };
     const fest = () => { if (t.style.tableLayout === 'fixed') return; ths.forEach((h) => { if (h === letzte) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; breite(); };
     // proportional: gemerkt wird die Breite, die der Platz beim Ziehen hatte (_b) – wird der Platz breiter oder schmaler (Trenner, Fenster), wachsen bzw. schrumpfen alle Spalten im selben Verhältnis
+    // schmalste Breite einer Spalte mit Zahlen (rechtsbündig): so breit wie die längste Zahl – eine Zahl wird nie abgeschnitten
+    const minZahl = (j) => { let w = 0; const R = t.tBodies[0] ? [...t.tBodies[0].rows].slice(0, 400) : [], rg = document.createRange();
+      for (const row of R) { if (row.cells.length !== ths.length) continue; const c = row.cells[j]; if (!c || !c.textContent.trim() || c.querySelector('input,select,textarea')) continue;
+        const cs = getComputedStyle(c); if (cs.textAlign !== 'right' && cs.textAlign !== 'end') continue;
+        rg.selectNodeContents(c); w = Math.max(w, Math.ceil(rg.getBoundingClientRect().width + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)) + 2); }
+      return w; };
     const platz = () => { const e = t.parentElement; if (!e) return 0; const cs = getComputedStyle(e); return e.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0); };   // Innenbreite
     const anwenden = () => { const s = SB[key]; if (!s || !t.isConnected) return; const p = platz(); if (!p) return;
       if (!s._b) { s._b = p; LS.set('sb', SB); }
       const f = p / s._b; fest(); let sum = 0;
-      ths.forEach((h, j) => { if (h === letzte || !s[j]) return; const b = Math.max(36, Math.round(s[j] * f)); h.style.width = b + 'px'; sum += b; });
+      ths.forEach((h, j) => { if (h === letzte || !s[j]) return; const b = Math.max(36, minZahl(j), Math.round(s[j] * f)); h.style.width = b + 'px'; sum += b; });
       let rest = Math.max(90, Math.round((s._t ? s._t - Object.keys(s).filter((k) => /^\d+$/.test(k)).reduce((a, k) => a + s[k], 0) : 90) * f));
       if (sum + rest < p - 1) {   // schmaler als der Platz: alle Spalten im selben Verhältnis breiter, bis die Tabelle den Platz füllt
         const g = (p - 1) / (sum + rest); sum = 0; ths.forEach((h) => { if (h === letzte || !h.style.width) return; const b = Math.round(parseFloat(h.style.width) * g); h.style.width = b + 'px'; sum += b; }); rest = Math.max(90, p - 1 - sum); }
@@ -4269,8 +4275,8 @@ function spaltenGriffe() {
       const g = document.createElement('span'); g.className = 'sb-griff'; g.title = 'Spaltenbreite ziehen · Doppelklick: zurücksetzen'; th.appendChild(g);
       g.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); fest(); g.setPointerCapture(e.pointerId);
-        const x0 = e.clientX, w0 = th.getBoundingClientRect().width; document.body.classList.add('sb-zieh');
-        g.onpointermove = (m) => { th.style.width = Math.max(36, w0 + m.clientX - x0) + 'px'; breite(); };
+        const x0 = e.clientX, w0 = th.getBoundingClientRect().width, mz = minZahl(i); document.body.classList.add('sb-zieh');
+        g.onpointermove = (m) => { th.style.width = Math.max(36, mz, w0 + m.clientX - x0) + 'px'; breite(); };   // Zahlen bleiben ganz lesbar
         g.onpointerup = () => { g.onpointermove = null; document.body.classList.remove('sb-zieh'); SB[key] = {}; ths.forEach((h, j) => { if (h !== letzte) SB[key][j] = Math.round(h.getBoundingClientRect().width); }); SB[key]._b = platz(); SB[key]._t = Math.round(t.getBoundingClientRect().width); LS.set('sb', SB); };
       });
       g.addEventListener('dblclick', (e) => { e.stopPropagation(); e.preventDefault(); delete SB[key]; LS.set('sb', SB); ths.forEach((h) => { h.style.width = ''; h.style.minWidth = ''; }); t.style.tableLayout = ''; t.style.width = ''; t.style.minWidth = '100%'; toast('Spaltenbreiten zurückgesetzt.'); });

@@ -478,7 +478,7 @@ html.mobil .bph{position:sticky;top:0}
 table.au-t thead th.zieh{opacity:.4}table.au-t thead th.ziel-l{box-shadow:inset 3px 0 0 var(--y)}table.au-t thead th.ziel-r{box-shadow:inset -3px 0 0 var(--y)}
 .tree tr.ntz .tw svg.ico{stroke:#e07b3a}.tree tr.ntz .tw svg.ico[fill="#fff"]{fill:#fdf0e6}.tree .badge.nt{margin:0 .35rem 0 0}   /* Nachträge wie im LV: oranges Symbol und Kennzeichen „NT n“ */
 table.au-t input.aui{font:inherit;font-size:inherit;padding:.05rem .3rem;border:1px solid transparent;border-radius:6px;background:transparent;color:inherit;box-sizing:border-box;min-width:0}
-table.au-t input.aui.r{text-align:right}table.au-t input.au-k{width:clamp(8rem,22vw,20rem)}table.au-t .au-oz{font-weight:400;margin-right:.3rem;white-space:nowrap}
+table.au-t input.aui.r{text-align:right}table.au-t input.au-k{width:var(--auk,clamp(8rem,22vw,20rem))}table.au-t{width:auto}table.au-t .au-oz{font-weight:400;margin-right:.3rem;white-space:nowrap}
 table.au-t tr:hover input.aui{border-color:var(--line)}table.au-t tr.sel input.aui{border-color:var(--line);background:var(--inp)}table.au-t input.aui:focus{border-color:var(--y);background:var(--inp);outline:0}
 table.au-t tr.sel td{background:color-mix(in srgb,#4da3ff 16%,transparent)!important;box-shadow:inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}table.au-t tr.sel td:first-child{box-shadow:inset 1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:7px 0 0 7px}table.au-t tr.sel td:last-child{box-shadow:inset -1.5px 0 0 var(--y),inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y);border-radius:0 7px 7px 0}table.au-t tr.sel .au-oz{font-weight:700}   /* gewählte Zeile wie im LV */
 .tree tr.nt-neu td{background:color-mix(in srgb,var(--y) 7%,var(--card));padding:.3rem .45rem}.nt-st{font:inherit;font-size:var(--fs-s2);padding:.05rem .3rem;border-radius:6px;border:1px solid var(--line);background:var(--card);color:inherit}
@@ -573,11 +573,11 @@ body.ava-ziehen .nav .nfuss .ava-drop{background:var(--y);color:#fff}
 .re2.mit-lvbar table.tree th,.re2.mit-lvbar table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
 .lv-split>.lv-sl{overflow-x:auto;overflow-y:hidden}   /* breites LV neben der PDF/den Baudaten: waagerecht rollen statt abschneiden – senkrecht rollt nur die Seite (ein Scrollbalken) */
 .lv-split>.lv-sl table.lv th,.lv-split>.lv-sl table.tree th{top:0;position:relative;z-index:3}   /* hier „klebt“ der Spaltenkopf per Skript (lvKopfKleben), weil das waagerechte Rollen das CSS-Kleben aufhebt */
-.au2{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:0;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.au2{display:grid;grid-template-columns:fit-content(calc(100% - 330px)) minmax(320px,1fr);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:0;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
 .au2-re>.card{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}.au2-re>.card+.card{border-top:1px solid var(--line)!important}.au2-tab .tblw{border-radius:10px}   /* rechts eine durchgehende Box; unten gleichmäßiger Rand, Ecken rund */
 .au-k h3{margin:.1rem 0 .5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.au-k h4{margin:.9rem 0 .35rem;font-size:var(--fs)}.au-sum{display:grid;grid-template-columns:1fr;gap:.15rem;font-size:var(--fs)}.au-sum span{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--line);padding:.1rem 0}.au-sum b{font-variant-numeric:tabular-nums}
 .au-kond .vk{font-size:var(--fs)}.au-kond .vk input,.au-kond .vk select{font-size:var(--fs)}
-.au2.zu{grid-template-columns:minmax(0,1fr)!important}
+.au2.zu{grid-template-columns:fit-content(100%)!important}
 @media (max-width:1100px){.au2{grid-template-columns:1fr}.au2-re{position:static;max-height:none}}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:var(--fs)}
@@ -2754,7 +2754,7 @@ function vAmBaum() {
         <td class="r${ueb ? ' nt' : ''}" title="LV-Menge ${nf(x.menge)} ${esc(x.einheit || '')}">${nf3(m)}</td><td class="r">${nf3(z)}</td><td class="r">${ep != null ? nf2(ep) : ''}</td><td class="r">${ep != null && !abg ? e2(m * ep) || '0,00' : ''}</td><td class="r">${ep != null && !abg ? e2(prog(x, m)) : ''}</td></tr>`);
     });
   });
-  return `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:20rem">Bezeichnung</th><th class="r">Menge</th><th class="r">Zuwachsmenge</th><th class="r">Preis (EUR)</th><th class="r">Gesamt (EUR)</th><th class="r">Prognose (EUR)</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
+  return `<div class="tblw"><table class="tree"><thead><tr><th style="min-width:12rem">Bezeichnung</th><th class="r">Menge</th><th class="r">Zuwachsmenge</th><th class="r">Preis (EUR)</th><th class="r">Gesamt (EUR)</th><th class="r">Prognose (EUR)</th></tr></thead><tbody>${out.join('')}</tbody></table></div>
     <p class="hint" style="margin:.5rem 0 0">Menge = aufgemessen bis zu dieser Rechnung (bei geprüften Rechnungen der festgehaltene Stand), Zuwachsmenge = neu seit der vorigen geprüften Rechnung. Prognose = größere aus LV- und Aufmaßmenge × Auftragspreis. Orange: mehr als 110 % der LV-Menge. Doppelklick auf eine Position öffnet ihr Aufmaß.</p>`;
 }
 document.addEventListener('click', (e) => {
@@ -4643,6 +4643,8 @@ function lvBaum(lv) {   // Titel/Positionen eines LV mit Summen
 function auHoehe() {
   if (tab !== 'auftraege') return;
   const w = document.querySelector('#view .au2-tab .tblw'), re = document.querySelector('#view .au2-re'); if (!w) return;
+  { const t = w.querySelector('table.au-t'), K = [...w.querySelectorAll('input.au-k')].map((i) => i.value.length).filter((x) => x > 0);   // Kurztext-Feld so breit wie der übliche Kurztext
+    if (t && K.length) t.style.setProperty('--auk', Math.max(12, Math.min(48, Math.ceil(K.reduce((a, x) => a + x, 0) / K.length * 1.15))) + 'ch'); }
   const nach = [...w.parentElement.children].slice([...w.parentElement.children].indexOf(w) + 1).reduce((a, el) => a + el.getBoundingClientRect().height, 0);
   w.style.maxHeight = Math.max(240, innerHeight - w.getBoundingClientRect().top - nach - 10) + 'px';
   if (re && getComputedStyle(re).position === 'sticky') re.style.maxHeight = Math.max(240, innerHeight - re.getBoundingClientRect().top - 10) + 'px';
@@ -4871,7 +4873,7 @@ function vAuftraege() {
     });
     zeig(k);
   });
-  const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:22rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
+  const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:12rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
 `;
   if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
   return `<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auftragKarte()}</aside>` : ''}</div>`;

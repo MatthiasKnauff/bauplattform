@@ -592,9 +592,6 @@ tr.am-lf td input{color:#c0621f}
 .au2.zu{grid-template-columns:fit-content(100%)!important}
 @media (max-width:1100px){.au2{grid-template-columns:1fr}.au2-re{position:static;max-height:none}}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
-.pj-akt{position:sticky;top:-.3rem;z-index:3;display:flex;align-items:center;gap:.4rem;margin:-.3rem -.2rem .25rem;padding:.35rem .5rem;background:color-mix(in srgb,var(--y) 10%,var(--card));border-bottom:1px solid color-mix(in srgb,var(--y) 30%,var(--line));border-radius:10px 10px 0 0;font-size:var(--fs-s2)}
-.pj-akt-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.pj-akt b{color:var(--y)}.pj-akt small{color:var(--mute)}
-.pj-akt-z{flex:none;border:1px solid var(--y);color:var(--y);background:transparent;border-radius:999px;padding:0 .5rem;font:inherit;font-size:var(--fs-s);cursor:pointer}.pj-akt-z:hover{background:color-mix(in srgb,var(--y) 12%,transparent)}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:var(--fs)}
 .re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;position:relative}
 .re2-baum .pj-r.root{font-weight:600;cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:6px}.re2-baum .pj-r.root .car{cursor:pointer}.re2-baum .pj-r.lv{padding-left:1.3rem}.re2-baum .pj-r.k{padding-left:2.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
@@ -1457,22 +1454,13 @@ function pjImBlick(top, glatt) {
   const t = document.getElementById('pjTree'); if (!t) return;
   if (top != null) t.scrollTop = top;
   const a = t.querySelector('.pj-r.k.on') || t.querySelector('.pj-r.lv.on, .pj-r.lv.akt'); if (!a) return;
-  const kopf = t.querySelector('.pj-akt'), oben = (kopf ? kopf.offsetHeight : 0) + 4;
+  const oben = 4;
   const r = a.getBoundingClientRect(), b = t.getBoundingClientRect();
   if (r.top < b.top + oben) t.scrollBy({ top: r.top - b.top - oben - 6, behavior: glatt ? 'smooth' : 'auto' });
   else if (r.bottom > b.bottom - 4) t.scrollBy({ top: r.bottom - b.bottom + 10, behavior: glatt ? 'smooth' : 'auto' });
 }
-/* Leiste oben im Baum: was gerade gewählt ist – „↧ zeigen“ holt es zurück ins Bild */
-function pjAktLeiste() {
-  if (!L || !['aufmass', 'rechnungen', 'angebote'].includes(tab)) return '';
-  const lvn = [L.nr ? 'LV ' + L.nr : '', L.name].filter(Boolean).join(' ');
-  let was = '', st = '';
-  if (PJSEL && PJSEL[0] === 'r') { const r = (L.rechnungen || []).find((y) => 'r' + y.id === PJSEL); if (r) { was = reTitel(r); st = r.status === 'geprueft' ? 'geprüft' : 'in Prüfung'; } }
-  else if (PJSEL && PJSEL[0] === 'b') { const a = (L.angebote || []).find((y) => 'b' + y.id === PJSEL); if (a) was = 'Angebot ' + a.bieter; }
-  return `<div class="pj-akt" title="${esc(lvn + (was ? ' · ' + was : ''))}"><span class="pj-akt-t">📄 <b>${esc(lvn)}${was ? ' · ' + esc(was) : ''}</b>${st ? ` <small>${st}</small>` : ''}</span><button type="button" class="pj-akt-z" data-pjzeig title="Gewählte Zeile im Baum zeigen">↧ zeigen</button></div>`;
-}
 function pjZeichnen() {
-  if (tab === 'tueren' || PJTABS.has(tab)) { const t = document.getElementById('pjTree'); if (t) { const top = t.scrollTop; t.innerHTML = (t.classList.contains('re2-baum') ? pjAktLeiste() : '') + pjBaumMitWurzel(); pjImBlick(top); } return; }
+  if (tab === 'tueren' || PJTABS.has(tab)) { const t = document.getElementById('pjTree'); if (t) { const top = t.scrollTop; t.innerHTML = pjBaumMitWurzel(); pjImBlick(top); } return; }
   const a = document.querySelector('.pjtree[data-teil="a"]'), b = document.querySelector('.pjtree[data-teil="b"]'); if (!a || !b) return;
   const [x, y] = pjTeile(); a.innerHTML = lvxKopf() + x; b.innerHTML = y;
 }
@@ -1483,7 +1471,7 @@ function lvxKopf() {
   return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
 function re2Html(inhalt) {
-  return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjAktLeiste()}${pjBaumMitWurzel()}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
+  return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjBaumMitWurzel()}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();
@@ -1621,7 +1609,6 @@ document.addEventListener('click', (e) => {
 document.addEventListener('dblclick', () => { if (pjKlick) { clearTimeout(pjKlick.tm); pjKlick = null; } }, true);
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('.pjtree')) return;
-  if (e.target.closest('[data-pjzeig]')) { e.stopPropagation(); if (PJZU) { PJZU = false; LS.set('pjzu', false); } if (L && !PJX.has(L.id)) { PJX.clear(); PJX.add(L.id); } pjZeichnen(); pjImBlick(null, true); return; }
   if (e.target.closest('[data-pjzu]')) { e.stopPropagation(); PJZU = !PJZU; LS.set('pjzu', PJZU); pjZeichnen(); return; }
   const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else { PJX.clear(); PJX.add(id); } LS.set('pjx', [...PJX].slice(-100)); PJXG = true; pjZeichnen(); return; }   // immer nur ein LV aufgeklappt – die anderen klappen zu
   const z = e.target.closest('[data-lvzu]'); if (z) { LVXZU = !LVXZU; LS.set('lvxzu', LVXZU); render(); return; }

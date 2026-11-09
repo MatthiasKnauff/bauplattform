@@ -446,7 +446,8 @@ html.mobil .bph{position:sticky;top:0}
 .am-zone.over,.am-split.over{outline:2px dashed var(--y);outline-offset:3px;background:color-mix(in srgb,var(--y) 8%,transparent)}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
 .tree tr.nt-neu td{background:color-mix(in srgb,var(--y) 7%,var(--card));padding:.3rem .45rem}.nt-st{font:inherit;font-size:var(--fs-s2);padding:.05rem .3rem;border-radius:6px;border:1px solid var(--line);background:var(--card);color:inherit}
-.nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}.tree tr.nt-ein td{background:color-mix(in srgb,var(--y) 4%,var(--card));padding:.15rem .4rem}.tree tr.nt-ein input{font:inherit;font-size:var(--fs);padding:.12rem .4rem;border:1px solid var(--line);border-radius:6px;background:var(--inp);color:var(--ink)}.tree tr.nt-ein input:focus{border-color:var(--y);outline:0}.tree tr.nt-ein input::placeholder{color:var(--mute)}
+.nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}.tree .nt-del{opacity:0;padding:0 .3rem;font-size:.85em}.tree tr:hover .nt-del,.tree tr.sel .nt-del{opacity:.75}.tree .nt-del:hover{opacity:1}
+.tree tr.nt-ein td{background:color-mix(in srgb,var(--y) 4%,var(--card));padding:.15rem .4rem}.tree tr.nt-ein input{font:inherit;font-size:var(--fs);padding:.12rem .4rem;border:1px solid var(--line);border-radius:6px;background:var(--inp);color:var(--ink)}.tree tr.nt-ein input:focus{border-color:var(--y);outline:0}.tree tr.nt-ein input::placeholder{color:var(--mute)}
 .nt-pos{width:100%;border-collapse:collapse;margin:.3rem 0 .4rem;font-size:var(--fs)}.nt-pos th{text-align:left;font-weight:500;color:var(--mute);padding:.1rem .25rem}.nt-pos td{padding:.1rem .25rem}.nt-pos input{width:100%;box-sizing:border-box}.nt-pos .ib{padding:.1rem .35rem}
 .nt-st.gemischt{border-color:var(--mute);color:var(--mute);font-style:italic}
 .si-dok{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.4rem}.si-sum .btn{margin-left:auto}
@@ -4495,9 +4496,9 @@ function vAuftraege() {
       const bez = einzeln ? `${esc(gq.nt)} · ${esc(kopf.oz || '')} ${esc(kopf.kurz || '')}`
         : `<b>${esc(gq.nt)}</b>${gq.titel ? ` · ${esc(gq.titel.oz || '')} ${esc(gq.titel.kurz || '')}` : ''} <small class="mu">${gq.titel ? 'Gliederungspunkt · ' : ''}${gq.pos.length} Pos.</small>`;
       row(kk, 2, !einzeln, gq.titel ? IC.ti : IC.pos, `<span class="${ab ? 'mu' : ''}" title="${esc(grund)}">${bez}</span>`,
-        ['', '', ntSel(st, `${x.id}:nt=${encodeURIComponent(gq.nt)}`, grund, einzeln ? grund : 'Stand für den ganzen Nachtrag – gilt für alle Positionen darunter' + (grund ? ' · ' + grund : '')), e2(summe), e2(summe), gq.titel ? 'Nachtrag (Gliederungspunkt)' : 'Nachtrag', '', esc((kopf || {}).kg || ''), '']);
+        ['', '', ntSel(st, `${x.id}:nt=${encodeURIComponent(gq.nt)}`, grund, einzeln ? grund : 'Stand für den ganzen Nachtrag – gilt für alle Positionen darunter' + (grund ? ' · ' + grund : '')), e2(summe), e2(summe), gq.titel ? 'Nachtrag (Gliederungspunkt)' : 'Nachtrag', '', esc((kopf || {}).kg || ''), `<button type="button" class="ib nt-del" data-ntdel="${x.id}:${encodeURIComponent(gq.nt)}:" title="Nachtrag ${esc(gq.nt)} löschen (mit Rückgängig)">🗑</button>`]);
       if (!einzeln && EXP.has(kk)) { gq.pos.forEach((y) => { const r = R.find((q) => q.x === y) || {}, sy = y.nt_status || 'angemeldet';
-        row(`${k}:${y.id}`, 3, false, IC.pos, `<span class="${sy === 'abgelehnt' ? 'mu' : ''}">${esc(y.oz || '')} ${esc(y.kurz || '')}</span>`, ['', '', ntSel(sy, `${x.id}:${y.id}`, y.nt_grund, 'Stand nur dieser Position (weicht dann vom Nachtrag ab)'), e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Position', jn(y.art === 'E'), esc(y.kg || ''), '']); });
+        row(`${k}:${y.id}`, 3, false, IC.pos, `<span class="${sy === 'abgelehnt' ? 'mu' : ''}">${esc(y.oz || '')} ${esc(y.kurz || '')}</span>`, ['', '', ntSel(sy, `${x.id}:${y.id}`, y.nt_grund, 'Stand nur dieser Position (weicht dann vom Nachtrag ab)'), e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Position', jn(y.art === 'E'), esc(y.kg || ''), `<button type="button" class="ib nt-del" data-ntdel="${x.id}:${encodeURIComponent(gq.nt)}:${y.id}" title="Diese Nachtragsposition löschen (mit Rückgängig)">🗑</button>`]); });
         out.push(ntZeile(x.id, gq.nt, 3, st)); }   // Eingabezeile: weitere Position, Enter speichert
     });
     out.push(ntZeile(x.id, '', 2, 'angemeldet'));   // neuer Nachtrag: Bezeichnung tippen, Enter
@@ -4602,6 +4603,23 @@ document.addEventListener('paste', (e) => {   // mehrere Zeilen auf einmal
   });
   bg.querySelector('.modal').classList.add('breit');
 });
+/* Nachtrag (ganz) oder eine Nachtragsposition aus Aufträge löschen – mit Rückgängig (alter Stand wird zurückgeschrieben) */
+async function ntLoeschen(lvId, nt, posId) {
+  let lv = L && L.id === lvId ? L : PC[lvId]; if (!lv) { try { lv = await api('api/lv/' + lvId); PC[lvId] = lv; } catch (e) { toast(e.message, true); return; } }
+  const I = lv.data.items || [], weg = I.filter((y) => (posId ? y.id === posId : String(y.nt) === nt));
+  if (!weg.length) return;
+  if (!posId && weg.length > 1 && !(await bpFrage(`Nachtrag ${nt} mit ${weg.filter((y) => y.typ === 'pos').length} Position(en) löschen?`, { ok: 'Löschen', gefahr: true }))) return;
+  const alt = JSON.parse(JSON.stringify(lv.data)), ids = new Set(weg.map((y) => y.id));
+  if (L && L.id === lvId) await flush();
+  try {
+    const r = await api('api/lv/' + lvId, 'PUT', { rev: lv.rev, data: { ...lv.data, items: I.filter((y) => !ids.has(y.id)) }, nummerieren: true });
+    PC[lvId] = r; if (L && L.id === lvId) L = r; render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});
+    rueckgaengig(posId ? `Nachtragsposition „${weg[0].kurz || ''}“ gelöscht` : `Nachtrag ${nt} gelöscht`, async () => {
+      const cur = PC[lvId] || (L && L.id === lvId ? L : null) || await api('api/lv/' + lvId);
+      const r2 = await api('api/lv/' + lvId, 'PUT', { rev: cur.rev, data: alt, nummerieren: true }); PC[lvId] = r2; if (L && L.id === lvId) L = r2; render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});
+    });
+  } catch (e) { toast(e.message, true); }
+}
 const PCL = new Set();   // LVs, die gerade für die Aufträge-Tabelle geladen werden (aufgeklappt gemerkt, Daten noch nicht da)
 function pcLaden(id) { if (PCL.has(id) || PC[id]) return; PCL.add(id); api('api/lv/' + id).then((r) => { PC[id] = r; if (tab === 'auftraege') render(); }).catch(() => {}).finally(() => PCL.delete(id)); }
 /* Rechts neben der Aufträge-Tabelle: Bedingungen des gewählten Auftrags (wie die Rechnungskarte rechts unter Rechnungen) – Konditionen direkt änderbar */
@@ -4674,6 +4692,7 @@ function ntDialog(lvId, zuNt = null) {   // zuNt: weitere Positionen zu einem vo
   if (zuNt) { const box = bg.querySelector('#ntPos'); box.hidden = false; zeile(); zeile(); zeile(); bg.querySelector('#ntH').textContent = `Die Positionen kommen zum Nachtrag ${zuNt} und übernehmen seinen Stand; die EPs werden Auftragspreise.`; const md = bg.querySelector('.modal'); if (md) md.classList.add('breit'); bg.querySelector('[data-m="ok"]').textContent = 'Hinzufügen'; setTimeout(() => bg.querySelector('#ntPosB input').focus(), 30); return; }
   setTimeout(() => $('#ntK').focus(), 30);
 }
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntdel]'); if (!b) return; e.stopPropagation(); const [lv, nt, pid_] = b.dataset.ntdel.split(':'); ntLoeschen(+lv, decodeURIComponent(nt), pid_ || null); });
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntneu]'); if (b) { e.stopPropagation(); ntDialog(+b.dataset.ntneu); } });
 document.addEventListener('change', async (e) => {
   const s = e.target.closest && e.target.closest('[data-ntst]'); if (!s || s.value === 'gemischt') return;
@@ -4715,11 +4734,13 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der A
     P.push({ text: `Positionen zu ${nt} hinzufügen …`, fn: () => ntDialog(lvId, nt) });
     ['angemeldet', 'beauftragt', 'abgelehnt'].forEach((st) => P.push({ text: `${nt} → ${st}`, fn: async () => { try { const r = await api(`api/lv/${lvId}/nachtrag/nt=${encodeURIComponent(nt)}`, 'PUT', { status: st }); PC[lvId] = r; if (L && L.id === lvId) L = r; render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); } catch (er) { toast(er.message, true); } } }));
     P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => kmLv(lvId, () => { tab = 'lv'; LS.set('tab', tab); render(); }) });
+    P.push({ text: `Nachtrag ${nt} löschen …`, gefahr: true, fn: () => ntLoeschen(lvId, nt, null) });
     return;
   }
   m = /^l(\d+)(?::(.+))?$/.exec(k); if (!m) return;
   const lvId = +m[1];
-  if (m[2]) { P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => kmLv(lvId, () => { tab = 'lv'; LS.set('tab', tab); render(); setTimeout(() => { const z = document.querySelector(`table.lv tr[data-i]`); const I = items(), i = I.findIndex((y) => y.id === m[2]); const row = i >= 0 && document.querySelector(`table.lv tr[data-i="${i}"]`); if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('pj-blink'); setTimeout(() => row.classList.remove('pj-blink'), 1600); } else if (z) z.scrollIntoView(); }, 300); }) }); return; }
+  if (m[2]) { const lv = PC[lvId], y = lv && (lv.data.items || []).find((q) => q.id === m[2]); if (y && y.nt && y.typ === 'pos') P.push({ text: 'Diese Nachtragsposition löschen', gefahr: true, fn: () => ntLoeschen(lvId, String(y.nt), y.id) });
+    P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => kmLv(lvId, () => { tab = 'lv'; LS.set('tab', tab); render(); setTimeout(() => { const z = document.querySelector(`table.lv tr[data-i]`); const I = items(), i = I.findIndex((y) => y.id === m[2]); const row = i >= 0 && document.querySelector(`table.lv tr[data-i="${i}"]`); if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('pj-blink'); setTimeout(() => row.classList.remove('pj-blink'), 1600); } else if (z) z.scrollIntoView(); }, 300); }) }); return; }
   kmLvPunkte(P, lvId);
   P.push({ text: 'LV- & Auftragsdaten …', fn: () => kmLv(lvId, () => lvDaten()) });
 });

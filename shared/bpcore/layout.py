@@ -36,6 +36,50 @@ BEREICHE = {
         **GEMEINSAM, "firma": "Name der Firma", "grundlage": "Rechtsgrundlage unter dem Betreff (§ 5 Abs. 3 VOB/B)",
         "frist": "Frist zur Wiederaufnahme (TT.MM.JJJJ)", "anzahl": "Tage im Verzug", "auftrag": "Auftrag / Vergabe-Nr."}},
 }
+# Inhaltsblöcke der Briefe (fließen im Inhaltsbereich untereinander) – Reihenfolge, Schrift, Abstand und ein/aus je Layout einstellbar
+def _b(key, name, groesse, fett=False, abstand=0.0, text=None, pflicht=False):
+    return {"key": key, "name": name, "groesse": groesse, "fett": fett, "abstand": abstand, "an": True, **({"text": text} if text is not None else {}), **({"pflicht": True} if pflicht else {})}
+
+
+BLOECKE = {
+    "maengelruege": [_b("anschreiben", "Anschreiben", 9.5), _b("liste_titel", "Überschrift der Liste", 10, True, 4, ""),
+                     _b("liste", "Mängelliste", 9.5, pflicht=True), _b("frist", "Frist", 10, True, 4, ""), _b("gruss", "Gruß und Unterschrift", 9.5)],
+    "terminruege": [_b("anschreiben", "Anschreiben", 9.5), _b("liste_titel", "Überschrift der Liste", 10, True, 4, ""),
+                    _b("liste", "Rückstand / Tage (Liste)", 9.5, pflicht=True), _b("frist", "Frist", 10, True, 4, ""), _b("gruss", "Gruß und Unterschrift", 9.5)],
+}
+BLOCK_VORGABE = {   # was ohne eigenen Text dasteht (Terminrüge: je nach Fall)
+    "maengelruege": {"liste_titel": "Festgestellte Mängel", "frist": "Frist zur Beseitigung:"},
+    "terminruege": {"liste_titel": "Rückstand / Tage ohne Besetzung (je nach Fall)", "frist": "Frist zur Abhilfe:"},
+}
+
+
+def bloecke(lay, bereich):
+    """Inhaltsblöcke in der Reihenfolge des Layouts, fehlende mit den Vorgaben ergänzt. Text '' = Vorgabe des Ausdrucks."""
+    std = {x["key"]: x for x in BLOECKE.get(bereich, [])}
+    out, gesehen = [], set()
+    for x in (lay or {}).get("bloecke") or []:
+        if isinstance(x, dict) and x.get("key") in std and x["key"] not in gesehen:
+            gesehen.add(x["key"]); out.append({**std[x["key"]], **{k: v for k, v in x.items() if k in ("groesse", "fett", "abstand", "an", "text")}})
+    out += [dict(v) for k, v in std.items() if k not in gesehen]
+    for x in out:
+        if x.get("pflicht"):
+            x["an"] = True
+    return out
+
+
+def _bloecke_pruefen(L):
+    out = []
+    for x in L if isinstance(L, list) else []:
+        if not isinstance(x, dict) or not isinstance(x.get("key"), str) or len(x["key"]) > 20:
+            continue
+        n = lambda k, d, lo, hi: max(lo, min(hi, float(x.get(k) if isinstance(x.get(k), (int, float)) else d)))   # noqa: E731
+        y = {"key": x["key"], "groesse": n("groesse", 9.5, 6, 20), "fett": bool(x.get("fett")), "abstand": n("abstand", 0, 0, 40), "an": x.get("an") is not False}
+        if isinstance(x.get("text"), str):
+            y["text"] = x["text"][:160]
+        out.append(y)
+    return out[:20]
+
+
 AVA = {
     "buero": GEMEINSAM["buero"], "fusszeile": GEMEINSAM["fusszeile"], "datum": "heutiges Datum (Druckdatum)", "bearbeiter": GEMEINSAM["bearbeiter"],
     "projekt": GEMEINSAM["projekt"], "bauvorhaben": GEMEINSAM["bauvorhaben"], "bauherr": "Bauherrschaft des Projekts",
@@ -242,8 +286,9 @@ def pruefen(data):
     for k, v in ((data or {}).get("optionen") or {}).items() if isinstance((data or {}).get("optionen"), dict) else ():
         if isinstance(k, str) and len(k) <= 30 and isinstance(v, (bool, int, float, str)):
             opt[k] = v[:200] if isinstance(v, str) else v
+    bl = _bloecke_pruefen((data or {}).get("bloecke"))
     return {"raster": r if r in (1, 2, 2.5, 5, 10) else 2.5, "format": fmt, "elemente": out, **({"folge_oben": fo} if fo is not None else {}),
-            **({"optionen": opt} if opt else {})}
+            **({"optionen": opt} if opt else {}), **({"bloecke": bl} if bl else {})}
 
 
 def fuellen(t, werte):

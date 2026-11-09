@@ -25,6 +25,9 @@ body{margin:0}
 .buehne{flex:1;overflow:auto;padding:24px;display:flex;justify-content:center}
 .blatt{position:relative;background:#fff;box-shadow:0 4px 18px #0006;flex:none;user-select:none}
 .blatt .gitter{position:absolute;inset:0;pointer-events:none}
+.blk{display:flex;flex-direction:column;gap:.35rem}.blk-z{border:1px solid var(--line);border-radius:8px;padding:.35rem .5rem;background:var(--card)}.blk-z.aus{opacity:.55}.blk-z.zieh{opacity:.4}.blk-z.ziel{border-color:var(--y);box-shadow:0 -2px 0 var(--y)}
+.blk-k{display:flex;align-items:center;gap:.35rem}.blk-g{cursor:grab;opacity:.6;padding:0 .2rem}.blk-w{display:grid;grid-template-columns:1fr 1fr;gap:.3rem .5rem;margin-top:.3rem;font-size:.85em}.blk-w .ganz{grid-column:1/-1}.blk-w input{width:100%}
+.blk-blatt{position:absolute;inset:4px 6px;text-align:left;color:#8a7a3a;line-height:1.15;overflow:hidden;pointer-events:none}
 .rahmen{position:fixed;z-index:50;pointer-events:none;border:1.5px solid #2f6fd6;background:rgba(47,111,214,.10)}.rahmen.kreuz{border:1.5px dashed #1e9e5a;background:rgba(30,158,90,.10)}
 .el{position:absolute;box-sizing:border-box;border:1px dashed rgba(0,0,0,.25);color:#1e1e1e;overflow:hidden;cursor:move;line-height:1.2;white-space:pre-wrap;word-break:break-word}
 .el.mute{color:#6b6f76}.el.fett{font-weight:700}.el.mitte{text-align:center}.el.rechts{text-align:right}.el.ul span{border-bottom:1px solid #6b6f76}
@@ -209,7 +212,7 @@ function zeichne() {
     d.title = (e.name || ELN[e.typ]) + (e.nur_ohne_bogen ? ' · nur ohne Briefbogen' : '') + (e.seiten === 'alle' ? ' · auf allen Seiten' : '');
     if (e.typ === 'text') d.innerHTML = `<span>${esc(wert(e.text))}</span>`;
     else if (e.typ === 'feld') d.textContent = D.beispiel[e.feld] || D.felder[e.feld];
-    else if (e.typ === 'inhalt') d.textContent = D.bereich.art === 'ava' ? 'Inhalt – Tabellen und Summen fließen hier hinein' : 'Inhalt – Anschreiben, Liste, Frist, Gruß fließen hier hinein';
+    else if (e.typ === 'inhalt') { const L = BL().filter((b) => b.an !== false); if (L.length) d.innerHTML = `<div class="blk-blatt">${L.map((b) => `<div style="margin-top:${b.abstand * K}px;font-size:${b.groesse * K * 0.3528}px;${b.fett ? 'font-weight:700' : ''}">▤ ${esc(b.text || b.name)}</div>`).join('')}</div>`; else d.textContent = D.bereich.art === 'ava' ? 'Inhalt – Tabellen und Summen fließen hier hinein' : 'Inhalt – Anschreiben, Liste, Frist, Gruß fließen hier hinein'; }
     else if (e.typ === 'logo') d.textContent = 'Logo';
     else if (e.typ === 'falzmarken') d.innerHTML = [105, 210, 148.5].map((y, i) => `<i style="position:absolute;left:0;top:${(y - e.y) * K}px;width:${(i === 2 ? 7 : 5) * K}px;height:1px;background:#9aa0a6"></i>`).join('');
     d.insertAdjacentHTML('beforeend', '<i class="gr se" data-gr="se"></i><i class="gr e" data-gr="e"></i><i class="gr s" data-gr="s"></i>');
@@ -232,6 +235,27 @@ async function sofort() {
   catch (e) { toast(e.message, true); }
 }
 /* Inhalt des Ausdrucks (z. B. Langtexte, Preise): je Layout gespeichert, beim Drucken für den einzelnen Ausdruck änderbar */
+/* Inhaltsblöcke der Briefe (Mängel-/Terminrüge): Reihenfolge, Schrift, Abstand, ein/aus – fließen im Inhaltsbereich untereinander */
+function BL() {
+  const std = (D.bereich && D.bereich.bloecke) || []; if (!std.length) return [];
+  const m = Object.fromEntries(std.map((x) => [x.key, x])), out = [], ges = new Set();
+  (V.data.bloecke || []).forEach((x) => { if (m[x.key] && !ges.has(x.key)) { ges.add(x.key); out.push({ ...m[x.key], ...x, name: m[x.key].name, pflicht: m[x.key].pflicht }); } });
+  std.forEach((x) => { if (!ges.has(x.key)) out.push({ ...x }); });
+  return out;
+}
+const blSetzen = (L) => { V.data.bloecke = L.map(({ key, groesse, fett, abstand, an, text }) => ({ key, groesse, fett, abstand, an: an !== false, ...(text != null ? { text } : {}) })); };
+function blHtml() {
+  const L = BL(); if (!L.length) return '';
+  const vg = (D.bereich && D.bereich.block_vorgabe) || {};
+  return `<h3 style="margin-top:1.2rem">Inhaltsblöcke</h3><p class="hint">Fließen im Inhaltsbereich untereinander. Reihenfolge ziehen (⠿) oder mit ↑ ↓; je Block Schrift, Abstand davor, ein/aus. Gilt für Entwurf und fertigen Brief.</p>
+    <div class="blk">${L.map((b, i) => `<div class="blk-z${b.an === false ? ' aus' : ''}" draggable="true" data-bi="${i}">
+      <div class="blk-k"><span class="blk-g" title="Ziehen: Reihenfolge ändern">⠿</span><label class="ck"><input type="checkbox" data-bf="an"${b.an !== false ? ' checked' : ''}${b.pflicht ? ' disabled title="Ohne die Liste ergibt der Brief keinen Sinn"' : ''}> <b>${esc(b.name)}</b></label><span style="flex:1"></span>
+        <button type="button" class="ib" data-bm="-1" title="nach oben"${i ? '' : ' disabled'}>↑</button><button type="button" class="ib" data-bm="1" title="nach unten"${i < L.length - 1 ? '' : ' disabled'}>↓</button></div>
+      <div class="blk-w"><label>Schrift (pt)<input type="number" step="0.5" min="6" max="20" data-bf="groesse" value="${b.groesse}"></label><label>Abstand davor (mm)<input type="number" step="0.5" min="0" max="40" data-bf="abstand" value="${b.abstand}"></label>
+        <label class="ck"><input type="checkbox" data-bf="fett"${b.fett ? ' checked' : ''}> fett</label>
+        ${'text' in b || vg[b.key] ? `<label class="ganz">Text <span class="hint">(leer = ${esc(vg[b.key] || 'Vorgabe')})</span><input data-bf="text" value="${esc(b.text || '')}" placeholder="${esc(vg[b.key] || '')}" maxlength="160"></label>` : ''}</div></div>`).join('')}</div>
+    <button type="button" class="btn sm" data-bvorgabe style="margin-top:.4rem">Blöcke auf Vorgabe zurücksetzen</button>`;
+}
 function optHtml() {
   const O = (D.bereich && D.bereich.optionen) || []; if (!O.length) return '';
   const W = { ...Object.fromEntries(O.map((o) => [o.key, o.std])), ...(V.data.optionen || {}) };
@@ -242,7 +266,7 @@ function optHtml() {
 function props() {
   const P = $('#props'), S = E().filter((e) => SEL.has(e.id));
   if (!S.length) { P.innerHTML = `<h3>Eigenschaften</h3><p class="hint">Element anklicken (mit Umschalt mehrere) oder einen Rahmen aufziehen – nach rechts unten nur ganz eingeschlossene, nach links oben auch angeschnittene; ziehen zum Verschieben, an den orangen Griffen die Größe ändern. Pfeiltasten verschieben um ein Rasterfeld, mit Umschalt um 0,5 mm.</p>
-    <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen.</p>${optHtml()}`; return; }
+    <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen.</p>${blHtml()}${optHtml()}`; return; }
   if (S.length > 1) { P.innerHTML = `<h3>${S.length} Elemente gewählt</h3><p class="hint">Oben ausrichten, gleiche Abstände oder gleiche Größe.</p>`; return; }
   const e = S[0], nz = (k, l, st = 0.5) => `<label>${l}<input type="number" step="${st}" data-p="${k}" value="${e[k] ?? ''}"></label>`;
   P.innerHTML = `<h3>${esc(e.name || ELN[e.typ])} <span class="hint">· ${ELN[e.typ]}</span></h3><div class="fm">
@@ -258,9 +282,21 @@ function props() {
     ${e.typ === 'linie' ? nz('staerke', 'Strichstärke (pt)', 0.1) : ''}
     ${e.typ !== 'inhalt' ? `<label class="ganz">Seiten<select data-p="seiten"><option value="erste"${e.seiten !== 'alle' ? ' selected' : ''}>nur erste Seite</option><option value="alle"${e.seiten === 'alle' ? ' selected' : ''}>auf allen Seiten</option></select></label>
       <label class="ck ganz"><input type="checkbox" data-p="nur_ohne_bogen"${e.nur_ohne_bogen ? ' checked' : ''}> nur ohne Briefbogen (z. B. Logo, Fußzeile)</label>` : '<label class="ganz">Folgeseiten: Inhalt beginnt bei (mm von oben)<input type="number" step="0.5" id="pfolge" value="${folgeOben()}"></label><p class="hint ganz">Auf Seite 1 fließt der Inhalt im markierten Bereich, auf den Folgeseiten ab der orangen Linie bis zur selben Unterkante.</p>'}
-    </div><div style="display:flex;gap:.4rem;margin-top:.8rem"><button class="btn sm" data-al="dup">⧉ Duplizieren</button><button class="btn sm danger" data-al="del"${e.typ === 'inhalt' ? ' disabled title="Der Inhalt muss bleiben"' : ''}>🗑 Löschen</button></div>`;
+    </div><div style="display:flex;gap:.4rem;margin-top:.8rem"><button class="btn sm" data-al="dup">⧉ Duplizieren</button><button class="btn sm danger" data-al="del"${e.typ === 'inhalt' ? ' disabled title="Der Inhalt muss bleiben"' : ''}>🗑 Löschen</button></div>${e.typ === 'inhalt' ? blHtml() : ''}`;
+}
+$('#props').addEventListener('click', (e) => {
+  const m = e.target.closest('[data-bm]'); if (m) { const i = +m.closest('[data-bi]').dataset.bi, j = i + +m.dataset.bm, L = BL(); if (j < 0 || j >= L.length) return; merken(); [L[i], L[j]] = [L[j], L[i]]; blSetzen(L); return geaendert(); }
+  if (e.target.closest('[data-bvorgabe]')) { merken(); delete V.data.bloecke; return geaendert(); }
+});
+{ let von = null;   // Blöcke per Ziehen sortieren
+  $('#props').addEventListener('dragstart', (e) => { const z = e.target.closest && e.target.closest('[data-bi]'); if (!z) return; von = +z.dataset.bi; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'blk'); } catch { /* egal */ } z.classList.add('zieh'); });
+  $('#props').addEventListener('dragover', (e) => { if (von == null) return; const z = e.target.closest('[data-bi]'); if (!z) return; e.preventDefault(); document.querySelectorAll('.blk-z.ziel').forEach((x) => x.classList.remove('ziel')); z.classList.add('ziel'); });
+  $('#props').addEventListener('drop', (e) => { if (von == null) return; const z = e.target.closest('[data-bi]'); e.preventDefault(); if (z) { const nach = +z.dataset.bi, L = BL(); if (nach !== von) { merken(); const [x] = L.splice(von, 1); L.splice(nach, 0, x); blSetzen(L); geaendert(); } } von = null; });
+  $('#props').addEventListener('dragend', () => { von = null; document.querySelectorAll('.blk-z.zieh,.blk-z.ziel').forEach((x) => x.classList.remove('zieh', 'ziel')); });
 }
 $('#props').addEventListener('change', (e) => {
+  const bf = e.target.dataset.bf; if (bf) { const z = e.target.closest('[data-bi]'), L = BL(), b = L[+z.dataset.bi]; merken();
+    b[bf] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'number' ? Math.max(+e.target.min || 0, Math.min(+e.target.max || 99, +e.target.value || 0)) : e.target.value; blSetzen(L); return geaendert(); }
   const lo = e.target.dataset.lopt; if (lo) { merken(); V.data.optionen = { ...(V.data.optionen || {}), [lo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }; return geaendert(); }
   if (e.target.id === 'pfolge') { merken(); V.data.folge_oben = Math.max(5, Math.min(150, +e.target.value || 20)); return geaendert(); }
   const f = e.target.dataset.p; if (!f) return; const el = E().find((x) => SEL.has(x.id)); if (!el) return;

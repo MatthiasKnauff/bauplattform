@@ -438,7 +438,9 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
     def fuss():   # Fußzeile u. a. kommen aus dem Layout (Elemente „auf allen Seiten“)
         pass
 
-    if fest:   # Text fließt: Anschreiben, Liste, Frist, Gruß – bei langen Texten weiter auf der nächsten Seite
+    BL = [b for b in layout.bloecke(LAY, "maengelruege" if doc == "Mängelrüge" else "terminruege") if b["an"]]   # Druck-Layout: Reihenfolge, Schrift, Abstand je Block
+    titel_von = lambda b, vorgabe: (b.get("text") or "").strip() or vorgabe   # noqa: E731
+    if fest:   # Text fließt: Blöcke untereinander – bei langen Texten weiter auf der nächsten Seite
         y = [oben_in]
 
         def platz(h):
@@ -450,22 +452,29 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
                 platz(size * 1.25)
                 cv.setFont(font or FN["n"], size); cv.setFillColor(ink); cv.drawString(L, y[0] - size, z); y[0] -= size * 1.25
 
-        absatz(V["Text"])
-        y[0] -= 4 * mm; platz(12 * mm)
-        cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, y[0] - 10, liste_titel); y[0] -= 6 * mm
-        absatz(V[liste_feld])
-        y[0] -= 4 * mm; platz(8 * mm)
-        cv.setFont(FN["b"], 10); cv.drawString(L, y[0] - 10, frist_label)
-        cv.setFont(FN["n"], 10); cv.drawString(L + 44 * mm, y[0] - 10, V["Frist"]); y[0] -= 10 * mm
-        gz = V["Gruss"].split("\n")
-        platz(len(gz) * 9.5 * 1.25 + 2 * mm)
-        unterschrift(y[0])
-        absatz(V["Gruss"])
-        fuss()
+        for i, b in enumerate(BL):
+            sz, fn = b["groesse"], FN["b"] if b["fett"] else FN["n"]
+            if i:
+                y[0] -= b["abstand"] * mm
+            if b["key"] == "anschreiben":
+                absatz(V["Text"], sz, fn)
+            elif b["key"] == "liste_titel":
+                platz(sz + 6 * mm + 3 * 9.5)   # Überschrift nicht allein am Seitenende
+                cv.setFont(fn, sz); cv.setFillColor(ink); cv.drawString(L, y[0] - sz, titel_von(b, liste_titel)); y[0] -= sz + 2.5 * mm
+            elif b["key"] == "liste":
+                absatz(V[liste_feld], sz, fn)
+            elif b["key"] == "frist":
+                platz(8 * mm)
+                cv.setFont(fn, sz); cv.setFillColor(ink); cv.drawString(L, y[0] - sz, titel_von(b, frist_label))
+                cv.setFont(FN["n"], sz); cv.drawString(L + 44 * mm, y[0] - sz, V["Frist"]); y[0] -= sz + 6.5 * mm
+            elif b["key"] == "gruss":
+                gz = V["Gruss"].split("\n")
+                platz(len(gz) * sz * 1.25 + 2 * mm)
+                unterschrift(y[0])
+                absatz(V["Gruss"], sz, fn)
     else:   # Entwurf für den Brief-Editor: Felder so hoch wie ihr Text (kein Scrollbalken), was nicht passt, kommt auf Seite 2
-        zh = 9.5 * 1.2   # Zeilenhöhe im Formularfeld
-        def hoehe(t, mind):
-            return max(mind, len(umbruch(t, R - L, 9.5)) * zh + 6)
+        def hoehe(t, mind, sz=9.5):
+            return max(mind, len(umbruch(t, R - L, sz)) * sz * 1.2 + 6)
         y = oben_in + 2 * mm
 
         def platz(h):
@@ -473,20 +482,32 @@ def _brief(pid, projekt, E, auftrag, doc, kopf, grundzeile, text, liste_titel, l
                 cv.showPage(); seite[0] += 1; kopf_zeichnen()
                 return H - 25 * mm
             return y
-        ht = min(hoehe(V["Text"], 30 * mm), y - unten - 2 * mm)
-        feld("Text", L, y - ht, R - L, ht, 9.5, True, "Anschreiben"); y -= ht
-        hl = hoehe(V[liste_feld], 14 * mm)
-        y = platz(8 * mm + min(hl, 40 * mm))   # Überschrift nicht allein am Seitenende
-        cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, y - 6 * mm, liste_titel)
-        y -= 8 * mm
-        hl = min(hl, y - unten - 2 * mm)
-        feld(liste_feld, L, y - hl, R - L, hl, 9.5, True, liste_tip); y -= hl
-        y = platz(12 * mm + 45 * mm)   # Frist und Gruß mit Unterschrift bleiben zusammen
-        cv.setFont(FN["b"], 10); cv.setFillColor(ink); cv.drawString(L, y - 8 * mm, frist_label)
-        feld("Frist", L + 42 * mm, y - 10 * mm, 40 * mm, 7 * mm, 10, tip="Frist")
-        yg = y - 14 * mm
-        unterschrift(yg)
-        feld("Gruss", L, max(yg - 50 * mm, unten - 2 * mm), 120 * mm, min(50 * mm, yg - unten + 2 * mm), 9.5, True, "Gruß und Unterschrift")
+        keys = [b["key"] for b in BL]
+        for i, b in enumerate(BL):
+            sz, fn = b["groesse"], FN["b"] if b["fett"] else FN["n"]
+            if i:
+                y -= b["abstand"] * mm
+            if b["key"] == "anschreiben":
+                ht = min(hoehe(V["Text"], 30 * mm, sz), y - unten - 2 * mm)
+                feld("Text", L, y - ht, R - L, ht, sz, True, "Anschreiben"); y -= ht
+            elif b["key"] == "liste_titel":
+                y = platz(8 * mm + 20 * mm)
+                cv.setFont(fn, sz); cv.setFillColor(ink); cv.drawString(L, y - 6 * mm, titel_von(b, liste_titel)); y -= 8 * mm
+            elif b["key"] == "liste":
+                hl = hoehe(V[liste_feld], 14 * mm, sz)
+                y = platz(min(hl, 40 * mm))
+                hl = min(hl, y - unten - 2 * mm)
+                feld(liste_feld, L, y - hl, R - L, hl, sz, True, liste_tip); y -= hl
+            elif b["key"] == "frist":
+                mit_gruss = i + 1 < len(keys) and keys[i + 1] == "gruss"   # Frist und Gruß mit Unterschrift bleiben zusammen
+                y = platz(12 * mm + (45 * mm if mit_gruss else 0))
+                cv.setFont(fn, sz); cv.setFillColor(ink); cv.drawString(L, y - 8 * mm, titel_von(b, frist_label))
+                feld("Frist", L + 42 * mm, y - 10 * mm, 40 * mm, 7 * mm, sz, tip="Frist"); y -= 14 * mm
+            elif b["key"] == "gruss":
+                if not (i and keys[i - 1] == "frist"):
+                    y = platz(45 * mm)
+                unterschrift(y)
+                feld("Gruss", L, max(y - 50 * mm, unten - 2 * mm), 120 * mm, min(50 * mm, y - unten + 2 * mm), sz, True, "Gruß und Unterschrift"); y -= 50 * mm
         fuss()
     return buf, cv, W, H, L, R, ink, mm, ImageReader, V
 

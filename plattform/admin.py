@@ -629,7 +629,8 @@ def layout_eins(b):
                 layout.schreiben(c, b, d, g.user["name"])
         B = layout.BEREICHE[b]
         EG = layout.eigene(c)
-        return jsonify({**d, "bereich": {"key": b, "name": B["name"], "art": B.get("art", "brief"), "variablen": B["variablen"], "optionen": B.get("optionen", [])},
+        return jsonify({**d, "bereich": {"key": b, "name": B["name"], "art": B.get("art", "brief"), "variablen": B["variablen"], "optionen": B.get("optionen", []),
+                                                "bloecke": layout.BLOECKE.get(b, []), "block_vorgabe": layout.BLOCK_VORGABE.get(b, {})},
                         "felder": {} if B.get("art") == "ava" else layout.FELDER, "typen": layout.TYPEN, "eigene": EG,
                         "standard": layout.standard(b), "beispiel": {**layout.beispiel(b, c), **{x["key"]: f"‹{x['name']}›" for x in EG}}})
 

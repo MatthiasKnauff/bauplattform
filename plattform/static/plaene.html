@@ -92,6 +92,7 @@ html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}
 </main>
 <div class="bar" id="bar" hidden></div>
 <script src="static/bp.js"></script>
+<script src="bp/undo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('pl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('pl.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const AN = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&')).get('an') || '';   // aus „Adressen“: Firma als Empfänger vorwählen

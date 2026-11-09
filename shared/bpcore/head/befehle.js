@@ -67,9 +67,13 @@
     const t = e.target.closest && e.target.closest('.bf-mitte, .bf-auf'); if (!t) { if (AUF) zu(); return; }
     clearTimeout(aufT); if (t.classList.contains('bf-auf') || AUF) return;
     const q = t.firstElementChild; if (!q || !q.querySelector('.bf-weg')) return;   // alles sichtbar: nichts aufzurollen
-    const r = t.getBoundingClientRect(), k = q.cloneNode(true); k.removeAttribute('id'); k.querySelectorAll('.bf-weg').forEach((x) => x.classList.remove('bf-weg'));
-    AUF = document.createElement('div'); AUF.className = 'bf-auf'; AUF.appendChild(k); document.body.appendChild(AUF);
-    Object.assign(AUF.style, { left: Math.max(8, r.left) + 'px', top: (r.bottom + 2) + 'px', maxWidth: Math.max(r.width, Math.min(innerWidth - r.left - 16, 640)) + 'px' });
+    // nur die ausgeblendeten Kacheln, untereinander, unter der letzten sichtbaren ausklappend
+    const sicht = [...q.children].filter((x) => !x.classList.contains('bf-weg')), letzte = sicht[sicht.length - 1];
+    const r = (letzte || t).getBoundingClientRect(), k = q.cloneNode(false); k.removeAttribute('id');
+    q.querySelectorAll(':scope > .bf-weg').forEach((x) => { const c = x.cloneNode(true); c.classList.remove('bf-weg'); k.appendChild(c); });
+    AUF = document.createElement('div'); AUF.className = 'bf-auf bf-auf-sp'; AUF.appendChild(k); document.body.appendChild(AUF);
+    const b = Math.max(r.width, AUF.offsetWidth);
+    Object.assign(AUF.style, { left: Math.max(8, Math.min(innerWidth - b - 8, r.left - 6)) + 'px', top: (r.bottom + 2) + 'px' });
   });
   window.befehle = befehle;
 })();

@@ -16,6 +16,18 @@ from datetime import date
 from xml.sax.saxutils import escape
 
 
+# GAEB-Mengeneinheiten (QU, höchstens 4 Zeichen) – gleiche Zuordnung wie /bp/vorschlag.js im Browser
+_EH = {"m²": "m2", "qm": "m2", "m³": "m3", "cbm": "m3", "lfm": "m", "lfdm": "m", "mtr": "m", "st": "St", "stk": "St", "stck": "St",
+       "stück": "St", "stueck": "St", "pausch": "psch", "pau": "psch", "psch": "psch", "pschl": "psch", "std": "h", "h": "h", "tag": "d",
+       "tage": "d", "d": "d", "wo": "Wo", "woche": "Wo", "mon": "Mt", "monat": "Mt", "mt": "Mt", "to": "t", "t": "t", "kg": "kg",
+       "ltr": "l", "l": "l", "satz": "Satz", "m": "m", "m2": "m2", "m3": "m3"}
+
+
+def gaeb_einheit(v):
+    k = str(v or "").strip().rstrip(".")
+    return _EH.get(k.lower(), k)[:4]
+
+
 def _ln(t):
     return t.rsplit("}", 1)[-1] if isinstance(t, str) else ""
 
@@ -185,7 +197,7 @@ def schreiben(lv, dp="83", preise=None, projekt="", bieter="", nachlass=0.0):
             h += "<ALNGroupNo>1</ALNGroupNo><ALNSerNo>1</ALNSerNo>"
         if a == "P":
             h += "<LumpSumItem>Yes</LumpSumItem>"
-        h += f"<Qty>{_f(float(x.get('menge') or 0), 3)}</Qty><QU>{escape(x.get('einheit') or '')}</QU>"
+        h += f"<Qty>{_f(float(x.get('menge') or 0), 3)}</Qty><QU>{escape(gaeb_einheit(x.get('einheit')))}</QU>"
         if mit_preis:
             ep = preise.get(x["id"])
             if ep is not None:

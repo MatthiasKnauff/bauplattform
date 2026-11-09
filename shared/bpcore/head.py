@@ -4,6 +4,7 @@ Jede App bindet sie mit `app.register_blueprint(head.blueprint())` ein und lädt
 Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benutzer mit App-Umschalter und Abmelden.
 
 /bp/head.js, /bp/head.css   Oberfläche (für alle Apps gleich)
+/bp/undo.js, /bp/seite.js, /bp/befehle.js, /bp/vorschlag.js   gemeinsame Bausteine: Rückgängig-Dock, Bereich rechts, Befehlsleiste, Vorschlagsliste
 /api/bp/projektnamen?q=   Vorschläge für Projektnamen: Projekte im Bautagebuch und Ordner auf dem Server (Ablage)
 /api/bp/konto       GET/PUT  persönliche Einstellungen (Versand von Rügen, Kalendertermine) – alle Apps
 /api/bp/signatur    POST Foto hochladen (wird freigestellt) · GET PNG · DELETE
@@ -331,7 +332,7 @@ def blueprint(get_user=None):
 
     @bp.get("/bp/<name>")
     def asset(name):
-        if name not in ("head.js", "head.css"):
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"

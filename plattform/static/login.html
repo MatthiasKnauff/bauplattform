@@ -53,6 +53,7 @@ p{color:var(--mute);margin:0 0 .9rem}
   </section>
 </main>
 <script src="static/bp.js"></script>
+<script src="bp/undo.js"></script>
 <script>
 const next = new URLSearchParams(location.search).get('next') || '';
 fetch('api/brand').then(r => r.json()).then(b => { if (b.office) { $('#office').textContent = b.office; document.title = 'Anmelden – ' + b.office; } }).catch(() => {});

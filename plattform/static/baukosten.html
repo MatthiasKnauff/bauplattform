@@ -202,6 +202,7 @@ body.as-open .wrap{padding-bottom:45vh}
 </main>
 <input type="file" id="pdfIn" accept="application/pdf,.pdf,.ifc,.dxf" multiple class="hidden">
 <script src="static/bp.js"></script>
+<script src="bp/undo.js"></script><script src="bp/vorschlag.js"></script>
 <script src="static/pdbwahl.js"></script>
 <script>
 const TABS = [['uebersicht', 'Übersicht'], ['plaene', 'Pläne & Raumbuch'], ['bauteile', 'Bauteile & Kostengruppen'], ['kosten', 'Kosten'], ['mittel', 'Mittelabfluss'], ['pruefung', 'Prüfung']];
@@ -724,7 +725,7 @@ function vBauteile() {
       <td>${matSel(b, i)}</td>
       <td><input data-bf="formel" data-bi="${i}" value="${esc(b.formel)}" placeholder="z. B. 12,5 × 2,75" style="min-width:150px" title="Rechnung (z. B. 12,5 × 2,75 + 3) – ergibt die Menge; oder eine Beschreibung" aria-label="Ermittlung"></td>
       <td class="r"><input class="n" style="width:80px" data-bf="menge" data-bi="${i}" value="${num1(b.menge)}" inputmode="decimal" aria-label="Menge"></td>
-      <td><input style="width:48px" data-bf="einheit" data-bi="${i}" value="${esc(b.einheit)}" aria-label="Einheit"></td>
+      <td><input style="width:48px" data-bf="einheit" data-bi="${i}" data-vs="eh" autocomplete="off" value="${esc(b.einheit)}" aria-label="Einheit"></td>
       <td class="r"><input class="n" style="width:84px" data-bf="ep" data-bi="${i}" value="${num1(b.ep)}" inputmode="decimal" aria-label="Einheitspreis"></td>
       <td class="r num">${eur(btBetrag(b))}</td>
       <td style="white-space:nowrap"><button class="btn sm" data-btdup="${i}" title="Zeile kopieren" aria-label="kopieren">⧉</button><button class="btn sm" data-btdel="${i}" title="Zeile löschen" aria-label="löschen">✕</button></td></tr>`;
@@ -855,7 +856,7 @@ async function askDialog(ask) {
   const tbl = () => `<div class="tbl"><table><thead><tr><th></th><th>KG</th><th>Bezeichnung</th><th class="r">Menge</th><th>Einheit</th><th class="r">€ / Einheit</th><th class="r">Betrag €</th></tr></thead><tbody>${rows.map((x, i) => `
     <tr data-r="${i}"><td><input type="checkbox" data-q="on"${x.on ? ' checked' : ''} aria-label="übernehmen"></td><td><input class="n" style="width:56px;text-align:left" data-q="kg" value="${esc(x.kg)}"></td>
     <td><input data-q="name" value="${esc(x.name)}" style="min-width:220px"><div class="hint" style="font-size:.72rem">${esc(x.src)}${x.basis ? ' · ' + esc(x.basis) : ''}</div></td>
-    <td class="r"><input class="n" style="width:80px" data-q="menge" value="${x.menge == null ? '' : String(x.menge).replace('.', ',')}" inputmode="decimal"></td><td><input style="width:56px" data-q="einheit" value="${esc(x.einheit || '')}"></td>
+    <td class="r"><input class="n" style="width:80px" data-q="menge" value="${x.menge == null ? '' : String(x.menge).replace('.', ',')}" inputmode="decimal"></td><td><input style="width:56px" data-q="einheit" data-vs="eh" autocomplete="off" value="${esc(x.einheit || '')}"></td>
     <td class="r"><input class="n" style="width:90px" data-q="ep" value="${x.ep == null ? '' : String(x.ep).replace('.', ',')}" inputmode="decimal"></td>
     <td class="r"><input class="n" style="width:110px" data-q="betrag" value="${Math.round(+x.betrag || 0)}" inputmode="numeric"></td></tr>`).join('')}</tbody>
     <tfoot><tr><td></td><td></td><td>Summe der gewählten Positionen</td><td></td><td></td><td></td><td class="r num" id="askSum">${eur(sum())}</td></tr></tfoot></table></div>`;

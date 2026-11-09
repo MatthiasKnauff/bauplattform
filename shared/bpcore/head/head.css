@@ -617,3 +617,69 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bph-vx-ln .bph-btn{padding:.1rem .5rem;min-width:0}
 .bph-vx-ft{display:flex;gap:.5rem;align-items:center;padding:.6rem 1rem;border-top:1px solid var(--line,#3b3e42)}.bph-vx-ft>span{flex:1;font-size:.85em}
 @media (max-width:700px){.bph-vx-bd{grid-template-columns:1fr;grid-template-rows:40% 1fr}.bph-vx-l{border-right:0;border-bottom:1px solid var(--line,#3b3e42)}}
+
+/* ===== Gemeinsame Bausteine aller Apps: Rückgängig-Dock (undo.js), Bereich rechts (seite.js), Befehlsleiste (befehle.js) ===== */
+.bp-undo{position:fixed;left:50%;bottom:4.6rem;transform:translateX(-50%);z-index:900;display:flex;flex-direction:column;align-items:center;gap:.4rem;max-width:calc(100vw - 2rem);font-size:.92rem}
+.bp-undo-z,.bp-undo-mini,.bp-undo-l{background:rgba(28,28,26,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.06))}
+.bp-undo-z{display:flex;align-items:center;gap:.15rem;border-radius:calc(999px*var(--rkp,1));padding:.25rem;min-width:0;max-width:100%}
+.bp-undo-t{padding:0 .6rem 0 .75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;color:#eee}
+.bp-undo button{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;border-radius:calc(999px*var(--rkp,1));padding:.38rem .8rem;white-space:nowrap;font:inherit}
+.bp-undo button:focus-visible{outline:2px solid var(--y,#d4f02a);outline-offset:2px}
+.bp-undo .bp-undo-u{background:var(--y,#d4f02a);color:var(--on,#111);font-weight:700}.bp-undo .bp-undo-u em{font-style:normal;font-size:.75em;background:rgba(0,0,0,.18);border-radius:calc(999px*var(--rkp,1));padding:0 .4rem}
+.bp-undo .bp-undo-r{color:#ddd;padding:.38rem .65rem}.bp-undo .bp-undo-r:hover{background:rgba(255,255,255,.1)}.bp-undo .bp-undo-x{color:#999;padding:.38rem .6rem}
+.bp-undo button[disabled]{opacity:.35;cursor:default}
+.bp-undo-mini{display:flex;border-radius:calc(999px*var(--rkp,1));padding:.2rem;opacity:.9}.bp-undo-mini:hover{opacity:1}.bp-undo-mini .bp-undo-u{padding:.3rem .75rem}
+.bp-undo-l{width:min(24rem,calc(100vw - 2rem));border-radius:calc(14px*var(--rk,1));padding:.35rem;display:flex;flex-direction:column;max-height:min(50vh,22rem);overflow:auto;scrollbar-width:thin}
+.bp-undo-lk{display:flex;justify-content:space-between;color:#aaa;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;padding:.3rem .5rem .4rem}
+.bp-undo-l button{display:flex;gap:.55rem;padding:.42rem .5rem;border-radius:calc(9px*var(--rk,1))}.bp-undo-l button i{flex:none;width:1.45rem;height:1.45rem;border-radius:calc(7px*var(--rk,1));background:#333;display:grid;place-items:center;font-style:normal;font-size:.8rem}
+.bp-undo-l button span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bp-undo-l button small{color:#999}
+.bp-undo-l .bp-undo-vl{justify-content:center;margin-top:.25rem;border-top:1px solid rgba(255,255,255,.1);border-radius:0 0 9px 9px;color:var(--y,#d4f02a)}
+.bp-undo-l button.hi{background:rgba(212,240,42,.16)}.bp-undo-l button.hi i{background:var(--y,#d4f02a);color:var(--on,#111)}
+/* Bereich rechts (seite.js): Reiter, Trennung, an den Rand geklappt, freie Fenster – überall derselbe Baustein */
+.sr-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}.sr-split>:first-child{min-width:0}
+.sr-split.sr-leer{grid-template-columns:minmax(0,1fr)!important}.sr-split.sr-leer>.sr-r,.sr-split.sr-leer>.sr-griff,.sr-griff[hidden]{display:none}
+.sr-griff{cursor:col-resize;align-self:stretch;border-radius:calc(4px*var(--rk,1));background:linear-gradient(90deg,transparent 7px,var(--line) 7px,var(--line) 9px,transparent 9px);min-height:200px;touch-action:none}
+.sr-griff:hover{background:linear-gradient(90deg,transparent 6px,var(--y) 6px,var(--y) 10px,transparent 10px)}
+.sr-griff::after{content:'';position:sticky;top:calc(50vh - 14px);display:block;margin:0 auto;width:6px;height:28px}   /* Aussehen: head.css (alle Anfasser gleich) */
+.sr-r{position:sticky;top:8px;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px;min-width:0;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);overflow:hidden}
+.sr-split.sr-zu>.sr-r{height:auto;min-height:0;border:0;background:none;overflow:visible}
+.sr-rt{display:flex;align-items:flex-end;gap:2px;padding:.3rem .4rem 0;border-bottom:1px solid var(--line);background:var(--tabs)}
+.sr-tab{all:unset;box-sizing:border-box;cursor:pointer;white-space:nowrap;padding:.32rem .75rem;border:1px solid transparent;border-bottom:0;border-radius:calc(8px*var(--rk,1)) calc(8px*var(--rk,1)) 0 0;margin-bottom:-1px;color:var(--mute);font-size:var(--fs-s2,.86rem)}
+.sr-tab:hover{color:var(--ink)}.sr-tab.on{background:var(--card);border-color:var(--line);color:var(--ink);font-weight:700}.sr-tab:focus-visible,.sr-ik:focus-visible{outline:2px solid var(--y);outline-offset:1px}
+.sr-sp{flex:1}
+.sr-ik{all:unset;box-sizing:border-box;cursor:pointer;align-self:center;min-width:1.7rem;text-align:center;padding:.08rem .4rem;margin:0 0 .22rem .2rem;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));background:var(--card);color:var(--mute);line-height:1.35}
+.sr-ik:hover{color:var(--ink);border-color:var(--y)}
+.sr-b{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}
+.sr-pad{padding:.45rem}.sr-pad>.card{margin:0 0 .45rem;box-shadow:none}.sr-pad>.card:last-child{margin-bottom:0}
+.sr-auf{display:flex;flex-direction:column;align-items:center;gap:.8rem;width:2.4rem;padding:.7rem 0;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:var(--card);color:inherit;cursor:pointer;font:inherit;font-size:var(--fs-s2,.86rem)}
+.sr-auf:hover{border-color:var(--y)}.sr-auf span{writing-mode:vertical-rl}
+.sr-flo{position:fixed;z-index:60;display:flex;flex-direction:column;resize:both;overflow:hidden;min-width:300px;min-height:240px;background:var(--card);border-radius:calc(12px*var(--rk,1));box-shadow:var(--sh0,0 18px 50px rgba(0,0,0,.35),0 0 0 1px var(--line))}.sr-flo.vorn{z-index:61}
+.sr-fk{display:flex;align-items:center;gap:.25rem;padding:.35rem .45rem .35rem .75rem;cursor:move;border-bottom:1px solid var(--line);background:var(--tabs);touch-action:none}.sr-fk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sr-fk .sr-ik{margin:0}
+@media (max-width:900px){.sr-split{grid-template-columns:1fr!important}.sr-r{position:static;height:70vh}.sr-griff{display:none}}
+/* Befehlsleiste (befehle.js): Gruppen mit kleiner Überschrift, Symbol über dem Text – in allen Bereichen gleich */
+.bf{display:flex;align-items:stretch;flex-wrap:nowrap;gap:0;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.2rem .25rem;position:relative}
+.bf-g{display:flex;flex-direction:column;flex:none;padding:0 .45rem;border-right:1px solid var(--line)}.bf-g:last-of-type,.bf-g:has(+ .bf-mehr:not([hidden])),.bf-g:has(+ .bf-sp){border-right:0}
+.bf-sp{flex:1;min-width:.5rem}
+.bf-mitte{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 .4rem;border-right:1px solid var(--line)}   /* füllt die Mitte (z. B. Kennzahlen), gibt als Erstes Platz ab */
+.bf-mitte:has(+ .bf-g.r){border-right:0}.bf-mitte .bf-weg{display:none!important}
+.bf-auf{position:fixed;z-index:85;padding:.4rem;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 12px 30px rgba(0,0,0,.35));animation:bf-auf .14s ease-out}.bf-auf>*{flex-wrap:wrap!important;overflow:visible!important;max-width:none!important}
+.bf-auf-sp>*{flex-direction:column!important;align-items:stretch!important;gap:.35rem!important}.bf-auf-sp>*>*{margin:0!important}
+@keyframes bf-auf{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}.bf-g.r{border-left:1px solid var(--line);border-right:0}
+.bf-ks{display:flex;align-items:center;gap:.1rem;flex:1}
+.bf-gt{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);text-align:center;white-space:nowrap;line-height:1.2;padding-top:.05rem}
+.bf-k{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.05rem;min-width:2.6rem;padding:.2rem .45rem;border-radius:calc(7px*var(--rk,1));color:var(--ink);font-size:var(--fs-s2,.8rem);white-space:nowrap;line-height:1.15}
+.bf-k svg{width:18px;height:18px;fill:none;stroke:var(--y);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.bf-k .bf-z{font-size:1rem;line-height:18px;color:var(--y)}
+.bf-k:hover{background:var(--hov)}.bf-k:focus-visible{outline:2px solid var(--y);outline-offset:1px}
+.bf-k.on{background:color-mix(in srgb,var(--y) 20%,transparent)}.bf-k.rot svg{stroke:var(--red)}.bf-k.rot{color:var(--red)}
+.bf-k:disabled,.bf-k.aus{opacity:.35;cursor:default}.bf-k:disabled:hover{background:none}
+.bf .seg{align-self:center}
+.bf.kompakt .bf-t{display:none}.bf.kompakt .bf-k{min-width:2rem;padding:.3rem .4rem}.bf.kompakt .bf-gt{font-size:.58rem}
+.bf-mehr{all:unset;cursor:pointer;align-self:center;padding:.2rem .5rem;border-radius:calc(7px*var(--rk,1));font-weight:700;color:var(--y)}.bf-mehr:hover{background:var(--hov)}
+.bf-pop{position:fixed;z-index:80;display:flex;flex-wrap:wrap;max-width:min(560px,92vw);gap:.3rem;padding:.4rem;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 12px 34px rgba(0,0,0,.4))}
+.bf-pop[hidden],.bf-mehr[hidden]{display:none}.bf-pop .bf-g{border-right:0}.bf-pop .bf-t{display:inline}
+
+/* Vorschlagsliste (/bp/vorschlag.js) – klein, wie ein Kontextmenü */
+.bp-vs{position:fixed;z-index:120;min-width:7rem;max-height:14rem;overflow:auto;padding:3px;background:var(--card);color:var(--ink,inherit);border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));box-shadow:var(--sh0,0 6px 18px rgba(0,0,0,.22));font-size:calc(var(--fs,14px)*.88);line-height:1.25}
+.bp-vs-z{display:flex;gap:.6rem;align-items:baseline;padding:.18rem .45rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;white-space:nowrap}
+.bp-vs-z b{min-width:2.4em;font-weight:600}.bp-vs-z span{color:var(--mute);font-size:.92em}
+.bp-vs-z:hover{background:color-mix(in srgb,var(--af,var(--acc,#888)) 12%,transparent)}.bp-vs-z.an{background:color-mix(in srgb,var(--af,var(--acc,#888)) 24%,transparent)}

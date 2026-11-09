@@ -106,6 +106,7 @@
 </main>
 <div class="kv-fab"><div class="kv-fm" hidden><button type="button" data-kvneu="n">✉ Nachricht</button><button type="button" data-kvneu="v">📝 Vorgang dokumentieren</button></div><button type="button" class="kv-fb" data-kvfab aria-label="Neu: Nachricht oder Vorgang">＋</button></div>
 <script src="static/bp.js"></script>
+<script src="bp/undo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('kom.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('kom.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const F = { alle: LS.get('alle', false), arten: new Set(LS.get('arten', [])), q: '', ich: LS.get('ich', false) };

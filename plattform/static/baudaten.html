@@ -114,6 +114,7 @@
   </div>
 </main>
 <script src="static/bp.js"></script>
+<script src="bp/undo.js"></script>
 <script src="static/kataloge.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('bd.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('bd.' + k, JSON.stringify(v)); } catch { /* egal */ } } };

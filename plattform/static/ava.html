@@ -718,11 +718,12 @@ table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blin
 </main>
 <div id="mView" aria-label="Handy-Ansicht"></div>
 <input type="file" id="fileIn" accept=".x81,.x82,.x83,.x84,.x85,.x86,.xml,.xlsx,.pdf,image/*,.docx" hidden>
-<datalist id="lbList"></datalist><datalist id="ehList"><option>m</option><option>m2</option><option>m3</option><option>St</option><option>psch</option><option>kg</option><option>t</option><option>h</option><option>lfm</option></datalist>
+<datalist id="lbList"></datalist>
 <datalist id="gwList"></datalist>
 <script src="static/bp.js"></script>
-<script src="static/seite.js"></script>
-<script src="static/befehle.js"></script>
+<script src="bp/undo.js"></script>
+<script src="bp/seite.js"></script>
+<script src="bp/befehle.js"></script><script src="bp/vorschlag.js"></script>
 <script src="static/kataloge.js"></script>
 <script>
 /* Wird die App gerade neu gestartet (Update eingespielt), antwortet der Verteiler sofort mit 502 „… nicht erreichbar (ConnectionRefusedError)“ –
@@ -2094,7 +2095,7 @@ function vLv() {
     const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
     let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz baumz" title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"><div class="bz" style="${einr(tief + 2)}"><span class="car"></span>${icArt(x)}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt && x.nt_erbe ? `<span class="badge nt" title="gehört zum Nachtrag des Gliederungspunkts (${esc(x.nt_status || '')})">${esc(x.nt)}</span>` : x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td>
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
-      <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" list="ehList" style="width:3.8rem">`}</td>
+      <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" data-vs="eh" autocomplete="off" style="width:3.8rem">`}</td>
       <td><select data-f="art" title="${esc(ARTEN[artW(x)])}" style="width:4.2rem">${Object.entries(ARTEN).map(([k, l]) => `<option value="${k}"${artW(x) === k ? ' selected' : ''} title="${l}">${k}</option>`).join('')}</select></td>
       <td class="hide-m"><input data-f="kg" value="${esc(x.kg || '')}" placeholder="KG" style="width:3.4rem" inputmode="numeric" title="Kostengruppe DIN 276"></td>
       <td>${t ? '' : V ? `<input class="n" data-vp="${x.id}" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.5rem" title="Einheitspreis des Auftrags${x.nt ? ' (Nachtragspreis)' : ''}">` : `<input class="n" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="EP" title="geschätzter Einheitspreis (Kostenanschlag)">`}</td>
@@ -3152,7 +3153,7 @@ function amNachtragNeu() {
   const frei = !!(L.vergabe && L.vergabe.frei && !Object.keys(L.vergabe.preise || {}).length);
   modalBox(`<h3>Position als Nachtrag</h3><p class="hint" style="margin:0 0 .7rem">Kommt als Nachtrag „beauftragt“ in den Auftrag${frei ? ' (Auftrag ohne LV-Preise: ohne Preis, nur zur Dokumentation)' : ' und zählt je nach Einstellung gleich oder erst nach Beauftragung in der Rechnung'}. Danach das Aufmaß erfassen.</p>
     <div class="fm"><label>Kurztext</label><input id="ntK" placeholder="z. B. Mehrmenge Bodenaustausch"></div>
-    <div class="nlf" style="grid-template-columns:repeat(3,minmax(0,1fr))"><label>LV-Menge<input id="ntM" inputmode="decimal" placeholder="0"></label><label>Einheit<input id="ntE" value="m²"></label><label>EP €${frei ? ' (entfällt)' : ''}<input id="ntP" inputmode="decimal"${frei ? ' disabled' : ''}></label></div>
+    <div class="nlf" style="grid-template-columns:repeat(3,minmax(0,1fr))"><label>LV-Menge<input id="ntM" inputmode="decimal" placeholder="0"></label><label>Einheit<input id="ntE" value="m2" data-vs="eh" autocomplete="off"></label><label>EP €${frei ? ' (entfällt)' : ''}<input id="ntP" inputmode="decimal"${frei ? ' disabled' : ''}></label></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Als Nachtrag anlegen</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
@@ -4995,7 +4996,7 @@ function eigDialog(id) {
       <label>OZ</label><input value="${esc(x.oz)}" disabled>
       <label>Kurztext</label><input data-e="kurz" value="${esc(x.kurz)}">
       <label>Langtext</label><textarea data-e="lang" rows="8">${esc(x.lang || '')}</textarea>
-      <label>Einheit</label><input data-e="einheit" value="${esc(x.einheit || '')}" list="ehList" style="max-width:8rem">
+      <label>Einheit</label><input data-e="einheit" value="${esc(x.einheit || '')}" data-vs="eh" autocomplete="off" style="max-width:8rem">
       <label>EP Schätzung</label><input class="n" data-e="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="max-width:10rem">
       ${V ? `<label>EP Auftrag</label><input class="n" value="${ep != null ? nf2(ep) : ''}" disabled style="max-width:10rem">` : ''}</div>`;
     else if (tabE === 'weiteres') h = `<div class="fm">
@@ -5240,7 +5241,7 @@ function auFelder(lv, x) {
   const a = `data-aulv="${lv.id}" data-auid="${esc(x.id)}"`, ep = auEp(lv, x);
   return { bz: `<b class="au-oz">${esc(x.oz || '')}</b><input class="aui au-k" ${a} data-auf="kurz" value="${esc(x.kurz || '')}" title="Kurztext – Enter speichert, Esc verwirft · Doppelklick: Eigenschaften wie im LV">`,
     mx: [`<input class="aui r" ${a} data-auf="menge" value="${x.menge != null ? nf(x.menge) : ''}" inputmode="decimal" style="width:5.6rem">`,
-      `<input class="aui" ${a} data-auf="einheit" value="${esc(x.einheit || '')}" list="ehList" style="width:3.8rem">`,
+      `<input class="aui" ${a} data-auf="einheit" value="${esc(x.einheit || '')}" data-vs="eh" autocomplete="off" style="width:3.8rem">`,
       `<input class="aui r" ${a} data-auf="ep" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.6rem" title="${(lv.vergabe || {}).preise ? 'Einheitspreis des Auftrags' + (x.nt ? ' (Nachtragspreis)' : '') : 'geschätzter Einheitspreis'}">`] };
 }
 let AUZIEL = null;   // nach dem Speichern dort weiter (Tab / Enter)
@@ -5363,7 +5364,6 @@ function vAuftraege() {
   });
   const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:12rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
 `;
-  if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
   return `<div class="au2"><div class="au2-tab">${tabelle}</div></div>`;   // rechts: auSeite() – Reiter „Position“ und „Auftrag“
 }
 
@@ -5410,7 +5410,7 @@ document.addEventListener('click', (e) => { const b = e.target.closest && e.targ
    Strg+V mit mehreren Zeilen (Excel/Mail/PDF-Text) erfasst alle auf einmal – Menge, Einheit und EP werden aus der Zeile gelesen. */
 function ntZeile(lvId, nt, tiefe, st) {
   const neu = !nt;
-  return `<tr class="nt-ein" data-ntein="${lvId}" data-ntnt="${esc(nt)}"><td colspan="6"><span class="tw" style="padding-left:${tiefe * 1.1}rem;gap:.35rem"><span class="car"></span>${neu ? IC.ti : IC.pos}<input data-ne="kurz" placeholder="${neu ? '＋ neuer Nachtrag … (Bezeichnung, Enter) – oder mehrere Zeilen einfügen' : '＋ weitere Position … (Bezeichnung, Tab)'}" style="width:${neu ? 30 : 17}rem">${neu ? '' : '<input data-ne="menge" placeholder="Menge" inputmode="decimal" style="width:4.6rem;text-align:right"><input data-ne="einheit" placeholder="EH" list="ntEH2" style="width:3.4rem"><input data-ne="ep" placeholder="EP €" inputmode="decimal" style="width:5.6rem;text-align:right">'}</span></td>
+  return `<tr class="nt-ein" data-ntein="${lvId}" data-ntnt="${esc(nt)}"><td colspan="6"><span class="tw" style="padding-left:${tiefe * 1.1}rem;gap:.35rem"><span class="car"></span>${neu ? IC.ti : IC.pos}<input data-ne="kurz" placeholder="${neu ? '＋ neuer Nachtrag … (Bezeichnung, Enter) – oder mehrere Zeilen einfügen' : '＋ weitere Position … (Bezeichnung, Tab)'}" style="width:${neu ? 30 : 17}rem">${neu ? '' : '<input data-ne="menge" placeholder="Menge" inputmode="decimal" style="width:4.6rem;text-align:right"><input data-ne="einheit" placeholder="EH" data-vs="eh" autocomplete="off" style="width:3.4rem"><input data-ne="ep" placeholder="EP €" inputmode="decimal" style="width:5.6rem;text-align:right">'}</span></td>
     <td>${neu ? '<span class="hint">angemeldet</span>' : `<span class="hint" title="übernimmt den Stand des Nachtrags">erbt: ${esc(st)}</span>`}</td>
     <td colspan="6" class="hint"><span class="au-fl" title="${neu ? `wird NT${ntNaechste(lvId)} · Strg+V: erste Zeile = Nachtrag, weitere = Positionen` : 'Enter = speichern · Strg+V: mehrere Zeilen auf einmal'}">${neu ? `wird NT${ntNaechste(lvId)} · Strg+V: erste Zeile = Nachtrag, weitere = Positionen` : 'Enter = speichern · Strg+V: mehrere Zeilen auf einmal'}</span></td></tr>`;
 }
@@ -5565,7 +5565,7 @@ function ntDialog(lvId, zuNt = null, ab = null) {   // zuNt: weitere Positionen 
       <label>Umfang</label><select id="ntU"${ab && !ab.liste ? ' disabled' : ''}><option value="pos">eine Position (unter dem Titel „Nachträge“)</option><option value="titel">eigener Gliederungspunkt (mehrere Positionen folgen im LV)</option></select>
       <label>Bezeichnung</label><div style="display:flex;gap:.4rem"><input id="ntK" placeholder="z. B. Zusätzliche Kernbohrungen DN 150" style="flex:1"><button type="button" class="ib" id="ntL" title="Langtext">¶</button></div>
       <label>Menge</label><input id="ntM" value="1" inputmode="decimal" style="width:7rem">
-      <label>Einheit</label><input id="ntE" value="psch" list="ntEH" style="width:7rem"><datalist id="ntEH">${['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join('')}</datalist>
+      <label>Einheit</label><input id="ntE" value="psch" data-vs="eh" autocomplete="off" style="width:7rem">
       <label>EP netto €</label><input id="ntP" inputmode="decimal" style="width:9rem" placeholder="Preis der Firma">
       <label>Stand</label><select id="ntS"><option value="angemeldet">angemeldet (Firma hat angekündigt)</option><option value="beauftragt">beauftragt</option><option value="abgelehnt">abgelehnt</option></select>
       <label>Grund / Bemerkung</label><input id="ntG" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></div>
@@ -5607,7 +5607,7 @@ function ntDialog(lvId, zuNt = null, ab = null) {   // zuNt: weitere Positionen 
       setTimeout(() => { const f = mehr ? $('#ntM') : $('#ntK'); f.focus(); if (!mehr) f.setSelectionRange(f.value.length, f.value.length); }, 0); };
     $('#ntA').addEventListener('change', setz); setz();
   }
-  const zeile = () => { const tr = document.createElement('tr'); tr.innerHTML = '<td><input data-np="kurz" placeholder="Bezeichnung"></td><td><input data-np="menge" value="1" inputmode="decimal"></td><td><input data-np="einheit" value="psch" list="ntEH"></td><td><input data-np="ep" inputmode="decimal" placeholder="EP"></td><td style="white-space:nowrap"><button type="button" class="ib" data-ntz="lang" title="Langtext">¶</button><button type="button" class="ib" data-ntz="-" title="Zeile entfernen">✕</button></td>'; bg.querySelector('#ntPosB').appendChild(tr); return tr; };
+  const zeile = () => { const tr = document.createElement('tr'); tr.innerHTML = '<td><input data-np="kurz" placeholder="Bezeichnung"></td><td><input data-np="menge" value="1" inputmode="decimal"></td><td><input data-np="einheit" value="psch" data-vs="eh" autocomplete="off"></td><td><input data-np="ep" inputmode="decimal" placeholder="EP"></td><td style="white-space:nowrap"><button type="button" class="ib" data-ntz="lang" title="Langtext">¶</button><button type="button" class="ib" data-ntz="-" title="Zeile entfernen">✕</button></td>'; bg.querySelector('#ntPosB').appendChild(tr); return tr; };
   bg.querySelector('#ntL').addEventListener('click', (ev) => { ev.stopPropagation(); langFenster($('#ntK').value.trim() || 'Langtext', langK, (t) => { langK = t; lMark(); }); });
   bg.querySelector('#ntPos').addEventListener('click', (ev) => { const b = ev.target.closest('[data-ntz]'); if (!b) return; ev.stopPropagation();
     if (b.dataset.ntz === 'lang') { const tr = b.closest('tr'); langFenster(tr.querySelector('[data-np="kurz"]').value.trim() || 'Langtext', tr.dataset.lang || '', (t) => { tr.dataset.lang = t; lMark(); }); return; }
@@ -5736,7 +5736,7 @@ function ntPosDialog(lvId, posId) {
   const bg = modalBox(`<h3>Nachtragsposition <span class="hint">· ${esc(y.nt || '')} · ${esc(y.oz || '')}</span></h3><div class="fm">
       <label>Bezeichnung</label><input id="npK" value="${esc(y.kurz || '')}">
       <label>Menge</label><input id="npM" value="${nf(y.menge || 0, 3).replace(/,?0+$/, '')}" inputmode="decimal" style="width:7rem">
-      <label>Einheit</label><input id="npE" value="${esc(y.einheit || '')}" list="ntEH2" style="width:7rem">
+      <label>Einheit</label><input id="npE" value="${esc(y.einheit || '')}" data-vs="eh" autocomplete="off" style="width:7rem">
       <label>EP netto €</label><input id="npP" value="${ep != null ? nf(ep, 2) : ''}" inputmode="decimal" style="width:9rem" placeholder="Preis der Firma">
       <label>Langtext</label><div><button type="button" class="btn sm${y.lang ? ' on' : ''}" id="npL">¶ Langtext …</button> <span class="hint" id="npLh">${y.lang ? esc(y.lang.slice(0, 60)) + (y.lang.length > 60 ? ' …' : '') : 'noch keiner'}</span></div>
       <label>Stand</label><select id="npS"${y.nt_erbe ? ' title="erbt vom Gliederungspunkt – ein eigener Stand löst die Position davon"' : ''}>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${(y.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select></div>

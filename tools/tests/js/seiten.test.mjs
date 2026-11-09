@@ -18,10 +18,11 @@ const lies = (p) => fs.readFileSync(p, 'utf8');
 
 // Freigabeliste der Route /bp/<name> (shared/bpcore/head.py, Funktion asset)
 function freigegeben() {
-  const m = lies(path.join(ROOT, 'shared/bpcore/head.py')).match(/def asset\(name\):\s*\n\s*if name not in \(([^)]*)\)/);
+  const m = lies(path.join(ROOT, 'shared/bpcore/head.py')).match(/if name not in \(("head\.js"[^)]*)\)/);
   assert.ok(m, 'Freigabeliste für /bp/<name> in shared/bpcore/head.py nicht gefunden');
   return new Set([...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]));
 }
+const BUENDEL = new Set(['baukasten.js']);   // wird vom Server aus den Bausteinen zusammengesetzt (head.py, BAUKASTEN)
 
 // Ordner mit Seiten: wohin zeigen „static/…“ (Plattform) bzw. Verweise ohne Ordner (Bauzeitenplan, Bautagebuch)?
 const ORTE = [
@@ -40,6 +41,7 @@ test('Seiten verweisen nur auf vorhandene Skripte und Stilblätter', () => {
       for (const v of verweise) {
         if (v.startsWith('bp/')) {
           const n = v.slice(3);
+          if (BUENDEL.has(n)) continue;
           if (!frei.has(n)) fehler.push(`${seite}: „${v}“ ist in head.py nicht freigegeben`);
           else if (!gibt(path.join(BP, n))) fehler.push(`${seite}: „${v}“ fehlt in shared/bpcore/head`);
         } else if (v.startsWith('static/')) {
@@ -58,6 +60,7 @@ test('Jeder bp/-Verweis im Programmcode ist freigegeben und vorhanden; die Freig
   const quellen = [...ORTE.flatMap((o) => [...dateien(o.dir, '.html'), ...dateien(o.dir, '.js')]), ...dateien('shared/bpcore/head', '.js')];
   for (const q of quellen) {
     for (const m of lies(path.join(ROOT, q)).matchAll(/["'`]bp\/([\w.-]+\.(?:js|css))["'`]/g)) {
+      if (BUENDEL.has(m[1])) continue;
       if (!frei.has(m[1])) fehler.push(`${q}: „bp/${m[1]}“ ist in head.py nicht freigegeben`);
       else if (!gibt(path.join(BP, m[1]))) fehler.push(`${q}: „bp/${m[1]}“ fehlt in shared/bpcore/head`);
     }

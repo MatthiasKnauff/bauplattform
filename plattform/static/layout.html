@@ -93,8 +93,7 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
   <aside class="r" id="props"></aside>
 </div>
 <button hidden id="verlBtn"></button>
-<script src="bp/bp.js"></script>
-<script src="bp/undo.js"></script>
+<script src="bp/baukasten.js"></script>
 <script>
 const LS = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* egal */ } } };
 const EMB = new URLSearchParams(location.search).has('einbetten');

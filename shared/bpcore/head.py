@@ -33,6 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, hilfe, konto, mail, papierkorb, projektteile, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
+BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js")   # Reihenfolge im Bündel /bp/baukasten.js
 
 
 # Stil je Benutzer (⚙ → Darstellung → Stil) – erlaubte Werte, leer = wie bisher; die Regeln dazu stehen in head/head.css
@@ -332,6 +333,17 @@ def blueprint(get_user=None):
 
     @bp.get("/bp/<name>")
     def asset(name):
+        if name == "baukasten.js":   # der ganze Baukasten in einer Datei – jede Seite lädt ihn mit einer Zeile, in fester Reihenfolge
+            import hashlib
+            teile = []
+            for f in BAUKASTEN:
+                with open(os.path.join(ASSETS, f), encoding="utf-8") as fh:
+                    teile.append(f"/* ---- {f} ---- */\n" + fh.read())
+            body = "/* Bauplattform-Baukasten: " + ", ".join(BAUKASTEN) + " */\nvoid 0;\n" + "\n;\n".join(teile)
+            r = Response(body, mimetype="text/javascript")
+            r.set_etag(hashlib.sha1(body.encode()).hexdigest())
+            r.headers["Cache-Control"] = "no-cache"
+            return r.make_conditional(request)
         if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)

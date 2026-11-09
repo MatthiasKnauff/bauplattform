@@ -91,8 +91,7 @@ html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}
   <div id="view"><p class="mute">Lade …</p></div>
 </main>
 <div class="bar" id="bar" hidden></div>
-<script src="bp/bp.js"></script>
-<script src="bp/undo.js"></script>
+<script src="bp/baukasten.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('pl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('pl.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const AN = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&')).get('an') || '';   // aus „Adressen“: Firma als Empfänger vorwählen

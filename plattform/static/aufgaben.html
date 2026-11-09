@@ -136,8 +136,7 @@ html[data-modus="einfach"] .top{order:-1}
   <div id="briefe" class="briefe" hidden></div>
   <div id="view"><p class="mute">Lade …</p></div>
 </main>
-<script src="bp/bp.js"></script>
-<script src="bp/undo.js"></script>
+<script src="bp/baukasten.js"></script>
 <script src="static/todo.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('auf.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('auf.' + k, JSON.stringify(v)); } catch { /* egal */ } } };

@@ -65,6 +65,20 @@
 .resch input{padding:.3rem .45rem}
 details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .empty{color:var(--mute);padding:1.2rem;text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:12px}
+.ue-top{display:flex;align-items:center;gap:1rem;margin:0 0 .8rem;flex-wrap:wrap}.ue-top .fill{flex:1}
+.ue-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem;align-items:start}
+.ue-b{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.6rem .8rem .5rem;min-width:0;position:relative}.ue-b.w2{grid-column:span 2}
+.ue-b h3{margin:0 0 .4rem;font-size:.95rem;display:flex;align-items:center;gap:.5rem;cursor:grab}.ue-b h3:active{cursor:grabbing}
+.ue-ic{width:24px;height:24px;border-radius:7px;display:inline-grid;place-items:center;color:#fff;font-size:.72rem;font-weight:700;flex:none}
+.ue-n{margin-left:auto;background:var(--hov);border-radius:999px;padding:0 .5rem;font-size:.78rem;color:var(--mute)}.ue-n.rot{background:var(--red);color:#fff}
+.ue-grip{color:var(--mute);letter-spacing:-2px;font-size:.95rem;opacity:.6}
+.ue-b.zieh{opacity:.45}.ue-b.ziel{outline:2px dashed var(--y);outline-offset:2px}
+.ue-r{display:flex;gap:.6rem;align-items:baseline;padding:.3rem 0;border-top:1px dashed var(--line);cursor:pointer}.ue-r:first-of-type{border-top:0}.ue-r:hover{background:var(--hov)}
+.ue-r .ue-t{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ue-r .ue-t small{display:block;color:var(--mute);font-size:.78rem;overflow:hidden;text-overflow:ellipsis}
+.ue-r .ue-d{white-space:nowrap;color:var(--mute);font-size:.82rem}.ue-r .ue-d.rot{color:var(--red);font-weight:600}.ue-r.aus{opacity:.5}
+.ue-mehr{border:0;background:none;color:var(--y);cursor:pointer;font:inherit;font-size:.84rem;padding:.3rem 0 0;margin-right:.8rem}.ue-leer{font-size:.84rem;margin:.2rem 0 0;display:inline-block}
+.ue-b #todo .post-h{display:none}.ue-b #todo .tg{font-size:.78rem}
+@media (max-width:1100px){.ue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:760px){.ue-grid{grid-template-columns:1fr}.ue-b.w2{grid-column:auto}}
 .note{background:var(--hov);border:1px solid var(--line);border-radius:10px;padding:.7rem 1rem;color:var(--mute);font-size:.9rem;margin-bottom:1rem}
 #undoBar{position:fixed;left:16px;bottom:16px;z-index:44;display:flex;gap:.35rem;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:.3rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #undoBar[hidden]{display:none}
@@ -145,7 +159,8 @@ html[data-modus="einfach"] .top{order:-1}
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('auf.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('auf.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const HASH = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&'));   // z. B. #termine&ruege=12|firma oder &gid=…&uid=…
-let tab = (location.hash || '').slice(1).split('&')[0] || LS.get('tab', 'todos'), scope = LS.get('scope', 'mine');
+let tab = (location.hash || '').slice(1).split('&')[0] || LS.get('tab', 'uebersicht'), scope = LS.get('scope', 'mine');
+TDNURMANUELL = true;   // unter „To-dos“ nur selbst angelegte Aufgaben; die automatischen Hinweise stehen in der Übersicht je Rubrik
 let VZ = null;
 let M = null, E = null, T = null, CONF = null, ME = null, F = LS.get('filter', { q: '', projekt: '', firma: '', art: 'maengel', status: 'offen' }), OPEN = null;
 const de = (d) => (d && d.length >= 10 ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '');
@@ -181,6 +196,11 @@ window.bpNachVerlauf = () => reload();   // nach „Wiederherstellen“ die List
 async function reload(first) {
   try {
     if (tab === 'todos') { await tdRef(); await tdLaden(); renderTabs(); return; }
+    if (tab === 'uebersicht') {
+      await tdRef();
+      const [m, t, vz, e] = await Promise.all([api('api/maengel?scope=' + scope).catch(() => M), api('api/termine?scope=' + scope).catch(() => T), api('api/verzug?scope=' + scope).catch(() => null), api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : '')).catch(() => E), tdLaden()]);
+      M = m; T = t; VZ = vz; E = e; render(); return;
+    }
     if (tab === 'maengel') M = await api('api/maengel?scope=' + scope);
     else if (tab === 'termine') [T, VZ] = await Promise.all([api('api/termine?scope=' + scope), api('api/verzug?scope=' + scope).catch(() => null)]);
     else E = await api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : ''));
@@ -191,14 +211,88 @@ function renderTabs() {
   const nM = M ? M.filter((m) => m.status === 'ueberfaellig').length : 0, nE = E ? E.items.filter((x) => ['ueberfaellig', 'abgelaufen', 'heute'].includes(x.lage)).length : 0;
   const nT = (T ? T.filter((x) => x.status === 'offen').length : 0) + (VZ ? new Set(VZ.vorgaenge.map((x) => x.pid + '|' + x.key)).size : 0);
   const nTd = TD ? tdAlle().offen.filter((x) => x.f && x.f <= tdHeute()).length : 0;
-  $('#scope').style.visibility = tab === 'todos' ? 'hidden' : '';   // gelten nur für Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
-  $('#tabs').innerHTML = [['todos', 'To-dos', nTd], ['maengel', 'Mängel', nM], ['termine', 'Termine', nT], ['erinnerungen', 'Erinnerungen', nE]].map(([k, l, n]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}${n ? `<small class="bad" title="überfällig / fällig">${n}</small>` : ''}</button>`).join('');
+  $('#scope').style.visibility = tab === 'todos' ? 'hidden' : '';   // gelten nur für Übersicht, Mängel, Termine, Erinnerungen – „＋ Neu“ bleibt überall
+  const nUe = (TD ? (TD.auto || []).filter((x) => !x.spaeter).length : 0) + nTd;
+  $('#tabs').innerHTML = [['uebersicht', 'Übersicht', nUe], ['todos', 'To-dos', nTd], ['maengel', 'Mängel', nM], ['termine', 'Termine', nT], ['erinnerungen', 'Erinnerungen', nE]].map(([k, l, n]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}">${l}${n ? `<small class="bad" title="überfällig / fällig">${n}</small>` : ''}</button>`).join('');
   $('#scope').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === scope));
 }
 function render() {
   renderTabs();
-  if (tab === 'todos') { if (!$('#todo')) $('#view').innerHTML = '<section class="todo voll" id="todo"></section>'; tdZeigen(); return; }
+  if (tab === 'todos') { window.TDMAX = undefined; if (!$('#todo')) $('#view').innerHTML = '<section class="todo voll" id="todo"></section>'; tdZeigen(); return; }
+  if (tab === 'uebersicht') { renderUe(); return; }
   if (tab === 'maengel') renderM(); else if (tab === 'termine') renderT(); else renderE(); }
+
+/* ---------- Übersicht: ein Schreibtisch aus Blöcken (je Rubrik einer), verschiebbar wie das Nextcloud-Dashboard, Reihenfolge/Ausblenden je Benutzer gemerkt ---------- */
+const BLK_IC = { todos: ['✓', '#2b4a7a'], maengel: ['!', '#e07b3a'], erinnerungen: ['⏰', '#c8372a'], rechnungen: ['€', '#6b4bbf'], skonto: ['%', '#6b4bbf'], nachtraege: ['NT', '#b7791f'], vergabe: ['LV', '#50808e'], firma: ['F', '#50808e'],
+  terminruege: ['⚑', '#8a6d3b'], verzug: ['⏳', '#8a6d3b'], planversand: ['📄', '#1e8a4c'], vorort: ['📍', '#3a7bd5'], tagesbericht: ['📒', '#3a7bd5'], budget: ['Σ', '#c0392b'], post: ['✉', '#3a7bd5'], termine: ['📅', '#50808e'], mfrist: ['!', '#e07b3a'], erin: ['⏰', '#c8372a'] };
+let UE = { order: LS.get('ue.order', []), weg: LS.get('ue.weg', []), alle: LS.get('ue.alle', false), mehr: new Set() };
+function ueBloecke() {
+  const h = tdHeute(), B = [];
+  const auto = tdAutoGruppen();
+  B.push({ k: 'todos', name: 'Meine To-dos', breit: true, html: '<div id="todo"></div>', n: TD ? tdAlle().offen.length : 0 });
+  const zeile = (x) => tdZeile(x);
+  auto.forEach((g) => {
+    const items = [...g.offen.sort((a, b) => (b.prio || 0) - (a.prio || 0) || (a.f || '9').localeCompare(b.f || '9')), ...(UE.alle ? g.spaeter : [])];
+    B.push({ k: g.key, name: g.name, n: g.offen.length, items: items.map(zeile), rot: g.offen.some((x) => x.f && x.f < h), mehr: g.spaeter.length ? `${g.spaeter.length} zurückgestellt` : '' });
+  });
+  if (M) {   // Mängel: offene mit Frist zuerst, erledigte nur mit „alle anzeigen“
+    const L = M.filter((m) => UE.alle || !m.done).sort((a, b) => (a.done - b.done) || (a.frist || '9').localeCompare(b.frist || '9'));
+    B.push({ k: 'mfrist', name: 'Mängel & Weisungen', n: M.filter((m) => !m.done).length, rot: M.some((m) => m.status === 'ueberfaellig'), ziel: 'maengel',
+      items: L.map((m) => `<div class="ue-r${m.done ? ' aus' : ''}" data-ue="maengel:${m.id}"><span class="ue-t">${esc(m.text || '')}<small>${esc([m.projekt, m.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${m.status === 'ueberfaellig' ? ' rot' : ''}">${m.done ? 'erledigt' : m.frist ? tdDatum(m.frist) : ''}</span></div>`) });
+  }
+  if (T || VZ) {
+    const off = (T || []).filter((x) => x.status === 'offen'), vz = VZ ? Object.values(VZ.vorgaenge.reduce((a, x) => { (a[x.pid + '|' + x.key] ||= []).push(x); return a; }, {})) : [];
+    const items = [...vz.map((rows) => `<div class="ue-r" data-ue="termine:"><span class="ue-t">${esc(rows[0].firma)}<small>${esc([rows[0].projekt, rows[0].gw].filter(Boolean).join(' · '))} · ${rows.length} Vorgang${rows.length === 1 ? '' : 'änge'} im Verzug</small></span><span class="ue-d rot">Terminrüge ›</span></div>`),
+      ...off.slice(0, 50).map((x) => `<div class="ue-r" data-ue="termine:${esc(x.id)}"><span class="ue-t">${esc(x.firma)}<small>${esc([x.projekt, (x.leistungen || []).join(', ')].filter(Boolean).join(' · '))}</small></span><span class="ue-d">${esc(deW(x.datum))}</span></div>`),
+      ...(UE.alle ? (T || []).filter((x) => x.status !== 'offen').map((x) => `<div class="ue-r aus" data-ue="termine:${esc(x.id)}"><span class="ue-t">${esc(x.firma)}<small>${esc(x.projekt || '')}</small></span><span class="ue-d">„nicht da“ bestätigt</span></div>`) : [])];
+    B.push({ k: 'termine', name: 'Termine & Verzug', n: off.length + vz.length, rot: vz.length > 0, ziel: 'termine', items });
+  }
+  if (E) {
+    const R = { ueberfaellig: 0, abgelaufen: 1, heute: 2, bald: 3, spaeter: 4 }, L = E.items.filter((x) => UE.alle || !['abgelaufen', 'erledigt'].includes(x.lage)).slice().sort((a, b) => (R[a.lage] ?? 9) - (R[b.lage] ?? 9) || String(a.termin).localeCompare(String(b.termin)));
+    B.push({ k: 'erin', name: 'Erinnerungen', n: E.items.filter((x) => ['ueberfaellig', 'heute', 'bald'].includes(x.lage)).length, rot: E.items.some((x) => x.lage === 'ueberfaellig'), ziel: 'erinnerungen',
+      items: L.map((x) => `<div class="ue-r${x.lage === 'abgelaufen' ? ' aus' : ''}" data-ue="erinnerungen:${esc(x.id)}"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(deW(x.termin))}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></div>`) });
+  }
+  // Reihenfolge: gemerkte zuerst, neue hinten; ausgeblendete weg
+  const pos = (k) => { const i = UE.order.indexOf(k); return i < 0 ? 1e3 : i; };
+  return B.sort((a, b) => pos(a.k) - pos(b.k));
+}
+function renderUe() {
+  const B = ueBloecke(), sicht = B.filter((b) => !UE.weg.includes(b.k));
+  const blk = (b) => {
+    const [ic, farbe] = BLK_IC[b.k] || ['•', '#777'], max = UE.mehr.has(b.k) ? 1e9 : 5, items = b.items || [], rest = items.length - Math.min(items.length, max);
+    return `<section class="ue-b${b.breit ? ' w2' : ''}" data-blk="${esc(b.k)}" draggable="true"><h3><span class="ue-ic" style="background:${farbe}">${ic}</span>${esc(b.name)}<span class="ue-n${b.rot ? ' rot' : ''}">${b.n || 0}</span><span class="ue-grip" title="Block verschieben">⋮⋮</span></h3>
+      ${b.html || ''}${items.length ? items.slice(0, max).join('') : b.html ? '' : '<p class="mute ue-leer">nichts offen 🎉</p>'}
+      ${rest > 0 ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">alle ${items.length} anzeigen ›</button>` : UE.mehr.has(b.k) && items.length > 5 ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">weniger</button>` : ''}
+      ${b.ziel ? `<button type="button" class="ue-mehr" data-uetab="${b.ziel}">zum Reiter ›</button>` : ''}${b.mehr ? `<span class="mute ue-leer">${esc(b.mehr)}</span>` : ''}</section>`;
+  };
+  $('#view').innerHTML = `<div class="ue-top"><label class="chk" title="Auch Erledigtes, Abgelaufenes und Zurückgestelltes in den Blöcken zeigen"><input type="checkbox" data-uealle${UE.alle ? ' checked' : ''}> erledigte / abgelaufene anzeigen</label><span class="mute" style="font-size:.85rem">Blöcke am ⋮⋮ verschieben</span><span class="fill"></span><button type="button" class="btn sm" data-uebloecke>⚙ Blöcke</button></div>
+    <div class="ue-grid">${sicht.map(blk).join('')}</div>${(TD && (TD.fehler || []).length) ? `<div class="fehler">${TD.fehler.map(esc).join('<br>')}</div>` : ''}`;
+  window.TDMAX = UE.mehr.has('todos') ? 1e9 : 8;
+  if (TD) tdZeigen();   // füllt den Block „Meine To-dos“
+}
+document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-uealle]')) { UE.alle = e.target.checked; LS.set('ue.alle', UE.alle); renderUe(); } });
+document.addEventListener('click', (e) => {
+  const m = e.target.closest && e.target.closest('[data-uemehr]'); if (m) { if (UE.mehr.has(m.dataset.uemehr)) UE.mehr.delete(m.dataset.uemehr); else UE.mehr.add(m.dataset.uemehr); renderUe(); return; }
+  const t = e.target.closest && e.target.closest('[data-uetab]'); if (t) { tab = t.dataset.uetab; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); render(); return; }
+  const r = e.target.closest && e.target.closest('[data-ue]'); if (r) { const [zt, id] = r.dataset.ue.split(':'); tab = zt; LS.set('tab', tab); history.replaceState(null, '', '#' + tab); if (zt === 'maengel') F = { ...F, status: 'alle' }; render();
+    setTimeout(() => { const el = id && document.querySelector(zt === 'maengel' ? `[data-m="${id}"]` : zt === 'termine' ? `[data-tid="${id}"]` : `[data-e="${id}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('hl'); setTimeout(() => el.classList.remove('hl'), 4000); } }, 50); return; }
+  const b = e.target.closest && e.target.closest('[data-uebloecke]'); if (b) {
+    const alle = ueBloecke();
+    modalBox(`<h3>Blöcke der Übersicht</h3><p class="mute" style="margin:0 0 .6rem">Ausgeblendete Blöcke zählen oben in den Reitern weiter mit.</p>${alle.map((x) => `<label class="chk" style="display:flex;gap:.5rem;padding:.25rem 0"><input type="checkbox" data-ueblk="${esc(x.k)}"${UE.weg.includes(x.k) ? '' : ' checked'}> ${esc(x.name)} <small class="mute">${x.n || 0}</small></label>`).join('')}
+      <div class="acts"><button class="btn" data-m="reset">Reihenfolge zurücksetzen</button><span style="flex:1"></span><button class="btn pri" data-m="x">Fertig</button></div>`, (m, bg, close) => {
+      if (m === 'reset') { UE.order = []; LS.set('ue.order', []); renderUe(); return; }
+      if (m === 'x') { UE.weg = [...bg.querySelectorAll('[data-ueblk]')].filter((c) => !c.checked).map((c) => c.dataset.ueblk); LS.set('ue.weg', UE.weg); close(); renderUe(); }
+    });
+  }
+});
+/* Blöcke ziehen (HTML5-Drag am Block, Griff ⋮⋮) */
+let UEZ = null;
+document.addEventListener('dragstart', (e) => { const b = e.target.closest && e.target.closest('.ue-b'); if (!b || !e.target.closest('.ue-grip, h3')) { if (b) e.preventDefault(); return; } UEZ = b.dataset.blk; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-ue', UEZ); b.classList.add('zieh'); });
+document.addEventListener('dragover', (e) => { if (!UEZ) return; const b = e.target.closest && e.target.closest('.ue-b'); document.querySelectorAll('.ue-b.ziel').forEach((x) => x.classList.remove('ziel')); if (b && b.dataset.blk !== UEZ) { e.preventDefault(); b.classList.add('ziel'); } });
+document.addEventListener('drop', (e) => { if (!UEZ) return; const b = e.target.closest && e.target.closest('.ue-b'); if (!b || b.dataset.blk === UEZ) return; e.preventDefault();
+  const order = [...document.querySelectorAll('.ue-b')].map((x) => x.dataset.blk).filter((k) => k !== UEZ); const i = order.indexOf(b.dataset.blk); const r = b.getBoundingClientRect(); order.splice(e.clientX > r.left + r.width / 2 || e.clientY > r.top + r.height / 2 ? i + 1 : i, 0, UEZ);
+  UE.order = [...order, ...UE.order.filter((k) => !order.includes(k))]; LS.set('ue.order', UE.order); UEZ = null; renderUe(); });
+document.addEventListener('dragend', () => { UEZ = null; document.querySelectorAll('.ue-b.zieh,.ue-b.ziel').forEach((x) => x.classList.remove('zieh', 'ziel')); });
 
 /* ---------- Termine: Verzug laut Arbeitsfortschritt (Bautagebuch → Bauzeitenplan) ---------- */
 function vzHtml() {
@@ -816,12 +910,12 @@ async function setDialog(host) {
   if (deep) { tab = deep[1] === 'mangel' ? 'maengel' : 'erinnerungen'; scope = 'all'; history.replaceState(null, '', '#' + tab); }
   const tdDeep = /^todos&t=(\d+)$/.exec(tab);   // von der Startseite: eine eigene Aufgabe gleich zum Bearbeiten öffnen
   if (tdDeep) { tab = 'todos'; history.replaceState(null, '', '#todos'); }
-  if (!['todos', 'maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'todos';
+  if (!['uebersicht', 'todos', 'maengel', 'termine', 'erinnerungen'].includes(tab)) tab = 'uebersicht';
   const gp = !deep && BPHead.projektId();   // Projekt aus der zuletzt benutzten App: Mängel dieses Projekts (Filter „Alle Projekte“ hebt das auf)
   if (gp) F.projekt = String(gp);
-  renderTabs(); ladeBriefe(); if (tab === 'todos') render(); await reload(tab === 'erinnerungen');
+  renderTabs(); ladeBriefe(); if (tab === 'todos') render(); await reload(tab === 'erinnerungen' || tab === 'uebersicht');
   if (tdDeep && TD) { const x = (TD.manuell || []).find((y) => String(y.id) === tdDeep[1]); if (x) { TDOFFEN = x.key; tdZeigen(); const el = $('#todo .te'); if (el) el.scrollIntoView({ block: 'center' }); } }
-  if (tab !== 'todos') tdRef().then(tdLaden).then(renderTabs).catch(() => {});
+  if (tab !== 'todos' && tab !== 'uebersicht') tdRef().then(tdLaden).then(renderTabs).catch(() => {});
   if (gp && M && !M.some((m) => m.pid === gp)) { F.projekt = ''; if (tab === 'maengel') renderM(); }
   if (deep) zeige(deep[1], deep[2]);
   if (HASH.get('mruege')) {   // aus „Adressen“ → E-Mail → Mängelrüge an diese Firma

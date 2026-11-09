@@ -2,6 +2,7 @@
 /* To-do-Liste: auf der Startseite klein (TDKLEIN = true), in der App „Aufgaben & Mängel“ komplett.
    Braucht bp.js (api, esc, toast, appUrl) und ein Element #todo. */
 var TDKLEIN = false;
+var TDNURMANUELL = false;   // Aufgaben & Mängel: unter „To-dos“ nur selbst angelegte – die automatischen Hinweise stehen in der Übersicht je Rubrik
 /* ---------- To-dos: automatisch aus den Daten der Apps + eigene Aufgaben (rechts neben der Post) ---------- */
 let TDFRISCH = new Set();   // gerade angelegte Aufgaben: bleiben sichtbar, auch wenn die Liste gekürzt ist (Startseite)
 let TD = null, TDREF = null, TDOFFEN = null, TDZEIG = { spaeter: false, erledigt: false };
@@ -52,7 +53,7 @@ async function tdLaden() {
 async function tdRef() { if (!TDREF) TDREF = await api('api/bp/todo-regeln').catch(() => ({ regeln: [], projekte: [], benutzer: [], ich: null })); return TDREF; }
 function tdAlle() {
   const h = tdHeute();
-  const A = (TD.auto || []).map((x) => ({ ...x, f: x.faellig || '' }));
+  const A = (TDNURMANUELL ? [] : (TD.auto || [])).map((x) => ({ ...x, f: x.faellig || '' }));
   const M = (TD.manuell || []).map((x) => ({ ...x, f: x.faellig || '', projekt: x.pid && TDREF ? ((TDREF.projekte || []).find((p) => p.id === x.pid) || {}).name || '' : '' }));
   return { offen: [...A.filter((x) => !x.spaeter), ...M.filter((x) => x.status === 'offen')], spaeter: A.filter((x) => x.spaeter), erledigt: M.filter((x) => x.status === 'erledigt'), h };
 }
@@ -127,7 +128,7 @@ function tdZeigen() {
     ${TDPROJ ? `<div class="tq-p">für <b>${esc(TDPROJ.name)}</b><button type="button" data-td="tqweg" title="Ohne Projekt weiter" aria-label="Projekt entfernen">✕</button></div>` : ''}
     <form class="tq" data-td="neuform"><input id="tdNeu" data-bp-projekt="wort" placeholder="+ Neue Aufgabe – z. B. „A480 Statik nachfordern bis Fr“" autocomplete="off" aria-label="Neue Aufgabe" title="Projektkürzel, Ort oder Name tippen (z. B. A48, Tierheim, Krefeld) – passende Projekte und Ordner werden vorgeschlagen"><button class="btn sm pri">Anlegen</button></form>`;
   if (TDOFFEN === 'neu') html += `<div class="tr">${tdEditor({ titel: (TD._neu || {}).titel, faellig: (TD._neu || {}).faellig, pid: window.BPHead && BPHead.projektId ? BPHead.projektId() : null, personen: [], mail: true })}</div>`;
-  let n = 0, rest = TDKLEIN ? 6 : 1e9;   // Startseite: nur die dringendsten sechs
+  let n = 0, rest = TDKLEIN ? 6 : (typeof TDMAX === 'number' ? TDMAX : 1e9);   // Startseite: nur die dringendsten sechs; Übersicht-Block: TDMAX
   for (const [name, fn, rot] of G) {
     const L = offen.filter(fn).sort(sort); if (!L.length) continue; n += L.length;
     const immer = (x) => x.key === TDOFFEN || TDFRISCH.has(x.key);   // geöffnete und gerade angelegte Aufgaben immer zeigen
@@ -142,13 +143,21 @@ function tdZeigen() {
     if ((TD.fehler || []).length) html += `<div class="fehler">${TD.fehler.map(esc).join('<br>')}</div>`;
     box.innerHTML = html; return;
   }
-  if (!n) html += `<p class="mute" style="margin:.4rem 0">Nichts zu tun 🎉${(TD.auto || []).length ? '' : ' – automatisch erkannte Aufgaben stellst du unter ⚙ → Aufgaben & Mängel → To-dos ein.'}</p>`;
+  if (!n) html += `<p class="mute" style="margin:.4rem 0">Nichts zu tun 🎉${(TD.auto || []).length || TDNURMANUELL ? '' : ' – automatisch erkannte Aufgaben stellst du unter ⚙ → Aufgaben & Mängel → To-dos ein.'}</p>`;
+  if (typeof TDMAX === 'number' && n > TDMAX) html += `<button type="button" class="ue-mehr" data-uemehr="todos">alle ${n} anzeigen ›</button>`;
+  else if (typeof TDMAX === 'number' && TDMAX > 8 && n > 8) html += `<button type="button" class="ue-mehr" data-uemehr="todos">weniger</button>`;
   if (spaeter.length) html += `<div class="tg">Zurückgestellt · ${spaeter.length} <button data-td="zeig" data-w="spaeter">${TDZEIG.spaeter ? 'ausblenden' : 'anzeigen'}</button></div>` + (TDZEIG.spaeter ? spaeter.sort(sort).map(tdZeile).join('') : '');
   if (erledigt.length) html += `<div class="tg">Erledigt (7 Tage) · ${erledigt.length} <button data-td="zeig" data-w="erledigt">${TDZEIG.erledigt ? 'ausblenden' : 'anzeigen'}</button></div>` + (TDZEIG.erledigt ? erledigt.map(tdZeile).join('') : '');
   if ((TD.fehler || []).length) html += `<div class="fehler">${TD.fehler.map(esc).join('<br>')}</div>`;
   box.innerHTML = html;
 }
 const tdFinde = (key) => [...(TD.auto || []), ...(TD.manuell || [])].find((x) => x.key === key);
+/* Automatische Hinweise nach Regel gruppiert (für die Übersicht in Aufgaben & Mängel) */
+function tdAutoGruppen() {
+  const G = new Map();
+  (TD && TD.auto || []).forEach((x) => { const g = G.get(x.regel) || { key: x.regel, name: x.regel_name || x.regel, offen: [], spaeter: [] }; (x.spaeter ? g.spaeter : g.offen).push({ ...x, f: x.faellig || '' }); G.set(x.regel, g); });
+  return [...G.values()];
+}
 function tdSpaeterMenue(btn, fn) {
   document.querySelectorAll('.sp').forEach((x) => x.remove());
   const r = btn.getBoundingClientRect(), m = document.createElement('div'); m.className = 'sp';

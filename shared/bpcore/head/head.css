@@ -124,11 +124,11 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-menu .bph-ms{display:block;color:var(--bph-mute);font-size:.76em;font-weight:400}
 .bph-menu [data-konto]{align-items:flex-start}
 .bph-menu [data-konto] svg{margin-top:.15rem}
-.bph-apps{min-width:0;width:min(372px,calc(100vw - 1.2rem));padding:.3rem .3rem .5rem}
+.bph-apps{min-width:0;width:min(440px,calc(100vw - 1.2rem));padding:.3rem .3rem .45rem}
 .bph-apps .bph-info small{color:var(--bph-mute)}
-.bph-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:.3rem;padding:0 .3rem}
-.bph-menu .bph-tiles a{flex-direction:column;justify-content:center;gap:.4rem;text-align:center!important;padding:.8rem .3rem!important;border-radius:calc(10px*var(--rk,1))!important;font-size:.82em;line-height:1.2;min-height:84px}
-.bph-menu .bph-tiles a svg{width:28px;height:28px;color:var(--bph-acc)}
+.bph-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:.2rem;padding:0 .3rem}@media (max-width:480px){.bph-tiles{grid-template-columns:repeat(3,1fr)}}
+.bph-menu .bph-tiles a{flex-direction:column;justify-content:center;gap:.3rem;text-align:center!important;padding:.5rem .25rem!important;border-radius:calc(10px*var(--rk,1))!important;font-size:.78em;line-height:1.15;min-height:64px}   /* kompakt: 4 je Zeile */
+.bph-menu .bph-tiles a svg{width:24px;height:24px;color:var(--bph-acc)}
 /* jede App hat ihre eigene, dezente Farbe (Kacheln der Startseite und App-Umschalter) – zum schnellen Unterscheiden */
 /* gleichmäßig über den Farbkreis verteilt, damit keine zwei Apps ähnlich aussehen; die Startseite bleibt neutral */
 [data-af="aufgaben"]{--af:#e03131}[data-af="ava"]{--af:#f08c00}[data-af="baukosten"]{--af:#b5a000}[data-af="gantt"]{--af:#2f9e44}
@@ -569,7 +569,9 @@ html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt)::after{content:
 html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt):checked{background:var(--y,#d4f02a)}html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt):checked::after{left:.975em}
 html[data-fenster="mac"] input[type="checkbox"]:not(.bp-chk-alt):disabled{opacity:.45;cursor:default}
 html[data-fenster="mac"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--y,#d4f02a) 45%,transparent),inset 0 0 0 1px var(--y,#d4f02a)}
-html[data-fenster="mac"] :is(.bph-menu,.umenu,.bph-km){-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);background:color-mix(in srgb,var(--card,#2d2f33) 82%,transparent)}
+html[data-fenster="mac"] :is(.bph-menu,.umenu,.bph-km){-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
+html[data-fenster="mac"] .bph-menu{background:color-mix(in srgb,#2a2a28 86%,transparent)}   /* Menüs der Kopfleiste sind immer dunkel – Milchglas in ihrer eigenen Farbe, sonst wird helle Schrift auf hellem Grund unlesbar */
+html[data-fenster="mac"] :is(.umenu,.bph-km){background:color-mix(in srgb,var(--card,#2d2f33) 86%,transparent)}
 /* Ampel (funktioniert: schließen · zusammenklappen · groß) – nur im Mac-Stil */
 .bp-ampel{display:none}
 html[data-fenster="mac"] .bp-ampel{display:inline-flex;gap:8px;align-items:center;margin-right:.8rem;flex:none}

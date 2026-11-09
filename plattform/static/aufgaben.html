@@ -182,10 +182,16 @@ window.bpNachVerlauf = () => reload();   // nach „Wiederherstellen“ die List
 async function reload(first) {
   try {
     if (tab === 'todos') { await tdRef(); await tdLaden(); renderTabs(); return; }
-    if (tab === 'uebersicht') {
-      await tdRef();
-      const [m, t, vz, e] = await Promise.all([api('api/maengel?scope=' + scope).catch(() => M), api('api/termine?scope=' + scope).catch(() => T), api('api/verzug?scope=' + scope).catch(() => null), api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : '')).catch(() => E), tdLaden()]);
-      M = m; T = t; VZ = vz; E = e; render(); return;
+    if (tab === 'uebersicht') {   // sofort zeichnen, jeder Block füllt sich, sobald seine Daten da sind (nicht auf alles warten)
+      render(); await tdRef();
+      const nach = () => { if (tab === 'uebersicht') render(); };
+      await Promise.all([
+        tdLaden().then(nach),
+        api('api/maengel?scope=' + scope).then((m) => { M = m; nach(); }).catch(() => {}),
+        api('api/termine?scope=' + scope).then((t) => { T = t; nach(); }).catch(() => {}),
+        api('api/verzug?scope=' + scope).then((vz) => { VZ = vz; nach(); }).catch(() => {}),
+        api('api/erinnerungen?scope=' + scope + (first ? '&abgleich=1' : '')).then((e) => { E = e; nach(); }).catch(() => {})]);
+      return;
     }
     if (tab === 'maengel') M = await api('api/maengel?scope=' + scope);
     else if (tab === 'termine') [T, VZ] = await Promise.all([api('api/termine?scope=' + scope), api('api/verzug?scope=' + scope).catch(() => null)]);
@@ -213,7 +219,7 @@ ueInit('aufgaben', () => render());
 function ueBloecke() {
   const h = tdHeute(), B = [];
   const auto = tdAutoGruppen();
-  B.push({ k: 'todos', name: 'Meine To-dos', breit: true, html: '<div id="todo"></div>', n: TD ? tdAlle().offen.length : 0 });
+  B.push({ k: 'todos', name: 'Meine To-dos', breit: true, html: TD ? '<div id="todo"></div>' : '<p class="mute ue-leer">Lade …</p>', n: TD ? tdAlle().offen.length : 0 });
   const zeile = (x) => tdZeile(x);
   auto.forEach((g) => {
     const items = [...g.offen.sort((a, b) => (b.prio || 0) - (a.prio || 0) || (a.f || '9').localeCompare(b.f || '9')), ...(UE.alle ? g.spaeter : [])];

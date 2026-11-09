@@ -3007,7 +3007,7 @@ async function boot() {
       }
     }
     if (!projects.some((p) => p.id === id)) id = (projects.find((p) => !p.archived) || projects[0])?.id;
-    if (!id) { const p = await api.create({ name: 'Neues Projekt', start: snapWork(todayN()), tasks: [] }); id = p.id; }
+    if (!id) { const p = await api.create({ name: 'Startversion', start: snapWork(todayN()), tasks: [] }); id = p.id; }   // erste Version heißt wie überall „Startversion“
     await openProject(id);
     await refreshProjectList();
     const aw = LS.get('aw', null); if (aw) document.documentElement.style.setProperty('--aw', aw + 'px');

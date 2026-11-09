@@ -3420,7 +3420,10 @@ async function amNeu(el, enter, weiter) {
     if (z < 0 && !(await bpFrage(`Der neue Stand (${nf(neu)}) ist kleiner als bisher (${nf(bisher)}).\nEs wird eine Minus-Zeile ${nf(z)} eingetragen.`, { ok: 'Minus-Zeile eintragen' }))) return;
     fx = `${/^[\d.,\s]+$/.test(f) ? f : '(' + f + ')'} - ${String(bisher).replace('.', ',')}`;
   }
+  const vorher = new Set((L.aufmass || []).map((y) => y.id)), lvId = L.id;
   try { await call(`api/lv/${L.id}/aufmass`, 'POST', { pos_id: amPos, datum: (LS.set('amDatum', [new Date().toDateString(), amDatumWert($('[data-am-new="datum"]').value)]), amDatumWert($('[data-am-new="datum"]').value)), ort: $('[data-am-new="ort"]').value, formel: fx });
+    const neu = (L.aufmass || []).filter((y) => !vorher.has(y.id)).map((y) => y.id);
+    if (neu.length) rueckgaengig('Aufmaßzeile eingetragen', async () => { for (const id of neu) await api('api/aufmass/' + id, 'DELETE'); await openLv(lvId); });
     if (weiter) amWeiter(); else { const n = document.querySelector('[data-am-new="formel"]'); if (n) n.focus(); } } catch (er) { toast(er.message, true); }
 }
 /* Aufmaß-Datum: Datum oder freier Text – „8.11.“ / „08.11.2026“ wird als Datum gespeichert, alles andere wie getippt */

@@ -1687,6 +1687,7 @@
   const bildVerkleinern = (src, max = 2000, q = 0.85) => new Promise((ok, bad) => { const im = new Image(); im.onload = () => { const f = Math.min(1, max / Math.max(im.width, im.height)); const cv = document.createElement('canvas'); cv.width = Math.round(im.width * f); cv.height = Math.round(im.height * f); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); ok(cv.toDataURL('image/jpeg', q)); }; im.onerror = () => bad(new Error('Das Bild konnte nicht gelesen werden.')); im.src = src; });
   /* Diese Ansicht aufnehmen (Browser fragt, welcher Tab) → JPEG-Daten-URL oder '' (abgebrochen) */
   async function ansichtAufnehmen() {
+    if (!window.isSecureContext) { bpHinweis('Aufnehmen geht nur über eine sichere Adresse (https://…) – hier ist die Seite über ' + location.protocol + '//' + location.host + ' geöffnet, das erlaubt der Browser nicht. Bitte mit Win+Umschalt+S ein Bildschirmfoto machen und hier mit Strg+V einfügen.'); return ''; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { bpHinweis('Dieser Browser kann die Ansicht nicht selbst aufnehmen. Bitte mit Win+Umschalt+S ein Bildschirmfoto machen und hier mit Strg+V einfügen.'); return ''; }
     try {
       const st = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' });
@@ -1835,6 +1836,7 @@
 
   /* Hilfesuchender: Bildschirm teilen, Bilder senden, Zeiger und Nachrichten des Helfers zeigen */
   async function liveStarten(text) {
+    if (!window.isSecureContext) { bpHinweis('Bildschirm teilen geht nur über eine sichere Adresse (https://…) – hier ist die Seite über ' + location.protocol + '//' + location.host + ' geöffnet. Bitte „Frage stellen“ mit einem Bildschirmfoto nutzen.'); return false; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { bpHinweis('Dieser Browser kann den Bildschirm nicht teilen. Bitte „Frage stellen“ mit einem Bildschirmfoto nutzen.'); return false; }
     let st; try { st = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'browser', frameRate: 5 }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' }); }
     catch (er) { if (er && er.name !== 'NotAllowedError') bpHinweis('Teilen hat nicht geklappt: ' + (er.message || er)); return false; }

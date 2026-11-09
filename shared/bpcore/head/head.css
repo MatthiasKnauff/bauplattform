@@ -124,9 +124,9 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-menu .bph-ms{display:block;color:var(--bph-mute);font-size:.76em;font-weight:400}
 .bph-menu [data-konto]{align-items:flex-start}
 .bph-menu [data-konto] svg{margin-top:.15rem}
-.bph-apps{min-width:0;width:min(600px,calc(100vw - 1.2rem));padding:.25rem .25rem .35rem}
+.bph-apps{min-width:0;width:max-content;max-width:calc(100vw - 1.2rem);padding:.25rem .25rem .35rem}
 .bph-apps .bph-info small{color:var(--bph-mute)}
-.bph-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.1rem .2rem;padding:0 .25rem}@media (max-width:480px){.bph-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bph-tiles{display:grid;grid-template-columns:repeat(3,max-content);gap:.1rem .2rem;padding:0 .25rem}@media (max-width:480px){.bph-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .bph-menu .bph-tiles a{flex-direction:column;justify-content:center;gap:.5rem;text-align:left!important;padding:.38rem .5rem!important;border-radius:calc(8px*var(--rk,1))!important;font-size:.82em;line-height:1.15;min-height:0}   /* kompakt: Zeilen mit Symbol links, 3 je Reihe */
 .bph-menu .bph-tiles a{flex-direction:row!important;justify-content:flex-start!important}.bph-menu .bph-tiles a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .bph-menu .bph-tiles a svg{width:19px;height:19px;flex:none;color:var(--bph-acc)}

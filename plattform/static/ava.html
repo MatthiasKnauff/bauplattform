@@ -702,6 +702,7 @@ table.au-t tr.nt-zieh td:first-child{cursor:grab}
 input.am-stin{font-weight:600}
 .gaeb-zeig{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blink{0%,40%{background:color-mix(in srgb,#e0a030 45%,transparent)}100%{background:transparent}}
+.au-ntbar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:0 0 .5rem}.au-ntbar .hint{margin-left:.4rem}
 </style>
 </head>
 <body>
@@ -5285,7 +5286,7 @@ function vAuftraege() {
     const NT = [...G.values()];
     const stVon = (gq) => { const st = [...new Set([gq.titel, ...gq.pos].filter(Boolean).map((y) => y.nt_status || 'angemeldet'))]; return st.length === 1 ? st[0] : 'gemischt'; };   // Stand des ganzen Nachtrags; einzelne Positionen können abweichen
     const zahl = (st) => NT.filter((gq) => stVon(gq) === st).length;
-    out.push(`<tr class="nt-neu"><td colspan="13"><span class="tw" style="padding-left:2.2rem"><button type="button" class="btn sm" data-ntneu="${x.id}" title="Nachtrag von Hand erfassen – aus Rechnungen und Aufmaßen der Firma entstehen Nachträge automatisch">＋ Nachtrag erfassen</button><button type="button" class="btn sm" data-ntang="${x.id}" title="Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen – Positionen prüfen und als Nachtrag übernehmen" style="margin-left:.4rem">📄 Nachtragsangebot einlesen …</button><span class="hint" style="margin-left:.6rem">${NT.length ? `${NT.length} Nachtr${NT.length === 1 ? 'ag' : 'äge'} · angemeldet ${zahl('angemeldet')} · beauftragt ${zahl('beauftragt')} · abgelehnt ${zahl('abgelehnt')}` : 'noch keine Nachträge – Positionen aus Rechnungen/Aufmaßen, die nicht im LV stehen, werden automatisch Nachträge'}</span>${ntModusKopf(x.id, lv)}</span></td></tr>`);
+    // (Knöpfe für Nachträge stehen oben in der Leiste – keine Knopf- oder Eingabezeilen mehr in der Tabelle)
     const ntSel = (st, key, grund, t = '') => `<select class="nt-st ${st}" data-ntst="${key}" title="${esc(t || grund || '')}">${st === 'gemischt' ? '<option value="gemischt" selected>gemischt</option>' : ''}${['angemeldet', 'beauftragt', 'abgelehnt'].map((s3) => `<option value="${s3}"${st === s3 ? ' selected' : ''}>${s3}</option>`).join('')}</select>`;
     NT.forEach((gq) => {
       const st = stVon(gq), ab = st === 'abgelehnt', kopf = gq.titel || (gq.pos.length === 1 ? gq.pos[0] : null), kk = `${k}:nt:${gq.nt}`;
@@ -5301,10 +5302,10 @@ function vAuftraege() {
       if (!einzeln && EXP.has(kk)) { gq.pos.forEach((y) => { const r = R.find((q) => q.x === y) || {}, sy = y.nt_status || 'angemeldet';
         const fy = auFelder(lv, y);
         row(`${k}:${y.id}`, 3, false, IC.pos, `<span class="${sy === 'abgelehnt' ? 'mu' : ''}">${fy.bz}</span>`, ['', '', ntSel(sy, `${x.id}:${y.id}`, y.nt_grund, 'Stand nur dieser Position (weicht dann vom Nachtrag ab)'), e2(r.nt || r.gRoh || 0), e2(r.nt || r.gRoh || 0), 'Position', jn(y.art === 'E'), esc(y.kg || ''), `<button type="button" class="ib nt-del" data-ntdel="${x.id}:${encodeURIComponent(gq.nt)}:${y.id}" title="Diese Nachtragsposition löschen (mit Rückgängig)">🗑</button>`], fy.mx); });
-        out.push(ntZeile(x.id, gq.nt, 3, st)); }   // Eingabezeile: weitere Position, Enter speichert
+      }
     });
     NTZ = false;
-    out.push(ntZeile(x.id, '', 2, 'angemeldet'));   // neuer Nachtrag: Bezeichnung tippen, Enter
+
     const kinder = (par) => { const L2 = R.filter((q) => q.par === par && !q.x.nt); return AUSORT ? L2.sort((p1, p2) => auVergl(auWertR(p1), auWertR(p2))) : L2; };   // Nachträge stehen oben
     const zeig = (par) => kinder(par).forEach((r) => {
       const tief = r.typ === 'ti' ? r.lvl + 1 : (R.find((q) => q.k === r.par) || { lvl: 0 }).lvl + 2;
@@ -5323,8 +5324,48 @@ function vAuftraege() {
   const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:12rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
 `;
   if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
-  return `<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auRechts()}</aside>` : ''}</div>`;
+  return `${auNtLeiste()}<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auRechts()}</aside>` : ''}</div>`;
 }
+
+/* Aufträge: Leiste wie im LV – alles, was hier angelegt wird, ist ein Nachtrag des gewählten Auftrags */
+function auNtLv() { const m = /^l(\d+)/.exec(TSEL || ''); const id = m ? +m[1] : L && L.id; const x = LIST.find((y) => y.id === id); return x && x.vergeben && !x.aufgehoben ? x : null; }
+function auNtLeiste() {
+  const x = auNtLv(), lv = x && (PC[x.id] || (L && L.id === x.id ? L : null)), dis = x ? '' : ' disabled';
+  let info = '<span class="hint">Auftrag in der Tabelle wählen – dann Nachträge anlegen</span>';
+  if (x && lv) { const NT = [...new Set((lv.data.items || []).filter((y) => y.nt).map((y) => y.nt))], st = (nt) => ((lv.data.items || []).find((y) => y.nt === nt && (y.typ === 'titel' || !y.nt_erbe)) || {}).nt_status || 'angemeldet';
+    const z = (s2) => NT.filter((n) => st(n) === s2).length;
+    info = `<span class="hint">Nachträge zu <b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b>: ${NT.length ? `${NT.length} · angemeldet ${z('angemeldet')} · beauftragt ${z('beauftragt')} · abgelehnt ${z('abgelehnt')}` : 'noch keine'}</span>${ntModusKopf(x.id, lv)}`; }
+  return `<div class="bar au-ntbar"><button type="button" class="btn sm" data-aunt="glied"${dis} title="Neuer Nachtrag als Gliederungspunkt – Positionen kommen darunter">＋ Gliederungspunkt</button><button type="button" class="btn sm" data-aunt="pos"${dis} title="Nachtragsposition – in den gewählten Nachtrags-Gliederungspunkt, sonst als eigener Nachtrag">＋ Position</button><button type="button" class="btn sm" data-aunt="nt"${dis} title="Nachtrag mit Menge, Preis, Stand und Grund erfassen">＋ Nachtrag</button><button type="button" class="btn sm" data-aunt="ang"${dis} title="Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen">📄 Nachtragsangebot einlesen …</button>${info}</div>`;
+}
+async function auNtNeu(art) {
+  const x = auNtLv(); if (!x) return; const lvId = x.id;
+  if (art === 'nt') return ntDialog(lvId);
+  if (art === 'ang') return ntAngebot(lvId);
+  const fertig = (r, fokusId, key) => { PC[lvId] = r; if (L && L.id === lvId) L = r; EXP.add('l' + lvId); if (key) { EXP.add(key); TSEL = key; } LS.set('exp', [...EXP].slice(-300)); render(); lvEintrag(lvId).then(() => { if (tab === 'auftraege' && !(document.activeElement && document.activeElement.closest('table.au-t'))) render(); }).catch(() => {});   // nicht neu zeichnen, solange getippt wird
+    if (fokusId) setTimeout(() => { const i = document.querySelector(`table.au-t input.aui[data-aulv="${lvId}"][data-auid="${CSS.escape(fokusId)}"][data-auf="kurz"]`); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); i.select(); } }, 60); };
+  try {
+    if (art === 'glied') {
+      const name = await new Promise((ok) => { modalBox(`<h3>Neuer Nachtrag (Gliederungspunkt)</h3><div class="fm"><label for="anG">Bezeichnung</label><input id="anG" placeholder="z. B. Zusätzliche Durchbrüche Haustechnik" autocomplete="off"></div>
+        <p class="hint">Positionen kommen danach mit „＋ Position“ darunter – sie gehören automatisch zu diesem Nachtrag.</p><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, (m, bg, close) => {
+          if (m === 'x') { close(); ok(null); return; } if (m !== 'ok') return; const v = bg.querySelector('#anG').value.trim(); if (!v) { toast('Bitte eine Bezeichnung eingeben.', true); return; } close(); ok(v); });
+        setTimeout(() => { const i = document.querySelector('#anG'); if (i) { i.focus(); i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.querySelector('.modal [data-m="ok"]').click(); } }); } }, 30); });
+      if (!name) return;
+      const alt = new Set(((PC[lvId] || {}).data || { items: [] }).items.filter((y) => y.nt).map((y) => y.nt));
+      const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz: name, als_titel: true, status: 'angemeldet' });
+      const neu = (r.data.items || []).find((y) => y.nt && y.typ === 'titel' && !alt.has(y.nt));
+      fertig(r, null, neu ? `l${lvId}:nt:${encodeURIComponent(neu.nt)}` : null); toast(neu ? `${neu.nt} angelegt – jetzt „＋ Position“.` : 'Nachtrag angelegt.'); return;
+    }
+    // Position: in den gewählten Nachtrags-Gliederungspunkt, sonst eigener Nachtrag
+    const m = /^l(\d+):nt:(.+)$/.exec(TSEL || ''), lv = PC[lvId] || L, nt = m && +m[1] === lvId ? decodeURIComponent(m[2]) : null;
+    const titel = nt && (lv.data.items || []).some((y) => y.nt === nt && y.typ === 'titel');
+    const vor = new Set((lv.data.items || []).map((y) => y.id));
+    const r = titel ? await api(`api/lv/${lvId}/nachtrag`, 'POST', { zu_nt: nt, positionen: [{ kurz: 'Neue Position', menge: 1, einheit: 'psch' }] })
+      : await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz: 'Neue Position', menge: 1, einheit: 'psch', status: 'angemeldet' });
+    const p = (r.data.items || []).find((y) => !vor.has(y.id) && y.typ === 'pos');
+    fertig(r, p && p.id, titel ? `l${lvId}:nt:${encodeURIComponent(nt)}` : p ? `l${lvId}:nt:${encodeURIComponent(p.nt)}` : null);
+  } catch (er) { toast(er.message, true); }
+}
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-aunt]'); if (!b) return; e.stopPropagation(); auNtNeu(b.dataset.aunt); });
 /* Eingabezeile in der Aufträge-Tabelle (wie in Excel): Bezeichnung · Menge · EH · EP, Enter speichert; nt = '' legt einen neuen Nachtrag an.
    Strg+V mit mehreren Zeilen (Excel/Mail/PDF-Text) erfasst alle auf einmal – Menge, Einheit und EP werden aus der Zeile gelesen. */
 function ntZeile(lvId, nt, tiefe, st) {
@@ -5590,6 +5631,7 @@ document.addEventListener('click', async (e) => {
   if (m && (!L || L.id !== +m[1])) { await flush(); L = await api('api/lv/' + m[1]); LS.set('lv:' + pid, L.id); PC[L.id] = L; selBtn(); kpis(); $('#phT').textContent = 'Aufträge: ' + ((PROJ.find((p) => p.id === pid) || {}).name || '');
     const re = document.querySelector('.au2-re'); if (re) re.innerHTML = auRechts(); }   // Karte rechts folgt der Auswahl, die Tabelle bleibt stehen
   else if (/:nt:/.test(TSEL) || /:nt:/.test(e.target.closest('tr[data-tr]').dataset.tr)) { const re = document.querySelector('.au2-re'); if (re) re.innerHTML = auRechts(); }
+  { const nb = document.querySelector('.au-ntbar'); if (nb) nb.outerHTML = auNtLeiste(); }   // Leiste folgt dem gewählten Auftrag
 });
 document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der Aufträge-Tabelle
   if (tab !== 'auftraege') return;

@@ -177,10 +177,10 @@ function render() {
       <select id="fph"><option value="">alle Phasen</option>${phasen.map((x) => `<option value="${esc(x)}"${F.phase === x ? ' selected' : ''}>${esc(x + ' ' + (CFG.phasen[x] || ''))}</option>`).join('')}</select>
       <label class="chk"><input type="checkbox" id="falle"${F.alle ? ' checked' : ''}> ältere Stände zeigen</label>
       ${SEL.size ? '<button class="btn sm" id="selNone">Auswahl aufheben</button>' : ''}</div>
-    ${Lp.length ? `<div class="tbl"><table class="pl">${head('Plan-Nr.')}<tbody>${rows}</tbody></table></div>`
+    ${Lp.length ? `<div class="tbl"><table class="pl" data-sp="plaene.pl">${head('Plan-Nr.')}<tbody>${rows}</tbody></table></div>`
       : `<div class="card"><p>${D.plaene.length ? 'Keine Pläne mit Plannummer zu diesem Filter.' : 'Keine Pläne nach der Plannummerierung gefunden (z. B. „A526 2.1.1.2 INDEX B Grundriss EG.pdf“).'}</p></div>`}
     ${(D.frei || []).length ? `<h3 style="margin:1.4rem 0 .5rem">Weitere PDF-Dateien ohne Plannummer <small class="mu">(${Lf.length}${Lf.length !== D.frei.length ? ' von ' + D.frei.length : ''}, neueste zuerst)</small></h3>
-      ${Lf.length ? `<div class="tbl"><table class="pl">${head('')}<tbody>${rowsF}</tbody></table></div>` : '<p class="mu">Keine zu diesem Filter.</p>'}` : ''}`;
+      ${Lf.length ? `<div class="tbl"><table class="pl" data-sp="plaene.frei">${head('')}<tbody>${rowsF}</tbody></table></div>` : '<p class="mu">Keine zu diesem Filter.</p>'}` : ''}`;
   bar();
 }
 /* Sortieren per Klick auf die Spaltenköpfe (nochmal = umgekehrt); gilt für beide Listen */
@@ -227,7 +227,7 @@ function renderListe() {
   bar();
   if (!VL) { $('#view').innerHTML = '<p class="mute">Lade …</p>'; return; }
   $('#view').innerHTML = `<div class="flt"><span class="fill"></span><a class="btn sm" href="api/versandliste.pdf?project_id=${pid}" data-ansehen="pdf" data-name="Planversandliste.pdf">🖨 Drucken / PDF</a></div>
-    ${VL.length ? `<div class="tbl"><table class="pl vl"><thead><tr><th>Datum</th><th>Empfänger</th><th>Pläne</th><th class="hide-m">Versand</th></tr></thead><tbody>
+    ${VL.length ? `<div class="tbl"><table class="pl vl" data-sp="plaene.vl"><thead><tr><th>Datum</th><th>Empfänger</th><th>Pläne</th><th class="hide-m">Versand</th></tr></thead><tbody>
     ${VL.map((r) => `<tr><td class="nr">${de(r.datum)}<div class="mu">${new Date(r.datum).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div></td>
       <td>${r.empfaenger.map((e) => `${esc(e.name || e.email)}${e.name ? `<div class="mu">${esc(e.email)}</div>` : ''}`).join('')}</td>
       <td>${r.plaene.map((x) => `<div>${esc([x.kennung, x.nr].filter(Boolean).join(' '))} <span class="idx ${x.index ? '' : 'o'}">${esc(x.index || '–')}</span> ${esc(x.titel || '')}${x.cad && x.cad.length ? ' <span class="pill">+ CAD</span>' : ''}</div>`).join('')}</td>

@@ -354,6 +354,49 @@ function delDlg(p) {
 
 
 /* ---------- Einstellungen: allgemeine (für alle Apps) – besondere stehen in der jeweiligen App ---------- */
+/* Druck-Layouts: Vorschaubilder aller Ausdrucke; Klick öffnet den Editor als großes Fenster (BPHead.layoutEditor) */
+const LAY_FMT = { A4: [210, 297], A4q: [297, 210], A3: [297, 420], A3q: [420, 297] };
+function layMini(D) {
+  const V = (D.versionen || []).find((x) => x.id === D.aktiv) || (D.versionen || [])[0];
+  if (!V) return '<div class="lay-blatt" style="width:212px;height:300px"></div>';
+  const [pw, ph] = LAY_FMT[V.data.format || 'A4'] || LAY_FMT.A4, K = Math.min(280 / ph, 230 / pw), W = pw * K, HH = ph * K;
+  const bsp = D.beispiel || {}, wert = (t) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (bsp[k] ?? ''));
+  const els = (V.data.elemente || []).map((e) => {
+    const st = `left:${e.x * K}px;top:${e.y * K}px;width:${Math.max(e.w * K, 1)}px;height:${Math.max(e.h * K, 1)}px;font-size:${Math.max((e.groesse || 10) * K * 0.3528, 2.2)}px;text-align:${e.ausrichtung === 'mitte' ? 'center' : e.ausrichtung === 'rechts' ? 'right' : 'left'};${e.fett ? 'font-weight:700;' : ''}${e.farbe === 'mute' ? 'color:#8a918c;' : ''}`;
+    if (e.typ === 'linie') return `<i style="position:absolute;${st}background:#9aa0a6;font-size:0"></i>`;
+    if (e.typ === 'logo') return `<i style="position:absolute;${st}background:#e3e7e4;border-radius:2px"></i>`;
+    if (e.typ === 'inhalt') return `<i style="position:absolute;${st}background:repeating-linear-gradient(0deg,#eef1ee 0 3px,transparent 3px 6px);border:1px dashed #c9d2cb"></i>`;
+    if (e.typ === 'falzmarken') return '';
+    const txt = e.typ === 'feld' ? (bsp[e.feld] || (D.felder || {})[e.feld] || '') : wert(e.text);
+    return `<div style="position:absolute;${st}overflow:hidden;line-height:1.15;white-space:pre-line">${esc(txt)}</div>`;
+  }).join('');
+  return `<div class="lay-blatt" style="position:relative;width:${W}px;height:${HH}px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.12);color:#1d2621;font-family:Arial,sans-serif;overflow:hidden">${els}</div>`;
+}
+async function layKacheln() {
+  const box = $('#layGrid'); if (!box) return;
+  try {
+    const L = await api('api/layouts');
+    const DS = await Promise.all(L.map((x) => api('api/layouts/' + x.key).catch(() => null)));
+    const gruppen = [];
+    L.forEach((x, i) => { let g = gruppen.find((y) => y.name === x.gruppe); if (!g) gruppen.push(g = { name: x.gruppe, items: [] }); g.items.push({ x, D: DS[i] }); });
+    box.innerHTML = gruppen.map((g) => `<h3 style="margin:1rem 0 .5rem">${esc(g.name)}</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem">${g.items.map(({ x, D }) => {
+        const V = D && ((D.versionen || []).find((v) => v.id === D.aktiv) || (D.versionen || [])[0]);
+        return `<button type="button" class="card" data-lay="${esc(x.key)}" title="${esc(x.name)} bearbeiten" style="display:flex;flex-direction:column;align-items:center;gap:.55rem;padding:1rem .8rem .8rem;cursor:pointer;text-align:center;border:1px solid var(--line);background:var(--card);color:inherit;font:inherit">
+          <div style="height:300px;display:flex;align-items:center;justify-content:center;background:var(--bg,#f3f4f2);border-radius:8px;width:100%;padding:.6rem 0">${D ? layMini(D) : '<span class="mute">nicht ladbar</span>'}</div>
+          <b>${esc(x.name)}</b><span class="mute" style="font-size:.82rem">${V ? 'aktiv: ' + esc(V.name) + ' · ' + (D.versionen || []).length + (D.versionen.length === 1 ? ' Version' : ' Versionen') : ''}</span></button>`;
+      }).join('')}</div>`).join('');
+    box.querySelectorAll('[data-lay]').forEach((b) => { b.onclick = () => layOeffnen(b.dataset.lay); });
+  } catch (e) { box.innerHTML = `<p class="mute">Druck-Layouts nicht ladbar: ${esc(e.message)}</p>`; }
+}
+function layOeffnen(key) {
+  // in den Einstellungen laufen die Büro-Einstellungen eingebettet: Editor dann über der ganzen Seite öffnen, nicht im schmalen Seitenfeld
+  let H = null; try { if (window.top !== window && window.top.BPHead && window.top.BPHead.layoutEditor) H = window.top.BPHead; } catch { /* anderer Ursprung */ }
+  if (!H && window.BPHead && BPHead.layoutEditor) H = BPHead;
+  const basis = new URL('.', location.href).href.replace(/\/$/, '');
+  if (H) H.layoutEditor(basis, key, () => layKacheln());
+  else location.href = 'layout#' + encodeURIComponent(key);
+}
 const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
 const stNav = () => `<div class="stnav"><h1>Büro-Einstellungen</h1><p class="mute" style="margin-top:-.4rem">Auch erreichbar in jeder App über ⚙ → Büro.</p></div><div class="bar stnav" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {
@@ -364,11 +407,12 @@ async function loadSettings() {
     $('#main').innerHTML = stNav() + '<section class="card st" style="padding:0" id="kontoBox"></section><p class="mute" style="font-size:.85rem">Die Vorlagen gelten für alle Apps; auch erreichbar über ⚙ → Büro → E-Mail-Vorlagen.</p>';
     if (window.BPHead && BPHead.konto) BPHead.konto({ into: $('#kontoBox'), tab: t, nurVorlagen: true }); return;
   }
-  if (t === 'druck') {   // Editor direkt hier in der Verwaltung (eingebettet), nicht als eigene Seite
+  if (t === 'druck') {   // Übersicht als Vorschaubilder; der Editor öffnet sich als großes, freies Fenster
     const k = (location.hash.match(/druck[:=]([\w-]+)/) || [])[1] || '';
     $('#main').classList.add('breit');
-    $('#main').innerHTML = stNav() + `<p class="mute" style="margin:-.6rem 0 .6rem">Wo steht was auf dem Ausdruck? Ein Editor für alle PDFs – Elemente im Raster verschieben, ausrichten, Variablen einsetzen. Feste Versionen; gedruckt wird nach der aktiven.</p>
-      <iframe id="layFrame" title="Druck-Layouts" src="layout?einbetten=1${k ? '#' + encodeURIComponent(k) : ''}" style="width:100%;height:calc(100vh - 210px);min-height:560px;border:1px solid var(--line);border-radius:12px;background:var(--card)"></iframe>`;
+    $('#main').innerHTML = stNav() + `<section class="card st"><p class="mute" style="margin-top:0">Wo steht was auf dem Ausdruck? Klick auf ein Layout öffnet den Editor in einem großen Fenster – Elemente im Raster verschieben, ausrichten, Variablen einsetzen. Feste Versionen; gedruckt wird nach der aktiven.</p>
+      <div id="layGrid"><p class="mute">Lade …</p></div></section>`;
+    layKacheln().then(() => { if (k) layOeffnen(k); });
     return;
   }
   if (t === 'verlauf') {

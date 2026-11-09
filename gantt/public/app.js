@@ -400,15 +400,47 @@ function fixSegs(t) {
 /* ---------- Änderungen, Rückgängig ---------- */
 const snapshot = () => JSON.stringify({ name: P.name, start: P.start, nextUid: P.nextUid, tasks: P.tasks, gwColors: P.gwColors || {}, assist: P.assist || null, cal: P.cal || null, trades: P.trades || {} });
 const restore = (s) => Object.assign(P, JSON.parse(s));
+// Verliert eine Leistung Verknüpfungen (ohne neue zu bekommen), behält sie ihren bisherigen Anfang:
+// er wird als Einschränkung „Anfang nicht früher als“ festgehalten – aber nur, wenn sie sonst nach vorn springen würde.
+function vorherMerken() {
+  const m = new Map();
+  if (!CAL || !CAL.es) return m;
+  P.tasks.forEach((t, i) => m.set(t.uid, { preds: new Set((t.preds || []).map((p) => p.uid)), es: CAL.es[i] }));
+  return m;
+}
+function ortHalten(vorher, C) {
+  const T = P.tasks, n = T.length; let fest = 0;
+  for (let i = 0; i < n; i++) {
+    const alt = vorher.get(T[i].uid); if (!alt) continue;
+    const neu = new Set((T[i].preds || []).map((p) => p.uid));
+    let weg = false, dazu = false;
+    for (const u of alt.preds) if (!neu.has(u)) weg = true;
+    for (const u of neu) if (!alt.preds.has(u)) dazu = true;
+    if (!weg || dazu) continue;
+    const bis = C.summ[i] ? blockEnd(i) : i;          // bei Gruppen: alle Leistungen darin
+    for (let l = i; l <= bis; l++) {
+      if (C.summ[l]) continue;
+      const a = vorher.get(T[l].uid); if (!a || a.es == null || !(C.es[l] < a.es)) continue;
+      const tag = fromW(a.es);
+      if (T[l].cons == null || toW(T[l].cons) < a.es) { T[l].cons = tag; fest++; }
+    }
+  }
+  return fest;
+}
 function act(fn) {
   const snap = snapshot();
+  const vorher = vorherMerken();
   try { fn(); } catch (e) {
     restore(snap);
     if (e instanceof UErr) { toast(e.message, true); return false; }
     throw e;
   }
   normalize();
-  const C = schedule();
+  let C = schedule();
+  if (!C.cyc && vorher.size) {
+    const fest = ortHalten(vorher, C);
+    if (fest) { C = schedule(); toast(fest === 1 ? 'Die Leistung bleibt an ihrem Termin (als „Anfang nicht früher als“ festgehalten).' : `${fest} Leistungen bleiben an ihrem Termin (als „Anfang nicht früher als“ festgehalten).`); }
+  }
   if (C.cyc) {
     restore(snap); CAL = schedule(); render();
     toast('Diese Änderung würde einen Zirkelbezug zwischen Leistungen erzeugen und wurde nicht übernommen.', true);

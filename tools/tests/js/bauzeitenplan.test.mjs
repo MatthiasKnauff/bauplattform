@@ -296,6 +296,50 @@ test('Leistung ohne Vorgänger: mit Einschränkung bleibt ihr Termin, ohne begin
   assert.equal(frei.anfang[1], '2026-11-02');
 });
 
+// Verknüpfung über die Oberfläche lösen (act wie bei jedem Bearbeiten) – Ergebnis wie oben, plus gesetzte Einschränkungen
+function loese({ start, cal = NW, tasks }, aenderung) {
+  APP.__plan = JSON.stringify({ id: 'test', name: 'Test', start: tag(start), nextUid: 100, cal, tasks });
+  APP.__aend = aenderung;
+  return JSON.parse(vm.runInContext(`(() => {
+    P = JSON.parse(__plan); undoS = []; redoS = []; CAL = schedule();
+    act(() => { (new Function('P', __aend))(P); });
+    return JSON.stringify({ anfang: Array.from(CAL.sd).map((n) => new Date(n * 86400000).toISOString().slice(0, 10)),
+                            cons: P.tasks.map((t) => t.cons == null ? null : new Date(t.cons * 86400000).toISOString().slice(0, 10)) });
+  })()`, APP));
+}
+
+test('Verknüpfung lösen: die Leistung bleibt an ihrem Termin statt an den Projektanfang zu springen', () => {
+  // A 02.–06.11.26, B hängt an A (Mo 09.11.), C hängt an B
+  const plan = { start: '2026-11-02', tasks: [L(1, 5), L(2, 2, { preds: [nach(1)] }), L(3, 1, { preds: [nach(2)] })] };
+  const r = loese(plan, 'P.tasks[1].preds = [];');
+  assert.equal(r.anfang[1], '2026-11-09');
+  assert.equal(r.cons[1], '2026-11-09');
+  assert.equal(r.anfang[2], '2026-11-11');          // Nachfolger bleibt dahinter
+  assert.equal(r.cons[2], null);                     // … ohne eigene Einschränkung
+});
+
+test('Verknüpfung lösen ohne Terminsprung (überflüssige Verknüpfung): keine Einschränkung', () => {
+  // C hängt an A und an B (B nach A) – die Verknüpfung A→C ist überflüssig
+  const plan = { start: '2026-11-02', tasks: [L(1, 5), L(2, 2, { preds: [nach(1)] }), L(3, 1, { preds: [nach(1), nach(2)] })] };
+  const r = loese(plan, 'P.tasks[2].preds = P.tasks[2].preds.filter((p) => p.uid !== 1);');
+  assert.equal(r.anfang[2], '2026-11-11');
+  assert.equal(r.cons[2], null);
+});
+
+test('Vorgänger ersetzen (neue Verknüpfung statt alter): Leistung folgt dem neuen Vorgänger', () => {
+  const plan = { start: '2026-11-02', tasks: [L(1, 5), L(2, 1), L(3, 2, { preds: [nach(1)] })] };
+  const r = loese(plan, 'P.tasks[2].preds = [{ uid: 2, type: "FS", lag: 0 }];');
+  assert.equal(r.anfang[2], '2026-11-03');
+  assert.equal(r.cons[2], null);
+});
+
+test('Gelöschte Vorgänger-Leistung: Nachfolger behält seinen Termin', () => {
+  const plan = { start: '2026-11-02', tasks: [L(1, 5), L(2, 2, { preds: [nach(1)] })] };
+  const r = loese(plan, 'P.tasks.splice(0, 1);');
+  assert.equal(r.anfang[0], '2026-11-09');
+  assert.equal(r.cons[0], '2026-11-09');
+});
+
 test('Einschränkung einer Gruppe gilt für ihre Teilleistungen', () => {
   // Gruppe mit Einschränkung Mi 04.11.26; Teilleistung 2 AT → Mi 04.–Do 05.11.
   const r = rechne({ start: '2026-11-02', tasks: [L(1, 0, { cons: tag('2026-11-04') }), L(2, 2, { lvl: 1 })] });

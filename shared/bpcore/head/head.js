@@ -239,7 +239,7 @@
   /* Layout-Editor der Verwaltung als großes Fenster über der App (kein neues Browserfenster) */
   H.layoutEditor = function (adminUrl, bereich, zu) {
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-    bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Druck-Layout bearbeiten" style="width:min(1500px,97vw);height:94vh;max-height:none;display:flex;flex-direction:column">
+    bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Druck-Layout bearbeiten" style="width:min(1500px,97vw);height:94vh;max-height:none;display:flex;flex-direction:column;resize:both;overflow:hidden;min-width:min(720px,97vw);min-height:420px">
       <div class="bph-dh"><b>Druck-Layout bearbeiten</b><span class="bph-mu" style="font-size:.8rem;margin-left:.6rem">wird laufend gespeichert</span><span style="flex:1"></span><button type="button" class="bph-btn pri" data-lx>Fertig</button></div>
       <iframe title="Druck-Layout" src="${esc(adminUrl)}/layout?einbetten=1#${encodeURIComponent(bereich)}" style="flex:1;border:0;width:100%;background:var(--bph-card,#fff)"></iframe></div>`;
     document.body.appendChild(bg); try { dlgBeweglich(bg.querySelector('.bph-dlg')); } catch { /* egal */ }

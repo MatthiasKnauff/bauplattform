@@ -1558,7 +1558,7 @@ function render() {
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
-  if (tab === 'auftraege') { v.innerHTML = vAuftraege(); return; }
+  if (tab === 'auftraege') { v.innerHTML = vAuftraege(); requestAnimationFrame(auHoehe); return; }
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   const RE2 = ['lv', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
@@ -4540,6 +4540,17 @@ function lvBaum(lv) {   // Titel/Positionen eines LV mit Summen
   });
   return rows;
 }
+/* Aufträge: Tabelle und Karte rechts rollen in sich – so hoch, dass die Seite selbst nicht rollt (nur ein Scrollbalken je Bereich) */
+function auHoehe() {
+  if (tab !== 'auftraege') return;
+  const w = document.querySelector('#view .au2-tab .tblw'), re = document.querySelector('#view .au2-re'); if (!w) return;
+  const nach = [...w.parentElement.children].slice([...w.parentElement.children].indexOf(w) + 1).reduce((a, el) => a + el.getBoundingClientRect().height, 0);
+  w.style.maxHeight = Math.max(240, innerHeight - w.getBoundingClientRect().top - nach - 14) + 'px';
+  if (re && getComputedStyle(re).position === 'sticky') re.style.maxHeight = Math.max(240, innerHeight - re.getBoundingClientRect().top - 14) + 'px';
+  const zuviel = document.documentElement.scrollHeight - innerHeight;   // noch etwas über (Innenabstand der Seite)? Tabelle und Karte entsprechend kürzer
+  if (zuviel > 0) { w.style.maxHeight = Math.max(240, parseFloat(w.style.maxHeight) - zuviel) + 'px'; if (re && re.style.maxHeight) re.style.maxHeight = Math.max(240, parseFloat(re.style.maxHeight) - zuviel) + 'px'; }
+}
+addEventListener('resize', () => requestAnimationFrame(auHoehe));
 function vAuftraege() {
   const xs = LIST.filter((x) => !x.archived);
   if (!xs.length) return '<div class="card empty">Noch keine Leistungsverzeichnisse in diesem Projekt. Oben „Neu“ legt eines an.</div>';

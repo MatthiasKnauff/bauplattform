@@ -240,10 +240,16 @@
   H.layoutEditor = function (adminUrl, bereich, zu) {
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
     bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Druck-Layout bearbeiten" style="width:min(1500px,97vw);height:94vh;max-height:none;display:flex;flex-direction:column;resize:both;overflow:hidden;min-width:min(720px,97vw);min-height:420px">
-      <div class="bph-dh"><b>Druck-Layout bearbeiten</b><span class="bph-mu" style="font-size:.8rem;margin-left:.6rem">wird laufend gespeichert</span><span style="flex:1"></span><button type="button" class="bph-btn pri" data-lx>Fertig</button></div>
+      <div class="bph-dh"><b>Druck-Layout bearbeiten</b><span class="bph-mu" style="font-size:.8rem;margin-left:.6rem">wird laufend gespeichert</span><span style="flex:1"></span><button type="button" class="bph-btn" data-lw title="Den Editor in einem eigenen Browserfenster öffnen – z. B. auf dem zweiten Bildschirm">⧉ Eigenes Fenster</button><button type="button" class="bph-btn pri" data-lx style="margin-left:.4rem">Fertig</button></div>
       <iframe title="Druck-Layout" src="${esc(adminUrl)}/layout?einbetten=1#${encodeURIComponent(bereich)}" style="flex:1;border:0;width:100%;background:var(--bph-card,#fff)"></iframe></div>`;
     document.body.appendChild(bg); try { dlgBeweglich(bg.querySelector('.bph-dlg')); } catch { /* egal */ }
     bg.addEventListener('click', async (e) => {   // daneben klicken schließt nicht
+      if (e.target.closest('[data-lw]')) {   // auf Wunsch: eigenes Browserfenster (zweiter Bildschirm)
+        try { const w = bg.querySelector('iframe').contentWindow; if (w && w.layoutSichern) await w.layoutSichern(); } catch { /* anderer Ursprung */ }
+        const f = window.open(`${adminUrl}/layout#${encodeURIComponent(bereich)}`, 'bp-layout', `popup,width=${Math.min(1600, screen.availWidth - 40)},height=${Math.min(1000, screen.availHeight - 60)}`);
+        if (!f) { bpHinweis('Der Browser hat das neue Fenster blockiert – bitte Pop-ups für das Bauportal erlauben.'); return; }
+        bg.remove(); if (zu) zu(); return;
+      }
       if (!e.target.closest('[data-lx]')) return;
       try { const w = bg.querySelector('iframe').contentWindow; if (w && w.layoutSichern) await w.layoutSichern(); } catch { /* anderer Ursprung – speichert selbst beim Schließen */ }
       bg.remove(); if (zu) zu();

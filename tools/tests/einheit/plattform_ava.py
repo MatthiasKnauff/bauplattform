@@ -330,7 +330,7 @@ def test_gaeb_hin_und_zurueck():
            "Gliederung und OZ")
     P = {y["oz"]: y for y in d["items"] if y["typ"] == "pos" and y["oz"]}
     gleich(P["01.0010"]["menge"], 12.5, "Menge")
-    gleich(P["01.0010"]["einheit"], "m²", "Einheit")
+    gleich(P["01.0010"]["einheit"], "m2", "Einheit (GAEB-Form: m² → m2)")
     gleich(P["01.0010"]["ep"], 48.2, "Einheitspreis")
     gleich(P["01.0010"]["lang"], "Kalksandstein\nMörtelgruppe IIa", "Langtext mit Zeilenumbruch")
     gleich(P["01.01.0010"]["art"], "E", "Bedarfsposition")

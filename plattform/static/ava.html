@@ -4718,10 +4718,19 @@ function auftragKarte() {
   </div>${vSicherheiten(K)}`;
 }
 /* Nachtrag von Hand (Aufträge): Text, Menge × EP oder Pauschale, Status – Position unter „Nachträge“, EP wird Auftragspreis */
-function ntDialog(lvId, zuNt = null) {   // zuNt: weitere Positionen zu einem vorhandenen Nachtrag (nur die Positionstabelle)
+/* Nachtrag aus einer Auftragsposition ableiten: Mehrmenge (gleiche Leistung, Auftrags-EP) oder geänderte Leistung („wie Pos. …, jedoch …“) */
+function ntAbleiten(lvId, posId) {
+  const lv = PC[lvId] || (L && L.id === lvId ? L : null); if (!lv) return;
+  const y = (lv.data.items || []).find((q) => q.id === posId); if (!y || y.typ !== 'pos') return;
+  const ep = ((lv.vergabe || {}).preise || {})[y.id] ?? y.ep_s ?? null;
+  ntDialog(lvId, null, { oz: y.oz || '', kurz: y.kurz || '', lang: y.lang || '', einheit: y.einheit || 'psch', ep, menge: y.menge });
+}
+function ntDialog(lvId, zuNt = null, ab = null) {   // zuNt: weitere Positionen zu einem vorhandenen Nachtrag (nur die Positionstabelle); ab: aus einer Position ableiten
   const x = LIST.find((y) => y.id === lvId) || {};
   const bg = modalBox(`<h3>${zuNt ? `Positionen zu ${esc(zuNt)} hinzufügen` : 'Nachtrag erfassen'} <span class="hint">· ${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.auftragnehmer ? ' · ' + esc(x.auftragnehmer) : ''}</span></h3><div class="fm"${zuNt ? ' hidden' : ''}>
-      <label>Umfang</label><select id="ntU"><option value="pos">eine Position (unter dem Titel „Nachträge“)</option><option value="titel">eigener Gliederungspunkt (mehrere Positionen folgen im LV)</option></select>
+      ${ab ? `<label>Abgeleitet aus</label><div><b>${esc([ab.oz, ab.kurz].filter(Boolean).join(' '))}</b><span class="hint"> · Auftrag ${esc(nf(ab.menge))} ${esc(ab.einheit)}${ab.ep != null ? ' à ' + eur(ab.ep) : ''}</span></div>
+      <label>Art</label><select id="ntA"><option value="mehr">Mehrmenge – gleiche Leistung zum Auftrags-EP</option><option value="aend">Geänderte Leistung – „wie Pos. …, jedoch …“</option></select>` : ''}
+      <label>Umfang</label><select id="ntU"${ab ? ' disabled' : ''}><option value="pos">eine Position (unter dem Titel „Nachträge“)</option><option value="titel">eigener Gliederungspunkt (mehrere Positionen folgen im LV)</option></select>
       <label>Bezeichnung</label><input id="ntK" placeholder="z. B. Zusätzliche Kernbohrungen DN 150">
       <label>Menge</label><input id="ntM" value="1" inputmode="decimal" style="width:7rem">
       <label>Einheit</label><input id="ntE" value="psch" list="ntEH" style="width:7rem"><datalist id="ntEH">${['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join('')}</datalist>
@@ -4747,12 +4756,22 @@ function ntDialog(lvId, zuNt = null) {   // zuNt: weitere Positionen zu einem vo
       }
       const titel = $('#ntU').value === 'titel';
       const positionen = titel ? [...bg.querySelectorAll('#ntPosB tr')].map((tr) => ({ kurz: tr.querySelector('[data-np="kurz"]').value.trim(), menge: pf(tr.querySelector('[data-np="menge"]').value) ?? 1, einheit: tr.querySelector('[data-np="einheit"]').value.trim() || 'psch', ep: tr.querySelector('[data-np="ep"]').value.trim() === '' ? null : pf(tr.querySelector('[data-np="ep"]').value) })).filter((z) => z.kurz) : [];
-      const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz, menge: pf($('#ntM').value), einheit: $('#ntE').value.trim(), ep: $('#ntP').value.trim() === '' ? null : pf($('#ntP').value), status: $('#ntS').value, grund: $('#ntG').value.trim(), als_titel: titel, positionen });
+      const r = await api(`api/lv/${lvId}/nachtrag`, 'POST', { kurz, menge: pf($('#ntM').value), einheit: $('#ntE').value.trim(), ep: $('#ntP').value.trim() === '' ? null : pf($('#ntP').value), status: $('#ntS').value, grund: $('#ntG').value.trim(), als_titel: titel, positionen,
+        ...(ab ? { lang: $('#ntA').value === 'mehr' ? ab.lang : (ab.lang ? `wie Pos. ${ab.oz}, jedoch: …\n\n${ab.lang}` : ''), bezug: ab.oz } : {}) });
       close(); PC[lvId] = r; if (L && L.id === lvId) L = r; EXP.add('l' + lvId); EXP.add(`l${lvId}:nt:${(r.data.items.filter((y) => y.nt && !y.nt_erbe).pop() || {}).nt}`);
       render(); toast(titel && positionen.length ? `Nachtrag mit ${positionen.length} Position${positionen.length === 1 ? '' : 'en'} erfasst.` : 'Nachtrag erfasst.');
       lvEintrag(lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {});   // Summen des LV nachziehen, ohne die ganze Liste neu zu rechnen
     } catch (e) { btn.disabled = false; toast(e.message, true); }
   });
+  if (ab) {   // Felder aus der Position vorbelegen; Art umschalten passt Bezeichnung und Menge an
+    const setz = () => { const mehr = $('#ntA').value === 'mehr';
+      $('#ntK').value = mehr ? `Mehrmenge zu Pos. ${ab.oz} ${ab.kurz}`.trim() : `wie Pos. ${ab.oz}, jedoch: `;
+      $('#ntM').value = mehr ? '' : nf(ab.menge || 1); $('#ntE').value = ab.einheit || 'psch'; $('#ntP').value = ab.ep != null ? nf(ab.ep, 2) : '';
+      $('#ntG').value = mehr ? 'Mehrmenge gegenüber dem Auftrag' : 'geänderte Ausführung';
+      $('#ntH').textContent = mehr ? 'Gleiche Leistung, Einheitspreis aus dem Auftrag – nur die zusätzliche Menge eintragen. Kommt als Position unter „Nachträge“.' : 'Text, Menge und Preis an die geänderte Ausführung anpassen; der Langtext der Position wird mit „wie Pos. …, jedoch“ übernommen.';
+      setTimeout(() => { const f = mehr ? $('#ntM') : $('#ntK'); f.focus(); if (!mehr) f.setSelectionRange(f.value.length, f.value.length); }, 0); };
+    $('#ntA').addEventListener('change', setz); setz();
+  }
   const zeile = () => { const tr = document.createElement('tr'); tr.innerHTML = '<td><input data-np="kurz" placeholder="Bezeichnung"></td><td><input data-np="menge" value="1" inputmode="decimal"></td><td><input data-np="einheit" value="psch" list="ntEH"></td><td><input data-np="ep" inputmode="decimal" placeholder="EP"></td><td><button type="button" class="ib" data-ntz="-" title="Zeile entfernen">✕</button></td>'; bg.querySelector('#ntPosB').appendChild(tr); return tr; };
   bg.querySelector('#ntPos').addEventListener('click', (ev) => { const b = ev.target.closest('[data-ntz]'); if (!b) return; ev.stopPropagation(); if (b.dataset.ntz === '+') zeile().querySelector('input').focus(); else { b.closest('tr').remove(); if (!bg.querySelector('#ntPosB tr')) zeile(); } });
   bg.querySelector('#ntPos').addEventListener('keydown', (ev) => {   // Enter/Tab in der letzten Zeile: neue Zeile
@@ -4818,6 +4837,7 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der A
   m = /^l(\d+)(?::(.+))?$/.exec(k); if (!m) return;
   const lvId = +m[1];
   if (m[2]) { const lv = PC[lvId], y = lv && (lv.data.items || []).find((q) => q.id === m[2]); if (y && y.nt && y.typ === 'pos') P.push({ text: 'Diese Nachtragsposition löschen', gefahr: true, fn: () => ntLoeschen(lvId, String(y.nt), y.id) });
+    if (y && !y.nt && y.typ === 'pos') P.push({ text: 'Nachtrag aus dieser Position …', fn: () => ntAbleiten(lvId, y.id) });
     P.push({ text: 'Im Leistungsverzeichnis öffnen', fn: () => kmLv(lvId, () => { tab = 'lv'; LS.set('tab', tab); render(); setTimeout(() => { const z = document.querySelector(`table.lv tr[data-i]`); const I = items(), i = I.findIndex((y) => y.id === m[2]); const row = i >= 0 && document.querySelector(`table.lv tr[data-i="${i}"]`); if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('pj-blink'); setTimeout(() => row.classList.remove('pj-blink'), 1600); } else if (z) z.scrollIntoView(); }, 300); }) }); return; }
   kmLvPunkte(P, lvId);
   P.push({ text: 'LV- & Auftragsdaten …', fn: () => kmLv(lvId, () => lvDaten()) });

@@ -769,6 +769,8 @@ def clean_items(v):
             p["nt"] = _s(x.get("nt"), 20)
             p["nt_status"] = x.get("nt_status") if x.get("nt_status") in ("angemeldet", "beauftragt", "abgelehnt") else "angemeldet"
             p["nt_grund"] = _s(x.get("nt_grund"), 1000)
+            if x.get("nt_bezug"):   # abgeleitet aus Pos. … (Mehrmenge / geänderte Leistung)
+                p["nt_bezug"] = _s(x.get("nt_bezug"), 40)
         out.append(p)
     return nt_erben(out)
 
@@ -2754,7 +2756,7 @@ def nachtrag_neu(i):
             ep = None   # Preise stehen in neue_preise
         else:
             pos = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit,
-                   "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund}
+                   "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund, **({"nt_bezug": _s(b.get("bezug"), 40)} if b.get("bezug") else {})}   # abgeleitet aus Pos. …
             if ep is not None:
                 pos["ep_s"] = ep
             items.insert(ende, pos)

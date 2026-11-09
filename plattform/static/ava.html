@@ -3923,8 +3923,8 @@ function spaltenGriffe() {
     const ths = [...tr.children];
     // wie in Excel: nur die gezogene Spalte ändert sich, alles rechts davon rückt nach; die letzte Spalte nimmt den Rest der Breite
     const letzte = ths[ths.length - 1];
-    const breite = () => { const sum = ths.slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = Math.max(sum + 90, (t.parentElement || t).clientWidth) + 'px'; };
-    const fest = () => { if (t.style.tableLayout === 'fixed') return; ths.forEach((h) => { if (h === letzte) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; t.style.minWidth = ''; breite(); };
+    const breite = () => { const sum = ths.slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = (sum + 90) + 'px'; t.style.minWidth = '100%'; };   // mindestens so breit wie der Platz – wächst beim Aufziehen des Fensters mit, die letzte Spalte nimmt den Rest
+    const fest = () => { if (t.style.tableLayout === 'fixed') return; ths.forEach((h) => { if (h === letzte) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; breite(); };
     if (Object.keys(w).length) { fest(); ths.forEach((h, j) => { if (w[j] && h !== letzte) h.style.width = w[j] + 'px'; }); breite(); }
     ths.forEach((th, i) => {
       if (i === ths.length - 1) return;

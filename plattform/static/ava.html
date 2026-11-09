@@ -62,7 +62,7 @@ main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im
 .tree td{padding:.1rem .4rem;border-right:1px solid color-mix(in srgb,var(--line) 60%,transparent);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:28rem;line-height:1.5}
 .tree td.r,.tree th.r{text-align:right;font-variant-numeric:tabular-nums}
 .tree tr:hover td{background:var(--hov)}
-.tree tr.sel td{background:#cfe2f6;color:#10283f}
+.tree tr.sel td{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}.tree tr.sel td:first-child{box-shadow:inset 1.5px 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}.tree tr.sel td:last-child{box-shadow:inset -1.5px 1.5px 0 var(--y),inset 0 -1.5px 0 var(--y)}   /* gewählte Zeile wie im Projektbaum: Rahmen in der Akzentfarbe */
 #kpi[hidden],#stat[hidden]{display:none!important}
 .tree tr.root td{font-weight:600}
 .tree .tw{display:inline-flex;align-items:center;gap:.3rem}
@@ -540,7 +540,7 @@ tr.am-lf td input{color:#c0621f}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:var(--fs)}
 .re2-baum .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.28rem .4rem;border-radius:6px;border-left:3px solid transparent;position:relative}
-.re2-baum .pj-r.k{padding-left:1.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
+.re2-baum .pj-r.root{font-weight:600;cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:6px}.re2-baum .pj-r.root .car{cursor:pointer}.re2-baum .pj-r.lv{padding-left:1.3rem}.re2-baum .pj-r.k{padding-left:2.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* nur die Seite scrollt – rechts kein zweiter Scrollbalken */
 @media (max-width:1100px){.re2{grid-template-columns:1fr}.re2-baum{position:static;max-height:40vh}}
@@ -1325,8 +1325,16 @@ function pjBaum() {
 let PJSEL = null, LVXZU = LS.get('lvxzu', false), LVXHOCH = false;
 /* LVs im Tabellenfeld (Leistungsverzeichnis, Angebote, Aufmaß, Rechnungen): Zeilen vor dem geöffneten LV, dessen Inhalt, Zeilen danach */
 function pjTeile() { const h = pjBaum(), i = h.indexOf('\u0001'); return i < 0 ? [h, ''] : [h.slice(0, i), h.slice(i + 1)]; }
+/* Oberste Ebene des Projektbaums (wie in Aufträge): das Projekt mit Zahl der LVs und Summe; Pfeil klappt alle LVs zu/auf */
+function pjWurzel() {
+  const xs = LIST.filter((x) => !x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei)));
+  const sum = xs.reduce((a, x) => a + (x.auftrag || x.min_angebot || x.schaetzung || 0), 0);
+  const pn = (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt';
+  return `<div class="pj-r root" title="${esc(pn)} · ${xs.length} LV${xs.length === 1 ? '' : 's'}"><span class="car" data-pjzu title="${PJZU ? 'LVs aufklappen' : 'alle LVs zuklappen'}">${PJZU ? '▸' : '▾'}</span>${IC.proj}<span class="t">${esc(pn)}</span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
+}
+const pjBaumMitWurzel = () => pjWurzel() + (PJZU ? '' : pjBaum().replace('\u0001', ''));
 function pjZeichnen() {
-  if (tab === 'tueren' || PJTABS.has(tab)) { const t = document.getElementById('pjTree'); if (t) t.innerHTML = pjBaum().replace('\u0001', ''); return; }
+  if (tab === 'tueren' || PJTABS.has(tab)) { const t = document.getElementById('pjTree'); if (t) t.innerHTML = pjBaumMitWurzel(); return; }
   const a = document.querySelector('.pjtree[data-teil="a"]'), b = document.querySelector('.pjtree[data-teil="b"]'); if (!a || !b) return;
   const [x, y] = pjTeile(); a.innerHTML = lvxKopf() + x; b.innerHTML = y;
 }
@@ -1337,7 +1345,7 @@ function lvxKopf() {
   return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
 function re2Html(inhalt) {
-  return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjBaum().replace('\u0001', '')}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
+  return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjBaumMitWurzel()}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();
@@ -1462,7 +1470,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('dblclick', () => { if (pjKlick) { clearTimeout(pjKlick.tm); pjKlick = null; } }, true);
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('.pjtree')) return;
-  if (e.target.closest('[data-pjzu]')) { PJZU = !PJZU; LS.set('pjzu', PJZU); render(); return; }
+  if (e.target.closest('[data-pjzu]')) { e.stopPropagation(); PJZU = !PJZU; LS.set('pjzu', PJZU); pjZeichnen(); return; }
   const c = e.target.closest('[data-pjcar]'); if (c) { const id = +c.dataset.pjcar; if (PJX.has(id)) PJX.delete(id); else { PJX.clear(); PJX.add(id); } LS.set('pjx', [...PJX].slice(-100)); pjZeichnen(); return; }   // immer nur ein LV aufgeklappt – die anderen klappen zu
   const z = e.target.closest('[data-lvzu]'); if (z) { LVXZU = !LVXZU; LS.set('lvxzu', LVXZU); render(); return; }
   const r = e.target.closest('[data-pjlv]'); if (!r) return;
@@ -4474,7 +4482,7 @@ function vAuftraege() {
   out.push(`<tr data-tr="${pk}" class="root${TSEL === pk ? ' sel' : ''}"><td><span class="tw"><span class="car" data-car="-${pk}">${auf ? '▾' : '▸'}</span>${IC.proj}<span>${esc(pn)}</span></span></td><td></td><td class="r">${e2(S.g)}</td><td></td><td class="r">${e2(S.nt)}</td><td class="r">${e2(S.pr)}</td><td></td><td></td><td></td><td class="r">${e2(S.ab)}</td></tr>`);
   if (auf) xs.forEach((x) => {
     const k = 'l' + x.id, aufgetragen = !!x.auftrag;
-    row(k, 1, true, IC.lv, `<b>${esc([x.nr, x.name].filter(Boolean).join(' '))}</b>`,
+    row(k, 1, true, IC.lv, `${esc([x.nr, x.name].filter(Boolean).join(' '))}`,
       [x.aufgehoben ? `<span class="mu" title="Beauftragung aufgehoben – Rechnungen deaktiviert">⏸ ${esc(x.aufgehoben.bieter || '')} (aufgehoben)</span>` : esc(x.auftragnehmer || ''), e2(x.auftrag || x.schaetzung), jn(x.n_nt), e2(x.nachtraege + x.nt_angemeldet), e2(x.prognose), aufgetragen || x.vergeben ? (x.frei && x.ohne_lv !== false ? 'Auftrag ohne LV' : 'Auftrag') : x.aufgehoben ? 'aufgehoben' : x.status === 'nicht_vergeben' ? 'nicht vergeben' : 'Ausschreibung', '', '', e2(x.abgerechnet)]);
     if (!EXP.has(k)) return;
     const lv = PC[x.id];

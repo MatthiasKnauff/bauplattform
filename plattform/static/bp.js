@@ -253,7 +253,7 @@ function spaltenSchnitt(t) {
   }
 }
 (() => {
-  const st = document.createElement('style'); st.textContent = '.sp-in{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sp-in>small,.sp-in>.mute,.sp-in>.hint{display:block;overflow:hidden;text-overflow:ellipsis}'; document.head.appendChild(st);
+  const st = document.createElement('style'); st.textContent = 'table[style*="table-layout: fixed"] .sp-in{max-width:100%!important}.sp-in{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sp-in>small,.sp-in>.mute,.sp-in>.hint{display:block;overflow:hidden;text-overflow:ellipsis}'; document.head.appendChild(st);
   let t = 0; const alle = () => document.querySelectorAll('table').forEach((x) => { try { spaltenSchnitt(x); } catch { /* egal */ } });
   const mo = new MutationObserver((M) => { if (M.every((m) => m.target.classList && m.target.classList.contains('sp-in') || [...m.addedNodes].every((x) => x.classList && x.classList.contains('sp-in')))) return; clearTimeout(t); t = setTimeout(alle, 120); });
   const los = () => { alle(); mo.observe(document.body, { childList: true, subtree: true }); };

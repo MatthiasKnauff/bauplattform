@@ -394,6 +394,17 @@ html.mobil #mView{display:block;font-size:var(--fs);line-height:1.4;min-height:c
 html.mobil .bph{position:sticky;top:0}
 .mv-top{position:sticky;top:46px;z-index:5;background:var(--bg);padding:.6rem .8rem .5rem;border-bottom:1px solid var(--line)}
 .mv-top select{width:100%;font:inherit;font-weight:600;font-size:var(--fs-l);padding:.5rem .6rem;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.mv-lvb{width:100%;display:flex;align-items:center;gap:.6rem;text-align:left;font:inherit;padding:.5rem .7rem;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);cursor:pointer;margin-top:.45rem}
+.mv-lvb .t{flex:1;min-width:0}.mv-lvb b{display:block;font-size:var(--fs-l);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mv-lvb small{display:block;color:var(--mute)}.mv-lvb i{font-style:normal;color:var(--mute);font-size:1.1rem}
+.mv-sh{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center}
+.mv-sh .in{background:var(--card);color:var(--ink);width:min(560px,100%);max-height:82vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;box-shadow:0 -10px 30px rgba(0,0,0,.25);padding-bottom:env(safe-area-inset-bottom);animation:mvSh .18s ease-out}
+@keyframes mvSh{from{transform:translateY(40px);opacity:.4}}
+.mv-sh .hd{display:flex;align-items:center;gap:.5rem;padding:.8rem 1rem .4rem}.mv-sh .hd b{flex:1;font-size:var(--fs-l)}.mv-sh .hd button{border:0;background:var(--hov,rgba(0,0,0,.06));color:inherit;width:34px;height:34px;border-radius:50%;font-size:1.1rem;cursor:pointer}
+.mv-sh input{margin:0 1rem .5rem;font:inherit;padding:.5rem .7rem;border:1px solid var(--line);border-radius:10px;background:var(--inp,var(--card));color:inherit}
+.mv-sh .ls{overflow:auto;padding:0 .5rem .6rem}
+.mv-sh .ls button{display:flex;align-items:center;gap:.7rem;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.65rem .6rem;border-radius:10px;cursor:pointer}
+.mv-sh .ls button:active,.mv-sh .ls button.on{background:color-mix(in srgb,var(--y) 12%,transparent)}
+.mv-sh .ls .nr{flex:none;min-width:2.2rem;font-weight:700;color:var(--y)}.mv-sh .ls .nm{flex:1;min-width:0}.mv-sh .ls small{display:block;color:var(--mute)}.mv-sh .ls .ck{color:var(--y);font-weight:700}
 .mv-q{display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem}
 .mv-q input[type=search]{flex:1;min-width:0;font:inherit;font-size:var(--fs-l);padding:.5rem .8rem;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink)}
 .mv-q label{font-size:var(--fs-s2);color:var(--mute);display:flex;gap:.3rem;align-items:center;white-space:nowrap}
@@ -5679,9 +5690,21 @@ const MOB = (() => {
       return `<button class="mk" data-mre="${x.id}" style="--gw:${g ? '#2f9e5a' : '#e0a030'}"><div class="mk-h"><b>${esc(reTitel(r))}</b><span class="mk-tag ${g ? 'ok' : 'w'}">${g ? 'geprüft' : 'in Prüfung'}</span></div>
         ${r.re_nr ? `<div class="mk-z">Nr. ${esc(r.re_nr)}</div>` : ''}<div class="mk-r"><span>anerkannt (kumuliert)</span>${eur(r.anerkannt)}</div><div class="mk-r"><span>Zahlbetrag netto</span><b>${eur(r.zahlung)}</b></div></button>`; }).join('')).join('');
   }
+  function mvLvWahl() {   // LV wählen: Liste von unten (wie auf dem Handy üblich), mit Suchfeld; schließt nur über ✕ oder die Auswahl
+    const A = LIST.filter((x) => !x.archived || (L && x.id === L.id));
+    const sh = document.createElement('div'); sh.className = 'mv-sh';
+    sh.innerHTML = `<div class="in" role="dialog" aria-label="Leistungsverzeichnis wählen"><div class="hd"><b>Leistungsverzeichnis</b><button type="button" data-x aria-label="Schließen">✕</button></div>${A.length > 8 ? '<input type="search" placeholder="Filtern – Nummer, Name, Firma …" autocomplete="off">' : ''}<div class="ls"></div></div>`;
+    const ls = sh.querySelector('.ls'), q = sh.querySelector('input');
+    const zeig = () => { const f = (q ? q.value : '').trim().toLowerCase();
+      ls.innerHTML = A.filter((x) => !f || [x.nr, x.name, x.auftragnehmer].join(' ').toLowerCase().includes(f)).map((x) => `<button type="button" data-lv="${x.id}" class="${L && L.id === x.id ? 'on' : ''}"><span class="nr">${esc(x.nr || '')}</span><span class="nm">${esc(x.name || '')}${x.auftragnehmer ? `<small>${esc(x.auftragnehmer)}</small>` : ''}</span>${L && L.id === x.id ? '<span class="ck">✓</span>' : ''}</button>`).join('') || '<p style="color:var(--mute);padding:.6rem">Nichts gefunden.</p>'; };
+    zeig(); if (q) q.addEventListener('input', zeig);
+    sh.addEventListener('click', async (e) => { if (e.target.closest('[data-x]')) { sh.remove(); return; } const b = e.target.closest('[data-lv]'); if (!b) return; sh.remove(); await openLv(+b.dataset.lv); });
+    document.body.appendChild(sh); const on = ls.querySelector('.on'); if (on) on.scrollIntoView({ block: 'center' });
+  }
   function zeichnen() {
     if (st.modus === 'nt') st.modus = 'auftraege';
-    const lvSel = LIST.length ? `<select id="mLv" aria-label="Leistungsverzeichnis">${LIST.filter((x) => !x.archived || (L && x.id === L.id)).map((x) => `<option value="${x.id}"${L && x.id === L.id ? ' selected' : ''}>${esc(x.nr)} · ${esc(x.name)}</option>`).join('')}</select>` : '';
+    const la = L && LIST.find((x) => x.id === L.id);
+    const lvSel = LIST.length ? `<button type="button" class="mv-lvb" id="mLv" aria-haspopup="dialog"><span class="t"><b>${la ? esc([la.nr, la.name].filter(Boolean).join(' · ')) : 'LV wählen'}</b>${la && la.auftragnehmer ? `<small>${esc(la.auftragnehmer)}</small>` : ''}</span><i>▾</i></button>` : '';
     const M = [['lvs', 'LVs'], ['auftraege', 'Aufträge'], ['am', 'Aufmaß'], ['re', 'Rechnungen']], mAkt = st.modus === 'lv' ? (st.von || 'lvs') : st.modus;
     box.innerHTML = `<div class="mv-top"><div class="mv-q"><input type="search" id="mQ" placeholder="🔍 Suchen – Text, OZ, Firma …" value="${esc(st.q)}" autocomplete="off" enterkeyhint="search"><label><input type="checkbox" id="mQa"${st.alle ? ' checked' : ''}> alle Projekte</label></div>${st.modus === 'lv' || st.modus === 'am' ? lvSel : ''}<div class="mv-seg">${M.map(([k, l]) => `<button data-mm="${k}" class="${k === mAkt ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <div class="mv-b">${st.q.length > 1 ? '<p style="color:var(--mute)">Suche …</p>' : st.modus === 'lv' ? `<button class="mv-zur" data-mm="${st.von || 'lvs'}">‹ ${st.von === 'auftraege' ? 'Aufträge' : 'alle LVs'}</button>${vLvM()}${items().some((x) => x.nt) ? '<div class="mv-g">Nachträge</div>' + vNt() : ''}` : st.modus === 'am' ? vAm() : st.modus === 're' ? vReAlle() : st.modus === 'lvs' ? vLvs() : vAuf()}
@@ -5712,7 +5735,8 @@ const MOB = (() => {
     setTimeout(() => { const el = t.pos_id && box.querySelector(`[data-mp="${CSS.escape(t.pos_id)}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('blink'); } else scrollTo(0, 0); }, 60);
   }
   box.addEventListener('input', (e) => { if (e.target.id === 'mQ') { st.q = e.target.value; clearTimeout(st.T); st.T = setTimeout(suchen, 300); } });
-  box.addEventListener('change', async (e) => { if (e.target.id === 'mQa') { st.alle = e.target.checked; LS.set('vqAlle', st.alle); suchen(); return; } if (e.target.id === 'mLv') { await openLv(+e.target.value); } });
+  box.addEventListener('change', async (e) => { if (e.target.id === 'mQa') { st.alle = e.target.checked; LS.set('vqAlle', st.alle); suchen(); return; } });
+  box.addEventListener('click', (e) => { if (e.target.closest('#mLv')) mvLvWahl(); });   // eigene Auswahl statt Systemliste
   box.addEventListener('click', async (e) => {
     const mr = e.target.closest('[data-mr]'); if (mr) { gehe(st.R[+mr.dataset.mr]); return; }
     const m = e.target.closest('[data-mm]'); if (m) { st.q = ''; st.modus = m.dataset.mm; LS.set('mModus', st.modus); zeichnen(); scrollTo(0, 0); return; }

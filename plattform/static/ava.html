@@ -195,7 +195,7 @@ tr.lang.drop td{outline:2px dashed var(--y);outline-offset:-3px}
 .kpi div{flex-direction:column;align-items:flex-start;justify-content:center;padding:.12rem .6rem;line-height:1.15;min-width:0!important;flex:0 0 auto}   /* Beschriftung klein über dem Betrag – alle Kennzahlen ganz lesbar */
 .kpi div small{font-size:.7rem;min-width:0;overflow:visible;white-space:nowrap;color:var(--mute)}.kpi div .sub{display:none}.kpi div b{font-size:var(--fs)}
 .kpi div.zieh{opacity:.35}.kpi div.ziel-l{box-shadow:inset 3px 0 0 var(--y)}.kpi div.ziel-r{box-shadow:inset -3px 0 0 var(--y)}
-.kz .ph-akt{flex:none;min-width:0;justify-content:flex-end}.kz.fest .ph-akt{flex:1 1 0}.kz.fest .kpi{flex:none}
+.kz .ph-akt{flex:none;min-width:0;justify-content:flex-end}.kz.fest .ph-akt{flex:1 1 0}.kz.fest .kpi{flex:none}.kz.fest .kpi div{flex:1 0 auto}   /* Schieber nach rechts: die Kennzahlen werden breiter, nicht nur der leere Platz */
 .kz-sch{flex:none;width:11px;align-self:stretch;margin:0 .35rem;cursor:ew-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
 .kz-sch::before{content:"";width:3px;height:20px;border-radius:2px;background:repeating-linear-gradient(var(--mute) 0 2px,transparent 2px 4px);opacity:.55}
 .kz-sch:hover::before,.kz-sch.on::before{background:repeating-linear-gradient(var(--y) 0 2px,transparent 2px 4px);opacity:1}

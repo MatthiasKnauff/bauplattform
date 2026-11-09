@@ -432,7 +432,7 @@ document.addEventListener('drop', (e) => { if (!UEZ) return; const b = e.target.
 document.addEventListener('dragend', () => { UEZ = null; document.querySelectorAll('.ue-b.zieh,.ue-b.ziel').forEach((x) => x.classList.remove('zieh', 'ziel')); });
 (() => {   // Handy: Widget am Kopf lange drücken und ziehen (HTML5-Drag geht dort nicht)
   let st = null, lang = 0, geist = null, dx = 0, dy = 0;
-  document.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') return; const h = e.target.closest && e.target.closest('.ue-b h3'); if (!h || e.target.closest('.ue-x')) return;
+  document.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') return; const h = e.target.closest && e.target.closest('.ue-grid .ue-b h3'); if (!h || e.target.closest('.ue-x')) return;
     const b = h.closest('.ue-b'); st = { b, x: e.clientX, y: e.clientY }; clearTimeout(lang);
     lang = setTimeout(() => { if (!st) return; const r = b.getBoundingClientRect(); dx = st.x - r.left; dy = st.y - r.top;
       geist = b.cloneNode(true); geist.classList.add('tzieh'); Object.assign(geist.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', maxHeight: '40vh', overflow: 'hidden' });

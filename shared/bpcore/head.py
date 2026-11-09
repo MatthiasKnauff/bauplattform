@@ -1630,6 +1630,24 @@ def blueprint(get_user=None):
             papierkorb.aufraeumen(c)
             return jsonify(einst=papierkorb.einstellungen(c))
 
+    def _raster_pruefen(ra):
+        """Raster der Startseite prüfen: nur bekannte Felder, Zahlen im Rahmen, ids kurz und harmlos."""
+        import re as _re
+        ra = ra if isinstance(ra, dict) else {}
+        ok = lambda i: isinstance(i, str) and _re.fullmatch(r"[a-z]:[\w.-]{1,40}", i)
+        zahl = lambda v, lo, hi: max(lo, min(hi, int(v))) if isinstance(v, (int, float)) else lo
+        items = []
+        for it in (ra.get("items") or [])[:80]:
+            if not isinstance(it, dict) or not ok(it.get("i")):
+                continue
+            x = {"i": it["i"], "x": zahl(it.get("x"), 0, 11), "y": zahl(it.get("y"), 0, 400), "w": zahl(it.get("w"), 1, 12), "h": zahl(it.get("h"), 1, 20)}
+            o = it.get("o")
+            if isinstance(o, dict) and len(json.dumps(o)) <= 300:
+                x["o"] = {str(k)[:20]: v for k, v in o.items() if isinstance(v, (str, int, float, bool)) and len(str(v)) <= 80}
+            items.append(x)
+        weg = [i for i in (ra.get("weg") or [])[:80] if ok(i)]
+        return {"v": 1, "items": items, "weg": weg}
+
     @bp.route("/api/bp/kacheln", methods=["GET", "PUT"])
     def kacheln_api():
         """Reihenfolge der App-Kacheln auf der Startseite (je Benutzer, auf allen Geräten gleich)."""
@@ -1638,14 +1656,23 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         with db.tx() as c:
             if request.method == "PUT":
-                r = [str(x)[:40] for x in ((request.get_json(silent=True) or {}).get("reihenfolge") or [])[:120] if isinstance(x, str)]   # '' = leeres Feld
+                b = request.get_json(silent=True) or {}
+                if "raster" in b:   # Startseite als Raster: [{i, x, y, w, h, o}] + ausgeblendete ids
+                    ra = _raster_pruefen(b.get("raster"))
+                    konto._put(c, f"raster:{uid}", json.dumps(ra), u["name"])
+                    return jsonify(raster=ra)
+                r = [str(x)[:40] for x in (b.get("reihenfolge") or [])[:120] if isinstance(x, str)]   # '' = leeres Feld
                 konto._put(c, f"kacheln:{uid}", json.dumps(r), u["name"])
                 return jsonify(reihenfolge=r)
             try:
                 r = json.loads(konto._get(c, f"kacheln:{uid}") or "[]")
             except ValueError:
                 r = []
-        return jsonify(reihenfolge=r if isinstance(r, list) else [])
+            try:
+                ra = json.loads(konto._get(c, f"raster:{uid}") or "null")
+            except ValueError:
+                ra = None
+        return jsonify(reihenfolge=r if isinstance(r, list) else [], raster=ra if isinstance(ra, dict) else None)
 
     @bp.route("/api/bp/postfaecher", methods=["GET", "PUT"])
     def postfaecher_api():

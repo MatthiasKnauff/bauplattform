@@ -9,6 +9,31 @@
 <link rel="stylesheet" href="static/bp.css">
 <link rel="stylesheet" href="static/todo.css">
 <style>
+main.wrap{max-width:1400px}
+/* Raster der Startseite: 12 Spalten, Zeilen zu 64 px */
+.raster{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:64px;gap:10px;position:relative;margin-bottom:1rem}
+.ri{position:relative;min-width:0;min-height:0}
+.ri>.tile{height:100%;box-sizing:border-box}
+.ri-w>.ue-b,.ri-w>.post{height:100%;box-sizing:border-box;overflow:auto;margin:0}
+.ri-w>.ue-b>h3,.ri-w .post-h{position:sticky;top:-.6rem;background:var(--card);z-index:2;cursor:grab;margin-top:-.6rem;padding-top:.6rem}
+.ri-w .post-h{top:-.9rem;margin-top:-.9rem;padding-top:.9rem}
+.ri-a>.tile{cursor:pointer}.ri-a{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.ri .ue-x{opacity:0}.ri:hover>.ue-x,.ri:focus-within>.ue-x{opacity:1}
+.ri>.kx,.ri>.ue-x{position:absolute;top:-8px;right:-8px;z-index:4}
+.ri .rz{position:absolute;right:3px;bottom:3px;width:14px;height:14px;cursor:nwse-resize;opacity:0;border-right:3px solid var(--y);border-bottom:3px solid var(--y);border-radius:0 0 8px 0;z-index:4;touch-action:none;transition:opacity .12s}
+.ri:hover>.rz{opacity:.85}@media (hover:none){.ri .rz{opacity:.35}}
+.ri.zieh{z-index:30;pointer-events:none;opacity:.94}.ri.zieh>*{box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.ri.zieh>.tile{transform:none}
+.r-platz{border:2px dashed var(--y);border-radius:12px;background:color-mix(in srgb,var(--y) 8%,transparent);pointer-events:none}
+body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zieh){transition:all .15s ease}
+.ri.ziel>*{outline:2px dashed var(--y);outline-offset:2px}
+.ri.neu>*{animation:rneu 1.2s ease}@keyframes rneu{0%,40%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
+.ri-plus{display:flex;align-items:center;justify-content:center;gap:.3rem;border:2px dashed var(--line);border-radius:10px;background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer}.ri-plus:hover{border-color:var(--y);color:var(--y)}.ri-plus small{font-weight:400}
+.raster.touchzieh{touch-action:none}
+/* Handy: zwei Spalten, Kacheln je eine, Widgets volle Breite, Höhe nach Inhalt (begrenzt) */
+.raster.handy{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
+.raster.handy .ri{grid-column:auto!important;grid-row:auto!important}.raster.handy .ri-w,.raster.handy .ri-plus{grid-column:1/-1!important}
+.raster.handy .ri-a>.tile{min-height:62px}.raster.handy .ri-w>.ue-b,.raster.handy .ri-w>.post{max-height:65vh}.raster.handy .rz{display:none}.raster.handy .ri-plus{min-height:48px}
 .hello{margin:.4rem 0 1.4rem}
 .hello h1{margin:0}
 .hello p{margin:.3rem 0 0;color:var(--mute)}
@@ -20,8 +45,8 @@
 .tile .ic svg{width:24px;height:24px}
 .tile b{font-size:1rem;line-height:1.2;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
 .hello{position:relative}
-.tile{position:relative}.tile .kx{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--mute);font-size:.72rem;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .12s;box-shadow:0 1px 4px rgba(0,0,0,.2);padding:0}
-.tile:hover .kx,.tile:focus-within .kx{opacity:1}.tile .kx:hover{color:var(--red);border-color:var(--red)}@media (hover:none){.tile .kx{opacity:.45;top:4px;right:4px;border:0;box-shadow:none;background:transparent}}
+.tile{position:relative}.tile .kx,.ri>.kx{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--mute);font-size:.72rem;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .12s;box-shadow:0 1px 4px rgba(0,0,0,.2);padding:0}
+.tile:hover .kx,.tile:focus-within .kx,.ri:hover>.kx,.ri:focus-within>.kx{opacity:1}.tile .kx:hover,.ri>.kx:hover{color:var(--red);border-color:var(--red)}@media (hover:none){.tile .kx,.ri>.kx{opacity:.45;top:4px;right:4px;border:0;box-shadow:none;background:transparent}}
 .tile.kadd{display:flex;align-items:center;justify-content:center;gap:.3rem;border:2px dashed var(--line);background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer;min-height:62px}.tile.kadd:hover{border-color:var(--y);color:var(--y)}.tile.kadd small{font-weight:400}
 .tiles:not(.edit) .tile[data-key]{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.tiles.touchzieh,.tiles.edit{touch-action:none}
 .tiles.edit .tile{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}.tiles.edit .tile .kx{display:none}
@@ -32,12 +57,6 @@
 .tiles.edit .tile.leer{visibility:visible;background:transparent;border:1px dashed color-mix(in srgb,var(--line) 70%,transparent);cursor:default}
 .tiles.edit .tile.leer.ziel{border:2px dashed var(--y);background:color-mix(in srgb,var(--y) 8%,transparent)}
 .tile span.d{color:var(--mute);font-size:.8rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* unten: links Post, rechts To-dos – zusammen so breit wie die Kacheln */
-.unten{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.8rem;align-items:start}
-.unten>.post[hidden]+.desk{grid-column:1/-1}
-.desk .ue-grid{grid-template-columns:1fr}.desk .ue-b.w2{grid-column:auto}.desk .ue-top{margin-bottom:.5rem}.desk #todo{padding:0}
-.unten>.post[hidden]+.desk .ue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@media (max-width:980px){.unten>.post[hidden]+.desk .ue-grid{grid-template-columns:1fr}}
-@media (max-width:980px){.unten{grid-template-columns:1fr}}
 /* Post zu meinen Projekten */
 .post{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem 1rem}
 .post-h{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.5rem}
@@ -86,8 +105,7 @@ html[data-modus="einfach"] .ein{display:grid;grid-template-columns:repeat(4,minm
 html[data-modus="einfach"] .hello p{font-size:1.05rem}
 
 html[data-modus="einfach"] main.wrap{display:flex;flex-direction:column}
-html[data-modus="einfach"] #tiles{order:5;margin:1.6rem 0 0;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:.45rem}
-html[data-modus="einfach"] #tiles::before{content:"Alle Apps";grid-column:1/-1;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600}
+html[data-modus="einfach"] #raster{order:5;margin-top:1.6rem}
 html[data-modus="einfach"] .tile{padding:.5rem .65rem;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto;min-height:48px}html[data-modus="einfach"] .tile .ic{grid-row:1}html[data-modus="einfach"] .tile b{font-size:.92rem;line-height:1.25}html[data-modus="einfach"] .tile .ic{width:30px;height:30px}html[data-modus="einfach"] .tile .ic svg{width:18px;height:18px}html[data-modus="einfach"] .tile span.d{display:none}
 html[data-modus="einfach"] .tile.leer{display:none}
 html[data-modus="einfach"] .foot{order:6}
@@ -98,8 +116,8 @@ html[data-modus="einfach"] .foot{order:6}
 <main class="wrap">
   <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
-  <div class="tiles" id="tiles"></div>
-  <div class="unten"><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section><div id="desk" class="desk" aria-label="Schreibtisch: To-dos, Hinweise, Erinnerungen"></div></div>
+  <div class="raster" id="raster" aria-label="Startseite: Apps und Widgets"></div>
+  <div hidden><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section></div>
   <div class="foot"><span id="ver"></span></div>
 </main>
 <script src="static/bp.js"></script>
@@ -119,84 +137,161 @@ const DESC = {
   admin: ['Verwaltung', 'Benutzer und Rechte, angemeldete Sitzungen, Zustand der Dienste.'],
   papierkorb: ['Papierkorb', 'Gelöschtes aus allen Apps – wiederherstellen oder endgültig löschen.'],
 };
-/* ---------- Kacheln: direkt mit der Maus (oder lange drücken am Handy) verschieben, ✕ blendet aus, „＋ App“ holt zurück ---------- */
-let APPS = [], REIHE = [], ORDNEN = false;   // ORDNEN: nur während des Ziehens (zeigt leere Felder zum Ablegen)
-/* REIHE: App-Schlüssel, '' für leere Felder (Lücken bleiben stehen), '-schlüssel' für ausgeblendete Kacheln */
-const wegK = () => new Set(REIHE.filter((k) => k && k[0] === '-').map((k) => k.slice(1)));
-function plaetze() {
-  const da = new Set(APPS.map((a) => a.key)), weg = wegK(), S = REIHE.filter((k) => !k || k[0] !== '-').map((k) => (da.has(k) && !weg.has(k) ? k : '')), dabei = new Set(S);
-  APPS.forEach((a) => { if (!dabei.has(a.key) && !weg.has(a.key)) S.push(a.key); });
-  while (S.length && !S[S.length - 1]) S.pop();
-  return S;
+/* ---------- Startseite als Raster (12 Spalten): App-Kacheln und Widgets frei verschieben (Kachel bzw. Kopf ziehen, Handy: lange drücken),
+   Größe an der Ecke ↘ in Feldern, ✕ blendet aus, „＋ App / Widget“ holt zurück. Gespeichert je Benutzer (api/bp/kacheln → raster). ---------- */
+let APPS = [], REIHE = [], RASTER = null, WB = [], RZIEH = null, RNEU = false;   // WB: Widgets aus deskZeigen · RZIEH: gerade gezogen
+const SP = 12, ZH = 64, LUE = 10;   // Spalten, Zeilenhöhe, Abstand (px)
+const RGR = { a: { w: [2, 6], h: [1, 2], d: [3, 1] }, w: { w: [3, 12], h: [2, 16], d: [6, 4] } };   // je Art: Breite/Höhe min–max, Standard
+const RSTD = { 'w:post': [6, 7], 'w:todos': [6, 4] };
+const rArt = (i) => (i[0] === 'a' ? 'a' : 'w');
+const rKoll = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+const rHandy = () => innerWidth < 760;
+function rIds() { return [...APPS.map((a) => 'a:' + a.key), 'w:post', ...WB.map((b) => 'w:' + b.k)]; }
+function rWeg() { return new Set((RASTER && RASTER.weg) || []); }
+function rFrei(L, w, h) { for (let y = 0; ; y++) for (let x = 0; x + w <= SP; x++) { const t = { x, y, w, h }; if (!L.some((r) => rKoll(r, t))) return t; } }
+/* alles nach oben rücken, ohne Überlappung; „fest“ (gerade gezogen/vergrößert) bekommt seinen Platz zuerst */
+function rVerdichten(L, fest) {
+  const R = []; if (fest) R.push(fest);
+  for (const it of L.filter((i) => i !== fest).sort((p, q) => p.y - q.y || p.x - q.x)) { it.y = 0; while (R.some((r) => rKoll(r, it))) it.y++; R.push(it); }
+  if (fest) { const A = R.filter((r) => r !== fest); while (fest.y > 0 && !A.some((r) => rKoll(r, { ...fest, y: fest.y - 1 }))) fest.y--; }
+  return L;
 }
-function kachelnZeigen() {
-  const S = plaetze(), A = Object.fromEntries(APPS.map((a) => [a.key, a])), weg = wegK();
-  $('#tiles').innerHTML = S.map((k, i) => !k ? `<div class="tile leer" data-i="${i}" aria-hidden="true"></div>` : ((a) => `
-    <a class="tile ${a.allowed ? '' : 'off'}" data-i="${i}" data-key="${esc(a.key)}" data-af="${esc(a.key)}" href="${a.key === 'papierkorb' ? 'papierkorb' : esc(appUrl(a)) + '/'}"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
-      <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span><button type="button" class="kx" data-kx="${esc(a.key)}" title="Kachel ausblenden (über „＋ App“ wieder holen)" aria-label="${esc(DESC[a.key][0])} ausblenden">✕</button></a>`)(A[k])).join('')
-    + (ORDNEN ? '' : `<button type="button" class="tile kadd" data-kadd title="Ausgeblendete Kacheln wieder zeigen">＋ App${weg.size ? ` <small>(${weg.size})</small>` : ''}</button>`);
-  $('#tiles').classList.toggle('edit', ORDNEN);
-  if (ORDNEN) {   // während des Ziehens: leere Felder bis zum Zeilenende und eine ganze Zeile darunter zum Ablegen
-    const T = $('#tiles'), sp = getComputedStyle(T).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
-    const n = S.length + ((sp - S.length % sp) % sp) + sp;
-    for (let i = S.length; i < n; i++) { const d = document.createElement('div'); d.className = 'tile leer'; d.dataset.i = i; T.appendChild(d); }
+/* Raster aus dem Gespeicherten; Neues (Apps, Widgets) bekommt den ersten freien Platz. Beim ersten Mal aus der alten Kachel-Reihenfolge */
+function rLayout() {
+  if (!RASTER) {   // Umstieg: Reihenfolge und ausgeblendete Kacheln übernehmen, ausgeblendete Widgets aus dem Browser
+    const weg = REIHE.filter((k) => k && k[0] === '-').map((k) => 'a:' + k.slice(1)).concat((UE.weg || []).map((k) => 'w:' + k));
+    const ord = REIHE.filter((k) => k && k[0] !== '-'), A = APPS.map((a) => a.key).sort((p, q) => (ord.indexOf(p) < 0 ? 1e3 : ord.indexOf(p)) - (ord.indexOf(q) < 0 ? 1e3 : ord.indexOf(q)));
+    const items = []; A.filter((k) => !weg.includes('a:' + k)).forEach((k, n) => items.push({ i: 'a:' + k, x: (n % 4) * 3, y: Math.floor(n / 4), w: 3, h: 1 }));
+    RASTER = { items, weg }; RNEU = true;
   }
+  const da = new Set(rIds()), weg = rWeg(), L = RASTER.items.filter((it) => da.has(it.i) && !weg.has(it.i)).map((it) => ({ ...it }));
+  const hat = new Set(L.map((it) => it.i));
+  for (const i of rIds()) if (!hat.has(i) && !weg.has(i)) {
+    const [w, h] = RSTD[i] || RGR[rArt(i)].d;
+    const p = i === 'w:post' ? (L.some((r) => rKoll(r, { x: 0, y: rUnten(L, 'a'), w, h })) ? rFrei(L, w, h) : { x: 0, y: rUnten(L, 'a'), w, h })
+      : rArt(i) === 'w' ? rFreiRechts(L, w, h) : rFrei(L, w, h);
+    L.push({ i, ...p, w, h }); RNEU = true;
+  }
+  return rVerdichten(L);
 }
-async function reiheSpeichern(r) { REIHE = r; try { await api('api/bp/kacheln', 'PUT', { reihenfolge: r }); } catch (e) { toast(e.message, true); } }
-$('#tiles').addEventListener('click', async (e) => {
-  const x = e.target.closest('[data-kx]');
-  if (x) { e.preventDefault(); e.stopPropagation(); const k = x.dataset.kx, alt = REIHE.slice();
-    await reiheSpeichern([...plaetze(), ...[...wegK()].map((w) => '-' + w), '-' + k].map((y) => (y === k ? '' : y))); kachelnZeigen();
-    rueckgaengig(`„${DESC[k][0]}“ ausgeblendet`, async () => { await reiheSpeichern(alt); kachelnZeigen(); }); return; }
-  const ad = e.target.closest('[data-kadd]');
-  if (ad) { const weg = [...wegK()];
-    if (!weg.length) { toast('Alle Kacheln sind schon zu sehen.'); return; }
-    pickMenu(ad, { items: weg.filter((k) => DESC[k]).map((k) => ({ value: k, title: DESC[k][0], sub: DESC[k][1] })), onPick: async (k) => {
-      const S = plaetze(), frei = S.indexOf(''); if (frei >= 0) S[frei] = k; else S.push(k);
-      await reiheSpeichern([...S, ...weg.filter((w) => w !== k).map((w) => '-' + w)]); kachelnZeigen(); } });
-    return; }
-  if (SPERRE) { e.preventDefault(); SPERRE = false; }   // nach dem Ziehen nicht in die App springen
+const rUnten = (L, art) => L.filter((r) => !art || rArt(r.i) === art).reduce((m, r) => Math.max(m, r.y + r.h), 0);
+function rFreiRechts(L, w, h) {   // Widgets standardmäßig rechts neben der Post untereinander
+  const x = SP - w; for (let y = rUnten(L, 'a'); ; y++) { const t = { x, y, w, h }; if (!L.some((r) => rKoll(r, t))) return t; }
+}
+let rSpeichernT = 0;
+function rSpeichern(L) {
+  RASTER = { items: L.map(({ i, x, y, w, h, o }) => (o ? { i, x, y, w, h, o } : { i, x, y, w, h })), weg: [...rWeg()] };
+  clearTimeout(rSpeichernT); rSpeichernT = setTimeout(() => api('api/bp/kacheln', 'PUT', { raster: RASTER }).catch((e) => toast(e.message, true)), 300);
+}
+const rStil = (it) => `grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}`;
+function rKachel(k) {
+  const a = APPS.find((y) => y.key === k); if (!a) return '';
+  return `<a class="tile ${a.allowed ? '' : 'off'}" data-key="${esc(a.key)}" data-af="${esc(a.key)}" href="${a.key === 'papierkorb' ? 'papierkorb' : esc(appUrl(a)) + '/'}"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
+    <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`;
+}
+const rName = (i) => (i[0] === 'a' ? (DESC[i.slice(2)] || [i])[0] : i === 'w:post' ? 'Post zu deinen Projekten' : ((WB.find((b) => 'w:' + b.k === i) || {}).name || i));
+function rasterZeigen() {
+  const host = $('#raster'); if (!host) return;
+  if (RZIEH) { RZIEH.spaeter = true; return; }   // nicht mitten im Ziehen neu aufbauen
+  const L = rLayout(); if (RNEU) { RNEU = false; rSpeichern(L); }
+  const post = $('#post'), todoAlt = null;
+  const B = Object.fromEntries(WB.map((b) => ['w:' + b.k, b]));
+  const sort = L.slice().sort((p, q) => p.y - q.y || p.x - q.x);
+  host.innerHTML = sort.map((it) => {
+    const x = `<button type="button" class="${it.i[0] === 'a' ? 'kx' : 'ue-x'}" data-rx="${esc(it.i)}" title="ausblenden (über „＋ App / Widget“ wieder holen)" aria-label="${esc(rName(it.i))} ausblenden">✕</button><span class="rz" data-rz title="Größe ändern: ziehen" aria-hidden="true"></span>`;
+    if (it.i[0] === 'a') return `<div class="ri ri-a" data-ri="${esc(it.i)}" style="${rStil(it)}">${rKachel(it.i.slice(2))}${x}</div>`;
+    if (it.i === 'w:post') return `<div class="ri ri-w ri-post" data-ri="w:post" style="${rStil(it)}">${x}</div>`;
+    const b = B[it.i]; if (!b) return '';
+    return `<div class="ri ri-w" data-ri="${esc(it.i)}" style="${rStil(it)}">${ueBlockHtml(b).replace(' draggable="true"', '').replace(/<button type="button" class="ue-x"[^>]*>✕<\/button>/, '')}${x}</div>`;
+  }).join('') + `<button type="button" class="ri ri-plus" data-rplus style="${rStil({ ...rFrei(L, 3, 1), w: 3, h: 1 })}" title="Ausgeblendete Apps und Widgets wieder auf die Startseite holen">＋ App / Widget${rWeg().size ? ` <small>(${rWeg().size})</small>` : ''}</button>`;
+  const pz = host.querySelector('.ri-post'); if (pz && post) pz.insertBefore(post, pz.firstChild);
+  host.classList.toggle('handy', rHandy());
+}
+/* ✕ und ＋ */
+$('#raster').addEventListener('click', (e) => {
+  if (RSPERRE) { e.preventDefault(); e.stopPropagation(); RSPERRE = false; return; }
+  const x = e.target.closest('[data-rx]');
+  if (x) { e.preventDefault(); e.stopPropagation(); const i = x.dataset.rx, alt = JSON.parse(JSON.stringify(RASTER));
+    const L = rLayout().filter((r) => r.i !== i); RASTER.weg = [...rWeg(), i]; rSpeichern(rVerdichten(L)); rasterZeigen();
+    rueckgaengig(`„${rName(i)}“ ausgeblendet`, () => { RASTER = alt; rSpeichern(rLayout()); rasterZeigen(); }); return; }
+  const p = e.target.closest('[data-rplus]');
+  if (p) { const weg = [...rWeg()].filter((i) => rIds().includes(i));
+    pickMenu(p, { items: weg.map((i) => ({ value: i, title: rName(i), group: i[0] === 'a' ? 'Apps' : 'Widgets', sub: i[0] === 'a' ? (DESC[i.slice(2)] || [, ''])[1] : '' })), empty: 'Alles ist schon auf der Startseite.',
+      onPick: (i) => { RASTER.weg = [...rWeg()].filter((y) => y !== i); const L = rLayout(); rSpeichern(L); rasterZeigen();
+        const el = $('#raster').querySelector(`[data-ri="${CSS.escape(i)}"]`); if (el) { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el.classList.add('neu'); setTimeout(() => el.classList.remove('neu'), 1200); } } });
+  }
 });
-let SPERRE = false;
-(() => {   // Ziehen ohne Bearbeiten-Modus: Maus ab 6 px Bewegung, Finger nach langem Drücken (sonst rollt die Seite)
-  let zieh = null, geist = null, dx = 0, dy = 0, start = null, lang = 0;
-  const T = $('#tiles');
+let RSPERRE = false;
+/* Ziehen: Kachel (überall) bzw. Widget am Kopf verschieben; Ecke ↘ ändert die Größe. Maus ab 6 px, Finger nach langem Drücken */
+(() => {
+  const H = $('#raster'); let st = null, lang = 0;
+  const griff = (e) => { const ri = e.target.closest('.ri[data-ri]'); if (!ri) return null;
+    if (e.target.closest('[data-rz]')) return { ri, gr: true };
+    if (e.target.closest('[data-rx], input, textarea, select, .ue-r, .ue-mehr, .pm, .btn, label')) return null;
+    if (ri.classList.contains('ri-a') || e.target.closest('.ue-b>h3, .post-h')) return { ri, gr: false };
+    return null; };
+  const masse = () => { const r = H.getBoundingClientRect(), cw = (r.width - LUE * (SP - 1)) / SP; return { r, px: cw + LUE, py: ZH + LUE }; };
   const los = (e) => {
-    ORDNEN = true; const key = start.t.dataset.key; kachelnZeigen();
-    zieh = T.querySelector(`.tile[data-key="${CSS.escape(key)}"]`); if (!zieh) return;
-    const r = zieh.getBoundingClientRect(); dx = start.x - r.left; dy = start.y - r.top;
-    geist = zieh.cloneNode(true); Object.assign(geist.style, { position: 'fixed', left: (e.clientX - dx) + 'px', top: (e.clientY - dy) + 'px', width: r.width + 'px', height: r.height + 'px', pointerEvents: 'none', zIndex: 60, boxShadow: '0 10px 30px rgba(0,0,0,.3)', opacity: '.95' });
-    document.body.appendChild(geist); zieh.classList.add('zieh'); try { T.setPointerCapture(start.id); } catch { /* egal */ }
-    if (navigator.vibrate && e.pointerType === 'touch') navigator.vibrate(15);
+    const id = st.ri.dataset.ri, L0 = rLayout(), it0 = L0.find((r) => r.i === id); if (!it0) { st = null; return; }
+    RZIEH = { id, L0, it0, M: masse(), rect: st.ri.getBoundingClientRect(), gr: st.gr, el: st.ri, x0: st.x, y0: st.y, ziel: null };
+    st.ri.classList.add('zieh'); document.body.classList.add('r-zieht');
+    const pl = document.createElement('div'); pl.className = 'r-platz'; H.appendChild(pl); RZIEH.pl = pl;
+    try { H.setPointerCapture(st.id); } catch { /* egal */ }
+    if (navigator.vibrate && st.typ === 'touch') navigator.vibrate(15);
+    bewege(e);
   };
-  T.addEventListener('pointerdown', (e) => {
-    const t = e.target.closest('.tile[data-key]'); if (!t || e.button > 0 || e.target.closest('[data-kx]')) return;
-    start = { t, x: e.clientX, y: e.clientY, id: e.pointerId, typ: e.pointerType };
-    if (e.pointerType === 'touch') { clearTimeout(lang); lang = setTimeout(() => { if (start) { T.classList.add('touchzieh'); los(e); } }, 450); }
+  const bewege = (e) => {
+    const Z = RZIEH, { M } = Z, L = Z.L0.map((r) => ({ ...r })), it = L.find((r) => r.i === Z.id), g = RGR[rArt(Z.id)];
+    if (Z.gr) {   // Größe: aus der Zeigerposition in ganzen Feldern
+      it.w = Math.max(g.w[0], Math.min(g.w[1], SP - it.x, Math.round((e.clientX - Z.rect.left + LUE / 2) / M.px)));
+      it.h = Math.max(g.h[0], Math.min(g.h[1], Math.round((e.clientY - Z.rect.top + LUE / 2) / M.py)));
+      Z.el.style.width = Math.max(40, e.clientX - Z.rect.left) + 'px'; Z.el.style.height = Math.max(40, e.clientY - Z.rect.top) + 'px';
+    } else {
+      const dx = e.clientX - Z.x0, dy = e.clientY - Z.y0; Z.el.style.transform = `translate(${dx}px,${dy}px)`;
+      if (rHandy()) {   // Handy: auf ein anderes Element ziehen = Plätze tauschen
+        const u = document.elementsFromPoint(e.clientX, e.clientY).map((x) => x.closest && x.closest('.ri[data-ri]')).find((x) => x && x !== Z.el);
+        H.querySelectorAll('.ri.ziel').forEach((x) => x.classList.remove('ziel')); if (u) u.classList.add('ziel');
+        Z.ziel = u ? u.dataset.ri : null; return;
+      }
+      it.x = Math.max(0, Math.min(SP - it.w, Math.round((Z.rect.left + dx - M.r.left) / M.px)));
+      it.y = Math.max(0, Math.round((Z.rect.top + dy - M.r.top) / M.py));
+      const u = L.filter((r) => r !== it && rKoll(r, it));   // genau eins gleich groß darunter: Plätze tauschen (Kacheln bleiben in Reih und Glied)
+      if (u.length === 1 && u[0].w === it.w && u[0].h === it.h) { it.x = u[0].x; it.y = u[0].y; u[0].x = Z.it0.x; u[0].y = Z.it0.y; }
+    }
+    rVerdichten(L, it); Z.L = L;
+    L.forEach((r) => { if (r.i === Z.id) return; const el = H.querySelector(`.ri[data-ri="${CSS.escape(r.i)}"]`); if (el) el.style.cssText = rStil(r); });
+    Z.pl.style.cssText = rStil(it);
+    const p = H.querySelector('.ri-plus'); if (p) p.style.visibility = 'hidden';
+  };
+  H.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return; const g = griff(e); if (!g) return;
+    st = { ri: g.ri, gr: g.gr, x: e.clientX, y: e.clientY, id: e.pointerId, typ: e.pointerType };
+    if (g.gr) { e.preventDefault(); los(e); return; }
+    if (e.pointerType === 'touch') { clearTimeout(lang); lang = setTimeout(() => { if (st && !RZIEH) { H.classList.add('touchzieh'); los(e); } }, 450); }
   });
-  T.addEventListener('pointermove', (e) => {
-    if (!start) return;
-    if (!zieh) { if (start.typ === 'touch') { if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) { clearTimeout(lang); start = null; } return; }
-      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return; los(e); if (!zieh) return; }
-    e.preventDefault();
-    geist.style.left = (e.clientX - dx) + 'px'; geist.style.top = (e.clientY - dy) + 'px';
-    const unter = document.elementsFromPoint(e.clientX, e.clientY).find((x) => x.classList && x.classList.contains('tile') && x.dataset.i != null && x !== zieh && x !== geist);
-    T.querySelectorAll('.ziel').forEach((x) => x.classList.remove('ziel'));
-    if (unter) unter.classList.add('ziel');
+  H.addEventListener('pointermove', (e) => {
+    if (!st) return;
+    if (!RZIEH) { const d = Math.hypot(e.clientX - st.x, e.clientY - st.y);
+      if (st.typ === 'touch') { if (d > 10) { clearTimeout(lang); st = null; } return; }
+      if (d < 6) return; los(e); if (!RZIEH) return; }
+    e.preventDefault(); bewege(e);
   });
   const ende = () => {
-    clearTimeout(lang); T.classList.remove('touchzieh');
-    if (!zieh) { start = null; return; }
-    const z = T.querySelector('.ziel'), von = +zieh.dataset.i;
-    zieh.classList.remove('zieh'); geist.remove(); zieh = null; start = null; ORDNEN = false; SPERRE = true; setTimeout(() => { SPERRE = false; }, 400);
-    if (!z) { kachelnZeigen(); return; }
-    const S = [...T.querySelectorAll('[data-i]')].map((x) => x.dataset.key || ''), nach = +z.dataset.i;
-    [S[von], S[nach]] = [S[nach], S[von]];   // tauschen bzw. auf das leere Feld setzen – die alte Stelle bleibt leer
-    while (S.length && !S[S.length - 1]) S.pop();
-    reiheSpeichern([...S, ...[...wegK()].map((w) => '-' + w)]); kachelnZeigen();
+    clearTimeout(lang); H.classList.remove('touchzieh');
+    const Z = RZIEH; st = null; if (!Z) return;
+    RZIEH = null; document.body.classList.remove('r-zieht'); Z.pl.remove(); Z.el.classList.remove('zieh'); Z.el.style.transform = Z.el.style.width = Z.el.style.height = '';
+    H.querySelectorAll('.ri.ziel').forEach((x) => x.classList.remove('ziel'));
+    RSPERRE = true; setTimeout(() => { RSPERRE = false; }, 400);
+    let L = Z.L;
+    if (Z.ziel) { L = Z.L0.map((r) => ({ ...r })); const a = L.find((r) => r.i === Z.id), b = L.find((r) => r.i === Z.ziel);
+      if (a && b) { [a.x, b.x] = [b.x, a.x]; [a.y, b.y] = [b.y, a.y]; a.x = Math.min(a.x, SP - a.w); b.x = Math.min(b.x, SP - b.w); rVerdichten(L, a); } }
+    if (L) rSpeichern(L);
+    rasterZeigen(); if (TD) tdZeigen();
   };
-  T.addEventListener('pointerup', ende); T.addEventListener('pointercancel', ende);
-  T.addEventListener('contextmenu', (e) => { if (start && start.typ === 'touch') e.preventDefault(); });
+  H.addEventListener('pointerup', ende); H.addEventListener('pointercancel', ende);
+  H.addEventListener('contextmenu', (e) => { if (st && st.typ === 'touch') e.preventDefault(); });
+  document.addEventListener('touchmove', (e) => { if (RZIEH) e.preventDefault(); }, { passive: false });
+  addEventListener('resize', () => { const h = rHandy(); if (h !== H.classList.contains('handy')) rasterZeigen(); });
 })();
 /* ---------- Post zu meinen Projekten: einmal am Tag aus den Postfächern, mit Vorschlägen für Erinnerungen ---------- */
 let POST = null, POSTALLE = false, POSTLAEUFT = false, POSTAUSOFFEN = false;
@@ -320,16 +415,16 @@ function einfachZeigen(conf) {
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.vorname || me.name}`;
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { postZeigen && POST && postZeigen(); });   // Startseite: Projekt gilt danach in allen Apps
   APPS = conf.apps.filter(a => DESC[a.key] && (a.key !== 'admin' || a.allowed)).concat([{ key: 'papierkorb', allowed: true }]);   // wie im Apps-Menü: auch Verwaltung und Papierkorb
-  REIHE = await api('api/bp/kacheln').then((r) => r.reihenfolge || []).catch(() => []);
-  kachelnZeigen();
+  { const k = await api('api/bp/kacheln').catch(() => ({})); REIHE = k.reihenfolge || []; RASTER = k.raster && Array.isArray(k.raster.items) ? k.raster : null; }
+  rasterZeigen();
   einfachZeigen(conf);
   if (window.BPHead && BPHead.appEinstellungen) BPHead.appEinstellungen([
     { key: 'post', label: 'Posteingang', render: (host) => { BPHead.postfaecher({ into: host, nachSpeichern: () => postStart() }); } },
     { key: 'todo', label: 'To-dos', render: (host) => { tdEinstellungen(host); } },
-    { key: 'kacheln', label: 'Kacheln', render: (host) => {
-      host.innerHTML = `<p class="bph-mu">Die App-Kacheln ziehst du direkt auf der Startseite an die gewünschte Stelle (am Handy: lange drücken). Das ✕ oben rechts an einer Kachel blendet sie aus, „＋ App“ holt sie zurück. Gilt auf allen deinen Geräten.</p>
-        <div class="bph-row"><button type="button" class="bph-btn" data-k2${REIHE.length ? '' : ' disabled'}>Ursprüngliche Reihenfolge, alle Kacheln zeigen</button></div>`;
-      host.querySelector('[data-k2]').onclick = async () => { await reiheSpeichern([]); kachelnZeigen(); BPHead.einstellungenSchliessen(); toast('Ursprüngliche Reihenfolge wiederhergestellt.'); };
+    { key: 'kacheln', label: 'Startseite', render: (host) => {
+      host.innerHTML = `<p class="bph-mu">Die Startseite ist ein Raster: Kacheln und Widgets ziehst du direkt an die gewünschte Stelle (Widgets am Kopf, am Handy lange drücken), an der Ecke ↘ änderst du die Größe. Das ✕ oben rechts blendet aus, „＋ App / Widget“ holt zurück. Gilt auf allen deinen Geräten.</p>
+        <div class="bph-row"><button type="button" class="bph-btn" data-k2>Startseite zurücksetzen (Standard-Anordnung, alles zeigen)</button></div>`;
+      host.querySelector('[data-k2]').onclick = async () => { REIHE = []; RASTER = { items: [], weg: [] }; rSpeichern(rLayout()); rasterZeigen(); if (TD) tdZeigen(); BPHead.einstellungenSchliessen(); toast('Startseite zurückgesetzt.'); };
     } },
   ]);
   postStart();
@@ -341,7 +436,6 @@ function einfachZeigen(conf) {
   async function zeitLaden() { const a = zeitApp(); if (!a) return; try { ZEIT = await api(appUrl(a) + '/api/offen'); } catch { ZEIT = null; } deskZeigen(); }
   async function erinLaden() { const a = aufgApp(); if (!a) return; try { ERIN = await api(appUrl(a) + '/api/erinnerungen?scope=mine'); } catch { ERIN = null; } deskZeigen(); }
   function deskZeigen() {
-    const host = $('#desk'); if (!host) return;
     const a = aufgApp(), link = (h) => (a ? appUrl(a) + '/#' + h : '');
     const B = [{ k: 'todos', name: 'Meine To-dos', html: '<section class="todo" id="todo"></section>', n: TD ? tdAlle().offen.length : 0 }];
     if (TD) tdAutoGruppen().forEach((g) => B.push({ k: g.key, name: g.name, n: g.offen.length, rot: g.offen.some((x) => x.f && x.f < tdHeute()), max: 4, items: g.offen.sort((x, y) => (y.prio || 0) - (x.prio || 0) || (x.f || '9').localeCompare(y.f || '9')).map(tdZeile), link: link('uebersicht'), linkText: 'Übersicht ›' }));
@@ -355,7 +449,7 @@ function einfachZeigen(conf) {
       B.push({ k: 'zeiten', name: 'Zeiten', n: O.length, rot: O.length > 0, max: 5, link: zl(''), linkText: 'Mein Tag ›', leer: 'alles bestätigt',
         items: [`<a class="ue-r" href="${esc(zl(''))}" style="text-decoration:none;color:inherit"><span class="ue-t">Heute${H.abw ? '' : H.kommen ? ' seit ' + esc(H.kommen) : ''}<small>${H.abw ? 'abwesend' : 'bisher ' + hm(H.arbeit) + ' h von ' + hm(H.soll) + ' h'}</small></span></a>`]
           .concat(O.map((t) => `<a class="ue-r" href="${esc(zl(t))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(dk(t))} – noch nicht bestätigt<small>Vorschläge prüfen und bestätigen</small></span><span class="ue-d rot">offen</span></a>`)) }); }
-    ueRender(host, B);   // ✕ am Widget blendet aus, „＋ Widget hinzufügen“ holt zurück
+    UE._B = B; WB = B; rasterZeigen();   // Widgets liegen im Raster der Startseite
     if (TD) tdZeigen();
   }
   const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); if (POSTWEG && TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== POSTWEG.alt.id); tdZeigen(); } deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen; ein gerade „nicht nötiges“ To-do bleibt weg

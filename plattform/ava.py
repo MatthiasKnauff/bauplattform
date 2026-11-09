@@ -27,6 +27,37 @@ NICHT_GRUENDE = {"entfallen": "Leistung entfällt", "aufgehoben": "Ausschreibung
                  "zurueckgestellt": "zurückgestellt", "": ""}
 
 
+_NT_MIG = {"fertig": False}
+
+
+def _nt_kennungen_angleichen():
+    """Einmalig: Nachtragskennungen aus dem ORCA-Import („3“, „Nachtrag 3“) auf das Schema „NT3“ bringen – wie die von Hand erfassten."""
+    if _NT_MIG["fertig"]:
+        return
+    _NT_MIG["fertig"] = True
+    try:
+        with db.tx() as c:
+            if c.execute("SELECT 1 FROM bp_store WHERE key='ava:migr:nt_n'").fetchone():
+                return
+            rx = re.compile(r"(?i)^(?:nachtrag|nt|n)?\s*(?:nr\.?|no\.?)?\s*[-.:#]?\s*(\d+)\b")
+            n = 0
+            for r in c.execute("SELECT id, data FROM ava_lv").fetchall():
+                d = _j(r["data"], {}) or {}
+                geaendert = False
+                for x in d.get("items") or []:
+                    nt = str(x.get("nt") or "").strip()
+                    m = rx.match(nt) if nt else None
+                    if m and nt != f"NT{int(m.group(1))}":
+                        x["nt"] = f"NT{int(m.group(1))}"; geaendert = True
+                if geaendert:
+                    c.execute("UPDATE ava_lv SET data=?, rev=rev+1 WHERE id=?", (json.dumps(d, ensure_ascii=False), r["id"])); n += 1
+            c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES('ava:migr:nt_n', ?, ?, 'ava') ON CONFLICT (key) DO NOTHING",
+                      (json.dumps({"lvs": n}), datetime.now().isoformat(timespec="seconds")))
+    except Exception as e:   # noqa: BLE001 – nicht kritisch, beim nächsten Start erneut
+        _NT_MIG["fertig"] = False
+        fehler.still("ava", "Nachtragskennungen angleichen", e)
+
+
 @app.before_request
 def guard():
     p = request.path
@@ -43,6 +74,7 @@ def guard():
             return jsonify(error=msg), 403
         return (f'{msg} <a href="{C.app_base("portal")}/">Zur Startseite</a>', 403, {"Content-Type": "text/html; charset=utf-8"})
     g.user = u
+    _nt_kennungen_angleichen()
 
 
 @app.get("/")

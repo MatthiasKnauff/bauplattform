@@ -27,6 +27,15 @@ PAUSCHAL = {"psch", "pausch", "pauschal", "pau", "pschl", "psch."}
 MWST = 19.0
 
 
+
+def nt_kennung(titel):
+    """Nachtragskennung wie in der Plattform: „NT 3“-Schema – aus „Nachtrag 3“, „NT3“, „3“ wird „NT3“; sonst der Titel (ohne „Nachtrag“)."""
+    t = (titel or "").strip()
+    m = re.match(r"(?i)^(?:nachtrag|nt|n)?\s*(?:nr\.?|no\.?)?\s*[-.:#]?\s*(\d+)\b", t)
+    if m:
+        return f"NT{int(m.group(1))}"
+    return (re.sub(r"(?i)^nachtrag\s*", "", t).strip() or "NT")[:20]
+
 def _iso(d):
     return d.date().isoformat() if isinstance(d, datetime) else ""
 
@@ -176,7 +185,7 @@ def umsetzen(T, dateiname=""):
                 if kg:
                     p["kg"] = kg
                 if auftrag and (r.get("Flags") or 0) & 4:   # Nachtragsposition
-                    p["nt"] = (re.sub(r"(?i)^nachtrag\s*", "", nt_titel or "").strip() or "NT")[:20]
+                    p["nt"] = nt_kennung(nt_titel)
                     p["nt_status"] = "beauftragt"
                 if not auftrag and _f(r.get("EP")):
                     p["ep_s"] = round(_f(r.get("EP")), 2)

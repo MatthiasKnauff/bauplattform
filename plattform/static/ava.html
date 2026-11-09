@@ -55,7 +55,13 @@ main.ava{overflow-x:clip}   /* die Seite selbst rollt nie seitlich – breite Ta
 .nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
 .pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}.pane:has(.bp-feld,.au2,.am-zwei,.am-b){padding-bottom:0}   /* Felder rollen in sich: unten nur der schmale Rand */
 .ph{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;padding:.45rem 0 .35rem;position:sticky;top:0;background:var(--bg);z-index:3}
-.ph-firma{margin:0 auto;padding:.2rem .9rem;border-radius:999px;background:var(--y);color:var(--on);font-weight:700;font-size:var(--fs-l);white-space:nowrap;max-width:40vw;overflow:hidden;text-overflow:ellipsis}.ph-firma small{font-weight:500;opacity:.85;margin-left:.4rem}   /* Auftragnehmer oben in der Mitte – auffällig statt klein im Baum */
+.ph>#phT{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ph>#sel,.ph>#stat{flex:none}
+.ph-r{margin-left:auto;display:flex;align-items:center;gap:.5rem;flex:none}   /* feste Plätze rechts: Firma · LV- & Auftragsdaten · Projektdaten – springen nicht je Bereich */
+.ph-r .save{width:6.5rem;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin:0;padding:0}
+.ph-firma{width:15rem;box-sizing:border-box;text-align:center;padding:.2rem .9rem;border-radius:999px;background:var(--y);color:var(--on);font-weight:700;font-size:var(--fs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-firma.nv{background:var(--hov);color:var(--mute);font-weight:500}.ph-firma.leer{visibility:hidden}
+.st-w{border:1px solid var(--line);border-radius:999px;padding:.1rem .7rem;background:transparent;color:var(--mute);font:inherit;font-size:var(--fs-s2);cursor:pointer;white-space:nowrap}.st-w b{color:var(--ink)}.st-w:hover{border-color:var(--y)}
+@media (max-width:1250px){.ph-firma{width:11rem}.ph-r .save{width:4.5rem}}.ph-firma small{font-weight:500;opacity:.85;margin-left:.4rem}   /* Auftragnehmer oben in der Mitte – auffällig statt klein im Baum */
 .ph b{font-size:var(--fs-l)}
 #view{min-height:0}
 .tree{width:100%;border-collapse:collapse;font-size:var(--fs-s2);background:var(--card);border:1px solid var(--line)}   /* wie die LV-Tabelle (table.lv): gleiche Schriftgröße und Zeilenhöhe */
@@ -650,7 +656,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 
 /* sichtbare Befehle der Phase in der Bereichsleiste */
 .uakt{display:flex;gap:.3rem;align-items:center;flex-wrap:nowrap;justify-content:flex-end}.uakt .u-rot,.umenu .u-rot{color:#e02424!important}.uakt .u-rot svg{stroke:#e02424}.uakt.eng .ug{display:none}.u-eng-t{display:none}.uakt.eng .u-eng-t{display:inline;font-size:var(--fs)}
-.uakt .ug{display:inline-flex;align-items:center;gap:.35rem;background:transparent}
+.uakt .ug{display:inline-flex;align-items:center;gap:.35rem;background:transparent}.uakt .ug.on{color:var(--y);border-color:color-mix(in srgb,var(--y) 40%,transparent)}
 .uakt .ug svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .uakt .ug:disabled{opacity:.45}
 .uakt .ug{white-space:nowrap}
@@ -695,7 +701,7 @@ html[data-modus="einfach"] [data-umenu]{display:none}
     <aside class="nav" id="navL" aria-label="Projekt"><div class="nsuche" id="nsuche"></div><div id="tabs"></div></aside>
     <section class="pane">
       <div class="utb" id="utb" role="tablist" aria-label="Bereiche des Schritts"></div>
-      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><span id="phFirma" class="ph-firma" hidden></span><button type="button" class="btn sm" id="phLvD" hidden title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" hidden title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button><span class="save" id="save" role="status"></span><div class="kz"><div class="kpi" id="kpi"></div><span class="kz-sch" title="Ziehen: mehr Platz für Kennzahlen oder Befehle · Doppelklick: Standard" aria-hidden="true"></span><span class="ph-akt" id="phAkt"></span></div></div>
+      <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><span class="ph-r"><span class="save" id="save" role="status"></span><span id="phFirma" class="ph-firma"></span><button type="button" class="btn sm" id="phLvD" title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button></span><div class="kz"><div class="kpi" id="kpi"></div><span class="kz-sch" title="Ziehen: mehr Platz für Kennzahlen oder Befehle · Doppelklick: Standard" aria-hidden="true"></span><span class="ph-akt" id="phAkt"></span></div></div>
       <div id="view"><p class="mute">Lade …</p></div>
     </section>
     <aside class="qu" id="quelle" hidden aria-label="Kopierquelle"></aside>
@@ -952,13 +958,34 @@ function uMenuPunkte() {   // nur, was nicht schon oben, links oder in der Seite
   if (tab === 'uebersicht') return [['expBtn', 'Export … (GAEB, Excel)'], '-', verlauf];
   return UMENU;
 }
+function uSlots() {   // feste Reihenfolge und gleiche Wörter in allen Bereichen – was nicht greift, ist grau (Erklärung im Tooltip)
+  const imp = { lv: ['impBtn'], angebote: ['impBtn'], auftraege: ['impBtn'], tueren: [() => window.tlImport && tlImport(), false, 'Fenster- und Türliste aus Excel einlesen'],
+    aufmass: [() => dateiWahl('.pdf,application/pdf', true, (f) => amBelegHoch(f)), !L || !vergeben(), 'Rechnung oder Aufmaß der Firma (PDF) einlesen'],
+    rechnungen: [() => { const r = reGewaehlt(); if (!r) return toast('Erst eine Rechnung anlegen (links „＋ Neue Rechnung“).', true); dateiWahl('application/pdf,.pdf', false, (f) => reBelegHoch(r.id, f[0])); }, !L || !vergeben(), 'Rechnung der Firma (PDF) an die gewählte Rechnung hängen'] }[tab];
+  const exp = ['lv', 'angebote', 'auftraege', 'uebersicht'].includes(tab) ? ['expBtn'] : null;
+  const dru = tab === 'rechnungen' ? [() => { const r = reGewaehlt(); if (r) reDruck(r); else toast('Noch keine Rechnung.', true); }, !L || !(L.rechnungen || []).length, 'gewählte Rechnung drucken'] : tab === 'tueren' ? null : ['druBtn'];
+  const slot = (x, label, ic, tipNein) => {
+    if (!x) return [null, label, ic, true, tipNein];
+    if (typeof x[0] === 'string') { const b = ribKnopf(x[0]); return b ? [x[0], label, ic, b.disabled, b.title || label] : [null, label, ic, true, tipNein]; }
+    return [x[0], label, ic, !!x[1], x[2] || label];
+  };
+  const IC_DET = '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M14.5 5v14"/>', IC_VER = '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>';
+  return [
+    slot(imp, 'Import', IC_IMP, 'Hier gibt es nichts einzulesen'),
+    slot(exp, 'Export', '<path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4"/>', 'Export gibt es im Leistungsverzeichnis, bei Angeboten, Aufträgen und in der Kostenkontrolle'),
+    slot(dru, 'Drucken', IC_DRU, 'Hier gibt es nichts zu drucken'),
+    tab === 'auftraege' ? [auDetails, 'Details', IC_DET, false, AUDET ? 'Auftragskarte rechts ausblenden' : 'Auftragskarte rechts einblenden', AUDET] : [null, 'Details', IC_DET, true, 'Details gibt es unter „Aufträge“'],
+    L && tab !== 'uebersicht' ? [() => lvVerlauf(), 'Verlauf', IC_VER, false, 'Verlauf des LV – alle Änderungen'] : [null, 'Verlauf', IC_VER, true, 'Erst ein LV wählen'],
+    L && tab !== 'tueren' && tab !== 'uebersicht' ? [uLoeschen, 'Löschen', IC_DEL, false, uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot'] : [null, 'Löschen', IC_DEL, true, 'Hier gibt es nichts zu löschen'],
+  ];
+}
 function uLeiste() {
   UFN2 = [];
-  const liste = [...(UTAB[tab] ? UTAB[tab]() : []), ...(L && tab !== 'uebersicht' ? [[() => lvVerlauf(), 'Verlauf', '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>']] : []), ...(L && tab !== 'tueren' && tab !== 'uebersicht' ? [[uLoeschen, uLoeschText(), IC_DEL, false, 'rot']] : [])];
-  return liste.map(([sel, l, ic, aus, rot]) => {
-    if (typeof sel === 'function') { UFN2.push(sel); return `<button type="button" class="btn sm ug${rot ? ' u-rot' : ''}" data-ufn2="${UFN2.length - 1}"${aus ? ' disabled' : ''} title="${esc(rot ? l + ' – in den Papierkorb, mit Rückgängig' : l)}"><svg viewBox="0 0 24 24">${ic || ''}</svg>${esc(l)}</button>`; }
-    const b = ribKnopf(sel); if (!b) return '';
-    return `<button type="button" class="btn sm ug" data-ucmd="${esc(sel)}" data-udr${b.disabled ? ' disabled' : ''} title="${esc(b.title || l)}">${(b.querySelector('svg') || {}).outerHTML || ''}${esc(l)}</button>`; }).join('');
+  return uSlots().map(([x, l, ic, aus, tip, an, rot]) => {
+    const svg = `<svg viewBox="0 0 24 24">${ic || ''}</svg>`, cls = `btn sm ug${rot && !aus ? ' u-rot' : ''}${an ? ' on' : ''}`;
+    if (typeof x === 'function') { UFN2.push(x); return `<button type="button" class="${cls}" data-ufn2="${UFN2.length - 1}"${aus ? ' disabled' : ''} title="${esc(tip)}"${an != null ? ` aria-pressed="${!!an}"` : ''}>${svg}${esc(l)}</button>`; }
+    if (typeof x === 'string') return `<button type="button" class="${cls}" data-ucmd="${esc(x)}" data-udr${aus ? ' disabled' : ''} title="${esc(tip)}">${svg}${esc(l)}</button>`;
+    return `<button type="button" class="${cls}" disabled title="${esc(tip)}">${svg}${esc(l)}</button>`; }).join('');
 }
 function uEng() {   // passt die Leiste nicht mehr in die Titelzeile, klappen die Befehle ins ⋯-Menü
   const ph = document.querySelector('.ph'), u = document.querySelector('#phAkt .uakt'); if (!ph || !u) return;
@@ -981,9 +1008,9 @@ document.addEventListener('click', (e) => {
     if (m) { m.remove(); return; }
     const d = document.createElement('div'); d.className = 'umenu'; d.setAttribute('role', 'menu');
     const eng = !!document.querySelector('#phAkt .uakt.eng');   // Fenster zu schmal: alle Befehle der Leiste stehen im Menü
-    const sicht = new Set((UTAB[tab] ? UTAB[tab]() : []).map((x) => x[0]).filter((x) => typeof x === 'string'));   // im Menü nicht doppelt
+    const sicht = new Set(uSlots().map((x) => x[0]).filter((x) => typeof x === 'string'));   // im Menü nicht doppelt
     UFN = [];
-    const oben = eng ? [...(UTAB[tab] ? UTAB[tab]() : []).map(([a, b, , c]) => [a, b, c]), '-'] : [];
+    const oben = eng ? [...uSlots().slice(0, 4).filter((x) => x[0]).map(([a, b, , c]) => [a, b, c]), '-'] : [];
     const unten = [...(eng && L && tab !== 'uebersicht' ? ['-', [() => lvVerlauf(), '🕘 Verlauf …', false]] : []), ...(eng && L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : [])];   // breit: „Löschen“ steht schon rot in der Leiste – nicht doppelt
     d.innerHTML = [...oben, ...uMenuPunkte().filter((x) => x === '-' || typeof x[0] === 'function' || !sicht.has(x[0])), ...unten].map((x) => { if (x === '-') return '<hr>';
       if (typeof x[0] === 'function') { UFN.push(x[0]); return `<button type="button" role="menuitem" data-ufn="${UFN.length - 1}"${x[2] ? ' disabled' : ''}>${esc(x[1])}</button>`; }
@@ -1076,7 +1103,8 @@ $('#sel').addEventListener('click', () => pickMenu($('#sel'), {
 }));
 function kpis() {
   { const f = $('#phFirma'); if (f) { const V = L && L.vergabe || {}, firma = V.bieter || (L && L.auftragnehmer) || ''; const an = L && (V.preise || V.frei) && firma;
-      f.hidden = !an; if (an) f.innerHTML = V.aufgehoben ? `⏸ ${esc(firma)} <small>Beauftragung aufgehoben</small>` : `${esc(firma)} <small>${V.frei && !V.preise ? 'Auftrag frei eingetragen' : 'beauftragt' + (V.datum ? ' am ' + de(V.datum) : '')}</small>`; } }
+      f.hidden = false; f.className = 'ph-firma' + (an ? '' : L && NURLV.has(tab) ? ' nv' : ' leer');
+      if (!an) f.textContent = L && NURLV.has(tab) ? 'noch nicht vergeben' : ''; if (an) f.innerHTML = V.aufgehoben ? `⏸ ${esc(firma)} <small>Beauftragung aufgehoben</small>` : `${esc(firma)} <small>${V.frei && !V.preise ? 'Auftrag frei eingetragen' : 'beauftragt' + (V.datum ? ' am ' + de(V.datum) : '')}</small>`; f.title = f.textContent.replace(/\s+/g, ' ').trim(); } }
   if (!L) { $('#kpi').innerHTML = ''; $('#stat').innerHTML = ''; return; }
   const K = L.calc, best = K.angebote.filter((a) => a.summe).sort((a, b) => a.netto - b.netto)[0], bA = best && L.angebote.find((a) => a.id === best.id);
   const nt = K.nachtraege, ges = K.auftrag + nt.beauftragt;
@@ -1090,7 +1118,7 @@ function kpis() {
   const ord = LS.get('kzOrd', []), keys = Object.keys(KZ).sort((a, b) => { const ia = ord.indexOf(a), ib = ord.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   $('#kpi').innerHTML = keys.map((k) => `<div draggable="true" data-kz="${k}" title="${esc(KZ[k].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())} – zum Umsortieren ziehen">${KZ[k]}</div>`).join('');
   requestAnimationFrame(() => { document.querySelectorAll('#kpi > div').forEach((d) => { const b = d.querySelector('b'); d.style.minWidth = b ? Math.ceil(b.getBoundingClientRect().width + 44) + 'px' : ''; }); if (typeof uEng === 'function') uEng(); });   // der Betrag bleibt immer ganz
-  $('#stat').innerHTML = '<span class="hint">Stand:</span>' + STATUS.map(([k, l]) => `<button type="button" data-status="${k}" class="${L.status === k ? 'on' : ''}">${l}</button>`).join('');
+  $('#stat').innerHTML = `<button type="button" class="st-w" data-stwahl title="Stand des LV ändern">Stand: <b>${esc((STATUS.find((x) => x[0] === L.status) || [, L.status])[1])}</b> ▾</button>`;
 }
 /* Kennzahlen im Kopf: Reihenfolge einfach durch Ziehen ändern (ohne Bearbeiten-Modus), Schieber teilt den Platz mit den Befehlen */
 (() => {
@@ -1630,7 +1658,7 @@ function render() {
   const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
   $('#stp').style.display = 'none';   // die Arbeitsschritte stehen links als Bereiche (wie in den gewohnten AVA-Programmen)
   $('#utb').style.display = 'none';   // keine eigene Leiste mehr: Datei-Befehle rechts in der Titelzeile
-  $('#phAkt').innerHTML = `<span class="uakt${UTAB[tab] && UTAB[tab]().length > 3 ? ' viele' : ''}">${uLeiste()}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Befehle">⋯<span class="u-eng-t"> Befehle</span></button></span>`;
+  $('#phAkt').innerHTML = `<span class="uakt viele">${uLeiste()}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Befehle">⋯<span class="u-eng-t"> Befehle</span></button></span>`;
   uEng();
   const nLv = LIST.filter((x) => !x.archived && !ohneLv(x)).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
@@ -1647,7 +1675,7 @@ function render() {
   // Werkzeugleiste nur dort, wo ihre Befehle greifen (LV und Aufträge); Volltextsuche bleibt über Strg+Umschalt+F
   // Werkzeugleiste bleibt immer gleich hoch – was im Bereich nicht greift, ist grau
   document.querySelectorAll('.rib [data-act="pos"], .rib [data-act="glied"]').forEach((b) => { b.disabled = !L || tab !== 'lv'; });
-  $('#phLvD').hidden = !L || !L.id || !NURLV.has(tab); $('#phPrD').hidden = !pid;
+  $('#phLvD').disabled = !L || !L.id; $('#phPrD').disabled = !pid;   // feste Plätze: gesperrt statt ausgeblendet
   if (typeof quZeigen === 'function' && QU) quZeigen();
   const v0 = $('#view'); let v = v0;
   if (tab === 'uebersicht') { v.innerHTML = vUebersicht(); return; }
@@ -2267,6 +2295,10 @@ document.addEventListener('click', async (e) => {
       const n = LIST.find((x) => !x.archived && !ohneLv(x)); if (n) await openLv(n.id); else { L = null; }
     }
     render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
+  const sw = t.closest('[data-stwahl]'); if (sw && L) {
+    pickMenu(sw, { items: STATUS.map(([k, l]) => ({ value: k, title: l, on: L.status === k })), onPick: (k) => { const b = document.createElement('button'); b.dataset.status = k; b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); } });
+    return;
+  }
   const st = t.closest('[data-status]'); if (st && L) {
     const alt = L.status, id = L.id; if (alt === st.dataset.status) return;
     L.status = st.dataset.status; await flush(); saveNow({ status: L.status }); kpis();

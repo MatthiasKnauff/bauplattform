@@ -191,6 +191,83 @@ def _projekt(c, pid):
     return p if p and vorgang.sieht(c, g.user, pid) else None
 
 
+# ---------------------------------------------------------------- Antworten aus dem Posteingang im Verlauf
+def _s(v, n):
+    return str(v or "").strip()[:n]
+
+
+_RE = re.compile(r"^\s*((re|aw|wg|fw|fwd|antw|antwort)\s*:\s*)+", re.I)
+
+
+def _betreff_norm(b):
+    b = _RE.sub("", b or "")
+    b = re.sub(r"\[[^\]]{1,20}\]\s*", "", b)   # [A541] vorn
+    return re.sub(r"\s+", " ", b).strip().lower()
+
+
+@app.get("/api/antworten")
+def antworten():
+    """Mails im eigenen Posteingang, die auf eine von hier verschickte Nachricht antworten (gleicher Absender wie Empfänger,
+    gleicher Betreff ohne Re:/AW:, nach dem Versand). Nur das eigene Postfach – nichts wird neu abgerufen."""
+    from bpcore import posteingang
+    w, p = _filter(request.args)
+    with db.tx() as c:
+        mails = posteingang.lesen(c, g.user["id"]).get("mails") or []
+        if not mails:
+            return jsonify(antworten=[])
+        gesendet = c.execute(f"SELECT b.id, b.ts, b.email, b.betreff FROM benachrichtigungen b LEFT JOIN contacts k ON k.id=b.contact_id "
+                             f"WHERE {w} AND b.betreff<>'' AND b.email<>'' ORDER BY b.ts DESC LIMIT 1500", p).fetchall()
+    S = {}
+    for x in gesendet:
+        S.setdefault(((x["email"] or "").strip().lower(), _betreff_norm(x["betreff"])), []).append(x)
+    out = []
+    for m in mails:
+        cand = S.get(((m.get("von") or "").strip().lower(), _betreff_norm(m.get("betreff"))))
+        if not cand:
+            continue
+        z = (m.get("zeit") or "")[:10]
+        x = next((y for y in cand if str(y["ts"])[:10] <= z), None)   # die letzte Sendung vor der Antwort
+        if not x:
+            continue
+        out.append({"bid": x["id"], "id": m.get("id"), "von": m.get("von"), "von_name": m.get("von_name") or "", "zeit": m.get("zeit") or "",
+                    "betreff": m.get("betreff") or "", "vorschau": (m.get("vorschau") or "")[:400], "anhaenge": (m.get("anhaenge") or [])[:12],
+                    "link": m.get("link") or ""})
+    return jsonify(antworten=out)
+
+
+# ---------------------------------------------------------------- Vorlagen für Nachrichten (fürs ganze Büro)
+VORLAGEN_STANDARD = [
+    {"id": "termin", "name": "Bitte um Terminbestätigung", "betreff": "Terminbestätigung {projekt}",
+     "text": "Guten Tag,\n\nbitte bestätigen Sie uns den Ausführungstermin für Ihre Leistungen im Bauvorhaben {projekt} bis zum {frist}.\n\nMit freundlichen Grüßen\n{ich}"},
+    {"id": "nachtrag", "name": "Aufforderung Nachtragsangebot", "betreff": "Nachtragsangebot {projekt}",
+     "text": "Guten Tag,\n\nzu der angekündigten Mehrleistung bitten wir um ein prüffähiges Nachtragsangebot auf Grundlage Ihrer Urkalkulation (§ 2 Abs. 5/6 VOB/B) bis zum {frist}.\n\nMit freundlichen Grüßen\n{ich}"},
+    {"id": "unterlagen", "name": "Unterlagen anfordern", "betreff": "Fehlende Unterlagen {projekt}",
+     "text": "Guten Tag,\n\nfür das Bauvorhaben {projekt} fehlen uns noch folgende Unterlagen:\n\n- \n\nBitte senden Sie diese bis zum {frist}.\n\nMit freundlichen Grüßen\n{ich}"},
+]
+
+
+def _vorlagen(c):
+    v = konto._get(c, "kom:vorlagen")
+    try:
+        L = json.loads(v) if v else None
+    except ValueError:
+        L = None
+    return L if isinstance(L, list) else [dict(x) for x in VORLAGEN_STANDARD]
+
+
+@app.route("/api/vorlagen", methods=["GET", "PUT"])
+def vorlagen():
+    """Textvorlagen: {firma} {projekt} {frist} {ich} werden beim Einsetzen ersetzt."""
+    with db.tx() as c:
+        if request.method == "PUT":
+            b = request.get_json(silent=True) or {}
+            L = [{"id": _s(x.get("id"), 40) or re.sub(r"\W+", "", str(x.get("name") or ""))[:30] or "v", "name": _s(x.get("name"), 80),
+                  "betreff": _s(x.get("betreff"), 200), "text": _s(x.get("text"), 5000)}
+                 for x in (b.get("vorlagen") or [])[:60] if isinstance(x, dict) and _s(x.get("name"), 80)]
+            konto._put(c, "kom:vorlagen", json.dumps(L, ensure_ascii=False), C.full_name(g.user))
+        return jsonify(vorlagen=_vorlagen(c))
+
+
 @app.get("/api/beteiligte")
 def beteiligte():
     """Wer im Projekt vorkommt (Bautagebuch, Aufträge der AVA, frühere Sendungen) – mit E-Mail, für „An“."""

@@ -3104,15 +3104,23 @@ function amZeigeBox(bid, seite, box) {
   amPdfZeige(null, false, { seite, box, bid });
 }
 /* PDF-Ansicht (pdf.js), bleibt beim Neuzeichnen der Ansicht erhalten */
-/* PDF der Firma als Reiter „📄 Dokument“ im Bereich rechts (seite.js) – die Ansicht (pdf.js) bleibt beim Neuzeichnen erhalten */
-async function amPdfMount() {
-  const sp = document.querySelector('#view .am-split'), B = amBelege(); if (!sp || !B.length) return;
+/* Bereich rechts in Aufmaßprüfung und Rechnungen (seite.js): Reiter „Auftrag“ (nur Rechnungen) und „📄 Dokument“ (PDF der Firma) */
+function amPdfMount() {
+  const sp = document.querySelector('#view .am-split'); if (!sp) return;
+  const R = [];
+  if (tab === 'rechnungen') R.push({ id: 'auftrag', titel: 'Auftrag', mount: (el) => { el.innerHTML = `<div class="sr-pad">${auftragKarte()}</div>`; } });
+  const d = amDokDef(); if (d) R.push(d);
+  seite(sp, tab === 'rechnungen' ? 're' : 'am', R, { start: 'dok', wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
+}
+/* PDF der Firma als Reiter „📄 Dokument“ – die Ansicht (pdf.js) bleibt beim Neuzeichnen erhalten */
+function amDokDef() {
+  const B = amBelege(); if (!B.length) return null;
   if (!B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[0]).id;
   if (!AMV || AMV.bid !== AMB) { AMV = { bid: AMB, el: document.createElement('div'), pages: [], zoom: LS.get('amZoom', 1) }; AMV.el.className = 'am-pv'; AMV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; amPdfLaden(AMV); }
   const b = B.find((y) => y.id === AMB), A = b.auslese;
   if ((!A || !A.zahlen || !A.kopf || !A.kopf.summen) && !(A && A.laeuft)) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
   const neu = () => AMV && AMV.pdf && amPdfZeichnen(AMV).then(() => { amMarken(); amPdfZeige(amPos, true); });
-  seite(sp, tab === 'rechnungen' ? 're' : 'am', [{ id: 'dok', titel: '📄 Dokument', mount: amDokReiter, neu }], { wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
+  return { id: 'dok', titel: '📄 Dokument', mount: amDokReiter, neu };
 }
 function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom – darunter die Seiten
   const B = amBelege(), b = B.find((y) => y.id === AMB) || B[0], A = b && b.auslese; if (!b) return;
@@ -3571,7 +3579,7 @@ function vRechnungen0() {
       </tbody></table>${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
   return `${leiste}<div class="bar"><span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
-    ${SEL && (SEL.belege || []).length ? `<div class="am-split re-split"><div class="am-l"><div class="re">${cards}${istOA(L.id) ? '' : vSicherheiten(K)}</div></div></div>` : `<div class="re">${cards || abzLeer()}${istOA(L.id) ? '' : vSicherheiten(K)}</div>`}`;
+    <div class="am-split re-split"><div class="am-l"><div class="re">${cards || abzLeer()}</div></div></div>`;   // rechts (seite.js): Reiter „Auftrag“ (Summen, Bedingungen, Sicherheiten) und „📄 Dokument“
 }
 /* Eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
    oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
@@ -5471,7 +5479,7 @@ function auftragKarte() {
     <h4>Auftragsbedingungen</h4>
     <div class="au-kond">${auftragKonditionen(V)}</div>
     <p class="hint" style="margin:.4rem 0 0">Auftragsnummer, Vertragsart, Fristen, Vertragsstrafe und Zahlungsfrist: <button type="button" class="btn sm" data-act="lvDaten">LV- &amp; Auftragsdaten …</button></p>
-  </div>${vSicherheiten(K)}`;
+  </div>${istOA(L.id) ? '' : vSicherheiten(K)}`;
 }
 /* Nachtrag von Hand (Aufträge): Text, Menge × EP oder Pauschale, Status – Position unter „Nachträge“, EP wird Auftragspreis */
 /* Langtext in einem eigenen Fenster bearbeiten (wie im LV) – fertig(text) bei „Übernehmen“ */

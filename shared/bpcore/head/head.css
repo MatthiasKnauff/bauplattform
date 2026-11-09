@@ -358,7 +358,9 @@ body:has(.modal-bg,.bph-dlg-bg,dialog[open]) .bph-zolli{display:none}   /* nie �
 
 /* Stammdaten-Maske */
 .bph-dm .bph-dlg-h{display:flex;align-items:center;gap:.3rem;margin-bottom:.5rem}.bph-dm .bph-dlg-h .bph-x{margin-left:auto}
-.bph-dm-b{max-height:calc(92vh - 8.5rem);overflow:auto;padding:.2rem .35rem;margin:-.2rem -.35rem}   /* Rand, damit der Fokusrahmen der Felder nicht abgeschnitten wird */
+/* Kopf und Knöpfe stehen fest, nur der Inhalt rollt: genau EIN Scrollbalken – auch wenn oben etwas dazukommt (Zierpunkte im Mac-Stil) oder das Fenster kleiner gezogen wird */
+.bph-dlg.bph-dm{display:flex;flex-direction:column;overflow:hidden}
+.bph-dm-b{flex:1 1 auto;min-height:0;overflow:auto;padding:.2rem .35rem;margin:-.2rem -.35rem}   /* Rand, damit der Fokusrahmen der Felder nicht abgeschnitten wird */
 .bph-dm fieldset{border:1px solid var(--line,#3b3e42);border-radius:calc(10px*var(--rk,1));margin:.5rem 0;padding:.5rem .8rem .7rem}
 .bph-dm legend{font-weight:600;padding:0 .3rem}
 .bph-dm-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.45rem .8rem}

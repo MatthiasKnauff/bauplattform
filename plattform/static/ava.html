@@ -623,9 +623,6 @@ body.ph-frei .ph{position:static}
 .am-split.frei,.lv-split.frei{grid-template-columns:1fr!important}.am-split.frei>.sp-griff,.lv-split.frei>.sp-griff{display:none}
 .am-split.frei>.am-r,.lv-split.frei>.am-r{position:fixed;z-index:60;resize:both;overflow:hidden;min-width:300px;min-height:240px;box-shadow:0 12px 40px #0005}
 .am-split.frei>.am-r .am-pk,.lv-split.frei>.am-r .am-pk{cursor:move;background:var(--tabs)}
-.am-split.pdf-zu{grid-template-columns:minmax(0,1fr) 2.6rem!important}.am-split.pdf-zu>.sp-griff{display:none}.am-split.pdf-zu>.am-r{position:sticky;top:8px;height:auto;width:auto;resize:none;box-shadow:none;background:none}
-.am-pdfauf{display:flex;flex-direction:column;align-items:center;gap:.3rem;width:2.4rem;padding:.6rem 0;border:1px solid var(--line);border-radius:8px;background:var(--card);color:inherit;cursor:pointer;font:inherit;font-size:var(--fs-s2)}
-.am-pdfauf:hover{border-color:var(--y)}.am-pdfauf span{writing-mode:vertical-rl}
 .am-mk.of{color:#8a8f96}
 .lv-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:.35rem;align-items:start}.lv-sl{min-width:0}
 .lv-zz{position:absolute;cursor:copy;border-radius:2px}.lv-zz:hover{background:rgba(245,166,35,.22);outline:1px solid #f5a623}.lv-zz.ok{background:rgba(31,157,76,.1)}
@@ -742,6 +739,7 @@ table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blin
 <datalist id="lbList"></datalist><datalist id="ehList"><option>m</option><option>m2</option><option>m3</option><option>St</option><option>psch</option><option>kg</option><option>t</option><option>h</option><option>lfm</option></datalist>
 <datalist id="gwList"></datalist>
 <script src="static/bp.js"></script>
+<script src="static/seite.js"></script>
 <script src="static/kataloge.js"></script>
 <script>
 /* Wird die App gerade neu gestartet (Update eingespielt), antwortet der Verteiler sofort mit 502 „… nicht erreichbar (ConnectionRefusedError)“ –
@@ -1003,10 +1001,16 @@ function uSlots() {   // feste Reihenfolge und gleiche Wörter in allen Bereiche
     slot(imp, 'Import', IC_IMP, 'Hier gibt es nichts einzulesen'),
     slot(exp, 'Export', '<path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4"/>', 'Export gibt es im Leistungsverzeichnis, bei Angeboten, Aufträgen und in der Kostenkontrolle'),
     slot(dru, 'Drucken', IC_DRU, 'Hier gibt es nichts zu drucken'),
-    tab === 'auftraege' ? [auDetails, 'Details', IC_DET, false, AUDET ? 'Auftragskarte rechts ausblenden' : 'Auftragskarte rechts einblenden', AUDET] : [null, 'Details', IC_DET, true, 'Details gibt es unter „Aufträge“'],
+    seiteDa() ? [() => { seiteUmschalten(); uLeisteNeu(); }, 'Details', IC_DET, false, seiteOffen() ? 'Bereich rechts an den Rand klappen' : 'Bereich rechts zeigen', seiteOffen()]
+      : tab === 'auftraege' ? [auDetails, 'Details', IC_DET, false, AUDET ? 'Auftragskarte rechts ausblenden' : 'Auftragskarte rechts einblenden', AUDET] : [null, 'Details', IC_DET, true, 'Hier gibt es keinen Bereich rechts'],
     L && tab !== 'uebersicht' ? [() => lvVerlauf(), 'Verlauf', IC_VER, false, 'Verlauf des LV – alle Änderungen'] : [null, 'Verlauf', IC_VER, true, 'Erst ein LV wählen'],
     L && tab !== 'tueren' && tab !== 'uebersicht' ? [uLoeschen, 'Löschen', IC_DEL, false, uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot'] : [null, 'Löschen', IC_DEL, true, 'Hier gibt es nichts zu löschen'],
   ];
+}
+function uLeisteNeu() {   // Leiste oben neu – z. B. wenn der Bereich rechts (Details) erst nach dem Inhalt entsteht
+  const p = $('#phAkt'); if (!p) return;
+  p.innerHTML = `<span class="uakt viele">${uLeiste()}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Befehle">⋯<span class="u-eng-t"> Befehle</span></button></span>`;
+  uEng();
 }
 function uLeiste() {
   UFN2 = [];
@@ -1688,6 +1692,7 @@ document.addEventListener('click', async (e) => {
   const pn = document.querySelector('.body'); if (pn) pn.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 function render() {
+  setTimeout(seiteAufraeumen, 0);   // freie Fenster eines Bereichs, der nicht mehr zu sehen ist, schließen
   einUeb();
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
   if (typeof histUi === 'function') setTimeout(histUi, 0);
@@ -1705,8 +1710,7 @@ function render() {
   const icn = (k) => { const x = NAVI.flatMap((g) => g[1]).find((y) => y[0] === k); return x ? `<svg viewBox="0 0 24 24">${x[2]}</svg>` : ''; };
   $('#stp').style.display = 'none';   // die Arbeitsschritte stehen links als Bereiche (wie in den gewohnten AVA-Programmen)
   $('#utb').style.display = 'none';   // keine eigene Leiste mehr: Datei-Befehle rechts in der Titelzeile
-  $('#phAkt').innerHTML = `<span class="uakt viele">${uLeiste()}<button type="button" class="btn sm" data-umenu aria-haspopup="menu" title="Befehle">⋯<span class="u-eng-t"> Befehle</span></button></span>`;
-  uEng();
+  uLeisteNeu();
   const nLv = LIST.filter((x) => !x.archived && !ohneLv(x)).length;
   $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
     + (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
@@ -1735,7 +1739,7 @@ function render() {
   v.innerHTML = RE2 ? re2Html({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   pjImBlick(pjTop);
   sums();
-  if (tab === 'aufmass' || tab === 'rechnungen') amPdfMount();
+  if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);
   if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); requestAnimationFrame(lvKopfKleben); }
   document.body.classList.toggle('ph-frei', PJTABS.has(tab));
@@ -2990,7 +2994,7 @@ function vAmErfassen() {
           <span class="hint">Rechenweg: × oder *, Komma als Dezimalzeichen, Klammern, Abzüge mit –. <b>Enter</b> speichert und geht zur nächsten Position, <b>Umschalt+Enter</b> für eine weitere Zeile dieser Position.</span></div></div>`;
   const tab_ = `<div class="tblw"><table class="lv am"><thead><tr><th>OZ</th><th>Position</th><th class="r">LV-Menge</th><th class="r" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">Aufmaß</th><th class="r">%</th></tr></thead><tbody>${liste}<tr><td colspan="${B.length ? 7 : 6}"><button type="button" class="ib" data-amnt title="Leistung, die nicht im LV steht: kommt als Nachtrag „angemeldet“ in den Auftrag, Aufmaß gleich darunter erfassen">＋ Position (Nachtrag)</button></td></tr></tbody></table></div>`;
   if (!B.length) return `<div class="am-zwei" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"${LS.get('am.w', 0) ? ` style="--amw:${LS.get('am.w', 0)}px"` : ''}><div class="am-tab am-box">${tab_}</div><div class="am-sch" title="Breite ziehen · Doppelklick: Standard"></div><div class="am-det am-box">${detail}</div></div>`;   // Positionen links, Mengeneingabe rechts – Schieber dazwischen
-  return `<div class="am-split" data-amdrop><div class="am-l am-b"${LS.get('am.h', 0) ? ` style="--amh:${LS.get('am.h', 0)}px"` : ''}><div class="am-oben am-box">${amSummenKarte(R)}${amFehltKarte(R)}${amZeilenKarte(R)}${tab_}</div><div class="am-sch-h" title="Höhe ziehen · Doppelklick: Standard"></div><div class="am-det am-box">${detail}</div></div><div class="am-r" id="amPdfSlot"></div></div>`;   // mit PDF: links Positionen über der Mengeneingabe
+  return `<div class="am-split" data-amdrop><div class="am-l am-b"${LS.get('am.h', 0) ? ` style="--amh:${LS.get('am.h', 0)}px"` : ''}><div class="am-oben am-box">${amSummenKarte(R)}${amFehltKarte(R)}${amZeilenKarte(R)}${tab_}</div><div class="am-sch-h" title="Höhe ziehen · Doppelklick: Standard"></div><div class="am-det am-box">${detail}</div></div></div>`;   // mit PDF: links Positionen über der Mengeneingabe
 }
 /* Aufmaß: Schieber zwischen Positionen und Mengeneingabe (ohne PDF waagerecht verschieben, mit PDF die Höhe) – gemerkt, Doppelklick = Standard */
 document.addEventListener('pointerdown', (e) => {
@@ -3100,22 +3104,22 @@ function amZeigeBox(bid, seite, box) {
   amPdfZeige(null, false, { seite, box, bid });
 }
 /* PDF-Ansicht (pdf.js), bleibt beim Neuzeichnen der Ansicht erhalten */
+/* PDF der Firma als Reiter „📄 Dokument“ im Bereich rechts (seite.js) – die Ansicht (pdf.js) bleibt beim Neuzeichnen erhalten */
 async function amPdfMount() {
-  const slot = $('#amPdfSlot'), B = amBelege(); if (!slot || !B.length) return;
-  const sp0 = slot.closest('.am-split');
-  if (LS.get('amPdfZu', false)) {   // PDF zugeklappt: schmale Leiste zum Wieder-Öffnen
-    if (sp0) { sp0.classList.add('pdf-zu'); sp0.classList.remove('frei'); }
-    slot.innerHTML = '<button class="am-pdfauf" data-ampdfauf title="PDF der Firma wieder zeigen">📄<span>PDF der Firma zeigen</span></button>'; return;
-  }
-  if (sp0) sp0.classList.remove('pdf-zu');
+  const sp = document.querySelector('#view .am-split'), B = amBelege(); if (!sp || !B.length) return;
   if (!B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[0]).id;
   if (!AMV || AMV.bid !== AMB) { AMV = { bid: AMB, el: document.createElement('div'), pages: [], zoom: LS.get('amZoom', 1) }; AMV.el.className = 'am-pv'; AMV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; amPdfLaden(AMV); }
   const b = B.find((y) => y.id === AMB), A = b.auslese;
   if ((!A || !A.zahlen || !A.kopf || !A.kopf.summen) && !(A && A.laeuft)) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
-  slot.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
+  const neu = () => AMV && AMV.pdf && amPdfZeichnen(AMV).then(() => { amMarken(); amPdfZeige(amPos, true); });
+  seite(sp, tab === 'rechnungen' ? 're' : 'am', [{ id: 'dok', titel: '📄 Dokument', mount: amDokReiter, neu }], { wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
+}
+function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom – darunter die Seiten
+  const B = amBelege(), b = B.find((y) => y.id === AMB) || B[0], A = b && b.auslese; if (!b) return;
+  el.classList.add('am-dok'); el.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
     <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? '<span title="Texterkennung mit Tesseract auf dem Server der Plattform – keine KI">Scan, per Texterkennung gelesen (Tesseract, ohne KI)</span> · ' : ''}${A.ki ? `<span title="Zeilen ohne Ordnungszahl wurden per KI den LV-Positionen zugeordnet">Zuordnung per KI: <b>${esc({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter)}</b> (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''})</span> · ` : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · <span title="✔ stimmt mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert (geprüfte Menge bzw. EP des Auftrags) · ○ noch nicht geprüft" style="cursor:help;text-decoration:underline dotted"><b style="color:#1f9d4c">✔</b> stimmt · <b style="color:#e02424">✘</b> weicht ab · ○ offen</span> · Zahlen anklicken übernimmt sie in den Rechenweg`) : ''}</span><span class="fill"></span>
-    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻ neu lesen</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-frei title="als freies Fenster verschieben / wieder andocken">⧉</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung löschen">🗑</button><button class="ib" data-ampdfzu title="PDF schließen (zuklappen) – rechts am Rand wieder öffnen">✕</button></div>`;
-  slot.appendChild(AMV.el); teilung(slot.closest('.am-split'), 'am', () => AMV && AMV.pdf && amPdfZeichnen(AMV).then(() => { amMarken(); amPdfZeige(amPos, true); }));
+    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻ neu lesen</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung löschen">🗑</button></div>`;
+  el.appendChild(AMV.el);
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
 }
 async function amPdfLaden(V) {
@@ -3276,13 +3280,8 @@ function amSchritt(d) {
   amPos = n.id; LS.set('amPos', amPos); render();
   setTimeout(() => { const f = document.querySelector('[data-am-new="formel"]'); if (f) f.focus({ preventScroll: true }); }, 30);
 }
-document.addEventListener('click', (e) => {   // PDF neben der Prüfung zuklappen / wieder öffnen – in Aufmaßprüfung und Rechnungen
-  if (!e.target.closest) return;
-  if (e.target.closest('[data-ampdfzu]')) { LS.set('amPdfZu', true); AMV = null; render(); return; }
-  if (e.target.closest('[data-ampdfauf]')) { LS.set('amPdfZu', false); AMV = null; render(); }
-});
 document.addEventListener('click', async (e) => {
-  if (!L || (tab !== 'aufmass' && !(e.target.closest && e.target.closest('#amPdfSlot')))) return;   // PDF-Leiste gilt auch unter „Rechnungen“
+  if (!L || (tab !== 'aufmass' && !(e.target.closest && e.target.closest('.am-dok')))) return;   // PDF-Leiste gilt auch unter „Rechnungen“ und im freien Fenster
   const s = e.target.closest('[data-amstep]'); if (s) return amSchritt(+s.dataset.amstep);
   const zz = e.target.closest('.am-zz'); if (zz) { const f = document.querySelector('[data-am-new="formel"]'); if (!f) return; const w = String(+zz.dataset.v).replace('.', ',');
     f.value = f.value.trim() ? f.value.trim() + ' + ' + w : w; f.dispatchEvent(new Event('input', { bubbles: true })); f.focus(); zz.classList.add('ok'); return; }
@@ -3572,7 +3571,7 @@ function vRechnungen0() {
       </tbody></table>${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
   return `${leiste}<div class="bar"><span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
-    ${SEL && (SEL.belege || []).length ? `<div class="am-split re-split"><div class="am-l"><div class="re">${cards}${istOA(L.id) ? '' : vSicherheiten(K)}</div></div><div class="am-r" id="amPdfSlot"></div></div>` : `<div class="re">${cards || abzLeer()}${istOA(L.id) ? '' : vSicherheiten(K)}</div>`}`;
+    ${SEL && (SEL.belege || []).length ? `<div class="am-split re-split"><div class="am-l"><div class="re">${cards}${istOA(L.id) ? '' : vSicherheiten(K)}</div></div></div>` : `<div class="re">${cards || abzLeer()}${istOA(L.id) ? '' : vSicherheiten(K)}</div>`}`;
 }
 /* Eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
    oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
@@ -5114,8 +5113,8 @@ function randUnten() {
   document.querySelectorAll('#view .am-zwei, #view .am-l.am-b').forEach((el) => {   // Aufmaß: Positionen und Mengeneingabe füllen die Höhe bis 10 px über dem Rand
     el.style.height = breit ? Math.max(320, Math.floor(innerHeight - (el.getBoundingClientRect().top + scrollY) - 10)) + 'px' : '';
   });
-  document.querySelectorAll('#view .am-split > .am-r, #view .lv-split > .am-r').forEach((el) => {   // PDF daneben: gleich hoch, unten derselbe Rand
-    if (!breit || el.closest('.frei') || el.parentElement.classList.contains('pdf-zu')) { el.style.height = ''; return; }
+  document.querySelectorAll('#view .sr-split > .sr-r, #view .lv-split > .am-r').forEach((el) => {   // PDF daneben: gleich hoch, unten derselbe Rand
+    if (!breit || el.closest('.frei') || el.parentElement.classList.contains('sr-zu')) { el.style.height = ''; return; }
     const top = el.parentElement.getBoundingClientRect().top + scrollY;
     el.style.height = Math.max(300, Math.floor(innerHeight - top - 10)) + 'px';
   });

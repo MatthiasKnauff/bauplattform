@@ -590,6 +590,9 @@ tr.am-lf td input{color:#c0621f}
 .re2-baum .pj-r.root{font-weight:600;cursor:default;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:calc(6px*var(--rk,1))}.re2-baum .pj-r.root .car{cursor:pointer}.re2-baum .pj-r.lv{padding-left:1.3rem}.re2-baum .pj-r.k{padding-left:2.4rem}.re2-baum .pj-r .t small{display:block}.re2-baum .pj-r{border-left:0}.re2-baum .pj-r.on{background:color-mix(in srgb,var(--y) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 .re2-baum .pj-r:hover .pj-del,.re2-baum .pj-r.on .pj-del{display:block}.re2-baum .pj-r:hover .v,.re2-baum .pj-r.on:has(.pj-del) .v{visibility:hidden}
 .re2.re2-ein{grid-template-columns:minmax(0,1fr)}
+.ang-l{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:clip}
+.ang-kopf{display:flex;justify-content:space-between;padding:.4rem .7rem;font-weight:600;font-size:var(--fs-s2);color:var(--mute);border-bottom:1px solid var(--line);background:var(--tabs,transparent)}
+.re2-baum.ang-baum{position:static;max-height:none;overflow:visible;border:0;border-radius:0;background:none;padding:.3rem .2rem}
 .re2-ed{min-width:0}.re2-ed .tblw,.re2-ed .am-l .tblw{max-height:none;overflow:visible}   /* im Feld rollt nur das Feld selbst – kein zweiter Scrollbalken darin */
 #view .am-box{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:auto;min-width:0;min-height:0;box-sizing:border-box}
 #view .am-box>.card,#view .am-box>.tblw{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}#view .am-box>*+*{border-top:1px solid var(--line)!important}
@@ -1517,8 +1520,16 @@ function lvxKopf() {
   return `<div class="pj-r root lvx-root"><span class="car">▾</span>${IC.lv}<span class="t">${esc(pn)}<small>${xs.length} LV${xs.length === 1 ? '' : 's'}</small></span><span class="v">${sum ? eur(sum).replace(' €', '') : ''}</span></div>`;
 }
 function re2Html(inhalt) {
+  if (tab === 'angebote') return `<div class="ang-sp"><div class="ang-l"><div class="ang-kopf"><span>Bezeichnung</span><span>Summe</span></div><aside class="re2-baum pjtree ang-baum" id="pjTree">${pjBaumMitWurzel()}</aside></div></div>`;   // wie Aufträge: Baum links, rechts der abdockbare Bereich mit dem Preisspiegel
   if (tab === 'lv') return `<div class="re2 re2-ein"><div class="re2-ed">${inhalt == null ? lvNurOrdner() : inhalt}</div></div>`;   // LV: die LVs stehen als Ordner in der Tabelle (wie bei den Aufträgen) – kein eigener Baum daneben
   return `<div class="re2" data-bph-trenn="ava.re2" data-bph-trenn-min="200" data-bph-trenn-max="0.45"><aside class="re2-baum pjtree" id="pjTree">${pjBaumMitWurzel()}</aside><div class="re2-ed">${inhalt == null ? '<div class="card empty"><p>Links ein LV oder eine Rechnung wählen.</p></div>' : inhalt}</div></div>`;
+}
+function angSeite() {   // Angebote & Preisspiegel: Bereich rechts (seite.js) – Preisspiegel des gewählten LV, Vergabe
+  const sp = document.querySelector('#view .ang-sp'); if (!sp) return;
+  const leer = '<div class="card empty"><p class="hint">Links ein LV wählen – hier steht dann sein Preisspiegel.</p></div>';
+  seite(sp, 'ang', [{ id: 'ps', titel: 'Preisspiegel', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${L ? vAngebote('ps') : leer}</div>`; } },
+    { id: 'vg', titel: 'Vergabe', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${(L && vAngebote('kopf').trim()) || '<div class="card empty"><p class="hint">Noch nicht vergeben. Im Preisspiegel unter dem Bieter „Vergeben …“ wählen.</p></div>'}</div>`; } }],
+    { start: 'ps', w: 0.3, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
 }
 function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
@@ -1750,9 +1761,10 @@ function render() {
   if (tab === 'tueren') { vTueren(v); return; }
   if (!L && !(pid && LIST.some((x) => !x.archived))) { v.innerHTML = `<div class="card empty"><p>${pid ? 'Für dieses Projekt gibt es noch kein Leistungsverzeichnis.' : 'Bitte oben ein Projekt wählen.'}</p>${pid ? '<button class="btn pri" data-act="new">Erstes LV anlegen</button>' : ''}</div>`; return; }
   const RE2 = ['lv', 'angebote', 'aufmass', 'rechnungen'].includes(tab);   // Baum (LVs mit Angeboten bzw. Rechnungen) links, Inhalt rechts daneben – Trennung ziehbar
-  if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); return; }
+  if (!L) { v.innerHTML = RE2 ? re2Html(null) : lvxHtml(null); if (tab === 'angebote') angSeite(); return; }
   const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjAlt.scrollTop : null;   // Baum links: Rollposition behalten (nicht nach oben springen)
   v.innerHTML = RE2 ? re2Html({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
+  if (tab === 'angebote') { angSeite(); uLeisteNeu(); }
   pjImBlick(pjTop);
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }
@@ -2809,7 +2821,7 @@ const auftragKonditionen = (V) => `<span class="vk hint" style="display:inline-f
   · Skonto <input data-ang="v_skonto" value="${V.skonto ? nf(V.skonto, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal"> % in
   <input data-ang="v_skonto_tage" value="${V.skonto_tage || ''}" placeholder="Anzahl" style="width:3.6rem" inputmode="numeric" title="Frist ab Rechnungseingang">
   <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (Mo–So)'], ['wt', 'Werktagen (Mo–Sa)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>`;
-function vAngebote() {
+function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiegel, ohne = beides
   const P = posOf().filter((x) => !x.nt), A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe;
   const NV = L.status === 'nicht_vergeben' && !V.bieter ? (V.nicht_vergeben || {}) : null;
   const head = `    ${NV ? `<div class="vb"><span>✗ <b>Nicht vergeben</b>${NV.grund ? ' – ' + esc((NICHT_GRUENDE.find((g) => g[0] === NV.grund) || [, ''])[1]) : ''}${NV.datum ? ' · am ' + de(NV.datum) : ''}${NV.von ? ' von ' + esc(NV.von) : ''}${NV.notiz ? ' · ' + esc(NV.notiz) : ''}</span>
@@ -2817,7 +2829,9 @@ function vAngebote() {
     ${V.bieter ? `<div class="vb"><span>✓ Vergeben an <b>${esc(V.bieter)}</b> am ${de(V.datum)} · Auftrag ${eur(K.auftrag)}${V.nachlass || V.nachlass_eur ? ` (nach ${nlText(V)} Nachlass)` : ''}${V.frei ? ` · <label class="hint" style="display:inline-flex;gap:.25rem;align-items:center" title="Auftrag nur mit Firma und Summe. Positionen lassen sich trotzdem jederzeit im LV ergänzen, z. B. aus der ersten Rechnung.">${V.ohne_lv === false ? '☐' : '☑'} ohne Angebot und LV</label>` : ''}</span>
       <span class="vb-k">${auftragKonditionen(V)}
       <label class="hint">Sicherheitseinbehalt <input data-ang="einbehalt" value="${nf(V.einbehalt ?? 5, 2)}" style="width:4rem" inputmode="decimal"> %</label><span class="fill"></span><button class="btn sm" data-act="vergabeWeg">Vergabe aufheben</button></span></div>` : ''}`;
-  if (!A.length) return head + `<div class="card empty"><p>Noch keine Angebote. Bieter hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
+  if (teil === 'kopf') return head;
+  const head0 = head; { /* Preisspiegel allein: ohne Vergabe-Karte */ }
+  if (!A.length) return (teil === 'ps' ? '' : head0) + `<div class="card empty"><p>Noch keine Angebote. Bieter hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
     <p class="hint">Das LV gibst du oben rechts unter „Export“ als GAEB X83, Excel oder PDF an die Bieter.</p></div>`;
   const best = (id) => { const v = A.map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
   const rows = items().filter((x) => !x.nt).map((x) => {
@@ -2829,7 +2843,7 @@ function vAngebote() {
         return `<td class="bp ${cls}"><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''}"><span class="gp">${e != null && zaehlt(x) ? eur((x.menge || 0) * e) : ''}</span></td>`; }).join('') + '</tr>';
   }).join('');
   const sorted = [...A];
-  return head + `<p class="hint" style="margin:-.2rem 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter). <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
+  return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter). <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
     <div class="tblw"><table class="lv ps"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th>
       ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner …">ⓘ</button><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
         <label class="hint" style="font-weight:400">Eingang <input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto"></label></th>`).join('')}</tr></thead>

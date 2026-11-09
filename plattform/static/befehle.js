@@ -6,6 +6,8 @@
 
    befehle(el, gruppen)
      gruppen: [{ titel, rechts?, knoepfe?: [knopf], html? }]
+     mitte:   Element (z. B. die Kennzahlen), das den freien Platz zwischen links und rechts füllt – es wird nur
+              umgehängt (bleibt dasselbe Element mit seinen Handlern) und gibt als Erstes Platz ab, wenn es eng wird
      knopf:   { t: Text, ic?: SVG-Pfade oder Zeichen, attrs?: 'data-act="pos"' (die Aktion übernehmen die vorhandenen
                 Klick-Handler), fn?: Funktion, aus?, an?, tip?, rot?, datei?: { accept, attrs } (Knopf öffnet eine Dateiauswahl) } */
 (function () {
@@ -19,27 +21,37 @@
     if (k.fn) { FN.push(k.fn); a += ` data-bffn="${FN.length - 1}"`; }
     return `<button type="button" class="${kl}" ${a}${k.aus ? ' disabled' : ''} title="${tip}"${k.an != null ? ` aria-pressed="${!!k.an}"` : ''}>${inner}</button>`;
   }
-  function befehle(el, gruppen) {
+  function befehle(el, gruppen, mitte) {
     if (!el) return;
     FN.length = 0;
     const G = (gruppen || []).filter((g) => g && (g.html || (g.knoepfe || []).some(Boolean)));
     const gr = (g, i) => `<div class="bf-g${g.rechts ? ' r' : ''}" data-bfg="${i}"><div class="bf-ks">${g.html || ''}${(g.knoepfe || []).filter(Boolean).map(knopf).join('')}</div>${g.titel ? `<div class="bf-gt">${esc(g.titel)}</div>` : ''}</div>`;
     const li = G.map((g, i) => [g, i]).filter(([g]) => !g.rechts), re = G.map((g, i) => [g, i]).filter(([g]) => g.rechts);
-    el.innerHTML = `<div class="bf" role="toolbar">${li.map(([g, i]) => gr(g, i)).join('')}<button type="button" class="bf-mehr" hidden title="weitere Befehle" aria-haspopup="true">»</button><span class="bf-sp"></span>${re.map(([g, i]) => gr(g, i)).join('')}<div class="bf-pop" hidden></div></div>`;
+    el.innerHTML = `<div class="bf" role="toolbar">${li.map(([g, i]) => gr(g, i)).join('')}<button type="button" class="bf-mehr" hidden title="weitere Befehle" aria-haspopup="true">»</button><span class="bf-sp"></span><div class="bf-mitte"></div>${re.map(([g, i]) => gr(g, i)).join('')}<div class="bf-pop" hidden></div></div>`;
+    const mi = el.querySelector('.bf-mitte');
+    if (mitte) { mi.appendChild(mitte); el.querySelector('.bf-sp').remove(); } else mi.remove();
     passen(el);
     if (!el._ro) { let t = 0; el._ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => passen(el), 80); }); el._ro.observe(el); }
   }
   function passen(el) {   // eng? erst Texte weg, dann linke Gruppen von hinten in „»“
     const bf = el.querySelector('.bf'); if (!bf) return;
+    const mi = bf.querySelector('.bf-mitte'), K = mi && mi.firstElementChild ? [...mi.firstElementChild.children] : [];
+    K.forEach((k) => k.classList.remove('bf-weg'));
     const pop = bf.querySelector('.bf-pop'), mehr = bf.querySelector('.bf-mehr');
     [...pop.children].forEach((g) => mehr.before(g));   // alles zurück an seinen Platz
     pop.hidden = true; mehr.hidden = true; bf.classList.remove('kompakt');
     const zuBreit = () => bf.scrollWidth > bf.clientWidth + 1;
-    if (!zuBreit()) return;
-    bf.classList.add('kompakt'); if (!zuBreit()) return;
+    if (!zuBreit()) return mitteKuerzen(bf);
+    bf.classList.add('kompakt'); if (!zuBreit()) return mitteKuerzen(bf);
     mehr.hidden = false;
     const L = [...bf.querySelectorAll(':scope > .bf-g:not(.r)')];
     for (let i = L.length - 1; i > 0 && zuBreit(); i--) pop.prepend(L[i]);
+    mitteKuerzen(bf);
+  }
+  function mitteKuerzen(bf) {   // Kacheln in der Mitte, die nicht mehr ganz passen, ausblenden statt abschneiden
+    const mi = bf.querySelector('.bf-mitte'); if (!mi || !mi.firstElementChild) return;
+    const R = mi.getBoundingClientRect().right - 4;
+    [...mi.firstElementChild.children].forEach((k) => { if (k.getBoundingClientRect().right > R) k.classList.add('bf-weg'); });
   }
   document.addEventListener('click', (e) => {
     const m = e.target.closest && e.target.closest('.bf-mehr');

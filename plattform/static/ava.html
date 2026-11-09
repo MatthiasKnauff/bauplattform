@@ -39,7 +39,7 @@ body{font-size:var(--fs)}.btn{font-size:var(--fs)}.btn.sm{font-size:var(--fs-s2)
 .vqe .leer{padding:1rem;color:var(--mute);font-size:var(--fs)}
 tr.vqblink td{animation:vqblink 2.2s ease-out}
 @keyframes vqblink{0%,40%{background:color-mix(in srgb,var(--y) 40%,transparent)}100%{background:transparent}}
-.bfl{margin:0 0 .5rem}.bfl:empty{display:none}   /* Befehlsleiste unter den Kennzahlen (befehle.js) */
+.bfl{margin:0 0 .5rem}.bfl:empty{display:none}.bf-mitte .kpi{flex:0 1 auto;justify-content:flex-start;max-width:100%}.bf-mitte .kpi div{padding:.15rem .5rem}.kz:not(:has(.kpi)){display:none}   /* Befehlsleiste unter den Kennzahlen (befehle.js) */
 .save{font-size:var(--fs-s2);color:var(--mute);align-self:center;padding:0 .6rem;margin-left:auto}.ph-akt{display:flex;align-items:center;margin-left:auto}.ph-akt .uakt{gap:.1rem}.ph-akt .uakt .btn{height:30px;border-color:transparent;background:transparent;padding:0 .5rem}.ph-akt .uakt .btn:hover:not(:disabled){background:var(--hov);border-color:var(--line)}
 .rib.weg{display:none}
 main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im Menü „⋯“ rechts in der Bereichsleiste */
@@ -962,10 +962,18 @@ let UFN = [];
 const reGewaehlt = () => { if (!L || !L.rechnungen || !L.rechnungen.length) return null; const RS = [...L.rechnungen].sort((a, b) => a.nr - b.nr);
   return (PJSEL && PJSEL[0] === 'r' && RS.find((r) => 'r' + r.id === PJSEL)) || RS.find((r) => r.status !== 'geprueft') || RS[RS.length - 1]; };
 const reBefehl = (art) => () => { const r = reGewaehlt(); if (!r) return; const b = document.createElement('button'); b.dataset.reb = art; b.dataset.id = r.id; reAktion(b); };
+const uSicht = () => new Set(uSlots().map((x) => x[0]).filter((x) => typeof x === 'string'));
+/* was früher unter „⋯“ stand, steht jetzt direkt in der Leiste (wird es eng, sammelt „»“ die Gruppen ein) */
+const BIC_ARCH = '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>';
+const uWeitere = () => { const S = uSicht(); S.add('quBtn'); return uMenuPunkte().filter((x) => x !== '-' && (typeof x[0] === 'function' ? !/Verlauf/.test(x[1]) : !S.has(x[0]))).map((x) => {   // Kopierquelle und Verlauf stehen schon in der Leiste
+  if (typeof x[0] === 'function') return { t: x[1].replace(/^\W+\s*/, '').replace(/ …$/, ''), fn: x[0], aus: !!x[2], ic: BIC_ARCH, tip: x[1] };
+  const b = ribKnopf(x[0]); if (!b) return null; const sv = b.querySelector('svg');
+  return { t: x[0] === 'moreBtn' ? 'Archivieren' : x[1].replace(/ ….*$/, ''), attrs: `data-ucmd="${esc(x[0])}" data-udr`, aus: b.disabled, ic: x[0] === 'moreBtn' || !sv ? BIC_ARCH : sv.innerHTML, tip: x[1] }; }).filter(Boolean); };
+const uMenuLeer = () => { const S = uSicht(); return !uMenuPunkte().some((x) => x !== '-' && (typeof x[0] === 'function' || (!S.has(x[0]) && ribKnopf(x[0])))); };   // nichts übrig → „mehr“ grau statt leerem Menü
 function uMenuPunkte() {   // nur, was nicht schon oben, links oder in der Seite steht
   const archiv = ['moreBtn', 'LV archivieren / löschen …'], verlauf = [() => lvVerlauf(), 'Verlauf …', !L];
   if (tab === 'rechnungen' || tab === 'aufmass' || tab === 'angebote' || tab === 'tueren') return [archiv];
-  if (tab === 'auftraege') return [['expBtn', 'Export … (GAEB, Excel)']];
+  if (tab === 'auftraege') return [archiv];
   if (tab === 'uebersicht') return [['expBtn', 'Export … (GAEB, Excel)'], '-', verlauf];
   return UMENU;
 }
@@ -991,7 +999,7 @@ function uSlots() {   // feste Reihenfolge und gleiche Wörter in allen Bereiche
     L && tab !== 'tueren' && tab !== 'uebersicht' ? [uLoeschen, 'Löschen', IC_DEL, false, uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot'] : [null, 'Löschen', IC_DEL, true, 'Hier gibt es nichts zu löschen'],
   ];
 }
-function uLeisteNeu() { befehle($('#bfl'), avaBefehle()); }   // Befehlsleiste neu – nach jedem Zeichnen und wenn sich die Auswahl ändert
+function uLeisteNeu() { befehle($('#bfl'), avaBefehle(), document.getElementById('kpi')); }   // Kennzahlen in der Mitte der Leiste – keine eigene Zeile mehr   // Befehlsleiste neu – nach jedem Zeichnen und wenn sich die Auswahl ändert
 /* Befehlsleiste je Bereich (befehle.js): links das Fachliche, rechts immer Datei · Verlauf · Löschen · Details · ⋯ */
 const BIC = { plus: '<path d="M12 5v14M5 12h14"/>', num: '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>', bk: '<path d="M4 20V10l8-6 8 6v10"/><path d="M9 20v-6h6v6"/>', qu: '<rect x="3" y="4" width="8" height="16" rx="1.5"/><path d="M15 8h6M15 12h6M15 16h4"/>',
   dok: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>', lang: '<path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>', vb: '<path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6"/>', bieter: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/>',
@@ -1000,7 +1008,7 @@ const uKnopf = ([x, t, ic, aus, tip, an, rot]) => ({ t, ic, tip, an, rot, aus: a
 function avaBefehle() {
   const S = uSlots(), bez = { lv: 'LV', angebote: 'Angebot', auftraege: 'Auftrag', aufmass: 'Rechnung', rechnungen: 'Rechnung', tueren: 'Türliste', uebersicht: 'Projekt' }[tab] || '';
   const rechts = [{ titel: 'Datei', rechts: true, knoepfe: S.slice(0, 3).map(uKnopf) },
-    { titel: bez, rechts: true, knoepfe: [uKnopf(S[4]), uKnopf(S[5]), uKnopf(S[3]), { t: 'mehr', ic: '⋯', attrs: 'data-umenu aria-haspopup="menu"', tip: 'weitere Befehle' }] }];
+    { titel: bez, rechts: true, knoepfe: [uKnopf(S[4]), ...uWeitere(), uKnopf(S[5]), uKnopf(S[3])] }];
   return [...(L || tab === 'uebersicht' ? bereichBefehle() : []), ...rechts];
 }
 function bereichBefehle() {
@@ -1048,7 +1056,7 @@ document.addEventListener('click', (e) => {
     if (m) { m.remove(); return; }
     const d = document.createElement('div'); d.className = 'umenu'; d.setAttribute('role', 'menu');
     const eng = false;   // die Befehlsleiste klappt selbst zusammen (befehle.js)
-    const sicht = new Set(uSlots().map((x) => x[0]).filter((x) => typeof x === 'string'));   // im Menü nicht doppelt
+    const sicht = uSicht();   // im Menü nicht doppelt
     UFN = [];
     const oben = eng ? [...uSlots().slice(0, 4).filter((x) => x[0]).map(([a, b, , c]) => [a, b, c]), '-'] : [];
     const unten = [...(eng && L && tab !== 'uebersicht' ? ['-', [() => lvVerlauf(), '🕘 Verlauf …', false]] : []), ...(eng && L && tab !== 'tueren' && tab !== 'uebersicht' ? ['-', [uLoeschen, '🗑 ' + uLoeschText(), false]] : [])];   // breit: „Löschen“ steht schon rot in der Leiste – nicht doppelt

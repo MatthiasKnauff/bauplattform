@@ -52,6 +52,38 @@
 .e .d a{color:var(--y)}
 .leer{padding:2rem 1rem;text-align:center;color:var(--mute)}
 .mehr{margin:.6rem 0}
+.e .art.vg{border-color:var(--y);color:var(--y)}.vg-f{display:flex;gap:.4rem;flex-wrap:wrap;margin:.4rem 0}.vg-f img{height:84px;border-radius:8px;display:block}
+/* Neue Nachricht / Vorgang */
+.modal.kv [hidden]{display:none!important}.kv-seg button{white-space:nowrap}
+.modal.kv{width:min(860px,100%);max-width:none;padding:0;display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
+.kv-k{display:flex;align-items:center;gap:.8rem;padding:.8rem 1rem;border-bottom:1px solid var(--line)}.kv-t{font-size:1.05rem}.kv-x{margin-left:auto}
+.kv-seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;gap:2px}.kv-seg button{border:0;background:none;color:var(--ink);font:inherit;font-size:.88rem;padding:.25rem .8rem;border-radius:999px;cursor:pointer}.kv-seg button.on{background:var(--ink);color:var(--card)}
+.kv-b{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:1rem;padding:.8rem 1rem;overflow:auto;min-height:0}
+.kv-lb{display:flex;flex-direction:column;gap:.2rem;font-size:.8rem;color:var(--mute);margin-bottom:.6rem}
+.kv-lb input,.kv-lb textarea{font:inherit;font-size:.95rem;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem;width:100%;box-sizing:border-box}
+.kv-lb textarea{resize:vertical;min-height:7rem}.kv-2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.kv-bt{display:flex;align-items:center;gap:.35rem}.kv-bt em{font-style:normal;color:var(--mute);font-size:.9rem}
+.kv-arten{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem;margin-bottom:.7rem}.kv-arten button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:.45rem .5rem;font:inherit;font-size:.84rem;text-align:left;cursor:pointer}.kv-arten button.on{border:2px solid var(--y);background:color-mix(in srgb,var(--y) 10%,var(--card));padding:calc(.45rem - 1px) calc(.5rem - 1px)}
+.kv-an{margin-bottom:.6rem}.kv-chips{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.3rem;background:var(--inp);margin-top:.2rem}
+.kv-chip{display:inline-flex;align-items:center;gap:.25rem;border:1px solid var(--y);color:var(--y);border-radius:999px;padding:.05rem .2rem .05rem .6rem;font-size:.86rem}.kv-chip button{border:0;background:none;color:inherit;cursor:pointer;font-size:.75rem}
+.kv-plus{border:1px dashed var(--line);background:transparent;color:var(--mute);border-radius:999px;padding:.1rem .6rem;font:inherit;font-size:.84rem;cursor:pointer}.kv-plus:hover{border-color:var(--y);color:var(--y)}
+.kv-mail{flex:1 1 9rem;min-width:7rem;border:0;background:transparent;color:var(--ink);font:inherit;font-size:.88rem;padding:.2rem .3rem;outline:0}
+.kv-ck{display:flex;gap:.4rem;align-items:center;font-size:.88rem;color:var(--mute)}
+.kv-r{border:2px dashed transparent;border-radius:10px;padding:.2rem}.kv-r.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 8%,transparent)}
+.kv-dz{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}.kv-fs{display:contents}
+.kv-f{position:relative;height:84px;border-radius:9px;overflow:hidden;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);text-align:center}.kv-f img{width:100%;height:100%;object-fit:cover}.kv-f i{font-style:normal;font-size:1.4rem}.kv-f small{font-size:.7rem;padding:0 .3rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.kv-f button{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:.7rem;cursor:pointer}
+.kv-add{height:84px;border:2px dashed var(--line);border-radius:9px;display:grid;place-items:center;color:var(--mute);cursor:pointer;font-size:1.1rem}.kv-add:hover{border-color:var(--y);color:var(--y)}
+.kv-hint{font-size:.8rem;color:var(--mute);margin:.6rem 0 0}
+.modal.kv .acts{padding:.7rem 1rem;border-top:1px solid var(--line);margin:0}
+.kv-fab{display:none}
+@media (max-width:760px){.kv-top{display:none}
+  .kv-fab{display:block;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:60}
+  .kv-fb{width:56px;height:56px;border-radius:50%;border:0;background:var(--y);color:var(--on);font-size:1.9rem;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer}
+  .kv-fm{position:absolute;right:0;bottom:66px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);padding:.3rem;width:max-content}.kv-fm button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:inherit;padding:.6rem .8rem;border-radius:8px;cursor:pointer}.kv-fm button:hover{background:var(--hov)}
+  .modal-bg:has(.modal.kv){padding:0}.modal.kv{width:100%;height:100%;max-height:none;border-radius:0}
+  .kv-k{flex-wrap:wrap;gap:.5rem;padding:.6rem .8rem}.kv-t{flex:1 1 100%;order:0}.kv-x{position:absolute;right:.6rem;top:.55rem}.modal.kv{position:relative}.kv-seg button{font-size:.82rem;padding:.25rem .6rem}
+  .kv-b{grid-template-columns:1fr}.kv-arten{grid-template-columns:1fr 1fr}.kv-2{grid-template-columns:1fr}.kv-dz{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:820px){.grid{grid-template-columns:1fr}.side{position:static;max-height:240px}.e .d{padding-left:.8rem}}
 @media print{.top,.chips,.side,.bph,.kb .x,.mehr{display:none!important}.grid{display:block}.e{break-inside:avoid;border-color:#bbb}.e details>*:not(summary){display:block}.wrap{max-width:none}}
 </style>
@@ -61,6 +93,7 @@
   <div class="top">
     <div class="seg" id="scope" role="group" aria-label="Umfang"></div>
     <input type="search" id="q" placeholder="Suchen – Betreff, Firma, Plan, Mangel …" autocomplete="off">
+    <button class="btn sm pri kv-top" data-kvneu="n" title="Mail an Beteiligte des Projekts – mit Fotos">✉ Neue Nachricht</button><button class="btn sm kv-top" data-kvneu="v" title="Telefonnotiz, Anordnung, Behinderung … festhalten oder als PDF schicken">📝 Vorgang</button>
     <button class="btn sm" id="kBtn" title="Einen Kontakt wählen und alles sehen, was ihm geschickt wurde">👤 Kontakt …</button>
     <button class="btn sm" id="csvBtn" title="Die gezeigten Sendungen als Excel-Tabelle (CSV) speichern">⤓ Speichern unter …</button>
     <button class="btn sm" id="drBtn" title="Als Nachweis drucken oder als PDF speichern">🖨 Drucken / PDF</button>
@@ -69,6 +102,7 @@
   <div id="kbox"></div>
   <div class="grid" data-bph-trenn-ab="821" data-bph-trenn="kom" data-bph-trenn-min="200" data-bph-trenn-max="0.5"><aside class="side" id="side" aria-label="Übersicht"></aside><section id="list" aria-live="polite"></section></div>
 </main>
+<div class="kv-fab"><div class="kv-fm" hidden><button type="button" data-kvneu="n">✉ Nachricht</button><button type="button" data-kvneu="v">📝 Vorgang dokumentieren</button></div><button type="button" class="kv-fb" data-kvfab aria-label="Neu: Nachricht oder Vorgang">＋</button></div>
 <script src="static/bp.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('kom.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('kom.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
@@ -76,7 +110,7 @@ const F = { alle: LS.get('alle', false), arten: new Set(LS.get('arten', [])), q:
 let K = null;          // gewählter Kontakt {contact_id|email, name, …} – dann alles mit ihm, über alle Projekte
 let KP = null;         // im Kontakt: auf ein Projekt eingeschränkt
 let D = null, N = 300, tok = 0, ME = null;
-const IC = { planversand: '📐', maengelruege: '⚠️', terminruege: '⏱', lvversand: '📋', brief: '✉️' };
+const IC = { planversand: '📐', maengelruege: '⚠️', terminruege: '⏱', lvversand: '📋', brief: '✉️', nachricht: '✉️', vorgang: '📝' };
 const projekt = () => (window.BPHead && BPHead.projekt) || null;
 const dt = (t) => { const d = new Date(t); return isNaN(d) ? t : d; };
 const uhr = (t) => { const d = dt(t); return d instanceof Date ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : ''; };
@@ -99,7 +133,13 @@ function params(ohne = {}) {
 }
 async function laden() {
   const my = ++tok;
-  try { const r = await api('api/kom?' + params()); if (my !== tok) return; D = r; zeichnen(); }
+  try {
+    const vp = !K && (F.alle || projekt()) && (!F.arten.size || F.arten.has('vorgang')) && !F.ich ? api('api/vorgaenge' + (F.alle ? '' : '?pid=' + projekt().id)).catch(() => []) : Promise.resolve([]);
+    const [r, v] = await Promise.all([api('api/kom?' + params()), vp]); if (my !== tok) return; D = r;
+    const q = (F.q || '').toLowerCase();
+    VG = (v || []).filter((x) => !x.gesendet && (!q || [x.titel, x.text, x.beteiligte, x.art_name].join(' ').toLowerCase().includes(q)));
+    zeichnen();
+  }
   catch (e) { if (my === tok) $('#list').innerHTML = `<div class="leer">${esc(e.message)}</div>`; }
 }
 function zeichnen() {
@@ -122,7 +162,7 @@ function zeichnen() {
       : '<p class="mute" style="padding:0 .9rem;font-size:.88rem">Noch niemand.</p>');
   }
   // rechts: Verlauf nach Tagen
-  const E = D.eintraege || [];
+  const E = [...(D.eintraege || []), ...VG.map((v) => ({ ...v, ts: v.zeit, _vg: 1 }))].sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
   if (!E.length) {
     $('#list').innerHTML = `<div class="leer">${F.q || F.arten.size || F.ich ? 'Nichts gefunden – Filter oder Suche ändern.' : K ? `An ${esc(K.name)} wurde noch nichts verschickt.` : !F.alle && p ? `In ${esc(p.name)} wurde noch nichts verschickt.<br><small>Hier erscheinen Planversand, Mängel- und Terminrügen – sobald sie aus den Apps verschickt werden.</small>` : 'Noch nichts verschickt.'}</div>`;
     return;
@@ -130,6 +170,7 @@ function zeichnen() {
   let h = '', tag = '';
   for (const x of E) {
     const t = tagName(x.ts); if (t !== tag) { tag = t; h += `<div class="tag">${esc(t)}</div>`; }
+    if (x._vg) { h += vgEintrag(x); continue; }
     const wer = x.kontakt || x.name || x.email, cls = x.art === 'maengelruege' ? ' mr' : x.art === 'terminruege' ? ' tr' : '';
     h += `<details class="e${x.status === 'fehler' ? ' f' : ''}"><summary><span class="ic">${IC[x.art] || '✉️'}</span>
       <span class="h"><span class="art${cls}">${esc(x.art_name)}</span><b>${esc(wer)}</b>${x.betreff ? ' – ' + esc(x.betreff) : ''}</span>
@@ -140,9 +181,110 @@ function zeichnen() {
         ${quelle(x) ? `<a href="${esc(quelle(x))}" data-qp="${x.project_id || ''}">↗ ${x.art === 'planversand' ? 'Planversandliste' : x.art.endsWith('ruege') ? 'Aufgaben & Mängel' : 'Quelle'} öffnen</a>` : ''}
         ${x.contact_id && !K ? ` · <a href="#" data-kc="${x.contact_id}">alles mit ${esc(x.kontakt)}</a>` : ''}</div></details>`;
   }
-  if (D.gesamt > E.length) h += `<button type="button" class="btn sm mehr" data-mehr>+ ältere anzeigen (${D.gesamt - E.length} weitere)</button>`;
+  if (D.gesamt > (D.eintraege || []).length) h += `<button type="button" class="btn sm mehr" data-mehr>+ ältere anzeigen (${D.gesamt - (D.eintraege || []).length} weitere)</button>`;
   $('#list').innerHTML = h;
 }
+/* ---------- Neue Nachricht und Vorgang dokumentieren (Desktop: Fenster mit zwei Spalten, Handy: Vollbild über ＋ unten rechts) ---------- */
+let VA = null, BET = { pid: null, L: [] }, VG = [];   // VA: Arten der Vorgänge · BET: Beteiligte des Projekts · VG: Vorgänge (nur festgehaltene) im Verlauf
+const KURZ = (n) => (((n || '').split(' ')[0] || '').match(/^[A-Za-z]{1,4}\d{2,6}$/) || [''])[0];
+async function beteiligte(pid) { if (BET.pid !== pid) { BET = { pid, L: await api('api/beteiligte?pid=' + pid).catch(() => []) }; } return BET.L; }
+function verfassen(modus) {
+  const p = projekt(); if (!p) { toast('Bitte oben zuerst ein Projekt wählen.', true); if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({}); return; }
+  const S = { modus, an: [], dateien: [], art: 'telefon', senden: false };
+  const jetzt = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16), k = KURZ(p.name);
+  const bg = modalBox(`<div class="kv-k"><b class="kv-t"></b><span class="kv-seg" role="tablist"><button type="button" data-kvm="n">✉ Nachricht</button><button type="button" data-kvm="v">📝 Vorgang</button></span><button type="button" class="ib kv-x" data-m="x" title="Schließen (Esc)">✕</button></div>
+    <div class="kv-b"><div class="kv-l">
+      <div class="kv-v"><div class="kv-arten"></div>
+        <label class="kv-lb">Wer war beteiligt / am Telefon<input id="kvWer" placeholder="z. B. Herr Wilhelmi, Elektro" autocomplete="off"></label>
+        <div class="kv-2"><label class="kv-lb">Wann<input id="kvZeit" type="datetime-local" value="${jetzt}"></label><label class="kv-lb">Ort (optional)<input id="kvOrt" placeholder="z. B. 1. OG" autocomplete="off"></label></div>
+        <label class="kv-lb">Kurz (Überschrift, optional)<input id="kvTitel" maxlength="200" autocomplete="off"></label></div>
+      <div class="kv-an"><span class="kv-lb">An – Beteiligte von ${esc(p.name)}</span><div class="kv-chips"></div></div>
+      <label class="kv-lb kv-n">Betreff<span class="kv-bt">${k ? `<em>[${esc(k)}]</em>` : ''}<input id="kvBetreff" maxlength="200" autocomplete="off"></span></label>
+      <label class="kv-lb"><span class="kv-txtl">Text</span><textarea id="kvText" rows="8" placeholder="🎤 Diktieren geht über die Tastatur des Handys"></textarea></label>
+      <div class="kv-v kv-2"><label class="kv-lb">Frist (optional – wird ein To-do mit Erinnerung)<input id="kvFrist" type="date"></label><span></span></div>
+      <div class="kv-v"><span class="kv-seg kv-sd"><button type="button" data-kvs="0">nur festhalten</button><button type="button" data-kvs="1">als PDF an die Firma</button></span></div>
+      <label class="kv-ck"><input type="checkbox" id="kvKopie"> Kopie an mich</label>
+    </div><div class="kv-r"><span class="kv-lb">Fotos / Dateien <small>hierher ziehen oder</small></span>
+      <div class="kv-dz"><div class="kv-fs"></div><label class="kv-add" title="Fotos aufnehmen oder Dateien wählen">📷 ＋<input type="file" id="kvDatei" multiple accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.txt" hidden></label></div>
+      <p class="kv-hint"></p></div></div>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok"></button></div>`, async (m, bg, close, btn) => {
+    if (m === 'x') return close();
+    if (m !== 'ok') return;
+    const fd = new FormData(); fd.append('pid', p.id); S.dateien.forEach((f) => fd.append('dateien', f, f.name));
+    const v = (id) => (bg.querySelector('#' + id) || {}).value || '';
+    if (S.modus === 'n') {
+      if (!S.an.length) return toast('Bitte mindestens einen Empfänger wählen.', true);
+      if (!v('kvText').trim()) return toast('Bitte einen Text schreiben.', true);
+      fd.append('an', JSON.stringify(S.an)); fd.append('betreff', v('kvBetreff')); fd.append('text', v('kvText')); fd.append('kopie', bg.querySelector('#kvKopie').checked ? '1' : '');
+    } else {
+      if (!v('kvText').trim() && !v('kvTitel').trim()) return toast('Bitte festhalten, was passiert ist.', true);
+      if (S.senden && !S.an.length) return toast('Bitte einen Empfänger wählen – oder „nur festhalten“.', true);
+      Object.entries({ art: S.art, titel: v('kvTitel'), text: v('kvText'), beteiligte: v('kvWer'), zeit: v('kvZeit'), ort: v('kvOrt'), frist: v('kvFrist'), senden: S.senden ? '1' : '', an: JSON.stringify(S.an), kopie: bg.querySelector('#kvKopie').checked ? '1' : '' }).forEach(([a, b]) => fd.append(a, b));
+    }
+    btn.disabled = true; btn.textContent = 'Wird gesendet …';
+    try {
+      const r = await fetch(S.modus === 'n' ? 'api/nachricht' : 'api/vorgang', { method: 'POST', body: fd, credentials: 'same-origin' }); const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.error) throw new Error(j.error || 'Fehler ' + r.status);
+      close();
+      toast(S.modus === 'n' ? `Gesendet: „${j.betreff}“${j.weg === 'm365' ? ' – steht in Outlook unter „Gesendete Elemente“' : ''}` : `${VA.find((x) => x.key === S.art).name} festgehalten${j.hinweis ? ' und ' + j.hinweis + ' geschickt' : ''}${j.todo ? ' · Frist als To-do' : ''}`);
+      laden();
+    } catch (er) { toast(er.message, true); btn.disabled = false; zeichne(); }
+  });
+  bg.querySelector('.modal').classList.add('kv');
+  const $b = (s) => bg.querySelector(s);
+  const zeichne = () => {
+    const n = S.modus === 'n';
+    $b('.kv-t').textContent = n ? 'Neue Nachricht' : 'Vorgang dokumentieren';
+    bg.querySelectorAll('[data-kvm]').forEach((x) => x.classList.toggle('on', x.dataset.kvm === S.modus));
+    bg.querySelectorAll('.kv-v').forEach((x) => { x.hidden = n; });
+    $b('.kv-n').hidden = !n;
+    $b('.kv-an').hidden = !n && !S.senden; $b('.kv-ck').hidden = !n && !S.senden;
+    $b('.kv-txtl').textContent = n ? 'Text' : 'Was ist passiert?';
+    $b('.kv-arten').innerHTML = (VA || []).map((a) => `<button type="button" data-kva="${a.key}" class="${S.art === a.key ? 'on' : ''}">${a.ic} ${esc(a.name)}</button>`).join('');
+    bg.querySelectorAll('[data-kvs]').forEach((x) => x.classList.toggle('on', (x.dataset.kvs === '1') === S.senden));
+    $b('[data-m="ok"]').textContent = n ? 'Senden' : S.senden ? 'Speichern & senden' : 'Festhalten';
+    $b('.kv-chips').innerHTML = S.an.map((x, i) => `<span class="kv-chip" title="${esc(x.email)}">${esc(x.name || x.email)}<button type="button" data-kvweg="${i}" aria-label="entfernen">✕</button></span>`).join('')
+      + `<button type="button" class="kv-plus" data-kvan>＋ Firma, Person</button><input class="kv-mail" placeholder="oder E-Mail eintippen, Enter" autocomplete="off" inputmode="email">`;
+    $b('.kv-fs').innerHTML = S.dateien.map((f, i) => `<span class="kv-f" title="${esc(f.name)}">${f.type.startsWith('image/') ? `<img src="${f._url || (f._url = URL.createObjectURL(f))}" alt="">` : `<i>📄</i><small>${esc(f.name)}</small>`}<button type="button" data-kvfweg="${i}" aria-label="entfernen">✕</button></span>`).join('');
+    const mb = S.dateien.reduce((a, f) => a + f.size, 0) / 1048576;
+    $b('.kv-hint').textContent = (n ? 'Signatur wird angehängt.' : S.senden ? 'Das PDF des Vorgangs (auf dem Briefbogen, mit den Fotos) geht an die Firma.' : 'Steht danach im Verlauf des Projekts.') + (mb ? ` · ${mb.toFixed(1).replace('.', ',')} MB` : '');
+  };
+  const neuDatei = (fs) => { for (const f of fs) { if (S.dateien.length >= 12) { toast('Höchstens 12 Dateien.', true); break; } S.dateien.push(f); } zeichne(); };
+  bg.addEventListener('click', (e) => {
+    const t = e.target;
+    const mm = t.closest('[data-kvm]'); if (mm) { S.modus = mm.dataset.kvm; zeichne(); return; }
+    const a = t.closest('[data-kva]'); if (a) { S.art = a.dataset.kva; zeichne(); return; }
+    const sd = t.closest('[data-kvs]'); if (sd) { S.senden = sd.dataset.kvs === '1'; zeichne(); return; }
+    const w = t.closest('[data-kvweg]'); if (w) { S.an.splice(+w.dataset.kvweg, 1); zeichne(); return; }
+    const fw = t.closest('[data-kvfweg]'); if (fw) { const f = S.dateien.splice(+fw.dataset.kvfweg, 1)[0]; if (f && f._url) URL.revokeObjectURL(f._url); zeichne(); return; }
+    const pl = t.closest('[data-kvan]'); if (pl) { (async () => { const B = await beteiligte(p.id), K = await api('api/kontakte?q=').catch(() => []);
+      const da = new Set(S.an.map((x) => x.email.toLowerCase())), bid = new Set(B.map((x) => x.id));
+      pickMenu(pl, { search: 'Firma, Person oder E-Mail …', empty: 'Niemand gefunden – E-Mail-Adresse direkt eintippen.',
+        items: [...B.map((x) => ({ ...x, g: 'Beteiligte des Projekts' })), ...K.filter((x) => !bid.has(x.id)).map((x) => ({ ...x, g: 'Weitere Kontakte' }))].filter((x) => x.email && !da.has(x.email.toLowerCase()))
+          .map((x) => ({ group: x.g, title: x.name, sub: [x.gewerk, x.ansprech, x.email].filter(Boolean).join(' · '), value: x.id, find: [x.ansprech, x.email, x.gewerk].join(' '), x })),
+        onPick: (id, it) => { S.an.push({ email: it.x.email, name: it.x.name, contact_id: it.x.id }); zeichne(); } }); })(); return; }
+  });
+  bg.addEventListener('keydown', (e) => { const i = e.target.closest && e.target.closest('.kv-mail'); if (!i || e.key !== 'Enter') return; e.preventDefault();
+    const a = i.value.trim(); if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[A-Za-z]{2,}$/.test(a)) return toast('Bitte eine gültige E-Mail-Adresse eintippen.', true);
+    if (!S.an.some((x) => x.email.toLowerCase() === a.toLowerCase())) S.an.push({ email: a, name: '' }); zeichne(); setTimeout(() => { const n = bg.querySelector('.kv-mail'); if (n) n.focus(); }, 0); });
+  bg.addEventListener('change', (e) => { if (e.target.id === 'kvDatei') { neuDatei([...e.target.files]); e.target.value = ''; } });
+  const dz = $b('.kv-r');
+  dz.addEventListener('dragover', (e) => { if ([...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); dz.classList.add('over'); } });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('over'); neuDatei([...e.dataTransfer.files]); });
+  (async () => { if (!VA) VA = await api('api/vorgang/arten').catch(() => []); zeichne(); })();
+  zeichne(); if (innerWidth > 760) setTimeout(() => { const f = bg.querySelector('#kvText'); if (f && S.modus !== 'n') f.focus(); }, 50);   // am Handy nicht gleich die Tastatur öffnen
+}
+/* Vorgänge im Verlauf (nur die festgehaltenen – verschickte stehen schon als Sendung darin) */
+function vgEintrag(v) {
+  const d = (v.zeit || '').replace('T', ' '), F = v.dateien || [];
+  return `<details class="e vg"><summary><span class="ic">${v.ic || '📝'}</span>
+    <span class="h"><span class="art vg">${esc(v.art_name)}</span><b>${esc(v.titel || (v.text || '').slice(0, 80))}</b></span><span class="z">${uhr(v.zeit)}</span>
+    <span class="s">${esc([v.beteiligte, v.ort, 'festgehalten von ' + v.von, F.length ? F.length + ' Datei' + (F.length === 1 ? '' : 'en') : '', v.frist ? 'Frist ' + kurzDatum(v.frist) : ''].filter(Boolean).join(' · '))}</span></summary>
+    <div class="d">${v.text ? `<pre>${esc(v.text)}</pre>` : ''}${F.length ? `<div class="vg-f">${F.map((f) => f.mime.startsWith('image/') ? `<a href="api/datei/${f.id}" target="_blank" rel="noopener"><img src="api/datei/${f.id}" alt="${esc(f.name)}" loading="lazy"></a>` : `<a href="api/datei/${f.id}" target="_blank" rel="noopener">📄 ${esc(f.name)}</a>`).join('')}</div>` : ''}
+      <div class="mute">${esc(new Date(v.zeit).toLocaleString('de-DE'))} · <a href="api/vorgang/${v.id}.pdf" target="_blank" rel="noopener">PDF</a></div></div></details>`;
+}
+
 function quelle(x) {
   const apps = ((window.BPHead && BPHead.conf) || {}).apps || [];
   const [k] = String(x.link || '').split(':'); const a = apps.find((y) => y.key === k && y.allowed);
@@ -169,6 +311,9 @@ document.addEventListener('click', async (e) => {
   const kp = t.closest('[data-kp]'); if (kp) { KP = +kp.dataset.kp || null; laden(); return; }
   if (t.closest('[data-mehr]')) { N += 500; laden(); return; }
   const qp = t.closest('[data-qp]'); if (qp && qp.dataset.qp) { e.preventDefault(); try { await BPHead.projektSetzen(+qp.dataset.qp); } catch { /* egal */ } location.href = qp.href; return; }
+  const nv = t.closest('[data-kvneu]'); if (nv) { document.querySelector('.kv-fm').hidden = true; verfassen(nv.dataset.kvneu); return; }
+  if (t.closest('[data-kvfab]')) { const m = document.querySelector('.kv-fm'); m.hidden = !m.hidden; return; }
+  if (!t.closest('.kv-fab')) { const m = document.querySelector('.kv-fm'); if (m) m.hidden = true; }
   if (t.closest('#kBtn')) { kontaktWahl($('#kBtn')); return; }
   if (t.closest('#csvBtn')) { location.href = 'api/kom.csv?' + params({ n: 1 }); return; }
   if (t.closest('#drBtn')) { document.querySelectorAll('#list details').forEach((d) => { d.open = true; }); setTimeout(() => print(), 50); }

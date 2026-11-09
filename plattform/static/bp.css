@@ -81,7 +81,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .pick .pk-t b{font-weight:600;font-size:.98rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pick .pk-t small{font-size:.78rem;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pick svg{width:18px;height:18px;flex:none;margin-left:auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.pickm{position:fixed;z-index:80;background:var(--card2);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;max-height:min(70vh,560px);width:min(520px,calc(100vw - 16px));overflow:hidden}
+.pickm{position:fixed;z-index:9700;background:var(--card2);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;max-height:min(70vh,560px);width:min(520px,calc(100vw - 16px));overflow:hidden}
 .pickm .pm-q{padding:.6rem;border-bottom:1px solid var(--line)}
 .pickm .pm-q input{width:100%}
 .pickm .pm-l{overflow:auto;padding:.3rem}

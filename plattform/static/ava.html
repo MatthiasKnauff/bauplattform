@@ -4106,7 +4106,16 @@ function spaltenGriffe() {
     const letzte = ths[ths.length - 1];
     const breite = () => { const sum = ths.slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = (sum + 90) + 'px'; };   // nur so breit wie die Spalten – kein Auffüllen auf volle Breite   // mindestens so breit wie der Platz – wächst beim Aufziehen des Fensters mit, die letzte Spalte nimmt den Rest
     const fest = () => { if (t.style.tableLayout === 'fixed') return; ths.forEach((h) => { if (h === letzte) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; breite(); };
-    if (Object.keys(w).length) { fest(); ths.forEach((h, j) => { if (w[j] && h !== letzte) h.style.width = w[j] + 'px'; }); breite(); }
+    // proportional: gemerkt wird die Breite, die der Platz beim Ziehen hatte (_b) – wird der Platz breiter oder schmaler (Trenner, Fenster), wachsen bzw. schrumpfen alle Spalten im selben Verhältnis
+    const platz = () => (t.parentElement ? t.parentElement.clientWidth : 0);
+    const anwenden = () => { const s = SB[key]; if (!s || !t.isConnected) return; const p = platz(); if (!p) return;
+      if (!s._b) { s._b = p; LS.set('sb', SB); }
+      const f = p / s._b; fest(); let sum = 0;
+      ths.forEach((h, j) => { if (h === letzte || !s[j]) return; const b = Math.max(36, Math.round(s[j] * f)); h.style.width = b + 'px'; sum += b; });
+      const rest = Math.max(90, Math.round((s._t ? s._t - Object.keys(s).filter((k) => /^\d+$/.test(k)).reduce((a, k) => a + s[k], 0) : 90) * f));
+      t.style.width = (sum + rest) + 'px'; };
+    if (Object.keys(w).length) anwenden();
+    if (window.ResizeObserver && t.parentElement) { let alt = platz(); const ro = new ResizeObserver(() => { if (!t.isConnected) { ro.disconnect(); return; } if (document.body.classList.contains('sb-zieh')) return; const p = platz(); if (Math.abs(p - alt) < 2) return; alt = p; requestAnimationFrame(anwenden); }); ro.observe(t.parentElement); }
     ths.forEach((th, i) => {
       if (i === ths.length - 1) return;
       if (getComputedStyle(th).position === 'static') th.style.position = 'relative';   // sticky Kopfzeilen bleiben sticky (sonst rutschte der Kopf um „top“ nach unten)
@@ -4115,7 +4124,7 @@ function spaltenGriffe() {
         if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); fest(); g.setPointerCapture(e.pointerId);
         const x0 = e.clientX, w0 = th.getBoundingClientRect().width; document.body.classList.add('sb-zieh');
         g.onpointermove = (m) => { th.style.width = Math.max(36, w0 + m.clientX - x0) + 'px'; breite(); };
-        g.onpointerup = () => { g.onpointermove = null; document.body.classList.remove('sb-zieh'); SB[key] = SB[key] || {}; ths.forEach((h, j) => { if (h !== letzte) SB[key][j] = Math.round(h.getBoundingClientRect().width); }); LS.set('sb', SB); };
+        g.onpointerup = () => { g.onpointermove = null; document.body.classList.remove('sb-zieh'); SB[key] = {}; ths.forEach((h, j) => { if (h !== letzte) SB[key][j] = Math.round(h.getBoundingClientRect().width); }); SB[key]._b = platz(); SB[key]._t = Math.round(t.getBoundingClientRect().width); LS.set('sb', SB); };
       });
       g.addEventListener('dblclick', (e) => { e.stopPropagation(); e.preventDefault(); delete SB[key]; LS.set('sb', SB); ths.forEach((h) => { h.style.width = ''; h.style.minWidth = ''; }); t.style.tableLayout = ''; t.style.width = ''; t.style.minWidth = ''; toast('Spaltenbreiten zurückgesetzt.'); });
       g.addEventListener('click', (e) => e.stopPropagation());

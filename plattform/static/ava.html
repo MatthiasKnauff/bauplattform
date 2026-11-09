@@ -682,6 +682,20 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 .re2-baum .pj-r.lv.oa .t small{display:inline}
 table.au-t tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.au-t tr.zieh-davor td{box-shadow:inset 0 3px 0 var(--y)}table.au-t tr.zieh-in td{background:color-mix(in srgb,var(--y) 18%,transparent);box-shadow:inset 0 0 0 1.5px var(--y)}
 table.au-t tr.nt-zieh td:first-child{cursor:grab}
+.nt-ph{display:inline-block;border-radius:999px;padding:0 .45rem;font-size:var(--fs-s);font-weight:600;margin-left:.3rem;white-space:nowrap}
+.nt-ph.s1{background:color-mix(in srgb,var(--mute) 18%,transparent);color:var(--ink)}.nt-ph.s2{background:#e7f1fb;color:#1d5fa8}.nt-ph.s3{background:#f9eeda;color:#946200}.nt-ph.s4{background:#e5f4e4;color:#1e7a33}.nt-ph.s5{background:#fbebeb;color:#b02a2a}.nt-ph.s6{background:#efedff;color:#5b44c4}
+.nt-zl{display:block;margin:.1rem 0 0 1.6rem;line-height:1.3;white-space:normal}.nt-zl .nt-ph{margin-left:0}
+.nt-b{margin-left:.4rem;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}.nt-fr{margin-left:.4rem;white-space:nowrap;color:var(--mute)}.nt-fr.rot{color:var(--red,#c0392b);font-weight:600}
+.nt-modus{display:inline-flex;gap:.3rem;align-items:center;margin-left:.8rem}.nt-modus .seg.sm button{padding:.1rem .55rem;font-size:var(--fs-s2)}
+.nta .nta-k{font-size:1.05em;display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}
+.nta-st{display:flex;gap:.25rem;margin:.6rem 0}.nta-st button{flex:1;border:0;border-radius:6px;padding:.35rem .2rem;background:color-mix(in srgb,var(--mute) 14%,transparent);color:var(--mute);font:inherit;font-size:var(--fs-s2);cursor:pointer}
+.nta-st button.ok{background:#e5f4e4;color:#1e7a33}.nta-st button.on{background:#f9eeda;color:#946200;font-weight:700;box-shadow:inset 0 0 0 1.5px #e0a030}
+.nta-f{display:grid;grid-template-columns:minmax(0,1fr);gap:.15rem;margin:.4rem 0}.nta-f>label{color:var(--mute);font-size:var(--fs-s2);margin-top:.35rem}
+.nta-f input,.nta-f select,.nta-f textarea{width:100%;box-sizing:border-box;font:inherit}.nta-f>span{display:flex;flex-direction:column;gap:.25rem;min-width:0}.nta-f .nta-r{flex-direction:row;align-items:center;gap:.5rem}.nta-r input[type=date]{width:auto}
+.nta-c{display:flex;gap:.3rem;align-items:center;white-space:nowrap;color:var(--ink)}.nta-c input{width:auto}
+.nta-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;margin:.6rem 0}.nta-b{border:1px solid var(--line);border-radius:8px;padding:.3rem .45rem;display:flex;flex-direction:column;gap:.1rem}.nta-b.g{border-color:#e0a030;background:color-mix(in srgb,#e0a030 8%,var(--card))}
+.nta-b small{color:var(--mute);font-size:var(--fs-s)}.nta-b input{border:0;background:transparent;font:inherit;font-weight:700;text-align:right;width:100%;padding:0;color:var(--ink)}
+.nta h4{margin:.8rem 0 .2rem;font-size:var(--fs)}.nta-u{display:flex;flex-direction:column;gap:.25rem;align-items:flex-start}.nta-u>span{display:flex;gap:.4rem;align-items:center}
 </style>
 </head>
 <body>
@@ -4700,6 +4714,125 @@ document.addEventListener('drop', (e) => {
 document.addEventListener('dragend', () => { ZIEH = null; document.querySelectorAll('table.lv tr[draggable="true"]').forEach((r) => { r.draggable = false; }); document.querySelectorAll('.zieh-hier,.zieh-davor').forEach((r) => r.classList.remove('zieh-hier', 'zieh-davor')); });
 
 
+
+/* ---------- Nachtragsabwicklung: „einfach“ (wie bisher) oder „mit Prüfablauf“ – je Projekt, dazu bürobreit ab einer Auftragssumme ---------- */
+const NTM = {}, NTA = {};
+const NT_PH = { '': ['angemeldet', 's1'], angekuendigt: ['angekündigt', 's1'], angebot: ['Angebot liegt vor', 's2'], geprueft: ['geprüft – beim Bauherrn', 's3'], strittig: ['strittig · angeordnet', 's6'] };
+async function ntmLaden() { if (!pid || NTM[pid]) return; NTM[pid] = { modus: 'einfach', grenze: null, laed: true }; try { NTM[pid] = await api('api/ntmodus?pid=' + pid); } catch { NTM[pid] = { modus: 'einfach', grenze: null }; } if (tab === 'auftraege') render(); }
+function ntPruef(lvId) { const m = NTM[pid]; if (!m) { ntmLaden(); return false; } const x = LIST.find((y) => y.id === lvId) || {};
+  return m.modus === 'pruefung' || (!!m.grenze && (x.auftrag || 0) >= m.grenze); }
+function ntAkteVon(lv, nt) { return ((lv.vergabe || {}).nt_akte || {})[nt] || {}; }
+function ntBetraege(lv, nt, st, summe) {   // angeboten · geprüft · beauftragt
+  const A = ntAkteVon(lv, nt), ph = st === 'beauftragt' || st === 'abgelehnt' ? '' : A.phase || '';
+  const ang = A.angeboten ?? null;
+  const gep = A.geprueft ?? (['geprueft', 'strittig'].includes(ph) || st === 'beauftragt' ? summe : st === 'abgelehnt' ? 0 : null);
+  const bea = st === 'beauftragt' ? (A.beauftragt ?? summe) : ph === 'strittig' ? (A.beauftragt ?? (ang != null ? Math.round(ang * 80) / 100 : null)) : null;
+  return { A, ph, ang, gep, bea };
+}
+function ntStufe(st, ph) { return st === 'beauftragt' ? ['beauftragt', 's4'] : st === 'abgelehnt' ? ['abgelehnt', 's5'] : NT_PH[ph] || NT_PH['']; }
+function ntNaechsteFrist(A) { const h = new Date().toISOString().slice(0, 10);
+  return [['frist_angebot', 'Angebot bis'], ['frist_pruefung', 'Prüfung bis'], ['frist_bauherr', 'Bauherr bis']].filter(([k]) => A[k] && !(A.todos_ok || {})[k]).map(([k, t]) => ({ t, d: A[k], rot: A[k] <= h })).sort((a, b) => a.d.localeCompare(b.d))[0]; }
+function ntZeileInfo(lv, nt, st, summe) {
+  const B = ntBetraege(lv, nt, st, summe), [lab, cls] = ntStufe(st, B.ph), e3 = (v) => (v == null ? '–' : eur(v).replace(' €', ''));
+  const f = st === 'angemeldet' ? ntNaechsteFrist(B.A) : null, nd = (B.A.dateien_n || 0);
+  return `<span class="nt-zl"><span class="nt-ph ${cls}">${lab}</span><small class="nt-b" title="angeboten · geprüft · beauftragt">${e3(B.ang)} · ${e3(B.gep)} · ${e3(B.bea)}${B.ph === 'strittig' && B.A.beauftragt == null && B.bea != null ? ' (80 %)' : ''}</small>${f ? ` <small class="nt-fr${f.rot ? ' rot' : ''}">${f.t} ${de(f.d).slice(0, 6)}</small>` : ''}</span>`;
+}
+function ntModusKopf(lvId, lv) {
+  const m = NTM[pid] || { modus: 'einfach' }, an = ntPruef(lvId), auto = an && m.modus !== 'pruefung';
+  let sum = '';
+  if (an) { const S = { a: 0, g: 0, b: 0 }; const G = {}; (lv.data.items || []).filter((y) => y.nt && y.typ === 'pos').forEach((y) => { (G[y.nt] = G[y.nt] || []).push(y); });
+    const R = lvBaum(lv); Object.entries(G).forEach(([nt, P]) => { const sm = P.reduce((a, y) => { const r = R.find((q) => q.x === y) || {}; return a + (r.nt || r.gRoh || 0); }, 0);
+      const st = ((lv.data.items || []).find((y) => y.nt === nt && (y.typ === 'titel' || !y.nt_erbe)) || P[0]).nt_status || 'angemeldet', B = ntBetraege(lv, nt, st, sm); S.a += B.ang || 0; S.g += B.gep || 0; S.b += B.bea || 0; });
+    sum = `<span class="hint" style="margin-left:.6rem">angeboten ${eur(S.a)} · geprüft ${eur(S.g)} · beauftragt ${eur(S.b)}</span>`; }
+  return `<span class="nt-modus" title="Nachträge einfach (Stand + Betrag) oder mit Prüfablauf (Akte, drei Beträge, Fristen, Nachtragsempfehlung) – gilt für das ganze Projekt"><span class="seg sm" role="radiogroup"><button type="button" class="${an ? '' : 'on'}" data-ntm="einfach"${auto ? ' disabled title="Prüfablauf gilt hier automatisch ab der Auftragssumme"' : ''}>einfach</button><button type="button" class="${an ? 'on' : ''}" data-ntm="pruefung">mit Prüfablauf</button></span><button type="button" class="ib" data-ntgrenze title="Prüfablauf automatisch ab einer Auftragssumme (für alle Projekte)">⚙${m.grenze ? ' ab ' + eur(m.grenze).replace(',00 €', ' €') : ''}</button></span>${sum}`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest && e.target.closest('[data-ntm]');
+  if (b && pid) { e.stopPropagation(); const alt = (NTM[pid] || {}).modus || 'einfach', neu = b.dataset.ntm; if (alt === neu) return;
+    try { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { modus: neu }); render(); rueckgaengig(`Nachträge: ${neu === 'pruefung' ? 'mit Prüfablauf' : 'einfach'}`, async () => { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { modus: alt }); render(); }); } catch (er) { toast(er.message, true); } return; }
+  const g = e.target.closest && e.target.closest('[data-ntgrenze]');
+  if (g && pid) { e.stopPropagation(); const m = NTM[pid] || {};
+    modalBox(`<h3>Prüfablauf automatisch</h3><p class="hint" style="margin-top:0">Gilt für alle Projekte: Aufträge ab dieser Auftragssumme (netto) bekommen den Prüfablauf für Nachträge, auch wenn das Projekt auf „einfach“ steht. Leer = aus.</p>
+      <div class="fm"><label for="ntgB">ab Auftragssumme</label><input id="ntgB" inputmode="decimal" value="${m.grenze ? nf(m.grenze, 0) : ''}" placeholder="z. B. 100.000" style="text-align:right"></div>
+      <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (mm, bg, close) => {
+      if (mm === 'x') { close(); return; } if (mm !== 'ok') return;
+      try { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { grenze: pf(bg.querySelector('#ntgB').value) || null }); close(); render(); } catch (er) { toast(er.message, true); } });
+    return; }
+});
+/* Rechte Spalte in Aufträge: Akte des gewählten Nachtrags (Prüfablauf), sonst die Auftragskarte */
+function auRechts() {
+  const m = /^l(\d+):nt:(.+)$/.exec(TSEL || ''); if (!m || !ntPruef(+m[1])) return auftragKarte();
+  const lvId = +m[1], nt = decodeURIComponent(m[2]), lv = PC[lvId]; if (!lv) return auftragKarte();
+  const key = lvId + ':' + nt, D = NTA[key];
+  if (!D) { api(`api/lv/${lvId}/ntakte/${encodeURIComponent(nt)}`).then((d) => { NTA[key] = d; const re = document.querySelector('.au2-re'); if (re && TSEL === `l${lvId}:nt:${m[2]}`) re.innerHTML = auRechts(); }).catch((er) => toast(er.message, true)); return '<div class="card"><p class="hint">Akte wird geladen …</p></div>'; }
+  return ntAkteHtml(lv, nt, D);
+}
+function ntAkteHtml(lv, nt, D) {
+  const I = lv.data.items || [], grp = I.filter((y) => String(y.nt) === nt), kopf = grp.find((y) => y.typ === 'titel') || grp[0] || {};
+  const st = kopf.nt_status || 'angemeldet', R = lvBaum(lv), summe = grp.filter((y) => y.typ === 'pos').reduce((a, y) => { const r = R.find((q) => q.x === y) || {}; return a + (r.nt || r.gRoh || 0); }, 0);
+  const B = ntBetraege(lv, nt, st, summe), A = { ...B.A, ...(D.akte || {}) }, [lab, cls] = ntStufe(st, B.ph), k = `${lv.id}:${encodeURIComponent(nt)}`;
+  const stufen = [['angekuendigt', 'angekündigt'], ['angebot', 'Angebot'], ['geprueft', 'geprüft'], ['beauftragt', 'beauftragt']];
+  const idx = st === 'beauftragt' ? 3 : Math.max(-1, ['angekuendigt', 'angebot', 'geprueft'].indexOf(B.ph === 'strittig' ? 'geprueft' : B.ph));
+  const inp = (f, v, extra = '') => `<input data-nta="${f}" data-k="${k}" value="${esc(v ?? '')}" ${extra}>`;
+  const betr = (f, v, t) => `<label class="nta-b${f === 'geprueft' ? ' g' : ''}"><small>${t}</small><input data-nta="${f}" data-k="${k}" inputmode="decimal" value="${v != null ? nf(v, 2) : ''}" placeholder="${f === 'geprueft' && A.geprueft == null && B.gep != null ? nf(B.gep, 2) : f === 'beauftragt' && A.beauftragt == null && B.bea != null ? nf(B.bea, 2) : '–'}"></label>`;
+  return `<div class="card nta"><div class="nta-k"><span class="badge nt">${esc(nt)}</span> <b>${esc(kopf.oz || '')} ${esc(kopf.kurz || '')}</b> <span class="nt-ph ${cls}">${lab}</span></div>
+    <div class="hint">${esc((lv.vergabe || {}).bieter || '')} · LV ${esc([lv.nr, lv.name].filter(Boolean).join(' '))} · Positionen ${eur(summe)}</div>
+    <div class="nta-st" role="radiogroup" aria-label="Stufe">${stufen.map(([s2, t], i) => `<button type="button" class="${i < idx ? 'ok' : i === idx ? 'on' : ''}" data-ntph="${s2}" data-k="${k}">${i < idx ? '✓ ' : ''}${t}</button>`).join('')}</div>
+    <div class="nta-f">
+      <label>Anlass</label><span><select data-nta="anlass_vg" data-k="${k}"><option value="">– Vorgang aus Kommunikation –</option>${(D.vorgaenge || []).map((v) => `<option value="${v.id}"${A.anlass_vg === v.id ? ' selected' : ''}>${esc((v.zeit || '').slice(0, 10).split('-').reverse().join('.'))} ${esc(v.titel || v.art)}</option>`).join('')}</select>${inp('anlass', A.anlass, 'placeholder="oder kurz beschreiben"')}</span>
+      <label>Rechtsgrundlage</label><select data-nta="grundlage" data-k="${k}"><option value="">–</option>${Object.entries(D.grundlagen || {}).map(([g2, t]) => `<option value="${g2}"${A.grundlage === g2 ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>
+      <label>Angekündigt am</label><span class="nta-r">${inp('angekuendigt', A.angekuendigt, 'type="date"')}<label class="nta-c"><input type="checkbox" data-nta="vor_ausf" data-k="${k}"${A.vor_ausf ? ' checked' : ''}> vor Ausführung</label></span>
+    </div>
+    <div class="nta-3">${betr('angeboten', A.angeboten, 'angeboten (Firma)')}${betr('geprueft', A.geprueft, 'geprüft (Bauleitung)')}${betr('beauftragt', A.beauftragt, st === 'beauftragt' ? 'beauftragt (Bauherr)' : B.ph === 'strittig' ? 'Abschlag 80 % (§ 650c)' : 'beauftragt (Bauherr)')}</div>
+    <div class="nta-f"><label>Prüfvermerk</label><textarea data-nta="vermerk" data-k="${k}" rows="2" placeholder="z. B. EP auf Urkalkulation zurückgeführt, Menge nach Planung">${esc(A.vermerk || '')}</textarea>
+      <label>Bauzeit</label><span class="nta-r">${inp('bauzeit', A.bauzeit || '', 'type="number" step="1" style="width:5rem"')} Arbeitstage</span></div>
+    <h4>Fristen <small class="hint">(als To-do mit Erinnerung)</small></h4>
+    <div class="nta-f">${Object.entries({ frist_angebot: 'Angebot der Firma', frist_pruefung: 'Prüfung Bauleitung', frist_bauherr: 'Entscheidung Bauherr' }).map(([f, t]) => `<label>${t}</label>${inp(f, A[f], 'type="date"')}`).join('')}</div>
+    <h4>Unterlagen</h4>
+    <div class="nta-u">${(D.akte.dateien || []).map((d) => `<span><a href="api/ntdatei/${d.id}" target="_blank" rel="noopener">📄 ${esc(d.name)}</a> <small class="hint">${esc((d.created || '').slice(0, 10).split('-').reverse().join('.'))}</small><button type="button" class="ib" data-ntdw="${d.id}" data-k="${k}" title="Entfernen">✕</button></span>`).join('') || '<span class="hint">noch keine – Nachtragsangebot, Urkalkulation, Fotos …</span>'}
+      <label class="btn sm">＋ Datei<input type="file" data-ntdh="${k}" accept="application/pdf,image/*,.xlsx,.xls" hidden></label></div>
+    <div class="bar" style="margin-top:.7rem;flex-wrap:wrap"><button type="button" class="btn sm pri" data-ntpdf="${k}">🖨 Nachtragsempfehlung für den Bauherrn …</button>
+      ${st !== 'beauftragt' ? `<button type="button" class="btn sm" data-ntent="beauftragt" data-k="${k}">✓ Bauherr hat beauftragt</button>` : ''}${st !== 'abgelehnt' ? `<button type="button" class="btn sm" data-ntent="abgelehnt" data-k="${k}">✕ abgelehnt</button>` : ''}
+      ${B.ph !== 'strittig' && st === 'angemeldet' ? `<button type="button" class="btn sm" data-ntph="strittig" data-k="${k}" title="Keine Einigung: Bauherr ordnet an (§ 650b BGB), Abschlag 80 % des Angebots (§ 650c)">⚖ strittig / angeordnet</button>` : ''}
+      ${st !== 'angemeldet' ? `<button type="button" class="btn sm" data-ntent="angemeldet" data-k="${k}">↺ wieder offen</button>` : ''}</div></div>`;
+}
+async function ntAktePut(k, body, rueck) {
+  const [lvId, ntE] = k.split(':'), nt = decodeURIComponent(ntE);
+  const r = await api(`api/lv/${lvId}/ntakte/${ntE}`, 'PUT', body);
+  NTA[lvId + ':' + nt] = r.ntakte; delete r.ntakte; PC[+lvId] = r; if (L && L.id === +lvId) L = r; render();
+  if (rueck) rueckgaengig(rueck.text, async () => { const r2 = await api(`api/lv/${lvId}/ntakte/${ntE}`, 'PUT', rueck.body); NTA[lvId + ':' + nt] = r2.ntakte; delete r2.ntakte; PC[+lvId] = r2; if (L && L.id === +lvId) L = r2; render(); });
+  lvEintrag(+lvId).catch(() => {});
+}
+document.addEventListener('change', async (e) => {
+  const el = e.target.closest && e.target.closest('[data-nta]'); if (!el) return;
+  const f = el.dataset.nta, k = el.dataset.k, [lvId, ntE] = k.split(':'), A = (NTA[lvId + ':' + decodeURIComponent(ntE)] || {}).akte || {};
+  let v = el.type === 'checkbox' ? el.checked : el.value; if (['angeboten', 'geprueft', 'beauftragt'].includes(f)) v = el.value.trim() === '' ? null : pf(el.value);
+  const alt = A[f] ?? (el.type === 'checkbox' ? false : null);
+  try { await ntAktePut(k, { [f]: v }, { text: 'Nachtragsakte geändert', body: { [f]: alt } }); } catch (er) { toast(er.message, true); }
+});
+document.addEventListener('click', async (e) => {
+  const ph = e.target.closest && e.target.closest('[data-ntph]');
+  if (ph) { e.stopPropagation(); const k = ph.dataset.k, [lvId, ntE] = k.split(':'), nt = decodeURIComponent(ntE), lv = PC[+lvId], A = ntAkteVon(lv, nt);
+    const kopf = (lv.data.items || []).find((y) => String(y.nt) === nt && (y.typ === 'titel' || !y.nt_erbe)) || {};
+    const neu = ph.dataset.ntph, altSt = kopf.nt_status || 'angemeldet';
+    const body = neu === 'beauftragt' ? { status: 'beauftragt' } : { phase: neu, ...(altSt !== 'angemeldet' ? { status: 'angemeldet' } : {}) };
+    try { await ntAktePut(k, body, { text: `${nt}: Stufe geändert`, body: { phase: A.phase || '', status: altSt } }); } catch (er) { toast(er.message, true); } return; }
+  const en = e.target.closest && e.target.closest('[data-ntent]');
+  if (en) { e.stopPropagation(); const k = en.dataset.k, [lvId, ntE] = k.split(':'), nt = decodeURIComponent(ntE), lv = PC[+lvId];
+    const kopf = (lv.data.items || []).find((y) => String(y.nt) === nt && (y.typ === 'titel' || !y.nt_erbe)) || {}, altSt = kopf.nt_status || 'angemeldet';
+    try { await ntAktePut(k, { status: en.dataset.ntent }, { text: `${nt} ${en.dataset.ntent === 'angemeldet' ? 'wieder offen' : en.dataset.ntent}`, body: { status: altSt } }); toast(`${nt}: ${en.dataset.ntent === 'angemeldet' ? 'wieder offen' : en.dataset.ntent}.`); } catch (er) { toast(er.message, true); } return; }
+  const pdfB = e.target.closest && e.target.closest('[data-ntpdf]');
+  if (pdfB) { e.stopPropagation(); const [lvId, ntE] = pdfB.dataset.ntpdf.split(':'); window.open(`api/lv/${lvId}/pdf?art=ntempf&nt=${ntE}`, '_blank', 'noopener'); return; }
+  const dw = e.target.closest && e.target.closest('[data-ntdw]');
+  if (dw) { e.stopPropagation(); if (!(await bpFrage('Diese Unterlage aus der Nachtragsakte entfernen?', { ok: 'Entfernen', gefahr: true }))) return;
+    try { const [lvId, ntE] = dw.dataset.k.split(':'); NTA[lvId + ':' + decodeURIComponent(ntE)] = await api('api/ntdatei/' + dw.dataset.ntdw, 'DELETE'); render(); } catch (er) { toast(er.message, true); } }
+});
+document.addEventListener('change', async (e) => {
+  const i = e.target.closest && e.target.closest('[data-ntdh]'); if (!i || !i.files[0]) return;
+  const [lvId, ntE] = i.dataset.ntdh.split(':'), fd = new FormData(); fd.append('datei', i.files[0]); i.value = '';
+  try { const r = await fetch(`api/lv/${lvId}/ntakte/${ntE}/datei`, { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await jsonAus(r); if (!r.ok) throw new Error(d.error || 'Fehler ' + r.status);
+    NTA[lvId + ':' + decodeURIComponent(ntE)] = d; render(); toast('Unterlage abgelegt.'); } catch (er) { toast(er.message, true); }
+});
 /* ---------- Aufträge: Nachtragsposition bzw. Nachtrag (Gliederungspunkt mit Inhalt) per Drag & Drop verschieben ----------
    auf einen Nachtrags-Gliederungspunkt: übernimmt dessen Nummer und Stand · zwischen Zeilen: Reihenfolge / Stelle im LV · mit Rückgängig */
 let NTZIEH = null;
@@ -5095,15 +5228,16 @@ function vAuftraege() {
     const NT = [...G.values()];
     const stVon = (gq) => { const st = [...new Set([gq.titel, ...gq.pos].filter(Boolean).map((y) => y.nt_status || 'angemeldet'))]; return st.length === 1 ? st[0] : 'gemischt'; };   // Stand des ganzen Nachtrags; einzelne Positionen können abweichen
     const zahl = (st) => NT.filter((gq) => stVon(gq) === st).length;
-    out.push(`<tr class="nt-neu"><td colspan="13"><span class="tw" style="padding-left:2.2rem"><button type="button" class="btn sm" data-ntneu="${x.id}" title="Nachtrag von Hand erfassen – aus Rechnungen und Aufmaßen der Firma entstehen Nachträge automatisch">＋ Nachtrag erfassen</button><button type="button" class="btn sm" data-ntang="${x.id}" title="Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen – Positionen prüfen und als Nachtrag übernehmen" style="margin-left:.4rem">📄 Nachtragsangebot einlesen …</button><span class="hint" style="margin-left:.6rem">${NT.length ? `${NT.length} Nachtr${NT.length === 1 ? 'ag' : 'äge'} · angemeldet ${zahl('angemeldet')} · beauftragt ${zahl('beauftragt')} · abgelehnt ${zahl('abgelehnt')}` : 'noch keine Nachträge – Positionen aus Rechnungen/Aufmaßen, die nicht im LV stehen, werden automatisch Nachträge'}</span></span></td></tr>`);
+    out.push(`<tr class="nt-neu"><td colspan="13"><span class="tw" style="padding-left:2.2rem"><button type="button" class="btn sm" data-ntneu="${x.id}" title="Nachtrag von Hand erfassen – aus Rechnungen und Aufmaßen der Firma entstehen Nachträge automatisch">＋ Nachtrag erfassen</button><button type="button" class="btn sm" data-ntang="${x.id}" title="Nachtragsangebot der Firma (GAEB X84, Excel, PDF oder Scan) lesen – Positionen prüfen und als Nachtrag übernehmen" style="margin-left:.4rem">📄 Nachtragsangebot einlesen …</button><span class="hint" style="margin-left:.6rem">${NT.length ? `${NT.length} Nachtr${NT.length === 1 ? 'ag' : 'äge'} · angemeldet ${zahl('angemeldet')} · beauftragt ${zahl('beauftragt')} · abgelehnt ${zahl('abgelehnt')}` : 'noch keine Nachträge – Positionen aus Rechnungen/Aufmaßen, die nicht im LV stehen, werden automatisch Nachträge'}</span>${ntModusKopf(x.id, lv)}</span></td></tr>`);
     const ntSel = (st, key, grund, t = '') => `<select class="nt-st ${st}" data-ntst="${key}" title="${esc(t || grund || '')}">${st === 'gemischt' ? '<option value="gemischt" selected>gemischt</option>' : ''}${['angemeldet', 'beauftragt', 'abgelehnt'].map((s3) => `<option value="${s3}"${st === s3 ? ' selected' : ''}>${s3}</option>`).join('')}</select>`;
     NT.forEach((gq) => {
       const st = stVon(gq), ab = st === 'abgelehnt', kopf = gq.titel || (gq.pos.length === 1 ? gq.pos[0] : null), kk = `${k}:nt:${gq.nt}`;
       const summe = gq.pos.reduce((a, y) => { const r = R.find((q) => q.x === y) || {}; return a + (r.nt || r.gRoh || 0); }, 0);
       const grund = (gq.titel || gq.pos[0] || {}).nt_grund || '';
       const einzeln = !gq.titel && gq.pos.length === 1;   // einzelne Nachtragsposition: wie bisher eine Zeile
-      const bez = einzeln ? `<span class="badge nt">${esc(gq.nt)}</span> ${auFelder(lv, kopf).bz}`
-        : `<span class="badge nt">${esc(gq.nt)}</span>${gq.titel ? ` <b>${esc(gq.titel.oz || '')}</b> ${esc(gq.titel.kurz || '')}` : ''} <small class="mu">${gq.titel ? 'Gliederungspunkt · ' : ''}${gq.pos.length} Pos.</small>`;
+      const bez = (einzeln ? `<span class="badge nt">${esc(gq.nt)}</span> ${auFelder(lv, kopf).bz}`
+        : `<span class="badge nt">${esc(gq.nt)}</span>${gq.titel ? ` <b>${esc(gq.titel.oz || '')}</b> ${esc(gq.titel.kurz || '')}` : ''} <small class="mu">${gq.titel ? 'Gliederungspunkt · ' : ''}${gq.pos.length} Pos.</small>`)
+        + (ntPruef(x.id) ? ntZeileInfo(lv, gq.nt, st, summe) : '');
       NTZ = true;
       row(kk, 2, !einzeln, gq.titel ? IC.ti : IC.pos, `<span class="${ab ? 'mu' : ''}" title="${esc(grund)}">${bez}</span>`,
         ['', '', ntSel(st, `${x.id}:nt=${encodeURIComponent(gq.nt)}`, grund, einzeln ? grund : 'Stand für den ganzen Nachtrag – gilt für alle Positionen darunter' + (grund ? ' · ' + grund : '')), e2(summe), e2(summe), gq.titel ? 'Nachtragstitel' : 'Nachtrag', '', esc((kopf || {}).kg || ''), `<button type="button" class="ib nt-del" data-ntdel="${x.id}:${encodeURIComponent(gq.nt)}:" title="Nachtrag ${esc(gq.nt)} löschen (mit Rückgängig)">🗑</button>`], einzeln ? auFelder(lv, kopf).mx : null);
@@ -5132,7 +5266,7 @@ function vAuftraege() {
   const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:12rem"' : ' draggable="true"'} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)${n ? ' · ziehen: Spalte verschieben' : ''} · rechte Maustaste: Spalten wählen">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein-/ausblenden und verschieben (auch: rechte Maustaste auf einen Spaltenkopf)">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
 `;
   if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
-  return `<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auftragKarte()}</aside>` : ''}</div>`;
+  return `<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auRechts()}</aside>` : ''}</div>`;
 }
 /* Eingabezeile in der Aufträge-Tabelle (wie in Excel): Bezeichnung · Menge · EH · EP, Enter speichert; nt = '' legt einen neuen Nachtrag an.
    Strg+V mit mehreren Zeilen (Excel/Mail/PDF-Text) erfasst alle auf einmal – Menge, Einheit und EP werden aus der Zeile gelesen. */
@@ -5397,7 +5531,8 @@ document.addEventListener('click', async (e) => {
   // nur die Markierung umsetzen – kein Neuaufbau, sonst geht der Doppelklick ins Leere
   document.querySelectorAll('.tree tr.sel').forEach((r) => r.classList.remove('sel')); tr.classList.add('sel');
   if (m && (!L || L.id !== +m[1])) { await flush(); L = await api('api/lv/' + m[1]); LS.set('lv:' + pid, L.id); PC[L.id] = L; selBtn(); kpis(); $('#phT').textContent = 'Aufträge: ' + ((PROJ.find((p) => p.id === pid) || {}).name || '');
-    const re = document.querySelector('.au2-re'); if (re) re.innerHTML = auftragKarte(); }   // Karte rechts folgt der Auswahl, die Tabelle bleibt stehen
+    const re = document.querySelector('.au2-re'); if (re) re.innerHTML = auRechts(); }   // Karte rechts folgt der Auswahl, die Tabelle bleibt stehen
+  else if (/:nt:/.test(TSEL) || /:nt:/.test(e.target.closest('tr[data-tr]').dataset.tr)) { const re = document.querySelector('.au2-re'); if (re) re.innerHTML = auRechts(); }
 });
 document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste in der Aufträge-Tabelle
   if (tab !== 'auftraege') return;

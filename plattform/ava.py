@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, fehler, gaeb, layout, papierkorb, platform, schrift, sso, stammdaten, versionen
+from bpcore import ai, baudaten, db, fehler, gaeb, layout, papierkorb, platform, schrift, sso, stammdaten, versionen, vorgang
 import common as C
 
 app = C.make_app(__name__)
@@ -2903,6 +2903,165 @@ def _nachtrag_dazu(c, r, i, zu_nt, b):
     return _antwort(c, i)
 
 
+# ---------------------------------------------------------------- Nachtragsabwicklung mit Prüfablauf (je Projekt umschaltbar)
+NT_PHASEN = ("angekuendigt", "angebot", "geprueft", "strittig")
+NT_GRUNDLAGEN = {"2-3": "§ 2 Abs. 3 VOB/B – Mengenänderung über 10 %", "2-5": "§ 2 Abs. 5 VOB/B – geänderte Leistung",
+                 "2-6": "§ 2 Abs. 6 VOB/B – zusätzliche Leistung", "2-8": "§ 2 Abs. 8 VOB/B – Leistung ohne Auftrag",
+                 "6-6": "§ 6 VOB/B – Behinderung", "650c": "§ 650b/c BGB – Anordnung des Bestellers", "sonst": "Sonstiges"}
+NT_FRISTEN = {"frist_angebot": "Nachtragsangebot der Firma", "frist_pruefung": "Nachtrag prüfen", "frist_bauherr": "Entscheidung Bauherr"}
+_NTD = {"ok": False}
+
+
+def _ntd_tabelle(c):
+    if _NTD["ok"]:
+        return
+    c.execute("""CREATE TABLE IF NOT EXISTS ava_nt_datei(id SERIAL PRIMARY KEY, lv_id INTEGER NOT NULL, nt TEXT NOT NULL DEFAULT '',
+                 name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT 'application/pdf', data BYTEA,
+                 created TEXT NOT NULL DEFAULT '', user_name TEXT NOT NULL DEFAULT '')""")
+    _NTD["ok"] = True
+
+
+def _ntmodus(c, pid):
+    g_ = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key=? OR key='ava_ntgrenze'", (f"ava_ntmodus:{pid}",)).fetchall()}
+    return {"modus": g_.get(f"ava_ntmodus:{pid}") or "einfach", "grenze": _fn(g_.get("ava_ntgrenze"))}
+
+
+@app.route("/api/ntmodus", methods=["GET", "PUT"])
+def ntmodus():
+    """Nachträge „einfach“ (wie bisher) oder „mit Prüfablauf“ – je Projekt; dazu bürobreit optional: ab Auftragssumme automatisch Prüfablauf."""
+    pid = request.args.get("pid", type=int)
+    with db.tx() as c:
+        if pid and not _sees(c, pid):
+            return jsonify(error="Nicht gefunden"), 404
+        if request.method == "PUT":
+            b = request.get_json(silent=True) or {}
+            if pid and b.get("modus") in ("einfach", "pruefung"):
+                c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (f"ava_ntmodus:{pid}", b["modus"]))
+            if "grenze" in b:
+                gr = _fn(b.get("grenze"))
+                c.execute("INSERT INTO settings(key, value) VALUES('ava_ntgrenze', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", ("" if not gr else str(round(gr, 2)),))
+        return jsonify(_ntmodus(c, pid) if pid else {"modus": "einfach", "grenze": None})
+
+
+def _nt_akte_lesen(c, r, nt):
+    V = _j(r["vergabe"], {}) or {}
+    A = dict((V.get("nt_akte") or {}).get(nt) or {})
+    _ntd_tabelle(c)
+    A["dateien"] = [dict(x) for x in c.execute("SELECT id, name, created, user_name FROM ava_nt_datei WHERE lv_id=? AND nt=? ORDER BY id", (r["id"], nt)).fetchall()]
+    vg = []
+    if r["project_id"]:
+        vg = [dict(x) for x in c.execute("SELECT id, art, titel, zeit FROM kom_vorgang WHERE project_id=? ORDER BY zeit DESC LIMIT 100", (r["project_id"],)).fetchall()]
+    return {"akte": A, "vorgaenge": vg, "grundlagen": NT_GRUNDLAGEN}
+
+
+@app.route("/api/lv/<int:i>/ntakte/<nt>", methods=["GET", "PUT"])
+def nt_akte(i, nt):
+    """Akte eines Nachtrags (Prüfablauf): Stufe, Anlass (Vorgang aus Kommunikation), Rechtsgrundlage, Ankündigung, drei Beträge
+    (angeboten / geprüft / beauftragt), Prüfvermerk, Bauzeit, Fristen (als To-dos), Unterlagen. Liegt in vergabe.nt_akte[NT]."""
+    nt = _s(nt, 20)
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        if request.method == "GET":
+            return jsonify(_nt_akte_lesen(c, r, nt))
+        b = request.get_json(silent=True) or {}
+        V = _j(r["vergabe"], {}) or {}
+        AK = V.setdefault("nt_akte", {})
+        A = AK.setdefault(nt, {})
+        for k in ("anlass", "vermerk"):
+            if k in b:
+                A[k] = _s(b.get(k), 2000)
+        if "phase" in b:
+            A["phase"] = b["phase"] if b.get("phase") in NT_PHASEN else ""
+        if "grundlage" in b:
+            A["grundlage"] = b["grundlage"] if b.get("grundlage") in NT_GRUNDLAGEN else ""
+        if "anlass_vg" in b:
+            A["anlass_vg"] = int(b["anlass_vg"]) if str(b.get("anlass_vg") or "").isdigit() else None
+        if "angekuendigt" in b:
+            A["angekuendigt"] = _s(b.get("angekuendigt"), 10)
+        if "vor_ausf" in b:
+            A["vor_ausf"] = bool(b.get("vor_ausf"))
+        for k in ("angeboten", "geprueft", "beauftragt"):
+            if k in b:
+                A[k] = None if b.get(k) in (None, "") else round(_f(b.get(k), 0), 2)
+        if "bauzeit" in b:
+            A["bauzeit"] = int(_f(b.get("bauzeit"), 0, -999, 999))
+        pr = c.execute("SELECT name FROM projects WHERE id=?", (r["project_id"],)).fetchone() if r["project_id"] else None
+        for k, was in NT_FRISTEN.items():   # Fristen als To-dos (wichtig, Erinnerung am Fristtag)
+            if k not in b:
+                continue
+            neu, tid = _s(b.get(k), 10), (A.get("todos") or {}).get(k)
+            A[k] = neu
+            if tid and not c.execute("SELECT 1 FROM todo WHERE id=?", (tid,)).fetchone():
+                tid = None
+            if neu and tid:
+                c.execute("UPDATE todo SET faellig=?, erinnerung=?, status='offen', geaendert=? WHERE id=?", (neu, neu, _now(), tid))
+            elif neu:
+                tid = vorgang.frist_todo(c, g.user, r["project_id"], f"{was}: {nt} · LV {r['nr']} {r['name']}".strip(), neu,
+                                         f"Nachtrag {nt} – {(V.get('bieter') or '')}".strip(" –"))
+            elif tid:
+                c.execute("UPDATE todo SET status='erledigt', geaendert=? WHERE id=?", (_now(), tid))
+            A.setdefault("todos", {})[k] = tid if neu else None
+        # Entscheidung des Bauherrn: Stand des ganzen Nachtrags
+        if b.get("status") in ("angemeldet", "beauftragt", "abgelehnt"):
+            d = _j(r["data"], {}) or {}
+            for y in d.get("items") or []:
+                if str(y.get("nt")) == nt and not y.get("nt_erbe"):
+                    y["nt_status"] = b["status"]
+            nt_erben(d.get("items") or [])
+            c.execute("UPDATE ava_lv SET data=? WHERE id=?", (json.dumps(d, ensure_ascii=False), i))
+            for k in ("frist_bauherr",) if b["status"] != "angemeldet" else ():   # entschieden: To-do erledigt
+                tid = (A.get("todos") or {}).get(k)
+                if tid:
+                    c.execute("UPDATE todo SET status='erledigt', geaendert=? WHERE id=?", (_now(), tid))
+        A["geaendert"] = _now(); A["von"] = g.user["name"]
+        c.execute("UPDATE ava_lv SET vergabe=?, rev=rev+1, updated=?, updated_by=? WHERE id=?", (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
+        C.audit(g.user["name"], "ava", "Nachtragsakte", f"LV {r['nr']} {r['name']}: {nt} {', '.join(k for k in b)}")
+        out = _antwort(c, i).get_json()
+        out["ntakte"] = _nt_akte_lesen(c, _lv(c, i), nt)
+        return jsonify(out)
+
+
+@app.post("/api/lv/<int:i>/ntakte/<nt>/datei")
+def nt_datei_neu(i, nt):
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei"), 400
+    data = f.read()
+    if len(data) > 25 * 1024 * 1024:
+        return jsonify(error="Die Datei ist zu groß (höchstens 25 MB)."), 400
+    mime = f.mimetype or "application/octet-stream"
+    if not (mime == "application/pdf" or mime.startswith("image/") or mime in ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel")):
+        return jsonify(error="Bitte PDF, Bild oder Excel."), 400
+    with db.tx() as c:
+        r = _lv(c, i)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        _ntd_tabelle(c)
+        c.execute("INSERT INTO ava_nt_datei(lv_id, nt, name, mime, data, created, user_name) VALUES(?,?,?,?,?,?,?)",
+                  (i, _s(nt, 20), _s(f.filename, 200) or "Datei", mime, data, _now(), g.user["name"]))
+        return jsonify(_nt_akte_lesen(c, r, _s(nt, 20)))
+
+
+@app.route("/api/ntdatei/<int:k>", methods=["GET", "DELETE"])
+def nt_datei(k):
+    with db.tx() as c:
+        _ntd_tabelle(c)
+        x = c.execute("SELECT * FROM ava_nt_datei WHERE id=?", (k,)).fetchone()
+        r = _lv(c, x["lv_id"]) if x else None
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        if request.method == "DELETE":
+            c.execute("DELETE FROM ava_nt_datei WHERE id=?", (k,))
+            return jsonify(_nt_akte_lesen(c, r, x["nt"]))
+    resp = Response(bytes(x["data"] or b""), mimetype=x["mime"] if x["mime"] in ("application/pdf",) or x["mime"].startswith("image/") else "application/octet-stream")
+    resp.headers["Content-Disposition"] = f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["Content-Security-Policy"] = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
+    return resp
+
+
 @app.post("/api/lv/<int:i>/nachtrag/verschieben")
 def nachtrag_verschieben(i):
     """Nachtragsposition bzw. Nachtrags-Gliederungspunkt (mit Inhalt) an eine andere Stelle ziehen (Aufträge, Drag & Drop).
@@ -5379,6 +5538,59 @@ def lv_pdf(i):
     elif art == "aufmass":
         pdf = _am_pdf()
         fn = "Massenermittlung"; zusatz_ = ""
+    elif art == "ntempf":   # Nachtragsempfehlung für den Bauherrn (Prüfablauf)
+        nt = _s(request.args.get("nt"), 20)
+        grp = [x for x in items if str(x.get("nt")) == nt and x.get("typ") == "pos" and x.get("art") != "T"]
+        if not grp:
+            return jsonify(error="Nachtrag nicht gefunden"), 404
+        A = (V.get("nt_akte") or {}).get(nt) or {}
+        kopf = next((x for x in items if str(x.get("nt")) == nt and x.get("typ") == "titel"), None) or grp[0]
+        with db.tx() as c3:
+            vg = c3.execute("SELECT art, titel, zeit FROM kom_vorgang WHERE id=?", (A.get("anlass_vg"),)).fetchone() if A.get("anlass_vg") else None
+        epx = lambda x: _fn(VP.get(x["id"])) if VP.get(x["id"]) is not None else _fn(x.get("ep_s"))   # noqa: E731
+        summe = round(sum(round((x.get("menge") or 0) * (epx(x) or 0), 2) for x in grp), 2)
+        gepr = A.get("geprueft") if A.get("geprueft") is not None else summe
+        bisher = K["nachtraege"]["beauftragt"] - (summe if (kopf.get("nt_status") == "beauftragt") else 0)
+
+        def st(story, S, X, table, W, mm, p):
+            anl = []
+            if vg:
+                anl.append(f"{X(vg['titel'] or vg['art'])}" + (f" vom {_de((vg['zeit'] or '')[:10])}" if vg["zeit"] else ""))
+            if A.get("anlass"):
+                anl.append(X(A["anlass"]))
+            if A.get("grundlage"):
+                anl.append(X(NT_GRUNDLAGEN.get(A["grundlage"], "")))
+            if A.get("angekuendigt"):
+                anl.append(f"Mehrkosten angekündigt am {_de(A['angekuendigt'])}" + (" (vor Ausführung)" if A.get("vor_ausf") else ""))
+            story += [Paragraph(f"Nachtrag {X(nt)}: {X(kopf.get('oz') or '')} {X(kopf.get('kurz') or '')}", S["h2"]), Spacer(1, 2 * mm),
+                      Paragraph(f"<b>Auftragnehmer:</b> {X(V.get('bieter') or '—')}", S["p"])]
+            if anl:
+                story.append(Paragraph("<b>Anlass:</b> " + " · ".join(anl), S["p"]))
+            story.append(Spacer(1, 3 * mm))
+            rows = [["Pos.", "Leistung", "Menge", "EH", "EP", "geprüft"]]
+            for x in grp:
+                e_ = epx(x)
+                rows.append([x.get("oz") or "", Paragraph(X(x.get("kurz") or ""), S["p"]), num(x.get("menge") or 0), x.get("einheit") or "",
+                             eur(e_).replace(" €", "") if e_ is not None else "—", eur(round((x.get("menge") or 0) * (e_ or 0), 2)).replace(" €", "")])
+            story.append(table(rows, [24 * mm, W - 24 * mm - 98 * mm, 18 * mm, 12 * mm, 30 * mm, 38 * mm], num=(2, 4, 5)))
+            z = []
+            if A.get("angeboten") is not None:
+                z.append(["vom Auftragnehmer angeboten netto", eur(A["angeboten"])])
+            z.append(["geprüft netto", eur(gepr)])
+            if A.get("angeboten") is not None:
+                z.append(["Differenz zum Angebot", eur(round(gepr - A["angeboten"], 2))])
+            z.append([f"geprüft brutto (zzgl. {num(MWST, 0)} % USt.)", eur(round(gepr * (1 + MWST / 100), 2))])
+            story += [Spacer(1, 3 * mm), table(z, [W - 50 * mm, 50 * mm], num=(1,), head=False, bold=(1 if A.get("angeboten") is not None else 0,))]
+            if A.get("vermerk"):
+                story += [Spacer(1, 3 * mm), Paragraph(f"<b>Prüfvermerk:</b> {X(A['vermerk'])}", S["p"])]
+            story += [Spacer(1, 3 * mm), Paragraph(f"<b>Empfehlung:</b> Beauftragung über <b>{eur(gepr)} netto</b> ({eur(round(gepr * (1 + MWST / 100), 2))} brutto)."
+                                                   + (f" Bauzeit {'+' if (A.get('bauzeit') or 0) > 0 else ''}{A['bauzeit']} Arbeitstage." if A.get("bauzeit") else ""), S["p"]),
+                      Spacer(1, 2 * mm),
+                      Paragraph(f"Auswirkung: Auftrag {eur(K['auftrag'])} + beauftragte Nachträge {eur(bisher)} + dieser Nachtrag {eur(gepr)} = <b>{eur(round(K['auftrag'] + bisher + gepr, 2))}</b> netto.", S["l"]),
+                      Spacer(1, 8 * mm), Paragraph("☐ beauftragt wie empfohlen &nbsp;&nbsp;&nbsp; ☐ beauftragt über ______________ € netto &nbsp;&nbsp;&nbsp; ☐ abgelehnt", S["p"]),
+                      Spacer(1, 16 * mm), table([["Ort, Datum · Bauleitung (geprüft)", "", "Ort, Datum · Bauherr (beauftragt)"]], [W * 0.45, W * 0.1, W * 0.45], head=False)]
+        pdf = _pdf(r, f"Nachtragsempfehlung {nt}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st, bereich="rechnungsfreigabe")
+        fn = "Nachtragsempfehlung"; zusatz_ = nt
     elif art == "rechnung":
         rid = request.args.get("rid", type=int)
         R = next((x for x in P["rechnungen"] if x["id"] == rid), None)

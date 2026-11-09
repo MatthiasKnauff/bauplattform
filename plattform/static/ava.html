@@ -92,10 +92,6 @@ main.ava{overflow-x:clip}   /* die Seite selbst rollt nie seitlich – breite Ta
 .bed-f{position:absolute;box-sizing:border-box;margin:0;border:0;border-radius:calc(2px*var(--rk,1));background:rgba(255,226,120,.3);color:#1c1c1a;font-family:Lato,Helvetica,Arial,sans-serif;line-height:1.2;resize:none;outline:none;overflow:hidden}
 .bed-e{position:absolute;cursor:text;border-radius:calc(2px*var(--rk,1))}
 .bed-e:hover{background:rgba(255,226,120,.25);box-shadow:0 0 0 1px rgba(224,168,0,.6)}
-.bed-t{position:absolute;z-index:3;box-sizing:border-box;margin:0;border:0;border-radius:calc(3px*var(--rk,1));background:#fffbe6;color:#1c1c1a;font-family:Lato,Helvetica,Arial,sans-serif;line-height:1.25;resize:vertical;outline:none;box-shadow:var(--sh0,0 0 0 2px #e0a800,0 8px 24px rgba(0,0,0,.25));padding:3px 4px}
-.bed-tb{position:absolute;z-index:3;display:flex;gap:4px;font:12px/1 system-ui,sans-serif}
-.bed-tb button{border:1px solid #e0a800;background:#fff;color:#1c1c1a;border-radius:calc(6px*var(--rk,1));padding:4px 8px;cursor:pointer}
-.bed-tb button.pri{background:#e0a800;color:#111}
 .bed-f:focus{background:rgba(255,236,160,.6);box-shadow:0 0 0 1.5px #e0a800}
 .bed-l{color:#ddd;padding:3rem}
 @media (max-width:860px){.dz{grid-template-columns:1fr;grid-template-rows:auto 1fr}.dz-side{max-height:40vh}}
@@ -3996,51 +3992,21 @@ async function druckEditor() {
     } catch (e) { if (my === tok) { S.classList.remove('bed-lädt'); } if (my === tok) S.innerHTML = `<div class="bed-l">${esc(e.message || 'Vorschau nicht möglich')}</div>`; }
   }
   let t0 = 0; const spaeter = (ms = 500) => { clearTimeout(t0); t0 = setTimeout(laden, ms); };
-  function textBearbeiten(ziel) {   // Kurz-/Langtext direkt in der Vorschau – schreibt in die Position (mit ↶ Rückgängig)
+  function textBearbeiten(ziel) {   // Klick auf einen Positionstext in der Vorschau: derselbe Dialog „Eigenschaften der Position“ wie im LV (ein Dialog für alles)
     const x = (L.data.items || []).find((y) => String(y.id) === ziel.dataset.pos); if (!x) return toast('Position nicht gefunden.', true);
-    const feld = ziel.dataset.feld, sc = +ziel.dataset.sc || 1, box = ziel.parentNode;
-    if (feld === 'lang') {   // Langtexte laufen oft über die Seite – eigenes Fenster statt eines Felds auf einer Seite
-      const bg = modalBox(`<h3>${esc(x.oz || '')} ${esc(x.kurz || '')}</h3><p class="hint" style="margin:0 0 .5rem">Langtext – die Änderung geht ins LV (↶ Rückgängig möglich).</p>
-        <textarea id="dLang" rows="16" style="width:100%;box-sizing:border-box;font:inherit;line-height:1.45">${esc(x.lang || '')}</textarea>
-        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, b2, close) => {
-        if (m === 'x') { close(); return; }
-        if (m !== 'ok') return;
-        const neu = b2.querySelector('#dLang').value.replace(/\s+$/, ''); close();
-        if (neu === (x.lang || '')) return;
-        x.lang = neu; HIST.next = `${x.oz || 'Position'}: Langtext im Druck geändert`; changed(true);
-        clearTimeout(saveT); saveT = 0; try { await saveNow(); } catch (er) { toast(er.message, true); }
-        laden();
-      });
-      bg.querySelector('.modal').style.width = 'min(760px,100%)'; bg.style.zIndex = 9500;
-      setTimeout(() => { const t = bg.querySelector('#dLang'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 30);
-      return;
-    }
-    box.querySelectorAll('.bed-t,.bed-tb').forEach((n) => n.remove());
-    const ta = document.createElement('textarea'); ta.className = 'bed-t'; ta.value = feld === 'lang' ? (x.lang || '') : (x.kurz || '');
-    const l = parseFloat(ziel.style.left), t = parseFloat(ziel.style.top), w = Math.max(parseFloat(ziel.style.width), 260);
-    const zeilen = Math.min(18, Math.max(feld === 'kurz' ? 2 : 5, ta.value.split('\n').length + 1));
-    Object.assign(ta.style, { left: l + 'px', top: t + 'px', width: w + 'px', height: (zeilen * 9 * sc * 1.3 + 8) + 'px', fontSize: (9 * sc) + 'px', fontWeight: feld === 'kurz' ? '700' : '400' });
-    const tb = document.createElement('div'); tb.className = 'bed-tb';
-    tb.innerHTML = '<button type="button" class="pri" data-te="ok">Übernehmen</button><button type="button" data-te="x">Abbrechen</button>';
-    box.append(ta, tb);
-    const lage = () => { tb.style.left = l + 'px'; tb.style.top = (t + ta.offsetHeight + 4) + 'px'; }; lage();
-    try { new ResizeObserver(lage).observe(ta); } catch { /* egal */ }
-    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
-    let fertig = false;
-    const ende = async (ok) => {
-      if (fertig) return; fertig = true;
-      const neu = feld === 'kurz' ? ta.value.replace(/\s*\n\s*/g, ' ').trim() : ta.value.replace(/\s+$/, '');
-      ta.remove(); tb.remove();
-      if (!ok || neu === (feld === 'lang' ? (x.lang || '') : (x.kurz || ''))) return;
-      if (feld === 'kurz' && !neu) return toast('Der Kurztext darf nicht leer sein.', true);
-      x[feld] = neu; HIST.next = `${x.oz || 'Position'}: ${feld === 'kurz' ? 'Kurztext' : 'Langtext'} im Druck geändert`; changed(true);
-      clearTimeout(saveT); saveT = 0; try { await saveNow(); } catch (er) { toast(er.message, true); }
+    const vorher = JSON.stringify(x);
+    LS.set('eigTab', 'allgemein');   // Kurz- und Langtext stehen im Reiter „Allgemein“
+    eigDialog(x.id);
+    const alle = document.querySelectorAll('.modal-bg'), bg = alle[alle.length - 1]; if (!bg) return;
+    bg.style.zIndex = 9500;
+    const mo = new MutationObserver(async () => {   // Dialog zu: speichern und die Vorschau neu aufbauen, wenn sich etwas geändert hat
+      if (bg.isConnected) return; mo.disconnect();
+      const y = (L.data.items || []).find((z) => z.id === x.id);
+      if (JSON.stringify(y || null) === vorher) return;
+      try { await flush(); } catch (er) { toast(er.message, true); }
       laden();
-    };
-    ta.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ende(false); } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || feld === 'kurz')) { e.preventDefault(); ende(true); } });
-    tb.addEventListener('mousedown', (e) => e.preventDefault());
-    tb.addEventListener('click', (e) => { const b = e.target.closest('[data-te]'); if (b) ende(b.dataset.te === 'ok'); });
-    ta.addEventListener('blur', () => setTimeout(() => ende(true), 150));
+    });
+    mo.observe(document.body, { childList: true });
   }
   S.addEventListener('click', (e) => { const z = e.target.closest('.bed-e'); if (z) textBearbeiten(z); });
   ov.addEventListener('input', (e) => { const f = e.target.dataset.f; if (f && F) F[f] = e.target.value; if (f && e.target.closest('.dz-side')) spaeter(1200); });

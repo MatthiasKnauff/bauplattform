@@ -14,7 +14,9 @@ main.wrap{max-width:1400px}
 .raster{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:64px;gap:10px;position:relative;margin-bottom:1rem}
 .ri{position:relative;min-width:0;min-height:0}
 .ri>.tile{height:100%;box-sizing:border-box}
-.ri-w>.ue-b,.ri-w>.post{height:100%;box-sizing:border-box;overflow:auto;margin:0}
+.ri-w>.ue-b,.ri-w>.post{height:100%;box-sizing:border-box;overflow:hidden;margin:0;padding-bottom:.6rem}
+.r-weg{display:none!important}
+.ri-w [data-mehr]::after{content:"+ " attr(data-mehr) " weitere – Widget größer ziehen oder öffnen";display:block;color:var(--mute);font-size:.76rem;padding-top:.25rem}
 .ri-w>.ue-b>h3,.ri-w .post-h{position:sticky;top:-.6rem;background:var(--card);z-index:2;cursor:grab;margin-top:-.6rem;padding-top:.6rem}
 .ri-w .post-h{top:-.9rem;margin-top:-.9rem;padding-top:.9rem}
 .ri-a>.tile{cursor:pointer}.ri-a{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
@@ -283,6 +285,25 @@ document.addEventListener('click', async (e) => {
   pickMenu(b, { search: 'Projekt suchen …', items: [{ value: 0, title: 'Aktuelles Projekt', sub: 'folgt der Projektwahl oben', on: !akt }].concat(WXP.filter((p) => !p.archived).map((p) => ({ value: p.id, title: p.name, on: akt === p.id }))),
     onPick: (v) => { const L = rLayout(), x = L.find((r) => r.i === id); if (!x) return; if (v) x.o = { p: +v }; else delete x.o; rSpeichern(L); rasterZeigen(); } });
 }, true);
+
+/* nur ganze Zeilen: was unten nicht mehr ganz hineinpasst, wird ausgeblendet (unten bleibt ein schmaler Rand) – Hinweis „+ n weitere“ */
+const RZEILE = '.tr, .ue-r, .pm, .pg-h, .bz-z, .bz-pl, .ks-z, .wx-sub, .tg, details.post-aus, .ue-leer, .vs, p.mute';
+function rZeilen() {
+  if (RZIEH) return;
+  document.querySelectorAll('#raster .ri-w>.ue-b, #raster .ri-w>.post').forEach((sec) => {
+    sec.querySelectorAll('.r-weg').forEach((x) => x.classList.remove('r-weg')); sec.removeAttribute('data-mehr');
+    if (sec.scrollHeight <= sec.clientHeight + 1) return;
+    const R = [...sec.querySelectorAll(RZEILE)].filter((x) => !x.parentElement.closest(RZEILE));   // äußerste Zeilen
+    let n = 0;
+    sec.setAttribute('data-mehr', '0');
+    for (let i = R.length - 1; i >= 0 && sec.scrollHeight > sec.clientHeight + 1; i--) { R[i].classList.add('r-weg'); if (!R[i].matches('.pg-h, .tg, .bz-pl')) n++; }
+    const V = R.filter((x) => !x.classList.contains('r-weg')), K = (x) => x.matches('.pg-h, .tg, .bz-pl');
+    V.forEach((x, i) => { if (K(x) && (i === V.length - 1 || K(V[i + 1]))) x.classList.add('r-weg'); });   // Überschrift ohne Zeilen darunter weg
+    if (n) sec.setAttribute('data-mehr', String(n)); else sec.removeAttribute('data-mehr');
+  });
+}
+{ let t = 0; const mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(rZeilen, 60); }); mo.observe($('#raster'), { childList: true, subtree: true, characterData: true });
+  addEventListener('resize', () => { clearTimeout(t); t = setTimeout(rZeilen, 120); }); }
 
 /* ✕ und ＋ */
 $('#raster').addEventListener('click', (e) => {

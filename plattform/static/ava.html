@@ -447,6 +447,8 @@ html.mobil .bph{position:sticky;top:0}
 .am-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;align-items:start}
 .tree tr.nt-neu td{background:color-mix(in srgb,var(--y) 7%,var(--card));padding:.3rem .45rem}.nt-st{font:inherit;font-size:var(--fs-s2);padding:.05rem .3rem;border-radius:6px;border:1px solid var(--line);background:var(--card);color:inherit}
 .nt-st.beauftragt{border-color:#4caf50;color:#2e7d32}.nt-st.abgelehnt{border-color:#e05050;color:#c0392b;text-decoration:line-through}.nt-st.angemeldet{border-color:#e0a030;color:#b7791f}.tree .nt-del{opacity:0;padding:0 .3rem;font-size:.85em}.tree tr:hover .nt-del,.tree tr.sel .nt-del{opacity:.75}.tree .nt-del:hover{opacity:1}
+.sb-griff{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:2;border-radius:2px}.sb-griff:hover,body.sb-zieh .sb-griff{background:color-mix(in srgb,var(--y) 45%,transparent)}body.sb-zieh{cursor:col-resize;user-select:none}
+table[style*="fixed"] td{overflow:hidden;text-overflow:ellipsis}
 .tree tr.nt-ein td{background:color-mix(in srgb,var(--y) 4%,var(--card));padding:.15rem .4rem}.tree tr.nt-ein input{font:inherit;font-size:var(--fs);padding:.12rem .4rem;border:1px solid var(--line);border-radius:6px;background:var(--inp);color:var(--ink)}.tree tr.nt-ein input:focus{border-color:var(--y);outline:0}.tree tr.nt-ein input::placeholder{color:var(--mute)}
 .nt-pos{width:100%;border-collapse:collapse;margin:.3rem 0 .4rem;font-size:var(--fs)}.nt-pos th{text-align:left;font-weight:500;color:var(--mute);padding:.1rem .25rem}.nt-pos td{padding:.1rem .25rem}.nt-pos input{width:100%;box-sizing:border-box}.nt-pos .ib{padding:.1rem .35rem}
 .nt-st.gemischt{border-color:var(--mute);color:var(--mute);font-style:italic}
@@ -532,7 +534,7 @@ tr.am-lf td input{color:#c0621f}
 .lvx-akt .tblw{max-height:none;overflow:visible}   /* im Tabellenfeld scrollt die Seite: die übrigen LVs laufen weg, Knopfleiste und Spaltenköpfe bleiben stehen */
 .lvx-akt table.tree th,.lvx-akt table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
 .re2.mit-lvbar table.tree th,.re2.mit-lvbar table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
-.lv-split>.lv-sl{overflow-x:clip}   /* breite LV-Tabelle neben der PDF: rechts sauber abschneiden statt über die PDF zu ragen (Trennung ziehen zeigt mehr) */
+.lv-split>.lv-sl{overflow-x:auto}   /* breite LV-Tabelle neben der PDF/den Baudaten: waagerecht rollen statt abschneiden (Trennung ziehen oder Spaltenbreiten anpassen zeigt mehr) */
 .au2{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:.7rem;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto}
 .au-k h3{margin:.1rem 0 .5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.au-k h4{margin:.9rem 0 .35rem;font-size:var(--fs)}.au-sum{display:grid;grid-template-columns:1fr;gap:.15rem;font-size:var(--fs)}.au-sum span{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--line);padding:.1rem 0}.au-sum b{font-variant-numeric:tabular-nums}
 .au-kond .vk{font-size:var(--fs)}.au-kond .vk input,.au-kond .vk select{font-size:var(--fs)}
@@ -1518,6 +1520,7 @@ function render() {
   einUeb();
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
   if (typeof histUi === 'function') setTimeout(histUi, 0);
+  setTimeout(spaltenGriffe, 0);
   if (tab !== 'lv' && $('#lvSel')) $('#lvSel').hidden = true;
   selBtn(); kpis();
   const PL = LIST.filter((x) => !x.archived), RE = PL.flatMap((x) => x.rechnungen || []);   // Zahlen fürs ganze Projekt
@@ -2141,10 +2144,10 @@ document.addEventListener('change', (e) => {
   if (el.id === 'fileIn') { if (el.files[0]) { const f = el.files[0], z = IMP ? IMP.ziel : 'lv', bi = IMP && IMP.bieter; doImport(f).then(() => inOrdner(f, z, bi)); } el.value = ''; return; }
   const row = el.closest('tr[data-i]');
   if (row && tab === 'lv' && (el.dataset.f === 'art' || el.dataset.f === 'nt_status')) { if (el.dataset.f === 'nt_status') ntErben(items()); render(); }
-  if (el.dataset.am != null) { amSave(el); return; }
+  if (el.dataset.am != null) { mitUndo(el, amSave, 'Aufmaß'); return; }
   if (el.dataset.amNew != null) { amNeu(el); return; }
-  if (el.dataset.ang) { angSave(el); return; }
-  if (el.dataset.re) { reSave(el); return; }
+  if (el.dataset.ang) { mitUndo(el, angSave, el.dataset.ang === 'ep' ? 'EP' : 'Angebot'); return; }
+  if (el.dataset.re) { mitUndo(el, reSave, 'Rechnung'); return; }
   if (el.id === 'amNur') { amNur = el.checked; LS.set('amNur', amNur); render(); }
 });
 document.addEventListener('click', async (e) => {
@@ -3490,8 +3493,8 @@ document.addEventListener('click', async (e) => {
 });
 document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('[data-rebeleg]'); if (i && i.files[0]) { reBelegHoch(+i.dataset.rebeleg, i.files[0]); i.value = ''; } });
 document.addEventListener('change', (e) => { const el = e.target.closest && e.target.closest('[data-si],[data-ve]'); if (!el || !L) return;
-  if (el.dataset.ve) { call('api/lv/' + L.id, 'PUT', { vergabe: { einbehalt: pf(el.value) ?? 5 } }).catch((er) => toast(er.message, true)); return; }
-  siSave(el); });
+  if (el.dataset.ve) { mitUndo(el, (q) => call('api/lv/' + L.id, 'PUT', { vergabe: { einbehalt: pf(q.value) ?? 5 } }).catch((er) => toast(er.message, true)), 'Einbehalt'); return; }
+  mitUndo(el, siSave, 'Sicherheit'); });
 document.addEventListener('dragover', (e) => { const z = e.target.closest && e.target.closest('[data-redrop]'); if (z && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); z.classList.add('over'); } });
 document.addEventListener('dragleave', (e) => { const z = e.target.closest && e.target.closest('[data-redrop]'); if (z) z.classList.remove('over'); });
 document.addEventListener('drop', (e) => { const z = e.target.closest && e.target.closest('[data-redrop]'); if (!z || !e.dataTransfer.files.length) return; e.preventDefault(); z.classList.remove('over'); reBelegHoch(+z.dataset.redrop, e.dataTransfer.files[0]); });
@@ -3895,6 +3898,53 @@ const histLabel = (a, b) => {
   } catch { /* egal */ }
   return 'Änderung';
 };
+/* Spaltenbreiten in den Tabellen (LV, Angebote, Aufträge, Aufmaß, Rechnungen) am Spaltenkopf ziehen – je Bereich und Tabelle gemerkt; Doppelklick auf den Griff: zurücksetzen */
+const SB = LS.get('sb', {});
+function spaltenGriffe() {
+  document.querySelectorAll('table.lv thead tr, table.tree thead tr, table.re-z thead tr').forEach((tr) => {
+    const t = tr.closest('table'); if (t.dataset.sb) return; t.dataset.sb = '1';
+    const key = tab + ':' + (t.className || '').trim().replace(/\s+/g, '.'), w = SB[key] || {};
+    const ths = [...tr.children];
+    const fest = () => { if (t.style.tableLayout === 'fixed') return; ths.forEach((h, j) => { const px = Math.round(h.getBoundingClientRect().width); h.style.width = px + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; t.style.width = 'max-content'; t.style.minWidth = '100%'; };
+    if (Object.keys(w).length) { fest(); ths.forEach((h, j) => { if (w[j]) h.style.width = w[j] + 'px'; }); }
+    ths.forEach((th, i) => {
+      if (i === ths.length - 1) return;
+      th.style.position = 'relative';
+      const g = document.createElement('span'); g.className = 'sb-griff'; g.title = 'Spaltenbreite ziehen · Doppelklick: zurücksetzen'; th.appendChild(g);
+      g.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); fest(); g.setPointerCapture(e.pointerId);
+        const x0 = e.clientX, w0 = th.getBoundingClientRect().width; document.body.classList.add('sb-zieh');
+        g.onpointermove = (m) => { th.style.width = Math.max(36, w0 + m.clientX - x0) + 'px'; };
+        g.onpointerup = () => { g.onpointermove = null; document.body.classList.remove('sb-zieh'); SB[key] = SB[key] || {}; ths.forEach((h, j) => { SB[key][j] = Math.round(h.getBoundingClientRect().width); }); LS.set('sb', SB); };
+      });
+      g.addEventListener('dblclick', (e) => { e.stopPropagation(); e.preventDefault(); delete SB[key]; LS.set('sb', SB); ths.forEach((h) => { h.style.width = ''; h.style.minWidth = ''; }); t.style.tableLayout = ''; t.style.width = ''; t.style.minWidth = ''; toast('Spaltenbreiten zurückgesetzt.'); });
+      g.addEventListener('click', (e) => e.stopPropagation());
+    });
+  });
+}
+/* Rückgängig außerhalb des LV-Editors: jede gespeicherte Feldänderung (Angebotspreise, Aufmaß, Rechnung, Sicherheiten) merkt sich den alten Wert;
+   Strg+Z bzw. die Leiste „↶“ schreibt ihn zurück, Strg+Y wiederholt. Im Feld selbst: Strg+Z erst, wenn dort nichts Neues getippt ist. */
+const AKT = { undo: [], redo: [], t: 0 };
+document.addEventListener('focusin', (e) => { const el = e.target; if (el.matches && el.matches('[data-ang],[data-am],[data-re],[data-si],[data-ve]')) el.dataset.v0 = el.type === 'checkbox' ? String(el.checked) : el.value; });
+async function mitUndo(el, fn, was) {
+  const alt = el.dataset.v0, neu = el.type === 'checkbox' ? String(el.checked) : el.value;
+  if (alt == null || alt === neu) return fn(el);
+  const ds = { ...el.dataset }; delete ds.v0; const typ = el.type;
+  const proxy = (v) => ({ dataset: { ...ds }, value: v, checked: v === 'true', type: typ, closest: () => null });
+  await fn(el);
+  const key = JSON.stringify(ds), top = AKT.undo[AKT.undo.length - 1], now = Date.now();
+  const label = `${was}: ${alt || 'leer'} → ${neu || 'leer'}`;
+  if (top && top.key === key && now - AKT.t < 3000) { top.neu = neu; top.label = `${was}: ${top.alt || 'leer'} → ${neu || 'leer'}`; top.wieder = () => fn(proxy(neu)); }   // schnelles Weitertippen im selben Feld: ein Schritt
+  else { AKT.undo.push({ key, label, alt, neu, rueck: () => fn(proxy(alt)), wieder: () => fn(proxy(neu)) }); if (AKT.undo.length > 80) AKT.undo.shift(); }
+  AKT.t = now; AKT.redo = []; histUi();
+}
+function aktMerken(label, rueck, wieder) { AKT.undo.push({ key: '', label, rueck, wieder }); if (AKT.undo.length > 80) AKT.undo.shift(); AKT.redo = []; AKT.t = 0; histUi(); }
+async function aktGo(dir) {
+  const from = dir < 0 ? AKT.undo : AKT.redo, to = dir < 0 ? AKT.redo : AKT.undo, st = from.pop(); if (!st) return;
+  try { await (dir < 0 ? st.rueck() : (st.wieder ? st.wieder() : Promise.resolve())); to.push(st); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${st.label}`); }
+  catch (e) { toast(e.message, true); }
+  histUi();
+}
 function histTrack() {   // bei jeder Änderung: alten Stand merken (Tippen in einem Feld zählt als ein Schritt)
   if (!L || !L.data) return;
   const cur = JSON.stringify(L.data);
@@ -3915,20 +3965,24 @@ function histGo(dir) {
 function histUi() {
   let el = $('#histBar');
   if (!el) { el = document.createElement('div'); el.id = 'histBar'; el.innerHTML = '<button class="btn" data-hist="-1">↶ Rückgängig</button><button class="btn" data-hist="1" title="Wiederholen (Strg+Y)">↷</button>'; document.body.appendChild(el);
-    el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (!b) return; if (tab === 'tueren' && TL) tlZurueck(+b.dataset.hist > 0); else histGo(+b.dataset.hist); }); }
-  const tl = tab === 'tueren' && TL;   // in der Türliste: deren eigene Schritte, sonst die des LV
-  const u = tl ? TLH[TLH.length - 1] : HIST.undo[HIST.undo.length - 1], r = tl ? TLR[TLR.length - 1] : HIST.redo[HIST.redo.length - 1];
-  el.hidden = tl ? (!u && !r) : (!L || tab === 'tueren' || (!u && !r));
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-hist]'); if (!b) return; if (tab === 'tueren' && TL) tlZurueck(+b.dataset.hist > 0); else if (tab === 'lv') histGo(+b.dataset.hist); else aktGo(+b.dataset.hist); }); }
+  const tl = tab === 'tueren' && TL, lvT = tab === 'lv';   // Türliste: deren Schritte · LV: Inhalt des LV · sonst: gespeicherte Feldänderungen (Angebote, Aufmaß, Rechnungen)
+  const u = tl ? TLH[TLH.length - 1] : lvT ? HIST.undo[HIST.undo.length - 1] : AKT.undo[AKT.undo.length - 1], r = tl ? TLR[TLR.length - 1] : lvT ? HIST.redo[HIST.redo.length - 1] : AKT.redo[AKT.redo.length - 1];
+  el.hidden = tl ? (!u && !r) : (tab === 'tueren' || (!u && !r));
   const bu = el.querySelector('[data-hist="-1"]'), br = el.querySelector('[data-hist="1"]');
   bu.disabled = !u; bu.title = u ? `Rückgängig: ${u.label} (Strg+Z)` : 'Nichts rückgängig zu machen'; bu.textContent = u ? `↶ ${u.label}` : '↶ Rückgängig';
   br.disabled = !r; br.title = r ? `Wiederholen: ${r.label} (Strg+Y)` : 'Nichts zu wiederholen';
 }
 document.addEventListener('keydown', (e) => {
   if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.modal-bg,.bed')) return;
-  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;   // im Feld macht der Browser selbst rückgängig
-  const k = e.key.toLowerCase();
+  const ae = document.activeElement, k = e.key.toLowerCase();
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(ae?.tagName || '')) {   // im Feld macht der Browser selbst rückgängig – außer dort wurde noch nichts getippt (dann die letzte gespeicherte Änderung)
+    const unveraendert = ae.dataset && ae.dataset.v0 != null && ae.dataset.v0 === (ae.type === 'checkbox' ? String(ae.checked) : ae.value);
+    if (!(unveraendert && tab !== 'lv' && tab !== 'tueren' && (k === 'z' || k === 'y'))) return;
+  }
   if (tab === 'tueren') { if (TL && (k === 'z' || k === 'y')) { e.preventDefault(); tlZurueck(k === 'y' || e.shiftKey); } return; }
-  if (k === 'z' && !e.shiftKey) { e.preventDefault(); histGo(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); histGo(1); }
+  const go = tab === 'lv' ? histGo : aktGo;
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); go(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); go(1); }
 });
 /* ---------- Kopierquelle: LV aus einem anderen Projekt daneben (schreibgeschützt), Positionen herüberkopieren ---------- */
 let QU = { ber: LS.get('qu.ber', ''), inG: LS.get('qu.inG', true), gw: null, an: LS.get('qu.an', false), pid: LS.get('qu.pid', null), lv: LS.get('qu.lv', null), list: [], L: null, sel: new Set(), mengen: LS.get('qu.mengen', true), preise: LS.get('qu.preise', true) }, LASTI = null;

@@ -5770,7 +5770,9 @@ document.addEventListener('dblclick', async (e) => {
   if (m && m[2]) { const lv = PC[+m[1]], y = lv && (lv.data.items || []).find((q) => q.id === m[2]); if (y) { e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); const lvId = +m[1];   // wie im LV: Eigenschaften der Position bzw. des Gliederungspunkts
       kmLv(lvId, () => (y.typ === 'titel' ? titelDialog(y.id) : eigDialog(y.id))); return; } }
   if (!m) { if (tr.dataset.tr.startsWith('p')) treeCar('-' + tr.dataset.tr); return; }
-  if (!m[2]) { treeCar(tr.dataset.tr); }
+  if (!m[2]) {   // Auftrag (LV-Zeile): Eigenschaften öffnen wie bei Nachtrag und Gliederungspunkt – nicht auf- und zuklappen (das macht der Pfeil), kein Neuaufbau
+    e.preventDefault(); if (getSelection) getSelection().removeAllRanges(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    kmLv(+m[1], () => lvDaten()); return; }
   await flush(); if (!L || L.id !== +m[1]) await openLv(+m[1]);
   if (m[2]) {
     tab = 'lv'; LS.set('tab', tab); OPEN.add(m[2]); render();

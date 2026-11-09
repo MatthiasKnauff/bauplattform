@@ -867,33 +867,76 @@
     }
     return false;
   }
+  /* Verlaufsfenster: links die Zeitleiste (nach Tagen, benannte Stände ★), rechts die Unterschiede des gewählten Stands –
+     „Was hat sich geändert“ (gegenüber dem Stand davor) oder „Unterschied zu jetzt“. Jede Zeile lässt sich einzeln
+     zurückholen (↶), der ganze Stand wiederherstellen. Symbole wie im Rückgängig-Dock: ＋ neu · ✎ geändert · 🗑 entfernt. */
+  const vIc = (art) => ({ neu: '＋', weg: '🗑', reihe: '⇅' }[art] || '✎');
+  const vZaehl = (A) => { const z = { neu: 0, aend: 0, weg: 0 }; (A || []).forEach((t) => { if (/hinzugefügt|angelegt|eingetragen/.test(t)) z.neu++; else if (/entfernt|gelöscht/.test(t)) z.weg++; else if (!/^… und/.test(t)) z.aend++; });
+    const m = /… und (\d+) weitere/.exec((A || []).join(' ')); if (m) z.aend += +m[1]; return z; };
+  const vTag = (s) => { const d = new Date(s), h = new Date(); const t = (x) => x.toISOString().slice(0, 10), g = new Date(h); g.setDate(h.getDate() - 1);
+    return isNaN(d) ? '' : t(d) === t(h) ? 'Heute' : t(d) === t(g) ? 'Gestern' : d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }); };
+  const vUhr = (s) => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); };
   H.verlauf = async function (opt = {}) {
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-    bg.innerHTML = '<div class="bph-dlg" role="dialog" aria-label="Verlauf"></div>';
+    bg.innerHTML = '<div class="bph-dlg bph-vx" role="dialog" aria-label="Verlauf"></div>';
     document.body.appendChild(bg); const root = bg.firstChild;
     const close = () => { bg.remove(); document.removeEventListener('keydown', esc1); };
-    const esc1 = (e) => { if (e.key === 'Escape') close(); };
+    const esc1 = (e) => { if (e.key === 'Escape' && !document.querySelector('.bph-frage')) close(); };
     document.addEventListener('keydown', esc1);
-   
-    let D = null, msg = '';
-    const draw = () => {
-      root.innerHTML = `<div class="bph-dh"><b>Verlauf${D ? ' – ' + esc(D.titel) : ''}</b><button type="button" class="bph-x" data-kclose aria-label="Schließen">×</button></div><div class="bph-db">
-        <p class="bph-mu">Jede Speicherung wird automatisch als Stand festgehalten – Änderungen innerhalb von 10 Minuten zusammengefasst. Ein früherer Stand lässt sich jederzeit wiederherstellen; der jetzige bleibt dabei erhalten. Kennwörter und Schlüssel bleiben beim Wiederherstellen unverändert.</p>
-        <div class="bph-row"><input data-vnew placeholder="Name für den jetzigen Stand, z. B. „vor Umstellung“" maxlength="120" style="flex:1"><button type="button" class="bph-btn pri" data-vsave>Stand benennen</button></div>
-        ${msg ? `<p class="bph-msg">${esc(msg)}</p>` : ''}
-        ${!D ? '<p class="bph-mu">Lade …</p>' : D.versionen.length ? `<ul class="bph-vl">${D.versionen.map((v, i) => vItem(v, i, {})).join('')}</ul>` : '<p class="bph-mu">Noch keine Stände.</p>'}</div>`;
+    let D = null, msg = '', sel = null, DET = {}, modus = 'geaendert', filt = 'alle', such = '';
+    const ich = (H.me && (H.me.name || H.me.display_name)) || '';
+    const sicht = () => (D ? D.versionen : []).filter((v) => (filt !== 'name' || v.name) && (filt !== 'ich' || v.wer === ich)
+      && (!such || ((v.aenderungen || []).join(' ') + ' ' + (v.name || '') + ' ' + (v.wer || '')).toLowerCase().includes(such.toLowerCase())));
+    const links = () => { let tag = ''; return sicht().map((v) => { const t = vTag(v.wann), z = vZaehl(v.aenderungen), i0 = D.versionen[0] === v;
+      const kopf = t !== tag ? `<div class="bph-vx-tag">${esc(t)}</div>` : ''; tag = t;
+      return `${kopf}<button type="button" class="bph-vx-st${v.id === sel ? ' on' : ''}${i0 ? ' jetzt' : ''}${v.name ? ' named' : ''}" data-vsel="${v.id}"><span class="d"></span><span class="u">${vUhr(v.wann)}</span>
+        <b>${v.name ? '★ ' + esc(v.name) : esc(v.wer || '–')}${i0 ? ' <i>jetziger Stand</i>' : ''}</b><span class="z">${z.neu ? `<em>＋${z.neu}</em>` : ''}${z.aend ? `<em>✎${z.aend}</em>` : ''}${z.weg ? `<em>🗑${z.weg}</em>` : ''}</span>
+        <small>${esc(v.name && v.wer ? v.wer + ' · ' : '')}${esc((v.aenderungen || [])[0] || ART[v.art] || '')}</small></button>`; }).join('') || '<p class="bph-mu" style="padding:.6rem">Keine Stände für diesen Filter.</p>'; };
+    const rechts = () => {
+      const v = D && D.versionen.find((x) => x.id === sel); if (!v) return '<p class="bph-mu">Links einen Stand wählen.</p>';
+      const d = DET[v.id], i0 = D.versionen[0] === v;
+      const Z = d ? (modus === 'jetzt' ? d.jetzt : d.geaendert) : null;
+      const gr = []; (Z || []).forEach((z, k) => { let g = gr.find((x) => x.g === z.gruppe); if (!g) gr.push(g = { g: z.gruppe, z: [] }); g.z.push([z, k]); });
+      const zeile = ([z, k]) => `<div class="bph-vx-ln"><i>${vIc(z.art)}</i><span>${esc(z.text)}${z.alt != null || z.neu != null ? `: ${z.art === 'neu' ? '' : `<s>${esc(z.alt ?? 'leer')}</s> → `}<b>${esc(z.neu ?? 'leer')}</b>` : z.art === 'neu' ? ' <small>neu</small>' : z.art === 'weg' ? ' <small>entfernt</small>' : ''}</span>
+        ${z.art !== 'reihe' && !(modus === 'geaendert' && d.erster) ? `<button type="button" class="bph-btn" data-vteil="${k}" title="${modus === 'jetzt' ? 'Nur diese Stelle aus dem Stand übernehmen' : 'Nur diese Änderung zurücknehmen'}">↶</button>` : ''}</div>`;
+      return `<div class="bph-vx-k"><b>${esc(vTag(v.wann))} ${vUhr(v.wann)}${v.wer ? ' · ' + esc(v.wer) : ''}</b>${v.name ? ` <span class="bph-badge on">★ ${esc(v.name)}</span>` : ''}${ART[v.art] && !v.name ? ` <span class="bph-badge">${ART[v.art]}</span>` : ''}</div>
+        <div class="bph-vx-seg" role="tablist"><button type="button" class="${modus === 'geaendert' ? 'on' : ''}" data-vmod="geaendert">Was hat sich geändert</button><button type="button" class="${modus === 'jetzt' ? 'on' : ''}" data-vmod="jetzt"${i0 ? ' disabled title="Das ist der jetzige Stand"' : ''}>Unterschied zu jetzt</button></div>
+        ${!d ? '<p class="bph-mu">Lade …</p>' : !Z.length ? `<p class="bph-mu">${modus === 'jetzt' ? 'Entspricht dem jetzigen Stand.' : d.erster ? 'Ausgangsstand – davor gibt es keinen Stand.' : 'Keine inhaltliche Änderung.'}</p>`
+          : gr.map((g) => `<div class="bph-vx-gr">${g.g ? `<h6>${esc(g.g)}</h6>` : ''}${g.z.map(zeile).join('')}</div>`).join('')}`;
     };
-    const load = async () => { try { D = await KX('api/bp/versionen?bereich=' + encodeURIComponent(opt.bereich)); } catch (e) { msg = e.message; } draw(); };
+    const draw = () => {
+      const v = D && D.versionen.find((x) => x.id === sel), i0 = v && D.versionen[0] === v;
+      root.innerHTML = `<div class="bph-dh"><b>Verlauf${D ? ' · ' + esc(D.titel) : ''}</b><button type="button" class="bph-btn" data-vsave>★ Jetzigen Stand benennen …</button><button type="button" class="bph-x" data-kclose aria-label="Schließen">×</button></div>
+        <div class="bph-vx-fl">${[['alle', 'Alle'], ['name', '★ benannte'], ['ich', 'von mir']].map(([k, t]) => `<button type="button" class="${filt === k ? 'on' : ''}" data-vfilt="${k}">${t}</button>`).join('')}<input type="search" data-vsuch placeholder="In Änderungen suchen …" value="${esc(such)}"></div>
+        ${msg ? `<p class="bph-msg" style="margin:.4rem 1rem">${esc(msg)}</p>` : ''}
+        <div class="bph-vx-bd"><div class="bph-vx-l">${D ? links() : '<p class="bph-mu" style="padding:.6rem">Lade …</p>'}</div><div class="bph-vx-r">${D ? rechts() : ''}</div></div>
+        <div class="bph-vx-ft"><span class="bph-mu">Wiederherstellen legt selbst einen Stand an – der jetzige bleibt erhalten. Kennwörter und Schlüssel bleiben unverändert.</span>
+          ${v ? `<button type="button" class="bph-btn" data-vname2="${esc(v.name || '')}">${v.name ? 'Umbenennen' : '★ Benennen'}</button>${i0 ? '' : '<button type="button" class="bph-btn pri" data-vback2>↶ Diesen Stand wiederherstellen</button>'}` : ''}</div>`;
+    };
+    const holeDet = async (id) => { if (DET[id]) return; try { DET[id] = await KX(`api/bp/versionen/${id}/details`); } catch (e) { DET[id] = { geaendert: [], jetzt: [], erster: true }; msg = e.message; } if (sel === id) draw(); };
+    const fertig = async () => { DET = {}; if (opt.nach) opt.nach(); await load(); };
+    const load = async () => { try { D = await KX('api/bp/versionen?bereich=' + encodeURIComponent(opt.bereich)); } catch (e) { msg = e.message; }
+      if (D && (!sel || !D.versionen.some((x) => x.id === sel))) sel = (D.versionen[1] || D.versionen[0] || {}).id || null;
+      draw(); if (sel) holeDet(sel); };
+    root.addEventListener('input', (e) => { if (e.target.matches('[data-vsuch]')) { such = e.target.value; const l = root.querySelector('.bph-vx-l'); if (l) l.innerHTML = links(); } });
     root.addEventListener('click', async (e) => {
-      if (e.target.closest('[data-kclose]')) { close(); return; }
-      if (e.target.closest('[data-vsave]')) {
-        const n = root.querySelector('[data-vnew]').value.trim(); if (!n) { root.querySelector('[data-vnew]').focus(); return; }
-        try { D = await JS('api/bp/versionen', 'POST', { bereich: opt.bereich, name: n }); msg = 'Stand „' + n + '“ festgehalten.'; } catch (er) { msg = er.message; }
-        draw(); return;
-      }
-      await vClick(e, root, load, opt);
+      const t = e.target;
+      if (t.closest('[data-kclose]')) { close(); return; }
+      const s1 = t.closest('[data-vsel]'); if (s1) { sel = +s1.dataset.vsel; if (modus === 'jetzt' && D.versionen[0].id === sel) modus = 'geaendert'; draw(); holeDet(sel); return; }
+      const f = t.closest('[data-vfilt]'); if (f) { filt = f.dataset.vfilt; draw(); return; }
+      const m = t.closest('[data-vmod]'); if (m && !m.disabled) { modus = m.dataset.vmod; draw(); return; }
+      if (t.closest('[data-vsave]')) { const n = await bpEingabe('Name für den jetzigen Stand, z. B. „vor Umstellung“ – benannte Stände werden nie automatisch aufgeräumt.', '');
+        if (!n || !n.trim()) return; try { D = await JS('api/bp/versionen', 'POST', { bereich: opt.bereich, name: n.trim() }); msg = 'Stand „' + n.trim() + '“ festgehalten.'; sel = D.versionen[0] && D.versionen[0].id; } catch (er) { msg = er.message; } draw(); if (sel) holeDet(sel); return; }
+      const nb = t.closest('[data-vname2]'); if (nb) { const n = await bpEingabe('Name für diesen Stand (leer = Name entfernen):', nb.dataset.vname2); if (n === null) return;
+        try { await JS(`api/bp/versionen/${sel}`, 'PATCH', { name: n }); } catch (er) { msg = er.message; } await load(); return; }
+      if (t.closest('[data-vback2]')) { if (!(await bpFrage('Diesen Stand wiederherstellen? Der jetzige Stand bleibt im Verlauf erhalten und kann ebenso zurückgeholt werden.', { ok: 'Wiederherstellen' }))) return;
+        try { await JS(`api/bp/versionen/${sel}/wiederherstellen`, 'POST'); } catch (er) { msg = er.message; draw(); return; }
+        msg = 'Stand wiederhergestellt.'; if (opt.nach) await fertig(); else location.reload(); return; }
+      const tb = t.closest('[data-vteil]'); if (tb) { const d = DET[sel], z = (modus === 'jetzt' ? d.jetzt : d.geaendert)[+tb.dataset.vteil]; if (!z) return;
+        if (!(await bpFrage(`${modus === 'jetzt' ? 'Nur diese Stelle aus dem Stand übernehmen' : 'Nur diese Änderung zurücknehmen'}?\n„${z.text}“ – alles andere bleibt, wie es jetzt ist.`, { ok: 'Zurückholen' }))) return;
+        try { await JS(`api/bp/versionen/${sel}/teil`, 'POST', { weg: z.weg, aus: modus === 'jetzt' ? 'stand' : 'davor' }); msg = `„${z.text}“ zurückgeholt.`; } catch (er) { msg = er.message; draw(); return; }
+        if (opt.nach) await fertig(); else location.reload(); }
     });
-    root.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('[data-vnew]')) root.querySelector('[data-vsave]').click(); });
     draw(); load();
   };
   /* Knopf „Verlauf“ für eine beliebige Stelle: H.verlaufKnopf('einst:bt', { nach }) → HTML; Klick öffnet den Verlauf */

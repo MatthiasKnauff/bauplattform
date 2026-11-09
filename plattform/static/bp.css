@@ -112,6 +112,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-undo-lk{display:flex;justify-content:space-between;color:#aaa;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;padding:.3rem .5rem .4rem}
 .bp-undo-l button{display:flex;gap:.55rem;padding:.42rem .5rem;border-radius:calc(9px*var(--rk,1))}.bp-undo-l button i{flex:none;width:1.45rem;height:1.45rem;border-radius:calc(7px*var(--rk,1));background:#333;display:grid;place-items:center;font-style:normal;font-size:.8rem}
 .bp-undo-l button span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bp-undo-l button small{color:#999}
+.bp-undo-l .bp-undo-vl{justify-content:center;margin-top:.25rem;border-top:1px solid rgba(255,255,255,.1);border-radius:0 0 9px 9px;color:var(--y,#d4f02a)}
 .bp-undo-l button.hi{background:rgba(212,240,42,.16)}.bp-undo-l button.hi i{background:var(--y,#d4f02a);color:var(--on,#111)}
 
 /* Bereich rechts (seite.js): Reiter, Trennung, an den Rand geklappt, freie Fenster – überall derselbe Baustein */

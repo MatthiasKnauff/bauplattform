@@ -115,7 +115,7 @@ function _undoZeichnen(kurz) {
   el.classList.toggle('klein', klein);
   const redo = `<button type="button" class="bp-undo-r" data-u="redo"${rk ? '' : ' disabled'} title="Wiederholen (Strg+Y)">↷</button>`;
   el.innerHTML = klein ? `<div class="bp-undo-mini"><button type="button" class="bp-undo-u" data-u="auf"${n ? '' : ' disabled'} title="Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'} (Strg+Z) · Klick: Verlauf">↶ ${n}</button>${redo}</div>`
-    : `${UNDO.offen ? `<div class="bp-undo-l" role="list"><div class="bp-undo-lk"><span>Verlauf</span><span>Klick = bis hierher zurück</span></div>${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${esc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}</div>` : ''}
+    : `${UNDO.offen ? `<div class="bp-undo-l" role="list"><div class="bp-undo-lk"><span>Verlauf</span><span>Klick = bis hierher zurück</span></div>${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${esc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}${_verlaufB() ? '<button type="button" class="bp-undo-vl" data-u="verlauf">🕘 Ältere Stände im Verlauf …</button>' : ''}</div>` : ''}
       <div class="bp-undo-z"><span class="bp-undo-t">${UNDO.offen && UNDO.hov != null && UNDO.s[n - 1 - UNDO.hov] ? `bis „${esc(UNDO.s[n - 1 - UNDO.hov].text)}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : top ? esc(top.text) : 'Nichts mehr rückgängig zu machen'}</span>
         <button type="button" class="bp-undo-u" data-u="eins"${n ? '' : ' disabled'}>↶ Rückgängig${n > 1 ? ` <em>${n}</em>` : ''}</button>${redo}${n > 1 ? `<button type="button" class="bp-undo-r" data-u="liste" title="Verlauf" aria-expanded="${UNDO.offen}">${UNDO.offen ? '▾' : '▴'}</button>` : ''}<button type="button" class="bp-undo-x" data-u="zu" title="Ausblenden">✕</button></div>`;
 }
@@ -140,9 +140,12 @@ async function _redo() {
   finally { UNDO.busy = false; }
   _undoZeigen();
 }
+// Verbindung zum gespeicherten Verlauf: Seiten nennen ihren Bereich über window.bpVerlaufBereich() (z. B. 'avalv:12')
+const _verlaufB = () => { try { return window.bpVerlaufBereich && window.BPHead && BPHead.verlauf ? window.bpVerlaufBereich() : null; } catch { return null; } };
 function _undoKlick(e) {
   const b = e.target.closest('[data-u]'); if (!b || b.disabled) return; e.stopPropagation(); const a = b.dataset.u;
   if (a === 'eins') return _undoBis(0);
+  if (a === 'verlauf') { const b = _verlaufB(); UNDO.offen = false; _undoZeichnen(false); if (b) BPHead.verlauf({ bereich: b, nach: window.bpVerlaufNach }); return; }
   if (a === 'redo') return _redo();
   if (a === 'bis') return _undoBis(+b.dataset.i);
   if (a === 'liste') { UNDO.offen = !UNDO.offen; UNDO.hov = null; clearTimeout(UNDO.t); _undoZeichnen(true); if (!UNDO.offen) _undoZeigen(); return; }

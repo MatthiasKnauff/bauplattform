@@ -10,6 +10,7 @@ Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benu
 /api/bp/mailvorlagen GET alle Vorlagen · PUT (nur Administrator)
 /api/bp/versionen?bereich=…   Stände eines Bereichs · POST {bereich, name} jetzigen Stand benennen
 /api/bp/versionen/<id>/vergleich  was sich beim Wiederherstellen ändern würde · …/wiederherstellen (POST) · PATCH {name}
+/api/bp/versionen/<id>/details   Unterschiede als Zeilen (gegenüber davor und jetzt) · …/teil (POST {weg, aus}) nur eine Stelle zurückholen
 /api/bp/versionen/alle   Änderungsverlauf aller Bereiche, die der Benutzer sehen darf
 /api/bp/versionen/conf   GET/PUT Aufbewahrung (nur Administrator) mit Speicherbedarf
 /api/bp/post        GET Mail-Übersicht zu meinen Projekten (?auto=1 einmal am Tag abrufen, ?neu=1 jetzt) · POST erledigt
@@ -1067,6 +1068,35 @@ def blueprint(get_user=None):
             if not q:
                 return jsonify(error="Nicht gefunden"), 404
             return jsonify(aenderungen=versionen.vergleich(c, vid))
+
+    @bp.get("/api/bp/versionen/<int:vid>/details")
+    def version_details(vid):
+        """Unterschiede eines Stands als Zeilen: gegenüber dem Stand davor und gegenüber jetzt (Verlaufsfenster)."""
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            q, _ = _version(c, u, vid)
+            if not q:
+                return jsonify(error="Nicht gefunden"), 404
+            return jsonify(versionen.details(c, vid))
+
+    @bp.post("/api/bp/versionen/<int:vid>/teil")
+    def version_teil(vid):
+        """Nur eine Stelle zurückholen – {weg: [["k", Schlüssel] | ["i", Kennung] …], aus: "stand" | "davor"}."""
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        d = request.get_json(silent=True) or {}
+        with db.tx() as c:
+            q, bereich = _version(c, u, vid)
+            if not q:
+                return jsonify(error="Nicht gefunden"), 404
+            try:
+                versionen.teil(c, vid, d.get("weg"), "davor" if d.get("aus") == "davor" else "stand", u["name"])
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
+            return jsonify(ok=True, bereich=bereich, versionen=versionen.liste(c, bereich))
 
     @bp.post("/api/bp/versionen/<int:vid>/wiederherstellen")
     def version_zurueck(vid):

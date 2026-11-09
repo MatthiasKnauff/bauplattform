@@ -416,6 +416,152 @@ def aenderungen(alt, neu, n=14):
     return out[:n] + ([f"… und {len(out) - n} weitere Änderungen"] if len(out) > n else [])
 
 
+
+# ---------------------------------------------------------------- Unterschiede als Zeilen (für das Verlaufsfenster)
+def _zeilen(a, b, lab, weg, out, n=300):
+    """Wie _diff, aber je Änderung ein Eintrag mit Gruppe, Text, Art (neu/weg/aend/reihe), alt/neu und dem Weg dorthin
+    (Liste aus ["k", Schlüssel] bzw. ["i", Kennung eines Listeneintrags]) – damit lässt sich genau diese Stelle zurückholen."""
+    if a == b or len(out) >= n:
+        return
+    i0 = next((j for j, s in enumerate(weg) if s[0] == "i"), len(weg))   # Gruppe = Weg bis zum ersten Listeneintrag
+    if i0 >= len(lab):   # keine Liste auf dem Weg: Gruppe = alles bis auf das letzte Feld
+        i0 = max(0, len(lab) - 1)
+    gruppe, text = " › ".join(lab[:i0]), " › ".join(lab[i0:])
+    if isinstance(a, dict) and isinstance(b, dict):
+        for k in list(a) + [k for k in b if k not in a]:
+            _zeilen(a.get(k, _FEHLT), b.get(k, _FEHLT), lab + [_lab(k)], weg + [["k", k]], out, n)
+        return
+    if isinstance(a, list) and isinstance(b, list) and (a or b) and all(_ident(x) for x in a + b):
+        ma, mb = {_ident(x): x for x in a}, {_ident(x): x for x in b}
+        g = " › ".join(lab)
+        for k, x in mb.items():
+            if k not in ma:
+                out.append({"gruppe": g, "text": _nm(x), "art": "neu", "weg": weg + [["i", k]]})
+        for k, x in ma.items():
+            if k not in mb:
+                out.append({"gruppe": g, "text": _nm(x), "art": "weg", "weg": weg + [["i", k]]})
+        for k in ma:
+            if k in mb:
+                _zeilen(ma[k], mb[k], lab + [_nm(mb[k])], weg + [["i", k]], out, n)
+        if [k for k in ma if k in mb] != [k for k in mb if k in ma]:
+            out.append({"gruppe": g, "text": "Reihenfolge", "art": "reihe", "weg": weg})
+        return
+    geheim = any(isinstance(x, str) and x.startswith("\u2022") for x in (a, b))
+    gross = any(isinstance(x, str) and len(x) > 300 for x in (a, b)) or any(isinstance(x, (dict, list)) for x in (a, b))
+    z = {"gruppe": gruppe, "text": text or "Wert", "art": "aend", "weg": weg}
+    if a is _FEHLT or a in (None, ""):
+        z["art"] = "neu"
+    elif b is _FEHLT or b in (None, ""):
+        z["art"] = "weg"
+    if not (geheim or gross):
+        z["alt"] = None if a is _FEHLT else _kurz(a)
+        z["neu"] = None if b is _FEHLT else _kurz(b)
+    out.append(z)
+
+
+def _davor(c, r):
+    p = c.execute("SELECT daten FROM versionen WHERE bereich=? AND id<? ORDER BY id DESC LIMIT 1", (r["bereich"], r["id"])).fetchone()
+    return _j(p["daten"]) if p else None
+
+
+def details(c, vid):
+    """Je Stand: was sich darin geändert hat (gegenüber dem Stand davor) und was sich beim Wiederherstellen gegenüber jetzt ändern würde."""
+    r = c.execute("SELECT * FROM versionen WHERE id=?", (vid,)).fetchone()
+    q = quelle(c, r["bereich"]) if r else None
+    if not q:
+        return None
+    v, dv, jetzt = _j(r["daten"]), _davor(c, r), _snap(c, q)
+    z1, z2 = [], []
+    if dv is not None:
+        _zeilen(dv, v, [], [], z1)
+    _zeilen(jetzt, v, [], [], z2)
+    return {"geaendert": z1, "jetzt": z2, "erster": dv is None}
+
+
+def _hole(o, weg):
+    for s, k in weg:
+        if s == "k":
+            if not isinstance(o, dict) or k not in o:
+                return _FEHLT
+            o = o[k]
+        else:
+            if not isinstance(o, list):
+                return _FEHLT
+            o = next((x for x in o if _ident(x) == k), _FEHLT)
+            if o is _FEHLT:
+                return o
+    return o
+
+
+def _setze(ziel, quelle_, weg, wert):
+    """ziel (jetziger Stand) an der Stelle weg auf wert setzen; _FEHLT = entfernen. Neue Listeneinträge kommen hinter
+    ihren Vorgänger aus dem Quell-Stand (wie dort sortiert)."""
+    o, src = ziel, quelle_
+    for j, (s, k) in enumerate(weg):
+        letzt = j == len(weg) - 1
+        if s == "k":
+            if not isinstance(o, dict):
+                raise ValueError("Diese Stelle gibt es im jetzigen Stand nicht mehr.")
+            if letzt:
+                if wert is _FEHLT:
+                    o.pop(k, None)
+                else:
+                    o[k] = wert
+                return
+            if k not in o:
+                o[k] = {} if weg[j + 1][0] == "k" else []
+            o, src = o[k], (src.get(k) if isinstance(src, dict) else None)
+        else:
+            if not isinstance(o, list):
+                raise ValueError("Diese Stelle gibt es im jetzigen Stand nicht mehr.")
+            i = next((n for n, x in enumerate(o) if _ident(x) == k), None)
+            if letzt:
+                if wert is _FEHLT:
+                    if i is not None:
+                        o.pop(i)
+                elif i is not None:
+                    o[i] = wert
+                else:   # einfügen hinter dem Vorgänger aus dem Quell-Stand
+                    pos = 0
+                    if isinstance(src, list):
+                        ids = [_ident(x) for x in src]
+                        for vk in reversed(ids[:ids.index(k)] if k in ids else []):
+                            m = next((n for n, x in enumerate(o) if _ident(x) == vk), None)
+                            if m is not None:
+                                pos = m + 1
+                                break
+                    o.insert(pos, wert)
+                return
+            if i is None:
+                raise ValueError("Diesen Eintrag gibt es im jetzigen Stand nicht mehr – bitte den ganzen Stand wiederherstellen.")
+            o, src = o[i], (next((x for x in src if _ident(x) == k), None) if isinstance(src, list) else None)
+
+
+def teil(c, vid, weg, aus, wer):
+    """Nur eine Stelle zurückholen: aus = 'stand' (Wert dieses Stands) oder 'davor' (Wert vor dieser Änderung)."""
+    r = c.execute("SELECT * FROM versionen WHERE id=?", (vid,)).fetchone()
+    q = quelle(c, r["bereich"]) if r else None
+    if not q:
+        return None
+    if not isinstance(weg, list) or not weg or not all(isinstance(s, list) and len(s) == 2 and s[0] in ("k", "i") for s in weg):
+        raise ValueError("Ungültige Stelle.")
+    src = _j(r["daten"]) if aus == "stand" else _davor(c, r)
+    if src is None:
+        raise ValueError("Für diesen Stand gibt es keinen Stand davor.")
+    vorher(c, r["bereich"])
+    cur = q.load(c)
+    if cur is None:
+        raise ValueError("Der Eintrag ist gelöscht – bitte den ganzen Stand wiederherstellen.")
+    wert = _hole(src, weg)
+    if isinstance(wert, str) and wert.startswith(MARK):
+        raise ValueError("Kennwörter und Schlüssel werden nicht zurückgeholt.")
+    if wert is not _FEHLT:
+        wert = _unmask(json.loads(json.dumps(wert)), _hole(cur, weg) if _hole(cur, weg) is not _FEHLT else None)
+    _setze(cur, src, weg, wert)
+    q.save(c, cur, wer)
+    when = datetime.fromisoformat(r["wann"]).strftime("%d.%m.%Y %H:%M")
+    return merken(c, r["bereich"], wer, "wiederhergestellt", f"Teil aus Stand vom {when}")
+
 # ---------------------------------------------------------------- Stände anlegen
 def _snap(c, q):
     v = q.load(c)

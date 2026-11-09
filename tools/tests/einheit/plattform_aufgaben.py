@@ -48,12 +48,12 @@ def _u(apps, admin=0):
 # ---------------------------------------------------------------- App-Rechte
 def test_apps_neue_apps_fuer_alte_rechte():
     """Rechte „nur Bautagebuch“ bzw. „nur Bauzeitenplan“ bekommen die neueren Apps automatisch, bis sie abgewählt sind."""
-    alle = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten"]
-    gleich(sso.apps_of(_u('["bautagebuch"]')), ["bautagebuch", "aufgaben", "plaene", "kommunikation"], "nur Bautagebuch")
-    gleich(sso.apps_of(_u('["gantt"]')), ["gantt", "aufgaben", "plaene", "ava", "kommunikation", "baudaten"], "nur Bauzeitenplan")
-    gleich(sso.apps_of(_u('["baukosten"]')), ["baukosten", "ava", "baudaten"], "nur Baukosten")
-    gleich(sso.apps_of(_u('["adressen", "-aufgaben", "-plaene", "-ava", "-kommunikation", "-baudaten"]')), ["adressen"], "bewusst abgewählt")
-    gleich(sso.apps_of(_u('["bautagebuch", "-aufgaben"]')), ["bautagebuch", "plaene", "kommunikation"], "eine App abgewählt")
+    alle = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten"]
+    gleich(sso.apps_of(_u('["bautagebuch"]')), ["bautagebuch", "aufgaben", "plaene", "kommunikation", "zeiten"], "nur Bautagebuch")
+    gleich(sso.apps_of(_u('["gantt"]')), ["gantt", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten"], "nur Bauzeitenplan")
+    gleich(sso.apps_of(_u('["baukosten"]')), ["baukosten", "ava", "baudaten", "zeiten"], "nur Baukosten")
+    gleich(sso.apps_of(_u('["adressen", "-aufgaben", "-plaene", "-ava", "-kommunikation", "-baudaten", "-zeiten"]')), ["adressen"], "bewusst abgewählt")
+    gleich(sso.apps_of(_u('["bautagebuch", "-aufgaben"]')), ["bautagebuch", "plaene", "kommunikation", "zeiten"], "eine App abgewählt")
     gleich(sso.apps_of(_u("")), alle, "leer = alle Apps")
     gleich(sso.apps_of(_u("kein json")), alle, "kaputtes Feld = alle Apps")
     gleich(sso.apps_of(_u('["adressen"]', admin=1)), alle, "Administrator immer alle")

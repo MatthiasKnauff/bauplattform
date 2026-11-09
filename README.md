@@ -399,6 +399,21 @@ oder als PDF) – aus dem Benachrichtigungsverlauf (Tabelle `benachrichtigungen`
 - Filter nach Art, „nur von mir“, Suche; Export für Excel (CSV) und Drucken als Nachweis.
 - Wer Bautagebuch, Bauzeitenplan, Planstand oder Aufgaben & Mängel nutzt, bekommt die App automatisch (in der Verwaltung abwählbar).
 
+## Zeiten (eigener Container)
+
+Pfad `/zeiten`, Container `bauplattform_zeiten` (Port 8101, `APP_MODULE: zeiten`), Logik in `bpcore/zeiten.py`, Tabellen `zeit_*` (Migration 0035).
+Arbeitszeit (Kommen, Gehen, Pause, Urlaub/Krank) und Projektzeiten je Leistungsphase.
+
+- Vorschläge: Die Kopfleiste meldet je Minute aktiver Arbeit App, Bereich und Projekt (`/api/bp/puls` → `zeit_puls`, 60 Tage).
+  Daraus werden Blöcke; die App bzw. der Reiter der AVA ergibt die Leistungsphase (LV → LPh 6, Angebote → LPh 7, Aufmaß/Rechnungen → LPh 8 …).
+  „Vor Ort“ (Kurzbefehl, `bpcore/vorort.py`) wird Baustellenzeit, davor und danach Fahrt (je Projekt einstellbar, sonst 30 Min.).
+- Gezählt wird nur, was bestätigt ist: Vorschläge einzeln übernehmen (✓), verwerfen (✕) oder abends „Tag bestätigen“.
+  Pause ohne Eingabe: Lücken ab 15 Min., mindestens die gesetzliche Pause. Feiertage NRW automatisch.
+- Jede:r sieht nur die eigenen Tage. Administratoren: Stunden je Projekt und Leistungsphase (Soll/Ist, Honorar, Kosten nach Stundensatz),
+  Arbeitszeitkonten nur als Summen, Arbeitszeitnachweis je Monat als CSV; Einstellungen je Person (Sollzeit, Arbeitstage, Urlaub, Satz, Saldo).
+- Startseite: Block „Zeiten“ mit Stand heute und nicht bestätigten Tagen. Einfache Ansicht und Handy: Vorschläge als Karten.
+- Alle Benutzer bekommen die App automatisch (in der Verwaltung abwählbar).
+
 ## Verwaltung (eigener Container)
 
 **Einstellungen** (Reiter in der Verwaltung, alles was für alle Apps gilt): Darstellung (Farbschema, Akzentfarbe), KI (Positionsvorschlag

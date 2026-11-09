@@ -28,7 +28,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, hilfe, konto, mail, papierkorb, projektteile, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort
+from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, hilfe, konto, mail, papierkorb, projektteile, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 
@@ -1426,6 +1426,22 @@ def blueprint(get_user=None):
         b = request.get_json(silent=True) or {}
         with db.tx() as c:
             todo.zustand_setzen(c, uid, str(b.get("key") or "")[:200], bis=(b.get("bis") or None), aus=bool(b.get("aus")), wer=u["name"])
+        return jsonify(ok=True)
+
+    # ---- Zeiterfassung: die Kopfleiste meldet je Minute aktiver Arbeit App, Bereich und Projekt (nur für Vorschläge des Benutzers selbst)
+    @bp.route("/api/bp/puls", methods=["POST"])
+    def puls():
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if not sso.has_app(u, "zeiten"):
+            return jsonify(ok=False)
+        b = request.get_json(silent=True) or {}
+        try:
+            with db.tx() as c:
+                zeiten.puls(c, uid, b.get("app"), b.get("bereich"), b.get("projekt"))
+        except Exception:   # noqa: BLE001 – vor dem Update der Datenbank (Tabelle fehlt) still bleiben
+            return jsonify(ok=False)
         return jsonify(ok=True)
 
     # ---- Vor Ort erkennen (iPhone-Kurzbefehl meldet den Standort; ohne Anmeldung, mit persönlichem Schlüssel)

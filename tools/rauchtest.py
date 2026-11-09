@@ -29,6 +29,7 @@ APPS = {
     "ava":           ("AVA", ["/api/projekte", "/api/kontakte", "/api/uebersicht", "/api/baudaten/kataloge"]),
     "kommunikation": ("Kommunikation", ["/api/kom", "/api/kontakte"]),
     "baudaten":      ("Baudaten", ["/api/start", "/api/gruppen", "/api/firmen"]),
+    "zeiten":        ("Zeiten", ["/api/grund", "/api/tag", "/api/woche", "/api/monat", "/api/offen", "/api/konten", "/api/auswertung"]),
     "verwaltung":    ("Verwaltung", ["/api/users", "/api/status", "/api/projects", "/api/audit", "/api/einstellungen"]),
 }
 

@@ -40,6 +40,7 @@ x-env: &env
   AVA_INTERNAL: http://ava:8097
   KOMMUNIKATION_INTERNAL: http://kommunikation:8098
   BAUDATEN_INTERNAL: http://baudaten:8099
+  ZEITEN_INTERNAL: http://zeiten:8101
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -231,6 +232,22 @@ services:
       <<: *env
       APP_MODULE: kommunikation
       APP_PORT: "8098"
+      APP_TIMEOUT: "120"
+
+  # Zeiten: Arbeitszeit (Kommen/Gehen, Pausen, Urlaub) und Projektzeiten je Leistungsphase – Vorschläge aus der Arbeit in der Plattform
+  zeiten:
+    image: bauplattform/plattform:latest
+    container_name: bauplattform_zeiten
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      bautagebuch: { condition: service_healthy }
+    ports:
+      - "${ZEITEN_PUBLISH:-8101}:8101"
+    environment:
+      <<: *env
+      APP_MODULE: zeiten
+      APP_PORT: "8101"
       APP_TIMEOUT: "120"
 
   # Baudaten: Positionsdatenbank (Texte, DIN 276, Preise), importierte Kataloge (z. B. Sirados) und eigene Preise

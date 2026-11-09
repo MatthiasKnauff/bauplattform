@@ -114,6 +114,7 @@ const DESC = {
   aufgaben: ['Aufgaben & Mängel', 'To-dos, Mängel aus den Bautagesberichten, Termine und Erinnerungen an Firmen aus den Bauzeitenplänen.'],
   plaene: ['Pläne & Dateien', 'Pläne im Projektordner mit dem neuesten Index, Gewerk erkennen, Pläne mit CAD-Dateien an die Firmen schicken, Planversandliste.'],
   kommunikation: ['Kommunikation', 'Was an wen verschickt wurde – Pläne, Mängel- und Terminrügen je Projekt und je Kontakt.'],
+  zeiten: ['Zeiten', 'Arbeitszeit und Projektzeiten – Vorschläge aus deiner Arbeit in der Plattform und von der Baustelle, abends bestätigen.'],
   baudaten: ['Baudaten', 'Positionsdatenbank mit Lang- und Kurztexten, DIN-276-Kostengruppen und Preisspannen – dazu importierte Kataloge (z. B. Sirados) und eigene Preise.'],
   ava: ['Ausschreibung & Abrechnung', 'Leistungsverzeichnisse, Angebote mit Preisspiegel, Aufmaß und Rechnungsprüfung – GAEB-Austausch mit den Firmen.'],
   baukosten: ['Baukosten', 'Kosten nach DIN 276 aus Plänen (PDF) und Bauzeitenplan – mit Mittelabfluss und KI-Prüfung.'],
@@ -321,6 +322,9 @@ function einfachZeigen(conf) {
   /* Schreibtisch rechts: Blöcke wie in „Aufgaben & Mängel → Übersicht“ */
   let ERIN = null;
   const aufgApp = () => (conf.apps || []).find((y) => y.key === 'aufgaben' && y.allowed);
+  let ZEIT = null;   // Zeiterfassung: offene Tage und der Stand heute
+  const zeitApp = () => (conf.apps || []).find((y) => y.key === 'zeiten' && y.allowed);
+  async function zeitLaden() { const a = zeitApp(); if (!a) return; try { ZEIT = await api(appUrl(a) + '/api/offen'); } catch { ZEIT = null; } deskZeigen(); }
   async function erinLaden() { const a = aufgApp(); if (!a) return; try { ERIN = await api(appUrl(a) + '/api/erinnerungen?scope=mine'); } catch { ERIN = null; } deskZeigen(); }
   function deskZeigen() {
     const host = $('#desk'); if (!host) return;
@@ -330,12 +334,19 @@ function einfachZeigen(conf) {
     if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(x.termin).localeCompare(String(y.termin)));
       B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => x.lage === 'ueberfaellig'), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
         items: L.map((x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(x.termin ? new Date(x.termin + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></a>`) }); }
+    const za = zeitApp();
+    if (ZEIT && za) { const zl = (h) => appUrl(za) + '/' + (h ? '#' + h : ''), O = ZEIT.offen || [], H = ZEIT.heute || {};
+      const dk = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+      const hm = (m) => `${Math.floor((m || 0) / 60)}:${String((m || 0) % 60).padStart(2, '0')}`;
+      B.push({ k: 'zeiten', name: 'Zeiten', n: O.length, rot: O.length > 0, max: 5, link: zl(''), linkText: 'Mein Tag ›', leer: 'alles bestätigt',
+        items: [`<a class="ue-r" href="${esc(zl(''))}" style="text-decoration:none;color:inherit"><span class="ue-t">Heute${H.abw ? '' : H.kommen ? ' seit ' + esc(H.kommen) : ''}<small>${H.abw ? 'abwesend' : 'bisher ' + hm(H.arbeit) + ' h von ' + hm(H.soll) + ' h'}</small></span></a>`]
+          .concat(O.map((t) => `<a class="ue-r" href="${esc(zl(t))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(dk(t))} – noch nicht bestätigt<small>Vorschläge prüfen und bestätigen</small></span><span class="ue-d rot">offen</span></a>`)) }); }
     ueRender(host, B);   // ⚙ Blöcke steckt auf der Startseite im ✎ oben
     if (TD) tdZeigen();
   }
   const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); if (POSTWEG && TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== POSTWEG.alt.id); tdZeigen(); } deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen; ein gerade „nicht nötiges“ To-do bleibt weg
   TDKLEIN = true; TDNURMANUELL = true;   // Startseite: Block „Meine To-dos“ nur eigene Aufgaben, die automatischen Hinweise je Rubrik daneben
-  ueInit('portal', deskZeigen); deskZeigen(); tdRef().then(() => tdLaden()); erinLaden();
+  ueInit('portal', deskZeigen); deskZeigen(); tdRef().then(() => tdLaden()); erinLaden(); zeitLaden();
   setInterval(() => { if (document.visibilityState === 'visible' && !TDOFFEN && !(document.activeElement && document.activeElement.id === 'tdNeu')) tdLaden(); }, 5 * 60 * 1000);
   setInterval(() => { if (document.visibilityState === 'visible' && POST && POST.eingerichtet && !POSTLAEUFT) postLaden('?auto=1'); }, 10 * 60 * 1000);   // Seite bleibt offen: zur eingestellten Zeit nachladen
   $('#ver').textContent = 'Version ' + conf.version;

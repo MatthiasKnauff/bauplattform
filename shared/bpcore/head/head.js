@@ -94,6 +94,7 @@
     adressen: SV('<rect x="4" y="3" width="15" height="18" rx="2"/><circle cx="11.5" cy="10" r="2.5"/><path d="M7.5 17a4 4 0 0 1 8 0"/>'),
     plaene: SV('<path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5"/><path d="M8 13h8M8 17h5"/><path d="M7 9h4"/>'),
     kommunikation: SV('<path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M19 9h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v2l-3-2h-4"/><path d="M6 9h7M6 12h4"/>'),
+    zeiten: SV('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/>'),
     baudaten: SV('<path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>'),
     ava: SV('<path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/><path d="M8 10h8M8 13h8M8 16h5"/><path d="M14.5 17.5l1.5 1.5 3-3"/>'),
     aufgaben: SV('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
@@ -520,6 +521,21 @@
     location.href = r.login || (portal ? appUrl(portal) + '/login' : '/');
   }
 
+  /* Zeiterfassung: je Minute, in der jemand wirklich arbeitet (Fenster sichtbar, Maus/Tastatur in den letzten 3 Minuten),
+     meldet die Kopfleiste App, Bereich (z. B. Reiter der AVA, window.bpBereich) und das gewählte Projekt. Nur der Benutzer
+     selbst sieht daraus Vorschläge in „Zeiten“; nichts zählt, bevor er den Tag bestätigt. */
+  function pulsStarten() {
+    if (H._puls || !H.me || !(H.conf && (H.conf.apps || []).some((a) => a.key === 'zeiten'))) return;
+    let aktiv = Date.now();
+    ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll'].forEach((ev) => addEventListener(ev, () => { aktiv = Date.now(); }, { passive: true, capture: true }));
+    const senden = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - aktiv > 180000) return;
+      let bereich = ''; try { bereich = typeof window.bpBereich === 'function' ? String(window.bpBereich() || '') : ''; } catch { /* egal */ }
+      fetch('api/bp/puls', { method: 'POST', credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app: H.app, bereich, projekt: H.projekt && H.projekt.id || null }) }).catch(() => {});
+    };
+    H._puls = setInterval(senden, 60000); setTimeout(senden, 4000);
+  }
   H.mount = function (opt) {
     opt = opt || {};
     if (band) return H.ready;
@@ -560,6 +576,7 @@
     H.ready = (async () => {
       const [conf, me, ki, pj] = await Promise.all([getJ('api/platform').catch(() => ({ apps: [] })), opt.me ? Promise.resolve(opt.me) : getJ('api/me').catch(() => null), getJ('api/bp/ki').catch(() => null), getJ('api/bp/projekt').catch(() => null)]);
       H.conf = conf; H.me = me && me.ok !== false ? me : null;
+      setTimeout(pulsStarten, 0);
       schriftAnwenden(conf.schrift || '', conf.schrift_groesse || '');
       testBanner(conf.version);
       if (H.me) getJ('api/bp/darstellung').then((d) => { if (d.modus && d.modus !== H.modus) { try { localStorage.setItem('bpModus', d.modus); } catch { /* egal */ } location.reload(); return; } H.me.farbschema = d.farbschema || ''; H.me.schrift = d.schrift || ''; H.me.schrift_g = d.schrift_g || ''; if (d.schrift || d.schrift_g) schriftAnwenden(sAkt(), gAkt()); H.kiImmer = !!d.ki_immer; schemaAnwenden(H.me.farbschema); try { localStorage.setItem('bpSchema', H.me.farbschema); } catch { /* egal */ } }).catch(() => {});

@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#84827c">
+<title>Zeiten</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="static/bp.css">
+<style>
+.wrap{max-width:1240px;padding-bottom:5rem}
+.top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--card)}
+.seg button{border:0;background:none;cursor:pointer;font:inherit;border-radius:999px;padding:.35rem .9rem;color:var(--mute);font-size:.9rem;white-space:nowrap}
+.seg button.on{background:var(--y);color:var(--on);font-weight:600}
+.dnav{display:inline-flex;align-items:center;gap:.3rem}
+.dnav input{font:inherit;padding:.35rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--inp);color:var(--ink)}
+.dnav .ib{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:1rem}
+.fill{flex:1}
+.kz{display:flex;flex-wrap:wrap;gap:.45rem;margin:0 0 .8rem}
+.k{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem .7rem;min-width:6.5rem}
+.k small{display:block;color:var(--mute);font-size:.78rem}
+.k b{font-size:1.1rem;font-variant-numeric:tabular-nums}
+.k input,.k select{font:inherit;font-size:1.1rem;font-weight:600;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--ink);padding:0 .15rem;width:5.2rem}
+.k input:hover,.k select:hover{border-color:var(--line)}.k input:focus,.k select:focus{border-color:var(--y);outline:0;background:var(--inp)}
+.k .vs{color:var(--mute);font-weight:400}
+.k.plus b{color:var(--ok)}.k.minus b{color:var(--red)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;margin:0 0 .8rem}
+.tl{position:relative;height:58px;margin:1.3rem 0 .4rem;border-radius:8px;background:var(--hov)}
+.tl .h{position:absolute;top:-1.15rem;font-size:.72rem;color:var(--mute);transform:translateX(-50%)}
+.tl .hl{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+.tl .b{position:absolute;top:4px;height:50px;border-radius:7px;padding:3px 6px;font-size:.74rem;line-height:1.2;overflow:hidden;box-sizing:border-box;cursor:pointer;border:1.5px solid;color:var(--ink)}
+.tl .b.v{border-style:dashed}
+.q-puls{border-color:#4a7fb5!important;background:color-mix(in srgb,#4a7fb5 16%,var(--card))}
+.q-vorort{border-color:#2f9e5a!important;background:color-mix(in srgb,#2f9e5a 16%,var(--card))}
+.q-fahrt{border-color:#e0a030!important;background:color-mix(in srgb,#e0a030 16%,var(--card))}
+.q-hand,.q-stoppuhr{border-color:#8a6fd1!important;background:color-mix(in srgb,#8a6fd1 14%,var(--card))}
+.tl .now{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--y)}
+.leg{display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:var(--mute);margin-top:.4rem}
+.leg i{display:inline-block;width:14px;height:10px;border-radius:3px;border:1.5px solid;margin-right:.3rem;vertical-align:-1px}
+.zl{display:flex;flex-direction:column;gap:0}
+.zr{display:grid;grid-template-columns:11.5rem minmax(10rem,1.3fr) minmax(10rem,1.2fr) 8.5rem 4rem 4.8rem;gap:.5rem;align-items:center;padding:.4rem .2rem;border-top:1px solid var(--line)}
+.zr:first-child{border-top:0}
+.zr.kopf{color:var(--mute);font-size:.8rem;padding-top:0}
+.zr.v{background:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,var(--y) 4%,transparent) 8px 16px)}
+.zr.blink{outline:2px solid var(--y);outline-offset:-2px;border-radius:8px}
+.zr input,.zr select{font:inherit;font-size:.92rem;padding:.25rem .35rem;border:1px solid var(--line);border-radius:7px;background:var(--inp);color:var(--ink);min-width:0;width:100%;box-sizing:border-box}
+.zr .zz{display:flex;gap:.25rem;align-items:center}.zr .zz input{width:4.6rem;text-align:center}
+.zr .r{text-align:right;font-variant-numeric:tabular-nums}
+.zr .akt{display:flex;gap:.25rem;justify-content:flex-end}
+.ib2{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;min-width:34px;height:32px;cursor:pointer;font:inherit}
+.ib2.ok{border-color:var(--ok);color:var(--ok)}.ib2.no{color:var(--mute)}.ib2:hover{background:var(--hov)}
+.q{display:inline-block;font-size:.76rem;border-radius:999px;padding:.05rem .5rem;border:1px solid;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.q.q-puls{color:#3b6fa8}.q.q-vorort{color:#23804a}.q.q-fahrt{color:#a8701a}.q.q-hand,.q.q-stoppuhr{color:#6d55b8}
+.leer{color:var(--mute);padding:.6rem .2rem}
+.akts{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.7rem}
+.lauf{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;border:1px solid var(--y);border-radius:10px;padding:.45rem .7rem;background:color-mix(in srgb,var(--y) 7%,var(--card))}
+.lauf b{font-variant-numeric:tabular-nums}
+.lauf select{font:inherit;padding:.25rem .35rem;border:1px solid var(--line);border-radius:7px;background:var(--inp);color:var(--ink);max-width:16rem}
+.ok-band{display:flex;gap:.6rem;align-items:center;border:1px solid var(--ok);color:var(--ok);border-radius:10px;padding:.5rem .8rem;margin:0 0 .8rem;font-weight:600}
+.ok-band .fill{flex:1}
+.ws{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.4rem}
+.ws button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:.4rem .2rem;cursor:pointer;font:inherit;text-align:center;line-height:1.25}
+.ws button small{display:block;color:var(--mute);font-size:.75rem}
+.ws button.on{outline:2px solid var(--y)}.ws button.bes{border-color:var(--ok)}.ws button.off{border-color:var(--red)}.ws button.we{opacity:.6}
+.ws button b{font-variant-numeric:tabular-nums}
+table.t{width:100%;border-collapse:collapse;font-size:.92rem}
+table.t th{text-align:left;font-weight:500;color:var(--mute);border-bottom:1px solid var(--line);padding:.35rem .45rem;white-space:nowrap}
+table.t td{border-bottom:1px solid var(--line);padding:.35rem .45rem;font-variant-numeric:tabular-nums}
+table.t td.r,table.t th.r{text-align:right}
+table.t tr.klick{cursor:pointer}table.t tr.klick:hover td{background:var(--hov)}
+table.t input,table.t select{font:inherit;padding:.2rem .35rem;border:1px solid var(--line);border-radius:6px;background:var(--inp);color:var(--ink);width:5.5rem}
+.bar{height:9px;border-radius:5px;background:var(--hov);position:relative;overflow:hidden;min-width:80px}.bar i{position:absolute;inset:0 auto 0 0;background:#4a7fb5;border-radius:5px}.bar.ueber i{background:var(--red)}
+.kal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.35rem}
+.kal .wt{font-size:.78rem;color:var(--mute);text-align:center}
+.kal button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;min-height:4.2rem;padding:.3rem;cursor:pointer;font:inherit;text-align:left;display:flex;flex-direction:column;gap:.1rem}
+.kal button small{font-size:.74rem;color:var(--mute)}
+.kal button.bes{border-color:var(--ok)}.kal button.off{border-color:var(--red)}.kal button.we{opacity:.55}.kal button.abw{background:color-mix(in srgb,#2f9e5a 12%,var(--card))}
+.kal button.heute{outline:2px solid var(--y)}
+.kal .x{visibility:hidden}
+.frm{display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap}
+.frm label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}
+.frm input,.frm select{font:inherit;padding:.35rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--inp);color:var(--ink)}
+.tage{display:inline-flex;gap:2px}.tage button{border:1px solid var(--line);background:var(--card);color:var(--mute);border-radius:6px;width:2.2rem;padding:0;height:1.7rem;cursor:pointer;font-size:.78rem}.tage button.on{background:var(--y);color:var(--on);border-color:var(--y)}
+.zwei{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:.8rem;align-items:start}
+.hinw{font-size:.86rem;color:var(--mute);line-height:1.45}
+h3{margin:.1rem 0 .6rem;font-size:1.02rem}
+/* Einfach: wenige, große Bedienelemente – Tag und Monat, Vorschläge als Karten */
+html[data-modus="einfach"] .profi{display:none!important}
+html[data-modus="einfach"] .zr,.handy .zr{grid-template-columns:1fr auto;grid-template-areas:"z akt" "p p" "a a";border:1px solid var(--line);border-radius:12px;padding:.6rem .7rem;margin:0 0 .5rem}
+html[data-modus="einfach"] .zr.kopf,.handy .zr.kopf{display:none}
+html[data-modus="einfach"] .zr .zz,.handy .zr .zz{grid-area:z}
+html[data-modus="einfach"] .zr .pp,.handy .zr .pp{grid-area:p}
+html[data-modus="einfach"] .zr .aa,.handy .zr .aa{grid-area:a}
+html[data-modus="einfach"] .zr .akt,.handy .zr .akt{grid-area:akt}
+html[data-modus="einfach"] body:not(.handy) .zr{grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) auto;grid-template-areas:"z p a akt"}
+html[data-modus="einfach"] .zr .qq,html[data-modus="einfach"] .zr .dd,.handy .zr .qq,.handy .zr .dd{display:none}
+html[data-modus="einfach"] .ib2,.handy .ib2{min-width:44px;height:42px;font-size:1.05rem}
+html[data-modus="einfach"] .zr input,html[data-modus="einfach"] .zr select,.handy .zr input,.handy .zr select{font-size:1rem;padding:.45rem .5rem}
+html[data-modus="einfach"] .btn,.handy .akts .btn{padding:.7rem 1.1rem;font-size:1rem}
+html[data-modus="einfach"] .k b{font-size:1.25rem}
+@media (max-width:760px){.zwei{grid-template-columns:1fr}.tlk{display:none}.seg{max-width:100%;overflow-x:auto;scrollbar-width:none}.dnav{width:100%;justify-content:center}.k{min-width:calc(50% - .5rem);box-sizing:border-box}.ws{grid-template-columns:repeat(7,minmax(2.4rem,1fr));overflow-x:auto}.kal button{min-height:3.4rem}.kal button small{display:none}.kal button small.abw-n{display:block}}
+</style>
+</head>
+<body>
+<main class="wrap" id="app">
+  <div class="top">
+    <div class="seg" id="tabs" role="tablist" aria-label="Ansicht"></div>
+    <span class="fill"></span>
+    <div class="dnav" id="dnav"></div>
+  </div>
+  <div id="view"><p class="mute">Lade …</p></div>
+</main>
+<script src="static/bp.js"></script>
+<script>
+const LS = { get(k, d) { try { const v = localStorage.getItem('zeit.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('zeit.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
+let ME = null, G = null, D = null, W = null, M = null, A = null, K = null, PSEL = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
+const einfach = () => document.documentElement.dataset.modus === 'einfach';
+const handy = () => innerWidth <= 760;
+const h2m = (s) => { const m = /^(\d{1,2}):(\d{2})/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
+const m2h = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const std = (m) => { const n = Math.round(m || 0), s = n < 0 ? '−' : ''; const a = Math.abs(n); return `${s}${Math.floor(a / 60)}:${String(a % 60).padStart(2, '0')}`; };
+const hmNorm = (v) => { const t = String(v || '').trim().replace(/[.,h ]/g, ':'); if (!t) return ''; let h, m; if (t.includes(':')) [h, m] = t.split(':'); else if (t.length <= 2) [h, m] = [t, '0']; else [h, m] = [t.slice(0, -2), t.slice(-2)];
+  h = +h; m = +(m || 0); return Number.isFinite(h) && Number.isFinite(m) && h >= 0 && h <= 24 && m >= 0 && m < 60 ? m2h(h * 60 + m) : null; };   // „930“, „9.30“, „9“ → 09:30 / 09:00
+const dauer = (v, b) => Math.max(0, (h2m(b) || 0) - (h2m(v) || 0));
+const WT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const wtag = (t) => (new Date(t + 'T12:00').getDay() + 6) % 7;
+const dlang = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+const dkurz = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+const plus = (t, n) => { const d = new Date(t + 'T12:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const PJN = () => Object.fromEntries((G.projekte || []).map((p) => [p.id, p.name]));
+const ARTN = () => Object.fromEntries(G.arten);
+const QN = { puls: 'aus der Plattform', vorort: 'vor Ort', fahrt: 'Fahrt (geschätzt)', hand: 'von Hand', stoppuhr: 'Stoppuhr' };
+const artKurz = (a) => (/^lph(\d)$/.exec(a || '') ? 'LPh ' + a.slice(3) : (ARTN()[a] || a || ''));
+
+/* ---------------- Kopf: Reiter und Datum ---------------- */
+function reiter() {
+  const T = [['tag', 'Mein Tag'], ['woche', 'Woche', 1], ['monat', 'Monat & Urlaub']].concat(G.admin ? [['auswertung', 'Auswertung', 1], ['einst', 'Einstellungen', 1]] : []);
+  if (einfach() && !['tag', 'monat'].includes(tab)) tab = 'tag';
+  $('#tabs').innerHTML = T.map(([k, l, p]) => `<button type="button" data-tab="${k}" class="${tab === k ? 'on' : ''}${p ? ' profi' : ''}" role="tab" aria-selected="${tab === k}">${l}</button>`).join('');
+  const zeigDatum = tab === 'tag' || tab === 'woche';
+  $('#dnav').innerHTML = zeigDatum ? `<button type="button" class="ib" data-dn="-1" title="Tag zurück" aria-label="Tag zurück">‹</button><input type="date" id="dIn" value="${tag}" max="${G.heute}" aria-label="Datum"><button type="button" class="ib" data-dn="1" title="Tag vor" aria-label="Tag vor"${tag >= G.heute ? ' disabled' : ''}>›</button>${tag !== G.heute ? '<button type="button" class="btn sm" data-dn="0">Heute</button>' : ''}`
+    : tab === 'monat' ? `<button type="button" class="ib" data-mn="-1" aria-label="Monat zurück">‹</button><b style="min-width:9rem;text-align:center">${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" class="ib" data-mn="1" aria-label="Monat vor">›</button>` : '';
+}
+async function laden() {
+  reiter();
+  try {
+    if (tab === 'tag') { [D, W] = await Promise.all([api('api/tag?d=' + tag), api('api/woche?d=' + tag)]); }
+    else if (tab === 'woche') W = await api('api/woche?d=' + tag);
+    else if (tab === 'monat') M = await api('api/monat?m=' + monat);
+    else if (tab === 'auswertung') { [A, K] = await Promise.all([api('api/auswertung'), api('api/konten')]); }
+    else if (tab === 'einst') K = await api('api/konten');
+  } catch (e) { toast(e.message, true); }
+  zeichne();
+}
+function zeichne() {
+  document.body.classList.toggle('handy', handy());
+  const v = $('#view');
+  if (tab === 'tag') v.innerHTML = vTag();
+  else if (tab === 'woche') v.innerHTML = vWoche();
+  else if (tab === 'monat') v.innerHTML = vMonat();
+  else if (tab === 'auswertung') v.innerHTML = vAuswertung();
+  else v.innerHTML = vEinst();
+}
+
+/* ---------------- Mein Tag ---------------- */
+function kopfZahlen(d) {
+  const k = d.konto || {}, fest = !!d.bestaetigt;
+  const sal = k.saldo || 0;
+  return `<div class="kz">
+    <div class="k"><small>Kommen${d.kommen_fest ? '' : ' (Vorschlag)'}</small><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-tf="kommen" value="${d.kommen}"${fest ? ' disabled' : ''} aria-label="Kommen"></div>
+    <div class="k"><small>Gehen${d.gehen_fest ? '' : ' (Vorschlag)'}</small><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-tf="gehen" value="${d.gehen}"${fest ? ' disabled' : ''} aria-label="Gehen"></div>
+    <div class="k"><small>Pause (Min.)${d.pause_fest ? '' : ' – automatisch'}</small><input type="number" min="0" step="5" data-tf="pause" value="${d.pause}"${fest ? ' disabled' : ''} aria-label="Pause in Minuten"></div>
+    <div class="k"><small>Arbeitszeit</small><b>${std(d.arbeit)} h</b></div>
+    <div class="k profi"><small>Soll${d.feiertag ? ' · ' + esc(d.feiertag) : ''}</small><b>${std(d.soll)} h</b></div>
+    <div class="k profi"><small>davon Projekten zugeordnet</small><b>${std(d.projekt + d.vorschlaege.filter((x) => x.project_id).reduce((a, x) => a + dauer(x.von, x.bis), 0))} h</b></div>
+    <div class="k ${sal >= 0 ? 'plus' : 'minus'}"><small>Saldo</small><b>${sal >= 0 ? '+' : ''}${std(sal)} h</b></div>
+    <div class="k profi"><small>Urlaub übrig</small><b>${String(k.urlaub_rest ?? '–').replace('.', ',')} T</b></div>
+    <div class="k"><small>Abwesenheit</small><select data-tf="abw"${fest ? ' disabled' : ''} aria-label="Abwesenheit"><option value="">– da –</option>${Object.entries(G.abw).map(([a, n]) => `<option value="${a}"${d.abw === a ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
+  </div>`;
+}
+function zeitstrahl(d) {
+  const L = [...d.eintraege.map((e) => ({ ...e, fest: 1 })), ...d.vorschlaege.map((v, i) => ({ ...v, vi: i }))];
+  const ms = L.flatMap((x) => [h2m(x.von), h2m(x.bis)]).filter((x) => x != null);
+  const a = Math.min(7 * 60, ...ms.map((m) => Math.floor(m / 60) * 60)), b = Math.max(18 * 60, ...ms.map((m) => Math.ceil(m / 60) * 60));
+  const p = (m) => ((m - a) / (b - a) * 100).toFixed(2) + '%';
+  let h = '';
+  for (let s = a; s <= b; s += 60) h += `<span class="h" style="left:${p(s)}">${s / 60}</span><span class="hl" style="left:${p(s)}"></span>`;
+  const pj = PJN();
+  h += L.map((x) => `<div class="b q-${x.quelle}${x.fest ? '' : ' v'}" style="left:${p(h2m(x.von))};width:calc(${((h2m(x.bis) - h2m(x.von)) / (b - a) * 100).toFixed(2)}% - 2px)" data-spr="${x.fest ? 'e' + x.id : 'v' + x.vi}" title="${esc(`${x.von}–${x.bis} · ${pj[x.project_id] || 'ohne Projekt'} · ${artKurz(x.art)} · ${QN[x.quelle] || ''}`)}">${esc((pj[x.project_id] || 'Büro').slice(0, 22))}<br>${esc(artKurz(x.art))}</div>`).join('');
+  if (d.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) h += `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; }
+  return `<div class="tl" aria-hidden="true">${h}</div><div class="leg"><span><i class="q-puls"></i>aus der Arbeit in der Plattform</span><span><i class="q-vorort"></i>vor Ort (Baustelle)</span><span><i class="q-fahrt"></i>Fahrt (geschätzt)</span><span><i class="q-hand"></i>von Hand / Stoppuhr</span><span>gestrichelt = Vorschlag, noch nicht übernommen</span></div>`;
+}
+function projSel(pid, attr) {
+  return `<select ${attr} aria-label="Projekt"><option value="">— ohne Projekt (Büro) —</option>${(G.projekte || []).map((p) => `<option value="${p.id}"${+pid === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}${pid && !PJN()[pid] ? `<option value="${pid}" selected>Projekt ${pid}</option>` : ''}</select>`;
+}
+function artSel(a, attr) { return `<select ${attr} aria-label="Tätigkeit">${G.arten.map(([k, n]) => `<option value="${k}"${a === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
+function zeile(x, art) {   // art: 'e' gespeichert, 'v' Vorschlag, 'n' neu
+  const fest = !!(D && D.bestaetigt), dis = fest ? ' disabled' : '';
+  const id = art === 'e' ? `data-e="${x.id}"` : art === 'v' ? `data-v="${x.vi}"` : 'data-n="1"';
+  const akt = art === 'v' ? `<button type="button" class="ib2 ok" data-za="ok" title="Übernehmen">✓</button><button type="button" class="ib2 no" data-za="weg" title="Nicht übernehmen (z. B. privat)">✕</button>`
+    : art === 'n' ? `<button type="button" class="ib2 ok" data-za="neu" title="Speichern">✓</button><button type="button" class="ib2 no" data-za="abbr" title="Abbrechen">✕</button>`
+      : fest ? '' : `<button type="button" class="ib2 no" data-za="del" title="Löschen (mit Rückgängig)">🗑</button>`;
+  return `<div class="zr${art === 'v' ? ' v' : ''}" ${id}>
+    <span class="zz"><input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-zf="von" value="${x.von || ''}"${dis} aria-label="von">–<input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" class="hm" data-zf="bis" value="${x.bis || ''}"${dis} aria-label="bis"></span>
+    <span class="pp">${projSel(x.project_id, `data-zf="project_id"${dis}`)}</span>
+    <span class="aa">${artSel(x.art, `data-zf="art"${dis}`)}</span>
+    <span class="qq">${x.quelle ? `<span class="q q-${x.quelle}">${QN[x.quelle] || esc(x.quelle)}</span>` : ''}</span>
+    <span class="dd r">${x.von && x.bis ? std(dauer(x.von, x.bis)) : ''}</span>
+    <span class="akt">${akt}</span></div>`;
+}
+function laufHtml() {
+  const l = G.lauf;
+  if (l) { const s = new Date(l.start.replace(' ', 'T')), m = Math.max(0, Math.round((Date.now() - s) / 60000));
+    return `<div class="lauf"><span>⏱ läuft seit <b>${l.start.slice(11, 16)}</b> (${std(m)} h) · ${esc(PJN()[l.project_id] || 'ohne Projekt')} · ${esc(artKurz(l.art))}</span><button type="button" class="btn sm pri" data-lauf="stop">■ Anhalten und eintragen</button><button type="button" class="btn sm" data-lauf="weg">Verwerfen</button></div>`; }
+  if (PSEL) return `<div class="lauf"><span>⏱ Stoppuhr für</span>${projSel(PSEL.pid, 'id="lP"')}${artSel(PSEL.art || 'buero', 'id="lA"')}<button type="button" class="btn sm pri" data-lauf="start">▶ Starten</button><button type="button" class="btn sm" data-lauf="abbr">Abbrechen</button></div>`;
+  return '';
+}
+function vTag() {
+  const d = D; if (!d) return '';
+  const V = d.vorschlaege.map((v, i) => ({ ...v, vi: i }));
+  const L = [...d.eintraege.map((e) => ['e', e]), ...V.map((v) => ['v', v])].sort((p, q) => (p[1].von || '').localeCompare(q[1].von || ''));
+  const neu = NEU ? zeile(NEU, 'n') : '';
+  const titel = `<h3>${dlang(d.tag)}${d.feiertag ? ` · <span class="mute">${esc(d.feiertag)}</span>` : ''}</h3>`;
+  const band = d.bestaetigt ? `<div class="ok-band">✓ Tag bestätigt am ${esc(d.bestaetigt.slice(8, 10) + '.' + d.bestaetigt.slice(5, 7) + '. ' + d.bestaetigt.slice(11, 16))}<span class="fill"></span><button type="button" class="btn sm" data-ta="auf">Noch einmal bearbeiten</button></div>` : '';
+  const liste = `<div class="card"><div class="zl"><div class="zr kopf profi"><span>Zeit</span><span>Projekt</span><span>Tätigkeit / Leistungsphase</span><span>Quelle</span><span class="r">Dauer</span><span></span></div>${neu}${L.map(([a, x]) => zeile(x, a)).join('')}${!L.length && !NEU ? `<div class="leer">${d.abw ? esc(G.abw[d.abw] || '') + ' – keine Zeiten nötig.' : 'Noch nichts erfasst. Sobald du in der Plattform arbeitest, erscheinen hier Vorschläge – oder trage etwas von Hand ein.'}</div>` : ''}</div>
+    <div class="akts">${d.bestaetigt ? '' : '<button type="button" class="btn sm" data-ta="neu">＋ Zeit von Hand</button>'}${!G.lauf && !PSEL && d.tag === G.heute ? '<button type="button" class="btn sm" data-lauf="wahl">▶ Stoppuhr</button>' : ''}<span class="fill"></span>
+    ${d.bestaetigt || d.tag > G.heute ? '' : `<button type="button" class="btn pri" data-ta="ok"${V.length ? ` title="${V.length} Vorschläge werden übernommen"` : ''}>✓ Tag bestätigen${V.length ? ` (${V.length} Vorschl${V.length === 1 ? 'ag' : 'äge'})` : ''}</button>`}</div></div>`;
+  const ws = W ? `<div class="ws profi" aria-label="Woche">${W.tage.map((x) => { const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.vorschlaege || x.eintraege);
+    return `<button type="button" data-geh="${x.tag}" class="${x.tag === d.tag ? 'on' : ''}${x.bestaetigt ? ' bes' : ''}${off ? ' off' : ''}${!x.soll ? ' we' : ''}">${WT[wtag(x.tag)]} ${dkurz(x.tag)}<b style="display:block">${x.abw ? esc((G.abw[x.abw] || '').split(' ')[0]) : x.bestaetigt || x.tag === G.heute ? std(x.ist) : '–'}</b><small>${x.bestaetigt ? '✓ bestätigt' : x.abw ? '' : off ? 'offen' : x.feiertag ? esc(x.feiertag) : x.soll ? 'Soll ' + std(x.soll) : 'frei'}</small></button>`; }).join('')}</div>` : '';
+  return `${titel}${band}${kopfZahlen(d)}${laufHtml()}<div class="card profi tlk" style="padding-top:.4rem">${zeitstrahl(d)}</div>${liste}${ws}`;
+}
+let NEU = null;
+function zeileWerte(z) { const o = {}; z.querySelectorAll('[data-zf]').forEach((el) => { o[el.dataset.zf] = el.classList.contains('hm') ? (hmNorm(el.value) || el.value) : el.value; }); return o; }
+async function zeileAktion(z, a) {
+  try {
+    if (z.dataset.v != null) {
+      const v = D.vorschlaege[+z.dataset.v]; if (!v) return;
+      if (a === 'weg') { D = await api('api/verwerfen', 'POST', { d: tag, von: v.von, bis: v.bis }); zeichne(); rueckgaengig('Vorschlag nicht übernommen', async () => { D = await api('api/verwerfen', 'POST', { d: tag, von: v.von, bis: v.bis, zurueck: 1 }); zeichne(); }); return; }
+      D = await api('api/eintrag', 'POST', { d: tag, ...v, ...zeileWerte(z), quelle: v.quelle }); zeichne(); return;
+    }
+    if (z.dataset.e) {
+      const id = +z.dataset.e;
+      if (a === 'del') { const r = await api('api/eintrag/' + id, 'DELETE'); D = r; zeichne(); const g = r.geloescht;
+        if (g) rueckgaengig('Zeit gelöscht', async () => { D = await api('api/eintrag', 'POST', { d: g.tag, von: g.von, bis: g.bis, project_id: g.project_id, art: g.art, notiz: g.notiz, quelle: g.quelle }); zeichne(); }); return; }
+      D = await api('api/eintrag/' + id, 'PUT', zeileWerte(z)); zeichne(); return;
+    }
+    if (z.dataset.n) {
+      if (a === 'abbr') { NEU = null; zeichne(); return; }
+      D = await api('api/eintrag', 'POST', { d: tag, ...zeileWerte(z), quelle: 'hand' }); NEU = null; zeichne();
+    }
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---------------- Woche ---------------- */
+function vWoche() {
+  if (!W) return '';
+  const T = W.tage, s = T.reduce((a, x) => ({ soll: a.soll + x.soll, ist: a.ist + (x.bestaetigt || x.abw ? x.ist : 0) }), { soll: 0, ist: 0 });
+  return `<div class="card"><h3>Woche ab ${dkurz(T[0].tag)}</h3><table class="t"><thead><tr><th>Tag</th><th>Kommen</th><th>Gehen</th><th class="r">Pause</th><th class="r">Arbeitszeit</th><th class="r">Soll</th><th>Stand</th></tr></thead><tbody>
+    ${T.map((x) => `<tr class="klick" data-geh="${x.tag}"><td>${WT[wtag(x.tag)]} ${dkurz(x.tag)}</td><td>${x.bestaetigt ? x.kommen : ''}</td><td>${x.bestaetigt ? x.gehen : ''}</td><td class="r">${x.bestaetigt ? std(x.pause) : ''}</td><td class="r">${x.bestaetigt || x.abw ? std(x.ist) : ''}</td><td class="r">${x.soll ? std(x.soll) : ''}</td><td>${x.abw ? esc(G.abw[x.abw]) : x.feiertag ? esc(x.feiertag) : x.bestaetigt ? '✓ bestätigt' : x.vorschlaege || x.eintraege ? (x.tag === G.heute ? 'läuft' : 'offen') : ''}</td></tr>`).join('')}
+    <tr><td colspan="4"><b>Summe</b></td><td class="r"><b>${std(s.ist)}</b></td><td class="r"><b>${std(s.soll)}</b></td><td>Saldo gesamt <b>${(W.konto.saldo >= 0 ? '+' : '') + std(W.konto.saldo)} h</b></td></tr></tbody></table></div>`;
+}
+
+/* ---------------- Monat & Urlaub ---------------- */
+function vMonat() {
+  if (!M) return '';
+  const T = M.tage, k = M.konto, P = M.person, vor = wtag(T[0].tag);
+  const kal = `<div class="kal">${WT.map((w) => `<span class="wt">${w}</span>`).join('')}${'<span></span>'.repeat(vor)}${T.map((x) => {
+    const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.offen);
+    return `<button type="button" data-geh="${x.tag}" class="${x.bestaetigt ? 'bes' : ''}${off ? ' off' : ''}${!x.soll && !x.abw ? ' we' : ''}${x.abw ? ' abw' : ''}${x.tag === G.heute ? ' heute' : ''}" title="${esc(dlang(x.tag))}"><b>${+x.tag.slice(8)}</b>${x.abw ? `<small class="abw-n">${esc(G.abw[x.abw])}</small>` : x.feiertag ? `<small>${esc(x.feiertag)}</small>` : x.bestaetigt ? `<small>${std(x.ist)} h ✓</small>` : off ? '<small>offen</small>' : ''}</button>`; }).join('')}</div>`;
+  const heute = G.heute;
+  return `<div class="zwei"><div class="card">${kal}</div><div>
+    <div class="card"><h3>Urlaub, Krank, Frei eintragen</h3><div class="frm"><label>von<input type="date" id="abV" value="${heute}"></label><label>bis<input type="date" id="abB" value="${heute}"></label>
+      <label>Art<select id="abA">${Object.entries(G.abw).map(([a, n]) => `<option value="${a}">${n}</option>`).join('')}</select></label>
+      <button type="button" class="btn sm pri" data-ab="setzen">Eintragen</button><button type="button" class="btn sm" data-ab="weg" title="Abwesenheit im Zeitraum wieder entfernen">Entfernen</button></div>
+      <p class="hinw">Gezählt werden nur Arbeitstage; Feiertage (NRW) sind schon berücksichtigt.</p></div>
+    <div class="card"><h3>Mein Konto</h3><table class="t"><tr><td>Saldo</td><td class="r"><b>${(k.saldo >= 0 ? '+' : '') + std(k.saldo)} h</b></td></tr>
+      <tr><td>Urlaub ${monat.slice(0, 4)}</td><td class="r">${String(P.urlaub).replace('.', ',')} T, genommen ${String(k.urlaub_genommen).replace('.', ',')} T, <b>übrig ${String(k.urlaub_rest).replace('.', ',')} T</b></td></tr>
+      <tr><td>Krank ${monat.slice(0, 4)}</td><td class="r">${k.krank} T</td></tr><tr><td>Sollzeit</td><td class="r">${String(P.soll_woche).replace('.', ',')} h je Woche (${P.tage.split('').map((x) => WT[+x]).join(', ')})</td></tr>
+      <tr><td>noch nicht bestätigt</td><td class="r">${k.offen ? `<b>${k.offen} Tag${k.offen === 1 ? '' : 'e'}</b>` : '–'}</td></tr></table></div></div></div>`;
+}
+
+/* ---------------- Auswertung (Administratoren) ---------------- */
+let APID = null;
+function vAuswertung() {
+  if (!A || !K) return '';
+  const P = A.projekte, eur = (v) => (v == null ? '–' : Math.round(v).toLocaleString('de-DE') + ' €');
+  const sel = P.find((p) => p.project_id === APID);
+  const det = sel ? `<div class="card"><h3>${esc(sel.name)}</h3><div class="frm" style="margin-bottom:.6rem"><label>Honorar (netto, €)<input id="pHon" value="${sel.honorar != null ? String(sel.honorar).replace('.', ',') : ''}" inputmode="decimal" style="width:9rem"></label>
+      <label>Fahrzeit je Richtung (Min.)<input id="pFahrt" type="number" min="0" step="5" value="${sel.fahrt ?? ''}" placeholder="30" style="width:6rem"></label></div>
+      <table class="t"><thead><tr><th>Leistungsphase / Tätigkeit</th><th class="r">Soll h</th><th class="r">Ist h</th><th style="width:35%">Verbrauch</th></tr></thead><tbody>
+      ${G.arten.map(([k, n]) => { const ist = (sel.arten[k] || 0) / 60, soll = sel.soll[k]; if (!ist && soll == null && !/^lph/.test(k)) return '';
+        const pr = soll ? Math.min(100, ist / soll * 100) : 0;
+        return `<tr><td>${esc(n)}</td><td class="r"><input data-psoll="${k}" value="${soll != null ? String(soll).replace('.', ',') : ''}" inputmode="decimal" style="width:4.5rem;text-align:right"></td><td class="r">${ist ? ist.toFixed(1).replace('.', ',') : ''}</td><td>${soll ? `<div class="bar${ist > soll ? ' ueber' : ''}"><i style="width:${pr}%"></i></div>` : ''}</td></tr>`; }).join('')}
+      </tbody></table><div class="akts"><span class="hinw">Kosten = Stunden × Stundensatz der Person (sonst Bürosatz${A.buero_satz ? ' ' + String(A.buero_satz).replace('.', ',') + ' €/h' : ''})${sel.ohne_satz ? ` – ${std(sel.ohne_satz)} h ohne Stundensatz` : ''}.</span><span class="fill"></span><button type="button" class="btn sm pri" data-ps="${sel.project_id}">Speichern</button></div></div>` : '<div class="card hinw">Ein Projekt anklicken: Honorar, Soll-Stunden je Leistungsphase und Fahrzeit eintragen.</div>';
+  const pr = `<div class="card"><h3>Projekte</h3>${P.length ? `<table class="t"><thead><tr><th>Projekt</th><th class="r">Stunden</th><th class="r">Kosten</th><th class="r">Honorar</th><th class="r">Ergebnis</th></tr></thead><tbody>
+    ${P.map((p) => `<tr class="klick" data-ap="${p.project_id}"${p.project_id === APID ? ' style="outline:2px solid var(--y)"' : ''}><td>${esc(p.name)}</td><td class="r">${std(p.min)}</td><td class="r">${eur(p.kosten)}</td><td class="r">${eur(p.honorar)}</td><td class="r" style="color:${p.honorar != null ? (p.honorar - p.kosten >= 0 ? 'var(--ok)' : 'var(--red)') : 'inherit'}">${p.honorar != null ? eur(p.honorar - p.kosten) : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="hinw">Noch keine bestätigten Projektzeiten.</p>'}
+    <div class="akts"><a class="btn sm" href="api/export_projekte.csv">⤓ Projektzeiten (Excel)</a></div></div>`;
+  const ko = `<div class="card"><h3>Arbeitszeitkonten <span class="hinw">(nur Summen)</span></h3><table class="t"><thead><tr><th>Mitarbeiter:in</th><th class="r">Soll/Woche</th><th class="r">Ist diese Woche</th><th class="r">Saldo</th><th class="r">Urlaub übrig</th><th class="r">Krank</th><th class="r">offen</th></tr></thead><tbody>
+    ${K.konten.map((x) => `<tr><td>${esc(x.name)}</td><td class="r">${String(x.soll_woche).replace('.', ',')} h</td><td class="r">${std(x.ist_woche)}</td><td class="r" style="color:${x.saldo >= 0 ? 'var(--ok)' : 'var(--red)'}">${(x.saldo >= 0 ? '+' : '') + std(x.saldo)}</td><td class="r">${String(x.urlaub_rest).replace('.', ',')} T</td><td class="r">${x.krank} T</td><td class="r">${x.offen || ''}</td></tr>`).join('')}</tbody></table>
+    <div class="akts"><label class="hinw">Monat <input type="month" id="exM" value="${G.heute.slice(0, 7)}" style="font:inherit;padding:.25rem .4rem;border:1px solid var(--line);border-radius:7px;background:var(--inp);color:var(--ink)"></label><button type="button" class="btn sm" data-ex="1">⤓ Arbeitszeitnachweis (Excel)</button></div></div>`;
+  return `<div class="zwei"><div>${pr}${ko}</div><div>${det}</div></div>`;
+}
+function vEinst() {
+  if (!K) return '';
+  return `<div class="card"><h3>Stundensatz des Büros</h3><div class="frm"><label>€ je Stunde (wenn bei der Person nichts steht)<input id="bSatz" value="${K.buero_satz != null ? String(K.buero_satz).replace('.', ',') : ''}" inputmode="decimal" style="width:8rem"></label><button type="button" class="btn sm pri" data-bs="1">Speichern</button></div></div>
+  <div class="card"><h3>Mitarbeiter:innen</h3><div style="overflow-x:auto"><table class="t"><thead><tr><th>Name</th><th class="r">Soll h/Woche</th><th>Arbeitstage</th><th class="r">Urlaub T/Jahr</th><th class="r">Stundensatz €</th><th class="r">Saldo zu Beginn h</th><th>erfassen ab</th><th>nicht erfassen</th></tr></thead><tbody>
+  ${K.konten.concat([]).map((x) => { const p = x.person; return `<tr data-pu="${x.user_id}"><td>${esc(x.name)}</td><td class="r"><input data-pf="soll_woche" value="${String(p.soll_woche).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td>
+    <td><span class="tage">${WT.map((w, i) => `<button type="button" data-ptag="${i}" class="${p.tage.includes(String(i)) ? 'on' : ''}">${w}</button>`).join('')}</span></td>
+    <td class="r"><input data-pf="urlaub" value="${String(p.urlaub).replace('.', ',')}" inputmode="decimal" style="width:4rem;text-align:right"></td><td class="r"><input data-pf="satz" value="${p.satz != null ? String(p.satz).replace('.', ',') : ''}" placeholder="Büro" inputmode="decimal" style="width:5rem;text-align:right"></td>
+    <td class="r"><input data-pf="saldo_start" value="${String(p.saldo_start).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td><td><input type="date" data-pf="ab" value="${p.ab || ''}" style="width:auto"></td><td><input type="checkbox" data-pf="aus"${p.aus ? ' checked' : ''} style="width:auto" title="z. B. Inhaber oder Aushilfe ohne Zeiterfassung"></td></tr>`; }).join('')}
+  </tbody></table></div><p class="hinw">Änderungen werden sofort gespeichert. Wer „nicht erfassen“ hat, bekommt keine Erinnerung und erscheint nicht in den Konten.</p></div>`;
+}
+
+/* ---------------- Ereignisse ---------------- */
+document.addEventListener('click', async (e) => {
+  const t = e.target;
+  const tb = t.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; LS.set('tab', tab); laden(); return; }
+  const dn = t.closest('[data-dn]'); if (dn) { const n = +dn.dataset.dn; tag = n ? plus(tag, n) : G.heute; if (tag > G.heute) tag = G.heute; NEU = null; laden(); return; }
+  const mn = t.closest('[data-mn]'); if (mn) { const d = new Date(monat + '-15'); d.setMonth(d.getMonth() + +mn.dataset.mn); monat = d.toISOString().slice(0, 7); laden(); return; }
+  const geh = t.closest('[data-geh]'); if (geh) { tag = geh.dataset.geh > G.heute ? G.heute : geh.dataset.geh; tab = 'tag'; LS.set('tab', tab); NEU = null; laden(); return; }
+  const za = t.closest('[data-za]'); if (za) { zeileAktion(za.closest('.zr'), za.dataset.za); return; }
+  const spr = t.closest('[data-spr]'); if (spr) { const k = spr.dataset.spr, z = document.querySelector(k[0] === 'e' ? `.zr[data-e="${k.slice(1)}"]` : `.zr[data-v="${k.slice(1)}"]`); if (z) { z.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); z.classList.add('blink'); setTimeout(() => z.classList.remove('blink'), 1400); } return; }
+  const ta = t.closest('[data-ta]');
+  if (ta) {
+    const a = ta.dataset.ta;
+    if (a === 'neu') { const n = new Date(), m = Math.floor((n.getHours() * 60 + n.getMinutes()) / 15) * 15; NEU = { von: tag === G.heute ? m2h(Math.max(0, m - 60)) : '09:00', bis: tag === G.heute ? m2h(m) : '10:00', project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' }; zeichne(); const f = document.querySelector('.zr[data-n] [data-zf="project_id"]'); if (f) f.focus(); return; }
+    try {
+      if (a === 'ok') { D = await api('api/tag/bestaetigen', 'POST', { d: tag }); W = await api('api/woche?d=' + tag); zeichne(); toast('Tag bestätigt.'); }
+      if (a === 'auf') { D = await api('api/tag/oeffnen', 'POST', { d: tag }); zeichne(); }
+    } catch (er) { toast(er.message, true); }
+    return;
+  }
+  const lf = t.closest('[data-lauf]');
+  if (lf) {
+    const a = lf.dataset.lauf;
+    try {
+      if (a === 'wahl') { PSEL = { pid: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' }; zeichne(); return; }
+      if (a === 'abbr') { PSEL = null; zeichne(); return; }
+      if (a === 'start') { const r = await api('api/lauf', 'POST', { project_id: $('#lP').value, art: $('#lA').value }); G.lauf = r.lauf; PSEL = null; zeichne(); return; }
+      if (a === 'stop' || a === 'weg') { await api('api/lauf' + (a === 'stop' ? '?speichern=1' : ''), 'DELETE'); G.lauf = null; await laden(); if (a === 'stop') toast('Zeit eingetragen.'); return; }
+    } catch (er) { toast(er.message, true); }
+    return;
+  }
+  const ab = t.closest('[data-ab]');
+  if (ab) { try { const r = await api('api/abwesenheit', 'PUT', { von: $('#abV').value, bis: $('#abB').value, art: ab.dataset.ab === 'weg' ? '' : $('#abA').value }); toast(ab.dataset.ab === 'weg' ? 'Abwesenheit entfernt.' : `${r.tage} Arbeitstag${r.tage === 1 ? '' : 'e'} eingetragen.`); laden(); } catch (er) { toast(er.message, true); } return; }
+  const ap = t.closest('[data-ap]'); if (ap) { APID = +ap.dataset.ap; zeichne(); return; }
+  const ps = t.closest('[data-ps]');
+  if (ps) { const soll = {}; document.querySelectorAll('[data-psoll]').forEach((i) => { soll[i.dataset.psoll] = i.value; });
+    try { await api('api/projekt/' + ps.dataset.ps, 'PUT', { honorar: $('#pHon').value, fahrt: $('#pFahrt').value, soll }); A = await api('api/auswertung'); zeichne(); toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
+  const ex = t.closest('[data-ex]'); if (ex) { location.href = 'api/export.csv?m=' + encodeURIComponent($('#exM').value); return; }
+  const bs = t.closest('[data-bs]'); if (bs) { try { await api('api/buero_satz', 'PUT', { satz: $('#bSatz').value }); toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
+  const pt = t.closest('[data-ptag]');
+  if (pt) { pt.classList.toggle('on'); const tr = pt.closest('[data-pu]'); const tage = [...tr.querySelectorAll('[data-ptag].on')].map((b) => b.dataset.ptag).join('');
+    try { await api('api/person/' + tr.dataset.pu, 'PUT', { tage }); } catch (er) { toast(er.message, true); } }
+});
+document.addEventListener('change', async (e) => {
+  const t = e.target;
+  if (t.id === 'dIn' && t.value) { tag = t.value > G.heute ? G.heute : t.value; NEU = null; laden(); return; }
+  const tf = t.closest('[data-tf]');
+  if (tf) { const k = tf.dataset.tf; let v = tf.value; if (k === 'pause') v = v === '' ? null : +v; if (tf.classList.contains('hm')) { v = hmNorm(v); if (v === null) { toast('Bitte eine Uhrzeit eingeben, z. B. 7:45 oder 745.', true); return; } }
+    try { D = await api('api/tag', 'PUT', { d: tag, [k]: v }); zeichne(); } catch (er) { toast(er.message, true); } return; }
+  const zf = t.closest('[data-zf]');
+  if (zf) { const z = zf.closest('.zr'); if (z.dataset.n) return; if (zf.dataset.zf === 'project_id' && z.dataset.v != null) { /* Projekt gewählt: Tätigkeit bleibt */ } zeileAktion(z, 'save'); return; }
+  const pf = t.closest('[data-pf]');
+  if (pf) { const tr = pf.closest('[data-pu]'); try { await api('api/person/' + tr.dataset.pu, 'PUT', { [pf.dataset.pf]: pf.type === 'checkbox' ? pf.checked : pf.value }); } catch (er) { toast(er.message, true); } }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('.zr[data-n]')) { e.preventDefault(); zeileAktion(e.target.closest('.zr'), 'neu'); } });
+addEventListener('resize', () => { const h = handy(); if (h !== document.body.classList.contains('handy')) zeichne(); });
+setInterval(() => { if (tab === 'tag' && tag === G.heute && document.visibilityState === 'visible' && !document.activeElement.closest('.zr,.k,.lauf')) laden(); }, 5 * 60000);   // heute: Vorschläge wachsen mit
+
+(async () => {
+  ME = await api('api/me'); applyLook(ME);
+  const PC = await api('api/platform');
+  await header('Zeiten', ME, PC);
+  if (window.BPHead && BPHead.ready) await BPHead.ready.catch(() => {});
+  G = await api('api/grund');
+  tag = /^#\d{4}-\d{2}-\d{2}$/.test(location.hash) ? location.hash.slice(1) : G.heute; monat = tag.slice(0, 7);
+  if (!G.admin && ['auswertung', 'einst'].includes(tab)) tab = 'tag';
+  laden();
+})().catch((e) => toast(e.message, true));
+</script>
+</body>
+</html>

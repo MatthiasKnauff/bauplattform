@@ -785,6 +785,7 @@ function pdfName(art, zusatz = '', lv = L) {
 }
 const ohneLv = (x) => !!(x.frei && x.ohne_lv !== false);   // Auftrag ohne LV: nur unter Prüfung und Abrechnung, nicht in Ausschreibung/Vergabe
 let PROJ = [], pid = null, LIST = [], L = null, tab = LS.get('tab', 'auftraege'), PC = {}, EXP = new Set(LS.get('exp', [])), TSEL = null, saveT = 0, saving = false, KONT = null, OPEN = new Set(), amPos = LS.get('amPos', null), amNur = LS.get('amNur', false);
+window.bpBereich = () => tab;   // für die Zeiterfassung: Reiter der AVA ergibt die Leistungsphase (LV → LPh 6, Angebote → LPh 7, Aufmaß/Rechnungen → LPh 8)
 if (!TABS.some((t) => t[0] === tab)) tab = 'auftraege';
 const eur = (v) => (v == null || isNaN(v) ? '–' : (Math.abs(v) < 0.005 ? 0 : v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
 const eur0 = (v) => (v == null || isNaN(v) ? '–' : Math.round(v).toLocaleString('de-DE') + ' €');

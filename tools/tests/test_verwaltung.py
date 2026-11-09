@@ -7,7 +7,7 @@ Alle Benutzer und Projekte legt der Test selbst an und löscht sie wieder – di
 from lib import finde, gleich, pruefe
 
 NEU_PW = "Baustelle-2026-neu"
-APP_KEYS = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten"]
+APP_KEYS = ["bautagebuch", "gantt", "adressen", "baukosten", "aufgaben", "plaene", "ava", "kommunikation", "baudaten", "zeiten"]
 PW_ZEICHEN = set("abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789")   # ohne leicht verwechselbare Zeichen (0/O, 1/l/I)
 
 

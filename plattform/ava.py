@@ -2790,6 +2790,11 @@ def nachtrag_neu(i):
                 items.insert(ende + n, p2)
             ep = None   # Preise stehen in neue_preise
         else:
+            # einzelner Nachtrag: direkt unter „Nachträge“ – hinter die letzte direkte Position, VOR die Untergliederungen
+            # (sonst landete er in der zuletzt angelegten Gliederungspunkt-Nachtrag, z. B. 09.01.0030 statt 09.0020)
+            erst_ti = next((j for j in range(ti + 1, ende) if items[j].get("typ") == "titel"), None)
+            if erst_ti is not None:
+                ende = erst_ti
             pos = {"id": uuid.uuid4().hex[:10], "typ": "pos", "art": "N", "oz": "", "kurz": kurz, "lang": _s(b.get("lang"), 4000), "menge": menge, "einheit": einheit,
                    "nt": f"NT{n_nt}", "nt_status": status, "nt_grund": grund, **({"nt_bezug": _s(b.get("bezug"), 40)} if b.get("bezug") else {})}   # abgeleitet aus Pos. …
             if ep is not None:

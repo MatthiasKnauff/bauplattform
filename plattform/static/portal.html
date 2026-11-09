@@ -30,6 +30,19 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .ri.neu>*{animation:rneu 1.2s ease}@keyframes rneu{0%,40%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
 .ri-plus{display:flex;align-items:center;justify-content:center;gap:.3rem;border:2px dashed var(--line);border-radius:10px;background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer}.ri-plus:hover{border-color:var(--y);color:var(--y)}.ri-plus small{font-weight:400}
 .raster.touchzieh{touch-action:none}
+.wx-p{margin-left:.4rem;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:999px;padding:0 .55rem;font:inherit;font-size:.74rem;font-weight:400;cursor:pointer;max-width:14rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wx-p:hover{border-color:var(--y);color:var(--y)}
+.wx-sub{margin:.1rem 0 .4rem;color:var(--mute);font-size:.78rem}
+.wx-bz,.wx-ks{display:block;color:inherit;text-decoration:none}
+.bz-pl{display:block;font-size:.8rem;margin:.3rem 0 .15rem}
+.bz-z{display:grid;grid-template-columns:minmax(5rem,32%) 1fr;gap:.5rem;align-items:center;font-size:.8rem;padding:.08rem 0}
+.bz-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.bz-b{position:relative;height:12px;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:3px}
+.bz-b i{position:absolute;top:1px;bottom:1px;background:#3a7bd5;border-radius:3px}.bz-b i.v{background:#e07b3a}.bz-b i.f{background:#1f9d4c}
+.bz-b i.ms{width:9px!important;height:9px;top:1px;transform:translateX(-4px) rotate(45deg);border-radius:1px}
+.bz-b u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--red);opacity:.8;text-decoration:none}
+.bz-l{display:inline-block;width:12px;height:7px;border-radius:2px;background:#e07b3a;vertical-align:middle;margin:0 .15rem 0 .3rem}.bz-l.f{background:#1f9d4c}
+.ks-z{display:grid;grid-template-columns:6.5rem 1fr auto;gap:.5rem;align-items:center;font-size:.82rem;padding:.12rem 0}.ks-z span{color:var(--mute)}.ks-z b{font-weight:600;white-space:nowrap}
+.ks-b{height:10px;background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:3px;overflow:hidden}.ks-b i{display:block;height:100%;border-radius:3px}
 /* Handy: zwei Spalten, Kacheln je eine, Widgets volle Breite, Höhe nach Inhalt (begrenzt) */
 .raster.handy{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
 .raster.handy .ri{grid-column:auto!important;grid-row:auto!important}.raster.handy .ri-w,.raster.handy .ri-plus{grid-column:1/-1!important}
@@ -142,11 +155,18 @@ const DESC = {
 let APPS = [], REIHE = [], RASTER = null, WB = [], RZIEH = null, RNEU = false;   // WB: Widgets aus deskZeigen · RZIEH: gerade gezogen
 const SP = 12, ZH = 64, LUE = 10;   // Spalten, Zeilenhöhe, Abstand (px)
 const RGR = { a: { w: [2, 6], h: [1, 2], d: [3, 1] }, w: { w: [3, 12], h: [2, 16], d: [6, 4] } };   // je Art: Breite/Höhe min–max, Standard
-const RSTD = { 'w:post': [6, 7], 'w:todos': [6, 4] };
+const RSTD = { 'w:post': [6, 7], 'w:todos': [6, 4], 'w:kosten': [4, 4] };
 const rArt = (i) => (i[0] === 'a' ? 'a' : 'w');
 const rKoll = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const rHandy = () => innerWidth < 760;
-function rIds() { return [...APPS.map((a) => 'a:' + a.key), 'w:post', ...WB.map((b) => 'w:' + b.k)]; }
+/* eigene Widgets mit Daten aus anderen Apps; je Widget ein Projekt (o.p) oder das aktuelle. Mehrere gleiche: w:bauzeit.2 … */
+const WX = { bauzeit: { name: 'Bauzeitenplan', app: 'gantt', ic: ['▤', '#1f9d4c'], d: [6, 4] }, kosten: { name: 'Kostenstand', app: 'ava', ic: ['€', '#c0392b'], d: [4, 4] } };
+const wxTyp = (i) => (String(i).match(/^w:(bauzeit|kosten)(\.\d+)?$/) || [])[1];
+const wxOk = (t) => APPS.some((a) => a.key === WX[t].app && a.allowed);
+function rIds() {
+  const extra = ((RASTER && RASTER.items) || []).map((it) => it.i).filter((i) => /\.\d+$/.test(i) && wxTyp(i) && wxOk(wxTyp(i)));
+  return [...APPS.map((a) => 'a:' + a.key), 'w:post', ...WB.map((b) => 'w:' + b.k), ...Object.keys(WX).filter(wxOk).map((t) => 'w:' + t), ...extra];
+}
 function rWeg() { return new Set((RASTER && RASTER.weg) || []); }
 function rFrei(L, w, h) { for (let y = 0; ; y++) for (let x = 0; x + w <= SP; x++) { const t = { x, y, w, h }; if (!L.some((r) => rKoll(r, t))) return t; } }
 /* alles nach oben rücken, ohne Überlappung; „fest“ (gerade gezogen/vergrößert) bekommt seinen Platz zuerst */
@@ -167,7 +187,7 @@ function rLayout() {
   const da = new Set(rIds()), weg = rWeg(), L = RASTER.items.filter((it) => da.has(it.i) && !weg.has(it.i)).map((it) => ({ ...it }));
   const hat = new Set(L.map((it) => it.i));
   for (const i of rIds()) if (!hat.has(i) && !weg.has(i)) {
-    const [w, h] = RSTD[i] || RGR[rArt(i)].d;
+    const [w, h] = RSTD[i] || (wxTyp(i) && WX[wxTyp(i)].d) || RGR[rArt(i)].d;
     const p = i === 'w:post' ? (L.some((r) => rKoll(r, { x: 0, y: rUnten(L, 'a'), w, h })) ? rFrei(L, w, h) : { x: 0, y: rUnten(L, 'a'), w, h })
       : rArt(i) === 'w' ? rFreiRechts(L, w, h) : rFrei(L, w, h);
     L.push({ i, ...p, w, h }); RNEU = true;
@@ -189,7 +209,7 @@ function rKachel(k) {
   return `<a class="tile ${a.allowed ? '' : 'off'}" data-key="${esc(a.key)}" data-af="${esc(a.key)}" href="${a.key === 'papierkorb' ? 'papierkorb' : esc(appUrl(a)) + '/'}"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
     <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`;
 }
-const rName = (i) => (i[0] === 'a' ? (DESC[i.slice(2)] || [i])[0] : i === 'w:post' ? 'Post zu deinen Projekten' : ((WB.find((b) => 'w:' + b.k === i) || {}).name || i));
+const rName = (i) => (i[0] === 'a' ? (DESC[i.slice(2)] || [i])[0] : i === 'w:post' ? 'Post zu deinen Projekten' : wxTyp(i) ? WX[wxTyp(i)].name : ((WB.find((b) => 'w:' + b.k === i) || {}).name || i));
 function rasterZeigen() {
   const host = $('#raster'); if (!host) return;
   if (RZIEH) { RZIEH.spaeter = true; return; }   // nicht mitten im Ziehen neu aufbauen
@@ -201,23 +221,81 @@ function rasterZeigen() {
     const x = `<button type="button" class="${it.i[0] === 'a' ? 'kx' : 'ue-x'}" data-rx="${esc(it.i)}" title="ausblenden (über „＋ App / Widget“ wieder holen)" aria-label="${esc(rName(it.i))} ausblenden">✕</button><span class="rz" data-rz title="Größe ändern: ziehen" aria-hidden="true"></span>`;
     if (it.i[0] === 'a') return `<div class="ri ri-a" data-ri="${esc(it.i)}" style="${rStil(it)}">${rKachel(it.i.slice(2))}${x}</div>`;
     if (it.i === 'w:post') return `<div class="ri ri-w ri-post" data-ri="w:post" style="${rStil(it)}">${x}</div>`;
+    if (wxTyp(it.i)) { const T = WX[wxTyp(it.i)], pid = wxPid(it), pn = wxPName(pid, it);
+      return `<div class="ri ri-w" data-ri="${esc(it.i)}" style="${rStil(it)}"><section class="ue-b wx"><h3><span class="ue-ic" style="background:${T.ic[1]}">${T.ic[0]}</span>${esc(T.name)}<button type="button" class="wx-p" data-wxp="${esc(it.i)}" title="Projekt wählen: aktuelles oder ein festes">${esc(pn)} ▾</button><span class="ue-grip" title="Widget verschieben: ziehen">⋮⋮</span></h3><div class="wx-in" data-wxin="${esc(it.i)}">${(WXC[wxTyp(it.i) + ':' + pid] || {}).html || (pid ? '<p class="mute">lädt …</p>' : '<p class="mute">Oben ein Projekt wählen – oder hier ▾ ein festes.</p>')}</div></section>${x}</div>`; }
     const b = B[it.i]; if (!b) return '';
     return `<div class="ri ri-w" data-ri="${esc(it.i)}" style="${rStil(it)}">${ueBlockHtml(b).replace(' draggable="true"', '').replace(/<button type="button" class="ue-x"[^>]*>✕<\/button>/, '')}${x}</div>`;
   }).join('') + `<button type="button" class="ri ri-plus" data-rplus style="${rStil({ ...rFrei(L, 3, 1), w: 3, h: 1 })}" title="Ausgeblendete Apps und Widgets wieder auf die Startseite holen">＋ App / Widget${rWeg().size ? ` <small>(${rWeg().size})</small>` : ''}</button>`;
   const pz = host.querySelector('.ri-post'); if (pz && post) pz.insertBefore(post, pz.firstChild);
+  L.filter((it) => wxTyp(it.i)).forEach((it) => wxLaden(it));
   host.classList.toggle('handy', rHandy());
 }
+/* ---------- eigene Widgets: Bauzeitenplan (Handyansicht), Kostenstand ---------- */
+const WXC = {}; let WXP = null;   // WXC: Inhalt je Typ:Projekt (mit Zeit) · WXP: Projektliste für ▾
+const wxPid = (it) => (it.o && it.o.p) || (window.BPHead && BPHead.projektId && BPHead.projektId()) || 0;
+function wxPName(pid, it) {
+  const n = (WXP && (WXP.find((p) => p.id === pid) || {}).name) || ((WXC['bauzeit:' + pid] || WXC['kosten:' + pid] || {}).pname) || (pid ? 'Projekt' : 'kein Projekt');
+  return (it.o && it.o.p ? '' : 'aktuell: ') + n;
+}
+const eurK = (v) => (Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' Mio €' : Math.round(v).toLocaleString('de-DE') + ' €');
+const wxApp = (k) => { const a = APPS.find((y) => y.key === k); return a ? appUrl(a) : ''; };
+async function wxLaden(it) {
+  const t = wxTyp(it.i), pid = wxPid(it), key = t + ':' + pid, C = WXC[key];
+  if (!pid) return;
+  const fuell = () => { document.querySelectorAll(`[data-wxin="${CSS.escape(it.i)}"]`).forEach((el) => { el.innerHTML = WXC[key].html; });
+    document.querySelectorAll(`[data-wxp="${CSS.escape(it.i)}"]`).forEach((el) => { el.textContent = wxPName(pid, it) + ' ▾'; }); };
+  if (C && (C.html && Date.now() - C.t < 120000 || C.laeuft)) { if (C.html) fuell(); return; }
+  WXC[key] = { ...(C || {}), laeuft: true };
+  try {
+    if (t === 'bauzeit') { const D = await api('api/bp/widget/bauzeit?pid=' + pid); WXC[key] = { t: Date.now(), html: wxBauzeit(D), pname: D.projekt.name }; }
+    else { const S = await api('api/bp/widget/kosten?pid=' + pid); WXC[key] = { t: Date.now(), html: wxKosten(S) }; }
+  } catch (e) { WXC[key] = { t: Date.now(), html: `<p class="mute">${esc(e.message)}</p>` }; }
+  fuell();
+}
+function wxBauzeit(D) {
+  const tag = 864e5, t0 = Date.parse(D.von), n = Math.round((Date.parse(D.bis) - t0) / tag) + 1, pos = (d) => Math.max(0, Math.min(100, (Date.parse(d) - t0) / tag / n * 100));
+  const g = wxApp('gantt'), h = pos(D.heute), kw = (d) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + 3 - (x.getDay() + 6) % 7); const j = new Date(x.getFullYear(), 0, 4); return 1 + Math.round(((x - j) / tag - 3 + (j.getDay() + 6) % 7) / 7); };
+  if (!D.plaene.length) return '<p class="mute">Für dieses Projekt gibt es noch keinen Bauzeitenplan.</p>';
+  return `<p class="wx-sub">KW ${kw(D.von)}–${kw(D.bis)} · <span class="bz-l v"></span> im Verzug <span class="bz-l f"></span> fertig</p>` + D.plaene.map((pl) => `<a class="wx-bz" href="${esc(g)}/#plan=${encodeURIComponent(pl.id)}" title="Bauzeitenplan öffnen">${D.plaene.length > 1 ? `<b class="bz-pl">${esc(pl.name)}</b>` : ''}`
+    + (pl.zeilen.length ? pl.zeilen.map((z) => { const a = pos(z.s), b = pos(new Date(Date.parse(z.f) + tag).toISOString().slice(0, 10));
+      return `<div class="bz-z" title="${esc(`${z.name}${z.gw ? ' · ' + z.gw : ''} · ${new Date(z.s + 'T12:00').toLocaleDateString('de-DE')}–${new Date(z.f + 'T12:00').toLocaleDateString('de-DE')} · ${z.pct} %`)}"><span class="bz-n">${esc(z.name)}</span><span class="bz-b"><i class="${z.verzug ? 'v' : z.pct >= 100 ? 'f' : ''}${z.ms ? ' ms' : ''}" style="left:${a}%;width:${z.ms ? 0 : Math.max(1.5, b - a)}%"></i><u style="left:${h}%"></u></span></div>`; }).join('')
+      + (pl.mehr ? `<p class="mute">… und ${pl.mehr} weitere</p>` : '') : '<p class="mute">In diesen drei Wochen ist nichts geplant.</p>') + '</a>').join('');
+}
+function wxKosten(K) {
+  const S = { s: K.schaetzung || 0, au: K.auftrag || 0, nt: K.nachtraege || 0, ab: K.abgerechnet || 0, n: K.n || 0 };
+  if (!S.n) return '<p class="mute">Noch keine Leistungsverzeichnisse in diesem Projekt.</p>';
+  const ges = S.au + S.nt, m = Math.max(S.s, ges, S.ab, 1), bar = (v, c) => `<span class="ks-b"><i style="width:${Math.max(0.5, v / m * 100)}%;background:${c}"></i></span>`;
+  const abw = ges && S.s ? Math.round((ges / S.s - 1) * 100) : null;
+  return `<a class="wx-ks" href="${esc(wxApp('ava'))}/" title="Kostenkontrolle in der AVA öffnen">
+    <div class="ks-z"><span>Schätzung</span>${bar(S.s, '#9aa3a0')}<b>${eurK(S.s)}</b></div>
+    <div class="ks-z"><span>Aufträge</span>${bar(S.au, '#3a7bd5')}<b>${eurK(S.au)}</b></div>
+    <div class="ks-z"><span>mit Nachträgen</span>${bar(ges, '#e07b3a')}<b>${eurK(ges)}</b></div>
+    <div class="ks-z"><span>abgerechnet</span>${bar(S.ab, '#1f9d4c')}<b>${eurK(S.ab)}</b></div>
+    <p class="wx-sub">${abw != null ? `<b style="color:${abw > 5 ? 'var(--red)' : abw < 0 ? 'var(--ok,#1f9d4c)' : 'inherit'}">${abw >= 0 ? '+' : ''}${abw} %</b> zur Schätzung · ` : ''}noch offen ${eurK(ges - S.ab)} · ${S.n} LV${S.n === 1 ? '' : 's'}</p></a>`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest && e.target.closest('[data-wxp]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+  if (!WXP) WXP = await api('api/bp/projekte').catch(() => []);
+  const id = b.dataset.wxp, it = RASTER.items.find((r) => r.i === id), akt = it && it.o && it.o.p;
+  pickMenu(b, { search: 'Projekt suchen …', items: [{ value: 0, title: 'Aktuelles Projekt', sub: 'folgt der Projektwahl oben', on: !akt }].concat(WXP.filter((p) => !p.archived).map((p) => ({ value: p.id, title: p.name, on: akt === p.id }))),
+    onPick: (v) => { const L = rLayout(), x = L.find((r) => r.i === id); if (!x) return; if (v) x.o = { p: +v }; else delete x.o; rSpeichern(L); rasterZeigen(); } });
+}, true);
+
 /* ✕ und ＋ */
 $('#raster').addEventListener('click', (e) => {
   if (RSPERRE) { e.preventDefault(); e.stopPropagation(); RSPERRE = false; return; }
   const x = e.target.closest('[data-rx]');
   if (x) { e.preventDefault(); e.stopPropagation(); const i = x.dataset.rx, alt = JSON.parse(JSON.stringify(RASTER));
-    const L = rLayout().filter((r) => r.i !== i); RASTER.weg = [...rWeg(), i]; rSpeichern(rVerdichten(L)); rasterZeigen();
+    const L = rLayout().filter((r) => r.i !== i); if (!/\.\d+$/.test(i)) RASTER.weg = [...rWeg(), i]; rSpeichern(rVerdichten(L)); rasterZeigen();
     rueckgaengig(`„${rName(i)}“ ausgeblendet`, () => { RASTER = alt; rSpeichern(rLayout()); rasterZeigen(); }); return; }
   const p = e.target.closest('[data-rplus]');
   if (p) { const weg = [...rWeg()].filter((i) => rIds().includes(i));
-    pickMenu(p, { items: weg.map((i) => ({ value: i, title: rName(i), group: i[0] === 'a' ? 'Apps' : 'Widgets', sub: i[0] === 'a' ? (DESC[i.slice(2)] || [, ''])[1] : '' })), empty: 'Alles ist schon auf der Startseite.',
-      onPick: (i) => { RASTER.weg = [...rWeg()].filter((y) => y !== i); const L = rLayout(); rSpeichern(L); rasterZeigen();
+    const neu = Object.keys(WX).filter(wxOk).map((t) => ({ value: 'neu:' + t, title: `${WX[t].name} – weiteres Widget`, sub: 'z. B. für ein zweites Projekt', group: 'Weitere Widgets' }));
+    pickMenu(p, { items: weg.map((i) => ({ value: i, title: rName(i), group: i[0] === 'a' ? 'Apps' : 'Widgets', sub: i[0] === 'a' ? (DESC[i.slice(2)] || [, ''])[1] : '' })).concat(neu), empty: 'Alles ist schon auf der Startseite.',
+      onPick: (i) => {
+        if (i.startsWith('neu:')) { const t = i.slice(4), da = new Set(rLayout().map((r) => r.i)); let n = 2; while (da.has(`w:${t}.${n}`)) n++; i = `w:${t}.${n}`;
+          const L = rLayout(), [w, h] = WX[t].d; L.push({ i, ...rFrei(L, w, h), w, h }); rSpeichern(L); }
+        RASTER.weg = [...rWeg()].filter((y) => y !== i); const L = rLayout(); rSpeichern(L); rasterZeigen();
         const el = $('#raster').querySelector(`[data-ri="${CSS.escape(i)}"]`); if (el) { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el.classList.add('neu'); setTimeout(() => el.classList.remove('neu'), 1200); } } });
   }
 });
@@ -413,7 +491,7 @@ function einfachZeigen(conf) {
   await header('Startseite', me, conf);
   const h = new Date().getHours();
   $('#hi').textContent = `${h < 11 ? 'Guten Morgen' : h < 18 ? 'Hallo' : 'Guten Abend'}, ${me.vorname || me.name}`;
-  if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { postZeigen && POST && postZeigen(); });   // Startseite: Projekt gilt danach in allen Apps
+  if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { postZeigen && POST && postZeigen(); rasterZeigen(); if (TD) tdZeigen(); });   // Startseite: Projekt gilt danach in allen Apps
   APPS = conf.apps.filter(a => DESC[a.key] && (a.key !== 'admin' || a.allowed)).concat([{ key: 'papierkorb', allowed: true }]);   // wie im Apps-Menü: auch Verwaltung und Papierkorb
   { const k = await api('api/bp/kacheln').catch(() => ({})); REIHE = k.reihenfolge || []; RASTER = k.raster && Array.isArray(k.raster.items) ? k.raster : null; }
   rasterZeigen();

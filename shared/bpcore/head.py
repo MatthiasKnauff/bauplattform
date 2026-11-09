@@ -1630,6 +1630,81 @@ def blueprint(get_user=None):
             papierkorb.aufraeumen(c)
             return jsonify(einst=papierkorb.einstellungen(c))
 
+    @bp.get("/api/bp/widget/bauzeit")
+    def widget_bauzeit():
+        """Startseiten-Widget Bauzeitenplan: Vorgänge des gültigen Plans eines Projekts von vor 7 bis in 14 Tagen (wie die Handyansicht)."""
+        from datetime import date, timedelta
+        from . import plan as _plan
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if not sso.has_app(u, "gantt"):
+            return jsonify(error="Kein Zugriff auf den Bauzeitenplan"), 403
+        try:
+            pid = int(request.args.get("pid") or 0)
+        except ValueError:
+            pid = 0
+        heute = date.today()
+        von, bis = (heute - timedelta(days=7)).isoformat(), (heute + timedelta(days=14)).isoformat()
+        with db.tx() as c:
+            p = c.execute("SELECT id, name, leaders FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
+            if not p:
+                return jsonify(error="Projekt nicht gefunden"), 404
+            try:
+                lead = json.loads(p["leaders"] or "[]")
+            except ValueError:
+                lead = []
+            if lead and not u["is_admin"] and u["id"] not in lead:
+                return jsonify(error="Projekt nicht gefunden"), 404
+            plaene = []
+            for gid, name, data in _plan.plans_mit_id(c, pid):
+                data = data if isinstance(data, dict) else {}
+                T = {t.get("uid"): t for t in (data.get("tasks") or []) if isinstance(t, dict)}
+                zeilen = []
+                for sc in data.get("sched") or []:
+                    t = T.get(sc.get("uid"))
+                    s_, f_ = sc.get("s"), sc.get("f") or sc.get("s")
+                    if not t or sc.get("g") or not s_ or f_ < von or s_ > bis:
+                        continue
+                    pct = t.get("pct") or 0
+                    zeilen.append({"name": str(t.get("name") or "Vorgang")[:80], "gw": str(t.get("gw") or "")[:60], "s": s_, "f": f_, "pct": pct,
+                                   "verzug": f_ < heute.isoformat() and pct < 100, "ms": not t.get("dur")})
+                zeilen.sort(key=lambda z: (z["s"], z["f"]))
+                plaene.append({"id": gid, "name": name, "zeilen": zeilen[:40], "mehr": max(0, len(zeilen) - 40)})
+        return jsonify(projekt={"id": p["id"], "name": p["name"]}, von=von, bis=bis, heute=heute.isoformat(), plaene=plaene)
+
+    @bp.get("/api/bp/widget/kosten")
+    def widget_kosten():
+        """Startseiten-Widget Kostenstand: Summen aller LVs eines Projekts aus der AVA (mit der Anmeldung des Benutzers gefragt)."""
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if not sso.has_app(u, "ava"):
+            return jsonify(error="Kein Zugriff auf Ausschreibung & Abrechnung"), 403
+        try:
+            pid = int(request.args.get("pid") or 0)
+        except ValueError:
+            pid = 0
+        if not pid:
+            return jsonify(error="Kein Projekt"), 400
+        with db.tx() as c:
+            tok = sso.current_token(request, c)
+        base = os.environ.get("AVA_INTERNAL", "http://ava:8097").rstrip("/")
+        try:
+            req = urllib.request.Request(f"{base}/api/lv?project_id={pid}", headers={"Cookie": f"{sso.COOKIE}={tok}"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                L = json.loads(r.read().decode("utf-8"))
+        except (urllib.error.URLError, OSError, ValueError):
+            return jsonify(error="Ausschreibung & Abrechnung nicht erreichbar"), 502
+        S = {"schaetzung": 0.0, "auftrag": 0.0, "nachtraege": 0.0, "abgerechnet": 0.0, "n": 0, "n_nt": 0}
+        for x in L if isinstance(L, list) else []:
+            if not isinstance(x, dict) or x.get("archived"):
+                continue
+            S["n"] += 1
+            for k in ("schaetzung", "auftrag", "nachtraege", "abgerechnet"):
+                S[k] += float(x.get(k) or 0)
+        return jsonify(**S)
+
     def _raster_pruefen(ra):
         """Raster der Startseite prüfen: nur bekannte Felder, Zahlen im Rahmen, ids kurz und harmlos."""
         import re as _re

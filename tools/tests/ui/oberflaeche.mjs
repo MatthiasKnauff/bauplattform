@@ -31,9 +31,10 @@ const GERAETE = { PC: { viewport: { width: 1400, height: 900 } }, Handy: { ...de
 
 // Meldungen, die nichts mit der App zu tun haben (Testumgebung ohne Dateiserver, ohne KI, ohne Postfach …)
 // „Failed to load resource“ prüft schon die Antwortkontrolle unten (mit Pfad) – in der Konsole nicht doppelt zählen
-const HARMLOS = [/favicon/i, /Failed to load resource/, /ollama/i, /net::ERR_ABORTED/];
+const HARMLOS = [/favicon/i, /Failed to load resource/, /ollama/i, /net::ERR_ABORTED/,
+  /blocked by CORS policy/];   // Testumgebung ohne gemeinsame Adresse: die Startseite fragt die Apps über ihre Ports – im Betrieb läuft das über den Verteiler
 // Abfragen, die auf Dienste außerhalb der Plattform angewiesen sind (Adresssuche, Karten, Wetter, Postfach, Dateiserver)
-const EXTERN = [/\/autoaddress\b/, /\/staticmap\b/, /\/weather\b/, /\/geo\b/, /\/post(eingang)?\b/, /\/ablage\b/, /\/store\//];
+const EXTERN = [/\/autoaddress\b/, /\/staticmap\b/, /\/weather\b/, /\/geo\b/, /\/post(eingang)?\b/, /\/ablage\b/, /\/store\//, /\/api\/logo\b/, /\/api\/plaene\b/];
 
 const fehler = [];
 let ok = 0;

@@ -151,7 +151,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-drt button{display:flex;align-items:center;gap:.45rem;border:1px solid var(--line,#3b3e42);background:transparent;color:inherit;border-radius:999px;padding:.45rem .9rem;font:inherit;font-size:.92em;cursor:pointer}
 .bph-drt button svg{width:18px;height:18px}
 .bph-drt button.on{background:var(--y,var(--bph-acc,#ff5fb3));border-color:transparent;color:var(--on,#111);font-weight:600}
-.bph-drn{display:flex;gap:.2rem;padding:0 1.1rem;border-bottom:1px solid var(--line,#3b3e42);overflow-x:auto;flex:none}
+.bph-drn{display:flex;flex-wrap:wrap;gap:.2rem;padding:0 1.1rem;border-bottom:1px solid var(--line,#3b3e42);flex:none}
 .bph-drn[hidden]{display:none}
 .bph-drn button{border:0;background:none;color:var(--mute,#9a9c9e);padding:.55rem .75rem;cursor:pointer;font:inherit;font-size:.92em;border-bottom:2px solid transparent;white-space:nowrap}
 .bph-drn button.on{color:inherit;border-bottom-color:var(--y,var(--bph-acc,#ff5fb3));font-weight:600}

@@ -1466,6 +1466,14 @@
       if (!items.find((x) => x[0] === teil)) teil = items.length ? items[0][0] : '';
       N.innerHTML = items.length > 1 ? items.map(([k, l]) => `<button type="button" data-drt="${esc(k)}" class="${k === teil ? 'on' : ''}">${esc(l)}</button>`).join('') : '';
       N.hidden = items.length < 2;
+      requestAnimationFrame(passt);
+    };
+    // Standardbreite ohne waagrechten Scrollbalken: passen die Reiter nicht, wird das Fenster so breit wie nötig (selbst gezogene Breite bleibt)
+    const passt = () => {
+      const D = bg.querySelector('.bph-dr'); let eigen = 0; try { eigen = +localStorage.getItem('bph.drw'); } catch { /* egal */ }
+      if (eigen > 300 || N.hidden) return;
+      N.style.flexWrap = 'nowrap'; N.style.overflowX = 'hidden'; const mehr = N.scrollWidth - N.clientWidth; N.style.flexWrap = ''; N.style.overflowX = '';   // in einer Zeile gemessen; reicht der Bildschirm nicht, brechen die Reiter um
+      if (mehr > 0) D.style.width = Math.min(innerWidth - 40, Math.ceil(D.getBoundingClientRect().width) + mehr + 4) + 'px';
     };
     let aufr = null;   // Aufräumen der App beim Wechsel/Schließen (render darf eine Funktion zurückgeben)
     const aufraeumen = () => { const f = aufr; aufr = null; if (typeof f === 'function') { try { f(); } catch { /* App-Fehler nicht weitergeben */ } } };

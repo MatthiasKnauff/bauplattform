@@ -4792,6 +4792,8 @@ def rechnung(k):
                 d.pop("abzug", None)
         elif status == "geprueft" and any(k_ in b for k_ in ("abzuege", "einbehalt", "gefordert", "zeilen", "betrag", "frei", "abzug", "hand")):
             return jsonify(error="Die Rechnung ist geprüft – erst „Prüfung zurücknehmen“."), 400
+        if isinstance(b.get("haken"), list):   # im Dokument von Hand abgehakte Zeilen (Beleg|Seite|y|x) – auch nach der Prüfung erlaubt
+            d["haken"] = [_s(h, 60) for h in b["haken"][:3000] if isinstance(h, str)]
         if isinstance(b.get("abzuege"), list):
             d["abzuege"] = [{"text": _s(z.get("text"), 200), "pct": _fn(z.get("pct")), "betrag": _fn(z.get("betrag"))} for z in b["abzuege"][:20] if isinstance(z, dict)]
         if "einbehalt" in b:

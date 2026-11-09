@@ -457,7 +457,7 @@ html.mobil .bph{position:sticky;top:0}
 .si h3{display:flex;gap:.5rem;align-items:baseline}.si-b{border-top:1px solid var(--line);padding:.6rem 0}.si-b>b{display:block}.si-b>.hint{display:block;margin-bottom:.35rem}
 .si-g{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:flex-end;margin:.3rem 0}.si-g label{display:flex;flex-direction:column;font-size:var(--fs-s2);color:var(--mute);gap:.15rem}.si-g input,.si-g select{font-size:var(--fs)}
 .si-sum{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.2rem 0 .5rem}.si-w{background:color-mix(in srgb,#e0a030 18%,transparent);border-radius:calc(8px*var(--rk,1));padding:.4rem .6rem;margin:.3rem 0}
-.re-bel{display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;margin:.5rem 0;padding:.45rem .55rem;border:1px dashed var(--line);border-radius:calc(8px*var(--rk,1))}.re-bel.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 10%,transparent)}
+.re-bel{display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;margin:.5rem 0;padding:.45rem .55rem;border:1px dashed var(--line);border-radius:calc(8px*var(--rk,1))}.re-bel.over{border-color:var(--y);background:color-mix(in srgb,var(--y) 10%,transparent)}.re-bel-ziel{flex:1 1 auto;display:flex;gap:.55rem;align-items:center;justify-content:center;padding:.5rem .6rem;color:var(--mute);cursor:pointer;font-size:var(--fs)}.re-bel-ziel.kl{flex:0 1 auto;justify-content:flex-start;padding:0 .2rem;font-size:var(--fs-s2)}.re-bel-ziel .i{font-size:1.25em;line-height:1;color:var(--y)}.re-bel-ziel b{color:var(--ink,inherit);font-weight:600}.re-bel-ziel:hover,.re-bel.over .re-bel-ziel{color:inherit}.re-bel.over{border-style:solid}
 .re-b{display:inline-flex;gap:.3rem;align-items:center}.qtw{max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.4rem .6rem}.qtw-t{margin:.35rem 0 .15rem}.qtw-p{display:flex;gap:.45rem;align-items:baseline;padding:.15rem 0 .15rem 1.2rem;font-size:var(--fs)}.qtw-p span{color:var(--mute);min-width:6.5rem}.qtw input{width:auto}
 .re-art{display:flex;align-items:center;gap:.6rem;margin:.5rem 0 0}.re-art .seg button:disabled{opacity:.6;cursor:default}
 .re-bel-neu{flex-basis:100%;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;padding-top:.45rem;border-top:1px dashed var(--line)}.re-z{width:100%;margin:.4rem 0}.re-z td:first-child{min-width:18rem}.re-z input{font:inherit}
@@ -612,7 +612,7 @@ body.ph-frei .ph{position:static}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 .ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
 .ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:calc(6px*var(--rk,1));font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
-.am-mk.of{color:#8a8f96}
+.am-mk.of{color:#8a8f96}.am-mk[data-hk]:not(.ok){pointer-events:auto;cursor:pointer}.am-mk.hk.of{opacity:.4;font-weight:400}.am-mk.hk.of:hover{opacity:1;color:#1c7ed6}.am-mk.hk.an{color:#1c7ed6}
 .lv-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:.35rem;align-items:start}.lv-sl{min-width:0}
 .lv-zz{position:absolute;cursor:copy;border-radius:calc(2px*var(--rk,1))}.lv-zz:hover{background:rgba(245,166,35,.22);outline:1px solid #f5a623}.lv-zz.ok{background:rgba(31,157,76,.1)}
 @media (max-width:900px){.lv-split{grid-template-columns:1fr}}
@@ -3101,7 +3101,38 @@ function amSummenKarte(R) {
     <table class="lv am" style="margin:.35rem 0 0"><thead><tr><th></th><th class="r">lt. Firma</th><th class="r">geprüft</th><th></th></tr></thead><tbody>${['netto', 'mwst', 'brutto'].map(zeile).join('')}
     <tr><td colspan="2" class="hint">Zahlbetrag netto lt. Prüfung</td><td class="r"><b>${nf2(RC.zahlung)}</b></td><td></td></tr></tbody></table></div>`;
 }
+/* Abhaken direkt im Dokument: jede Zeile mit Zahlen bekommt rechts einen blassen Kreis – Klick hakt sie von Hand ab (blaues ✔), noch ein Klick nimmt es zurück.
+   Auch die errechneten Zeichen (○ offen, ✘ weicht ab) lassen sich so abhaken. Gemerkt an der Rechnung (data.haken). */
+const hkNah = (a, b) => a[0] === b[0] && a[1] === b[1] && Math.abs(a[2] - b[2]) < 0.006;
+const hkLies = (R) => ((R && R.data && R.data.haken) || []).map((k) => { const q = String(k).split('|'); return [+q[0], +q[1], +q[2], +q[3]]; });
 function amMarken() {
+  amMarken0();
+  const V = AMV, R = amRe(); if (!V || !V.pages.length || !R) return;
+  const b = amBelege().find((y) => y.id === V.bid), H = hkLies(R).filter((h) => h[0] === V.bid);
+  V.el.querySelectorAll('.am-mk').forEach((d) => {   // errechnete Zeichen: anklickbar; von Hand abgehakt → ausblenden (das blaue ✔ steht dafür)
+    const w = d.parentElement, se = V.pages.indexOf(w) + 1, y = parseFloat(d.style.top) / 100, x = (parseFloat(d.style.left) - 0.8) / 100;
+    d.dataset.hk = `${V.bid}|${se}|${y.toFixed(4)}|${x.toFixed(4)}`;
+    if (H.some((h) => hkNah(h, [V.bid, se, y]))) d.remove(); else if (!d.classList.contains('ok')) d.title = 'Klick: von Hand abhaken';
+  });
+  const da = [...V.el.querySelectorAll('.am-mk')].map((d) => d.dataset.hk.split('|').map(Number));
+  V.pages.forEach((w, n) => {   // je Zeile mit Zahlen ein Kreis rechts neben der letzten Zahl
+    const Z = (b && b.auslese && b.auslese.zahlen && b.auslese.zahlen[n + 1]) || [], zeilen = [];   // Seiten zählen ab 1
+    Z.forEach(([x0, y0, x1, y1]) => { const y = (y0 + y1) / 2, z = zeilen.find((q) => Math.abs(q[0] - y) < 0.006); if (z) z[1] = Math.max(z[1], x1); else zeilen.push([y, x1]); });
+    H.filter((h) => h[1] === n + 1 && !zeilen.some((q) => Math.abs(q[0] - h[2]) < 0.006)).forEach((h) => zeilen.push([h[2], h[3]]));
+    zeilen.forEach(([y, x]) => { const an = H.some((h) => hkNah(h, [V.bid, n + 1, y])); if (!an && da.some((q) => hkNah(q, [V.bid, n + 1, y]))) return;
+      const d = document.createElement('div'); d.className = 'am-mk hk ' + (an ? 'an' : 'of'); d.dataset.hk = `${V.bid}|${n + 1}|${y.toFixed(4)}|${x.toFixed(4)}`;
+      d.style.left = Math.min(97, x * 100 + 0.8) + '%'; d.style.top = (y * 100) + '%'; d.textContent = an ? '✔' : '○'; d.title = an ? 'von Hand abgehakt – Klick nimmt es zurück' : 'Klick: abhaken'; w.appendChild(d); });
+  });
+}
+document.addEventListener('click', async (e) => {
+  const d = e.target.closest && e.target.closest('.am-mk[data-hk]'); if (!d || d.classList.contains('ok')) return;
+  e.stopPropagation(); const R = amRe(); if (!R) return;
+  const k = d.dataset.hk.split('|').map(Number), alt = (R.data.haken || []).slice(), H = hkLies(R);
+  const neu = H.some((h) => hkNah(h, k)) ? alt.filter((q, i) => !hkNah(H[i], k)) : [...alt, d.dataset.hk];
+  R.data.haken = neu; amMarken();
+  try { await api('api/rechnungen/' + R.id, 'PUT', { haken: neu }); } catch (er) { R.data.haken = alt; amMarken(); toast(er.message, true); }
+});
+function amMarken0() {
   const V = AMV; if (!V || !V.pages.length) return;
   V.el.querySelectorAll('.am-mk').forEach((x) => x.remove());
   const b = amBelege().find((y) => y.id === V.bid), A = b && b.auslese, R = amRe(), RC = amRC(R); if (!A || !RC) return;
@@ -3147,7 +3178,7 @@ function amDokDef() {
 function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom – darunter die Seiten
   const B = amBelege(), b = B.find((y) => y.id === AMB) || B[0], A = b && b.auslese; if (!b) return;
   el.classList.add('am-dok'); el.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
-    <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? '<span title="Texterkennung mit Tesseract auf dem Server der Plattform – keine KI">Scan, per Texterkennung gelesen (Tesseract, ohne KI)</span> · ' : ''}${A.ki ? `<span title="Zeilen ohne Ordnungszahl wurden per KI den LV-Positionen zugeordnet">Zuordnung per KI: <b>${esc({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter)}</b> (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''})</span> · ` : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · <span title="✔ stimmt mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert (geprüfte Menge bzw. EP des Auftrags) · ○ noch nicht geprüft" style="cursor:help;text-decoration:underline dotted"><b style="color:#1f9d4c">✔</b> stimmt · <b style="color:#e02424">✘</b> weicht ab · ○ offen</span> · Zahlen anklicken übernimmt sie in den Rechenweg`) : ''}</span><span class="fill"></span>
+    <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? '<span title="Texterkennung mit Tesseract auf dem Server der Plattform – keine KI">Scan, per Texterkennung gelesen (Tesseract, ohne KI)</span> · ' : ''}${A.ki ? `<span title="Zeilen ohne Ordnungszahl wurden per KI den LV-Positionen zugeordnet">Zuordnung per KI: <b>${esc({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter)}</b> (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''})</span> · ` : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · <span title="✔ stimmt mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert (geprüfte Menge bzw. EP des Auftrags) · ○ noch nicht geprüft" style="cursor:help;text-decoration:underline dotted"><b style="color:#1f9d4c">✔</b> stimmt · <b style="color:#e02424">✘</b> weicht ab · ○ offen</span> · Zahlen anklicken übernimmt sie in den Rechenweg · ○ anklicken hakt die Zeile ab`) : ''}</span><span class="fill"></span>
     <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻ neu lesen</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung löschen">🗑</button></div>`;
   el.appendChild(AMV.el);
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
@@ -3535,7 +3566,7 @@ function vRechnungen0() {
   const cards = (SEL ? [SEL] : []).map((r) => {
     const c = RC[r.id], g = r.status === 'geprueft', last = !reNachfolger(r), ab = r.data.abzuege || [], art = r.art || 'abschlag';
     const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
-    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung abhaken: Summen werden automatisch mit ✔ / ✘ markiert, dann von Hand ergänzen oder streichen – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}
+    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung abhaken: Summen werden automatisch mit ✔ / ✘ markiert, dann von Hand ergänzen oder streichen – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}<label class="re-bel-ziel${(r.belege || []).length ? ' kl' : ''}" title="Rechnung der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${(r.belege || []).length ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" hidden data-rebf="${r.id}"></label>
 </div>`;
     const kopf = `<div class="re-wo">${esc(L.vergabe && L.vergabe.bieter || L.auftragnehmer || '')}${L.nr || L.name ? ' · LV ' + esc([L.nr, L.name].filter(Boolean).join(' ')) : ''}</div><h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
         <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' || c.frei ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
@@ -3863,6 +3894,7 @@ function reDialog(art = 'abschlag', vorgabe = null) {
   bgR.querySelector('.modal').classList.add('breit');   // von Anfang an breit genug – nichts läuft über
   bgR.addEventListener('change', (e) => { if (e.target.id === 'reWas') { const b = $('#reB'); if (e.target.value === 'einbehalt') { b.value = nf(offen, 2); b.readOnly = false; } else { b.value = ''; b.focus(); } } });
 }
+document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('input[data-rebf]'); if (i && i.files[0]) reBelegHoch(+i.dataset.rebf, i.files[0]); });
 async function reBelegHoch(rid, f) {
   if (!f) return;
   if (!/\.(pdf|jpe?g|png|tiff?|docx)$/i.test(f.name) && !/^(application\/pdf|image\/)/.test(f.type)) return toast('Bitte eine PDF-Datei, einen Scan oder ein Foto wählen.', true);

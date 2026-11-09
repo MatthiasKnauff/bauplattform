@@ -2705,6 +2705,41 @@ def _nt_titel(items):
     return t
 
 
+@app.post("/api/lv/<int:i>/nachtrag/lesen")
+def nachtrag_lesen(i):
+    """Nachtragsangebot der Firma lesen (GAEB X84/X86, Excel, PDF/Scan) – nur lesen, nichts speichern: die Seite zeigt die
+    Positionen im Nachtragsdialog zum Prüfen; übernommen wird erst dort (als ein Nachtrag mit eigenem Gliederungspunkt)."""
+    with db.tx() as c:
+        if not _lv(c, i):
+            return jsonify(error="Nicht gefunden"), 404
+    f = request.files.get("datei")
+    if not f:
+        return jsonify(error="Keine Datei"), 400
+    data, name = f.read(40 * 1024 * 1024 + 1), (f.filename or "")
+    if len(data) > 40 * 1024 * 1024:
+        return jsonify(error="Datei zu groß (höchstens 40 MB)."), 400
+    nl, firma, titel, ocr, items = name.lower(), "", "", False, []
+    try:
+        if re.search(r"\.(x|d|p)8[1-6]$|\.x3[1-2]$", nl) or data[:400].lstrip().startswith(b"<?xml") and b"GAEB" in data[:4000]:
+            G = gaeb.lesen(data)
+            items, firma, titel = G["items"], G.get("bieter") or "", G.get("lv_name") or ""
+        elif nl.endswith((".xlsx", ".xlsm")):
+            G = _excel_lesen(data)
+            items, titel = G["items"], G.get("lv_name") or ""
+        else:
+            data, _ = _als_pdf(data, name)
+            A = _lv_lesen(data)
+            ocr = bool(A.get("ocr"))
+            items = [{**x, "ep": x.get("ep_s")} for x in A.get("vorschlag") or []]
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    pos = [{"oz": _s(x.get("oz"), 40), "kurz": _s(x.get("kurz"), 300), "lang": _s(x.get("lang"), 4000), "menge": x.get("menge") if isinstance(x.get("menge"), (int, float)) else None,
+            "einheit": _s(x.get("einheit"), 10), "ep": x.get("ep") if isinstance(x.get("ep"), (int, float)) else None}
+           for x in items if x.get("typ") == "pos" and (x.get("kurz") or x.get("lang"))][:300]
+    titel = titel or re.sub(r"[_-]+", " ", re.sub(r"\.[^.]+$", "", name)).strip()[:120] or "Nachtragsangebot"
+    return jsonify(positionen=pos, titel=titel, firma=firma, ocr=ocr)
+
+
 @app.post("/api/lv/<int:i>/nachtrag")
 def nachtrag_neu(i):
     """Nachtrag von Hand erfassen (Aufträge): Text, Menge × EP (oder Pauschale), Status, Grund – als Position unter „Nachträge“,

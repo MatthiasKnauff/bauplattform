@@ -541,6 +541,7 @@ tr.am-lf td input{color:#c0621f}
 .au2{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:.7rem;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto}
 .au-k h3{margin:.1rem 0 .5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.au-k h4{margin:.9rem 0 .35rem;font-size:var(--fs)}.au-sum{display:grid;grid-template-columns:1fr;gap:.15rem;font-size:var(--fs)}.au-sum span{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--line);padding:.1rem 0}.au-sum b{font-variant-numeric:tabular-nums}
 .au-kond .vk{font-size:var(--fs)}.au-kond .vk input,.au-kond .vk select{font-size:var(--fs)}
+.au2.zu{grid-template-columns:minmax(0,1fr)!important}
 @media (max-width:1100px){.au2{grid-template-columns:1fr}.au2-re{position:static;max-height:none}}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}
 .re2-baum{position:sticky;top:var(--phh,3.2rem);max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.3rem .2rem;font-size:var(--fs)}
@@ -851,7 +852,7 @@ const UTAB = {
   lv: () => [['impBtn', 'Import'], ['expBtn', 'Export'], ['druBtn', 'Drucken'], ['quBtn', 'Kopierquelle']],
   tueren: () => [[() => window.tlImport && tlImport(), 'Import (Excel)', IC_IMP]],
   angebote: () => [['impBtn', 'Import (Angebot)'], ['expBtn', 'Export'], ['druBtn', 'Drucken']],
-  auftraege: () => [['impBtn', 'Import'], ['druBtn', 'Drucken']],
+  auftraege: () => [['impBtn', 'Import'], ['druBtn', 'Drucken'], [auDetails, AUDET ? 'Details aus' : 'Details ein', '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M14.5 5v14"/>' + (AUDET ? '<path d="M16.8 10l1.6 2-1.6 2"/>' : '<path d="M18.4 10l-1.6 2 1.6 2"/>')]],
   aufmass: () => [[() => dateiWahl('.pdf,application/pdf', true, (f) => amBelegHoch(f)), 'Import (Rechnung / Aufmaß der Firma)', IC_IMP, !L || !vergeben()], ['druBtn', 'Drucken']],
   rechnungen: () => [[() => { const r = reGewaehlt(); if (!r) return toast('Erst eine Rechnung anlegen (links „＋ Neue Rechnung“).', true); dateiWahl('application/pdf,.pdf', false, (f) => reBelegHoch(r.id, f[0])); }, 'Import (Rechnung der Firma)', IC_IMP, !L || !vergeben()],
     [() => { const r = reGewaehlt(); if (r) reDruck(r); else toast('Noch keine Rechnung.', true); }, 'Drucken', IC_DRU, !L || !(L.rechnungen || []).length]],
@@ -4552,6 +4553,9 @@ function auHoehe() {
   if (zuviel > 0) { w.style.maxHeight = Math.max(240, parseFloat(w.style.maxHeight) - zuviel) + 'px'; if (re && re.style.maxHeight) re.style.maxHeight = Math.max(240, parseFloat(re.style.maxHeight) - zuviel) + 'px'; }
 }
 addEventListener('resize', () => requestAnimationFrame(auHoehe));
+/* Aufträge: Bereich rechts (Summen, Bedingungen, Sicherheiten) ein- und ausblenden – Knopf oben „Details aus/ein“, gemerkt im Browser */
+let AUDET = LS.get('au.det', true) !== false;
+function auDetails() { AUDET = !AUDET; LS.set('au.det', AUDET); render(); }
 /* Aufträge-Tabelle: Spalten sortieren (Klick auf den Kopf, je Ebene) und ein-/ausblenden (⚙ Spalten) – gemerkt im Browser */
 const AU_SP = [['Bezeichnung'], ['Firma'], ['Gesamt (EUR)', 1], ['Nachtrag'], ['Nachtrag Gesamt', 1], ['Prognose (EUR)', 1], ['Art'], ['Bedarfsposition'], ['KG'], ['abgerechnet', 1]];
 let AUSORT = LS.get('au.sort', null), AUAUS = new Set(LS.get('au.aus', []));
@@ -4663,7 +4667,7 @@ function vAuftraege() {
   const tabelle = `${auSpaltenStil()}<div class="tblw"><table class="tree au-t"><thead><tr>${AU_SP.map(([t, r], n) => `<th${n === 0 ? ' style="min-width:22rem"' : ''} class="${r ? 'r ' : ''}au-sk" data-ausort="${n}" title="Klick: sortieren (nochmal: absteigend, dritter Klick: wie im LV)">${t}${AUSORT && AUSORT.c === n ? (AUSORT.d > 0 ? ' ▲' : ' ▼') : ''}${n === 0 ? '<button type="button" class="ib au-spw" data-auspw title="Spalten ein- und ausblenden">⚙ Spalten</button>' : ''}</th>`).join('')}</tr></thead><tbody>${out.join('')}</tbody></table></div>
     <p class="hint" style="margin:.5rem 0 0">▸ klappt auf · Klick wählt das LV · Doppelklick öffnet es im Leistungsverzeichnis. Gesamt = Auftragssumme (nach Nachlass), ohne Auftrag die Schätzung. Prognose = Auftrag + beauftragte und angemeldete Nachträge. Grau: Bedarfs-/Wahlpositionen (nicht in der Summe).</p>`;
   if (!document.getElementById('ntEH2')) { const dl = document.createElement('datalist'); dl.id = 'ntEH2'; dl.innerHTML = ['psch', 'St', 'm', 'm2', 'm3', 'h', 'kg', 't'].map((e) => `<option value="${e}">`).join(''); document.body.appendChild(dl); }
-  return `<div class="au2" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div><aside class="au2-re">${auftragKarte()}</aside></div>`;
+  return `<div class="au2${AUDET ? '' : ' zu'}" data-bph-trenn="ava.au2" data-bph-trenn-min="480" data-bph-trenn-max="0.78"><div class="au2-tab">${tabelle}</div>${AUDET ? `<aside class="au2-re">${auftragKarte()}</aside>` : ''}</div>`;
 }
 /* Eingabezeile in der Aufträge-Tabelle (wie in Excel): Bezeichnung · Menge · EH · EP, Enter speichert; nt = '' legt einen neuen Nachtrag an.
    Strg+V mit mehreren Zeilen (Excel/Mail/PDF-Text) erfasst alle auf einmal – Menge, Einheit und EP werden aus der Zeile gelesen. */

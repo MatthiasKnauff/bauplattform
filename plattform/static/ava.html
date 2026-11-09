@@ -534,8 +534,8 @@ tr.am-lf td input{color:#c0621f}
 .lvx-akt .tblw{max-height:none;overflow:visible}   /* im Tabellenfeld scrollt die Seite: die übrigen LVs laufen weg, Knopfleiste und Spaltenköpfe bleiben stehen */
 .lvx-akt table.tree th,.lvx-akt table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
 .re2.mit-lvbar table.tree th,.re2.mit-lvbar table.lv th{top:calc(var(--phh,3.2rem) + var(--lvbar,2.6rem))}
-.lv-split>.lv-sl{overflow:auto;max-height:calc(100vh - var(--phh,3.2rem) - var(--lvbar,2.6rem) - 16px)}   /* breites LV neben der PDF/den Baudaten: rollt in sich (waagerecht und senkrecht) statt abgeschnitten zu werden */
-.lv-split>.lv-sl table.lv th,.lv-split>.lv-sl table.tree th{top:0}   /* Spaltenköpfe kleben oben im LV-Feld – nicht um Kopfleiste + Knopfleiste versetzt (sonst stand der Kopf mitten in der Tabelle) */
+.lv-split>.lv-sl{overflow-x:auto;overflow-y:hidden}   /* breites LV neben der PDF/den Baudaten: waagerecht rollen statt abschneiden – senkrecht rollt nur die Seite (ein Scrollbalken) */
+.lv-split>.lv-sl table.lv th,.lv-split>.lv-sl table.tree th{top:0;position:relative;z-index:3}   /* hier „klebt“ der Spaltenkopf per Skript (lvKopfKleben), weil das waagerechte Rollen das CSS-Kleben aufhebt */
 .au2{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);gap:.7rem;align-items:start}.au2-tab{min-width:0}.au2-re{position:sticky;top:calc(var(--phh,3.2rem) + .4rem);display:grid;gap:.7rem;max-height:calc(100vh - var(--phh,3.2rem) - 60px);overflow:auto}
 .au-k h3{margin:.1rem 0 .5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.au-k h4{margin:.9rem 0 .35rem;font-size:var(--fs)}.au-sum{display:grid;grid-template-columns:1fr;gap:.15rem;font-size:var(--fs)}.au-sum span{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--line);padding:.1rem 0}.au-sum b{font-variant-numeric:tabular-nums}
 .au-kond .vk{font-size:var(--fs)}.au-kond .vk input,.au-kond .vk select{font-size:var(--fs)}
@@ -1565,7 +1565,7 @@ function render() {
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') amPdfMount();
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);
-  if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); }
+  if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); requestAnimationFrame(lvKopfKleben); }
   document.body.classList.toggle('ph-frei', PJTABS.has(tab));
   if (PJTABS.has(tab)) {   // Knopfleiste des geöffneten LV bleibt beim Scrollen unter der Kopfzeile stehen; die übrigen LVs scrollen weg
     const ph = null, kopf = document.querySelector('.bph');   // Titelzeile scrollt hier mit weg – oben (unter der Kopfleiste der Plattform) bleiben nur Knopfleiste und Spaltenköpfe
@@ -1580,6 +1580,18 @@ function render() {
 
 /* ---------- LV als PDF/Scan daneben: Zeilen anklicken → ins gewählte Feld, Alt+Klick → neue Position, erkannte Positionen übernehmen ---------- */
 let LVDOK = LS.get('lvdok', true), LVDV = null, LVFELD = null;
+/* Spaltenkopf des LV neben der PDF beim Rollen der Seite oben halten (das waagerecht rollende LV-Feld hebt position:sticky auf) */
+function lvKopfKleben() {
+  document.querySelectorAll('.lv-split>.lv-sl').forEach((sl) => {
+    const t = sl.querySelector('table.lv, table.tree'); if (!t || !t.tHead) return;
+    const oben = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--phh')) || 52) + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lvbar')) || 0);
+    const r = t.getBoundingClientRect(), hk = t.tHead.getBoundingClientRect().height;
+    const dy = Math.max(0, Math.min(oben - r.top, r.height - hk * 2));
+    t.tHead.querySelectorAll('th').forEach((th) => { th.style.transform = dy ? `translateY(${dy}px)` : ''; });
+  });
+}
+addEventListener('scroll', () => requestAnimationFrame(lvKopfKleben), { passive: true });
+addEventListener('resize', () => requestAnimationFrame(lvKopfKleben));
 function lvSplitMount() {
   const D = (L && L.dokumente) || []; if (!D.length || !LVDOK) return;
   const tbl = document.querySelector('#view table.lv.baum'); if (!tbl) return;

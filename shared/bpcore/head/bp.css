@@ -102,3 +102,11 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 /* Felder in Fenstern laufen nie über: Auswahlfelder und Eingaben bleiben in ihrer Spalte, lange Einträge werden abgeschnitten */
 .modal select,.modal input,.modal textarea{max-width:100%;min-width:0;box-sizing:border-box;text-overflow:ellipsis}
 .modal .fm{min-width:0}.modal .fm>*{min-width:0}
+/* Vorschau (.bed): heller Scrollbalken auf dunklem Grund, Seiten skalierbar (zoom.js) */
+.bed .bed-s{color:#e9e9e6;align-items:safe center;scrollbar-width:auto;scrollbar-color:rgba(255,255,255,.5) rgba(255,255,255,.08)}
+.bed .bed-p{zoom:var(--bpz,1);color:#1c1c1a}
+.bp-zoom{display:inline-flex;align-items:stretch;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));overflow:hidden}
+.bp-zoom button{background:none;border:0;color:inherit;font:inherit;font-size:var(--fs);padding:.3rem .6rem;cursor:pointer;min-width:2rem}
+.bp-zoom button[data-bpz="1"]{min-width:4.2rem;border-inline:1px solid var(--line);font-variant-numeric:tabular-nums}
+.bp-zoom button:hover{background:color-mix(in srgb,currentColor 10%,transparent)}
+@media (min-width:900px){.bed .bed-bar{flex-wrap:nowrap}.bed .bed-bar>b,.bed .bed-bar>button,.bed .bed-bar>.bp-zoom{flex:none;white-space:nowrap}.bed .bed-bar>.hint,.bed .bed-bar>.mute{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}

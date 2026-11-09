@@ -4016,7 +4016,7 @@ async function druckEditor() {
       const frag = document.createDocumentFragment(), breite = Math.min(S.clientWidth - 24, 820);
       for (let n = 1; n <= pdf.numPages; n++) {
         const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc });
-        const vv = pg.getViewport({ scale: sc * Math.min(2, window.devicePixelRatio || 1) });
+        const vv = pg.getViewport({ scale: sc * Math.min(2, Math.max(window.devicePixelRatio || 1, pdf.numPages <= 12 ? 2 : 1)) });
         const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
         const cvs = document.createElement('canvas'); cvs.width = vv.width; cvs.height = vv.height; box.appendChild(cvs); frag.appendChild(box);
         await pg.render({ canvasContext: cvs.getContext('2d'), viewport: vv, annotationMode: lib.AnnotationMode.DISABLE }).promise;
@@ -4140,7 +4140,7 @@ async function paketDruck(o) {
       const pdf = await lib.getDocument({ isEvalSupported: false, data: new Uint8Array(await b.arrayBuffer()) }).promise; if (my !== tok) return;
       const frag = document.createDocumentFragment(), breite = Math.min(S.clientWidth - 24, 820);
       for (let n = 1; n <= Math.min(pdf.numPages, 40); n++) {
-        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc }), vv = pg.getViewport({ scale: sc * Math.min(2, window.devicePixelRatio || 1) });
+        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc }), vv = pg.getViewport({ scale: sc * Math.min(2, Math.max(window.devicePixelRatio || 1, pdf.numPages <= 12 ? 2 : 1)) });
         const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
         const cvs = document.createElement('canvas'); cvs.width = vv.width; cvs.height = vv.height; box.appendChild(cvs); frag.appendChild(box);
         await pg.render({ canvasContext: cvs.getContext('2d'), viewport: vv }).promise; if (my !== tok) return;

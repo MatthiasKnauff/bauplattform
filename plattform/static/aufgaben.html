@@ -562,7 +562,7 @@ async function briefEditor(url, body, titel, E, bid) {
     const breite = Math.min(S.clientWidth - 24, 900);
     for (let n = 1; n <= pdf.numPages; n++) {
       const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = breite / v0.width, v = pg.getViewport({ scale: sc });
-      const dpr = Math.min(2, window.devicePixelRatio || 1), vv = pg.getViewport({ scale: sc * dpr });
+      const dpr = Math.min(2, Math.max(window.devicePixelRatio || 1, pdf.numPages <= 12 ? 2 : 1)), vv = pg.getViewport({ scale: sc * dpr });
       const box = document.createElement('div'); box.className = 'bed-p'; box.style.width = v.width + 'px'; box.style.height = v.height + 'px';
       const cvs = document.createElement('canvas'); cvs.width = vv.width; cvs.height = vv.height; box.appendChild(cvs); S.appendChild(box);
       await pg.render({ canvasContext: cvs.getContext('2d'), viewport: vv, annotationMode: lib.AnnotationMode.DISABLE }).promise;

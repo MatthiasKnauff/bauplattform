@@ -30,7 +30,7 @@ def oberflaechen():
                 out.append(f"{d}/{f}")
     return out
 
-BAUKASTEN = [f"shared/bpcore/head/{f}" for f in ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js")]
+BAUKASTEN = [f"shared/bpcore/head/{f}" for f in ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js")]
 DEF = re.compile(r"^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(|^(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=", re.M)
 
 # Altlast: Kopien von Grundhilfen, die es schon gab (Schritt 2 „Baukasten als ein Bündel“ räumt sie weg)

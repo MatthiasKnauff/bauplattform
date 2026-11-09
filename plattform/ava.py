@@ -1284,13 +1284,18 @@ def lv_liste():
                         # für die Projektbäume in Angebote / Aufmaßprüfung / Rechnungen
                         "vergeben": _ist_vergeben(V), "frei": bool(V.get("frei")) and _ist_vergeben(V), "angebot_id": V.get("angebot_id"),
                         "aufgehoben": {**V["aufgehoben"], "bieter": V.get("bieter") or ""} if isinstance(V.get("aufgehoben"), dict) else None,
-                        "ohne_lv": bool(V.get("frei") and V.get("ohne_lv", True)), "nicht_vergeben": V.get("nicht_vergeben") if r["status"] == "nicht_vergeben" else None,
+                        "ohne_lv": bool(V.get("frei") and V.get("ohne_lv", True)), "ohne_auftrag": bool(V.get("ohne_auftrag")), "kg": str((d.get("meta") or {}).get("kg") or ""), "nicht_vergeben": V.get("nicht_vergeben") if r["status"] == "nicht_vergeben" else None,
                         "angebote": [{"id": a["id"], "bieter": a["bieter"], **{f: x[f] for f in ("netto", "rang", "fehlt") if f in x}}
                                      for a in ang for x in k["angebote"] if x["id"] == a["id"]],
                         "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "status": x["status"], "re_nr": x["re_nr"],
                                         "anerkannt": rc["anerkannt"], "zahlung": rc["zahlung"]}
                                        for x in sorted(re_, key=lambda y: y["nr"]) for rc in k["rechnungen"] if rc["id"] == x["id"]]})
     return jsonify(out)
+
+
+@app.get("/api/kg_namen")
+def kg_namen():   # Kostengruppen DIN 276 (für „Rechnung ohne LV / Auftrag“)
+    return jsonify(KG_NAMEN)
 
 
 @app.post("/api/lv")
@@ -1392,6 +1397,11 @@ def lv_eins(i):
                     V["summe"] = round(_f(b["vergabe"]["summe"], 0, 0), 2)
                 if b["vergabe"].get("bieter"):
                     V["bieter"] = _s(b["vergabe"]["bieter"], 200)
+            if "ohne_auftrag" in b["vergabe"] and V.get("frei"):   # „in einen Auftrag umwandeln“ (False) bzw. zurück (True)
+                if b["vergabe"]["ohne_auftrag"]:
+                    V["ohne_auftrag"] = True
+                else:
+                    V.pop("ohne_auftrag", None)
             if isinstance(b["vergabe"].get("abzug"), dict):   # welche Abzüge bei der Prüfung gelten (Voreinstellung für die Rechnungen)
                 V["abzug"] = {**(V.get("abzug") or {}), **_abzug_clean(b["vergabe"]["abzug"])}
             if isinstance(b["vergabe"].get("sicherheit"), dict):   # Sicherheiten, Abnahme, Mängelfrist
@@ -3453,6 +3463,8 @@ def vergabe(i):
                  "summe": round(_f(b.get("summe"), 0, 0), 2), "nachlass": alt.get("nachlass", 0), "nachlass_eur": alt.get("nachlass_eur", 0),
                  "skonto": _f(b.get("skonto"), alt.get("skonto", 0), 0, 100), "skonto_tage": int(_f(b.get("skonto_tage"), alt.get("skonto_tage", 0), 0, 365)),
                  "einbehalt": round(_f(b.get("einbehalt"), alt.get("einbehalt", 0.0), 0, 30), 2), "preise": alt.get("preise") or {}}
+            if b.get("ohne_auftrag") or alt.get("ohne_auftrag"):   # Rechnungen ohne LV / Auftrag: je Firma (und Kostengruppe) gesammelt, im Baum ganz oben
+                V["ohne_auftrag"] = True
             c.execute("UPDATE ava_lv SET vergabe=?, status='vergeben', rev=rev+1, updated=?, updated_by=? WHERE id=?",
                       (json.dumps(V, ensure_ascii=False), _now(), g.user["name"], i))
             C.audit(g.user["name"], "ava", "Vergabe (frei)", f"LV {r['nr']} {r['name']} an {bieter}")

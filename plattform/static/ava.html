@@ -678,6 +678,8 @@ html[data-modus="einfach"] [data-umenu]{display:none}
 .re-hand-t{display:inline-block;background:#e07b3a;color:#fff;border-radius:999px;padding:0 .5rem;font-size:var(--fs-s);font-weight:600;margin-left:.3rem;text-transform:uppercase;letter-spacing:.03em}
 .re-hand-g{display:flex;gap:.4rem;align-items:center;margin-top:.3rem;font-weight:400;font-size:var(--fs-s2)}.re-hand-g input{flex:1;min-width:0;font:inherit}
 .re-hand-a{font-weight:400;font-size:var(--fs-s2);color:#e07b3a;margin-top:.2rem}
+.re2-baum .pj-r.oa-g{padding-left:1.3rem;cursor:default}.re2-baum .pj-r.oa-g .car{cursor:pointer}.re2-baum .pj-r.lv.oa{padding-left:2.4rem}.re2-baum .pj-r.k.oa{padding-left:3.5rem}
+.re2-baum .pj-r.lv.oa .t small{display:inline}
 </style>
 </head>
 <body>
@@ -1413,7 +1415,7 @@ const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);   // Projek
 let PJX = new Set(LS.get('pjx', [])), PJXG = LS.get('pjx', null) !== null, PJZU = LS.get('pjzu', false), PJF = null;   // PJXG: schon einmal selbst auf-/zugeklappt – dann auch alle zu erlaubt
 /* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
 function navUnter(k) {
-  const nb = { lv: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()], rechnungen: ['reNeu', '＋ Neue Rechnung', !L || !vergeben()] }[k];
+  const nb = { lv: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !pid], rechnungen: ['reNeu', '＋ Neue Rechnung', !pid] }[k];   // ohne vergebenes LV: „Rechnung ohne LV / Auftrag“
   const baum = '';   // die LVs stehen im Tabellenfeld; die Fenster- & Türliste gilt für das ganze Projekt und braucht keinen LV-Baum
   return baum || nb ? `<div class="nav-u">${baum}${nb ? `<button type="button" class="nneu" data-uhaupt="${nb[0]}"${nb[2] ? ' disabled' : ''}>${nb[1]}</button>` : ''}</div>` : '';
 }
@@ -1424,26 +1426,32 @@ function pjBaum() {
   if (L && !PJX.size && !PJXG) PJX.add(L.id);
   const out = [];
   if (!xs.length) out.push('<p class="hint" style="padding:.3rem .5rem">Noch kein LV.</p>');
+  // Rechnungen ohne LV / Auftrag: eigene Gruppe ganz oben, darunter je Firma
+  const oa = xs.filter((x) => x.ohne_auftrag);
+  if (oa.length) { const nOA = xs.length; xs.splice(0, nOA, ...oa, ...xs.filter((x) => !x.ohne_auftrag));
+    out.push(`<div class="pj-r oa-g" title="Rechnungen ohne LV / Auftrag – je Firma"><span class="car" data-oazu>${OAZU ? '▸' : '▾'}</span>${IC.lv}<span class="t"><b>Ohne LV / Auftrag</b></span><span class="v">${e0(oa.reduce((a, x) => a + (x.abgerechnet || 0), 0))}</span></div>`); }
   xs.forEach((x) => {
+    if (x.ohne_auftrag && OAZU) { if (L && L.id === x.id) out.push('\u0001'); return; }
     // je Bereich: Ausschreibung nur die LVs, Vergabe mit Bietern, Prüfung und Abrechnung mit Rechnungen
     const re = tab === 'aufmass' || tab === 'rechnungen', kids = re ? x.rechnungen : tab === 'angebote' ? [...x.angebote].sort((a, b) => (a.rang || 99) - (b.rang || 99)) : [];
     const on = L && L.id === x.id, offen = PJX.has(x.id);
     const wert = x.auftrag || x.min_angebot || x.schaetzung;
     const sub = tab === 'lv' ? '' : x.aufgehoben ? '⏸ Beauftragung aufgehoben' : x.vergeben ? (ohneLv(x) ? 'ohne LV' : '') : x.status === 'nicht_vergeben' ? '' : x.angebote.length ? `${x.angebote.length} Angebot${x.angebote.length === 1 ? '' : 'e'}` : `${x.n_pos} Pos.`;   // „vergeben“ steht nirgends mehr unter dem Namen (Firma oben in der Mitte); im Leistungsverzeichnis einzeilig
     const haupt = false;   // Baum links neben dem Inhalt: LVs ohne Unterpunkte bekommen keinen Pfeil (nur Bieter bzw. Rechnungen klappen auf)
-    out.push(`<div class="pj-r lv${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${esc([x.nr, x.name].filter(Boolean).join(' '))}${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${e0(wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
+    out.push(`<div class="pj-r lv${x.ohne_auftrag ? ' oa' : ''}${on && !(PJF && PJF.sub) && !PJSEL ? ' on' : ''}${on ? ' akt' : ''}" data-pjlv="${x.id}" title="${esc([x.nr, x.name].filter(Boolean).join(' '))}"><span class="car" ${kids.length ? `data-pjcar="${x.id}"` : on && haupt ? 'data-lvzu' : ''}>${kids.length ? (offen ? '▾' : '▸') : haupt ? (on && !LVXZU ? '▾' : '▸') : ''}</span>${IC.lv}<span class="t">${x.ohne_auftrag ? `${esc(x.auftragnehmer || x.name)}${x.kg ? ` <small class="mu">KG ${esc(x.kg)}</small>` : ''}` : esc([x.nr, x.name].filter(Boolean).join(' '))}${sub && !x.ohne_auftrag ? `<small>${esc(sub)}</small>` : ''}</span><span class="v">${e0(x.ohne_auftrag ? x.abgerechnet : wert)}</span><button type="button" class="pj-del" data-pjdel="lv" title="Ganzes LV in den Papierkorb (mit Angeboten, Aufmaß und Rechnungen)">🗑</button></div>`);
     if (!offen) { if (on) out.push('\u0001'); return; }
     kids.forEach((k) => {
       const key = (re ? 'r' : 'b') + k.id, sel = on && PJSEL === key;
       const txt = !re ? `${k.rang ? k.rang + '. ' : ''}${esc(k.bieter)}${x.angebot_id === k.id ? ' <span class="ok">✓</span>' : ''}`
-        : `${esc(reTitel(k))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}" title="${k.status === 'geprueft' ? 'geprüft' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>`;   // Rechnungsnummer steht rechts in der Karte – im Baum einzeilig
-      out.push(`<div class="pj-r k${sel ? ' on' : ''}${re && x.aufgehoben ? ' deakt-k' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span><button type="button" class="pj-del" data-pjdel="${re ? 're' : 'ang'}" title="${re ? 'Diese Rechnung' : 'Dieses Angebot'} in den Papierkorb – mit Rückgängig">🗑</button></div>`);
+        : `${esc(reTitel(k, x.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}" title="${k.status === 'geprueft' ? 'geprüft' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span>`;   // Rechnungsnummer steht rechts in der Karte – im Baum einzeilig
+      out.push(`<div class="pj-r k${x.ohne_auftrag ? ' oa' : ''}${sel ? ' on' : ''}${re && x.aufgehoben ? ' deakt-k' : ''}" data-pjlv="${x.id}" data-pjsub="${key}"><span class="car"></span>${re ? IC.ti : IC.pos}<span class="t">${txt}</span><span class="v">${e0(re ? k.zahlung : k.netto)}</span><button type="button" class="pj-del" data-pjdel="${re ? 're' : 'ang'}" title="${re ? 'Diese Rechnung' : 'Dieses Angebot'} in den Papierkorb – mit Rückgängig">🗑</button></div>`);
     });
     if (on) out.push('\u0001');
   });
   return out.join('');
 }
-let PJSEL = null, LVXZU = LS.get('lvxzu', false), LVXHOCH = false;
+let PJSEL = null, LVXZU = LS.get('lvxzu', false), LVXHOCH = false, OAZU = LS.get('oazu', false);
+document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('[data-oazu]'); if (!c) return; e.stopPropagation(); OAZU = !OAZU; LS.set('oazu', OAZU); pjZeichnen(); });
 /* LVs im Tabellenfeld (Leistungsverzeichnis, Angebote, Aufmaß, Rechnungen): Zeilen vor dem geöffneten LV, dessen Inhalt, Zeilen danach */
 function pjTeile() { const h = pjBaum(), i = h.indexOf('\u0001'); return i < 0 ? [h, ''] : [h.slice(0, i), h.slice(i + 1)]; }
 /* Oberste Ebene des Projektbaums (wie in Aufträge): das Projekt mit Zahl der LVs und Summe; Pfeil klappt alle LVs zu/auf */
@@ -1538,6 +1546,8 @@ function kmLvPunkte(P, lvId) {
     P.push({ text: 'Nachtrag erfassen …', fn: () => ntDialog(lvId) });
     P.push({ text: 'Nachtragsangebot der Firma einlesen …', fn: () => ntAngebot(lvId) });
   }
+  if (x.ohne_auftrag) P.push({ text: 'In einen Auftrag umwandeln', fn: async () => { await api('api/lv/' + lvId, 'PUT', { vergabe: { ohne_auftrag: false } }); await refreshList(); if (L && L.id === lvId) L = await api('api/lv/' + lvId); render();
+    rueckgaengig(`„${x.auftragnehmer}“ ist jetzt ein Auftrag`, async () => { await api('api/lv/' + lvId, 'PUT', { vergabe: { ohne_auftrag: true } }); await refreshList(); render(); }); } });
   const ziele = [['lv', 'Leistungsverzeichnis'], ['angebote', 'Angebote & Preisspiegel'], ...(x.vergeben ? [['aufmass', 'Aufmaßprüfung'], ['rechnungen', 'Rechnungen']] : []), ['auftraege', 'Aufträge']].filter(([t]) => t !== tab);
   ziele.forEach(([t, n]) => P.push({ text: `Öffnen in ${n}`, fn: () => kmLv(lvId, () => { tab = t; LS.set('tab', tab); if (t === 'auftraege') { EXP.add('l' + lvId); TSEL = 'l' + lvId; } render(); }) }));
 }
@@ -3339,7 +3349,7 @@ async function raumDialog() {
 
 /* ---------- Rechnungen ---------- */
 const RE_NAME = { abschlag: 'Teilrechnung', schluss: 'Schlussrechnung', regie: 'Regierechnung', nachtrag: 'Nachtragsrechnung', sicherheit: 'Freigabe der Sicherheit' };
-const reTitel = (r) => (r.art === 'abschlag' || !RE_NAME[r.art] ? `${r.nr}. Teilrechnung` : `${r.nr}. ${RE_NAME[r.art]}`);
+const reTitel = (r, lvId) => ((r.art === 'abschlag' || !RE_NAME[r.art]) && istOA(lvId || (L && L.id)) ? `${r.nr}. Rechnung` : r.art === 'abschlag' || !RE_NAME[r.art] ? `${r.nr}. Teilrechnung` : `${r.nr}. ${RE_NAME[r.art]}`);
 /* Sicherheiten (VOB/B § 17): Vertragserfüllung und Mängelansprüche – Einbehalt oder Bürgschaft; Abnahme und Frist */
 function vSicherheiten(K) {
   const S = K.sicherheit || {}, ve = S.ve || {}, ma = S.ma || {}, ein = (k, f, v, ph = '', typ = 'text', w = '') => `<input data-si="${k}.${f}" value="${esc(v ?? '')}" type="${typ}" placeholder="${esc(ph)}"${w ? ` style="width:${w}"` : ''}${typ === 'text' && /betrag|pct/.test(f) ? ' inputmode="decimal"' : ''}>`;
@@ -3442,10 +3452,10 @@ function vRechnungen0() {
         <label>Eingang<input type="date" data-re="eingang" data-id="${r.id}" value="${esc(r.eingang)}"${dis}></label>
         ${art === 'sicherheit' ? `<label>freizugebender Betrag netto<input data-re="betrag" data-id="${r.id}" value="${nf(r.data.betrag || 0, 2)}" inputmode="decimal"${dis}></label><label>Grund<select data-re="grund" data-id="${r.id}"${dis}>${[['austausch', 'Austausch gegen Bürgschaft'], ['frist', 'Ablauf der Verjährungsfrist'], ['teil', 'Teilfreigabe']].map(([k, l]) => `<option value="${k}"${(r.data.grund || 'frist') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`
           : `<label title="gefordert ${c.einzeln ? 'netto' : 'kumuliert, netto'}">gefordert<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
-        <label title="Sicherheitseinbehalt in Prozent">Einb. %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}</div>
-      ${art !== 'sicherheit' && c.abzug ? (() => { const A0 = abzAuftrag(), abw = Object.fromEntries(ABZ.map(([k]) => [k, c.abzug[k] !== A0[k]]));
+        ${istOA(L.id) ? '' : `<label title="Sicherheitseinbehalt in Prozent">Einb. %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}`}</div>
+      ${art !== 'sicherheit' && c.abzug && !istOA(L.id) ? (() => { const A0 = abzAuftrag(), abw = Object.fromEntries(ABZ.map(([k]) => [k, c.abzug[k] !== A0[k]]));
         return `<div class="hint abz-z">Abziehen:${abzChips(c.abzug, 'data-reabz', g, abw)}${!g && Object.values(abw).some(Boolean) ? `<button type="button" class="ib" data-reabz0="${r.id}" title="Wie im Auftrag eingestellt">↺ wie Auftrag</button>` : ''}</div>`; })().replace(/data-reabz="/g, `data-reid2="${r.id}" data-reabz="`) : ''}
-      ${art !== 'regie' && art !== 'sicherheit' ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;
+      ${art !== 'regie' && art !== 'sicherheit' && !istOA(L.id) ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;
     const fuss = `<label class="hint" style="display:block;margin-top:.6rem">Bemerkung zur Prüfung<textarea data-re="notiz" data-id="${r.id}" style="min-height:3rem;font:inherit">${esc(r.notiz || '')}</textarea></label>
       <div class="bar" style="margin:.5rem 0 0"><button class="btn sm" data-reb="freigabe" data-id="${r.id}" title="Für den Bauherrn: Freigabe mit Zahlbetrag – dazu wählbar Prüfblatt, Massenermittlung und Rechnung der Firma in einer PDF">🖨 Rechnungsfreigabe / PDF …</button>
         ${g ? (last ? `<button class="btn sm" data-reb="zurueck" data-id="${r.id}">Prüfung zurücknehmen</button>` : '') : `<button class="btn sm pri" data-reb="pruefen" data-id="${r.id}" title="${art === 'regie' || art === 'sicherheit' ? 'Prüfung abschließen' : 'Aufmaßstand festhalten – spätere Aufmaße zählen erst in der nächsten Rechnung'}">✓ Prüfung abschließen</button>`}
@@ -3482,7 +3492,7 @@ function vRechnungen0() {
           <input data-re="abz-betrag" data-id="${r.id}" data-k="${k}" value="${z.betrag != null ? nf(z.betrag, 2) : ''}" placeholder="oder €" style="width:6rem;flex:0 1 6rem" inputmode="decimal"${dis}>${g ? '' : `<button class="ib" data-reb="abzdel" data-id="${r.id}" data-k="${k}">✕</button>`}</div></td>
           <td class="r">${eur(-(z.pct != null ? L1 * z.pct / 100 : (z.betrag || 0)))}</td></tr>`).join('')}
         ${g ? '' : `<tr><td colspan="2"><button class="ib" data-reb="abzneu" data-id="${r.id}">+ Abzug (Umlage Bauwasser/Strom, Bauleistungsversicherung, Schadensersatz …)</button></td></tr>`}
-        ${c.abzug && !c.abzug.einbehalt ? `<tr class="aus"><td>${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt'} – bei dieser Rechnung nicht einbehalten</td><td class="r">–</td></tr>` : (() => { const SK = (L.calc.sicherheit || {}), soll = art === 'schluss' ? SK.pct_schluss : SK.pct_abschlag, abw = r.data.einbehalt != null && soll != null && Math.abs((r.data.einbehalt || 0) - soll) > 0.004;
+        ${istOA(L.id) ? '' : c.abzug && !c.abzug.einbehalt ? `<tr class="aus"><td>${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt'} – bei dieser Rechnung nicht einbehalten</td><td class="r">–</td></tr>` : (() => { const SK = (L.calc.sicherheit || {}), soll = art === 'schluss' ? SK.pct_schluss : SK.pct_abschlag, abw = r.data.einbehalt != null && soll != null && Math.abs((r.data.einbehalt || 0) - soll) > 0.004;
           return `<tr><td>– ${art === 'schluss' ? 'Sicherheit für Mängelansprüche' : 'Sicherheitseinbehalt (Vertragserfüllung)'} ${nf(c.einbehalt_pct, 2)} %${abw ? ` <span class="hint" style="color:#e07b3a">bei dieser Rechnung fest eingetragen – Auftrag: ${nf(soll, 2)} %</span>${g ? '' : ` <button type="button" class="ib" data-reb="ebAuftrag" data-id="${r.id}" title="Satz dieser Rechnung löschen – es gilt wieder die Sicherheit des Auftrags">wie Auftrag</button>`}` : ''}</td><td class="r">${eur(-c.einbehalt)}</td></tr>`; })()}
         <tr class="s"><td>= anerkannt${c.einzeln ? '' : ' (kumuliert)'}</td><td class="r">${eur(c.anerkannt)}</td></tr>
         ${c.einzeln ? '' : c.abzug && !c.abzug.vorher ? '<tr class="aus"><td>bisher anerkannt – bei dieser Rechnung nicht abgezogen (Achtung: Doppelzahlung bei kumulierten Rechnungen)</td><td class="r">–</td></tr>' : `<tr><td>– bisher anerkannt${art === 'nachtrag' ? ' (Nachtragsrechnungen)' : ''}</td><td class="r">${eur(-c.vorher)}</td></tr>`}
@@ -3499,7 +3509,7 @@ function vRechnungen0() {
       </tbody></table>${reSkonto(r, c)}${fuss}</div>`;
   }).join('');
   return `${leiste}<div class="bar"><span class="hint">Auftrag ${eur(K.auftrag)}${K.nachtraege.beauftragt ? ` + Nachträge ${eur(K.nachtraege.beauftragt)}` : ''} · Leistungsstand ${eur(K.leistung)} · anerkannt ${eur(K.abgerechnet)} · einbehalten ${eur((K.sicherheit || {}).offen || 0)}</span></div>
-    ${SEL && (SEL.belege || []).length ? `<div class="am-split re-split"><div class="am-l"><div class="re">${cards}${vSicherheiten(K)}</div></div><div class="am-r" id="amPdfSlot"></div></div>` : `<div class="re">${cards || abzLeer()}${vSicherheiten(K)}</div>`}`;
+    ${SEL && (SEL.belege || []).length ? `<div class="am-split re-split"><div class="am-l"><div class="re">${cards}${istOA(L.id) ? '' : vSicherheiten(K)}</div></div><div class="am-r" id="amPdfSlot"></div></div>` : `<div class="re">${cards || abzLeer()}${istOA(L.id) ? '' : vSicherheiten(K)}</div>`}`;
 }
 /* Eigene Felder der Druck-Layouts (⚙ → Büro → Druck-Layouts): vor dem Ausdruck abfragen, was „bei jedem Ausdruck“ gilt
    oder für das Projekt noch fehlt. Ergebnis: '' (nichts zu fragen) bzw. '&lw=…' – null = abgebrochen. */
@@ -3652,14 +3662,17 @@ function reSperre(art) {
     const einzeln = o.art === 'regie' || o.art === 'sicherheit' || (RC[o.id] || {}).frei;
     return !einzeln && ['abschlag', 'schluss', 'nachtrag'].includes(art) && (o.art === 'nachtrag') === (art === 'nachtrag'); });
 }
+const istOA = (lvId) => !!(LIST.find((y) => y.id === lvId) || {}).ohne_auftrag;   // Sammel-Auftrag „ohne LV / Auftrag“ einer Firma
+const OA_ITEM = { value: 'ohneauftrag', title: '📄 Rechnung ohne LV / Auftrag', sub: 'z. B. Gebühren, Gutachten, Kleinmaterial, Handwerker ohne Auftrag – geht auch, wenn kein LV gewählt ist' };
 function reNeuMenu(anchor) {
+  if (!L || !vergeben() || istOA(L.id)) { pickMenu(anchor, { items: [OA_ITEM], onPick: () => oaDialog() }); return; }
   const schluss = L.rechnungen.some((r) => r.art === 'schluss');
   const it = [['abschlag', 'Teilrechnung', 'kumuliert über das Aufmaß', schluss], ['schluss', 'Schlussrechnung', 'kumuliert über das Aufmaß, danach keine Teilrechnung mehr', schluss],
     ['regie', 'Regierechnung', 'Stundenlohnarbeiten nach Stundenzetteln', false],
     ['sicherheit', 'Freigabe der Sicherheit', `noch einbehalten ${eur((L.calc.sicherheit || {}).offen || 0)}`, false],
     ['nachtrag', 'Nachtragsrechnung (selten)', 'nur wenn die Firma Nachträge getrennt abrechnet – sonst stecken sie in der Teilrechnung', schluss]];
-  pickMenu(anchor, { items: it.map(([v, t, sub, dis]) => { const sp = !dis && reSperre(v); return { value: dis ? '' : v, title: t, sub: dis ? 'nach der Schlussrechnung nicht mehr' : sp ? `erst „${reTitel(sp)}“ abschließen – wird gefragt` : sub }; }),
-    onPick: (v) => reNeuStart(v, anchor) });
+  pickMenu(anchor, { items: [...it.map(([v, t, sub, dis]) => { const sp = !dis && reSperre(v); return { value: dis ? '' : v, title: t, sub: dis ? 'nach der Schlussrechnung nicht mehr' : sp ? `erst „${reTitel(sp)}“ abschließen – wird gefragt` : sub }; }), OA_ITEM],
+    onPick: (v) => (v === 'ohneauftrag' ? oaDialog() : reNeuStart(v, anchor)) });
 }
 const RE_ARTEN_NEU = [['abschlag', 'Teilrechnung'], ['schluss', 'Schlussrechnung'], ['regie', 'Regierechnung'], ['sicherheit', 'Freigabe der Sicherheit'], ['nachtrag', 'Nachtragsrechnung']];
 /* Neue Rechnung einer Art anlegen (aus dem Menü „＋ Neue Rechnung“ oder dem Kontextmenü im Baum): offene Rechnung derselben Kette erst abschließen */
@@ -3677,6 +3690,58 @@ async function reNeuStart(v, anchor) {
         if (reSperre(v)) return anchor ? reNeuMenu(anchor) : reNeuStart(v, anchor);   // noch eine offen (z. B. bei der Sicherheit)
       }
       reDialog(v);
+}
+/* Rechnung ohne LV / Auftrag: je Firma (und Kostengruppe) ein Sammel-Auftrag ohne LV – im Baum ganz oben unter „Ohne LV / Auftrag“.
+   Geprüft wird wie „ohne Aufmaß“ (Betrag oder Positionen von Hand), ohne Einbehalt, jede Rechnung für sich. */
+let KGN = null;
+async function oaDialog() {
+  if (!pid) { toast('Bitte zuerst oben ein Projekt wählen.', true); return; }
+  if (!KONT) KONT = await api('api/kontakte').catch(() => []);
+  if (!KGN) KGN = await api('api/kg_namen').catch(() => ({}));
+  const heute = new Date().toISOString().slice(0, 10), vorFirma = L && istOA(L.id) ? (LIST.find((y) => y.id === L.id) || {}).auftragnehmer || '' : '';
+  const vorKg = L && istOA(L.id) ? (LIST.find((y) => y.id === L.id) || {}).kg || '' : '';
+  const bg = modalBox(`<h3>Rechnung ohne LV / Auftrag</h3>
+    <datalist id="oaFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">${k.trade ? esc(k.trade) : ''}</option>`).join('')}</datalist>
+    <datalist id="oaKg">${Object.entries(KGN || {}).map(([k, n]) => `<option value="${k} ${esc(n)}"></option>`).join('')}</datalist>
+    <div class="fm">
+      <label for="oaFirma">Firma</label><input id="oaFirma" list="oaFirmen" value="${esc(vorFirma)}" placeholder="aus den Adressen oder neu">
+      <label for="oaF">Rechnung (PDF)</label><input type="file" id="oaF" accept="application/pdf,.pdf,image/*">
+      <label for="oaNr">Rechnungsnr.</label><input id="oaNr">
+      <label for="oaD">Rechnungsdatum</label><input type="date" id="oaD">
+      <label for="oaE">Eingang</label><input type="date" id="oaE" value="${heute}">
+      <label for="oaB">Betrag netto</label><input id="oaB" inputmode="decimal" placeholder="0,00" style="text-align:right">
+      <label for="oaKgI">Kostengruppe</label><input id="oaKgI" list="oaKg" value="${vorKg ? esc(vorKg + ' ' + ((KGN || {})[vorKg] || '')) : ''}" placeholder="z. B. 440 – für die Kostenkontrolle">
+      <label for="oaW">Wofür</label><input id="oaW" placeholder="z. B. Baustromverteiler Miete Okt.">
+    </div>
+    <p class="hint">Geprüft wird wie „ohne Aufmaß“: Betrag oder Positionen von Hand, Abzüge, Skonto, Rechnungsfreigabe-PDF – ohne Einbehalt und ohne „bisher anerkannt“. Zählt in der Kostenkontrolle unter der Kostengruppe.</p>
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg2, close, btn) => {
+    if (m === 'x') { close(); return; }
+    if (m !== 'ok') return;
+    const q = (id) => bg2.querySelector('#' + id), firma = q('oaFirma').value.trim(), kg = (/^\s*(\d{3})/.exec(q('oaKgI').value) || [])[1] || '';
+    if (!firma) { toast('Bitte die Firma angeben.', true); q('oaFirma').focus(); return; }
+    btn.disabled = true;
+    try {
+      let x = LIST.find((y) => y.ohne_auftrag && !y.archived && (y.auftragnehmer || '').toLowerCase() === firma.toLowerCase() && (y.kg || '') === kg), id;
+      if (x) id = x.id;
+      else {
+        const k = (KONT || []).find((y) => y.name === firma);
+        id = (await api('api/lv', 'POST', { project_id: pid, name: firma + (kg ? ' · KG ' + kg : ''), nr: '', ...(vSicht() ? { version_id: vSicht() } : {}) })).id;
+        await api(`api/lv/${id}/vergabe`, 'POST', { frei: true, ohne_lv: true, ohne_auftrag: true, bieter: firma, contact_id: k ? k.id : null, summe: 0, einbehalt: 0 });
+        if (kg) await api(`api/lv/${id}/daten`, 'PUT', { lv: { kg } });
+      }
+      let d = await api(`api/lv/${id}/rechnungen`, 'POST', { art: 'abschlag', frei: pf(q('oaB').value) || 0, re_nr: q('oaNr').value.trim(), datum: q('oaD').value, eingang: q('oaE').value || heute });
+      const neu = [...(d.rechnungen || [])].sort((a, b) => b.id - a.id)[0];
+      if (neu && q('oaW').value.trim()) d = await api('api/rechnungen/' + neu.id, 'PUT', { notiz: q('oaW').value.trim() });
+      const f = q('oaF').files[0]; close();
+      LIST = await lvListe(); L = await api('api/lv/' + id); LS.set('lv:' + pid, id);
+      if (!['aufmass', 'rechnungen'].includes(tab)) { tab = 'rechnungen'; LS.set('tab', tab); }
+      OAZU = false; PJX.clear(); PJX.add(id); if (neu) PJSEL = 'r' + neu.id; render();
+      toast(`${firma}: ${neu ? reTitel(neu, id) : 'Rechnung'} angelegt.`);
+      if (f && neu) await reBelegHoch(neu.id, f);
+    } catch (e) { btn.disabled = false; toast(e.message, true); }
+  });
+  bg.querySelector('.modal').classList.add('breit');
+  setTimeout(() => { const i = bg.querySelector(vorFirma ? '#oaNr' : '#oaFirma'); if (i) i.focus(); }, 30);
 }
 function reDialog(art = 'abschlag', vorgabe = null) {
   const n = L.rechnungen.length + 1, offen = (L.calc.sicherheit || {}).offen || 0;
@@ -4143,16 +4208,20 @@ function spaltenGriffe() {
     const ths = [...tr.children];
     // wie in Excel: nur die gezogene Spalte ändert sich, alles rechts davon rückt nach; die letzte Spalte nimmt den Rest der Breite
     const letzte = ths[ths.length - 1];
-    const breite = () => { const sum = ths.slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = (sum + 90) + 'px'; };   // nur so breit wie die Spalten – kein Auffüllen auf volle Breite   // mindestens so breit wie der Platz – wächst beim Aufziehen des Fensters mit, die letzte Spalte nimmt den Rest
+    // nie ein leerer Bereich neben der Tabelle: beim Ziehen nimmt die letzte Spalte den Rest bis zum Rand
+    const breite = () => { const sum = ths.slice(0, -1).reduce((a, h) => a + (parseFloat(h.style.width) || h.getBoundingClientRect().width), 0); t.style.width = Math.max(sum + 90, platz()) + 'px'; };
     const fest = () => { if (t.style.tableLayout === 'fixed') return; ths.forEach((h) => { if (h === letzte) { h.style.width = ''; h.style.minWidth = '90px'; return; } h.style.width = Math.round(h.getBoundingClientRect().width) + 'px'; h.style.minWidth = '0'; }); t.style.tableLayout = 'fixed'; breite(); };
     // proportional: gemerkt wird die Breite, die der Platz beim Ziehen hatte (_b) – wird der Platz breiter oder schmaler (Trenner, Fenster), wachsen bzw. schrumpfen alle Spalten im selben Verhältnis
-    const platz = () => (t.parentElement ? t.parentElement.clientWidth : 0);
+    const platz = () => { const e = t.parentElement; if (!e) return 0; const cs = getComputedStyle(e); return e.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0); };   // Innenbreite
     const anwenden = () => { const s = SB[key]; if (!s || !t.isConnected) return; const p = platz(); if (!p) return;
       if (!s._b) { s._b = p; LS.set('sb', SB); }
       const f = p / s._b; fest(); let sum = 0;
       ths.forEach((h, j) => { if (h === letzte || !s[j]) return; const b = Math.max(36, Math.round(s[j] * f)); h.style.width = b + 'px'; sum += b; });
-      const rest = Math.max(90, Math.round((s._t ? s._t - Object.keys(s).filter((k) => /^\d+$/.test(k)).reduce((a, k) => a + s[k], 0) : 90) * f));
+      let rest = Math.max(90, Math.round((s._t ? s._t - Object.keys(s).filter((k) => /^\d+$/.test(k)).reduce((a, k) => a + s[k], 0) : 90) * f));
+      if (sum + rest < p - 1) {   // schmaler als der Platz: alle Spalten im selben Verhältnis breiter, bis die Tabelle den Platz füllt
+        const g = (p - 1) / (sum + rest); sum = 0; ths.forEach((h) => { if (h === letzte || !h.style.width) return; const b = Math.round(parseFloat(h.style.width) * g); h.style.width = b + 'px'; sum += b; }); rest = Math.max(90, p - 1 - sum); }
       t.style.width = (sum + rest) + 'px'; };
+    if (!Object.keys(w).length) t.style.minWidth = '100%';   // ohne eigene Breiten: der Browser verteilt den Platz auf alle Spalten
     if (Object.keys(w).length) anwenden();
     if (window.ResizeObserver && t.parentElement) { let alt = platz(); const ro = new ResizeObserver(() => { if (!t.isConnected) { ro.disconnect(); return; } if (document.body.classList.contains('sb-zieh')) return; const p = platz(); if (Math.abs(p - alt) < 2) return; alt = p; requestAnimationFrame(anwenden); }); ro.observe(t.parentElement); }
     ths.forEach((th, i) => {
@@ -4165,7 +4234,7 @@ function spaltenGriffe() {
         g.onpointermove = (m) => { th.style.width = Math.max(36, w0 + m.clientX - x0) + 'px'; breite(); };
         g.onpointerup = () => { g.onpointermove = null; document.body.classList.remove('sb-zieh'); SB[key] = {}; ths.forEach((h, j) => { if (h !== letzte) SB[key][j] = Math.round(h.getBoundingClientRect().width); }); SB[key]._b = platz(); SB[key]._t = Math.round(t.getBoundingClientRect().width); LS.set('sb', SB); };
       });
-      g.addEventListener('dblclick', (e) => { e.stopPropagation(); e.preventDefault(); delete SB[key]; LS.set('sb', SB); ths.forEach((h) => { h.style.width = ''; h.style.minWidth = ''; }); t.style.tableLayout = ''; t.style.width = ''; t.style.minWidth = ''; toast('Spaltenbreiten zurückgesetzt.'); });
+      g.addEventListener('dblclick', (e) => { e.stopPropagation(); e.preventDefault(); delete SB[key]; LS.set('sb', SB); ths.forEach((h) => { h.style.width = ''; h.style.minWidth = ''; }); t.style.tableLayout = ''; t.style.width = ''; t.style.minWidth = '100%'; toast('Spaltenbreiten zurückgesetzt.'); });
       g.addEventListener('click', (e) => e.stopPropagation());
     });
   });

@@ -200,6 +200,7 @@ table.lv tr.txt td{color:var(--mute);font-style:italic}
 table.lv tr.nt td:first-child{}
 table.lv tr.lang td{border-bottom:1px solid var(--line);padding-top:0}
 table.lv textarea{min-height:5.5rem;resize:vertical;border-color:var(--line)}
+table.lv tr.lang textarea{min-height:0;overflow-y:auto;display:block}   /* Langtext in der Tabelle: sechs Zeilen, darüber hinaus rollen */
 .oz{font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap;font-size:var(--fs-s2);padding-top:.45rem!important}
 .ib{background:transparent;border:0;color:var(--mute);cursor:pointer;padding:.15rem .22rem;border-radius:calc(6px*var(--rk,1));font-size:var(--fs);line-height:1}
 table.lv .acts-c .ib{color:var(--ink);font-size:var(--fs-l);font-weight:700;padding:.2rem .3rem;min-width:1.7rem}
@@ -775,6 +776,9 @@ const NURLV = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);
 const ARTEN = { N: 'Normal', E: 'Bedarf (ohne GB)', A: 'Wahl (ohne GB)', P: 'Pauschal', T: 'Hinweistext', V: 'Vorbemerkung' };
 /* Vorbemerkung = Hinweistext mit Kennzeichen vb (GAEB: Hinweistext) – im Druck breit und abschaltbar (Layout → „Vorbemerkungen im LV“) */
 const artW = (x) => (x.art === 'T' && x.vb ? 'V' : x.art);
+/* Art der Position: Feld mit Vorschlagsliste (gemeinsamer Baustein /bp/vorschlag.js) – wie die Einheit */
+bpVorschlag.listen.art = Object.entries(ARTEN).map(([w, t]) => ({ w, t }));
+bpVorschlag.norm.art = (v) => String(v || '').trim().toUpperCase().slice(0, 1);
 const STATUS = [['entwurf', 'Entwurf'], ['versendet', 'An Bieter versendet'], ['vergeben', 'Vergeben'], ['abgerechnet', 'Abgerechnet'], ['nicht_vergeben', 'Nicht vergeben']];
 const NICHT_GRUENDE = [['', '– ohne Angabe –'], ['entfallen', 'Leistung entfällt'], ['aufgehoben', 'Ausschreibung aufgehoben'], ['anderweitig', 'anderweitig vergeben'], ['zurueckgestellt', 'zurückgestellt']];
 /* Einheitlicher Name für alle PDFs: „<Projektnr.> <Art> <Firma> – LV <Nr> <Name> – <Zusatz>.pdf“ – im ganzen Projekt gleich */
@@ -996,7 +1000,7 @@ function avaBefehle() {
 }
 function bereichBefehle() {
   if (tab === 'lv' && L) return [
-    { titel: 'Neu', knoepfe: [{ t: 'Gliederung', ic: BIC.plus, attrs: 'data-act="glied"', tip: 'Gliederungspunkt eine Ebene unter der markierten Zeile – oben auf das LV klicken für die oberste Ebene (GAEB: höchstens 4 Ebenen)' }, { t: 'Position', ic: BIC.plus, attrs: 'data-act="pos"', tip: 'Position nach der markierten Zeile' }] },
+    { titel: 'Neu', knoepfe: [{ t: 'Gliederung', ic: BIC.plus, attrs: 'data-act="glied"', tip: 'Gliederungspunkt eine Ebene unter der markierten Zeile – markierte Positionen kommen hinein; oben auf das LV klicken für die oberste Ebene (GAEB: höchstens 4 Ebenen)' }, { t: 'Position', ic: BIC.plus, attrs: 'data-act="pos"', tip: 'Position nach der markierten Zeile' }] },
     { titel: 'Bearbeiten', knoepfe: [{ t: 'Nummerieren', ic: BIC.num, attrs: 'data-act="num"', tip: 'Ordnungszahlen neu vergeben – nach einem Schema wie in GAEB' }, { t: 'Aus Baukosten', ic: BIC.bk, attrs: 'data-act="bk"', tip: 'Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen' },
       { t: 'Kopierquelle', ic: BIC.qu, attrs: 'data-ucmd="quBtn" data-udr', an: quSichtbar(), tip: 'Ein LV aus einem anderen Projekt rechts daneben – Positionen herüberkopieren' },
       { t: 'Dokument ablegen', ic: BIC.dok, datei: { accept: DOK_ACCEPT, attrs: 'data-lvdokin' }, tip: 'LV oder Angebot als PDF, Scan, Foto oder Word rechts als Reiter „📄 Dokument“ – Zeilen anklicken übernimmt sie' }] },
@@ -2096,16 +2100,16 @@ function vLv() {
     if (!sichtbar[i]) return '';
     const open = OPEN.has(x.id), t = x.art === 'T';
     const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
-    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz baumz" title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"><div class="bz" style="${einr(tief + 2)}"><span class="car"></span>${icArt(x)}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt && x.nt_erbe ? `<span class="badge nt" title="gehört zum Nachtrag des Gliederungspunkts (${esc(x.nt_status || '')})">${esc(x.nt)}</span>` : x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td>
+    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"', tiefe: tief + 2, auf: open, car: ` data-a="lang" title="${open ? 'Langtext zuklappen' : 'Langtext aufklappen'}"`, icon: icArt(x), html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt && x.nt_erbe ? `<span class="badge nt" title="gehört zum Nachtrag des Gliederungspunkts (${esc(x.nt_status || '')})">${esc(x.nt)}</span>` : x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
       <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" data-vs="eh" autocomplete="off" style="width:3.8rem">`}</td>
-      <td><select data-f="art" title="${esc(ARTEN[artW(x)])}" style="width:4.2rem">${Object.entries(ARTEN).map(([k, l]) => `<option value="${k}"${artW(x) === k ? ' selected' : ''} title="${l}">${k}</option>`).join('')}</select></td>
+      <td><input data-f="art" value="${artW(x)}" data-vs="art" autocomplete="off" maxlength="1" style="width:3.8rem" title="${esc(ARTEN[artW(x)])} – N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung"></td>
       <td class="hide-m"><input data-f="kg" value="${esc(x.kg || '')}" placeholder="KG" style="width:3.4rem" inputmode="numeric" title="Kostengruppe DIN 276"></td>
       <td>${t ? '' : V ? `<input class="n" data-vp="${x.id}" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.5rem" title="Einheitspreis des Auftrags${x.nt ? ' (Nachtragspreis)' : ''}">` : `<input class="n" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="EP" title="geschätzter Einheitspreis (Kostenanschlag)">`}</td>
       ${V ? `<td class="r hint" title="geschätzter EP">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>` : ''}
       <td class="r" data-gp="${i}">${x.entf ? '<span class="hint">entfällt</span>' : gp != null ? eur(gp) : ohneGB(x) ? '<span class="hint">ohne GB</span>' : ''}</td>
       <td class="acts-c"><button class="ib" data-a="eig" title="Eigenschaften der Position (auch Doppelklick)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button><button class="ib${open || x.lang || fotosVon(x).length ? ' on' : ''}" data-a="lang" title="Langtext${fotosVon(x).length ? ' · ' + fotosVon(x).length + ' Foto(s)' : ''}">${fotosVon(x).length ? '¶<sup>📷</sup>' : '¶'}</button><button class="ib" data-a="del" title="Position löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
-    if (open) h += `<tr class="lang" data-i="${i}"><td colspan="${NC}" style="${einr(tief + 3)}"><textarea data-f="lang" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung">${esc(x.lang || '')}</textarea>
+    if (open) h += `<tr class="lang" data-i="${i}"><td colspan="${NC}" style="${einr(tief + 3)}"><textarea data-f="lang" rows="6" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung">${esc(x.lang || '')}</textarea>
       ${fotoLeiste(x)}
       <div class="bar" style="margin:.3rem 0 0"><button class="btn sm" data-a="ki" title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><label class="btn sm" title="Fotos oder Skizzen zur Position – erscheinen unter dem Langtext im LV-Ausdruck. Ein Bild aus der Zwischenablage mit Strg+V im Langtext einfügen.">📷 Foto<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label><span class="hint">${x.nt ? 'Begründung des Nachtrags: ' : ''}</span>${x.nt ? `<input data-f="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung auf Anordnung des Bauherrn" style="flex:1;min-width:14rem">` : ''}</div></td></tr>`;
     return h;
@@ -2157,7 +2161,8 @@ function lvAktZeigen() {
   const n = I.findIndex((x) => x.id === LVAKT), h = n >= 0 ? `nach ${I[n].oz || (I[n].art === 'T' ? 'dem Hinweistext' : 'der markierten Zeile')} einfügen` : 'am Ende anhängen';
   document.querySelectorAll('[data-act="titel"],[data-act="pos"],[data-act="txt"]').forEach((b) => { b.title = h; });
   document.querySelectorAll('[data-act="glied"]').forEach((gb) => { const x = I[n]; const el = x ? (x.typ === 'titel' ? x : [...I.slice(0, n)].reverse().find((y) => y.typ === 'titel')) : null;
-    gb.title = LVAKT === '__lv' || !x ? 'Gliederungspunkt der obersten Ebene am Ende anlegen' : `Gliederungspunkt unter ${el ? el.oz + ' ' + (el.kurz || '') : 'der obersten Ebene'} anlegen (Ebene ${el ? (el.lvl || 1) + 1 : 1})`; });
+    const mp = lvMarkiertePos().length;
+    gb.title = mp ? `Gliederungspunkt anlegen – die ${mp === 1 ? 'markierte Position kommt' : mp + ' markierten Positionen kommen'} hinein` : LVAKT === '__lv' || !x ? 'Gliederungspunkt der obersten Ebene am Ende anlegen' : `Gliederungspunkt unter ${el ? el.oz + ' ' + (el.kurz || '') : 'der obersten Ebene'} anlegen (Ebene ${el ? (el.lvl || 1) + 1 : 1})`; });
 }
 document.addEventListener('click', (e) => {   // Klick auf die LV-Zeile ganz oben markiert das LV selbst (oberste Ebene)
   if (tab !== 'lv') return;
@@ -2174,7 +2179,7 @@ function lvEinfuegeStelle(kind) {
 document.addEventListener('click', (e) => {   // Klick auf die OZ markiert; Strg+Klick einzelne dazu/weg, Umschalt+Klick von–bis
   if (tab !== 'lv' || !L) return;
   const tr = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang)'); if (!tr) return;
-  const aufOz = !!e.target.closest('td.oz'), feld = e.target.closest('input,textarea,select,button,a,[data-zu]');
+  const aufOz = !!e.target.closest('td.oz'), feld = e.target.closest('input,textarea,select,button,a,[data-zu],[data-a]');
   if (feld && !(e.ctrlKey || e.metaKey || e.shiftKey)) return;
   const I = items(), x = I[+tr.dataset.i]; if (!x) return;
   if (e.shiftKey) {
@@ -2249,12 +2254,27 @@ document.addEventListener('mousedown', (e) => {
   LVSEL = new Set(); LVAKT = x.id; LVANK = x.id; lvAktZeigen();
 }, true);
 document.addEventListener('focusin', (e) => { if (tab !== 'lv' || !L) return; const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (tr) { const x = items()[+tr.dataset.i]; if (x && x.id !== LVAKT) { LVAKT = x.id; lvAktZeigen(); } } });
+/* die markierten Positionen in LV-Reihenfolge: Mehrfachauswahl, sonst die Zeile, auf der man steht (Titel zählen nicht) */
+const lvMarkiertePos = () => items().filter((x) => x.typ === 'pos' && (LVSEL.size ? LVSEL.has(x.id) : x.id === LVAKT));
 function addItem(kind) {
   const I = items(), at = lvEinfuegeStelle(kind), ref = at > 0 ? I[at - 1] : null;
   let neu;
   const ober = [...I.slice(0, at)].reverse().find((x) => x.typ === 'titel');   // Titel, in dem eingefügt wird
   if (kind === 'glied') {   // immer eine Ebene tiefer als die markierte Zeile; LV oben markiert (oder nichts): oberste Ebene, am Ende
     const n = LVAKT === '__lv' ? -1 : I.findIndex((x) => x.id === LVAKT), akt = n >= 0 ? I[n] : null;
+    const mark = lvMarkiertePos();
+    if (mark.length) {   // Positionen markiert: genau sie kommen in den neuen Punkt – er steht hinter den übrigen Positionen seines Titels
+      const n0 = I.indexOf(mark[0]), elt = [...I.slice(0, n0)].reverse().find((x) => x.typ === 'titel'), lv0 = elt ? (elt.lvl || 1) + 1 : 1;
+      if (lv0 > 4) { toast('GAEB erlaubt höchstens 4 Gliederungsebenen – hier geht keine weitere.', true); return; }
+      let e = n0; while (e < I.length && I[e].typ !== 'titel') e++;   // Ende der Positionen, zwischen denen die erste markierte steht
+      const nachE = I[e] || null, ms = new Set(mark), rest = I.filter((x) => !ms.has(x)), neuT = { id: uid(), typ: 'titel', lvl: lv0, oz: '', kurz: '' };
+      const st = nachE ? rest.indexOf(nachE) : rest.length;
+      rest.splice(st, 0, neuT, ...mark); I.splice(0, I.length, ...rest);
+      LVSEL = new Set(); LVAKT = neuT.id; numerieren(); ntErben(I); HIST.next = `Gliederungspunkt mit ${mark.length} Position${mark.length === 1 ? '' : 'en'}`; changed(true);
+      toast(`${mark.length === 1 ? 'Die markierte Position steht' : `Die ${mark.length} markierten Positionen stehen`} jetzt unter ${neuT.oz} – rückgängig mit Strg+Z.`);
+      setTimeout(() => { const el = document.querySelector(`tr[data-i="${st}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
+      return;
+    }
     const eltern = akt ? (akt.typ === 'titel' ? akt : [...I.slice(0, n)].reverse().find((x) => x.typ === 'titel')) : null;
     const lv = eltern ? (eltern.lvl || 1) + 1 : 1;
     if (lv > 4) { toast('GAEB erlaubt höchstens 4 Gliederungsebenen – hier geht keine weitere.', true); return; }
@@ -2357,7 +2377,8 @@ document.addEventListener('input', (e) => {
   }
   const row = el.closest('tr[data-i]'); if (!row || !L || tab !== 'lv') return;
   const x = items()[+row.dataset.i]; if (!x) return;
-  if (el.dataset.f === 'art') { if (el.value === 'V') { x.art = 'T'; x.vb = true; } else { x.art = el.value; delete x.vb; } changed(); return; }
+  if (el.dataset.f === 'art') { const v = el.value.trim().toUpperCase(); if (!ARTEN[v]) return;   // nur gültige Arten übernehmen (Feld mit Vorschlagsliste wie die Einheit)
+    if (v === 'V') { x.art = 'T'; x.vb = true; } else { x.art = v; delete x.vb; } changed(); return; }
   if (el.dataset.f) { const f = el.dataset.f; x[f] = ['menge'].includes(f) ? (pf(el.value) ?? 0) : f === 'ep_s' ? pf(el.value) : el.value; changed(); return; }
   if (el.dataset.vp) { L.vergabe.preise = { ...(L.vergabe.preise || {}), [el.dataset.vp]: pf(el.value) }; clearTimeout(vpT); vpT = setTimeout(() => saveVp(el.dataset.vp, el.value), 700); sums(); }
 });
@@ -2424,7 +2445,7 @@ document.addEventListener('click', async (e) => {
       return;
     }
   }
-  const row = t.closest('tr[data-i]'), ib = t.closest('.ib');
+  const row = t.closest('tr[data-i]'), ib = t.closest('.ib,.car[data-a]');   // Knöpfe der Zeile und das Dreieck (Langtext)
   if (row && ib && tab === 'lv') {
     const i = +row.dataset.i, x = items()[i], a = ib.dataset.a;
     if (a === 'up' || a === 'down') return moveItem(i, a === 'up' ? -1 : 1);

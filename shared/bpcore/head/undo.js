@@ -13,17 +13,28 @@ function _undoIc(u) { const t = (u.text || '').toLowerCase();   // Symbol je Art
   return u.ic || (/gelöscht|papierkorb|entfernt|verworfen/.test(t) ? '🗑' : /eingefügt|angelegt|hinzugef|neu |übernommen|eingesetzt/.test(t) ? '＋' : /verschoben|eingerückt|ausgerückt|umsortiert/.test(t) ? '⇥' : /archiv|ausgeblendet/.test(t) ? '▣' : '✎'); }
 // Wiederholen: Seiten mit eigenem Verlauf (AVA, Druck-Layouts) melden sich über window.bpRedo = { kann(), los() }; sonst Schritte mit u.wieder
 const _redoKann = () => (window.bpRedo && window.bpRedo.kann ? window.bpRedo.kann() : UNDO.r.length > 0);
+/* Dock frei verschiebbar am Griff ⋮⋮ – die Lage gilt nur auf dieser Seite: nach dem Wechsel der App steht es wieder unten in der Mitte */
+const _UG = '<span class="bp-undo-g" title="Verschieben" aria-hidden="true">⋮⋮</span>';
+function _undoLage(el, x, y) { const r = el.getBoundingClientRect(); x = Math.max(4, Math.min(innerWidth - r.width - 4, x)); y = Math.max(4, Math.min(innerHeight - r.height - 4, y));
+  el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.bottom = 'auto'; el.style.transform = 'none'; UNDO.pos = { x, y }; }
+function _undoZieh(e) {
+  if (!e.target.closest('.bp-undo-g') || e.button !== 0) return; e.preventDefault();
+  const el = UNDO.el, r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top, g = e.target; g.setPointerCapture(e.pointerId);
+  g.onpointermove = (m) => _undoLage(el, m.clientX - dx, m.clientY - dy);
+  g.onpointerup = () => { g.onpointermove = g.onpointerup = null; };
+}
 function _undoZeichnen(kurz) {
   let el = UNDO.el; const n = UNDO.s.length, rk = _redoKann();
   if (!n && !rk) { if (el) el.remove(); UNDO.el = null; UNDO.offen = false; return; }
   if (!el) { el = UNDO.el = document.createElement('div'); el.className = 'bp-undo'; el.setAttribute('role', 'status'); document.body.appendChild(el);
-    el.addEventListener('click', _undoKlick); el.addEventListener('mouseover', _undoHover); el.addEventListener('mouseout', _undoHover); }
+    el.addEventListener('click', _undoKlick); el.addEventListener('mouseover', _undoHover); el.addEventListener('mouseout', _undoHover);
+    el.addEventListener('pointerdown', _undoZieh); if (UNDO.pos) _undoLage(el, UNDO.pos.x, UNDO.pos.y); }
   const top = UNDO.s[n - 1], klein = !kurz && !UNDO.offen;
   el.classList.toggle('klein', klein);
   const redo = `<button type="button" class="bp-undo-r" data-u="redo"${rk ? '' : ' disabled'} title="Wiederholen (Strg+Y)">↷</button>`;
-  el.innerHTML = klein ? `<div class="bp-undo-mini"><button type="button" class="bp-undo-u" data-u="auf"${n ? '' : ' disabled'} title="Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'} (Strg+Z) · Klick: Verlauf">↶ ${n}</button>${redo}</div>`
+  el.innerHTML = klein ? `<div class="bp-undo-mini">${_UG}<button type="button" class="bp-undo-u" data-u="auf"${n ? '' : ' disabled'} title="Rückgängig – ${n} ${n === 1 ? 'Schritt' : 'Schritte'} (Strg+Z) · Klick: Verlauf">↶ ${n}</button>${redo}</div>`
     : `${UNDO.offen ? `<div class="bp-undo-l" role="list"><div class="bp-undo-lk"><span>Verlauf</span><span>Klick = bis hierher zurück</span></div>${UNDO.s.slice().reverse().map((u, i) => `<button type="button" role="listitem" data-u="bis" data-i="${i}"><i>${_undoIc(u)}</i><span>${_uEsc(u.text)}</span><small>${_undoAlter(u.t)}</small></button>`).join('')}${_verlaufB() ? '<button type="button" class="bp-undo-vl" data-u="verlauf">🕘 Ältere Stände im Verlauf …</button>' : ''}</div>` : ''}
-      <div class="bp-undo-z"><span class="bp-undo-t">${UNDO.offen && UNDO.hov != null && UNDO.s[n - 1 - UNDO.hov] ? `bis „${_uEsc(UNDO.s[n - 1 - UNDO.hov].text)}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : top ? _uEsc(top.text) : 'Nichts mehr rückgängig zu machen'}</span>
+      <div class="bp-undo-z">${_UG}<span class="bp-undo-t">${UNDO.offen && UNDO.hov != null && UNDO.s[n - 1 - UNDO.hov] ? `bis „${_uEsc(UNDO.s[n - 1 - UNDO.hov].text)}“: ${UNDO.hov + 1} Schritt${UNDO.hov ? 'e' : ''}` : top ? _uEsc(top.text) : 'Nichts mehr rückgängig zu machen'}</span>
         <button type="button" class="bp-undo-u" data-u="eins"${n ? '' : ' disabled'}>↶ Rückgängig${n > 1 ? ` <em>${n}</em>` : ''}</button>${redo}${n > 1 ? `<button type="button" class="bp-undo-r" data-u="liste" title="Verlauf" aria-expanded="${UNDO.offen}">${UNDO.offen ? '▾' : '▴'}</button>` : ''}<button type="button" class="bp-undo-x" data-u="zu" title="Ausblenden">✕</button></div>`;
 }
 function _undoHover(e) {   // im Verlauf: hell, was alles zurückgenommen würde – und unten „bis …: n Schritte“

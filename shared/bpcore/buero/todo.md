@@ -12,12 +12,9 @@ Stand: 10.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-1. Rückgängig-Dock frei verschiebbar; nach einem Wechsel der App wieder am Ausgangspunkt. **ca. 1 h**
 2. Suchleiste in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 4 h**
 3. Apps fürs ganze Büro abschalten (Verwaltung → Apps), Querverweise auf gesperrte Apps ausblenden, gestaltete Sperrseite. **ca. 3 h**
 4. Vergleich im Bauzeitenplan, Etappe 2: Platzhalterzeile an der alten Stelle und Pfeil direkt in der Tabelle (braucht geteiltes app.js). **ca. 5 h**
-5. Kopierquelle (AVA): „Alles einklappen“. **ca. 0,5 h**
-6. Apps-Menü: Eckdreieck in jeder Kachel öffnet in neuer Registerkarte; rechte Maustaste: Öffnen, neue Registerkarte, neues Fenster, Adresse kopieren. **ca. 1,5 h**
    6b. Kacheln durch langes Gedrückthalten neu anordnen (je Benutzer gemerkt, „Standard“ setzt zurück). **ca. 2 h**
 7. Alle Tabellen (baum.js): Tab nur durch Eingabefelder (ohne Knöpfe, ohne Art und KG), Tab in die nächste Zeile, Enter zur nächsten Position, vorhandener Inhalt beim Hineinspringen zum Überschreiben markiert (F2 = ergänzen), Langtext klappt beim Verlassen zu, zugeklappte Titel bleiben zu, aktive Zeile bleibt in der Mitte. **ca. 5–6 h**
 8. Aufträge aus LV/Angebot: vor dem Ändern beauftragter Positionen warnen (Vertragsinhalt – besser als Nachtrag). **ca. 1,5 h**
@@ -100,3 +97,6 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~Bauzeitenplan: kein Loch mehr oben rechts über dem Scrollbalken~~
 - ~~Bereich rechts klappt bei zu schmalem Fenster von selbst zu (alle Apps)~~
 - ~~AVA: Stundenlohn- und Handpositionen der Rechnung – breit eine Zeile, schmal Text oben und Zahlen darunter~~
+- ~~Rückgängig-Dock am Griff ⋮⋮ frei verschiebbar (nach App-Wechsel wieder unten in der Mitte)~~
+- ~~Apps-Menü: Eckdreieck öffnet in neuem Tab, rechte Maustaste: Öffnen, neuer Tab, neues Fenster, Adresse kopieren~~
+- ~~Kopierquelle: „Alles einklappen“~~

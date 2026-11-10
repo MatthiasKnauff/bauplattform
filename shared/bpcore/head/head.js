@@ -366,10 +366,23 @@
     const m = document.createElement('div'); m.className = 'bph-menu bph-apps'; m.setAttribute('role', 'menu'); m.setAttribute('aria-label', 'Apps');
     const apps = sortApps();
     m.innerHTML = '<div class="bph-info">Apps' + (H.projekt && H.projekt.id ? ` <small>· Projekt <b>${esc(H.projekt.name)}</b> bleibt gewählt</small>` : '') + '</div><div class="bph-tiles">'
-      + (apps.length ? apps.map((a) => `<a role="menuitem" data-af="${esc(a.key)}" href="${esc(appUrl(a))}/"${a.key === H.app ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}<span>${esc(a.key === 'portal' ? 'Startseite' : a.name)}</span></a>`).join('')
-          + (() => { const pt = apps.find((a) => a.key === 'portal'); return pt ? `<a role="menuitem" data-af="papierkorb" href="${esc(appUrl(pt))}/papierkorb"${H.app === 'papierkorb' ? ' class="cur" aria-current="page"' : ''}>${IC.papierkorb}<span>Papierkorb</span></a>` : ''; })()
+      + (apps.length ? apps.map((a) => `<a role="menuitem" data-af="${esc(a.key)}" href="${esc(appUrl(a))}/"${a.key === H.app ? ' class="cur" aria-current="page"' : ''}>${IC[a.key === 'portal' ? 'home' : a.key] || IC.home}<span>${esc(a.key === 'portal' ? 'Startseite' : a.name)}</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>`).join('')
+          + (() => { const pt = apps.find((a) => a.key === 'portal'); return pt ? `<a role="menuitem" data-af="papierkorb" href="${esc(appUrl(pt))}/papierkorb"${H.app === 'papierkorb' ? ' class="cur" aria-current="page"' : ''}>${IC.papierkorb}<span>Papierkorb</span><i class="bph-neutab" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"></i></a>` : ''; })()
         : '<span class="bph-mu" style="padding:.5rem">Keine weiteren Apps.</span>') + '</div>';
     band.appendChild(m);
+    // Eckdreieck: in neuem Tab · rechte Maustaste: Öffnen, neuer Tab, neues Fenster, Adresse kopieren
+    m.addEventListener('click', (e) => { const d = e.target.closest('.bph-neutab'); if (!d) return; e.preventDefault(); e.stopPropagation(); window.open(d.closest('a').href, '_blank'); closeMenus(); });
+    m.addEventListener('contextmenu', (e) => {
+      const a = e.target.closest('.bph-tiles a'); if (!a) return; e.preventDefault();
+      m.querySelectorAll('.bph-akm').forEach((x) => x.remove());
+      const k = document.createElement('div'); k.className = 'bph-akm'; k.setAttribute('role', 'menu');
+      k.innerHTML = [['auf', 'Öffnen'], ['tab', 'In neuem Tab öffnen'], ['fen', 'In neuem Fenster öffnen'], ['kop', 'Adresse kopieren']].map(([w, t]) => `<button type="button" role="menuitem" data-akm="${w}">${t}</button>`).join('');
+      const r = m.getBoundingClientRect(); k.style.left = (e.clientX - r.left) + 'px'; k.style.top = (e.clientY - r.top) + 'px'; m.appendChild(k);
+      k.addEventListener('click', async (ev) => { const b = ev.target.closest('[data-akm]'); if (!b) return; ev.stopPropagation(); const w = b.dataset.akm, u = a.href;
+        if (w === 'auf') location.href = u; else if (w === 'tab') window.open(u, '_blank'); else if (w === 'fen') window.open(u, '_blank', 'popup,width=1400,height=900');
+        else { try { await navigator.clipboard.writeText(u); if (window.toast) window.toast('Adresse kopiert.'); } catch { if (window.toast) window.toast(u); } }
+        closeMenus(); });
+    });
   }
   /* Darstellung: Farbschema und Akzentfarbe des Benutzers – kleines Fenster an der Kopfleiste oder im Einstellungsfenster, gilt in allen Apps */
   const THEMES = [['dunkel', 'Dunkel'], ['hell', 'Hell'], ['auto', 'Automatisch'], ['klassisch', 'Klassisch Grün']];

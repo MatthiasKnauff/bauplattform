@@ -137,6 +137,10 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 [data-af="papierkorb"]{--af:#8d6e63}[data-af="admin"]{--af:#868e96}[data-af="portal"]{--af:#9a9c9e}
 .bph-menu .bph-tiles a[data-af] svg{color:var(--af)}
 .bph-menu .bph-tiles a.cur{background:rgba(255,255,255,.08)}
+.bph-menu .bph-tiles a{position:relative}.bph-neutab{position:absolute;top:0;right:0;width:1.15rem;height:1.15rem;border-top-right-radius:calc(10px*var(--rk,1));background:color-mix(in srgb,currentColor 30%,transparent);clip-path:polygon(0 0,100% 0,100% 100%);cursor:pointer}   /* Eckdreieck: in neuem Tab */
+.bph-neutab:hover{background:var(--bph-acc)}
+.bph-akm{position:absolute;z-index:5;min-width:12rem;background:var(--bph-bg,#2d2f33);border:1px solid rgba(255,255,255,.15);border-radius:calc(8px*var(--rk,1));box-shadow:0 8px 24px rgba(0,0,0,.35);padding:.25rem;display:flex;flex-direction:column}
+.bph-akm button{border:0;background:none;color:inherit;font:inherit;text-align:left;padding:.4rem .6rem;border-radius:calc(5px*var(--rk,1));cursor:pointer;font-size:.88em}.bph-akm button:hover{background:rgba(255,255,255,.1)}
 /* Einstellungsfenster (von rechts) */
 .bph-dr-bg{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0);transition:background .18s;display:flex;justify-content:flex-end}
 .bph-dr-bg.in{background:rgba(0,0,0,.45)}
@@ -631,6 +635,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bp-undo .bp-undo-u{background:var(--y,#d4f02a);color:var(--on,#111);font-weight:700}.bp-undo .bp-undo-u em{font-style:normal;font-size:.75em;background:rgba(0,0,0,.18);border-radius:calc(999px*var(--rkp,1));padding:0 .4rem}
 .bp-undo .bp-undo-r{color:#ddd;padding:.38rem .65rem}.bp-undo .bp-undo-r:hover{background:rgba(255,255,255,.1)}.bp-undo .bp-undo-x{color:#999;padding:.38rem .6rem}
 .bp-undo button[disabled]{opacity:.35;cursor:default}
+.bp-undo-g{cursor:grab;color:#999;padding:0 .35rem 0 .5rem;letter-spacing:-.2em;user-select:none;touch-action:none;align-self:center}.bp-undo-g:hover{color:#fff}   /* Griff: Dock verschieben */
 .bp-undo-mini{display:flex;border-radius:calc(999px*var(--rkp,1));padding:.2rem;opacity:.9}.bp-undo-mini:hover{opacity:1}.bp-undo-mini .bp-undo-u{padding:.3rem .75rem}
 .bp-undo-l{width:min(24rem,calc(100vw - 2rem));border-radius:calc(14px*var(--rk,1));padding:.35rem;display:flex;flex-direction:column;max-height:min(50vh,22rem);overflow:auto;scrollbar-width:thin}
 .bp-undo-lk{display:flex;justify-content:space-between;color:#aaa;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;padding:.3rem .5rem .4rem}

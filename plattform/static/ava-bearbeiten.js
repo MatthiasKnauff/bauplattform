@@ -199,6 +199,7 @@ function quZeigen0() {
         ${gwName ? `<select id="quIn" aria-label="Wo suchen"><option value=""${QU.inG ? '' : ' selected'}>überall</option><option value="g"${QU.inG ? ' selected' : ''}>nur ${esc(gwName.length > 22 ? gwName.slice(0, 21) + '…' : gwName)}</option></select>` : ''}
         ${sir ? `<span class="qu-seg">${[['', 'Alle'], ['neubau', 'Neubau'], ['altbau', 'Altbau']].map(([k, l]) => `<button type="button" data-qber="${k}" class="${(QU.ber || '') === k ? 'on' : ''}">${l}</button>`).join('')}</span>` : ''}</div>` : ''}
       <div class="qu-o"><label><input type="checkbox" id="quM"${QU.mengen ? ' checked' : ''}> Mengen</label><label title="Auftragspreise, sonst Schätzpreise der Quelle (Katalog: mittlerer Preis) – werden hier zur Schätzung"><input type="checkbox" id="quP"${QU.preise ? ' checked' : ''}> Preise als Schätzung</label>
+        ${quBaum() && QU.auf.size ? '<button type="button" class="ib" data-quzu title="Alle aufgeklappten Gewerke wieder zuklappen">⊟ Alles einklappen</button>' : ''}
         <span class="hint" style="flex:1 1 0;text-align:right">${QU.sel.size ? `${quAuswahl().length} gewählt` : 'anhaken oder ziehen · Doppelklick: Langtext'}</span>
         <button class="btn sm pri" data-qu="ein" ${QU.sel.size && L ? '' : 'disabled'} title="${LASTI != null ? 'nach der zuletzt bearbeiteten Zeile einfügen' : 'am Ende einfügen'}">← Übernehmen</button></div></div>
     ${favs ? `<div class="qu-favs" title="Die Gewerke, die du in Katalogen am häufigsten aufklappst (in diesem Browser gezählt) – antippen öffnet sie"><button type="button" class="qu-favf${QU.nurFav ? ' on' : ''}" data-qnurfav title="${QU.nurFav ? 'Wieder alle Gewerke zeigen' : 'Nur die oft geöffneten Gewerke in der Liste zeigen'}"><input type="checkbox" tabindex="-1" aria-hidden="true"${QU.nurFav ? ' checked' : ''}> Oft geöffnet</button>${favs}</div>` : ''}
@@ -281,6 +282,7 @@ document.addEventListener('click', (e) => {
   if (b && b.dataset.qu === 'zu') { QU.an = false; LS.set('qu.an', false); seiteReiter('lv', 'details'); render(); return; }
   const qg = e.target.closest('[data-qg]'); if (qg) { QU.gw = String(qg.dataset.qg).split(':').slice(2).join(':'); quGewerkAuf(qg.dataset.qg); return; }
   const qf = e.target.closest('[data-qfav]'); if (qf) { const g = QU.list.find((x) => x.id === qf.dataset.qfav); if (g) QU.bzu.delete(g.bereich || 'Gewerke'); quGewerkAuf(qf.dataset.qfav, true, true); return; }
+  if (e.target.closest('[data-quzu]')) { QU.auf.clear(); LS.set('qu.auf', []); quBaumBauen(false).then(quZeigen); return; }
   const qb = e.target.closest('[data-qb]'); if (qb) { const k = qb.dataset.qb; if (QU.bzu.has(k)) QU.bzu.delete(k); else QU.bzu.add(k); LS.set('qu.bzu', [...QU.bzu]); quZeigen(); return; }
   if (b && b.dataset.qu === 'ein') { quEinfuegen(quAuswahl(), LASTI); return; }
   if (e.target.closest('#quProj')) { quProjMenu($('#quProj')); return; }

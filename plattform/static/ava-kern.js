@@ -443,6 +443,7 @@ function kpis() {
   const ord = LS.get('kzOrd', []), keys = Object.keys(KZ).sort((a, b) => { const ia = ord.indexOf(a), ib = ord.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   $('#kpi').innerHTML = keys.map((k) => `<div draggable="true" data-kz="${k}" title="${esc(KZ[k].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())} – zum Umsortieren ziehen">${KZ[k]}</div>`).join('');
   requestAnimationFrame(() => { document.querySelectorAll('#kpi > div').forEach((d) => { const b = d.querySelector('b'); d.style.minWidth = b ? Math.ceil(b.getBoundingClientRect().width + 44) + 'px' : ''; }); if (typeof uEng === 'function') uEng(); });   // der Betrag bleibt immer ganz
+  if (typeof gaebSchwebeSetzen === 'function') gaebSchwebeSetzen();   // Warnzeichen „GAEB“ über der ersten Kennzahl
   $('#stat').innerHTML = `<button type="button" class="st-w" data-stwahl title="Stand des LV ändern">Stand: <b>${esc((STATUS.find((x) => x[0] === L.status) || [, L.status])[1])}</b> ▾</button>`;
 }
 /* Kennzahlen im Kopf: Reihenfolge einfach durch Ziehen ändern (ohne Bearbeiten-Modus), Schieber teilt den Platz mit den Befehlen */

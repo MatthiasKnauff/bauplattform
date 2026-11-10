@@ -20,10 +20,8 @@
   /* ---------- Befehlsleiste ---------- */
   function gruppen() {
     const t = tab(), rechts = [
-      { titel: 'Planung', rechts: true, knoepfe: [{ t: 'Assistent', ic: I('assist'), fn: () => assistentZeigen(), tip: 'Planungsassistent rechts zeigen', an: seiteOffen() && LS.get('assistOpen', false) }] },
       { titel: 'Datei', rechts: true, knoepfe: [K('fileExport', 'Export', 'export', 'Als Datei speichern: Excel/CSV, MS Project, Gantt-Datei'), K('printDialog', 'Drucken', 'printer', 'Drucken oder als PDF (Strg+P)')] },
-      { titel: 'Plan', rechts: true, knoepfe: [K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen'),
-        { t: 'Details', ic: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/>', fn: () => seiteUmschalten(), an: seiteOffen(), tip: 'Bereich rechts (Details, Assistent) zeigen oder an den Rand klappen' }] },
+      { titel: 'Plan', rechts: true, knoepfe: [K('verlaufPlan', 'Verlauf', 'history', 'Frühere Stände ansehen, vergleichen, wiederherstellen')] },   // Details/Assistent: nur noch über die Reiter des Bereichs rechts
     ];
     if (t === 'firmen') return [
       { titel: 'Projekt', knoepfe: [K('tradeAdd', 'Gewerk', 'task'), K('tradeAssignAll', 'Firmen zuweisen', 'link')] },
@@ -33,8 +31,7 @@
     if (t === 'katalog') return [
       { titel: 'Katalog', knoepfe: [K('libNew', 'Neue Leistung', 'task'), K('libFromProjects', 'Aus Projekten', 'import')] },
       { titel: 'Ansicht', knoepfe: [K('libStd', 'Standardkatalog', 'table')] },
-      { titel: 'Datei', knoepfe: [K('libExport', 'Export', 'export'), K('libImport', 'Import', 'open')] },
-      rechts[0]];
+      { titel: 'Datei', knoepfe: [K('libExport', 'Export', 'export'), K('libImport', 'Import', 'open')] }];
     return [
       { titel: 'Neu', knoepfe: [K('insertTask', 'Leistung', 'task'), K('insertSummary', 'Gruppe', 'summary'), K('insertMilestone', 'Meilenstein', 'milestone')] },
       { titel: 'Bearbeiten', knoepfe: [K('undo', 'Rückgängig', 'undo'), K('redo', 'Wiederholen', 'redo'), K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },

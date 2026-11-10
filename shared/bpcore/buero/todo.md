@@ -6,7 +6,7 @@ Stand: 10.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 - Bautagebuch auf den Baukasten – GO am 10.11.2026. **gesamt ca. 2–2,5 Tage**
   - ~~Schritt 1: Rahmen – Navigation mit Kalender und Berichten des Tages, Befehlsleiste, Bereich rechts (Details, Foto, PDF-Vorschau)~~
-  - Schritt 2: index.html (2.250 Zeilen) in Skripte teilen wie bei der AVA. **ca. 3 h**
+  - ~~Schritt 2: index.html (2.250 Zeilen) in neun Skripte und bt.css geteilt wie bei der AVA~~
   - Schritt 3: eigene Kopien ersetzen – PDF-Ansicht, Fortschritt (bpProzent), Kontakte → App Adressen, Dialoge, Grundhilfen ($, api, toast) aus dem Baukasten. **ca. 4–6 h**
   - Schritt 4: Drucklayout wie im Bauzeitenplan – mehrere Berichte „von–bis“ oder mit Umschalt im Kalender wählen. **ca. 4 h**
 

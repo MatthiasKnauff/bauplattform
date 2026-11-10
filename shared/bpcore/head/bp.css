@@ -135,8 +135,8 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav .npin{flex:none;margin-left:auto;align-self:center;border:0;background:none;color:var(--mute);padding:.1rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;line-height:0}
 .bp-nav .npin svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;transform:rotate(40deg);transition:transform .15s}.bp-nav .npin.an svg{transform:none;fill:currentColor}.bp-nav .npin:hover{background:var(--hov);color:var(--y)}
 .bp-nav .nbu{width:15px;text-align:center;font-weight:700;opacity:.75;flex:none}
-.bp-nav.frei{width:52px!important;overflow:hidden;transition:width .12s ease,margin-right .12s ease,box-shadow .12s;z-index:40}   /* Breite und Gegen-Rand gleichzeitig: der Inhalt daneben bleibt stehen */
-.bp-nav.frei:is(:hover,:focus-within){width:var(--bp-navw-auf,250px)!important;margin-right:calc(52px - var(--bp-navw-auf,250px));overflow:auto;box-shadow:var(--sh0,6px 0 22px rgba(0,0,0,.22));transition-delay:.18s}
+.bp-nav.frei{width:52px!important;overflow:hidden;transition:width 0s .3s,margin-right 0s .3s;z-index:40}   /* ohne Gleiten (ruckelt auf langsamen Rechnern): springt nach kurzer Pause auf, der Inhalt daneben bleibt stehen */
+.bp-nav.frei:is(:hover,:focus-within){width:var(--bp-navw-auf,250px)!important;margin-right:calc(52px - var(--bp-navw-auf,250px));overflow:auto;box-shadow:var(--sh0,6px 0 22px rgba(0,0,0,.22));transition-delay:.45s,.45s}
 .bp-nav.frei:not(:hover):not(:focus-within) :is(.nk>b,.nk>small,.ngrip,.nh,.nv-davor,.nfuss,.nsuche,.ni small,.ng>:not(.ni)){display:none}
 .bp-nav.frei:not(:hover):not(:focus-within) .ni{font-size:0;justify-content:center;padding:.4rem 0;width:100%}.bp-nav.frei:not(:hover):not(:focus-within) .ni svg{width:17px;height:17px}
 .bp-nav.frei:not(:hover):not(:focus-within) .nk{justify-content:center;padding-left:0;padding-right:0}.bp-nav.frei:not(:hover):not(:focus-within) .npin{margin:0}

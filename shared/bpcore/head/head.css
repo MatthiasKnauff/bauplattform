@@ -723,3 +723,7 @@ body.sr-eigen>.sr-b{flex:1;min-height:0}
 .sr-weg>div{border:1.5px dashed var(--line,#ccc);border-radius:calc(12px*var(--rk,1));padding:1.2rem 1.6rem;max-width:28rem}
 .sr-weg p{margin:0 0 .7rem}.sr-weg b{color:var(--ink,inherit)}
 .bph-warten{gap:.7rem}.bph-warten .bph-wsp{width:18px;height:18px;flex:none}.bph-warten small{font-weight:400;opacity:.7;margin-left:.35rem;font-variant-numeric:tabular-nums}
+/* Für langsame Rechner (Stil → Bewegung / Effekte, je Benutzer): keine Animationen und Übergänge, keine Unschärfe (Milchglas) */
+html[data-bewegung="aus"] *,html[data-bewegung="aus"] *::before,html[data-bewegung="aus"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+html[data-effekte="aus"] *,html[data-effekte="aus"] *::before,html[data-effekte="aus"] *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a2a28)}

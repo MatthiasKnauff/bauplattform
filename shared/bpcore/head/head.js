@@ -431,10 +431,13 @@
     ['verlauf', 'Verläufe', [['', 'keine'], ['akzent', 'Akzent'], ['app', 'App-Farbe'], ['kopf', 'nur oben'], ['licht', 'Lichtfleck'], ['zwei', 'zweifarbig']]],
     ['fenster', 'Fensterelemente', [['', 'wie bisher'], ['mac', 'Mac-Stil']]],
     ['schalter', 'Häkchen', [['', 'Kästchen'], ['an', 'Schalter']]],
+    ['bewegung', 'Bewegung (langsame Rechner)', [['', 'Animationen an'], ['aus', 'Animationen aus']]],
+    ['effekte', 'Effekte (langsame Rechner)', [['', 'Unschärfe/Milchglas an'], ['aus', 'aus – schneller']]],
   ];
   /* fertige Zusammenstellungen – nur der Stil, Farben und Schrift bleiben, wie jeder sie gewählt hat */
   const STIL_PAKETE = [['Standard (wie Bautagebuch)', {}], ['Mac', { sb: 'mac', rahmen: 'mac', fenster: 'mac', verlauf: 'app', schalter: 'an' }], ['Kacheln', { sb: 'pille', verlauf: 'akzent', ecken: 'rund' }],
-    ['Technisch', { ecken: 'eckig', sb: 'rinne', rahmen: 'kantig' }], ['Ruhig', { ecken: 'dezent', schatten: 'aus', sb: 'faden', rahmen: 'strich' }]];
+    ['Technisch', { ecken: 'eckig', sb: 'rinne', rahmen: 'kantig' }], ['Ruhig', { ecken: 'dezent', schatten: 'aus', sb: 'faden', rahmen: 'strich' }],
+    ['Schnell (langsame Rechner)', { ecken: 'dezent', schatten: 'aus', sb: 'faden', bewegung: 'aus', effekte: 'aus' }]];
   function stilAnwenden(st) {
     st = st || {}; const R = document.documentElement;
     STIL.forEach(([k, , L]) => { const v = L.some((o) => o[0] === st[k]) ? st[k] : ''; if (v) R.dataset[k] = v; else delete R.dataset[k]; });

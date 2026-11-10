@@ -40,7 +40,8 @@ BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spal
 
 # Stil je Benutzer (⚙ → Darstellung → Stil) – erlaubte Werte, leer = wie bisher; die Regeln dazu stehen in head/head.css
 STIL = {"ecken": {"rund", "dezent", "eckig"}, "schatten": {"aus"}, "sb": {"faden", "pille", "mac", "verlauf", "rinne", "glas"},
-        "rahmen": {"mac", "verlauf", "strich", "kantig", "glas"}, "verlauf": {"akzent", "app", "kopf", "licht", "zwei"}, "fenster": {"mac"}, "schalter": {"an"}}
+        "rahmen": {"mac", "verlauf", "strich", "kantig", "glas"}, "verlauf": {"akzent", "app", "kopf", "licht", "zwei"}, "fenster": {"mac"}, "schalter": {"an"},
+        "bewegung": {"aus"}, "effekte": {"aus"}}   # für langsame Rechner: Animationen bzw. Unschärfe-Effekte aus
 
 
 # Bauportal als App (Edge/Chrome „App installieren“): App-Beschreibung und Symbol – das Symbol als SVG, die PNGs daraus beim Abruf

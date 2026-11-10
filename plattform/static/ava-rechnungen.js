@@ -121,20 +121,20 @@ function vRechnungen0() {
         <tr><td>+ Umsatzsteuer 19 %</td><td class="r">${eur(c.mwst)}</td></tr>
         <tr class="s"><td>= Auszahlung brutto</td><td class="r">${eur(c.brutto)}</td></tr></tbody></table>${fuss}</div>`;
     }
-    const zeilen = art === 'regie' ? `<table class="re-z"><thead><tr><th>Stundenlohnarbeiten (Stundenzettel)</th><th class="r">Menge</th><th>Einh.</th><th class="r">Satz €</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
-        ${(r.data.zeilen || []).map((z, k) => `<tr><td><input data-re="z-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Facharbeiter 12.10." style="width:100%"${dis}></td>
-          <td class="r"><input data-re="z-menge" data-id="${r.id}" data-k="${k}" value="${z.menge != null ? nf(z.menge, 2) : ''}" inputmode="decimal" style="width:5rem;text-align:right"${dis}></td>
-          <td><input data-re="z-einheit" data-id="${r.id}" data-k="${k}" value="${esc(z.einheit || 'h')}" style="width:3.5rem"${dis}></td>
-          <td class="r"><input data-re="z-ep" data-id="${r.id}" data-k="${k}" value="${z.ep != null ? nf(z.ep, 2) : ''}" inputmode="decimal" style="width:6rem;text-align:right"${dis}></td>
+    const zeilen = art === 'regie' ? `<div class="re-zw"><table class="re-z"><thead><tr><th>Stundenlohnarbeiten (Stundenzettel)</th><th class="r">Menge</th><th>Einh.</th><th class="r">Satz €</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
+        ${(r.data.zeilen || []).map((z, k) => `<tr><td><input data-re="z-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="z. B. Facharbeiter 12.10." ${dis}></td>
+          <td class="r"><input data-re="z-menge" data-id="${r.id}" data-k="${k}" value="${z.menge != null ? nf(z.menge, 2) : ''}" inputmode="decimal"${dis}></td>
+          <td><input data-re="z-einheit" data-id="${r.id}" data-k="${k}" value="${esc(z.einheit || 'h')}"${dis}></td>
+          <td class="r"><input data-re="z-ep" data-id="${r.id}" data-k="${k}" value="${z.ep != null ? nf(z.ep, 2) : ''}" inputmode="decimal"${dis}></td>
           <td class="r">${eur((z.menge || 0) * (z.ep || 0))}</td><td>${g ? '' : `<button class="ib" data-reb="zdel" data-id="${r.id}" data-k="${k}">✕</button>`}</td></tr>`).join('')}
-        ${g ? '' : `<tr><td colspan="6"><button class="ib" data-reb="zneu" data-id="${r.id}">+ Zeile (Lohn, Gerät, Material laut Stundenzettel)</button></td></tr>`}</tbody></table>`
-      : c.frei && (r.data.zeilen || []).length ? `<table class="re-z"><thead><tr><th>Positionen der Rechnung (von Hand)</th><th class="r">Menge</th><th>EH</th><th class="r">EP €</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
-        ${(r.data.zeilen || []).map((z, k) => `<tr><td><input data-re="z-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="Kurztext der Leistung" style="width:100%"${dis}></td>
-          <td class="r"><input data-re="z-menge" data-id="${r.id}" data-k="${k}" value="${z.menge != null ? nf(z.menge, 3) : ''}" inputmode="decimal" style="width:5rem;text-align:right"${dis}></td>
-          <td><input data-re="z-einheit" data-id="${r.id}" data-k="${k}" value="${esc(z.einheit || '')}" placeholder="m²" style="width:3.5rem"${dis}></td>
-          <td class="r"><input data-re="z-ep" data-id="${r.id}" data-k="${k}" value="${z.ep != null ? nf(z.ep, 2) : ''}" inputmode="decimal" style="width:6rem;text-align:right"${dis}></td>
+        ${g ? '' : `<tr><td colspan="6"><button class="ib" data-reb="zneu" data-id="${r.id}">+ Zeile (Lohn, Gerät, Material laut Stundenzettel)</button></td></tr>`}</tbody></table></div>`
+      : c.frei && (r.data.zeilen || []).length ? `<div class="re-zw"><table class="re-z re-z2"><thead><tr><th>Positionen der Rechnung (von Hand)</th><th class="r">Menge</th><th>EH</th><th class="r">EP €</th><th class="r">Betrag</th><th></th></tr></thead><tbody>
+        ${(r.data.zeilen || []).map((z, k) => `<tr><td><input data-re="z-text" data-id="${r.id}" data-k="${k}" value="${esc(z.text || '')}" placeholder="Kurztext der Leistung" ${dis}></td>
+          <td class="r"><input data-re="z-menge" data-id="${r.id}" data-k="${k}" value="${z.menge != null ? nf(z.menge, 3) : ''}" inputmode="decimal"${dis}></td>
+          <td><input data-re="z-einheit" data-id="${r.id}" data-k="${k}" value="${esc(z.einheit || '')}" placeholder="m²"${dis}></td>
+          <td class="r"><input data-re="z-ep" data-id="${r.id}" data-k="${k}" value="${z.ep != null ? nf(z.ep, 2) : ''}" inputmode="decimal"${dis}></td>
           <td class="r">${eur((z.menge || 0) * (z.ep || 0))}</td><td style="white-space:nowrap">${z.pos ? `<span class="hint" title="Steht im LV">✓ ${esc(((L.data.items || []).find((y) => y.id === z.pos) || {}).nt || 'im LV')}</span>` : (z.text || '').trim() ? `<button class="ib" data-reb="zlv" data-id="${r.id}" data-k="${k}" title="Ins LV übernehmen (Kostenkontrolle)">→ LV</button>` : ''}${g ? '' : `<button class="ib" data-reb="zdel" data-id="${r.id}" data-k="${k}">✕</button>`}</td></tr>`).join('')}
-        <tr><td colspan="6">${g ? '' : `<button class="ib" data-reb="fzneu" data-id="${r.id}">+ Position</button>`}${(r.data.zeilen || []).some((z) => !z.pos && (z.text || '').trim()) ? `<button class="ib" data-reb="zlv" data-id="${r.id}" title="Alle noch nicht übernommenen Positionen ins LV – für die Kostenkontrolle">→ alle ins LV</button>` : ''}</td></tr></tbody></table>` : '';
+        <tr><td colspan="6">${g ? '' : `<button class="ib" data-reb="fzneu" data-id="${r.id}">+ Position</button>`}${(r.data.zeilen || []).some((z) => !z.pos && (z.text || '').trim()) ? `<button class="ib" data-reb="zlv" data-id="${r.id}" title="Alle noch nicht übernommenen Positionen ins LV – für die Kostenkontrolle">→ alle ins LV</button>` : ''}</td></tr></tbody></table></div>` : '';
     return `<div class="card" data-reid="${r.id}">${kopf}${zeilen}
       <table><tbody>
         ${c.frei && (r.data.zeilen || []).length ? `<tr><td>Summe der Positionen netto (ohne Aufmaß)</td><td class="r">${eur(c.leistung)}</td></tr>`

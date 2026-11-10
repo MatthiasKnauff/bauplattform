@@ -99,3 +99,4 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~AVA: Ablage-Dialog – Vorgabe ist die aktuelle Position (Bereich, LV, Firma), Texterkennung nur als Hinweis mit „Dorthin“~~
 - ~~Bauzeitenplan: kein Loch mehr oben rechts über dem Scrollbalken~~
 - ~~Bereich rechts klappt bei zu schmalem Fenster von selbst zu (alle Apps)~~
+- ~~AVA: Stundenlohn- und Handpositionen der Rechnung – breit eine Zeile, schmal Text oben und Zahlen darunter~~

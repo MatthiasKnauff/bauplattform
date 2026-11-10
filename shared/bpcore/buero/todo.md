@@ -96,3 +96,5 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~Navigation gelöst: Symbole dicht wie im Mock, Gruppen als Trennstrich, Heftzwecke rot~~
 - ~~Bauzeitenplan: Fenster „Darstellung“ aufgeräumt und kompakt~~
 - ~~Navigation: Symbole als farbige Kacheln; Bautagebuch gelöst mit Datums-Kachel statt Kalender – nichts springt mehr~~
+- ~~AVA: Ablage-Dialog – Vorgabe ist die aktuelle Position (Bereich, LV, Firma), Texterkennung nur als Hinweis mit „Dorthin“~~
+- ~~Bauzeitenplan: kein Loch mehr oben rechts über dem Scrollbalken~~

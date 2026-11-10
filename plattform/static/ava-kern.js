@@ -476,8 +476,12 @@ async function avaDokument(f) {
     E = { name: f.name, format: /\.pdf$/i.test(f.name) ? 'pdf' : '', dok: '', sicher: false, projekte: [], lvs: [], firma: '', hinweis: `Automatisch erkennen ging nicht (${e.message}) – bitte Art, Projekt und LV wählen.` };
   }
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
-  { const vg = { angebote: 'angebot', aufmass: 'rechnung', rechnungen: 'rechnung', lv: 'lv' }[tab];   // Bereich, in dem ich gerade bin = Vorgabe; eindeutiger Text gewinnt
-    if (vg && (!E.sicher || !E.dok)) E.dok = vg; }
+  // Vorgabe = wo ich gerade arbeite (Bereich, LV, Firma des Auftrags); die Texterkennung füllt nur Lücken und meldet Widersprüche als Hinweis
+  const KX = { dok: { angebote: 'angebot', aufmass: 'rechnung', rechnungen: 'rechnung', lv: 'lv', auftraege: 'rechnung' }[tab] || '', lv: L && L.project_id === pid ? L.id : null,
+    firma: L && L.project_id === pid ? ((L.vergabe && L.vergabe.bieter) || L.auftragnehmer || '') : '' };
+  const OCR = { dok: E.sicher ? E.dok : '', firma: E.firma || '', lv: ((E.lvs || []).filter((x) => x.treffer || x.firma).sort((a, b) => (b.treffer || 0) - (a.treffer || 0))[0] || {}).id || null };
+  if (KX.dok) E.dok = KX.dok;
+  if (KX.firma) E.firma = KX.firma;
   return new Promise((fertig) => {
     let projId = pid || (E.projekte[0] || {}).id || null, lvs = E.lvs || [];   // abgelegt wird im Projekt, in dem ich gerade bin
     const ABL = { ordner: null, hand: false, tok: 0 };
@@ -502,6 +506,7 @@ async function avaDokument(f) {
       <label for="adLv">LV / Auftrag</label><select id="adLv"></select>
       <label for="adFirma">Firma</label><input id="adFirma" list="adFirmen" value="${esc(E.firma || '')}" placeholder="Bieter / Auftragnehmer"><datalist id="adFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">`).join('')}</datalist>
       <label style="align-self:start;padding-top:.15rem">Projektordner</label><div class="ad-abl"><span id="adAblPfad" class="hint">wird gesucht …</span><span class="ad-abl-k"><button class="btn sm" type="button" id="adAblWahl" title="Ordner selbst wählen">ändern …</button><label class="hint ad-nein"><input type="checkbox" id="adAblNein"> nicht ablegen</label></span></div></div>
+      <p class="hint ad-wid" id="adWid" hidden></p>
       <p class="hint" id="adWohin" style="margin:.5rem 0 0"></p>
       <div class="acts"><button class="btn" data-m="x">${files_rest() ? 'Überspringen' : 'Abbrechen'}</button><button class="btn pri" data-m="ok">Ablegen</button></div>`, async (m, bg, close) => {
       if (m === 'x') { close(); fertig(); return; }
@@ -514,6 +519,23 @@ async function avaDokument(f) {
       try { await avaAblegen(f, E, { art, projId, lv: lvv === 'neu' || !lvv ? null : +lvv, firma, ordner }); } catch (e) { ok = false; toast(e.message, true); }
       fertig(ok ? 'ok' : undefined);
     });
+    // Widerspricht die Texterkennung der Vorgabe, nur ein Hinweis mit „Dorthin“ – umgestellt wird nichts von selbst
+    const widerspruch = () => {
+      const el = bg.querySelector('#adWid'); if (!el) return;
+      const T = [], lvO = OCR.lv && KX.lv && OCR.lv !== KX.lv ? lvs.find((y) => y.id === OCR.lv) : null;
+      if (OCR.dok && KX.dok && OCR.dok !== KX.dok) T.push(`als <b>${esc(DOKN[OCR.dok] || OCR.dok)}</b> erkannt`);
+      if (OCR.firma && KX.firma && OCR.firma.toLowerCase() !== KX.firma.toLowerCase()) T.push(`Firma <b>${esc(OCR.firma)}</b>`);
+      if (lvO) T.push(`passt eher zu <b>${esc([lvO.nr, lvO.name].filter(Boolean).join(' '))}</b>`);
+      el.hidden = !T.length;
+      el.innerHTML = T.length ? `ⓘ Im Dokument: ${T.join(' · ')}. <button type="button" class="btn sm" id="adDorthin">Dorthin</button>` : '';
+    };
+    bg.addEventListener('click', (e) => {
+      if (!e.target.closest('#adDorthin')) return;
+      if (OCR.dok) bg.querySelector('#adArt').value = OCR.dok;
+      if (OCR.firma) { bg.querySelector('#adFirma').value = OCR.firma; fAuto = null; }
+      zeichne().then(() => { const sel = bg.querySelector('#adLv'); if (OCR.lv && [...sel.options].some((o) => o.value === String(OCR.lv))) { sel.value = String(OCR.lv); zeichne(); } });
+      bg.querySelector('#adWid').hidden = true;
+    });
     const zeichne = async () => {
       const art = bg.querySelector('#adArt').value;
       if (projId && !lvs.some((x) => x.project_id === projId)) {   // LVs des gewählten Projekts nachladen
@@ -522,6 +544,7 @@ async function avaDokument(f) {
       }
       bg.querySelector('#adProj').value = projId ? String(projId) : '';
       const sel = bg.querySelector('#adLv'), alt = sel.value; sel.innerHTML = lvOpts(art); if ([...sel.options].some((o) => o.value === alt)) sel.value = alt;
+      if (!zeichne.lv) { zeichne.lv = 1; const st = KX.lv || OCR.lv; if (st && [...sel.options].some((o) => o.value === String(st))) sel.value = String(st); widerspruch(); }
       if ((art === 'lv' || art === 'angebot') && !sel.value) sel.value = 'neu';
       const x = lvs.find((y) => y.id === +sel.value);
       ablSuchen();

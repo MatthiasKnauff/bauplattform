@@ -105,7 +105,7 @@ body.g-zl-linie .selband{fill:#e0393e;height:2px;transform:translateY(calc(var(-
 /* Scrollbalken von Plan und Diagramm: senkrecht erst unterhalb der Kopfzeile (Zeitskala/Spaltenköpfe), nicht daneben in einer Lücke.
    Chromium/Edge: ::-webkit-scrollbar greift nur ohne scrollbar-width/-color – deshalb hier auf auto zurück */
 body.g-rahmen :is(#chartPane,#gridPane){scrollbar-width:auto;scrollbar-color:auto}
-body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar{width:10px;height:10px;background:transparent}
+body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar{width:10px;height:10px;background:linear-gradient(to bottom,var(--hdr) 0 43px,var(--bd) 43px 44px,transparent 44px)}   /* über dem Balken die Kopfzeile weiterführen – kein Loch oben rechts */
 body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mute) 45%,transparent);border-radius:6px;border:2px solid transparent;background-clip:padding-box}
 body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--mute) 70%,transparent)}
 body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-track{background:transparent}

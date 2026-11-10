@@ -2125,7 +2125,7 @@ function vLv() {
       <div class="bar" style="margin:.3rem 0 0"><button class="btn sm" data-a="ki" title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><label class="btn sm" title="Fotos oder Skizzen zur Position – erscheinen unter dem Langtext im LV-Ausdruck. Ein Bild aus der Zwischenablage mit Strg+V im Langtext einfügen.">📷 Foto<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label><span class="hint">${x.nt ? 'Begründung des Nachtrags: ' : ''}</span>${x.nt ? `<input data-f="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung auf Anordnung des Bauherrn" style="flex:1;min-width:14rem">` : ''}</div></td></tr>`;
     return h;
   }).join('');
-  const kopf = `<tr class="wurzel"><td class="baumz"><div class="bz" style="${einr(0)}"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NC - 1}"></td></tr>
+  const kopf = `<tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel><td class="baumz"><div class="bz" style="${einr(0)}"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NC - 1}"></td></tr>
     <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car" data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer">${LVGZ.has(L.id) ? '▸' : '▾'}</span>${IC.lv}<b>${esc(L.nr)} ${esc(L.name)}</b></div></td><td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
   const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
@@ -2134,12 +2134,13 @@ function vLv() {
   return `${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum" data-sp="ava.lv"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung">Art</th><th class="hide-m">KG</th>
-      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^(<tr class="wurzel">.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
+      <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^(<tr class="wurzel[^>]*>.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
 document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen
   const r = tab === 'lv' && e.target.closest && e.target.closest('[data-lvopen]'); if (!r) return;
-  LVGZ.delete(+r.dataset.lvopen); LS.set('lvgz', [...LVGZ]); await flush(); await openLv(+r.dataset.lvopen);
+  LVGZ.delete(+r.dataset.lvopen); LS.set('lvgz', [...LVGZ]); await flush();
+  try { await openLv(+r.dataset.lvopen); LVAKT = '__lv'; lvAktZeigen(); } catch (er) { toast(er.message, true); }   // das geöffnete LV ist markiert; ein Fehler beim Laden bleibt nicht stumm
 });
 document.addEventListener('click', (e) => {   // Titel auf- und zuklappen
   if (tab !== 'lv' || !L) return;
@@ -2174,6 +2175,7 @@ function lvAktZeigen() {
   if (tab === 'lv' && document.querySelector('#view .lv-split .sr-tab.on[data-srt="details"]')) { const b = document.querySelector('#view .lv-split > .sr-r .sr-b'); const fa = document.activeElement; if (b && !(fa && b.contains(fa) && /^(INPUT|TEXTAREA|SELECT)$/.test(fa.tagName))) b.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; }
   const I = items(); document.querySelectorAll('table.lv tr[data-i]').forEach((tr) => { const x = I[+tr.dataset.i]; tr.classList.toggle('akt', !!x && (x.id === LVAKT || LVSEL.has(x.id))); });
   const w = document.querySelector('table.lv tr[data-lvwurzel]'); if (w) w.classList.toggle('akt', LVAKT === '__lv');
+  const pw = document.querySelector('table.lv tr[data-pjwurzel]'); if (pw) pw.classList.toggle('akt', LVAKT === '__pj');
   lvSelLeiste();
   const n = I.findIndex((x) => x.id === LVAKT), h = n >= 0 ? `nach ${I[n].oz || (I[n].art === 'T' ? 'dem Hinweistext' : 'der markierten Zeile')} einfügen` : 'am Ende anhängen';
   document.querySelectorAll('[data-act="titel"],[data-act="pos"],[data-act="txt"]').forEach((b) => { b.title = h; });
@@ -2182,8 +2184,8 @@ function lvAktZeigen() {
 }
 document.addEventListener('click', (e) => {   // Klick auf die LV-Zeile ganz oben markiert das LV selbst (oberste Ebene)
   if (tab !== 'lv' || !L) return;
-  const w = e.target.closest && e.target.closest('tr[data-lvwurzel]'); if (!w || e.target.closest('button,input,[data-lvganz]')) return;
-  LVSEL = new Set(); LVAKT = '__lv'; lvAktZeigen();
+  const w = e.target.closest && e.target.closest('tr[data-lvwurzel], tr[data-pjwurzel]'); if (!w || e.target.closest('button,input,[data-lvganz]')) return;
+  LVSEL = new Set(); LVAKT = w.hasAttribute('data-pjwurzel') ? '__pj' : '__lv'; lvAktZeigen();
 });
 function lvEinfuegeStelle(kind) {
   const I = items(), n = I.findIndex((x) => x.id === LVAKT); if (n < 0) return I.length;
@@ -2196,7 +2198,6 @@ document.addEventListener('click', (e) => {   // Klick auf die OZ markiert; Strg
   const tr = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang)'); if (!tr) return;
   const aufOz = !!e.target.closest('td.oz'), feld = e.target.closest('input,textarea,select,button,a,[data-zu]');
   if (feld && !(e.ctrlKey || e.metaKey || e.shiftKey)) return;
-  if (!aufOz && !(e.ctrlKey || e.metaKey || e.shiftKey)) return;
   const I = items(), x = I[+tr.dataset.i]; if (!x) return;
   if (e.shiftKey) {
     e.preventDefault(); const a = I.findIndex((y) => y.id === (LVANK || LVAKT)); const b = I.indexOf(x);
@@ -2207,7 +2208,7 @@ document.addEventListener('click', (e) => {   // Klick auf die OZ markiert; Strg
     if (LVSEL.has(x.id)) { LVSEL.delete(x.id); if (LVAKT === x.id) LVAKT = [...LVSEL].pop() || null; } else { LVSEL.add(x.id); LVAKT = x.id; }
     LVANK = x.id;
   } else {
-    const nur = LVSEL.size <= 1 && LVAKT === x.id; LVSEL = nur ? new Set() : new Set([x.id]); LVAKT = nur ? null : x.id; LVANK = LVAKT;
+    LVSEL = new Set([x.id]); LVAKT = x.id; LVANK = LVAKT;   // Klick irgendwo in die Zeile markiert sie (bleibt markiert, auch beim zweiten Klick)
   }
   lvAktZeigen();
 });
@@ -4853,7 +4854,7 @@ async function lvZiehNach(zielId, von, an) {   // an: Stelle im Ziel-LV (Index),
     delete PC[zielId]; await refreshList(); render();
   });
 }
-document.addEventListener('mousedown', (e) => { const td = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang) td.oz'); if (td && tab === 'lv' && !e.target.closest('input,select,button')) td.parentElement.draggable = true; });
+document.addEventListener('mousedown', (e) => { const td = e.target.closest && e.target.closest('table.lv tr[data-i]:not(.lang) td.oz'); const f = e.target.closest('input,select,button'); if (td && tab === 'lv' && (!f || (f.tagName === 'INPUT' && f !== document.activeElement))) td.parentElement.draggable = true; });   // auch an der Bezeichnung greifen – solange man nicht darin schreibt
 document.addEventListener('dragstart', (e) => {
   const tr = e.target.closest && e.target.closest('table.lv tr[data-i]'); if (!tr || !tr.draggable || tab !== 'lv') return;
   ZIEH = +tr.dataset.i; e.dataTransfer.setData('text/x-ava-zeile', String(ZIEH)); e.dataTransfer.effectAllowed = 'move';

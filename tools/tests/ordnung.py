@@ -44,7 +44,7 @@ ALT_KOPIEN = {
 GRENZE = 1500
 SPIELRAUM = 300   # so viel dürfen die Altdateien noch wachsen, bis sie geteilt werden
 ALT_GROSS = {   # Zeilen am 09.11.2026 – werden in Schritt 4 geteilt
-    "plattform/static/ava.html": 6461, "plattform/ava.py": 5815, "shared/bpcore/head/head.js": 3040, "gantt/public/app.js": 3039,
+    "plattform/ava.py": 5815, "shared/bpcore/head/head.js": 3040, "gantt/public/app.js": 3039,
     "plattform/baukosten.py": 2333, "bautagebuch/static/index.html": 2229, "shared/bpcore/head.py": 1898, "plattform/static/baukosten.html": 1574,
 }
 GROESSE_PRUEFEN = re.compile(r"\.(py|js|mjs|html|css)$")

@@ -11,7 +11,9 @@
      <th data-spname="…">           Name im Menü, wenn der Kopftext nicht passt
    Zeilen mit verbundenen Zellen (colspan) werden nicht umgeordnet, aber in der Breite angepasst; <col>-Elemente ziehen mit.
    Nach einer Änderung: Ereignis „bp-spalten“ am <table> (detail: {key}) – z. B. um gemerkte Spaltenbreiten zu verwerfen.
-   bpSpalten.stand(schluessel, anzahl, ausStandard) → { aus: Set, ord: [...] } – für Apps, die vor dem Zeichnen rechnen (Tabellenbreite) */
+   bpSpalten.stand(schluessel, anzahl, ausStandard) → { aus: Set, ord: [...] } – für Apps, die vor dem Zeichnen rechnen (Tabellenbreite)
+   bpSpalten.liste(el, schluessel, namen, ausStandard) – Kopf, der keine <table> ist (z. B. Plan aus <div>): gleiches Menü per rechter
+     Maustaste auf el; die App zeichnet selbst nach stand() und hört auf „bp-spalten“ an el */
 (() => {
   if (window.bpSpalten) return;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -59,6 +61,7 @@
     let i = 0; ord.forEach((n) => { const x = c[n]; if (!x) return; if (el.children[i] !== x) el.insertBefore(x, el.children[i] || null); i++; if (x.classList.contains('bp-sp-aus') !== aus.has(n)) x.classList.toggle('bp-sp-aus', aus.has(n)); });
   }
   function anwenden(t) {
+    if (t._spListe) return;   // eigener Kopf: die App ordnet selbst
     const k = kopf(t); if (!k || t.dataset.sp === '-') return;
     if (!t._spN) { t._spN = k.cells.length; t._spNamen = [...k.cells].map(name); }
     const { N, aus, ord } = zustand(t);
@@ -80,7 +83,7 @@
   function setzen(t, z) { merk(t.dataset.sp, { aus: [...z.aus], ord: z.ord.slice(1) }); anwenden(t); t.dispatchEvent(new CustomEvent('bp-spalten', { bubbles: true, detail: { key: t.dataset.sp } })); }
   /* die Tabelle zu einem Schlüssel suchen – nach einer Änderung zeichnen manche Apps die Tabelle neu (neues Element) */
   function finde(key) {
-    let t = document.querySelector(`table[data-sp="${CSS.escape(key)}"]`);
+    let t = document.querySelector(`table[data-sp="${CSS.escape(key)}"],[data-spliste][data-sp="${CSS.escape(key)}"]`);
     if (!t && key.startsWith(AUTO)) { t = [...document.querySelectorAll('table:not([data-sp])')].find((x) => autoKey(x) === key) || null; if (t) t.dataset.sp = key; }
     return t;
   }
@@ -110,7 +113,13 @@
     if (t.dataset.sp === '-') return false;
     anwenden(t); return !!t._spN && t._spNamen.slice(1).some(Boolean);
   }
+  function liste(el, key, namen, std) {
+    el.dataset.sp = key; el.dataset.spliste = ''; el._spListe = true; el._spN = namen.length; el._spNamen = namen.slice();
+    if (std && std.length) el.dataset.spaus = std.join(','); else delete el.dataset.spaus;
+  }
   addEventListener('contextmenu', (e) => {   // rechte Maustaste auf einen Spaltenkopf (wie in Excel und im Explorer)
+    const li = e.target.closest && e.target.closest('[data-spliste]');
+    if (li && li._spListe && !e.shiftKey && !e.target.closest('input,textarea,select,[contenteditable]')) { e.preventDefault(); e.stopImmediatePropagation(); menue(li, e.clientX, e.clientY); return; }
     const th = e.target.closest && e.target.closest('table thead th'); if (!th || e.shiftKey || th.ownerDocument !== document) return;
     if (e.target.closest('input,textarea,select,[contenteditable]')) return;   // im Filterfeld: Einfügen, Kopieren
     const t = th.closest('table'); if (!bereit(t)) return;
@@ -129,5 +138,5 @@
     document.querySelectorAll('table[data-sp]').forEach((t) => { if (t.dataset.sp !== '-' && (!t._spN || [...t.rows].some((tr) => !tr._sp && tr.cells.length > 1))) anwenden(t); });
   };
   try { new MutationObserver(() => { if (!warte) warte = requestAnimationFrame(alle); }).observe(document.documentElement, { childList: true, subtree: true }); } catch { /* egal */ }
-  window.bpSpalten = { anwenden, menue, zustand, stand };
+  window.bpSpalten = { anwenden, menue, zustand, stand, liste };
 })();

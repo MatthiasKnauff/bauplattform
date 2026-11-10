@@ -191,7 +191,10 @@ const COLS = [
   { k: 'res', t: 'Unternehmer', w: 130 },
   { k: 'pct', t: '% Abg.', w: 56 },
 ];
-const COLK = COLS.map((c) => c.k);
+const SP = { key: 'gantt.plan', namen: ['Nr.', 'Indikatoren', 'Leistung', 'Gewerk', 'Dauer', 'Anfang', 'Ende', 'Vorgänger', 'Unternehmer', '% Abg.'] };
+// sichtbare Spalten in gewählter Reihenfolge – Spalten-Menü des Baukastens (rechte Maustaste auf den Kopf, wie überall)
+function VCOLS() { if (!window.bpSpalten) return COLS; const z = bpSpalten.stand(SP.key, COLS.length, []); return z.ord.filter((n) => !z.aus.has(n)).map((n) => COLS[n]); }
+const COLK = { get length() { return VCOLS().length; }, indexOf: (k) => VCOLS().findIndex((c) => c.k === k), filter: (f) => VCOLS().map((c) => c.k).filter(f) };
 const MULTI_FIELDS = new Set(['gw', 'dur', 'pct', 'res', 'start']);
 const LEAF_ONLY = new Set(['dur', 'pct', 'finish']);
 const EDITABLE = new Set(['name', 'gw', 'dur', 'start', 'finish', 'pred', 'res', 'pct']);
@@ -521,6 +524,7 @@ function cellHTML(k, i, t) {
 }
 
 function renderGrid() {
+  const COLS = VCOLS(); if (window.bpSpalten && !gridHead._spListe) { bpSpalten.liste(gridHead, SP.key, SP.namen); gridHead.addEventListener('bp-spalten', () => renderGrid()); }
   gridHead.innerHTML = COLS.map((c) => `<div class="hc c-${c.k}" style="width:${colW[c.k]}px"><span class="lbl">${c.t}</span>${c.k !== 'nr' ? `<span class="rz" data-k="${c.k}"></span>` : ''}</div>`).join('');
   const total = nRows(); const T = P.tasks; let h = '';
   for (let r = 0; r < total; r++) {
@@ -2247,7 +2251,7 @@ document.addEventListener('keydown', (e) => {
       if (e.shiftKey) { cur.r = nr; sel.clear(); const a = Math.min(anchorR, nr), b = Math.max(anchorR, nr); for (let x = a; x <= b && x < vis.length; x++) sel.add(P.tasks[vis[x]].uid); updateSel(); }
       else selectRow(nr, null);
     }
-    if (dc) { const ix = Math.max(0, Math.min(COLK.length - 1, COLK.indexOf(cur.c) + dc)); cur.c = COLK[ix]; updateSel(); }
+    if (dc) { const ix = Math.max(0, Math.min(COLK.length - 1, COLK.indexOf(cur.c) + dc)); cur.c = VCOLS()[ix].k; updateSel(); }
     ensureVisible(cur.r);
   };
   if (k === 'ArrowDown' || k === 'Enter') return mv(e.shiftKey && k === 'Enter' ? -1 : 1, 0);

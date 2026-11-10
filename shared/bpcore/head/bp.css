@@ -147,7 +147,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav.oben .nt{position:relative}
 .bp-nav.oben .npop{position:absolute;left:0;top:calc(100% + 3px);z-index:60;min-width:14rem;background:var(--card);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.35));padding:.3rem}
 .bp-nav.oben .npop .ni{width:100%}
-.bp-nav.oben .nsp{flex:1}.bp-nav.oben .nv-davor{display:flex;align-items:center}
+.bp-nav.oben .nsp{flex:1}.bp-nav.oben :is(.nv-davor,.nv-ende){display:flex;align-items:center;gap:.4rem;min-width:0}.bp-nav.oben .nv-davor:not(:empty){padding-right:.35rem;margin-right:.2rem;border-right:1px solid var(--line)}
 .bp-nav-oben-an{flex-direction:column!important}
 .bp-nav.schmal+.bp-nav-griff,.bp-nav.oben+.bp-nav-griff{display:none}
 .bp-nav .nh{display:flex;justify-content:space-between;align-items:center;font-size:var(--fs-s2,.94em);padding:.3rem .55rem;border-radius:calc(5px*var(--rk,1));background:var(--tabs);color:var(--ink);font-weight:600;border:1px solid var(--line)}

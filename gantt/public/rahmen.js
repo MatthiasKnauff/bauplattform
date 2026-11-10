@@ -10,7 +10,7 @@
 (function () {
   if (!window.bpNav || !window.befehle || !window.seite) return;   // ohne Baukasten: altes Menüband
   document.body.classList.add('g-rahmen', 'bp-alt');   // bp-alt: Grundregeln des Baukastens (Felder, Knöpfe, Tabellen) nur in den Bausteine-Inseln – Fenster und Tabelle behalten ihr kompaktes Aussehen
-  const NAV = $('#navL'), LEISTE = $('#leiste'), WORK = $('#work');
+  const NAV = $('#navL'), LEISTE = $('#leiste'), WORK = $('#work'), TABS = $('#tabs');   // TABS festhalten: steht in „oben“ in der Navigation und überlebt so deren Neuzeichnen
   const I = (k) => RIBBON_ICONS[k] || '';
   const rb = (a, extra = '') => document.querySelector(`#ribbon .rb[data-act="${a}"]${extra}`);
   /* Knopf aus einer Aktion: Zustand (gesperrt / an) wie im alten Menüband */
@@ -90,12 +90,27 @@
         { titel: 'Ausgabe', punkte: [{ id: 'drucken', text: 'Drucken / PDF', icon: NI.drucken }, { id: 'export', text: 'Exportieren', icon: NI.export }] },
       ],
       aktiv: { vorgang: 'leistungen', firmen: 'firmen', katalog: 'katalog' }[t] || 'leistungen', attr: 'gnav', lage: true,
-      nachher: () => { const ziel = $('#navVm'); if (VM && ziel) { ziel.appendChild(VM); VM.style.display = P ? '' : 'none'; } },   // Versionswahl in jeder Lage wieder einhängen
+      nachher: (el, m) => { const ziel = $('#navVm'); if (VM && ziel) { ziel.appendChild(VM); VM.style.display = P ? '' : 'none'; }   // Versionswahl in jeder Lage wieder einhängen
+        // oben: eine Zeile – Version links, Suche und Speicherstand rechts in der Navigation; die Titelzeile entfällt
+        const tabs = TABS, ende = el.querySelector('.nv-ende');
+        if (m === 'oben' && ende) ende.appendChild(tabs); else if (tabs.parentElement !== $('#rechts')) $('#rechts').insertBefore(tabs, $('#leiste'));
+        engPruefen(); },
       wahl: (id) => { if (SICHT[id]) { showTab(SICHT[id]); return; } if (!P) { toast('Kein Bauzeitenplan geöffnet.'); return; } ACTIONS[AKT[id]](); },
     });
     let ti = $('#gTitel'); if (!ti) { ti = document.createElement('span'); ti.id = 'gTitel'; $('#tabs').insertBefore(ti, $('#tabs').firstChild); }
     ti.innerHTML = P ? `Terminplan: <b>${esc(P.name)}</b>` : '';
   }
+
+  // Navigation oben zu schmal (Zeile bricht um): Suche schrumpft auf die Lupe, klappt beim Klick auf
+  function engPruefen() {
+    if (!NAV) return;
+    NAV.classList.remove('eng');
+    if (!NAV.classList.contains('oben')) return;
+    const kids = [...NAV.children].filter((x) => x.offsetParent); if (!kids.length) return;
+    const top = kids[0].offsetTop; if (kids.some((x) => x.offsetTop > top + 8)) NAV.classList.add('eng');
+  }
+  addEventListener('resize', () => { clearTimeout(engPruefen.t); engPruefen.t = setTimeout(engPruefen, 100); });
+  document.addEventListener('click', (e) => { const b = e.target.closest('.bp-nav.oben.eng .gs-box'); if (b) { const i = b.querySelector('input'); if (i && document.activeElement !== i) i.focus(); } });
 
   /* ---------- Bereich rechts: Details der markierten Leistung, Planungsassistent ---------- */
   const ASSIST = document.createElement('div'); ASSIST.className = 'g-assist';

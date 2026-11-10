@@ -60,3 +60,12 @@ body.g-rahmen .as-type:hover{border-color:var(--y);background:color-mix(in srgb,
 body.g-rahmen .as h4>span:first-child{background:var(--y);color:var(--on,#fff)}
 body.g-rahmen .as-chs{background:var(--card2);border-color:var(--line)}
 body.g-rahmen .ticon[data-act="toggleAssist"]{display:none}   /* Assistent ist ein Reiter im Bereich rechts */
+.g-assist .as-mode.live{display:none}   /* Hinweis „Verknüpft …“ entfällt */
+/* Navigation oben: Reiterzeile (Suche, Speicherstand) steht rechts in der Navigationszeile, ohne Titel */
+.bp-nav.oben #tabs{background:none;border:0;padding:0;flex:0 1 auto;min-width:0;align-items:center}
+.bp-nav.oben #gTitel{display:none}
+.bp-nav.oben.eng #tabs .gs-box:not(:focus-within) :is(button,.gs-n){display:none}.bp-nav.oben.eng #tabs .gs-box:not(:focus-within) input{position:absolute;opacity:0;width:1px!important;padding:0}.bp-nav.oben.eng #tabs .gs-box{position:relative}   /* wenig Platz: nur die Lupe */
+.bp-nav.oben.eng #tabs #saveState{display:none!important}
+.bp-nav.oben.eng #tabs .gs-box:not(:focus-within){padding:0;gap:0;width:30px;height:30px;justify-content:center;cursor:pointer}.bp-nav.oben.eng #navVm .vm-grp{max-width:16rem;overflow:hidden}
+.bp-nav.oben #tabs .gs-box input{width:240px!important}.bp-nav.oben #tabs #saveState{display:inline!important}
+.bp-nav.oben.eng #tabs .gs-box input{width:180px!important}

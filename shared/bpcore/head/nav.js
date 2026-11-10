@@ -13,7 +13,8 @@
    Jeder Aufruf zeichnet neu; angemeldet wird der Klick nur einmal je Feld.
 
    o.lage    true = Lage wählbar (⇔): links · schmal (nur Symbole) · oben (Bereichszeile) · automatisch nach Fensterbreite;
-               „oben“ setzt am Elternelement die Klasse bp-nav-oben-an (die App stellt dort z. B. von Zeile auf Spalte um)
+               „oben“ setzt am Elternelement die Klasse bp-nav-oben-an (die App stellt dort z. B. von Zeile auf Spalte um);
+               in „oben“ steht o.davor vorn links, und .nv-ende (rechts) kann die App in o.nachher füllen
      o.nachher (el, lage) => …                        nach jedem Zeichnen (z. B. Versionswahl in .nv-davor einhängen)
 
    bpNav.breite(el, { key, min = 180, max = 520 }) – Anfasser am rechten Rand: Breite ziehen, Doppelklick = Standard,
@@ -40,13 +41,13 @@
       el.innerHTML = `<button type="button" class="nauf" title="Navigation aufklappen" aria-label="Navigation aufklappen">⟩</button>`
         + G.map((g) => `<div class="ng">${g.href ? `<a class="ni" href="${esc(g.href)}" title="${esc(g.titel)} ↗"><span class="nbu">↗</span></a>` : (g.punkte || []).map((p) => ni(p, false)).join('')}</div>`).join('') + LAGEK;
     } else if (m === 'oben') {
-      el.innerHTML = G.map((g, k) => {
+      el.innerHTML = `<div class="nv-davor">${o.davor || ''}</div>` + G.map((g, k) => {
         if (g.href) return `<a class="ni" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} ↗</a>`;
         const P = g.punkte || [];
         if (P.length === 1) return ni(P[0]);
         const an = P.some((p) => p.id === o.aktiv);
         return `<span class="nt"><button type="button" class="ni ntb${an ? ' on' : ''}" data-ntg="${k}">${esc(g.titel)} ▾</button><div class="npop" hidden>${P.map((p) => ni(p)).join('')}</div></span>`;
-      }).join('') + `<span class="nsp"></span><div class="nv-davor">${o.davor || ''}</div>` + LAGEK;
+      }).join('') + '<span class="nsp"></span><div class="nv-ende"></div>' + LAGEK;   // oben: davor (z. B. Version) links, nv-ende rechts für die App (Suche, Speicherstand)
     } else {
       el.innerHTML = (o.kopf || o.lage ? `<div class="nk"><b>${esc(o.kopf ? o.kopf.titel : '')}</b>${o.kopf && o.kopf.klein ? `<small>${esc(o.kopf.klein)}</small>` : ''}${o.lage ? LAGEK : ''}</div>` : '') + `<div class="nv-davor">${o.davor || ''}</div>`
         + G.map((g) => `<div class="ng">${g.href ? `<a class="nh" href="${esc(g.href)}"${g.tip ? ` title="${esc(g.tip)}"` : ''}>${esc(g.titel)} <span>↗</span></a>` : `<div class="nh">${esc(g.titel)}</div>`}${(g.punkte || []).map((p) => ni(p) + (p.id === o.aktiv && p.unter ? p.unter : '')).join('')}</div>`).join('')

@@ -1013,7 +1013,7 @@ function bereichBefehle() {
   if (tab === 'lv' && L) return [
     { titel: 'Neu', knoepfe: [{ t: 'Gliederung', ic: BIC.plus, attrs: 'data-act="glied"', tip: 'Gliederungspunkt eine Ebene unter der markierten Zeile – oben auf das LV klicken für die oberste Ebene (GAEB: höchstens 4 Ebenen)' }, { t: 'Position', ic: BIC.plus, attrs: 'data-act="pos"', tip: 'Position nach der markierten Zeile' }] },
     { titel: 'Bearbeiten', knoepfe: [{ t: 'Nummerieren', ic: BIC.num, attrs: 'data-act="num"', tip: 'Ordnungszahlen neu vergeben – nach einem Schema wie in GAEB' }, { t: 'Aus Baukosten', ic: BIC.bk, attrs: 'data-act="bk"', tip: 'Bauteile mit Mengen und Preisen aus einer Kostenermittlung übernehmen' },
-      { t: 'Kopierquelle', ic: BIC.qu, attrs: 'data-ucmd="quBtn" data-udr', an: !!(QUBOX && QUBOX.closest('.sr-b') && !QUBOX.hidden), tip: 'Ein LV aus einem anderen Projekt rechts daneben – Positionen herüberkopieren' },
+      { t: 'Kopierquelle', ic: BIC.qu, attrs: 'data-ucmd="quBtn" data-udr', an: quSichtbar(), tip: 'Ein LV aus einem anderen Projekt rechts daneben – Positionen herüberkopieren' },
       { t: 'Dokument ablegen', ic: BIC.dok, datei: { accept: DOK_ACCEPT, attrs: 'data-lvdokin' }, tip: 'LV oder Angebot als PDF, Scan, Foto oder Word rechts als Reiter „📄 Dokument“ – Zeilen anklicken übernimmt sie' }] },
     { titel: 'Ansicht', knoepfe: [{ t: 'Langtexte', ic: BIC.lang, attrs: 'data-act="alleLang"', an: OPEN.size > 0, tip: OPEN.size ? 'Langtexte zuklappen' : 'Alle Langtexte aufklappen' },
       L.data.vorbem ? { t: 'Vorbemerkungen', ic: BIC.vb, attrs: 'data-act="vorbem"', tip: 'Vorbemerkungen dieses LV (älterer Stand)' } : null] }];
@@ -1794,6 +1794,8 @@ function lvKopfKleben() {
 addEventListener('scroll', () => requestAnimationFrame(lvKopfKleben), { passive: true });
 addEventListener('resize', () => requestAnimationFrame(lvKopfKleben));
 /* LV: Bereich rechts (seite.js) – „Details“ (dieselbe Karte wie in den Aufträgen), „Kopierquelle“, „📄 Dokument“ (LV/Angebot als PDF) */
+/* Kopierquelle wirklich zu sehen? (ihr Feld hängt im Dokument, im Bereich rechts, und der ist aufgeklappt) – danach richtet sich der Knopf */
+const quSichtbar = () => tab === 'lv' && !!QUBOX && QUBOX.isConnected && !!QUBOX.closest('.sr-b, .sr-flo') && !QUBOX.hidden && (seiteOffen() || !!QUBOX.closest('.sr-flo'));
 const QUBOX = document.getElementById('quelle');   // Kopierquelle: ihr Feld wandert in den Reiter (bleibt beim Umschalten erhalten)
 function lvSplitMount() {
   const tbl = document.querySelector('#view table.lv.baum'); if (!tbl) return;
@@ -4608,7 +4610,7 @@ let QUSK = '';
 function quZeigen() { const k = `${QU.pid}|${quBaum() ? 'baum' : QU.lv}`, st = k === QUSK ? document.querySelector('#quelle .qu-l')?.scrollTop || 0 : 0; QUSK = k; quZeigen0(); const l = document.querySelector('#quelle .qu-l'); if (l && st) l.scrollTop = st; quDreh(!!QUBUSY && QU.an && tab === 'lv'); }
 function quZeigen0() {
   const box = QUBOX, an = QU.an && tab === 'lv' && box.isConnected && !!box.closest('.sr-b');
-  if (box.closest('.sr-b')) box.hidden = !an; $('#quBtn').classList.toggle('on', an);
+  if (box.closest('.sr-b')) box.hidden = !an; $('#quBtn').classList.toggle('on', an && quSichtbar());
   if (!an) return;
   if (!KAT) { box.innerHTML = ''; quDreh(true); return; }   // quLaden läuft noch: nur der Drehkreis
   const VP = (QU.L && QU.L.vergabe && QU.L.vergabe.preise) || {};
@@ -4712,7 +4714,8 @@ async function quEinfuegen(liste, nach) {
   QU.sel = new Set(); quZeigen();
   setTimeout(() => { const r = document.querySelector(`table.lv tr[data-i="${at}"]`); if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('flash'); setTimeout(() => r.classList.remove('flash'), 1600); } }, 50);
 }
-$('#quBtn').onclick = async () => { QU.an = true; LS.set('qu.an', true); if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); } seiteReiter('lv', 'quelle'); render();
+$('#quBtn').onclick = async () => { if (quSichtbar()) { seiteUmschalten(); uLeisteNeu(); return; }   // noch ein Klick schaltet sie wieder aus (Bereich rechts zu)
+  QU.an = true; LS.set('qu.an', true); if (tab !== 'lv') { await flush(); tab = 'lv'; LS.set('tab', tab); } seiteReiter('lv', 'quelle'); render();
   quBusy(1); try { quZeigen();   // Spalte sofort öffnen – der Drehkreis zeigt, dass geladen wird
     if (QU.an && !QU.L) await quLaden(); } finally { quBusy(-1); } quZeigen(); };
 document.addEventListener('click', (e) => {

@@ -210,18 +210,12 @@ table.lv .acts-c .ib.on{color:var(--y)}
 table.lv tr[data-i]:not(.lang) td.oz{cursor:pointer}
 #lvSel{position:fixed;left:50%;transform:translateX(-50%);bottom:1rem;z-index:60;display:flex;gap:.5rem;align-items:center;background:var(--card);border:1px solid #4da3ff;border-radius:calc(12px*var(--rk,1));padding:.45rem .7rem;box-shadow:var(--sh0,0 6px 24px rgba(0,0,0,.25))}
 #lvSel[hidden]{display:none}
-table.lv.baum td{vertical-align:middle}
-table.lv.baum td.baumz{white-space:nowrap}
-table.lv.baum .bz{display:flex;align-items:center;gap:.15rem;min-width:0}
 table.lv.baum .bz input[data-f="kurz"]{flex:1;min-width:8rem}
 table.lv.baum .bz select{flex:none}
 table.lv.baum td{padding-top:0;padding-bottom:0;height:1.7rem}
 table.lv.baum input,table.lv.baum select{padding-top:.05rem;padding-bottom:.05rem}
 table.lv.baum .acts-c{white-space:nowrap}
 table.lv.baum .acts-c .ib{padding:.05rem .15rem;min-width:1.4rem}
-table.lv.baum .car{display:inline-block;width:1rem;text-align:center;color:var(--mute);cursor:pointer;user-select:none;vertical-align:middle}
-table.lv.baum .ico{width:16px;height:16px;vertical-align:-3px;margin-right:.35rem;flex:none}
-table.lv.baum .ozt{color:var(--mute);font-variant-numeric:tabular-nums;margin-right:.25rem;vertical-align:middle}
 table.lv.baum tr.ti td{background:transparent;font-weight:600}
 table.lv.baum tr.ti.l1 td{background:color-mix(in srgb,var(--hov) 60%,transparent)}
 table.lv.baum tr.ti input{font-weight:600}
@@ -1520,8 +1514,8 @@ function angSeite() {   // Angebote & Preisspiegel: Bereich rechts (seite.js) �
 }
 function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
-  return `<div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Summe</th></tr></thead><tbody><tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel><td class="baumz"><div class="bz"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td></td></tr>
-    ${LIST.filter((x) => !x.archived && !ohneLv(x)).map((x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, (STATUS.find((st) => st[0] === x.status) || [, ''])[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="tblw"><table class="lv baum bp-baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Summe</th></tr></thead><tbody><tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td></td></tr>
+    ${LIST.filter((x) => !x.archived && !ohneLv(x)).map((x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, (STATUS.find((st) => st[0] === x.status) || [, ''])[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();
@@ -2091,7 +2085,7 @@ function vLv() {
     if (a === 'P') return doc(buch('P', '#2f8f4e'), '#2f8f4e', '#eef7f0');
     return doc('', '#7a8a99'); };
   const ICT = '<svg class="ico\" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
-  const einr = (d) => `padding-left:${d * 1.15}rem`;
+  const einr = bpBaum.einzug;   // Einrückung je Ebene: gemeinsamer Baustein (/bp/baum.js)
   let tief = 0, zuAb = 0;   // zuAb: ab dieser Titelebene ist zugeklappt (0 = nichts)
   const rows = I.map((x, i) => {
     if (x.typ === 'titel') {
@@ -2118,15 +2112,15 @@ function vLv() {
       <div class="bar" style="margin:.3rem 0 0"><button class="btn sm" data-a="ki" title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><label class="btn sm" title="Fotos oder Skizzen zur Position – erscheinen unter dem Langtext im LV-Ausdruck. Ein Bild aus der Zwischenablage mit Strg+V im Langtext einfügen.">📷 Foto<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label><span class="hint">${x.nt ? 'Begründung des Nachtrags: ' : ''}</span>${x.nt ? `<input data-f="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung auf Anordnung des Bauherrn" style="flex:1;min-width:14rem">` : ''}</div></td></tr>`;
     return h;
   }).join('');
-  const kopf = `<tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel><td class="baumz"><div class="bz" style="${einr(0)}"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NC - 1}"></td></tr>
-    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car" data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer">${LVGZ.has(L.id) ? '▸' : '▾'}</span>${IC.lv}<b>${esc(L.nr)} ${esc(L.name)}</b></div></td><td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
+  const kopf = `<tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td colspan="${NC - 1}"></td></tr>
+    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an">${bpBaum.zelle({ tiefe: 1, auf: !LVGZ.has(L.id), car: ` data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>` })}<td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
-  const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="${einr(1)}"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
+  const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
   const LV = LIST.filter((x) => (!x.archived && !ohneLv(x)) || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   return `${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
-    <div class="tblw"><table class="lv baum" data-sp="ava.lv"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung">Art</th><th class="hide-m">KG</th>
+    <div class="tblw"><table class="lv baum bp-baum" data-sp="ava.lv"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Menge</th><th>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung">Art</th><th class="hide-m">KG</th>
       <th class="r">${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^(<tr class="wurzel[^>]*>.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
@@ -3037,7 +3031,7 @@ function vAmErfassen() {
     if (on && !R) zeilen.push(liste + mehr);
   });
   AMTEIL = { ein: detail, rech: R ? amSummenKarte(R) + amFehltKarte(R) + amZeilenKarte(R) : '' };
-  return `<div class="am-split am-baum" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"><div class="am-l"><div class="tblw"><table class="lv am baum pjtree" data-sp="ava.am"><thead><tr><th style="min-width:16rem">Bezeichnung</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">aufgemessen</th><th class="r" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r">Betrag</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
+  return `<div class="am-split am-baum" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"><div class="am-l"><div class="tblw"><table class="lv am baum bp-baum pjtree" data-sp="ava.am"><thead><tr><th style="min-width:16rem">Bezeichnung</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">aufgemessen</th><th class="r" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r">Betrag</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
 }
 /* Aufmaß: Schieber zwischen Positionen und Mengeneingabe (ohne PDF waagerecht verschieben, mit PDF die Höhe) – gemerkt, Doppelklick = Standard */
 document.addEventListener('pointerdown', (e) => {

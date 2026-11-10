@@ -131,3 +131,11 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav .ni small{margin-left:auto;color:var(--mute);font-size:var(--fs-s,.88em)}
 .bp-nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
 .bp-nav .nneu{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--fs,1em);color:var(--y);cursor:pointer;padding:.25rem .5rem .25rem 1.4rem;margin-top:.1rem}.bp-nav .nneu:disabled{opacity:.45;cursor:default}
+/* Baumtabelle (baum.js): Baumzelle mit Einrückung, Dreieck und Symbol – gleiches Aussehen in allen Apps.
+   Die Klasse steht doppelt im Selektor, damit diese Regeln die allgemeinen Tabellenregeln der Apps sicher übertreffen. */
+table.bp-baum.bp-baum td{vertical-align:middle}
+table.bp-baum.bp-baum td.baumz{white-space:nowrap}
+table.bp-baum.bp-baum .bz{display:flex;align-items:center;gap:.15rem;min-width:0}
+table.bp-baum.bp-baum .car{display:inline-block;width:1rem;text-align:center;color:var(--mute);cursor:pointer;user-select:none;vertical-align:middle}
+table.bp-baum.bp-baum .ico{width:16px;height:16px;vertical-align:-3px;margin-right:.35rem;flex:none}
+table.bp-baum.bp-baum .ozt{color:var(--mute);font-variant-numeric:tabular-nums;margin-right:.25rem;vertical-align:middle}

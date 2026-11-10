@@ -17,6 +17,7 @@ from flask import Flask, g, jsonify, redirect, request, send_from_directory
 
 from bpcore import SCHEMA, ai as bpai, db, head, papierkorb, platform, sso, versionen
 from bpcore import contacts as shared_contacts
+from bpcore import logo as bplogo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PUB = os.path.join(HERE, "public")
@@ -360,14 +361,12 @@ def list_projects(c):
 
 @app.get("/api/logo")
 def logo():
-    """Büro-Logo (aus dem Bautagebuch) für die Kopfzeile der Ausdrucke."""
-    try:
-        req = urllib.request.Request(os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/") + "/api/logo",
-                                     headers={"Cookie": request.headers.get("Cookie", "")})
-        with urllib.request.urlopen(req, timeout=4) as r:
-            return r.read(), 200, {"Content-Type": r.headers.get("Content-Type", "image/png"), "Cache-Control": "private, max-age=300"}
-    except Exception:
+    """Büro-Logo für die Kopfzeile der Ausdrucke – aus dem Kern (bpcore.logo)."""
+    with db.tx() as c:
+        roh = bplogo.lies(c)
+    if not roh:
         return jsonify(error="Kein Logo"), 404
+    return roh[0], 200, {"Content-Type": bplogo.MIME.get(roh[1], "image/png"), "Cache-Control": "private, max-age=300"}
 
 
 @app.get("/api/health")

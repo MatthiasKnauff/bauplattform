@@ -16,6 +16,11 @@ def einrichten():
             conf = settings.all(c)
             for i in converted:
                 sync.rename_image(c, conf, i)
+    try:
+        with db.tx() as c:
+            storage.logo_in_die_datenbank(c)   # Büro-Logo für alle Apps bereitstellen (bpcore.logo)
+    except Exception as e:   # noqa: BLE001 – ohne Logo läuft alles weiter
+        fehler.still("dienste", "Logo in die Datenbank übernehmen", e)
     auth.ensure_admin()   # erster Start: Benutzer admin / Kennwort admin (muss sofort geändert werden)
 
 

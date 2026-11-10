@@ -65,10 +65,14 @@ def upload_logo():
     f = request.files.get("file")
     if not f or not storage.save_logo(f):
         return jsonify(error="Bitte PNG, JPG oder WEBP wählen."), 400
+    with db.tx() as c:
+        storage.logo_in_die_datenbank(c)   # die anderen Apps lesen das Logo aus der Datenbank (bpcore.logo)
     return jsonify(ok=True)
 
 
 @bp.delete("/api/logo")
 def delete_logo():
     storage.drop_logo()
+    with db.tx() as c:
+        storage.logo_in_die_datenbank(c, geloescht=True)
     return jsonify(ok=True)

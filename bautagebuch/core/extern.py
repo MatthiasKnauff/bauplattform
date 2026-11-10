@@ -212,6 +212,8 @@ def logo_holen():
         if not e["dir"] and ext in storage.LOGO_EXT:
             with open(os.path.join(storage.BRAND, "logo" + ext), "wb") as f:
                 f.write(t.read("Logo/" + e["name"]))
+            with db.tx() as c:
+                storage.logo_in_die_datenbank(c)   # auch für die anderen Apps bereitstellen
             return
 
 

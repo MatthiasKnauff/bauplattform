@@ -658,3 +658,28 @@ def test_bt_protokoll(ctx):
         gleich(akt["PDF exportiert"]["report"], "Nr. 1 · 02.10.2026", "Bericht im Protokoll")
     finally:
         _weg(ctx, pid)
+
+
+def test_bt_logo_fuer_alle_apps(ctx):
+    """Das Büro-Logo wird einmal hochgeladen (Einstellungen) und steht dann jeder App direkt zur Verfügung – aus dem Kern
+    (bpcore.logo), ohne dass eine App das Bautagebuch danach fragt: Symbol der Startseite, Logo im Bauzeitenplan."""
+    import base64
+    png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAgAAAAECAIAAAA8r+mnAAAAFklEQVR4XmM8ISfHgA0wYRVlYCBDAgBmJgEMaF/H9wAAAABJRU5ErkJggg==")
+    vorher = ctx.admin.get(_a("/logo"), expect=None)
+    alt = (vorher.body, vorher.headers.get("Content-Type", "")) if vorher.status == 200 else None
+    try:
+        ctx.admin.post(_a("/logo"), dateien={"file": ("logo.png", png, "image/png")})
+        pruefe(ctx.admin.gj(_a("/settings"))["has_logo"], "Einstellungen melden das Logo nicht")
+        gleich(ctx.admin.get(_a("/logo")).body, png, "Bautagebuch liefert das hochgeladene Logo")
+        gleich(ctx.admin.get("/bauzeitenplan/api/logo").body, png, "Bauzeitenplan liefert dasselbe Logo aus dem Kern")
+        sym = ctx.admin.get("/logo.png")
+        gleich(sym.body[:8], b"\x89PNG\r\n\x1a\n", "Startseite liefert das Logo als PNG-Symbol")
+        ctx.admin.delete(_a("/logo"))
+        ctx.admin.get("/bauzeitenplan/api/logo", expect=404)
+        ctx.admin.get("/logo.png", expect=404)
+    finally:
+        if alt:   # ein vorher vorhandenes Logo wiederherstellen
+            ext = {"image/jpeg": "jpg", "image/webp": "webp"}.get(alt[1].split(";")[0], "png")
+            ctx.admin.post(_a("/logo"), dateien={"file": ("logo." + ext, alt[0], alt[1])})
+        else:
+            ctx.admin.delete(_a("/logo"))

@@ -6,6 +6,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from bpcore import SCHEMA, db, fehler, head, platform, sso
+from bpcore import logo as bplogo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "static")
@@ -69,7 +70,7 @@ def make_app(name):
 
     @app.get("/logo.png")
     def logo():
-        """Büro-Logo des Bautagebuchs (dort unter „Mein Profil“ hochgeladen) – 5 Minuten zwischengespeichert."""
+        """Büro-Logo (in den Einstellungen hochgeladen) als kleines Symbol."""
         data = _logo_bytes()
         if not data:
             return "", 404
@@ -89,46 +90,22 @@ def make_app(name):
 
 
 BT_INTERNAL = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/")
-_logo = {"t": 0, "data": None}
-_llock = threading.RLock()
-
-
 def _logo_bytes():
-    with _llock:
-        if time.time() - _logo["t"] > 300:
-            try:
-                with urllib.request.urlopen(BT_INTERNAL + "/api/favicon?s=192", timeout=3) as r:
-                    _logo["data"] = r.read() if r.status == 200 else None
-            except Exception:
-                _logo["data"] = None
-            _logo["t"] = time.time()
-        return _logo["data"]
-
-
-_plogo = {"t": 0, "data": None}
+    """Das Büro-Logo als kleines Symbol (PNG) – aus dem Kern (bpcore.logo), nicht mehr vom Bautagebuch geholt."""
+    try:
+        with db.tx() as c:
+            return bplogo.symbol(c, 192)
+    except Exception:   # ohne Logo anzeigen – kein Grund abzubrechen
+        return None
 
 
 def print_logo():
     """Das Büro-Logo in voller Größe für Ausdrucke (Kopfzeile jeder PDF-Seite). Ohne Logo: None."""
-    with _llock:
-        if time.time() - _plogo["t"] > 300:
-            data = None
-            try:
-                req = urllib.request.Request(BT_INTERNAL + "/api/logo", headers={"Cookie": f"{sso.COOKIE}={request.cookies.get(sso.COOKIE, '')}"})
-                with urllib.request.urlopen(req, timeout=3) as r:
-                    data = r.read() if r.status == 200 else None
-                if data:   # einheitlich als PNG (WEBP, CMYK-JPG, riesige Dateien machen reportlab sonst Probleme)
-                    from PIL import Image
-                    im = Image.open(io.BytesIO(data)); im.load()
-                    im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") else "RGB")
-                    im.thumbnail((900, 900))
-                    out = io.BytesIO(); im.save(out, "PNG"); data = out.getvalue()
-            except Exception:   # kein Logo hinterlegt (404) oder nicht lesbar: ohne Logo drucken, später erneut versuchen
-                data = None
-            _plogo["data"] = data
-            _plogo["t"] = time.time() if data else time.time() - 240   # ohne Logo bald erneut versuchen
-        data = _plogo["data"]
-    return data or _logo_bytes()   # außerhalb der Sperre: _logo_bytes() sperrt selbst
+    try:
+        with db.tx() as c:
+            return bplogo.druck(c)
+    except Exception:   # ohne Logo drucken
+        return None
 
 
 def draw_logo(cv, right, top, h, max_w):

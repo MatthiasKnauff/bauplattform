@@ -149,3 +149,26 @@ def save_logo(f):
     drop_logo()
     f.save(os.path.join(BRAND, "logo" + ext))
     return True
+
+
+def logo_in_die_datenbank(c, geloescht=False):
+    """Die Logo-Datei dieses Datenordners und die Datenbank (bpcore.logo) abgleichen – aus der Datenbank lesen es alle anderen Apps.
+    Aufgerufen nach dem Hochladen, nach dem Löschen (geloescht=True), beim Start der Dienste und nach dem Zurückholen vom Dateiserver.
+    Fehlt nur die Datei (neuer Server, Datenordner leer), wird sie aus der Datenbank wiederhergestellt – nie umgekehrt gelöscht."""
+    from bpcore import logo
+    p = logo_path()
+    if not p:
+        if geloescht:
+            logo.loeschen(c)
+            return False
+        alt = logo.lies(c)
+        if alt:
+            with open(os.path.join(BRAND, "logo" + alt[1]), "wb") as f:
+                f.write(alt[0])
+        return bool(alt)
+    with open(p, "rb") as f:
+        daten = f.read()
+    alt = logo.lies(c)
+    if not alt or alt[0] != daten:
+        logo.setzen(c, daten, os.path.splitext(p)[1].lower())
+    return True

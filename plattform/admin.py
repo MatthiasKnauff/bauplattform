@@ -8,7 +8,7 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import briefbogen, db, layout, papierkorb, platform, projektteile, schrift, sso, versionen
+from bpcore import briefbogen, db, layout, papierkorb, platform, projekte, projektteile, schrift, sso, versionen
 from bpcore import einstellungen as bpeinst   # nicht „einstellungen“: so heißt hier schon eine Route
 from bpcore import logo as bplogo
 import common as C
@@ -380,21 +380,18 @@ def _pbody(b):
 
 @app.post("/api/projects/neu")
 def project_new():
-    """Projekt im Bautagebuch anlegen (das Bautagebuch ermittelt dabei Standort und Adresse wie gewohnt)."""
+    """Projekt anlegen – direkt mit dem Baustein des Kerns (Standort und Adresse werden dabei wie gewohnt ermittelt)."""
     d = _pbody(request.get_json(silent=True) or {})
     if not d.get("name"):
         return jsonify(error="Bitte einen Namen für das Bauvorhaben eingeben."), 400
-    try:
-        r = _bt("POST", "/api/projects", d)
-    except RuntimeError as e:
-        return jsonify(error=str(e)), 502
+    pid, _gefunden, auto = projekte.anlegen(d)
     C.audit(g.user["name"], "verwaltung", "Projekt angelegt", d["name"])
-    return jsonify(ok=True, id=r.get("id"), auto_address=r.get("auto_address"))
+    return jsonify(ok=True, id=pid, auto_address=auto)
 
 
 @app.put("/api/projects/<int:pid>")
 def project_edit(pid):
-    """Projekt ändern: Name, Bauherr, Adresse, freigegebene Benutzer, archivieren – über das Bautagebuch."""
+    """Projekt ändern: Name, Bauherr, Adresse, freigegebene Benutzer, archivieren – direkt mit dem Baustein des Kerns."""
     d = _pbody(request.get_json(silent=True) or {})
     if "name" in d and not d["name"]:
         return jsonify(error="Der Name darf nicht leer sein."), 400
@@ -402,10 +399,7 @@ def project_edit(pid):
         r = c.execute("SELECT name FROM projects WHERE id=?", (pid,)).fetchone()
     if not r:
         return jsonify(error="Projekt nicht gefunden"), 404
-    try:
-        _bt("PUT", f"/api/projects/{pid}", d)
-    except RuntimeError as e:
-        return jsonify(error=str(e)), 502
+    projekte.aendern(pid, d)
     what = "archiviert" if d.get("archived") == 1 else "aus dem Archiv geholt" if d.get("archived") == 0 and len(d) == 1 else "geändert"
     C.audit(g.user["name"], "verwaltung", f"Projekt {what}", d.get("name") or r["name"])
     return jsonify(ok=True)
@@ -420,11 +414,7 @@ def project_create_bt():
         return jsonify(error="Bitte einen Projektnamen eingeben."), 400
     plans = [str(x)[:80] for x in (b.get("plans") or [])][:50]
     bks = [int(x) for x in (b.get("bks") or []) if isinstance(x, int)][:200]
-    try:
-        r = _bt("POST", "/api/projects", {"name": name})
-    except RuntimeError as e:
-        return jsonify(error=str(e)), 502
-    pid = r.get("id")
+    pid = projekte.anlegen({"name": name})[0]
     with db.tx() as c:
         for x in plans:
             c.execute("UPDATE gantt_projects SET project_id=? WHERE id=?", (pid, x))

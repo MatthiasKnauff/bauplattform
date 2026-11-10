@@ -1,24 +1,10 @@
 from flask import Blueprint, Response, g, jsonify, request, send_file
 from core import access, db, geo, staticmap, storage
 from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
+from bpcore import projekte
 
 bp = Blueprint("projects", __name__)
 ADDR = ("street", "zip", "city")
-
-
-def with_coords(d, current=None):
-    """Hat sich die Adresse geändert, werden die Koordinaten neu bestimmt (außerhalb der DB-Transaktion).
-    Gibt True/False zurück, ob etwas gefunden wurde, oder None, wenn die Adresse nicht betroffen ist."""
-    if not any(k in d for k in ADDR) or "lat" in d or "lon" in d:
-        return None
-    cur = {k: str((current or {}).get(k) or "").strip() for k in ADDR}
-    cur.update({k: str(d[k] or "").strip() for k in ADDR if k in d})
-    if not any(cur.values()):
-        d["lat"] = d["lon"] = None
-        return None
-    hit = geo.search(", ".join(x for x in (cur["street"], f"{cur['zip']} {cur['city']}".strip()) if x))
-    d["lat"], d["lon"] = (hit["lat"], hit["lon"]) if hit else (None, None)
-    return bool(hit)
 
 
 @bp.get("/api/projects")
@@ -37,20 +23,8 @@ def list_projects():
 
 @bp.post("/api/projects")
 def create_project():
-    d = request.json or {}
-    d.setdefault("name", "Neues Projekt")
-    explicit = "lat" in d or "lon" in d
-    found, auto = with_coords(d), False
-    if found is None and not any(str(d.get(k) or "").strip() for k in ADDR) and not explicit:
-        d.pop("lat", None); d.pop("lon", None)
-        hit = geo.search(d["name"], from_name=True)   # keine Adresse angegeben: aus dem Projektnamen ermitteln
-        d["extra"] = {"addr_tried": True}
-        if hit:
-            d.update({k: hit[k] for k in (*ADDR, "lat", "lon")})
-            d["extra"]["addr_auto"] = auto = True
-    with db.tx() as c:
-        d["leaders"] = access.clean(d.get("leaders"), c)
-        return jsonify(id=db.insert(c, "projects", d), geocoded=found, auto_address=auto)
+    pid, found, auto = projekte.anlegen(request.json)   # Baustein des Kerns – derselbe wie in der Verwaltung
+    return jsonify(id=pid, geocoded=found, auto_address=auto)
 
 
 @bp.put("/api/projects/<int:i>")
@@ -58,21 +32,7 @@ def update_project(i):
     d = request.json or {}
     if "name" in d and not str(d["name"]).strip():
         return jsonify(error="Der Name darf nicht leer sein."), 400
-    with db.tx() as c:
-        row = c.execute("SELECT street, zip, city FROM projects WHERE id=?", (i,)).fetchone()
-    found = with_coords(d, dict(row) if row else {})
-    if any(k in d for k in ADDR) and "extra" not in d:
-        d["extra"] = {"addr_auto": None}      # von Hand geändert: nicht mehr "automatisch ermittelt"
-    with db.tx() as c:
-        if "leaders" in d:   # Bauleiter dürfen weitere Bauleiter eintragen oder ändern (Zugriff auf das Projekt prüft der Server vorab)
-            d["leaders"] = access.clean(d["leaders"], c)
-        db.update(c, "projects", i, d)
-        if any(k in d for k in ADDR):   # Baustellenadresse steht auch in den Kontakten: dort mitführen
-            pr = db.to_dict(c.execute("SELECT street, zip, city, extra FROM projects WHERE id=?", (i,)).fetchone())
-            cid = (pr.get("extra") or {}).get("contact_id")
-            if cid:
-                db.update(c, "contacts", cid, {k: pr[k] for k in ADDR})
-    return jsonify(ok=True, geocoded=found)
+    return jsonify(ok=True, geocoded=projekte.aendern(i, d))
 
 
 @bp.get("/api/projects/<int:i>/map.jpg")

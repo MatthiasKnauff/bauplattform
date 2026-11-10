@@ -267,6 +267,16 @@ function spaltenSchnitt(t) {
       if (!c.title) { const x = txt(c); if (x.length > avg * 1.15) c.title = x; } });
   }
 }
+/* Fortschritt in Prozent – Stufen 0 · 25 · 50 · 75 · 100 und darunter ein Schieber (5er-Schritte), wie der Arbeitsfortschritt im Bautagebuch.
+   bpProzent(wert, 'data-x') → HTML. Die App hört auf Klicks an [data-x] (Stufe, Wert in data-p) und auf „change“ am Schieber (value);
+   „input“ am Schieber zeigt den Wert schon beim Ziehen an. */
+function bpProzent(wert, attr = 'data-pz') {
+  const w = Math.max(0, Math.min(100, Math.round(+wert || 0)));
+  return `<div class="bp-pz"><span class="bp-pz-s" role="group" aria-label="Fortschritt">${[0, 25, 50, 75, 100].map((p) => `<button type="button" ${attr} data-p="${p}"${w === p ? ' class="on"' : ''} title="${p} % fertig">${p}</button>`).join('')}</span>`
+    + `<span class="bp-pz-r"><input type="range" min="0" max="100" step="5" value="${w}" ${attr} aria-label="Fortschritt in Prozent"><output>${w} %</output></span></div>`;
+}
+document.addEventListener('input', (e) => { const r = e.target.closest && e.target.closest('.bp-pz input[type=range]'); if (!r) return; const o = r.nextElementSibling; if (o) o.textContent = r.value + ' %';
+  r.closest('.bp-pz').querySelectorAll('.bp-pz-s button').forEach((b) => b.classList.toggle('on', +b.dataset.p === +r.value)); });
 (() => {
   const st = document.createElement('style'); st.textContent = 'table[style*="table-layout: fixed"] .sp-in{max-width:100%!important}.sp-in{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sp-in>small,.sp-in>.mute,.sp-in>.hint{display:block;overflow:hidden;text-overflow:ellipsis}'; document.head.appendChild(st);
   let t = 0; const alle = () => document.querySelectorAll('table').forEach((x) => { try { spaltenSchnitt(x); } catch { /* egal */ } });

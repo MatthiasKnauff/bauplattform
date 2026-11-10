@@ -129,7 +129,7 @@
       <h3>${esc(t.name)}</h3>
       <div class="g-grp"><h6>${sum ? 'Leistungsgruppe' : ms ? 'Meilenstein' : 'Leistung'}</h6><div class="g-f">${f('name', 'Bezeichnung', t.name, ' class="w"')}${f('gw', 'Gewerk', t.gw || '', ' list="gwList"')}${sum ? '' : f('res', 'Firma', t.res || '')}</div></div>
       <div class="g-grp"><h6>Termin</h6><div class="g-f">${f('start', 'Anfang', fmtD(CAL.sd[i]), sum ? ' disabled' : '')}${sum || ms ? '' : f('dur', 'Dauer (Arbeitstage)', String(t.dur))}${ms ? '' : f('finish', 'Ende', fmtD(CAL.fd[i]), sum ? ' disabled' : '')}</div>
-        ${sum ? `<p class="hint">Fortschritt ${pct} % – ergibt sich aus den Leistungen der Gruppe.</p>` : `<div class="g-pct">${[0, 25, 50, 75, 100].map((p) => `<button type="button" class="btn sm${pct === p ? ' on' : ''}" data-gdp="${p}">${p} %</button>`).join('')}</div>`}</div>
+        ${sum ? `<p class="hint">Fortschritt ${pct} % – ergibt sich aus den Leistungen der Gruppe.</p>` : `<label class="g-pct-l">Fortschritt</label>${bpProzent(pct, 'data-gdp')}`}</div>
       ${sum ? '' : `<div class="g-grp"><h6>Abhängigkeiten</h6><div class="g-f">${f('pred', 'Vorgänger (Zeilen, z. B. 3; 5EA+2)', predText(t), ' class="w"')}</div><p class="hint">Nachfolger: ${nach.length ? esc(nach.join(' · ')) : 'keine'}</p></div>`}
       <div class="g-grp"><h6>Notiz</h6><textarea data-gdnotiz placeholder="z. B. Betonage nur bei Frostfreiheit">${esc(t.notes || '')}</textarea></div>
       <button type="button" class="btn sm" data-act="taskInfo" title="Alle Angaben: Einschränkung, Unterbrechungen, Verknüpfungsarten, Farbe …">Alle Angaben …</button></div>`;
@@ -164,9 +164,10 @@
   // Plan und Diagramm halten beim Klicken den Fokus fest (preventDefault) – ein offenes Feld der Details erst abschließen, damit es gespeichert wird
   document.addEventListener('mousedown', (e) => { const a = document.activeElement; if (a && a.closest && a.closest('.g-det') && !a.closest('.g-det').contains(e.target)) a.blur(); }, true);
   WORK.addEventListener('focusout', (e) => { if (e.target.closest && e.target.closest('.g-det')) setTimeout(detailsNeu, 0); });
+  WORK.addEventListener('change', (e) => { const r = e.target.closest && e.target.closest('.g-det input[type=range][data-gdp]'); if (r) setPct(+r.value); });
   WORK.addEventListener('click', (e) => {
     const n = e.target.closest('[data-gdn]'), p = e.target.closest('[data-gdp]'); if (!n && !p) return;
-    if (p) { setPct(+p.dataset.gdp); return; }
+    if (p) { if (p.dataset.p != null) setPct(+p.dataset.p); return; }   // Stufe; der Schieber meldet sich über „change“
     const r = rowOfIdx(selIdx()[0]) + +n.dataset.gdn; if (r < 0 || r >= vis.length) return;
     selectRow(r); ensureVisible(r);
   });

@@ -168,3 +168,10 @@ table.bp-baum.bp-baum .car{display:inline-block;width:1rem;text-align:center;col
 .bp-kw:focus{outline:none}.bp-kw:focus tr.bp-kc,.bp-kw:focus .pj-r.bp-kc{outline:2px solid var(--y);outline-offset:-2px}
 table.bp-baum.bp-baum .ico{width:16px;height:16px;vertical-align:-3px;margin-right:.35rem;flex:none}
 table.bp-baum.bp-baum .ozt{color:var(--mute);font-variant-numeric:tabular-nums;margin-right:.25rem;vertical-align:middle}
+/* Fortschritt in Prozent (bpProzent in bp.js): Stufen als Knopfgruppe, darunter ein Schieber */
+.bp-pz{display:grid;gap:.35rem;max-width:20rem}
+.bp-pz-s{display:flex}
+.bp-pz-s button{flex:1;min-width:2.5rem;padding:.28rem .35rem;border:1px solid var(--line);margin:0 0 0 -1px;border-radius:0;box-shadow:none;background:transparent;color:var(--ink);cursor:pointer;font:inherit;font-size:.86em;font-variant-numeric:tabular-nums}
+.bp-pz-s>button:first-child{margin-left:0;border-radius:calc(14px*var(--rk,1)) 0 0 calc(14px*var(--rk,1))}.bp-pz-s>button:last-child{border-radius:0 calc(14px*var(--rk,1)) calc(14px*var(--rk,1)) 0}
+.bp-pz-s button:hover{background:var(--hov)}.bp-pz-s button.on{background:var(--y);border-color:var(--y);color:var(--on,#111);position:relative;font-weight:600}
+.bp-pz-r{display:flex;align-items:center;gap:.5rem}.bp-pz-r input{flex:1;min-width:0;accent-color:var(--y)}.bp-pz-r output{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}

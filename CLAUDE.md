@@ -31,7 +31,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 
 ## Code
 - Erst nachsehen, ob es den Baustein schon gibt – benutzen statt kopieren; dabei möglichst alten Code überflüssig machen.
-  Vorhanden u. a.: `bp.js` (Grundhilfen `$`, `esc`, `api`, `toast`, `modalBox`), `undo.js` (`rueckgaengig`, Rückgängig-Dock),
+  Vorhanden u. a.: `bp.js` (Grundhilfen `$`, `esc`, `api`, `toast`, `modalBox`, `bpProzent` – Fortschritt 0/25/50/75/100 mit Schieber), `undo.js` (`rueckgaengig`, Rückgängig-Dock),
   `seite.js` (Bereich rechts, abdockbar), `befehle.js` (Befehlsleiste), `vorschlag.js` (Vorschlagsliste, GAEB-Einheiten), `blase.js` (`bpBlase` – Erklär-Blase, zeigt sich nur die ersten Male), `nav.js` (`bpNav` – Navigation links: Kopf, Gruppen, Bereiche; `bpNav.breite` – Anfasser für die Breite), `baum.js` (`bpBaum` – Baumtabelle `table.bp-baum`: Baumzelle mit Einrückung, Dreieck, Symbol; Auf-/Zuklappen `klapp`, `sicht`, `zeige`, `klappbar`; Markieren `markiere`, `markiert` (Klick, Strg, Umschalt); Rollposition beim Neuzeichnen `rolle`; Tastatur `tasten` – Zeilen-/Feldmodus mit ↑↓←→, Tab, Enter, Esc, F6 – jeder neue Baum meldet sich dort an),
   `head.js` (Kopfleiste, Stil, Verlauf, `bpFrage`/`bpEingabe`/`bpHinweis`, `BPHead.datenMaske`, Kontaktmaske).
 - Neue gemeinsame Bausteine gehören nach `shared/bpcore/head/` und in die Freigabeliste in `shared/bpcore/head.py`.

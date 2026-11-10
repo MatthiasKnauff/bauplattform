@@ -931,3 +931,5 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 #split,#split2{position:relative;width:10px}
 #split::after,#split2::after{content:'';position:absolute;left:50%;top:calc(50% - 14px);transform:translateX(-50%);width:6px;height:28px;border-radius:calc(4px*var(--rk,1));background:#fff radial-gradient(circle,#8a8f98 .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--bd);box-shadow:0 1px 4px rgba(0,0,0,.14);pointer-events:none}   /* gleich groß wie überall (6 × 28 px) */
 #split:hover::after,#split.drag::after,#split2:hover::after{border-color:var(--accent)}
+
+.mv-zurueck{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:200;border:1px solid var(--line,#ccc);background:var(--card,#fff);color:var(--ink,#222);border-radius:999px;padding:8px 16px;font:15px/1.2 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25)}

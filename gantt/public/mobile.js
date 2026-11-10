@@ -17,6 +17,14 @@
   };
   if (!istHandy()) {
     window.bpMobilAn = () => { try { localStorage.removeItem(LSK); } catch { /* egal */ } location.reload(); };
+    // am Handy auf „Desktop-Ansicht“ umgeschaltet: unten ein kleiner Knopf zurück – sonst gäbe es keinen Weg mehr in die Handy-Ansicht
+    let aus = false; try { aus = localStorage.getItem(LSK) === '1'; } catch { /* egal */ }
+    const handy = (Math.min(window.innerWidth, screen.width || 9999) <= 760 && (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window)) || /iPhone|Android.+Mobile|Windows Phone/i.test(navigator.userAgent);
+    if (aus && handy) {
+      const los = () => { const k = document.createElement('button'); k.type = 'button'; k.className = 'mv-zurueck'; k.textContent = '📱 Handy-Ansicht';
+        k.addEventListener('click', window.bpMobilAn); document.body.appendChild(k); };
+      if (document.body) los(); else document.addEventListener('DOMContentLoaded', los);
+    }
     return;
   }
   document.documentElement.classList.add('mobil');

@@ -378,7 +378,7 @@ function printDialog() {
     const pages = printPages(L);
     L.pages = pages;
     const prev = bg.querySelector('#prPages');
-    const area = prev.clientWidth - 30 || 600, areaH = prev.clientHeight - 30 || 500;
+    const area = prev.clientWidth - 18 || 600, areaH = prev.clientHeight - 18 || 500;
     const many = pages.length > 1;
     // eine Seite: so groß, dass sie ganz in die Vorschau passt (Breite und Höhe); mehrere: nebeneinander, je höchstens eine Vorschauhöhe
     const wpx = many ? Math.min(area / Math.min(pages.length, L.slices.length > 1 ? Math.min(L.slices.length, 3) : 2) - 16, areaH * L.pw / L.ph, 420) : Math.max(120, Math.min(area, areaH * L.pw / L.ph));
@@ -395,6 +395,11 @@ function printDialog() {
   bg.addEventListener('input', () => { clearTimeout(t); t = setTimeout(refresh, 120); });
   bg.addEventListener('change', () => { clearTimeout(t); refresh(); });
   setTimeout(refresh, 0);
+  // Fenster größer/kleiner ziehen: Vorschau neu einpassen
+  let rw = 0, rh = 0;
+  const ro = new ResizeObserver(() => { const pv = bg.querySelector('#prPages'); if (!pv || !pv.isConnected) { ro.disconnect(); return; }
+    if (Math.abs(pv.clientWidth - rw) + Math.abs(pv.clientHeight - rh) < 4) return; rw = pv.clientWidth; rh = pv.clientHeight; clearTimeout(t); t = setTimeout(refresh, 80); });
+  ro.observe(bg.querySelector('#prPages'));
 }
 
 function doPrint(L) {

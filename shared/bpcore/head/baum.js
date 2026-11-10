@@ -106,6 +106,7 @@
        o.tiefe(z)   Ebene (Vorgabe: Einrückung der Baumzelle)
        o.eigen(z)   Alt+Enter (Vorgabe: Doppelklick auf die Zeile) · o.neu(z, titel) Einfg · o.schiebe(z, ±1) Alt+Umschalt+↑↓
        o.ohne       Auswahl von Feldern, deren Tasten die App selbst steuert
+       o.unterzeile Auswahl von Zeilen, die zur Zeile darüber gehören (Langtext): ihre Felder kommen bei Tab gleich nach der ersten Zelle
      Der Feldmodus gilt in den angemeldeten Bäumen und in den Tabellen unter window.bpBaumFelder (Auswahl, z. B. der Preisspiegel). */
   const BAEUME = [], OHNE = [], CUR = new Map();
   let LETZT = null, KC = null;
@@ -196,7 +197,17 @@
     }
     return null;
   }
-  const tabFelder = (t) => [...t.querySelectorAll(FELD)].filter((f) => sichtbar(f) && !f.closest('thead,tfoot,.acts-c') && !OHNE.some((s) => f.matches(s)));
+  function tabFelder(t) {   // Reihenfolge für Tab: Zeile für Zeile; eine Unterzeile (o.unterzeile, z. B. der Langtext) kommt gleich nach der ersten Zelle ihrer Zeile
+    const c = confVon(t.tBodies[0] || t), unter = c && c[0].unterzeile, ok = (f) => sichtbar(f) && !f.closest('thead,tfoot,.acts-c') && !OHNE.some((s) => f.matches(s));
+    if (!unter) return [...t.querySelectorAll(FELD)].filter(ok);
+    const out = [];
+    [...t.rows].forEach((tr) => {
+      if (tr.matches(unter)) return;
+      const F = [...tr.querySelectorAll(FELD)].filter(ok), n = tr.cells[0] ? F.filter((f) => tr.cells[0].contains(f)).length : 0, u = tr.nextElementSibling;
+      out.push(...F.slice(0, n), ...(u && u.matches(unter) ? [...u.querySelectorAll(FELD)].filter(ok) : []), ...F.slice(n));
+    });
+    return out;
+  }
   function zielFokus(n, L) {   // ins Feld springen; zeichnet die App dabei neu (Speichern beim Verlassen), danach dasselbe Feld wieder suchen
     L = L || lage(n); const k = L && kennZ(L.tr), tk = L && (L.t.dataset.sp || L.t.className);
     if (n.isConnected) feldFokus(n);

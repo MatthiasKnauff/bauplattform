@@ -1,4 +1,4 @@
-// Tastatur im Baum (shared/bpcore/head/baum.js, bpBaum.tasten) – geprüft an einem kleinen Muster-Baum im echten Browser,
+// Tastatur im Baum (shared/bpcore/head/baum.js, bpBaum.tasten) – geprüft an einem kleinen Muster-Baum im echten Browser (mit Langtext-Unterzeile),
 // unabhängig von Testdaten: Zeilenmodus (↑ ↓ ← → Enter, losschreiben), Feldmodus (Tab, Enter in derselben Spalte, Esc),
 // leere Zwischenzeilen werden übersprungen, die App darf beim Speichern neu zeichnen, die Rollposition bleibt (bpBaum.rolle).
 //
@@ -16,14 +16,15 @@ const SEITE = `<!doctype html><html><head><meta charset="utf-8"><style>__CSS__</
     document.querySelector('tbody').innerHTML = '<tr class="wurzel" data-pjwurzel><td class="baumz"><div class="bz" style="padding-left:0rem"><span class="car">▾</span><b>Projekt</b></div></td><td></td><td></td></tr>' + D.map((x, i) => {
       if (x.t === 'ti') { zu = x.zu; return '<tr class="ti' + (AKT === i ? ' akt' : '') + '" data-i="' + i + '"><td class="oz baumz"><div class="bz" style="padding-left:1.15rem"><span class="car" data-zu="' + i + '">' + (x.zu ? '▸' : '▾') + '</span><span class="ozt">' + x.oz + '</span><input data-f="kurz" value="' + x.kurz + '"></div></td><td></td><td></td></tr>'; }
       if (zu) return '';
-      return '<tr class="' + (AKT === i ? 'akt' : '') + '" data-i="' + i + '"><td class="oz baumz"><div class="bz" style="padding-left:2.3rem"><span class="car"></span><span class="ozt">' + x.oz + '</span><input data-f="kurz" value="' + x.kurz + '"></div></td><td><input data-f="menge" value="' + x.menge + '"></td><td><input data-f="eh" value="' + x.eh + '"></td></tr>';
+      return '<tr class="' + (AKT === i ? 'akt' : '') + '" data-i="' + i + '"><td class="oz baumz"><div class="bz" style="padding-left:2.3rem"><span class="car"></span><span class="ozt">' + x.oz + '</span><input data-f="kurz" value="' + x.kurz + '"></div></td><td><input data-f="menge" value="' + x.menge + '"></td><td><input data-f="eh" value="' + x.eh + '"></td></tr>'
+        + (i === 1 ? '<tr class="lang" data-i="1"><td colspan="3"><textarea data-f="lang">Langtext</textarea></td></tr>' : '');
     }).join('') + '<tr><td colspan="3" style="height:200px">Platz zum Rollen</td></tr>'; };
   document.addEventListener('click', (e) => {
     const c = e.target.closest('[data-zu]'); if (c) { const zurueck = bpBaum.rolle(document.getElementById('view')); D[+c.dataset.zu].zu = !D[+c.dataset.zu].zu; zeichne(); zurueck(); return; }
     const o = e.target.closest('.ozt'); if (o) { AKT = +o.closest('tr').dataset.i; document.querySelectorAll('tr.akt').forEach((r) => r.classList.remove('akt')); o.closest('tr').classList.add('akt'); }
   });
   document.addEventListener('change', (e) => { const tr = e.target.closest('tr[data-i]'); if (!tr) return; D[+tr.dataset.i][e.target.dataset.f] = e.target.value; zeichne(); });   // speichern = neu zeichnen
-  bpBaum.tasten({ wurzel: '#view table.lv.baum > tbody', zeilen: 'tr[data-i], tr.wurzel', aktiv: (w) => w.querySelector('tr.akt'),
+  bpBaum.tasten({ wurzel: '#view table.lv.baum > tbody', zeilen: 'tr[data-i]:not(.lang), tr.wurzel', unterzeile: 'tr.lang', aktiv: (w) => w.querySelector('tr.akt'),
     waehle: (z) => { const o = z.querySelector('.ozt'); if (o) o.click(); } });
   zeichne();
 </script></body></html>`;
@@ -50,7 +51,8 @@ export async function baumTastenPruefen(p, baumJs, css) {
   s = await st(); pruef(s.akt === 1, `zweimal ↓ von oben: Position 01.10 erwartet (1), ist ${s.akt}`);
   // Feldmodus
   await taste('Enter'); s = await st(); pruef(s.feld === 'kurz@1', `Enter: ins erste Feld der Zeile (kurz@1), ist ${s.feld}`);
-  await taste('Tab'); s = await st(); pruef(s.feld === 'menge@1', `Tab: nächstes Feld (menge@1), ist ${s.feld}`);
+  await taste('Tab'); s = await st(); pruef(s.feld === 'lang@1', `Tab nach dem Kurztext: in den Langtext (lang@1), ist ${s.feld}`);
+  await taste('Tab'); s = await st(); pruef(s.feld === 'menge@1', `Tab nach dem Langtext: die Werte der Zeile (menge@1), ist ${s.feld}`);
   await p.keyboard.type('5'); await taste('Enter'); s = await st();
   pruef(s.feld === 'menge@2', `Enter: dieselbe Spalte eine Zeile tiefer (menge@2), ist ${s.feld}`);
   pruef(await p.evaluate(() => window.D[1].menge === '5'), 'Enter speichert den Wert nicht');

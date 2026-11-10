@@ -91,7 +91,6 @@
         { titel: 'Beteiligte', punkte: [{ id: 'firmen', text: 'Gewerke & Firmen', icon: NI.firmen, zahl: gw || '' }] },
         { titel: 'Vorlagen', punkte: [{ id: 'katalog', text: 'Leistungskatalog', icon: NI.katalog }] },
         { titel: 'Projekt', punkte: [{ id: 'projinfo', text: 'Projektinformationen', icon: NI.info }, { id: 'kalender', text: 'Arbeitszeit & Feiertage', icon: NI.kalender }] },
-        { titel: 'Ausgabe', punkte: [{ id: 'drucken', text: 'Drucken / PDF', icon: NI.drucken }, { id: 'export', text: 'Exportieren', icon: NI.export }] },
       ],
       aktiv: { vorgang: 'leistungen', firmen: 'firmen', katalog: 'katalog' }[t] || 'leistungen', attr: 'gnav', lage: true,
       nachher: (el, m) => { const ziel = $('#navVm'); if (VM && ziel) { ziel.appendChild(VM); VM.style.display = P ? '' : 'none'; }   // Versionswahl in jeder Lage wieder einhängen

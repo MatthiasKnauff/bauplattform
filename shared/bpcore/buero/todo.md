@@ -94,3 +94,4 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~Aufmaß: ＋ am Ende der Eingabezeile für eine weitere Zeile (wie Umschalt+Enter), Hinweis zum Rechenweg mit Beispielen~~
 - ~~Aufmaßprüfung: Aufmaßzeilen als Zwischenzeilen (Schalter „Rechenweg“), Ausdruck mit oder ohne Zwischenschritte~~
 - ~~Navigation gelöst: Symbole dicht wie im Mock, Gruppen als Trennstrich, Heftzwecke rot~~
+- ~~Bauzeitenplan: Fenster „Darstellung“ aufgeräumt und kompakt~~

@@ -30,8 +30,12 @@ body.g-rahmen #split2,body.g-rahmen #assistPane{display:none!important}
 .g-f input,.g-grp textarea{width:100%;box-sizing:border-box;color:var(--ink,inherit);font-size:var(--fs)}
 .g-grp textarea{width:100%;box-sizing:border-box;min-height:4.5rem;resize:vertical}
 /* Darstellung (Fenster mit den Auswahlfeldern des alten Menübands) */
-.g-darst{display:flex;flex-direction:column;gap:.7rem;min-width:min(26rem,80vw)}.g-darst .rcol{display:grid;gap:.25rem}
-.g-darst-b{display:flex;gap:.5rem;margin:.9rem 0 .6rem;flex-wrap:wrap}.g-darst-c{display:flex;gap:.5rem;align-items:center}
+.g-darst{display:flex;flex-direction:column;gap:.35rem;width:min(30rem,82vw)}
+.g-darst h6{margin:.45rem 0 0;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);font-weight:600}.g-darst h6:first-child{margin-top:0}
+.g-darst .rcol{padding:0;font-size:inherit;color:inherit;gap:.15rem}.g-darst .rcol select{min-width:0!important;width:100%}
+.g-d3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}.g-d3 .rcol label{font-size:var(--fs-s);color:var(--mute)}
+.g-d2{display:grid;gap:.35rem}.g-d2 .rcol{display:grid;grid-template-columns:11rem minmax(0,1fr);align-items:center;column-gap:.6rem}.g-d2 .rcol .rhint{grid-column:2;font-size:var(--fs-s)}
+.g-darst-b{display:flex;gap:.5rem;flex-wrap:wrap}.g-darst-c{display:flex;gap:.5rem;align-items:center}
 @media (max-width:900px){body.g-rahmen #navL{display:none}}
 body.g-rahmen #navVm .gl{display:none}body.g-rahmen #navVm .vm-grp{border:0;padding:0 0 .4rem}
 body.g-rahmen #gridPane{max-width:calc(100% - 220px)}   /* gemerkte Breite aus dem alten, breiteren Aufbau: dem Diagramm bleibt immer Platz */
@@ -70,7 +74,7 @@ body.g-rahmen .ticon[data-act="toggleAssist"]{display:none}   /* Assistent ist e
 .bp-nav.oben.eng #tabs .gs-box input{width:180px!important}
 .g-pct-l{display:block;margin:.5rem 0 .25rem;font-size:var(--fs-s);color:var(--mute)}
 /* Zeilen: Bänderung bzw. nur die aktive Zeile mit dünnem rotem Strich (Darstellung) */
-.g-darst-z{display:grid;gap:.25rem}.g-darst-z>span{font-size:var(--fs-s);color:var(--mute)}
+.g-darst-z{display:grid;gap:.15rem}
 body.g-zl-band #gridBody .row:nth-child(even) .c{background:color-mix(in srgb,var(--ink) 4.5%,var(--card))}
 body.g-zl-band #chartBody{background:repeating-linear-gradient(to bottom,transparent 0 var(--rh),color-mix(in srgb,var(--ink) 4.5%,transparent) var(--rh) calc(2*var(--rh)))}
 body.g-zl-band #gridBody .row.sel .c{background:var(--sel)}

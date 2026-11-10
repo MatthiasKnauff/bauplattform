@@ -7,6 +7,7 @@
 //   - die gemeinsame Kopfleiste ist da
 //   - am Handy keine waagerechte Scrollleiste der ganzen Seite
 //   - die Seite kommt zur Ruhe (kein Baustein baut das Dokument im Kreis um)
+//   - am PC: zeigt die Seite eine Tabelle mit Kopfzeile, lässt sich dort eine Spalte aus- und wieder einblenden (spalten.js)
 //
 // Aufruf:  node tools/tests/ui/oberflaeche.mjs http://localhost:8090
 // Braucht das npm-Paket „playwright“ mit Chromium (in der Pipeline: npx playwright install --with-deps chromium).
@@ -38,7 +39,7 @@ const HARMLOS = [/favicon/i, /Failed to load resource/, /ollama/i, /net::ERR_ABO
 const EXTERN = [/\/autoaddress\b/, /\/staticmap\b/, /\/weather\b/, /\/geo\b/, /\/post(eingang)?\b/, /\/ablage\b/, /\/store\//, /\/api\/logo\b/, /\/api\/plaene\b/];
 
 const fehler = [];
-let ok = 0;
+let ok = 0, spaltenGeprueft = 0;
 
 const b = await chromium.launch();
 for (const [gname, gopt] of Object.entries(GERAETE)) {
@@ -71,6 +72,27 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
       const unruhe = await p.evaluate(() => new Promise((fertig) => { let n = 0; const mo = new MutationObserver((ms) => { n += ms.length; });
         mo.observe(document.documentElement, { childList: true, subtree: true }); setTimeout(() => { mo.disconnect(); fertig(n); }, 600); }));
       if (unruhe > 60) probleme.push(`Seite kommt nicht zur Ruhe: ${unruhe} Umbauten am Dokument in 0,6 s ohne Zutun (Klicks können verloren gehen)`);
+      // Spalten wählen (spalten.js) geht an jeder Tabelle mit Kopfzeile: rechte Maustaste auf den Kopf → Menü; eine Spalte
+      // ausblenden → jede Zeile ist danach genauso viele Spalten breit wie der Kopf; „Standard“ stellt alles wieder her
+      if (gname === 'PC') {
+        const th = await p.$('table:not([data-sp="-"]) thead tr:first-child th:nth-child(2)');
+        if (th && await th.isVisible().catch(() => false) && await th.evaluate((e) => e.parentElement.cells.length >= 3 && [...e.parentElement.cells].every((c) => c.colSpan === 1))) {
+          await th.click({ button: 'right' }); await p.waitForTimeout(250);
+          const breit = () => p.evaluate(() => { const t = [...document.querySelectorAll('table[data-sp]')].find((x) => x.dataset.sp !== '-' && x._spN && x.offsetParent); if (!t) return null;
+            const z = (r) => [...r.cells].reduce((a, c) => a + (c.classList.contains('bp-sp-aus') ? 0 : c.colSpan), 0);
+            return { kopf: z(t.tHead.rows[0]), zeilen: [...new Set([...t.rows].filter((r) => r._sp > 0).map(z))] }; });
+          const haken = await p.$('.bp-spm .bp-spm-z input');
+          if (!haken) probleme.push('Spalten-Menü öffnet sich nicht (rechte Maustaste auf den Tabellenkopf)');
+          else {
+            const v = await breit(); await haken.click(); await p.waitForTimeout(350); const n = await breit();
+            if (!v || !n || n.kopf !== v.kopf - 1 || n.zeilen.some((x) => x !== n.kopf)) probleme.push(`Spalte ausblenden: Kopf und Zeilen passen nicht zusammen (vorher ${JSON.stringify(v)}, nachher ${JSON.stringify(n)})`);
+            await p.click('.bp-spm [data-spstd]').catch(() => {}); await p.waitForTimeout(250); const d = await breit();
+            if (!d || !v || d.kopf !== v.kopf) probleme.push('Spalten-Menü: „Standard“ stellt die Spalten nicht wieder her');
+            await p.click('.bp-spm [data-spx]').catch(() => {});
+            spaltenGeprueft++;
+          }
+        }
+      }
       if (st.login) probleme.push('landet auf der Anmeldeseite');
       else if (!st.kopf && pfad) probleme.push('gemeinsame Kopfleiste fehlt');
       if (gname === 'Handy' && st.breit > 2) {
@@ -96,5 +118,6 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
 }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
+console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);
 console.log(`\nOberflächentests: ${ok} in Ordnung, ${fehler.length} mit Fehlern.`);
 process.exit(fehler.length ? 1 : 0);

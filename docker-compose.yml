@@ -30,7 +30,6 @@ x-env: &env
   BAUPORTAL_URL: ${BAUPORTAL_URL:-}
   SERVER_HOST: ${SERVER_HOST:-}   # IP/Name des Servers – für Links zu Apps ohne eigene Adresse (optional)
   BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
-  DIENSTE_INTERNAL: http://dienste:8102
   GANTT_INTERNAL: http://gantt:8082
   PORTAL_INTERNAL: http://portal:8090
   ADMIN_INTERNAL: http://admin:8091
@@ -69,21 +68,6 @@ services:
       retries: 30
     # keine veröffentlichten Ports: nur die Apps im selben Docker-Netz erreichen die Datenbank
 
-  # Hintergrundaufgaben der Plattform: Datenbank einrichten, tägliche Datensicherung, Erinnerungen (bautagebuch/dienste.py).
-  # Alle Apps warten auf diesen Container – das Bautagebuch ist eine normale App.
-  dienste:
-    image: bauplattform/plattform:latest
-    working_dir: /app/bautagebuch
-    container_name: bauplattform_dienste
-    restart: unless-stopped
-    depends_on:
-      bautagebuch_db: { condition: service_healthy }
-    environment:
-      <<: *env
-      APP: dienste
-    volumes:
-      - bautagebuch_data:/data          # Fotos, Logo, Sicherungen, Einstellungen
-
   bautagebuch:
     build: { context: ., dockerfile: Dockerfile }   # EIN Image für alle Apps – hier wird es gebaut, die anderen Dienste benutzen es
     image: bauplattform/plattform:latest
@@ -91,13 +75,12 @@ services:
     container_name: bauplattform_bautagebuch
     restart: unless-stopped
     depends_on:
-      dienste: { condition: service_healthy }
+      bautagebuch_db: { condition: service_healthy }
     ports:
       - "${BAUTAGEBUCH_PUBLISH:-8080}:8000"
     environment:
       <<: *env
       APP: bautagebuch
-      DIENSTE: extern   # Datenbank einrichten, sichern, erinnern: macht der Container „dienste“
       SECRET_KEY: ${SECRET_KEY:-}
     volumes:
       - bautagebuch_data:/data          # Fotos, Logo, Sicherungen, Einstellungen
@@ -108,7 +91,7 @@ services:
     container_name: bauplattform_bauzeitenplan
     restart: unless-stopped
     depends_on:
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${GANTT_PUBLISH:-8082}:8082"
     environment:
@@ -123,7 +106,7 @@ services:
     container_name: bauplattform_portal
     restart: unless-stopped
     depends_on:
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     # kein eigener Port: erreichbar über den Verteiler (bauportal, Port 8090)
     environment:
       <<: *env
@@ -136,7 +119,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${ADMIN_PUBLISH:-8091}:8091"
     environment:
@@ -150,7 +133,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${ADRESSEN_PUBLISH:-8093}:8093"
     environment:
@@ -181,7 +164,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${BAUKOSTEN_PUBLISH:-8094}:8094"
     environment:
@@ -197,7 +180,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${AUFGABEN_PUBLISH:-8095}:8095"
     environment:
@@ -212,7 +195,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${PLAENE_PUBLISH:-8096}:8096"
     environment:
@@ -228,7 +211,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${AVA_PUBLISH:-8097}:8097"
     environment:
@@ -244,7 +227,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${KOMMUNIKATION_PUBLISH:-8098}:8098"
     environment:
@@ -260,7 +243,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${ZEITEN_PUBLISH:-8101}:8101"
     environment:
@@ -276,7 +259,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${BAUDATEN_PUBLISH:-8099}:8099"
     environment:
@@ -293,7 +276,7 @@ services:
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      dienste: { condition: service_healthy }
+      bautagebuch: { condition: service_healthy }
     ports:
       - "${ORCA_PUBLISH:-8100}:8100"
     environment:

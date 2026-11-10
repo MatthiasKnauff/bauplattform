@@ -789,10 +789,6 @@ let AS = { open: false, step: null, skip: [], kw: false, pdf: false };
 function asLoad() { try { AS = Object.assign({ open: false, step: null, skip: [], kw: false, pdf: false }, JSON.parse(localStorage.getItem(AS_KEY())) || {}); } catch { AS = { open: false, step: null, skip: [], kw: false, pdf: false }; } }
 function asSave() { try { localStorage.setItem(AS_KEY(), JSON.stringify(AS)); } catch { /* egal */ } }
 const STEPS = [
-  { k: 'projekt', t: 'Projekt', done: () => !!B.project_id,
-    txt: () => `Verknüpfe die Kostenermittlung mit dem Projekt aus dem Bautagebuch. Die Stufe nach DIN 276 (z. B. <b>Kostenschätzung</b>) wählst du erst beim Prüfen und Drucken – die Übersicht zeigt, wofür die Daten schon reichen.`,
-    st: () => B.project ? `Projekt: ${esc(B.project.name)}` : 'Noch kein Projekt verknüpft.',
-    acts: [['Zur Verknüpfung', 'tab:mittel']] },
   { k: 'plaene', t: 'Pläne hochladen', done: () => B.files.length > 0,
     txt: () => 'Lade die Grundrisse <b>aller Geschosse</b> als PDF aus dem CAD hoch, dazu Ansichten und Schnitte. Aus Grundrissen werden Raumnummer, Name und Fläche exakt gelesen.',
     st: () => B.files.length ? `${B.files.length} Pläne, ${B.data.rooms.length} Räume gelesen.` : 'Noch keine Pläne.',
@@ -801,6 +797,10 @@ const STEPS = [
     txt: () => 'Prüfe Raumtyp und Fläche je Raum. Die Typen sind Vorschläge. Rote Markierungen im Plan zeigen doppelte Raumnummern.',
     st: () => { const o = B.data.rooms.filter((r) => !r.ok || !(r.area > 0) || !r.name).length; return B.data.rooms.length ? (o ? `${o} von ${B.data.rooms.length} Räumen noch offen oder ohne Name/Fläche.` : 'Alle Räume bestätigt.') : 'Noch keine Räume – Grundriss hochladen oder „Räume mit KI lesen“.'; },
     acts: [['Zu den Räumen', 'tab:plaene'], ['Alle bestätigen', 'okAll']] },
+  { k: 'ansaetze', t: 'Aus einem früheren Projekt übernehmen?', done: () => !!AS.ans || LIST.length < 2,   // das Projekt selbst ist immer gesetzt – kein eigener Schritt
+    txt: () => 'Kennwerte, Prozente, Pauschalen und Bauteile mit Einheitspreisen aus einer anderen Kostenermittlung holen – auf Wunsch mit Mengen. Räume und Pläne bleiben. ↶ Rückgängig nimmt es zurück.',
+    st: () => (LIST.length < 2 ? 'Es gibt noch keine andere Kostenermittlung.' : AS.ans === 'ja' ? 'Ansätze übernommen.' : AS.ans ? 'Nicht nötig.' : 'Noch nichts übernommen.'),
+    acts: [['Ansätze übernehmen …', 'ans'], ['Nicht nötig', 'ansok']] },
   { k: 'kennwerte', t: 'Kennwerte', done: () => AS.kw || !(B.acc && B.acc.faktoren.some((f) => /Beispiel-Kennwerte/.test(f.text))),
     txt: () => 'Die vorgegebenen €/m² sind Beispielwerte. Mit Kennwerten aus euren abgerechneten Projekten wird die Schätzung deutlich genauer. Einmal als eigene Werte gespeichert, gelten sie für alle neuen Kostenermittlungen.',
     st: () => (B.acc && B.acc.faktoren.some((f) => /Beispiel-Kennwerte/.test(f.text))) ? 'Es werden noch Beispiel-Kennwerte verwendet.' : 'Eigene Kennwerte in Verwendung.',
@@ -1032,6 +1032,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'pdf') $('#pdfIn').click();
   else if (a === 'okAll') { B.data.rooms.forEach((r) => { r.ok = true; }); changed(); }
   else if (a === 'kwok') { AS.kw = true; }
+  else if (a === 'ans') { if (LIST.length < 2) toast('Es gibt noch keine andere Kostenermittlung, aus der sich etwas übernehmen ließe.'); else $('#ansBtn').click(); }
+  else if (a === 'ansok') { AS.ans = 'nein'; }
   else if (a === 'estimate') { tab = 'kosten'; history.replaceState(null, '', '#kosten'); runEstimate(); }
   else if (a === 'check') { tab = 'pruefung'; history.replaceState(null, '', '#pruefung'); render(); runCheck().then(assist); }
   else if (a === 'pdf-dlg') pdfDialog();
@@ -1561,7 +1563,7 @@ $('#ansBtn').onclick = () => {
         notiz: [b.notiz, `aus „${Q.name}“`].filter(Boolean).join(' · ').slice(0, 500) }));
       d.bauteile = (d.bauteile || []).concat(neu); done.push(`${neu.length} Bauteile`);
     }
-    close(); CHECK = null; HIST.next = 'Ansätze übernommen'; histTrack();
+    close(); CHECK = null; HIST.next = 'Ansätze übernommen'; histTrack(); AS.ans = 'ja'; asSave(); assist();
     changed();
     toast(`Aus „${Q.name}“ übernommen: ${done.join(', ')}. ↶ Rückgängig nimmt es zurück.`);
   });

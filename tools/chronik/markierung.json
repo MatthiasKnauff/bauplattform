@@ -117,6 +117,7 @@
   "Bauteilkatalog für Allplan (Kundenkatalog, Rückweg über IFC)",
   "Allplan-Kataloge mit Gliederung (KG → Vorlage → Aufbau) und direkt in den Bürostandard übertragen (.bak/.bak2)",
   "Allplan: Schichtmaterialien für mehrschichtige Bauteile (Dicke aus Allplan), IFC-Import setzt den Aufbau Schicht für Schicht zusammen",
-  "AVA: Auftrag ohne Angebot und LV"
+  "AVA: Auftrag ohne Angebot und LV",
+  "AVA: Tastatur in allen Bäumen"
  ]
 }

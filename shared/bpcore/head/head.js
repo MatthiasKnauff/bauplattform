@@ -12,6 +12,7 @@
    ===================================================================== */
 (function () {
   if (window.BPHead) return;
+  { const w = document.createElement('script'); w.src = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '') + 'wahl.js'; document.head.appendChild(w); }   // eigene Auswahllisten statt der Systemliste – in jeder App
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
   /* Warte-Hinweis für alles, was der Benutzer gerade angestoßen hat (Klick/Taste) und länger braucht:
      nach 0,4 s ein kleines „Einen Moment …“ oben in der Mitte, bis die Antwort da ist. Hintergrund-Abfragen zählen nicht. */

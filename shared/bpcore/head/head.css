@@ -691,3 +691,23 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bp-spm-z{display:flex;align-items:center;gap:.45rem;padding:.22rem .35rem;border-radius:calc(6px*var(--rk,1));cursor:default;user-select:none}.bp-spm-z:hover{background:color-mix(in srgb,currentColor 8%,transparent)}
 .bp-spm-z .g{color:var(--mute,#9a9c9e);cursor:grab;letter-spacing:-.15em;font-size:.9em}.bp-spm-z input{margin:0;accent-color:var(--y,#d4f02a)}
 .bp-spm-z.vor{box-shadow:inset 0 2px 0 var(--y,#d4f02a)}.bp-spm-z.nach{box-shadow:inset 0 -2px 0 var(--y,#d4f02a)}.bp-spm-z.zieh{opacity:.5}
+/* Auswahllisten (wahl.js): eigene Liste statt der Systemliste – am Computer am Feld, am Handy als Blatt von unten */
+.bph-wahl-bg{position:fixed;inset:0;z-index:9800;pointer-events:none}
+.bph-wahl-bg.blatt{pointer-events:auto;background:rgba(0,0,0,.38);display:flex;align-items:flex-end}
+.bph-wahl{pointer-events:auto;position:fixed;display:flex;flex-direction:column;max-width:min(560px,calc(100vw - 16px));max-height:min(60vh,520px);background:var(--card,#fff);color:var(--ink,#1c1c1a);border:1px solid var(--line,#cfcfca);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 12px 36px rgba(0,0,0,.28));font-size:var(--fs,.95rem);overflow:hidden}
+.bph-wahl-bg.blatt .bph-wahl{position:static;width:100%;max-width:none;max-height:72vh;border-radius:calc(16px*var(--rk,1)) calc(16px*var(--rk,1)) 0 0;border-width:1px 0 0;padding-bottom:env(safe-area-inset-bottom,0)}
+.bph-wahl-k{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;border-bottom:1px solid var(--line,#cfcfca)}
+.bph-wahl-k b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bph-wahl-x{font:inherit;background:none;border:1px solid var(--line,#cfcfca);color:inherit;border-radius:calc(999px*var(--rkp,1));padding:.35rem .9rem;cursor:pointer}
+.bph-wahl-q{padding:.45rem .5rem;border-bottom:1px solid var(--line,#cfcfca)}
+.bph-wahl-q input{width:100%;font:inherit;padding:.4rem .6rem;border:1px solid var(--line,#cfcfca);border-radius:calc(8px*var(--rk,1));background:var(--inp,transparent);color:inherit}
+.bph-wahl-l{overflow:auto;padding:.25rem 0;min-height:0;overscroll-behavior:contain}
+.bph-wahl-o{display:flex;align-items:baseline;gap:.5rem;padding:.42rem .9rem .42rem .6rem;cursor:pointer;line-height:1.3}
+.bph-wahl-bg.blatt .bph-wahl-o{padding:.8rem 1rem .8rem .8rem;font-size:1.02rem}
+.bph-wahl-o .h{flex:none;width:1.1em;color:var(--y,currentColor);font-weight:700}
+.bph-wahl-o .t{min-width:0;overflow-wrap:anywhere}
+.bph-wahl-o.akt,.bph-wahl-o:hover{background:color-mix(in srgb,var(--y,#888) 14%,transparent)}
+.bph-wahl-o.on .t{font-weight:600}
+.bph-wahl-o.aus{opacity:.45;cursor:default}
+.bph-wahl-g{padding:.5rem .9rem .2rem;font-size:.8em;color:var(--mute,#777);text-transform:uppercase;letter-spacing:.04em}
+.bph-wahl-e{padding:.7rem .9rem;color:var(--mute,#777)}

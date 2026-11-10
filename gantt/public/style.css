@@ -742,9 +742,9 @@ html[data-theme="dunkel"] .wz-o small,html[data-theme="dunkel"] .wz-bar small,ht
 .ae-phs{font-size:.75rem;padding:.05rem .2rem;max-width:12rem;opacity:.75}
 .ae-phs:hover,.ae-phs:focus{opacity:1}
 /* Einstellungsfenster der Kopfleiste (⚙) in den Farben des Bauzeitenplans */
-.bph-dr{--card:#fff;--ink:var(--text);--line:var(--bd);--mute:var(--mut);--y:var(--accent);--on:#fff;--inp:#fff}
+.bph-dr,.bph-wahl{--card:#fff;--ink:var(--text);--line:var(--bd);--mute:var(--mut);--y:var(--accent);--on:#fff;--inp:#fff}
 .bph-dlg-bg,.bph-dlg{--y:var(--accent);--on:#fff}   /* Dialoge der Kopfleiste (Projekt wählen …) in der Farbe des Bauzeitenplans statt Pink */
-html[data-theme="dunkel"] .bph-dr{--card:#2b2c2e;--line:#45474b;--inp:#1d1f21}
+html[data-theme="dunkel"] .bph-dr,html[data-theme="dunkel"] .bph-wahl{--card:#2b2c2e;--line:#45474b;--inp:#1d1f21}
 .bph-dr input[type=checkbox]{accent-color:var(--accent)}
 
 /* Leistungs-Assistent */

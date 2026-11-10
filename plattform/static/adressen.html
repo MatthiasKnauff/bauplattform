@@ -339,7 +339,7 @@ function renderTable() {
   $('#cnt').textContent = `${rows.length} von ${ALL.length} Kontakten · Zelle anklicken und tippen – gespeichert wird beim Verlassen des Feldes · Doppelklick öffnet den Kontakt`;
   renderActive();
   const cw = (k, w) => TV.w[k] || w, total = cols.reduce((a, [k, , w], n) => a + (aus.has(n) ? 0 : cw(k, w)), 0) + 130;
-  $('#tw').innerHTML = `<table class="tt" data-sp="adressen" data-spaus="${ausStd.join(',')}" style="width:${total}px"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col style="width:130px"></colgroup>
+  $('#tw').innerHTML = `<table class="tt" data-sp="adressen" data-spaus="${ausStd.join(',')}" style="width:${total}px;min-width:100%"><colgroup>${cols.map(([k, , w]) => `<col data-col="${k}" style="width:${cw(k, w)}px">`).join('')}<col style="width:130px"></colgroup>
     <thead><tr class="h">${cols.map(([k, l]) => `<th data-sort="${k}" data-spname="${l}" title="Sortieren · Rand ziehen: Breite ändern · rechte Maustaste: Spalten wählen">${l}${TV.sort.k === k ? `<span class="ar">${TV.sort.d > 0 ? '▲' : '▼'}</span>` : ''}<span class="rz" data-rz="${k}" title="Ziehen: Spaltenbreite · Doppelklick: Standardbreite"></span></th>`).join('')}<th></th></tr>
     <tr class="f">${cols.map(([k, l]) => `<th>${fltField(k, l)}</th>`).join('')}<th>${anyFlt() ? '<button class="btn sm" data-clr="*" title="Alle Filter und die Suche löschen">✕ Alle</button>' : ''}</th></tr></thead>
     <tbody>${rows.map((c) => `<tr data-id="${c.id}">${cols.map(([k, , , ro]) => ro ? `<td class="ro" title="${esc(cellVal(c, k))}">${esc(cellVal(c, k))}</td>`

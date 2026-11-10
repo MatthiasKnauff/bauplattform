@@ -271,6 +271,6 @@ def test_zustand_der_dienste(ctx):
         pruefe(x and x["ok"], f"Dienst „{key}“ meldet einen Fehler: {x}")
     pruefe(s["db"]["schema"] >= 27, f"Schema {s['db']['schema']} älter als benötigt (27)")
     pruefe(s["counts"]["Benutzer"] >= 4, "weniger als 4 Benutzer")
-    pruefe(s["counts"]["Bautagebuch-Projekte"] >= 3, "weniger als 3 Projekte")
+    pruefe(s["counts"]["Projekte"] >= 3, "weniger als 3 Projekte")
     pruefe(s["counts"]["davon mit Projekt verknüpft"] >= 2, "Bauzeitenpläne der Testdaten nicht verknüpft")
     pruefe(s.get("version") is not None, "keine Versionsangabe")

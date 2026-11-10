@@ -8,6 +8,7 @@
 //   - am Handy keine waagerechte Scrollleiste der ganzen Seite
 //   - die Seite kommt zur Ruhe (kein Baustein baut das Dokument im Kreis um)
 //   - am PC: zeigt die Seite eine Tabelle mit Kopfzeile, lässt sich dort eine Spalte aus- und wieder einblenden (spalten.js)
+// Dazu einmal die Tastatur im Baum (baum.js) an einem Muster-Baum – siehe baumtasten.mjs
 //
 // Aufruf:  node tools/tests/ui/oberflaeche.mjs http://localhost:8090
 // Braucht das npm-Paket „playwright“ mit Chromium (in der Pipeline: npx playwright install --with-deps chromium).
@@ -15,6 +16,8 @@
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { baumTastenPruefen } from './baumtasten.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -116,6 +119,16 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
   }
   await ctx.close();
 }
+// Tastatur im Baum (baum.js): Muster-Baum im Browser, unabhängig von den Testdaten
+{ const KASTEN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../shared/bpcore/head');
+  const ctx = await b.newContext({ viewport: { width: 1200, height: 800 } }), p = await ctx.newPage(), js = [];
+  p.on('pageerror', (e) => js.push('JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
+  let f = [];
+  try { f = await baumTastenPruefen(p, fs.readFileSync(path.join(KASTEN, 'baum.js'), 'utf8'), fs.readFileSync(path.join(KASTEN, 'bp.css'), 'utf8')); }
+  catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  f = [...js, ...f];
+  if (f.length) { fehler.push('Tastatur im Baum:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Tastatur im Baum'); } else { ok++; console.log('  ok      Tastatur im Baum'); }
+  await ctx.close(); }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));
 console.log(`\nSpalten-Menü an ${spaltenGeprueft} Tabellen geprüft.`);

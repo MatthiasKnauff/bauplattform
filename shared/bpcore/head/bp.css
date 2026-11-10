@@ -137,5 +137,7 @@ table.bp-baum.bp-baum td{vertical-align:middle}
 table.bp-baum.bp-baum td.baumz{white-space:nowrap}
 table.bp-baum.bp-baum .bz{display:flex;align-items:center;gap:.15rem;min-width:0}
 table.bp-baum.bp-baum .car{display:inline-block;width:1rem;text-align:center;color:var(--mute);cursor:pointer;user-select:none;vertical-align:middle}
+/* Tastatur im Baum (baum.js): der Baum selbst ohne Fokusrahmen, die Cursorzeile mit Rahmen in der Akzentfarbe, solange der Baum den Fokus hat */
+.bp-kw:focus{outline:none}.bp-kw:focus tr.bp-kc,.bp-kw:focus .pj-r.bp-kc{outline:2px solid var(--y);outline-offset:-2px}
 table.bp-baum.bp-baum .ico{width:16px;height:16px;vertical-align:-3px;margin-right:.35rem;flex:none}
 table.bp-baum.bp-baum .ozt{color:var(--mute);font-variant-numeric:tabular-nums;margin-right:.25rem;vertical-align:middle}

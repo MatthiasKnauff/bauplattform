@@ -10,7 +10,7 @@
               Browserfenster), neu() wird nach einer Größenänderung aufgerufen (z. B. PDF neu zeichnen);
               fenster: true → Knopf „⇱“: der Reiter zieht in ein eigenes Browserfenster (zweiter Bildschirm) und bleibt verbunden
      opt    – { start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
-   seiteUmschalten() / seiteOffen() / seiteDa() – für den Knopf „Details“ in der Leiste
+   seiteUmschalten() / seiteOffen() / seiteDa() – Bereich rechts an den Rand klappen bzw. fragen, ob er offen ist / da ist
    seiteAufraeumen() – freie Fenster eines nicht mehr sichtbaren Bereichs schließen (nach dem Neuzeichnen der Seite)
 
    bpFrei(f, { key, start, griff, neu }) – macht aus einem Element ein freies Fenster (Klasse sr-flo): am Griff verschieben,

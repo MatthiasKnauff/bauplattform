@@ -975,19 +975,17 @@ function uSlots() {   // feste Reihenfolge und gleiche Wörter in allen Bereiche
     if (typeof x[0] === 'string') { const b = ribKnopf(x[0]); return b ? [x[0], label, ic, b.disabled, b.title || label] : [null, label, ic, true, tipNein]; }
     return [x[0], label, ic, !!x[1], x[2] || label];
   };
-  const IC_DET = '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M14.5 5v14"/>', IC_VER = '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>';
+  const IC_VER = '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>';
   return [
     slot(imp, 'Import', IC_IMP, 'Hier gibt es nichts einzulesen'),
     slot(exp, 'Export', '<path d="M5 14v6h14v-6"/><path d="M12 15V4M8 8l4-4 4 4"/>', 'Export gibt es im Leistungsverzeichnis, bei Angeboten, Aufträgen und in der Kostenkontrolle'),
     slot(dru, 'Drucken', IC_DRU, 'Hier gibt es nichts zu drucken'),
-    seiteDa() ? [() => { seiteUmschalten(); uLeisteNeu(); }, 'Details', IC_DET, false, seiteOffen() ? 'Bereich rechts an den Rand klappen' : 'Bereich rechts zeigen', seiteOffen()]
-      : [null, 'Details', IC_DET, true, 'Hier gibt es keinen Bereich rechts'],
     L && tab !== 'uebersicht' ? [() => lvVerlauf(), 'Verlauf', IC_VER, false, 'Verlauf des LV – alle Änderungen'] : [null, 'Verlauf', IC_VER, true, 'Erst ein LV wählen'],
     L && tab !== 'tueren' && tab !== 'uebersicht' ? [uLoeschen, 'Löschen', IC_DEL, false, uLoeschText() + ' – in den Papierkorb, mit Rückgängig', null, 'rot'] : [null, 'Löschen', IC_DEL, true, 'Hier gibt es nichts zu löschen'],
   ];
 }
 function uLeisteNeu() { befehle($('#bfl'), avaBefehle(), document.getElementById('kpi')); }   // Kennzahlen in der Mitte der Leiste – keine eigene Zeile mehr   // Befehlsleiste neu – nach jedem Zeichnen und wenn sich die Auswahl ändert
-/* Befehlsleiste je Bereich (befehle.js): links das Fachliche, rechts immer Datei · Verlauf · Löschen · Details · ⋯ */
+/* Befehlsleiste je Bereich (befehle.js): links das Fachliche, rechts immer Datei · Verlauf · Löschen · ⋯ (den Bereich rechts klappen die Reiter am Rand und sein ✕) */
 const BIC = { plus: '<path d="M12 5v14M5 12h14"/>', num: '<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>', bk: '<path d="M4 20V10l8-6 8 6v10"/><path d="M9 20v-6h6v6"/>', qu: '<rect x="3" y="4" width="8" height="16" rx="1.5"/><path d="M15 8h6M15 12h6M15 16h4"/>',
   dok: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>', lang: '<path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>', vb: '<path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6"/>', bieter: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/>',
   nv: '<circle cx="12" cy="12" r="8.5"/><path d="M8 8l8 8"/>', ki: '<path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8z"/>', ueb: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>', raum: '<path d="M3 21V8l9-5 9 5v13"/><path d="M8 21v-7h8v7"/>', re: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>' };
@@ -1703,7 +1701,9 @@ document.addEventListener('click', async (e) => {
   await flush(); tab = k.dataset.eintab; LS.set('tab', tab); await openLv(+k.dataset.einlv);
   const pn = document.querySelector('.body'); if (pn) pn.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
+let RKEY = '';
 function render() {
+  { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
   setTimeout(seiteAufraeumen, 0);   // freie Fenster eines Bereichs, der nicht mehr zu sehen ist, schließen
   einUeb();
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);
@@ -2089,12 +2089,13 @@ function vLv() {
     return doc('', '#7a8a99'); };
   const ICT = '<svg class="ico\" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
   const einr = bpBaum.einzug;   // Einrückung je Ebene: gemeinsamer Baustein (/bp/baum.js)
-  let tief = 0; const sichtbar = bpBaum.sicht(I, lvTiefe, LVZU);   // was unter einem zugeklappten Titel liegt, fehlt
+  let tief = 0; const sichtbar = bpBaum.sicht(I, lvTiefe, LVZU);
+  const hatKind = (i) => !!I[i + 1] && lvTiefe(I[i + 1]) > lvTiefe(I[i]);   // leerer Gliederungspunkt: kein Dreieck   // was unter einem zugeklappten Titel liegt, fehlt
   const rows = I.map((x, i) => {
     if (x.typ === 'titel') {
       const lv = x.lvl || 1; tief = lv;
       if (!sichtbar[i]) return '';
-      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Doppelklick: Eigenschaften des Gliederungspunkts (Bezeichnung, Nachtrag) · zum Verschieben hier greifen und ziehen"', tiefe: lv + 1, auf: !LVZU.zu(x.id), klapp: x.id, icon: IC.ti, html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}<td colspan="${V ? 6 : 5}"></td>
+      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Doppelklick: Eigenschaften des Gliederungspunkts (Bezeichnung, Nachtrag) · zum Verschieben hier greifen und ziehen"', tiefe: lv + 1, auf: hatKind(i) ? !LVZU.zu(x.id) : undefined, klapp: hatKind(i) ? x.id : null, icon: IC.ti, html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}<td colspan="${V ? 6 : 5}"></td>
       <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib${x.nt ? ' an' : ''}" data-a="ntti" title="${x.nt ? 'Nachtrag aufheben – die Positionen darunter werden wieder normale Positionen' : 'Diesen Gliederungspunkt als Nachtrag kennzeichnen – alle Positionen darunter gehören dann zum Nachtrag'}">NT</button><button class="ib" data-a="lvlauf" title="eine Ebene höher (mit seinen Untertiteln)"${lv > 1 ? '' : ' disabled'}>⇤</button><button class="ib" data-a="lvlab" title="zum Untertitel machen – eine Ebene tiefer (GAEB: höchstens 4 Ebenen)"${lv < 4 ? '' : ' disabled'}>⇥</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     }
     if (!sichtbar[i]) return '';
@@ -2132,6 +2133,15 @@ document.addEventListener('click', async (e) => {   // anderes LV im Baum öffne
   try { await openLv(+r.dataset.lvopen); LVAKT = '__lv'; lvAktZeigen(); } catch (er) { toast(er.message, true); }   // das geöffnete LV ist markiert; ein Fehler beim Laden bleibt nicht stumm
 });
 bpBaum.klappbar(document, { klapp: () => (tab === 'lv' && L ? LVZU : null), neu: render, alle: () => items().filter((x) => x.typ === 'titel').map((x) => x.id) });   // Titel auf- und zuklappen (einzeln und alle)
+/* Tastatur in den Bäumen (gemeinsamer Baustein /bp/baum.js): ↑↓ ← → Enter Esc, Tab/Enter in den Feldern, F6 zwischen Baum und Bereich rechts */
+bpBaum.tasten({ wurzel: '#view table.lv.baum:not(.am) > tbody', zeilen: 'tr[data-i]:not(.lang), tr.wurzel', aktiv: (w) => w.querySelector('tr.akt'),
+  waehle: (z, o) => { if (z.dataset.lvopen == null) (z.querySelector('.ozt') || z.querySelector('td')).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: o.umschalt })); },   // andere LVs: erst Enter öffnet
+  neu: (z, titel) => { const b = document.querySelector(`.rib [data-act="${titel ? 'glied' : 'pos'}"]`); if (b && !b.disabled) b.click(); },
+  schiebe: (z, d) => { if (z.dataset.i != null) moveItem(+z.dataset.i, d); } });
+bpBaum.tasten({ wurzel: '#pjTree, #view .pjtree[data-teil]', zeilen: '.pj-r', tiefe: (z) => (z.classList.contains('root') ? 0 : z.classList.contains('k') ? 2 : 1) });   // Projektbaum: Cursor wandert, Enter öffnet
+bpBaum.tasten({ wurzel: '#view table.au-t > tbody', zeilen: 'tr[data-tr]', ohne: 'input.aui, tr[data-ntein] input', waehle: (z) => (z.querySelector('.au-bz') || z.querySelector('td')).click() });   // Aufträge: Felder mit eigenem Tab/Enter (auZiel…)
+bpBaum.tasten({ wurzel: '#view table.lv.am.baum > tbody', zeilen: 'tr', ohne: '[data-am-new], .pj-ren' });
+window.bpBaumFelder = '#view table.lv.ps, .sr-flo table.lv.ps';   // Preisspiegel: Enter geht in der Spalte eines Bieters nach unten, Tab von Bieter zu Bieter
 function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
   if (tab !== 'lv' || !L) return;
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {};

@@ -270,7 +270,11 @@ async function zeileAktion(z, a) {
     if (z.dataset.v != null) {
       const v = D.vorschlaege[+z.dataset.v]; if (!v) return;
       if (a === 'weg') { D = await api('api/verwerfen', 'POST', { d: tag, von: v.von, bis: v.bis }); zeichne(); rueckgaengig('Vorschlag nicht übernommen', async () => { D = await api('api/verwerfen', 'POST', { d: tag, von: v.von, bis: v.bis, zurueck: 1 }); zeichne(); }); return; }
-      D = await api('api/eintrag', 'POST', { d: tag, ...v, ...zeileWerte(z), quelle: v.quelle }); zeichne(); return;
+      const t0 = tag, vor = new Set((D.eintraege || []).map((e) => e.id));
+      D = await api('api/eintrag', 'POST', { d: t0, ...v, ...zeileWerte(z), quelle: v.quelle }); zeichne();
+      const neu = (D.eintraege || []).find((e) => !vor.has(e.id));   // zurück: die Zeit löschen – sie erscheint wieder als Vorschlag
+      if (neu) rueckgaengig('Vorschlag übernommen', async () => { const d = await api('api/eintrag/' + neu.id, 'DELETE'); if (tag === t0) D = d; zeichne(); });
+      return;
     }
     if (z.dataset.e) {
       const id = +z.dataset.e;
@@ -359,7 +363,9 @@ document.addEventListener('click', async (e) => {
     const a = ta.dataset.ta;
     if (a === 'neu') { const n = new Date(), m = Math.floor((n.getHours() * 60 + n.getMinutes()) / 15) * 15; NEU = { von: tag === G.heute ? m2h(Math.max(0, m - 60)) : '09:00', bis: tag === G.heute ? m2h(m) : '10:00', project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' }; zeichne(); const f = document.querySelector('.zr[data-n] [data-zf="project_id"]'); if (f) f.focus(); return; }
     try {
-      if (a === 'ok') { D = await api('api/tag/bestaetigen', 'POST', { d: tag }); W = await api('api/woche?d=' + tag); zeichne(); toast('Tag bestätigt.'); }
+      if (a === 'ok') { const t0 = tag; D = await api('api/tag/bestaetigen', 'POST', { d: t0 }); const neu = D.uebernommen || []; W = await api('api/woche?d=' + t0); zeichne();
+        rueckgaengig(neu.length ? `Tag bestätigt – ${neu.length} Vorschl${neu.length === 1 ? 'ag' : 'äge'} übernommen` : 'Tag bestätigt', async () => {   // zurück: Tag wieder offen, die übernommenen Zeiten sind wieder Vorschläge
+          const d = await api('api/tag/oeffnen', 'POST', { d: t0, weg: neu }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
       if (a === 'auf') { D = await api('api/tag/oeffnen', 'POST', { d: tag }); zeichne(); }
     } catch (er) { toast(er.message, true); }
     return;

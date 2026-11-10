@@ -98,3 +98,13 @@ body.g-zl-linie .selband{fill:#e0393e;height:2px;transform:translateY(calc(var(-
 .vg-e{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:1fr auto;gap:.05rem .5rem;padding:.35rem .45rem;border-bottom:1px solid var(--line);cursor:pointer;border-radius:calc(5px*var(--rk,1))}
 .vg-e:hover{background:var(--hov)}.vg-e small{grid-column:1/-1;color:var(--mute);font-size:var(--fs-s)}.vg-e b{font-weight:600}
 .vg-e-sp b,.vg-e-weg b{color:#c0392b}.vg-e-fr b,.vg-e-neu b{color:#2e8b57}.vg-e-ort b{color:#8e6bd6}
+/* Scrollbalken von Plan und Diagramm: senkrecht erst unterhalb der Kopfzeile (Zeitskala/Spaltenköpfe), nicht daneben in einer Lücke.
+   Chromium/Edge: ::-webkit-scrollbar greift nur ohne scrollbar-width/-color – deshalb hier auf auto zurück */
+body.g-rahmen :is(#chartPane,#gridPane){scrollbar-width:auto;scrollbar-color:auto}
+body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar{width:10px;height:10px;background:transparent}
+body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mute) 45%,transparent);border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--mute) 70%,transparent)}
+body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-track{background:transparent}
+body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-track:vertical{margin-top:44px}
+body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-corner{background:transparent}
+body.g-rahmen #gridPane::-webkit-scrollbar:vertical{width:0}   /* Plan und Diagramm rollen gemeinsam: ein senkrechter Balken (am Diagramm) genügt */

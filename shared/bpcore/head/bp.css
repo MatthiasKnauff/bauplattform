@@ -123,7 +123,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-blase.oben>i{top:auto;bottom:-7px;transform:rotate(225deg)}
 @keyframes bp-blase-rein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 /* Navigation links (nav.js): Kopf, Gruppen mit Bereichen – gleiches Aussehen in allen Apps; wo das Feld steht, bestimmt die App */
-.bp-nav{border-right:1px solid var(--line);background:var(--card);overflow:auto;padding:.5rem .45rem;box-sizing:border-box}
+.bp-nav{border-right:1px solid var(--line);background:var(--card);overflow-y:auto;overflow-x:hidden;padding:.5rem .45rem;box-sizing:border-box}
 .bp-nav .nk{display:flex;align-items:baseline;gap:.4rem;padding:.15rem .4rem .45rem;font-size:var(--fs-s2,.94em)}.bp-nav .nk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bp-nav .nk small{color:var(--mute)}
 .bp-nav .ng{margin-bottom:.35rem}
 .bp-nav-griff{flex:none;width:10px;margin:0 -5px;position:relative;z-index:6;cursor:col-resize;touch-action:none;align-self:stretch}   /* Anfasser rechts der Navigation (bpNav.breite) */

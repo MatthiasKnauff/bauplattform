@@ -2557,7 +2557,8 @@
       g.strokeStyle = d.farbe; g.fillStyle = d.farbe; g.lineCap = 'round'; g.lineJoin = 'round'; g.globalAlpha = d.art === 'marker' ? 0.35 : 1; g.lineWidth = bw;
       if (d.art === 'haken' || d.art === 'kreuz') {   // Prüfzeichen
         const [x, y] = P[0], q = Math.max(10, bw * 4); g.strokeStyle = d.farbe; g.lineWidth = Math.max(2, q / 6); g.beginPath();
-        if (d.art === 'haken') { g.moveTo(x - q * .5, y); g.lineTo(x - q * .1, y + q * .45); g.lineTo(x + q * .6, y - q * .55); }
+        if (d.art === 'haken') { const a = -(((d.pts[0][0] * 131 + d.pts[0][1] * 977) * 9301 + 49297) % 233280 / 233280 * 16 - 8) * Math.PI / 180, Q = (u, v) => [x + q * (u * Math.cos(a) - v * Math.sin(a)), y + q * (u * Math.sin(a) + v * Math.cos(a))];   // wie mit dem Stift gezogen (gleich wie im Ausdruck: skizze.pdf_zeichnen)
+          g.moveTo(...Q(-.42, 0)); g.bezierCurveTo(...Q(-.32, .08), ...Q(-.22, .2), ...Q(-.15, .36)); g.bezierCurveTo(...Q(0, 0), ...Q(.3, -.42), ...Q(.66, -.63)); }
         else { g.moveTo(x - q * .45, y - q * .45); g.lineTo(x + q * .45, y + q * .45); g.moveTo(x - q * .45, y + q * .45); g.lineTo(x + q * .45, y - q * .45); }
         g.stroke(); return; }
       if (d.art === 'text') { g.font = `bold ${Math.max(10, bw * 4)}px system-ui,sans-serif`; g.textBaseline = 'bottom'; g.fillText(d.text || '', P[0][0], P[0][1]); g.globalAlpha = 1; return; }

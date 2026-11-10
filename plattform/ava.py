@@ -4614,7 +4614,7 @@ def beleg(b):
 
 def _beleg_markiert(c, data, bid=None):
     """Rechnung der Firma mit den Prüfzeichen – so, wie sie im Reiter „Dokument“ steht: die errechneten ✔ / ✘ (mit dem geprüften
-    Wert daneben) und die von Hand gesetzten Haken (blau). Zeichen aus der früheren Markier-Ansicht bleiben erhalten."""
+    Wert daneben) und die von Hand gesetzten Haken. Zeichen aus der früheren Markier-Ansicht bleiben erhalten."""
     from bpcore import skizze
     liste = []
     try:
@@ -4647,7 +4647,7 @@ def _beleg_striche(c, bid, errechnet=True):
         except (ValueError, IndexError):
             continue
         hand.append((n, y))
-        out.append({"seite": n, "art": "haken", "farbe": "#1c7ed6", "breite": 0.004, "pts": [[min(0.985, px + 0.016), y]]})
+        out.append({"seite": n, "art": "haken", "farbe": "#1f9d4c", "breite": 0.0065, "pts": [[min(0.985, px + 0.012), y]]})
     A = _j(x["auslese"], None)
     if errechnet and A and "zahlen" in A:
         lv = _lv(c, x["lv_id"])
@@ -4661,7 +4661,7 @@ def _beleg_striche(c, bid, errechnet=True):
         for n, art, pos, txt in _pruefzeichen(A, K, RC, R0, VP, {y["id"]: y for y in (_j(lv["data"], {}) or {}).get("items") or [] if y.get("id")}):
             if any(hn == n and abs(hy - pos[1]) < 0.006 for hn, hy in hand):
                 continue
-            out.append({"seite": n, "art": art, "farbe": "#1f9d4c" if art == "haken" else "#e02424", "breite": 0.004, "pts": [pos]})
+            out.append({"seite": n, "art": art, "farbe": "#1f9d4c" if art == "haken" else "#e02424", "breite": 0.0065 if art == "haken" else 0.004, "pts": [pos]})
             if txt:
                 out.append({"seite": n, "art": "text", "farbe": "#e02424", "breite": 0.0035, "pts": [[max(0.03, pos[0] - 0.32), min(0.99, pos[1] + 0.024)]], "text": txt})
     return out
@@ -5578,6 +5578,22 @@ def lv_pdf(i):
         if not freigabe:
             teile.discard("freigabe")
         ANL = [n for k, n in (("pruef", "Prüfblatt"), ("aufmass", "Massenermittlung"), ("rechnung", "Rechnung des Auftragnehmers")) if k in teile]
+        # „mit meiner Unterschrift“ (nur für diesen Ausdruck gewählt): das Unterschriftsbild aus „Mein Konto“ an den Stellen der Bauleitung
+        sig = None
+        from reportlab.platypus import Image as RLImage, Table, TableStyle   # für die Unterschriftszeile (st läuft später, braucht die Namen hier)
+        if "sign" in (request.args.get("teile") or "").split(","):
+            from bpcore import konto
+            with db.tx() as c2:
+                png = konto.signatur(c2, g.user["id"])
+            if not png:
+                return jsonify(error="Es ist noch keine Unterschrift hinterlegt – oben rechts unter ⚙ → Mein Konto ein Bild der Unterschrift hochladen."), 400
+
+            def sig(hoehe_mm=13):
+                from PIL import Image as _PI
+                from reportlab.lib.units import mm as _mm
+                im = _PI.open(io.BytesIO(png))
+                h = hoehe_mm * _mm
+                return RLImage(io.BytesIO(png), width=min(55 * _mm, h * im.width / max(1, im.height)), height=h, hAlign="LEFT")
 
         def st(story, S, X, table, W, mm, p):
             if "freigabe" in teile:
@@ -5621,7 +5637,8 @@ def lv_pdf(i):
                                         f" (danach {eur(RC['brutto'])}" + (f" bis zum {frist}" if frist else "") + ")" if RC.get("skonto") and RC.get("skonto_bis") else
                                         f". Wir empfehlen die Zahlung von <b>{eur(RC['brutto'])}</b> brutto" + (f" bis zum {frist}" if frist else "")) + "."
                                      + ("" if R["status"] == "geprueft" else " <i>(Entwurf – Prüfung noch nicht abgeschlossen)</i>")), S["p"]),
-                          Spacer(1, 18 * mm), table([["Ort, Datum", "Bauleitung / Objektüberwachung", "zur Zahlung angewiesen (Bauherr)"]], [W / 3] * 3, head=False),
+                          *([Spacer(1, 5 * mm), Table([[Paragraph(_de(date.today().isoformat()), S["p"]), sig(), ""]], colWidths=[W / 3] * 3, style=TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 1)]))] if sig else [Spacer(1, 18 * mm)]),
+                          table([["Ort, Datum", "Bauleitung / Objektüberwachung", "zur Zahlung angewiesen (Bauherr)"]], [W / 3] * 3, head=False),
                           *([Paragraph("Anlagen: " + ", ".join(ANL), S["l"])] if ANL else [])] + ([PageBreak()] if "pruef" in teile else [])
                 if "pruef" not in teile:
                     return
@@ -5691,6 +5708,8 @@ def lv_pdf(i):
             story += [Spacer(1, 10 * mm), Paragraph(
                 ("Sachlich und rechnerisch geprüft" + (f" am {_de(R['data'].get('geprueft_am'))} von {X(R['data'].get('geprueft_von'))}" if R["status"] == "geprueft" else " – Entwurf, Prüfung noch nicht abgeschlossen")) +
                 (f"<br/>Bemerkung: {X(R['notiz'])}" if R["notiz"] else ""), S["p"])]
+            if sig:
+                story += [Spacer(1, 2 * mm), sig(12), Paragraph(f"{X(g.user['name'])} · {_de(date.today().isoformat())}", S["l"])]
         pdf = None if not teile & {"freigabe", "pruef"} else _pdf(r, f"{'Rechnungsfreigabe' if 'freigabe' in teile else 'Rechnungsprüfung'} – {re_titel(R['nr'], R['art'])}", f"{P['projekt']} · LV {r['nr']} {r['name']}", st,
                    bereich="rechnungsfreigabe" if "freigabe" in teile else "rechnungspruefung",
                    werte={"rechnung": re_titel(R["nr"], R["art"]), "re_nr": R["re_nr"] or "", "re_datum": _de(R["datum"]), "eingang": _de(R["eingang"])})

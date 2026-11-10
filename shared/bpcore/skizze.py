@@ -249,10 +249,14 @@ def pdf_zeichnen(datei, liste):
                 if d["art"] in ("haken", "kreuz"):   # Prüfzeichen: grüner Haken / rotes Kreuz
                     x, y = P(*d["pts"][0])
                     g_ = max(6, d["breite"] * vw * 4)
-                    cv.setStrokeColor(col); cv.setLineWidth(max(1.2, g_ / 6)); cv.setLineCap(1); cv.setLineJoin(1)
+                    cv.setStrokeColor(col); cv.setLineWidth(max(1.1, g_ / (9 if d["art"] == "haken" else 6))); cv.setLineCap(1); cv.setLineJoin(1)
                     pth = cv.beginPath()
                     if d["art"] == "haken":
-                        pth.moveTo(x - g_ * .5, y); pth.lineTo(x - g_ * .1, y - g_ * .45); pth.lineTo(x + g_ * .6, y + g_ * .55)
+                        # wie mit dem Stift gezogen: kurzer Abstrich, langer geschwungener Aufstrich, je nach Lage etwas anders geneigt
+                        import math
+                        a_ = math.radians(((d["pts"][0][0] * 131 + d["pts"][0][1] * 977) * 9301 + 49297) % 233280 / 233280 * 16 - 8)
+                        Q = lambda u, v: (x + g_ * (u * math.cos(a_) - v * math.sin(a_)), y + g_ * (u * math.sin(a_) + v * math.cos(a_)))
+                        pth.moveTo(*Q(-.42, 0)); pth.curveTo(*Q(-.32, -.08), *Q(-.22, -.2), *Q(-.15, -.36)); pth.curveTo(*Q(0, 0), *Q(.3, .42), *Q(.66, .63))
                     else:
                         pth.moveTo(x - g_ * .45, y + g_ * .45); pth.lineTo(x + g_ * .45, y - g_ * .45); pth.moveTo(x - g_ * .45, y - g_ * .45); pth.lineTo(x + g_ * .45, y + g_ * .45)
                     cv.drawPath(pth, stroke=1, fill=0)

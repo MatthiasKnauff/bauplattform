@@ -132,7 +132,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav{position:relative}
 /* Lage der Navigation (o.lage): ⋮⋮ Griff zum Verschieben, Heftzwecke; frei = nur Symbole, Darüberfahren klappt über dem Inhalt auf */
 .bp-nav .ngrip{flex:none;cursor:grab;color:var(--mute);letter-spacing:-.2em;padding:0 .35rem 0 .1rem;border-radius:calc(4px*var(--rk,1));user-select:none;touch-action:none;align-self:center}.bp-nav .ngrip:hover{background:var(--hov);color:var(--ink)}
-.bp-nav .npin{flex:none;margin-left:auto;align-self:center;border:0;background:none;color:var(--mute);padding:.1rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;line-height:0}
+.bp-nav .npin{flex:none;margin-left:auto;align-self:center;border:0;background:none;color:var(--red);padding:.1rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;line-height:0}
 .bp-nav .npin svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;transform:rotate(40deg);transition:transform .15s}.bp-nav .npin.an svg{transform:none;fill:currentColor}.bp-nav .npin:hover{background:var(--hov);color:var(--y)}
 .bp-nav .nbu{width:15px;text-align:center;font-weight:700;opacity:.75;flex:none}
 /* gelöst: die Navigation hat immer ihre volle Breite und liegt über dem Inhalt; zu sehen ist nur ein 52-px-Streifen (clip-path).
@@ -147,7 +147,7 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav.frei:not(:hover):not(:focus-within) .ni :is(svg,.nbu){color:var(--ink)}
 .bp-nav.frei:not(:hover):not(:focus-within){background-image:linear-gradient(90deg,transparent 51px,var(--line) 51px,var(--line) 52px,transparent 52px)}   /* Kante des Streifens */
 .bp-nav.frei:not(:hover):not(:focus-within) .nh{color:transparent;background-color:transparent;border-color:transparent}
-.bp-nav.frei:not(:hover):not(:focus-within) .ng:has(>.nh){background-image:linear-gradient(color-mix(in srgb,var(--mute) 50%,transparent),color-mix(in srgb,var(--mute) 50%,transparent));background-size:22px 1px;background-repeat:no-repeat;background-position:13px .8rem}   /* im Streifen: Gruppen als kurzer Strich – die Abstände wirken geordnet */
+.bp-nav.frei .nh{display:none}.bp-nav.frei .ng+.ng{border-top:1px solid var(--line);margin-top:.3rem;padding-top:.3rem}   /* gelöst: Symbole dicht wie im Mock – Gruppen nur als Trennstrich, auch aufgeklappt (nichts springt) */
 .bp-nav.frei:not(:hover):not(:focus-within) :is(.nv-davor,.nfuss,.nsuche,.ni small,.ni-neu,.ng>:not(.ni)){opacity:0;pointer-events:none}
 .bp-nav-zone{position:fixed;z-index:3000;display:flex;align-items:center;justify-content:center;border:2px dashed var(--y);border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,var(--y) 14%,transparent);color:var(--ink);font-weight:600;pointer-events:none}
 .bp-nav-zone.hot{background:color-mix(in srgb,var(--y) 34%,transparent)}

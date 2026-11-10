@@ -17,6 +17,7 @@ P = dict(ordner="plattform", threads=4, timeout=300, gesund="/api/health")
 
 APPS = {
     "bautagebuch":   dict(ordner="bautagebuch", modul="app", port=8000, threads=0, timeout=60, gesund="/api/platform"),
+    "dienste":       dict(ordner="bautagebuch", modul="dienste", port=8102, worker=1, threads=2, timeout=120, gesund="/api/health"),   # Hintergrundaufgaben: Datenbank einrichten, sichern, erinnern (ein Prozess!)
     "gantt":         dict(ordner="gantt", modul="app", port=8082, threads=4, timeout=300, gesund="/api/health"),
     "router":        dict(P, modul="router", port=8090, threads=32, timeout=320),   # Verteiler: eine Adresse für alle Apps
     "portal":        dict(P, modul="portal", port=8090),

@@ -212,6 +212,24 @@ def known_versions():
     return {int(os.path.basename(f)[:4]): f for f in glob.glob(os.path.join(MIGRATIONS, "[0-9][0-9][0-9][0-9]_*.sql"))}
 
 
+def warte_auf_schema(seconds=180):
+    """Für Apps, die die Datenbank nicht selbst einrichten (das macht der Container „dienste“): warten, bis das Schema
+    mindestens so neu ist, wie diese App es braucht."""
+    _wait_for_db()
+    soll, ende = max(known_versions(), default=0), time.time() + seconds
+    while True:
+        try:
+            with psycopg.connect(DSN, autocommit=True) as raw:
+                ist = raw.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
+        except psycopg.Error:
+            ist = -1   # Tabelle gibt es noch nicht – die Dienste sind noch nicht so weit
+        if ist >= soll:
+            return
+        if time.time() > ende:
+            raise RuntimeError(f"Die Datenbank ist nicht eingerichtet (Schema {ist}, gebraucht wird {soll}) – läuft der Container „dienste“?")
+        time.sleep(2)
+
+
 def migrate():
     os.makedirs(DATA, exist_ok=True)
     _wait_for_db()

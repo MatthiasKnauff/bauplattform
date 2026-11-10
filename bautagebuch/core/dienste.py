@@ -1,0 +1,31 @@
+"""Die Hintergrundaufgaben der Bauplattform als zwei Aufrufe: einrichten() einmal beim Start, starten() für die laufenden Aufgaben.
+Aufgerufen vom Container „dienste“ (bautagebuch/dienste.py) – und vom Bautagebuch selbst, solange es keinen Dienste-Container gibt."""
+from . import auth, backups, db, extern, reminders, storage, sync
+from bpcore import fehler
+
+AUFGABEN = ("einrichten", "sichern", "erinnern", "zurückholen", "pläne")
+
+
+def einrichten():
+    """Einmal beim Start: Schema (mit Sicherung davor), alte Fotoformate, erster Administrator."""
+    db.migrate()
+    with db.tx() as c:
+        converted = storage.convert_legacy(c)   # alte Nicht-JPG-Fotos (HEIC, PNG, WEBP, GIF) -> JPG
+        if converted:   # schon auf dem Server abgelegte Dateien dort ebenfalls umbenennen (neue Endung .jpg)
+            from . import settings
+            conf = settings.all(c)
+            for i in converted:
+                sync.rename_image(c, conf, i)
+    auth.ensure_admin()   # erster Start: Benutzer admin / Kennwort admin (muss sofort geändert werden)
+
+
+def starten():
+    """Die laufenden Aufgaben – jede in ihrem eigenen Hintergrund-Thread."""
+    reminders.start()   # E-Mail-Erinnerungen für Erledigungsdaten
+    backups.start()     # tägliche Datenbankversionen
+    extern.start()      # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
+    try:
+        from modules import plaene
+        plaene.start()  # Planordner der laufenden Projekte nachts vorab einlesen (Pläne & Dateien)
+    except Exception as e:   # noqa: BLE001 – ohne Planordner laufen die übrigen Dienste weiter
+        fehler.still("dienste", "Pläne vorab einlesen starten", e)

@@ -4,10 +4,11 @@ from flask import Flask, g, jsonify, request, send_from_directory, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import modules
-from core import access, audit, auth, backups, db, extern, reminders, storage, sync, versions
+from core import access, audit, auth, db, dienste, storage, sync, versions
 from bpcore import head, platform, sso   # gemeinsame Anmeldung der Bauplattform (shared/bpcore)
 from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 
+DIENSTE_EXTERN = os.environ.get("DIENSTE") == "extern"   # Hintergrundaufgaben laufen im Container „dienste“ (bautagebuch/dienste.py)
 OPEN = ("/api/login", "/api/me", "/api/forgot", "/api/reset", "/api/favicon", "/api/platform")   # favicon: auch auf der Anmeldeseite
 NO_SSO = ("/api/login", "/api/forgot", "/api/reset", "/api/favicon", "/api/platform", "/api/logout")   # hier keine Sitzung übernehmen/anlegen
 MUST_CHANGE_OK = ("/api/me", "/api/logout", "/api/password")
@@ -41,22 +42,13 @@ def _secret_key():
 
 
 def create_app():
-    db.migrate()  # Schema auf den neuesten Stand bringen (mit Sicherung)
-    with db.tx() as _c:
-        converted = storage.convert_legacy(_c)  # alte Nicht-JPG-Fotos (HEIC, PNG, WEBP, GIF) -> JPG
-        if converted:   # schon auf dem Server abgelegte Dateien dort ebenfalls umbenennen (neue Endung .jpg)
-            from core import settings as _s
-            _conf = _s.all(_c)
-            for _i in converted:
-                sync.rename_image(_c, _conf, _i)
-    auth.ensure_admin()  # erster Start: Benutzer admin / Kennwort admin (muss sofort geändert werden)
-    sync.start()  # Hintergrund-Übertragung auf den Server
-    reminders.start()  # E-Mail-Erinnerungen für Erledigungsdaten
-    backups.start()    # tägliche Datenbankversionen
-    extern.start()     # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
+    if DIENSTE_EXTERN:   # der Container „dienste“ richtet die Datenbank ein, sichert und erinnert – hier nur warten, bis das Schema steht
+        db.warte_auf_schema()
+    else:   # ohne eigenen Dienste-Container (ältere Stack-Datei): alles wie bisher selbst erledigen
+        dienste.einrichten()
+        dienste.starten()
+    sync.start()       # Hintergrund-Übertragung frisch hochgeladener Fotos auf den Server (an den laufenden Betrieb gebunden)
     versions.start()   # Versionsverlauf der Berichte (automatische Momentaufnahmen)
-    from modules import plaene as _pl
-    _pl.start()        # Planordner der laufenden Projekte nachts vorab einlesen (Pläne & Dateien)
     app = Flask(__name__, static_folder="static", static_url_path="")
     app.secret_key = _secret_key()
     app.permanent_session_lifetime = timedelta(days=30)

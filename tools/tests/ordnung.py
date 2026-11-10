@@ -106,6 +106,29 @@ def app_liste():
     return out
 
 
+def ueberdeckte_importe(dateien):
+    """Regel 7: Eine Funktion oder Klasse auf Modulebene darf nicht so heißen wie ein eingebundenes Modul – sonst überdeckt sie es
+    stillschweigend, und der Fehler zeigt sich erst beim Aufruf (so geschehen: Route „einstellungen“ in der Verwaltung)."""
+    import ast
+    out = []
+    for f in dateien:
+        if not f.endswith(".py") or f.startswith("tools/"):
+            continue
+        try:
+            baum = ast.parse(open(os.path.join(ROOT, f), encoding="utf-8").read())
+        except (OSError, SyntaxError):
+            continue
+        imp = {}
+        for n in baum.body:
+            if isinstance(n, (ast.Import, ast.ImportFrom)):
+                for a in n.names:
+                    imp[(a.asname or a.name).split(".")[0]] = n.lineno
+        for n in baum.body:
+            if isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name in imp:
+                out.append(f"{f}:{n.lineno}: „{n.name}“ überdeckt den gleichnamigen Import aus Zeile {imp[n.name]}")
+    return out
+
+
 def main():
     fehler, hinweise = [], []
     dateien = git_dateien()
@@ -153,6 +176,7 @@ def main():
             fehler.append(f"{p}: {n} Zeilen – neue Dateien höchstens {GRENZE}; in Bausteine teilen")
 
     fehler += app_liste()
+    fehler += ueberdeckte_importe(dateien)
 
     for h in hinweise:
         print("Hinweis:", h)

@@ -1577,7 +1577,7 @@
     if (bereich === 'buero' && !admin) bereich = 'ich';
     let teil = opt.teil || '';
     const bg = document.createElement('div'); bg.className = 'bph-dr-bg';
-    bg.innerHTML = '<aside class="bph-dr" role="dialog" aria-modal="true" aria-label="Einstellungen"><div class="bph-drh"><b>' + IC.gear + 'Einstellungen</b><button type="button" class="bph-x" data-drx aria-label="Schließen">×</button></div><div class="bph-drs"><input type="search" placeholder="Einstellungen durchsuchen – z. B. Signatur, Erinnerung, Logo, Preis …" aria-label="Einstellungen durchsuchen" autocomplete="off"></div><div class="bph-drt"></div><div class="bph-drn"></div><div class="bph-drb"></div></aside>';
+    bg.innerHTML = '<aside class="bph-dr" role="dialog" aria-modal="true" aria-label="Einstellungen"><div class="bph-drh"><b>' + IC.gear + 'Einstellungen</b><button type="button" class="bph-x bph-drf" data-drf hidden></button><button type="button" class="bph-x" data-drx aria-label="Schließen">×</button></div><div class="bph-drs"><input type="search" placeholder="Einstellungen durchsuchen – z. B. Signatur, Erinnerung, Logo, Preis …" aria-label="Einstellungen durchsuchen" autocomplete="off"></div><div class="bph-drt"></div><div class="bph-drn"></div><div class="bph-drb"></div></aside>';
     document.body.appendChild(bg);
     const T = bg.querySelector('.bph-drt'), N = bg.querySelector('.bph-drn'), B = bg.querySelector('.bph-drb');
     { // Breite am linken Rand ziehen (wie ein Seitenfenster), gemerkt je Browser
@@ -1592,6 +1592,20 @@
       });
       z.addEventListener('dblclick', () => { D.style.width = ''; try { localStorage.removeItem('bph.drw'); } catch { /* egal */ } });
     }
+    /* abdocken: die Einstellungen als freies Fenster neben der Arbeit offen lassen – dasselbe Fenster wie die abgedockten Reiter
+       (bpFrei aus dem Baukasten, seite.js); ob abgedockt, wird je Browser gemerkt */
+    const D0 = bg.querySelector('.bph-dr'), FB = bg.querySelector('[data-drf]');
+    let freiAus = null;
+    const frei = (an) => {
+      if (freiAus) { freiAus(); freiAus = null; }
+      bg.classList.toggle('frei', an); D0.classList.toggle('sr-flo', an); D0.setAttribute('aria-modal', an ? 'false' : 'true');
+      FB.textContent = an ? '⇲' : '⧉'; FB.title = an ? 'wieder rechts andocken' : 'Einstellungen als freies Fenster abdocken – die Seite dahinter bleibt bedienbar';
+      FB.setAttribute('aria-label', FB.title);
+      if (an) freiAus = window.bpFrei(D0, { key: 'einst.pos', start: { x: innerWidth - 800, y: 70, w: 760, h: innerHeight - 110 }, griff: '.bph-drh' });
+      else { ['left', 'top', 'height'].forEach((k) => { D0.style[k] = ''; }); let w = 0; try { w = +localStorage.getItem('bph.drw'); } catch { /* egal */ } D0.style.width = w > 300 ? Math.min(w, innerWidth - 40) + 'px' : ''; }
+      try { localStorage.setItem('bph.drfrei', an ? '1' : ''); } catch { /* egal */ }
+    };
+    if (window.bpFrei && innerWidth >= 900) { FB.hidden = false; let an = false; try { an = localStorage.getItem('bph.drfrei') === '1'; } catch { /* egal */ } frei(an); }
     const kopf = () => {
       T.innerHTML = [['app', IC[H.app === 'portal' ? 'home' : H.app] || IC.home, appName], ['ich', IC.user, 'Für mich']].concat(admin ? [['buero', IC.buero, 'Büro']] : [])
         .map(([k, i, l]) => `<button type="button" data-drb="${k}" class="${k === bereich ? 'on' : ''}"${k === bereich ? ' aria-current="true"' : ''}>${i}<span>${esc(l)}</span></button>`).join('');
@@ -1657,14 +1671,15 @@
       B.innerHTML = `<iframe class="bph-if" title="Büro-Einstellungen" src="${esc(appUrl(adm))}/?einbetten=1#einstellungen${teil === 'allgemein' ? '' : '-' + esc(teil)}"></iframe>`;
     }
     const close = () => {
-      bg.remove(); dr = null; document.removeEventListener('keydown', key); aufraeumen();
+      if (freiAus) freiAus(); bg.remove(); dr = null; document.removeEventListener('keydown', key); aufraeumen();
       if (lookDirty) { lookDirty = false; Promise.resolve(typeof window.flushSave === 'function' ? window.flushSave() : null).catch(() => null).then(() => location.reload()); }
       if (opt.onClose) opt.onClose();
     };
-    const key = (e) => { if (e.key === 'Escape' && !document.querySelector('.modal-bg,.bph-dlg-bg,#sheet:not(.hidden)')) close(); };
+    const key = (e) => { if (e.key === 'Escape' && !bg.classList.contains('frei') && !document.querySelector('.modal-bg,.bph-dlg-bg,#sheet:not(.hidden)')) close(); };   // abgedockt schließt nur ×
     document.addEventListener('keydown', key);
     bg.addEventListener('click', (e) => {
       if (e.target.closest('[data-drx]')) { close(); return; }   // daneben klicken schließt nicht
+      if (e.target.closest('[data-drf]')) { frei(!bg.classList.contains('frei')); return; }
       const b = e.target.closest('[data-drb]'); if (b) { bereich = b.dataset.drb; teil = ''; draw(); return; }
       const t = e.target.closest('[data-drt]'); if (t) { teil = t.dataset.drt; draw(); }
     });

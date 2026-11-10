@@ -11,7 +11,12 @@
               fenster: true → Knopf „⇱“: der Reiter zieht in ein eigenes Browserfenster (zweiter Bildschirm) und bleibt verbunden
      opt    – { start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
    seiteUmschalten() / seiteOffen() / seiteDa() – für den Knopf „Details“ in der Leiste
-   seiteAufraeumen() – freie Fenster eines nicht mehr sichtbaren Bereichs schließen (nach dem Neuzeichnen der Seite) */
+   seiteAufraeumen() – freie Fenster eines nicht mehr sichtbaren Bereichs schließen (nach dem Neuzeichnen der Seite)
+
+   bpFrei(f, { key, start, griff, neu }) – macht aus einem Element ein freies Fenster (Klasse sr-flo): am Griff verschieben,
+     an der Ecke ziehen, Lage und Größe unter key gemerkt. Dasselbe Fenster benutzen die abgedockten Reiter und die Einstellungen.
+     start {x,y,w,h} – Lage beim ersten Mal · griff – Auswahl der Kopfzeile im Fenster · neu() – nach deutlicher Breitenänderung
+     Rückgabe: Funktion, die das Merken beendet (wenn das Fenster wieder andockt) */
 (function () {
   const lies = (k, d) => { try { const v = localStorage.getItem('bp.sr.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } };
   const merk = (k, v) => { try { localStorage.setItem('bp.sr.' + k, JSON.stringify(v)); } catch { /* ohne Speicher: nur für diese Sitzung */ } };
@@ -70,26 +75,38 @@
   }
 
   /* freie Fenster: eines je abgedocktem Reiter */
+  function frei(f, o) {
+    const q = lies(o.key, null) || o.start;
+    Object.assign(f.style, { left: grenz(q.x, 120 - q.w, innerWidth - 120) + 'px', top: grenz(q.y, 0, innerHeight - 60) + 'px', width: Math.min(q.w, innerWidth) + 'px', height: Math.min(q.h, innerHeight) + 'px' });
+    const lage = () => merk(o.key, { x: f.offsetLeft, y: f.offsetTop, w: f.offsetWidth, h: f.offsetHeight });
+    let breite = q.w, t = 0;
+    const ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { if (!f.isConnected) return; lage();
+      if (Math.abs(f.clientWidth - breite) > 40) { breite = f.clientWidth; if (o.neu) o.neu(); } }, 350); });
+    ro.observe(f);
+    const ab = (e) => {
+      document.querySelectorAll('.sr-flo').forEach((x) => x.classList.toggle('vorn', x === f));   // angeklicktes Fenster nach vorn
+      const kopf = e.target.closest(o.griff);
+      if (!kopf || !f.contains(kopf) || e.button !== 0 || e.target.closest('button,input,select,a')) return;
+      e.preventDefault(); kopf.setPointerCapture(e.pointerId);
+      const sx = e.clientX - f.offsetLeft, sy = e.clientY - f.offsetTop;
+      kopf.onpointermove = (m) => { f.style.left = grenz(m.clientX - sx, 120 - f.offsetWidth, innerWidth - 120) + 'px'; f.style.top = grenz(m.clientY - sy, 0, innerHeight - 50) + 'px'; };
+      kopf.onpointerup = () => { kopf.onpointermove = kopf.onpointerup = null; lage(); };
+    };
+    f.addEventListener('pointerdown', ab);
+    return () => { clearTimeout(t); ro.disconnect(); f.removeEventListener('pointerdown', ab); };
+  }
   function fenster(key, liste, neu) {
-    document.querySelectorAll('.sr-flo').forEach((f) => { if (f.dataset.key === key && !liste.some((x) => x.id === f.dataset.id)) f.remove(); });
+    document.querySelectorAll('.sr-flo[data-key]').forEach((f) => { if (f.dataset.key === key && !liste.some((x) => x.id === f.dataset.id)) f.remove(); });
     liste.forEach((rt, i) => {
-      let f = [...document.querySelectorAll('.sr-flo')].find((x) => x.dataset.key === key && x.dataset.id === rt.id);
+      let f = [...document.querySelectorAll('.sr-flo[data-key]')].find((x) => x.dataset.key === key && x.dataset.id === rt.id);
       if (!f) {
         f = document.createElement('div'); f.className = 'sr-flo'; f.dataset.key = key; f.dataset.id = rt.id; f.setAttribute('role', 'dialog'); f.setAttribute('aria-label', rt.titel); document.body.appendChild(f);
-        const q = lies(`${key}.pos.${rt.id}`, null) || { x: innerWidth - 680 - i * 32, y: 110 + i * 32, w: 620, h: innerHeight - 170 };
-        Object.assign(f.style, { left: grenz(q.x, 120 - q.w, innerWidth - 120) + 'px', top: grenz(q.y, 0, innerHeight - 60) + 'px', width: q.w + 'px', height: q.h + 'px' });
-        let breite = q.w, t = 0;
-        new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { if (!f.isConnected) return; merk(`${key}.pos.${f.dataset.id}`, { x: f.offsetLeft, y: f.offsetTop, w: f.offsetWidth, h: f.offsetHeight });
-          if (Math.abs(f.clientWidth - breite) > 40) { breite = f.clientWidth; const x = AKTIV.get(key), a = x && x.reiter.find((y) => y.id === f.dataset.id); if (a && a.neu) a.neu(); } }, 350); }).observe(f);
+        frei(f, { key: `${key}.pos.${rt.id}`, start: { x: innerWidth - 680 - i * 32, y: 110 + i * 32, w: 620, h: innerHeight - 170 }, griff: '.sr-fk',
+          neu: () => { const x = AKTIV.get(key), a = x && x.reiter.find((y) => y.id === rt.id); if (a && a.neu) a.neu(); } });
       }
       f.innerHTML = `<div class="sr-fk"><b>${esc(rt.titel)}</b>${rt.fenster ? '<button type="button" class="sr-ik" data-sra="fen" title="in ein eigenes Browserfenster – z. B. auf den zweiten Bildschirm">⇱</button>' : ''}<button type="button" class="sr-ik" data-sra="an" title="wieder rechts andocken">⇲</button><button type="button" class="sr-ik" data-sra="an" title="Fenster schließen – der Reiter kommt zurück in den Bereich rechts">✕</button></div><div class="sr-b"></div>`;
       rt.mount(f.querySelector('.sr-b'));
       const kopf = f.firstElementChild;
-      kopf.onpointerdown = (e) => { if (e.button !== 0 || e.target.closest('button,input,select,a')) return; e.preventDefault(); kopf.setPointerCapture(e.pointerId);
-        const sx = e.clientX - f.offsetLeft, sy = e.clientY - f.offsetTop;
-        kopf.onpointermove = (m) => { f.style.left = grenz(m.clientX - sx, 120 - f.offsetWidth, innerWidth - 120) + 'px'; f.style.top = grenz(m.clientY - sy, 0, innerHeight - 50) + 'px'; };
-        kopf.onpointerup = () => { kopf.onpointermove = null; merk(`${key}.pos.${rt.id}`, { x: f.offsetLeft, y: f.offsetTop, w: f.offsetWidth, h: f.offsetHeight }); }; };
-      f.onpointerdown = () => { document.querySelectorAll('.sr-flo').forEach((x) => x.classList.toggle('vorn', x === f)); };   // angeklicktes Fenster nach vorn
       kopf.onclick = (e) => { if (e.target.closest('[data-sra="fen"]')) { merk(key + '.r', rt.id); f.remove(); eigenAuf(key, rt); return; } if (!e.target.closest('[data-sra="an"]')) return; merk(key + '.frei', lies(key + '.frei', []).filter((id) => id !== rt.id)); merk(key + '.r', rt.id); merk(key + '.zu', false); f.remove(); neu(); };
     });
   }
@@ -138,7 +155,7 @@
   const sichtbar = () => [...AKTIV.entries()].filter(([, x]) => x.sp.isConnected && x.reiter.length);
   function seiteAufraeumen() {
     for (const [k, x] of [...AKTIV.entries()]) if (!x.sp.isConnected) AKTIV.delete(k);
-    document.querySelectorAll('.sr-flo').forEach((f) => { if (!AKTIV.has(f.dataset.key)) f.remove(); });
+    document.querySelectorAll('.sr-flo[data-key]').forEach((f) => { if (!AKTIV.has(f.dataset.key)) f.remove(); });
     for (const k of EIGEN.keys()) if (!AKTIV.has(k.split('|')[0])) eigenFuellen(k.split('|')[0]);
   }
   function seiteDa() { return sichtbar().length > 0; }
@@ -151,5 +168,5 @@
     const s = sichtbar()[0]; if (!s) return;
     const [key, x] = s; merk(key + '.zu', !lies(key + '.zu', false)); seite(x.sp, key, x.reiter, x.opt); if (x.opt.wechsel) x.opt.wechsel();
   }
-  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter });
+  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter, bpFrei: frei });
 })();

@@ -314,6 +314,9 @@ body.bph-gv-offen{overflow:hidden}   /* Ansicht offen: Seite dahinter ohne Scrol
 
 /* Einstellungen: am linken Rand breiter/schmaler ziehen (Breite wird gemerkt) */
 .bph-dr{position:relative}
+.bph-drf{font-size:1.05em;margin-right:.5rem}.bph-drf[hidden]{display:none}
+.bph-dr-bg.frei{background:none;pointer-events:none}.bph-dr-bg.frei .bph-dr{pointer-events:auto;position:fixed;border:0;max-width:100vw;max-height:100vh}
+.bph-dr-bg.frei .bph-drh{cursor:move;user-select:none}.bph-dr-bg.frei .bph-drz{display:none}
 .bph-drz{position:absolute;left:-4px;top:0;bottom:0;width:9px;cursor:ew-resize;z-index:5}
 .bph-drz::after{content:'';position:absolute;left:3px;top:50%;width:3px;height:44px;margin-top:-22px;border-radius:calc(2px*var(--rk,1));background:var(--line,#888);opacity:.6}
 .bph-drz:hover::after,.bph-drz.on::after{background:var(--y,var(--bph-acc,#d9772b));opacity:1}

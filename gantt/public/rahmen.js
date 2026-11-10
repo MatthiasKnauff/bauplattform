@@ -89,12 +89,12 @@
         { titel: 'Projekt', punkte: [{ id: 'projinfo', text: 'Projektinformationen', icon: NI.info }, { id: 'kalender', text: 'Arbeitszeit & Feiertage', icon: NI.kalender }] },
         { titel: 'Ausgabe', punkte: [{ id: 'drucken', text: 'Drucken / PDF', icon: NI.drucken }, { id: 'export', text: 'Exportieren', icon: NI.export }] },
       ],
-      aktiv: { vorgang: 'leistungen', firmen: 'firmen', katalog: 'katalog' }[t] || 'leistungen', attr: 'gnav',
+      aktiv: { vorgang: 'leistungen', firmen: 'firmen', katalog: 'katalog' }[t] || 'leistungen', attr: 'gnav', lage: true,
+      nachher: () => { const ziel = $('#navVm'); if (VM && ziel) { ziel.appendChild(VM); VM.style.display = P ? '' : 'none'; } },   // Versionswahl in jeder Lage wieder einhängen
       wahl: (id) => { if (SICHT[id]) { showTab(SICHT[id]); return; } if (!P) { toast('Kein Bauzeitenplan geöffnet.'); return; } ACTIONS[AKT[id]](); },
     });
     let ti = $('#gTitel'); if (!ti) { ti = document.createElement('span'); ti.id = 'gTitel'; $('#tabs').insertBefore(ti, $('#tabs').firstChild); }
     ti.innerHTML = P ? `Terminplan: <b>${esc(P.name)}</b>` : '';
-    const ziel = $('#navVm'); if (VM && ziel) { ziel.appendChild(VM); VM.style.display = P ? '' : 'none'; }   // Versionswahl wie in der Ausschreibung oben in der Navigation
   }
 
   /* ---------- Bereich rechts: Details der markierten Leistung, Planungsassistent ---------- */

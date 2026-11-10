@@ -204,3 +204,25 @@ def test_postfach_einstellungen_ohne_mailserver(ctx):
         pruefe(not post.get("mails"), "ohne Abruf dürfen keine Mails da sein")
     finally:
         _benutzer_loeschen(ctx, uid)
+
+
+def test_projektdaten_fuer_alle_mit_bauleiter_regel(ctx):
+    """Die Projektdaten-Maske der Kopfleiste arbeitet direkt mit dem Kern – für alle angemeldeten Benutzer, auch ohne die App
+    „Bautagebuch“ (Clara Wolf hat nur den Bauzeitenplan): Sie sieht und ändert nur Projekte, die sie sehen darf (Bauleiter-Regel)."""
+    B = "/bauzeitenplan/api/bp/bt"
+    clara = ctx.anmelden("Clara Wolf")
+    t101 = ctx.projekt("T101")["id"]   # Bauleiterin nur Anna
+    liste = clara.gj(f"{B}/projects")
+    pruefe(liste and not finde(liste, id=t101), "Clara sieht T101 in der Projektliste der Kopfleiste")
+    pruefe(finde(clara.gj(f"{B}/leaders"), name="Anna Bauer"), "Bauleiter-Auswahl fehlt")
+    clara.put(f"{B}/projects/{t101}", {"client": "Gehackt"}, expect=403)
+    ctx.gast().get(f"{B}/projects", expect=401)
+    name = ctx.name("Projekt Kern")
+    pid = clara.pj(f"{B}/projects", {"name": name, "street": "", "zip": "", "city": "", "lat": None, "lon": None})["id"]
+    try:
+        clara.put(f"{B}/projects/{pid}", {"client": "Bauherr Probe"})
+        gleich(finde(clara.gj(f"{B}/projects"), id=pid)["client"], "Bauherr Probe", "Änderung über die Kopfleiste gespeichert")
+        clara.put(f"{B}/projects/{pid}", {"name": "  "}, expect=400)
+        gleich(finde(ctx.admin.gj("/bautagebuch/api/projects"), id=pid)["name"], name, "das Bautagebuch zeigt dasselbe Projekt")
+    finally:
+        ctx.admin.delete(f"/bautagebuch/api/projects/{pid}")

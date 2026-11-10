@@ -30,7 +30,8 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, hilfe, konto, mail, papierkorb, projektteile, posteingang, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
+from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
+from . import logo as bplogo
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -795,11 +796,97 @@ def blueprint(get_user=None):
         out.sort(key=lambda x: (not x["online"], x["name"].lower()))
         return jsonify(out)
 
-    # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – das Bautagebuch erledigt es, mit der Anmeldung des Benutzers
+    # ---- Projekt bearbeiten/anlegen (dieselbe Maske in allen Apps) – direkt mit den Bausteinen des Kerns (bpcore.projekte, .rechte, .geo).
+    # Für alle angemeldeten Benutzer, soweit sie das Projekt sehen dürfen (Bauleiter-Regel) – ein Projekt gehört keiner einzelnen App.
+    # Die Adressen bleiben wie bisher (/api/bp/bt/…); was noch den Dateiserver braucht (Ordnersuche), reicht der Durchgriff unten weiter.
+    def _protokoll(wer, aktion, detail=""):
+        try:
+            with db.tx() as c:
+                c.execute("INSERT INTO audit_log(ts, user_name, cat, action, detail) VALUES(?,?,?,?,?)",
+                          (datetime.now().isoformat(timespec="seconds").replace("T", " "), wer or "", "inhalt", aktion, str(detail or "")[:200]))
+        except Exception as e:   # noqa: BLE001 – das Protokoll darf die Änderung nicht verhindern
+            fehler.still(None, "Protokoll (audit_log) schreiben", e)
+
+    @bp.route("/api/bp/bt/projects", methods=["GET", "POST"])
+    def kern_projekte():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if request.method == "POST":
+            d = request.get_json(silent=True) or {}
+            pid, found, auto = projekte.anlegen(d)
+            _protokoll(u["name"], "Projekt angelegt", d.get("name"))
+            return jsonify(id=pid, geocoded=found, auto_address=auto)
+        with db.tx() as c:
+            vis, out = rechte.visible_ids(c, u), []
+            for r in c.execute("SELECT * FROM projects ORDER BY id DESC"):
+                if vis is not None and r["id"] not in vis:
+                    continue
+                d = db.to_dict(r)
+                d["leaders"] = rechte.ids_of(d.get("leaders"))
+                out.append(d)
+        return jsonify(out)
+
+    @bp.put("/api/bp/bt/projects/<int:i>")
+    def kern_projekt_aendern(i):
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        d = request.get_json(silent=True) or {}
+        if "name" in d and not str(d["name"]).strip():
+            return jsonify(error="Der Name darf nicht leer sein."), 400
+        with db.tx() as c:
+            r = c.execute("SELECT name FROM projects WHERE id=?", (i,)).fetchone()
+            if not r:
+                return jsonify(error="Projekt nicht gefunden"), 404
+            if not rechte.can_see(c, u, i):
+                return jsonify(error="Du hast keinen Zugriff auf dieses Projekt."), 403
+        found = projekte.aendern(i, d)
+        _protokoll(u["name"], ("Projekt archiviert" if d["archived"] else "Projekt aus dem Archiv geholt") if "archived" in d else "Projekt geändert", d.get("name") or r["name"])
+        return jsonify(ok=True, geocoded=found)
+
+    @bp.get("/api/bp/bt/leaders")
+    def kern_bauleiter():
+        """Auswahl für „Zuständige Bauleiter“: alle Benutzer außer dem Administrator-Konto – für alle Angemeldeten."""
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            return jsonify([{"id": r["id"], "name": r["name"]} for r in c.execute("SELECT id, name FROM users WHERE lower(name)!='admin' ORDER BY name")])
+
+    @bp.get("/api/bp/bt/geocode")
+    def kern_adresssuche():
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        hit = geo.search(request.args.get("q", ""), from_name=request.args.get("from_name") == "1")
+        return jsonify(found=bool(hit), **(hit or {}))
+
+    @bp.get("/api/bp/bt/contacts/suggest")
+    def kern_kontaktvorschlag():
+        """Vorschläge zur Ergänzung eines Kontakts aus dem Netz (OpenStreetMap). ?q=Name&lat=&lon= (Umkreis, optional)."""
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        lat, lon = request.args.get("lat", type=float), request.args.get("lon", type=float)
+        return jsonify(items=geo.companies(request.args.get("q", ""), (lat, lon) if lat is not None and lon is not None else None))
+
+    @bp.get("/api/bp/bt/contacts/suggest/detail")
+    def kern_kontaktvorschlag_detail():
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        return jsonify(geo.company_detail(request.args.get("type", ""), request.args.get("id", "")))
+
+    @bp.get("/api/bp/bt/logo")
+    def kern_logo():
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            roh = bplogo.lies(c)
+        if not roh:
+            return jsonify(error="Kein Logo"), 404
+        return Response(roh[0], mimetype=bplogo.MIME.get(roh[1], "image/png"))
+
+    # ---- was noch am Dateiserver des Bautagebuchs hängt (Ordnersuche, Wetter/Ort zu Koordinaten, Baustelle als Kontakt): Durchgriff
     import re as _re
-    _BT_ERLAUBT = [("GET", r"projects"), ("POST", r"projects"), ("PUT", r"projects/\d+"), ("GET", r"leaders"), ("GET", r"geocode"), ("GET", r"geo"),
-                   ("GET", r"store/folders"), ("POST", r"projects/\d+/contact"), ("GET", r"logo"),
-                   ("GET", r"contacts/suggest"), ("GET", r"contacts/suggest/detail"), ("GET", r"ablage/projektordner")]
+    _BT_ERLAUBT = [("GET", r"geo"), ("GET", r"store/folders"), ("POST", r"projects/\d+/contact"), ("GET", r"ablage/projektordner")]
 
     @bp.route("/api/bp/bt/<path:pfad>", methods=["GET", "POST", "PUT"])
     def bt_proxy(pfad):

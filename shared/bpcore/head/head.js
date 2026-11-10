@@ -14,18 +14,37 @@
   if (window.BPHead) return;
   { const w = document.createElement('script'); w.src = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '') + 'wahl.js'; document.head.appendChild(w); }   // eigene Auswahllisten statt der Systemliste – in jeder App
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
-  /* Warte-Hinweis für alles, was der Benutzer gerade angestoßen hat (Klick/Taste) und länger braucht:
-     nach 0,4 s ein kleines „Einen Moment …“ oben in der Mitte, bis die Antwort da ist. Hintergrund-Abfragen zählen nicht. */
+  /* Warte-Hinweis für alles, was der Benutzer gerade angestoßen hat (Klick/Taste) und länger braucht – in jeder App derselbe:
+     nach 0,4 s erscheint unten in der Mitte, WAS gerade läuft („Texterkennung läuft …“, „PDF wird erstellt …“), nach 3 s mit der
+     Dauer. Der Text wird aus der Adresse der Anfrage abgelesen (Liste WAS) – oder ausdrücklich gesetzt: BPHead.warten(promise, 'Text').
+     Hintergrund-Abfragen zählen nicht. */
   {
-    let tUser = 0, offen = 0, tm = 0, el = null;
+    const WAS = [   // [Muster der Adresse, Text, nur beim Senden (POST/PUT)?] – der erste Treffer gilt
+      [/\/(auslesen|lesen|beleg|belege\/\d+\/(pruefen|positionen)|lvdok\/\d+\/lesen|eingang\/verarbeiten)\b|angebot-pdf|nachtrag\/lesen|tabelle\/lesen/, 'Texterkennung läuft – das Dokument wird gelesen', true],
+      [/\/ki\b|\/ai\b|langtext|assist|vorschlag\/ki/, 'Die KI arbeitet', false],
+      [/\/import\b|orca|uebernehmen|gaeb/, 'Import läuft', true],
+      [/\/(druck|pdf)\b|\.pdf\b|paket|export/, 'Das PDF wird erstellt', false],
+      [/nachricht|\/mail\b|senden|vorgang/, 'Wird gesendet', true],
+      [/ablage|eingang|projektordner|\/store\b/, 'Der Dateiserver antwortet', false],
+      [/wetter|weather|\/gps\b|\/geo\b/, 'Das Wetter wird geladen', false],
+      [/suche|search/, 'Suche läuft', false],
+    ];
+    const was = (u, o) => { const adr = String((u && u.url) || u || '').split('?')[0], m = String((o && o.method) || (u && u.method) || 'GET').toUpperCase(), senden = m !== 'GET';
+      for (const [re, t, nurSenden] of WAS) if ((!nurSenden || senden) && re.test(adr)) return t;
+      return senden && o && window.FormData && o.body instanceof FormData ? 'Die Datei wird hochgeladen' : m === 'PUT' || m === 'PATCH' ? 'Wird gespeichert' : m === 'DELETE' ? 'Wird gelöscht' : ''; };
+    let tUser = 0, tm = 0, tick = 0, el = null, nr = 0, seit = 0;
+    const laufend = new Map();   // Nummer → Text der Anfragen, auf die gerade gewartet wird
     const merk = () => { tUser = Date.now(); };
     ['pointerdown', 'keydown', 'change', 'drop'].forEach((e) => window.addEventListener(e, merk, true));
-    const zeig = () => { if (!offen) return; if (!el) { el = document.createElement('div'); el.className = 'bph-warten'; el.setAttribute('role', 'status'); el.innerHTML = '<span class="bph-wsp"></span>Einen Moment …'; }
-      if (!el.isConnected) document.body.appendChild(el); };
-    const fertig = () => { offen = Math.max(0, offen - 1); if (!offen) { clearTimeout(tm); tm = 0; if (el) el.remove(); } };
-    H.warten = (p) => { offen++; if (!tm) tm = setTimeout(() => { tm = 0; zeig(); }, 400); return Promise.resolve(p).finally(fertig); };   // auch für eigene lange Schritte
+    const text = () => { const t = [...laufend.values()].filter(Boolean).pop() || 'Einen Moment', s = Math.round((Date.now() - seit) / 1000); return t + ' …' + (s >= 3 ? ` <small>${s} s</small>` : ''); };
+    const zeig = () => { if (!laufend.size) return; if (!el) { el = document.createElement('div'); el.className = 'bph-warten'; el.setAttribute('role', 'status'); el.innerHTML = '<span class="bph-wsp"></span><span class="bph-wt"></span>'; }
+      el.lastChild.innerHTML = text(); if (!el.isConnected) document.body.appendChild(el);
+      if (!tick) tick = setInterval(() => { if (el && el.isConnected) el.lastChild.innerHTML = text(); }, 1000); };
+    const fertig = (n) => { laufend.delete(n); if (!laufend.size) { clearTimeout(tm); clearInterval(tick); tm = tick = 0; if (el) el.remove(); } else if (el && el.isConnected) el.lastChild.innerHTML = text(); };
+    H.warten = (p, t) => { const n = ++nr; if (!laufend.size) seit = Date.now(); laufend.set(n, t || ''); if (el && el.isConnected) el.lastChild.innerHTML = text(); else if (!tm) tm = setTimeout(() => { tm = 0; zeig(); }, 400);
+      return Promise.resolve(p).finally(() => fertig(n)); };   // auch für eigene lange Schritte: BPHead.warten(promise, 'Was gerade läuft')
     const f0 = window.fetch && window.fetch.bind(window);
-    if (f0) window.fetch = function (u, o) { const p = f0(u, o); return Date.now() - tUser < 1200 ? H.warten(p) : p; };
+    if (f0) window.fetch = function (u, o) { const p = f0(u, o); return Date.now() - tUser < 1200 ? H.warten(p, was(u, o)) : p; };
   }
   /* Eigene Abfragefenster statt der Browser-Dialoge (alert/confirm/prompt) – in allen Apps gleich:
      await bpFrage(text, { ok, gefahr }) → true/false · await bpEingabe(text, vorgabe) → Text oder null · bpHinweis(text) */

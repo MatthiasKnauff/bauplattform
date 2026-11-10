@@ -2106,7 +2106,7 @@ function vLv() {
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
       <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" data-vs="eh" autocomplete="off" style="width:3.8rem">`}</td>
       <td><input data-f="art" value="${artW(x)}" data-vs="art" autocomplete="off" maxlength="1" style="width:3.8rem" title="${esc(ARTEN[artW(x)])} – N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung"></td>
-      <td class="hide-m"><input data-f="kg" value="${esc(x.kg || '')}" placeholder="KG" style="width:3.4rem" inputmode="numeric" title="Kostengruppe DIN 276"></td>
+      <td class="hide-m"><input data-f="kg" value="${esc(x.kg || '')}" placeholder="${esc(lvKg() || 'KG')}" data-vs="kg" autocomplete="off" style="width:3.4rem" inputmode="numeric" title="Kostengruppe DIN 276${lvKg() ? ' – leer: wie das LV (' + esc(lvKg()) + ')' : ''}"></td>
       <td>${t ? '' : V ? `<input class="n" data-vp="${x.id}" value="${ep != null ? nf2(ep) : ''}" inputmode="decimal" style="width:6.5rem" title="Einheitspreis des Auftrags${x.nt ? ' (Nachtragspreis)' : ''}">` : `<input class="n" data-f="ep_s" value="${x.ep_s != null ? nf2(x.ep_s) : ''}" inputmode="decimal" style="width:6.5rem" placeholder="EP" title="geschätzter Einheitspreis (Kostenanschlag)">`}</td>
       ${V ? `<td class="r hint" title="geschätzter EP">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>` : ''}
       <td class="r" data-gp="${i}">${x.entf ? '<span class="hint">entfällt</span>' : gp != null ? eur(gp) : ohneGB(x) ? '<span class="hint">ohne GB</span>' : ''}</td>
@@ -2117,9 +2117,9 @@ function vLv() {
     return h;
   }).join('');
   const kopf = `<tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td colspan="${NC - 1}"></td></tr>
-    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an">${bpBaum.zelle({ tiefe: 1, auf: !LVGZ.has(L.id), car: ` data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>` })}<td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-zualle="${LVZU.zahl() ? 'auf' : 'zu'}" title="${LVZU.zahl() ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.zahl() ? '⊞' : '⊟'}</button></td></tr>`;
+    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an">${bpBaum.zelle({ tiefe: 1, auf: !LVGZ.has(L.id), car: ` data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>` })}<td colspan="3"></td><td class="hide-m"><input data-lvkg value="${esc(lvKg())}" placeholder="KG" data-vs="kg" autocomplete="off" style="width:3.4rem" inputmode="numeric" title="Kostengruppe des LV (DIN 276) – neue und leere Positionen übernehmen sie"></td><td colspan="${NC - 7}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-zualle="${LVZU.zahl() ? 'auf' : 'zu'}" title="${LVZU.zahl() ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.zahl() ? '⊞' : '⊟'}</button></td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
-  const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
+  const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td colspan="3"></td><td class="hide-m hint">${esc(x.kg || '')}</td><td colspan="${NC - 7}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
   const LV = LIST.filter((x) => (!x.archived && !ohneLv(x)) || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
   const vorher = LV.slice(0, Math.max(0, k)).map(andere).join(''), nachher = (k >= 0 ? LV.slice(k + 1) : LV.filter((x) => x.id !== L.id)).map(andere).join('');
   return `${lvGaebHinweis()}
@@ -2143,6 +2143,43 @@ bpBaum.tasten({ wurzel: '#pjTree, #view .pjtree[data-teil]', zeilen: '.pj-r', ti
 bpBaum.tasten({ wurzel: '#view table.au-t > tbody', zeilen: 'tr[data-tr]', ohne: 'input.aui, tr[data-ntein] input', waehle: (z) => (z.querySelector('.au-bz') || z.querySelector('td')).click() });   // Aufträge: Felder mit eigenem Tab/Enter (auZiel…)
 bpBaum.tasten({ wurzel: '#view table.lv.am.baum > tbody', zeilen: 'tr', ohne: '[data-am-new], .pj-ren' });
 window.bpBaumFelder = '#view table.lv.ps, .sr-flo table.lv.ps';   // Preisspiegel: Enter geht in der Spalte eines Bieters nach unten, Tab von Bieter zu Bieter
+/* Kostengruppe (DIN 276, Liste im Kern): Vorschlagsliste der Spalte KG – erst die KG des LV, dann die im LV benutzten, dann die zum Gewerk passenden, dann alle.
+   Die KG des LV steht in der LV-Zeile; neue und leere Positionen übernehmen sie (wird sie geändert, ziehen die Positionen mit, die leer waren oder die alte hatten). */
+let KGV = { g: null, v: [] };
+const lvKg = () => (L && (LIST.find((y) => y.id === L.id) || {}).kg) || '';
+function kgLaden() {
+  if (!KGN) { KGN = {}; api('api/kg_namen').then((k) => { KGN = k; }).catch(() => { KGN = null; }); }
+  const g = (L && L.gewerk) || ''; if (KGV.g === g) return; KGV = { g, v: [] };
+  if (g) api('api/kg_vorschlag?gewerk=' + encodeURIComponent(g)).then((v) => { if (KGV.g === g) KGV.v = v; }).catch(() => {});
+}
+bpVorschlag.listen.kg = () => {
+  kgLaden(); const N = KGN || {}, zahl = {};
+  if (L) items().forEach((x) => { if (x.kg) zahl[x.kg] = (zahl[x.kg] || 0) + 1; });
+  const R = [...new Set([lvKg(), ...Object.keys(zahl).sort((a, b) => zahl[b] - zahl[a]), ...KGV.v, ...Object.keys(N)].filter(Boolean))];
+  return R.map((k) => ({ w: k, t: (N[k] || '') + (k === lvKg() ? ' · KG des LV' : zahl[k] ? ' · im LV' : KGV.v.includes(k) ? ' · Gewerk' : '') }));
+};
+bpVorschlag.norm.kg = (v) => String(v || '').replace(/\D/g, '').slice(0, 3);
+async function kgInPos(id, alt, neu) {   // KG des LV geändert: Positionen ohne eigene KG (leer oder die alte des LV) ziehen mit
+  const x = LIST.find((y) => y.id === id); if (x) x.kg = neu;
+  if (!L || L.id !== id) return;
+  let n = 0; items().forEach((y) => { if (y.typ === 'pos' && (!y.kg || y.kg === alt)) { y.kg = neu; n++; } });
+  if (n) { HIST.next = `KG des LV ${alt || 'leer'} → ${neu || 'leer'} (${n} Position${n === 1 ? '' : 'en'})`; changed(true); } else render();
+}
+async function lvKgSetzen(neu) {
+  if (!L) return; const id = L.id, alt = lvKg(); neu = bpVorschlag.norm.kg(neu); if (neu === alt) return;
+  try { await api(`api/lv/${id}/daten`, 'PUT', { lv: { kg: neu } }); await kgInPos(id, alt, neu); rueckgaengig(`KG des LV: ${alt || 'leer'} → ${neu || 'leer'}`, () => lvKgSetzen(alt)); }
+  catch (e) { toast(e.message, true); render(); }
+}
+document.addEventListener('change', (e) => { const i = e.target.closest && e.target.closest('input[data-lvkg]'); if (i) lvKgSetzen(i.value); });
+/* Doppelklick auf ein LV im Baum (LV-Tabelle, Projektbaum, Aufmaß) öffnet „LV- & Auftragsdaten“ – wie in den Aufträgen; Alt+Enter ebenso */
+document.addEventListener('dblclick', async (e) => {
+  const r = e.target.closest && e.target.closest('table.lv tr[data-lvwurzel], table.lv tr[data-lvopen], .pjtree [data-pjlv]:not([data-pjsub])');
+  if (!r || e.target.closest('input,button,select,[data-pjcar],[data-lvganz]')) return;
+  const id = r.dataset.lvwurzel != null ? L && L.id : +(r.dataset.lvopen || r.dataset.pjlv); if (!id) return;
+  e.preventDefault(); if (window.getSelection) getSelection().removeAllRanges();
+  if (!L || L.id !== id) { await flush(); await openLv(id); }
+  lvDaten();
+});
 function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
   if (tab !== 'lv' || !L) return;
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {};
@@ -2330,8 +2367,8 @@ function addItem(kind) {
     neu = { id: uid(), typ: 'titel', lvl: akt && akt.typ === 'titel' ? (akt.lvl || 1) : ref && ref.typ === 'titel' ? (ref.lvl || 1) : ober ? (ober.lvl || 1) : 1, oz: '', kurz: '' };
   }
   else if (kind === 'txt') neu = { id: uid(), typ: 'pos', art: 'T', oz: '', kurz: '', lang: '', menge: 0, einheit: '' };
-  else if (kind === 'nt') { const n = ntNr(); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 1, einheit: 'psch', nt: 'NT' + n, nt_status: 'angemeldet' }; }
-  else { const last = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T') || [...I].reverse().find((x) => x.typ === 'pos' && x.art !== 'T'); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: last ? last.einheit : 'm2', kg: last ? last.kg : '' }; }
+  else if (kind === 'nt') { const n = ntNr(); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 1, einheit: 'psch', kg: lvKg(), nt: 'NT' + n, nt_status: 'angemeldet' }; }
+  else { const last = [...I.slice(0, at)].reverse().find((x) => x.typ === 'pos' && x.art !== 'T') || [...I].reverse().find((x) => x.typ === 'pos' && x.art !== 'T'); neu = { id: uid(), typ: 'pos', art: 'N', oz: '', kurz: '', lang: '', menge: 0, einheit: last ? last.einheit : 'm2', kg: lvKg() || (last ? last.kg : '') }; }
   I.splice(at, 0, neu); if (LVAKT) LVAKT = neu.id;
   numerieren(); changed(true);
   setTimeout(() => { const el = document.querySelector(`tr[data-i="${at}"] [data-f="kurz"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
@@ -2707,7 +2744,9 @@ async function lvDaten() {
     },
     speichern: async (W) => {
       const lv = {}, au = {}, K = {}; Object.entries(W).forEach(([k, v]) => { if (k.startsWith('a_')) au[k.slice(2)] = v; else if (k.startsWith('k_')) K[k.slice(2)] = v; else lv[k] = v; });
+      const kgAlt = String((D.lv || {}).kg || '');
       D = await api(`api/lv/${id}/daten`, 'PUT', { lv, auftrag: au });
+      if (String(D.lv.kg || '') !== kgAlt) await kgInPos(id, kgAlt, String(D.lv.kg || ''));
       if (D.vergeben && Object.keys(K).length) {   // Auftragsbedingungen und Sicherheiten wie in der Auftragskarte speichern
         const alt = kond(), geaendert = Object.keys(K).filter((k) => String(K[k] ?? '') !== String(alt['k_' + k] ?? ''));
         if (geaendert.length) {

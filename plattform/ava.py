@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import ai, baudaten, db, fehler, gaeb, layout, papierkorb, platform, schrift, sso, stammdaten, versionen, vorgang
+from bpcore import ai, baudaten, db, din276, fehler, gaeb, layout, papierkorb, platform, schrift, sso, stammdaten, versionen, vorgang
 import common as C
 
 app = C.make_app(__name__)
@@ -1299,6 +1299,11 @@ def kg_namen():   # Kostengruppen DIN 276 (für „Rechnung ohne LV / Auftrag“
     return jsonify(KG_NAMEN)
 
 
+@app.get("/api/kg_vorschlag")
+def kg_vorschlag():   # Kostengruppen, die zum Gewerk passen (Vorschlagsliste der Spalte KG im LV)
+    return jsonify(din276.vorschlag(request.args.get("gewerk", "")))
+
+
 @app.post("/api/lv")
 def lv_neu():
     b = request.get_json(silent=True) or {}
@@ -1490,10 +1495,7 @@ def baukosten_liste():
 baudaten.register(app)
 
 
-KG_NAMEN = {"310": "Baugrube / Erdbau", "320": "Gründung, Unterbau", "330": "Außenwände", "340": "Innenwände", "350": "Decken", "360": "Dächer",
-            "370": "Infrastrukturanlagen", "380": "Baukonstruktive Einbauten", "390": "Sonstige Maßnahmen für Baukonstruktionen", "410": "Abwasser, Wasser, Gas",
-            "420": "Wärmeversorgung", "430": "Raumlufttechnik", "440": "Elektrische Anlagen", "450": "Kommunikation, Sicherheit", "460": "Förderanlagen",
-            "470": "Nutzungsspezifische Anlagen", "480": "Gebäudeautomation", "490": "Sonstige Maßnahmen für technische Anlagen"}
+KG_NAMEN = din276.NAMEN   # Kostengruppen DIN 276 bis zur 3. Ebene (Kern: bpcore/din276.py)
 
 
 @app.post("/api/lv/<int:i>/aus-baukosten")

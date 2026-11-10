@@ -1,5 +1,5 @@
 /* Vorschlagsliste für Eingabefelder – gemeinsamer Baustein (/bp/vorschlag.js), ersetzt <datalist>.
-   <input data-vs="eh"> → kleine Liste unter dem Feld; ↑/↓ wählen, Enter/Klick übernimmt, Esc schließt.
+   <input data-vs="eh"> → kleine Liste unter dem Feld (aufklappen per Klick oder Alt+↓, beim Tippen die passenden); ↑/↓ wählen, Enter/Klick übernimmt, Esc schließt.
    Listen: window.bpVorschlag.listen[name] = [{w:'m2', t:'Quadratmeter'}, …] oder Funktion(input) → Liste.
    Optional bpVorschlag.norm[name] = Funktion(wert) → vereinheitlichter Wert beim Verlassen des Feldes. */
 (() => {
@@ -37,13 +37,20 @@
     inp.value = x.w; STILL = true; try { inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); } finally { STILL = false; }
   }
   const ziel = (e) => e.target && e.target.matches && e.target.ownerDocument === document && e.target.matches('input[data-vs]') ? e.target : null;   // nicht in eigenen Fenstern (seite.js)
-  document.addEventListener('focusin', (e) => { const i = ziel(e); if (i) zeigen(i, true); else if (POP && !POP.contains(e.target)) zu(); });
+  /* die ganze Liste klappt nur mit der Maus auf (Klick ins Feld) oder mit Alt+↓ – wer mit Tab/Enter durch die Felder geht, bekommt
+     keine Liste in den Weg; beim Tippen erscheinen die passenden Vorschläge wie bisher */
+  let MAUS = null;
+  document.addEventListener('pointerdown', (e) => { MAUS = { el: e.target, t: Date.now() }; }, true);
+  const perMaus = (i) => MAUS && MAUS.el === i && Date.now() - MAUS.t < 1500;
+  document.addEventListener('focusin', (e) => { const i = ziel(e); if (i) { if (perMaus(i)) zeigen(i, true); else if (POP) zu(); } else if (POP && !POP.contains(e.target)) zu(); });
+  document.addEventListener('click', (e) => { const i = ziel(e); if (i && !POP && document.activeElement === i) zeigen(i, true); });
   let STILL = false;
   document.addEventListener('input', (e) => { const i = ziel(e); if (i && !STILL) zeigen(i, false); });
   document.addEventListener('focusout', (e) => { const i = ziel(e); if (i) setTimeout(() => { if (document.activeElement !== i && IN === i) zu(); }, 120); });
   /* vereinheitlichen, bevor die App den Wert speichert (Erfassungsphase läuft vor ihren change-Handlern) */
   document.addEventListener('change', (e) => { const i = ziel(e), f = i && V.norm[i.dataset.vs]; if (f) { const n = f(i.value); if (n !== i.value) i.value = n; } }, true);
   document.addEventListener('keydown', (e) => {
+    if (!POP && e.altKey && e.key === 'ArrowDown') { const i = ziel(e); if (i) { e.preventDefault(); e.stopPropagation(); zeigen(i, true); } return; }
     if (!POP || e.target !== IN) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); SEL = (SEL + (e.key === 'ArrowDown' ? 1 : -1) + L.length) % L.length; zeigen0(); }
     else if (e.key === 'Enter' && SEL >= 0) { e.preventDefault(); e.stopPropagation(); nehmen(SEL); }

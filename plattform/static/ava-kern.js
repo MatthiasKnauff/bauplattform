@@ -23,6 +23,7 @@ const NAVI = [   // wie in den gewohnten AVA-Programmen: links die Arbeitsschrit
   ['Prüfung und Abrechnung', [['auftraege', 'Aufträge', '<path d="M3 7h6l2 2h10v10H3z"/>'], ['aufmass', 'Aufmaßprüfung', '<path d="M3 17l14-14 4 4-14 14H3z"/><path d="M13 7l4 4"/>'], ['rechnungen', 'Rechnungen', '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>']]],
   ['Kostenübersicht', [['uebersicht', 'Kostenkontrolle', '<path d="M4 19h16M7 16V9M12 16V5M17 16v-4"/>']]],
 ];
+const NAVF = { lv: '#6aa7ff', tueren: '#2fd6c9', angebote: '#b18cff', auftraege: '#3ddc84', aufmass: '#ffad5c', rechnungen: '#e8c53a', uebersicht: '#ff7a6b' };   // Farbe der Symbol-Kacheln je Bereich
 /* Die vier Arbeitsschritte oben (fest), darunter die Bereiche des gewählten Schritts */
 const SCHRITTE = [['aus', 'Ausschreibung', ['lv', 'tueren']], ['ver', 'Vergabe', ['angebote']], ['abr', 'Abrechnung', ['auftraege', 'aufmass', 'rechnungen']], ['kos', 'Kosten', ['uebersicht']]];
 const schrittVon = (t) => SCHRITTE.find((x) => x[2].includes(t)) || SCHRITTE[0];

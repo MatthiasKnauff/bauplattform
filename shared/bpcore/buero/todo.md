@@ -101,3 +101,5 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~Apps-Menü: Eckdreieck öffnet in neuem Tab, rechte Maustaste: Öffnen, neuer Tab, neues Fenster, Adresse kopieren~~
 - ~~Kopierquelle: „Alles einklappen“~~
 - ~~AVA-Tabellen: Zelle mit Inhalt beim Hineinspringen ganz markiert (Tippen überschreibt, F2 ans Ende); Aufmaß-Spalte ✕/＋ nicht mehr abgeschnitten~~
+- ~~Navigation gelöst: Versionsnummer im Streifen (AVA, Bauzeitenplan), AVA-Bereiche farbig, keine Lücken durch Suche und „＋ Neu“~~
+- ~~Bauzeitenplan-Druck: „Markierte Zeile hervorheben“~~

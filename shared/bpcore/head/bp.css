@@ -147,8 +147,12 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav.frei:not(:hover):not(:focus-within) .ni :is(svg,.nbu){color:var(--kf,var(--mute))}
 .bp-nav.frei:not(:hover):not(:focus-within){background-image:linear-gradient(90deg,transparent 51px,var(--line) 51px,var(--line) 52px,transparent 52px)}   /* Kante des Streifens */
 .bp-nav.frei:not(:hover):not(:focus-within) .nh{color:transparent;background-color:transparent;border-color:transparent}
+.bp-nav.frei :is(.nsuche,#nsuche){display:none}.bp-nav.frei :is(.nav-u,.ni-neu){display:none}   /* „＋ Neu …“ gelöst nur in der Befehlsleiste – keine Lücke im Streifen */   /* gelöst: Suche nur angeheftet (oder Strg+F) – kein leerer Platz im Streifen */
 .bp-nav.frei .nh{display:none}.bp-nav.frei .ng+.ng{border-top:1px solid var(--line);margin-top:.3rem;padding-top:.3rem}   /* gelöst: Symbole dicht wie im Mock – Gruppen nur als Trennstrich, auch aufgeklappt (nichts springt) */
 .bp-nav.frei:not(:hover):not(:focus-within) :is(.nv-davor,.nfuss,.nsuche,.ni small,.ni-neu,.ng>:not(.ni)){opacity:0;pointer-events:none}
+.bp-nav.frei:not(:hover):not(:focus-within) .nv-davor:has(.bph-vm){opacity:1}   /* Versionsnummer bleibt im Streifen sichtbar */
+.bp-nav.frei:not(:hover):not(:focus-within) .nv-davor .bph-vm-b{border-color:transparent!important;background:none!important;box-shadow:none!important}
+.bp-nav.frei:not(:hover):not(:focus-within) .nv-davor .bph-vm-b>:not(.n),.bp-nav.frei:not(:hover):not(:focus-within) .nv-davor :is(.bph-vm>:not(.bph-vm-b),.gl){opacity:0}
 .bp-nav-zone{position:fixed;z-index:3000;display:flex;align-items:center;justify-content:center;border:2px dashed var(--y);border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,var(--y) 14%,transparent);color:var(--ink);font-weight:600;pointer-events:none}
 .bp-nav-zone.hot{background:color-mix(in srgb,var(--y) 34%,transparent)}
 .bp-nav-zieht,.bp-nav-zieht *{cursor:grabbing!important;user-select:none!important}

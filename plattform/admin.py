@@ -8,7 +8,8 @@ from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import briefbogen, db, einstellungen, layout, papierkorb, platform, projektteile, schrift, sso, versionen
+from bpcore import briefbogen, db, layout, papierkorb, platform, projektteile, schrift, sso, versionen
+from bpcore import einstellungen as bpeinst   # nicht „einstellungen“: so heißt hier schon eine Route
 from bpcore import logo as bplogo
 import common as C
 
@@ -553,9 +554,9 @@ def einstellungen_zentral():
     """Zentrale Einstellungen direkt aus dem Kern (bpcore.einstellungen) – nicht mehr über das Bautagebuch."""
     with db.tx() as c:
         if request.method == "GET":
-            return jsonify(**einstellungen.fuer_browser(c, True), has_logo=bplogo.vorhanden(c))   # Kennwörter verlassen den Server nie
+            return jsonify(**bpeinst.fuer_browser(c, True), has_logo=bplogo.vorhanden(c))   # Kennwörter verlassen den Server nie
         b = request.get_json(silent=True) or {}
-        einstellungen.aendern(c, b, g.user["name"])
+        bpeinst.aendern(c, b, g.user["name"])
     C.audit(g.user["name"], "konto", "Einstellungen geändert", ", ".join(k for k in b if not re.search(r"pass|secret|key", k)) or "Zugangsdaten")
     return jsonify(ok=True)
 

@@ -9,7 +9,7 @@
      reiter – [{ id, titel, mount(el), neu?(), fenster? }]: mount füllt das Feld (im Bereich, im freien Fenster oder im eigenen
               Browserfenster), neu() wird nach einer Größenänderung aufgerufen (z. B. PDF neu zeichnen);
               Knopf „⇱“ (jeder Reiter, außer fenster: false): der Reiter zieht in ein eigenes Browserfenster (zweiter Bildschirm) und bleibt verbunden
-     opt    – { start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
+     opt    – { start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), min?: Mindestbreite rechts in px (360), minL?: links (320), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
    seiteFuellen(key, id) – einen Reiter neu füllen, wo immer er steht (rechts, freies Fenster, eigenes Browserfenster), z. B. nach neuer Auswahl
    seiteFinde(sel) / seiteAktiv() – querySelector bzw. das Feld mit dem Fokus, auch in den eigenen Browserfenstern
    seiteUmschalten() / seiteOffen() / seiteDa() – Bereich rechts an den Rand klappen bzw. fragen, ob er offen ist / da ist
@@ -26,6 +26,8 @@
   const AKTIV = new Map();   // key → { sp, reiter, opt }
   const EIGEN = new Map();   // 'key|id' → eigenes Browserfenster des Reiters
   const grenz = (v, a, b) => Math.max(a, Math.min(b, v));
+  const MINR = 360, MINL = 320;   // Mindestbreiten in px: Bereich rechts (Formulare, Assistent bleiben lesbar) und Inhalt links
+  const spalten = (v, o) => `minmax(${o.minL ?? MINL}px,${v}fr) 16px minmax(${o.min ?? MINR}px,${1 - v}fr)`;
 
   function seite(sp, key, reiter, opt = {}) {
     if (!sp) return;
@@ -41,7 +43,7 @@
     let g = sp.querySelector(':scope > .sr-griff');
     if (!g) { g = document.createElement('div'); g.className = 'sr-griff'; g.title = 'Trennung verschieben (Doppelklick: Mitte)'; sp.insertBefore(g, r); }
     sp.classList.toggle('sr-leer', !dock.length); sp.classList.toggle('sr-zu', !!dock.length && zu);
-    sp.style.gridTemplateColumns = schmal || !dock.length ? '' : zu ? 'minmax(0,1fr) 2.6rem' : `minmax(0,${w}fr) 16px minmax(0,${1 - w}fr)`;
+    sp.style.gridTemplateColumns = schmal || !dock.length ? '' : zu ? 'minmax(0,1fr) 2.6rem' : spalten(w, opt);
     g.hidden = schmal || zu || !dock.length;
     if (!dock.length) r.innerHTML = '';
     else if (zu) r.innerHTML = `<div class="sr-aufs" role="tablist" aria-label="Bereich rechts">${dock.map((x) => `<button type="button" role="tab" class="sr-auf${x === akt ? ' on' : ''}" data-sra="auf" data-srid="${esc(x.id)}" title="„${esc(x.titel)}“ zeigen"><span>${esc(x.titel)}</span></button>`).join('')}</div>`;   // je Reiter ein Kopf wie im Ordner – öffnet genau diesen
@@ -63,7 +65,7 @@
       neu();
     };
     g.onpointerdown = (e) => { if (e.button !== 0) return; e.preventDefault(); g.setPointerCapture(e.pointerId); const b = sp.getBoundingClientRect();
-      g.onpointermove = (m) => { const v = grenz((m.clientX - b.left) / b.width, 0.2, 0.85); sp.style.gridTemplateColumns = `minmax(0,${v}fr) 16px minmax(0,${1 - v}fr)`; merk(key + '.w', v); };
+      g.onpointermove = (m) => { const v = grenz((m.clientX - b.left) / b.width, Math.max(0.2, (opt.minL ?? MINL) / b.width), Math.min(0.85, 1 - ((opt.min ?? MINR) + 16) / b.width)); sp.style.gridTemplateColumns = spalten(v, opt); merk(key + '.w', v); };
       g.onpointerup = () => { g.onpointermove = null; if (akt && akt.neu) akt.neu(); if (opt.wechsel) opt.wechsel(); }; };
     g.ondblclick = () => { merk(key + '.w', opt.w || 0.52); neu(); if (akt && akt.neu) akt.neu(); };
     if (akt && akt.neu && !r._ro) {   // Breite des Bereichs ändert sich (Fenster, Trennung): Inhalt neu zeichnen

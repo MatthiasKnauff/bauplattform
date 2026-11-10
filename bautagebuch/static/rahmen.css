@@ -16,7 +16,7 @@ body.bt-rahmen #detail .wrap{max-width:none;padding-bottom:1rem}
 body.bt-rahmen .btl{display:block;max-width:none}
 /* Navigation: Kalender und Berichte des Tages */
 .bt-kal{margin:0 .1rem .5rem;padding:.5rem .45rem .4rem;border-radius:calc(10px*var(--rk,1))}
-.bt-kal .bcal-h{margin-bottom:.3rem}.bt-kal .bcal-h b{font-size:.88rem}.bt-kal .bcal-h button{width:24px;height:24px;background:none}
+.bt-kal .bcal-h{margin-bottom:.3rem}.bt-kal .bcal-h b{font-size:.88rem}.bt-kal .bcal-h button{width:24px;height:24px;background:none;padding:0;display:grid;place-items:center;line-height:1;font-size:1rem}
 .bt-kal .bcal-g{font-size:.76rem;gap:1px}.bt-kal .bcal-g span,.bt-kal .bcal-g button{padding:.22rem 0;border:0;background:none}
 .bt-kal .bcal-g button.on{background:var(--y);color:var(--on)}
 .bt-kal .bcal-g button.zwei::after{width:10px;border-radius:calc(2px*var(--rk,1));background:linear-gradient(90deg,var(--y) 0 4px,transparent 4px 6px,var(--y) 6px)}

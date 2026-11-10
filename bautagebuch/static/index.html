@@ -9,6 +9,7 @@
 <link rel="icon" type="image/png" href="api/favicon">
 <link rel="apple-touch-icon" href="api/favicon?s=180">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="bp/bp.css">   <!-- Baukasten zuerst: die Regeln des Bautagebuchs gehen vor -->
 <style>
 :root{--bar:#84827c;--bg:#26282b;--card:#252729;--line:#3b3e42;--ink:#f3f3f1;--mute:#9a9c9e;--y:#ff5fb3;--on:#111;--red:#ff7a6b;--inp:#1d1f21;--pan:#2b2d30;--hov:#2a2d30;color-scheme:dark}
 /* helles Schema – eingestellt auf der Startseite der Bauplattform (Darstellung), gilt für alle Apps */
@@ -508,6 +509,10 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 </style>
 <link rel="stylesheet" href="bp/head.css">
 <script src="bp/head.js"></script>
+<link rel="stylesheet" href="rahmen.css">
+<script src="bp/nav.js"></script>
+<script src="bp/befehle.js"></script>
+<script src="bp/seite.js"></script>
 </head>
 <body>
 <section id="login" class="hidden"></section>
@@ -2245,5 +2250,6 @@ if (location.hash.startsWith('#reset=')) authView('reset');
 else if (location.hash === '#forgot') { history.replaceState(null, '', location.pathname); authView('forgot'); }   // Link „Kennwort vergessen“ der Startseite
 else api('api/me').then(r => { if (!r.ok) return authView('login'); me = r; applyLook(r); r.must_change ? authView('change') : showApp(); });
 </script>
+<script src="rahmen.js"></script>   <!-- breite Bildschirme: Navigation, Befehlsleiste, Bereich rechts -->
 </body>
 </html>

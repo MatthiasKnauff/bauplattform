@@ -82,3 +82,5 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~Baukosten: Vorschläge schließen, Assistent ohne Schritt „Projekt“, „Aus anderem Projekt übernehmen“~~
 - ~~Kommunikation: Liste oben bündig~~
 - ~~ToDo-Liste im Projekt „Büro“~~
+- ~~AVA: Aufmaßprüfung, Rechnungen, Angebote – Seite rollt nicht mehr, Felder rollen in sich, unten gleichmäßiger Rand~~
+- ~~Alle Apps: senkrechte Reiter des zugeklappten Bereichs rechts einheitlich kleiner~~

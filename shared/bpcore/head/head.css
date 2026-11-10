@@ -654,8 +654,8 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .sr-ik:hover{color:var(--ink);border-color:var(--y)}
 .sr-b{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}
 .sr-pad{padding:.45rem}.sr-pad>.card{margin:0 0 .45rem;box-shadow:none}.sr-pad>.card:last-child{margin-bottom:0}
-.sr-aufs{display:flex;flex-direction:column;gap:.3rem}   /* zugeklappt: je Reiter ein Kopf wie die Register in einem Ordner */
-.sr-auf{display:flex;flex-direction:column;align-items:center;width:2.4rem;padding:.7rem 0;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:var(--card);color:inherit;cursor:pointer;font:inherit;font-size:var(--fs-s2,.86rem)}
+.sr-aufs{display:flex;flex-direction:column;gap:.25rem}   /* zugeklappt: je Reiter ein Kopf wie die Register in einem Ordner */
+.sr-auf{display:flex;flex-direction:column;align-items:center;width:1.9rem;padding:.5rem 0;border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));background:var(--card);color:inherit;cursor:pointer;font:inherit;font-size:var(--fs-s,.8rem);line-height:1.1}   /* einheitlich klein in allen Apps */
 .sr-auf:hover,.sr-auf.on{border-color:var(--y)}.sr-auf.on{font-weight:600}.sr-auf span{writing-mode:vertical-rl}
 .sr-flo{position:fixed;z-index:60;display:flex;flex-direction:column;resize:both;overflow:hidden;min-width:300px;min-height:240px;background:var(--card);border-radius:calc(12px*var(--rk,1));box-shadow:var(--sh0,0 18px 50px rgba(0,0,0,.35),0 0 0 1px var(--line))}.sr-flo.vorn{z-index:61}
 .sr-fk{display:flex;align-items:center;gap:.25rem;padding:.35rem .45rem .35rem .75rem;cursor:move;border-bottom:1px solid var(--line);background:var(--tabs);touch-action:none}.sr-fk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sr-fk .sr-ik{margin:0}

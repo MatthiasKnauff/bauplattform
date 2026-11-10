@@ -43,7 +43,7 @@
     let g = sp.querySelector(':scope > .sr-griff');
     if (!g) { g = document.createElement('div'); g.className = 'sr-griff'; g.title = 'Trennung verschieben (Doppelklick: Mitte)'; sp.insertBefore(g, r); }
     sp.classList.toggle('sr-leer', !dock.length); sp.classList.toggle('sr-zu', !!dock.length && zu);
-    sp.style.gridTemplateColumns = schmal || !dock.length ? '' : zu ? 'minmax(0,1fr) 2.6rem' : spalten(w, opt);
+    sp.style.gridTemplateColumns = schmal || !dock.length ? '' : zu ? 'minmax(0,1fr) 2.1rem' : spalten(w, opt);
     g.hidden = schmal || zu || !dock.length;
     if (!dock.length) r.innerHTML = '';
     else if (zu) r.innerHTML = `<div class="sr-aufs" role="tablist" aria-label="Bereich rechts">${dock.map((x) => `<button type="button" role="tab" class="sr-auf${x === akt ? ' on' : ''}" data-sra="auf" data-srid="${esc(x.id)}" title="„${esc(x.titel)}“ zeigen"><span>${esc(x.titel)}</span></button>`).join('')}</div>`;   // je Reiter ein Kopf wie im Ordner – öffnet genau diesen

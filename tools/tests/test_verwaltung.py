@@ -186,7 +186,7 @@ def test_projekt_anlegen_und_archivieren(ctx):
         a.put("/verwaltung/api/projects/999999999", {"archived": True}, expect=404)
     finally:
         r = a.pj("/verwaltung/api/projects/delete", {"bt": pid})
-    gleich(r.get("done"), [f"Bautagebuch-Projekt „{name}“ mit Berichten und Fotos"], "gelöscht")
+    gleich(r.get("done"), [f"Projekt „{name}“ mit allem, was dazugehört"], "gelöscht")
     pruefe(_uebersicht(ctx, pid) is None, "gelöschtes Projekt steht noch in der Übersicht")
 
 

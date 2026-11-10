@@ -78,7 +78,7 @@ def loeschen(req, wer, plans=(), bks=(), bt=None):
         if r:
             try:
                 _bt_loeschen(req, bt)
-                done.append(f"Bautagebuch-Projekt „{r['name']}“ mit Berichten und Fotos")
+                done.append(f"Projekt „{r['name']}“ mit allem, was dazugehört")
             except RuntimeError as e:
                 errors.append(str(e))
     try:

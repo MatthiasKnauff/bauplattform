@@ -849,7 +849,7 @@ async function setDialog(host) {
     <label for="sU">Uhrzeit</label><div><input id="sU" type="time" value="${esc(CFG.uhrzeit)}"> an diesem Tag</div>
     <label for="sL">„Wieder“ ab</label><div><input id="sL" type="number" min="1" max="90" value="${CFG.luecke}" style="width:80px"> Tagen Pause – kürzere Pausen zählen als ein Einsatz</div>
     <label>E-Mail</label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="sM"${CFG.mail_plan ? ' checked' : ''}> Erinnerungen aus den Bauzeitenplänen per E-Mail verschicken</label>
-    <p class="w mute" style="font-size:.85rem;margin:0">Empfänger: die Zuständigen des verknüpften Bautagebuch-Projekts, sonst wer den Plan zuletzt gespeichert hat. Den Mailserver stellst du in der Verwaltung ein. Erinnerungen aus dem Bautagebuch verschickt das Bautagebuch am Fälligkeitstag selbst.</p></div>
+    <p class="w mute" style="font-size:.85rem;margin:0">Empfänger: die Zuständigen des verknüpften Projekts, sonst wer den Plan zuletzt gespeichert hat. Den Mailserver stellst du in der Verwaltung ein. Erinnerungen aus dem Bautagebuch verschickt das Bautagebuch am Fälligkeitstag selbst.</p></div>
     <p class="w mute" style="font-size:.85rem;margin:.3rem 0 0">Unterschrift, Signatur und Versand der Rügen: ⚙ → Für mich. Texte der Mails: ⚙ → Büro → E-Mail-Vorlagen.</p>
     <div class="acts"><button class="btn" data-m="test">Testmail an mich</button><button type="button" class="btn" data-bph-verlauf="bp:aufgaben" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }

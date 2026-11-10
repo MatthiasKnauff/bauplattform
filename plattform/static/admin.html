@@ -279,7 +279,7 @@ async function projForm(p) {
 function moreMenu(p, anchor) {
   document.querySelectorAll('.pmenu').forEach((x) => x.remove());
   const m = document.createElement('div'); m.className = 'pmenu';
-  m.innerHTML = (p.bt ? `<button data-pm="arch">${p.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button>` : '<button data-pm="mkbt">Bautagebuch-Projekt anlegen …</button>')
+  m.innerHTML = (p.bt ? `<button data-pm="arch">${p.archived ? 'Aus dem Archiv holen' : 'Archivieren'}</button>` : '<button data-pm="mkbt">Projekt anlegen …</button>')
     + '<button data-pm="del" class="dn">Löschen …</button>';
   document.body.appendChild(m);
   const r = anchor.getBoundingClientRect();
@@ -300,14 +300,14 @@ function archivRueck(p, was) {
 const projOf = (el) => data.p.find((p) => p.key === el.closest('[data-key]').dataset.key);
 function mkBt(p, then) {
   let fT = 0;
-  const bg = modalBox(`<h3>Bautagebuch-Projekt anlegen</h3><p class="mute" style="margin-top:0">„${esc(p.name)}“ hat noch kein Projekt im Bautagebuch. Anlegen und ${p.plans.length + p.bks.length > 1 ? 'Plan und Kostenermittlung' : 'es'} damit verknüpfen?</p>
-    <div class="row"><label for="btName">Projektname im Bautagebuch</label><input id="btName" value="${esc(p.name)}" autocomplete="off"></div>
+  const bg = modalBox(`<h3>Projekt anlegen</h3><p class="mute" style="margin-top:0">„${esc(p.name)}“ gehört noch zu keinem Projekt. Projekt anlegen und ${p.plans.length + p.bks.length > 1 ? 'Plan und Kostenermittlung' : 'es'} damit verknüpfen?</p>
+    <div class="row"><label for="btName">Projektname</label><input id="btName" value="${esc(p.name)}" autocomplete="off"></div>
     <div id="btSug"></div>
     <div class="acts"><button class="btn" data-m="x">Nein, später</button><button class="btn pri" data-m="ok">Anlegen und verknüpfen</button></div>`,
   async (m, bgx, close, btn) => {
     if (m === 'sug') { bgx.querySelector('#btName').value = btn.dataset.name; bgx.querySelectorAll('[data-m="sug"]').forEach((x) => x.classList.toggle('pri', x === btn)); return; }
     if (m !== 'ok') { close(); return; }
-    try { const r = await api('api/projects/bautagebuch', 'POST', { name: bgx.querySelector('#btName').value, plans: p.plans.map((x) => x.id), bks: p.bks.map((x) => x.id) }); close(); toast('Bautagebuch-Projekt angelegt und verknüpft.'); await load(); if (then) then(r.id); }
+    try { const r = await api('api/projects/bautagebuch', 'POST', { name: bgx.querySelector('#btName').value, plans: p.plans.map((x) => x.id), bks: p.bks.map((x) => x.id) }); close(); toast('Projekt angelegt und verknüpft.'); await load(); if (then) then(r.id); }
     catch (e) { toast(e.message, true); }
   });
   const inp = bg.querySelector('#btName'), box = bg.querySelector('#btSug');

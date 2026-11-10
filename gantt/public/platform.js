@@ -94,7 +94,7 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     if (window.BPHead && bt && bt.id && BPHead.projektSetzen) BPHead.projektSetzen(bt.id);   // gilt dann auch in den anderen Apps
     if (window.BPHead && p && !bt) BPHead.setProject({ title: p.name, sub: 'Bauzeitenplan ohne Projekt – rechts „Mit Projekt verknüpfen“' });   // sonst zeigt die Kopfleiste das Projekt
     if (!p) return;
-    if (bt) { el.innerHTML = ICON_LINK + '<span>' + escH(bt.name) + '</span>'; el.title = `Verknüpft mit dem Bautagebuch-Projekt „${bt.name}“${bt.address ? ' (' + bt.address + ')' : ''} – klicken zum Ändern`; }
+    if (bt) { el.innerHTML = ICON_LINK + '<span>' + escH(bt.name) + '</span>'; el.title = `Verknüpft mit dem Projekt „${bt.name}“${bt.address ? ' (' + bt.address + ')' : ''} – klicken zum Ändern`; }
     else { el.innerHTML = ICON_LINK + '<span>Mit Projekt verknüpfen</span>'; el.title = 'Plan mit einem Projekt des Bautagebuchs verknüpfen'; }
   }
   function showPresence() {
@@ -112,8 +112,8 @@ html[data-theme="dunkel"] .btn.primary{color:${lum > 0.55 ? '#111' : '#fff'}}`;
     try { list = await fetch('api/bt-projects').then(j); } catch (e) { toast('Projekte des Bautagebuchs konnten nicht geladen werden: ' + e.message, true); return; }
     const cur = P._bt ? P._bt.id : '';
     const opts = '<option value="">– keine Verknüpfung –</option>' + list.map((x) => `<option value="${x.id}"${x.id === cur ? ' selected' : ''}>${escH(x.name)}${x.address ? ' – ' + escH(x.address) : ''}${x.archived ? ' (archiviert)' : ''}${x.plan && x.plan !== P.id ? ' · hat schon einen Plan' : ''}</option>`).join('');
-    modal('Mit Bautagebuch-Projekt verknüpfen', `<div style="max-width:480px;line-height:1.5">
-        <p style="margin-top:0">Der Plan gehört dann zum Projekt im Bautagebuch. Wer dort als zuständiger Bauleiter eingetragen ist, sieht auch den Plan; ohne Eintrag sehen ihn alle.</p>
+    modal('Mit Projekt verknüpfen', `<div style="max-width:480px;line-height:1.5">
+        <p style="margin-top:0">Der Plan gehört dann zu diesem Projekt. Wer dort als zuständiger Bauleiter eingetragen ist, sieht auch den Plan; ohne Eintrag sehen ihn alle.</p>
         <select id="bpLinkSel" style="width:100%;padding:5px">${opts}</select>
         ${list.length ? '' : '<p style="color:var(--mut)">Im Bautagebuch gibt es noch keine Projekte.</p>'}</div>`, [
       { label: 'Abbrechen' },

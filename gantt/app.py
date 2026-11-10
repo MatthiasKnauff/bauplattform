@@ -455,7 +455,7 @@ def projects():
             link = None
         vis = visible_bt(c, g.user) if link is not None else None   # nur mit Projekten verknüpfen, die der Benutzer sehen darf
         if vis is not None and int(link) not in vis:
-            return jsonify(error="Bautagebuch-Projekt nicht gefunden"), 404
+            return jsonify(error="Projekt nicht gefunden"), 404
         return jsonify(write_project(c, p, uname(), int(link) if link is not None else None, insert=True)), 201
 
 
@@ -533,10 +533,10 @@ def project_link(pid):
         bt = b.get("project_id")
         if bt is not None:
             if not is_int(bt) or not c.execute("SELECT 1 FROM projects WHERE id=?", (int(bt),)).fetchone():
-                return jsonify(error="Bautagebuch-Projekt nicht gefunden"), 404
+                return jsonify(error="Projekt nicht gefunden"), 404
             vis = visible_bt(c, g.user)
             if vis is not None and int(bt) not in vis:
-                return jsonify(error="Bautagebuch-Projekt nicht gefunden"), 404
+                return jsonify(error="Projekt nicht gefunden"), 404
             bt = int(bt)
         c.execute("UPDATE gantt_projects SET project_id=? WHERE id=?", (bt, pid))
         return jsonify(out_project(c, row_of(c, pid)))

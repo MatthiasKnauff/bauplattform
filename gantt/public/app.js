@@ -2502,7 +2502,7 @@ function fileNew() {
     const p = await planApi.create({ name, start: snapWork(st), tasks: [], cal: P ? P.cal : null });
     if (btId) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: btId }) }).catch(() => {});
     await openProject(p.id); await refreshProjectList();
-    if (btId) toast('Mit dem Bautagebuch-Projekt verknüpft.');
+    if (btId) toast('Mit dem Projekt verknüpft.');
     if (b.dataset.nw === 'assist') { setAssistOpen(true); toast('Wähle rechts im Planungsassistenten die Maßnahme – „In … erzeugen“ füllt das neue Projekt.'); }
   });
 }

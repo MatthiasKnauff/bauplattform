@@ -302,7 +302,7 @@ def status():
             "server": c.execute("SHOW server_version").fetchone()[0].split(" ")[0],
         }
         counts = {}
-        for label, sql in (("Benutzer", "SELECT COUNT(*) FROM users"), ("Bautagebuch-Projekte", "SELECT COUNT(*) FROM projects"),
+        for label, sql in (("Benutzer", "SELECT COUNT(*) FROM users"), ("Projekte", "SELECT COUNT(*) FROM projects"),
                            ("Tagesberichte", "SELECT COUNT(*) FROM reports"), ("Fotos", "SELECT COUNT(*) FROM images"),
                            ("Kontakte / Firmen", "SELECT COUNT(*) FROM contacts"), ("Bauzeitenpläne", "SELECT COUNT(*) FROM gantt_projects"),
                            ("davon mit Projekt verknüpft", "SELECT COUNT(*) FROM gantt_projects WHERE project_id IS NOT NULL"),
@@ -427,7 +427,7 @@ def project_create_bt():
             c.execute("UPDATE gantt_projects SET project_id=? WHERE id=?", (pid, x))
         for x in bks:
             c.execute("UPDATE bk_projects SET project_id=? WHERE id=?", (pid, x))
-    C.audit(g.user["name"], "verwaltung", "Bautagebuch-Projekt angelegt", f"{name} · verknüpft: {len(plans)} Pläne, {len(bks)} Kostenermittlungen")
+    C.audit(g.user["name"], "verwaltung", "Projekt angelegt", f"{name} · verknüpft: {len(plans)} Pläne, {len(bks)} Kostenermittlungen")
     return jsonify(ok=True, id=pid)
 
 

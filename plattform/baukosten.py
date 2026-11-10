@@ -482,7 +482,7 @@ def bt_project():
         r = C.bt_api("POST", "/api/projects", {"name": name})
     except RuntimeError as e:
         return jsonify(error="Projekt im Bautagebuch konnte nicht angelegt werden: " + str(e)), 502
-    C.audit(g.user["name"], "baukosten", "Bautagebuch-Projekt angelegt", name)
+    C.audit(g.user["name"], "baukosten", "Projekt angelegt", name)
     return jsonify(id=r.get("id"), name=name)
 
 

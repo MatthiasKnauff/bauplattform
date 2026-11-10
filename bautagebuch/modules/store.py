@@ -22,25 +22,6 @@ def status():
     return jsonify(out)
 
 
-@bp.get("/api/store/path")
-def path():
-    """Netzwerkpfad des Projektordners auf dem Server (zum Einfügen in den Windows-Explorer)."""
-    pid = request.args.get("project_id", type=int)
-    with db.tx() as c:
-        conf = settings.all(c)
-        p = c.execute("SELECT id, name, folder FROM projects WHERE id=?", (pid,)).fetchone() if pid else None
-        if p and not access.can_see(c, g.user, p["id"]):   # fremde Projekte: wie nicht vorhanden
-            p = None
-    if not p or conf.get("store_mode") != "smb":
-        return jsonify(path="")
-    try:
-        t = remote.open_target(conf)
-        parts = remote.clean_path(p["folder"] or "") or remote.find_project_path(t, sync.code_of(p), remote.clean(p["name"]) or "Projekt")
-        return jsonify(path=t._unc(parts))
-    except Exception as e:
-        return jsonify(path="", error=str(e)), 502
-
-
 @bp.get("/api/store/names")
 def names():
     """Im Projekt geltende Namenskonventionen (Beispiele für PDF-Datei, PDF-Ordner, Fototag-Ordner) – braucht keine Serververbindung."""

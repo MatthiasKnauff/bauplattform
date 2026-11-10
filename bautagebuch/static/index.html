@@ -94,7 +94,6 @@ label.chk input{flex:none;margin:.15rem 0 0}
 #sheet .pf .bd{flex:1;white-space:nowrap}
 .pi{display:flex;width:100%;justify-content:space-between;gap:.6rem;text-align:left;color:var(--mute);border-radius:0;border-bottom:1px solid var(--line);padding:.8rem 1rem}
 .cx{display:flex;flex-wrap:wrap;gap:.4rem;padding:.3rem .6rem .5rem;align-items:center}.cx select{flex:1 1 40%;min-width:0}.cx button{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.35rem .6rem;color:var(--y);font-weight:700;font-size:.85rem}
-.pconly{display:none}@media(hover:hover) and (pointer:fine) and (min-width:900px){.pconly{display:inline-flex}.pconly.hidden{display:none}}
 .hmap{grid-column:2;grid-row:1/4;display:flex;flex-direction:row-reverse;align-items:flex-start;gap:.35rem;line-height:0}.hmap a{display:block}.hmap-ed{flex:none;display:inline-flex;align-items:center;gap:.3rem;line-height:1;padding:.3rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));color:var(--mute);background:var(--card)}.hmap-ed:hover{color:var(--y);border-color:var(--y)}.hmap.leer .hmap-ed{padding:.35rem .6rem;font-size:.85rem}.hmap img{width:280px;height:94px;object-fit:cover;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line);display:block;opacity:.95}
 @media(max-width:640px){.hgrid>h3{grid-column:1/-1}.hmap{grid-row:2/4;margin-top:.3rem}.hmap img{width:96px;height:96px}.hmap{position:relative}.hmap:not(.leer) .hmap-ed{position:absolute;right:3px;bottom:3px;padding:.2rem;background:color-mix(in srgb,var(--card) 85%,transparent)}}
 .mapb{grid-column:1/-1;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden}.mapb iframe{display:block;width:100%;height:210px;border:0;background:#2a2c30}.mapb.sm iframe{height:150px}@media(max-width:640px){.mapb iframe{height:130px}.mapb.sm iframe{height:90px}.mapr{padding:.45rem .8rem;font-size:.85rem}}
@@ -521,7 +520,6 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
     <div class="htools">
     <input id="btq" type="search" placeholder="Im Bautagebuch suchen …" autocomplete="off" enterkeyhint="search" aria-label="Im Bautagebuch suchen" title="Durchsucht Projekte, Berichte, Mängel, Notizen, Anwesende, Weisungen, Fotobeschreibungen und Kontakte">
     <button data-act="nearest" id="i-n" class="hb" title="Projekt nach Standort wählen"></button>
-    <button data-act="openPath" id="i-fp" class="hb pconly" title="Ordnerpfad auf dem Server kopieren (im Explorer einfügen)"></button>
     <button data-act="print" id="i-pdf" class="hb" title="PDF des Tagesberichts erstellen"></button>
     <button data-act="menu" id="i-g" class="hb hidden" title="Einstellungen und weitere Apps" aria-haspopup="menu"></button>
     </div>
@@ -730,7 +728,7 @@ function chrome() {
   $('#rname').textContent = r && r.number != null ? String(r.number) : '';   // wie die Versionsauswahl der anderen Apps: Nummer, Datum, ▾
   $('#rdate').textContent = r ? fmt(r.date) + (r.time ? ' · ' + r.time : '') : 'Kein Bericht – anlegen';
   $('#repBtn').title = r ? `Tagesbericht Nr. ${r.number} – anderen wählen` : 'Tagesbericht anlegen';
-  $('#i-n').innerHTML = ic('pin', 20) + '<span>Standort</span>'; $('#i-pdf').innerHTML = ic('pdf', 20) + '<span>PDF</span>'; $('#i-fp').innerHTML = ic('folder', 20) + '<span>Ordner</span>'; $('#i-fp').classList.toggle('hidden', !p); $('#i-g').innerHTML = ic('grid', 20, 1.7) + '<span>Mehr</span>';
+  $('#i-n').innerHTML = ic('pin', 20) + '<span>Standort</span>'; $('#i-pdf').innerHTML = ic('pdf', 20) + '<span>PDF</span>'; $('#i-g').innerHTML = ic('grid', 20, 1.7) + '<span>Mehr</span>';
   $('#i-pdf').classList.toggle('hidden', !rid);
   $('#tabs').innerHTML = TABS.map(([k, l, i]) => `<button class="tab ${k === tab ? 'on' : ''}" data-act="tab" data-t="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ic(i, 20, 2)}<span>${l}</span></button>`).join('');
   const apps = (PLATFORM.apps || []).filter(a => a.allowed && a.key !== 'bautagebuch');   // Bauplattform: andere Apps (gleiche Anmeldung)
@@ -1976,15 +1974,6 @@ document.addEventListener('click', async e => {
     toast(r.auto_address ? 'Projekt angelegt. Adresse und PLZ wurden aus dem Projektnamen ermittelt – bitte prüfen.' : 'Projekt angelegt. Die Adresse kannst du im Reiter „Projekt“ eintragen.');
   }
   else if (a === 'newProject') newProject();
-  else if (a === 'openPath') {   // nur am PC: Netzwerkpfad des Projektordners in die Zwischenablage
-    try {
-      const r = await api('api/store/path?project_id=' + pid), t = r.path;
-      if (!t) return toast('Kein Serverpfad: Ablage ist nicht als Windows-Server eingerichtet.');
-      let ok = false;
-      try { await navigator.clipboard.writeText(t); ok = true; } catch { const x = document.createElement('textarea'); x.value = t; document.body.append(x); x.select(); try { ok = document.execCommand('copy'); } catch {} x.remove(); }
-      toast(ok ? `Pfad kopiert – im Explorer einfügen (Strg+L): ${t}` : t);
-    } catch (e) { toast('Pfad nicht ermittelbar: ' + (e.message || e)); }
-  }
   else if (a === 'nearest') { closeSheet(); await autoPick(false); if (!$('#sheet').classList.contains('hidden')) renderSheet(); }
   else if (a === 'geoSearch') geoSearch();
   else if (a === 'geoHere') geoHere();

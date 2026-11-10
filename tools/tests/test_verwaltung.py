@@ -274,3 +274,19 @@ def test_zustand_der_dienste(ctx):
     pruefe(s["counts"]["Projekte"] >= 3, "weniger als 3 Projekte")
     pruefe(s["counts"]["davon mit Projekt verknüpft"] >= 2, "Bauzeitenpläne der Testdaten nicht verknüpft")
     pruefe(s.get("version") is not None, "keine Versionsangabe")
+
+
+def test_verwaltung_einstellungen_aus_dem_kern(ctx):
+    """Die zentralen Einstellungen liest und speichert die Verwaltung direkt aus dem Kern (bpcore.einstellungen) – dieselben
+    Werte sieht das Bautagebuch; Kennwörter verlassen den Server nie."""
+    v = ctx.admin.gj("/verwaltung/api/bt/settings")
+    pruefe("has_logo" in v and "mail_pass_set" in v, "Einstellungen der Verwaltung unvollständig")
+    pruefe(not any(k in v for k in ("mail_pass", "store_pass", "m365_secret")), "Kennwort in den Einstellungen der Verwaltung")
+    alt = v.get("co_fax", "")
+    try:
+        ctx.admin.put("/verwaltung/api/bt/settings", {"co_fax": "0201 / 12 34 56-99", "mail_pass": "", "nicht erlaubt!": "x"})
+        gleich(ctx.admin.gj("/verwaltung/api/bt/settings").get("co_fax"), "0201 / 12 34 56-99", "Verwaltung speichert die Einstellung")
+        gleich(ctx.admin.gj("/bautagebuch/api/settings").get("co_fax"), "0201 / 12 34 56-99", "das Bautagebuch sieht denselben Wert")
+        pruefe("nicht erlaubt!" not in ctx.admin.gj("/verwaltung/api/bt/settings"), "ungültiger Schlüssel wurde gespeichert")
+    finally:
+        ctx.admin.put("/verwaltung/api/bt/settings", {"co_fax": alt})

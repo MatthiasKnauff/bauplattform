@@ -1,7 +1,2 @@
-def all(con):
-    return {r["key"]: r["value"] for r in con.execute("SELECT key, value FROM settings")}
-
-
-def put(con, key, value):
-    con.execute("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-                (key, value))
+"""Einstellungen: durchgereicht aus dem Kern (bpcore.einstellungen) – die alten Namen bleiben für den Code des Bautagebuchs."""
+from bpcore.einstellungen import alle as all, setzen as put   # noqa: F401,A001

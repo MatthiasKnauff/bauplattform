@@ -1,36 +1,22 @@
 import os, re
 from flask import Blueprint, g, jsonify, request, send_file
-from core import db, settings, storage
+from core import db, storage
+from bpcore import einstellungen   # zentrale Einstellungen: ein Baustein für alle Apps
 
 bp = Blueprint("settings", __name__)
-KEY = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
-SECRETS = ("store_pass", "mail_pass", "m365_secret")
 
 
 @bp.get("/api/settings")
 def get_settings():
     with db.tx() as c:
-        conf = settings.all(c)
-    for k in SECRETS:                      # Kennwörter verlassen den Server nie
-        conf[k + "_set"] = bool(conf.pop(k, ""))
-    if not g.user["is_admin"]:             # normale Benutzer sehen nur die Firmendaten
-        conf = {k: v for k, v in conf.items() if k == "office_name" or k.startswith("co_")}
+        conf = einstellungen.fuer_browser(c, g.user["is_admin"])   # Kennwörter verlassen den Server nie
     return jsonify(**conf, has_logo=bool(storage.logo_path()))
 
 
 @bp.put("/api/settings")
 def put_settings():
-    from bpcore import versionen
-    with db.tx() as c, versionen.aenderung(c, "einst:bt", g.user["name"]):
-        for k, v in (request.json or {}).items():
-            if k.endswith("_clear") and k[:-6] in SECRETS:
-                settings.put(c, k[:-6], "")
-            elif k.endswith("_set") or not (KEY.match(k) and isinstance(v, str)):
-                continue
-            elif k in SECRETS and not v:
-                continue  # leeres Feld = Kennwort unverändert lassen
-            else:
-                settings.put(c, k, v[:500])
+    with db.tx() as c:
+        einstellungen.aendern(c, request.json, g.user["name"])
     return jsonify(ok=True)
 
 

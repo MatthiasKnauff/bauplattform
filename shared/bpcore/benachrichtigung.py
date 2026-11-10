@@ -1,4 +1,4 @@
-"""Benachrichtigungsverlauf je Kontakt (Tabelle benachrichtigungen, pg_migrations/0012 im Bautagebuch).
+"""Benachrichtigungsverlauf je Kontakt (Tabelle benachrichtigungen, bpcore/migrationen/0012).
 
 protokoll()  eine Sendung für einen oder mehrere Empfänger eintragen – auch für E-Mail-Adressen ohne Kontakt
 verlauf()    alle Sendungen an einen Kontakt (über die Kontakt-Nr. oder seine E-Mail-Adresse), neueste zuerst

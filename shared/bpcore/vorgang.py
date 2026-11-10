@@ -1,6 +1,6 @@
 """Kommunikation von der Baustelle: Nachrichten an Beteiligte und Vorgänge (Telefon-, Gesprächs-, Aktennotiz, Anordnung …).
 
-Vorgänge stehen in kom_vorgang, Fotos und Dateien in kom_datei (pg_migrations/0036_vorgang.sql). Was verschickt wird, kommt wie alle
+Vorgänge stehen in kom_vorgang, Fotos und Dateien in kom_datei (bpcore/migrationen/0036_vorgang.sql). Was verschickt wird, kommt wie alle
 Sendungen in den Benachrichtigungsverlauf (benachrichtigung.protokoll, art „nachricht“ bzw. „vorgang“).
 """
 import io, json, re

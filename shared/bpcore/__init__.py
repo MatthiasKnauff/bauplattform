@@ -1,2 +1,2 @@
 """Gemeinsamer Kern der Bauplattform (Datenbank, Anmeldung, App-Adressen)."""
-SCHEMA = 37   # mindestens benötigte Schemaversion (pg_migrations/0037_zeiten_fahrt.sql im Bautagebuch)
+SCHEMA = 37   # mindestens benötigte Schemaversion (bpcore/migrationen/0037_zeiten_fahrt.sql)

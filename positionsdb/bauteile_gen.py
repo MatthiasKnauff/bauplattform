@@ -248,7 +248,7 @@ def main():
         sql.append("INSERT INTO pdb_vorbemerkung(key, titel, text, sort) VALUES\n" + ",\n".join(
             f"  ({q(k)}, {q(x['titel'])}, {q(x['text'].strip())}, {i})" for i, (k, x) in enumerate(m.VORBEMERKUNGEN.items())) + ";")
         print(f"{len(m.VORBEMERKUNGEN)} Vorbemerkungen")
-    ziel = os.path.join(REPO, "bautagebuch", "pg_migrations", MIGRATION)
+    ziel = os.path.join(REPO, "shared", "bpcore", "migrationen", MIGRATION)
     with open(ziel, "w", encoding="utf-8") as f:
         f.write("\n".join(sql) + "\n")
     with open(os.path.join(HIER, "bauteile.csv"), "w", encoding="utf-8-sig", newline="") as f:

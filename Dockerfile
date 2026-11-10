@@ -27,7 +27,6 @@ COPY gantt/samples ./gantt/samples
 COPY bautagebuch/*.py ./bautagebuch/
 COPY bautagebuch/core ./bautagebuch/core
 COPY bautagebuch/modules ./bautagebuch/modules
-COPY bautagebuch/pg_migrations ./bautagebuch/pg_migrations
 COPY bautagebuch/static ./bautagebuch/static
 COPY bautagebuch/tools ./bautagebuch/tools
 COPY apps.py start.py VERSION ./

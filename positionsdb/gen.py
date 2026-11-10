@@ -1,7 +1,7 @@
 """Erzeugt aus den Datendateien (daten/lb_*.py) die Migration mit den Katalogdaten der Positionsdatenbank
 und eine CSV-Datei zum Durchsehen.
 
-    python3 positionsdb/gen.py            # schreibt bautagebuch/pg_migrations/0025_positionsdb_daten.sql + positionsdb/positionsdb.csv
+    python3 positionsdb/gen.py            # schreibt shared/bpcore/migrationen/0025_positionsdb_daten.sql + positionsdb/positionsdb.csv
 
 Preisbildung (netto, ohne MwSt., Preisstand siehe STAND):
     EP mittel = Zeitansatz [h/E] × Verrechnungslohn des Gewerks [€/h] + (Stoff + Gerät) [€/E] × (1 + STOFFZUSCHLAG)
@@ -301,7 +301,7 @@ def main():
         sql.append(f"INSERT INTO pdb_position(katalog, {', '.join(cols)}, quelle, preisstand) VALUES\n" + ",\n".join(
             "  ('gk3', " + ", ".join(q(r[c]) if isinstance(r[c], str) else str(r[c]) for c in cols) + f", 'katalog', {q(STAND)})" for r in part)
             + "\nON CONFLICT(katalog, code) DO NOTHING;")
-    ziel = os.path.join(REPO, "bautagebuch", "pg_migrations", "0025_positionsdb_daten.sql")
+    ziel = os.path.join(REPO, "shared", "bpcore", "migrationen", "0025_positionsdb_daten.sql")
     with open(ziel, "w", encoding="utf-8") as f:
         f.write("\n".join(sql) + "\n")
     with open(os.path.join(HIER, "positionsdb.csv"), "w", encoding="utf-8-sig", newline="") as f:

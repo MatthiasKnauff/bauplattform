@@ -53,6 +53,6 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 
 ## Betrieb
 - Ein Image für alle Apps: `Dockerfile` und `requirements.txt` im Hauptordner. Welche Apps es gibt und wie sie starten, steht in `apps.py`
-  (Ordner, Modul, Port); `start.py` startet die App des Containers (Umgebungsvariable `APP`). Die Hintergrundaufgaben (Datenbank einrichten, sichern, erinnern) laufen im Container `dienste` (`bautagebuch/dienste.py`, Aufgaben in `bautagebuch/core/dienste.py`); die Apps warten auf ihn, nicht mehr auf das Bautagebuch. Neue App: Ordner, Zeile in `apps.py`, Dienst in den Stack-Dateien.
+  (Ordner, Modul, Port); `start.py` startet die App des Containers (Umgebungsvariable `APP`). Die Hintergrundaufgaben (Datenbank einrichten, sichern, erinnern) laufen im Container `dienste` (`bautagebuch/dienste.py`, Aufgaben in `bautagebuch/core/dienste.py`); die Apps warten auf ihn, nicht mehr auf das Bautagebuch. Das Datenbankschema gehört dem Kern: nummerierte Migrationen in `shared/bpcore/migrationen/` (nur additiv, nie nachträglich ändern; eingespielt von `bpcore.schema`), Zugriff für alle Apps über `bpcore.db`. Neue App: Ordner, Zeile in `apps.py`, Dienst in den Stack-Dateien.
 - Push auf `main` → Pipeline → Testserver (Docker 1). Erst die Freigabe (Release `v…`) bringt den Stand in die Produktion (Docker 2).
 - Lehnt GitHub den Upload eines Images ab (`permission_denied: write_package`), den Lauf mit „nur fehlgeschlagene“ wiederholen.

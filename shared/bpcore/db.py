@@ -1,8 +1,7 @@
-"""Gemeinsamer Datenbankzugriff der Plattform-Dienste (Portal, Verwaltung, Bauzeitenplan).
+"""Datenbankzugriff aller Apps – die eine Hülle über PostgreSQL (auch das Bautagebuch benutzt sie, core/db.py reicht sie durch).
 
-Gleiche Schnittstelle wie im Bautagebuch (core/db.py): `with db.tx() as c: c.execute(sql, params)` mit „?“-Platzhaltern.
-Das Schema gehört dem Bautagebuch – es führt alle Migrationen aus (pg_migrations/), die anderen Dienste warten
-beim Start, bis die benötigte Schemaversion vorhanden ist.
+`with db.tx() as c: c.execute(sql, params)` mit „?“-Platzhaltern. Das Schema gehört dem Kern (bpcore/migrationen/, eingerichtet vom
+Container „dienste“ über bpcore.schema.migrate); die Apps warten beim Start, bis die benötigte Schemaversion vorhanden ist.
 """
 import os, re, threading, time
 from contextlib import contextmanager
@@ -44,7 +43,13 @@ class Row:
 
 
 _NOW = "to_char(timezone('UTC', now()), 'YYYY-MM-DD HH24:MI:SS')"
-_SUBS = [(re.compile(r"datetime\('now'\)"), lambda m: _NOW)]
+_SUBS = [   # ein paar Schreibweisen aus der SQLite-Zeit des Bautagebuchs, für PostgreSQL übersetzt
+    (re.compile(r"datetime\('now'\s*,\s*'(-?\d+) days'\)"), lambda m: f"to_char(timezone('UTC', now()) + interval '{m.group(1)} days', 'YYYY-MM-DD HH24:MI:SS')"),
+    (re.compile(r"datetime\('now'\)"), lambda m: _NOW),
+    (re.compile(r"json_extract\(\s*([\w.]+)\s*,\s*'\$\.(\w+)'\s*\)"),
+     lambda m: f"(({m.group(1)})::json ->> '{m.group(2)}')" + ("::bigint" if m.group(2).endswith("_id") else "")),
+    (re.compile(r"\s+COLLATE\s+NOCASE", re.I), lambda m: ""),   # Namen sind in der Datenbank vom Typ citext (Groß-/Kleinschreibung egal)
+]
 
 
 def _sql(sql, has_params):
@@ -54,8 +59,12 @@ def _sql(sql, has_params):
 
 
 class Cur:
-    def __init__(self, cur):
-        self._c = cur
+    def __init__(self, cur, con=None):
+        self._c, self._con = cur, con
+
+    @property
+    def lastrowid(self):   # ID des zuletzt eingefügten Datensatzes (Sequenz dieser Sitzung)
+        return self._con._c.execute("SELECT lastval()").fetchone()[0]
 
     def _row(self, v):
         return Row([d.name for d in self._c.description], v) if v is not None else None
@@ -84,7 +93,7 @@ class Con:
     def execute(self, sql, params=()):
         cur = self._c.cursor()
         cur.execute(_sql(sql, bool(params)), tuple(params) if params else None)
-        return Cur(cur)
+        return Cur(cur, self)
 
     def copy_rows(self, table, cols, rows):
         """Viele Zeilen auf einmal (COPY – um ein Vielfaches schneller als einzelne INSERTs)."""
@@ -111,6 +120,11 @@ class Con:
 
     def close(self):
         self._c.close()
+
+
+def connect():
+    """Neue, nicht gepoolte Verbindung (der Aufrufer schließt sie)."""
+    return Con(psycopg.connect(DSN))
 
 
 _pool, _plock = [], threading.Lock()
@@ -158,7 +172,7 @@ def tx():
 
 
 def wait_for_schema(min_version, seconds=300, log=print):
-    """Warten, bis die Datenbank erreichbar ist und das Bautagebuch die Migrationen bis `min_version` ausgeführt hat."""
+    """Warten, bis die Datenbank erreichbar ist und die Dienste die Migrationen bis `min_version` ausgeführt haben."""
     end, said = time.time() + seconds, False
     while True:
         try:
@@ -166,7 +180,7 @@ def wait_for_schema(min_version, seconds=300, log=print):
                 v = c.execute("SELECT COALESCE(MAX(version),0) FROM schema_migrations").fetchone()[0]
             if v >= min_version:
                 return v
-            msg = f"Warte auf Datenbankschema {min_version} (vorhanden: {v}) – das Bautagebuch richtet es ein …"
+            msg = f"Warte auf Datenbankschema {min_version} (vorhanden: {v}) – der Container „dienste“ richtet es ein …"
         except Exception as e:   # Datenbank noch nicht bereit oder Tabelle fehlt
             msg = f"Warte auf die Datenbank … ({str(e).splitlines()[0][:120]})"
         if not said:

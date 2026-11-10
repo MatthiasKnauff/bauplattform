@@ -1,6 +1,6 @@
 """Ausschreibung & Abrechnung (AVA): Leistungsverzeichnisse, Angebote mit Preisspiegel, Vergabe, Aufmaß, Nachträge, Rechnungsprüfung.
 
-Daten: Tabellen ava_lv, ava_angebot, ava_aufmass, ava_rechnung (pg_migrations/0013_ava.sql im Bautagebuch).
+Daten: Tabellen ava_lv, ava_angebot, ava_aufmass, ava_rechnung (bpcore/migrationen/0013_ava.sql).
 Ein LV gehört zu einem Projekt des Bautagebuchs. Positionen stehen als JSON-Liste in ava_lv.data (Titel und Positionen,
 Reihenfolge = Liste). Austausch mit Firmen über GAEB DA XML (bpcore/gaeb.py: X83 Angebotsaufforderung, X84 Angebot,
 X86 Auftrag) oder Excel.

@@ -110,3 +110,11 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-zoom button[data-bpz="1"]{min-width:4.2rem;border-inline:1px solid var(--line);font-variant-numeric:tabular-nums}
 .bp-zoom button:hover{background:color-mix(in srgb,currentColor 10%,transparent)}
 @media (min-width:900px){.bed .bed-bar{flex-wrap:nowrap}.bed .bed-bar>b,.bed .bed-bar>button,.bed .bed-bar>.bp-zoom{flex:none;white-space:nowrap}.bed .bed-bar>.hint,.bed .bed-bar>.mute{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+/* Erklär-Blase (blase.js): hängt an einem Element, zeigt sich nur die ersten Male */
+.bp-blase{position:fixed;z-index:2147482000;max-width:min(340px,calc(100vw - 16px));background:var(--card,#fff);color:var(--ink,#222);border:1.5px solid var(--y,#c9a400);border-radius:calc(12px*var(--rk,1));padding:.6rem .75rem .55rem;box-shadow:var(--sh0,0 8px 24px rgba(0,0,0,.3));font-size:.9rem;line-height:1.4;animation:bp-blase-rein .25s ease-out}
+.bp-blase-t b{font-weight:700}
+.bp-blase-ok{display:block;margin:.45rem 0 0 auto;padding:.25rem .7rem;border:1px solid var(--line,#ccc);border-radius:calc(8px*var(--rk,1));background:none;color:inherit;font-size:.85rem}
+.bp-blase-ok:hover{background:var(--hov,rgba(0,0,0,.05))}
+.bp-blase>i{position:absolute;top:-7px;width:12px;height:12px;margin-left:-6px;background:var(--card,#fff);border-left:1.5px solid var(--y,#c9a400);border-top:1.5px solid var(--y,#c9a400);transform:rotate(45deg)}
+.bp-blase.oben>i{top:auto;bottom:-7px;transform:rotate(225deg)}
+@keyframes bp-blase-rein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}

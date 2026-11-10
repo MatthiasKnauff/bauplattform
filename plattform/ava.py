@@ -4614,7 +4614,7 @@ def beleg(b):
 
 def _beleg_markiert(c, data, bid=None):
     """Rechnung der Firma mit den Prüfzeichen – so, wie sie im Reiter „Dokument“ steht: die errechneten ✔ / ✘ (mit dem geprüften
-    Wert daneben) und die von Hand gesetzten Haken. Zeichen aus der früheren Markier-Ansicht bleiben erhalten."""
+    Wert daneben) und die von Hand gesetzten Haken (blau). Zeichen aus der früheren Markier-Ansicht bleiben erhalten."""
     from bpcore import skizze
     liste = []
     try:
@@ -4647,7 +4647,7 @@ def _beleg_striche(c, bid, errechnet=True):
         except (ValueError, IndexError):
             continue
         hand.append((n, y))
-        out.append({"seite": n, "art": "haken", "farbe": "#1f9d4c", "breite": 0.0065, "pts": [[min(0.985, px + 0.012), y]]})
+        out.append({"seite": n, "art": "haken", "farbe": "#1c7ed6", "breite": 0.0065, "pts": [[min(0.985, px + 0.012), y]]})
     A = _j(x["auslese"], None)
     if errechnet and A and "zahlen" in A:
         lv = _lv(c, x["lv_id"])

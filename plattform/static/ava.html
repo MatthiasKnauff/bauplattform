@@ -609,7 +609,7 @@ body.ph-frei .ph{position:static}
 @media (max-width:900px){.pjw,.pjw.zu{grid-template-columns:1fr}.pj{position:static;max-height:38vh}}
 .ad-abl{display:flex;flex-direction:column;gap:.3rem;min-width:0}.ad-abl #adAblPfad{word-break:break-word}.ad-abl-k{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}.fm .ad-nein,.ad-nein{display:inline-flex!important;flex-direction:row!important;gap:.35rem;align-items:center;margin:0!important;white-space:nowrap}.ad-nein input{width:auto!important;margin:0}.ad-neu{font-style:italic;color:#c0621f}
 .ow-l{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.3rem;min-width:min(28rem,80vw)}.ow-o{display:block;width:100%;text-align:left;border:0;background:none;padding:.35rem .5rem;border-radius:calc(6px*var(--rk,1));font:inherit;cursor:pointer;color:var(--ink)}.ow-o:hover{background:var(--hov)}
-.am-mk.of{color:#8a8f96}.am-mk[data-hk]:not(.ok){pointer-events:auto;cursor:pointer}.am-mk.hk.an{color:#1f9d4c;transform:translate(-50%,-62%)}.am-mk svg{display:block;width:clamp(20px,2.9vw,32px);height:auto;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.am-mk.of{color:#8a8f96}.am-mk[data-hk]:not(.ok){pointer-events:auto;cursor:pointer}.am-mk.hk.an{color:#1c7ed6;transform:translate(-50%,-62%)}.am-mk svg{display:block;width:clamp(20px,2.9vw,32px);height:auto;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
 .lv-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:.35rem;align-items:start}.lv-sl{min-width:0}
 .lv-zz{position:absolute;cursor:copy;border-radius:calc(2px*var(--rk,1))}.lv-zz:hover{background:rgba(245,166,35,.22);outline:1px solid #f5a623}.lv-zz.ok{background:rgba(31,157,76,.1)}
 @media (max-width:900px){.lv-split{grid-template-columns:1fr}}
@@ -3116,6 +3116,8 @@ function amMarken() {
     const h = hkLies(R)[i], w = h[0] === V.bid && V.pages[h[1] - 1]; if (!w) return;
     const d = document.createElement('div'); d.className = 'am-mk hk an'; d.dataset.hk = roh; d.style.left = Math.min(98, (h[3] + 0.012) * 100) + '%'; d.style.top = (h[2] * 100) + '%';
     d.innerHTML = hkBild(h[2] * 977 + h[3] * 131); d.title = 'von Hand abgehakt – Klick nimmt den Haken wieder weg'; w.appendChild(d); });
+  const erst = () => AMV && AMV.el.querySelector('.am-mk');   // die ersten Male erklären, was die Farben heißen
+  if (erst() && window.bpBlase) bpBlase(erst, '**Blauer Haken** = von dir gesetzt (Klick auf eine freie Stelle; Klick auf den Haken nimmt ihn weg).\n**Grüner Haken** = errechnet: Menge und Preis stimmen mit deiner Prüfung überein.\n**Rotes ✘** = weicht ab – das Schild zeigt deinen Wert.', { key: 'ava.haken', mal: 3 });
 }
 /* Haken wie mit dem Stift gezogen – jeder ein wenig anders geneigt (aus der Lage errechnet, damit er beim Neuzeichnen gleich bleibt) */
 const hkBild = (k) => `<svg viewBox="-9 -13 23 22" style="transform:rotate(${(((Math.abs(k) * 9301 + 49297) % 233280) / 233280 * 16 - 8).toFixed(1)}deg)"><path d="M-7,0 Q-4.5,2 -2.5,6 C0,0 5,-7 11,-10.5"/></svg>`;

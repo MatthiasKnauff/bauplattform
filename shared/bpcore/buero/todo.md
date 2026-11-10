@@ -84,3 +84,5 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~ToDo-Liste im Projekt „Büro“~~
 - ~~AVA: Aufmaßprüfung, Rechnungen, Angebote – Seite rollt nicht mehr, Felder rollen in sich, unten gleichmäßiger Rand~~
 - ~~Alle Apps: senkrechte Reiter des zugeklappten Bereichs rechts einheitlich kleiner~~
+- ~~AVA: Rechnung – Skonto, Frist, bezahlt auf einer Höhe~~
+- ~~AVA: Aufmaßprüfung – Ablagefeld für Aufmaß/Rechnung der Firma (Scan) wie in der Rechnung~~

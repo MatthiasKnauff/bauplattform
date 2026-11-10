@@ -233,7 +233,8 @@ function vAmErfassen() {
       if (akt) zeilen.push(liste + mehr); });
     if (on && !R) zeilen.push(liste + mehr);
   });
-  AMTEIL = { ein: detail, rech: R ? amSummenKarte(R) + amFehltKarte(R) + amZeilenKarte(R) : '' };
+  const nB = B.length, ablage = R && R.status === 'geprueft' ? '' : `<div class="re-bel am-bel" data-amdrop>${B.map((b) => `<span class="re-b" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</span>`).join('')}<label class="re-bel-ziel${nB ? ' kl' : ''}" title="Rechnung oder Aufmaßblätter der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${nB ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Aufmaß / Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" multiple hidden data-ambeleg></label></div>`;   // wie in der Rechnung
+  AMTEIL = { ein: ablage + detail, rech: R ? amSummenKarte(R) + amFehltKarte(R) + amZeilenKarte(R) : '' };
   return `<div class="am-split am-baum" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"><div class="am-l"><div class="tblw"><table class="lv am baum bp-baum pjtree" data-sp="ava.am"><thead><tr><th style="min-width:16rem">Bezeichnung</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}<th class="r">aufgemessen</th><th class="r" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r">Betrag</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
 }
 /* Aufmaß: Schieber zwischen Positionen und Mengeneingabe (ohne PDF waagerecht verschieben, mit PDF die Höhe) – gemerkt, Doppelklick = Standard */

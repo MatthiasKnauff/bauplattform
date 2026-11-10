@@ -244,7 +244,7 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-dav
 .ps input.ep{width:6.5rem}
 .ps .min input{color:var(--ok);font-weight:700}
 .ps .aus input{text-decoration:underline wavy #e07b3a}
-.ps .gp{display:block;font-size:var(--fs-s);color:var(--mute);text-align:right;padding-right:.4rem}
+.ps .gp{display:block;font-size:var(--fs-s);color:var(--mute);text-align:right;padding-right:.4rem;min-height:1.35em}   /* Platz für den GP immer frei: die Zeile wächst nicht, sobald ein Preis drinsteht */
 .ps tfoot td{font-weight:600;background:var(--hov)}
 .ps th.bh{min-width:9rem;white-space:normal}
 .ps th.bh .bn{display:flex;gap:.3rem;align-items:center;justify-content:space-between}
@@ -1752,6 +1752,7 @@ function render() {
   const pjAlt = document.getElementById('pjTree'), pjTop = pjAlt ? pjAlt.scrollTop : null;   // Baum links: Rollposition behalten (nicht nach oben springen)
   v.innerHTML = RE2 ? re2Html({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : PJTABS.has(tab) ? lvxHtml({ lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]()) : { lv: vLv, angebote: vAngebote, aufmass: vAufmass, rechnungen: vRechnungen }[tab]();
   if (tab === 'angebote') { angSeite(); uLeisteNeu(); }
+  spaltenGriffe();   // gemerkte Spaltenbreiten gleich setzen – nicht erst nach dem ersten Bild (sonst springt die Tabelle bei jedem Speichern)
   pjImBlick(pjTop);
   sums();
   if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }

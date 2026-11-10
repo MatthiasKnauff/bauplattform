@@ -52,13 +52,20 @@
     if (s === sig) return; sig = s;
     befehle(LEISTE, G);
   }
+  /* Zeilen im Plan und Diagramm: wie bisher (markierte Zeilen farbig) · Bänderung (jede zweite Zeile getönt) · nur die aktive Zeile mit dünnem rotem Strich */
+  const ZEILEN = [['', 'Markierte Zeilen farbig'], ['band', 'Bänderung – jede zweite Zeile getönt'], ['linie', 'Nur die aktive Zeile – dünner roter Strich']];
+  const zl = () => { const v = LS.get('zeilen', ''); return ZEILEN.some((x) => x[0] === v) ? v : ''; };
+  const zlSetzen = () => { document.body.classList.toggle('g-zl-band', zl() === 'band'); document.body.classList.toggle('g-zl-linie', zl() === 'linie'); };
+  zlSetzen();
   /* Darstellung: die Auswahlfelder des alten Menübands in einem Fenster (sie behalten ihre Handler) */
   function darstellung() {
     const teile = [...document.querySelectorAll('#ribbon .grp[data-tab="ansicht"] .rcol')];
     const da = LS.get('delAsk', true);
     const bg = modal('Darstellung', `<div class="g-darst"></div><div class="g-darst-b"><button type="button" class="btn" data-act="expandAll">Alle Gruppen aufklappen</button><button type="button" class="btn" data-act="collapseAll">Alle Gruppen zuklappen</button></div>
+      <div class="g-darst-z"><span>Zeilen</span>${ZEILEN.map(([k, l]) => `<label class="g-darst-c"><input type="radio" name="gZl" value="${k}"${zl() === k ? ' checked' : ''}> ${l}</label>`).join('')}</div>
       <label class="g-darst-c"><input type="checkbox" id="gDelAsk"${da ? ' checked' : ''}> Beim Löschen fragen, ob die Dauer auf eine Hauptleistung umgelegt wird</label>`, [{ label: 'Fertig', cls: 'primary', primary: true }]);
     const box = bg.querySelector('.g-darst'); teile.forEach((x) => box.appendChild(x));
+    bg.querySelectorAll('[name=gZl]').forEach((r) => r.addEventListener('change', () => { LS.set('zeilen', r.value); zlSetzen(); }));
     bg.querySelector('#gDelAsk').addEventListener('change', (e) => { if (!!LS.get('delAsk', true) !== e.target.checked) ACTIONS.toggleDelAsk(); });
     new MutationObserver((m, mo) => { if (bg.isConnected) return; mo.disconnect(); const ziel = document.querySelector('#ribbon .grp[data-tab="ansicht"]:last-of-type .btns') || document.querySelector('#ribbon .grp[data-tab="ansicht"] .btns'); teile.forEach((x) => ziel.appendChild(x)); })
       .observe(document.body, { childList: true });

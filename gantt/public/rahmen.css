@@ -69,3 +69,10 @@ body.g-rahmen .ticon[data-act="toggleAssist"]{display:none}   /* Assistent ist e
 .bp-nav.oben #tabs .gs-box input{width:240px!important}.bp-nav.oben #tabs #saveState{display:inline!important}
 .bp-nav.oben.eng #tabs .gs-box input{width:180px!important}
 .g-pct-l{display:block;margin:.5rem 0 .25rem;font-size:var(--fs-s);color:var(--mute)}
+/* Zeilen: Bänderung bzw. nur die aktive Zeile mit dünnem rotem Strich (Darstellung) */
+.g-darst-z{display:grid;gap:.25rem}.g-darst-z>span{font-size:var(--fs-s);color:var(--mute)}
+body.g-zl-band #gridBody .row:nth-child(even) .c{background:color-mix(in srgb,var(--ink) 4.5%,var(--card))}
+body.g-zl-band #chartBody{background:repeating-linear-gradient(to bottom,transparent 0 var(--rh),color-mix(in srgb,var(--ink) 4.5%,transparent) var(--rh) calc(2*var(--rh)))}
+body.g-zl-band #gridBody .row.sel .c{background:var(--sel)}
+body.g-zl-linie #gridBody .row.sel .c{background:transparent;box-shadow:inset 0 -2px 0 #e0393e}body.g-zl-linie #gridBody .row.sel .c-nr{background:var(--tabs)}
+body.g-zl-linie .selband{fill:#e0393e;height:2px;transform:translateY(calc(var(--rh) - 2px))}

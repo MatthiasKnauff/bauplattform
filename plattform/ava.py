@@ -662,17 +662,18 @@ def version_eins(vid):
 @app.get("/api/suche")
 def suche():
     """Volltext über alle LVs (Kurz- und Langtexte, OZ, Titel, Hinweistexte, Nachträge), Bieter, Aufmaß und Türliste.
-    pid = nur dieses Projekt; alle Wörter müssen vorkommen (Umlaute egal)."""
+    pid = nur dieses Projekt, lv = nur dieses LV; alle Wörter müssen vorkommen (Umlaute egal)."""
     q = (request.args.get("q") or "").strip()
     worte = [w for w in _fold(q).split() if w]
     if not worte or len(q) < 2:
         return jsonify(treffer=[], mehr=False)
     pid = request.args.get("pid", type=int)
+    lv = request.args.get("lv", type=int)   # nur in diesem LV (mit seinen Angeboten, Aufmaß, Rechnungen)
     passt = lambda *xs: all(w in _fold(" ".join(str(x or "") for x in xs)) for w in worte)
     out, LIMIT = [], 300
     with db.tx() as c:
         projekte = {}
-        for r in c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + " AND " + (_vf(c, pid) if pid else AKTIV) + " ORDER BY archived, nr, id", (pid,) if pid else ()).fetchall():
+        for r in c.execute("SELECT * FROM ava_lv WHERE " + ("project_id=?" if pid else "1=1") + (" AND id=?" if lv else "") + " AND " + (_vf(c, pid) if pid else AKTIV) + " ORDER BY archived, nr, id", ((pid,) if pid else ()) + ((lv,) if lv else ())).fetchall():
             if r["project_id"] not in projekte:
                 projekte[r["project_id"]] = _sees(c, r["project_id"]) if r["project_id"] else True
             pr = projekte[r["project_id"]]
@@ -707,7 +708,7 @@ def suche():
             if len(out) >= LIMIT:
                 break
         # Türlisten der Projekte
-        pids = [pid] if pid else sorted({int(x["key"].split(":")[1]) for x in c.execute("SELECT key FROM bp_store WHERE key LIKE 'tueren:%'").fetchall()
+        pids = [] if lv else [pid] if pid else sorted({int(x["key"].split(":")[1]) for x in c.execute("SELECT key FROM bp_store WHERE key LIKE 'tueren:%'").fetchall()
                                          if x["key"].split(":")[1].isdigit()})
         for p_ in pids:
             if len(out) >= LIMIT:

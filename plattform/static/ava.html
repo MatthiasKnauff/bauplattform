@@ -2034,10 +2034,8 @@ document.addEventListener('click', (e) => {
   const S = lvGaebStellen(); if (!S.length) return;
   GAEBZ = { i: GAEBZ.n === S.length ? (GAEBZ.i + 1) % S.length : 0, n: S.length };
   const I = items(), id = S[GAEBZ.i], k = I.findIndex((y) => y.id === id);
-  // alle Titel darüber aufklappen
-  let lv = I[k].typ === 'titel' ? (I[k].lvl || 1) : 99;
-  for (let j = k - 1; j >= 0; j--) { const y = I[j]; if (y.typ === 'titel' && (y.lvl || 1) < lv) { LVZU.delete(y.id); lv = y.lvl || 1; if (lv <= 1) break; } }
-  if (L) LS.set('lvzu:' + L.id, [...LVZU]); LVXZU = false; LVSEL = new Set(S); LVAKT = id; render();
+  bpBaum.zeige(I, k, lvTiefe, LVZU);   // alle Titel darüber aufklappen
+  LVXZU = false; LVSEL = new Set(S); LVAKT = id; render();
   setTimeout(() => { const i2 = items().findIndex((y) => y.id === id), tr = document.querySelector(`table.lv tr[data-i="${i2}"]`);
     if (tr) { tr.scrollIntoView({ block: 'center', behavior: 'smooth' }); tr.classList.add('gaeb-hier'); setTimeout(() => tr.classList.remove('gaeb-hier'), 2500); } }, 60);
 });
@@ -2065,10 +2063,11 @@ function aufhBanner() {
     <button class="btn sm pri" data-act="reaktiv">▶ Wieder beauftragen</button></div>`;
 }
 /* LV als Baum wie in „Aufträge“: Projekt → LV → Titel (zuklappbar) → Positionen; Kurztext direkt in der Zeile bearbeiten */
-let LVZU = new Set();
+let LVZU = bpBaum.klapp();   // welche Titel sind zugeklappt (gemeinsamer Baustein /bp/baum.js)
+const lvTiefe = (y) => (y.typ === 'titel' ? y.lvl || 1 : Infinity);   // Ebene einer LV-Zeile: Titel 1–4, Positionen sind Blätter
 const LVGZ = new Set(LS.get('lvgz', []));   // ganz zugeklappte LVs (im Baum nur noch die Zeile)
 document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('[data-lvganz]'); if (!c || !L) return; e.stopPropagation(); if (LVGZ.has(L.id)) LVGZ.delete(L.id); else LVGZ.add(L.id); LS.set('lvgz', [...LVGZ]); render(); }, true);
-const lvZuLaden = () => { LVZU = new Set(items().filter((x) => x.typ === 'titel').map((x) => x.id)); };   // beim Anwählen eines LV: alle Titel zugeklappt
+const lvZuLaden = () => { LVZU = bpBaum.klapp({ anfang: items().filter((x) => x.typ === 'titel').map((x) => x.id) }); };   // beim Anwählen eines LV: alle Titel zugeklappt
 function vLv() {
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {}, NC = V ? 9 : 8;
   if (LVZU._lv !== L.id) { lvZuLaden(); LVZU._lv = L.id; }
@@ -2086,16 +2085,15 @@ function vLv() {
     return doc('', '#7a8a99'); };
   const ICT = '<svg class="ico\" viewBox="0 0 24 24" fill="none" stroke="#8a8f96" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>';
   const einr = bpBaum.einzug;   // Einrückung je Ebene: gemeinsamer Baustein (/bp/baum.js)
-  let tief = 0, zuAb = 0;   // zuAb: ab dieser Titelebene ist zugeklappt (0 = nichts)
+  let tief = 0; const sichtbar = bpBaum.sicht(I, lvTiefe, LVZU);   // was unter einem zugeklappten Titel liegt, fehlt
   const rows = I.map((x, i) => {
     if (x.typ === 'titel') {
-      const lv = x.lvl || 1; if (zuAb && lv <= zuAb) zuAb = 0;
-      const versteckt = !!zuAb; tief = lv; const zu = LVZU.has(x.id); if (!zuAb && zu) zuAb = lv;
-      if (versteckt) return '';
-      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}" data-i="${i}"><td class="oz baumz" title="Doppelklick: Eigenschaften des Gliederungspunkts (Bezeichnung, Nachtrag) · zum Verschieben hier greifen und ziehen"><div class="bz" style="${einr(lv + 1)}"><span class="car" data-zu="${x.id}" title="${zu ? 'aufklappen' : 'zuklappen'}">${zu ? '▸' : '▾'}</span>${IC.ti}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td><td colspan="${V ? 6 : 5}"></td>
+      const lv = x.lvl || 1; tief = lv;
+      if (!sichtbar[i]) return '';
+      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Doppelklick: Eigenschaften des Gliederungspunkts (Bezeichnung, Nachtrag) · zum Verschieben hier greifen und ziehen"', tiefe: lv + 1, auf: !LVZU.zu(x.id), klapp: x.id, icon: IC.ti, html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}<td colspan="${V ? 6 : 5}"></td>
       <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib${x.nt ? ' an' : ''}" data-a="ntti" title="${x.nt ? 'Nachtrag aufheben – die Positionen darunter werden wieder normale Positionen' : 'Diesen Gliederungspunkt als Nachtrag kennzeichnen – alle Positionen darunter gehören dann zum Nachtrag'}">NT</button><button class="ib" data-a="lvlauf" title="eine Ebene höher (mit seinen Untertiteln)"${lv > 1 ? '' : ' disabled'}>⇤</button><button class="ib" data-a="lvlab" title="zum Untertitel machen – eine Ebene tiefer (GAEB: höchstens 4 Ebenen)"${lv < 4 ? '' : ' disabled'}>⇥</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     }
-    if (zuAb) return '';
+    if (!sichtbar[i]) return '';
     const open = OPEN.has(x.id), t = x.art === 'T';
     const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
     let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}"><td class="oz baumz" title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"><div class="bz" style="${einr(tief + 2)}"><span class="car"></span>${icArt(x)}<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt && x.nt_erbe ? `<span class="badge nt" title="gehört zum Nachtrag des Gliederungspunkts (${esc(x.nt_status || '')})">${esc(x.nt)}</span>` : x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}</div></td>
@@ -2113,7 +2111,7 @@ function vLv() {
     return h;
   }).join('');
   const kopf = `<tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td colspan="${NC - 1}"></td></tr>
-    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an">${bpBaum.zelle({ tiefe: 1, auf: !LVGZ.has(L.id), car: ` data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>` })}<td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-lvalle="${LVZU.size ? 'auf' : 'zu'}" title="${LVZU.size ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.size ? '⊞' : '⊟'}</button></td></tr>`;
+    <tr class="wurzel lvz${LVAKT === '__lv' ? ' akt' : ''}" data-lvwurzel title="Klick markiert das LV – „+ Gliederungspunkt“ legt dann einen Punkt der obersten Ebene an">${bpBaum.zelle({ tiefe: 1, auf: !LVGZ.has(L.id), car: ` data-lvganz title="${LVGZ.has(L.id) ? 'aufklappen' : 'zuklappen'}" style="cursor:pointer"`, icon: IC.lv, html: `<b>${esc(L.nr)} ${esc(L.name)}</b>` })}<td colspan="${NC - 3}"></td><td class="r" id="lvSumK"></td><td class="acts-c"><button class="ib" data-zualle="${LVZU.zahl() ? 'auf' : 'zu'}" title="${LVZU.zahl() ? 'alle Titel aufklappen' : 'alle Titel zuklappen'}">${LVZU.zahl() ? '⊞' : '⊟'}</button></td></tr>`;
   // die anderen LVs des Projekts als zugeklappte Ordner – Klick öffnet sie (ersetzt die LV-Auswahl oben)
   const andere = (x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, STATUS.find((st) => st[0] === x.status)[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td colspan="${NC - 3}"></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td><td></td></tr>`;
   const LV = LIST.filter((x) => (!x.archived && !ohneLv(x)) || x.id === L.id), k = LV.findIndex((x) => x.id === L.id);
@@ -2129,15 +2127,7 @@ document.addEventListener('click', async (e) => {   // anderes LV im Baum öffne
   LVGZ.delete(+r.dataset.lvopen); LS.set('lvgz', [...LVGZ]); await flush();
   try { await openLv(+r.dataset.lvopen); LVAKT = '__lv'; lvAktZeigen(); } catch (er) { toast(er.message, true); }   // das geöffnete LV ist markiert; ein Fehler beim Laden bleibt nicht stumm
 });
-document.addEventListener('click', (e) => {   // Titel auf- und zuklappen
-  if (tab !== 'lv' || !L) return;
-  const c = e.target.closest && e.target.closest('[data-zu]'), a = e.target.closest && e.target.closest('[data-lvalle]');
-  if (!c && !a) return;
-  e.stopPropagation();
-  if (c) { const id = c.dataset.zu; if (LVZU.has(id)) LVZU.delete(id); else LVZU.add(id); }
-  else LVZU = Object.assign(new Set(a.dataset.lvalle === 'zu' ? items().filter((x) => x.typ === 'titel').map((x) => x.id) : []), { _lv: L.id });
-  LVZU._lv = L.id; LS.set('lvzu:' + L.id, [...LVZU]); render();
-}, true);
+bpBaum.klappbar(document, { klapp: () => (tab === 'lv' && L ? LVZU : null), neu: render, alle: () => items().filter((x) => x.typ === 'titel').map((x) => x.id) });   // Titel auf- und zuklappen (einzeln und alle)
 function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
   if (tab !== 'lv' || !L) return;
   const I = items(), V = vergeben(), VP = (L.vergabe && L.vergabe.preise) || {};
@@ -4238,7 +4228,7 @@ async function vqGehe(t) {
   if (t.art === 'aufmass' && t.pos_id) { amPos = t.pos_id; LS.set('amPos', amPos); }
   if (tab === 'lv' && t.pos_id) {   // Titel darüber aufklappen, Zeile markieren und hinscrollen
     const I = items(), n = I.findIndex((x) => x.id === t.pos_id);
-    if (n >= 0) { let lv = I[n].typ === 'titel' ? (I[n].lvl || 1) : 99; for (let k = n - 1; k >= 0; k--) if (I[k].typ === 'titel' && (I[k].lvl || 1) < lv) { LVZU.delete(I[k].id); lv = I[k].lvl || 1; } LS.set('lvzu:' + L.id, [...LVZU]); }
+    if (n >= 0) bpBaum.zeige(I, n, lvTiefe, LVZU);
     LVAKT = t.pos_id; LVSEL = new Set();
   }
   render();

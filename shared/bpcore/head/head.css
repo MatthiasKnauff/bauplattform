@@ -32,10 +32,8 @@
 .bph-menu{position:absolute;right:.6rem;top:calc(100% + 4px);background:#2a2a28;color:var(--bph-ink);border:1px solid var(--bph-line);border-radius:calc(10px*var(--rk,1));min-width:240px;
   box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.45));display:flex;flex-direction:column;padding:.3rem 0;z-index:70}
 .bph-menu a,.bph-menu button{display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem!important;text-align:left;border-radius:0!important;color:var(--bph-ink)!important;width:100%;font-size:.95rem}
-.bph-menu a:hover,.bph-menu button:hover{background:var(--hov,rgba(255,255,255,.07))}
-/* Aufklappende Menüs der Kopfleiste folgen dem Farbschema (wie die Menüs in der Ausschreibung); die Leiste selbst bleibt dunkel */
-.bph .bph-menu{--bph-ink:var(--ink,#f4f3ef);--bph-mute:var(--mute,#b9b4aa);--bph-line:var(--line,#46443f);--bph-acc:var(--y,#ff5fb3);background:var(--card,#2a2a28)}
-.bph-menu a.cur{color:var(--bph-acc)!important;font-weight:600}.bph .bph-menu a.cur{color:var(--bph-ink)!important;background:color-mix(in srgb,var(--bph-acc) 18%,transparent)}   /* aktuelle App: lesbar auch bei heller Akzentfarbe auf Weiß */
+.bph-menu a:hover,.bph-menu button:hover{background:rgba(255,255,255,.07)}
+.bph-menu a.cur{color:var(--bph-acc)!important;font-weight:600}
 .bph-menu svg{width:18px;height:18px;flex:none}
 .bph-menu .bph-info{padding:.55rem 1rem;color:var(--bph-mute);font-size:.85rem}
 .bph-menu .bph-info b{color:var(--bph-ink)}
@@ -46,7 +44,7 @@
 .bph-look{min-width:280px;padding-bottom:.6rem}
 .bph-lk{display:flex;flex-wrap:wrap;gap:.35rem;padding:.2rem 1rem .6rem}
 .bph-menu .bph-lk .bph-th{width:auto;border:1px solid var(--bph-line)!important;border-radius:calc(999px*var(--rkp,1))!important;padding:.35rem .8rem!important;font-size:.85rem}
-.bph-menu .bph-lk .bph-th.on{background:var(--bph-ink)!important;color:var(--card,#1c1c1a)!important;font-weight:600}
+.bph-menu .bph-lk .bph-th.on{background:var(--bph-ink)!important;color:#1c1c1a!important;font-weight:600}
 .bph-sw{display:flex;flex-wrap:wrap;gap:.45rem;padding:0 1rem}
 .bph-menu .bph-sw button,.bph-sw label{width:26px!important;height:26px;border-radius:50%!important;padding:0!important;border:2px solid transparent;box-shadow:0 0 0 1px var(--bph-line);position:relative;overflow:hidden;cursor:pointer}
 .bph-menu .bph-sw .on{border-color:var(--bph-ink)}
@@ -128,17 +126,17 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 .bph-menu [data-konto] svg{margin-top:.15rem}
 .bph-apps{min-width:0;width:max-content;max-width:calc(100vw - 1.2rem);padding:.25rem .25rem .35rem}
 .bph-apps .bph-info small{color:var(--bph-mute)}
-.bph-tiles{display:grid;grid-template-columns:repeat(3,max-content);gap:.1rem .2rem;padding:0 .25rem}@media (max-width:480px){.bph-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.bph-menu .bph-tiles a{flex-direction:column;justify-content:center;gap:.5rem;text-align:left!important;padding:.38rem .5rem!important;border-radius:calc(8px*var(--rk,1))!important;font-size:.82em;line-height:1.15;min-height:0}   /* kompakt: Zeilen mit Symbol links, 3 je Reihe */
-.bph-menu .bph-tiles a{flex-direction:row!important;justify-content:flex-start!important}.bph-menu .bph-tiles a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.bph-menu .bph-tiles a svg{width:19px;height:19px;flex:none;color:var(--bph-acc)}
+.bph-tiles{display:grid;grid-template-columns:repeat(4,6.6rem);gap:.2rem;padding:0 .3rem}@media (max-width:480px){.bph-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.bph-menu .bph-tiles a{flex-direction:column!important;justify-content:center!important;gap:.35rem;text-align:center!important;padding:.55rem .25rem!important;border-radius:calc(10px*var(--rk,1))!important;font-size:.78em;line-height:1.15;min-height:4.4rem}   /* quadratische Kacheln: Symbol über dem Namen, 4 je Reihe */
+.bph-menu .bph-tiles a span{overflow-wrap:normal}
+.bph-menu .bph-tiles a svg{width:24px;height:24px;flex:none;color:var(--bph-acc)}
 /* jede App hat ihre eigene, dezente Farbe (Kacheln der Startseite und App-Umschalter) – zum schnellen Unterscheiden */
 /* gleichmäßig über den Farbkreis verteilt, damit keine zwei Apps ähnlich aussehen; die Startseite bleibt neutral */
 [data-af="aufgaben"]{--af:#e03131}[data-af="ava"]{--af:#f08c00}[data-af="baukosten"]{--af:#b5a000}[data-af="gantt"]{--af:#2f9e44}
 [data-af="plaene"]{--af:#0c9c8c}[data-af="bautagebuch"]{--af:#1c7ed6}[data-af="adressen"]{--af:#7048e8}[data-af="kommunikation"]{--af:#ae3ec9}
 [data-af="papierkorb"]{--af:#8d6e63}[data-af="admin"]{--af:#868e96}[data-af="portal"]{--af:#9a9c9e}
 .bph-menu .bph-tiles a[data-af] svg{color:var(--af)}
-.bph-menu .bph-tiles a.cur{background:var(--hov,rgba(255,255,255,.08))}
+.bph-menu .bph-tiles a.cur{background:rgba(255,255,255,.08)}
 /* Einstellungsfenster (von rechts) */
 .bph-dr-bg{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0);transition:background .18s;display:flex;justify-content:flex-end}
 .bph-dr-bg.in{background:rgba(0,0,0,.45)}
@@ -580,7 +578,7 @@ html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):checked{backgro
 html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):disabled{opacity:.45;cursor:default}
 html[data-fenster="mac"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--y,#d4f02a) 45%,transparent),inset 0 0 0 1px var(--y,#d4f02a)}
 html[data-fenster="mac"] :is(.bph-menu,.umenu,.bph-km){-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
-html[data-fenster="mac"] .bph .bph-menu{background:color-mix(in srgb,var(--card,#2a2a28) 86%,transparent)}   /* Milchglas in der Farbe des Schemas */
+html[data-fenster="mac"] .bph-menu{background:color-mix(in srgb,#2a2a28 86%,transparent)}   /* Menüs der Kopfleiste sind dunkel wie die Leiste – Milchglas in ihrer Farbe */
 html[data-fenster="mac"] :is(.umenu,.bph-km){background:color-mix(in srgb,var(--card,#2d2f33) 86%,transparent)}
 /* drei Punkte in Akzentfarbe im Fenstertitel (reine Zierde, ohne Funktion) – nur im Mac-Stil */
 .bp-ampel{display:none}

@@ -36,3 +36,27 @@ body.g-rahmen #split2,body.g-rahmen #assistPane{display:none!important}
 @media (max-width:900px){body.g-rahmen #navL{display:none}}
 body.g-rahmen #navVm .gl{display:none}body.g-rahmen #navVm .vm-grp{border:0;padding:0 0 .4rem}
 body.g-rahmen #gridPane{max-width:calc(100% - 220px)}   /* gemerkte Breite aus dem alten, breiteren Aufbau: dem Diagramm bleibt immer Platz */
+/* Plan, Zeitskala, Diagramm und Assistent in den Farben des Baukastens (Stil-Variablen), damit hell/dunkel/klassisch wie in der Ausschreibung aussehen */
+body.g-rahmen{background:var(--bg);color:var(--ink);--text:var(--ink);--mut:var(--mute);--bd:var(--line);--grid:color-mix(in srgb,var(--line) 55%,var(--card));--hdr:var(--tabs);
+  --sel:color-mix(in srgb,var(--y) 16%,var(--card));--sel-nr:color-mix(in srgb,var(--y) 30%,var(--card))}
+body.g-rahmen :is(#gridPane,#chartPane,#links>section,#links>main){background:var(--card)}
+body.g-rahmen .hc{color:var(--mute);font-weight:600}
+body.g-rahmen :is(.hc.c-nr,.c-nr){background:var(--tabs);color:var(--mute);border-bottom-color:var(--grid)}
+body.g-rahmen .row.hov .c{background:var(--hov)}
+body.g-rahmen .row.sel .c{background:var(--sel)}body.g-rahmen .row.sel .c-nr{background:var(--sel-nr)}
+body.g-rahmen .tog{color:var(--mute)}
+body.g-rahmen .cell-ed{background:var(--card);color:var(--ink)}
+body.g-rahmen #split{background:var(--tabs);border-color:var(--line)}body.g-rahmen #split:hover,body.g-rahmen #split.drag{background:color-mix(in srgb,var(--y) 30%,var(--card))}
+body.g-rahmen .tt{fill:var(--ink)}body.g-rahmen .tb{fill:var(--mute)}body.g-rahmen .tb.we{fill:color-mix(in srgb,var(--mute) 60%,var(--card))}
+body.g-rahmen .wes{fill:var(--hov)}body.g-rahmen .gl{stroke:color-mix(in srgb,var(--line) 40%,var(--card))}body.g-rahmen .gl2{stroke:var(--grid)}
+body.g-rahmen .selband{fill:color-mix(in srgb,var(--y) 10%,var(--card))}
+body.g-rahmen .blabel{fill:var(--ink)}body.g-rahmen :is(.sumbar,.ms){fill:var(--ink)}
+body.g-rahmen #status{background:var(--tabs);color:var(--mute);border-top-color:var(--line)}
+body.g-rahmen #tip,body.g-rahmen .ctx{background:var(--card);color:var(--ink);border-color:var(--line)}
+body.g-rahmen .as{background:var(--card);color:var(--ink)}
+body.g-rahmen .as-foot{background:var(--tabs);border-top-color:var(--line)}
+body.g-rahmen :is(.as-type,.as-plus,.as-form input,.as-form select,.as-it:hover .as-dur,.as-dur:focus){background:var(--card);color:var(--ink);border-color:var(--line)}
+body.g-rahmen .as-type:hover{border-color:var(--y);background:color-mix(in srgb,var(--y) 8%,var(--card))}
+body.g-rahmen .as h4>span:first-child{background:var(--y);color:var(--on,#fff)}
+body.g-rahmen .as-chs{background:var(--card2);border-color:var(--line)}
+body.g-rahmen .ticon[data-act="toggleAssist"]{display:none}   /* Assistent ist ein Reiter im Bereich rechts */

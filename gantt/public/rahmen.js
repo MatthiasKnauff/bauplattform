@@ -173,8 +173,19 @@
   });
 
   /* ---------- an app.js anhängen: nach jedem Zeichnen, Reiterwechsel und Auswahl nachführen ---------- */
+  // Rückgängig: der Plan behält seinen eigenen Verlauf (↶ ↷ in der Befehlsleiste, Strg+Z), jeder Schritt steht zusätzlich im
+  // gemeinsamen Rückgängig-Dock unten (undo.js) – beide im Gleichschritt, wie in der Ausschreibung
+  const UD = [], udText = () => 'Änderung im Plan' + (P ? ` „${P.name}“` : '');
+  const udAbgleich = () => { if (typeof bpUndo !== 'undefined') while (UD.length > undoS.length) bpUndo.weg(UD.pop()); };
+  const udNeu = () => { if (typeof bpUndo !== 'undefined') UD.push(bpUndo.push(udText(), () => doUndo(), 'gantt')); };
+  const alt2 = { act, doUndo, doRedo };
+  act = function (fn) { udAbgleich(); const n = undoS.length, top = undoS[n - 1], r = alt2.act(fn); if (undoS.length !== n || undoS[undoS.length - 1] !== top) udNeu(); return r; };
+  doUndo = function () { alt2.doUndo(); udAbgleich(); };
+  doRedo = function () { const n = undoS.length; alt2.doRedo(); if (undoS.length > n) udNeu(); };
+  window.bpRedo = { kann: () => redoS.length > 0, los: () => doRedo() };
+  ACTIONS.undo = () => doUndo(); ACTIONS.redo = () => doRedo();   // Knöpfe der Befehlsleiste über dieselben Wege
   const alt = { updateRibbon, showTab, setAssistOpen, vleiste };
-  updateRibbon = function () { alt.updateRibbon(); leisteNeu(); detailsNeu(); navZahlen(); };
+  updateRibbon = function () { alt.updateRibbon(); udAbgleich(); leisteNeu(); detailsNeu(); navZahlen(); };
   showTab = function (name) { alt.showTab(name); sig = ''; leisteNeu(); navNeu(); };
   setAssistOpen = function (v) { if (v) assistentZeigen(); else { LS.set('assistOpen', false); if (seiteOffen()) seiteReiter('gantt', 'details'); } };
   vleiste = function () { alt.vleiste(); navNeu(); };

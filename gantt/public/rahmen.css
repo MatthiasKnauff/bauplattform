@@ -35,3 +35,4 @@ body.g-rahmen #split2,body.g-rahmen #assistPane{display:none!important}
 .g-darst-b{display:flex;gap:.5rem;margin:.9rem 0 .6rem;flex-wrap:wrap}.g-darst-c{display:flex;gap:.5rem;align-items:center}
 @media (max-width:900px){body.g-rahmen #navL{display:none}}
 body.g-rahmen #navVm .gl{display:none}body.g-rahmen #navVm .vm-grp{border:0;padding:0 0 .4rem}
+body.g-rahmen #gridPane{max-width:calc(100% - 220px)}   /* gemerkte Breite aus dem alten, breiteren Aufbau: dem Diagramm bleibt immer Platz */

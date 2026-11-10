@@ -26,7 +26,17 @@ body.bt-rahmen .btl{display:block;max-width:none}
 .bt-tb button{display:flex;gap:.45rem;align-items:baseline;padding:.25rem .45rem;border:0;background:none;border-radius:calc(6px*var(--rk,1));color:var(--mute);font:inherit;font-size:.8rem;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bt-tb button b{color:var(--y);font-weight:600;min-width:2.8em}
 .bt-tb button:hover{background:var(--hov)}.bt-tb button.on{background:color-mix(in srgb,var(--y) 18%,transparent);color:var(--ink);font-weight:600}
-.bp-nav.oben .bt-kal,.bp-nav.oben .bt-tb,.bp-nav.frei:not(:hover) .bt-kal,.bp-nav.frei:not(:hover) .bt-tb{display:none}
+.bp-nav.oben .bt-kal,.bp-nav.oben .bt-tb,.bp-nav.frei .bt-kal,.bp-nav.frei .bt-tb{display:none}   /* gelöst: Kalender nur über die Datums-Kachel – nichts springt */
+.bt-datum{display:none;align-items:center;justify-content:flex-start;gap:.6rem;width:100%;padding:.3rem .6rem;margin:0 0 .3rem;border:0;background:none;border-radius:calc(7px*var(--rk,1));color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.bt-datum:hover{background:var(--hov)}.bp-nav.frei .bt-datum{display:flex}
+.bt-datum .dt{width:28px;height:32px;border:1.5px solid var(--y);border-radius:calc(6px*var(--rk,1));display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:none}
+.bt-datum .dt b{font-size:.9rem}.bt-datum .dt small{font-size:.55rem;text-transform:uppercase;color:var(--mute)}
+.bt-datum .tx{display:flex;flex-direction:column;min-width:0;white-space:nowrap;transition:opacity .12s}.bt-datum .tx b{font-size:.85rem}.bt-datum .tx small{font-size:.72rem;color:var(--mute);overflow:hidden;text-overflow:ellipsis}
+.bp-nav.frei:not(:hover):not(:focus-within) .nv-davor:has(.bt-datum){opacity:1;pointer-events:auto}
+.bp-nav.frei:not(:hover):not(:focus-within) .bt-datum .tx{opacity:0}
+.bt-kalpop{position:fixed;z-index:80;width:250px;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.25));padding:.4rem}
+.bt-kalpop .bt-kal{margin:0;border:0;padding:.2rem}.bt-kalzu{position:absolute;right:.3rem;top:.25rem;border:0;background:none;color:var(--mute);cursor:pointer;z-index:1;padding:.2rem .4rem}
+.bt-kalpop .bcal-h{padding-right:1.6rem}
 /* Kopf des Berichts: Uhrzeiten, wenn es am Tag mehrere Berichte gibt */
 .bt-pz{display:inline-flex;gap:.25rem;margin-left:.5rem}
 .bt-pz button{font-size:.72rem;font-weight:400;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.05rem .55rem;color:var(--mute);background:none;cursor:pointer}

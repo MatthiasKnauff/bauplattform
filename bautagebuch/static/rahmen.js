@@ -47,6 +47,23 @@
     if (L.length < 2) return '';
     return `<div class="bt-tb"><div class="bt-tbk">${tag(r.date)} · ${L.length} Tagesberichte</div>${L.map((x) => `<button type="button" class="${x.id === r.id ? 'on' : ''}" data-act="pickReport" data-id="${x.id}"><b>${esc(x.time || '–')}</b>${x.number != null ? 'Nr. ' + esc(x.number) : 'Bericht'}${x.site_manager ? ' · ' + esc(x.site_manager) : ''}</button>`).join('')}</div>`;
   }
+  // gelöste Navigation (Streifen): statt des Kalenders eine Datums-Kachel – Klick öffnet den Kalender als kleines Fenster (nichts springt beim Aufklappen)
+  function datumKachel(r) {
+    if (!r) return '';
+    const d = new Date(r.date + 'T12:00'), L = amTag(r.date);
+    return `<button type="button" class="bt-datum" data-btkal title="Kalender öffnen"><span class="dt"><b>${d.getDate()}</b><small>${d.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}</small></span><span class="tx"><b>${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</b><small>${r.number != null ? 'Bericht Nr. ' + esc(r.number) : 'Bericht'}${r.time ? ' · ' + esc(r.time) : ''}${L.length > 1 ? ' · ' + L.length + ' am Tag' : ''} ▾</small></span></button>`;
+  }
+  let POP = null;
+  function kalPop(auf) {
+    if (!auf) { if (POP) { POP.remove(); POP = null; } return; }
+    const r = curReport(); if (!r) return;
+    if (!POP) { POP = document.createElement('div'); POP.className = 'bt-kalpop'; document.body.appendChild(POP);
+      POP.addEventListener('click', (e) => { const m = e.target.closest('[data-btkm]'); if (m) { kOff += +m.dataset.btkm; kalPop(true); return; } if (e.target.closest('[data-btkzu]')) kalPop(false); else if (e.target.closest('[data-act="pickReport"]')) setTimeout(() => kalPop(false), 0); }); }
+    const b = NAV.getBoundingClientRect();
+    POP.style.left = (b.left + 58) + 'px'; POP.style.top = (b.top + 40) + 'px';
+    POP.innerHTML = `<button type="button" class="bt-kalzu" data-btkzu title="Schließen">✕</button>${kalender(r)}${tagesBerichte(r)}`;
+  }
+  NAV.addEventListener('click', (e) => { if (e.target.closest('[data-btkal]')) kalPop(!POP); });
   const anzahl = (s, r) => s.type === 'list' ? r.items.filter((i) => i.kind === s.key).length : s.type === 'images' ? r.images.length : s.type === 'weather' ? (r.temp || r.weather ? 1 : 0) : 1;
   function navNeu() {
     const p = curProject(), r = p ? curReport() : null;
@@ -54,10 +71,10 @@
     const pl = (PLATFORM.apps || []).find((a) => a.key === 'plaene' && a.allowed);
     bpNav(NAV, {
       kopf: p ? { titel: p.name, klein: reports.length ? `${reports.length} Bericht${reports.length === 1 ? '' : 'e'}` : '' } : { titel: 'Kein Projekt gewählt' },
-      davor: p ? kalender(r) + tagesBerichte(r) : '',
+      davor: p ? datumKachel(r) + kalender(r) + tagesBerichte(r) : '',
       gruppen: [
         r ? { titel: `Tagesbericht${r.number != null ? ' Nr. ' + r.number : ''} · ${fmt(r.date)}`, punkte: L.map((s) => { const n = anzahl(s, r), z = s.type === 'list' || s.type === 'images';
-          return { id: 'sec:' + s.key, text: s.title, icon: svg((SECIC[s.key] || SECIC[s.type] || ['doc'])[0]), zahl: z ? String(n) : n ? '✓' : '' }; }) } : null,
+          const sc = SECIC[s.key] || SECIC[s.type] || ['doc', 'c-y']; return { id: 'sec:' + s.key, text: s.title, icon: svg(sc[0]), farbe: `var(--${sc[1] || 'c-y'})`, zahl: z ? String(n) : n ? '✓' : '' }; }) } : null,
         p ? { titel: 'Projekt', punkte: [
           { id: 'alle', text: 'Alle Berichte', icon: svg('archive'), zahl: String(reports.length) },
           { id: 'kontakte', text: 'Kontakte', icon: svg('users') },

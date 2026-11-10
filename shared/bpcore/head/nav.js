@@ -3,9 +3,9 @@
      el        das Feld links (bekommt die Klasse bp-nav – oder steht in einem Element mit dieser Klasse)
      o.kopf    { titel, klein }                       z. B. Projektname und „16 LVs“
      o.davor   HTML direkt unter dem Kopf             z. B. die Versionswahl (wird von der App gefüllt)
-     o.gruppen [{ titel, href, tip, punkte: [{ id, text, icon, zahl, zahlTip, unter }] }]
+     o.gruppen [{ titel, href, tip, punkte: [{ id, text, icon, farbe, zahl, zahlTip, unter }] }]
                href: die Gruppe ist ein Verweis in eine andere App (dann ohne Punkte, mit ↗)
-               icon: Inhalt eines <svg viewBox="0 0 24 24"> (Pfade); unter: HTML unter dem gewählten Punkt (z. B. „＋ Neu“)
+               icon: Inhalt eines <svg viewBox="0 0 24 24"> (Pfade), als Kachel gezeichnet; farbe: Farbe der Kachel (CSS, Standard grau); unter: HTML unter dem gewählten Punkt (z. B. „＋ Neu“)
      o.aktiv   id des gewählten Punkts
      o.fuss    HTML am Ende                           z. B. Ablagefeld
      o.attr    Name des data-Attributs der Punkte     (Standard „nav“ → data-nav="id")
@@ -37,7 +37,7 @@
     [el, box].forEach((x) => { x.classList.toggle('frei', m === 'frei'); x.classList.toggle('oben', m === 'oben'); });
     if (box.parentElement) box.parentElement.classList.toggle('bp-nav-oben-an', m === 'oben');
     const ni = (p, mitText = true) => { const an = p.id === o.aktiv;
-      return `<button type="button" class="ni${an ? ' on' : ''}" data-${a}="${esc(p.id)}"${an ? ' aria-current="page"' : ''}${mitText ? '' : ` title="${esc(p.text)}${p.zahl ? ' (' + esc(p.zahl) + ')' : ''}"`}>${svg(p)}${mitText ? `${esc(p.text)}${p.zahl ? `<small${p.zahlTip ? ` title="${esc(p.zahlTip)}"` : ''}>${esc(p.zahl)}</small>` : ''}` : ''}</button>`; };
+      return `<button type="button" class="ni${an ? ' on' : ''}" data-${a}="${esc(p.id)}"${p.farbe ? ` style="--kf:${esc(p.farbe)}"` : ''}${an ? ' aria-current="page"' : ''}${mitText ? '' : ` title="${esc(p.text)}${p.zahl ? ' (' + esc(p.zahl) + ')' : ''}"`}>${svg(p)}${mitText ? `${esc(p.text)}${p.zahl ? `<small${p.zahlTip ? ` title="${esc(p.zahlTip)}"` : ''}>${esc(p.zahl)}</small>` : ''}` : ''}</button>`; };
     const G = o.gruppen || [];
     if (m === 'oben') {
       el.innerHTML = GRIFF + `<div class="nv-davor">${o.davor || ''}</div>` + G.map((g, k) => {

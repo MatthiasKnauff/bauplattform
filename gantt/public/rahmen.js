@@ -88,10 +88,10 @@
       kopf: P ? { titel: (bt && bt.name) || P.name, klein: plaene > 1 ? `${plaene} Pläne` : '' } : { titel: 'Kein Plan geöffnet' },
       davor: '<div id="navVm"></div>',
       gruppen: [
-        { titel: 'Terminplan', punkte: [{ id: 'leistungen', text: 'Leistungen', icon: NI.leistungen, zahl: P ? P.tasks.length : '', unter: P ? '' : '<button type="button" class="ni ni-neu" data-act="fileNew">＋ Neuer Plan</button>' }] },
-        { titel: 'Beteiligte', punkte: [{ id: 'firmen', text: 'Gewerke & Firmen', icon: NI.firmen, zahl: gw || '' }] },
-        { titel: 'Vorlagen', punkte: [{ id: 'katalog', text: 'Leistungskatalog', icon: NI.katalog }] },
-        { titel: 'Projekt', punkte: [{ id: 'projinfo', text: 'Projektinformationen', icon: NI.info }, { id: 'kalender', text: 'Arbeitszeit & Feiertage', icon: NI.kalender }] },
+        { titel: 'Terminplan', punkte: [{ id: 'leistungen', text: 'Leistungen', icon: NI.leistungen, farbe: '#6aa7ff', zahl: P ? P.tasks.length : '', unter: P ? '' : '<button type="button" class="ni ni-neu" data-act="fileNew">＋ Neuer Plan</button>' }] },
+        { titel: 'Beteiligte', punkte: [{ id: 'firmen', text: 'Gewerke & Firmen', icon: NI.firmen, farbe: '#3ddc84', zahl: gw || '' }] },
+        { titel: 'Vorlagen', punkte: [{ id: 'katalog', text: 'Leistungskatalog', icon: NI.katalog, farbe: '#b18cff' }] },
+        { titel: 'Projekt', punkte: [{ id: 'projinfo', text: 'Projektinformationen', icon: NI.info }, { id: 'kalender', text: 'Arbeitszeit & Feiertage', icon: NI.kalender, farbe: '#ffad5c' }] },
       ],
       aktiv: { vorgang: 'leistungen', firmen: 'firmen', katalog: 'katalog' }[t] || 'leistungen', attr: 'gnav', lage: true,
       nachher: (el, m) => { const ziel = $('#navVm'); if (VM && ziel) { ziel.appendChild(VM); VM.style.display = P ? '' : 'none'; }   // Versionswahl in jeder Lage wieder einhängen

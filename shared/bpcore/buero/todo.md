@@ -95,3 +95,4 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~Aufmaßprüfung: Aufmaßzeilen als Zwischenzeilen (Schalter „Rechenweg“), Ausdruck mit oder ohne Zwischenschritte~~
 - ~~Navigation gelöst: Symbole dicht wie im Mock, Gruppen als Trennstrich, Heftzwecke rot~~
 - ~~Bauzeitenplan: Fenster „Darstellung“ aufgeräumt und kompakt~~
+- ~~Navigation: Symbole als farbige Kacheln; Bautagebuch gelöst mit Datums-Kachel statt Kalender – nichts springt mehr~~

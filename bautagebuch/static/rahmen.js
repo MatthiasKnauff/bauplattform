@@ -202,6 +202,7 @@
     if (SEL && !(r && r.items.some((x) => x.id === SEL))) SEL = null;
     if (BILD && !(r && r.images.some((x) => x.id === BILD))) BILD = null;
     navNeu(); leisteNeu(); markieren(); pillen();
+    if (war !== true) bereich();   // erstes Zeichnen (App war verborgen) oder vom Handy-Aufbau auf breit: Bereich rechts neu messen
     if (war === false || pdfRid !== rid) { pdfNeu(); }
     fuellen('details'); fuellen('foto');
     war = true;
@@ -210,6 +211,6 @@
   renderDetail = function () { const x = alt.apply(this, arguments); nachher(); return x; };
   addEventListener('resize', () => { clearTimeout(nachher.t); nachher.t = setTimeout(() => { if (breit() !== (war === true)) nachher(); }, 150); });
   document.body.classList.add('bp-alt');   // Grundregeln des Baukastens nur in den Bausteinen (.bp-insel)
+  if (breit()) document.body.classList.add('bt-rahmen');   // vor dem Bereich rechts: er misst die Breite (zu schmal → zugeklappt)
   bereich(); bpNav.breite(NAV, { key: 'bt' });
-  if (breit()) document.body.classList.add('bt-rahmen');
 })();

@@ -98,3 +98,4 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~Navigation: Symbole als farbige Kacheln; Bautagebuch gelöst mit Datums-Kachel statt Kalender – nichts springt mehr~~
 - ~~AVA: Ablage-Dialog – Vorgabe ist die aktuelle Position (Bereich, LV, Firma), Texterkennung nur als Hinweis mit „Dorthin“~~
 - ~~Bauzeitenplan: kein Loch mehr oben rechts über dem Scrollbalken~~
+- ~~Bereich rechts klappt bei zu schmalem Fenster von selbst zu (alle Apps)~~

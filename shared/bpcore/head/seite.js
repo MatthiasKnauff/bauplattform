@@ -27,6 +27,11 @@
   const EIGEN = new Map();   // 'key|id' → eigenes Browserfenster des Reiters
   const grenz = (v, a, b) => Math.max(a, Math.min(b, v));
   const MINR = 360, MINL = 320;   // Mindestbreiten in px: Bereich rechts (Formulare, Assistent bleiben lesbar) und Inhalt links
+  const ENGAUF = new Set();   // Bereiche, die der Benutzer trotz zu wenig Platz selbst aufgeklappt hat
+  const engVon = (sp, key, o) => innerWidth >= 900 && sp.clientWidth > 0 && sp.clientWidth < (o.minL ?? MINL) + (o.min ?? MINR) + 16 && !ENGAUF.has(key);   // zu schmal für beide Spalten: rechts von selbst zuklappen
+  addEventListener('resize', () => { clearTimeout(engVon.t); engVon.t = setTimeout(() => AKTIV.forEach((v, key) => {
+    if (!v.sp.isConnected) return; const e = engVon(v.sp, key, v.opt); if (!e && v.sp.clientWidth >= (v.opt.minL ?? MINL) + (v.opt.min ?? MINR) + 16) ENGAUF.delete(key);
+    if (e !== !!v.eng) { seite(v.sp, key, v.reiter, v.opt); if (v.opt.wechsel) v.opt.wechsel(); } }), 150); });
   const spalten = (v, o) => `minmax(${o.minL ?? MINL}px,${v}fr) 16px minmax(${o.min ?? MINR}px,${1 - v}fr)`;
 
   function seite(sp, key, reiter, opt = {}) {
@@ -36,7 +41,8 @@
     const frei = lies(key + '.frei', []).filter((id) => reiter.some((r) => r.id === id));
     const dock = reiter.filter((r) => !frei.includes(r.id));
     const akt = dock.find((r) => r.id === lies(key + '.r', opt.start || '')) || dock[0];
-    const zu = !!lies(key + '.zu', false), w = grenz(+lies(key + '.w', opt.w || 0.52) || 0.52, 0.2, 0.85), schmal = innerWidth < 900;
+    const eng = engVon(sp, key, opt); AKTIV.get(key).eng = eng;
+    const zu = !!lies(key + '.zu', false) || eng, w = grenz(+lies(key + '.w', opt.w || 0.52) || 0.52, 0.2, 0.85), schmal = innerWidth < 900;
     sp.classList.add('sr-split'); sp.dataset.sr = key;
     let r = sp.querySelector(':scope > .sr-r');
     if (!r) { r = document.createElement('aside'); r.className = 'sr-r'; sp.appendChild(r); }
@@ -57,8 +63,8 @@
     r.onclick = (e) => {
       const t = e.target.closest('[data-srt]'); if (t) { merk(key + '.r', t.dataset.srt); return neu(); }
       const a = e.target.closest('[data-sra]'); if (!a) return;
-      if (a.dataset.sra === 'zu') merk(key + '.zu', true);
-      else if (a.dataset.sra === 'auf') { merk(key + '.zu', false); if (a.dataset.srid) merk(key + '.r', a.dataset.srid); }
+      if (a.dataset.sra === 'zu') { merk(key + '.zu', true); ENGAUF.delete(key); }
+      else if (a.dataset.sra === 'auf') { merk(key + '.zu', false); if (eng) ENGAUF.add(key); if (a.dataset.srid) merk(key + '.r', a.dataset.srid); }
       else if (a.dataset.sra === 'fen') { eigenAuf(key, akt); return; }
       else if (a.dataset.sra === 'hol') { eigenZu(key, akt.id); return; }
       else if (a.dataset.sra === 'ab') { merk(key + '.frei', [...frei, akt.id]); merk(key + '.r', ''); }

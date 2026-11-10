@@ -278,9 +278,9 @@ document.addEventListener('click', async (e) => {
   await flush(); tab = k.dataset.eintab; LS.set('tab', tab); await openLv(+k.dataset.einlv);
   const pn = document.querySelector('.body'); if (pn) pn.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
-let RKEY = '';
+let RKEY = '', RZURUECK = null;   // Rollposition nach dem Neuzeichnen: gleich setzen (kein Bild mit falscher Lage), im nächsten Bild noch einmal
 function render() {
-  { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
+  { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
   setTimeout(seiteAufraeumen, 0);   // freie Fenster eines Bereichs, der nicht mehr zu sehen ist, schließen
   einUeb();
   if (typeof MOB !== 'undefined' && MOB) setTimeout(MOB.zeichnen, 0);

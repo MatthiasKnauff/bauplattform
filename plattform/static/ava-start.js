@@ -181,3 +181,8 @@ window.bpMobilAn = () => { try { localStorage.removeItem('ava.mobilAus'); } catc
   if (QU.an) quLaden();
 })().catch((e) => toast(e.message, true));
 addEventListener('beforeunload', () => { if (saveT && L) navigator.sendBeacon && fetch('api/lv/' + L.id, { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rev: L.rev, data: L.data }) }); });
+
+/* Kein Flackern beim Neuzeichnen: Spaltenbreiten und Rollposition noch vor dem ersten Bild setzen – jeder Bereich (auch Aufträge,
+   Übersicht, Türliste) kehrt aus render() früh zurück; ohne das stand die Tabelle ein Bild lang in ihrer natürlichen Breite da */
+{ const render0 = render;
+  render = function (...a) { const x = render0.apply(this, a); try { spaltenGriffe(); } catch { /* egal */ } try { if (RZURUECK) RZURUECK(); } catch { /* egal */ } return x; }; }

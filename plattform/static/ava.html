@@ -1799,7 +1799,7 @@ function lvSplitMount() {
   const D = (L && L.dokumente) || [];
   if (LVDV && !D.some((d) => d.id === LVDV.id)) LVDV = null;
   seite(sp, 'lv', [{ id: 'details', titel: 'Details', mount: (el) => { el.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; } },
-    { id: 'quelle', titel: 'Kopierquelle', mount: (el) => { el.appendChild(QUBOX); QUBOX.hidden = false; if (!QU.an) { QU.an = true; LS.set('qu.an', true); } if (!QU.L && !QUBUSY) quLaden().then(quZeigen).catch(() => {}); quZeigen(); } },
+    { id: 'quelle', titel: 'Kopierquelle', fenster: false, mount: (el) => { el.appendChild(QUBOX); QUBOX.hidden = false; if (!QU.an) { QU.an = true; LS.set('qu.an', true); } if (!QU.L && !QUBUSY) quLaden().then(quZeigen).catch(() => {}); quZeigen(); } },
     D.length ? { id: 'dok', titel: '📄 Dokument', mount: lvDokReiter, neu: () => LVDV && LVDV.pdf && lvDokZeichnen(LVDV) } : null], { start: D.length ? 'dok' : 'details', w: 0.62, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); requestAnimationFrame(lvKopfKleben); } });
 }
 function lvDetails() {   // markierte Zeile des LV – dieselbe Karte wie unter „Aufträge“ (Felder, Langtext, Nachtrag-Häkchen)
@@ -2142,7 +2142,7 @@ bpBaum.tasten({ wurzel: '#view table.lv.baum:not(.am) > tbody', zeilen: 'tr[data
 bpBaum.tasten({ wurzel: '#pjTree, #view .pjtree[data-teil]', zeilen: '.pj-r', tiefe: (z) => (z.classList.contains('root') ? 0 : z.classList.contains('k') ? 2 : 1) });   // Projektbaum: Cursor wandert, Enter öffnet
 bpBaum.tasten({ wurzel: '#view table.au-t > tbody', zeilen: 'tr[data-tr]', ohne: 'input.aui, tr[data-ntein] input', waehle: (z) => (z.querySelector('.au-bz') || z.querySelector('td')).click() });   // Aufträge: Felder mit eigenem Tab/Enter (auZiel…)
 bpBaum.tasten({ wurzel: '#view table.lv.am.baum > tbody', zeilen: 'tr', ohne: '[data-am-new], .pj-ren' });
-window.bpBaumFelder = '#view table.lv.ps, .sr-flo table.lv.ps';   // Preisspiegel: Enter geht in der Spalte eines Bieters nach unten, Tab von Bieter zu Bieter
+window.bpBaumFelder = '#view table.lv.ps, .sr-flo table.lv.ps, .sr-eigen table.lv.ps';   // Preisspiegel: Enter geht in der Spalte eines Bieters nach unten, Tab von Bieter zu Bieter
 /* Kostengruppe (DIN 276, Liste im Kern): Vorschlagsliste der Spalte KG – erst die KG des LV, dann die im LV benutzten, dann die zum Gewerk passenden, dann alle.
    Die KG des LV steht in der LV-Zeile; neue und leere Positionen übernehmen sie (wird sie geändert, ziehen die Positionen mit, die leer waren oder die alte hatten). */
 let KGV = { g: null, v: [] };
@@ -2224,7 +2224,7 @@ function lvLangFolgt(vor) {
 }
 function lvAktZeigen() {
   if (tab === 'lv' && LVAKT !== LVLT) { const vor = LVLT; LVLT = LVAKT; lvLangFolgt(vor); }
-  if (tab === 'lv' && document.querySelector('#view .lv-split .sr-tab.on[data-srt="details"]')) { const b = document.querySelector('#view .lv-split > .sr-r .sr-b'); const fa = document.activeElement; if (b && !(fa && b.contains(fa) && /^(INPUT|TEXTAREA|SELECT)$/.test(fa.tagName))) b.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; }
+  if (tab === 'lv') seiteFuellen('lv', 'details');   // rechts, im freien oder im eigenen Browserfenster
   const I = items(); document.querySelectorAll('table.lv tr[data-i]').forEach((tr) => { const x = I[+tr.dataset.i]; tr.classList.toggle('akt', !!x && (x.id === LVAKT || LVSEL.has(x.id))); });
   const w = document.querySelector('table.lv tr[data-lvwurzel]'); if (w) w.classList.toggle('akt', LVAKT === '__lv');
   const pw = document.querySelector('table.lv tr[data-pjwurzel]'); if (pw) pw.classList.toggle('akt', LVAKT === '__pj');
@@ -2932,9 +2932,9 @@ async function angSave(el) {
     if (a.startsWith('v_')) return call('api/lv/' + L.id, 'PUT', { vergabe: { [a.slice(2)]: a === 'v_skonto_art' ? el.value : pf(el.value) ?? 0 } });
     const body = a === 'ep' ? { preise: { [el.dataset.pid]: el.value } } : { [a]: ['nachlass', 'nachlass_eur', 'skonto', 'skonto_tage'].includes(a) ? pf(el.value) ?? 0 : el.value };
     const r = await api('api/angebote/' + el.dataset.aid, 'PUT', body);
-    const pos = document.activeElement && document.activeElement.dataset ? { aid: document.activeElement.dataset.aid, pid: document.activeElement.dataset.pid, f: document.activeElement.dataset.ang } : null;
+    const ae = seiteAktiv(), pos = ae && ae.dataset ? { aid: ae.dataset.aid, pid: ae.dataset.pid, f: ae.dataset.ang } : null;   // auch im eigenen Browserfenster
     L = r; render();
-    if (pos && pos.aid) { const n = document.querySelector(`[data-ang="${pos.f}"][data-aid="${pos.aid}"]${pos.pid ? `[data-pid="${pos.pid}"]` : ''}`); if (n) n.focus(); }
+    if (pos && pos.aid) { const n = seiteFinde(`[data-ang="${pos.f}"][data-aid="${pos.aid}"]${pos.pid ? `[data-pid="${pos.pid}"]` : ''}`); if (n) n.focus(); }
   } catch (e) { toast(e.message, true); }
 }
 async function bieterDialog() {
@@ -3243,7 +3243,7 @@ function amPdfMount() {
   const R = [];
   if (tab === 'rechnungen') { R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${RETEIL}</div>`; } });
     if (L && (vergeben() || aufgehoben())) R.push({ id: 'auftrag', titel: 'Auftrag', mount: (el) => { el.innerHTML = `<div class="sr-pad">${RESUM}${auftragKarte()}</div>`; } }); }
-  if (tab === 'aufmass' && sp.classList.contains('am-baum')) R.push({ id: 'ein', titel: 'Aufmaß', mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.ein || ''}</div>`; } });
+  if (tab === 'aufmass' && sp.classList.contains('am-baum')) R.push({ id: 'ein', titel: 'Aufmaß', fenster: false, mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.ein || ''}</div>`; } });
   const d = amDokDef(); if (d) R.push(d);
   if (tab === 'aufmass' && sp.classList.contains('am-baum') && AMTEIL.rech) R.push({ id: 'rech', titel: 'Rechnung', mount: (el) => { el.innerHTML = `<div class="sr-pad">${AMTEIL.rech}</div>`; } });
   seite(sp, tab === 'rechnungen' ? 're' : 'am', R, { start: tab === 'aufmass' ? 'ein' : 'rech', w: tab === 'aufmass' ? 0.58 : 0.3, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
@@ -3256,7 +3256,7 @@ function amDokDef() {
   const b = B.find((y) => y.id === AMB), A = b.auslese;
   if ((!A || !A.zahlen || !A.kopf || !A.kopf.summen) && !(A && (A.laeuft || A.stand >= 2))) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
   const neu = () => AMV && AMV.pdf && amPdfZeichnen(AMV).then(() => { amMarken(); amPdfZeige(amPos, true); });
-  return { id: 'dok', titel: '📄 Dokument', mount: amDokReiter, neu, fenster: true };   // fenster: auch als eigenes Browserfenster (zweiter Bildschirm)
+  return { id: 'dok', titel: '📄 Dokument', mount: amDokReiter, neu };
 }
 function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom – darunter die Seiten
   const B = amBelege(), b = B.find((y) => y.id === AMB) || B[0], A = b && b.auslese; if (!b) return;

@@ -12,7 +12,10 @@
    ===================================================================== */
 (function () {
   if (window.BPHead) return;
-  { const w = document.createElement('script'); w.src = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '') + 'wahl.js'; document.head.appendChild(w); }   // eigene Auswahllisten statt der Systemliste – in jeder App
+  { const basis = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '');
+    const w = document.createElement('script'); w.src = basis + 'wahl.js'; document.head.appendChild(w);   // eigene Auswahllisten statt der Systemliste – in jeder App
+    if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
+      const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
   /* Warte-Hinweis für alles, was der Benutzer gerade angestoßen hat (Klick/Taste) und länger braucht – in jeder App derselbe:
      nach 0,4 s erscheint unten in der Mitte, WAS gerade läuft („Texterkennung läuft …“, „PDF wird erstellt …“), nach 3 s mit der

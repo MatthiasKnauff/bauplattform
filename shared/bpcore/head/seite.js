@@ -8,8 +8,10 @@
      key    – Name des Bereichs (z. B. 'am', 're', 'au', 'lv') – getrennt gemerkt
      reiter – [{ id, titel, mount(el), neu?(), fenster? }]: mount füllt das Feld (im Bereich, im freien Fenster oder im eigenen
               Browserfenster), neu() wird nach einer Größenänderung aufgerufen (z. B. PDF neu zeichnen);
-              fenster: true → Knopf „⇱“: der Reiter zieht in ein eigenes Browserfenster (zweiter Bildschirm) und bleibt verbunden
+              Knopf „⇱“ (jeder Reiter, außer fenster: false): der Reiter zieht in ein eigenes Browserfenster (zweiter Bildschirm) und bleibt verbunden
      opt    – { start?: Reiter beim ersten Öffnen, w?: Anteil der Tabelle (Standard 0,52), wechsel?() }: nach Umschalten (Reiter, zuklappen, abdocken) – z. B. Spaltenbreiten neu
+   seiteFuellen(key, id) – einen Reiter neu füllen, wo immer er steht (rechts, freies Fenster, eigenes Browserfenster), z. B. nach neuer Auswahl
+   seiteFinde(sel) / seiteAktiv() – querySelector bzw. das Feld mit dem Fokus, auch in den eigenen Browserfenstern
    seiteUmschalten() / seiteOffen() / seiteDa() – Bereich rechts an den Rand klappen bzw. fragen, ob er offen ist / da ist
    seiteAufraeumen() – freie Fenster eines nicht mehr sichtbaren Bereichs schließen (nach dem Neuzeichnen der Seite)
 
@@ -42,10 +44,10 @@
     sp.style.gridTemplateColumns = schmal || !dock.length ? '' : zu ? 'minmax(0,1fr) 2.6rem' : `minmax(0,${w}fr) 16px minmax(0,${1 - w}fr)`;
     g.hidden = schmal || zu || !dock.length;
     if (!dock.length) r.innerHTML = '';
-    else if (zu) r.innerHTML = `<button type="button" class="sr-auf" data-sra="auf" title="Bereich rechts wieder zeigen">${dock.map((x) => `<span>${esc(x.titel)}</span>`).join('')}</button>`;
+    else if (zu) r.innerHTML = `<div class="sr-aufs" role="tablist" aria-label="Bereich rechts">${dock.map((x) => `<button type="button" role="tab" class="sr-auf${x === akt ? ' on' : ''}" data-sra="auf" data-srid="${esc(x.id)}" title="„${esc(x.titel)}“ zeigen"><span>${esc(x.titel)}</span></button>`).join('')}</div>`;   // je Reiter ein Kopf wie im Ordner – öffnet genau diesen
     else {
       r.innerHTML = `<div class="sr-rt" role="tablist">${dock.map((x) => `<button type="button" role="tab" class="sr-tab${x === akt ? ' on' : ''}" data-srt="${esc(x.id)}" aria-selected="${x === akt}">${esc(x.titel)}</button>`).join('')}<span class="sr-sp"></span>`
-        + (eigenOffen(key, akt.id) ? '' : `${akt.fenster ? `<button type="button" class="sr-ik" data-sra="fen" title="„${esc(akt.titel)}“ in ein eigenes Browserfenster – z. B. auf den zweiten Bildschirm">⇱</button>` : ''}<button type="button" class="sr-ik" data-sra="ab" title="„${esc(akt.titel)}“ als freies Fenster abdocken">⧉</button>`) + `<button type="button" class="sr-ik" data-sra="zu" title="Bereich an den Rand klappen – oben „Details“ zeigt ihn wieder">✕</button></div><div class="sr-b"></div>`;
+        + (eigenOffen(key, akt.id) ? '' : `${akt.fenster !== false ? `<button type="button" class="sr-ik" data-sra="fen" title="„${esc(akt.titel)}“ in ein eigenes Browserfenster – z. B. auf den zweiten Bildschirm">⇱</button>` : ''}<button type="button" class="sr-ik" data-sra="ab" title="„${esc(akt.titel)}“ als freies Fenster abdocken">⧉</button>`) + `<button type="button" class="sr-ik" data-sra="zu" title="Bereich an den Rand klappen – oben „Details“ zeigt ihn wieder">✕</button></div><div class="sr-b"></div>`;
       if (eigenOffen(key, akt.id)) r.querySelector('.sr-b').innerHTML = `<div class="sr-weg"><div><p>„${esc(akt.titel)}“ ist in einem <b>eigenen Fenster</b> geöffnet.</p><button type="button" class="btn" data-sra="hol">↩ hierher zurückholen</button></div></div>`;
       else akt.mount(r.querySelector('.sr-b'));
     }
@@ -54,7 +56,7 @@
       const t = e.target.closest('[data-srt]'); if (t) { merk(key + '.r', t.dataset.srt); return neu(); }
       const a = e.target.closest('[data-sra]'); if (!a) return;
       if (a.dataset.sra === 'zu') merk(key + '.zu', true);
-      else if (a.dataset.sra === 'auf') merk(key + '.zu', false);
+      else if (a.dataset.sra === 'auf') { merk(key + '.zu', false); if (a.dataset.srid) merk(key + '.r', a.dataset.srid); }
       else if (a.dataset.sra === 'fen') { eigenAuf(key, akt); return; }
       else if (a.dataset.sra === 'hol') { eigenZu(key, akt.id); return; }
       else if (a.dataset.sra === 'ab') { merk(key + '.frei', [...frei, akt.id]); merk(key + '.r', ''); }
@@ -104,7 +106,7 @@
         frei(f, { key: `${key}.pos.${rt.id}`, start: { x: innerWidth - 680 - i * 32, y: 110 + i * 32, w: 620, h: innerHeight - 170 }, griff: '.sr-fk',
           neu: () => { const x = AKTIV.get(key), a = x && x.reiter.find((y) => y.id === rt.id); if (a && a.neu) a.neu(); } });
       }
-      f.innerHTML = `<div class="sr-fk"><b>${esc(rt.titel)}</b>${rt.fenster ? '<button type="button" class="sr-ik" data-sra="fen" title="in ein eigenes Browserfenster – z. B. auf den zweiten Bildschirm">⇱</button>' : ''}<button type="button" class="sr-ik" data-sra="an" title="wieder rechts andocken">⇲</button><button type="button" class="sr-ik" data-sra="an" title="Fenster schließen – der Reiter kommt zurück in den Bereich rechts">✕</button></div><div class="sr-b"></div>`;
+      f.innerHTML = `<div class="sr-fk"><b>${esc(rt.titel)}</b>${rt.fenster !== false ? '<button type="button" class="sr-ik" data-sra="fen" title="in ein eigenes Browserfenster – z. B. auf den zweiten Bildschirm">⇱</button>' : ''}<button type="button" class="sr-ik" data-sra="an" title="wieder rechts andocken">⇲</button><button type="button" class="sr-ik" data-sra="an" title="Fenster schließen – der Reiter kommt zurück in den Bereich rechts">✕</button></div><div class="sr-b"></div>`;
       rt.mount(f.querySelector('.sr-b'));
       const kopf = f.firstElementChild;
       kopf.onclick = (e) => { if (e.target.closest('[data-sra="fen"]')) { merk(key + '.r', rt.id); f.remove(); eigenAuf(key, rt); return; } if (!e.target.closest('[data-sra="an"]')) return; merk(key + '.frei', lies(key + '.frei', []).filter((id) => id !== rt.id)); merk(key + '.r', rt.id); merk(key + '.zu', false); f.remove(); neu(); };
@@ -168,5 +170,17 @@
     const s = sichtbar()[0]; if (!s) return;
     const [key, x] = s; merk(key + '.zu', !lies(key + '.zu', false)); seite(x.sp, key, x.reiter, x.opt); if (x.opt.wechsel) x.opt.wechsel();
   }
-  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter, bpFrei: frei });
+  function seiteFuellen(key, id) {
+    const x = AKTIV.get(key), rt = x && x.sp.isConnected && x.reiter.find((y) => y.id === id); if (!rt) return;
+    const Z = [], r = x.sp.querySelector(':scope > .sr-r'), t = r && r.querySelector('.sr-tab.on');
+    if (t && t.dataset.srt === id && !eigenOffen(key, id)) Z.push(r.querySelector('.sr-b'));
+    document.querySelectorAll('.sr-flo[data-key]').forEach((f) => { if (f.dataset.key === key && f.dataset.id === id) Z.push(f.querySelector('.sr-b')); });
+    const w = EIGEN.get(key + '|' + id); if (w && !w.closed) Z.push(w.document.querySelector('.sr-b'));
+    Z.filter(Boolean).forEach((b) => { const a = b.ownerDocument.activeElement;   // wer gerade in einem Feld dort tippt, wird nicht gestört
+      if (a && b.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; b.innerHTML = ''; rt.mount(b); });
+  }
+  const docs = () => [document, ...[...EIGEN.values()].filter((w) => !w.closed).map((w) => w.document)];
+  const seiteFinde = (sel) => { for (const d of docs()) { const n = d.querySelector(sel); if (n) return n; } return null; };
+  const seiteAktiv = () => { for (const d of docs()) if (d.hasFocus()) return d.activeElement; return document.activeElement; };   // das Fenster, in dem gerade getippt wird
+  Object.assign(window, { seite, seiteAufraeumen, seiteDa, seiteOffen, seiteUmschalten, seiteReiter, seiteFuellen, seiteFinde, seiteAktiv, bpFrei: frei });
 })();

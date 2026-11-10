@@ -4,6 +4,7 @@ Jede App bindet sie mit `app.register_blueprint(head.blueprint())` ein und lädt
 Die Kopfleiste zeigt: Bauportal / App · aktuelles Projekt · KI-Auswahl · Benutzer mit App-Umschalter und Abmelden.
 
 /bp/head.js, /bp/head.css   Oberfläche (für alle Apps gleich)
+/bp/manifest.webmanifest, /bp/app.svg, /bp/app-192.png, /bp/app-512.png   Bauportal als App installieren (Edge/Chrome)
 /bp/undo.js, /bp/seite.js, /bp/befehle.js, /bp/vorschlag.js, /bp/bp.js, /bp/bp.css   gemeinsame Bausteine: Rückgängig-Dock, Bereich rechts, Befehlsleiste, Vorschlagsliste, Grundhilfen ($, api, toast, Fenster …)
 /api/bp/projektnamen?q=   Vorschläge für Projektnamen: Projekte im Bautagebuch und Ordner auf dem Server (Ablage)
 /api/bp/konto       GET/PUT  persönliche Einstellungen (Versand von Rügen, Kalendertermine) – alle Apps
@@ -40,6 +41,33 @@ BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spal
 # Stil je Benutzer (⚙ → Darstellung → Stil) – erlaubte Werte, leer = wie bisher; die Regeln dazu stehen in head/head.css
 STIL = {"ecken": {"rund", "dezent", "eckig"}, "schatten": {"aus"}, "sb": {"faden", "pille", "mac", "verlauf", "rinne", "glas"},
         "rahmen": {"mac", "verlauf", "strich", "kantig", "glas"}, "verlauf": {"akzent", "app", "kopf", "licht", "zwei"}, "fenster": {"mac"}, "schalter": {"an"}}
+
+
+# Bauportal als App (Edge/Chrome „App installieren“): App-Beschreibung und Symbol – das Symbol als SVG, die PNGs daraus beim Abruf
+APP_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#2f5d8a"/>'
+           '<path d="M112 248 256 128l144 120v152a16 16 0 0 1-16 16H128a16 16 0 0 1-16-16z" fill="none" stroke="#fff" stroke-width="32" stroke-linejoin="round"/>'
+           '<path d="M216 416V312h80v104" fill="none" stroke="#fff" stroke-width="32" stroke-linejoin="round"/></svg>')
+APP_DATEIEN = ("manifest.webmanifest", "app.svg", "app-192.png", "app-512.png")
+_APP_PNG = {}
+
+
+def _app_datei(name):
+    if name == "manifest.webmanifest":
+        m = {"name": "Bauportal", "short_name": "Bauportal", "start_url": "/", "scope": "/", "display": "standalone",
+             "background_color": "#ffffff", "theme_color": "#2f5d8a", "lang": "de",
+             "icons": [{"src": "app-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "app-512.png", "sizes": "512x512", "type": "image/png"},
+                       {"src": "app.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}]}
+        return Response(json.dumps(m, ensure_ascii=False), mimetype="application/manifest+json", headers={"Cache-Control": "no-cache"})
+    if name == "app.svg":
+        return Response(APP_SVG, mimetype="image/svg+xml", headers={"Cache-Control": "max-age=86400"})
+    groesse = 192 if name == "app-192.png" else 512
+    if groesse not in _APP_PNG:
+        try:
+            import cairosvg
+            _APP_PNG[groesse] = cairosvg.svg2png(bytestring=APP_SVG.encode(), output_width=groesse, output_height=groesse)
+        except Exception:   # ohne Cairo: kein PNG (die App-Beschreibung nennt dann nur das SVG)
+            return "Nicht gefunden", 404
+    return Response(_APP_PNG[groesse], mimetype="image/png", headers={"Cache-Control": "max-age=86400"})
 
 
 def blueprint(get_user=None):
@@ -345,6 +373,8 @@ def blueprint(get_user=None):
             r.set_etag(hashlib.sha1(body.encode()).hexdigest())
             r.headers["Cache-Control"] = "no-cache"
             return r.make_conditional(request)
+        if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
+            return _app_datei(name)
         if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)

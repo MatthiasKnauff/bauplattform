@@ -35,7 +35,7 @@ def _pdf(text):
     li = ParagraphStyle("li", parent=p, leftIndent=12, bulletIndent=2, spaceAfter=2)
     li2 = ParagraphStyle("li2", parent=li, leftIndent=26, bulletIndent=16)
     esc = lambda s: s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    fett = lambda s: re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", esc(s))
+    fett = lambda s: re.sub(r"~~(.+?)~~", r"<strike><font color='#777777'>\1</font></strike>", re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", esc(s)))   # **fett**, ~~erledigt~~
     out = []
     for z in text.splitlines():
         if not z.strip():

@@ -3295,8 +3295,9 @@ async function amBelegHoch(files) {
   files = [...files].filter((f) => /\.(pdf|jpe?g|png|tiff?|docx)$/i.test(f.name) || /^(application\/pdf|image\/)/.test(f.type));
   if (!files.length) return toast('Bitte eine PDF-Datei, einen Scan oder ein Foto wählen.', true);
   if (!vergeben()) return toast('Erst vergeben: geprüft wird gegen die Preise des Auftrags.', true);
-  let R = L.rechnungen.find((r) => r.status !== 'geprueft');
-  if (!R) { try { await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'abschlag' }); } catch (e) { return toast(e.message, true); } R = L.rechnungen.find((r) => r.status !== 'geprueft'); if (!R) return; }
+  let R = L.rechnungen.find((r) => r.status !== 'geprueft'), reNeu = false;
+  if (!R) { try { await call(`api/lv/${L.id}/rechnungen`, 'POST', { art: 'abschlag' }); } catch (e) { return toast(e.message, true); } R = L.rechnungen.find((r) => r.status !== 'geprueft'); if (!R) return; reNeu = true; }
+  const vorher = new Set((R.belege || []).map((b) => b.id));
   for (const f of files) {
     const fd = new FormData(); fd.append('datei', f); toast(`„${f.name}“ wird gelesen und im Projektordner abgelegt …`);
     if (AMABL) { fd.append('art', AMABL.art || 'rechnung'); if (AMABL.ordner) fd.append('ordner', JSON.stringify(AMABL.ordner)); }
@@ -3304,6 +3305,15 @@ async function amBelegHoch(files) {
     catch (e) { toast(e.message, true); return; }
   }
   let R2 = L.rechnungen.find((r) => r.id === R.id), nb = R2.belege[R2.belege.length - 1];
+  {   // dahin springen, wo die Datei angekommen ist: Rechnung im Baum markiert, rechts das Dokument – und „Rückgängig“ nimmt sie wieder weg
+    const neu = R2.belege.filter((b) => !vorher.has(b.id)).map((b) => b.id), lvId0 = L.id, rid0 = R.id, wo = `${reTitel(R2)} · LV ${L.nr} ${L.name}`;
+    PJSEL = 'r' + R.id; AMB = nb.id; AMV = null; tab = 'aufmass'; amAns = 'erfassen'; render(); seiteReiter('am', 'dok');
+    toast(`${files.length > 1 ? files.length + ' Dateien liegen' : '„' + files[0].name + '“ liegt'} bei: ${wo}`);
+    rueckgaengig(`PDF abgelegt bei ${wo}`, async () => {
+      for (const id of neu) await api('api/belege/' + id, 'DELETE').catch(() => {});
+      if (reNeu) await api('api/rechnungen/' + rid0, 'DELETE').catch(() => {});   // die dafür angelegte Rechnung mit weg
+      if (L && L.id === lvId0) { L = await api('api/lv/' + lvId0); AMV = null; if (PJSEL === 'r' + rid0 && reNeu) PJSEL = null; await refreshList(); render(); } });
+  }
   if (nb.auslese && nb.auslese.laeuft) {   // Scan/Foto: Texterkennung läuft im Hintergrund
     const el = document.createElement('div'); el.className = 'ava-job'; el.innerHTML = '<span class="wspin" style="width:14px;height:14px;vertical-align:-2px"></span> Eingescannte Rechnung – Texterkennung läuft <small title="Tesseract auf dem Server der Plattform – keine KI, die Rechnung verlässt das Büro nicht" style="opacity:.75">(Tesseract, ohne KI)</small> <b class="jst"></b> …<button type="button" class="btn sm" data-j="hand" title="Nicht warten: die Rechnung gleich ohne Aufmaß mit Positionen von Hand erfassen">Von Hand erfassen</button><button type="button" class="btn sm" data-j="ab" title="Nicht mehr warten – die PDF bleibt an der Rechnung">Abbrechen</button>'; document.body.appendChild(el);
     const lvId = L.id; let stop = '';
@@ -3584,7 +3594,7 @@ function vRechnungen0() {
   const cards = (SEL ? [SEL] : []).map((r) => {
     const c = RC[r.id], g = r.status === 'geprueft', last = !reNachfolger(r), ab = r.data.abzuege || [], art = r.art || 'abschlag';
     const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
-    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung im Reiter „Dokument“ abhaken: Summen sind automatisch mit ✔ / ✘ markiert, ein Klick setzt eigene Haken – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}<label class="re-bel-ziel${(r.belege || []).length ? ' kl' : ''}" title="Rechnung der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${(r.belege || []).length ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" hidden data-rebf="${r.id}"></label>
+    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc((b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert') + ' – Klick: im Reiter „Dokument“ ansehen und abhaken')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}<label class="re-bel-ziel${(r.belege || []).length ? ' kl' : ''}" title="Rechnung der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${(r.belege || []).length ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" hidden data-rebf="${r.id}"></label>
 </div>`;
     const kopf = `<div class="re-wo">${esc(L.vergabe && L.vergabe.bieter || L.auftragnehmer || '')}${L.nr || L.name ? ' · LV ' + esc([L.nr, L.name].filter(Boolean).join(' ')) : ''}</div><h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
         <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' || c.frei ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>

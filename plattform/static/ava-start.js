@@ -186,3 +186,15 @@ addEventListener('beforeunload', () => { if (saveT && L) navigator.sendBeacon &&
    Übersicht, Türliste) kehrt aus render() früh zurück; ohne das stand die Tabelle ein Bild lang in ihrer natürlichen Breite da */
 { const render0 = render;
   render = function (...a) { const x = render0.apply(this, a); try { spaltenGriffe(); } catch { /* egal */ } try { if (RZURUECK) RZURUECK(); } catch { /* egal */ } return x; }; }
+/* Tabellen: Zelle mit Inhalt wird beim Hineinspringen (Klick, Tab, Enter) ganz markiert – Tippen überschreibt, F2 schreibt ans Ende */
+(() => {
+  const feld = (el) => el && el.matches && el.matches('table input:not([type]),table input[type=text],table input[type=number],table input[inputmode],table textarea.ed') && !el.readOnly && !el.disabled;
+  let maus = false;
+  document.addEventListener('pointerdown', () => { maus = true; setTimeout(() => { maus = false; }, 400); }, true);
+  document.addEventListener('focusin', (e) => {
+    const el = e.target; if (!feld(el) || !el.value) return;
+    const sel = () => { if (document.activeElement === el) try { el.select(); } catch { /* egal */ } };
+    if (maus) el.addEventListener('mouseup', (m) => { m.preventDefault(); sel(); }, { once: true }); else sel();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key !== 'F2' || !feld(e.target)) return; e.preventDefault(); const n = e.target.value.length; try { e.target.setSelectionRange(n, n); } catch { /* egal */ } });
+})();

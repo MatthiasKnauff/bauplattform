@@ -1,10 +1,11 @@
 /* Auswahllisten – gemeinsamer Baustein (/bp/wahl.js, wird von head.js nachgeladen und gilt damit in jeder App).
    Jedes <select> öffnet statt der Systemliste (am iPhone das graue iOS-Menü) die eigene Liste: am Computer direkt am Feld,
-   am Handy als Blatt von unten mit Überschrift und „Schließen“. Ab 12 Einträgen mit Suchfeld. Die Wahl setzt den Wert des
+   am Handy als Blatt von unten mit Überschrift und „Schließen“. Ab 12 Einträgen mit Suchfeld. Steht im Feld nur ein Kürzel, zeigt die Liste die ganze Bezeichnung (title der <option>). Die Wahl setzt den Wert des
    <select> und meldet „input“ und „change“ – die Apps merken keinen Unterschied. Ausnehmen: <select data-nativ>. */
 (() => {
   if (window.bpWahl) return;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const lang = (o) => { const t = (o.title || '').trim(); return t && t !== o.textContent.trim() ? t : ''; };   // Kürzel im Feld, ganze Bezeichnung in der Liste: <option title="Normal">N</option>
   const fold = (s) => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
   const geht = (s) => s && s.tagName === 'SELECT' && s.ownerDocument === document && !s.multiple && !(s.size > 1) && !s.disabled && !s.hasAttribute('data-nativ');
   const schmal = () => innerWidth < 700;
@@ -29,10 +30,10 @@
     let zeige = [], akt = Math.max(0, E.findIndex((x) => x.o.selected));
     const zeichne = () => {
       const w = q ? fold(q.value.trim()).split(/\s+/).filter(Boolean) : [];
-      zeige = E.filter((x) => !w.length || w.every((t) => fold(x.o.textContent).includes(t)));
+      zeige = E.filter((x) => !w.length || w.every((t) => fold(x.o.textContent + ' ' + lang(x.o)).includes(t)));
       let g = '';
       L.innerHTML = zeige.map((x, i) => { const k = x.g && x.g !== g ? `<div class="bph-wahl-g">${esc(x.g)}</div>` : ''; g = x.g;
-        return k + `<div class="bph-wahl-o${x.o.selected ? ' on' : ''}${i === akt ? ' akt' : ''}${x.aus ? ' aus' : ''}" role="option" aria-selected="${x.o.selected}" data-wi="${i}"><span class="h">${x.o.selected ? '✓' : ''}</span><span class="t">${esc(x.o.textContent.trim()) || '<i>– leer –</i>'}</span></div>`; }).join('') || '<div class="bph-wahl-e">Nichts gefunden.</div>';
+        return k + `<div class="bph-wahl-o${x.o.selected ? ' on' : ''}${i === akt ? ' akt' : ''}${x.aus ? ' aus' : ''}" role="option" aria-selected="${x.o.selected}" data-wi="${i}"><span class="h">${x.o.selected ? '✓' : ''}</span><span class="t">${esc(x.o.textContent.trim()) + (lang(x.o) ? ' – ' + esc(lang(x.o)) : '') || '<i>– leer –</i>'}</span></div>`; }).join('') || '<div class="bph-wahl-e">Nichts gefunden.</div>';
       const a = L.querySelector('.akt'); if (a) a.scrollIntoView({ block: 'nearest' });
     };
     const ort = () => {   // am Computer: unter dem Feld, sonst darüber – immer ganz im Fenster

@@ -27,9 +27,12 @@
     if (!t._spN) { t._spN = k.cells.length; t._spNamen = [...k.cells].map((th) => (th.dataset.spname || th.textContent || '').trim()); }
     const { N, aus, ord } = zustand(t);
     [...t.rows].forEach((tr) => {
-      if (!tr._sp) { if (!regulaer(tr, N)) return; [...tr.cells].forEach((td, n) => { td.dataset.spn = n; }); tr._sp = 1; }
+      if (!tr._sp) { if (!regulaer(tr, N)) { tr._sp = -1; return; } [...tr.cells].forEach((td, n) => { td.dataset.spn = n; }); tr._sp = 1; }   // -1: lässt sich nicht ordnen – nicht bei jedem Durchlauf neu versuchen
+      if (tr._sp < 0) return;
       const c = {}; [...tr.cells].forEach((td) => { c[td.dataset.spn] = td; });
-      ord.forEach((n) => { const td = c[n]; if (td) { tr.appendChild(td); td.classList.toggle('bp-sp-aus', aus.has(n)); } });
+      /* Zellen nur anfassen, wenn sie falsch stehen: jedes Umhängen ist eine Änderung am Dokument – stünde die Zelle gerade unter der
+         gedrückten Maustaste, ginge der Klick verloren (und der Beobachter unten liefe im Kreis) */
+      let i = 0; ord.forEach((n) => { const td = c[n]; if (!td) return; if (tr.cells[i] !== td) tr.insertBefore(td, tr.cells[i] || null); i++; if (td.classList.contains('bp-sp-aus') !== aus.has(n)) td.classList.toggle('bp-sp-aus', aus.has(n)); });
     });
     t._spStand = localStorage.getItem('bp.sp.' + t.dataset.sp) || '';
   }

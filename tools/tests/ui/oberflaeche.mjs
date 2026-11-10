@@ -6,6 +6,7 @@
 //   - alle eigenen Skripte, Stilblätter und Datenabfragen antworten (keine 404 / 5xx)
 //   - die gemeinsame Kopfleiste ist da
 //   - am Handy keine waagerechte Scrollleiste der ganzen Seite
+//   - die Seite kommt zur Ruhe (kein Baustein baut das Dokument im Kreis um)
 //
 // Aufruf:  node tools/tests/ui/oberflaeche.mjs http://localhost:8090
 // Braucht das npm-Paket „playwright“ mit Chromium (in der Pipeline: npx playwright install --with-deps chromium).
@@ -65,6 +66,11 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
         breit: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         login: /\/login/.test(location.pathname),
       }));
+      // kommt die Seite zur Ruhe? Baut ein Baustein das Dokument ohne Zutun immer wieder um, gehen Klicks verloren
+      // (die Zelle unter der gedrückten Maustaste wird ausgehängt) – so geschehen mit spalten.js im LV-Baum
+      const unruhe = await p.evaluate(() => new Promise((fertig) => { let n = 0; const mo = new MutationObserver((ms) => { n += ms.length; });
+        mo.observe(document.documentElement, { childList: true, subtree: true }); setTimeout(() => { mo.disconnect(); fertig(n); }, 600); }));
+      if (unruhe > 60) probleme.push(`Seite kommt nicht zur Ruhe: ${unruhe} Umbauten am Dokument in 0,6 s ohne Zutun (Klicks können verloren gehen)`);
       if (st.login) probleme.push('landet auf der Anmeldeseite');
       else if (!st.kopf && pfad) probleme.push('gemeinsame Kopfleiste fehlt');
       if (gname === 'Handy' && st.breit > 2) {

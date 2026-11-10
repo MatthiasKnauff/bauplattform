@@ -5423,6 +5423,8 @@ async function auNtSetzen(lvId, id, an) {   // an: true = neuer Nachtrag, false 
 }
 document.addEventListener('change', async (e) => { const c = e.target.closest && e.target.closest('[data-aunt1]'); if (!c) return;
   const [lvId, id] = c.dataset.aunt1.split(':'), an = c.checked, x0 = ((PC[+lvId] || {}).data.items || []).find((q) => q.id === id) || {}, vor = x0.nt ? { nt: x0.nt, nt_status: x0.nt_status, nt_grund: x0.nt_grund } : false;
+  const wer = `„${[x0.oz, (x0.kurz || '').length > 60 ? x0.kurz.slice(0, 58) + '…' : x0.kurz].filter(Boolean).join(' ') || 'Diese Zeile'}“`;   // erst nachfragen – ein Häkchen ist schnell versehentlich gesetzt
+  if (!(await bpFrage(an ? `${wer} als Nachtrag anmelden?\nSie bekommt die nächste Nachtragsnummer und den Stand „angemeldet“.` : `Nachtrag ${vor.nt || ''} aufheben?\n${wer} wird wieder ${x0.typ === 'titel' ? 'ein normaler Gliederungspunkt' : 'eine normale Position'}.`, { ok: an ? 'Als Nachtrag anmelden' : 'Nachtrag aufheben' }))) { c.checked = !an; return; }
   try { await auNtSetzen(+lvId, id, an); rueckgaengig(an ? 'Als Nachtrag markiert' : `${vor.nt} aufgehoben`, () => auNtSetzen(+lvId, id, vor)); } catch (er) { toast(er.message, true); render(); } });
 document.addEventListener('click', (e) => {
   const n = e.target.closest && e.target.closest('[data-aupn]');

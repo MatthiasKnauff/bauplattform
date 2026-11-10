@@ -231,7 +231,7 @@ def maengel_pdf():
             rows.append([Paragraph(str(n), st), Paragraph(X(m["text"]).replace("\n", "<br/>") + (f"<br/><font color='#6b6f76' size='7'>{X(m['art_n'])}{' · ' + str(m['fotos']) + ' Foto(s)' if m['fotos'] else ''}</font>"), st),
                          Paragraph(X(m["firma"]), st), Paragraph(de(m["datum"]), st), Paragraph(de(m["frist"]), sb if m["status"] == "ueberfaellig" else st), Paragraph(stt, st)])
         t = LongTable(rows, colWidths=[W * .06, W * .44, W * .18, W * .11, W * .11, W * .10], repeatRows=1)
-        t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3a3a38")), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(layout.TABELLE_KOPF)), ("VALIGN", (0, 0), (-1, -1), "TOP"),
                                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f4f6")]),
                                ("LINEBELOW", (0, 0), (-1, -1), .25, colors.HexColor("#d9dbe0")), ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
         story += [Paragraph(X(proj), ParagraphStyle("p", fontName="Helvetica-Bold", fontSize=11, leading=14, spaceBefore=4, spaceAfter=3)), t, Spacer(1, 6 * mm)]

@@ -300,6 +300,11 @@ def inhalt(lay):
     return e
 
 
+# Listen-Ausdrucke (Adressverzeichnis, Aufgaben …): Farben des Tabellenkopfs – eine Stelle für alle Apps.
+# Neutral statt einer App-Farbe, damit Ausdrucke aus allen Apps gleich aussehen und auch schwarz-weiß gut lesbar sind.
+TABELLE_KOPF, TABELLE_KOPF_TEXT, TABELLE_STREIFEN, TABELLE_LINIE = "#3a3a38", "#ffffff", "#f3f4f6", "#d9dbe0"
+
+
 def zeichnen(cv, lay, werte, seite, H, fonts, bogen, feld_fn=None, logo_fn=None, umbruch=None):
     """Feste Elemente einer Seite zeichnen (seite 1 = erste, sonst Folgeseite). feld_fn(name, x, y, w, h, size, multi, tip) setzt
     die änderbaren Felder (Entwurf: Formularfeld, endgültig: Text) – Koordinaten in Punkt, y unten."""

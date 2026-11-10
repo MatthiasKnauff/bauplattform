@@ -2,6 +2,7 @@ import json, io
 from datetime import datetime
 from flask import Blueprint, Response, g, jsonify, request
 from core import audit, db, geo, settings
+from bpcore import layout as bplayout
 
 bp = Blueprint("contacts", __name__)
 DUP = "Ein Kontakt mit diesem Namen existiert bereits."
@@ -195,7 +196,7 @@ def export_pdf():
         data.append([P(f"<b>{esc(r['name'])}</b>" + (f"<br/>{esc(person)}" if person else "")), P(esc(r["trade"])), P(tel), P(net), P(adr)])
     w = landscape(A4)[0] - 24 * mm
     t = LongTable(data, colWidths=[w * .27, w * .14, w * .17, w * .24, w * .18], repeatRows=1)
-    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e0388f")), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(bplayout.TABELLE_KOPF)), ("VALIGN", (0, 0), (-1, -1), "TOP"),
                            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f4f6")]),
                            ("LINEBELOW", (0, 0), (-1, -1), .25, colors.HexColor("#d9dbe0")), ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
     stitle = ParagraphStyle("t", fontName="Helvetica-Bold", fontSize=15, leading=19)

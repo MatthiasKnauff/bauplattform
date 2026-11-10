@@ -1379,7 +1379,7 @@ function renderDraft(box) {
     ${PFIELDS.map(([k, l, t = 'text', w]) => `<label class="${w ? 'w' : ''}">${l}<input data-dp="${k}" type="${t}" value="${esc(draft[k])}" autocomplete="off"${k === 'name' ? ' list="dl-proj"' : ''}${listAttr(k)}></label>`).join('')}
     <datalist id="dl-proj"></datalist>${clientList()}${addrLists()}${leaderUi(draft.leaders || [], 'ldrDraft')}
     <div class="info">Beim Tippen des Namens werden vorhandene Projektordner vom Server vorgeschlagen (wenn die Ablage eingerichtet ist). Bei „Bauherrschaft“ schlägt die App Kontakte mit dem Gewerk „Bauherr“ bzw. „Bauherrin“ vor. Mit einer Adresse bestimmt die App den Standort automatisch und wählt das Projekt später per GPS, wenn du vor Ort bist.</div>
-    <div class="acts"><button class="pri" data-act="createProject">Projekt anlegen</button><button data-act="cancelDraft">Abbrechen</button></div></div></div>`;
+    <div class="acts"><button data-act="cancelDraft">Abbrechen</button><button class="pri" data-act="createProject">Projekt anlegen</button></div></div></div>`;
 }
 function projContactUi(p) {   // Baustellenadresse auch in die Kontakte (Adressdatenbank) – Name wird abgefragt
   const e = p.extra || {}, linked = e.contact_id && contacts.find(c => c.id === e.contact_id);
@@ -1486,7 +1486,7 @@ function fillContactDetail() {
       <label class="w">Firma / Name *<input id="ncName" autocomplete="off"></label>
       <div class="w" id="ncSug"></div>
       <div class="info">Beim Tippen schlägt die App Firmen aus dem Netz (OpenStreetMap) mit Adresse und – falls vorhanden – Telefon und E-Mail vor; ein Tipp legt den Kontakt damit an. Alles Weitere trägst du danach ein.</div>
-      <div class="acts"><button class="pri" data-act="createContact">Anlegen</button><button data-act="cancelNew">Abbrechen</button></div></div>`;
+      <div class="acts"><button data-act="cancelNew">Abbrechen</button><button class="pri" data-act="createContact">Anlegen</button></div></div>`;
     return;
   }
   if (!c) { box.innerHTML = '<div class="empty">Wähle einen Kontakt oder lege mit ＋ einen neuen an.</div>'; return; }

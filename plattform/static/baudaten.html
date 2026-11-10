@@ -307,7 +307,7 @@ function bearbeiten() {
     <section><div class="ed-h">Zusätzlich</div>
       <label for="eH">Hinweis</label><input id="eH" value="${esc(x.hinweis || '')}" placeholder="z. B. nur bis 3 m Raumhöhe">
       <label for="eT">Schlagworte <small>kommagetrennt – helfen beim Suchen</small></label><input id="eT" value="${esc(x.tags || '')}" placeholder="z. B. Mauerwerk, KS, Innenwand"></section>
-  </div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+  </div><div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
     if (m === 'x') return close();
     if (m !== 'ok') return;
     const kurz = bg.querySelector('#eK').value.trim(); if (!kurz) { bg.querySelector('#eK').focus(); return toast('Bitte einen Kurztext eingeben.', true); }

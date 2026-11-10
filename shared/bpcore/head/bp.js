@@ -66,17 +66,29 @@ function modalBox(html, onClick) {
   bg.innerHTML = `<div class="modal" role="dialog">${html}</div>`;
   const close = () => { bg.remove(); document.removeEventListener('keydown', taste, true); };
   let unten = null; bg.addEventListener('pointerdown', (e) => { unten = e.target; });   // Ziehen/Größe ändern, das außerhalb endet, schließt nicht
-  bg.addEventListener('click', (e) => { /* daneben klicken schließt nie – nur Abbrechen, ✕ oder Esc */ const b = e.target.closest('[data-m]'); if (b && !b.disabled) onClick(b.dataset.m, bg, close, b); });
-  /* Tastatur (nur für das oberste Fenster): Esc schließt; ← → (in Eingabefeldern Alt+← →), ↑ ↓ (auch in einzeiligen Feldern) oder Bild↑/Bild↓ springen zum vorigen/nächsten Eintrag;
-     Enter in einem einzeiligen Feld übernimmt und schließt (in Dialogen mit Vor/Zurück) */
+  /* OK und Abbrechen – in allen Fenstern gleich: OK (bzw. der Knopf mit dem Verb, data-m="ok"/"save") speichert und schließt, Abbrechen, ✕ und Esc
+     schließen ohne zu speichern; wurde etwas geändert, fragt Abbrechen nach („Änderungen verwerfen?“). Knöpfe, die selbst entscheiden
+     („Verwerfen“, „Später“, „Schließen“ in Fenstern, die sofort speichern), fragen nicht. */
+  let geaendert = false;
+  bg.addEventListener('input', () => { geaendert = true; }); bg.addEventListener('change', () => { geaendert = true; });
+  const OKSEL = '[data-m="ok"]:not([disabled]),[data-m="save"]:not([disabled])', XSEL = '[data-m="x"],[data-m="zu"],[data-m="abbrechen"],[data-m="close"]';
+  const fragen = (b) => geaendert && bg.querySelector(OKSEL) && /^(Abbrechen|✕|×|)$/.test((b.textContent || '').trim()) && window.bpFrage;
+  bg.addEventListener('click', async (e) => { /* daneben klicken schließt nie – nur Abbrechen, ✕ oder Esc */
+    const b = e.target.closest('[data-m]'); if (!b || b.disabled) return;
+    if (b.matches(XSEL) && fragen(b) && !(await window.bpFrage('Änderungen verwerfen?', { ok: 'Verwerfen' }))) return;
+    onClick(b.dataset.m, bg, close, b);
+  });
+  /* Tastatur (nur für das oberste Fenster): Esc = Abbrechen; Enter in einem einzeiligen Feld = OK; ← → (in Eingabefeldern Alt+← →),
+     ↑ ↓ (auch in einzeiligen Feldern) oder Bild↑/Bild↓ springen zum vorigen/nächsten Eintrag (Dialoge mit Vor/Zurück) */
   const taste = (e) => {
-    const alle = [...document.querySelectorAll('.modal-bg')]; if (alle[alle.length - 1] !== bg) return;
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); const x = bg.querySelector('[data-m="x"],[data-m="zu"],[data-m="abbrechen"]'); if (x) x.click(); if (bg.isConnected) close(); return; }
+    const alle = [...document.querySelectorAll('.modal-bg')]; if (alle[alle.length - 1] !== bg || document.querySelector('.bph-frage')) return;   // eine Rückfrage darüber hat Vorrang
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); const x = bg.querySelector(XSEL); if (!x) { close(); return; } const f = fragen(x); x.click(); if (!f && bg.isConnected) close(); return; }
     const feld = e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"]');
     const zeile = feld && feld.tagName === 'INPUT' && !feld.list && !['checkbox', 'radio', 'file', 'button', 'submit', 'number', 'range', 'date', 'time'].includes(feld.type);   // einzeiliges Feld
     const blaettern = bg.querySelector('[data-m="prev"],[data-m="next"],[data-m="zurueck"],[data-m="weiter"],[data-m="vor"],[data-m="naechst"]');
-    if (e.key === 'Enter' && zeile && blaettern && !e.shiftKey && !e.isComposing) {   // Enter: übernehmen und schließen (Dialoge mit Vor/Zurück)
-      const ok = bg.querySelector('[data-m="ok"]:not([disabled]),[data-m="x"],[data-m="zu"]');
+    if (e.key === 'Enter' && zeile && !e.shiftKey && !e.isComposing && bg.contains(feld) && !feld.closest('table, [data-enter]') && !document.querySelector('.bp-vs')) {   // Enter = OK (Eingabezeilen in Tabellen und Felder mit data-enter haben ihr eigenes Enter)
+      const ok = bg.querySelector(OKSEL) || (blaettern && bg.querySelector(XSEL));
+      if (ok && /danger|rot/.test(ok.className)) return;   // Löschen u. Ä. nie per Enter
       if (ok) { e.preventDefault(); e.stopPropagation(); feld.dispatchEvent(new Event('change', { bubbles: true })); ok.click(); }
       return;
     }

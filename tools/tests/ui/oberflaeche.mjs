@@ -8,7 +8,7 @@
 //   - am Handy keine waagerechte Scrollleiste der ganzen Seite
 //   - die Seite kommt zur Ruhe (kein Baustein baut das Dokument im Kreis um)
 //   - am PC: zeigt die Seite eine Tabelle mit Kopfzeile, lässt sich dort eine Spalte aus- und wieder einblenden (spalten.js)
-// Dazu einmal die Tastatur im Baum (baum.js) an einem Muster-Baum – siehe baumtasten.mjs
+// Dazu einmal die Tastatur im Baum (baum.js) und OK/Abbrechen der Fenster (bp.js) an Mustern – siehe baumtasten.mjs, fenster.mjs
 //
 // Aufruf:  node tools/tests/ui/oberflaeche.mjs http://localhost:8090
 // Braucht das npm-Paket „playwright“ mit Chromium (in der Pipeline: npx playwright install --with-deps chromium).
@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { baumTastenPruefen } from './baumtasten.mjs';
+import { fensterPruefen } from './fenster.mjs';
 
 const { chromium, devices } = createRequire(import.meta.url)('playwright');   // auch global installiert (NODE_PATH) auffindbar
 
@@ -126,8 +127,11 @@ for (const [gname, gopt] of Object.entries(GERAETE)) {
   let f = [];
   try { f = await baumTastenPruefen(p, fs.readFileSync(path.join(KASTEN, 'baum.js'), 'utf8'), fs.readFileSync(path.join(KASTEN, 'bp.css'), 'utf8')); }
   catch (e) { f = ['Prüfung bricht ab – ' + String(e.message).split('\n')[0]]; }
+  try { const p2 = await ctx.newPage(); p2.on('pageerror', (e) => js.push('Fenster: JavaScript-Fehler: ' + String(e.message || e).split('\n')[0]));
+    f.push(...(await fensterPruefen(p2, fs.readFileSync(path.join(KASTEN, 'bp.js'), 'utf8'))).map((x) => 'Fenster: ' + x)); }
+  catch (e) { f.push('Fenster: Prüfung bricht ab – ' + String(e.message).split('\n')[0]); }
   f = [...js, ...f];
-  if (f.length) { fehler.push('Tastatur im Baum:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Tastatur im Baum'); } else { ok++; console.log('  ok      Tastatur im Baum'); }
+  if (f.length) { fehler.push('Tastatur im Baum / Fenster:\n    - ' + f.join('\n    - ')); console.log('  FEHLER  Tastatur im Baum / Fenster'); } else { ok++; console.log('  ok      Tastatur im Baum / Fenster'); }
   await ctx.close(); }
 await b.close();
 if (fehler.length) console.log('\n' + fehler.join('\n'));

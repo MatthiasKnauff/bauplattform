@@ -1031,7 +1031,7 @@
           <div class="bph-dm-w bph-kwt"><div data-kwtbox></div><div class="bph-kwt-add">${Object.entries(KM_WT).map(([k, [ic]]) => `<button type="button" class="bph-btn" data-kwtadd="${k}">＋ ${ic} ${{ tel: 'Nummer', mail: 'E-Mail', adr: 'Anschrift', person: 'Ansprechpartner' }[k]}</button>`).join('')}</div></div>
           <label class="bph-dm-f bph-dm-w"><span>Notizen</span><textarea data-kmf="notes" rows="2">${esc(c.notes || '')}</textarea></label></div></div>
         <p class="bph-err" data-kmerr></p>
-        <div class="bph-row" style="align-items:center"><span class="bph-mu" style="margin:0;flex:1">Dieselben Adressen wie in „Adressen“, im Bautagebuch und im Bauzeitenplan.</span><button type="button" class="bph-btn" data-kmx>Abbrechen</button><button type="button" class="bph-btn pri" data-kms>${neu ? 'Anlegen' : 'Speichern'}</button></div></div>`;
+        <div class="bph-row" style="align-items:center"><span class="bph-mu" style="margin:0;flex:1">Dieselben Adressen wie in „Adressen“, im Bautagebuch und im Bauzeitenplan.</span><button type="button" class="bph-btn" data-kmx>Abbrechen</button><button type="button" class="bph-btn pri" data-kms>${neu ? 'Anlegen' : 'OK'}</button></div></div>`;
       document.body.appendChild(bg);
       const root = bg.firstChild, q = (a) => root.querySelector(a);
       let SUG = [], sT = 0, done = false;
@@ -1096,7 +1096,11 @@
     o.gruppen.forEach((g) => g.felder.forEach((f) => { if (f.typ === 'kontakt') KF[f.k] = f; }));
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
     bg.innerHTML = '<div class="bph-dlg bph-dm" role="dialog" style="width:min(580px,96vw)"></div>'; document.body.appendChild(bg);
-    const root = bg.firstChild, e1 = (e) => { if (e.key === 'Escape') zu(); };
+    const root = bg.firstChild, e1 = (e) => {
+      if (e.key === 'Escape') zu();
+      else if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.target.matches && e.target.matches('input:not([type=checkbox]):not([type=radio]):not([type=date]):not([type=time]):not([list]):not([data-kfi])')
+        && root.contains(e.target) && !document.querySelector('.bp-vs') && [...document.querySelectorAll('.bph-dlg-bg, .modal-bg')].pop() === bg) { e.preventDefault(); const b = root.querySelector('[data-dms]'); if (b) b.click(); }   // Enter = OK
+    };
     const zu = async () => { if (dirty && !(await (window.bpFrage ? bpFrage('Änderungen verwerfen?', { ok: 'Verwerfen' }) : Promise.resolve(true)))) return; bg.remove(); document.removeEventListener('keydown', e1); };
     document.addEventListener('keydown', e1);
     const de = (v) => (v == null ? '' : String(v).replace('.', ','));
@@ -1126,7 +1130,7 @@
       const sb = root.querySelector('.bph-dm-b'), st = sb ? sb.scrollTop : 0;
       root.innerHTML = `<div class="bph-dlg-h"><b>${esc(o.titel)}</b>${o.unter ? `<span class="bph-mu" style="margin:0 0 0 .5rem">${esc(o.unter)}</span>` : ''}<button class="bph-x" data-dmx aria-label="Schließen">✕</button></div>
         <div class="bph-dm-b">${o.gruppen.map((g) => `<fieldset><legend>${esc(g.titel)}</legend><div class="bph-dm-g">${g.felder.map(feld).join('')}</div></fieldset>`).join('')}</div>
-        <div class="bph-row" style="align-items:center;margin-top:.6rem"><button class="bph-btn pri" data-dms>Speichern</button><button class="bph-btn" data-dmx>Schließen</button>${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0">${esc(msg)}</span></div>`;
+        <div class="bph-row" style="align-items:center;margin-top:.6rem">${o.knoepfe || ''}<span class="bph-mu" data-dmm style="margin:0;flex:1">${esc(msg)}</span><button class="bph-btn" data-dmx>Abbrechen</button><button class="bph-btn pri" data-dms>OK</button></div>`;   // wie in allen Fenstern: Abbrechen verwirft, OK speichert und schließt
       const nb = root.querySelector('.bph-dm-b'); if (nb && st) nb.scrollTop = st;
     };
     const lesen = () => { root.querySelectorAll('[data-dm]').forEach((i) => { W[i.dataset.dm] = i.type === 'checkbox' ? i.checked : i.value; }); };
@@ -1198,7 +1202,8 @@
       if (o.klick && await o.klick(e, ctx)) return;
       if (e.target.closest('[data-dms]')) {
         lesen(); ctx.nachricht('speichere …');
-        try { const r = await o.speichern(W, ctx) || {}; if (r.werte) W = { ...r.werte }; dirty = false; msg = r.hinweis || 'Gespeichert.'; draw(); kLaden(); }
+        try { const r = await o.speichern(W, ctx) || {}; dirty = false; zu();   // OK: gespeichert – Fenster zu; ein Hinweis über „Gespeichert.“ hinaus kommt als Meldung
+          if (r.hinweis && r.hinweis !== 'Gespeichert.' && window.toast) window.toast(r.hinweis); }
         catch (er) { ctx.nachricht(er.message); }
       }
     });

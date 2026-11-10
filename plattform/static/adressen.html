@@ -261,7 +261,7 @@ function edit(c, verlaufAuf) {
     ${use ? `<div class="info">${use}</div>` : ''}
     ${isNew ? '' : '<details class="bnv" id="bnBox"><summary>Benachrichtigungsverlauf <small class="mu">Pläne, Mängel- und Terminrügen</small></summary><div id="bnHost"></div></details>'}
     <div class="err" id="mErr"></div>
-    <div class="mf">${isNew ? '' : `<button class="btn sm danger" data-m="del">Löschen</button><button type="button" class="btn sm" data-bph-verlauf="kontakt:${c.id}" title="Frühere Stände dieser Adresse ansehen und wiederherstellen">🕘 Verlauf</button>`}<span class="fill"></span><button class="btn" data-m="close">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>
+    <div class="mf">${isNew ? '' : `<button class="btn sm danger" data-m="del">Löschen</button><button type="button" class="btn sm" data-bph-verlauf="kontakt:${c.id}" title="Frühere Stände dieser Adresse ansehen und wiederherstellen">🕘 Verlauf</button>`}<span class="fill"></span><button class="btn" data-m="close">Abbrechen</button><button class="btn pri" data-m="save">OK</button></div>
     <div class="info">Dieselben Adressen wie in den Kontakten des Bautagebuchs und im Adressbuch des Bauzeitenplans.</div>`,
   async (m, bg, close, btn) => {
     if (m === 'close') return close();

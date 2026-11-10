@@ -861,7 +861,7 @@ async function vleiste(neu) {
         try { await flush(); await api('api/versionen', 'POST', { project_id: pid, name, ...(vSicht() ? { von: vSicht() } : {}) }); VSICHT = null; close(); L = null; await loadList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`); } catch (e) { btn.disabled = false; toast(e.message, true); }
       }); setTimeout(() => { const i = document.querySelector('#nvName'); if (i) i.focus(); }, 50); },
     onUmbenennen: () => { if (!akt) return; modalBox(`<h3>Version umbenennen</h3><div class="fm"><label for="rnName">Name der Version</label><input id="rnName" maxlength="120" value="${esc(akt.name)}"></div>
-        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
         if (m === 'x') { close(); return; }
         const name = bg.querySelector('#rnName').value.trim(); if (!name) return;
         try { await api('api/versionen/' + akt.id, 'PUT', { name }); close(); vleiste(); } catch (e) { toast(e.message, true); }
@@ -5008,7 +5008,7 @@ document.addEventListener('click', async (e) => {
   if (g && pid) { e.stopPropagation(); const m = NTM[pid] || {};
     modalBox(`<h3>Prüfablauf automatisch</h3><p class="hint" style="margin-top:0">Gilt für alle Projekte: Aufträge ab dieser Auftragssumme (netto) bekommen den Prüfablauf für Nachträge, auch wenn das Projekt auf „einfach“ steht. Leer = aus.</p>
       <div class="fm"><label for="ntgB">ab Auftragssumme</label><input id="ntgB" inputmode="decimal" value="${m.grenze ? nf(m.grenze, 0) : ''}" placeholder="z. B. 100.000" style="text-align:right"></div>
-      <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (mm, bg, close) => {
+      <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (mm, bg, close) => {
       if (mm === 'x') { close(); return; } if (mm !== 'ok') return;
       try { NTM[pid] = await api('api/ntmodus?pid=' + pid, 'PUT', { grenze: pf(bg.querySelector('#ntgB').value) || null }); close(); render(); } catch (er) { toast(er.message, true); } });
     return; }
@@ -5269,7 +5269,7 @@ function titelDialog(id) {
       <label>Stand</label><select id="tiSt"${x.nt ? '' : ' disabled'}>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${(x.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>
       <label>Grund / Bemerkung</label><input id="tiG" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"${x.nt ? '' : ' disabled'}></div>
     <p class="hint" style="margin:.6rem 0 0">Nachträge auf Gliederungsebene erscheinen unter Aufträge als ein Nachtrag mit allen Positionen; der Stand lässt sich dort für den ganzen Nachtrag oder je Position setzen.</p>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, (m, bg, close) => {
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     const q = (k) => bg.querySelector('#' + k);
@@ -5736,7 +5736,7 @@ function auftragKarte() {
 function langFenster(titel, text, fertig) {
   const bg = modalBox(`<h3>${esc(titel || 'Langtext')}</h3><p class="hint" style="margin:0 0 .5rem">Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung.</p>
     <textarea id="dLang" rows="16" style="width:100%;box-sizing:border-box;font:inherit;line-height:1.45">${esc(text || '')}</textarea>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, (m, b2, close) => {
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, (m, b2, close) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     const neu = b2.querySelector('#dLang').value.replace(/\s+$/, ''); close(); fertig(neu);
@@ -5923,7 +5923,7 @@ function ntKopfDialog(lvId, nt) {
       <label>Stand</label><select id="nkS">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${(kopf.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>
       <label>Grund / Bemerkung</label><input id="nkG" value="${esc(kopf.nt_grund || '')}" placeholder="z. B. geänderte Ausführung, Bauherrenwunsch"></div>
     <p class="hint" style="margin:.6rem 0 0">Stand und Grund gelten für alle Positionen des Nachtrags. Langtexte und Details der Positionen im Leistungsverzeichnis (Doppelklick auf eine Position).</p>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close, btn) => {
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     const q = (k) => bg.querySelector('#' + k), nr = q('nkN').value.trim() || nt, st = q('nkS').value, gr = q('nkG').value.trim(), kz = q('nkK').value.trim();
@@ -5949,7 +5949,7 @@ function ntPosDialog(lvId, posId) {
       <label>Langtext</label><div><button type="button" class="btn sm${y.lang ? ' on' : ''}" id="npL">¶ Langtext …</button> <span class="hint" id="npLh">${y.lang ? esc(y.lang.slice(0, 60)) + (y.lang.length > 60 ? ' …' : '') : 'noch keiner'}</span></div>
       <label>Stand</label><select id="npS"${y.nt_erbe ? ' title="erbt vom Gliederungspunkt – ein eigener Stand löst die Position davon"' : ''}>${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${(y.nt_status || 'angemeldet') === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select></div>
     <p class="hint" style="margin:.6rem 0 0">Kostengruppe und alles Weitere im Leistungsverzeichnis.</p>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Übernehmen</button></div>`, async (m, bg, close, btn) => {
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
     const q = (k) => bg.querySelector('#' + k).value.trim(); const kz = q('npK'); if (!kz) { toast('Bitte eine Bezeichnung eintragen.', true); return; }

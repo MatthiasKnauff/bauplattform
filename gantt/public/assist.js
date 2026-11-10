@@ -963,7 +963,7 @@
           <label class="cb"><input type="radio" name="pfs" data-pf="scope" value="phases"${f.scope === 'phases' ? ' checked' : ''}> Nur Abschnitte:</label>
           <div class="as-phs${f.scope === 'phases' ? '' : ' dis'}">${C2.phases.map((p) => `<label class="cb"><input type="checkbox" data-pfph="${p.k}"${f.phases.has(p.k) ? ' checked' : ''}${f.scope === 'phases' ? '' : ' disabled'}> ${esc(p.n)}</label>`).join('')}</div>
           <div class="as-hint" style="margin-top:4px">Gespeichert werden Bauweise, Auswahl, eingestellte Dauern und eigene Leistungen – für alle Projekte verfügbar.</div>
-          <div class="as-btns"><button class="btn primary sm" data-a="pf-ok">Speichern</button><button class="btn sm" data-a="pf-no">Abbrechen</button></div></div>`;
+          <div class="as-btns"><button class="btn sm" data-a="pf-no">Abbrechen</button><button class="btn primary sm" data-a="pf-ok">OK</button></div></div>`;
       }
 
       function render() {
@@ -1175,7 +1175,7 @@
         const tot = rows.reduce((x, [k]) => x + core.dur(k, cfg), 0);
         return `<div class="as-pend as-rm"><b>„${esc(core.name(a.id, cfg))}“ entfernen</b> – ${tot} AT${(+cfg.units || 1) > 1 ? ' je Einheit' : ''} entfallen. Gesamtzeit verkürzen oder die Dauer auf die Hauptleistung umlegen?
           <ul>${rows.map(([k, m]) => `<li>${esc(core.name(k, cfg))} <small>${core.dur(k, cfg)} AT</small> → ${esc(core.name(m, cfg))}</li>`).join('')}</ul>
-          <div><button class="btn" data-a="rm-cut">Gesamtzeit verkürzen</button><button class="btn primary" data-a="rm-merge">Auf Hauptleistung umlegen</button><button class="btn" data-a="rm-no">Abbrechen</button></div>
+          <div><button class="btn" data-a="rm-no">Abbrechen</button><button class="btn" data-a="rm-cut">Gesamtzeit verkürzen</button><button class="btn primary" data-a="rm-merge">Auf Hauptleistung umlegen</button></div>
           <label class="cb"><input type="checkbox" id="rmRemember"> für weitere Leistungen so verfahren (bis zum Neuladen)</label></div>`;
       }
 

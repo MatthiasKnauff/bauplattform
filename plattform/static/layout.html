@@ -166,7 +166,7 @@ function eigDialog(x) {
         <label style="display:flex;gap:.4rem"><input type="radio" name="egQ" value="ausdruck"${x.quelle === 'ausdruck' ? ' checked' : ''}> <span><b>Bei jedem Ausdruck abfragen</b> – für Angaben, die jedes Mal anders sind. Z. B. Rechnungs- oder Auftragsnummer.</span></label></div>
       <label style="display:flex;flex-direction:column;gap:.2rem">Hinweis beim Eintragen <span class="hint">(optional)</span><input id="egH" value="${esc(x.hilfe || '')}" placeholder="z. B. steht im Bestellschreiben oben rechts"></label>
     </div>
-    <div class="bar" style="justify-content:flex-end;margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">${neu ? 'Anlegen' : 'Übernehmen'}</button></div>`, async (m, bg, close) => {
+    <div class="bar" style="justify-content:flex-end;margin-top:1rem"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">${neu ? 'Anlegen' : 'OK'}</button></div>`, async (m, bg, close) => {
     if (m === 'x') return close();
     if (m !== 'ok') return;
     const n = bg.querySelector('#egN').value.trim(); if (!n) { bg.querySelector('#egN').focus(); return; }

@@ -830,7 +830,7 @@ async function neueErinnerung() {
     <label for="nP">Projekt</label><select id="nP" data-bp-projekte><option value="">– ohne Projekt –</option>${PRJ.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>
     <label for="nD">Wann?</label><div style="display:flex;gap:.4rem;flex-wrap:wrap"><input type="date" id="nD" value="${plus(7)}"><input type="time" id="nZ" value="08:00">${[[1, 'morgen'], [7, '+1 Woche'], [14, '+2 Wochen']].map(([d, l]) => `<button class="btn sm" data-m="d${d}">${l}</button>`).join('')}</div>
     <label>An wen (E-Mail)?</label><div class="uchk">${USERS.map((u) => `<label><input type="checkbox" data-u="${u.id}"${u.id === ME.id ? ' checked' : ''}> ${esc(u.name)}</label>`).join('')}</div></div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m.startsWith('d')) { bg.querySelector('#nD').value = plus(+m.slice(1)); return; }
     if (m === 'ok') {
@@ -851,7 +851,7 @@ async function setDialog(host) {
     <label>E-Mail</label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="sM"${CFG.mail_plan ? ' checked' : ''}> Erinnerungen aus den Bauzeitenplänen per E-Mail verschicken</label>
     <p class="w mute" style="font-size:.85rem;margin:0">Empfänger: die Zuständigen des verknüpften Projekts, sonst wer den Plan zuletzt gespeichert hat. Den Mailserver stellst du in der Verwaltung ein. Erinnerungen aus dem Bautagebuch verschickt das Bautagebuch am Fälligkeitstag selbst.</p></div>
     <p class="w mute" style="font-size:.85rem;margin:.3rem 0 0">Unterschrift, Signatur und Versand der Rügen: ⚙ → Für mich. Texte der Mails: ⚙ → Büro → E-Mail-Vorlagen.</p>
-    <div class="acts"><button class="btn" data-m="test">Testmail an mich</button><button type="button" class="btn" data-bph-verlauf="bp:aufgaben" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    <div class="acts"><button class="btn" data-m="test">Testmail an mich</button><button type="button" class="btn" data-bph-verlauf="bp:aufgaben" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     if (m === 'test') { try { const r = await api('api/erinnerungen/test', 'POST', {}); toast('Testmail an ' + r.to + ' verschickt.'); } catch (e) { toast(e.message, true); } return; }
     if (m === 'ok') {

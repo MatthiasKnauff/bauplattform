@@ -224,7 +224,7 @@ function vlVerwalten() {
   vorlagen().then((L) => {
     const zeile = (v, i) => `<div class="vl-z"><input data-vln="${i}" value="${esc(v.name)}" maxlength="80"><button type="button" class="ib" data-vlx="${i}" title="Löschen">✕</button></div>`;
     modalBox(`<h3>Vorlagen</h3><p class="hint" style="margin-top:0">Für alle im Büro. Platzhalter im Text: {firma} {projekt} {frist} {ich}.</p><div class="vl-l">${L.map(zeile).join('')}</div>
-      <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+      <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
       if (m === 'x') { close(); return; } if (m !== 'ok') return;
       const neu = []; bg.querySelectorAll('[data-vln]').forEach((i) => { const v = L[+i.dataset.vln]; if (v && !i.closest('.vl-z').hidden) neu.push({ ...v, name: i.value.trim() || v.name }); });
       try { VL = (await api('api/vorlagen', 'PUT', { vorlagen: neu })).vorlagen; close(); toast('Vorlagen gespeichert.'); } catch (er) { toast(er.message, true); } });
@@ -292,7 +292,7 @@ function verfassen(modus) {
     bg.querySelectorAll('[data-kvs]').forEach((x) => x.classList.toggle('on', (x.dataset.kvs === '1') === S.senden));
     $b('[data-m="ok"]').textContent = n ? 'Senden' : S.senden ? 'Speichern & senden' : 'Festhalten';
     $b('.kv-chips').innerHTML = S.an.map((x, i) => `<span class="kv-chip" title="${esc(x.email)}">${esc(x.name || x.email)}<button type="button" data-kvweg="${i}" aria-label="entfernen">✕</button></span>`).join('')
-      + `<button type="button" class="kv-plus" data-kvan>＋ Firma, Person</button><input class="kv-mail" placeholder="oder E-Mail eintippen, Enter" autocomplete="off" inputmode="email">`;
+      + `<button type="button" class="kv-plus" data-kvan>＋ Firma, Person</button><input class="kv-mail" data-enter placeholder="oder E-Mail eintippen, Enter" autocomplete="off" inputmode="email">`;
     $b('.kv-fs').innerHTML = S.dateien.map((f, i) => `<span class="kv-f" title="${esc(f.name)}">${f.type.startsWith('image/') ? `<img src="${f._url || (f._url = URL.createObjectURL(f))}" alt="">` : `<i>📄</i><small>${esc(f.name)}</small>`}<button type="button" data-kvfweg="${i}" aria-label="entfernen">✕</button></span>`).join('');
     const mb = S.dateien.reduce((a, f) => a + f.size, 0) / 1048576;
     $b('.kv-hint').textContent = (n ? 'Signatur wird angehängt.' : S.senden ? 'Das PDF des Vorgangs (auf dem Briefbogen, mit den Fotos) geht an die Firma.' : 'Steht danach im Verlauf des Projekts.') + (mb ? ` · ${mb.toFixed(1).replace('.', ',')} MB` : '');

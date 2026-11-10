@@ -365,7 +365,7 @@ function umbenennen() {
   if (!B) return;
   modalBox(`<h3>Version umbenennen</h3><p class="hint" style="margin:0 0 .7rem">Nur der Name der Version – das Projekt steht oben in der Kopfleiste.</p>
     <div class="row" style="flex-direction:column;align-items:stretch"><label for="rnName">Name der Version</label><input id="rnName" maxlength="120" value="${esc(B.name)}"></div>
-    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Speichern</button></div>`, async (m, bg, close) => {
+    <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">OK</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     const name = bg.querySelector('#rnName').value.trim(); if (!name) return;
     close(); clearTimeout(saveT); await saveNow({ name }); B.name = name; const x = LIST.find((y) => y.id === B.id); if (x) x.name = name; vleiste();
@@ -865,7 +865,7 @@ async function askDialog(ask) {
     <tfoot><tr><td></td><td></td><td>Summe der gewählten Positionen</td><td></td><td></td><td></td><td class="r num" id="askSum">${eur(sum())}</td></tr></tfoot></table></div>`;
   const html = () => `<h3>${esc(R.title)}</h3><p class="hint" style="margin-top:0">${esc(R.note || '')}</p><div id="askT">${tbl()}</div>
     <div class="acts" style="justify-content:space-between"><button class="btn ki" data-m="ki" title="Positionen, Mengen und Preise von der KI vorschlagen lassen">✨ Mit KI vorschlagen</button>
-    <span><button class="btn" data-m="x">Abbrechen</button> <button class="btn pri" data-m="ok">Übernehmen</button></span></div>`;
+    <span><button class="btn" data-m="x">Abbrechen</button> <button class="btn pri" data-m="ok">OK</button></span></div>`;
   const bg = modalBox(html(), async (m, bg, close, b) => {
     if (m === 'x') { close(); return; }
     if (m === 'ki') {
@@ -1233,7 +1233,7 @@ async function typesDialog(host) {
     <div class="tbl"><table><thead><tr><th>Raumtyp</th><th>Stichwörter (mit Komma)</th><th class="r">€ / m²</th><th></th></tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>
     <div class="acts" style="justify-content:flex-start;margin-top:.6rem"><button class="btn sm" data-m="add">＋ Raumtyp</button><button class="btn sm" data-m="std">Vorgaben wiederherstellen</button></div>
     ${B ? `<label class="chk" style="margin-top:.8rem"><input type="checkbox" id="tyRe" checked><span><b>Raumtypen neu vorschlagen</b> – in der geöffneten Kostenermittlung „${esc(B.name)}“ bekommen alle Räume, die du noch <b>nicht bestätigt</b> hast, ihren Raumtyp nach den Stichwörtern oben neu. Bestätigte Räume bleiben unverändert.</span></label>` : ''}
-    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:raumtypen" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">Speichern</button></div>`;
+    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:raumtypen" style="margin-right:auto" title="Frühere Stände ansehen und wiederherstellen">🕘 Verlauf</button><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="save">OK</button></div>`;
   const read = (bg) => bg.querySelectorAll('tr[data-i]').forEach((tr) => { const t = L[+tr.dataset.i]; tr.querySelectorAll('[data-tf]').forEach((el) => { t[el.dataset.tf] = el.dataset.tf === 'kw' ? pnum(el.value) : el.value; }); });
   const bg = boxIn(host)(html(), async (m, bg, close, b) => {
     if (m === 'x') { close(); return; }
@@ -1472,7 +1472,7 @@ async function diensteDialog(host) {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem"><label>Benutzer<input data-dk="${x.key}" data-df="user" value="${esc(x.user)}"${dis}></label>
       <label>Kennwort<input type="password" data-dk="${x.key}" data-df="pass" placeholder="${x.pass_set ? 'hinterlegt' : ''}" autocomplete="new-password"${dis}></label>
       <label>API-Schlüssel / Lizenz<input type="password" data-dk="${x.key}" data-df="key" placeholder="${x.key_set ? 'hinterlegt' : ''}" autocomplete="new-password"${dis}></label></div></div>`).join('')}
-    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:dienste" style="margin-right:auto">🕘 Verlauf</button><button class="btn" data-m="x">${D.admin ? 'Abbrechen' : 'Schließen'}</button>${D.admin ? '<button class="btn pri" data-m="ok">Speichern</button>' : ''}</div>`, async (m, bg, close) => {
+    <div class="acts"><button type="button" class="btn" data-bph-verlauf="bk:dienste" style="margin-right:auto">🕘 Verlauf</button><button class="btn" data-m="x">${D.admin ? 'Abbrechen' : 'Schließen'}</button>${D.admin ? '<button class="btn pri" data-m="ok">OK</button>' : ''}</div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
     const b = {}; bg.querySelectorAll('[data-dk]').forEach((el) => { const o = b[el.dataset.dk] ||= {}; o[el.dataset.df] = el.type === 'checkbox' ? el.checked : el.value; });
     try { await api('api/dienste', 'PUT', b); if (!host) close(); toast('Zugänge gespeichert.'); } catch (e) { toast(e.message, true); }

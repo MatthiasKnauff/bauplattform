@@ -23,7 +23,7 @@ Stand: 10.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 8. Aufträge aus LV/Angebot: vor dem Ändern beauftragter Positionen warnen (Vertragsinhalt – besser als Nachtrag). **ca. 1,5 h**
 9. Vergleich auch zwischen Plan-Versionen (Versionswahl → „Vergleichen mit …“). **ca. 2 h**
 10. Aufmaß: Menge direkt eintragen – ohne Aufmaßzeilen entsteht eine Zeile „pauschal“, mit Aufmaßzeilen eine Ausgleichszeile (Vorschlag, wartet auf Zustimmung). **ca. 2–3 h**
-11. Aufmaßprüfung: Mengen direkt in der Tabelle (aufgemessen, mit Spalte „lt. Rechnung“ auch dort) – Enter nach unten, Tab nach rechts – Mock liegt vor. **ca. 3 h**
+11. Aufmaßprüfung: erster Rechenweg direkt in der Hauptzeile der Position (weitere Zeilen als Zwischenzeilen), Mengen auch in „lt. Rechnung“ – Enter nach unten, Tab nach rechts – Mock liegt vor. **ca. 3–4 h**
 12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
 
 Summe Sammlung: ca. 4–5 Tage.

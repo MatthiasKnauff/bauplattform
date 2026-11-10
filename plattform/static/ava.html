@@ -1529,7 +1529,7 @@ function angSeite() {   // Angebote & Preisspiegel: Bereich rechts (seite.js) �
 }
 function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
-  return `<div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Summe</th></tr></thead><tbody><tr class="wurzel"><td class="baumz"><div class="bz"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td></td></tr>
+  return `<div class="tblw"><table class="lv baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Summe</th></tr></thead><tbody><tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel><td class="baumz"><div class="bz"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td></td></tr>
     ${LIST.filter((x) => !x.archived && !ohneLv(x)).map((x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">▸</span>${IC.lv}<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, (STATUS.find((st) => st[0] === x.status) || [, ''])[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span></div></td><td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function lvxHtml(inhalt) {
@@ -2183,9 +2183,10 @@ function lvAktZeigen() {
     gb.title = LVAKT === '__lv' || !x ? 'Gliederungspunkt der obersten Ebene am Ende anlegen' : `Gliederungspunkt unter ${el ? el.oz + ' ' + (el.kurz || '') : 'der obersten Ebene'} anlegen (Ebene ${el ? (el.lvl || 1) + 1 : 1})`; });
 }
 document.addEventListener('click', (e) => {   // Klick auf die LV-Zeile ganz oben markiert das LV selbst (oberste Ebene)
-  if (tab !== 'lv' || !L) return;
+  if (tab !== 'lv') return;
   const w = e.target.closest && e.target.closest('tr[data-lvwurzel], tr[data-pjwurzel]'); if (!w || e.target.closest('button,input,[data-lvganz]')) return;
-  LVSEL = new Set(); LVAKT = w.hasAttribute('data-pjwurzel') ? '__pj' : '__lv'; lvAktZeigen();
+  LVSEL = new Set(); LVAKT = w.hasAttribute('data-pjwurzel') ? '__pj' : '__lv';
+  if (L) lvAktZeigen(); else w.classList.add('akt');   // auch wenn noch kein LV offen ist (neues Projekt)
 });
 function lvEinfuegeStelle(kind) {
   const I = items(), n = I.findIndex((x) => x.id === LVAKT); if (n < 0) return I.length;

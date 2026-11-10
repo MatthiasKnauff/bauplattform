@@ -22,6 +22,11 @@ def einrichten():
     except Exception as e:   # noqa: BLE001 – ohne Logo läuft alles weiter
         fehler.still("dienste", "Logo in die Datenbank übernehmen", e)
     auth.ensure_admin()   # erster Start: Benutzer admin / Kennwort admin (muss sofort geändert werden)
+    try:
+        from . import buero_doku
+        print("Dienste:", buero_doku.ablegen(), flush=True)   # ToDo-Liste der Bauplattform → Pläne & Dateien, Projekt „Büro“
+    except Exception as e:   # noqa: BLE001 – ohne ToDo-Liste läuft alles weiter
+        fehler.still("dienste", "ToDo-Liste ablegen", e)
 
 
 def starten():

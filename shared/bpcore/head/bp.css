@@ -135,12 +135,19 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav .npin{flex:none;margin-left:auto;align-self:center;border:0;background:none;color:var(--mute);padding:.1rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;line-height:0}
 .bp-nav .npin svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;transform:rotate(40deg);transition:transform .15s}.bp-nav .npin.an svg{transform:none;fill:currentColor}.bp-nav .npin:hover{background:var(--hov);color:var(--y)}
 .bp-nav .nbu{width:15px;text-align:center;font-weight:700;opacity:.75;flex:none}
-.bp-nav.frei{width:52px!important;overflow:hidden;transition:width 0s .3s,margin-right 0s .3s;z-index:40}   /* ohne Gleiten (ruckelt auf langsamen Rechnern): springt nach kurzer Pause auf, der Inhalt daneben bleibt stehen */
-.bp-nav.frei:is(:hover,:focus-within){width:var(--bp-navw-auf,250px)!important;margin-right:calc(52px - var(--bp-navw-auf,250px));overflow:auto;box-shadow:var(--sh0,6px 0 22px rgba(0,0,0,.22));transition-delay:.45s,.45s}
-.bp-nav.frei:not(:hover):not(:focus-within) :is(.nk>b,.nk>small,.ngrip,.nh,.nv-davor,.nfuss,.nsuche,.ni small,.ng>:not(.ni)){display:none}
-.bp-nav.frei:not(:hover):not(:focus-within) .ni{font-size:0;justify-content:center;padding:.4rem 0;width:100%}.bp-nav.frei:not(:hover):not(:focus-within) .ni svg{width:17px;height:17px}
-.bp-nav.frei:not(:hover):not(:focus-within) .nk{justify-content:center;padding-left:0;padding-right:0}.bp-nav.frei:not(:hover):not(:focus-within) .npin{margin:0}
-.bp-nav.frei:not(:hover):not(:focus-within) .ng{border-top:1px solid var(--line);padding-top:.25rem}
+/* gelöst: die Navigation hat immer ihre volle Breite und liegt über dem Inhalt; zu sehen ist nur ein 52-px-Streifen (clip-path).
+   Beim Darüberfahren wird der Ausschnitt größer – nur Zeichnen, kein neues Anordnen: gleitet ruckelfrei, nichts springt.
+   Im Streifen: Symbole sichtbar, Texte durchsichtig (gleiche Lage wie aufgeklappt). */
+.bp-nav.frei{--nw:var(--bp-navw-auf,250px);width:var(--nw)!important;margin-right:calc(52px - var(--nw));z-index:40;overflow:auto;overflow-x:hidden;
+  clip-path:inset(0 calc(100% - 52px) 0 0);transition:clip-path .16s ease-out .08s;will-change:clip-path}
+.bp-nav.frei:is(:hover,:focus-within){clip-path:inset(0 -40px 0 0);box-shadow:var(--sh0,6px 0 22px rgba(0,0,0,.22));transition-delay:.4s}
+.bp-nav.frei .npin{order:-1;margin:0 .25rem 0 0}   /* Heftzwecke vorn: auch im Streifen erreichbar */
+.bp-nav.frei :is(.nk>b,.nk>small,.ngrip,.ni,.ng>:not(.ni),.nh){transition:color .12s,background-color .12s,border-color .12s,opacity .12s}
+.bp-nav.frei:not(:hover):not(:focus-within) :is(.nk>b,.nk>small,.ngrip,.ni,.ng>:not(.ni)){color:transparent}
+.bp-nav.frei:not(:hover):not(:focus-within) .ni :is(svg,.nbu){color:var(--ink)}
+.bp-nav.frei:not(:hover):not(:focus-within){background-image:linear-gradient(90deg,transparent 51px,var(--line) 51px,var(--line) 52px,transparent 52px)}   /* Kante des Streifens */
+.bp-nav.frei:not(:hover):not(:focus-within) .nh{color:transparent;background-color:transparent;border-color:transparent}
+.bp-nav.frei:not(:hover):not(:focus-within) :is(.nv-davor,.nfuss,.nsuche,.ni small,.ni-neu){opacity:0;pointer-events:none}
 .bp-nav-zone{position:fixed;z-index:3000;display:flex;align-items:center;justify-content:center;border:2px dashed var(--y);border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,var(--y) 14%,transparent);color:var(--ink);font-weight:600;pointer-events:none}
 .bp-nav-zone.hot{background:color-mix(in srgb,var(--y) 34%,transparent)}
 .bp-nav-zieht,.bp-nav-zieht *{cursor:grabbing!important;user-select:none!important}

@@ -672,7 +672,7 @@ table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blin
 .au-ntbar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:0 0 .5rem}.au-ntbar .hint{margin-left:.4rem}
 /* Lage der Navigation (📌 / ⋮⋮, gemeinsamer Baustein nav.js): frei = Symbolspalte, klappt beim Darüberfahren auf, oben = eine Bereichszeile über dem Inhalt */
 .body:has(>#navL.frei){--navw:52px!important}   /* gemerkte Breite (Inline-Stil) gilt nur angeheftet */.body:has(>#navL:is(.frei,.oben))>.rand-griff[data-seite="l"]{display:none}
-#navL.frei:is(:hover,:focus-within){margin-right:0}   /* im Raster: über den Inhalt hinaus, ohne die Spalte zu verbreitern */
+#navL.frei{margin-right:0}   /* im Raster: über den Inhalt hinaus, ohne die Spalte zu verbreitern */
 .body.bp-nav-oben-an{grid-template-columns:minmax(0,1fr)!important}
 .body.bp-nav-oben-an>.nav{grid-row:1;grid-column:1;position:sticky;top:52px;z-index:20;max-height:none;overflow:visible;padding:.25rem .45rem}
 .body.bp-nav-oben-an>.pane{grid-row:2;grid-column:1}.body.bp-nav-oben-an>.qu{grid-row:2}

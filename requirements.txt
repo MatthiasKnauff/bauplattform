@@ -1,0 +1,14 @@
+asn1crypto>=1.5,<2
+cairosvg>=2.7,<3
+construct>=2.10,<3
+cryptography>=42
+flask==3.0.3
+gunicorn==23.0.0
+openpyxl>=3.1,<4
+pdfplumber>=0.11,<0.12
+pillow-heif>=0.18,<2
+pillow>=13.0,<14
+psycopg[binary]>=3.2,<4
+pypdf>=4.3,<7
+reportlab>=4.2,<5
+smbprotocol>=1.14,<2

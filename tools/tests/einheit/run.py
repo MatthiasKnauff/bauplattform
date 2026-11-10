@@ -3,16 +3,18 @@
 Aufruf in GitHub Actions (siehe build.yml), z. B.:
   docker compose … run --rm -T --no-deps -v "$PWD/tools/tests:/tests:ro" --entrypoint python ava /tests/einheit/run.py plattform
 Art = plattform | gantt | bautagebuch → führt /tests/einheit/<art>_*.py aus, jeweils alle Funktionen test_*() ohne Argumente.
-Der Programmcode der App liegt im Container unter /app (z. B. `import ava`, `import baukosten`, `from bpcore import …`,
+Der Programmcode der App liegt im Container unter /app/<art> (früher /app; z. B. `import ava`, `import baukosten`, `from bpcore import …`,
 im Bautagebuch `from core import …`). Hilfen gleich()/pruefe() aus tools/tests/lib.py.
 """
 import glob, importlib.util, inspect, os, sys, time, traceback
 
 ART = sys.argv[1] if len(sys.argv) > 1 else "plattform"
 HIER = os.path.dirname(os.path.abspath(__file__))
+APP_DIR = f"/app/{ART}" if os.path.isdir(f"/app/{ART}") else "/app"   # ein Image für alle Apps: jede App in ihrem Ordner (/app/plattform, /app/gantt, /app/bautagebuch)
 sys.path.insert(0, "/app")
+sys.path.insert(0, APP_DIR)
 sys.path.insert(0, os.path.dirname(HIER))   # lib.py
-os.chdir("/app")
+os.chdir(APP_DIR)
 from lib import Fehler   # noqa: E402
 
 

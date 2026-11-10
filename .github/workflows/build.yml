@@ -78,7 +78,9 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.app }}/Dockerfile
+          # „plattform“ ist das EINE Image für alle Apps (Dockerfile im Hauptordner, siehe apps.py / start.py).
+          # Übergang: Bautagebuch und Bauzeitenplan werden noch einmal zusätzlich als eigene Images gebaut, bis der Testserver umgestellt ist.
+          file: ${{ matrix.app == 'plattform' && 'Dockerfile' || format('{0}/Dockerfile', matrix.app) }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha,scope=${{ matrix.app }}

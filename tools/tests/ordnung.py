@@ -8,6 +8,7 @@ wird nichts gebaut und nichts auf den Testserver gebracht. Die Regeln selbst ste
   3. Keine Kopien der Grundhilfen aus dem Baukasten (shared/bpcore/head) in den Apps
   4. Keine Inline-Handler (onclick= …) in Seiten
   5. Neue Dateien höchstens GRENZE Zeilen; die großen Altdateien dürfen nicht weiter wachsen als ihr Spielraum
+  6. Die App-Liste (apps.py) stimmt: jede App hat ihren Ordner und ihr Modul; jeder Dienst in den Stack-Dateien steht in der Liste
 
 Altlasten stehen unten in ALT_* – sie werden beim Aufräumen kleiner, neue kommen nicht dazu.
 Aufruf:  python3 tools/tests/ordnung.py        (nur Standardbibliothek; Rückgabewert 0 = alles in Ordnung)
@@ -60,6 +61,43 @@ def zeilen(p):
         return sum(1 for _ in f)
 
 
+def app_liste():
+    """Regel 6: apps.py ist die eine Liste der Apps – Ordner, Modul und Port müssen zu Code und Stack-Dateien passen."""
+    out = []
+    sys.path.insert(0, ROOT)
+    try:
+        from apps import APPS
+    except Exception as e:   # noqa: BLE001
+        return [f"apps.py lässt sich nicht laden: {e}"]
+    for name, a in APPS.items():
+        if not os.path.isfile(os.path.join(ROOT, a["ordner"], a["modul"] + ".py")):
+            out.append(f"apps.py: „{name}“ – {a['ordner']}/{a['modul']}.py gibt es nicht")
+    for datei in ("docker-compose.yml", "server/test.yml", "server/produktiv-naechste.yml"):
+        p = os.path.join(ROOT, datei)
+        if not os.path.exists(p):
+            continue
+        dienst, app, port = None, None, None
+
+        def pruefe():
+            if app and app not in APPS:
+                out.append(f"{datei}: Dienst „{dienst}“ startet „{app}“ – steht nicht in apps.py")
+            elif app and port and APPS[app]["ordner"] == "plattform" and int(port) != APPS[app]["port"]:
+                out.append(f"{datei}: Dienst „{dienst}“ – APP_PORT {port} passt nicht zu apps.py ({APPS[app]['port']})")
+        for z in open(p, encoding="utf-8"):
+            m = re.match(r"^  ([a-z_0-9-]+):\s*$", z)
+            if m:
+                pruefe()
+                dienst, app, port = m.group(1), None, None
+            m = re.match(r"^\s+(APP|APP_MODULE):\s*\"?([a-z_]+)\"?\s*(#.*)?$", z)
+            if m and (m.group(1) == "APP" or not app):
+                app = m.group(2)
+            m = re.match(r"^\s+APP_PORT:\s*\"?(\d+)\"?", z)
+            if m:
+                port = m.group(1)
+        pruefe()
+    return out
+
+
 def main():
     fehler, hinweise = [], []
     dateien = git_dateien()
@@ -105,6 +143,8 @@ def main():
                 hinweise.append(f"{p}: {n} Zeilen (war {ALT_GROSS[p]}, Spielraum bis {ALT_GROSS[p] + SPIELRAUM})")
         elif n > GRENZE:
             fehler.append(f"{p}: {n} Zeilen – neue Dateien höchstens {GRENZE}; in Bausteine teilen")
+
+    fehler += app_liste()
 
     for h in hinweise:
         print("Hinweis:", h)

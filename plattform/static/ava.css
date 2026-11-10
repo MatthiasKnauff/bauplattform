@@ -275,7 +275,7 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-dav
 .src{display:grid;gap:.35rem;margin:.6rem 0}
 .src label{display:flex;gap:.5rem;align-items:baseline}
 .kgs[hidden]{display:none}
-.nlf{display:grid;grid-template-columns:2fr 1.4fr 4.5rem;gap:.6rem;margin:.2rem 0 .9rem}.nlf label{display:grid;gap:.25rem;font-size:var(--fs-s2);color:var(--mute)}.nlf input{width:100%;box-sizing:border-box}
+.nlf{display:grid;grid-template-columns:2fr 1.4fr 4.5rem;gap:.6rem;margin:.2rem 0 .9rem}.nlf label,.pk-f label{display:grid;gap:.25rem;font-size:var(--fs-s2);color:var(--mute)}.nlf input{width:100%;box-sizing:border-box}
 @media (max-width:640px){.nlf{grid-template-columns:1fr 4.5rem}.nlf label:first-child{grid-column:1/-1}}
 .nlw-h{font-size:var(--fs-s);letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 .4rem}
 .nlw{display:grid;grid-template-columns:repeat(auto-fill,minmax(13.5rem,1fr));gap:.55rem}
@@ -553,6 +553,14 @@ tr.am-lf td input{color:#c0621f}
 .au-k h3{margin:.1rem 0 .5rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.au-k h4{margin:.9rem 0 .35rem;font-size:var(--fs)}.au-sum{display:grid;grid-template-columns:1fr;gap:.15rem;font-size:var(--fs)}.au-sum span{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--line);padding:.1rem 0}.au-sum b{font-variant-numeric:tabular-nums}
 .au-pk .grp{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;margin:0 0 .45rem}.au-pk h6{margin:0 0 .35rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .au-pk .fd{display:grid;grid-template-columns:6.5rem minmax(0,1fr);gap:.3rem .5rem;align-items:center}.au-pk .fd>span{color:var(--mute)}.au-pk .fd input.aui{width:100%;box-sizing:border-box}.au-pk .lang{white-space:pre-wrap;max-height:12rem;overflow:auto;color:var(--ink);font-size:var(--fs-s2)}
+/* Karte einer Position (Bereich rechts): Felder mit der Beschriftung darüber (wie .nlf), nebeneinander; der Langtext bekommt den ganzen restlichen Platz */
+.sr-pad:has(>.au-pk.pk-teil){flex:1;min-height:0;display:flex;flex-direction:column}
+.au-pk.pk-teil{flex:1;min-height:24rem;display:flex;flex-direction:column}.au-pk.pk-teil>*{flex:none}
+.pk-f{display:flex;flex-wrap:wrap;gap:.45rem .7rem;align-items:flex-end}.pk-f label.w{flex:1 1 100%;min-width:0}.pk-f label.w input{width:100%;box-sizing:border-box}
+.pk-f label>b{font-size:var(--fs);color:var(--ink);padding:.3rem 0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.au-pk.pk-teil>.pk-lt{flex:1;min-height:8rem;display:flex;flex-direction:column}.au-pk.pk-teil>.pk-lt>*{flex:none}
+.au-pk.pk-teil>.pk-lt>textarea{flex:1;min-height:0;width:100%;box-sizing:border-box;resize:none;font:inherit;font-size:var(--fs-s2);overflow-y:auto}.au-pk.pk-teil>.pk-lt>.btn{align-self:flex-start}
+.au-pk h3{overflow-wrap:anywhere}
 .au-pk .nv{display:flex;gap:.4rem;align-items:center;margin:0 0 .45rem}.au-pk h3{margin:0 0 .4rem;font-size:calc(var(--fs)*1.08)}
 .au-kond .vk{font-size:var(--fs)}.au-kond .vk input,.au-kond .vk select{font-size:var(--fs)}
 .re2{display:grid;grid-template-columns:minmax(220px,var(--re2w,260px)) minmax(0,1fr);gap:.7rem;align-items:start}

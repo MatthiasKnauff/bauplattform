@@ -169,36 +169,40 @@ let AUZIEL = null;   // nach dem Speichern dort weiter (Tab / Enter)
 const auZielVon = (inp, vor) => { const A = [...document.querySelectorAll('table.au-t input.aui')], i = A.indexOf(inp); const n = A[i + (vor ? -1 : 1)]; return n ? { id: n.dataset.auid, f: n.dataset.auf, lv: n.dataset.aulv } : null; };
 const auZielRunter = (inp) => { const A = [...document.querySelectorAll(`table.au-t input.aui[data-auf="${inp.dataset.auf}"]`)], n = A[A.indexOf(inp) + 1]; return n ? { id: n.dataset.auid, f: n.dataset.auf, lv: n.dataset.aulv } : null; };
 function auZielFokus() { const z = AUZIEL; AUZIEL = null; if (!z) return; const el = document.querySelector(`table.au-t input.aui[data-aulv="${z.lv}"][data-auid="${CSS.escape(z.id)}"][data-auf="${z.f}"]`); if (el) { el.focus(); el.select(); const tr = el.closest('tr[data-tr]'); if (tr && !tr.classList.contains('sel')) { document.querySelectorAll('.tree tr.sel').forEach((r) => r.classList.remove('sel')); tr.classList.add('sel'); TSEL = tr.dataset.tr; } } }
+const AUFELD = { kurz: 'Kurztext', menge: 'Menge', einheit: 'Einheit', ep: 'EP', art: 'Art', kg: 'Kostengruppe', lang: 'Langtext' };
 async function auSetze(lvId, id, f, v) {
   await kmLv(lvId, async () => {
     const x = items().find((q) => q.id === id); if (!x) return;
     if (f === 'ep' && L.vergabe && L.vergabe.preise) { await flush(); const r = await api('api/lv/' + L.id, 'PUT', { vergabe: { preise: { [id]: v } } }); L.rev = r.rev; L.calc = r.calc; L.vergabe = r.vergabe; }
-    else { x[f === 'ep' ? 'ep_s' : f] = v; HIST.next = `${x.oz || 'Position'}: ${{ kurz: 'Kurztext', menge: 'Menge', einheit: 'Einheit', ep: 'EP' }[f]} in „Aufträge“ geändert`; changed(true); clearTimeout(saveT); saveT = 0; await saveNow(); }
+    else { if (f === 'art') { if (v === 'V') { x.art = 'T'; x.vb = true; } else { x.art = v; delete x.vb; } } else x[f === 'ep' ? 'ep_s' : f] = v;
+      HIST.next = `${x.oz || 'Position'}: ${AUFELD[f] || f} geändert`; changed(true); clearTimeout(saveT); saveT = 0; await saveNow(); }
     PC[lvId] = L;
   });
   render(); auZielFokus(); lvEintrag(lvId).then(() => { if (tab === 'auftraege' && !(document.activeElement && document.activeElement.matches('input.aui'))) render(); }).catch(() => {});
 }
 async function auFeldFertig(inp) {
   const lvId = +inp.dataset.aulv, id = inp.dataset.auid, f = inp.dataset.auf, lv = PC[lvId], x = lv && (lv.data.items || []).find((q) => q.id === id); if (!x) return;
-  const zahl = f === 'menge' || f === 'ep', roh = inp.value.trim();
-  const v = zahl ? (roh === '' ? null : pf(roh)) : roh;
+  const zahl = f === 'menge' || f === 'ep', roh = f === 'lang' ? inp.value.replace(/\s+$/, '') : inp.value.trim();
+  let v = zahl ? (roh === '' ? null : pf(roh)) : roh;
+  if (f === 'art') { v = roh.toUpperCase(); if (!ARTEN[v]) { inp.value = inp.defaultValue; return; } }   // nur gültige Arten (Feld mit Vorschlagsliste wie im LV)
   if (zahl && roh !== '' && v == null) { toast('Bitte eine Zahl eingeben, z. B. 12,5.', true); inp.value = inp.defaultValue; return; }
   if (f === 'kurz' && !v) { inp.value = inp.defaultValue; return; }
-  const alt = f === 'ep' ? auEp(lv, x) : f === 'menge' ? (x.menge ?? null) : (x[f] || '');
+  const alt = f === 'ep' ? auEp(lv, x) : f === 'menge' ? (x.menge ?? null) : f === 'art' ? artW(x) : (x[f] || '');
   if (v === alt || (zahl && v != null && alt != null && Math.abs(v - alt) < 1e-9)) { auZielFokus(); return; }
   try {
     await auSetze(lvId, id, f, v);
-    rueckgaengig(`${x.oz || 'Position'}: ${{ kurz: 'Kurztext', menge: 'Menge', einheit: 'Einheit', ep: 'EP' }[f]} geändert`, () => auSetze(lvId, id, f, alt));
+    rueckgaengig(`${x.oz || 'Position'}: ${AUFELD[f] || f} geändert`, () => auSetze(lvId, id, f, alt));
   } catch (e) { toast(e.message, true); render(); }
 }
 document.addEventListener('keydown', (e) => {
-  const inp = e.target.closest && e.target.closest('table.au-t input.aui, .au-pk input.aui'); if (!inp) return;
+  const inp = e.target.closest && e.target.closest('table.au-t input.aui, .au-pk input.aui, .au-pk textarea.aui'); if (!inp) return;
+  if (inp.tagName === 'TEXTAREA') { if (e.key === 'Escape') { e.preventDefault(); inp.value = inp.defaultValue; inp.blur(); } return; }   // Langtext: Enter ist ein Zeilenumbruch
   if (inp.closest('.au-pk')) { if (e.key === 'Escape') { e.preventDefault(); inp.value = inp.defaultValue; inp.blur(); } else if (e.key === 'Enter') { e.preventDefault(); AUZIEL = null; inp.blur(); } return; }   // Karte rechts: Enter speichert, springt nicht in die Tabelle
   if (e.key === 'Escape') { e.preventDefault(); inp.value = inp.defaultValue; AUZIEL = null; inp.blur(); return; }
   if (e.key === 'Tab') { AUZIEL = auZielVon(inp, e.shiftKey); return; }   // der Browser springt selbst – nach dem Neuzeichnen geht es dort weiter
   if (e.key === 'Enter') { e.preventDefault(); AUZIEL = auZielRunter(inp); if (inp.value === inp.defaultValue) { auZielFokus(); return; } inp.blur(); }
 });
-document.addEventListener('change', (e) => { const inp = e.target.closest && e.target.closest('table.au-t input.aui, .au-pk input.aui'); if (inp) auFeldFertig(inp); });
+document.addEventListener('change', (e) => { const inp = e.target.closest && e.target.closest('table.au-t input.aui, .au-pk input.aui, .au-pk textarea.aui'); if (inp) auFeldFertig(inp); });
 /* Karte „Position“: Nachtrag an/aus (wie in den Eigenschaften im LV), Langtext, blättern */
 async function auNtSetzen(lvId, id, an) {   // an: true = neuer Nachtrag, false = keiner, {nt, nt_status, nt_grund} = genau so (Rückgängig)
   await kmLv(lvId, async () => { const x = items().find((q) => q.id === id); if (!x) return;

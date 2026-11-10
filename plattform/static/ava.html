@@ -993,7 +993,7 @@ const uKnopf = ([x, t, ic, aus, tip, an, rot]) => ({ t, ic, tip, an, rot, aus: a
 function avaBefehle() {
   const S = uSlots(), bez = { lv: 'LV', angebote: 'Angebot', auftraege: 'Auftrag', aufmass: 'Rechnung', rechnungen: 'Rechnung', tueren: 'Türliste', uebersicht: 'Projekt' }[tab] || '';
   const rechts = [{ titel: 'Datei', rechts: true, knoepfe: S.slice(0, 3).map(uKnopf) },
-    { titel: bez, rechts: true, knoepfe: [uKnopf(S[4]), ...uWeitere(), uKnopf(S[5]), uKnopf(S[3])] }];
+    { titel: bez, rechts: true, knoepfe: [uKnopf(S[4]), ...uWeitere(), uKnopf(S[3])] }];
   return [...(L || tab === 'uebersicht' ? bereichBefehle() : []), ...rechts];
 }
 function bereichBefehle() {
@@ -2162,7 +2162,30 @@ function sums() {   // Titel- und LV-Summen ohne neu zu zeichnen (Fokus bleibt)
 }
 /* Aktive Zeile: Klick auf die OZ (oder Bearbeiten in der Zeile) – neue Titel, Positionen und Hinweistexte kommen dahinter */
 let LVAKT = null, LVSEL = new Set(), LVANK = null;   // aktive Zeile (dahinter wird eingefügt), Mehrfachmarkierung (Strg/Umschalt), Anker für Umschalt
+/* Langtext wandert mit: ist der Langtext der Position offen, auf der man stand, und geht man auf eine andere Position
+   (Klick, Pfeiltasten, Enter/Tab ins nächste Feld), klappt deren Langtext auf und der alte zu. Sind mehrere markiert oder
+   ist der neue schon offen (z. B. „alle Langtexte“), bleibt alles, wie es ist. Die Zeile bleibt dabei an ihrer Stelle am Bildschirm. */
+let LVLT = null;   // die Zeile, auf der man zuletzt stand
+function lvLangFolgt(vor) {
+  const x = items().find((y) => y.id === LVAKT);
+  if (!x || x.typ !== 'pos' || vor == null || !OPEN.has(vor) || OPEN.has(x.id) || LVSEL.size > 1) return;
+  setTimeout(() => {   // erst nach dem laufenden Klick/Tastendruck neu zeichnen
+    if (tab !== 'lv' || LVAKT !== x.id || OPEN.has(x.id)) return;
+    const zeile = () => { const n = items().findIndex((y) => y.id === x.id); return n < 0 ? null : document.querySelector(`table.lv tr[data-i="${n}"]:not(.lang)`); };
+    const fa = document.activeElement, ftr = fa && fa.closest && fa.closest('table.lv tr[data-i]:not(.lang)'), fx = ftr && items()[+ftr.dataset.i];
+    const feld = fx && fx.id === x.id && fa.matches('[data-f],[data-vp]') ? { sel: fa.dataset.f ? `[data-f="${fa.dataset.f}"]` : `[data-vp="${fa.dataset.vp}"]`, a: fa.selectionStart, b: fa.selectionEnd } : null;
+    const tr0 = zeile(), oben = tr0 ? tr0.getBoundingClientRect().top : null;
+    OPEN.delete(vor); OPEN.add(x.id); render();
+    if (feld) { const f = zeile() && zeile().querySelector(feld.sel); if (f) { f.focus({ preventScroll: true }); try { if (feld.a != null) f.setSelectionRange(feld.a, feld.b); } catch { /* Feld ohne Textauswahl */ } } }
+    if (oben != null) requestAnimationFrame(() => requestAnimationFrame(() => {   // nach dem Wiederherstellen der Rollposition (bpBaum.rolle)
+      const tr = zeile(); if (!tr) return; const d = tr.getBoundingClientRect().top - oben; if (Math.abs(d) < 1) return;
+      for (let e = tr.parentElement; e; e = e.parentElement) { const st = getComputedStyle(e); if (/(auto|scroll)/.test(st.overflowY) && e.scrollHeight > e.clientHeight + 1) { e.scrollTop += d; return; } }
+      scrollBy(0, d);
+    }));
+  }, 0);
+}
 function lvAktZeigen() {
+  if (tab === 'lv' && LVAKT !== LVLT) { const vor = LVLT; LVLT = LVAKT; lvLangFolgt(vor); }
   if (tab === 'lv' && document.querySelector('#view .lv-split .sr-tab.on[data-srt="details"]')) { const b = document.querySelector('#view .lv-split > .sr-r .sr-b'); const fa = document.activeElement; if (b && !(fa && b.contains(fa) && /^(INPUT|TEXTAREA|SELECT)$/.test(fa.tagName))) b.innerHTML = `<div class="sr-pad">${lvDetails()}</div>`; }
   const I = items(); document.querySelectorAll('table.lv tr[data-i]').forEach((tr) => { const x = I[+tr.dataset.i]; tr.classList.toggle('akt', !!x && (x.id === LVAKT || LVSEL.has(x.id))); });
   const w = document.querySelector('table.lv tr[data-lvwurzel]'); if (w) w.classList.toggle('akt', LVAKT === '__lv');

@@ -165,5 +165,5 @@
   let navSig = '';
   function navZahlen() { const s = P ? `${P.id}|${P.tasks.length}|${new Set(P.tasks.map((x) => x.gw).filter(Boolean)).size}|${projects.length}` : '-'; if (s !== navSig) { navSig = s; navNeu(); } }
 
-  bereich(); navNeu(); leisteNeu();
+  bereich(); navNeu(); leisteNeu(); bpNav.breite(NAV, { key: 'gantt' });
 })();

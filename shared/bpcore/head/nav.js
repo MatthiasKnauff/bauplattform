@@ -10,7 +10,10 @@
      o.fuss    HTML am Ende                           z. B. Ablagefeld
      o.attr    Name des data-Attributs der Punkte     (Standard „nav“ → data-nav="id")
      o.wahl    (id, ereignis) => …                    Klick auf einen Punkt; ohne o.wahl meldet die App den Klick selbst am Attribut an
-   Jeder Aufruf zeichnet neu; angemeldet wird der Klick nur einmal je Feld. */
+   Jeder Aufruf zeichnet neu; angemeldet wird der Klick nur einmal je Feld.
+
+   bpNav.breite(el, { key, min = 180, max = 520 }) – Anfasser am rechten Rand: Breite ziehen, Doppelklick = Standard,
+     gemerkt je Browser (bp.navw.<key>). Der Anfasser steht als eigenes Element direkt hinter el (übersteht das Neuzeichnen). */
 (() => {
   if (window.bpNav) return;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -30,5 +33,21 @@
       el.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('.ni[data-' + a + ']'); if (b && el._bpNavWahl) el._bpNavWahl(b.getAttribute('data-' + a), e); });
     }
   }
+  bpNav.breite = function (el, o) {
+    if (!el || el._bpBreite) return; el._bpBreite = 1;
+    const key = 'bp.navw.' + o.key, min = o.min || 180, max = o.max || 520;
+    const setz = (w) => { el.style.width = w ? w + 'px' : ''; };
+    try { const w = +localStorage.getItem(key); if (w) setz(Math.max(min, Math.min(max, w))); } catch { /* egal */ }
+    const g = document.createElement('div'); g.className = 'bp-nav-griff'; g.title = 'Breite der Navigation ziehen (Doppelklick: Standard)'; g.setAttribute('aria-hidden', 'true');
+    el.after(g);
+    g.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return; e.preventDefault(); g.setPointerCapture(e.pointerId); document.body.classList.add('bph-trennzieh');
+      const x0 = el.getBoundingClientRect().left;
+      g.onpointermove = (m) => setz(Math.round(Math.max(min, Math.min(max, m.clientX - x0))));
+      g.onpointerup = () => { g.onpointermove = g.onpointerup = null; document.body.classList.remove('bph-trennzieh');
+        try { localStorage.setItem(key, String(el.offsetWidth)); } catch { /* egal */ } dispatchEvent(new Event('resize')); };
+    });
+    g.addEventListener('dblclick', () => { setz(0); try { localStorage.removeItem(key); } catch { /* egal */ } dispatchEvent(new Event('resize')); });
+  };
   window.bpNav = bpNav;
 })();

@@ -151,10 +151,10 @@ button{font:inherit}
 
 /* Dialoge */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding-top:8vh}
-.modal{background:#fff;border:1px solid #888;box-shadow:var(--sh0,0 8px 30px rgba(0,0,0,.3));min-width:420px;max-width:92vw;max-height:84vh;display:flex;flex-direction:column}
+.modal{background:#fff;border:1px solid #888;box-shadow:var(--sh0,0 8px 30px rgba(0,0,0,.3));min-width:420px;max-width:96vw;max-height:94vh;display:flex;flex-direction:column}
 .mh{background:var(--green);color:#fff;padding:7px 12px;font-size:calc(var(--fs)*1.083);display:flex;align-items:center}
 .mh .mx{margin-left:auto;background:none;border:0;color:#fff;font-size:calc(var(--fs)*1.5);cursor:pointer;line-height:1}
-.mb{padding:14px 16px;overflow:auto}
+.mb{padding:14px 16px;overflow:auto;flex:1;min-height:0}
 .mf{display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;border-top:1px solid #e5e5e5;background:#fafafa}
 .btn{border:1px solid #adadad;background:#fdfdfd;padding:4px 16px;cursor:pointer;border-radius:calc(6px*var(--rk,1));min-width:80px}
 .btn:hover{background:#e5f1fb;border-color:#0078d4}
@@ -851,14 +851,14 @@ html.mobil #tabs .tb-r #saveState{display:none}
 /* Dialoge: an der Ecke rechts unten in der Größe veränderbar (verschieben an der Kopfzeile) */
 .modal{resize:both;overflow:hidden;min-height:140px}.modal .mb{flex:1;overflow:auto}
 
-/* Dialoge besser lesbar (nicht so fisselig) */
-.modal{font-size:calc(var(--fs)*1.167);line-height:1.45}
-.modal .mh{font-size:calc(var(--fs)*1.25);font-weight:600;padding:9px 14px}
-.modal .mb{padding:16px 18px}
-.modal .form{gap:10px 12px}
+/* Dialoge: kompakt, Schrift wie die übrige App (Grundgröße --fs, einstellbar) */
+.modal{font-size:var(--fs);line-height:1.4}
+.modal .mh{font-size:calc(var(--fs)*1.1);font-weight:600;padding:7px 12px}
+.modal .mb{padding:10px 14px}
+.modal .form{gap:5px 10px}
 .modal .form label{color:#333}
-.modal .form input,.modal .form select,.modal .form textarea{padding:6px 8px;border-radius:calc(5px*var(--rk,1))}
-.modal .mf .btn{padding:6px 18px;font-size:calc(var(--fs)*1.167)}
+.modal .form input,.modal .form select,.modal .form textarea{padding:3px 6px;border-radius:calc(4px*var(--rk,1))}
+.modal .mf .btn{padding:4px 14px;font-size:var(--fs)}
 
 /* Mehrere Leistungen bearbeiten: eine Spalte, Gruppen, Umschalter statt Auswahllisten, geänderte Felder markiert */
 .md-modal{width:min(600px,94vw)}

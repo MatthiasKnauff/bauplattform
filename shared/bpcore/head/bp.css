@@ -2,15 +2,18 @@
 :root{--bar:#84827c;--bg:#26282b;--card:#2d2f33;--card2:#34363a;--line:#3b3e42;--ink:#f3f3f1;--mute:#9a9c9e;--y:#ff5fb3;--on:#111;--red:#ff7a6b;--ok:#3ddc84;--inp:#1d1f21;--tabs:#303236;--hov:rgba(255,255,255,.06);color-scheme:dark}
 /* helles Schema (Startseite → Darstellung) */
 html[data-theme="hell"],html[data-theme="klassisch"]{--bg:#f3f2ef;--card:#fff;--card2:#fff;--line:#d9d8d3;--ink:#232427;--mute:#686a6d;--red:#c8372a;--ok:#1e8a4c;--inp:#fff;--tabs:#e7e5e0;--hov:rgba(0,0,0,.05);color-scheme:light}
+/* Grundregeln für Knöpfe, Felder, Links, Tabellen gelten überall – außer in älteren Apps mit eigenem Stil (<body class="bp-alt">,
+   z. B. der Bauzeitenplan): dort nur innerhalb der Bausteine (.bp-insel: Navigation, Befehlsleiste, Bereich rechts …).
+   :where() hält die Spezifität gleich – für die übrigen Apps ändert sich nichts. */
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 body{background:var(--bg);color:var(--ink);font:16px/1.45 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer;background:none;border:0;color:var(--y);padding:.45rem .6rem;border-radius:calc(6px*var(--rk,1))}
-input,select,textarea{background:var(--inp);border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:.55rem .7rem;min-width:0}
-input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--y);outline-offset:1px}
-input[type=checkbox]{width:1.1rem;height:1.1rem;accent-color:var(--y);padding:0;vertical-align:middle}
-a{color:var(--y)}
+:where(body:not(.bp-alt),.bp-insel) :is(button,input,select,textarea){font:inherit;color:inherit}
+:where(body:not(.bp-alt),.bp-insel) button{cursor:pointer;background:none;border:0;color:var(--y);padding:.45rem .6rem;border-radius:calc(6px*var(--rk,1))}
+:where(body:not(.bp-alt),.bp-insel) :is(input,select,textarea){background:var(--inp);border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:.55rem .7rem;min-width:0}
+:where(body:not(.bp-alt),.bp-insel) :is(input,select,button,a):focus-visible{outline:2px solid var(--y);outline-offset:1px}
+:where(body:not(.bp-alt),.bp-insel) input[type=checkbox]{width:1.1rem;height:1.1rem;accent-color:var(--y);padding:0;vertical-align:middle}
+:where(body:not(.bp-alt),.bp-insel) a{color:var(--y)}
 .hidden{display:none!important}
 .btn{border:1px solid var(--y);color:var(--y);padding:.55rem 1rem;font-weight:600;border-radius:calc(8px*var(--rk,1));display:inline-flex;align-items:center;gap:.5rem;text-decoration:none}
 .btn.pri{background:var(--y);color:var(--on)}
@@ -43,10 +46,10 @@ a{color:var(--y)}
 
 .wrap{max-width:1100px;margin:0 auto;padding:1.4rem 1rem 3rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:1rem 1.1rem}
-h1{font-size:1.6rem;margin:.2rem 0 1rem}
-h2{font-size:1.15rem;margin:1.6rem 0 .7rem}
-table{border-collapse:collapse;width:100%}
-th,td{text-align:left;padding:.55rem .6rem;border-bottom:1px solid var(--line);vertical-align:middle}
+:where(body:not(.bp-alt),.bp-insel) h1{font-size:1.6rem;margin:.2rem 0 1rem}
+:where(body:not(.bp-alt),.bp-insel) h2{font-size:1.15rem;margin:1.6rem 0 .7rem}
+:where(body:not(.bp-alt),.bp-insel) table{border-collapse:collapse;width:100%}
+:where(body:not(.bp-alt),.bp-insel) :is(th,td){text-align:left;padding:.55rem .6rem;border-bottom:1px solid var(--line);vertical-align:middle}
 th{color:var(--mute);font-weight:600;font-size:.85rem}
 .tbl{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1))}
 .tbl tr:last-child td{border-bottom:0}

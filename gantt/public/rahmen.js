@@ -9,7 +9,7 @@
    ===================================================================== */
 (function () {
   if (!window.bpNav || !window.befehle || !window.seite) return;   // ohne Baukasten: altes Menüband
-  document.body.classList.add('g-rahmen');
+  document.body.classList.add('g-rahmen', 'bp-alt');   // bp-alt: Grundregeln des Baukastens (Felder, Knöpfe, Tabellen) nur in den Bausteine-Inseln – Fenster und Tabelle behalten ihr kompaktes Aussehen
   const NAV = $('#navL'), LEISTE = $('#leiste'), WORK = $('#work');
   const I = (k) => RIBBON_ICONS[k] || '';
   const rb = (a, extra = '') => document.querySelector(`#ribbon .rb[data-act="${a}"]${extra}`);
@@ -166,4 +166,5 @@
   function navZahlen() { const s = P ? `${P.id}|${P.tasks.length}|${new Set(P.tasks.map((x) => x.gw).filter(Boolean)).size}|${projects.length}` : '-'; if (s !== navSig) { navSig = s; navNeu(); } }
 
   bereich(); navNeu(); leisteNeu(); bpNav.breite(NAV, { key: 'gantt' });
+  [NAV, LEISTE, WORK.querySelector(':scope > .sr-r')].forEach((x) => x && x.classList.add('bp-insel'));
 })();

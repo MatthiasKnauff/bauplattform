@@ -489,7 +489,7 @@ table[style*="fixed"] td{overflow:hidden;text-overflow:ellipsis}
 .deakt{opacity:.5;filter:grayscale(.7);pointer-events:none;user-select:none}.pj-r.deakt-k{opacity:.5;text-decoration:line-through}
 .am-l{display:flex;flex-direction:column;gap:.8rem;min-width:0}.am-l .tblw{max-height:40vh;overflow:auto}
 .am-r{position:sticky;top:8px;display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:420px;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card);overflow:hidden}
-.am-pk{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;padding:.35rem .45rem;border-bottom:1px solid var(--line)}
+.am-pk{display:flex;gap:.3rem;align-items:center;padding:.3rem .45rem;border-bottom:1px solid var(--line);min-width:0}.am-pk>.btn,.am-pk>.ib{flex:none}.am-st{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute);font-size:var(--fs-s);cursor:help;padding:0 .3rem}.am-st .am-i{opacity:.7}
 .am-pv{flex:1;overflow:auto;background:#7d8288;padding:10px}
 .am-pg{position:relative;margin:0 auto 10px;box-shadow:0 1px 5px #0006;background:#fff}.am-pg canvas{display:block}
 .am-hl{position:absolute;border:2px solid #f5a623;background:rgba(255,196,0,.22);border-radius:calc(3px*var(--rk,1));pointer-events:none;box-shadow:0 0 0 4px rgba(245,166,35,.25)}
@@ -3159,6 +3159,12 @@ function amZeigeBox(bid, seite, box) {
 }
 /* PDF-Ansicht (pdf.js), bleibt beim Neuzeichnen der Ansicht erhalten */
 /* Bereich rechts in Aufmaßprüfung und Rechnungen (seite.js): Reiter „Auftrag“ (nur Rechnungen) und „📄 Dokument“ (PDF der Firma) */
+/* PDF der Firma von der Rechnung entfernen: liegt danach im Papierkorb – „Rückgängig“ holt sie samt Haken zurück (im Projektordner bleibt sie ohnehin) */
+async function belegWeg(bid) {
+  const id = L.id; let pk = null;
+  try { pk = (await call('api/belege/' + bid, 'DELETE')).papierkorb; AMV = null; render(); } catch (er) { toast(er.message, true); return; }
+  rueckgaengig('Rechnungs-PDF entfernt', async () => { if (!pk) return; await api(`api/bp/papierkorb/${pk}/zurueck`, 'POST'); if (L && L.id === id) { L = await api('api/lv/' + id); AMV = null; render(); } });
+}
 function amPdfMount() {
   const sp = document.querySelector(tab === 'rechnungen' ? '#view .re-sp' : '#view .am-split'); if (!sp) return;
   const R = [];
@@ -3181,9 +3187,14 @@ function amDokDef() {
 }
 function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom – darunter die Seiten
   const B = amBelege(), b = B.find((y) => y.id === AMB) || B[0], A = b && b.auslese; if (!b) return;
-  el.classList.add('am-dok'); el.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
-    <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? '<span title="Texterkennung mit Tesseract auf dem Server der Plattform – keine KI">Scan, per Texterkennung gelesen (Tesseract, ohne KI)</span> · ' : ''}${A.ki ? `<span title="Zeilen ohne Ordnungszahl wurden per KI den LV-Positionen zugeordnet">Zuordnung per KI: <b>${esc({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter)}</b> (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''})</span> · ` : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · <span title="✔ stimmt mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert (geprüfte Menge bzw. EP des Auftrags) · ○ noch nicht geprüft" style="cursor:help;text-decoration:underline dotted"><b style="color:#1f9d4c">✔</b> stimmt · <b style="color:#e02424">✘</b> weicht ab · ○ offen</span> · Zahlen anklicken übernimmt sie in den Rechenweg · ○ anklicken hakt die Zeile ab · Klick auf eine freie Stelle setzt einen Haken`) : ''}</span><span class="fill"></span>
-    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻ neu lesen</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung löschen">🗑</button></div>`;
+  const kn = A && A.ki ? ({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter) : '';
+  const kurz = !A ? '' : A.laeuft ? 'Texterkennung läuft …' : A.text === false ? 'Scan ohne Text' : `${A.ocr ? 'Scan · ' : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen` : ''} erkannt`;
+  const lang = [A && A.ocr ? 'Scan, per Texterkennung gelesen (Tesseract auf dem Server der Plattform – keine KI).' : '', kn ? `Zuordnung per KI: ${kn} (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''}).` : '',
+    '✔ stimmt mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert · ○ noch nicht geprüft.', 'Zahlen anklicken übernimmt sie in den Rechenweg.', '○ anklicken hakt die Zeile ab – ein Klick auf eine freie Stelle setzt einen Haken, ein Klick auf den Haken nimmt ihn zurück.'].filter(Boolean).join('\n');
+  el.classList.add('am-dok');   // eine Zeile: Wahl der PDF · Stand (Erklärung im Tooltip) · Werkzeuge
+  el.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
+    <span class="am-st" title="${esc(lang)}">${esc(kurz)}${kurz ? ' · ' : ''}<b style="color:#1f9d4c">✔</b> <b style="color:#e02424">✘</b> ○ <span class="am-i">ⓘ</span></span>
+    <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung entfernen (lässt sich rückgängig machen)">🗑</button></div>`;
   el.appendChild(AMV.el);
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }
 }
@@ -3362,7 +3373,7 @@ document.addEventListener('click', async (e) => {
   const u = e.target.closest('[data-amueb]'); if (u) return amUebernehmen(u.dataset.amueb === '*' ? null : u.dataset.amueb);
   const b = e.target.closest('[data-amb]'); if (b) { AMB = +b.dataset.amb; LS.set('amB', AMB); return render(); }
   const z = e.target.closest('[data-amz]'); if (z && AMV && AMV.pdf) { AMV.zoom = Math.max(0.5, Math.min(3, AMV.zoom * (+z.dataset.amz > 0 ? 1.2 : 1 / 1.2))); LS.set('amZoom', AMV.zoom); await amPdfZeichnen(AMV); amMarken(); amPdfZeige(amPos, true); return; }
-  const d = e.target.closest('[data-ambdel]'); if (d) { const id = +d.dataset.ambdel; try { await call('api/belege/' + id, 'DELETE'); AMV = null; toast('PDF entfernt.'); } catch (er) { toast(er.message, true); } }
+  const d = e.target.closest('[data-ambdel]'); if (d) belegWeg(+d.dataset.ambdel);
 });
 document.addEventListener('change', (e) => {
   const i = e.target.closest && e.target.closest('[data-ambeleg]'); if (i && i.files.length) { const f = [...i.files]; i.value = ''; amBelegHoch(f); return; }
@@ -3573,7 +3584,7 @@ function vRechnungen0() {
   const cards = (SEL ? [SEL] : []).map((r) => {
     const c = RC[r.id], g = r.status === 'geprueft', last = !reNachfolger(r), ab = r.data.abzuege || [], art = r.art || 'abschlag';
     const L1 = c.leistung - c.nachlass, dis = g ? ' disabled' : '';
-    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung abhaken: Summen werden automatisch mit ✔ / ✘ markiert, dann von Hand ergänzen oder streichen – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}<label class="re-bel-ziel${(r.belege || []).length ? ' kl' : ''}" title="Rechnung der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${(r.belege || []).length ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" hidden data-rebf="${r.id}"></label>
+    const belege = `<div class="re-bel" data-redrop="${r.id}">${(r.belege || []).map((b) => `<span class="re-b"><a href="#" data-reb="beleg" data-id="${r.id}" data-bid="${b.id}" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</a>${b.ablage ? ' <small class="hint">✓ im Projektordner</small>' : ''}<button class="btn sm" data-reb="belegpruef" data-id="${r.id}" data-bid="${b.id}" title="Rechnung im Reiter „Dokument“ abhaken: Summen sind automatisch mit ✔ / ✘ markiert, ein Klick setzt eigene Haken – erscheint so in der Rechnungsfreigabe">✔✘ abhaken</button><button class="ib" data-reb="belegdel" data-id="${r.id}" data-bid="${b.id}" title="Entfernen">✕</button></span>`).join('')}<label class="re-bel-ziel${(r.belege || []).length ? ' kl' : ''}" title="Rechnung der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${(r.belege || []).length ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" hidden data-rebf="${r.id}"></label>
 </div>`;
     const kopf = `<div class="re-wo">${esc(L.vergabe && L.vergabe.bieter || L.auftragnehmer || '')}${L.nr || L.name ? ' · LV ' + esc([L.nr, L.name].filter(Boolean).join(' ')) : ''}</div><h3>${esc(reTitel(r))}${r.re_nr ? ` <span class="hint">Nr. ${esc(r.re_nr)}</span>` : ''}
         <span class="pill ${g ? 'ok' : 'y'}">${g ? 'geprüft ' + de(r.data.geprueft_am) : art === 'regie' || art === 'sicherheit' || c.frei ? 'in Prüfung' : 'in Prüfung – Aufmaß von heute'}</span></h3>
@@ -3957,13 +3968,10 @@ async function reAktion(b) {
     if (a === 'zdel') { const alt = JSON.parse(JSON.stringify(r.data.zeilen || [])); await call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt.filter((_, k) => k !== +b.dataset.k) });
       rueckgaengig('Zeile entfernt', () => call('api/rechnungen/' + r.id, 'PUT', { zeilen: alt })); return; }
     if (a === 'ebAuftrag') { try { await call('api/rechnungen/' + r.id, 'PUT', { einbehalt: null }); toast('Sicherheitseinbehalt wie im Auftrag.'); } catch (er) { toast(er.message, true); } return; }
-    if (a === 'beleg') { const x = (r.belege || []).find((y) => y.id === +b.dataset.bid); if (window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url: 'api/belege/' + b.dataset.bid, typ: 'pdf', name: x ? x.name : 'Rechnung.pdf' }]); else location.href = 'api/belege/' + b.dataset.bid; return; }
-    if (a === 'belegpruef') {
-      const d = await api(`api/belege/${b.dataset.bid}/pruefen`, 'POST');
-      if (d.automatisch) toast(`${d.automatisch} Prüfzeichen automatisch gesetzt – mit ✔ / ✘ ergänzen, mit 🗑 bzw. ↶ entfernen.`);
-      if (window.BPHead && BPHead.skizzeOeffnen) BPHead.skizzeOeffnen(d.skizze, d.name); return;
-    }
-    if (a === 'belegdel') { if (!(await bpFrage('Rechnungs-PDF hier entfernen?\nIm Projektordner bleibt sie liegen.', { ok: 'Entfernen' }))) return; return call('api/belege/' + b.dataset.bid, 'DELETE'); }
+    if (a === 'beleg' || a === 'belegpruef') {   // Rechnung der Firma ansehen und abhaken: immer im Reiter „📄 Dokument“ (ein Fenster für beides)
+      AMB = +b.dataset.bid; if (AMV && AMV.bid !== AMB) AMV = null;
+      render(); seiteReiter(tab === 'rechnungen' ? 're' : 'am', 'dok'); return; }
+    if (a === 'belegdel') return belegWeg(+b.dataset.bid);
     if (a === 'abzdel') {
       const alt = JSON.parse(JSON.stringify(r.data.abzuege || [])), ab = alt.filter((_, k) => k !== +b.dataset.k), z = alt[+b.dataset.k] || {};
       await call('api/rechnungen/' + r.id, 'PUT', { abzuege: ab });

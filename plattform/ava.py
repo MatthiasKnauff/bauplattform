@@ -4602,103 +4602,69 @@ def beleg(b):
         x = c.execute("SELECT b.*, r.lv_id FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
         if not x or not _lv(c, x["lv_id"]):
             return jsonify(error="Nicht gefunden"), 404
-        if request.method == "DELETE":
-            c.execute("DELETE FROM ava_beleg WHERE id=?", (b,))
+        if request.method == "DELETE":   # in den Papierkorb – „Rückgängig“ holt die PDF samt Prüfzeichen zurück
+            lv_ = _lv(c, x["lv_id"])
+            pr = c.execute("SELECT name FROM projects WHERE id=?", (lv_["project_id"],)).fetchone()
+            pk = papierkorb.ablegen(c, "ava_beleg", b, "Rechnungs-PDF", f"{x['name']} · LV {lv_['nr']} {lv_['name']}".strip(), g.user["name"], pr["name"] if pr else "", "ava")
             _touch(c, x["lv_id"])
-            return _antwort(c, x["lv_id"])
+            d_ = _antwort(c, x["lv_id"]).get_json(); d_["papierkorb"] = pk
+            return jsonify(d_)
     return Response(bytes(x["data"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib_quote(x['name'])}"})
 
 
-def _beleg_markiert(c, data):
-    """Rechnung der Firma mit meinen Prüfzeichen (Haken/Kreuze, Notizen aus „prüfen“), sonst unverändert."""
+def _beleg_markiert(c, data, bid=None):
+    """Rechnung der Firma mit den Prüfzeichen – so, wie sie im Reiter „Dokument“ steht: die errechneten ✔ / ✘ (mit dem geprüften
+    Wert daneben) und die von Hand gesetzten Haken (blau). Zeichen aus der früheren Markier-Ansicht bleiben erhalten."""
     from bpcore import skizze
-    h = hashlib.sha256(data).hexdigest()
-    sk = c.execute("""SELECT s.id FROM skizze s WHERE s.hash=? AND EXISTS (SELECT 1 FROM skizze_strich x WHERE x.skizze_id=s.id AND x.geloescht=0)
-                      ORDER BY s.updated DESC LIMIT 1""", (h,)).fetchone()
-    if not sk:
-        return data
+    liste = []
     try:
-        return skizze.pdf_mit_markierungen(c, sk["id"])[1]
+        h = hashlib.sha256(data).hexdigest()
+        sk = c.execute("""SELECT s.id FROM skizze s WHERE s.hash=? AND EXISTS (SELECT 1 FROM skizze_strich x WHERE x.skizze_id=s.id AND x.geloescht=0)
+                          ORDER BY s.updated DESC LIMIT 1""", (h,)).fetchone()
+        if sk:
+            liste += skizze.striche_von(c, sk["id"])
+        if bid:
+            liste += _beleg_striche(c, bid, errechnet=not sk)   # frühere Markier-Ansicht enthält die errechneten Zeichen schon
+        return skizze.pdf_zeichnen(data, liste) if liste else data
     except Exception as e:
         fehler.still("ava", "Rechnung mit Prüfzeichen erzeugen", e)
         return data
 
 
-_GELD = re.compile(r"^-?\d{1,3}(?:\.\d{3})*,\d{2}$|^-?\d+,\d{2}$")
-
-
-@app.post("/api/belege/<int:b>/pruefen")
-def beleg_pruefen(b):
-    """Rechnung der Firma zum Abhaken öffnen: Markier-Sitzung zur PDF (bleibt am Beleg). Beim ersten Mal setzt die Plattform
-    selbst Zeichen: geforderte Summe ✔ (stimmt mit dem geprüften Leistungsstand) bzw. ✘ mit dem geprüften Betrag daneben,
-    Rechnungsbetrag ✔/✘ gegen den geprüften Zahlbetrag brutto. Danach von Hand ergänzen, streichen, wieder löschen."""
-    from bpcore import skizze
-    with db.tx() as c:
-        _beleg_tabelle(c)
-        x = c.execute("SELECT b.*, r.lv_id, r.gefordert, r.id AS rid FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (b,)).fetchone()
-        lv = _lv(c, x["lv_id"]) if x else None
-        if not lv:
-            return jsonify(error="Nicht gefunden"), 404
-        data = bytes(x["data"])
-        h = hashlib.sha256(data).hexdigest()
-        alt = c.execute("SELECT id FROM skizze WHERE hash=? ORDER BY updated DESC LIMIT 1", (h,)).fetchone()
-        if alt:
-            if not skizze.darf(c, alt["id"], g.user):
-                skizze.beitreten(c, alt["id"], g.user)
-            return jsonify(skizze=alt["id"], name=x["name"])
-        sid = skizze.neu(c, g.user, x["name"], data)
-        skizze.dauerhaft_setzen(c, sid, True)   # bleibt am Beleg – auch beim normalen Ansehen sichtbar
+def _beleg_striche(c, bid, errechnet=True):
+    """Prüfzeichen eines Belegs als Striche für skizze.pdf_zeichnen: von Hand gesetzte Haken (Rechnung data.haken, „Beleg|Seite|y|x“)
+    und – wenn gewünscht – die errechneten ✔ / ✘ (wo kein Haken von Hand in derselben Zeile steht)."""
+    x = c.execute("SELECT b.id, b.auslese, r.lv_id, r.id AS rid, r.data AS rdata FROM ava_beleg b JOIN ava_rechnung r ON r.id = b.rechnung_id WHERE b.id=?", (bid,)).fetchone()
+    if not x:
+        return []
+    out, hand = [], []
+    for k in (_j(x["rdata"], {}) or {}).get("haken") or []:
+        try:
+            q = str(k).split("|")
+            if int(q[0]) != bid:
+                continue
+            n, y, px = int(q[1]), float(q[2]), float(q[3])
+        except (ValueError, IndexError):
+            continue
+        hand.append((n, y))
+        out.append({"seite": n, "art": "haken", "farbe": "#1c7ed6", "breite": 0.004, "pts": [[min(0.985, px + 0.016), y]]})
+    A = _j(x["auslese"], None)
+    if errechnet and A and "zahlen" in A:
+        lv = _lv(c, x["lv_id"])
         ang = c.execute("SELECT * FROM ava_angebot WHERE lv_id=? ORDER BY id", (lv["id"],)).fetchall()
         am = c.execute("SELECT * FROM ava_aufmass WHERE lv_id=? ORDER BY pos_id, datum, id", (lv["id"],)).fetchall()
         re_ = c.execute("SELECT * FROM ava_rechnung WHERE lv_id=? ORDER BY nr", (lv["id"],)).fetchall()
         K = rechne(lv, ang, am, re_)
         RC = next((y for y in K["rechnungen"] if y["id"] == x["rid"]), None)
-        gef = x["gefordert"] or 0
-        A = _j(x["auslese"], None) if "auslese" in x.keys() else None
-        if not A or "zahlen" not in A:   # noch nicht gelesen: jetzt lesen – aber einen Scan nicht hier (Texterkennung dauert Minuten und läuft im Hintergrund)
-            A = (A or {}) if _ist_scan(data) else _auslese_anwenden(c, b, x["rid"], lv)
-        R0 = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (x["rid"],)).fetchone()
+        R0 = next((y for y in re_ if y["id"] == x["rid"]), None)
         VP = (_j(lv["vergabe"], {}) or {}).get("preise") or {}
-    zeichen = _pruefzeichen(A, K, RC, R0, VP, {y["id"]: y for y in (_j(lv["data"], {}) or {}).get("items") or [] if y.get("id")})
-    if zeichen:
-        with db.tx() as c:
-            for n, art, pos, txt in zeichen:
-                skizze.strich(c, sid, g.user, {"seite": n, "art": art, "farbe": "#1f9d4c" if art == "haken" else "#e02424", "breite": 0.004, "pts": [pos]})
-                if txt:
-                    skizze.strich(c, sid, g.user, {"seite": n, "art": "text", "farbe": "#e02424", "breite": 0.0035, "pts": [[max(0.03, pos[0] - 0.32), min(0.99, pos[1] + 0.024)]], "text": txt})
-        return jsonify(skizze=sid, name=x["name"], automatisch=len(zeichen))
-    try:
-        import pdfplumber
-        with pdfplumber.open(io.BytesIO(data)) as pdf:
-            seiten = pdf.pages[:30]
-            for n, pg in enumerate(seiten, 1):
-                W_, H_ = float(pg.width), float(pg.height)
-                for w in pg.extract_words(keep_blank_chars=False):
-                    t = w["text"].strip().rstrip("€").strip()
-                    if not _GELD.match(t):
-                        continue
-                    v = float(t.replace(".", "").replace(",", "."))
-                    pos = [min(1.0, (float(w["x1"]) + 8) / W_), (float(w["top"]) + float(w["bottom"])) / 2 / H_]
-                    if RC and gef and abs(v - gef) < 0.01:
-                        ok = abs(gef - (RC["leistung"] - RC["nachlass"])) <= 1
-                        zeichen.append((n, "haken" if ok else "kreuz", pos, None if ok else f"geprüft {_eur(RC['leistung'] - RC['nachlass'])}"))
-                    zeichen.append((n, "_geld", pos, v))
-        if RC and zeichen:   # Rechnungsbetrag: der unterste Betrag auf der letzten Seite mit Beträgen (Endbetrag)
-            letzte = max(z[0] for z in zeichen if z[1] == "_geld")
-            gross = max((z for z in zeichen if z[1] == "_geld" and z[0] == letzte), key=lambda z: z[2][1])
-            if not (gef and abs(gross[3] - gef) < 0.01):
-                ok = abs(gross[3] - RC["brutto"]) <= 1
-                zeichen.append((gross[0], "haken" if ok else "kreuz", gross[2], None if ok else f"Zahlung lt. Prüfung {_eur(RC['brutto'])} brutto"))
-    except Exception:   # Beträge nicht erkennbar (Scan, eigenes Layout): ohne automatische Prüfzeichen
-        zeichen = []
-    with db.tx() as c:
-        for n, art, pos, txt in zeichen:
-            if art == "_geld":
+        for n, art, pos, txt in _pruefzeichen(A, K, RC, R0, VP, {y["id"]: y for y in (_j(lv["data"], {}) or {}).get("items") or [] if y.get("id")}):
+            if any(hn == n and abs(hy - pos[1]) < 0.006 for hn, hy in hand):
                 continue
-            skizze.strich(c, sid, g.user, {"seite": n, "art": art, "farbe": "#1f9d4c" if art == "haken" else "#e02424", "breite": 0.004, "pts": [pos]})
+            out.append({"seite": n, "art": art, "farbe": "#1f9d4c" if art == "haken" else "#e02424", "breite": 0.004, "pts": [pos]})
             if txt:
-                skizze.strich(c, sid, g.user, {"seite": n, "art": "text", "farbe": "#e02424", "breite": 0.0035, "pts": [[max(0.03, pos[0] - 0.32), min(0.99, pos[1] + 0.024)]], "text": txt})
-    return jsonify(skizze=sid, name=x["name"], automatisch=sum(1 for z in zeichen if z[1] != "_geld"))
+                out.append({"seite": n, "art": "text", "farbe": "#e02424", "breite": 0.0035, "pts": [[max(0.03, pos[0] - 0.32), min(0.99, pos[1] + 0.024)]], "text": txt})
+    return out
 
 
 def _pruefzeichen(A, K, RC, R, VP, I=None):
@@ -5737,7 +5703,7 @@ def lv_pdf(i):
                 if "rechnung" in teile:
                     with db.tx() as c2:
                         _beleg_tabelle(c2)
-                        bl = [_beleg_markiert(c2, bytes(b["data"])) for b in c2.execute("SELECT data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
+                        bl = [_beleg_markiert(c2, bytes(b["data"]), b["id"]) for b in c2.execute("SELECT id, data FROM ava_beleg WHERE rechnung_id=? ORDER BY id", (rid,)).fetchall()]
                 am_ = [_am_pdf()] if "aufmass" in teile and P["aufmass"] else []
                 teile_ = [x for x in [pdf] + am_ + bl if x]
                 if len(teile_) > 1 or (teile_ and not pdf):

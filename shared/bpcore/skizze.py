@@ -202,17 +202,27 @@ def einladungen(c, u):
         "WHERE e.an=? AND e.erledigt=0 AND e.created>? ORDER BY e.id DESC LIMIT 5", (u["id"], grenze))]
 
 
+def striche_von(c, sid):
+    """Alle (nicht gelöschten) Striche einer Skizze als Liste."""
+    return [json.loads(x["data"]) for x in c.execute("SELECT data FROM skizze_strich WHERE skizze_id=? AND geloescht=0 ORDER BY id", (sid,))]
+
+
 def pdf_mit_markierungen(c, sid):
     """Plan mit allen Strichen als PDF (zum Speichern oder Weiterschicken)."""
+    r = c.execute("SELECT name, datei FROM skizze WHERE id=?", (sid,)).fetchone()
+    return r["name"], pdf_zeichnen(bytes(r["datei"]), striche_von(c, sid))
+
+
+def pdf_zeichnen(datei, liste):
+    """Striche und Prüfzeichen in eine PDF zeichnen. liste: [{seite, art, farbe, breite, pts, text?}] – Lage 0…1 der angezeigten Seite.
+    Auch ohne Skizzen-Sitzung nutzbar (z. B. Haken aus der Rechnungsprüfung der AVA)."""
     import io
     from pypdf import PdfReader, PdfWriter
     from reportlab.lib.colors import HexColor
     from reportlab.pdfgen import canvas
-    r = c.execute("SELECT name, datei FROM skizze WHERE id=?", (sid,)).fetchone()
-    rd = PdfReader(io.BytesIO(bytes(r["datei"])))
+    rd = PdfReader(io.BytesIO(datei))
     striche = {}
-    for x in c.execute("SELECT data FROM skizze_strich WHERE skizze_id=? AND geloescht=0 ORDER BY id", (sid,)):
-        d = json.loads(x["data"])
+    for d in liste:
         striche.setdefault(d["seite"], []).append(d)
     wr = PdfWriter()
     for n, pg in enumerate(rd.pages, 1):
@@ -279,7 +289,7 @@ def pdf_mit_markierungen(c, sid):
         wr.add_page(pg)
     out = io.BytesIO()
     wr.write(out)
-    return r["name"], out.getvalue()
+    return out.getvalue()
 
 
 # ---------------------------------------------------------------- Externe Gäste ohne Anmeldung

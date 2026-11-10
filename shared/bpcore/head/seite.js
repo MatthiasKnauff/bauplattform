@@ -95,7 +95,8 @@
   }
 
   /* eigenes Browserfenster je Reiter: der Inhalt wird wie im Bereich gefüllt (mount), nur in einem anderen Fenster.
-     Bedien-Ereignisse der Seite gelten dort mit (BP_HORCHER aus bp.js); schließt man das Fenster, sitzt der Reiter wieder rechts. */
+     Bedien-Ereignisse der Seite gelten dort mit (BP_HORCHER aus bp.js); schließt man das Fenster (✕ des Fensters), sitzt der Reiter
+     wieder rechts. Das Fenster hat keine eigene Kopfzeile – so bleibt oben nur die Leiste des Browsers. */
   const eigenOffen = (key, id) => { const w = EIGEN.get(key + '|' + id); if (w && w.closed) EIGEN.delete(key + '|' + id); return !!w && !w.closed; };
   const nochmal = (key) => { const x = AKTIV.get(key); if (x && x.sp.isConnected) { seite(x.sp, key, x.reiter, x.opt); if (x.opt.wechsel) x.opt.wechsel(); } };
   function eigenStil(w) {   // Aussehen der Seite übernehmen: Stilblätter, Farbschema und Stil-Variablen am <html>
@@ -110,10 +111,9 @@
     const q = lies(`${key}.win.${rt.id}`, null) || { w: 900, h: Math.min(1100, screen.availHeight - 80) };
     const w = window.open('', 'bp_sr_' + key + '_' + rt.id, `popup=yes,width=${q.w},height=${q.h}${q.x != null ? `,left=${q.x},top=${q.y}` : ''}`);
     if (!w) { if (window.toast) window.toast('Das Fenster wurde vom Browser blockiert – bitte Pop-ups für diese Seite erlauben.', true); return; }
-    const d = w.document; d.open(); d.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>${esc(rt.titel)}</title></head><body><div class="sr-ek"><b></b><button type="button" class="btn sm" data-sre="zur" title="Fenster schließen – der Reiter sitzt wieder rechts im Bereich">↩ zurück</button></div><div class="sr-b"></div></body></html>`); d.close();
+    const d = w.document; d.open(); d.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>${esc(rt.titel)}</title></head><body><div class="sr-b"></div></body></html>`); d.close();
     eigenStil(w); EIGEN.set(key + '|' + rt.id, w); BP_FENSTER.add(w);
     BP_HORCHER.forEach(([t, f, o]) => d.addEventListener(t, f, o));
-    d.addEventListener('click', (e) => { if (e.target.closest('[data-sre="zur"]')) w.close(); });
     let t = 0, breite = w.innerWidth;
     w.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (w.closed) return; merk(`${key}.win.${rt.id}`, { w: w.outerWidth, h: w.outerHeight, x: w.screenX, y: w.screenY });
       if (Math.abs(w.innerWidth - breite) > 40) { breite = w.innerWidth; const x = AKTIV.get(key), a = x && x.reiter.find((y) => y.id === rt.id); if (a && a.neu) a.neu(); } }, 350); });
@@ -129,7 +129,7 @@
       const x = AKTIV.get(key), rt = x && x.sp.isConnected && x.reiter.find((y) => y.id === id), d = w.document, b = d.querySelector('.sr-b'); if (!b) continue;
       if (d.documentElement.dataset.theme !== document.documentElement.dataset.theme || d.documentElement.getAttribute('style') !== document.documentElement.getAttribute('style')) eigenStil(w);
       b.className = 'sr-b'; b.innerHTML = '';
-      if (rt) { d.title = rt.titel + ' – ' + document.title; d.querySelector('.sr-ek b').textContent = rt.titel; rt.mount(b); }
+      if (rt) { d.title = rt.titel + ' – ' + document.title; rt.mount(b); }
       else b.innerHTML = '<div class="sr-weg"><div><p>Zur aktuellen Auswahl gibt es hier nichts zu zeigen.</p><p class="hint">Das Fenster füllt sich wieder, sobald du links einen passenden Eintrag wählst.</p></div></div>';
     }
   }

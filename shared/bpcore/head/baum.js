@@ -272,5 +272,25 @@
       if (zeilenTaste(e, c[0], c[1])) halt(e);
     });
   }
-  window.bpBaum = { EINZUG, einzug, zelle, klapp, sicht, eltern, zeige, klappbar, rolle, tasten };
+  /* Markieren – eine Regel für alle Bäume (wie im Explorer). Der Stand gehört der App: { akt, sel: Set, anker }.
+       akt    die Zeile, auf der man steht (dahinter wird eingefügt) · sel  Mehrfachmarkierung · anker  Startzeile für Umschalt
+     bpBaum.markiere(stand, ids, id, { umschalt, strg }) → neuer Stand
+       ids  Kennungen aller Zeilen in Reihenfolge · id  die angeklickte Zeile
+       Klick: nur diese Zeile · Strg+Klick: einzeln dazu oder weg · Umschalt+Klick: von der Ankerzeile bis hierher
+     bpBaum.markiert(stand, ids) → die markierten Kennungen in Reihenfolge (Mehrfachmarkierung, sonst die Zeile, auf der man steht) */
+  function markRegel(st, ids, id, o) {
+    o = o || {}; let akt = st.akt, sel = new Set(st.sel || []), anker = st.anker;
+    if (o.umschalt) {
+      const a = ids.indexOf(anker != null ? anker : akt), b = ids.indexOf(id);
+      sel = a < 0 || b < 0 ? new Set([id]) : new Set(ids.slice(Math.min(a, b), Math.max(a, b) + 1));
+      akt = id;   // der Anker bleibt – ein weiterer Umschalt+Klick zieht den Bereich neu auf
+    } else if (o.strg) {
+      if (!sel.size && akt != null) sel.add(akt);
+      if (sel.has(id)) { sel.delete(id); if (akt === id) akt = [...sel].pop() ?? null; } else { sel.add(id); akt = id; }
+      anker = id;
+    } else { sel = new Set([id]); akt = id; anker = id; }
+    return { akt, sel, anker };
+  }
+  function markiert(st, ids) { const m = st.sel && st.sel.size ? st.sel : new Set(st.akt != null ? [st.akt] : []); return ids.filter((x) => m.has(x)); }
+  window.bpBaum = { EINZUG, einzug, zelle, klapp, sicht, eltern, zeige, klappbar, rolle, tasten, markiere: markRegel, markiert };
 })();

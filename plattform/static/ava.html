@@ -2253,20 +2253,12 @@ document.addEventListener('click', (e) => {   // Klick auf die OZ markiert; Strg
   const aufOz = !!e.target.closest('td.oz'), feld = e.target.closest('input,textarea,select,button,a,[data-zu],[data-a]');
   if (feld && !(e.ctrlKey || e.metaKey || e.shiftKey)) return;
   const I = items(), x = I[+tr.dataset.i]; if (!x) return;
-  if (e.shiftKey) {
-    e.preventDefault(); const a = I.findIndex((y) => y.id === (LVANK || LVAKT)); const b = I.indexOf(x);
-    if (a < 0) { LVSEL = new Set([x.id]); } else { const [v, n] = a < b ? [a, b] : [b, a]; LVSEL = new Set(I.slice(v, n + 1).map((y) => y.id)); }
-    LVAKT = x.id; window.getSelection && window.getSelection().removeAllRanges();
-  } else if (e.ctrlKey || e.metaKey) {
-    if (LVSEL.size === 0 && LVAKT) LVSEL.add(LVAKT);
-    if (LVSEL.has(x.id)) { LVSEL.delete(x.id); if (LVAKT === x.id) LVAKT = [...LVSEL].pop() || null; } else { LVSEL.add(x.id); LVAKT = x.id; }
-    LVANK = x.id;
-  } else {
-    LVSEL = new Set([x.id]); LVAKT = x.id; LVANK = LVAKT;   // Klick irgendwo in die Zeile markiert sie (bleibt markiert, auch beim zweiten Klick)
-  }
+  if (e.shiftKey) { e.preventDefault(); window.getSelection && window.getSelection().removeAllRanges(); }
+  // Klick irgendwo in die Zeile markiert sie (bleibt markiert, auch beim zweiten Klick) – Regel aus dem Baukasten (bpBaum.markiere)
+  ({ akt: LVAKT, sel: LVSEL, anker: LVANK } = bpBaum.markiere({ akt: LVAKT, sel: LVSEL, anker: LVANK }, I.map((y) => y.id), x.id, { umschalt: e.shiftKey, strg: e.ctrlKey || e.metaKey }));
   lvAktZeigen();
 });
-const lvMarkiert = () => { const I = items(); const ids = LVSEL.size ? LVSEL : new Set(LVAKT ? [LVAKT] : []); return I.filter((y) => ids.has(y.id)); };
+const lvMarkiert = () => { const I = items(), m = new Set(bpBaum.markiert({ akt: LVAKT, sel: LVSEL }, I.map((y) => y.id))); return I.filter((y) => m.has(y.id)); };
 function lvSelLeiste() {   // Leiste für mehrere markierte Zeilen
   let el = $('#lvSel'); const n = tab === 'lv' && L ? lvMarkiert().length : 0;
   if (n < 2) { if (el) el.hidden = true; return; }

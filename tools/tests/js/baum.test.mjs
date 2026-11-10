@@ -61,3 +61,25 @@ test('Stand merken: mit key bleibt er über das Neuladen, ohne key nicht', () =>
   B.klapp({ anfang: ['a'] }).um('a');
   assert.equal(speicher.size, 1);
 });
+
+test('Markieren: Klick, Strg+Klick, Umschalt+Klick – eine Regel für alle Bäume', () => {
+  const { B } = lade();
+  const ids = ['a', 'b', 'c', 'd', 'e'], sel = (st) => [...st.sel].sort().join('');
+  let st = B.markiere({ akt: null, sel: new Set(), anker: null }, ids, 'b');
+  assert.equal(st.akt, 'b'); assert.equal(sel(st), 'b'); assert.equal(st.anker, 'b');
+  st = B.markiere(st, ids, 'd', { umschalt: true });   // von b bis d
+  assert.equal(sel(st), 'bcd'); assert.equal(st.akt, 'd'); assert.equal(st.anker, 'b');
+  st = B.markiere(st, ids, 'a', { umschalt: true });   // Bereich neu aufziehen, rückwärts
+  assert.equal(sel(st), 'ab'); assert.equal(st.akt, 'a');
+  st = B.markiere(st, ids, 'e', { strg: true });   // einzeln dazu
+  assert.equal(sel(st), 'abe'); assert.equal(st.akt, 'e'); assert.equal(st.anker, 'e');
+  st = B.markiere(st, ids, 'e', { strg: true });   // wieder weg – man steht auf einer verbliebenen Zeile
+  assert.equal(sel(st), 'ab'); assert.ok(['a', 'b'].includes(st.akt));
+  st = B.markiere({ akt: 'c', sel: new Set(), anker: null }, ids, 'e', { strg: true });   // die Zeile, auf der man steht, zählt mit
+  assert.equal(sel(st), 'ce');
+  st = B.markiere({ akt: 'x', sel: new Set(), anker: 'x' }, ids, 'c', { umschalt: true });   // Anker gibt es nicht mehr
+  assert.equal(sel(st), 'c');
+  assert.deepEqual([...B.markiert({ akt: 'c', sel: new Set(['e', 'a']) }, ids)], ['a', 'e']);   // in Reihenfolge des Baums
+  assert.deepEqual([...B.markiert({ akt: 'c', sel: new Set() }, ids)], ['c']);
+  assert.equal(B.markiert({ akt: null, sel: new Set() }, ids).length, 0);
+});

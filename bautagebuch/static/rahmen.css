@@ -10,7 +10,7 @@ body.bt-rahmen #rechts{display:flex;flex:1;min-width:0;flex-direction:column;min
 body.bt-rahmen #bfl{display:block;flex:none;padding:.35rem .45rem 0}
 body.bt-rahmen #work{display:grid;flex:1;min-height:0;padding:.35rem .45rem .45rem;box-sizing:border-box;align-items:stretch}
 body.bt-rahmen #work>.sr-r{display:flex;position:static;height:auto;min-height:0}
-body.bt-rahmen #work>.sr-griff{display:block}
+body.bt-rahmen #work:not(.sr-zu):not(.sr-leer)>.sr-griff{display:block}
 body.bt-rahmen #detail{padding:0 .3rem 0 0;min-width:0}
 body.bt-rahmen #detail .wrap{max-width:none;padding-bottom:1rem}
 body.bt-rahmen .btl{display:block;max-width:none}

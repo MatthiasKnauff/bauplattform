@@ -332,10 +332,10 @@ function openDlg(p) {
 }
 function delDlg(p) {
   const opts = [];
-  if (p.bt) opts.push(['bt', p.bt.id, `<b>Bautagebuch-Projekt</b><small>mit ${p.bt.reports} Tagesberichten und ${p.bt.images} Fotos</small>`]);
+  if (p.bt) opts.push(['bt', p.bt.id, `<b>Das Projekt selbst</b><small>${window.BPHead && BPHead.projektInhalt ? BPHead.projektInhalt(p.bt) : ''}</small>`]);
   p.plans.forEach((x) => opts.push(['plan', x.id, `<b>Bauzeitenplan „${esc(x.name)}“</b><small>mit ${x.versions} gespeicherten Versionen</small>`]));
   p.bks.forEach((x) => opts.push(['bk', x.id, `<b>Kostenermittlung „${esc(x.name)}“</b><small>mit Raumbuch, Schätzungen und ${x.files} Plänen (PDF)</small>`]));
-  const bg = modalBox(`<h3>Aus welchen Apps löschen?</h3><p class="mute">„${esc(p.name)}“ – angekreuzte Teile kommen in den Papierkorb (Startseite), alles andere bleibt.</p>
+  const bg = modalBox(`<h3>Was soll gelöscht werden?</h3><p class="mute">„${esc(p.name)}“ – angekreuzte Teile kommen in den Papierkorb (Startseite), alles andere bleibt.</p>
     <div class="dl">${opts.map(([t, id, l], n) => `<label><input type="checkbox" data-n="${n}"><span>${l}</span></label>`).join('')}</div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn danger" data-m="del" disabled>🗑 In den Papierkorb</button></div>`,
   async (m, bg, close, btn) => {

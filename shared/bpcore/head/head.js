@@ -1215,16 +1215,19 @@
   /* Projektdaten (Bauherr, Projekt, Termine) – aus Verwaltung, AVA und Baukosten dieselbe Maske */
   /* Projekt löschen (nur Administratoren): ankreuzen, aus welchen Apps – angekreuzte Teile kommen in den Papierkorb (Startseite), der Rest bleibt.
      Derselbe Ablauf wie in der Verwaltung → Projekte. */
+  /* Was im Projekt steckt – genannt wird nur, was Inhalt hat (für den Lösch-Dialog hier und in der Verwaltung) */
+  H.projektInhalt = (bt) => { const t = [[bt.reports, 'Tagesbericht', 'e'], [bt.images, 'Foto', 's'], [bt.lvs, 'LV', 's']].filter((x) => x[0] > 0).map(([n, w, e]) => `${n} ${w}${n === 1 ? '' : e}`);
+    return (t.length ? 'enthält ' + t.join(', ') : 'noch ohne Inhalt') + ' – Aufgaben und Pläne des Projekts gehen mit'; };
   H.projektLoeschen = async function (pid, fertig) {
     let T; try { T = await KX(`api/bp/projekt/${pid}/teile`); } catch (e) { bpHinweis(e.message); return; }
-    const opts = [['bt', T.bt.id, `<b>Bautagebuch-Projekt</b><small>mit ${T.bt.reports} Tagesberichten und ${T.bt.images} Fotos – dazu gehören auch LVs, Aufgaben und Pläne dieses Projekts</small>`],
+    const opts = [['bt', T.bt.id, `<b>Das Projekt selbst</b><small>${H.projektInhalt(T.bt)}</small>`],
       ...T.plans.map((x) => ['plan', x.id, `<b>Bauzeitenplan „${esc(x.name)}“</b><small>mit ${x.versions} gespeicherten Versionen</small>`]),
       ...T.bks.map((x) => ['bk', x.id, `<b>Kostenermittlung „${esc(x.name)}“</b><small>mit Raumbuch, Schätzungen und ${x.files} Plänen (PDF)</small>`])];
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
-    bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Projekt löschen" style="width:min(520px,96vw)"><div class="bph-dh"><b>Aus welchen Apps löschen?</b><button type="button" class="bph-x" data-lx aria-label="Schließen">✕</button></div><div class="bph-db">
+    bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Projekt löschen" style="width:min(520px,96vw)"><div class="bph-dh"><b>Was soll gelöscht werden?</b><button type="button" class="bph-x" data-lx aria-label="Schließen">✕</button></div><div class="bph-db">
       <p class="bph-mu" style="margin-top:0">„${esc(T.name)}“ – angekreuzte Teile kommen in den Papierkorb (Startseite) und lassen sich dort wiederherstellen, alles andere bleibt.</p>
-      <div class="bph-ldl">${opts.map(([, , l], n) => `<label><input type="checkbox" data-ln="${n}"><span>${l}</span></label>`).join('')}</div>
-      <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-lx>Abbrechen</button><button type="button" class="bph-btn bph-bad" data-lok disabled>🗑 In den Papierkorb</button></div></div></div>`;
+      <div class="bph-ldl">${opts.map(([, , l], n) => `<label><input type="checkbox" data-ln="${n}"${opts.length === 1 ? ' checked' : ''}><span>${l}</span></label>`).join('')}</div>
+      <div class="bph-row" style="justify-content:flex-end;margin-top:.8rem"><button type="button" class="bph-btn" data-lx>Abbrechen</button><button type="button" class="bph-btn bph-bad" data-lok${opts.length === 1 ? '' : ' disabled'}>🗑 In den Papierkorb</button></div></div></div>`;
     document.body.appendChild(bg);
     const sel = () => [...bg.querySelectorAll('[data-ln]:checked')].map((c) => opts[+c.dataset.ln]);
     bg.addEventListener('change', () => { bg.querySelector('[data-lok]').disabled = !sel().length; });

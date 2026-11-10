@@ -30,7 +30,10 @@ def teile(c, pid):
         q += f" OR (project_id IS NULL AND gantt_id IN ({','.join('?' * len(gids))}))"
         args += gids
     bks = c.execute(q + " ORDER BY name", tuple(args)).fetchall()
-    return {"name": p["name"], "bt": {"id": p["id"], "reports": p["reports"], "images": p["images"]},
+    lvs = 0   # LVs der AVA (Tabelle gibt es erst, wenn die AVA einmal gelaufen ist)
+    if c.execute("SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_name='ava_lv'").fetchone()["n"]:
+        lvs = c.execute("SELECT COUNT(*) AS n FROM ava_lv WHERE project_id=? AND archived=0", (pid,)).fetchone()["n"]
+    return {"name": p["name"], "bt": {"id": p["id"], "reports": p["reports"], "images": p["images"], "lvs": lvs},
             "plans": [{"id": x["id"], "name": x["name"], "versions": x["versions"]} for x in plans],
             "bks": [{"id": x["id"], "name": x["name"], "files": x["files"]} for x in bks]}
 

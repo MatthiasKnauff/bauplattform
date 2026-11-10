@@ -75,6 +75,7 @@ window.BP_UNDO_EIGEN = true;     // Strg+Z / Strg+Y gehören dem Rückgängig de
     for (const ss of document.styleSheets) {
       let rules; try { rules = ss.cssRules; } catch { continue; }
       if (!rules || (ss.ownerNode && ss.ownerNode.id === 'themeGen')) continue;
+      if (/\/bp\/|rahmen\.css/.test(ss.href || '')) continue;   // Baukasten (bp.css, head.css) und rahmen.css kennen die Farbschemata selbst – nicht umrechnen
       for (const r of rules) {
         if (!r.style || !r.selectorText || SKIP.test(r.selectorText)) continue;   // @media print u. a. haben kein selectorText
         let decl = '';
@@ -97,7 +98,7 @@ window.BP_UNDO_EIGEN = true;     // Strg+Z / Strg+Y gehören dem Rückgängig de
     if (e !== 'dunkel') { if (st) st.textContent = ''; return; }
     if (!st) {
       st = document.createElement('style'); st.id = 'themeGen';
-      const link = document.querySelector('link[rel=stylesheet]');
+      const link = document.querySelector('link[rel=stylesheet][href^="style.css"]') || document.querySelector('link[rel=stylesheet]');
       // nach style.css: überschreibt bei gleicher Spezifität; ausdrückliche Schema-Regeln sind spezifischer
       if (link && link.nextSibling) link.parentNode.insertBefore(st, link.nextSibling); else document.head.appendChild(st);
     }

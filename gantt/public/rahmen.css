@@ -1,0 +1,37 @@
+/* Bauzeitenplan im Aufbau der Plattform (rahmen.js): links Navigation, rechts Befehlsleiste über Plan und Bereich rechts.
+   Aussehen der Bausteine (Navigation, Befehlsleiste, Bereich rechts) kommt aus dem Baukasten (bp.css, head.css). */
+body.g-rahmen{--y:var(--accent);--on:#fff}   /* Akzent des Bauzeitenplans auch für die Bausteine */
+body.g-rahmen #rahmen{flex:1;display:flex;min-height:0}
+body.g-rahmen #navL{width:var(--gnav,236px);flex:none;min-height:0}
+body.g-rahmen #rechts{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+body.g-rahmen #tabs .tab,body.g-rahmen #tabs .tb-k{display:none}   /* Reiter → Navigation links; Verlauf/Export/Drucken → Befehlsleiste */
+body.g-rahmen #gTitel{align-self:center;font-size:1.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding-right:.8rem;color:var(--tab-fg,inherit)}
+body.g-rahmen #ribbon{display:none!important}
+body.g-rahmen #leiste{flex:none;padding:.35rem .45rem 0}
+body.g-rahmen #work{flex:1;min-height:0;padding:.35rem .45rem .35rem;box-sizing:border-box}
+body.g-rahmen #work.sr-split{display:grid;align-items:stretch}
+body.g-rahmen #work>.sr-r{position:static;height:auto;min-height:0}
+body.g-rahmen #work.sr-zu>.sr-r{height:auto}
+body.g-rahmen #links{display:flex;min-width:0;min-height:0;border:1px solid var(--line,#d9d8d3);border-radius:calc(10px*var(--rk,1));overflow:hidden}
+body.g-rahmen #links>section,body.g-rahmen #links>main{flex:1;min-width:0}
+body.g-rahmen #links>[hidden]{display:none!important}
+body.g-rahmen #split2,body.g-rahmen #assistPane{display:none!important}
+/* Planungsassistent als Reiter */
+.g-assist{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.g-assist>*{flex:1;min-height:0}
+/* Details der markierten Leistung */
+.g-det h3{margin:0 0 .45rem;font-size:1.05em;overflow-wrap:anywhere}
+.g-nv{display:flex;gap:.4rem;align-items:center;margin:0 0 .45rem}
+.g-grp{border:1px solid var(--line,#d9d8d3);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;margin:0 0 .45rem}
+.g-grp h6{margin:0 0 .35rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute,#6a6a6a)}
+.g-f{display:flex;flex-wrap:wrap;gap:.45rem .7rem;align-items:flex-end}
+.g-f label{display:grid;gap:.2rem;font-size:.82em;color:var(--mute,#6a6a6a);flex:1 1 8rem;min-width:0}
+.g-f label:has(.w){flex-basis:100%}
+.g-f input{width:100%;box-sizing:border-box;color:var(--ink,inherit)}
+.g-pct{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.45rem}.g-pct .btn.on{background:var(--y,var(--accent));color:var(--on,#fff)}
+.g-grp textarea{width:100%;box-sizing:border-box;min-height:4.5rem;resize:vertical}
+/* Darstellung (Fenster mit den Auswahlfeldern des alten Menübands) */
+.g-darst{display:flex;flex-direction:column;gap:.7rem;min-width:min(26rem,80vw)}.g-darst .rcol{display:grid;gap:.25rem}
+.g-darst-b{display:flex;gap:.5rem;margin:.9rem 0 .6rem;flex-wrap:wrap}.g-darst-c{display:flex;gap:.5rem;align-items:center}
+@media (max-width:900px){body.g-rahmen #navL{display:none}}
+body.g-rahmen #navVm .gl{display:none}body.g-rahmen #navVm .vm-grp{border:0;padding:0 0 .4rem}

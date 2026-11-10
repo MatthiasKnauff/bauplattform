@@ -578,10 +578,13 @@ function estHtml() {
   const open = B.data.items.filter((i) => i.amount == null).length, ki = window.BPHead ? BPHead.provider() : { key: 'intern', label: 'Intern' };
   let h = `<section class="card" style="margin-bottom:1.2rem" id="estBox"><div class="row"><div style="flex:1;min-width:240px"><h2>Fehlendes schätzen</h2>
     <p class="sub" style="margin:0">${open ? open + ' Kostengruppen sind noch offen.' : 'Keine offenen Kostengruppen.'} Faustwerte (Intern)${ki.key !== 'intern' ? ' und ' + esc(ki.label) + ' im Vergleich' : ' – für einen Vergleich oben eine KI wählen'}, jeweils mit Spanne.</p></div>
-    <button class="btn pri" data-act="estimate"${estBusy ? ' disabled' : ''}>${estBusy ? 'Schätze …' : EST ? 'Neu schätzen' : 'Jetzt schätzen'}</button><button class="btn ki" data-act="estimateKi"${estBusy ? ' disabled' : ''} title="Zusätzlich mit KI schätzen">✨ mit KI</button></div>`;
+    <button class="btn pri" data-act="estimate"${estBusy ? ' disabled' : ''}>${estBusy ? 'Schätze …' : EST ? 'Neu schätzen' : 'Jetzt schätzen'}</button><button class="btn ki" data-act="estimateKi"${estBusy ? ' disabled' : ''} title="Zusätzlich mit KI schätzen">✨ mit KI</button>${EST ? '<button class="btn" data-act="estZu" title="Vorschläge ausblenden – übernommen ist nur, was du mit „Übernehmen“ bestätigt hast">✕ Vorschläge schließen</button>' : ''}</div>`;
   if (EST) {
     if (EST.note) h += `<p class="hint" style="color:#e07b3a">${esc(EST.note)}</p>`;
-    const by = {}; EST.vorschlaege.forEach((v, n) => { (by[v.kg] ||= []).push([v, n]); });
+    /* ohne Bauwerkskosten sind die Faustwerte (Prozente davon) alle 0 € – das sagen statt leere Vorschläge anbieten */
+    const leer = EST.vorschlaege.length && EST.vorschlaege.every((v) => !(v.value > 0));
+    if (leer) h += '<p class="hint" style="margin:.8rem 0 0">Es gibt noch keine Bauwerkskosten (KG 300 + 400) – die Faustwerte sind Prozente davon und wären alle 0 €. Erst unter <a href="#" data-tab="plaene">Pläne &amp; Raumbuch</a> Räume mit Flächen erfassen, dann hier neu schätzen.</p>';
+    const by = {}; (leer ? [] : EST.vorschlaege).forEach((v, n) => { (by[v.kg] ||= []).push([v, n]); });
     h += Object.entries(by).map(([kg, vs]) => `<h3 style="margin:1rem 0 .5rem;font-size:.95rem">KG ${esc(kg)} ${esc(vs[0][0].name)}</h3><div class="est">${vs.map(([v, n]) => `
       <div class="card ec"><span class="src">${esc(v.src)}</span><span class="v num">${eur(v.value)}</span><span class="sp">Spanne ${eur(v.low)} – ${eur(v.high)} <span class="sich ${v.sicher}">Sicherheit ${esc(v.sicher)}</span></span>
       <p class="hint" style="margin:.2rem 0">${esc(v.basis)}</p><div><button class="btn sm" data-take="${n}">Übernehmen</button></div></div>`).join('')}</div>`).join('');
@@ -1073,6 +1076,7 @@ document.addEventListener('click', async (e) => {
       toast(neu.length ? `${neu.length} Kostengruppen ergänzt – Beträge prüfen.` : 'Alle Kostengruppen der 1. Ebene sind schon aufgeführt.'); changed();
     }
     else if (act === 'estimate') runEstimate();
+    else if (act === 'estZu') { EST = null; render(); }
     else if (act === 'firstPdf') $('#pdfIn').click();
     else if (act === 'firstRoom') { tab = 'plaene'; history.replaceState(null, '', '#plaene'); B.data.rooms.push({ id: 'h' + Date.now(), nr: '', name: '', area: 0, typ: 'sonst', ok: true, src: 'hand', floor: '', pos: null }); changed(); }
     else if (act === 'openAssist') { AS.open = true; AS.step = null; asSave(); assist(); }

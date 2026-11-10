@@ -151,8 +151,10 @@
         if (!assistUI) assistUI = AssistUI.mount(ASSIST, AssistCore, { docked: true, onClose: () => { LS.set('assistOpen', false); seiteReiter('gantt', 'details'); }, onPopout: popoutAssist });
         LS.set('assistOpen', true);
       } },
+      ...(window.GVGL && GVGL.reiter() ? [GVGL.reiter()] : []),   // Vergleich mit einer Version (vergleich.js)
     ], { start: LS.get('assistOpen', false) ? 'assistent' : 'details', w: 0.72, wechsel: () => { leisteNeu(); requestAnimationFrame(() => P && render()); } });
   }
+  window.ganttBereichNeu = () => bereich();   // vergleich.js: Reiter „Vergleich“ ein-/ausblenden
   // Eingaben in den Details: wie in der Tabelle (gleicher Weg, mit Rückgängig)
   WORK.addEventListener('change', (e) => {
     const inp = e.target, k = inp.closest('.g-det[data-uid]'); if (!k) return;

@@ -5,6 +5,7 @@
 const PJTABS = new Set(['lv', 'angebote', 'aufmass', 'rechnungen']);   // Projektbaum links in der Navigation unter dem gewählten Bereich
 let PJX = new Set(LS.get('pjx', [])), PJXG = LS.get('pjx', null) !== null, PJZU = LS.get('pjzu', false), PJF = null;   // PJXG: schon einmal selbst auf-/zugeklappt – dann auch alle zu erlaubt
 /* Unter dem gewählten Bereich links: der Projektbaum (LVs mit Bietern bzw. Rechnungen) und der passende „＋ Neu“-Knopf */
+let NSU = null;   // Suchfeld der Navigation (#nsuche)
 function navUnter(k) {
   const nb = { lv: ['new', '＋ Neues LV', !pid], angebote: ['bieter', '＋ Bieter', !L], auftraege: ['auftrag', '＋ Neuer Auftrag', !pid], aufmass: ['reNeu', '＋ Neue Rechnung', !pid], rechnungen: ['reNeu', '＋ Neue Rechnung', !pid] }[k];   // ohne vergebenes LV: „Rechnung ohne LV / Auftrag“
   const baum = '';   // die LVs stehen im Tabellenfeld; die Fenster- & Türliste gilt für das ganze Projekt und braucht keinen LV-Baum
@@ -300,8 +301,10 @@ function render() {
   $('#utb').style.display = 'none';   // keine eigene Leiste mehr: Datei-Befehle rechts in der Titelzeile
   uLeisteNeu();
   const nLv = LIST.filter((x) => !x.archived && !ohneLv(x)).length;
+  NSU = $('#nsuche') || NSU;   // Suchfeld festhalten: steht in „oben“ in der Navigation und überlebt so deren Neuzeichnen
   bpNav($('#tabs'), {   // Navigation links: gemeinsamer Baustein (/bp/nav.js)
-    kopf: { titel: (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt', klein: `${nLv} LV${nLv === 1 ? '' : 's'}` }, davor: pjVerHtml(), aktiv: tab, attr: 'tab',   // data-tab: den Wechsel meldet die AVA wie bisher selbst an
+    kopf: { titel: (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt', klein: `${nLv} LV${nLv === 1 ? '' : 's'}` }, davor: pjVerHtml(), aktiv: tab, attr: 'tab', lage: true,   // Lage wählbar (⇔) wie im Bauzeitenplan: links · schmal · oben · automatisch
+    nachher: (el, m) => { const su = NSU, ende = el.querySelector('.nv-ende'); if (m === 'oben' && ende) ende.appendChild(su); else if (su.parentElement !== $('#navL')) $('#navL').insertBefore(su, $('#tabs')); },   // data-tab: den Wechsel meldet die AVA wie bisher selbst an
     gruppen: [...(bk ? [{ titel: 'Kostenberechnung', href: BPHead.appUrl(bk) + '/', tip: 'Kostenermittlung nach DIN 276 in der App Baukosten' }] : []),
       ...NAVI.map(([g, xs]) => ({ titel: g, punkte: xs.map(([k, l, ic]) => ({ id: k, text: l, icon: ic, zahl: n[k] || '', zahlTip: NZT[k] || '', unter: navUnter(k) })) }))],
     fuss: `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung, Bürgschaft · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin"><span class="ad-i">📥</span><span class="ad-t"><b>Datei ablegen</b><small>hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung …</small></span><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 Eingang vom Kopierer<span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`,

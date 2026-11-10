@@ -32,8 +32,9 @@
   const LAGEK = '<button type="button" class="nlage" title="Lage der Navigation: links · schmal · oben · automatisch" aria-label="Lage der Navigation">⇔</button>';
   function zeichne(el) {
     const o = el._bpNavO, a = o.attr || 'nav', m = o.lage ? lageEff() : 'links';
-    el.classList.toggle('schmal', m === 'schmal'); el.classList.toggle('oben', m === 'oben');
-    if (el.parentElement) el.parentElement.classList.toggle('bp-nav-oben-an', m === 'oben');
+    const box = el.closest('.bp-nav') || el;   // steht das Feld in einer Navigation mit Suche darüber (AVA), gilt die Lage für die ganze Navigation
+    [el, box].forEach((x) => { x.classList.toggle('schmal', m === 'schmal'); x.classList.toggle('oben', m === 'oben'); });
+    if (box.parentElement) box.parentElement.classList.toggle('bp-nav-oben-an', m === 'oben');
     const ni = (p, mitText = true) => { const an = p.id === o.aktiv;
       return `<button type="button" class="ni${an ? ' on' : ''}" data-${a}="${esc(p.id)}"${an ? ' aria-current="page"' : ''}${mitText ? '' : ` title="${esc(p.text)}${p.zahl ? ' (' + esc(p.zahl) + ')' : ''}"`}>${svg(p)}${mitText ? `${esc(p.text)}${p.zahl ? `<small${p.zahlTip ? ` title="${esc(p.zahlTip)}"` : ''}>${esc(p.zahl)}</small>` : ''}` : ''}</button>`; };
     const G = o.gruppen || [];

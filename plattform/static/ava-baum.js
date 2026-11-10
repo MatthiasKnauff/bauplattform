@@ -621,6 +621,14 @@ document.addEventListener('click', (e) => {
     if (tr) { tr.scrollIntoView({ block: 'center', behavior: 'smooth' }); tr.classList.add('gaeb-hier'); setTimeout(() => tr.classList.remove('gaeb-hier'), 2500); } }, 60);
 });
 /* GAEB: alle Positionen in derselben Titeltiefe, höchstens 4 Titelebenen, keine übersprungene Ebene */
+document.addEventListener('click', (e) => {   // GAEB-Hinweis wegklicken / zurückholen
+  const w = e.target.closest && e.target.closest('[data-gaebweg],[data-gaebauf]'); if (!w || !L) return;
+  const S = new Set(LS.get('gaebweg', [])); if (w.hasAttribute('data-gaebweg')) S.add(L.id); else S.delete(L.id);
+  LS.set('gaebweg', [...S]); render();
+});
+function gaebSchwebeSetzen() {   // das Warnzeichen schwebt oben rechts über der LV-Tabelle (nicht über dem Bereich rechts)
+  const s = document.querySelector('#view .gaeb-schwebe'), t = document.querySelector('#view .lv-split > :first-child'); if (s && t && s.parentElement !== t) t.prepend(s);
+}
 function lvGaebHinweis() {
   const I = items(), tiefe = {}, sprung = []; let akt = 0;
   I.forEach((x) => {
@@ -631,5 +639,7 @@ function lvGaebHinweis() {
   if (T.length <= 1 && !sprung.length) return '';
   const nz = (t) => (t === 0 ? 'ohne Titel' : t === 1 ? 'direkt unter Titeln' : `unter Untertiteln der ${t}. Ebene`);
   const n = lvGaebStellen().length;
-  return `<p class="si-w" style="margin:.2rem 0 .6rem">${n ? `<button type="button" class="gaeb-zeig" data-gaebzeig><b>${GAEBZ.i >= 0 && GAEBZ.n === n ? `Nächste Stelle zeigen (${(GAEBZ.i + 1) % n + 1} von ${n})` : `Zum Anzeigen hier klicken (${n} Stelle${n === 1 ? '' : 'n'})`}</b></button> ` : ''}⚠ Noch nicht GAEB-konform: ${T.length > 1 ? `Positionen stehen in unterschiedlicher Tiefe (${T.sort().map((t) => `${tiefe[t]} ${nz(t)}`).join(', ')}). In GAEB brauchen alle Positionen dieselbe Titeltiefe – z. B. alle Titel mit ⇥ zu Untertiteln machen oder fehlende Untertitel ergänzen.` : ''}${sprung.length ? ` Ebene übersprungen bei ${sprung.slice(0, 3).map(esc).join(', ')} – ein Untertitel braucht einen Titel darüber.` : ''}</p>`;
+  // weggeklickt (je LV gemerkt): statt der Zeile ein kleines schwebendes Warnzeichen – Klick holt den Hinweis zurück
+  if (LS.get('gaebweg', []).includes(L.id)) { setTimeout(gaebSchwebeSetzen, 0); return `<div class="gaeb-schwebe"><button type="button" class="gaeb-mark" data-gaebauf title="Noch nicht GAEB-konform${n ? ` (${n} Stelle${n === 1 ? '' : 'n'})` : ''} – klicken für den Hinweis"><span>⚠</span><small>GAEB</small></button></div>`; }
+  return `<p class="si-w gaeb-w" style="margin:.2rem 0 .6rem"><button type="button" class="gaeb-x" data-gaebweg title="Hinweis ausblenden – oben bleibt ein kleines Warnzeichen">✕</button>${n ? `<button type="button" class="gaeb-zeig" data-gaebzeig><b>${GAEBZ.i >= 0 && GAEBZ.n === n ? `Nächste Stelle zeigen (${(GAEBZ.i + 1) % n + 1} von ${n})` : `Zum Anzeigen hier klicken (${n} Stelle${n === 1 ? '' : 'n'})`}</b></button> ` : ''}⚠ Noch nicht GAEB-konform: ${T.length > 1 ? `Positionen stehen in unterschiedlicher Tiefe (${T.sort().map((t) => `${tiefe[t]} ${nz(t)}`).join(', ')}). In GAEB brauchen alle Positionen dieselbe Titeltiefe – z. B. alle Titel mit ⇥ zu Untertiteln machen oder fehlende Untertitel ergänzen.` : ''}${sprung.length ? ` Ebene übersprungen bei ${sprung.slice(0, 3).map(esc).join(', ')} – ein Untertitel braucht einen Titel darüber.` : ''}</p>`;
 }

@@ -659,6 +659,14 @@ table.au-t tr.nt-zieh td:first-child{cursor:grab}
 .am-modus{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:.2rem 0 .4rem}.am-modus .seg button{padding:.15rem .6rem}.am-st .pos{color:var(--ok)}.am-st .neg{color:#c0392b}
 .am-bar{position:relative;height:.6rem;border-radius:calc(999px*var(--rkp,1));background:color-mix(in srgb,var(--mute) 18%,transparent);overflow:hidden;margin:0 0 .4rem}.am-bar i{position:absolute;top:0;bottom:0}.am-bar .a{left:0;background:color-mix(in srgb,var(--ok) 45%,transparent)}.am-bar .n{background:var(--ok)}.am-bar .n.neg{background:#c0392b}
 input.am-stin{font-weight:600}
+.gaeb-w{position:relative;padding-right:2rem!important}.gaeb-x{position:absolute;right:.35rem;top:.3rem;border:0;background:none;color:inherit;opacity:.65;cursor:pointer;font-size:1rem;padding:0 .2rem}.gaeb-x:hover{opacity:1}
+/* weggeklickter GAEB-Hinweis: schwebendes Warnzeichen oben rechts über dem LV, nimmt keine Zeile weg */
+.gaeb-schwebe{position:sticky;top:0;height:0;z-index:5}.lv-split>:first-child:has(>.gaeb-schwebe){position:relative}
+.gaeb-mark{position:absolute;right:1.1rem;top:.25rem;display:flex;flex-direction:column;align-items:center;gap:0;padding:.2rem .45rem .15rem;border:1px solid color-mix(in srgb,#e0a030 60%,transparent);border-radius:calc(9px*var(--rk,1));background:color-mix(in srgb,#e0a030 22%,var(--card,#fff));color:#c47f00;cursor:pointer;box-shadow:var(--sh0,0 4px 14px rgba(0,0,0,.22));animation:gaeb-schweben 3.2s ease-in-out infinite}
+.gaeb-mark span{font-size:1.05rem;line-height:1}.gaeb-mark small{font-size:.58rem;font-weight:700;letter-spacing:.08em;line-height:1.1}
+.gaeb-mark:hover{animation-play-state:paused;border-color:#e0a030}
+@keyframes gaeb-schweben{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.gaeb-mark{animation:none}}
 .gaeb-zeig{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blink{0%,40%{background:color-mix(in srgb,#e0a030 45%,transparent)}100%{background:transparent}}
 .au-ntbar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:0 0 .5rem}.au-ntbar .hint{margin-left:.4rem}

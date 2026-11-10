@@ -32,7 +32,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 ## Code
 - Erst nachsehen, ob es den Baustein schon gibt – benutzen statt kopieren; dabei möglichst alten Code überflüssig machen.
   Vorhanden u. a.: `bp.js` (Grundhilfen `$`, `esc`, `api`, `toast`, `modalBox`), `undo.js` (`rueckgaengig`, Rückgängig-Dock),
-  `seite.js` (Bereich rechts, abdockbar), `befehle.js` (Befehlsleiste), `vorschlag.js` (Vorschlagsliste, GAEB-Einheiten), `blase.js` (`bpBlase` – Erklär-Blase, zeigt sich nur die ersten Male),
+  `seite.js` (Bereich rechts, abdockbar), `befehle.js` (Befehlsleiste), `vorschlag.js` (Vorschlagsliste, GAEB-Einheiten), `blase.js` (`bpBlase` – Erklär-Blase, zeigt sich nur die ersten Male), `nav.js` (`bpNav` – Navigation links: Kopf, Gruppen, Bereiche),
   `head.js` (Kopfleiste, Stil, Verlauf, `bpFrage`/`bpEingabe`/`bpHinweis`, `BPHead.datenMaske`, Kontaktmaske).
 - Neue gemeinsame Bausteine gehören nach `shared/bpcore/head/` und in die Freigabeliste in `shared/bpcore/head.py`.
 - Neue Dateien höchstens 1.500 Zeilen; die großen Altdateien nicht weiter aufblähen (Liste in `ordnung.py`), sondern teilen.

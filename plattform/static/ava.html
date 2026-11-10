@@ -45,15 +45,7 @@ tr.vqblink td{animation:vqblink 2.2s ease-out}
 main.ava>.rib{display:none}   /* Variante B: keine Werkzeugleiste – Befehle im Menü „⋯“ rechts in der Bereichsleiste */
 main.ava{overflow-x:clip}   /* die Seite selbst rollt nie seitlich – breite Tabellen rollen in ihrem Feld */
 .body{flex:1;display:grid;grid-template-columns:var(--navw,272px) minmax(0,1fr);min-height:calc(100vh - 140px)}
-.nav{border-right:1px solid var(--line);background:var(--card);overflow:auto;padding:.5rem .45rem;position:sticky;top:52px;align-self:stretch;max-height:calc(100vh - 52px);box-sizing:border-box}
-.nav .ng{margin-bottom:.35rem}
-.nav .nh{display:flex;justify-content:space-between;align-items:center;font-size:var(--fs-s2);padding:.3rem .55rem;border-radius:calc(5px*var(--rk,1));background:var(--tabs);color:var(--ink);font-weight:600;border:1px solid var(--line)}
-.nav a.nh{text-decoration:none}
-.nav .ni{display:flex;gap:.45rem;align-items:center;width:100%;text-align:left;padding:.3rem .55rem .3rem .9rem;border-radius:calc(5px*var(--rk,1));color:var(--ink);font-size:var(--fs)}
-.nav .ni:hover{background:var(--hov)}
-.nav .ni.on{background:color-mix(in srgb,var(--y) 22%,transparent);font-weight:600}
-.nav .ni small{margin-left:auto;color:var(--mute);font-size:var(--fs-s)}
-.nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
+.nav{position:sticky;top:52px;align-self:stretch;max-height:calc(100vh - 52px)}   /* Aussehen der Navigation: Baukasten (.bp-nav in bp.css); hier nur die Lage in der AVA */
 .pane{display:flex;flex-direction:column;min-width:0;padding:0 .8rem 3rem}.pane:has(.bp-feld,.au2,.am-zwei,.am-b){padding-bottom:0}   /* Felder rollen in sich: unten nur der schmale Rand */
 .ph{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;padding:.45rem 0 .35rem;position:sticky;top:0;background:var(--bg);z-index:3}
 .ph>#phT{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ph>#sel,.ph>#stat{flex:none}
@@ -523,7 +515,6 @@ tr.am-lf td input{color:#c0621f}
 #navL #tabs{flex:1;display:flex;flex-direction:column;min-height:0}#navL .nfuss{margin-top:auto;padding-top:.6rem}
 .nsuche{padding:.1rem .1rem .5rem}.nsuche .vqb{display:flex;flex-direction:column;gap:.25rem}.nsuche input[type=search]{width:100%;box-sizing:border-box;padding:.4rem .6rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:var(--card);color:var(--ink);font:inherit;font-size:var(--fs)}
 .nsuche label{font-size:var(--fs-s);color:var(--mute);display:flex;gap:.3rem;align-items:center}
-.nav .pjk{display:flex;align-items:baseline;gap:.4rem;padding:.15rem .4rem .45rem;font-size:var(--fs-s2)}.nav .pjk b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nav .pjk small{color:var(--mute)}
 .pjv{margin:0 0 .5rem}
 .nav #pjTree{margin:0;padding:0;border:0;font-size:var(--fs)}
 .nav #pjTree .pj-r{grid-template-columns:.9rem 16px minmax(0,1fr) auto;padding:.3rem .35rem;border-radius:calc(7px*var(--rk,1));border-left:0}
@@ -541,7 +532,7 @@ tr.am-lf td input{color:#c0621f}
 .nav .nfuss .ava-drop:hover{border-color:var(--y)}
 .nav .nfuss .ava-ein{display:flex;align-items:center;justify-content:center;gap:.35rem;margin:0;padding:.3rem;border:0;border-radius:calc(8px*var(--rk,1));background:transparent;color:var(--mute);font:inherit;font-size:var(--fs-s2);cursor:pointer}
 .nav .nfuss .ava-ein:hover{background:var(--hov);color:var(--ink)}.nav .nfuss .ava-ein .nz{font-size:var(--fs-s);padding:0 .45rem;border-radius:calc(999px*var(--rkp,1));background:var(--y);color:#fff}
-.nav .nneu{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--fs);color:var(--y);cursor:pointer;padding:.25rem .5rem .25rem 1.4rem;margin-top:.1rem}.nav .nneu:disabled{opacity:.45;cursor:default}.nav .nav-u #pjTree{max-height:44vh;overflow:auto}.nav .ng a.nh{text-decoration:none}.nav-u{margin-bottom:.3rem}
+.nav .nav-u #pjTree{max-height:44vh;overflow:auto}.nav-u{margin-bottom:.3rem}
 .rib .rb:disabled{opacity:.35}
 @media (max-width:860px){.body>.nav{display:block;max-height:42vh;overflow:auto;padding:.4rem}.nav .nfuss{margin-top:.4rem}.stp{padding:0 .3rem}.stp button{padding:0 .5rem}}
 .pj-gw{position:fixed;z-index:9000;background:var(--card);border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));box-shadow:var(--sh0,0 8px 24px #0004);padding:.2rem;font-size:var(--fs)}.pj-gw div{padding:.3rem .5rem;border-radius:calc(5px*var(--rk,1));cursor:pointer}.pj-gw div:hover,.pj-gw div.on{background:var(--hov)}
@@ -705,7 +696,7 @@ table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blin
   <nav class="stp" id="stp" aria-label="Arbeitsschritte"></nav>
   <section class="einu" id="einu" aria-label="Leistungsverzeichnisse im Überblick"></section>
   <div class="body">
-    <aside class="nav" id="navL" aria-label="Projekt"><div class="nsuche" id="nsuche"></div><div id="tabs"></div></aside>
+    <aside class="nav bp-nav" id="navL" aria-label="Projekt"><div class="nsuche" id="nsuche"></div><div id="tabs"></div></aside>
     <section class="pane">
       <div class="utb" id="utb" role="tablist" aria-label="Bereiche des Schritts"></div>
       <div class="ph"><b id="phT"></b><button type="button" id="sel" aria-label="Leistungsverzeichnis wählen"></button><span class="stat" id="stat"></span><span class="ph-r"><span class="save" id="save" role="status"></span><span id="phFirma" class="ph-firma"></span><button type="button" class="btn sm" id="phLvD" title="Angaben zur Ausschreibung (Vergabeart, Abgabe, Zuschlag, Ausführung) und zum Auftrag">📋 LV- &amp; Auftragsdaten</button><button type="button" class="btn sm" id="phPrD" title="Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in der Verwaltung">🏗 Projektdaten</button></span><div class="kz"><div class="kpi" id="kpi"></div></div></div>
@@ -1735,10 +1726,12 @@ function render() {
   $('#utb').style.display = 'none';   // keine eigene Leiste mehr: Datei-Befehle rechts in der Titelzeile
   uLeisteNeu();
   const nLv = LIST.filter((x) => !x.archived && !ohneLv(x)).length;
-  $('#tabs').innerHTML = `<div class="pjk"><b>${esc((PROJ.find((p) => p.id === pid) || {}).name || 'Projekt')}</b><small>${nLv} LV${nLv === 1 ? '' : 's'}</small></div>${pjVerHtml()}`
-    + (bk ? `<div class="ng"><a class="nh" href="${esc(BPHead.appUrl(bk))}/" title="Kostenermittlung nach DIN 276 in der App Baukosten">Kostenberechnung <span>↗</span></a></div>` : '')
-    + NAVI.map(([g, xs]) => `<div class="ng"><div class="nh">${esc(g)}</div>${xs.map(([k, l, ic]) => `<button type="button" class="ni${tab === k ? ' on' : ''}" data-tab="${k}"${tab === k ? ' aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ic}</svg>${esc(l)}${n[k] ? `<small title="${esc(NZT[k] || '')}">${n[k]}</small>` : ''}</button>${tab === k ? navUnter(k) : ''}`).join('')}</div>`).join('')
-    + `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung, Bürgschaft · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin"><span class="ad-i">📥</span><span class="ad-t"><b>Datei ablegen</b><small>hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung …</small></span><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 Eingang vom Kopierer<span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`;
+  bpNav($('#tabs'), {   // Navigation links: gemeinsamer Baustein (/bp/nav.js)
+    kopf: { titel: (PROJ.find((p) => p.id === pid) || {}).name || 'Projekt', klein: `${nLv} LV${nLv === 1 ? '' : 's'}` }, davor: pjVerHtml(), aktiv: tab, attr: 'tab',   // data-tab: den Wechsel meldet die AVA wie bisher selbst an
+    gruppen: [...(bk ? [{ titel: 'Kostenberechnung', href: BPHead.appUrl(bk) + '/', tip: 'Kostenermittlung nach DIN 276 in der App Baukosten' }] : []),
+      ...NAVI.map(([g, xs]) => ({ titel: g, punkte: xs.map(([k, l, ic]) => ({ id: k, text: l, icon: ic, zahl: n[k] || '', zahlTip: NZT[k] || '', unter: navUnter(k) })) }))],
+    fuss: `<div class="nfuss"><label class="ava-drop" data-avadrop title="Datei hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung, Bürgschaft · PDF, Scan, Foto, GAEB, Excel. Die Plattform erkennt, was es ist, und fragt nach, wohin"><span class="ad-i">📥</span><span class="ad-t"><b>Datei ablegen</b><small>hierher ziehen oder klicken – Angebot, LV, Aufmaß, Rechnung …</small></span><input type="file" hidden multiple data-avadropin accept=".pdf,.xlsx,.xlsm,.x81,.x82,.x83,.x84,.x85,.x86,.d81,.d83,.d84,.d86,.p81,.p83,.p84,.p86,.x31,.xml,.docx,image/*,application/pdf"></label><button type="button" class="ava-ein" data-eingang title="Dateien im Eingangsordner auf dem Server (z. B. Scans vom Kopierer)">📂 Eingang vom Kopierer<span data-eingangn>${EINGANG && EINGANG.n ? `<span class="nz">${EINGANG.n}</span>` : ''}</span></button></div>`,
+  });
   vlSicht();
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   const mitSel = NURLV.has(tab) && tab !== 'lv' && !PJTABS.has(tab) && LIST.length > 0;   // gewählt wird im Projektbaum links

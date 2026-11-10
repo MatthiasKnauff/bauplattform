@@ -4655,8 +4655,8 @@ def beleg_pruefen(b):
         RC = next((y for y in K["rechnungen"] if y["id"] == x["rid"]), None)
         gef = x["gefordert"] or 0
         A = _j(x["auslese"], None) if "auslese" in x.keys() else None
-        if not A or "zahlen" not in A:
-            A = _auslese_anwenden(c, b, x["rid"], lv)
+        if not A or "zahlen" not in A:   # noch nicht gelesen: jetzt lesen – aber einen Scan nicht hier (Texterkennung dauert Minuten und läuft im Hintergrund)
+            A = (A or {}) if _ist_scan(data) else _auslese_anwenden(c, b, x["rid"], lv)
         R0 = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (x["rid"],)).fetchone()
         VP = (_j(lv["vergabe"], {}) or {}).get("preise") or {}
     zeichen = _pruefzeichen(A, K, RC, R0, VP, {y["id"]: y for y in (_j(lv["data"], {}) or {}).get("items") or [] if y.get("id")})

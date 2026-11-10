@@ -3123,10 +3123,15 @@ function amMarken() {
   });
 }
 document.addEventListener('click', async (e) => {
-  const d = e.target.closest && e.target.closest('.am-mk[data-hk]'); if (!d || d.classList.contains('ok')) return;
+  let d = e.target.closest && e.target.closest('.am-mk[data-hk]'), hk = d && d.dataset.hk;
+  if (!d) {   // freie Stelle auf der Seite: dort einen Haken setzen – für Handschrift und alles, was die Texterkennung nicht als Zahl gefunden hat
+    const w = e.target.closest && e.target.closest('.am-pv .am-pg'); if (!w || !AMV || e.target.closest('.am-zz,a,button')) return;
+    const q = w.getBoundingClientRect(), se = AMV.pages.indexOf(w) + 1; if (!se || !q.width) return;
+    hk = `${AMV.bid}|${se}|${((e.clientY - q.top) / q.height).toFixed(4)}|${Math.max(0, (e.clientX - q.left) / q.width - 0.012).toFixed(4)}`;
+  } else if (d.classList.contains('ok')) return;
   e.stopPropagation(); const R = amRe(); if (!R) return;
-  const k = d.dataset.hk.split('|').map(Number), alt = (R.data.haken || []).slice(), H = hkLies(R);
-  const neu = H.some((h) => hkNah(h, k)) ? alt.filter((q, i) => !hkNah(H[i], k)) : [...alt, d.dataset.hk];
+  const k = hk.split('|').map(Number), alt = (R.data.haken || []).slice(), H = hkLies(R);
+  const neu = H.some((h) => hkNah(h, k)) ? alt.filter((q, i) => !hkNah(H[i], k)) : [...alt, hk];
   R.data.haken = neu; amMarken();
   try { await api('api/rechnungen/' + R.id, 'PUT', { haken: neu }); } catch (er) { R.data.haken = alt; amMarken(); toast(er.message, true); }
 });
@@ -3177,7 +3182,7 @@ function amDokDef() {
 function amDokReiter(el) {   // Inhalt des Reiters: Wahl der PDF, Hinweise, Zoom – darunter die Seiten
   const B = amBelege(), b = B.find((y) => y.id === AMB) || B[0], A = b && b.auslese; if (!b) return;
   el.classList.add('am-dok'); el.innerHTML = `<div class="am-pk">${B.map((y) => `<button class="btn sm${y.id === AMB ? ' pri' : ''}" data-amb="${y.id}" title="${esc(y.name)}">${esc(y.name.length > 28 ? y.name.slice(0, 26) + '…' : y.name)}</button>`).join('')}
-    <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? '<span title="Texterkennung mit Tesseract auf dem Server der Plattform – keine KI">Scan, per Texterkennung gelesen (Tesseract, ohne KI)</span> · ' : ''}${A.ki ? `<span title="Zeilen ohne Ordnungszahl wurden per KI den LV-Positionen zugeordnet">Zuordnung per KI: <b>${esc({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter)}</b> (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''})</span> · ` : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · <span title="✔ stimmt mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert (geprüfte Menge bzw. EP des Auftrags) · ○ noch nicht geprüft" style="cursor:help;text-decoration:underline dotted"><b style="color:#1f9d4c">✔</b> stimmt · <b style="color:#e02424">✘</b> weicht ab · ○ offen</span> · Zahlen anklicken übernimmt sie in den Rechenweg · ○ anklicken hakt die Zeile ab`) : ''}</span><span class="fill"></span>
+    <span class="hint">${A ? (A.text === false ? 'ohne Textebene (Scan) – von Hand durchgehen' : `${A.ocr ? '<span title="Texterkennung mit Tesseract auf dem Server der Plattform – keine KI">Scan, per Texterkennung gelesen (Tesseract, ohne KI)</span> · ' : ''}${A.ki ? `<span title="Zeilen ohne Ordnungszahl wurden per KI den LV-Positionen zugeordnet">Zuordnung per KI: <b>${esc({ ollama: 'Ollama (im Büro)', claude: 'Claude', gemini: 'Gemini', chatgpt: 'ChatGPT', openai: 'ChatGPT' }[A.ki.anbieter] || A.ki.anbieter)}</b> (${A.ki.sicher} sicher${A.ki.vorschlag ? `, ${A.ki.vorschlag} Vorschläge` : ''})</span> · ` : ''}${Object.keys(A.pos || {}).length} Positionen${(A.zeilen || []).length ? ` + ${A.zeilen.length} Zeilen ohne LV-Position` : ''} erkannt · <span title="✔ stimmt mit deiner Prüfung überein · ✘ weicht ab – das kleine Schild zeigt deinen Wert (geprüfte Menge bzw. EP des Auftrags) · ○ noch nicht geprüft" style="cursor:help;text-decoration:underline dotted"><b style="color:#1f9d4c">✔</b> stimmt · <b style="color:#e02424">✘</b> weicht ab · ○ offen</span> · Zahlen anklicken übernimmt sie in den Rechenweg · ○ anklicken hakt die Zeile ab · Klick auf eine freie Stelle setzt einen Haken`) : ''}</span><span class="fill"></span>
     <button class="ib" data-amneu="${AMB}" title="Die PDF noch einmal lesen (bei Scans mit Texterkennung)">↻ neu lesen</button><button class="ib" data-amz="-1" title="kleiner">−</button><button class="ib" data-amz="1" title="größer">＋</button><button class="ib" data-ambdel="${AMB}" title="PDF der Firma von dieser Rechnung löschen">🗑</button></div>`;
   el.appendChild(AMV.el);
   if (AMV.pdf) { amMarken(); amPdfZeige(amPos); }

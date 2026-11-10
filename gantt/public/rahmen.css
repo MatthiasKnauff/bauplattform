@@ -25,9 +25,9 @@ body.g-rahmen #split2,body.g-rahmen #assistPane{display:none!important}
 .g-grp{border:1px solid var(--line,#d9d8d3);border-radius:calc(8px*var(--rk,1));padding:.45rem .6rem;margin:0 0 .45rem}
 .g-grp h6{margin:0 0 .35rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute,#6a6a6a)}
 .g-f{display:flex;flex-wrap:wrap;gap:.45rem .7rem;align-items:flex-end}
-.g-f label{display:grid;gap:.2rem;font-size:.82em;color:var(--mute,#6a6a6a);flex:1 1 8rem;min-width:0}
+.g-f label{display:grid;gap:.2rem;font-size:var(--fs-s);color:var(--mute,#6a6a6a);flex:1 1 8rem;min-width:0}
 .g-f label:has(.w){flex-basis:100%}
-.g-f input{width:100%;box-sizing:border-box;color:var(--ink,inherit)}
+.g-f input,.g-grp textarea{width:100%;box-sizing:border-box;color:var(--ink,inherit);font-size:var(--fs)}
 .g-pct{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.45rem}.g-pct .btn.on{background:var(--y,var(--accent));color:var(--on,#fff)}
 .g-grp textarea{width:100%;box-sizing:border-box;min-height:4.5rem;resize:vertical}
 /* Darstellung (Fenster mit den Auswahlfeldern des alten Menübands) */

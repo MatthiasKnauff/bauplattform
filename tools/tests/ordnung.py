@@ -72,6 +72,14 @@ def app_liste():
     for name, a in APPS.items():
         if not os.path.isfile(os.path.join(ROOT, a["ordner"], a["modul"] + ".py")):
             out.append(f"apps.py: „{name}“ – {a['ordner']}/{a['modul']}.py gibt es nicht")
+    try:   # … und das Modul muss auch ins Image kommen (so gefehlt: bautagebuch/dienste.py – der Container startete nicht)
+        kopiert = re.findall(r"^COPY\s+(\S+)\s", open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8").read(), re.M)
+        for name, a in APPS.items():
+            datei = f"{a['ordner']}/{a['modul']}.py"
+            if not any(k in (datei, f"{a['ordner']}/*.py", a["ordner"], a["ordner"] + "/") for k in kopiert):
+                out.append(f"Dockerfile: „{name}“ – {datei} wird nicht ins Image kopiert")
+    except OSError:
+        pass
     for datei in ("docker-compose.yml", "server/test.yml", "server/produktiv-naechste.yml"):
         p = os.path.join(ROOT, datei)
         if not os.path.exists(p):

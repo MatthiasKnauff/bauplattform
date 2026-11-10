@@ -24,7 +24,7 @@ COPY plattform/vendor ./plattform/vendor
 COPY gantt/app.py ./gantt/
 COPY gantt/public ./gantt/public
 COPY gantt/samples ./gantt/samples
-COPY bautagebuch/app.py ./bautagebuch/
+COPY bautagebuch/*.py ./bautagebuch/
 COPY bautagebuch/core ./bautagebuch/core
 COPY bautagebuch/modules ./bautagebuch/modules
 COPY bautagebuch/pg_migrations ./bautagebuch/pg_migrations

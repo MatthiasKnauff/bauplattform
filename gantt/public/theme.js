@@ -6,6 +6,8 @@
    Das dunkle Schema wird zur Laufzeit aus style.css abgeleitet: neutrale und helle Töne werden
    umgekehrt, kräftige Farben aufgehellt. Regeln mit „data-theme“ in style.css legen Akzent und
    Kopfleiste je Schema fest und haben Vorrang. Druckvorschau und Ausdruck bleiben hell. */
+window.BP_SCHEMA_EIGEN = true;   // Farbschema macht der Bauzeitenplan selbst (unten) – der Baukasten streicht hier nicht an
+window.BP_UNDO_EIGEN = true;     // Strg+Z / Strg+Y gehören dem Rückgängig des Plans
 (function () {
   const KEY = 'gantt.theme';
   const THEMES = [['dunkel', 'Dunkel (wie Bautagebuch)'], ['hell', 'Hell'], ['klassisch', 'Klassisch Grün'], ['auto', 'Automatisch nach System']];

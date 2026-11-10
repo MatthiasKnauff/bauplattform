@@ -36,7 +36,6 @@ DEF = re.compile(r"^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(|^(?:const|le
 # Altlast: Kopien von Grundhilfen, die es schon gab (Schritt 2 „Baukasten als ein Bündel“ räumt sie weg)
 ALT_KOPIEN = {
     "bautagebuch/static/index.html": {"$", "ACCENTS", "api", "appUrl", "applyAccent", "applyLook", "applyTheme", "esc", "fold", "passt", "toast"},
-    "gantt/public/app.js": {"$", "ICONS", "api", "esc", "toast"},
     "plattform/static/orca.html": {"$", "api", "esc"},
 }
 

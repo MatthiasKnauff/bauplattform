@@ -52,8 +52,10 @@ function applyAccent(c) {   // persönliche Farbe (Startseite → Darstellung)
   _paint();
 }
 function applyLook(me) { if (!me) return; _theme = THEMES.some((x) => x[0] === me.theme) ? me.theme : 'dunkel'; try { localStorage.setItem('bpTheme', _theme); } catch { /* egal */ } applyAccent(me.accent); }
-try { _theme = localStorage.getItem('bpTheme') || 'dunkel'; applyAccent(localStorage.getItem('accent')); } catch { applyAccent(); }
-if (_mq && _mq.addEventListener) _mq.addEventListener('change', () => { if (_theme === 'auto') _paint(); });
+if (!window.BP_SCHEMA_EIGEN) {   // Apps mit eigenem Farbschema (Bauzeitenplan: theme.js) streichen selbst an
+  try { _theme = localStorage.getItem('bpTheme') || 'dunkel'; applyAccent(localStorage.getItem('accent')); } catch { applyAccent(); }
+  if (_mq && _mq.addEventListener) _mq.addEventListener('change', () => { if (_theme === 'auto') _paint(); });
+}
 function modalBox(html, onClick) {
   const bg = document.createElement('div'); bg.className = 'modal-bg';
   bg.innerHTML = `<div class="modal" role="dialog">${html}</div>`;

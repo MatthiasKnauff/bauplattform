@@ -582,7 +582,7 @@
       cfg = clone(cfg); const b = build(cfg, clone(selArr));
       cfg.start = snapWork(cfg.start);
       await flushSave();
-      const p = await api.create({ name: String(name || defName(cfg)), start: cfg.start, nextUid: b.nextUid, tasks: b.tasks, assist: cfg, trades: tradesFor(cfg, selArr) });
+      const p = await planApi.create({ name: String(name || defName(cfg)), start: cfg.start, nextUid: b.nextUid, tasks: b.tasks, assist: cfg, trades: tradesFor(cfg, selArr) });
       await openProject(p.id); await refreshProjectList();
       toast(`Projekt „${p.name}“ mit ${b.tasks.length} Leistungen erstellt.`);
       return true;

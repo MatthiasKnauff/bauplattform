@@ -57,6 +57,8 @@ function ladeApp() {
   };
   ctx.window = ctx; ctx.self = ctx; ctx.globalThis = ctx; ctx.parent = ctx; ctx.top = ctx;
   vm.createContext(ctx);
+  // Grundhilfen ($, esc, api, toast) kommen wie im Betrieb aus dem Baukasten (/bp/baukasten.js beginnt mit bp.js)
+  try { vm.runInContext(fs.readFileSync(path.join(PUB, '../../shared/bpcore/head/bp.js'), 'utf8'), ctx, { filename: 'bp.js' }); } catch { /* Oberflächenteil */ }
   for (const f of VORHER) {
     const p = path.join(PUB, f);
     if (!fs.existsSync(p)) continue;

@@ -84,9 +84,9 @@
       const opt = { fortschritt: bg.querySelector('#ubPct').checked, notizen: bg.querySelector('#ubNotes').checked, firmen: (bg.querySelector('[name=ubF]:checked') || {}).value === '1' };
       (async () => {
         if (!(await leaveProjectOk())) return;
-        const src = await api.get(q);
+        const src = await planApi.get(q);
         const k = kopieren(src.tasks || [], st - src.start, opt, 1);
-        const p = await api.create({ name, start: st, tasks: k.tasks, nextUid: k.nextUid, cal: src.cal || null, assist: src.assist || null,
+        const p = await planApi.create({ name, start: st, tasks: k.tasks, nextUid: k.nextUid, cal: src.cal || null, assist: src.assist || null,
           gwColors: src.gwColors || {}, trades: opt.firmen ? src.trades || {} : ohneFirmen(src.trades) });
         if (bt) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: bt }) }).catch(() => {});
         await openProject(p.id); await refreshProjectList();
@@ -98,7 +98,7 @@
     if (sel) sel.addEventListener('change', async () => {
       const info = bg.querySelector('#ubInfo'); if (!sel.value) return;
       try {
-        const s = await api.get(sel.value), n = (s.tasks || []).filter((t, i, a) => !(a[i + 1] && a[i + 1].lvl > t.lvl)).length;
+        const s = await planApi.get(sel.value), n = (s.tasks || []).filter((t, i, a) => !(a[i + 1] && a[i + 1].lvl > t.lvl)).length;
         info.innerHTML = `<b>${E(s.name)}</b>: ${n} Leistungen, Beginn dort ${fmtD(s.start)}. Alles wird auf den neuen Projektanfang verschoben.`;
         const nm = bg.querySelector('#ubName'); if (!nm.value.trim()) nm.placeholder = 'z. B. ' + s.name.replace(/\s*\(Kopie\)$/, '') + ' – neues Projekt';
       } catch { /* egal */ }
@@ -144,7 +144,7 @@
       const box = bg.querySelector('#ubTeile'); SRC = null; box.innerHTML = '';
       if (!q.value) return;
       box.innerHTML = '<p class="hint">Lade …</p>';
-      try { SRC = await api.get(q.value); } catch (e) { box.innerHTML = `<p class="hint">${E(e.message)}</p>`; return; }
+      try { SRC = await planApi.get(q.value); } catch (e) { box.innerHTML = `<p class="hint">${E(e.message)}</p>`; return; }
       const T = SRC.tasks || [];
       const top = T.map((t, i) => ({ t, i })).filter(({ t }) => (t.lvl || 0) === 0);
       const anz = (i) => { let n = 0; const l0 = T[i].lvl || 0; for (let j = i + 1; j < T.length && (T[j].lvl || 0) > l0; j++) if (!(T[j + 1] && T[j + 1].lvl > T[j].lvl)) n++; return n; };

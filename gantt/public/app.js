@@ -6,7 +6,7 @@
    Meilensteine, kritischer Weg, Drag & Drop, Rückgängig.
    ===================================================================== */
 
-const $ = (s) => document.querySelector(s);
+/* $, esc, api(…) und toast kommen aus dem Baukasten (/bp/baukasten.js) */
 const RH = 24;          // Zeilenhöhe
 const HH = 44;          // Kopfhöhe
 const DAY = 86400000;
@@ -15,7 +15,6 @@ const MONL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'Aug
 const WD2 = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const WD1 = ['S', 'M', 'D', 'M', 'D', 'F', 'S'];
 const pad = (n) => String(n).padStart(2, '0');
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 class UErr extends Error {}
 
 /* ---------- Kalender: Tage als ganze Zahlen (Tage seit 1970, UTC) ---------- */
@@ -1793,17 +1792,6 @@ function taskCtx(e) {
     { label: selIdx().length > 1 ? `Gemeinsam bearbeiten… (${selIdx().length})` : 'Informationen…', key: '⇧+F2', dis: !has, fn: infoForSelection },
   ]);
 }
-let toastTimer = null;
-function toast(msg, err = false, undo = null) {   // mit undo: Knopf „↶ Rückgängig“, 10 s lang
-  document.querySelectorAll('.toast').forEach((t) => t.remove());
-  const t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : '') + (undo ? ' undo' : ''); t.setAttribute('role', 'status');
-  if (undo) {
-    const s = document.createElement('span'); s.textContent = msg; t.appendChild(s);
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = '↶ Rückgängig'; t.appendChild(b);
-    b.onclick = async () => { clearTimeout(toastTimer); t.remove(); try { await undo(); } catch (e) { toast(e.message || 'Rückgängig ging nicht', true); } };
-  } else t.textContent = msg;
-  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), undo ? 10000 : 4500);
-}
 /* Plan aus dem Papierkorb zurückholen (Rückgängig nach dem Löschen) */
 const ausPapierkorb = (pk) => fetch(`api/bp/papierkorb/${pk}/zurueck`, { method: 'POST' }).then(j);
 
@@ -2274,7 +2262,7 @@ document.addEventListener('keydown', (e) => {
 /* =====================================================================
    Menüband
    ===================================================================== */
-const ICONS = {
+const RIBBON_ICONS = {
   undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
   redo: '<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',
   task: '<rect x="2.5" y="10" width="14" height="6" class="bluef"/><path d="M19.5 3.5v6M16.5 6.5h6" class="grn"/>',
@@ -2321,7 +2309,7 @@ const ICONS = {
   settings: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.5 17.3a1.8 1.8 0 0 0 2.5 2.5l5.8-5.8a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.3-.5-.5-2.3z"/>',
   printer: '<path d="M7 8V3h10v5"/><rect x="3" y="8" width="18" height="9" rx="1.5"/><path d="M7 14h10v7H7z" class="bluef"/><circle cx="17.5" cy="11" r=".6" class="f"/>',
 };
-document.querySelectorAll('.rb[data-ico]').forEach((b) => { b.insertAdjacentHTML('afterbegin', `<svg viewBox="0 0 24 24">${ICONS[b.dataset.ico] || ''}</svg>`); });
+document.querySelectorAll('.rb[data-ico]').forEach((b) => { b.insertAdjacentHTML('afterbegin', `<svg viewBox="0 0 24 24">${RIBBON_ICONS[b.dataset.ico] || ''}</svg>`); });
 
 const ACTIONS = {
   undo: doUndo, redo: doRedo,
@@ -2338,7 +2326,7 @@ const ACTIONS = {
   expandAll: () => setCollapsedAll(false), collapseAll: () => setCollapsedAll(true),
   newProject: () => promptDialog('Neues Projekt', 'Projektname', 'Neues Projekt', async (name) => {
     await flushSave();
-    const p = await api.create({ name, start: snapWork(todayN()), tasks: [] }); await refreshProjectList(); await openProject(p.id);
+    const p = await planApi.create({ name, start: snapWork(todayN()), tasks: [] }); await refreshProjectList(); await openProject(p.id);
   }),
   renameProject: () => promptDialog('Version umbenennen', 'Name der Version (das Projekt steht oben in der Kopfleiste)', P.name, (name) => { act(() => { P.name = name; }); refreshProjectList(); }),
   deleteProject: () => archivDialog(),
@@ -2408,7 +2396,7 @@ async function keinPlanFuer() {
 window.keinPlanFuer = keinPlanFuer;
 async function renderStart() {
   const box = $('#startView'); if (!box || P) return;
-  try { projects = await api.list(); } catch { /* Liste wie gehabt */ }
+  try { projects = await planApi.list(); } catch { /* Liste wie gehabt */ }
   const gp = window.BPHead && BPHead.projekt;
   if (gp && gp.id) {   // aktuelles Projekt der Plattform
     const eig = projects.filter((p) => p.bt_id === gp.id && !p.archived);
@@ -2470,7 +2458,7 @@ $('#fileInput').addEventListener('change', async (e) => {
     if (data.startDate && !Number.isInteger(data.start)) data.start = parseDate(data.startDate);
     data.name = data.name || f.name.replace(/\.(gantt|json)$/i, '');
     if (!(await leaveProjectOk())) return;
-    const p = await api.create(data); await openProject(p.id); await refreshProjectList();
+    const p = await planApi.create(data); await openProject(p.id); await refreshProjectList();
     toast(`Projekt „${p.name}“ importiert.`);
   } catch (err) { toast('Import fehlgeschlagen: ' + err.message, true); }
 });
@@ -2511,7 +2499,7 @@ function fileNew() {
     bg.remove();
     if (b.dataset.nw === 'kopie' && window.planAusAnderem) { window.planAusAnderem(nw.value.trim(), st, btId); return; }
     if (!(await leaveProjectOk())) return;
-    const p = await api.create({ name, start: snapWork(st), tasks: [], cal: P ? P.cal : null });
+    const p = await planApi.create({ name, start: snapWork(st), tasks: [], cal: P ? P.cal : null });
     if (btId) await fetch(`api/projects/${p.id}/link`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: btId }) }).catch(() => {});
     await openProject(p.id); await refreshProjectList();
     if (btId) toast('Mit dem Bautagebuch-Projekt verknüpft.');
@@ -2536,16 +2524,16 @@ function reallyDelete() {
   (async () => {
     await flushSave(); clearTimeout(saveTimer); saveTimer = null; const name = P.name;
     const bt = P._bt && P._bt.id;
-    const id = P.id, r = await api.del(id); projects = await api.list(); P = null;
+    const id = P.id, r = await planApi.del(id); projects = await planApi.list(); P = null;
     const next = bt ? projects.find((p) => !p.archived && p.bt_id === bt) || projects.find((p) => p.bt_id === bt) : projects.find((p) => !p.archived);   // nächste Version desselben Projekts
     if (next) await openProject(next.id); else { await keinPlanFuer(); }
     refreshProjectList();
-    if (typeof r.papierkorb === 'number') toast(`„${name}“ liegt im Papierkorb.`, false, async () => { await ausPapierkorb(r.papierkorb); projects = await api.list(); await openProject(id); refreshProjectList(); });
+    if (typeof r.papierkorb === 'number') rueckgaengig(`„${name}“ liegt im Papierkorb.`, async () => { await ausPapierkorb(r.papierkorb); projects = await planApi.list(); await openProject(id); refreshProjectList(); });
     else toast(`„${name}“ liegt im Papierkorb – wiederherstellen unter Startseite → Papierkorb.`);
   })().catch((e) => toast(e.message, true));
 }
 async function fileOpen() {
-  let list = await api.list();
+  let list = await planApi.list();
   const fmtTs = (iso) => { if (!iso) return ''; const d = new Date(iso); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   const bg = modal('Öffnen', `<div class="op-top"><input id="opQ" placeholder="Suchen …"><button class="btn" id="opFile">Vom Computer öffnen …</button></div><div id="opList" class="op-list"></div>
     <div class="hint">Doppelklick öffnet. Dateien vom Computer (.gantt / .json) werden als Projekt übernommen und mit der Datei verknüpft: „Speichern“ schreibt dann auch in diese Datei (in Chrome/Edge).</div>`, [{ label: 'Schließen' }]);
@@ -2564,23 +2552,23 @@ async function fileOpen() {
     const t = e.target;
     if (t.id === 'opFile') { bg.remove(); openFromComputer(); return; }
     if (t.dataset.opo) { openId(t.dataset.opo); return; }
-    if (t.dataset.opc) { const src = t.dataset.opc === P.id ? projectFileData() : await api.get(t.dataset.opc); const c = await api.create({ ...src, name: src.name + ' (Kopie)' }); list = await api.list(); draw(); toast(`Kopie „${c.name}“ angelegt.`); refreshProjectList(); return; }
+    if (t.dataset.opc) { const src = t.dataset.opc === P.id ? projectFileData() : await planApi.get(t.dataset.opc); const c = await planApi.create({ ...src, name: src.name + ' (Kopie)' }); list = await planApi.list(); draw(); toast(`Kopie „${c.name}“ angelegt.`); refreshProjectList(); return; }
     if (t.dataset.opa) {
       const id = t.dataset.opa, x = list.find((p) => p.id === id);
       if (P && id === P.id) { act(() => { P.archived = !P.archived; }); await saveNow(); }
       else {
         const archiv = (a) => fetch('api/projects/' + encodeURIComponent(id) + '/archiv', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archiviert: a }) }).then(j);
         const alt = !!x.archived; await archiv(!alt);
-        toast(`„${x.name}“ ${alt ? 'zurückgeholt' : 'archiviert'}.`, false, async () => { await archiv(alt); if (bg.isConnected) { list = await api.list(); draw(); } refreshProjectList(); });
+        rueckgaengig(`„${x.name}“ ${alt ? 'zurückgeholt' : 'archiviert'}.`, async () => { await archiv(alt); if (bg.isConnected) { list = await planApi.list(); draw(); } refreshProjectList(); });
       }
-      list = await api.list(); draw(); refreshProjectList(); return;
+      list = await planApi.list(); draw(); refreshProjectList(); return;
     }
     if (t.dataset.opd) {
       if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Löschen?'; t.classList.add('danger'); setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = '✕'; t.classList.remove('danger'); } }, 3000); return; }
       const id = t.dataset.opd;
       if (P && id === P.id) { toast('Das geöffnete Projekt bitte über „Projekt löschen“ löschen.', true); return; }
-      const x = list.find((p) => p.id === id), r = await api.del(id); list = await api.list(); draw(); refreshProjectList();
-      if (typeof r.papierkorb === 'number') toast(`„${x ? x.name : 'Plan'}“ liegt im Papierkorb.`, false, async () => { await ausPapierkorb(r.papierkorb); if (bg.isConnected) { list = await api.list(); draw(); } refreshProjectList(); });
+      const x = list.find((p) => p.id === id), r = await planApi.del(id); list = await planApi.list(); draw(); refreshProjectList();
+      if (typeof r.papierkorb === 'number') rueckgaengig(`„${x ? x.name : 'Plan'}“ liegt im Papierkorb.`, async () => { await ausPapierkorb(r.papierkorb); if (bg.isConnected) { list = await planApi.list(); draw(); } refreshProjectList(); });
     }
   });
   draw(); setTimeout(() => bg.querySelector('#opQ').focus(), 0);
@@ -2591,7 +2579,7 @@ async function openFromComputer() {
   try {
     const f = await h.getFile(), data = readProjectFile(await f.text(), f.name);
     if (!(await leaveProjectOk())) return;
-    const p = await api.create(data); fileHandles[p.id] = h;
+    const p = await planApi.create(data); fileHandles[p.id] = h;
     await openProject(p.id); await refreshProjectList(); markDirty();
     toast(`„${f.name}“ geöffnet und verknüpft – „Speichern“ schreibt auch in diese Datei.`);
   } catch (err) { toast('Öffnen fehlgeschlagen: ' + err.message, true); }
@@ -2616,7 +2604,7 @@ function fileSaveAs() {   // „Speichern unter“ = wie eine Datei abspeichern:
       modal('Kopie unter neuem Namen', `<div class="form"><label>Name</label><input id="saName" class="full" value="${esc(P.name)} (Kopie)"></div>`, [{ label: 'Speichern', cls: 'primary', primary: true, fn: (bg2) => {
         const name = bg2.querySelector('#saName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
         (async () => {
-          const p = await api.create({ ...projectFileData(), name });
+          const p = await planApi.create({ ...projectFileData(), name });
           dirty = false; clearTimeout(saveTimer); saveTimer = null;
           await openProject(p.id); await refreshProjectList(); toast(`Gespeichert unter „${name}“ – du arbeitest jetzt in der Kopie.`);
         })().catch((er) => toast('Speichern fehlgeschlagen: ' + er.message, true));
@@ -2691,7 +2679,7 @@ const j = async (r) => {
   if (!r.ok) { const d = await r.json().catch(() => ({})); const e = new Error(d.error || r.statusText); e.status = r.status; e.data = d; throw e; }
   return r.json();
 };
-const api = {
+const planApi = {   // Server-Aufrufe des Bauzeitenplans (Pläne und Stände)
   list: () => fetch('api/projects').then(j),
   get: (id) => fetch('api/projects/' + id).then(j),
   create: (p) => fetch('api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }).then(j),
@@ -2726,12 +2714,12 @@ let conflictOpen = false;
 async function saveNow(force = false) {
   saveTimer = null; if (!P || conflictOpen) return;
   try {
-    const r = await api.save(force ? { ...P, _force: true } : P);
+    const r = await planApi.save(force ? { ...P, _force: true } : P);
     if (P && r.id === P.id) { P._rev = r._rev; P._by = r._by; P.updated = r.updated; }
     dirty = false; const d = new Date(); setSave(`Gespeichert ${pad(d.getHours())}:${pad(d.getMinutes())}`); markDirty();
     if (fileHandles[P.id]) { try { await writeFileHandle(fileHandles[P.id]); setSave(`Gespeichert ${pad(d.getHours())}:${pad(d.getMinutes())} · auch in ${fileHandles[P.id].name}`); } catch (e) { toast('In die Datei konnte nicht geschrieben werden: ' + e.message, true); } }
     // automatischer Zwischenstand höchstens alle 15 Minuten
-    if (Date.now() - (lastAutoV[P.id] || 0) > 15 * 60000) { lastAutoV[P.id] = Date.now(); api.addVersion(P.id, { auto: true, end: CAL.peDay }).catch(() => {}); }
+    if (Date.now() - (lastAutoV[P.id] || 0) > 15 * 60000) { lastAutoV[P.id] = Date.now(); planApi.addVersion(P.id, { auto: true, end: CAL.peDay }).catch(() => {}); }
   }
   catch (e) {
     if (e.status === 409) return saveConflict(e.data || {});
@@ -2748,8 +2736,8 @@ function saveConflict(d) {
       <b>Neu laden</b> übernimmt den gespeicherten Stand – deine letzten Änderungen gehen verloren.<br>
       <b>Meine Fassung speichern</b> überschreibt den anderen Stand (er bleibt in der Versionshistorie).<br>
       <b>Als Kopie speichern</b> legt deine Fassung als eigenes Projekt an.</div>`, [
-    { label: 'Als Kopie speichern', left: true, fn: () => { done(); (async () => { const c = await api.create({ ...projectFileData(), trades: P.trades || {}, name: P.name + ' (meine Fassung)' }); dirty = false; await openProject(c.id); await refreshProjectList(); toast(`Deine Fassung ist als „${c.name}“ gespeichert.`); })().catch((e) => toast(e.message, true)); } },
-    { label: 'Meine Fassung speichern', fn: () => { done(); (async () => { await api.addVersion(P.id, { name: `Stand von ${d.by || 'anderem Benutzer'} vor dem Überschreiben`, auto: false }).catch(() => {}); await saveNow(true); })(); } },
+    { label: 'Als Kopie speichern', left: true, fn: () => { done(); (async () => { const c = await planApi.create({ ...projectFileData(), trades: P.trades || {}, name: P.name + ' (meine Fassung)' }); dirty = false; await openProject(c.id); await refreshProjectList(); toast(`Deine Fassung ist als „${c.name}“ gespeichert.`); })().catch((e) => toast(e.message, true)); } },
+    { label: 'Meine Fassung speichern', fn: () => { done(); (async () => { await planApi.addVersion(P.id, { name: `Stand von ${d.by || 'anderem Benutzer'} vor dem Überschreiben`, auto: false }).catch(() => {}); await saveNow(true); })(); } },
     { label: 'Neu laden', cls: 'primary', primary: true, fn: () => { done(); reloadProject(); } },
   ]);
   const bgs = document.querySelectorAll('.modal-bg'); const last = bgs[bgs.length - 1];
@@ -2760,7 +2748,7 @@ async function reloadProject(note) {
   if (!P) return;
   const id = P.id, top = gridPane.scrollTop, vs = view.start;
   clearTimeout(saveTimer); saveTimer = null;
-  const p = await api.get(id); if (!P || P.id !== id) return;
+  const p = await planApi.get(id); if (!P || P.id !== id) return;
   p.gwColors ||= {}; p.trades ||= {}; p.tasks = (p.tasks || []).map(fillTask);
   P = p; dirty = false; undoS = []; redoS = [];
   normalize(); allGw().forEach(gwColor); CAL = schedule(); render();
@@ -2769,7 +2757,7 @@ async function reloadProject(note) {
   if (note) toast(note);
 }
 async function flushSave() { if (saveTimer) { clearTimeout(saveTimer); await saveNow(); } }
-addEventListener('beforeunload', (e) => { if (saveTimer && P) { api.save(P, true); } else if (dirty && !autoSave && P) { e.preventDefault(); e.returnValue = ''; } });
+addEventListener('beforeunload', (e) => { if (saveTimer && P) { planApi.save(P, true); } else if (dirty && !autoSave && P) { e.preventDefault(); e.returnValue = ''; } });
 
 /* ---------- Versionsleiste: je Projekt EIN Bauzeitenplan, darin Versionen (Startversion, 1. Überarbeitung …) = Pläne desselben Projekts ---------- */
 let vlKnoepfe = null;
@@ -2814,7 +2802,7 @@ function neueVersion() {
     (async () => {
       await flushSave();
       const src = JSON.parse(JSON.stringify(P)); delete src._rev; delete src._by; delete src._bt;
-      const p = await api.create({ ...src, name, archived: false, _link: P._bt ? P._bt.id : null });
+      const p = await planApi.create({ ...src, name, archived: false, _link: P._bt ? P._bt.id : null });
       if (btId) await fetch(`api/projects/${encodeURIComponent(gilt ? p.id : (projects.find((x) => x.gueltig && x.bt_id === btId) || { id: altId }).id)}/gueltig`, { method: 'PUT' }).catch(() => {});   // sonst gälte automatisch die neueste
       await openProject(p.id); await refreshProjectList(); toast(`Version „${name}“ angelegt – du arbeitest jetzt darin.`);
     })().catch((er) => toast('Anlegen fehlgeschlagen: ' + er.message, true));
@@ -2822,7 +2810,7 @@ function neueVersion() {
   setTimeout(() => { const i = document.querySelector('#nvName'); if (i) i.focus(); }, 30);
 }
 async function refreshProjectList() {
-  projects = await api.list();
+  projects = await planApi.list();
   const opt = (p) => `<option value="${p.id}"${P && p.id === P.id ? ' selected' : ''}>${esc(p.id === P?.id ? P.name : p.name)}</option>`;
   const lauf = projects.filter((p) => !p.archived), arch = projects.filter((p) => p.archived);
   $('#projSelect').innerHTML = lauf.map(opt).join('') + (arch.length ? `<optgroup label="Archiv">${arch.map(opt).join('')}</optgroup>` : '');
@@ -2848,7 +2836,7 @@ async function leaveProjectOk() {
 }
 async function openProject(id) {
   if (P && P.id !== id && !(await leaveProjectOk())) return false;
-  const p = await api.get(id);
+  const p = await planApi.get(id);
   dirty = false;
   p.gwColors ||= {}; p.trades ||= {};
   p.tasks = (p.tasks || []).map(fillTask);
@@ -2861,7 +2849,7 @@ async function openProject(id) {
   gridPane.scrollTop = 0;
   scrollToDay(P.start, 0.02);
   // erster Stand eines Projekts ohne Versionen
-  api.versions(id).then((l) => { if (!l.length && P && P.id === id) api.addVersion(id, { name: 'Erster Stand', auto: true, end: CAL.peDay }); }).catch(() => {});
+  planApi.versions(id).then((l) => { if (!l.length && P && P.id === id) planApi.addVersion(id, { name: 'Erster Stand', auto: true, end: CAL.peDay }); }).catch(() => {});
 }
 const fillTask = (t) => ({ cat: '', blk: -1, ph: '', preds: [], pct: 0, res: '', gw: '', color: '', notes: '', lvl: 0, cons: null, collapsed: false, ...t });
 
@@ -2872,7 +2860,7 @@ function saveVersionDialog(after) {
       <div class="hint">Gespeichert wird der aktuelle Plan mit allen Leistungen, Verknüpfungen, Kalender und Assistent-Einstellungen. Projektende jetzt: ${fmtD(CAL.peDay)}.</div>`,
   [{ label: 'Speichern', cls: 'primary', primary: true, fn: (bg) => {
     const name = bg.querySelector('#vName').value.trim(); if (!name) { toast('Bitte einen Namen eingeben.', true); return false; }
-    (async () => { await flushSave(); await api.addVersion(P.id, { name, note: bg.querySelector('#vNote').value, end: CAL.peDay }); toast(`Stand „${name}“ gespeichert – er steht im Verlauf.`); if (after) after(); })().catch((e) => toast('Fehler: ' + e.message, true));
+    (async () => { await flushSave(); await planApi.addVersion(P.id, { name, note: bg.querySelector('#vNote').value, end: CAL.peDay }); toast(`Stand „${name}“ gespeichert – er steht im Verlauf.`); if (after) after(); })().catch((e) => toast('Fehler: ' + e.message, true));
   } }, { label: 'Abbrechen' }]);
 }
 function scheduleOf(data) {   // Termine eines gespeicherten Stands berechnen, ohne den aktuellen Plan anzufassen
@@ -2899,7 +2887,7 @@ async function versionHistory() {
         <td class="vh-act"><button class="btn sm" data-vc="${v.id}">Vergleichen</button><button class="btn sm" data-vr="${v.id}">Wiederherstellen</button><button class="btn sm" data-vo="${v.id}" title="Als neues Projekt öffnen">Als Projekt</button><button class="btn sm" data-vn="${v.id}" title="Benennen">✎</button><button class="btn sm" data-vd="${v.id}" title="Löschen">✕</button></td></tr>`).join('')
       + '</tbody></table>';
   };
-  const load = async () => { try { list = await api.versions(P.id); } catch (e) { list = []; toast('Versionen konnten nicht geladen werden: ' + e.message, true); } draw(); };
+  const load = async () => { try { list = await planApi.versions(P.id); } catch (e) { list = []; toast('Versionen konnten nicht geladen werden: ' + e.message, true); } draw(); };
   bg.addEventListener('click', async (e) => {
     const b = e.target.closest('button'); if (!b) return;
     const v = list.find((x) => x.id === (b.dataset.vc || b.dataset.vr || b.dataset.vo || b.dataset.vn || b.dataset.vd)); if (!v) return;
@@ -2908,8 +2896,8 @@ async function versionHistory() {
     if (b.dataset.vr) {
       confirmDialog('Version wiederherstellen', `Den Plan auf „<b>${esc(label)}</b>“ zurücksetzen? Der aktuelle Stand wird vorher als Version „Vor Wiederherstellung“ gesichert; zusätzlich lässt sich das Zurücksetzen mit Strg+Z rückgängig machen.`, async () => {
         try {
-          await flushSave(); await api.addVersion(P.id, { name: 'Vor Wiederherstellung', note: 'automatisch vor dem Zurücksetzen auf „' + label + '“', end: CAL.peDay });
-          const full = await api.version(P.id, v.id), d = full.data;
+          await flushSave(); await planApi.addVersion(P.id, { name: 'Vor Wiederherstellung', note: 'automatisch vor dem Zurücksetzen auf „' + label + '“', end: CAL.peDay });
+          const full = await planApi.version(P.id, v.id), d = full.data;
           const ok = act(() => { P.tasks = (d.tasks || []).map(fillTask); P.start = d.start; P.cal = d.cal || null; P.assist = d.assist || null; P.gwColors = d.gwColors || {}; P.nextUid = Math.max(d.nextUid || 1, P.nextUid); sel = new Set(); });
           if (ok) { allGw().forEach(gwColor); render(); toast(`Plan auf „${label}“ zurückgesetzt.`); }
           bg.remove();
@@ -2918,20 +2906,20 @@ async function versionHistory() {
       return;
     }
     if (b.dataset.vo) {
-      try { const full = await api.version(P.id, v.id); await flushSave(); const p = await api.create({ ...full.data, name: `${P.name} – ${label}` }); bg.remove(); await refreshProjectList(); await openProject(p.id); await refreshProjectList(); toast(`„${label}“ als neues Projekt geöffnet.`); }
+      try { const full = await planApi.version(P.id, v.id); await flushSave(); const p = await planApi.create({ ...full.data, name: `${P.name} – ${label}` }); bg.remove(); await refreshProjectList(); await openProject(p.id); await refreshProjectList(); toast(`„${label}“ als neues Projekt geöffnet.`); }
       catch (err) { toast('Fehler: ' + err.message, true); }
       return;
     }
-    if (b.dataset.vn) { promptDialog('Version benennen', 'Name', v.name || '', async (name) => { await api.patchVersion(P.id, v.id, { name }); load(); }); return; }
+    if (b.dataset.vn) { promptDialog('Version benennen', 'Name', v.name || '', async (name) => { await planApi.patchVersion(P.id, v.id, { name }); load(); }); return; }
     if (b.dataset.vd) {
-      if (b.dataset.sure) { await api.delVersion(P.id, v.id); load(); }
+      if (b.dataset.sure) { await planApi.delVersion(P.id, v.id); load(); }
       else { b.dataset.sure = '1'; b.textContent = 'Löschen?'; b.classList.add('danger'); setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = '✕'; b.classList.remove('danger'); } }, 3000); }
     }
   });
   load();
 }
 async function compareVersion(v, label) {
-  let full; try { full = await api.version(P.id, v.id); } catch (e) { toast('Fehler: ' + e.message, true); return; }
+  let full; try { full = await planApi.version(P.id, v.id); } catch (e) { toast('Fehler: ' + e.message, true); return; }
   const { C: C2, T: T2 } = scheduleOf(full.data);
   const leaf = (T, C, i) => !C.summ[i];
   const old = new Map(), cur = new Map(), oldByName = new Map();
@@ -2985,7 +2973,7 @@ async function boot() {
   showTab(LS.get('tab', 'vorgang'));
   autoLink = LS.get('autolink', true);
   try {
-    projects = await api.list();
+    projects = await planApi.list();
     let id = LS.get('last', null);
     const hp = /^#plan=([\w-]+)/.exec(location.hash);   // Link aus der Verwaltung: diesen Plan öffnen
     if (hp && projects.some((p) => p.id === hp[1])) {
@@ -3007,7 +2995,7 @@ async function boot() {
       }
     }
     if (!projects.some((p) => p.id === id)) id = (projects.find((p) => !p.archived) || projects[0])?.id;
-    if (!id) { const p = await api.create({ name: 'Startversion', start: snapWork(todayN()), tasks: [] }); id = p.id; }   // erste Version heißt wie überall „Startversion“
+    if (!id) { const p = await planApi.create({ name: 'Startversion', start: snapWork(todayN()), tasks: [] }); id = p.id; }   // erste Version heißt wie überall „Startversion“
     await openProject(id);
     await refreshProjectList();
     const aw = LS.get('aw', null); if (aw) document.documentElement.style.setProperty('--aw', aw + 'px');

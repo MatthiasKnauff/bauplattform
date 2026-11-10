@@ -303,7 +303,7 @@ function printDialog() {
   const opt = (v, l, cur) => `<option value="${esc(v)}"${String(v) === String(cur) ? ' selected' : ''}>${esc(l)}</option>`;
   const body = `<div class="pr-wrap">
     <div class="pr-form">
-      <div class="sec" style="margin-top:0">Papier</div>
+      <div class="pr-h">Papier</div>
       <label>Format</label>
       <select data-o="paper">
         <optgroup label="DIN / ISO">${['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'B3', 'B4', 'B5'].map((k) => opt(k, `${k}  (${PAPERS[k][0]} × ${PAPERS[k][1]} mm)`, o.paper)).join('')}</optgroup>
@@ -317,7 +317,7 @@ function printDialog() {
       <div class="pr-hint" data-show="roll">Querformat: Zeitachse läuft entlang der Rolle, Länge automatisch. Hochformat: Zeitachse über die Rollenbreite, Länge nach Anzahl der Zeilen.</div>
       <label>Ränder mm</label><input type="number" min="0" max="100" data-o="margin" value="${o.margin}">
 
-      <div class="sec">Skalierung</div>
+      <div class="pr-h">Skalierung</div>
       <div data-hide="roll">
         <label>Zeitachse</label>
         <select data-o="scaleMode">${opt('fit', 'An Seitenbreite anpassen', o.scaleMode)}${opt('fixed', 'Feste Zeitskala', o.scaleMode)}</select>
@@ -327,7 +327,7 @@ function printDialog() {
       <div data-hide-roll-l><label>Schriftgröße</label><div class="pr-row"><input type="range" min="40" max="250" step="5" data-o="font" value="${o.font}"><span class="pr-val" data-val="font">${o.font}%</span></div></div>
       <div class="pr-row" data-hide="roll"><label class="cb"><input type="checkbox" data-o="fitH"${o.fitH ? ' checked' : ''}> Zeilen anpassen auf</label><input type="number" min="1" max="50" data-o="pagesH" value="${o.pagesH}"><span>Seite(n) hoch</span></div>
 
-      <div class="sec">Inhalt</div>
+      <div class="pr-h">Inhalt</div>
       <label>Zeitraum</label>
       <select data-o="range">${opt('all', 'Gesamtes Projekt', o.range)}${opt('custom', 'Von – bis', o.range)}</select>
       <div class="pr-row" data-showrange="custom"><input type="date" data-o="from" value="${o.from}"><span>bis</span><input type="date" data-o="to" value="${o.to}"></div>
@@ -335,7 +335,7 @@ function printDialog() {
       <select data-o="outline">${opt('shown', 'Wie angezeigt (eingeklappte ausblenden)', o.outline)}${opt('all', 'Alle Leistungen (Gliederung erweitert)', o.outline)}</select>
       <label>Spalten</label>
       <div class="pr-cols">${PRINT_COLS.map(([k, t]) => `<label class="cb"><input type="checkbox" data-col="${k}"${o.cols.includes(k) ? ' checked' : ''}> ${t}</label>`).join('')}</div>
-      <label>Verknüpfungspfeile</label><select data-o="links">${opt('all', 'alle drucken', o.links)}${opt('crit', 'nur kritischer Weg', o.links)}${opt('none', 'keine drucken', o.links)}</select>
+      <label title="Verknüpfungspfeile">Pfeile</label><select data-o="links">${opt('all', 'alle drucken', o.links)}${opt('crit', 'nur kritischer Weg', o.links)}${opt('none', 'keine drucken', o.links)}</select>
       <label>Optionen</label>
       <div class="pr-cols">
         <label class="cb"><input type="checkbox" data-o="repeatTable"${o.repeatTable ? ' checked' : ''}> Tabelle auf jeder Seite</label>
@@ -378,9 +378,10 @@ function printDialog() {
     const pages = printPages(L);
     L.pages = pages;
     const prev = bg.querySelector('#prPages');
-    const area = prev.clientWidth - 30 || 600;
+    const area = prev.clientWidth - 30 || 600, areaH = prev.clientHeight - 30 || 500;
     const many = pages.length > 1;
-    const wpx = many ? Math.min(area / Math.min(pages.length, L.slices.length > 1 ? Math.min(L.slices.length, 3) : 2) - 16, 340) : Math.min(area, 620 * (L.pw >= L.ph ? 1 : L.pw / L.ph));
+    // eine Seite: so groß, dass sie ganz in die Vorschau passt (Breite und Höhe); mehrere: nebeneinander, je höchstens eine Vorschauhöhe
+    const wpx = many ? Math.min(area / Math.min(pages.length, L.slices.length > 1 ? Math.min(L.slices.length, 3) : 2) - 16, areaH * L.pw / L.ph, 420) : Math.max(120, Math.min(area, areaH * L.pw / L.ph));
     const hpx = wpx * L.ph / L.pw;
     const shown = pages.slice(0, 40);
     prev.innerHTML = shown.map((p, k) => `<div class="pr-page" style="width:${wpx}px;height:${hpx}px" title="Seite ${k + 1}">${p}</div>`).join('')

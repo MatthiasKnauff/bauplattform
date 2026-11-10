@@ -19,10 +19,10 @@ const PDEF = {
   scaleMode: 'fit', pagesW: 1, zoom: 3, font: 100, fitH: false, pagesH: 1,
   range: 'all', from: '', to: '', outline: 'shown',
   cols: ['nr', 'name', 'gw', 'dur', 'start', 'finish'],
-  repeatTable: true, links: 'all', crit: true, legend: true, header: true, footer: true, today: true, title: '',
+  repeatTable: true, band: false, links: 'all', crit: true, legend: true, header: true, footer: true, today: true, title: '',
 };
 let PO = null;
-const printOpts = () => (PO ||= Object.assign({}, PDEF, LS.get('print', {})));
+const printOpts = () => (PO ||= Object.assign({}, PDEF, { band: LS.get('zeilen', '') === 'band' }, LS.get('print', {})));   // Bänderung: Vorgabe wie am Bildschirm, bis im Druck selbst gewählt
 
 function tiersFor(ppd) {
   if (ppd < 1.8) return ['year', 'quarter'];
@@ -133,6 +133,7 @@ function printTable(L) {
   let body = '';
   rows.forEach((i, r) => {
     const t = T[i], y = HH + r * RH, sum = c.summ[i], ty = y + 16;
+    if (o.band && r % 2) body += `<rect x="0" y="${y}" width="${tableW}" height="${RH}" fill="#f4f4f2"/>`;   // Bänderung: jede zweite Zeile getönt
     if (cols[0] && cols[0].k === 'nr') body += `<rect x="0" y="${y}" width="${cols[0].w}" height="${RH}" fill="#f3f3f3"/>`;
     cols.forEach((cl, k) => {
       const x0 = xs[k], w = cl.w, fw = sum ? ' font-weight="700"' : '';
@@ -189,6 +190,7 @@ function printChart(L) {
   };
 
   let body = '';
+  if (o.band) rows.forEach((i, r) => { if (r % 2) body += `<rect x="0" y="${HH + r * RH}" width="${cw}" height="${RH}" fill="#f4f4f2"/>`; });
   if (ppd >= 3) for (let d = a0; d < a1; d++) { if (isWork(d)) continue; body += `<rect x="${X(d)}" y="${HH}" width="${ppd}" height="${H - HH}" fill="${freeName(d) ? '#fbe3e3' : '#f1f1f1'}"/>`; }
   if (ppd >= 6) for (const [a] of tier(tb, a0, a1)) body += `<line x1="${X(a)}" y1="${HH}" x2="${X(a)}" y2="${H}" stroke="#ececec"/>`;
   for (const [a] of tier(tt, a0, a1)) body += `<line x1="${X(a)}" y1="${HH}" x2="${X(a)}" y2="${H}" stroke="#d6d6d6"/>`;
@@ -340,6 +342,7 @@ function printDialog() {
       <div class="pr-cols">
         <label class="cb"><input type="checkbox" data-o="repeatTable"${o.repeatTable ? ' checked' : ''}> Tabelle auf jeder Seite</label>
         <label class="cb"><input type="checkbox" data-o="crit"${o.crit ? ' checked' : ''}> Kritischen Weg rot</label>
+        <label class="cb" title="Jede zweite Zeile leicht getönt – wie „Bänderung“ unter Darstellung"><input type="checkbox" data-o="band"${o.band ? ' checked' : ''}> Bänderung</label>
         <label class="cb"><input type="checkbox" data-o="today"${o.today ? ' checked' : ''}> Heute-Linie</label>
         <label class="cb"><input type="checkbox" data-o="legend"${o.legend ? ' checked' : ''}> Legende</label>
         <label class="cb"><input type="checkbox" data-o="header"${o.header ? ' checked' : ''}> Kopfzeile</label>

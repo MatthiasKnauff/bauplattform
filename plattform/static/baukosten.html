@@ -193,7 +193,7 @@ body.as-open .wrap{padding-bottom:45vh}
 <main class="wrap">
   <div class="top" hidden>   <!-- wandern in die Versionsleiste unter der Kopfleiste -->
     <button class="btn sm pri" id="pdfBtn" title="Kostenermittlung für den Bauherrn drucken oder als PDF – die Stufe nach DIN 276 wählst du dort">🖨 Drucken / PDF …</button>
-    <button class="btn sm" id="ansBtn" title="Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus einer anderen Kostenermittlung übernehmen">↪ Ansätze übernehmen …</button>
+    <button class="btn sm" id="ansBtn" title="Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus der Kostenermittlung eines anderen Projekts übernehmen">↪ Aus anderem Projekt übernehmen …</button>
     <button class="btn sm" id="verlBtn" title="Frühere Stände dieser Kostenermittlung ansehen, vergleichen und wiederherstellen">🕘 Verlauf</button>
     <span class="save" id="save" role="status"></span>
   </div>
@@ -325,7 +325,8 @@ const dkurz = (t) => (t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digi
 function versionen() { return B ? (B.project_id ? LIST.filter((x) => x.project_id === B.project_id) : LIST.filter((x) => x.id === B.id)).sort((a, b) => a.id - b.id) : []; }
 function vleiste() {
   if (!window.BPHead || !BPHead.versionsleiste) return;
-  const ab = $('#ansBtn'); if (ab) ab.style.display = LIST.length < 2 ? 'none' : '';
+  const ab = $('#ansBtn'); if (ab) { const leer = LIST.length < 2; ab.style.opacity = leer ? '.5' : '';   // immer sichtbar – ohne zweite Kostenermittlung grau, der Klick sagt warum
+    ab.title = leer ? 'Es gibt noch keine andere Kostenermittlung, aus der sich etwas übernehmen ließe' : 'Kostenansätze (Kennwerte, Prozente, Pauschalen, Bauteile mit Einheitspreisen) aus der Kostenermittlung eines anderen Projekts übernehmen'; }
   let pd = $('#bkPrD');
   if (!pd) { pd = document.createElement('button'); pd.id = 'bkPrD'; pd.className = 'btn sm'; pd.type = 'button'; pd.textContent = '🏗 Projektdaten'; pd.title = 'Bauherr, Projektbeschreibung, Termine – dieselbe Maske wie in Verwaltung und AVA'; pd.onclick = () => { if (B && B.project_id) BPHead.projektDaten(B.project_id); else toast('Diese Kostenermittlung ist keinem Projekt zugeordnet.', true); }; }
   pd.style.display = B && B.project_id ? '' : 'none';
@@ -800,7 +801,7 @@ const STEPS = [
   { k: 'ansaetze', t: 'Aus einem früheren Projekt übernehmen?', done: () => !!AS.ans || LIST.length < 2,   // das Projekt selbst ist immer gesetzt – kein eigener Schritt
     txt: () => 'Kennwerte, Prozente, Pauschalen und Bauteile mit Einheitspreisen aus einer anderen Kostenermittlung holen – auf Wunsch mit Mengen. Räume und Pläne bleiben. ↶ Rückgängig nimmt es zurück.',
     st: () => (LIST.length < 2 ? 'Es gibt noch keine andere Kostenermittlung.' : AS.ans === 'ja' ? 'Ansätze übernommen.' : AS.ans ? 'Nicht nötig.' : 'Noch nichts übernommen.'),
-    acts: [['Ansätze übernehmen …', 'ans'], ['Nicht nötig', 'ansok']] },
+    acts: [['Aus anderem Projekt übernehmen …', 'ans'], ['Nicht nötig', 'ansok']] },
   { k: 'kennwerte', t: 'Kennwerte', done: () => AS.kw || !(B.acc && B.acc.faktoren.some((f) => /Beispiel-Kennwerte/.test(f.text))),
     txt: () => 'Die vorgegebenen €/m² sind Beispielwerte. Mit Kennwerten aus euren abgerechneten Projekten wird die Schätzung deutlich genauer. Einmal als eigene Werte gespeichert, gelten sie für alle neuen Kostenermittlungen.',
     st: () => (B.acc && B.acc.faktoren.some((f) => /Beispiel-Kennwerte/.test(f.text))) ? 'Es werden noch Beispiel-Kennwerte verwendet.' : 'Eigene Kennwerte in Verwendung.',
@@ -1032,7 +1033,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'pdf') $('#pdfIn').click();
   else if (a === 'okAll') { B.data.rooms.forEach((r) => { r.ok = true; }); changed(); }
   else if (a === 'kwok') { AS.kw = true; }
-  else if (a === 'ans') { if (LIST.length < 2) toast('Es gibt noch keine andere Kostenermittlung, aus der sich etwas übernehmen ließe.'); else $('#ansBtn').click(); }
+  else if (a === 'ans') $('#ansBtn').click();
   else if (a === 'ansok') { AS.ans = 'nein'; }
   else if (a === 'estimate') { tab = 'kosten'; history.replaceState(null, '', '#kosten'); runEstimate(); }
   else if (a === 'check') { tab = 'pruefung'; history.replaceState(null, '', '#pruefung'); render(); runCheck().then(assist); }
@@ -1515,6 +1516,7 @@ document.addEventListener('click', (e) => { if (e.target.closest('#verlBtn')) ve
 /* Kostenansätze aus einer anderen Kostenermittlung übernehmen – wie jede Änderung mit ↶ Rückgängig umkehrbar */
 $('#ansBtn').onclick = () => {
   if (!B) return;
+  if (LIST.length < 2) { toast('Es gibt noch keine andere Kostenermittlung, aus der sich etwas übernehmen ließe.'); return; }
   const L = LIST.filter((x) => x.id !== B.id).sort((a, b) => (!!a.archived - !!b.archived) || String(b.updated || '').localeCompare(String(a.updated || '')));
   let Q = null;
   const TEILE = [

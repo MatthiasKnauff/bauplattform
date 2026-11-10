@@ -36,7 +36,7 @@
     const x = L[i], inp = IN; if (!x || !inp) return; zu();
     inp.value = x.w; STILL = true; try { inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); } finally { STILL = false; }
   }
-  const ziel = (e) => e.target && e.target.matches && e.target.matches('input[data-vs]') ? e.target : null;
+  const ziel = (e) => e.target && e.target.matches && e.target.ownerDocument === document && e.target.matches('input[data-vs]') ? e.target : null;   // nicht in eigenen Fenstern (seite.js)
   document.addEventListener('focusin', (e) => { const i = ziel(e); if (i) zeigen(i, true); else if (POP && !POP.contains(e.target)) zu(); });
   let STILL = false;
   document.addEventListener('input', (e) => { const i = ziel(e); if (i && !STILL) zeigen(i, false); });

@@ -711,3 +711,11 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bph-wahl-o.aus{opacity:.45;cursor:default}
 .bph-wahl-g{padding:.5rem .9rem .2rem;font-size:.8em;color:var(--mute,#777);text-transform:uppercase;letter-spacing:.04em}
 .bph-wahl-e{padding:.7rem .9rem;color:var(--mute,#777)}
+/* eigenes Browserfenster eines Reiters (seite.js) und der Platzhalter im Bereich, solange der Reiter dort ist */
+body.sr-eigen{margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:var(--card,#fff);color:var(--ink,#1c1c1a)}
+body.sr-eigen>.sr-ek{flex:none;display:flex;align-items:center;gap:.6rem;padding:.4rem .7rem;border-bottom:1px solid var(--line,#ccc)}
+body.sr-eigen>.sr-ek b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.sr-eigen>.sr-b{flex:1;min-height:0}
+.sr-weg{flex:1;display:flex;align-items:center;justify-content:center;padding:1.5rem;text-align:center;color:var(--mute,#777)}
+.sr-weg>div{border:1.5px dashed var(--line,#ccc);border-radius:calc(12px*var(--rk,1));padding:1.2rem 1.6rem;max-width:28rem}
+.sr-weg p{margin:0 0 .7rem}.sr-weg b{color:var(--ink,inherit)}

@@ -6,7 +6,7 @@
   if (window.bpWahl) return;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fold = (s) => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
-  const geht = (s) => s && s.tagName === 'SELECT' && !s.multiple && !(s.size > 1) && !s.disabled && !s.hasAttribute('data-nativ');
+  const geht = (s) => s && s.tagName === 'SELECT' && s.ownerDocument === document && !s.multiple && !(s.size > 1) && !s.disabled && !s.hasAttribute('data-nativ');
   const schmal = () => innerWidth < 700;
   let OFFEN = null;
   function titel(sel) {

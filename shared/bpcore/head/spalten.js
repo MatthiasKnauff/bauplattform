@@ -53,7 +53,7 @@
     m.addEventListener('dragend', () => { zn = null; m.querySelectorAll('[data-spn]').forEach((o) => o.classList.remove('vor', 'nach', 'zieh')); });
   }
   addEventListener('contextmenu', (e) => {   // rechte Maustaste auf einen Spaltenkopf (wie in Excel und im Explorer)
-    const th = e.target.closest && e.target.closest('table[data-sp] thead th'); if (!th || e.shiftKey) return;
+    const th = e.target.closest && e.target.closest('table[data-sp] thead th'); if (!th || e.shiftKey || th.ownerDocument !== document) return;
     e.preventDefault(); e.stopImmediatePropagation(); menue(th.closest('table'), e.clientX, e.clientY);
   }, true);
   document.addEventListener('click', (e) => {

@@ -1,5 +1,10 @@
 'use strict';
 /* Bauplattform – gemeinsame Grundhilfen (/bp/bp.js, shared/bpcore/head) – für alle Apps */
+/* Eigene Fenster (seite.js, „⇱ eigenes Fenster“): Was die Seite am Dokument an Bedien-Ereignissen anmeldet, gilt auch dort –
+   deshalb merkt sich diese Stelle die Anmeldungen und gibt sie an offene Fenster weiter. */
+const BP_HORCHER = [], BP_FENSTER = new Set();
+{ const an = document.addEventListener, ART = /^(click|dblclick|contextmenu|mouse(down|up|over|out)|pointer(down|up)|key(down|up)|input|change|focus(in|out)|paste|copy|cut|drag\w*|drop|wheel)$/;
+  document.addEventListener = function (t, f, o) { if (ART.test(t)) { BP_HORCHER.push([t, f, o]); BP_FENSTER.forEach((w) => { try { w.document.addEventListener(t, f, o); } catch { /* Fenster schon zu */ } }); } return an.call(document, t, f, o); }; }
 const $ = (s, el = document) => el.querySelector(s);
 /* Suchen ohne Ärger mit Umlauten: „pü“, „pue“ und „Pürzer“ (auch aus anderen Programmen mit zerlegten Umlauten) passen zusammen */
 const fold = (s) => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')

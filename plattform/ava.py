@@ -5400,8 +5400,17 @@ def lv_pdf(i):
     def _am_pdf():   # Massenermittlung (auch als Anlage der Rechnungsfreigabe)
         am = P["aufmass"]
         rw = bool(_opt("aufmass").get("rechenweg", True))
+        zw = _opt("aufmass").get("zeilen", "alle") != "summe"   # mit Zwischenschritten (jede Aufmaßzeile) oder nur die Menge je Position
 
         def st(story, S, X, table, W, mm, p):
+            if not zw:   # ohne Zwischenschritte: je Position nur die aufgemessene Menge
+                rows = [["OZ", "Kurztext", "LV-Menge", "aufgemessen", "EH"]]
+                for x in items:
+                    zs = [z for z in am if z["pos_id"] == x["id"]] if x["typ"] == "pos" and x.get("art") != "T" else []
+                    if zs:
+                        rows.append([x["oz"], Paragraph(X(x["kurz"]), S["p"]), num(x["menge"]), num(sum(z["menge"] for z in zs)), x["einheit"]])
+                story.append(table(rows, [24 * mm, W - 24 * mm - 64 * mm, 24 * mm, 24 * mm, 16 * mm], num=(2, 3)))
+                return
             if not rw:   # ohne Rechenweg: Ort und Menge
                 rows, bold = [["OZ / Datum", "Kurztext / Ort", "Menge", "EH"]], []
                 for x in items:

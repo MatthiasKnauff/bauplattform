@@ -680,3 +680,4 @@ table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blin
 #navL.oben .nv-ende #nsuche{padding:0}#navL.oben .nv-ende .vqb{flex-direction:row;align-items:center;gap:.4rem}#navL.oben .nv-ende input[type=search]{width:16rem}
 .am-bel{margin:0 0 .6rem}   /* Ablagefeld im Aufmaß – wie in der Rechnung */
 .am-ein .am-plus{color:var(--y);font-weight:700}   /* ＋ am Ende der Eingabezeile: weitere Zeile dieser Position */
+.am-zw td{font-size:var(--fs-s);color:var(--mute);border-top:0!important;padding-top:.1rem;padding-bottom:.1rem}.am-zw .am-zwd{min-width:7.5rem;display:inline-block}.am-zw .am-zwf{color:var(--ink);margin-left:.6rem}   /* Aufmaßzeilen unter der Position */

@@ -25,7 +25,6 @@ Stand: 10.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 10. Aufmaß: Menge direkt eintragen – ohne Aufmaßzeilen entsteht eine Zeile „pauschal“, mit Aufmaßzeilen eine Ausgleichszeile (Vorschlag, wartet auf Zustimmung). **ca. 2–3 h**
 11. Aufmaßprüfung: Mengen direkt in der Tabelle (aufgemessen, mit Spalte „lt. Rechnung“ auch dort) – Enter nach unten, Tab nach rechts – Mock liegt vor. **ca. 3 h**
 12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
-13. Aufmaßzeilen als Zwischenzeilen unter der Position in der Tabelle der Aufmaßprüfung (Datum, Ort, Rechenweg, Menge – auf-/zuklappbar); im Ausdruck wählbar „mit Rechenweg“ oder „nur Mengen“ – erst Mock. **ca. 4 h**
 
 Summe Sammlung: ca. 4–5 Tage.
 
@@ -93,3 +92,5 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~Bautagebuch Schritt 1: Rahmen mit Navigation, Kalender, Befehlsleiste, Bereich rechts~~
 - ~~AVA: Knöpfe ganz rechts in der LV-Tabelle (⊞) nicht mehr unter dem Rand~~
 - ~~Aufmaß: ＋ am Ende der Eingabezeile für eine weitere Zeile (wie Umschalt+Enter), Hinweis zum Rechenweg mit Beispielen~~
+- ~~Aufmaßprüfung: Aufmaßzeilen als Zwischenzeilen (Schalter „Rechenweg“), Ausdruck mit oder ohne Zwischenschritte~~
+- ~~Navigation im Streifen: Gruppen als kurzer Strich~~

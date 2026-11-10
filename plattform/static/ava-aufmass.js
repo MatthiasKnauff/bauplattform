@@ -160,6 +160,7 @@ function vAmBaum() {
 }
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-amans]'); if (a) { amAns = a.dataset.amans; render(); return; }
+  if (e.target.closest('[data-amzw]')) { amZw = !amZw; LS.set('amZw', amZw); render(); return; }
   const zg = e.target.closest('[data-amzeig]'); if (zg) { const v = zg.dataset.amzeig; amNur = v === 'am'; amNurR = v === 'pdf'; LS.set('amNur', amNur); LS.set('amNurR', amNurR); render(); return; }
   const c = e.target.closest('[data-amx]'); if (c) { const k = c.dataset.amx, cur = c.textContent === '▾'; AMX[k] = !cur; LS.set('amx', AMX); render(); }
 });
@@ -173,6 +174,7 @@ const AMNEU = new Set();
 let AMTEIL = { ein: '', rech: '' };   // Aufmaß: Inhalte für den Bereich rechts (Eingabe, Karten der Rechnung)
 let AMABL = null;   // Ablage im Projektordner, aus dem gemeinsamen Ablagefeld gewählt
 let AMB = LS.get('amB', 0), amNurR = LS.get('amNurR', false), AMV = null;
+let amZw = LS.get('amZw', false);   // Aufmaßzeilen als Zwischenzeilen unter den Positionen
 const amRe = () => (L ? (['rechnungen', 'aufmass'].includes(tab) && PJSEL && PJSEL[0] === 'r' && L.rechnungen.find((r) => 'r' + r.id === PJSEL)) || L.rechnungen.find((r) => r.status !== 'geprueft') || [...L.rechnungen].sort((a, b) => b.nr - a.nr)[0] || null : null);
 const amBelege = () => { const r = amRe(); return r ? r.belege || [] : []; };
 function amTreffer(pid) { let t = null; for (const b of [...amBelege()].sort((x, y) => (y.id === AMB) - (x.id === AMB))) { const x = b.auslese && b.auslese.pos && b.auslese.pos[pid]; if (x && (!t || (t.menge == null && x.menge != null))) t = { ...x, bid: b.id }; } return t; }
@@ -199,7 +201,8 @@ function vAmErfassen() {
   const R0 = R ? 3 : 2;   // Einrückung der Positionen: unter der Rechnung (oder direkt unter dem LV)
   const liste = LI.map((p) => { const m = K.aufmass[p.id] || 0, pct = p.menge ? Math.round(m / p.menge * 100) : null, t = B.length ? amTreffer(p.id) : null, e = VP[p.id], fe = t && t.ep;
     const fz = t ? (t.menge != null ? `<td class="r" style="color:${Math.abs(t.menge - m) < 1e-6 ? 'var(--ok)' : '#e07b3a'};font-weight:600" title="lt. PDF der Firma, Seite ${t.seite}">${nf(t.menge)}</td>` : `<td class="r hint" title="in der PDF gefunden (Seite ${t.seite}), Menge nicht sicher lesbar">S. ${t.seite}</td>`) : B.length ? '<td></td>' : '';
-    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${R0 * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge"` : ''}>${m ? nf(m) : ''}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td></tr>`; }).join('');
+    return `<tr class="${p.id === amPos ? 'sel akt' : ''}" data-ampos="${p.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:${R0 * 1.15}rem">${IC.pos}<span class="oz" style="margin:0 .5rem 0 .3rem">${esc(p.oz)}</span><span>${esc(p.kurz)}</span>${p.nt ? `<span class="badge nt">${esc(p.nt)}</span>` : ''}</div></td><td class="r">${nf(p.menge)} ${esc(p.einheit)}</td>${fz}<td class="r ${pct > 110 ? 'ueb' : ''}" style="${pct > 110 ? 'color:#e07b3a;font-weight:600' : ''}"${pct != null && m ? ` title="${pct} % der LV-Menge"` : ''}>${m ? nf(m) : ''}</td><td class="r"${fe != null && e != null && Math.abs(fe - e) > 0.005 ? ` style="color:#e07b3a;font-weight:600" title="EP lt. Firma ${nf2(fe)}"` : ''}>${e != null ? nf2(e) : ''}</td><td class="r">${m && e != null ? nf2(m * e) : ''}</td></tr>`
+      + (amZw ? L.aufmass.filter((z) => z.pos_id === p.id).map((z) => `<tr class="am-zw" data-ampos="${p.id}"><td class="baumz"><div class="bz" style="padding-left:${(R0 + 1) * 1.15 + 1.1}rem"><span class="am-zwd">${esc(amDatumZeig(z.datum))}${z.ort ? ' · ' + esc(z.ort) : ''}</span><span class="am-zwf">${esc(z.formel)}</span></div></td><td></td>${B.length ? '<td></td>' : ''}<td class="r">${nf(z.menge)}</td><td></td><td></td></tr>`).join('') : ''); }).join('');
   setTimeout(amSichtbar, 0);   // nach dem Neuzeichnen: aktive Position in der Liste sichtbar
   const ep = VP[amPos], t = B.length ? amTreffer(amPos) : null, diff = t && t.menge != null ? t.menge - sum : 0;
   const firma = !B.length ? '' : `<div class="am-firma">${!t ? '<span class="hint">In der PDF der Firma nicht gefunden.</span>'

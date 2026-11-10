@@ -3756,7 +3756,7 @@ async function auftragDialog() {
   const n = String(LIST.length + 1).padStart(2, '0');
   const bg = modalBox(`<h3>Neuer Auftrag</h3>
     <datalist id="auFirmen">${(KONT || []).map((k) => `<option value="${esc(k.name)}">${k.trade ? esc(k.trade) : ''}</option>`).join('')}</datalist>
-    <label class="au-ohne" style="display:flex;gap:.55rem;align-items:center;margin:0 0 .8rem;font-weight:600;cursor:pointer"><input type="checkbox" id="auOhne" checked style="width:1.15rem;height:1.15rem"> ohne Angebot und LV
+    <label class="au-ohne" style="display:flex;gap:.55rem;align-items:center;margin:0 0 .8rem;font-weight:600;cursor:pointer"><input type="checkbox" id="auOhne" style="width:1.15rem;height:1.15rem"> ohne Angebot und LV
       <small class="hint" style="font-weight:400">– nur Firma und Summe, z. B. kleine Handwerker</small></label>
     <div id="auLvBox" style="margin:0 0 .8rem">
       <label class="hint" style="display:grid;gap:.25rem">LV<select id="auLv">${frei.map((x) => `<option value="${x.id}">${esc([x.nr, x.name].filter(Boolean).join(' '))}${x.n_angebote ? ` · ${x.n_angebote} Angebot${x.n_angebote === 1 ? '' : 'e'}` : ''}${x.status === 'nicht_vergeben' ? ' · nicht vergeben' : ''}</option>`).join('')}<option value="neu">＋ neues LV anlegen</option></select></label>

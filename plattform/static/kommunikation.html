@@ -25,6 +25,7 @@
 .btn.zur{border-color:var(--red);color:var(--red);font-weight:600}.btn.zur:hover{background:color-mix(in srgb,var(--red) 12%,transparent)}
 .grid{display:grid;grid-template-columns:290px minmax(0,1fr);gap:1rem;align-items:start}
 .side{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.5rem 0;position:sticky;top:60px;max-height:calc(100vh - 80px);overflow:auto}
+#list>.tag:first-child{margin-top:0}.grid:has(#list>.tag:first-child) .side{margin-top:calc(.82rem*1.2 + .35rem)}   /* links oben bündig mit der ersten Karte rechts */
 .side h3{margin:.3rem .9rem .4rem;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600}
 .si{display:flex;gap:.6rem;align-items:center;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:.5rem .9rem;cursor:pointer}
 .si:hover{background:var(--hov)}
@@ -33,7 +34,7 @@
 .si b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.95rem}
 .si small{color:var(--mute);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .si i{font-style:normal;font-size:.8rem;color:var(--mute);background:var(--hov);border-radius:calc(999px*var(--rkp,1));padding:.05rem .5rem}
-.tag{margin:1rem 0 .35rem;font-size:.82rem;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.tag{margin:1rem 0 .35rem;line-height:1.2;font-size:.82rem;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
 .tag:first-child{margin-top:0}
 .e{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));margin-bottom:.45rem}
 .e.f{border-color:var(--red)}

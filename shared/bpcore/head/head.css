@@ -32,8 +32,10 @@
 .bph-menu{position:absolute;right:.6rem;top:calc(100% + 4px);background:#2a2a28;color:var(--bph-ink);border:1px solid var(--bph-line);border-radius:calc(10px*var(--rk,1));min-width:240px;
   box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.45));display:flex;flex-direction:column;padding:.3rem 0;z-index:70}
 .bph-menu a,.bph-menu button{display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem!important;text-align:left;border-radius:0!important;color:var(--bph-ink)!important;width:100%;font-size:.95rem}
-.bph-menu a:hover,.bph-menu button:hover{background:rgba(255,255,255,.07)}
-.bph-menu a.cur{color:var(--bph-acc)!important;font-weight:600}
+.bph-menu a:hover,.bph-menu button:hover{background:var(--hov,rgba(255,255,255,.07))}
+/* Aufklappende Menüs der Kopfleiste folgen dem Farbschema (wie die Menüs in der Ausschreibung); die Leiste selbst bleibt dunkel */
+.bph .bph-menu{--bph-ink:var(--ink,#f4f3ef);--bph-mute:var(--mute,#b9b4aa);--bph-line:var(--line,#46443f);--bph-acc:var(--y,#ff5fb3);background:var(--card,#2a2a28)}
+.bph-menu a.cur{color:var(--bph-acc)!important;font-weight:600}.bph .bph-menu a.cur{color:var(--bph-ink)!important;background:color-mix(in srgb,var(--bph-acc) 18%,transparent)}   /* aktuelle App: lesbar auch bei heller Akzentfarbe auf Weiß */
 .bph-menu svg{width:18px;height:18px;flex:none}
 .bph-menu .bph-info{padding:.55rem 1rem;color:var(--bph-mute);font-size:.85rem}
 .bph-menu .bph-info b{color:var(--bph-ink)}
@@ -44,7 +46,7 @@
 .bph-look{min-width:280px;padding-bottom:.6rem}
 .bph-lk{display:flex;flex-wrap:wrap;gap:.35rem;padding:.2rem 1rem .6rem}
 .bph-menu .bph-lk .bph-th{width:auto;border:1px solid var(--bph-line)!important;border-radius:calc(999px*var(--rkp,1))!important;padding:.35rem .8rem!important;font-size:.85rem}
-.bph-menu .bph-lk .bph-th.on{background:var(--bph-ink)!important;color:#1c1c1a!important;font-weight:600}
+.bph-menu .bph-lk .bph-th.on{background:var(--bph-ink)!important;color:var(--card,#1c1c1a)!important;font-weight:600}
 .bph-sw{display:flex;flex-wrap:wrap;gap:.45rem;padding:0 1rem}
 .bph-menu .bph-sw button,.bph-sw label{width:26px!important;height:26px;border-radius:50%!important;padding:0!important;border:2px solid transparent;box-shadow:0 0 0 1px var(--bph-line);position:relative;overflow:hidden;cursor:pointer}
 .bph-menu .bph-sw .on{border-color:var(--bph-ink)}
@@ -136,7 +138,7 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 [data-af="plaene"]{--af:#0c9c8c}[data-af="bautagebuch"]{--af:#1c7ed6}[data-af="adressen"]{--af:#7048e8}[data-af="kommunikation"]{--af:#ae3ec9}
 [data-af="papierkorb"]{--af:#8d6e63}[data-af="admin"]{--af:#868e96}[data-af="portal"]{--af:#9a9c9e}
 .bph-menu .bph-tiles a[data-af] svg{color:var(--af)}
-.bph-menu .bph-tiles a.cur{background:rgba(255,255,255,.08)}
+.bph-menu .bph-tiles a.cur{background:var(--hov,rgba(255,255,255,.08))}
 /* Einstellungsfenster (von rechts) */
 .bph-dr-bg{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0);transition:background .18s;display:flex;justify-content:flex-end}
 .bph-dr-bg.in{background:rgba(0,0,0,.45)}
@@ -490,6 +492,7 @@ tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAcht
 /* Anfasser aller Schieber (Trenner der Kopfleiste, Ränder, Bereich rechts, Aufmaß) – EIN Aussehen für alle, nur hier festgelegt */
 :is(.bph-trenn,.rand-griff,.sr-griff,.bp-nav-griff)::after,:is(.am-sch,.am-sch-h)::before{border-radius:calc(4px*var(--rk,1));background:var(--card,#fff) radial-gradient(circle,var(--mute,#888) .8px,transparent 1.1px) center/4px 4.5px;border:1px solid var(--line,#ccc);box-shadow:0 1px 4px rgba(0,0,0,.14);opacity:1}
 :is(.bph-trenn,.rand-griff,.sr-griff,.bp-nav-griff,.am-sch,.am-sch-h):hover::after,:is(.am-sch,.am-sch-h):hover::before,:is(.am-sch,.am-sch-h).on::before,.bph-trennzieh .bph-trenn::after{border-color:var(--y,var(--bph-acc,#c8f031));background-color:color-mix(in srgb,var(--y,#c8f031) 22%,var(--card,#fff))}
+.bph-trenn::after{transition:opacity .15s}.bph-trenn:not(:hover)::after{opacity:0}body.bph-trennzieh .bph-trenn::after{opacity:1}   /* Griffpunkte nur, wenn man an den Trenner fährt */
 .bph-trennzieh,.bph-trennzieh *{cursor:col-resize!important;user-select:none!important}
 @media print{.bph-trenn{display:none}}
 /* Hilfe & Fehler (🐞?) */
@@ -577,7 +580,7 @@ html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):checked{backgro
 html[data-schalter="an"] input[type="checkbox"]:not(.bp-chk-alt):disabled{opacity:.45;cursor:default}
 html[data-fenster="mac"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--y,#d4f02a) 45%,transparent),inset 0 0 0 1px var(--y,#d4f02a)}
 html[data-fenster="mac"] :is(.bph-menu,.umenu,.bph-km){-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
-html[data-fenster="mac"] .bph-menu{background:color-mix(in srgb,#2a2a28 86%,transparent)}   /* Menüs der Kopfleiste sind immer dunkel – Milchglas in ihrer eigenen Farbe, sonst wird helle Schrift auf hellem Grund unlesbar */
+html[data-fenster="mac"] .bph .bph-menu{background:color-mix(in srgb,var(--card,#2a2a28) 86%,transparent)}   /* Milchglas in der Farbe des Schemas */
 html[data-fenster="mac"] :is(.umenu,.bph-km){background:color-mix(in srgb,var(--card,#2d2f33) 86%,transparent)}
 /* drei Punkte in Akzentfarbe im Fenstertitel (reine Zierde, ohne Funktion) – nur im Mac-Stil */
 .bp-ampel{display:none}

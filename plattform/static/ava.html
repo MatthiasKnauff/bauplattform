@@ -3170,7 +3170,7 @@ function amDokDef() {
   if (!B.some((b) => b.id === AMB)) AMB = (B.find((b) => b.auslese && Object.keys(b.auslese.pos || {}).length) || B[0]).id;
   if (!AMV || AMV.bid !== AMB) { AMV = { bid: AMB, el: document.createElement('div'), pages: [], zoom: LS.get('amZoom', 1) }; AMV.el.className = 'am-pv'; AMV.el.innerHTML = '<p class="hint" style="color:#fff">Lade PDF …</p>'; amPdfLaden(AMV); }
   const b = B.find((y) => y.id === AMB), A = b.auslese;
-  if ((!A || !A.zahlen || !A.kopf || !A.kopf.summen) && !(A && A.laeuft)) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
+  if ((!A || !A.zahlen || !A.kopf || !A.kopf.summen) && !(A && (A.laeuft || A.stand >= 2))) { AMNEU.add(AMB); if (AMNEU.size < 20 && !AMNEU.has('x' + AMB)) { AMNEU.add('x' + AMB); api(`api/belege/${AMB}/auslesen`, 'POST').then((d) => { L = d; AMV = null; render(); }).catch(() => {}); } }   // ältere PDFs neu lesen
   const neu = () => AMV && AMV.pdf && amPdfZeichnen(AMV).then(() => { amMarken(); amPdfZeige(amPos, true); });
   return { id: 'dok', titel: '📄 Dokument', mount: amDokReiter, neu, fenster: true };   // fenster: auch als eigenes Browserfenster (zweiter Bildschirm)
 }

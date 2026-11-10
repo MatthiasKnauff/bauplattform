@@ -72,9 +72,17 @@ def _teilen(ws):
     return out
 
 
+_OCR_EINZELN = __import__("threading").BoundedSemaphore(1)   # je Arbeitsprozess höchstens eine Texterkennung zugleich – sonst steht der Server
+
+
 def _tess(f, psm, timeout):
+    """Eine Seite durch Tesseract. Immer nur eine zugleich (weitere warten) und mit einem Rechenkern (OMP_THREAD_LIMIT=1):
+    Mehrere Texterkennungen nebeneinander haben den Server sonst so ausgelastet, dass keine Seite mehr lud."""
+    import os
     import subprocess
-    return subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", psm, "tsv"], capture_output=True, text=True, timeout=timeout).stdout
+    with _OCR_EINZELN:
+        return subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", psm, "tsv"], capture_output=True, text=True, timeout=timeout,
+                              env=dict(os.environ, OMP_THREAD_LIMIT="1")).stdout
 
 
 def _tsv(out, k, zl=True):

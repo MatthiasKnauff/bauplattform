@@ -11,7 +11,7 @@ Wahlpositionen ohne Gesamtbetrag), Nachlass in Prozent. Abrechnung kumuliert: Le
 """
 import ast, hashlib, io, json, operator, os, re, uuid
 from collections import Counter
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import Response, g, jsonify, redirect, request
 
@@ -4142,6 +4142,7 @@ def _auslese_anwenden(c, bid, rid, lv, A=None):
             A = _auslesen(bytes(x["data"]), (_j(lv["data"], {}) or {}).get("items") or [])
         except Exception as e:
             A = {"pos": {}, "kopf": {}, "text": False, "fehler": str(e)[:200]}
+    A["stand"] = 2   # mit dem heutigen Leseverfahren gelesen – die Seite stößt dafür kein erneutes Lesen mehr an
     c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps(A), bid))
     R = c.execute("SELECT * FROM ava_rechnung WHERE id=?", (rid,)).fetchone()
     leer = not any(x.get("typ") == "pos" and x.get("art") != "T" for x in (_j(lv["data"], {}) or {}).get("items") or [])
@@ -4468,7 +4469,10 @@ def beleg_auslesen(b):
         lv = _lv(c, x["lv_id"]) if x else None
         if not lv:
             return jsonify(error="Nicht gefunden"), 404
-        roh = bytes(c.execute("SELECT data FROM ava_beleg WHERE id=?", (b,)).fetchone()["data"])
+        alt = c.execute("SELECT data, auslese FROM ava_beleg WHERE id=?", (b,)).fetchone()
+        roh, A0 = bytes(alt["data"]), _j(alt["auslese"], {}) or {}
+        if A0.get("laeuft") and str(A0.get("seit") or "") > (datetime.now() - timedelta(minutes=15)).isoformat(timespec="seconds"):
+            return _antwort(c, x["lv_id"])   # läuft schon (z. B. Seite neu geladen): nicht noch eine Texterkennung daneben starten
         if _ist_scan(roh):   # Scan: Texterkennung (noch einmal) im Hintergrund – die Seite fragt nach
             import threading
             c.execute("UPDATE ava_beleg SET auslese=? WHERE id=?", (json.dumps({"zeilen": {}, "vorschlag": [], "ocr": True, "laeuft": True, "seit": _now()}), b))

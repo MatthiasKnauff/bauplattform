@@ -16,6 +16,7 @@ NAME_MAX = 40
 _ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 SERVICES = [  # interne Adressen im Docker-Netz
     ("bauportal", "Verteiler (eine Adresse für alle Apps)", os.environ.get("ROUTER_INTERNAL", "http://bauportal:8090") + "/_verteiler/health"),
+    ("dienste", "Dienste (Datenbank einrichten, Sicherung, Erinnerungen)", os.environ.get("DIENSTE_INTERNAL", "http://dienste:8102") + "/api/health"),
     ("bautagebuch", "Bautagebuch", os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000") + "/api/platform"),
     ("gantt", "Bauzeitenplan", os.environ.get("GANTT_INTERNAL", "http://gantt:8082") + "/api/health"),
     ("portal", "Startseite / Anmeldung", os.environ.get("PORTAL_INTERNAL", "http://portal:8090") + "/api/health"),

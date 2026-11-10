@@ -130,10 +130,22 @@ def info_tables(proj, rep):
     adr = ", ".join(x for x in (proj.get("street"), " ".join(y for y in (proj.get("zip"), proj.get("city")) if y)) if x)
     name = P(f"<font size=7.5 color='#6b7177'><b>BAUVORHABEN</b></font><br/><font size=15><b>{safe(proj['name'])}</b></font>"
              + (f"<br/><font size=8 color='#6b7177'>{safe(adr)}</font>" if adr else ""), 15, leading=19)
-    mp = None
+    mp, foto = None, False
+    try:   # Foto des Bauvorhabens statt der Karte (im Bericht gewählt, extra.kopfbild)
+        import json
+        from . import storage
+        ex = proj.get("extra") or {}
+        kb = (json.loads(ex) if isinstance(ex, str) else ex).get("kopfbild")
+        pfad = storage.thumb(kb, 1200, square=False) if kb else None
+        if pfad:
+            with open(pfad, "rb") as fh:
+                mp, foto = fh.read(), True
+    except Exception:   # Foto ist nur Schmuck – sonst die Karte
+        mp, foto = None, False
     try:
-        from . import staticmap
-        mp = staticmap.image(proj)       # dekorative, stark abgeflachte Karte; ohne Standort/Netz None
+        if not mp:
+            from . import staticmap
+            mp = staticmap.image(proj)       # dekorative, stark abgeflachte Karte; ohne Standort/Netz None
     except Exception:   # Karte ist nur Schmuck (ohne Standort/Netz keine) – PDF trotzdem erstellen
         mp = None
     if mp:
@@ -141,7 +153,7 @@ def info_tables(proj, rep):
         left = Table([[name]], colWidths=[W - mw - gap], rowHeights=[hh], cornerRadii=[RAD] * 4)
         left.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), .8, LINE), ("BACKGROUND", (0, 0), (-1, -1), SOFT), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                                   ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
-        att = Paragraph("<font size=5 color='#9a9fa6'>© OpenStreetMap-Mitwirkende</font>", ParagraphStyle("o", alignment=2, leading=6))
+        att = Paragraph("" if foto else "<font size=5 color='#9a9fa6'>© OpenStreetMap-Mitwirkende</font>", ParagraphStyle("o", alignment=2, leading=6))
         t1 = Table([[left, "", Image(map_field(mp, mw, hh), mw, hh)], ["", "", att]], colWidths=[W - mw - gap, gap, mw], rowHeights=[hh, 3.4 * mm])
         t1.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
                                 ("BOTTOMPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP")]))

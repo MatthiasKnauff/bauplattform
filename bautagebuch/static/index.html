@@ -97,8 +97,8 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .hgrid .checks input{flex:none}
 .pconly{display:none}@media(hover:hover) and (pointer:fine) and (min-width:900px){.pconly{display:inline-flex}.pconly.hidden{display:none}}
 .hgrid{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:1rem;align-items:start}.hgrid>h3{grid-column:1;grid-row:1}.hgrid>.meta,.hgrid>.wgrid{grid-column:1;grid-row:2}.hgrid>.checks{grid-column:1;grid-row:3}.hgrid>*{min-width:0}
-.hmap{grid-column:2;grid-row:1/4;display:block;line-height:0}.hmap img{width:280px;height:94px;object-fit:cover;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line);display:block;opacity:.95}
-@media(max-width:640px){.hgrid>h3{grid-column:1/-1}.hmap{grid-row:2/4;margin-top:.3rem}.hmap img{width:96px;height:96px}}
+.hmap{grid-column:2;grid-row:1/4;display:flex;flex-direction:row-reverse;align-items:flex-start;gap:.35rem;line-height:0}.hmap a{display:block}.hmap-ed{flex:none;display:inline-flex;align-items:center;gap:.3rem;line-height:1;padding:.3rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));color:var(--mute);background:var(--card)}.hmap-ed:hover{color:var(--y);border-color:var(--y)}.hmap.leer .hmap-ed{padding:.35rem .6rem;font-size:.85rem}.hmap img{width:280px;height:94px;object-fit:cover;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line);display:block;opacity:.95}
+@media(max-width:640px){.hgrid>h3{grid-column:1/-1}.hmap{grid-row:2/4;margin-top:.3rem}.hmap img{width:96px;height:96px}.hmap{position:relative}.hmap:not(.leer) .hmap-ed{position:absolute;right:3px;bottom:3px;padding:.2rem;background:color-mix(in srgb,var(--card) 85%,transparent)}}
 .mapb{grid-column:1/-1;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden}.mapb iframe{display:block;width:100%;height:210px;border:0;background:#2a2c30}.mapb.sm iframe{height:150px}@media(max-width:640px){.mapb iframe{height:130px}.mapb.sm iframe{height:90px}.mapr{padding:.45rem .8rem;font-size:.85rem}}
 .mapr{display:block;color:var(--y);text-decoration:none;padding:.6rem .9rem;font-weight:700;border-top:1px solid var(--line)}
 .cform>*{min-width:0}.sugc .pi{overflow:hidden}.sugc{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden}.sugc .pi:last-child{border-bottom:0}
@@ -528,6 +528,7 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
   <input type="file" id="alib" class="vh" accept="image/*,.heic,.heif" multiple>
   <input type="file" id="qcam" class="vh" accept="image/*" capture="environment">
   <input type="file" id="qlib" class="vh" accept="image/*,.heic,.heif" multiple>
+  <input type="file" id="kopfbildDatei" class="vh" accept="image/*,.heic,.heif">
 </div>
 
 <div id="sheet" class="hidden">
@@ -1043,10 +1044,12 @@ function wxSec(s, r) {
   return `<div class="sec wxs" id="sec-${esc(s.key)}"><div class="main"><h3>${secIc(s)}<span class="st">${esc(s.title)}</span>${r.plz ? `<span class="chip0">PLZ ${esc(r.plz)}</span>` : ''}</h3>${body}</div>
     <div class="side wx"><span class="cl">${ic('cloud', 64)}</span><span>PLZ: ${esc(r.plz) || '–'}</span><span style="display:flex"><button data-act="gps" title="Wetter für die Projektadresse laden">${ic('pin', 20)}</button><button data-act="wxEdit" title="${wxEdit ? 'Fertig' : 'Wetter bearbeiten'}">${wxEdit ? '✓' : ic('pencil', 18)}</button></span>${r.extra && r.extra.place ? `<small style="color:var(--mute);text-align:center;padding:0 .4rem">${esc(r.extra.place)}</small>` : ''}</div></div>`;
 }
-const headMap = p => {   // dieselbe abgeflachte Karte wie in der PDF; Antippen = Route
-  if (!p || !hasPos(p)) return '';
-  const d = encodeURIComponent((addr(p) || p.lat + ',' + p.lon));
-  return `<a class="hmap" href="https://www.google.com/maps/dir/?api=1&destination=${d}&travelmode=driving" target="_blank" rel="noopener" title="Route zur Baustelle planen"><img src="api/projects/${p.id}/map.jpg?v=${String(p.lat).slice(0, 7)}_${String(p.lon).slice(0, 6)}" alt="Karte" onerror="this.parentNode.remove()"></a>`;
+const headMap = p => {   // dieselbe abgeflachte Karte wie in der PDF (Antippen = Route) – oder ein Foto des Bauvorhabens; der Stift daneben wechselt
+  if (!p) return '';
+  const kb = p.extra && p.extra.kopfbild, d = encodeURIComponent((addr(p) || p.lat + ',' + p.lon));
+  const bild = kb ? `<a href="uploads/${esc(kb)}" target="_blank" rel="noopener" title="Foto des Bauvorhabens – groß ansehen"><img src="api/projects/${p.id}/kopfbild.jpg?v=${esc(kb.slice(0, 8))}" alt="Foto des Bauvorhabens"></a>`
+    : hasPos(p) ? `<a href="https://www.google.com/maps/dir/?api=1&destination=${d}&travelmode=driving" target="_blank" rel="noopener" title="Route zur Baustelle planen"><img src="api/projects/${p.id}/map.jpg?v=${String(p.lat).slice(0, 7)}_${String(p.lon).slice(0, 6)}" alt="Karte"></a>` : '';
+  return `<div class="hmap${bild ? '' : ' leer'}">${bild}<button type="button" class="hmap-ed" data-act="kopfbild" title="${kb ? 'Anderes Foto wählen oder wieder die Karte zeigen' : 'Foto statt der Karte wählen'}" aria-label="Foto oder Karte wählen">${ic('pencil', 16)}${bild ? '' : '<span>Foto</span>'}</button></div>`;
 };
 function headSec(s, r) {
   const p = curProject();
@@ -1852,6 +1855,14 @@ function photoPicked(e) {
 const addPicked = e => { addFiles.push(...e.target.files); e.target.value = ''; renderApv(); };
 $('#acam').onchange = addPicked; $('#alib').onchange = addPicked;
 $('#qcam').onchange = photoPicked; $('#qlib').onchange = photoPicked;
+document.addEventListener('error', (e) => { const i = e.target; if (i && i.matches && i.matches('.hmap img')) { const h = i.closest('.hmap'); i.closest('a').remove(); h.classList.add('leer'); const b = h.querySelector('.hmap-ed'); if (b && !b.querySelector('span')) b.insertAdjacentHTML('beforeend', '<span>Foto</span>'); } }, true);   // Karte/Foto nicht ladbar: nur der Knopf bleibt
+$('#kopfbildDatei').onchange = async (e) => {   // Foto statt Karte hochladen
+  const f = e.target.files[0], p = curProject(); e.target.value = ''; if (!f || !p) return;
+  const fd = new FormData(); fd.append('file', f);
+  try { const r = await fetch(`api/projects/${p.id}/kopfbild`, { method: 'POST', body: fd }), j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Das Foto ließ sich nicht speichern.');
+    await loadProjects(); renderDetail(); toast('Das Foto steht jetzt statt der Karte im Bericht und in der PDF.'); } catch (er) { toast(er.message); }
+};
 function showSug(inp) {   // eigene Kontaktliste statt <datalist>: erscheint bei jedem Antippen/Tippen, nicht nur beim ersten Mal
   const box = inp.parentElement.querySelector('.sug'); if (!box) return;
   const q = inp.value.trim().toLowerCase(), hits = contacts.filter(c => (c.trade || '').trim().toLowerCase() !== 'baustelle').filter(c => !q || passt(c.name, q)).filter(c => c.name.toLowerCase() !== q).slice(0, 8);
@@ -2048,6 +2059,13 @@ document.addEventListener('click', async e => {
     if (r && r.undo) toast('Bericht gelöscht.', async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } rid = del; await openProject(pid, true); toast('Bericht wiederhergestellt.'); });
   }
   else if (a === 'editHead') { headEdit = !headEdit; renderDetail(); }
+  else if (a === 'kopfbild') {   // Foto statt der kleinen Karte – und wieder zurück
+    const p = curProject(); if (!p) return;
+    const hat = !!(p.extra && p.extra.kopfbild);
+    const w = hat ? await bpFrage('Foto des Bauvorhabens\nEin anderes Foto wählen – oder wieder die Karte zeigen?', { ok: 'Anderes Foto …', drei: 'Wieder die Karte' }) : true;
+    if (w === 'drei') { try { await api(`api/projects/${p.id}/kopfbild`, 'DELETE'); await loadProjects(); renderDetail(); toast('Die Karte steht wieder im Bericht.'); } catch (er) { toast(er.message); } }
+    else if (w) $('#kopfbildDatei').click();
+  }
   else if (a === 'gps') fillGeo(false);
   else if (a === 'wxEdit') { wxEdit = !wxEdit; renderDetail(); }
   else if (a === 'adding') { adding = adding === b.dataset.kind ? null : b.dataset.kind; addFiles = []; if (adding) setSecOpen(adding, true); renderDetail(); renderApv(); }

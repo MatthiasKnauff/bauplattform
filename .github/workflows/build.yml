@@ -1,7 +1,7 @@
 name: Build & Publish
 
-# Push auf main -> alle Images bauen, Stand in server/test.yml eintragen (Testserver)
-# Release v…    -> Images bauen, Version in server/docker-compose.yml eintragen (Produktiv)
+# Push auf main -> das Image bauen, Stand in server/test.yml eintragen (Testserver)
+# Release v…    -> Image bauen, Version in server/docker-compose.yml eintragen (Produktiv)
 #                  (auf GitHub: Releases → Draft a new release → Tag v… → Publish release)
 #                  Portainer (Polling) erkennt die Änderung und spielt sie ein.
 on:
@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        app: [bautagebuch, gantt, plattform]
+        app: [plattform]   # EIN Image für alle Apps (Dockerfile im Hauptordner; welche App ein Container ist, sagt APP – siehe apps.py / start.py)
     steps:
       - uses: actions/checkout@v4
 
@@ -78,9 +78,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          # „plattform“ ist das EINE Image für alle Apps (Dockerfile im Hauptordner, siehe apps.py / start.py).
-          # Übergang: Bautagebuch und Bauzeitenplan werden noch einmal zusätzlich als eigene Images gebaut, bis der Testserver umgestellt ist.
-          file: ${{ matrix.app == 'plattform' && 'Dockerfile' || format('{0}/Dockerfile', matrix.app) }}
+          file: Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha,scope=${{ matrix.app }}

@@ -69,8 +69,9 @@ services:
     # keine veröffentlichten Ports: nur die Apps im selben Docker-Netz erreichen die Datenbank
 
   bautagebuch:
-    build: { context: ., dockerfile: bautagebuch/Dockerfile }
-    image: bauplattform/bautagebuch:latest
+    build: { context: ., dockerfile: Dockerfile }   # EIN Image für alle Apps – hier wird es gebaut, die anderen Dienste benutzen es
+    image: bauplattform/plattform:latest
+    working_dir: /app/bautagebuch
     container_name: bauplattform_bautagebuch
     restart: unless-stopped
     depends_on:
@@ -79,13 +80,14 @@ services:
       - "${BAUTAGEBUCH_PUBLISH:-8080}:8000"
     environment:
       <<: *env
+      APP: bautagebuch
       SECRET_KEY: ${SECRET_KEY:-}
     volumes:
       - bautagebuch_data:/data          # Fotos, Logo, Sicherungen, Einstellungen
 
   gantt:
-    build: { context: ., dockerfile: gantt/Dockerfile }
-    image: bauplattform/gantt:latest
+    image: bauplattform/plattform:latest
+    working_dir: /app/gantt
     container_name: bauplattform_bauzeitenplan
     restart: unless-stopped
     depends_on:
@@ -94,12 +96,12 @@ services:
       - "${GANTT_PUBLISH:-8082}:8082"
     environment:
       <<: *env
+      APP: gantt
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - gantt_legacy:/legacy:ro         # Daten der früheren Gantt-App – werden beim ersten Start übernommen
 
   portal:
-    build: { context: ., dockerfile: plattform/Dockerfile }
     image: bauplattform/plattform:latest
     container_name: bauplattform_portal
     restart: unless-stopped
@@ -282,7 +284,6 @@ services:
       APP_MODULE: orca_import
       APP_PORT: "8100"
       APP_TIMEOUT: "900"
-    command: ["sh", "-c", "exec gunicorn -b 0.0.0.0:8100 -w 1 --threads 8 --timeout 900 orca_import:app"]
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB, für das Bildmodell qwen3-vl:4b (Pläne lesen) weitere ~4 GB freien Arbeitsspeicher;

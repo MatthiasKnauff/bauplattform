@@ -78,7 +78,8 @@ services:
       retries: 30
 
   bautagebuch:
-    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:40f1149
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:40f1149
+    working_dir: /app/bautagebuch   # Ordner der App im gemeinsamen Image (für „docker compose exec bautagebuch python …“)
     container_name: bauplattform_bautagebuch
     restart: unless-stopped
     depends_on:
@@ -87,12 +88,14 @@ services:
       - "${BAUTAGEBUCH_PUBLISH:-8080}:8000"
     environment:
       <<: *env
+      APP: bautagebuch
       SECRET_KEY: ${SECRET_KEY:-}
     volumes:
       - bautagebuch_data:/data
 
   gantt:
-    image: ghcr.io/matthiasknauff/bauplattform/gantt:40f1149
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:40f1149
+    working_dir: /app/gantt   # Ordner der App im gemeinsamen Image (für „docker compose exec gantt python …“)
     container_name: bauplattform_bauzeitenplan
     restart: unless-stopped
     depends_on:
@@ -101,6 +104,7 @@ services:
       - "${GANTT_PUBLISH:-8082}:8082"
     environment:
       <<: *env
+      APP: gantt
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - gantt_legacy:/legacy:ro
@@ -288,7 +292,6 @@ services:
       APP_MODULE: orca_import
       APP_PORT: "8100"
       APP_TIMEOUT: "900"
-    command: ["sh", "-c", "exec gunicorn -b 0.0.0.0:8100 -w 1 --threads 8 --timeout 900 orca_import:app"]
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB, für das Bildmodell qwen3-vl:4b (Pläne lesen) weitere ~4 GB freien Arbeitsspeicher;

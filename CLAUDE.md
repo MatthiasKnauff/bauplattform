@@ -52,5 +52,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 - Was länger als 1,5 Sekunden dauert, zeigt einen kleinen Warte-Hinweis.
 
 ## Betrieb
+- Ein Image für alle Apps: `Dockerfile` und `requirements.txt` im Hauptordner. Welche Apps es gibt und wie sie starten, steht in `apps.py`
+  (Ordner, Modul, Port); `start.py` startet die App des Containers (Umgebungsvariable `APP`). Neue App: Ordner, Zeile in `apps.py`, Dienst in den Stack-Dateien.
 - Push auf `main` → Pipeline → Testserver (Docker 1). Erst die Freigabe (Release `v…`) bringt den Stand in die Produktion (Docker 2).
 - Lehnt GitHub den Upload eines Images ab (`permission_denied: write_package`), den Lauf mit „nur fehlgeschlagene“ wiederholen.

@@ -129,8 +129,10 @@ def tag_ok():
     if t > Z.heute():
         return jsonify(error="Zukünftige Tage lassen sich nicht bestätigen."), 400
     with db.tx() as c:
+        vor = {r["id"] for r in c.execute("SELECT id FROM zeit_eintrag WHERE user_id=? AND tag=?", (uid, t)).fetchall()}
         d = Z.bestaetigen(c, uid, t, g.user["name"])
         d["konto"] = Z.konto(c, uid)
+        d["uebernommen"] = [r["id"] for r in c.execute("SELECT id FROM zeit_eintrag WHERE user_id=? AND tag=?", (uid, t)).fetchall() if r["id"] not in vor]   # für „Rückgängig“
     return jsonify(d)
 
 
@@ -138,8 +140,11 @@ def tag_ok():
 def tag_auf():
     b = request.get_json(silent=True) or {}
     t, uid = _tag(b.get("d")), g.user["id"]
+    weg = [int(x) for x in (b.get("weg") or []) if str(x).isdigit()][:200]   # Rückgängig des Bestätigens: die dabei übernommenen Vorschläge wieder zu Vorschlägen machen
     with db.tx() as c:
         Z.zt_setzen(c, uid, t, bestaetigt="")
+        for eid in weg:
+            c.execute("DELETE FROM zeit_eintrag WHERE id=? AND user_id=? AND tag=?", (eid, uid, t))
         d = Z.tag_daten(c, uid, t)
         d["konto"] = Z.konto(c, uid)
     return jsonify(d)

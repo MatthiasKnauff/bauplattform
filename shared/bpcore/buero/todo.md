@@ -1,6 +1,6 @@
 # Bauplattform – ToDo-Liste
 
-Stand: 10.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = geschätzte reine Arbeitszeit am Code (ohne Abstimmung, Testen auf dem Testserver und Wartezeit der Pipeline); 1 Tag = etwa 6 Stunden.
+Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = geschätzte reine Arbeitszeit am Code (ohne Abstimmung, Testen auf dem Testserver und Wartezeit der Pipeline); 1 Tag = etwa 6 Stunden.
 
 ## Jetzt in Arbeit
 
@@ -60,6 +60,7 @@ Summe Sammlung: ca. 4–5 Tage.
 
 ## Erledigt
 
+- ~~Bauzeitenplan: Fortschritt in der Befehlsleiste in 25er-Stufen mit kleinem Schieber~~
 - ~~Bauzeitenplan: neuer Aufbau – Navigation links, Befehlsleiste, Bereich rechts mit Details und Assistent (Etappe 1)~~
 - ~~Bauzeitenplan: Farben des Baukastens in Plan, Diagramm, Statuszeile und Assistent~~
 - ~~Bauzeitenplan: Druckdialog kompakt, Blatt wächst beim Größerziehen, Bänderung im Druck~~

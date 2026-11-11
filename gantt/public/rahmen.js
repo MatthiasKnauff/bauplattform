@@ -37,15 +37,22 @@
       { titel: 'Bearbeiten', knoepfe: [K('undo', 'Rückgängig', 'undo'), K('redo', 'Wiederholen', 'redo'), K('deleteSel', 'Löschen', 'del', 'Markierte Leistungen löschen (Entf)', { rot: true })] },
       { titel: 'Gliederung', knoepfe: [K('outdent', 'Höher', 'outdent'), K('indent', 'Tiefer', 'indent'), K('moveUp', 'Hoch', 'up'), K('moveDown', 'Runter', 'down')] },
       { titel: 'Planen', knoepfe: [K('linkSel', 'Verknüpfen', 'link'), K('unlinkSel', 'Lösen', 'unlink'), K('splitMode', 'Unterbrechen', 'scissors'), K('tidyLinks', 'Aufräumen', 'tidy'), K('toggleAutoLink', 'Automatisch', 'autolink')] },
-      { titel: 'Fortschritt', knoepfe: [0, 50, 100].map((p) => ({ ...K('pct', p + ' %', '', `Fortschritt der markierten Leistungen auf ${p} %`, { sel: `[data-pct="${p}"]`, attrs: ` data-pct="${p}"` }), ic: p + '%' })) },
+      { titel: 'Fortschritt', html: pzLeiste() },
       { titel: 'Ansicht', knoepfe: [K('zoomIn', 'Größer', 'zoomin'), K('zoomOut', 'Kleiner', 'zoomout'), K('fitProject', 'Ganzer Plan', 'fit'), K('goToday', 'Heute', 'today'), K('scrollToTask', 'Zur Leistung', 'scrollto', 'Diagramm zur markierten Leistung rollen'),
         K('toggleCrit', 'Kritischer Weg', 'crit'), { t: 'Darstellung', ic: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>', fn: () => darstellung(), tip: 'Balkenbeschriftung, Pfeile, Dauer von Gruppen, Alle ein-/ausblenden, Nachfrage beim Löschen' }] },
       ...rechts];
   }
+  // Fortschritt der markierten Leistung(en): Stufen 0 · 25 · 50 · 75 · 100 und kleiner Schieber darunter (Baustein bpProzent)
+  function pzLeiste() {
+    const ix = P && CAL ? selIdx().filter((i) => !CAL.summ[i]) : [], w = ix.length ? Math.round(CAL.pct[ix[0]]) : 0;
+    return `<div class="g-pzl${ix.length ? '' : ' aus'}" title="${ix.length ? 'Fortschritt der markierten Leistungen' : 'Erst eine Leistung markieren'}">${typeof bpProzent === 'function' ? bpProzent(w, 'data-gpz') : ''}</div>`;
+  }
+  LEISTE.addEventListener('click', (e) => { const b = e.target.closest('.g-pzl [data-gpz][data-p]'); if (b) setPct(+b.dataset.p); });
+  LEISTE.addEventListener('change', (e) => { const r = e.target.closest && e.target.closest('.g-pzl input[type=range]'); if (r) setPct(+r.value); });
   let sig = '';
   function leisteNeu() {
     if (!LEISTE) return;
-    const G = gruppen(), s = JSON.stringify(G.map((g) => [g.titel, (g.knoepfe || []).map((k) => [k.t, k.aus, k.an])]));
+    const G = gruppen(), s = JSON.stringify(G.map((g) => [g.titel, g.html || '', (g.knoepfe || []).map((k) => [k.t, k.aus, k.an])]));
     if (s === sig) return; sig = s;
     befehle(LEISTE, G);
   }

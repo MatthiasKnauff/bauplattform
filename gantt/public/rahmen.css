@@ -121,3 +121,8 @@ body.g-rahmen #gridPane::-webkit-scrollbar:vertical{width:0}   /* Plan und Diagr
 .tl-art{font-size:.75em;border:1px solid var(--line);border-radius:999px;padding:0 .5rem}.tl-art.fest{border-color:#e8a33c;color:#e8a33c}.tl-art.mit{border-color:var(--y);color:var(--y)}.tl-art.aus{color:#e05252;border-color:#e05252}
 .tl-z{display:flex;gap:.4rem .7rem;align-items:center;flex-wrap:wrap}.tl-z label{display:flex;gap:.35rem;align-items:center}
 .tl-v{font:inherit;font-size:.85em;border:1px solid var(--line);background:none;color:inherit;border-radius:999px;padding:.1rem .6rem;cursor:pointer}.tl-v.on{background:var(--y);border-color:var(--y);color:var(--on,#111);font-weight:600}
+
+/* Fortschritt in der Befehlsleiste: Stufen und kleiner Schieber darunter */
+.g-pzl{align-self:center;padding:0 .3rem;flex:none;width:12.2rem;box-sizing:border-box}.bf-g:has(.g-pzl),.bf-g:has(.g-pzl) .bf-ks{flex:none;min-width:max-content}.g-pzl .bp-pz{gap:.1rem;width:100%;max-width:none}.g-pzl .bp-pz-s button{padding:.12rem .2rem;min-width:0;font-size:.8em}
+.g-pzl .bp-pz-r{gap:.3rem}.g-pzl .bp-pz-r input{height:.8rem}.g-pzl .bp-pz-r output{font-size:.75em;min-width:2.8em}
+.g-pzl.aus{opacity:.45;pointer-events:none}

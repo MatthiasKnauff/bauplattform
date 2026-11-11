@@ -13,8 +13,8 @@ body.bt-rahmen #work{display:grid;flex:1;min-height:0;padding:.35rem .45rem .45r
 body.bt-rahmen #work>.sr-r{display:flex;position:static;height:auto;min-height:0}
 body.bt-rahmen #work:not(.sr-zu):not(.sr-leer)>.sr-griff{display:block}
 body.bt-rahmen #detail{padding:0 .3rem 0 0;min-width:0}
-body.bt-rahmen #detail .wrap{max-width:none;padding-bottom:1rem}
-body.bt-rahmen .btl{display:block;max-width:none}
+body.bt-rahmen #detail .wrap{max-width:980px;margin:0 auto;padding-bottom:1rem}   /* Mitte am PC nicht über die ganze Breite – liest sich besser */
+body.bt-rahmen .btl{display:block;max-width:980px;margin:0 auto}
 /* Navigation: Kalender und Berichte des Tages */
 .bt-kal{margin:0 .1rem .5rem;padding:.5rem .45rem .4rem;border-radius:calc(10px*var(--rk,1))}
 .bt-kal .bcal-h{margin-bottom:.3rem}.bt-kal .bcal-h b{font-size:.88rem}.bt-kal .bcal-h button{width:24px;height:24px;background:none;padding:0;display:grid;place-items:center;line-height:1;font-size:1rem}

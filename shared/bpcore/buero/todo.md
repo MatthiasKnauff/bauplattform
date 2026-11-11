@@ -60,6 +60,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauzeitenplan, Planungsassistent Schritt für Schritt: bei „gemischt“ wird die Bauweise jedes Geschosses als eigener Schritt abgefragt~~
 - ~~Bauzeitenplan, Leistungskatalog: Stände sichern (benannt, geschützt), vergleichen, in Teilen zurückholen (vorher automatisch gesichert), als Datei; Stand vor Einführung automatisch gesichert~~
 - ~~Bauzeitenplan, Gewerke & Firmen: Klick auf das Farbkästchen öffnet „Gewerke & Farben“ mit dieser Zeile~~
 - ~~Bauzeitenplan, Leistungskatalog und Gewerke & Firmen: Hinweistext einzeilig (ⓘ, ganz beim Darüberfahren) – Kopf spart Platz~~

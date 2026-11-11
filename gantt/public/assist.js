@@ -814,7 +814,7 @@
         const PH = core.catalog().phases.map((p) => p.k);
         core.choiceGroups(cfg).slice().sort((a, b) => (b.k === 'massnahme') - (a.k === 'massnahme') || (b.k === 'erweiterung') - (a.k === 'erweiterung') || PH.indexOf(a.ph) - PH.indexOf(b.ph)).forEach((g) => {   // „Erweiterung“ zuerst – davon hängt der Rest ab
           if (g.opts.length > 1) S.push({ k: 'ch:' + g.k, t: g.n, g });
-          if (g.k === 'tragwerk' && core.floorTw(cfg).length > 1) S.push({ k: 'fltw', t: 'Bauweise je Geschoss' });   // jedes Geschoss einzeln festlegen
+          if (g.k === 'tragwerk' && g.val === 'misch' && core.floorTw(cfg).length > 1) core.floorTw(cfg).forEach(([l]) => S.push({ k: 'fltw:' + l, t: 'Bauweise ' + l, l }));   // gemischt: jedes Geschoss als eigener Schritt
           if (g.k === 'dachform') S.push({ k: 'dg', t: 'Was liegt über dem obersten Geschoss?' });
         });
         if (!S.some((x) => x.k === 'dg')) S.push({ k: 'dg', t: 'Was liegt über dem obersten Geschoss?' });
@@ -838,6 +838,8 @@
             <label>Geschosse</label><div class="as-in"><input type="number" min="1" max="30" data-p="floors" value="${esc(cfg.floors || 1)}"><span>Vollgeschosse: EG, 1.OG … (ohne Keller und Dach)</span></div>
             <label></label><label class="cb"><input type="checkbox" data-p="flDetail"${cfg.flDetail ? ' checked' : ''}> Rohbau und Treppen geschossweise aufteilen</label></div>`;
         else if (x.k.startsWith('ch:')) b = `<div class="wz-g">${x.g.opts.map((o) => big(`data-wzch="${x.g.k}" data-v="${o.k}"`, o.k === x.g.val, o.n)).join('')}</div>`;
+        else if (x.k.startsWith('fltw:')) { const cur = (core.floorTw(cfg).find(([l]) => l === x.l) || [])[1];
+          b = `<div class="wz-g">${FLTW.map(([v, n]) => big(`data-wzfl="${esc(x.l)}" data-v="${v}"`, v === cur, n)).join('')}</div><div class="as-hint">${core.floorTw(cfg).map(([l, t]) => `${esc(l)}: <b>${esc((FLTW.find(([v]) => v === t) || [0, t])[1])}</b>`).join(' · ')}</div>`; }
         else if (x.k === 'fltw') b = `<div class="as-form wz-f">${core.floorTw(cfg).map(([l, t]) => `<label>${esc(l)}</label><select data-fltw="${esc(l)}">${[['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']].map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${n}</option>`).join('')}</select>`).join('')}</div>`;
         else if (x.k === 'dg') { const O = dgOpts(cfg), cur = O.some(([v]) => v === cfg.dg) ? cfg.dg : 'kalt'; b = `<div class="wz-g">${O.map(([v, l]) => big(`data-wzdg="${v}"`, v === cur, l)).join('')}</div><div class="as-hint">Gebäude: <b>${esc(core.buildingDesc(cfg))}</b></div>`; }
         else if (x.k === 'start') b = `<div class="as-form wz-f"><label>Baubeginn</label><input type="date" data-p="start" value="${core.iso(cfg.start)}"></div>`;
@@ -850,6 +852,20 @@
         return `<div class="wz"><div class="wz-dots">${S.map((y, k) => `<button class="${k === WZ.i ? 'cur' : k < WZ.i ? 'ok' : ''}" data-wzgo="${k}" title="${esc(y.t)}" aria-label="${esc(y.t)}"></button>`).join('')}</div>
           <div class="wz-n">Schritt ${WZ.i + 1} von ${S.length}</div><h3>${esc(x.t)}</h3>${b}
           <div class="wz-nav"><button class="btn" data-wz="prev"${WZ.i ? '' : ' disabled'}>Zurück</button><button class="btn" data-wz="pause" title="Abfrage anhalten – später an derselben Stelle weitermachen">Pausieren</button><span style="flex:1"></span>${WZ.i < S.length - 1 ? '<button class="btn primary" data-wz="next">Weiter</button>' : ''}</div></div>`;
+      }
+      const FLTW = [['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']];
+      function fltwSetzen(l, value) {   // Bauweise eines Geschosses: alle gleich → diese Bauweise, sonst „gemischt“ mit Angabe je Geschoss
+        const { live, cfg } = state();
+        const cur = Object.fromEntries(core.floorTw(cfg)), ft = { ...cur, [l]: value }, vals = [...new Set(Object.values(ft))];
+        const tw = vals.length === 1 ? vals[0] : 'misch', twName = { massiv: 'Massivbau', stb: 'Stahlbeton', holz: 'Holzrahmenbau', bsp: 'Massivholz', misch: 'gemischt' }[tw]; say('');
+        if (live) {
+          if (tw === 'misch' && core.setFloors('flTw', ft) === false) { say('Änderung nicht möglich – siehe Hinweis im Plan.', true); return; }
+          if ((core.choiceAll(cfg).tragwerk || '') !== tw) applyChoice('tragwerk', tw, twName);
+        } else {
+          draft.cfg.flTw = tw === 'misch' ? ft : {};
+          if ((core.choiceAll(draft.cfg).tragwerk || '') !== tw) applyChoice('tragwerk', tw, twName);
+          else { draft.sel = core.normSel(core.baseSel(draft.sel), draft.cfg); saveDraft(); }
+        }
       }
       function applyChoice(g, k, label) {   // wie die Auswahl in der Liste (Leistungen werden angepasst)
         const { live, cfg } = state(), gn = (core.choiceGroups(cfg).find((x) => x.k === g) || {}).n || g; say('');
@@ -1234,11 +1250,12 @@
           await loadPresets(); return;
         }
         if (t.closest('label') && t.closest('label').querySelector('[data-pf]')) return;
-        const wz = t.closest('[data-wz],[data-wzgo],[data-wzch],[data-wzdg]');
+        const wz = t.closest('[data-wz],[data-wzgo],[data-wzch],[data-wzdg],[data-wzfl]');
         if (wz) {
           const { live, cfg } = state(), n = wzSteps(cfg, live).length;
           if (wz.dataset.wzgo != null) WZ.i = +wz.dataset.wzgo;
           else if (wz.dataset.wzch) { applyChoice(wz.dataset.wzch, wz.dataset.v, wz.textContent.trim()); WZ.i++; }
+          else if (wz.dataset.wzfl) { fltwSetzen(wz.dataset.wzfl, wz.dataset.v); WZ.i++; }
           else if (wz.dataset.wzdg) {
             const v = wz.dataset.wzdg;
             if (live) { if (core.setFloors('dg', v) === false) say('Änderung nicht möglich – siehe Hinweis im Plan.', true); }
@@ -1334,19 +1351,7 @@
           else { draft.sel = core.withReq(draft.sel, id, on, draft.cfg); saveDraft(); }
           render(); return;
         }
-        if (t.dataset.fltw) {   // Bauweise eines Geschosses: alle gleich → diese Bauweise, sonst „gemischt“ mit Angabe je Geschoss
-          const cur = Object.fromEntries(core.floorTw(cfg)), ft = { ...cur, [t.dataset.fltw]: t.value }, vals = [...new Set(Object.values(ft))];
-          const tw = vals.length === 1 ? vals[0] : 'misch', twName = { massiv: 'Massivbau', stb: 'Stahlbeton', holz: 'Holzrahmenbau', bsp: 'Massivholz', misch: 'gemischt' }[tw]; say('');
-          if (live) {
-            if (tw === 'misch' && core.setFloors('flTw', ft) === false) { say('Änderung nicht möglich – siehe Hinweis im Plan.', true); render(); return; }
-            if ((core.choiceAll(cfg).tragwerk || '') !== tw) applyChoice('tragwerk', tw, twName);
-          } else {
-            draft.cfg.flTw = tw === 'misch' ? ft : {};
-            if ((core.choiceAll(draft.cfg).tragwerk || '') !== tw) applyChoice('tragwerk', tw, twName);
-            else { draft.sel = core.normSel(core.baseSel(draft.sel), draft.cfg); saveDraft(); }
-          }
-          render(); return;
-        }
+        if (t.dataset.fltw) { fltwSetzen(t.dataset.fltw, t.value); render(); return; }
         const k = t.dataset.p; if (!k) return;
         let v = t.value;
         if (k === 'area') v = Math.max(5, +v || cfg.area);

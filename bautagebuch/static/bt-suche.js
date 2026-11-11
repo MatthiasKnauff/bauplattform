@@ -23,7 +23,7 @@ function fillSearch() {
     + (sr.trunc ? '<div class="empty">Es werden nur die ersten 150 Treffer gezeigt – bitte genauer suchen.</div>' : '') : '<div class="empty">Nichts gefunden.</div>';
 }
 async function goHit(b) {
-  if (b.dataset.c) { cid = +b.dataset.c; newC = false; cedit = false; cfrom = null; tab = 'kontakte'; return renderDetail(); }
+  if (b.dataset.c) { cid = +b.dataset.c; cfrom = null; tab = 'kontakte'; return renderDetail(); }
   if (!b.dataset.p) return;
   tab = 'bericht'; await openProject(+b.dataset.p);
   if (b.dataset.r && reports.some(x => x.id === +b.dataset.r)) { rid = +b.dataset.r; wxEdit = headEdit = false; renderDetail(); }

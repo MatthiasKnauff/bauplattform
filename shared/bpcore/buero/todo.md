@@ -7,11 +7,12 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Bautagebuch auf den Baukasten – GO am 10.11.2026. **gesamt ca. 2–2,5 Tage**
   - ~~Schritt 1: Rahmen – Navigation mit Kalender und Berichten des Tages, Befehlsleiste, Bereich rechts (Details, Foto, PDF-Vorschau)~~
   - ~~Schritt 2: index.html (2.250 Zeilen) in neun Skripte und bt.css geteilt wie bei der AVA~~
-  - Schritt 3: eigene Kopien ersetzen – PDF-Ansicht, Fortschritt (bpProzent), Kontakte → App Adressen, Dialoge, Grundhilfen ($, api, toast) aus dem Baukasten. **ca. 4–6 h**
+  - ~~Schritt 3: Baukasten statt eigener Kopien – Grundhilfen, api, Meldungen, Darstellung, Rückgängig-Dock, Fortschritt (bpProzent), Kontaktmaske wie in Adressen~~ (die PDF-Ansicht fürs iPhone bleibt eigen: Startbildschirm-App ohne Zurück-Knopf)
   - Schritt 4: Drucklayout wie im Bauzeitenplan – mehrere Berichte „von–bis“ oder mit Umschalt im Kalender wählen. **ca. 4 h**
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+1. Dateiserver nachts aufräumen (alte _oldN-Stände der PDF-Ablage), vorgezogen am 11.11.2026. **ca. 3 h**
 2. Suchleiste in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 4 h**
 3. Apps fürs ganze Büro abschalten (Verwaltung → Apps), Querverweise auf gesperrte Apps ausblenden, gestaltete Sperrseite. **ca. 3 h**
 4. Vergleich im Bauzeitenplan, Etappe 2: Platzhalterzeile an der alten Stelle und Pfeil direkt in der Tabelle (braucht geteiltes app.js). **ca. 5 h**
@@ -51,7 +52,6 @@ Summe Sammlung: ca. 4–5 Tage.
 - Honorarabrechnung (HOAI). **ca. 1,5–2 Wochen**
 - Textprüfung. **ca. 2 Tage**
 - Einrichtungsassistent. **ca. 3 Tage**
-- Nächtliches Aufräumen. **ca. 1 Tag**
 - Handy-App. **ca. 2–3 Wochen**
 - Mail und Kalender. **ca. 2 Wochen**
 - Redundanz (Ausfallsicherheit). **ca. 1 Woche**

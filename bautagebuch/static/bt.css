@@ -1,10 +1,10 @@
 /* Bautagebuch – Aussehen der Seite (vorher in index.html). Baukasten bp.css davor, head.css und rahmen.css danach. */
 :root{--bar:#84827c;--bg:#26282b;--card:#252729;--line:#3b3e42;--ink:#f3f3f1;--mute:#9a9c9e;--y:#ff5fb3;--on:#111;--red:#ff7a6b;--inp:#1d1f21;--pan:#2b2d30;--hov:#2a2d30;color-scheme:dark}
 /* helles Schema – eingestellt auf der Startseite der Bauplattform (Darstellung), gilt für alle Apps */
-html[data-theme="hell"]{--bg:#f3f2ef;--card:#ffffff;--line:#d9d8d3;--ink:#232427;--mute:#686a6d;--red:#c8372a;--inp:#ffffff;--pan:#ffffff;--hov:#ecebe7;color-scheme:light}
-html[data-theme="hell"] #tabs{background:#e7e5e0}
-html[data-theme="hell"] .menu{background:#ffffff}
-html[data-theme="hell"] .tab.on{color:var(--ink)}
+html:is([data-theme="hell"],[data-theme="klassisch"]){--bg:#f3f2ef;--card:#ffffff;--line:#d9d8d3;--ink:#232427;--mute:#686a6d;--red:#c8372a;--inp:#ffffff;--pan:#ffffff;--hov:#ecebe7;color-scheme:light}
+html:is([data-theme="hell"],[data-theme="klassisch"]) #tabs{background:#e7e5e0}
+html:is([data-theme="hell"],[data-theme="klassisch"]) .menu{background:#ffffff}
+html:is([data-theme="hell"],[data-theme="klassisch"]) .tab.on{color:var(--ink)}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overscroll-behavior:none}
 html,body{position:fixed;inset:0;width:100%;overflow:hidden}   /* die Seite selbst scrollt nie; gescrollt wird nur im Inhaltsbereich (#detail) – sonst rutscht am iPhone die ganze App weg */
@@ -364,7 +364,7 @@ body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem
 .bph + #leiste #projBtn{display:none}
 /* keine eigene graue Zeile mehr: Berichtsauswahl, Standort und Ordner stehen in der Reiterzeile (am Handy oben im Inhalt) */
 #leiste{display:contents}
-html[data-theme="hell"] #leiste{--lb:#e7e5e0}
+html:is([data-theme="hell"],[data-theme="klassisch"]) #leiste{--lb:#e7e5e0}
 #leiste #repBtn{color:var(--ink);background:var(--card);border:1px solid var(--line)}
 #leiste #repBtn small{color:var(--mute)}
 #leiste #rchev{color:var(--mute)}
@@ -398,7 +398,7 @@ html[data-theme="hell"] #leiste{--lb:#e7e5e0}
 
 /* ===== Neue Gestaltung (passend zu den übrigen Apps): Abschnitte als Karten mit Symbol, ruhige Überschriften ===== */
 :root{--c-y:var(--y);--c-b:#6aa7ff;--c-r:#ff7a6b;--c-o:#ffad5c;--c-v:#b18cff;--c-g:#3ddc84;--ok:#3ddc84}
-html[data-theme="hell"]{--c-b:#2f6fd6;--c-r:#c8372a;--c-o:#c46a10;--c-v:#7a4fd6;--c-g:#1f9d55;--ok:#1f9d55}
+html:is([data-theme="hell"],[data-theme="klassisch"]){--c-b:#2f6fd6;--c-r:#c8372a;--c-o:#c46a10;--c-v:#7a4fd6;--c-g:#1f9d55;--ok:#1f9d55}
 .si{width:38px;height:38px;border-radius:calc(12px*var(--rk,1));display:inline-grid;place-items:center;flex:none}
 .si.c-y{background:color-mix(in srgb,var(--c-y) 15%,transparent);color:var(--c-y)}.si.c-b{background:color-mix(in srgb,var(--c-b) 15%,transparent);color:var(--c-b)}
 .si.c-r{background:color-mix(in srgb,var(--c-r) 15%,transparent);color:var(--c-r)}.si.c-o{background:color-mix(in srgb,var(--c-o) 15%,transparent);color:var(--c-o)}
@@ -494,3 +494,4 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .kopf .kp-ed{margin:.6rem 0 .1rem;max-width:none}
 .kopf+.vbox{margin:.1rem .3rem .6rem}
 @media(max-width:900px){.kp-1{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t k" "m b";row-gap:.4rem}.kp-1>.hm .kp-adr{display:inline-flex}.kopf .hmap img{width:64px;height:44px}.kopf .checks{margin-left:0}.kp-wx{flex:1 1 100%}.kp-wx .wl{flex:1}.vl-lang{display:none}}
+.fs-p .bp-pz{min-width:13rem}.fs-p .bp-pz-s button[data-soll]{box-shadow:inset 0 -2px 0 var(--mute)}

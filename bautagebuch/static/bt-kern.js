@@ -1,9 +1,5 @@
-/* Bautagebuch – Grundhilfen, Symbole, Zustand, PDF-Ansicht, Server-Aufrufe, Meldungen.
+/* Bautagebuch – Grundhilfen, Symbole, Zustand, PDF-Ansicht, Server-Aufrufe, Meldungen. Grundhilfen ($, esc, fold, passt) kommen aus dem Baukasten (bp/baukasten.js).
    Teil der Seite index.html (gemeinsame Namen, klassische Skripte in fester Reihenfolge: bt-kern.js, bt-projekt.js, bt-bericht.js, bt-assistent.js, bt-suche.js, bt-projektdaten.js, bt-kontakte.js, bt-konto.js, bt-start.js). */
-const $ = s => document.querySelector(s);
-const fold = s => String(s ?? '').normalize('NFC').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');   // Suche: pü = pue = Pü
-const passt = (text, q) => { const t = fold(text); return fold(q).split(/\s+/).filter(Boolean).every(w => t.includes(w)); };
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = d => d ? new Date(d + 'T12:00').toLocaleDateString('de-DE') : '';
 const IC = {
   plus:'<path d="M12 5v14M5 12h14"/>', refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
@@ -39,7 +35,7 @@ const NEAR_M = 600;   // so nah (Meter) muss man an einem Projekt sein, damit es
 const favicon = () => document.querySelectorAll('link[rel=icon],link[rel=apple-touch-icon]').forEach(l => { l.href = l.href.split('?')[0] + (l.href.includes('s=180') ? '?s=180&' : '?') + 'v=' + Date.now(); });
 let settings = {}, logoV = 1, saving = new Set(), here = null, cq = '', cTrade = '', cProj = '', cProjSet = false, sheetQ = '';
 const track = pr => { saving.add(pr); pr.finally(() => saving.delete(pr)); return pr; };
-let draft = null, newC = false, cedit = false, cfrom = null, armedKey = null, armedTimer = null;
+let draft = null, cfrom = null, armedKey = null, armedTimer = null;
 let itemPhotoFor = null, meta = {sections: []}, contacts = [], cid = null, projects = [], pid = null, reports = [], rid = null, tab = 'bericht', wxEdit = false, headEdit = false, adding = null, allImgs = false, dueEditId = null, leaderUsers = [];
 const addr = p => [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 const curProject = () => projects.find(x => x.id === pid);
@@ -140,25 +136,18 @@ function apiUpload(u, form) {
     x.send(form);
   });
 }
-async function api(u, m = 'GET', d, form) {
+/* Server-Aufrufe: api() aus dem Baukasten (Fehlertexte bei 502/504/413 usw.); das Bautagebuch bekommt Fehler wie bisher als
+   Antwort ({error: …}) statt als Ausnahme, Hochladen läuft mit Fortschritt, ohne Anmeldung erscheint die eigene Anmeldeseite. */
+const _bpApi = api;
+api = async (u, m = 'GET', d, form) => {
   if (form && m === 'POST') return apiUpload(u, form);
-  const r = await fetch(u, {method: m, headers: d ? {'Content-Type':'application/json'} : {}, body: form || (d ? JSON.stringify(d) : undefined)});
-  if (r.status === 401 && u !== 'api/login') { showLogin(); throw 0; }
-  const j = await r.json();
-  if (r.status === 403 && j.must_change) { authView('change'); throw 0; }
-  return j;
-}
-function toast(msg, undo) {   // höchstens zwei Meldungen gleichzeitig; mit undo gibt es einen "Rückgängig"-Knopf
-  let box = $('#toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }
-  while (box.children.length >= 2) box.firstChild.remove();
-  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; box.appendChild(t);
-  if (undo) {
-    const b = document.createElement('button'); b.className = 'undo'; b.textContent = 'Rückgängig';
-    b.onclick = async () => { b.disabled = true; t.remove(); await undo(); };
-    t.appendChild(b);
+  try { return await _bpApi(u, m, d); } catch (e) {
+    const j = e && e.data; if (!j) throw e;
+    if (e.status === 401 && u !== 'api/login') { showLogin(); throw 0; }
+    if (e.status === 403 && j.must_change) { authView('change'); throw 0; }
+    return j;
   }
-  setTimeout(() => t.remove(), undo ? 8000 : 5000);
-}
+};
 
 const DANGER = new Set(['bkRestore', 'bkDel', 'restoreVer', 'delUser', 'userMail']);   // Löschen mit Rückgängig/Papierkorb braucht keine zweite Bestätigung
 function disarm() { clearTimeout(armedTimer); armedKey = null; document.querySelectorAll('.armed').forEach(el => { el.classList.remove('armed'); if (el._orig != null) { el.innerHTML = el._orig; el._orig = null; } }); }

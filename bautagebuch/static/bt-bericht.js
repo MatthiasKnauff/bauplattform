@@ -70,7 +70,7 @@ function fsInner() {
     return `<div class="fs-r" data-fsg="${esc(x.gantt_id)}" data-fsu="${x.uid}"><span class="fs-n"><b>${esc(x.vorgang)}</b> <span class="mute">· ${esc(x.firma)}</span>
         <span class="fs-bar" title="gemeldet ${pz} % · Plan ${x.soll} %"><i class="${kl}" style="width:${Math.max(0, Math.min(100, pz))}%"></i><u style="left:calc(${Math.max(0, Math.min(100, x.soll))}% - 1px)"></u></span>
         <small>laut Plan ${x.soll} %${x.f ? ' · Ende ' + esc(x.f.slice(8, 10) + '.' + x.f.slice(5, 7) + '.') : ''} · im Bauzeitenplan ${x.ist} %${vz ? ' · ' + vz : ''}</small></span>
-      <span class="fs-p" role="group" aria-label="Fortschritt">${[0, 25, 50, 75, 100].map((p) => `<button type="button" data-act="fsSet" data-p="${p}" class="${wert === p ? 'on' : ''}${p === sollR ? ' soll' : ''}" title="${p} % fertig${p === sollR ? ' – etwa laut Plan' : ''}">${p}</button>`).join('')}</span>
+      <span class="fs-p">${bpProzent(pz, 'data-act="fsSet"').replace(`data-p="${sollR}"`, `data-p="${sollR}" data-soll title="${sollR} % – etwa laut Plan"`)}</span>
       <span class="fs-a" role="group" aria-label="Stand">${[['plan', 'im Plan'], ['hinterher', 'hinterher'], ['fertig', 'fertig']].map(([k, l]) => `<button type="button" data-act="fsSet" data-am="${k}" class="${x.ampel === k ? 'on' : ''}">${l}</button>`).join('')}</span></div>`;
   };
   const L = FS.alle || FS.v.length <= 8 ? FS.v : FS.v.slice(0, 6);

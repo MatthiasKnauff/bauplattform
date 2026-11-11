@@ -90,13 +90,13 @@ async function archProject(flag) {
   await api('api/projects/' + id, 'PUT', {archived: on ? 1 : 0}); await loadProjects();
   if (on) { const nx = projects.find(x => !x.archived); if (nx) await openProject(nx.id); else renderDetail(); }
   else renderDetail();
-  toast(on ? `„${name}“ archiviert – zu finden in der Verwaltung → Projekte → Archiv.` : `„${name}“ ist wieder aktiv.`, async () => { pid = id; await archProject(!on); if (!on) await openProject(id); else renderDetail(); });
+  rueckgaengig(on ? `„${name}“ archiviert – zu finden in der Verwaltung → Projekte → Archiv.` : `„${name}“ ist wieder aktiv.`, async () => { pid = id; await archProject(!on); if (!on) await openProject(id); else renderDetail(); });
 }
 async function delProject() {
   const id = pid, name = (curProject() || {}).name || 'Projekt';
   const r = await api('api/projects/' + id, 'DELETE'); pid = null; rid = null; reports = []; await loadProjects();
   if (projects[0]) { tab = 'bericht'; await openProject(projects[0].id); } else renderDetail();
-  if (typeof r.papierkorb === 'number') toast(`„${name}“ liegt im Papierkorb.`, async () => {   // aus dem Papierkorb zurückholen
+  if (typeof r.papierkorb === 'number') rueckgaengig(`„${name}“ liegt im Papierkorb.`, async () => {   // aus dem Papierkorb zurückholen
     const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; }
     await loadProjects(); if (projects.some(x => x.id === id)) await openProject(id); else renderDetail();
   });

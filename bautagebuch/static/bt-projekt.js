@@ -20,7 +20,6 @@ function chrome() {
     + `<button data-act="logout">${ic('out', 18)}Abmelden</button>`;
 }
 let PLATFORM = {};
-const appUrl = a => a.url || `${location.protocol}//${location.hostname}:${a.port}`;
 const showApp = async () => {
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
   try { PLATFORM = await api('api/platform'); } catch { PLATFORM = {}; }

@@ -205,7 +205,7 @@ document.addEventListener('click', async e => {
   if (DANGER.has(a) && !arm(b, a + (b.dataset.id || ''))) return;
   if (a === 'logout') { await api('api/logout', 'POST'); showLogin(); }
   else if (a === 'srZu') { $('#btq').value = ''; sr.q = ''; tab = sr.vor || 'bericht'; chrome(); renderDetail(); }
-  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } if (tab !== 'projekt') draft = null; newC = false; cfrom = null; cedit = false; renderDetail(); }
+  else if (a === 'tab') { $('#menu').classList.add('hidden'); tab = b.dataset.t; if ($('#btq')) { $('#btq').value = ''; sr.q = ''; } if (tab !== 'projekt') draft = null; cfrom = null; renderDetail(); }
   else if (a === 'menu') $('#menu').classList.toggle('hidden');
   else if (a === 'reload') { $('#menu').classList.add('hidden'); contacts = await api('api/contacts'); await loadProjects(); if (pid) await openProject(pid, true); else renderDetail(); }
   else if (a === 'projPicker') { if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({ aktuell: pid, onPick: (id) => pickProject(id) }); else openSheet('proj'); }
@@ -225,7 +225,7 @@ document.addEventListener('click', async e => {
   else if (a === 'dueClear') {
     const it = (curReport()?.items || []).find(x => x.id === id), alt = it && it.due ? {due: it.due, due_time: it.due_time || '09:00'} : null;   // alten Termin merken
     dueEditId = null; await api('api/items/' + id, 'PUT', {due: ''}); openProject(pid, true);
-    if (alt) toast('Erledigungsdatum entfernt.', async () => { await api('api/items/' + id, 'PUT', alt); openProject(pid, true); });
+    if (alt) rueckgaengig('Erledigungsdatum entfernt.', async () => { await api('api/items/' + id, 'PUT', alt); openProject(pid, true); });
   }
   else if (a === 'addPerson') {
     const r = curReport(), v = r.site_manager ? r.site_manager.replace(/[,\s]+$/, '') + ', ' + b.dataset.name : b.dataset.name;
@@ -260,35 +260,14 @@ document.addEventListener('click', async e => {
   else if (a === 'adrPick') adrPick(+b.dataset.i);
   else if (a === 'cxXlsx') { location.assign('api/contacts/export.xlsx' + cxQS()); toast('Excel-Datei wird geladen …'); }
   else if (a === 'cxPdf') { const u = 'api/contacts/export.pdf' + cxQS(); isStandalone() ? openPdf(u) : window.open(u, '_blank'); }
-  else if (a === 'sugNew') {
-    const x = sugC[+b.dataset.i]; if (!x) return; await sugDetail(x);
-    const r = await api('api/contacts', 'POST', Object.fromEntries(Object.entries(sugFields(x)).filter(([, v]) => v)));
-    if (r.error && !r.id) return toast(r.error);
-    if (r.error) toast('Diesen Kontakt gibt es schon – er wird geöffnet.');
-    newC = false; cedit = true; cid = r.id; contacts = await api('api/contacts'); renderDetail();
-  }
-  else if (a === 'sugEdit') {
-    const c = contacts.find(x => x.id === cid); if (!c) return;
-    $('#csug').innerHTML = '<div class="info">Suche …</div>';
-    sugC = await fetchSug([c.name, c.city].filter(Boolean).join(' ')).catch(() => []);
-    $('#csug').innerHTML = sugHtml(sugC, 'sugFill', 'Nichts gefunden (oder keine Verbindung zum Internet). Kleine Betriebe fehlen in OpenStreetMap oft.');
-  }
-  else if (a === 'sugFill') {
-    const c = contacts.find(x => x.id === cid), x = sugC[+b.dataset.i]; if (!c || !x) return; await sugDetail(x);
-    const add = Object.fromEntries(Object.entries(sugFields(x)).filter(([k, v]) => k !== 'name' && v && !c[k]));   // nur leere Felder füllen
-    if (!Object.keys(add).length) return toast('Es gibt nichts Neues zu ergänzen.');
-    const r = await api('api/contacts/' + cid, 'PUT', add); if (r.error) return toast(r.error);
-    contacts = await api('api/contacts'); toast(Object.keys(add).length + ' Feld' + (Object.keys(add).length === 1 ? '' : 'er') + ' ergänzt.'); fillContactList(); fillContactDetail();
-  }
   else if (a === 'renameLater') { renameOffer = null; renderDetail(); }
   else if (a === 'renameYes' || a === 'renameNo') {
     const o = renameOffer; if (!o) return; renameOffer = null; renderDetail();
     const r = await api('api/store/rename-apply', 'POST', {project_id: o.pid, accept: a === 'renameYes'});
     toast(r.error || (a === 'renameYes' ? `${r.renamed} umbenannt. Die App benennt künftig im selben Schema.` : 'Gut, die App fragt für dieses Projekt nicht mehr nach.'));
   }
-  else if (a === 'openContact') { cid = id; newC = false; cedit = false; cfrom = null; fillContactList(); fillContactDetail(); }
-  else if (a === 'cback' || a === 'cancelNew') { cid = null; newC = false; cedit = false; cfrom = null; fillContactList(); fillContactDetail(); }
-  else if (a === 'createContact') createContact();
+  else if (a === 'openContact') { cid = id; cfrom = null; fillContactList(); fillContactDetail(); }
+  else if (a === 'cback') { cid = null; cfrom = null; fillContactList(); fillContactDetail(); }
   else if (a === 'ldrDraft') { const i = +b.dataset.id, l = draft.leaders || (draft.leaders = []); l.includes(i) ? l.splice(l.indexOf(i), 1) : l.push(i); renderDetail(); }
   else if (a === 'ldrEdit') {
     const p = curProject(), i = +b.dataset.id, l = (p.leaders || []).slice(), self = me.id, alt = l.slice(), weg = l.includes(i), id = pid;
@@ -296,7 +275,7 @@ document.addEventListener('click', async e => {
     const res = await api('api/projects/' + pid, 'PUT', {leaders: l});
     if (res.error) { toast(res.error); return; }
     await loadProjects();
-    if (weg) toast(`${b.textContent.trim() || 'Bauleiter'} entfernt.`, async () => {   // alte Liste der Bauleiter wiederherstellen
+    if (weg) rueckgaengig(`${b.textContent.trim() || 'Bauleiter'} entfernt.`, async () => {   // alte Liste der Bauleiter wiederherstellen
       const x = await api('api/projects/' + id, 'PUT', {leaders: alt}); if (x.error) { toast(x.error); return; }
       await loadProjects(); if (projects.some(y => y.id === id)) await openProject(id, id === pid); else renderDetail();
     });
@@ -305,10 +284,10 @@ document.addEventListener('click', async e => {
   }
   else if (a === 'createProject') createProject();
   else if (a === 'cancelDraft') { draft = null; renderDetail(); }
-  else if (a === 'gotoContact') { cid = id; newC = false; cedit = false; cfrom = 'bericht'; tab = 'kontakte'; renderDetail(); }
-  else if (a === 'backReport') { cfrom = null; cedit = false; tab = 'bericht'; renderDetail(); }
-  else if (a === 'editContact') { cedit = !cedit; fillContactDetail(); }
-  else if (a === 'addContact') addContact();
+  else if (a === 'gotoContact') { cid = id; cfrom = 'bericht'; tab = 'kontakte'; renderDetail(); }
+  else if (a === 'backReport') { cfrom = null; tab = 'bericht'; renderDetail(); }
+  else if (a === 'editContact') kontaktMaske(cid);
+  else if (a === 'addContact') kontaktMaske(0);
   else if (a === 'delContact') { const r = await api('api/contacts/' + cid, 'DELETE'); if (r.error) { toast(r.error); return; } cid = null; contacts = await api('api/contacts'); renderDetail(); if (r.papierkorb) toast('In den Papierkorb gelegt – dort wiederherstellbar.'); }
   else if (a === 'addReport') { q = null; renderQ(); closeSheet(); const r = await api(`api/projects/${pid}/reports`, 'POST', {time: new Date().toTimeString().slice(0, 5)}); rid = r.id; wxEdit = headEdit = false; tab = 'bericht'; await openProject(pid, true); if (bwzPrefs().on && bwzPrefs().auto) bwzOpen(); }
   else if (a === 'delReportId') {   // aus der Berichtsliste: diesen Bericht löschen (Rückgängig über die Meldung)
@@ -316,11 +295,11 @@ document.addEventListener('click', async e => {
     if (r && r.error) { toast(r.error); return; }
     if (rid === del) rid = null;
     await openProject(pid); if (!$('#sheet').classList.contains('hidden')) renderSheet();
-    if (r && r.undo) toast(`Bericht Nr. ${nr} gelöscht.`, async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } await openProject(pid, true); if (!$('#sheet').classList.contains('hidden')) renderSheet(); toast('Bericht wiederhergestellt.'); });
+    if (r && r.undo) rueckgaengig(`Bericht Nr. ${nr} gelöscht.`, async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } await openProject(pid, true); if (!$('#sheet').classList.contains('hidden')) renderSheet(); toast('Bericht wiederhergestellt.'); });
   }
   else if (a === 'delReport') {
     const del = rid, r = await api('api/reports/' + del, 'DELETE'); await openProject(pid);
-    if (r && r.undo) toast('Bericht gelöscht.', async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } rid = del; await openProject(pid, true); toast('Bericht wiederhergestellt.'); });
+    if (r && r.undo) rueckgaengig('Bericht gelöscht.', async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } rid = del; await openProject(pid, true); toast('Bericht wiederhergestellt.'); });
   }
   else if (a === 'editHead') { headEdit = !headEdit; renderDetail(); }
   else if (a === 'kopfbild') {   // Foto statt der kleinen Karte – und wieder zurück
@@ -337,7 +316,7 @@ document.addEventListener('click', async e => {
   else if (a === 'addItem') addItem(b.dataset.kind);
   else if (a === 'delItem') {
     const r = await api('api/items/' + id, 'DELETE'); await openProject(pid, true);
-    if (r.item) toast('Eintrag gelöscht.', async () => {
+    if (r.item) rueckgaengig('Eintrag gelöscht.', async () => {
       const x = await api('api/items/restore', 'POST', r.item);
       if (x.error) toast(x.error); else await openProject(pid, true);
     });
@@ -354,19 +333,7 @@ document.addEventListener('click', async e => {
   else if (a === 'bwzPrev') { addFiles = []; BWZ.i--; bwzRender(); }
   else if (a === 'bwzAdd') bwzAdd(b.dataset.kind);
   else if (a === 'fsAlle') { FS.alle = true; document.querySelectorAll('.fs-box').forEach(bx => { bx.innerHTML = fsInner(); }); }
-  else if (a === 'fsSet') {
-    const r = curReport(), row = b.closest('[data-fsg]'); if (!r || !row) return;
-    const x = FS.v.find(y => y.gantt_id === row.dataset.fsg && y.uid === +row.dataset.fsu); if (!x) return;
-    const body = { gantt_id: x.gantt_id, uid: x.uid, ampel: x.ampel || '' };
-    if (b.dataset.p != null) { body.pct = +b.dataset.p; if (body.pct === 100) body.ampel = 'fertig'; else if (body.ampel === 'fertig') body.ampel = ''; }
-    else { body.ampel = x.ampel === b.dataset.am ? '' : b.dataset.am; if (body.ampel === 'hinterher' || !body.ampel) body.pct = x.pct_bericht != null ? x.pct_bericht : x.ist; }
-    try {
-      const d = await api('api/reports/' + r.id + '/fortschritt', 'POST', body); if (d.error) { toast(d.error); return; }
-      FS = { rid: r.id, v: d.vorgaenge || [], sw: d.schwelle || 5, alle: FS.alle };
-      document.querySelectorAll('.fs-box').forEach(bx => { bx.innerHTML = fsInner(); });
-      if (!d.im_plan) toast('Gespeichert – ein späterer Bericht hat für diesen Vorgang schon einen Stand, der Bauzeitenplan bleibt daher.');
-    } catch (e) { toast(e.message || 'Speichern fehlgeschlagen'); }
-  }
+  else if (a === 'fsSet' && b.type !== 'range') fsSetzen(b);
   else if (a === 'sollDa' || a === 'sollSet') {
     const r = curReport(); if (!r) return;
     try {
@@ -377,7 +344,7 @@ document.addEventListener('click', async e => {
       } else {
         const vorher = ((SOLL.f || []).find(y => y.firma === firma) || {}).status || 'offen', st = b.dataset.st, rId = r.id;   // alten Stand merken
         const x = await api('api/reports/' + rId + '/soll', 'POST', {firma, status: st}); if (x.error) { toast(x.error); return; }
-        if (st !== 'offen' && vorher !== st) toast(`${firma}: ${st === 'nein' ? 'nicht nötig' : 'nicht da'}.`, async () => {
+        if (st !== 'offen' && vorher !== st) rueckgaengig(`${firma}: ${st === 'nein' ? 'nicht nötig' : 'nicht da'}.`, async () => {
           const y = await api('api/reports/' + rId + '/soll', 'POST', {firma, status: ['fehlt', 'nein'].includes(vorher) ? vorher : 'offen'}); if (y.error) { toast(y.error); return; }
           SOLL.rid = 0; openProject(pid, true);
         });
@@ -386,7 +353,7 @@ document.addEventListener('click', async e => {
     SOLL.rid = 0; openProject(pid, true);
   }
   else if (a === 'delImg') { const r = await api('api/images/' + id, 'DELETE'); openProject(pid, true);
-    if (r && typeof r.papierkorb === 'number') toast('Foto im Papierkorb.', async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; } openProject(pid, true); }); }
+    if (r && typeof r.papierkorb === 'number') rueckgaengig('Foto im Papierkorb.', async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; } openProject(pid, true); }); }
   else if (a === 'print') {
     if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }
     if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('api/reports/' + rid + '/pdf'); ablageMelden(); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf
@@ -450,11 +417,10 @@ document.addEventListener('change', async e => {
   else if (t.dataset.act === 'toggle') {
     const id = +t.dataset.id, an = t.checked, it = (curReport()?.items || []).find(x => x.id === id), txt = it ? it.text.slice(0, 40) : 'Eintrag';
     await api('api/items/' + id, 'PUT', {done: an ? 1 : 0}); openProject(pid, true);   // Spalte „done“ ist INTEGER – 1/0 statt true/false
-    toast(`„${txt}“ ${an ? 'erledigt' : 'wieder offen'}.`, async () => { await api('api/items/' + id, 'PUT', {done: an ? 0 : 1}); openProject(pid, true); });
+    rueckgaengig(`„${txt}“ ${an ? 'erledigt' : 'wieder offen'}.`, async () => { await api('api/items/' + id, 'PUT', {done: an ? 0 : 1}); openProject(pid, true); });
   }
   else if (t.dataset.img) { const r = await api('api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
   else if (t.dataset.pf) saveProjectField(t);
-  else if (t.dataset.cf) saveContactField(t);
   else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); } }
   else if (t.dataset.st) {
     const k = t.dataset.st, sec = /_pass$/.test(k); if (sec && !t.value) return;
@@ -481,7 +447,22 @@ document.addEventListener('change', async e => {
     if (['date', 'number'].includes(t.dataset.f)) openProject(pid, true);
   }
 });
-document.addEventListener('change', e => { if (e.target.id === 'ctr') { cTrade = e.target.value; fillContactList(); } if (e.target.id === 'cpr') { cProj = e.target.value; cProjSet = true; fillContactList(); } });
+/* Arbeitsfortschritt im Bericht: Stufe (Knopf), Schieber oder Stand (im Plan/hinterher/fertig) – b ist das bediente Element */
+async function fsSetzen(b) {
+  const r = curReport(), row = b.closest('[data-fsg]'); if (!r || !row) return;
+  const x = FS.v.find(y => y.gantt_id === row.dataset.fsg && y.uid === +row.dataset.fsu); if (!x) return;
+  const body = { gantt_id: x.gantt_id, uid: x.uid, ampel: x.ampel || '' };
+  if (b.dataset.p != null) { body.pct = +b.dataset.p; if (body.pct === 100) body.ampel = 'fertig'; else if (body.ampel === 'fertig') body.ampel = ''; }
+  else { body.ampel = x.ampel === b.dataset.am ? '' : b.dataset.am; if (body.ampel === 'hinterher' || !body.ampel) body.pct = x.pct_bericht != null ? x.pct_bericht : x.ist; }
+  try {
+    const d = await api('api/reports/' + r.id + '/fortschritt', 'POST', body); if (d.error) { toast(d.error); return; }
+    FS = { rid: r.id, v: d.vorgaenge || [], sw: d.schwelle || 5, alle: FS.alle };
+    document.querySelectorAll('.fs-box').forEach(bx => { bx.innerHTML = fsInner(); });
+    if (!d.im_plan) toast('Gespeichert – ein späterer Bericht hat für diesen Vorgang schon einen Stand, der Bauzeitenplan bleibt daher.');
+  } catch (e) { toast(e.message || 'Speichern fehlgeschlagen'); }
+}
+document.addEventListener('change', e => {
+  if (e.target.matches && e.target.matches('.fs-p input[type=range]')) { e.target.dataset.p = e.target.value; fsSetzen(e.target); return; } if (e.target.id === 'ctr') { cTrade = e.target.value; fillContactList(); } if (e.target.id === 'cpr') { cProj = e.target.value; cProjSet = true; fillContactList(); } });
 document.addEventListener('input', e => {
   if (e.target.classList.contains('ed')) grow(e.target);
   else if (e.target.dataset.dp && draft) {
@@ -490,7 +471,6 @@ document.addEventListener('input', e => {
   }
   else if (e.target.id === 'sq') { sheetQ = e.target.value; renderSheet(); if (sheetMode === 'proj') sheetSuggest(); }
   else if (e.target.id === 'cq') { cq = e.target.value; fillContactList(); }
-  else if (e.target.id === 'ncName') suggestContacts(e.target.value);
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeSheet(); $('#menu').classList.add('hidden'); if (BWZ.open) bwzClose(); }
@@ -500,7 +480,6 @@ document.addEventListener('keydown', e => {
   const ta = e.target.tagName === 'TEXTAREA';
   if (e.key === 'Enter' && row && (!ta || e.ctrlKey || e.metaKey)) { e.preventDefault(); addItem(row.querySelector('[data-add]').dataset.add); }
   else if (e.key === 'Enter' && e.target.dataset && e.target.dataset.dp) createProject();
-  else if (e.key === 'Enter' && e.target.id === 'ncName') createContact();
 });
 window.addEventListener('resize', growAll);
 if (location.hash.startsWith('#reset=')) authView('reset');

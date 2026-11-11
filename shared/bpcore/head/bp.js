@@ -28,7 +28,7 @@ async function api(u, m = 'GET', d) {
       : r.status === 413 ? 'Die Datei ist für den Webserver zu groß.' : r.ok ? 'Unerwartete Antwort vom Server.' : `Fehler ${r.status} ${r.statusText || ''}`.trim());
   }
   if (r.status === 401 && j.login) { location.href = j.login; throw new Error('Nicht angemeldet'); }
-  if (!r.ok) { const e = new Error(j.error || r.statusText); e.data = j; throw e; }
+  if (!r.ok) { const e = new Error(j.error || r.statusText); e.data = j; e.status = r.status; throw e; }
   return j;
 }
 function toast(msg, bad = false) {

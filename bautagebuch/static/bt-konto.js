@@ -1,19 +1,6 @@
 /* Bautagebuch – Darstellung, Anmeldung, Einstellungen der App, Ablage.
    Teil der Seite index.html (gemeinsame Namen, klassische Skripte in fester Reihenfolge: bt-kern.js, bt-projekt.js, bt-bericht.js, bt-assistent.js, bt-suche.js, bt-projektdaten.js, bt-kontakte.js, bt-konto.js, bt-start.js). */
-const ACCENTS = [['#ff5fb3', 'Pink'], ['#ffd200', 'Gelb'], ['#ff9a2e', 'Orange'], ['#ff6b5e', 'Rot'], ['#3ddc84', 'Grün'], ['#2fd6c9', 'Türkis'], ['#4da3ff', 'Blau'], ['#b18cff', 'Violett'], ['#f3f3f1', 'Weiß']];
-function applyAccent(c) {   // Akzentfarbe der Oberfläche; Schriftfarbe auf der Farbe je nach Helligkeit
-  c = /^#[0-9a-f]{6}$/i.test(c || '') ? c : ACCENTS[0][0];
-  const [r, g, b] = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  document.documentElement.style.setProperty('--y', c); document.documentElement.style.setProperty('--on', lum > 0.55 ? '#111' : '#fff');
-  try { localStorage.setItem('accent', c); } catch {}
-}
-function applyTheme(t) {   // Farbschema von der Startseite (Darstellung): dunkel, hell, auto; „klassisch“ gilt hier wie hell
-  try { localStorage.setItem('bpTheme', t || 'dunkel'); } catch {}
-  const dark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.dataset.theme = t === 'hell' || t === 'klassisch' || (t === 'auto' && !dark) ? 'hell' : 'dunkel';
-}
-function applyLook(u) { applyTheme(u.theme); applyAccent(u.accent); }
-try { applyTheme(localStorage.getItem('bpTheme')); applyAccent(localStorage.getItem('accent')); } catch { applyAccent(); }   // schon auf der Anmeldeseite die zuletzt gewählte Darstellung
+/* Darstellung (Farbschema, Akzentfarbe): applyTheme, applyAccent, applyLook aus dem Baukasten (bp.js) */
 let me = {}, users = null, people = [];
 function authView(v, msg = '') {
   $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');

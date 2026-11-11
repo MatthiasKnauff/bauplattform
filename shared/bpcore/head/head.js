@@ -14,6 +14,7 @@
   if (window.BPHead) return;
   { const basis = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '');
     const w = document.createElement('script'); w.src = basis + 'wahl.js'; document.head.appendChild(w);
+    const dt = document.createElement('script'); dt.src = basis + 'datum.js'; document.head.appendChild(dt);   // eigene Datumsauswahl statt des Systemkalenders – in jeder App
     const nu = document.createElement('script'); nu.src = basis + 'neu.js'; document.head.appendChild(nu);
     const us = document.createElement('script'); us.src = basis + 'unterschrift.js'; document.head.appendChild(us);   // ✍ Unterschreiben in der PDF-Vorschau
     const vs = document.createElement('script'); vs.src = basis + 'versand.js'; document.head.appendChild(vs);   // gemeinsamer Versanddialog (BPHead.versand)   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App

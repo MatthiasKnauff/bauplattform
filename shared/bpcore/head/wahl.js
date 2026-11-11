@@ -10,6 +10,8 @@
   const geht = (s) => s && s.tagName === 'SELECT' && s.ownerDocument === document && !s.multiple && !(s.size > 1) && !s.disabled && !s.hasAttribute('data-nativ');
   const schmal = () => innerWidth < 700;
   let OFFEN = null;
+  const FINGER = () => matchMedia('(pointer:coarse)').matches;
+  const ziel = (t) => { if (!t || !t.closest) return null; const s = t.closest('select'); if (s) return s; const l = t.closest('label'); return l && l.control && l.control.tagName === 'SELECT' ? l.control : null; };   // auch Tippen auf die Beschriftung
   function titel(sel) {
     const l = sel.getAttribute('aria-label') || (sel.labels && sel.labels[0] && [...sel.labels[0].childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(' ').trim()) || sel.title || '';
     return l.replace(/\s+/g, ' ').trim() || 'Auswählen';
@@ -17,7 +19,7 @@
   function zu(fokus) {
     if (!OFFEN) return; const o = OFFEN; OFFEN = null; o.bg.remove(); o.sel.setAttribute('aria-expanded', 'false');
     document.removeEventListener('pointerdown', o.aussen, true); removeEventListener('resize', o.ort); removeEventListener('scroll', o.roll, true);
-    if (fokus) try { o.sel.focus({ preventScroll: true }); } catch { /* egal */ }
+    if (fokus && !FINGER()) try { o.sel.focus({ preventScroll: true }); } catch { /* egal */ }   // am Handy nicht: der Fokus öffnete dort sonst die Systemliste noch einmal
   }
   function auf(sel) {
     if (OFFEN) { const war = OFFEN.sel; zu(false); if (war === sel) return; }
@@ -68,11 +70,13 @@
   document.addEventListener('mousedown', (e) => { const s = e.target.closest && e.target.closest('select'); if (!geht(s) || e.button) return; e.preventDefault(); try { s.focus({ preventScroll: true }); } catch { /* egal */ } auf(s); }, true);
   let tx = 0, ty = 0;
   document.addEventListener('touchstart', (e) => { const t = e.touches[0]; if (t) { tx = t.clientX; ty = t.clientY; } }, { capture: true, passive: true });
-  document.addEventListener('touchend', (e) => { const s = e.target.closest && e.target.closest('select'); if (!geht(s)) return; const t = e.changedTouches[0];
+  document.addEventListener('touchend', (e) => { const s = ziel(e.target); if (!geht(s)) return; const t = e.changedTouches[0];
     if (t && Math.hypot(t.clientX - tx, t.clientY - ty) > 10) return;   // gewischt (gescrollt), nicht getippt
     e.preventDefault(); auf(s); }, { capture: true, passive: false });
   document.addEventListener('keydown', (e) => { const s = e.target; if (!geht(s)) return;
     if (OFFEN && OFFEN.sel === s) { OFFEN.taste(e); return; }
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'F4' || ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && (e.altKey || /Mac|iPhone|iPad/.test(navigator.platform || '')))) { e.preventDefault(); auf(s); } }, true);
+  document.addEventListener('focusin', (e) => { const s = e.target; if (!FINGER() || !geht(s) || (OFFEN && OFFEN.sel === s)) return;   // Handy: Fokus über die Pfeile der Tastatur o. Ä. – Systemliste nie, die eigene statt dessen
+    try { s.blur(); } catch { /* egal */ } auf(s); }, true);
   window.bpWahl = { auf, zu: () => zu(false) };
 })();

@@ -377,7 +377,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "neu.js", "unterschrift.js", "versand.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "datum.js", "neu.js", "unterschrift.js", "versand.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"

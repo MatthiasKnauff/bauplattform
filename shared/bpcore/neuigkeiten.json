@@ -1,5 +1,12 @@
 [
  {
+  "id": "2026-11-11-datum",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Eigener Kalender, keine Systemlisten mehr",
+  "text": "Datum, Uhrzeit und Termin wählst du jetzt überall im eigenen Kalender – mit Kalenderwoche, Schnellwahl (+1/+2/+4 Wochen) und Stunde/Minute zum Antippen. Am Handy öffnen Auswahllisten und Kalender nur noch die eigene Auswahl, nie mehr zusätzlich die des Systems."
+ },
+ {
   "id": "2026-11-11-rundgang-oeffnet",
   "datum": "2026-11-11",
   "app": "portal",

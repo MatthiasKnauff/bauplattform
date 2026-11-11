@@ -631,3 +631,6 @@ function leistungWizard(opt = {}) {
   draw();
 }
 window.leistungWizard = leistungWizard;
+
+/* Hinweise in den Köpfen (Katalog, Gewerke & Firmen) stehen einzeilig – der ganze Text als Tipp beim Darüberfahren */
+document.addEventListener('mouseover', (e) => { const h = e.target.closest && e.target.closest('.fv-hint'); if (h && !h.title) h.title = h.textContent.trim(); });

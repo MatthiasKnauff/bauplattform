@@ -435,8 +435,7 @@ body.as-window{background:#fafafa}
 .fv-head span{color:#666;font-size:calc(var(--fs)*0.958)}
 .fv-hint{margin-left:auto;flex:1 1 0;min-width:0;max-width:none;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}
 .fv-hint::before{content:"ⓘ ";color:var(--accent)}
-/* Hinweis in einer Zeile – beim Darüberfahren ganz, als Blase über der Tabelle (nichts verschiebt sich) */
-.fv-head .fv-hint:hover{white-space:normal;overflow:visible;position:absolute;right:16px;top:calc(100% - 4px);max-width:560px;z-index:30;background:#fff;border:1px solid var(--bd);padding:8px 10px;box-shadow:var(--sh0,0 6px 18px rgba(0,0,0,.18));color:#333}
+/* Hinweis in einer Zeile – ganz als Tipp beim Darüberfahren (library.js setzt den Titel) */
 .fv-scroll{flex:1;overflow:auto;padding:10px 16px 30px}
 .fv-t{border-collapse:collapse;width:100%;background:#fff;margin-bottom:14px}
 .fv-t th{position:sticky;top:-10px;background:var(--hdr);text-align:left;font-weight:600;border:1px solid #d8d8d8;padding:5px 6px;white-space:nowrap;z-index:1}

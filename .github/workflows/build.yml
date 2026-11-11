@@ -168,7 +168,8 @@ jobs:
           RT_ARTEFAKTE: ${{ runner.temp }}/artefakte
         run: |
           mkdir -p "$RUNNER_TEMP/ui" && cd "$RUNNER_TEMP/ui" && npm init -y >/dev/null && npm install --no-audit --no-fund playwright@1.63.0 >/dev/null
-          npx playwright install --with-deps chromium >/dev/null
+          # Systempakete von Ubuntu sind manchmal nicht erreichbar – dann ohne sie (das Runner-Image hat das Nötige meist schon)
+          npx playwright install --with-deps chromium >/dev/null 2>&1 || { echo "::warning::Systempakete für Chromium nicht ladbar – versuche es ohne"; npx playwright install chromium >/dev/null; }
           NODE_PATH="$RUNNER_TEMP/ui/node_modules" node "$GITHUB_WORKSPACE/tools/tests/ui/oberflaeche.mjs" http://localhost:${PORTAL_PUBLISH:-8090} || { echo "::error::Oberflächentests melden Fehler (siehe Schritt „Oberflächentests“)."; exit 1; }
 
       # Lasttest: 8 gleichzeitige Nutzer (Doppelte der Büro-Spitze) arbeiten 60 s, danach alle gleichzeitig Foto + PDF, siehe tools/lasttest.py

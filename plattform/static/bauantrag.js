@@ -29,7 +29,7 @@ function nav() {
     gruppen: Object.keys(G).sort((x, y) => x.localeCompare(y, 'de')).map((p) => ({ titel: p, punkte: G[p].map((a) => ({
       id: String(a.id), text: a.name, icon: IC.antrag, farbe: a.status === 'genehmigt' ? 'var(--ok,#1e8a4c)' : a.status === 'eingereicht' ? 'var(--y)' : 'var(--mute)',
       zahl: a.status === 'entwurf' ? '' : (STATUS[a.status] || '').slice(0, 4) + '.', zahlTip: STATUS[a.status] || '' })) })),
-    aktiv: AID ? String(AID) : '', attr: 'ba', lage: true,
+    aktiv: AID ? String(AID) : '', attr: 'ba', lage: true, fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Antrag</button>',   // wie „＋ Neues LV“ in der Ausschreibung
     wahl: async (id) => { FORM = null; AID = +id; D = await api('api/antraege/' + AID); zeichne(); },
   });
 }
@@ -37,7 +37,6 @@ function nav() {
 function leiste() {
   const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, aus: !!o.aus, rot: !!o.rot });
   befehle(LEISTE, [
-    { titel: 'Neu', knoepfe: [K('Antrag', IC.neu, neuDialog, { tip: 'Neuer Bauantrag, Vorbescheid oder Freistellung' })] },
     { titel: 'Bauvorlagen', knoepfe: [K('Neu erkennen', IC.ord, async () => { D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); },
       { aus: !D, tip: 'Projektordner neu einlesen und die Bauvorlagen erkennen' })] },
     { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen('NW'), { tip: 'Amtliche Vordrucke (NRW vorgehalten, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
@@ -151,7 +150,7 @@ function schrittHtml() {
 function zeichne() {
   nav(); leiste();
   if (FORM) { V.innerHTML = formHtml(); return; }
-  if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Oben „Neu → Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
+  if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Links „＋ Neuer Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
   const st = D.schritte.map(([k, t], i) => { const n = k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k);
     return `<button type="button" data-schritt="${k}" class="${k === SCHRITT ? 'on' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : '✓ vollständig'}</small></button>`; }).join('');
   const i = D.schritte.findIndex((s) => s[0] === SCHRITT), vor = D.schritte[i - 1], nach = D.schritte[i + 1];
@@ -300,3 +299,5 @@ HANDY.addEventListener('change', () => { if (L) zeichne(); });
   if (location.hash === '#formulare') { history.replaceState(null, '', location.pathname); formulareZeigen('NW'); }   // aus dem To-do „Neues Bauantragsformular“
   BPHead.live(['bauantrag', 'projects', 'contacts'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));
+
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-navneu]')) neuDialog(); });

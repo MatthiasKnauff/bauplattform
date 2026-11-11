@@ -34,7 +34,7 @@ function nav() {
     gruppen: Object.keys(L.status).filter((s) => G[s]).map((s) => ({ titel: STUFE_GRUPPE[s] || L.status[s], punkte: G[s].map((a) => { const h = stufeHinweis(a);
       return { id: String(a.id), text: `${kurz(a.projekt)} ${a.name}`.trim(), icon: IC.auftrag, farbe: STUFE_FARBE[a.status] || 'var(--y)',
         zahl: a.warnung ? '!' : h[0], zahlTip: a.warnung ? 'Aufwand über dem Honorar' : h[1] }; }) })),
-    aktiv: AID ? String(AID) : '', attr: 'hon', lage: true,
+    aktiv: AID ? String(AID) : '', attr: 'hon', lage: true, fuss: '<button type="button" class="nneu" data-navneu>＋ Neuer Auftrag</button>',   // wie „＋ Neues LV“ in der Ausschreibung
     wahl: async (id) => { AID = +id; D = await api('api/auftraege/' + AID); zeichne(); },
   });
 }
@@ -42,7 +42,6 @@ function nav() {
 function leiste() {
   const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, aus: !!o.aus, rot: !!o.rot });
   befehle(LEISTE, [
-    { titel: 'Neu', knoepfe: [K('Auftrag', IC.neu, neuDialog, { tip: 'Neuer Honorarauftrag oder neues Angebot' })] },
     { titel: 'Ausgabe', rechts: true, knoepfe: [K('Drucken', IC.pdf, drucken, { aus: !D, tip: 'Drucken: Angebot bzw. Aufstellung, Vertrag, Rechnungen – auf der Druckseite auswählen' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Auftrag in den Papierkorb legen' })] },
   ]);
@@ -68,7 +67,7 @@ document.addEventListener('click', (e) => { if (e.target.closest && e.target.clo
 function zeichne() {
   if (typeof HANDY !== 'undefined' && HANDY.matches) return handyZeichne();   // Handy: eigene Ansicht (honorar-handy.js), nur ansehen
   nav(); leiste();
-  if (!D) { V.innerHTML = `<div class="leer">Noch kein Honorarauftrag. Oben „Neu → Auftrag“: Projekt wählen, HOAI, nach Aufwand oder pauschal.</div>`; return; }
+  if (!D) { V.innerHTML = `<div class="leer">Noch kein Honorarauftrag. Links „＋ Neuer Auftrag“: Projekt wählen, HOAI, nach Aufwand oder pauschal.</div>`; return; }
   const a = D.auftrag, k = D.rechnung;
   const seg = (feld, werte, wert) => `<span class="seg" role="group">${Object.entries(werte).map(([v, t]) => `<button type="button" data-seg="${feld}" data-v="${v}" class="${String(wert) === v ? 'on' : ''}">${esc(t)}</button>`).join('')}</span>`;
   const kopf = `<div class="ho-k"><div class="ho-f">
@@ -280,3 +279,5 @@ async function loeschen() {
   await laden();
   BPHead.live(['honorar_auftrag', 'honorar_nk', 'honorar_rechnung', 'honorar_vertrag'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));
+
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-navneu]')) neuDialog(); });

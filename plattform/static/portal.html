@@ -164,8 +164,9 @@ const rArt = (i) => (i[0] === 'a' ? 'a' : 'w');
 const rKoll = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const rHandy = () => innerWidth < 760;
 /* eigene Widgets mit Daten aus anderen Apps; je Widget ein Projekt (o.p) oder das aktuelle. Mehrere gleiche: w:bauzeit.2 … */
-const WX = { bauzeit: { name: 'Bauzeitenplan', app: 'gantt', ic: ['▤', '#1f9d4c'], d: [6, 4] }, kosten: { name: 'Kostenstand', app: 'ava', ic: ['€', '#c0392b'], d: [4, 4] } };
-const wxTyp = (i) => (String(i).match(/^w:(bauzeit|kosten)(\.\d+)?$/) || [])[1];
+const WX = { bauzeit: { name: 'Bauzeitenplan', app: 'gantt', ic: ['▤', '#1f9d4c'], d: [6, 4] }, kosten: { name: 'Kostenstand', app: 'ava', ic: ['€', '#c0392b'], d: [4, 4] },
+  honorar: { name: 'Honorarstand', app: 'honorar', ic: ['§', '#6d4bd8'], d: [4, 4] } };
+const wxTyp = (i) => (String(i).match(/^w:(bauzeit|kosten|honorar)(\.\d+)?$/) || [])[1];
 const wxOk = (t) => APPS.some((a) => a.key === WX[t].app && a.allowed);
 function rIds() {
   const extra = ((RASTER && RASTER.items) || []).map((it) => it.i).filter((i) => /\.\d+$/.test(i) && wxTyp(i) && wxOk(wxTyp(i)));
@@ -253,6 +254,7 @@ async function wxLaden(it) {
   if (!WXP) WXP = await (WXPL = WXPL || api('api/bp/projekte').catch(() => []));   // Projektnamen für ▾
   try {
     if (t === 'bauzeit') { const D = await api('api/bp/widget/bauzeit?pid=' + pid); WXC[key] = { t: Date.now(), html: wxBauzeit(D), pname: D.projekt.name }; }
+    else if (t === 'honorar') { const H = await api('api/bp/widget/honorar?pid=' + pid); WXC[key] = { t: Date.now(), html: wxHonorar(H) }; }
     else { const S = await api('api/bp/widget/kosten?pid=' + pid); WXC[key] = { t: Date.now(), html: wxKosten(S) }; }
   } catch (e) { WXC[key] = { t: Date.now(), html: `<p class="mute">${esc(e.message)}</p>` }; }
   fuell();
@@ -265,6 +267,19 @@ function wxBauzeit(D) {
     + (pl.zeilen.length ? pl.zeilen.map((z) => { const a = pos(z.s), b = pos(new Date(Date.parse(z.f) + tag).toISOString().slice(0, 10));
       return `<div class="bz-z" title="${esc(`${z.name}${z.gw ? ' · ' + z.gw : ''} · ${new Date(z.s + 'T12:00').toLocaleDateString('de-DE')}–${new Date(z.f + 'T12:00').toLocaleDateString('de-DE')} · ${z.pct} %`)}"><span class="bz-n">${esc(z.name)}</span><span class="bz-b"><i class="${z.verzug ? 'v' : z.pct >= 100 ? 'f' : ''}${z.ms ? ' ms' : ''}" style="left:${a}%;width:${z.ms ? 0 : Math.max(1.5, b - a)}%"></i><u style="left:${h}%"></u></span></div>`; }).join('')
       + (pl.mehr ? `<p class="mute">… und ${pl.mehr} weitere</p>` : '') : '<p class="mute">In diesen drei Wochen ist nichts geplant.</p>') + '</a>').join('');
+}
+/* Honorarstand: je Auftrag Honorar netto, erbracht (HOAI) und Aufwand laut Zeiten – rot, wenn der Aufwand das Honorar übersteigt */
+function wxHonorar(H) {
+  const L = H.auftraege || [], u = wxApp('honorar');
+  if (!L.length) return '<p class="mute">Noch kein Honorarauftrag in diesem Projekt.</p>';
+  const ST = { angebot: 'Angebot', beauftragt: 'beauftragt', abgeschlossen: 'abgeschlossen' };
+  const bar = (a, v, c) => `<span class="ks-b"><i style="width:${Math.max(0.5, v / Math.max(1, a.netto || 0, a.ist_kosten || 0) * 100)}%;background:${c}"></i></span>`;   // je Auftrag eigener Maßstab
+  const sum = L.reduce((s, a) => ({ n: s.n + (a.status !== 'angebot' ? a.netto : 0), i: s.i + a.ist_kosten }), { n: 0, i: 0 });
+  return L.map((a) => `<a class="wx-ks" href="${esc(u)}/" title="Honorar öffnen"><p class="wx-sub" style="margin-top:.3rem"><b style="color:var(--ink)">${esc(a.name)}</b> · ${esc(ST[a.status] || a.status)}${a.warnung ? ' · <b style="color:var(--red)">Aufwand über Honorar</b>' : ''}</p>
+    <div class="ks-z"><span>Honorar netto</span>${bar(a, a.netto, '#6d4bd8')}<b>${eurK(a.netto)}</b></div>
+    ${a.art === 'hoai' ? `<div class="ks-z"><span>erbracht</span>${bar(a, a.erbracht, '#1f9d4c')}<b>${eurK(a.erbracht)}</b></div>` : ''}
+    <div class="ks-z"><span title="Aufwand laut Zeiterfassung (Stunden × Stundensatz)">Aufwand</span>${bar(a, a.ist_kosten, a.ist_kosten > a.netto ? 'var(--red)' : '#e07b3a')}<b>${eurK(a.ist_kosten)}</b></div></a>`).join('')
+    + (L.length > 1 ? `<p class="wx-sub">beauftragt zusammen ${eurK(sum.n)} · Aufwand ${eurK(sum.i)}</p>` : '');
 }
 function wxKosten(K) {
   const S = { b: K.budget, s: K.schaetzung || 0, au: K.auftrag || 0, nt: K.nachtraege || 0, ab: K.abgerechnet || 0, n: K.n || 0 };

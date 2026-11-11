@@ -1834,6 +1834,31 @@ def blueprint(get_user=None):
                 plaene.append({"id": gid, "name": name, "zeilen": zeilen[:40], "mehr": max(0, len(zeilen) - 40)})
         return jsonify(projekt={"id": p["id"], "name": p["name"]}, von=von, bis=bis, heute=heute.isoformat(), plaene=plaene)
 
+    @bp.get("/api/bp/widget/honorar")
+    def widget_honorar():
+        """Startseiten-Widget Honorarstand (nur Verwaltung): je Honorarauftrag des Projekts Honorar netto, erbracht und Aufwand laut Zeiten."""
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        if not u["is_admin"] or "honorar" in sso.apps_aus():
+            return jsonify(error="Nur für die Verwaltung"), 403
+        try:
+            pid = int(request.args.get("pid") or 0)
+        except ValueError:
+            pid = 0
+        if not pid:
+            return jsonify(error="Kein Projekt"), 400
+        from . import honorar as H
+        out = []
+        with db.tx() as c:
+            for r in c.execute("SELECT * FROM honorar_auftrag WHERE project_id=? ORDER BY id", (pid,)).fetchall():
+                a = H.sauber(dict(r))
+                nk = c.execute("SELECT COALESCE(SUM(betrag), 0) AS s FROM honorar_nk WHERE auftrag_id=?", (a["id"],)).fetchone()["s"] or 0
+                k = H.rechne(a, H.zeiten_projekt(c, pid, a["einheit"], a["satz_h"]), nk)
+                out.append({"id": a["id"], "name": a["name"], "art": a["art"], "status": a["status"], "netto": k["netto"], "erbracht": k.get("erbracht") or 0,
+                            "ist_kosten": k["ist_kosten"], "ist_min": k["ist_min"], "warnung": bool(k["warnungen"])})
+        return jsonify(auftraege=out)
+
     @bp.get("/api/bp/widget/kosten")
     def widget_kosten():
         """Startseiten-Widget Kostenstand: Summen aller LVs eines Projekts aus der AVA (mit der Anmeldung des Benutzers gefragt)."""

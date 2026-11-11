@@ -290,10 +290,27 @@ function libSecSelect(g) {
     const it = AssistCore.items(P.assist).find((x) => x.id === g.cat), cur = it ? it.ph : '';
     if (cur) return `<select data-psec="ph">${libPhases().map((p) => `<option value="${p.k}"${p.k === cur ? ' selected' : ''}>${esc(p.n)}</option>`).join('')}</select>`;
   }
+  if (g.idx.length === 1) {   // eine Leistung: in jeden Abschnitt des Plans verschiebbar – auch aus der obersten Ebene und in andere Ebenen
+    const S = T.map((t, i) => ({ t, i })).filter(({ t, i }) => i + 1 < T.length && (T[i + 1].lvl || 0) > (t.lvl || 0) && i !== g.idx[0]);
+    if (!S.length) return `<span class="lv-dim" title="Im Plan gibt es noch keinen Abschnitt (Gruppe)">${esc(g.sec || '–')}</span>`;
+    const L0 = t0.lvl || 0; let p = g.idx[0] - 1; while (p >= 0 && (T[p].lvl || 0) >= L0) p--;
+    return `<select data-psec="uid"><option value=""${p < 0 ? ' selected' : ''}>– oberste Ebene –</option>${S.map(({ t, i }) => `<option value="${esc(t.uid)}"${i === p ? ' selected' : ''}>${'\u2003'.repeat(Math.min(t.lvl || 0, 4))}${esc(t.name)}</option>`).join('')}</select>`;
+  }
   const L = (t0.lvl || 0) - 1; if (L < 0) return `<span class="lv-dim">${esc(g.sec)}</span>`;
   const names = [...new Set(T.filter((t, i) => (t.lvl || 0) === L && i + 1 < T.length && (T[i + 1].lvl || 0) > L).map((t) => t.name))];
   if (!names.includes(g.sec)) names.unshift(g.sec);
   return `<select data-psec="name">${names.map((n) => `<option${n === g.sec ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+}
+function libMoveUnter(g, uid) {   // eine Leistung ans Ende eines Abschnitts (Gruppe) – Ebene passt sich an; leer = oberste Ebene, ans Ende
+  const u = P.tasks[g.idx[0]].uid; let ok = false, ziel = '';
+  act(() => {
+    const T = P.tasks, i = T.findIndex((t) => t.uid === u); if (i < 0) return;
+    const [t] = T.splice(i, 1);
+    if (!uid) { t.lvl = 0; T.push(t); ok = true; ziel = 'oberste Ebene'; return; }
+    const j = T.findIndex((x) => x.uid === uid); if (j < 0) { T.splice(i, 0, t); return; }
+    t.lvl = (T[j].lvl || 0) + 1; T.splice(blockEnd(j) + 1, 0, t); ok = true; ziel = T[j].name;
+  });
+  toast(ok ? `„${g.name}“ nach „${ziel}“ verschoben.` : 'Abschnitt nicht gefunden.', !ok);
 }
 function libMoveSection(g, name) {
   const uids = g.idx.map((i) => P.tasks[i].uid); let moved = 0, miss = 0;
@@ -360,7 +377,8 @@ $('#libView').addEventListener('change', (e) => {
       gwColor(v); act(() => { for (const i of g.idx) P.tasks[i].gw = v; }); toast(`Gewerk von „${g.name}“: ${v}`);
     } else if (t.dataset.psec === 'ph') {
       if (AssistCore.movePhase(g.cat, t.value) === false) toast('Abschnitt nicht änderbar – siehe Hinweis im Plan.', true); else toast(`„${g.name}“ nach „${libPhName(t.value)}“ verschoben.`);
-    } else libMoveSection(g, t.value);
+    } else if (t.dataset.psec === 'uid') libMoveUnter(g, t.value);
+    else libMoveSection(g, t.value);
     renderLib(); return;
   }
   const tr = t.closest('tr[data-lid]'); if (!tr || !t.dataset.k) return;

@@ -224,7 +224,7 @@ def guard():
             return jsonify(error="Anfrage von fremder Seite abgelehnt"), 403
     is_api = p.startswith("/api/")
     is_page = p in ("/", "/index.html", "/assistent.html")
-    if (is_api and p in OPEN_API) or not (is_api or is_page):
+    if (is_api and (p in OPEN_API or p.startswith("/api/ansicht/"))) or not (is_api or is_page):   # Links zum Ansehen: ohne Anmeldung (geheimer Schlüssel)
         return
     with db.tx() as c:
         u = sso.current(c, request)
@@ -1302,6 +1302,12 @@ def ai_test():
         return jsonify(ok=True, model=k["model"], answer=t.strip()[:20])
     except AIError as e:
         return jsonify(error=str(e)), 502
+
+
+# ---------------------------------------------------------------- Links zum Ansehen (links.py)
+import links as _links   # noqa: E402
+_links.einbinden(app, row_of=row_of, project_or_error=_project_or_error, can_see=can_see, body=body, jstr=jstr, truthy=truthy,
+                 now_iso=now_iso, uname=uname, pub=PUB)
 
 
 # ---------------------------------------------------------------- Oberfläche

@@ -1,0 +1,35 @@
+/* Bauzeitenplan – Ansicht für Externe (ansicht.html): hell, ruhig, druckbar. Keine Anmeldung, keine Bausteine der Plattform. */
+:root{--bg:#f6f5f2;--card:#fff;--line:#e2e0da;--ink:#232427;--mute:#6b6d70;--acc:#3b5bab;--heute:#d63b3b;--rh:30px}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.4 "Segoe UI",system-ui,-apple-system,sans-serif;display:flex;flex-direction:column}
+.ak{display:flex;flex-wrap:wrap;gap:.6rem 1.2rem;align-items:center;justify-content:space-between;padding:.7rem 1rem;background:var(--card);border-bottom:1px solid var(--line)}
+.ak h1{margin:0;font-size:1.15rem}.ak p{margin:.1rem 0 0;color:var(--mute);font-size:.88rem}
+.ak-k{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.ak button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:.35rem .8rem;cursor:pointer}
+.ak button:hover{border-color:var(--acc)}
+.ak-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.ak-seg button{border:0;border-radius:0}.ak-seg button.on{background:var(--acc);color:#fff}
+.ak-hin{margin:0;padding:.35rem 1rem;font-size:.8rem;color:var(--mute)}
+main{flex:1;min-height:0;overflow:auto;margin:0 1rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:10px}
+.ak-lade,.ak-fehler{padding:2rem;text-align:center;color:var(--mute)}.ak-fehler b{display:block;color:var(--ink);font-size:1.1rem;margin-bottom:.4rem}
+table{border-collapse:separate;border-spacing:0;font-size:.85rem}
+th,td{height:var(--rh);padding:0 .5rem;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--card)}
+thead th{position:sticky;top:0;z-index:3;background:#faf9f7;font-weight:600;color:var(--mute);text-align:left;height:auto;padding:.35rem .5rem}
+.fix{position:sticky;z-index:2}thead .fix{z-index:4}
+.c-nr{left:0;width:2.6rem;min-width:2.6rem;color:var(--mute);text-align:right}
+.c-n{left:2.6rem;min-width:16rem;max-width:22rem;overflow:hidden;text-overflow:ellipsis}
+.c-d{min-width:5.6rem}.c-p{min-width:3.6rem;text-align:right}
+.c-last{border-right:1px solid var(--line)}
+tr.grp td{font-weight:700}tr.grp .c-n{cursor:pointer}.car{display:inline-block;width:1em;color:var(--mute)}
+td.bal{position:relative;padding:0}
+.zeit{position:relative;height:100%}
+.zk{display:flex;font-size:.72rem;color:var(--mute)}.zk span{flex:none;border-left:1px solid var(--line);padding:0 .25rem;overflow:hidden;white-space:nowrap}
+.bar{position:absolute;top:8px;height:14px;border-radius:3px;background:#9aa3ad}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:rgba(0,0,0,.28);border-radius:3px 0 0 3px}
+.bar.g{top:11px;height:7px;background:#3b3d42;border-radius:0}.bar.g::before,.bar.g::after{content:"";position:absolute;bottom:-5px;border:5px solid transparent;border-top-color:#3b3d42}.bar.g::before{left:-5px}.bar.g::after{right:-5px}
+.ms{position:absolute;top:8px;width:13px;height:13px;background:#3b3d42;transform:rotate(45deg);margin-left:-6px}
+.bl{position:absolute;top:6px;font-size:.72rem;color:var(--mute);white-space:nowrap}
+.we{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.035)}
+.heute{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--heute);z-index:1}
+@media (max-width:700px){.c-d,.c-p{display:none}.c-n{min-width:10rem;max-width:12rem}.ak{padding:.6rem}main{margin:0 .4rem .4rem}}
+@media print{@page{size:A3 landscape;margin:10mm}body{background:#fff;display:block}.ak-k,.ak-hin{display:none}.ak{border:0;padding:0 0 .4rem}main{overflow:visible;border:0;margin:0}thead th{position:static}.fix{position:static}}

@@ -112,3 +112,12 @@ body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-track{background:tran
 body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-track:vertical{margin-top:44px}
 body.g-rahmen :is(#chartPane,#gridPane)::-webkit-scrollbar-corner{background:transparent}
 body.g-rahmen #gridPane::-webkit-scrollbar:vertical{width:0}   /* Plan und Diagramm rollen gemeinsam: ein senkrechter Balken (am Diagramm) genügt */
+
+/* Plan teilen (teilen.js) */
+.tl-modal{width:min(46rem,94vw)}.tl{display:flex;flex-direction:column;gap:.6rem}
+.tl-l,.tl-neu{border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .65rem;display:flex;flex-direction:column;gap:.35rem}
+.tl-l.aus{opacity:.6}.tl-neu{border-style:dashed}
+.tl-k{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap}.tl-k .hint{margin-left:auto}
+.tl-art{font-size:.75em;border:1px solid var(--line);border-radius:999px;padding:0 .5rem}.tl-art.fest{border-color:#e8a33c;color:#e8a33c}.tl-art.mit{border-color:var(--y);color:var(--y)}.tl-art.aus{color:#e05252;border-color:#e05252}
+.tl-z{display:flex;gap:.4rem .7rem;align-items:center;flex-wrap:wrap}.tl-z label{display:flex;gap:.35rem;align-items:center}
+.tl-v{font:inherit;font-size:.85em;border:1px solid var(--line);background:none;color:inherit;border-radius:999px;padding:.1rem .6rem;cursor:pointer}.tl-v.on{background:var(--y);border-color:var(--y);color:var(--on,#111);font-weight:600}

@@ -523,3 +523,45 @@ def test_druck_als_pdf(ctx):
     ctx.admin.post(f"{G}/pdf", {"pages": ['<svg xmlns="http://www.w3.org/2000/svg"><image href="file:///etc/passwd" width="9" height="9"/></svg>']}, expect=400)
     ctx.admin.post(f"{G}/pdf", {}, expect=400)
     ctx.gast().post(f"{G}/pdf", {"pages": d["pages"]}, expect=401)
+
+
+# ---------------------------------------------------------------------------------------------- Links zum Ansehen
+def test_link_zum_ansehen(ctx):
+    """Plan teilen: Link ohne Anmeldung lesbar (ohne Notizen), Fortschritt abschaltbar, fester Stand bleibt, mitlaufend wechselt die Version,
+    zurückgezogen/abgelaufen → nicht mehr lesbar, fremder Plan wird abgelehnt."""
+    sched = [{"uid": 1, "s": "2026-11-02", "f": "2026-11-13", "g": 0}, {"uid": 2, "s": "2026-11-16", "f": "2026-11-16", "g": 0}]
+    tasks = [leistung(1, "Rohbau", 10, gw="Rohbau", res="Rohbau Schulte", pct=40, notes="geheim"), leistung(2, "Abnahme", 0, preds=[1])]
+    a = neuer_plan(ctx.admin, ctx.name("Plan A"), tasks, link=t103(ctx))
+    b = neuer_plan(ctx.admin, ctx.name("Plan B"), [leistung(1, "Nur in B", 3)], link=t103(ctx))
+    fremd = neuer_plan(ctx.admin, ctx.name("Fremd"))
+    try:
+        a = speichern(ctx.admin, a, sched=sched)
+        speichern(ctx.admin, b, sched=[{"uid": 1, "s": "2026-11-02", "f": "2026-11-04", "g": 0}])
+        mit = ctx.admin.post(f"{G}/projects/{a['id']}/links", {"name": "Firma", "art": "mit", "fortschritt": True}, expect=201).json
+        fest = ctx.admin.post(f"{G}/projects/{a['id']}/links", {"name": "Bauherr", "art": "fest", "fortschritt": False}, expect=201).json
+        gast = ctx.gast()
+        v = gast.gj(f"{G}/ansicht/{mit['token']}")
+        gleich([z["n"] for z in v["zeilen"]], ["Rohbau", "Abnahme"], "Leistungen in der Ansicht")
+        gleich(v["zeilen"][0]["p"], 40, "Fortschritt sichtbar")
+        gleich(v["zeilen"][1]["m"], 1, "Meilenstein")
+        pruefe("geheim" not in str(v), "Notizen dürfen nicht in der Ansicht stehen")
+        w = gast.gj(f"{G}/ansicht/{fest['token']}")
+        pruefe("p" not in w["zeilen"][0], "ohne Fortschritt: kein Prozentwert")
+        # Plan ändern: fester Stand bleibt, mitlaufend zeigt die Änderung
+        speichern(ctx.admin, a, tasks=[leistung(1, "Rohbau neu", 10), tasks[1]], sched=sched)
+        gleich(gast.gj(f"{G}/ansicht/{fest['token']}")["zeilen"][0]["n"], "Rohbau", "fester Stand unverändert")
+        gleich(gast.gj(f"{G}/ansicht/{mit['token']}")["zeilen"][0]["n"], "Rohbau neu", "mitlaufend aktuell")
+        # mitlaufend: andere Version desselben Projekts zeigen – fremder Plan abgelehnt
+        ctx.admin.put(f"{G}/links/{mit['token']}", {"gantt_id": b["id"]}, expect=200)
+        gleich(gast.gj(f"{G}/ansicht/{mit['token']}")["zeilen"][0]["n"], "Nur in B", "Version gewechselt")
+        ctx.admin.put(f"{G}/links/{mit['token']}", {"gantt_id": fremd["id"]}, expect=400)
+        # zurückziehen und Ablauf
+        ctx.admin.put(f"{G}/links/{mit['token']}", {"aktiv": False}, expect=200)
+        gast.get(f"{G}/ansicht/{mit['token']}", expect=404)
+        ctx.admin.put(f"{G}/links/{fest['token']}", {"ablauf": "2020-01-01"}, expect=200)
+        gast.get(f"{G}/ansicht/{fest['token']}", expect=410)
+        gast.get(f"{G}/projects/{a['id']}/links", expect=401)   # Verwaltung der Links nur angemeldet
+        gleich(len(ctx.admin.gj(f"{G}/projects/{a['id']}/links")), 2, "zwei Links beim Plan")
+    finally:
+        for p in (a, b, fremd):
+            weg(ctx, p["id"])

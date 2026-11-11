@@ -22,7 +22,6 @@ Stand: 10.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 10. Aufmaß: Menge direkt eintragen – ohne Aufmaßzeilen entsteht eine Zeile „pauschal“, mit Aufmaßzeilen eine Ausgleichszeile (Vorschlag, wartet auf Zustimmung). **ca. 2–3 h**
 11. Aufmaßprüfung: erster Rechenweg direkt in der Hauptzeile der Position (weitere Zeilen als Zwischenzeilen), Mengen auch in „lt. Rechnung“ – Enter nach unten, Tab nach rechts – Mock liegt vor. **ca. 3–4 h**
 12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
-14. Bauzeitenplan: Link zum Ansehen (schreibgeschützt) für Externe – mit oder ohne Fortschritt, Ablaufdatum, jederzeit zurückziehbar; Version „mitlaufend“ (Ersteller kann die angezeigte Version auch nach dem Versand ändern) oder „fest“ (genau diese Version) – erst Mock; braucht Zugang von außen. **ca. 1–1,5 Tage**
 
 Summe Sammlung: ca. 4–5 Tage.
 
@@ -104,3 +103,4 @@ Summe Sammlung: ca. 4–5 Tage.
 - ~~AVA-Tabellen: Zelle mit Inhalt beim Hineinspringen ganz markiert (Tippen überschreibt, F2 ans Ende); Aufmaß-Spalte ✕/＋ nicht mehr abgeschnitten~~
 - ~~Navigation gelöst: Versionsnummer im Streifen (AVA, Bauzeitenplan), AVA-Bereiche farbig, keine Lücken durch Suche und „＋ Neu“~~
 - ~~Bauzeitenplan-Druck: „Markierte Zeile hervorheben“~~
+- ~~Bauzeitenplan: „Teilen“ – Link zum Ansehen ohne Anmeldung (mitlaufend mit wechselbarer Version oder fester Stand, mit/ohne Fortschritt, Ablaufdatum, zurückziehen)~~

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Bauzeitenplan – Ansicht</title>
+<link rel="stylesheet" href="../ansicht.css">
+</head>
+<body>
+<header class="ak">
+  <div class="ak-t"><h1 id="titel">Bauzeitenplan</h1><p id="unter"></p></div>
+  <div class="ak-k">
+    <span class="ak-seg" role="group" aria-label="Maßstab"><button type="button" data-z="tag">Tage</button><button type="button" data-z="woche" class="on">Wochen</button><button type="button" data-z="monat">Monate</button></span>
+    <button type="button" id="heute">Heute</button>
+    <button type="button" id="drucken">Drucken</button>
+  </div>
+</header>
+<p class="ak-hin" id="hin">Nur zum Ansehen – Änderungen sind hier nicht möglich.</p>
+<main id="plan" aria-live="polite"><p class="ak-lade">Lade den Plan …</p></main>
+<script src="../ansicht.js"></script>
+</body>
+</html>

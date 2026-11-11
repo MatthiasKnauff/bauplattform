@@ -86,7 +86,9 @@ def grund():
         P = Z.person(c, uid)
         lauf = c.execute("SELECT * FROM zeit_lauf WHERE user_id=?", (uid,)).fetchone()
         Z.aufraeumen(c)
-    return jsonify(arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), heute=Z.heute(), lauf=dict(lauf) if lauf else None)
+        pflicht = Z.antrag_pflicht(c)
+    return jsonify(arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
+                   antrag_pflicht=pflicht, antrag_arten=Z.ANTRAG_ARTEN)
 
 
 @app.get("/api/tag")
@@ -258,6 +260,10 @@ def abwesenheit():
         return jsonify(error="Zeitraum prüfen (höchstens 120 Tage)."), 400
     uid, n = g.user["id"], 0
     with db.tx() as c:
+        if not _admin() and Z.antrag_pflicht(c):   # Urlaub, Frei, Fortbildung: nur über einen Antrag (Krank direkt)
+            alt = {r["abw"] for r in c.execute("SELECT abw FROM zeit_tag WHERE user_id=? AND tag>=? AND tag<=?", (uid, von, bis)).fetchall()}
+            if art in Z.ANTRAG_ARTEN or (not art and alt & set(Z.ANTRAG_ARTEN)):
+                return jsonify(error="Urlaub, Frei und Fortbildung bitte beantragen – die Verwaltung genehmigt sie."), 403
         P = Z.person(c, uid)
         t = date.fromisoformat(von)
         while t.isoformat() <= bis:
@@ -267,6 +273,73 @@ def abwesenheit():
             t += timedelta(days=1)
         k = Z.konto(c, uid, P=P)
     return jsonify(ok=True, tage=n, konto=k)
+
+
+# ---------------------------------------------------------------- Urlaubsanträge
+@app.get("/api/antraege")
+def antraege():
+    """Eigene Anträge des Jahres; Administratoren mit ?alle=1 alle offenen und die des Jahres – mit Resturlaub der Person."""
+    jahr = (request.args.get("jahr") or Z.heute()[:4])[:4]
+    with db.tx() as c:
+        if request.args.get("alle") and _admin():
+            L = [a for a in Z.antraege(c, jahr=jahr) if a["status"] != "zurueckgezogen"] + [a for a in Z.antraege(c, status="offen") if a["bis"][:4] != jahr]
+            rest = {}
+            for a in L:
+                if a["user_id"] not in rest:
+                    k = Z.konto(c, a["user_id"])
+                    rest[a["user_id"]] = {"rest": k["urlaub_rest"], "beantragt": k["urlaub_beantragt"]}
+                a["konto"] = rest[a["user_id"]]
+            return jsonify(antraege=L)
+        return jsonify(antraege=Z.antraege(c, uid=g.user["id"], jahr=jahr), pflicht=Z.antrag_pflicht(c))
+
+
+@app.post("/api/antraege")
+def antrag_neu():
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        try:
+            aid = Z.antrag_neu(c, g.user["id"], b)
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        a = Z.antrag(c, aid)
+    C.audit(g.user["name"], "zeiten", "Urlaub beantragt", f"{a['von']} – {a['bis']} ({Z.ABW.get(a['art'], a['art'])}, {a['tage']:g} T)")
+    return jsonify(antrag=a)
+
+
+@app.put("/api/antraege/<int:aid>")
+def antrag_aendern(aid):
+    """aktion: genehmigen / ablehnen (Administratoren) oder zurueckziehen (die Person selbst, Administratoren immer)."""
+    b = request.get_json(silent=True) or {}
+    akt = b.get("aktion")
+    with db.tx() as c:
+        try:
+            if akt in ("genehmigen", "ablehnen"):
+                if not _admin():
+                    return jsonify(error="Nur die Verwaltung entscheidet über Anträge."), 403
+                a = Z.antrag(c, aid)
+                if a and a["user_id"] == g.user["id"] and c.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin=1 AND active=1 AND id<>?", (g.user["id"],)).fetchone()["n"]:
+                    return jsonify(error="Den eigenen Antrag entscheidet eine andere Person der Verwaltung."), 403
+                a = Z.antrag_entscheiden(c, aid, akt == "genehmigen", g.user["name"], b.get("antwort") or "")
+            elif akt == "zurueckziehen":
+                a = Z.antrag_zurueckziehen(c, aid, g.user["id"], _admin())
+            else:
+                return jsonify(error="Unbekannte Aktion."), 400
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+    C.audit(g.user["name"], "zeiten", {"genehmigen": "Urlaub genehmigt", "ablehnen": "Urlaub abgelehnt", "zurueckziehen": "Urlaubsantrag zurückgezogen"}[akt],
+            f"{a['name']}: {a['von']} – {a['bis']}")
+    return jsonify(antrag=a)
+
+
+@app.put("/api/antrag_pflicht")
+def antrag_pflicht():
+    """Büro-Einstellung: Urlaub, Frei und Fortbildung nur über Antrag (Vorgabe) oder direkt eintragen."""
+    if (r := _nur_admin()):
+        return r
+    v = "1" if (request.get_json(silent=True) or {}).get("an") else "0"
+    with db.tx() as c:
+        c.execute("INSERT INTO settings(key, value) VALUES('zeit_antrag', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (v,))
+    return jsonify(antrag_pflicht=v == "1")
 
 
 FAHRT_RICHTUNG = {"hin": "zur Baustelle", "zurueck": "zurück ins Büro", "andere": "Fahrt"}

@@ -28,6 +28,7 @@ REGELN = [
     ("vorort", "Tagesbericht nach Baustellenbesuch", "Ich war laut Standort (iPhone-Kurzbefehl, ⚙ → Für mich → Vor Ort erkennen) auf der Baustelle, aber für den Tag gibt es keinen Tagesbericht", True, ("Tage zurück", "Tage", 7)),
     ("tagesbericht", "Tagesbericht fehlt", "Laufende Baustelle (Firmen laut Bauzeitenplan da), aber seit so vielen Arbeitstagen kein Tagesbericht", False, ("Arbeitstage", "Tage", 3)),
     ("budget", "Budget überschritten", "Aufträge + beauftragte Nachträge im AVA liegen über der Kostenermittlung (KG 300 + 400)", False, ("Toleranz", "%", 0)),
+    ("urlaub", "Urlaubsanträge", "Für die Verwaltung: offene Urlaubsanträge entscheiden · für alle: eigene Anträge, die in den letzten Tagen entschieden wurden", True, None),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
 ]
 RK = {r[0]: r for r in REGELN}
@@ -474,7 +475,28 @@ def _a_post(c, u, R, P, ok):
     return out
 
 
-ANALYSEN = {"terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
+def _a_urlaub(c, u, R, P, ok):
+    from . import zeiten as Z
+    out, seit = [], _iso(_heute() - timedelta(days=7))
+    if u["is_admin"]:
+        for a in Z.antraege(c, status="offen"):
+            if a["user_id"] == u["id"]:
+                continue
+            out.append(_e("urlaub", a["id"], f"Urlaubsantrag von {a['name']}: {_d(a['von'])} – {_d(a['bis'])}",
+                          f"{Z.ABW.get(a['art'], a['art'])}, {a['tage']:g} Arbeitstag{'' if a['tage'] == 1 else 'e'}" + (f" · Vertretung {a['vertretung']}" if a["vertretung"] else ""),
+                          None, P, a["von"], "zeiten:#antraege", 1))
+    for a in Z.antraege(c, uid=u["id"]):
+        if a["status"] in ("genehmigt", "abgelehnt") and (a["entschieden"] or "")[:10] >= seit:
+            out.append(_e("urlaub", f"e{a['id']}", f"Urlaub {_d(a['von'])} – {_d(a['bis'])} {a['status']}", a["antwort"] or f"entschieden von {a['entschieden_von']}",
+                          None, P, None, "zeiten:#antraege"))
+    return out
+
+
+def _d(t):
+    return f"{t[8:10]}.{t[5:7]}." if t and len(t) >= 10 else (t or "")
+
+
+ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post}
 
 

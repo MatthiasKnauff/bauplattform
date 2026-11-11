@@ -79,6 +79,9 @@ table.t input,table.t select{font:inherit;padding:.2rem .35rem;border:1px solid 
 .kal button small{font-size:.74rem;color:var(--mute)}
 .kal button.bes{border-color:var(--ok)}.kal button.off{border-color:var(--red)}.kal button.we{opacity:.55}.kal button.abw{background:color-mix(in srgb,#2f9e5a 12%,var(--card))}
 .kal button.heute{outline:2px solid var(--y)}
+.kal button.antr{border-style:dashed;border-color:color-mix(in srgb,#2f9e5a 70%,var(--line))}
+.ast{display:inline-block;font-size:.75rem;border:1px solid var(--line);border-radius:999px;padding:.05rem .5rem;color:var(--mute);margin-bottom:.25rem}.ast.offen{border-color:var(--y);color:var(--y)}.ast.genehmigt{border-color:var(--ok);color:var(--ok)}.ast.abgelehnt{border-color:var(--red);color:var(--red)}
+.t.ant td{vertical-align:top;padding:.45rem .3rem}
 .kal .x{visibility:hidden}
 .frm{display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap}
 .frm label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}
@@ -125,7 +128,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
 <script src="bp/baukasten.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('zeit.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('zeit.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
-let ME = null, G = null, D = null, W = null, M = null, A = null, K = null, PSEL = null, FSEL = null, ANGEK = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
+let ME = null, G = null, D = null, W = null, M = null, AN = [], A = null, K = null, PSEL = null, FSEL = null, ANGEK = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
 const einfach = () => document.documentElement.dataset.modus === 'einfach';
 const handy = () => innerWidth <= 760;
 const h2m = (s) => { const m = /^(\d{1,2}):(\d{2})/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
@@ -160,7 +163,7 @@ async function laden() {
   try {
     if (tab === 'tag') { [D, W] = await Promise.all([api('api/tag?d=' + tag), api('api/woche?d=' + tag)]); }
     else if (tab === 'woche') W = await api('api/woche?d=' + tag);
-    else if (tab === 'monat') M = await api('api/monat?m=' + monat);
+    else if (tab === 'monat') { M = await api('api/monat?m=' + monat); AN = (await api('api/antraege?jahr=' + monat.slice(0, 4) + (G.admin ? '&alle=1' : ''))).antraege; }
     else if (tab === 'auswertung') { [A, K] = await Promise.all([api('api/auswertung'), api('api/konten')]); }
     else if (tab === 'einst') K = await api('api/konten');
   } catch (e) { toast(e.message, true); }
@@ -300,17 +303,39 @@ function vMonat() {
   const T = M.tage, k = M.konto, P = M.person, vor = wtag(T[0].tag);
   const kal = `<div class="kal">${WT.map((w) => `<span class="wt">${w}</span>`).join('')}${'<span></span>'.repeat(vor)}${T.map((x) => {
     const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.offen);
-    return `<button type="button" data-geh="${x.tag}" class="${x.bestaetigt ? 'bes' : ''}${off ? ' off' : ''}${!x.soll && !x.abw ? ' we' : ''}${x.abw ? ' abw' : ''}${x.tag === G.heute ? ' heute' : ''}" title="${esc(dlang(x.tag))}"><b>${+x.tag.slice(8)}</b>${x.abw ? `<small class="abw-n">${esc(G.abw[x.abw])}</small>` : x.feiertag ? `<small>${esc(x.feiertag)}</small>` : x.bestaetigt ? `<small>${std(x.ist)} h ✓</small>` : off ? '<small>offen</small>' : ''}</button>`; }).join('')}</div>`;
+    const ant = !x.abw && x.soll && AN.find((a) => a.status === 'offen' && a.user_id === ME.id && a.von <= x.tag && a.bis >= x.tag);
+    return `<button type="button" data-geh="${x.tag}" class="${x.bestaetigt ? 'bes' : ''}${off ? ' off' : ''}${!x.soll && !x.abw ? ' we' : ''}${x.abw ? ' abw' : ''}${ant ? ' antr' : ''}${x.tag === G.heute ? ' heute' : ''}" title="${esc(dlang(x.tag))}"><b>${+x.tag.slice(8)}</b>${ant ? '<small class="abw-n">beantragt</small>' : x.abw ? `<small class="abw-n">${esc(G.abw[x.abw])}</small>` : x.feiertag ? `<small>${esc(x.feiertag)}</small>` : x.bestaetigt ? `<small>${std(x.ist)} h ✓</small>` : off ? '<small>offen</small>' : ''}</button>`; }).join('')}</div>`;
   const heute = G.heute;
   return `<div class="zwei"><div class="card">${kal}</div><div>
-    <div class="card"><h3>Urlaub, Krank, Frei eintragen</h3><div class="frm"><label>von<input type="date" id="abV" value="${heute}"></label><label>bis<input type="date" id="abB" value="${heute}"></label>
-      <label>Art<select id="abA">${Object.entries(G.abw).map(([a, n]) => `<option value="${a}">${n}</option>`).join('')}</select></label>
-      <button type="button" class="btn sm pri" data-ab="setzen">Eintragen</button><button type="button" class="btn sm" data-ab="weg" title="Abwesenheit im Zeitraum wieder entfernen">Entfernen</button></div>
-      <p class="hinw">Gezählt werden nur Arbeitstage; Feiertage (NRW) sind schon berücksichtigt.</p></div>
+    ${abwKarte(heute)}${antragKarte()}
     <div class="card"><h3>Mein Konto</h3><table class="t"><tr><td>Saldo</td><td class="r"><b>${(k.saldo >= 0 ? '+' : '') + std(k.saldo)} h</b></td></tr>
-      <tr><td>Urlaub ${monat.slice(0, 4)}</td><td class="r">${String(P.urlaub).replace('.', ',')} T, genommen ${String(k.urlaub_genommen).replace('.', ',')} T, <b>übrig ${String(k.urlaub_rest).replace('.', ',')} T</b></td></tr>
+      <tr><td>Urlaub ${monat.slice(0, 4)}</td><td class="r">${String(P.urlaub).replace('.', ',')} T, genommen ${String(k.urlaub_genommen).replace('.', ',')} T, <b>übrig ${String(k.urlaub_rest).replace('.', ',')} T</b>${k.urlaub_beantragt ? `<br><small class="hinw">davon noch beantragt: ${String(k.urlaub_beantragt).replace('.', ',')} T</small>` : ''}</td></tr>
       <tr><td>Krank ${monat.slice(0, 4)}</td><td class="r">${k.krank} T</td></tr><tr><td>Sollzeit</td><td class="r">${String(P.soll_woche).replace('.', ',')} h je Woche (${P.tage.split('').map((x) => WT[+x]).join(', ')})</td></tr>
       <tr><td>noch nicht bestätigt</td><td class="r">${k.offen ? `<b>${k.offen} Tag${k.offen === 1 ? '' : 'e'}</b>` : '–'}</td></tr></table></div></div></div>`;
+}
+
+/* Urlaub, Krank, Frei: Krank immer direkt; Urlaub, Frei und Fortbildung als Antrag (Büro-Einstellung), die Verwaltung trägt direkt ein */
+const mussAntrag = (art) => G.antrag_pflicht && !G.admin && G.antrag_arten.includes(art);
+function abwKarte(heute) {
+  const art = ($('#abA') && $('#abA').value) || (G.antrag_pflicht && !G.admin ? 'urlaub' : 'urlaub'), ant = mussAntrag(art);
+  return `<div class="card"><h3>${G.antrag_pflicht && !G.admin ? 'Urlaub beantragen, Krank eintragen' : 'Urlaub, Krank, Frei eintragen'}</h3><div class="frm"><label>von<input type="date" id="abV" value="${($('#abV') && $('#abV').value) || heute}"></label><label>bis<input type="date" id="abB" value="${($('#abB') && $('#abB').value) || heute}"></label>
+      <label>Art<select id="abA">${Object.entries(G.abw).map(([a, n]) => `<option value="${a}"${a === art ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+      ${ant ? `<label>Vertretung<input id="abVt" placeholder="optional" style="width:9rem"></label><label style="flex:1 1 12rem">Notiz<input id="abN" placeholder="optional"></label>
+      <button type="button" class="btn sm pri" data-antrag>Beantragen</button>` : `<button type="button" class="btn sm pri" data-ab="setzen">Eintragen</button><button type="button" class="btn sm" data-ab="weg" title="Abwesenheit im Zeitraum wieder entfernen">Entfernen</button>`}</div>
+      <p class="hinw">Gezählt werden nur Arbeitstage; Feiertage (NRW) sind schon berücksichtigt.${ant ? ' Eingetragen wird der Urlaub, sobald die Verwaltung ihn genehmigt hat.' : ''}</p></div>`;
+}
+const dant = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' });
+const AST = { offen: 'offen', genehmigt: 'genehmigt', abgelehnt: 'abgelehnt', zurueckgezogen: 'zurückgezogen' };
+function antragKarte() {
+  const eigene = AN.filter((a) => a.user_id === ME.id), andere = G.admin ? AN.filter((a) => a.user_id !== ME.id) : [];
+  const zeile = (a, admin) => `<tr><td>${admin ? `<b>${esc(a.name)}</b><br>` : ''}${esc(dant(a.von))}${a.bis !== a.von ? ' – ' + esc(dant(a.bis)) : ''}<br><small class="hinw">${esc(G.abw[a.art] || a.art)}, ${String(a.tage).replace('.', ',')} T${a.vertretung ? ' · Vertretung ' + esc(a.vertretung) : ''}${a.notiz ? ' · ' + esc(a.notiz) : ''}</small>
+      ${admin && a.konto ? `<br><small class="hinw">Resturlaub ${String(a.konto.rest).replace('.', ',')} T${a.konto.beantragt ? `, beantragt ${String(a.konto.beantragt).replace('.', ',')} T` : ''}</small>` : ''}${a.antwort ? `<br><small>„${esc(a.antwort)}“ – ${esc(a.entschieden_von)}</small>` : ''}</td>
+    <td class="r"><span class="ast ${a.status}">${AST[a.status] || a.status}</span>
+      ${admin && a.status === 'offen' ? `<br><button type="button" class="btn sm pri" data-an="genehmigen" data-id="${a.id}">Genehmigen</button> <button type="button" class="btn sm" data-an="ablehnen" data-id="${a.id}">Ablehnen</button>` : ''}
+      ${!admin && (a.status === 'offen' || (a.status === 'genehmigt' && a.von > G.heute)) ? `<br><button type="button" class="btn sm" data-an="zurueckziehen" data-id="${a.id}">Zurückziehen</button>` : ''}</td></tr>`;
+  const tab_ = (L, admin) => `<table class="t ant">${L.map((a) => zeile(a, admin)).join('')}</table>`;
+  return (andere.length ? `<div class="card" id="antraege"><h3>Anträge der Mitarbeiter:innen${andere.some((a) => a.status === 'offen') ? ` <span class="ast offen">${andere.filter((a) => a.status === 'offen').length} offen</span>` : ''}</h3>${tab_(andere, true)}</div>` : '')
+    + (eigene.length ? `<div class="card"${andere.length ? '' : ' id="antraege"'}><h3>Meine Anträge</h3>${tab_(eigene, false)}</div>` : '');
 }
 
 /* ---------------- Auswertung (Administratoren) ---------------- */
@@ -336,7 +361,8 @@ function vAuswertung() {
 }
 function vEinst() {
   if (!K) return '';
-  return `<div class="card"><h3>Stundensatz des Büros</h3><div class="frm"><label>€ je Stunde (wenn bei der Person nichts steht)<input id="bSatz" value="${K.buero_satz != null ? String(K.buero_satz).replace('.', ',') : ''}" inputmode="decimal" style="width:8rem"></label><button type="button" class="btn sm pri" data-bs="1">Speichern</button></div></div>
+  return `<div class="card"><h3>Urlaub</h3><label class="frm" style="gap:.5rem;align-items:center"><input type="checkbox" data-antpf${G.antrag_pflicht ? ' checked' : ''}> Urlaub, Frei und Fortbildung nur über Antrag – die Verwaltung genehmigt (Krank tragen alle direkt ein)</label></div>
+  <div class="card"><h3>Stundensatz des Büros</h3><div class="frm"><label>€ je Stunde (wenn bei der Person nichts steht)<input id="bSatz" value="${K.buero_satz != null ? String(K.buero_satz).replace('.', ',') : ''}" inputmode="decimal" style="width:8rem"></label><button type="button" class="btn sm pri" data-bs="1">Speichern</button></div></div>
   <div class="card"><h3>Mitarbeiter:innen</h3><div style="overflow-x:auto"><table class="t"><thead><tr><th>Name</th><th class="r">Soll h/Woche</th><th>Arbeitstage</th><th class="r">Urlaub T/Jahr</th><th class="r">Stundensatz €</th><th class="r">Saldo zu Beginn h</th><th>erfassen ab</th><th>nicht erfassen</th></tr></thead><tbody>
   ${K.konten.concat([]).map((x) => { const p = x.person; return `<tr data-pu="${x.user_id}"><td>${esc(x.name)}</td><td class="r"><input data-pf="soll_woche" value="${String(p.soll_woche).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td>
     <td><span class="tage">${WT.map((w, i) => `<button type="button" data-ptag="${i}" class="${p.tage.includes(String(i)) ? 'on' : ''}">${w}</button>`).join('')}</span></td>
@@ -383,6 +409,19 @@ document.addEventListener('click', async (e) => {
     } catch (er) { toast(er.message, true); }
     return;
   }
+  if (t.closest('[data-antrag]')) {
+    try { const r = await api('api/antraege', 'POST', { von: $('#abV').value, bis: $('#abB').value, art: $('#abA').value, vertretung: ($('#abVt') || {}).value || '', notiz: ($('#abN') || {}).value || '' });
+      toast(`Antrag gestellt: ${String(r.antrag.tage).replace('.', ',')} Arbeitstag${r.antrag.tage === 1 ? '' : 'e'} – die Verwaltung entscheidet.`); laden(); } catch (er) { toast(er.message, true); }
+    return;
+  }
+  const an = t.closest('[data-an]');
+  if (an) {
+    const akt = an.dataset.an; let antwort = '';
+    if (akt === 'ablehnen') { antwort = await bpEingabe('Antrag ablehnen – Begründung (optional)', '', { ok: 'Ablehnen' }); if (antwort === null) return; }
+    if (akt === 'zurueckziehen' && !(await bpFrage('Antrag zurückziehen?', { ok: 'Zurückziehen' }))) return;
+    try { await api('api/antraege/' + an.dataset.id, 'PUT', { aktion: akt, antwort: antwort || '' }); toast({ genehmigen: 'Genehmigt – die Tage sind eingetragen.', ablehnen: 'Abgelehnt.', zurueckziehen: 'Zurückgezogen.' }[akt]); laden(); } catch (er) { toast(er.message, true); }
+    return;
+  }
   const ab = t.closest('[data-ab]');
   if (ab) { try { const r = await api('api/abwesenheit', 'PUT', { von: $('#abV').value, bis: $('#abB').value, art: ab.dataset.ab === 'weg' ? '' : $('#abA').value }); toast(ab.dataset.ab === 'weg' ? 'Abwesenheit entfernt.' : `${r.tage} Arbeitstag${r.tage === 1 ? '' : 'e'} eingetragen.`); laden(); } catch (er) { toast(er.message, true); } return; }
   const ap = t.closest('[data-ap]'); if (ap) { APID = +ap.dataset.ap; zeichne(); return; }
@@ -397,6 +436,8 @@ document.addEventListener('click', async (e) => {
 });
 document.addEventListener('change', async (e) => {
   const t = e.target;
+  if (t.matches('[data-antpf]')) { try { const r = await api('api/antrag_pflicht', 'PUT', { an: t.checked }); G.antrag_pflicht = r.antrag_pflicht; toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
+  if (t.id === 'abA') { const k = t.closest('.card'); if (k) k.outerHTML = abwKarte(G.heute); return; }
   if (t.id === 'dIn' && t.value) { tag = t.value > G.heute ? G.heute : t.value; NEU = null; laden(); return; }
   const tf = t.closest('[data-tf]');
   if (tf) { const k = tf.dataset.tf; let v = tf.value; if (k === 'pause') v = v === '' ? null : +v; if (tf.classList.contains('hm')) { v = hmNorm(v); if (v === null) { toast('Bitte eine Uhrzeit eingeben, z. B. 7:45 oder 745.', true); return; } }
@@ -417,6 +458,7 @@ setInterval(() => { if (tab === 'tag' && tag === G.heute && document.visibilityS
   if (window.BPHead && BPHead.ready) await BPHead.ready.catch(() => {});
   G = await api('api/grund');
   tag = /^#\d{4}-\d{2}-\d{2}$/.test(location.hash) ? location.hash.slice(1) : G.heute; monat = tag.slice(0, 7);
+  if (location.hash === '#antraege') { tab = 'monat'; setTimeout(() => { const a = $('#antraege'); if (a) a.scrollIntoView({ block: 'start' }); }, 600); }
   if (!G.admin && ['auswertung', 'einst'].includes(tab)) tab = 'tag';
   laden();
 })().catch((e) => toast(e.message, true));

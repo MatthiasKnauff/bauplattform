@@ -479,7 +479,8 @@ def konto(c, uid, bis=None, P=None):
     urlaub = sum(1 if r["abw"] == "urlaub" else 0.5 if r["abw"] == "urlaub_halb" else 0 for r in jahr)
     krank = sum(1 for r in jahr if r["abw"] == "krank")
     offen = len(offene_tage(c, uid, 31, P))
-    return {"saldo": saldo, "urlaub_genommen": urlaub, "urlaub_rest": P["urlaub"] - urlaub, "krank": krank, "offen": offen}
+    beantragt = urlaub_beantragt(c, uid, j)
+    return {"saldo": saldo, "urlaub_genommen": urlaub, "urlaub_rest": P["urlaub"] - urlaub, "urlaub_beantragt": beantragt, "krank": krank, "offen": offen}
 
 
 def woche(c, uid, tag, P=None):
@@ -599,3 +600,104 @@ def export_zeilen(c, monat):
                             "ja" if d["bestaetigt"] else ("" if d["abw"] or not d["soll"] else "offen")])
             t += timedelta(days=1)
     return out
+
+
+# ------------------------------------------------------------------ Urlaubsanträge
+ANTRAG_ARTEN = ("urlaub", "urlaub_halb", "frei", "schule")   # Krank wird direkt eingetragen
+ANTRAG_STATUS = {"offen": "offen", "genehmigt": "genehmigt", "abgelehnt": "abgelehnt", "zurueckgezogen": "zurückgezogen"}
+
+
+def antrag_pflicht(c):
+    """Müssen Urlaub, Frei und Fortbildung beantragt werden (Vorgabe: ja)? Einstellung „zeit_antrag“ (0 = direkt eintragen)."""
+    r = c.execute("SELECT value FROM settings WHERE key='zeit_antrag'").fetchone()
+    return not (r and str(r["value"]) == "0")
+
+
+def arbeitstage(P, von, bis):
+    """Arbeitstage (mit Sollzeit, ohne Feiertage) im Zeitraum."""
+    out, t = [], date.fromisoformat(von)
+    while t.isoformat() <= bis:
+        if soll_min(P, t.isoformat()):
+            out.append(t.isoformat())
+        t += timedelta(days=1)
+    return out
+
+
+def antrag_tage(P, von, bis, art):
+    n = len(arbeitstage(P, von, bis))
+    return n * 0.5 if art == "urlaub_halb" else float(n)
+
+
+def antraege(c, uid=None, status=None, jahr=None):
+    q, a = ["1=1"], []
+    if uid:
+        q.append("a.user_id=?"); a.append(uid)
+    if status:
+        q.append("a.status=?"); a.append(status)
+    if jahr:
+        q.append("a.bis>=? AND a.von<=?"); a += [f"{jahr}-01-01", f"{jahr}-12-31"]
+    return [dict(r) for r in c.execute(f"SELECT a.*, u.name FROM zeit_antrag a JOIN users u ON u.id=a.user_id WHERE {' AND '.join(q)} "
+                                       "ORDER BY CASE a.status WHEN 'offen' THEN 0 ELSE 1 END, a.von DESC, a.id DESC", a).fetchall()]
+
+
+def antrag_neu(c, uid, b):
+    von, bis, art = str(b.get("von") or "")[:10], str(b.get("bis") or b.get("von") or "")[:10], b.get("art") or "urlaub"
+    if art not in ANTRAG_ARTEN:
+        raise ValueError("Diese Art lässt sich nicht beantragen.")
+    if not (_tag_ok(von) and _tag_ok(bis)) or bis < von:
+        raise ValueError("Bitte den Zeitraum prüfen.")
+    if (date.fromisoformat(bis) - date.fromisoformat(von)).days > 120:
+        raise ValueError("Höchstens 120 Tage auf einmal.")
+    P = person(c, uid)
+    tage = antrag_tage(P, von, bis, art)
+    if not tage:
+        raise ValueError("Im Zeitraum gibt es keinen Arbeitstag.")
+    if c.execute("SELECT 1 FROM zeit_antrag WHERE user_id=? AND status IN ('offen','genehmigt') AND von<=? AND bis>=?", (uid, bis, von)).fetchone():
+        raise ValueError("Für diesen Zeitraum gibt es schon einen Antrag.")
+    r = c.execute("INSERT INTO zeit_antrag(user_id, von, bis, art, tage, notiz, vertretung) VALUES(?,?,?,?,?,?,?) RETURNING id",
+                  (uid, von, bis, art, tage, str(b.get("notiz") or "")[:500], str(b.get("vertretung") or "")[:120])).fetchone()
+    return r["id"]
+
+
+def antrag(c, aid):
+    r = c.execute("SELECT a.*, u.name FROM zeit_antrag a JOIN users u ON u.id=a.user_id WHERE a.id=?", (aid,)).fetchone()
+    return dict(r) if r else None
+
+
+def antrag_entscheiden(c, aid, ok, wer, antwort=""):
+    """Genehmigen (trägt die Abwesenheit an den Arbeitstagen ein, Krank bleibt stehen) oder ablehnen."""
+    a = antrag(c, aid)
+    if not a or a["status"] != "offen":
+        raise ValueError("Der Antrag ist nicht mehr offen.")
+    if ok:
+        P = person(c, a["user_id"])
+        for t in arbeitstage(P, a["von"], a["bis"]):
+            if zt(c, a["user_id"], t).get("abw") != "krank":
+                zt_setzen(c, a["user_id"], t, abw=a["art"])
+    c.execute("UPDATE zeit_antrag SET status=?, antwort=?, entschieden_von=?, entschieden=? WHERE id=?",
+              ("genehmigt" if ok else "abgelehnt", str(antwort or "")[:500], wer, jetzt().strftime("%Y-%m-%d %H:%M"), aid))
+    return antrag(c, aid)
+
+
+def antrag_zurueckziehen(c, aid, uid, admin=False):
+    """Offene Anträge zieht die Person selbst zurück; genehmigte nur, solange sie noch nicht begonnen haben –
+    die eingetragenen Tage werden dann wieder frei."""
+    a = antrag(c, aid)
+    if not a or (a["user_id"] != uid and not admin):
+        raise ValueError("Antrag nicht gefunden.")
+    if a["status"] == "genehmigt":
+        if a["von"] <= heute() and not admin:
+            raise ValueError("Der Urlaub hat schon begonnen – bitte an die Verwaltung wenden.")
+        for t in arbeitstage(person(c, a["user_id"]), a["von"], a["bis"]):
+            if zt(c, a["user_id"], t).get("abw") == a["art"]:
+                zt_setzen(c, a["user_id"], t, abw="")
+    elif a["status"] != "offen":
+        raise ValueError("Der Antrag ist schon entschieden.")
+    c.execute("UPDATE zeit_antrag SET status='zurueckgezogen', entschieden=? WHERE id=?", (jetzt().strftime("%Y-%m-%d %H:%M"), aid))
+    return antrag(c, aid)
+
+
+def urlaub_beantragt(c, uid, jahr):
+    r = c.execute("SELECT COALESCE(SUM(tage), 0) AS n FROM zeit_antrag WHERE user_id=? AND status='offen' AND art IN ('urlaub','urlaub_halb') "
+                  "AND von>=? AND von<=?", (uid, f"{jahr}-01-01", f"{jahr}-12-31")).fetchone()
+    return float(r["n"] or 0)

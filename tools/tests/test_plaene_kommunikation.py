@@ -273,3 +273,45 @@ def test_plotdienst_immer_als_empfaenger(ctx):
             pruefe(pd and pd["email"] == "plot@example.org" and pd["plot"], f"Plotdienst fehlt in Projekt {p['id']}: {r.get('plotdienste')}")
     finally:
         ctx.admin.delete(f"/adressen/api/contacts/{cid}", expect=None)
+
+
+PNG = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
+
+
+def test_kommunikation_abnahme(ctx):
+    """Abnahme: Entwurf anlegen, Mängel und Erklärungen speichern, ohne Unterschriften nicht abschließbar, mit drei Unterschriften
+    (eine „nicht anwesend“) abschließen → gesperrt, PDF da; Nachtrag zur Abnahme; Entwurf löschen legt in den Papierkorb."""
+    a, KO = ctx.admin, "/kommunikation/api"
+    d = a.pj(f"{KO}/abnahme", {"pid": ctx.pid, "daten": {"teilnehmer": {"ag": "Herr Bauherr", "arch": "Test-Admin", "an": ""}}})
+    vid, nid = d["id"], None
+    try:
+        gleich(d["status"], "entwurf", "neue Abnahme ist ein Entwurf")
+        d = a.uj(f"{KO}/abnahme/{vid}", {"daten": {"firma": "RT Tischlerei", "abnahme_am": "2026-07-13", "frist": "2026-07-27", "gw_jahre": 4,
+                                                 "maengel": [{"text": "Tür hängt"}, {"text": ""}], "erkl": {"liste": True, "abgenommen": True, "vorbehalt": True},
+                                                 "unbekannt": "fällt weg"}})
+        gleich(len(d["daten"]["maengel"]), 1, "leere Mängel fallen weg")
+        gleich((d["gw_beginn"], d["gw_ende"]), ("2026-07-14", "2030-07-13"), "Gewährleistung: Tag nach der Abnahme bis vier Jahre")
+        pruefe("unbekannt" not in d["daten"], "unbekannte Felder werden nicht gespeichert")
+        a.post(f"{KO}/abnahme/{vid}/abschliessen", {}, expect=400)
+        U = {"ag": {"png": PNG, "name": "Herr Bauherr"}, "an": {"fehlt": True}, "arch": {"png": "data:image/png;base64,AAAA"}}
+        d = a.uj(f"{KO}/abnahme/{vid}", {"daten": {"unterschriften": U}})
+        pruefe("arch" not in d["daten"]["unterschriften"], "kaputtes Bild wird nicht als Unterschrift angenommen")
+        U["arch"] = {"png": PNG, "name": "Test-Admin"}
+        a.uj(f"{KO}/abnahme/{vid}", {"daten": {"unterschriften": U}})
+        r = a.pj(f"{KO}/abnahme/{vid}/abschliessen", {})
+        pruefe(r["ok"] and "Abnahme" in r["name"], f"abgeschlossen: {r}")
+        d = a.gj(f"{KO}/abnahme/{vid}")
+        pruefe(d["status"] == "unterschrieben" and d["pdf"] and d["daten"].get("pruefsumme"), "unterschrieben, PDF und Prüfsumme gespeichert")
+        a.put(f"{KO}/abnahme/{vid}", {"daten": {"firma": "anders"}}, expect=409)
+        a.get(f"/kommunikation/api/vorgang/{vid}.pdf").ist_pdf()
+        n = a.pj(f"{KO}/abnahme", {"pid": ctx.pid, "nachtrag_zu": vid})
+        nid = n["id"]
+        gleich((n["bezug"], n["daten"]["firma"], n["daten"]["maengel"]), (vid, "RT Tischlerei", []), "Nachtrag übernimmt Firma, ohne Mängel")
+        pk = a.delete(f"{KO}/abnahme/{nid}").json["papierkorb"]
+        pruefe(pk, "Entwurf in den Papierkorb")
+        nid = None
+        a.delete(f"{KO}/abnahme/{vid}", expect=409)
+    finally:
+        for x in (nid,):
+            if x:
+                a.delete(f"{KO}/abnahme/{x}", expect=None)

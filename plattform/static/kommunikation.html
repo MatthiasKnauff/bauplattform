@@ -7,6 +7,7 @@
 <title>Kommunikation</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
+<link rel="stylesheet" href="static/kom-abnahme.css">
 <style>
 .wrap{max-width:1240px;padding-bottom:5rem}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 .7rem}
@@ -96,7 +97,7 @@
   <div class="top">
     <div class="seg" id="scope" role="group" aria-label="Umfang"></div>
     <input type="search" id="q" placeholder="Suchen – Betreff, Firma, Plan, Mangel …" autocomplete="off">
-    <button class="btn sm pri kv-top" data-kvneu="n" title="Mail an Beteiligte des Projekts – mit Fotos">✉ Neue Nachricht</button><button class="btn sm kv-top" data-kvneu="v" title="Telefonnotiz, Anordnung, Behinderung … festhalten oder als PDF schicken">📝 Vorgang</button><button class="btn sm kv-top" data-kvruege title="Mängelrüge vor oder nach der Abnahme, Terminrüge – wie in „Aufgaben &amp; Mängel“">⚠ Rüge ▾</button>
+    <button class="btn sm pri kv-top" data-kvneu="n" title="Mail an Beteiligte des Projekts – mit Fotos">✉ Neue Nachricht</button><button class="btn sm kv-top" data-kvneu="v" title="Telefonnotiz, Anordnung, Behinderung … festhalten oder als PDF schicken">📝 Vorgang</button><button class="btn sm kv-top" data-kvabn title="Abnahme mit Niederschrift, Mängelblatt und Unterschriften – am Handy vor Ort">🏁 Abnahme</button><button class="btn sm kv-top" data-kvruege title="Mängelrüge vor oder nach der Abnahme, Terminrüge – wie in „Aufgaben &amp; Mängel“">⚠ Rüge ▾</button>
     <button class="btn sm" id="kBtn" title="Einen Kontakt wählen und alles sehen, was ihm geschickt wurde">👤 Kontakt …</button>
     <button class="btn sm" id="csvBtn" title="Die gezeigten Sendungen als Excel-Tabelle (CSV) speichern">⤓ Speichern unter …</button>
     <button class="btn sm" id="drBtn" title="Als Nachweis drucken oder als PDF speichern">🖨 Drucken / PDF</button>
@@ -105,8 +106,9 @@
   <div id="kbox"></div>
   <div class="grid" data-bph-trenn-ab="821" data-bph-trenn="kom" data-bph-trenn-min="200" data-bph-trenn-max="0.5"><aside class="side" id="side" aria-label="Übersicht"></aside><section id="list" aria-live="polite"></section></div>
 </main>
-<div class="kv-fab"><div class="kv-fm" hidden><button type="button" data-kvneu="n">✉ Nachricht</button><button type="button" data-kvneu="v">📝 Vorgang dokumentieren</button><button type="button" data-kvrg="m4">⚠ Mängelrüge vor Abnahme</button><button type="button" data-kvrg="m13">🏁 Mängelrüge nach Abnahme</button><button type="button" data-kvrg="termin">⏱ Terminrüge</button></div><button type="button" class="kv-fb" data-kvfab aria-label="Neu: Nachricht oder Vorgang">＋</button></div>
+<div class="kv-fab"><div class="kv-fm" hidden><button type="button" data-kvneu="n">✉ Nachricht</button><button type="button" data-kvneu="v">📝 Vorgang dokumentieren</button><button type="button" data-kvabn>🏁 Abnahme</button><button type="button" data-kvrg="m4">⚠ Mängelrüge vor Abnahme</button><button type="button" data-kvrg="m13">🏁 Mängelrüge nach Abnahme</button><button type="button" data-kvrg="termin">⏱ Terminrüge</button></div><button type="button" class="kv-fb" data-kvfab aria-label="Neu: Nachricht oder Vorgang">＋</button></div>
 <script src="bp/baukasten.js"></script>
+<script src="static/kom-abnahme.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('kom.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('kom.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 const F = { alle: LS.get('alle', false), arten: new Set(LS.get('arten', [])), q: '', ich: LS.get('ich', false) };
@@ -327,6 +329,10 @@ function verfassen(modus) {
 /* Vorgänge im Verlauf (nur die festgehaltenen – verschickte stehen schon als Sendung darin) */
 function vgEintrag(v) {
   const d = (v.zeit || '').replace('T', ' '), F = v.dateien || [];
+  if (v.art === 'abnahme') {   // Abnahme: öffnet den Ablauf (Entwurf weiter bearbeiten, unterschrieben ansehen/senden/Nachtrag) – kom-abnahme.js
+    return `<div class="e vg"><a href="#v=${v.id}" class="ab-zeile" data-abn="${v.id}"><span class="ic">🏁</span><span class="h"><span class="art vg">${esc(v.art_name)}</span><b>${esc(v.titel || 'Abnahme')}</b></span>
+      <span class="z">${v.status === 'entwurf' ? '<span class="art mr">Entwurf</span>' : '✓ unterschrieben'}</span><span class="s">${esc(['von ' + v.von, F.filter((f) => f.mime.startsWith('image/')).length ? F.filter((f) => f.mime.startsWith('image/')).length + ' Fotos' : ''].filter(Boolean).join(' · '))}</span></a></div>`;
+  }
   return `<details class="e vg"><summary><span class="ic">${v.ic || '📝'}</span>
     <span class="h"><span class="art vg">${esc(v.art_name)}</span><b>${esc(v.titel || (v.text || '').slice(0, 80))}</b></span><span class="z">${uhr(v.zeit)}</span>
     <span class="s">${esc([v.beteiligte, v.ort, 'festgehalten von ' + v.von, F.length ? F.length + ' Datei' + (F.length === 1 ? '' : 'en') : '', v.frist ? 'Frist ' + kurzDatum(v.frist) : ''].filter(Boolean).join(' · '))}</span></summary>
@@ -384,6 +390,8 @@ $('#q').addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() 
   const PC = await api('api/platform');
   await header('Kommunikation', ME, PC);
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { if (!K) { F.alle = false; LS.set('alle', false); } laden(); });
+  const va = /(?:^#|&)v=(\d+)/.exec(location.hash);   // Link auf einen Vorgang (#v=<id>): eine Abnahme öffnet sich gleich
+  if (va) api('api/abnahme/' + va[1]).then((A) => abnahmeOeffnen(A.id, A)).catch(() => {});
   const m = /kontakt=(\d+)/.exec(location.hash);   // aus den Adressen: #kontakt=<id>
   if (m) { const L = await api('api/kontakte?q='); const x = L.find((y) => y.id === +m[1]); if (x) K = { contact_id: x.id, name: x.name, ansprech: x.ansprech, gewerk: x.gewerk, email: x.email }; }
   if (window.BPHead && BPHead.ready) await BPHead.ready.catch(() => {});

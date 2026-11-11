@@ -440,8 +440,8 @@ def _vorgang_zeile(c, x):
         an = json.loads(x["an"] or "[]")
     except ValueError:
         an = []
-    n, ic, _ = vorgang.ARTEN.get(x["art"], vorgang.ARTEN["sonst"])
-    return {"id": x["id"], "project_id": x["project_id"], "art": x["art"], "art_name": n, "ic": ic, "titel": x["titel"], "text": x["text"],
+    n, ic, _ = ("Nachtrag zur Abnahme" if x["bezug"] else "Abnahme", "🏁", "") if x["art"] == "abnahme" else vorgang.ARTEN.get(x["art"], vorgang.ARTEN["sonst"])
+    return {"status": x["status"], "id": x["id"], "project_id": x["project_id"], "art": x["art"], "art_name": n, "ic": ic, "titel": x["titel"], "text": x["text"],
             "beteiligte": x["beteiligte"], "zeit": x["zeit"], "ort": x["ort"], "frist": x["frist"], "todo_id": x["todo_id"], "an": an,
             "gesendet": x["gesendet"], "von": x["erstellt_name"], "dateien": [{"id": d["id"], "name": d["name"], "mime": d["mime"], "groesse": d["groesse"]} for d in D]}
 
@@ -476,6 +476,11 @@ def vorgang_pdf(vid):
         if not x or not vorgang.sieht(c, g.user, x["project_id"]):
             return jsonify(error="Nicht gefunden"), 404
         p = c.execute("SELECT name FROM projects WHERE id=?", (x["project_id"],)).fetchone() if x["project_id"] else None
+        if x["art"] == "abnahme":
+            return Response(kom_abnahme.abnahme_pdf(c, x), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename=Abnahme_{vid}.pdf", "Cache-Control": "no-store"})
         anh = [(d["name"], d["mime"], bytes(d["data"] or b"")) for d in c.execute("SELECT name, mime, data FROM kom_datei WHERE vorgang_id=? ORDER BY id", (vid,))]
         out = vorgang.pdf(c, dict(x), p["name"] if p else "", anh, x["erstellt_name"])
     return Response(out, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename=Vorgang_{vid}.pdf"})
+
+
+import kom_abnahme   # noqa: E402 – Abnahme mit Niederschrift, Mängelblatt und Unterschriften (eigenes Modul, Routen /api/abnahme…)

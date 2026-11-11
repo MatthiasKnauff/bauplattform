@@ -18,10 +18,13 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 4. Alle Tabellen (baum.js), Rest: Langtext klappt beim Verlassen zu, zugeklappte Titel bleiben zu. **ca. 2–3 h**
 5. Aufmaß: Menge direkt eintragen – ohne Aufmaßzeilen entsteht eine Zeile „pauschal“, mit Aufmaßzeilen eine Ausgleichszeile (Vorschlag, wartet auf Zustimmung). **ca. 2–3 h**
 6. Aufmaßprüfung: erster Rechenweg direkt in der Hauptzeile der Position (weitere Zeilen als Zwischenzeilen), Mengen auch in „lt. Rechnung“ – Enter nach unten, Tab nach rechts – Mock liegt vor. **ca. 3–4 h**
-7. Abnahme am Handy mit Unterschrift vor Ort (Vorlage: eure Niederschrift „Technische Abnahme“) – Angaben aus Projekt und Auftrag, Mängel mit Foto, Erklärungen antippen, drei Unterschriften am Handy (AG, AN, Architekt, „nicht anwesend“), PDF auf dem Briefbogen in „Durchführung/Abnahmen + Mängel“, Mängel als Aufgaben mit Frist, Gewährleistungsende als Erinnerung, Abnahmedatum in Sicherheiten und Schlussrechnung; Mail nie automatisch – Mock vom 10.11. liegt vor. **ca. 2–2,5 Tage**
-8. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
+7. ~~Abnahme am Handy mit Unterschrift – in der Kommunikation (＋ → Abnahme): Angaben aus dem Auftrag, Mängel mit Fotos, Erklärungen antippen, drei Unterschriften (oder „nicht anwesend“), Niederschrift + Mängelblatt + Fotos auf dem Briefbogen, Ablage „Abnahmen + Mängel“, Abnahmedatum in die AVA, Mängel als Aufgabe, Erinnerung vor Ende der Gewährleistung, Mail nur auf Knopfdruck, Nachtrag~~
+   - Abnahme, Rest: Standort beim Unterschreiben, mehrere Fotos auf einmal aus der Galerie, Abnahme auch aus dem Auftrag in der AVA starten. **ca. 3–4 h**
+8. PDF- und Foto-Ansicht am Handy wie der Standard-Viewer: Blatt über die ganze Breite, Seiten untereinander, Zoomen mit zwei Fingern, schmale Leiste oben, Werkzeuge erst nach „Markieren“ – erst Mock. **ca. 4–6 h**
+9. Neue App „Bauantrag“: aktuelle Antragsformulare je Bundesland (NRW: Anlagen zur VV BauPrüfVO von bauportal.nrw, neue Fassungen werden gemeldet), Assistent, Felder aus Projekt, Adressen, Kataster und Baukosten; am Ende ein bearbeitbares PDF, Änderungen darin fließen in die Datenbank zurück – erst Mock. **ca. 1,5–2 Wochen (je weiteres Bundesland ca. 2–3 Tage)**
+10. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
 
-Summe Sammlung: ca. 7–8,5 Tage.
+Summe Sammlung: ca. 16–20 Tage.
 
 ## Offene Fragen
 

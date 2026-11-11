@@ -107,6 +107,7 @@
        o.eigen(z)   Alt+Enter (Vorgabe: Doppelklick auf die Zeile) · o.neu(z, titel) Einfg · o.schiebe(z, ±1) Alt+Umschalt+↑↓
        o.ohne       Auswahl von Feldern, deren Tasten die App selbst steuert
        o.unterzeile Auswahl von Zeilen, die zur Zeile darüber gehören (Langtext): ihre Felder kommen bei Tab gleich nach der ersten Zelle
+       o.tabOhne    Auswahl von Feldern, die Tab überspringt (z. B. Art und KG im LV – erreichbar mit der Maus oder ↑↓/Enter in der Spalte)
      Der Feldmodus gilt in den angemeldeten Bäumen und in den Tabellen unter window.bpBaumFelder (Auswahl, z. B. der Preisspiegel). */
   const BAEUME = [], OHNE = [], CUR = new Map();
   let LETZT = null, KC = null;
@@ -128,7 +129,16 @@
   function markiere(z) {
     if (KC && KC !== z) KC.classList.remove('bp-kc');
     KC = z || null; if (!z) return;
-    z.classList.add('bp-kc'); z.scrollIntoView({ block: 'nearest' });
+    z.classList.add('bp-kc'); mitte(z);
+  }
+  /* die aktive Zeile bleibt in der Mitte: verlässt sie beim Wandern mit der Tastatur das mittlere Feld (¼ … ¾ der Höhe), rollt der Bereich
+     so, dass sie wieder mittig steht – innerhalb des mittleren Felds bewegt sich nichts (kein Springen bei jedem Schritt) */
+  function mitte(el) {
+    let p = el.parentElement;
+    while (p && p !== document.body && p !== document.documentElement) { const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight + 1) break; p = p.parentElement; }
+    if (!p || p === document.body || p === document.documentElement) { el.scrollIntoView({ block: 'nearest' }); return; }
+    const r = el.getBoundingClientRect(), b = p.getBoundingClientRect(), top = r.top - b.top;
+    if (top < b.height * 0.25 || top + r.height > b.height * 0.75) p.scrollTop += top - (b.height - r.height) / 2;
   }
   function fokusWurzel(w) {
     w.classList.add('bp-kw'); if (!w.hasAttribute('tabindex')) w.setAttribute('tabindex', '-1');
@@ -144,7 +154,7 @@
   }
   const klickZiel = (z) => z.querySelector('.ozt, .t, .au-bz, td') || z;
   function feldFokus(f, ende) {
-    f.focus();
+    f.focus({ preventScroll: true }); mitte(f.closest('tr') || f);
     if (f.tagName === 'SELECT') return;
     try { if (ende) { const n = f.value.length; f.setSelectionRange(n, n); } else f.select(); } catch { /* Feldart ohne Auswahl */ }
   }
@@ -198,7 +208,8 @@
     return null;
   }
   function tabFelder(t) {   // Reihenfolge für Tab: Zeile für Zeile; eine Unterzeile (o.unterzeile, z. B. der Langtext) kommt gleich nach der ersten Zelle ihrer Zeile
-    const c = confVon(t.tBodies[0] || t), unter = c && c[0].unterzeile, ok = (f) => sichtbar(f) && !f.closest('thead,tfoot,.acts-c') && !OHNE.some((s) => f.matches(s));
+    const c = confVon(t.tBodies[0] || t), unter = c && c[0].unterzeile, weg = c && c[0].tabOhne,
+      ok = (f) => sichtbar(f) && !f.closest('thead,tfoot,.acts-c') && !OHNE.some((s) => f.matches(s)) && !(weg && f.matches(weg));
     if (!unter) return [...t.querySelectorAll(FELD)].filter(ok);
     const out = [];
     [...t.rows].forEach((tr) => {

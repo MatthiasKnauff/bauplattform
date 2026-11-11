@@ -78,7 +78,7 @@ document.addEventListener('click', async (e) => {   // anderes LV im Baum öffne
 });
 bpBaum.klappbar(document, { klapp: () => (tab === 'lv' && L ? LVZU : null), neu: render, alle: () => items().filter((x) => x.typ === 'titel').map((x) => x.id) });   // Titel auf- und zuklappen (einzeln und alle)
 /* Tastatur in den Bäumen (gemeinsamer Baustein /bp/baum.js): ↑↓ ← → Enter Esc, Tab/Enter in den Feldern, F6 zwischen Baum und Bereich rechts */
-bpBaum.tasten({ wurzel: '#view table.lv.baum:not(.am) > tbody', zeilen: 'tr[data-i]:not(.lang), tr.wurzel', unterzeile: 'tr.lang', aktiv: (w) => w.querySelector('tr.akt'),
+bpBaum.tasten({ wurzel: '#view table.lv.baum:not(.am) > tbody', zeilen: 'tr[data-i]:not(.lang), tr.wurzel', unterzeile: 'tr.lang', tabOhne: '[data-f=art], [data-f=kg]', aktiv: (w) => w.querySelector('tr.akt'),
   waehle: (z, o) => { if (z.dataset.lvopen == null) (z.querySelector('.ozt') || z.querySelector('td')).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: o.umschalt })); },   // andere LVs: erst Enter öffnet
   neu: (z, titel) => { const b = document.querySelector(`.rib [data-act="${titel ? 'glied' : 'pos'}"]`); if (b && !b.disabled) b.click(); },
   schiebe: (z, d) => { if (z.dataset.i != null) moveItem(+z.dataset.i, d); } });

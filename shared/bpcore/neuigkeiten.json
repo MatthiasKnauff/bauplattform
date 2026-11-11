@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-ba-pdf-sprung",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "PDF springt mit",
+  "text": "Beim Wechsel des Schritts zeigt das PDF rechts gleich die passende Stelle – z. B. bei „Grundstück“ die Angaben zum Baugrundstück im Formular. Nach einer Änderung bleibt die Vorschau dort stehen, wo du gerade warst.",
+  "ziel": ".ba-pdfs"
+ },
+ {
   "id": "2026-11-11-formular-loeschen",
   "datum": "2026-11-11",
   "app": "bauantrag",

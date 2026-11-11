@@ -326,8 +326,34 @@ def paket_pdf(teile, kopf, entwurf=False, deckblatt_an=True, weitere=(), vorn=No
             w.append(rd, outline_item=(f"{nr} {t}" if art == "trenner" else t)[:120])
     if hinten:
         w.append(PdfReader(io.BytesIO(hinten)), outline_item="Packliste")
+    sprungmarken(w, n_vorn if deckblatt_an else None, n_vorn + (1 if deckblatt_an else 0))
     out = io.BytesIO(); w.write(out)
     return out.getvalue()
+
+
+def sprungmarken(w, deckblatt, erstes):
+    """Benannte Ziele „schritt-<schritt>“ im Paket – die Vorschau springt damit zum Schritt des Assistenten (BPHead.pdfZiel).
+    Formularfelder bestimmen die Stelle; ohne passendes Feld: Prüfen = Anfang, Bauvorlagen = Inhaltsverzeichnis, sonst Anfang des ersten Vordrucks."""
+    from pypdf.generic import ArrayObject, FloatObject, NameObject, NullObject, TextStringObject
+    n = len(w.pages)
+    if not n:
+        return
+    Z = BF.sprungziele(w.pages)
+    erstes = min(erstes, n - 1)
+    oben = lambda i: float(w.pages[i].mediabox.top)   # noqa: E731
+    i0 = min((i for i, _ in Z.values()), default=erstes)   # ohne Feld der Behörde: Anfang des ersten ausgefüllten Vordrucks
+    Z.setdefault("verfahren", (i0, oben(i0)))
+    if deckblatt is not None and deckblatt < n:
+        Z["bauvorlagen"] = (deckblatt, oben(deckblatt))
+    Z["pruefen"] = (0, oben(0))
+    for s in ("beteiligte", "grundstueck", "vorhaben", "bauvorlagen"):   # fehlt ein Schritt: dort bleiben, wo der vorige steht
+        Z.setdefault(s, Z.get({"beteiligte": "verfahren", "grundstueck": "beteiligte", "vorhaben": "grundstueck", "bauvorlagen": "vorhaben"}[s]))
+    for s, (i, top) in Z.items():
+        try:
+            w.add_named_destination_array(TextStringObject("schritt-" + s), ArrayObject(
+                [w.pages[i].indirect_reference, NameObject("/XYZ"), NullObject(), FloatObject(min(top, oben(i))), NullObject()]))
+        except Exception:   # noqa: BLE001 – Sprungmarke ist Komfort, das PDF geht vor
+            pass
 
 
 def seite_png(daten, n, breite=900):

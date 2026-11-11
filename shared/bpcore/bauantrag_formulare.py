@@ -537,6 +537,62 @@ def widgets(daten):
     return out
 
 
+# Sprungziele im Antragspaket: zu welchem Schritt des Assistenten ein Formularfeld gehört (Schlüssel aus werte_v → Schritt)
+SCHRITT_VON = {"behoerde": "verfahren", "gs_adresse": "grundstueck", "gs_ort": "grundstueck", "gs_strasse": "grundstueck", "gs_hausnr": "grundstueck",
+               "gemarkung": "grundstueck", "flur": "grundstueck", "flurstueck": "grundstueck", "bezeichnung": "vorhaben", "rohbau": "vorhaben", "herstellung": "vorhaben"}
+
+
+def schritt_von(name, tu=""):
+    """Formularfeld (Name, Tooltip) → Schritt des Assistenten (verfahren, beteiligte, grundstueck, vorhaben, bauvorlagen) oder None."""
+    t = fold(f"{name} {tu}")
+    for key, abschnitt, worte, nicht in REGELN:
+        if (not abschnitt or abschnitt in t) and all(x in t for x in worte) and not any(x in t for x in nicht):
+            if key in SCHRITT_VON:
+                return SCHRITT_VON[key]
+            if key.startswith(("bh_", "ev_")):
+                return "beteiligte"
+            return None
+    if "gebaeudeklasse" in t or "sonderbau" in t:
+        return "vorhaben"
+    if "unterlage" in t:
+        return "bauvorlagen"
+    return None
+
+
+def sprungziele(seiten):
+    """Erstes Formularfeld je Schritt in einer Folge von Seiten (pypdf-Seiten) → {schritt: (seite, top in PDF-Punkten)}."""
+    out = {}
+
+    def voll(a):
+        teile, x, tu = [], a, ""
+        while x is not None:
+            if x.get("/T") is not None:
+                teile.append(str(x["/T"]))
+            if not tu and x.get("/TU") is not None:
+                tu = str(x["/TU"])
+            x = x.get("/Parent")
+            x = x.get_object() if x is not None else None
+        return ".".join(reversed(teile)), tu
+    for i, pg in enumerate(seiten):
+        if int(pg.get("/Rotate") or 0) % 360:
+            continue
+        for an in pg.get("/Annots") or []:
+            try:
+                a = an.get_object()
+                if a.get("/Subtype") != "/Widget" or a.get("/Rect") is None:
+                    continue
+                s = schritt_von(*voll(a))
+                if not s:
+                    continue
+                r = [float(v) for v in a["/Rect"]]
+                top = max(r[1], r[3]) + 14   # etwas Luft über dem Feld (Beschriftung)
+                if s not in out or (i, -top) < (out[s][0], -out[s][1]):
+                    out[s] = (i, top)
+            except Exception:   # noqa: BLE001 – kaputtes Feld überspringen
+                continue
+    return out
+
+
 def _eur(v):
     try:
         return f"{float(str(v).replace('.', '').replace(',', '.')):,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".") if v not in (None, "") else ""

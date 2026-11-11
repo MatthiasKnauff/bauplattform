@@ -2586,26 +2586,57 @@
   })();
   const canvasMass = (w, h) => { const f = Math.min(1, Math.sqrt(CANVAS_MAX / Math.max(1, w * h))); return [Math.floor(w * f), Math.floor(h * f), f]; };
   /* PDF im Bereich rechts (z. B. Vorschau des Tagesberichts): alle Seiten untereinander, auf die Breite des Bereichs – statt <iframe>,
-     das in manchen Browsern (Safari/iPad, schmale Bereiche) nur die erste Seite zeigt. BPHead.pdfIn(el, url) → Promise(Seitenzahl) */
-  H.pdfIn = async function (el, url) {
+     das in manchen Browsern (Safari/iPad, schmale Bereiche) nur die erste Seite zeigt. BPHead.pdfIn(el, url, {ziel, top}) → Promise(Seitenzahl).
+     Benannte Ziele des PDFs (z. B. „schritt-grundstueck“) lassen sich anspringen: o.ziel beim Laden, später BPHead.pdfZiel(el, name);
+     o.top stellt nach dem Neuladen dieselbe Rollposition wieder her. */
+  const pdfRoller = (el) => { for (let x = el; x && x.nodeType === 1; x = x.parentElement) { const o = getComputedStyle(x).overflowY; if ((o === 'auto' || o === 'scroll') && x.scrollHeight > x.clientHeight) return x; } return null; };
+  function pdfWunsch(el, fertig) {
+    const w = el._pdfWunsch, cvs = el.querySelectorAll(':scope > canvas.bph-pdfs'); if (!w) return;
+    const sc = pdfRoller(el) || pdfRoller(el.parentElement); if (!sc) { if (fertig) el._pdfWunsch = null; return; }
+    if (w.top != null) {   // wieder an dieselbe Stelle, sobald so viel gezeichnet ist
+      const letzte = cvs[cvs.length - 1];
+      if (!fertig && (!letzte || letzte.offsetTop + letzte.offsetHeight < w.top + sc.clientHeight)) return;
+      sc.scrollTop = w.top; el._pdfWunsch = null; return;
+    }
+    const z = (el._pdfZiele || {})[w.ziel], cv = z && cvs[z.seite];
+    if (!cv) { if (fertig) el._pdfWunsch = null; return; }
+    const r = cv.getBoundingClientRect(), rs = sc.getBoundingClientRect();
+    sc.scrollTo({ top: Math.max(0, sc.scrollTop + r.top - rs.top + z.y * r.height - 8), behavior: w.sanft ? 'smooth' : 'auto' });
+    el._pdfWunsch = null;
+  }
+  H.pdfRolle = (el) => { const sc = el && (pdfRoller(el) || pdfRoller(el.parentElement)); return sc ? sc.scrollTop : 0; };   // für o.top beim Neuladen
+  H.pdfZiel = function (el, name) { if (!el) return; el._pdfWunsch = { ziel: name, sanft: true }; pdfWunsch(el, !el._pdfLaeuft); };
+  H.pdfIn = async function (el, url, o = {}) {
     const my = (el._pdfTok = (el._pdfTok || 0) + 1);
     el.classList.add('bph-pdfin'); el.innerHTML = '<div class="bph-gvl">Lade …</div>';
+    el._pdfZiele = {}; el._pdfLaeuft = true;
+    el._pdfWunsch = o.ziel ? { ziel: o.ziel } : o.top ? { top: o.top } : null;
     try {
       const lib = await pdfjs();
       const data = await fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then((r) => { if (!r.ok) throw new Error('PDF nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
       if (my !== el._pdfTok) return 0;
       const doc = el.ownerDocument || document;   // im eigenen Browserfenster (⇱): Schriften dort anmelden, sonst erscheinen Kästchen statt Buchstaben
       const pdf = await lib.getDocument({ isEvalSupported: false, data, ownerDocument: doc }).promise, dpr = Math.min(2, (doc.defaultView || window).devicePixelRatio || 1);
+      const ziele = {};   // benannte Ziele: {name: {seite, top}} – y als Anteil der Seite ergibt sich beim Zeichnen
+      try { const Dz = (await pdf.getDestinations()) || {};
+        for (const [k, d] of Object.entries(Dz)) { if (!Array.isArray(d) || d[0] == null) continue;
+          const s = typeof d[0] === 'number' ? d[0] : await pdf.getPageIndex(d[0]), art = d[1] && d[1].name;
+          ziele[k] = { seite: s, top: art === 'XYZ' ? d[3] : art === 'FitH' || art === 'FitBH' ? d[2] : null, y: 0 }; } } catch (e) { /* PDF ohne Ziele */ }
+      if (my !== el._pdfTok) return 0;
+      el._pdfZiele = ziele;
       el.innerHTML = '';
       for (let n = 1; n <= pdf.numPages && my === el._pdfTok; n++) {
         const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), w = Math.max(240, (el.clientWidth || 600) - 16), sc = w / v0.width;
         const f = canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2], v = pg.getViewport({ scale: sc * dpr * f });
         const cv = doc.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-pdfs'; cv.setAttribute('aria-label', 'Seite ' + n);
         el.appendChild(cv);
+        Object.values(ziele).forEach((z) => { if (z.seite === n - 1 && z.top != null) { const [, y0, , y1] = pg.view; z.y = Math.max(0, Math.min(1, (y1 - z.top) / ((y1 - y0) || 1))); } });
         await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise;
+        if (my === el._pdfTok) pdfWunsch(el, false);
       }
+      if (my === el._pdfTok) { el._pdfLaeuft = false; pdfWunsch(el, true); }
       return pdf.numPages;
-    } catch (e) { if (my === el._pdfTok) el.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}</div>`; return 0; }
+    } catch (e) { if (my === el._pdfTok) { el._pdfLaeuft = false; el._pdfWunsch = null; el.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}</div>`; } return 0; }
   };
   H.ansehen = function (items, start = 0) {
     items = (items || []).filter((x) => x && x.url); if (!items.length) return;

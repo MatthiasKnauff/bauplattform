@@ -145,6 +145,28 @@ def test_antragspaket():
     pruefe(png[:4] == b"\x89PNG" and n == 1 and 0.6 < v < 0.8, "Seite als Bild, hochkant")
 
 
+def test_sprungmarken_im_paket():
+    """Paket bekommt benannte Ziele „schritt-…“: Formularfelder zeigen auf ihren Schritt, Bauvorlagen = Inhaltsverzeichnis, Prüfen = Anfang."""
+    import io
+    from pypdf import PdfReader
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from bpcore import bauantrag_paket as BP
+    buf = io.BytesIO(); cv = canvas.Canvas(buf, pagesize=A4); f = cv.acroForm
+    f.textfield(name="Text1", tooltip="Bauherrschaft Name, Vorname / Firma", x=50, y=600, width=300, height=18)
+    cv.drawString(10, 10, "1"); cv.showPage()
+    f.textfield(name="Text2", tooltip="Baugrundstück Gemarkung(en)", x=50, y=700, width=300, height=18)
+    f.textfield(name="Text3", tooltip="Genaue Bezeichnung des Vorhabens", x=50, y=300, width=300, height=18)
+    cv.drawString(10, 10, "2"); cv.showPage(); cv.save()
+    rd = PdfReader(io.BytesIO(BP.paket_pdf([("trenner", "Antrag", None), ("stueck", "Anlage I/2", buf.getvalue())], ["Neubau"])))
+    Z = {k: (rd.get_destination_page_number(v), float(v.top)) for k, v in rd.named_destinations.items()}
+    gleich(sorted(Z), ["schritt-" + s for s in sorted(("verfahren", "beteiligte", "grundstueck", "vorhaben", "bauvorlagen", "pruefen"))], "ein Ziel je Schritt")
+    gleich(Z["schritt-beteiligte"][0], 2, "Bauherrschaft auf der ersten Formularseite")
+    gleich((Z["schritt-grundstueck"][0], Z["schritt-vorhaben"][0]), (3, 3), "Grundstück und Vorhaben auf Seite 2 des Formulars")
+    pruefe(Z["schritt-grundstueck"][1] > Z["schritt-vorhaben"][1], "Grundstück steht über dem Vorhaben")
+    gleich((Z["schritt-bauvorlagen"][0], Z["schritt-pruefen"][0], Z["schritt-verfahren"][0]), (0, 0, 2), "Inhaltsverzeichnis, Anfang, erster Vordruck")
+
+
 def test_anlagen_gliederung():
     """Anlagen: Nummern je Abschnitt (leere Abschnitte zählen nicht), genannte Pläne auf der Packliste, Dateinamen für digital."""
     from bpcore import bauantrag_anlagen as BAN

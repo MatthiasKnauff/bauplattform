@@ -46,7 +46,7 @@ function leiste() {
 }
 
 /* Bereich rechts: PDF-Vorschau, nach jeder Änderung neu */
-let PDFEL = null, PDFT = 0;
+let PDFEL = null, PDFT = 0, PDFSCHRITT = '';   // PDFSCHRITT: Antrag und Schritt, an dessen Stelle die Vorschau steht
 function vorschau(sofort) {
   clearTimeout(PDFT);
   if (typeof ausAktualisieren === 'function') ausAktualisieren();   // bauantrag-paket.js: Werte in „Im PDF ausfüllen“ nachtragen
@@ -55,8 +55,11 @@ function vorschau(sofort) {
   PDFT = setTimeout(async () => {
     const n = (D.gewaehlt || []).filter((k) => !k.startsWith('t')).length;
     if (!n) { PDFEL.innerHTML = '<div class="ba-pleer">Noch kein Vordruck gewählt – in Schritt 1 „Verfahren &amp; Formulare“ anhaken oder eigene Unterlagen hinzufügen.</div>'; return; }
+    const alt = PDFEL.querySelector('.ba-pdfs'), gleich = alt && PDFSCHRITT === AID + ':' + SCHRITT;   // gleicher Schritt: an derselben Stelle bleiben
+    const o = gleich ? { top: BPHead.pdfRolle(alt) } : { ziel: 'schritt-' + SCHRITT };
+    PDFSCHRITT = AID + ':' + SCHRITT;
     PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Antragspaket · ${n} Unterlage${n === 1 ? '' : 'n'} · Anschreiben, Deckblatt und Trennblätter in Schritt 6</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
-    BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/paket.pdf?t=${Date.now()}`);
+    BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/paket.pdf?t=${Date.now()}`, o);
   }, sofort ? 0 : 1200);
 }
 /* Hinweis im Schritt „Prüfen & PDF“: welches amtliche Formular, wie viel davon ausgefüllt */
@@ -183,7 +186,9 @@ V.addEventListener('change', async (e) => {
 });
 V.addEventListener('click', async (e) => {
   const b = e.target.closest('button,a'); if (!b) return;
-  if (b.dataset.schritt || b.dataset.geh) { SCHRITT = b.dataset.schritt || b.dataset.geh; V.scrollTop = 0; zeichne(); return; }
+  if (b.dataset.schritt || b.dataset.geh) { SCHRITT = b.dataset.schritt || b.dataset.geh; V.scrollTop = 0; zeichne();
+    const p = PDFEL && PDFEL.querySelector('.ba-pdfs'); if (p) { PDFSCHRITT = AID + ':' + SCHRITT; BPHead.pdfZiel(p, 'schritt-' + SCHRITT); }   // PDF mitführen
+    return; }
   if (b.dataset.seg) { const f = feld(b.dataset.seg); if (b.classList.contains('on')) return;
     const mehr = b.dataset.seg === 'ev_wahl' ? { ev_name: null, ev_beruf: null, ev_kammer: null, ev_kammernr: null, ev_tel: null, ev_mail: null } : {};
     setze({ [b.dataset.seg]: b.dataset.v, ...mehr }, `„${f.label}“: ${b.textContent}`); return; }

@@ -91,6 +91,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Projektfeld öffnet überall die Standardmaske (große Projektauswahl); Sondereinträge der App (ohne Projekt, erkannt …) stehen darin oben; Tippen beginnt die Suche~~
 - ~~Bautagebuch: „>“ öffnet auch leere Bereiche (gleich mit Eingabezeile, Bilder mit Hinweis), rundes Plus an den Bereichen, oben „Neuer Tagesbericht“~~
 - ~~Entwürfe einzeln und gesammelt löschen: Kästchen je Entwurf, „alle markieren“, „Markierte löschen“ mit Rückgängig – Abnahme-Entwürfe in der Kommunikation, Schreiben-Entwürfe in Aufgaben & Mängel~~
 - ~~Bauantrag: Ausgabe nur noch als amtliches Formular (NRW I/1, I/2 oder I/3 je Verfahren), Felder automatisch an Name/Tooltip erkannt und ausgefüllt, Gebäudeklasse/Sonderbau/Vorbescheid angekreuzt; eigenes Layout entfernt~~

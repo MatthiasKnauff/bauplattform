@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-projektmaske",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Projekt wählen – immer dieselbe Maske",
+  "text": "Wo du ein Projekt wählst, öffnet sich jetzt immer die bekannte Projektauswahl: Suche nach Name oder Adresse, Meine Projekte, Projekte der anderen, Nach Standort, Neues Projekt. Einfach ins Feld klicken oder lostippen.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-entwuerfe",
   "datum": "2026-11-11",
   "app": "kommunikation",
@@ -53,14 +61,6 @@
   "app": "",
   "titel": "Änderungen anderer erscheinen von selbst",
   "text": "Trägt eine Kollegin einen Mangel ein, ändert einen Honorarauftrag oder hakt ein To-do ab, erscheint das bei dir nach wenigen Sekunden – ohne Neuladen. Solange du gerade tippst oder ein Fenster offen ist, wartet die Aktualisierung. Unten links erscheint kurz „⟳ Aktualisiert“.",
-  "ziel": ""
- },
- {
-  "id": "2026-11-11-projektfeld",
-  "datum": "2026-11-11",
-  "app": "",
-  "titel": "Projekt wählen – überall gleich",
-  "text": "Wo du in einem Dialog ein Projekt wählst, zeigt die Liste jetzt wie die große Projektauswahl die Adresse, sucht auch nach Straße, Ort und Bauherr und sortiert nach Entfernung, wenn dein Standort bekannt ist. Unten: „＋ Neues Projekt“, „📍 Nach Standort“ und „⤢ Alle“ für die große Auswahl.",
   "ziel": ""
  },
  {

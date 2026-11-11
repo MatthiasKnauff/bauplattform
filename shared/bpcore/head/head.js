@@ -2272,6 +2272,20 @@
       }
     };
     const waehle = (x) => { if (!x) return; zu(); if (sel.value !== x.v) { sel.value = x.v; sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true })); } text(); };
+    if (!ALLG) {   // Projektfeld: immer die Standardmaske (große Projektauswahl) – Sondereinträge der App (z. B. „ohne Projekt“, „erkannt“) stehen darin oben
+      inp.readOnly = true; inp.style.cursor = 'pointer';
+      const gross = (q) => {
+        const oben = eintraege().filter((x) => !x.p && !(x.v === '' && /wählen/i.test(x.t))).map((x) => ({ value: x.v, titel: x.t, sub: x.g && x.g !== '…' ? x.g : '' }));
+        H.projektWahl({ aktuell: /^\d+$/.test(sel.value) ? +sel.value : null, aktuellWert: sel.value, q: q || '', oben, onPick: (id, p) => (typeof id === 'string' && !/^\d+$/.test(id) ? waehle({ v: id }) : setzeId(id, p && p.name)) });
+      };
+      inp.addEventListener('click', () => gross());
+      w.querySelector('.bph-pa-c').addEventListener('mousedown', (e) => { e.preventDefault(); gross(); });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); gross(); } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { e.preventDefault(); gross(e.key); } });
+      sel.addEventListener('change', text);
+      new MutationObserver(() => text()).observe(sel, { childList: true, subtree: true, attributes: true });
+      if (sel.disabled) inp.disabled = true;
+      text(); return;
+    }
     inp.addEventListener('focus', auf); inp.addEventListener('click', auf);
     w.querySelector('.bph-pa-c').addEventListener('mousedown', (e) => { e.preventDefault(); if (box) { zu(); text(); } else inp.focus(); });
     inp.addEventListener('input', () => { if (!box) auf().then(() => zeichnen(inp.value)); else zeichnen(inp.value); });
@@ -2411,7 +2425,7 @@
   H.projektWahl = async function (opt = {}) {
     let P; try { P = await KX('api/bp/projekte'); } catch (e) { alert(e.message); return; }
     const akt = opt.aktuell != null ? +opt.aktuell : H.projektId();
-    let q = '', fremd = false, hier = null;
+    let q = opt.q || '', fremd = false, hier = null;
     try { hier = JSON.parse(sessionStorage.getItem('bpHier') || 'null'); } catch { /* egal */ }
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-pw-bg';
     bg.innerHTML = `<div class="bph-dlg bph-pw" role="dialog" aria-label="Projekt wählen"><div class="bph-pwh"><input type="search" placeholder="Projekt suchen (Name oder Adresse)" autocomplete="off" data-pq><button type="button" class="bph-x" data-px aria-label="Schließen">×</button></div>
@@ -2433,7 +2447,9 @@
       sort(M); sort(W);
       const zW = fremd || !P.some((p) => !p.archived && p.mein) || (q.trim() && W.length);
       const rechts = (p) => (dist(p) != null ? fd(dist(p)) : '');
-      let h = `<div class="bph-pws">Meine Projekte</div>` + (M.length ? M.map((p) => zeile(p, rechts(p))).join('') : `<div class="bph-pwe">${q.trim() ? 'Keine Treffer bei deinen Projekten.' : 'Du bist bei keinem Projekt als Bauleiter eingetragen.'}</div>`);
+      const OB = (opt.oben || []).filter((x) => !q.trim() || (x.titel + ' ' + (x.sub || '')).toLowerCase().includes(q.trim().toLowerCase()));
+      let h = (OB.length ? OB.map((x) => `<button type="button" class="bph-pi${String(opt.aktuellWert || '') === String(x.value) ? ' on' : ''}" data-poben="${esc(String(x.value))}"><span><b>${esc(x.titel)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span></button>`).join('') : '')
+        + `<div class="bph-pws">Meine Projekte</div>` + (M.length ? M.map((p) => zeile(p, rechts(p))).join('') : `<div class="bph-pwe">${q.trim() ? 'Keine Treffer bei deinen Projekten.' : 'Du bist bei keinem Projekt als Bauleiter eingetragen.'}</div>`);
       if (nW) h += `<button type="button" class="bph-pi bph-pt" data-pfremd>👥 Projekte der anderen (${q.trim() ? W.length : nW}) ${zW ? '– ausblenden' : '– anzeigen'}</button>`
         + (zW ? W.map((p) => zeile(p, rechts(p), [p.bauleiter && 'Bauleiter: ' + p.bauleiter, adr(p)].filter(Boolean).join(' · ') || ' ')).join('') : '');
       if (q.trim().length >= 2 && ordner.length) h += '<div class="bph-pws">Ordner auf dem Server – antippen legt das Projekt an</div>' + ordner.map((n) => `<button type="button" class="bph-pi" data-pordner="${esc(n)}"><span><b>＋ ${esc(n)}</b></span></button>`).join('');
@@ -2457,6 +2473,7 @@
       const t = e.target;
       if (t.closest('[data-px]')) return close();
       const pi = t.closest('[data-pid]'); if (pi) return waehlen(+pi.dataset.pid);
+      const po = t.closest('[data-poben]'); if (po) { close(); if (opt.onPick) opt.onPick(po.dataset.poben, null); return; }
       const od = t.closest('[data-pordner]'); if (od) { close(); return H.projektBearbeiten(null, { name: od.dataset.pordner, onSaved: (id) => waehlenNeu(id) }); }
       if (t.closest('[data-pfremd]')) { fremd = !fremd; return draw(); }
       if (t.closest('[data-pstand]')) {
@@ -2467,7 +2484,7 @@
       if (t.closest('[data-pneu]')) { close(); return H.projektBearbeiten(null, { onSaved: (id) => waehlenNeu(id) }); }
       if (t.closest('[data-pedit]')) { if (!akt) return alert('Bitte zuerst ein Projekt wählen.'); close(); return H.projektBearbeiten(akt, { onSaved: (id) => waehlenNeu(id) }); }
     });
-    draw(); bg.querySelector('[data-pq]').focus();
+    draw(); { const qi = bg.querySelector('[data-pq]'); qi.value = q; qi.focus(); }
     if (!hier && navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then((r) => { if (r.state === 'granted') standort().then(draw).catch(() => {}); }).catch(() => {});
   };
   /* Leiste unter der Kopfleiste, z. B. „Für A541 gibt es noch keine Kostenermittlung – anlegen?“ */

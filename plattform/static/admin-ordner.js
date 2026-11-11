@@ -47,7 +47,7 @@ function ordKarte(id) {
   return `<div class="card ord-k"><div class="bar" style="margin:0"><h3 style="margin:0">${esc(r.projekt.name)}</h3><small class="mute">${esc(r.projekt.pfad)} · Muster: ${esc(r.muster.name)}</small><span class="fill"></span>
       ${S.length ? `<button class="btn sm" data-a="ordVN" data-id="${id}">${offen ? 'Vorher/Nachher ausblenden' : 'Vorher / Nachher'}</button>` : ''}</div>
     ${S.length ? gruppen : '<p class="mute" style="margin:.5rem 0 0">✓ Passt zum Muster – nichts zu ändern.</p>'}
-    ${offen ? `<div class="ord-vn"><div><h4>Vorher</h4>${ordBaum(r.vorher, {})}</div><div><h4>Nachher</h4>${ordNachher(r, sel)}</div></div>` : ''}</div>`;
+    ${offen ? `<div class="ord-vn"><div><h4>Vorher</h4>${ordBaum(r.vorher, ordVorher(r, sel))}</div><div><h4>Nachher</h4>${ordNachher(r, sel)}</div></div>` : ''}</div>`;
 }
 
 /* Baum als eingerückte Liste: Ordner (bis 3 Ebenen), Dateien nur als Anzahl; Markierung neu/umbenannt/aufgelöst */
@@ -55,12 +55,22 @@ function ordBaum(b, mark, pfad = [], tiefe = 0) {
   if (tiefe > 2) return '';
   const E = Object.entries(b).sort((x, y) => (x[1].dir === y[1].dir ? x[0].localeCompare(y[0], 'de') : x[1].dir ? -1 : 1));
   const dateien = E.filter(([, v]) => !v.dir), ordner = E.filter(([, v]) => v.dir);
-  let h = ordner.map(([k, v]) => { const p = [...pfad, k], mk = mark[p.join('\u0001')] || '';
+  const neu = dateien.filter(([k]) => mark[[...pfad, k].join('\u0001')]), rest = dateien.length - neu.length, fm = mark[[...pfad, '\u0002'].join('\u0001')] || '';
+  let h = neu.map(([k]) => `<div class="ord-z ${mark[[...pfad, k].join('\u0001')]}" style="padding-left:${tiefe * 1.1}rem">📄 ${esc(k)}</div>`).join('')   // Dateien zuerst – sonst sehen sie aus, als lägen sie im Ordner darüber
+    + (rest > 0 ? `<div class="ord-z ${fm || 'mute'}" style="padding-left:${tiefe * 1.1}rem">📄 ${rest} Datei${rest === 1 ? '' : 'en'}</div>` : '');
+  h += ordner.map(([k, v]) => { const p = [...pfad, k], mk = mark[p.join('\u0001')] || '';
     return `<div class="ord-z ${mk}" style="padding-left:${tiefe * 1.1}rem">📁 ${esc(k)}</div>` + ordBaum(v.kinder || {}, mark, p, tiefe + 1); }).join('');
-  const neu = dateien.filter(([k]) => mark[[...pfad, k].join('\u0001')]);
-  h += neu.map(([k]) => `<div class="ord-z neu" style="padding-left:${tiefe * 1.1}rem">📄 ${esc(k)}</div>`).join('');
-  if (dateien.length - neu.length > 0) h += `<div class="ord-z mute" style="padding-left:${tiefe * 1.1}rem">${dateien.length - neu.length} Datei${dateien.length - neu.length === 1 ? '' : 'en'}</div>`;
   return h;
+}
+
+/* Vorher: was die gewählten Schritte anfassen – Ordner, die umbenannt, verschoben oder aufgelöst werden, samt ihrer Dateien */
+function ordVorher(r, sel) {
+  const mark = {}, T = { umbenennen: 'alt', verschieben: 'alt', aufloesen: 'alt' };
+  r.schritte.filter((s) => sel.has(s.id) && T[s.art]).forEach((s) => {
+    mark[s.pfad.join('\u0001')] = 'alt';
+    if (s.art !== 'umbenennen') mark[[...s.pfad, '\u0002'].join('\u0001')] = 'alt';   // die Dateien darin wandern mit
+  });
+  return mark;
 }
 
 /* Nachher: die gewählten Schritte auf eine Kopie des Baums anwenden – in derselben Reihenfolge wie der Server */
@@ -84,7 +94,7 @@ function ordNachher(r, sel) {
       delete el.kinder[x[x.length - 1]];
       let z = { kinder: b }; s.ziel.forEach((t, i) => { if (!z.kinder[t]) { z.kinder[t] = { dir: true, kinder: {} }; mark[s.ziel.slice(0, i + 1).join('\u0001')] = 'neu'; } z = z.kinder[t]; });
       if (Object.keys(z.kinder).length) Object.entries(n.kinder || {}).forEach(([k, v]) => { z.kinder[z.kinder[k] ? k + ' (2)' : k] = v; }); else z.kinder = n.kinder || {};
-      mark[s.ziel.join('\u0001')] = 'umb';
+      mark[s.ziel.join('\u0001')] = 'umb'; mark[[...s.ziel, '\u0002'].join('\u0001')] = 'umb';
     } else {
       const x = um(s.pfad), el = knoten(x.slice(0, -1)); if (!el) continue;
       if (!el.kinder[x[x.length - 1]]) el.kinder[x[x.length - 1]] = { dir: s.art === 'anlegen', kinder: {} };

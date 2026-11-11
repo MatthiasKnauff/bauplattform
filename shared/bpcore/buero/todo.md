@@ -40,6 +40,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Umbau (Zielbild vom 09.11.2026)
 
+- Ablage ähnliche Ordner, Etappe 2: auch beim automatischen Ablegen (Tagesbericht, Rügen, Abnahme, Pläne) fragen; am Handy/im Hintergrund ohne Frage ablegen und am PC als To-do „Ablage klären“; Ausnahmen-Liste (Ordner, die nie angefasst werden); Knopf „Ganzen Projektordner aufräumen“. **ca. 45–60 min**
+
 - Aus dem Umbau-Mock gewählt: Hintergrund-Warteschlange für lange Aufgaben **ca. 1–2 h**, Volltextsuche über alles **ca. 1–2 h**, Typprüfung über JSDoc **ca. 2 h**; später: Überwachung (Dienste, Speicher, Sicherung) **ca. 1 h**. Live-Aktualisierung für AVA und Baukosten nachziehen **ca. 30 min**
 
 - Schritt 4 – Apps auf den Baukasten, große Dateien teilen:
@@ -91,6 +93,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Ablegen (Datei ins Fenster ziehen, am PC): ähnliche Ordner 1–3 Stufen tief erkennen (ohne Kürzel/Nummer, Synonyme), Vorschlag laut Projektvorlage, Inhalt zusammenführen (gleiche Namen „(2)“, gleicher Inhalt bleibt liegen), leer gewordene Ordner auf Wunsch löschen, je Projekt merken, Rückgängig~~
 - ~~Warte-Hinweis (z. B. „Die KI arbeitet …“) mit „Abbrechen“ – die Seite wartet dann nicht mehr~~
 - ~~Bauzeitenplan: Fortschritt in der Leiste aufgeräumt – Stufen und Wert oben, Schieber darunter, eigener Abstand zur nächsten Gruppe~~
 - ~~Rückgängig-Dock setzt sich beim Erscheinen selbst dorthin, wo es am wenigsten verdeckt (unten links/Mitte/rechts, oben rechts), leicht durchsichtig~~

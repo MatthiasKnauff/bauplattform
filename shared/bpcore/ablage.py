@@ -231,3 +231,67 @@ def routen(bp, user):
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
         return jsonify(ok=True, pfad=(a or {}).get("pfad") or "")
+
+    # ---- ähnliche Ordner (bautagebuch/modules/ablage_aehnlich.py) – nur am PC gefragt
+    def _merk(c, pid):
+        r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"ablage:wahl:{int(pid)}",)).fetchone()
+        try:
+            return json.loads(r["data"]) if r else {}
+        except ValueError:
+            return {}
+
+    @bp.get("/api/bp/ablage/aehnlich")
+    def bp_ablage_aehnlich():
+        """Kandidaten für den Zielordner; „gemerkt“: was für diesen Namen im Projekt schon entschieden wurde."""
+        from urllib.parse import urlencode
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        pid = request.args.get("project_id", type=int)
+        try:
+            d = _bt_json("GET", "/api/ablage/aehnlich?" + urlencode({"project_id": pid or 0, "ordner": request.args.get("ordner") or "", "tiefe": request.args.get("tiefe") or 2}))
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+        if d.get("ok") and pid:
+            with db.tx() as c:
+                m = _merk(c, pid).get(d.get("schluessel") or "")
+            if m and any(x["pfad"] == m and x["vorhanden"] for x in d.get("kandidaten") or []):
+                d["gemerkt"] = m
+        return jsonify(d)
+
+    @bp.post("/api/bp/ablage/merken")
+    def bp_ablage_merken():
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        b = request.get_json(silent=True) or {}
+        pid, k = b.get("project_id"), str(b.get("schluessel") or "")[:120]
+        if not isinstance(pid, int) or not k:
+            return jsonify(error="Angaben fehlen"), 400
+        with db.tx() as c:
+            m = _merk(c, pid)
+            if b.get("pfad"):
+                m[k] = str(b["pfad"])[:500]
+            else:
+                m.pop(k, None)
+            c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
+                      "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (f"ablage:wahl:{pid}", json.dumps(m, ensure_ascii=False), date.today().isoformat(), u["name"]))
+        return jsonify(ok=True)
+
+    @bp.post("/api/bp/ablage/zusammenfuehren")
+    def bp_ablage_zusammen():
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        try:
+            return jsonify(_bt_json("POST", "/api/ablage/zusammenfuehren", request.get_json(silent=True) or {}))
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+
+    @bp.post("/api/bp/ablage/zurueck")
+    def bp_ablage_zurueck():
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        try:
+            return jsonify(_bt_json("POST", "/api/ablage/zurueck", request.get_json(silent=True) or {}))
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+

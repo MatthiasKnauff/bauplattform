@@ -22,7 +22,12 @@
   const LS = { get(k) { try { return JSON.parse(localStorage.getItem('bp.ablage.' + k) || 'null'); } catch { return null; } }, set(k, v) { try { localStorage.setItem('bp.ablage.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
   const st = document.createElement('style');
   st.textContent = `.bpa-namen{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem}.bpa-namen button{border:1px solid var(--line,#ccc);background:var(--card,#fff);color:inherit;border-radius:calc(999px*var(--rkp,1));padding:.1rem .6rem;font:inherit;font-size:.8rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .bpa-namen button.on{border-color:var(--y,#3b5b8c);color:var(--y,#3b5b8c)}.bpa-name{width:100%;box-sizing:border-box}`;
+  .bpa-namen button.on{border-color:var(--y,#3b5b8c);color:var(--y,#3b5b8c)}.bpa-name{width:100%;box-sizing:border-box}
+  .bpa-ka{display:grid;gap:.4rem;margin:0 0 .6rem}.bpa-k{display:flex;gap:.55rem;align-items:flex-start;border:1px solid var(--line,#ccc);border-radius:calc(9px*var(--rk,1));padding:.45rem .6rem;cursor:pointer}
+  .bpa-k.on{border:2px solid var(--y,#3b5b8c);padding:calc(.45rem - 1px) calc(.6rem - 1px)}.bpa-k input{margin:.2rem 0 0;accent-color:var(--y,#3b5b8c)}.bpa-k small{display:block;color:var(--mute,#777);font-size:.8rem;overflow-wrap:anywhere}
+  .bpa-t{font-style:normal;font-size:.72rem;border:1px solid var(--y,#3b5b8c);color:var(--y,#3b5b8c);border-radius:999px;padding:0 .45rem;margin-left:.3rem}
+  .bpa-ck{display:flex;gap:.5rem;align-items:flex-start;margin:.35rem 0;font-size:.9rem}.bpa-ck input{margin:.2rem 0 0;accent-color:var(--y,#3b5b8c)}
+  .bpa-seg{display:inline-flex;border:1px solid var(--line,#ccc);border-radius:999px;padding:2px;gap:2px}.bpa-seg button{border:0;background:none;color:inherit;font:inherit;font-size:.8rem;border-radius:999px;padding:.1rem .55rem;cursor:pointer}.bpa-seg button.on{background:var(--y,#3b5b8c);color:var(--on,#fff)}`;
   document.head.appendChild(st);
 
   async function projekt() {
@@ -71,9 +76,12 @@
         name = bg.querySelector('#bpaN').value.trim(); if (!name) { TOAST('Bitte einen Namen eingeben.', true); return; }
         if (!/\.[a-z0-9]{2,5}$/i.test(name) && /\.([a-z0-9]{2,5})$/i.test(f.name)) name += f.name.match(/\.[a-z0-9]{2,5}$/i)[0];
         b.disabled = true;
-        const fd2 = new FormData(); fd2.append('datei', f); fd2.append('project_id', pid); fd2.append('ordner', wahl); fd2.append('name', name);
+        const plan = await aehnlichFragen(pid, wahl, f.name); if (!plan) { b.disabled = false; return; }   // ähnliche Ordner: Ziel wählen (nur am PC)
+        const fd2 = new FormData(); fd2.append('datei', f); fd2.append('project_id', pid); fd2.append('ordner', plan.ziel); fd2.append('name', name);
         try { const r = await fetch('api/bp/ablage', { method: 'POST', body: fd2, credentials: 'same-origin' }), j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
-          close(); const z = LS.get('zuletzt') || {}; z[pid] = wahl; LS.set('zuletzt', z); TOAST('Abgelegt: ' + j.pfad); fertig({ pfad: j.pfad }); }
+          close(); const z = LS.get('zuletzt') || {}; z[pid] = plan.ziel; LS.set('zuletzt', z); TOAST('Abgelegt: ' + j.pfad);
+          if (plan.quellen && plan.quellen.length) await zusammenfuehren(pid, plan);
+          fertig({ pfad: j.pfad }); }
         catch (e) { b.disabled = false; TOAST(e.message, true); }
       });
       bg.addEventListener('click', (e) => { const n = e.target.closest('[data-bpan]'); if (!n) return; bg.querySelector('#bpaN').value = n.dataset.bpan;
@@ -85,6 +93,58 @@
         search: 'Ordner suchen …', empty: 'Keine Ordner gefunden.', onPick: (v) => { wahl = v; knopf(); } }));
       setTimeout(() => { const i = bg.querySelector('#bpaN'); if (i) { i.focus(); i.setSelectionRange(0, i.value.replace(/\.[^.]+$/, '').length); } }, 30);
     });
+  }
+  /* ---------- Ähnliche Ordner (nur am PC): Ziel wählen – Vorschlag laut Projektvorlage –, Inhalt der anderen zusammenführen,
+     dadurch leer gewordene Ordner auf Wunsch löschen, Entscheidung je Projekt merken. Server: bautagebuch/modules/ablage_aehnlich.py */
+  const PC = () => matchMedia('(min-width: 761px) and (pointer: fine)').matches;
+  const SITZUNG = {};   // beim Ablegen mehrerer Dateien nur einmal fragen
+  async function aehnlichFragen(pid, wahl, dateiname) {
+    if (!PC()) return { ziel: wahl };
+    const holen = async (tiefe) => { try { const r = await fetch(`api/bp/ablage/aehnlich?project_id=${pid}&ordner=${encodeURIComponent(wahl)}&tiefe=${tiefe}`, { credentials: 'same-origin' }); return await r.json(); } catch { return { ok: false }; } };
+    let tiefe = LS.get('tiefe') || 2, D = await holen(tiefe);
+    if (!D.ok || !D.kandidaten) return { ziel: wahl };
+    if (D.gemerkt) return { ziel: D.gemerkt };
+    if (SITZUNG[pid + ':' + D.schluessel]) return { ziel: SITZUNG[pid + ':' + D.schluessel] };
+    if (D.kandidaten.length < 2) return { ziel: wahl };
+    return new Promise((fertig) => {
+      let ziel = (D.kandidaten.find((x) => x.vorlage) || D.kandidaten.find((x) => x.pfad === wahl) || D.kandidaten[0]).pfad;
+      const zeig = (o) => o.split('/').join(' / ');
+      const html = () => { const andere = D.kandidaten.filter((x) => x.pfad !== ziel && x.vorhanden && x.dateien), n = andere.reduce((s, x) => s + x.dateien, 0);
+        return `<h3>Wohin ablegen?</h3><p class="mu" style="margin:0 0 .6rem">${E(dateiname)} – es gibt ähnliche Ordner im Projekt.</p>
+        <div style="display:flex;gap:.5rem;align-items:center;margin:0 0 .5rem;font-size:.85rem" class="mu">Suchtiefe <span class="bpa-seg">${[1, 2, 3].map((t) => `<button type="button" data-bpat="${t}" class="${t === D.tiefe ? 'on' : ''}">${t} Stufe${t > 1 ? 'n' : ''}</button>`).join('')}</span></div>
+        <div class="bpa-ka">${D.kandidaten.map((x) => `<label class="bpa-k${x.pfad === ziel ? ' on' : ''}"><input type="radio" name="bpaz" value="${E(x.pfad)}"${x.pfad === ziel ? ' checked' : ''}>
+          <span><b>${E(x.pfad.split('/').pop())}</b>${x.vorlage ? ' <i class="bpa-t v">Projektvorlage</i>' : ''}<small>${E(zeig(x.pfad))} · ${x.vorhanden ? `${x.dateien}${x.mehr ? '+' : ''} Datei${x.dateien === 1 ? '' : 'en'}${x.zuletzt ? ' · zuletzt ' + E(x.zuletzt) : ''}` : 'fehlt noch – wird angelegt'}</small></span></label>`).join('')}</div>
+        ${n ? `<label class="bpa-ck"><input type="checkbox" id="bpaV"${D.testserver ? ' disabled' : ' checked'}> <span><b>Inhalt der anderen ${andere.length === 1 ? 'Ordners' : andere.length + ' Ordner'} hierher verschieben</b> (${n} Datei${n === 1 ? '' : 'en'})<br><small class="mu">${andere.map((x) => E(zeig(x.pfad))).join(' · ')} → ${E(zeig(ziel))} · gleiche Namen bekommen „(2)“, inhaltlich gleiche bleiben liegen · nichts wird gelöscht</small></span></label>
+          <label class="bpa-ck" style="margin-left:1.6rem"><input type="checkbox" id="bpaL"${D.testserver ? ' disabled' : ''}> <span>Dadurch leer gewordene Ordner löschen<br><small class="mu">nur wenn wirklich nichts mehr darin ist</small></span></label>` : ''}
+        ${D.testserver ? '<p class="mu" style="font-size:.85rem">Testserver: auf dem Dateiserver wird nichts verschoben.</p>' : ''}
+        <label class="bpa-ck"><input type="checkbox" id="bpaM" checked> <span>Für dieses Projekt merken – nicht mehr fragen</span></label>
+        <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Ablegen</button></div>`; };
+      const bg = modalBox(html(), async (m, bg2, close) => {
+        if (m === 'x') { close(); fertig(null); return; }
+        if (m !== 'ok') return;
+        const v = bg.querySelector('#bpaV'), l = bg.querySelector('#bpaL'), mk = bg.querySelector('#bpaM').checked;
+        const quellen = v && v.checked ? D.kandidaten.filter((x) => x.pfad !== ziel && x.vorhanden && x.dateien).map((x) => x.pfad) : [];
+        SITZUNG[pid + ':' + D.schluessel] = ziel;
+        if (mk) fetch('api/bp/ablage/merken', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: pid, schluessel: D.schluessel, pfad: ziel }) }).catch(() => {});
+        close(); fertig({ ziel, quellen, leere: !!(l && l.checked) });
+      });
+      bg.addEventListener('change', (e) => { if (e.target.name === 'bpaz') { ziel = e.target.value; neu(); } });
+      bg.addEventListener('click', async (e) => { const t = e.target.closest('[data-bpat]'); if (!t) return; tiefe = +t.dataset.bpat; LS.set('tiefe', tiefe);
+        const N = await holen(tiefe); if (N.ok && N.kandidaten) { D = N; if (!D.kandidaten.some((x) => x.pfad === ziel)) ziel = (D.kandidaten.find((x) => x.vorlage) || D.kandidaten[0]).pfad; neu(); } });
+      const neu = () => { bg.querySelector('.modal').innerHTML = html(); };
+    });
+  }
+  async function zusammenfuehren(pid, plan) {
+    try {
+      const r = await fetch('api/bp/ablage/zusammenfuehren', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: pid, ziel: plan.ziel, quellen: plan.quellen, leere_loeschen: plan.leere }) });
+      const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Fehler ' + r.status);
+      const t = `${j.verschoben} Datei${j.verschoben === 1 ? '' : 'en'} zusammengeführt${(j.gleich || []).length ? `, ${j.gleich.length} gleiche blieben liegen` : ''}${(j.geloescht || []).length ? `, ${j.geloescht.length} leere Ordner gelöscht` : ''}`;
+      TOAST(t);
+      if (j.schritte && j.schritte.length && window.rueckgaengig) rueckgaengig(t, async () => {
+        const z = await fetch('api/bp/ablage/zurueck', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: pid, schritte: j.schritte }) }).then((x) => x.json()).catch(() => ({}));
+        TOAST(z.error || `${z.zurueck || 0} Dateien zurück an ihren alten Platz.`, !!z.error); });
+    } catch (e) { TOAST('Zusammenführen: ' + e.message, true); }
   }
   /* Ziehen und Loslassen selbst: head.js (dropUeberall) – Datei-Felder in der Nähe haben Vorrang, sonst ruft es BPHead.ablage.ablegen */
 })();

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-ablage-aehnlich",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Ablegen: ähnliche Ordner zusammenführen",
+  "text": "Ziehst du am PC eine Datei ins Fenster und es gibt im Projektordner ähnliche Ordner (z. B. „Schriftverkehr Firmen“ und „Korrespondenz“), fragst die Plattform, wohin – Vorschlag ist der Ordner laut Projektvorlage. Auf Wunsch wird der Inhalt der anderen dorthin verschoben und leer gewordene Ordner gelöscht; nichts geht verloren, Rückgängig geht. Die Suchtiefe (1–3 Stufen) wählst du im Dialog.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-projektmaske",
   "datum": "2026-11-11",
   "app": "",

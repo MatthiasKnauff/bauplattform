@@ -941,3 +941,6 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .kchip:hover{border-color:var(--accent,#2b4a7a)}.kchip.on{background:var(--accent,#2b4a7a);border-color:var(--accent,#2b4a7a);color:#fff;font-weight:600}
 .frwrap{min-height:150px;max-height:40vh;overflow:auto;border:1px solid var(--bd,#ddd)}.frwrap .ptab{margin:0}
 .fv-dot{cursor:pointer}.fv-dot:hover{outline:2px solid var(--accent);outline-offset:1px}
+.kst-l{display:grid;gap:5px}.kst{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--bd);padding:6px 8px}.kst>div:first-child{flex:1;min-width:0}
+.kst small{display:block;color:var(--mut)}.kst.fest{border-color:var(--accent)}.kst-a{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.kst-d{display:grid;gap:2px;margin-top:4px;font-size:.92em}.kst-d .pl{color:var(--green)}.kst-d .mi{color:#c0392b}

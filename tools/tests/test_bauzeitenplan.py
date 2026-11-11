@@ -565,3 +565,30 @@ def test_link_zum_ansehen(ctx):
     finally:
         for p in (a, b, fremd):
             weg(ctx, p["id"])
+
+
+def test_katalog_staende(ctx):
+    """Leistungskatalog sichern: erster Aufruf sichert und schützt den jetzigen Stand; benannten Stand anlegen, ändern,
+    vergleichen, nur die Leistungen zurückholen (vorher automatisch gesichert), Datei herunterladen und wieder einlesen; Rechte."""
+    a = ctx.admin
+    S = a.gj(f"{G}/katalog/staende")
+    pruefe(S["staende"] and any(x["fest"] for x in S["staende"]), "erster Stand gesichert und geschützt")
+    alt = a.gj(f"{G}/library")
+    sid = a.pj(f"{G}/katalog/staende", {"name": "RT vorher"})["neu"]
+    lid = "Lrt" + uuid.uuid4().hex[:8]
+    try:
+        a.uj(f"{G}/library", alt + [{"id": lid, "n": "RT Stand", "ph": "rohbau", "gw": "Maler", "d": 2}])
+        v = a.gj(f"{G}/katalog/staende/{sid}/vergleich")["seither"]
+        gleich(v["leistungen"]["dazu"], 1, "Vergleich: eine Leistung seither dazu")
+        r = a.pj(f"{G}/katalog/staende/{sid}/zurueck", {"teile": ["leistungen"]})
+        pruefe(r["ok"] and r["vorher"], "zurückgeholt, vorher gesichert")
+        pruefe(not finde(a.gj(f"{G}/library"), id=lid), "Leistung wieder weg")
+        a.post(f"{G}/katalog/staende/{sid}/zurueck", {"teile": []}, expect=400)
+        d = a.get(f"{G}/katalog/datei")
+        pruefe(b"bauplattform-leistungskatalog" in d.body, "Datei enthält den Katalog")
+        ctx.anmelden("Anna Bauer").post(f"{G}/katalog/staende", {"name": "x"}, expect=403)
+        a.uj(f"{G}/katalog/staende/{r['vorher']}", {"fest": False})
+        a.delete(f"{G}/katalog/staende/{r['vorher']}")
+    finally:
+        a.put(f"{G}/library", alt)
+        a.delete(f"{G}/katalog/staende/{sid}", expect=None)

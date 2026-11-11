@@ -21,7 +21,7 @@ COPY shared/bpcore ./bpcore
 COPY plattform/*.py ./plattform/
 COPY plattform/static ./plattform/static
 COPY plattform/vendor ./plattform/vendor
-COPY gantt/app.py gantt/links.py ./gantt/
+COPY gantt/app.py gantt/links.py gantt/katalog.py ./gantt/
 COPY gantt/public ./gantt/public
 COPY gantt/samples ./gantt/samples
 COPY bautagebuch/*.py ./bautagebuch/

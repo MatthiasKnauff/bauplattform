@@ -1310,6 +1310,12 @@ _links.einbinden(app, row_of=row_of, project_or_error=_project_or_error, can_see
                  now_iso=now_iso, uname=uname, pub=PUB)
 
 
+# ---------------------------------------------------------------- Leistungskatalog sichern (katalog.py)
+import katalog as _katalog   # noqa: E402
+_katalog.einbinden(app, store_get=store_get, store_put=store_put, store_put_roh=_store_put, all_firms=all_firms, clean_firm=clean_firm, save_firm=save_firm,
+                   firm_of=firm_of, uname=uname, body=body, clean_lib=clean_lib, phase_key=PHASE_KEY)
+
+
 # ---------------------------------------------------------------- Oberfläche
 STAMP = re.compile(r'(src|href)="([\w.-]+\.(?:js|css))"')
 

@@ -109,11 +109,11 @@ function renderLib() {
   const hit = (x) => !q || [x.n, x.gw, x.din, x.craft, x.firm].join(' ').toLowerCase().includes(q);
   const L = window.LIBRARY, profs = CATALOG.profiles.filter((p) => p.k !== 'frei');
   const sub = libSub === 'abs' ? 'abs' : P && libSub === 'prj' ? 'prj' : 'alle';
-  let h = `<div class="fv"><nav class="lv-sub"><button class="lv-st${sub === 'alle' ? ' on' : ''}" data-lsub="alle">Vorgaben für alle Projekte</button>${P ? `<button class="lv-st${sub === 'prj' ? ' on' : ''}" data-lsub="prj">Projekt: ${esc(P.name)}</button>` : ''}<button class="lv-st${sub === 'abs' ? ' on' : ''}" data-lsub="abs">Abschnitte</button></nav>`;
+  let h = `<div class="fv"><nav class="lv-sub"><button class="lv-st${sub === 'alle' ? ' on' : ''}" data-lsub="alle">Vorgaben für alle Projekte</button>${P ? `<button class="lv-st${sub === 'prj' ? ' on' : ''}" data-lsub="prj">Projekt: ${esc(P.name)}</button>` : ''}<button class="lv-st${sub === 'abs' ? ' on' : ''}" data-lsub="abs">Abschnitte</button><span style="flex:1"></span>${libDarf() ? '<button class="lv-st" data-kst="sichern" title="Leistungen, Abschnitte, Firmen-Vorgaben und Adressbuch jetzt als benannten Stand sichern">💾 Stand sichern</button>' : ''}<button class="lv-st" data-kst="liste" title="Gesicherte Stände, automatischer Verlauf, als Datei">🕘 Stände &amp; Verlauf</button></nav>`;
   const nurLesen = () => { if (libDarf()) return;   // Katalog für alle Projekte: nur ansehen
     const fv = box.querySelector('.fv'); fv.insertAdjacentHTML('afterbegin', '<div class="lv-ro">🔒 Nur ansehen – den Katalog für alle Projekte (Leistungen, Abschnitte, Vorgaben) pflegt der Administrator.</div>');
     fv.querySelectorAll('input:not(#libQ),select,textarea').forEach((x) => { x.disabled = true; });
-    fv.querySelectorAll('button:not([data-lsub])').forEach((x) => { if (!/^(lstd|lsort)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
+    fv.querySelectorAll('button:not([data-lsub]):not([data-kst])').forEach((x) => { if (!/^(lstd|lsort)$/.test(Object.keys(x.dataset)[0] || '')) x.disabled = true; });
     fv.querySelectorAll('[draggable]').forEach((x) => x.removeAttribute('draggable')); };
   if (sub === 'abs') { box.innerHTML = h + libPhasesHtml() + '</div>'; nurLesen(); libAfter(box, st); return; }
   if (sub === 'prj') { box.innerHTML = h + `<div class="fv-head"><div><h3>Firmen im Projekt</h3><span>${esc(P.name)}</span></div><input id="libQ" class="lv-q" placeholder="Suchen …" value="${esc(libQuery)}"><span class="fv-hint">Gilt nur für dieses Projekt. Rechts in jeder Zeile: „← Vorgabe übernehmen“ trägt die Firma aus der Vorgabe ein, „↑ als Vorgabe speichern“ macht die Projekt-Firma zur Vorgabe für alle Projekte.</span></div><div class="fv-scroll">${libProjectHtml()}</div></div>` + libLists(); libAfter(box, st); return; }
@@ -634,3 +634,56 @@ window.leistungWizard = leistungWizard;
 
 /* Hinweise in den Köpfen (Katalog, Gewerke & Firmen) stehen einzeilig – der ganze Text als Tipp beim Darüberfahren */
 document.addEventListener('mouseover', (e) => { const h = e.target.closest && e.target.closest('.fv-hint'); if (h && !h.title) h.title = h.textContent.trim(); });
+
+/* ---------- Sichern: benannte Stände, Vergleich, Zurückholen in Teilen, Datei (Server: gantt/katalog.py) ---------- */
+const KST_TEILE = [['leistungen', 'Leistungen', 'eigene Leistungen mit Dauer, Reihenfolge, Vorauswahl', true], ['abschnitte', 'Abschnitte', 'Namen und Reihenfolge', true],
+  ['vorgaben', 'Firmen-Vorgaben', 'Firma je Leistung und Gewerk, Bezug', true], ['firmen', 'Firmen im Adressbuch', 'Kontaktdaten – gelten für alle Apps; geändert oder wieder angelegt, nie gelöscht', false]];
+const kstZ = (z) => z ? `${z.leistungen} Leistungen · ${z.abschnitte} Abschnitte · ${z.vorgaben} Vorgaben · ${z.firmen} Firmen` : '';
+const kstDe = (t) => (t ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)} ${t.slice(11, 16)}` : '');
+async function kstSichern() {
+  if (!libDarf()) { libNurAdmin(); return; }
+  const n = await bpEingabe('Stand sichern – Name', 'vor Umbau ' + new Date().toLocaleDateString('de-DE'), { ok: 'Sichern' }); if (n == null) return;
+  try { await fetch('api/katalog/staende', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n }) }).then(j); toast(`Stand „${n}“ gesichert.`); }
+  catch (e) { toast(e.message, true); }
+}
+async function kstListe() {
+  let D; try { D = await fetch('api/katalog/staende').then(j); } catch (e) { toast(e.message, true); return; }
+  const H = window.BPHead || {}, vb = (b, l) => (H.verlaufKnopf ? H.verlaufKnopf(b, l) : '');
+  const html = () => `<div class="hint" style="margin:0 0 6px">Jetzt: ${kstZ(D.jetzt)}</div>
+    <div class="kst-l">${D.staende.map((x) => `<div class="kst${x.fest ? ' fest' : ''}" data-sid="${x.id}"><div><b>${x.fest ? '⭐ ' : ''}${esc(x.name)}</b><small>${kstDe(x.am)} · ${esc(x.von || '')} · ${kstZ(x.zahlen)}</small><div class="kst-d" hidden></div></div>
+      <div class="kst-a"><button type="button" class="btn sm" data-kv>Vergleichen</button>${D.admin ? `<button type="button" class="btn sm" data-kz>Zurückholen …</button><button type="button" class="btn sm" data-kf title="${x.fest ? 'Schutz aufheben' : 'Schützen – wird nie automatisch weggeräumt'}">${x.fest ? '☆' : '⭐'}</button>${x.fest ? '' : '<button type="button" class="btn sm" data-kx title="Löschen">✕</button>'}` : ''}</div></div>`).join('') || '<div class="hint">Noch kein gesicherter Stand.</div>'}</div>
+    <div class="sec">Automatisch bei jeder Änderung</div><div style="display:flex;gap:6px;flex-wrap:wrap">${vb('gs:library', 'Leistungen')}${vb('gs:phases', 'Abschnitte')}${vb('gs:catfirms', 'Firmen-Vorgaben')}${vb('gs:catscope', 'Bezug')}</div>
+    <div class="sec">Als Datei</div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><a class="btn sm" href="api/katalog/datei" download>⬇ Herunterladen</a>${D.admin ? '<label class="btn sm">⬆ Datei einlesen<input type="file" accept=".json,application/json" data-kdatei hidden></label><span class="hint">Eingelesene Dateien erscheinen oben als Stand – zurückgeholt wird erst auf Wunsch.</span>' : ''}</div>`;
+  const bg = modal('Leistungskatalog – Stände & Verlauf', `<div id="kstBox">${html()}</div>`, [{ label: 'Schließen', cls: 'primary', primary: true }]);
+  bg.querySelector('.modal').style.width = 'min(820px, 96vw)';
+  const neu = (d) => { if (d && d.staende) D.staende = d.staende; bg.querySelector('#kstBox').innerHTML = html(); };
+  const api2 = (u, m, b) => fetch(u, { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined }).then(j);
+  bg.addEventListener('change', async (e) => { const f = e.target.closest('[data-kdatei]'); if (!f || !f.files[0]) return;
+    const fd = new FormData(); fd.append('datei', f.files[0]);
+    try { neu(await fetch('api/katalog/datei', { method: 'POST', body: fd }).then(j)); toast('Datei als Stand abgelegt – mit „Zurückholen …“ übernehmen.'); } catch (er) { toast(er.message, true); } });
+  bg.addEventListener('click', async (e) => {
+    const row = e.target.closest('[data-sid]'); if (!row) return; const sid = row.dataset.sid, x = D.staende.find((y) => y.id === sid);
+    try {
+      if (e.target.closest('[data-kv]')) { const v = await fetch(`api/katalog/staende/${sid}/vergleich`).then(j), d = row.querySelector('.kst-d');
+        d.innerHTML = KST_TEILE.map(([k, l]) => { const z = v.seither[k]; return `<span>${l}: ${z.dazu || z.weg || z.anders ? `${z.dazu ? `<b class="pl">+${z.dazu}</b> seither dazu ` : ''}${z.weg ? `<b class="mi">−${z.weg}</b> seither weg ` : ''}${z.anders ? `~${z.anders} geändert` : ''}` : 'gleich'}</span>`; }).join('');
+        d.hidden = !d.hidden; return; }
+      if (e.target.closest('[data-kf]')) { neu(await api2(`api/katalog/staende/${sid}`, 'PUT', { fest: !x.fest })); return; }
+      if (e.target.closest('[data-kx]')) { if (!(await bpFrage(`Stand „${x.name}“ löschen?`, { ok: 'Löschen', gefahr: true }))) return; neu(await api2(`api/katalog/staende/${sid}`, 'DELETE')); return; }
+      if (e.target.closest('[data-kz]')) { bg.remove(); kstZurueck(x); }
+    } catch (er) { toast(er.message, true); }
+  });
+}
+async function kstZurueck(x) {
+  let v = null; try { v = await fetch(`api/katalog/staende/${x.id}/vergleich`).then(j); } catch { /* ohne Vergleich */ }
+  const zl = (k) => { const z = v && v.seither[k]; return z ? (z.dazu || z.weg || z.anders ? ` – seither ${[z.dazu ? z.dazu + ' dazu' : '', z.weg ? z.weg + ' weg' : '', z.anders ? z.anders + ' geändert' : ''].filter(Boolean).join(', ')}` : ' – gleich') : ''; };
+  modal(`„${x.name}“ zurückholen`, `<div class="hint" style="margin:0 0 8px">Gesichert ${kstDe(x.am)}. Vorher wird der jetzige Stand automatisch gesichert – zurück geht also jederzeit. Laufende Projektpläne ändern sich nicht.</div>
+    ${KST_TEILE.map(([k, l, t, an]) => `<label class="cb" style="display:flex;gap:8px;align-items:flex-start;margin:6px 0"><input type="checkbox" data-kt="${k}"${an ? ' checked' : ''}><span><b>${l}</b>${esc(zl(k))}<br><small class="hint">${t}</small></span></label>`).join('')}`,
+  [{ label: 'Zurückholen', cls: 'primary', primary: true, fn: (bg) => {
+    const teile = [...bg.querySelectorAll('[data-kt]:checked')].map((c) => c.dataset.kt); if (!teile.length) { toast('Bitte mindestens einen Teil wählen.', true); return false; }
+    fetch(`api/katalog/staende/${x.id}/zurueck`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teile }) }).then(j)
+      .then(async (r) => { await loadLibrary(); if (teile.includes('firmen') && typeof loadFirms === 'function') await loadFirms(); renderLib();
+        toast(`„${x.name}“ zurückgeholt${r.firmen ? ` (${r.firmen} Firmen)` : ''}. Der vorige Stand ist gesichert.`); })
+      .catch((er) => toast(er.message, true));
+  } }, { label: 'Abbrechen', fn: () => { setTimeout(kstListe, 0); } }]);
+}
+$('#libView').addEventListener('click', (e) => { const b = e.target.closest('[data-kst]'); if (!b) return; if (b.dataset.kst === 'sichern') kstSichern(); else kstListe(); });

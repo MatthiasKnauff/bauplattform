@@ -180,5 +180,13 @@
   "titel": "Honorar: Versionen",
   "text": "„＋ Jetzigen Stand speichern“ hält ein Angebot fest – je Auftrag oder für alle Aufträge des Projekts zusammen, jederzeit umstellbar. Jede Version hat ihr PDF, lässt sich zurückholen, und eine kann „gilt“ sein.",
   "ziel": "#hoV"
+ },
+ {
+  "id": "2026-11-11-katalog-staende",
+  "datum": "2026-11-11",
+  "app": "gantt",
+  "titel": "Leistungskatalog sichern",
+  "text": "Im Katalog: „💾 Stand sichern“ und „🕘 Stände & Verlauf“ – benannte Stände (⭐ geschützt), Vergleich mit jetzt, Zurückholen in Teilen (Leistungen, Abschnitte, Firmen-Vorgaben, Adressbuch), als Datei. Der Stand vor der Einführung ist schon gesichert.",
+  "ziel": "[data-kst]"
  }
 ]

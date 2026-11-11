@@ -123,3 +123,73 @@ def namen(name, text, kuerzel, heute=None):
     dazu(stamm)
     return [f"{x[:150].strip()}.{endung}" for x in out][:4]
 
+
+def routen(bp, user):
+    """Routen für alle Apps (aus bpcore/head.py eingebunden): /api/bp/ablage/vorschlag, /api/bp/ablage."""
+    import os, urllib.error, urllib.request
+    from flask import jsonify, request
+    from . import db, sso
+
+    def _bt_json(method, pfad, body=None):
+        with db.tx() as c:
+            tok = sso.current_token(request, c)
+        base = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/")
+        req = urllib.request.Request(base + pfad, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                     headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=90) as r:
+                return json.loads(r.read().decode() or "null") or {}
+        except urllib.error.HTTPError as e:
+            try:
+                msg = json.loads(e.read().decode() or "{}").get("error")
+            except ValueError:
+                msg = None
+            raise RuntimeError(msg or f"Bautagebuch antwortet mit Fehler {e.code}")
+        except urllib.error.URLError as e:
+            raise RuntimeError("Bautagebuch nicht erreichbar: " + str(e.reason)[:120])
+
+    @bp.post("/api/bp/ablage/vorschlag")
+    def bp_ablage_vorschlag():
+        """Hereingezogene Datei lesen → {erkannt:[{pfad, grund}], ordner:[alle Ordner], namen:[…], basis, kuerzel, plan}."""
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        f, pid = request.files.get("datei"), request.form.get("project_id", type=int)
+        if not f or not pid:
+            return jsonify(error="Datei oder Projekt fehlt"), 400
+        data = f.read(80 * 1024 * 1024)
+        text = pdf_anfang(data) if (f.filename or "").lower().endswith(".pdf") else ""
+        try:
+            b = _bt_json("GET", f"/api/ablage/ordnerbaum?project_id={pid}")
+            if not b.get("ok"):
+                return jsonify(error=b.get("error") or "Ablage nicht erreichbar"), 502
+            try:   # Pläne des Projekts (zwischengespeichert): frühere Stände desselben Plans finden
+                d = _bt_json("GET", f"/api/plaene/dateien?project_id={pid}")
+            except RuntimeError:
+                d = {}
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+        with db.tx() as c:
+            cf = plan_conf(c)
+        erkannt, nr = vorschlaege(f.filename or "", text, d.get("dateien") or [], b["ordner"], cf)
+        return jsonify(erkannt=erkannt, ordner=b["ordner"], basis=b.get("basis") or "", kuerzel=b.get("kuerzel") or "", plan=nr,
+                       text=bool(text.strip()), namen=namen(f.filename or "", text, b.get("kuerzel") or ""))
+
+    @bp.post("/api/bp/ablage")
+    def bp_ablage():
+        """Datei im gewählten Ordner ablegen, mit dem gewählten Namen (gleicher Name → „(2)“, nie überschreiben)."""
+        import base64
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        f, pid = request.files.get("datei"), request.form.get("project_id", type=int)
+        if not f or not pid:
+            return jsonify(error="Datei oder Projekt fehlt"), 400
+        ordner = [x for x in (request.form.get("ordner") or "").split("/") if x.strip()]
+        if not ordner:
+            return jsonify(error="Bitte einen Ordner wählen."), 400
+        name = (request.form.get("name") or f.filename or "Datei.pdf").strip()
+        try:
+            a = _bt_json("POST", "/api/ablage/datei", {"project_id": pid, "art": "datei", "name": name, "ordner": ordner,
+                                                       "datei": base64.b64encode(f.read(80 * 1024 * 1024)).decode()})
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+        return jsonify(ok=True, pfad=(a or {}).get("pfad") or "")

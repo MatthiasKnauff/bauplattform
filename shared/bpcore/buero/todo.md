@@ -77,6 +77,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Projektordner prüfen: Vorher zeigt rot durchgestrichen, was verschoben, umbenannt oder aufgelöst wird; Dateien stehen direkt unter ihrem Ordner (vor den Unterordnern) und wandern sichtbar mit~~
 - ~~Dokumente in jeder App ins Fenster ziehen → im Projektordner ablegen: Ordner mit allen Unterordnern (Suche), Namensvorschlag mit Kürzel bzw. Titel und Datum aus dem PDF (Baustein bp/ablegen.js, Kern bpcore/ablage.py)~~
 - ~~Kommunikation: Plotaufträge erscheinen als „Plotauftrag“ (🖨) statt als Planversand~~
+- ~~Kern: Datei-Ablage-Routen aus head.py nach bpcore/ablage.py (head.py war über der Grenze der Ordnungsprüfung)~~
 - ~~Übersicht/Widgets: je Block wählbar, wie viele Einträge er zeigt (5 · 10 · 20 · alle), gemerkt~~
 - ~~Stempel: Felder unter Büro-Einstellungen → Firma & Logo (Bürostempel, Prüfstempel, „Zahlbetrag siehe Anlage“), Einsetzen in der PDF-Vorschau leicht schräg~~
 - ~~AVA Neues LV → Kopie eines LV: erst Projekt, dann LV wählen (zwei Auswahlknöpfe mit Suche)~~

@@ -123,6 +123,10 @@ body.g-rahmen #gridPane::-webkit-scrollbar:vertical{width:0}   /* Plan und Diagr
 .tl-v{font:inherit;font-size:.85em;border:1px solid var(--line);background:none;color:inherit;border-radius:999px;padding:.1rem .6rem;cursor:pointer}.tl-v.on{background:var(--y);border-color:var(--y);color:var(--on,#111);font-weight:600}
 
 /* Fortschritt in der Befehlsleiste: Stufen und kleiner Schieber darunter */
-.g-pzl{align-self:center;padding:0 .3rem;flex:none;width:12.2rem;box-sizing:border-box}.bf-g:has(.g-pzl),.bf-g:has(.g-pzl) .bf-ks{flex:none;min-width:max-content}.g-pzl .bp-pz{gap:.1rem;width:100%;max-width:none}.g-pzl .bp-pz-s button{padding:.12rem .2rem;min-width:0;font-size:.8em}
-.g-pzl .bp-pz-r{gap:.3rem}.g-pzl .bp-pz-r input{height:.8rem}.g-pzl .bp-pz-r output{font-size:.75em;min-width:2.8em}
+.g-pzl{align-self:center;padding:0 .55rem 0 .35rem;flex:none;width:13.4rem;box-sizing:border-box}.bf-g:has(.g-pzl),.bf-g:has(.g-pzl) .bf-ks{flex:none;min-width:max-content}
+/* Leiste: oben Stufen und Wert nebeneinander, darunter der Schieber über die ganze Breite – passt in die Höhe der übrigen Knöpfe */
+.g-pzl .bp-pz{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.2rem .4rem;align-items:center;width:100%;max-width:none}
+.g-pzl .bp-pz-s{grid-column:1;grid-row:1}.g-pzl .bp-pz-s button{padding:.1rem .15rem;min-width:0;font-size:.76em;line-height:1.2}
+.g-pzl .bp-pz-r{display:contents}.g-pzl .bp-pz-r input{grid-column:1/-1;grid-row:2;height:.75rem;margin:0;width:100%}
+.g-pzl .bp-pz-r output{grid-column:2;grid-row:1;font-size:.78em;min-width:0;font-weight:600;color:var(--ink)}
 .g-pzl.aus{opacity:.45;pointer-events:none}

@@ -65,11 +65,12 @@ jobs:
         run: |
           IMAGE="${REGISTRY}/${{ matrix.app }}"
           SHORT="${GITHUB_SHA::7}"
-          TAGS="${IMAGE}:${SHORT}"
+          # Freigabe: nur v… und stable – NICHT die Kurzkennung, sonst überschreibt das Freigabe-Image (Version ohne „-test“)
+          # das Test-Image desselben Commits, und der Testserver verliert Wasserzeichen und Schutzanzeige
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            TAGS="${TAGS},${IMAGE}:${GITHUB_REF_NAME},${IMAGE}:stable"
+            TAGS="${IMAGE}:${GITHUB_REF_NAME},${IMAGE}:stable"
           else
-            TAGS="${TAGS},${IMAGE}:latest"
+            TAGS="${IMAGE}:${SHORT},${IMAGE}:latest"
           fi
           echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
@@ -112,7 +113,8 @@ jobs:
           fi
           echo "Vorlage: $SRC"
           cp "$SRC" rauchtest.yml
-          sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${GITHUB_SHA::7}#" rauchtest.yml
+          BILD="${GITHUB_SHA::7}"; [ "${GITHUB_REF_TYPE}" = "tag" ] && BILD="${GITHUB_REF_NAME}"   # das gerade gebaute Image
+          sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${BILD}#" rauchtest.yml
           sed -i '/^\s*external: true/d' rauchtest.yml     # frische, leere Volumes statt der vorhandenen Serverdaten
           grep -n "image: ${REGISTRY}" rauchtest.yml
           # Ollama (eigene KI) braucht mehrere GB Modelle – im Rauchtest nicht nötig

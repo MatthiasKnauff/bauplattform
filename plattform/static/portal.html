@@ -409,7 +409,7 @@ $('#raster').addEventListener('click', (e) => {
       onPick: (i) => {
         if (i.startsWith('h:')) { const L = rLayout(), it = L.find((r) => r.i === i.slice(2)); if (it) delete it.nur; rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); return; }
         if (i.startsWith('neu:')) { const t = i.slice(4), da = new Set(rLayout().map((r) => r.i)); let n = 2; while (da.has(`w:${t}.${n}`)) n++; i = `w:${t}.${n}`;
-          const L = rLayout(), [w, h] = t === 'kombi' ? [4, 5] : WX[t].d; L.push({ i, ...rFrei(L, w, h), w, h }); rSpeichern(L); if (t === 'kombi') KBOFFEN.add(i); }
+          const L = rLayout(), [w, h] = t === 'kombi' ? [4, 5] : WX[t].d; L.push({ i, ...rFrei(L, w, h), w, h }); rSpeichern(L); }
         RASTER.weg = [...rWeg()].filter((y) => y !== i); const L = rLayout(); rSpeichern(L); rasterZeigen(); if (TD) tdZeigen();
         const el = $('#raster').querySelector(`[data-ri="${CSS.escape(i)}"]`); if (el) { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el.classList.add('neu'); setTimeout(() => el.classList.remove('neu'), 1200); } } });
   }

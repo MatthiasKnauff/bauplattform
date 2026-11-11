@@ -331,7 +331,7 @@ function vgEintrag(v) {
   const d = (v.zeit || '').replace('T', ' '), F = v.dateien || [];
   if (v.art === 'abnahme') {   // Abnahme: öffnet den Ablauf (Entwurf weiter bearbeiten, unterschrieben ansehen/senden/Nachtrag) – kom-abnahme.js
     return `<div class="e vg"><a href="#v=${v.id}" class="ab-zeile" data-abn="${v.id}"><span class="ic">🏁</span><span class="h"><span class="art vg">${esc(v.art_name)}</span><b>${esc(v.titel || 'Abnahme')}</b></span>
-      <span class="z">${v.status === 'entwurf' ? '<span class="art mr">Entwurf</span>' : '✓ unterschrieben'}</span><span class="s">${esc(['von ' + v.von, F.filter((f) => f.mime.startsWith('image/')).length ? F.filter((f) => f.mime.startsWith('image/')).length + ' Fotos' : ''].filter(Boolean).join(' · '))}</span></a></div>`;
+      <span class="z">${v.status === 'entwurf' ? '<span class="art mr">Entwurf</span>' : '✓ unterschrieben'}</span><span class="s">${(v.unterschriften || []).length ? `<span class="kv-us">${v.unterschriften.map((u) => `<span class="${u.da ? 'da' : 'fehlt'}" title="${u.da ? 'unterschrieben' : 'nicht anwesend'}">${u.da ? '✍' : '–'} ${esc(u.rolle)}${u.name ? ' ' + esc(u.name) : ''}</span>`).join('')}</span>` : ''}${esc(['von ' + v.von, F.filter((f) => f.mime.startsWith('image/')).length ? F.filter((f) => f.mime.startsWith('image/')).length + ' Fotos' : ''].filter(Boolean).join(' · '))}</span></a></div>`;
   }
   return `<details class="e vg"><summary><span class="ic">${v.ic || '📝'}</span>
     <span class="h"><span class="art vg">${esc(v.art_name)}</span><b>${esc(v.titel || (v.text || '').slice(0, 80))}</b></span><span class="z">${uhr(v.zeit)}</span>

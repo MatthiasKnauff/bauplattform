@@ -4,7 +4,8 @@
 
    BPHead.versand({
      titel,                                   Überschrift („Pläne versenden“)
-     was: [{ icon, name, sub, pdf }],         Dokumente; pdf = URL oder async () => Blob – dann „PDF ansehen“ mit ✍ Unterschreiben
+     was: [{ icon, name, sub, pdf, ohneUnterschrift }],   Dokumente; pdf = URL oder async () => Blob – dann „PDF ansehen“ mit ✍ Unterschreiben
+                                              (ohneUnterschrift: nur ansehen – z. B. wenn der Server die Unterschrift selbst einsetzt)
      hinweis,                                 HTML unter „Was“ (z. B. Warnung)
      empfaenger: [{ name, sub, email, contact_id, on }],   als Chips; ohne E-Mail nicht wählbar
      einer,                                   true = genau ein Empfänger (Abnahme an die Firma)
@@ -56,7 +57,7 @@
       const pdfDa = (o.was || []).some((d) => d.pdf);
       bg.innerHTML = `<div class="bpv" role="dialog" aria-label="${esc(o.titel)}"><div class="bpv-k"><h3>${esc(o.titel)}</h3><button type="button" class="bpv-x" data-v="x" aria-label="Schließen">✕</button></div>
         <div class="bpv-b">
-          ${(o.was || []).length ? `<div class="bpv-a"><b>Was</b><div style="display:grid;gap:.35rem">${o.was.map((d, k) => `<div class="bpv-d"><span class="i">${d.icon || '📄'}</span><span class="t">${esc(d.name)}${d.sub ? `<small>${esc(d.sub)}</small>` : ''}</span>${d.pdf ? `<button type="button" data-v="pdf" data-k="${k}">✍ ansehen & unterschreiben</button>` : ''}</div>`).join('')}${o.hinweis || ''}</div></div>` : ''}
+          ${(o.was || []).length ? `<div class="bpv-a"><b>Was</b><div style="display:grid;gap:.35rem">${o.was.map((d, k) => `<div class="bpv-d"><span class="i">${d.icon || '📄'}</span><span class="t">${esc(d.name)}${d.sub ? `<small>${esc(d.sub)}</small>` : ''}</span>${d.pdf ? `<button type="button" data-v="pdf" data-k="${k}">${d.ohneUnterschrift ? '📄 ansehen' : '✍ ansehen & unterschreiben'}</button>` : ''}</div>`).join('')}${o.hinweis || ''}</div></div>` : ''}
           <div class="bpv-a" data-teil="an"><b>An wen</b><div><div class="bpv-c" data-chips></div>${o.zusatz === false ? '' : `<div class="bpv-neu"><input type="email" data-neu placeholder="＋ weitere E-Mail-Adresse oder Name aus den Adressen …" list="bpvL" inputmode="email" autocomplete="off"><datalist id="bpvL"></datalist></div>`}</div></div>
           ${o.wie ? `<div class="bpv-a"><b>Wie</b><div><div class="bph-seg" role="radiogroup">${o.wie.werte.map(([v, l]) => `<button type="button" role="radio" data-wie="${v}">${esc(l)}</button>`).join('')}</div><p class="bpv-h" data-wh></p></div></div>` : ''}
           ${o.betreff != null || o.text != null ? `<div class="bpv-a" data-teil="msg"><b>Nachricht</b><div class="bpv-f">${o.betreff != null ? `<input data-betreff value="${esc(o.betreff)}" aria-label="Betreff">` : ''}${o.text != null ? `<textarea data-text aria-label="Text">${esc(o.text)}</textarea>` : ''}${o.textHilfe ? `<p class="bpv-h">${o.textHilfe}</p>` : ''}</div></div>` : ''}
@@ -98,7 +99,7 @@
           const k = +b.dataset.k, d = o.was[k]; let url = d.pdf;
           try { if (typeof url === 'function') { const x = await url(); url = x instanceof Blob ? URL.createObjectURL(x) : x; } } catch (er) { if (window.toast) toast(er.message, true); return; }
           if (SIG[k]) url = URL.createObjectURL(SIG[k]);
-          H.ansehen([{ url, name: d.name, typ: 'pdf', beiUnterschrift: (blob) => { SIG[k] = blob; const z = bg.querySelectorAll('.bpv-d')[k]; const kb = z && z.querySelector('button'); if (kb) kb.outerHTML = '<span class="bpv-ok">✓ unterschrieben</span>'; } }]);
+          H.ansehen([{ url, name: d.name, typ: 'pdf', beiUnterschrift: d.ohneUnterschrift ? undefined : (blob) => { SIG[k] = blob; const z = bg.querySelectorAll('.bpv-d')[k]; const kb = z && z.querySelector('button'); if (kb) kb.outerHTML = '<span class="bpv-ok">✓ unterschrieben</span>'; } }]);
           return;
         }
         if (b.dataset.v !== 'ok') return;

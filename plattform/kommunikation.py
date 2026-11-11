@@ -443,7 +443,19 @@ def _vorgang_zeile(c, x):
     n, ic, _ = ("Nachtrag zur Abnahme" if x["bezug"] else "Abnahme", "🏁", "") if x["art"] == "abnahme" else vorgang.ARTEN.get(x["art"], vorgang.ARTEN["sonst"])
     return {"status": x["status"], "id": x["id"], "project_id": x["project_id"], "art": x["art"], "art_name": n, "ic": ic, "titel": x["titel"], "text": x["text"],
             "beteiligte": x["beteiligte"], "zeit": x["zeit"], "ort": x["ort"], "frist": x["frist"], "todo_id": x["todo_id"], "an": an,
-            "gesendet": x["gesendet"], "von": x["erstellt_name"], "dateien": [{"id": d["id"], "name": d["name"], "mime": d["mime"], "groesse": d["groesse"]} for d in D]}
+            "gesendet": x["gesendet"], "von": x["erstellt_name"], "dateien": [{"id": d["id"], "name": d["name"], "mime": d["mime"], "groesse": d["groesse"]} for d in D],
+            "unterschriften": _unterschriften(x) if x["art"] == "abnahme" else []}
+
+
+def _unterschriften(x):
+    """Abnahme: wer unterschrieben hat (Rolle, Name) bzw. nicht anwesend war – für die Liste."""
+    try:
+        U = (json.loads(x["daten"] or "{}") or {}).get("unterschriften") or {}
+    except ValueError:
+        return []
+    kurz = {"ag": "AG", "an": "AN", "arch": "Arch./Ing."}
+    return [{"rolle": kurz.get(r, r), "name": str((u or {}).get("name") or "")[:80], "da": bool((u or {}).get("png")), "fehlt": bool((u or {}).get("fehlt"))}
+            for r in ("ag", "an", "arch") for u in [U.get(r)] if u]
 
 
 @app.get("/api/vorgaenge")

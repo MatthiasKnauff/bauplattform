@@ -52,3 +52,5 @@ a.ab-zeile{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;gap:.1rem 
   .ab-st button{font-size:0;gap:0}.ab-st button i{font-size:.75rem}.ab-st button.on{font-size:.82rem;gap:.35rem}
   .ab-2{grid-template-columns:1fr}.ab-us{grid-template-columns:1fr}.ab-u{min-height:5.5rem}
 }
+/* Liste der Kommunikation: wer unterschrieben hat */
+.kv-us{display:flex;flex-wrap:wrap;gap:.25rem .6rem;margin-bottom:.15rem}.kv-us span{white-space:nowrap}.kv-us .da{color:var(--ok,#1e8a4c)}.kv-us .fehlt{color:var(--mute);text-decoration:line-through}

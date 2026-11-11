@@ -21,7 +21,6 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 10. Honorar: Versionen je Auftrag wie in Baukosten/AVA – „Neues Angebot“ kopiert die Version, eine Version „gilt“ (beauftragt), PDF mit Versionsnamen – wartet auf: je Auftrag oder je Projekt. **ca. 3–4 h**
 11. Verträge: Architekten-/Ingenieurvertrag aus Honorar, Auftragsschreiben/Bauvertrag aus der AVA-Vergabe, auf dem Briefbogen; Ablage in einem eigenen Vertragsverzeichnis, Zugangsdaten trägt der Geschäftsführer selbst ein (nie im Browser sichtbar) – wartet auf: eigene Freigabe oder geschützter Unterordner; erst Mock. **ca. 2–3 Tage**
 12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
-15. Versanddialog: Planversand, Plotauftrag, Rügen auf BPHead.versand umstellen (unterschriebenes PDF mitsenden). **ca. 1 Tag**
 14. Unterschreiben – Rest: freigegebene Unterschriften (GF i. V.), „Auf dem Handy unterschreiben“ per QR vom PC, unterschriebenes PDF direkt in Versand/Ablage der App übernehmen, Eintrag im Verlauf – wartet auf deine Entscheidung. **ca. 1 Tag**
 13. Widget „Datei ablegen“ auf der Startseite: Kopierer-Ordner immer überwachen, Scans lesen und in die Projektdokumente ablegen – wartet auf: vorschlagen oder selbst ablegen; erst Mock. **ca. 1–1,5 Tage**
 
@@ -61,6 +60,8 @@ Summe Sammlung (offen): ca. 15–19 Tage.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 3–6 Monate**
 
 ## Erledigt
+- ~~Versanddialog: Planversand, Plotauftrag, Mängel- und Terminrügen auf den gemeinsamen Dialog umgestellt (Versandart bei Rügen erst am Ende)~~
+- ~~Kommunikation: bei der Abnahme steht in der Liste, wer unterschrieben hat~~
 - ~~Gemeinsamer Versanddialog (BPHead.versand, Baustein versand.js) – Abnahme umgestellt~~
 - ~~Markieren: beim Fertig und beim Schließen klare Frage „behalten?“, Rückmeldung; in der Planliste „📌 markiert“~~
 - ~~Neuigkeiten: Rundgang und Überblick größer~~

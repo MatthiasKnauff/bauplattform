@@ -322,7 +322,6 @@ async function truegeDialog(k, nur) {
     <label class="w">${(V.verzug || []).length || V.tage.length ? 'Weiterer Rückstand (optional, je Zeile ein Punkt)' : 'Rückstand – was ist in Verzug? (je Zeile ein Punkt)'}</label><textarea class="w" id="tX" rows="3" placeholder="z. B. Estricharbeiten EG sollten bis 06.11. fertig sein, bisher nicht begonnen"></textarea>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tK" checked> Auftragsentziehung nach § 8 Abs. 3 androhen (nötig, um nach Fristablauf kündigen zu können)</label>
     ${V.tage.length ? '<label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="tB" checked> nicht bestätigte Tage als „nicht da“ übernehmen</label>' : ''}
-    ${versandHtml(KONTO, E0.email)}
     <p class="w mute" style="font-size:.82rem;margin:0">Setzt voraus, dass der Bauzeitenplan bzw. die Ausführungsfristen vertraglich vereinbart sind (VOB/B § 5). Im nächsten Schritt lässt sich das Schreiben bearbeiten, danach drucken oder versenden. Der Mustertext ersetzt keine Rechtsberatung.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter: Schreiben bearbeiten</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -331,12 +330,12 @@ async function truegeDialog(k, nur) {
     const ids = [...bg.querySelectorAll('[data-td]:checked')].map((x) => x.dataset.td), vids = [...bg.querySelectorAll('[data-tv]:checked')].map((x) => x.dataset.tv);
     const frei = bg.querySelector('#tX').value.trim();
     if (!ids.length && !vids.length && !frei) { toast('Bitte mindestens einen Tag oder Vorgang wählen oder den Rückstand beschreiben.', true); return; }
-    const vs = versandRead(bg); if (!vs) return;
+    const vs = { versand: (KONTO && KONTO.versand) || 'pdf', email: E0.email || '', kopie: !!(KONTO && KONTO.kopie) };   // gewählt wird beim Versand (gemeinsamer Dialog)
     const body = { ...vs, pid, firma, ids, vids, frei, frist: bg.querySelector('#tF').value, auftrag: bg.querySelector('#tA').value.trim(), kuendigung: bg.querySelector('#tK').checked, fehlt_bestaetigen: !!(bg.querySelector('#tB') || {}).checked,
       empfaenger: { id: bg.querySelector('#tN').value.trim() === E0.name ? E0.id : null, name: bg.querySelector('#tN').value.trim(), person: bg.querySelector('#tP').value.trim(), strasse: bg.querySelector('#tS').value.trim(), ort: bg.querySelector('#tO').value.trim() } };
     try { await briefStart('api/terminruege', body, 'Terminrüge', close); } catch (e) { toast(e.message, true); }
   });
-  bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg); adrBind(bg, 't');
+  bg.querySelector('.modal').style.width = 'min(720px,100%)'; adrBind(bg, 't');
 }
 
 /* ---------- Mängel ---------- */
@@ -499,26 +498,6 @@ document.addEventListener('input', (e) => { if (e.target.id === 'mq') { F.q = e.
 /* ---------- Versand einer Rüge: nur PDF, per Mail an mich (zum Weiterleiten) oder direkt an die Firma ---------- */
 let KONTO = null;
 async function konto() { try { KONTO = await api('api/bp/konto'); } catch { KONTO = { versand: 'pdf', kopie: true, signatur: false, email: '', mail: false }; } return KONTO; }
-function versandHtml(K, mailFirma) {
-  return `<label>Versand</label><div><div class="bph-seg" role="radiogroup" aria-label="Versand">${[['pdf', 'nur PDF'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']].map(([v, l]) => `<button type="button" role="radio" data-vv="${v}" class="${(K.versand || 'pdf') === v ? 'on' : ''}" aria-checked="${(K.versand || 'pdf') === v}">${l}</button>`).join('')}</div><input type="hidden" id="vV" value="${esc(K.versand || 'pdf')}"></div>
-    <label class="vF">E-Mail der Firma</label><input class="vF" id="vM" type="email" value="${esc(mailFirma || '')}" placeholder="aus den Adressen – sonst hier eintragen">
-    <label class="vF"></label><label class="chk vF" style="color:var(--ink)"><input type="checkbox" id="vC"${K.kopie ? ' checked' : ''}> Kopie an mich${K.email ? ` (${esc(K.email)})` : ''}</label>
-    <p class="w mute" style="font-size:.82rem;margin:0">${K.signatur ? 'Deine Unterschrift wird eingefügt.' : 'Noch keine Unterschrift hinterlegt –'} <a href="#" data-kontolink>Unterschrift, E-Mail & Kalender</a>${K.mail ? '' : ' · Der Mailserver ist noch nicht eingerichtet.'}</p>`;
-}
-function versandBind(bg) {
-  const upd = () => { const f = bg.querySelector('#vV').value === 'firma'; bg.querySelectorAll('.vF').forEach((x) => { x.style.display = f ? '' : 'none'; }); };
-  bg.querySelectorAll('[data-vv]').forEach((b) => b.addEventListener('click', () => {
-    bg.querySelector('#vV').value = b.dataset.vv; bg.querySelectorAll('[data-vv]').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); }); upd();
-  }));
-  upd();
-  bg.querySelector('[data-kontolink]').addEventListener('click', (e) => { e.preventDefault(); window.BPHead && BPHead.konto(); });
-}
-function versandRead(bg) {
-  const v = bg.querySelector('#vV').value;
-  if (v === 'firma' && !/@/.test(bg.querySelector('#vM').value)) { toast('Bitte die E-Mail-Adresse der Firma eintragen.', true); return null; }
-  if (v === 'mich' && !(KONTO && KONTO.email)) { toast('Für dein Konto ist keine E-Mail-Adresse hinterlegt.', true); return null; }
-  return { versand: v, email: bg.querySelector('#vM').value.trim(), kopie: bg.querySelector('#vC').checked };
-}
 async function pdfHolen(url, body, titel, w, datei) {   // PDF erzeugen, im vorab geöffneten Fenster zeigen, Ergebnis des Mailversands melden
   let opt = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
   if (datei) { const fd = new FormData(); fd.append('body', JSON.stringify(body)); fd.append('signiert', datei); opt = { method: 'POST', body: fd }; }   // mit sign-me unterschrieben
@@ -585,32 +564,35 @@ async function briefEditor(url, body, titel, E, bid) {
   });
   const f0 = F.Text || Object.values(F)[0]; if (f0) f0.focus();
 }
-async function briefFertig(url, body, titel, bid, schonGespeichert) {   // gespeicherte Fassung: drucken und/oder versenden – beides ohne Formularfelder
+async function briefFertig(url, body, titel, bid, schonGespeichert) {   // gespeicherte Fassung → gemeinsamer Versanddialog (nur PDF · an mich · an die Firma)
   if (!schonGespeichert) {   // auf dem Server ablegen – bleibt unter „Entwürfe“, bis es versendet ist
     try { bid = (await api('api/briefe', 'POST', { id: bid, titel, url, body })).id; ladeBriefe(); } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message, true); }
   }
-  const lab = { mich: '✉ An mich senden', firma: '✉ An die Firma senden', pdf: '✓ Abschließen (selbst zustellen)' }[body.versand] || '✉ Versenden';
-  const wohin = { mich: `per E-Mail an dich (${esc((KONTO && KONTO.email) || '')}) zum Weiterleiten`, firma: `per E-Mail an ${esc(body.email || '')}${body.kopie ? ' (Kopie an dich)' : ''}`, pdf: 'nicht per E-Mail – du stellst sie selbst zu (Einschreiben, Bote) und sie wird im Verlauf der Firma eingetragen' }[body.versand] || '';
-  modalBox(`<h3>${esc(titel)} ist gespeichert</h3>
-    <p>Du findest sie jederzeit oben unter <b>Entwürfe</b> wieder – zum Weiterbearbeiten, Drucken oder Versenden. Ausdruck und Versand enthalten keine Eingabefelder.</p>
-    <p class="mute" style="font-size:.88rem">Versand: ${wohin}.</p>
-    <div class="acts" style="flex-wrap:wrap"><button class="btn" data-m="edit">✎ Weiter bearbeiten</button><button class="btn" data-m="druck">🖨 Drucken / PDF</button>${SIGNME ? '<button class="btn" data-m="signme" title="Qualifiziert elektronisch unterschreiben im sign-me-Portal von D-Trust">✍ Mit sign-me unterschreiben</button>' : ''}<span style="flex:1"></span>
-      <button class="btn" data-m="x">Schließen</button><button class="btn pri" data-m="senden">${lab}</button></div>`, async (m, bg, close) => {
-    if (m === 'x') { close(); return; }
-    if (m === 'edit') { try { const r = await api(url, 'POST', { ...body, schritt: 'entwurf' }); close(); briefEditor(url, body, titel, r, bid); } catch (e) { toast(e.message, true); } return; }
-    if (m === 'signme') { close(); signmeDialog(url, body, titel, bid); return; }
-    const w = window.open('', '_blank'); if (w) w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(titel)} …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">${esc(titel)} wird erstellt …</body>`);
-    try {
-      if (m === 'druck') {
-        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, schritt: 'drucken' }) });
-        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
-        const href = URL.createObjectURL(await r.blob());
-        if (w && !w.closed) { w.location.href = href; setTimeout(() => { try { w.print(); } catch { /* Betrachter druckt selbst */ } }, 1200); } else window.open(href, '_blank');
-        return;
-      }
-      await pdfHolen(url, { ...body, schritt: 'senden' }, titel, w);
-      close(); await briefWeg(bid); reload();
-    } catch (e) { if (w && !w.closed) w.close(); toast(e.message, true); }
+  if (!KONTO) await konto();
+  const E = body.empfaenger || {};
+  const holen = async () => { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, schritt: 'drucken' }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); } return r.blob(); };
+  await BPHead.versand({
+    titel: titel + ' versenden',
+    was: [{ icon: /Termin/.test(titel) ? '⏱' : '⚠', name: `${titel} ${E.name || ''}`.trim(), sub: (KONTO.signatur ? 'mit deiner Unterschrift · ' : '') + 'gespeichert unter „Entwürfe“', pdf: holen, ohneUnterschrift: true }],
+    empfaenger: [{ name: E.name || 'Firma', sub: E.person || '', email: body.email || '', contact_id: E.id || undefined, on: true }], einer: true,
+    wie: { werte: [['pdf', 'nur PDF – selbst zustellen'], ['mich', 'per E-Mail an mich'], ['firma', 'direkt an die Firma']], wert: body.versand || KONTO.versand || 'pdf', email: KONTO.email },
+    kopie: body.kopie !== undefined ? !!body.kopie : !!KONTO.kopie,
+    optionen: `<button type="button" class="btn sm" data-bfx="edit">✎ Weiter bearbeiten</button>${SIGNME ? '<button type="button" class="btn sm" data-bfx="signme" title="Qualifiziert elektronisch unterschreiben im sign-me-Portal von D-Trust">✍ Mit sign-me unterschreiben</button>' : ''}`,
+    optionenBind: (box) => box.addEventListener('click', async (e) => {
+      const x = e.target.closest('[data-bfx]'); if (!x) return;
+      box.querySelector('[data-v="x"]').click();
+      if (x.dataset.bfx === 'signme') { signmeDialog(url, body, titel, bid); return; }
+      try { const r = await api(url, 'POST', { ...body, schritt: 'entwurf' }); briefEditor(url, body, titel, r, bid); } catch (er) { toast(er.message, true); }
+    }),
+    fuss: () => 'Bleibt unter „Entwürfe“, bis es versendet ist · nichts geht automatisch raus',
+    knopf: (w) => (w === 'pdf' ? '✓ Abschließen' : w === 'mich' ? '✉ An mich senden' : '✉ An die Firma senden'),
+    senden: async (W) => {
+      const w = window.open('', '_blank'); if (w) w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(titel)} …</title><body style="font:16px system-ui;display:grid;place-items:center;height:90vh;color:#555">${esc(titel)} wird erstellt …</body>`);
+      const b2 = { ...body, versand: W.wie, email: (W.an[0] || {}).email || body.email || '', kopie: W.kopie };
+      try { await pdfHolen(url, { ...b2, schritt: 'senden' }, titel, w); } catch (er) { if (w && !w.closed) w.close(); throw er; }
+      await briefWeg(bid); reload();
+    },
   });
 }
 
@@ -718,7 +700,6 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     <label class="w" for="rX">${V.maengel.length ? 'Weitere Mängel selbst eintragen' : 'Mängel eintragen'} <span class="mute" style="font-weight:400">– eine Zeile je Mangel</span></label><textarea class="w" id="rX" rows="${V.maengel.length ? 2 : 4}" placeholder="z. B. Fenster 2. OG links: Dichtung fehlt"></textarea>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rB" checked> Fotos als Anlage anhängen</label>
     <label></label><label class="chk" style="color:var(--ink)"><input type="checkbox" id="rT" checked> Frist bei den Mängeln eintragen (Erinnerung am Fristende)</label>
-    ${versandHtml(KONTO, E.email)}
     <p class="w mute" style="font-size:.82rem;margin:0">Im nächsten Schritt öffnet sich das Schreiben zum Bearbeiten: Empfänger, Datum, Betreff, Anschreiben, Mängelliste, Frist und Gruß lassen sich ändern. Nach dem Speichern wird gedruckt oder versendet – ohne Eingabefelder. Der Mustertext folgt der VOB/B und ersetzt keine Rechtsberatung – die VOB/B muss im Vertrag vereinbart sein.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter: Schreiben bearbeiten</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -726,13 +707,13 @@ async function ruegeDialog(id, ohne = {}) {   // id: Ausgangseintrag · ohne Ein
     if (m === 'ok') {
       const ids = [...bg.querySelectorAll('[data-rm]:checked')].map((x) => +x.dataset.rm), frei = bg.querySelector('#rX').value.trim();
       if (!ids.length && !frei) { fehlerAm(bg, bg.querySelector('#rX'), 'Bitte mindestens einen Mangel anhaken oder selbst eintragen.'); return; }
-      const vs = versandRead(bg); if (!vs) return;
+      const vs = { versand: (KONTO && KONTO.versand) || 'pdf', email: E.email || '', kopie: !!(KONTO && KONTO.kopie) };   // gewählt wird beim Versand (gemeinsamer Dialog)
       const body = { ...vs, ids, frei, pid: V.pid, frist: bg.querySelector('#rF').value, grund: bg.querySelector('#rG').value, auftrag: bg.querySelector('#rA').value.trim(), kuendigung: bg.querySelector('#rK').checked, fotos: bg.querySelector('#rB').checked, frist_eintragen: bg.querySelector('#rT').checked,
         empfaenger: { id: bg.querySelector('#rN').value.trim() === E.name ? E.id : null, name: bg.querySelector('#rN').value.trim(), person: bg.querySelector('#rP').value.trim(), strasse: bg.querySelector('#rS').value.trim(), ort: bg.querySelector('#rO').value.trim() } };
       try { await briefStart('api/maengelruege', body, 'Mängelrüge', close); } catch (e) { toast(e.message, true); }
     }
   });
-  bg.querySelector('.modal').style.width = 'min(720px,100%)'; versandBind(bg); adrBind(bg, 'r');
+  bg.querySelector('.modal').style.width = 'min(720px,100%)'; adrBind(bg, 'r');
   const rg = bg.querySelector('#rG'), kw = () => { bg.querySelector('#rKw').style.display = rg.value === 'vob4' ? '' : 'none'; };
   rg.addEventListener('change', kw); kw();
 }

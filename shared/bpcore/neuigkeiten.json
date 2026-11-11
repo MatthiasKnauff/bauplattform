@@ -1,10 +1,17 @@
 [
  {
-  "id": "2026-11-11-versand-abnahme",
+  "id": "2026-11-11-abnahme-wer",
   "datum": "2026-11-11",
   "app": "kommunikation",
-  "titel": "Neuer Versanddialog",
-  "text": "Die Abnahme wird jetzt mit dem neuen Versanddialog verschickt: Was → An wen (Firmen als Chips) → Wie → Nachricht. Planversand, Plotauftrag und Rügen folgen im selben Aufbau."
+  "titel": "Wer hat unterschrieben?",
+  "text": "In der Liste steht bei jeder Abnahme, wer unterschrieben hat – AG, AN, Architekt mit Namen; wer nicht anwesend war, ist durchgestrichen."
+ },
+ {
+  "id": "2026-11-11-versanddialog",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Ein Versanddialog für alles",
+  "text": "Planversand, Plotauftrag, Mängel- und Terminrügen und die Abnahme gehen jetzt über denselben Dialog: Was → An wen (Firmen als Chips) → Wie (nur PDF · an mich · direkt) → Nachricht → Optionen. Bei Rügen wählst du die Versandart erst am Ende, nach dem Bearbeiten. Am Handy im Vollbild."
  },
  {
   "id": "2026-11-11-markierung-behalten",

@@ -7,7 +7,7 @@ const STUFEN = ['anfrage', 'angebot', 'beauftragt', 'vertrag', 'abrechnung', 'ab
 const STUFE_GRUPPE = { anfrage: 'Anfragen', angebot: 'Angebote', beauftragt: 'Beauftragt', vertrag: 'Vertrag', abrechnung: 'In Abrechnung', abgeschlossen: 'Abgeschlossen', abgelehnt: 'Abgelehnt' };
 const STUFE_FARBE = { anfrage: 'var(--warn,#b7791f)', angebot: 'var(--y)', beauftragt: 'var(--ok,#1e8a4c)', vertrag: 'var(--ok,#1e8a4c)', abrechnung: 'var(--ok,#1e8a4c)', abgeschlossen: 'var(--mute)', abgelehnt: 'var(--red)' };
 const WEGE = { mail: 'Mail', telefon: 'Telefon', persoenlich: 'persönlich', brief: 'Brief' };
-const DURCH = { schreiben: 'Auftragsschreiben', mail: 'Mail', muendlich: 'mündlich', vertrag: 'direkt mit Vertrag' };
+const DURCH = { schreiben: 'Schreiben', mail: 'Mail', muendlich: 'mündlich', vertrag: 'mit Vertrag' };
 const deD = (t) => (t && t.length >= 10 ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 const heuteIso = () => new Date().toISOString().slice(0, 10);
 const plusTage = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };

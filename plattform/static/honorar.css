@@ -90,3 +90,4 @@ body.ho-handy #view{padding:0 0 3rem}
 .hab-a{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:.6rem}.hab-sp{font-size:.75rem}
 .hab-ck{flex-direction:row!important;align-items:center;gap:.4rem!important;color:var(--ink)!important}.hab-ck input{width:auto!important;accent-color:var(--y)}
 .hab-h{font-size:.78rem;color:var(--mute);align-self:center}.hab-h.warn{color:var(--warn,#b7791f);font-weight:600}
+.hab-k .seg{flex-wrap:wrap;max-width:100%;border-radius:calc(14px*var(--rkp,1))}.hab-k .seg button{padding:.28rem .6rem}   /* Ablauf-Karten: Auswahl bricht um statt überzulaufen */

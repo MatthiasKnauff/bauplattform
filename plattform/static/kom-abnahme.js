@@ -127,36 +127,17 @@ async function abnahmeOeffnen(id, A0, V0) {
     const T = S.d.teilnehmer || {}, u = (S.d.unterschriften || {})[r] || {};
     const el = document.createElement('div'); el.className = 'ab-sig';
     el.innerHTML = `<div class="ab-sk"><b>Unterschrift – ${ROLLE[r]}</b><input value="${esc(u.name || T[r] || '')}" placeholder="Name" aria-label="Name"></div>
-      <div class="ab-pad"><canvas></canvas><span class="ab-linie"></span><span class="ab-quer">Tipp: Handy quer halten</span></div>
+      <div class="ab-pad"><canvas></canvas><span class="ab-linie"></span></div>
       <div class="ab-sb"><button type="button" class="btn" data-s="x">Abbrechen</button><button type="button" class="btn" data-s="neu">Neu</button><button type="button" class="btn" data-s="fehlt">nicht anwesend</button><button type="button" class="btn pri" data-s="ok">Übernehmen</button></div>`;
     document.body.appendChild(el);
-    const cv = el.querySelector('canvas'), ctx = cv.getContext('2d'), Z = [];   // Z: Striche [[x,y]…] in Bildschirmpunkten
-    let akt = null;
-    const groesse = () => { const b = cv.getBoundingClientRect(), k = devicePixelRatio || 1; cv.width = b.width * k; cv.height = b.height * k; ctx.setTransform(k, 0, 0, k, 0, 0); malen(); };
-    function malen() {
-      ctx.clearRect(0, 0, cv.width, cv.height); ctx.strokeStyle = '#1c3a8a'; ctx.lineWidth = 2.6; ctx.lineCap = ctx.lineJoin = 'round';
-      for (const s of Z) { ctx.beginPath(); s.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); if (s.length === 1) ctx.lineTo(s[0][0] + 0.1, s[0][1]); ctx.stroke(); }
-    }
-    const pt = (e) => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
-    cv.addEventListener('pointerdown', (e) => { e.preventDefault(); cv.setPointerCapture(e.pointerId); akt = [pt(e)]; Z.push(akt); malen(); });
-    cv.addEventListener('pointermove', (e) => { if (!akt) return; e.preventDefault(); akt.push(pt(e)); malen(); });
-    const ende = () => { akt = null; };
-    cv.addEventListener('pointerup', ende); cv.addEventListener('pointercancel', ende);
-    addEventListener('resize', groesse); requestAnimationFrame(groesse);
-    const zu = () => { removeEventListener('resize', groesse); el.remove(); };
-    function png() {   // nur der beschriebene Bereich, höchstens 600 px breit
-      const P = Z.flat(); if (P.length < 4) return '';
-      const xs = P.map((p) => p[0]), ys = P.map((p) => p[1]), x0 = Math.min(...xs) - 6, y0 = Math.min(...ys) - 6, w = Math.max(...xs) - x0 + 6, h = Math.max(...ys) - y0 + 6;
-      const f = Math.min(1, 600 / w) * 1, o = document.createElement('canvas'); o.width = Math.ceil(w * f); o.height = Math.ceil(h * f);
-      const c2 = o.getContext('2d'); c2.scale(f, f); c2.translate(-x0, -y0); c2.strokeStyle = '#1c3a8a'; c2.lineWidth = 2.6; c2.lineCap = c2.lineJoin = 'round';
-      for (const s of Z) { c2.beginPath(); s.forEach(([x, y], i) => (i ? c2.lineTo(x, y) : c2.moveTo(x, y))); c2.stroke(); }
-      return o.toDataURL('image/png');
-    }
+    const F = window.bpUnterschrift.flaeche(el.querySelector('canvas')), frei = window.bpUnterschrift.quer(el);   // gemeinsamer Baustein: Tinte wie mit dem Füller, Querformat
+    const zu = () => { F.weg(); frei(); el.remove(); };
+    const png = () => F.png(600);
     el.addEventListener('click', (e) => {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const name = el.querySelector('input').value.trim(), zeit = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 19);
       if (b.dataset.s === 'x') return zu();
-      if (b.dataset.s === 'neu') { Z.length = 0; malen(); return; }
+      if (b.dataset.s === 'neu') { F.leer(); return; }
       const U = { ...(S.d.unterschriften || {}) };
       if (b.dataset.s === 'fehlt') U[r] = { fehlt: true, name, zeit };
       else { const p = png(); if (!p) { toast('Bitte zuerst unterschreiben.', true); return; } U[r] = { png: p, name, zeit }; }

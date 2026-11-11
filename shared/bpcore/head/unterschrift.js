@@ -26,45 +26,89 @@
 .bpu-pad .f{flex:1;min-height:160px;position:relative;background:#fff;border-radius:calc(12px*var(--rk,1));border:1px solid var(--line,#ccc);overflow:hidden}
 .bpu-pad canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .bpu-pad .li{position:absolute;left:8%;right:8%;bottom:28%;border-bottom:1px dashed #9aa;pointer-events:none}
-.bpu-pad .q{position:absolute;left:0;right:0;top:.6rem;text-align:center;color:#999;font-size:.8rem;pointer-events:none}@media (orientation:landscape){.bpu-pad .q{display:none}}
+.bpu-quer.gedreht{inset:auto!important;top:0!important;left:var(--qx)!important;width:var(--qw)!important;height:var(--qh)!important;max-width:none!important;max-height:none!important;transform-origin:top left;transform:rotate(90deg);box-sizing:border-box}
 .bpu-pad .a{display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap}`;
   document.head.appendChild(css);
   const TOUCH = () => matchMedia('(pointer:coarse)').matches;
   const heute = () => new Date().toLocaleDateString('de-DE');
 
-  /* Unterschriftsfeld im Vollbild (Finger oder Stift) → PNG-Blob mit durchsichtigem Grund, beschnitten */
+  /* Tinte wie mit dem Füller: Strichstärke aus dem Tempo (schnell = dünn), beim Stift aus dem Druck; weiche Kurven durch die Mittelpunkte.
+     flaeche(canvas) → { leer(), hat(), png(maxW) → dataURL, blob() → Promise<Blob> }. Striche bleiben als Punkte gespeichert (Breite-bezogen),
+     beim Drehen/Größe ändern wird neu gezeichnet. Liegt die Fläche in einem gedrehten Behälter (.bpu-quer.gedreht), werden die Zeigerpunkte zurückgedreht. */
+  const TINTE = '#13307a', MINW = 0.6, MAXW = 4;
+  function strich(ctx, Z, f) {   // Z: [{x,y,w}] in Fläche-Einheiten, f: Maßstab
+    if (!Z.length) return;
+    ctx.fillStyle = TINTE;
+    const punkt = (x, y, w) => { ctx.beginPath(); ctx.arc(x * f, y * f, Math.max(0.35, (w * f) / 2), 0, 6.2832); ctx.fill(); };
+    if (Z.length === 1) { punkt(Z[0].x, Z[0].y, Z[0].w * 1.2); return; }
+    let m0 = Z[0], w0 = Z[0].w;
+    for (let i = 1; i < Z.length; i++) {
+      const c = Z[i - 1], n = Z[i], m1 = i === Z.length - 1 ? n : { x: (c.x + n.x) / 2, y: (c.y + n.y) / 2 }, w1 = (c.w + n.w) / 2;
+      const len = Math.hypot(c.x - m0.x, c.y - m0.y) + Math.hypot(m1.x - c.x, m1.y - c.y), st = Math.max(2, Math.ceil(len * f / 0.6));
+      for (let k = 0; k <= st; k++) { const t = k / st, u = 1 - t;
+        punkt(u * u * m0.x + 2 * u * t * c.x + t * t * m1.x, u * u * m0.y + 2 * u * t * c.y + t * t * m1.y, w0 + (w1 - w0) * t); }
+      m0 = m1; w0 = w1;
+    }
+  }
+  function flaeche(cv) {
+    const ctx = cv.getContext('2d'), Zs = []; let akt = null, v = 0, last = null, B = 1;
+    const neu = () => { const k = devicePixelRatio || 1, W = cv.offsetWidth, Hh = cv.offsetHeight; if (!W) return; cv.width = W * k; cv.height = Hh * k; ctx.setTransform(k, 0, 0, k, 0, 0); B = W; malen(); };
+    const malen = () => { ctx.clearRect(0, 0, cv.width, cv.height); Zs.forEach((Z) => strich(ctx, Z, B)); };
+    const pt = (e) => { const r = cv.getBoundingClientRect(), g = cv.closest('.bpu-quer.gedreht');
+      return g ? [e.clientY - r.top, r.right - e.clientX] : [e.clientX - r.left, e.clientY - r.top]; };
+    const breite = (e, x, y) => {
+      if (e.pointerType === 'pen' && e.pressure > 0 && e.pressure !== 0.5) return (MINW + (MAXW - MINW) * Math.min(1, e.pressure * 1.25)) / B;
+      const dt = Math.max(1, e.timeStamp - last.t), sp = Math.hypot(x - last.x, y - last.y) / dt;   // px je ms
+      v = 0.75 * sp + 0.25 * v; return Math.max(MINW, MAXW / (v * 2.2 + 1)) / B;
+    };
+    const dazu = (e) => { const [x, y] = pt(e); if (last && Math.hypot(x - last.x, y - last.y) < 0.8) return;
+      const w = last ? breite(e, x, y) : (MAXW * 0.7) / B; akt.push({ x: x / B, y: y / B, w }); last = { x, y, t: e.timeStamp };
+      const n = akt.length; ctx.save(); if (n >= 2) strich(ctx, akt.slice(Math.max(0, n - 3)), B); else strich(ctx, akt, B); ctx.restore(); };
+    cv.style.touchAction = 'none';
+    cv.addEventListener('pointerdown', (e) => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch { /* egal */ } akt = []; Zs.push(akt); v = 0; last = null; dazu(e); });
+    cv.addEventListener('pointermove', (e) => { if (!akt) return; e.preventDefault(); (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach(dazu); });
+    const ende = () => { if (akt) { akt = null; malen(); } }; cv.addEventListener('pointerup', ende); cv.addEventListener('pointercancel', ende);
+    const ro = new ResizeObserver(neu); ro.observe(cv); neu();
+    const rahmen = () => { const P = Zs.flat(); if (P.length < 3) return null; const xs = P.map((p) => p.x), ys = P.map((p) => p.y), r = MAXW / B * 2;
+      return { x0: Math.min(...xs) - r, y0: Math.min(...ys) - r, x1: Math.max(...xs) + r, y1: Math.max(...ys) + r }; };
+    const bild = (maxW = 900) => { const R = rahmen(); if (!R) return null; const f = Math.min(maxW / Math.max(1e-6, R.x1 - R.x0), 2 * B * (devicePixelRatio || 1));   // höchstens doppelt so fein wie am Bildschirm
+      const o = document.createElement('canvas'); o.width = Math.ceil((R.x1 - R.x0) * f); o.height = Math.ceil((R.y1 - R.y0) * f);
+      const c2 = o.getContext('2d'); c2.translate(-R.x0 * f, -R.y0 * f); Zs.forEach((Z) => strich(c2, Z, f)); return o; };
+    return { leer() { Zs.length = 0; malen(); }, hat: () => Zs.some((Z) => Z.length), png: (m) => { const o = bild(m); return o ? o.toDataURL('image/png') : ''; },
+      blob: (m) => new Promise((ok) => { const o = bild(m); if (!o) ok(null); else o.toBlob(ok, 'image/png'); }), weg: () => ro.disconnect() };
+  }
+  /* Querformat erzwingen: Vollbild + Sperre (Android); geht das nicht (iPhone), wird der Behälter bei Hochformat um 90° gedreht gezeigt */
+  function quer(box) {
+    box.classList.add('bpu-quer');
+    let gesperrt = false;
+    const pruef = () => { const g = !gesperrt && innerHeight > innerWidth; box.classList.toggle('gedreht', g);   // Maße aus dem sichtbaren Fenster (100vh ist am iPhone zu hoch)
+      box.style.setProperty('--qx', innerWidth + 'px'); box.style.setProperty('--qw', innerHeight + 'px'); box.style.setProperty('--qh', innerWidth + 'px'); };
+    if (TOUCH()) {
+      const fs = document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen({ navigationUI: 'hide' }) : Promise.reject();
+      fs.then(() => screen.orientation && screen.orientation.lock ? screen.orientation.lock('landscape') : Promise.reject()).then(() => { gesperrt = true; pruef(); }).catch(() => {});
+    }
+    pruef(); addEventListener('resize', pruef);
+    return () => { removeEventListener('resize', pruef); try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch { /* egal */ }
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); };
+  }
+
+  /* Unterschriftsfeld im Vollbild (Finger oder Stift) → { blob } (PNG, durchsichtig, beschnitten) */
   function pad() {
     return new Promise((fertig) => {
       const d = document.createElement('div'); d.className = 'bpu-pad';
       d.innerHTML = `<div class="k"><b>Unterschreiben</b><button type="button" class="bpu-b" data-p="x">Abbrechen</button></div>
-        <div class="f"><canvas></canvas><span class="li"></span><span class="q">Gerät quer halten für mehr Platz</span></div>
+        <div class="f"><canvas></canvas><span class="li"></span></div>
         <div class="a"><button type="button" class="bpu-b" data-p="leer">Löschen</button><button type="button" class="bpu-b" data-p="meine">Gespeicherte nehmen</button><button type="button" class="bpu-b pri" data-p="ok">Einsetzen</button></div>`;
       document.body.appendChild(d);
-      const cv = d.querySelector('canvas'), ctx = cv.getContext('2d'); let zug = null, hat = false;
-      const groesse = () => { const r = cv.getBoundingClientRect(), f = devicePixelRatio || 1; const alt = hat ? cv.toDataURL() : null; cv.width = r.width * f; cv.height = r.height * f; ctx.scale(f, f);
-        ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = '#13307a'; ctx.lineWidth = 2.6;
-        if (alt) { const im = new Image(); im.onload = () => ctx.drawImage(im, 0, 0, r.width, r.height); im.src = alt; } };
-      groesse(); addEventListener('resize', groesse);
-      const pt = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-      cv.addEventListener('pointerdown', (e) => { e.preventDefault(); cv.setPointerCapture(e.pointerId); zug = pt(e); ctx.beginPath(); ctx.arc(zug[0], zug[1], 1.2, 0, 7); ctx.fillStyle = '#13307a'; ctx.fill(); hat = true; });
-      cv.addEventListener('pointermove', (e) => { if (!zug) return; const p = pt(e); ctx.beginPath(); ctx.moveTo(zug[0], zug[1]); ctx.lineTo(p[0], p[1]); ctx.stroke(); zug = p; });
-      const los = () => { zug = null; }; cv.addEventListener('pointerup', los); cv.addEventListener('pointercancel', los);
-      const zu = (v) => { removeEventListener('resize', groesse); d.remove(); fertig(v); };
+      const F = flaeche(d.querySelector('canvas')), frei = quer(d);
+      const zu = (v) => { F.weg(); frei(); d.remove(); fertig(v); };
       d.addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return;
         if (b.dataset.p === 'x') zu(null);
-        else if (b.dataset.p === 'leer') { ctx.clearRect(0, 0, cv.width, cv.height); hat = false; }
+        else if (b.dataset.p === 'leer') F.leer();
         else if (b.dataset.p === 'meine') zu({ meine: true });
-        else if (!hat) { if (window.toast) toast('Bitte zuerst unterschreiben.', true); }
-        else zu({ blob: beschneiden(cv) }); });
+        else if (!F.hat()) { if (window.toast) toast('Bitte zuerst unterschreiben.', true); }
+        else zu({ blob: F.blob() }); });
     });
-  }
-  function beschneiden(cv) {   // nur die Fläche mit Strichen (etwas Rand) – sonst wäre das Bild meist leer
-    const c = cv.getContext('2d'), { width: W, height: Hh } = cv, D = c.getImageData(0, 0, W, Hh).data;
-    let x0 = W, y0 = Hh, x1 = 0, y1 = 0;
-    for (let y = 0; y < Hh; y += 2) for (let x = 0; x < W; x += 2) if (D[(y * W + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-    const r = 12, w = Math.max(10, x1 - x0 + 2 * r), h = Math.max(10, y1 - y0 + 2 * r), o = document.createElement('canvas'); o.width = w; o.height = h;
-    o.getContext('2d').drawImage(cv, Math.max(0, x0 - r), Math.max(0, y0 - r), w, h, 0, 0, w, h);
-    return new Promise((ok) => o.toBlob(ok, 'image/png'));
   }
 
   /* PC: Auswahl */
@@ -143,5 +187,5 @@
       } catch (er) { b.disabled = false; b.textContent = 'Übernehmen'; if (window.toast) toast(er.message, true); }
     });
   }
-  window.bpUnterschrift = { start, pad };
+  window.bpUnterschrift = { start, pad, flaeche, quer };
 })();

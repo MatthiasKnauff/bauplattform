@@ -208,7 +208,7 @@ function zeitstrahl(d) {
   return `<div class="tl" aria-hidden="true">${h}</div><div class="leg"><span><i class="q-puls"></i>aus der Arbeit in der Plattform</span><span><i class="q-vorort"></i>vor Ort (Baustelle)</span><span><i class="q-fahrt"></i>Fahrt (geschätzt)</span><span><i class="q-unterwegs"></i>Fahrt (erfasst)</span><span><i class="q-hand"></i>von Hand / Stoppuhr</span><span>gestrichelt = Vorschlag, noch nicht übernommen</span></div>`;
 }
 function projSel(pid, attr) {
-  return `<select ${attr} aria-label="Projekt"><option value="">— ohne Projekt (Büro) —</option>${(G.projekte || []).map((p) => `<option value="${p.id}"${+pid === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}${pid && !PJN()[pid] ? `<option value="${pid}" selected>Projekt ${pid}</option>` : ''}</select>`;
+  return `<select ${attr} aria-label="Projekt" data-bp-projekte><option value="">— ohne Projekt (Büro) —</option>${(G.projekte || []).map((p) => `<option value="${p.id}"${+pid === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}${pid && !PJN()[pid] ? `<option value="${pid}" selected>Projekt ${pid}</option>` : ''}</select>`;
 }
 function artSel(a, attr) { return `<select ${attr} aria-label="Tätigkeit">${G.arten.map(([k, n]) => `<option value="${k}"${a === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
 function zeile(x, art) {   // art: 'e' gespeichert, 'v' Vorschlag, 'n' neu

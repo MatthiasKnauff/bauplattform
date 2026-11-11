@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-projektfeld",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Projekt wählen – überall gleich",
+  "text": "Wo du in einem Dialog ein Projekt wählst, zeigt die Liste jetzt wie die große Projektauswahl die Adresse, sucht auch nach Straße, Ort und Bauherr und sortiert nach Entfernung, wenn dein Standort bekannt ist. Unten: „＋ Neues Projekt“, „📍 Nach Standort“ und „⤢ Alle“ für die große Auswahl.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-fotos-viele",
   "datum": "2026-11-11",
   "app": "bautagebuch",

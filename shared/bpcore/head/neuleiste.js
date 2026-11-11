@@ -21,11 +21,12 @@
   H.neuArten = H.neuArten || {};
   const E = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const st = document.createElement('style');
-  st.textContent = `.bpn-l{display:flex;gap:.3rem;flex-wrap:wrap;padding:.5rem .1rem .6rem;margin:0 0 .5rem;border-bottom:1px solid var(--line,#ddd);overflow-x:auto}
+  st.textContent = `.bpn-l{display:flex!important;flex-direction:row!important;gap:.3rem;flex-wrap:wrap;align-items:center;padding:.5rem .9rem .6rem;margin:0 0 .5rem;border-bottom:1px solid var(--line,#ddd);overflow-x:auto}
+  .bpn-l>button{width:auto!important;flex:none!important;display:inline-flex!important;align-items:center;gap:.25rem;margin:0!important;min-height:0!important;box-shadow:none!important;justify-content:flex-start!important}
   .bpn-l button{border:1px solid var(--line,#ccc);background:var(--card,#fff);color:inherit;border-radius:calc(999px*var(--rkp,1));padding:.18rem .65rem;font:inherit;font-size:.82rem;cursor:pointer;white-space:nowrap}
   .bpn-l button:hover{border-color:var(--y,#2b4a7a)}.bpn-l button.on{border-color:var(--y,#2b4a7a);background:color-mix(in srgb,var(--y,#2b4a7a) 14%,var(--card,#fff));color:var(--y,#2b4a7a);font-weight:600;cursor:default}
   .bpn-mit{font-size:.8rem;color:var(--y,#2b4a7a);margin:-.2rem 0 .5rem}
-  @media (max-width:760px){.bpn-l{flex-wrap:nowrap}}`;
+  @media (max-width:760px){.bpn-l{flex-wrap:nowrap!important;padding:.4rem .6rem .5rem}}`;
   document.head.appendChild(st);
   H.neuLeiste = (akt) => `<div class="bpn-l" role="tablist" aria-label="Art">${ARTEN.filter(([k]) => k !== 'm13' || akt === 'm13').map(([k, ic, n, , sub]) => `<button type="button" data-bpneu="${k}" class="${k === akt ? 'on' : ''}"${sub ? ` title="${E(sub)}"` : ''}>${ic} ${E(n)}</button>`).join('')}</div>`;
   H.neuMitHtml = (d) => { if (!d || !d.von) return ''; const t = [d.firma || (d.an && d.an.length ? d.an.map((x) => x.name || x.email).join(', ') : ''), d.betreff ? 'Betreff' : '', d.text ? 'Text' : ''].filter(Boolean);

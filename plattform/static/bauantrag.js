@@ -168,7 +168,7 @@ function neuDialog() {
   if (!P.length) { toast('Es gibt noch kein Projekt.', true); return; }
   const gp = (window.BPHead && BPHead.projekt && BPHead.projekt.id) || P[0].id;
   modalBox(`<h3>Neuer Antrag</h3>
-    <div class="row"><label>Projekt</label><select id="nP">${P.map((p) => `<option value="${p.id}"${p.id === gp ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="row"><label>Projekt</label><select id="nP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === gp ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
     <div class="row"><label>Verfahren</label><select id="nV">${Object.entries(L.verfahren).map(([k, t]) => `<option value="${k}">${esc(t)}</option>`).join('')}</select></div>
     <div class="row"><label>Name</label><input id="nN" placeholder="leer = wie das Verfahren"></div>
     <div class="acts"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Anlegen</button></div>`,

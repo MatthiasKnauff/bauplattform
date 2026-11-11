@@ -2190,8 +2190,14 @@
   /* ---------- Einheitliches Projektfeld: jede <select data-bp-projekte> wird zum Suchfeld mit Vervollständigung,
      darunter „Meine Projekte“ und „Andere Projekte“. Die <select> bleibt unsichtbar die Quelle (value + change-Ereignis),
      App-Code ändert sich also nicht. Gruppen der App (z. B. „erkannt“) und Sondereinträge („Alle Projekte“, „＋ neu“) bleiben. */
-  let PA_MEIN = null;
-  const paMein = () => (PA_MEIN = PA_MEIN || KX('api/bp/projekte').then((P) => new Set(P.filter((p) => p.mein).map((p) => String(p.id)))).catch(() => null));
+  let PA_MEIN = null, PA_P = {};
+  const paMein = (neu) => (PA_MEIN = (!neu && PA_MEIN) || KX('api/bp/projekte').then((P) => { PA_P = Object.fromEntries(P.map((p) => [String(p.id), p])); return new Set(P.filter((p) => p.mein).map((p) => String(p.id))); }).catch(() => null));
+  /* Standort für „Nach Standort“ und die Entfernungen (5 Minuten gemerkt, wie in der großen Projektauswahl) */
+  H.standort = () => new Promise((ok, nein) => navigator.geolocation ? navigator.geolocation.getCurrentPosition((g) => { const h = { lat: g.coords.latitude, lon: g.coords.longitude }; try { sessionStorage.setItem('bpHier', JSON.stringify(h)); } catch { /* egal */ } ok(h); }, nein, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }) : nein(new Error('kein GPS')));
+  const paHier = () => { try { return JSON.parse(sessionStorage.getItem('bpHier') || 'null'); } catch { return null; } };
+  const paDist = (p, h) => { if (!h || !p || p.lat == null || p.lon == null) return null; const r = (x) => x * Math.PI / 180;
+    return 12742000 * Math.asin(Math.sqrt(Math.sin(r(p.lat - h.lat) / 2) ** 2 + Math.cos(r(h.lat)) * Math.cos(r(p.lat)) * Math.sin(r(p.lon - h.lon) / 2) ** 2)); };
+  const paAdr = (p) => (p ? [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '');
   H.projektAuswahl = function (sel) {
     if (!sel || sel._bpPa) return; sel._bpPa = true;
     const w = document.createElement('span'); w.className = 'bph-pa';
@@ -2207,7 +2213,9 @@
         if (o.disabled && !o.value) return;
         const og = o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '';
         const projekt = /^\d+$/.test(o.value) && !(og && !/alle|projekte/i.test(og));
-        out.push({ v: o.value, t: o.textContent.trim(), g: projekt ? (mein ? (mein.has(o.value) ? 'Meine Projekte' : 'Andere Projekte') : 'Projekte') : og || (o.value === '' ? '' : '…'), p: projekt });
+        const pp = projekt ? PA_P[o.value] : null, h = paHier(), d = paDist(pp, h);
+        out.push({ v: o.value, t: o.textContent.trim(), g: projekt ? (mein ? (mein.has(o.value) ? 'Meine Projekte' : 'Andere Projekte') : 'Projekte') : og || (o.value === '' ? '' : '…'), p: projekt,
+          a: paAdr(pp), s: pp ? [pp.street, pp.zip, pp.city, pp.client, pp.bauleiter].join(' ') : '', d });
       });
       return out;
     };
@@ -2216,11 +2224,14 @@
     const lage = () => { if (!box) return; const r = inp.getBoundingClientRect(), un = innerHeight - r.bottom; box.style.left = r.left + 'px'; box.style.width = Math.min(innerWidth - r.left - 8, Math.max(r.width, 340)) + 'px';
       if (un < 220 && r.top > un) { box.style.top = ''; box.style.bottom = (innerHeight - r.top + 2) + 'px'; box.style.maxHeight = Math.min(360, r.top - 10) + 'px'; } else { box.style.bottom = ''; box.style.top = (r.bottom + 2) + 'px'; box.style.maxHeight = Math.min(360, un - 10) + 'px'; } };
     const zeichnen = (q) => {
-      const ws = q.trim().toLowerCase().split(/\s+/).filter(Boolean), E = eintraege().filter((x) => !ws.length || ws.every((t) => x.t.toLowerCase().includes(t)));
+      const ws = q.trim().toLowerCase().split(/\s+/).filter(Boolean), E = eintraege().filter((x) => !ws.length || ws.every((t) => (x.t + ' ' + (x.s || '')).toLowerCase().includes(t)));
+      if (E.some((x) => x.d != null)) E.sort((a, b) => (a.p && b.p ? (a.d ?? 1e12) - (b.d ?? 1e12) : 0));   // mit Standort: nächstes zuerst
       const ord = ['', ...new Set(E.filter((x) => !x.p && x.g && x.g !== '…').map((x) => x.g)), 'Meine Projekte', 'Projekte', 'Andere Projekte', '…'];
       L = []; let h = '';
-      ord.forEach((gr) => { const G = E.filter((x) => x.g === gr); if (!G.length) return; if (gr && gr !== '…') h += `<div class="bph-pa-g">${esc(gr)}</div>`; G.forEach((x) => { L.push(x); h += `<button type="button" class="bph-pa-o${x.v === sel.value ? ' on' : ''}" data-pa="${L.length - 1}" tabindex="-1">${esc(x.t)}</button>`; }); });
-      box.innerHTML = h || `<div class="bph-pa-n">${sel.dataset.leer || 'Kein Projekt gefunden.'}</div>`;
+      ord.forEach((gr) => { const G = E.filter((x) => x.g === gr); if (!G.length) return; if (gr && gr !== '…') h += `<div class="bph-pa-g">${esc(gr)}</div>`; G.forEach((x) => { L.push(x); const km = x.d == null ? '' : x.d < 1000 ? Math.max(10, Math.round(x.d / 10) * 10) + ' m' : (x.d / 1000).toFixed(1).replace('.', ',') + ' km';
+        h += `<button type="button" class="bph-pa-o${x.v === sel.value ? ' on' : ''}${x.a ? ' zw' : ''}" data-pa="${L.length - 1}" tabindex="-1"><span>${esc(x.t)}${x.a ? `<small>${esc(x.a)}</small>` : ''}</span>${km ? `<i>${km}</i>` : ''}</button>`; }); });
+      const fuss = sel.dataset.bpProjekte === 'einfach' ? '' : `<div class="bph-pa-f"><button type="button" data-pafuss="neu" tabindex="-1">＋ Neues Projekt</button><button type="button" data-pafuss="stand" tabindex="-1">📍 Nach Standort</button><button type="button" data-pafuss="gross" tabindex="-1" title="Große Projektauswahl mit allen Projekten">⤢ Alle</button></div>`;
+      box.innerHTML = (h || `<div class="bph-pa-n">${sel.dataset.leer || 'Kein Projekt gefunden.'}</div>`) + fuss;
       ak = ws.length ? (L.findIndex((x) => x.p) >= 0 ? L.findIndex((x) => x.p) : 0) : L.findIndex((x) => x.v === sel.value); mark();
     };
     const mark = () => { if (!box) return; box.querySelectorAll('.bph-pa-o').forEach((b, i) => b.classList.toggle('ak', i === ak)); const b = box.querySelector('.ak'); if (b) b.scrollIntoView({ block: 'nearest' }); };
@@ -2231,7 +2242,23 @@
       box = document.createElement('div'); box.className = 'bph-pa-box'; box.setAttribute('role', 'listbox'); document.body.appendChild(box);
       inp.setAttribute('aria-expanded', 'true'); lage(); zeichnen(''); inp.select();
       document.addEventListener('mousedown', aussen, true); window.addEventListener('scroll', lage, true);
-      box.addEventListener('mousedown', (e) => { e.preventDefault(); const b = e.target.closest('[data-pa]'); if (b) waehle(L[+b.dataset.pa]); });
+      box.addEventListener('mousedown', (e) => { e.preventDefault(); const f = e.target.closest('[data-pafuss]'); if (f) { fussAktion(f.dataset.pafuss); return; } const b = e.target.closest('[data-pa]'); if (b) waehle(L[+b.dataset.pa]); });
+    };
+    /* Projekt per ID setzen – fehlt es in der Liste der App (z. B. gerade angelegt), wird es als Eintrag ergänzt */
+    const setzeId = async (id, name) => {
+      if (!id) return; const v = String(id);
+      if (![...sel.options].some((o) => o.value === v)) { await paMein(true); const o = document.createElement('option'); o.value = v; o.textContent = name || (PA_P[v] || {}).name || ('Projekt ' + v); sel.appendChild(o); }
+      waehle({ v });
+    };
+    const fussAktion = async (a) => {
+      zu(); text();
+      if (a === 'neu') return H.projektBearbeiten(null, { onSaved: (id) => setzeId(id) });
+      if (a === 'gross') return H.projektWahl({ aktuell: /^\d+$/.test(sel.value) ? +sel.value : null, onPick: (id, p) => setzeId(id, p && p.name) });
+      if (a === 'stand') {
+        let h; try { h = await H.standort(); } catch { if (window.bpHinweis) bpHinweis('Der Standort ist nicht verfügbar – bitte im Browser erlauben.'); return; }
+        await paMein(); const n = [...sel.options].filter((o) => /^\d+$/.test(o.value)).map((o) => [o.value, paDist(PA_P[o.value], h)]).filter((x) => x[1] != null).sort((x, y) => x[1] - y[1])[0];
+        if (n) waehle({ v: n[0] }); else if (window.toast) toast('Kein Projekt mit Lage in der Nähe gefunden.', true);
+      }
     };
     const waehle = (x) => { if (!x) return; zu(); if (sel.value !== x.v) { sel.value = x.v; sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true })); } text(); };
     inp.addEventListener('focus', auf); inp.addEventListener('click', auf);

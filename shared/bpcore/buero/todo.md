@@ -89,6 +89,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Projektfeld überall wie die große Projektauswahl: Adresse unter dem Namen, Suche auch nach Adresse/Bauherr, Entfernung, unten „＋ Neues Projekt“, „📍 Nach Standort“, „⤢ Alle“; jetzt auch in Bauantrag, Honorar und Zeiten~~
+- ~~„＋ Neu“-Leiste in Dialogen kompakt (keine Knöpfe über die volle Breite)~~
 - ~~Bautagebuch: Fotos einzeln hochladen – beliebig viele auf einmal, „Foto 7 von 23“, bis 100 MB je Foto, eindeutige Meldung welches Foto warum nicht ging, „Nochmal“~~
 - ~~Honorar mit Ablauf: Stufen Anfrage → Angebot → Auftrag → Vertrag → Abrechnung → Abgeschlossen (dazu abgelehnt) als Leiste, je Stufe eine Karte mit Angaben, links nach Stufe gruppiert mit Hinweisen (seit n T., v2, ohne Vertrag), To-dos: Anfrage beantworten, nachfassen, Bindefrist, Vertrag fehlt~~
 - ~~Handy: kleiner Rückgängig-Knopf nach dem Dock unten links, kleiner und durchscheinend~~

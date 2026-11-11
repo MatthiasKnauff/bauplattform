@@ -233,7 +233,7 @@ function neuDialog() {
   if (!P.length) { toast('Es gibt noch kein Projekt.', true); return; }
   const gp = (window.BPHead && BPHead.projekt && BPHead.projekt.id) || P[0].id;
   modalBox(`<h3>Neuer Honorarauftrag</h3>
-    <div class="row"><label>Projekt</label><select id="nP">${P.map((p) => `<option value="${p.id}"${p.id === gp ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="row"><label>Projekt</label><select id="nP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === gp ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
     <div class="row"><label>Beginnt als</label><select id="nS"><option value="angebot">Angebot</option><option value="anfrage">Anfrage (noch kein Angebot)</option></select></div>
     <div class="row"><label>Art</label><select id="nA"><option value="hoai">nach HOAI (Leistungsphasen)</option><option value="stunden">nach Aufwand (Stunden)</option><option value="pauschal">pauschal</option></select></div>
     <div class="row"><label>Leistung</label><input id="nN" placeholder="leer = Vorschlag, z. B. „Architektenleistungen LPh 1–9“"></div>

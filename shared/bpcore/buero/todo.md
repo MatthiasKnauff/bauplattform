@@ -62,6 +62,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bautagebuch am Handy: ＋ kleiner und im Stil der Leiste unten~~
 - ~~Kommunikation: ein Knopf „＋ Neu“, Leiste mit allen Arten oben in jedem Dialog (Nachricht, Vorgang, Abnahme, Rügen, Pläne, Datei) – Wechsel nimmt Firma/Empfänger, Betreff, Text mit, auch app-übergreifend~~
 - ~~Abnahme: „Mängel in der anliegenden Mängelliste“ wird automatisch nach den eingetragenen Mängeln gesetzt~~
 - ~~Bauzeitenplan, Planungsassistent Schritt für Schritt: bei „gemischt“ wird die Bauweise jedes Geschosses als eigener Schritt abgefragt~~

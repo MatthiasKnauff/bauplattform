@@ -324,6 +324,9 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .toast{pointer-events:auto;background:var(--inp);border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));padding:.6rem 1rem;text-align:center}
 
 @media (max-width:720px){#fab{bottom:4.8rem}}
+/* ＋ kleiner und wie die Leiste unten: hell, feiner Rahmen, Akzent nur im Zeichen */
+#fab{width:46px;height:46px;border-radius:calc(14px*var(--rk,1));background:#303236;color:var(--y);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.25);display:grid;place-items:center}
+html:is([data-theme="hell"],[data-theme="klassisch"]) #fab{background:#e7e5e0}
 body.kb #tabs,body.kb #fab{display:none!important}body.kb .sug{max-height:6.5rem}
 @media (min-width:721px){#sheet .panel{margin-top:64px;border-radius:calc(14px*var(--rk,1))}}
 @media (max-width:720px){

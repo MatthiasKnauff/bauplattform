@@ -5,7 +5,7 @@ function renderDetail() {
   if (tab === 'profil' && PH && document.body.contains(PH)) { renderProfile(PH); return; }
   if (tab === 'profil' && window.BPHead && BPHead.einstellungen) { tab = 'bericht'; BPHead.einstellungen({ bereich: 'app' }); }
   const box = $('#detail'); box.classList.toggle('fill', tab === 'kontakte');
-  $('#fab').classList.toggle('hidden', !(tab === 'bericht' && curProject() && curReport())); $('#fab').innerHTML = ic('plus', 30, 3);
+  $('#fab').classList.toggle('hidden', !(tab === 'bericht' && curProject() && curReport())); $('#fab').innerHTML = ic('plus', 22, 2.4);
   ({bericht: renderReport, projekt: renderProject, kontakte: renderContacts, profil: renderProfile, suche: renderSearch}[tab])(box);
 }
 

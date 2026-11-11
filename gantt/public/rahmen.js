@@ -50,7 +50,7 @@
     befehle(LEISTE, G);
   }
   /* Zeilen im Plan und Diagramm: wie bisher (markierte Zeilen farbig) · Bänderung (jede zweite Zeile getönt) · nur die aktive Zeile mit dünnem rotem Strich */
-  const ZEILEN = [['', 'Markierte Zeilen farbig'], ['band', 'Bänderung – jede zweite Zeile getönt'], ['linie', 'Nur die aktive Zeile – dünner roter Strich']];
+  const ZEILEN = [['', 'Markierte Zeilen farbig'], ['band', 'Bänderung – jede zweite Zeile getönt'], ['linie', 'Nur die aktive Zeile – dünner roter Rahmen (gestrichelt)']];
   const zl = () => { const v = LS.get('zeilen', ''); return ZEILEN.some((x) => x[0] === v) ? v : ''; };
   const zlSetzen = () => { document.body.classList.toggle('g-zl-band', zl() === 'band'); document.body.classList.toggle('g-zl-linie', zl() === 'linie'); };
   zlSetzen();

@@ -78,8 +78,8 @@ body.g-rahmen .ticon[data-act="toggleAssist"]{display:none}   /* Assistent ist e
 body.g-zl-band #gridBody .row:nth-child(even) .c{background:color-mix(in srgb,var(--ink) 4.5%,var(--card))}
 body.g-zl-band #chartBody{background:repeating-linear-gradient(to bottom,transparent 0 var(--rh),color-mix(in srgb,var(--ink) 4.5%,transparent) var(--rh) calc(2*var(--rh)))}
 body.g-zl-band #gridBody .row.sel .c{background:var(--sel)}
-body.g-zl-linie #gridBody .row.sel .c{background:transparent;box-shadow:inset 0 -2px 0 #e0393e}body.g-zl-linie #gridBody .row.sel .c-nr{background:var(--tabs)}
-body.g-zl-linie .selband{fill:#e0393e;height:2px;transform:translateY(calc(var(--rh) - 2px))}
+body.g-zl-linie #gridBody .row.sel .c{background:transparent}body.g-zl-linie #gridBody .row.sel .c-nr{background:var(--tabs)}body.g-zl-linie #gridBody .row.sel{outline:1.5px dashed #e0393e;outline-offset:-1.5px}   /* aktive Zeile: dünner roter Rahmen, gestrichelt */
+body.g-zl-linie .selband{fill:none;stroke:#e0393e;stroke-width:1.5;stroke-dasharray:5 3}body.g-zl-linie #hovband{mix-blend-mode:multiply}html[data-theme="dunkel"] body.g-zl-linie #hovband{mix-blend-mode:screen}   /* der Rahmen bleibt auch unter der Maus sichtbar */
 /* Vergleich im Plan (vergleich.js) */
 #vgBand{flex:none;display:flex;align-items:center;gap:.4rem 1rem;flex-wrap:wrap;margin:.35rem .45rem 0;padding:.35rem .7rem;border:1px solid color-mix(in srgb,#e0a030 45%,var(--line));border-radius:calc(8px*var(--rk,1));background:color-mix(in srgb,#e0a030 12%,var(--card))}
 #vgBand .vg-chip{border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.05rem .6rem;background:var(--card)}#vgBand .vg-sp0{flex:1}

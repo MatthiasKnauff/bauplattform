@@ -131,11 +131,11 @@ function printTable(L) {
     if (k) head += `<line x1="${xs[k]}" y1="0" x2="${xs[k]}" y2="${HH}" stroke="#c6c6c6"/>`;
   });
   head += `<line x1="0" y1="${HH - 0.5}" x2="${tableW}" y2="${HH - 0.5}" stroke="#c6c6c6"/>`;
-  let body = '';
+  let body = ''; const RAHMEN = [];
   rows.forEach((i, r) => {
     const t = T[i], y = HH + r * RH, sum = c.summ[i], ty = y + 16;
     if (o.band && r % 2) body += `<rect x="0" y="${y}" width="${tableW}" height="${RH}" fill="#f4f4f2"/>`;   // Bänderung: jede zweite Zeile getönt
-    if (o.aktiv && AKTIV().has(i)) body += `<rect x="0" y="${y}" width="${tableW}" height="${RH}" fill="#fff0a6"/><line x1="0" y1="${y + RH - 0.8}" x2="${tableW}" y2="${y + RH - 0.8}" stroke="#d63b3b" stroke-width="1.2"/>`;   // markierte Leistung hervorgehoben
+    if (o.aktiv && AKTIV().has(i)) RAHMEN.push(y);   // markierte Leistung: dünner roter Rahmen, gestrichelt (über die ganze Zeile, nach dem Inhalt gezeichnet)
     if (cols[0] && cols[0].k === 'nr') body += `<rect x="0" y="${y}" width="${cols[0].w}" height="${RH}" fill="#f3f3f3"/>`;
     cols.forEach((cl, k) => {
       const x0 = xs[k], w = cl.w, fw = sum ? ' font-weight="700"' : '';
@@ -162,6 +162,7 @@ function printTable(L) {
   });
   const H = HH + rows.length * RH;
   cols.forEach((cl, k) => { if (k) body += `<line x1="${xs[k]}" y1="${HH}" x2="${xs[k]}" y2="${H}" stroke="#e3e3e3"/>`; });
+  RAHMEN.forEach((y) => { body += `<rect x="0.8" y="${y + 0.8}" width="${tableW - 1.6}" height="${RH - 1.6}" fill="none" stroke="#d63b3b" stroke-width="1.2" stroke-dasharray="4 3"/>`; });
   return { head, body };
 }
 
@@ -196,7 +197,7 @@ function printChart(L) {
   if (ppd >= 3) for (let d = a0; d < a1; d++) { if (isWork(d)) continue; body += `<rect x="${X(d)}" y="${HH}" width="${ppd}" height="${H - HH}" fill="${freeName(d) ? '#fbe3e3' : '#f1f1f1'}"/>`; }
   if (ppd >= 6) for (const [a] of tier(tb, a0, a1)) body += `<line x1="${X(a)}" y1="${HH}" x2="${X(a)}" y2="${H}" stroke="#ececec"/>`;
   for (const [a] of tier(tt, a0, a1)) body += `<line x1="${X(a)}" y1="${HH}" x2="${X(a)}" y2="${H}" stroke="#d6d6d6"/>`;
-  if (o.aktiv) rows.forEach((i, r) => { if (AKTIV().has(i)) body += `<rect x="0" y="${HH + r * RH}" width="${cw}" height="${RH}" fill="#ffe45c" fill-opacity=".45"/><line x1="0" y1="${HH + (r + 1) * RH - 0.8}" x2="${cw}" y2="${HH + (r + 1) * RH - 0.8}" stroke="#d63b3b" stroke-width="1.2"/>`; });
+
   const td = todayN();
   if (o.today && td >= d0 && td < d1) body += `<line x1="${X(td)}" y1="${HH}" x2="${X(td)}" y2="${H}" stroke="#f08a00" stroke-width="1.5" stroke-dasharray="4 3"/>`;
 
@@ -233,6 +234,7 @@ function printChart(L) {
     }
     body += inl(barLabels(i, q, y));
   });
+  if (o.aktiv) rows.forEach((i, r) => { if (AKTIV().has(i)) body += `<rect x="0.8" y="${HH + r * RH + 0.8}" width="${cw - 1.6}" height="${RH - 1.6}" fill="none" stroke="#d63b3b" stroke-width="1.2" stroke-dasharray="4 3"/>`; });   // markierte Leistung: roter Rahmen, gestrichelt
   return { headFor, body };
 }
 
@@ -346,7 +348,7 @@ function printDialog() {
         <label class="cb"><input type="checkbox" data-o="repeatTable"${o.repeatTable ? ' checked' : ''}> Tabelle auf jeder Seite</label>
         <label class="cb"><input type="checkbox" data-o="crit"${o.crit ? ' checked' : ''}> Kritischen Weg rot</label>
         <label class="cb" title="Jede zweite Zeile leicht getönt – wie „Bänderung“ unter Darstellung"><input type="checkbox" data-o="band"${o.band ? ' checked' : ''}> Bänderung</label>
-        <label class="cb" title="Die im Plan markierte(n) Leistung(en) gelb hinterlegt mit rotem Strich – z. B. für die Baubesprechung"><input type="checkbox" data-o="aktiv"${o.aktiv ? ' checked' : ''}> Markierte Zeile hervorheben</label>
+        <label class="cb" title="Die im Plan markierte(n) Leistung(en) mit dünnem rotem Rahmen (gestrichelt) – z. B. für die Baubesprechung"><input type="checkbox" data-o="aktiv"${o.aktiv ? ' checked' : ''}> Markierte Zeile hervorheben</label>
         <label class="cb"><input type="checkbox" data-o="today"${o.today ? ' checked' : ''}> Heute-Linie</label>
         <label class="cb"><input type="checkbox" data-o="legend"${o.legend ? ' checked' : ''}> Legende</label>
         <label class="cb"><input type="checkbox" data-o="header"${o.header ? ' checked' : ''}> Kopfzeile</label>

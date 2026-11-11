@@ -87,7 +87,7 @@
   }
 
   async function start() {
-    if (window.top !== window || !H || !H.me || offenEl.length) return;
+    if (window.top !== window || !H || !H.me || offenEl.length || navigator.webdriver) return;   // nicht in Tests (automatisch gesteuerter Browser)
     const zeigApp = LS.get();
     let E;
     try { E = (await api(zeigApp === H.app ? 'alle' : 'GET')).eintraege || []; } catch { return; }

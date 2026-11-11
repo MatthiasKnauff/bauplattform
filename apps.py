@@ -32,4 +32,5 @@ APPS = {
     "orca_import":   dict(P, modul="orca_import", port=8100, timeout=900, worker=1, threads=8),   # ein Prozess: die Aufträge liegen im Speicher
     "zeiten":        dict(P, modul="zeiten", port=8101, timeout=120),
     "honorar":       dict(P, modul="honorar", port=8103),   # nur Verwaltung: Honoraraufträge (HOAI), Abgleich mit den Zeiten
+    "bauantrag":     dict(P, modul="bauantrag", port=8104, timeout=120),   # Bauantrag: Formular aus Projektdaten, Bauvorlagen, PDF
 }

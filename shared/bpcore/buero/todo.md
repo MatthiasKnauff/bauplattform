@@ -9,7 +9,8 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
 - Bautagebuch: Tagesbericht direkt in der PDF-Vorschau bearbeiten (Klick ins Feld → bearbeiten, wie in der Seite). **ca. 45–60 min**
-- App „Bauantrag“, erste Fassung (Assistent, Kenndaten, Bauvorlagen, PDF im eigenen Layout); amtliches NRW-Formular nach Hochladen der PDFs. **ca. 1–1,5 h + 30–45 min**
+- Bauantrag: amtliches NRW-Formular (ausfüllbares PDF) – sobald die Formular-PDFs hochgeladen sind; Änderungen im PDF zurück in die Datenbank. **ca. 30–45 min**
+- Bauantrag: Lageplan-/Liegenschaftskarte aus ALKIS anfordern, Gebühr schätzen, Bauvorlagen direkt aus dem Projektordner beilegen. **ca. 30–45 min**
 1. Projektordner, Etappe 2: Umordnen per Ziehen und Ablegen in der Nachher-Ansicht, Dateinamen nach Schema (nicht nur das Kürzel), Seite für andere Benutzer freischalten. **ca. 30–45 min**
 2. Suchleiste (Inhalte + Funktionen + Menüs, kombiniert – ca. 1–1,5 h) in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 20–30 min**
 3. Vergleich im Bauzeitenplan, Etappe 2: Platzhalterzeile an der alten Stelle und Pfeil direkt in der Tabelle. **ca. 30 min**
@@ -85,6 +86,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Neue App „Bauantrag“: Assistent in 6 Schritten (Verfahren, Beteiligte, Grundstück, Vorhaben & Kenndaten, Bauvorlagen, Prüfen & PDF), Werte aus Projektdaten, Adressen, Kataster, Baukosten, Büro und Mein Konto mit Quelle und ↺, Entwurfsverfasser persönlich/Büro, Bauvorlagen aus dem Projektordner erkannt, PDF im eigenen Layout~~
 - ~~AVA einfache Übersicht: LV-Karten farbig gebändert nach Stand (blau, gelb, grün, rot über Auftrag, grau)~~
 - ~~Neuigkeiten: Rundgang öffnet App, Reiter (hash) und Menü (klick) selbst – über alle Apps hinweg~~
 - ~~To-dos: ↗ auch bei eigenen To-dos~~

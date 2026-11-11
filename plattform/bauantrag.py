@@ -1,0 +1,199 @@
+"""Bauantrag: Anträge je Projekt (Baugenehmigung, Vorbescheid, Freistellung) – Schritt für Schritt, mit Werten aus Projektdaten,
+Adressen, Baukosten, Büro und Mein Konto. Je Feld sieht man die Quelle und kann auf sie zurücksetzen. Bauvorlagen als Checkliste
+mit Erkennung aus dem Projektordner. PDF im eigenen Layout. Felder, Quellen und PDF: bpcore/bauantrag.py."""
+import json
+import time
+import urllib.parse
+
+from flask import Response, g, jsonify, redirect, request
+
+from bpcore import bauantrag as BA, db, papierkorb, platform, sso
+import common as C
+
+app = C.make_app(__name__)
+KEY = "bauantrag"
+
+
+@app.before_request
+def guard():
+    p = request.path
+    if p.startswith(("/static/", "/bp/")) or p in ("/api/health", "/logo.png", "/api/brand"):
+        return
+    u = C.current_user()
+    if not u or u["must_change"]:
+        if p.startswith("/api/"):
+            return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base(KEY) + "/")), 401
+        return redirect(C.login_url(request.url))
+    if not sso.has_app(u, KEY):
+        return C.gesperrt(KEY, "Für „Bauantrag“ ist dein Konto nicht freigeschaltet.")
+    g.user = u
+
+
+@app.get("/")
+def index():
+    return C.page("bauantrag.html")
+
+
+@app.get("/api/me")
+def me():
+    return jsonify(ok=True, **C.public(g.user))
+
+
+@app.get("/api/platform")
+def platform_conf():
+    return jsonify(platform.config(g.user))
+
+
+def _j(v, d):
+    try:
+        x = json.loads(v) if isinstance(v, str) else v
+        return d if x is None else x
+    except ValueError:
+        return d
+
+
+def _sees(c, pid):
+    r = c.execute("SELECT id, name, leaders, archived FROM projects WHERE id=?", (pid,)).fetchone()
+    if not r:
+        return None
+    lead = _j(r["leaders"], []) or []
+    return r if g.user["is_admin"] or not lead or g.user["id"] in lead else None
+
+
+def _antrag(c, aid):
+    r = c.execute("SELECT * FROM bauantrag WHERE id=?", (aid,)).fetchone()
+    return dict(r) if r and _sees(c, r["project_id"]) else None
+
+
+def _user():
+    return {"id": g.user["id"], "name": g.user["name"], "email": g.user["email"] or "",
+            "vorname": C._col(g.user, "vorname") or "", "nachname": C._col(g.user, "nachname") or ""}
+
+
+_DATEIEN = {}
+
+
+def _dateien(pid, neu=False):
+    """Dateien des Projektordners (wie in „Pläne & Dateien“) – für die Erkennung der Bauvorlagen; 10 Minuten gemerkt, ohne Ordner leer."""
+    v = _DATEIEN.get(pid)
+    if v and not neu and time.time() - v[0] < 600:
+        return v[1]
+    try:
+        d = C.bt_api("GET", "/api/plaene/dateien?" + urllib.parse.urlencode({"project_id": pid, **({"neu": "1"} if neu else {})}))
+        out = [{"name": f.get("name") or "", "pfad": f.get("pfad") or ""} for f in (d or {}).get("dateien") or []]
+    except Exception:   # noqa: BLE001 – Laufwerk nicht erreichbar: Checkliste ohne Erkennung
+        out = []
+    _DATEIEN[pid] = (time.time(), out)
+    return out
+
+
+def _detail(c, a, dateien=None):
+    daten = _j(a["daten"], {})
+    F = BA.werte(c, a["project_id"], _user(), daten)
+    B = BA.bauvorlagen(dateien if dateien is not None else _dateien(a["project_id"]), _j(a["bauvorlagen"], {}))
+    ff, fb = BA.fehlt(F, B)
+    p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
+    return {"antrag": {k: a[k] for k in ("id", "project_id", "name", "verfahren", "land", "status", "erstellt", "geaendert", "von")},
+            "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
+            "schritte": BA.SCHRITTE}
+
+
+@app.get("/api/antraege")
+def liste():
+    with db.tx() as c:
+        P = {r["id"]: dict(r) for r in c.execute("SELECT id, name, leaders, archived FROM projects ORDER BY name").fetchall()}
+        sicht = {pid for pid in P if _sees(c, pid)}
+        out = [{"id": r["id"], "project_id": r["project_id"], "projekt": P[r["project_id"]]["name"], "name": r["name"], "verfahren": r["verfahren"],
+                "status": r["status"], "geaendert": r["geaendert"]}
+               for r in c.execute("SELECT id, project_id, name, verfahren, status, geaendert FROM bauantrag ORDER BY geaendert DESC").fetchall()
+               if r["project_id"] in sicht]
+    return jsonify(antraege=out, projekte=[{"id": p["id"], "name": p["name"]} for pid, p in P.items() if pid in sicht and not p["archived"]],
+                   verfahren=BA.VERFAHREN)
+
+
+@app.post("/api/antraege")
+def neu():
+    b = request.get_json(silent=True) or {}
+    try:
+        pid = int(b.get("project_id") or 0)
+    except (TypeError, ValueError):
+        pid = 0
+    verf = b.get("verfahren") if b.get("verfahren") in BA.VERFAHREN else "baugenehmigung"
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden."), 404
+        name = str(b.get("name") or "").strip()[:200] or BA.VERFAHREN[verf]
+        aid = c.execute("INSERT INTO bauantrag(project_id, name, verfahren, daten, von) VALUES(?,?,?,?,?) RETURNING id",
+                        (pid, name, verf, json.dumps({"verfahren": verf}), g.user["name"])).fetchone()["id"]
+        d = _detail(c, _antrag(c, aid))
+    C.audit(g.user["name"], KEY, "Bauantrag angelegt", name)
+    return jsonify(d)
+
+
+@app.get("/api/antraege/<int:aid>")
+def holen(aid):
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        return jsonify(_detail(c, a, _dateien(a["project_id"], request.args.get("neu") == "1")))
+
+
+@app.put("/api/antraege/<int:aid>")
+def aendern(aid):
+    """b.felder: {feld: wert | null} – null = zurück auf die Quelle; b.bauvorlagen: {key: {status, notiz} | null}; b.name, b.status."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        if a["status"] == "eingereicht" and b.get("status") != "entwurf" and (b.get("felder") or b.get("bauvorlagen")):
+            return jsonify(error="Der Antrag ist eingereicht – zum Ändern erst wieder auf „Entwurf“ stellen."), 409
+        daten = _j(a["daten"], {})
+        for k, v in (b.get("felder") or {}).items():
+            if k in BA.FK:
+                if v is None:
+                    daten.pop(k, None)
+                else:
+                    daten.update(BA.sauber({k: v}))
+        bv = _j(a["bauvorlagen"], {})
+        for k, v in (b.get("bauvorlagen") or {}).items():
+            if any(k == x[0] for x in BA.BAUVORLAGEN):
+                if v is None:
+                    bv.pop(k, None)
+                else:
+                    bv[k] = {"status": v.get("status") if v.get("status") in ("da", "offen", "entfaellt", "beigefuegt") else "",
+                             "notiz": str(v.get("notiz") or "")[:300]}
+        name = str(b["name"]).strip()[:200] if b.get("name") else a["name"]
+        status = b["status"] if b.get("status") in ("entwurf", "eingereicht", "genehmigt") else a["status"]
+        verf = daten.get("verfahren") if daten.get("verfahren") in BA.VERFAHREN else a["verfahren"]
+        c.execute("UPDATE bauantrag SET name=?, status=?, verfahren=?, daten=?, bauvorlagen=?, geaendert=? WHERE id=?",
+                  (name, status, verf, json.dumps(daten), json.dumps(bv), time.strftime("%Y-%m-%d %H:%M:%S"), aid))
+        d = _detail(c, _antrag(c, aid))
+    return jsonify(d)
+
+
+@app.delete("/api/antraege/<int:aid>")
+def loeschen(aid):
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
+        pk = papierkorb.ablegen(c, "bauantrag", aid, "Bauantrag", a["name"], g.user["name"], p["name"] if p else "", KEY)
+    C.audit(g.user["name"], KEY, "Bauantrag gelöscht", a["name"])
+    return jsonify(ok=True, papierkorb=pk)
+
+
+@app.get("/api/antraege/<int:aid>/antrag.pdf")
+def pdf(aid):
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        d = _detail(c, a)
+    data = BA.pdf(d["felder"], d["bauvorlagen"], a["name"], d["projekt"], entwurf=a["status"] == "entwurf")
+    fn = BA.dateiname(d["projekt"], a["verfahren"])
+    disp = "attachment" if request.args.get("dl") else "inline"
+    return Response(data, mimetype="application/pdf",
+                    headers={"Content-Disposition": f"{disp}; filename*=UTF-8''{urllib.parse.quote(fn)}", "Cache-Control": "no-store"})

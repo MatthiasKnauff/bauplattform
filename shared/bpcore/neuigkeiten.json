@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-bauantrag",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Neue App „Bauantrag“",
+  "text": "Bauantrag, Vorbescheid oder Freistellung Schritt für Schritt: Was die Plattform schon weiß (Projektdaten, Bauherr aus den Adressen, Gemarkung/Flur aus dem Kataster, Kosten aus der Kostenermittlung, Entwurfsverfasser/in aus Mein Konto oder dem Büro), ist eingetragen – mit Quelle; ↺ holt den Wert zurück. Die Bauvorlagen werden aus dem Projektordner erkannt. Am Ende ein PDF.",
+  "ziel": ".ba-st"
+ },
+ {
   "id": "2026-11-11-todo-sort",
   "datum": "2026-11-11",
   "app": "aufgaben",

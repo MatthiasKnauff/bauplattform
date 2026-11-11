@@ -4,11 +4,7 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Jetzt in Arbeit
 
-- Bautagebuch auf den Baukasten – GO am 10.11.2026. **gesamt ca. 2–2,5 Tage**
-  - ~~Schritt 1: Rahmen – Navigation mit Kalender und Berichten des Tages, Befehlsleiste, Bereich rechts (Details, Foto, PDF-Vorschau)~~
-  - ~~Schritt 2: index.html (2.250 Zeilen) in neun Skripte und bt.css geteilt wie bei der AVA~~
-  - ~~Schritt 3: Baukasten statt eigener Kopien – Grundhilfen, api, Meldungen, Darstellung, Rückgängig-Dock, Fortschritt (bpProzent), Kontaktmaske wie in Adressen~~ (die PDF-Ansicht fürs iPhone bleibt eigen: Startbildschirm-App ohne Zurück-Knopf)
-  - ~~Schritt 4: Drucken mehrerer Berichte – Zeitraum von–bis, im Kalender mit Umschalt markiert oder alle; ein gemeinsames PDF (ohne Ablage), wahlweise ohne Fotos~~
+- ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
@@ -22,9 +18,11 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
    - Abnahme, Rest: Standort beim Unterschreiben, mehrere Fotos auf einmal aus der Galerie, Abnahme auch aus dem Auftrag in der AVA starten. **ca. 3–4 h**
 8. ~~PDF- und Foto-Ansicht am Handy und am PC wie der Standard-Viewer~~
 9. Neue App „Bauantrag“: aktuelle Antragsformulare je Bundesland (NRW: Anlagen zur VV BauPrüfVO von bauportal.nrw, neue Fassungen werden gemeldet), Assistent, Felder aus Projekt, Adressen, Kataster und Baukosten; am Ende ein bearbeitbares PDF, Änderungen darin fließen in die Datenbank zurück – erst Mock. **ca. 1,5–2 Wochen (je weiteres Bundesland ca. 2–3 Tage)**
-10. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
+10. Honorar: Versionen je Auftrag wie in Baukosten/AVA – „Neues Angebot“ kopiert die Version, eine Version „gilt“ (beauftragt), PDF mit Versionsnamen – wartet auf: je Auftrag oder je Projekt. **ca. 3–4 h**
+11. Verträge: Architekten-/Ingenieurvertrag aus Honorar, Auftragsschreiben/Bauvertrag aus der AVA-Vergabe, auf dem Briefbogen; Ablage in einem eigenen Vertragsverzeichnis, Zugangsdaten trägt der Geschäftsführer selbst ein (nie im Browser sichtbar) – wartet auf: eigene Freigabe oder geschützter Unterordner; erst Mock. **ca. 2–3 Tage**
+12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
 
-Summe Sammlung: ca. 16–20 Tage.
+Summe Sammlung (offen): ca. 15–19 Tage.
 
 ## Offene Fragen
 

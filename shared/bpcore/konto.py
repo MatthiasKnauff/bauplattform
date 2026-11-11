@@ -15,6 +15,7 @@ STANDARD = {"stil": {},             # Stil je Benutzer (⚙ → Darstellung → 
             "mailsignatur": "",      # eigene E-Mail-Signatur mit Platzhaltern; leer = Standard
             "mailsignatur_html": "", # dieselbe als HTML (eingefügt aus Outlook/Word); hat Vorrang
             "telefon": "", "funktion": "",   # für die Signatur
+            "beruf": "", "kammer": "", "kammernr": "", "bauvorlage": False,   # Bauanträge: Entwurfsverfasser/in persönlich (App „Bauantrag“)
             "ki_immer": False,       # gewählte KI ohne Nachfrage verwenden (sonst fragen die Apps beim Lesen mit KI)
             "modus": "",             # Ansicht: einfach | profi; leer = Vorgabe des Büros (Einstellung modus_standard, sonst profi)
             "farbschema": "",        # Farbschema der Oberfläche (head.js SCHEMEN), leer = Standard (nur Hell/Dunkel)
@@ -82,7 +83,9 @@ def set_prefs(c, uid, d, by=""):
         from . import htmlsig
         h = htmlsig.bereinigen(str(d["mailsignatur_html"] or ""))
         p["mailsignatur_html"] = h if htmlsig.html_zu_text(h).strip() or "<img" in h else ""
-    for k, n in (("mailsignatur", 2000), ("telefon", 60), ("funktion", 80)):
+    if "bauvorlage" in d:
+        p["bauvorlage"] = bool(d["bauvorlage"])
+    for k, n in (("mailsignatur", 2000), ("telefon", 60), ("funktion", 80), ("beruf", 80), ("kammer", 80), ("kammernr", 40)):
         if k in d:
             p[k] = str(d[k] or "").replace("\r", "").strip()[:n]
     _put(c, f"konto:{uid}", json.dumps(p), by)

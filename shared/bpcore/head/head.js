@@ -797,6 +797,10 @@
           <div class="bph-chips">${Object.entries(K.sig_platz || {}).map(([k, l]) => `<button type="button" data-kph="${k}" title="${esc(l)}">{${k}}</button>`).join('')}</div>
           <div class="bph-row"><button type="button" class="bph-btn pri" data-ksigsave>Signatur speichern</button><button type="button" class="bph-btn" data-ksigstd>Auf Standard zurücksetzen</button></div>
           <div class="bph-mu">So sieht sie in der Mail aus${K.mailsignatur_html ? ' (Mailprogramme ohne HTML zeigen sie als Text)' : ''}:</div><div class="bph-sigp bph-sigh">${K.sig_vorschau_html || esc(K.sig_vorschau || '').replace(/\n/g, '<br>')}</div>
+          <h4>Bauanträge – Entwurfsverfasser/in</h4><p class="bph-mu">Für die Formulare in der App „Bauantrag“. Beim Ausfüllen wählst du, ob du persönlich oder das Büro eingetragen wird – vorgewählt ist „persönlich“, wenn du hier bauvorlageberechtigt mit Kammernummer bist.</p>
+          <div class="bph-row"><label style="flex:1">Berufsbezeichnung<input data-kbv="beruf" value="${esc(K.beruf || '')}" placeholder="z. B. Architekt, Dipl.-Ing." maxlength="80"></label><label style="flex:1">Kammer<input data-kbv="kammer" value="${esc(K.kammer || '')}" placeholder="z. B. Architektenkammer NRW" maxlength="80"></label></div>
+          <div class="bph-row"><label style="flex:1">Mitgliedsnummer<input data-kbv="kammernr" value="${esc(K.kammernr || '')}" maxlength="40"></label><label style="flex:1;align-self:end"><input type="checkbox" data-kbv="bauvorlage"${K.bauvorlage ? ' checked' : ''}> bauvorlageberechtigt</label></div>
+          <div class="bph-row"><button type="button" class="bph-btn pri" data-kbvsave>Speichern</button></div>
           <h4>Absender meiner Mails</h4><p class="bph-mu">Rügen und Planversand gehen standardmäßig vom Büro-Postfach aus. Antworten kommen in jedem Fall auch an dich (Antwort an: deine Adresse).</p>
           ${seg('absender', [['buero', 'Büro' + (K.absender_buero ? ' (' + esc(K.absender_buero) + ')' : '')], ['eigen', 'meine Adresse' + (K.email ? ' (' + esc(K.email) + ')' : '')]])}
           ${K.absender === 'eigen' ? '<p class="bph-mu">Der Mailserver muss das Senden in deinem Namen erlauben (Microsoft 365: „Senden als“ für das Büro-Postfach). Sonst erscheint beim Versand ein Hinweis.</p>' : ''}
@@ -847,6 +851,7 @@
       if (t.closest('[data-kpw]')) { H.kennwort(); return; }
       const tb = t.closest('[data-ktab]'); if (tb) { tab = tb.dataset.ktab; msg = ''; draw(); return; }
       const sv = t.closest('[data-kset]'); if (sv) { save({ [sv.dataset.kset]: sv.dataset.v }); return; }
+      if (t.closest('[data-kbvsave]')) { const d = {}; root.querySelectorAll('[data-kbv]').forEach((x) => { d[x.dataset.kbv] = x.type === 'checkbox' ? x.checked : x.value.trim(); }); save(d); return; }
       if (t.closest('[data-kdel]')) { if (!(await bpFrage('Unterschrift entfernen?'))) return; await KX('api/bp/signatur', { method: 'DELETE' }).catch((er) => { msg = er.message; }); K.signatur = false; draw(); return; }
       const ph = t.closest('[data-kph]');
       if (ph) {

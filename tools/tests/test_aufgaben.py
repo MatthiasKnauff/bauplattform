@@ -13,7 +13,7 @@ from lib import finde, gleich, pruefe
 
 HEUTE = __import__('datetime').datetime.now(__import__('zoneinfo').ZoneInfo('Europe/Berlin')).date()   # wie die Server (deutsche Zeit) – nicht UTC des Testlaufs
 REGELN = ["maengel", "erinnerungen", "rechnungen", "skonto", "nachtraege", "vergabe", "firma", "terminruege", "verzug",
-          "planversand", "vorort", "tagesbericht", "budget", "urlaub", "honorar", "post"]
+          "planversand", "vorort", "tagesbericht", "budget", "urlaub", "honorar", "formulare", "post"]
 
 
 # ---------------------------------------------------------------- Hilfen

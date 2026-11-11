@@ -12,7 +12,7 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Honorar-Ablauf, Etappe 3: Abrechnung – Abschläge nach erbrachten LPh, bezahlt/offen, Schlussrechnung. **ca. 30–45 min**
 - Honorar: „＋ Anfrage“ aus einer Mail im Posteingang der Startseite, Widget „Honorar offen“. **ca. 20–30 min**
 - Bautagebuch: Tagesbericht direkt in der PDF-Vorschau bearbeiten (Klick ins Feld → bearbeiten, wie in der Seite). **ca. 45–60 min**
-- Bauantrag: amtliches NRW-Formular (ausfüllbares PDF) – sobald die Formular-PDFs hochgeladen sind; Änderungen im PDF zurück in die Datenbank. **ca. 30–45 min**
+- Bauantrag: amtliches NRW-Formular ausfüllen (die PDFs liegen jetzt vor) – Felder ins Formular eintragen, Änderungen im PDF zurück in die Datenbank. **ca. 45–60 min**
 - Bauantrag: Lageplan-/Liegenschaftskarte aus ALKIS anfordern, Gebühr schätzen, Bauvorlagen direkt aus dem Projektordner beilegen. **ca. 30–45 min**
 1. Projektordner, Etappe 2: Umordnen per Ziehen und Ablegen in der Nachher-Ansicht, Dateinamen nach Schema (nicht nur das Kürzel), Seite für andere Benutzer freischalten. **ca. 30–45 min**
 2. Suchleiste (Inhalte + Funktionen + Menüs, kombiniert – ca. 1–1,5 h) in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 20–30 min**
@@ -91,6 +91,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Bauantrag: Gebäudeklasse als Skizzen wählbar (GK 1–5 mit 7-m- und 13-m-Linie)~~
+- ~~Bauantrag: amtliche Formulare – NRW (Anlagen VV BauPrüfVO, recht.nrw.de) täglich geprüft und vorgehalten, Liste mit Fassung und Stand, neu/geändert als To-do bis „gesehen“; andere Länder auf Abruf (Quelle eintragen, nur Verwaltung)~~
 - ~~Bauantrag: Felder bündig und sinnvoll breit angeordnet; Änderungen gehen zurück in Projektdaten (neue Gruppe „Bauantrag“: Behörde, Grundstück, Planungsrecht, Gebäudeklasse, Kenndaten), Adressen des Bauherrn (wird bei Bedarf angelegt), Projektanschrift, Mein Konto bzw. Büro – Kennzeichen „⇄ Projektdaten“ am Feld~~
 - ~~Auswahl wie die Projektauswahl auch für Firmen und Aufträge (Baustein data-bp-auswahl): Abnahme „Auftrag wählen“ als Suchfeld, darunter zugeklappt „Aus anderen Projekten“; Mängel- und Terminrüge: Firmen mit Gewerk/offenen Mängeln, „Weitere Firmen aus den Adressen“ zugeklappt~~
 - ~~Startseite, Post: Mails mit Häkchen als erledigt abhaken (statt ✕ ausblenden), unten „✓ Erledigt (n)“ durchgestrichen, Rückgängig~~

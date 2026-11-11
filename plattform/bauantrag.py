@@ -7,7 +7,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import bauantrag as BA, db, papierkorb, platform, sso
+from bpcore import bauantrag as BA, bauantrag_formulare as BF, db, papierkorb, platform, sso
 import common as C
 
 app = C.make_app(__name__)
@@ -203,3 +203,58 @@ def pdf(aid):
     disp = "attachment" if request.args.get("dl") else "inline"
     return Response(data, mimetype="application/pdf",
                     headers={"Content-Disposition": f"{disp}; filename*=UTF-8''{urllib.parse.quote(fn)}", "Cache-Control": "no-store"})
+
+
+# ---------------------------------------------------------------- amtliche Formulare (bpcore/bauantrag_formulare.py)
+@app.get("/api/formulare")
+def formulare():
+    land = request.args.get("land") if request.args.get("land") in BF.LAENDER else "NW"
+    with db.tx() as c:
+        return jsonify(land=land, laender=BF.LAENDER, quelle=BF.quelle(c, land), vorhalten=land in BF.VORHALTEN,
+                       stand=BF.stand(c, land), formulare=BF.liste(c, land), admin=bool(g.user["is_admin"]))
+
+
+@app.post("/api/formulare/pruefen")
+def formulare_pruefen():
+    b = request.get_json(silent=True) or {}
+    land = b.get("land") if b.get("land") in BF.LAENDER else "NW"
+    erg = BF.pruefen(db.tx, land, g.user["name"])
+    with db.tx() as c:
+        return jsonify(ergebnis=erg, land=land, laender=BF.LAENDER, quelle=BF.quelle(c, land), vorhalten=land in BF.VORHALTEN,
+                       stand=BF.stand(c, land), formulare=BF.liste(c, land), admin=bool(g.user["is_admin"]))
+
+
+@app.put("/api/formulare/quelle")
+def formulare_quelle():
+    """Seite mit den Vordrucken eines anderen Landes eintragen – nur Verwaltung (der Server ruft sie ab)."""
+    if not g.user["is_admin"]:
+        return jsonify(error="Nur für die Verwaltung."), 403
+    b = request.get_json(silent=True) or {}
+    land = b.get("land")
+    if land not in BF.LAENDER or land == "NW":
+        return jsonify(error="Unbekanntes Land."), 400
+    try:
+        with db.tx() as c:
+            BF.quelle_setzen(c, land, str(b.get("url") or "").strip()[:500], g.user["name"])
+    except (ValueError, OSError) as e:
+        return jsonify(error=str(e)), 400
+    return formulare_pruefen()
+
+
+@app.post("/api/formulare/<int:fid>/gesehen")
+def formular_gesehen(fid):
+    with db.tx() as c:
+        c.execute("UPDATE bauantrag_formular SET status='aktuell' WHERE id=? AND status IN ('neu','geaendert')", (fid,))
+    return jsonify(ok=True)
+
+
+@app.get("/api/formulare/<int:fid>/datei")
+def formular_datei(fid):
+    with db.tx() as c:
+        r = c.execute("SELECT nr, titel, url, daten FROM bauantrag_formular WHERE id=?", (fid,)).fetchone()
+    if not r:
+        return jsonify(error="Formular nicht gefunden."), 404
+    if r["daten"] is None:
+        return redirect(r["url"])
+    fn = f"Anlage {r['nr'].replace('/', '-')} {r['titel']}"[:120].strip() + ".pdf"
+    return Response(bytes(r["daten"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(fn)}"})

@@ -3,7 +3,7 @@
    sechs Schritten, rechts das PDF (seite.js). Jeder Wert zeigt seine Quelle (Projekt, Adressen, Kataster, Baukosten, Büro, Mein Konto);
    von Hand geänderte Werte lassen sich mit ↺ auf die Quelle zurücksetzen. Jede Änderung wird sofort gespeichert (Rückgängig-Dock).
    Server: plattform/bauantrag.py, Felder und PDF: bpcore/bauantrag.py. */
-let ME = null, L = null, D = null, AID = null, SCHRITT = 'verfahren';
+let ME = null, L = null, D = null, AID = null, SCHRITT = 'verfahren', FORM = null;   // FORM: Ansicht „Amtliche Formulare“ (sonst der Antrag)
 const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
 const HANDY = matchMedia('(max-width: 820px)');
 const IC = { neu: '<path d="M12 5v14M5 12h14"/>', pdf: '<path d="M6 3h9l4 4v14H6zM14 3v5h5"/><path d="M9 13h6M9 17h4"/>', weg: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
@@ -30,7 +30,7 @@ function nav() {
       id: String(a.id), text: a.name, icon: IC.antrag, farbe: a.status === 'genehmigt' ? 'var(--ok,#1e8a4c)' : a.status === 'eingereicht' ? 'var(--y)' : 'var(--mute)',
       zahl: a.status === 'entwurf' ? '' : (STATUS[a.status] || '').slice(0, 4) + '.', zahlTip: STATUS[a.status] || '' })) })),
     aktiv: AID ? String(AID) : '', attr: 'ba', lage: true,
-    wahl: async (id) => { AID = +id; D = await api('api/antraege/' + AID); zeichne(); },
+    wahl: async (id) => { FORM = null; AID = +id; D = await api('api/antraege/' + AID); zeichne(); },
   });
 }
 
@@ -40,6 +40,7 @@ function leiste() {
     { titel: 'Neu', knoepfe: [K('Antrag', IC.neu, neuDialog, { tip: 'Neuer Bauantrag, Vorbescheid oder Freistellung' })] },
     { titel: 'Bauvorlagen', knoepfe: [K('Neu erkennen', IC.ord, async () => { D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); },
       { aus: !D, tip: 'Projektordner neu einlesen und die Bauvorlagen erkennen' })] },
+    { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen('NW'), { tip: 'Amtliche Vordrucke (NRW vorgehalten, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
     { titel: 'Ausgabe', rechts: true, knoepfe: [K('PDF', IC.pdf, pdf, { aus: !D, tip: 'Antrag als PDF (eigenes Layout, angelehnt an die Bauvorlagen NRW)' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Antrag in den Papierkorb legen' })] },
   ]);
@@ -65,7 +66,24 @@ document.addEventListener('click', (e) => { if (e.target.closest && e.target.clo
 const feld = (k) => D.felder.find((f) => f.key === k);
 function fehltIn(s) { return D.felder.filter((f) => f.schritt === s && f.pflicht && !String(f.wert).trim()).length; }
 
+/* Gebäudeklasse als Skizze (§ 2 Abs. 3 BauO NRW 2018): Höhe = Fußboden des obersten Geschosses mit Aufenthaltsraum über Gelände im Mittel */
+const GK = [['1', 'freistehend, ≤ 7 m, höchstens 2 Nutzungseinheiten mit zusammen ≤ 400 m² (auch freistehende Land-/Forstwirtschaft)', 'freistehend · ≤ 7 m · ≤ 2 NE, ≤ 400 m²'],
+  ['2', 'nicht freistehend, ≤ 7 m, höchstens 2 Nutzungseinheiten mit zusammen ≤ 400 m²', '≤ 7 m · ≤ 2 NE, ≤ 400 m²'], ['3', 'sonstige Gebäude ≤ 7 m', 'sonstige · ≤ 7 m'],
+  ['4', '≤ 13 m, jede Nutzungseinheit ≤ 400 m²', '≤ 13 m · NE je ≤ 400 m²'], ['5', 'sonstige Gebäude, auch über 13 m und unterirdische', 'sonstige · über 13 m']];
+function gkSkizze(n) {   // y: Gelände 92, 7 m ≈ y 52, 13 m ≈ y 18
+  const haus = (x, w, top, dach = true) => `<rect x="${x}" y="${top}" width="${w}" height="${92 - top}" fill="var(--card)" stroke="currentColor" stroke-width="1.6"/>${dach ? `<path d="M${x - 3} ${top}L${x + w / 2} ${top - 12}L${x + w + 3} ${top}" fill="none" stroke="currentColor" stroke-width="1.6"/>` : ''}`;
+  const fl = (x, w, ys) => ys.map((y) => `<path d="M${x} ${y}h${w}" stroke="currentColor" stroke-width=".7" opacity=".5"/>`).join('');
+  const b = { 1: haus(38, 34, 60) + fl(38, 34, [76]), 2: haus(24, 30, 60) + haus(54, 30, 60) + fl(24, 60, [76]), 3: haus(18, 74, 58, false) + fl(18, 74, [70, 81]),
+    4: haus(30, 50, 26, false) + fl(30, 50, [37, 48, 59, 70, 81]), 5: haus(36, 38, 4, false) + fl(36, 38, [13, 22, 31, 40, 49, 58, 67, 76, 84]) }[n];
+  return `<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M4 52h112" stroke="var(--y)" stroke-dasharray="3 3" stroke-width=".9"/><text x="116" y="49" font-size="7" text-anchor="end" fill="var(--y)">7 m</text>
+    <path d="M4 18h112" stroke="var(--warn,#b7791f)" stroke-dasharray="3 3" stroke-width=".9"/><text x="116" y="15" font-size="7" text-anchor="end" fill="var(--warn,#b7791f)">13 m</text>${b}<path d="M2 92h116" stroke="currentColor" stroke-width="2"/></svg>`;
+}
 function feldHtml(f) {
+  if (f.key === 'gebaeudeklasse') {
+    const w = String(f.wert ?? ''), q = f.ziel ? `<span class="ba-q sync" title="Kommt aus „${esc(f.ziel)}“ – eine Änderung hier wird dort gespeichert">⇄ ${esc(f.ziel)}</span>` : '';
+    return `<div class="ba-f w${!w ? ' leer' : ''}"><span>${esc(f.label)} <i>*</i>${q}</span><div class="ba-gk" role="group" aria-label="Gebäudeklasse">${GK.map(([n, t, k]) => `<button type="button" data-seg="gebaeudeklasse" data-v="${n}" class="${w === n ? 'on' : ''}" title="${esc(t)}">${gkSkizze(n)}<b>GK ${n}</b><small>${esc(k)}</small></button>`).join('')}</div>
+      <span class="ba-hilfe">Höhe = Fußboden des obersten Geschosses mit Aufenthaltsraum über Gelände im Mittel (§ 2 Abs. 3 BauO NRW) · NE = Nutzungseinheit</span></div>`;
+  }
   const w = String(f.wert ?? ''), leer = f.pflicht && !w.trim();
   const tip = f.ziel ? `Kommt aus „${f.ziel}“ – eine Änderung hier wird dort gespeichert und gilt überall` : f.eigen && f.quelle_name ? 'Nur in diesem Antrag geändert · Quelle: ' + f.quelle_name + (f.quelle_wert ? ' – „' + f.quelle_wert + '“' : '') : 'Nur in diesem Antrag';
   const q = f.quelle || f.ziel ? `<span class="ba-q${f.eigen ? ' eigen' : ''}${f.ziel ? ' sync' : ''}" title="${esc(tip)}">${f.ziel ? '⇄ ' + esc(f.ziel) : esc(f.quelle)}</span>` : '';
@@ -122,6 +140,7 @@ function schrittHtml() {
 
 function zeichne() {
   nav(); leiste();
+  if (FORM) { V.innerHTML = formHtml(); return; }
   if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Oben „Neu → Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
   const st = D.schritte.map(([k, t], i) => { const n = k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k);
     return `<button type="button" data-schritt="${k}" class="${k === SCHRITT ? 'on' : ''} ${n ? 'fehlt' : 'ok'}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : '✓ vollständig'}</small></button>`; }).join('');
@@ -167,6 +186,46 @@ V.addEventListener('click', async (e) => {
   if (b.dataset.pdf !== undefined) pdf();
 });
 
+/* ---------- Amtliche Formulare: Liste je Land, Stand der Prüfung, neu/geändert mit „gesehen“, ansehen ---------- */
+async function formulareZeigen(land, pruefen) {
+  try { FORM = pruefen ? await api('api/formulare/pruefen', 'POST', { land }) : await api('api/formulare?land=' + land); }
+  catch (e) { toast(e.message, true); return; }
+  if (pruefen && FORM.ergebnis) { const r = FORM.ergebnis; toast(r.fehler ? r.fehler : `Geprüft: ${r.neu.length} neu, ${r.geaendert.length} geändert${r.entfallen.length ? `, ${r.entfallen.length} entfallen` : ''}.`, !!r.fehler); }
+  zeichne();
+}
+const ST_FORM = { neu: ['neu', 'warn'], geaendert: ['neue Fassung', 'warn'], entfallen: ['entfallen', 'mute'], aktuell: ['', ''] };
+function formHtml() {
+  const F = FORM, st = F.stand || {}, de = (t) => (t ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}${t.length > 11 ? ' ' + t.slice(11, 16) : ''}` : '–');
+  const laender = Object.entries(F.laender).sort((a, b) => (a[0] === 'NW' ? -1 : b[0] === 'NW' ? 1 : a[1].localeCompare(b[1], 'de')));
+  const kopf = `<div class="ba-k"><h3>Amtliche Formulare<span class="mute">${F.vorhalten ? 'werden vorgehalten und täglich geprüft' : 'auf Abruf – nur verlinkt'}</span></h3>
+    <div class="ba-fk"><label class="ba-f"><span>Bundesland</span><select data-formland data-bp-auswahl aria-label="Bundesland">${laender.map(([k, n]) => `<option value="${k}"${k === F.land ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+      <div class="ba-fs"><span>Fassung: <b>${esc(st.fassung || '–')}</b></span><span>zuletzt geprüft: <b>${de(st.geprueft)}</b></span>${F.quelle ? `<a href="${esc(st.seite || F.quelle)}" target="_blank" rel="noopener">Quelle öffnen ↗</a>` : ''}</div>
+      <button type="button" class="btn pri" data-formpruefen${F.quelle ? '' : ' disabled'}>↻ Jetzt prüfen</button>${!F.vorhalten && F.admin ? '<button type="button" class="btn" data-formquelle>Quelle eintragen …</button>' : ''}</div>
+    ${st.fehler ? `<p class="ba-hilfe" style="color:var(--red)">⚠ ${esc(st.fehler)}</p>` : ''}
+    ${!F.quelle ? `<p class="ba-hilfe">Für ${esc(F.laender[F.land])} ist noch keine Seite mit den Vordrucken eingetragen${F.admin ? ' – „Quelle eintragen …“, z. B. die Seite des Bauministeriums mit den Bauvorlagen.' : ' – das macht die Verwaltung.'}</p>` : ''}</div>`;
+  const L = F.formulare || [], n = L.filter((x) => x.status === 'neu' || x.status === 'geaendert').length;
+  const liste = L.length ? `<div class="ba-k"><h3>${L.filter((x) => x.status !== 'entfallen').length} Formulare${n ? `<span class="mute" style="color:var(--warn)">${n} neu oder geändert</span>` : ''}</h3>
+    <div class="tw"><table class="ba-t"><thead><tr><th>Anlage</th><th>Titel</th><th>Stand</th><th></th></tr></thead><tbody>
+    ${L.map((x) => { const [t, c] = ST_FORM[x.status] || ['', '']; return `<tr class="${x.status === 'entfallen' ? 'aus' : ''}"><td style="white-space:nowrap">${esc(x.nr || '–')}</td><td>${esc(x.titel)}</td>
+      <td style="white-space:nowrap">${t ? `<span class="ba-q" style="${c === 'warn' ? 'color:var(--warn);border-color:var(--warn)' : ''}">${t}</span> ` : ''}<small class="mute">${esc(x.fassung || de(x.geaendert).slice(0, 10))}</small></td>
+      <td style="white-space:nowrap;text-align:right">${x.status === 'neu' || x.status === 'geaendert' ? `<button type="button" class="btn sm" data-formgesehen="${x.id}">✓ gesehen</button> ` : ''}<button type="button" class="btn sm" data-formansehen="${x.id}">Ansehen</button></td></tr>`; }).join('')}
+    </tbody></table></div></div>` : (F.quelle ? '<div class="ba-k"><p class="mute" style="margin:0">Noch nicht geprüft – „↻ Jetzt prüfen“.</p></div>' : '');
+  return `<div class="ba-w">${kopf}${liste}</div>`;
+}
+V.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-formpruefen],[data-formquelle],[data-formgesehen],[data-formansehen]'); if (!b || !FORM) return;
+  if (b.dataset.formpruefen !== undefined) return formulareZeigen(FORM.land, true);
+  if (b.dataset.formquelle !== undefined) {
+    const u = await bpEingabe(`Seite mit den Bauvorlagen-Vordrucken für ${FORM.laender[FORM.land]} (https://…)`, FORM.quelle || '', { ok: 'Eintragen und prüfen' }); if (!u) return;
+    try { FORM = await api('api/formulare/quelle', 'PUT', { land: FORM.land, url: u }); zeichne(); } catch (er) { toast(er.message, true); } return;
+  }
+  if (b.dataset.formgesehen) { try { await api(`api/formulare/${b.dataset.formgesehen}/gesehen`, 'POST', {}); await formulareZeigen(FORM.land); } catch (er) { toast(er.message, true); } return; }
+  if (b.dataset.formansehen) { const x = FORM.formulare.find((y) => y.id === +b.dataset.formansehen);
+    if (x.hat_datei && window.BPHead && BPHead.ansehen) BPHead.ansehen([{ url: `api/formulare/${x.id}/datei`, typ: 'pdf', name: (x.nr ? 'Anlage ' + x.nr + ' ' : '') + x.titel }]);
+    else window.open(x.url, '_blank', 'noopener'); }
+});
+V.addEventListener('change', (e) => { if (e.target.dataset && e.target.dataset.formland !== undefined && FORM) formulareZeigen(e.target.value); });
+
 function neuDialog() {
   const P = L.projekte;
   if (!P.length) { toast('Es gibt noch kein Projekt.', true); return; }
@@ -204,5 +263,6 @@ HANDY.addEventListener('change', () => { if (L) zeichne(); });
   await header('Bauantrag', ME, PC);
   bpNav.breite(NAV, { key: 'bauantrag' });
   await laden();
+  if (location.hash === '#formulare') { history.replaceState(null, '', location.pathname); formulareZeigen('NW'); }   // aus dem To-do „Neues Bauantragsformular“
   BPHead.live(['bauantrag', 'projects', 'contacts'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));

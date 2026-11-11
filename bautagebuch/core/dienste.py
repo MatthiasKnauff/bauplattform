@@ -36,6 +36,11 @@ def starten():
     extern.start()      # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
     aufraeumen.start()  # nachts alte Stände („…_old1“) auf dem Dateiserver aufräumen
     try:
+        from bpcore import bauantrag_formulare
+        bauantrag_formulare.start(db.tx)   # täglich: amtliche Bauantragsformulare NRW auf neue Fassungen prüfen
+    except Exception as e:   # noqa: BLE001 – ohne Formularprüfung laufen die übrigen Dienste weiter
+        fehler.still("dienste", "Formularprüfung starten", e)
+    try:
         from modules import plaene
         plaene.start()  # Planordner der laufenden Projekte nachts vorab einlesen (Pläne & Dateien)
     except Exception as e:   # noqa: BLE001 – ohne Planordner laufen die übrigen Dienste weiter

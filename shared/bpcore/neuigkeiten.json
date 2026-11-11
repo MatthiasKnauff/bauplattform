@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-formulare",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Amtliche Formulare im Bauantrag",
+  "text": "Unter „Formulare“ stehen alle amtlichen Vordrucke aus NRW (Anlagen zur VV BauPrüfVO) mit Fassung und Stand – sie werden täglich geprüft und hier vorgehalten. Kommt ein Formular dazu oder ändert sich eines, erscheint ein To-do, bis du „gesehen“ drückst. Andere Bundesländer gibt es auf Abruf. Die Gebäudeklasse wählst du jetzt per Skizze.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-bauantrag-zurueck",
   "datum": "2026-11-11",
   "app": "bauantrag",

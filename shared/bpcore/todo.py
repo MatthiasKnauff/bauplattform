@@ -30,6 +30,7 @@ REGELN = [
     ("budget", "Budget überschritten", "Aufträge + beauftragte Nachträge im AVA liegen über der Kostenermittlung (KG 300 + 400)", False, ("Toleranz", "%", 0)),
     ("urlaub", "Urlaubsanträge", "Für die Verwaltung: offene Urlaubsanträge entscheiden · für alle: eigene Anträge, die in den letzten Tagen entschieden wurden", True, None),
     ("honorar", "Honorar: Anfragen und Angebote", "Für die Verwaltung: Anfragen ohne Angebot, Angebote zum Nachfassen oder mit ablaufender Bindefrist, Aufträge ohne Vertrag – so viele Tage Vorlauf bzw. Wartezeit", True, ("Tage", "Tage", 7)),
+    ("formulare", "Neue Bauantragsformulare", "Ein amtliches Formular (NRW: Anlagen zur VV BauPrüfVO) ist neu dazugekommen oder hat eine neue Fassung – bis jemand in „Bauantrag → Formulare“ auf „gesehen“ drückt", True, None),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
 ]
 RK = {r[0]: r for r in REGELN}
@@ -527,6 +528,18 @@ def _a_honorar(c, u, R, P, ok):
     return out
 
 
+def _a_formulare(c, u, R, P, ok):
+    from . import bauantrag_formulare as BF, sso
+    if not sso.has_app(u, "bauantrag"):
+        return []
+    try:
+        F = BF.offen(c)
+    except Exception:   # noqa: BLE001 – Tabelle noch nicht da
+        return []
+    return [_e("formulare", f"{x['id']}:{x['geaendert']}", f"{'Neues' if x['status'] == 'neu' else 'Geändertes'} Bauantragsformular {x['land']}: {('Anlage ' + x['nr'] + ' ') if x['nr'] else ''}{x['titel']}"[:200],
+               "In „Bauantrag → Formulare“ ansehen und als gesehen markieren", None, P, x["geaendert"][:10], "bauantrag:#formulare", 1) for x in F]
+
+
 def _d_iso(t):
     try:
         return date.fromisoformat(str(t)[:10]) if t else None
@@ -540,7 +553,7 @@ def _d(t):
 
 ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
             "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post,
-            "honorar": _a_honorar}
+            "honorar": _a_honorar, "formulare": _a_formulare}
 
 
 def automatisch(c, u):

@@ -148,6 +148,20 @@ async function laden() {
   }
   catch (e) { if (my === tok) $('#list').innerHTML = `<div class="leer">${esc(e.message)}</div>`; }
 }
+const ENTW = new Set();   // markierte Entwürfe (zum Löschen)
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset && t.dataset.ent) { const id = +t.dataset.ent; if (t.checked) ENTW.add(id); else ENTW.delete(id); zeichnen(); return; }
+  if (t.dataset && t.dataset.entalle !== undefined) { ENTW.clear(); if (t.checked) VG.filter((v) => v.art === 'abnahme' && v.status === 'entwurf').forEach((v) => ENTW.add(v.id)); zeichnen(); }
+});
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest || !e.target.closest('[data-entweg]')) return;
+  const ids = [...ENTW]; if (!ids.length || !(await bpFrage(`${ids.length} Entw${ids.length === 1 ? 'urf' : 'ürfe'} löschen?\nSie liegen danach im Papierkorb.`, { ok: 'Löschen', gefahr: true }))) return;
+  const pk = [];
+  for (const id of ids) { try { const r = await api('api/abnahme/' + id, 'DELETE'); if (r.papierkorb) pk.push(r.papierkorb); } catch (er) { toast(er.message, true); } }
+  ENTW.clear(); await laden();
+  if (pk.length) rueckgaengig(`${pk.length} Entw${pk.length === 1 ? 'urf' : 'ürfe'} gelöscht`, async () => { for (const p of pk) await api(`api/bp/papierkorb/${p}/zurueck`, 'POST').catch(() => {}); await laden(); });
+});
 function zeichnen() {
   const p = projekt();
   $('#scope').style.display = K ? 'none' : '';
@@ -173,7 +187,9 @@ function zeichnen() {
     $('#list').innerHTML = `<div class="leer">${F.q || F.arten.size || F.ich ? 'Nichts gefunden – Filter oder Suche ändern.' : K ? `An ${esc(K.name)} wurde noch nichts verschickt.` : !F.alle && p ? `In ${esc(p.name)} wurde noch nichts verschickt.<br><small>Hier erscheinen Planversand, Mängel- und Terminrügen – sobald sie aus den Apps verschickt werden.</small>` : 'Noch nichts verschickt.'}</div>`;
     return;
   }
-  let h = '', tag = '';
+  const EN = E.filter((x) => x._vg && x.art === 'abnahme' && x.status === 'entwurf'); [...ENTW].forEach((id) => { if (!EN.some((x) => x.id === id)) ENTW.delete(id); });
+  let h = EN.length ? `<div class="ent-bar"><label class="ck"><input type="checkbox" data-entalle${ENTW.size === EN.length ? ' checked' : ''}> alle ${EN.length} Entwürfe markieren</label>
+    ${ENTW.size ? `<span class="mute">${ENTW.size} markiert</span><button type="button" class="btn sm" data-entweg>🗑 Markierte löschen</button>` : '<span class="mute">einzeln über das Kästchen am Entwurf</span>'}</div>` : '', tag = '';
   for (const x of E) {
     const t = tagName(x.ts); if (t !== tag) { tag = t; h += `<div class="tag">${esc(t)}</div>`; }
     if (x._vg) { h += vgEintrag(x); continue; }
@@ -340,7 +356,7 @@ function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu�
 function vgEintrag(v) {
   const d = (v.zeit || '').replace('T', ' '), F = v.dateien || [];
   if (v.art === 'abnahme') {   // Abnahme: öffnet den Ablauf (Entwurf weiter bearbeiten, unterschrieben ansehen/senden/Nachtrag) – kom-abnahme.js
-    return `<div class="e vg"><a href="#v=${v.id}" class="ab-zeile" data-abn="${v.id}"><span class="ic">🏁</span><span class="h"><span class="art vg">${esc(v.art_name)}</span><b>${esc(v.titel || 'Abnahme')}</b></span>
+    return `<div class="e vg${v.status === 'entwurf' ? ' ent' : ''}">${v.status === 'entwurf' ? `<input type="checkbox" class="ent-ck" data-ent="${v.id}"${ENTW.has(v.id) ? ' checked' : ''} aria-label="Entwurf markieren" title="Markieren – zum Löschen">` : ''}<a href="#v=${v.id}" class="ab-zeile" data-abn="${v.id}"><span class="ic">🏁</span><span class="h"><span class="art vg">${esc(v.art_name)}</span><b>${esc(v.titel || 'Abnahme')}</b></span>
       <span class="z">${v.status === 'entwurf' ? '<span class="art mr">Entwurf</span>' : v.status === 'abgeschlossen' ? '✓ abgeschlossen · noch änderbar' : '✓ unterschrieben'}</span><span class="s">${(v.unterschriften || []).length ? `<span class="kv-us">${v.unterschriften.map((u) => `<span class="${u.da ? 'da' : 'fehlt'}" title="${u.da ? 'unterschrieben' : 'nicht anwesend'}">${u.da ? '✍' : '–'} ${esc(u.rolle)}${u.name ? ' ' + esc(u.name) : ''}</span>`).join('')}</span>` : ''}${esc(['von ' + v.von, F.filter((f) => f.mime.startsWith('image/')).length ? F.filter((f) => f.mime.startsWith('image/')).length + ' Fotos' : ''].filter(Boolean).join(' · '))}</span></a></div>`;
   }
   return `<details class="e vg"><summary><span class="ic">${v.ic || '📝'}</span>

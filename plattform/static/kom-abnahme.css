@@ -52,3 +52,8 @@ a.ab-zeile{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;gap:.1rem 
 }
 /* Liste der Kommunikation: wer unterschrieben hat */
 .kv-us{display:flex;flex-wrap:wrap;gap:.25rem .6rem;margin-bottom:.15rem}.kv-us span{white-space:nowrap}.kv-us .da{color:var(--ok,#1e8a4c)}.kv-us .fehlt{color:var(--mute);text-decoration:line-through}
+/* Entwürfe markieren und löschen (Verlauf) */
+.e.vg.ent{display:flex;align-items:stretch}.e.vg.ent>a.ab-zeile{flex:1;min-width:0}
+.ent-ck{flex:none;align-self:center;margin:0 0 0 .7rem;width:1.05rem;height:1.05rem;accent-color:var(--y);cursor:pointer}
+.ent-bar{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;padding:.4rem .6rem;margin:0 0 .5rem;border:1px dashed var(--line);border-radius:calc(9px*var(--rk,1));font-size:.86rem}
+.ent-bar .ck{display:inline-flex;gap:.35rem;align-items:center;cursor:pointer}.ent-bar .ck input{accent-color:var(--y)}

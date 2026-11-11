@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-entwuerfe",
+  "datum": "2026-11-11",
+  "app": "kommunikation",
+  "titel": "Entwürfe gesammelt löschen",
+  "text": "Entwürfe (Abnahmen in der Kommunikation, Rügen in Aufgaben & Mängel) haben ein Kästchen. Einzeln ankreuzen oder „alle markieren“, dann „Markierte löschen“ – mit Rückgängig.",
+  "ziel": ".ent-bar"
+ },
+ {
   "id": "2026-11-11-amtlich",
   "datum": "2026-11-11",
   "app": "bauantrag",

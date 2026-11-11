@@ -93,7 +93,9 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .sm-ok{background:#e5f4e4;color:#1d4d1a}.sm-bad{background:#fbebeb;color:#7a1c1c}
 .briefe{margin:.2rem 0 .9rem;padding:.6rem .85rem;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card)}
 .briefe .bf{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.35rem 0;border-top:1px solid var(--line);margin-top:.35rem}
-.briefe .bf span:last-child{display:flex;gap:.35rem}
+.briefe .bf>span:last-child{display:flex;gap:.35rem}
+.briefe .bf-k{display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:center}.briefe .bf-k .bf-ck{margin-left:auto}
+.briefe .bf-ck{display:inline-flex;gap:.45rem;align-items:center;cursor:pointer;font-size:.9rem}.briefe .bf-ck input{accent-color:var(--y);width:1rem;height:1rem}
 .bed{position:fixed;inset:0;z-index:1000;background:#3b3f45;display:flex;flex-direction:column}
 .bed-bar{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;padding:.55rem .9rem;background:var(--card,#fff);color:var(--ink);box-shadow:var(--sh0,0 2px 8px rgba(0,0,0,.25))}
 .bed-bar .mute{font-size:.85rem}
@@ -646,14 +648,30 @@ function signmeDialog(url, body, titel, bid) {   // sign-me (D-Trust): herunterl
 let BRIEFE = [];
 async function ladeBriefe() { try { BRIEFE = await api('api/briefe'); } catch { BRIEFE = []; } briefeZeigen(); }
 async function briefWeg(bid) { if (!bid) return; try { await api('api/briefe/' + bid, 'DELETE'); } catch { /* egal */ } await ladeBriefe(); }
+const BFMARK = new Set();   // markierte Entwürfe (zum Löschen)
 function briefeZeigen() {
   const box = $('#briefe'); if (!box) return;
   box.hidden = !BRIEFE.length;
-  box.innerHTML = BRIEFE.length ? `<b>Entwürfe</b> <span class="mute">– noch nicht versendete Schreiben</span>${BRIEFE.map((b) => `<div class="bf"><span>✉ ${esc(b.titel)}${b.firma ? ' an ' + esc(b.firma) : ''} <small class="mute">· ${esc(new Date(b.stand).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}</small></span><span><button class="btn sm" data-bf="${esc(b.id)}">Öffnen</button><button class="btn sm" data-bfweg="${esc(b.id)}" title="Schreiben löschen">✕</button></span></div>`).join('')}` : '';
+  [...BFMARK].forEach((id) => { if (!BRIEFE.some((b) => b.id === id)) BFMARK.delete(id); });
+  box.innerHTML = BRIEFE.length ? `<div class="bf-k"><b>Entwürfe</b> <span class="mute">– noch nicht versendete Schreiben</span>
+      <label class="bf-ck"><input type="checkbox" data-bfalle${BFMARK.size === BRIEFE.length ? ' checked' : ''}> alle markieren</label>${BFMARK.size ? `<button class="btn sm" data-bfwegm>🗑 ${BFMARK.size} löschen</button>` : ''}</div>`
+    + BRIEFE.map((b) => `<div class="bf"><label class="bf-ck"><input type="checkbox" data-bfm="${esc(b.id)}"${BFMARK.has(b.id) ? ' checked' : ''} aria-label="Entwurf markieren"><span>✉ ${esc(b.titel)}${b.firma ? ' an ' + esc(b.firma) : ''} <small class="mute">· ${esc(new Date(b.stand).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}</small></span></label><span><button class="btn sm" data-bf="${esc(b.id)}">Öffnen</button><button class="btn sm" data-bfweg="${esc(b.id)}" title="Entwurf löschen">✕</button></span></div>`).join('') : '';
+}
+async function briefeLoeschen(ids) {   // mit Rückgängig: die Entwürfe werden mit derselben Kennung wieder gespeichert
+  const alt = BRIEFE.filter((b) => ids.includes(b.id));
+  for (const id of ids) { try { await api('api/briefe/' + id, 'DELETE'); } catch { /* egal */ } }
+  ids.forEach((id) => BFMARK.delete(id)); await ladeBriefe();
+  rueckgaengig(`${alt.length} Entw${alt.length === 1 ? 'urf' : 'ürfe'} gelöscht`, async () => { for (const b of alt) await api('api/briefe', 'POST', { id: b.id, titel: b.titel, url: b.url, body: b.body, projekt: b.projekt }).catch(() => {}); await ladeBriefe(); });
 }
 document.addEventListener('click', async (e) => {
   const o = e.target.closest('[data-bf]'); if (o) { const b = BRIEFE.find((x) => x.id === o.dataset.bf); if (!b) return; if (!KONTO) await konto(); SIGNME = !!b.signme; briefFertig(b.url, b.body, b.titel, b.id, true); return; }
-  const d = e.target.closest('[data-bfweg]'); if (d) { if (!(await bpFrage('Entwurf löschen?'))) return; await briefWeg(d.dataset.bfweg); }
+  const d = e.target.closest('[data-bfweg]'); if (d) { await briefeLoeschen([d.dataset.bfweg]); return; }
+  if (e.target.closest('[data-bfwegm]')) { const ids = [...BFMARK]; if (ids.length && (await bpFrage(`${ids.length} Entw${ids.length === 1 ? 'urf' : 'ürfe'} löschen?`, { ok: 'Löschen', gefahr: true }))) await briefeLoeschen(ids); }
+});
+document.addEventListener('change', (e) => {
+  const t = e.target; if (!t.dataset) return;
+  if (t.dataset.bfm) { if (t.checked) BFMARK.add(t.dataset.bfm); else BFMARK.delete(t.dataset.bfm); briefeZeigen(); }
+  else if (t.dataset.bfalle !== undefined) { BFMARK.clear(); if (t.checked) BRIEFE.forEach((b) => BFMARK.add(b.id)); briefeZeigen(); }
 });
 
 /* ---------- Anschrift aus den Adressen: nur Firma und Ansprechpartner eintippen, Straße/Ort/E-Mail kommen aus „Adressen“ ---------- */

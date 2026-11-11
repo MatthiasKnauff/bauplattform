@@ -10,6 +10,7 @@ Arbeitszeit = Gehen − Kommen − Pause. Pause ohne Eingabe: Lücken ab 15 Minu
 Saldo: Startwert + je bestätigtem (oder abwesendem) Tag Ist − Soll; offene Tage zählen erst nach dem Bestätigen.
 """
 import json
+from collections import Counter
 from datetime import date, datetime, timedelta
 
 try:
@@ -30,6 +31,9 @@ APP_ART = {"ava": "lph6", "ava:lv": "lph6", "ava:angebote": "lph7", "ava:auftrae
            "ava:rechnungen": "lph8", "ava:uebersicht": "lph8", "ava:tueren": "lph5", "bautagebuch": "lph8", "gantt": "lph8",
            "aufgaben": "lph8", "plaene": "lph5", "baukosten": "lph3", "baudaten": "lph6", "kommunikation": "lph8"}
 LUECKE = 10      # Minuten: kürzere Lücken im selben Projekt werden geschlossen
+SLOT = 15        # Minuten: je Viertelstunde zählt, woran am meisten gearbeitet wurde
+BLOCK_MIN = 30   # Minuten: kürzere Blöcke gehen im Nachbarn auf (statt hin und her)
+BLOCK_LUECKE = 20   # Minuten: so große Lücken werden innerhalb eines Blocks überbrückt
 KURZ = 5         # Minuten: kürzere Stücke gehen im Nachbarn auf
 PAUSE_LUECKE = 15
 FAHRT = 30       # Minuten je Richtung, wenn beim Projekt nichts eingetragen ist
@@ -189,41 +193,71 @@ def _fahrt(c, pid):
     return int(r["fahrt"]) if r and r["fahrt"] is not None else FAHRT
 
 
-def bloecke_aus(minuten):
-    """minuten: {m: (pid, art, quelle)} → zusammenhängende Blöcke [{von, bis, project_id, art, quelle}] (bis exklusiv)."""
-    if not minuten:
-        return []
-    ms = sorted(minuten)
+def _einfach(minuten):
+    """Minuten mit gleichem Schlüssel und kleiner Lücke zu Blöcken verbinden (Baustelle, Fahrt: genau so, wie gemeldet)."""
     B = []
-    for m in ms:
+    for m in sorted(minuten):
         k = minuten[m]
         if B and B[-1]["key"] == k and m - B[-1]["bis"] <= LUECKE:
             B[-1]["bis"] = m + 1
         else:
             B.append({"von": m, "bis": m + 1, "key": k})
-    # kurze Stücke im Nachbarn aufgehen lassen (vor allem kurzes Hineinschauen in ein anderes Projekt)
-    geaendert = True
-    while geaendert and len(B) > 1:
-        geaendert = False
-        for i, b in enumerate(B):
-            if b["bis"] - b["von"] < KURZ and b["key"][2] == "puls":
-                n = B[i - 1] if i > 0 else B[i + 1]
-                if n["key"][2] != "puls":
-                    continue
-                n["von"], n["bis"] = min(n["von"], b["von"]), max(n["bis"], b["bis"])
-                del B[i]
-                geaendert = True
+    return B
+
+
+def bloecke_aus(minuten):
+    """minuten: {m: (pid, art, quelle)} → ruhige Blöcke [{von, bis, project_id, art, quelle}] (bis exklusiv).
+
+    Arbeit am Bildschirm (quelle „puls“) springt oft hin und her. Daraus werden sinnvolle Blöcke:
+    1. je Viertelstunde zählt, woran am meisten gearbeitet wurde (bei Gleichstand: woran davor gearbeitet wurde),
+    2. gleiche Viertelstunden hintereinander (Lücke bis BLOCK_LUECKE) werden ein Block,
+    3. Blöcke unter BLOCK_MIN gehen im Nachbarn auf – bevorzugt im selben Projekt, sonst im längeren.
+    Baustelle und Fahrt (vor Ort) bleiben genau, die Bildschirmzeit wird dort herausgeschnitten."""
+    if not minuten:
+        return []
+    fest = {m: k for m, k in minuten.items() if k[2] != "puls"}
+    puls = {m: k for m, k in minuten.items() if k[2] == "puls"}
+    slots, erst = {}, {}
+    for m in sorted(puls):
+        k = puls[m]
+        sl = slots.setdefault(m // SLOT, {"n": Counter(), "von": m, "bis": m + 1})
+        sl["n"][k] += 1; sl["bis"] = m + 1
+        erst.setdefault(k, m)
+    B, vor = [], None
+    for s in sorted(slots):
+        sl = slots[s]
+        best = max(sl["n"].values())
+        kand = sorted((k for k, v in sl["n"].items() if v == best), key=lambda k: erst[k])
+        k = vor if vor in kand else kand[0]
+        if B and B[-1]["key"] == k and sl["von"] - B[-1]["bis"] <= BLOCK_LUECKE:
+            B[-1]["bis"] = sl["bis"]
+        else:
+            B.append({"von": sl["von"], "bis": sl["bis"], "key": k})
+        vor = k
+    while True:   # kurze Blöcke im Nachbarn aufgehen lassen (der kürzeste zuerst)
+        kurz = [i for i, b in enumerate(B) if b["bis"] - b["von"] < BLOCK_MIN]
+        ziel = None
+        for i in sorted(kurz, key=lambda i: B[i]["bis"] - B[i]["von"]):
+            nb = [j for j in (i - 1, i + 1) if 0 <= j < len(B) and (B[j]["von"] - B[i]["bis"] if j > i else B[i]["von"] - B[j]["bis"]) <= BLOCK_LUECKE]
+            if nb:
+                ziel = (i, sorted(nb, key=lambda j: (B[j]["key"][0] != B[i]["key"][0], -(B[j]["bis"] - B[j]["von"])))[0])
                 break
-        # Nachbarn mit gleichem Schlüssel und kleiner Lücke verbinden
+        if not ziel:
+            break
+        i, j = ziel
+        B[j]["von"], B[j]["bis"] = min(B[i]["von"], B[j]["von"]), max(B[i]["bis"], B[j]["bis"])
+        del B[i]
         i = 0
-        while i < len(B) - 1:
-            if B[i]["key"] == B[i + 1]["key"] and B[i + 1]["von"] - B[i]["bis"] <= LUECKE:
-                B[i]["bis"] = max(B[i]["bis"], B[i + 1]["bis"])
-                del B[i + 1]
-                geaendert = True
+        while i < len(B) - 1:   # gleiche Nachbarn verbinden
+            if B[i]["key"] == B[i + 1]["key"] and B[i + 1]["von"] - B[i]["bis"] <= BLOCK_LUECKE:
+                B[i]["bis"] = B[i + 1]["bis"]; del B[i + 1]
             else:
                 i += 1
-    return [{"von": b["von"], "bis": b["bis"], "project_id": b["key"][0], "art": b["key"][1], "quelle": b["key"][2]} for b in B]
+    F = _einfach(fest)
+    if F:   # Baustelle/Fahrt haben Vorrang: dort keine Bildschirmzeit
+        B = [{**b, "key": b["key"]} for b in _minus([{"von": b["von"], "bis": b["bis"], "key": b["key"]} for b in B], [(f["von"], f["bis"]) for f in F])]
+    out = sorted(B + F, key=lambda b: b["von"])
+    return [{"von": b["von"], "bis": b["bis"], "project_id": b["key"][0], "art": b["key"][1], "quelle": b["key"][2]} for b in out]
 
 
 def _naechster(tag):

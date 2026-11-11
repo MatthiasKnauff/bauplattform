@@ -76,3 +76,18 @@ def test_ist_aus_zeile():
     gleich(Z.ist_aus_zeile(P, {**r, "abw": "urlaub_halb"}), 495 + 240, "halber Urlaubstag + Arbeit")
     gleich(Z.ist_aus_zeile(P, {**r, "abw": "frei", "bestaetigt": ""}), 0, "Ausgleich: nichts gutgeschrieben")
     pruefe(Z.h2m("25:00") is None and Z.h2m("07:05") == 425 and Z.m2h(425) == "07:05", "Uhrzeiten")
+
+
+def test_bloecke_ruhig():
+    """Hin und her zwischen zwei Projekten (alle 10 Minuten) ergibt wenige ruhige Blöcke von mindestens 30 Minuten statt vieler Schnipsel."""
+    M = {}
+    for m in range(480, 600):
+        M[m] = (1, "lph6", "puls") if (m - 480) // 10 % 2 == 0 else (2, "lph8", "puls")
+    for m in range(600, 720):   # danach zwei Stunden ruhig an Projekt 2, mit kurzem Blick in Projekt 3
+        M[m] = (3, "lph5", "puls") if 650 <= m < 653 else (2, "lph8", "puls")
+    B = Z.bloecke_aus(M)
+    pruefe(len(B) <= 4, f"zu viele Blöcke: {[(b['von'], b['bis'], b['project_id']) for b in B]}")
+    pruefe(all(b["bis"] - b["von"] >= Z.BLOCK_MIN for b in B), "jeder Block mindestens 30 Minuten")
+    gleich((B[0]["von"], B[-1]["bis"]), (480, 720), "der Tag bleibt vollständig abgedeckt")
+    gleich(B[-1]["project_id"], 2, "der lange Block am Ende gehört zu Projekt 2")
+    gleich(sum(b["bis"] - b["von"] for b in B), 240, "keine Minute geht verloren oder doppelt")

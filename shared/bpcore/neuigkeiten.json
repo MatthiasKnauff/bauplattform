@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-post-erledigt",
+  "datum": "2026-11-11",
+  "app": "portal",
+  "titel": "Mails abhaken",
+  "text": "In „Post zu deinen Projekten“ hakst du eine Mail links mit dem Kästchen als erledigt ab. Sie wandert nach unten unter „✓ Erledigt“ – die Mail im Postfach bleibt unverändert. Häkchen wieder raus: Sie ist wieder offen.",
+  "ziel": ".erl-ck"
+ },
+ {
   "id": "2026-11-11-live",
   "datum": "2026-11-11",
   "app": "",

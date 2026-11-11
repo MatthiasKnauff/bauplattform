@@ -1,4 +1,3 @@
-# NÄCHSTE FASSUNG für den Produktivserver – ersetzt server/docker-compose.yml bei der nächsten Freigabe (neu: ORCA-Import, Port 8100)
 # Bauplattform – PRODUKTIV (Docker 2)
 #
 # Bekommt NUR freigegebene Versionen: Wird auf GitHub ein Tag v… gesetzt (z. B. v2026.11.2),
@@ -37,6 +36,7 @@ x-env: &env
   BAUPORTAL_URL: ${BAUPORTAL_URL:-https://bauportal.gk3-architektur.de}
   SERVER_HOST: ${SERVER_HOST:-}   # IP oder Name von Docker 2 (z. B. 192.168.1.20) – für Links zu Apps ohne eigene Adresse
   BAUTAGEBUCH_INTERNAL: http://bautagebuch:8000
+  DIENSTE_INTERNAL: http://dienste:8102
   GANTT_INTERNAL: http://gantt:8082
   PORTAL_INTERNAL: http://portal:8090
   ADMIN_INTERNAL: http://admin:8091
@@ -47,6 +47,8 @@ x-env: &env
   AVA_INTERNAL: http://ava:8097
   KOMMUNIKATION_INTERNAL: http://kommunikation:8098
   BAUDATEN_INTERNAL: http://baudaten:8099
+  ZEITEN_INTERNAL: http://zeiten:8101
+  HONORAR_INTERNAL: http://honorar:8103
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -73,40 +75,60 @@ services:
       timeout: 3s
       retries: 30
 
-  bautagebuch:
-    image: ghcr.io/matthiasknauff/bauplattform/bautagebuch:v2026.11.193
-    container_name: bauplattform_bautagebuch
+  # Hintergrundaufgaben der Plattform: Datenbank einrichten, tägliche Datensicherung, Erinnerungen (bautagebuch/dienste.py).
+  # Alle Apps warten auf diesen Container – das Bautagebuch ist eine normale App.
+  dienste:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
+    working_dir: /app/bautagebuch
+    container_name: bauplattform_dienste
     restart: unless-stopped
     depends_on:
       bautagebuch_db: { condition: service_healthy }
+    environment:
+      <<: *env
+      APP: dienste
+    volumes:
+      - bautagebuch_data:/data
+
+  bautagebuch:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
+    working_dir: /app/bautagebuch   # Ordner der App im gemeinsamen Image (für „docker compose exec bautagebuch python …“)
+    container_name: bauplattform_bautagebuch
+    restart: unless-stopped
+    depends_on:
+      dienste: { condition: service_healthy }
     ports:
       - "${BAUTAGEBUCH_PUBLISH:-8080}:8000"
     environment:
       <<: *env
+      APP: bautagebuch
+      DIENSTE: extern   # Datenbank einrichten, sichern, erinnern: macht der Container „dienste“
       SECRET_KEY: ${SECRET_KEY:-}
     volumes:
       - bautagebuch_data:/data
 
   gantt:
-    image: ghcr.io/matthiasknauff/bauplattform/gantt:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
+    working_dir: /app/gantt   # Ordner der App im gemeinsamen Image (für „docker compose exec gantt python …“)
     container_name: bauplattform_bauzeitenplan
     restart: unless-stopped
     depends_on:
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${GANTT_PUBLISH:-8082}:8082"
     environment:
       <<: *env
+      APP: gantt
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - gantt_legacy:/legacy:ro
 
   portal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_portal
     restart: unless-stopped
     depends_on:
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     # kein eigener Port: erreichbar über den Verteiler (bauportal, Port 8090)
     environment:
       <<: *env
@@ -114,12 +136,12 @@ services:
       APP_PORT: "8090"
 
   admin:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_admin
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${ADMIN_PUBLISH:-8091}:8091"
     environment:
@@ -128,12 +150,12 @@ services:
       APP_PORT: "8091"
 
   adressen:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_adressen
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${ADRESSEN_PUBLISH:-8093}:8093"
     environment:
@@ -145,7 +167,7 @@ services:
 
   # Verteiler: alle Apps unter einer Adresse (Pfad statt Port/Subdomain), siehe plattform/router.py
   bauportal:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_verteiler
     restart: unless-stopped
     depends_on:
@@ -159,12 +181,12 @@ services:
       APP_THREADS: "32"
       APP_TIMEOUT: "320"
   baukosten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_baukosten
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${BAUKOSTEN_PUBLISH:-8094}:8094"
     environment:
@@ -175,12 +197,12 @@ services:
 
   # Mängel & Erinnerungen: Mängelverfolgung aus den Bautagesberichten, Erinnerungen aus Bautagebuch, Bauzeitenplänen und eigene
   aufgaben:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_aufgaben
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${AUFGABEN_PUBLISH:-8095}:8095"
     environment:
@@ -190,12 +212,12 @@ services:
 
   # Pläne & Dateien: Pläne im Projektordner (über das Bautagebuch), neuester Index, Versand an die Firmen, Planversandliste
   plaene:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_plaene
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${PLAENE_PUBLISH:-8096}:8096"
     environment:
@@ -206,12 +228,12 @@ services:
 
   # Ausschreibung & Abrechnung: Leistungsverzeichnisse, Angebote/Preisspiegel, Aufmaß, Rechnungsprüfung (GAEB)
   ava:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_ava
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${AVA_PUBLISH:-8097}:8097"
     environment:
@@ -222,12 +244,12 @@ services:
 
   # Kommunikation: was an wen verschickt wurde (Planversand, Rügen) – je Projekt und je Kontakt
   kommunikation:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_kommunikation
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${KOMMUNIKATION_PUBLISH:-8098}:8098"
     environment:
@@ -236,14 +258,45 @@ services:
       APP_PORT: "8098"
       APP_TIMEOUT: "120"
 
+  # Zeiten: Arbeitszeit (Kommen/Gehen, Pausen, Urlaub) und Projektzeiten je Leistungsphase – Vorschläge aus der Arbeit in der Plattform
+  zeiten:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
+    container_name: bauplattform_zeiten
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      dienste: { condition: service_healthy }
+    ports:
+      - "${ZEITEN_PUBLISH:-8101}:8101"
+    environment:
+      <<: *env
+      APP_MODULE: zeiten
+      APP_PORT: "8101"
+      APP_TIMEOUT: "120"
+
+  # Honorar (nur Verwaltung): Honoraraufträge nach HOAI, nach Aufwand oder pauschal – Abgleich mit der Zeiterfassung, Honorarangebot als PDF
+  honorar:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
+    container_name: bauplattform_honorar
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      dienste: { condition: service_healthy }
+    ports:
+      - "${HONORAR_PUBLISH:-8103}:8103"
+    environment:
+      <<: *env
+      APP_MODULE: honorar
+      APP_PORT: "8103"
+
   # Baudaten: Positionsdatenbank (Texte, DIN 276, Preise), importierte Kataloge (z. B. Sirados) und eigene Preise
   baudaten:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_baudaten
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${BAUDATEN_PUBLISH:-8099}:8099"
     environment:
@@ -255,12 +308,12 @@ services:
   # ORCA-Import: ORCA-AVA-Projekte (Projektsicherung *.zip / *.ava) in die AVA übernehmen – nur für Administratoren,
   # eigener Port (http://<Server>:8100). Ein Arbeitsprozess, weil die Vorschau im Speicher gehalten wird.
   orca:
-    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.194
     container_name: bauplattform_orca
     restart: unless-stopped
     depends_on:
       portal: { condition: service_started }
-      bautagebuch: { condition: service_healthy }
+      dienste: { condition: service_healthy }
     ports:
       - "${ORCA_PUBLISH:-8100}:8100"
     environment:
@@ -268,7 +321,6 @@ services:
       APP_MODULE: orca_import
       APP_PORT: "8100"
       APP_TIMEOUT: "900"
-    command: ["sh", "-c", "exec gunicorn -b 0.0.0.0:8100 -w 1 --threads 8 --timeout 900 orca_import:app"]
 
   # Eigene KI im Büro (Ollama) – nur im Docker-Netz erreichbar, kein Port nach außen.
   # Braucht für das Standardmodell qwen2.5:3b etwa 3 GB, für das Bildmodell qwen3-vl:4b (Pläne lesen) weitere ~4 GB freien Arbeitsspeicher;

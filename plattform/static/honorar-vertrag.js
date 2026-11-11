@@ -53,6 +53,8 @@ function honorarEinstellungen(host) {
       ${feld('honorar_re_nummer', 'Muster der Rechnungsnummer', `{jahr}, {jahr2} (zweistellig), {lfd} bzw. {lfd:03} (laufend je Jahr, dreistellig) – Beispiel: <b data-hoebsp>${esc(E.beispiel)}</b>`)}
       ${feld('honorar_zahlungsziel', 'Zahlungsziel (Tage)', 'Steht im Vertrag; danach erscheint „Honorarrechnung überfällig“ als To-do auf der Startseite.')}
       ${feld('honorar_re_text', 'Text unter dem Rechnungsbetrag', 'Vorschlag für neue Rechnungen (im Entwurf änderbar).', 3)}
+      ${feld('honorar_bank', 'Bankverbindung auf der Rechnung', 'Nur nötig, wenn sie nicht schon im Briefbogen steht (z. B. „Sparkasse Essen · IBAN DE… · BIC …“). Steuernummer: Verwaltung → Firma → „Weitere Angabe“.', 2)}
+      <p class="mute" style="margin:0;font-size:.8rem">Briefkopf, Anschrift im Fenster, Datum und Betreff der Rechnung: Verwaltung → Druck-Layouts → „Honorarrechnung“ (wie bei den Rügen).</p>
       ${feld('honorar_vertrag_text', 'Weitere Vereinbarungen im Architektenvertrag', 'Je Zeile ein Punkt. Vorschlag des Büros – bitte vor der ersten Verwendung prüfen.', 6)}</div>`;
     host.onchange = async (ev) => {
       const el = ev.target; if (!el.dataset.hoe) return;

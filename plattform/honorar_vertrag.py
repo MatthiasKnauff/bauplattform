@@ -24,6 +24,7 @@ EINST = {
     "honorar_re_nummer": ("{jahr}-{lfd:03}", 40),
     "honorar_re_text": (HR.TEXT_VORGABE, 2000),
     "honorar_zahlungsziel": (str(HR.ZIEL_VORGABE), 3),
+    "honorar_bank": ("", 300),
     "honorar_vertrag_text": ("Änderungen und Ergänzungen dieses Vertrags bedürfen der Textform.\n"
                              "Soweit dieser Vertrag nichts anderes regelt, gelten die §§ 650p ff. BGB und die HOAI 2021.\n"
                              "Sollte eine Bestimmung dieses Vertrags unwirksam sein, bleibt der Vertrag im Übrigen wirksam.", 6000),

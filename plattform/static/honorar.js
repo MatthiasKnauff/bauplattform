@@ -43,7 +43,9 @@ function leiste() {
   const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, aus: !!o.aus, rot: !!o.rot });
   befehle(LEISTE, [
     { titel: 'Neu', knoepfe: [K('Auftrag', IC.neu, neuDialog, { tip: 'Neuer Honorarauftrag oder neues Angebot' })] },
-    { titel: 'Ausgabe', rechts: true, knoepfe: [K(D && D.auftrag.status === 'angebot' ? 'Angebot' : 'Aufstellung', IC.pdf, pdf, { aus: !D, tip: 'Honorarangebot bzw. -aufstellung als PDF auf dem Briefbogen' })] },
+    { titel: 'Ausgabe', rechts: true, knoepfe: [K(D && ['anfrage', 'angebot', 'abgelehnt'].includes(D.auftrag.status) ? 'Angebot' : 'Aufstellung', IC.pdf, pdf, { aus: !D, tip: 'Honorarangebot bzw. Honoraraufstellung (Übersicht, keine Rechnung) als PDF' }),
+      K('Vertrag', IC.pdf, () => document.querySelector('[data-vtpdf]') ? document.querySelector('[data-vtpdf]').click() : toast('Den Vertrag gibt es ab der Stufe „Auftrag“.', true), { aus: !D, tip: 'Architektenvertrag als PDF – in der Vorschau unterschreiben' }),
+      K('Rechnung', IC.pdf, reBefehl, { aus: !D, tip: 'Letzte Rechnung als PDF (Briefkopf, Blatt 2 Erläuterung) – sonst zu den Rechnungen' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Auftrag in den Papierkorb legen' })] },
   ]);
 }

@@ -36,6 +36,9 @@ BEREICHE = {
         **GEMEINSAM, "firma": "Name der Firma", "grundlage": "Rechtsgrundlage unter dem Betreff (§ 5 Abs. 3 VOB/B)",
         "frist": "Frist zur Wiederaufnahme (TT.MM.JJJJ)", "anzahl": "Tage im Verzug", "auftrag": "Auftrag / Vergabe-Nr."}},
 }
+BEREICHE["honorarrechnung"] = {"name": "Honorarrechnung (Abschlag/Schluss)", "gruppe": "Honorar", "variablen": {
+    **GEMEINSAM, "grundlage": "Zeile unter dem Betreff (z. B. „Abschlagszahlung nach § 15 Abs. 2 HOAI“)", "re_nr": "Rechnungsnummer",
+    "auftraggeber": "Auftraggeber (erste Zeile des Empfängers)", "leistung": "beauftragte Leistung (Honorarauftrag)"}}
 # Inhaltsblöcke der Briefe (fließen im Inhaltsbereich untereinander) – Reihenfolge, Schrift, Abstand und ein/aus je Layout einstellbar
 def _b(key, name, groesse, fett=False, abstand=0.0, text=None, pflicht=False):
     return {"key": key, "name": name, "groesse": groesse, "fett": fett, "abstand": abstand, "an": True, **({"text": text} if text is not None else {}), **({"pflicht": True} if pflicht else {})}
@@ -529,7 +532,8 @@ def beispiel(bereich, c=None):
                 "seite": "1", "rechnung": "2. Abschlagsrechnung", "re_nr": "RE-2026-117", "re_datum": "02.11.2026", "eingang": "04.11.2026"}
     return {"buero": BN, "absender": ABS, "fusszeile": FUSS,
             "datum": datetime.now().strftime("%d.%m.%Y"), "bearbeiter": "Max Mustermann", "projekt": "A497 Maybachstraße 15a, Essen",
-            "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "dokument": "Mängelrüge nach VOB/B" if bereich == "maengelruege" else "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B",
+            "bauvorhaben": "A497 Maybachstraße 15a, 45133 Essen", "dokument": {"maengelruege": "Mängelrüge nach VOB/B", "honorarrechnung": "2. Abschlagsrechnung"}.get(bereich, "Aufforderung zur Abhilfe nach § 5 Abs. 3 VOB/B"),
+            "re_nr": "2026-007", "auftraggeber": "Muster Wohnbau GmbH", "leistung": "Architektenleistungen LPh 1–9",
             "firma": "Muster Bau GmbH", "grundlage": "§ 4 Abs. 7 VOB/B" if bereich == "maengelruege" else "§ 5 Abs. 3 VOB/B",
             "frist": "20.11.2026", "anzahl": "3", "auftrag": "V-2026-014",
             "Empfaenger": "Muster Bau GmbH\nz. Hd. Herrn Beispiel\nMusterstraße 1\n45127 Essen", "Datum": datetime.now().strftime("%d.%m.%Y"),

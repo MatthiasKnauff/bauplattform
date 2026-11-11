@@ -216,7 +216,7 @@ def pdf_erzeugen(rid):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas
-    from bpcore import briefbogen, schrift
+    from bpcore import briefbogen, layout, schrift
     with db.tx() as c:
         r, d = _laden(c, rid)
         if not r or not d:
@@ -226,18 +226,44 @@ def pdf_erzeugen(rid):
         titel = _titel(rows, r)
         bogen = briefbogen.holen(c)
         F = schrift.fuer(c)
-        buero = _einstellung(c, "office_name")
+        S = {x["key"]: x["value"] or "" for x in c.execute("SELECT key, value FROM settings WHERE key LIKE 'co\\_%' OR key='office_name'")}
+        bank = _einstellung(c, "honorar_bank")
+        LAY = layout.aktiv(c, "honorarrechnung")   # Briefkopf wie bei den Rügen (Verwaltung → Druck-Layouts → „Honorarrechnung“)
+        EIG = layout.eigene_werte(c, d["auftrag"]["project_id"])
+        pr = c.execute("SELECT street, zip, city FROM projects WHERE id=?", (d["auftrag"]["project_id"],)).fetchone()
     a = d["auftrag"]
     vertrag = ((a.get("ablauf") or {}).get("vertrag") or {}).get("datum") or ((a.get("ablauf") or {}).get("auftrag") or {}).get("datum") or ""
     de = lambda iso: f"{iso[8:10]}.{iso[5:7]}.{iso[:4]}" if iso and len(iso) >= 10 else (iso or "")   # noqa: E731
     pz = lambda v: f"{v:g} %".replace(".", ",")   # noqa: E731
     rand = briefbogen.raender(bogen) or {}
-    L, R = rand.get("links") or 25 * mm, A4[0] - (rand.get("rechts") or 20 * mm)
-    oben, unten = A4[1] - (rand.get("kopf") or 45 * mm) - 8 * mm, (rand.get("fuss") or 25 * mm) + 6 * mm
+    IB = layout.inhalt(LAY)
+    L, R = IB["x"] * mm, (IB["x"] + IB["w"]) * mm
+    unten = max((rand.get("fuss") or 25 * mm) + 6 * mm, A4[1] - (IB["y"] + IB["h"]) * mm)
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=A4)
     cv.setTitle(f"{titel} {r['nr']}")
-    y = oben
+    cv.setAuthor(S.get("office_name") or "")
+    y = A4[1] - IB["y"] * mm
+    kurz, ort = S.get("co_short") or S.get("office_name") or "", " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
+    adr = ", ".join(x for x in ((pr["street"] if pr else ""), " ".join(x for x in ((pr["zip"] if pr else ""), (pr["city"] if pr else "")) if x)) if x)
+    V = {"Empfaenger": r["empfaenger"] or a.get("auftraggeber") or "", "Datum": de(r["datum"]), "Bearbeiter": r.get("von") or "",
+         "Betreff": f"Rechnungs-Nr. {r['nr']} · {d['projekt']}"}
+    LW = {"buero": S.get("office_name", ""), "absender": ", ".join(x for x in (kurz, S.get("co_street"), ort) if x),
+          "fusszeile": " · ".join(x for x in (kurz, S.get("co_street"), ort, S.get("co_phone"), S.get("co_email"), S.get("co_web")) if x),
+          "datum": de(r["datum"]), "bearbeiter": r.get("von") or "", "projekt": d["projekt"], "bauvorhaben": d["projekt"] + (", " + adr if adr else ""),
+          "dokument": titel, "re_nr": r["nr"], "auftraggeber": (V["Empfaenger"].splitlines() or [""])[0], "leistung": a["name"],
+          "grundlage": "Schlussrechnung nach § 15 Abs. 1 HOAI" if r["art"] == "schluss" else "Abschlagszahlung nach § 15 Abs. 2 HOAI",
+          **{k: v for k, v in EIG.items() if v}}
+
+    def feld(nm, x, fy, w, h, size=10, multi=False, tip=""):
+        from reportlab.lib.utils import simpleSplit
+        cv.setFont(F["n"], size); cv.setFillGray(0)
+        zs = [z2 for z in V[nm].split("\n") for z2 in (simpleSplit(z, F["n"], size, w) or [""])] if multi else [V[nm].replace("\n", " ")]
+        yy = fy + h - size * 1.05 - 1 if multi else fy + (h - size) / 2 + 1.5
+        for z in zs[:8]:
+            cv.drawString(x, yy, z); yy -= size * 1.2
+    layout.zeichnen(cv, LAY, LW, 1, A4[1], F, bogen is not None, feld_fn=feld,
+                    logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=layout.umbruch_std)
 
     def reihe(zellen, fett=False, gr=10, ab=5.2 * mm, grau=False):
         """zellen: [(x, text, 'l'|'r')]"""
@@ -262,16 +288,13 @@ def pdf_erzeugen(rid):
     def linie():
         cv.setLineWidth(0.5); cv.setStrokeGray(0.3); cv.line(L, y + 3.6 * mm, R, y + 3.6 * mm)
 
-    # Blatt 1 – Rechnung
-    for t in (r["empfaenger"] or a.get("auftraggeber") or "").splitlines()[:7]:
-        zeile(t[:70], ab=4.8 * mm)
-    y -= 10 * mm
-    zeile(titel, fett=True, gr=15, ab=8 * mm)
-    reihe([(L, "Rechnungs-Nr.", "l"), (L + 32 * mm, r["nr"] or "–", "l"), (R, f"Datum {de(r['datum'])}", "r")], fett=True, ab=5.6 * mm)
-    reihe([(L, "Projekt", "l"), (L + 32 * mm, d["projekt"][:80], "l")], ab=5 * mm)
-    reihe([(L, "Leistung", "l"), (L + 32 * mm, a["name"][:80], "l")], ab=5 * mm)
+    # Blatt 1 – Rechnung (Briefkopf, Anschrift, Datum, Überschrift, Betreff aus dem Druck-Layout)
+    reihe([(L, "Rechnungs-Nr.", "l"), (L + 34 * mm, r["nr"] or "–", "l")], fett=True, ab=5 * mm)
+    reihe([(L, "Bauvorhaben", "l"), (L + 34 * mm, LW["bauvorhaben"][:85], "l")], ab=5 * mm)
+    reihe([(L, "Leistung", "l"), (L + 34 * mm, a["name"][:85], "l")], ab=5 * mm)
     if vertrag:
-        reihe([(L, "Vertrag vom", "l"), (L + 32 * mm, de(vertrag), "l")], ab=5 * mm)
+        reihe([(L, "Vertrag vom", "l"), (L + 34 * mm, de(vertrag), "l")], ab=5 * mm)
+    reihe([(L, "Leistungsstand zum", "l"), (L + 34 * mm, de(r["datum"]), "l")], ab=5 * mm)
     y -= 4 * mm
     if r["art"] == "schluss":
         satz = "Schlussrechnung nach § 15 Abs. 1 HOAI über die vertraglich vereinbarten und erbrachten Leistungen."
@@ -292,9 +315,11 @@ def pdf_erzeugen(rid):
     zeile("Rechnungsbetrag brutto", _eur(st["brutto"]), fett=True, gr=11.5, ab=11 * mm)
     for t in (r["text"] or "").splitlines()[:12]:
         absatz(t) if t.strip() else zeile("", ab=3 * mm)
-    if buero:
-        y -= 3 * mm
-        zeile(buero, gr=8.5, grau=True)
+    for t in (bank or "").splitlines()[:3]:
+        absatz(t, gr=9)
+    if S.get("co_extra"):   # z. B. Steuernummer / USt-IdNr. (Pflichtangabe auf Rechnungen)
+        y -= 2 * mm
+        absatz(S["co_extra"], gr=8.5, grau=True)
 
     # Blatt 2 – Erläuterung
     cv.showPage(); y = A4[1] - 25 * mm

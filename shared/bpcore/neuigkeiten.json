@@ -325,5 +325,13 @@
   "titel": "Architektenvertrag",
   "text": "Im Ablauf unter „Vertrag“: „Vertrag (PDF)“ erzeugt den Vertrag aus dem beauftragten Stand. In der Vorschau ✍ Unterschreiben, auch am Handy. Die unterschriebene Fassung wird gespeichert und im Projektordner abgelegt. Gestellte Rechnungen landen dort ebenfalls. Überfällige erscheinen als To-do. Rechnungsnummer, Zahlungsziel und Texte stellst du über Zahnrad → Diese App ein.",
   "ziel": "[data-vtpdf]"
+ },
+ {
+  "id": "2026-11-11-rechnung-brief",
+  "datum": "2026-11-11",
+  "app": "honorar",
+  "titel": "Rechnung mit Briefkopf",
+  "text": "Honorarrechnungen sind jetzt ein richtiger Brief: Briefkopf, Anschrift im Fenster, Datum, Betreff, Bankverbindung und Steuernummer. Oben in der Leiste öffnet „Rechnung“ die letzte Rechnung, „Vertrag“ den Architektenvertrag. „Aufstellung“ bleibt die Honorarübersicht.",
+  "ziel": "[data-reneu]"
  }
 ]

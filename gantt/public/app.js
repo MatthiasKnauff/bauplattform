@@ -2779,7 +2779,7 @@ function vleiste() {
     liste: L.map((p) => ({ id: p.id, name: p.id === (P && P.id) ? P.name : p.name, datum: when(p.updated), wer: p.by || '', archiviert: p.archived })),
     onWahl: async (id) => { await flushSave(); if (await openProject(String(id)) !== false) refreshProjectList(); },
     onGueltig: bt ? versionGilt : null,
-    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() };
+    onNeu: neueVersion, extra: [{ text: '⎘ Aus anderem Plan übernehmen …', fn: () => ACTIONS.planUebernehmen() }, ...(L.length > 1 && window.GVGL ? [{ text: '⇄ Vergleichen mit anderer Version …', fn: () => GVGL.versionWahl() }] : [])], onUmbenennen: () => ACTIONS.renameProject(), onVerlauf: () => versionHistory(), onVerwalten: () => archivDialog() };
   // kompaktes Versionsmenü vorne in der Werkzeugleiste (wie in der AVA); Drucken/Exportieren rechts in der Reiterzeile
   const el = BPHead.versionsleiste({ vor: $('#tabs'), ...O }); el.style.display = 'none';
   let vb = $('#vmGrp');

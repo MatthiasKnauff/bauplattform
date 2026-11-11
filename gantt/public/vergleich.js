@@ -129,6 +129,7 @@
       + (Z.length ? Z.map((z) => `<button type="button" class="vg-e vg-e-${z.k}" data-vgi="${z.i}"><span>${esc(z.n)}</span><b>${esc(z.w)}</b><small>${esc(z.z)}</small></button>`).join('') : '<p class="hint">Keine Unterschiede.</p>') + '</div>';
   }
   window.GVGL = {
+    versionWahl,
     aktiv: () => !!V,
     reiter: () => (V ? { id: 'vergleich', titel: 'Vergleich', mount: (el) => { listeEl = el; liste(); } } : null),
   };
@@ -147,6 +148,24 @@
     render();
     if (typeof seiteReiter === 'function') seiteReiter('gantt', 'vergleich');
   };
+  /* Vergleich mit einer anderen Version des Plans (Versionsleiste: „Startversion“, „nach Bauherrengespräch“ …) – deren aktueller Stand */
+  async function mitPlan(id, name) {
+    let full; try { await flushSave(); full = await planApi.get(id); } catch (e) { toast('Fehler: ' + e.message, true); return; }
+    const { C: C2, T: T2 } = scheduleOf(full);
+    V = { label: 'Version ' + (name || full.name || ''), T2, C2 }; D = null;
+    document.body.classList.add('g-vgl');
+    if (window.ganttBereichNeu) ganttBereichNeu();
+    render();
+    if (typeof seiteReiter === 'function') seiteReiter('gantt', 'vergleich');
+  }
+  function versionWahl() {   // andere Version desselben Projekts wählen
+    const bt = P && P._bt ? P._bt.id : null;
+    const L = bt ? projects.filter((p) => p.bt_id === bt && p.id !== P.id) : [];
+    if (!L.length) { toast('Es gibt keine andere Version dieses Plans – „＋ Neue Version“ in der Versionsleiste legt eine an.'); return; }
+    const bg = modal('Vergleichen mit …', `<p class="hint" style="margin-top:0">Der aktuelle Plan bleibt bearbeitbar; die gewählte Version liegt als alter Stand darunter.</p>
+      <div style="display:grid;gap:.35rem">${L.map((p) => `<button type="button" class="btn" data-vid="${esc(p.id)}" style="display:flex;justify-content:space-between;gap:1rem"><span>${esc(p.name)}${p.gueltig ? ' ★' : ''}</span><small class="hint">${esc((p.updated || '').slice(0, 10))}</small></button>`).join('')}</div>`, [{ label: 'Abbrechen' }]);
+    bg.addEventListener('click', (e) => { const b = e.target.closest('[data-vid]'); if (!b) return; bg.remove(); const p = L.find((x) => x.id === b.dataset.vid); mitPlan(b.dataset.vid, p && p.name); });
+  }
   function beenden() {
     V = null; D = null; document.body.classList.remove('g-vgl'); band(); rinne();
     if (window.ganttBereichNeu) ganttBereichNeu();

@@ -42,7 +42,7 @@ def stempeln(pdf, png, seite, x, y, w, h, text="", drehung=0.0, felder=()):
             fs = max(5.0, rh * dh)
             cv.saveState(); cv.translate(-dw / 2 + rx * dw, dh / 2 - ry * dh); cv.rotate(-float(neig or 0))
             cv.setFont("Helvetica-Oblique", fs); cv.setFillColorRGB(0.08, 0.16, 0.5)
-            mx = dw * (1 - rx) * 0.72   # schräg: etwas Luft zum Rand
+            mx = dw * (1 - rx) * (0.72 if neig else 0.9)   # bis kurz vor den Rand (schräg: mehr Luft)
             while t and cv.stringWidth(t, "Helvetica-Oblique", fs) > mx and fs > 5:
                 fs -= 0.5; cv.setFont("Helvetica-Oblique", fs)
             cv.drawString(0, 0, t); cv.restoreState()

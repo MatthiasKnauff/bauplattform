@@ -10,8 +10,8 @@ ARTEN = (("buero", "Bürostempel", "Firmenstempel für Schreiben, Abnahmen, Frei
          ("zahlbetrag", "Zahlbetrag siehe Anlage", "für Rechnungen, deren Betrag in der Prüfanlage steht"))
 NAMEN = {k: n for k, n, _ in ARTEN}
 # Felder, die beim Einsetzen ausgefüllt werden: (Platzhalter, x, y, Schrifthöhe – Anteile am Stempelbild, Neigung in Grad im Uhrzeigersinn)
-# Prüfstempel des Büros: „geprüft am:“ oben, darunter das Datum; „von:“ unten, rechts daneben der Name (der Stempel steht leicht schräg)
-FELDER = {"pruef": (("{datum}", 0.22, 0.50, 0.12, 8), ("{name}", 0.30, 0.80, 0.08, 8))}
+# Prüfstempel des Büros (gerade ausgerichtet): „geprüft am:“ oben, darunter das Datum; „von:“ unten, rechts daneben der Name
+FELDER = {"pruef": (("{datum}", 0.18, 0.52, 0.12, 0), ("{name}", 0.43, 0.84, 0.095, 0))}
 
 
 def aufbereiten(raw):
@@ -34,10 +34,35 @@ def aufbereiten(raw):
     if not box:
         raise ValueError("Auf dem Bild wurde kein Stempel erkannt.")
     im = im.crop(box)
+    w = schraeglage(im)
+    if abs(w) >= 0.4:   # gerade ausrichten – schräg wird erst beim Einsetzen („locker wie von Hand“)
+        im = im.rotate(w, resample=Image.BICUBIC, expand=True)
+        box = im.getchannel("A").point(lambda v: 255 if v > 20 else 0).getbbox()
+        if box:
+            im = im.crop(box)
     if im.width > 900:
         im = im.resize((900, max(1, round(im.height * 900 / im.width))), Image.LANCZOS)
     buf = io.BytesIO(); im.save(buf, "PNG", optimize=True)
     return buf.getvalue()
+
+
+def schraeglage(im):
+    """Winkel (Grad, gegen den Uhrzeigersinn zu drehen), bei dem die Zeilen/Kanten des Stempels waagerecht liegen:
+    die Zeilensummen der Tinte sind dann am „schärfsten“ (größte Streuung). Grob in 1°-, dann fein in 0,2°-Schritten bis ±15°."""
+    from PIL import Image
+    a = im.getchannel("A").point(lambda v: 255 if v > 60 else 0)
+    a.thumbnail((400, 400))
+
+    def schaerfe(w):
+        r = a.rotate(w, resample=Image.NEAREST, expand=True)
+        W, H = r.size
+        px = r.load()
+        zeilen = [sum(1 for x in range(0, W, 2) if px[x, y]) for y in range(H)]
+        m = sum(zeilen) / max(1, len(zeilen))
+        return sum((z - m) ** 2 for z in zeilen) / max(1, len(zeilen))
+    best = max(range(-15, 16), key=schaerfe)
+    fein = [best + d / 5 for d in range(-5, 6)]
+    return max(fein, key=schaerfe)
 
 
 def holen(c, art):

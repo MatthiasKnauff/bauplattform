@@ -16,6 +16,7 @@ td.r{text-align:right}
 tr.off td{opacity:.55}
 tr.off td:last-child{opacity:1}
 .appchk{display:flex;gap:.4rem;flex-wrap:wrap}
+.uapps{display:flex;flex-wrap:wrap;gap:.2rem .25rem;align-items:center;max-width:34rem}.uapps .pill{font-size:.72rem;padding:.05rem .45rem;margin:0}.uapps small{font-size:.75rem;flex-basis:100%}
 /* Apps, Administrator, gesperrt: Knöpfe zum Antippen wie unter Einstellungen → Apps (Häkchen unsichtbar, der ganze Knopf schaltet) */
 .appchk label,.chk.pil{display:inline-flex;gap:.35rem;align-items:center;white-space:nowrap;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.32rem .9rem;cursor:pointer;color:var(--mute);font-size:.88rem;user-select:none}
 .appchk label:hover,.chk.pil:hover{border-color:var(--mute)}
@@ -736,7 +737,8 @@ function renderUsers(q = data.q || '') {
     ${list.map(u => `<tr class="${u.active ? '' : 'off'}" data-id="${u.id}">
       <td><b>${esc(u.full || u.name)}</b>${u.full && u.full !== u.name ? ` <small class="mute">· ${esc(u.name)}</small>` : ''} ${u.is_admin ? '<span class="pill y">Admin</span>' : ''} ${u.active ? '' : '<span class="pill bad">gesperrt</span>'} ${u.must_change ? '<span class="pill" title="Muss beim nächsten Anmelden ein eigenes Kennwort vergeben">Startkennwort</span>' : ''}</td>
       <td class="hide-s">${esc(u.email) || '<span class="mute">–</span>'}</td>
-      <td>${u.is_admin ? '<span class="mute">alle</span>' : apps.map(a => `<span class="pill ${u.apps.includes(a.key) ? 'ok' : ''}">${u.apps.includes(a.key) ? '' : '<s>'}${esc(a.name)}${u.apps.includes(a.key) ? '' : '</s>'}</span>`).join(' ')}</td>
+      <td>${u.is_admin || apps.every((a) => u.apps.includes(a.key)) ? '<span class="mute">alle</span>'   /* kompakt: nur freigeschaltete Apps, umgebrochen; was fehlt, kurz dahinter */
+        : `<div class="uapps">${apps.filter((a) => u.apps.includes(a.key)).map((a) => `<span class="pill ok">${esc(a.name)}</span>`).join('')}${apps.some((a) => !u.apps.includes(a.key)) ? `<small class="mute">ohne ${esc(apps.filter((a) => !u.apps.includes(a.key)).map((a) => a.name).join(', '))}</small>` : ''}</div>`}</td>
       <td class="hide-s">${ago(u.last_seen)}${u.sessions ? ` <span class="mute">· ${u.sessions} Sitzung${u.sessions > 1 ? 'en' : ''}</span>` : ''}</td>
       <td class="r"><div class="acts"><button class="btn sm" data-a="edit">Bearbeiten</button></div></td></tr>`).join('') || '<tr><td colspan="5" class="mute">Keine Treffer.</td></tr>'}
     </tbody></table></div>

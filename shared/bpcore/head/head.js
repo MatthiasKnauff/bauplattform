@@ -2510,12 +2510,13 @@
       const lib = await pdfjs();
       const data = await fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then((r) => { if (!r.ok) throw new Error('PDF nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
       if (my !== el._pdfTok) return 0;
-      const pdf = await lib.getDocument({ isEvalSupported: false, data }).promise, dpr = Math.min(2, window.devicePixelRatio || 1);
+      const doc = el.ownerDocument || document;   // im eigenen Browserfenster (⇱): Schriften dort anmelden, sonst erscheinen Kästchen statt Buchstaben
+      const pdf = await lib.getDocument({ isEvalSupported: false, data, ownerDocument: doc }).promise, dpr = Math.min(2, (doc.defaultView || window).devicePixelRatio || 1);
       el.innerHTML = '';
       for (let n = 1; n <= pdf.numPages && my === el._pdfTok; n++) {
         const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), w = Math.max(240, (el.clientWidth || 600) - 16), sc = w / v0.width;
         const f = canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2], v = pg.getViewport({ scale: sc * dpr * f });
-        const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-pdfs'; cv.setAttribute('aria-label', 'Seite ' + n);
+        const cv = doc.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-pdfs'; cv.setAttribute('aria-label', 'Seite ' + n);
         el.appendChild(cv);
         await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise;
       }

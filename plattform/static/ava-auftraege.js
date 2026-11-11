@@ -570,7 +570,7 @@ document.addEventListener('click', (e) => { const b = e.target.closest && e.targ
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntang]'); if (b) { e.stopPropagation(); ntAngebot(+b.dataset.ntang); } });
 document.addEventListener('change', async (e) => {
   const s = e.target.closest && e.target.closest('[data-ntst]'); if (!s || s.value === 'gemischt') return;
-  const [lvId, pid_] = s.dataset.ntst.split(':');
+  const [lvId, pid_] = s.dataset.ntst.split(':'); s.classList.remove('angemeldet', 'beauftragt', 'abgelehnt'); s.classList.add(s.value);   // Farbe gleich umschalten
   try { const r = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: s.value }); PC[+lvId] = r; if (L && L.id === +lvId) L = r; render(); toast(`Nachtrag ${s.value}.`); lvEintrag(+lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); }
   catch (er) { toast(er.message, true); }
 });

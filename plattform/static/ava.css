@@ -693,3 +693,7 @@ table.lv tr.gaeb-hier td{animation:gaeb-blink 2.4s ease-out}@keyframes gaeb-blin
 .re-abn label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}
 .re-abn .hint{flex:1 1 16rem;padding-bottom:.35rem}
 .re-abn.offen .hint{color:var(--red)}
+/* Nachtrag-Stand: Ampel rot · gelb · grün – auch gegen die Rahmen-Stile (die Feldern sonst die App-Farbe geben) */
+select.nt-st.abgelehnt{border-color:#e05050!important;background:color-mix(in srgb,#e05050 14%,var(--card))!important;color:#c0392b!important}
+select.nt-st.angemeldet{border-color:#e0a030!important;background:color-mix(in srgb,#f2c200 20%,var(--card))!important;color:#9a6a00!important}
+select.nt-st.beauftragt{border-color:#3c9d4a!important;background:color-mix(in srgb,#3c9d4a 14%,var(--card))!important;color:#2e7d32!important}

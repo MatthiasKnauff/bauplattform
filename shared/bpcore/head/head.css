@@ -668,6 +668,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bp-undo .bp-undo-u{background:var(--y,#d4f02a);color:var(--on,#111);font-weight:700}.bp-undo .bp-undo-u em{font-style:normal;font-size:.75em;background:rgba(0,0,0,.18);border-radius:calc(999px*var(--rkp,1));padding:0 .4rem}
 .bp-undo .bp-undo-r{color:#ddd;padding:.38rem .65rem}.bp-undo .bp-undo-r:hover{background:rgba(255,255,255,.1)}.bp-undo .bp-undo-x{color:#999;padding:.38rem .6rem}
 .bp-undo button[disabled]{opacity:.35;cursor:default}
+.bp-undo{opacity:.82;transition:opacity .15s}.bp-undo:hover,.bp-undo:focus-within{opacity:1}   /* etwas durchsichtig, voll beim Darüberfahren */
 .bp-undo-g{cursor:grab;color:#999;padding:0 .35rem 0 .5rem;letter-spacing:-.2em;user-select:none;touch-action:none;align-self:center}.bp-undo-g:hover{color:#fff}   /* Griff: Dock verschieben */
 .bp-undo-mini{display:flex;border-radius:calc(999px*var(--rkp,1));padding:.2rem;opacity:.9}.bp-undo-mini:hover{opacity:1}.bp-undo-mini .bp-undo-u{padding:.3rem .75rem}
 @media (max-width:760px){   /* Handy: der kleine Knopf „↶ n“ nach dem Dock – klein, durchscheinend, unten links statt mittig über dem Inhalt */

@@ -518,3 +518,8 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .bt-drf{display:flex;gap:.5rem;align-items:center;margin-top:.3rem}.bt-drf input{accent-color:var(--y)}
 .bt-kal .bcal-g button.mk{background:color-mix(in srgb,var(--y) 28%,transparent)}
 .bt-ck{display:flex!important;flex-direction:row!important;gap:.5rem;align-items:center}.bt-ck input{width:auto;accent-color:var(--y)}
+
+/* Rundes Plus am Bereich (wie in den übrigen Apps) */
+.side>button.rplus{width:40px;height:40px;padding:0;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--y) 16%,transparent);color:var(--y);border:1px solid color-mix(in srgb,var(--y) 45%,transparent)}
+.side>button.rplus:hover{background:var(--y);color:var(--on)}
+.sec-leer{color:var(--mute);font-size:.9rem;margin:.5rem 0 .2rem}

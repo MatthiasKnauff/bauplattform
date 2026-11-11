@@ -297,7 +297,13 @@ document.addEventListener('click', async e => {
   else if (a === 'gps') fillGeo(false);
   else if (a === 'wxEdit') { wxEdit = !wxEdit; renderDetail(); }
   else if (a === 'adding') { adding = adding === b.dataset.kind ? null : b.dataset.kind; addFiles = []; if (adding) setSecOpen(adding, true); renderDetail(); renderApv(); }
-  else if (a === 'secToggle') { setSecOpen(b.dataset.key, b.dataset.open !== '1'); renderDetail(); }
+  else if (a === 'secToggle') {   // auch leere Bereiche öffnen: Einträge gleich mit Eingabezeile, Bilder mit Hinweis
+    const k = b.dataset.key, auf = b.dataset.open !== '1', r = curReport(), s = meta.sections.find((x) => x.key === k) || {};
+    const leer = r && s.type === 'list' && !r.items.some((i) => i.kind === k);
+    setSecOpen(k, auf);
+    if (auf && leer) { adding = k; renderDetail(); setTimeout(() => document.querySelector(`[data-add="${k}"]`)?.focus(), 50); return; }
+    if (!auf && adding === k) adding = null;
+    renderDetail(); }
   else if (a === 'addItem') addItem(b.dataset.kind);
   else if (a === 'delItem') {
     const r = await api('api/items/' + id, 'DELETE'); await openProject(pid, true);

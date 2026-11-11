@@ -104,17 +104,17 @@ function listSec(s, r) {
     : '<div class="hint">Enter = neue Zeile · Strg+Enter = hinzufügen</div>';
   const add = adding === k ? `<div class="addrow">${lk ? '' : coAdd(s)}${field}${extra}${s.extra && s.extra.due ? `<label class="dl"><span class="dlt">Erinnerung per E-Mail (optional)</span><input type="date" data-add-due aria-label="Erledigen bis"> <span>um</span> ${timeSelect('09:00', 'data-add-time')}</label>` : ''}${photoAdd(s)}<button class="ok" data-act="addItem" data-kind="${esc(k)}">Hinzufügen</button></div>` : '';
   const n = r.items.filter(i => i.kind === k).length, open = secIsOpen(k, n) || adding === k;
-  return `<div class="sec ${open ? '' : 'col'}${!n && adding !== k && !lk ? ' leer' : ''}" data-drop="${esc(k)}" id="sec-${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
-    <div class="side"><button data-act="adding" data-kind="${esc(k)}" title="${esc(s.title)} hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
+  return `<div class="sec ${open ? '' : 'col'}${!n && !open && !lk ? ' leer' : ''}" data-drop="${esc(k)}" id="sec-${esc(k)}"><div class="main">${secHead(s, n, open)}${lk ? sollHtml(r, k) : ''}${open ? `<div class="lines">${rows}</div>${add}` : ''}</div>
+    <div class="side"><button class="rplus" data-act="adding" data-kind="${esc(k)}" title="${esc(s.title)} hinzufügen" aria-label="${esc(s.title)} hinzufügen">${ic('plus', 20, 2.6)}</button></div></div>`;
 }
 function imgSec(s, r) {
   const shown = allImgs ? r.images : r.images.slice(0, 6), rest = r.images.length - shown.length;
   const open = secIsOpen(s.key, r.images.length);
-  return `<div class="sec ${open ? '' : 'col'}${r.images.length ? '' : ' leer'}" data-drop="" id="sec-${esc(s.key)}"><div class="main">${secHead(s, r.images.length, open)}
+  return `<div class="sec ${open ? '' : 'col'}${r.images.length || open ? '' : ' leer'}" data-drop="" id="sec-${esc(s.key)}"><div class="main">${secHead(s, r.images.length, open)}${open && !r.images.length ? '<div class="sec-leer">Noch keine Bilder – mit ＋ wählen oder Fotos hierher ziehen.</div>' : ''}
     <div class="imgs" ${open ? '' : 'style="display:none"'}>${shown.map(i => `<div><a href="uploads/${esc(i.file)}" target="_blank"><img loading="lazy" src="api/thumb/240/${esc(i.file)}" alt="${esc(i.caption || 'Baustellenfoto')}"></a><button class="rm" data-act="delImg" data-id="${i.id}" title="Bild löschen">✕</button><input class="cap" data-img="${i.id}" value="${esc(i.caption)}" placeholder="Beschreibung" maxlength="120" autocomplete="off" aria-label="Fotobeschreibung (wird der Dateiname)"></div>`).join('')}</div>
     ${open && rest > 0 ? `<button class="bd morei" data-act="moreImgs">Alle ${r.images.length} Bilder anzeigen (+${rest})</button>` : ''}${open && allImgs && r.images.length > 6 ? `<button class="bd morei" data-act="lessImgs">Weniger anzeigen</button>` : ''}
     <input type="file" id="file" class="vh" accept="image/*,.heic,.heif" multiple></div>
-    <div class="side"><button data-act="pickFile" title="Bilder hinzufügen">${ic('plus', 24, 3)}</button></div></div>`;
+    <div class="side"><button class="rplus" data-act="pickFile" title="Bilder hinzufügen" aria-label="Bilder hinzufügen">${ic('plus', 20, 2.6)}</button></div></div>`;
 }
 /* Wetter steht als eine Zeile im Kopf des Berichts (headSec) – keine eigene Karte mehr. Der Stift klappt die Felder auf. */
 function wxSec() { return ''; }

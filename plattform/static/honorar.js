@@ -46,6 +46,7 @@ function leiste() {
 }
 
 function zeichne() {
+  if (typeof HANDY !== 'undefined' && HANDY.matches) return handyZeichne();   // Handy: eigene Ansicht (honorar-handy.js), nur ansehen
   nav(); leiste();
   if (!D) { V.innerHTML = `<div class="leer">Noch kein Honorarauftrag. Oben „Neu → Auftrag“: Projekt wählen, HOAI, nach Aufwand oder pauschal.</div>`; return; }
   const a = D.auftrag, k = D.rechnung;

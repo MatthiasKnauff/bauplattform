@@ -1,0 +1,29 @@
+/* Pläne & Dateien – Reiter „Alle Dateien“ (plaene-alle.js). Nur Stil-Variablen, Kacheln mit fester Bildfläche (nichts springt). */
+.al{display:grid;gap:.7rem;min-width:0}
+.al-l{display:flex;flex-wrap:wrap;gap:.4rem .5rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem .6rem}
+.al-l input[type=search]{flex:1 1 14rem;min-width:0;font:inherit;color:var(--ink);background:var(--inp,var(--card));border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.32rem .6rem}
+.al .chip{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(999px*var(--rkp,1));padding:.15rem .6rem;cursor:pointer;white-space:nowrap}
+.al .chip small{color:var(--mute);margin-left:.15rem}.al .chip.on{border-color:var(--y);color:var(--y);background:color-mix(in srgb,var(--y) 10%,var(--card))}
+.al .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:calc(14px*var(--rkp,1));padding:2px;gap:2px;background:var(--card)}
+.al .seg button{border:0;background:none;cursor:pointer;font:inherit;font-size:.8rem;border-radius:calc(999px*var(--rkp,1));padding:.12rem .55rem;color:var(--mute);white-space:nowrap}
+.al .seg button.on{background:var(--y);color:var(--on,#fff)}
+.al-gr{margin-left:auto}
+.al-z{display:grid;grid-template-columns:minmax(10rem,15rem) minmax(0,1fr);gap:.7rem;align-items:start}
+.al-b{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.3rem 0;position:sticky;top:.5rem;max-height:calc(100vh - 9rem);overflow:auto}
+.ab-o{all:unset;box-sizing:border-box;display:block;width:100%;padding:.2rem .6rem;font-size:.8rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.ab-o small{color:var(--mute)}.ab-o:hover{background:var(--hov)}.ab-o.on{background:var(--hov);font-weight:600}.ab-o:focus-visible{outline:2px solid var(--y);outline-offset:-2px}
+.al-i{min-width:0}
+.al-g{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:.1rem 0 .45rem}
+.al-k{display:grid;gap:.6rem;margin-bottom:1rem;grid-template-columns:repeat(auto-fill,minmax(var(--akw,150px),1fr))}
+.al-S{--akw:105px}.al-M{--akw:155px}.al-L{--akw:240px}
+.ak{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden;color:var(--ink);text-decoration:none;font-size:.76rem;min-width:0}
+.ak:hover{border-color:var(--y)}.ak:focus-visible{outline:2px solid var(--y);outline-offset:1px}
+.ath{aspect-ratio:4/3;background:var(--hov);display:grid;place-items:center;position:relative;overflow:hidden}
+.ath img{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
+.aic{font-size:1.7rem;opacity:.7}.al-S .aic{font-size:1.3rem}
+.awt{position:absolute;right:.3rem;bottom:.3rem;font-size:.6rem;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:0 .4rem}
+.an{padding:.3rem .45rem 0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.am{padding:0 .45rem .35rem;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.al-S .am{display:none}
+.al-t a{color:var(--ink);text-decoration:none}.al-t a:hover{color:var(--y)}.al-t .r{text-align:right;white-space:nowrap}
+.al-mehr{display:flex;justify-content:center;margin:.4rem 0 1rem}
+@media (max-width:760px){.al-z{grid-template-columns:1fr}.al-b{display:none}.al-gr button[data-agr=S],.al-gr button[data-agr=L]{display:none}}

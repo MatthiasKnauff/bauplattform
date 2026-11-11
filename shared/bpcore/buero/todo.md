@@ -3,7 +3,6 @@
 Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
-- „Pläne & Dateien“ → Reiter „Alle Dateien“: Dateiliste mit Filtern, Vorschaubilder im Hintergrund (S/M/L), keine Kopien der Originale. **ca. 1,5–2 h**
 
 - ~~Bautagebuch auf den Baukasten (Rahmen, neun Skripte, Baukasten statt Kopien, Drucken mehrerer Berichte) – fertig am 11.11.2026~~
 
@@ -71,6 +70,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~„Pläne & Dateien“ → „Alle Dateien“: ganzer Projektordner mit Filtern (Art, Ordner, Zeitraum, Suche), Größe Liste/S/M/L, Vorschaubilder im Hintergrund (Dienste, nur wenn wenig los ist; angesehene zuerst), keine Kopien – Originale direkt vom Dateiserver im gemeinsamen Viewer~~
 - ~~Bauantrag: selbst hochgeladene Vordrucke ohne Anlage-Nummer werden am Dateinamen erkannt („mb2026-220-anlage1.2“ → I/2) und im Antrag benutzt~~
 - ~~Honorar: Abschlags- und Schlussrechnungen nach § 15 HOAI – erbrachte Leistung kumuliert (LPh × erbracht %, Umbau, Nebenkosten; Pauschal nach Anteil, Aufwand nach Zeiten) minus bisherige Rechnungen; Entwurf → stellen (eingefroren) → bezahlt/storniert; PDF mit Blatt 1 Rechnung auf dem Briefbogen und Blatt 2 Erläuterung~~
 - ~~Bauantrag: NRW-Vordrucke jetzt von der Seite der Architektenkammer (AKNW, Fassung 09/2026 nach dem 3. Änderungsgesetz), ersatzweise recht.nrw.de; Quelle für NRW in der Verwaltung änderbar~~

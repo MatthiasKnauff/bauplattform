@@ -82,6 +82,12 @@ def test_plaene_projekte_und_rechte(ctx):
         bernd.get(pfad, expect=404)
     bernd.put(f"/plaene/api/projekt/{t101}", {"ordner": "x"}, expect=404)
     ctx.gast().get("/plaene/api/projekte", expect=401)
+    # Alle Dateien: fremdes Projekt gesperrt; Vorschau fehlt → 404; Wunsch nur für PDF/Bilder
+    bernd.get(f"/plaene/api/alle?project_id={t101}", expect=404)
+    bernd.get(f"/plaene/api/alle/bild?project_id={t101}&pfad=a.pdf", expect=404)
+    bernd.post("/plaene/api/alle/wunsch", {"project_id": t101, "pfade": ["a.pdf"]}, expect=404)
+    gleich(bernd.pj("/plaene/api/alle/wunsch", {"project_id": t102, "pfade": ["RT/a.pdf", "RT/b.dwg"]})["n"], 1, "Wunsch nur für PDF/Bilder")
+    bernd.get(f"/plaene/api/alle/bild?project_id={t102}&pfad=RT/a.pdf", expect=404)
 
 
 def test_plaene_adressen_mit_email(ctx):

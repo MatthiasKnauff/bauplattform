@@ -7,6 +7,7 @@
 <title>Pläne & Dateien</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
+<link rel="stylesheet" href="static/plaene-alle.css">
 <style>
 .wrap{max-width:1240px;padding-bottom:6rem}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem}
@@ -108,7 +109,7 @@ const stKey = (p, st) => p.key + '#' + st.index;
 
 function renderTabs() {
   const n = D ? D.plaene.length : 0, v = VL ? VL.length : 0;
-  $('#tabs').innerHTML = [['plaene', 'Pläne', n], ['liste', 'Planversandliste', v]].map(([k, l, c]) => `<button class="tab ${tab === k ? 'on' : ''}" data-tab="${k}">${l}${c ? `<small>${c}</small>` : ''}</button>`).join('');
+  $('#tabs').innerHTML = [['plaene', 'Pläne', n], ['liste', 'Planversandliste', v], ['alle', 'Alle Dateien', typeof ALLE !== 'undefined' && ALLE && ALLE_PID === pid && ALLE.dateien ? ALLE.dateien.length : 0]].map(([k, l, c]) => `<button class="tab ${tab === k ? 'on' : ''}" data-tab="${k}">${l}${c ? `<small>${c}</small>` : ''}</button>`).join('');
 }
 function renderOrd() {
   if (!D || D.error) { $('#ord').innerHTML = ''; return; }
@@ -147,6 +148,7 @@ function sichtbar() {
 function render() {
   renderTabs(); renderOrd();
   if (tab === 'liste') return renderListe();
+  if (tab === 'alle') return renderAlle();   // plaene-alle.js
   if (busy && !D) { $('#view').innerHTML = '<p class="mute">Projektordner wird durchsucht …</p>'; bar(); return; }
   if (!D) { $('#view').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; bar(); return; }
   if (D.error) { $('#view').innerHTML = `<div class="card"><p>${esc(D.error)}</p></div>`; bar(); return; }
@@ -409,7 +411,7 @@ document.addEventListener('click', async (e) => {
   if (t.id === 'selNone') { SEL.clear(); render(); return; }
   if (t.id === 'vBtn') { versandDialog(); return; }
   if (t.id === 'pBtn') { plotDialog(); return; }
-  if (t.id === 'reBtn') { laden(true); return; }   // Ordner jetzt neu durchsuchen (sonst Zwischenspeicher vom selben Tag)
+  if (t.id === 'reBtn') { if (tab === 'alle') alleLaden(true); else laden(true); return; }   // Ordner jetzt neu durchsuchen (sonst Zwischenspeicher vom selben Tag)
   if (t.id === 'ordBaum') { baumDialog(); return; }
   if (t.id === 'ordMerkAlt') { try { await api('api/projekt/' + pid, 'PUT', { ordner: D.ordner }); D.gemerkt = D.ordner; renderOrd(); toast('Planordner gemerkt.'); } catch (er) { toast(er.message, true); } }
 });
@@ -442,7 +444,7 @@ window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
   const grp = (l, f) => { const x = PROJ.filter(f); return x.length ? `<optgroup label="${l}">${x.map((p) => `<option value="${p.id}"${p.id === pid ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>` : ''; };
   $('#proj').innerHTML = (pid ? '' : '<option value="">– Projekt wählen –</option>') + grp('Meine Projekte', (p) => p.mine && !p.archived) + grp('Weitere Projekte', (p) => !p.mine && !p.archived) + grp('Archiv', (p) => p.archived);
   projektKnopf($('#proj'));
-  if (!['plaene', 'liste'].includes(tab)) tab = 'plaene';
+  if (!['plaene', 'liste', 'alle'].includes(tab)) tab = 'plaene';
   if (/(?:^#|&)neu=plaene/.test(location.hash)) {   // aus der Leiste „＋ Neu“: Empfänger mitgebracht – erst Pläne ankreuzen, dann „Versenden“
     NEUMIT = BPHead.neuUebergabe() || {}; if (NEUMIT.firma) AN = NEUMIT.firma; history.replaceState(null, '', '#plaene');
     setTimeout(() => toast('Pläne ankreuzen und dann „Versenden“ – ' + (NEUMIT.firma ? `„${NEUMIT.firma}“ ist als Empfänger vorgewählt.` : 'die Empfänger wählst du im nächsten Schritt.')), 600);
@@ -451,5 +453,6 @@ window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
 })().catch((e) => toast(e.message, true));
 </script>
 <script src="static/plaene-ablage.js"></script>
+<script src="static/plaene-alle.js"></script>
 </body>
 </html>

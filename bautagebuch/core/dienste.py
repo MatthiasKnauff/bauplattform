@@ -43,5 +43,7 @@ def starten():
     try:
         from modules import plaene
         plaene.start()  # Planordner der laufenden Projekte nachts vorab einlesen (Pläne & Dateien)
+        from modules import alle_dateien
+        alle_dateien.start()  # „Alle Dateien“: Projektordner nachts einlesen, Vorschaubilder erzeugen, wenn wenig los ist
     except Exception as e:   # noqa: BLE001 – ohne Planordner laufen die übrigen Dienste weiter
         fehler.still("dienste", "Pläne vorab einlesen starten", e)

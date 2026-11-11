@@ -599,6 +599,7 @@ def versandliste_pdf():
 
 # ---------------------------------------------------------------- Hereinziehen: jetzt für alle Apps im Kern (bpcore/ablage.py, Baustein head/ablegen.js)
 from bpcore.ablage import vorschlaege as ablage_vorschlaege   # noqa: E402 – alter Name, für Aufrufer und Tests
+import plaene_alle   # noqa: E402,F401 – Reiter „Alle Dateien“ (eigenes Modul, Routen /api/alle…)
 
 
 C.wait_schema()

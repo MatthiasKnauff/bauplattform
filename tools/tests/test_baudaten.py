@@ -305,9 +305,9 @@ def test_korb_sammeln(ctx):
 def test_vorbemerkung_allgemein(ctx):
     """Migration 0054: „Allgemeine Vorbemerkungen“ steht als erster Baustein in der Liste und ist vollständig abrufbar."""
     c = ctx.admin
-    L = c.gj(f"{BD}/baudaten/vorbemerkungen")
+    L = c.gj("/ava/api/baudaten/vorbemerkungen")   # Endpunkt der Ausschreibung (bpcore.baudaten.register)
     gleich(L[0]["key"], "avb", "ganz oben")
-    v = c.gj(f"{BD}/baudaten/vorbemerkungen?key=avb")
+    v = c.gj("/ava/api/baudaten/vorbemerkungen?key=avb")
     gleich(v["titel"], "Allgemeine Vorbemerkungen", "Titel")
     for t in ("1 Vertragsgrundlagen", "8 Unterlagen und Abnahme", "Projektbezogene Angaben", "§ 4 Abs. 3 VOB/B"):
         pruefe(t in v["text"], f"Text enthält „{t}“")

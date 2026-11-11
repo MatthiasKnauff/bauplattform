@@ -283,11 +283,18 @@ async function zeileAktion(z, a) {
       const id = +z.dataset.e;
       if (a === 'del') { const r = await api('api/eintrag/' + id, 'DELETE'); D = r; zeichne(); const g = r.geloescht;
         if (g) rueckgaengig('Zeit gelöscht', async () => { D = await api('api/eintrag', 'POST', { d: g.tag, von: g.von, bis: g.bis, project_id: g.project_id, art: g.art, notiz: g.notiz, quelle: g.quelle }); zeichne(); }); return; }
-      D = await api('api/eintrag/' + id, 'PUT', zeileWerte(z)); zeichne(); return;
+      const alt = (D.eintraege || []).find((e) => e.id === id), t0 = tag, w = zeileWerte(z);
+      const vorher = alt ? Object.fromEntries(Object.keys(w).map((k) => [k, alt[k] == null ? '' : alt[k]])) : null;
+      D = await api('api/eintrag/' + id, 'PUT', w); zeichne();
+      if (vorher) rueckgaengig('Zeit geändert', async () => { const d = await api('api/eintrag/' + id, 'PUT', vorher); if (tag === t0) D = d; zeichne(); });
+      return;
     }
     if (z.dataset.n) {
       if (a === 'abbr') { NEU = null; zeichne(); return; }
-      D = await api('api/eintrag', 'POST', { d: tag, ...zeileWerte(z), quelle: 'hand' }); NEU = null; zeichne();
+      const t0 = tag, vor = new Set((D.eintraege || []).map((e) => e.id));
+      D = await api('api/eintrag', 'POST', { d: t0, ...zeileWerte(z), quelle: 'hand' }); NEU = null; zeichne();
+      const neu = (D.eintraege || []).find((e) => !vor.has(e.id));
+      if (neu) rueckgaengig('Zeit eingetragen', async () => { const d = await api('api/eintrag/' + neu.id, 'DELETE'); if (tag === t0) D = d; zeichne(); });
     }
   } catch (e) { toast(e.message, true); }
 }
@@ -392,7 +399,8 @@ document.addEventListener('click', async (e) => {
       if (a === 'ok') { const t0 = tag; D = await api('api/tag/bestaetigen', 'POST', { d: t0 }); const neu = D.uebernommen || []; W = await api('api/woche?d=' + t0); zeichne();
         rueckgaengig(neu.length ? `Tag bestätigt – ${neu.length} Vorschl${neu.length === 1 ? 'ag' : 'äge'} übernommen` : 'Tag bestätigt', async () => {   // zurück: Tag wieder offen, die übernommenen Zeiten sind wieder Vorschläge
           const d = await api('api/tag/oeffnen', 'POST', { d: t0, weg: neu }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
-      if (a === 'auf') { D = await api('api/tag/oeffnen', 'POST', { d: tag }); zeichne(); }
+      if (a === 'auf') { const t0 = tag; D = await api('api/tag/oeffnen', 'POST', { d: t0 }); zeichne();
+        rueckgaengig('Tag wieder offen', async () => { const d = await api('api/tag/bestaetigen', 'POST', { d: t0 }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
     } catch (er) { toast(er.message, true); }
     return;
   }
@@ -447,7 +455,11 @@ document.addEventListener('change', async (e) => {
   if (t.id === 'dIn' && t.value) { tag = t.value > G.heute ? G.heute : t.value; NEU = null; laden(); return; }
   const tf = t.closest('[data-tf]');
   if (tf) { const k = tf.dataset.tf; let v = tf.value; if (k === 'pause') v = v === '' ? null : +v; if (tf.classList.contains('hm')) { v = hmNorm(v); if (v === null) { toast('Bitte eine Uhrzeit eingeben, z. B. 7:45 oder 745.', true); return; } }
-    try { D = await api('api/tag', 'PUT', { d: tag, [k]: v }); zeichne(); } catch (er) { toast(er.message, true); } return; }
+    const t0 = tag, fest = !D || D[k + '_fest'] !== false;   // Vorschlag (nicht fest): zurück auf „leer“, dann rechnet die Plattform wieder selbst
+    const vorher = !D ? null : (k === 'kommen' || k === 'gehen') ? (fest ? D[k] : '') : k === 'pause' ? (fest ? D[k] : null) : (D[k] == null ? '' : D[k]);
+    try { D = await api('api/tag', 'PUT', { d: t0, [k]: v }); zeichne();
+      rueckgaengig('Tag geändert', async () => { const d = await api('api/tag', 'PUT', { d: t0, [k]: vorher }); if (tag === t0) D = d; zeichne(); });
+    } catch (er) { toast(er.message, true); } return; }
   const zf = t.closest('[data-zf]');
   if (zf) { const z = zf.closest('.zr'); if (z.dataset.n) return; if (zf.dataset.zf === 'project_id' && z.dataset.v != null) { /* Projekt gewählt: Tätigkeit bleibt */ } zeileAktion(z, 'save'); return; }
   const pf = t.closest('[data-pf]');

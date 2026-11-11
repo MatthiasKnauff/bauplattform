@@ -69,6 +69,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Rückgängig auch beim Ändern und Eintragen einer Zeit, bei Kommen/Gehen/Pause/Abwesenheit und beim Wieder-Öffnen eines Tages~~
 - ~~Pfeil-Kästen als Baustein (bp.css .bp-stufen): Honorar-Ablauf und Bauantrag-Schritte gleich – im Bauantrag grün = vollständig, rot = offen, gewählter Schritt kräftig~~
 - ~~Honorar und Bauantrag: „＋ Neuer Auftrag“ bzw. „＋ Neuer Antrag“ links in der Navigation wie „＋ Neues LV“ in der Ausschreibung (statt „Neu“ in der Befehlsleiste)~~
 - ~~Ein Druck für alles: Druckseite im Baukasten (druck.js, bpDruck – links ankreuzen, rechts Vorschau, dann Viewer mit Drucken/Teilen); Honorar (Angebot/Aufstellung, Vertrag, Rechnungen) und Bauantrag (Anschreiben, Deckblatt, Trennblätter, Unterlagen) nutzen sie~~

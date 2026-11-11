@@ -49,7 +49,8 @@ def abnahme_vorlage():
         if not _projekt(c, pid):
             return jsonify(error="Projekt nicht gefunden"), 404
         k = c.execute("SELECT value FROM settings WHERE key='co_short'").fetchone()
-        return jsonify(AB.vorlage(c, pid, C.full_name(g.user), (k["value"] if k else "") or ""))
+        andere = [r["id"] for r in c.execute("SELECT id FROM projects WHERE archived=0 ORDER BY id DESC").fetchall() if r["id"] != pid and _projekt(c, r["id"])]
+        return jsonify(AB.vorlage(c, pid, C.full_name(g.user), (k["value"] if k else "") or "", andere))
 
 
 @app.post("/api/abnahme")

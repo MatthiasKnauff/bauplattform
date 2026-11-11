@@ -2189,7 +2189,9 @@
     return H.projekt;
   };
   H.projektId = () => (H.projekt && H.projekt.id) || null;
-  /* ---------- Einheitliches Projektfeld: jede <select data-bp-projekte> wird zum Suchfeld mit Vervollständigung,
+  /* ---------- Einheitliches Auswahlfeld (wie die Projektauswahl): <select data-bp-auswahl> mit <option data-sub="…" data-such="…">
+     und <optgroup label="…" [data-zu]> – data-zu: Gruppe zugeklappt („aus anderen Projekten (n) – anzeigen“), bei der Suche offen.
+     Einheitliches Projektfeld: jede <select data-bp-projekte> wird zum Suchfeld mit Vervollständigung,
      darunter „Meine Projekte“ und „Andere Projekte“. Die <select> bleibt unsichtbar die Quelle (value + change-Ereignis),
      App-Code ändert sich also nicht. Gruppen der App (z. B. „erkannt“) und Sondereinträge („Alle Projekte“, „＋ neu“) bleiben. */
   let PA_MEIN = null, PA_P = {};
@@ -2208,13 +2210,16 @@
     const sw = sel.getBoundingClientRect().width; if (sw > 40 && !sel.closest('.fm,.bph-dm,.bph-row')) w.style.width = Math.max(sw, 200) + 'px';
     sel.after(w); sel.style.display = 'none'; sel.tabIndex = -1;
     let box = null, L = [], ak = -1, mein = null;
-    const text = () => { const o = sel.selectedOptions[0]; inp.value = o ? o.textContent.trim() : ''; inp.placeholder = sel.dataset.ph || 'Projekt suchen …'; };
+    const ALLG = sel.hasAttribute('data-bp-auswahl'), offenZu = new Set();   // allgemeine Liste (Firmen, Aufträge …) · aufgeklappte Gruppen
+    const text = () => { const o = sel.selectedOptions[0]; inp.value = o ? o.textContent.trim() : ''; inp.placeholder = sel.dataset.ph || (ALLG ? 'Suchen …' : 'Projekt suchen …'); };
     const eintraege = () => {
       const out = [];
       [...sel.querySelectorAll('option')].forEach((o) => {
         if (o.disabled && !o.value) return;
         const og = o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '';
-        const projekt = /^\d+$/.test(o.value) && !(og && !/alle|projekte/i.test(og));
+        const projekt = !ALLG && /^\d+$/.test(o.value) && !(og && !/alle|projekte/i.test(og));
+        if (ALLG && !o.value) return;
+        if (ALLG) { out.push({ v: o.value, t: o.textContent.trim(), g: og || '', p: false, a: o.dataset.sub || '', s: o.dataset.such || '', d: null, zu: o.parentElement.tagName === 'OPTGROUP' && o.parentElement.hasAttribute('data-zu') }); return; }
         const pp = projekt ? PA_P[o.value] : null, h = paHier(), d = paDist(pp, h);
         out.push({ v: o.value, t: o.textContent.trim(), g: projekt ? (mein ? (mein.has(o.value) ? 'Meine Projekte' : 'Andere Projekte') : 'Projekte') : og || (o.value === '' ? '' : '…'), p: projekt,
           a: paAdr(pp), s: pp ? [pp.street, pp.zip, pp.city, pp.client, pp.bauleiter].join(' ') : '', d });
@@ -2230,9 +2235,12 @@
       if (E.some((x) => x.d != null)) E.sort((a, b) => (a.p && b.p ? (a.d ?? 1e12) - (b.d ?? 1e12) : 0));   // mit Standort: nächstes zuerst
       const ord = ['', ...new Set(E.filter((x) => !x.p && x.g && x.g !== '…').map((x) => x.g)), 'Meine Projekte', 'Projekte', 'Andere Projekte', '…'];
       L = []; let h = '';
-      ord.forEach((gr) => { const G = E.filter((x) => x.g === gr); if (!G.length) return; if (gr && gr !== '…') h += `<div class="bph-pa-g">${esc(gr)}</div>`; G.forEach((x) => { L.push(x); const km = x.d == null ? '' : x.d < 1000 ? Math.max(10, Math.round(x.d / 10) * 10) + ' m' : (x.d / 1000).toFixed(1).replace('.', ',') + ' km';
+      ord.forEach((gr) => { let G = E.filter((x) => x.g === gr); if (!G.length) return;
+        if (G[0].zu && !ws.length) { const auf = offenZu.has(gr); h += `<button type="button" class="bph-pa-o bph-pa-zu" data-pazu="${esc(gr)}" tabindex="-1">${auf ? '▾' : '▸'} ${esc(gr)} (${G.length}) – ${auf ? 'ausblenden' : 'anzeigen'}</button>`; if (!auf) return; }
+        else if (gr && gr !== '…') h += `<div class="bph-pa-g">${esc(gr)}</div>`;
+        G.forEach((x) => { L.push(x); const km = x.d == null ? '' : x.d < 1000 ? Math.max(10, Math.round(x.d / 10) * 10) + ' m' : (x.d / 1000).toFixed(1).replace('.', ',') + ' km';
         h += `<button type="button" class="bph-pa-o${x.v === sel.value ? ' on' : ''}${x.a ? ' zw' : ''}" data-pa="${L.length - 1}" tabindex="-1"><span>${esc(x.t)}${x.a ? `<small>${esc(x.a)}</small>` : ''}</span>${km ? `<i>${km}</i>` : ''}</button>`; }); });
-      const fuss = sel.dataset.bpProjekte === 'einfach' ? '' : `<div class="bph-pa-f"><button type="button" data-pafuss="neu" tabindex="-1">＋ Neues Projekt</button><button type="button" data-pafuss="stand" tabindex="-1">📍 Nach Standort</button><button type="button" data-pafuss="gross" tabindex="-1" title="Große Projektauswahl mit allen Projekten">⤢ Alle</button></div>`;
+      const fuss = ALLG || sel.dataset.bpProjekte === 'einfach' ? '' : `<div class="bph-pa-f"><button type="button" data-pafuss="neu" tabindex="-1">＋ Neues Projekt</button><button type="button" data-pafuss="stand" tabindex="-1">📍 Nach Standort</button><button type="button" data-pafuss="gross" tabindex="-1" title="Große Projektauswahl mit allen Projekten">⤢ Alle</button></div>`;
       box.innerHTML = (h || `<div class="bph-pa-n">${sel.dataset.leer || 'Kein Projekt gefunden.'}</div>`) + fuss;
       ak = ws.length ? (L.findIndex((x) => x.p) >= 0 ? L.findIndex((x) => x.p) : 0) : L.findIndex((x) => x.v === sel.value); mark();
     };
@@ -2240,11 +2248,12 @@
     let oeffnet = null;
     const auf = async () => {
       if (box) return; if (oeffnet) return oeffnet;   // schnelles Tippen: nur eine Liste öffnen
-      oeffnet = paMein(); mein = await oeffnet; oeffnet = null; if (box) return;
+      oeffnet = ALLG ? Promise.resolve(null) : paMein(); mein = await oeffnet; oeffnet = null; if (box) return;
       box = document.createElement('div'); box.className = 'bph-pa-box'; box.setAttribute('role', 'listbox'); document.body.appendChild(box);
       inp.setAttribute('aria-expanded', 'true'); lage(); zeichnen(''); inp.select();
       document.addEventListener('mousedown', aussen, true); window.addEventListener('scroll', lage, true);
-      box.addEventListener('mousedown', (e) => { e.preventDefault(); const f = e.target.closest('[data-pafuss]'); if (f) { fussAktion(f.dataset.pafuss); return; } const b = e.target.closest('[data-pa]'); if (b) waehle(L[+b.dataset.pa]); });
+      box.addEventListener('mousedown', (e) => { e.preventDefault(); const f = e.target.closest('[data-pafuss]'); if (f) { fussAktion(f.dataset.pafuss); return; }
+        const z = e.target.closest('[data-pazu]'); if (z) { const g = z.dataset.pazu; if (offenZu.has(g)) offenZu.delete(g); else offenZu.add(g); zeichnen(inp.value === (sel.selectedOptions[0] || {}).textContent ? '' : inp.value); return; } const b = e.target.closest('[data-pa]'); if (b) waehle(L[+b.dataset.pa]); });
     };
     /* Projekt per ID setzen – fehlt es in der Liste der App (z. B. gerade angelegt), wird es als Eintrag ergänzt */
     const setzeId = async (id, name) => {
@@ -2297,7 +2306,8 @@
     fokus(ziel);
     if (sel.includes('[')) [60, 250, 600].forEach((t) => setTimeout(() => { if (document.body.contains(ziel)) return; const n = document.querySelector(sel); if (n && document.activeElement !== n) fokus(n); }, t));
   });
-  const paScan = (r) => { (r.matches && r.matches('select[data-bp-projekte]') ? [r] : []).concat([...(r.querySelectorAll ? r.querySelectorAll('select[data-bp-projekte]') : [])]).forEach(H.projektAuswahl); };
+  const PA_SEL = 'select[data-bp-projekte],select[data-bp-auswahl]';
+  const paScan = (r) => { (r.matches && r.matches(PA_SEL) ? [r] : []).concat([...(r.querySelectorAll ? r.querySelectorAll(PA_SEL) : [])]).forEach(H.projektAuswahl); };
   new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) paScan(n); }))).observe(document.documentElement, { childList: true, subtree: true });
   if (document.body) paScan(document.body); else document.addEventListener('DOMContentLoaded', () => paScan(document.body));
   /* Die Kopfleiste zeigt immer das aktuelle Projekt (eine Projektauswahl für alle Apps); Apps wählen darunter nur ihr LV, ihren Plan … */

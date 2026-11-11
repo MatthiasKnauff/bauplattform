@@ -738,9 +738,9 @@ function neuWahl() {
 }
 /* Rüge ohne Ausgangspunkt: Projekt und Firma wählen (Mängel aus dem Bautagebuch, Firmen aus Plan und Anwesenheit) */
 /* Firmenauswahl mit Suche: oben die Firmen dieses Vorgangs, dann die am Projekt Beteiligten, unten alle übrigen aus den Adressen */
-function firmaSelect(id, gruppen, wert) {
+function firmaSelect(id, gruppen, wert) {   // gruppen: [[Titel, [[Name, Zusatz]], zugeklappt?]] – Baustein data-bp-auswahl (wie die Projektauswahl)
   const seen = new Set();
-  return `<select id="${id}" data-bp-projekte data-ph="Firma suchen …" data-leer="Keine Firma gefunden." aria-label="Firma"><option value="">– Firma wählen –</option>${gruppen.map(([g, L]) => { const o = L.filter(([n]) => n && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase())); return o.length ? `<optgroup label="${esc(g)}">${o.map(([n, t]) => `<option value="${esc(n)}"${wert && n.toLowerCase() === wert.toLowerCase() ? ' selected' : ''}>${esc(t || n)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>`;
+  return `<select id="${id}" data-bp-auswahl data-ph="Firma suchen …" data-leer="Keine Firma gefunden." aria-label="Firma"><option value="">– Firma wählen –</option>${gruppen.map(([g, L, zu]) => { const o = L.filter(([n]) => n && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase())); return o.length ? `<optgroup label="${esc(g)}"${zu ? ' data-zu' : ''}>${o.map(([n, sub]) => `<option value="${esc(n)}" data-sub="${esc(sub || '')}"${wert && n.toLowerCase() === wert.toLowerCase() ? ' selected' : ''}>${esc(n)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>`;
 }
 let KNAMEN = null;
 const kontaktNamen = async () => (KNAMEN = KNAMEN || await api('api/bp/kontakte?namen=1').catch(() => []));
@@ -757,9 +757,9 @@ async function ruegeNeu(grund, mit) {   // mit: Übergabe aus der Leiste „＋ 
   const L = LA.filter((m) => !m.done && !m.archiviert && m.art === 'maengel');
   const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (L[0] || {}).pid || (P[0] || {}).id;
   const gruppen = (pid) => {
-    const offen = [...new Set(L.filter((m) => m.pid === pid && m.firma).map((m) => m.firma))].sort((a, b) => a.localeCompare(b, 'de')).map((f) => [f, `${f} (${L.filter((m) => m.pid === pid && m.firma === f).length} offen)`]);
+    const offen = [...new Set(L.filter((m) => m.pid === pid && m.firma).map((m) => m.firma))].sort((a, b) => a.localeCompare(b, 'de')).map((f) => [f, `${L.filter((m) => m.pid === pid && m.firma === f).length} offene Mängel`]);
     const bet = [...new Set([...LA.filter((m) => m.pid === pid && m.firma).map((m) => m.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])].sort((a, b) => a.localeCompare(b, 'de')).map((f) => [f]);
-    return [['Mit offenen Mängeln', offen], ['Im Projekt beteiligt', bet], ['Weitere Firmen aus den Adressen', (KN || []).map((k) => [k.name, k.trade ? `${k.name} · ${k.trade}` : k.name])]];
+    return [['Mit offenen Mängeln', offen], ['Im Projekt beteiligt', bet], ['Weitere Firmen aus den Adressen', (KN || []).map((k) => [k.name, k.trade || '']), true]];
   };
   const NL = window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste(grund === 'vob4' ? 'm4' : 'm13') + (BPHead.neuMitHtml ? BPHead.neuMitHtml(mit) : '') : '';
   const bg = modalBox(`<h3>${grund === 'vob4' ? 'Mängelrüge vor Abnahme' : 'Mängelrüge nach Abnahme'}</h3>${NL}<div class="fm">
@@ -796,7 +796,7 @@ async function terminNeu(mit) {   // mit: Übergabe aus der Leiste „＋ Neu“
   });
   const liste = () => { const pid = +bg.querySelector('#ntP').value, v = vorschlag(pid);
     const bet = [...new Set((T0 || []).filter((x) => x.pid === pid).map((x) => x.firma))].filter((n) => !v.includes(n));
-    bg.querySelector('#ntFw').innerHTML = firmaSelect('ntF', [['Laut Bauzeitenplan im Rückstand / nicht da', v.map((n) => [n])], ['Im Projekt beteiligt', bet.map((n) => [n])], ['Weitere Firmen aus den Adressen', (K || []).map((k) => [k.name, k.trade ? `${k.name} · ${k.trade}` : k.name])]], v[0] || '');
+    bg.querySelector('#ntFw').innerHTML = firmaSelect('ntF', [['Laut Bauzeitenplan im Rückstand / nicht da', v.map((n) => [n])], ['Im Projekt beteiligt', bet.map((n) => [n])], ['Weitere Firmen aus den Adressen', (K || []).map((k) => [k.name, k.trade || '']), true]], v[0] || '');
     bg.querySelector('#ntH').textContent = v.length ? 'Laut Bauzeitenplan im Rückstand oder nicht anwesend: ' + v.join(', ') : 'Für dieses Projekt meldet der Bauzeitenplan keinen Rückstand – den Rückstand beschreibst du im nächsten Schritt selbst.'; };
   bg.querySelector('#ntP').addEventListener('change', liste); liste();
   if (mit && mit.firma) { const sel = bg.querySelector('#ntF'); if (sel && [...sel.options].some((o) => o.value === mit.firma)) sel.value = mit.firma; }

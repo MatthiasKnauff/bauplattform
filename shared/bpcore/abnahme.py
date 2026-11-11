@@ -191,13 +191,13 @@ def _monat_de(iso):
         return iso or ""
 
 
-def vorlage(c, pid, user_name, buero_kurz):
-    """Vorschläge für eine neue Abnahme: Aufträge der AVA (Firma, Arbeiten, Auftragsdatum), Auftraggeber, Architekt, offene Mängel je Firma."""
-    from . import stammdaten
-    P = stammdaten.projekt_lesen(c, pid) if pid else {}
+def auftraege_von(c, pids, P=None):
+    """Vergebene LVs (Aufträge) der Projekte: Firma, Anschrift, Arbeiten, Auftragsdatum, Abnahme – für Auswahllisten."""
+    if not pids:
+        return []
     auftraege = []
-    for r in c.execute("""SELECT id, nr, name, gewerk, vergabe FROM ava_lv WHERE project_id=? AND archived=0
-                          AND (version_id IS NULL OR version_id IN (SELECT id FROM ava_version WHERE aktiv=1)) ORDER BY nr, id""", (pid,)).fetchall():
+    for r in c.execute(f"""SELECT id, project_id, nr, name, gewerk, vergabe FROM ava_lv WHERE project_id IN ({",".join("?" * len(pids))}) AND archived=0
+                          AND (version_id IS NULL OR version_id IN (SELECT id FROM ava_version WHERE aktiv=1)) ORDER BY project_id, nr, id""", tuple(pids)).fetchall():
         try:
             v = json.loads(r["vergabe"] or "{}")
         except ValueError:
@@ -214,12 +214,25 @@ def vorlage(c, pid, user_name, buero_kurz):
         auftraege.append({"lv_id": r["id"], "firma": firma, "contact_id": k["id"] if k else None, "firma_adresse": adr,
                           "arbeiten": (r["gewerk"] or r["name"] or "").strip(), "lv": " ".join(x for x in (r["nr"], r["name"]) if x),
                           "auftrag_vom": ((v.get("auftrag") or {}).get("auftragsdatum") or v.get("datum") or "")[:10],
-                          "abnahme": ((v.get("sicherheit") or {}).get("abnahme") or "")[:10], "ansprech": (k["contact_person"] or "") if k else ""})
+                          "abnahme": ((v.get("sicherheit") or {}).get("abnahme") or "")[:10], "ansprech": (k["contact_person"] or "") if k else "",
+                          "pid": r["project_id"], "projekt": (P or {}).get(r["project_id"], "")})
+    return auftraege
+
+
+def vorlage(c, pid, user_name, buero_kurz, andere=()):
+    """Vorschläge für eine neue Abnahme: Aufträge der AVA (Firma, Arbeiten, Auftragsdatum) – dieses Projekts und, zum Aufklappen,
+    der anderen sichtbaren Projekte (andere = deren IDs) –, Auftraggeber, Architekt, offene Mängel je Firma."""
+    from . import stammdaten
+    P = stammdaten.projekt_lesen(c, pid) if pid else {}
+    auftraege = auftraege_von(c, [pid] if pid else [])
+    ap = [x for x in andere if x != pid][:200]
+    PN = {r["id"]: r["name"] for r in c.execute(f"SELECT id, name FROM projects WHERE id IN ({','.join('?' * len(ap))})", tuple(ap)).fetchall()} if ap else {}
+    andere_auftraege = auftraege_von(c, ap, PN)
     maengel = [{"item_id": x["id"], "text": x["text"] or "", "firma": x["company"] or x["cname"] or "", "frist": x["due"] or ""}
                for x in c.execute("""SELECT i.id, i.text, i.company, i.due, ct.name AS cname FROM items i JOIN reports r ON r.id=i.report_id
                                      LEFT JOIN contacts ct ON ct.id=i.contact_id WHERE r.project_id=? AND i.kind='maengel' AND i.done=0 ORDER BY i.id""", (pid,)).fetchall()]
     ag = P.get("bh_ansprech") or P.get("bh_vertreter") or ""
-    return {"auftraege": auftraege, "maengel": maengel, "auftraggeber": P.get("bauherr") or "", "ag_person": ag,
+    return {"auftraege": auftraege, "andere_auftraege": andere_auftraege, "maengel": maengel, "auftraggeber": P.get("bauherr") or "", "ag_person": ag,
             "architekt": f"{user_name} ({buero_kurz})" if buero_kurz else user_name, "personen": personen(c, pid, user_name, P)}
 
 

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-firmenwahl",
+  "datum": "2026-11-11",
+  "app": "kommunikation",
+  "titel": "Firma und Auftrag wählen wie ein Projekt",
+  "text": "Bei der Abnahme und bei Mängel- und Terminrügen wählst du Auftrag bzw. Firma jetzt in einem Suchfeld wie bei der Projektauswahl: oben die Aufträge bzw. Firmen dieses Projekts, darunter zum Aufklappen „Aus anderen Projekten“ bzw. „Weitere Firmen aus den Adressen“. Beim Tippen wird überall gesucht.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-post-erledigt",
   "datum": "2026-11-11",
   "app": "portal",

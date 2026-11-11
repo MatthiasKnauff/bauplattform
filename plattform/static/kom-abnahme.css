@@ -18,8 +18,6 @@
 .ab-f{display:flex;flex-direction:column;gap:.2rem;font-size:.8rem;color:var(--mute)}
 .ab-f input,.ab-f textarea,.ab-m textarea{font:inherit;font-size:.95rem;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .6rem;width:100%;box-sizing:border-box}
 .ab-2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
-.ab-auf{display:grid;gap:.35rem}.ab-auf button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(9px*var(--rk,1));padding:.5rem .7rem;font:inherit;cursor:pointer}
-.ab-auf button small{color:var(--mute);font-size:.8rem}.ab-auf button.on{border:2px solid var(--y);padding:calc(.5rem - 1px) calc(.7rem - 1px)}
 .ab-ml{display:grid;gap:.45rem}.ab-m{display:grid;grid-template-columns:1.6rem minmax(0,1fr) auto;gap:.4rem;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem}
 .ab-n{font-weight:700;color:var(--mute);text-align:center;padding-top:.45rem}.ab-mt{display:grid;gap:.35rem}.ab-m textarea{resize:vertical;min-height:2.6rem}
 .ab-mf{display:flex;gap:.35rem;flex-wrap:wrap}.ab-fo{position:relative}.ab-fo img{height:56px;width:56px;object-fit:cover;border-radius:calc(7px*var(--rk,1));display:block;cursor:zoom-in}

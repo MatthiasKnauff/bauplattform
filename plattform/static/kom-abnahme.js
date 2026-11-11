@@ -85,10 +85,16 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
   const inp = (k, v, attr = '') => `<input data-k="${k}" value="${esc(v || '')}" ${attr}>`;
 
   function angaben() {
-    const d = S.d, L = (S.V && S.V.auftraege) || [];
-    return `${L.length ? `<div class="ab-h">Auftrag wählen <small>aus der Ausschreibung</small></div><div class="ab-auf">${L.map((a, i) => `<button type="button" data-m="auf" data-i="${i}" class="${d.lv_id === a.lv_id ? 'on' : ''}">
-        <b>${esc(a.firma)}</b><small>${esc(a.arbeiten || a.lv)}${a.auftrag_vom ? ' · Auftrag vom ' + abnDe(a.auftrag_vom) : ''}${a.abnahme ? ' · abgenommen ' + abnDe(a.abnahme) : ''}</small></button>`).join('')}</div>` : ''}
-      <div class="ab-h">${L.length ? 'oder von Hand' : 'Auftragnehmer'}</div>
+    const d = S.d, L = (S.V && S.V.auftraege) || [], A = (S.V && S.V.andere_auftraege) || [];
+    /* Auswahl wie die Projektauswahl (Baustein data-bp-auswahl): Suchfeld, Aufträge dieses Projekts, darunter zugeklappt die der anderen Projekte */
+    const sub = (a, mitP) => [mitP ? a.projekt : '', a.arbeiten || a.lv, a.auftrag_vom ? 'Auftrag vom ' + abnDe(a.auftrag_vom) : '', a.abnahme ? 'abgenommen ' + abnDe(a.abnahme) : ''].filter(Boolean).join(' · ');
+    const opt = (a, v, mitP) => `<option value="${v}" data-sub="${esc(sub(a, mitP))}" data-such="${esc([a.arbeiten, a.lv, a.projekt, a.firma_adresse].join(' '))}"${d.lv_id && d.lv_id === a.lv_id ? ' selected' : ''}>${esc(a.firma)}</option>`;
+    const wahl = L.length || A.length ? `<div class="ab-h">Auftrag wählen <small>aus der Ausschreibung</small></div>
+      <select data-abauf data-bp-auswahl data-ph="Firma oder Arbeiten suchen …" aria-label="Auftrag"><option value="">– Auftrag wählen –</option>
+        ${L.length ? `<optgroup label="Dieses Projekt">${L.map((a, i) => opt(a, 'h' + i, false)).join('')}</optgroup>` : ''}
+        ${A.length ? `<optgroup label="Aus anderen Projekten" data-zu>${A.map((a, i) => opt(a, 'a' + i, true)).join('')}</optgroup>` : ''}</select>` : '';
+    return `${wahl}
+      <div class="ab-h">${L.length || A.length ? 'oder von Hand' : 'Auftragnehmer'}</div>
       ${feld('Auftragnehmer (Firma)', inp('firma', d.firma, 'autocomplete="off"'))}${feld('Anschrift', inp('firma_adresse', d.firma_adresse, 'placeholder="Straße, PLZ Ort"'))}
       <div class="ab-2">${feld('Arbeiten', inp('arbeiten', d.arbeiten, 'placeholder="z. B. Tischlerarbeiten"'))}${feld('Auftrag vom', inp('auftrag_vom', d.auftrag_vom, 'type="date"'))}</div>
       <div class="ab-2">${feld('Abnahme am', inp('abnahme_am', d.abnahme_am, 'type="date"'))}${feld('Ort (optional)', inp('ort', d.ort, 'placeholder="z. B. Baustelle, 1. OG"'))}</div>
@@ -190,8 +196,6 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
     if (/^s\d$/.test(m)) { await speichern(); S.schritt = +m.slice(1); zeichne(); $b('.ab-b').scrollTop = 0; return; }
     const d = S.d;
     if (inhaltZu() && AENDERT.has(m)) { toast('Bauherr bzw. Unternehmer hat schon unterschrieben – der Inhalt ist fest. Ergänzungen nach dem Abschließen als Nachtrag.', true); return; }
-    if (m === 'auf') { const a = S.V.auftraege[+b.dataset.i]; Object.assign(d, { lv_id: a.lv_id, firma: a.firma, contact_id: a.contact_id, firma_adresse: a.firma_adresse, arbeiten: a.arbeiten, auftrag_vom: a.auftrag_vom });
-      d.teilnehmer = { ...(d.teilnehmer || {}), an: (d.teilnehmer || {}).an || a.ansprech || '' }; spaeter(); zeichne(); return; }
     if (m === 'mneu') { d.maengel = [...(d.maengel || []), { id: Date.now().toString(36), text: '', fotos: [] }]; zeichne(); const t = [...bg.querySelectorAll('[data-mt]')].pop(); if (t) t.focus(); return; }
     if (m === 'mweg') { const i = +b.dataset.i, alt = d.maengel[i]; d.maengel.splice(i, 1); spaeter(); zeichne();
       rueckgaengig('Mangel entfernt', () => { d.maengel.splice(i, 0, alt); spaeter(); zeichne(); }); return; }
@@ -258,6 +262,14 @@ async function abnahmeOeffnen(id, A0, V0, mit) {
   bg.addEventListener('change', (e) => {
     const t = e.target;
     if (t.dataset.foto && t.files.length) { foto(+t.dataset.foto, t.files); t.value = ''; return; }
+    if (t.dataset.abauf !== undefined && t.value) {   // Auftrag gewählt: dieses Projekt → alles übernehmen; anderes Projekt → nur die Firma (Vertrag ist ein anderer)
+      if (gesperrt() || inhaltZu()) return;
+      const d = S.d, hier = t.value[0] === 'h', a = (hier ? S.V.auftraege : S.V.andere_auftraege)[+t.value.slice(1)]; if (!a) return;
+      Object.assign(d, { firma: a.firma, contact_id: a.contact_id, firma_adresse: a.firma_adresse, arbeiten: a.arbeiten }, hier ? { lv_id: a.lv_id, auftrag_vom: a.auftrag_vom } : { lv_id: null });
+      d.teilnehmer = { ...(d.teilnehmer || {}), an: (d.teilnehmer || {}).an || a.ansprech || '' }; spaeter(); zeichne();
+      if (!hier) toast(`Firma aus „${a.projekt}“ übernommen – Auftragsdatum bitte von Hand eintragen.`);
+      return;
+    }
     if (t.dataset.k && /^(abnahme_am|frist)$/.test(t.dataset.k)) speichern().then(zeichne);
   });
   zeichne();

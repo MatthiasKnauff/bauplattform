@@ -91,6 +91,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Auswahl wie die Projektauswahl auch für Firmen und Aufträge (Baustein data-bp-auswahl): Abnahme „Auftrag wählen“ als Suchfeld, darunter zugeklappt „Aus anderen Projekten“; Mängel- und Terminrüge: Firmen mit Gewerk/offenen Mängeln, „Weitere Firmen aus den Adressen“ zugeklappt~~
 - ~~Startseite, Post: Mails mit Häkchen als erledigt abhaken (statt ✕ ausblenden), unten „✓ Erledigt (n)“ durchgestrichen, Rückgängig~~
 - ~~Live-Aktualisierung: Änderungen anderer erscheinen ohne Neuladen (Bautagebuch, Aufgaben, Startseite-To-dos, Kommunikation, Adressen, Honorar, Bauantrag), nie während man tippt; kleine Notiz „⟳ Aktualisiert“~~
 - ~~Projektfeld überall wie die große Projektauswahl: Adresse unter dem Namen, Suche auch nach Adresse/Bauherr, Entfernung, unten „＋ Neues Projekt“, „📍 Nach Standort“, „⤢ Alle“; jetzt auch in Bauantrag, Honorar und Zeiten~~

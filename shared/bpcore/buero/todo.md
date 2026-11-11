@@ -69,6 +69,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Heftzwecke der Navigation neu (Linie, Vorschlag Nr. 5), etwas größer, Farbe aus dem Stil (--pin bzw. Akzentfarbe); gelöst schräg und blass, angeheftet gerade und leicht gefüllt~~
 - ~~Zeiten: Rückgängig auch beim Ändern und Eintragen einer Zeit, bei Kommen/Gehen/Pause/Abwesenheit und beim Wieder-Öffnen eines Tages~~
 - ~~Pfeil-Kästen als Baustein (bp.css .bp-stufen): Honorar-Ablauf und Bauantrag-Schritte gleich – im Bauantrag grün = vollständig, rot = offen, gewählter Schritt kräftig~~
 - ~~Honorar und Bauantrag: „＋ Neuer Auftrag“ bzw. „＋ Neuer Antrag“ links in der Navigation wie „＋ Neues LV“ in der Ausschreibung (statt „Neu“ in der Befehlsleiste)~~

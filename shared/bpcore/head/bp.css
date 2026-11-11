@@ -132,8 +132,12 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav{position:relative}
 /* Lage der Navigation (o.lage): ⋮⋮ Griff zum Verschieben, Heftzwecke; frei = nur Symbole, Darüberfahren klappt über dem Inhalt auf */
 .bp-nav .ngrip{flex:none;cursor:grab;color:var(--mute);letter-spacing:-.2em;padding:0 .35rem 0 .1rem;border-radius:calc(4px*var(--rk,1));user-select:none;touch-action:none;align-self:center}.bp-nav .ngrip:hover{background:var(--hov);color:var(--ink)}
-.bp-nav .npin{flex:none;margin-left:auto;align-self:center;border:0;background:none;color:var(--red);padding:.1rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;line-height:0}
-.bp-nav .npin svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;transform:rotate(40deg);transition:transform .15s}.bp-nav .npin.an svg{transform:none;fill:currentColor}.bp-nav .npin:hover{background:var(--hov);color:var(--y)}
+/* Heftzwecke: Farbe aus dem Stil (--pin, sonst Akzentfarbe); gelöst schräg und blasser, angeheftet gerade und leicht gefüllt */
+.bp-nav .npin{flex:none;margin-left:auto;align-self:center;border:0;background:none;color:var(--pin,var(--y));padding:.15rem;border-radius:calc(4px*var(--rk,1));cursor:pointer;line-height:0}
+.bp-nav .npin svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:rotate(38deg);opacity:.6;transition:transform .15s,opacity .15s}
+.bp-nav .npin .npf{fill:currentColor;stroke:none;opacity:0}.bp-nav .npin .npk{fill:currentColor;stroke:none}
+.bp-nav .npin.an svg{transform:none;opacity:1}.bp-nav .npin.an .npf{opacity:.22}.bp-nav .npin:hover{background:var(--hov)}.bp-nav .npin:hover svg{opacity:1}
+html[data-bewegung="aus"] .bp-nav .npin svg{transition:none}
 .bp-nav .nbu{width:15px;text-align:center;font-weight:700;opacity:.75;flex:none}
 /* gelöst: die Navigation hat immer ihre volle Breite und liegt über dem Inhalt; zu sehen ist nur ein 52-px-Streifen (clip-path).
    Beim Darüberfahren wird der Ausschnitt größer – nur Zeichnen, kein neues Anordnen: gleitet ruckelfrei, nichts springt.

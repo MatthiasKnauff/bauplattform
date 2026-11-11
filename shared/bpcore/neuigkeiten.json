@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-heftzwecke",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Neue Heftzwecke in der Navigation",
+  "text": "Die Heftzwecke oben in der Navigation ist neu gezeichnet, etwas größer und nimmt die Farbe deines Stils an. Gelöst steht sie schräg und blass, angeheftet gerade.",
+  "ziel": ".bp-nav .npin"
+ },
+ {
   "id": "2026-11-11-ablage-aehnlich",
   "datum": "2026-11-11",
   "app": "",

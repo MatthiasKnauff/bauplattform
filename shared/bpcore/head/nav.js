@@ -30,7 +30,7 @@
   const ALLE = new Set();
   const svg = (p) => (p.icon ? `<svg viewBox="0 0 24 24">${p.icon}</svg>` : `<span class="nbu">${esc(String(p.text || '?').trim().charAt(0))}</span>`);
   const GRIFF = '<span class="ngrip" title="Navigation verschieben: nach oben ziehen = Bereichszeile oben · an den linken Rand ziehen = links" aria-label="Navigation verschieben">⋮⋮</span>';
-  const PIN = (an) => `<button type="button" class="npin${an ? ' an' : ''}" title="${an ? 'Lösen – nur Symbole, klappt beim Darüberfahren auf' : 'Anheften – Navigation bleibt offen'}" aria-pressed="${an}"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M12 14v7"/></svg></button>`;
+  const PIN = (an) => `<button type="button" class="npin${an ? ' an' : ''}" title="${an ? 'Lösen – nur Symbole, klappt beim Darüberfahren auf' : 'Anheften – Navigation bleibt offen'}" aria-pressed="${an}"><svg viewBox="0 0 24 24"><path class="npf" d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3zM12 14v7"/><circle class="npk" cx="12" cy="21" r="1"/></svg></button>`;   // Heftzwecke Nr. 5 (Vorschlag 11.11.2026): Linie, angeheftet leicht gefüllt
   function zeichne(el) {
     const o = el._bpNavO, a = o.attr || 'nav', m = o.lage ? lageGet() : 'links';
     const box = el.closest('.bp-nav') || el;   // steht das Feld in einer Navigation mit Suche darüber (AVA), gilt die Lage für die ganze Navigation

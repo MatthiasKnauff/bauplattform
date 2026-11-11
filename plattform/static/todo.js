@@ -382,16 +382,16 @@ async function tdEinstellungen(host) {
 /* ---------- Schreibtisch aus Blöcken (Übersicht in „Aufgaben & Mängel“, Erinnerungen, Startseite): verschiebbar, ein-/ausblendbar, je Benutzer gemerkt ---------- */
 const BLK_IC = { todos: ['✓', '#2b4a7a'], maengel: ['!', '#e07b3a'], erinnerungen: ['⏰', '#c8372a'], rechnungen: ['€', '#6b4bbf'], skonto: ['%', '#6b4bbf'], nachtraege: ['NT', '#b7791f'], vergabe: ['LV', '#50808e'], firma: ['F', '#50808e'],
   terminruege: ['⚑', '#8a6d3b'], verzug: ['⏳', '#8a6d3b'], planversand: ['📄', '#1e8a4c'], vorort: ['📍', '#3a7bd5'], tagesbericht: ['📒', '#3a7bd5'], budget: ['Σ', '#c0392b'], post: ['✉', '#3a7bd5'], termine: ['📅', '#50808e'], mfrist: ['!', '#e07b3a'], erin: ['⏰', '#c8372a'] };
-const UE = { key: 'ue', order: [], weg: [], alle: false, mehr: new Set(), lade: null };
+const UE = { key: 'ue', order: [], weg: [], alle: false, mehr: new Set(), anz: {}, lade: null };   // anz: je Block gewählte Zahl der Einträge (0 = alle), gemerkt
 const ueLS = { get(k, d) { try { const v = localStorage.getItem('ue.' + UE.key + '.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('ue.' + UE.key + '.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
-function ueInit(key, lade) { UE.key = key; UE.order = ueLS.get('order', []); UE.weg = ueLS.get('weg', []); UE.alle = ueLS.get('alle', false); UE.lade = lade; }
+function ueInit(key, lade) { UE.key = key; UE.order = ueLS.get('order', []); UE.weg = ueLS.get('weg', []); UE.alle = ueLS.get('alle', false); UE.anz = ueLS.get('anz', {}); UE.lade = lade; }
 const ueSort = (B) => { const pos = (k) => { const i = UE.order.indexOf(k); return i < 0 ? 1e3 : i; }; return B.slice().sort((a, b) => pos(a.k) - pos(b.k)); };
 function ueBlockHtml(b) {
-  const [ic, farbe] = BLK_IC[b.k] || b.ic || ['•', '#777'], max = UE.mehr.has(b.k) ? 1e9 : (b.max || 5), items = b.items || [], rest = items.length - Math.min(items.length, max);
+  const [ic, farbe] = BLK_IC[b.k] || b.ic || ['•', '#777'], items = b.items || [], wahl = UE.anz[b.k], max = UE.mehr.has(b.k) || wahl === 0 ? 1e9 : (wahl || b.max || 5), rest = items.length - Math.min(items.length, max);
   const nm = b.link ? `<a class="ue-hl" href="${esc(b.link)}" title="${esc(b.linkText ? b.linkText.replace(/\s*›$/, '') : 'Öffnen')}">${esc(b.name)}</a>` : b.ziel ? `<button type="button" class="ue-hl" data-uetab="${esc(b.ziel)}">${esc(b.name)}</button>` : esc(b.name);   // Überschrift führt in den Hauptbereich
   return `<section class="ue-b${b.breit ? ' w2' : ''}" data-blk="${esc(b.k)}" draggable="true"><h3><span class="ue-ic" style="background:${farbe}">${ic}</span>${nm}<span class="ue-n${b.rot ? ' rot' : ''}">${b.n || 0}</span><span class="ue-grip" title="Widget verschieben: ziehen (am Handy lange drücken)">⋮⋮</span><button type="button" class="ue-x" data-uex="${esc(b.k)}" title="Widget ausblenden (über „＋ Widget hinzufügen“ wieder holen)" aria-label="${esc(b.name)} ausblenden">✕</button></h3>
     ${b.html || ''}${items.length ? items.slice(0, max).join('') : b.html ? '' : `<p class="mute ue-leer">${esc(b.leer || 'nichts offen 🎉')}</p>`}
-    ${rest > 0 ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">alle ${items.length} anzeigen ›</button>` : UE.mehr.has(b.k) && items.length > (b.max || 5) ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">weniger</button>` : ''}
+    ${items.length > 5 ? `<span class="ue-anz" title="So viele Einträge zeigt dieser Block – wird gemerkt">zeigen: ${[[5, '5'], [10, '10'], [20, '20'], [0, `alle ${items.length}`]].filter(([n]) => !n || n < items.length).map(([n, t]) => `<button type="button" data-ueanz="${esc(b.k)}:${n}" class="${(wahl === undefined ? (b.max || 5) : wahl) === n ? 'on' : ''}">${t}</button>`).join('')}</span>` : ''}
     ${b.ziel ? `<button type="button" class="ue-mehr" data-uetab="${esc(b.ziel)}">${esc(b.zielText || 'zum Reiter ›')}</button>` : ''}${b.link ? `<a class="ue-mehr" href="${esc(b.link)}">${esc(b.linkText || 'alle ›')}</a>` : ''}${b.mehr ? `<span class="mute ue-leer">${esc(b.mehr)}</span>` : ''}</section>`;
 }
 /* host: Element · B: Blöcke [{k, name, n, rot, items[], html, breit, ziel, link, max, leer}] · opts: top (Leiste mit Schalter/⚙), alle (Schalter „erledigte anzeigen“), vor (HTML vor dem Raster), cols */
@@ -403,6 +403,7 @@ function ueRender(host, B, opts = {}) {
 }
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-uealle]')) { UE.alle = e.target.checked; ueLS.set('alle', UE.alle); UE.lade && UE.lade(); } });
 document.addEventListener('click', (e) => {
+  const az = e.target.closest && e.target.closest('[data-ueanz]'); if (az) { const [k, n] = az.dataset.ueanz.split(':'); UE.anz = { ...UE.anz, [k]: +n }; ueLS.set('anz', UE.anz); UE.mehr.delete(k); UE.lade && UE.lade(); return; }
   const m = e.target.closest && e.target.closest('[data-uemehr]'); if (m) { if (UE.mehr.has(m.dataset.uemehr)) UE.mehr.delete(m.dataset.uemehr); else UE.mehr.add(m.dataset.uemehr); UE.lade && UE.lade(); return; }
   const x = e.target.closest && e.target.closest('[data-uex]');
   if (x) { const k = x.dataset.uex, alt = UE.weg.slice(), n = ((UE._B || []).find((y) => y.k === k) || {}).name || 'Widget';
@@ -457,6 +458,7 @@ document.addEventListener('dragend', () => { UEZ = null; document.querySelectorA
 .ue-b:hover .ue-x,.ue-b:focus-within .ue-x{opacity:1}.ue-x:hover{color:var(--red);border-color:var(--red)}@media (hover:none){.ue-x{opacity:.45;top:4px;right:4px;border:0;box-shadow:none;background:transparent}}
 .ue-add{border:2px dashed var(--line);border-radius:calc(12px*var(--rk,1));background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer;min-height:64px;padding:.6rem}.ue-add:hover{border-color:var(--y);color:var(--y)}.ue-add small{font-weight:400}
 .ue-b h3{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.ue-b.tzieh{position:fixed;z-index:60;pointer-events:none;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.3))}
+.ue-anz{display:inline-flex;gap:.15rem;align-items:center;font-size:.78rem;color:var(--mute);margin-right:.6rem}.ue-anz button{border:0;background:none;color:var(--mute);font:inherit;padding:.1rem .35rem;border-radius:calc(6px*var(--rk,1));cursor:pointer}.ue-anz button:hover{color:var(--ink)}.ue-anz button.on{background:var(--hov,rgba(0,0,0,.06));color:var(--ink);font-weight:600}
 .ue-b.zieh{opacity:.45}.ue-b.ziel{outline:2px dashed var(--y);outline-offset:2px}
 .ue-r{display:flex;gap:.6rem;align-items:baseline;padding:.3rem 0;border-top:1px dashed var(--line);cursor:pointer}.ue-r:first-of-type{border-top:0}.ue-r:hover{background:var(--hov)}
 .ue-r .ue-t{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ue-r .ue-t small{display:block;color:var(--mute);font-size:.78rem;overflow:hidden;text-overflow:ellipsis}

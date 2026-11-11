@@ -61,6 +61,7 @@ Summe Sammlung (offen): ca. 15–19 Tage.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 3–6 Monate**
 
 ## Erledigt
+- ~~Übersicht/Widgets: je Block wählbar, wie viele Einträge er zeigt (5 · 10 · 20 · alle), gemerkt~~
 - ~~Stempel: Felder unter Büro-Einstellungen → Firma & Logo (Bürostempel, Prüfstempel, „Zahlbetrag siehe Anlage“), Einsetzen in der PDF-Vorschau leicht schräg~~
 - ~~AVA Neues LV → Kopie eines LV: erst Projekt, dann LV wählen (zwei Auswahlknöpfe mit Suche)~~
 - ~~Abnahme: Beteiligte (Ansprechpartner/Vertreter Bauherr, Bauleitung, Firma) als Vorschläge bei Teilnehmern und Unterschrift; Name klein unter der Unterschrift im PDF~~

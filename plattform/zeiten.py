@@ -80,22 +80,54 @@ def grund():
                 L = []
             if r["archived"] or (L and uid not in L and not _admin()):
                 continue
-            pj.append({"id": r["id"], "name": r["name"]})
+            pj.append({"id": r["id"], "name": r["name"], "mein": uid in L})
+        pj.sort(key=lambda p: not p["mein"])   # erst die eigenen, dann die anderen
         P = Z.person(c, uid)
         lauf = c.execute("SELECT * FROM zeit_lauf WHERE user_id=?", (uid,)).fetchone()
         Z.aufraeumen(c)
         pflicht = Z.antrag_pflicht(c)
+        takt, pb = Z.takt(c), Z.pause_buero(c)
+        pv = Z.pause_vorgabe(P, pb)
     return jsonify(arten=Z.ARTEN, abw=Z.ABW, projekte=pj, person=P, admin=_admin(), heute=Z.heute(), lauf=dict(lauf) if lauf else None,
-                   antrag_pflicht=pflicht, antrag_arten=Z.ANTRAG_ARTEN)
+                   antrag_pflicht=pflicht, antrag_arten=Z.ANTRAG_ARTEN, takt=takt, pause_buero=pb, pause_dauer=(pv or {}).get("dauer") or 30)
 
 
 @app.get("/api/tag")
 def tag_get():
     t = _tag()
     with db.tx() as c:
+        Z.zusammenfassen(c, g.user["id"], t)   # z. B. Stoppuhr oder „vor Ort“: auf den Takt bringen
         d = Z.tag_daten(c, g.user["id"], t)
         d["konto"] = Z.konto(c, g.user["id"])
     return jsonify(d)
+
+
+def _antwort(c, uid, t, vorher=None):
+    d = Z.tag_daten(c, uid, t)
+    d["konto"] = Z.konto(c, uid)
+    if vorher is not None:
+        d["vorher"] = vorher   # für „Rückgängig“: so war der Tag vorher
+    return d
+
+
+def _offen(c, uid, t):
+    if Z.zt(c, uid, t).get("bestaetigt"):
+        return jsonify(error="Der Tag ist bestätigt – erst „Noch einmal bearbeiten“."), 400
+    return None
+
+
+@app.post("/api/tag/stand")
+def tag_stand():
+    """Rückgängig: den Tag auf einen früheren Stand setzen (Zeiten, Kommen/Gehen, Pause)."""
+    b = request.get_json(silent=True) or {}
+    t, uid = _tag(b.get("d")), g.user["id"]
+    with db.tx() as c:
+        vorher = Z.stand(c, uid, t)
+        try:
+            Z.stand_setzen(c, uid, t, b.get("stand") or {})
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        return jsonify(_antwort(c, uid, t, vorher))
 
 
 @app.put("/api/tag")
@@ -115,11 +147,22 @@ def tag_put():
         f["abw"] = b["abw"] if b["abw"] in Z.ABW else ""
     if "notiz" in b:
         f["notiz"] = str(b["notiz"] or "")[:500]
+    if "pausen" in b:   # Pause als Zeitraum aus dem Zeitstrahl; null = wieder die Vorgabe aus den Einstellungen
+        f["pausen"] = None if b["pausen"] is None else json.dumps(Z.pausen_pruefen(b["pausen"]))
+        f["pause"] = None
     with db.tx() as c:
+        x = _offen(c, uid, t) if ("pausen" in b or "kommen" in b or "gehen" in b) else None
+        if x:
+            return x
+        vorher = Z.stand(c, uid, t)
+        tk = Z.takt(c)
+        for k in ("kommen", "gehen"):
+            if f.get(k):
+                f[k] = Z.m2h(Z.runden(Z.h2m(f[k]), tk))
         Z.zt_setzen(c, uid, t, **f)
-        d = Z.tag_daten(c, uid, t)
-        d["konto"] = Z.konto(c, uid)
-    return jsonify(d)
+        if f.get("pausen"):
+            Z.zusammenfassen(c, uid, t, p_vorrang=True)   # die Pause verdrängt, was darunter lag
+        return jsonify(_antwort(c, uid, t, vorher))
 
 
 @app.post("/api/tag/bestaetigen")
@@ -130,7 +173,9 @@ def tag_ok():
         return jsonify(error="Zukünftige Tage lassen sich nicht bestätigen."), 400
     with db.tx() as c:
         vor = {r["id"] for r in c.execute("SELECT id FROM zeit_eintrag WHERE user_id=? AND tag=?", (uid, t)).fetchall()}
+        vorher = Z.stand(c, uid, t)
         d = Z.bestaetigen(c, uid, t, g.user["name"])
+        d["vorher"] = vorher
         d["konto"] = Z.konto(c, uid)
         d["uebernommen"] = [r["id"] for r in c.execute("SELECT id FROM zeit_eintrag WHERE user_id=? AND tag=?", (uid, t)).fetchall() if r["id"] not in vor]   # für „Rückgängig“
     return jsonify(d)
@@ -145,6 +190,11 @@ def tag_auf():
         Z.zt_setzen(c, uid, t, bestaetigt="")
         for eid in weg:
             c.execute("DELETE FROM zeit_eintrag WHERE id=? AND user_id=? AND tag=?", (eid, uid, t))
+        if isinstance(b.get("stand"), dict):   # Rückgängig des Bestätigens: genau den Stand davor zurück
+            try:
+                Z.stand_setzen(c, uid, t, b["stand"])
+            except ValueError:
+                pass
         d = Z.tag_daten(c, uid, t)
         d["konto"] = Z.konto(c, uid)
     return jsonify(d)
@@ -171,11 +221,18 @@ def eintrag_neu():
     if err:
         return jsonify(error=err), 400
     with db.tx() as c:
-        c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle) VALUES(?,?,?,?,?,?,?,?)",
-                  (uid, t, e["von"], e["bis"], e["project_id"], e["art"], e["notiz"], e["quelle"]))
-        d = Z.tag_daten(c, uid, t)
-        d["konto"] = Z.konto(c, uid)
-    return jsonify(d)
+        x = _offen(c, uid, t)
+        if x:
+            return x
+        vorher = Z.stand(c, uid, t)
+        ig = b.get("ignor")   # verschobener Vorschlag: sein alter Platz wird nicht wieder vorgeschlagen
+        if isinstance(ig, list) and len(ig) == 2 and Z.h2m(ig[0]) is not None and Z.h2m(ig[1]) is not None:
+            T = Z.zt(c, uid, t)
+            Z.zt_setzen(c, uid, t, ignor=json.dumps((Z._j(T["ignor"], []) + [[Z.h2m(ig[0]), Z.h2m(ig[1])]])[-200:]))
+        r = c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, notiz, quelle) VALUES(?,?,?,?,?,?,?,?) RETURNING id",
+                      (uid, t, e["von"], e["bis"], e["project_id"], e["art"], e["notiz"], e["quelle"])).fetchone()
+        Z.zusammenfassen(c, uid, t, vorrang=r["id"])
+        return jsonify(_antwort(c, uid, t, vorher))
 
 
 @app.route("/api/eintrag/<int:eid>", methods=["PUT", "DELETE"])
@@ -185,6 +242,10 @@ def eintrag(eid):
         r = c.execute("SELECT * FROM zeit_eintrag WHERE id=? AND user_id=?", (eid, uid)).fetchone()
         if not r:
             return jsonify(error="Eintrag nicht gefunden."), 404
+        x = _offen(c, uid, r["tag"])
+        if x:
+            return x
+        vorher = Z.stand(c, uid, r["tag"])
         if request.method == "DELETE":
             c.execute("DELETE FROM zeit_eintrag WHERE id=?", (eid,))
             alt = dict(r)
@@ -195,10 +256,9 @@ def eintrag(eid):
                 return jsonify(error=err), 400
             c.execute("UPDATE zeit_eintrag SET von=?, bis=?, project_id=?, art=?, notiz=?, updated=to_char(timezone('UTC', now()), 'YYYY-MM-DD HH24:MI:SS') WHERE id=?",
                       (e["von"], e["bis"], e["project_id"], e["art"], e["notiz"], eid))
+            Z.zusammenfassen(c, uid, r["tag"], vorrang=eid)
             alt = None
-        d = Z.tag_daten(c, uid, r["tag"])
-        d["konto"] = Z.konto(c, uid)
-    return jsonify({**d, "geloescht": alt})
+        return jsonify({**_antwort(c, uid, r["tag"], vorher), "geloescht": alt})
 
 
 @app.post("/api/verwerfen")
@@ -460,7 +520,7 @@ def konten():
     if x:
         return x
     with db.tx() as c:
-        return jsonify(konten=Z.konten(c), buero_satz=Z.buero_satz(c))
+        return jsonify(konten=Z.konten(c), buero_satz=Z.buero_satz(c), takt=Z.takt(c), pause_buero=Z.pause_buero(c))
 
 
 @app.route("/api/person/<int:uid>", methods=["GET", "PUT"])
@@ -472,6 +532,28 @@ def person(uid):
         if request.method == "PUT":
             Z.person_setzen(c, uid, request.get_json(silent=True) or {})
         return jsonify(Z.person(c, uid))
+
+
+@app.put("/api/zeit_einst")
+def zeit_einst():
+    """Zeittakt und Pausenvorgabe des Büros (nur Verwaltung)."""
+    x = _nur_admin()
+    if x:
+        return x
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        if "takt" in b:
+            try:
+                tk = int(b["takt"])
+            except (TypeError, ValueError):
+                tk = 0
+            if tk not in Z.TAKTE:
+                return jsonify(error="Takt: 5, 10, 15 oder 30 Minuten."), 400
+            c.execute("INSERT INTO settings(key, value) VALUES('zeit_takt', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (str(tk),))
+        if "pause" in b:
+            p = Z._pause_norm({**Z.pause_buero(c), **(b["pause"] if isinstance(b["pause"], dict) else {})})
+            c.execute("INSERT INTO settings(key, value) VALUES('zeit_pause', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (json.dumps(p),))
+        return jsonify(takt=Z.takt(c), pause_buero=Z.pause_buero(c))
 
 
 @app.put("/api/buero_satz")

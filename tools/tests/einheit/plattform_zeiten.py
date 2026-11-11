@@ -91,3 +91,42 @@ def test_bloecke_ruhig():
     gleich((B[0]["von"], B[-1]["bis"]), (480, 720), "der Tag bleibt vollständig abgedeckt")
     gleich(B[-1]["project_id"], 2, "der lange Block am Ende gehört zu Projekt 2")
     gleich(sum(b["bis"] - b["von"] for b in B), 240, "keine Minute geht verloren oder doppelt")
+
+
+def test_takt_runden():
+    """Takt: Vorschläge auf die Viertelstunde, kurze Reste gehen im Nachbarn auf, gleiche Nachbarn werden ein Block."""
+    gleich([Z.runden(m, 15) for m in (483, 487, 488, 600)], [480, 480, 495, 600], "auf die nächste Viertelstunde")
+    B = [{"von": 483, "bis": 587, "project_id": 1, "art": "lph8", "quelle": "puls"},
+         {"von": 587, "bis": 641, "project_id": 1, "art": "lph8", "quelle": "puls"},
+         {"von": 641, "bis": 649, "project_id": None, "art": "buero", "quelle": "puls"},
+         {"von": 649, "bis": 712, "project_id": 2, "art": "lph5", "quelle": "puls"}]
+    R = Z.im_takt(B, 15)
+    gleich([(b["von"], b["bis"], b["project_id"]) for b in R], [(480, 645, 1), (645, 705, 2)], "Tierheim 08:00–10:45, Schule 10:45–11:45")
+
+
+def test_ordnen():
+    """Erfasste Zeiten: gerundet, das Geänderte behält seine Zeit, Gleiches wird verbunden, Pausen verdrängen bei Vorrang."""
+    E = [{"id": 1, "von": 480, "bis": 587, "project_id": 1, "art": "lph8", "quelle": "puls", "notiz": "", "updated": "a"},
+         {"id": 2, "von": 587, "bis": 598, "project_id": 1, "art": "lph8", "quelle": "hand", "notiz": "Telefon", "updated": "b"},
+         {"id": 3, "von": 600, "bis": 660, "project_id": 2, "art": "lph5", "quelle": "hand", "notiz": "", "updated": "c"}]
+    Zt, weg, P = Z.ordnen(E, 15)
+    gleich([(x["id"], x["von"], x["bis"]) for x in Zt], [(1, 480, 600), (3, 600, 660)], "08:00–10:00 eine Zeile, Projekt 2 danach")
+    gleich(weg, [2], "die angehängte Zeile geht in der ersten auf")
+    pruefe("Telefon" in Zt[0]["notiz"], "Notiz bleibt erhalten")
+    E2 = E[:1] + [{**E[2], "von": 540, "bis": 630}]   # Projekt 2 wird in Projekt 1 hineingezogen
+    Zt, weg, _ = Z.ordnen(E2, 15, vorrang=3)
+    gleich([(x["id"], x["von"], x["bis"]) for x in Zt], [(1, 480, 540), (3, 540, 630)], "der Nachbar wird gekürzt, nicht überlappt")
+    Zt, weg, P = Z.ordnen(E[:1], 15, pausen=[[525, 555]], p_vorrang=True)
+    gleich(([(x["von"], x["bis"]) for x in Zt], P), ([(480, 525), (555, 585)], [[525, 555]]), "Pause hineingezogen: die Zeit wird geteilt")
+    pruefe(Zt[1]["id"] is None, "der zweite Teil ist eine neue Zeile")
+    Zt, weg, P = Z.ordnen(E[:1], 15, pausen=[[525, 555]])
+    gleich(([(x["von"], x["bis"]) for x in Zt], P), ([(480, 585)], []), "ohne Vorrang behält die Zeit ihren Platz, die Pause weicht")
+
+
+def test_pause_vorgabe():
+    B = {"beginn": "12:00", "dauer": 30, "modus": "immer"}
+    gleich(Z.pause_vorgabe({"pause": ""}, B), {"beginn": 720, "dauer": 30, "modus": "immer"}, "wie das Büro")
+    gleich(Z.pause_vorgabe({"pause": "12:30/45"}, B)["beginn"], 750, "eigene Pause")
+    gleich(Z.pause_vorgabe({"pause": "-"}, B), None, "keine Pause")
+    gleich([Z.pause_text(x) for x in ("1230/45", "12.30/45", "-", "quatsch", "")], ["12:30/45", "12:30/45", "-", "", ""], "Eingabe der Personenpause")
+    gleich(Z.pausen_pruefen([["12:00", "12:30"], [800, 790], "x"]), [[720, 750]], "Pausen geprüft")

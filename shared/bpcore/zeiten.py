@@ -10,6 +10,7 @@ Arbeitszeit = Gehen − Kommen − Pause. Pause ohne Eingabe: Lücken ab 15 Minu
 Saldo: Startwert + je bestätigtem (oder abwesendem) Tag Ist − Soll; offene Tage zählen erst nach dem Bestätigen.
 """
 import json
+import re
 from collections import Counter
 from datetime import date, datetime, timedelta
 
@@ -101,7 +102,7 @@ def feiertag(tag):
 
 
 # ------------------------------------------------------------------ Person (Sollzeit, Urlaub, Satz)
-PERSON = {"soll_woche": 40.0, "tage": "01234", "urlaub": 30.0, "satz": None, "saldo_start": 0.0, "ab": "", "aus": 0}
+PERSON = {"soll_woche": 40.0, "tage": "01234", "urlaub": 30.0, "satz": None, "saldo_start": 0.0, "ab": "", "aus": 0, "pause": ""}
 
 
 def person(c, uid):
@@ -130,10 +131,12 @@ def person_setzen(c, uid, b):
         p["ab"] = a if (not a or _tag_ok(a)) else p["ab"]
     if "aus" in b:
         p["aus"] = 1 if b["aus"] else 0
-    c.execute("INSERT INTO zeit_person(user_id, soll_woche, tage, urlaub, satz, saldo_start, ab, aus) VALUES(?,?,?,?,?,?,?,?) "
+    if "pause" in b:
+        p["pause"] = pause_text(b["pause"])
+    c.execute("INSERT INTO zeit_person(user_id, soll_woche, tage, urlaub, satz, saldo_start, ab, aus, pause) VALUES(?,?,?,?,?,?,?,?,?) "
               "ON CONFLICT (user_id) DO UPDATE SET soll_woche=EXCLUDED.soll_woche, tage=EXCLUDED.tage, urlaub=EXCLUDED.urlaub, "
-              "satz=EXCLUDED.satz, saldo_start=EXCLUDED.saldo_start, ab=EXCLUDED.ab, aus=EXCLUDED.aus",
-              (uid, p["soll_woche"], p["tage"], p["urlaub"], p["satz"], p["saldo_start"], p["ab"], p["aus"]))
+              "satz=EXCLUDED.satz, saldo_start=EXCLUDED.saldo_start, ab=EXCLUDED.ab, aus=EXCLUDED.aus, pause=EXCLUDED.pause",
+              (uid, p["soll_woche"], p["tage"], p["urlaub"], p["satz"], p["saldo_start"], p["ab"], p["aus"], p["pause"]))
     return p
 
 
@@ -150,6 +153,234 @@ def soll_min(p, tag):
     if str(d.weekday()) not in p["tage"] or feiertag(tag):
         return 0
     return round(p["soll_woche"] * 60 / max(1, len(p["tage"])))
+
+
+# ------------------------------------------------------------------ Takt und Pause (Einstellungen)
+TAKTE = (5, 10, 15, 30)
+TAKT = 15
+
+
+def takt(c):
+    """Zeittakt des Büros in Minuten (Einstellung „zeit_takt“, Vorgabe 15): alle Zeiten werden darauf gerundet."""
+    r = c.execute("SELECT value FROM settings WHERE key='zeit_takt'").fetchone()
+    try:
+        v = int(r["value"]) if r else TAKT
+    except (TypeError, ValueError):
+        v = TAKT
+    return v if v in TAKTE else TAKT
+
+
+def runden(m, t):
+    """Minute auf den nächsten Takt runden."""
+    return (int(m) + t // 2) // t * t
+
+
+def _pause_norm(p):
+    p = p if isinstance(p, dict) else {}
+    a = h2m(p.get("beginn"))
+    try:
+        d = max(0, min(180, int(p.get("dauer") or 0)))
+    except (TypeError, ValueError):
+        d = 0
+    return {"beginn": m2h(a) if a is not None else "", "dauer": d, "modus": "ab6" if p.get("modus") == "ab6" else "immer"}
+
+
+def pause_buero(c):
+    """Pausenvorgabe des Büros (Einstellung „zeit_pause“): Beginn, Dauer, „immer“ oder „ab6“ (nur bei mehr als 6 Stunden)."""
+    r = c.execute("SELECT value FROM settings WHERE key='zeit_pause'").fetchone()
+    return _pause_norm(_j(r["value"], {}) if r else {})
+
+
+def pause_text(v):
+    """Eigene Pause einer Person: „12:30/45“, „-“ (keine) oder leer (wie das Büro)."""
+    s = str(v or "").strip().replace(" ", "")
+    if s in ("", "-"):
+        return s
+    m = re.match(r"^(\d{1,2})[:.]?(\d{2})/(\d{1,3})$", s)
+    if not m or h2m(f"{m[1]}:{m[2]}") is None:
+        return ""
+    return f"{m2h(h2m(f'{m[1]}:{m[2]}'))}/{min(180, int(m[3]))}"
+
+
+def pause_vorgabe(P, B):
+    """Pause der Person (eigene Angabe vor der des Büros) als {beginn (Minuten), dauer, modus} oder None."""
+    s = str(P.get("pause") or "")
+    if s == "-":
+        return None
+    if "/" in s:
+        a, d = s.split("/", 1)
+        return {"beginn": h2m(a), "dauer": int(d), "modus": B["modus"]} if h2m(a) is not None and int(d) > 0 else None
+    return {"beginn": h2m(B["beginn"]), "dauer": B["dauer"], "modus": B["modus"]} if B["beginn"] and B["dauer"] else None
+
+
+def im_takt(bl, t):
+    """Vorschläge auf den Takt runden: Reste unter einem Takt fallen weg (der Nachbar übernimmt die Zeit),
+    gleiches Projekt und gleiche Tätigkeit direkt hintereinander werden ein Block."""
+    out = []
+    for b in sorted(bl, key=lambda x: x["von"]):
+        v, z = runden(b["von"], t), runden(b["bis"], t)
+        if out:
+            v = max(v, out[-1]["bis"])
+        if z <= v:
+            continue
+        x = out[-1] if out else None
+        if x and x["bis"] == v and (x["project_id"], x["art"]) == (b["project_id"], b["art"]):
+            if z - v > x["bis"] - x["von"]:
+                x["quelle"] = b["quelle"]
+            x["bis"] = z
+        else:
+            out.append({**b, "von": v, "bis": z})
+    return out
+
+
+def _gleich(a, b):
+    return (a.get("project_id"), a.get("art")) == (b.get("project_id"), b.get("art")) and "unterwegs" not in (a.get("quelle"), b.get("quelle"))
+
+
+def ordnen(E, t, vorrang=None, pausen=None, p_vorrang=False):
+    """Erfasste Zeiten eines Tages ordnen (rein rechnerisch; E mit von/bis in Minuten):
+    1. auf den Takt runden, jede Zeit mindestens einen Takt lang,
+    2. Überschneidungen auflösen – was gerade geändert wurde (vorrang = id, bei p_vorrang die Pause) behält seine Zeit,
+       die anderen werden gekürzt oder fallen weg,
+    3. gleiches Projekt und gleiche Tätigkeit direkt hintereinander → eine Zeile.
+    Gibt (Zeiten, gelöschte ids, Pausen) zurück; neue Zeilen (geteilte Zeiten) haben id None."""
+    def rund(v, z):
+        v = max(0, min(24 * 60 - t, runden(v, t)))
+        return v, max(v + t, min(24 * 60, runden(z, t)))
+    items = [dict(e, _p=0, **dict(zip(("von", "bis"), rund(e["von"], e["bis"])))) for e in E]
+    P = [{"_p": 1, "von": a, "bis": b} for a, b in (rund(a, b) for a, b in (pausen or []))]
+    alle = sorted(items + P, key=lambda x: x.get("id") or 0, reverse=True)          # Rangfolge: zuletzt geändert zuerst …
+    alle.sort(key=lambda x: str(x.get("updated") or ""), reverse=True)
+    alle.sort(key=lambda x: (0 if (x["_p"] and p_vorrang) or (not x["_p"] and vorrang is not None and x.get("id") == vorrang) else 1,
+                             x["_p"]))                                                 # … das gerade Geänderte vorn, Pausen zuletzt
+    belegt, aus, weg = [], [], []
+    for x in alle:
+        teile = [(x["von"], x["bis"])]
+        for v, z in belegt:
+            neu = []
+            for a, e in teile:
+                if z <= a or v >= e:
+                    neu.append((a, e))
+                    continue
+                if v > a:
+                    neu.append((a, v))
+                if z < e:
+                    neu.append((z, e))
+            teile = neu
+        teile = [(a, e) for a, e in teile if e - a >= t]
+        if not teile:
+            if not x["_p"] and x.get("id") is not None:
+                weg.append(x["id"])
+            continue
+        for i, (a, e) in enumerate(teile):
+            aus.append({**x, "von": a, "bis": e, **({"id": None} if i and not x["_p"] else {})})
+            belegt.append((a, e))
+    Z = sorted([x for x in aus if not x["_p"]], key=lambda x: x["von"])
+    fertig = []
+    for x in Z:
+        y = fertig[-1] if fertig else None
+        if y and y["bis"] == x["von"] and _gleich(x, y):
+            if x["bis"] - x["von"] > y["bis"] - y["von"]:
+                y["quelle"] = x["quelle"]
+            if x.get("notiz") and x["notiz"] not in (y.get("notiz") or ""):
+                y["notiz"] = ((y.get("notiz") or "") + " · " + x["notiz"]).strip(" ·")[:300]
+            y["bis"] = x["bis"]
+            if x.get("id") is not None:
+                if vorrang is not None and x["id"] == vorrang and y.get("id") is not None:
+                    weg.append(y["id"]); y["id"] = x["id"]
+                else:
+                    weg.append(x["id"])
+        else:
+            fertig.append(x)
+    PZ = []
+    for x in sorted([x for x in aus if x["_p"]], key=lambda x: x["von"]):
+        if PZ and PZ[-1][1] == x["von"]:
+            PZ[-1][1] = x["bis"]
+        else:
+            PZ.append([x["von"], x["bis"]])
+    return [{k: v for k, v in x.items() if k != "_p"} for x in fertig], weg, PZ
+
+
+SPALTEN = ("von", "bis", "project_id", "art", "notiz", "quelle", "fahrt")
+
+
+def zusammenfassen(c, uid, tag, vorrang=None, p_vorrang=False):
+    """Die Zeiten eines offenen Tages auf den Takt bringen, Überschneidungen auflösen, Gleiches verbinden (siehe ordnen)."""
+    T = zt(c, uid, tag)
+    if T.get("bestaetigt"):
+        return
+    t = takt(c)
+    E = [e for e in eintraege(c, uid, tag) if h2m(e["von"]) is not None and h2m(e["bis"]) is not None]
+    alt = {e["id"]: e for e in E}
+    pa = _j(T.get("pausen"), None)
+    Z, weg, PZ = ordnen([{**e, "von": h2m(e["von"]), "bis": h2m(e["bis"])} for e in E], t, vorrang, pa, p_vorrang)
+    for i in weg:
+        c.execute("DELETE FROM zeit_eintrag WHERE id=? AND user_id=?", (i, uid))
+    for x in Z:
+        w = {**x, "von": m2h(x["von"]), "bis": m2h(x["bis"])}
+        if x.get("id") is None:
+            c.execute(f"INSERT INTO zeit_eintrag(user_id, tag, {', '.join(SPALTEN)}) VALUES(?,?,{','.join('?' * len(SPALTEN))})",
+                      (uid, tag, *[w.get(k) if w.get(k) is not None or k == "project_id" else "" for k in SPALTEN]))
+        elif any(str(alt[x["id"]].get(k) or "") != str(w.get(k) or "") for k in ("von", "bis", "quelle", "notiz")):
+            c.execute("UPDATE zeit_eintrag SET von=?, bis=?, quelle=?, notiz=? WHERE id=?", (w["von"], w["bis"], w["quelle"], w.get("notiz") or "", x["id"]))
+    if pa is not None and PZ != pa:
+        zt_setzen(c, uid, tag, pausen=json.dumps(PZ))
+
+
+def stand(c, uid, tag):
+    """Zustand eines Tages für „Rückgängig“: alle Zeiten und die Tageszeile."""
+    T = zt(c, uid, tag)
+    return {"eintraege": [{k: e.get(k) for k in SPALTEN} for e in eintraege(c, uid, tag)],
+            "tag": {k: T.get(k) for k in ("kommen", "gehen", "pause", "pausen", "abw", "notiz", "ignor")}}
+
+
+def stand_setzen(c, uid, tag, s):
+    """Zustand wiederherstellen (aus stand()). Die Werte werden geprüft; bestätigte Tage bleiben unberührt."""
+    if zt(c, uid, tag).get("bestaetigt"):
+        raise ValueError("Der Tag ist bestätigt – erst „Noch einmal bearbeiten“.")
+    E = s.get("eintraege") if isinstance(s, dict) else None
+    if not isinstance(E, list) or len(E) > 300:
+        raise ValueError("Stand fehlt.")
+    neu = []
+    for e in E:
+        v, z = h2m((e or {}).get("von")), h2m((e or {}).get("bis"))
+        if v is None or z is None or z <= v:
+            continue
+        try:
+            pid = int(e["project_id"]) if e.get("project_id") not in (None, "", 0) else None
+        except (TypeError, ValueError):
+            pid = None
+        neu.append((m2h(v), m2h(z), pid, e.get("art") if e.get("art") in ART_NAME else "sonst", str(e.get("notiz") or "")[:300],
+                    e.get("quelle") if e.get("quelle") in QUELLEN else "hand", str(e.get("fahrt") or "")[:2000]))
+    c.execute("DELETE FROM zeit_eintrag WHERE user_id=? AND tag=?", (uid, tag))
+    for w in neu:
+        c.execute(f"INSERT INTO zeit_eintrag(user_id, tag, {', '.join(SPALTEN)}) VALUES(?,?,?,?,?,?,?,?,?)", (uid, tag, *w))
+    T = s.get("tag") or {}
+    f = {k: (str(T.get(k) or "") if h2m(T.get(k)) is not None else "") for k in ("kommen", "gehen")}
+    f["pause"] = int(T["pause"]) if isinstance(T.get("pause"), (int, float)) else None
+    pa = _j(T.get("pausen"), None) if isinstance(T.get("pausen"), str) else None
+    f["pausen"] = json.dumps(pausen_pruefen(pa)) if pa is not None else None
+    f["abw"] = T.get("abw") if T.get("abw") in ABW else ""
+    f["notiz"] = str(T.get("notiz") or "")[:500]
+    ig = _j(T.get("ignor"), []) if isinstance(T.get("ignor"), str) else []
+    f["ignor"] = json.dumps([[int(a), int(b)] for a, b in ig if isinstance(a, int) and isinstance(b, int)][-200:]) if isinstance(ig, list) else "[]"
+    zt_setzen(c, uid, tag, **f)
+
+
+QUELLEN = ("hand", "puls", "vorort", "fahrt", "stoppuhr", "unterwegs")
+
+
+def pausen_pruefen(L):
+    """Pausen als [[von, bis], …] in Minuten (auch „HH:MM“) – höchstens sechs, gültig, sortiert."""
+    out = []
+    for x in (L or [])[:6] if isinstance(L, list) else []:
+        try:
+            a, b = (h2m(v) if isinstance(v, str) else int(v) for v in x)
+        except (TypeError, ValueError):
+            continue
+        if a is not None and b is not None and 0 <= a < b <= 24 * 60:
+            out.append([a, b])
+    return sorted(out)
 
 
 # ------------------------------------------------------------------ Puls (aus der Kopfleiste)
@@ -336,17 +567,17 @@ def _minus(bl, belegt):
 def zt(c, uid, tag, Z=None):
     if _im(Z, tag):
         r = Z["T"].get(tag)
-        return dict(r) if r else {"user_id": uid, "tag": tag, "kommen": "", "gehen": "", "pause": None, "abw": "", "notiz": "", "bestaetigt": "", "ignor": "[]"}
+        return dict(r) if r else {"user_id": uid, "tag": tag, "kommen": "", "gehen": "", "pause": None, "abw": "", "notiz": "", "bestaetigt": "", "ignor": "[]", "pausen": None}
     r = c.execute("SELECT * FROM zeit_tag WHERE user_id=? AND tag=?", (uid, tag)).fetchone()
-    return dict(r) if r else {"user_id": uid, "tag": tag, "kommen": "", "gehen": "", "pause": None, "abw": "", "notiz": "", "bestaetigt": "", "ignor": "[]"}
+    return dict(r) if r else {"user_id": uid, "tag": tag, "kommen": "", "gehen": "", "pause": None, "abw": "", "notiz": "", "bestaetigt": "", "ignor": "[]", "pausen": None}
 
 
 def zt_setzen(c, uid, tag, **f):
     t = {**zt(c, uid, tag), **f}
-    c.execute("INSERT INTO zeit_tag(user_id, tag, kommen, gehen, pause, abw, notiz, bestaetigt, ignor) VALUES(?,?,?,?,?,?,?,?,?) "
+    c.execute("INSERT INTO zeit_tag(user_id, tag, kommen, gehen, pause, abw, notiz, bestaetigt, ignor, pausen) VALUES(?,?,?,?,?,?,?,?,?,?) "
               "ON CONFLICT (user_id, tag) DO UPDATE SET kommen=EXCLUDED.kommen, gehen=EXCLUDED.gehen, pause=EXCLUDED.pause, abw=EXCLUDED.abw, "
-              "notiz=EXCLUDED.notiz, bestaetigt=EXCLUDED.bestaetigt, ignor=EXCLUDED.ignor",
-              (uid, tag, t["kommen"] or "", t["gehen"] or "", t["pause"], t["abw"] or "", t["notiz"] or "", t["bestaetigt"] or "", t["ignor"] or "[]"))
+              "notiz=EXCLUDED.notiz, bestaetigt=EXCLUDED.bestaetigt, ignor=EXCLUDED.ignor, pausen=EXCLUDED.pausen",
+              (uid, tag, t["kommen"] or "", t["gehen"] or "", t["pause"], t["abw"] or "", t["notiz"] or "", t["bestaetigt"] or "", t["ignor"] or "[]", t.get("pausen")))
     return t
 
 
@@ -354,18 +585,25 @@ def eintraege(c, uid, tag):
     return [dict(r) for r in c.execute("SELECT * FROM zeit_eintrag WHERE user_id=? AND tag=? ORDER BY von, id", (uid, tag)).fetchall()]
 
 
-def vorschlaege(c, uid, tag, E=None, T=None, Z=None):
+def vorschlaege(c, uid, tag, E=None, T=None, Z=None, t=None):
     E = eintraege(c, uid, tag) if E is None else E
+    t = t or (Z.get("takt") if Z is not None and Z.get("takt") else takt(c))
     T = zt(c, uid, tag) if T is None else T
     if T.get("bestaetigt"):
         return []
     belegt = [(h2m(e["von"]), h2m(e["bis"])) for e in E] + [(int(a), int(b)) for a, b in _j(T.get("ignor"), [])]
     belegt = [(a, b) for a, b in belegt if a is not None and b is not None]
-    bl = _minus(roh_vorschlaege(c, uid, tag, Z), belegt)
+    bl = roh_vorschlaege(c, uid, tag, Z)
     if tag == heute():   # heute: der letzte Block endet nicht in der Zukunft
         n = jetzt().hour * 60 + jetzt().minute + 1
         bl = [{**b, "bis": min(b["bis"], n)} for b in bl if b["von"] < n]
+    bl = [b for b in _minus(im_takt(bl, t), belegt) if b["bis"] - b["von"] >= t]
     return [{**b, "von": m2h(b["von"]), "bis": m2h(b["bis"])} for b in bl]
+
+
+def gesetz(netto):
+    """Gesetzliche Mindestpause (ArbZG § 4) zur Arbeitszeit in Minuten."""
+    return 45 if netto > 9 * 60 else 30 if netto > 6 * 60 else 0
 
 
 def pause_min(spannen, kommen, gehen):
@@ -381,21 +619,42 @@ def pause_min(spannen, kommen, gehen):
     if gehen - ende >= PAUSE_LUECKE and s:
         pass   # nach dem letzten Block bis „Gehen“ ist keine Pause, sondern Arbeit ohne Plattform (z. B. Telefon)
     brutto = gehen - kommen
-    gesetz = 45 if brutto - lueck > 9 * 60 else 30 if brutto - lueck > 6 * 60 else 0
-    return max(lueck, gesetz)
+    return max(lueck, gesetz(brutto - lueck))
 
 
 def tag_daten(c, uid, tag, P=None, Z=None):
     P = P or person(c, uid)
+    t = Z.setdefault("takt", takt(c)) if Z is not None else takt(c)
+    B = Z.setdefault("pause_buero", pause_buero(c)) if Z is not None else pause_buero(c)
     T = zt(c, uid, tag, Z)
     E = [dict(x) for x in Z["E"].get(tag, [])] if _im(Z, tag) else eintraege(c, uid, tag)
-    V = vorschlaege(c, uid, tag, E, T, Z)
+    V = vorschlaege(c, uid, tag, E, T, Z, t)
     alle = [(h2m(x["von"]), h2m(x["bis"])) for x in E + V]
     alle = [(a, b) for a, b in alle if a is not None and b is not None and b > a]
     k_v = min((a for a, _ in alle), default=None)
     g_v = max((b for _, b in alle), default=None)
     kommen, gehen = h2m(T["kommen"]) if T["kommen"] else k_v, h2m(T["gehen"]) if T["gehen"] else g_v
-    pause = T["pause"] if T["pause"] is not None else pause_min(alle, kommen, gehen)
+    pa = _j(T.get("pausen"), None)
+    if pa is not None:   # Pause als Zeitraum, im Zeitstrahl gesetzt
+        PB = [(a, b) for a, b in pausen_pruefen(pa)]
+    else:                # Vorgabe aus den Einstellungen – nur zwischen Kommen und Gehen, nicht über erfassten Zeiten
+        pv = pause_vorgabe(P, B) if not T.get("bestaetigt") else None
+        PB = []
+        if pv and kommen is not None and gehen is not None and kommen <= pv["beginn"] and pv["beginn"] + pv["dauer"] <= gehen \
+                and (pv["modus"] == "immer" or gehen - kommen > 6 * 60):
+            PB = [(b["von"], b["bis"]) for b in _minus([{"von": pv["beginn"], "bis": pv["beginn"] + pv["dauer"]}],
+                                                       [(h2m(e["von"]), h2m(e["bis"])) for e in E if h2m(e["von"]) is not None and h2m(e["bis"]) is not None])
+                  if b["bis"] - b["von"] >= t]
+    if PB:   # Vorschläge geben die Pause frei
+        V = [{**b, "von": m2h(b["von"]), "bis": m2h(b["bis"])} for b in _minus([{**v, "von": h2m(v["von"]), "bis": h2m(v["bis"])} for v in V], PB)
+             if b["bis"] - b["von"] >= t]
+    if T["pause"] is not None:
+        pause = T["pause"]
+    elif pa is not None or PB:
+        p_sum = sum(b - a for a, b in PB)
+        pause = max(p_sum, gesetz((gehen - kommen - p_sum) if kommen is not None and gehen is not None else 0))
+    else:
+        pause = pause_min(alle, kommen, gehen)
     arbeit = max(0, (gehen - kommen - pause)) if kommen is not None and gehen is not None else 0
     soll = soll_min(P, tag)
     abw = T["abw"] or ""
@@ -405,7 +664,7 @@ def tag_daten(c, uid, tag, P=None, Z=None):
             "gehen": m2h(gehen) if gehen is not None else "", "kommen_v": m2h(k_v) if k_v is not None else "", "gehen_v": m2h(g_v) if g_v is not None else "",
             "kommen_fest": bool(T["kommen"]), "gehen_fest": bool(T["gehen"]), "pause": pause, "pause_fest": T["pause"] is not None,
             "arbeit": arbeit, "ist": arbeit + gutschrift, "projekt": projekt, "abw": abw, "notiz": T["notiz"], "bestaetigt": T["bestaetigt"],
-            "eintraege": E, "vorschlaege": V}
+            "eintraege": E, "vorschlaege": V, "pausen": [[m2h(a), m2h(b)] for a, b in PB], "pausen_fest": pa is not None, "takt": t}
 
 
 def _gutschrift(abw, soll):
@@ -426,6 +685,9 @@ def bestaetigen(c, uid, tag, wer=""):
     for v in d["vorschlaege"]:
         c.execute("INSERT INTO zeit_eintrag(user_id, tag, von, bis, project_id, art, quelle) VALUES(?,?,?,?,?,?,?)",
                   (uid, tag, v["von"], v["bis"], v["project_id"], v["art"], v["quelle"]))
+    if d["pausen"]:   # die Pause wird mit dem Tag festgehalten
+        zt_setzen(c, uid, tag, pausen=json.dumps([[h2m(a), h2m(b)] for a, b in d["pausen"]]))
+    zusammenfassen(c, uid, tag)
     zt_setzen(c, uid, tag, kommen=d["kommen"], gehen=d["gehen"], pause=d["pause"], bestaetigt=jetzt().strftime("%Y-%m-%d %H:%M"))
     return tag_daten(c, uid, tag)
 
@@ -493,7 +755,9 @@ def woche(c, uid, tag, P=None):
         t = (mo + timedelta(days=i)).isoformat()
         x = tag_daten(c, uid, t, P, Z)
         out.append({k: x[k] for k in ("tag", "feiertag", "soll", "ist", "arbeit", "kommen", "gehen", "pause", "abw", "bestaetigt", "projekt")}
-                   | {"vorschlaege": len(x["vorschlaege"]), "eintraege": len(x["eintraege"])})
+                   | {"vorschlaege": len(x["vorschlaege"]), "eintraege": len(x["eintraege"]), "pausen": x["pausen"], "pausen_fest": x["pausen_fest"],
+                      "bl": {"e": [{k: e.get(k) for k in ("id", "von", "bis", "project_id", "art", "quelle", "notiz")} for e in x["eintraege"]],
+                             "v": [{k: v.get(k) for k in ("von", "bis", "project_id", "art", "quelle")} for v in x["vorschlaege"]]}})
     return out
 
 

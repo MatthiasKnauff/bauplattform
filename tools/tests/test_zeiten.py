@@ -39,3 +39,25 @@ def test_urlaubsantrag(ctx):
             ctx.admin.put(f"{Z}/antraege/{a['id']}", {"aktion": "zurueckziehen"})
         except Exception:   # noqa: BLE001 – schon zurückgezogen
             pass
+
+
+def test_takt_zusammenfassen_pause(ctx):
+    """Takt 15 Minuten: Zeiten gerundet und verbunden; Pause in den Strahl gezogen teilt die Zeit; Rückgängig über den Stand davor;
+    Takt nur 5/10/15/30 und nur für die Verwaltung."""
+    anna, d = ctx.anmelden("Anna Bauer"), "2025-03-03"
+    try:
+        anna.pj(f"{Z}/tag/stand", {"d": d, "stand": {"eintraege": [], "tag": {}}})
+        anna.pj(f"{Z}/eintrag", {"d": d, "von": "09:03", "bis": "10:00", "art": "buero"})
+        r = anna.pj(f"{Z}/eintrag", {"d": d, "von": "10:00", "bis": "10:20", "art": "buero"})
+        gleich([(e["von"], e["bis"]) for e in r["eintraege"]], [("09:00", "10:15")], "gerundet und zu einer Zeile verbunden")
+        pruefe(len(r["vorher"]["eintraege"]) == 1, "Stand davor für Rückgängig")
+        p = anna.uj(f"{Z}/tag", {"d": d, "pausen": [["09:30", "10:00"]]})
+        gleich([(e["von"], e["bis"]) for e in p["eintraege"]], [("09:00", "09:30"), ("10:00", "10:15")], "Pause teilt die Zeit")
+        gleich((p["pausen"], p["pausen_fest"]), ([["09:30", "10:00"]], True), "Pause als Zeitraum")
+        z = anna.pj(f"{Z}/tag/stand", {"d": d, "stand": p["vorher"]})
+        gleich(([(e["von"], e["bis"]) for e in z["eintraege"]], z["pausen_fest"]), ([("09:00", "10:15")], False), "Rückgängig: wie vorher")
+        anna.put(f"{Z}/zeit_einst", {"takt": 10}, expect=403)
+        ctx.admin.put(f"{Z}/zeit_einst", {"takt": 7}, expect=400)
+        gleich(ctx.admin.uj(f"{Z}/zeit_einst", {"takt": 15})["takt"], 15, "Takt gespeichert")
+    finally:
+        anna.pj(f"{Z}/tag/stand", {"d": d, "stand": {"eintraege": [], "tag": {}}})

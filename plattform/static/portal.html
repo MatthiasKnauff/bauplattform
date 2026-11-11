@@ -368,7 +368,8 @@ document.addEventListener('click', async (e) => {
   const b = e.target.closest && e.target.closest('[data-wxp]'); if (!b) return; e.preventDefault(); e.stopPropagation();
   if (!WXP) WXP = await api('api/bp/projekte').catch(() => []);
   const id = b.dataset.wxp, it = RASTER.items.find((r) => r.i === id), akt = it && it.o && it.o.p;
-  pickMenu(b, { search: 'Projekt suchen …', items: [{ value: 0, title: 'Aktuelles Projekt', sub: 'folgt der Projektwahl oben', on: !akt }].concat(WXP.filter((p) => !p.archived).map((p) => ({ value: p.id, title: p.name, on: akt === p.id }))),
+  pickMenu(b, { search: 'Projekt suchen …', items: [{ value: 0, title: 'Aktuelles Projekt', sub: 'folgt der Projektwahl oben', on: !akt }].concat(['mein', 'andere'].flatMap((gr) => WXP.filter((p) => !p.archived && (gr === 'mein') === !!p.mein)   // erst die eigenen, dann die anderen
+    .map((p) => ({ value: p.id, title: p.name, on: akt === p.id, group: WXP.some((x) => x.mein) ? (gr === 'mein' ? 'Meine Projekte' : 'Andere Projekte') : '' })))),
     onPick: (v) => { const L = rLayout(), x = L.find((r) => r.i === id); if (!x) return; if (v) x.o = { p: +v }; else delete x.o; rSpeichern(L); rasterZeigen(); } });
 }, true);
 

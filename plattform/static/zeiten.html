@@ -126,6 +126,7 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
   <div id="view"><p class="mute">Lade …</p></div>
 </main>
 <script src="bp/baukasten.js"></script>
+<script src="static/zeiten-strahl.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('zeit.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('zeit.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
 let ME = null, G = null, D = null, W = null, M = null, AN = [], A = null, K = null, PSEL = null, FSEL = null, ANGEK = null, tab = LS.get('tab', 'tag'), tag = '', monat = '';
@@ -195,18 +196,6 @@ function kopfZahlen(d) {
     <div class="k"><small>Abwesenheit</small><select data-tf="abw"${fest ? ' disabled' : ''} aria-label="Abwesenheit"><option value="">– da –</option>${Object.entries(G.abw).map(([a, n]) => `<option value="${a}"${d.abw === a ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
   </div>`;
 }
-function zeitstrahl(d) {
-  const L = [...d.eintraege.map((e) => ({ ...e, fest: 1 })), ...d.vorschlaege.map((v, i) => ({ ...v, vi: i }))];
-  const ms = L.flatMap((x) => [h2m(x.von), h2m(x.bis)]).filter((x) => x != null);
-  const a = Math.min(7 * 60, ...ms.map((m) => Math.floor(m / 60) * 60)), b = Math.max(18 * 60, ...ms.map((m) => Math.ceil(m / 60) * 60));
-  const p = (m) => ((m - a) / (b - a) * 100).toFixed(2) + '%';
-  let h = '';
-  for (let s = a; s <= b; s += 60) h += `<span class="h" style="left:${p(s)}">${s / 60}</span><span class="hl" style="left:${p(s)}"></span>`;
-  const pj = PJN();
-  h += L.map((x) => `<div class="b q-${x.quelle}${x.fest ? '' : ' v'}" style="left:${p(h2m(x.von))};width:calc(${((h2m(x.bis) - h2m(x.von)) / (b - a) * 100).toFixed(2)}% - 2px)" data-spr="${x.fest ? 'e' + x.id : 'v' + x.vi}" title="${esc(`${x.von}–${x.bis} · ${pj[x.project_id] || 'ohne Projekt'} · ${artKurz(x.art)} · ${QN[x.quelle] || ''}`)}">${esc((pj[x.project_id] || 'Büro').slice(0, 22))}<br>${esc(artKurz(x.art))}</div>`).join('');
-  if (d.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) h += `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; }
-  return `<div class="tl" aria-hidden="true">${h}</div><div class="leg"><span><i class="q-puls"></i>aus der Arbeit in der Plattform</span><span><i class="q-vorort"></i>vor Ort (Baustelle)</span><span><i class="q-fahrt"></i>Fahrt (geschätzt)</span><span><i class="q-unterwegs"></i>Fahrt (erfasst)</span><span><i class="q-hand"></i>von Hand / Stoppuhr</span><span>gestrichelt = Vorschlag, noch nicht übernommen</span></div>`;
-}
 function projSel(pid, attr) {
   return `<select ${attr} aria-label="Projekt" data-bp-projekte><option value="">— ohne Projekt (Büro) —</option>${(G.projekte || []).map((p) => `<option value="${p.id}"${+pid === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}${pid && !PJN()[pid] ? `<option value="${pid}" selected>Projekt ${pid}</option>` : ''}</select>`;
 }
@@ -264,7 +253,7 @@ function vTag() {
     ${d.bestaetigt || d.tag > G.heute ? '' : `<button type="button" class="btn pri" data-ta="ok"${V.length ? ` title="${V.length} Vorschläge werden übernommen"` : ''}>✓ Tag bestätigen${V.length ? ` (${V.length} Vorschl${V.length === 1 ? 'ag' : 'äge'})` : ''}</button>`}</div></div>`;
   const ws = W ? `<div class="ws profi" aria-label="Woche">${W.tage.map((x) => { const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.vorschlaege || x.eintraege);
     return `<button type="button" data-geh="${x.tag}" class="${x.tag === d.tag ? 'on' : ''}${x.bestaetigt ? ' bes' : ''}${off ? ' off' : ''}${!x.soll ? ' we' : ''}">${WT[wtag(x.tag)]} ${dkurz(x.tag)}<b style="display:block">${x.abw ? esc((G.abw[x.abw] || '').split(' ')[0]) : x.bestaetigt || x.tag === G.heute ? std(x.ist) : '–'}</b><small>${x.bestaetigt ? '✓ bestätigt' : x.abw ? '' : off ? 'offen' : x.feiertag ? esc(x.feiertag) : x.soll ? 'Soll ' + std(x.soll) : 'frei'}</small></button>`; }).join('')}</div>` : '';
-  return `${titel}${band}${laufHtml()}${kopfZahlen(d)}<div class="card profi tlk" style="padding-top:.4rem">${zeitstrahl(d)}</div>${liste}${ws}`;
+  return `${titel}${band}${laufHtml()}${kopfZahlen(d)}<div class="card profi tlk" style="padding-top:.4rem;overflow:visible">${zsTag(d)}</div>${liste}${ws}`;
 }
 let NEU = null;
 function zeileWerte(z) { const o = {}; z.querySelectorAll('[data-zf]').forEach((el) => { o[el.dataset.zf] = el.classList.contains('hm') ? (hmNorm(el.value) || el.value) : el.value; }); return o; }
@@ -273,28 +262,19 @@ async function zeileAktion(z, a) {
     if (z.dataset.v != null) {
       const v = D.vorschlaege[+z.dataset.v]; if (!v) return;
       if (a === 'weg') { D = await api('api/verwerfen', 'POST', { d: tag, von: v.von, bis: v.bis }); zeichne(); rueckgaengig('Vorschlag nicht übernommen', async () => { D = await api('api/verwerfen', 'POST', { d: tag, von: v.von, bis: v.bis, zurueck: 1 }); zeichne(); }); return; }
-      const t0 = tag, vor = new Set((D.eintraege || []).map((e) => e.id));
-      D = await api('api/eintrag', 'POST', { d: t0, ...v, ...zeileWerte(z), quelle: v.quelle }); zeichne();
-      const neu = (D.eintraege || []).find((e) => !vor.has(e.id));   // zurück: die Zeit löschen – sie erscheint wieder als Vorschlag
-      if (neu) rueckgaengig('Vorschlag übernommen', async () => { const d = await api('api/eintrag/' + neu.id, 'DELETE'); if (tag === t0) D = d; zeichne(); });
+      await zsAntwort(tag, await api('api/eintrag', 'POST', { d: tag, ...v, ...zeileWerte(z), quelle: v.quelle }), 'Vorschlag übernommen');   // Rückgängig: Stand davor (vorher)
       return;
     }
     if (z.dataset.e) {
       const id = +z.dataset.e;
-      if (a === 'del') { const r = await api('api/eintrag/' + id, 'DELETE'); D = r; zeichne(); const g = r.geloescht;
-        if (g) rueckgaengig('Zeit gelöscht', async () => { D = await api('api/eintrag', 'POST', { d: g.tag, von: g.von, bis: g.bis, project_id: g.project_id, art: g.art, notiz: g.notiz, quelle: g.quelle }); zeichne(); }); return; }
-      const alt = (D.eintraege || []).find((e) => e.id === id), t0 = tag, w = zeileWerte(z);
-      const vorher = alt ? Object.fromEntries(Object.keys(w).map((k) => [k, alt[k] == null ? '' : alt[k]])) : null;
-      D = await api('api/eintrag/' + id, 'PUT', w); zeichne();
-      if (vorher) rueckgaengig('Zeit geändert', async () => { const d = await api('api/eintrag/' + id, 'PUT', vorher); if (tag === t0) D = d; zeichne(); });
+      if (a === 'del') { await zsAntwort(tag, await api('api/eintrag/' + id, 'DELETE'), 'Zeit gelöscht'); return; }
+      await zsAntwort(tag, await api('api/eintrag/' + id, 'PUT', zeileWerte(z)), 'Zeit geändert');
       return;
     }
     if (z.dataset.n) {
       if (a === 'abbr') { NEU = null; zeichne(); return; }
-      const t0 = tag, vor = new Set((D.eintraege || []).map((e) => e.id));
-      D = await api('api/eintrag', 'POST', { d: t0, ...zeileWerte(z), quelle: 'hand' }); NEU = null; zeichne();
-      const neu = (D.eintraege || []).find((e) => !vor.has(e.id));
-      if (neu) rueckgaengig('Zeit eingetragen', async () => { const d = await api('api/eintrag/' + neu.id, 'DELETE'); if (tag === t0) D = d; zeichne(); });
+      const r = await api('api/eintrag', 'POST', { d: tag, ...zeileWerte(z), quelle: 'hand' }); NEU = null;
+      await zsAntwort(tag, r, 'Zeit eingetragen');
     }
   } catch (e) { toast(e.message, true); }
 }
@@ -303,7 +283,7 @@ async function zeileAktion(z, a) {
 function vWoche() {
   if (!W) return '';
   const T = W.tage, s = T.reduce((a, x) => ({ soll: a.soll + x.soll, ist: a.ist + (x.bestaetigt || x.abw ? x.ist : 0) }), { soll: 0, ist: 0 });
-  return `<div class="card"><h3>Woche ab ${dkurz(T[0].tag)}</h3><table class="t"><thead><tr><th>Tag</th><th>Kommen</th><th>Gehen</th><th class="r">Pause</th><th class="r">Arbeitszeit</th><th class="r">Soll</th><th>Stand</th></tr></thead><tbody>
+  return `${zsWoche()}<div class="card"><h3>Woche ab ${dkurz(T[0].tag)}</h3><table class="t"><thead><tr><th>Tag</th><th>Kommen</th><th>Gehen</th><th class="r">Pause</th><th class="r">Arbeitszeit</th><th class="r">Soll</th><th>Stand</th></tr></thead><tbody>
     ${T.map((x) => `<tr class="klick" data-geh="${x.tag}"><td>${WT[wtag(x.tag)]} ${dkurz(x.tag)}</td><td>${x.bestaetigt ? x.kommen : ''}</td><td>${x.bestaetigt ? x.gehen : ''}</td><td class="r">${x.bestaetigt ? std(x.pause) : ''}</td><td class="r">${x.bestaetigt || x.abw ? std(x.ist) : ''}</td><td class="r">${x.soll ? std(x.soll) : ''}</td><td>${x.abw ? esc(G.abw[x.abw]) : x.feiertag ? esc(x.feiertag) : x.bestaetigt ? '✓ bestätigt' : x.vorschlaege || x.eintraege ? (x.tag === G.heute ? 'läuft' : 'offen') : ''}</td></tr>`).join('')}
     <tr><td colspan="4"><b>Summe</b></td><td class="r"><b>${std(s.ist)}</b></td><td class="r"><b>${std(s.soll)}</b></td><td>Saldo gesamt <b>${(W.konto.saldo >= 0 ? '+' : '') + std(W.konto.saldo)} h</b></td></tr></tbody></table></div>`;
 }
@@ -373,12 +353,18 @@ function vAuswertung() {
 function vEinst() {
   if (!K) return '';
   return `<div class="card"><h3>Urlaub</h3><label class="frm" style="gap:.5rem;align-items:center"><input type="checkbox" data-antpf${G.antrag_pflicht ? ' checked' : ''}> Urlaub, Frei und Fortbildung nur über Antrag – die Verwaltung genehmigt (Krank tragen alle direkt ein)</label></div>
+  <div class="card"><h3>Zeittakt und Pause</h3><div class="frm" style="align-items:center;gap:.9rem">
+    <label>Zeittakt – alle Zeiten werden darauf gerundet<span class="seg">${[5, 10, 15, 30].map((n) => `<button type="button" data-takt="${n}" class="${K.takt === n ? 'on' : ''}">${n} min</button>`).join('')}</span></label>
+    <label>Pause ab<input id="pzB" value="${esc(K.pause_buero.beginn)}" placeholder="hh:mm" inputmode="numeric" maxlength="5" style="width:5.5rem"></label>
+    <label>Dauer (Min.)<input id="pzD" type="number" min="0" max="180" step="5" value="${K.pause_buero.dauer || ''}" style="width:5.5rem"></label>
+    <label>abziehen<span class="seg">${[['immer', 'immer'], ['ab6', 'nur über 6 h']].map(([k, n]) => `<button type="button" data-pmod="${k}" class="${K.pause_buero.modus === k ? 'on' : ''}">${n}</button>`).join('')}</span></label></div>
+    <p class="hinw">Die Pause erscheint im Zeitstrahl als schraffierte Fläche und lässt sich dort verschieben, ändern oder entfernen. Je Person kann sie unten abweichen (Spalte „Pause“: z. B. 12:30/45, „-“ = keine). Ohne Angabe gilt wie bisher: Lücken ab 15 Minuten, mindestens die gesetzliche Pause.</p></div>
   <div class="card"><h3>Stundensatz des Büros</h3><div class="frm"><label>€ je Stunde (wenn bei der Person nichts steht)<input id="bSatz" value="${K.buero_satz != null ? String(K.buero_satz).replace('.', ',') : ''}" inputmode="decimal" style="width:8rem"></label><button type="button" class="btn sm pri" data-bs="1">Speichern</button></div></div>
-  <div class="card"><h3>Mitarbeiter:innen</h3><div style="overflow-x:auto"><table class="t"><thead><tr><th>Name</th><th class="r">Soll h/Woche</th><th>Arbeitstage</th><th class="r">Urlaub T/Jahr</th><th class="r">Stundensatz €</th><th class="r">Saldo zu Beginn h</th><th>erfassen ab</th><th>nicht erfassen</th></tr></thead><tbody>
+  <div class="card"><h3>Mitarbeiter:innen</h3><div style="overflow-x:auto"><table class="t"><thead><tr><th>Name</th><th class="r">Soll h/Woche</th><th>Arbeitstage</th><th class="r">Urlaub T/Jahr</th><th class="r">Stundensatz €</th><th class="r">Saldo zu Beginn h</th><th>Pause</th><th>erfassen ab</th><th>nicht erfassen</th></tr></thead><tbody>
   ${K.konten.concat([]).map((x) => { const p = x.person; return `<tr data-pu="${x.user_id}"><td>${esc(x.name)}</td><td class="r"><input data-pf="soll_woche" value="${String(p.soll_woche).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td>
     <td><span class="tage">${WT.map((w, i) => `<button type="button" data-ptag="${i}" class="${p.tage.includes(String(i)) ? 'on' : ''}">${w}</button>`).join('')}</span></td>
     <td class="r"><input data-pf="urlaub" value="${String(p.urlaub).replace('.', ',')}" inputmode="decimal" style="width:4rem;text-align:right"></td><td class="r"><input data-pf="satz" value="${p.satz != null ? String(p.satz).replace('.', ',') : ''}" placeholder="Büro" inputmode="decimal" style="width:5rem;text-align:right"></td>
-    <td class="r"><input data-pf="saldo_start" value="${String(p.saldo_start).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td><td><input type="date" data-pf="ab" value="${p.ab || ''}" style="width:auto"></td><td><input type="checkbox" data-pf="aus"${p.aus ? ' checked' : ''} style="width:auto" title="z. B. Inhaber oder Aushilfe ohne Zeiterfassung"></td></tr>`; }).join('')}
+    <td class="r"><input data-pf="saldo_start" value="${String(p.saldo_start).replace('.', ',')}" inputmode="decimal" style="width:4.5rem;text-align:right"></td><td><input data-pf="pause" value="${esc(p.pause || '')}" placeholder="wie Büro" title="Beginn/Dauer, z. B. 12:30/45 – „-“ = keine Pausenvorgabe" style="width:6.5rem"></td><td><input type="date" data-pf="ab" value="${p.ab || ''}" style="width:auto"></td><td><input type="checkbox" data-pf="aus"${p.aus ? ' checked' : ''} style="width:auto" title="z. B. Inhaber oder Aushilfe ohne Zeiterfassung"></td></tr>`; }).join('')}
   </tbody></table></div><p class="hinw">Änderungen werden sofort gespeichert. Wer „nicht erfassen“ hat, bekommt keine Erinnerung und erscheint nicht in den Konten.</p></div>`;
 }
 
@@ -390,15 +376,15 @@ document.addEventListener('click', async (e) => {
   const mn = t.closest('[data-mn]'); if (mn) { const d = new Date(monat + '-15'); d.setMonth(d.getMonth() + +mn.dataset.mn); monat = d.toISOString().slice(0, 7); laden(); return; }
   const geh = t.closest('[data-geh]'); if (geh) { tag = geh.dataset.geh > G.heute ? G.heute : geh.dataset.geh; tab = 'tag'; LS.set('tab', tab); NEU = null; laden(); return; }
   const za = t.closest('[data-za]'); if (za) { zeileAktion(za.closest('.zr'), za.dataset.za); return; }
-  const spr = t.closest('[data-spr]'); if (spr) { const k = spr.dataset.spr, z = document.querySelector(k[0] === 'e' ? `.zr[data-e="${k.slice(1)}"]` : `.zr[data-v="${k.slice(1)}"]`); if (z) { z.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); z.classList.add('blink'); setTimeout(() => z.classList.remove('blink'), 1400); } return; }
+  const spr = t.closest('[data-spr]'); if (spr) { if (Date.now() - ZS_ZUG < 350 || spr.dataset.spr[0] === 'p') return; const k = spr.dataset.spr, z = document.querySelector(k[0] === 'e' ? `.zr[data-e="${k.slice(1)}"]` : `.zr[data-v="${k.slice(1)}"]`); if (z) { z.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); z.classList.add('blink'); setTimeout(() => z.classList.remove('blink'), 1400); } return; }
   const ta = t.closest('[data-ta]');
   if (ta) {
     const a = ta.dataset.ta;
-    if (a === 'neu') { const n = new Date(), m = Math.floor((n.getHours() * 60 + n.getMinutes()) / 15) * 15; NEU = { von: tag === G.heute ? m2h(Math.max(0, m - 60)) : '09:00', bis: tag === G.heute ? m2h(m) : '10:00', project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' }; zeichne(); const f = document.querySelector('.zr[data-n] [data-zf="project_id"]'); if (f) f.focus(); return; }
+    if (a === 'neu') { const n = new Date(), tk = zsTakt(), m = Math.floor((n.getHours() * 60 + n.getMinutes()) / tk) * tk; NEU = { von: tag === G.heute ? m2h(Math.max(0, m - 60)) : '09:00', bis: tag === G.heute ? m2h(m) : '10:00', project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' }; zeichne(); const f = document.querySelector('.zr[data-n] [data-zf="project_id"]'); if (f) f.focus(); return; }
     try {
-      if (a === 'ok') { const t0 = tag; D = await api('api/tag/bestaetigen', 'POST', { d: t0 }); const neu = D.uebernommen || []; W = await api('api/woche?d=' + t0); zeichne();
-        rueckgaengig(neu.length ? `Tag bestätigt – ${neu.length} Vorschl${neu.length === 1 ? 'ag' : 'äge'} übernommen` : 'Tag bestätigt', async () => {   // zurück: Tag wieder offen, die übernommenen Zeiten sind wieder Vorschläge
-          const d = await api('api/tag/oeffnen', 'POST', { d: t0, weg: neu }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
+      if (a === 'ok') { const t0 = tag; D = await api('api/tag/bestaetigen', 'POST', { d: t0 }); const neu = D.uebernommen || [], vorher = D.vorher; W = await api('api/woche?d=' + t0); zeichne();
+        rueckgaengig(neu.length ? `Tag bestätigt – ${neu.length} Vorschl${neu.length === 1 ? 'ag' : 'äge'} übernommen` : 'Tag bestätigt', async () => {   // zurück: Tag wieder offen, genau der Stand davor
+          const d = await api('api/tag/oeffnen', 'POST', { d: t0, weg: neu, stand: vorher }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
       if (a === 'auf') { const t0 = tag; D = await api('api/tag/oeffnen', 'POST', { d: t0 }); zeichne();
         rueckgaengig('Tag wieder offen', async () => { const d = await api('api/tag/bestaetigen', 'POST', { d: t0 }); if (tag === t0) D = d; W = await api('api/woche?d=' + tag); zeichne(); }); }
     } catch (er) { toast(er.message, true); }
@@ -443,6 +429,8 @@ document.addEventListener('click', async (e) => {
   if (ps) { const soll = {}; document.querySelectorAll('[data-psoll]').forEach((i) => { soll[i.dataset.psoll] = i.value; });
     try { await api('api/projekt/' + ps.dataset.ps, 'PUT', { honorar: $('#pHon').value, fahrt: $('#pFahrt').value, soll }); A = await api('api/auswertung'); zeichne(); toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
   const ex = t.closest('[data-ex]'); if (ex) { location.href = 'api/export.csv?m=' + encodeURIComponent($('#exM').value); return; }
+  const tk = t.closest('[data-takt],[data-pmod]');
+  if (tk) { try { const r = await api('api/zeit_einst', 'PUT', tk.dataset.takt ? { takt: +tk.dataset.takt } : { pause: { modus: tk.dataset.pmod } }); K.takt = G.takt = r.takt; K.pause_buero = r.pause_buero; zeichne(); toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
   const bs = t.closest('[data-bs]'); if (bs) { try { await api('api/buero_satz', 'PUT', { satz: $('#bSatz').value }); toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
   const pt = t.closest('[data-ptag]');
   if (pt) { pt.classList.toggle('on'); const tr = pt.closest('[data-pu]'); const tage = [...tr.querySelectorAll('[data-ptag].on')].map((b) => b.dataset.ptag).join('');
@@ -452,6 +440,8 @@ document.addEventListener('change', async (e) => {
   const t = e.target;
   if (t.matches('[data-antpf]')) { try { const r = await api('api/antrag_pflicht', 'PUT', { an: t.checked }); G.antrag_pflicht = r.antrag_pflicht; toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
   if (t.id === 'abA') { const k = t.closest('.card'); if (k) k.outerHTML = abwKarte(G.heute); return; }
+  if (t.id === 'pzB' || t.id === 'pzD') { const v = t.id === 'pzB' ? hmNorm(t.value) : t.value; if (v === null) { toast('Bitte eine Uhrzeit eingeben, z. B. 12:00.', true); return; }
+    try { const r = await api('api/zeit_einst', 'PUT', { pause: t.id === 'pzB' ? { beginn: v } : { dauer: +v || 0 } }); K.pause_buero = r.pause_buero; toast('Gespeichert.'); } catch (er) { toast(er.message, true); } return; }
   if (t.id === 'dIn' && t.value) { tag = t.value > G.heute ? G.heute : t.value; NEU = null; laden(); return; }
   const tf = t.closest('[data-tf]');
   if (tf) { const k = tf.dataset.tf; let v = tf.value; if (k === 'pause') v = v === '' ? null : +v; if (tf.classList.contains('hm')) { v = hmNorm(v); if (v === null) { toast('Bitte eine Uhrzeit eingeben, z. B. 7:45 oder 745.', true); return; } }

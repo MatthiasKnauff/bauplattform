@@ -69,6 +69,11 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Zeittakt (5/10/15/30 min, Einstellungen) – Vorschläge und Zeiten gerundet, gleiches Projekt und gleiche Tätigkeit hintereinander automatisch eine Zeile, kurze Reste gehen im Nachbarn auf~~
+- ~~Zeiten: Pause in den Einstellungen (Beginn, Dauer, immer/nur über 6 h; je Person abweichend) und als schraffierte Fläche im Zeitstrahl – verschieben, Dauer ändern, entfernen~~
+- ~~Zeiten: Zeitstrahl mit Farben je Projekt, Quelle als Zeichen und Streifen; Blöcke verschieben und an den Rändern ziehen (rastet auf den Takt, Nachbar wird gekürzt); Klick in eine Lücke: Zeit eintragen, Pause hier, Kommen/Gehen; Ablage unter dem Strahl (eigene Projekte zuerst, Büro, Pause, freie Beschriftung) zum Hineinziehen; Rückgängig über den Stand davor~~
+- ~~Zeiten, Woche: ein Strahl je Tag untereinander (Mo–Fr oder Mo–So), auch dort ziehen und ablegen~~
+- ~~Startseite: Projektauswahl der Widgets – erst die eigenen, dann die anderen Projekte~~
 - ~~Heftzwecke der Navigation neu (Linie, Vorschlag Nr. 5), etwas größer, Farbe aus dem Stil (--pin bzw. Akzentfarbe); gelöst schräg und blass, angeheftet gerade und leicht gefüllt~~
 - ~~Zeiten: Rückgängig auch beim Ändern und Eintragen einer Zeit, bei Kommen/Gehen/Pause/Abwesenheit und beim Wieder-Öffnen eines Tages~~
 - ~~Pfeil-Kästen als Baustein (bp.css .bp-stufen): Honorar-Ablauf und Bauantrag-Schritte gleich – im Bauantrag grün = vollständig, rot = offen, gewählter Schritt kräftig~~

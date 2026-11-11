@@ -1,5 +1,37 @@
 [
  {
+  "id": "2026-11-11-zeiten-strahl",
+  "datum": "2026-11-11",
+  "app": "zeiten",
+  "titel": "Zeitstrahl zum Anfassen",
+  "text": "Die Blöcke haben jetzt die Farbe ihres Projekts; woher die Zeit kommt, zeigen Zeichen und Streifen unten. Blöcke lassen sich verschieben und an den Rändern länger oder kürzer ziehen – alles rastet auf den Takt ein (Vorgabe 15 Minuten). Unter dem Strahl liegen Kärtchen (deine Projekte, Büro, Pause, freie Beschriftung) zum Hineinziehen; ein Klick in eine Lücke bietet „Zeit eintragen“ und „Pause hier“. Gleiche Zeiten hintereinander werden automatisch eine Zeile.",
+  "ziel": ".zs-tl"
+ },
+ {
+  "id": "2026-11-11-zeiten-woche",
+  "datum": "2026-11-11",
+  "app": "zeiten",
+  "titel": "Woche als Zeitstrahlen",
+  "text": "Unter „Woche“ steht jetzt je Tag ein Zeitstrahl untereinander – wahlweise Mo–Fr oder Mo–So. Auch hier lässt sich ziehen und ablegen; ein Klick auf den Tag öffnet ihn.",
+  "ziel": "[data-tab=\"woche\"]"
+ },
+ {
+  "id": "2026-11-11-zeiten-pause",
+  "datum": "2026-11-11",
+  "app": "zeiten",
+  "titel": "Zeittakt und Pause einstellen",
+  "text": "Unter Einstellungen legt die Verwaltung den Zeittakt (5, 10, 15 oder 30 Minuten) und die übliche Pause fest (z. B. 12:30, 30 Minuten). Je Person kann die Pause abweichen.",
+  "ziel": "[data-tab=\"einst\"]"
+ },
+ {
+  "id": "2026-11-11-widget-projekte",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Widgets: eigene Projekte zuerst",
+  "text": "In der Projektauswahl der Widgets auf der Startseite stehen erst deine Projekte, dann die anderen.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-heftzwecke",
   "datum": "2026-11-11",
   "app": "",

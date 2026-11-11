@@ -152,10 +152,10 @@ function zeichne() {
   if (FORM) { V.innerHTML = formHtml(); return; }
   if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Links „＋ Neuer Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
   const st = D.schritte.map(([k, t], i) => { const n = k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k);
-    return `<button type="button" data-schritt="${k}" class="${k === SCHRITT ? 'on' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : '✓ vollständig'}</small></button>`; }).join('');
+    return `<button type="button" data-schritt="${k}" class="bp-stufe${k === SCHRITT ? ' cur' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : 'vollständig'}</small></button>`; }).join('');
   const i = D.schritte.findIndex((s) => s[0] === SCHRITT), vor = D.schritte[i - 1], nach = D.schritte[i + 1];
   const top = V.scrollTop;
-  V.innerHTML = `<div class="ba-w"><div class="ba-st" role="tablist">${st}</div>${schrittHtml()}
+  V.innerHTML = `<div class="ba-w"><div class="bp-stufen ba-st" role="tablist">${st}</div>${schrittHtml()}
     <div class="ba-nav"><span>${vor ? `<button type="button" class="btn" data-geh="${vor[0]}">‹ ${esc(vor[1])}</button>` : ''}</span><span>${nach ? `<button type="button" class="btn pri" data-geh="${nach[0]}">${esc(nach[1])} ›</button>` : ''}</span></div></div>`;
   V.scrollTop = top;
   if (D.antrag.status !== 'entwurf') V.querySelectorAll('[data-f],[data-seg],[data-bv],[data-zurueck]').forEach((x) => { x.disabled = true; });

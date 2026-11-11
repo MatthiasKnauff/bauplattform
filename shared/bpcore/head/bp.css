@@ -194,3 +194,16 @@ table.bp-baum.bp-baum .ozt{color:var(--mute);font-variant-numeric:tabular-nums;m
 .bp-pz-s>button:first-child{margin-left:0;border-radius:calc(14px*var(--rk,1)) 0 0 calc(14px*var(--rk,1))}.bp-pz-s>button:last-child{border-radius:0 calc(14px*var(--rk,1)) calc(14px*var(--rk,1)) 0}
 .bp-pz-s button:hover{background:var(--hov)}.bp-pz-s button.on{background:var(--y);border-color:var(--y);color:var(--on,#111);position:relative;font-weight:600}
 .bp-pz-r{display:flex;align-items:center;gap:.5rem}.bp-pz-r input{flex:1;min-width:0;accent-color:var(--y)}.bp-pz-r output{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}
+/* Stufen als Pfeil-Kästen (Honorar-Ablauf, Bauantrag-Schritte): .bp-stufen > button.bp-stufe mit <b>Titel</b><small>Zeile</small>.
+   Zustand: ok (erledigt, grün hell), fehlt (offen, rot hell), cur (gewählt/aktuell: Akzentfarbe; mit ok/fehlt kräftig grün/rot), ab (abgelehnt) */
+.bp-stufen{display:flex;gap:0;overflow-x:auto;padding:.35rem;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1))}
+.bp-stufe{all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 0;min-width:7.5rem;padding:.4rem .6rem .4rem 1.1rem;background:var(--hov);color:var(--mute);font-size:.78rem;display:flex;flex-direction:column;gap:.05rem;overflow:hidden;clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%,11px 50%)}
+.bp-stufe:first-child{clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%);padding-left:.7rem}
+.bp-stufe b{color:var(--ink);font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bp-stufe small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bp-stufe:hover{filter:brightness(.96)}.bp-stufe:focus-visible{outline:2px solid var(--y);outline-offset:-2px}
+.bp-stufe.ok{background:color-mix(in srgb,var(--ok,#1e8a4c) 18%,var(--card))}.bp-stufe.ok b::after{content:" ✓";color:var(--ok,#1e8a4c)}
+.bp-stufe.fehlt{background:color-mix(in srgb,var(--red,#c62f2a) 14%,var(--card))}.bp-stufe.fehlt small{color:var(--red,#c62f2a)}
+.bp-stufe.cur{background:var(--y);color:var(--on)}.bp-stufe.cur b,.bp-stufe.cur small{color:var(--on)}
+.bp-stufe.cur.ok{background:var(--ok,#1e8a4c);color:#fff}.bp-stufe.cur.ok b,.bp-stufe.cur.ok small,.bp-stufe.cur.ok b::after{color:#fff}
+.bp-stufe.cur.fehlt{background:var(--red,#c62f2a);color:#fff}.bp-stufe.cur.fehlt b,.bp-stufe.cur.fehlt small{color:#fff}
+.bp-stufe.ab{background:var(--red,#c62f2a);color:#fff}.bp-stufe.ab b{color:#fff}

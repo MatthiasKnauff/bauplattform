@@ -33,7 +33,7 @@ function ablaufHtml() {
     angebot: st === 'abgelehnt' ? 'abgelehnt' + ((ab.abgelehnt || {}).datum ? ' ' + deD(ab.abgelehnt.datum) : '') : ag.gesendet ? 'gesendet ' + deD(ag.gesendet) : (VS && VS.aid === AID && VS.versionen.length ? VS.versionen.length + ' Version(en)' : ''),
     beauftragt: au.datum ? deD(au.datum) + (au.durch ? ' · ' + (DURCH[au.durch] || au.durch) : '') : '', vertrag: vt.datum ? deD(vt.datum) : '',
     abrechnung: k && k.erbracht ? 'erbracht ' + eur0(k.erbracht) : '', abgeschlossen: '' };
-  const flow = STUFEN.map((s, i) => `<button type="button" class="hab-s${i < cur ? ' ok' : i === cur ? (st === 'abgelehnt' ? ' ab' : ' cur') : ''}" data-stufe="${s}" title="Stufe „${esc(L.status[s])}“ setzen"><b>${esc(L.status[s])}</b><small>${esc(sub[s] || (i === cur ? 'jetzt' : i === cur + 1 ? 'als Nächstes' : '–'))}</small></button>`).join('');
+  const flow = STUFEN.map((s, i) => `<button type="button" class="bp-stufe${i < cur ? ' ok' : i === cur ? (st === 'abgelehnt' ? ' ab' : ' cur') : ''}" data-stufe="${s}" title="Stufe „${esc(L.status[s])}“ setzen"><b>${esc(L.status[s])}</b><small>${esc(sub[s] || (i === cur ? 'jetzt' : i === cur + 1 ? 'als Nächstes' : '–'))}</small></button>`).join('');
   const tag = (i) => (i < cur ? 'erledigt' : i === cur ? 'aktuell' : i === cur + 1 ? 'nächster Schritt' : 'später');
   const z = (s, f, label, typ = 'text', ph = '') => `<label>${esc(label)}<input${typ === 'date' ? ' type="date"' : ''} data-ab="${s}.${f}" value="${esc((ab[s] || {})[f] || '')}"${ph ? ` placeholder="${esc(ph)}"` : ''}></label>`;
   const seg = (s, f, W) => `<span class="seg" role="group">${Object.entries(W).map(([v, t]) => `<button type="button" data-abseg="${s}.${f}" data-v="${v}" class="${(ab[s] || {})[f] === v ? 'on' : ''}">${esc(t)}</button>`).join('')}</span>`;
@@ -57,7 +57,7 @@ function ablaufHtml() {
         <label class="w">Notiz<input data-ab="abrechnung.notiz" value="${esc(ar.notiz || '')}" placeholder="z. B. Abschläge nach Zahlungsplan"></label>`,
       (cur === 4 ? weiter('abgeschlossen', 'Abgeschlossen ›') : '') + (cur >= 2 ? reKnoepfe() : '')),
   ];
-  return `<div class="ho-k hab-flow" role="group" aria-label="Ablauf">${flow}</div><div class="hab-r">${karten.join('')}</div>${reHtml()}`;
+  return `<div class="bp-stufen hab-flow" role="group" aria-label="Ablauf">${flow}</div><div class="hab-r">${karten.join('')}</div>${reHtml()}`;
 }
 
 /* Speichern mit Rückgängig: Stufe und Angaben; der alte Stand wird feldgenau gemerkt (null = Feld war leer) */

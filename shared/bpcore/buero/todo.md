@@ -69,6 +69,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Pfeil-Kästen als Baustein (bp.css .bp-stufen): Honorar-Ablauf und Bauantrag-Schritte gleich – im Bauantrag grün = vollständig, rot = offen, gewählter Schritt kräftig~~
 - ~~Honorar und Bauantrag: „＋ Neuer Auftrag“ bzw. „＋ Neuer Antrag“ links in der Navigation wie „＋ Neues LV“ in der Ausschreibung (statt „Neu“ in der Befehlsleiste)~~
 - ~~Ein Druck für alles: Druckseite im Baukasten (druck.js, bpDruck – links ankreuzen, rechts Vorschau, dann Viewer mit Drucken/Teilen); Honorar (Angebot/Aufstellung, Vertrag, Rechnungen) und Bauantrag (Anschreiben, Deckblatt, Trennblätter, Unterlagen) nutzen sie~~
 - ~~Bauantrag als komplettes Paket (Schritt 6): Anschreiben an die Bauaufsicht (Behörde aus den Adressen, Ansprechpartner:in, Aktenzeichen, Ausfertigungen, Text mit Vorschlag; Druck-Layout „Bauantrag – Anschreiben“), Deckblatt mit Inhaltsverzeichnis und Seitenzahlen, Häkchenliste weiterer Unterlagen mit Ergänzen, fünf Trennblätter (umbenennen, an/aus, ziehen); Knöpfe in Schritt 1 nebeneinander~~

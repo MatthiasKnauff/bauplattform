@@ -75,14 +75,7 @@ body.ho-handy #view{padding:0 0 3rem}
 .ho-vn{border:0;background:none;font:inherit;font-weight:600;color:inherit;cursor:text;padding:0}.ho-vn:hover{text-decoration:underline}
 .ho-va{margin-left:auto;display:flex;gap:.3rem}.ho-v .btn.on{border-color:var(--ok,#1e8a4c);color:var(--ok,#1e8a4c)}
 /* Ablauf (honorar-ablauf.js): Stufen als Pfeilleiste, darunter je Stufe eine Karte */
-.hab-flow{display:flex;gap:0;overflow-x:auto;padding:.35rem}
-.hab-s{all:unset;box-sizing:border-box;cursor:pointer;flex:1;min-width:7.5rem;padding:.4rem .6rem .4rem 1.1rem;background:var(--hov);color:var(--mute);font-size:.78rem;display:flex;flex-direction:column;gap:.05rem;clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%,11px 50%)}
-.hab-s:first-child{clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%);padding-left:.7rem}
-.hab-s b{color:var(--ink);font-size:.86rem;white-space:nowrap}.hab-s small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hab-s:hover{filter:brightness(.96)}.hab-s:focus-visible{outline:2px solid var(--y);outline-offset:-2px}
-.hab-s.ok{background:color-mix(in srgb,var(--ok,#1e8a4c) 18%,var(--card))}.hab-s.ok b::after{content:" ✓";color:var(--ok,#1e8a4c)}
-.hab-s.cur{background:var(--y);color:var(--on)}.hab-s.cur b{color:var(--on)}
-.hab-s.ab{background:var(--red);color:#fff}.hab-s.ab b{color:#fff}
+/* Ablauf-Kästen: Baustein .bp-stufen (bp.css) */
 .hab-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,19rem),1fr));gap:.8rem}
 .hab-k{display:flex;flex-direction:column}.hab-k h3{display:flex;gap:.4rem;align-items:center}.hab-k h3 .mute{margin-left:auto;font-weight:400;font-size:.75rem}
 .hab-k .ho-f label{flex:1 1 9rem}.hab-k .ho-f input{min-width:0;width:100%;box-sizing:border-box}

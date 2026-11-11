@@ -35,6 +35,12 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .rfest{margin-left:auto;align-self:center;border:1px solid var(--line);background:var(--card);color:var(--mute);border-radius:calc(999px*var(--rkp,1));padding:.3rem .8rem;font:inherit;font-size:.82rem;cursor:pointer}.rfest.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:600}.rfest[hidden]{display:none}
 .ri-plus{display:flex;align-items:center;justify-content:center;gap:.3rem;border:2px dashed var(--line);border-radius:calc(10px*var(--rk,1));background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer}.ri-plus:hover{border-color:var(--y);color:var(--y)}.ri-plus small{font-weight:400}
 .raster.touchzieh{touch-action:none}
+.rge{position:absolute;top:-11px;left:10px;z-index:3;display:none;gap:.25rem;font-size:.72rem}.raster:not(.fest):not(.handy) .rge{display:inline-flex}
+.rge label{display:inline-flex;gap:.25rem;align-items:center;border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:0 .4rem;background:var(--card);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.12)}.rge input{margin:0;accent-color:var(--y)}
+.ri.nur-h>*:not(.rge){opacity:.45}
+.kb-art{font-size:.66rem;border-radius:calc(4px*var(--rk,1));padding:0 .3rem;color:#fff;margin-right:.35rem;font-weight:600;vertical-align:1px}
+.kb-w{display:flex;flex-wrap:wrap;gap:.3rem;padding:.2rem 0 .5rem;margin-bottom:.3rem;border-bottom:1px dashed var(--line)}.kb-c{display:inline-flex;align-items:center;gap:.3rem;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.1rem .55rem;font-size:.8rem;cursor:pointer;background:var(--card);user-select:none}.kb-c input{position:absolute;opacity:0;pointer-events:none}.kb-c::after{content:"✓";color:transparent}.kb-c:has(input:checked){border-color:var(--y);color:var(--y)}.kb-c:has(input:checked)::after{color:var(--y)}.kb-c:has(input:focus-visible){outline:2px solid var(--y)}
+.kb-e{border:0;background:none;color:var(--mute);cursor:pointer;font:inherit;padding:0 .2rem}.kb-e:hover,.kb-e.on{color:var(--y)}.raster.fest .kb-e{display:inline}
 .wx-p{margin-left:.4rem;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:calc(999px*var(--rkp,1));padding:0 .55rem;font:inherit;font-size:.74rem;font-weight:400;cursor:pointer;max-width:14rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wx-p:hover{border-color:var(--y);color:var(--y)}
 .wx-sub{margin:.1rem 0 .4rem;color:var(--mute);font-size:.78rem}
 .wx-bz,.wx-ks{display:block;color:inherit;text-decoration:none}
@@ -170,8 +176,14 @@ const WX = { bauzeit: { name: 'Bauzeitenplan', app: 'gantt', ic: ['▤', '#1f9d4
   honorar: { name: 'Honorarstand', app: 'honorar', ic: ['§', '#6d4bd8'], d: [4, 4] } };
 const wxTyp = (i) => (String(i).match(/^w:(bauzeit|kosten|honorar)(\.\d+)?$/) || [])[1];
 const wxOk = (t) => APPS.some((a) => a.key === WX[t].app && a.allowed);
+/* „Erinnerungen & Fristen“: alles Fällige in einem Widget, je Widget wählbar, was hinein soll (o.arten). Mehrere möglich: w:kombi.2 … */
+const kbTyp = (i) => /^w:kombi\.\d+$/.test(i);
+const kbOk = () => APPS.some((a) => a.key === 'aufgaben' && a.allowed);
+/* was jedes Widget zeigt – im Menü „＋ App / Widget“ */
+const WSUB = { 'w:todos': 'eigene Aufgaben – direkt anlegen und abhaken', 'w:zeiten': 'Mein Tag und offene Tage zum Bestätigen', 'w:post': 'Mails zu deinen Projekten mit Vorschlägen',
+  'w:bauzeit': 'die nächsten drei Wochen eines Projekts', 'w:kosten': 'Budget, Aufträge und Nachträge eines Projekts', 'w:honorar': 'Honorar, erbracht und Aufwand eines Projekts' };
 function rIds() {
-  const extra = ((RASTER && RASTER.items) || []).map((it) => it.i).filter((i) => /\.\d+$/.test(i) && wxTyp(i) && wxOk(wxTyp(i)));
+  const extra = ((RASTER && RASTER.items) || []).map((it) => it.i).filter((i) => /\.\d+$/.test(i) && (wxTyp(i) ? wxOk(wxTyp(i)) : kbTyp(i) && kbOk()));
   return [...APPS.map((a) => 'a:' + a.key), 'w:post', ...WB.map((b) => 'w:' + b.k), ...Object.keys(WX).filter(wxOk).map((t) => 'w:' + t), ...extra];
 }
 function rWeg() { return new Set((RASTER && RASTER.weg) || []); }
@@ -207,7 +219,7 @@ function rFreiRechts(L, w, h) {   // Widgets standardmäßig rechts neben der Po
 }
 let rSpeichernT = 0;
 function rSpeichern(L) {
-  RASTER = { items: L.map(({ i, x, y, w, h, o }) => (o ? { i, x, y, w, h, o } : { i, x, y, w, h })), weg: [...rWeg()], fest: rFest() };
+  RASTER = { items: L.map(({ i, x, y, w, h, o, nur }) => ({ i, x, y, w, h, ...(o ? { o } : {}), ...(nur ? { nur } : {}) })), weg: [...rWeg()], fest: rFest() };
   clearTimeout(rSpeichernT); rSpeichernT = setTimeout(() => api('api/bp/kacheln', 'PUT', { raster: RASTER }).catch((e) => toast(e.message, true)), 300);
 }
 const rStil = (it) => `grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}`;
@@ -216,27 +228,74 @@ function rKachel(k) {
   return `<a class="tile ${a.allowed ? '' : 'off'}" data-key="${esc(a.key)}" data-af="${esc(a.key)}" href="${a.key === 'papierkorb' ? 'papierkorb' : esc(appUrl(a)) + '/'}"${a.allowed ? '' : ' aria-disabled="true" tabindex="-1"'} draggable="false">
     <span class="ic">${ICONS[a.key]}</span><b>${esc(DESC[a.key][0])}</b><span class="d" title="${esc(a.allowed ? DESC[a.key][1] : '')}">${esc(a.allowed ? DESC[a.key][1] : 'Für dein Konto nicht freigeschaltet.')}</span></a>`;
 }
-const rName = (i) => (i[0] === 'a' ? (DESC[i.slice(2)] || [i])[0] : i === 'w:post' ? 'Post zu deinen Projekten' : wxTyp(i) ? WX[wxTyp(i)].name : ((WB.find((b) => 'w:' + b.k === i) || {}).name || i));
+const rName = (i) => (kbTyp(i) ? 'Erinnerungen & Fristen' : i[0] === 'a' ? (DESC[i.slice(2)] || [i])[0] : i === 'w:post' ? 'Post zu deinen Projekten' : wxTyp(i) ? WX[wxTyp(i)].name : ((WB.find((b) => 'w:' + b.k === i) || {}).name || i));
 function rasterZeigen() {
   const host = $('#raster'); if (!host) return;
   if (RZIEH) { RZIEH.spaeter = true; return; }   // nicht mitten im Ziehen neu aufbauen
   const L = rLayout(); if (RNEU) { RNEU = false; rSpeichern(L); }
   const post = $('#post'), todoAlt = null;
   const B = Object.fromEntries(WB.map((b) => ['w:' + b.k, b]));
-  const sort = L.slice().sort((p, q) => p.y - q.y || p.x - q.x);
+  const H = rHandy(), F = rFest();   // nur PC / nur Handy: am Handy weg, am PC gesperrt weg (Lücken zu), beim Anordnen blass
+  const D = H ? L.filter((it) => it.nur !== 'pc') : F ? rVerdichten(L.filter((it) => it.nur !== 'handy').map((it) => ({ ...it }))) : L;
+  const sort = D.slice().sort((p, q) => p.y - q.y || p.x - q.x);
   host.innerHTML = sort.map((it) => {
-    const x = `<button type="button" class="${it.i[0] === 'a' ? 'kx' : 'ue-x'}" data-rx="${esc(it.i)}" title="ausblenden (über „＋ App / Widget“ wieder holen)" aria-label="${esc(rName(it.i))} ausblenden">✕</button><span class="rz" data-rz title="Größe ändern: ziehen" aria-hidden="true"></span>`;
+    const ge = H ? '' : `<span class="rge" title="Wo dieses ${it.i[0] === 'a' ? 'App-Symbol' : 'Widget'} erscheint"><label><input type="checkbox" data-rge="pc:${esc(it.i)}"${it.nur !== 'handy' ? ' checked' : ''}>🖥 PC</label><label><input type="checkbox" data-rge="handy:${esc(it.i)}"${it.nur !== 'pc' ? ' checked' : ''}>📱 Handy</label></span>`;
+    return rTeil(it, B, ge + `<button type="button" class="${it.i[0] === 'a' ? 'kx' : 'ue-x'}" data-rx="${esc(it.i)}" title="ausblenden (über „＋ App / Widget“ wieder holen)" aria-label="${esc(rName(it.i))} ausblenden">✕</button><span class="rz" data-rz title="Größe ändern: ziehen" aria-hidden="true"></span>`).replace('class="ri ', `class="ri${it.nur === 'handy' && !H ? ' nur-h' : ''} `);
+  }).join('') + `<button type="button" class="ri ri-plus" data-rplus style="${rStil({ ...rFrei(D, 3, 1), w: 3, h: 1 })}" title="Ausgeblendete Apps und Widgets wieder auf die Startseite holen">＋ App / Widget${rWegZahl() ? ` <small>(${rWegZahl()})</small>` : ''}</button>`;
+  const pz = host.querySelector('.ri-post'); if (pz && post) pz.insertBefore(post, pz.firstChild);
+  D.filter((it) => wxTyp(it.i)).forEach((it) => wxLaden(it));
+  host.classList.toggle('handy', H); rFestZeigen();
+}
+/* ausgeblendet: ganz (weg) oder am Handy nur am PC gezeigte */
+const rWegZahl = () => rWeg().size + (rHandy() ? rLayout().filter((it) => it.nur === 'pc').length : 0);
+function rTeil(it, B, x) {
+    if (kbTyp(it.i)) return `<div class="ri ri-w" data-ri="${esc(it.i)}" style="${rStil(it)}">${kbHtml(it)}${x}</div>`;
     if (it.i[0] === 'a') return `<div class="ri ri-a" data-ri="${esc(it.i)}" style="${rStil(it)}">${rKachel(it.i.slice(2))}${x}</div>`;
     if (it.i === 'w:post') return `<div class="ri ri-w ri-post" data-ri="w:post" style="${rStil(it)}">${x}</div>`;
     if (wxTyp(it.i)) { const T = WX[wxTyp(it.i)], pid = wxPid(it), pn = wxPName(pid, it);
       return `<div class="ri ri-w" data-ri="${esc(it.i)}" style="${rStil(it)}"><section class="ue-b wx"><h3><span class="ue-ic" style="background:${T.ic[1]}">${T.ic[0]}</span>${esc(T.name)}<button type="button" class="wx-p" data-wxp="${esc(it.i)}" title="Projekt wählen: aktuelles oder ein festes">${esc(pn)} ▾</button><span class="ue-grip" title="Widget verschieben: ziehen">⋮⋮</span></h3><div class="wx-in" data-wxin="${esc(it.i)}">${(WXC[wxTyp(it.i) + ':' + pid] || {}).html || (pid ? '<p class="mute">lädt …</p>' : '<p class="mute">Oben ein Projekt wählen – oder hier ▾ ein festes.</p>')}</div></section>${x}</div>`; }
     const b = B[it.i]; if (!b) return '';
     return `<div class="ri ri-w" data-ri="${esc(it.i)}" style="${rStil(it)}">${ueBlockHtml(b).replace(' draggable="true"', '').replace(/<button type="button" class="ue-x"[^>]*>✕<\/button>/, '')}${x}</div>`;
-  }).join('') + `<button type="button" class="ri ri-plus" data-rplus style="${rStil({ ...rFrei(L, 3, 1), w: 3, h: 1 })}" title="Ausgeblendete Apps und Widgets wieder auf die Startseite holen">＋ App / Widget${rWeg().size ? ` <small>(${rWeg().size})</small>` : ''}</button>`;
-  const pz = host.querySelector('.ri-post'); if (pz && post) pz.insertBefore(post, pz.firstChild);
-  L.filter((it) => wxTyp(it.i)).forEach((it) => wxLaden(it));
-  host.classList.toggle('handy', rHandy()); rFestZeigen();
 }
+/* ---------- Erinnerungen & Fristen ---------- */
+let KOMBI = { gruppen: [], erin: null };   // aus deskZeigen: Hinweise je Regel und eigene Erinnerungen
+const KBOFFEN = new Set();   // Widgets mit aufgeklappter Auswahl
+const KB_KURZ = { maengel: 'Mangel', erinnerungen: 'Erinnerung', rechnungen: 'Rechnung', skonto: 'Skonto', nachtraege: 'Nachtrag', vergabe: 'Vergabe', firma: 'Firma', terminruege: 'Terminrüge', verzug: 'Verzug',
+  planversand: 'Plan', vorort: 'Besuch', tagesbericht: 'Bericht', budget: 'Budget', urlaub: 'Urlaub', post: 'Post', erin: 'Erinnerung' };
+function kbArten() {   // zur Wahl: eingeschaltete Regeln für mich + was gerade Hinweise hat + eigene Erinnerungen
+  const R = (TDREF && TDREF.regeln || []).filter((r) => r.an && (r.fuer === 'alle' || (r.fuer || []).includes(TDREF.ich))).map((r) => ({ k: r.key, name: r.name }));
+  KOMBI.gruppen.forEach((g) => { if (!R.some((r) => r.k === g.key)) R.push({ k: g.key, name: g.name }); });
+  if (KOMBI.erin) R.unshift({ k: 'erin', name: 'Meine Erinnerungen' });
+  return R;
+}
+function kbHtml(it) {
+  const A = kbArten(), an = new Set(it.o && it.o.arten ? it.o.arten : A.map((a) => a.k)), Z = [];
+  const marke = (k) => { const [, f] = BLK_IC[k] || ['', '#777']; return `<span class="kb-art" style="background:${f}">${esc(KB_KURZ[k] || k)}</span>`; };
+  KOMBI.gruppen.filter((g) => an.has(g.key)).forEach((g) => g.offen.forEach((x) => Z.push({ f: x.f || '', prio: x.prio, html: tdZeile(x).replace('<b>', '<b>' + marke(g.key)).replace(/<span class="rg"[^>]*>.*?<\/span>(?: · )?/, '') })));
+  if (KOMBI.erin && an.has('erin')) KOMBI.erin.forEach((x) => Z.push({ f: x.termin || '', html: x.html.replace('<span class="ue-t">', '<span class="ue-t">' + marke('erin')) }));
+  Z.sort((p, q) => (q.prio || 0) - (p.prio || 0) || (p.f || '9').localeCompare(q.f || '9'));
+  const id = it.i, wahl = `<div class="kb-w"${KBOFFEN.has(id) ? '' : ' hidden'}>${A.map((a) => `<label class="kb-c"><input type="checkbox" data-kbart="${esc(id)}|${esc(a.k)}"${an.has(a.k) ? ' checked' : ''}>${esc(a.name)}</label>`).join('') || '<span class="mute">Unter ⚙ → To-dos Regeln einschalten.</span>'}</div>`;
+  const b = { k: id.slice(2), ic: ['🔔', '#b7791f'], name: 'Erinnerungen & Fristen', n: Z.length, rot: Z.some((z) => z.f && z.f < tdHeute()), max: 6, html: wahl, items: Z.map((z) => z.html), leer: 'nichts fällig 🎉' };
+  return ueBlockHtml(b).replace(' draggable="true"', '').replace(/<button type="button" class="ue-x"[^>]*>✕<\/button>/, '')
+    .replace('<span class="ue-grip"', `<button type="button" class="kb-e${KBOFFEN.has(id) ? ' on' : ''}" data-kbe="${esc(id)}" title="Auswählen, was in diesem Widget erscheint">⚙</button><span class="ue-grip"`);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-kbe]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const id = b.dataset.kbe; if (KBOFFEN.has(id)) KBOFFEN.delete(id); else KBOFFEN.add(id); rasterZeigen(); if (TD) tdZeigen();
+}, true);
+document.addEventListener('change', (e) => {
+  const c = e.target.closest && e.target.closest('[data-kbart]');
+  if (c) { const [id, k] = c.dataset.kbart.split('|'), L = rLayout(), it = L.find((r) => r.i === id); if (!it) return;
+    const A = kbArten().map((a) => a.k), an = new Set(it.o && it.o.arten ? it.o.arten : A); if (c.checked) an.add(k); else an.delete(k);
+    it.o = { ...(it.o || {}), arten: A.filter((a) => an.has(a)) }; rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); return; }
+  const g = e.target.closest && e.target.closest('[data-rge]'); if (!g) return;   // 🖥 PC / 📱 Handy
+  const [wo, ...r] = g.dataset.rge.split(':'), id = r.join(':'), alt = JSON.parse(JSON.stringify(RASTER)), L = rLayout(), it = L.find((x) => x.i === id); if (!it) return;
+  const box = g.closest('.rge'), pc = box.querySelector('[data-rge^="pc:"]').checked, hy = box.querySelector('[data-rge^="handy:"]').checked;
+  if (!pc && !hy) { if (!/\.\d+$/.test(id)) RASTER.weg = [...rWeg(), id]; rSpeichern(rVerdichten(L.filter((x) => x.i !== id))); rasterZeigen(); if (TD) tdZeigen();
+    rueckgaengig(`„${rName(id)}“ ausgeblendet`, () => { RASTER = alt; rSpeichern(rLayout()); rasterZeigen(); if (TD) tdZeigen(); }); return; }
+  if (pc && hy) delete it.nur; else it.nur = pc ? 'pc' : 'handy';
+  rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); toast(`„${rName(id)}“: ${pc && hy ? 'am PC und am Handy' : pc ? 'nur am PC' : 'nur am Handy'}.`);
+});
 /* ---------- eigene Widgets: Bauzeitenplan (Handyansicht), Kostenstand ---------- */
 const WXC = {}; let WXP = null, WXPL = null;   // WXC: Inhalt je Typ:Projekt (mit Zeit) · WXP: Projektliste für ▾
 const wxPid = (it) => (it.o && it.o.p) || (window.BPHead && BPHead.projektId && BPHead.projektId()) || 0;
@@ -330,16 +389,28 @@ $('#raster').addEventListener('click', (e) => {
   if (RSPERRE) { e.preventDefault(); e.stopPropagation(); RSPERRE = false; return; }
   const x = e.target.closest('[data-rx]');
   if (x) { e.preventDefault(); e.stopPropagation(); const i = x.dataset.rx, alt = JSON.parse(JSON.stringify(RASTER));
-    const L = rLayout().filter((r) => r.i !== i); if (!/\.\d+$/.test(i)) RASTER.weg = [...rWeg(), i]; rSpeichern(rVerdichten(L)); rasterZeigen();
+    const L0 = rLayout(), it = L0.find((r) => r.i === i);
+    if (rHandy() && it && it.nur !== 'handy') { it.nur = 'pc'; rSpeichern(L0); rasterZeigen(); if (TD) tdZeigen();   // am Handy: nur hier ausblenden, am PC bleibt es
+      rueckgaengig(`„${rName(i)}“ am Handy ausgeblendet`, () => { RASTER = alt; rSpeichern(rLayout()); rasterZeigen(); if (TD) tdZeigen(); }); return; }
+    const L = L0.filter((r) => r.i !== i); if (!/\.\d+$/.test(i)) RASTER.weg = [...rWeg(), i]; rSpeichern(rVerdichten(L)); rasterZeigen();
     rueckgaengig(`„${rName(i)}“ ausgeblendet`, () => { RASTER = alt; rSpeichern(rLayout()); rasterZeigen(); }); return; }
   const p = e.target.closest('[data-rplus]');
-  if (p) { const weg = [...rWeg()].filter((i) => rIds().includes(i));
-    const neu = Object.keys(WX).filter(wxOk).map((t) => ({ value: 'neu:' + t, title: `${WX[t].name} – weiteres Widget`, sub: 'z. B. für ein zweites Projekt', group: 'Weitere Widgets' }));
-    pickMenu(p, { items: weg.map((i) => ({ value: i, title: rName(i), group: i[0] === 'a' ? 'Apps' : 'Widgets', sub: i[0] === 'a' ? (DESC[i.slice(2)] || [, ''])[1] : '' })).concat(neu), empty: 'Alles ist schon auf der Startseite.',
+  if (p) { const einzeln = new Set(WB.filter((b) => b.regel).map((b) => 'w:' + b.k));   // einzelne Hinweis-Blöcke stecken jetzt in „Erinnerungen & Fristen“
+    const weg = [...rWeg()].filter((i) => rIds().includes(i) && !einzeln.has(i)), LL = rLayout(), nurPc = rHandy() ? LL.filter((it) => it.nur === 'pc').map((it) => it.i) : [];
+    const ORD = ['', 'ein', 'zweites', 'drittes', 'viertes', 'fünftes'];
+    const neu = Object.keys(WX).filter(wxOk).map((t) => { const da = LL.filter((it) => wxTyp(it.i) === t); if (!da.length) return null;
+      const pn = da.map((it) => (it.o && it.o.p ? wxPName(wxPid(it), it) : 'das aktuelle Projekt')).join(', ');
+      return { value: 'neu:' + t, title: `${WX[t].name} · ${ORD[da.length + 1] || 'weiteres'} Projekt`, sub: `du hast schon ${da.length > 1 ? da.length : 'einen'} (${pn}) – dieser zeigt ein anderes Projekt`, group: 'Noch ein Projekt daneben' }; }).filter(Boolean);
+    const kb = kbOk() ? [{ value: 'neu:kombi', title: 'Erinnerungen & Fristen', sub: 'alles Fällige in einer Liste – du wählst, was hinein soll' + (LL.some((it) => kbTyp(it.i)) ? ' (noch eins, z. B. „Geld“ und „Baustelle“)' : ''), group: 'Widgets' }] : [];
+    const sub = (i) => (i[0] === 'a' ? (DESC[i.slice(2)] || [, ''])[1] : WSUB[i.replace(/\.\d+$/, '')] || (i === 'w:erin' ? 'deine Erinnerungen der nächsten 7 Tage' : ''));
+    pickMenu(p, { items: [...nurPc.map((i) => ({ value: 'h:' + i, title: rName(i), sub: 'am Handy ausgeblendet – wieder zeigen', group: 'Am Handy ausgeblendet' })),
+      ...weg.filter((i) => i[0] === 'a').map((i) => ({ value: i, title: rName(i), group: 'Apps', sub: sub(i) })), ...kb,
+      ...weg.filter((i) => i[0] !== 'a').map((i) => ({ value: i, title: rName(i), group: 'Widgets', sub: sub(i) })), ...neu], empty: 'Alles ist schon auf der Startseite.',
       onPick: (i) => {
+        if (i.startsWith('h:')) { const L = rLayout(), it = L.find((r) => r.i === i.slice(2)); if (it) delete it.nur; rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); return; }
         if (i.startsWith('neu:')) { const t = i.slice(4), da = new Set(rLayout().map((r) => r.i)); let n = 2; while (da.has(`w:${t}.${n}`)) n++; i = `w:${t}.${n}`;
-          const L = rLayout(), [w, h] = WX[t].d; L.push({ i, ...rFrei(L, w, h), w, h }); rSpeichern(L); }
-        RASTER.weg = [...rWeg()].filter((y) => y !== i); const L = rLayout(); rSpeichern(L); rasterZeigen();
+          const L = rLayout(), [w, h] = t === 'kombi' ? [4, 5] : WX[t].d; L.push({ i, ...rFrei(L, w, h), w, h }); rSpeichern(L); if (t === 'kombi') KBOFFEN.add(i); }
+        RASTER.weg = [...rWeg()].filter((y) => y !== i); const L = rLayout(); rSpeichern(L); rasterZeigen(); if (TD) tdZeigen();
         const el = $('#raster').querySelector(`[data-ri="${CSS.escape(i)}"]`); if (el) { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el.classList.add('neu'); setTimeout(() => el.classList.remove('neu'), 1200); } } });
   }
 });
@@ -352,7 +423,7 @@ function rFestZeigen() {
   b.title = f ? 'Startseite ist gesperrt – klicken, um Kacheln und Widgets zu verschieben, zu vergrößern oder auszublenden' : 'Fertig – Startseite wieder sperren';
   H.classList.toggle('fest', f);
 }
-document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) return; const L = rLayout(); RASTER.fest = !rFest(); rSpeichern(L); rFestZeigen(); });
+document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) return; const L = rLayout(); RASTER.fest = !rFest(); rSpeichern(L); rasterZeigen(); if (TD) tdZeigen(); });   // neu zeichnen: „nur Handy“ ist am PC nur beim Anordnen zu sehen
 /* Ziehen: Kachel (überall) bzw. Widget am Kopf verschieben; Ecke ↘ ändert die Größe. Maus ab 6 px, Finger nach langem Drücken */
 (() => {
   const H = $('#raster'); let st = null, lang = 0;
@@ -573,10 +644,13 @@ function einfachZeigen(conf) {
       const x = g.offen.find((y) => y.link && !/^https?:/.test(y.link)), k = x && x.link.split(':')[0], ap = k && (conf.apps || []).find((y) => y.key === k && y.allowed);
       return ap && k !== 'aufgaben' ? appUrl(ap) + '/' : link('uebersicht');
     };
-    if (TD) tdAutoGruppen().forEach((g) => B.push({ k: g.key, name: g.name, n: g.offen.length, rot: g.offen.some((x) => x.f && x.f < tdHeute()), max: 4, items: g.offen.sort((x, y) => (y.prio || 0) - (x.prio || 0) || (x.f || '9').localeCompare(y.f || '9')).map(tdZeile), link: zielVon(g), linkText: 'Übersicht ›' }));
+    if (TD) tdAutoGruppen().forEach((g) => B.push({ k: g.key, regel: true, name: g.name, n: g.offen.length, rot: g.offen.some((x) => x.f && x.f < tdHeute()), max: 4, items: g.offen.sort((x, y) => (y.prio || 0) - (x.prio || 0) || (x.f || '9').localeCompare(y.f || '9')).map(tdZeile), link: zielVon(g), linkText: 'Übersicht ›' }));
+    KOMBI = { gruppen: TD ? tdAutoGruppen() : [], erin: null };
     if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(x.termin).localeCompare(String(y.termin)));
+      const zeile = (x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(x.termin ? new Date(x.termin + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></a>`;
+      KOMBI.erin = L.map((x) => ({ termin: x.termin, html: zeile(x) }));
       B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => x.lage === 'ueberfaellig'), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
-        items: L.map((x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(x.termin ? new Date(x.termin + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></a>`) }); }
+        items: L.map(zeile) }); }
     const za = zeitApp();
     if (ZEIT && za) { const zl = (h) => appUrl(za) + '/' + (h ? '#' + h : ''), O = ZEIT.offen || [], H = ZEIT.heute || {};
       const dk = (t) => new Date(t + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });

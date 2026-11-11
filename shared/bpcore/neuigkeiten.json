@@ -135,5 +135,21 @@
   "app": "",
   "titel": "Neue PDF-Ansicht",
   "text": "PDFs öffnen in einer Ansicht wie im gewohnten PDF-Programm: Zoom, Seitenvorschau am PC, Fingerzoom am Handy, Leisten blenden sich beim Lesen aus."
+ },
+ {
+  "id": "2026-11-11-kombi",
+  "datum": "2026-11-11",
+  "app": "portal",
+  "titel": "Erinnerungen & Fristen",
+  "text": "Neues Widget über „＋ App / Widget“: alles Fällige in einer Liste – Erinnerungen, Mängel, Rechnungen, Skonto … Mit ⚙ wählst du, was hinein soll. Auch mehrmals, z. B. „Geld“ und „Baustelle“.",
+  "ziel": ".ri-plus"
+ },
+ {
+  "id": "2026-11-11-pchandy",
+  "datum": "2026-11-11",
+  "app": "portal",
+  "titel": "Am PC und am Handy getrennt",
+  "text": "Beim Anordnen am PC hat jede Kachel und jedes Widget zwei Häkchen: 🖥 PC und 📱 Handy. Am Handy blendet ✕ nur dort aus.",
+  "ziel": "#rFest"
  }
 ]

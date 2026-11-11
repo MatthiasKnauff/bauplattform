@@ -5,7 +5,10 @@ main.ho{flex:1;min-height:0;display:flex}
 main.ho>.bp-nav{width:270px;flex:none;min-height:0}
 main.ho .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
 main.ho .bfl{flex:none;padding:.35rem .45rem 0}
+main.ho .ho-work{flex:1;min-height:0;display:flex}main.ho .ho-work.sr-split{display:grid;align-items:stretch;padding:0 .45rem .45rem}main.ho .ho-work>.sr-r{height:auto;min-height:0}
 #view{flex:1;min-height:0;overflow:auto;padding:.6rem 1rem 3rem}
+.ho-pdf{display:flex;flex-direction:column;height:100%;min-height:0}.ho-pk{display:flex;align-items:center;gap:.5rem;justify-content:space-between;padding:.35rem .45rem;font-size:.8rem}
+.ho-pdfs{flex:1;min-height:0;width:100%;box-sizing:border-box}.ho-pleer{color:var(--mute);padding:2rem 1rem;text-align:center}
 .ho-w{max-width:1100px;display:grid;gap:.8rem}
 .ho-k{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.9rem 1rem}
 .ho-k h3{margin:0 0 .6rem;font-size:1rem}
@@ -61,3 +64,7 @@ body.ho-handy #view{padding:0 0 3rem}
 .hh-li{display:grid;grid-template-columns:1fr auto;gap:.25rem .8rem;font-variant-numeric:tabular-nums}.hh-li>span:not(.hh-s){color:var(--mute)}.hh-li b{text-align:right}
 .hh-ab{font-size:.82rem;margin:0}.hh-nk{padding:.7rem}
 .hh-nkart{display:flex;margin-bottom:.5rem}.hh-nkart button{flex:1}.hh-betrag{font-size:1.4rem;text-align:right}
+/* neben der Vorschau: nichts läuft waagerecht über – Tabelle und Felder rücken zusammen */
+.ho-w{min-width:0}.ho-k{container-type:inline-size;min-width:0}
+@container (max-width:760px){.ho-t{font-size:.8rem}.ho-t th,.ho-t td{padding:.25rem .2rem}.ho-t input{width:3.2rem}.ho-t .vb{min-width:2.5rem}.ho-f .w{flex-basis:100%}.ho-satz{min-width:0;flex:1 1 100%}}
+@container (max-width:600px){.ho-t th:nth-child(8),.ho-t td:nth-child(8){display:none}}

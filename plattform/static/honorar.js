@@ -3,7 +3,7 @@
    in der Mitte der Auftrag: Grundlagen, Leistungsphasen mit Abgleich zur Zeiterfassung, Nebenkosten, Summe.
    Jede Änderung wird sofort gespeichert und kann über das Rückgängig-Dock zurückgenommen werden. Server: plattform/honorar.py. */
 let ME = null, L = null, D = null, AID = null;
-const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view');
+const NAV = $('#navL'), LEISTE = $('#bfl'), V = $('#view'), WORK = $('#work');
 const eur = (v) => (v == null ? '–' : (+v).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
 const eur0 = (v) => (v == null ? '–' : Math.round(+v).toLocaleString('de-DE') + ' €');
 const std = (m) => (m ? (m / 60).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' h' : '–');
@@ -44,6 +44,23 @@ function leiste() {
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Auftrag in den Papierkorb legen' })] },
   ]);
 }
+
+/* Bereich rechts: Vorschau des Angebots wie im Bautagebuch (alle Seiten, BPHead.pdfIn) – nach jeder Änderung neu */
+let PDFEL = null, PDFT = 0;
+function vorschau(sofort) {
+  clearTimeout(PDFT);
+  if (!PDFEL || !PDFEL.isConnected) return;
+  if (!D) { PDFEL.innerHTML = '<div class="ho-pleer">Kein Auftrag gewählt.</div>'; return; }
+  PDFT = setTimeout(() => {
+    PDFEL.innerHTML = `<div class="ho-pdf"><div class="ho-pk"><span class="mute">Vorschau – ${D.auftrag.status === 'angebot' ? 'Honorarangebot' : 'Honoraraufstellung'}</span><button type="button" class="btn sm" data-hopdf>↻ Neu laden</button></div><div class="ho-pdfs"></div></div>`;
+    BPHead.pdfIn(PDFEL.querySelector('.ho-pdfs'), `api/auftraege/${AID}/angebot.pdf?t=${Date.now()}`);
+  }, sofort ? 0 : 1200);
+}
+function bereich() {
+  if (!window.seite || (typeof HANDY !== 'undefined' && HANDY.matches)) return;
+  seite(WORK, 'ho', [{ id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } }], { start: 'pdf', w: 0.6, minL: 460 });
+}
+document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-hopdf]')) vorschau(true); });
 
 function zeichne() {
   if (typeof HANDY !== 'undefined' && HANDY.matches) return handyZeichne();   // Handy: eigene Ansicht (honorar-handy.js), nur ansehen
@@ -108,7 +125,11 @@ function zeichne() {
   const pos = V.scrollTop;
   V.innerHTML = `<div class="ho-w">${kopf}${warn}${haupt}${nk}${sum}</div>`;
   V.scrollTop = pos;
+  if (!WORK.querySelector(':scope > .sr-r')) bereich();
+  vorschau(VID !== AID);
+  VID = AID;
 }
+let VID = null;   // für welchen Auftrag die Vorschau zuletzt gezeichnet wurde (Wechsel: sofort, Änderung: kurz warten)
 
 /* Speichern mit Rückgängig: der alte Stand des Felds wird gemerkt */
 async function setzen(werte, text) {

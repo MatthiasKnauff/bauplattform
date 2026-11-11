@@ -382,7 +382,16 @@ async function openLv(id) {
   if (!L || L.id !== id) { LVSEL = new Set(); LVAKT = null; }
   L = await api('api/lv/' + id); LS.set('lv:' + pid, id); render(); histTrack();
 }
+/* Beauftragtes LV: die Positionen sind Vertragsinhalt – vor der ersten Änderung je LV warnen (Nachtrag ist meist der bessere Weg) */
+const VWARN = { ok: new Set(), still: false };
+async function vertragWarnen() {
+  const firma = (L.vergabe && L.vergabe.bieter) || L.auftragnehmer || 'die Firma';
+  const ja = await bpFrage(`Dieses LV ist an ${firma} beauftragt – die Positionen sind Vertragsinhalt.\nÄnderungen hier ändern den Auftrag rückwirkend; Aufmaß und Rechnungen rechnen mit den neuen Werten. Zusätzliche oder geänderte Leistungen besser als Nachtrag erfassen (Bereich „Aufträge“ → Nachtrag).`,
+    { ok: 'Trotzdem ändern', abbrechen: 'Rückgängig' });
+  if (!ja) histGo(-1);
+}
 function changed(draw = false) {
+  if (tab === 'lv' && L && !VWARN.still && !VWARN.ok.has(L.id) && typeof vergeben === 'function' && vergeben()) { VWARN.ok.add(L.id); setTimeout(vertragWarnen, 0); }
   histTrack();
   $('#save').textContent = 'Nicht gespeichert …';
   clearTimeout(saveT); saveT = setTimeout(saveNow, 800);

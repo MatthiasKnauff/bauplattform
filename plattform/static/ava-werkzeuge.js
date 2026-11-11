@@ -426,7 +426,7 @@ function histGo(dir) {
   const neu = { data: HIST.last, label: st.label }; to.push(neu);
   if (dir < 0) bpUndo.weg(st.u); else neu.u = bpUndo.push(st.label, () => histGo(-1), 'lv');   // gemeinsamer Verlauf (↶ unten) bleibt im Gleichschritt
   L.data = JSON.parse(st.data); HIST.last = st.data; HIST.t = 0;
-  changed(true); HIST.last = JSON.stringify(L.data); histUi(); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${st.label}`);   // Stand nach dem Neuberechnen – sonst zählt der nächste Schritt das als neue Änderung
+  VWARN.still = true; try { changed(true); } finally { VWARN.still = false; } HIST.last = JSON.stringify(L.data); histUi(); toast(`${dir < 0 ? 'Rückgängig' : 'Wiederholt'}: ${st.label}`);   // Stand nach dem Neuberechnen – sonst zählt der nächste Schritt das als neue Änderung
 }
 function histUi() { bpUndo.zeichnen(); }   // ein gemeinsamer Verlauf unten (bp.js) für LV, Feldänderungen und Türliste
 /* ↷ im gemeinsamen Verlauf: je Bereich der passende eigene Wiederholen-Stapel */

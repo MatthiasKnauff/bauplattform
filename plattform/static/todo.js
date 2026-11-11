@@ -199,9 +199,10 @@ document.addEventListener('submit', async (e) => {
   catch (er) { toast(er.message, true); }
 });
 document.addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-td],[data-tp]'); if (!b || !b.closest('#todo')) return;
+  const b = e.target.closest('[data-td],[data-tp]'); if (!b || !b.closest('#todo, .ue-b[data-blk]')) return;   // auch in den Widgets der automatischen Hinweise (Startseite)
   if (b.dataset.tp) { b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); return; }
-  const a = b.dataset.td, row = b.closest('[data-tk]'), x = row && tdFinde(row.dataset.tk);
+  const row = b.closest('[data-tk]'), x = row && tdFinde(row.dataset.tk);
+  const a = b.dataset.td === 'erin' && !b.closest('#todo') ? 'oeffnen' : b.dataset.td;   // im Widget: Erinnerung in „Aufgaben & Mängel“ öffnen
   if (a === 'einst') { if (window.BPHead && BPHead.einstellungen) BPHead.einstellungen({ bereich: 'app', teil: 'todo' }); return; }
   if (a === 'zeig') { TDZEIG[b.dataset.w] = !TDZEIG[b.dataset.w]; tdZeigen(); return; }
   if (a === 'zu') { TDOFFEN = null; tdZeigen(); return; }
@@ -387,7 +388,8 @@ function ueInit(key, lade) { UE.key = key; UE.order = ueLS.get('order', []); UE.
 const ueSort = (B) => { const pos = (k) => { const i = UE.order.indexOf(k); return i < 0 ? 1e3 : i; }; return B.slice().sort((a, b) => pos(a.k) - pos(b.k)); };
 function ueBlockHtml(b) {
   const [ic, farbe] = BLK_IC[b.k] || b.ic || ['•', '#777'], max = UE.mehr.has(b.k) ? 1e9 : (b.max || 5), items = b.items || [], rest = items.length - Math.min(items.length, max);
-  return `<section class="ue-b${b.breit ? ' w2' : ''}" data-blk="${esc(b.k)}" draggable="true"><h3><span class="ue-ic" style="background:${farbe}">${ic}</span>${esc(b.name)}<span class="ue-n${b.rot ? ' rot' : ''}">${b.n || 0}</span><span class="ue-grip" title="Widget verschieben: ziehen (am Handy lange drücken)">⋮⋮</span><button type="button" class="ue-x" data-uex="${esc(b.k)}" title="Widget ausblenden (über „＋ Widget hinzufügen“ wieder holen)" aria-label="${esc(b.name)} ausblenden">✕</button></h3>
+  const nm = b.link ? `<a class="ue-hl" href="${esc(b.link)}" title="${esc(b.linkText ? b.linkText.replace(/\s*›$/, '') : 'Öffnen')}">${esc(b.name)}</a>` : b.ziel ? `<button type="button" class="ue-hl" data-uetab="${esc(b.ziel)}">${esc(b.name)}</button>` : esc(b.name);   // Überschrift führt in den Hauptbereich
+  return `<section class="ue-b${b.breit ? ' w2' : ''}" data-blk="${esc(b.k)}" draggable="true"><h3><span class="ue-ic" style="background:${farbe}">${ic}</span>${nm}<span class="ue-n${b.rot ? ' rot' : ''}">${b.n || 0}</span><span class="ue-grip" title="Widget verschieben: ziehen (am Handy lange drücken)">⋮⋮</span><button type="button" class="ue-x" data-uex="${esc(b.k)}" title="Widget ausblenden (über „＋ Widget hinzufügen“ wieder holen)" aria-label="${esc(b.name)} ausblenden">✕</button></h3>
     ${b.html || ''}${items.length ? items.slice(0, max).join('') : b.html ? '' : `<p class="mute ue-leer">${esc(b.leer || 'nichts offen 🎉')}</p>`}
     ${rest > 0 ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">alle ${items.length} anzeigen ›</button>` : UE.mehr.has(b.k) && items.length > (b.max || 5) ? `<button type="button" class="ue-mehr" data-uemehr="${esc(b.k)}">weniger</button>` : ''}
     ${b.ziel ? `<button type="button" class="ue-mehr" data-uetab="${esc(b.ziel)}">${esc(b.zielText || 'zum Reiter ›')}</button>` : ''}${b.link ? `<a class="ue-mehr" href="${esc(b.link)}">${esc(b.linkText || 'alle ›')}</a>` : ''}${b.mehr ? `<span class="mute ue-leer">${esc(b.mehr)}</span>` : ''}</section>`;
@@ -453,6 +455,7 @@ document.addEventListener('dragend', () => { UEZ = null; document.querySelectorA
   document.addEventListener('contextmenu', (e) => { if (st || geist) e.preventDefault(); }, true);
 })();
 (() => { const st = document.createElement('style'); st.textContent = `.ue-top{display:flex;align-items:center;gap:1rem;margin:0 0 .8rem;flex-wrap:wrap}.ue-top .fill{flex:1}
+.ue-hl{color:inherit;text-decoration:none;background:none;border:0;padding:0;font:inherit;cursor:pointer}.ue-hl:hover{text-decoration:underline;color:var(--y)}
 .ue-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem;align-items:start}
 .ue-b{background:var(--card);border:1px solid var(--line);border-radius:calc(12px*var(--rk,1));padding:.6rem .8rem .5rem;min-width:0;position:relative}.ue-b.w2{grid-column:span 2}
 .ue-b h3{margin:0 0 .4rem;font-size:.95rem;display:flex;align-items:center;gap:.5rem;cursor:grab}.ue-b h3:active{cursor:grabbing}

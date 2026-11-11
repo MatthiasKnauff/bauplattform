@@ -557,8 +557,12 @@ function einfachZeigen(conf) {
   async function erinLaden() { const a = aufgApp(); if (!a) return; try { ERIN = await api(appUrl(a) + '/api/erinnerungen?scope=mine'); } catch { ERIN = null; } deskZeigen(); }
   function deskZeigen() {
     const a = aufgApp(), link = (h) => (a ? appUrl(a) + '/#' + h : '');
-    const B = [{ k: 'todos', name: 'Meine To-dos', html: '<section class="todo" id="todo"></section>', n: TD ? tdAlle().offen.length : 0 }];
-    if (TD) tdAutoGruppen().forEach((g) => B.push({ k: g.key, name: g.name, n: g.offen.length, rot: g.offen.some((x) => x.f && x.f < tdHeute()), max: 4, items: g.offen.sort((x, y) => (y.prio || 0) - (x.prio || 0) || (x.f || '9').localeCompare(y.f || '9')).map(tdZeile), link: link('uebersicht'), linkText: 'Übersicht ›' }));
+    const B = [{ k: 'todos', name: 'Meine To-dos', html: '<section class="todo" id="todo"></section>', n: TD ? tdAlle().offen.length : 0, link: link('todos') }];
+    const zielVon = (g) => {   // Überschrift eines Hinweis-Widgets: in die App, in die die Hinweise führen (z. B. Nachträge → Ausschreibung), sonst Übersicht
+      const x = g.offen.find((y) => y.link && !/^https?:/.test(y.link)), k = x && x.link.split(':')[0], ap = k && (conf.apps || []).find((y) => y.key === k && y.allowed);
+      return ap && k !== 'aufgaben' ? appUrl(ap) + '/' : link('uebersicht');
+    };
+    if (TD) tdAutoGruppen().forEach((g) => B.push({ k: g.key, name: g.name, n: g.offen.length, rot: g.offen.some((x) => x.f && x.f < tdHeute()), max: 4, items: g.offen.sort((x, y) => (y.prio || 0) - (x.prio || 0) || (x.f || '9').localeCompare(y.f || '9')).map(tdZeile), link: zielVon(g), linkText: 'Übersicht ›' }));
     if (ERIN) { const R = { ueberfaellig: 0, heute: 1, bald: 2 }, L = (ERIN.items || []).filter((x) => R[x.lage] != null).sort((x, y) => R[x.lage] - R[y.lage] || String(x.termin).localeCompare(String(y.termin)));
       B.push({ k: 'erin', name: 'Erinnerungen', n: L.length, rot: L.some((x) => x.lage === 'ueberfaellig'), max: 5, link: link('erinnerungen'), linkText: 'alle Erinnerungen ›', leer: 'nichts in den nächsten 7 Tagen',
         items: L.map((x) => `<a class="ue-r" href="${esc(link('erinnerungen'))}" style="text-decoration:none;color:inherit"><span class="ue-t">${esc(x.titel || '')}<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}</small></span><span class="ue-d${x.lage === 'ueberfaellig' ? ' rot' : ''}">${esc(x.termin ? new Date(x.termin + 'T12:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : '')}${x.uhrzeit ? ' ' + esc(x.uhrzeit) : ''}</span></a>`) }); }
@@ -572,6 +576,8 @@ function einfachZeigen(conf) {
     UE._B = B; WB = B; rasterZeigen();   // Widgets liegen im Raster der Startseite
     if (TD) tdZeigen();
   }
+  { const tdZeigenAlt = tdZeigen; let inDesk = false;   // Abhaken/Zurückstellen in einem Hinweis-Widget: auch die Widgets neu zeichnen
+    tdZeigen = function () { tdZeigenAlt(); if (inDesk) return; inDesk = true; try { deskZeigen(); } finally { inDesk = false; } }; }
   const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); if (POSTWEG && TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== POSTWEG.alt.id); tdZeigen(); } deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen; ein gerade „nicht nötiges“ To-do bleibt weg
   TDKLEIN = true; TDNURMANUELL = true;   // Startseite: Block „Meine To-dos“ nur eigene Aufgaben, die automatischen Hinweise je Rubrik daneben
   ueInit('portal', deskZeigen); deskZeigen(); tdRef().then(() => tdLaden()); erinLaden(); zeitLaden();

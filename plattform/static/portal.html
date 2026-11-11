@@ -457,8 +457,14 @@ document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) ret
       }
       it.x = Math.max(0, Math.min(SP - it.w, Math.round((Z.rect.left + dx - M.r.left) / M.px)));
       it.y = Math.max(0, Math.round((Z.rect.top + dy - M.r.top) / M.py));
-      const u = L.filter((r) => r !== it && rKoll(r, it));   // genau eins gleich groß darunter: Plätze tauschen (Kacheln bleiben in Reih und Glied)
-      if (u.length === 1 && u[0].w === it.w && u[0].h === it.h) { it.x = u[0].x; it.y = u[0].y; u[0].x = Z.it0.x; u[0].y = Z.it0.y; }
+      const u = L.filter((r) => r !== it && rKoll(r, it));   // auf ein gleich großes Element: einreihen – die dazwischen rücken einen Platz weiter (wie eine Liste)
+      if (u.length === 1 && u[0].w === it.w && u[0].h === it.h) {
+        const gl = (r) => r.w === it.w && r.h === it.h && rArt(r.i) === rArt(it.i), ord = (p, q) => p.y - q.y || p.x - q.x;
+        const alt = Z.L0.filter(gl).sort(ord), plaetze = alt.map((r) => ({ x: r.x, y: r.y }));   // die Plätze bleiben, nur die Reihenfolge ändert sich
+        const reihe = alt.map((r) => r.i).filter((i) => i !== it.i), ziel = alt.findIndex((r) => r.i === u[0].i);
+        reihe.splice(ziel, 0, it.i);
+        reihe.forEach((i, k) => { const r = L.find((q) => q.i === i); r.x = plaetze[k].x; r.y = plaetze[k].y; });
+      }
     }
     rVerdichten(L, it); Z.L = L;
     L.forEach((r) => { if (r.i === Z.id) return; const el = H.querySelector(`.ri[data-ri="${CSS.escape(r.i)}"]`); if (el) el.style.cssText = rStil(r); });

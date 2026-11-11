@@ -79,6 +79,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Kommunikation: Plotaufträge erscheinen als „Plotauftrag“ (🖨) statt als Planversand~~
 - ~~Kern: Datei-Ablage-Routen aus head.py nach bpcore/ablage.py (head.py war über der Grenze der Ordnungsprüfung)~~
 - ~~Abnahme: gesperrt erst mit der Unterschrift von Bauherr oder Unternehmer; nur Architekt = abgeschlossen, aber änderbar; Folgen (Aufgaben, Erinnerung) nur beim ersten Abschließen~~
+- ~~Startseite: App-Kachel auf eine andere ziehen reiht sie ein (die dazwischen rücken weiter) statt zu tauschen~~
 - ~~Übersicht/Widgets: je Block wählbar, wie viele Einträge er zeigt (5 · 10 · 20 · alle), gemerkt~~
 - ~~Stempel: Felder unter Büro-Einstellungen → Firma & Logo (Bürostempel, Prüfstempel, „Zahlbetrag siehe Anlage“), Einsetzen in der PDF-Vorschau leicht schräg~~
 - ~~AVA Neues LV → Kopie eines LV: erst Projekt, dann LV wählen (zwei Auswahlknöpfe mit Suche)~~

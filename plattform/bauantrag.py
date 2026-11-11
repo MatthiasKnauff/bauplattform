@@ -303,6 +303,22 @@ def formular_gesehen(fid):
     return jsonify(ok=True)
 
 
+@app.delete("/api/formulare/<int:fid>")
+def formular_loeschen(fid):
+    """Selbst hochgeladenes Formular (ohne Adresse im Portal) in den Papierkorb – Vordrucke vom Portal bleiben, sie kämen beim Prüfen ohnehin wieder."""
+    with db.tx() as c:
+        r = c.execute("SELECT land, nr, titel, url FROM bauantrag_formular WHERE id=?", (fid,)).fetchone()
+        if not r:
+            return jsonify(error="Formular nicht gefunden."), 404
+        if r["url"]:
+            return jsonify(error="Vordrucke vom Portal lassen sich nicht löschen – nur selbst hochgeladene."), 400
+        pk = papierkorb.ablegen(c, "bauantrag_formular", fid, "Formular", f"{r['nr'] or ''} {r['titel']}".strip(), g.user["name"], "", KEY)
+        out = dict(land=r["land"], laender=BF.LAENDER, quelle=BF.quelle(c, r["land"]), vorhalten=True, stand=BF.stand(c, r["land"]),
+                   formulare=BF.liste(c, r["land"]), admin=bool(g.user["is_admin"]), papierkorb=pk)
+    C.audit(g.user["name"], KEY, "Formular gelöscht", f"{r['land']} {r['nr'] or ''} {r['titel']}")
+    return jsonify(out)
+
+
 @app.get("/api/formulare/<int:fid>/datei")
 def formular_datei(fid):
     with db.tx() as c:

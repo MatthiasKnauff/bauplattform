@@ -219,12 +219,16 @@ function formHtml() {
     <div class="tw"><table class="ba-t"><thead><tr><th>Anlage</th><th>Titel</th><th>Stand</th><th></th></tr></thead><tbody>
     ${L.map((x) => { const [t, c] = ST_FORM[x.status] || ['', '']; return `<tr class="${x.status === 'entfallen' ? 'aus' : ''}"><td style="white-space:nowrap">${esc(x.nr || '–')}</td><td>${esc(x.titel)}</td>
       <td style="white-space:nowrap">${t ? `<span class="ba-q" style="${c === 'warn' ? 'color:var(--warn);border-color:var(--warn)' : ''}">${t}</span> ` : ''}<small class="mute">${esc(x.fassung || de(x.geaendert).slice(0, 10))}</small></td>
-      <td style="white-space:nowrap;text-align:right">${x.status === 'neu' || x.status === 'geaendert' ? `<button type="button" class="btn sm" data-formgesehen="${x.id}">✓ gesehen</button> ` : ''}<button type="button" class="btn sm" data-formansehen="${x.id}">Ansehen</button> <button type="button" class="btn sm" data-formersetzen="${x.id}" title="Eigene Datei für diese Anlage hochladen">Ersetzen</button></td></tr>`; }).join('')}
+      <td style="white-space:nowrap;text-align:right">${x.status === 'neu' || x.status === 'geaendert' ? `<button type="button" class="btn sm" data-formgesehen="${x.id}">✓ gesehen</button> ` : ''}<button type="button" class="btn sm" data-formansehen="${x.id}">Ansehen</button> <button type="button" class="btn sm" data-formersetzen="${x.id}" title="Eigene Datei für diese Anlage hochladen">Ersetzen</button>${x.url ? '' : ` <button type="button" class="btn sm" data-formweg="${x.id}" title="Selbst hochgeladenes Formular löschen (Papierkorb, rückgängig möglich)" aria-label="Löschen">🗑</button>`}</td></tr>`; }).join('')}
     </tbody></table></div></div>` : (F.quelle ? '<div class="ba-k"><p class="mute" style="margin:0">Noch nicht geprüft – „↻ Jetzt prüfen“.</p></div>' : '');
   return `<div class="ba-w">${kopf}${liste}</div>`;
 }
 V.addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-formpruefen],[data-formquelle],[data-formgesehen],[data-formansehen],[data-formhoch],[data-formersetzen]'); if (!b || !FORM) return;
+  const b = e.target.closest('[data-formpruefen],[data-formquelle],[data-formgesehen],[data-formansehen],[data-formhoch],[data-formersetzen],[data-formweg]'); if (!b || !FORM) return;
+  if (b.dataset.formweg) { const x = FORM.formulare.find((y) => y.id === +b.dataset.formweg), land = FORM.land, name = (x.nr && x.nr !== '–' ? x.nr + ' ' : '') + x.titel;
+    if (!(await bpFrage(`„${name}“ löschen?`, { ok: 'Löschen' }))) return;
+    try { const r = await api('api/formulare/' + x.id, 'DELETE'); FORM = r; zeichne();
+      rueckgaengig(`„${name}“ gelöscht`, async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); await formulareZeigen(land); }); } catch (er) { toast(er.message, true); } return; }
   if (b.dataset.formhoch !== undefined || b.dataset.formersetzen) return formHochladen(b.dataset.formersetzen ? FORM.formulare.find((x) => x.id === +b.dataset.formersetzen) : null);
   if (b.dataset.formpruefen !== undefined) return formulareZeigen(FORM.land, true);
   if (b.dataset.formquelle !== undefined) {

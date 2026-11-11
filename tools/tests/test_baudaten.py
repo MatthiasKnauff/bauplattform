@@ -311,6 +311,13 @@ def test_vorbemerkung_allgemein(ctx):
     gleich(v["titel"], "Allgemeine Vorbemerkungen", "Titel")
     for t in ("1 Vertragsgrundlagen", "8 Unterlagen und Abnahme", "Projektbezogene Angaben", "§ 4 Abs. 3 VOB/B"):
         pruefe(t in v["text"], f"Text enthält „{t}“")
+    # dieselben Texte als Katalog in der Kopierquelle der Ausschreibung (ziehen ins LV als Vorbemerkung, Art „V“)
+    k = finde(c.gj("/ava/api/katalog")["kataloge"], name="Bauplattform Vorbemerkungen")
+    pruefe(k, "Katalog „Bauplattform Vorbemerkungen“ in der Kopierquelle")
+    gleich([g["nr"] for g in c.gj(f"/ava/api/katalog/{k['id']}")["gewerke"]], ["VB1", "VB2"], "Allgemein und je Leistungsbereich")
+    I = [x for x in c.gj(f"/ava/api/katalog/{k['id']}/gewerk/VB1")["data"]["items"] if x["typ"] == "pos"]
+    gleich((I[0]["kurz"], I[0]["art"], I[0].get("vb")), ("1 Vertragsgrundlagen", "T", True), "je Abschnitt einzeln, als Vorbemerkung")
+    gleich(len(c.gj("/ava/api/katalog")["kataloge"]), len(c.gj("/ava/api/katalog")["kataloge"]), "nicht doppelt angelegt")
 
 
 def test_rechte_baudaten(ctx):

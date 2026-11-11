@@ -805,6 +805,47 @@ Datei im selben Ordner (k331.kat -> Vorlagen, k33101.kat -> Eintraege). Immer de
     return buf.getvalue(), n_ges
 
 
+_VB_KOPF = re.compile(r"^(\d{1,2}) (\S.*)$")
+
+
+def vorbem_katalog(c):
+    """Die Vorbemerkungen der Bauplattform als Katalogzeilen für die Kopierquelle der Ausschreibung (ziehen ins LV als Art „V“).
+    Gibt (Kennung des Stands, Zeilen) zurück; Zeile = [nr, gewerk, typ, ebene, oz, kurz, lang, art, einheit, kg, ep_von, ep, ep_bis].
+    „Allgemeine Vorbemerkungen“ je Abschnitt eine Zeile (einzeln ziehbar), die Muster und jeder Leistungsbereich je eine Zeile.
+    Gewerke beginnen mit „VB“ – daran erkennt die Ausschreibung die Vorbemerkung (im Druck abschaltbar: Druck-Layout „Vorbemerkungen im LV“)."""
+    R = [{"key": r["key"], "titel": r["titel"], "text": r["text"]} for r in c.execute("SELECT key, titel, text FROM pdb_vorbemerkung ORDER BY sort, key").fetchall()]
+    import hashlib
+    kennung = hashlib.sha1(json.dumps(R, ensure_ascii=False).encode()).hexdigest()[:10]
+    Z = []
+    def z(gew, typ, ebene, oz, kurz, lang="", art="T"):
+        Z.append([len(Z), gew, typ, ebene, oz[:40], kurz[:500], lang, art if typ == "pos" else "N", "", "", None, None, None])
+    allg = [r for r in R if not r["key"].isdigit()]
+    lb = [r for r in R if r["key"].isdigit()]
+    z("VB1", "gewerk", 0, "VB1", "Allgemeine Vorbemerkungen und Muster")
+    for r in allg:
+        z("VB1", "titel", 1, r["key"].upper(), r["titel"])
+        if r["key"] != "avb":
+            z("VB1", "pos", 2, r["key"].upper(), r["titel"], r["text"].strip())
+            continue
+        kopf, teil = None, []
+        def weg():
+            if kopf and "\n".join(teil).strip():
+                z("VB1", "pos", 2, kopf[0], kopf[1], "\n".join(teil).strip())
+        for zeile in r["text"].strip().splitlines()[1:]:   # erste Zeile = Überschrift
+            m = _VB_KOPF.match(zeile)
+            if m or zeile.startswith("Projektbezogene Angaben"):
+                weg()
+                kopf, teil = ((m[1], m[0]) if m else ("0", zeile)), []
+            else:
+                teil.append(zeile)
+        weg()
+    if lb:
+        z("VB2", "gewerk", 0, "VB2", "Technische Vorbemerkungen je Leistungsbereich")
+        for r in lb:
+            z("VB2", "pos", 1, r["key"], r["titel"], r["text"].strip())
+    return kennung, Z
+
+
 def vorbemerkungen(c, key=None):
     if key:
         r = c.execute("SELECT key, titel, text FROM pdb_vorbemerkung WHERE key=?", (key,)).fetchone()

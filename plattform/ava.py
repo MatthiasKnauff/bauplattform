@@ -188,7 +188,7 @@ def _kat_info(c, kid):
 def _kat_pos(x):
     p = {"id": f"k{x['id']}", "typ": "pos", "oz": x["oz"], "kurz": x["kurz"], "lang": x["lang"], "menge": 0, "einheit": x["einheit"],
          "art": "T" if x["art"] == "T" else "N", "kg": x["kg"], "ep_s": round(x["ep"], 2) if x["ep"] else None}
-    if x["art"] == "T" and x["gewerk"] == "VB":   # aus sirAdos Vorbemerkungen: im LV als Vorbemerkung (Hinweistext mit Kennzeichen)
+    if x["art"] == "T" and (x["gewerk"] or "").startswith("VB"):   # Vorbemerkungen (sirAdos, Bauplattform): im LV als Vorbemerkung (Hinweistext mit Kennzeichen)
         p["vb"] = True
     if x["ep_von"] or x["ep_bis"]:
         p["spanne"] = [round(x["ep_von"] or 0, 2), round(x["ep_bis"] or 0, 2)]
@@ -210,7 +210,31 @@ def _kat_lv(name, nr, info, zeilen):
             "katalog": True, "data": {"items": items}, "vergabe": {}}
 
 
+def _vb_katalog(c):
+    """Vorbemerkungen der Bauplattform (Baudaten) als Katalog in der Kopierquelle – neu aufgebaut, sobald sich die Texte ändern."""
+    try:
+        kennung, Z = baudaten.vorbem_katalog(c)
+    except Exception:   # noqa: BLE001 – ohne Baudaten eben ohne diesen Katalog
+        return
+    datei = "bauplattform:vorbemerkungen:" + kennung
+    c.execute("SELECT pg_advisory_xact_lock(470411)")   # mehrere Worker legen ihn nicht doppelt an
+    alt = c.execute("SELECT id, datei FROM ava_kataloge WHERE datei LIKE 'bauplattform:vorbemerkungen:%'").fetchone()
+    if alt and alt["datei"] == datei:
+        return
+    n = sum(1 for x in Z if x[2] == "pos")
+    if alt:
+        kid = alt["id"]
+        c.execute("DELETE FROM ava_katalog WHERE katalog_id=?", (kid,))
+        c.execute("UPDATE ava_kataloge SET datei=?, n_pos=?, n_gewerke=?, importiert=? WHERE id=?", (datei, n, 2, _now(), kid))
+    else:
+        kid = c.execute("""INSERT INTO ava_kataloge(name, quelle, stand, art, datei, n_pos, n_gewerke, importiert, von) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id""",
+                        ("Bauplattform Vorbemerkungen", "Bauplattform", "", "vorbemerkungen", datei, n, 2, _now(), "Bauplattform")).fetchone()["id"]
+    c.copy_rows("ava_katalog", ("nr", "gewerk", "typ", "ebene", "oz", "kurz", "lang", "art", "einheit", "kg", "ep_von", "ep", "ep_bis", "katalog_id"),
+                [x + [kid] for x in Z])
+
+
 def _kat_liste(c):
+    _vb_katalog(c)
     return [{k: r[k] for k in r.keys()} for r in c.execute("SELECT * FROM ava_kataloge ORDER BY name, id").fetchall()]
 
 

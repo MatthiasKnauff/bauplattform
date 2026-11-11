@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-11-formular-loeschen",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Hochgeladene Formulare löschen",
+  "text": "Selbst hochgeladene Formulare haben jetzt einen Papierkorb-Knopf 🗑 – mit Rückgängig.",
+  "ziel": "[data-formweg]"
+ },
+ {
+  "id": "2026-11-11-vb-ziehen",
+  "datum": "2026-11-11",
+  "app": "ava",
+  "titel": "Vorbemerkungen ins LV ziehen",
+  "text": "In der Kopierquelle gibt es den Katalog „Bauplattform Vorbemerkungen“: die Allgemeinen Vorbemerkungen je Abschnitt, die Muster und die technischen Vorbemerkungen je Leistungsbereich. Einfach ins LV ziehen – sie werden zu Vorbemerkungen (Art V). Ob sie gedruckt werden, steuert das Druck-Layout („Vorbemerkungen im LV“).",
+  "ziel": "#quelle"
+ },
+ {
   "id": "2026-11-11-avb",
   "datum": "2026-11-11",
   "app": "ava",

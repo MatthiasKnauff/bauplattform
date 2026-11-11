@@ -1,6 +1,6 @@
 """Ablauftests Bauantrag: anlegen, Werte aus den Quellen, von Hand ändern und zurücksetzen, Entwurfsverfasser wählen,
 Bauvorlagen, Stand „eingereicht“ sperrt, PDF, Papierkorb."""
-from lib import gleich, pruefe
+from lib import finde, gleich, pruefe
 
 BA = "/bauantrag/api"
 
@@ -117,3 +117,19 @@ def test_anlagen(ctx):
             a.delete(f"{BA}/antraege/{aid}")
         except Exception:   # noqa: BLE001 – schon weg
             pass
+
+
+def test_formular_loeschen(ctx):
+    """Selbst hochgeladenes Formular löschen: Papierkorb, wiederherstellen, erneut löschen."""
+    a = ctx.admin
+    titel = ctx.name("Formular")
+    pdf = b"%PDF-1.4\n% " + titel.encode() + b"\n%%EOF\n"
+    d = a.post(f"{BA}/formulare/hochladen", dateien={"datei": (titel + ".pdf", pdf, "application/pdf")}, felder={"land": "BE", "titel": titel}).json
+    x = finde(d["formulare"], titel=titel)
+    pruefe(x, "hochgeladenes Formular in der Liste")
+    gleich(x["url"], "", "ohne Adresse im Portal")
+    d = a.delete(f"{BA}/formulare/{x['id']}").json
+    pruefe(not [f for f in d["formulare"] if f["titel"] == titel], "gelöscht")
+    a.post(f"{BA}/bp/papierkorb/{d['papierkorb']}/zurueck", {})
+    pruefe([f for f in a.gj(f"{BA}/formulare?land=BE")["formulare"] if f["titel"] == titel], "aus dem Papierkorb zurück")
+    a.delete(f"{BA}/formulare/{x['id']}")

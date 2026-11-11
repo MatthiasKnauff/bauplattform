@@ -2526,24 +2526,35 @@
     items = (items || []).filter((x) => x && x.url); if (!items.length) return;
     if (gv) gv.close(true);
     const el = document.createElement('div'); el.className = 'bph-gv'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Ansicht');
+    /* Aufbau wie der eingebaute Viewer (Mock 11.11.2026): schmale Leiste oben (am Handy blendet sie sich beim Scrollen aus, Antippen holt sie),
+       am PC links die Pläne der Reihe als kleine Bilder, Zoom oben; Markieren-Werkzeuge in einer Leiste unten, Weiteres im Menü ⋯ */
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
-      <button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button>
+      <span class="bph-gvz"><button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="fb" class="bph-gvzp" title="Auf Breite (zurück auf 100 %)">100 %</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button><button type="button" data-gv="fs" title="Ganze Seite">▢</button></span>
       <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kollegen gleichzeitig" hidden>✏️ Markieren</button>
-      <button type="button" data-gv="dr" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button></div><div class="bph-skl" hidden></div><div class="bph-skm" hidden><button type="button" data-skm="stift" title="Zeichnen">✏️</button><button type="button" data-skm="zeigen" title="Nur zeigen / blättern">☝</button><button type="button" data-skm="zurueck" title="Letzten Strich zurück">↶</button><button type="button" data-skm="voll" title="Leisten wieder einblenden">⤡</button></div>
-      <div class="bph-gvs"></div><button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
+      <button type="button" data-gv="dr" class="bph-gvpc" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button><button type="button" data-gv="me" aria-label="Mehr" title="Mehr">⋯</button><button type="button" data-sk="ende" class="bph-gvf" hidden title="Markieren beenden (die Skizze bleibt gespeichert)">Fertig</button></div>
+      <div class="bph-gvm" hidden></div>
+      <div class="bph-gvk"><div class="bph-gvth" hidden></div><div class="bph-gvs"></div></div>
+      <div class="bph-skl" hidden></div><div class="bph-gvd" hidden></div><button type="button" class="bph-gvmk" data-gv="sk" hidden>✏️ Markieren</button>
+      <div class="bph-skm" hidden><button type="button" data-skm="stift" title="Zeichnen">✏️</button><button type="button" data-skm="zeigen" title="Nur zeigen / blättern">☝</button><button type="button" data-skm="zurueck" title="Letzten Strich zurück">↶</button><button type="button" data-skm="voll" title="Leisten wieder einblenden">⤡</button></div>
+      <button type="button" class="bph-gvp" data-gv="prev" aria-label="Vorheriges">‹</button><button type="button" class="bph-gvp n" data-gv="next" aria-label="Nächstes">›</button>`;
     document.body.appendChild(el); document.body.classList.add('bph-gv-offen');
-    if (H.GAST) el.querySelectorAll('[data-gv="dr"],[data-gv="dl"],[data-gv="x"]').forEach((b) => { b.hidden = true; });   // Gäste: nur ansehen und markieren
+    if (H.GAST) el.querySelectorAll('[data-gv="dr"],[data-gv="dl"],[data-gv="x"]').forEach((b) => { b.hidden = true; });
+    const TOUCH = matchMedia('(pointer:coarse)').matches, ENG = () => innerWidth < 760;   // Gäste: nur ansehen und markieren
     const S = el.querySelector('.bph-gvs');
-    let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null, roh = null;
+    let i = Math.max(0, Math.min(items.length - 1, start)), zoom = 1, tok = 0, pdf = null, roh = null, hoch = 1.414;   // hoch: Seitenverhältnis der ersten Seite (für „Ganze Seite“)
     const SK = { id: null, striche: [], seq: 0, werkzeug: 'stift', farbe: '#e5484d', leute: [], t: 0, zt: 0, owner: null, aus: false, dauerhaft: false, dauer: null };
     const fitW = () => Math.max(320, Math.min((S.clientWidth || window.innerWidth) - 16, 1400));
     async function show() {
       const x = items[i], my = ++tok; zoom = 1; pdf = null;
       el.querySelector('.bph-gvt').textContent = x.name || '';
       el.querySelector('.bph-gvn').textContent = items.length > 1 ? `${i + 1} / ${items.length}` : '';
-      el.querySelectorAll('.bph-gvp').forEach((b) => { b.hidden = items.length < 2; });
-      S.scrollTop = 0; S.innerHTML = '<div class="bph-gvl">Lade …</div>';
-      el.querySelector('.bph-skb').hidden = x.typ !== 'pdf';
+      el.querySelectorAll('.bph-gvp').forEach((b) => { b.hidden = items.length < 2 || TOUCH || !TH.hidden; });   // Handy: wischen · PC mit Seitenleiste: Liste
+      S.scrollTop = 0; S.innerHTML = '<div class="bph-gvl">Lade …</div>'; zoomText();
+      el.querySelector('.bph-skb').hidden = x.typ !== 'pdf'; leisten();
+      TH.querySelectorAll('[data-gvi]').forEach((b) => b.classList.toggle('on', +b.dataset.gvi === i));
+      const on = TH.querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+      const D = el.querySelector('.bph-gvd'); D.hidden = items.length < 2 || !(TOUCH || ENG());
+      D.innerHTML = items.length > 12 ? `${i + 1} / ${items.length}` : items.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
       if (SK.id && !x.skizze) skEnde(true);
       if (!SK.id) { SK.striche = []; SK.dauer = null; skKnopf(); }
       if (x.typ !== 'pdf') { S.innerHTML = `<img class="bph-gvi" src="${esc(x.url)}" alt="${esc(x.name || '')}">`; return; }
@@ -2562,7 +2573,8 @@
       S.innerHTML = '';
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       for (let n = 1; n <= pdf.numPages && my === tok; n++) {
-        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = (fitW() / v0.width) * zoom, f = canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2], v = pg.getViewport({ scale: sc * dpr * f });
+        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), sc = (fitW() / v0.width) * zoom; if (n === 1) hoch = v0.height / v0.width;
+        const f = canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2], v = pg.getViewport({ scale: sc * dpr * f });
         const wr = document.createElement('div'); wr.className = 'bph-pg'; wr.dataset.seite = n; wr.style.width = (zoom * 100) + '%';
         const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-gvc';
         const ov = document.createElement('canvas'); ov.className = 'bph-skc';
@@ -2587,18 +2599,38 @@
       if (!SK.id) return;
       const andere = SK.leute.filter((p) => p.uid !== ich() && p.aktiv);
       const html = `${Object.entries(SKW).map(([k, [ic, t]]) => `<button type="button" data-skw="${k}" class="${SK.werkzeug === k ? 'on' : ''}" title="${t}">${ic}</button>`).join('')}
-        <span class="bph-skf" style="background:${SK.farbe}" title="deine Farbe"></span>
-        <button type="button" data-sk="zurueck" title="Meinen letzten Strich zurücknehmen">↶</button><button type="button" data-sk="alle" title="${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}">🗑</button>
-        <span class="bph-skp">${andere.length ? andere.map((p) => `<i style="background:${p.farbe}"></i>${esc(p.name.split(' ')[0])}`).join(' ') : 'nur du'}</span>
-        ${H.GAST ? '' : `        <button type="button" data-sk="dauer" class="${SK.dauerhaft ? 'on' : ''}" title="${SK.dauerhaft ? 'Markierungen bleiben dauerhaft am Plan – jeder, der den Plan öffnet, sieht sie. Klicken zum Aufheben.' : 'Markierungen dauerhaft am Plan behalten – erscheinen wieder, wenn jemand den Plan öffnet'}">📌 ${SK.dauerhaft ? 'Dauerhaft' : 'Behalten'}</button>
-        <button type="button" data-sk="einladen" title="Kollegen einladen – sie sehen den Plan und zeichnen gleichzeitig mit">👥 Einladen</button>
-        <button type="button" data-sk="pdf" title="Plan mit allen Markierungen als PDF">⤓ PDF</button>`}<button type="button" data-sk="voll" title="Leisten ausblenden – mehr Platz zum Zeichnen (z. B. iPhone quer)">⤢</button><button type="button" data-sk="ende" title="Markieren beenden (die Skizze bleibt gespeichert)">✓ Fertig</button>`;
+        <span class="bph-skf" style="background:${SK.farbe}" title="deine Farbe"></span><button type="button" data-sk="zurueck" title="Meinen letzten Strich zurücknehmen">↶</button>
+        <span class="bph-skp" title="Wer gerade mitmarkiert">${andere.length ? andere.map((p) => `<i style="background:${p.farbe}"></i>${esc(p.name.split(' ')[0])}`).join(' ') : ''}</span>`;   // Behalten, Einladen, PDF, Löschen: im Menü ⋯ · Fertig: oben
       if (L._h !== html) { L._h = html; L.innerHTML = html; }   // nur bei Änderung neu zeichnen (Knöpfe bleiben klickbar)
     }
     function skModus() {   // Zeichnen fängt Maus/Finger ab, „Zeigen“ lässt blättern
       const malen = !!SK.id && SK.werkzeug !== 'zeigen';
       S.classList.toggle('bph-malen', malen);
       el.querySelector('.bph-skb').classList.toggle('on', !!SK.id);
+      leisten();
+    }
+    function leisten() {   // was oben und unten steht: beim Markieren „Fertig“ oben und die Werkzeuge unten, sonst „Markieren“
+      const mark = !!SK.id, isPdf = items[i] && items[i].typ === 'pdf';
+      el.classList.toggle('bph-gvmark', mark);
+      el.querySelector('.bph-gvf').hidden = !mark;
+      el.querySelector('.bph-skb').hidden = !isPdf || mark;
+      el.querySelector('.bph-gvmk').hidden = !isPdf || mark || !(TOUCH || ENG());
+      el.querySelector('.bph-gvz').hidden = (TOUCH && ENG()) || !items[i];
+    }
+    const zoomText = () => { const z = el.querySelector('.bph-gvzp'); if (z) z.textContent = Math.round(zoom * 100) + ' %'; };
+    /* Menü ⋯: Drucken, Teilen – beim Markieren dazu Behalten, Einladen, PDF mit Markierungen, Löschen, Leisten ausblenden */
+    function menue() {
+      const M = el.querySelector('.bph-gvm');
+      if (!M.hidden) { M.hidden = true; return; }
+      const mk = !!SK.id, x = items[i] || {};
+      M.innerHTML = [mk && !H.GAST ? `<button type="button" data-sk="dauer">📌 ${SK.dauerhaft ? 'Dauerhaft am Plan – aufheben' : 'Markierungen am Plan behalten'}</button>` : '',
+        mk && !H.GAST ? '<button type="button" data-sk="einladen">👥 Kollegen oder Externe einladen …</button>' : '',
+        mk && !H.GAST ? '<button type="button" data-sk="pdf">⤓ Plan mit Markierungen als PDF</button>' : '',
+        mk ? `<button type="button" data-sk="alle">🗑 ${SK.owner === ich() ? 'Alle Markierungen löschen' : 'Alle meine Markierungen löschen'}</button>` : '',
+        mk ? '<button type="button" data-sk="voll">⤢ Leisten ausblenden (mehr Platz)</button>' : '', mk && !H.GAST ? '<hr>' : '',
+        H.GAST ? '' : `<button type="button" data-gv="dr">🖨 Drucken${mk || SK.dauer ? ' mit Markierungen' : ''}</button><button type="button" data-gv="dl">⤴ Teilen / speichern</button>`,
+        x.typ === 'pdf' && TOUCH && ENG() ? '<button type="button" data-gv="fs">▢ Ganze Seite</button><button type="button" data-gv="fb">↔ Auf Breite</button>' : ''].join('');
+      M.hidden = !M.innerHTML.trim();
     }
     function skZeichnen(seite) {
       const wr = S.querySelector(`.bph-pg[data-seite="${seite}"]`); if (!wr) return;
@@ -2740,6 +2772,7 @@
     function skKnopf() {
       const b = el.querySelector('.bph-skb'), n = SK.dauer && !SK.id ? SK.striche.length : 0;
       b.innerHTML = n ? `📌 Markiert <small>(${n})</small>` : '✏️ Markieren';
+      el.querySelector('.bph-gvmk').innerHTML = b.innerHTML;
       b.title = n ? 'Dieser Plan hat dauerhafte Markierungen – klicken zum Weitermarkieren' : 'Markieren – auch gemeinsam mit Kollegen gleichzeitig';
     }
     async function markiertesPdf() {   // Plan mit Markierungen, sonst das Original
@@ -2833,10 +2866,12 @@
         const b = await r.blob(), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = (items[i].name || 'Plan.pdf').replace(/\.pdf$/i, '') + ' (markiert).pdf'; document.body.appendChild(a); a.click(); a.remove();
       } catch (e) { alert(e.message); }
     }
-    el.querySelector('.bph-skl').addEventListener('click', async (e) => {
+    el.addEventListener('click', async (e) => {
+      if (!e.target.closest('.bph-skl,.bph-gvm,.bph-gvb')) return;
       const w = e.target.closest('[data-skw]'); if (w) { SK.werkzeug = w.dataset.skw; if (w.dataset.skw !== 'zeigen') SK.letztes = w.dataset.skw; skLeiste(); skModus(); return; }
       const b = e.target.closest('[data-sk]'); if (!b) return;
-      const a = b.dataset.sk;
+      const a = b.dataset.sk; el.querySelector('.bph-gvm').hidden = true;
+      if (!SK.id) return;
       if (a === 'zurueck') { await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'letzter' }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'alle') { if (!(await bpFrage(SK.owner === ich() ? 'Alle Markierungen auf diesem Plan löschen – auch die der anderen?' : 'Alle deine Markierungen löschen?'))) return; await SKJ(`api/bp/skizze/${SK.id}/loeschen`, 'POST', { was: 'alle' }).catch((er) => alert(er.message)); return skAbgleich(); }
       if (a === 'einladen') return skEinladen();
@@ -2857,8 +2892,8 @@
       SK.werkzeug = a === 'zeigen' ? 'zeigen' : (SK.letztes || 'stift'); skLeiste(); skModus(); skVoll(true);
     });
     addEventListener('resize', () => { if (gv) alleZeichnen(); });
-    function setZoom(d) {
-      zoom = Math.max(0.5, Math.min(4, zoom * (d > 0 ? 1.4 : 1 / 1.4)));
+    function setZoom(d, abs) {
+      zoom = Math.max(0.3, Math.min(5, abs != null ? abs : zoom * (d > 0 ? 1.4 : 1 / 1.4))); zoomText();
       if (pdf) renderPdf(tok); else { const im = S.querySelector('img'); if (im) { im.style.maxWidth = zoom === 1 ? '' : 'none'; im.style.maxHeight = zoom === 1 ? '' : 'none'; im.style.width = zoom === 1 ? '' : (fitW() * zoom) + 'px'; } }
     }
     const go = (d) => { if (items.length < 2) return; i = (i + d + items.length) % items.length; show(); };
@@ -2879,16 +2914,50 @@
     }
     const pop = () => close(true);
     el.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-gv]'); if (!b) { if (e.target === S && !SK.id) close(); return; }
-      const a = b.dataset.gv; if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'dr') drucken();
+      const t = e.target.closest('[data-gvi]'); if (t) { i = +t.dataset.gvi; show(); return; }
+      const b = e.target.closest('[data-gv]');
+      if (!e.target.closest('.bph-gvm,[data-gv="me"]')) el.querySelector('.bph-gvm').hidden = true;
+      if (!b) { if (TOUCH && S.contains(e.target) && !(SK.id && SK.werkzeug !== 'zeigen')) el.classList.toggle('bph-gvzu'); return; }   // Antippen: Leisten aus/ein (schließen nur über ✕)
+      const a = b.dataset.gv; if (b.closest('.bph-gvm')) el.querySelector('.bph-gvm').hidden = true;
+      if (a === 'me') { menue(); return; }
+      if (a === 'fb') { setZoom(0, 1); return; }
+      if (a === 'fs') { setZoom(0, Math.min(1, (S.clientHeight - 16) / (fitW() * hoch))); return; }
+      if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'dr') drucken();
     });
-    let tx = null, ty = 0;   // Wischen links/rechts blättert (nur ohne Vergrößerung)
-    S.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } else tx = null; }, { passive: true });
+    let tx = null, ty = 0, pz = null;   // Wischen links/rechts blättert (nur ohne Vergrößerung) · zwei Finger zoomen
+    const abst = (T) => Math.hypot(T[0].clientX - T[1].clientX, T[0].clientY - T[1].clientY);
+    S.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } else tx = null;
+      if (e.touches.length === 2 && !(SK.id && SK.werkzeug !== 'zeigen')) pz = { d0: abst(e.touches), z0: zoom, f: 1 };
+    }, { passive: true });
+    S.addEventListener('touchmove', (e) => {
+      if (!pz || e.touches.length !== 2) return; e.preventDefault();
+      pz.f = Math.max(0.3 / pz.z0, Math.min(5 / pz.z0, abst(e.touches) / pz.d0));
+      S.querySelectorAll('.bph-pg').forEach((w) => { w.style.width = (pz.z0 * pz.f * 100) + '%'; });   // sofort (unscharf), scharf nach dem Loslassen
+      const im = S.querySelector('.bph-gvi'); if (im) { im.style.maxWidth = 'none'; im.style.maxHeight = 'none'; im.style.width = (fitW() * pz.z0 * pz.f) + 'px'; }
+      const z = el.querySelector('.bph-gvzp'); if (z) z.textContent = Math.round(pz.z0 * pz.f * 100) + ' %';
+    }, { passive: false });
+    S.addEventListener('touchend', (e) => { if (pz && e.touches.length < 2) { const z = pz.z0 * pz.f; pz = null; tx = null; if (Math.abs(z - zoom) > 0.02) setZoom(0, z); } }, { passive: true });
+    let sy = 0;   // am Handy: beim Scrollen nach unten Leisten aus, nach oben wieder ein
+    S.addEventListener('scroll', () => { if (!TOUCH) return; const d = S.scrollTop - sy; sy = S.scrollTop; if (Math.abs(d) > 12) el.classList.toggle('bph-gvzu', d > 0 && S.scrollTop > 40); }, { passive: true });
     S.addEventListener('touchend', (e) => {
       if (tx == null || zoom !== 1 || (SK.id && SK.werkzeug !== 'zeigen')) return; const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty; tx = null;
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
     });
     S.addEventListener('dblclick', () => { if (!SK.id || SK.werkzeug === 'zeigen') setZoom(zoom === 1 ? 1 : -1); });
+    /* PC: Seitenleiste mit den Plänen bzw. Fotos der Reihe – kleine Bilder (PDF: erste Seite, erst wenn sichtbar) */
+    const TH = el.querySelector('.bph-gvth');
+    if (items.length > 1 && !TOUCH && innerWidth >= 900) {
+      TH.hidden = false;
+      TH.innerHTML = items.map((x, k) => `<button type="button" data-gvi="${k}" title="${esc(x.name || '')}"><span class="bph-gvtb">${x.typ === 'pdf' ? '<canvas></canvas>' : `<img src="${esc(x.url)}" alt="" loading="lazy">`}</span><small>${esc(x.name || (k + 1) + '')}</small></button>`).join('');
+      const io = new IntersectionObserver((E) => E.forEach(async (en) => {
+        if (!en.isIntersecting) return; io.unobserve(en.target);
+        const x = items[+en.target.dataset.gvi], cv = en.target.querySelector('canvas'); if (!cv) return;
+        try { const lib = await pdfjs(), d = await fetch(x.url, { credentials: 'same-origin' }).then((r) => r.arrayBuffer()), pg = await (await lib.getDocument({ isEvalSupported: false, data: d }).promise).getPage(1);
+          const v0 = pg.getViewport({ scale: 1 }), v = pg.getViewport({ scale: 240 / v0.width }); cv.width = v.width; cv.height = v.height; await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise; } catch { /* ohne Bildchen */ }
+      }), { root: TH });
+      TH.querySelectorAll('[data-gvi]').forEach((b) => io.observe(b));
+    }
     document.addEventListener('keydown', key, true);
     history.pushState({ bphGv: 1 }, ''); addEventListener('popstate', pop);   // Zurück-Geste schließt die Ansicht
     gv = { close };

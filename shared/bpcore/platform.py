@@ -17,7 +17,7 @@ def version():
 
 
 # Pfade der Apps unter der gemeinsamen Adresse (Verteiler-Container „bauportal“, plattform/router.py)
-PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "baudaten": "baudaten", "zeiten": "zeiten", "admin": "verwaltung"}
+PATHS = {"portal": "", "bautagebuch": "bautagebuch", "gantt": "bauzeitenplan", "adressen": "adressen", "baukosten": "baukosten", "aufgaben": "maengel", "plaene": "plaene", "ava": "ava", "kommunikation": "kommunikation", "baudaten": "baudaten", "zeiten": "zeiten", "honorar": "honorar", "admin": "verwaltung"}
 
 
 def apps():
@@ -41,6 +41,7 @@ def apps():
             ("kommunikation", "Kommunikation", "KOMMUNIKATION_PORT", "8098", "KOMMUNIKATION_URL", {}),
             ("baudaten", "Baudaten", "BAUDATEN_PORT", "8099", "BAUDATEN_URL", {}),
             ("zeiten", "Zeiten", "ZEITEN_PORT", "8101", "ZEITEN_URL", {}),
+            ("honorar", "Honorar", "HONORAR_PORT", "8103", "HONORAR_URL", {"admin": True}),
             ("admin", "Verwaltung", "ADMIN_PORT", "8091", "ADMIN_URL", {"admin": True})):
         port, url = int(e(port_var, port_def)), e(url_var, "").strip().rstrip("/")
         a = {"key": key, "name": name, "port": port, "url": url, "path": PATHS[key], **extra}
@@ -72,7 +73,7 @@ def config(user=None):
     for a in apps():
         a = dict(a)
         if user is not None:
-            a["allowed"] = a["key"] in allowed or (a["key"] == "admin" and bool(user["is_admin"]))
+            a["allowed"] = a["key"] in allowed or (bool(a.get("admin")) and bool(user["is_admin"]))   # Verwaltung, Honorar: nur Administratoren
         out.append(a)
     return {"version": version(), "apps": out, "proxied": proxied_hosts(), "schrift": schrift(), "schrift_groesse": schrift_groesse(),
             "domain": os.environ.get("SSO_COOKIE_DOMAIN", "").strip().lstrip(".").lower()}

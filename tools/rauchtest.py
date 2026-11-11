@@ -30,6 +30,7 @@ APPS = {
     "kommunikation": ("Kommunikation", ["/api/kom", "/api/kontakte"]),
     "baudaten":      ("Baudaten", ["/api/start", "/api/gruppen", "/api/firmen"]),
     "zeiten":        ("Zeiten", ["/api/grund", "/api/tag", "/api/woche", "/api/monat", "/api/offen", "/api/konten", "/api/auswertung"]),
+    "honorar":       ("Honorar", ["/api/auftraege"]),
     "verwaltung":    ("Verwaltung", ["/api/users", "/api/status", "/api/projects", "/api/audit", "/api/einstellungen"]),
 }
 

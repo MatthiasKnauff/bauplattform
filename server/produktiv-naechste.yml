@@ -51,6 +51,7 @@ x-env: &env
   KOMMUNIKATION_INTERNAL: http://kommunikation:8098
   BAUDATEN_INTERNAL: http://baudaten:8099
   ZEITEN_INTERNAL: http://zeiten:8101
+  HONORAR_INTERNAL: http://honorar:8103
   # KI für alle Apps (Auswahl oben in der Kopfleiste). Ollama läuft als eigener Container im Docker-Netz.
   OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
   OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
@@ -275,6 +276,21 @@ services:
       APP_MODULE: zeiten
       APP_PORT: "8101"
       APP_TIMEOUT: "120"
+
+  # Honorar (nur Verwaltung): Honoraraufträge nach HOAI, nach Aufwand oder pauschal – Abgleich mit der Zeiterfassung, Honorarangebot als PDF
+  honorar:
+    image: ghcr.io/matthiasknauff/bauplattform/plattform:v2026.11.193
+    container_name: bauplattform_honorar
+    restart: unless-stopped
+    depends_on:
+      portal: { condition: service_started }
+      dienste: { condition: service_healthy }
+    ports:
+      - "${HONORAR_PUBLISH:-8103}:8103"
+    environment:
+      <<: *env
+      APP_MODULE: honorar
+      APP_PORT: "8103"
 
   # Baudaten: Positionsdatenbank (Texte, DIN 276, Preise), importierte Kataloge (z. B. Sirados) und eigene Preise
   baudaten:

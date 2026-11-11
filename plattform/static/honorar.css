@@ -1,0 +1,36 @@
+/* Honorar – Aufbau wie die übrigen Apps: links die Aufträge (bpNav), darüber die Befehlsleiste, in der Mitte der Auftrag */
+html,body{height:100%}
+body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
+main.ho{flex:1;min-height:0;display:flex}
+main.ho>.bp-nav{width:270px;flex:none;min-height:0}
+main.ho .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+main.ho .bfl{flex:none;padding:.35rem .45rem 0}
+#view{flex:1;min-height:0;overflow:auto;padding:.6rem 1rem 3rem}
+.ho-w{max-width:1100px;display:grid;gap:.8rem}
+.ho-k{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.9rem 1rem}
+.ho-k h3{margin:0 0 .6rem;font-size:1rem}
+.ho-f{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:flex-end}
+.ho-f label{display:flex;flex-direction:column;gap:.2rem;font-size:.82rem;color:var(--mute)}
+.ho-f input,.ho-f textarea,.ho-f select{font:inherit;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:calc(7px*var(--rk,1));padding:.4rem .5rem;font-size:.92rem}
+.ho-f input.z{width:9rem;text-align:right}
+.ho-f input.p{width:4.5rem;text-align:right}
+.ho-f .w{flex:1 1 18rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:2px;gap:2px;background:var(--card)}
+.seg button{border:0;background:none;cursor:pointer;font:inherit;border-radius:calc(999px*var(--rkp,1));padding:.3rem .8rem;color:var(--mute);font-size:.86rem;white-space:nowrap}
+.seg button.on{background:var(--y);color:var(--on);font-weight:600}
+.ho-t{width:100%;border-collapse:collapse;font-size:.88rem}
+.ho-t th{text-align:left;color:var(--mute);font-weight:500;font-size:.78rem;border-bottom:1px solid var(--line);padding:.3rem .4rem}
+.ho-t td{border-bottom:1px solid var(--line);padding:.3rem .4rem}
+.ho-t .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ho-t tr.aus td{opacity:.45}
+.ho-t input{font:inherit;width:4.2rem;text-align:right;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:calc(6px*var(--rk,1));padding:.2rem .35rem}
+.ho-t input[type=checkbox]{width:auto;accent-color:var(--y)}
+.ho-t tfoot td{font-weight:700;border-bottom:0}
+.vb{height:.55rem;border-radius:999px;background:var(--hov);overflow:hidden;min-width:5rem}.vb i{display:block;height:100%;background:var(--ok,#1e8a4c)}.vb.ueber i{background:var(--red)}
+.ho-warn{border:1px solid var(--red);border-radius:calc(10px*var(--rk,1));padding:.6rem .9rem;color:var(--red);font-size:.88rem;display:grid;gap:.2rem}
+.ho-sum{display:grid;grid-template-columns:1fr auto;gap:.25rem 1.5rem;font-variant-numeric:tabular-nums;max-width:30rem}
+.ho-sum b.gr{font-size:1.15rem}
+.ho-sum .tr{grid-column:1/-1;border-top:1px solid var(--line);margin:.2rem 0}
+.ho-satz{display:flex;align-items:center;gap:.6rem;min-width:18rem}.ho-satz input{flex:1;accent-color:var(--y)}
+.leer{color:var(--mute);padding:2rem 0}
+@media (max-width:820px){main.ho{flex-direction:column}main.ho>.bp-nav{width:auto;max-height:30vh}}

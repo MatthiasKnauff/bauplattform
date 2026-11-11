@@ -197,6 +197,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0   # für den Vergleich Testserver ↔ Freigabe (welcher Stand ist älter)
       - name: Version eintragen
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
@@ -212,6 +213,15 @@ jobs:
           fi
           sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${TAG}#" "$FILE"
           grep -n "image: ${REGISTRY}" "$FILE"
+          # Freigabe eines Stands, der neuer ist als der Testserver (z. B. weil der letzte Lauf rot war oder abgebrochen wurde):
+          # der Testserver bekommt dann dasselbe Test-Image (Kurzkennung, mit Wasserzeichen) – nie älter als die Produktion
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            T=$(grep -oE "image: ${REGISTRY}/plattform:[A-Za-z0-9._-]+" server/test.yml | head -1 | sed 's#.*:##')
+            if [ -n "$T" ] && git cat-file -e "${T}^{commit}" 2>/dev/null && [ "$(git rev-parse "$T")" != "$GITHUB_SHA" ] && git merge-base --is-ancestor "$T" "$GITHUB_SHA"; then
+              sed -i -E "s#(image: ${REGISTRY}/(bautagebuch|gantt|plattform)):[A-Za-z0-9._-]+#\1:${GITHUB_SHA::7}#" server/test.yml
+              echo "Testserver war älter (${T}) – jetzt ${GITHUB_SHA::7}"
+            fi
+          fi
           if git diff --quiet && git diff --cached --quiet; then echo "Keine Änderung"; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"

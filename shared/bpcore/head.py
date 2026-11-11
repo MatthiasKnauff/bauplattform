@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import neuigkeiten
+from . import neuigkeiten, unterschrift
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -377,7 +377,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "neu.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "neu.js", "unterschrift.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -1149,6 +1149,31 @@ def blueprint(get_user=None):
         with db.tx() as c, versionen.aenderung(c, f"konto:{uid}", u["name"]):
             konto.set_signatur(c, uid, png, u["name"])
         return jsonify(ok=True)
+
+    @bp.post("/api/bp/pdf/unterschreiben")
+    def pdf_unterschreiben():
+        """PDF aus der Vorschau + Unterschrift (PNG, gezeichnet oder „meine“) → unterschriebenes PDF; steht im Fehlerfall nie halb da."""
+        u, uid = _uid()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        f, b = request.files.get("pdf"), request.form
+        pdf = f.read(60 * 1024 * 1024) if f else b""
+        if b.get("meine") == "1":
+            with db.tx() as c:
+                png = konto.signatur(c, uid)
+            if not png:
+                return jsonify(error="Noch keine Unterschrift hinterlegt – unter „Mein Konto“ ein Foto hochladen oder hier zeichnen."), 400
+        else:
+            g_ = request.files.get("bild")
+            png = g_.read(5 * 1024 * 1024) if g_ else b""
+        if not pdf.startswith(b"%PDF") or not png:
+            return jsonify(error="PDF oder Unterschrift fehlt."), 400
+        try:
+            neu = unterschrift.stempeln(pdf, png, b.get("seite", 1), b.get("x", 0), b.get("y", 0), b.get("w", 0.3), b.get("h", 0.08), (b.get("text") or "")[:120])
+        except Exception as e:
+            fehler.still("head", "PDF unterschreiben", e)
+            return jsonify(error="Das PDF ließ sich nicht unterschreiben."), 400
+        return Response(neu, mimetype="application/pdf")
 
     @bp.route("/api/bp/mailvorlagen", methods=["GET", "PUT"])
     def mailvorlagen_api():

@@ -14,7 +14,8 @@
   if (window.BPHead) return;
   { const basis = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '');
     const w = document.createElement('script'); w.src = basis + 'wahl.js'; document.head.appendChild(w);
-    const nu = document.createElement('script'); nu.src = basis + 'neu.js'; document.head.appendChild(nu);   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
+    const nu = document.createElement('script'); nu.src = basis + 'neu.js'; document.head.appendChild(nu);
+    const us = document.createElement('script'); us.src = basis + 'unterschrift.js'; document.head.appendChild(us);   // ✍ Unterschreiben in der PDF-Vorschau   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
     if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
       const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
@@ -2537,7 +2538,7 @@
     el.innerHTML = `<div class="bph-gvb"><button type="button" data-gv="x" aria-label="Schließen">✕</button><span class="bph-gvt"></span><span class="bph-gvn"></span>
       <span class="bph-gvz"><button type="button" data-gv="zm" aria-label="Verkleinern">−</button><button type="button" data-gv="fb" class="bph-gvzp" title="Auf Breite (zurück auf 100 %)">100 %</button><button type="button" data-gv="zp" aria-label="Vergrößern">+</button><button type="button" data-gv="fs" title="Ganze Seite">▢</button></span>
       <button type="button" data-gv="sk" class="bph-skb" aria-label="Markieren" title="Markieren – auch gemeinsam mit Kollegen gleichzeitig" hidden>✏️ Markieren</button>
-      <button type="button" data-gv="dr" class="bph-gvpc" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button><button type="button" data-gv="me" aria-label="Mehr" title="Mehr">⋯</button><button type="button" data-sk="ende" class="bph-gvf" hidden title="Markieren beenden (die Skizze bleibt gespeichert)">Fertig</button></div>
+      <button type="button" data-gv="us" class="bph-gvus" aria-label="Unterschreiben" title="Unterschreiben – am PC Unterschrift wählen, am Handy mit dem Finger" hidden>✍ Unterschreiben</button><button type="button" data-gv="dr" class="bph-gvpc" aria-label="Drucken" title="Drucken (mit Markierungen)">🖨</button><button type="button" data-gv="dl" aria-label="Teilen oder speichern" title="Teilen / speichern (mit Markierungen)">⤓</button><button type="button" data-gv="me" aria-label="Mehr" title="Mehr">⋯</button><button type="button" data-sk="ende" class="bph-gvf" hidden title="Markieren beenden (die Skizze bleibt gespeichert)">Fertig</button></div>
       <div class="bph-gvm" hidden></div>
       <div class="bph-gvk"><div class="bph-gvth" hidden></div><div class="bph-gvs"></div></div>
       <div class="bph-skl" hidden></div><div class="bph-gvd" hidden></div><button type="button" class="bph-gvmk" data-gv="sk" hidden>✏️ Markieren</button>
@@ -2620,6 +2621,7 @@
       el.classList.toggle('bph-gvmark', mark);
       el.querySelector('.bph-gvf').hidden = !mark;
       el.querySelector('.bph-skb').hidden = !isPdf || mark;
+      el.querySelector('.bph-gvus').hidden = !isPdf || mark || !!H.GAST || !window.bpUnterschrift;
       el.querySelector('.bph-gvmk').hidden = !isPdf || mark || !(TOUCH || ENG());
       el.querySelector('.bph-gvz').hidden = (TOUCH && ENG()) || !items[i];
     }
@@ -2926,6 +2928,7 @@
       if (!b) { if (TOUCH && S.contains(e.target) && !(SK.id && SK.werkzeug !== 'zeigen')) el.classList.toggle('bph-gvzu'); return; }   // Antippen: Leisten aus/ein (schließen nur über ✕)
       const a = b.dataset.gv; if (b.closest('.bph-gvm')) el.querySelector('.bph-gvm').hidden = true;
       if (a === 'me') { menue(); return; }
+      if (a === 'us') { if (window.bpUnterschrift && roh) bpUnterschrift.start({ el, S, roh: roh.slice(0), name: items[i].name, fertig: (blob, nm) => { items[i] = { ...items[i], url: URL.createObjectURL(blob), name: nm, skizze: null, unterschrieben: true }; show(); } }); return; }
       if (a === 'fb') { setZoom(0, 1); return; }
       if (a === 'fs') { setZoom(0, Math.min(1, (S.clientHeight - 16) / (fitW() * hoch))); return; }
       if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'dr') drucken();

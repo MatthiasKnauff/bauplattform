@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-office-vorschau",
+  "datum": "2026-11-11",
+  "app": "plaene",
+  "titel": "Vorschau auch für Office-Dateien",
+  "text": "Unter „Alle Dateien“ bekommen jetzt auch Word-, Excel- und PowerPoint-Dateien (und OpenDocument, TXT, CSV) ein Vorschaubild – die erste Seite, das erste Tabellenblatt bzw. die erste Folie.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-ba-anlagen",
   "datum": "2026-11-11",
   "app": "bauantrag",

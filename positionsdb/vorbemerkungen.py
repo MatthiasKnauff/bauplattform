@@ -6,6 +6,7 @@ Heinze oder STLB-Bau übernommen. Maßgebend ist stets der Wortlaut der jeweils 
 gültigen Fassung der genannten Regelwerke.
 
 VORBEMERKUNGEN[schlüssel] = {"titel": ..., "text": ...}
+  "avb" Allgemeine Vorbemerkungen (für jedes LV, Verträge und Abrechnung)
   "bb"  Baubeschreibung (Muster)
   "bvb" Besondere Vertragsbedingungen (Muster)
   "zvb" Zusätzliche Technische Vertragsbedingungen (Muster)
@@ -40,6 +41,53 @@ VORBEMERKUNGEN = {}
 # ---------------------------------------------------------------------------
 # Allgemeine Muster
 # ---------------------------------------------------------------------------
+
+VORBEMERKUNGEN["avb"] = {
+    "titel": "Allgemeine Vorbemerkungen",
+    "text": (
+        'Allgemeine Vorbemerkungen\n'
+        '\n'
+        '1 Vertragsgrundlagen\n'
+        'Es gelten in dieser Reihenfolge: das Auftragsschreiben mit Verhandlungsprotokoll, die Leistungsbeschreibung mit den Plänen, die Besonderen und Zusätzlichen Vertragsbedingungen, die VOB/C (ATV DIN 18299 ff.) und die VOB/B, jeweils in der bei Angebotsabgabe geltenden Fassung. Innerhalb der Leistungsbeschreibung geht die auf dieses Bauvorhaben bezogene, speziellere Angabe der allgemeineren vor. Unklarheiten oder Widersprüche bitte vor Angebotsabgabe schriftlich mitteilen.\n'
+        '\n'
+        '2 Preise\n'
+        'Die Einheitspreise enthalten alle Leistungen der Position einschließlich der Nebenleistungen nach Abschnitt 4.1 der jeweiligen ATV. Besondere Leistungen nach Abschnitt 4.2 sind nur enthalten, wenn sie als Position oder in der Positionsbeschreibung ausdrücklich genannt sind; sonst werden sie nach § 2 VOB/B vergütet. Genannte Fabrikate gelten als Beispiel mit dem Zusatz „oder gleichwertig“; ein anderes Fabrikat ist im Angebot zu benennen, die Gleichwertigkeit ist auf Anforderung nachzuweisen. Alle Preise netto zuzüglich Umsatzsteuer.\n'
+        '\n'
+        '3 Baustelle\n'
+        'Die Baustelle kann nach Absprache besichtigt werden. Was der Auftraggeber bereitstellt (Zufahrt, Lagerflächen, Strom, Wasser, Sanitär, Gerüste, Hebezeuge), steht in den projektbezogenen Angaben; alles andere bringt der Auftragnehmer selbst mit. Der Auftragnehmer hält seinen Arbeitsbereich sauber und entsorgt seine Abfälle und Verpackungen laufend. Die Vorgaben des Sicherheits- und Gesundheitsschutzplans und der Baustellenordnung sind einzuhalten.\n'
+        '\n'
+        '4 Ausführung\n'
+        'Maße und Vorleistungen sind vor Beginn am Bau zu prüfen; Bedenken sind schriftlich vor der Ausführung anzuzeigen (§ 4 Abs. 3 VOB/B). Werk- und Montagepläne, Muster und Datenblätter sind vorzulegen, soweit die Leistungsbeschreibung sie verlangt, und vor der Ausführung freigeben zu lassen. Die Arbeiten sind mit den anderen Gewerken abzustimmen. Die eigene Leistung ist bis zur Abnahme zu schützen (§ 4 Abs. 5 VOB/B).\n'
+        '\n'
+        '5 Termine\n'
+        'Es gelten die Vertragsfristen und der Bauzeitenplan des Auftraggebers. Behinderungen sind unverzüglich schriftlich anzuzeigen (§ 6 Abs. 1 VOB/B).\n'
+        '\n'
+        '6 Änderungen und zusätzliche Leistungen\n'
+        'Geänderte oder zusätzliche Leistungen sind vor Beginn der Ausführung anzukündigen und mit einem Nachtragsangebot auf Grundlage der Urkalkulation zu belegen (§ 2 Abs. 5 und 6 VOB/B; ohne VOB/B gelten §§ 650b, 650c BGB). Stundenlohnarbeiten werden nur nach vorheriger Anordnung vergütet; die Stundenzettel sind wöchentlich vorzulegen (§ 15 Abs. 3 VOB/B).\n'
+        '\n'
+        '7 Aufmaß und Abrechnung\n'
+        'Abgerechnet wird nach Abschnitt 5 der jeweiligen ATV. Das Aufmaß wird gemeinsam genommen; wo die Ausführung den Plänen entspricht, darf nach Plänen abgerechnet werden. Rechnungen sind prüfbar mit den Positionsnummern der Leistungsbeschreibung und den Aufmaßblättern einzureichen, auf Wunsch zusätzlich als GAEB-Datei.\n'
+        '\n'
+        '8 Unterlagen und Abnahme\n'
+        'Vor der Abnahme übergibt der Auftragnehmer die Nachweise, die zur Leistung gehören: Leistungserklärungen, Prüf- und Messprotokolle, Bestandspläne, Bedienungs- und Wartungsanleitungen sowie Fotos verdeckter Bauteile. Die Abnahme erfolgt förmlich (§ 12 Abs. 4 VOB/B).\n'
+        '\n'
+        'Projektbezogene Angaben (nach Abschnitt 0 der ATV DIN 18299)\n'
+        '0.1 Baustelle\n'
+        '– Lage, Zufahrt, Lagerflächen: [ ]\n'
+        '– Vom Auftraggeber gestellt (Strom, Wasser, Sanitär, Container): [ ]\n'
+        '– Gerüste und Hebezeuge (wer stellt, wie lange): [ ]\n'
+        '– Baugrund, Grundwasser, Schadstoffe, Gutachten: [ ]\n'
+        '– Nachbarschaft, Leitungen, Schutz von Bäumen und Flächen: [ ]\n'
+        '– SiGeKo, SiGe-Plan, Baustellenordnung: [ ]\n'
+        '0.2 Ausführung\n'
+        '– Bauzeit, Zwischentermine, Arbeitszeiten: [ ]\n'
+        '– Bauen im Bestand oder unter Betrieb, Schutz vorhandener Bauteile: [ ]\n'
+        '– Werkplanung, Bemusterung, Freigaben: [ ]\n'
+        '0.3 Abweichungen von den ATV: [ ]\n'
+        '0.4 Nebenleistungen und Besondere Leistungen, die gesondert vergütet werden: [ ]\n'
+        '0.5 Abrechnungseinheiten, wenn abweichend: [ ]'
+    ),
+}
 
 VORBEMERKUNGEN["bb"] = {
     "titel": "Baubeschreibung (Muster)",

@@ -302,6 +302,17 @@ def test_korb_sammeln(ctx):
         c.post(f"{BD}/baudaten/korb", {"leeren": True, "dazu": vorher}, expect=None)
 
 
+def test_vorbemerkung_allgemein(ctx):
+    """Migration 0054: „Allgemeine Vorbemerkungen“ steht als erster Baustein in der Liste und ist vollständig abrufbar."""
+    c = ctx.admin
+    L = c.gj(f"{BD}/baudaten/vorbemerkungen")
+    gleich(L[0]["key"], "avb", "ganz oben")
+    v = c.gj(f"{BD}/baudaten/vorbemerkungen?key=avb")
+    gleich(v["titel"], "Allgemeine Vorbemerkungen", "Titel")
+    for t in ("1 Vertragsgrundlagen", "8 Unterlagen und Abnahme", "Projektbezogene Angaben", "§ 4 Abs. 3 VOB/B"):
+        pruefe(t in v["text"], f"Text enthält „{t}“")
+
+
 def test_rechte_baudaten(ctx):
     """Baudaten: Gast 401, Bernd Krämer 403; Index, Löhne und Import nur Administrator; Clara Wolf über die Ausschreibung freigeschaltet."""
     g = ctx.gast()

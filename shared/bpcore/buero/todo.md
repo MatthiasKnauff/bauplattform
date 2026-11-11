@@ -41,7 +41,6 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Mitarbeiter, Rollen & Urlaub: GO zum Mock (Rollen × Rechte, App Mitarbeiter, Urlaubsantrag mit Popup bei der Geschäftsführung, „Ansehen als …“) – baut auf den vorhandenen Urlaubsanträgen in „Monat & Urlaub“ auf.
 - Dritter Server (Docker 3) als zweiter Testserver: jeden Push wie Docker 1 (Stack aus server/test.yml, nichts zu ändern) oder eigener stabiler Stand (server/test3.yml + Pipeline). **ca. 10 min**
 - HOAI-Prüfung, zweiter Teil: Mock gewünscht? (Verbraucher-Schalter mit § 7 Abs. 2 HOAI, § 650r BGB, Widerruf; Bausubstanz; TA selbst geplant; Leistungszeitraum; Innenräume)
-- Vorbemerkungen als Standard-Baustein in der Ausschreibung: Mock gewünscht?
 
 - Leistungsinformationen: Fehler am Dropdown noch nicht nachgestellt. **ca. 10 min**
 - Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld? **ca. 5–10 min**
@@ -82,6 +81,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Ausschreibung: „Allgemeine Vorbemerkungen“ (eigener, recherchierter Text) als erster Baustein unter „+ aus den Baudaten einfügen …“~~
 - ~~Zeiten: Aufbau wie die übrigen Apps – Navigation links mit Heftzwecke (Erfassen, Übersicht, Büro), Befehlsleiste mit Fahrt/Stoppuhr und Datum; am Handy Reiter oben~~
 - ~~Honorar nach HOAI-Prüfung, erste Kleinigkeiten: Hinweis zum Umbauzuschlag nach § 6 Abs. 2 / § 36 (ohne Vereinbarung 20 %), Warnung bei fehlender Steuernummer/USt-IdNr. (§ 14 UStG), Fälligkeit auf der Schlussrechnung (§ 650g Abs. 4 BGB)~~
 - ~~Startseite, Bearbeiten: „PC / Handy“ je Kachel als kleiner Umschalter mit Linien-Symbolen statt Häkchen~~

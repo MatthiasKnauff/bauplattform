@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-avb",
+  "datum": "2026-11-11",
+  "app": "ava",
+  "titel": "Allgemeine Vorbemerkungen",
+  "text": "Im LV unter „Vorbemerkungen“ → „+ aus den Baudaten einfügen …“ steht ganz oben ein neuer, kompakter Baustein „Allgemeine Vorbemerkungen“: Vertragsgrundlagen, Preise, Baustelle, Ausführung, Termine, Nachträge, Abrechnung, Abnahme – dazu die projektbezogenen Angaben nach Abschnitt 0 der ATV zum Ausfüllen.",
+  "ziel": "[data-vbwahl]"
+ },
+ {
   "id": "2026-11-11-zeiten-nav",
   "datum": "2026-11-11",
   "app": "zeiten",

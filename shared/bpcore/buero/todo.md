@@ -72,6 +72,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Startseite, Bearbeiten: „PC / Handy“ je Kachel als kleiner Umschalter mit Linien-Symbolen statt Häkchen~~
 - ~~Viewer am iPhone: „Kollegen oder Externe einladen“ zeigte ein riesiges weißes Kärtchen – Kärtchen und Zeichenfläche haben jetzt eigene Namen (auch im Versand-Dialog)~~
 - ~~Pläne & Dateien: Aufbau wie die übrigen Apps – Navigation links mit Heftzwecke (Pläne, Planversandliste, Alle Dateien), der Ordnerbaum als Unterpunkt unter „Alle Dateien“; Kopfzeile und Filterleiste bleiben beim Rollen stehen; „Alle Dateien“ über die ganze Breite~~
 - ~~Alle Dateien: Details rechts (abdockbar) – Vorschau, Pfad, Größe, Datum; Fotos mit EXIF (Aufnahme, Kamera, Belichtung, Ort mit nächster Baustelle), PDF mit Seiten und Format, Office mit Titel und Autor; Klick wählt, Doppelklick öffnet~~

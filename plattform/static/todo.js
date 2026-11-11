@@ -398,7 +398,7 @@ function ueBlockHtml(b) {
 function ueRender(host, B, opts = {}) {
   UE._B = B;
   const sicht = ueSort(B).filter((b) => !UE.weg.includes(b.k));
-  host.innerHTML = (opts.vor || '') + (opts.top ? `<div class="ue-top">${opts.alle ? `<label class="chk" title="Auch Erledigtes, Abgelaufenes und Zurückgestelltes in den Blöcken zeigen"><input type="checkbox" data-uealle${UE.alle ? ' checked' : ''}> erledigte / abgelaufene anzeigen</label>` : ''}<span class="mute" style="font-size:.85rem">Blöcke am ⋮⋮ verschieben</span><span class="fill"></span><button type="button" class="btn sm" data-uebloecke>⚙ Blöcke</button></div>` : '')
+  host.innerHTML = (opts.vor || '') + (opts.top ? `<div class="ue-top">${opts.alle ? `<label class="chk" title="Auch Erledigtes, Abgelaufenes und Zurückgestelltes in den Blöcken zeigen"><input type="checkbox" data-uealle${UE.alle ? ' checked' : ''}> erledigte / abgelaufene anzeigen</label>` : ''}<span class="mute" style="font-size:.85rem">Blöcke am ⋮⋮ verschieben, mit ✕ ausblenden, über ＋ wieder holen</span></div>` : '')
     + `<div class="ue-grid${opts.cols === 2 ? ' zwei' : ''}">${sicht.map(ueBlockHtml).join('')}${opts.plus === false ? '' : `<button type="button" class="ue-add" data-ueadd>＋ Widget hinzufügen${UE.weg.filter((k) => B.some((x) => x.k === k)).length ? ` <small>(${UE.weg.filter((k) => B.some((x) => x.k === k)).length} ausgeblendet)</small>` : ''}</button>`}</div>${opts.fehler ? `<div class="fehler">${opts.fehler.map(esc).join('<br>')}</div>` : ''}`;
 }
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-uealle]')) { UE.alle = e.target.checked; ueLS.set('alle', UE.alle); UE.lade && UE.lade(); } });
@@ -410,21 +410,12 @@ document.addEventListener('click', (e) => {
     rueckgaengig(`„${n}“ ausgeblendet`, () => { UE.weg = alt; ueLS.set('weg', UE.weg); UE.lade && UE.lade(); }); return; }
   const ad = e.target.closest && e.target.closest('[data-ueadd]');
   if (ad) { const weg = (UE._B || []).filter((y) => UE.weg.includes(y.k));
-    pickMenu(ad, { items: weg.map((y) => ({ value: y.k, title: y.name, sub: y.n ? y.n + ' offen' : '' })), empty: 'Alle Widgets sind schon zu sehen.',
-      onPick: (k) => { UE.weg = UE.weg.filter((y) => y !== k); UE.order = [...UE.order.filter((y) => y !== k), k]; ueLS.set('weg', UE.weg); ueLS.set('order', UE.order); UE.lade && UE.lade(); } });
+    const items = weg.map((y) => ({ value: y.k, title: y.name, sub: y.n ? y.n + ' offen' : '' }));
+    if (UE.order.length) items.push({ value: '__reset', title: '↺ Reihenfolge zurücksetzen', sub: 'Blöcke wieder in der Grundordnung' });
+    pickMenu(ad, { items, empty: 'Alle Widgets sind schon zu sehen.',
+      onPick: (k) => { if (k === '__reset') { const alt = UE.order.slice(); UE.order = []; ueLS.set('order', []); UE.lade && UE.lade(); rueckgaengig('Reihenfolge zurückgesetzt', () => { UE.order = alt; ueLS.set('order', alt); UE.lade && UE.lade(); }); return; } UE.weg = UE.weg.filter((y) => y !== k); UE.order = [...UE.order.filter((y) => y !== k), k]; ueLS.set('weg', UE.weg); ueLS.set('order', UE.order); UE.lade && UE.lade(); } });
     return; }
-  const b = e.target.closest && e.target.closest('[data-uebloecke]'); if (!b) return;
-  ueBloeckeDialog();
 });
-/* Blöcke ein-/ausblenden, Reihenfolge zurücksetzen (⚙ Blöcke in „Aufgaben & Mängel“) */
-function ueBloeckeDialog() {
-  const alle = UE._B || [];
-  modalBox(`<h3>Blöcke</h3><p class="mute" style="margin:0 0 .6rem">Ausgeblendete Blöcke lassen sich hier jederzeit wieder einblenden.</p>${alle.map((x) => `<label class="chk" style="display:flex;gap:.5rem;padding:.25rem 0"><input type="checkbox" data-ueblk="${esc(x.k)}"${UE.weg.includes(x.k) ? '' : ' checked'}> ${esc(x.name)} <small class="mute">${x.n || 0}</small></label>`).join('')}
-    <div class="acts"><button class="btn" data-m="reset">Reihenfolge zurücksetzen</button><span style="flex:1"></span><button class="btn pri" data-m="x">Fertig</button></div>`, (m2, bg, close) => {
-    if (m2 === 'reset') { UE.order = []; ueLS.set('order', []); UE.lade && UE.lade(); return; }
-    if (m2 === 'x') { UE.weg = [...bg.querySelectorAll('[data-ueblk]')].filter((c) => !c.checked).map((c) => c.dataset.ueblk); ueLS.set('weg', UE.weg); close(); UE.lade && UE.lade(); }
-  });
-}
 let UEZ = null;   // Blöcke ziehen (HTML5-Drag am Griff/Kopf)
 document.addEventListener('dragstart', (e) => { const b = e.target.closest && e.target.closest('.ue-b'); if (!b || !e.target.closest('.ue-grip, h3')) { if (b) e.preventDefault(); return; } UEZ = b.dataset.blk; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-ue', UEZ); b.classList.add('zieh'); });
 document.addEventListener('dragover', (e) => { if (!UEZ) return; const b = e.target.closest && e.target.closest('.ue-b'); document.querySelectorAll('.ue-b.ziel').forEach((x) => x.classList.remove('ziel')); if (b && b.dataset.blk !== UEZ) { e.preventDefault(); b.classList.add('ziel'); } });

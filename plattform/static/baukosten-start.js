@@ -495,9 +495,7 @@ $('#ansBtn').onclick = () => {
   };
   const html = () => `<h3>Kostenansätze übernehmen</h3>
     <p class="hint" style="margin:0 0 .6rem">Aus einer anderen Kostenermittlung in „${esc(B.name)}“. Räume und Pläne bleiben, wie sie sind. ↶ Rückgängig nimmt die Übernahme wieder zurück.</p>
-    <div class="row"><label for="ansQ">Aus</label><select id="ansQ"><option value="">– Kostenermittlung wählen –</option>
-      <optgroup label="Kostenermittlungen">${L.filter((x) => !x.archived).map((x) => `<option value="${x.id}"${Q && Q.id === x.id ? ' selected' : ''}>${esc(x.name)}${x.total ? ' · ' + eur(x.total) : ''}</option>`).join('')}</optgroup>
-      ${L.some((x) => x.archived) ? `<optgroup label="Archiv">${L.filter((x) => x.archived).map((x) => `<option value="${x.id}"${Q && Q.id === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : ''}</select></div>
+    <div class="row"><label for="ansQ">Aus</label><button type="button" class="pick" id="ansQ" style="width:100%"></button></div>
     ${Q ? `<p class="hint" style="margin:.2rem 0 .5rem">${esc(bkSub(Q))}${Q.calc && Q.calc.total ? ' · gesamt ' + eur(Q.calc.total) : ''}</p>` : ''}
     <div style="display:flex;flex-direction:column;gap:.45rem;margin:.4rem 0">${TEILE.map(([k, l, t]) => `<label class="chk" style="align-items:flex-start;gap:.5rem"><input type="checkbox" style="flex:none" data-ans="${k}"${k !== 'pausch' ? ' checked' : ''}${Q ? '' : ' disabled'}><span><b>${l}</b>${Q ? ` <small class="pill">${esc(info(k))}</small>` : ''}<small class="hint" style="display:block">${t}</small></span></label>`).join('')}
       <label class="chk" style="margin-left:1.7rem"><input type="checkbox" id="ansMenge"${Q ? '' : ' disabled'}> Mengen der Bauteile mit übernehmen</label></div>
@@ -528,10 +526,16 @@ $('#ansBtn').onclick = () => {
     changed();
     toast(`Aus „${Q.name}“ übernommen: ${done.join(', ')}. ↶ Rückgängig nimmt es zurück.`);
   });
-  bg.addEventListener('change', async (e) => {
-    if (e.target.id !== 'ansQ') return;
-    const id = +e.target.value; Q = null;
-    if (id) { try { Q = await api('api/bk/' + id); } catch (er) { toast(er.message, true); } }
-    bg.querySelector('.modal').innerHTML = html();
+  /* Auswahl mit Suche (Tippen vervollständigt), gruppiert nach Projekt – das eigene zuerst, Archiv zuletzt */
+  const proj = (x) => (x.project && x.project.name) || 'ohne Projekt';
+  const knopf = () => { const k = bg.querySelector('#ansQ'); if (k) pickButton(k, { title: Q ? Q.name : 'Kostenermittlung wählen …', sub: Q ? proj(Q) : 'aus diesem oder einem anderen Projekt – tippen sucht' }); };
+  knopf();
+  bg.addEventListener('click', (e) => {
+    const k = e.target.closest('#ansQ'); if (!k) return;
+    const eigen = (x) => x.project_id && x.project_id === B.project_id;
+    const R = L.slice().sort((a, b) => (!!a.archived - !!b.archived) || (eigen(b) - eigen(a)) || proj(a).localeCompare(proj(b), 'de'));
+    pickMenu(k, { search: 'Projekt oder Kostenermittlung suchen …', empty: 'Nichts gefunden.',
+      items: R.map((x) => ({ value: x.id, title: x.name, sub: [STUFE_N(x.stufe), x.total ? eur(x.total) : ''].filter(Boolean).join(' · '), group: x.archived ? 'Archiv' : eigen(x) ? 'Dieses Projekt' : proj(x), find: proj(x) + ' ' + x.name, on: Q && Q.id === x.id })),
+      onPick: async (id) => { Q = null; try { Q = await api('api/bk/' + id); } catch (er) { toast(er.message, true); } bg.querySelector('.modal').innerHTML = html(); knopf(); } });
   });
 };

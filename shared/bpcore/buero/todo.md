@@ -60,6 +60,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Baukosten, Kostenansätze übernehmen: Auswahl mit Suche über alle Projekte, nach Projekt gruppiert (eigenes zuerst), statt Systemliste~~
 - ~~Erinnerungen & Fristen: Auswahl nur nach Klick aufs Zahnrad (auch bei gesperrter Startseite), nicht mehr automatisch beim Anlegen~~
 - ~~Adressverzeichnis druckt nur Namen: kein Fehler – auf dem Testserver sind die Adressen fast leer (geklärt 11.11.)~~
 - ~~Unterschreiben am Handy per QR-Code vom PC: ✍ → „📱 Am Handy“, Unterschrift erscheint im PDF am PC~~

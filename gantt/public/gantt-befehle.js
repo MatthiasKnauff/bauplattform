@@ -729,7 +729,7 @@ function gwAuto() {
     act(() => { props.forEach(([i, g]) => { if (ok.has(i)) { P.tasks[i].gw = g; gwColor(g); } }); });
   } }, { label: 'Abbrechen' }]);
 }
-function gwDialog() {
+function gwDialog(fokus) {   // fokus: Gewerk, dessen Zeile gleich markiert ist (Klick auf das Farbkästchen)
   const list = allGw();
   const cnt = (g) => P.tasks.filter((t) => t.gw === g).length;
   const rows = list.map((g) => `<tr><td><input type="color" data-g="${esc(g)}" value="${gwColor(g)}" style="width:42px;height:24px;padding:0;border:1px solid var(--bd)"></td>
@@ -748,6 +748,8 @@ function gwDialog() {
         });
       });
     } }, { label: 'Abbrechen' }]);
+  if (typeof fokus === 'string') setTimeout(() => { const el = [...document.querySelectorAll('.modal input[data-g]')].find((x) => x.dataset.g === fokus); if (!el) return;
+    const tr = el.closest('tr'); tr.style.background = 'var(--sel)'; tr.scrollIntoView({ block: 'center' }); el.focus(); }, 0);
 }
 
 // suggest: optionale Vorschlagsliste. autocomplete="off": sonst schlägt der Browser Einträge aus anderen

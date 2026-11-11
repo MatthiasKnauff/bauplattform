@@ -330,3 +330,6 @@ document.addEventListener('focusin', (e) => {
   dl.innerHTML = firmOptions(gw); el.setAttribute('list', 'firmSugList');
 });
 loadFirms();
+
+/* Klick auf das Farbkästchen eines Gewerks: Farbzuordnung (Gewerke & Farben) mit dieser Zeile öffnen */
+$('#firmView').addEventListener('click', (e) => { const d = e.target.closest('.fv-dot'); if (!d) return; const tr = d.closest('tr[data-gw]'); if (tr) gwDialog(tr.dataset.gw); });

@@ -940,3 +940,4 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 .kchips{display:flex;flex-wrap:wrap;gap:4px}.kchip{border:1px solid var(--bd,#bbb);background:var(--card,#fff);color:inherit;border-radius:calc(999px*var(--rkp,1));padding:3px 10px;font:inherit;font-size:.92em;cursor:pointer}
 .kchip:hover{border-color:var(--accent,#2b4a7a)}.kchip.on{background:var(--accent,#2b4a7a);border-color:var(--accent,#2b4a7a);color:#fff;font-weight:600}
 .frwrap{min-height:150px;max-height:40vh;overflow:auto;border:1px solid var(--bd,#ddd)}.frwrap .ptab{margin:0}
+.fv-dot{cursor:pointer}.fv-dot:hover{outline:2px solid var(--accent);outline-offset:1px}

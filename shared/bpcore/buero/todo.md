@@ -60,6 +60,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauzeitenplan, Gewerke & Firmen: Klick auf das Farbkästchen öffnet „Gewerke & Farben“ mit dieser Zeile~~
 - ~~Bauzeitenplan, Leistungskatalog und Gewerke & Firmen: Hinweistext einzeilig (ⓘ, ganz beim Darüberfahren) – Kopf spart Platz~~
 - ~~Bauzeitenplan, Arbeitszeit & Feiertage: Arbeitswoche und Feiertage als Knöpfe statt Auswahllisten, Tabelle der freien Tage mit Platz~~
 - ~~Bauzeitenplan: Fenster „Arbeitszeit & Feiertage“ öffnet gleich groß~~

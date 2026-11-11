@@ -700,3 +700,4 @@ select.nt-st.beauftragt{border-color:#3c9d4a!important;background:color-mix(in s
 /* gesperrt (beauftragt): Felder wie Text, Schloss an der OZ – Klick ins Feld fragt nach dem Freischalten */
 table.lv tr.zu input,table.lv tr.zu select,table.lv tr.zu textarea{background:transparent!important;border-color:transparent!important;cursor:default}
 table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opacity:.55}
+.nl-kopie{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}.nl-kopie .pick{flex:1 1 14rem;min-width:0}.nl-kopie .nl-pf{color:var(--mute);font-size:1.2rem}

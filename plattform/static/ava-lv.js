@@ -552,7 +552,7 @@ async function newDialog(o = {}) {
     ].map(([v, i, t, d, ok], k) => `<label class="${ok ? '' : 'aus'}"><input type="radio" name="nlSrc" value="${v}"${(o.auftrag ? v === 'frei' : !k) ? ' checked' : ''}${ok ? '' : ' disabled'}><span class="i">${i}</span><b>${t}</b><small>${ok ? d : v === 'bk' ? 'keine Kostenermittlung mit Bauteilen im Projekt' : 'noch kein LV vorhanden'}</small></label>`).join('')}</div>
     <div class="nlw-d">
       <div class="kgs" id="nlBk" hidden><select id="nlBkSel">${BK.filter((b) => b.n).map((b) => `<option value="${b.id}">${esc(b.name)} · ${b.n} Bauteile${b.eigenes ? '' : ' (anderes Projekt)'}</option>`).join('')}</select><span id="nlKgs"></span></div>
-      <div class="kgs" id="nlLv" hidden><select id="nlLvSel">${alle.map((x) => `<option value="${x.id}">${esc((x.nr ? x.nr + ' ' : '') + x.name)}${x.project_id !== pid ? ' – ' + esc((PROJ.find((p) => p.id === x.project_id) || {}).name || '') : ''}</option>`).join('')}</select>
+      <div class="kgs nl-kopie" id="nlLv" hidden><button type="button" id="nlKpP" class="pick" title="Aus welchem Projekt?"></button><span class="nl-pf">›</span><button type="button" id="nlKpL" class="pick" title="Welches LV?"></button><input type="hidden" id="nlLvSel">
         <label><input type="checkbox" id="nlMengen" checked> Mengen übernehmen</label></div>
       <div class="kgs" id="nlPdf" hidden><input type="file" id="nlPdfF" accept="${DOK_ACCEPT}"><label><input type="checkbox" id="nlPdfUe" checked> erkannte Positionen gleich übernehmen (das Dokument bleibt rechts daneben zum Prüfen; Preise eines Angebots als Schätzpreise)</label>
         <span class="hint">Titel und Positionen werden ohne KI erkannt (Scans per Texterkennung). Klappt das nicht, fragt die AVA, ob eine KI das Dokument lesen darf.</span></div>
@@ -582,6 +582,21 @@ async function newDialog(o = {}) {
     if (e.target.name === 'nlSrc') { $('#nlBk').hidden = e.target.value !== 'bk'; $('#nlLv').hidden = e.target.value !== 'lv'; $('#nlFrei').hidden = e.target.value !== 'frei'; $('#nlPdf').hidden = e.target.value !== 'pdf'; if (e.target.value === 'bk') kgDraw(); }
     if (e.target.id === 'nlBkSel') kgDraw();
   });
+  /* Kopie eines LV: erst das Projekt, dann das LV darin – zwei Auswahlknöpfe mit Suche */
+  const pName = (id) => (PROJ.find((p) => p.id === id) || {}).name || 'Projekt ' + id;
+  const lvsVon = (id) => alle.filter((x) => x.project_id === id);
+  let kpP = lvsVon(pid).length ? pid : (alle[0] || {}).project_id;
+  const kpZeig = (lvId) => {
+    const L2 = lvsVon(kpP), x = L2.find((y) => y.id === lvId) || L2[0];
+    $('#nlLvSel').value = x ? x.id : '';
+    pickButton($('#nlKpP'), { title: kpP ? pName(kpP) : 'Projekt wählen', sub: `${L2.length} LV${kpP === pid ? ' · dieses Projekt' : ''}` });
+    pickButton($('#nlKpL'), { title: x ? (x.nr ? x.nr + ' ' : '') + x.name : 'kein LV', sub: x ? [x.gewerk, x.n_pos != null ? x.n_pos + ' Positionen' : ''].filter(Boolean).join(' · ') : '' });
+  };
+  kpZeig();
+  $('#nlKpP').addEventListener('click', () => { const P2 = [...new Set(alle.map((x) => x.project_id))];
+    pickMenu($('#nlKpP'), { search: 'Projekt suchen …', items: P2.map((id) => ({ value: id, title: pName(id), sub: `${lvsVon(id).length} LV`, group: id === pid ? 'Dieses Projekt' : 'Andere Projekte', on: id === kpP }))
+      .sort((a, b) => (b.value === pid) - (a.value === pid) || a.title.localeCompare(b.title, 'de')), onPick: (v) => { kpP = +v; kpZeig(); } }); });
+  $('#nlKpL').addEventListener('click', () => pickMenu($('#nlKpL'), { search: lvsVon(kpP).length > 8 ? 'LV suchen …' : '', items: lvsVon(kpP).map((x) => ({ value: x.id, title: (x.nr ? x.nr + ' ' : '') + x.name, sub: x.gewerk || '', on: x.id === +$('#nlLvSel').value })), onPick: (v) => kpZeig(+v) }));
   bg.querySelector('.modal').classList.add('wide');
   setTimeout(() => $('#nlName').focus(), 30);
 }

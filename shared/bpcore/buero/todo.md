@@ -91,6 +91,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Warte-Hinweis (z. B. „Die KI arbeitet …“) mit „Abbrechen“ – die Seite wartet dann nicht mehr~~
 - ~~Bauzeitenplan: Fortschritt in der Leiste aufgeräumt – Stufen und Wert oben, Schieber darunter, eigener Abstand zur nächsten Gruppe~~
 - ~~Rückgängig-Dock setzt sich beim Erscheinen selbst dorthin, wo es am wenigsten verdeckt (unten links/Mitte/rechts, oben rechts), leicht durchsichtig~~
 - ~~Bauzeitenplan-Assistent: Bauweise je Geschoss nur noch bei „gemischt“~~

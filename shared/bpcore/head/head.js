@@ -48,14 +48,23 @@
     const merk = () => { tUser = Date.now(); };
     ['pointerdown', 'keydown', 'change', 'drop'].forEach((e) => window.addEventListener(e, merk, true));
     const text = () => { const t = [...laufend.values()].filter(Boolean).pop() || 'Einen Moment', s = Math.round((Date.now() - seit) / 1000); return t + ' …' + (s >= 3 ? ` <small>${s} s</small>` : ''); };
-    const zeig = () => { if (!laufend.size) return; if (!el) { el = document.createElement('div'); el.className = 'bph-warten'; el.setAttribute('role', 'status'); el.innerHTML = '<span class="bph-wsp"></span><span class="bph-wt"></span>'; }
-      el.lastChild.innerHTML = text(); if (!el.isConnected) document.body.appendChild(el);
-      if (!tick) tick = setInterval(() => { if (el && el.isConnected) el.lastChild.innerHTML = text(); }, 1000); };
-    const fertig = (n) => { laufend.delete(n); if (!laufend.size) { clearTimeout(tm); clearInterval(tick); tm = tick = 0; if (el) el.remove(); } else if (el && el.isConnected) el.lastChild.innerHTML = text(); };
-    H.warten = (p, t) => { const n = ++nr; if (!laufend.size) seit = Date.now(); laufend.set(n, t || ''); if (el && el.isConnected) el.lastChild.innerHTML = text(); else if (!tm) tm = setTimeout(() => { tm = 0; zeig(); }, 400);
-      return Promise.resolve(p).finally(() => fertig(n)); };   // auch für eigene lange Schritte: BPHead.warten(promise, 'Was gerade läuft')
+    const ABBR = new Map();   // Nummer → AbortController der Anfragen, die man abbrechen kann
+    const wt = () => el && el.querySelector('.bph-wt'), knopf = () => { const b = el && el.querySelector('.bph-wab'); if (b) b.hidden = !ABBR.size; };
+    const zeig = () => { if (!laufend.size) return; if (!el) { el = document.createElement('div'); el.className = 'bph-warten'; el.setAttribute('role', 'status');
+        el.innerHTML = '<span class="bph-wsp"></span><span class="bph-wt"></span><button type="button" class="bph-wab" title="Warten beenden – die Seite wartet nicht mehr auf das Ergebnis">Abbrechen</button>';
+        el.querySelector('.bph-wab').addEventListener('click', () => { const n = ABBR.size; ABBR.forEach((c) => { try { c.abort(); } catch { /* egal */ } }); ABBR.clear(); if (n && window.toast) toast('Abgebrochen.'); }); }
+      wt().innerHTML = text(); knopf(); if (!el.isConnected) document.body.appendChild(el);
+      if (!tick) tick = setInterval(() => { if (el && el.isConnected) wt().innerHTML = text(); }, 1000); };
+    const fertig = (n) => { laufend.delete(n); ABBR.delete(n); if (!laufend.size) { clearTimeout(tm); clearInterval(tick); tm = tick = 0; if (el) el.remove(); } else if (el && el.isConnected) { wt().innerHTML = text(); knopf(); } };
+    H.warten = (p, t, ab) => { const n = ++nr; if (!laufend.size) seit = Date.now(); laufend.set(n, t || ''); if (ab) ABBR.set(n, ab); if (el && el.isConnected) { wt().innerHTML = text(); knopf(); } else if (!tm) tm = setTimeout(() => { tm = 0; zeig(); }, 400);
+      return Promise.resolve(p).finally(() => fertig(n)); };   // auch für eigene lange Schritte: BPHead.warten(promise, 'Was gerade läuft'[, AbortController])
     const f0 = window.fetch && window.fetch.bind(window);
-    if (f0) window.fetch = function (u, o) { const p = f0(u, o); return Date.now() - tUser < 1200 ? H.warten(p, was(u, o)) : p; };
+    if (f0) window.fetch = function (u, o) {
+      if (Date.now() - tUser >= 1200) return f0(u, o);
+      let ab = null;   // vom Benutzer ausgelöst: abbrechbar machen (eigenes Signal, falls die App keins mitgibt)
+      if (!(o && o.signal) && !(u && u.signal) && window.AbortController) { ab = new AbortController(); o = { ...(o || {}), signal: ab.signal }; }
+      return H.warten(f0(u, o), was(u, o), ab);
+    };
   }
   /* Eigene Abfragefenster statt der Browser-Dialoge (alert/confirm/prompt) – in allen Apps gleich:
      await bpFrage(text, { ok, gefahr }) → true/false · await bpEingabe(text, vorgabe) → Text oder null · bpHinweis(text) */

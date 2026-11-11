@@ -21,7 +21,9 @@ const appUrl = (a) => {
   return viaProxy ? a.url : direct;
 };
 async function api(u, m = 'GET', d) {
-  const r = await fetch(u, { method: m, headers: d ? { 'Content-Type': 'application/json' } : {}, body: d ? JSON.stringify(d) : undefined });
+  let r;
+  try { r = await fetch(u, { method: m, headers: d ? { 'Content-Type': 'application/json' } : {}, body: d ? JSON.stringify(d) : undefined }); }
+  catch (e) { if (e && e.name === 'AbortError') { const a = new Error('Abgebrochen.'); a.abgebrochen = true; throw a; } throw e; }
   const j = await r.json().catch(() => null);
   if (j === null) {   // keine JSON-Antwort, z. B. Fehlerseite des Webservers (Zeitüberschreitung, Datei zu groß)
     throw new Error(r.status === 504 || r.status === 502 ? 'Der Server hat zu lange gebraucht – bitte noch einmal versuchen.'

@@ -765,6 +765,7 @@ body.sr-eigen>.sr-b{flex:1;min-height:0}
 .sr-weg{flex:1;display:flex;align-items:center;justify-content:center;padding:1.5rem;text-align:center;color:var(--mute,#777)}
 .sr-weg>div{border:1.5px dashed var(--line,#ccc);border-radius:calc(12px*var(--rk,1));padding:1.2rem 1.6rem;max-width:28rem}
 .sr-weg p{margin:0 0 .7rem}.sr-weg b{color:var(--ink,inherit)}
+.bph-warten .bph-wab{all:unset;pointer-events:auto;cursor:pointer;font-size:.82em;font-weight:600;padding:.2rem .65rem;border-radius:calc(999px*var(--rkp,1));border:1px solid color-mix(in srgb,currentColor 30%,transparent);margin-left:.2rem}.bph-warten .bph-wab:hover{background:color-mix(in srgb,currentColor 10%,transparent)}.bph-warten .bph-wab[hidden]{display:none}
 .bph-warten{gap:.7rem}.bph-warten .bph-wsp{width:18px;height:18px;flex:none}.bph-warten small{font-weight:400;opacity:.7;margin-left:.35rem;font-variant-numeric:tabular-nums}
 /* Für langsame Rechner (Stil → Bewegung / Effekte, je Benutzer): keine Animationen und Übergänge, keine Unschärfe (Milchglas) */
 html[data-bewegung="aus"] *,html[data-bewegung="aus"] *::before,html[data-bewegung="aus"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}

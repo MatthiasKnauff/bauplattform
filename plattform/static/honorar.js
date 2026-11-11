@@ -84,7 +84,7 @@ function zeichne() {
         <label>Anrechenbare Kosten (netto)<input class="z" data-f="kosten" value="${betrag(a.kosten)}" inputmode="decimal"></label>
         <button type="button" class="btn sm" data-kosten title="KG 300 + KG 400 der gültigen Kostenermittlung, KG 400 nach § 33 Abs. 2">Aus der Kostenermittlung</button>
         <label>Honorarzone${seg('zone', Object.fromEntries(L.zonen.map((z, i) => [String(i + 1), z])), a.zone)}</label>
-        <label>Umbauzuschlag %<input class="p" data-f="umbau" value="${zahl(a.umbau)}" inputmode="decimal" title="§ 36: bei Umbauten und Modernisierungen bis 33 %, frei vereinbar"></label></div>
+        <label>Umbauzuschlag %<input class="p" data-f="umbau" value="${zahl(a.umbau)}" inputmode="decimal" title="§ 6 Abs. 2 / § 36 HOAI: bis 33 % in Textform vereinbar. Ohne Vereinbarung gelten bei Umbau/Modernisierung ab durchschnittlichem Schwierigkeitsgrad 20 %. 0 % nur eintragen, wenn es kein Umbau ist."></label></div>
       ${a.kosten_info ? `<p class="mute" style="margin:.4rem 0 0;font-size:.82rem">${esc(a.kosten_info)}</p>` : ''}
       <div class="ho-f" style="margin-top:.7rem"><label style="flex:1">Honorarsatz <span class="ho-satz"><small>Basis</small><input type="range" min="0" max="100" step="5" data-f="satz" value="${a.satz}"><small>oben</small><b>${a.satz ? a.satz + ' %' : 'Basishonorarsatz'}</b></span></label>
         <label>Spanne Tafel<input value="${sp ? eur0(sp[0]) + ' – ' + eur0(sp[1]) : 'außerhalb der Tafel'}" disabled style="width:13rem"></label>

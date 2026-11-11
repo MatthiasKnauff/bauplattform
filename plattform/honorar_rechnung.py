@@ -51,6 +51,12 @@ def _stand(a, k, rows, r):
         return {}
 
 
+def steuernummer_fehlt(c):
+    """§ 14 Abs. 4 Nr. 2 UStG: Steuernummer oder USt-IdNr. muss auf die Rechnung (steht im Feld co_extra der Firmendaten)."""
+    r = c.execute("SELECT value FROM settings WHERE key='co_extra'").fetchone()
+    return not H.steuernummer_da((r["value"] if r else "") or "")
+
+
 def liste(c, a, k):
     """Rechnungen eines Auftrags für die Ansicht (in _detail eingehängt)."""
     rows = _zeilen(c, a["id"])
@@ -64,7 +70,7 @@ def liste(c, a, k):
     return {"liste": out, "status": STATUS, "abgerechnet": round(sum(x["betrag"] for x in gestellt), 2),
             "bezahlt": round(sum(x["bezahlt"] or 0 for x in gestellt if x["status"] == "bezahlt"), 2),
             "offen": round(sum(x["brutto"] for x in gestellt if x["status"] == "gestellt"), 2),
-            "entwurf": any(x["status"] == "entwurf" for x in rows), "schluss": any(x["art"] == "schluss" and x["status"] in ("gestellt", "bezahlt") for x in rows)}
+            "entwurf": any(x["status"] == "entwurf" for x in rows), "steuernr_fehlt": steuernummer_fehlt(c), "schluss": any(x["art"] == "schluss" and x["status"] in ("gestellt", "bezahlt") for x in rows)}
 
 
 def _empfaenger(c, a):
@@ -299,7 +305,8 @@ def pdf_erzeugen(rid):
     reihe([(L, "Leistungsstand zum", "l"), (L + 34 * mm, de(r["datum"]), "l")], ab=5 * mm)
     y -= 4 * mm
     if r["art"] == "schluss":
-        satz = "Schlussrechnung nach § 15 Abs. 1 HOAI über die vertraglich vereinbarten und erbrachten Leistungen."
+        satz = ("Schlussrechnung nach § 15 Abs. 1 HOAI über die vertraglich vereinbarten und erbrachten Leistungen. "
+                "Das Honorar wird mit Abnahme der Leistungen und Zugang dieser prüffähigen Schlussrechnung fällig (§ 650g Abs. 4 BGB).")
     else:
         satz = f"Abschlagszahlung nach § 15 Abs. 2 HOAI für die bis zum {de(r['datum'])} nachweislich erbrachten Leistungen."
     absatz(satz)

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-honorar-steuernr",
+  "datum": "2026-11-11",
+  "app": "honorar",
+  "titel": "Steuernummer auf Rechnungen",
+  "text": "Fehlt in den Firmendaten die Steuernummer oder USt-IdNr., warnt Honorar bei den Rechnungen – sie ist Pflichtangabe. Die Schlussrechnung nennt jetzt die Fälligkeit nach Abnahme.",
+  "ziel": ".hre"
+ },
+ {
   "id": "2026-11-11-plaene-nav",
   "datum": "2026-11-11",
   "app": "plaene",

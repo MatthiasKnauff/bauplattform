@@ -40,7 +40,8 @@ function reHtml() {
       <label class="w">Text unter dem Betrag<textarea rows="2" data-ref="text" data-id="${r.id}">${esc(r.text)}</textarea></label>
       ${r.betrag < 0 ? '<span class="hab-h warn">Die bisherigen Rechnungen übersteigen die erbrachte Leistung – der Betrag ist negativ (Gutschrift).</span>' : ''}
       <span class="hab-h">Der Entwurf rechnet mit dem aktuellen Leistungsstand${D.auftrag.art === 'hoai' ? ' („erbracht %“ je Leistungsphase oben)' : ''}; beim Stellen wird er eingefroren.</span></div></div>`).join('');
-  return `<div class="ho-k hre"><h3>🧾 Rechnungen<span class="mute">abgerechnet ${eur2(R.abgerechnet)} netto · bezahlt ${eur2(R.bezahlt)} · offen ${eur2(R.offen)} brutto</span></h3>
+  const stnr = R.steuernr_fehlt ? '<p class="hab-h warn" style="margin:.2rem 0 .5rem">⚠ In den Firmendaten (Verwaltung → Firma, Zusatzzeile) fehlt die Steuernummer oder USt-IdNr. – sie ist Pflichtangabe auf jeder Rechnung (§ 14 Abs. 4 Nr. 2 UStG).</p>' : '';
+  return `<div class="ho-k hre"><h3>🧾 Rechnungen<span class="mute">abgerechnet ${eur2(R.abgerechnet)} netto · bezahlt ${eur2(R.bezahlt)} · offen ${eur2(R.offen)} brutto</span></h3>${stnr}
     ${R.liste.length ? `<div class="hre-w"><table class="hre-t"><thead><tr><th>Rechnung</th><th>Datum</th><th class="r">Leistung kum.</th><th class="r">bisher</th><th class="r">netto</th><th class="r">brutto</th><th>Status</th><th></th></tr></thead><tbody>${zeilen}</tbody></table></div>${ent}`
       : '<p class="mute" style="margin:.2rem 0">Noch keine Rechnung. Leistungsstand oben eintragen („erbracht %“ je Leistungsphase), dann „＋ Abschlag“.</p>'}
     <div class="hab-a">${reKnoepfe()}</div></div>`;

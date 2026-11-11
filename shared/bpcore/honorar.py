@@ -12,6 +12,7 @@ der Person (zeit_person.satz), sonst Bürosatz. Warnung, wenn die Kosten einer P
 Die Werte der Honorartafel sind Orientierungswerte (HOAI 2021) – das Honorar ist frei vereinbar.
 """
 import json
+import re
 import math
 
 # § 35 Abs. 1 HOAI 2021 – Honorartafel Gebäude: anrechenbare Kosten → je Honorarzone (von, bis)
@@ -235,3 +236,11 @@ def re_nummer(muster, jahr, lfd):
         return (muster or "{jahr}-{lfd:03}").format(jahr=jahr, jahr2=str(jahr)[-2:], lfd=lfd)[:40]
     except (KeyError, ValueError, IndexError):
         return f"{jahr}-{lfd:03}"
+
+
+STNR = re.compile(r"steuer|st\.?-?nr|\bust\b|ust\.?-?id|\bDE ?\d{9}\b|\b\d{2,3}/\d{3,4}/\d{4,5}\b", re.I)
+
+
+def steuernummer_da(text):
+    """Steht im Text eine Steuernummer oder USt-IdNr.? (Pflichtangabe nach § 14 Abs. 4 Nr. 2 UStG)"""
+    return bool(STNR.search(text or ""))

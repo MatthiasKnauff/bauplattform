@@ -69,3 +69,11 @@ def test_abschlag_und_schluss():
     gleich(H.re_nummer("{jahr}-{lfd:03}", 2026, 7), "2026-007", "Rechnungsnummer")
     gleich(H.re_nummer("HR{jahr2}/{lfd}", 2026, 7), "HR26/7", "eigenes Muster")
     gleich(H.re_nummer("{falsch}", 2026, 7), "2026-007", "kaputtes Muster → Vorgabe")
+
+
+def test_steuernummer():
+    """§ 14 Abs. 4 Nr. 2 UStG: Steuernummer oder USt-IdNr. in der Zusatzzeile erkannt, sonst Warnung."""
+    for t in ("Steuernummer 112/5678/9012", "USt-IdNr. DE123456789", "St.-Nr. 112/5678/9012", "DE 123456789"):
+        pruefe(H.steuernummer_da(t), f"erkannt: {t}")
+    for t in ("", "Amtsgericht Essen HRB 1234", "Geschäftsführer August Lustig"):
+        pruefe(not H.steuernummer_da(t), f"keine Steuernummer: {t}")

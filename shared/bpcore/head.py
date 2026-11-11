@@ -479,6 +479,10 @@ def blueprint(get_user=None):
                 return jsonify(ok=True, n=neuigkeiten.merken(c, u["id"], ids if isinstance(ids, list) else []))
             if request.args.get("alle") == "1":
                 return jsonify(eintraege=neuigkeiten.neueste(apps))
+            z = c.execute("SELECT value FROM settings WHERE key='neuigkeiten_zeigen'").fetchone()
+            z = (z["value"] if z else "") or "admin"   # Vorgabe: nur Administratoren – Kollegen sehen Neuigkeiten erst, wenn die Verwaltung „alle“ wählt
+            if z == "aus" or (z == "admin" and not u["is_admin"]):
+                return jsonify(eintraege=[])
             return jsonify(eintraege=neuigkeiten.offen(c, u["id"], apps))
 
     @bp.route("/api/bp/projekt", methods=["GET", "PUT"])

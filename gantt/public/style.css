@@ -933,3 +933,8 @@ html[data-theme="dunkel"] .vm-grp{border-color:#444}
 #split:hover::after,#split.drag::after,#split2:hover::after{border-color:var(--accent)}
 
 .mv-zurueck{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:200;border:1px solid var(--line,#ccc);background:var(--card,#fff);color:var(--ink,#222);border-radius:999px;padding:8px 16px;font:15px/1.2 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+
+/* Arbeitszeit & Feiertage: Knöpfe statt Auswahllisten, Tabelle mit Platz */
+.kchips{display:flex;flex-wrap:wrap;gap:4px}.kchip{border:1px solid var(--bd,#bbb);background:var(--card,#fff);color:inherit;border-radius:calc(999px*var(--rkp,1));padding:3px 10px;font:inherit;font-size:.92em;cursor:pointer}
+.kchip:hover{border-color:var(--accent,#2b4a7a)}.kchip.on{background:var(--accent,#2b4a7a);border-color:var(--accent,#2b4a7a);color:#fff;font-weight:600}
+.frwrap{min-height:150px;max-height:40vh;overflow:auto;border:1px solid var(--bd,#ddd)}.frwrap .ptab{margin:0}

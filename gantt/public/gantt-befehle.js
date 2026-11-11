@@ -657,7 +657,7 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
   const freeRows = () => free.map((f, k) => `<tr><td><input type="date" data-fr="from" data-k="${k}" value="${esc(f.from || '')}"></td><td><input type="date" data-fr="to" data-k="${k}" value="${esc(f.to || f.from || '')}"></td>
       <td><input data-fr="name" data-k="${k}" value="${esc(f.name || '')}" placeholder="z. B. Betriebsferien"></td><td style="text-align:center"><input type="checkbox" data-fr="yearly" data-k="${k}"${f.yearly ? ' checked' : ''} title="jedes Jahr"></td>
       <td style="width:30px;text-align:center"><button type="button" class="btn sm" data-frdel="${k}" title="Entfernen">✕</button></td></tr>`).join('')
-    || '<tr><td colspan="5" style="color:var(--mut);padding:6px">Keine eigenen freien Tage</td></tr>';
+    || '<tr><td colspan="5" style="color:var(--mut);padding:10px 6px">Noch keine – unten „+ freie Tage“ oder eine Vorlage wählen.</td></tr>';
   const body = `<div class="form"${teil === 'kalender' ? ' style="display:none"' : ''}>
       <label>Projektname</label><input id="pName" class="full" value="${esc(P.name)}" data-bp-projekt autocomplete="off">
       <label>Projektanfang</label><input id="pStart" type="date" class="full" value="${isoD(P.start)}">
@@ -667,11 +667,11 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
     <div${teil === 'kalender' ? '' : ' style="display:none"'}>
     <div class="sec" style="margin-top:0">Arbeitszeit und Feiertage</div>
     <div class="form">
-      <label>Arbeitswoche</label><select id="pWeek" class="full">${WEEKS.map(([v, l]) => `<option value="${v}"${+cal.week === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
-      <label>Feiertage</label><select id="pState" class="full">${STATES.map(([v, l]) => `<option value="${v}"${(cal.state ?? 'DE') === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <label>Arbeitswoche</label><div class="full kchips" id="pWeek" data-v="${+cal.week || 5}">${WEEKS.map(([v, l]) => `<button type="button" class="kchip${+cal.week === v ? ' on' : ''}" data-kw="${v}">${l}</button>`).join('')}</div>
+      <label>Feiertage</label><div class="full kchips kchips-l" id="pState" data-v="${esc(cal.state ?? 'DE')}">${STATES.map(([v, l]) => `<button type="button" class="kchip${(cal.state ?? 'DE') === v ? ' on' : ''}" data-ks="${v}">${l}</button>`).join('')}</div>
     </div>
     <div class="sec">Eigene freie Tage</div>
-    <table class="ptab"><thead><tr><th style="width:130px">Von</th><th style="width:130px">Bis</th><th>Bezeichnung</th><th style="width:48px" title="jedes Jahr wiederholen">jährl.</th><th></th></tr></thead><tbody id="frBody">${freeRows()}</tbody></table>
+    <div class="frwrap"><table class="ptab"><thead><tr><th style="width:130px">Von</th><th style="width:130px">Bis</th><th>Bezeichnung</th><th style="width:48px" title="jedes Jahr wiederholen">jährl.</th><th></th></tr></thead><tbody id="frBody">${freeRows()}</tbody></table></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
       <button type="button" class="btn sm" id="frAdd">+ freie Tage</button>
       <button type="button" class="btn sm" data-q="xmas">+ Weihnachtsferien 24.12.–01.01. (jährlich)</button>
@@ -681,7 +681,7 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
     </div>`;
   const read = (bg) => {
     bg.querySelectorAll('[data-fr]').forEach((el) => { const f = free[+el.dataset.k]; if (!f) return; f[el.dataset.fr] = el.type === 'checkbox' ? el.checked : el.value; });
-    return { week: +bg.querySelector('#pWeek').value, state: bg.querySelector('#pState').value, free: free.filter((f) => f.from) };
+    return { week: +bg.querySelector('#pWeek').dataset.v, state: bg.querySelector('#pState').dataset.v, free: free.filter((f) => f.from) };
   };
   const bg = modal(teil === 'kalender' ? 'Arbeitszeit & Feiertage' : 'Projektinformationen', body, [{ label: 'OK', cls: 'primary', primary: true, fn: (bg) => {
     const nm = bg.querySelector('#pName').value.trim() || P.name, d = parseDate(bg.querySelector('#pStart').value), c = read(bg);
@@ -702,6 +702,8 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
   bg.addEventListener('change', (e) => { if (e.target.closest('.modal')) { read(bg); prev(); } });
   bg.addEventListener('click', (e) => {
     if (e.target.id === 'pZurKal') { bg.querySelector('.mx').click(); setTimeout(() => projectDialog('kalender'), 0); return; }
+    const kc = e.target.closest('[data-kw],[data-ks]');   // Arbeitswoche / Feiertage: Knöpfe statt Auswahlliste
+    if (kc) { const box = kc.parentElement; box.dataset.v = kc.dataset.kw ?? kc.dataset.ks; box.querySelectorAll('.kchip').forEach((x) => x.classList.toggle('on', x === kc)); read(bg); prev(); return; }
     const del = e.target.closest('[data-frdel]'); if (del) { read(bg); free.splice(+del.dataset.frdel, 1); redraw(); return; }
     if (e.target.id === 'frAdd') { read(bg); const t = isoD(Math.max(todayN(), P.start)); free.push({ from: t, to: t, name: '', yearly: false }); redraw(); return; }
     const q = e.target.closest('[data-q]'); if (!q) return;

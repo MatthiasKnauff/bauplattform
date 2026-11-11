@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import neuigkeiten, unterschrift
+from . import neuigkeiten, stempel, unterschrift
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -1150,6 +1150,37 @@ def blueprint(get_user=None):
             konto.set_signatur(c, uid, png, u["name"])
         return jsonify(ok=True)
 
+    @bp.route("/api/bp/stempel", methods=["GET"])
+    @bp.route("/api/bp/stempel/<art>", methods=["GET", "POST", "DELETE"])
+    def stempel_api(art=None):
+        """Stempel des Büros: GET Liste · GET /<art> PNG · POST/DELETE /<art> (nur Administrator, Verwaltung → Firma & Logo)."""
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        with db.tx() as c:
+            if art is None:
+                return jsonify(stempel.liste(c))
+            if art not in stempel.NAMEN:
+                return jsonify(error="Unbekannter Stempel"), 404
+            if request.method == "GET":
+                png = stempel.holen(c, art)
+                return Response(png, mimetype="image/png", headers={"Cache-Control": "no-store"}) if png else ("", 404)
+            if not u["is_admin"]:
+                return jsonify(error="Die Stempel hinterlegt der Administrator."), 403
+            if request.method == "DELETE":
+                stempel.loeschen(c, art)
+                return jsonify(ok=True)
+            f = request.files.get("file")
+            raw = f.read() if f else b""
+            if not raw or len(raw) > 15 * 1024 * 1024:
+                return jsonify(error="Bitte ein Bild des Stempels wählen (höchstens 15 MB)."), 400
+            try:
+                png = stempel.aufbereiten(raw)
+            except ValueError as e:
+                return jsonify(error=str(e)), 400
+            stempel.speichern(c, art, png, u["name"])
+        return jsonify(ok=True)
+
     @bp.post("/api/bp/pdf/unterschreiben")
     def pdf_unterschreiben():
         """PDF aus der Vorschau + Unterschrift (PNG, gezeichnet oder „meine“) → unterschriebenes PDF; steht im Fehlerfall nie halb da."""
@@ -1158,7 +1189,12 @@ def blueprint(get_user=None):
             return jsonify(error="Nicht angemeldet"), 401
         f, b = request.files.get("pdf"), request.form
         pdf = f.read(60 * 1024 * 1024) if f else b""
-        if b.get("meine") == "1":
+        if b.get("stempel"):
+            with db.tx() as c:
+                png = stempel.holen(c, b.get("stempel"))
+            if not png:
+                return jsonify(error="Dieser Stempel ist noch nicht hinterlegt (Verwaltung → Büro-Einstellungen → Firma & Logo)."), 400
+        elif b.get("meine") == "1":
             with db.tx() as c:
                 png = konto.signatur(c, uid)
             if not png:
@@ -1169,7 +1205,8 @@ def blueprint(get_user=None):
         if not pdf.startswith(b"%PDF") or not png:
             return jsonify(error="PDF oder Unterschrift fehlt."), 400
         try:
-            neu = unterschrift.stempeln(pdf, png, b.get("seite", 1), b.get("x", 0), b.get("y", 0), b.get("w", 0.3), b.get("h", 0.08), (b.get("text") or "")[:120])
+            neu = unterschrift.stempeln(pdf, png, b.get("seite", 1), b.get("x", 0), b.get("y", 0), b.get("w", 0.3), b.get("h", 0.08), (b.get("text") or "")[:120],
+                                       drehung=max(-15.0, min(15.0, float(b.get("drehung") or 0))))
         except Exception as e:
             fehler.still("head", "PDF unterschreiben", e)
             return jsonify(error="Das PDF ließ sich nicht unterschreiben."), 400

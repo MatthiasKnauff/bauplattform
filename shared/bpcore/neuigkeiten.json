@@ -1,5 +1,12 @@
 [
  {
+  "id": "2026-11-11-stempel",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Stempel des Büros",
+  "text": "In der PDF-Vorschau unter ✍ Unterschreiben gibt es jetzt „🔖 Stempel“: Bürostempel, Prüfstempel oder „Zahlbetrag siehe Anlage“ – leicht schräg wie von Hand gesetzt, verschiebbar und größer ziehbar. Die Stempel hinterlegt der Administrator unter Büro-Einstellungen → Firma & Logo."
+ },
+ {
   "id": "2026-11-11-abnahme-personen",
   "datum": "2026-11-11",
   "app": "kommunikation",

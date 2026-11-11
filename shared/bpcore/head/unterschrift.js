@@ -133,7 +133,12 @@
     const { el, S } = o;
     if (el.querySelector('.bpu-bar')) return;
     const knopf = el.querySelector('[data-gv="us"]') || el.querySelector('.bph-gvb');
-    let wahl = null, blob = null;
+    let wahl = null, blob = null, rot = 0;
+    if (o.stempel) {   // direkt mit einem Stempel des Büros anfangen
+      const r = await fetch('api/bp/stempel/' + o.stempel, { credentials: 'same-origin' }).catch(() => null);
+      if (!r || !r.ok) { if (window.toast) toast('Dieser Stempel ist noch nicht hinterlegt (Verwaltung → Büro-Einstellungen → Firma & Logo).', true); return; }
+      wahl = { stempel: o.stempel }; blob = await r.blob(); rot = locker();
+    } else {
     const r0 = await fetch('api/bp/signatur', { credentials: 'same-origin' }).catch(() => null);   // vorbelegt: die eigene Unterschrift aus „Mein Konto“
     if (r0 && r0.ok) { wahl = { meine: true }; blob = await r0.blob(); }
     else {
@@ -142,13 +147,14 @@
       if (wahl.meine) { if (window.toast) toast('Noch keine Unterschrift hinterlegt – unter „Mein Konto“ ein Foto hochladen oder selbst zeichnen.', true); return; }
       blob = await wahl.blob;
     }
+    }
     let src = URL.createObjectURL(blob);
     const seiten = [...S.querySelectorAll('.bph-pg')]; if (!seiten.length) return;
     let pg = seiten[seiten.length - 1];
     const sig = document.createElement('div'); sig.className = 'bpu-sig'; sig.innerHTML = `<img alt="Unterschrift" src="${src}"><i title="Größe ändern"></i>`;
-    const P = { x: 0.08, y: 0.72, w: 0.3, h: 0.07 };
+    const P = wahl.stempel ? { x: 0.55, y: 0.62, w: 0.3, h: 0.12 } : { x: 0.08, y: 0.72, w: 0.3, h: 0.07 };
     const img = sig.querySelector('img'); img.onload = () => { const v = img.naturalWidth / Math.max(1, img.naturalHeight), pr = pg.getBoundingClientRect(); P.h = Math.min(0.15, (P.w * pr.width) / v / pr.height); setz(); };
-    const setz = () => { if (sig.parentElement !== pg) { pg.style.position = 'relative'; pg.appendChild(sig); } Object.assign(sig.style, { left: P.x * 100 + '%', top: P.y * 100 + '%', width: P.w * 100 + '%', height: P.h * 100 + '%' }); };
+    const setz = () => { if (sig.parentElement !== pg) { pg.style.position = 'relative'; pg.appendChild(sig); } Object.assign(sig.style, { left: P.x * 100 + '%', top: P.y * 100 + '%', width: P.w * 100 + '%', height: P.h * 100 + '%', transform: rot ? `rotate(${rot}deg)` : '' }); };
     setz(); pg.scrollIntoView({ block: 'end', behavior: 'smooth' });
     let zieh = null;
     sig.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true }); sig.addEventListener('click', (e) => e.stopPropagation());   // nicht blättern, Leisten bleiben
@@ -163,28 +169,47 @@
     const name = (H && H.me && (H.me.full || H.me.name)) || '';
     const bar = document.createElement('div'); bar.className = 'bpu-bar';
     bar.innerHTML = `<span>Unterschrift verschieben, an der Ecke größer ziehen · auf eine Seite tippen setzt sie dorthin</span>
-      <label><input type="checkbox" data-u="txt" checked> Name und Datum darunter</label><button type="button" class="bpu-b" data-u="anders">✍ Anders unterschreiben</button><button type="button" class="bpu-b" data-u="ab">Abbrechen</button><button type="button" class="bpu-b pri" data-u="ok">Übernehmen</button>`;
+      <label><input type="checkbox" data-u="txt"${wahl.stempel ? '' : ' checked'}> Name und Datum darunter</label><button type="button" class="bpu-b" data-u="anders">✍ Anders unterschreiben</button><button type="button" class="bpu-b" data-u="stempel">🔖 Stempel</button><button type="button" class="bpu-b" data-u="ab">Abbrechen</button><button type="button" class="bpu-b pri" data-u="ok">Übernehmen</button>`;
     el.appendChild(bar);
     const ende = () => { S.removeEventListener('click', tipp, true); sig.remove(); bar.remove(); URL.revokeObjectURL(src); };
     bar.addEventListener('click', async (e) => { const b = e.target.closest('button[data-u]'); if (!b) return;
       if (b.dataset.u === 'ab') { ende(); return; }
-      if (b.dataset.u === 'anders') { const w = await pad(); if (!w) return;
+      if (b.dataset.u === 'stempel') {   // Stempel des Büros statt Unterschrift – leicht schräg wie von Hand
+        const L = await fetch('api/bp/stempel', { credentials: 'same-origin' }).then((r) => r.json()).catch(() => []);
+        const da = L.filter((x) => x.vorhanden); if (!da.length) { if (window.toast) toast('Noch keine Stempel hinterlegt (Verwaltung → Büro-Einstellungen → Firma & Logo).', true); return; }
+        const art = await stempelWahl(b, el, da); if (!art) return;
+        const r = await fetch('api/bp/stempel/' + art, { credentials: 'same-origin' }); if (!r.ok) return;
+        blob = await r.blob(); wahl = { stempel: art }; rot = locker(); bar.querySelector('[data-u="txt"]').checked = false;
+        Object.assign(P, { w: 0.3, h: 0.12 }); URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }
+      if (b.dataset.u === 'anders') { const w = await pad(); if (!w) return; rot = 0;
         if (w.meine) { const r = await fetch('api/bp/signatur', { credentials: 'same-origin' }); if (!r.ok) { if (window.toast) toast('Noch keine Unterschrift in „Mein Konto“.', true); return; } blob = await r.blob(); wahl = { meine: true }; }
         else { blob = await w.blob; wahl = w; }
         URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }
       b.disabled = true; b.textContent = 'Wird eingesetzt …';
       const fd = new FormData(); fd.append('pdf', new Blob([o.roh], { type: 'application/pdf' }), 'dokument.pdf');
-      if (wahl.meine) fd.append('meine', '1'); else fd.append('bild', blob, 'unterschrift.png');
+      if (wahl.stempel) fd.append('stempel', wahl.stempel); else if (wahl.meine) fd.append('meine', '1'); else fd.append('bild', blob, 'unterschrift.png');
+      if (rot) fd.append('drehung', rot);
       fd.append('seite', pg.dataset.seite || seiten.length); ['x', 'y', 'w', 'h'].forEach((k) => fd.append(k, P[k]));
       if (bar.querySelector('[data-u="txt"]').checked) fd.append('text', [name, heute()].filter(Boolean).join(' · '));
       try {
         const r = await fetch('api/bp/pdf/unterschreiben', { method: 'POST', body: fd, credentials: 'same-origin' });
         if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }
         const neu = await r.blob(); ende();
-        const nm = String(o.name || 'Dokument.pdf').replace(/(\s*\(unterschrieben\))?\.pdf$/i, '') + ' (unterschrieben).pdf';
+        const nm = String(o.name || 'Dokument.pdf').replace(/(\s*\((unterschrieben|gestempelt)\))?\.pdf$/i, '') + (wahl.stempel ? ' (gestempelt).pdf' : ' (unterschrieben).pdf');
         o.fertig(neu, nm);
-        if (window.toast) toast('Unterschrieben – Teilen, Speichern und Drucken nehmen jetzt das unterschriebene PDF.');
+        if (window.toast) toast((wahl.stempel ? 'Gestempelt' : 'Unterschrieben') + ' – Teilen, Speichern und Drucken nehmen jetzt dieses PDF.');
       } catch (er) { b.disabled = false; b.textContent = 'Übernehmen'; if (window.toast) toast(er.message, true); }
+    });
+  }
+  const locker = () => (Math.random() < 0.5 ? -1 : 1) * (1.5 + Math.random() * 4);   // 1,5–5,5° schräg – wie ein Stempel von Hand
+  function stempelWahl(knopf, el, L) {   // kleine Liste der Stempel mit Vorschau
+    return new Promise((fertig) => {
+      const m = document.createElement('div'); m.className = 'bpu-m';
+      m.innerHTML = `<div class="g">Stempel des Büros</div>${L.map((x) => `<button type="button" data-st="${esc(x.art)}"><img alt="" src="api/bp/stempel/${esc(x.art)}"><span>${esc(x.name)}<small>${esc(x.text)}</small></span></button>`).join('')}<button type="button" data-st=""><span style="width:70px"></span><span>Abbrechen</span></button>`;
+      el.appendChild(m);
+      const r = knopf.getBoundingClientRect(), re = el.getBoundingClientRect();
+      m.style.top = Math.max(8, r.top - re.top - m.offsetHeight - 8) + 'px'; m.style.left = Math.max(8, Math.min(re.width - m.offsetWidth - 8, r.left - re.left)) + 'px';
+      m.addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; m.remove(); fertig(b.dataset.st || null); });
     });
   }
   window.bpUnterschrift = { start, pad, flaeche, quer };

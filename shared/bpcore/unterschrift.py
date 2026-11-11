@@ -3,12 +3,13 @@
 stempeln(pdf, png, seite, x, y, w, h, text) → neues PDF
   seite  1-basiert; x, y, w, h als Anteil der Seite (0…1, von links oben) – so, wie die Unterschrift in der Vorschau liegt
   text   kleine Zeile unter der Unterschrift (Name, Datum), leer = keine
+  drehung  Grad im Uhrzeigersinn um die Mitte (Stempel „locker“ wie von Hand), wie in der Vorschau
 Die Unterschrift wird als Bild auf die Seite gelegt (über dem Inhalt); alles andere bleibt unverändert.
 """
 import io
 
 
-def stempeln(pdf, png, seite, x, y, w, h, text=""):
+def stempeln(pdf, png, seite, x, y, w, h, text="", drehung=0.0):
     from pypdf import PdfReader, PdfWriter
     from reportlab.lib.utils import ImageReader
     from reportlab.pdfgen import canvas
@@ -27,7 +28,13 @@ def stempeln(pdf, png, seite, x, y, w, h, text=""):
     x, y, w, h = (max(0.0, min(1.0, float(v))) for v in (x, y, w, h))
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=(bw, bh))
-    cv.drawImage(ImageReader(io.BytesIO(png)), x * bw, bh - (y + h) * bh, width=w * bw, height=h * bh, mask="auto", preserveAspectRatio=True, anchor="sw")
+    if drehung:
+        cx, cy = (x + w / 2) * bw, bh - (y + h / 2) * bh
+        cv.saveState(); cv.translate(cx, cy); cv.rotate(-float(drehung))
+        cv.drawImage(ImageReader(io.BytesIO(png)), -w * bw / 2, -h * bh / 2, width=w * bw, height=h * bh, mask="auto", preserveAspectRatio=True, anchor="c")
+        cv.restoreState()
+    else:
+        cv.drawImage(ImageReader(io.BytesIO(png)), x * bw, bh - (y + h) * bh, width=w * bw, height=h * bh, mask="auto", preserveAspectRatio=True, anchor="sw")
     if text:
         cv.setFont("Helvetica", 7)
         cv.setFillGray(0.35)

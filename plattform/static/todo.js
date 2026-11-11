@@ -64,6 +64,8 @@ function tdWer(x) {
   const f = (x.personen_namen || []).length ? x.personen_namen.join(', ') : (v ? (ich ? 'mich selbst' : x.erstellt_name) : '');
   return (v ? 'von ' + v : '') + (v && f ? ' → ' : '') + (f ? 'für ' + f : '');
 }
+/* In der App selbst führt ↗ ohne Verknüpfung nirgendwohin – dann weglassen */
+const tdInApp = () => /aufgaben|maengel/.test(location.pathname) && !!document.querySelector('#todo');
 function tdZeile(x) {
   const h = tdHeute(), rot = x.f && x.f < h;
   const unter = [x.auto ? `<span class="rg" title="automatisch erkannt">⚙ ${esc(x.regel_name)}</span>` : '', x.projekt, x.text, !x.auto ? tdWer(x) : '', !x.auto && (x.dateien || []).length ? '📎 ' + x.dateien.length : '',
@@ -71,7 +73,7 @@ function tdZeile(x) {
   return `<div class="tr${x.status === 'erledigt' ? ' fertig' : ''}" data-tk="${esc(x.key)}">
     <input type="checkbox" class="ck" data-td="fertig"${x.status === 'erledigt' ? ' checked' : ''} title="${x.auto ? 'Erledigt – ausblenden (kommt nicht wieder)' : 'Erledigt'}" aria-label="erledigt">
     <span class="tt" data-td="${x.regel === 'erinnerungen' ? 'erin' : x.auto ? 'oeffnen' : 'bearbeiten'}" title="${x.regel === 'erinnerungen' ? 'Erinnerung hier öffnen' : x.auto ? 'Zur Stelle in der App' : 'Bearbeiten'}"><b>${x.prio ? '<span class="pr">❗</span>' : ''}${esc(x.titel)}</b><span class="x">${unter.map((u, i) => i === 0 && x.auto ? u : esc(u)).join(' · ')}</span></span>
-    <span><span class="tz${rot ? ' rot' : ''}">${esc(tdDatum(x.f))}</span><span class="ta">${x.auto ? `${x.spaeter ? '<button data-td="jetzt" title="Wieder anzeigen">↺</button>' : '<button data-td="spaeter" title="Zurückstellen">⏱ später</button>'}${x.link ? '<button data-td="oeffnen" title="Öffnen">↗</button>' : ''}` : `<button data-td="spaeterm" title="Fälligkeit verschieben">⏱</button><button data-td="oeffnen" title="${x.link ? 'Öffnen, wo es herkommt' : 'In „Aufgaben & Mängel“ öffnen'}">↗</button>`}</span></span>
+    <span><span class="tz${rot ? ' rot' : ''}">${esc(tdDatum(x.f))}</span><span class="ta">${x.auto ? `${x.spaeter ? '<button data-td="jetzt" title="Wieder anzeigen">↺</button>' : '<button data-td="spaeter" title="Zurückstellen">⏱ später</button>'}${x.link ? '<button data-td="oeffnen" title="Öffnen">↗</button>' : ''}` : `<button data-td="spaeterm" title="Fälligkeit verschieben">⏱</button>${x.link || !tdInApp() ? `<button data-td="oeffnen" title="${x.link ? 'Öffnen, wo es herkommt' : 'In „Aufgaben & Mängel“ öffnen'}">↗</button>` : ''}`}</span></span>
     ${TDOFFEN === x.key ? (x.regel === 'erinnerungen' ? tdErEditor(x) : tdEditor(x)) : ''}</div>`;
 }
 /* Erinnerung direkt hier bearbeiten (Startseite) – gespeichert wird in „Aufgaben & Mängel“ */

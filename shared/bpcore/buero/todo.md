@@ -44,7 +44,6 @@ Summe Sammlung: ca. 5–6 Tage.
 - Webplattform für Externe (Portal): Firmen, Fachplaner, Bauherr über das Internet – eigener Portal-Container, Einladung, Zwei-Faktor, Rechte je Projekt und Rolle, Protokoll. Nach Schritt 5. **ca. 3–4 Wochen**
 - Projektplattform und Dokumentenmanagement: Ordner nach Vorlage, Versionen/Indizes, Freigabe-Läufe, Volltextsuche, Planlauf, Protokolle mit Fristen, Objektspeicher (MinIO). **ca. 4–6 Wochen**
 - Leistungsphase 0: Raumprogramm/Flächen (DIN 18205) als Grundlage für die Kostenschätzung. **ca. 1 Woche**
-- Zeiterfassung: Rückgängig (Zweig zeiten-rueckgaengig). **ca. 1 Tag**
 - Honorar, Etappe 2: Rechnungen (Abschlag nach erbrachtem Anteil, Schlussrechnung) mit Rechnungsnummer und Zahlungseingang, Angebote in Varianten, weitere Objektarten (Innenräume, Freianlagen), Freischaltung für einzelne Benutzer. **ca. 1 Woche**
 - Textprüfung. **ca. 2 Tage**
 - Einrichtungsassistent. **ca. 3 Tage**
@@ -56,6 +55,7 @@ Summe Sammlung: ca. 5–6 Tage.
 
 ## Erledigt
 
+- ~~Zeiten: Rückgängig für „Tag bestätigen“ und für das Übernehmen einzelner Vorschläge (Zweig zeiten-rueckgaengig übernommen und geprüft)~~
 - ~~Tabellen (baum.js): Tab überspringt Art und KG im LV (Option tabOhne); die aktive Zeile bleibt beim Wandern mit der Tastatur in der Mitte (rollt erst, wenn sie das mittlere Feld verlässt)~~
 - ~~Startseite: Kacheln frei verschieben (Maus ziehen, am Handy lange drücken), je Benutzer gemerkt, „Startseite zurücksetzen“ – war mit dem Raster schon fertig~~
 - ~~Bauzeitenplan: Vergleich auch mit einer anderen Version des Plans (Versionsleiste → „⇄ Vergleichen mit anderer Version …“)~~

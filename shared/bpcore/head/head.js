@@ -15,7 +15,8 @@
   { const basis = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '');
     const w = document.createElement('script'); w.src = basis + 'wahl.js'; document.head.appendChild(w);
     const nu = document.createElement('script'); nu.src = basis + 'neu.js'; document.head.appendChild(nu);
-    const us = document.createElement('script'); us.src = basis + 'unterschrift.js'; document.head.appendChild(us);   // ✍ Unterschreiben in der PDF-Vorschau   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
+    const us = document.createElement('script'); us.src = basis + 'unterschrift.js'; document.head.appendChild(us);   // ✍ Unterschreiben in der PDF-Vorschau
+    const vs = document.createElement('script'); vs.src = basis + 'versand.js'; document.head.appendChild(vs);   // gemeinsamer Versanddialog (BPHead.versand)   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
     if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
       const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
@@ -2709,9 +2710,11 @@
     }
     async function skEnde(still) {
       const warId = SK.id, eigene = SK.striche.some((d) => d.uid === ich());
-      if (!still && !H.GAST && warId && !SK.dauerhaft && eigene && (await bpFrage('Markierungen dauerhaft am Plan behalten?\n\nDann sieht sie jeder wieder, der diesen Plan öffnet – auch in den anderen Apps.'))) {
-        SKJ(`api/bp/skizze/${warId}/dauerhaft`, 'POST', { an: true }).then(() => skDauerSuchen(tok)).catch((er) => alert(er.message));
-      }
+      if (!still && !H.GAST && warId && !SK.dauerhaft && eigene) {   // beim Fertig und beim Schließen: klar fragen, ob die Markierung bleibt
+        const ja = await bpFrage('Markierungen am Plan behalten?\n\nBleibende Markierungen sieht jeder, der diesen Plan öffnet – auch in den anderen Apps. In der Planliste steht dann „📌 markiert“.', { ok: '📌 Behalten', abbrechen: 'Nicht behalten' });
+        if (ja) SKJ(`api/bp/skizze/${warId}/dauerhaft`, 'POST', { an: true }).then(() => { skDauerSuchen(tok); if (window.toast) toast('Markierung bleibt – in der Planliste als „📌 markiert“ vermerkt.'); }).catch((er) => alert(er.message));
+        else if (window.toast) toast('Markierung nicht behalten – sie erscheint beim nächsten Öffnen nicht mehr.');
+      } else if (!still && SK.dauerhaft && window.toast) toast('Markierung bleibt am Plan (📌 in der Planliste).');
       clearInterval(SK.t); if (SK.id) SKJ(`api/bp/skizze/${SK.id}/zeiger`, 'POST', { seite: 0, x: null, y: null }).catch(() => {});
       SK.id = null; SK.striche = []; SK.leute = []; SK.dauerhaft = false; SK.dauer = null; el.classList.remove('bph-voll'); el.querySelector('.bph-skm').hidden = true; skLeiste(); skModus(); skKnopf(); if (!still) { alleZeichnen(); if (warId && items[i] && !items[i].skizze) skDauerSuchen(tok); }
     }
@@ -2928,10 +2931,10 @@
       if (!b) { if (TOUCH && S.contains(e.target) && !(SK.id && SK.werkzeug !== 'zeigen')) el.classList.toggle('bph-gvzu'); return; }   // Antippen: Leisten aus/ein (schließen nur über ✕)
       const a = b.dataset.gv; if (b.closest('.bph-gvm')) el.querySelector('.bph-gvm').hidden = true;
       if (a === 'me') { menue(); return; }
-      if (a === 'us') { if (window.bpUnterschrift && roh) bpUnterschrift.start({ el, S, roh: roh.slice(0), name: items[i].name, fertig: (blob, nm) => { items[i] = { ...items[i], url: URL.createObjectURL(blob), name: nm, skizze: null, unterschrieben: true }; show(); } }); return; }
+      if (a === 'us') { if (window.bpUnterschrift && roh) bpUnterschrift.start({ el, S, roh: roh.slice(0), name: items[i].name, fertig: (blob, nm) => { const cb = items[i].beiUnterschrift; items[i] = { ...items[i], url: URL.createObjectURL(blob), name: nm, skizze: null, unterschrieben: true }; if (cb) cb(blob, nm); show(); } }); return; }
       if (a === 'fb') { setZoom(0, 1); return; }
       if (a === 'fs') { setZoom(0, Math.min(1, (S.clientHeight - 16) / (fitW() * hoch))); return; }
-      if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'dr') drucken();
+      if (a === 'sk') { if (SK.id) { el.querySelector('.bph-skl').hidden = !el.querySelector('.bph-skl').hidden; } else skStart(); return; } if (a === 'x') { if (SK.id && !H.GAST) skEnde().then(() => close()); else close(); } else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'zp') setZoom(1); else if (a === 'zm') setZoom(-1); else if (a === 'dl') teilen(); else if (a === 'dr') drucken();
     });
     let tx = null, ty = 0, pz = null;   // Wischen links/rechts blättert (nur ohne Vergrößerung) · zwei Finger zoomen
     const abst = (T) => Math.hypot(T[0].clientX - T[1].clientX, T[0].clientY - T[1].clientY);

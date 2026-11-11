@@ -1,5 +1,19 @@
 [
  {
+  "id": "2026-11-11-versand-abnahme",
+  "datum": "2026-11-11",
+  "app": "kommunikation",
+  "titel": "Neuer Versanddialog",
+  "text": "Die Abnahme wird jetzt mit dem neuen Versanddialog verschickt: Was → An wen (Firmen als Chips) → Wie → Nachricht. Planversand, Plotauftrag und Rügen folgen im selben Aufbau."
+ },
+ {
+  "id": "2026-11-11-markierung-behalten",
+  "datum": "2026-11-11",
+  "app": "plaene",
+  "titel": "Markierung behalten?",
+  "text": "Beim Beenden des Markierens – mit „Fertig“ oder ✕ – fragt die Vorschau jetzt klar: behalten oder nicht. Bleibende Markierungen stehen in der Planliste als „📌 markiert“ mit Datum."
+ },
+ {
   "id": "2026-11-11-tinte",
   "datum": "2026-11-11",
   "app": "",

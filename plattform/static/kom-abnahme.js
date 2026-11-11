@@ -196,19 +196,22 @@ async function abnahmeOeffnen(id, A0, V0) {
     if (m === 'nachtrag') { close(); abnahmeNeu(id); }
   }
 
-  async function senden() {
+  async function senden() {   // gemeinsamer Versanddialog (BPHead.versand) – nur auf Knopfdruck, nie automatisch
     const B = await beteiligte(S.A.project_id).catch(() => []);
-    const fn = (S.d.firma || '').toLowerCase();
-    const vor = B.find((x) => x.email && (x.id === S.d.contact_id || (x.name || '').toLowerCase() === fn));
-    modalBox(`<h3>Abnahme an die Firma senden</h3><div class="fm"><label for="abE">An</label><input id="abE" value="${esc(vor ? vor.email : '')}" placeholder="E-Mail-Adresse" inputmode="email" autocomplete="off">
-      <label for="abTx">Text</label><textarea id="abTx" rows="5">Sehr geehrte Damen und Herren,\n\nanbei die unterschriebene Niederschrift zur Abnahme vom ${abnDe(S.d.abnahme_am)}.\n\nMit freundlichen Grüßen</textarea>
-      <span></span><label class="kv-ck"><input type="checkbox" id="abK" checked> Kopie an mich</label></div>
-      <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Senden</button></div>`, async (m, bg2, close2, b2) => {
-      if (m === 'x') { close2(); return; } if (m !== 'ok') return;
-      const a = bg2.querySelector('#abE').value.trim(); if (!/^[^@\s<>,;]+@[^@\s<>,;]+\.[A-Za-z]{2,}$/.test(a)) { toast('Bitte eine gültige E-Mail-Adresse.', true); return; }
-      b2.disabled = true;
-      try { const r = await api('api/abnahme/' + id + '/senden', 'POST', { an: [{ email: a, name: S.d.firma || '', contact_id: vor && vor.email === a ? vor.id : undefined }], text: bg2.querySelector('#abTx').value, kopie: bg2.querySelector('#abK').checked });
-        close2(); toast('Gesendet: ' + r.betreff); S.A = await api('api/abnahme/' + id); zeichne(); } catch (e) { b2.disabled = false; toast(e.message, true); }
+    const fn = (S.d.firma || '').toLowerCase(), D = (S.d.maengel || []).length, U = Object.values(S.d.unterschriften || {}).filter((u) => u && u.png).length;
+    const E = B.filter((x) => x.email).map((x) => ({ name: x.name, sub: x.gewerk || '', email: x.email, contact_id: x.id, on: x.id === S.d.contact_id || (x.name || '').toLowerCase() === fn }));
+    const nachtrag = !!S.A.bezug;
+    await BPHead.versand({
+      titel: (nachtrag ? 'Nachtrag zur Abnahme' : 'Abnahme') + ' versenden',
+      was: [{ icon: '🏁', name: `${nachtrag ? 'Nachtrag zur Abnahme' : 'Abnahme'} ${S.d.firma || ''} vom ${abnDe(S.d.abnahme_am)}`, sub: `Niederschrift${D ? ` + Mängelblatt (${D})` : ''} · ${U} Unterschrift${U === 1 ? '' : 'en'}` }],
+      empfaenger: E, kopie: true,
+      betreff: null,
+      text: `Sehr geehrte Damen und Herren,\n\nanbei die unterschriebene Niederschrift zur Abnahme vom ${abnDe(S.d.abnahme_am)}.\n\nMit freundlichen Grüßen`,
+      textHilfe: 'Der Betreff wird gebildet: Projektkürzel, Abnahme, Firma, Datum.',
+      senden: async (W) => {
+        const r = await api('api/abnahme/' + id + '/senden', 'POST', { an: W.an, text: W.text, kopie: W.kopie });
+        toast('Gesendet: ' + r.betreff); S.A = await api('api/abnahme/' + id); zeichne();
+      },
     });
   }
 

@@ -1,6 +1,6 @@
 # =============================================================================
 # NÄCHSTE PRODUKTIV-FASSUNG – ersetzt server/docker-compose.yml bei der nächsten Freigabe
-# Neu: Zeiten (Zeiterfassung, Port 8101) · ein Image für alle Apps (…/plattform; Bautagebuch und Bauzeitenplan mit APP=…)
+# Neu: Zeiten (Zeiterfassung, Port 8101) · Honorar (nur Verwaltung, Port 8103) · ein Image für alle Apps (…/plattform; Bautagebuch und Bauzeitenplan mit APP=…)
 # Bauplattform – PRODUKTIV (Docker 2)
 #
 # Bekommt NUR freigegebene Versionen: Wird auf GitHub ein Tag v… gesetzt (z. B. v2026.11.2),

@@ -8,7 +8,18 @@
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="bp/bp.css">
 <style>
-.wrap{max-width:1240px;padding-bottom:5rem}
+/* Aufbau wie die übrigen Apps: links die Ansichten (bpNav mit Heftzwecke), darüber die Befehlsleiste mit dem Datum */
+html,body{height:100%}
+body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
+main.zt{flex:1;min-height:0;display:flex}
+main.zt>.bp-nav{width:220px;flex:none;min-height:0;overflow:auto}
+main.zt .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+main.zt .bfl{flex:none;padding:.35rem .45rem 0}
+#view{flex:1;min-height:0;overflow:auto;padding:.6rem 1rem 5rem}#view>*{max-width:1240px}
+main.zt .top{display:none}
+@media (max-width:760px){main.zt>.bp-nav,main.zt>.bp-nav-griff,main.zt .bfl{display:none}main.zt .top{display:flex;padding:.4rem .5rem 0}#view{padding:.5rem .5rem 5rem}
+  #tabs{flex:1 1 100%;overflow-x:auto;scrollbar-width:none}}
+html[data-modus="einfach"] .bp-nav [data-tab="woche"],html[data-modus="einfach"] .bp-nav [data-tab="auswertung"],html[data-modus="einfach"] .bp-nav [data-tab="einst"]{display:none}
 .top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:3px;gap:2px;background:var(--card)}
 .seg button{border:0;background:none;cursor:pointer;font:inherit;border-radius:calc(999px*var(--rkp,1));padding:.35rem .9rem;color:var(--mute);font-size:.9rem;white-space:nowrap}
@@ -117,13 +128,17 @@ html[data-modus="einfach"] .k b{font-size:1.25rem}
 </style>
 </head>
 <body>
-<main class="wrap" id="app">
-  <div class="top">
-    <div class="seg" id="tabs" role="tablist" aria-label="Ansicht"></div>
-    <span class="fill"></span>
-    <div class="dnav" id="dnav"></div>
-  </div>
-  <div id="view"><p class="mute">Lade …</p></div>
+<main class="zt" id="app">
+  <aside class="bp-nav" id="navL" aria-label="Zeiten"></aside>
+  <section class="pane">
+    <div class="top">
+      <div class="seg" id="tabs" role="tablist" aria-label="Ansicht"></div>
+      <span class="fill"></span>
+      <div class="dnav" id="dnav"></div>
+    </div>
+    <div class="bfl" id="bfl"></div>
+    <div id="view"><p class="mute">Lade …</p></div>
+  </section>
 </main>
 <script src="bp/baukasten.js"></script>
 <script src="static/zeiten-strahl.js"></script>
@@ -150,14 +165,34 @@ const FR = { hin: 'zur Baustelle', zurueck: 'zurück ins Büro', andere: 'Fahrt'
 const fj = (v) => { try { return v ? JSON.parse(v) : null; } catch { return null; } };
 const artKurz = (a) => (/^lph(\d)$/.exec(a || '') ? 'LPh ' + a.slice(3) : (ARTN()[a] || a || ''));
 
-/* ---------------- Kopf: Reiter und Datum ---------------- */
+/* ---------------- Navigation links, Befehlsleiste mit Datum (am Handy: Reiter oben) ---------------- */
+const ZT_IC = { tag: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>',
+  woche: '<path d="M4 5h16v15H4zM4 9h16M9 9v11M14 9v11"/>', monat: '<path d="M4 5h16v15H4zM4 9h16M8 3v4M16 3v4M8 13h2M12 13h2M8 16h2M12 16h2"/>',
+  auswertung: '<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>', einst: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>' };
 function reiter() {
   const T = [['tag', 'Mein Tag'], ['woche', 'Woche', 1], ['monat', 'Monat & Urlaub']].concat(G.admin ? [['auswertung', 'Auswertung', 1], ['einst', 'Einstellungen', 1]] : []);
   if (einfach() && !['tag', 'monat'].includes(tab)) tab = 'tag';
+  const P = (k, t) => ({ id: k, text: t, icon: ZT_IC[k] });
+  bpNav($('#navL'), { kopf: { titel: 'Zeiten', klein: '' }, lage: true, attr: 'tab', aktiv: tab,   // Klick: der gemeinsame Handler [data-tab] unten
+    gruppen: [{ titel: 'Erfassen', punkte: [P('tag', 'Mein Tag'), P('woche', 'Woche')] }, { titel: 'Übersicht', punkte: [P('monat', 'Monat & Urlaub')].concat(G.admin ? [P('auswertung', 'Auswertung')] : []) }]
+      .concat(G.admin ? [{ titel: 'Büro', punkte: [P('einst', 'Einstellungen')] }] : []) });
+  bpNav.breite($('#navL'), { key: 'zeiten' });
   $('#tabs').innerHTML = T.map(([k, l, p]) => `<button type="button" data-tab="${k}" class="${tab === k ? 'on' : ''}${p ? ' profi' : ''}" role="tab" aria-selected="${tab === k}">${l}</button>`).join('');
   const zeigDatum = tab === 'tag' || tab === 'woche';
-  $('#dnav').innerHTML = zeigDatum ? `<button type="button" class="ib" data-dn="-1" title="Tag zurück" aria-label="Tag zurück">‹</button><input type="date" id="dIn" value="${tag}" max="${G.heute}" aria-label="Datum"><button type="button" class="ib" data-dn="1" title="Tag vor" aria-label="Tag vor"${tag >= G.heute ? ' disabled' : ''}>›</button>${tag !== G.heute ? '<button type="button" class="btn sm" data-dn="0">Heute</button>' : ''}`
+  $('#dnav').innerHTML = '';
+  ZT_DATUM = zeigDatum ? `<button type="button" class="ib" data-dn="-1" title="Tag zurück" aria-label="Tag zurück">‹</button><input type="date" id="dIn" value="${tag}" max="${G.heute}" aria-label="Datum"><button type="button" class="ib" data-dn="1" title="Tag vor" aria-label="Tag vor"${tag >= G.heute ? ' disabled' : ''}>›</button>${tag !== G.heute ? '<button type="button" class="btn sm" data-dn="0">Heute</button>' : ''}`
     : tab === 'monat' ? `<button type="button" class="ib" data-mn="-1" aria-label="Monat zurück">‹</button><b style="min-width:9rem;text-align:center">${new Date(monat + '-15').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" class="ib" data-mn="1" aria-label="Monat vor">›</button>` : '';
+  if (handy()) $('#dnav').innerHTML = ZT_DATUM;
+}
+let ZT_DATUM = '';
+function leiste() {   // Befehlsleiste (PC): Fahrt und Stoppuhr bei „Mein Tag“ heute, rechts das Datum
+  if (handy()) { $('#bfl').innerHTML = ''; return; }
+  const geht = tab === 'tag' && D && D.tag === G.heute && !D.bestaetigt && !PSEL && !FSEL && !G.lauf;
+  befehle($('#bfl'), [
+    tab === 'tag' ? { titel: 'Erfassen', knoepfe: [{ t: 'Fahrt starten', ic: '🚗', attrs: 'data-lauf="fwahl"', aus: !geht, tip: 'Fahrt starten (nur heute, solange nichts läuft)' },
+      { t: 'Stoppuhr', ic: '▶', attrs: 'data-lauf="wahl"', aus: !geht, tip: 'Stoppuhr für ein Projekt starten' }] } : null,
+    ZT_DATUM ? { titel: tab === 'monat' ? 'Monat' : 'Datum', rechts: true, html: `<div class="dnav">${ZT_DATUM}</div>` } : null,
+  ]);
 }
 async function laden() {
   reiter();
@@ -172,6 +207,8 @@ async function laden() {
 }
 function zeichne() {
   document.body.classList.toggle('handy', handy());
+  reiter();
+  leiste();
   const v = $('#view');
   if (tab === 'tag') v.innerHTML = vTag();
   else if (tab === 'woche') v.innerHTML = vWoche();
@@ -235,7 +272,7 @@ function laufHtml() {
   if (FSEL) return `<div class="fahrt-k"><b>🚗 Fahrt</b><div class="seg3" role="radiogroup" aria-label="Richtung">${Object.entries(FR).map(([k, n]) => `<button type="button" role="radio" aria-checked="${FSEL.richtung === k}" class="${FSEL.richtung === k ? 'on' : ''}" data-fr="${k}">${k === 'andere' ? 'andere' : esc(n)}</button>`).join('')}</div>
     ${projSel(FSEL.pid, 'id="fP"')}<button type="button" class="btn pri gross" data-lauf="ein">🚗 Einsteigen – Fahrt starten</button><button type="button" class="btn" data-lauf="fabbr">Abbrechen</button>
     <div class="mute">Beim Ein- und Aussteigen wird der Standort festgehalten, wenn das Handy es erlaubt. Die Fahrt zählt als Arbeitszeit beim Projekt.</div></div>`;
-  if (!l && !PSEL && D && D.tag === G.heute && !(D && D.bestaetigt)) return `<div class="schnell"><button type="button" class="btn pri" data-lauf="fwahl">🚗 Fahrt starten</button><button type="button" class="btn" data-lauf="wahl">▶ Stoppuhr</button></div>`;
+  if (!l && !PSEL && D && D.tag === G.heute && !(D && D.bestaetigt)) return !handy() ? '' : `<div class="schnell"><button type="button" class="btn pri" data-lauf="fwahl">🚗 Fahrt starten</button><button type="button" class="btn" data-lauf="wahl">▶ Stoppuhr</button></div>`;
   if (l) { const s = new Date(l.start.replace(' ', 'T')), m = Math.max(0, Math.round((Date.now() - s) / 60000));
     return `<div class="lauf"><span>⏱ läuft seit <b>${l.start.slice(11, 16)}</b> (${std(m)} h) · ${esc(PJN()[l.project_id] || 'ohne Projekt')} · ${esc(artKurz(l.art))}</span><button type="button" class="btn sm pri" data-lauf="stop">■ Anhalten und eintragen</button><button type="button" class="btn sm" data-lauf="weg">Verwerfen</button></div>`; }
   if (PSEL) return `<div class="lauf"><span>⏱ Stoppuhr für</span>${projSel(PSEL.pid, 'id="lP"')}${artSel(PSEL.art || 'buero', 'id="lA"')}<button type="button" class="btn sm pri" data-lauf="start">▶ Starten</button><button type="button" class="btn sm" data-lauf="abbr">Abbrechen</button></div>`;
@@ -253,7 +290,7 @@ function vTag() {
     ${d.bestaetigt || d.tag > G.heute ? '' : `<button type="button" class="btn pri" data-ta="ok"${V.length ? ` title="${V.length} Vorschläge werden übernommen"` : ''}>✓ Tag bestätigen${V.length ? ` (${V.length} Vorschl${V.length === 1 ? 'ag' : 'äge'})` : ''}</button>`}</div></div>`;
   const ws = W ? `<div class="ws profi" aria-label="Woche">${W.tage.map((x) => { const off = !x.bestaetigt && !x.abw && x.tag < G.heute && (x.soll || x.vorschlaege || x.eintraege);
     return `<button type="button" data-geh="${x.tag}" class="${x.tag === d.tag ? 'on' : ''}${x.bestaetigt ? ' bes' : ''}${off ? ' off' : ''}${!x.soll ? ' we' : ''}">${WT[wtag(x.tag)]} ${dkurz(x.tag)}<b style="display:block">${x.abw ? esc((G.abw[x.abw] || '').split(' ')[0]) : x.bestaetigt || x.tag === G.heute ? std(x.ist) : '–'}</b><small>${x.bestaetigt ? '✓ bestätigt' : x.abw ? '' : off ? 'offen' : x.feiertag ? esc(x.feiertag) : x.soll ? 'Soll ' + std(x.soll) : 'frei'}</small></button>`; }).join('')}</div>` : '';
-  return `${titel}${band}${laufHtml()}${kopfZahlen(d)}<div class="card profi tlk" style="padding-top:.4rem;overflow:visible">${zsTag(d)}</div>${liste}${ws}`;
+  return `${handy() || d.feiertag ? titel : ''}${band}${laufHtml()}${kopfZahlen(d)}<div class="card profi tlk" style="padding-top:.4rem;overflow:visible">${zsTag(d)}</div>${liste}${ws}`;
 }
 let NEU = null;
 function zeileWerte(z) { const o = {}; z.querySelectorAll('[data-zf]').forEach((el) => { o[el.dataset.zf] = el.classList.contains('hm') ? (hmNorm(el.value) || el.value) : el.value; }); return o; }

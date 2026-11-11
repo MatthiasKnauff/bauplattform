@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-zeiten-nav",
+  "datum": "2026-11-11",
+  "app": "zeiten",
+  "titel": "Zeiten wie die anderen Apps",
+  "text": "Mein Tag, Woche, Monat & Urlaub, Auswertung und Einstellungen stehen jetzt links in der Navigation mit Heftzwecke. Oben die Befehlsleiste mit Fahrt starten, Stoppuhr und dem Datum. Am Handy bleiben die Reiter oben.",
+  "ziel": "#navL"
+ },
+ {
   "id": "2026-11-11-honorar-steuernr",
   "datum": "2026-11-11",
   "app": "honorar",

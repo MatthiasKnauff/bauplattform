@@ -77,6 +77,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Aufbau wie die übrigen Apps – Navigation links mit Heftzwecke (Erfassen, Übersicht, Büro), Befehlsleiste mit Fahrt/Stoppuhr und Datum; am Handy Reiter oben~~
 - ~~Honorar nach HOAI-Prüfung, erste Kleinigkeiten: Hinweis zum Umbauzuschlag nach § 6 Abs. 2 / § 36 (ohne Vereinbarung 20 %), Warnung bei fehlender Steuernummer/USt-IdNr. (§ 14 UStG), Fälligkeit auf der Schlussrechnung (§ 650g Abs. 4 BGB)~~
 - ~~Startseite, Bearbeiten: „PC / Handy“ je Kachel als kleiner Umschalter mit Linien-Symbolen statt Häkchen~~
 - ~~Viewer am iPhone: „Kollegen oder Externe einladen“ zeigte ein riesiges weißes Kärtchen – Kärtchen und Zeichenfläche haben jetzt eigene Namen (auch im Versand-Dialog)~~

@@ -106,7 +106,7 @@ def test_anlagen(ctx):
         gleich((E[st]["stand"], E[vo]["stand"], E[st]["art"]), ("nach", "bei", "nennen"), "genannt mit Stand")
         pruefe(E[st]["nr"] and E[vo]["nr"] and E[st]["nr"] != E[vo]["nr"], f"Anlagen-Nummern: {E[st]['nr']}, {E[vo]['nr']}")
         gleich(d["packliste"], 1, "Papier: die Vollmacht kommt auf die Packliste (Nachzureichendes nicht)")
-        pruefe(a.get(f"{BA}/antraege/{aid}/anschreiben.pdf").content[:4] == b"%PDF", "Anschreiben mit Anlagen")
+        pruefe(a.get(f"{BA}/antraege/{aid}/anschreiben.pdf").body[:4] == b"%PDF", "Anschreiben mit Anlagen")
         d = a.uj(f"{BA}/antraege/{aid}/abgabe", {"abgabe": "digital"})
         gleich((d["abgabe"], d["packliste"]), ("digital", 0), "digital: keine Packliste")
         a.put(f"{BA}/antraege/{aid}/abgabe", {"abgabe": "fax"}, expect=400)

@@ -1,6 +1,6 @@
 /* Pläne & Dateien – Reiter „Alle Dateien“ (plaene-alle.js). Nur Stil-Variablen, Kacheln mit fester Bildfläche (nichts springt). */
 .al{display:grid;gap:.7rem;min-width:0}
-.al-l{display:flex;flex-wrap:wrap;gap:.4rem .5rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem .6rem}
+.al-l{display:flex;flex-wrap:wrap;gap:.4rem .5rem;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.5rem .6rem;position:sticky;top:0;z-index:5;box-shadow:0 6px 10px -8px rgba(0,0,0,.25)}   /* bleibt beim Rollen oben stehen */
 .al-l input[type=search]{flex:1 1 14rem;min-width:0;font:inherit;color:var(--ink);background:var(--inp,var(--card));border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.32rem .6rem}
 .al .chip{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(999px*var(--rkp,1));padding:.15rem .6rem;cursor:pointer;white-space:nowrap}
 .al .chip small{color:var(--mute);margin-left:.15rem}.al .chip.on{border-color:var(--y);color:var(--y);background:color-mix(in srgb,var(--y) 10%,var(--card))}
@@ -8,8 +8,8 @@
 .al .seg button{border:0;background:none;cursor:pointer;font:inherit;font-size:.8rem;border-radius:calc(999px*var(--rkp,1));padding:.12rem .55rem;color:var(--mute);white-space:nowrap}
 .al .seg button.on{background:var(--y);color:var(--on,#fff)}
 .al-gr{margin-left:auto}
-.al-z{display:grid;grid-template-columns:minmax(10rem,15rem) minmax(0,1fr);gap:.7rem;align-items:start}
-.al-b{background:var(--card);border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.3rem 0;position:sticky;top:.5rem;max-height:calc(100vh - 9rem);overflow:auto}
+.bp-nav .al-b{margin:.15rem 0 .4rem .5rem;border-left:1px solid var(--line)}   /* Ordnerbaum unter „Alle Dateien“ in der Navigation */
+.bp-nav.frei:not(:hover) .al-b{display:none}
 .ab-o{all:unset;box-sizing:border-box;display:block;width:100%;padding:.2rem .6rem;font-size:.8rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 .ab-o small{color:var(--mute)}.ab-o:hover{background:var(--hov)}.ab-o.on{background:var(--hov);font-weight:600}.ab-o:focus-visible{outline:2px solid var(--y);outline-offset:-2px}
 .al-i{min-width:0}
@@ -26,4 +26,13 @@
 .al-S .am{display:none}
 .al-t a{color:var(--ink);text-decoration:none}.al-t a:hover{color:var(--y)}.al-t .r{text-align:right;white-space:nowrap}
 .al-mehr{display:flex;justify-content:center;margin:.4rem 0 1rem}
-@media (max-width:760px){.al-z{grid-template-columns:1fr}.al-b{display:none}.al-gr button[data-agr=S],.al-gr button[data-agr=L]{display:none}}
+@media (max-width:760px){.al-gr button[data-agr=S],.al-gr button[data-agr=L]{display:none}}
+.ak.sel{outline:2px solid var(--y);outline-offset:1px;border-color:var(--y)}.al-t tr.sel td{background:color-mix(in srgb,var(--y) 10%,transparent)}
+/* Details rechts */
+.ad{display:grid;gap:.45rem;padding:.6rem .8rem 2rem;font-size:.85rem;overflow:auto;height:100%;box-sizing:border-box;align-content:start}
+.ad-b{aspect-ratio:4/3;background:var(--hov);border-radius:calc(8px*var(--rk,1));display:grid;place-items:center;overflow:hidden;font-size:2.4rem}.ad-b img{width:100%;height:100%;object-fit:contain;background:#fff}
+.ad h3{margin:.2rem 0 0;font-size:.95rem;overflow-wrap:anywhere}.ad-p{color:var(--mute);font-size:.78rem;overflow-wrap:anywhere}
+.ad-t{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-top:.5rem}
+.ad-dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.18rem .8rem;margin:0}.ad-dl dt{color:var(--mute)}.ad-dl dd{margin:0;overflow-wrap:anywhere}
+.ad-a{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.6rem}.ad-lade{color:var(--mute);margin:.3rem 0}
+.ad-leer{color:var(--mute);padding:2rem 1rem;text-align:center;line-height:1.6}

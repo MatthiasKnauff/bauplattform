@@ -72,6 +72,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Pläne & Dateien: Aufbau wie die übrigen Apps – Navigation links mit Heftzwecke (Pläne, Planversandliste, Alle Dateien), der Ordnerbaum als Unterpunkt unter „Alle Dateien“; Kopfzeile und Filterleiste bleiben beim Rollen stehen; „Alle Dateien“ über die ganze Breite~~
+- ~~Alle Dateien: Details rechts (abdockbar) – Vorschau, Pfad, Größe, Datum; Fotos mit EXIF (Aufnahme, Kamera, Belichtung, Ort mit nächster Baustelle), PDF mit Seiten und Format, Office mit Titel und Autor; Klick wählt, Doppelklick öffnet~~
 - ~~Alle Dateien: Vorschaubilder auch für Office (eingebettete Vorschau, sonst erste Seite aus dem Inhalt: Word, Excel, PowerPoint, OpenDocument, TXT, CSV); alte .doc/.xls bleiben beim Symbol~~
 - ~~Bauantrag: Anlagen – Pläne aus der Planliste (Nummer, Index; Hinweis auf neueren Index), Dateien aus dem Projektordner, frei; je Anlage Abschnitt, „PDF“ oder „nur nennen“, Stand (liegt bei · wird nachgereicht · liegt Prüfingenieur vor); Nummern je Abschnitt im Inhaltsverzeichnis~~
 - ~~Bauantrag: Abgabe auf Papier (Paket komplett, Pläne nur noch dazulegen – Packliste auf der letzten Seite) oder digital (Pläne als PDF, ZIP mit einer Datei je Anlage)~~

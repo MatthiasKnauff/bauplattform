@@ -3,7 +3,8 @@
    Dateiserver), Vorschaubilder erzeugen die Dienste im Hintergrund (bpcore/vorschau.py). Kacheln ohne Vorschau, die gerade zu sehen
    sind, werden gemeldet und kommen zuerst dran; das Bild erscheint dann ohne Neuladen. Am Handy: nur ansehen, Größe M.
    Benutzt die gemeinsamen Namen der Seite plaene.html (pid, LS, render, mb, de, passt). */
-let ALLE = null, ALLE_PID = null, ALLE_L = null, alleBusy = false, alleMehr = 0;
+let ALLE = null, ALLE_PID = null, ALLE_L = null, alleBusy = false, alleMehr = 0, ALLE_SEL = '', ALLE_DET = null;
+const ALLE_INFO = new Map();   // Details je Datei (pfad|mtime) – einmal je Sitzung geholt
 const AF = Object.assign({ art: '', q: '', ordner: '', unter: true, zeit: '', gr: 'M' }, LS.get('alle', {}));
 const A_IC = { pdf: '📄', foto: '🖼', cad: '📐', office: '📊', mail: '✉', andere: '📎' };
 const A_NAME = { pdf: 'PDF', foto: 'Fotos', cad: 'CAD', office: 'Office', mail: 'Mails', andere: 'Sonstige' };
@@ -51,15 +52,15 @@ function alleBaum(L) {   // Ordner mit Zahl der Dateien (inkl. Unterordner); auf
 function alleKachel(x, i) {
   const th = x.v === 1 ? `<img src="${alleBild(x.pfad)}" alt="" loading="lazy" decoding="async">` : `<span class="aic">${A_IC[x.art]}</span>`;
   const warte = x.v === 0 && (ALLE.vorschau || []).includes(x.art);
-  return `<a class="ak" href="${alleUrl(x.pfad)}" data-ansehen="nein" data-ai="${i}"${warte ? ` data-aw="${esc(x.pfad)}"` : ''} title="${esc(x.pfad)}">
+  return `<a class="ak${x.pfad === ALLE_SEL ? ' sel' : ''}" href="${alleUrl(x.pfad)}" data-ansehen="nein" data-ai="${i}" data-ap="${esc(x.pfad)}"${warte ? ` data-aw="${esc(x.pfad)}"` : ''} title="${esc(x.pfad)}">
     <span class="ath">${th}${warte ? '<span class="awt">Vorschau folgt</span>' : ''}</span><span class="an">${esc(x.name)}</span><span class="am">${mb(x.groesse)} · ${de(x.mtime)}</span></a>`;
 }
 
 function renderAlle() {
   bar && bar();
-  if (!pid) { $('#view').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; $('#ord').innerHTML = ''; return; }
-  if (!ALLE || ALLE_PID !== pid) { if (!alleBusy) alleLaden(false); $('#view').innerHTML = '<p class="mute">Projektordner wird gelesen …</p>'; $('#ord').innerHTML = ''; return; }
-  if (ALLE.error) { $('#view').innerHTML = `<div class="card"><p>${esc(ALLE.error)}</p></div>`; $('#ord').innerHTML = ''; return; }
+  if (!pid) { $('#viewA').innerHTML = '<p class="mute">Bitte ein Projekt wählen.</p>'; $('#ord').innerHTML = ''; return; }
+  if (!ALLE || ALLE_PID !== pid) { if (!alleBusy) alleLaden(false); $('#viewA').innerHTML = '<p class="mute">Projektordner wird gelesen …</p>'; $('#ord').innerHTML = ''; return; }
+  if (ALLE.error) { $('#viewA').innerHTML = `<div class="card"><p>${esc(ALLE.error)}</p></div>`; $('#ord').innerHTML = ''; return; }
   $('#ord').innerHTML = `${ALLE.stand ? `<span class="mu" title="Nachts für alle laufenden Projekte eingelesen – „Neu einlesen“ liest den Ordner jetzt">Stand ${esc(new Date(ALLE.stand).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}</span>` : ''}${ALLE.abgebrochen ? ' <span class="pill bad" title="Sehr viele Dateien – nicht alle wurden eingelesen">nicht vollständig</span>' : ''}`;
   const L = alleListe(), gr = alleHandy() && AF.gr !== 'liste' ? 'M' : AF.gr;
   const ohneArt = alleFilter(L, 'art'), Z = {}; ohneArt.forEach((x) => { Z[x.art] = (Z[x.art] || 0) + 1; });
@@ -75,7 +76,7 @@ function renderAlle() {
   if (!F.length) inhalt = `<p class="mu">${L.length ? 'Keine Dateien zu diesem Filter.' : 'Der Projektordner ist leer.'}</p>`;
   else if (gr === 'liste') {
     inhalt = `<div class="tbl"><table class="pl al-t"><thead><tr><th>Name</th><th class="hide-m">Ordner</th><th class="r">Größe</th><th>geändert</th></tr></thead><tbody>${F.slice(0, zeig).map((x, i) =>
-      `<tr><td><a class="ak-z" href="${alleUrl(x.pfad)}" data-ansehen="nein" data-ai="${i}">${A_IC[x.art]} ${esc(x.name)}</a></td><td class="hide-m mu">${esc(x.ordner)}</td><td class="r">${mb(x.groesse)}</td><td>${de(x.mtime)}</td></tr>`).join('')}</tbody></table></div>`;
+      `<tr class="${x.pfad === ALLE_SEL ? 'sel' : ''}" data-ap="${esc(x.pfad)}"><td><a class="ak-z" href="${alleUrl(x.pfad)}" data-ansehen="nein" data-ai="${i}">${A_IC[x.art]} ${esc(x.name)}</a></td><td class="hide-m mu">${esc(x.ordner)}</td><td class="r">${mb(x.groesse)}</td><td>${de(x.mtime)}</td></tr>`).join('')}</tbody></table></div>`;
   } else {
     const jetzt = Date.now() / 1000, G = [['Diese Woche', (x) => x.mtime >= jetzt - 7 * 86400], ['Dieser Monat', (x) => x.mtime >= jetzt - 30 * 86400], ['Älter', () => true]];
     const sicht = F.slice(0, zeig), gruppen = []; let i0 = 0;
@@ -83,8 +84,10 @@ function renderAlle() {
     inhalt = gruppen.map(([t, a, b]) => `<div class="al-g">${t}</div><div class="al-k al-${gr}">${sicht.slice(a, b).map((x, k) => alleKachel(x, a + k)).join('')}</div>`).join('');
   }
   if (F.length > zeig) inhalt += `<div class="al-mehr"><button type="button" class="btn" data-amehr>Weitere ${Math.min(A_SCHRITT, F.length - zeig)} von ${F.length - zeig} zeigen</button></div>`;
-  $('#view').innerHTML = `<div class="al">${leiste}<div class="al-z"><nav class="al-b" aria-label="Ordner">${alleBaum(L)}</nav><div class="al-i">${inhalt}</div></div></div>`;
+  $('#viewA').innerHTML = `<div class="al">${leiste}<div class="al-i">${inhalt}</div></div>`;   // Ordnerbaum steht links in der Navigation (alleNavBaum)
   alleSichtbar.F = F;
+  if (ALLE_SEL) { const el = $('#viewA').querySelector(`[data-ap="${CSS.escape(ALLE_SEL)}"]`); if (el) el.classList.add('sel'); }
+  if (!alleHandy() && window.seite) seite($('#workA'), 'pl-alle', [{ id: 'det', titel: 'Details', mount: (el) => { ALLE_DET = el; alleDetail(); } }], { start: 'det', w: 0.74, min: 300, minL: 420 });
   alleBeobachten();
 }
 
@@ -97,7 +100,7 @@ function alleBeobachten() {
     E.forEach((e) => { if (e.isIntersecting) { const p = e.target.dataset.aw; if (p && !alleSichtbar.gemeldet.has(pid + '|' + p)) alleSichtbar.warte.add(p); } });
     clearTimeout(alleSichtbar.t); alleSichtbar.t = setTimeout(alleMelden, 600);
   });
-  document.querySelectorAll('#view [data-aw]').forEach((el) => alleSichtbar.io.observe(el));
+  document.querySelectorAll('#viewA [data-aw]').forEach((el) => alleSichtbar.io.observe(el));
 }
 async function alleMelden() {
   const P = [...alleSichtbar.warte]; alleSichtbar.warte.clear(); if (!P.length) return;
@@ -106,14 +109,14 @@ async function alleMelden() {
   alleSichtbar.runden = 0; alleNachladen(P);
 }
 function alleNachladen(P) {
-  const offen = P.filter((p) => document.querySelector(`#view [data-aw="${CSS.escape(p)}"]`));
+  const offen = P.filter((p) => document.querySelector(`#viewA [data-aw="${CSS.escape(p)}"]`));
   if (!offen.length || alleSichtbar.runden++ > 12) return;
   setTimeout(() => {
     let n = offen.length;
     const rest = [];
     offen.forEach((p) => {
       const im = new Image();
-      im.onload = () => { const el = document.querySelector(`#view [data-aw="${CSS.escape(p)}"]`); if (el) { const th = el.querySelector('.ath'); th.innerHTML = ''; im.alt = ''; th.appendChild(im); el.removeAttribute('data-aw'); }
+      im.onload = () => { const el = document.querySelector(`#viewA [data-aw="${CSS.escape(p)}"]`); if (el) { const th = el.querySelector('.ath'); th.innerHTML = ''; im.alt = ''; th.appendChild(im); el.removeAttribute('data-aw'); }
         const x = (ALLE_L || []).find((y) => y.pfad === p); if (x) x.v = 1; if (--n === 0 && rest.length) alleNachladen(rest); };
       im.onerror = () => { rest.push(p); if (--n === 0) alleNachladen(rest); };
       im.src = alleBild(p, true);
@@ -135,7 +138,9 @@ function alleSetzen(w) { Object.assign(AF, w); LS.set('alle', AF); alleMehr = 0;
 document.addEventListener('click', (e) => {
   if (tab !== 'alle') return;
   const t = e.target.closest('[data-ai],[data-aart],[data-azeit],[data-agr],[data-aord],[data-aunter],[data-amehr]'); if (!t) return;
-  if (t.dataset.ai != null) { if (e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault(); alleOeffnen(+t.dataset.ai); return; }
+  if (t.dataset.ai != null) { if (e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
+    if (alleHandy() || !ALLE_DET || !ALLE_DET.isConnected) { alleOeffnen(+t.dataset.ai); return; }   // ohne Details (Handy, zugeklappt): gleich öffnen
+    alleWaehlen(alleSichtbar.F[+t.dataset.ai]); return; }
   if (t.dataset.aart != null) return alleSetzen({ art: t.dataset.aart });
   if (t.dataset.azeit != null) return alleSetzen({ zeit: t.dataset.azeit ? +t.dataset.azeit : '' });
   if (t.dataset.agr) return alleSetzen({ gr: t.dataset.agr });
@@ -148,4 +153,53 @@ document.addEventListener('input', (e) => {
   if (e.target.id !== 'aq') return;
   AF.q = e.target.value; LS.set('alle', AF); clearTimeout(aqT);
   aqT = setTimeout(() => { alleMehr = 0; render(); const q = $('#aq'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250);
+});
+
+document.addEventListener('dblclick', (e) => {   // Doppelklick öffnet (Ansicht bzw. Herunterladen)
+  if (tab !== 'alle') return; const t = e.target.closest('[data-ai]'); if (!t) return; e.preventDefault(); alleOeffnen(+t.dataset.ai);
+});
+document.addEventListener('keydown', (e) => {
+  if (tab !== 'alle' || e.key !== 'Enter') return; const t = e.target.closest && e.target.closest('[data-ai]'); if (!t) return; e.preventDefault(); alleOeffnen(+t.dataset.ai);
+});
+
+/* Ordnerbaum in der Navigation links (unter „Alle Dateien“) */
+function alleNavBaum() {
+  if (!ALLE || ALLE_PID !== pid || ALLE.error) return '';
+  return `<div class="al-b" aria-label="Ordner">${alleBaum(alleListe())}</div>`;
+}
+
+/* Details rechts (seite.js): Vorschau, Pfad, Größe, Datum; dazu, was in der Datei steht (api/alle/info, beim ersten Mal gelesen) */
+function alleWaehlen(x) {
+  if (!x) return;
+  ALLE_SEL = x.pfad;
+  document.querySelectorAll('#viewA .sel').forEach((el) => el.classList.remove('sel'));
+  document.querySelectorAll(`#viewA [data-ap="${CSS.escape(x.pfad)}"]`).forEach((el) => el.classList.add('sel'));
+  alleDetail();
+}
+const A_ART = { pdf: 'PDF', foto: 'Foto', cad: 'CAD-Zeichnung', office: 'Office-Datei', mail: 'E-Mail', andere: 'Datei' };
+function alleDetail() {
+  const el = ALLE_DET; if (!el || !el.isConnected) return;
+  const x = (ALLE_L || []).find((y) => y.pfad === ALLE_SEL);
+  if (!x) { el.innerHTML = '<div class="ad-leer">Eine Datei anklicken – hier stehen dann ihre Angaben.<br><small>Doppelklick öffnet sie.</small></div>'; return; }
+  const dl = (L) => `<dl class="ad-dl">${L.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+  const k = x.pfad + '|' + x.mtime, I = ALLE_INFO.get(k);
+  const ext = x.name.includes('.') ? x.name.split('.').pop().toUpperCase() : '';
+  const info = !I ? '<p class="ad-lade">Lese Angaben aus der Datei …</p>' : I.error ? `<p class="ad-lade">${esc(I.error)}</p>`
+    : I.gruppen.map(([t, L]) => `<div class="ad-t">${esc(t)}</div>${dl(L)}`).join('')
+      + (I.gps ? `<div class="ad-t">Ort</div>${dl([['Koordinaten', I.gps.map((v) => String(v).replace('.', ',')).join(' · ')], ...(I.naehe ? [['Nähe', `${I.naehe.projekt} (${I.naehe.meter < 1000 ? I.naehe.meter + ' m' : (I.naehe.meter / 1000).toFixed(1).replace('.', ',') + ' km'})`]] : [])])}
+        <a class="btn sm" href="https://www.openstreetmap.org/?mlat=${I.gps[0]}&mlon=${I.gps[1]}#map=18/${I.gps[0]}/${I.gps[1]}" target="_blank" rel="noopener">In der Karte zeigen ↗</a>` : '');
+  el.innerHTML = `<div class="ad">
+    <div class="ad-b">${x.v === 1 ? `<img src="${alleBild(x.pfad)}" alt="">` : `<span>${A_IC[x.art]}</span>`}</div>
+    <h3>${esc(x.name)}</h3><div class="ad-p">${esc(x.ordner || (ALLE.basis || '').split('/').pop())}</div>
+    ${dl([['Größe', mb(x.groesse)], ['Geändert', new Date(x.mtime * 1000).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })], ['Art', `${A_ART[x.art]}${ext ? ' (' + ext + ')' : ''}`]])}
+    ${info}
+    <div class="ad-a"><button type="button" class="btn sm pri" data-adoff>Öffnen</button><a class="btn sm" href="${alleUrl(x.pfad, true)}" data-ansehen="nein" download="${esc(x.name)}">⤓ Laden</a><button type="button" class="btn sm" data-adpfad>Pfad kopieren</button></div></div>`;
+  if (!I) api(`api/alle/info?project_id=${pid}&pfad=${encodeURIComponent(x.pfad)}&g=${x.groesse}&m=${x.mtime}`).then((r) => { ALLE_INFO.set(k, r); }).catch((e) => { ALLE_INFO.set(k, { error: e.message }); })
+    .finally(() => { if (ALLE_SEL === x.pfad) alleDetail(); });
+}
+document.addEventListener('click', async (e) => {
+  if (tab !== 'alle' || !e.target.closest) return;
+  if (e.target.closest('[data-adoff]')) { const i = alleSichtbar.F.findIndex((y) => y.pfad === ALLE_SEL); if (i >= 0) alleOeffnen(i); return; }
+  if (e.target.closest('[data-adpfad]')) { const t = `${ALLE.basis ? ALLE.basis.replace(/\/$/, '') + '/' : ''}${ALLE_SEL}`;
+    try { await navigator.clipboard.writeText(t); toast('Pfad kopiert.'); } catch { bpHinweis(t); } }
 });

@@ -9,7 +9,20 @@
 <link rel="stylesheet" href="bp/bp.css">
 <link rel="stylesheet" href="static/plaene-alle.css">
 <style>
-.wrap{max-width:1240px;padding-bottom:6rem}
+/* Aufbau wie die übrigen Apps: links die Navigation (bpNav mit Heftzwecke, darunter der Ordnerbaum bei „Alle Dateien“), rechts der Inhalt.
+   Die Kopfzeile (Ordner, Neu einlesen) bleibt stehen, nur der Inhalt rollt. „Alle Dateien“ nutzt die ganze Breite und hat rechts Details. */
+html,body{height:100%}
+body{display:flex;flex-direction:column;margin:0;background:var(--bg)}
+main.pl-app{flex:1;min-height:0;display:flex}
+main.pl-app>.bp-nav{width:250px;flex:none;min-height:0;overflow:auto}
+main.pl-app .pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;padding:.45rem .6rem 0}
+.pl-work{flex:1;min-height:0;display:flex}.pl-work[hidden]{display:none!important}
+.pl-work>.pl-v{flex:1;min-height:0;overflow:auto;padding:0 .3rem 6rem}
+#view>*{max-width:1240px}
+#workA.sr-split{display:grid;align-items:stretch;padding-bottom:.45rem}#workA>.sr-r{height:auto;min-height:0}
+#tabs{display:none}
+@media (max-width:760px){main.pl-app{flex-direction:column}main.pl-app>.bp-nav,main.pl-app>.bp-nav-griff{display:none}main.pl-app .pane{padding:.3rem .3rem 0}
+  #tabs{display:flex;flex:1 1 100%!important;overflow-x:auto;scrollbar-width:none}.tabrow>.mu{display:none}.al-l{position:static!important}}
 .top{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:0 0 .8rem}
 .top .fill{flex:1}
 .top select{min-width:16rem;max-width:100%}
@@ -82,16 +95,20 @@
 .mkd{display:inline-block;margin-left:.5rem;padding:0 .5rem;border-radius:calc(999px*var(--rkp,1));background:color-mix(in srgb,#ff5fb3 18%,transparent);color:#c2185b;font-size:.78rem;font-weight:600;white-space:nowrap}
 
 /* Einfache Ansicht: nur der aktuelle Pläne und Dateien */
-html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}
+html[data-modus="einfach"] #tabs [data-tab="liste"],html[data-modus="einfach"] .bp-nav [data-tab="liste"]{display:none}
 /* Dateien hereinziehen (plaene-ablage.js, abgelegt wird über bp/ablegen.js) */
 .pl tr.pl-ziel td{background:color-mix(in srgb,var(--y) 14%,transparent)}
 </style>
 </head>
 <body>
-<main class="wrap">
+<main class="pl-app">
+  <aside class="bp-nav" id="navL" aria-label="Pläne & Dateien"></aside>
+  <section class="pane">
   <select id="proj" aria-label="Projekt" hidden></select>
   <div class="tabrow"><nav class="tabs" id="tabs"></nav><div class="ord" id="ord"></div><button class="btn sm" id="reBtn" title="Projektordner neu durchsuchen">⟳ Neu einlesen</button><span class="mu" style="font-size:.8rem" title="Dateien auf die Seite ziehen – auf eine Planzeile gezogen landen sie in deren Ordner">Dateien hierher ziehen zum Ablegen</span></div>
-  <div id="view"><p class="mute">Lade …</p></div>
+  <div class="pl-work" id="work"><div id="view" class="pl-v"><p class="mute">Lade …</p></div></div>
+  <div class="pl-work" id="workA" hidden><div id="viewA" class="pl-v"></div></div>
+  </section>
 </main>
 <div class="bar" id="bar" hidden></div>
 <script src="bp/baukasten.js"></script>
@@ -107,8 +124,16 @@ const mb = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + '
 const fileUrl = (pfad, dl) => `api/datei?project_id=${pid}&pfad=${encodeURIComponent(pfad)}${dl ? '&dl=1' : ''}`;
 const stKey = (p, st) => p.key + '#' + st.index;
 
+const PL_IC = { plaene: '<path d="M4 5h16v14H4zM4 9h16M9 9v10"/>', liste: '<path d="M4 6h16M4 12h16M4 18h10"/><path d="M18 16l2 2 3-4"/>', alle: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' };
 function renderTabs() {
   const n = D ? D.plaene.length : 0, v = VL ? VL.length : 0;
+  const a = typeof ALLE !== 'undefined' && ALLE && ALLE_PID === pid && ALLE.dateien ? ALLE.dateien.length : 0, pj = (PROJ || []).find((p) => p.id === pid);
+  const baum = tab === 'alle' && typeof alleNavBaum === 'function' ? alleNavBaum() : '';
+  bpNav($('#navL'), { kopf: { titel: 'Pläne & Dateien', klein: pj ? (pj.name.match(/^[A-Za-z]{1,4}\d{2,6}/) || [''])[0] : '' }, lage: true, attr: 'tab', aktiv: tab,
+    gruppen: [{ titel: 'Ansicht', punkte: [{ id: 'plaene', text: 'Pläne', icon: PL_IC.plaene, zahl: n || '' }, { id: 'liste', text: 'Planversandliste', icon: PL_IC.liste, zahl: v || '' },
+      { id: 'alle', text: 'Alle Dateien', icon: PL_IC.alle, zahl: a || '', unter: baum }] }] });   // Klick: der gemeinsame Handler [data-tab] unten
+  bpNav.breite($('#navL'), { key: 'plaene' });
+  $('#work').hidden = tab === 'alle'; $('#workA').hidden = tab !== 'alle';
   $('#tabs').innerHTML = [['plaene', 'Pläne', n], ['liste', 'Planversandliste', v], ['alle', 'Alle Dateien', typeof ALLE !== 'undefined' && ALLE && ALLE_PID === pid && ALLE.dateien ? ALLE.dateien.length : 0]].map(([k, l, c]) => `<button class="tab ${tab === k ? 'on' : ''}" data-tab="${k}">${l}${c ? `<small>${c}</small>` : ''}</button>`).join('');
 }
 function renderOrd() {

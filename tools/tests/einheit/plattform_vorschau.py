@@ -35,3 +35,20 @@ def test_office_vorschau():
     b = io.BytesIO(); wb.save(b)
     for daten, name in ((b.getvalue(), "Kosten.xlsx"), ("a;b\n1;2\n".encode(), "Liste.csv"), ("Notiz".encode(), "Notiz.txt")):
         pruefe(V.bild_machen(daten, name)[:2] == b"\xff\xd8", f"JPEG für {name}")
+
+
+def test_dateiinfo():
+    """Details: Papierformat aus der Seitengröße, EXIF eines Fotos mit Ort, Entfernung."""
+    import io
+    from PIL import Image
+    from bpcore import dateiinfo as DI
+    gleich((DI.papier(2384, 1684), DI.papier(595, 842), DI.papier(500, 500)), ("A1 quer", "A4 hoch", "176 × 176 mm"), "Papierformate")
+    ex = Image.Exif(); ex[271] = "Apple"; ex[272] = "iPhone 15 Pro"
+    ex.get_ifd(0x8769).update({36867: "2026:11:10 11:48:00", 33437: 1.8, 33434: 1 / 120, 34855: 80})
+    ex.get_ifd(0x8825).update({1: "N", 2: (51.0, 27.0, 20.0), 3: "E", 4: (6.0, 58.0, 59.5)})
+    b = io.BytesIO(); Image.new("RGB", (40, 30)).save(b, "JPEG", exif=ex)
+    I = DI.lesen(b.getvalue(), "IMG_1.jpg")
+    A = dict(I["gruppen"][0][1])
+    gleich((A["Aufgenommen"], A["Kamera"], A["Belichtung"]), ("10.11.2026, 11:48", "Apple iPhone 15 Pro", "f/1,8 · 1/120 s · ISO 80"), "EXIF")
+    gleich(I["gps"], [51.455556, 6.983194], "Ort")
+    pruefe(abs(DI.entfernung([51.4556, 6.9832], [51.4559, 6.9840]) - 65) < 5, "Entfernung in Metern")

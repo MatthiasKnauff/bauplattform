@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-11-plaene-nav",
+  "datum": "2026-11-11",
+  "app": "plaene",
+  "titel": "Pläne & Dateien wie die anderen Apps",
+  "text": "Links steht jetzt die Navigation mit Heftzwecke: Pläne, Planversandliste und Alle Dateien – bei „Alle Dateien“ darunter der Ordnerbaum. Filter und Suche bleiben beim Rollen oben stehen.",
+  "ziel": "#navL"
+ },
+ {
+  "id": "2026-11-11-alle-details",
+  "datum": "2026-11-11",
+  "app": "plaene",
+  "titel": "Details zu jeder Datei",
+  "text": "Unter „Alle Dateien“ wählt ein Klick die Datei, rechts stehen ihre Angaben: bei Fotos Aufnahmezeit, Kamera, Belichtung und Ort (mit der nächsten Baustelle), bei PDFs Seiten und Format, bei Office-Dateien Titel und Autor. Doppelklick öffnet die Datei.",
+  "ziel": "#workA"
+ },
+ {
   "id": "2026-11-11-office-vorschau",
   "datum": "2026-11-11",
   "app": "plaene",

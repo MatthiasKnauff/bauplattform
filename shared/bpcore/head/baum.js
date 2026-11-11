@@ -133,7 +133,11 @@
   }
   /* die aktive Zeile bleibt in der Mitte: verlässt sie beim Wandern mit der Tastatur das mittlere Feld (¼ … ¾ der Höhe), rollt der Bereich
      so, dass sie wieder mittig steht – innerhalb des mittleren Felds bewegt sich nichts (kein Springen bei jedem Schritt) */
+  let TASTE = 0;   // Zeitpunkt der letzten Taste: nur Wandern mit der Tastatur stellt mittig, ein Mausklick (z. B. Auf-/Zuklappen) rollt nicht
+  document.addEventListener('keydown', () => { TASTE = Date.now(); }, true);
+  document.addEventListener('pointerdown', () => { TASTE = 0; }, true);
   function mitte(el) {
+    if (Date.now() - TASTE > 400) { el.scrollIntoView({ block: 'nearest' }); return; }
     let p = el.parentElement;
     while (p && p !== document.body && p !== document.documentElement) { const s = getComputedStyle(p); if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight + 1) break; p = p.parentElement; }
     if (!p || p === document.body || p === document.documentElement) { el.scrollIntoView({ block: 'nearest' }); return; }

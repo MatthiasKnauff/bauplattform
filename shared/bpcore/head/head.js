@@ -18,11 +18,13 @@
     const nu = document.createElement('script'); nu.src = basis + 'neu.js'; document.head.appendChild(nu);
     const us = document.createElement('script'); us.src = basis + 'unterschrift.js'; document.head.appendChild(us);   // ✍ Unterschreiben in der PDF-Vorschau
     const nl = document.createElement('script'); nl.src = basis + 'neuleiste.js'; document.head.appendChild(nl);   // „＋ Neu“: eine Leiste für alle Arten von Schreiben (BPHead.neuLeiste)
+    const lv = document.createElement('script'); lv.src = basis + 'live.js'; document.head.appendChild(lv);   // Live-Aktualisierung: Änderungen anderer ohne Neuladen (BPHead.live)
     const ab = document.createElement('script'); ab.src = basis + 'ablegen.js'; document.head.appendChild(ab);   // Dokumente ins Fenster ziehen → im Projektordner ablegen (BPHead.ablage)
     const vs = document.createElement('script'); vs.src = basis + 'versand.js'; document.head.appendChild(vs);   // gemeinsamer Versanddialog (BPHead.versand)   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
     if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
       const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
+  H._liveQ = []; H.live = (...a) => { H._liveQ.push(a); };   // bis live.js geladen ist: Anmeldungen merken
   /* Warte-Hinweis für alles, was der Benutzer gerade angestoßen hat (Klick/Taste) und länger braucht – in jeder App derselbe:
      nach 0,4 s erscheint unten in der Mitte, WAS gerade läuft („Texterkennung läuft …“, „PDF wird erstellt …“), nach 3 s mit der
      Dauer. Der Text wird aus der Adresse der Anfrage abgelesen (Liste WAS) – oder ausdrücklich gesetzt: BPHead.warten(promise, 'Text').

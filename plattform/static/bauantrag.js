@@ -200,4 +200,5 @@ HANDY.addEventListener('change', () => { if (L) zeichne(); });
   await header('Bauantrag', ME, PC);
   bpNav.breite(NAV, { key: 'bauantrag' });
   await laden();
+  BPHead.live(['bauantrag', 'projects', 'contacts'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));

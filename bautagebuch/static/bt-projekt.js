@@ -41,6 +41,8 @@ const showApp = async () => {
   const gp = window.BPHead && BPHead.projektId && BPHead.projektId();   // Projekt aus der zuletzt benutzten App
   const start = (hp && projects.find(p => p.id === +hp[1])) || (gp && projects.find(p => p.id === gp)) || projects.find(p => p.id === +localStorage.getItem('pid')) || projects.find(p => !p.archived) || projects[0];
   if (start) await openProject(start.id); else renderDetail();
+  if (window.BPHead && BPHead.live) BPHead.live(['reports', 'items', 'images', 'projects'], async () => {   // Änderungen anderer im Projekt (nicht während man tippt)
+    if (pid && !BWZ.open) { await openProject(pid, true); BPHead.liveNotiz(); } });
   if (hNeu) newProject(); else if (hEdit && hp && start && start.id === +hp[1]) projBearbeiten();
   if (hs && window.BPHead && BPHead.einstellungen) BPHead.einstellungen({ bereich: 'app' });
   if (hp && hp[2] && start && start.id === +hp[1] && reports.some((x) => x.id === +hp[2])) { tab = 'bericht'; rid = +hp[2]; renderDetail(); }

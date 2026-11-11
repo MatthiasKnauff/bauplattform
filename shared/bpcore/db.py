@@ -130,6 +130,18 @@ def connect():
 _pool, _plock = [], threading.Lock()
 
 
+def _wer():
+    """ID des angemeldeten Benutzers der laufenden Anfrage (flask g.user), sonst None."""
+    try:
+        from flask import g, has_request_context
+        if not has_request_context():
+            return None
+        u = getattr(g, "user", None)
+        return int(u["id"]) if u is not None else None
+    except Exception:   # noqa: BLE001 – ohne Anfrage oder ohne Benutzer: niemand
+        return None
+
+
 @contextmanager
 def tx():
     """Eine Transaktion: bei Erfolg commit, bei Fehler rollback. Verbindungen werden wiederverwendet."""
@@ -147,6 +159,9 @@ def tx():
     if con is None or con._c.closed or getattr(con._c, "broken", False):
         con = Con(psycopg.connect(DSN))
     try:
+        uid = _wer()
+        if uid:   # für die Live-Aktualisierung (bp_aenderung): eigene Änderungen lösen bei einem selbst kein Neuladen aus
+            con._c.execute("SELECT set_config('bp.user', %s, true)", (str(uid),))
         yield con
         con.commit()
     except Exception:

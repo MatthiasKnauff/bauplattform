@@ -677,6 +677,7 @@ function einfachZeigen(conf) {
   const tdLadenAlt = tdLaden; tdLaden = async () => { await tdLadenAlt(); if (POSTWEG && TD) { TD.manuell = (TD.manuell || []).filter((x) => x.id !== POSTWEG.alt.id); tdZeigen(); } deskZeigen(); };   // nach jedem Nachladen die Blöcke neu aufbauen; ein gerade „nicht nötiges“ To-do bleibt weg
   TDKLEIN = true; TDNURMANUELL = true;   // Startseite: Block „Meine To-dos“ nur eigene Aufgaben, die automatischen Hinweise je Rubrik daneben
   ueInit('portal', deskZeigen); deskZeigen(); tdRef().then(() => tdLaden()); erinLaden(); zeitLaden();
+  BPHead.live(['todo', 'erinnerungen', 'items', 'ava_rechnung', 'zeit_antrag', 'honorar_auftrag'], () => { if (!TDOFFEN) { tdLaden(); erinLaden(); } }, { projekt: false });   // To-dos anderer sofort
   setInterval(() => { if (document.visibilityState === 'visible' && !TDOFFEN && !(document.activeElement && document.activeElement.id === 'tdNeu')) tdLaden(); }, 5 * 60 * 1000);
   setInterval(() => { if (document.visibilityState === 'visible' && POST && POST.eingerichtet && !POSTLAEUFT) postLaden('?auto=1'); }, 10 * 60 * 1000);   // Seite bleibt offen: zur eingestellten Zeit nachladen
   $('#ver').textContent = 'Version ' + conf.version;

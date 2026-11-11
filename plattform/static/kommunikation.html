@@ -408,6 +408,7 @@ $('#q').addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() 
   if (m) { const L = await api('api/kontakte?q='); const x = L.find((y) => y.id === +m[1]); if (x) K = { contact_id: x.id, name: x.name, ansprech: x.ansprech, gewerk: x.gewerk, email: x.email }; }
   if (window.BPHead && BPHead.ready) await BPHead.ready.catch(() => {});
   laden();
+  BPHead.live(['kom_vorgang', 'planversand'], () => { laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));
 </script>
 </body>

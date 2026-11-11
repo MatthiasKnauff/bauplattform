@@ -40,6 +40,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Umbau (Zielbild vom 09.11.2026)
 
+- Aus dem Umbau-Mock gewählt: Hintergrund-Warteschlange für lange Aufgaben **ca. 1–2 h**, Volltextsuche über alles **ca. 1–2 h**, Typprüfung über JSDoc **ca. 2 h**; später: Überwachung (Dienste, Speicher, Sicherung) **ca. 1 h**. Live-Aktualisierung für AVA und Baukosten nachziehen **ca. 30 min**
+
 - Schritt 4 – Apps auf den Baukasten, große Dateien teilen:
   - Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 h**
   - Planungsassistent und Vorlagen-Baukasten als gemeinsamer Baustein, danach auch in der Kostenberechnung (Start-Assistent: Maßnahme/Gebäudetyp, Eckdaten, Schritt für Schritt, eigene Vorlagen) – erst Mock. **ca. 2–3 h**
@@ -89,6 +91,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Live-Aktualisierung: Änderungen anderer erscheinen ohne Neuladen (Bautagebuch, Aufgaben, Startseite-To-dos, Kommunikation, Adressen, Honorar, Bauantrag), nie während man tippt; kleine Notiz „⟳ Aktualisiert“~~
 - ~~Projektfeld überall wie die große Projektauswahl: Adresse unter dem Namen, Suche auch nach Adresse/Bauherr, Entfernung, unten „＋ Neues Projekt“, „📍 Nach Standort“, „⤢ Alle“; jetzt auch in Bauantrag, Honorar und Zeiten~~
 - ~~„＋ Neu“-Leiste in Dialogen kompakt (keine Knöpfe über die volle Breite)~~
 - ~~Bautagebuch: Fotos einzeln hochladen – beliebig viele auf einmal, „Foto 7 von 23“, bis 100 MB je Foto, eindeutige Meldung welches Foto warum nicht ging, „Nochmal“~~

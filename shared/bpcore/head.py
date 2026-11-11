@@ -31,7 +31,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, jsonify, request, send_from_directory
 
-from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
+from . import live, ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
 from . import ablage, handyus, neuigkeiten, stempel, unterschrift
 
@@ -377,7 +377,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "datum.js", "neu.js", "unterschrift.js", "versand.js", "ablegen.js", "neuleiste.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "datum.js", "neu.js", "unterschrift.js", "versand.js", "ablegen.js", "neuleiste.js", "live.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -958,7 +958,8 @@ def blueprint(get_user=None):
             return jsonify(error="Bautagebuch nicht erreichbar: " + str(e)[:120]), 502
 
     ablage.routen(bp, user)   # Datei ablegen (alle Apps, Baustein head/ablegen.js) – bpcore/ablage.py
-    handyus.routen(bp, user)   # am Handy unterschreiben per QR-Code vom PC – bpcore/handyus.py
+    handyus.routen(bp, user)
+    live.routen(bp, user)   # Live-Aktualisierung: Änderungen anderer seit Nr. x – bpcore/live.py, Baustein BPHead.live   # am Handy unterschreiben per QR-Code vom PC – bpcore/handyus.py
 
     # ---- Kontakt schnell anlegen (nach einer Sendung an eine Adresse, zu der es noch keinen Kontakt gibt)
     @bp.post("/api/bp/kontakt")

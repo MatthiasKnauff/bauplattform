@@ -266,4 +266,5 @@ async function loeschen() {
   await header('Honorar', ME, PC);
   bpNav.breite(NAV, { key: 'honorar' });
   await laden();
+  BPHead.live(['honorar_auftrag', 'honorar_nk'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));

@@ -482,6 +482,7 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   await header('Adressen', me, conf);
   if (BPHead.projekt) betN = BPHead.projekt.name;
   await load();
+  BPHead.live('contacts', async () => { await load(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
   if (betN && ALL.some(istBet)) { bet = betN; render(); }
   if (/[#&]von=bt\b/.test(location.hash)) {   // nur wenn man aus dem Bautagebuch kommt: deutlich zurück
     const bt = (conf.apps || []).find((a) => a.key === 'bautagebuch' && a.allowed);

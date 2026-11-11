@@ -887,6 +887,7 @@ async function setDialog(host) {
   if (tab !== 'erinnerungen') api('api/erinnerungen?scope=' + scope + '&abgleich=1').then((r) => { E = r; renderTabs(); }).catch(() => {});
   if (tab !== 'maengel') api('api/maengel?scope=' + scope).then((r) => { M = r; renderTabs(); }).catch(() => {});
   if (tab !== 'termine') api('api/termine?scope=' + scope).then((r) => { T = r; renderTabs(); }).catch(() => {});
+  BPHead.live(['items', 'todo', 'erinnerungen', 'kom_vorgang'], async () => { await reload(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));
 </script>
 </body>

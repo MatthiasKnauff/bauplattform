@@ -278,6 +278,30 @@ def test_plotdienst_immer_als_empfaenger(ctx):
 PNG = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
 
 
+def test_kommunikation_abnahme_nur_architekt(ctx):
+    """Nur der Architekt unterschreibt (Bauherr und Unternehmer nicht anwesend): abgeschlossen und abgelegt, aber nicht gesperrt –
+    Ergänzungen gehen weiter; erneut abschließen legt den neuen Stand ab, Folgen (Aufgaben) nur einmal."""
+    a, KO = ctx.admin, "/kommunikation/api"
+    d = a.pj(f"{KO}/abnahme", {"pid": ctx.pid, "daten": {}})
+    vid = d["id"]
+    try:
+        U = {"ag": {"fehlt": True}, "an": {"fehlt": True}, "arch": {"png": PNG, "name": "Test-Admin"}}
+        a.uj(f"{KO}/abnahme/{vid}", {"daten": {"firma": "RT Maler", "abnahme_am": "2026-07-13", "erkl": {"abgenommen": True, "keine": True}, "unterschriften": U}})
+        r = a.pj(f"{KO}/abnahme/{vid}/abschliessen", {})
+        pruefe(r["ok"] and not r["gesperrt"], f"abgeschlossen, nicht gesperrt: {r}")
+        gleich(a.gj(f"{KO}/abnahme/{vid}")["status"], "abgeschlossen", "Status")
+        d = a.uj(f"{KO}/abnahme/{vid}", {"daten": {"an_erklaerung": "Nachbesserung bis Freitag"}})
+        gleich(d["daten"]["an_erklaerung"], "Nachbesserung bis Freitag", "Ergänzung geht noch")
+        U["an"] = {"png": PNG, "name": "Herr Maler"}
+        a.uj(f"{KO}/abnahme/{vid}", {"daten": {"unterschriften": U}})
+        r = a.pj(f"{KO}/abnahme/{vid}/abschliessen", {})
+        pruefe(r["gesperrt"] and r["folgen"] == [], f"mit Unterschrift des Unternehmers gesperrt, Folgen nicht doppelt: {r}")
+        a.put(f"{KO}/abnahme/{vid}", {"daten": {"firma": "anders"}}, expect=409)
+        a.delete(f"{KO}/abnahme/{vid}", expect=409)
+    finally:
+        pass
+
+
 def test_kommunikation_abnahme(ctx):
     """Abnahme: Entwurf anlegen, Mängel und Erklärungen speichern, ohne Unterschriften nicht abschließbar, mit drei Unterschriften
     (eine „nicht anwesend“) abschließen → gesperrt, PDF da; Nachtrag zur Abnahme; Entwurf löschen legt in den Papierkorb."""
@@ -296,6 +320,9 @@ def test_kommunikation_abnahme(ctx):
         U = {"ag": {"png": PNG, "name": "Herr Bauherr"}, "an": {"fehlt": True}, "arch": {"png": "data:image/png;base64,AAAA"}}
         d = a.uj(f"{KO}/abnahme/{vid}", {"daten": {"unterschriften": U}})
         pruefe("arch" not in d["daten"]["unterschriften"], "kaputtes Bild wird nicht als Unterschrift angenommen")
+        d = a.uj(f"{KO}/abnahme/{vid}", {"daten": {"firma": "anders", "unterschriften": {**U, "ag": {"fehlt": True}}}})
+        gleich(d["daten"]["firma"], "RT Tischlerei", "Bauherr hat unterschrieben: Inhalt bleibt fest")
+        pruefe(d["daten"]["unterschriften"]["ag"].get("png"), "seine Unterschrift bleibt")
         U["arch"] = {"png": PNG, "name": "Test-Admin"}
         a.uj(f"{KO}/abnahme/{vid}", {"daten": {"unterschriften": U}})
         r = a.pj(f"{KO}/abnahme/{vid}/abschliessen", {})

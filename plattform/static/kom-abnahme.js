@@ -26,16 +26,19 @@ async function abnahmeNeu(nachtragZu) {
 
 async function abnahmeOeffnen(id, A0, V0) {
   let A, V;
-  try { A = A0 || await api('api/abnahme/' + id); V = V0 || (A.status === 'entwurf' ? await api('api/abnahme/vorlage?pid=' + A.project_id).catch(() => null) : null); }
+  try { A = A0 || await api('api/abnahme/' + id); V = V0 || (A.status !== 'unterschrieben' ? await api('api/abnahme/vorlage?pid=' + A.project_id).catch(() => null) : null); }
   catch (e) { toast(e.message, true); return; }
   const lokal = abnLS.get(id);   // ungespeicherter Stand im Gerät (Netz war weg)?
-  if (lokal && A.status === 'entwurf' && lokal.t > Date.parse(A.zeit || 0)) A.daten = lokal.d;
-  const S = { schritt: A.status === 'entwurf' ? 0 : 4, A, V, d: A.daten, ti: 0, offen: false, alles: abnAlles() };
+  if (lokal && A.status !== 'unterschrieben' && lokal.t > Date.parse(A.zeit || 0)) A.daten = lokal.d;
+  const S = { schritt: A.status === 'entwurf' ? 0 : A.status === 'abgeschlossen' ? 3 : 4, A, V, d: A.daten, ti: 0, offen: false, alles: abnAlles() };
   const bg = modalBox('<div class="ab-k"><b class="ab-t"></b><span class="ab-an" role="group" aria-label="Ansicht"><button type="button" data-m="ans1">Schritte</button><button type="button" data-m="ans2">Alles</button></span><button type="button" class="ib ab-x" data-m="x" title="Schließen – der Stand ist gespeichert">✕</button></div><div class="ab-st"></div><div class="ab-b"></div><div class="acts ab-acts"></div>',
     (m, bgx, close, b) => klick(m, b, close));
   bg.querySelector('.modal').classList.add('ab');
   const $b = (s) => bg.querySelector(s);
-  const gesperrt = () => S.A.status !== 'entwurf';
+  const gesperrt = () => S.A.status === 'unterschrieben';
+  /* Inhalt fest, sobald Bauherr oder Unternehmer unterschrieben hat – dann gehen nur noch die übrigen Unterschriften (und Abschließen) */
+  const inhaltZu = () => !gesperrt() && ['ag', 'an'].some((r) => ((S.d.unterschriften || {})[r] || {}).png);
+  const AENDERT = new Set(['auf', 'mneu', 'mweg', 'fweg', 'ueb', 'erkl', 'frist', 'gw', 'pers', 'weg']);
 
   async function speichern(leise = true) {
     if (gesperrt()) return true;
@@ -57,11 +60,15 @@ async function abnahmeOeffnen(id, A0, V0) {
     $b('.ab-st').innerHTML = gesperrt() ? `<span class="ab-ok">✓ Unterschrieben am ${abnDe(d.unterschrieben)} – gesperrt</span>`
       : ABN.S.map((t, i) => `<button type="button" data-m="s${i}" class="${i === n ? 'on' : i < n ? 'da' : ''}"><i>${i + 1}</i>${t}</button>`).join('');
     const teile = [angaben, maengel, erklaerung, unterschreiben];
-    $b('.ab-b').innerHTML = gesperrt() ? fertig() : alles ? teile.map((f, i) => `<h3 class="ab-tt"><i>${i + 1}</i>${ABN.S[i]}</h3>${f()}`).join('') : teile[n]();
-    const ab = `<button type="button" class="btn pri" data-m="fertig"${S.A.fehlt.length || !alleDa() ? ' disabled' : ''}>Abschließen &amp; ablegen</button>`;
+    const hinweis = gesperrt() ? '' : inhaltZu() ? '<div class="ab-warn">Bauherr bzw. Unternehmer hat unterschrieben – der Inhalt ist fest. Es fehlen nur noch Unterschriften; Ergänzungen nach dem Abschließen als Nachtrag.</div>'
+      : S.A.status === 'abgeschlossen' ? `<div class="ab-warn" style="border-color:var(--y)">Abgeschlossen am ${abnDe(d.unterschrieben)} und abgelegt – noch nicht gesperrt, weil nur der Architekt unterschrieben hat. Änderungen und spätere Unterschriften gehen weiter; „Erneut abschließen“ legt den neuen Stand ab.</div>` : '';
+    $b('.ab-b').innerHTML = gesperrt() ? fertig() : hinweis + (alles ? teile.map((f, i) => `<h3 class="ab-tt"><i>${i + 1}</i>${ABN.S[i]}</h3>${f()}`).join('') : teile[n]());
+    if (inhaltZu()) $b('.ab-b').querySelectorAll('input, textarea, button, label.btn').forEach((x) => { if (!x.closest('.ab-us') && x.dataset.m !== 'vor' && !(x.dataset.m || '').startsWith('s') && x.dataset.m !== 'fz') x.disabled = true; });
+    const ab = `<button type="button" class="btn pri" data-m="fertig"${S.A.fehlt.length || !alleDa() ? ' disabled' : ''}>${S.A.status === 'abgeschlossen' ? 'Erneut abschließen' : 'Abschließen'} &amp; ablegen</button>`;
+    const loesch = S.A.status === 'entwurf' && !inhaltZu() ? '<button type="button" class="btn" data-m="weg">Entwurf löschen</button>' : S.A.status === 'abgeschlossen' ? '<button type="button" class="btn" data-m="mail">✉ Senden …</button>' : '';
     $b('.ab-acts').innerHTML = gesperrt() ? '<button type="button" class="btn" data-m="x">Schließen</button>'
-      : alles ? '<button type="button" class="btn" data-m="weg">Entwurf löschen</button>' + ab
-        : `<button type="button" class="btn" data-m="${n ? 's' + (n - 1) : 'weg'}">${n ? 'Zurück' : 'Entwurf löschen'}</button>`
+      : alles ? loesch + ab
+        : (n ? `<button type="button" class="btn" data-m="s${n - 1}">Zurück</button>` : loesch)
           + (n < 3 ? `<button type="button" class="btn pri" data-m="s${n + 1}">${n === 2 ? 'Unterschreiben' : 'Weiter'}</button>` : ab);
   }
   const feld = (lab, html, cls = '') => `<label class="ab-f ${cls}"><span>${lab}</span>${html}</label>`;
@@ -112,7 +119,7 @@ async function abnahmeOeffnen(id, A0, V0) {
       <div class="ab-us">${['ag', 'an', 'arch'].map((r) => { const u = U[r]; return `<button type="button" class="ab-u${u ? ' da' : ''}" data-m="sig" data-r="${r}">
         <span class="ab-ur">${ROLLE[r]}</span><b>${esc((u && u.name) || T[r] || '–')}</b>
         ${u && u.png ? `<img src="${u.png}" alt="Unterschrift">` : u && u.fehlt ? '<em>nicht anwesend</em>' : '<em class="ab-hier">✍ hier unterschreiben</em>'}</button>`; }).join('')}</div>
-      <p class="mute"><a href="#" data-m="vor">Vorschau als PDF (Entwurf)</a> · Nach „Abschließen“ ist die Abnahme gesperrt, das PDF liegt im Projektordner unter „Abnahmen + Mängel“. Die Mail an die Firma geht nur, wenn du sie danach abschickst.</p>`;
+      <p class="mute"><a href="#" data-m="vor">Vorschau als PDF (Entwurf)</a> · Gesperrt wird erst, wenn Bauherr oder Unternehmer unterschrieben hat – solange nur der Architekt unterschreibt, bleibt die Abnahme auch nach dem Abschließen änderbar. Das PDF liegt im Projektordner unter „Abnahmen + Mängel“. Die Mail an die Firma geht nur, wenn du sie danach abschickst.</p>`;
   }
 
   function fertig() {
@@ -172,6 +179,7 @@ async function abnahmeOeffnen(id, A0, V0) {
     if (m === 'ans1' || m === 'ans2') { S.alles = m === 'ans2'; try { localStorage.setItem('abn.ansicht', S.alles ? 'alles' : 'schritte'); } catch { /* egal */ } await speichern(); zeichne(); return; }
     if (/^s\d$/.test(m)) { await speichern(); S.schritt = +m.slice(1); zeichne(); $b('.ab-b').scrollTop = 0; return; }
     const d = S.d;
+    if (inhaltZu() && AENDERT.has(m)) { toast('Bauherr bzw. Unternehmer hat schon unterschrieben – der Inhalt ist fest. Ergänzungen nach dem Abschließen als Nachtrag.', true); return; }
     if (m === 'auf') { const a = S.V.auftraege[+b.dataset.i]; Object.assign(d, { lv_id: a.lv_id, firma: a.firma, contact_id: a.contact_id, firma_adresse: a.firma_adresse, arbeiten: a.arbeiten, auftrag_vom: a.auftrag_vom });
       d.teilnehmer = { ...(d.teilnehmer || {}), an: (d.teilnehmer || {}).an || a.ansprech || '' }; spaeter(); zeichne(); return; }
     if (m === 'mneu') { d.maengel = [...(d.maengel || []), { id: Date.now().toString(36), text: '', fotos: [] }]; zeichne(); const t = [...bg.querySelectorAll('[data-mt]')].pop(); if (t) t.focus(); return; }
@@ -195,12 +203,14 @@ async function abnahmeOeffnen(id, A0, V0) {
         if (r.papierkorb) rueckgaengig('Entwurf gelöscht', async () => { await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); laden(); }); } catch (e) { toast(e.message, true); } return; }
     if (m === 'fertig') {
       if (!(await speichern(false))) return;
-      if (!(await bpFrage('Abnahme abschließen?\nDanach ist sie gesperrt – Ergänzungen nur noch als Nachtrag.', { ok: 'Abschließen' }))) return;
+      const zu = ['ag', 'an'].some((r) => ((d.unterschriften || {})[r] || {}).png);
+      if (!(await bpFrage(zu ? 'Abnahme abschließen?\nDanach ist sie gesperrt – Ergänzungen nur noch als Nachtrag.'
+        : 'Abnahme abschließen und ablegen?\nNur der Architekt hat unterschrieben – sie bleibt deshalb änderbar, bis Bauherr oder Unternehmer unterschreibt.', { ok: 'Abschließen' }))) return;
       b.disabled = true; b.textContent = 'Wird abgelegt …';
       try {
         const r = await api('api/abnahme/' + id + '/abschliessen', 'POST', {});
         S.A = await api('api/abnahme/' + id); S.d = S.A.daten; zeichne();
-        toast(['Abnahme unterschrieben', r.pfad ? 'im Projektordner: ' + r.pfad : r.ablage_fehler ? 'Projektordner: ' + r.ablage_fehler : '', ...(r.folgen || [])].filter(Boolean).join(' · '), !!r.ablage_fehler);
+        toast([r.gesperrt ? 'Abnahme unterschrieben und gesperrt' : 'Abnahme abgeschlossen – noch änderbar', r.pfad ? 'im Projektordner: ' + r.pfad : r.ablage_fehler ? 'Projektordner: ' + r.ablage_fehler : '', ...(r.folgen || [])].filter(Boolean).join(' · '), !!r.ablage_fehler);
       } catch (e) { toast(e.message, true); zeichne(); }
       return;
     }
@@ -228,7 +238,7 @@ async function abnahmeOeffnen(id, A0, V0) {
   }
 
   bg.addEventListener('input', (e) => {
-    const t = e.target, d = S.d; if (gesperrt()) return;
+    const t = e.target, d = S.d; if (gesperrt() || inhaltZu()) return;
     if (t.dataset.k) d[t.dataset.k] = t.value;
     else if (t.dataset.t) d.teilnehmer = { ...(d.teilnehmer || {}), [t.dataset.t]: t.value };
     else if (t.dataset.mt) d.maengel[+t.dataset.mt].text = t.value;

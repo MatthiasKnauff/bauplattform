@@ -23,7 +23,7 @@ def _laden(c, vid):
     except ValueError:
         d = {}
     out = AB.sauber(d, AB.sauber(d))
-    for k in ("pruefsumme", "unterschrieben"):   # beim Abschließen gesetzt – nicht vom Browser änderbar
+    for k in ("pruefsumme", "unterschrieben", "folgen_am"):   # beim Abschließen gesetzt – nicht vom Browser änderbar
         if d.get(k):
             out[k] = str(d[k])[:80]
     return x, out
@@ -99,6 +99,8 @@ def abnahme_speichern(vid):
         if x["status"] == "unterschrieben":
             return jsonify(error="Die Abnahme ist unterschrieben und gesperrt – Ergänzungen bitte als Nachtrag."), 409
         neu = AB.sauber(b.get("daten") or {}, d)
+        if AB.partei_unterschrieben(d):   # Bauherr oder Unternehmer hat unterschrieben: Inhalt fest, nur noch fehlende Unterschriften
+            neu = AB.nur_unterschriften(neu, d)
         ids = {r["id"] for r in c.execute("SELECT id FROM kom_datei WHERE vorgang_id=?", (vid,))}
         for m in neu["maengel"]:   # nur Fotos dieser Abnahme
             m["fotos"] = [f for f in m["fotos"] if f in ids]
@@ -122,7 +124,7 @@ def abnahme_foto(vid):
         x, _ = _laden(c, vid)
         if not x:
             return jsonify(error="Nicht gefunden"), 404
-        if x["status"] == "unterschrieben":
+        if x["status"] == "unterschrieben" or AB.partei_unterschrieben(_):
             return jsonify(error="Die Abnahme ist unterschrieben und gesperrt."), 409
         if c.execute("SELECT COUNT(*) AS n FROM kom_datei WHERE vorgang_id=?", (vid,)).fetchone()["n"] + len(anh) > 120:
             return jsonify(error="Höchstens 120 Fotos je Abnahme."), 400
@@ -138,8 +140,8 @@ def abnahme_loeschen(vid):
         x, d = _laden(c, vid)
         if not x:
             return jsonify(error="Nicht gefunden"), 404
-        if x["status"] == "unterschrieben":
-            return jsonify(error="Eine unterschriebene Abnahme bleibt erhalten."), 409
+        if x["status"] != "entwurf":
+            return jsonify(error="Eine abgeschlossene Abnahme bleibt erhalten."), 409
         p = _projekt(c, x["project_id"])
         pk = papierkorb.ablegen(c, "kom_vorgang", vid, "Abnahme (Entwurf)", x["titel"] or "Abnahme", g.user["name"], p["name"] if p else "", KEY)
     return jsonify(ok=True, papierkorb=pk)
@@ -151,7 +153,7 @@ def _fotos(c, vid):
 
 def abnahme_pdf(c, x):
     """PDF für /api/vorgang/<id>.pdf: unterschrieben = das gespeicherte, sonst ein Entwurf (mit Wasserzeichen)."""
-    if x["status"] == "unterschrieben":
+    if x["status"] == "unterschrieben" or (x["status"] == "abgeschlossen" and request.args.get("abgelegt")):
         r = c.execute("SELECT data FROM kom_datei WHERE vorgang_id=? AND mime='application/pdf' ORDER BY id DESC LIMIT 1", (x["id"],)).fetchone()
         if r:
             return bytes(r["data"])
@@ -173,7 +175,7 @@ def abnahme_abschliessen(vid):
         if not x:
             return jsonify(error="Nicht gefunden"), 404
         if x["status"] == "unterschrieben":
-            return jsonify(error="Schon unterschrieben."), 409
+            return jsonify(error="Schon unterschrieben und gesperrt."), 409
         f = AB.fehlt_noch(d)
         if f:
             return jsonify(error="Es fehlt noch: " + ", ".join(f)), 400
@@ -192,10 +194,13 @@ def abnahme_abschliessen(vid):
             name = name.replace(" Abnahme ", " Nachtrag Abnahme ", 1)
         d.pop("bezug_datum", None)
         d["pruefsumme"], d["unterschrieben"] = v["pruefsumme"], jetzt
-        c.execute("UPDATE kom_vorgang SET status='unterschrieben', daten=? WHERE id=?", (json.dumps(d, ensure_ascii=False), vid))
+        zu = AB.partei_unterschrieben(d)   # gesperrt erst mit der Unterschrift von Bauherr oder Unternehmer – sonst abgeschlossen, aber änderbar
+        erst = not d.get("folgen_am")   # Folgen (Aufgaben, Erinnerung) nur beim ersten Abschließen – sonst doppelt
+        d["folgen_am"] = d.get("folgen_am") or jetzt
+        c.execute("UPDATE kom_vorgang SET status=?, daten=? WHERE id=?", ("unterschrieben" if zu else "abgeschlossen", json.dumps(d, ensure_ascii=False), vid))
         c.execute("INSERT INTO kom_datei(vorgang_id, name, mime, groesse, data, erstellt, erstellt_name) VALUES(?,?,?,?,?,?,?)",
                   (vid, name, "application/pdf", len(pdfb), pdfb, jetzt, C.full_name(g.user)))
-        folgen = AB.folgen(c, g.user, x, d)
+        folgen = AB.folgen(c, g.user, x, d) if erst else []
     pfad, ablage_fehler = "", ""
     try:   # Projektordner auf dem Server – über das Bautagebuch, das die Ablage kennt (Testserver: nur lesen → Meldung)
         a = C.bt_api("POST", "/api/ablage/datei", {"project_id": x["project_id"], "art": "abnahme", "firma": d.get("firma") or "", "name": name,
@@ -204,7 +209,7 @@ def abnahme_abschliessen(vid):
     except RuntimeError as e:
         ablage_fehler = str(e)
     C.audit(g.user["name"], "kommunikation", "Abnahme unterschrieben", f"{d.get('firma')} · {AB.datum_de(d.get('abnahme_am'))}")
-    return jsonify(ok=True, pfad=pfad, ablage_fehler=ablage_fehler, folgen=folgen, name=name)
+    return jsonify(ok=True, pfad=pfad, ablage_fehler=ablage_fehler, folgen=folgen, name=name, gesperrt=zu)
 
 
 @app.post("/api/abnahme/<int:vid>/senden")
@@ -216,7 +221,7 @@ def abnahme_senden(vid):
         return jsonify(error=err or "Bitte mindestens einen Empfänger wählen."), 400
     with db.tx() as c:
         x, d = _laden(c, vid)
-        if not x or x["status"] != "unterschrieben":
+        if not x or x["status"] == "entwurf":
             return jsonify(error="Erst unterschreiben, dann senden."), 400
         r = c.execute("SELECT name, data FROM kom_datei WHERE vorgang_id=? AND mime='application/pdf' ORDER BY id DESC LIMIT 1", (vid,)).fetchone()
         p = _projekt(c, x["project_id"])

@@ -158,5 +158,12 @@
   "app": "",
   "titel": "Dokumente ins Fenster werfen",
   "text": "In jeder App: eine Datei einfach ins Fenster ziehen. Die Plattform schlägt den Ordner im Projektordner vor (auch Unterordner, mit Suche) und einen Dateinamen mit Projektkürzel – bei Scans mit Titel und Datum aus dem PDF. Felder zum Hochladen in der Nähe haben weiter Vorrang."
+ },
+ {
+  "id": "2026-11-11-abnahme-sperre",
+  "datum": "2026-11-11",
+  "app": "kommunikation",
+  "titel": "Abnahme: gesperrt erst mit Bauherr oder Unternehmer",
+  "text": "Unterschreibt nur der Architekt, ist die Abnahme abgeschlossen und abgelegt, bleibt aber änderbar – „Erneut abschließen“ legt den neuen Stand ab. Sobald Bauherr oder Unternehmer unterschrieben hat, ist der Inhalt fest; Ergänzungen danach wie bisher als Nachtrag."
  }
 ]

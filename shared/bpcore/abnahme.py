@@ -148,6 +148,25 @@ def unterschrieben_alle(d):
     return all(r in U for r, _ in ROLLEN) and any(not U[r].get("fehlt") for r, _ in ROLLEN)
 
 
+def partei_unterschrieben(d):
+    """Hat Bauherr (ag) oder Unternehmer (an) selbst unterschrieben? Erst dann wird die Abnahme gesperrt – vorher (nur Architekt)
+    bleibt sie änderbar, auch nach dem Abschließen."""
+    U = d.get("unterschriften") or {}
+    return any((U.get(r) or {}).get("png") for r in ("ag", "an"))
+
+
+def nur_unterschriften(neu, alt):
+    """Inhalt sperren, sobald Bauherr oder Unternehmer unterschrieben hat: vom Neuen nur noch die übrigen Unterschriften übernehmen,
+    deren Unterschriften bleiben unverändert."""
+    o = copy.deepcopy(alt)
+    U = dict(alt.get("unterschriften") or {})
+    for r, u in (neu.get("unterschriften") or {}).items():
+        if not (U.get(r) or {}).get("png"):
+            U[r] = u
+    o["unterschriften"] = U
+    return o
+
+
 def pruefsumme(d):
     """SHA-256 über den Inhalt samt Unterschriften – steht klein im PDF, damit Änderungen danach auffallen."""
     return hashlib.sha256(json.dumps(d, sort_keys=True, ensure_ascii=False).encode()).hexdigest()

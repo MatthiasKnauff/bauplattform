@@ -4,6 +4,7 @@
    Einträge: shared/bpcore/neuigkeiten.json. */
 (() => {
   if (window.bpNeu) return;
+  const NUR_TEST_AUS = false;   // true: Rundgang und Überblick auch in der Produktion von selbst
   const H = window.BPHead, esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const css = document.createElement('style');
   css.textContent = `.bpn-dim{position:fixed;inset:0;z-index:2400;background:rgba(20,20,25,.45)}
@@ -88,6 +89,7 @@
 
   async function start() {
     if (window.top !== window || !H || !H.me || offenEl.length || navigator.webdriver) return;   // nicht in Tests (automatisch gesteuerter Browser)
+    if (!NUR_TEST_AUS && !/-test\b/.test(String((H.conf || {}).version || ''))) return;   // vorerst nur auf dem Testserver von selbst (Wunsch 11.11.) – Benutzermenü „Neuigkeiten“ geht überall
     const zeigApp = LS.get();
     let E;
     try { E = (await api(zeigApp === H.app ? 'alle' : 'GET')).eintraege || []; } catch { return; }

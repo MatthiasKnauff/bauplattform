@@ -10,6 +10,7 @@ const ORD_TIPP = { umbenennen: 'Passt zum Muster, heißt aber anders (Kürzel, S
   kopieren: 'Datei der Vorlage fehlt (z. B. Adressdatei) – nicht vorgewählt', aufloesen: 'Zusätzlicher Unterordner: Inhalt eine Ebene höher, Ordner weg – nicht vorgewählt',
   verschieben: 'Ordner liegt an anderer Stelle als im Muster – dorthin verschieben; gibt es ihn dort schon, wird der Inhalt zusammengeführt – nicht vorgewählt' };
 
+const HANDY_ORD = () => matchMedia('(max-width: 760px)').matches;   // am Handy nur ansehen (Vorher/Nachher), ändern am PC
 async function renderOrdner() {
   const m = $('#main');
   if (!ORD.projekte) {
@@ -32,7 +33,8 @@ async function renderOrdner() {
     <div class="bar" style="margin-top:.6rem"><button class="btn sm" data-a="ordAlle">${ORD.wahl.size === ORD.projekte.length ? 'Alle abwählen' : 'Alle markieren'}</button>
       <button class="btn sm pri" data-a="ordPruefen"${ORD.busy || !ORD.wahl.size ? ' disabled' : ''}>${ORD.busy ? 'Prüfe …' : `Prüfen (${ORD.wahl.size})`}</button></div></div>
     ${ids.map(ordKarte).join('')}
-    ${ids.length ? `<div class="bar ord-fuss"><span class="mute">${n} Änderung${n === 1 ? '' : 'en'} gewählt</span><span class="fill"></span><button class="btn pri" data-a="ordLos"${n && !ORD.busy ? '' : ' disabled'}>Ausgewählte Änderungen ausführen</button></div>` : ''}`;
+    ${ids.length && HANDY_ORD() ? '<div class="bar ord-fuss"><span class="mute">Am Handy nur ansehen – ausführen geht am PC.</span></div>' : ''}
+    ${ids.length && !HANDY_ORD() ? `<div class="bar ord-fuss"><span class="mute">${n} Änderung${n === 1 ? '' : 'en'} gewählt</span><span class="fill"></span><button class="btn pri" data-a="ordLos"${n && !ORD.busy ? '' : ' disabled'}>Ausgewählte Änderungen ausführen</button></div>` : ''}`;
 }
 
 function ordKarte(id) {
@@ -42,7 +44,7 @@ function ordKarte(id) {
   const gruppen = Object.keys(ORD_ART).map((art) => {
     const L = S.filter((s) => s.art === art); if (!L.length) return '';
     return `<h4 title="${esc(ORD_TIPP[art])}">${ORD_ART[art][0]} ${ORD_ART[art][1]} <small class="mute">(${L.length})</small></h4>`
-      + L.map((s) => `<label class="ord-s"><input type="checkbox" data-ords="${id}|${s.id}"${sel.has(s.id) ? ' checked' : ''}><span>${esc(s.pfad.join(' / '))}${s.neu ? ` <b>→ ${esc(s.neu)}</b>` : ''}${s.ziel ? ` <b>→ ${esc(s.ziel.join(' / '))}</b>` : ''}${s.inhalt != null ? ` <small class="mute">(${s.inhalt} Einträge)</small>` : ''}</span></label>`).join('');
+      + L.map((s) => `<label class="ord-s"><input type="checkbox" data-ords="${id}|${s.id}"${sel.has(s.id) ? ' checked' : ''}><span>${esc(s.pfad.join(' / '))}${s.neu ? ` <b>→ ${esc(s.neu)}</b>` : ''}${s.ziel ? ` <b>→ ${esc(s.ziel.join(' / '))}</b>` : ''}${s.grund ? ` <small class="mute">· ${esc(s.grund)}</small>` : ''}${s.inhalt != null ? ` <small class="mute">(${s.inhalt} Einträge)</small>` : ''}</span></label>`).join('');
   }).join('');
   return `<div class="card ord-k"><div class="bar" style="margin:0"><h3 style="margin:0">${esc(r.projekt.name)}</h3><small class="mute">${esc(r.projekt.pfad)} · Muster: ${esc(r.muster.name)}</small><span class="fill"></span>
       ${S.length ? `<button class="btn sm" data-a="ordVN" data-id="${id}">${offen ? 'Vorher/Nachher ausblenden' : 'Vorher / Nachher'}</button>` : ''}</div>

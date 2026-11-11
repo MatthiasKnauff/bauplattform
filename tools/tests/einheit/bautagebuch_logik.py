@@ -217,5 +217,10 @@ def test_ordnerschema_vergleich():
     gleich(R, sorted(R, key=["umbenennen", "aufloesen", "verschieben", "anlegen", "kopieren"].index), "Reihenfolge der Schritte")
     gleich(o.umgerechnet(["A483 2 Ausschreibung", "alt"], {("A483 2 Ausschreibung",): "A483 2. Ausschreibung"}), ["A483 2. Ausschreibung", "alt"], "Pfad nach Umbenennen")
     gleich(o.frei("LV.pdf", {"LV.pdf", "LV (2).pdf"}), "LV (3).pdf", "freier Name")
+    S2 = {"/".join(x["pfad"]): x for x in o.vergleichen(muster, {"A483 2. Ausschreibung": D(**{"A483 Angebote": D(**{"A480 Angebot Maler.pdf": F, "Angebot Elektro.pdf": F, "IMG_0001.jpg": F})})}, "A483")}
+    x = S2.get("A483 2. Ausschreibung/A483 Angebote/A480 Angebot Maler.pdf")
+    pruefe(x and x["neu"] == "A483 Angebot Maler.pdf" and not x["vor"], f"Datei mit fremdem Kürzel: umbenennen vorschlagen, nicht vorgewählt ({x})")
+    gleich(S2["A483 2. Ausschreibung/A483 Angebote/Angebot Elektro.pdf"]["neu"], "A483 Angebot Elektro.pdf", "Datei ohne Kürzel: Kürzel davor")
+    pruefe("A483 2. Ausschreibung/A483 Angebote/IMG_0001.jpg" not in S2, "Fotos behalten ihren Namen")
     gleich(o.vergleichen(muster, {"A483 2. Ausschreibung": D(**{"A483 Angebote": D()}), "A483 4. Durchführung": D(**{"A483 Rechnungsprüfung": D(**{"A483 Maler": D()})}),
                                   "A483 6. interne Orga": D(**{"A483 Adressdatei.xlsx": F}), "A483 8. Fotos + Bautagebuch": D(**{"A483 Fotos": D()})}, "A483"), [], "passt: nichts zu tun")

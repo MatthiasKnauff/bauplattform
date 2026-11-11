@@ -22,6 +22,7 @@ from collections import Counter
 
 CODE = re.compile(r"^[A-Za-z]+\d+(?:\.\d+)*")
 UNWICHTIG = re.compile(r"^(thumbs\.db|desktop\.ini|\.ds_store|~\$.*|\._.*)$", re.I)
+BILD = re.compile(r"\.(jpe?g|png|heic|heif|gif|tiff?|bmp|webp|mov|mp4)$", re.I)   # Fotos und Videos behalten ihre Namen
 PLATZHALTER = re.compile(r"^(gewerk|firma|beispiel|muster|name)\s*\d*$", re.I)   # „A000 Gewerk 1“: hier stehen später frei benannte Ordner
 
 
@@ -153,6 +154,14 @@ def vergleichen(muster, ist, code, mk=None, pfad=None, schritte=None, tiefe=0, i
         elif not v["dir"] and mk and kuerzel(k) == mk and code != mk:   # aus der Vorlage kopiert, Kürzel nie angepasst
             neu = soll_name(k, mk, code)
             schritte.append({"id": sid("umbenennen", pfad + [k], neu), "art": "umbenennen", "pfad": pfad + [k], "neu": neu, "dir": False, "vor": True})
+        elif not v["dir"] and code and kuerzel(k) and kuerzel(k) != code:   # Datei mit dem Kürzel eines anderen Projekts (z. B. „A480 Statik.pdf“ in A481)
+            neu = code + k.strip()[len(kuerzel(k)):]
+            schritte.append({"id": sid("umbenennen", pfad + [k], neu), "art": "umbenennen", "pfad": pfad + [k], "neu": neu, "dir": False, "vor": False,
+                             "grund": f"Datei mit fremdem Kürzel {kuerzel(k)}"})
+        elif not v["dir"] and code and not kuerzel(k) and pfad and not BILD.search(k) and not any("foto" in x.lower() for x in pfad):   # Datei ohne Projektkürzel – Kürzel davor (nicht vorgewählt; Fotos bleiben frei)
+            neu = f"{code} {k.strip()}"
+            schritte.append({"id": sid("umbenennen", pfad + [k], neu), "art": "umbenennen", "pfad": pfad + [k], "neu": neu, "dir": False, "vor": False,
+                             "grund": "Datei ohne Projektkürzel"})
     return schritte
 
 

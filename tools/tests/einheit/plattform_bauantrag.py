@@ -133,11 +133,12 @@ def test_antragspaket():
     t = PdfReader(io.BytesIO(BP.platzieren(scan, P, W))).pages[0].extract_text()
     pruefe("Muster Wohnbau GmbH" in t and "siehe Anlage" in t, f"platzierte Werte im PDF ({t[:60]!r})")
     paket = BP.paket_pdf([("trenner", "Antrag und Formulare", None), ("stueck", "Anlage I/2 Bauantrag", scan), ("trenner", "Nachweise", None),
-                          ("stueck", "Nachbarzustimmung", scan)], ["Neubau EFH", "Stand heute"], weitere=[{"text": "Statik (folgt)", "an": True}], vorn=scan)
+                          ("stueck", "Nachbarzustimmung", scan)], ["Neubau EFH", "Stand heute"], weitere=[{"text": "Statik (folgt)", "an": True}, {"text": "Brandschutz", "an": False}], vorn=scan)
     rd = PdfReader(io.BytesIO(paket))
     gleich(len(rd.pages), 6, "Anschreiben + Inhaltsverzeichnis + 2 Trennblätter + 2 Stücke")
     t = rd.pages[1].extract_text()
     pruefe("Nachbarzustimmung" in t and "Statik (folgt)" in t and "Nachweise" in t, "Inhaltsverzeichnis mit Abschnitten und weiteren Unterlagen")
+    pruefe("Brandschutz" not in t, "nicht angehakte Unterlagen stehen nicht im PDF")
     pruefe("Nachbarzustimmung" in rd.pages[4].extract_text(), "Trennblatt nennt seinen Inhalt")
     gleich([x["titel"] for x in BP.trenner({"trenner": [{"titel": "Formulare"}]})][:2], ["Formulare", BP.TRENNER[1]], "Trennblatt umbenannt")
     png, n, v = BP.seite_png(scan, 0, 400)

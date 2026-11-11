@@ -246,8 +246,8 @@ function paketPruefenHtml() {
         <label class="ba-f w"><span>Text ${A.text !== A.text_vorgabe ? '<button type="button" class="ba-q" data-batextvor title="Text wieder aus den Angaben des Antrags">↺ Vorschlag</button>' : ''}</span><textarea rows="8" data-baa="text">${esc(A.text)}</textarea></label>
       </div><button type="button" class="btn sm" data-baansehen>Anschreiben ansehen</button>` : '<p class="ba-hilfe" style="margin:0">Ohne Anschreiben – das Paket beginnt mit dem Deckblatt.</p>'}</div>
     <div class="ba-k"><h3>${an('data-badeck', Dk.an, 'Deckblatt beilegen')} Deckblatt mit Inhaltsverzeichnis<span class="mute">Inhalt und Seitenzahlen kommen aus der Reihenfolge unten</span></h3>
-      ${Dk.an ? `<div class="bap-dl"><b>Weitere Unterlagen</b> <span class="mute">(liegen nicht als Datei bei – angehakt = im Verzeichnis als beigefügt)</span>
-        ${Dk.punkte.map((p) => `<div class="bap-dp">${an(`data-bapunkt="${esc(p.text)}"`, p.an, p.an ? 'nicht beigefügt' : 'beigefügt')}<span>${esc(p.text)}</span>${p.eigen ? `<button type="button" class="btn sm" data-bapweg2="${esc(p.text)}" title="Eigenen Punkt entfernen">✕</button>` : ''}</div>`).join('')}
+      ${Dk.an ? `<div class="bap-dl"><b>Weitere Unterlagen</b> <span class="mute">(liegen nicht als Datei bei – angehakte erscheinen im Inhaltsverzeichnis)</span>
+        ${Dk.punkte.map((p) => `<div class="bap-dp">${an(`data-bapunkt="${esc(p.text)}"`, p.an, p.an ? 'Nicht ins Inhaltsverzeichnis' : 'Ins Inhaltsverzeichnis')}<span>${esc(p.text)}</span>${p.eigen ? `<button type="button" class="btn sm" data-bapweg2="${esc(p.text)}" title="Eigenen Punkt entfernen">✕</button>` : ''}</div>`).join('')}
         <div class="bap-dp"><input data-bapneu placeholder="Weitere Unterlage ergänzen, z. B. „Statik (wird nachgereicht)“ – Enter"></div></div>` : ''}</div>
     <div class="ba-k"><h3>Reihenfolge mit Trennblättern<span class="mute">⋮⋮ ziehen · Titel der Trennblätter direkt ändern</span></h3>
       <div class="tw"><table class="ba-t bap"><tbody>${reihe.map(zeile).join('')}</tbody></table></div>

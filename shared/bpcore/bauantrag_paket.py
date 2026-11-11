@@ -300,18 +300,15 @@ def paket_pdf(teile, kopf, entwurf=False, deckblatt_an=True, weitere=(), vorn=No
                 cv.setFont("Helvetica", 10); cv.drawString(31 * mm, y, t[:88])
             cv.drawRightString(185 * mm, y, str(s0) if rd else "–"); y -= 5.8 * mm
             s0 += len(rd.pages) if rd else 0
-        W2 = [x for x in weitere if x.get("text")]
+        W2 = [x for x in weitere if x.get("text") and x.get("an")]   # nur die angehakten – die Häkchen gibt es nur in der Maske
         if W2 and y > 40 * mm:
             y -= 5 * mm
-            cv.setFont("Helvetica-Bold", 11); cv.drawString(25 * mm, y, "Weitere Unterlagen"); y -= 6.5 * mm
+            cv.setFont("Helvetica-Bold", 10.5); cv.drawString(25 * mm, y, "Weitere Unterlagen"); y -= 6 * mm
             cv.setFont("Helvetica", 10)
             for x in W2:
                 if y < 22 * mm:
                     break
-                cv.rect(25 * mm, y - 0.6 * mm, 3.4 * mm, 3.4 * mm)
-                if x.get("an"):
-                    cv.setFont("Helvetica-Bold", 10); cv.drawString(25.55 * mm, y - 0.1 * mm, "X"); cv.setFont("Helvetica", 10)
-                cv.drawString(31 * mm, y, x["text"][:85]); y -= 5.6 * mm
+                cv.drawString(31 * mm, y, x["text"][:88]); y -= 5.6 * mm
         if entwurf:
             cv.setFont("Helvetica-Bold", 9); cv.setFillColorRGB(0.75, 0.2, 0.15); cv.drawString(25 * mm, 15 * mm, "ENTWURF")
         cv.showPage(); cv.save()

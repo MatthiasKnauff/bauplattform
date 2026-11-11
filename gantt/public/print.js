@@ -1,7 +1,7 @@
 'use strict';
 /* =====================================================================
    Drucken / PDF – beliebige Papierformate, Rolle/Endlospapier,
-   Anpassen auf N Seiten, Vorschau. Wird vor app.js geladen; greift erst
+   Anpassen auf N Seiten, Vorschau. Wird vor gantt-*.js geladen; greift erst
    beim Aufruf auf dessen Zustand (P, CAL, vis, …) zu.
    ===================================================================== */
 

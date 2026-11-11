@@ -1,5 +1,5 @@
 // Rechentests Bauzeitenplan: Terminrechnung (Arbeitstage, Feiertage je Bundesland, Anordnungsbeziehungen,
-// Leistungsgruppen, Einschränkung „Anfang nicht früher als“) – geprüft wird der ECHTE Programmcode aus gantt/public/app.js.
+// Leistungsgruppen, Einschränkung „Anfang nicht früher als“) – geprüft wird der ECHTE Programmcode aus gantt/public/gantt-*.js (früher app.js).
 //
 // Aufruf:  node --test tools/tests/js/
 // Die Oberfläche wird in einem abgeschotteten Node-„vm“-Kontext geladen; Browser-Teile (document, fetch, localStorage …)
@@ -65,10 +65,13 @@ function ladeApp() {
     try { vm.runInContext(fs.readFileSync(p, 'utf8'), ctx, { filename: f }); } catch { /* Oberflächenteil – für die Rechnung unwichtig */ }
   }
   let fehler = null;
-  try { vm.runInContext(fs.readFileSync(path.join(PUB, 'app.js'), 'utf8'), ctx, { filename: 'app.js' }); } catch (e) { fehler = e; }
-  // Die Terminrechnung steht am Anfang von app.js – auch wenn später Oberflächencode scheitert, ist sie geladen.
+  // app.js ist geteilt (gantt-kern.js … gantt-start.js, gemeinsame Namen) – in der Reihenfolge der Seite laden
+  for (const f of ['gantt-kern.js', 'gantt-diagramm.js', 'gantt-befehle.js', 'gantt-ereignisse.js', 'gantt-start.js']) {
+    try { vm.runInContext(fs.readFileSync(path.join(PUB, f), 'utf8'), ctx, { filename: f }); } catch (e) { fehler = fehler || e; }
+  }
+  // Die Terminrechnung steht in gantt-kern.js – auch wenn später Oberflächencode scheitert, ist sie geladen.
   const da = vm.runInContext("typeof schedule === 'function' && typeof buildCal === 'function' && typeof toW === 'function'", ctx);
-  assert.ok(da, 'Terminrechnung (schedule) aus app.js nicht ladbar' + (fehler ? ': ' + fehler.message : ''));
+  assert.ok(da, 'Terminrechnung (schedule) aus gantt-kern.js nicht ladbar' + (fehler ? ': ' + fehler.message : ''));
   return ctx;
 }
 

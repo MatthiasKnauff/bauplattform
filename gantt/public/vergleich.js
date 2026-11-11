@@ -6,7 +6,7 @@
    – an andere Stelle gerückt: violette gestrichelte Linie an der alten Stelle, Pfeil in der schmalen Spalte zwischen Tabelle und
      Diagramm zur neuen Zeile; als „gerückt“ zählt nur, was wirklich bewegt wurde (längste unveränderte Reihenfolge bleibt stehen)
    Oben ein Band (womit verglichen wird, Projektende alt → neu, Zahlen, andere Version, beenden), rechts der Reiter „Vergleich“.
-   Hängt sich an app.js (compareVersion, renderGrid, renderChart) und rahmen.js (Bereich rechts) – app.js bleibt unverändert. */
+   Hängt sich an gantt-*.js (compareVersion, renderGrid, renderChart) und rahmen.js (Bereich rechts) – gantt-*.js bleiben unverändert. */
 (() => {
   let V = null;   // { label, T2, C2 } – der alte Stand
   let D = null;   // Ergebnis des letzten Vergleichs
@@ -134,7 +134,7 @@
     reiter: () => (V ? { id: 'vergleich', titel: 'Vergleich', mount: (el) => { listeEl = el; liste(); } } : null),
   };
 
-  /* ---------- an app.js anhängen ---------- */
+  /* ---------- an gantt-*.js anhängen ---------- */
   const alt = { renderGrid, renderChart };
   renderGrid = function () { alt.renderGrid(); if (V) { rechnen(); tabelle(); } };
   renderChart = function () { alt.renderChart(); if (V) { if (!D) rechnen(); diagramm(); band(); liste(); } };

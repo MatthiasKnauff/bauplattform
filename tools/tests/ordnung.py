@@ -36,9 +36,6 @@ DEF = re.compile(r"^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(|^(?:const|le
 
 # Altlast: Kopien von Grundhilfen, die es schon gab (Schritt 2 „Baukasten als ein Bündel“ räumt sie weg)
 ALT_KOPIEN = {
-    "bautagebuch/static/bt-kern.js": {"$", "api", "esc", "fold", "passt", "toast"},
-    "bautagebuch/static/bt-projekt.js": {"appUrl"},
-    "bautagebuch/static/bt-konto.js": {"ACCENTS", "applyAccent", "applyLook", "applyTheme"},
     "plattform/static/orca.html": {"$", "api", "esc"},
 }
 
@@ -46,7 +43,7 @@ ALT_KOPIEN = {
 GRENZE = 1500
 SPIELRAUM = 300   # so viel dürfen die Altdateien noch wachsen, bis sie geteilt werden
 ALT_GROSS = {   # Zeilen am 09.11.2026 – werden in Schritt 4 geteilt
-    "plattform/ava.py": 5815, "shared/bpcore/head/head.js": 3040, "gantt/public/app.js": 3039,
+    "plattform/ava.py": 5815, "shared/bpcore/head/head.js": 3040,
     "plattform/baukosten.py": 2333, "shared/bpcore/head.py": 1898, "plattform/static/baukosten.html": 1574,
 }
 GROESSE_PRUEFEN = re.compile(r"\.(py|js|mjs|html|css)$")

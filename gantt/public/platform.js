@@ -7,7 +7,7 @@
    - Mehrbenutzer: Herzschlag alle 10 s – zeigt, wer den Plan noch geöffnet hat, und lädt neue Stände
      anderer Benutzer automatisch, solange hier nichts ungespeichert ist.
    - Verknüpfung des Plans mit einem Projekt des Bautagebuchs.
-   Benötigt app.js (P, api, modal, toast, reloadProject, dirty, saveTimer …).
+   Benötigt gantt-*.js (P, api, modal, toast, reloadProject, dirty, saveTimer …).
    ===================================================================== */
 (function () {
   const BP = window.BP = { me: null, conf: null, others: [] };

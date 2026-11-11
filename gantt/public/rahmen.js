@@ -3,9 +3,9 @@
    Bauzeitenplan im Aufbau der Plattform (wie die Ausschreibung):
    links die Navigation (bpNav), oben die Befehlsleiste (befehle), rechts der abdockbare Bereich (seite) mit den
    Reitern „Details“ (die markierte Leistung, direkt änderbar) und „Assistent“ (Planungsassistent).
-   Das alte Menüband (#ribbon) bleibt unsichtbar im Dokument: app.js führt dort weiter den Zustand der Knöpfe
+   Das alte Menüband (#ribbon) bleibt unsichtbar im Dokument: gantt-*.js führen dort weiter den Zustand der Knöpfe
    (gesperrt, an) – die Befehlsleiste liest ihn und baut sich nur neu, wenn sich etwas geändert hat.
-   Alle Befehle laufen über die vorhandenen Aktionen (data-act → ACTIONS in app.js).
+   Alle Befehle laufen über die vorhandenen Aktionen (data-act → ACTIONS in gantt-start.js).
    ===================================================================== */
 (function () {
   if (!window.bpNav || !window.befehle || !window.seite) return;   // ohne Baukasten: altes Menüband
@@ -85,7 +85,7 @@
   };
   const AKT = { projinfo: 'projectInfo', kalender: 'calendarInfo', drucken: 'printDialog', export: 'fileExport' };
   const SICHT = { leistungen: 'vorgang', firmen: 'firmen', katalog: 'katalog' };
-  let VM = null;   // Versionswahl (#vmGrp aus app.js) – beim Neuzeichnen der Navigation festhalten, sonst geht sie mit verloren
+  let VM = null;   // Versionswahl (#vmGrp aus gantt-start.js) – beim Neuzeichnen der Navigation festhalten, sonst geht sie mit verloren
   function navNeu() {
     if (!NAV) return;
     VM = $('#vmGrp') || VM;
@@ -185,7 +185,7 @@
     selectRow(r); ensureVisible(r);
   });
 
-  /* ---------- an app.js anhängen: nach jedem Zeichnen, Reiterwechsel und Auswahl nachführen ---------- */
+  /* ---------- an gantt-*.js anhängen: nach jedem Zeichnen, Reiterwechsel und Auswahl nachführen ---------- */
   // Rückgängig: der Plan behält seinen eigenen Verlauf (↶ ↷ in der Befehlsleiste, Strg+Z), jeder Schritt steht zusätzlich im
   // gemeinsamen Rückgängig-Dock unten (undo.js) – beide im Gleichschritt, wie in der Ausschreibung
   const UD = [], udText = () => 'Änderung im Plan' + (P ? ` „${P.name}“` : '');

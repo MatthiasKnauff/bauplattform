@@ -690,7 +690,8 @@ function projectDialog(teil = 'info') {   // 'info': Name, Anfang, Ende · 'kale
     if (ok && CAL.peDay !== end0) toast(`Projektende jetzt ${fmtD(CAL.peDay)} (vorher ${fmtD(end0)}).`);
     refreshProjectList();
   } }, { label: 'Abbrechen', fn: () => { buildCal(P.cal); } }]);
-  bg.querySelector('.modal').style.width = teil === 'kalender' ? '660px' : '520px';
+  bg.querySelector('.modal').style.width = teil === 'kalender' ? 'min(860px, 96vw)' : '520px';
+  if (teil === 'kalender') bg.querySelector('.modal').style.height = 'min(780px, 94vh)';   // gleich groß – nicht erst an der Ecke aufziehen
   const prev = () => {
     const c = read(bg), a = P.start, z = Math.max(CAL.peDay, P.start + 60);
     const m = freeMap({ state: c.state, free: c.free }, ud(a).getUTCFullYear(), ud(z).getUTCFullYear());

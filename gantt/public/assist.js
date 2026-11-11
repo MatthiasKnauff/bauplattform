@@ -1024,7 +1024,7 @@
               const EK = { keller: 'Keller', anbaukeller: 'Neuer Keller', tragwerk: 'Bauweise', dachform: 'Dachform' }, ord = Object.keys(EK);
               const gs = core.choiceGroups(cfg).filter((g) => EK[g.k]).sort((a, b) => ord.indexOf(a.k) - ord.indexOf(b.k));
               return gs.map((g) => `<label>${EK[g.k]}</label><select data-choice="${g.k}">${g.opts.map((o) => `<option value="${o.k}"${o.k === g.val ? ' selected' : ''}>${esc(o.n)}</option>`).join('')}</select>`
-                + (g.k === 'tragwerk' && core.floorTw(cfg).length > 1 ? core.floorTw(cfg).map(([l, t]) => `<label class="as-sub">${esc(l)}</label><select data-fltw="${esc(l)}">${[['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']].map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${n}</option>`).join('')}</select>`).join('') : '')).join('');
+                + (g.k === 'tragwerk' && g.val === 'misch' && core.floorTw(cfg).length > 1 ? core.floorTw(cfg).map(([l, t]) => `<label class="as-sub">${esc(l)}</label><select data-fltw="${esc(l)}">${[['massiv', 'Mauerwerk, Stahlbetondecke'], ['stb', 'Stahlbeton'], ['holz', 'Holzrahmenbau'], ['bsp', 'Brettsperrholz']].map(([v, n]) => `<option value="${v}"${v === t ? ' selected' : ''}>${n}</option>`).join('')}</select>`).join('') : '')).join('');
             })()
             + (() => {   // was über dem obersten Vollgeschoss liegt – abhängig von der Dachform
               const flat = core.roofFlat(cfg), known = core.roofKnown(cfg);

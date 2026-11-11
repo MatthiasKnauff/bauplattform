@@ -290,3 +290,36 @@ def vertrag_loeschen(vid):
         pk = papierkorb.ablegen(c, "honorar_vertrag", vid, "Architektenvertrag", r["name"], g.user["name"], r["projekt"] or "", KEY)
         d = _detail(c, r["auftrag_id"])
     return jsonify({**d, "papierkorb": pk})
+
+
+@app.get("/api/auftraege/<int:aid>/druck.pdf")
+def druck(aid):
+    """Druckseite (bpDruck): Teile ?teile=aufstellung,vertrag,r12,r13 in dieser Reihenfolge zu einem PDF."""
+    from pypdf import PdfReader, PdfWriter
+    import honorar as HO
+    T = [x for x in (request.args.get("teile") or "").split(",") if x][:40]
+    w, n = PdfWriter(), 0
+    for t in T:
+        try:
+            if t == "aufstellung":
+                r = HO.angebot_pdf(aid)
+                daten, titel = (r.get_data() if hasattr(r, "get_data") else None), "Honorarangebot / Aufstellung"
+            elif t == "vertrag":
+                x = vertrag_pdf_erzeugen(aid); daten, titel = (x[0] if x else None), "Architektenvertrag"
+            elif re.fullmatch(r"r\d{1,9}", t):
+                with db.tx() as c:
+                    ok = c.execute("SELECT 1 FROM honorar_rechnung WHERE id=? AND auftrag_id=?", (int(t[1:]), aid)).fetchone()
+                x = HR.pdf_erzeugen(int(t[1:])) if ok else None
+                daten, titel = (x[0] if x else None), (x[1].rsplit(".", 1)[0] if x else "")
+            else:
+                continue
+        except Exception as e:   # noqa: BLE001 – ein Teil kaputt: die anderen trotzdem
+            from bpcore import fehler
+            fehler.still(KEY, f"Honorar drucken: {t}", e)
+            continue
+        if daten and daten.startswith(b"%PDF"):
+            w.append(PdfReader(io.BytesIO(daten)), outline_item=titel); n += 1
+    if not n:
+        return jsonify(error="Nichts zum Drucken gewählt."), 400
+    out = io.BytesIO(); w.write(out)
+    return Response(out.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": 'inline; filename="Honorar.pdf"', "Cache-Control": "no-store"})

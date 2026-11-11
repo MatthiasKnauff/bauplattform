@@ -357,5 +357,13 @@
   "titel": "Kompletter Bauantrag",
   "text": "In Schritt 6 entsteht jetzt das ganze Paket: Anschreiben an die Bauaufsicht (Behörde und Ansprechpartner:in aus den Adressen), Deckblatt mit Inhaltsverzeichnis und Häkchenliste weiterer Unterlagen, fünf Trennblätter, die du umbenennen und verschieben kannst. „PDF“ gibt alles in einem aus.",
   "ziel": "[data-pdf]"
+ },
+ {
+  "id": "2026-11-11-ein-druck",
+  "datum": "2026-11-11",
+  "app": "honorar",
+  "titel": "Ein Knopf „Drucken“",
+  "text": "In Honorar und Bauantrag gibt es oben nur noch „Drucken“. Auf der Druckseite hakst du links an, was ins PDF soll, etwa Angebot, Vertrag oder Rechnungen bzw. Anschreiben, Deckblatt und Unterlagen. Rechts siehst du die Vorschau. Die Auswahl wird gemerkt.",
+  "ziel": "#bfl"
  }
 ]

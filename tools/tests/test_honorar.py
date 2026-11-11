@@ -129,6 +129,8 @@ def test_honorar_rechnungen(ctx):
         v = a.pj(f"{HO}/auftraege/{aid}/vertrag", {})
         gleich(len(v["vertraege"]), 1, "Vertrag gespeichert")
         a.get(f"/honorar/api/vertraege/{v['neu']}.pdf").ist_pdf()
+        a.get(f"{HO}/auftraege/{aid}/druck.pdf?teile=aufstellung,vertrag,r{r1}").ist_pdf()   # Druckseite: mehrere Teile in einem PDF
+        a.get(f"{HO}/auftraege/{aid}/druck.pdf?teile=", expect=400)
         E = a.gj(f"{HO}/einstellungen")
         try:
             gleich(a.uj(f"{HO}/einstellungen", {"honorar_re_nummer": "HR{jahr2}/{lfd}"})["beispiel"][:2], "HR", "Muster der Rechnungsnummer")

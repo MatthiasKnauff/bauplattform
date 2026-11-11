@@ -196,11 +196,17 @@ def stueck(aid, key):
     return _pdf_antwort(x[0], re.sub(r'[\\/:*?"<>|]+', "_", x[1])[:140] + ".pdf", request.args.get("dl"))
 
 
-def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke")):
-    """Das ganze Antragspaket: Anschreiben, Deckblatt mit Inhaltsverzeichnis, Trennblätter und Stücke. → (PDF, Dateiname) oder Fehlertext."""
+def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke"), nur=None):
+    """Das ganze Antragspaket: Anschreiben, Deckblatt mit Inhaltsverzeichnis, Trennblätter und Stücke. nur: Auswahl aus der Druckseite
+    (Schlüssel der Stücke/Trennblätter, „anschreiben“, „deckblatt“). → (PDF, Fehlertext)"""
     W, d = _w(c, a)
     gew = d["gewaehlt"]
-    if not [k for k in gew if not k.startswith("t")] and "stuecke" in mit:
+    if nur is not None:
+        gew = [k for k in gew if k in nur]
+        mit = tuple(x for x in ("anschreiben", "deckblatt") if x in nur) + ("stuecke",)
+        if not gew and not any(x in nur for x in ("anschreiben", "deckblatt")):
+            return None, "Bitte mindestens einen Teil ankreuzen."
+    if not [k for k in gew if not k.startswith("t")] and "stuecke" in mit and nur is None:
         return None, "Noch kein Vordruck und keine Unterlage gewählt – in Schritt 1 anhaken."
     teile = []
     for k in (gew if "stuecke" in mit else []):
@@ -217,11 +223,13 @@ def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke")):
     kopf = [x for x in (BA_VERF.get(a["verfahren"], ""), W.get("bezeichnung") or d["projekt"], adr, f"Bauherrschaft: {W.get('bauherr_name')}" if W.get("bauherr_name") else "",
                         f"Entwurfsverfassende: {W.get('ev_name')}" if W.get("ev_name") else "", time.strftime("Stand %d.%m.%Y")) if x]
     A = d["anschreiben"]
-    vorn = anschreiben_pdf(c, a, W, A, d["projekt"]) if A["an"] and "anschreiben" in mit else None
+    vorn = anschreiben_pdf(c, a, W, A, d["projekt"]) if (A["an"] or nur is not None) and "anschreiben" in mit else None
     Dk = d["deckblatt"]
     if "stuecke" not in mit and "deckblatt" not in mit:
         return vorn, ""
-    data = BP.paket_pdf(teile, kopf, entwurf=a["status"] == "entwurf", deckblatt_an=Dk["an"] and "deckblatt" in mit, weitere=Dk["punkte"], vorn=vorn)
+    if not teile and "deckblatt" not in mit:   # nur das Anschreiben
+        return vorn, ""
+    data = BP.paket_pdf(teile, kopf, entwurf=a["status"] == "entwurf", deckblatt_an=(Dk["an"] or nur is not None) and "deckblatt" in mit, weitere=Dk["punkte"], vorn=vorn)
     return data, ""
 
 
@@ -231,7 +239,8 @@ def paket(aid):
         a = _antrag(c, aid)
         if not a:
             return jsonify(error="Antrag nicht gefunden."), 404
-        data, fehler = _paket_bauen(c, a)
+        nur = set(x for x in (request.args.get("teile") or "").split(",") if x) if request.args.get("teile") is not None else None
+        data, fehler = _paket_bauen(c, a, nur=nur)
         if not data:
             return jsonify(error=fehler), 409
         p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()

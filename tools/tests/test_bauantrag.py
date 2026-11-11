@@ -68,6 +68,8 @@ def test_bauantrag(ctx):
         a.get(f"{BA}/antraege/{aid}/anschreiben.pdf").ist_pdf()
         a.get(f"{BA}/antraege/{aid}/stueck/t1.pdf").ist_pdf()
         a.get(f"{BA}/antraege/{aid}/paket.pdf").ist_pdf()
+        a.get(f"{BA}/antraege/{aid}/paket.pdf?teile=anschreiben").ist_pdf()   # Druckseite: nur das Anschreiben
+        a.get(f"{BA}/antraege/{aid}/paket.pdf?teile=deckblatt,t1,{k}").ist_pdf()
         d = a.uj(f"{BA}/antraege/{aid}/paket", {"key": k, "an": False})
         pruefe(k not in d["gewaehlt"], "abgewählt")
         pk2 = a.delete(f"/bauantrag/api/unterlagen/{k[1:]}").json["papierkorb"]

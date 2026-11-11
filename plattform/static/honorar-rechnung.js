@@ -97,12 +97,3 @@ document.addEventListener('change', async (e) => {
   const rid = +t.dataset.id, f = t.dataset.ref, alt = (D.rechnungen.liste.find((x) => x.id === rid) || {})[f], id = AID;
   await reSenden('api/rechnungen/' + rid, 'PUT', { [f]: t.value }, 'Rechnung geändert', async () => { await api('api/rechnungen/' + rid, 'PUT', { [f]: alt }); AID = id; await laden(); });
 });
-
-/* Befehlsleiste „Rechnung“: die letzte (nicht stornierte) Rechnung als PDF; gibt es keine, zu den Rechnungen springen */
-function reBefehl() {
-  const R = (D && D.rechnungen && D.rechnungen.liste || []).filter((x) => x.status !== 'storniert'), r = R[R.length - 1];
-  if (r) { BPHead.ansehen([{ url: `api/rechnungen/${r.id}/rechnung.pdf`, typ: 'pdf', name: `${r.titel} ${r.nr}` }]); return; }
-  const k = document.querySelector('.hre, [data-reneu]');
-  if (k) { k.scrollIntoView({ behavior: 'smooth', block: 'center' }); toast('Noch keine Rechnung – „＋ Abschlag“ legt die erste an.'); }
-  else toast('Rechnungen gibt es ab der Stufe „Auftrag“ – im Ablauf oben „Auftrag erhalten“ setzen.', true);
-}

@@ -41,7 +41,7 @@ function leiste() {
     { titel: 'Bauvorlagen', knoepfe: [K('Neu erkennen', IC.ord, async () => { D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); },
       { aus: !D, tip: 'Projektordner neu einlesen und die Bauvorlagen erkennen' })] },
     { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen('NW'), { tip: 'Amtliche Vordrucke (NRW vorgehalten, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
-    { titel: 'Ausgabe', rechts: true, knoepfe: [K('Im PDF', IC.antrag, () => ausfuellenOeffnen(), { aus: !D, tip: 'Direkt im Vordruck ausfüllen – Änderungen stehen sofort in der Maske und in allen anderen Vordrucken' }), K('PDF', IC.pdf, pdf, { aus: !D, tip: 'Antragspaket: gewählte Vordrucke ausgefüllt und eigene Unterlagen, mit Inhaltsverzeichnis' })] },
+    { titel: 'Ausgabe', rechts: true, knoepfe: [K('Im PDF', IC.antrag, () => ausfuellenOeffnen(), { aus: !D, tip: 'Direkt im Vordruck ausfüllen – Änderungen stehen sofort in der Maske und in allen anderen Vordrucken' }), K('Drucken', IC.pdf, pdf, { aus: !D, tip: 'Drucken: Anschreiben, Deckblatt, Trennblätter, Vordrucke und Unterlagen – auf der Druckseite auswählen' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Antrag in den Papierkorb legen' })] },
   ]);
 }
@@ -271,10 +271,14 @@ function neuDialog() {
   });
 }
 
-function pdf() {   // Antragspaket: gewählte Vordrucke und Unterlagen in einem PDF (in der gemeinsamen Vorschau – Teilen, Speichern, Drucken)
+function pdf() {   // ein Druck für alles: auf der Druckseite (bpDruck, Baukasten) ankreuzen, was ins PDF soll
   if (!D) return;
-  if (!(D.gewaehlt || []).filter((k) => !k.startsWith('t')).length) { toast('Noch kein Vordruck gewählt – in Schritt 1 anhaken.', true); SCHRITT = 'verfahren'; zeichne(); return; }
-  BPHead.ansehen([{ url: `api/antraege/${AID}/paket.pdf?t=${Date.now()}`, typ: 'pdf', name: `${D.antrag.name} – Antragsunterlagen` }]);
+  const titel = (k) => { const x = D.paket.find((y) => y.key === k); return !x ? k : x.art === 'trenner' ? `Trennblatt ${x.nr} – ${x.titel}` : (x.nr ? 'Anlage ' + x.nr + ' – ' : '') + x.titel; };
+  bpDruck({ titel: `${D.antrag.name} drucken`, name: `${D.antrag.name} – Antragsunterlagen`, merk: 'bauantrag',
+    hinweis: 'Links ankreuzen, was ins PDF soll – Auswahl und Reihenfolge der Unterlagen in Schritt 1 und 6.',
+    teile: [['anschreiben', 'Anschreiben an die Bauaufsicht', D.anschreiben.an], ['deckblatt', 'Deckblatt mit Inhaltsverzeichnis', D.deckblatt.an],
+      ...D.gewaehlt.map((k) => [k, titel(k), true])],
+    url: (T) => `api/antraege/${AID}/paket.pdf?teile=${T.join(',')}` });
 }
 
 async function loeschen() {

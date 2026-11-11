@@ -252,7 +252,7 @@ function paketPruefenHtml() {
     <div class="ba-k"><h3>Reihenfolge mit Trennblättern<span class="mute">⋮⋮ ziehen · Titel der Trennblätter direkt ändern</span></h3>
       <div class="tw"><table class="ba-t bap"><tbody>${reihe.map(zeile).join('')}</tbody></table></div>
       ${aus.length ? `<p class="ba-hilfe" style="margin:.4rem 0 0">Weggelassen: ${aus.map((x) => `<button type="button" class="bap-t" data-bapan="${x.key}" title="Wieder aufnehmen">＋ ${esc(x.nr)} ${esc(x.titel)}</button>`).join(' ')}</p>` : ''}
-      <p class="ba-hilfe" id="baForm" style="margin:.5rem 0"></p><button type="button" class="btn pri" data-pdf>📄 Antragspaket (PDF)</button></div>`;
+      <p class="ba-hilfe" id="baForm" style="margin:.5rem 0"></p><button type="button" class="btn pri" data-pdf>🖨 Drucken …</button></div>`;
 }
 async function baPaket(body, text) {
   const id = AID, vorher = JSON.parse(JSON.stringify({ a: D.anschreiben, d: D.deckblatt }));

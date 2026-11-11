@@ -43,9 +43,7 @@ function leiste() {
   const K = (t, ic, fn, o = {}) => ({ t, ic, fn, tip: o.tip || t, aus: !!o.aus, rot: !!o.rot });
   befehle(LEISTE, [
     { titel: 'Neu', knoepfe: [K('Auftrag', IC.neu, neuDialog, { tip: 'Neuer Honorarauftrag oder neues Angebot' })] },
-    { titel: 'Ausgabe', rechts: true, knoepfe: [K(D && ['anfrage', 'angebot', 'abgelehnt'].includes(D.auftrag.status) ? 'Angebot' : 'Aufstellung', IC.pdf, pdf, { aus: !D, tip: 'Honorarangebot bzw. Honoraraufstellung (Übersicht, keine Rechnung) als PDF' }),
-      K('Vertrag', IC.pdf, () => document.querySelector('[data-vtpdf]') ? document.querySelector('[data-vtpdf]').click() : toast('Den Vertrag gibt es ab der Stufe „Auftrag“.', true), { aus: !D, tip: 'Architektenvertrag als PDF – in der Vorschau unterschreiben' }),
-      K('Rechnung', IC.pdf, reBefehl, { aus: !D, tip: 'Letzte Rechnung als PDF (Briefkopf, Blatt 2 Erläuterung) – sonst zu den Rechnungen' })] },
+    { titel: 'Ausgabe', rechts: true, knoepfe: [K('Drucken', IC.pdf, drucken, { aus: !D, tip: 'Drucken: Angebot bzw. Aufstellung, Vertrag, Rechnungen – auf der Druckseite auswählen' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Auftrag in den Papierkorb legen' })] },
   ]);
 }
@@ -248,6 +246,17 @@ function neuDialog() {
   });
 }
 
+/* ein Druck für alles: auf der Druckseite (bpDruck, Baukasten) ankreuzen, was ins PDF soll */
+function drucken() {
+  if (!D) return;
+  const st = D.auftrag.status, ab = ['beauftragt', 'vertrag', 'abrechnung', 'abgeschlossen'].includes(st);
+  const R = (D.rechnungen && D.rechnungen.liste || []).filter((r) => r.status !== 'storniert'), letzte = R[R.length - 1];
+  bpDruck({ titel: `${D.auftrag.name} drucken`, name: `Honorar ${D.projekt}`, merk: 'honorar.' + (ab ? 'auftrag' : 'angebot'),
+    teile: [['aufstellung', ['anfrage', 'angebot', 'abgelehnt'].includes(st) ? 'Honorarangebot' : 'Honoraraufstellung', !ab],
+      ['vertrag', 'Architektenvertrag', ab && !R.length, !ab, 'ab der Stufe „Auftrag“'],
+      ...R.map((r) => ['r' + r.id, `${r.titel} Nr. ${r.nr}${r.status === 'entwurf' ? ' (Entwurf)' : ''} – mit Erläuterung`, r === letzte])],
+    url: (T) => `api/auftraege/${AID}/druck.pdf?teile=${T.join(',')}` });
+}
 function pdf() {
   if (!D) return;
   const w = window.open('api/auftraege/' + AID + '/angebot.pdf', '_blank'); if (!w) location.href = 'api/auftraege/' + AID + '/angebot.pdf';

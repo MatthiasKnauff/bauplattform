@@ -1920,7 +1920,7 @@ def blueprint(get_user=None):
                 x["o"] = {str(k)[:20]: v for k, v in o.items() if isinstance(v, (str, int, float, bool)) and len(str(v)) <= 80}
             items.append(x)
         weg = [i for i in (ra.get("weg") or [])[:80] if ok(i)]
-        return {"v": 1, "items": items, "weg": weg}
+        return {"v": 1, "items": items, "weg": weg, "fest": ra.get("fest") is not False}   # Startseite gesperrt (Vorgabe) oder zum Anordnen frei
 
     @bp.route("/api/bp/kacheln", methods=["GET", "PUT"])
     def kacheln_api():

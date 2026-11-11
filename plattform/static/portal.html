@@ -31,6 +31,8 @@ main.wrap{max-width:1400px}
 body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zieh){transition:all .15s ease}
 .ri.ziel>*{outline:2px dashed var(--y);outline-offset:2px}
 .ri.neu>*{animation:rneu 1.2s ease}@keyframes rneu{0%,40%{box-shadow:0 0 0 3px var(--y)}100%{box-shadow:none}}
+.raster.fest .kx,.raster.fest .ue-x,.raster.fest .rz,.raster.fest .ri-plus,.raster.fest .ue-grip{display:none!important}.raster.fest .ri-w>.ue-b>h3,.raster.fest .post-h{cursor:default}
+.rfest{margin-left:auto;align-self:center;border:1px solid var(--line);background:var(--card);color:var(--mute);border-radius:calc(999px*var(--rkp,1));padding:.3rem .8rem;font:inherit;font-size:.82rem;cursor:pointer}.rfest.on{background:var(--y);border-color:var(--y);color:var(--on);font-weight:600}.rfest[hidden]{display:none}
 .ri-plus{display:flex;align-items:center;justify-content:center;gap:.3rem;border:2px dashed var(--line);border-radius:calc(10px*var(--rk,1));background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer}.ri-plus:hover{border-color:var(--y);color:var(--y)}.ri-plus small{font-weight:400}
 .raster.touchzieh{touch-action:none}
 .wx-p{margin-left:.4rem;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:calc(999px*var(--rkp,1));padding:0 .55rem;font:inherit;font-size:.74rem;font-weight:400;cursor:pointer;max-width:14rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wx-p:hover{border-color:var(--y);color:var(--y)}
@@ -130,7 +132,7 @@ html[data-modus="einfach"] .foot{order:6}
 </head>
 <body>
 <main class="wrap">
-  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p></div>
+  <div class="hello"><h1 id="hi">Willkommen</h1><p>Wähle eine App – du bist in allen Apps angemeldet.</p><button type="button" class="rfest" id="rFest" hidden></button></div>
   <nav class="ein" id="ein" aria-label="Häufige Aufgaben"></nav>
   <div class="raster" id="raster" aria-label="Startseite: Apps und Widgets"></div>
   <div hidden><section class="post" id="post" hidden aria-label="Post zu meinen Projekten"></section></div>
@@ -205,7 +207,7 @@ function rFreiRechts(L, w, h) {   // Widgets standardmäßig rechts neben der Po
 }
 let rSpeichernT = 0;
 function rSpeichern(L) {
-  RASTER = { items: L.map(({ i, x, y, w, h, o }) => (o ? { i, x, y, w, h, o } : { i, x, y, w, h })), weg: [...rWeg()] };
+  RASTER = { items: L.map(({ i, x, y, w, h, o }) => (o ? { i, x, y, w, h, o } : { i, x, y, w, h })), weg: [...rWeg()], fest: rFest() };
   clearTimeout(rSpeichernT); rSpeichernT = setTimeout(() => api('api/bp/kacheln', 'PUT', { raster: RASTER }).catch((e) => toast(e.message, true)), 300);
 }
 const rStil = (it) => `grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}`;
@@ -233,7 +235,7 @@ function rasterZeigen() {
   }).join('') + `<button type="button" class="ri ri-plus" data-rplus style="${rStil({ ...rFrei(L, 3, 1), w: 3, h: 1 })}" title="Ausgeblendete Apps und Widgets wieder auf die Startseite holen">＋ App / Widget${rWeg().size ? ` <small>(${rWeg().size})</small>` : ''}</button>`;
   const pz = host.querySelector('.ri-post'); if (pz && post) pz.insertBefore(post, pz.firstChild);
   L.filter((it) => wxTyp(it.i)).forEach((it) => wxLaden(it));
-  host.classList.toggle('handy', rHandy());
+  host.classList.toggle('handy', rHandy()); rFestZeigen();
 }
 /* ---------- eigene Widgets: Bauzeitenplan (Handyansicht), Kostenstand ---------- */
 const WXC = {}; let WXP = null, WXPL = null;   // WXC: Inhalt je Typ:Projekt (mit Zeit) · WXP: Projektliste für ▾
@@ -342,10 +344,19 @@ $('#raster').addEventListener('click', (e) => {
   }
 });
 let RSPERRE = false;
+/* Startseite sperren: gesperrt lässt sich nichts verschieben, vergrößern oder ausblenden (Vorgabe) – 🔒 Anordnen entsperrt, je Benutzer gemerkt */
+const rFest = () => !RASTER || RASTER.fest !== false;
+function rFestZeigen() {
+  const b = $('#rFest'), H = $('#raster'); if (!b || !H) return; const f = rFest();
+  b.hidden = false; b.textContent = f ? '🔒 Anordnen' : '🔓 Fertig angeordnet'; b.classList.toggle('on', !f);
+  b.title = f ? 'Startseite ist gesperrt – klicken, um Kacheln und Widgets zu verschieben, zu vergrößern oder auszublenden' : 'Fertig – Startseite wieder sperren';
+  H.classList.toggle('fest', f);
+}
+document.addEventListener('click', (e) => { if (!e.target.closest('#rFest')) return; const L = rLayout(); RASTER.fest = !rFest(); rSpeichern(L); rFestZeigen(); });
 /* Ziehen: Kachel (überall) bzw. Widget am Kopf verschieben; Ecke ↘ ändert die Größe. Maus ab 6 px, Finger nach langem Drücken */
 (() => {
   const H = $('#raster'); let st = null, lang = 0;
-  const griff = (e) => { const ri = e.target.closest('.ri[data-ri]'); if (!ri) return null;
+  const griff = (e) => { const ri = e.target.closest('.ri[data-ri]'); if (!ri || rFest()) return null;
     if (e.target.closest('[data-rz]')) return { ri, gr: true };
     if (e.target.closest('[data-rx], input, textarea, select, .ue-r, .ue-mehr, .pm, .btn, label')) return null;
     if (ri.classList.contains('ri-a') || e.target.closest('.ue-b>h3, .post-h')) return { ri, gr: false };

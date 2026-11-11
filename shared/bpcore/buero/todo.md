@@ -23,7 +23,7 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 h**
 16. Stempel auf Nachfrage an den passenden Stellen anbieten (Rechnungsprüfung → Prüfstempel/„Zahlbetrag siehe Anlage“, Abnahme/Schreiben → Bürostempel) – sobald die Stempel hochgeladen sind. **ca. 20–30 min**
 14. Unterschreiben – Rest: unterschriebenes PDF direkt in Versand/Ablage der App übernehmen, Eintrag im Verlauf (Unterschrift des GF „i. V.“: nein, entschieden 11.11.). **ca. 20 min**
-13. Widget „Datei ablegen“ auf der Startseite: Kopierer-Ordner überwachen, Scans per Texterkennung (OCR) lesen und den Ablageort nur vorschlagen – abgelegt wird erst nach Bestätigung (entschieden 11.11.). **ca. 1 h**
+13. Widget „Datei ablegen“ auf der Startseite: Kopierer-Ordner überwachen, Scans per Texterkennung (OCR, beim Hereinziehen schon eingebaut) lesen und den Ablageort nur vorschlagen – abgelegt wird erst nach Bestätigung (entschieden 11.11.). **ca. 1 h**
 
 Summe Sammlung (offen): ca. 12–16 h.
 

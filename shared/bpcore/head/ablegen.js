@@ -59,7 +59,7 @@
     let wahl = items.length ? items[0].value : null, name = (V.namen || [])[0] || f.name;
     return new Promise((fertig) => {
       const bg = modalBox(`<h3>Datei ablegen</h3>
-        <p class="mu" style="margin:0 0 .7rem">${E(f.name)} · ${mb(f.size)}${V.plan ? ` · Plan ${E(V.plan)}` : ''}${V.text || !/\.pdf$/i.test(f.name) ? '' : ' · im PDF kein Text, Vorschlag nur nach dem Namen'}${rest ? ` · noch ${rest} weitere` : ''}</p>
+        <p class="mu" style="margin:0 0 .7rem">${E(f.name)} · ${mb(f.size)}${V.plan ? ` · Plan ${E(V.plan)}` : ''}${V.text ? '' : ' · kein Text erkannt, Vorschlag nur nach dem Namen'}${rest ? ` · noch ${rest} weitere` : ''}</p>
         <div class="fm"><label>Ordner</label><button type="button" class="pick" id="bpaO" style="width:100%"></button></div>
         <div class="fm" style="margin-top:.6rem"><label for="bpaN">Name</label><input id="bpaN" class="bpa-name" value="${E(name)}" autocomplete="off" spellcheck="false">
           ${(V.namen || []).length > 1 ? `<div class="bpa-namen">${V.namen.map((n) => `<button type="button" data-bpan="${E(n)}" title="${E(n)}" class="${n === name ? 'on' : ''}">${E(n)}</button>`).join('')}</div>` : ''}</div>

@@ -31,6 +31,44 @@ def _falt(s):
     return re.sub(r"[^a-z0-9]+", " ", s)
 
 
+def _ocr(bild):
+    """Texterkennung (tesseract, im Image für alle Apps) für Scans ohne Text – nur die erste Seite, höchstens 25 s."""
+    import os, shutil, subprocess, tempfile
+    if not shutil.which("tesseract"):
+        return ""
+    try:
+        from PIL import ImageOps
+        with tempfile.TemporaryDirectory() as td:
+            f = os.path.join(td, "s.png")
+            ImageOps.autocontrast(bild.convert("L"), cutoff=1).save(f)
+            return subprocess.run(["tesseract", f, "stdout", "-l", "deu+eng", "--psm", "3"], capture_output=True, text=True, timeout=25,
+                                  env=dict(os.environ, OMP_THREAD_LIMIT="1")).stdout[:20000]
+    except Exception:   # Texterkennung ist nur eine Hilfe für den Vorschlag
+        return ""
+
+
+def text_aus(data, name):
+    """Text für die Vorschläge: aus dem PDF (Planköpfe, Briefe), bei Scans und Fotos per Texterkennung."""
+    n = (name or "").lower()
+    if n.endswith(".pdf"):
+        t = pdf_anfang(data)
+        if t.strip():
+            return t
+        try:
+            import pdfplumber
+            with pdfplumber.open(io.BytesIO(data)) as pdf:
+                return _ocr(pdf.pages[0].to_image(resolution=200).original) if pdf.pages else ""
+        except Exception:
+            return ""
+    if n.endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
+        try:
+            from PIL import Image
+            return _ocr(Image.open(io.BytesIO(data)))
+        except Exception:
+            return ""
+    return ""
+
+
 def pdf_anfang(data):
     """Text der ersten zwei Seiten (Planköpfe sind meist Vektortext); Scans ohne Text liefern nur den Dateinamen."""
     try:
@@ -157,7 +195,7 @@ def routen(bp, user):
         if not f or not pid:
             return jsonify(error="Datei oder Projekt fehlt"), 400
         data = f.read(80 * 1024 * 1024)
-        text = pdf_anfang(data) if (f.filename or "").lower().endswith(".pdf") else ""
+        text = text_aus(data, f.filename or "")
         try:
             b = _bt_json("GET", f"/api/ablage/ordnerbaum?project_id={pid}")
             if not b.get("ok"):

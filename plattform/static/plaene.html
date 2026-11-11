@@ -82,12 +82,15 @@
 
 /* Einfache Ansicht: nur der aktuelle Pläne und Dateien */
 html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}
+/* Dateien hereinziehen (plaene-ablage.js) */
+body.pl-ziehen #view{outline:2px dashed var(--y);outline-offset:4px;border-radius:calc(10px*var(--rk,1))}
+.pl tr.pl-ziel td{background:color-mix(in srgb,var(--y) 14%,transparent)}
 </style>
 </head>
 <body>
 <main class="wrap">
   <select id="proj" aria-label="Projekt" hidden></select>
-  <div class="tabrow"><nav class="tabs" id="tabs"></nav><div class="ord" id="ord"></div><button class="btn sm" id="reBtn" title="Projektordner neu durchsuchen">⟳ Neu einlesen</button></div>
+  <div class="tabrow"><nav class="tabs" id="tabs"></nav><div class="ord" id="ord"></div><button class="btn sm" id="reBtn" title="Projektordner neu durchsuchen">⟳ Neu einlesen</button><span class="mu" style="font-size:.8rem" title="Dateien auf die Seite ziehen – auf eine Planzeile gezogen landen sie in deren Ordner">Dateien hierher ziehen zum Ablegen</span></div>
   <div id="view"><p class="mute">Lade …</p></div>
 </main>
 <div class="bar" id="bar" hidden></div>
@@ -479,5 +482,6 @@ window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
   head(); laden();
 })().catch((e) => toast(e.message, true));
 </script>
+<script src="static/plaene-ablage.js"></script>
 </body>
 </html>

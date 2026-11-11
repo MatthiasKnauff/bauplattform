@@ -6,6 +6,7 @@ Anmeldung des Benutzers (/api/plaene/dateien, /api/plaene/datei) und liest die P
 je Projekt (Planordner, eigene Gewerk-Zuordnungen) in „plaene:<Projekt-ID>“. Versand → Tabelle planversand.
 """
 import io, json, re, urllib.error, urllib.parse, urllib.request
+from collections import Counter
 from datetime import datetime
 
 from flask import Response, g, jsonify, redirect, request
@@ -594,6 +595,114 @@ def versandliste_pdf():
     doc.build(el, onFirstPage=fuss, onLaterPages=fuss)
     fn = f"Planversandliste {p['name']}.pdf"
     return Response(buf.getvalue(), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(fn)}"})
+
+
+# ---------------------------------------------------------------- Hereinziehen: Datei in den Projektordner ablegen
+def _falt(s):
+    s = (s or "").lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    return re.sub(r"[^a-z0-9]+", " ", s)
+
+
+def _pdf_anfang(data):
+    """Text der ersten zwei Seiten (Planköpfe sind meist Vektortext); Scans ohne Text liefern nur den Dateinamen."""
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            return "\n".join((pg.extract_text() or "") for pg in pdf.pages[:2])[:20000]
+    except Exception:   # kein PDF oder beschädigt: dann zählt nur der Dateiname
+        return ""
+
+
+def ablage_vorschlaege(name, text, dateien, ordner, cf):
+    """Ordner, in die die Datei vermutlich gehört – beste zuerst: [{pfad, grund}].
+    1. dort, wo frühere Stände desselben Plans liegen (Plannummer aus dem Dateinamen oder dem Plankopf),
+    2. dort, wo Pläne derselben Kennung und Phase liegen, 3. Ordner, deren Name im Plankopf vorkommt oder zum erkannten Gewerk passt."""
+    out, gesehen = [], set()
+
+    def dazu(pf, grund):
+        if pf is not None and pf not in gesehen:
+            gesehen.add(pf); out.append({"pfad": pf, "grund": grund})
+    i = planname.lies(name)
+    if not i:   # Plannummer im Plankopf suchen
+        for z in (text or "").splitlines():
+            i = planname.lies(z.strip() + ".pdf")
+            if i:
+                break
+    if i:
+        gleiche, aehnlich = Counter(), Counter()
+        for f in dateien:
+            j = planname.lies(f.get("name") or "")
+            if not j:
+                continue
+            if (j["proj"], j["kennung"], j["nr"]) == (i["proj"], i["kennung"], i["nr"]):
+                gleiche[f.get("ordner") or ""] += 1
+            elif j["kennung"] == i["kennung"] and j["teile"][:1] == i["teile"][:1]:
+                aehnlich[f.get("ordner") or ""] += 1
+        for pf, _ in gleiche.most_common(3):
+            dazu(pf, f"frühere Stände von Plan {i['nr']}")
+        for pf, _ in aehnlich.most_common(2):
+            dazu(pf, "Pläne derselben Kennung und Phase")
+    worte = set(_falt(name + " " + text).split())
+    gw, _ = planname.gewerk(i or {"titel": name + " " + (text or "")[:2000]}, cf)
+    pkt = []
+    for o in ordner:
+        letzte = _falt(o.rsplit("/", 1)[-1]).split()
+        sig = [w for w in letzte if len(w) >= 4 and not w.isdigit()]
+        n = sum(1 for w in sig if w in worte)
+        if gw and _falt(gw).strip() and _falt(gw).strip() in _falt(o):
+            n += 2
+        if n:
+            pkt.append((n, -o.count("/"), o))
+    for n, _, o in sorted(pkt, reverse=True)[:5]:
+        dazu(o, f"Gewerk „{gw}“" if gw and _falt(gw).strip() in _falt(o) else "Ordnername steht im Plan")
+    return out[:6], (i or {}).get("nr") or ""
+
+
+@app.post("/api/ablage/vorschlag")
+def ablage_vorschlag():
+    """Hereingezogene Datei lesen → Ordnervorschläge (erkannt) und alle Ordner des Projekts."""
+    f = request.files.get("datei")
+    pid = request.form.get("project_id", type=int)
+    if not f or not pid:
+        return jsonify(error="Datei oder Projekt fehlt"), 400
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+        cf, m = conf(c), _store(c, f"plaene:{pid}", {})
+    data = f.read(80 * 1024 * 1024)
+    text = _pdf_anfang(data) if (f.filename or "").lower().endswith(".pdf") else ""
+    q = {"project_id": pid}
+    if m.get("aus") is not None:
+        q["aus"] = json.dumps(m["aus"])
+    try:
+        d = _bt("/api/plaene/dateien?" + urllib.parse.urlencode(q))
+    except ValueError as e:
+        return jsonify(error=str(e)), 502
+    ordner = sorted({o["pfad"] for o in d.get("ordner") or [] if o.get("pfad")}, key=str.lower)
+    erkannt, nr = ablage_vorschlaege(f.filename or "", text, d.get("dateien") or [], ordner, cf)
+    return jsonify(erkannt=erkannt, ordner=ordner, basis=d.get("basis") or "", plan=nr, text=bool(text.strip()))
+
+
+@app.post("/api/ablage")
+def ablegen():
+    """Datei im gewählten Ordner des Projektordners ablegen (Name bleibt; gleicher Name → „(2)“) – über das Bautagebuch, das die Ablage kennt."""
+    import base64
+    f = request.files.get("datei")
+    pid = request.form.get("project_id", type=int)
+    if not f or not pid:
+        return jsonify(error="Datei oder Projekt fehlt"), 400
+    with db.tx() as c:
+        if not _sees(c, pid):
+            return jsonify(error="Projekt nicht gefunden"), 404
+    ordner = [x for x in (request.form.get("ordner") or "").split("/") if x.strip()]
+    if not ordner:
+        return jsonify(error="Bitte einen Ordner wählen."), 400
+    try:
+        a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "art": "plan", "name": f.filename or "Datei.pdf",
+                                                  "datei": base64.b64encode(f.read(80 * 1024 * 1024)).decode(), "ordner": ordner})
+    except RuntimeError as e:
+        return jsonify(error=str(e)), 502
+    return jsonify(ok=True, pfad=(a or {}).get("pfad") or "")
 
 
 C.wait_schema()

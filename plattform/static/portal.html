@@ -14,11 +14,11 @@ main.wrap{max-width:1400px}
 .raster{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:64px;gap:10px;position:relative;margin-bottom:1rem}
 .ri{position:relative;min-width:0;min-height:0}
 .ri>.tile{height:100%;box-sizing:border-box}
-.ri-w>.ue-b,.ri-w>.post{height:100%;box-sizing:border-box;overflow:auto;margin:0;padding-bottom:.6rem;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--mute) 45%,transparent) transparent}
+.ri-w>.ue-b,.ri-w>.post{height:100%;box-sizing:border-box;overflow:auto;margin:0;padding-bottom:.15rem;border-bottom:.6rem solid var(--card);box-shadow:0 1px 0 var(--line);scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--mute) 45%,transparent) transparent}
 .ri-w>.ue-b::-webkit-scrollbar,.ri-w>.post::-webkit-scrollbar{width:6px}.ri-w>.ue-b::-webkit-scrollbar-thumb,.ri-w>.post::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mute) 45%,transparent);border-radius:calc(3px*var(--rk,1))}.ri-w>.ue-b::-webkit-scrollbar-track,.ri-w>.post::-webkit-scrollbar-track{background:transparent}
 .r-weg{display:none!important}
 .ri-w [data-mehr]::after{content:"+ " attr(data-mehr) " weitere – Widget größer ziehen oder öffnen";display:block;color:var(--mute);font-size:.76rem;padding-top:.25rem}
-.ri-w>.ue-b>h3,.ri-w .post-h{position:sticky;top:-.6rem;background:var(--card);z-index:2;cursor:grab;margin-top:-.6rem;padding-top:.6rem}
+.ri-w>.ue-b>h3,.ri-w .post-h{position:sticky;top:-.6rem;background:var(--card);z-index:3;cursor:grab;margin-top:-.6rem;padding-top:.6rem;margin-bottom:0;padding-bottom:.4rem}   /* ganz deckend: beim Rollen schaut nichts unter der Überschrift hervor */
 .ri-w .post-h{top:-.9rem;margin-top:-.9rem;padding-top:.9rem}
 .ri-a>.tile{cursor:pointer}.ri-a{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .ri .ue-x{opacity:0}.ri:hover>.ue-x,.ri:focus-within>.ue-x{opacity:1}

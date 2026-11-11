@@ -37,6 +37,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld? **ca. 5–10 min**
 
 ## Umbau (Zielbild vom 09.11.2026)
+- Druckseite der Ausschreibung (paketDruck) auf den Baukasten bpDruck umstellen (Layout-Wahl dort ergänzen). **ca. 20–30 min**
 
 - Ablage ähnliche Ordner, Etappe 2: auch beim automatischen Ablegen (Tagesbericht, Rügen, Abnahme, Pläne) fragen; am Handy/im Hintergrund ohne Frage ablegen und am PC als To-do „Ablage klären“; Ausnahmen-Liste (Ordner, die nie angefasst werden); Knopf „Ganzen Projektordner aufräumen“. **ca. 45–60 min**
 

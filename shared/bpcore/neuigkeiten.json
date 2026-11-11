@@ -333,5 +333,13 @@
   "titel": "Rechnung mit Briefkopf",
   "text": "Honorarrechnungen sind jetzt ein richtiger Brief: Briefkopf, Anschrift im Fenster, Datum, Betreff, Bankverbindung und Steuernummer. Oben in der Leiste öffnet „Rechnung“ die letzte Rechnung, „Vertrag“ den Architektenvertrag. „Aufstellung“ bleibt die Honorarübersicht.",
   "ziel": "[data-reneu]"
+ },
+ {
+  "id": "2026-11-11-bauantrag-paket",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Formulare wählen und eigene Unterlagen",
+  "text": "Schritt 1 heißt jetzt „Verfahren & Formulare“. Dort hakst du die amtlichen Vordrucke an; Vorschläge kommen aus Verfahren und Vorhaben. Eigene Unterlagen (PDF, Scan, Foto) kannst du dazulegen. Bei Vordrucken ohne Felder und bei Scans setzt du die Werte mit „Platzieren …“ einmal auf die Seite, das wird gemerkt. „PDF“ gibt alles als ein Antragspaket mit Inhaltsverzeichnis aus.",
+  "ziel": ".bap-drop"
  }
 ]

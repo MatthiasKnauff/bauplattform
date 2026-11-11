@@ -10,7 +10,7 @@ import json
 import re
 
 VERFAHREN = {"baugenehmigung": "Antrag auf Baugenehmigung", "vorbescheid": "Antrag auf Vorbescheid", "freistellung": "Genehmigungsfreistellung – Bauvorlagen"}
-SCHRITTE = [("verfahren", "Verfahren"), ("beteiligte", "Beteiligte"), ("grundstueck", "Grundstück"), ("vorhaben", "Vorhaben & Kenndaten"),
+SCHRITTE = [("verfahren", "Verfahren & Formulare"), ("beteiligte", "Beteiligte"), ("grundstueck", "Grundstück"), ("vorhaben", "Vorhaben & Kenndaten"),
             ("bauvorlagen", "Bauvorlagen"), ("pruefen", "Prüfen & PDF")]
 JA_NEIN = ["", "ja", "nein"]
 

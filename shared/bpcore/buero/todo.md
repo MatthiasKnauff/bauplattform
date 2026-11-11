@@ -68,6 +68,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag Schritt 1 „Verfahren & Formulare“: amtliche Vordrucke wählen (Vorschlag nach Verfahren und Vorhaben), eigene Unterlagen (PDF, Scan, Foto → PDF; ausfüllen oder nur beilegen), Reihenfolge ziehen, „Platzieren …“ für Vordrucke ohne Felder und Scans (gemerkt je Datei), Antragspaket als ein PDF mit Inhaltsverzeichnis; Textüberlauf in der Schrittleiste behoben~~
 - ~~Honorarrechnung als richtiger Brief: Briefkopf, Absenderzeile, Anschrift im Fenster, Datum/Bearbeiter, Betreff nach DIN 5008 aus dem Druck-Layout „Honorarrechnung“ (wie die Rügen), Bankverbindung und Steuernummer; Befehlsleiste „Rechnung“ und „Vertrag“~~
 - ~~Honorar: Architektenvertrag als PDF aus dem beauftragten Stand (Parteien, Leistungen je LPh, Honorar, Zahlungen nach § 15 HOAI, Termine, Versicherung, weitere Vereinbarungen), in der Vorschau unterschreiben (auch am Handy), unterschriebene Fassung gespeichert und im Projektordner abgelegt („… Honorar + Vertrag“); Ablage im eigenen Vertragsverzeichnis folgt mit Punkt 11~~
 - ~~Honorar-Rechnungen: Muster der Rechnungsnummer, Zahlungsziel und Texte einstellbar (Zahnrad → Diese App), gestellte Rechnung automatisch im Projektordner, To-do „Honorarrechnung überfällig“~~

@@ -8,7 +8,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import bauantrag as BA, bauantrag_formulare as BF, db, papierkorb, platform, sso
+from bpcore import bauantrag as BA, bauantrag_formulare as BF, bauantrag_paket as BP, db, papierkorb, platform, sso
 import common as C
 
 app = C.make_app(__name__)
@@ -94,9 +94,10 @@ def _detail(c, a, dateien=None):
     B = BA.bauvorlagen(dateien if dateien is not None else _dateien(a["project_id"]), _j(a["bauvorlagen"], {}))
     ff, fb = BA.fehlt(F, B)
     p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
+    S, gew, haupt = BP.stuecke(c, a, {x["key"]: str(x["wert"] or "") for x in F}, a.get("land") or "NW")   # Vordrucke und eigene Unterlagen (Schritt 1)
     return {"antrag": {k: a[k] for k in ("id", "project_id", "name", "verfahren", "land", "status", "erstellt", "geaendert", "von")},
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
-            "schritte": BA.SCHRITTE}
+            "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt}
 
 
 @app.get("/api/antraege")
@@ -301,3 +302,6 @@ def formular_datei(fid):
         return redirect(r["url"])
     fn = f"Anlage {r['nr'].replace('/', '-')} {r['titel']}"[:120].strip() + ".pdf"
     return Response(bytes(r["daten"]), mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{urllib.parse.quote(fn)}"})
+
+
+import bauantrag_paket   # noqa: E402,F401 – Antragspaket: Vordrucke wählen, eigene Unterlagen, Platzieren (Routen /api/…/paket, /unterlagen, /platzierung)

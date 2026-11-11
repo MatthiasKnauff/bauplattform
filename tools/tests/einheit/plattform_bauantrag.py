@@ -102,3 +102,26 @@ def test_anlage_aus_dateiname():
     for t, soll in (("mb2026-220-anlage1.2", "I/2"), ("mb2026-220-anlage1.10.pdf", "I/10"), ("anlage_i_4_werbeanlage.pdf", "I/4"),
                     ("47790-50738-smbl_23210_20000308_a_anlageii4.pdf", "II/4"), ("Anlage I-2.2- Anzeige", "I/2.2"), ("Lageplan.pdf", "")):
         gleich(BF.nr_raten(t), soll, t)
+
+
+def test_antragspaket():
+    """Foto → PDF-Seite, Werte platzieren (auch auf gedrehten Seiten), Paket mit Inhaltsverzeichnis, Seite als Bild für „Platzieren“."""
+    import io
+    from PIL import Image
+    from pypdf import PdfReader
+    from bpcore import bauantrag_paket as BP
+    im = Image.new("RGB", (1200, 1700), (240, 238, 230)); b = io.BytesIO(); im.save(b, "JPEG")
+    scan = BP.bild_zu_pdf(b.getvalue())
+    gleich(len(PdfReader(io.BytesIO(scan)).pages), 1, "Foto wird eine PDF-Seite")
+    W = {"bauherr_name": "Muster Wohnbau GmbH", "flurstueck": "12/4"}
+    P = [{"feld": "bauherr_name", "seite": 0, "x": 0.1, "y": 0.1, "w": 0.5, "h": 0.03, "groesse": 10},
+         {"feld": "frei", "text": "siehe Anlage", "seite": 0, "x": 0.1, "y": 0.2, "w": 0.5, "h": 0.03, "groesse": 9},
+         {"feld": "kreuz", "seite": 0, "x": 0.1, "y": 0.3, "w": 0.03, "h": 0.03, "groesse": 10}]
+    t = PdfReader(io.BytesIO(BP.platzieren(scan, P, W))).pages[0].extract_text()
+    pruefe("Muster Wohnbau GmbH" in t and "siehe Anlage" in t, f"platzierte Werte im PDF ({t[:60]!r})")
+    paket = BP.paket_pdf([("Anlage I/2 Bauantrag", scan), ("Nachbarzustimmung", scan)], ["Neubau EFH", "Stand heute"])
+    rd = PdfReader(io.BytesIO(paket))
+    gleich(len(rd.pages), 3, "Inhaltsverzeichnis + zwei Stücke")
+    pruefe("Nachbarzustimmung" in rd.pages[0].extract_text(), "Inhaltsverzeichnis nennt die Stücke")
+    png, n, v = BP.seite_png(scan, 0, 400)
+    pruefe(png[:4] == b"\x89PNG" and n == 1 and 0.6 < v < 0.8, "Seite als Bild, hochkant")

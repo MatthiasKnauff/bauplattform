@@ -41,7 +41,7 @@ function leiste() {
     { titel: 'Bauvorlagen', knoepfe: [K('Neu erkennen', IC.ord, async () => { D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); },
       { aus: !D, tip: 'Projektordner neu einlesen und die Bauvorlagen erkennen' })] },
     { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen('NW'), { tip: 'Amtliche Vordrucke (NRW vorgehalten, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
-    { titel: 'Ausgabe', rechts: true, knoepfe: [K('PDF', IC.pdf, pdf, { aus: !D, tip: 'Das amtliche Formular (NRW) mit den Angaben ausgefüllt' })] },
+    { titel: 'Ausgabe', rechts: true, knoepfe: [K('PDF', IC.pdf, pdf, { aus: !D, tip: 'Antragspaket: gewählte Vordrucke ausgefüllt und eigene Unterlagen, mit Inhaltsverzeichnis' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Antrag in den Papierkorb legen' })] },
   ]);
 }
@@ -53,10 +53,10 @@ function vorschau(sofort) {
   if (!PDFEL || !PDFEL.isConnected) return;
   if (!D) { PDFEL.innerHTML = '<div class="ba-pleer">Kein Antrag gewählt.</div>'; return; }
   PDFT = setTimeout(async () => {
-    let I; try { I = await api(`api/antraege/${AID}/formular`); } catch (e) { PDFEL.innerHTML = `<div class="ba-pleer">${esc(e.message)}</div>`; formInfo(null, e.message); return; }
-    formInfo(I);
-    PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Anlage ${esc(I.nr)} · Fassung ${esc(I.fassung || '–')} · ${I.gefuellt} von ${I.felder} Feldern</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
-    BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/antrag.pdf?t=${Date.now()}`);
+    const n = (D.gewaehlt || []).length;
+    if (!n) { PDFEL.innerHTML = '<div class="ba-pleer">Noch kein Vordruck gewählt – in Schritt 1 „Verfahren &amp; Formulare“ anhaken oder eigene Unterlagen hinzufügen.</div>'; return; }
+    PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Antragsunterlagen · ${n} Stück${n === 1 ? '' : 'e'} mit Inhaltsverzeichnis</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
+    BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/paket.pdf?t=${Date.now()}`);
   }, sofort ? 0 : 1200);
 }
 /* Hinweis im Schritt „Prüfen & PDF“: welches amtliche Formular, wie viel davon ausgefüllt */
@@ -112,7 +112,8 @@ const gruppe = (titel, keys, extra = '') => { const z = [...new Set(keys.map((k)
 function schrittHtml() {
   const S = SCHRITT;
   if (S === 'verfahren') return gruppe('Verfahren', ['verfahren', 'verfahrensart', 'behoerde'])
-    + `<div class="ba-k"><h3>Bezeichnung</h3><div class="ba-g"><label class="ba-f w"><span>Name des Antrags (nur hier in der Liste)</span><input data-name value="${esc(D.antrag.name)}"></label></div></div>`;
+    + `<div class="ba-k"><h3>Bezeichnung</h3><div class="ba-g"><label class="ba-f w"><span>Name des Antrags (nur hier in der Liste)</span><input data-name value="${esc(D.antrag.name)}"></label></div></div>`
+    + paketHtml();   // bauantrag-paket.js: Vordrucke wählen, eigene Unterlagen
   if (S === 'beteiligte') {
     const ew = String(feld('ev_wahl').wert || 'buero');
     return gruppe('Bauherrschaft', ['bauherr_name', 'bauherr_vertreter', 'bauherr_anschrift', 'bauherr_tel', 'bauherr_mail'])
@@ -142,7 +143,9 @@ function schrittHtml() {
     </div></div>
     <div class="ba-k"><h3>Stand</h3><span class="seg" role="group">${Object.entries(STATUS).map(([v, t]) => `<button type="button" data-status="${v}" class="${D.antrag.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>
       <p class="ba-hilfe" style="margin:.5rem 0 0">Solange „Entwurf“, trägt das PDF den Aufdruck ENTWURF. „eingereicht“ sperrt die Angaben (zum Ändern zurück auf „Entwurf“).</p></div>
-    <div class="ba-k"><h3>Amtliches Formular</h3><p class="ba-hilfe" id="baForm" style="margin:0 0 .5rem">Lade …</p><button type="button" class="btn pri" data-pdf>📄 Ausgefülltes Formular</button></div>`;
+    <div class="ba-k"><h3>Antragsunterlagen<span class="mute">Reihenfolge und Auswahl in Schritt 1</span></h3>
+      ${(D.gewaehlt || []).length ? `<ol class="bap-ol">${D.gewaehlt.map((k) => { const x = D.paket.find((y) => y.key === k); return x ? `<li>${esc(x.nr ? 'Anlage ' + x.nr + ' – ' : '')}${esc(x.titel)} ${bapTag(x)}</li>` : ''; }).join('')}</ol>` : '<p class="ba-hilfe">Noch nichts gewählt – <a data-geh="verfahren">Schritt 1</a>.</p>'}
+      <p class="ba-hilfe" id="baForm" style="margin:.4rem 0 .5rem"></p><button type="button" class="btn pri" data-pdf>📄 Antragspaket (PDF)</button></div>`;
 }
 
 function zeichne() {
@@ -150,7 +153,7 @@ function zeichne() {
   if (FORM) { V.innerHTML = formHtml(); return; }
   if (!D) { V.innerHTML = '<div class="leer">Noch kein Bauantrag. Oben „Neu → Antrag“: Projekt wählen – alles, was die Plattform schon weiß, wird eingetragen.</div>'; bereich(); vorschau(true); return; }
   const st = D.schritte.map(([k, t], i) => { const n = k === 'bauvorlagen' ? D.fehlt.bauvorlagen.length : k === 'pruefen' ? D.fehlt.felder.length + D.fehlt.bauvorlagen.length : fehltIn(k);
-    return `<button type="button" data-schritt="${k}" class="${k === SCHRITT ? 'on' : ''} ${n ? 'fehlt' : 'ok'}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : '✓ vollständig'}</small></button>`; }).join('');
+    return `<button type="button" data-schritt="${k}" class="${k === SCHRITT ? 'on' : ''} ${n ? 'fehlt' : 'ok'}" title="${esc(t)}"><b>${i + 1} ${esc(t)}</b><small>${n ? n + ' offen' : '✓ vollständig'}</small></button>`; }).join('');
   const i = D.schritte.findIndex((s) => s[0] === SCHRITT), vor = D.schritte[i - 1], nach = D.schritte[i + 1];
   const top = V.scrollTop;
   V.innerHTML = `<div class="ba-w"><div class="ba-st" role="tablist">${st}</div>${schrittHtml()}
@@ -158,7 +161,7 @@ function zeichne() {
   V.scrollTop = top;
   if (D.antrag.status !== 'entwurf') V.querySelectorAll('[data-f],[data-seg],[data-bv],[data-zurueck]').forEach((x) => { x.disabled = true; });
   bereich(); vorschau();
-  if (SCHRITT === 'pruefen' && (HANDY.matches || !PDFEL || !PDFEL.isConnected)) api(`api/antraege/${AID}/formular`).then((I) => formInfo(I)).catch((e) => formInfo(null, e.message));
+  if (SCHRITT === 'pruefen') api(`api/antraege/${AID}/formular`).then((I) => formInfo(I)).catch((e) => formInfo(null, e.message));
 }
 
 /* Speichern: Felder einzeln, mit Rückgängig auf den vorherigen Stand (eigener Wert oder Quelle) */
@@ -268,9 +271,10 @@ function neuDialog() {
   });
 }
 
-function pdf() {
+function pdf() {   // Antragspaket: gewählte Vordrucke und Unterlagen in einem PDF (in der gemeinsamen Vorschau – Teilen, Speichern, Drucken)
   if (!D) return;
-  const u = 'api/antraege/' + AID + '/antrag.pdf', w = window.open(u, '_blank'); if (!w) location.href = u;
+  if (!(D.gewaehlt || []).length) { toast('Noch kein Vordruck gewählt – in Schritt 1 anhaken.', true); SCHRITT = 'verfahren'; zeichne(); return; }
+  BPHead.ansehen([{ url: `api/antraege/${AID}/paket.pdf?t=${Date.now()}`, typ: 'pdf', name: `${D.antrag.name} – Antragsunterlagen` }]);
 }
 
 async function loeschen() {

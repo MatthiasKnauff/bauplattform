@@ -317,5 +317,13 @@
   "titel": "Alle Dateien des Projekts",
   "text": "Neuer Reiter „Alle Dateien“: der ganze Projektordner mit Vorschaubildern, Filter nach Art, Ordner, Zeitraum und Suchtext, Größe Liste/S/M/L. Vorschaubilder entstehen nach und nach im Hintergrund. Was du gerade ansiehst, kommt zuerst dran.",
   "ziel": "[data-tab=\"alle\"]"
+ },
+ {
+  "id": "2026-11-11-architektenvertrag",
+  "datum": "2026-11-11",
+  "app": "honorar",
+  "titel": "Architektenvertrag",
+  "text": "Im Ablauf unter „Vertrag“: „Vertrag (PDF)“ erzeugt den Vertrag aus dem beauftragten Stand. In der Vorschau ✍ Unterschreiben, auch am Handy. Die unterschriebene Fassung wird gespeichert und im Projektordner abgelegt. Gestellte Rechnungen landen dort ebenfalls. Überfällige erscheinen als To-do. Rechnungsnummer, Zahlungsziel und Texte stellst du über Zahnrad → Diese App ein.",
+  "ziel": "[data-vtpdf]"
  }
 ]

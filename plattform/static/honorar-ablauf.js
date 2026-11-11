@@ -51,8 +51,8 @@ function ablaufHtml() {
     karte(2, '✅', 'Auftrag', `${z('auftrag', 'datum', 'beauftragt am', 'date')}<label>durch${seg('auftrag', 'durch', DURCH)}</label>${z('auftrag', 'umfang', 'Umfang', 'text', 'z. B. LPh 1–4 wie im Angebot, Stufe 1')}
         <label>beauftragte Version<input value="${esc(gilt ? gilt.name : vsL.length ? 'keine als „gilt“ markiert' : 'der jetzige Stand')}" disabled></label>`,
       cur === 2 ? weiter('vertrag', 'Vertrag ›') : ''),
-    karte(3, '✍', 'Vertrag', `${z('vertrag', 'datum', 'Vertrag vom', 'date')}${ck('vertrag', 'bh', 'unterschrieben Bauherr')}${ck('vertrag', 'buero', 'unterschrieben Büro')}${z('vertrag', 'ablage', 'abgelegt', 'text', 'z. B. Vertragsverzeichnis, Projektordner')}`,
-      (cur === 3 ? weiter('abrechnung', 'Abrechnung ›') : '') + '<span class="mute hab-sp">Vertrag aus der beauftragten Version erzeugen und unterschreiben: folgt</span>'),
+    karte(3, '✍', 'Vertrag', `${z('vertrag', 'datum', 'Vertrag vom', 'date')}${ck('vertrag', 'bh', 'unterschrieben Bauherr')}${ck('vertrag', 'buero', 'unterschrieben Büro')}${z('vertrag', 'ablage', 'abgelegt', 'text', 'z. B. Vertragsverzeichnis, Projektordner')}${vtFelder(ab)}`,
+      (cur >= 2 ? vtKnoepfe() : '') + (cur === 3 ? weiter('abrechnung', 'Abrechnung ›') : '')),
     karte(4, '💶', 'Abrechnung', `<label>erbracht<input value="${k ? eur0(k.erbracht) : '–'}" disabled></label><label>Honorar netto<input value="${k ? eur0(k.netto) : '–'}" disabled></label>${reKurz()}
         <label class="w">Notiz<input data-ab="abrechnung.notiz" value="${esc(ar.notiz || '')}" placeholder="z. B. Abschläge nach Zahlungsplan"></label>`,
       (cur === 4 ? weiter('abgeschlossen', 'Abgeschlossen ›') : '') + (cur >= 2 ? reKnoepfe() : '')),

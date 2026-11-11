@@ -16,7 +16,7 @@ FELDER = ("name", "art", "status", "kosten", "kosten_info", "zone", "satz", "umb
 STATUS = {"anfrage": "Anfrage", "angebot": "Angebot", "beauftragt": "Auftrag", "vertrag": "Vertrag", "abrechnung": "Abrechnung",
           "abgeschlossen": "Abgeschlossen", "abgelehnt": "abgelehnt"}   # Stufen des Ablaufs, in dieser Reihenfolge
 ABLAUF = {"anfrage": ("von", "datum", "weg", "leistung", "notiz"), "angebot": ("gesendet", "bindefrist", "nachfassen"),
-          "auftrag": ("datum", "durch", "umfang"), "vertrag": ("datum", "bh", "buero", "ablage"), "abrechnung": ("notiz",), "abgelehnt": ("datum", "grund")}
+          "auftrag": ("datum", "durch", "umfang"), "vertrag": ("datum", "bh", "buero", "ablage", "termine", "besonderes"), "abrechnung": ("notiz",), "abgelehnt": ("datum", "grund")}
 
 
 def _ablauf(alt, neu):
@@ -105,8 +105,9 @@ def _detail(c, aid):
     p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
     nk = [dict(x) for x in c.execute("SELECT * FROM honorar_nk WHERE auftrag_id=? ORDER BY datum, id", (aid,)).fetchall()]
     import honorar_rechnung as HR
+    import honorar_vertrag as HV
     return {"auftrag": a, "rechnung": k, "zeiten": z, "nk_liste": nk, "projekt": p["name"] if p else "", "buero_satz": Z.buero_satz(c),
-            "tafel": H.tafel(a["kosten"], a["zone"]), "rechnungen": HR.liste(c, a, k)}
+            "tafel": H.tafel(a["kosten"], a["zone"]), "rechnungen": HR.liste(c, a, k), "vertraege": HV.vertraege(c, aid)}
 
 
 @app.get("/api/auftraege/<int:aid>")
@@ -433,5 +434,6 @@ def angebot_pdf(aid):
 
 
 import honorar_rechnung   # noqa: E402,F401 – Abschlags- und Schlussrechnungen (eigenes Modul, Routen /api/…/rechnungen)
+import honorar_vertrag   # noqa: E402,F401 – Architektenvertrag und Einstellungen der Abrechnung (Routen /api/…/vertrag, /api/einstellungen)
 
 C.wait_schema()

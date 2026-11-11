@@ -74,8 +74,9 @@ document.addEventListener('click', async (e) => {
     const rid = +t.dataset.reset, s = t.dataset.s, alt = D.rechnungen.liste.find((x) => x.id === rid);
     if (s === 'storniert' && !(await bpFrage(`${alt.titel} Nr. ${alt.nr} stornieren? Sie zählt dann nicht mehr als gestellt.`, { ok: 'Stornieren' }))) return;
     const id = AID;
-    await reSenden('api/rechnungen/' + rid, 'PUT', { status: s }, `Rechnung ${alt.nr}: ${D.rechnungen.status[s]}`,
+    const erg = await reSenden('api/rechnungen/' + rid, 'PUT', { status: s }, `Rechnung ${alt.nr}: ${D.rechnungen.status[s]}`,
       async () => { await api('api/rechnungen/' + rid, 'PUT', { status: alt.status, bezahlt_am: alt.bezahlt_am, bezahlt: alt.bezahlt }); AID = id; await laden(); });
+    if (erg && s === 'gestellt') toast(erg.ablage ? `Gestellt und im Projektordner abgelegt: ${erg.ablage}` : `Gestellt${erg.ablage_fehler ? ' – nicht im Projektordner: ' + erg.ablage_fehler : ''}.`, !!erg.ablage_fehler);
     return;
   }
   if (t.dataset.rebez) {

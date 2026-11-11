@@ -17,6 +17,7 @@ import common as C
 from honorar import KEY, _detail, _eur, app
 
 STATUS = {"entwurf": "Entwurf", "gestellt": "gestellt", "bezahlt": "bezahlt", "storniert": "storniert"}
+ZIEL_VORGABE = 14   # Zahlungsziel in Tagen (Einstellung honorar_zahlungsziel) – danach To-do „Rechnung überfällig“
 TEXT_VORGABE = "Bitte überweisen Sie den Rechnungsbetrag innerhalb von 14 Tagen nach Erhalt ohne Abzug auf das unten genannte Konto."
 
 
@@ -56,7 +57,7 @@ def liste(c, a, k):
     out = []
     for r in rows:
         st = _stand(a, k, rows, r)
-        out.append({**{f: r[f] for f in ("id", "art", "nr", "datum", "anteil", "empfaenger", "text", "status", "bezahlt_am", "bezahlt")},
+        out.append({**{f: r[f] for f in ("id", "art", "nr", "datum", "anteil", "empfaenger", "text", "status", "bezahlt_am", "bezahlt", "ablage")},
                     "titel": _titel(rows, r), "kum": st.get("kum", 0), "bisher": st.get("bisher", 0), "betrag": st.get("betrag", r["betrag"]),
                     "mwst": st.get("mwst", r["mwst"]), "brutto": st.get("brutto", r["brutto"]), "auftrags_anteil": st.get("anteil")})
     gestellt = [x for x in rows if x["status"] in ("gestellt", "bezahlt")]
@@ -162,6 +163,9 @@ def rechnung_aendern(rid):
         d = _detail(c, r["auftrag_id"])
     if neu:
         C.audit(g.user["name"], "honorar", f"Rechnung {STATUS.get(neu, neu)}", f"{d['projekt']}: Nr. {r['nr']}")
+    if neu == "gestellt":   # gestellt: PDF in den Projektordner
+        pfad, fehl = ablegen(rid)
+        return jsonify({**d, "ablage": pfad, "ablage_fehler": fehl})
     return jsonify(d)
 
 
@@ -182,6 +186,33 @@ def rechnung_loeschen(rid):
 # ---------------------------------------------------------------- PDF: Blatt 1 Rechnung (auf dem Briefbogen), Blatt 2 Erläuterung
 @app.get("/api/rechnungen/<int:rid>/rechnung.pdf")
 def rechnung_pdf(rid):
+    x = pdf_erzeugen(rid)
+    if not x:
+        return jsonify(error="Rechnung nicht gefunden."), 404
+    return Response(x[0], mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{x[1]}"', "Cache-Control": "no-store"})
+
+
+def ablegen(rid):
+    """Gestellte Rechnung als PDF im Projektordner ablegen (Ordner „… Honorar“, über das Bautagebuch; Testserver: nur lesen → Meldung).
+    → (pfad, fehler)"""
+    import base64
+    x = pdf_erzeugen(rid)
+    if not x:
+        return "", "Rechnung nicht gefunden."
+    with db.tx() as c:
+        pid = c.execute("SELECT a.project_id FROM honorar_rechnung r JOIN honorar_auftrag a ON a.id=r.auftrag_id WHERE r.id=?", (rid,)).fetchone()["project_id"]
+    try:
+        a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "art": "honorar", "name": x[1], "datei": base64.b64encode(x[0]).decode()})
+    except RuntimeError as e:
+        return "", str(e)
+    pfad = (a or {}).get("pfad") or ""
+    with db.tx() as c:
+        c.execute("UPDATE honorar_rechnung SET ablage=? WHERE id=?", (pfad, rid))
+    return pfad, ""
+
+
+def pdf_erzeugen(rid):
+    """→ (PDF-Bytes, Dateiname) oder None."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas
@@ -189,7 +220,7 @@ def rechnung_pdf(rid):
     with db.tx() as c:
         r, d = _laden(c, rid)
         if not r or not d:
-            return jsonify(error="Rechnung nicht gefunden."), 404
+            return None
         rows = _zeilen(c, r["auftrag_id"])
         st = _stand(d["auftrag"], d["rechnung"], rows, r)
         titel = _titel(rows, r)
@@ -316,4 +347,4 @@ def rechnung_pdf(rid):
     cv.save()
     pdf = briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1)
     datei = re.sub(r"[^A-Za-z0-9_.-]+", "_", f"Rechnung_{r['nr']}_{(d['projekt'].split() or ['Projekt'])[0]}") + ".pdf"
-    return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{datei}"', "Cache-Control": "no-store"})
+    return pdf, datei

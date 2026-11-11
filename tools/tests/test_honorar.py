@@ -120,7 +120,21 @@ def test_honorar_rechnungen(ctx):
         d = a.uj(f"/honorar/api/rechnungen/{rs}", {"status": "gestellt"})
         x = [r for r in d["rechnungen"]["liste"] if r["id"] == rs][0]
         gleich((x["titel"], x["kum"], x["betrag"]), ("Schlussrechnung", 10000.0, 7000.0), "Schluss: 100 % − Abschlag")
+        pruefe("ablage" in d and "ablage_fehler" in d, "Stellen meldet die Ablage im Projektordner")
         a.pj(f"{HO}/auftraege/{aid}/rechnungen", {"art": "abschlag"}, expect=409)
         a.uj(f"/honorar/api/rechnungen/{r1}", {"status": "storniert"}, expect=409)
+        # Architektenvertrag: PDF, Fassung speichern (Ablage im Projektordner darf auf dem Testsystem fehlschlagen), Einstellungen
+        a.uj(f"{HO}/auftraege/{aid}", {"ablauf": {"vertrag": {"termine": "Bauantrag bis 31.03.2027"}}})
+        a.get(f"{HO}/auftraege/{aid}/vertrag.pdf").ist_pdf()
+        v = a.pj(f"{HO}/auftraege/{aid}/vertrag", {})
+        gleich(len(v["vertraege"]), 1, "Vertrag gespeichert")
+        a.get(f"/honorar/api/vertraege/{v['neu']}.pdf").ist_pdf()
+        E = a.gj(f"{HO}/einstellungen")
+        try:
+            gleich(a.uj(f"{HO}/einstellungen", {"honorar_re_nummer": "HR{jahr2}/{lfd}"})["beispiel"][:2], "HR", "Muster der Rechnungsnummer")
+            a.put(f"{HO}/einstellungen", {"honorar_zahlungsziel": "zwei"}, expect=400)
+        finally:
+            a.uj(f"{HO}/einstellungen", {"honorar_re_nummer": E["honorar_re_nummer"]})
+        ctx.anmelden("Anna Bauer").get(f"{HO}/einstellungen", expect=403)
     finally:
         a.delete(f"{HO}/auftraege/{aid}")

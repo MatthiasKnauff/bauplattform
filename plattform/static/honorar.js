@@ -265,6 +265,7 @@ async function loeschen() {
   const PC = await api('api/platform');
   await header('Honorar', ME, PC);
   bpNav.breite(NAV, { key: 'honorar' });
+  BPHead.appEinstellungen([{ key: 'abrechnung', label: 'Rechnungen & Vertrag', text: 'Rechnungsnummer, Zahlungsziel, Texte', render: (h) => honorarEinstellungen(h) }]);
   await laden();
-  BPHead.live(['honorar_auftrag', 'honorar_nk', 'honorar_rechnung'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
+  BPHead.live(['honorar_auftrag', 'honorar_nk', 'honorar_rechnung', 'honorar_vertrag'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer
 })().catch((e) => toast(e.message, true));

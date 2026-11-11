@@ -97,7 +97,7 @@
   <div class="top">
     <div class="seg" id="scope" role="group" aria-label="Umfang"></div>
     <input type="search" id="q" placeholder="Suchen – Betreff, Firma, Plan, Mangel …" autocomplete="off">
-    <button class="btn sm pri kv-top" data-kvneu="n" title="Mail an Beteiligte des Projekts – mit Fotos">✉ Neue Nachricht</button><button class="btn sm kv-top" data-kvneu="v" title="Telefonnotiz, Anordnung, Behinderung … festhalten oder als PDF schicken">📝 Vorgang</button><button class="btn sm kv-top" data-kvabn title="Abnahme mit Niederschrift, Mängelblatt und Unterschriften – am Handy vor Ort">🏁 Abnahme</button><button class="btn sm kv-top" data-kvruege title="Mängelrüge vor oder nach der Abnahme, Terminrüge – wie in „Aufgaben &amp; Mängel“">⚠ Rüge ▾</button>
+    <button class="btn sm pri kv-top" data-kvneu2 title="Nachricht, Vorgang, Abnahme, Rüge, Pläne oder Datei – oben im Fenster wählen und jederzeit wechseln">＋ Neu</button>
     <button class="btn sm" id="kBtn" title="Einen Kontakt wählen und alles sehen, was ihm geschickt wurde">👤 Kontakt …</button>
     <button class="btn sm" id="csvBtn" title="Die gezeigten Sendungen als Excel-Tabelle (CSV) speichern">⤓ Speichern unter …</button>
     <button class="btn sm" id="drBtn" title="Als Nachweis drucken oder als PDF speichern">🖨 Drucken / PDF</button>
@@ -106,7 +106,7 @@
   <div id="kbox"></div>
   <div class="grid" data-bph-trenn-ab="821" data-bph-trenn="kom" data-bph-trenn-min="200" data-bph-trenn-max="0.5"><aside class="side" id="side" aria-label="Übersicht"></aside><section id="list" aria-live="polite"></section></div>
 </main>
-<div class="kv-fab"><div class="kv-fm" hidden><button type="button" data-kvneu="n">✉ Nachricht</button><button type="button" data-kvneu="v">📝 Vorgang dokumentieren</button><button type="button" data-kvabn>🏁 Abnahme</button><button type="button" data-kvrg="m4">⚠ Mängelrüge vor Abnahme</button><button type="button" data-kvrg="m13">🏁 Mängelrüge nach Abnahme</button><button type="button" data-kvrg="termin">⏱ Terminrüge</button></div><button type="button" class="kv-fb" data-kvfab aria-label="Neu: Nachricht oder Vorgang">＋</button></div>
+<div class="kv-fab"><div class="kv-fm" hidden></div><button type="button" class="kv-fb" data-kvneu2 aria-label="Neu: Nachricht, Vorgang, Abnahme, Rüge …">＋</button></div>
 <script src="bp/baukasten.js"></script>
 <script src="static/kom-abnahme.js"></script>
 <script>
@@ -238,11 +238,14 @@ function vlVerwalten() {
 let VA = null, BET = { pid: null, L: [] }, VG = [];   // VA: Arten der Vorgänge · BET: Beteiligte des Projekts · VG: Vorgänge (nur festgehaltene) im Verlauf
 const KURZ = (n) => (((n || '').split(' ')[0] || '').match(/^[A-Za-z]{1,4}\d{2,6}$/) || [''])[0];
 async function beteiligte(pid) { if (BET.pid !== pid) { BET = { pid, L: await api('api/beteiligte?pid=' + pid).catch(() => []) }; } return BET.L; }
-function verfassen(modus) {
+function verfassen(modus, mit) {   // mit: Übergabe aus der Leiste „＋ Neu“ (an, betreff, text, Dateien)
   const p = projekt(); if (!p) { toast('Bitte oben zuerst ein Projekt wählen.', true); if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({}); return; }
-  const S = { modus, an: [], dateien: [], art: 'telefon', senden: false }; window.KVS = S;
+  mit = mit || {};
+  const datei = modus === 'd'; if (datei) modus = 'n';
+  const S = { modus, datei, an: Array.isArray(mit.an) ? mit.an.filter((x) => x && x.email) : [], dateien: Array.isArray(mit._dateien) ? mit._dateien : [], art: 'telefon', senden: false }; window.KVS = S;
   const jetzt = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16), k = KURZ(p.name);
-  const bg = modalBox(`<div class="kv-k"><b class="kv-t"></b><span class="kv-seg" role="tablist"><button type="button" data-kvm="n">✉ Nachricht</button><button type="button" data-kvm="v">📝 Vorgang</button></span><button type="button" class="ib kv-x" data-m="x" title="Schließen (Esc)">✕</button></div>
+  const bg = modalBox(`<div class="kv-k"><b class="kv-t"></b><button type="button" class="ib kv-x" data-m="x" title="Schließen (Esc)">✕</button></div>
+    <div class="kv-neu"></div>${window.BPHead && BPHead.neuMitHtml ? BPHead.neuMitHtml(mit) : ''}
     <div class="kv-b"><div class="kv-l">
       <div class="kv-v"><div class="kv-arten"></div>
         <label class="kv-lb">Wer war beteiligt / am Telefon<input id="kvWer" placeholder="z. B. Herr Wilhelmi, Elektro" autocomplete="off"></label>
@@ -285,8 +288,8 @@ function verfassen(modus) {
   const $b = (s) => bg.querySelector(s);
   const zeichne = () => {
     const n = S.modus === 'n';
-    $b('.kv-t').textContent = n ? 'Neue Nachricht' : 'Vorgang dokumentieren';
-    bg.querySelectorAll('[data-kvm]').forEach((x) => x.classList.toggle('on', x.dataset.kvm === S.modus));
+    $b('.kv-t').textContent = S.datei ? 'Datei versenden' : n ? 'Neue Nachricht' : 'Vorgang dokumentieren';
+    $b('.kv-neu').innerHTML = window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste(S.datei ? 'datei' : n ? 'nachricht' : 'vorgang') : '';
     bg.querySelectorAll('.kv-v').forEach((x) => { x.hidden = n; });
     bg.querySelectorAll('.kv-n').forEach((x) => { x.hidden = !n; });
     $b('.kv-an').hidden = !n && !S.senden; $b('.kv-ck').hidden = !n && !S.senden;
@@ -303,7 +306,6 @@ function verfassen(modus) {
   const neuDatei = (fs) => { for (const f of fs) { if (S.dateien.length >= 12) { toast('Höchstens 12 Dateien.', true); break; } S.dateien.push(f); } zeichne(); };
   bg.addEventListener('click', (e) => {
     const t = e.target;
-    const mm = t.closest('[data-kvm]'); if (mm) { S.modus = mm.dataset.kvm; zeichne(); return; }
     const a = t.closest('[data-kva]'); if (a) { S.art = a.dataset.kva; zeichne(); return; }
     const sd = t.closest('[data-kvs]'); if (sd) { S.senden = sd.dataset.kvs === '1'; zeichne(); return; }
     const w = t.closest('[data-kvweg]'); if (w) { S.an.splice(+w.dataset.kvweg, 1); zeichne(); return; }
@@ -324,7 +326,15 @@ function verfassen(modus) {
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
   dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('over'); neuDatei([...e.dataTransfer.files]); });
   (async () => { if (!VA) VA = await api('api/vorgang/arten').catch(() => []); zeichne(); })();
-  zeichne(); if (innerWidth > 760) setTimeout(() => { const f = bg.querySelector('#kvText'); if (f && S.modus !== 'n') f.focus(); }, 50);   // am Handy nicht gleich die Tastatur öffnen
+  if (window.BPHead) {   // „＋ Neu“: was dieses Fenster beim Wechseln mitgibt, und wie es zugeht
+    BPHead.neuDaten = () => ({ an: S.an, betreff: (bg.querySelector('#kvBetreff') || {}).value || '', text: (bg.querySelector('#kvText') || {}).value || '', _dateien: S.dateien,
+      firma: (S.an[0] || {}).name || '', contact_id: (S.an[0] || {}).contact_id || null });
+    BPHead.neuSchliessen = () => { bg.remove(); };
+  }
+  if (mit.betreff) bg.querySelector('#kvBetreff').value = mit.betreff;
+  if (mit.text) bg.querySelector('#kvText').value = mit.text;
+  zeichne(); if (S.datei && !S.dateien.length) setTimeout(() => { const i = bg.querySelector('#kvDatei'); if (i) i.click(); }, 80);
+  if (innerWidth > 760) setTimeout(() => { const f = bg.querySelector('#kvText'); if (f && S.modus !== 'n') f.focus(); }, 50);   // am Handy nicht gleich die Tastatur öffnen
 }
 /* Vorgänge im Verlauf (nur die festgehaltenen – verschickte stehen schon als Sendung darin) */
 function vgEintrag(v) {
@@ -372,11 +382,8 @@ document.addEventListener('click', async (e) => {
   const kp = t.closest('[data-kp]'); if (kp) { KP = +kp.dataset.kp || null; laden(); return; }
   if (t.closest('[data-mehr]')) { N += 500; laden(); return; }
   const qp = t.closest('[data-qp]'); if (qp && qp.dataset.qp) { e.preventDefault(); try { await BPHead.projektSetzen(+qp.dataset.qp); } catch { /* egal */ } location.href = qp.href; return; }
-  const nv = t.closest('[data-kvneu]'); if (nv) { document.querySelector('.kv-fm').hidden = true; verfassen(nv.dataset.kvneu); return; }
-  const rg = t.closest('[data-kvrg]'); if (rg) { document.querySelector('.kv-fm').hidden = true; ruegeStart(rg.dataset.kvrg); return; }
-  const rgm = t.closest('[data-kvruege]'); if (rgm) { pickMenu(rgm, { items: [{ value: 'm4', title: '⚠ Mängelrüge vor Abnahme', sub: '§ 4 Abs. 7 VOB/B' }, { value: 'm13', title: '🏁 Mängelrüge nach Abnahme', sub: '§ 13 Abs. 5 VOB/B' }, { value: 'termin', title: '⏱ Terminrüge', sub: '§ 5 Abs. 3/4 VOB/B' }], onPick: ruegeStart }); return; }
-  if (t.closest('[data-kvfab]')) { const m = document.querySelector('.kv-fm'); m.hidden = !m.hidden; return; }
-  if (!t.closest('.kv-fab')) { const m = document.querySelector('.kv-fm'); if (m) m.hidden = true; }
+  if (t.closest('[data-kvneu2]')) { BPHead.neuWechsel(BPHead.neuZuletzt(), {}); return; }   // „＋ Neu“: zuletzt gewählte Art, oben im Fenster wechselbar
+  const nv = t.closest('[data-kvneu]'); if (nv) { verfassen(nv.dataset.kvneu); return; }
   if (t.closest('#kBtn')) { kontaktWahl($('#kBtn')); return; }
   if (t.closest('#csvBtn')) { location.href = 'api/kom.csv?' + params({ n: 1 }); return; }
   if (t.closest('#drBtn')) { document.querySelectorAll('#list details').forEach((d) => { d.open = true; }); setTimeout(() => print(), 50); }
@@ -390,6 +397,11 @@ $('#q').addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() 
   const PC = await api('api/platform');
   await header('Kommunikation', ME, PC);
   if (window.BPHead && BPHead.beiProjektWahl) BPHead.beiProjektWahl(() => { if (!K) { F.alle = false; LS.set('alle', false); } laden(); });
+  if (window.BPHead) {   // „＋ Neu“: diese Arten öffnet die Kommunikation selbst
+    Object.assign(BPHead.neuArten, { nachricht: (d) => verfassen('n', d), vorgang: (d) => verfassen('v', d), datei: (d) => verfassen('d', d), abnahme: (d) => abnahmeNeu(undefined, d) });
+    const nz = /(?:^#|&)neu=(\w+)/.exec(location.hash);   // aus einer anderen App hierher gewechselt
+    if (nz && BPHead.neuArten[nz[1]]) { const d = BPHead.neuUebergabe() || {}; history.replaceState(null, '', location.pathname); setTimeout(() => BPHead.neuArten[nz[1]](d), 300); }
+  }
   const va = /(?:^#|&)v=(\d+)/.exec(location.hash);   // Link auf einen Vorgang (#v=<id>): eine Abnahme öffnet sich gleich
   if (va) api('api/abnahme/' + va[1]).then((A) => abnahmeOeffnen(A.id, A)).catch(() => {});
   const m = /kontakt=(\d+)/.exec(location.hash);   // aus den Adressen: #kontakt=<id>

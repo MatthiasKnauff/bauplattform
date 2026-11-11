@@ -14,17 +14,21 @@ const abnAlles = () => { try { const v = localStorage.getItem('abn.ansicht'); if
   return innerWidth > 760 && !(window.BPHead && BPHead.einfach && BPHead.einfach()); };
 const ROLLE = { ag: 'Auftraggeber', an: 'Auftragnehmer', arch: 'Architekt/Ingenieur' };
 
-async function abnahmeNeu(nachtragZu) {
+async function abnahmeNeu(nachtragZu, mit) {   // mit: Übergabe aus der Leiste „＋ Neu“ (Firma)
   const p = projekt(); if (!p) { toast('Bitte oben zuerst ein Projekt wählen.', true); if (window.BPHead && BPHead.projektWahl) BPHead.projektWahl({}); return; }
   try {
     const V = await api('api/abnahme/vorlage?pid=' + p.id);
     const d = { teilnehmer: { ag: V.ag_person || V.auftraggeber || '', arch: V.architekt || '', an: '' } };
+    if (mit && mit.firma && !nachtragZu) {   // Firma mitgebracht: passenden Auftrag übernehmen, sonst nur den Namen
+      const fw = mit.firma.toLowerCase().split(/\s+/).filter((w) => w.length > 3), a = (V.auftraege || []).find((x) => fw.some((w) => (x.firma || '').toLowerCase().includes(w)));
+      Object.assign(d, a ? { lv_id: a.lv_id, firma: a.firma, contact_id: a.contact_id, firma_adresse: a.firma_adresse, arbeiten: a.arbeiten, auftrag_vom: a.auftrag_vom } : { firma: mit.firma, contact_id: mit.contact_id || null });
+    }
     const A = await api('api/abnahme', 'POST', { pid: p.id, daten: d, nachtrag_zu: nachtragZu || undefined });
-    abnahmeOeffnen(A.id, A, V);
+    abnahmeOeffnen(A.id, A, V, mit);
   } catch (e) { toast(e.message, true); }
 }
 
-async function abnahmeOeffnen(id, A0, V0) {
+async function abnahmeOeffnen(id, A0, V0, mit) {
   let A, V;
   try { A = A0 || await api('api/abnahme/' + id); V = V0 || (A.status !== 'unterschrieben' ? await api('api/abnahme/vorlage?pid=' + A.project_id).catch(() => null) : null); }
   catch (e) { toast(e.message, true); return; }
@@ -34,6 +38,11 @@ async function abnahmeOeffnen(id, A0, V0) {
   const bg = modalBox('<div class="ab-k"><b class="ab-t"></b><span class="ab-an" role="group" aria-label="Ansicht"><button type="button" data-m="ans1">Schritte</button><button type="button" data-m="ans2">Alles</button></span><button type="button" class="ib ab-x" data-m="x" title="Schließen – der Stand ist gespeichert">✕</button></div><div class="ab-st"></div><div class="ab-b"></div><div class="acts ab-acts"></div>',
     (m, bgx, close, b) => klick(m, b, close));
   bg.querySelector('.modal').classList.add('ab');
+  if (S.A.status === 'entwurf' && !S.A.bezug && window.BPHead && BPHead.neuLeiste) {   // „＋ Neu“: Art wechseln – Firma geht mit
+    bg.querySelector('.ab-k').insertAdjacentHTML('afterend', BPHead.neuLeiste('abnahme') + (BPHead.neuMitHtml ? BPHead.neuMitHtml(mit) : ''));
+    BPHead.neuDaten = () => ({ firma: S.d.firma || '', contact_id: S.d.contact_id || null });
+    BPHead.neuSchliessen = () => { speichern(); bg.remove(); };
+  }
   const $b = (s) => bg.querySelector(s);
   const gesperrt = () => S.A.status === 'unterschrieben';
   /* Inhalt fest, sobald Bauherr oder Unternehmer unterschrieben hat – dann gehen nur noch die übrigen Unterschriften (und Abschließen) */
@@ -43,6 +52,7 @@ async function abnahmeOeffnen(id, A0, V0) {
   async function speichern(leise = true) {
     if (gesperrt()) return true;
     clearTimeout(S.ti); S.offen = false;
+    { const e = S.d.erkl = { ...(S.d.erkl || {}) }; e.liste = (S.d.maengel || []).some((m) => (m.text || '').trim()); if (e.liste) e.keine = false; }   // Mängelliste: automatisch nach den eingetragenen Mängeln
     abnLS.set(id, { t: Date.now(), d: S.d });
     try { S.A = await api('api/abnahme/' + id, 'PUT', { daten: S.d }); S.d = S.A.daten; abnLS.weg(id); return true; }
     catch (e) { if (!leise) toast(e.message + ' – der Stand bleibt im Gerät und wird nachgeholt.', true); return false; }
@@ -104,7 +114,7 @@ async function abnahmeOeffnen(id, A0, V0) {
     const d = S.d, e = d.erkl || {}, ab = (S.A.erkl || []);
     const fr = [7, 14, 21].map((t) => `<button type="button" class="chip" data-m="frist" data-t="${t}">${t / 7} Woche${t > 7 ? 'n' : ''}</button>`).join('');
     return `<div class="ab-h">Für den Architekten/Ingenieur <small>antippen – nicht Zutreffendes erscheint im PDF nicht</small></div>
-      <div class="ab-er">${ab.map((x) => `<button type="button" data-m="erkl" data-e="${x.key}" class="${e[x.key] ? 'on' : ''}"><i></i>${esc(x.text)}</button>`).join('')}</div>
+      <div class="ab-er">${ab.map((x) => `<button type="button" data-m="erkl" data-e="${x.key}" class="${e[x.key] ? 'on' : ''}"${x.key === 'liste' ? ' disabled title="Ergibt sich automatisch: angekreuzt, sobald Mängel eingetragen sind"' : ''}><i></i>${esc(x.text)}${x.key === 'liste' ? ' <small class="mute">(automatisch)</small>' : ''}</button>`).join('')}</div>
       <div class="ab-2">${feld('Mängel beseitigen bis', inp('frist', d.frist, 'type="date"') + `<span class="ab-chips">${fr}</span>`)}
         ${feld('Gewährleistung', `<span class="ab-chips">${[[4, '4 Jahre (VOB/B)'], [5, '5 Jahre (BGB)'], [2, '2 Jahre'], [0, 'keine']].map(([j, t]) => `<button type="button" class="chip${+d.gw_jahre === j ? ' on' : ''}" data-m="gw" data-j="${j}">${t}</button>`).join('')}</span>`)}</div>
       <p class="mute ab-gw">${S.A.gw_beginn ? `Gewährleistungsfrist – Beginn ${abnDe(S.A.gw_beginn)}, Ende ${abnDe(S.A.gw_ende)}` : 'Gewährleistung beginnt erst mit der Abnahme („Die Leistungen werden abgenommen“).'}</p>

@@ -96,7 +96,8 @@ html[data-modus="einfach"] #tabs [data-tab="liste"]{display:none}
 <script src="bp/baukasten.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('pl.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('pl.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
-const AN = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&')).get('an') || '';   // aus „Adressen“: Firma als Empfänger vorwählen
+let NEUMIT = null;   // aus der Leiste „＋ Neu“ hierher gewechselt: Empfänger, Betreff, Text
+let AN = new URLSearchParams((location.hash || '').slice(1).split('&').slice(1).join('&')).get('an') || '';   // aus „Adressen“: Firma als Empfänger vorwählen
 let ME = null, CFG = null, PROJ = [], pid = LS.get('pid', null), tab = (location.hash || '').slice(1).split('&')[0] || 'plaene';
 if (AN) { history.replaceState(null, '', '#plaene'); setTimeout(() => toast(`Pläne auswählen und „Versenden“ – „${AN}“ ist als Empfänger vorgewählt.`), 1500); }
 let D = null, VL = null, busy = false, F = LS.get('filter', { q: '', gw: '', phase: '', alle: false }), SEL = new Set(), OPEN = new Set();
@@ -248,6 +249,7 @@ async function versandDialog() {   // gemeinsamer Versanddialog (BPHead.versand)
   const size = (cad) => g.reduce((a, x) => a + x.st.pdf.groesse + (cad ? x.st.cad.reduce((s, c) => s + c.groesse, 0) : 0), 0);
   const cadAn = (box) => !!(box.querySelector('[data-cad]') || {}).checked;
   await BPHead.versand({
+    neu: 'plaene', mit: NEUMIT,
     titel: g.length > 1 ? `${g.length} Pläne versenden` : 'Plan versenden',
     was: [{ icon: '📐', name: `${g.length} ${g.length > 1 ? 'Pläne' : 'Plan'}`, sub: g.map((x) => x.p.frei ? x.st.pdf.name : `${x.p.kennung ? x.p.kennung + ' ' : ''}${x.p.nr}${x.st.index ? ' ' + x.st.index : ''} ${x.p.titel}`).join(' · ') }],
     hinweis: (ohneGw ? `<p class="warn" style="margin:0">${ohneGw > 1 ? ohneGw + ' Plänen' : 'Einem Plan'} ist noch kein Gewerk zugeordnet – Empfänger bitte selbst wählen.</p>` : '') + (V.mail ? '' : '<p class="warn" style="margin:0">Der Mailserver ist noch nicht eingerichtet (Verwaltung → Einstellungen → Mailserver).</p>'),
@@ -441,6 +443,10 @@ window.bpNachVerlauf = () => BPHead.einstellungen({ bereich: 'app' });
   $('#proj').innerHTML = (pid ? '' : '<option value="">– Projekt wählen –</option>') + grp('Meine Projekte', (p) => p.mine && !p.archived) + grp('Weitere Projekte', (p) => !p.mine && !p.archived) + grp('Archiv', (p) => p.archived);
   projektKnopf($('#proj'));
   if (!['plaene', 'liste'].includes(tab)) tab = 'plaene';
+  if (/(?:^#|&)neu=plaene/.test(location.hash)) {   // aus der Leiste „＋ Neu“: Empfänger mitgebracht – erst Pläne ankreuzen, dann „Versenden“
+    NEUMIT = BPHead.neuUebergabe() || {}; if (NEUMIT.firma) AN = NEUMIT.firma; history.replaceState(null, '', '#plaene');
+    setTimeout(() => toast('Pläne ankreuzen und dann „Versenden“ – ' + (NEUMIT.firma ? `„${NEUMIT.firma}“ ist als Empfänger vorgewählt.` : 'die Empfänger wählst du im nächsten Schritt.')), 600);
+  }
   head(); laden();
 })().catch((e) => toast(e.message, true));
 </script>

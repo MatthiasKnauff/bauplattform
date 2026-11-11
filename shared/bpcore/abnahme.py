@@ -103,6 +103,9 @@ def sauber(d, alt=None):
                 U[r] = {"png": u["png"], "name": _s(u.get("name"), 120), "zeit": _s(u.get("zeit"), 25)}
         o["unterschriften"] = U
     e = o["erkl"]   # was sich ausschließt: keine Mängel ↔ Mängelliste, abgenommen ↔ verweigert
+    e["liste"] = bool(o.get("maengel"))   # „Mängel in der anliegenden Liste“ ergibt sich aus den eingetragenen Mängeln – automatisch
+    if e["liste"]:
+        e["keine"] = False
     if e.get("keine") and e.get("liste"):
         e["keine"] = False
     if e.get("abgenommen") and e.get("verweigert"):

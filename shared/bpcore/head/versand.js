@@ -16,6 +16,7 @@
      optionen, optionenBind(box, neu),        eigenes HTML für Optionen; neu() aktualisiert Fuß und Knopf
      fuss(box),                               Text links unten (z. B. Größe der Anhänge)
      knopf(wie),                              Beschriftung des Hauptknopfs
+     neu: 'plaene', mit                       optional: Leiste „＋ Neu“ oben (Art) und was mitgebracht wurde
      senden: async (W, box) => …              W = { wie, an:[{name,email,contact_id}], kopie, betreff, text, signiert:[Blob|null] } – Fehler werfen = Dialog bleibt offen
    }) → Promise (true = gesendet, false = abgebrochen) */
 (() => {
@@ -56,7 +57,7 @@
       const bg = document.createElement('div'); bg.className = 'bpv-bg';
       const pdfDa = (o.was || []).some((d) => d.pdf);
       bg.innerHTML = `<div class="bpv" role="dialog" aria-label="${esc(o.titel)}"><div class="bpv-k"><h3>${esc(o.titel)}</h3><button type="button" class="bpv-x" data-v="x" aria-label="Schließen">✕</button></div>
-        <div class="bpv-b">
+        <div class="bpv-b">${o.neu && window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste(o.neu) + (BPHead.neuMitHtml ? BPHead.neuMitHtml(o.mit) : '') : ''}
           ${(o.was || []).length ? `<div class="bpv-a"><b>Was</b><div style="display:grid;gap:.35rem">${o.was.map((d, k) => `<div class="bpv-d"><span class="i">${d.icon || '📄'}</span><span class="t">${esc(d.name)}${d.sub ? `<small>${esc(d.sub)}</small>` : ''}</span>${d.pdf ? `<button type="button" data-v="pdf" data-k="${k}">${d.ohneUnterschrift ? '📄 ansehen' : '✍ ansehen & unterschreiben'}</button>` : ''}</div>`).join('')}${o.hinweis || ''}</div></div>` : ''}
           <div class="bpv-a" data-teil="an"><b>An wen</b><div><div class="bpv-c" data-chips></div>${o.zusatz === false ? '' : `<div class="bpv-neu"><input type="email" data-neu placeholder="＋ weitere E-Mail-Adresse oder Name aus den Adressen …" list="bpvL" inputmode="email" autocomplete="off"><datalist id="bpvL"></datalist></div>`}</div></div>
           ${o.wie ? `<div class="bpv-a"><b>Wie</b><div><div class="bph-seg" role="radiogroup">${o.wie.werte.map(([v, l]) => `<button type="button" role="radio" data-wie="${v}">${esc(l)}</button>`).join('')}</div><p class="bpv-h" data-wh></p></div></div>` : ''}
@@ -78,6 +79,11 @@
       };
       chips(); neu(); if (o.optionenBind) o.optionenBind(bg, neu);
       const zu = (v) => { bg.remove(); fertig(v); };
+      if (o.neu && window.BPHead) {   // Leiste „＋ Neu“: beim Wechseln Empfänger, Betreff und Text mitgeben
+        BPHead.neuDaten = () => { const an = E.filter((x) => x.on && x.email).map((x) => ({ name: x.name, email: x.email, contact_id: x.contact_id }));
+          return { an, firma: (an[0] || {}).name || '', contact_id: (an[0] || {}).contact_id || null, betreff: (bg.querySelector('[data-betreff]') || {}).value || '', text: (bg.querySelector('[data-text]') || {}).value || '' }; };
+        BPHead.neuSchliessen = () => zu(false);
+      }
       const hinzu = () => { const i = $('[data-neu]'); if (!i) return true; const v = i.value.trim(); if (!v) return true; if (!MAIL.test(v)) return false;
         const da = E.find((x) => (x.email || '').toLowerCase() === v.toLowerCase());
         if (da) da.on = true; else { if (o.einer) E.forEach((x) => { x.on = false; }); E.push({ name: '', email: v, on: true }); }

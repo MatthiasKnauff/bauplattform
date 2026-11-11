@@ -188,5 +188,14 @@
   "titel": "Leistungskatalog sichern",
   "text": "Im Katalog: „💾 Stand sichern“ und „🕘 Stände & Verlauf“ – benannte Stände (⭐ geschützt), Vergleich mit jetzt, Zurückholen in Teilen (Leistungen, Abschnitte, Firmen-Vorgaben, Adressbuch), als Datei. Der Stand vor der Einführung ist schon gesichert.",
   "ziel": "[data-kst]"
+ },
+ {
+  "id": "2026-11-11-plus-neu",
+  "datum": "2026-11-11",
+  "app": "kommunikation",
+  "titel": "＋ Neu – ein Knopf für alles",
+  "text": "Nachricht, Vorgang, Abnahme, Mängel- und Terminrüge, Pläne und Datei versenden: ein Knopf „＋ Neu“, oben in jedem Fenster dieselbe Leiste. Wechselst du die Art, gehen Firma bzw. Empfänger, Betreff und Text mit – auch in die passende App.",
+  "ziel": "[data-kvneu2]",
+  "hash": ""
  }
 ]

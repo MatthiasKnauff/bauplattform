@@ -751,7 +751,7 @@ function fehlerAm(bg, el, msg) {
   toast(msg, true);
 }
 /* Rüge ohne Ausgangspunkt: Projekt und Firma wählen – Firmen mit offenen Mängeln oben, dann Beteiligte, dann alle Adressen */
-async function ruegeNeu(grund) {
+async function ruegeNeu(grund, mit) {   // mit: Übergabe aus der Leiste „＋ Neu“ (Firma)
   let LA, P, T0 = [], KN = [];
   try { [LA, P, T0, KN] = await Promise.all([api('api/maengel?scope=all'), api('api/projekte'), api('api/termine?scope=all').catch(() => []), kontaktNamen()]); } catch (e) { toast(e.message, true); return; }
   const L = LA.filter((m) => !m.done && !m.archiviert && m.art === 'maengel');
@@ -761,9 +761,10 @@ async function ruegeNeu(grund) {
     const bet = [...new Set([...LA.filter((m) => m.pid === pid && m.firma).map((m) => m.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])].sort((a, b) => a.localeCompare(b, 'de')).map((f) => [f]);
     return [['Mit offenen Mängeln', offen], ['Im Projekt beteiligt', bet], ['Weitere Firmen aus den Adressen', (KN || []).map((k) => [k.name, k.trade ? `${k.name} · ${k.trade}` : k.name])]];
   };
-  const bg = modalBox(`<h3>${grund === 'vob4' ? 'Mängelrüge vor Abnahme' : 'Mängelrüge nach Abnahme'}</h3><div class="fm">
+  const NL = window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste(grund === 'vob4' ? 'm4' : 'm13') + (BPHead.neuMitHtml ? BPHead.neuMitHtml(mit) : '') : '';
+  const bg = modalBox(`<h3>${grund === 'vob4' ? 'Mängelrüge vor Abnahme' : 'Mängelrüge nach Abnahme'}</h3>${NL}<div class="fm">
     <label for="nrP">Projekt</label><select id="nrP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === pid0 ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
-    <label for="nrF_pa">Firma</label><span id="nrFw">${firmaSelect('nrF', gruppen(pid0))}</span>
+    <label for="nrF_pa">Firma</label><span id="nrFw">${firmaSelect('nrF', gruppen(pid0), mit && mit.firma)}</span>
     <p class="w mute" style="font-size:.82rem;margin:0">Oben Firmen mit offenen Mängeln (Anzahl), dann die am Projekt Beteiligten, darunter alle anderen aus den Adressen. Im nächsten Schritt wählst du die Mängel – oder trägst sie selbst ein – und die Frist.</p></div>
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Weiter</button></div>`, async (m, bg, close) => {
     if (m === 'x') { close(); return; }
@@ -775,13 +776,14 @@ async function ruegeNeu(grund) {
     const rg = [...document.querySelectorAll('#rG')].pop(); if (rg) { rg.value = grund; rg.dispatchEvent(new Event('change')); }
   });
   bg.querySelector('#nrP').addEventListener('change', (e) => { bg.querySelector('#nrFw').innerHTML = firmaSelect('nrF', gruppen(+e.target.value)); });
+  if (window.BPHead) { BPHead.neuDaten = () => ({ firma: (bg.querySelector('#nrF') || {}).value || '' }); BPHead.neuSchliessen = () => bg.remove(); }
 }
-async function terminNeu() {
+async function terminNeu(mit) {   // mit: Übergabe aus der Leiste „＋ Neu“ (Firma)
   let P, K = [], VZ0 = null, T0 = [];
   try { [P, VZ0, T0, K] = await Promise.all([api('api/projekte'), api('api/verzug?scope=all').catch(() => null), api('api/termine?scope=all').catch(() => []), kontaktNamen()]); } catch (e) { toast(e.message, true); return; }
   const pid0 = +F.projekt || (window.BPHead && BPHead.projektId && BPHead.projektId()) || (P[0] || {}).id;
   const vorschlag = (pid) => [...new Set([...((VZ0 && VZ0.vorgaenge) || []).filter((x) => x.pid === pid).map((x) => x.firma), ...(T0 || []).filter((x) => x.pid === pid).map((x) => x.firma)])];
-  const bg = modalBox(`<h3>Terminrüge</h3><div class="fm">
+  const bg = modalBox(`<h3>Terminrüge</h3>${window.BPHead && BPHead.neuLeiste ? BPHead.neuLeiste('termin') + (BPHead.neuMitHtml ? BPHead.neuMitHtml(mit) : '') : ''}<div class="fm">
     <label>Projekt</label><select id="ntP" data-bp-projekte>${P.map((p) => `<option value="${p.id}"${p.id === pid0 ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
     <label for="ntF_pa">Firma</label><span id="ntFw"></span>
     <p class="w mute" style="font-size:.82rem;margin:0" id="ntH"></p></div>
@@ -797,6 +799,8 @@ async function terminNeu() {
     bg.querySelector('#ntFw').innerHTML = firmaSelect('ntF', [['Laut Bauzeitenplan im Rückstand / nicht da', v.map((n) => [n])], ['Im Projekt beteiligt', bet.map((n) => [n])], ['Weitere Firmen aus den Adressen', (K || []).map((k) => [k.name, k.trade ? `${k.name} · ${k.trade}` : k.name])]], v[0] || '');
     bg.querySelector('#ntH').textContent = v.length ? 'Laut Bauzeitenplan im Rückstand oder nicht anwesend: ' + v.join(', ') : 'Für dieses Projekt meldet der Bauzeitenplan keinen Rückstand – den Rückstand beschreibst du im nächsten Schritt selbst.'; };
   bg.querySelector('#ntP').addEventListener('change', liste); liste();
+  if (mit && mit.firma) { const sel = bg.querySelector('#ntF'); if (sel && [...sel.options].some((o) => o.value === mit.firma)) sel.value = mit.firma; }
+  if (window.BPHead) { BPHead.neuDaten = () => ({ firma: (bg.querySelector('#ntF') || {}).value || '' }); BPHead.neuSchliessen = () => bg.remove(); }
 
 }
 $('#neuBtn').onclick = neuWahl;
@@ -864,9 +868,10 @@ async function setDialog(host) {
     const [mp, ...mf] = HASH.get('mruege').split('|'); history.replaceState(null, '', '#maengel');
     ruegeDialog(null, { pid: +mp, firma: mf.join('|') });
   }
-  if (HASH.get('neu')) {   // aus der Kommunikation → ＋ → Mängel- oder Terminrüge: derselbe Ablauf wie hier unter „＋ Neu“
-    const n = HASH.get('neu'); history.replaceState(null, '', '#' + tab);
-    if (n === 'm4' || n === 'm13') ruegeNeu(n === 'm4' ? 'vob4' : 'vob13'); else if (n === 'termin') terminNeu();
+  if (window.BPHead) Object.assign(BPHead.neuArten, { m4: (d) => ruegeNeu('vob4', d), m13: (d) => ruegeNeu('vob13', d), termin: (d) => terminNeu(d) });   // „＋ Neu“: Rügen öffnet diese App selbst
+  if (HASH.get('neu')) {   // aus einer anderen App (Leiste „＋ Neu“): derselbe Ablauf wie hier, Firma mitgebracht
+    const n = HASH.get('neu'), mit = (window.BPHead && BPHead.neuUebergabe && BPHead.neuUebergabe()) || {}; history.replaceState(null, '', '#' + tab);
+    if (n === 'm4' || n === 'm13') ruegeNeu(n === 'm4' ? 'vob4' : 'vob13', mit); else if (n === 'termin') terminNeu(mit);
   }
   if (tab === 'termine' && (HASH.get('ruege') || HASH.get('gid'))) {   // aus To-do oder Bauzeitenplan: Terminrüge gleich öffnen
     history.replaceState(null, '', '#termine');

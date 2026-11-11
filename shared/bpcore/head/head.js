@@ -2808,9 +2808,9 @@
       const link = location.origin + location.pathname + '#skizze=' + SK.id;
       const d = document.createElement('div'); d.className = 'bph-dlg-bg'; d.style.zIndex = 6000;
       d.innerHTML = `<div class="bph-dlg" style="max-width:26rem"><div class="bph-dh"><b>Gemeinsam markieren</b><button type="button" class="bph-x" data-kx>×</button></div><div class="bph-db">
-        <p class="bph-mu">Entweder hier Kollegen einladen – sie bekommen in der Bauplattform einen Hinweis – <b>oder</b> den Link kopieren und selbst verschicken: Wer ihn öffnet, ist ohne Einladung dabei. Striche und Zeiger erscheinen bei allen gleichzeitig.</p>
-        <div class="bph-skk">${K.map((k) => `<label class="bph-ck"><input type="checkbox" value="${k.id}"> ${esc(k.name)} ${k.online ? '<small style="color:#2f9e5a">● angemeldet</small>' : ''}</label>`).join('') || '<p class="bph-mu">Keine weiteren Benutzer.</p>'}</div>
-        <label class="bph-ck" style="margin:.3rem 0"><input type="checkbox" data-kmail checked> zusätzlich per E-Mail (mit Link)</label>
+        <p class="bph-mu" style="margin:0 0 .2rem">Kollegen antippen und einladen – oder den Link selbst verschicken. Striche und Zeiger sehen alle gleichzeitig.</p>
+        <div class="bph-skk">${K.map((k) => `<label class="bph-skc${k.online ? ' da' : ''}" title="${k.online ? 'gerade angemeldet' : ''}"><input type="checkbox" value="${k.id}">${esc(k.name)}</label>`).join('') || '<p class="bph-mu">Keine weiteren Benutzer.</p>'}</div>
+        <label class="bph-ck" style="margin:.1rem 0 .4rem;font-size:.86em"><input type="checkbox" data-kmail checked> zusätzlich per E-Mail (mit Link)</label>
         <div class="bph-row"><button type="button" class="bph-btn pri" data-ko>Einladen</button><button type="button" class="bph-btn" data-kl>Link kopieren</button><a class="bph-btn" data-kmailto href="mailto:?subject=${encodeURIComponent('Gemeinsam markieren: ' + (items[i].name || 'Plan'))}&body=${encodeURIComponent('Bitte öffne den Plan, dann markieren wir gemeinsam:\n' + link)}" title="Eigene Mail mit dem Link schreiben – auch an Leute außerhalb">✉ Per Mail …</a></div>
         <p class="bph-mu" data-km></p>
         <div class="bph-skx"><b>Externe ohne Anmeldung</b><p class="bph-mu" style="margin:.2rem 0 .4rem">Ein eigener, befristeter Link nur für diesen Plan – z. B. für Fachplaner oder Bauherrn. Externe sehen nichts anderes, zeichnen mit und löschen nur ihre eigenen Striche. Zurückziehen geht jederzeit.</p>

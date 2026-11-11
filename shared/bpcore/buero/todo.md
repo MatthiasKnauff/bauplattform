@@ -60,6 +60,7 @@ Summe Sammlung (offen): ca. 15–19 Tage.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 3–6 Monate**
 
 ## Erledigt
+- ~~Markieren → Einladen: Kollegen als Chips zum Antippen statt Häkchenliste, kürzerer Text~~
 - ~~Unterschrift am Handy natürlicher (Strichstärke aus Tempo/Druck, weiche Kurven) und immer im Querformat – Vorschau und Abnahme, ein Baustein~~
 - ~~Unterschreiben in der PDF-Vorschau (alle Apps): eigene Unterschrift vorbelegt, verschiebbar/vergrößerbar, am Handy mit dem Finger, PDF wird neu erzeugt~~
 - ~~Neuigkeiten nach jedem neuen Stand: Überblick auf der Startseite, Rundgang mit Scheinwerfer in der App, einmal je Benutzer (alle Geräte); Benutzermenü „Neuigkeiten“~~

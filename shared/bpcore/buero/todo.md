@@ -62,6 +62,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Startseite am Handy, Post: Zeit, Erinnerung und App unter den Text – Art und Betreff werden nicht mehr abgeschnitten~~
 - ~~Projektordner prüfen: auch Dateinamen (fremdes Kürzel → umbenennen, ohne Kürzel → Kürzel davor; Fotos bleiben frei; nicht vorgewählt); am Handy nur ansehen~~
 - ~~Bautagebuch am Handy: ＋ kleiner und im Stil der Leiste unten~~
 - ~~Kommunikation: ein Knopf „＋ Neu“, Leiste mit allen Arten oben in jedem Dialog (Nachricht, Vorgang, Abnahme, Rügen, Pläne, Datei) – Wechsel nimmt Firma/Empfänger, Betreff, Text mit, auch app-übergreifend~~

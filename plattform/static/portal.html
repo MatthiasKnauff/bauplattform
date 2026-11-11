@@ -100,7 +100,11 @@ body.r-zieht{user-select:none;-webkit-user-select:none}body.r-zieht .ri:not(.zie
 .post-aus .pg-a{opacity:.75}.post-aus .pg-a>small{display:block;margin:.4rem 0 -.2rem .2rem}
 .vs .vst{flex:1;min-width:12rem;font:inherit;font-weight:600}
 .pm .z .pf{display:inline-block;max-width:14rem;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
-@media (max-width:640px){.pm .z .pf{max-width:7rem}}
+@media (max-width:640px){.pm .z .pf{max-width:7rem}
+  /* Handy: rechte Spalte (Postfach, Zeit, Erinnerung) unter den Text – der Betreff bekommt die ganze Breite */
+  .pm{grid-template-columns:1.6rem minmax(0,1fr)}.pm .z{grid-column:2;text-align:left;display:flex;flex-wrap:wrap;gap:.1rem .5rem;align-items:center;white-space:normal}
+  .pm .z br{display:none}.pm .z .pf{display:none}.pm .vs{grid-column:1/-1}
+  .pm .t .s{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.pm .t .art{max-width:none}}
 .pm .z .erl{font-size:.78rem;color:var(--y);white-space:nowrap}
 .pm .z .app{font-size:.78rem;text-decoration:none}
 .pm a.s{color:var(--ink);text-decoration:none}.pm a.s:hover{text-decoration:underline}

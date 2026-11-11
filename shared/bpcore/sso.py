@@ -142,8 +142,41 @@ def theme_of(user):
     return t if t in THEMES else ""
 
 
+# Apps fürs ganze Büro abschalten (Verwaltung → ⚙ Büro-Einstellungen → Apps): Einstellung „apps_aus“ (JSON-Liste).
+# Gilt für alle, auch Administratoren; 3 Sekunden zwischengespeichert, damit nicht jeder Aufruf die Datenbank fragt.
+_AUS = {"t": 0.0, "v": frozenset()}
+
+
+def apps_aus(frisch=False):
+    if not frisch and time.time() - _AUS["t"] < 3:
+        return _AUS["v"]
+    v = frozenset()
+    try:
+        from . import db
+        with db.tx() as c:
+            r = c.execute("SELECT value FROM settings WHERE key='apps_aus'").fetchone()
+        x = json.loads(r["value"]) if r and r["value"] else []
+        v = frozenset(str(k) for k in x if isinstance(k, str))
+    except Exception:   # noqa: BLE001 – ohne Datenbank (Rechentests) oder Einstellung: nichts abgeschaltet
+        v = frozenset()
+    _AUS.update(t=time.time(), v=v)
+    return v
+
+
+def apps_aus_setzen(c, keys):
+    keys = sorted({k for k in keys if k in {a for a, _ in APPS} | {"honorar"}})
+    c.execute("INSERT INTO settings(key, value) VALUES('apps_aus', ?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (json.dumps(keys),))
+    _AUS.update(t=0.0)
+    return keys
+
+
 def apps_of(user):
-    """Liste der App-Schlüssel, die der Benutzer nutzen darf. Leeres Feld = alle Apps (Standard)."""
+    """Liste der App-Schlüssel, die der Benutzer nutzen darf. Leeres Feld = alle Apps (Standard). Im Büro abgeschaltete Apps fehlen."""
+    aus = apps_aus()
+    return [k for k in _apps_of(user) if k not in aus]
+
+
+def _apps_of(user):
     if user is None:
         return []
     if user["is_admin"]:

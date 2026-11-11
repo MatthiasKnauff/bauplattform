@@ -14,7 +14,6 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 1. Projektordner, Etappe 2: Umordnen per Ziehen und Ablegen in der Nachher-Ansicht, Dateinamen nach Schema (nicht nur das Kürzel), Seite für andere Benutzer freischalten. **ca. 4–6 h**
 2. Suchleiste in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 4 h**
-3. Apps fürs ganze Büro abschalten (Verwaltung → Apps), Querverweise auf gesperrte Apps ausblenden, gestaltete Sperrseite. **ca. 3 h**
 4. Vergleich im Bauzeitenplan, Etappe 2: Platzhalterzeile an der alten Stelle und Pfeil direkt in der Tabelle (braucht geteiltes app.js). **ca. 5 h**
    6b. Kacheln durch langes Gedrückthalten neu anordnen (je Benutzer gemerkt, „Standard“ setzt zurück). **ca. 2 h**
 7. Alle Tabellen (baum.js): Tab nur durch Eingabefelder (ohne Knöpfe, ohne Art und KG), Tab in die nächste Zeile, Enter zur nächsten Position, vorhandener Inhalt beim Hineinspringen zum Überschreiben markiert (F2 = ergänzen), Langtext klappt beim Verlassen zu, zugeklappte Titel bleiben zu, aktive Zeile bleibt in der Mitte. **ca. 5–6 h**
@@ -59,6 +58,7 @@ Summe Sammlung: ca. 4–5 Tage.
 
 ## Erledigt
 
+- ~~Apps fürs ganze Büro abschalten (⚙ Büro-Einstellungen → Apps): verschwinden aus Kacheln, Apps-Menü und Verweisen, auch für Administratoren; direkter Aufruf zeigt eine gestaltete Sperrseite~~
 - ~~AVA: Warnung vor der ersten Änderung an einem beauftragten LV (Vertragsinhalt – besser als Nachtrag), „Rückgängig“ nimmt die Änderung gleich zurück~~
 - ~~Neue App „Honorar“ (nur Verwaltung): Aufträge je Projekt nach HOAI 2021 (Honorartafel § 35 mit Zwischenwerten, Zone, Satz in der Spanne, Leistungsphasen § 34, Umbauzuschlag), nach Aufwand (Viertelstunde, Stundensatz je Person oder Auftrag) oder pauschal; anrechenbare Kosten aus der Kostenermittlung (§ 33); Nebenkosten pauschal oder nach Aufwand; Abgleich mit den Zeiten und Warnung bei Überschreitung; Angebot als PDF auf dem Briefbogen~~
 - ~~Zeiten: Urlaubsantrag – Urlaub, Frei und Fortbildung beantragen (Zeitraum, Vertretung, Notiz), Verwaltung genehmigt/lehnt ab (mit Resturlaub), erst die Genehmigung trägt die Tage ein; zurückziehen, solange nicht begonnen; To-do für die Verwaltung; abschaltbar unter Einstellungen~~

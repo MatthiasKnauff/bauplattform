@@ -540,6 +540,20 @@ def ki_test():
 BT_PASS = re.compile(r"^(logo|mail/test|store/(test|run|backfill|status)|backups(/[^/]+(/(download|restore))?)?|audit/cleanup|ordner/(muster|pruefen|ausfuehren))$")
 
 
+@app.route("/api/apps_aus", methods=["GET", "PUT"])
+def apps_aus():
+    """Apps fürs ganze Büro abschalten: verschwinden für alle (auch Administratoren) aus Kacheln, Menü und Verweisen;
+    wer sie direkt aufruft, sieht eine Sperrseite. Verwaltung und Startseite lassen sich nicht abschalten."""
+    alle = [{"key": k, "name": n} for k, n in sso.APPS] + [{"key": "honorar", "name": "Honorar"}]
+    if request.method == "PUT":
+        keys = (request.get_json(silent=True) or {}).get("aus") or []
+        with db.tx() as c:
+            neu = sso.apps_aus_setzen(c, [k for k in keys if isinstance(k, str)])
+        C.audit(g.user["name"], "verwaltung", "Apps im Büro geändert", "abgeschaltet: " + (", ".join(a["name"] for a in alle if a["key"] in neu) or "keine"))
+        return jsonify(apps=alle, aus=neu)
+    return jsonify(apps=alle, aus=sorted(sso.apps_aus(frisch=True)))
+
+
 @app.route("/api/bt/settings", methods=["GET", "PUT"])
 def einstellungen_zentral():
     """Zentrale Einstellungen direkt aus dem Kern (bpcore.einstellungen) – nicht mehr über das Bautagebuch."""

@@ -69,8 +69,11 @@ def is_proxied(host):
 def config(user=None):
     from . import sso
     allowed = set(sso.apps_of(user)) | {"portal"} if user is not None else None
+    aus = sso.apps_aus()
     out = []
     for a in apps():
+        if a["key"] in aus:   # im Büro abgeschaltet: weder Kachel noch Verweis
+            continue
         a = dict(a)
         if user is not None:
             a["allowed"] = a["key"] in allowed or (bool(a.get("admin")) and bool(user["is_admin"]))   # Verwaltung, Honorar: nur Administratoren

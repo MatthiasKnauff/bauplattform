@@ -36,9 +36,7 @@ def guard():
         return redirect(C.login_url(request.url))
     if not sso.has_app(u, KEY):
         msg = "Für „Baudaten“ ist dein Konto nicht freigeschaltet."
-        if p.startswith("/api/"):
-            return jsonify(error=msg), 403
-        return (f'{msg} <a href="{C.app_base("portal")}/">Zur Startseite</a>', 403, {"Content-Type": "text/html; charset=utf-8"})
+        return C.gesperrt(KEY, msg)   # im Büro abgeschaltet oder für das Konto nicht freigeschaltet
     g.user = u
 
 

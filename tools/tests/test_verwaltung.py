@@ -4,6 +4,8 @@ Benutzer anlegen, App-Rechte vergeben, sperren, überall abmelden, löschen; Pro
 Projekt archivieren; zentrale Einstellungen (KI); Druck-Layouts mit benannten Versionen; Protokoll; Zustand der Dienste.
 Alle Benutzer und Projekte legt der Test selbst an und löscht sie wieder – die gemeinsamen Testbenutzer bleiben unberührt.
 """
+import time
+
 from lib import finde, gleich, pruefe
 
 NEU_PW = "Baustelle-2026-neu"
@@ -290,3 +292,19 @@ def test_verwaltung_einstellungen_aus_dem_kern(ctx):
         pruefe("nicht erlaubt!" not in ctx.admin.gj("/verwaltung/api/bt/settings"), "ungültiger Schlüssel wurde gespeichert")
     finally:
         ctx.admin.put("/verwaltung/api/bt/settings", {"co_fax": alt})
+
+
+def test_apps_im_buero_abschalten(ctx):
+    """Apps fürs ganze Büro abschalten: verschwinden aus der App-Liste (auch beim Administrator), einschalten bringt sie zurück;
+    Verwaltung/Startseite und unbekannte Namen lassen sich nicht abschalten."""
+    try:
+        r = ctx.admin.uj("/verwaltung/api/apps_aus", {"aus": ["baudaten", "verwaltung", "gibtsnicht"]})
+        gleich(r["aus"], ["baudaten"], "nur bekannte Apps")
+        time.sleep(3.5)   # jeder Arbeitsprozess hält die Einstellung 3 Sekunden vor
+        keys = [a["key"] for a in ctx.admin.gj("/verwaltung/api/platform")["apps"]]
+        pruefe("baudaten" not in keys and "admin" in keys, f"abgeschaltet: {keys}")
+        pruefe("baudaten" not in ctx.admin.gj("/verwaltung/api/me")["apps"], "auch nicht in den Apps des Administrators")
+    finally:
+        ctx.admin.uj("/verwaltung/api/apps_aus", {"aus": []})
+    time.sleep(3.5)
+    pruefe("baudaten" in [a["key"] for a in ctx.admin.gj("/verwaltung/api/platform")["apps"]], "wieder eingeschaltet")

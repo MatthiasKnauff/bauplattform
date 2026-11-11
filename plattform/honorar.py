@@ -7,7 +7,7 @@ import time
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import db, honorar as H, papierkorb, platform, zeiten as Z
+from bpcore import db, honorar as H, papierkorb, platform, sso, zeiten as Z
 import common as C
 
 app = C.make_app(__name__)
@@ -26,7 +26,9 @@ def guard():
         if p.startswith("/api/"):
             return jsonify(error="Nicht angemeldet", login=C.login_url(C.app_base(KEY) + "/")), 401
         return redirect(C.login_url(request.url))
-    if not u["is_admin"]:
+    if not u["is_admin"] or KEY in sso.apps_aus():
+        if KEY in sso.apps_aus():
+            return C.gesperrt(KEY, "")
         msg = "„Honorar“ ist nur für die Verwaltung (Administratoren)."
         if p.startswith("/api/"):
             return jsonify(error=msg), 403

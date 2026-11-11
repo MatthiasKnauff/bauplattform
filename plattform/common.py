@@ -320,3 +320,20 @@ def kurzname(c):
     """Kurzname des Büros (Einstellung „Kurzname“) – für Stellen, an denen der lange Firmenname nicht passt; sonst der Firmenname."""
     r = {x["key"]: x["value"] for x in c.execute("SELECT key, value FROM settings WHERE key IN ('office_name','co_short')").fetchall()}
     return (r.get("co_short") or "").strip() or r.get("office_name") or ""
+
+def gesperrt(key, msg):
+    """Antwort, wenn jemand eine App nicht nutzen darf: im Büro abgeschaltet (Verwaltung → ⚙ Büro-Einstellungen → Apps)
+    oder für das Konto nicht freigeschaltet. API: Fehler als JSON; Seite: eine kleine, gestaltete Sperrseite."""
+    aus = key in sso.apps_aus()
+    if aus:
+        msg = "Diese App ist in eurem Büro abgeschaltet. Die Verwaltung kann sie unter ⚙ Büro-Einstellungen → Apps wieder einschalten."
+    if request.path.startswith("/api/"):
+        return jsonify(error=msg, aus=aus), 403
+    from html import escape
+    start = app_base("portal") + "/"
+    seite = f"""<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nicht verfügbar</title><link rel="stylesheet" href="bp/bp.css"></head><body style="display:grid;place-items:center;min-height:100vh;margin:0;background:var(--bg);color:var(--ink)">
+<div class="card" style="max-width:30rem;margin:1rem;text-align:center"><div style="font-size:2.2rem;margin-bottom:.4rem">{'⏻' if aus else '🔒'}</div>
+<h2 style="margin:.2rem 0 .6rem">{'Im Büro abgeschaltet' if aus else 'Nicht freigeschaltet'}</h2><p class="mute">{escape(msg)}</p>
+<p style="margin-top:1.2rem"><a class="btn pri" href="{escape(start)}">Zur Startseite</a></p></div></body></html>"""
+    return seite, 403, {"Content-Type": "text/html; charset=utf-8"}

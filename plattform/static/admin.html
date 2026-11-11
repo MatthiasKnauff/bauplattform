@@ -115,6 +115,8 @@ html.embed body{background:transparent}
 .ord-test{border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));padding:.5rem .8rem}
 .ord-fuss{position:sticky;bottom:0;background:var(--bg);padding:.7rem 0;max-width:1100px;margin-top:1rem;border-top:1px solid var(--line)}
 @media (max-width:760px){.ord-vn{grid-template-columns:1fr}}
+.ap-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(19rem,1fr));gap:0 1.5rem}.ap-a{grid-template-columns:1fr auto auto}
+.ap-r span.ap-sw{display:inline-flex;flex-direction:row;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:2px;gap:2px}.ap-sw button{border:0;background:none;padding:.22rem .8rem;border-radius:calc(999px*var(--rkp,1));color:var(--mute);cursor:pointer;font:inherit;font-size:.85rem}.ap-sw button.on{background:var(--y);color:var(--on);font-weight:600}
 </style>
 </head>
 <body>
@@ -411,7 +413,7 @@ function layOeffnen(key) {
   else location.href = 'layout#' + encodeURIComponent(key);
 }
 addEventListener('message', (e) => { if (e.data && e.data.bph === 'layoutEditorZu' && data.stab === 'druck') layKacheln(); });   // Editor im Hauptfenster geschlossen → Kacheln neu
-const STABS = [['allgemein', 'KI'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
+const STABS = [['allgemein', 'KI'], ['apps', 'Apps'], ['firma', 'Firma & Logo'], ['darstellung', 'Darstellung'], ['ablage', 'Ablage'], ['mail', 'Mailserver'], ['vorlagen', 'E-Mail-Vorlagen'], ['druck', 'Druck-Layouts'], ['sicherung', 'Datensicherung'], ['verlauf', 'Verlauf']];   // persönliche Einstellungen: ⚙ → Für mich
 const stNav = () => `<div class="stnav"><h1>Büro-Einstellungen</h1><p class="mute" style="margin-top:-.4rem">Auch erreichbar in jeder App über ⚙ → Büro.</p></div><div class="bar stnav" style="margin-bottom:1.2rem">${STABS.map(([k, l]) => `<button class="btn sm ${k === (data.stab || 'allgemein') ? 'pri' : ''}" data-a="stab" data-stab="${k}">${l}</button>`).join('')}</div>`;
 async function loadSettings() {
   const t = data.stab || 'allgemein'; $('#main').classList.remove('breit');
@@ -427,6 +429,16 @@ async function loadSettings() {
     $('#main').innerHTML = stNav() + `<section class="card st"><p class="mute" style="margin-top:0">Wo steht was auf dem Ausdruck? Klick auf ein Layout öffnet den Editor in einem großen Fenster – Elemente im Raster verschieben, ausrichten, Variablen einsetzen. Feste Versionen; gedruckt wird nach der aktiven.</p>
       <div id="layGrid"><p class="mute">Lade …</p></div></section>`;
     layKacheln().then(() => { if (k) layOeffnen(k); });
+    return;
+  }
+  if (t === 'apps') {   // Apps fürs ganze Büro ein- und ausschalten
+    const A = await api('api/apps_aus'), aus = new Set(A.aus);
+    $('#main').innerHTML = stNav() + `<section class="card st"><h3 style="margin-top:0">Apps im Büro</h3><p class="mute" style="margin-top:0">Abgeschaltete Apps verschwinden für alle – auch für Administratoren – aus den Kacheln, dem Apps-Menü und den Verweisen in anderen Apps. Wer sie direkt aufruft, sieht einen Hinweis. Die Daten bleiben erhalten; einschalten macht alles wieder sichtbar. Welche Apps einzelne Benutzer nutzen, steht unter „Benutzer & Rechte“.</p>
+      <div class="ap-l">${A.apps.map((a) => `<label class="ap-r ap-a"><span><b>${esc(a.name)}</b></span><span></span><span class="ap-sw"><button type="button" data-appaus="${a.key}" data-v="an" class="${aus.has(a.key) ? '' : 'on'}">an</button><button type="button" data-appaus="${a.key}" data-v="aus" class="${aus.has(a.key) ? 'on' : ''}">aus</button></span></label>`).join('')}</div></section>`;
+    $('#main').querySelectorAll('[data-appaus]').forEach((b) => b.addEventListener('click', async () => {
+      if (b.dataset.v === 'aus') aus.add(b.dataset.appaus); else aus.delete(b.dataset.appaus);
+      try { const r = await api('api/apps_aus', 'PUT', { aus: [...aus] }); toast(r.aus.length ? `Abgeschaltet: ${r.aus.length} App${r.aus.length === 1 ? '' : 's'}.` : 'Alle Apps eingeschaltet.'); loadSettings(); } catch (e) { toast(e.message, true); }
+    }));
     return;
   }
   if (t === 'verlauf') {

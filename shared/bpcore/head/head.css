@@ -733,3 +733,6 @@ body.sr-eigen>.sr-b{flex:1;min-height:0}
 html[data-bewegung="aus"] *,html[data-bewegung="aus"] *::before,html[data-bewegung="aus"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 html[data-effekte="aus"] *,html[data-effekte="aus"] *::before,html[data-effekte="aus"] *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html[data-effekte="aus"] :is(.bph-menu,.umenu,.bph-km){background:var(--card,#2a2a28)}
+
+/* PDF im Bereich rechts (BPHead.pdfIn): alle Seiten untereinander, ein Scrollbalken */
+.bph-pdfin{overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center;background:var(--hov)}.bph-pdfs{width:100%;height:auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}

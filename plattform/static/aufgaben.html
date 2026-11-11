@@ -883,6 +883,10 @@ async function setDialog(host) {
     const [mp, ...mf] = HASH.get('mruege').split('|'); history.replaceState(null, '', '#maengel');
     ruegeDialog(null, { pid: +mp, firma: mf.join('|') });
   }
+  if (HASH.get('neu')) {   // aus der Kommunikation → ＋ → Mängel- oder Terminrüge: derselbe Ablauf wie hier unter „＋ Neu“
+    const n = HASH.get('neu'); history.replaceState(null, '', '#' + tab);
+    if (n === 'm4' || n === 'm13') ruegeNeu(n === 'm4' ? 'vob4' : 'vob13'); else if (n === 'termin') terminNeu();
+  }
   if (tab === 'termine' && (HASH.get('ruege') || HASH.get('gid'))) {   // aus To-do oder Bauzeitenplan: Terminrüge gleich öffnen
     history.replaceState(null, '', '#termine');
     if (HASH.get('ruege')) truegeDialog(HASH.get('ruege'));

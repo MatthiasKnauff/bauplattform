@@ -2501,6 +2501,27 @@
     return v && +v[1] < 15 ? 4e6 : 16e6;
   })();
   const canvasMass = (w, h) => { const f = Math.min(1, Math.sqrt(CANVAS_MAX / Math.max(1, w * h))); return [Math.floor(w * f), Math.floor(h * f), f]; };
+  /* PDF im Bereich rechts (z. B. Vorschau des Tagesberichts): alle Seiten untereinander, auf die Breite des Bereichs – statt <iframe>,
+     das in manchen Browsern (Safari/iPad, schmale Bereiche) nur die erste Seite zeigt. BPHead.pdfIn(el, url) → Promise(Seitenzahl) */
+  H.pdfIn = async function (el, url) {
+    const my = (el._pdfTok = (el._pdfTok || 0) + 1);
+    el.classList.add('bph-pdfin'); el.innerHTML = '<div class="bph-gvl">Lade …</div>';
+    try {
+      const lib = await pdfjs();
+      const data = await fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then((r) => { if (!r.ok) throw new Error('PDF nicht lesbar (' + r.status + ')'); return r.arrayBuffer(); });
+      if (my !== el._pdfTok) return 0;
+      const pdf = await lib.getDocument({ isEvalSupported: false, data }).promise, dpr = Math.min(2, window.devicePixelRatio || 1);
+      el.innerHTML = '';
+      for (let n = 1; n <= pdf.numPages && my === el._pdfTok; n++) {
+        const pg = await pdf.getPage(n), v0 = pg.getViewport({ scale: 1 }), w = Math.max(240, (el.clientWidth || 600) - 16), sc = w / v0.width;
+        const f = canvasMass(v0.width * sc * dpr, v0.height * sc * dpr)[2], v = pg.getViewport({ scale: sc * dpr * f });
+        const cv = document.createElement('canvas'); cv.width = v.width; cv.height = v.height; cv.className = 'bph-pdfs'; cv.setAttribute('aria-label', 'Seite ' + n);
+        el.appendChild(cv);
+        await pg.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise;
+      }
+      return pdf.numPages;
+    } catch (e) { if (my === el._pdfTok) el.innerHTML = `<div class="bph-gvl">${esc(e.message || 'PDF nicht lesbar')}</div>`; return 0; }
+  };
   H.ansehen = function (items, start = 0) {
     items = (items || []).filter((x) => x && x.url); if (!items.length) return;
     if (gv) gv.close(true);

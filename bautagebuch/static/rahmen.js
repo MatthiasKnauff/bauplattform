@@ -173,9 +173,10 @@
   function pdfNeu(erzwingen) {
     if (!pdfEl || !pdfEl.isConnected) return;
     if (!rid) { pdfEl.innerHTML = '<div class="bt-leer">Kein Tagesbericht.</div>'; pdfRid = null; return; }
-    if (!erzwingen && pdfRid === rid && pdfEl.querySelector('iframe')) return;
+    if (!erzwingen && pdfRid === rid && pdfEl.querySelector('.bt-pdfs')) return;
     pdfRid = rid;
-    pdfEl.innerHTML = `<div class="bt-pdf"><div class="bt-pk"><span class="mute">Vorschau – wird erst mit „PDF“ abgelegt</span><button type="button" class="btn sm" data-btpdf>↻ Neu laden</button></div><iframe title="Vorschau des Tagesberichts" src="api/reports/${rid}/pdf?vorschau=1#view=FitH"></iframe></div>`;
+    pdfEl.innerHTML = `<div class="bt-pdf"><div class="bt-pk"><span class="mute">Vorschau – wird erst mit „PDF“ abgelegt</span><button type="button" class="btn sm" data-btpdf>↻ Neu laden</button></div><div class="bt-pdfs" aria-label="Vorschau des Tagesberichts"></div></div>`;
+    BPHead.pdfIn(pdfEl.querySelector('.bt-pdfs'), `api/reports/${rid}/pdf?vorschau=1&t=${Date.now()}`);   // alle Seiten mit der Fotodokumentation
   }
   function bereich() {
     seite(WORK, 'bt', [

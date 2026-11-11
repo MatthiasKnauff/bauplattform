@@ -60,5 +60,5 @@ body.bt-rahmen #detail .ln.bt-sel{background:color-mix(in srgb,var(--y) 12%,tran
 .bt-mini img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:calc(5px*var(--rk,1));cursor:pointer;opacity:.75;border:2px solid transparent}.bt-mini img.on{opacity:1;border-color:var(--y)}
 .bt-pdf{display:flex;flex-direction:column;height:100%;min-height:0}
 .bt-pk{display:flex;align-items:center;gap:.5rem;justify-content:space-between;padding:.35rem .45rem;font-size:.8rem}
-.bt-pdf iframe{flex:1;min-height:0;width:100%;border:0;background:#fff}
+.bt-pdf .bt-pdfs{flex:1;min-height:0;width:100%;box-sizing:border-box}
 #bfl #btq{width:14rem;margin:0}

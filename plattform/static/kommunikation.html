@@ -96,7 +96,7 @@
   <div class="top">
     <div class="seg" id="scope" role="group" aria-label="Umfang"></div>
     <input type="search" id="q" placeholder="Suchen – Betreff, Firma, Plan, Mangel …" autocomplete="off">
-    <button class="btn sm pri kv-top" data-kvneu="n" title="Mail an Beteiligte des Projekts – mit Fotos">✉ Neue Nachricht</button><button class="btn sm kv-top" data-kvneu="v" title="Telefonnotiz, Anordnung, Behinderung … festhalten oder als PDF schicken">📝 Vorgang</button>
+    <button class="btn sm pri kv-top" data-kvneu="n" title="Mail an Beteiligte des Projekts – mit Fotos">✉ Neue Nachricht</button><button class="btn sm kv-top" data-kvneu="v" title="Telefonnotiz, Anordnung, Behinderung … festhalten oder als PDF schicken">📝 Vorgang</button><button class="btn sm kv-top" data-kvruege title="Mängelrüge vor oder nach der Abnahme, Terminrüge – wie in „Aufgaben &amp; Mängel“">⚠ Rüge ▾</button>
     <button class="btn sm" id="kBtn" title="Einen Kontakt wählen und alles sehen, was ihm geschickt wurde">👤 Kontakt …</button>
     <button class="btn sm" id="csvBtn" title="Die gezeigten Sendungen als Excel-Tabelle (CSV) speichern">⤓ Speichern unter …</button>
     <button class="btn sm" id="drBtn" title="Als Nachweis drucken oder als PDF speichern">🖨 Drucken / PDF</button>
@@ -105,7 +105,7 @@
   <div id="kbox"></div>
   <div class="grid" data-bph-trenn-ab="821" data-bph-trenn="kom" data-bph-trenn-min="200" data-bph-trenn-max="0.5"><aside class="side" id="side" aria-label="Übersicht"></aside><section id="list" aria-live="polite"></section></div>
 </main>
-<div class="kv-fab"><div class="kv-fm" hidden><button type="button" data-kvneu="n">✉ Nachricht</button><button type="button" data-kvneu="v">📝 Vorgang dokumentieren</button></div><button type="button" class="kv-fb" data-kvfab aria-label="Neu: Nachricht oder Vorgang">＋</button></div>
+<div class="kv-fab"><div class="kv-fm" hidden><button type="button" data-kvneu="n">✉ Nachricht</button><button type="button" data-kvneu="v">📝 Vorgang dokumentieren</button><button type="button" data-kvrg="m4">⚠ Mängelrüge vor Abnahme</button><button type="button" data-kvrg="m13">🏁 Mängelrüge nach Abnahme</button><button type="button" data-kvrg="termin">⏱ Terminrüge</button></div><button type="button" class="kv-fb" data-kvfab aria-label="Neu: Nachricht oder Vorgang">＋</button></div>
 <script src="bp/baukasten.js"></script>
 <script>
 const LS = { get(k, d) { try { const v = localStorage.getItem('kom.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('kom.' + k, JSON.stringify(v)); } catch { /* egal */ } } };
@@ -348,6 +348,12 @@ function kontaktWahl(anchor) {
   });
   api('api/kontakte?q=').then(offen).catch((e) => toast(e.message, true));
 }
+/* Rügen werden in „Aufgaben & Mängel“ geschrieben (Mängel, Fristen, Briefvorlagen, sign-me) – von hier aus dorthin, der Dialog öffnet sich gleich */
+function ruegeStart(art) {
+  const a = (((window.BPHead && BPHead.conf) || {}).apps || []).find((y) => y.key === 'aufgaben' && y.allowed);
+  if (!a) { toast('„Aufgaben & Mängel“ ist für dein Konto nicht freigeschaltet.', true); return; }
+  location.href = appUrl(a) + '/#' + (art === 'termin' ? 'termine' : 'maengel') + '&neu=' + art;
+}
 function kontakt(k) { K = k; KP = null; N = 300; laden(); scrollTo({ top: 0 }); }
 
 document.addEventListener('click', async (e) => {
@@ -361,6 +367,8 @@ document.addEventListener('click', async (e) => {
   if (t.closest('[data-mehr]')) { N += 500; laden(); return; }
   const qp = t.closest('[data-qp]'); if (qp && qp.dataset.qp) { e.preventDefault(); try { await BPHead.projektSetzen(+qp.dataset.qp); } catch { /* egal */ } location.href = qp.href; return; }
   const nv = t.closest('[data-kvneu]'); if (nv) { document.querySelector('.kv-fm').hidden = true; verfassen(nv.dataset.kvneu); return; }
+  const rg = t.closest('[data-kvrg]'); if (rg) { document.querySelector('.kv-fm').hidden = true; ruegeStart(rg.dataset.kvrg); return; }
+  const rgm = t.closest('[data-kvruege]'); if (rgm) { pickMenu(rgm, { items: [{ value: 'm4', title: '⚠ Mängelrüge vor Abnahme', sub: '§ 4 Abs. 7 VOB/B' }, { value: 'm13', title: '🏁 Mängelrüge nach Abnahme', sub: '§ 13 Abs. 5 VOB/B' }, { value: 'termin', title: '⏱ Terminrüge', sub: '§ 5 Abs. 3/4 VOB/B' }], onPick: ruegeStart }); return; }
   if (t.closest('[data-kvfab]')) { const m = document.querySelector('.kv-fm'); m.hidden = !m.hidden; return; }
   if (!t.closest('.kv-fab')) { const m = document.querySelector('.kv-fm'); if (m) m.hidden = true; }
   if (t.closest('#kBtn')) { kontaktWahl($('#kBtn')); return; }

@@ -4,13 +4,10 @@ Ein Antrag speichert nur, was von Hand eingetragen oder geändert wurde (daten).
 Projektdaten (Bauherr, Grundstück, Beschreibung – bpcore/stammdaten), Adressen (Anschrift, Telefon, E-Mail der Kontakte), Baukosten
 (gültige Kostenermittlung: KG 300/400, Fläche), Büro-Einstellungen und Mein Konto (Entwurfsverfasser/in). So sieht man je Feld,
 woher der Wert stammt, und kann ihn jederzeit auf die Quelle zurücksetzen.
-Erste Fassung: PDF im eigenen Layout, angelehnt an die Bauvorlagen NRW. Das amtliche, ausfüllbare Formular kommt, sobald die PDFs
-des Landes hochgeladen sind.
+Ausgabe: das amtliche Formular des Landes (bpcore/bauantrag_formulare.py), mit den Werten ausgefüllt – nichts im eigenen Layout.
 """
-import io
 import json
 import re
-from datetime import date
 
 VERFAHREN = {"baugenehmigung": "Antrag auf Baugenehmigung", "vorbescheid": "Antrag auf Vorbescheid", "freistellung": "Genehmigungsfreistellung – Bauvorlagen"}
 SCHRITTE = [("verfahren", "Verfahren"), ("beteiligte", "Beteiligte"), ("grundstueck", "Grundstück"), ("vorhaben", "Vorhaben & Kenndaten"),
@@ -295,121 +292,3 @@ def fehlt(F, B):
     f = [x["label"] for x in F if x["pflicht"] and not str(x["wert"]).strip()]
     b = [x["name"] for x in B if x["pflicht"] and x["status"] == "offen" and x["key"] != "antrag"]
     return f, b
-
-
-def eur(v):
-    try:
-        return f"{float(str(v).replace('.', '').replace(',', '.')):,.0f} €".replace(",", ".")
-    except ValueError:
-        return str(v)
-
-
-def pdf(F, B, name, projekt, entwurf=True):
-    """Antrag im eigenen Layout (A4): Kopf, nummerierte Abschnitte mit Feldern, Bauvorlagen, Unterschriften."""
-    from reportlab.lib.colors import Color, black, white
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
-    from reportlab.pdfgen import canvas
-    W = {x["key"]: str(x["wert"] or "") for x in F}
-    buf = io.BytesIO()
-    cv = canvas.Canvas(buf, pagesize=A4)
-    cv.setTitle(f"{VERFAHREN.get(W.get('verfahren'), 'Bauantrag')} – {projekt}")
-    L, R, y = 18 * mm, A4[0] - 18 * mm, A4[1] - 18 * mm
-    blau, grau = Color(0.11, 0.31, 0.66), Color(0.9, 0.9, 0.9)
-    seite = [1]
-
-    def kopf():
-        nonlocal y
-        cv.setFont("Helvetica", 7.5); cv.setFillColor(Color(.3, .3, .3))
-        cv.drawString(L, A4[1] - 12 * mm, f"Bauvorlagen · {projekt}")
-        cv.drawRightString(R, A4[1] - 12 * mm, f"Seite {seite[0]}")
-        if entwurf:
-            cv.saveState(); cv.setFont("Helvetica-Bold", 60); cv.setFillColor(Color(.85, .85, .85, alpha=0.35)); cv.translate(A4[0] / 2, A4[1] / 2); cv.rotate(35)
-            cv.drawCentredString(0, 0, "ENTWURF"); cv.restoreState()
-        cv.setFillColor(black)
-
-    def neu():
-        nonlocal y
-        cv.showPage(); seite[0] += 1; y = A4[1] - 20 * mm; kopf()
-
-    def platz(h):
-        if y - h < 22 * mm:
-            neu()
-
-    def abschnitt(t):
-        nonlocal y
-        platz(16 * mm)
-        y -= 3 * mm
-        cv.setFillColor(grau); cv.rect(L, y - 5.2 * mm, R - L, 5.2 * mm, fill=1, stroke=1); cv.setFillColor(black)
-        cv.setFont("Helvetica-Bold", 9); cv.drawString(L + 1.5 * mm, y - 3.8 * mm, t)
-        y -= 5.2 * mm
-
-    def zeile(felder):   # felder: [(Bezeichnung, Wert, Anteil)]
-        nonlocal y
-        h = 10.5 * mm
-        platz(h)
-        x = L
-        for lab, wert, ant in felder:
-            w = (R - L) * ant
-            cv.rect(x, y - h, w, h, fill=0, stroke=1)
-            cv.setFont("Helvetica", 6.8); cv.setFillColor(Color(.25, .25, .25)); cv.drawString(x + 1.2 * mm, y - 3 * mm, lab)
-            cv.setFont("Courier", 9); cv.setFillColor(blau)
-            t = str(wert or "")
-            while t and cv.stringWidth(t, "Courier", 9) > w - 3 * mm:
-                t = t[:-2] + "…" if len(t) > 2 else ""
-            cv.drawString(x + 1.2 * mm, y - 8 * mm, t)
-            cv.setFillColor(black)
-            x += w
-        y -= h
-
-    def kreuz(wahl, opts):
-        return "   ".join(("[X] " if wahl == o else "[ ] ") + o for o in opts)
-
-    kopf()
-    cv.setFont("Helvetica-Bold", 15); cv.drawString(L, y - 6 * mm, VERFAHREN.get(W.get("verfahren"), "Bauantrag"))
-    cv.setFont("Helvetica", 8.5); cv.drawString(L, y - 11 * mm, (W.get("verfahrensart") or "") + (" · " if W.get("verfahrensart") else "") + "an die untere Bauaufsichtsbehörde")
-    y -= 15 * mm
-    zeile([("Untere Bauaufsichtsbehörde", W.get("behoerde"), 0.65), ("Eingangsstempel / Aktenzeichen", "", 0.35)])
-    abschnitt("1  Bauherrschaft")
-    zeile([("Name, Vorname / Firma", W.get("bauherr_name"), 0.6), ("vertreten durch", W.get("bauherr_vertreter"), 0.4)])
-    zeile([("Anschrift", W.get("bauherr_anschrift"), 0.55), ("Telefon", W.get("bauherr_tel"), 0.2), ("E-Mail", W.get("bauherr_mail"), 0.25)])
-    abschnitt("2  Entwurfsverfasser/in (bauvorlageberechtigt)")
-    zeile([("Name, Vorname / Büro, Berufsbezeichnung", ", ".join(x for x in (W.get("ev_name"), W.get("ev_beruf")) if x), 0.65), ("Kammer · Mitgliedsnummer", " ".join(x for x in (W.get("ev_kammer"), W.get("ev_kammernr")) if x), 0.35)])
-    zeile([("Anschrift", W.get("ev_anschrift"), 0.55), ("Telefon", W.get("ev_tel"), 0.2), ("E-Mail", W.get("ev_mail"), 0.25)])
-    if W.get("tragwerk"):
-        zeile([("Tragwerksplanung", W.get("tragwerk"), 1.0)])
-    abschnitt("3  Baugrundstück")
-    zeile([("Straße, Hausnummer", W.get("gs_strasse"), 0.5), ("PLZ, Ort", W.get("gs_ort"), 0.3), ("Grundstücksgröße", (W.get("gs_flaeche") + " m²") if W.get("gs_flaeche") else "", 0.2)])
-    zeile([("Gemarkung", W.get("gemarkung"), 0.4), ("Flur", W.get("flur"), 0.2), ("Flurstück(e)", W.get("flurstueck"), 0.4)])
-    zeile([("Bebauungsplan", W.get("bplan") or "–", 0.4), ("Gebietsart", W.get("gebiet"), 0.25), ("Baulasten", W.get("baulasten"), 0.2), ("Denkmal", W.get("denkmal"), 0.15)])
-    abschnitt("4  Vorhaben")
-    zeile([("Genaue Bezeichnung des Vorhabens", W.get("bezeichnung"), 1.0)])
-    zeile([("Art", kreuz(W.get("art"), ["Errichtung", "Änderung", "Nutzungsänderung"]) if W.get("art") in ("Errichtung", "Änderung", "Nutzungsänderung") else W.get("art"), 0.5),
-           ("Gebäudeklasse", W.get("gebaeudeklasse"), 0.2), ("Sonderbau", W.get("sonderbau"), 0.15), ("Nutzung", W.get("nutzung"), 0.15)])
-    abschnitt("5  Kenndaten")
-    m = lambda k, e: (W.get(k) + " " + e) if W.get(k) else ""   # noqa: E731
-    zeile([("Grundfläche GR", m("grf", "m²"), 0.25), ("BGF", m("bgf", "m²"), 0.25), ("BRI", m("bri", "m³"), 0.25), ("NRF", m("nrf", "m²"), 0.25)])
-    zeile([("GRZ", W.get("grz"), 0.15), ("GFZ", W.get("gfz"), 0.15), ("Vollgeschosse", W.get("geschosse"), 0.2), ("Höhe OK", m("hoehe", "m"), 0.2), ("Wohneinheiten", W.get("we"), 0.3)])
-    zeile([("Stellplätze notwendig / nachgewiesen", " / ".join(x for x in (W.get("st_notw"), W.get("st_nachg")) if x), 0.3),
-           ("Rohbaukosten", eur(W["rohbau"]) if W.get("rohbau") else "", 0.35), ("Herstellungskosten", eur(W["herstellung"]) if W.get("herstellung") else "", 0.35)])
-    abschnitt("6  Beigefügte Bauvorlagen")
-    for b in B:
-        platz(5 * mm)
-        cv.setFont("Helvetica", 8.5)
-        cv.drawString(L + 2 * mm, y - 4 * mm, ("[X] " if b["status"] in ("da", "beigefuegt") else "[ ] " if b["status"] == "offen" else "[–] ") + b["name"]
-                      + ("" if b["status"] != "entfaellt" else "  (entfällt)"))
-        y -= 4.6 * mm
-    platz(30 * mm)
-    y -= 14 * mm
-    cv.setLineWidth(0.6)
-    for x0, x1, t in ((L, L + (R - L) * 0.46, "Datum, Unterschrift Bauherrschaft"), (L + (R - L) * 0.54, R, "Datum, Unterschrift Entwurfsverfasser/in")):
-        cv.line(x0, y, x1, y); cv.setFont("Helvetica", 7); cv.drawString(x0, y - 3.2 * mm, t)
-    cv.setFont("Helvetica", 6.5); cv.setFillColor(Color(.4, .4, .4))
-    cv.drawString(L, 14 * mm, "Erstellt mit der Bauplattform – eigenes Layout, angelehnt an die Bauvorlagen NRW. Maßgeblich ist das amtliche Formular des Landes.")
-    cv.save()
-    return buf.getvalue()
-
-
-def dateiname(projekt, verfahren, heute=None):
-    k = (re.match(r"^[A-Za-z]{1,4}\d{2,6}(?:\.\d+)?", (projekt or "").strip()) or [""])[0]
-    return f"{k + ' ' if k else ''}{VERFAHREN.get(verfahren, 'Bauantrag')} {(heute or date.today()).strftime('%d.%m.%Y')}.pdf"

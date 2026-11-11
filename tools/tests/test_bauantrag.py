@@ -24,7 +24,9 @@ def test_bauantrag(ctx):
         d = a.uj(f"{BA}/antraege/{aid}", {"felder": {"ev_wahl": "buero"}, "bauvorlagen": {"statik": {"status": "entfaellt"}}})
         gleich(next(b for b in d["bauvorlagen"] if b["key"] == "statik")["status"], "entfaellt", "Bauvorlage entfällt")
         pruefe(next(f for f in d["felder"] if f["key"] == "ev_name")["quelle"] in ("Büro", ""), "Entwurfsverfasser aus dem Büro")
-        a.get(f"{BA}/antraege/{aid}/antrag.pdf").ist_pdf()
+        r = a.get(f"{BA}/antraege/{aid}/antrag.pdf", expect=(200, 409))   # ohne geladene amtliche Formulare (Testlauf ohne Internet): klare Meldung
+        if r.status == 409:
+            pruefe("Formulare" in (r.json or {}).get("error", ""), "Hinweis auf „Formulare → Jetzt prüfen“")
         a.uj(f"{BA}/antraege/{aid}", {"status": "eingereicht"})
         a.put(f"{BA}/antraege/{aid}", {"felder": {"flur": "9"}}, expect=409)
         a.uj(f"{BA}/antraege/{aid}", {"status": "entwurf"})

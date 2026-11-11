@@ -47,7 +47,7 @@
     el.textContent = '⟳ ' + (text || 'Aktualisiert – Änderungen von anderen'); el.classList.add('an'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('an'), 3500);
   };
   const st = document.createElement('style');
-  st.textContent = `.bph-live{position:fixed;left:max(.8rem,env(safe-area-inset-left,0px));bottom:calc(.8rem + env(safe-area-inset-bottom,0px));z-index:880;background:rgba(28,28,26,.85);color:#fff;font:13px/1.3 system-ui,sans-serif;border-radius:calc(999px*var(--rkp,1));padding:.35rem .8rem;opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;pointer-events:none}
+  st.textContent = `.bph-live{position:fixed;left:50%;margin-left:-8rem;width:16rem;text-align:center;bottom:calc(.8rem + env(safe-area-inset-bottom,0px));z-index:880;background:rgba(28,28,26,.85);color:#fff;font:13px/1.3 system-ui,sans-serif;border-radius:calc(999px*var(--rkp,1));padding:.35rem .8rem;opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;pointer-events:none}
   .bph-live.an{opacity:1;transform:none}`;
   document.head.appendChild(st);
 })();

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-amtlich",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Bauantrag auf dem amtlichen Formular",
+  "text": "Das PDF des Bauantrags ist jetzt das aktuelle amtliche NRW-Formular (Anlage I/1, I/2 oder I/3 je nach Verfahren), mit deinen Angaben ausgefüllt. Im Schritt „Prüfen & PDF“ steht, welche Anlage und Fassung genommen wurde und wie viele Felder schon ausgefüllt sind.",
+  "ziel": ".ba-st"
+ },
+ {
   "id": "2026-11-11-formulare",
   "datum": "2026-11-11",
   "app": "bauantrag",

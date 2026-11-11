@@ -12,7 +12,7 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Honorar-Ablauf, Etappe 3: Abrechnung – Abschläge nach erbrachten LPh, bezahlt/offen, Schlussrechnung. **ca. 30–45 min**
 - Honorar: „＋ Anfrage“ aus einer Mail im Posteingang der Startseite, Widget „Honorar offen“. **ca. 20–30 min**
 - Bautagebuch: Tagesbericht direkt in der PDF-Vorschau bearbeiten (Klick ins Feld → bearbeiten, wie in der Seite). **ca. 45–60 min**
-- Bauantrag: amtliches NRW-Formular ausfüllen (die PDFs liegen jetzt vor) – Felder ins Formular eintragen, Änderungen im PDF zurück in die Datenbank. **ca. 45–60 min**
+- Bauantrag: Änderungen im ausgefüllten amtlichen PDF zurück in die Datenbank; falls ein Vordruck keine Formularfelder hat: Felder einmal per Klick platzieren. **ca. 45–60 min**
 - Bauantrag: Lageplan-/Liegenschaftskarte aus ALKIS anfordern, Gebühr schätzen, Bauvorlagen direkt aus dem Projektordner beilegen. **ca. 30–45 min**
 1. Projektordner, Etappe 2: Umordnen per Ziehen und Ablegen in der Nachher-Ansicht, Dateinamen nach Schema (nicht nur das Kürzel), Seite für andere Benutzer freischalten. **ca. 30–45 min**
 2. Suchleiste (Inhalte + Funktionen + Menüs, kombiniert – ca. 1–1,5 h) in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 20–30 min**
@@ -91,6 +91,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Bauantrag: Ausgabe nur noch als amtliches Formular (NRW I/1, I/2 oder I/3 je Verfahren), Felder automatisch an Name/Tooltip erkannt und ausgefüllt, Gebäudeklasse/Sonderbau/Vorbescheid angekreuzt; eigenes Layout entfernt~~
+- ~~Rückgängig-Dock startet unten links statt mittig~~
 - ~~Bauantrag: Gebäudeklasse als Skizzen wählbar (GK 1–5 mit 7-m- und 13-m-Linie)~~
 - ~~Bauantrag: amtliche Formulare – NRW (Anlagen VV BauPrüfVO, recht.nrw.de) täglich geprüft und vorgehalten, Liste mit Fassung und Stand, neu/geändert als To-do bis „gesehen“; andere Länder auf Abruf (Quelle eintragen, nur Verwaltung)~~
 - ~~Bauantrag: Felder bündig und sinnvoll breit angeordnet; Änderungen gehen zurück in Projektdaten (neue Gruppe „Bauantrag“: Behörde, Grundstück, Planungsrecht, Gebäudeklasse, Kenndaten), Adressen des Bauherrn (wird bei Bedarf angelegt), Projektanschrift, Mein Konto bzw. Büro – Kennzeichen „⇄ Projektdaten“ am Feld~~

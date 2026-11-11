@@ -659,7 +659,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 @media (max-width:700px){.bph-vx-bd{grid-template-columns:1fr;grid-template-rows:40% 1fr}.bph-vx-l{border-right:0;border-bottom:1px solid var(--line,#3b3e42)}}
 
 /* ===== Gemeinsame Bausteine aller Apps: Rückgängig-Dock (undo.js), Bereich rechts (seite.js), Befehlsleiste (befehle.js) ===== */
-.bp-undo{position:fixed;left:50%;bottom:4.6rem;transform:translateX(-50%);z-index:900;display:flex;flex-direction:column;align-items:center;gap:.4rem;max-width:calc(100vw - 2rem);font-size:.92rem}
+.bp-undo{position:fixed;left:max(1rem,env(safe-area-inset-left,0px));bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));z-index:900;display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;max-width:calc(100vw - 2rem);font-size:.92rem}
 .bp-undo-z,.bp-undo-mini,.bp-undo-l{background:rgba(28,28,26,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.06))}
 .bp-undo-z{display:flex;align-items:center;gap:.15rem;border-radius:calc(999px*var(--rkp,1));padding:.25rem;min-width:0;max-width:100%}
 .bp-undo-t{padding:0 .6rem 0 .75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;color:#eee}

@@ -195,3 +195,123 @@ def start(c_fn, stunde=5):
                     from . import fehler
                     fehler.still("dienste", "Bauantragsformulare prüfen", e)
     threading.Thread(target=loop, daemon=True, name="formulare").start()
+
+
+# ---------------------------------------------------------------- amtliches Formular ausfüllen
+def fold(s):
+    s = str(s or "").lower().replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    return re.sub(r"[^a-z0-9]+", " ", s).strip()
+
+
+def formular_fuer(c, verfahren, werte, land="NW"):
+    """Welche Anlage gilt: Freistellung → I/3; Sonderbau → I/1 (Baugenehmigungsverfahren); sonst I/2 (vereinfachtes Verfahren,
+    auch für den Vorbescheid). → Zeile mit daten oder None."""
+    nr = "I/3" if verfahren == "freistellung" else "I/1" if (werte.get("sonderbau") == "ja" or "Sonderbau" in (werte.get("verfahrensart") or "")) else "I/2"
+    r = c.execute("SELECT id, nr, titel, daten, fassung, sha256 FROM bauantrag_formular WHERE land=? AND nr=? AND status<>'entfallen'", (land, nr)).fetchone()
+    return (dict(r) if r else None), nr
+
+
+def felder(daten):
+    """Formularfelder eines PDFs: [{name, tu, typ, an}] (an = Wert für „angekreuzt“ bei Kästchen)."""
+    import io
+    from pypdf import PdfReader
+    rd = PdfReader(io.BytesIO(bytes(daten)))
+    out = []
+    for name, f in (rd.get_fields() or {}).items():
+        typ = f.get("/FT")
+        an = ""
+        if typ == "/Btn":
+            st = [x for x in (f.get("/_States_", []) or []) if x != "/Off"]
+            an = st[0] if st else "/Yes"
+        out.append({"name": name, "tu": str(f.get("/TU") or ""), "typ": {"/Tx": "text", "/Btn": "kreuz", "/Ch": "wahl"}.get(typ, str(typ)), "an": an})
+    return out
+
+
+def _teile(adr):
+    """„Straße 1, 45141 Essen“ → (Straße 1, 45141, Essen)."""
+    t = [x.strip() for x in (adr or "").split(",") if x.strip()]
+    if not t:
+        return "", "", ""
+    m = re.match(r"^(\d{5})\s+(.+)$", t[-1])
+    if m:
+        return ", ".join(t[:-1]), m.group(1), m.group(2)
+    return ", ".join(t), "", ""
+
+
+# Zuordnung: unser Wert → Feld, erkannt an Name/Tooltip (barrierefreie Formulare haben sprechende Tooltips). Je Regel: Abschnitt
+# (muss vorkommen, „“ = egal), Wörter (alle müssen vorkommen), Wörter, die nicht vorkommen dürfen.
+REGELN = [
+    ("bh_name", "bauherr", ("name",), ("vertret",)), ("bh_name", "bauherr", ("firma",), ("vertret",)),
+    ("bh_strasse", "bauherr", ("strasse",), ("vertret",)), ("bh_plzort", "bauherr", ("plz",), ("vertret",)), ("bh_ort", "bauherr", ("ort",), ("vertret", "plz")),
+    ("bh_vertreter", "", ("vertreten",), ()),
+    ("ev_name", "entwurf", ("name",), ("bauvorlage",)), ("ev_name", "entwurf", ("buero",), ()),
+    ("ev_strasse", "entwurf", ("strasse",), ()), ("ev_plzort", "entwurf", ("plz",), ()), ("ev_bv", "", ("bauvorlageberechtigt",), ()),
+    ("ev_kammernr", "", ("mitgliedsnummer",), ()), ("ev_kammernr", "", ("kammer",), ()),
+    ("ev_tel", "entwurf", ("telefon",), ("mobil",)), ("ev_mail", "entwurf", ("mail",), ()),
+    ("gs_ort", "grundstueck", ("ort",), ("ortsteil",)), ("gs_strasse", "grundstueck", ("strasse",), ()), ("gs_hausnr", "grundstueck", ("hausnummer",), ()),
+    ("gemarkung", "", ("gemarkung",), ()), ("flurstueck", "", ("flurstueck",), ()), ("flur", "", ("flur",), ("flurstueck", "flurkarte")),
+    ("bezeichnung", "", ("bezeichnung", "vorhaben"), ()), ("rohbau", "", ("rohbau",), ()), ("herstellung", "", ("herstell",), ()),
+]
+
+
+def ausfuellen(daten, W):
+    """Amtliches PDF mit den Werten W ({feld: wert} aus dem Antrag) ausfüllen. → (PDF-Bytes, Anzahl gefüllt, Anzahl Felder)."""
+    import io
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.generic import NameObject, BooleanObject
+    rd = PdfReader(io.BytesIO(bytes(daten)))
+    F = felder(daten)
+    w = PdfWriter(clone_from=rd)
+    if not F:
+        out = io.BytesIO(); w.write(out)
+        return out.getvalue(), 0, 0
+    bs, bp, bo = _teile(W.get("bauherr_anschrift"))
+    es, ep, eo = _teile(W.get("ev_anschrift"))
+    gs = W.get("gs_strasse") or ""
+    m = re.match(r"^(.*?)\s+(\d+\s*[a-zA-Z]?(?:\s*[-–]\s*\d+\s*[a-zA-Z]?)?)$", gs)
+    gp, go = (W.get("gs_ort") or "").split(" ", 1) if re.match(r"^\d{5}\s", W.get("gs_ort") or "") else ("", W.get("gs_ort") or "")
+    V = {"bh_name": W.get("bauherr_name"), "bh_strasse": bs, "bh_plzort": f"{bp} {bo}".strip(), "bh_ort": bo, "bh_vertreter": W.get("bauherr_vertreter"),
+         "ev_name": W.get("ev_name"), "ev_strasse": es, "ev_plzort": f"{ep} {eo}".strip(), "ev_bv": W.get("ev_name"),
+         "ev_kammernr": " ".join(x for x in (W.get("ev_kammer"), W.get("ev_kammernr")) if x), "ev_tel": W.get("ev_tel"), "ev_mail": W.get("ev_mail"),
+         "gs_ort": go, "gs_strasse": m.group(1) if m else gs, "gs_hausnr": m.group(2) if m else "", "gemarkung": W.get("gemarkung"), "flur": W.get("flur"),
+         "flurstueck": W.get("flurstueck"), "bezeichnung": W.get("bezeichnung"),
+         "rohbau": _eur(W.get("rohbau")), "herstellung": _eur(W.get("herstellung"))}
+    werte, benutzt = {}, set()
+    for key, abschnitt, worte, nicht in REGELN:
+        if not V.get(key) or key in benutzt:
+            continue
+        for f in F:
+            if f["name"] in werte or f["typ"] != "text":
+                continue
+            t = fold(f["name"] + " " + f["tu"])
+            if (not abschnitt or abschnitt in t) and all(x in t for x in worte) and not any(x in t for x in nicht):
+                werte[f["name"]] = str(V[key]); benutzt.add(key)
+                break
+    kreuze = {}
+    gk, verf = str(W.get("gebaeudeklasse") or ""), W.get("verfahren")
+    for f in F:   # Kästchen: Gebäudeklasse, Sonderbau, Vorbescheid / vereinfachtes Verfahren
+        if f["typ"] != "kreuz":
+            continue
+        t = fold(f["name"] + " " + f["tu"])
+        an = (gk and "gebaeudeklasse" in t and re.search(rf"\b{gk}\b", t)) or (W.get("sonderbau") == "ja" and "sonderbau" in t) \
+            or (verf == "vorbescheid" and "vorbescheid" in t) or (verf == "baugenehmigung" and "vereinfacht" in t and W.get("sonderbau") != "ja")
+        if an:
+            kreuze[f["name"]] = f["an"] or "/Yes"
+    for page in w.pages:
+        try:
+            w.update_page_form_field_values(page, {**werte, **kreuze}, auto_regenerate=False)
+        except Exception:   # noqa: BLE001 – Seite ohne Felder
+            pass
+    try:
+        w._root_object["/AcroForm"][NameObject("/NeedAppearances")] = BooleanObject(True)   # Leser zeichnen die Werte selbst
+    except Exception:   # noqa: BLE001
+        pass
+    out = io.BytesIO(); w.write(out)
+    return out.getvalue(), len(werte) + len(kreuze), len(F)
+
+
+def _eur(v):
+    try:
+        return f"{float(str(v).replace('.', '').replace(',', '.')):,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".") if v not in (None, "") else ""
+    except ValueError:
+        return str(v)

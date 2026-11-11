@@ -1,7 +1,8 @@
 """Bauantrag: Anträge je Projekt (Baugenehmigung, Vorbescheid, Freistellung) – Schritt für Schritt, mit Werten aus Projektdaten,
 Adressen, Baukosten, Büro und Mein Konto. Je Feld sieht man die Quelle und kann auf sie zurücksetzen. Bauvorlagen als Checkliste
-mit Erkennung aus dem Projektordner. PDF im eigenen Layout. Felder, Quellen und PDF: bpcore/bauantrag.py."""
+mit Erkennung aus dem Projektordner. Ausgabe: das amtliche Formular, ausgefüllt (bpcore/bauantrag_formulare.py). Felder und Quellen: bpcore/bauantrag.py."""
 import json
+import re
 import time
 import urllib.parse
 
@@ -191,18 +192,37 @@ def loeschen(aid):
     return jsonify(ok=True, papierkorb=pk)
 
 
-@app.get("/api/antraege/<int:aid>/antrag.pdf")
-def pdf(aid):
+def _formular(aid):
+    """Antrag + amtliches Formular dazu, ausgefüllt. → (Antrag, Info, PDF-Bytes) oder (None, Fehler, Status)."""
     with db.tx() as c:
         a = _antrag(c, aid)
         if not a:
-            return jsonify(error="Antrag nicht gefunden."), 404
-        d = _detail(c, a)
-    data = BA.pdf(d["felder"], d["bauvorlagen"], a["name"], d["projekt"], entwurf=a["status"] == "entwurf")
-    fn = BA.dateiname(d["projekt"], a["verfahren"])
+            return None, "Antrag nicht gefunden.", 404
+        d = _detail(c, a, [])
+        W = {x["key"]: str(x["wert"] or "") for x in d["felder"]}
+        f, nr = BF.formular_fuer(c, a["verfahren"], W)
+    if not f or f.get("daten") is None:
+        return None, f"Das amtliche Formular (NRW, Anlage {nr}) ist noch nicht geladen – unter „Formulare“ einmal „↻ Jetzt prüfen“.", 409
+    data, gefuellt, n = BF.ausfuellen(f["daten"], W)
+    return a, {"nr": f["nr"], "titel": f["titel"], "fassung": f["fassung"], "felder": n, "gefuellt": gefuellt, "projekt": d["projekt"]}, data
+
+
+@app.get("/api/antraege/<int:aid>/formular")
+def formular_info(aid):
+    a, info, _ = _formular(aid)
+    return jsonify(info) if a else (jsonify(error=info), _)
+
+
+@app.get("/api/antraege/<int:aid>/antrag.pdf")
+def pdf(aid):
+    """Das amtliche Formular des Landes, mit den Angaben des Antrags ausgefüllt (kein eigenes Layout)."""
+    a, info, data = _formular(aid)
+    if not a:
+        return jsonify(error=info), data
+    k = (re.match(r"^[A-Za-z]{1,4}\d{2,6}", (info["projekt"] or "").strip()) or [""])[0]
+    fn = f"{k + ' ' if k else ''}Anlage {info['nr'].replace('/', '-')} {info['titel']}"[:150].strip() + ".pdf"
     disp = "attachment" if request.args.get("dl") else "inline"
-    return Response(data, mimetype="application/pdf",
-                    headers={"Content-Disposition": f"{disp}; filename*=UTF-8''{urllib.parse.quote(fn)}", "Cache-Control": "no-store"})
+    return Response(data, mimetype="application/pdf", headers={"Content-Disposition": f"{disp}; filename*=UTF-8''{urllib.parse.quote(fn)}", "Cache-Control": "no-store"})
 
 
 # ---------------------------------------------------------------- amtliche Formulare (bpcore/bauantrag_formulare.py)

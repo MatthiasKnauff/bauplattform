@@ -41,7 +41,7 @@ function leiste() {
     { titel: 'Bauvorlagen', knoepfe: [K('Neu erkennen', IC.ord, async () => { D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); },
       { aus: !D, tip: 'Projektordner neu einlesen und die Bauvorlagen erkennen' })] },
     { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen('NW'), { tip: 'Amtliche Vordrucke (NRW vorgehalten, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
-    { titel: 'Ausgabe', rechts: true, knoepfe: [K('PDF', IC.pdf, pdf, { aus: !D, tip: 'Antrag als PDF (eigenes Layout, angelehnt an die Bauvorlagen NRW)' })] },
+    { titel: 'Ausgabe', rechts: true, knoepfe: [K('PDF', IC.pdf, pdf, { aus: !D, tip: 'Das amtliche Formular (NRW) mit den Angaben ausgefüllt' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Antrag in den Papierkorb legen' })] },
   ]);
 }
@@ -52,10 +52,18 @@ function vorschau(sofort) {
   clearTimeout(PDFT);
   if (!PDFEL || !PDFEL.isConnected) return;
   if (!D) { PDFEL.innerHTML = '<div class="ba-pleer">Kein Antrag gewählt.</div>'; return; }
-  PDFT = setTimeout(() => {
-    PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Vorschau – ${esc(D.antrag.name)}</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
+  PDFT = setTimeout(async () => {
+    let I; try { I = await api(`api/antraege/${AID}/formular`); } catch (e) { PDFEL.innerHTML = `<div class="ba-pleer">${esc(e.message)}</div>`; formInfo(null, e.message); return; }
+    formInfo(I);
+    PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Anlage ${esc(I.nr)} · Fassung ${esc(I.fassung || '–')} · ${I.gefuellt} von ${I.felder} Feldern</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
     BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/antrag.pdf?t=${Date.now()}`);
   }, sofort ? 0 : 1200);
+}
+/* Hinweis im Schritt „Prüfen & PDF“: welches amtliche Formular, wie viel davon ausgefüllt */
+function formInfo(I, fehler) {
+  const el = document.getElementById('baForm'); if (!el) return;
+  el.innerHTML = fehler ? `⚠ ${esc(fehler)}` : `<b>Anlage ${esc(I.nr)}</b> ${esc(I.titel)} · Fassung ${esc(I.fassung || '–')}<br>`
+    + (I.felder ? `${I.gefuellt} von ${I.felder} Formularfeldern ausgefüllt – den Rest im PDF ergänzen.` : 'Das Formular hat keine ausfüllbaren Felder – es wird leer ausgegeben, bitte von Hand ausfüllen.');
 }
 function bereich() {
   if (!window.seite || HANDY.matches) return;
@@ -134,8 +142,7 @@ function schrittHtml() {
     </div></div>
     <div class="ba-k"><h3>Stand</h3><span class="seg" role="group">${Object.entries(STATUS).map(([v, t]) => `<button type="button" data-status="${v}" class="${D.antrag.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>
       <p class="ba-hilfe" style="margin:.5rem 0 0">Solange „Entwurf“, trägt das PDF den Aufdruck ENTWURF. „eingereicht“ sperrt die Angaben (zum Ändern zurück auf „Entwurf“).</p></div>
-    <div class="ba-k"><h3>PDF</h3><button type="button" class="btn pri" data-pdf>📄 Antrag als PDF</button>
-      <p class="ba-hilfe" style="margin:.5rem 0 0">Eigenes Layout, angelehnt an die Bauvorlagen NRW. Das amtliche, ausfüllbare Formular des Landes folgt, sobald die PDFs dafür hochgeladen sind.</p></div>`;
+    <div class="ba-k"><h3>Amtliches Formular</h3><p class="ba-hilfe" id="baForm" style="margin:0 0 .5rem">Lade …</p><button type="button" class="btn pri" data-pdf>📄 Ausgefülltes Formular</button></div>`;
 }
 
 function zeichne() {
@@ -151,6 +158,7 @@ function zeichne() {
   V.scrollTop = top;
   if (D.antrag.status !== 'entwurf') V.querySelectorAll('[data-f],[data-seg],[data-bv],[data-zurueck]').forEach((x) => { x.disabled = true; });
   bereich(); vorschau();
+  if (SCHRITT === 'pruefen' && (HANDY.matches || !PDFEL || !PDFEL.isConnected)) api(`api/antraege/${AID}/formular`).then((I) => formInfo(I)).catch((e) => formInfo(null, e.message));
 }
 
 /* Speichern: Felder einzeln, mit Rückgängig auf den vorherigen Stand (eigener Wert oder Quelle) */

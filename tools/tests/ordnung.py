@@ -44,7 +44,7 @@ GRENZE = 1500
 SPIELRAUM = 300   # so viel dürfen die Altdateien noch wachsen, bis sie geteilt werden
 ALT_GROSS = {   # Zeilen am 09.11.2026 – werden in Schritt 4 geteilt
     "plattform/ava.py": 5815, "shared/bpcore/head/head.js": 3040,
-    "plattform/baukosten.py": 2333, "shared/bpcore/head.py": 1898,
+    "plattform/baukosten.py": 1989, "shared/bpcore/head.py": 1898,
 }
 GROESSE_PRUEFEN = re.compile(r"\.(py|js|mjs|html|css)$")
 NICHT_GROESSE = ("plattform/vendor/", "plattform/static/vendor/", "bautagebuch/static/vendor/", "positionsdb/")

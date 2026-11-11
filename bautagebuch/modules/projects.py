@@ -1,5 +1,5 @@
 from flask import Blueprint, Response, g, jsonify, request, send_file
-from core import access, db, geo, staticmap, storage
+from core import access, db, geo, storage
 from bpcore import fehler   # stille Fehler für die Verwaltung festhalten
 from bpcore import projekte
 
@@ -33,62 +33,6 @@ def update_project(i):
     if "name" in d and not str(d["name"]).strip():
         return jsonify(error="Der Name darf nicht leer sein."), 400
     return jsonify(ok=True, geocoded=projekte.aendern(i, d))
-
-
-@bp.get("/api/projects/<int:i>/map.jpg")
-def project_map(i):
-    """Dieselbe abgeflachte Karte wie in der PDF-Kopfzeile (für die Anzeige im Bericht)."""
-    with db.tx() as c:
-        row = c.execute("SELECT lat, lon FROM projects WHERE id=?", (i,)).fetchone()
-    img = staticmap.image(dict(row)) if row else None
-    if not img:
-        return Response(status=404)
-    return Response(img, mimetype="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
-
-
-def _kopfbild(c, i):
-    row = c.execute("SELECT extra FROM projects WHERE id=?", (i,)).fetchone()
-    return (db.to_dict(row).get("extra") or {}).get("kopfbild") if row else None
-
-
-@bp.get("/api/projects/<int:i>/kopfbild.jpg")
-def kopfbild(i):
-    """Foto des Bauvorhabens, das im Bericht und in der PDF-Kopfzeile statt der kleinen Karte steht."""
-    with db.tx() as c:
-        name = _kopfbild(c, i)
-    p = storage.thumb(name, 900, square=False) if name else None
-    if not p:
-        return Response(status=404)
-    return send_file(p, mimetype="image/jpeg", max_age=86400)
-
-
-@bp.post("/api/projects/<int:i>/kopfbild")
-def kopfbild_setzen(i):
-    """Foto statt Karte wählen (ersetzt ein früheres Foto)."""
-    f = request.files.get("file")
-    name = storage.save(f) if f else None
-    if not name:
-        return jsonify(error="Das ist kein Foto, das sich lesen lässt (JPG, PNG, HEIC, WEBP)."), 400
-    with db.tx() as c:
-        if not c.execute("SELECT 1 FROM projects WHERE id=?", (i,)).fetchone():
-            storage.drop([name])
-            return jsonify(error="Projekt nicht gefunden"), 404
-        alt = _kopfbild(c, i)
-        db.update(c, "projects", i, {"extra": {"kopfbild": name}})
-    if alt:
-        storage.drop([alt])
-    return jsonify(ok=True, kopfbild=name)
-
-
-@bp.delete("/api/projects/<int:i>/kopfbild")
-def kopfbild_weg(i):
-    """Zurück zur Karte: das Foto wird entfernt."""
-    with db.tx() as c:
-        alt = _kopfbild(c, i)
-        db.update(c, "projects", i, {"extra": {"kopfbild": None}})
-    if alt:
-        storage.drop([alt])
-    return jsonify(ok=True)
 
 
 @bp.post("/api/projects/<int:i>/contact")

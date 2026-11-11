@@ -108,59 +108,13 @@ def header(logo, office):
     return t
 
 
-def map_field(jpg, w_pt, h_pt):
-    """Kartenbild füllt ein eigenes Feld vollständig: auf das Seitenverhältnis zugeschnitten, Ecken und Rahmenlinie wie die übrigen Felder."""
-    im = PILImage.open(io.BytesIO(jpg)).convert("RGB")
-    ratio = w_pt / h_pt
-    cw, ch = (im.width, int(im.width / ratio)) if im.width / im.height < ratio else (int(im.height * ratio), im.height)
-    im = im.crop(((im.width - cw) // 2, (im.height - ch) // 2, (im.width - cw) // 2 + cw, (im.height - ch) // 2 + ch))
-    W_PX = 1000
-    im = im.resize((W_PX, int(W_PX / ratio)), PILImage.LANCZOS)
-    k = W_PX / w_pt                                  # Pixel je Punkt: Radius und Linienstärke wie bei den Tabellenfeldern
-    r, lw = int(RAD * k), max(2, int(.8 * k))
-    mask = PILImage.new("L", im.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, im.width - 1, im.height - 1], r, fill=255)
-    out = PILImage.new("RGB", im.size, "white"); out.paste(im, (0, 0), mask)
-    ImageDraw.Draw(out).rounded_rectangle([0, 0, im.width - 1, im.height - 1], r, outline="#4a5056", width=lw)
-    b = io.BytesIO(); out.save(b, "JPEG", quality=85); b.seek(0)
-    return b
-
-
 def info_tables(proj, rep):
     adr = ", ".join(x for x in (proj.get("street"), " ".join(y for y in (proj.get("zip"), proj.get("city")) if y)) if x)
     name = P(f"<font size=7.5 color='#6b7177'><b>BAUVORHABEN</b></font><br/><font size=15><b>{safe(proj['name'])}</b></font>"
              + (f"<br/><font size=8 color='#6b7177'>{safe(adr)}</font>" if adr else ""), 15, leading=19)
-    mp, foto = None, False
-    try:   # Foto des Bauvorhabens statt der Karte (im Bericht gewählt, extra.kopfbild)
-        import json
-        from . import storage
-        ex = proj.get("extra") or {}
-        kb = (json.loads(ex) if isinstance(ex, str) else ex).get("kopfbild")
-        pfad = storage.thumb(kb, 1200, square=False) if kb else None
-        if pfad:
-            with open(pfad, "rb") as fh:
-                mp, foto = fh.read(), True
-    except Exception:   # Foto ist nur Schmuck – sonst die Karte
-        mp, foto = None, False
-    try:
-        if not mp:
-            from . import staticmap
-            mp = staticmap.image(proj)       # dekorative, stark abgeflachte Karte; ohne Standort/Netz None
-    except Exception:   # Karte ist nur Schmuck (ohne Standort/Netz keine) – PDF trotzdem erstellen
-        mp = None
-    if mp:
-        mw, gap, hh = 56 * mm, 4 * mm, 22 * mm
-        left = Table([[name]], colWidths=[W - mw - gap], rowHeights=[hh], cornerRadii=[RAD] * 4)
-        left.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), .8, LINE), ("BACKGROUND", (0, 0), (-1, -1), SOFT), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                                  ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
-        att = Paragraph("" if foto else "<font size=5 color='#9a9fa6'>© OpenStreetMap-Mitwirkende</font>", ParagraphStyle("o", alignment=2, leading=6))
-        t1 = Table([[left, "", Image(map_field(mp, mw, hh), mw, hh)], ["", "", att]], colWidths=[W - mw - gap, gap, mw], rowHeights=[hh, 3.4 * mm])
-        t1.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
-                                ("BOTTOMPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
-    else:
-        t1 = Table([[name]], colWidths=[W], rowHeights=[17 * mm if not adr else 19 * mm], cornerRadii=[RAD] * 4)
-        t1.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), .8, LINE), ("BACKGROUND", (0, 0), (-1, -1), SOFT), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                                ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
+    t1 = Table([[name]], colWidths=[W], rowHeights=[17 * mm if not adr else 19 * mm], cornerRadii=[RAD] * 4)   # ohne Karte/Foto (gestrichen 11.11.2026)
+    t1.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), .8, LINE), ("BACKGROUND", (0, 0), (-1, -1), SOFT), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
     temp = f"{safe(rep['temp'])}&nbsp;°C" if rep["temp"] else ""
     sky = " ".join(x for x in (temp, safe(rep["weather"])) if x)
     wx = sky + (f" / {safe(rep['precip'])}" if rep["precip"] else "")

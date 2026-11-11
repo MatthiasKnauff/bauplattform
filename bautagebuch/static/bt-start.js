@@ -128,14 +128,6 @@ function photoPicked(e) {
 const addPicked = e => { addFiles.push(...e.target.files); e.target.value = ''; renderApv(); };
 $('#acam').onchange = addPicked; $('#alib').onchange = addPicked;
 $('#qcam').onchange = photoPicked; $('#qlib').onchange = photoPicked;
-document.addEventListener('error', (e) => { const i = e.target; if (i && i.matches && i.matches('.hmap img')) { const h = i.closest('.hmap'); i.closest('a').remove(); h.classList.add('leer'); const b = h.querySelector('.hmap-ed'); if (b && !b.querySelector('span')) b.insertAdjacentHTML('beforeend', '<span>Foto</span>'); } }, true);   // Karte/Foto nicht ladbar: nur der Knopf bleibt
-$('#kopfbildDatei').onchange = async (e) => {   // Foto statt Karte hochladen
-  const f = e.target.files[0], p = curProject(); e.target.value = ''; if (!f || !p) return;
-  const fd = new FormData(); fd.append('file', f);
-  try { const r = await fetch(`api/projects/${p.id}/kopfbild`, { method: 'POST', body: fd }), j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.error || 'Das Foto ließ sich nicht speichern.');
-    await loadProjects(); renderDetail(); toast('Das Foto steht jetzt statt der Karte im Bericht und in der PDF.'); } catch (er) { toast(er.message); }
-};
 function showSug(inp) {   // eigene Kontaktliste statt <datalist>: erscheint bei jedem Antippen/Tippen, nicht nur beim ersten Mal
   const box = inp.parentElement.querySelector('.sug'); if (!box) return;
   const q = inp.value.trim().toLowerCase(), hits = contacts.filter(c => (c.trade || '').trim().toLowerCase() !== 'baustelle').filter(c => !q || passt(c.name, q)).filter(c => c.name.toLowerCase() !== q).slice(0, 8);
@@ -302,13 +294,6 @@ document.addEventListener('click', async e => {
     if (r && r.undo) rueckgaengig('Bericht gelöscht.', async () => { const x = await api('api/reports/' + del + '/restore', 'POST', {}); if (x.error) { toast(x.error); return; } rid = del; await openProject(pid, true); toast('Bericht wiederhergestellt.'); });
   }
   else if (a === 'editHead') { headEdit = !headEdit; renderDetail(); }
-  else if (a === 'kopfbild') {   // Foto statt der kleinen Karte – und wieder zurück
-    const p = curProject(); if (!p) return;
-    const hat = !!(p.extra && p.extra.kopfbild);
-    const w = hat ? await bpFrage('Foto des Bauvorhabens\nEin anderes Foto wählen – oder wieder die Karte zeigen?', { ok: 'Anderes Foto …', drei: 'Wieder die Karte' }) : true;
-    if (w === 'drei') { try { await api(`api/projects/${p.id}/kopfbild`, 'DELETE'); await loadProjects(); renderDetail(); toast('Die Karte steht wieder im Bericht.'); } catch (er) { toast(er.message); } }
-    else if (w) $('#kopfbildDatei').click();
-  }
   else if (a === 'gps') fillGeo(false);
   else if (a === 'wxEdit') { wxEdit = !wxEdit; renderDetail(); }
   else if (a === 'adding') { adding = adding === b.dataset.kind ? null : b.dataset.kind; addFiles = []; if (adding) setSecOpen(adding, true); renderDetail(); renderApv(); }

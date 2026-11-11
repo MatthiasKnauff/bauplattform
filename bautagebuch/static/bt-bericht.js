@@ -132,13 +132,6 @@ const wxFelder = (r) => `<div class="wgrid kp-ed">
       <label>Luftfeuchtigkeit (%)<input data-f="humidity" inputmode="decimal" value="${esc(r.humidity)}"></label>
       <label>Wind (km/h)<input data-f="wind" inputmode="decimal" value="${esc(r.wind)}"></label>
       <label>PLZ<input data-f="plz" inputmode="numeric" value="${esc(r.plz)}"></label></div>`;
-const headMap = p => {   // dieselbe abgeflachte Karte wie in der PDF (Antippen = Route) – oder ein Foto des Bauvorhabens; der Stift daneben wechselt
-  if (!p) return '';
-  const kb = p.extra && p.extra.kopfbild, d = encodeURIComponent((addr(p) || p.lat + ',' + p.lon));
-  const bild = kb ? `<a href="uploads/${esc(kb)}" target="_blank" rel="noopener" title="Foto des Bauvorhabens – groß ansehen"><img src="api/projects/${p.id}/kopfbild.jpg?v=${esc(kb.slice(0, 8))}" alt="Foto des Bauvorhabens"></a>`
-    : hasPos(p) ? `<a href="https://www.google.com/maps/dir/?api=1&destination=${d}&travelmode=driving" target="_blank" rel="noopener" title="Route zur Baustelle planen"><img src="api/projects/${p.id}/map.jpg?v=${String(p.lat).slice(0, 7)}_${String(p.lon).slice(0, 6)}" alt="Karte"></a>` : '';
-  return `<div class="hmap${bild ? '' : ' leer'}">${bild}<button type="button" class="hmap-ed" data-act="kopfbild" title="${kb ? 'Anderes Foto wählen oder wieder die Karte zeigen' : 'Foto statt der Karte wählen'}" aria-label="Foto oder Karte wählen">${ic('pencil', 16)}${bild ? '' : '<span>Foto</span>'}</button></div>`;
-};
 function headSec(s, r) {
   const p = curProject();
   const felder = headEdit ? `<div class="wgrid kp-ed">
@@ -151,7 +144,7 @@ function headSec(s, r) {
   const W = meta.sections.find((x) => x.type === 'weather');
   const kurz = { chk_tidy: 'aufgeräumt', chk_photos: 'Fotos', chk_firms: 'Firmen angesprochen' };   // kurze Namen der Häkchen (voller Name im Tooltip)
   return `<div class="sec kopf" id="sec-${esc(s.key)}">
-    <div class="kp-1"><h3>${secIc(s)}<span class="st">${esc(s.title)}${r.number ? ` <span class="nr">Nr. ${esc(r.number)}</span>` : ''}</span></h3>${info}${headMap(p)}
+    <div class="kp-1"><h3>${secIc(s)}<span class="st">${esc(s.title)}${r.number ? ` <span class="nr">Nr. ${esc(r.number)}</span>` : ''}</span></h3>${info}
       <div class="kp-kn"><button data-act="addReport" title="Neuer Bericht">${ic('plus', 20, 3)}</button><button data-act="editHead" title="${headEdit ? 'Fertig' : 'Bericht bearbeiten (Datum, Uhrzeit, Bauleitung)'}">${headEdit ? '✓' : ic('pencil', 17)}</button><button data-act="delReport" title="Bericht löschen">${ic('trash', 17)}</button></div></div>${felder}
     <div class="kp-2">${W ? wxZeile(W, r) : ''}<div class="checks">${CHECKS.map(([k, l]) => `<label title="${esc(l)}"><input type="checkbox" data-f="${k}" ${r[k] ? 'checked' : ''}>${esc(kurz[k] || l)}</label>`).join('')}</div></div>${W && wxEdit ? wxFelder(r) : ''}
   </div><div id="vbox" class="vbox"></div>`;

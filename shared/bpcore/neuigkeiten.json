@@ -165,5 +165,12 @@
   "app": "kommunikation",
   "titel": "Abnahme: gesperrt erst mit Bauherr oder Unternehmer",
   "text": "Unterschreibt nur der Architekt, ist die Abnahme abgeschlossen und abgelegt, bleibt aber änderbar – „Erneut abschließen“ legt den neuen Stand ab. Sobald Bauherr oder Unternehmer unterschrieben hat, ist der Inhalt fest; Ergänzungen danach wie bisher als Nachtrag."
+ },
+ {
+  "id": "2026-11-11-handy-us",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Am PC öffnen, auf dem Handy unterschreiben",
+  "text": "In der PDF-Vorschau am PC: ✍ → „📱 Am Handy“ zeigt einen QR-Code. Mit dem Handy scannen, dort mit dem Finger unterschreiben – die Unterschrift erscheint im Dokument am PC."
  }
 ]

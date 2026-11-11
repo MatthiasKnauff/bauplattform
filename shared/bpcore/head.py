@@ -33,7 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
-from . import ablage, neuigkeiten, stempel, unterschrift
+from . import ablage, handyus, neuigkeiten, stempel, unterschrift
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -958,6 +958,7 @@ def blueprint(get_user=None):
             return jsonify(error="Bautagebuch nicht erreichbar: " + str(e)[:120]), 502
 
     ablage.routen(bp, user)   # Datei ablegen (alle Apps, Baustein head/ablegen.js) – bpcore/ablage.py
+    handyus.routen(bp, user)   # am Handy unterschreiben per QR-Code vom PC – bpcore/handyus.py
 
     # ---- Kontakt schnell anlegen (nach einer Sendung an eine Adresse, zu der es noch keinen Kontakt gibt)
     @bp.post("/api/bp/kontakt")

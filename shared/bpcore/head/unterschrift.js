@@ -19,6 +19,8 @@
 .bpu-b.pri{background:var(--y,#d4357f);border-color:var(--y,#d4357f);color:var(--on,#fff);font-weight:600}
 .bpu-m{position:absolute;z-index:31;background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(12px*var(--rk,1));box-shadow:var(--sh0,0 14px 34px rgba(0,0,0,.35));padding:.35rem;display:grid;gap:.1rem;min-width:260px;font-size:.9rem}
 .bpu-m button{display:flex;gap:.6rem;align-items:center;border:0;background:none;color:inherit;font:inherit;text-align:left;padding:.45rem .55rem;border-radius:8px;cursor:pointer}.bpu-m button:hover{background:var(--hov,rgba(0,0,0,.05))}
+.bpu-qr{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.45);display:grid;place-items:center}.bpu-qr .b{background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(14px*var(--rk,1));padding:1.1rem 1.3rem;max-width:340px;text-align:center;display:grid;gap:.5rem;justify-items:center;box-shadow:var(--sh0,0 14px 34px rgba(0,0,0,.35))}
+.bpu-qr img{width:220px;height:220px;background:#fff;padding:8px;border-radius:8px}.bpu-qr p{margin:0;font-size:.88rem;color:var(--mute,#666)}.bpu-qr .w{color:var(--ink,#222)}
 .bpu-m img{width:70px;height:28px;object-fit:contain;background:#fff;border:1px solid var(--line,#ddd);border-radius:4px}.bpu-m small{display:block;color:var(--mute,#666);font-size:.76rem}
 .bpu-m .g{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute,#666);padding:.35rem .55rem .1rem}
 .bpu-pad{position:fixed;inset:0;z-index:5000;background:var(--bg,#f3f2ef);display:flex;flex-direction:column;gap:.5rem;padding:calc(.6rem + env(safe-area-inset-top,0px)) calc(.8rem + env(safe-area-inset-right,0px)) calc(.6rem + env(safe-area-inset-bottom,0px)) calc(.8rem + env(safe-area-inset-left,0px))}
@@ -111,12 +113,39 @@
     });
   }
 
+  /* PC: auf dem Handy unterschreiben – QR-Code zeigen, warten, bis das Handy die Unterschrift schickt (bpcore/handyus.py) */
+  function handy() {
+    return new Promise(async (fertig) => {
+      const j = await fetch('api/bp/handy-us', { method: 'POST', credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({}));
+      if (!j.token) { if (window.toast) toast(j.error || 'Das ging gerade nicht.', true); fertig(null); return; }
+      const url = new URL('bp/hu/' + j.token, location.href).href;
+      const d = document.createElement('div'); d.className = 'bpu-qr';
+      d.innerHTML = `<div class="b"><b>Auf dem Handy unterschreiben</b><img alt="QR-Code" src="api/bp/qr?text=${encodeURIComponent(url)}">
+        <p>Mit der Kamera des Handys scannen, dort unterschreiben – die Unterschrift erscheint dann hier. Gilt 10 Minuten.</p>
+        <p class="w">⏳ Warte auf das Handy …</p><button type="button" class="bpu-b">Abbrechen</button></div>`;
+      document.body.appendChild(d);
+      let aus = false;
+      const zu = (v) => { aus = true; d.remove(); fertig(v); };
+      d.querySelector('button').onclick = () => zu(null);
+      const t0 = Date.now();
+      while (!aus) {
+        await new Promise((ok) => setTimeout(ok, 2000)); if (aus) return;
+        if (Date.now() - t0 > 600000) { if (window.toast) toast('Abgelaufen – bitte neu anfangen.', true); zu(null); return; }
+        const s = await fetch('api/bp/handy-us/' + j.token, { credentials: 'same-origin' }).then((r) => r.json()).catch(() => ({}));
+        if (s.error) { if (window.toast) toast(s.error, true); zu(null); return; }
+        if (s.fertig) { const b = await fetch('api/bp/handy-us/' + j.token + '?png=1', { credentials: 'same-origin' }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+          zu(b ? { blob: b, handy: true } : null); return; }
+      }
+    });
+  }
+
   /* PC: Auswahl */
   function auswahl(knopf, el) {
     return new Promise((fertig) => {
       const m = document.createElement('div'); m.className = 'bpu-m';
       m.innerHTML = `<div class="g">Unterschrift wählen</div><button type="button" data-u="meine"><img alt="" src="api/bp/signatur?t=${Date.now()}"><span>Meine Unterschrift<small>aus „Mein Konto“</small></span></button>
         <button type="button" data-u="zeichnen"><span style="font-size:1.2rem;width:70px;text-align:center">✍</span><span>Selbst zeichnen<small>mit Maus, Stift oder Touchscreen</small></span></button>
+        <button type="button" data-u="handy"><span style="font-size:1.2rem;width:70px;text-align:center">📱</span><span>Auf dem Handy unterschreiben<small>QR-Code scannen, dort mit dem Finger</small></span></button>
         <button type="button" data-u="x"><span style="width:70px"></span><span>Abbrechen</span></button>`;
       el.appendChild(m);
       m.querySelector('img').addEventListener('error', (e) => { e.target.style.visibility = 'hidden'; });
@@ -125,6 +154,7 @@
       m.addEventListener('click', async (e) => { const b = e.target.closest('[data-u]'); if (!b) return; m.remove();
         if (b.dataset.u === 'meine') fertig({ meine: true });
         else if (b.dataset.u === 'zeichnen') fertig(await pad());
+        else if (b.dataset.u === 'handy') fertig(await handy());
         else fertig(null); });
     });
   }
@@ -169,7 +199,7 @@
     const name = (H && H.me && (H.me.full || H.me.name)) || '';
     const bar = document.createElement('div'); bar.className = 'bpu-bar';
     bar.innerHTML = `<span>Unterschrift verschieben, an der Ecke größer ziehen · auf eine Seite tippen setzt sie dorthin</span>
-      <label><input type="checkbox" data-u="txt"${!wahl.stempel || wahl.stempel === 'pruef' ? ' checked' : ''}> Name und Datum eintragen</label><button type="button" class="bpu-b" data-u="anders">✍ Anders unterschreiben</button><button type="button" class="bpu-b" data-u="stempel">🔖 Stempel</button><button type="button" class="bpu-b" data-u="ab">Abbrechen</button><button type="button" class="bpu-b pri" data-u="ok">Übernehmen</button>`;
+      <label><input type="checkbox" data-u="txt"${!wahl.stempel || wahl.stempel === 'pruef' ? ' checked' : ''}> Name und Datum eintragen</label><button type="button" class="bpu-b" data-u="anders">✍ Anders unterschreiben</button>${TOUCH() ? '' : '<button type="button" class="bpu-b" data-u="handy" title="QR-Code scannen und auf dem Handy unterschreiben">📱 Am Handy</button>'}<button type="button" class="bpu-b" data-u="stempel">🔖 Stempel</button><button type="button" class="bpu-b" data-u="ab">Abbrechen</button><button type="button" class="bpu-b pri" data-u="ok">Übernehmen</button>`;
     el.appendChild(bar);
     const ende = () => { S.removeEventListener('click', tipp, true); sig.remove(); bar.remove(); URL.revokeObjectURL(src); };
     bar.addEventListener('click', async (e) => { const b = e.target.closest('button[data-u]'); if (!b) return;
@@ -181,6 +211,7 @@
         const r = await fetch('api/bp/stempel/' + art, { credentials: 'same-origin' }); if (!r.ok) return;
         blob = await r.blob(); wahl = { stempel: art }; rot = locker(); bar.querySelector('[data-u="txt"]').checked = art === 'pruef';   // Prüfstempel: Datum und Name gleich eintragen
         Object.assign(P, { w: 0.3, h: 0.12 }); URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }
+      if (b.dataset.u === 'handy') { const w = await handy(); if (!w) return; rot = 0; blob = w.blob; wahl = w; URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }
       if (b.dataset.u === 'anders') { const w = await pad(); if (!w) return; rot = 0;
         if (w.meine) { const r = await fetch('api/bp/signatur', { credentials: 'same-origin' }); if (!r.ok) { if (window.toast) toast('Noch keine Unterschrift in „Mein Konto“.', true); return; } blob = await r.blob(); wahl = { meine: true }; }
         else { blob = await w.blob; wahl = w; }

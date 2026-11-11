@@ -25,3 +25,9 @@ def test_unterschrift_auf_seite_zwei():
     pruefe("Seite zwei" in rd.pages[1].extract_text() and "Test · 11.11.2026" in rd.pages[1].extract_text(), "Inhalt und Name/Datum auf Seite 2")
     pruefe("Test" not in rd.pages[0].extract_text(), "Seite 1 unverändert")
     pruefe(len(rd.pages[1]["/Resources"]["/XObject"]) >= 1, "Bild der Unterschrift eingebettet")
+
+
+def test_qr_code_fuer_das_handy():
+    from bpcore import handyus
+    s = handyus.qr_svg("https://bauportal.example/bp/hu/abcdefghijklmnopqrstuvwx")
+    pruefe(s.lstrip().startswith("<?xml") and "<svg" in s and len(s) > 2000, "QR-Code als SVG")

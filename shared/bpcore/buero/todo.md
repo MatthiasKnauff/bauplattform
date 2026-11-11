@@ -18,12 +18,12 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
    - Abnahme, Rest: Standort beim Unterschreiben, mehrere Fotos auf einmal aus der Galerie, Abnahme auch aus dem Auftrag in der AVA starten. **ca. 20–30 min**
 8. ~~PDF- und Foto-Ansicht am Handy und am PC wie der Standard-Viewer~~
 9. Neue App „Bauantrag“: aktuelle Antragsformulare je Bundesland (NRW: Anlagen zur VV BauPrüfVO von bauportal.nrw, neue Fassungen werden gemeldet), Assistent, Felder aus Projekt, Adressen, Kataster und Baukosten; am Ende ein bearbeitbares PDF, Änderungen darin fließen in die Datenbank zurück – erst Mock. **ca. 4–6 h in mehreren Runden (je weiteres Bundesland ca. 1 h); die amtlichen Formular-PDFs müsst ihr einmal hochladen – von hier aus kann ich sie nicht herunterladen**
-10. Honorar: Versionen je Auftrag wie in Baukosten/AVA – „Neues Angebot“ kopiert die Version, eine Version „gilt“ (beauftragt), PDF mit Versionsnamen – wartet auf: je Auftrag oder je Projekt. **ca. 20–30 min**
+10. Honorar: Versionen wie in Baukosten/AVA – wahlweise je Auftrag oder je Projekt, auch mitten drin umstellbar (entschieden 11.11.); „Neues Angebot“ kopiert die Version, eine Version „gilt“, PDF mit Versionsnamen. **ca. 30–45 min**
 11. Verträge: Architekten-/Ingenieurvertrag aus Honorar, Auftragsschreiben/Bauvertrag aus der AVA-Vergabe, auf dem Briefbogen; Ablage in einem eigenen Vertragsverzeichnis, Zugangsdaten trägt der Geschäftsführer selbst ein (nie im Browser sichtbar) – wartet auf: eigene Freigabe oder geschützter Unterordner; erst Mock. **ca. 2–3 h**
 12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 h**
 16. Stempel auf Nachfrage an den passenden Stellen anbieten (Rechnungsprüfung → Prüfstempel/„Zahlbetrag siehe Anlage“, Abnahme/Schreiben → Bürostempel) – sobald die Stempel hochgeladen sind. **ca. 20–30 min**
-14. Unterschreiben – Rest: freigegebene Unterschriften (GF i. V.), „Auf dem Handy unterschreiben“ per QR vom PC, unterschriebenes PDF direkt in Versand/Ablage der App übernehmen, Eintrag im Verlauf – wartet auf deine Entscheidung. **ca. 1 h**
-13. Widget „Datei ablegen“ auf der Startseite: Kopierer-Ordner immer überwachen, Scans lesen und in die Projektdokumente ablegen – wartet auf: vorschlagen oder selbst ablegen; erst Mock. **ca. 1–1,5 h**
+14. Unterschreiben – Rest: unterschriebenes PDF direkt in Versand/Ablage der App übernehmen, Eintrag im Verlauf (Unterschrift des GF „i. V.“: nein, entschieden 11.11.). **ca. 20 min**
+13. Widget „Datei ablegen“ auf der Startseite: Kopierer-Ordner überwachen, Scans per Texterkennung (OCR) lesen und den Ablageort nur vorschlagen – abgelegt wird erst nach Bestätigung (entschieden 11.11.). **ca. 1 h**
 
 Summe Sammlung (offen): ca. 12–16 h.
 
@@ -61,6 +61,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Unterschreiben am Handy per QR-Code vom PC: ✍ → „📱 Am Handy“, Unterschrift erscheint im PDF am PC~~
 - ~~Stempel werden beim Hochladen gerade ausgerichtet (Schräglage gemessen), schräg erst beim Einsetzen~~
 - ~~Prüfstempel: „geprüft am“ und „von“ werden beim Einsetzen mit Datum und Namen ausgefüllt~~
 - ~~To-dos: neue ohne Datum ganz oben, sonst nach Fälligkeit; in der App sortierbar (Fälligkeit, Neueste, Projekt, Titel)~~

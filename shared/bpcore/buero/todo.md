@@ -59,6 +59,7 @@ Summe Sammlung: ca. 4–5 Tage.
 
 ## Erledigt
 
+- ~~Bautagebuch: beim Springen zu „Mangel“ rutschte die ganze Seite samt Kopf und Leiste weg – die Seite rollt jetzt nie, nur die Bereiche~~
 - ~~Dateiserver nachts aufräumen: alte „_old“-Stände der Bautagebuch-Ablage gegen 2 Uhr nach Einstellung (abschaltbar, Ergebnis in den Einstellungen)~~
 - ~~Apps-Menü: kleinere Eckdreiecke „in neuem Tab“~~
 - ~~Bauzeitenplan: Fortschritt in der Befehlsleiste in 25er-Stufen mit kleinem Schieber~~

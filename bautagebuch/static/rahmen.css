@@ -3,6 +3,7 @@
 #btR,#rechts,#work{display:contents}
 #navL,#bfl,.bp-nav-griff,#work>.sr-r,#work>.sr-griff{display:none}
 body.bt-rahmen #leiste,body.bt-rahmen #fab,body.bt-rahmen .btside,body.bt-rahmen .bwz-bar,body.bt-rahmen .kp-kn{display:none!important}
+html:has(body.bt-rahmen),body.bt-rahmen{overflow:hidden;overscroll-behavior:none}   /* nur die Bereiche rollen – nie die ganze Seite (sonst rutschen Kopf und Leiste beim Springen zu einem Abschnitt weg) */
 body.bt-rahmen #btR{display:flex;flex:1;min-height:0}
 body.bt-rahmen #navL{display:block;width:250px;flex:none;min-height:0}
 body.bt-rahmen .bp-nav-griff{display:block}

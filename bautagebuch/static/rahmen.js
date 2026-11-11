@@ -26,6 +26,10 @@
   const svg = (n) => IC[n] || IC.doc;
   const tag = (d) => (d ? new Date(d + 'T12:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) : '');
 
+  // Die Seite selbst rollt nie (nur die Bereiche): springt der Browser beim Fokussieren oder „scrollIntoView“ doch, sofort zurück
+  addEventListener('scroll', () => { if (document.body.classList.contains('bt-rahmen') && (scrollX || scrollY)) scrollTo(0, 0); }, { passive: true });
+  document.addEventListener('scroll', (e) => { const t = e.target; if (t === document.body && document.body.classList.contains('bt-rahmen') && t.scrollTop) t.scrollTop = 0; }, { capture: true, passive: true });
+
   /* ---------- Navigation links ---------- */
   let kOff = 0, kRid = null;   // Monat des Kalenders (relativ zum Bericht)
   const amTag = (d) => reports.filter((x) => x.date === d).sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')) || a.number - b.number);

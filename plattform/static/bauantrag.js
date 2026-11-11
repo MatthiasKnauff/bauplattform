@@ -65,8 +65,11 @@ function formInfo(I, fehler) {
   el.innerHTML = fehler ? `⚠ ${esc(fehler)}` : `<b>Anlage ${esc(I.nr)}</b> ${esc(I.titel)} · Fassung ${esc(I.fassung || '–')}<br>`
     + (I.felder ? `${I.gefuellt} von ${I.felder} Formularfeldern ausgefüllt – den Rest im PDF ergänzen.` : 'Das Formular hat keine ausfüllbaren Felder – es wird leer ausgegeben, bitte von Hand ausfüllen.');
 }
+let BEREICH = null;   // Bereich rechts nur beim Wechsel des Antrags neu aufbauen – sonst springt „Im PDF ausfüllen“ nach jedem Klick an den Anfang
 function bereich() {
   if (!window.seite || HANDY.matches) return;
+  if (BEREICH === AID && WORK.dataset.sr === 'ba' && WORK.querySelector(':scope > .sr-r .sr-b, :scope > .sr-r .sr-aufs')) return;   // Werte trägt ausAktualisieren nach, die Vorschau vorschau()
+  BEREICH = AID;
   seite(WORK, 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } },
     { id: 'aus', titel: 'Im PDF ausfüllen', mount: (el) => { el.classList.add('bap-aus'); ausfuellenIn(el); } }], { start: 'pdf', w: 0.5, minL: 520 });
 }

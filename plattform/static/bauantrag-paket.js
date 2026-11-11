@@ -174,7 +174,7 @@ async function ausMalen(el) {
       if (f.typ === 'kreuz') x.classList.toggle('an', !!f.wert); else if (x.value !== f.wert) x.value = f.wert; });
     return;
   }
-  const leer = !I.felder.length;
+  const leer = !I.felder.length, sc = box.closest('.sr-b, .bap-ausv') || box, top = alt ? sc.scrollTop : 0;   // derselbe Vordruck neu gezeichnet: an derselben Stelle bleiben
   box.innerHTML = (leer ? '<p class="ba-hilfe">Dieser Vordruck hat keine Formularfelder – Werte mit „Platzieren …“ in Schritt 1 setzen, dann sind sie hier änderbar.</p>' : '')
     + I.seiten.map((v, n) => `<div class="bap-ap" data-k="${key}" data-n="${I.felder.length}" style="aspect-ratio:${v}"><img alt="Seite ${n + 1}" loading="lazy" src="api/antraege/${AID}/platzierung/${key}/seite/${n}.png">
       ${I.felder.map((f, i) => f.seite !== n ? '' : f.typ === 'kreuz'
@@ -182,6 +182,7 @@ async function ausMalen(el) {
         : f.mehrzeilig ? `<textarea class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">${esc(f.wert)}</textarea>`
         : `<input class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" value="${esc(f.wert)}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">`).join('')}</div>`).join('');
   box._felder = I.felder;
+  if (top) sc.scrollTop = top;
   const groesse = () => box.querySelectorAll('.bap-ap').forEach((p) => p.style.setProperty('--ph', p.clientHeight + 'px'));
   groesse(); new ResizeObserver(groesse).observe(box);
 }

@@ -81,6 +81,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag „Im PDF ausfüllen“: Klick auf ein Kästchen (z. B. Gebäudeklasse 2) sprang an den Anfang – der Bereich rechts wird nur noch beim Wechsel des Antrags neu aufgebaut~~
 - ~~Ausschreibung: Vorbemerkungen der Bauplattform als Katalog in der Kopierquelle – je Abschnitt ins LV ziehen (Art V, Druck über das Druck-Layout abschaltbar)~~
 - ~~Bauantrag: selbst hochgeladene Formulare löschen (Papierkorb, Rückgängig)~~
 - ~~Ausschreibung: „Allgemeine Vorbemerkungen“ (eigener, recherchierter Text) als erster Baustein unter „+ aus den Baudaten einfügen …“~~

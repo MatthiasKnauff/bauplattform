@@ -198,3 +198,38 @@ function renderReport(box) {
   if (!BWZ.open) document.querySelector('[data-add]')?.focus(); growAll(); loadVer();
   if (BWZ.open) bwzRender();
 }
+
+/* ---------- Drucken: dieser Bericht, im Kalender markierte (Umschalt + Klick), Zeitraum oder alle Berichte des Projekts ----------
+   Ein Bericht: wie bisher (PDF wird erzeugt und abgelegt). Mehrere: ein gemeinsames PDF zum Ansehen und Drucken – ohne Ablage. */
+let btMark = null;   // {von, bis} – im Kalender mit Umschalt markierter Zeitraum
+const drN = (n) => (n === 1 ? '1 Bericht' : n + ' Berichte');
+const drAnz = (von, bis) => reports.filter((x) => x.date && x.date >= von && x.date <= bis).length;
+function druckDialog() {
+  const p = curProject(), r = curReport(); if (!p) return;
+  const D = reports.map((x) => x.date).filter(Boolean).sort(), erst = D[0] || todayISO(), letzt = D[D.length - 1] || todayISO();
+  const mk = btMark, art0 = mk ? 'mark' : r ? 'eins' : 'zeit';
+  const opt = (v, t, k) => `<label class="bt-drw"><input type="radio" name="drArt" value="${v}"${v === art0 ? ' checked' : ''}><span><b>${t}</b>${k ? `<small>${k}</small>` : ''}</span></label>`;
+  modalBox(`<h3>Drucken</h3><div class="bt-dr">
+    ${r ? opt('eins', 'Dieser Bericht', `${r.number != null ? 'Nr. ' + esc(r.number) + ' · ' : ''}${fmt(r.date)} – wird als PDF abgelegt`) : ''}
+    ${mk ? opt('mark', 'Im Kalender markiert', `${fmt(mk.von)} – ${fmt(mk.bis)} · ${drN(drAnz(mk.von, mk.bis))}`) : ''}
+    ${opt('zeit', 'Zeitraum', '')}<div class="bt-drz"><input type="date" id="drVon" value="${esc(mk ? mk.von : r ? r.date : erst)}" aria-label="von"><span>bis</span><input type="date" id="drBis" value="${esc(mk ? mk.bis : r ? r.date : letzt)}" aria-label="bis"><small id="drN"></small></div>
+    ${opt('alle', 'Alle Berichte des Projekts', `${drN(reports.length)} · ${fmt(erst)} – ${fmt(letzt)}`)}
+    <label class="bt-drf"><input type="checkbox" id="drFoto" checked> mit Fotos</label>
+    <p class="hint">Mehrere Berichte kommen in ein gemeinsames PDF – nur zum Ansehen und Drucken, abgelegt wird es nicht. Tipp: Im Kalender einen Tag anklicken und mit gedrückter Umschalttaste einen zweiten – das markiert den Zeitraum.</p></div>
+    <div class="acts"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">PDF erstellen</button></div>`,
+  async (m, bg, close) => {
+    if (m !== 'ok') { close(); return; }
+    const art = bg.querySelector('[name=drArt]:checked').value, foto = bg.querySelector('#drFoto').checked ? '' : '&fotos=0';
+    if (art === 'eins') { close(); los0('print'); return; }
+    let von = erst, bis = letzt;
+    if (art === 'mark') ({ von, bis } = mk); else if (art === 'zeit') { von = bg.querySelector('#drVon').value; bis = bg.querySelector('#drBis').value; if (von > bis) [von, bis] = [bis, von]; }
+    if (!drAnz(von, bis)) { toast('Im gewählten Zeitraum gibt es keinen Tagesbericht.'); return; }
+    close(); await Promise.allSettled([...saving]);
+    const u = `api/projects/${p.id}/berichte.pdf?von=${von}&bis=${bis}${foto}`;
+    if (isStandalone()) openPdf(u); else { const w = window.open(u, '_blank'); if (!w) location.href = u; }
+  });
+  const bg = [...document.querySelectorAll('.modal-bg')].pop(), zahl = () => { const a = bg.querySelector('#drVon').value, b = bg.querySelector('#drBis').value, n = drAnz(a < b ? a : b, a < b ? b : a); bg.querySelector('#drN').textContent = drN(n); };
+  bg.addEventListener('input', (e) => { if (e.target.closest('.bt-drz')) { bg.querySelector('[name=drArt][value=zeit]').checked = true; zahl(); } });
+  zahl();
+}
+const los0 = (act) => { const b = document.createElement('button'); b.hidden = true; b.dataset.act = act; document.body.appendChild(b); b.click(); b.remove(); };

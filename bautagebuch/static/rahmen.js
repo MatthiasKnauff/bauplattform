@@ -36,7 +36,7 @@
     let g = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((t) => `<i>${t}</i>`).join('') + '<span></span>'.repeat(vor);
     for (let t = 1; t <= tage; t++) {
       const k = iso(t), L = amTag(k), x = (r && L.find((z) => z.id === r.id)) || L[0];
-      g += x ? `<button type="button" class="${r && r.date === k ? 'on' : ''}${L.length > 1 ? ' zwei' : ''}${k === heute ? ' heute' : ''}" data-act="pickReport" data-id="${x.id}" title="${L.length > 1 ? L.length + ' Berichte' : 'Bericht Nr. ' + esc(x.number)}">${t}</button>`
+      g += x ? `<button type="button" class="${r && r.date === k ? 'on' : ''}${L.length > 1 ? ' zwei' : ''}${k === heute ? ' heute' : ''}${btMark && k >= btMark.von && k <= btMark.bis ? ' mk' : ''}" data-act="pickReport" data-id="${x.id}" title="${L.length > 1 ? L.length + ' Berichte' : 'Bericht Nr. ' + esc(x.number)}">${t}</button>`
         : `<span class="${k === heute ? 'heute' : ''}">${t}</span>`;
     }
     return `<div class="bcal bt-kal"><div class="bcal-h"><button type="button" data-btkm="-1" aria-label="Voriger Monat">‹</button><b>${m.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</b><button type="button" data-btkm="1" aria-label="Nächster Monat">›</button></div><div class="bcal-g">${g}</div></div>`;
@@ -64,6 +64,17 @@
     POP.innerHTML = `<button type="button" class="bt-kalzu" data-btkzu title="Schließen">✕</button>${kalender(r)}${tagesBerichte(r)}`;
   }
   NAV.addEventListener('click', (e) => { if (e.target.closest('[data-btkal]')) kalPop(!POP); });
+  /* Umschalt + Klick im Kalender: Zeitraum vom geöffneten Bericht bis zu diesem Tag markieren (zum Drucken mehrerer Berichte) */
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('.bt-kal [data-act="pickReport"]'); if (!b) return;
+    if (!e.shiftKey) { btMark = null; return; }
+    e.preventDefault(); e.stopPropagation();
+    const r = curReport(), x = reports.find((y) => y.id === +b.dataset.id); if (!r || !x) return;
+    const a = (btMark && btMark.anker) || r.date;
+    btMark = { anker: a, von: a < x.date ? a : x.date, bis: a < x.date ? x.date : a };
+    navNeu(); if (POP) kalPop(true); leisteNeu();
+    toast(`${drN(drAnz(btMark.von, btMark.bis))} markiert – „Drucken“ erstellt ein gemeinsames PDF.`);
+  }, true);
   const anzahl = (s, r) => s.type === 'list' ? r.items.filter((i) => i.kind === s.key).length : s.type === 'images' ? r.images.length : s.type === 'weather' ? (r.temp || r.weather ? 1 : 0) : 1;
   function navNeu() {
     const p = curProject(), r = p ? curReport() : null;
@@ -111,7 +122,7 @@
       { titel: 'Bericht', knoepfe: [bwzPrefs().on ? K('bwzStart', 'Schritt für Schritt', 'send', 'Bericht Schritt für Schritt ausfüllen', { aus: kein }) : null,
         K('editHead', headEdit ? 'Fertig' : 'Kopfdaten', 'pencil', 'Nummer, Datum, Uhrzeit, Bauleitung', { aus: kein }), K('delReport', 'Löschen', 'trash', 'Diesen Tagesbericht löschen', { aus: kein, rot: true })] },
       { titel: 'Finden', rechts: true, html: '<span class="bt-such"></span>', knoepfe: [K('nearest', 'Standort', 'pin', 'Projekt nach Standort wählen')] },
-      { titel: 'Ausgabe', rechts: true, knoepfe: [K('print', 'PDF', 'pdf', 'PDF des Tagesberichts erstellen und ablegen', { aus: kein }), K('verToggle', 'Verlauf', 'clock', 'Frühere Stände des Berichts', { aus: kein })] },
+      { titel: 'Ausgabe', rechts: true, knoepfe: [K('print', 'PDF', 'pdf', 'PDF des Tagesberichts erstellen und ablegen', { aus: kein }), K('druck', btMark ? `Drucken (${drAnz(btMark.von, btMark.bis)})` : 'Drucken', 'doc', 'Mehrere Berichte drucken: Zeitraum, im Kalender markierte (Umschalt + Klick) oder alle', { aus: !reports.length }), K('verToggle', 'Verlauf', 'clock', 'Frühere Stände des Berichts', { aus: kein })] },
     ];
   }
   let sig = '';

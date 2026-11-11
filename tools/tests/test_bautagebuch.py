@@ -484,6 +484,26 @@ def test_bt_kontakte_export(ctx):
     ctx.admin.get(_a("/contacts/export.pdf?trade=Elektro")).ist_pdf()
 
 
+def test_bt_mehrere_berichte_drucken(ctx):
+    """Drucken mehrerer Berichte: Zeitraum oder Auswahl in einem PDF (Name mit „bis“), ohne Version und Ablage; fremde Projekte gesperrt."""
+    anna = _leader_id(ctx, "Anna Bauer")
+    pid, name = _projekt(ctx, leaders=[anna])
+    try:
+        r1 = _bericht_neu(ctx.admin, pid, date="2026-09-01")
+        r2 = _bericht_neu(ctx.admin, pid, date="2026-09-03")
+        _bericht_neu(ctx.admin, pid, date="2026-09-20")
+        k = name.split()[0]
+        a = ctx.admin.get(_a(f"/projects/{pid}/berichte.pdf?von=2026-09-01&bis=2026-09-10&fotos=0")).ist_pdf()
+        pruefe(f'filename="{k}_BT_2026-09-01_bis_2026-09-03.pdf"' in (a.headers.get("Content-Disposition") or ""), f"Name: {a.headers.get('Content-Disposition')}")
+        a = ctx.admin.get(_a(f"/projects/{pid}/berichte.pdf?ids={r2}")).ist_pdf()
+        pruefe(f'filename="{k}_BT_2026-09-03.pdf"' in (a.headers.get("Content-Disposition") or ""), "ein Bericht über ids: Name ohne „bis“")
+        gleich(ctx.admin.gj(_a(f"/reports/{r1}/versions"))["status"], "never", "Sammel-PDF legt keine Version an")
+        ctx.admin.get(_a(f"/projects/{pid}/berichte.pdf?von=2027-01-01&bis=2027-12-31"), expect=404)
+        ctx.anmelden("Bernd Krämer").get(_a(f"/projects/{pid}/berichte.pdf"), expect=403)
+    finally:
+        _weg(ctx, pid)
+
+
 # ------------------------------------------------------------------------------------------------ Rechte
 def test_bt_rechte_bauleiter(ctx):
     """Projekt mit eingetragenen Bauleitern sehen nur diese (und Administratoren) – auch nicht über Bericht, PDF, Suche."""

@@ -354,6 +354,7 @@ document.addEventListener('click', async e => {
   }
   else if (a === 'delImg') { const r = await api('api/images/' + id, 'DELETE'); openProject(pid, true);
     if (r && typeof r.papierkorb === 'number') rueckgaengig('Foto im Papierkorb.', async () => { const w = await api(`api/bp/papierkorb/${r.papierkorb}/zurueck`, 'POST'); if (w.error) { toast(w.error); return; } openProject(pid, true); }); }
+  else if (a === 'druck') druckDialog();
   else if (a === 'print') {
     if (!rid) { toast('Lege zuerst einen Tagesbericht an.'); return; }
     if (isStandalone()) { await Promise.allSettled([...saving]); await openPdf('api/reports/' + rid + '/pdf'); ablageMelden(); return; }   // Startbildschirm-App: eigene Ansicht mit Schließen-Knopf

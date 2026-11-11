@@ -495,3 +495,11 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .kopf+.vbox{margin:.1rem .3rem .6rem}
 @media(max-width:900px){.kp-1{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t k" "m b";row-gap:.4rem}.kp-1>.hm .kp-adr{display:inline-flex}.kopf .hmap img{width:64px;height:44px}.kopf .checks{margin-left:0}.kp-wx{flex:1 1 100%}.kp-wx .wl{flex:1}.vl-lang{display:none}}
 .fs-p .bp-pz{min-width:13rem}.fs-p .bp-pz-s button[data-soll]{box-shadow:inset 0 -2px 0 var(--mute)}
+/* Drucken (mehrere Berichte) */
+.bt-dr{display:grid;gap:.45rem}
+.bt-drw{display:flex;gap:.6rem;align-items:flex-start;padding:.45rem .6rem;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));cursor:pointer}
+.bt-drw:has(input:checked){border-color:var(--y)}
+.bt-drw input{margin-top:.2rem;accent-color:var(--y)}.bt-drw span{display:grid;gap:.1rem}.bt-drw small{color:var(--mute)}
+.bt-drz{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:-.2rem 0 .2rem 2rem}.bt-drz small{color:var(--mute)}
+.bt-drf{display:flex;gap:.5rem;align-items:center;margin-top:.3rem}.bt-drf input{accent-color:var(--y)}
+.bt-kal .bcal-g button.mk{background:color-mix(in srgb,var(--y) 28%,transparent)}

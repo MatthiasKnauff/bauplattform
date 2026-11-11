@@ -275,7 +275,7 @@ def formular_hochladen():
     try:
         with db.tx() as c:
             BF.hochladen(c, land, request.form.get("nr"), request.form.get("titel") or (f.filename or "").rsplit(".", 1)[0], f.read(BF.MAX_PDF + 1),
-                         g.user["name"], request.form.get("id", type=int))
+                         g.user["name"], request.form.get("id", type=int), f.filename or "")
     except ValueError as e:
         return jsonify(error=str(e)), 400
     C.audit(g.user["name"], KEY, "Formular hochgeladen", f"{land} {request.form.get('nr') or ''} {request.form.get('titel') or ''}")

@@ -190,19 +190,38 @@ def liste(c, land):
     return F
 
 
-def hochladen(c, land, nr, titel, daten, wer, fid=None):
+RÖMISCH = {"1": "I", "2": "II", "3": "III", "i": "I", "ii": "II", "iii": "III"}
+
+
+def nr_raten(*texte):
+    """Anlage aus Titel oder Dateiname erkennen: „Anlage I-2 …“, „Anlage I/2“, „mb2026-220-anlage1.2.pdf“ (AKNW),
+    „anlage_i_4_werbeanlage.pdf“, „…_a_anlageii4.pdf“ (recht.nrw.de) → „I/2“, „I/4“, „II/4“; sonst ''."""
+    for t in texte:
+        t = str(t or "")
+        m = re.search(r"Anlage\s+([IVX]+)\s*[/-]\s*(\d+(?:\.\d+)*)", t)
+        if m:
+            return f"{m.group(1)}/{m.group(2)}"
+        m = re.search(r"anlage[\s_-]*(iii|ii|i|[123])[\s_.-]*(\d+(?:[._]\d+)?)(?![\d])", t, re.I)
+        if m:
+            return f"{RÖMISCH[m.group(1).lower()]}/{m.group(2).replace('_', '.')}"
+    return ""
+
+
+def hochladen(c, land, nr, titel, daten, wer, fid=None, dateiname=""):
     """Formular selbst hochladen (wenn das Portal nicht mehr lesbar ist oder ein Vordruck fehlt). fid: diesen Eintrag ersetzen."""
     daten = bytes(daten or b"")
     if not daten.startswith(b"%PDF"):
         raise ValueError("Bitte eine PDF-Datei wählen.")
     if len(daten) > MAX_PDF:
         raise ValueError("Die Datei ist größer als 15 MB.")
-    nr = re.sub(r"\s+", "", str(nr or ""))[:20]
+    nr = re.sub(r"\s+", "", str(nr or "")).replace("-", "/")[:20] or nr_raten(titel, dateiname)
     sha = hashlib.sha256(daten).hexdigest()
     fassung = "hochgeladen " + datetime.now().strftime("%d.%m.%Y")
     if fid:
-        c.execute("UPDATE bauantrag_formular SET daten=?, sha256=?, groesse=?, fassung=?, status='aktuell', url='', geaendert=?, titel=COALESCE(NULLIF(?, ''), titel) WHERE id=? AND land=?",
-                  (daten, sha, len(daten), fassung, _jetzt(), str(titel or "")[:300], fid, land))
+        c.execute("UPDATE bauantrag_formular SET daten=?, sha256=?, groesse=?, fassung=?, status='aktuell', url='', geaendert=?, titel=COALESCE(NULLIF(?, ''), titel), "
+                  "nr=COALESCE(NULLIF(?, ''), nr) WHERE id=? AND land=?", (daten, sha, len(daten), fassung, _jetzt(), str(titel or "")[:300], nr, fid, land))
+        if nr and not c.execute("SELECT 1 FROM bauantrag_formular WHERE land=? AND schluessel=? AND id<>?", (land, nr, fid)).fetchone():
+            c.execute("UPDATE bauantrag_formular SET schluessel=? WHERE id=?", (nr, fid))   # später vom Portal: derselbe Eintrag
         return fid
     key = nr or "upl:" + sha[:12]
     r = c.execute("SELECT id FROM bauantrag_formular WHERE land=? AND schluessel=?", (land, key)).fetchone()
@@ -260,7 +279,15 @@ def formular_fuer(c, verfahren, werte, land="NW"):
     """Welche Anlage gilt: Freistellung → I/3; Sonderbau → I/1 (Baugenehmigungsverfahren); sonst I/2 (vereinfachtes Verfahren,
     auch für den Vorbescheid). → Zeile mit daten oder None."""
     nr = "I/3" if verfahren == "freistellung" else "I/1" if (werte.get("sonderbau") == "ja" or "Sonderbau" in (werte.get("verfahrensart") or "")) else "I/2"
-    r = c.execute("SELECT id, nr, titel, daten, fassung, sha256 FROM bauantrag_formular WHERE land=? AND nr=? AND status<>'entfallen'", (land, nr)).fetchone()
+    r = c.execute("SELECT id, nr, titel, daten, fassung, sha256 FROM bauantrag_formular WHERE land=? AND nr=? AND status<>'entfallen' AND daten IS NOT NULL "
+                  "ORDER BY geaendert DESC NULLS LAST, id DESC", (land, nr)).fetchone()
+    if not r:   # hochgeladen ohne Anlage-Nummer: aus Titel/Dateiname erkennen
+        for x in c.execute("SELECT id, nr, titel, url, daten, fassung, sha256 FROM bauantrag_formular WHERE land=? AND nr='' AND status<>'entfallen' AND daten IS NOT NULL",
+                           (land,)).fetchall():
+            if nr_raten(x["titel"], x["url"]) == nr:
+                c.execute("UPDATE bauantrag_formular SET nr=? WHERE id=?", (nr, x["id"]))
+                r = x
+                break
     return (dict(r) if r else None), nr
 
 

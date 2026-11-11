@@ -95,3 +95,10 @@ def test_portal_umgebaut_nichts_entfallen():
         with db.tx() as c:
             c.execute("DELETE FROM bauantrag_formular WHERE land=?", (land,))
             c.execute("DELETE FROM bp_store WHERE key LIKE ?", (f"bauantrag:%:{land}",))
+
+
+def test_anlage_aus_dateiname():
+    """Selbst hochgeladene Vordrucke: Anlage aus Titel oder Dateiname (AKNW, recht.nrw.de) erkennen."""
+    for t, soll in (("mb2026-220-anlage1.2", "I/2"), ("mb2026-220-anlage1.10.pdf", "I/10"), ("anlage_i_4_werbeanlage.pdf", "I/4"),
+                    ("47790-50738-smbl_23210_20000308_a_anlageii4.pdf", "II/4"), ("Anlage I-2.2- Anzeige", "I/2.2"), ("Lageplan.pdf", "")):
+        gleich(BF.nr_raten(t), soll, t)

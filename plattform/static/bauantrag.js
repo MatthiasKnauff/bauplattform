@@ -238,7 +238,7 @@ V.addEventListener('change', (e) => { if (e.target.dataset && e.target.dataset.f
 /* Formular selbst hochladen – neu oder als Ersatz für eine Anlage */
 function formHochladen(x) {
   modalBox(`<h3>${x ? 'Formular ersetzen' : 'Formular hochladen'}</h3>
-    <div class="row"><label>Anlage</label><input id="fhNr" value="${esc(x ? x.nr : '')}" placeholder="z. B. I/2 (wenn bekannt)"${x ? ' disabled' : ''}></div>
+    <div class="row"><label>Anlage</label><input id="fhNr" value="${esc(x ? x.nr : '')}" placeholder="z. B. I/2 – leer: aus dem Dateinamen erkannt"${x && x.nr ? ' disabled' : ''}></div>
     <div class="row"><label>Titel</label><input id="fhTi" value="${esc(x ? x.titel : '')}" placeholder="leer = Dateiname"></div>
     <div class="row"><label>PDF-Datei</label><input id="fhDa" type="file" accept="application/pdf,.pdf"></div>
     <p class="ba-hilfe">Die Datei wird für ${esc(FORM.laender[FORM.land])} gespeichert und im Bauantrag wie die Formulare vom Portal benutzt.</p>

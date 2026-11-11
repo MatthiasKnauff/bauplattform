@@ -173,7 +173,8 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 .bp-nav .ni svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;flex:none;opacity:.75}
 /* Symbole als farbige Kacheln (wie die Abschnitte im Bautagebuch) – Farbe je Punkt über farbe (--kf), sonst grau */
 .bp-nav:not(.oben) .ni{padding-left:.6rem;gap:.6rem}
-.bp-nav:not(.oben) .ni>svg,.bp-nav:not(.oben) .ni>.nbu{width:28px;height:28px;padding:6px;box-sizing:border-box;border-radius:calc(7px*var(--rk,1));background:color-mix(in srgb,var(--kf,var(--mute)) 17%,transparent);color:var(--kf,var(--mute));stroke-width:1.9;opacity:1}
+.bp-nav:not(.oben) .ni>svg,.bp-nav:not(.oben) .ni>.nbu{width:28px;height:28px;padding:6px;box-sizing:border-box;border-radius:calc(7px*var(--rk,1));background:color-mix(in srgb,var(--kf,var(--mute)) 38%,transparent);color:var(--kf,var(--mute));stroke-width:2.1;opacity:1}
+html:is([data-theme="hell"],[data-theme="klassisch"]) .bp-nav:not(.oben) .ni>:is(svg,.nbu){background:color-mix(in srgb,var(--kf,var(--mute)) 34%,#fff);color:color-mix(in srgb,var(--kf,var(--mute)) 62%,#000)}   /* hell: kräftiger, Symbol dunkler für Kontrast */
 .bp-nav:not(.oben) .ni>.nbu{display:grid;place-items:center;padding:0;font-size:.8rem}
 .bp-nav .nneu{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--fs,1em);color:var(--y);cursor:pointer;padding:.25rem .5rem .25rem 1.4rem;margin-top:.1rem}.bp-nav .nneu:disabled{opacity:.45;cursor:default}
 /* Baumtabelle (baum.js): Baumzelle mit Einrückung, Dreieck und Symbol – gleiches Aussehen in allen Apps.

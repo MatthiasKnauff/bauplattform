@@ -175,3 +175,14 @@ def test_pdf_datum_zeichen():
     gleich(bt_pdf.de_date("gestern"), "gestern", "kein Datum")
     gleich(bt_pdf.plain("Größe 5 € – ok ✓"), "Größe 5 € – ok ?", "Zeichen außerhalb der PDF-Schrift")
     gleich(bt_pdf.safe("a<b\nc"), "a&lt;b<br/>c", "HTML-Zeichen und Zeilenumbruch")
+
+
+# ------------------------------------------------------------------------------------------------ Nachts aufräumen
+def test_aufraeumen_nachts_behalten():
+    """Nachts aufräumen: eingetragene Zahl gilt, 0 (= alle behalten) wird durch store_auto_keep ersetzt (Vorgabe 2); aus mit 0."""
+    from core import aufraeumen
+    c = aufraeumen.nachts_conf({"store_keep_old_pdf": "3", "store_keep_old_photos": "0"})
+    gleich((c["store_keep_old_pdf"], c["store_keep_old_photos"]), ("3", "2"), "Vorgabe 2 statt 0")
+    c = aufraeumen.nachts_conf({"store_keep_old_pdf": "", "store_auto_keep": "5"})
+    gleich((c["store_keep_old_pdf"], c["store_keep_old_photos"]), ("5", "5"), "eigene Zahl für die Nacht")
+    pruefe(aufraeumen.an({}) and not aufraeumen.an({"store_auto_cleanup": "0"}), "an/aus")

@@ -503,3 +503,4 @@ html[data-modus="einfach"] #bwz input,html[data-modus="einfach"] #bwz select,htm
 .bt-drz{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:-.2rem 0 .2rem 2rem}.bt-drz small{color:var(--mute)}
 .bt-drf{display:flex;gap:.5rem;align-items:center;margin-top:.3rem}.bt-drf input{accent-color:var(--y)}
 .bt-kal .bcal-g button.mk{background:color-mix(in srgb,var(--y) 28%,transparent)}
+.bt-ck{display:flex!important;flex-direction:row!important;gap:.5rem;align-items:center}.bt-ck input{width:auto;accent-color:var(--y)}

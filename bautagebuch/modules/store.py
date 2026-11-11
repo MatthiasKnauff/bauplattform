@@ -101,7 +101,9 @@ def alte():
         for r in c.execute("SELECT DISTINCT project_id, date FROM reports").fetchall():
             D.setdefault(r["project_id"], []).append(r["date"])
     try:
-        return jsonify(sync.alte_staende(conf, [(p, D.get(p["id"], [])) for p in P if D.get(p["id"])], request.method == "POST"))
+        from core import aufraeumen
+        return jsonify(**sync.alte_staende(conf, [(p, D.get(p["id"], [])) for p in P if D.get(p["id"])], request.method == "POST"),
+                       nacht=aufraeumen.letzter(), nacht_an=aufraeumen.an(conf))
     except Exception as e:
         return jsonify(error=sync._msg(e)), 502
 

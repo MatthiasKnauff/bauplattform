@@ -137,8 +137,9 @@ html.bph-eigen[data-theme="hell"],html.bph-eigen[data-theme="klassisch"]{--card:
 [data-af="papierkorb"]{--af:#8d6e63}[data-af="admin"]{--af:#868e96}[data-af="portal"]{--af:#9a9c9e}
 .bph-menu .bph-tiles a[data-af] svg{color:var(--af)}
 .bph-menu .bph-tiles a.cur{background:rgba(255,255,255,.08)}
-.bph-menu .bph-tiles a{position:relative}.bph-neutab{position:absolute;top:4px;right:4px;width:.85rem;height:.85rem;background:color-mix(in srgb,currentColor 30%,transparent);clip-path:polygon(0 0,100% 0,100% 100%);cursor:pointer}   /* Eckdreieck: in neuem Tab */
-.bph-neutab:hover{background:var(--bph-acc)}
+.bph-menu .bph-tiles a{position:relative}.bph-neutab{position:absolute;top:2px;right:2px;width:1rem;height:1rem;cursor:pointer}   /* Eckdreieck: in neuem Tab – klein sichtbar, Klickfläche etwas größer */
+.bph-neutab::after{content:'';position:absolute;top:2px;right:2px;width:.5rem;height:.5rem;background:color-mix(in srgb,currentColor 30%,transparent);clip-path:polygon(0 0,100% 0,100% 100%)}
+.bph-neutab:hover::after{background:var(--bph-acc)}
 .bph-akm{position:absolute;z-index:5;min-width:12rem;background:var(--bph-bg,#2d2f33);border:1px solid rgba(255,255,255,.15);border-radius:calc(8px*var(--rk,1));box-shadow:0 8px 24px rgba(0,0,0,.35);padding:.25rem;display:flex;flex-direction:column}
 .bph-akm button{border:0;background:none;color:inherit;font:inherit;text-align:left;padding:.4rem .6rem;border-radius:calc(5px*var(--rk,1));cursor:pointer;font-size:.88em}.bph-akm button:hover{background:rgba(255,255,255,.1)}
 /* Einstellungsfenster (von rechts) */

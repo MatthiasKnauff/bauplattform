@@ -423,6 +423,7 @@ document.addEventListener('change', async e => {
   else if (t.dataset.img) { const r = await api('api/images/' + t.dataset.img, 'PUT', {caption: t.value}); if (r.error) toast(r.error); else { const im = curReport().images.find(x => x.id === +t.dataset.img); if (im) im.caption = t.value.trim().replace(/\s+/g, ' '); } }
   else if (t.dataset.pf) saveProjectField(t);
   else if (t.dataset.acc) { const r = await api('api/account', 'PUT', {email: t.value}); if (r.error) { toast(r.error); t.value = me.email; } else { me.email = t.value.trim(); toast('E-Mail-Adresse gespeichert.'); } }
+  else if (t.dataset.stck) { settings[t.dataset.stck] = t.checked ? '1' : '0'; await track(api('api/settings', 'PUT', {[t.dataset.stck]: settings[t.dataset.stck]})); }
   else if (t.dataset.st) {
     const k = t.dataset.st, sec = /_pass$/.test(k); if (sec && !t.value) return;
     if (!sec) settings[k] = t.value;

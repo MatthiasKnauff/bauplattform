@@ -1,9 +1,9 @@
 """Die Hintergrundaufgaben der Bauplattform als zwei Aufrufe: einrichten() einmal beim Start, starten() für die laufenden Aufgaben.
 Aufgerufen vom Container „dienste“ (bautagebuch/dienste.py) – und vom Bautagebuch selbst, solange es keinen Dienste-Container gibt."""
-from . import auth, backups, db, extern, reminders, storage, sync
+from . import aufraeumen, auth, backups, db, extern, reminders, storage, sync
 from bpcore import fehler
 
-AUFGABEN = ("einrichten", "sichern", "erinnern", "zurückholen", "pläne")
+AUFGABEN = ("einrichten", "sichern", "erinnern", "zurückholen", "pläne", "aufräumen")
 
 
 def einrichten():
@@ -34,6 +34,7 @@ def starten():
     reminders.start()   # E-Mail-Erinnerungen für Erledigungsdaten
     backups.start()     # tägliche Datenbankversionen
     extern.start()      # nach einem Ausfall: Fotos und Logo vom Dateiserver zurückholen
+    aufraeumen.start()  # nachts alte Stände („…_old1“) auf dem Dateiserver aufräumen
     try:
         from modules import plaene
         plaene.start()  # Planordner der laufenden Projekte nachts vorab einlesen (Pläne & Dateien)

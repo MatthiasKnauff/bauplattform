@@ -97,6 +97,9 @@ function renderProfile(box) {
       <div class="info">Bei jedem erneuten PDF-Export benennt die App die bisherige Version in „_old1“, „_old2“ … um. Hier legst du fest, wie viele davon je Bericht auf dem Server bleiben; die ältesten werden danach automatisch gelöscht. <b>0 = alle behalten</b> (nichts wird automatisch gelöscht).</div>
       <div class="info">Platzhalter: <b>{projekt}</b> (Projektordner: der im Projekt eingetragene Ordnername, sonst ein vorhandener Ordner auf dem Server, der mit dem Kürzel beginnt, sonst der Projektname), <b>{kuerzel}</b> (erstes Wort des Projektnamens, z. B. A483), <b>{datum}</b> (2026-10-28), <b>{jahr}</b>, <b>{monat}</b>. Mit „/“ trennst du Unterordner.</div>
       <div class="info">Eine neue Version entsteht nur, wenn sich der Bericht seit dem letzten Export geändert hat – bloßes Ansehen des PDFs erzeugt keine.</div>
+      <label class="w bt-ck"><input type="checkbox" data-stck="store_auto_cleanup"${settings.store_auto_cleanup === '0' ? '' : ' checked'}> Jede Nacht automatisch aufräumen (gegen 2 Uhr)</label>
+      <label class="w">Nachts je Bericht behalten, wenn oben 0 steht<input data-st="store_auto_keep" inputmode="numeric" value="${esc(settings.store_auto_keep || '2')}" placeholder="2"></label>
+      <div class="info">Nachts werden je Bericht nur die neuesten alten Stände behalten – so viele wie oben eingetragen, bei 0 so viele wie hier. Gelöscht werden nur Dateien und Ordner mit „_old“ und Nummer; das aktuelle PDF und die aktuellen Fotos bleiben immer. Jeder gelöschte Stand steht im Protokoll.</div>
       <div class="acts"><button data-act="storeAlte">Alte Stände auf dem Server suchen</button><button data-act="storeAlteWeg" class="bad">Nach Einstellung aufräumen</button></div>
       <div class="info" id="altOut"></div>
       <div class="acts"><button data-act="storeTest">Verbindung testen</button><button data-act="storeRun">Jetzt übertragen</button><button data-act="storeBackfill">Vorhandene Fotos nachträglich übertragen</button></div>
@@ -156,7 +159,8 @@ async function ablageMelden() {
 function altText(r) {
   if (!r || r.error) return '✖ ' + esc((r && r.error) || 'fehlgeschlagen');
   const kopf = `<b>${r.pdf} alte PDF${r.pdf === 1 ? '' : 's'}</b> und <b>${r.fotos} alte Fotoordner</b> in ${r.projekte.length} Projekt${r.projekte.length === 1 ? '' : 'en'}${r.geloescht ? ` · ${r.geloescht} aufgeräumt` : ''}${r.fehler ? ' · Fehler: ' + esc(r.fehler) : ''}.`;
-  return kopf + (r.projekte.length ? '<ul style="margin:.4rem 0 0;padding-left:1.1rem">' + r.projekte.map((p) => `<li><b>${esc(p.name)}</b>: ${p.pdf} PDF, ${p.fotos} Fotoordner<br><small>${p.beispiele.map(esc).join('<br>')}</small></li>`).join('') + '</ul>' : '');
+  const n = r.nacht, nacht = r.nacht_an === false ? '<br><small>Nächtliches Aufräumen ist ausgeschaltet.</small>' : n ? `<br><small>Letzte Nacht (${esc(new Date(n.zeit).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}): ${n.geloescht} alte Stände gelöscht${n.fehler ? ' · Fehler: ' + esc(n.fehler) : ''}.</small>` : '';
+  return kopf + nacht + (r.projekte.length ? '<ul style="margin:.4rem 0 0;padding-left:1.1rem">' + r.projekte.map((p) => `<li><b>${esc(p.name)}</b>: ${p.pdf} PDF, ${p.fotos} Fotoordner<br><small>${p.beispiele.map(esc).join('<br>')}</small></li>`).join('') + '</ul>' : '');
 }
 async function storeStatus() {
   const el = $('#sstat'); if (!el) return;

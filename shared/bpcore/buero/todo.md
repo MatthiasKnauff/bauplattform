@@ -68,6 +68,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag als komplettes Paket (Schritt 6): Anschreiben an die Bauaufsicht (Behörde aus den Adressen, Ansprechpartner:in, Aktenzeichen, Ausfertigungen, Text mit Vorschlag; Druck-Layout „Bauantrag – Anschreiben“), Deckblatt mit Inhaltsverzeichnis und Seitenzahlen, Häkchenliste weiterer Unterlagen mit Ergänzen, fünf Trennblätter (umbenennen, an/aus, ziehen); Knöpfe in Schritt 1 nebeneinander~~
 - ~~Bauantrag: direkt im PDF ausfüllen (Ansicht „Im PDF ausfüllen“ rechts und über die Leiste) – Werte, die zum Antrag gehören, gehen in Maske, Quellen und alle Vordrucke (live), andere bleiben beim Vordruck; Zuordnung an der echten Anlage I/1 verbessert (Bauaufsicht, Grundstücksadresse, Telefon/E-Mail, Ort/Datum, Gebäudeklasse und Antragsart als Optionsfeld, Kästchen der vorliegenden Unterlagen)~~
 - ~~PDF-Viewer: weiße runde Fläche über dem Dokument behoben (Zeichenfläche bekam den Stil der Kollegen-Chips)~~
 - ~~Bauantrag Schritt 1 „Verfahren & Formulare“: amtliche Vordrucke wählen (Vorschlag nach Verfahren und Vorhaben), eigene Unterlagen (PDF, Scan, Foto → PDF; ausfüllen oder nur beilegen), Reihenfolge ziehen, „Platzieren …“ für Vordrucke ohne Felder und Scans (gemerkt je Datei), Antragspaket als ein PDF mit Inhaltsverzeichnis; Textüberlauf in der Schrittleiste behoben~~

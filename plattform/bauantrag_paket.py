@@ -17,6 +17,8 @@ from bpcore import bauantrag_paket as BP, db, papierkorb
 import common as C
 from bpcore import bauantrag_formulare as BF
 from bauantrag import KEY, _antrag, _detail, _felder_setzen, _j, app
+from bpcore import bauantrag as _BA
+BA_VERF = _BA.VERFAHREN
 
 ERLAUBT = re.compile(r"\.(pdf|jpe?g|png|heic|heif|tiff?)$", re.I)
 
@@ -51,6 +53,49 @@ def paket_setzen(aid):
             (aus.discard if b["an"] else aus.add)(k)
         if isinstance(b.get("reihe"), list):
             P["reihe"] = [str(x)[:12] for x in b["reihe"]][:200]
+        if isinstance(b.get("trenner"), dict):   # {nr: 1–5, titel}
+            T = BP.trenner(P)
+            i = int(b["trenner"].get("nr") or 0) - 1
+            if 0 <= i < 5:
+                T[i]["titel"] = str(b["trenner"].get("titel") or "").strip()[:60] or BP.TRENNER[i]
+            P["trenner"] = T
+        if isinstance(b.get("deckblatt"), dict):   # {an} | {punkt, an} | {neu: text} | {weg: text}
+            Dk = P.get("deckblatt") or {}
+            x = b["deckblatt"]
+            ein, aus, eig = set(Dk.get("ein") or []), set(Dk.get("aus") or []), list(Dk.get("eigene") or [])
+            if "punkt" in x:
+                t = str(x["punkt"])[:200]
+                (ein.add if x.get("an") else ein.discard)(t)
+                (aus.discard if x.get("an") else aus.add)(t)
+            elif "an" in x:
+                Dk["an"] = bool(x["an"])
+            if x.get("neu") and str(x["neu"]).strip() and str(x["neu"]).strip()[:200] not in eig:
+                eig.append(str(x["neu"]).strip()[:200])
+            if x.get("weg") in eig:
+                eig.remove(x["weg"])
+            Dk.update(ein=sorted(ein), aus=sorted(aus), eigene=eig[:60])
+            P["deckblatt"] = Dk
+        if isinstance(b.get("anschreiben"), dict):
+            A = P.get("anschreiben") or {}
+            for f, n in (("empfaenger", 600), ("ansprechpartner", 200), ("aktenzeichen", 80), ("text", 6000), ("betreff", 400)):
+                if f in b["anschreiben"]:
+                    A[f] = str(b["anschreiben"][f] or "").strip()[:n]
+            if "an" in b["anschreiben"]:
+                A["an"] = bool(b["anschreiben"]["an"])
+            if "ausfertigungen" in b["anschreiben"]:
+                try:
+                    A["ausfertigungen"] = max(1, min(9, int(b["anschreiben"]["ausfertigungen"])))
+                except (TypeError, ValueError):
+                    pass
+            if "behoerde_id" in b["anschreiben"]:   # Behörde aus den Adressen: Anschrift und Ansprechpartner:in übernehmen
+                bid = b["anschreiben"]["behoerde_id"]
+                r = c.execute("SELECT id, name, contact_person, street, zip, city FROM contacts WHERE id=?", (bid,)).fetchone() if bid else None
+                A["behoerde_id"] = r["id"] if r else None
+                if r:
+                    A["empfaenger"] = "\n".join(x for x in (r["name"], r["street"], f"{r['zip']} {r['city']}".strip()) if x)
+                    if r["contact_person"] and not A.get("ansprechpartner"):
+                        A["ansprechpartner"] = r["contact_person"]
+            P["anschreiben"] = A
         if k.startswith("u") and b.get("nutzung") in ("ausfuellen", "beilegen"):
             c.execute("UPDATE bauantrag_unterlage SET art=? WHERE id=? AND antrag_id=?", (b["nutzung"], int(k[1:]), aid))
         P["an"], P["aus"] = sorted(an), sorted(aus)
@@ -130,6 +175,16 @@ def _pdf_antwort(data, name, dl=False):
 def stueck(aid, key):
     with db.tx() as c:
         a = _antrag(c, aid)
+        if a and re.fullmatch(r"t[1-5]", key):   # Trennblatt ansehen
+            d = _detail(c, a)
+            i = d["gewaehlt"].index(key) if key in d["gewaehlt"] else -1
+            folgend = []
+            for k in (d["gewaehlt"][i + 1:] if i >= 0 else []):
+                if k.startswith("t"):
+                    break
+                folgend.append(next((x["titel"] for x in d["paket"] if x["key"] == k), k))
+            t = next(x["titel"] for x in d["paket"] if x["key"] == key)
+            return _pdf_antwort(BP.trennblatt_pdf(int(key[1]), t, folgend), f"Trennblatt {key[1]}.pdf")
         if not a or not re.fullmatch(r"[fu]\d{1,9}", key):
             return jsonify(error="Nicht gefunden."), 404
         if key[0] == "u" and not c.execute("SELECT 1 FROM bauantrag_unterlage WHERE id=? AND antrag_id=?", (int(key[1:]), aid)).fetchone():
@@ -141,27 +196,129 @@ def stueck(aid, key):
     return _pdf_antwort(x[0], re.sub(r'[\\/:*?"<>|]+', "_", x[1])[:140] + ".pdf", request.args.get("dl"))
 
 
+def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke")):
+    """Das ganze Antragspaket: Anschreiben, Deckblatt mit Inhaltsverzeichnis, Trennblätter und Stücke. → (PDF, Dateiname) oder Fehlertext."""
+    W, d = _w(c, a)
+    gew = d["gewaehlt"]
+    if not [k for k in gew if not k.startswith("t")] and "stuecke" in mit:
+        return None, "Noch kein Vordruck und keine Unterlage gewählt – in Schritt 1 anhaken."
+    teile = []
+    for k in (gew if "stuecke" in mit else []):
+        if k.startswith("t"):
+            teile.append(("trenner", next(x["titel"] for x in d["paket"] if x["key"] == k), None))
+            continue
+        x = BP.stueck_pdf(c, k, W, _j(a["daten"], {}).get("_pdf"))
+        if x:
+            teile.append(("stueck", x[1], x[0]))
+    while teile and teile[-1][0] == "trenner":   # Trennblatt ohne Inhalt am Ende weglassen
+        teile.pop()
+    teile = [t for i, t in enumerate(teile) if not (t[0] == "trenner" and i + 1 < len(teile) and teile[i + 1][0] == "trenner")]
+    adr = ", ".join(x for x in (W.get("gs_strasse"), W.get("gs_ort")) if x)
+    kopf = [x for x in (BA_VERF.get(a["verfahren"], ""), W.get("bezeichnung") or d["projekt"], adr, f"Bauherrschaft: {W.get('bauherr_name')}" if W.get("bauherr_name") else "",
+                        f"Entwurfsverfassende: {W.get('ev_name')}" if W.get("ev_name") else "", time.strftime("Stand %d.%m.%Y")) if x]
+    A = d["anschreiben"]
+    vorn = anschreiben_pdf(c, a, W, A, d["projekt"]) if A["an"] and "anschreiben" in mit else None
+    Dk = d["deckblatt"]
+    if "stuecke" not in mit and "deckblatt" not in mit:
+        return vorn, ""
+    data = BP.paket_pdf(teile, kopf, entwurf=a["status"] == "entwurf", deckblatt_an=Dk["an"] and "deckblatt" in mit, weitere=Dk["punkte"], vorn=vorn)
+    return data, ""
+
+
 @app.get("/api/antraege/<int:aid>/paket.pdf")
 def paket(aid):
     with db.tx() as c:
         a = _antrag(c, aid)
         if not a:
             return jsonify(error="Antrag nicht gefunden."), 404
-        W, d = _w(c, a)
-        L, gew, _ = BP.stuecke(c, a, W)
-        if not gew:
-            return jsonify(error="Noch kein Vordruck und keine Unterlage gewählt – in Schritt 1 anhaken."), 409
-        teile = []
-        for k in gew:
-            x = BP.stueck_pdf(c, k, W, _j(a["daten"], {}).get("_pdf"))
-            if x:
-                teile.append((x[1], x[0]))
-    adr = W.get("gs_strasse", "") + (", " + W.get("gs_ort", "") if W.get("gs_ort") else "")
-    kopf = [x for x in (W.get("bezeichnung") or d["projekt"], adr, f"Bauherr: {W.get('bauherr_name')}" if W.get("bauherr_name") else "",
-                        f"Entwurfsverfasser: {W.get('ev_name')}" if W.get("ev_name") else "", time.strftime("Stand %d.%m.%Y")) if x]
-    data = BP.paket_pdf(teile, kopf, entwurf=a["status"] == "entwurf")
-    k = (re.match(r"^[A-Za-z]{1,4}\d{2,6}", (d["projekt"] or "").strip()) or [""])[0]
+        data, fehler = _paket_bauen(c, a)
+        if not data:
+            return jsonify(error=fehler), 409
+        p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
+    k = (re.match(r"^[A-Za-z]{1,4}\d{2,6}", ((p["name"] if p else "") or "").strip()) or [""])[0]
     return _pdf_antwort(data, f"{k + ' ' if k else ''}{a['name']} – Antragsunterlagen.pdf"[:150], request.args.get("dl"))
+
+
+@app.get("/api/antraege/<int:aid>/anschreiben.pdf")
+def anschreiben(aid):
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        if not a:
+            return jsonify(error="Antrag nicht gefunden."), 404
+        W, d = _w(c, a)
+        data = anschreiben_pdf(c, a, W, d["anschreiben"], d["projekt"])
+    return _pdf_antwort(data, f"Anschreiben {a['name']}.pdf"[:150], request.args.get("dl"))
+
+
+@app.get("/api/behoerden")
+def behoerden():
+    """Behörden aus den Adressen (Art „Behörde“, sonst Name/Gewerk mit Bauaufsicht, Bauamt, Stadt …) – für das Anschreiben."""
+    with db.tx() as c:
+        R = c.execute("SELECT id, name, contact_person, street, zip, city, art, trade, extra FROM contacts WHERE "
+                      "lower(art) LIKE 'beh%' OR lower(trade) LIKE '%beh_rde%' OR lower(trade) LIKE '%bauaufsicht%' OR lower(name) LIKE '%bauaufsicht%' "
+                      "OR lower(name) LIKE '%bauamt%' OR lower(name) LIKE '%bauordnung%' ORDER BY name").fetchall()
+    out = []
+    for r in R:
+        pers = [r["contact_person"]] if r["contact_person"] else []
+        pers += [x.get("wert") for x in (_j(r["extra"], {}).get("weitere") or []) if isinstance(x, dict) and x.get("typ") == "person" and x.get("wert")]
+        out.append({"id": r["id"], "name": r["name"], "ort": " ".join(x for x in (r["zip"], r["city"]) if x), "personen": pers[:20]})
+    return jsonify(behoerden=out)
+
+
+def anschreiben_pdf(c, a, W, A, projekt):
+    """Anschreiben an die Bauaufsicht als Brief (Druck-Layout „Bauantrag – Anschreiben“, wie die Rügen): Briefkopf, Anschrift im Fenster,
+    Datum, Bearbeiter, Betreff, Text, Anlagen-Hinweis."""
+    import io
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib.utils import simpleSplit
+    from reportlab.pdfgen import canvas
+    from bpcore import briefbogen, layout, schrift
+    bogen = briefbogen.holen(c)
+    F = schrift.fuer(c)
+    S = {x["key"]: x["value"] or "" for x in c.execute("SELECT key, value FROM settings WHERE key LIKE 'co\\_%' OR key='office_name'")}
+    LAY = layout.aktiv(c, "bauantrag_anschreiben")
+    EIG = layout.eigene_werte(c, a["project_id"])
+    kurz, ort = S.get("co_short") or S.get("office_name") or "", " ".join(x for x in (S.get("co_zip"), S.get("co_city")) if x)
+    emp = A["empfaenger"] + (f"\nz. Hd. {A['ansprechpartner']}" if A.get("ansprechpartner") else "")
+    if A.get("ansprechpartner") and "\n" in A["empfaenger"]:   # „z. Hd.“ unter den Namen der Behörde, vor die Straße
+        z = A["empfaenger"].split("\n")
+        emp = "\n".join([z[0], f"z. Hd. {A['ansprechpartner']}"] + z[1:])
+    V = {"Empfaenger": emp, "Datum": time.strftime("%d.%m.%Y"), "Bearbeiter": C.full_name(g.user) if g else "", "Betreff": A["betreff"].replace("\n", " · ")}
+    LW = {"buero": S.get("office_name", ""), "absender": ", ".join(x for x in (kurz, S.get("co_street"), ort) if x),
+          "fusszeile": " · ".join(x for x in (kurz, S.get("co_street"), ort, S.get("co_phone"), S.get("co_email"), S.get("co_web")) if x),
+          "datum": V["Datum"], "bearbeiter": V["Bearbeiter"], "projekt": projekt, "bauvorhaben": W.get("bezeichnung") or projekt,
+          "dokument": BA_VERF.get(a["verfahren"], "Bauantrag"), "grundlage": f"Aktenzeichen: {A['aktenzeichen']}" if A.get("aktenzeichen") else "",
+          "behoerde": (A["empfaenger"].split("\n") or [""])[0], **{k: v for k, v in EIG.items() if v}}
+    buf = io.BytesIO()
+    cv = canvas.Canvas(buf, pagesize=A4)
+    cv.setTitle(f"Anschreiben {a['name']}")
+
+    def feld(nm, x, fy, w, h, size=10, multi=False, tip=""):
+        cv.setFont(F["n"], size); cv.setFillGray(0)
+        zs = [z2 for z in V[nm].split("\n") for z2 in (simpleSplit(z, F["n"], size, w) or [""])] if multi else [V[nm].replace("\n", " ")]
+        yy = fy + h - size * 1.05 - 1 if multi else fy + (h - size) / 2 + 1.5
+        for z in zs[:8]:
+            cv.drawString(x, yy, z); yy -= size * 1.2
+    layout.zeichnen(cv, LAY, LW, 1, A4[1], F, bogen is not None, feld_fn=feld,
+                    logo_fn=lambda cv_, r_, t_, h_, w_: C.draw_logo(cv_, r_, t_, h_, w_), umbruch=layout.umbruch_std)
+    IB = layout.inhalt(LAY)
+    L, R = IB["x"] * mm, (IB["x"] + IB["w"]) * mm
+    y = A4[1] - IB["y"] * mm
+    unten = A4[1] - (IB["y"] + IB["h"]) * mm
+    cv.setFont(F["n"], 10.5); cv.setFillGray(0)
+    for absatz in A["text"].split("\n"):
+        for t in (simpleSplit(absatz, F["n"], 10.5, R - L) or [""]):
+            if y < unten + 10 * mm:
+                cv.showPage(); y = A4[1] - 25 * mm; cv.setFont(F["n"], 10.5)
+            cv.drawString(L, y, t); y -= 5.4 * mm
+    y -= 16 * mm   # Platz für die Unterschrift
+    cv.drawString(L, y, W.get("ev_name") or kurz); y -= 10 * mm
+    cv.setFont(F["b"], 9.5); cv.drawString(L, y, "Anlagen"); y -= 5 * mm
+    cv.setFont(F["n"], 9.5)
+    cv.drawString(L, y, f"Bauvorlagen in {A['ausfertigungen']}-facher Ausfertigung gemäß Inhaltsverzeichnis")
+    cv.save()
+    return briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1) if bogen else buf.getvalue()
 
 
 @app.get("/api/antraege/<int:aid>/platzierung/<key>")

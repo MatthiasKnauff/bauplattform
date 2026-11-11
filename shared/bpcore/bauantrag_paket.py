@@ -66,12 +66,78 @@ def stuecke(c, a, W, land="NW"):
         k = f"u{u['id']}"
         out.append({"key": k, "art": "unterlage", "titel": u["name"], "nutzung": u["art"], "felder": feldzahl(u["daten"], u["sha256"]),
                     "platziert": len(PL.get(u["sha256"]) or []), "an": k not in (P.get("aus") or []), "vorschlag": ""})
+    for i, t in enumerate(trenner(P), 1):
+        out.append({"key": f"t{i}", "art": "trenner", "nr": str(i), "titel": t["titel"], "an": f"t{i}" not in (P.get("aus") or []), "felder": 0, "platziert": 0, "vorschlag": ""})
     reihe = [k for k in (P.get("reihe") or []) if any(x["key"] == k for x in out)]
     an = [x["key"] for x in out if x["an"]]
+    if not any(k.startswith("t") for k in reihe):   # Vorgabe: Trennblatt 1 vor die Vordrucke, 2–5 vor die eigenen Unterlagen
+        rest = reihe or [k for k in an if not k.startswith("t")]
+        i = next((n for n, k in enumerate(rest) if k.startswith("u")), len(rest))
+        reihe = ["t1"] + rest[:i] + ["t2", "t3", "t4", "t5"] + rest[i:]
     gewaehlt = [k for k in reihe if k in an] + [k for k in an if k not in reihe]
     pos = {k: i for i, k in enumerate(gewaehlt)}
     out.sort(key=lambda x: (0, pos[x["key"]]) if x["key"] in pos else (1, x["art"] != "vordruck", x.get("nr") or "~", x["titel"]))
     return out, gewaehlt, nr
+
+
+TRENNER = ["Antrag und Formulare", "Lageplan und Katasterauszüge", "Bauzeichnungen", "Beschreibungen und Berechnungen", "Nachweise und Sonstiges"]
+ANSCHREIBEN_TEXT = ("Sehr geehrte Damen und Herren,\n\nim Auftrag der Bauherrschaft überreichen wir Ihnen den {verfahren} für das Vorhaben „{vorhaben}“ "
+                    "auf dem Grundstück {grundstueck}.\n\nDie Bauvorlagen liegen in {ausfertigungen}-facher Ausfertigung bei; eine Aufstellung finden Sie "
+                    "im Inhaltsverzeichnis. Für Rückfragen stehen wir Ihnen gern zur Verfügung.\n\nMit freundlichen Grüßen")
+
+
+def trenner(P):
+    """Fünf Trennblätter: [{titel}] – Titel je Antrag änderbar, an/aus wie die anderen Stücke (_paket.aus)."""
+    T = P.get("trenner") or []
+    return [{"titel": (T[i].get("titel") if i < len(T) and isinstance(T[i], dict) and T[i].get("titel") else TRENNER[i])} for i in range(5)]
+
+
+def deckblatt(P, bauvorlagen):
+    """Deckblatt mit Inhaltsverzeichnis: an/aus und die Häkchenliste weiterer Inhalte (Bauvorlagen, die nicht als Datei beiliegen,
+    plus eigene Punkte). Vorgabe angehakt: Bauvorlagen, die vorliegen oder beigefügt sind."""
+    D = P.get("deckblatt") or {}
+    ein, aus = set(D.get("ein") or []), set(D.get("aus") or [])
+    punkte = []
+    for b in bauvorlagen:
+        if b["key"] == "antrag":
+            continue
+        t = b["name"]
+        punkte.append({"text": t, "an": t in ein or (b.get("status") in ("da", "beigefuegt") and t not in aus), "eigen": False})
+    for t in D.get("eigene") or []:
+        punkte.append({"text": t, "an": t not in aus, "eigen": True})
+    return {"an": D.get("an", True), "punkte": punkte}
+
+
+def anschreiben(P, W, verfahren_name):
+    """Anschreiben an die Bauaufsicht: an/aus, Empfänger, Ansprechpartner:in, Text (Vorgabe mit den Angaben des Antrags)."""
+    A = P.get("anschreiben") or {}
+    gs = ", ".join(x for x in (W.get("gs_strasse"), W.get("gs_ort")) if x) or "–"
+    lage = ", ".join(x for x in (f"Gemarkung {W['gemarkung']}" if W.get("gemarkung") else "", f"Flur {W['flur']}" if W.get("flur") else "",
+                                 f"Flurstück {W['flurstueck']}" if W.get("flurstueck") else "") if x)
+    vorgabe = ANSCHREIBEN_TEXT.format(verfahren=verfahren_name or "Bauantrag", vorhaben=W.get("bezeichnung") or "–", grundstueck=gs + (f" ({lage})" if lage else ""),
+                                      ausfertigungen=A.get("ausfertigungen") or 3)
+    return {"an": A.get("an", True), "behoerde_id": A.get("behoerde_id"), "empfaenger": A.get("empfaenger") or W.get("behoerde") or "",
+            "ansprechpartner": A.get("ansprechpartner") or "", "aktenzeichen": A.get("aktenzeichen") or "", "ausfertigungen": A.get("ausfertigungen") or 3,
+            "text": A.get("text") or vorgabe, "text_vorgabe": vorgabe, "betreff": A.get("betreff") or f"{verfahren_name or 'Bauantrag'} – {W.get('bezeichnung') or ''}".strip(" –") + f"\n{gs}"}
+
+
+def trennblatt_pdf(nr, titel, inhalt):
+    """Trennblatt: große Nummer und Titel, darunter was in diesem Abschnitt folgt."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+    buf = io.BytesIO()
+    cv = canvas.Canvas(buf, pagesize=A4)
+    cv.setFillColorRGB(0.12, 0.12, 0.12)
+    cv.setFont("Helvetica-Bold", 96); cv.drawString(25 * mm, A4[1] - 95 * mm, str(nr))
+    cv.setLineWidth(1.2); cv.line(25 * mm, A4[1] - 103 * mm, 185 * mm, A4[1] - 103 * mm)
+    cv.setFont("Helvetica-Bold", 22); cv.drawString(25 * mm, A4[1] - 118 * mm, titel[:48])
+    cv.setFont("Helvetica", 11); cv.setFillColorRGB(0.35, 0.35, 0.35)
+    y = A4[1] - 135 * mm
+    for t in inhalt[:30]:
+        cv.drawString(30 * mm, y, ("–  " + t)[:95]); y -= 6.5 * mm
+    cv.showPage(); cv.save()
+    return buf.getvalue()
 
 
 def bild_zu_pdf(daten):
@@ -186,42 +252,73 @@ def stueck_pdf(c, key, W, eigene=None):
     return data, titel, {"felder": n, "gefuellt": gef, "platziert": len(P)}
 
 
-def paket_pdf(teile, kopf, entwurf=False):
-    """Stücke [(titel, pdf)] zu einem PDF: Inhaltsverzeichnis vorn, Lesezeichen je Stück."""
+def paket_pdf(teile, kopf, entwurf=False, deckblatt_an=True, weitere=(), vorn=None):
+    """Antragspaket: vorn (z. B. Anschreiben, PDF-Bytes), Deckblatt mit Inhaltsverzeichnis (Abschnitte = Trennblätter, Seitenzahlen,
+    weitere Inhalte als Häkchenliste), dann die Stücke. teile: [(art, titel, pdf)] mit art „trenner“ (pdf wird erzeugt) oder „stueck“."""
     from pypdf import PdfReader, PdfWriter
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas
-    R = []
-    for t, d in teile:
+    # Trennblätter erzeugen (mit Inhalt des Abschnitts), Stücke lesen
+    R, n_tr = [], 0
+    for i, (art, t, d) in enumerate(teile):
+        if art == "trenner":
+            n_tr += 1
+            folgend = []
+            for art2, t2, _ in teile[i + 1:]:
+                if art2 == "trenner":
+                    break
+                folgend.append(t2)
+            d = trennblatt_pdf(n_tr, t, folgend)
         try:
-            R.append((t, PdfReader(io.BytesIO(d))))
-        except Exception:   # noqa: BLE001 – unlesbares Stück überspringen, im Verzeichnis vermerken
-            R.append((t + " (nicht lesbar)", None))
-    buf = io.BytesIO()
-    cv = canvas.Canvas(buf, pagesize=A4)
-    y = A4[1] - 30 * mm
-    cv.setFont("Helvetica-Bold", 16); cv.drawString(25 * mm, y, "Antragsunterlagen"); y -= 8 * mm
-    cv.setFont("Helvetica", 10)
-    for z in kopf:
-        cv.drawString(25 * mm, y, z[:95]); y -= 5 * mm
-    y -= 6 * mm
-    cv.setFont("Helvetica-Bold", 10); cv.drawString(25 * mm, y, "Inhalt"); cv.drawRightString(185 * mm, y, "Seite"); y -= 7 * mm
-    cv.setFont("Helvetica", 10)
-    s = 2
-    for i, (t, rd) in enumerate(R, 1):
-        if y < 25 * mm:
-            break
-        cv.drawString(25 * mm, y, f"{i}.  {t}"[:90]); cv.drawRightString(185 * mm, y, str(s) if rd else "–"); y -= 6 * mm
-        s += len(rd.pages) if rd else 0
-    if entwurf:
-        cv.setFont("Helvetica-Bold", 9); cv.setFillColorRGB(0.75, 0.2, 0.15); cv.drawString(25 * mm, 15 * mm, "ENTWURF")
-    cv.save()
+            R.append((art, t, PdfReader(io.BytesIO(d)), n_tr if art == "trenner" else None))
+        except Exception:   # noqa: BLE001 – unlesbares Stück: im Verzeichnis vermerken
+            R.append((art, t + " (nicht lesbar)", None, None))
     w = PdfWriter()
-    w.append(PdfReader(io.BytesIO(buf.getvalue())))
-    for t, rd in R:
+    n_vorn = 0
+    if vorn:
+        rv = PdfReader(io.BytesIO(vorn)); w.append(rv, outline_item="Anschreiben"); n_vorn = len(rv.pages)
+    if deckblatt_an:
+        buf = io.BytesIO()
+        cv = canvas.Canvas(buf, pagesize=A4)
+        y = A4[1] - 30 * mm
+        cv.setFont("Helvetica-Bold", 18); cv.drawString(25 * mm, y, "Antragsunterlagen"); y -= 9 * mm
+        cv.setFont("Helvetica", 10.5)
+        for z in kopf:
+            cv.drawString(25 * mm, y, z[:95]); y -= 5.2 * mm
+        y -= 7 * mm
+        cv.setFont("Helvetica-Bold", 11); cv.drawString(25 * mm, y, "Inhalt"); cv.drawRightString(185 * mm, y, "Seite"); y -= 3 * mm
+        cv.setLineWidth(0.6); cv.line(25 * mm, y, 185 * mm, y); y -= 6 * mm
+        s0 = n_vorn + 2
+        for art, t, rd, nr in R:
+            if y < 45 * mm:
+                break
+            if art == "trenner":
+                y -= 1.5 * mm
+                cv.setFont("Helvetica-Bold", 10.5); cv.drawString(25 * mm, y, f"{nr}   {t}"[:90])
+            else:
+                cv.setFont("Helvetica", 10); cv.drawString(31 * mm, y, t[:88])
+            cv.drawRightString(185 * mm, y, str(s0) if rd else "–"); y -= 5.8 * mm
+            s0 += len(rd.pages) if rd else 0
+        W2 = [x for x in weitere if x.get("text")]
+        if W2 and y > 40 * mm:
+            y -= 5 * mm
+            cv.setFont("Helvetica-Bold", 11); cv.drawString(25 * mm, y, "Weitere Unterlagen"); y -= 6.5 * mm
+            cv.setFont("Helvetica", 10)
+            for x in W2:
+                if y < 22 * mm:
+                    break
+                cv.rect(25 * mm, y - 0.6 * mm, 3.4 * mm, 3.4 * mm)
+                if x.get("an"):
+                    cv.setFont("Helvetica-Bold", 10); cv.drawString(25.55 * mm, y - 0.1 * mm, "X"); cv.setFont("Helvetica", 10)
+                cv.drawString(31 * mm, y, x["text"][:85]); y -= 5.6 * mm
+        if entwurf:
+            cv.setFont("Helvetica-Bold", 9); cv.setFillColorRGB(0.75, 0.2, 0.15); cv.drawString(25 * mm, 15 * mm, "ENTWURF")
+        cv.showPage(); cv.save()
+        w.append(PdfReader(io.BytesIO(buf.getvalue())), outline_item="Inhaltsverzeichnis")
+    for art, t, rd, nr in R:
         if rd:
-            w.append(rd, outline_item=t[:120])
+            w.append(rd, outline_item=(f"{nr} {t}" if art == "trenner" else t)[:120])
     out = io.BytesIO(); w.write(out)
     return out.getvalue()
 

@@ -94,10 +94,13 @@ def _detail(c, a, dateien=None):
     B = BA.bauvorlagen(dateien if dateien is not None else _dateien(a["project_id"]), _j(a["bauvorlagen"], {}))
     ff, fb = BA.fehlt(F, B)
     p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
-    S, gew, haupt = BP.stuecke(c, a, {x["key"]: str(x["wert"] or "") for x in F}, a.get("land") or "NW")   # Vordrucke und eigene Unterlagen (Schritt 1)
+    W = {x["key"]: str(x["wert"] or "") for x in F}
+    S, gew, haupt = BP.stuecke(c, a, W, a.get("land") or "NW")   # Vordrucke, eigene Unterlagen, Trennblätter (Schritt 1)
+    P = daten.get("_paket") or {}
     return {"antrag": {k: a[k] for k in ("id", "project_id", "name", "verfahren", "land", "status", "erstellt", "geaendert", "von")},
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
-            "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt}
+            "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt,
+            "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"]))}
 
 
 @app.get("/api/antraege")

@@ -349,5 +349,13 @@
   "titel": "Direkt im PDF ausfüllen",
   "text": "Rechts unter „Im PDF ausfüllen“ oder oben mit „Im PDF“ trägst du direkt in den Vordruck ein. Blaue Felder gehören zum Antrag: Eine Änderung steht sofort in der Maske, in den Projektdaten und Adressen und in allen anderen Vordrucken, auch bei Kollegen. Graue Felder gelten nur für diesen Vordruck.",
   "ziel": "#bfl"
+ },
+ {
+  "id": "2026-11-11-bauantrag-komplett",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Kompletter Bauantrag",
+  "text": "In Schritt 6 entsteht jetzt das ganze Paket: Anschreiben an die Bauaufsicht (Behörde und Ansprechpartner:in aus den Adressen), Deckblatt mit Inhaltsverzeichnis und Häkchenliste weiterer Unterlagen, fünf Trennblätter, die du umbenennen und verschieben kannst. „PDF“ gibt alles in einem aus.",
+  "ziel": "[data-pdf]"
  }
 ]

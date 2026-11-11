@@ -54,9 +54,9 @@ function vorschau(sofort) {
   if (!PDFEL || !PDFEL.isConnected) return;
   if (!D) { PDFEL.innerHTML = '<div class="ba-pleer">Kein Antrag gewählt.</div>'; return; }
   PDFT = setTimeout(async () => {
-    const n = (D.gewaehlt || []).length;
+    const n = (D.gewaehlt || []).filter((k) => !k.startsWith('t')).length;
     if (!n) { PDFEL.innerHTML = '<div class="ba-pleer">Noch kein Vordruck gewählt – in Schritt 1 „Verfahren &amp; Formulare“ anhaken oder eigene Unterlagen hinzufügen.</div>'; return; }
-    PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Antragsunterlagen · ${n} Stück${n === 1 ? '' : 'e'} mit Inhaltsverzeichnis</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
+    PDFEL.innerHTML = `<div class="ba-pdf"><div class="ba-pk"><span class="mute">Antragspaket · ${n} Unterlage${n === 1 ? '' : 'n'} · Anschreiben, Deckblatt und Trennblätter in Schritt 6</span><button type="button" class="btn sm" data-bapdf>↻ Neu laden</button></div><div class="ba-pdfs"></div></div>`;
     BPHead.pdfIn(PDFEL.querySelector('.ba-pdfs'), `api/antraege/${AID}/paket.pdf?t=${Date.now()}`);
   }, sofort ? 0 : 1200);
 }
@@ -145,9 +145,7 @@ function schrittHtml() {
     </div></div>
     <div class="ba-k"><h3>Stand</h3><span class="seg" role="group">${Object.entries(STATUS).map(([v, t]) => `<button type="button" data-status="${v}" class="${D.antrag.status === v ? 'on' : ''}">${t}</button>`).join('')}</span>
       <p class="ba-hilfe" style="margin:.5rem 0 0">Solange „Entwurf“, trägt das PDF den Aufdruck ENTWURF. „eingereicht“ sperrt die Angaben (zum Ändern zurück auf „Entwurf“).</p></div>
-    <div class="ba-k"><h3>Antragsunterlagen<span class="mute">Reihenfolge und Auswahl in Schritt 1</span></h3>
-      ${(D.gewaehlt || []).length ? `<ol class="bap-ol">${D.gewaehlt.map((k) => { const x = D.paket.find((y) => y.key === k); return x ? `<li>${esc(x.nr ? 'Anlage ' + x.nr + ' – ' : '')}${esc(x.titel)} ${bapTag(x)}</li>` : ''; }).join('')}</ol>` : '<p class="ba-hilfe">Noch nichts gewählt – <a data-geh="verfahren">Schritt 1</a>.</p>'}
-      <p class="ba-hilfe" id="baForm" style="margin:.4rem 0 .5rem"></p><button type="button" class="btn pri" data-pdf>📄 Antragspaket (PDF)</button></div>`;
+    ${paketPruefenHtml()}`;
 }
 
 function zeichne() {
@@ -275,7 +273,7 @@ function neuDialog() {
 
 function pdf() {   // Antragspaket: gewählte Vordrucke und Unterlagen in einem PDF (in der gemeinsamen Vorschau – Teilen, Speichern, Drucken)
   if (!D) return;
-  if (!(D.gewaehlt || []).length) { toast('Noch kein Vordruck gewählt – in Schritt 1 anhaken.', true); SCHRITT = 'verfahren'; zeichne(); return; }
+  if (!(D.gewaehlt || []).filter((k) => !k.startsWith('t')).length) { toast('Noch kein Vordruck gewählt – in Schritt 1 anhaken.', true); SCHRITT = 'verfahren'; zeichne(); return; }
   BPHead.ansehen([{ url: `api/antraege/${AID}/paket.pdf?t=${Date.now()}`, typ: 'pdf', name: `${D.antrag.name} – Antragsunterlagen` }]);
 }
 

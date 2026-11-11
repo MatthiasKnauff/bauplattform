@@ -205,23 +205,25 @@ const ST_FORM = { neu: ['neu', 'warn'], geaendert: ['neue Fassung', 'warn'], ent
 function formHtml() {
   const F = FORM, st = F.stand || {}, de = (t) => (t ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}${t.length > 11 ? ' ' + t.slice(11, 16) : ''}` : '–');
   const laender = Object.entries(F.laender).sort((a, b) => (a[0] === 'NW' ? -1 : b[0] === 'NW' ? 1 : a[1].localeCompare(b[1], 'de')));
-  const kopf = `<div class="ba-k"><h3>Amtliche Formulare<span class="mute">${F.vorhalten ? 'werden vorgehalten und täglich geprüft' : 'auf Abruf – nur verlinkt'}</span></h3>
+  const kopf = `<div class="ba-k"><h3>Amtliche Formulare<span class="mute">${F.land === 'NW' ? 'vom Portal, zwischengespeichert, täglich geprüft' : 'vom Portal des Landes, zwischengespeichert, beim Öffnen geprüft'}</span></h3>
     <div class="ba-fk"><label class="ba-f"><span>Bundesland</span><select data-formland data-bp-auswahl aria-label="Bundesland">${laender.map(([k, n]) => `<option value="${k}"${k === F.land ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
       <div class="ba-fs"><span>Fassung: <b>${esc(st.fassung || '–')}</b></span><span>zuletzt geprüft: <b>${de(st.geprueft)}</b></span>${F.quelle ? `<a href="${esc(st.seite || F.quelle)}" target="_blank" rel="noopener">Quelle öffnen ↗</a>` : ''}</div>
-      <button type="button" class="btn pri" data-formpruefen${F.quelle ? '' : ' disabled'}>↻ Jetzt prüfen</button>${!F.vorhalten && F.admin ? '<button type="button" class="btn" data-formquelle>Quelle eintragen …</button>' : ''}</div>
-    ${st.fehler ? `<p class="ba-hilfe" style="color:var(--red)">⚠ ${esc(st.fehler)}</p>` : ''}
+      <button type="button" class="btn pri" data-formpruefen${F.quelle ? '' : ' disabled'}>↻ Jetzt prüfen</button><button type="button" class="btn${st.kaputt ? ' pri' : ''}" data-formhoch>📤 Formular hochladen</button>${F.land !== 'NW' && F.admin ? '<button type="button" class="btn" data-formquelle>Quelle eintragen …</button>' : ''}</div>
+    ${st.kaputt ? `<div class="ba-warn">⚠ <b>Das Portal lässt sich nicht mehr lesen.</b> ${esc(st.fehler || '')}<br>Die bisher gespeicherten Formulare bleiben verfügbar. Neue Fassungen bitte selbst hochladen („📤 Formular hochladen“, bei einer Anlage „Ersetzen“).</div>`
+      : st.fehler ? `<p class="ba-hilfe" style="color:var(--red)">⚠ ${esc(st.fehler)}</p>` : ''}
     ${!F.quelle ? `<p class="ba-hilfe">Für ${esc(F.laender[F.land])} ist noch keine Seite mit den Vordrucken eingetragen${F.admin ? ' – „Quelle eintragen …“, z. B. die Seite des Bauministeriums mit den Bauvorlagen.' : ' – das macht die Verwaltung.'}</p>` : ''}</div>`;
   const L = F.formulare || [], n = L.filter((x) => x.status === 'neu' || x.status === 'geaendert').length;
   const liste = L.length ? `<div class="ba-k"><h3>${L.filter((x) => x.status !== 'entfallen').length} Formulare${n ? `<span class="mute" style="color:var(--warn)">${n} neu oder geändert</span>` : ''}</h3>
     <div class="tw"><table class="ba-t"><thead><tr><th>Anlage</th><th>Titel</th><th>Stand</th><th></th></tr></thead><tbody>
     ${L.map((x) => { const [t, c] = ST_FORM[x.status] || ['', '']; return `<tr class="${x.status === 'entfallen' ? 'aus' : ''}"><td style="white-space:nowrap">${esc(x.nr || '–')}</td><td>${esc(x.titel)}</td>
       <td style="white-space:nowrap">${t ? `<span class="ba-q" style="${c === 'warn' ? 'color:var(--warn);border-color:var(--warn)' : ''}">${t}</span> ` : ''}<small class="mute">${esc(x.fassung || de(x.geaendert).slice(0, 10))}</small></td>
-      <td style="white-space:nowrap;text-align:right">${x.status === 'neu' || x.status === 'geaendert' ? `<button type="button" class="btn sm" data-formgesehen="${x.id}">✓ gesehen</button> ` : ''}<button type="button" class="btn sm" data-formansehen="${x.id}">Ansehen</button></td></tr>`; }).join('')}
+      <td style="white-space:nowrap;text-align:right">${x.status === 'neu' || x.status === 'geaendert' ? `<button type="button" class="btn sm" data-formgesehen="${x.id}">✓ gesehen</button> ` : ''}<button type="button" class="btn sm" data-formansehen="${x.id}">Ansehen</button> <button type="button" class="btn sm" data-formersetzen="${x.id}" title="Eigene Datei für diese Anlage hochladen">Ersetzen</button></td></tr>`; }).join('')}
     </tbody></table></div></div>` : (F.quelle ? '<div class="ba-k"><p class="mute" style="margin:0">Noch nicht geprüft – „↻ Jetzt prüfen“.</p></div>' : '');
   return `<div class="ba-w">${kopf}${liste}</div>`;
 }
 V.addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-formpruefen],[data-formquelle],[data-formgesehen],[data-formansehen]'); if (!b || !FORM) return;
+  const b = e.target.closest('[data-formpruefen],[data-formquelle],[data-formgesehen],[data-formansehen],[data-formhoch],[data-formersetzen]'); if (!b || !FORM) return;
+  if (b.dataset.formhoch !== undefined || b.dataset.formersetzen) return formHochladen(b.dataset.formersetzen ? FORM.formulare.find((x) => x.id === +b.dataset.formersetzen) : null);
   if (b.dataset.formpruefen !== undefined) return formulareZeigen(FORM.land, true);
   if (b.dataset.formquelle !== undefined) {
     const u = await bpEingabe(`Seite mit den Bauvorlagen-Vordrucken für ${FORM.laender[FORM.land]} (https://…)`, FORM.quelle || '', { ok: 'Eintragen und prüfen' }); if (!u) return;
@@ -233,6 +235,22 @@ V.addEventListener('click', async (e) => {
     else window.open(x.url, '_blank', 'noopener'); }
 });
 V.addEventListener('change', (e) => { if (e.target.dataset && e.target.dataset.formland !== undefined && FORM) formulareZeigen(e.target.value); });
+/* Formular selbst hochladen – neu oder als Ersatz für eine Anlage */
+function formHochladen(x) {
+  modalBox(`<h3>${x ? 'Formular ersetzen' : 'Formular hochladen'}</h3>
+    <div class="row"><label>Anlage</label><input id="fhNr" value="${esc(x ? x.nr : '')}" placeholder="z. B. I/2 (wenn bekannt)"${x ? ' disabled' : ''}></div>
+    <div class="row"><label>Titel</label><input id="fhTi" value="${esc(x ? x.titel : '')}" placeholder="leer = Dateiname"></div>
+    <div class="row"><label>PDF-Datei</label><input id="fhDa" type="file" accept="application/pdf,.pdf"></div>
+    <p class="ba-hilfe">Die Datei wird für ${esc(FORM.laender[FORM.land])} gespeichert und im Bauantrag wie die Formulare vom Portal benutzt.</p>
+    <div class="acts"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Hochladen</button></div>`,
+  async (m, bg, close) => {
+    if (m !== 'ok') { close(); return; }
+    const f = bg.querySelector('#fhDa').files[0]; if (!f) { toast('Bitte eine PDF-Datei wählen.', true); return; }
+    const fd = new FormData(); fd.append('datei', f); fd.append('land', FORM.land); fd.append('nr', bg.querySelector('#fhNr').value); fd.append('titel', bg.querySelector('#fhTi').value); if (x) fd.append('id', x.id);
+    try { const r = await fetch('api/formulare/hochladen', { method: 'POST', body: fd, credentials: 'same-origin' }); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Hochladen fehlgeschlagen');
+      FORM = d; close(); zeichne(); toast('Formular gespeichert.'); } catch (er) { toast(er.message, true); }
+  });
+}
 
 function neuDialog() {
   const P = L.projekte;

@@ -50,3 +50,33 @@ def test_amtliches_formular_ausfuellen():
     gleich((F["Text1"].get("/V"), F["Text2"].get("/V"), F["Text3"].get("/V"), F["Text4"].get("/V")), ("Tierschutzverein RT", "Altenessen", "12", "345"), "Textfelder")
     pruefe(str(F["GK3"].get("/V")) not in ("", "None", "/Off") and str(F["GK4"].get("/V")) in ("None", "/Off", ""), f"GK 3 angekreuzt: {F['GK3'].get('/V')} / {F['GK4'].get('/V')}")
     gleich((gefuellt, n), (5, 6), "5 von 6 Feldern")
+
+
+def test_portal_umgebaut_nichts_entfallen():
+    """Liefert das Portal deutlich weniger Vordrucke als bisher, gilt es als umgebaut: nichts wird als „entfallen“ markiert, Meldung „kaputt“."""
+    from bpcore import db
+    land = "SL"   # Testland, wird am Ende aufgeräumt
+    try:
+        with db.tx() as c:
+            c.execute("DELETE FROM bauantrag_formular WHERE land=?", (land,))
+            for i in range(6):
+                c.execute("INSERT INTO bauantrag_formular(land, schluessel, nr, titel, url, status) VALUES(?,?,?,?,?, 'aktuell')", (land, f"I/{i}", f"I/{i}", "Test", f"https://x.de/{i}.pdf"))
+            c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data",
+                      (f"bauantrag:quelle:{land}", '{"url": "https://x.de/"}', "", "test"))
+        alt_holen, alt_sicher = BF._holen, BF._sicher
+        BF._holen = lambda url, m=0: ("https://x.de/", b'<a href="/1.pdf">Anlage I/1 Test</a>') if url.endswith("/") else ("", b"%PDF-1.4")
+        try:
+            erg = BF.pruefen(db.tx, land, "test")
+        finally:
+            BF._holen, BF._sicher = alt_holen, alt_sicher
+        pruefe(erg["kaputt"] and "umgebaut" in erg["fehler"], f"als umgebaut erkannt: {erg}")
+        with db.tx() as c:
+            st = [r["status"] for r in c.execute("SELECT status FROM bauantrag_formular WHERE land=?", (land,)).fetchall()]
+            gleich(st.count("entfallen"), 0, "nichts entfallen")
+            pruefe(any(l == land for l, _ in BF.kaputt(c)), "als „Portal nicht lesbar“ gemerkt")
+            fid = BF.hochladen(c, land, "I/9", "Eigenes", b"%PDF-1.4 test", "test")
+            pruefe(c.execute("SELECT daten FROM bauantrag_formular WHERE id=?", (fid,)).fetchone()["daten"] is not None, "selbst hochgeladen")
+    finally:
+        with db.tx() as c:
+            c.execute("DELETE FROM bauantrag_formular WHERE land=?", (land,))
+            c.execute("DELETE FROM bp_store WHERE key LIKE ?", (f"bauantrag:%:{land}",))

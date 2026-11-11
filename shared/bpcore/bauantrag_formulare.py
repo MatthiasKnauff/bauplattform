@@ -1,11 +1,11 @@
 """Amtliche Bauantragsformulare je Bundesland (App „Bauantrag“).
 
-NRW: Die Vordrucke sind Anlagen zur VV BauPrüfVO auf recht.nrw.de; der feste Link „aktuellste Fassung“ führt immer auf die geltende
-Fassung. Der Dienste-Container prüft täglich (und die App auf Knopfdruck): Anlagen lesen, neue oder geänderte PDFs laden und in der
-Datenbank vorhalten (Tabelle bauantrag_formular). Kommt eine Anlage hinzu oder ändert sich eine, steht sie auf „neu“ bzw. „geaendert“ –
-das wird als To-do gemeldet (bpcore/todo.py, Regel „formulare“), bis jemand „gesehen“ drückt.
-Andere Länder: auf Abruf – die Seite des Landes mit den Vordrucken wird einmal eingetragen (nur Verwaltung), gelistet werden die
-PDF-Links dort; vorgehalten wird nichts.
+Je Land eine Seite (Portal), auf der die Vordrucke veröffentlicht sind – NRW fest (Anlagen zur VV BauPrüfVO auf recht.nrw.de, Link
+„aktuellste Fassung“), andere Länder trägt die Verwaltung einmal ein. Alle dort veröffentlichten PDFs werden gelistet und in der Datenbank
+zwischengespeichert (Tabelle bauantrag_formular); NRW täglich, die anderen beim Öffnen bzw. auf Knopfdruck. Neu oder geändert → To-do
+(bpcore/todo.py, Regel „formulare“), bis jemand „gesehen“ drückt.
+Ändert sich das Portal so, dass nichts mehr gelesen werden kann (Seite weg, keine PDFs, deutlich weniger als bisher), bleibt der Bestand
+erhalten, das Land wird als „Portal nicht lesbar“ gemeldet (To-do) und die Formulare lassen sich selbst hochladen (hochladen()).
 """
 import hashlib
 import html
@@ -21,7 +21,7 @@ LAENDER = {"BW": "Baden-Württemberg", "BY": "Bayern", "BE": "Berlin", "BB": "Br
            "MV": "Mecklenburg-Vorpommern", "NI": "Niedersachsen", "NW": "Nordrhein-Westfalen", "RP": "Rheinland-Pfalz", "SL": "Saarland",
            "SN": "Sachsen", "ST": "Sachsen-Anhalt", "SH": "Schleswig-Holstein", "TH": "Thüringen"}
 QUELLE_NRW = "https://recht.nrw.de/taxonomy/term/33405"   # „Link zur aktuellsten Fassung“ der VV BauPrüfVO
-VORHALTEN = {"NW"}
+VORHALTEN = set(LAENDER)   # alle veröffentlichten Vordrucke werden zwischengespeichert
 MAX_PDF = 15 * 1024 * 1024
 UA = {"User-Agent": "Bauplattform/1.0 (Formularpruefung)"}
 
@@ -122,6 +122,11 @@ def pruefen(c_fn, land="NW", wer="dienste"):
         A, ziel, seite = None, q, ""
     if A is not None and not A:
         erg["fehler"] = "Auf der Seite wurden keine Vordrucke (PDF) gefunden."
+    bisher = [x for x in alt.values() if x["status"] != "entfallen" and x["url"]]
+    if A and len(bisher) >= 4 and len(A) < len(bisher) / 2:   # Portal umgebaut? Lieber nichts als „entfallen“ markieren
+        erg["fehler"] = f"Auf der Seite stehen nur noch {len(A)} statt bisher {len(bisher)} Vordrucke – das Portal wurde wohl umgebaut."
+        A = None
+    erg["kaputt"] = bool(erg["fehler"]) and not A
     fassung = _fassung(ziel, seite) if A else ""
     erst = not alt   # allererster Abgleich: alles gilt als „aktuell“, keine Flut von Meldungen
     for a in A or []:
@@ -151,11 +156,11 @@ def pruefen(c_fn, land="NW", wer="dienste"):
         neu_keys = {a["schluessel"] for a in A}
         with c_fn() as c:
             for k, x in alt.items():
-                if k not in neu_keys and x["status"] != "entfallen":
+                if k not in neu_keys and x["status"] != "entfallen" and x["url"]:   # selbst hochgeladene bleiben
                     c.execute("UPDATE bauantrag_formular SET status='entfallen', geaendert=? WHERE id=?", (_jetzt(), x["id"]))
                     erg["entfallen"].append(k)
     with c_fn() as c:
-        st = {**stand(c, land), "geprueft": _jetzt(), "fehler": erg["fehler"]}
+        st = {**stand(c, land), "geprueft": _jetzt(), "fehler": erg["fehler"], "kaputt": erg["kaputt"]}
         if fassung:
             st["fassung"], st["seite"] = fassung, ziel
         c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
@@ -170,6 +175,41 @@ def liste(c, land):
     for f in F:
         f.pop("hat", None)
     return F
+
+
+def hochladen(c, land, nr, titel, daten, wer, fid=None):
+    """Formular selbst hochladen (wenn das Portal nicht mehr lesbar ist oder ein Vordruck fehlt). fid: diesen Eintrag ersetzen."""
+    daten = bytes(daten or b"")
+    if not daten.startswith(b"%PDF"):
+        raise ValueError("Bitte eine PDF-Datei wählen.")
+    if len(daten) > MAX_PDF:
+        raise ValueError("Die Datei ist größer als 15 MB.")
+    nr = re.sub(r"\s+", "", str(nr or ""))[:20]
+    sha = hashlib.sha256(daten).hexdigest()
+    fassung = "hochgeladen " + datetime.now().strftime("%d.%m.%Y")
+    if fid:
+        c.execute("UPDATE bauantrag_formular SET daten=?, sha256=?, groesse=?, fassung=?, status='aktuell', url='', geaendert=?, titel=COALESCE(NULLIF(?, ''), titel) WHERE id=? AND land=?",
+                  (daten, sha, len(daten), fassung, _jetzt(), str(titel or "")[:300], fid, land))
+        return fid
+    key = nr or "upl:" + sha[:12]
+    r = c.execute("SELECT id FROM bauantrag_formular WHERE land=? AND schluessel=?", (land, key)).fetchone()
+    if r:
+        return hochladen(c, land, nr, titel, daten, wer, r["id"])
+    return c.execute("""INSERT INTO bauantrag_formular(land, schluessel, nr, titel, url, sha256, groesse, daten, fassung, status)
+                        VALUES(?,?,?,?,'',?,?,?,?,'aktuell') RETURNING id""", (land, key, nr, str(titel or "Formular")[:300], sha, len(daten), daten, fassung)).fetchone()["id"]
+
+
+def kaputt(c):
+    """Länder, deren Portal zuletzt nicht lesbar war: [(land, fehler)]."""
+    out = []
+    for r in c.execute("SELECT key, data FROM bp_store WHERE key LIKE 'bauantrag:formulare:%'").fetchall():
+        try:
+            d = json.loads(r["data"])
+        except ValueError:
+            continue
+        if d.get("kaputt"):
+            out.append((r["key"].rsplit(":", 1)[1], d.get("fehler") or ""))
+    return out
 
 
 def offen(c):

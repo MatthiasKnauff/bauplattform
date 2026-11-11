@@ -230,6 +230,10 @@ def pdf(aid):
 def formulare():
     land = request.args.get("land") if request.args.get("land") in BF.LAENDER else "NW"
     with db.tx() as c:
+        nie = BF.quelle(c, land) and not BF.stand(c, land).get("geprueft")
+    if nie:   # Land zum ersten Mal geöffnet: Portal gleich lesen und die Vordrucke zwischenspeichern
+        BF.pruefen(db.tx, land, g.user["name"])
+    with db.tx() as c:
         return jsonify(land=land, laender=BF.LAENDER, quelle=BF.quelle(c, land), vorhalten=land in BF.VORHALTEN,
                        stand=BF.stand(c, land), formulare=BF.liste(c, land), admin=bool(g.user["is_admin"]))
 
@@ -259,6 +263,25 @@ def formulare_quelle():
     except (ValueError, OSError) as e:
         return jsonify(error=str(e)), 400
     return formulare_pruefen()
+
+
+@app.post("/api/formulare/hochladen")
+def formular_hochladen():
+    """Formular selbst hochladen (Portal nicht mehr lesbar oder Vordruck fehlt): multipart land, nr, titel, id (ersetzen), datei."""
+    f = request.files.get("datei")
+    land = request.form.get("land") if request.form.get("land") in BF.LAENDER else "NW"
+    if not f:
+        return jsonify(error="Bitte eine PDF-Datei wählen."), 400
+    try:
+        with db.tx() as c:
+            BF.hochladen(c, land, request.form.get("nr"), request.form.get("titel") or (f.filename or "").rsplit(".", 1)[0], f.read(BF.MAX_PDF + 1),
+                         g.user["name"], request.form.get("id", type=int))
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    C.audit(g.user["name"], KEY, "Formular hochgeladen", f"{land} {request.form.get('nr') or ''} {request.form.get('titel') or ''}")
+    with db.tx() as c:
+        return jsonify(land=land, laender=BF.LAENDER, quelle=BF.quelle(c, land), vorhalten=True, stand=BF.stand(c, land), formulare=BF.liste(c, land),
+                       admin=bool(g.user["is_admin"]))
 
 
 @app.post("/api/formulare/<int:fid>/gesehen")

@@ -536,7 +536,9 @@ def _a_formulare(c, u, R, P, ok):
         F = BF.offen(c)
     except Exception:   # noqa: BLE001 – Tabelle noch nicht da
         return []
-    return [_e("formulare", f"{x['id']}:{x['geaendert']}", f"{'Neues' if x['status'] == 'neu' else 'Geändertes'} Bauantragsformular {x['land']}: {('Anlage ' + x['nr'] + ' ') if x['nr'] else ''}{x['titel']}"[:200],
+    K = [_e("formulare", f"portal:{land}", f"Formular-Portal {BF.LAENDER.get(land, land)} nicht lesbar – Formulare bitte selbst hochladen", fehler[:160],
+            None, P, None, "bauantrag:#formulare", 1) for land, fehler in BF.kaputt(c)]
+    return K + [_e("formulare", f"{x['id']}:{x['geaendert']}", f"{'Neues' if x['status'] == 'neu' else 'Geändertes'} Bauantragsformular {x['land']}: {('Anlage ' + x['nr'] + ' ') if x['nr'] else ''}{x['titel']}"[:200],
                "In „Bauantrag → Formulare“ ansehen und als gesehen markieren", None, P, x["geaendert"][:10], "bauantrag:#formulare", 1) for x in F]
 
 

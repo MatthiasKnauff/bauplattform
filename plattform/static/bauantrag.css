@@ -56,3 +56,4 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-fk{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:flex-end}.ba-fk .ba-f{flex:0 1 16rem}
 .ba-fs{display:flex;flex-direction:column;gap:.1rem;font-size:.82rem;color:var(--mute);margin-right:auto}.ba-fs a{color:var(--y);text-decoration:none}
 .ba-t tr.aus td{opacity:.5}.tw{overflow-x:auto}
+.ba-warn{border:1px solid var(--warn,#b7791f);background:color-mix(in srgb,var(--warn,#b7791f) 10%,var(--card));border-radius:calc(9px*var(--rk,1));padding:.6rem .8rem;margin-top:.7rem;font-size:.88rem;line-height:1.45}

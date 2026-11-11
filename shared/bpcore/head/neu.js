@@ -13,7 +13,7 @@
 .bpn-k h3{margin:0;font-size:1.05rem}.bpn-k p{margin:0;color:var(--mute,#666);line-height:1.45}
 .bpn-kl{font-size:.72rem;color:var(--y,#d4357f);font-weight:700;letter-spacing:.05em;text-transform:uppercase}
 .bpn-a{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}.bpn-a .f{flex:1}
-.bpn-d{display:flex;gap:4px}.bpn-d i{width:7px;height:7px;border-radius:50%;background:var(--line,#ccc)}.bpn-d i.on{background:var(--y,#d4357f)}
+.bpn-d{display:flex;gap:5px}.bpn-d i{width:9px;height:9px;border-radius:50%;background:var(--line,#ccc);cursor:pointer}.bpn-b:disabled{opacity:.4;cursor:default}.bpn-b.bpn-x{border:0;background:none;color:var(--mute,#666);padding-left:0}.bpn-d i.on{background:var(--y,#d4357f)}
 .bpn-b{border:1px solid var(--line,#ccc);background:var(--card,#fff);color:var(--ink,#222);border-radius:calc(9px*var(--rk,1));padding:.42rem .85rem;font:inherit;font-size:.88rem;cursor:pointer}
 .bpn-b.pri{background:var(--y,#d4357f);border-color:var(--y,#d4357f);color:var(--on,#fff);font-weight:600}
 .bpn-l{display:grid;gap:.15rem;max-height:min(55vh,420px);overflow:auto;margin:0 -.3rem}
@@ -51,12 +51,15 @@
     const zeig = () => {
       const x = E[i], letzt = i === E.length - 1;
       k.innerHTML = `<span class="bpn-kl">Neu${E.length > 1 ? ` · ${i + 1} von ${E.length}` : ''}</span><h3>${esc(x.titel)}</h3><p>${esc(x.text)}</p>
-        <div class="bpn-a">${E.length > 1 ? `<span class="bpn-d">${E.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</span>` : ''}<span class="f"></span>
-        ${i ? '<button type="button" class="bpn-b" data-n="zur">‹ Zurück</button>' : `<button type="button" class="bpn-b" data-n="ende">${E.length > 1 ? 'Überspringen' : 'Schließen'}</button>`}<button type="button" class="bpn-b pri" data-n="${letzt ? 'ende' : 'vor'}">${letzt ? 'Fertig' : 'Weiter ›'}</button></div>`;
+        <div class="bpn-a"><button type="button" class="bpn-b bpn-x" data-n="ende"${letzt ? ' style="visibility:hidden"' : ''}>Überspringen</button><span class="f"></span>${E.length > 1 ? `<span class="bpn-d">${E.map((_, j) => `<i class="${j === i ? 'on' : ''}" data-zu="${j}" title="Schritt ${j + 1}"></i>`).join('')}</span><span class="f"></span>
+        <button type="button" class="bpn-b" data-n="zur"${i ? '' : ' disabled'}>‹ Zurück</button>` : ''}<button type="button" class="bpn-b pri" data-n="${letzt ? 'ende' : 'vor'}">${letzt ? 'Fertig ✓' : 'Weiter ›'}</button></div>`;
       const el = ziel(); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
       setzen();
     };
-    k.addEventListener('click', (e) => { const b = e.target.closest('[data-n]'); if (!b) return;
+    const taste = (e) => { if (!k.isConnected) { removeEventListener('keydown', taste); return; } if (/INPUT|TEXTAREA/.test((e.target || {}).tagName || '')) return;
+      if (e.key === 'ArrowRight' && i < E.length - 1) { i++; zeig(); } else if (e.key === 'ArrowLeft' && i > 0) { i--; zeig(); } };
+    addEventListener('keydown', taste);
+    k.addEventListener('click', (e) => { const d = e.target.closest('[data-zu]'); if (d) { i = +d.dataset.zu; zeig(); return; } const b = e.target.closest('[data-n]'); if (!b || b.disabled) return;
       if (b.dataset.n === 'vor') { i++; zeig(); } else if (b.dataset.n === 'zur') { i--; zeig(); } else { zu(); merken(E.map((x) => x.id)); if (fertig) fertig(); } });
     addEventListener('resize', setzen); addEventListener('scroll', setzen, true);
     zeig();

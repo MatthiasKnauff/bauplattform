@@ -9,6 +9,9 @@ const abnLS = { get(id) { try { return JSON.parse(localStorage.getItem('abn.' + 
   weg(id) { try { localStorage.removeItem('abn.' + id); } catch { /* egal */ } } };
 const abnDe = (iso) => (iso ? iso.slice(0, 10).split('-').reverse().join('.') : '');
 const abnPlus = (iso, tage) => { const d = new Date((iso || new Date().toISOString().slice(0, 10)) + 'T12:00'); d.setDate(d.getDate() + tage); return d.toISOString().slice(0, 10); };
+/* Ansicht wählbar wie anderswo: Schritt für Schritt (Vorgabe am Handy und in „Einfach“) oder alles untereinander – je Gerät gemerkt */
+const abnAlles = () => { try { const v = localStorage.getItem('abn.ansicht'); if (v) return v === 'alles'; } catch { /* egal */ }
+  return innerWidth > 760 && !(window.BPHead && BPHead.einfach && BPHead.einfach()); };
 const ROLLE = { ag: 'Auftraggeber', an: 'Auftragnehmer', arch: 'Architekt/Ingenieur' };
 
 async function abnahmeNeu(nachtragZu) {
@@ -27,8 +30,8 @@ async function abnahmeOeffnen(id, A0, V0) {
   catch (e) { toast(e.message, true); return; }
   const lokal = abnLS.get(id);   // ungespeicherter Stand im Gerät (Netz war weg)?
   if (lokal && A.status === 'entwurf' && lokal.t > Date.parse(A.zeit || 0)) A.daten = lokal.d;
-  const S = { schritt: A.status === 'entwurf' ? 0 : 4, A, V, d: A.daten, ti: 0, offen: false };
-  const bg = modalBox('<div class="ab-k"><b class="ab-t"></b><button type="button" class="ib ab-x" data-m="x" title="Schließen – der Stand ist gespeichert">✕</button></div><div class="ab-st"></div><div class="ab-b"></div><div class="acts ab-acts"></div>',
+  const S = { schritt: A.status === 'entwurf' ? 0 : 4, A, V, d: A.daten, ti: 0, offen: false, alles: abnAlles() };
+  const bg = modalBox('<div class="ab-k"><b class="ab-t"></b><span class="ab-an" role="group" aria-label="Ansicht"><button type="button" data-m="ans1">Schritte</button><button type="button" data-m="ans2">Alles</button></span><button type="button" class="ib ab-x" data-m="x" title="Schließen – der Stand ist gespeichert">✕</button></div><div class="ab-st"></div><div class="ab-b"></div><div class="acts ab-acts"></div>',
     (m, bgx, close, b) => klick(m, b, close));
   bg.querySelector('.modal').classList.add('ab');
   const $b = (s) => bg.querySelector(s);
@@ -47,13 +50,19 @@ async function abnahmeOeffnen(id, A0, V0) {
     const d = S.d, n = S.schritt;
     bg.querySelector('.modal').classList.toggle('zu', gesperrt());   // fertig: nur so hoch wie nötig
     $b('.ab-t').textContent = (S.A.bezug ? 'Nachtrag zur Abnahme' : 'Abnahme') + (d.firma ? ' · ' + d.firma : '');
+    bg.querySelectorAll('.ab-an button').forEach((x) => x.classList.toggle('on', (x.dataset.m === 'ans2') === S.alles));
+    $b('.ab-an').hidden = gesperrt();
+    const alles = S.alles && !gesperrt();
+    $b('.ab-st').hidden = alles;
     $b('.ab-st').innerHTML = gesperrt() ? `<span class="ab-ok">✓ Unterschrieben am ${abnDe(d.unterschrieben)} – gesperrt</span>`
       : ABN.S.map((t, i) => `<button type="button" data-m="s${i}" class="${i === n ? 'on' : i < n ? 'da' : ''}"><i>${i + 1}</i>${t}</button>`).join('');
-    $b('.ab-b').innerHTML = gesperrt() ? fertig() : [angaben, maengel, erklaerung, unterschreiben][n]();
+    const teile = [angaben, maengel, erklaerung, unterschreiben];
+    $b('.ab-b').innerHTML = gesperrt() ? fertig() : alles ? teile.map((f, i) => `<h3 class="ab-tt"><i>${i + 1}</i>${ABN.S[i]}</h3>${f()}`).join('') : teile[n]();
+    const ab = `<button type="button" class="btn pri" data-m="fertig"${S.A.fehlt.length || !alleDa() ? ' disabled' : ''}>Abschließen &amp; ablegen</button>`;
     $b('.ab-acts').innerHTML = gesperrt() ? '<button type="button" class="btn" data-m="x">Schließen</button>'
-      : `<button type="button" class="btn" data-m="${n ? 's' + (n - 1) : 'weg'}">${n ? 'Zurück' : 'Entwurf löschen'}</button>`
-        + (n < 3 ? `<button type="button" class="btn pri" data-m="s${n + 1}">${n === 2 ? 'Unterschreiben' : 'Weiter'}</button>`
-          : `<button type="button" class="btn pri" data-m="fertig"${S.A.fehlt.length || !alleDa() ? ' disabled' : ''}>Abschließen &amp; ablegen</button>`);
+      : alles ? '<button type="button" class="btn" data-m="weg">Entwurf löschen</button>' + ab
+        : `<button type="button" class="btn" data-m="${n ? 's' + (n - 1) : 'weg'}">${n ? 'Zurück' : 'Entwurf löschen'}</button>`
+          + (n < 3 ? `<button type="button" class="btn pri" data-m="s${n + 1}">${n === 2 ? 'Unterschreiben' : 'Weiter'}</button>` : ab);
   }
   const feld = (lab, html, cls = '') => `<label class="ab-f ${cls}"><span>${lab}</span>${html}</label>`;
   const inp = (k, v, attr = '') => `<input data-k="${k}" value="${esc(v || '')}" ${attr}>`;
@@ -168,6 +177,7 @@ async function abnahmeOeffnen(id, A0, V0) {
 
   async function klick(m, b, close) {
     if (m === 'x') { await speichern(false); close(); laden(); return; }
+    if (m === 'ans1' || m === 'ans2') { S.alles = m === 'ans2'; try { localStorage.setItem('abn.ansicht', S.alles ? 'alles' : 'schritte'); } catch { /* egal */ } await speichern(); zeichne(); return; }
     if (/^s\d$/.test(m)) { await speichern(); S.schritt = +m.slice(1); zeichne(); $b('.ab-b').scrollTop = 0; return; }
     const d = S.d;
     if (m === 'auf') { const a = S.V.auftraege[+b.dataset.i]; Object.assign(d, { lv_id: a.lv_id, firma: a.firma, contact_id: a.contact_id, firma_adresse: a.firma_adresse, arbeiten: a.arbeiten, auftrag_vom: a.auftrag_vom });

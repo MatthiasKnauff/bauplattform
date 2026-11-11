@@ -377,7 +377,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "datum.js", "neu.js", "unterschrift.js", "versand.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "datum.js", "neu.js", "unterschrift.js", "versand.js", "ablegen.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -956,6 +956,72 @@ def blueprint(get_user=None):
             return Response(e.read(), status=e.code, mimetype="application/json")
         except Exception as e:
             return jsonify(error="Bautagebuch nicht erreichbar: " + str(e)[:120]), 502
+
+    # ---- Datei ablegen (alle Apps, Baustein head/ablegen.js): Vorschläge für Ordner und Namen, dann über das Bautagebuch ablegen
+    def _bt_json(method, pfad, body=None):
+        with db.tx() as c:
+            tok = sso.current_token(request, c)
+        base = os.environ.get("BAUTAGEBUCH_INTERNAL", "http://bautagebuch:8000").rstrip("/")
+        req = urllib.request.Request(base + pfad, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                     headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=90) as r:
+                return json.loads(r.read().decode() or "null") or {}
+        except urllib.error.HTTPError as e:
+            try:
+                msg = json.loads(e.read().decode() or "{}").get("error")
+            except ValueError:
+                msg = None
+            raise RuntimeError(msg or f"Bautagebuch antwortet mit Fehler {e.code}")
+        except urllib.error.URLError as e:
+            raise RuntimeError("Bautagebuch nicht erreichbar: " + str(e.reason)[:120])
+
+    @bp.post("/api/bp/ablage/vorschlag")
+    def bp_ablage_vorschlag():
+        """Hereingezogene Datei lesen → {erkannt:[{pfad, grund}], ordner:[alle Ordner], namen:[…], basis, kuerzel, plan}."""
+        from . import ablage
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        f, pid = request.files.get("datei"), request.form.get("project_id", type=int)
+        if not f or not pid:
+            return jsonify(error="Datei oder Projekt fehlt"), 400
+        data = f.read(80 * 1024 * 1024)
+        text = ablage.pdf_anfang(data) if (f.filename or "").lower().endswith(".pdf") else ""
+        try:
+            b = _bt_json("GET", f"/api/ablage/ordnerbaum?project_id={pid}")
+            if not b.get("ok"):
+                return jsonify(error=b.get("error") or "Ablage nicht erreichbar"), 502
+            try:   # Pläne des Projekts (zwischengespeichert): frühere Stände desselben Plans finden
+                d = _bt_json("GET", f"/api/plaene/dateien?project_id={pid}")
+            except RuntimeError:
+                d = {}
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+        with db.tx() as c:
+            cf = ablage.plan_conf(c)
+        erkannt, nr = ablage.vorschlaege(f.filename or "", text, d.get("dateien") or [], b["ordner"], cf)
+        return jsonify(erkannt=erkannt, ordner=b["ordner"], basis=b.get("basis") or "", kuerzel=b.get("kuerzel") or "", plan=nr,
+                       text=bool(text.strip()), namen=ablage.namen(f.filename or "", text, b.get("kuerzel") or ""))
+
+    @bp.post("/api/bp/ablage")
+    def bp_ablage():
+        """Datei im gewählten Ordner ablegen, mit dem gewählten Namen (gleicher Name → „(2)“, nie überschreiben)."""
+        import base64
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        f, pid = request.files.get("datei"), request.form.get("project_id", type=int)
+        if not f or not pid:
+            return jsonify(error="Datei oder Projekt fehlt"), 400
+        ordner = [x for x in (request.form.get("ordner") or "").split("/") if x.strip()]
+        if not ordner:
+            return jsonify(error="Bitte einen Ordner wählen."), 400
+        name = (request.form.get("name") or f.filename or "Datei.pdf").strip()
+        try:
+            a = _bt_json("POST", "/api/ablage/datei", {"project_id": pid, "art": "datei", "name": name, "ordner": ordner,
+                                                       "datei": base64.b64encode(f.read(80 * 1024 * 1024)).decode()})
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+        return jsonify(ok=True, pfad=(a or {}).get("pfad") or "")
 
     # ---- Kontakt schnell anlegen (nach einer Sendung an eine Adresse, zu der es noch keinen Kontakt gibt)
     @bp.post("/api/bp/kontakt")

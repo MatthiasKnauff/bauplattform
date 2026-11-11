@@ -151,5 +151,12 @@
   "titel": "Am PC und am Handy getrennt",
   "text": "Beim Anordnen am PC hat jede Kachel und jedes Widget zwei Häkchen: 🖥 PC und 📱 Handy. Am Handy blendet ✕ nur dort aus.",
   "ziel": "#rFest"
+ },
+ {
+  "id": "2026-11-11-ablegen",
+  "datum": "2026-11-11",
+  "app": "",
+  "titel": "Dokumente ins Fenster werfen",
+  "text": "In jeder App: eine Datei einfach ins Fenster ziehen. Die Plattform schlägt den Ordner im Projektordner vor (auch Unterordner, mit Suche) und einen Dateinamen mit Projektkürzel – bei Scans mit Titel und Datum aus dem PDF. Felder zum Hochladen in der Nähe haben weiter Vorrang."
  }
 ]

@@ -180,3 +180,38 @@ def rechnung_ablegen():   # ältere Aufrufe: wie /api/ablage/datei mit Art „re
     b = request.get_json(silent=True) or {}
     b.setdefault("art", "rechnung")
     return _ablegen(b)
+
+
+_BAUM = {}   # Ordnerbaum je Projekt: {pid: (Zeit, Ergebnis)} – kurz zwischengespeichert, beim Ablegen mehrerer Dateien nur einmal lesen
+
+
+@bp.get("/api/ablage/ordnerbaum")
+def ablage_ordnerbaum():
+    """Alle Ordner des Projektordners (bis 6 Ebenen, höchstens 3000, ca. 10 s) – für „Datei ablegen“ in allen Apps."""
+    import time
+    pid = request.args.get("project_id", type=int)
+    t, base, p, err = _projekt(pid) if pid else (None, None, None, "Projekt fehlt")
+    if err:
+        return jsonify(ok=False, error=err)
+    alt = _BAUM.get(pid)
+    if alt and time.time() - alt[0] < 300 and not request.args.get("neu"):
+        return jsonify(alt[1])
+    out, t0, ebene = [], time.time(), [[]]
+    try:
+        for _ in range(6):
+            neu = []
+            for rel in ebene:
+                for d in sorted(t.dirs(base + rel), key=str.lower):
+                    if d.startswith((".", "~", "$")):
+                        continue
+                    out.append("/".join(rel + [d])); neu.append(rel + [d])
+                if len(out) >= 3000 or time.time() - t0 > 10:
+                    break
+            ebene = neu
+            if not ebene or len(out) >= 3000 or time.time() - t0 > 10:
+                break
+    except Exception as e:
+        return jsonify(ok=False, error=f"Ablage nicht erreichbar: {sync._msg(e)}")
+    res = {"ok": True, "basis": "/".join(base), "kuerzel": sync.code_of(p) if p else "", "ordner": sorted(out, key=str.lower)}
+    _BAUM[pid] = (time.time(), res)
+    return jsonify(res)

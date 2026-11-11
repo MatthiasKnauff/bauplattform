@@ -28,3 +28,13 @@ def test_ordnername_im_plankopf():
 def test_ohne_treffer_leer():
     v, nr = plaene.ablage_vorschlaege("foto.jpg", "", DATEIEN, ORDNER, CF)
     gleich((v, nr), ([], ""), "nichts erkannt")
+
+
+def test_namen_vorschlag():
+    from datetime import date
+    from bpcore import ablage
+    n = ablage.namen("Scan_20261111_0932.pdf", "Nachforderung Bauantrag Brandschutz\nEssen, 10.03.2026", "A481", date(2026, 11, 11))
+    gleich(n[0], "A481 Nachforderung Bauantrag Brandschutz 10.03.2026.pdf", "Scannername → Titel aus dem PDF mit Datum")
+    gleich(n[-1], "Scan_20261111_0932.pdf", "ursprünglicher Name bleibt wählbar")
+    gleich(ablage.namen("Grundriss EG_Index B.pdf", "", "A481")[0], "A481 Grundriss EG Index B.pdf", "Kürzel vorne, Unterstriche raus")
+    gleich(ablage.namen("A481 Statik.pdf", "", "A481"), ["A481 Statik.pdf"], "schon richtig benannt")

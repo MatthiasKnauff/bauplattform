@@ -17,6 +17,7 @@
     const dt = document.createElement('script'); dt.src = basis + 'datum.js'; document.head.appendChild(dt);   // eigene Datumsauswahl statt des Systemkalenders – in jeder App
     const nu = document.createElement('script'); nu.src = basis + 'neu.js'; document.head.appendChild(nu);
     const us = document.createElement('script'); us.src = basis + 'unterschrift.js'; document.head.appendChild(us);   // ✍ Unterschreiben in der PDF-Vorschau
+    const ab = document.createElement('script'); ab.src = basis + 'ablegen.js'; document.head.appendChild(ab);   // Dokumente ins Fenster ziehen → im Projektordner ablegen (BPHead.ablage)
     const vs = document.createElement('script'); vs.src = basis + 'versand.js'; document.head.appendChild(vs);   // gemeinsamer Versanddialog (BPHead.versand)   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
     if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
       const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
@@ -575,15 +576,17 @@
       }
       return null;
     }
+    /* Ins Fenster geworfen, aber kein Datei-Feld in der Nähe (nur eines irgendwo auf der Seite): im Projektordner ablegen – nicht in offenen Fenstern */
+    const ablage = (z, t) => !!(H.ablage && H.ablage.ablegen && !H.ablage.aus && (!z || z.zone === document.body) && !(t && t.closest && t.closest('.modal-bg, .bph-modal, [role=dialog]')));
     const weg = () => { if (mark) mark.classList.remove('bph-dropzone'); mark = null; if (hinw) { hinw.remove(); hinw = null; } };
     window.addEventListener('dragover', (e) => {
       if (!hatDateien(e) || e.defaultPrevented) return;
       e.preventDefault();   // sonst öffnet der Browser die Datei und die Seite ist weg
-      const z = ziel(e.target, typen(e));
-      e.dataTransfer.dropEffect = z ? 'copy' : 'none';
+      const z = ziel(e.target, typen(e)), abl = ablage(z, e.target);
+      e.dataTransfer.dropEffect = z || abl ? 'copy' : 'none';
       const zone = z && (z.zone === document.body ? null : z.zone);
       if (zone !== mark) { weg(); if (zone) { mark = zone; mark.classList.add('bph-dropzone'); } }
-      if (z && !zone && !hinw) { hinw = document.createElement('div'); hinw.className = 'bph-drophinw'; hinw.textContent = 'Loslassen zum Hochladen'; document.body.appendChild(hinw); }
+      if ((z || abl) && !zone && !hinw) { hinw = document.createElement('div'); hinw.className = 'bph-drophinw'; hinw.textContent = abl ? 'Loslassen – im Projektordner ablegen' : 'Loslassen zum Hochladen'; document.body.appendChild(hinw); }
     });
     window.addEventListener('dragleave', (e) => { if (!e.relatedTarget) weg(); });
     window.addEventListener('drop', (e) => {
@@ -592,6 +595,7 @@
       if (!fs.length || e.defaultPrevented) return;
       e.preventDefault();
       const z = ziel(e.target, fs);
+      if (ablage(z, e.target)) { H.ablage.ablegen(fs, e.target); return; }   // kein Datei-Feld an dieser Stelle: in den Projektordner (bp/ablegen.js)
       if (!z) { if (window.toast) window.toast('Hier kann keine Datei abgelegt werden.', true); return; }
       const dt = new DataTransfer(); (z.inp.multiple ? fs : fs.slice(0, 1)).forEach((f) => dt.items.add(f));
       z.inp.files = dt.files; z.inp.dispatchEvent(new Event('change', { bubbles: true })); z.inp.dispatchEvent(new Event('input', { bubbles: true }));

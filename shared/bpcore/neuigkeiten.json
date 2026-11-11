@@ -172,5 +172,13 @@
   "app": "",
   "titel": "Am PC öffnen, auf dem Handy unterschreiben",
   "text": "In der PDF-Vorschau am PC: ✍ → „📱 Am Handy“ zeigt einen QR-Code. Mit dem Handy scannen, dort mit dem Finger unterschreiben – die Unterschrift erscheint im Dokument am PC."
+ },
+ {
+  "id": "2026-11-11-honorar-versionen",
+  "datum": "2026-11-11",
+  "app": "honorar",
+  "titel": "Honorar: Versionen",
+  "text": "„＋ Jetzigen Stand speichern“ hält ein Angebot fest – je Auftrag oder für alle Aufträge des Projekts zusammen, jederzeit umstellbar. Jede Version hat ihr PDF, lässt sich zurückholen, und eine kann „gilt“ sein.",
+  "ziel": "#hoV"
  }
 ]

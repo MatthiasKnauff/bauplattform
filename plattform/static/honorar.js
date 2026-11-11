@@ -123,13 +123,58 @@ function zeichne() {
       <span>Aufwand laut Zeiten</span><b>${std(k.ist_min)} · ${eur0(k.ist_kosten)}</b></div></div>
     <div class="ho-k"><h3>Text im Angebot</h3><div class="ho-f"><textarea class="w" data-f="notiz" rows="4" placeholder="z. B. Leistungsumfang, Zahlungsbedingungen, Gültigkeit des Angebots">${esc(a.notiz || '')}</textarea></div></div>`;
   const pos = V.scrollTop;
-  V.innerHTML = `<div class="ho-w">${kopf}${warn}${haupt}${nk}${sum}</div>`;
+  V.innerHTML = `<div class="ho-w">${kopf}<div class="ho-k" id="hoV">${VS && VS.aid === AID ? vHtml() : '<span class="mute">Versionen …</span>'}</div>${warn}${haupt}${nk}${sum}</div>`;
+  if (!VS || VS.aid !== AID) vHolen();
   V.scrollTop = pos;
   if (!WORK.querySelector(':scope > .sr-r')) bereich();
   vorschau(VID !== AID);
   VID = AID;
 }
-let VID = null;   // für welchen Auftrag die Vorschau zuletzt gezeichnet wurde (Wechsel: sofort, Änderung: kurz warten)
+let VID = null;
+
+/* ---------- Versionen: je Auftrag oder je Projekt (jederzeit umstellbar), eine „gilt“, PDF und Laden je Version ---------- */
+let VS = null;
+async function vHolen(neu) {
+  const id = AID; if (!id) return;
+  try { VS = { ...(neu || await api(`api/auftraege/${id}/versionen`)), aid: id }; } catch (e) { VS = { aid: id, versionen: [], modus: 'auftrag', andere: 0, fehler: e.message }; }
+  const el = document.getElementById('hoV'); if (el && AID === id) el.innerHTML = vHtml();
+}
+function vHtml() {
+  const proj = VS.modus === 'projekt', de = (t) => (t ? t.slice(8, 10) + '.' + t.slice(5, 7) + '.' + t.slice(0, 4) : '');
+  return `<h3 style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">Versionen <span class="seg" role="group" title="Versionen für diesen Auftrag allein oder für alle Aufträge des Projekts zusammen – jederzeit umstellbar, die anderen bleiben erhalten">
+      <button type="button" data-vmodus="auftrag" class="${proj ? '' : 'on'}">je Auftrag</button><button type="button" data-vmodus="projekt" class="${proj ? 'on' : ''}">je Projekt</button></span>
+      <button type="button" class="btn sm" data-vneu style="margin-left:auto">＋ Jetzigen Stand speichern</button></h3>
+    ${VS.versionen.length ? `<div class="ho-vl">${VS.versionen.map((v) => `<div class="ho-v${v.gilt ? ' gilt' : ''}">
+      <button type="button" class="ho-vn" data-vname="${v.id}" title="Umbenennen">${esc(v.name)}</button>
+      <span class="mute">${de(v.erstellt)} · ${esc(v.von)}${proj ? ` · ${v.auftraege} Auftr${v.auftraege === 1 ? 'ag' : 'äge'}` : ''}</span>
+      <span class="ho-va">${v.gilt ? '<button type="button" class="btn sm on" data-vgilt="' + v.id + '" data-an="0" title="gilt nicht mehr">✓ gilt</button>' : '<button type="button" class="btn sm" data-vgilt="' + v.id + '" data-an="1" title="Diese Version gilt (z. B. beauftragt)">gilt</button>'}
+      <button type="button" class="btn sm" data-vpdf="${v.id}" title="PDF dieser Version">PDF</button><button type="button" class="btn sm" data-vladen="${v.id}" title="Diesen Stand zurückholen – der jetzige wird vorher als Version gesichert">Laden</button><button type="button" class="btn sm" data-vweg="${v.id}" title="Version löschen">✕</button></span></div>`).join('')}</div>`
+      : `<p class="mute" style="margin:.3rem 0 0;font-size:.85rem">Noch keine Version. „＋ Jetzigen Stand speichern“ hält ${proj ? 'alle Aufträge des Projekts' : 'diesen Auftrag'} fest – z. B. „Angebot 1“, dann weiterrechnen und „Angebot 2“ speichern.</p>`}
+    ${VS.andere ? `<p class="mute" style="margin:.4rem 0 0;font-size:.8rem">${VS.andere} Version${VS.andere === 1 ? '' : 'en'} ${proj ? 'je Auftrag' : 'je Projekt'} bleiben gespeichert – zum Ansehen oben umstellen.</p>` : ''}`;
+}
+V.addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-vmodus],[data-vneu],[data-vname],[data-vgilt],[data-vpdf],[data-vladen],[data-vweg]'); if (!t) return;
+  const id = AID;
+  try {
+    if (t.dataset.vmodus) { if (t.dataset.vmodus !== VS.modus) await vHolen(await api(`api/auftraege/${id}/versionen/modus`, 'PUT', { modus: t.dataset.vmodus })); return; }
+    if (t.dataset.vneu !== undefined) { const n = await bpEingabe('Name der Version', `Angebot ${VS.versionen.length + 1}`, { ok: 'Speichern' }); if (n == null) return;
+      const r = await api(`api/auftraege/${id}/versionen`, 'POST', { name: n }); await vHolen(r);
+      rueckgaengig('Version gespeichert', async () => { await api(`api/versionen/${r.neu}?auftrag=${id}`, 'DELETE'); await vHolen(); }); return; }
+    const vid = +(t.dataset.vname || t.dataset.vgilt || t.dataset.vpdf || t.dataset.vladen || t.dataset.vweg), v = VS.versionen.find((x) => x.id === vid);
+    if (t.dataset.vname) { const n = await bpEingabe('Version umbenennen', v.name, { ok: 'Umbenennen' }); if (!n || n === v.name) return;
+      await vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'PUT', { name: n })); rueckgaengig('Version umbenannt', async () => vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'PUT', { name: v.name }))); return; }
+    if (t.dataset.vgilt) { const an = t.dataset.an === '1', alt = VS.versionen.find((x) => x.gilt);
+      await vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'PUT', { gilt: an }));
+      rueckgaengig(an ? `„${v.name}“ gilt` : 'gilt nicht mehr', async () => vHolen(await api(`api/versionen/${alt ? alt.id : vid}?auftrag=${id}`, 'PUT', { gilt: !!alt || !an }))); return; }
+    if (t.dataset.vpdf) { BPHead.ansehen([{ url: `api/auftraege/${id}/angebot.pdf?version=${vid}`, typ: 'pdf', name: v.name }]); return; }
+    if (t.dataset.vladen) { if (!(await bpFrage(`„${v.name}“ laden?\nDer jetzige Stand wird vorher als Version gesichert.`, { ok: 'Laden' }))) return;
+      const sich = await api(`api/auftraege/${id}/versionen`, 'POST', { name: 'vor dem Laden von „' + v.name + '“' });
+      await api(`api/versionen/${vid}/laden`, 'POST', {}); await laden(id); await vHolen();
+      rueckgaengig(`„${v.name}“ geladen`, async () => { await api(`api/versionen/${sich.neu}/laden`, 'POST', {}); await api(`api/versionen/${sich.neu}?auftrag=${id}`, 'DELETE'); await laden(id); await vHolen(); }); return; }
+    if (t.dataset.vweg) { if (!(await bpFrage(`Version „${v.name}“ löschen?`, { ok: 'Löschen', gefahr: true }))) return;
+      await vHolen(await api(`api/versionen/${vid}?auftrag=${id}`, 'DELETE')); toast('Version gelöscht.'); }
+  } catch (er) { toast(er.message, true); }
+});   // für welchen Auftrag die Vorschau zuletzt gezeichnet wurde (Wechsel: sofort, Änderung: kurz warten)
 
 /* Speichern mit Rückgängig: der alte Stand des Felds wird gemerkt */
 async function setzen(werte, text) {

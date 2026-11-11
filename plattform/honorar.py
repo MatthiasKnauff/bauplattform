@@ -175,6 +175,143 @@ def _eur(v):
     return f"{v:,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+# ---------------------------------------------------------------- Versionen (je Auftrag oder je Projekt, jederzeit umstellbar)
+VFELDER = FELDER   # was eine Version vom Auftrag festhält – dazu die Nebenkosten nach Aufwand
+
+
+def _modus(c, pid):
+    r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"honorar:modus:{pid}",)).fetchone()
+    return r["data"] if r and r["data"] in ("auftrag", "projekt") else "auftrag"
+
+
+def _stand(c, aid):
+    """Ein Auftrag als Teil einer Version: alle Felder und die Nebenkosten-Liste."""
+    r = c.execute("SELECT * FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
+    if not r:
+        return None
+    x = {k: r[k] for k in VFELDER}
+    x["id"] = r["id"]
+    x["nk_liste"] = [{k: n[k] for k in ("datum", "art", "text", "betrag")} for n in c.execute("SELECT * FROM honorar_nk WHERE auftrag_id=? ORDER BY datum, id", (aid,))]
+    return x
+
+
+def _v_liste(c, pid, aid):
+    m = _modus(c, pid)
+    q = ("SELECT * FROM honorar_version WHERE project_id=? AND auftrag_id IS NULL ORDER BY id DESC", (pid,)) if m == "projekt" \
+        else ("SELECT * FROM honorar_version WHERE auftrag_id=? ORDER BY id DESC", (aid,))
+    V = [{"id": v["id"], "name": v["name"], "gilt": bool(v["gilt"]), "erstellt": v["erstellt"], "von": v["von"], "auftraege": len(json.loads(v["daten"] or "[]"))}
+         for v in c.execute(*q)]
+    andere = c.execute("SELECT COUNT(*) AS n FROM honorar_version WHERE project_id=? AND " + ("auftrag_id IS NOT NULL" if m == "projekt" else "auftrag_id IS NULL"), (pid,)).fetchone()["n"]
+    return {"modus": m, "versionen": V, "andere": andere}
+
+
+@app.get("/api/auftraege/<int:aid>/versionen")
+def versionen(aid):
+    with db.tx() as c:
+        r = c.execute("SELECT project_id FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
+        return jsonify(_v_liste(c, r["project_id"], aid)) if r else (jsonify(error="Auftrag nicht gefunden."), 404)
+
+
+@app.put("/api/auftraege/<int:aid>/versionen/modus")
+def versionen_modus(aid):
+    m = (request.get_json(silent=True) or {}).get("modus")
+    if m not in ("auftrag", "projekt"):
+        return jsonify(error="je Auftrag oder je Projekt"), 400
+    with db.tx() as c:
+        r = c.execute("SELECT project_id FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
+        if not r:
+            return jsonify(error="Auftrag nicht gefunden."), 404
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by",
+                  (f"honorar:modus:{r['project_id']}", m, time.strftime("%Y-%m-%d %H:%M:%S"), g.user["name"]))
+        return jsonify(_v_liste(c, r["project_id"], aid))
+
+
+@app.post("/api/auftraege/<int:aid>/versionen")
+def version_neu(aid):
+    """Jetzigen Stand als Version speichern – je Auftrag nur dieser, je Projekt alle Aufträge des Projekts."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        r = c.execute("SELECT project_id FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
+        if not r:
+            return jsonify(error="Auftrag nicht gefunden."), 404
+        pid, m = r["project_id"], _modus(c, r["project_id"])
+        ids = [x["id"] for x in c.execute("SELECT id FROM honorar_auftrag WHERE project_id=? ORDER BY id", (pid,))] if m == "projekt" else [aid]
+        daten = [_stand(c, i) for i in ids]
+        n = c.execute("SELECT COUNT(*) AS n FROM honorar_version WHERE " + ("project_id=? AND auftrag_id IS NULL" if m == "projekt" else "auftrag_id=?"), (pid if m == "projekt" else aid,)).fetchone()["n"]
+        name = str(b.get("name") or "").strip()[:120] or f"Angebot {n + 1}"
+        vid = c.execute("INSERT INTO honorar_version(project_id, auftrag_id, name, daten, erstellt, von) VALUES(?,?,?,?,?,?) RETURNING id",
+                        (pid, None if m == "projekt" else aid, name, json.dumps(daten, ensure_ascii=False), time.strftime("%Y-%m-%d %H:%M:%S"), g.user["name"])).fetchone()["id"]
+        return jsonify({**_v_liste(c, pid, aid), "neu": vid})
+
+
+def _version(c, vid):
+    v = c.execute("SELECT * FROM honorar_version WHERE id=?", (vid,)).fetchone()
+    return (dict(v), json.loads(v["daten"] or "[]")) if v else (None, [])
+
+
+@app.put("/api/versionen/<int:vid>")
+def version_aendern(vid):
+    """Umbenennen oder als „gilt“ markieren (je Auftrag bzw. je Projekt nur eine)."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        v, _ = _version(c, vid)
+        if not v:
+            return jsonify(error="Version nicht gefunden."), 404
+        if "name" in b and str(b["name"]).strip():
+            c.execute("UPDATE honorar_version SET name=? WHERE id=?", (str(b["name"]).strip()[:120], vid))
+        if "gilt" in b:
+            if b["gilt"]:
+                c.execute("UPDATE honorar_version SET gilt=FALSE WHERE project_id=? AND " + ("auftrag_id IS NULL" if v["auftrag_id"] is None else "auftrag_id=?"),
+                          (v["project_id"],) if v["auftrag_id"] is None else (v["project_id"], v["auftrag_id"]))
+            c.execute("UPDATE honorar_version SET gilt=? WHERE id=?", (bool(b["gilt"]), vid))
+        aid = request.args.get("auftrag", type=int) or v["auftrag_id"]
+        return jsonify(_v_liste(c, v["project_id"], aid))
+
+
+@app.delete("/api/versionen/<int:vid>")
+def version_loeschen(vid):
+    with db.tx() as c:
+        v, _ = _version(c, vid)
+        if not v:
+            return jsonify(error="Version nicht gefunden."), 404
+        c.execute("DELETE FROM honorar_version WHERE id=?", (vid,))
+        return jsonify(_v_liste(c, v["project_id"], request.args.get("auftrag", type=int) or v["auftrag_id"]))
+
+
+@app.post("/api/versionen/<int:vid>/laden")
+def version_laden(vid):
+    """Version zurückholen: die Aufträge bekommen deren Stand (fehlende werden neu angelegt), Nebenkosten-Listen wie damals."""
+    with db.tx() as c:
+        v, D = _version(c, vid)
+        if not v:
+            return jsonify(error="Version nicht gefunden."), 404
+        for x in D:
+            if not c.execute("SELECT 1 FROM honorar_auftrag WHERE id=?", (x["id"],)).fetchone():
+                x["id"] = c.execute("INSERT INTO honorar_auftrag(project_id, von) VALUES(?,?) RETURNING id", (v["project_id"], g.user["name"])).fetchone()["id"]
+            c.execute("UPDATE honorar_auftrag SET " + ", ".join(f"{k}=?" for k in VFELDER) + ", geaendert=? WHERE id=?",
+                      tuple(x.get(k) for k in VFELDER) + (time.strftime("%Y-%m-%d %H:%M:%S"), x["id"]))
+            c.execute("DELETE FROM honorar_nk WHERE auftrag_id=?", (x["id"],))
+            for n in x.get("nk_liste") or []:
+                c.execute("INSERT INTO honorar_nk(auftrag_id, datum, art, text, betrag) VALUES(?,?,?,?,?)", (x["id"], n["datum"], n["art"], n["text"], n["betrag"]))
+    C.audit(g.user["name"], "honorar", "Honorar-Version geladen", v["name"])
+    return jsonify(ok=True, auftraege=[x["id"] for x in D])
+
+
+def _detail_version(c, aid, vid):
+    """Wie _detail, aber mit dem Stand einer Version (für das PDF)."""
+    v, D = _version(c, vid)
+    x = next((y for y in D if y.get("id") == aid), None) if v else None
+    if not x:
+        return None, None
+    r = c.execute("SELECT * FROM honorar_auftrag WHERE id=?", (aid,)).fetchone()
+    a = H.sauber({**(dict(r) if r else {}), **{k: x.get(k) for k in VFELDER}})
+    z = H.zeiten_projekt(c, v["project_id"], a["einheit"], a["satz_h"])
+    k = H.rechne(a, z, sum(float(n.get("betrag") or 0) for n in x.get("nk_liste") or []))
+    p = c.execute("SELECT name FROM projects WHERE id=?", (v["project_id"],)).fetchone()
+    return {"auftrag": a, "rechnung": k, "zeiten": z, "nk_liste": x.get("nk_liste") or [], "projekt": p["name"] if p else "", "buero_satz": Z.buero_satz(c),
+            "tafel": H.tafel(a["kosten"], a["zone"])}, v["name"]
+
+
 @app.get("/api/auftraege/<int:aid>/angebot.pdf")
 def angebot_pdf(aid):
     """Honorarangebot (bzw. -aufstellung) als PDF auf dem Briefbogen des Büros."""
@@ -182,8 +319,12 @@ def angebot_pdf(aid):
     from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas
     from bpcore import briefbogen, schrift
+    vname = ""
     with db.tx() as c:
-        d = _detail(c, aid)
+        if request.args.get("version", type=int):   # Stand einer gespeicherten Version
+            d, vname = _detail_version(c, aid, request.args.get("version", type=int))
+        else:
+            d = _detail(c, aid)
         if not d:
             return jsonify(error="Auftrag nicht gefunden."), 404
         bogen = briefbogen.holen(c)
@@ -216,6 +357,8 @@ def angebot_pdf(aid):
     zeile(titel, fett=True, gr=15, ab=8 * mm)
     zeile(f"Projekt: {d['projekt']}", ab=5 * mm)
     zeile(f"Leistung: {a['name']}", ab=5 * mm)
+    if vname:
+        zeile(f"Version: {vname}", ab=5 * mm)
     if a.get("auftraggeber"):
         zeile(f"Auftraggeber: {a['auftraggeber']}", ab=5 * mm)
     zeile(f"Datum: {time.strftime('%d.%m.%Y')}", ab=9 * mm, grau=True)
@@ -254,7 +397,7 @@ def angebot_pdf(aid):
         zeile(buero, grau=True, gr=8.5)
     cv.save()
     pdf = briefbogen.unterlegen(buf.getvalue(), bogen)
-    name = f"Honorar_{(d['projekt'].split() or ['Projekt'])[0]}_{time.strftime('%Y-%m-%d')}.pdf"
+    name = f"Honorar_{(d['projekt'].split() or ['Projekt'])[0]}{'_' + vname.encode('latin-1', 'ignore').decode('latin-1').replace(' ', '_').replace('"', '') if vname else ''}_{time.strftime('%Y-%m-%d')}.pdf"
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{name}"', "Cache-Control": "no-store"})
 
 

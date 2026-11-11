@@ -35,3 +35,28 @@ def test_honorar_auftrag(ctx):
                 ctx.admin.delete(f"{HO}/auftraege/{aid}")
             except Exception:   # noqa: BLE001 – schon weg
                 pass
+
+
+def test_honorar_versionen(ctx):
+    """Versionen je Auftrag: speichern, weiterrechnen, alte laden, „gilt“, PDF mit Versionsnamen; Umstellen auf je Projekt."""
+    a = ctx.admin
+    d = a.pj(f"{HO}/auftraege", {"project_id": ctx.pid, "art": "pauschal", "name": "RT Versionen"})
+    aid = d["auftrag"]["id"]
+    try:
+        a.uj(f"{HO}/auftraege/{aid}/versionen/modus", {"modus": "auftrag"})
+        a.uj(f"{HO}/auftraege/{aid}", {"pauschal": "10.000,00"})
+        v1 = a.pj(f"{HO}/auftraege/{aid}/versionen", {"name": "Angebot 1"})["neu"]
+        a.uj(f"{HO}/auftraege/{aid}", {"pauschal": "12.000,00"})
+        a.pj(f"/honorar/api/versionen/{v1}/laden", {})
+        gleich(a.gj(f"{HO}/auftraege/{aid}")["auftrag"]["pauschal"], 10000.0, "Version 1 zurückgeholt")
+        L = a.uj(f"/honorar/api/versionen/{v1}", {"gilt": True})
+        pruefe(L["versionen"][0]["gilt"], "gilt gesetzt")
+        pdf = a.get(f"{HO}/auftraege/{aid}/angebot.pdf?version={v1}").ist_pdf()
+        pruefe("Angebot_1" in (pdf.headers.get("Content-Disposition") or ""), "PDF mit Versionsnamen")
+        P = a.uj(f"{HO}/auftraege/{aid}/versionen/modus", {"modus": "projekt"})
+        gleich((P["modus"], P["andere"] >= 1), ("projekt", True), "je Projekt: Versionen je Auftrag bleiben")
+        vp = a.pj(f"{HO}/auftraege/{aid}/versionen", {})
+        pruefe(vp["versionen"] and vp["versionen"][0]["auftraege"] >= 1, "Version je Projekt mit allen Aufträgen")
+    finally:
+        a.uj(f"{HO}/auftraege/{aid}/versionen/modus", {"modus": "auftrag"}, expect=None)
+        a.delete(f"{HO}/auftraege/{aid}", expect=None)

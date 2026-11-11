@@ -13,7 +13,8 @@
 (function () {
   if (window.BPHead) return;
   { const basis = ((document.currentScript && document.currentScript.src) || 'bp/head.js').replace(/[^/]*$/, '');
-    const w = document.createElement('script'); w.src = basis + 'wahl.js'; document.head.appendChild(w);   // eigene Auswahllisten statt der Systemliste – in jeder App
+    const w = document.createElement('script'); w.src = basis + 'wahl.js'; document.head.appendChild(w);
+    const nu = document.createElement('script'); nu.src = basis + 'neu.js'; document.head.appendChild(nu);   // Neuigkeiten: Überblick und Rundgang nach einem neuen Stand   // eigene Auswahllisten statt der Systemliste – in jeder App
     if (window.top === window && !document.querySelector('link[rel="manifest"]')) {   // App-Beschreibung: das Bauportal lässt sich in Edge/Chrome als App installieren (eigenes Fenster ohne Adressleiste)
       const m = document.createElement('link'); m.rel = 'manifest'; m.href = basis + 'manifest.webmanifest'; document.head.appendChild(m); } }
   const H = window.BPHead = { me: null, conf: null, ki: 'intern', providers: [], app: '', ready: null };
@@ -350,6 +351,7 @@
       + `<button type="button" role="menuitem" data-konto>${IC.user}Mein Konto <small class="bph-ms">Unterschrift, Signatur, Versand, Kalender</small></button>`
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung</button>`
       + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Einfach</button><button type="button" data-modus="profi">Profi</button></div>`
+      + `<button type="button" role="menuitem" data-neu>${IC.look}Neuigkeiten <small class="bph-ms">was zuletzt dazukam</small></button>`
       + `<button type="button" role="menuitem" data-bug>${IC.bug}Fehler melden <small class="bph-ms">kurz beschreiben, gern mit Bildschirmfoto</small></button>`
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
@@ -644,6 +646,7 @@
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
+      if (e.target.closest('[data-neu]')) { e.stopPropagation(); closeMenus(); if (window.bpNeu) bpNeu.alle(); return; }
       if (e.target.closest('[data-bug]')) { e.stopPropagation(); closeMenus(); H.bugMelden(); return; }
       if (e.target.closest('.bph-bugb')) { e.stopPropagation(); closeMenus(); H.hilfe(); return; }
       if (e.target.closest('.bph-appsb')) { e.stopPropagation(); if (band.querySelector('.bph-apps')) closeMenus(); else appsMenu(); return; }
@@ -679,6 +682,7 @@
     })();
     H.ready.then(skWache).catch(() => {});
     H.ready.then(hilfeStart).catch(() => {});
+    H.ready.then(() => { const los = () => window.bpNeu && bpNeu.start(); if (window.bpNeu) los(); else setTimeout(los, 800); }).catch(() => {});
     return H.ready;
   };
 

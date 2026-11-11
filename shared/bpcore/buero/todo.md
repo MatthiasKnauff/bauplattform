@@ -59,6 +59,7 @@ Summe Sammlung (offen): ca. 15–19 Tage.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 3–6 Monate**
 
 ## Erledigt
+- ~~Neuigkeiten nach jedem neuen Stand: Überblick auf der Startseite, Rundgang mit Scheinwerfer in der App, einmal je Benutzer (alle Geräte); Benutzermenü „Neuigkeiten“~~
 - ~~Pläne & Dateien: Dateien hereinziehen und im Projektordner ablegen – Vorschlag zuerst „hier“ (Zeile bzw. gezeigte Pläne), dann erkannt aus Dateiname/Plankopf, dann alle Ordner mit Suche~~
 - ~~Startseite: Widgets unten nie angeschnitten (fester weißer Rand), Überschrift deckt beim Rollen ganz ab~~
 - ~~Bautagebuch am PC: „Kontakte“ links öffnet die Adressen-App (gleiches Projekt, nur die Beteiligten); am Handy bleibt die eigene Kontaktliste~~

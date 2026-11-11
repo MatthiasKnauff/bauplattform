@@ -11,6 +11,7 @@ Diese Datei liest jeder Claude-Chat automatisch. Sie gilt für alle Apps. Was hi
 - Handbuch, Chronik und technische Dokumentation nur auf Zuruf.
 - Mehrere Chats arbeiten gleichzeitig an diesem Repo: vor dem Push immer `git pull --rebase --autostash`.
 - Sehr aufwendige Umbauten vorher melden.
+- Neuigkeiten: was Benutzer merken (neue/geänderte Bedienung), bei jedem Push in `shared/bpcore/neuigkeiten.json` eintragen (id, datum, app, titel, text, ziel = CSS-Auswahl der Stelle). Jeder sieht es einmal: Startseite Überblick, in der App Rundgang (`head/neu.js`).
 - ToDo-Liste: `shared/bpcore/buero/todo.md` bei jedem Push nachführen (Sammlung, Umbau, Später, zuletzt erledigt). Die Dienste legen sie beim Start als PDF in „Pläne & Dateien“ → Projekt „Büro“ → „Bauplattform“ ab (nur Produktion; der Testserver schreibt nicht in die Ablage).
 
 ## Sicherheit (ohne Ausnahme)

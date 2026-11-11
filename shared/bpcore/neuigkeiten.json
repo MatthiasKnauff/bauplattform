@@ -1,0 +1,16 @@
+[
+  {"id": "2026-11-11-plaene-ziehen", "datum": "2026-11-11", "app": "plaene", "titel": "Dateien hereinziehen",
+   "text": "Ziehe PDFs einfach auf die Seite. Auf eine Planzeile gezogen landen sie in deren Ordner – sonst schlage ich den Ordner vor: erst „hier“, dann was aus dem Plan erkannt wird, dann alle Ordner mit Suche.", "ziel": "#view"},
+  {"id": "2026-11-11-bt-kontakte", "datum": "2026-11-11", "app": "bautagebuch", "titel": "Kontakte öffnen die Adressen",
+   "text": "Am PC führt „Kontakte“ links jetzt in die Adressen – gleich gefiltert auf die Beteiligten dieses Projekts, mit Tabelle, Export und Verlauf.", "ziel": "[data-btnav=\"kontakte\"]"},
+  {"id": "2026-11-11-bt-mitte", "datum": "2026-11-11", "app": "bautagebuch", "titel": "Ruhigere Mitte",
+   "text": "Der Bericht steht am PC jetzt mittig und nicht mehr über die ganze Breite – liest sich besser. Die Navigation links bleibt, wie sie war.", "ziel": "#detail .wrap"},
+  {"id": "2026-11-11-aufgaben-bloecke", "datum": "2026-11-11", "app": "aufgaben", "titel": "Blöcke direkt bearbeiten",
+   "text": "Das Fenster „Blöcke“ gibt es nicht mehr: ✕ am Block blendet aus, „＋ Widget hinzufügen“ holt ihn wieder (dort auch „Reihenfolge zurücksetzen“), am ⋮⋮ verschieben.", "ziel": ".ue-add"},
+  {"id": "2026-11-11-start-sperre", "datum": "2026-11-11", "app": "portal", "titel": "Startseite sperren",
+   "text": "Mit dem Schloss lässt sich die Startseite gegen versehentliches Verschieben sperren. Zum Umbauen einfach wieder aufschließen.", "ziel": "#rFest"},
+  {"id": "2026-11-11-start-widgets", "datum": "2026-11-11", "app": "portal", "titel": "Widgets führen weiter",
+   "text": "Überschriften und Einträge der Widgets (To-dos, Mails, Erinnerungen …) öffnen jetzt die passende Stelle in der App.", "ziel": ".raster"},
+  {"id": "2026-11-11-viewer", "datum": "2026-11-11", "app": "", "titel": "Neue PDF-Ansicht",
+   "text": "PDFs öffnen in einer Ansicht wie im gewohnten PDF-Programm: Zoom, Seitenvorschau am PC, Fingerzoom am Handy, Leisten blenden sich beim Lesen aus."}
+]

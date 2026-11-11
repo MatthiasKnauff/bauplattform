@@ -33,6 +33,7 @@ from flask import Blueprint, Response, jsonify, request, send_from_directory
 
 from . import ai, benachrichtigung, briefbogen, bugmeldung, contacts, db, fehler, geo, hilfe, konto, mail, papierkorb, projekte, projektteile, posteingang, rechte, skizze, sso, stammdaten, todo, versionen, vorlagen, vorort, zeiten
 from . import logo as bplogo
+from . import neuigkeiten
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "head")
 BAUKASTEN = ("bp.js", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js")   # Reihenfolge im Bündel /bp/baukasten.js
@@ -376,7 +377,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "wahl.js", "neu.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -465,6 +466,21 @@ def blueprint(get_user=None):
         return r["value"] if r and r["value"] in ("einfach", "profi") else "profi"
 
     # ---- aktuelles Projekt des Benutzers (Projekt des Bautagebuchs; gilt in allen Apps)
+    @bp.route("/api/bp/neu", methods=["GET", "PUT"])
+    def neu_api():
+        """Neuigkeiten: GET ungesehene (?alle=1: die der letzten 60 Tage) · PUT {ids} als gesehen merken."""
+        u = user()
+        if not u:
+            return jsonify(error="Nicht angemeldet"), 401
+        apps = set(sso.apps_of(u)) | {"portal"}
+        with db.tx() as c:
+            if request.method == "PUT":
+                ids = (request.get_json(silent=True) or {}).get("ids") or []
+                return jsonify(ok=True, n=neuigkeiten.merken(c, u["id"], ids if isinstance(ids, list) else []))
+            if request.args.get("alle") == "1":
+                return jsonify(eintraege=neuigkeiten.neueste(apps))
+            return jsonify(eintraege=neuigkeiten.offen(c, u["id"], apps))
+
     @bp.route("/api/bp/projekt", methods=["GET", "PUT"])
     def projekt_api():
         u = user()

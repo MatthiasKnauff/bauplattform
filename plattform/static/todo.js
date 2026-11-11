@@ -2,7 +2,8 @@
 /* To-do-Liste: auf der Startseite klein (TDKLEIN = true), in der App „Aufgaben & Mängel“ komplett.
    Braucht bp.js (api, esc, toast, appUrl) und ein Element #todo. */
 var TDKLEIN = false;
-var TDNURMANUELL = false;   // Aufgaben & Mängel: unter „To-dos“ nur selbst angelegte – die automatischen Hinweise stehen in der Übersicht je Rubrik
+var TDNURMANUELL = false;
+var TDSORT = (() => { try { return localStorage.getItem('td.sort') || 'faellig'; } catch { return 'faellig'; } })();   // Sortierung in der App: faellig · neu · projekt · titel   // Aufgaben & Mängel: unter „To-dos“ nur selbst angelegte – die automatischen Hinweise stehen in der Übersicht je Rubrik
 /* ---------- To-dos: automatisch aus den Daten der Apps + eigene Aufgaben (rechts neben der Post) ---------- */
 let TDFRISCH = new Set();   // gerade angelegte Aufgaben: bleiben sichtbar, auch wenn die Liste gekürzt ist (Startseite)
 let TD = null, TDREF = null, TDOFFEN = null, TDZEIG = { spaeter: false, erledigt: false };
@@ -121,10 +122,17 @@ function tdZeigen() {
   const box = $('#todo'); if (!box) return; box.classList.toggle('td-klein', !!TDKLEIN); if (!TD) { box.innerHTML = '<div class="post-h"><h2>☑ To-dos</h2></div><p class="mute">Lade …</p>'; return; }
   const { offen, spaeter, erledigt, h } = tdAlle();
   const wo = tdPlus(7 - ((new Date().getDay() + 6) % 7) - 1);   // Sonntag dieser Woche
-  const G = [['Überfällig', (x) => x.f && x.f < h, 1], ['Heute', (x) => x.f === h], ['Diese Woche', (x) => x.f > h && x.f <= wo], ['Später', (x) => x.f > wo], ['Ohne Datum', (x) => !x.f]];
-  const sort = (a, b) => (b.prio || 0) - (a.prio || 0) || (a.f || '9').localeCompare(b.f || '9') || (a.titel || '').localeCompare(b.titel || '');
+  // Sortierung (Wunsch 11.11.): Neues ohne Datum steht ganz oben, bis es ein Datum hat; sonst nach Fälligkeit. In der App wählbar (TDSORT).
+  const neu = (a, b) => String(b.erstellt || b.id || '').localeCompare(String(a.erstellt || a.id || ''));
+  const SORT = { faellig: (a, b) => (a.f || '').localeCompare(b.f || '') || (b.prio || 0) - (a.prio || 0) || (a.titel || '').localeCompare(b.titel || ''),
+    neu: (a, b) => neu(a, b), titel: (a, b) => (a.titel || '').localeCompare(b.titel || '', 'de'), projekt: (a, b) => (a.projekt || '\uffff').localeCompare(b.projekt || '\uffff', 'de') || (a.f || '9').localeCompare(b.f || '9') };
+  const modus = TDKLEIN ? 'faellig' : TDSORT;
+  const G = modus === 'faellig' ? [['Neu · ohne Datum', (x) => !x.f], ['Überfällig', (x) => x.f && x.f < h, 1], ['Heute', (x) => x.f === h], ['Diese Woche', (x) => x.f > h && x.f <= wo], ['Später', (x) => x.f > wo]]
+    : modus === 'projekt' ? [...new Set(offen.map((x) => x.projekt || ''))].sort((a, b) => (a || '\uffff').localeCompare(b || '\uffff', 'de')).map((p) => [p || 'Ohne Projekt', (x) => (x.projekt || '') === p])
+      : [[modus === 'neu' ? 'Neueste zuerst' : 'Nach Titel', () => true]];
+  const sort = (a, b) => (!a.f && !b.f && modus === 'faellig' ? neu(a, b) : (SORT[modus] || SORT.faellig)(a, b));
   const app = window.BPHead && BPHead.conf && (BPHead.conf.apps || []).find((a) => a.key === 'aufgaben' && a.allowed), appL = app ? appUrl(app) + '/#todos' : '';
-  let html = `<div class="post-h"><h2>☑ To-dos</h2><span class="mute">${offen.length} offen</span></div>
+  let html = `<div class="post-h"><h2>☑ To-dos</h2><span class="mute">${offen.length} offen</span>${TDKLEIN ? '' : `<span class="td-sort">Sortieren: ${[['faellig', 'Fälligkeit'], ['neu', 'Neueste'], ['projekt', 'Projekt'], ['titel', 'Titel']].map(([k, l]) => `<button type="button" data-td="sort" data-s="${k}" class="${TDSORT === k ? 'on' : ''}">${l}</button>`).join('')}</span>`}</div>
     ${TDPROJ ? `<div class="tq-p">für <b>${esc(TDPROJ.name)}</b><button type="button" data-td="tqweg" title="Ohne Projekt weiter" aria-label="Projekt entfernen">✕</button></div>` : ''}
     <form class="tq" data-td="neuform"><input id="tdNeu" data-bp-projekt="wort" placeholder="+ Neue Aufgabe – z. B. „A480 Statik nachfordern bis Fr“" autocomplete="off" aria-label="Neue Aufgabe" title="Projektkürzel, Ort oder Name tippen (z. B. A48, Tierheim, Krefeld) – passende Projekte und Ordner werden vorgeschlagen"><button class="btn sm pri">Anlegen</button></form>`;
   if (TDOFFEN === 'neu') html += `<div class="tr">${tdEditor({ titel: (TD._neu || {}).titel, faellig: (TD._neu || {}).faellig, pid: window.BPHead && BPHead.projektId ? BPHead.projektId() : null, personen: [], mail: true })}</div>`;
@@ -228,6 +236,7 @@ document.addEventListener('click', async (e) => {
     if (!body.termin) return toast('Bitte ein Datum angeben.', true);
     return tdErSpeichern(x, body);
   }
+  if (a === 'sort') { TDSORT = b.dataset.s; try { localStorage.setItem('td.sort', TDSORT); } catch { /* egal */ } tdZeigen(); return; }
   if (a === 'bearbeiten' && x) { await tdRef(); TDOFFEN = TDOFFEN === x.key ? null : x.key; tdZeigen(); return; }
   if (a === 'oeffnen' && x) {
     if (!x.link) {   // eigenes To-do ohne Bezug: in „Aufgaben & Mängel“ (dort: gleich bearbeiten)
@@ -462,6 +471,7 @@ document.addEventListener('dragend', () => { UEZ = null; document.querySelectorA
 .ue-b:hover .ue-x,.ue-b:focus-within .ue-x{opacity:1}.ue-x:hover{color:var(--red);border-color:var(--red)}@media (hover:none){.ue-x{opacity:.45;top:4px;right:4px;border:0;box-shadow:none;background:transparent}}
 .ue-add{border:2px dashed var(--line);border-radius:calc(12px*var(--rk,1));background:transparent;color:var(--mute);font:inherit;font-weight:600;cursor:pointer;min-height:64px;padding:.6rem}.ue-add:hover{border-color:var(--y);color:var(--y)}.ue-add small{font-weight:400}
 .ue-b h3{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.ue-b.tzieh{position:fixed;z-index:60;pointer-events:none;box-shadow:var(--sh0,0 10px 30px rgba(0,0,0,.3))}
+.td-sort{margin-left:auto;display:inline-flex;gap:.15rem;align-items:center;font-size:.8rem;color:var(--mute)}.td-sort button{border:0;background:none;color:var(--mute);font:inherit;padding:.15rem .45rem;border-radius:calc(6px*var(--rk,1));cursor:pointer}.td-sort button.on{background:var(--hov,rgba(0,0,0,.06));color:var(--ink);font-weight:600}
 .ue-anz{display:inline-flex;gap:.15rem;align-items:center;font-size:.78rem;color:var(--mute);margin-right:.6rem}.ue-anz button{border:0;background:none;color:var(--mute);font:inherit;padding:.1rem .35rem;border-radius:calc(6px*var(--rk,1));cursor:pointer}.ue-anz button:hover{color:var(--ink)}.ue-anz button.on{background:var(--hov,rgba(0,0,0,.06));color:var(--ink);font-weight:600}
 .ue-b.zieh{opacity:.45}.ue-b.ziel{outline:2px dashed var(--y);outline-offset:2px}
 .ue-r{display:flex;gap:.6rem;align-items:baseline;padding:.3rem 0;border-top:1px dashed var(--line);cursor:pointer}.ue-r:first-of-type{border-top:0}.ue-r:hover{background:var(--hov)}

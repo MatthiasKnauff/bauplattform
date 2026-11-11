@@ -1,5 +1,14 @@
 [
  {
+  "id": "2026-11-11-todo-sort",
+  "datum": "2026-11-11",
+  "app": "aufgaben",
+  "titel": "To-dos sortieren",
+  "text": "Neue To-dos ohne Datum stehen ganz oben, bis sie ein Datum haben – sonst ist nach Fälligkeit sortiert. In „Aufgaben & Mängel“ kannst du oben umstellen: Fälligkeit, Neueste, Projekt oder Titel.",
+  "hash": "#todos",
+  "ziel": ".td-sort"
+ },
+ {
   "id": "2026-11-11-datum",
   "datum": "2026-11-11",
   "app": "",

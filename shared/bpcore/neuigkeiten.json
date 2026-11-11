@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-rundgang-oeffnet",
+  "datum": "2026-11-11",
+  "app": "portal",
+  "titel": "Rundgang öffnet die Stellen",
+  "text": "„Zeigen ›“ und der Rundgang öffnen jetzt die betreffende App, den Reiter oder das Menü selbst und zeigen mit dem Scheinwerfer auf die Stelle – über alle Apps hinweg, mit Zurück und Weiter.",
+  "ziel": ".raster"
+ },
+ {
   "id": "2026-11-11-stempel",
   "datum": "2026-11-11",
   "app": "",
@@ -86,7 +94,8 @@
   "app": "aufgaben",
   "titel": "Blöcke direkt bearbeiten",
   "text": "Das Fenster „Blöcke“ gibt es nicht mehr: ✕ am Block blendet aus, „＋ Widget hinzufügen“ holt ihn wieder (dort auch „Reihenfolge zurücksetzen“), am ⋮⋮ verschieben.",
-  "ziel": ".ue-add"
+  "ziel": ".ue-add",
+  "hash": "#uebersicht"
  },
  {
   "id": "2026-11-11-start-sperre",

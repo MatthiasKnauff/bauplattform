@@ -9,6 +9,9 @@ ARTEN = (("buero", "Bürostempel", "Firmenstempel für Schreiben, Abnahmen, Frei
          ("pruef", "Prüfstempel", "„sachlich und rechnerisch geprüft“ – für Rechnungen und Aufmaße"),
          ("zahlbetrag", "Zahlbetrag siehe Anlage", "für Rechnungen, deren Betrag in der Prüfanlage steht"))
 NAMEN = {k: n for k, n, _ in ARTEN}
+# Felder, die beim Einsetzen ausgefüllt werden: (Platzhalter, x, y, Schrifthöhe – Anteile am Stempelbild, Neigung in Grad im Uhrzeigersinn)
+# Prüfstempel des Büros: „geprüft am:“ oben, darunter das Datum; „von:“ unten, rechts daneben der Name (der Stempel steht leicht schräg)
+FELDER = {"pruef": (("{datum}", 0.22, 0.50, 0.12, 8), ("{name}", 0.30, 0.80, 0.08, 8))}
 
 
 def aufbereiten(raw):

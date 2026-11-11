@@ -169,7 +169,7 @@
     const name = (H && H.me && (H.me.full || H.me.name)) || '';
     const bar = document.createElement('div'); bar.className = 'bpu-bar';
     bar.innerHTML = `<span>Unterschrift verschieben, an der Ecke größer ziehen · auf eine Seite tippen setzt sie dorthin</span>
-      <label><input type="checkbox" data-u="txt"${wahl.stempel ? '' : ' checked'}> Name und Datum darunter</label><button type="button" class="bpu-b" data-u="anders">✍ Anders unterschreiben</button><button type="button" class="bpu-b" data-u="stempel">🔖 Stempel</button><button type="button" class="bpu-b" data-u="ab">Abbrechen</button><button type="button" class="bpu-b pri" data-u="ok">Übernehmen</button>`;
+      <label><input type="checkbox" data-u="txt"${!wahl.stempel || wahl.stempel === 'pruef' ? ' checked' : ''}> Name und Datum eintragen</label><button type="button" class="bpu-b" data-u="anders">✍ Anders unterschreiben</button><button type="button" class="bpu-b" data-u="stempel">🔖 Stempel</button><button type="button" class="bpu-b" data-u="ab">Abbrechen</button><button type="button" class="bpu-b pri" data-u="ok">Übernehmen</button>`;
     el.appendChild(bar);
     const ende = () => { S.removeEventListener('click', tipp, true); sig.remove(); bar.remove(); URL.revokeObjectURL(src); };
     bar.addEventListener('click', async (e) => { const b = e.target.closest('button[data-u]'); if (!b) return;
@@ -179,7 +179,7 @@
         const da = L.filter((x) => x.vorhanden); if (!da.length) { if (window.toast) toast('Noch keine Stempel hinterlegt (Verwaltung → Büro-Einstellungen → Firma & Logo).', true); return; }
         const art = await stempelWahl(b, el, da); if (!art) return;
         const r = await fetch('api/bp/stempel/' + art, { credentials: 'same-origin' }); if (!r.ok) return;
-        blob = await r.blob(); wahl = { stempel: art }; rot = locker(); bar.querySelector('[data-u="txt"]').checked = false;
+        blob = await r.blob(); wahl = { stempel: art }; rot = locker(); bar.querySelector('[data-u="txt"]').checked = art === 'pruef';   // Prüfstempel: Datum und Name gleich eintragen
         Object.assign(P, { w: 0.3, h: 0.12 }); URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }
       if (b.dataset.u === 'anders') { const w = await pad(); if (!w) return; rot = 0;
         if (w.meine) { const r = await fetch('api/bp/signatur', { credentials: 'same-origin' }); if (!r.ok) { if (window.toast) toast('Noch keine Unterschrift in „Mein Konto“.', true); return; } blob = await r.blob(); wahl = { meine: true }; }
@@ -189,8 +189,9 @@
       const fd = new FormData(); fd.append('pdf', new Blob([o.roh], { type: 'application/pdf' }), 'dokument.pdf');
       if (wahl.stempel) fd.append('stempel', wahl.stempel); else if (wahl.meine) fd.append('meine', '1'); else fd.append('bild', blob, 'unterschrift.png');
       if (rot) fd.append('drehung', rot);
+      if (wahl.stempel && bar.querySelector('[data-u="txt"]').checked) fd.append('eintragen', '1');   // Prüfstempel: Datum und Name in die Felder
       fd.append('seite', pg.dataset.seite || seiten.length); ['x', 'y', 'w', 'h'].forEach((k) => fd.append(k, P[k]));
-      if (bar.querySelector('[data-u="txt"]').checked) fd.append('text', [name, heute()].filter(Boolean).join(' · '));
+      if (!wahl.stempel && bar.querySelector('[data-u="txt"]').checked) fd.append('text', [name, heute()].filter(Boolean).join(' · '));
       try {
         const r = await fetch('api/bp/pdf/unterschreiben', { method: 'POST', body: fd, credentials: 'same-origin' });
         if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Fehler ' + r.status); }

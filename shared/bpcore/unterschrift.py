@@ -4,12 +4,13 @@ stempeln(pdf, png, seite, x, y, w, h, text) → neues PDF
   seite  1-basiert; x, y, w, h als Anteil der Seite (0…1, von links oben) – so, wie die Unterschrift in der Vorschau liegt
   text   kleine Zeile unter der Unterschrift (Name, Datum), leer = keine
   drehung  Grad im Uhrzeigersinn um die Mitte (Stempel „locker“ wie von Hand), wie in der Vorschau
+  felder   [(text, rx, ry, höhe, neigung)] – Einträge im Stempel (z. B. Datum und Name im Prüfstempel), Anteile am Bild
 Die Unterschrift wird als Bild auf die Seite gelegt (über dem Inhalt); alles andere bleibt unverändert.
 """
 import io
 
 
-def stempeln(pdf, png, seite, x, y, w, h, text="", drehung=0.0):
+def stempeln(pdf, png, seite, x, y, w, h, text="", drehung=0.0, felder=()):
     from pypdf import PdfReader, PdfWriter
     from reportlab.lib.utils import ImageReader
     from reportlab.pdfgen import canvas
@@ -28,10 +29,23 @@ def stempeln(pdf, png, seite, x, y, w, h, text="", drehung=0.0):
     x, y, w, h = (max(0.0, min(1.0, float(v))) for v in (x, y, w, h))
     buf = io.BytesIO()
     cv = canvas.Canvas(buf, pagesize=(bw, bh))
-    if drehung:
+    if drehung or felder:
+        ir = ImageReader(io.BytesIO(png)); iw, ih = ir.getSize()
+        sw, sh = w * bw, h * bh
+        f = min(sw / max(1, iw), sh / max(1, ih)); dw, dh = iw * f, ih * f   # wie preserveAspectRatio, mittig
         cx, cy = (x + w / 2) * bw, bh - (y + h / 2) * bh
-        cv.saveState(); cv.translate(cx, cy); cv.rotate(-float(drehung))
-        cv.drawImage(ImageReader(io.BytesIO(png)), -w * bw / 2, -h * bh / 2, width=w * bw, height=h * bh, mask="auto", preserveAspectRatio=True, anchor="c")
+        cv.saveState(); cv.translate(cx, cy); cv.rotate(-float(drehung or 0))
+        cv.drawImage(ir, -dw / 2, -dh / 2, width=dw, height=dh, mask="auto")
+        for t, rx, ry, rh, neig in felder or ():   # Einträge wie von Hand mit blauem Stift
+            if not t:
+                continue
+            fs = max(5.0, rh * dh)
+            cv.saveState(); cv.translate(-dw / 2 + rx * dw, dh / 2 - ry * dh); cv.rotate(-float(neig or 0))
+            cv.setFont("Helvetica-Oblique", fs); cv.setFillColorRGB(0.08, 0.16, 0.5)
+            mx = dw * (1 - rx) * 0.72   # schräg: etwas Luft zum Rand
+            while t and cv.stringWidth(t, "Helvetica-Oblique", fs) > mx and fs > 5:
+                fs -= 0.5; cv.setFont("Helvetica-Oblique", fs)
+            cv.drawString(0, 0, t); cv.restoreState()
         cv.restoreState()
     else:
         cv.drawImage(ImageReader(io.BytesIO(png)), x * bw, bh - (y + h) * bh, width=w * bw, height=h * bh, mask="auto", preserveAspectRatio=True, anchor="sw")

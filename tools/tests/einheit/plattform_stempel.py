@@ -21,3 +21,16 @@ def test_stempel_freistellen_und_einsetzen():
     neu = unterschrift.stempeln(p.getvalue(), png, 1, 0.5, 0.6, 0.3, 0.12, "", drehung=-4)
     rd = PdfReader(io.BytesIO(neu))
     pruefe("Rechnung" in rd.pages[0].extract_text() and len(rd.pages[0]["/Resources"]["/XObject"]) >= 1, "Inhalt bleibt, Stempel eingebettet")
+
+
+def test_pruefstempel_felder():
+    from pypdf import PdfReader
+    from reportlab.pdfgen import canvas
+    from PIL import Image
+    im = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
+    b = io.BytesIO(); im.save(b, "PNG")
+    p = io.BytesIO(); c = canvas.Canvas(p); c.drawString(100, 700, "Rechnung"); c.save()
+    F = [(t.format(datum="11.11.2026", name="Test Prüfer"), rx, ry, rh, n) for t, rx, ry, rh, n in stempel.FELDER["pruef"]]
+    neu = unterschrift.stempeln(p.getvalue(), b.getvalue(), 1, 0.5, 0.5, 0.2, 0.14, "", drehung=-3, felder=F)
+    t = PdfReader(io.BytesIO(neu)).pages[0].extract_text()
+    pruefe("11.11.2026" in t and "Prüfer" in t, f"Datum und Name im Prüfstempel: {t!r}")

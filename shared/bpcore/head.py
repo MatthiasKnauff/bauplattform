@@ -1181,6 +1181,14 @@ def blueprint(get_user=None):
             stempel.speichern(c, art, png, u["name"])
         return jsonify(ok=True)
 
+    def _stempel_felder(art, u):
+        """Prüfstempel u. Ä.: Datum und Name des Benutzers in die Felder des Stempels."""
+        from datetime import date
+        k = u.keys()
+        name = " ".join(x for x in ((u["vorname"] if "vorname" in k else "") or "", (u["nachname"] if "nachname" in k else "") or "") if x) or u["name"]
+        werte = {"datum": date.today().strftime("%d.%m.%Y"), "name": name}
+        return [(t.format(**werte), rx, ry, rh, n) for t, rx, ry, rh, n in stempel.FELDER.get(art or "", ())]
+
     @bp.post("/api/bp/pdf/unterschreiben")
     def pdf_unterschreiben():
         """PDF aus der Vorschau + Unterschrift (PNG, gezeichnet oder „meine“) → unterschriebenes PDF; steht im Fehlerfall nie halb da."""
@@ -1206,7 +1214,8 @@ def blueprint(get_user=None):
             return jsonify(error="PDF oder Unterschrift fehlt."), 400
         try:
             neu = unterschrift.stempeln(pdf, png, b.get("seite", 1), b.get("x", 0), b.get("y", 0), b.get("w", 0.3), b.get("h", 0.08), (b.get("text") or "")[:120],
-                                       drehung=max(-15.0, min(15.0, float(b.get("drehung") or 0))))
+                                       drehung=max(-15.0, min(15.0, float(b.get("drehung") or 0))),
+                                       felder=_stempel_felder(b.get("stempel"), u) if b.get("eintragen") == "1" else ())
         except Exception as e:
             fehler.still("head", "PDF unterschreiben", e)
             return jsonify(error="Das PDF ließ sich nicht unterschreiben."), 400

@@ -8,6 +8,10 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Honorar-Ablauf, Etappe 2: Architektenvertrag aus der beauftragten Version erzeugen, unterschreiben (auch am Handy), Ablage im Vertragsverzeichnis. **ca. 30–45 min**
+- Honorar-Ablauf, Etappe 3: Abrechnung – Abschläge nach erbrachten LPh, bezahlt/offen, Schlussrechnung. **ca. 30–45 min**
+- Honorar: „＋ Anfrage“ aus einer Mail im Posteingang der Startseite, Widget „Honorar offen“. **ca. 20–30 min**
+- Bautagebuch: Fotos einzeln hochladen (beliebig viele auf einmal, „Foto 7 von 23“, fehlgeschlagene einzeln nochmal). **ca. 15–20 min**
 - Bautagebuch: Tagesbericht direkt in der PDF-Vorschau bearbeiten (Klick ins Feld → bearbeiten, wie in der Seite). **ca. 45–60 min**
 - Bauantrag: amtliches NRW-Formular (ausfüllbares PDF) – sobald die Formular-PDFs hochgeladen sind; Änderungen im PDF zurück in die Datenbank. **ca. 30–45 min**
 - Bauantrag: Lageplan-/Liegenschaftskarte aus ALKIS anfordern, Gebühr schätzen, Bauvorlagen direkt aus dem Projektordner beilegen. **ca. 30–45 min**
@@ -86,6 +90,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Eigener Datums- und Zeitauswahl-Baustein (datum.js): Kalender mit KW und Schnellwahl, Uhrzeit Stunde/Minute; ersetzt Systemkalender in allen Apps~~
 - ~~Handy: Auswahllisten öffnen nie mehr die Systemliste (kein Fokus nach der Wahl, Tippen auf die Beschriftung, Tastatur-Pfeile)~~
 - ~~Adressen: deutliches „‹ Zurück zum Bautagebuch“, nur wenn man aus dem Bautagebuch kommt~~
+- ~~Honorar mit Ablauf: Stufen Anfrage → Angebot → Auftrag → Vertrag → Abrechnung → Abgeschlossen (dazu abgelehnt) als Leiste, je Stufe eine Karte mit Angaben, links nach Stufe gruppiert mit Hinweisen (seit n T., v2, ohne Vertrag), To-dos: Anfrage beantworten, nachfassen, Bindefrist, Vertrag fehlt~~
+- ~~Handy: kleiner Rückgängig-Knopf nach dem Dock unten links, kleiner und durchscheinend~~
 - ~~Neue App „Bauantrag“: Assistent in 6 Schritten (Verfahren, Beteiligte, Grundstück, Vorhaben & Kenndaten, Bauvorlagen, Prüfen & PDF), Werte aus Projektdaten, Adressen, Kataster, Baukosten, Büro und Mein Konto mit Quelle und ↺, Entwurfsverfasser persönlich/Büro, Bauvorlagen aus dem Projektordner erkannt, PDF im eigenen Layout~~
 - ~~AVA einfache Übersicht: LV-Karten farbig gebändert nach Stand (blau, gelb, grün, rot über Auftrag, grau)~~
 - ~~Neuigkeiten: Rundgang öffnet App, Reiter (hash) und Menü (klick) selbst – über alle Apps hinweg~~

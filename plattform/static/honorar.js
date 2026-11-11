@@ -18,19 +18,22 @@ async function laden(aid) {
   L = await api('api/auftraege');
   if (aid !== undefined) AID = aid;
   if (AID && !L.auftraege.some((a) => a.id === AID)) AID = null;
+  const h = (location.hash.match(/^#a(\d+)$/) || [])[1];   // aus der To-do-Liste: #a<id>
+  if (h && L.auftraege.some((a) => a.id === +h)) { AID = +h; history.replaceState(null, '', location.pathname + location.search); }
   if (!AID && L.auftraege.length) AID = L.auftraege[0].id;
   D = AID ? await api('api/auftraege/' + AID) : null;
   zeichne();
 }
 
 function nav() {
-  const G = {};
-  L.auftraege.forEach((a) => { (G[a.projekt || '–'] = G[a.projekt || '–'] || []).push(a); });
+  const G = {};   // nach Stufe des Ablaufs gruppiert (honorar-ablauf.js), damit offene Anfragen und Angebote nicht untergehen
+  L.auftraege.forEach((a) => { (G[a.status] = G[a.status] || []).push(a); });
+  const kurz = (p) => ((p || '').match(/^[A-Za-z]{1,4}\d{2,6}/) || [p || ''])[0];
   bpNav(NAV, {
     kopf: { titel: 'Honorar', klein: `${L.auftraege.length} Auftr${L.auftraege.length === 1 ? 'ag' : 'äge'}` },
-    gruppen: Object.keys(G).sort((x, y) => x.localeCompare(y, 'de')).map((p) => ({ titel: p, punkte: G[p].map((a) => ({
-      id: String(a.id), text: a.name, icon: IC.auftrag, farbe: a.status === 'beauftragt' ? 'var(--ok,#1e8a4c)' : a.status === 'abgeschlossen' ? 'var(--mute)' : 'var(--y)',
-      zahl: a.warnung ? '!' : '', zahlTip: a.warnung ? 'Aufwand über dem Honorar' : '' })) })),
+    gruppen: Object.keys(L.status).filter((s) => G[s]).map((s) => ({ titel: STUFE_GRUPPE[s] || L.status[s], punkte: G[s].map((a) => { const h = stufeHinweis(a);
+      return { id: String(a.id), text: `${kurz(a.projekt)} ${a.name}`.trim(), icon: IC.auftrag, farbe: STUFE_FARBE[a.status] || 'var(--y)',
+        zahl: a.warnung ? '!' : h[0], zahlTip: a.warnung ? 'Aufwand über dem Honorar' : h[1] }; }) })),
     aktiv: AID ? String(AID) : '', attr: 'hon', lage: true,
     wahl: async (id) => { AID = +id; D = await api('api/auftraege/' + AID); zeichne(); },
   });
@@ -73,7 +76,7 @@ function zeichne() {
       <label>Projekt<input value="${esc(D.projekt)}" disabled></label>
       <label>Auftraggeber<input data-f="auftraggeber" value="${esc(a.auftraggeber || '')}" placeholder="z. B. Bauherr"></label>
       <label>Datum<input type="date" data-f="datum" value="${esc(a.datum || '')}"></label></div>
-    <div class="ho-f" style="margin-top:.6rem"><label>Art${seg('art', ART, a.art)}</label><label>Stand${seg('status', L.status, a.status)}</label></div></div>`;
+    <div class="ho-f" style="margin-top:.6rem"><label>Art${seg('art', ART, a.art)}</label></div></div>`;
   const warn = k.warnungen.length ? `<div class="ho-warn">${k.warnungen.map((w) => `<span>⚠ ${esc(w)}</span>`).join('')}</div>` : '';
   let haupt = '';
   if (a.art === 'hoai') {
@@ -123,7 +126,7 @@ function zeichne() {
       <span>Aufwand laut Zeiten</span><b>${std(k.ist_min)} · ${eur0(k.ist_kosten)}</b></div></div>
     <div class="ho-k"><h3>Text im Angebot</h3><div class="ho-f"><textarea class="w" data-f="notiz" rows="4" placeholder="z. B. Leistungsumfang, Zahlungsbedingungen, Gültigkeit des Angebots">${esc(a.notiz || '')}</textarea></div></div>`;
   const pos = V.scrollTop;
-  V.innerHTML = `<div class="ho-w">${kopf}<div class="ho-k" id="hoV">${VS && VS.aid === AID ? vHtml() : '<span class="mute">Versionen …</span>'}</div>${warn}${haupt}${nk}${sum}</div>`;
+  V.innerHTML = `<div class="ho-w">${ablaufHtml()}${kopf}<div class="ho-k" id="hoV">${VS && VS.aid === AID ? vHtml() : '<span class="mute">Versionen …</span>'}</div>${warn}${haupt}${nk}${sum}</div>`;
   if (!VS || VS.aid !== AID) vHolen();
   V.scrollTop = pos;
   if (!WORK.querySelector(':scope > .sr-r')) bereich();
@@ -231,12 +234,14 @@ function neuDialog() {
   const gp = (window.BPHead && BPHead.projekt && BPHead.projekt.id) || P[0].id;
   modalBox(`<h3>Neuer Honorarauftrag</h3>
     <div class="row"><label>Projekt</label><select id="nP">${P.map((p) => `<option value="${p.id}"${p.id === gp ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="row"><label>Beginnt als</label><select id="nS"><option value="angebot">Angebot</option><option value="anfrage">Anfrage (noch kein Angebot)</option></select></div>
     <div class="row"><label>Art</label><select id="nA"><option value="hoai">nach HOAI (Leistungsphasen)</option><option value="stunden">nach Aufwand (Stunden)</option><option value="pauschal">pauschal</option></select></div>
     <div class="row"><label>Leistung</label><input id="nN" placeholder="leer = Vorschlag, z. B. „Architektenleistungen LPh 1–9“"></div>
     <div class="acts"><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">Anlegen</button></div>`,
   async (m, bg, close) => {
     if (m !== 'ok') { close(); return; }
-    try { const d = await api('api/auftraege', 'POST', { project_id: +bg.querySelector('#nP').value, art: bg.querySelector('#nA').value, name: bg.querySelector('#nN').value });
+    try { const d = await api('api/auftraege', 'POST', { project_id: +bg.querySelector('#nP').value, art: bg.querySelector('#nA').value, name: bg.querySelector('#nN').value,
+      status: bg.querySelector('#nS').value, ablauf: bg.querySelector('#nS').value === 'anfrage' ? { anfrage: { datum: new Date().toISOString().slice(0, 10) } } : undefined });
       close(); await laden(d.auftrag.id); } catch (e) { toast(e.message, true); }
   });
 }

@@ -665,6 +665,10 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 .bp-undo button[disabled]{opacity:.35;cursor:default}
 .bp-undo-g{cursor:grab;color:#999;padding:0 .35rem 0 .5rem;letter-spacing:-.2em;user-select:none;touch-action:none;align-self:center}.bp-undo-g:hover{color:#fff}   /* Griff: Dock verschieben */
 .bp-undo-mini{display:flex;border-radius:calc(999px*var(--rkp,1));padding:.2rem;opacity:.9}.bp-undo-mini:hover{opacity:1}.bp-undo-mini .bp-undo-u{padding:.3rem .75rem}
+@media (max-width:760px){   /* Handy: der kleine Knopf „↶ n“ nach dem Dock – klein, durchscheinend, unten links statt mittig über dem Inhalt */
+  .bp-undo:has(> .bp-undo-mini){left:max(.6rem,env(safe-area-inset-left,0px));transform:none;bottom:calc(.8rem + env(safe-area-inset-bottom,0px));font-size:.8rem}
+  .bp-undo-mini{opacity:.55;padding:.12rem;background:rgba(28,28,26,.6);box-shadow:none}.bp-undo-mini:hover,.bp-undo-mini:focus-within{opacity:1}
+  .bp-undo-mini .bp-undo-u{padding:.2rem .55rem;background:color-mix(in srgb,var(--y,#d4f02a) 75%,transparent)}.bp-undo-mini .bp-undo-g{display:none}}
 .bp-undo-l{width:min(24rem,calc(100vw - 2rem));border-radius:calc(14px*var(--rk,1));padding:.35rem;display:flex;flex-direction:column;max-height:min(50vh,22rem);overflow:auto;scrollbar-width:thin}
 .bp-undo-lk{display:flex;justify-content:space-between;color:#aaa;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;padding:.3rem .5rem .4rem}
 .bp-undo-l button{display:flex;gap:.55rem;padding:.42rem .5rem;border-radius:calc(9px*var(--rk,1))}.bp-undo-l button i{flex:none;width:1.45rem;height:1.45rem;border-radius:calc(7px*var(--rk,1));background:#333;display:grid;place-items:center;font-style:normal;font-size:.8rem}

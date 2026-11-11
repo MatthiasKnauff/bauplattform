@@ -60,3 +60,30 @@ def test_honorar_versionen(ctx):
     finally:
         a.uj(f"{HO}/auftraege/{aid}/versionen/modus", {"modus": "auftrag"}, expect=None)
         a.delete(f"{HO}/auftraege/{aid}", expect=None)
+
+
+def test_honorar_ablauf(ctx):
+    """Ablauf: als Anfrage anlegen, Angaben je Stufe speichern und einzeln löschen, Stufe weiter bis Vertrag, abgelehnt;
+    unbekannte Stufen und Felder werden verworfen; die Liste zeigt Stufe und Angaben."""
+    a = ctx.admin
+    d = a.pj(f"{HO}/auftraege", {"project_id": ctx.pid, "art": "pauschal", "name": "RT Ablauf", "status": "anfrage",
+                                 "ablauf": {"anfrage": {"von": "Bauherr RT", "datum": "2026-11-01", "quatsch": "x"}}})
+    aid = d["auftrag"]["id"]
+    try:
+        gleich((d["auftrag"]["status"], d["auftrag"]["ablauf"]["anfrage"]), ("anfrage", {"von": "Bauherr RT", "datum": "2026-11-01"}), "als Anfrage angelegt")
+        d = a.uj(f"{HO}/auftraege/{aid}", {"status": "angebot", "ablauf": {"angebot": {"gesendet": "2026-11-03", "bindefrist": "2026-12-01"}}})
+        gleich((d["auftrag"]["status"], d["auftrag"]["ablauf"]["angebot"]["bindefrist"]), ("angebot", "2026-12-01"), "Angebot gesendet")
+        d = a.uj(f"{HO}/auftraege/{aid}", {"ablauf": {"angebot": {"bindefrist": None}}})
+        pruefe("bindefrist" not in d["auftrag"]["ablauf"]["angebot"] and d["auftrag"]["ablauf"]["anfrage"]["von"] == "Bauherr RT", "Feld gelöscht, Rest bleibt")
+        d = a.uj(f"{HO}/auftraege/{aid}", {"status": "vertrag", "ablauf": {"vertrag": {"bh": True, "buero": False}}})
+        gleich((d["auftrag"]["status"], d["auftrag"]["ablauf"]["vertrag"]), ("vertrag", {"bh": True, "buero": False}), "Vertrag")
+        d = a.uj(f"{HO}/auftraege/{aid}", {"status": "gibtsnicht"})
+        gleich(d["auftrag"]["status"], "vertrag", "unbekannte Stufe verworfen")
+        d = a.uj(f"{HO}/auftraege/{aid}", {"status": "abgelehnt", "ablauf": {"abgelehnt": {"grund": "zu teuer"}}})
+        z = next(x for x in a.gj(f"{HO}/auftraege")["auftraege"] if x["id"] == aid)
+        gleich((z["status"], z["ablauf"]["abgelehnt"]["grund"]), ("abgelehnt", "zu teuer"), "Liste mit Stufe und Angaben")
+    finally:
+        try:
+            a.delete(f"{HO}/auftraege/{aid}")
+        except Exception:   # noqa: BLE001 – schon weg
+            pass

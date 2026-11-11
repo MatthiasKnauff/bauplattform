@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-honorar-ablauf",
+  "datum": "2026-11-11",
+  "app": "honorar",
+  "titel": "Honorar mit Ablauf",
+  "text": "Jeder Honorarauftrag durchläuft jetzt Anfrage → Angebot → Auftrag → Vertrag → Abrechnung. Oben siehst du, wo er steht (Klick setzt die Stufe), darunter je Stufe die Angaben: von wem und wann angefragt, wann gesendet, Bindefrist und Nachfassen, wann beauftragt, Vertrag unterschrieben. Links sind die Aufträge nach Stufe gruppiert. Anfragen ohne Angebot, Nachfassen, ablaufende Bindefristen und fehlende Verträge erscheinen als To-do auf der Startseite.",
+  "ziel": ".hab-flow"
+ },
+ {
   "id": "2026-11-11-bauantrag",
   "datum": "2026-11-11",
   "app": "bauantrag",

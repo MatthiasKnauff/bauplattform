@@ -338,9 +338,9 @@ function wxBauzeit(D) {
 function wxHonorar(H) {
   const L = H.auftraege || [], u = wxApp('honorar');
   if (!L.length) return '<p class="mute">Noch kein Honorarauftrag in diesem Projekt.</p>';
-  const ST = { angebot: 'Angebot', beauftragt: 'beauftragt', abgeschlossen: 'abgeschlossen' };
+  const ST = { anfrage: 'Anfrage', angebot: 'Angebot', beauftragt: 'beauftragt', vertrag: 'Vertrag', abrechnung: 'in Abrechnung', abgeschlossen: 'abgeschlossen', abgelehnt: 'abgelehnt' };
   const bar = (a, v, c) => `<span class="ks-b"><i style="width:${Math.max(0.5, v / Math.max(1, a.netto || 0, a.ist_kosten || 0) * 100)}%;background:${c}"></i></span>`;   // je Auftrag eigener Maßstab
-  const sum = L.reduce((s, a) => ({ n: s.n + (a.status !== 'angebot' ? a.netto : 0), i: s.i + a.ist_kosten }), { n: 0, i: 0 });
+  const sum = L.reduce((s, a) => ({ n: s.n + (['beauftragt', 'vertrag', 'abrechnung', 'abgeschlossen'].includes(a.status) ? a.netto : 0), i: s.i + a.ist_kosten }), { n: 0, i: 0 });
   return L.map((a) => `<a class="wx-ks" href="${esc(u)}/" title="Honorar öffnen"><p class="wx-sub" style="margin-top:.3rem"><b style="color:var(--ink)">${esc(a.name)}</b> · ${esc(ST[a.status] || a.status)}${a.warnung ? ' · <b style="color:var(--red)">Aufwand über Honorar</b>' : ''}</p>
     <div class="ks-z"><span>Honorar netto</span>${bar(a, a.netto, '#6d4bd8')}<b>${eurK(a.netto)}</b></div>
     ${a.art === 'hoai' ? `<div class="ks-z"><span>erbracht</span>${bar(a, a.erbracht, '#1f9d4c')}<b>${eurK(a.erbracht)}</b></div>` : ''}

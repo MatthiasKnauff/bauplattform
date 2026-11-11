@@ -29,6 +29,7 @@ REGELN = [
     ("tagesbericht", "Tagesbericht fehlt", "Laufende Baustelle (Firmen laut Bauzeitenplan da), aber seit so vielen Arbeitstagen kein Tagesbericht", False, ("Arbeitstage", "Tage", 3)),
     ("budget", "Budget überschritten", "Aufträge + beauftragte Nachträge im AVA liegen über der Kostenermittlung (KG 300 + 400)", False, ("Toleranz", "%", 0)),
     ("urlaub", "Urlaubsanträge", "Für die Verwaltung: offene Urlaubsanträge entscheiden · für alle: eigene Anträge, die in den letzten Tagen entschieden wurden", True, None),
+    ("honorar", "Honorar: Anfragen und Angebote", "Für die Verwaltung: Anfragen ohne Angebot, Angebote zum Nachfassen oder mit ablaufender Bindefrist, Aufträge ohne Vertrag – so viele Tage Vorlauf bzw. Wartezeit", True, ("Tage", "Tage", 7)),
     ("post", "Angebote/Rechnungen im Posteingang", "Mails der Startseite, die nach Angebot oder Rechnung aussehen und noch nicht erledigt sind", False, None),
 ]
 RK = {r[0]: r for r in REGELN}
@@ -492,12 +493,54 @@ def _a_urlaub(c, u, R, P, ok):
     return out
 
 
+def _a_honorar(c, u, R, P, ok):
+    """Honorar-Ablauf (nur Verwaltung): Anfrage seit n Tagen ohne Angebot, Angebot nachfassen (Datum erreicht) oder Bindefrist in n Tagen,
+    beauftragt seit n Tagen ohne Vertrag."""
+    if not u["is_admin"]:
+        return []
+    n, heute = R["wert"] or 7, _heute()
+    out = []
+    for x in c.execute("SELECT id, project_id, name, status, ablauf, datum FROM honorar_auftrag WHERE status IN ('anfrage','angebot','beauftragt')").fetchall():
+        p = P.get(x["project_id"])
+        if p and p["archived"]:
+            continue
+        ab = _j(x["ablauf"], {}) or {}
+        an, ag, au = ab.get("anfrage") or {}, ab.get("angebot") or {}, ab.get("auftrag") or {}
+        link = f"honorar:#a{x['id']}"
+        if x["status"] == "anfrage":
+            seit = _d_iso(an.get("datum") or x["datum"])
+            if seit and seit <= heute - timedelta(days=n):
+                out.append(_e("honorar", f"an{x['id']}", f"Honoraranfrage beantworten: {x['name']}", f"Anfrage{' von ' + an['von'] if an.get('von') else ''} seit {(heute - seit).days} Tagen ohne Angebot",
+                              x["project_id"], P, an.get("datum") or x["datum"], link, 1))
+        elif x["status"] == "angebot":
+            nf, bf = _d_iso(ag.get("nachfassen")), _d_iso(ag.get("bindefrist"))
+            if nf and nf <= heute:
+                out.append(_e("honorar", f"nf{x['id']}", f"Honorarangebot nachfassen: {x['name']}", f"gesendet {_d(ag.get('gesendet', ''))}" if ag.get("gesendet") else "",
+                              x["project_id"], P, ag["nachfassen"], link, 1))
+            elif bf and bf <= heute + timedelta(days=n):
+                out.append(_e("honorar", f"bf{x['id']}", f"Bindefrist Honorarangebot {'abgelaufen' if bf < heute else 'läuft ab'}: {x['name']}", f"bis {_d(ag['bindefrist'])}",
+                              x["project_id"], P, ag["bindefrist"], link, 1))
+        else:
+            seit = _d_iso(au.get("datum"))
+            if seit and seit <= heute - timedelta(days=n):
+                out.append(_e("honorar", f"vt{x['id']}", f"Architektenvertrag fehlt: {x['name']}", f"beauftragt am {_d(au['datum'])}", x["project_id"], P, au["datum"], link))
+    return out
+
+
+def _d_iso(t):
+    try:
+        return date.fromisoformat(str(t)[:10]) if t else None
+    except ValueError:
+        return None
+
+
 def _d(t):
     return f"{t[8:10]}.{t[5:7]}." if t and len(t) >= 10 else (t or "")
 
 
 ANALYSEN = {"urlaub": _a_urlaub, "terminruege": _a_terminruege, "maengel": _a_maengel, "erinnerungen": _a_erinnerungen, "rechnungen": _a_rechnungen, "skonto": _a_skonto, "nachtraege": _a_nachtraege, "vergabe": _a_vergabe,
-            "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post}
+            "firma": _a_firma, "verzug": _a_verzug, "planversand": _a_planversand, "tagesbericht": _a_tagesbericht, "vorort": _a_vorort, "budget": _a_budget, "post": _a_post,
+            "honorar": _a_honorar}
 
 
 def automatisch(c, u):

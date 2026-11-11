@@ -13,7 +13,30 @@ import common as C
 app = C.make_app(__name__)
 KEY = "honorar"
 FELDER = ("name", "art", "status", "kosten", "kosten_info", "zone", "satz", "umbau", "lph", "nk", "einheit", "satz_h", "pauschal", "auftraggeber", "notiz", "datum")
-STATUS = {"angebot": "Angebot", "beauftragt": "beauftragt", "abgeschlossen": "abgeschlossen"}
+STATUS = {"anfrage": "Anfrage", "angebot": "Angebot", "beauftragt": "Auftrag", "vertrag": "Vertrag", "abrechnung": "Abrechnung",
+          "abgeschlossen": "Abgeschlossen", "abgelehnt": "abgelehnt"}   # Stufen des Ablaufs, in dieser Reihenfolge
+ABLAUF = {"anfrage": ("von", "datum", "weg", "leistung", "notiz"), "angebot": ("gesendet", "bindefrist", "nachfassen"),
+          "auftrag": ("datum", "durch", "umfang"), "vertrag": ("datum", "bh", "buero", "ablage"), "abrechnung": ("notiz",), "abgelehnt": ("datum", "grund")}
+
+
+def _ablauf(alt, neu):
+    """Angaben je Stufe zusammenführen; nur bekannte Felder, Text gekürzt; None löscht ein Feld."""
+    try:
+        a = json.loads(alt) if isinstance(alt, str) else (alt or {})
+    except ValueError:
+        a = {}
+    for st, felder in ABLAUF.items():
+        x = (neu or {}).get(st)
+        if isinstance(x, dict):
+            z = dict(a.get(st) or {})
+            for k, v in x.items():
+                if k in felder:
+                    if v is None or v == "":
+                        z.pop(k, None)
+                    else:
+                        z[k] = v if isinstance(v, bool) else str(v)[:1000]
+            a[st] = z
+    return a
 
 
 @app.before_request
@@ -53,6 +76,7 @@ def platform_conf():
 
 def _zeile(c, r):
     a = H.sauber(dict(r))
+    a["ablauf"] = _ablauf(a.get("ablauf"), None)
     nk_auf = c.execute("SELECT COALESCE(SUM(betrag), 0) AS s FROM honorar_nk WHERE auftrag_id=?", (a["id"],)).fetchone()["s"] or 0
     z = H.zeiten_projekt(c, a["project_id"], a["einheit"], a["satz_h"])
     return a, H.rechne(a, z, nk_auf), z
@@ -63,10 +87,12 @@ def liste():
     with db.tx() as c:
         P = {r["id"]: dict(r) for r in c.execute("SELECT id, name, archived FROM projects ORDER BY name").fetchall()}
         out = []
+        NV = {r["auftrag_id"]: r["n"] for r in c.execute("SELECT auftrag_id, count(*) AS n FROM honorar_version WHERE auftrag_id IS NOT NULL GROUP BY auftrag_id")}
         for r in c.execute("SELECT * FROM honorar_auftrag ORDER BY geaendert DESC").fetchall():
             a, k, _ = _zeile(c, r)
             out.append({"id": a["id"], "project_id": a["project_id"], "projekt": (P.get(a["project_id"]) or {}).get("name", ""), "name": a["name"],
-                        "art": a["art"], "status": a["status"], "netto": k["netto"], "ist_kosten": k["ist_kosten"], "warnung": bool(k["warnungen"])})
+                        "art": a["art"], "status": a["status"], "ablauf": a["ablauf"], "versionen": NV.get(a["id"], 0), "datum": a.get("datum") or "",
+                        "geaendert": a.get("geaendert") or "", "netto": k["netto"], "ist_kosten": k["ist_kosten"], "warnung": bool(k["warnungen"])})
     return jsonify(auftraege=out, projekte=[{"id": p["id"], "name": p["name"]} for p in P.values() if not p["archived"]],
                    lph=H.LPH, zonen=H.ZONEN, status=STATUS, mwst=H.MWST, arten=Z.ARTEN)
 
@@ -98,8 +124,11 @@ def neu():
             return jsonify(error="Bitte ein Projekt wählen."), 400
         art = b.get("art") if b.get("art") in ("hoai", "stunden", "pauschal") else "hoai"
         name = (b.get("name") or "").strip() or {"hoai": "Architektenleistungen LPh 1–9", "stunden": "Leistungen nach Aufwand", "pauschal": "Pauschalauftrag"}[art]
-        aid = c.execute("INSERT INTO honorar_auftrag(project_id, name, art, lph, nk, datum, von) VALUES(?,?,?,?,?,?,?) RETURNING id",
-                        (p["id"], name[:200], art, json.dumps(H.lph_vorgabe()), json.dumps({"art": "pauschal", "p": 5}), time.strftime("%Y-%m-%d"), g.user["name"])).fetchone()["id"]
+        st = b.get("status") if b.get("status") in ("anfrage", "angebot") else "angebot"
+        ab = _ablauf("{}", b.get("ablauf") if isinstance(b.get("ablauf"), dict) else None)
+        aid = c.execute("INSERT INTO honorar_auftrag(project_id, name, art, status, lph, nk, datum, von, ablauf) VALUES(?,?,?,?,?,?,?,?,?) RETURNING id",
+                        (p["id"], name[:200], art, st, json.dumps(H.lph_vorgabe()), json.dumps({"art": "pauschal", "p": 5}), time.strftime("%Y-%m-%d"), g.user["name"],
+                         json.dumps(ab))).fetchone()["id"]
         d = _detail(c, aid)
     C.audit(g.user["name"], "honorar", "Honorarauftrag angelegt", f"{p['name']}: {name}")
     return jsonify(d)
@@ -113,8 +142,9 @@ def aendern(aid):
         if not r:
             return jsonify(error="Auftrag nicht gefunden."), 404
         a = H.sauber({**dict(r), **{k: v for k, v in b.items() if k in FELDER}})
-        if b.get("status") and b["status"] in STATUS:
-            a["status"] = b["status"]
+        a["status"] = b["status"] if b.get("status") in STATUS else r["status"]   # unbekannte Stufe: bleibt, wie sie ist
+        if isinstance(b.get("ablauf"), dict):
+            c.execute("UPDATE honorar_auftrag SET ablauf=? WHERE id=?", (json.dumps(_ablauf(r["ablauf"], b["ablauf"])), aid))
         c.execute("""UPDATE honorar_auftrag SET name=?, art=?, status=?, kosten=?, kosten_info=?, zone=?, satz=?, umbau=?, lph=?, nk=?, einheit=?,
                      satz_h=?, pauschal=?, auftraggeber=?, notiz=?, datum=?, geaendert=? WHERE id=?""",
                   (str(a["name"] or "")[:200], a["art"], a["status"] if a["status"] in STATUS else "angebot", a["kosten"], str(a.get("kosten_info") or "")[:300],
@@ -176,7 +206,7 @@ def _eur(v):
 
 
 # ---------------------------------------------------------------- Versionen (je Auftrag oder je Projekt, jederzeit umstellbar)
-VFELDER = FELDER   # was eine Version vom Auftrag festhält – dazu die Nebenkosten nach Aufwand
+VFELDER = tuple(f for f in FELDER if f != "status")   # Stufe gehört zum Ablauf, nicht zur Version; was eine Version vom Auftrag festhält – dazu die Nebenkosten nach Aufwand
 
 
 def _modus(c, pid):
@@ -353,7 +383,7 @@ def angebot_pdf(aid):
         if rechts:
             cv.drawRightString(R, y, rechts)
         y -= ab
-    titel = "Honorarangebot" if a["status"] == "angebot" else "Honoraraufstellung"
+    titel = "Honorarangebot" if a["status"] in ("anfrage", "angebot", "abgelehnt") else "Honoraraufstellung"
     zeile(titel, fett=True, gr=15, ab=8 * mm)
     zeile(f"Projekt: {d['projekt']}", ab=5 * mm)
     zeile(f"Leistung: {a['name']}", ab=5 * mm)

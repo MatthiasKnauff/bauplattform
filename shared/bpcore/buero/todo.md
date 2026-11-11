@@ -38,6 +38,11 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Offene Fragen
 
+- Mitarbeiter, Rollen & Urlaub: GO zum Mock (Rollen × Rechte, App Mitarbeiter, Urlaubsantrag mit Popup bei der Geschäftsführung, „Ansehen als …“) – baut auf den vorhandenen Urlaubsanträgen in „Monat & Urlaub“ auf.
+- Dritter Server (Docker 3) als zweiter Testserver: jeden Push wie Docker 1 (Stack aus server/test.yml, nichts zu ändern) oder eigener stabiler Stand (server/test3.yml + Pipeline). **ca. 10 min**
+- HOAI-Prüfung, zweiter Teil: Mock gewünscht? (Verbraucher-Schalter mit § 7 Abs. 2 HOAI, § 650r BGB, Widerruf; Bausubstanz; TA selbst geplant; Leistungszeitraum; Innenräume)
+- Vorbemerkungen als Standard-Baustein in der Ausschreibung: Mock gewünscht?
+
 - Leistungsinformationen: Fehler am Dropdown noch nicht nachgestellt. **ca. 10 min**
 - Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld? **ca. 5–10 min**
 

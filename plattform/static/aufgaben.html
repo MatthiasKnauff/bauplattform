@@ -867,8 +867,7 @@ async function setDialog(host) {
   ME = await api('api/me'); applyLook(ME);
   CONF = await api('api/platform');
   await header('Aufgaben & Mängel', ME, CONF);
-  BPHead.appEinstellungen([{ key: 'todo', label: 'To-dos', render: (h) => tdEinstellungen(h) }, { key: 'erinnerungen', label: 'Erinnerungen', render: (h) => setDialog(h) }]
-    .concat(ME.is_admin ? [{ key: 'druck', label: 'Druck-Layouts der Rügen', text: 'Wo steht was auf Mängel- und Terminrüge – Editor mit Raster und Versionen', open: () => BPHead.einstellungen({ bereich: 'buero', teil: 'druck' }) }] : []));
+  BPHead.appEinstellungen([{ key: 'todo', label: 'To-dos', render: (h) => tdEinstellungen(h) }, { key: 'erinnerungen', label: 'Erinnerungen', render: (h) => setDialog(h) }]);   // Druck-Layouts: nur in der Verwaltung
   try { CFG = await api('api/einstellungen'); } catch { /* egal */ }
   const deep = /^(mangel|erinnerung)-(\d+)$/.exec(tab);   // Link aus einer E-Mail: direkt zum Eintrag
   if (deep) { tab = deep[1] === 'mangel' ? 'maengel' : 'erinnerungen'; scope = 'all'; history.replaceState(null, '', '#' + tab); }

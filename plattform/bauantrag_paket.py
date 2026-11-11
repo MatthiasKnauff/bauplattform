@@ -13,7 +13,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, request
 
-from bpcore import bauantrag_paket as BP, db, papierkorb
+from bpcore import bauantrag_anlagen as BAN, bauantrag_paket as BP, db, papierkorb
 import common as C
 from bpcore import bauantrag_formulare as BF
 from bauantrag import KEY, _antrag, _detail, _felder_setzen, _j, app
@@ -82,6 +82,8 @@ def paket_setzen(aid):
                     A[f] = str(b["anschreiben"][f] or "").strip()[:n]
             if "an" in b["anschreiben"]:
                 A["an"] = bool(b["anschreiben"]["an"])
+            if b["anschreiben"].get("anlagen") in ("liste", "verweis"):
+                A["anlagen"] = b["anschreiben"]["anlagen"]
             if "ausfertigungen" in b["anschreiben"]:
                 try:
                     A["ausfertigungen"] = max(1, min(9, int(b["anschreiben"]["ausfertigungen"])))
@@ -209,13 +211,18 @@ def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke"), nur=None):
     if not [k for k in gew if not k.startswith("t")] and "stuecke" in mit and nur is None:
         return None, "Noch kein Vordruck und keine Unterlage gewählt – in Schritt 1 anhaken."
     teile = []
-    for k in (gew if "stuecke" in mit else []):
-        if k.startswith("t"):
-            teile.append(("trenner", next(x["titel"] for x in d["paket"] if x["key"] == k), None))
-            continue
-        x = BP.stueck_pdf(c, k, W, _j(a["daten"], {}).get("_pdf"))
-        if x:
-            teile.append(("stueck", x[1], x[0]))
+    papier = d["abgabe"] != "digital"
+    G = BAN.gliederung(d["paket"], gew, d["anlagen"]) if "stuecke" in mit else []   # Abschnitte mit Anlagen-Nummern
+    for s in G:
+        if s["tnr"]:
+            teile.append(("trenner", s["titel"], None))
+        for e in s["eintraege"]:
+            if e["art"] == "nennen":   # liegt nicht im PDF: im Inhaltsverzeichnis mit Stand statt Seitenzahl
+                teile.append(("nennen", f"{e['nr']}  {e['titel']}", "liegt gefaltet bei" if e.get("plan") and papier and e["stand"] == "bei" else BAN.STAND[e["stand"]]))
+                continue
+            x = BP.stueck_pdf(c, e["key"], W, _j(a["daten"], {}).get("_pdf"))
+            if x:
+                teile.append(("stueck", f"{e['nr']}  {e['titel']}", x[0]))
     while teile and teile[-1][0] == "trenner":   # Trennblatt ohne Inhalt am Ende weglassen
         teile.pop()
     teile = [t for i, t in enumerate(teile) if not (t[0] == "trenner" and i + 1 < len(teile) and teile[i + 1][0] == "trenner")]
@@ -223,13 +230,15 @@ def _paket_bauen(c, a, mit=("anschreiben", "deckblatt", "stuecke"), nur=None):
     kopf = [x for x in (BA_VERF.get(a["verfahren"], ""), W.get("bezeichnung") or d["projekt"], adr, f"Bauherrschaft: {W.get('bauherr_name')}" if W.get("bauherr_name") else "",
                         f"Entwurfsverfassende: {W.get('ev_name')}" if W.get("ev_name") else "", time.strftime("Stand %d.%m.%Y")) if x]
     A = d["anschreiben"]
-    vorn = anschreiben_pdf(c, a, W, A, d["projekt"]) if (A["an"] or nur is not None) and "anschreiben" in mit else None
+    vorn = anschreiben_pdf(c, a, W, A, d["projekt"], d["gliederung"]) if (A["an"] or nur is not None) and "anschreiben" in mit else None
     Dk = d["deckblatt"]
     if "stuecke" not in mit and "deckblatt" not in mit:
         return vorn, ""
     if not teile and "deckblatt" not in mit:   # nur das Anschreiben
         return vorn, ""
-    data = BP.paket_pdf(teile, kopf, entwurf=a["status"] == "entwurf", deckblatt_an=(Dk["an"] or nur is not None) and "deckblatt" in mit, weitere=Dk["punkte"], vorn=vorn)
+    R = BAN.packliste(G, d["abgabe"]) if (nur is None or "packliste" in nur) else []
+    hinten = BAN.packliste_pdf(R, A["ausfertigungen"], kopf) if R else None   # Papier: was noch dazugelegt wird
+    data = BP.paket_pdf(teile, kopf, entwurf=a["status"] == "entwurf", deckblatt_an=(Dk["an"] or nur is not None) and "deckblatt" in mit, vorn=vorn, hinten=hinten)
     return data, ""
 
 
@@ -255,7 +264,7 @@ def anschreiben(aid):
         if not a:
             return jsonify(error="Antrag nicht gefunden."), 404
         W, d = _w(c, a)
-        data = anschreiben_pdf(c, a, W, d["anschreiben"], d["projekt"])
+        data = anschreiben_pdf(c, a, W, d["anschreiben"], d["projekt"], d["gliederung"])
     return _pdf_antwort(data, f"Anschreiben {a['name']}.pdf"[:150], request.args.get("dl"))
 
 
@@ -274,7 +283,7 @@ def behoerden():
     return jsonify(behoerden=out)
 
 
-def anschreiben_pdf(c, a, W, A, projekt):
+def anschreiben_pdf(c, a, W, A, projekt, G=None):
     """Anschreiben an die Bauaufsicht als Brief (Druck-Layout „Bauantrag – Anschreiben“, wie die Rügen): Briefkopf, Anschrift im Fenster,
     Datum, Bearbeiter, Betreff, Text, Anlagen-Hinweis."""
     import io
@@ -323,9 +332,28 @@ def anschreiben_pdf(c, a, W, A, projekt):
             cv.drawString(L, y, t); y -= 5.4 * mm
     y -= 16 * mm   # Platz für die Unterschrift
     cv.drawString(L, y, W.get("ev_name") or kurz); y -= 10 * mm
-    cv.setFont(F["b"], 9.5); cv.drawString(L, y, "Anlagen"); y -= 5 * mm
-    cv.setFont(F["n"], 9.5)
-    cv.drawString(L, y, f"Bauvorlagen in {A['ausfertigungen']}-facher Ausfertigung gemäß Inhaltsverzeichnis")
+    def zeile(t, fett=False, einzug=0):
+        nonlocal y
+        cv.setFont(F["b" if fett else "n"], 9.5)
+        for z in (simpleSplit(t, F["b" if fett else "n"], 9.5, R - L - einzug) or [""]):
+            if y < unten + 4 * mm:
+                cv.showPage(); y = A4[1] - 25 * mm; cv.setFont(F["b" if fett else "n"], 9.5)
+            cv.drawString(L + einzug, y, z); y -= 4.6 * mm
+    E = [e for s in (G or []) for e in s["eintraege"]]
+    if A.get("anlagen", "liste") == "liste" and E:   # Anlagen ausgeschrieben, Nachzureichendes extra
+        zeile(f"Anlagen (Bauvorlagen in {A['ausfertigungen']}-facher Ausfertigung)", True)
+        for s in G:
+            da = [e for e in s["eintraege"] if e["stand"] == "bei"]
+            if da:
+                zeile((f"{s['nr']}  {s['titel']}: " if s["nr"] else "") + "; ".join(f"{e['nr']} {re.sub(r'^Anlage [^–]+– ', '', e['titel'])}" for e in da), einzug=0)
+        for st, txt in (("nach", "Wird nachgereicht"), ("pruef", "Liegt dem Prüfingenieur vor")):
+            R2 = [e for e in E if e["stand"] == st]
+            if R2:
+                y -= 1.5 * mm
+                zeile(f"{txt}: " + "; ".join(f"{e['nr']} {e['titel']}" for e in R2), True)
+    else:
+        zeile("Anlagen", True)
+        zeile(f"Bauvorlagen in {A['ausfertigungen']}-facher Ausfertigung gemäß Inhaltsverzeichnis")
     cv.save()
     return briefbogen.unterlegen(buf.getvalue(), bogen, seiten=1) if bogen else buf.getvalue()
 

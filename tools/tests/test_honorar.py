@@ -140,3 +140,15 @@ def test_honorar_rechnungen(ctx):
         ctx.anmelden("Anna Bauer").get(f"{HO}/einstellungen", expect=403)
     finally:
         a.delete(f"{HO}/auftraege/{aid}")
+
+
+def test_kennwort_pdf(ctx):
+    """Kennwort der Honorar-PDFs im Projektordner: wird gespeichert, aber nie zurückgegeben; zu kurz abgelehnt; entfernbar."""
+    a = ctx.admin
+    E = a.gj("/honorar/api/einstellungen")
+    pruefe("honorar_pdf_kennwort" not in E and "kennwort" not in E, "Kennwort nie an den Browser")
+    a.put("/honorar/api/einstellungen", {"kennwort": "kurz"}, expect=400)
+    E = a.uj("/honorar/api/einstellungen", {"kennwort": "Geheim-Test-123"})
+    pruefe(E["kennwort_gesetzt"] and "Geheim-Test-123" not in str(E), "gesetzt, aber nicht sichtbar")
+    E = a.uj("/honorar/api/einstellungen", {"kennwort_loeschen": True})
+    pruefe(not E["kennwort_gesetzt"], "entfernt")

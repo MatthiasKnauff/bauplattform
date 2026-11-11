@@ -53,6 +53,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Typprüfung über JSDoc. **ca. 2 h**
 
 ## Später
+- Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
+- Bauantrag digital an die Behörde (FIT-Connect, vorgemerkt 11.11.2026): Vorbereitung – Antragsdaten und Anlagenliste als strukturierte Datei (XBau-nah), Zustell-ID der Bauaufsicht in den Adressen **ca. 45 min**; Senden erst nach Zulassung durch die FITKO
 - FreePBX (vorgemerkt 11.11.2026; vorher Version, Telefone und Netz klären): Name auf dem Telefon-Display aus den Adressen (CallerID Lookup Source, nur Büronetz, mit Schlüssel) **ca. 20 min** · Anrufjournal – Gespräche beim Kontakt und Projekt in „Kommunikation“, mit Notiz **ca. 45–60 min** · Telefonate als Vorschläge in den Zeiten (Quelle Telefon) **ca. 30 min**
 
 - Webplattform für Externe (Portal): Firmen, Fachplaner, Bauherr über das Internet – eigener Portal-Container, Einladung, Zwei-Faktor, Rechte je Projekt und Rolle, Protokoll. Nach Schritt 5. **ca. 2–3 Tage**
@@ -70,6 +72,11 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag: Anlagen – Pläne aus der Planliste (Nummer, Index; Hinweis auf neueren Index), Dateien aus dem Projektordner, frei; je Anlage Abschnitt, „PDF“ oder „nur nennen“, Stand (liegt bei · wird nachgereicht · liegt Prüfingenieur vor); Nummern je Abschnitt im Inhaltsverzeichnis~~
+- ~~Bauantrag: Abgabe auf Papier (Paket komplett, Pläne nur noch dazulegen – Packliste auf der letzten Seite) oder digital (Pläne als PDF, ZIP mit einer Datei je Anlage)~~
+- ~~Bauantrag: Anschreiben mit ausgeschriebenen Anlagen und „Wird nachgereicht“ (umschaltbar auf „gemäß Inhaltsverzeichnis“)~~
+- ~~Honorar: Kennwort für die PDFs im Projektordner (Verträge, Rechnungen – AES-256, auch ohne Plattform zu öffnen; Kennwort wird nie angezeigt)~~
+- ~~Druck-Layouts nur noch in der Verwaltung – Hinweise und Knöpfe in Bauantrag, Honorar und Aufgaben entfernt~~
 - ~~Zeiten: Zeittakt (5/10/15/30 min, Einstellungen) – Vorschläge und Zeiten gerundet, gleiches Projekt und gleiche Tätigkeit hintereinander automatisch eine Zeile, kurze Reste gehen im Nachbarn auf~~
 - ~~Zeiten: Pause in den Einstellungen (Beginn, Dauer, immer/nur über 6 h; je Person abweichend) und als schraffierte Fläche im Zeitstrahl – verschieben, Dauer ändern, entfernen~~
 - ~~Zeiten: Zeitstrahl mit Farben je Projekt, Quelle als Zeichen und Streifen; Blöcke verschieben und an den Rändern ziehen (rastet auf den Takt, Nachbar wird gekürzt); Klick in eine Lücke: Zeit eintragen, Pause hier, Kommen/Gehen; Ablage unter dem Strahl (eigene Projekte zuerst, Büro, Pause, freie Beschriftung) zum Hineinziehen; Rückgängig über den Stand davor~~

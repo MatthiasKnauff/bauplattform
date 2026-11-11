@@ -90,3 +90,30 @@ def test_bauantrag(ctx):
                 a.delete(f"{BA}/antraege/{aid}")
             except Exception:   # noqa: BLE001 – schon weg
                 pass
+
+
+def test_anlagen(ctx):
+    """Anlagen: freie Zeile mit Stand, Nummer aus der Gliederung, Anschreiben mit ausgeschriebenen Anlagen, Packliste im Paket,
+    Abgabe digital/Papier, Entfernen."""
+    a = ctx.admin
+    d = a.pj(f"{BA}/antraege", {"project_id": ctx.pid, "verfahren": "baugenehmigung", "name": "RT Anlagen"})
+    aid = d["antrag"]["id"]
+    try:
+        d = a.pj(f"{BA}/antraege/{aid}/anlage", {"neu": [{"art": "frei", "text": "Statik (Ing.-Büro Muster)"}, {"art": "frei", "text": "Vollmacht"}]})
+        st, vo = d["neu"]
+        d = a.uj(f"{BA}/antraege/{aid}/anlage", {"id": st, "stand": "nach"})
+        E = {e["id"]: e for s in d["gliederung"] for e in s["eintraege"] if e.get("id")}
+        gleich((E[st]["stand"], E[vo]["stand"], E[st]["art"]), ("nach", "bei", "nennen"), "genannt mit Stand")
+        pruefe(E[st]["nr"] and E[vo]["nr"] and E[st]["nr"] != E[vo]["nr"], f"Anlagen-Nummern: {E[st]['nr']}, {E[vo]['nr']}")
+        gleich(d["packliste"], 1, "Papier: die Vollmacht kommt auf die Packliste (Nachzureichendes nicht)")
+        pruefe(a.get(f"{BA}/antraege/{aid}/anschreiben.pdf").content[:4] == b"%PDF", "Anschreiben mit Anlagen")
+        d = a.uj(f"{BA}/antraege/{aid}/abgabe", {"abgabe": "digital"})
+        gleich((d["abgabe"], d["packliste"]), ("digital", 0), "digital: keine Packliste")
+        a.put(f"{BA}/antraege/{aid}/abgabe", {"abgabe": "fax"}, expect=400)
+        d = a.delete(f"{BA}/antraege/{aid}/anlage", {"id": vo}).json
+        pruefe(all(x["id"] != vo for x in d["anlagen"]), "entfernt")
+    finally:
+        try:
+            a.delete(f"{BA}/antraege/{aid}")
+        except Exception:   # noqa: BLE001 – schon weg
+            pass

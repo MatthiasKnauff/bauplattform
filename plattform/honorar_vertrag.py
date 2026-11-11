@@ -33,7 +33,26 @@ EINST = {
 
 def einstellungen(c):
     S = {r["key"]: r["value"] for r in c.execute("SELECT key, value FROM settings WHERE key LIKE 'honorar\\_%'")}
-    return {k: (S.get(k) or v) for k, (v, _) in EINST.items()}
+    return {**{k: (S.get(k) or v) for k, (v, _) in EINST.items()}, "kennwort_gesetzt": bool(S.get(KW))}   # das Kennwort selbst nie an den Browser
+
+
+KW = "honorar_pdf_kennwort"   # Kennwort der PDFs im Projektordner (Verträge, Rechnungen) – nur gespeichert, nie ausgegeben
+
+
+def fuer_ablage(c, daten):
+    """PDF für den Projektordner: mit dem Kennwort des Büros verschlüsselt (AES-256), falls eins eingetragen ist –
+    so lässt es sich auch ohne Plattform öffnen, aber nur mit Kennwort."""
+    r = c.execute("SELECT value FROM settings WHERE key=?", (KW,)).fetchone()
+    kw = (r["value"] if r else "") or ""
+    if not kw:
+        return daten
+    import io
+    from pypdf import PdfReader, PdfWriter
+    w = PdfWriter()
+    w.append(PdfReader(io.BytesIO(daten)))
+    w.encrypt(user_password=kw, owner_password=kw, algorithm="AES-256")
+    out = io.BytesIO(); w.write(out)
+    return out.getvalue()
 
 
 @app.get("/api/einstellungen")
@@ -47,6 +66,13 @@ def einst_holen():
 def einst_setzen():
     b = request.get_json(silent=True) or {}
     with db.tx() as c:
+        if b.get("kennwort_loeschen"):
+            c.execute("DELETE FROM settings WHERE key=?", (KW,))
+        elif str(b.get("kennwort") or "").strip():
+            kw = str(b["kennwort"]).strip()
+            if len(kw) < 8:
+                return jsonify(error="Das Kennwort bitte mit mindestens 8 Zeichen."), 400
+            c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (KW, kw[:200]))
         for k, (_, n) in EINST.items():
             if k in b:
                 v = str(b[k] or "").strip()[:n]
@@ -54,7 +80,7 @@ def einst_setzen():
                     return jsonify(error="Zahlungsziel bitte in Tagen (Zahl)."), 400
                 c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (k, v))
         out = einstellungen(c)
-    C.audit(g.user["name"], "honorar", "Einstellungen Honorar geändert", ", ".join(k for k in EINST if k in b))
+    C.audit(g.user["name"], "honorar", "Einstellungen Honorar geändert", ", ".join([k for k in EINST if k in b] + (["Kennwort der PDFs"] if b.get("kennwort") or b.get("kennwort_loeschen") else [])))
     return jsonify({**out, "vorgaben": {k: v for k, (v, _) in EINST.items()}, "beispiel": H.re_nummer(out["honorar_re_nummer"], int(time.strftime("%Y")), 7)})
 
 
@@ -258,8 +284,10 @@ def vertrag_speichern(aid):
         vid = c.execute("INSERT INTO honorar_vertrag(auftrag_id, name, pdf, unterschrieben, von) VALUES(?,?,?,?,?) RETURNING id",
                         (aid, name, daten, unterschrieben, g.user["name"])).fetchone()["id"]
     pfad, fehl = "", ""
+    with db.tx() as c:
+        abl = fuer_ablage(c, daten)
     try:   # Projektordner (Testserver: nur lesen → Meldung)
-        a = C.bt_api("POST", "/api/ablage/datei", {"project_id": r["project_id"], "art": "honorar", "name": name, "datei": base64.b64encode(daten).decode()})
+        a = C.bt_api("POST", "/api/ablage/datei", {"project_id": r["project_id"], "art": "honorar", "name": name, "datei": base64.b64encode(abl).decode()})
         pfad = (a or {}).get("pfad") or ""
     except RuntimeError as e:
         fehl = str(e)

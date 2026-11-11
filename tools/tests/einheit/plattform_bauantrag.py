@@ -143,3 +143,23 @@ def test_antragspaket():
     gleich([x["titel"] for x in BP.trenner({"trenner": [{"titel": "Formulare"}]})][:2], ["Formulare", BP.TRENNER[1]], "Trennblatt umbenannt")
     png, n, v = BP.seite_png(scan, 0, 400)
     pruefe(png[:4] == b"\x89PNG" and n == 1 and 0.6 < v < 0.8, "Seite als Bild, hochkant")
+
+
+def test_anlagen_gliederung():
+    """Anlagen: Nummern je Abschnitt (leere Abschnitte zählen nicht), genannte Pläne auf der Packliste, Dateinamen für digital."""
+    from bpcore import bauantrag_anlagen as BAN
+    P = {"anlagen": [{"id": "p1", "art": "plan", "text": "Grundriss EG", "nr": "101", "index": "B", "abschnitt": 3, "an": True, "stand": "bei"},
+                     {"id": "s1", "art": "frei", "text": "Statik", "abschnitt": 5, "an": True, "stand": "nach"},
+                     {"id": "x1", "art": "frei", "text": "aus", "abschnitt": 5, "an": False, "stand": "bei"}]}
+    B = [{"key": "antrag", "name": "Antragsformular"}, {"key": "grundrisse", "name": "Bauzeichnungen – Grundrisse 1:100", "status": "da", "pflicht": True}]
+    L = BAN.liste(P, B)
+    gr = next(x for x in L if x["id"] == "b:grundrisse")
+    pruefe(gr["durch_plaene"] and not gr["an"], "Bauvorlage „Grundrisse“ ist durch den Plan erledigt")
+    gleich(next(x for x in L if x["id"] == "p1")["bezeichnung"], "Grundriss EG · Plan 101 Index B", "Plan mit Nummer und Index")
+    paket = [{"key": "t1", "titel": "Antrag"}, {"key": "f9", "titel": "Bauantrag", "nr": "I/1"}, {"key": "t3", "titel": "Bauzeichnungen"}, {"key": "t4", "titel": "Beschreibungen"}, {"key": "t5", "titel": "Nachweise"}]
+    G = BAN.gliederung(paket, ["t1", "f9", "t3", "t4", "t5"], L)
+    gleich([(s["nr"], s["titel"], [e["nr"] for e in s["eintraege"]]) for s in G],
+           [(1, "Antrag", ["1.1"]), (2, "Bauzeichnungen", ["2.1"]), (3, "Nachweise", ["3.1"])], "Abschnitte ohne Inhalt fallen weg")
+    gleich([e["titel"] for e in BAN.packliste(G, "papier")], ["Grundriss EG · Plan 101 Index B"], "Packliste: nur was beiliegt")
+    gleich(BAN.packliste(G, "digital"), [], "digital: keine Packliste")
+    gleich(BAN.dateiname("2.1", "Grundriss EG · Plan 101 Index B"), "02-1_Grundriss_EG_Plan_101_Index_B.pdf", "Dateiname je Anlage")

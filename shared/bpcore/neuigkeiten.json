@@ -1,5 +1,29 @@
 [
  {
+  "id": "2026-11-11-ba-anlagen",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Anlagen: Pläne, Dateien, frei",
+  "text": "Unter „Prüfen & Paket“ stehen jetzt alle Anlagen: Pläne aus der Planliste (mit Nummer und Index), Dateien aus dem Projektordner und freie Zeilen. Je Anlage wählst du den Abschnitt, „PDF“ oder „nur nennen“ und den Stand (liegt bei, wird nachgereicht, liegt Prüfingenieur vor). Die Nummern erscheinen im Inhaltsverzeichnis und im Anschreiben.",
+  "ziel": ".ban"
+ },
+ {
+  "id": "2026-11-11-ba-abgabe",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Abgabe auf Papier oder digital",
+  "text": "Auf Papier ist das Paket komplett – die Pläne legst du nur noch dazu; was fehlt, steht auf der Packliste der letzten Seite. Digital liegen die Pläne als PDF bei, und „⤓ ZIP für das Bauportal“ liefert je Anlage eine Datei mit Nummer im Namen.",
+  "ziel": "[data-banabg]"
+ },
+ {
+  "id": "2026-11-11-honorar-kennwort",
+  "datum": "2026-11-11",
+  "app": "honorar",
+  "titel": "Kennwort für Honorar-PDFs",
+  "text": "Unter ⚙ → Diese App kann die Verwaltung ein Kennwort hinterlegen: Verträge und Rechnungen im Projektordner sind dann verschlüsselt und lassen sich auch ohne Plattform öffnen – nur mit dem Kennwort.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-zeiten-strahl",
   "datum": "2026-11-11",
   "app": "zeiten",

@@ -276,7 +276,7 @@ function pdf() {   // ein Druck für alles: auf der Druckseite (bpDruck, Baukast
   bpDruck({ titel: `${D.antrag.name} drucken`, name: `${D.antrag.name} – Antragsunterlagen`, merk: 'bauantrag',
     hinweis: 'Links ankreuzen, was ins PDF soll – Auswahl und Reihenfolge der Unterlagen in Schritt 1 und 6.',
     teile: [['anschreiben', 'Anschreiben an die Bauaufsicht', D.anschreiben.an], ['deckblatt', 'Deckblatt mit Inhaltsverzeichnis', D.deckblatt.an],
-      ...D.gewaehlt.map((k) => [k, titel(k), true])],
+      ...D.gewaehlt.map((k) => [k, titel(k), true]), ...(D.packliste ? [['packliste', `Packliste – ${D.packliste} Anlage${D.packliste === 1 ? '' : 'n'} zum Dazulegen`, true]] : [])],
     url: (T) => `api/antraege/${AID}/paket.pdf?teile=${T.join(',')}` });
 }
 

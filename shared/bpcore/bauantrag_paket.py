@@ -118,7 +118,7 @@ def anschreiben(P, W, verfahren_name):
                                       ausfertigungen=A.get("ausfertigungen") or 3)
     return {"an": A.get("an", True), "behoerde_id": A.get("behoerde_id"), "empfaenger": A.get("empfaenger") or W.get("behoerde") or "",
             "ansprechpartner": A.get("ansprechpartner") or "", "aktenzeichen": A.get("aktenzeichen") or "", "ausfertigungen": A.get("ausfertigungen") or 3,
-            "text": A.get("text") or vorgabe, "text_vorgabe": vorgabe, "betreff": A.get("betreff") or f"{verfahren_name or 'Bauantrag'} – {W.get('bezeichnung') or ''}".strip(" –") + f"\n{gs}"}
+            "text": A.get("text") or vorgabe, "text_vorgabe": vorgabe, "anlagen": A.get("anlagen") or "liste", "betreff": A.get("betreff") or f"{verfahren_name or 'Bauantrag'} – {W.get('bezeichnung') or ''}".strip(" –") + f"\n{gs}"}
 
 
 def trennblatt_pdf(nr, titel, inhalt):
@@ -252,9 +252,10 @@ def stueck_pdf(c, key, W, eigene=None):
     return data, titel, {"felder": n, "gefuellt": gef, "platziert": len(P)}
 
 
-def paket_pdf(teile, kopf, entwurf=False, deckblatt_an=True, weitere=(), vorn=None):
+def paket_pdf(teile, kopf, entwurf=False, deckblatt_an=True, weitere=(), vorn=None, hinten=None):
     """Antragspaket: vorn (z. B. Anschreiben, PDF-Bytes), Deckblatt mit Inhaltsverzeichnis (Abschnitte = Trennblätter, Seitenzahlen,
-    weitere Inhalte als Häkchenliste), dann die Stücke. teile: [(art, titel, pdf)] mit art „trenner“ (pdf wird erzeugt) oder „stueck“."""
+    weitere Inhalte als Häkchenliste), dann die Stücke, zuletzt „hinten“ (z. B. Packliste).
+    teile: [(art, titel, pdf)] mit art „trenner“ (pdf wird erzeugt), „stueck“ oder „nennen“ (liegt nicht im PDF; statt pdf der Stand, z. B. „liegt gefaltet bei“)."""
     from pypdf import PdfReader, PdfWriter
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
@@ -262,6 +263,9 @@ def paket_pdf(teile, kopf, entwurf=False, deckblatt_an=True, weitere=(), vorn=No
     # Trennblätter erzeugen (mit Inhalt des Abschnitts), Stücke lesen
     R, n_tr = [], 0
     for i, (art, t, d) in enumerate(teile):
+        if art == "nennen":
+            R.append(("nennen", t, None, d))
+            continue
         if art == "trenner":
             n_tr += 1
             folgend = []
@@ -297,8 +301,12 @@ def paket_pdf(teile, kopf, entwurf=False, deckblatt_an=True, weitere=(), vorn=No
                 y -= 1.5 * mm
                 cv.setFont("Helvetica-Bold", 10.5); cv.drawString(25 * mm, y, f"{nr}   {t}"[:90])
             else:
-                cv.setFont("Helvetica", 10); cv.drawString(31 * mm, y, t[:88])
-            cv.drawRightString(185 * mm, y, str(s0) if rd else "–"); y -= 5.8 * mm
+                cv.setFont("Helvetica", 10); cv.drawString(31 * mm, y, t[:(70 if art == "nennen" else 88)])
+            if art == "nennen":
+                cv.setFont("Helvetica-Oblique", 8.5); cv.drawRightString(185 * mm, y, nr or "")
+            else:
+                cv.drawRightString(185 * mm, y, str(s0) if rd else "–")
+            y -= 5.8 * mm
             s0 += len(rd.pages) if rd else 0
         W2 = [x for x in weitere if x.get("text") and x.get("an")]   # nur die angehakten – die Häkchen gibt es nur in der Maske
         if W2 and y > 40 * mm:
@@ -316,6 +324,8 @@ def paket_pdf(teile, kopf, entwurf=False, deckblatt_an=True, weitere=(), vorn=No
     for art, t, rd, nr in R:
         if rd:
             w.append(rd, outline_item=(f"{nr} {t}" if art == "trenner" else t)[:120])
+    if hinten:
+        w.append(PdfReader(io.BytesIO(hinten)), outline_item="Packliste")
     out = io.BytesIO(); w.write(out)
     return out.getvalue()
 

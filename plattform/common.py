@@ -142,7 +142,7 @@ def weiterleiten(base, path):
         return jsonify(error=f"App nicht erreichbar: {e}"), 502
 
 
-def bt_api(method, path, body=None):
+def bt_api(method, path, body=None, roh=False):
     """Bautagebuch im Docker-Netz aufrufen – mit der Anmeldung des aktuellen Benutzers (gemeinsame Sitzung, Cookie bp_sso).
     So gelten dort dieselben Rechte, und das Bautagebuch erledigt Anlegen/Löschen selbst (inkl. Dateien im eigenen Laufwerk)."""
     with db.tx() as c:
@@ -150,8 +150,8 @@ def bt_api(method, path, body=None):
     req = urllib.request.Request(BT_INTERNAL + path, method=method, data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Cookie": f"{sso.COOKIE}={tok}", "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            return json.loads(r.read().decode() or "null")
+        with urllib.request.urlopen(req, timeout=120 if roh else 60) as r:
+            return r.read() if roh else json.loads(r.read().decode() or "null")   # roh: Datei (z. B. Plan aus dem Projektordner)
     except urllib.error.HTTPError as e:
         try:
             msg = json.loads(e.read().decode() or "{}").get("error")

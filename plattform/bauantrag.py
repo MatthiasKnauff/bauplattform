@@ -8,7 +8,7 @@ import urllib.parse
 
 from flask import Response, g, jsonify, redirect, request
 
-from bpcore import bauantrag as BA, bauantrag_formulare as BF, bauantrag_paket as BP, db, papierkorb, platform, sso
+from bpcore import bauantrag as BA, bauantrag_anlagen as BAN, bauantrag_formulare as BF, bauantrag_paket as BP, db, papierkorb, platform, sso
 import common as C
 
 app = C.make_app(__name__)
@@ -97,10 +97,13 @@ def _detail(c, a, dateien=None):
     W = {x["key"]: str(x["wert"] or "") for x in F}
     S, gew, haupt = BP.stuecke(c, a, W, a.get("land") or "NW")   # Vordrucke, eigene Unterlagen, Trennblätter (Schritt 1)
     P = daten.get("_paket") or {}
+    AN = BAN.liste(P, B)   # Anlagen: Bauvorlagen, Pläne, Dateien, freie Zeilen
+    G = BAN.gliederung(S, gew, AN)
     return {"antrag": {k: a[k] for k in ("id", "project_id", "name", "verfahren", "land", "status", "erstellt", "geaendert", "von")},
             "projekt": p["name"] if p else "", "felder": F, "bauvorlagen": B, "fehlt": {"felder": ff, "bauvorlagen": fb},
             "schritte": BA.SCHRITTE, "paket": S, "gewaehlt": gew, "haupt_nr": haupt,
-            "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"]))}
+            "deckblatt": BP.deckblatt(P, B), "anschreiben": BP.anschreiben(P, W, BA.VERFAHREN.get(a["verfahren"])),
+            "anlagen": AN, "gliederung": G, "abgabe": P.get("abgabe") or "papier", "packliste": len(BAN.packliste(G, P.get("abgabe"))), "stand_namen": BAN.STAND}
 
 
 @app.get("/api/antraege")
@@ -313,3 +316,4 @@ def formular_datei(fid):
 
 
 import bauantrag_paket   # noqa: E402,F401 – Antragspaket: Vordrucke wählen, eigene Unterlagen, Platzieren (Routen /api/…/paket, /unterlagen, /platzierung)
+import bauantrag_anlagen   # noqa: E402,F401 – Anlagen: Pläne, Dateien, frei; Abgabe Papier/digital (Routen /api/…/anlage, /abgabe, /paket.zip)

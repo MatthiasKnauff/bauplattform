@@ -233,7 +233,7 @@ function paketPruefenHtml() {
         <td><span class="bap-tn">${esc(x.nr)}</span><input class="bap-ti" data-baptitel="${x.nr}" value="${esc(x.titel)}" aria-label="Titel Trennblatt ${x.nr}"></td><td class="bap-a"><div><button type="button" class="btn sm" data-bapsehen="${x.key}">Ansehen</button></div></td></tr>`
     : `<tr data-bapkey="${x.key}"><td class="bap-z" draggable="true" data-bapzieh="${x.key}">⋮⋮</td><td class="bap-c">${an(`data-bapan="${x.key}"`, true, 'Aus dem Antrag nehmen')}</td>
         <td class="bap-ein">${esc(x.nr ? 'Anlage ' + x.nr + ' – ' : '')}${esc(x.titel)} ${bapTag(x)}</td><td class="bap-a"><div><button type="button" class="btn sm" data-bapsehen="${x.key}">Ansehen</button></div></td></tr>`;
-  return `<div class="ba-k"><h3>${an('data-baan', A.an, 'Anschreiben beilegen')} Anschreiben an die Bauaufsicht<span class="mute">Druck-Layout wie bei den Rügen (Verwaltung → Druck-Layouts)</span></h3>
+  return `<div class="ba-k"><h3>${an('data-baan', A.an, 'Anschreiben beilegen')} Anschreiben an die Bauaufsicht</h3>
       ${A.an ? `<div class="ba-g">
         <label class="ba-f"><span>Behörde aus den Adressen</span><select data-babeh data-bp-auswahl aria-label="Behörde"><option value="">– von Hand –</option>${beh.map((x) => `<option value="${x.id}" data-sub="${esc(x.ort)}"${x.id === A.behoerde_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
           ${BEH && !beh.length ? '<small class="ba-hilfe">Noch keine Behörde in den Adressen – dort Art „Behörde“ wählen.</small>' : ''}</label>
@@ -243,16 +243,16 @@ function paketPruefenHtml() {
         <label class="ba-f w2"><span>Empfänger (Anschrift)</span><textarea rows="3" data-baa="empfaenger">${esc(A.empfaenger)}</textarea></label>
         <label class="ba-f"><span>Ausfertigungen</span><span class="seg" role="group">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-baaus="${n}" class="${+A.ausfertigungen === n ? 'on' : ''}">${n}-fach</button>`).join('')}</span></label>
         <label class="ba-f w"><span>Betreff</span><textarea rows="2" data-baa="betreff">${esc(A.betreff)}</textarea></label>
+        <label class="ba-f"><span>Anlagen im Anschreiben</span><span class="seg" role="group"><button type="button" data-baanl="liste" class="${A.anlagen !== 'verweis' ? 'on' : ''}">ausgeschrieben</button><button type="button" data-baanl="verweis" class="${A.anlagen === 'verweis' ? 'on' : ''}">gemäß Inhaltsverzeichnis</button></span></label>
         <label class="ba-f w"><span>Text ${A.text !== A.text_vorgabe ? '<button type="button" class="ba-q" data-batextvor title="Text wieder aus den Angaben des Antrags">↺ Vorschlag</button>' : ''}</span><textarea rows="8" data-baa="text">${esc(A.text)}</textarea></label>
       </div><button type="button" class="btn sm" data-baansehen>Anschreiben ansehen</button>` : '<p class="ba-hilfe" style="margin:0">Ohne Anschreiben – das Paket beginnt mit dem Deckblatt.</p>'}</div>
     <div class="ba-k"><h3>${an('data-badeck', Dk.an, 'Deckblatt beilegen')} Deckblatt mit Inhaltsverzeichnis<span class="mute">Inhalt und Seitenzahlen kommen aus der Reihenfolge unten</span></h3>
-      ${Dk.an ? `<div class="bap-dl"><b>Weitere Unterlagen</b> <span class="mute">(liegen nicht als Datei bei – angehakte erscheinen im Inhaltsverzeichnis)</span>
-        ${Dk.punkte.map((p) => `<div class="bap-dp">${an(`data-bapunkt="${esc(p.text)}"`, p.an, p.an ? 'Nicht ins Inhaltsverzeichnis' : 'Ins Inhaltsverzeichnis')}<span>${esc(p.text)}</span>${p.eigen ? `<button type="button" class="btn sm" data-bapweg2="${esc(p.text)}" title="Eigenen Punkt entfernen">✕</button>` : ''}</div>`).join('')}
-        <div class="bap-dp"><input data-bapneu placeholder="Weitere Unterlage ergänzen, z. B. „Statik (wird nachgereicht)“ – Enter"></div></div>` : ''}</div>
+      ${Dk.an ? '<p class="ba-hilfe" style="margin:0">Mit allen Anlagen und ihren Nummern – genannte Anlagen mit ihrem Stand statt der Seitenzahl.</p>' : ''}</div>
+    ${anlagenHtml()}
     <div class="ba-k"><h3>Reihenfolge mit Trennblättern<span class="mute">⋮⋮ ziehen · Titel der Trennblätter direkt ändern</span></h3>
       <div class="tw"><table class="ba-t bap"><tbody>${reihe.map(zeile).join('')}</tbody></table></div>
       ${aus.length ? `<p class="ba-hilfe" style="margin:.4rem 0 0">Weggelassen: ${aus.map((x) => `<button type="button" class="bap-t" data-bapan="${x.key}" title="Wieder aufnehmen">＋ ${esc(x.nr)} ${esc(x.titel)}</button>`).join(' ')}</p>` : ''}
-      <p class="ba-hilfe" id="baForm" style="margin:.5rem 0"></p><button type="button" class="btn pri" data-pdf>🖨 Drucken …</button></div>`;
+      <p class="ba-hilfe" id="baForm" style="margin:.5rem 0"></p><button type="button" class="btn pri" data-pdf>🖨 Drucken …</button>${D.abgabe === 'digital' ? ` <a class="btn" href="api/antraege/${AID}/paket.zip" download title="Je Anlage eine Datei, dazu Anschreiben und Gesamt-PDF – für das Bauportal">⤓ ZIP für das Bauportal</a>` : ''}</div>`;
 }
 async function baPaket(body, text) {
   const id = AID, vorher = JSON.parse(JSON.stringify({ a: D.anschreiben, d: D.deckblatt }));
@@ -263,11 +263,9 @@ async function baPaket(body, text) {
   catch (e) { toast(e.message, true); }
 }
 V.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-baan],[data-badeck],[data-bapunkt],[data-bapweg2],[data-baaus],[data-batextvor],[data-baansehen],[data-bapers]'); if (!b || !D) return;
+  const b = e.target.closest('[data-baan],[data-badeck],[data-baaus],[data-batextvor],[data-baansehen],[data-bapers]'); if (!b || !D) return;
   if (b.dataset.baan !== undefined) return baPaket({ anschreiben: { an: !D.anschreiben.an } }, D.anschreiben.an ? 'Ohne Anschreiben' : 'Mit Anschreiben');
   if (b.dataset.badeck !== undefined) return baPaket({ deckblatt: { an: !D.deckblatt.an } }, D.deckblatt.an ? 'Ohne Deckblatt' : 'Mit Deckblatt');
-  if (b.dataset.bapunkt !== undefined) { const p = D.deckblatt.punkte.find((x) => x.text === b.dataset.bapunkt); return baPaket({ deckblatt: { punkt: p.text, an: !p.an } }); }
-  if (b.dataset.bapweg2 !== undefined) return baPaket({ deckblatt: { weg: b.dataset.bapweg2 } }, `„${b.dataset.bapweg2}“ entfernt`);
   if (b.dataset.baaus) return baPaket({ anschreiben: { ausfertigungen: +b.dataset.baaus } }, `${b.dataset.baaus}-fache Ausfertigung`);
   if (b.dataset.batextvor !== undefined) return baPaket({ anschreiben: { text: '' } }, 'Text wieder als Vorschlag');
   if (b.dataset.bapers) return baPaket({ anschreiben: { ansprechpartner: b.dataset.bapers } }, `z. Hd. ${b.dataset.bapers}`);
@@ -279,8 +277,4 @@ V.addEventListener('change', (e) => {
   if (t.dataset.babeh !== undefined) return baPaket({ anschreiben: { behoerde_id: t.value ? +t.value : null } }, 'Behörde gewählt');
   if (t.dataset.baptitel) { const nr = +t.dataset.baptitel, alt = (D.paket.find((x) => x.key === 't' + nr) || {}).titel;
     return baPaket({ trenner: { nr, titel: t.value }, _alt: { nr, titel: alt } }, `Trennblatt ${nr} umbenannt`); }
-});
-V.addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter' || e.target.dataset.bapneu === undefined || !e.target.value.trim()) return;
-  e.preventDefault(); baPaket({ deckblatt: { neu: e.target.value.trim(), punkt: e.target.value.trim(), an: true } }, 'Unterlage ergänzt');
 });

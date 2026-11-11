@@ -78,25 +78,7 @@ def _put(c, key, val):
 
 
 def conf(c):
-    d = _store(c, "plaene", {})
-    out = json.loads(json.dumps(planname.STANDARD))
-    if isinstance(d, dict):
-        for k in ("phasen", "planarten", "kennungen", "stichworte"):
-            if isinstance(d.get(k), dict):
-                out[k] = {str(a).strip()[:40]: str(b).strip()[:400] for a, b in d[k].items() if str(a).strip()}
-        # frühere, falsche Vorgaben (Phasen verschoben, Planart an zweiter Stelle) durch die richtigen ersetzen
-        if out["phasen"] == planname.ALT_PHASEN:
-            out["phasen"] = dict(planname.STANDARD["phasen"])
-        if out["planarten"] == planname.ALT_PLANARTEN:
-            out["planarten"] = dict(planname.STANDARD["planarten"])
-        if out["kennungen"] == {"ELT": "Elektro"}:
-            out["kennungen"] = dict(planname.STANDARD["kennungen"])
-        try:
-            out["max_mb"] = max(1, min(100, int(d.get("max_mb", out["max_mb"]))))
-        except (TypeError, ValueError):
-            pass
-        if isinstance(d.get("stellen"), list) and d["stellen"]:
-            out["stellen"] = [str(x) if str(x) in planname.ROLLEN else "egal" for x in d["stellen"][:6]]
+    out, d = planname.konfig(c)
     out["plot"] = _plot(d.get("plot") if isinstance(d, dict) else None)
     return out
 

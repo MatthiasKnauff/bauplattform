@@ -54,10 +54,20 @@ function honorarEinstellungen(host) {
       ${feld('honorar_zahlungsziel', 'Zahlungsziel (Tage)', 'Steht im Vertrag; danach erscheint „Honorarrechnung überfällig“ als To-do auf der Startseite.')}
       ${feld('honorar_re_text', 'Text unter dem Rechnungsbetrag', 'Vorschlag für neue Rechnungen (im Entwurf änderbar).', 3)}
       ${feld('honorar_bank', 'Bankverbindung auf der Rechnung', 'Nur nötig, wenn sie nicht schon im Briefbogen steht (z. B. „Sparkasse Essen · IBAN DE… · BIC …“). Steuernummer: Verwaltung → Firma → „Weitere Angabe“.', 2)}
-      <p class="mute" style="margin:0;font-size:.8rem">Briefkopf, Anschrift im Fenster, Datum und Betreff der Rechnung: Verwaltung → Druck-Layouts → „Honorarrechnung“ (wie bei den Rügen).</p>
+      <label class="hoe-f">Kennwort der PDFs im Projektordner<span style="display:flex;gap:.4rem;align-items:center"><input type="password" data-hoekw autocomplete="new-password" placeholder="${E.kennwort_gesetzt ? '●●●●●●●● – zum Ändern neu eingeben' : 'kein Kennwort – PDFs offen'}" style="flex:1">${E.kennwort_gesetzt ? '<button type="button" class="btn sm" data-hoekwweg>Entfernen</button>' : ''}</span>
+        <small>Verträge und Rechnungen, die im Projektordner abgelegt werden, sind damit verschlüsselt (AES-256). Sie lassen sich auch ohne Plattform öffnen – nur mit diesem Kennwort. In der Plattform bleiben sie ohne Kennwort sichtbar (nur für die Verwaltung). Das Kennwort wird nie wieder angezeigt – bitte gut aufbewahren. Gilt für alles, was ab jetzt abgelegt wird.</small></label>
       ${feld('honorar_vertrag_text', 'Weitere Vereinbarungen im Architektenvertrag', 'Je Zeile ein Punkt. Vorschlag des Büros – bitte vor der ersten Verwendung prüfen.', 6)}</div>`;
+    host.onclick = async (ev) => {
+      if (!ev.target.closest('[data-hoekwweg]')) return;
+      if (!(await bpFrage('Kennwort der PDFs entfernen? Was ab jetzt abgelegt wird, ist dann ohne Kennwort lesbar.', { ok: 'Entfernen' }))) return;
+      try { await api('api/einstellungen', 'PUT', { kennwort_loeschen: true }); toast('Kennwort entfernt.'); honorarEinstellungen(host); } catch (er) { toast(er.message, true); }
+    };
     host.onchange = async (ev) => {
-      const el = ev.target; if (!el.dataset.hoe) return;
+      const el = ev.target;
+      if (el.dataset.hoekw !== undefined) { if (!el.value.trim()) return;
+        try { await api('api/einstellungen', 'PUT', { kennwort: el.value }); el.value = ''; toast('Kennwort gespeichert – neue PDFs im Projektordner sind verschlüsselt.'); honorarEinstellungen(host); } catch (er) { toast(er.message, true); }
+        return; }
+      if (!el.dataset.hoe) return;
       try { const r = await api('api/einstellungen', 'PUT', { [el.dataset.hoe]: el.value }); const b = host.querySelector('[data-hoebsp]'); if (b) b.textContent = r.beispiel; toast('Gespeichert.'); }
       catch (er) { toast(er.message, true); }
     };

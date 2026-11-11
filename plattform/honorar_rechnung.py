@@ -199,10 +199,12 @@ def ablegen(rid):
     x = pdf_erzeugen(rid)
     if not x:
         return "", "Rechnung nicht gefunden."
+    from honorar_vertrag import fuer_ablage
     with db.tx() as c:
         pid = c.execute("SELECT a.project_id FROM honorar_rechnung r JOIN honorar_auftrag a ON a.id=r.auftrag_id WHERE r.id=?", (rid,)).fetchone()["project_id"]
+        daten = fuer_ablage(c, x[0])   # mit Kennwort, falls eingetragen
     try:
-        a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "art": "honorar", "name": x[1], "datei": base64.b64encode(x[0]).decode()})
+        a = C.bt_api("POST", "/api/ablage/datei", {"project_id": pid, "art": "honorar", "name": x[1], "datei": base64.b64encode(daten).decode()})
     except RuntimeError as e:
         return "", str(e)
     pfad = (a or {}).get("pfad") or ""

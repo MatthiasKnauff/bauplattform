@@ -174,3 +174,32 @@ def _fertig(st):
     st["kopien"] = len(st["pdfs"]) - 1 if st["pdfs"] else 0
     st.pop("pdfs", None)
     return st
+
+
+def konfig(c):
+    """Einstellungen der Plannamen (bp_store „plaene“) über der Vorgabe – für „Pläne & Dateien“ und alle, die die Planliste brauchen."""
+    import json
+    r = c.execute("SELECT data FROM bp_store WHERE key='plaene'").fetchone()
+    try:
+        d = json.loads(r["data"]) if r and r["data"] else {}
+    except ValueError:
+        d = {}
+    out = json.loads(json.dumps(STANDARD))
+    if isinstance(d, dict):
+        for k in ("phasen", "planarten", "kennungen", "stichworte"):
+            if isinstance(d.get(k), dict):
+                out[k] = {str(a).strip()[:40]: str(b).strip()[:400] for a, b in d[k].items() if str(a).strip()}
+        # frühere, falsche Vorgaben (Phasen verschoben, Planart an zweiter Stelle) durch die richtigen ersetzen
+        if out["phasen"] == ALT_PHASEN:
+            out["phasen"] = dict(STANDARD["phasen"])
+        if out["planarten"] == ALT_PLANARTEN:
+            out["planarten"] = dict(STANDARD["planarten"])
+        if out["kennungen"] == {"ELT": "Elektro"}:
+            out["kennungen"] = dict(STANDARD["kennungen"])
+        try:
+            out["max_mb"] = max(1, min(100, int(d.get("max_mb", out["max_mb"]))))
+        except (TypeError, ValueError):
+            pass
+        if isinstance(d.get("stellen"), list) and d["stellen"]:
+            out["stellen"] = [str(x) if str(x) in ROLLEN else "egal" for x in d["stellen"][:6]]
+    return out, d

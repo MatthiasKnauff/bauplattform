@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-ava-sperre",
+  "datum": "2026-11-11",
+  "app": "ava",
+  "titel": "Aufträge sind gesperrt",
+  "text": "Beauftragte LVs und beauftragte Nachträge zeigen ein 🔒. Ändern geht erst nach ausdrücklicher Bestätigung („Bearbeiten freischalten“) – gilt bis zum Neuladen. Angemeldete Nachträge bleiben frei. Der Stand der Nachträge ist jetzt eine Ampel: rot abgelehnt, gelb angemeldet, grün beauftragt.",
+  "ziel": "table.lv"
+ },
+ {
   "id": "2026-11-11-abnahme-wer",
   "datum": "2026-11-11",
   "app": "kommunikation",

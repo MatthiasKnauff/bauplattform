@@ -60,6 +60,7 @@ Summe Sammlung (offen): ca. 15–19 Tage.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 3–6 Monate**
 
 ## Erledigt
+- ~~AVA: beauftragte Aufträge und beauftragte Nachträge nur nach ausdrücklicher Bestätigung änderbar (🔒, je LV/Nachtrag freischalten)~~
 - ~~Neuigkeiten: von selbst vorerst nur auf dem Testserver (Produktion: Schalter NUR_TEST_AUS in head/neu.js)~~
 - ~~AVA Nachträge: Stand als Ampel – abgelehnt rot, angemeldet gelb, beauftragt grün~~
 - ~~Versanddialog: Planversand, Plotauftrag, Mängel- und Terminrügen auf den gemeinsamen Dialog umgestellt (Versandart bei Rügen erst am Ende)~~

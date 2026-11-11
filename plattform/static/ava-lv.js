@@ -4,6 +4,30 @@
 /* ---------- Leistungsverzeichnis ---------- */
 const aufgehoben = () => !!(L && L.vergabe && L.vergabe.aufgehoben);   // Beauftragung aufgehoben: Auftrag und Rechnungen bleiben sichtbar, zählen aber nicht mehr
 const vergeben = () => !!(L && L.vergabe && L.vergabe.preise) && !aufgehoben();
+/* Sperre (Wunsch 11.11.): beauftragter Auftrag und beauftragte Nachträge lassen sich nur nach ausdrücklicher Bestätigung ändern – je LV bzw. je Nachtrag, bis zum Neuladen */
+const FREI = new Set(); let SPERRFRAGE = false;
+function sperrKey(x) { if (!L || !x) return null; if (x.nt) return x.nt_status === 'beauftragt' ? `${L.id}:nt:${x.nt}` : null; return vergeben() ? String(L.id) : null; }
+const gesperrt = (x) => { const k = sperrKey(x); return !!k && !FREI.has(k); };
+async function freischalten(x) {
+  const k = sperrKey(x); if (!k || FREI.has(k)) return true;
+  const firma = (L.vergabe && L.vergabe.bieter) || L.auftragnehmer || 'die Firma';
+  const ja = await bpFrage(x.nt ? `Nachtrag ${x.nt} ist beauftragt – Leistung, Menge und Preis sind vereinbart.\n\nWirklich ändern?`
+    : `Dieses LV ist an ${firma} beauftragt – die Positionen sind Vertragsinhalt.\nÄnderungen ändern den Auftrag rückwirkend; Aufmaß und Rechnungen rechnen mit den neuen Werten. Zusätzliche Leistungen besser als Nachtrag.\n\nWirklich ändern?`,
+    { ok: '🔓 Bearbeiten freischalten', abbrechen: 'Nicht ändern' });
+  if (ja) { FREI.add(k); if (!x.nt && typeof VWARN !== 'undefined') VWARN.ok.add(L.id); }
+  return ja;
+}
+['pointerdown', 'focusin', 'keydown', 'dragstart', 'dblclick'].forEach((art) => document.addEventListener(art, async (e) => {   // Eingriffe in gesperrte Zeilen abfangen – Ansehen, Markieren, Blättern bleiben frei
+  if (typeof tab === 'undefined' || tab !== 'lv' || !L) return;
+  const tr = e.target.closest && e.target.closest('table.lv tr.zu[data-i]'); if (!tr) return;
+  const feld = e.target.closest('input,select,textarea,[contenteditable],button[data-a]:not([data-a="lang"])');
+  if (art === 'keydown' && (!feld || /^(Tab|Shift|Control|Alt|Meta|Escape|Arrow\w+|Page\w+|Home|End|F6)$/.test(e.key))) return;
+  if ((art === 'pointerdown' || art === 'focusin') && !feld) return;
+  e.preventDefault(); e.stopPropagation(); if (art === 'focusin' && e.target.blur) e.target.blur();
+  if (SPERRFRAGE) return; SPERRFRAGE = true;
+  const ok = await freischalten(items()[+tr.dataset.i]).finally(() => { SPERRFRAGE = false; });
+  if (ok) render();
+}, true));
 function aufhBanner() {
   const A = L.vergabe.aufgehoben || {}, d = A.am ? A.am.split('-').reverse().join('.') : '';
   return `<div class="aufh-b"><span class="aufh-i">⏸</span><div><b>Beauftragung an ${esc(L.vergabe.bieter || 'die Firma')} aufgehoben</b>${d ? ` am ${d}` : ''}${A.von ? ` von ${esc(A.von)}` : ''}.
@@ -39,13 +63,13 @@ function vLv() {
     if (x.typ === 'titel') {
       const lv = x.lvl || 1; tief = lv;
       if (!sichtbar[i]) return '';
-      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Doppelklick: Eigenschaften des Gliederungspunkts (Bezeichnung, Nachtrag) · zum Verschieben hier greifen und ziehen"', tiefe: lv + 1, auf: hatKind(i) ? !LVZU.zu(x.id) : undefined, klapp: hatKind(i) ? x.id : null, icon: IC.ti, html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}<td colspan="${V ? 6 : 5}"></td>
+      return `<tr class="ti l${lv}${x.nt ? ' nt' : ''}${gesperrt(x) ? ' zu' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Doppelklick: Eigenschaften des Gliederungspunkts (Bezeichnung, Nachtrag) · zum Verschieben hier greifen und ziehen"', tiefe: lv + 1, auf: hatKind(i) ? !LVZU.zu(x.id) : undefined, klapp: hatKind(i) ? x.id : null, icon: IC.ti, html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="Titel, z. B. Erdarbeiten">${x.nt ? `<span class="badge nt" title="Dieser Gliederungspunkt ist ein Nachtrag – alle Positionen darunter gehören dazu">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)" title="Stand des Nachtrags (gilt für alle Positionen darunter)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}<td colspan="${V ? 6 : 5}"></td>
       <td class="r" data-tsum="${i}"></td><td class="acts-c"><button class="ib${x.nt ? ' an' : ''}" data-a="ntti" title="${x.nt ? 'Nachtrag aufheben – die Positionen darunter werden wieder normale Positionen' : 'Diesen Gliederungspunkt als Nachtrag kennzeichnen – alle Positionen darunter gehören dann zum Nachtrag'}">NT</button><button class="ib" data-a="lvlauf" title="eine Ebene höher (mit seinen Untertiteln)"${lv > 1 ? '' : ' disabled'}>⇤</button><button class="ib" data-a="lvlab" title="zum Untertitel machen – eine Ebene tiefer (GAEB: höchstens 4 Ebenen)"${lv < 4 ? '' : ' disabled'}>⇥</button><button class="ib" data-a="del" title="Titel löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     }
     if (!sichtbar[i]) return '';
     const open = OPEN.has(x.id), t = x.art === 'T';
     const ep = V ? VP[x.id] : x.ep_s, gp = ep != null && !t && !x.entf ? (ohneGB(x) ? null : (x.menge || 0) * ep) : null;
-    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"', tiefe: tief + 2, auf: open, car: ` data-a="lang" title="${open ? 'Langtext zuklappen' : 'Langtext aufklappen'}"`, icon: icArt(x), html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt && x.nt_erbe ? `<span class="badge nt" title="gehört zum Nachtrag des Gliederungspunkts (${esc(x.nt_status || '')})">${esc(x.nt)}</span>` : x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}
+    let h = `<tr class="${t ? 'txt' : ''}${x.nt ? ' nt' : ''}${x.entf ? ' entf' : ''}${gesperrt(x) ? ' zu' : ''}" data-i="${i}">${bpBaum.zelle({ kl: 'oz', attr: ' title="Klick markiert (Strg/Umschalt: mehrere) · zum Verschieben hier greifen und ziehen · Doppelklick: Eigenschaften"', tiefe: tief + 2, auf: open, car: ` data-a="lang" title="${open ? 'Langtext zuklappen' : 'Langtext aufklappen'}"`, icon: icArt(x), html: `<span class="ozt">${esc(x.oz)}</span><input data-f="kurz" value="${esc(x.kurz)}" placeholder="${t ? 'Hinweistext' : 'Kurztext der Leistung'}">${x.sp ? '<span class="badge sp" title="Schwerpunktposition">S</span>' : ''}${x.nt && x.nt_erbe ? `<span class="badge nt" title="gehört zum Nachtrag des Gliederungspunkts (${esc(x.nt_status || '')})">${esc(x.nt)}</span>` : x.nt ? `<span class="badge nt">${esc(x.nt)}</span><select data-f="nt_status" style="width:auto;font-size:var(--fs-s2)">${['angemeldet', 'beauftragt', 'abgelehnt'].map((s2) => `<option${x.nt_status === s2 ? ' selected' : ''}>${s2}</option>`).join('')}</select>` : ''}` })}
       <td>${t ? '' : `<input class="n" data-f="menge" value="${nf(x.menge)}" inputmode="decimal" style="width:5.5rem">`}</td>
       <td>${t ? '' : `<input data-f="einheit" value="${esc(x.einheit)}" data-vs="eh" autocomplete="off" style="width:3.8rem">`}</td>
       <td><input data-f="art" value="${artW(x)}" data-vs="art" autocomplete="off" maxlength="1" style="width:3.8rem" title="${esc(ARTEN[artW(x)])} – N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung"></td>
@@ -54,7 +78,7 @@ function vLv() {
       ${V ? `<td class="r hint" title="geschätzter EP">${x.ep_s != null ? nf2(x.ep_s) : ''}</td>` : ''}
       <td class="r" data-gp="${i}">${x.entf ? '<span class="hint">entfällt</span>' : gp != null ? eur(gp) : ohneGB(x) ? '<span class="hint">ohne GB</span>' : ''}</td>
       <td class="acts-c"><button class="ib" data-a="eig" title="Eigenschaften der Position (auch Doppelklick)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button><button class="ib${open || x.lang || fotosVon(x).length ? ' on' : ''}" data-a="lang" title="Langtext${fotosVon(x).length ? ' · ' + fotosVon(x).length + ' Foto(s)' : ''}">${fotosVon(x).length ? '¶<sup>📷</sup>' : '¶'}</button><button class="ib" data-a="del" title="Position löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
-    if (open) h += `<tr class="lang" data-i="${i}"><td colspan="${NC}" style="${einr(tief + 3)}"><textarea data-f="lang" rows="6" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung">${esc(x.lang || '')}</textarea>
+    if (open) h += `<tr class="lang${gesperrt(x) ? ' zu' : ''}" data-i="${i}"><td colspan="${NC}" style="${einr(tief + 3)}"><textarea data-f="lang" rows="6" placeholder="Langtext – Leistungsbeschreibung, Material, Fabrikat, Ausführung, Abrechnung">${esc(x.lang || '')}</textarea>
       ${fotoLeiste(x)}
       <div class="bar" style="margin:.3rem 0 0"><button class="btn sm" data-a="ki" title="Langtext mit der oben gewählten KI vorschlagen">✨ Langtext vorschlagen</button><label class="btn sm" title="Fotos oder Skizzen zur Position – erscheinen unter dem Langtext im LV-Ausdruck. Ein Bild aus der Zwischenablage mit Strg+V im Langtext einfügen.">📷 Foto<input type="file" accept="image/*" multiple hidden data-foto="${x.id}"></label><span class="hint">${x.nt ? 'Begründung des Nachtrags: ' : ''}</span>${x.nt ? `<input data-f="nt_grund" value="${esc(x.nt_grund || '')}" placeholder="z. B. geänderte Ausführung auf Anordnung des Bauherrn" style="flex:1;min-width:14rem">` : ''}</div></td></tr>`;
     return h;
@@ -214,6 +238,7 @@ let LVCLIP = null;
 async function lvSelAktion(a) {
   const M = lvMarkiert(); if (!M.length && a !== 'einfuegen') return;
   if (a === 'weg') { LVSEL = new Set(); lvAktZeigen(); return; }
+  if (a !== 'kopieren') { for (const x of M) if (gesperrt(x) && !(await freischalten(x))) return; }   // beauftragt: erst bestätigen
   if (a === 'kopieren' || a === 'ausschneiden') {
     LVCLIP = JSON.parse(JSON.stringify(M)); try { localStorage.setItem('ava.clip', JSON.stringify(LVCLIP)); } catch { /* egal */ }
     if (a === 'kopieren') return toast(`${M.length} Zeile${M.length > 1 ? 'n' : ''} kopiert – mit Strg+V hinter der markierten Zeile einfügen (auch in einem anderen LV).`);
@@ -363,6 +388,7 @@ function ntErben(I) {
 }
 function moveItem(i, dir) {
   const I = items(), x = I[i];
+  if (gesperrt(x)) { freischalten(x).then((ok) => { if (ok) { render(); moveItem(i, dir); } }); return; }   // beauftragt: erst bestätigen
   if (x.typ === 'titel') {   // Titel samt Inhalt verschieben
     const lv = x.lvl || 1; let e = i + 1; while (e < I.length && !(I[e].typ === 'titel' && (I[e].lvl || 1) <= lv)) e++;
     const blk = I.splice(i, e - i);

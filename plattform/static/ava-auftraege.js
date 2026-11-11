@@ -565,11 +565,15 @@ function ntDialog(lvId, zuNt = null, ab = null) {   // zuNt: weitere Positionen 
   if (zuNt) { const box = bg.querySelector('#ntPos'); box.hidden = false; zeile(); zeile(); zeile(); bg.querySelector('#ntH').textContent = `Die Positionen kommen zum Nachtrag ${zuNt} und übernehmen seinen Stand; die EPs werden Auftragspreise.`; const md = bg.querySelector('.modal'); if (md) md.classList.add('breit'); bg.querySelector('[data-m="ok"]').textContent = 'Hinzufügen'; setTimeout(() => bg.querySelector('#ntPosB input').focus(), 30); return; }
   setTimeout(() => $('#ntK').focus(), 30);
 }
-document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntdel]'); if (!b) return; e.stopPropagation(); const [lv, nt, pid_] = b.dataset.ntdel.split(':'); ntLoeschen(+lv, decodeURIComponent(nt), pid_ || null); });
+document.addEventListener('click', async (e) => { const b = e.target.closest && e.target.closest('[data-ntdel]'); if (!b) return; e.stopPropagation(); const [lv, nt, pid_] = b.dataset.ntdel.split(':');
+  const sel = b.closest('tr') && b.closest('tr').querySelector('select.nt-st.beauftragt'); if (sel && !(await bpFrage('Dieser Nachtrag ist beauftragt.\n\nWirklich löschen?', { ok: 'Löschen', abbrechen: 'Nicht löschen', gefahr: true }))) return;   // beauftragt: nur nach Bestätigung
+  ntLoeschen(+lv, decodeURIComponent(nt), pid_ || null); });
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntneu]'); if (b) { e.stopPropagation(); ntDialog(+b.dataset.ntneu); } });
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-ntang]'); if (b) { e.stopPropagation(); ntAngebot(+b.dataset.ntang); } });
 document.addEventListener('change', async (e) => {
   const s = e.target.closest && e.target.closest('[data-ntst]'); if (!s || s.value === 'gemischt') return;
+  const war = ['angemeldet', 'beauftragt', 'abgelehnt'].find((c) => s.classList.contains(c));
+  if (war === 'beauftragt' && !(await bpFrage('Dieser Nachtrag ist beauftragt.\n\nStand wirklich ändern?', { ok: '🔓 Ändern', abbrechen: 'Nicht ändern' }))) { s.value = war; return; }   // beauftragt: nur nach Bestätigung
   const [lvId, pid_] = s.dataset.ntst.split(':'); s.classList.remove('angemeldet', 'beauftragt', 'abgelehnt'); s.classList.add(s.value);   // Farbe gleich umschalten
   try { const r = await api(`api/lv/${lvId}/nachtrag/${pid_}`, 'PUT', { status: s.value }); PC[+lvId] = r; if (L && L.id === +lvId) L = r; render(); toast(`Nachtrag ${s.value}.`); lvEintrag(+lvId).then(() => { if (tab === 'auftraege') render(); }).catch(() => {}); }
   catch (er) { toast(er.message, true); }

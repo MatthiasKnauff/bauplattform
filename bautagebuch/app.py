@@ -52,7 +52,7 @@ def create_app():
     app = Flask(__name__, static_folder="static", static_url_path="")
     app.secret_key = _secret_key()
     app.permanent_session_lifetime = timedelta(days=30)
-    app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", MAX_CONTENT_LENGTH=30 * 1024 * 1024)
+    app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", MAX_CONTENT_LENGTH=110 * 1024 * 1024)   # ein Foto je Anfrage, höchstens 100 MB (FOTO_MAX_MB in bt-kern.js)
     if os.environ.get("TRUST_PROXY") == "1":   # hinter einem Reverse Proxy: X-Forwarded-Proto/-Host/-For auswerten
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     else:   # nur den Pfad vom Verteiler (/bautagebuch) übernehmen

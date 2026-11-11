@@ -115,10 +115,10 @@ document.addEventListener('drop', async (e) => {
   if (k) { adding = k; addFiles = fs; setSecOpen(k, true); renderDetail(); renderApv(); setTimeout(() => document.querySelector(`[data-add="${k}"]`)?.focus(), 50); toast('Text zum neuen Eintrag eingeben – das Foto ist schon dabei.'); return; }
   await uploadPhotos(fs, null);
 });
-async function uploadPhotos(files, itemId) {
-  const fd = new FormData(); [...files].forEach(x => fd.append('files', x)); if (itemId) fd.append('item_id', itemId);
-  const up = await api(`api/reports/${rid}/images`, 'POST', null, fd); setSecOpen('bilder', true); await openProject(pid, true);
-  if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
+async function uploadPhotos(files, itemId) {   // jedes Foto einzeln, klare Meldung mit „Nochmal“ (bt-kern.js)
+  const r = await fotosHochladen(files, itemId);
+  if (r.ok) { setSecOpen('bilder', true); await openProject(pid, true); }
+  await fotosMelden(r, (fs) => uploadPhotos(fs, itemId));
 }
 function photoPicked(e) {
   qFiles = [...e.target.files]; e.target.value = ''; if (!qFiles.length) return;

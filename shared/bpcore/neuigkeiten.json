@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-fotos-viele",
+  "datum": "2026-11-11",
+  "app": "bautagebuch",
+  "titel": "Beliebig viele Fotos auf einmal",
+  "text": "Fotos vom Handy werden jetzt einzeln hochgeladen – du kannst also beliebig viele auf einmal auswählen und siehst „Foto 7 von 23“. Klappt eines nicht, steht am Ende genau, welches und warum, mit „Nochmal“ nur für diese.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-11-honorar-ablauf",
   "datum": "2026-11-11",
   "app": "honorar",

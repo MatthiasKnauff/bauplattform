@@ -125,13 +125,40 @@ function upBusy(on, txt) {
   if (on === 'start') b._n++;
   b.querySelector('.t').textContent = txt;
 }
-function apiUpload(u, form) {
-  const n = [...form.getAll('files')].length, was = n ? (n > 1 ? `${n} Fotos werden hochgeladen` : 'Foto wird hochgeladen') : 'Wird hochgeladen';
+/* Fotos hochladen: jedes einzeln (beliebig viele auf einmal, auch über Mobilfunk), mit „Foto 7 von 23“. Was nicht klappt, wird am Ende
+   eindeutig gemeldet – welches Foto, warum – mit „Nochmal“ nur für diese. FOTO_MAX_MB muss zum Server passen (bautagebuch/app.py). */
+const FOTO_MAX_MB = 100;
+async function fotosHochladen(files, itemId) {
+  const fs = [...files], fehler = [], mb = (b) => (b / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB';
+  let ok = 0;
+  for (let i = 0; i < fs.length; i++) {
+    const f = fs[i];
+    if (f.size > FOTO_MAX_MB * 1048576) { fehler.push([f, `${mb(f.size)} – höchstens ${FOTO_MAX_MB} MB je Foto`]); continue; }
+    const fd = new FormData(); fd.append('files', f); if (itemId) fd.append('item_id', itemId);
+    let up;
+    try { up = await apiUpload(`api/reports/${rid}/images`, fd, fs.length > 1 ? `Foto ${i + 1} von ${fs.length} wird hochgeladen` : 'Foto wird hochgeladen'); }
+    catch (e) { if (e === 0 && !navigator.onLine) { fehler.push([f, 'keine Verbindung']); continue; } if (e === 0) { fehler.push([f, 'Verbindung abgebrochen']); continue; } throw e; }
+    if (up.error) fehler.push([f, up.status === 413 ? `${mb(f.size)} – zu groß für den Server` : up.error]);
+    else if (up.rejected && up.rejected.length) fehler.push([f, 'Format nicht lesbar (kein Foto?)']);
+    else ok++;
+  }
+  return { ok, fehler };
+}
+async function fotosMelden(r, nochmal) {
+  if (!r.fehler.length) { if (r.ok > 1) toast(`${r.ok} Fotos hochgeladen.`); return; }
+  const liste = r.fehler.map(([f, g]) => `• ${f.name || 'Foto'}: ${g}`).join('\n');
+  const text = `${r.ok ? `${r.ok} von ${r.ok + r.fehler.length} Fotos hochgeladen.` : (r.fehler.length > 1 ? 'Keines der Fotos wurde hochgeladen.' : 'Das Foto wurde nicht hochgeladen.')}\n\nNicht übernommen:\n${liste}`;
+  const wieder = r.fehler.filter(([, g]) => !/MB je Foto|Format/.test(g)).map(([f]) => f);
+  if (wieder.length && window.bpFrage) { if (await bpFrage(text, { ok: `Nochmal (${wieder.length})`, abbrechen: 'Schließen' })) await nochmal(wieder); }
+  else if (window.bpHinweis) bpHinweis(text); else toast(text, true);
+}
+function apiUpload(u, form, text) {
+  const n = [...form.getAll('files')].length, was = text || (n ? (n > 1 ? `${n} Fotos werden hochgeladen` : 'Foto wird hochgeladen') : 'Wird hochgeladen');
   upBusy('start', was + ' …');
   return new Promise((ok, bad) => {
     const x = new XMLHttpRequest(); x.open('POST', u);
     x.upload.onprogress = (e) => { if (e.lengthComputable) upBusy(true, e.loaded < e.total ? `${was} … ${Math.round(e.loaded / e.total * 100)} %` : 'Wird verarbeitet …'); };
-    x.onload = () => { upBusy(false); if (x.status === 401) { showLogin(); bad(0); return; } try { ok(JSON.parse(x.responseText)); } catch { ok({error: 'Hochladen fehlgeschlagen (' + x.status + ')'}); } };
+    x.onload = () => { upBusy(false); if (x.status === 401) { showLogin(); bad(0); return; } try { ok(JSON.parse(x.responseText)); } catch { ok({error: x.status === 413 ? 'zu groß für den Server' : 'Hochladen fehlgeschlagen (' + x.status + ')', status: x.status}); } };
     x.onerror = () => { upBusy(false); toast('Hochladen fehlgeschlagen – bitte Verbindung prüfen und erneut versuchen.'); bad(0); };
     x.send(form);
   });

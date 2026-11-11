@@ -179,14 +179,10 @@ function renderReport(box) {
   box.innerHTML = `<div class="btl" data-bph-trenn-ab="1180" data-bph-trenn="bt" data-bph-trenn-min="200" data-bph-trenn-max="0.45">${sideHtml(r)}<div class="wrap">` + renameBanner() + bwzBar + meta.sections.map(s => (RENDER[s.type] || (() => ''))(s, r)).join('') + `</div></div>`;
   box.insertAdjacentHTML('beforeend', '<input type="file" id="ifile" class="vh" accept="image/*,.heic,.heif" multiple>');
   $('#ifile').onchange = async e => {
-    const fd = new FormData(); [...e.target.files].forEach(x => fd.append('files', x)); fd.append('item_id', itemPhotoFor);
-    e.target.value = ''; const up = await api(`api/reports/${rid}/images`, 'POST', null, fd); await openProject(pid, true);
-    if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
+    const fs = [...e.target.files]; e.target.value = ''; await uploadPhotos(fs, itemPhotoFor);
   };
   const f = $('#file'); if (f) f.onchange = async e => {
-    const fd = new FormData(); [...e.target.files].forEach(x => fd.append('files', x));
-    const up = await api(`api/reports/${rid}/images`, 'POST', null, fd); openProject(pid, true);
-    if (up.rejected?.length) toast(`Nicht übernommen (Format?): ${up.rejected.join(', ')}`);
+    const fs = [...e.target.files]; e.target.value = ''; await uploadPhotos(fs, null);
   };
   if (!BWZ.open) document.querySelector('[data-add]')?.focus(); growAll(); loadVer();
   if (BWZ.open) bwzRender();

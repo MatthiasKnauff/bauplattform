@@ -422,6 +422,7 @@ def versand():
            for e in (b.get("empfaenger") or []) if isinstance(e, dict)]
     emp = [e for e in emp if re.fullmatch(r"[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+", e["email"])]
     art = "mich" if b.get("versand") == "mich" else "direkt"
+    pk = "plotauftrag" if b.get("plot") else "planversand"   # Art im Verlauf der Kommunikation
     if not sel:
         return jsonify(error="Bitte mindestens einen Plan wählen."), 400
     ich = (g.user["email"] or "").strip()
@@ -511,13 +512,13 @@ def versand():
     with db.tx() as c:
         if art == "mich":
             if gesendet:
-                benachrichtigung.protokoll(c, "planversand", emp, project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
+                benachrichtigung.protokoll(c, pk, emp, project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
                                            von=C.full_name(g.user), weg="weiterleiten", link="plaene:#liste")
         else:
-            benachrichtigung.protokoll(c, "planversand", gesendet, project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
+            benachrichtigung.protokoll(c, pk, gesendet, project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
                                        von=C.full_name(g.user), link="plaene:#liste")
             for e, er in nicht:
-                benachrichtigung.protokoll(c, "planversand", [e], project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
+                benachrichtigung.protokoll(c, pk, [e], project_id=pid, projekt=p["name"], betreff=bt, inhalt=inhalt,
                                            von=C.full_name(g.user), status="fehler", fehler=str(er), link="plaene:#liste")
         neu = benachrichtigung.unbekannt(c, [e["email"] for e in emp])
     if gesendet:

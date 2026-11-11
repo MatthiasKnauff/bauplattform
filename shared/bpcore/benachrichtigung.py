@@ -6,7 +6,7 @@ unbekannt()  welche der Adressen gehören zu keinem Kontakt (für die Rückfrage
 """
 from datetime import datetime
 
-ARTEN = {"planversand": "Planversand", "maengelruege": "Mängelrüge", "terminruege": "Terminrüge (Behinderung/Verzug)",
+ARTEN = {"planversand": "Planversand", "plotauftrag": "Plotauftrag", "maengelruege": "Mängelrüge", "terminruege": "Terminrüge (Behinderung/Verzug)",
          "nachricht": "Nachricht", "vorgang": "Vorgang"}
 WEGE = {"mail": "per E-Mail", "weiterleiten": "an mich zum Weiterleiten", "pdf": "als PDF (selbst zugestellt)"}
 

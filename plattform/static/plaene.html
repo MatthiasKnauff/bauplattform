@@ -317,7 +317,7 @@ async function plotDialog() {   // gemeinsamer Versanddialog; das Anschreiben se
     knopf: (w) => (w === 'mich' ? 'An mich senden' : 'Plotauftrag senden'),
     senden: async (W) => {
       if (W.wie !== 'mich' && !W.an.length) throw new Error('Bitte einen Plotdienst mit E-Mail-Adresse wählen.');
-      const r = await api('api/versand', 'POST', { project_id: pid, versand: W.wie, kopie: W.kopie, cad: false, empfaenger: W.an.length ? W.an : P.filter((p) => p.email).slice(0, 1).map((p) => ({ name: p.name, email: p.email, contact_id: p.id })),
+      const r = await api('api/versand', 'POST', { project_id: pid, plot: true, versand: W.wie, kopie: W.kopie, cad: false, empfaenger: W.an.length ? W.an : P.filter((p) => p.email).slice(0, 1).map((p) => ({ name: p.name, email: p.email, contact_id: p.id })),
         betreff: W.betreff, text: W.text, plaene: g.map((x) => ({ pfad: x.st.pdf.pfad, nr: x.p.nr, index: x.st.index, titel: x.p.titel, kennung: x.p.kennung, cad: [] })) });
       toast(`Plotauftrag (${g.length} ${g.length > 1 ? 'Pläne' : 'Plan'}) gesendet an ${r.an.map((e) => e.name || e.email).join(', ')}.` + (r.fehler.length ? ' Nicht gesendet: ' + r.fehler.join('; ') : ''), !!r.fehler.length);
       SEL.clear(); laden();

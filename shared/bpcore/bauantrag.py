@@ -120,10 +120,10 @@ def quellen(c, pid, user):
     put = lambda k, v, src: q.__setitem__(k, (str(v).strip(), src)) if v not in (None, "") and str(v).strip() else None   # noqa: E731
     put("verfahren", "baugenehmigung", "Vorgabe")
     if p.get("city"):
-        put("behoerde", f"Stadt {p['city']} – Bauaufsicht", "Projekt")
+        put("behoerde", f"Stadt {p['city']} – Bauaufsicht", "Vorschlag")
     bh = _kontakt(c, sd.get("bauherr_kid"))
-    put("bauherr_name", sd.get("bauherr") or p.get("client"), "Projekt")
-    put("bauherr_vertreter", sd.get("bh_vertreter"), "Projekt")
+    put("bauherr_name", sd.get("bauherr") or p.get("client"), "Projektdaten")
+    put("bauherr_vertreter", sd.get("bh_vertreter"), "Projektdaten")
     if bh:
         put("bauherr_anschrift", _adr(bh), "Adressen")
         put("bauherr_tel", bh.get("phone") or bh.get("mobile"), "Adressen")
@@ -141,15 +141,17 @@ def quellen(c, pid, user):
     put("ev_wahl", "persoenlich" if pers else "buero", "Mein Konto" if pers else "Büro")
     put("ev_anschrift", (S.get("office_name", "") + ", " if S.get("office_name") else "") + buero_adr, "Büro")
     tw = _kontakt(c, sd.get("tragwerk_kid"))
-    put("tragwerk", (tw or {}).get("name") or sd.get("tragwerk"), "Projekt")
+    put("tragwerk", (tw or {}).get("name") or sd.get("tragwerk"), "Projektdaten")
     put("gs_strasse", p.get("street"), "Projekt")
     put("gs_ort", " ".join(x for x in ((p.get("zip") or ""), (p.get("city") or "")) if x), "Projekt")
     for f in ("gemarkung", "flur", "flurstueck"):
-        put(f, sd.get(f), "Kataster")
-    put("bezeichnung", sd.get("beschreibung") or p.get("name"), "Projekt")
+        put(f, sd.get(f), "Projektdaten")
+    put("bezeichnung", sd.get("beschreibung") or p.get("name"), "Projektdaten" if sd.get("beschreibung") else "Projekt")
     put("art", {"Neubau": "Errichtung", "Umbau": "Änderung", "Erweiterung": "Erweiterung", "Sanierung / Modernisierung": "Änderung", "Abbruch": "Abbruch"}.get(sd.get("massnahme") or ""), "Projekt")
-    put("nutzung", sd.get("nutzung"), "Projekt")
-    put("sonderbau", "nein", "Vorgabe")
+    put("nutzung", sd.get("nutzung"), "Projektdaten")
+    for k in PD_EIGEN:   # Angaben für Bauanträge, die in den Projektdaten stehen (Gruppe „Bauantrag“)
+        put(k, sd.get(k), "Projektdaten")
+    put("sonderbau", sd.get("sonderbau") or "nein", "Projektdaten" if sd.get("sonderbau") else "Vorgabe")
     try:   # Baukosten: gültige Kostenermittlung – KG 300 (Rohbau näherungsweise), KG 300 + 400, Fläche
         import baukosten as BK
         from . import gueltig
@@ -163,11 +165,88 @@ def quellen(c, pid, user):
                 put("rohbau", round(a), "Baukosten")
             if a or b:
                 put("herstellung", round(a + b), "Baukosten")
-            if kk.get("area"):
+            if kk.get("area") and "nrf" not in q:
                 put("nrf", round(kk["area"], 1), "Baukosten")
     except Exception:   # noqa: BLE001 – ohne Baukosten bleiben die Felder zum Eintippen
         pass
     return q
+
+
+PD_EIGEN = ("behoerde", "gs_flaeche", "bplan", "gebiet", "baulasten", "denkmal", "gebaeudeklasse", "sonderbau", "grf", "bgf", "bri",
+            "grz", "gfz", "geschosse", "hoehe", "we", "st_notw", "st_nachg")
+PD_UMBENANNT = {"bauherr_name": "bauherr", "bauherr_vertreter": "bh_vertreter", "bezeichnung": "beschreibung", "nutzung": "nutzung",
+                "gemarkung": "gemarkung", "flur": "flur", "flurstueck": "flurstueck", "tragwerk": "tragwerk"}
+KONTO = {"ev_beruf": "beruf", "ev_kammer": "kammer", "ev_kammernr": "kammernr", "ev_tel": "telefon"}
+BUERO = {"ev_name": "co_bv_name", "ev_beruf": "co_bv_beruf", "ev_kammer": "co_bv_kammer", "ev_kammernr": "co_bv_kammernr"}
+
+
+def ziel(key, ev_wahl, admin):
+    """Wohin eine Änderung dieses Felds geschrieben wird (Name für die Seite) – None: bleibt nur im Antrag."""
+    if key in PD_EIGEN or key in PD_UMBENANNT:
+        return "Projektdaten"
+    if key in ("bauherr_anschrift", "bauherr_tel", "bauherr_mail"):
+        return "Adressen"
+    if key in ("gs_strasse", "gs_ort"):
+        return "Projekt"
+    if ev_wahl == "persoenlich" and key in KONTO:
+        return "Mein Konto"
+    if ev_wahl == "buero" and admin and key in BUERO:
+        return "Büro"
+    return None
+
+
+def _plz_ort(s):
+    m = re.match(r"^\s*(\d{5})\s+(.+)$", s or "")
+    return (m.group(1), m.group(2).strip()) if m else ("", (s or "").strip())
+
+
+def zurueckschreiben(c, pid, user, felder, ev_wahl, wer):
+    """Änderungen aus dem Antrag dorthin schreiben, wo sie hingehören (Projektdaten, Adressen des Bauherrn, Projektanschrift,
+    Mein Konto, Büro). Gibt die Schlüssel zurück, die geschrieben wurden – die bleiben nicht als „von Hand“ im Antrag."""
+    from . import konto, stammdaten
+    admin = bool(user and user.get("is_admin"))
+    pd, kt, bu, done = {}, {}, {}, set()
+    for k, v in felder.items():
+        z = ziel(k, ev_wahl, admin)
+        if not z or v is None:
+            continue
+        v = str(v).strip()
+        if z == "Projektdaten":
+            pd[PD_UMBENANNT.get(k, k)] = v
+        elif z == "Mein Konto":
+            kt[KONTO[k]] = v
+        elif z == "Büro":
+            bu[BUERO[k]] = v
+        elif z == "Projekt":
+            if k == "gs_strasse":
+                c.execute("UPDATE projects SET street=? WHERE id=?", (v[:200], pid))
+            else:
+                plz, ort = _plz_ort(v)
+                c.execute("UPDATE projects SET zip=?, city=? WHERE id=?", (plz[:10], ort[:120], pid))
+        elif z == "Adressen":
+            sd = stammdaten.projekt_lesen(c, pid)
+            kid = sd.get("bauherr_kid")
+            if not kid:   # Bauherr noch nicht in den Adressen: anlegen (oder gleichnamigen nehmen) und mit dem Projekt verbinden
+                name = (sd.get("bauherr") or "").strip()
+                if not name:
+                    continue
+                r = c.execute("SELECT id FROM contacts WHERE lower(name)=?", (name.lower(),)).fetchone()
+                kid = r["id"] if r else c.execute("INSERT INTO contacts(name, created, updated) VALUES(?, now()::text, now()::text) RETURNING id", (name[:200],)).fetchone()["id"]
+                stammdaten.projekt_schreiben(c, pid, {"bauherr_kid": kid}, wer)
+            if k == "bauherr_anschrift":
+                teile = [t.strip() for t in v.split(",")]
+                plz, ort = _plz_ort(teile[-1] if len(teile) > 1 else "")
+                c.execute("UPDATE contacts SET street=?, zip=?, city=?, updated=now()::text WHERE id=?", (teile[0][:200] if len(teile) > 1 else v[:200], plz, ort[:120], kid))
+            else:
+                c.execute(f"UPDATE contacts SET {'phone' if k == 'bauherr_tel' else 'email'}=?, updated=now()::text WHERE id=?", (v[:200], kid))
+        done.add(k)
+    if pd:
+        stammdaten.projekt_schreiben(c, pid, pd, wer)
+    if kt and user:
+        konto.set_prefs(c, user["id"], kt, wer)
+    for k, v in bu.items():
+        c.execute("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (k, v[:300]))
+    return done
 
 
 def werte(c, pid, user, daten):
@@ -183,6 +262,7 @@ def werte(c, pid, user, daten):
         qv, qs = q.get(key, ("", ""))
         eigen = key in daten
         out.append({"key": key, "label": label, "schritt": schritt, "typ": typ, "optionen": opt if isinstance(opt, list) else [], "hilfe": opt if isinstance(opt, str) else "",
+                    "ziel": ziel(key, wahl, bool((user or {}).get("is_admin"))) or "",
                     "pflicht": pflicht, "wert": str(daten[key]) if eigen else qv, "quelle": "von Hand" if eigen else qs, "quelle_wert": qv, "quelle_name": qs, "eigen": eigen})
     return out
 

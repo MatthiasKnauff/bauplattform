@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-11-bauantrag-zurueck",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Bauantrag schreibt zurück",
+  "text": "Was du im Bauantrag einträgst, landet dort, wo es hingehört: Grundstück, Planungsrecht, Gebäudeklasse und Kenndaten in den Projektdaten (neue Gruppe „Bauantrag“), Anschrift, Telefon und E-Mail des Bauherrn in den Adressen, Beruf und Kammer in Mein Konto bzw. im Büro. Am Feld steht „⇄ Projektdaten“ usw. Der nächste Antrag im Projekt ist damit schon ausgefüllt.",
+  "ziel": ".ba-st"
+ },
+ {
   "id": "2026-11-11-firmenwahl",
   "datum": "2026-11-11",
   "app": "kommunikation",

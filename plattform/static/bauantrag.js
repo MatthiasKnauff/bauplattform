@@ -10,6 +10,7 @@ const IC = { neu: '<path d="M12 5v14M5 12h14"/>', pdf: '<path d="M6 3h9l4 4v14H6
   antrag: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 12l2 2 4-4"/>', ord: '<path d="M3 7h6l2 2h10v10H3z"/><path d="M12 12v5M9.5 14.5 12 17l2.5-2.5"/>' };
 const STATUS = { entwurf: 'Entwurf', eingereicht: 'eingereicht', genehmigt: 'genehmigt' };
 const BV_ST = { da: 'liegt vor', offen: 'fehlt', entfaellt: 'entfällt' };
+const BREIT = new Set(['bauherr_name', 'bauherr_anschrift', 'ev_name', 'ev_anschrift', 'gs_strasse', 'behoerde', 'bplan', 'tragwerk', 'nutzung']);   // zwei Spalten breit
 
 async function laden(aid) {
   L = await api('api/antraege');
@@ -66,7 +67,8 @@ function fehltIn(s) { return D.felder.filter((f) => f.schritt === s && f.pflicht
 
 function feldHtml(f) {
   const w = String(f.wert ?? ''), leer = f.pflicht && !w.trim();
-  const q = f.quelle ? `<span class="ba-q${f.eigen ? ' eigen' : ''}" title="${f.eigen && f.quelle_name ? esc('Quelle: ' + f.quelle_name + (f.quelle_wert ? ' – „' + f.quelle_wert + '“' : '')) : ''}">${esc(f.quelle)}</span>` : '';
+  const tip = f.ziel ? `Kommt aus „${f.ziel}“ – eine Änderung hier wird dort gespeichert und gilt überall` : f.eigen && f.quelle_name ? 'Nur in diesem Antrag geändert · Quelle: ' + f.quelle_name + (f.quelle_wert ? ' – „' + f.quelle_wert + '“' : '') : 'Nur in diesem Antrag';
+  const q = f.quelle || f.ziel ? `<span class="ba-q${f.eigen ? ' eigen' : ''}${f.ziel ? ' sync' : ''}" title="${esc(tip)}">${f.ziel ? '⇄ ' + esc(f.ziel) : esc(f.quelle)}</span>` : '';
   const zur = f.eigen && f.quelle_name ? `<button type="button" class="ba-r" data-zurueck="${f.key}" title="Wert aus „${esc(f.quelle_name)}“ wieder übernehmen">↺</button>` : '';
   const kopf = `<span>${esc(f.label)}${f.pflicht ? ' <i>*</i>' : ''}${q}${zur}</span>`;
   let ein;
@@ -75,9 +77,11 @@ function feldHtml(f) {
     ein = `<span class="seg" role="group">${O.map(([v, t]) => `<button type="button" data-seg="${f.key}" data-v="${esc(v)}" class="${w === v ? 'on' : ''}">${esc(t)}</button>`).join('')}</span>`;
   } else if (f.typ === 'textarea') ein = `<textarea data-f="${f.key}">${esc(w)}</textarea>`;
   else ein = `<input data-f="${f.key}" value="${esc(f.typ === 'eur' && w ? (+w).toLocaleString('de-DE') : w)}"${f.typ === 'zahl' || f.typ === 'eur' ? ' class="z" inputmode="decimal"' : ''}${f.hilfe ? ` placeholder="${esc(f.hilfe)}"` : ''}>`;
-  return `<label class="ba-f${f.typ === 'textarea' || (f.typ === 'select' && f.optionen.length > 5) ? ' w' : ''}${leer ? ' leer' : ''}">${kopf}${ein}</label>`;
+  const breit = f.typ === 'textarea' || (f.typ === 'select' && f.optionen.length > 5) ? ' w' : BREIT.has(f.key) ? ' w2' : '';
+  return `<label class="ba-f${breit}${leer ? ' leer' : ''}">${kopf}${ein}</label>`;
 }
-const gruppe = (titel, keys, extra = '') => `<div class="ba-k"><h3>${titel}</h3>${extra}<div class="ba-g">${keys.map((k) => feldHtml(feld(k))).join('')}</div></div>`;
+const gruppe = (titel, keys, extra = '') => { const z = [...new Set(keys.map((k) => feld(k).ziel).filter(Boolean))];
+  return `<div class="ba-k"><h3>${titel}${z.length ? `<span class="mute">⇄ gespeichert in ${esc(z.join(', '))}</span>` : ''}</h3>${extra}<div class="ba-g">${keys.map((k) => feldHtml(feld(k))).join('')}</div></div>`; };
 
 function schrittHtml() {
   const S = SCHRITT;
@@ -133,7 +137,7 @@ function zeichne() {
 /* Speichern: Felder einzeln, mit Rückgängig auf den vorherigen Stand (eigener Wert oder Quelle) */
 async function setze(felder, text) {
   const alt = {};
-  Object.keys(felder).forEach((k) => { const f = feld(k); alt[k] = f && f.eigen ? f.wert : null; });
+  Object.keys(felder).forEach((k) => { const f = feld(k); alt[k] = f && (f.eigen || f.ziel) ? f.wert : null; });   // mit Ziel: alten Wert dort zurückschreiben
   try {
     D = await api('api/antraege/' + AID, 'PUT', { felder }); zeichne();
     rueckgaengig(text, async () => { D = await api('api/antraege/' + AID, 'PUT', { felder: alt }); zeichne(); });

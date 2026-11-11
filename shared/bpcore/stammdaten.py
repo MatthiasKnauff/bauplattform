@@ -45,6 +45,16 @@ PROJEKT = [
         ("genehmigung_az", "Baugenehmigung – Aktenzeichen", "text", ""), ("genehmigung_datum", "Baugenehmigung vom", "date", ""),
         ("budget", "Kostenrahmen (brutto)", "eur", ""),
     ]),
+    ("Bauantrag", [   # gilt für alle Anträge des Projekts – die App „Bauantrag“ liest und schreibt hier
+        ("behoerde", "Untere Bauaufsichtsbehörde", "text", "z. B. Stadt Essen – Bauordnungsamt"),
+        ("gs_flaeche", "Grundstücksgröße (m²)", "zahl", ""), ("bplan", "Bebauungsplan", "text", "z. B. Nr. 7/84 „Grillostraße“ – leer = Innenbereich"),
+        ("gebiet", "Gebietsart", "select", ["", "Wohngebiet (WA)", "reines Wohngebiet (WR)", "Mischgebiet (MI)", "urbanes Gebiet (MU)", "Gewerbegebiet (GE)", "Industriegebiet (GI)", "Sondergebiet (SO)", "Außenbereich"]),
+        ("baulasten", "Baulasten", "select", ["", "keine bekannt", "vorhanden", "angefragt"]), ("denkmal", "Denkmalschutz", "select", ["", "ja", "nein"]),
+        ("gebaeudeklasse", "Gebäudeklasse", "select", ["", "1", "2", "3", "4", "5"]), ("sonderbau", "Sonderbau", "select", ["", "ja", "nein"]),
+        ("grf", "Grundfläche GR (m²)", "zahl", ""), ("bgf", "Bruttogrundfläche BGF (m²)", "zahl", ""), ("bri", "Brutto-Rauminhalt BRI (m³)", "zahl", ""),
+        ("grz", "GRZ vorhanden", "text", ""), ("gfz", "GFZ vorhanden", "text", ""), ("geschosse", "Vollgeschosse", "zahl", ""), ("hoehe", "Höhe OK Gebäude (m)", "zahl", ""),
+        ("we", "Wohneinheiten", "zahl", ""), ("st_notw", "Stellplätze notwendig", "zahl", ""), ("st_nachg", "Stellplätze nachgewiesen", "zahl", ""),
+    ]),
     ("Termine", [
         ("baubeginn", "Baubeginn", "date", "kann aus dem Bauzeitenplan übernommen oder dorthin übertragen werden"),
         ("fertigstellung", "voraussichtliche Fertigstellung", "date", ""),

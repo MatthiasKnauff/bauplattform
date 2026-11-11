@@ -66,7 +66,7 @@ def _antrag(c, aid):
 
 
 def _user():
-    return {"id": g.user["id"], "name": g.user["name"], "email": g.user["email"] or "",
+    return {"id": g.user["id"], "name": g.user["name"], "email": g.user["email"] or "", "is_admin": bool(g.user["is_admin"]),
             "vorname": C._col(g.user, "vorname") or "", "nachname": C._col(g.user, "nachname") or ""}
 
 
@@ -150,7 +150,13 @@ def aendern(aid):
         if a["status"] == "eingereicht" and b.get("status") != "entwurf" and (b.get("felder") or b.get("bauvorlagen")):
             return jsonify(error="Der Antrag ist eingereicht – zum Ändern erst wieder auf „Entwurf“ stellen."), 409
         daten = _j(a["daten"], {})
-        for k, v in (b.get("felder") or {}).items():
+        F = {k: v for k, v in (b.get("felder") or {}).items() if k in BA.FK}
+        if F:   # was eine Quelle hat (Projektdaten, Adressen, Projekt, Mein Konto, Büro), wird dort gespeichert – nicht nur im Antrag
+            wahl = F.get("ev_wahl") or daten.get("ev_wahl") or (BA.quellen(c, a["project_id"], _user()).get("ev_wahl") or ("buero",))[0]
+            for k in BA.zurueckschreiben(c, a["project_id"], _user(), F, wahl, g.user["name"]):
+                daten.pop(k, None)
+                F.pop(k)
+        for k, v in F.items():
             if k in BA.FK:
                 if v is None:
                     daten.pop(k, None)

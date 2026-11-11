@@ -33,7 +33,7 @@ function fillContactDetail() {
     ${rows.length ? `<dl class="cview">${rows.map(([l, v]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '<div class="info">Noch keine Daten. Mit dem Stift oben rechts kannst du sie ergänzen.</div>'}
     ${mapBlock([c.street, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}
     <div class="info">In ${c.used} Berichtseintrag${c.used === 1 ? '' : 'en'} verwendet.</div>
-    ${(() => { const a = (PLATFORM.apps || []).find(x => x.key === 'adressen' && x.allowed); return a ? `<div class="acts"><a class="btn" href="${esc(appUrl(a))}/#kontakt=${c.id}" title="In der Adressen-App bearbeiten – Tabelle, Export, Ins Handy, Verlauf">In Adressen bearbeiten ↗</a><a class="btn" href="${esc(appUrl(a))}/#kontakt=${c.id}&verlauf" title="Was an diesen Kontakt verschickt wurde: Pläne, Mängel- und Terminrügen">✉ Benachrichtigungen ↗</a></div>` : ''; })()}
+    ${(() => { const a = (PLATFORM.apps || []).find(x => x.key === 'adressen' && x.allowed); return a ? `<div class="acts"><a class="btn" href="${esc(appUrl(a))}/#kontakt=${c.id}&von=bt" title="In der Adressen-App bearbeiten – Tabelle, Export, Ins Handy, Verlauf">In Adressen bearbeiten ↗</a><a class="btn" href="${esc(appUrl(a))}/#kontakt=${c.id}&verlauf&von=bt" title="Was an diesen Kontakt verschickt wurde: Pläne, Mängel- und Terminrügen">✉ Benachrichtigungen ↗</a></div>` : ''; })()}
     <div class="acts"><button class="bad" data-act="delContact">Kontakt löschen</button></div></div>`;
 }
 /* Anlegen und Bearbeiten: gemeinsame Kontaktmaske des Baukastens (wie in „Adressen“, mit Vorschlägen aus dem Netz) */

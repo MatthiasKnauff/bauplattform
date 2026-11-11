@@ -121,6 +121,7 @@ table.dup td input,table.dup td textarea{width:100%;min-width:12rem;box-sizing:b
   .modal{border-radius:calc(14px*var(--rk,1)) calc(14px*var(--rk,1)) 0 0;max-height:94vh;width:100%}
 }
 .gsbox{margin:.6rem 0;padding:.6rem .7rem;border:1px solid var(--line,#ddd);border-radius:calc(8px*var(--rk,1))}.gsbox .fm{margin-top:.3rem}
+.von-bt{display:inline-flex;align-items:center;gap:.3rem;margin:0 0 .8rem;font-size:1rem;padding:.55rem 1.1rem;position:sticky;top:.5rem;z-index:5;box-shadow:var(--sh0,0 4px 14px rgba(0,0,0,.15))}
 </style>
 </head>
 <body>
@@ -482,6 +483,13 @@ $('#xlsx').onclick = () => { if (!tableRows().length) return toast('Keine Kontak
   if (BPHead.projekt) betN = BPHead.projekt.name;
   await load();
   if (betN && ALL.some(istBet)) { bet = betN; render(); }
+  if (/[#&]von=bt\b/.test(location.hash)) {   // nur wenn man aus dem Bautagebuch kommt: deutlich zurück
+    const bt = (conf.apps || []).find((a) => a.key === 'bautagebuch' && a.allowed);
+    const z = document.createElement('a'); z.className = 'btn pri von-bt'; z.textContent = '‹ Zurück zum Bautagebuch'; z.href = bt ? appUrl(bt) + '/' : '#';
+    z.addEventListener('click', (e) => { if (document.referrer && /bautagebuch|:8081|:8089/.test(document.referrer) && history.length > 1) { e.preventDefault(); history.back(); } });
+    document.querySelector('main').prepend(z);
+    const rest = location.hash.replace(/[#&]von=bt\b/, '').replace(/^&/, '#'); history.replaceState(null, '', location.pathname + (rest && rest !== '#' ? rest : ''));
+  }
   const hk = /^#kontakt=(\d+)/.exec(location.hash);   // aus dem Bautagebuch: „In Adressen bearbeiten“
   if (hk) { const vl = /[#&]verlauf\b/.test(location.hash); history.replaceState(null, '', location.pathname); const c = ALL.find((x) => x.id === +hk[1]); if (c) edit(c, vl); }
   setView(TV.view);

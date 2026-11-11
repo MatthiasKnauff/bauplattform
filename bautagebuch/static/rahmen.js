@@ -107,7 +107,7 @@
         if (id === 'alle') return los('repPicker');
         if (id === 'kontakte') {   // am PC die echte Adressen-App (gleiches Projekt, gefiltert auf die Beteiligten); ohne Recht die eigene Kontaktliste
           const ad = (PLATFORM.apps || []).find((x) => x.key === 'adressen' && x.allowed);
-          if (ad) { location.href = appUrl(ad); return; }
+          if (ad) { location.href = appUrl(ad) + '/#von=bt'; return; }   // von=bt: Adressen zeigen „Zurück zum Bautagebuch“
           return los('tab', { t: 'kontakte' });
         }
         if (id === 'projekt') return los('editProject');

@@ -293,5 +293,13 @@
   "text": "Nachricht, Vorgang, Abnahme, Mängel- und Terminrüge, Pläne und Datei versenden: ein Knopf „＋ Neu“, oben in jedem Fenster dieselbe Leiste. Wechselst du die Art, gehen Firma bzw. Empfänger, Betreff und Text mit – auch in die passende App.",
   "ziel": "[data-kvneu2]",
   "hash": ""
+ },
+ {
+  "id": "2026-11-11-bauantrag-aknw",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Formulare von der Architektenkammer",
+  "text": "Die NRW-Vordrucke kommen jetzt von der Seite der Architektenkammer NRW (Fassung September 2026). Ist die Seite nicht lesbar, wird ersatzweise recht.nrw.de genommen.",
+  "ziel": "[data-formpruefen]"
  }
 ]

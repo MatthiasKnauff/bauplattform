@@ -1,7 +1,7 @@
 """Amtliche Bauantragsformulare je Bundesland (App „Bauantrag“).
 
-Je Land eine Seite (Portal), auf der die Vordrucke veröffentlicht sind – NRW fest (Anlagen zur VV BauPrüfVO auf recht.nrw.de, Link
-„aktuellste Fassung“), andere Länder trägt die Verwaltung einmal ein. Alle dort veröffentlichten PDFs werden gelistet und in der Datenbank
+Je Land eine Seite (Portal), auf der die Vordrucke veröffentlicht sind – NRW: Seite der Architektenkammer (AKNW, ausfüllbare Vordrucke
+zur BauO NRW), ersatzweise die Anlagen zur VV BauPrüfVO auf recht.nrw.de; andere Länder trägt die Verwaltung einmal ein. Alle dort veröffentlichten PDFs werden gelistet und in der Datenbank
 zwischengespeichert (Tabelle bauantrag_formular); NRW täglich, die anderen beim Öffnen bzw. auf Knopfdruck. Neu oder geändert → To-do
 (bpcore/todo.py, Regel „formulare“), bis jemand „gesehen“ drückt.
 Ändert sich das Portal so, dass nichts mehr gelesen werden kann (Seite weg, keine PDFs, deutlich weniger als bisher), bleibt der Bestand
@@ -20,7 +20,8 @@ from datetime import datetime
 LAENDER = {"BW": "Baden-Württemberg", "BY": "Bayern", "BE": "Berlin", "BB": "Brandenburg", "HB": "Bremen", "HH": "Hamburg", "HE": "Hessen",
            "MV": "Mecklenburg-Vorpommern", "NI": "Niedersachsen", "NW": "Nordrhein-Westfalen", "RP": "Rheinland-Pfalz", "SL": "Saarland",
            "SN": "Sachsen", "ST": "Sachsen-Anhalt", "SH": "Schleswig-Holstein", "TH": "Thüringen"}
-QUELLE_NRW = "https://recht.nrw.de/taxonomy/term/33405"   # „Link zur aktuellsten Fassung“ der VV BauPrüfVO
+QUELLE_NRW = "https://www.aknw.de/berufspraxis/planen-und-bauen/bauantragsformulare"   # Architektenkammer NRW: aktuelle Vordrucke
+ERSATZ_NRW = "https://recht.nrw.de/taxonomy/term/33405"   # „Link zur aktuellsten Fassung“ der VV BauPrüfVO – wenn die AKNW-Seite nicht lesbar ist
 VORHALTEN = set(LAENDER)   # alle veröffentlichten Vordrucke werden zwischengespeichert
 MAX_PDF = 15 * 1024 * 1024
 UA = {"User-Agent": "Bauplattform/1.0 (Formularpruefung)"}
@@ -60,8 +61,8 @@ def anlagen_lesen(seite, basis):
         url = urllib.parse.urljoin(basis, html.unescape(m.group(1)))
         text = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", m.group(2))).split())
         text = re.sub(r"\s*\(?PDF\)?\s*(Nicht\s+)?[Bb]arrierefrei\s*$", "", text).strip(" ()")
-        a = re.search(r"Anlage\s+([IVX]+\s*/\s*[\d.]+[a-z]?)", text)
-        nr = re.sub(r"\s+", "", a.group(1)) if a else ""
+        a = re.search(r"Anlage\s+([IVX]+)\s*[/-]\s*(\d+(?:\.\d+)*[a-z]?)", text)   # „Anlage I/2“ (recht.nrw.de) oder „Anlage I-2“ (AKNW)
+        nr = f"{a.group(1)}/{a.group(2)}" if a else ""
         titel = text[a.end():].strip(" –-:") if a else text
         key = nr or url
         if key in seen:   # gleiche Anlage zweimal verlinkt (Titel / „PDF barrierefrei“): den längeren Titel behalten
@@ -77,22 +78,28 @@ def _fassung(url, seite):
     m = re.search(r"/(\d{2})(\d{2})(\d{4})-", url)
     if m:
         return f"{m.group(1)}.{m.group(2)}.{m.group(3)}"
+    m = re.search(r"/(20\d{2})(\d{2})_Bauantragsformulare", url)   # AKNW: Ordner „202609_Bauantragsformulare-2026-September“
+    if m:
+        return f"{m.group(2)}/{m.group(1)}"
     m = re.search(r"[Ff]assung vom\s*(\d{1,2}\.\d{1,2}\.\d{4})", seite)
+    if m:
+        return m.group(1)
+    m = re.search(r"Am\s+(\d{1,2}\.\s*\w+\s+\d{4})\s+ist\s+das", seite)   # AKNW-Seite: „Am 1. September 2026 ist das … in Kraft getreten“
     return m.group(1) if m else ""
 
 
 def quelle(c, land):
-    if land == "NW":
-        return QUELLE_NRW
     r = c.execute("SELECT data FROM bp_store WHERE key=?", (f"bauantrag:quelle:{land}",)).fetchone()
     try:
-        return (json.loads(r["data"]) if r else {}).get("url", "")
+        u = (json.loads(r["data"]) if r else {}).get("url", "")
     except ValueError:
-        return ""
+        u = ""
+    return u or (QUELLE_NRW if land == "NW" else "")
 
 
 def quelle_setzen(c, land, url, wer):
-    _sicher(url)
+    if url or land != "NW":   # NRW leer: zurück zur Vorgabe (AKNW)
+        _sicher(url)
     c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES(?,?,?,?) ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, "
               "updated=EXCLUDED.updated, updated_by=EXCLUDED.updated_by", (f"bauantrag:quelle:{land}", json.dumps({"url": url}), _jetzt(), wer))
 
@@ -109,6 +116,7 @@ def pruefen(c_fn, land="NW", wer="dienste"):
     """Quelle lesen und mit dem Bestand abgleichen. c_fn: Verbindung als Kontextmanager (db.tx). → {neu, geaendert, entfallen, fehler}"""
     with c_fn() as c:
         q = quelle(c, land)
+        seite_vorher = stand(c, land).get("seite") or ""
         alt = {r["schluessel"]: dict(r) for r in c.execute("SELECT id, schluessel, url, sha256, status FROM bauantrag_formular WHERE land=?", (land,)).fetchall()}
     if not q:
         return {"fehler": "Für dieses Land ist noch keine Seite mit den Vordrucken eingetragen."}
@@ -117,13 +125,18 @@ def pruefen(c_fn, land="NW", wer="dienste"):
         ziel, roh = _holen(q)
         seite = roh.decode("utf-8", "replace")
         A = anlagen_lesen(seite, ziel)
+        if land == "NW" and q == QUELLE_NRW and len([a for a in A if a["nr"]]) < 3:   # AKNW-Seite umgebaut: amtliche Anlagen auf recht.nrw.de
+            ziel, roh = _holen(ERSATZ_NRW)
+            seite = roh.decode("utf-8", "replace")
+            A = anlagen_lesen(seite, ziel)
     except Exception as e:   # noqa: BLE001 – Seite nicht erreichbar: Bestand bleibt, Fehler wird gemerkt
         erg["fehler"] = f"Seite nicht erreichbar: {e}"[:300]
         A, ziel, seite = None, q, ""
     if A is not None and not A:
         erg["fehler"] = "Auf der Seite wurden keine Vordrucke (PDF) gefunden."
     bisher = [x for x in alt.values() if x["status"] != "entfallen" and x["url"]]
-    if A and len(bisher) >= 4 and len(A) < len(bisher) / 2:   # Portal umgebaut? Lieber nichts als „entfallen“ markieren
+    neue_quelle = bool(seite_vorher) and A is not None and urllib.parse.urlsplit(seite_vorher).hostname != urllib.parse.urlsplit(ziel).hostname
+    if A and not neue_quelle and len(bisher) >= 4 and len(A) < len(bisher) / 2:   # Portal umgebaut? Lieber nichts als „entfallen“ markieren
         erg["fehler"] = f"Auf der Seite stehen nur noch {len(A)} statt bisher {len(bisher)} Vordrucke – das Portal wurde wohl umgebaut."
         A = None
     erg["kaputt"] = bool(erg["fehler"]) and not A

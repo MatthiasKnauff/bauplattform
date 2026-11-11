@@ -250,12 +250,12 @@ def formulare_pruefen():
 
 @app.put("/api/formulare/quelle")
 def formulare_quelle():
-    """Seite mit den Vordrucken eines anderen Landes eintragen – nur Verwaltung (der Server ruft sie ab)."""
+    """Seite mit den Vordrucken eines Landes eintragen – nur Verwaltung (der Server ruft sie ab). NRW: leer = Seite der Architektenkammer."""
     if not g.user["is_admin"]:
         return jsonify(error="Nur für die Verwaltung."), 403
     b = request.get_json(silent=True) or {}
     land = b.get("land")
-    if land not in BF.LAENDER or land == "NW":
+    if land not in BF.LAENDER:
         return jsonify(error="Unbekanntes Land."), 400
     try:
         with db.tx() as c:

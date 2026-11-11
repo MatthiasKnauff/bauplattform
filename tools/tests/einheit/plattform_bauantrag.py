@@ -20,6 +20,21 @@ def test_anlagen_der_nrw_seite():
     gleich(BF._fassung("https://recht.nrw.de/lrmb/verwaltungsvorschrift/10112026-verwaltungsvorschrift-zur", ""), "10.11.2026", "Fassung aus der Adresse")
 
 
+AKNW = """<h2>Downloads</h2>
+<a href="fileadmin/user_upload/Bauantragsformulare_Vertragshilfen/202609_Bauantragsformulare-2026-September/mb2026-220-anlage1.1.pdf" class="download">Anlage I-1 - Bauantrag für große Sonderbauten</a>
+<a href="fileadmin/user_upload/Bauantragsformulare_Vertragshilfen/202609_Bauantragsformulare-2026-September/mb2026-220-anlage1.2.pdf">Anlage I-2 - Bauantrag für vereinfachtes Genehmigungsverfahren</a>
+<a href="fileadmin/user_upload/Bauantragsformulare_Vertragshilfen/anlage_i_2.1_anzeige_befristete_nutzungsaenderung.pdf">Anlage I-2.2- Anzeige der befristeten Nutzungsänderung</a>"""
+
+
+def test_anlagen_der_aknw_seite():
+    """Seite der Architektenkammer: „Anlage I-2“ wird wie „Anlage I/2“ erkannt, Fassung aus dem Ordnernamen."""
+    A = BF.anlagen_lesen(AKNW, "https://www.aknw.de/berufspraxis/planen-und-bauen/bauantragsformulare")
+    gleich([a["nr"] for a in A], ["I/1", "I/2", "I/2.2"], "Nummern")
+    gleich(A[1]["titel"], "Bauantrag für vereinfachtes Genehmigungsverfahren", "Titel")
+    pruefe(A[0]["url"].startswith("https://www.aknw.de/"), "volle Adresse")
+    gleich(BF._fassung(A[0]["url"], ""), "09/2026", "Fassung aus dem Ordner")
+
+
 def test_nur_sichere_adressen():
     """Keine http-Adressen und nichts im eigenen Netz (der Server ruft die Seite ab)."""
     for u in ("http://recht.nrw.de/x", "https://127.0.0.1/x", "https://localhost/x", "ftp://a.de/x"):

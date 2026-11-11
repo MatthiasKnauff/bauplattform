@@ -208,7 +208,7 @@ function formHtml() {
   const kopf = `<div class="ba-k"><h3>Amtliche Formulare<span class="mute">${F.land === 'NW' ? 'vom Portal, zwischengespeichert, täglich geprüft' : 'vom Portal des Landes, zwischengespeichert, beim Öffnen geprüft'}</span></h3>
     <div class="ba-fk"><label class="ba-f"><span>Bundesland</span><select data-formland data-bp-auswahl aria-label="Bundesland">${laender.map(([k, n]) => `<option value="${k}"${k === F.land ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
       <div class="ba-fs"><span>Fassung: <b>${esc(st.fassung || '–')}</b></span><span>zuletzt geprüft: <b>${de(st.geprueft)}</b></span>${F.quelle ? `<a href="${esc(st.seite || F.quelle)}" target="_blank" rel="noopener">Quelle öffnen ↗</a>` : ''}</div>
-      <button type="button" class="btn pri" data-formpruefen${F.quelle ? '' : ' disabled'}>↻ Jetzt prüfen</button><button type="button" class="btn${st.kaputt ? ' pri' : ''}" data-formhoch>📤 Formular hochladen</button>${F.land !== 'NW' && F.admin ? '<button type="button" class="btn" data-formquelle>Quelle eintragen …</button>' : ''}</div>
+      <button type="button" class="btn pri" data-formpruefen${F.quelle ? '' : ' disabled'}>↻ Jetzt prüfen</button><button type="button" class="btn${st.kaputt ? ' pri' : ''}" data-formhoch>📤 Formular hochladen</button>${F.admin ? `<button type="button" class="btn" data-formquelle>${F.quelle ? 'Quelle ändern …' : 'Quelle eintragen …'}</button>` : ''}</div>
     ${st.kaputt ? `<div class="ba-warn">⚠ <b>Das Portal lässt sich nicht mehr lesen.</b> ${esc(st.fehler || '')}<br>Die bisher gespeicherten Formulare bleiben verfügbar. Neue Fassungen bitte selbst hochladen („📤 Formular hochladen“, bei einer Anlage „Ersetzen“).</div>`
       : st.fehler ? `<p class="ba-hilfe" style="color:var(--red)">⚠ ${esc(st.fehler)}</p>` : ''}
     ${!F.quelle ? `<p class="ba-hilfe">Für ${esc(F.laender[F.land])} ist noch keine Seite mit den Vordrucken eingetragen${F.admin ? ' – „Quelle eintragen …“, z. B. die Seite des Bauministeriums mit den Bauvorlagen.' : ' – das macht die Verwaltung.'}</p>` : ''}</div>`;
@@ -226,7 +226,7 @@ V.addEventListener('click', async (e) => {
   if (b.dataset.formhoch !== undefined || b.dataset.formersetzen) return formHochladen(b.dataset.formersetzen ? FORM.formulare.find((x) => x.id === +b.dataset.formersetzen) : null);
   if (b.dataset.formpruefen !== undefined) return formulareZeigen(FORM.land, true);
   if (b.dataset.formquelle !== undefined) {
-    const u = await bpEingabe(`Seite mit den Bauvorlagen-Vordrucken für ${FORM.laender[FORM.land]} (https://…)`, FORM.quelle || '', { ok: 'Eintragen und prüfen' }); if (!u) return;
+    const u = await bpEingabe(`Seite mit den Bauvorlagen-Vordrucken für ${FORM.laender[FORM.land]} (https://…)${FORM.land === 'NW' ? ' – leer lassen für die Seite der Architektenkammer NRW' : ''}`, FORM.quelle || '', { ok: 'Eintragen und prüfen' }); if (u == null || (!u && FORM.land !== 'NW')) return;
     try { FORM = await api('api/formulare/quelle', 'PUT', { land: FORM.land, url: u }); zeichne(); } catch (er) { toast(er.message, true); } return;
   }
   if (b.dataset.formgesehen) { try { await api(`api/formulare/${b.dataset.formgesehen}/gesehen`, 'POST', {}); await formulareZeigen(FORM.land); } catch (er) { toast(er.message, true); } return; }

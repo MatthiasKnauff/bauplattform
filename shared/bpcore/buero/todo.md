@@ -70,6 +70,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bauantrag: NRW-Vordrucke jetzt von der Seite der Architektenkammer (AKNW, Fassung 09/2026 nach dem 3. Änderungsgesetz), ersatzweise recht.nrw.de; Quelle für NRW in der Verwaltung änderbar~~
 - ~~Bautagebuch am Handy: Kopfzeile kompakt (Bericht breit, Suche als Lupe, Standort), „PDF“ in der Akzentfarbe hervorgehoben~~
 - ~~Startseite am Handy, Post: Zeit, Erinnerung und App unter den Text – Art und Betreff werden nicht mehr abgeschnitten~~
 - ~~Projektordner prüfen: auch Dateinamen (fremdes Kürzel → umbenennen, ohne Kürzel → Kürzel davor; Fotos bleiben frei; nicht vorgewählt); am Handy nur ansehen~~

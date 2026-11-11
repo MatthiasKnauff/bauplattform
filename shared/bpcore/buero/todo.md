@@ -1,6 +1,6 @@
 # Bauplattform – ToDo-Liste
 
-Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = geschätzte reine Arbeitszeit am Code (ohne Abstimmung, Testen auf dem Testserver und Wartezeit der Pipeline); 1 Tag = etwa 6 Stunden.
+Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
 
@@ -8,57 +8,57 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-1. Projektordner, Etappe 2: Umordnen per Ziehen und Ablegen in der Nachher-Ansicht, Dateinamen nach Schema (nicht nur das Kürzel), Seite für andere Benutzer freischalten. **ca. 4–6 h**
-2. Suchleiste (Inhalte + Funktionen + Menüs, kombiniert – ca. 1,5 Tage) in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 4 h**
-3. Vergleich im Bauzeitenplan, Etappe 2: Platzhalterzeile an der alten Stelle und Pfeil direkt in der Tabelle. **ca. 5 h**
-4. Alle Tabellen (baum.js), Rest: Langtext klappt beim Verlassen zu, zugeklappte Titel bleiben zu. **ca. 2–3 h**
-5. Aufmaß: Menge direkt eintragen – ohne Aufmaßzeilen entsteht eine Zeile „pauschal“, mit Aufmaßzeilen eine Ausgleichszeile (Vorschlag, wartet auf Zustimmung). **ca. 2–3 h**
-6. Aufmaßprüfung: erster Rechenweg direkt in der Hauptzeile der Position (weitere Zeilen als Zwischenzeilen), Mengen auch in „lt. Rechnung“ – Enter nach unten, Tab nach rechts – Mock liegt vor. **ca. 3–4 h**
+1. Projektordner, Etappe 2: Umordnen per Ziehen und Ablegen in der Nachher-Ansicht, Dateinamen nach Schema (nicht nur das Kürzel), Seite für andere Benutzer freischalten. **ca. 30–45 min**
+2. Suchleiste (Inhalte + Funktionen + Menüs, kombiniert – ca. 1–1,5 h) in allen Apps vereinheitlichen (ein Baustein: Lupe, Treffer, vor/zurück, Strg+F, eng = nur Lupe) – erst Mock. **ca. 20–30 min**
+3. Vergleich im Bauzeitenplan, Etappe 2: Platzhalterzeile an der alten Stelle und Pfeil direkt in der Tabelle. **ca. 30 min**
+4. Alle Tabellen (baum.js), Rest: Langtext klappt beim Verlassen zu, zugeklappte Titel bleiben zu. **ca. 15–20 min**
+5. Aufmaß: Menge direkt eintragen – ohne Aufmaßzeilen entsteht eine Zeile „pauschal“, mit Aufmaßzeilen eine Ausgleichszeile (Vorschlag, wartet auf Zustimmung). **ca. 15–20 min**
+6. Aufmaßprüfung: erster Rechenweg direkt in der Hauptzeile der Position (weitere Zeilen als Zwischenzeilen), Mengen auch in „lt. Rechnung“ – Enter nach unten, Tab nach rechts – Mock liegt vor. **ca. 20–30 min**
 7. ~~Abnahme am Handy mit Unterschrift – in der Kommunikation (＋ → Abnahme): Angaben aus dem Auftrag, Mängel mit Fotos, Erklärungen antippen, drei Unterschriften (oder „nicht anwesend“), Niederschrift + Mängelblatt + Fotos auf dem Briefbogen, Ablage „Abnahmen + Mängel“, Abnahmedatum in die AVA, Mängel als Aufgabe, Erinnerung vor Ende der Gewährleistung, Mail nur auf Knopfdruck, Nachtrag~~
-   - Abnahme, Rest: Standort beim Unterschreiben, mehrere Fotos auf einmal aus der Galerie, Abnahme auch aus dem Auftrag in der AVA starten. **ca. 3–4 h**
+   - Abnahme, Rest: Standort beim Unterschreiben, mehrere Fotos auf einmal aus der Galerie, Abnahme auch aus dem Auftrag in der AVA starten. **ca. 20–30 min**
 8. ~~PDF- und Foto-Ansicht am Handy und am PC wie der Standard-Viewer~~
-9. Neue App „Bauantrag“: aktuelle Antragsformulare je Bundesland (NRW: Anlagen zur VV BauPrüfVO von bauportal.nrw, neue Fassungen werden gemeldet), Assistent, Felder aus Projekt, Adressen, Kataster und Baukosten; am Ende ein bearbeitbares PDF, Änderungen darin fließen in die Datenbank zurück – erst Mock. **ca. 1,5–2 Wochen (je weiteres Bundesland ca. 2–3 Tage)**
-10. Honorar: Versionen je Auftrag wie in Baukosten/AVA – „Neues Angebot“ kopiert die Version, eine Version „gilt“ (beauftragt), PDF mit Versionsnamen – wartet auf: je Auftrag oder je Projekt. **ca. 3–4 h**
-11. Verträge: Architekten-/Ingenieurvertrag aus Honorar, Auftragsschreiben/Bauvertrag aus der AVA-Vergabe, auf dem Briefbogen; Ablage in einem eigenen Vertragsverzeichnis, Zugangsdaten trägt der Geschäftsführer selbst ein (nie im Browser sichtbar) – wartet auf: eigene Freigabe oder geschützter Unterordner; erst Mock. **ca. 2–3 Tage**
-12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 Tage**
-16. Stempel auf Nachfrage an den passenden Stellen anbieten (Rechnungsprüfung → Prüfstempel/„Zahlbetrag siehe Anlage“, Abnahme/Schreiben → Bürostempel) – sobald die Stempel hochgeladen sind. **ca. 3–4 h**
-14. Unterschreiben – Rest: freigegebene Unterschriften (GF i. V.), „Auf dem Handy unterschreiben“ per QR vom PC, unterschriebenes PDF direkt in Versand/Ablage der App übernehmen, Eintrag im Verlauf – wartet auf deine Entscheidung. **ca. 1 Tag**
-13. Widget „Datei ablegen“ auf der Startseite: Kopierer-Ordner immer überwachen, Scans lesen und in die Projektdokumente ablegen – wartet auf: vorschlagen oder selbst ablegen; erst Mock. **ca. 1–1,5 Tage**
+9. Neue App „Bauantrag“: aktuelle Antragsformulare je Bundesland (NRW: Anlagen zur VV BauPrüfVO von bauportal.nrw, neue Fassungen werden gemeldet), Assistent, Felder aus Projekt, Adressen, Kataster und Baukosten; am Ende ein bearbeitbares PDF, Änderungen darin fließen in die Datenbank zurück – erst Mock. **ca. 4–6 h in mehreren Runden (je weiteres Bundesland ca. 1 h); die amtlichen Formular-PDFs müsst ihr einmal hochladen – von hier aus kann ich sie nicht herunterladen**
+10. Honorar: Versionen je Auftrag wie in Baukosten/AVA – „Neues Angebot“ kopiert die Version, eine Version „gilt“ (beauftragt), PDF mit Versionsnamen – wartet auf: je Auftrag oder je Projekt. **ca. 20–30 min**
+11. Verträge: Architekten-/Ingenieurvertrag aus Honorar, Auftragsschreiben/Bauvertrag aus der AVA-Vergabe, auf dem Briefbogen; Ablage in einem eigenen Vertragsverzeichnis, Zugangsdaten trägt der Geschäftsführer selbst ein (nie im Browser sichtbar) – wartet auf: eigene Freigabe oder geschützter Unterordner; erst Mock. **ca. 2–3 h**
+12. Ansicht „Einfach“ der AVA neu denken: geführter Ablauf je LV (nächster Schritt groß, nur nötige Spalten und Knöpfe) statt nur Übersichtskarten – erst Mock; gleiche Idee für Bautagebuch (Basis/Experte). **ca. 1–1,5 h**
+16. Stempel auf Nachfrage an den passenden Stellen anbieten (Rechnungsprüfung → Prüfstempel/„Zahlbetrag siehe Anlage“, Abnahme/Schreiben → Bürostempel) – sobald die Stempel hochgeladen sind. **ca. 20–30 min**
+14. Unterschreiben – Rest: freigegebene Unterschriften (GF i. V.), „Auf dem Handy unterschreiben“ per QR vom PC, unterschriebenes PDF direkt in Versand/Ablage der App übernehmen, Eintrag im Verlauf – wartet auf deine Entscheidung. **ca. 1 h**
+13. Widget „Datei ablegen“ auf der Startseite: Kopierer-Ordner immer überwachen, Scans lesen und in die Projektdokumente ablegen – wartet auf: vorschlagen oder selbst ablegen; erst Mock. **ca. 1–1,5 h**
 
-Summe Sammlung (offen): ca. 15–19 Tage.
+Summe Sammlung (offen): ca. 12–16 h.
 
 ## Offene Fragen
 
-- Adressverzeichnis auf dem Testserver druckt nur Namen – Daten oder Fehler? **ca. 0,5 h**
-- Leistungsinformationen: Fehler am Dropdown noch nicht nachgestellt. **ca. 0,5–1 h**
-- Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld? **ca. 0,5 h**
+- Adressverzeichnis auf dem Testserver druckt nur Namen – Daten oder Fehler? **ca. 5–10 min**
+- Leistungsinformationen: Fehler am Dropdown noch nicht nachgestellt. **ca. 10 min**
+- Baukosten: Karte „Verknüpfung“ → „Bauzeitenplan“ ohne Projektfeld? **ca. 5–10 min**
 
 ## Umbau (Zielbild vom 09.11.2026)
 
 - Schritt 4 – Apps auf den Baukasten, große Dateien teilen:
-  - Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 Tage**
-  - Planungsassistent und Vorlagen-Baukasten als gemeinsamer Baustein, danach auch in der Kostenberechnung (Start-Assistent: Maßnahme/Gebäudetyp, Eckdaten, Schritt für Schritt, eigene Vorlagen) – erst Mock. **ca. 2–3 Tage**
-  - AVA: Spalten-Menü für Aufträge. **ca. 2 h**
-  - Große Dateien teilen: head.js, ava.py, head.py (Bauzeitenplan, Baukosten-Seite und PDF-Teil von baukosten.py sind geteilt). **ca. 2–3 Tage**
-- Schritt 5 – Kern aus dem Bautagebuch lösen: Ablage, Pläne, Fotos, Mail, Datensicherung, Bauleiter-Regel, Rechte. **ca. 1,5–2 Wochen**
-- Verhaltenstests je App. **ca. 1 Tag je App, ca. 1,5 Wochen gesamt**
-- Typprüfung über JSDoc. **ca. 2 Tage**
+  - Bauzeitenplan Etappe 2: alle Pläne des Projekts im Baum, Ziehen/Ablegen, Schalter „nur geöffneten Plan“, Katalog als Reiter rechts, Kennzahlen in der Leiste, Suche in die Navigation, verstecktes Menüband entfernen, genaue Texte im Rückgängig-Dock. **ca. 2–3 h**
+  - Planungsassistent und Vorlagen-Baukasten als gemeinsamer Baustein, danach auch in der Kostenberechnung (Start-Assistent: Maßnahme/Gebäudetyp, Eckdaten, Schritt für Schritt, eigene Vorlagen) – erst Mock. **ca. 2–3 h**
+  - AVA: Spalten-Menü für Aufträge. **ca. 15 min**
+  - Große Dateien teilen: head.js, ava.py, head.py (Bauzeitenplan, Baukosten-Seite und PDF-Teil von baukosten.py sind geteilt). **ca. 2–3 h**
+- Schritt 5 – Kern aus dem Bautagebuch lösen: Ablage, Pläne, Fotos, Mail, Datensicherung, Bauleiter-Regel, Rechte. **ca. 1 Tag in mehreren Runden**
+- Verhaltenstests je App. **ca. 1 h je App, ca. 1 Tag gesamt**
+- Typprüfung über JSDoc. **ca. 2 h**
 
 ## Später
 
-- Webplattform für Externe (Portal): Firmen, Fachplaner, Bauherr über das Internet – eigener Portal-Container, Einladung, Zwei-Faktor, Rechte je Projekt und Rolle, Protokoll. Nach Schritt 5. **ca. 3–4 Wochen**
-- Projektplattform und Dokumentenmanagement: Ordner nach Vorlage, Versionen/Indizes, Freigabe-Läufe, Volltextsuche, Planlauf, Protokolle mit Fristen, Objektspeicher (MinIO). **ca. 4–6 Wochen**
-- Leistungsphase 0: Raumprogramm/Flächen (DIN 18205) als Grundlage für die Kostenschätzung. **ca. 1 Woche**
-- Honorar, Etappe 2: Rechnungen (Abschlag nach erbrachtem Anteil, Schlussrechnung) mit Rechnungsnummer und Zahlungseingang, Angebote in Varianten, weitere Objektarten (Innenräume, Freianlagen), Freischaltung für einzelne Benutzer. **ca. 1 Woche**
-- Bauantrag digital einreichen (Bauportal.NRW bzw. Portal des Bundeslands) – nach der App „Bauantrag“. **ca. 1–2 Wochen**
-- Honorar: Ansicht für Geschäftsführer (alles mit Beträgen) und Mitarbeiter (nur eigene Projekte, Stunden verbraucht/verfügbar, ohne Euro) – nur in Honorar, erst Mock. **ca. 1 Tag**
-- Textprüfung. **ca. 2 Tage**
-- Einrichtungsassistent. **ca. 3 Tage**
-- Handy-App. **ca. 2–3 Wochen**
-- Mail und Kalender. **ca. 2 Wochen**
-- Redundanz (Ausfallsicherheit). **ca. 1 Woche**
-- Büros bis 100 Personen (Last, Rechte, Mandanten). **ca. 1–2 Wochen**
-- Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 3–6 Monate**
+- Webplattform für Externe (Portal): Firmen, Fachplaner, Bauherr über das Internet – eigener Portal-Container, Einladung, Zwei-Faktor, Rechte je Projekt und Rolle, Protokoll. Nach Schritt 5. **ca. 2–3 Tage**
+- Projektplattform und Dokumentenmanagement: Ordner nach Vorlage, Versionen/Indizes, Freigabe-Läufe, Volltextsuche, Planlauf, Protokolle mit Fristen, Objektspeicher (MinIO). **ca. 3–5 Tage**
+- Leistungsphase 0: Raumprogramm/Flächen (DIN 18205) als Grundlage für die Kostenschätzung. **ca. 4–6 h**
+- Honorar, Etappe 2: Rechnungen (Abschlag nach erbrachtem Anteil, Schlussrechnung) mit Rechnungsnummer und Zahlungseingang, Angebote in Varianten, weitere Objektarten (Innenräume, Freianlagen), Freischaltung für einzelne Benutzer. **ca. 4–6 h**
+- Bauantrag digital einreichen (Bauportal.NRW bzw. Portal des Bundeslands) – nach der App „Bauantrag“. **ca. 1 Tag**
+- Honorar: Ansicht für Geschäftsführer (alles mit Beträgen) und Mitarbeiter (nur eigene Projekte, Stunden verbraucht/verfügbar, ohne Euro) – nur in Honorar, erst Mock. **ca. 1 h**
+- Textprüfung. **ca. 2 h**
+- Einrichtungsassistent. **ca. 3 h**
+- Handy-App. **ca. 2 Tage**
+- Mail und Kalender. **ca. 1,5 Tage**
+- Redundanz (Ausfallsicherheit). **ca. 4–6 h**
+- Büros bis 100 Personen (Last, Rechte, Mandanten). **ca. 1 Tag**
+- Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
 - ~~Stempel werden beim Hochladen gerade ausgerichtet (Schräglage gemessen), schräg erst beim Einsetzen~~

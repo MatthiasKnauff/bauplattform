@@ -1,5 +1,12 @@
 [
  {
+  "id": "2026-11-11-abnahme-personen",
+  "datum": "2026-11-11",
+  "app": "kommunikation",
+  "titel": "Abnahme: Beteiligte vorgeschlagen",
+  "text": "Bei den Teilnehmern und beim Unterschreiben schlägt die Abnahme Namen vor – Ansprechpartner oder Vertreter des Bauherrn, dich und die Bauleitung, den Ansprechpartner der Firma. Im PDF steht der Name jetzt klein unter jeder Unterschrift."
+ },
+ {
   "id": "2026-11-11-ava-sperre",
   "datum": "2026-11-11",
   "app": "ava",

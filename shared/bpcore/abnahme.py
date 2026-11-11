@@ -198,7 +198,46 @@ def vorlage(c, pid, user_name, buero_kurz):
                                      LEFT JOIN contacts ct ON ct.id=i.contact_id WHERE r.project_id=? AND i.kind='maengel' AND i.done=0 ORDER BY i.id""", (pid,)).fetchall()]
     ag = P.get("bh_ansprech") or P.get("bh_vertreter") or ""
     return {"auftraege": auftraege, "maengel": maengel, "auftraggeber": P.get("bauherr") or "", "ag_person": ag,
-            "architekt": f"{user_name} ({buero_kurz})" if buero_kurz else user_name}
+            "architekt": f"{user_name} ({buero_kurz})" if buero_kurz else user_name, "personen": personen(c, pid, user_name, P)}
+
+
+def personen(c, pid, user_name="", P=None):
+    """Vorschläge für Teilnehmer und Unterschriften je Rolle: [{name, sub}] – Bauherr: Ansprechpartner, Vertreter (und deren Ansprechpartner
+    aus den Adressen); Architekt: ich und die Bauleitung des Projekts; Auftragnehmer: Ansprechpartner der beauftragten Firmen."""
+    from . import stammdaten
+    P = P if P is not None else (stammdaten.projekt_lesen(c, pid) if pid else {})
+    out = {"ag": [], "arch": [], "an": []}
+
+    def dazu(r, name, sub=""):
+        name = (name or "").strip()
+        if name and not any(x["name"].lower() == name.lower() for x in out[r]):
+            out[r].append({"name": name[:120], "sub": (sub or "")[:80]})
+
+    def kontakt(kid):
+        return c.execute("SELECT name, contact_person FROM contacts WHERE id=?", (kid,)).fetchone() if isinstance(kid, int) else None
+    for key, sub in (("bh_ansprech", "Ansprechpartner Bauherr"), ("bh_vertreter", "Bauherrenvertreter"), ("bauherr", "Bauherr")):
+        k = kontakt(P.get(key + "_kid"))
+        if k is not None and (k["contact_person"] or "").strip():
+            dazu("ag", k["contact_person"], f"{sub} · {k['name']}")
+        if key != "bauherr":
+            dazu("ag", P.get(key), sub)
+    dazu("arch", user_name, "ich")
+    try:
+        r = c.execute("SELECT leaders FROM projects WHERE id=?", (pid,)).fetchone()
+        ids = [i for i in json.loads((r["leaders"] if r else "") or "[]") if isinstance(i, int)]
+        for u in c.execute("SELECT name, vorname, nachname FROM users WHERE id IN (" + ",".join("?" * len(ids)) + ")", ids).fetchall() if ids else []:
+            dazu("arch", " ".join(x for x in ((u["vorname"] if "vorname" in u.keys() else ""), (u["nachname"] if "nachname" in u.keys() else "")) if x) or u["name"], "Bauleitung")
+    except Exception:   # Bauleitung ist nur ein Vorschlag
+        pass
+    for r in c.execute("SELECT vergabe FROM ava_lv WHERE project_id=? AND archived=0", (pid,)).fetchall():
+        try:
+            v = json.loads(r["vergabe"] or "{}")
+        except ValueError:
+            continue
+        k = kontakt(v.get("contact_id")) if isinstance(v, dict) else None
+        if k is not None:
+            dazu("an", k["contact_person"], k["name"])
+    return out
 
 
 def _bild(png_url):
@@ -302,8 +341,14 @@ def pdf(c, v, d, projekt, fotos, entwurf=False):
                 cv.setFont("Helvetica-Oblique", 9); cv.setFillColorRGB(0.4, 0.4, 0.4); cv.drawString(x + 2, base + 5, "nicht anwesend")
             cv.setStrokeColorRGB(0.3, 0.3, 0.3); cv.setDash(1, 2); cv.line(x, base, x + bw, base); cv.setDash()
             cv.setFont("Helvetica", 8.5); cv.setFillColorRGB(*ink)
-            cv.drawString(x, base - 10, name + (f" ({u['name']})" if u.get("name") else ""))
-        y[0] -= 18 * mm + 26
+            cv.drawString(x, base - 10, name)
+            wer = (u.get("name") or (d.get("teilnehmer") or {}).get(r) or "").strip()   # Name klein darunter
+            if wer:
+                cv.setFont("Helvetica", 7.5); cv.setFillColorRGB(0.4, 0.4, 0.4)
+                while wer and cv.stringWidth(wer, "Helvetica", 7.5) > bw:
+                    wer = wer[:-2] + "…" if len(wer) > 2 else ""
+                cv.drawString(x, base - 20, wer); cv.setFillColorRGB(*ink)
+        y[0] -= 18 * mm + 34
         if fuss_text and v.get("unterschrieben"):
             zeiten = sorted(u.get("zeit") or "" for u in U.values() if u.get("zeit"))
             t = f"Elektronisch unterschrieben am {datum_de(zeiten[0][:10]) if zeiten else ''}"

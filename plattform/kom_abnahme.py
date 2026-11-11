@@ -38,7 +38,8 @@ def _antwort(c, x, d):
             "bezug_datum": (json.loads(b["daten"] or "{}").get("abnahme_am") if b else ""),
             "fotos": [{"id": f["id"], "name": f["name"], "mime": f["mime"]} for f in F if f["mime"].startswith("image/")],
             "pdf": next((f["id"] for f in F if f["mime"] == "application/pdf"), None),
-            "erkl": [{"key": k, "text": t} for k, t in AB.ERKL], "frist_satz": AB.FRIST_SATZ}
+            "erkl": [{"key": k, "text": t} for k, t in AB.ERKL], "frist_satz": AB.FRIST_SATZ,
+            "personen": AB.personen(c, x["project_id"], C.full_name(g.user)) if x["status"] != "unterschrieben" else {}}
 
 
 @app.get("/api/abnahme/vorlage")

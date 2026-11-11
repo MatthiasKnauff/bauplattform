@@ -76,7 +76,7 @@ async function abnahmeOeffnen(id, A0, V0) {
       <div class="ab-2">${feld('Arbeiten', inp('arbeiten', d.arbeiten, 'placeholder="z. B. Tischlerarbeiten"'))}${feld('Auftrag vom', inp('auftrag_vom', d.auftrag_vom, 'type="date"'))}</div>
       <div class="ab-2">${feld('Abnahme am', inp('abnahme_am', d.abnahme_am, 'type="date"'))}${feld('Ort (optional)', inp('ort', d.ort, 'placeholder="z. B. Baustelle, 1. OG"'))}</div>
       <div class="ab-h">Teilnehmer</div>
-      ${Object.entries({ ag: 'für den Auftraggeber', arch: 'für den Architekten', an: 'für den Auftragnehmer' }).map(([r, t]) => feld(t, `<input data-t="${r}" value="${esc((d.teilnehmer || {})[r] || '')}" autocomplete="off">`)).join('')}`;
+      ${Object.entries({ ag: 'für den Auftraggeber', arch: 'für den Architekten', an: 'für den Auftragnehmer' }).map(([r, t]) => feld(t, `<input data-t="${r}" value="${esc((d.teilnehmer || {})[r] || '')}" autocomplete="off">${persChips(r, (d.teilnehmer || {})[r], 'pers')}`)).join('')}`;
   }
 
   function maengel() {
@@ -122,11 +122,21 @@ async function abnahmeOeffnen(id, A0, V0) {
       <button type="button" class="btn" data-m="nachtrag" title="Was nach dem Unterschreiben dazukommt – mit eigenem Mängelblatt und eigenen Unterschriften">＋ Nachtrag</button></div></div>`;
   }
 
+  /* Vorschläge für Teilnehmer und Unterschriften (Server: Ansprechpartner/Vertreter des Bauherrn, ich und die Bauleitung, Ansprechpartner der Firmen) */
+  function persListe(r) {
+    const L = ((S.A.personen || {})[r] || []).slice(), f = (S.d.firma || '').toLowerCase();
+    return r === 'an' ? L.sort((a, b) => ((b.sub || '').toLowerCase() === f) - ((a.sub || '').toLowerCase() === f)) : L;
+  }
+  function persChips(r, akt, m) {
+    const L = persListe(r).filter((p) => p.name !== (akt || '').trim()).slice(0, 4);
+    return L.length ? `<span class="ab-chips">${L.map((p) => `<button type="button" class="chip" data-m="${m}" data-r="${r}" data-n="${esc(p.name)}" title="${esc(p.sub || '')}">${esc(p.name)}${p.sub ? ` <small class="mute">${esc(p.sub.split(' · ')[0])}</small>` : ''}</button>`).join('')}</span>` : '';
+  }
+
   /* ---------- Unterschrift: Vollbild mit Zeichenfläche ---------- */
   function signieren(r) {
     const T = S.d.teilnehmer || {}, u = (S.d.unterschriften || {})[r] || {};
     const el = document.createElement('div'); el.className = 'ab-sig';
-    el.innerHTML = `<div class="ab-sk"><b>Unterschrift – ${ROLLE[r]}</b><input value="${esc(u.name || T[r] || '')}" placeholder="Name" aria-label="Name"></div>
+    el.innerHTML = `<div class="ab-sk"><b>Unterschrift – ${ROLLE[r]}</b><input value="${esc(u.name || T[r] || (persListe(r)[0] || {}).name || '')}" placeholder="Name" aria-label="Name">${persChips(r, '', 'sigpers')}</div>
       <div class="ab-pad"><canvas></canvas><span class="ab-linie"></span></div>
       <div class="ab-sb"><button type="button" class="btn" data-s="x">Abbrechen</button><button type="button" class="btn" data-s="neu">Neu</button><button type="button" class="btn" data-s="fehlt">nicht anwesend</button><button type="button" class="btn pri" data-s="ok">Übernehmen</button></div>`;
     document.body.appendChild(el);
@@ -134,6 +144,7 @@ async function abnahmeOeffnen(id, A0, V0) {
     const zu = () => { F.weg(); frei(); el.remove(); };
     const png = () => F.png(600);
     el.addEventListener('click', (e) => {
+      const pc = e.target.closest('[data-m="sigpers"]'); if (pc) { el.querySelector('.ab-sk input').value = pc.dataset.n; return; }   // Vorschlag als Name
       const b = e.target.closest('[data-s]'); if (!b) return;
       const name = el.querySelector('input').value.trim(), zeit = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 19);
       if (b.dataset.s === 'x') return zu();
@@ -176,6 +187,7 @@ async function abnahmeOeffnen(id, A0, V0) {
       d.erkl = e; await speichern(); zeichne(); return; }
     if (m === 'frist') { d.frist = abnPlus(d.abnahme_am, +b.dataset.t); await speichern(); zeichne(); return; }
     if (m === 'gw') { d.gw_jahre = +b.dataset.j; await speichern(); zeichne(); return; }
+    if (m === 'pers') { d.teilnehmer = { ...(d.teilnehmer || {}), [b.dataset.r]: b.dataset.n }; await speichern(); zeichne(); return; }
     if (m === 'sig') { await speichern(); signieren(b.dataset.r); return; }
     if (m === 'vor') { await speichern(); BPHead.ansehen([{ url: `api/vorgang/${id}.pdf?t=${Date.now()}`, typ: 'pdf', name: S.A.bezug ? 'Nachtrag zur Abnahme' : 'Abnahme' }]); return; }
     if (m === 'weg') { if (!(await bpFrage('Diesen Entwurf löschen?', { ok: 'Löschen', gefahr: true }))) return;

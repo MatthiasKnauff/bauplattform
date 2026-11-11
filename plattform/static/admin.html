@@ -106,17 +106,27 @@ html.embed .wrap{padding:.6rem .2rem 2rem;max-width:none}
 #main.breit{max-width:1700px}
 html.embed body{background:transparent}
 .ap-r{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:center;padding:.4rem .2rem;border-bottom:1px solid var(--line);font-size:.86rem}.ap-r span{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.ap-r small{color:var(--mute)}
+.ord-l{display:flex;gap:.5rem;align-items:center;font-weight:600}.ord-l select{min-width:18rem;font-weight:400}
+.ord-ps{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:.2rem .8rem;max-height:14rem;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem}
+.ord-p,.ord-s{display:flex;gap:.45rem;align-items:flex-start;font-size:.88rem;padding:.12rem 0;cursor:pointer}.ord-p input,.ord-s input{margin-top:.2rem;accent-color:var(--y)}
+.ord-k{max-width:1100px;margin-top:1rem}.ord-k h4{margin:.8rem 0 .2rem;font-size:.9rem}
+.ord-vn{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.9rem;border-top:1px solid var(--line);padding-top:.6rem}.ord-vn h4{margin:0 0 .3rem}
+.ord-z{font-size:.84rem;padding:.08rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ord-z.neu{color:var(--ok,#1e8a4c);font-weight:600}.ord-z.umb{color:var(--y);font-weight:600}.ord-z.hoch{font-style:italic}
+.ord-test{border:1px solid var(--y);border-radius:calc(8px*var(--rk,1));padding:.5rem .8rem}
+.ord-fuss{position:sticky;bottom:0;background:var(--bg);padding:.7rem 0;max-width:1100px;margin-top:1rem;border-top:1px solid var(--line)}
+@media (max-width:760px){.ord-vn{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <nav class="tabs" id="tabs"></nav>
 <main class="wrap" id="main"></main>
 <script src="bp/baukasten.js"></script>
+<script src="static/admin-ordner.js"></script>
 <script>
 // Büro-Einstellungen: jetzt unter ⚙ → Büro in jeder App (hier eingebettet über ?einbetten=1); die Adressen #einstellungen… gelten weiter
 const EMBED = new URLSearchParams(location.search).has('einbetten');
 if (EMBED) document.documentElement.classList.add('embed');
-const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer & Rechte'], ['sessions', 'Angemeldet'], ['system', 'System']];
+const TABS = [['projekte', 'Projekte'], ['users', 'Benutzer & Rechte'], ['sessions', 'Angemeldet'], ['ordner', 'Projektordner'], ['system', 'System']];
 let tab = (location.hash || (EMBED ? '#einstellungen' : '#projekte')).slice(1), me = null, data = {};
 if (tab.startsWith('einstellungen-')) { data.stab = tab.slice(14); tab = 'einstellungen'; }
 if (tab === 'status' || tab === 'audit') { data.sys = tab === 'audit' ? 'protokoll' : 'health'; tab = 'system'; }   // alte Lesezeichen
@@ -142,6 +152,7 @@ async function load() {
     else if (tab === 'users') { data.u = await api('api/users'); renderUsers(); }
     else if (tab === 'sessions') { data.s = await api('api/sessions'); renderSessions(); }
     else if (tab === 'einstellungen') { await loadSettings(); }
+    else if (tab === 'ordner') { await renderOrdner(); }
     else if ((data.sys || 'health') === 'health') { m.innerHTML = sysNav() + '<p class="mute">Prüfe die Dienste …</p>'; data.st = await api('api/status'); renderStatus(); }
     else if (data.sys === 'altpdf') { renderAltPdf(); }
     else if (data.sys === 'fehler') { data.f = await api('api/bp/fehler'); renderFehler(); }

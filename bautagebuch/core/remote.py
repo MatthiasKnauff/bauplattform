@@ -62,6 +62,10 @@ class Folder:
         os.rename(self._p(rel), self._p(new_rel))
 
     @_schreibschutz
+    def mkdir(self, rel):
+        os.makedirs(self._p(rel), exist_ok=True)
+
+    @_schreibschutz
     def rmdir_if_empty(self, rel):
         try: os.rmdir(self._p(rel))
         except OSError: pass
@@ -165,6 +169,10 @@ class Smb:
     def rename(self, rel, new_rel):
         self.sc.makedirs(self._unc(clean_path(new_rel)[:-1]), exist_ok=True)
         self.sc.rename(self._unc(clean_path(rel)), self._unc(clean_path(new_rel)))
+
+    @_schreibschutz
+    def mkdir(self, rel):
+        self.sc.makedirs(self._unc(clean_path(rel)), exist_ok=True)
 
     @_schreibschutz
     def rmdir_if_empty(self, rel):

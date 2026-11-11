@@ -16,7 +16,7 @@ MUST_CHANGE_OK = ("/api/me", "/api/logout", "/api/password")
 
 def admin_only(path, method):
     """Bereiche, die nur der Administrator sehen/ändern darf."""
-    return (path.startswith(("/api/users", "/api/mail", "/api/export", "/api/audit", "/api/backups"))
+    return (path.startswith(("/api/users", "/api/mail", "/api/export", "/api/audit", "/api/backups", "/api/ordner"))
             or (path.startswith("/api/store/") and path not in ("/api/store/folders", "/api/store/names", "/api/store/rename-check", "/api/store/rename-apply"))
             or (path == "/api/settings" and method != "GET")
             or (path == "/api/logo" and method != "GET"))

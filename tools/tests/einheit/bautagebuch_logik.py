@@ -186,3 +186,36 @@ def test_aufraeumen_nachts_behalten():
     c = aufraeumen.nachts_conf({"store_keep_old_pdf": "", "store_auto_keep": "5"})
     gleich((c["store_keep_old_pdf"], c["store_keep_old_photos"]), ("5", "5"), "eigene Zahl für die Nacht")
     pruefe(aufraeumen.an({}) and not aufraeumen.an({"store_auto_cleanup": "0"}), "an/aus")
+
+
+# ------------------------------------------------------------------------------------------------ Projektordner angleichen
+def test_ordnerschema_vergleich():
+    """Projektordner gegen die Vorlage: Kürzel/Schreibweise umbenennen, fehlende anlegen, Vorlagedateien kopieren (nicht vorgewählt),
+    frei benannte Gewerke-Ordner nur mit Kürzel, Ordner an falscher Stelle verschieben, Fotos-Tagesordner bleiben frei, Reihenfolge."""
+    from core import ordnerschema as o
+    D = lambda **k: {"dir": True, "kinder": k}   # noqa: E731
+    F = {"dir": False, "kinder": {}, "quelle": ["x"]}
+    muster = {"A000 2. Ausschreibung": D(**{"A000 Angebote": D(), "Thumbs.db": F}),
+              "A000 4. Durchführung": D(**{"A000 Rechnungsprüfung": D(**{"A000 Gewerk 1": D(), "A000 Gewerk 2": D()})}),
+              "A000 6. interne Orga": D(**{"A000 Adressdatei.xlsx": F}),
+              "A000 8. Fotos + Bautagebuch": D(**{"A000 Fotos": D()})}
+    ist = {"A483 2 Ausschreibung": D(**{"A000 Angebote": D(), "alt": D(a=F)}),
+           "A483 Rechnungspruefung": D(**{"Maler": D()}),
+           "A483 4. Durchführung": D(),
+           "A483 8. Fotos + Bautagebuch": D(**{"A483 Fotos": D(**{"2026-10-01 Rohbau": D()})})}
+    gleich(o.muster_kuerzel(muster), "A000", "Kürzel der Vorlage")
+    S = {(s["art"], "/".join(s["pfad"])): s for s in o.vergleichen(muster, ist, "A483")}
+    gleich(S[("umbenennen", "A483 2 Ausschreibung")]["neu"], "A483 2. Ausschreibung", "Nummer und Schreibweise")
+    gleich(S[("umbenennen", "A483 2 Ausschreibung/A000 Angebote")]["neu"], "A483 Angebote", "Kürzel der Vorlage ersetzt")
+    pruefe(("aufloesen", "A483 2 Ausschreibung/alt") in S and not S[("aufloesen", "A483 2 Ausschreibung/alt")]["vor"], "zusätzlicher Unterordner: auflösen, nicht vorgewählt")
+    gleich(S[("verschieben", "A483 Rechnungspruefung")]["ziel"], ["A483 4. Durchführung", "A483 Rechnungsprüfung"], "an die Stelle des Musters")
+    pruefe(("anlegen", "A483 4. Durchführung/A483 Rechnungsprüfung") in S, "fehlender Ordner wird angelegt")
+    pruefe(not any("Gewerk" in k[1] for k in S), "Platzhalter „Gewerk 1“ wird nicht angelegt")
+    pruefe(not S[("kopieren", "A483 6. interne Orga/A483 Adressdatei.xlsx")]["vor"], "Vorlagedatei kopieren: nicht vorgewählt")
+    pruefe(not any("Rohbau" in k[1] or "Thumbs" in k[1] for k in S), "Fotos-Tagesordner und Thumbs.db bleiben unberührt")
+    R = [s["art"] for s in o.reihenfolge(list(S.values()))]
+    gleich(R, sorted(R, key=["umbenennen", "aufloesen", "verschieben", "anlegen", "kopieren"].index), "Reihenfolge der Schritte")
+    gleich(o.umgerechnet(["A483 2 Ausschreibung", "alt"], {("A483 2 Ausschreibung",): "A483 2. Ausschreibung"}), ["A483 2. Ausschreibung", "alt"], "Pfad nach Umbenennen")
+    gleich(o.frei("LV.pdf", {"LV.pdf", "LV (2).pdf"}), "LV (3).pdf", "freier Name")
+    gleich(o.vergleichen(muster, {"A483 2. Ausschreibung": D(**{"A483 Angebote": D()}), "A483 4. Durchführung": D(**{"A483 Rechnungsprüfung": D(**{"A483 Maler": D()})}),
+                                  "A483 6. interne Orga": D(**{"A483 Adressdatei.xlsx": F}), "A483 8. Fotos + Bautagebuch": D(**{"A483 Fotos": D()})}, "A483"), [], "passt: nichts zu tun")

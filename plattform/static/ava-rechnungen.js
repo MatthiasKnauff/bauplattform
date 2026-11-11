@@ -81,6 +81,13 @@ async function siSave(el) {
   if (!k) b[f] = f === 'gw_jahre' ? pf(v) : v; else b[k] = { [f]: /betrag|pct/.test(f) ? pf(v) : v };
   try { await call('api/lv/' + L.id, 'PUT', { vergabe: { sicherheit: b } }); } catch (e) { toast(e.message, true); }
 }
+/* Abnahme in der Schlussrechnung: zeigen und eintragen (Feld der Sicherheiten – Beginn der Verjährung, Fälligkeit der Schlusszahlung) */
+const ABN_TIP = 'Ohne Abnahme ist die Schlusszahlung nicht fällig (§ 641 BGB, § 16 Abs. 3 VOB/B) und die Verjährungsfrist für Mängelansprüche beginnt nicht.';
+function abnahmeZeile() {
+  const ab = (L.calc.sicherheit || {}).abnahme || '';
+  return `<div class="re-abn${ab ? '' : ' offen'}"><label title="${esc(ABN_TIP)}">Abnahme erfolgt am<input type="date" data-si=".abnahme" value="${esc(ab)}"></label>
+    <span class="hint">${ab ? `Abnahme am ${de(ab)} – gilt auch für die Sicherheiten und die Verjährung.` : '⚠ Abnahme noch nicht eingetragen. ' + esc(ABN_TIP)}</span></div>`;
+}
 function vRechnungen() {
   if (aufgehoben()) { const h = vRechnungen0(); return aufhBanner() + `<div class="deakt" aria-disabled="true">${h}</div>`; }
   return vRechnungen0();
@@ -107,6 +114,7 @@ function vRechnungen0() {
         ${art === 'sicherheit' ? `<label>freizugebender Betrag netto<input data-re="betrag" data-id="${r.id}" value="${nf(r.data.betrag || 0, 2)}" inputmode="decimal"${dis}></label><label>Grund<select data-re="grund" data-id="${r.id}"${dis}>${[['austausch', 'Austausch gegen Bürgschaft'], ['frist', 'Ablauf der Verjährungsfrist'], ['teil', 'Teilfreigabe']].map(([k, l]) => `<option value="${k}"${(r.data.grund || 'frist') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`
           : `<label title="gefordert ${c.einzeln ? 'netto' : 'kumuliert, netto'}">gefordert<input data-re="gefordert" data-id="${r.id}" value="${r.gefordert ? nf(r.gefordert, 2) : ''}" inputmode="decimal"${dis}></label>
         ${istOA(L.id) ? '' : `<label title="Sicherheitseinbehalt in Prozent">Einb. %<input data-re="einbehalt" data-id="${r.id}" value="${nf(c.einbehalt_pct, 2)}" inputmode="decimal"${dis}></label>`}`}</div>
+      ${art === 'schluss' ? abnahmeZeile() : ''}
       ${art !== 'sicherheit' && c.abzug && !istOA(L.id) ? (() => { const A0 = abzAuftrag(), abw = Object.fromEntries(ABZ.map(([k]) => [k, c.abzug[k] !== A0[k]]));
         return `<div class="hint abz-z">Abziehen:${abzChips(c.abzug, 'data-reabz', g, abw)}${!g && Object.values(abw).some(Boolean) ? `<button type="button" class="ib" data-reabz0="${r.id}" title="Wie im Auftrag eingestellt">↺ wie Auftrag</button>` : ''}</div>`; })().replace(/data-reabz="/g, `data-reid2="${r.id}" data-reabz="`) : ''}
       ${art !== 'regie' && art !== 'sicherheit' && !istOA(L.id) ? `<div class="re-art"><span class="hint">Prüfen</span><span class="seg" role="radiogroup" aria-label="Wie wird geprüft?"><button type="button" class="${c.frei ? '' : 'on'}" data-refrei="0" data-id="${r.id}"${dis} title="Aufmaß × Auftrags-EP, kumuliert">nach Aufmaß</button><button type="button" class="${c.frei ? 'on' : ''}" data-refrei="1" data-id="${r.id}"${dis} title="Für Handwerker ohne Aufmaß: geprüften Betrag oder Positionen von Hand eintragen – zählt einzeln (nicht kumuliert)">ohne Aufmaß (Betrag / Positionen)</button></span></div>` : ''}${belege}`;
@@ -404,6 +412,7 @@ function reDialog(art = 'abschlag', vorgabe = null) {
       <label>Rechnungsnr.</label><input id="reNr">
       <label>Rechnungsdatum</label><input type="date" id="reD">
       <label>Eingang</label><input type="date" id="reE" value="${new Date().toISOString().slice(0, 10)}">
+      ${art === 'schluss' ? `<label title="${esc(ABN_TIP)}">Abnahme erfolgt am</label><input type="date" id="reAb" value="${esc((L.calc.sicherheit || {}).abnahme || '')}">` : ''}
       ${art === 'sicherheit' ? `<label>Freigegeben wird</label><select id="reWas" disabled title="ergibt sich aus dem Stand der Sicherheit: solange etwas einbehalten ist, wird der Einbehalt freigegeben"><option value="einbehalt"${offen > 0.5 ? ' selected' : ''}>Sicherheitseinbehalt – noch einbehalten ${eur(offen)}</option><option value="frei"${offen > 0.5 ? '' : ' selected'}>freier Betrag</option></select>
       <label>Freigabe netto</label><input id="reB" value="${nf(vorgabe && vorgabe.betrag != null ? Math.min(offen, vorgabe.betrag) : offen, 2)}" inputmode="decimal">
       <label>Grund</label><select id="reGr"><option value="austausch"${vorgabe && vorgabe.grund === 'austausch' ? ' selected' : ''}>Austausch gegen Bürgschaft (§ 17 Abs. 3 VOB/B)</option><option value="frist"${!vorgabe || vorgabe.grund !== 'austausch' ? ' selected' : ''}>Ablauf der Verjährungsfrist für Mängelansprüche</option><option value="teil">Teilfreigabe (z. B. nach Teilabnahme)</option></select>` : `<label>gefordert netto</label><input id="reG" placeholder="${art === 'regie' ? 'Betrag laut Rechnung' : 'kumulierter Betrag laut Rechnung'}" inputmode="decimal">`}</div>
@@ -411,6 +420,11 @@ function reDialog(art = 'abschlag', vorgabe = null) {
     <div class="acts"><button class="btn" data-m="x">Abbrechen</button><button class="btn pri" data-m="ok">Anlegen</button></div>`, async (m, bg, close, btn) => {
     if (m === 'x') { close(); return; }
     if (m !== 'ok') return;
+    if (art === 'schluss') {   // Abnahme abfragen: Datum eintragen oder bewusst ohne Abnahme anlegen
+      const ab = $('#reAb').value, alt = (L.calc.sicherheit || {}).abnahme || '';
+      if (!ab && !(await bpFrage('Ist die Abnahme erfolgt?\n' + ABN_TIP, { ok: 'Noch nicht – trotzdem anlegen', abbrechen: 'Datum eintragen' }))) { $('#reAb').focus(); return; }
+      if (ab && ab !== alt) { try { await call('api/lv/' + L.id, 'PUT', { vergabe: { sicherheit: { abnahme: ab } } }); } catch (e) { toast(e.message, true); return; } }
+    }
     if (art === 'sicherheit' && !(pf($('#reB').value) > 0)) { toast($('#reWas').value === 'einbehalt' ? 'Es ist nichts einbehalten – „freier Betrag“ wählen und den Betrag eintragen.' : 'Bitte den Betrag eintragen.', true); return; }
     btn.disabled = true;
     try {

@@ -119,16 +119,33 @@ def _fehlt(e):
     return "OBJECT_NAME_NOT_FOUND" in t or "OBJECT_PATH_NOT_FOUND" in t or "NOT_A_DIRECTORY" in t
 
 
+_SMB_STAND = None   # (Server, Benutzer, Kennwort) der zuletzt angemeldeten Sitzung
+
+
+class _Angemeldet:
+    """smbclient mit Anmeldedaten bei jedem Aufruf (scandir, stat, open_file …)."""
+    def __init__(self, mod, kw):
+        self._m, self._kw = mod, kw
+
+    def __getattr__(self, name):
+        f = getattr(self._m, name)
+        return (lambda *a, **k: f(*a, **{**self._kw, **k})) if callable(f) else f
+
+
 class Smb:
     """Windows-Server über SMB (Port 445), mit Benutzername/Kennwort."""
     def __init__(self, server, share, base, user, password, domain=""):
         import smbclient  # erst hier, damit die App auch ohne das Paket startet
-        self.sc = smbclient
-        getattr(smbclient, "reset_connection_cache", lambda: None)()  # geänderte Zugangsdaten sicher übernehmen
+        global _SMB_STAND
         self.server, self.share = server.strip().strip("\\/"), share.strip().strip("\\/")
         self.base = clean_path(base)
-        self.sc.register_session(self.server, username=(f"{domain}\\{user}" if domain else user),
-                                 password=password, connection_timeout=10)
+        kw = {"username": (f"{domain}\\{user}" if domain else user), "password": password, "connection_timeout": 10}
+        stand = (self.server, kw["username"], password)
+        if _SMB_STAND is not None and _SMB_STAND != stand:   # nur bei geänderten Zugangsdaten neu verbinden – der Zwischenspeicher gilt für alle
+            getattr(smbclient, "reset_connection_cache", lambda: None)()   # gleichzeitigen Anfragen, ein Zurücksetzen bei jedem Aufruf riss deren Verbindung ab
+        _SMB_STAND = stand
+        smbclient.register_session(self.server, **kw)
+        self.sc = _Angemeldet(smbclient, kw)   # jeder Aufruf bringt die Anmeldung mit – geht eine Sitzung verloren, meldet er sich selbst neu an
 
     def _unc(self, rel_parts):
         return "\\\\" + self.server + "\\" + "\\".join([self.share, *self.base, *rel_parts])

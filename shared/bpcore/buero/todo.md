@@ -72,6 +72,7 @@ Summe Sammlung (offen): ca. 15–19 Tage.
 - ~~To-dos: ↗ auch bei eigenen To-dos~~
 - ~~To-dos: in „Aufgaben & Mängel“ selbst kein ↗ mehr bei To-dos ohne Verknüpfung (Klick auf den Titel bearbeitet)~~
 - ~~Startseite: Widget „Erinnerungen & Fristen“ (Arten wählbar, mehrfach), ＋-Menü erklärt jeden Eintrag („· zweites Projekt“), Häkchen 🖥 PC / 📱 Handy beim Anordnen, ✕ am Handy nur fürs Handy~~
+- ~~Ablage/Projektordner: SMB-Anmeldung reißt nicht mehr ab, wenn zwei Anfragen gleichzeitig den Dateiserver öffnen („No username or password was specified“)~~
 - ~~Übersicht/Widgets: je Block wählbar, wie viele Einträge er zeigt (5 · 10 · 20 · alle), gemerkt~~
 - ~~Stempel: Felder unter Büro-Einstellungen → Firma & Logo (Bürostempel, Prüfstempel, „Zahlbetrag siehe Anlage“), Einsetzen in der PDF-Vorschau leicht schräg~~
 - ~~AVA Neues LV → Kopie eines LV: erst Projekt, dann LV wählen (zwei Auswahlknöpfe mit Suche)~~

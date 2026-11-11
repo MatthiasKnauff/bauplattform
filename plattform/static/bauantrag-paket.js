@@ -149,3 +149,71 @@ async function platzieren(x) {
   });
   const los = () => { zieh = null; }; lay.addEventListener('pointerup', los); lay.addEventListener('pointercancel', los);
 }
+
+/* ---------- Im PDF ausfüllen: die Seiten des Vordrucks mit Eingabefeldern darüber. Was zu einem Antragsfeld gehört (blau, ⇄), wird
+   dort gespeichert (und in dessen Quelle: Projektdaten, Adressen …) – steht damit sofort in der Maske und in allen Vordrucken;
+   Felder ohne Gegenstück (grau) bleiben bei diesem Vordruck. Andere sehen es live (BPHead.live in bauantrag.js). ---------- */
+const AUS = { els: new Set(), key: null, t: 0 };
+function ausStuecke() { return (D && D.gewaehlt || []).map((k) => bapStueck(k)).filter((x) => x && !(x.art === 'unterlage' && x.nutzung === 'beilegen')); }
+async function ausfuellenIn(el) {
+  AUS.els.add(el);
+  const S = ausStuecke();
+  if (!S.length) { el.innerHTML = '<div class="ba-pleer">Noch kein Vordruck gewählt – in Schritt 1 anhaken.</div>'; return; }
+  if (!S.some((x) => x.key === AUS.key)) AUS.key = (S.find((x) => x.felder) || S[0]).key;
+  el.innerHTML = `<div class="bap-ak"><span class="seg bap-aw" role="group">${S.map((x) => `<button type="button" data-auswahl="${x.key}" class="${x.key === AUS.key ? 'on' : ''}" title="${esc(x.titel)}">${esc(x.nr ? 'Anl. ' + x.nr : x.titel.slice(0, 22))}</button>`).join('')}</span>
+    <span class="bap-al"><i class="bap-l1"></i>gehört zum Antrag – ändert Maske und alle Vordrucke <i class="bap-l2"></i>nur in diesem Vordruck</span></div><div class="bap-as"><div class="ba-pleer">Lade …</div></div>`;
+  await ausMalen(el);
+}
+async function ausMalen(el) {
+  const key = AUS.key, box = el.querySelector('.bap-as'); if (!box) return;
+  let I; try { I = await api(`api/antraege/${AID}/stueck/${key}/felder`); } catch (e) { box.innerHTML = `<div class="ba-pleer">${esc(e.message)}</div>`; return; }
+  if (key !== AUS.key) return;
+  const alt = box.querySelector(`.bap-ap[data-k="${key}"]`);
+  if (alt && +alt.dataset.n === I.felder.length) {   // nur Werte nachtragen – Eingabe mit Fokus bleibt, wie sie ist
+    I.felder.forEach((f, i) => { const x = box.querySelector(`[data-af="${i}"]`); if (!x || x === document.activeElement) return;
+      if (f.typ === 'kreuz') x.classList.toggle('an', !!f.wert); else if (x.value !== f.wert) x.value = f.wert; });
+    return;
+  }
+  const leer = !I.felder.length;
+  box.innerHTML = (leer ? '<p class="ba-hilfe">Dieser Vordruck hat keine Formularfelder – Werte mit „Platzieren …“ in Schritt 1 setzen, dann sind sie hier änderbar.</p>' : '')
+    + I.seiten.map((v, n) => `<div class="bap-ap" data-k="${key}" data-n="${I.felder.length}" style="aspect-ratio:${v}"><img alt="Seite ${n + 1}" loading="lazy" src="api/antraege/${AID}/platzierung/${key}/seite/${n}.png">
+      ${I.felder.map((f, i) => f.seite !== n ? '' : f.typ === 'kreuz'
+        ? `<button type="button" class="bap-ai k${f.eigen ? ' e' : ''}${f.wert ? ' an' : ''}" data-af="${i}" title="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%"></button>`
+        : f.mehrzeilig ? `<textarea class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">${esc(f.wert)}</textarea>`
+        : `<input class="bap-ai${f.eigen ? ' e' : ''}" data-af="${i}" value="${esc(f.wert)}" title="${esc(f.label ? '⇄ ' + f.label : f.name)}" aria-label="${esc(f.label || f.name)}" style="left:${f.x * 100}%;top:${f.y * 100}%;width:${f.w * 100}%;height:${f.h * 100}%">`).join('')}</div>`).join('');
+  box._felder = I.felder;
+  const groesse = () => box.querySelectorAll('.bap-ap').forEach((p) => p.style.setProperty('--ph', p.clientHeight + 'px'));
+  groesse(); new ResizeObserver(groesse).observe(box);
+}
+async function ausSpeichern(box, i, wert) {
+  const f = box._felder[i], key = AUS.key, id = AID;
+  const body = f.platz ? { feld: f.feld, wert } : { name: f.name, wert };
+  const vorher = f.wert;
+  try { D = await api(`api/antraege/${id}/stueck/${key}/feld`, 'PUT', body); f.wert = wert; zeichne();
+    rueckgaengig(`„${f.label || f.name}“ im PDF geändert`, async () => { D = await api(`api/antraege/${id}/stueck/${key}/feld`, 'PUT', { ...body, wert: vorher }); zeichne(); });
+  } catch (e) { toast(e.message, true); }
+}
+document.addEventListener('change', (e) => { const x = e.target; if (!x.dataset || x.dataset.af === undefined) return; const box = x.closest('.bap-as'); if (box && box._felder) ausSpeichern(box, +x.dataset.af, x.value); });
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-auswahl],.bap-ai.k'); if (!b) return;
+  if (b.dataset.auswahl) { AUS.key = b.dataset.auswahl; const el = b.closest('.bap-aus'); if (el) ausfuellenIn(el); return; }
+  const box = b.closest('.bap-as'), f = box._felder[+b.dataset.af];
+  const gruppe = box._felder.filter((x) => x.typ === 'kreuz' && x.name === f.name).length > 1;   // Optionsfeld: genau eines aus mehreren
+  if (gruppe) { box.querySelectorAll('.bap-ai.k').forEach((y) => { if (box._felder[+y.dataset.af].name === f.name) y.classList.toggle('an', y === b && !b.classList.contains('an')); });
+    ausSpeichern(box, +b.dataset.af, b.classList.contains('an') ? f.an : ''); return; }
+  b.classList.toggle('an'); ausSpeichern(box, +b.dataset.af, b.classList.contains('an'));
+});
+/* nach jeder Änderung (eigene, Maske, andere Benutzer): Werte in allen offenen Ausfüll-Ansichten nachtragen */
+function ausAktualisieren() {
+  clearTimeout(AUS.t);
+  AUS.t = setTimeout(() => { AUS.els.forEach((el) => { if (!el.isConnected) { AUS.els.delete(el); return; } ausMalen(el); }); }, 400);
+}
+/* ganze Fläche (Handy, Befehlsleiste „Im PDF ausfüllen“) */
+function ausfuellenOeffnen() {
+  if (!ausStuecke().length) { toast('Noch kein Vordruck gewählt – in Schritt 1 anhaken.', true); return; }
+  const ov = document.createElement('div'); ov.className = 'bap-ed'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Im PDF ausfüllen');
+  ov.innerHTML = `<div class="bap-ek"><b>Im PDF ausfüllen</b><span class="mute">Änderungen gelten sofort – in der Maske und in allen Vordrucken</span><button type="button" class="btn pri" data-ausfertig>Fertig</button></div><div class="bap-aus bap-ausv"></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('[data-ausfertig]').addEventListener('click', () => ov.remove());
+  ausfuellenIn(ov.querySelector('.bap-aus'));
+}

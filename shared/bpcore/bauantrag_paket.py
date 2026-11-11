@@ -165,8 +165,9 @@ def platzieren(daten, plaetze, W):
     return out.getvalue()
 
 
-def stueck_pdf(c, key, W):
-    """Ein Stück ausgefüllt: Formularfelder + Platzierungen. → (PDF, Titel, {felder, gefuellt, platziert}) oder None."""
+def stueck_pdf(c, key, W, eigene=None):
+    """Ein Stück ausgefüllt: Formularfelder + Platzierungen. eigene: {sha256: {Feldname: Wert}} – im PDF eingetragene Werte von Feldern,
+    die keinem Antragsfeld entsprechen. → (PDF, Titel, {felder, gefuellt, platziert}) oder None."""
     if key.startswith("f"):
         r = c.execute("SELECT nr, titel, daten, sha256 FROM bauantrag_formular WHERE id=?", (int(key[1:]),)).fetchone()
         titel = f"Anlage {r['nr']} {r['titel']}".strip() if r and r["nr"] else (r["titel"] if r else "")
@@ -178,7 +179,7 @@ def stueck_pdf(c, key, W):
     d = bytes(r["daten"])
     if key.startswith("u") and r["art"] == "beilegen":
         return d, titel, {"felder": 0, "gefuellt": 0, "platziert": 0}
-    data, gef, n = BF.ausfuellen(d, W)
+    data, gef, n = BF.ausfuellen(d, W, (eigene or {}).get(r["sha256"]))
     P = _plaetze(c, {r["sha256"]}).get(r["sha256"]) or []
     if P:
         data = platzieren(data, P, W)

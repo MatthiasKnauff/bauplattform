@@ -65,6 +65,19 @@ def test_amtliches_formular_ausfuellen():
     gleich((F["Text1"].get("/V"), F["Text2"].get("/V"), F["Text3"].get("/V"), F["Text4"].get("/V")), ("Tierschutzverein RT", "Altenessen", "12", "345"), "Textfelder")
     pruefe(str(F["GK3"].get("/V")) not in ("", "None", "/Off") and str(F["GK4"].get("/V")) in ("None", "/Off", ""), f"GK 3 angekreuzt: {F['GK3'].get('/V')} / {F['GK4'].get('/V')}")
     gleich((gefuellt, n), (5, 6), "5 von 6 Feldern")
+    # im PDF ausfüllen: Lage der Felder, Zuordnung auch leerer Felder, zurück in den Antrag, eigene Werte für Felder ohne Zuordnung
+    Wd = BF.widgets(buf.getvalue())
+    t1 = next(x for x in Wd if x["name"] == "Text1")
+    pruefe(abs(t1["x"] - 50 / 595.28) < 0.01 and abs(t1["y"] - (841.89 - 718) / 841.89) < 0.01 and t1["typ"] == "text", f"Lage Text1 {t1}")
+    gleich(next(x for x in Wd if x["name"] == "GK3")["typ"], "kreuz", "Kästchen erkannt")
+    Z = BF.zuordnung(BF.felder(buf.getvalue()), BF.werte_v({}), alle=True)
+    gleich((Z.get("Text1"), Z.get("Text4")), ("bh_name", "flurstueck"), "Zuordnung auch ohne Wert")
+    gleich(BF.zurueck("bh_strasse", "Neue Str. 5", {"bauherr_anschrift": "Alte Str. 1, 45127 Essen"}), {"bauherr_anschrift": "Neue Str. 5, 45127 Essen"}, "Anschrift neu gebaut")
+    gleich(BF.zurueck("gs_hausnr", "24a", {"gs_strasse": "Grillostr. 24"}), {"gs_strasse": "Grillostr. 24a"}, "Hausnummer")
+    gleich(BF.zurueck("herstellung", "1.234.567,89 €", {}), {"herstellung": "1234567.89"}, "Betrag")
+    d2, _, _ = BF.ausfuellen(buf.getvalue(), W, {"GK4": True, "Text1": "von Hand"})
+    F2 = PdfReader(io.BytesIO(d2)).get_fields()
+    pruefe(F2["Text1"].get("/V") == "von Hand" and str(F2["GK4"].get("/V")) not in ("", "None", "/Off"), "eigene Werte im PDF")
 
 
 def test_portal_umgebaut_nichts_entfallen():

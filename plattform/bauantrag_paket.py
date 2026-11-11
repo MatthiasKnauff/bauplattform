@@ -15,14 +15,18 @@ from flask import Response, g, jsonify, request
 
 from bpcore import bauantrag_paket as BP, db, papierkorb
 import common as C
-from bauantrag import KEY, _antrag, _detail, _j, app
+from bpcore import bauantrag_formulare as BF
+from bauantrag import KEY, _antrag, _detail, _felder_setzen, _j, app
 
 ERLAUBT = re.compile(r"\.(pdf|jpe?g|png|heic|heif|tiff?)$", re.I)
 
 
 def _w(c, a):
-    d = _detail(c, a, [])
-    return {x["key"]: str(x["wert"] or "") for x in d["felder"]}, d
+    """Werte des Antrags für die Vordrucke (+ _bv: vorliegende Bauvorlagen, für die Kästchen „Unterlage …“)."""
+    d = _detail(c, a)
+    W = {x["key"]: str(x["wert"] or "") for x in d["felder"]}
+    W["_bv"] = [b["key"] for b in d["bauvorlagen"] if b.get("status") in ("da", "beigefuegt")]
+    return W, d
 
 
 def _gesperrt(a):
@@ -131,7 +135,7 @@ def stueck(aid, key):
         if key[0] == "u" and not c.execute("SELECT 1 FROM bauantrag_unterlage WHERE id=? AND antrag_id=?", (int(key[1:]), aid)).fetchone():
             return jsonify(error="Nicht gefunden."), 404
         W, _ = _w(c, a)
-        x = BP.stueck_pdf(c, key, W)
+        x = BP.stueck_pdf(c, key, W, _j(a["daten"], {}).get("_pdf"))
     if not x:
         return jsonify(error="Nicht gefunden."), 404
     return _pdf_antwort(x[0], re.sub(r'[\\/:*?"<>|]+', "_", x[1])[:140] + ".pdf", request.args.get("dl"))
@@ -149,7 +153,7 @@ def paket(aid):
             return jsonify(error="Noch kein Vordruck und keine Unterlage gewählt – in Schritt 1 anhaken."), 409
         teile = []
         for k in gew:
-            x = BP.stueck_pdf(c, k, W)
+            x = BP.stueck_pdf(c, k, W, _j(a["daten"], {}).get("_pdf"))
             if x:
                 teile.append((x[1], x[0]))
     adr = W.get("gs_strasse", "") + (", " + W.get("gs_ort", "") if W.get("gs_ort") else "")
@@ -214,3 +218,83 @@ def platz_setzen(aid, key):
                   "geaendert=EXCLUDED.geaendert, von=EXCLUDED.von", (sha, json.dumps(F, ensure_ascii=False), time.strftime("%Y-%m-%d %H:%M:%S"), g.user["name"]))
         d = _detail(c, a)
     return jsonify({**d, "gespeichert": len(F)})
+
+
+# ---------------------------------------------------------------- im PDF ausfüllen: Felder liegen über der Seite, Änderung → Antrag → alle Vordrucke
+@app.get("/api/antraege/<int:aid>/stueck/<key>/felder")
+def stueck_felder(aid, key):
+    """Eingabefelder für „Im PDF ausfüllen“: Formularfelder (mit Zuordnung zum Antrag) und platzierte Werte, je Seite mit Lage."""
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        daten, sha = _quelle(c, a, key) if a else (None, None)
+        if not daten:
+            return jsonify(error="Nicht gefunden."), 404
+        W, d = _w(c, a)
+        r = c.execute("SELECT felder FROM bauantrag_platzierung WHERE sha256=?", (sha,)).fetchone()
+        eigen = ((_j(a["daten"], {}).get("_pdf") or {}).get(sha) or {})
+    from pypdf import PdfReader
+    import io
+    seiten = []
+    for pg in PdfReader(io.BytesIO(daten)).pages[:40]:
+        w, h = float(pg.mediabox.width), float(pg.mediabox.height)
+        if int(pg.get("/Rotate") or 0) % 180:
+            w, h = h, w
+        seiten.append(round(w / h, 4))
+    F = BF.felder(daten)
+    V = BF.werte_v(W)
+    Z = BF.zuordnung(F, V, alle=True)
+    K = BF.kreuze_von(F, W)
+    labels = {x["key"]: x["label"] for x in d["felder"]}
+    out = []
+    for x in BF.widgets(daten):
+        k = Z.get(x["name"])
+        if x["typ"] == "kreuz":
+            st = eigen[x["name"]] if x["name"] in eigen else K.get(x["name"])
+            wert = (st == x["an"]) if isinstance(st, str) else bool(st)
+        else:
+            wert = str(V.get(k) or "") if k else str(eigen.get(x["name"], ""))
+        out.append({**x, "key": k or "", "wert": wert, "eigen": not k, "label": labels.get((BF.zurueck(k, "x", W) or {None: 0}).popitem()[0], "") if k else ""})
+    for i, p in enumerate(json.loads(r["felder"]) if r else []):
+        if p.get("feld") in ("datum", "kreuz", "frei"):
+            continue
+        out.append({"name": f"platz:{i}", "typ": "text", "seite": p["seite"], "x": p["x"], "y": p["y"], "w": p["w"], "h": p["h"], "key": "", "feld": p["feld"],
+                    "wert": BP.wert(p["feld"], W), "eigen": False, "label": labels.get(p["feld"], p["feld"]), "platz": True})
+    return jsonify(seiten=seiten, felder=out)
+
+
+@app.put("/api/antraege/<int:aid>/stueck/<key>/feld")
+def stueck_feld(aid, key):
+    """Ein Wert im PDF geändert: gehört er zu einem Antragsfeld, wird er dort (und in dessen Quelle) gespeichert – und steht damit in der
+    Maske und in allen Vordrucken. Sonst bleibt er bei diesem Vordruck (daten._pdf[Datei][Feldname])."""
+    b = request.get_json(silent=True) or {}
+    name, wert = str(b.get("name") or "")[:300], b.get("wert")
+    with db.tx() as c:
+        a = _antrag(c, aid)
+        daten_pdf, sha = _quelle(c, a, key) if a else (None, None)
+        if not daten_pdf:
+            return jsonify(error="Nicht gefunden."), 404
+        if _gesperrt(a):
+            return jsonify(error="Der Antrag ist eingereicht – zum Ändern erst wieder auf „Entwurf“ stellen."), 409
+        W, _ = _w(c, a)
+        daten = _j(a["daten"], {})
+        if b.get("feld"):   # platzierter Wert: direkt das Antragsfeld
+            daten = _felder_setzen(c, a, daten, {str(b["feld"]): str(wert or "")})
+        else:
+            FF = BF.felder(daten_pdf)
+            f = next((x for x in FF if x["name"] == name), None)
+            k = BF.zuordnung(FF, BF.werte_v(W), alle=True).get(name)
+            zur = BF.kreuz_zurueck(f, wert) if f and f["typ"] == "kreuz" and isinstance(wert, str) else {}
+            if zur:   # Gebäudeklasse, Antragsart: gehört zum Antrag
+                daten = _felder_setzen(c, a, daten, zur)
+                (daten.get("_pdf") or {}).get(sha, {}).pop(name, None)
+            elif k:
+                daten = _felder_setzen(c, a, daten, BF.zurueck(k, wert, W))
+            else:
+                P = daten.setdefault("_pdf", {}).setdefault(sha, {})
+                if wert in (None, "", False):
+                    P.pop(name, None)
+                else:
+                    P[name] = wert if isinstance(wert, bool) else str(wert)[:2000]
+        c.execute("UPDATE bauantrag SET daten=?, geaendert=? WHERE id=?", (json.dumps(daten), time.strftime("%Y-%m-%d %H:%M:%S"), aid))
+        d = _detail(c, _antrag(c, aid))
+    return jsonify(d)

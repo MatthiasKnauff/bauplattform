@@ -299,11 +299,12 @@ def felder(daten):
     out = []
     for name, f in (rd.get_fields() or {}).items():
         typ = f.get("/FT")
-        an = ""
+        an, st = "", []
         if typ == "/Btn":
-            st = [x for x in (f.get("/_States_", []) or []) if x != "/Off"]
+            st = [str(x) for x in (f.get("/_States_", []) or []) if x != "/Off"]
             an = st[0] if st else "/Yes"
-        out.append({"name": name, "tu": str(f.get("/TU") or ""), "typ": {"/Tx": "text", "/Btn": "kreuz", "/Ch": "wahl"}.get(typ, str(typ)), "an": an})
+        out.append({"name": name, "tu": str(f.get("/TU") or ""), "typ": {"/Tx": "text", "/Btn": "kreuz", "/Ch": "wahl"}.get(typ, str(typ)), "an": an,
+                    "zustaende": st, "radio": bool(int(f.get("/Ff") or 0) & 32768)})
     return out
 
 
@@ -321,21 +322,148 @@ def _teile(adr):
 # Zuordnung: unser Wert → Feld, erkannt an Name/Tooltip (barrierefreie Formulare haben sprechende Tooltips). Je Regel: Abschnitt
 # (muss vorkommen, „“ = egal), Wörter (alle müssen vorkommen), Wörter, die nicht vorkommen dürfen.
 REGELN = [
+    ("behoerde", "bauaufsicht", ("anschrift",), ("aktenzeichen",)), ("behoerde", "adressat", (), ()),
+    ("ort_datum_ev", "", ("ort", "datum", "entwurf"), ()),
+    ("gs_adresse", "grundstueck", ("adresse",), ()), ("gs_adresse", "grundstueck", ("ort", "strasse", "hausnummer"), ()),
+    ("bh_tel", "bauherr", ("telefon",), ("mobil", "vertret")), ("bh_mail", "bauherr", ("mail",), ("vertret",)),
     ("bh_name", "bauherr", ("name",), ("vertret",)), ("bh_name", "bauherr", ("firma",), ("vertret",)),
-    ("bh_strasse", "bauherr", ("strasse",), ("vertret",)), ("bh_plzort", "bauherr", ("plz",), ("vertret",)), ("bh_ort", "bauherr", ("ort",), ("vertret", "plz")),
+    ("bh_strasse", "bauherr", ("strasse",), ("vertret",)), ("bh_plzort", "bauherr", ("plz",), ("vertret",)), ("bh_ort", "bauherr", ("ort",), ("vertret", "plz", "datum", "unterschrift")),
     ("bh_vertreter", "", ("vertreten",), ()),
     ("ev_name", "entwurf", ("name",), ("bauvorlage",)), ("ev_name", "entwurf", ("buero",), ()),
-    ("ev_strasse", "entwurf", ("strasse",), ()), ("ev_plzort", "entwurf", ("plz",), ()), ("ev_bv", "", ("bauvorlageberechtigt",), ()),
+    ("ev_strasse", "entwurf", ("strasse",), ()), ("ev_plzort", "entwurf", ("plz",), ("datum",)), ("ev_bv", "", ("bauvorlageberechtigt",), ()),
     ("ev_kammernr", "", ("mitgliedsnummer",), ()), ("ev_kammernr", "", ("kammer",), ()),
     ("ev_tel", "entwurf", ("telefon",), ("mobil",)), ("ev_mail", "entwurf", ("mail",), ()),
-    ("gs_ort", "grundstueck", ("ort",), ("ortsteil",)), ("gs_strasse", "grundstueck", ("strasse",), ()), ("gs_hausnr", "grundstueck", ("hausnummer",), ()),
+    ("gs_ort", "grundstueck", ("ort",), ("ortsteil", "strasse")), ("gs_strasse", "grundstueck", ("strasse",), ()), ("gs_hausnr", "grundstueck", ("hausnummer",), ()),
     ("gemarkung", "", ("gemarkung",), ()), ("flurstueck", "", ("flurstueck",), ()), ("flur", "", ("flur",), ("flurstueck", "flurkarte")),
-    ("bezeichnung", "", ("bezeichnung", "vorhaben"), ()), ("rohbau", "", ("rohbau",), ()), ("herstellung", "", ("herstell",), ()),
+    ("bezeichnung", "", ("bezeichnung", "vorhaben"), ("bindung",)), ("rohbau", "", ("rohbau",), ("unterlage",)), ("herstellung", "", ("herstell",), ("unterlage",)),
 ]
 
 
-def ausfuellen(daten, W):
-    """Amtliches PDF mit den Werten W ({feld: wert} aus dem Antrag) ausfüllen. → (PDF-Bytes, Anzahl gefüllt, Anzahl Felder)."""
+def werte_v(W):
+    """Werte des Antrags (W: {feld: wert}) in die Teile, die in amtlichen Formularen stehen (Straße / PLZ Ort getrennt …)."""
+    bs, bp, bo = _teile(W.get("bauherr_anschrift"))
+    es, ep, eo = _teile(W.get("ev_anschrift"))
+    gs = W.get("gs_strasse") or ""
+    m = re.match(r"^(.*?)\s+(\d+\s*[a-zA-Z]?(?:\s*[-–]\s*\d+\s*[a-zA-Z]?)?)$", gs)
+    gp, go = (W.get("gs_ort") or "").split(" ", 1) if re.match(r"^\d{5}\s", W.get("gs_ort") or "") else ("", W.get("gs_ort") or "")
+    return {"bh_name": W.get("bauherr_name"), "bh_strasse": bs, "bh_plzort": f"{bp} {bo}".strip(), "bh_ort": bo, "bh_vertreter": W.get("bauherr_vertreter"),
+            "ev_name": W.get("ev_name"), "ev_strasse": es, "ev_plzort": f"{ep} {eo}".strip(), "ev_bv": W.get("ev_name"),
+            "ev_kammernr": " ".join(x for x in (W.get("ev_kammer"), W.get("ev_kammernr")) if x), "ev_tel": W.get("ev_tel"), "ev_mail": W.get("ev_mail"),
+            "gs_ort": go, "gs_strasse": m.group(1) if m else gs, "gs_hausnr": m.group(2) if m else "", "gemarkung": W.get("gemarkung"), "flur": W.get("flur"),
+            "flurstueck": W.get("flurstueck"), "bezeichnung": W.get("bezeichnung"),
+            "rohbau": _eur(W.get("rohbau")), "herstellung": _eur(W.get("herstellung")),
+            "behoerde": W.get("behoerde"), "bh_tel": W.get("bauherr_tel"), "bh_mail": W.get("bauherr_mail"),
+            "gs_adresse": ", ".join(x for x in (W.get("gs_ort"), gs) if x),
+            "ort_datum_ev": ", ".join(x for x in (eo, datetime.now().strftime("%d.%m.%Y")) if x)}
+
+
+# Kästchen „Unterlage …“ der Vordrucke ↔ Bauvorlagen des Antrags (angekreuzt, wenn die Unterlage vorliegt)
+UNTERLAGEN = [("lageplan", ("lageplan",)), ("berechnungen", ("mass", "baulichen", "nutzung")), ("liegenschaft", ("flurkarte",)), ("liegenschaft", ("liegenschaft",)),
+              ("grundrisse", ("bauzeichnung",)), ("baubeschreibung", ("baubeschreibung",)), ("brandschutz", ("brandschutz",)),
+              ("berechnungen", ("umbauten", "raum")), ("statistik", ("statistik",)), ("statistik", ("erhebungsbogen",)), ("statik", ("standsicherheit",))]
+
+
+def zuordnung(F, V, alle=False):
+    """Welches Formularfeld bekommt welchen Wert: {Feldname: Schlüssel aus werte_v}. alle: auch leere Werte zuordnen (zum Bearbeiten im PDF)."""
+    Z, benutzt = {}, set()
+    for key, abschnitt, worte, nicht in REGELN:
+        if (not alle and not V.get(key)) or key in benutzt:
+            continue
+        for f in F:
+            if f["name"] in Z or f["typ"] != "text":
+                continue
+            t = fold(f["name"] + " " + f["tu"])
+            if (not abschnitt or abschnitt in t) and all(x in t for x in worte) and not any(x in t for x in nicht):
+                Z[f["name"]] = key; benutzt.add(key)
+                break
+    return Z
+
+
+def kreuze_von(F, W):
+    """Kästchen: Gebäudeklasse, Antragsart, Sonderbau, vereinfachtes Verfahren, vorliegende Unterlagen → {Feldname: Wert für angekreuzt}.
+    Optionsfelder (eine Wahl aus mehreren, z. B. Gebäudeklasse 1–5) bekommen den passenden Zustand."""
+    out = {}
+    gk, verf = str(W.get("gebaeudeklasse") or ""), W.get("verfahren")
+    bv = set(W.get("_bv") or ())
+    for f in F:
+        if f["typ"] != "kreuz":
+            continue
+        t = fold(f["name"] + " " + f["tu"])
+        if f.get("radio") or len(f.get("zustaende") or []) > 1:
+            Z = {fold(z.strip("/")): z for z in f["zustaende"]}
+            if "gebaeudeklasse" in t and gk:
+                z = Z.get(fold(gk)) or Z.get("sonstige" if not gk.isdigit() else "")
+            elif "antragsart" in t or ("vorbescheid" in Z and "bauantrag" in Z):
+                z = Z.get("vorbescheid" if verf == "vorbescheid" else "bauantrag")
+            else:
+                z = None
+            if z:
+                out[f["name"]] = z
+            continue
+        if "unterlage" in t:
+            if any(k in bv and all(w in t for w in ws) for k, ws in UNTERLAGEN):
+                out[f["name"]] = f["an"] or "/Yes"
+            continue
+        an = (gk and "gebaeudeklasse" in t and re.search(rf"\b{gk}\b", t)) or (W.get("sonderbau") == "ja" and "sonderbau" in t) \
+            or (verf == "vorbescheid" and "vorbescheid" in t) or (verf == "baugenehmigung" and "vereinfacht" in t and W.get("sonderbau") != "ja")
+        if an:
+            out[f["name"]] = f["an"] or "/Yes"
+    return out
+
+
+def kreuz_zurueck(f, zustand):
+    """Im PDF angekreuzt (Optionsfeld/Kästchen) → Felder des Antrags, wenn es eines dazu gibt (Gebäudeklasse, Antragsart)."""
+    t = fold(f["name"] + " " + f["tu"])
+    z = fold(str(zustand or "").strip("/"))
+    if "gebaeudeklasse" in t and z:
+        return {"gebaeudeklasse": z if z.isdigit() else "sonstige"} if z in ("1", "2", "3", "4", "5") else {}
+    if "antragsart" in t and z in ("vorbescheid", "bauantrag"):
+        return {"verfahren": "vorbescheid" if z == "vorbescheid" else "baugenehmigung"}
+    return {}
+
+
+def zurueck(key, wert, W):
+    """Im PDF geänderter Wert (Schlüssel aus werte_v) → Felder des Antrags {feld: wert} (zusammengesetzte Angaben neu gebaut)."""
+    wert = str(wert or "").strip()
+    if key == "gs_adresse":   # „45127 Essen, Grillostr. 24“
+        t = [x.strip() for x in wert.split(",", 1)]
+        return {"gs_ort": t[0], "gs_strasse": t[1]} if len(t) == 2 else {"gs_strasse": wert}
+    if key == "ort_datum_ev":
+        return {}
+    direkt = {"behoerde": "behoerde", "bh_tel": "bauherr_tel", "bh_mail": "bauherr_mail", "bh_name": "bauherr_name", "bh_vertreter": "bauherr_vertreter", "ev_name": "ev_name", "ev_bv": "ev_name", "ev_tel": "ev_tel", "ev_mail": "ev_mail",
+              "gemarkung": "gemarkung", "flur": "flur", "flurstueck": "flurstueck", "bezeichnung": "bezeichnung"}
+    if key in direkt:
+        return {direkt[key]: wert}
+    if key in ("rohbau", "herstellung"):
+        z = re.sub(r"[^\d,.-]", "", wert).replace(".", "").replace(",", ".")
+        return {key: z}
+    if key in ("bh_strasse", "bh_plzort", "bh_ort", "ev_strasse", "ev_plzort"):
+        feld = "bauherr_anschrift" if key.startswith("bh") else "ev_anschrift"
+        st, plz, ort = _teile(W.get(feld))
+        if key.endswith("strasse"):
+            st = wert
+        elif key.endswith("plzort"):
+            m = re.match(r"^(\d{5})\s*(.*)$", wert)
+            plz, ort = (m.group(1), m.group(2)) if m else ("", wert)
+        else:
+            ort = wert
+        return {feld: ", ".join(x for x in (st, f"{plz} {ort}".strip()) if x)}
+    if key in ("gs_strasse", "gs_hausnr"):
+        V = werte_v(W)
+        st, nr = (wert, V["gs_hausnr"]) if key == "gs_strasse" else (V["gs_strasse"], wert)
+        return {"gs_strasse": f"{st} {nr}".strip()}
+    if key == "gs_ort":
+        plz = (W.get("gs_ort") or "").split(" ", 1)[0] if re.match(r"^\d{5}\s", W.get("gs_ort") or "") else ""
+        return {"gs_ort": f"{plz} {wert}".strip()}
+    if key == "ev_kammernr":
+        k = W.get("ev_kammer") or ""
+        return {"ev_kammernr": wert[len(k):].strip() if k and wert.startswith(k) else wert}
+    return {}
+
+
+def ausfuellen(daten, W, eigene=None):
+    """Amtliches PDF mit den Werten W ({feld: wert} aus dem Antrag) ausfüllen; eigene: im PDF eingetragene Werte von Feldern ohne Zuordnung
+    ({Feldname: Wert}). → (PDF-Bytes, Anzahl gefüllt, Anzahl Felder)."""
     import io
     from pypdf import PdfReader, PdfWriter
     from pypdf.generic import NameObject, BooleanObject
@@ -345,38 +473,17 @@ def ausfuellen(daten, W):
     if not F:
         out = io.BytesIO(); w.write(out)
         return out.getvalue(), 0, 0
-    bs, bp, bo = _teile(W.get("bauherr_anschrift"))
-    es, ep, eo = _teile(W.get("ev_anschrift"))
-    gs = W.get("gs_strasse") or ""
-    m = re.match(r"^(.*?)\s+(\d+\s*[a-zA-Z]?(?:\s*[-–]\s*\d+\s*[a-zA-Z]?)?)$", gs)
-    gp, go = (W.get("gs_ort") or "").split(" ", 1) if re.match(r"^\d{5}\s", W.get("gs_ort") or "") else ("", W.get("gs_ort") or "")
-    V = {"bh_name": W.get("bauherr_name"), "bh_strasse": bs, "bh_plzort": f"{bp} {bo}".strip(), "bh_ort": bo, "bh_vertreter": W.get("bauherr_vertreter"),
-         "ev_name": W.get("ev_name"), "ev_strasse": es, "ev_plzort": f"{ep} {eo}".strip(), "ev_bv": W.get("ev_name"),
-         "ev_kammernr": " ".join(x for x in (W.get("ev_kammer"), W.get("ev_kammernr")) if x), "ev_tel": W.get("ev_tel"), "ev_mail": W.get("ev_mail"),
-         "gs_ort": go, "gs_strasse": m.group(1) if m else gs, "gs_hausnr": m.group(2) if m else "", "gemarkung": W.get("gemarkung"), "flur": W.get("flur"),
-         "flurstueck": W.get("flurstueck"), "bezeichnung": W.get("bezeichnung"),
-         "rohbau": _eur(W.get("rohbau")), "herstellung": _eur(W.get("herstellung"))}
-    werte, benutzt = {}, set()
-    for key, abschnitt, worte, nicht in REGELN:
-        if not V.get(key) or key in benutzt:
+    V = werte_v(W)
+    werte = {n: str(V[k]) for n, k in zuordnung(F, V).items()}
+    kreuze = kreuze_von(F, W)
+    typ = {f["name"]: f for f in F}
+    for n, v in (eigene or {}).items():
+        if n not in typ:
             continue
-        for f in F:
-            if f["name"] in werte or f["typ"] != "text":
-                continue
-            t = fold(f["name"] + " " + f["tu"])
-            if (not abschnitt or abschnitt in t) and all(x in t for x in worte) and not any(x in t for x in nicht):
-                werte[f["name"]] = str(V[key]); benutzt.add(key)
-                break
-    kreuze = {}
-    gk, verf = str(W.get("gebaeudeklasse") or ""), W.get("verfahren")
-    for f in F:   # Kästchen: Gebäudeklasse, Sonderbau, Vorbescheid / vereinfachtes Verfahren
-        if f["typ"] != "kreuz":
-            continue
-        t = fold(f["name"] + " " + f["tu"])
-        an = (gk and "gebaeudeklasse" in t and re.search(rf"\b{gk}\b", t)) or (W.get("sonderbau") == "ja" and "sonderbau" in t) \
-            or (verf == "vorbescheid" and "vorbescheid" in t) or (verf == "baugenehmigung" and "vereinfacht" in t and W.get("sonderbau") != "ja")
-        if an:
-            kreuze[f["name"]] = f["an"] or "/Yes"
+        if typ[n]["typ"] == "kreuz":   # Optionsfeld: Zustand („/4“), Kästchen: ja/nein
+            kreuze[n] = v if isinstance(v, str) and v.startswith("/") else ((typ[n]["an"] or "/Yes") if v else "/Off")
+        else:
+            werte[n] = str(v)
     for page in w.pages:
         try:
             w.update_page_form_field_values(page, {**werte, **kreuze}, auto_regenerate=False)
@@ -387,7 +494,47 @@ def ausfuellen(daten, W):
     except Exception:   # noqa: BLE001
         pass
     out = io.BytesIO(); w.write(out)
-    return out.getvalue(), len(werte) + len(kreuze), len(F)
+    return out.getvalue(), len([v for v in werte.values() if v]) + len([v for v in kreuze.values() if v != "/Off"]), len(F)
+
+
+def widgets(daten):
+    """Lage der Formularfelder je Seite (zum Ausfüllen direkt im PDF): [{name, typ, seite, x, y, w, h, an}] – x/y/w/h als Anteil der
+    Seite, y von oben (nur ungedrehte Seiten)."""
+    import io
+    from pypdf import PdfReader
+    rd = PdfReader(io.BytesIO(bytes(daten)))
+    out = []
+
+    def voll(a):
+        teile, x = [], a
+        while x is not None:
+            if x.get("/T") is not None:
+                teile.append(str(x["/T"]))
+            x = x.get("/Parent")
+            x = x.get_object() if x is not None else None
+        return ".".join(reversed(teile))
+    for i, pg in enumerate(rd.pages):
+        if int(pg.get("/Rotate") or 0) % 360:
+            continue
+        mb = pg.mediabox
+        W0, H0, x0, y0 = float(mb.width), float(mb.height), float(mb.left), float(mb.bottom)
+        for an in pg.get("/Annots") or []:
+            a = an.get_object()
+            if a.get("/Subtype") != "/Widget" or a.get("/Rect") is None:
+                continue
+            ft = a.get("/FT") or (a.get("/Parent").get_object().get("/FT") if a.get("/Parent") is not None else None)
+            if ft not in ("/Tx", "/Btn"):
+                continue
+            r = [float(v) for v in a["/Rect"]]
+            xa, xb, ya, yb = min(r[0], r[2]), max(r[0], r[2]), min(r[1], r[3]), max(r[1], r[3])
+            on = ""
+            if ft == "/Btn":
+                ap = (a.get("/AP") or {}).get("/N") or {}
+                on = next((str(k) for k in getattr(ap, "keys", lambda: [])() if str(k) != "/Off"), "/Yes")
+            ff = int(a.get("/Ff") or (a.get("/Parent").get_object().get("/Ff") if a.get("/Parent") is not None else 0) or 0)
+            out.append({"name": voll(a), "typ": "kreuz" if ft == "/Btn" else "text", "seite": i, "an": on, "mehrzeilig": bool(ff & 4096),
+                        "x": round((xa - x0) / W0, 5), "y": round((H0 - (yb - y0)) / H0, 5), "w": round((xb - xa) / W0, 5), "h": round((yb - ya) / H0, 5)})
+    return out
 
 
 def _eur(v):

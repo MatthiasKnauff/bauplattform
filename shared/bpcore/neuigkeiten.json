@@ -341,5 +341,13 @@
   "titel": "Formulare wählen und eigene Unterlagen",
   "text": "Schritt 1 heißt jetzt „Verfahren & Formulare“. Dort hakst du die amtlichen Vordrucke an; Vorschläge kommen aus Verfahren und Vorhaben. Eigene Unterlagen (PDF, Scan, Foto) kannst du dazulegen. Bei Vordrucken ohne Felder und bei Scans setzt du die Werte mit „Platzieren …“ einmal auf die Seite, das wird gemerkt. „PDF“ gibt alles als ein Antragspaket mit Inhaltsverzeichnis aus.",
   "ziel": ".bap-drop"
+ },
+ {
+  "id": "2026-11-11-bauantrag-im-pdf",
+  "datum": "2026-11-11",
+  "app": "bauantrag",
+  "titel": "Direkt im PDF ausfüllen",
+  "text": "Rechts unter „Im PDF ausfüllen“ oder oben mit „Im PDF“ trägst du direkt in den Vordruck ein. Blaue Felder gehören zum Antrag: Eine Änderung steht sofort in der Maske, in den Projektdaten und Adressen und in allen anderen Vordrucken, auch bei Kollegen. Graue Felder gelten nur für diesen Vordruck.",
+  "ziel": "#bfl"
  }
 ]

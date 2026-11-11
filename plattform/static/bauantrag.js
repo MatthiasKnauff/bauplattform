@@ -41,7 +41,7 @@ function leiste() {
     { titel: 'Bauvorlagen', knoepfe: [K('Neu erkennen', IC.ord, async () => { D = await api('api/antraege/' + AID + '?neu=1'); zeichne(); toast('Projektordner neu eingelesen.'); },
       { aus: !D, tip: 'Projektordner neu einlesen und die Bauvorlagen erkennen' })] },
     { titel: 'Amtlich', knoepfe: [K('Formulare', IC.antrag, () => formulareZeigen('NW'), { tip: 'Amtliche Vordrucke (NRW vorgehalten, andere Länder auf Abruf) – neue Fassungen werden gemeldet' })] },
-    { titel: 'Ausgabe', rechts: true, knoepfe: [K('PDF', IC.pdf, pdf, { aus: !D, tip: 'Antragspaket: gewählte Vordrucke ausgefüllt und eigene Unterlagen, mit Inhaltsverzeichnis' })] },
+    { titel: 'Ausgabe', rechts: true, knoepfe: [K('Im PDF', IC.antrag, () => ausfuellenOeffnen(), { aus: !D, tip: 'Direkt im Vordruck ausfüllen – Änderungen stehen sofort in der Maske und in allen anderen Vordrucken' }), K('PDF', IC.pdf, pdf, { aus: !D, tip: 'Antragspaket: gewählte Vordrucke ausgefüllt und eigene Unterlagen, mit Inhaltsverzeichnis' })] },
     { titel: 'Bearbeiten', rechts: true, knoepfe: [K('Löschen', IC.weg, loeschen, { aus: !D, rot: true, tip: 'Antrag in den Papierkorb legen' })] },
   ]);
 }
@@ -50,6 +50,7 @@ function leiste() {
 let PDFEL = null, PDFT = 0;
 function vorschau(sofort) {
   clearTimeout(PDFT);
+  if (typeof ausAktualisieren === 'function') ausAktualisieren();   // bauantrag-paket.js: Werte in „Im PDF ausfüllen“ nachtragen
   if (!PDFEL || !PDFEL.isConnected) return;
   if (!D) { PDFEL.innerHTML = '<div class="ba-pleer">Kein Antrag gewählt.</div>'; return; }
   PDFT = setTimeout(async () => {
@@ -67,7 +68,8 @@ function formInfo(I, fehler) {
 }
 function bereich() {
   if (!window.seite || HANDY.matches) return;
-  seite(WORK, 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } }], { start: 'pdf', w: 0.5, minL: 520 });
+  seite(WORK, 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } },
+    { id: 'aus', titel: 'Im PDF ausfüllen', mount: (el) => { el.classList.add('bap-aus'); ausfuellenIn(el); } }], { start: 'pdf', w: 0.5, minL: 520 });
 }
 document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-bapdf]')) vorschau(true); });
 

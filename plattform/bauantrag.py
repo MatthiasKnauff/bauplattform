@@ -141,6 +141,23 @@ def holen(aid):
         return jsonify(_detail(c, a, _dateien(a["project_id"], request.args.get("neu") == "1")))
 
 
+def _felder_setzen(c, a, daten, felder):
+    """Felder in den Antrag übernehmen: was eine Quelle hat (Projektdaten, Adressen, Projekt, Mein Konto, Büro), wird dort gespeichert –
+    nicht nur im Antrag; der Rest steht in daten. → daten (ohne Speichern)."""
+    F = {k: v for k, v in felder.items() if k in BA.FK}
+    if F:
+        wahl = F.get("ev_wahl") or daten.get("ev_wahl") or (BA.quellen(c, a["project_id"], _user()).get("ev_wahl") or ("buero",))[0]
+        for k in BA.zurueckschreiben(c, a["project_id"], _user(), F, wahl, g.user["name"]):
+            daten.pop(k, None)
+            F.pop(k)
+    for k, v in F.items():
+        if v is None:
+            daten.pop(k, None)
+        else:
+            daten.update(BA.sauber({k: v}))
+    return daten
+
+
 @app.put("/api/antraege/<int:aid>")
 def aendern(aid):
     """b.felder: {feld: wert | null} – null = zurück auf die Quelle; b.bauvorlagen: {key: {status, notiz} | null}; b.name, b.status."""
@@ -151,19 +168,7 @@ def aendern(aid):
             return jsonify(error="Antrag nicht gefunden."), 404
         if a["status"] == "eingereicht" and b.get("status") != "entwurf" and (b.get("felder") or b.get("bauvorlagen")):
             return jsonify(error="Der Antrag ist eingereicht – zum Ändern erst wieder auf „Entwurf“ stellen."), 409
-        daten = _j(a["daten"], {})
-        F = {k: v for k, v in (b.get("felder") or {}).items() if k in BA.FK}
-        if F:   # was eine Quelle hat (Projektdaten, Adressen, Projekt, Mein Konto, Büro), wird dort gespeichert – nicht nur im Antrag
-            wahl = F.get("ev_wahl") or daten.get("ev_wahl") or (BA.quellen(c, a["project_id"], _user()).get("ev_wahl") or ("buero",))[0]
-            for k in BA.zurueckschreiben(c, a["project_id"], _user(), F, wahl, g.user["name"]):
-                daten.pop(k, None)
-                F.pop(k)
-        for k, v in F.items():
-            if k in BA.FK:
-                if v is None:
-                    daten.pop(k, None)
-                else:
-                    daten.update(BA.sauber({k: v}))
+        daten = _felder_setzen(c, a, _j(a["daten"], {}), b.get("felder") or {})
         bv = _j(a["bauvorlagen"], {})
         for k, v in (b.get("bauvorlagen") or {}).items():
             if any(k == x[0] for x in BA.BAUVORLAGEN):
@@ -204,7 +209,7 @@ def _formular(aid):
         f, nr = BF.formular_fuer(c, a["verfahren"], W)
     if not f or f.get("daten") is None:
         return None, f"Das amtliche Formular (NRW, Anlage {nr}) ist noch nicht geladen – unter „Formulare“ einmal „↻ Jetzt prüfen“.", 409
-    data, gefuellt, n = BF.ausfuellen(f["daten"], W)
+    data, gefuellt, n = BF.ausfuellen(f["daten"], W, (_j(a["daten"], {}).get("_pdf") or {}).get(f["sha256"]))
     return a, {"nr": f["nr"], "titel": f["titel"], "fassung": f["fassung"], "felder": n, "gefuellt": gefuellt, "projekt": d["projekt"]}, data
 
 

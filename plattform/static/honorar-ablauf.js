@@ -1,7 +1,7 @@
 'use strict';
 /* Honorar – Ablauf je Auftrag: Anfrage → Angebot → Auftrag → Vertrag → Abrechnung → Abgeschlossen (dazu „abgelehnt“).
    Oben die Stufen als Leiste (Klick = Stufe setzen), darunter je Stufe eine Karte mit ihren Angaben und dem Knopf zur nächsten Stufe.
-   Gespeichert in honorar_auftrag.status und .ablauf (JSON je Stufe). Wird vor honorar.js geladen; nutzt dessen D, AID, L, VS, laden(), pdf().
+   Gespeichert in honorar_auftrag.status und .ablauf (JSON je Stufe). Wird vor honorar.js geladen; nutzt dessen D, AID, L, VS, laden(), pdf(); Rechnungen: honorar-rechnung.js (reKurz, reKnoepfe, reHtml).
    Erinnerungen (nachfassen, Bindefrist, Vertrag fehlt) kommen als automatische To-dos auf die Startseite (bpcore/todo.py, „honorar“). */
 const STUFEN = ['anfrage', 'angebot', 'beauftragt', 'vertrag', 'abrechnung', 'abgeschlossen'];
 const STUFE_GRUPPE = { anfrage: 'Anfragen', angebot: 'Angebote', beauftragt: 'Beauftragt', vertrag: 'Vertrag', abrechnung: 'In Abrechnung', abgeschlossen: 'Abgeschlossen', abgelehnt: 'Abgelehnt' };
@@ -53,11 +53,11 @@ function ablaufHtml() {
       cur === 2 ? weiter('vertrag', 'Vertrag ›') : ''),
     karte(3, '✍', 'Vertrag', `${z('vertrag', 'datum', 'Vertrag vom', 'date')}${ck('vertrag', 'bh', 'unterschrieben Bauherr')}${ck('vertrag', 'buero', 'unterschrieben Büro')}${z('vertrag', 'ablage', 'abgelegt', 'text', 'z. B. Vertragsverzeichnis, Projektordner')}`,
       (cur === 3 ? weiter('abrechnung', 'Abrechnung ›') : '') + '<span class="mute hab-sp">Vertrag aus der beauftragten Version erzeugen und unterschreiben: folgt</span>'),
-    karte(4, '💶', 'Abrechnung', `<label>erbracht<input value="${k ? eur0(k.erbracht) : '–'}" disabled></label><label>Honorar netto<input value="${k ? eur0(k.netto) : '–'}" disabled></label>
-        <label class="w">Notiz<input data-ab="abrechnung.notiz" value="${esc(ar.notiz || '')}" placeholder="z. B. 1. Abschlag LPh 1–2 gestellt"></label>`,
-      (cur === 4 ? weiter('abgeschlossen', 'Abgeschlossen ›') : '') + '<span class="mute hab-sp">Abschläge nach erbrachten LPh, bezahlt/offen, Schlussrechnung: folgt</span>'),
+    karte(4, '💶', 'Abrechnung', `<label>erbracht<input value="${k ? eur0(k.erbracht) : '–'}" disabled></label><label>Honorar netto<input value="${k ? eur0(k.netto) : '–'}" disabled></label>${reKurz()}
+        <label class="w">Notiz<input data-ab="abrechnung.notiz" value="${esc(ar.notiz || '')}" placeholder="z. B. Abschläge nach Zahlungsplan"></label>`,
+      (cur === 4 ? weiter('abgeschlossen', 'Abgeschlossen ›') : '') + (cur >= 2 ? reKnoepfe() : '')),
   ];
-  return `<div class="ho-k hab-flow" role="group" aria-label="Ablauf">${flow}</div><div class="hab-r">${karten.join('')}</div>`;
+  return `<div class="ho-k hab-flow" role="group" aria-label="Ablauf">${flow}</div><div class="hab-r">${karten.join('')}</div>${reHtml()}`;
 }
 
 /* Speichern mit Rückgängig: Stufe und Angaben; der alte Stand wird feldgenau gemerkt (null = Feld war leer) */

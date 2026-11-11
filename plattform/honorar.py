@@ -1,6 +1,6 @@
 """Honorar: Honoraraufträge je Projekt (HOAI 2021 Gebäude, nach Aufwand oder pauschal), Abgleich mit der Zeiterfassung,
 Honorarangebot als PDF. Nur für Administratoren (Stundensätze, Honorare). Rechnung: bpcore/honorar.py.
-Später: Rechnungen (Abschlag/Schluss) aus dem erbrachten Anteil, Freischaltung für einzelne Benutzer."""
+Abschlags- und Schlussrechnungen: honorar_rechnung.py. Später: Freischaltung für einzelne Benutzer."""
 import io
 import json
 import time
@@ -104,8 +104,9 @@ def _detail(c, aid):
     a, k, z = _zeile(c, r)
     p = c.execute("SELECT name FROM projects WHERE id=?", (a["project_id"],)).fetchone()
     nk = [dict(x) for x in c.execute("SELECT * FROM honorar_nk WHERE auftrag_id=? ORDER BY datum, id", (aid,)).fetchall()]
+    import honorar_rechnung as HR
     return {"auftrag": a, "rechnung": k, "zeiten": z, "nk_liste": nk, "projekt": p["name"] if p else "", "buero_satz": Z.buero_satz(c),
-            "tafel": H.tafel(a["kosten"], a["zone"])}
+            "tafel": H.tafel(a["kosten"], a["zone"]), "rechnungen": HR.liste(c, a, k)}
 
 
 @app.get("/api/auftraege/<int:aid>")
@@ -430,5 +431,7 @@ def angebot_pdf(aid):
     name = f"Honorar_{(d['projekt'].split() or ['Projekt'])[0]}{'_' + vname.encode('latin-1', 'ignore').decode('latin-1').replace(' ', '_').replace('"', '') if vname else ''}_{time.strftime('%Y-%m-%d')}.pdf"
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{name}"', "Cache-Control": "no-store"})
 
+
+import honorar_rechnung   # noqa: E402,F401 – Abschlags- und Schlussrechnungen (eigenes Modul, Routen /api/…/rechnungen)
 
 C.wait_schema()

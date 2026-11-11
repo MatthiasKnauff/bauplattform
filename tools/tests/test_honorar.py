@@ -1,4 +1,4 @@
-"""Ablauftests Honorar: nur Verwaltung, Auftrag anlegen, HOAI rechnen, Nebenkosten nach Aufwand, Angebot als PDF, Papierkorb."""
+"""Ablauftests Honorar: nur Verwaltung, Auftrag anlegen, HOAI rechnen, Nebenkosten nach Aufwand, Angebot als PDF, Papierkorb, Rechnungen."""
 from lib import gleich, pruefe
 
 HO = "/honorar/api"
@@ -87,3 +87,40 @@ def test_honorar_ablauf(ctx):
             a.delete(f"{HO}/auftraege/{aid}")
         except Exception:   # noqa: BLE001 – schon weg
             pass
+
+
+def test_honorar_rechnungen(ctx):
+    """Abschlag aus „erbracht %“, stellen friert ein, zweiter Abschlag zieht den ersten ab, nur ein Entwurf, PDF mit zwei Blättern,
+    bezahlt, Entwurf löschen (Papierkorb), Schlussrechnung, danach keine weitere Rechnung; gestellte nicht löschbar."""
+    a = ctx.admin
+    d = a.pj(f"{HO}/auftraege", {"project_id": ctx.pid, "art": "pauschal", "name": "RT Rechnungen"})
+    aid = d["auftrag"]["id"]
+    try:
+        a.uj(f"{HO}/auftraege/{aid}", {"pauschal": "10.000,00", "nk": {"art": "pauschal", "p": 0}})
+        d = a.pj(f"{HO}/auftraege/{aid}/rechnungen", {"art": "abschlag"})
+        r1 = d["neu"]
+        a.pj(f"{HO}/auftraege/{aid}/rechnungen", {"art": "abschlag"}, expect=409)
+        d = a.uj(f"/honorar/api/rechnungen/{r1}", {"anteil": "30"})
+        gleich(d["rechnungen"]["liste"][0]["betrag"], 3000.0, "30 % von 10.000 €")
+        d = a.uj(f"/honorar/api/rechnungen/{r1}", {"status": "gestellt"})
+        gleich((d["rechnungen"]["abgerechnet"], d["rechnungen"]["offen"]), (3000.0, 3570.0), "gestellt: abgerechnet und offen")
+        a.delete(f"/honorar/api/rechnungen/{r1}", expect=409)
+        r2 = a.pj(f"{HO}/auftraege/{aid}/rechnungen", {"art": "abschlag"})["neu"]
+        d = a.uj(f"/honorar/api/rechnungen/{r2}", {"anteil": "50"})
+        x = [r for r in d["rechnungen"]["liste"] if r["id"] == r2][0]
+        gleich((x["titel"], x["bisher"], x["betrag"]), ("2. Abschlagsrechnung", 3000.0, 2000.0), "zweiter Abschlag = Zuwachs")
+        pdf = a.get(f"/honorar/api/rechnungen/{r2}/rechnung.pdf").ist_pdf()
+        import re
+        gleich(len(re.findall(rb"/Type\s*/Page[^s]", pdf.body)), 2, "zwei Blätter: Rechnung und Erläuterung")
+        pk = a.delete(f"/honorar/api/rechnungen/{r2}").json["papierkorb"]
+        pruefe(pk, "Entwurf im Papierkorb")
+        d = a.uj(f"/honorar/api/rechnungen/{r1}", {"status": "bezahlt", "bezahlt_am": "2026-11-01", "bezahlt": 3570})
+        gleich((d["rechnungen"]["bezahlt"], d["rechnungen"]["offen"]), (3570.0, 0), "bezahlt")
+        rs = a.pj(f"{HO}/auftraege/{aid}/rechnungen", {"art": "schluss"})["neu"]
+        d = a.uj(f"/honorar/api/rechnungen/{rs}", {"status": "gestellt"})
+        x = [r for r in d["rechnungen"]["liste"] if r["id"] == rs][0]
+        gleich((x["titel"], x["kum"], x["betrag"]), ("Schlussrechnung", 10000.0, 7000.0), "Schluss: 100 % − Abschlag")
+        a.pj(f"{HO}/auftraege/{aid}/rechnungen", {"art": "abschlag"}, expect=409)
+        a.uj(f"/honorar/api/rechnungen/{r1}", {"status": "storniert"}, expect=409)
+    finally:
+        a.delete(f"{HO}/auftraege/{aid}")

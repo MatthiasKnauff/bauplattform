@@ -9,7 +9,7 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
 - Honorar-Ablauf, Etappe 2: Architektenvertrag aus der beauftragten Version erzeugen, unterschreiben (auch am Handy), Ablage im Vertragsverzeichnis. **ca. 30–45 min**
-- Honorar-Ablauf, Etappe 3: Abrechnung – Abschläge nach erbrachten LPh, bezahlt/offen, Schlussrechnung. **ca. 30–45 min**
+- Honorar-Rechnungen, Rest: Muster der Rechnungsnummer und Standardtext in der Verwaltung einstellbar, To-do „Rechnung überfällig“, Rechnung in den Projektordner ablegen. **ca. 20–30 min**
 - Honorar: „＋ Anfrage“ aus einer Mail im Posteingang der Startseite, Widget „Honorar offen“. **ca. 20–30 min**
 - Bautagebuch: Tagesbericht direkt in der PDF-Vorschau bearbeiten (Klick ins Feld → bearbeiten, wie in der Seite). **ca. 45–60 min**
 - Bauantrag: Änderungen im ausgefüllten amtlichen PDF zurück in die Datenbank; falls ein Vordruck keine Formularfelder hat: Felder einmal per Klick platzieren. **ca. 45–60 min**
@@ -58,7 +58,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Webplattform für Externe (Portal): Firmen, Fachplaner, Bauherr über das Internet – eigener Portal-Container, Einladung, Zwei-Faktor, Rechte je Projekt und Rolle, Protokoll. Nach Schritt 5. **ca. 2–3 Tage**
 - Projektplattform und Dokumentenmanagement: Ordner nach Vorlage, Versionen/Indizes, Freigabe-Läufe, Volltextsuche, Planlauf, Protokolle mit Fristen, Objektspeicher (MinIO). **ca. 3–5 Tage**
 - Leistungsphase 0: Raumprogramm/Flächen (DIN 18205) als Grundlage für die Kostenschätzung. **ca. 4–6 h**
-- Honorar, Etappe 2: Rechnungen (Abschlag nach erbrachtem Anteil, Schlussrechnung) mit Rechnungsnummer und Zahlungseingang, Angebote in Varianten, weitere Objektarten (Innenräume, Freianlagen), Freischaltung für einzelne Benutzer. **ca. 4–6 h**
+- Honorar, Etappe 2: Angebote in Varianten, weitere Objektarten (Innenräume, Freianlagen), Freischaltung für einzelne Benutzer. **ca. 4–6 h**
 - Bauantrag digital einreichen (Bauportal.NRW bzw. Portal des Bundeslands) – nach der App „Bauantrag“. **ca. 1 Tag**
 - Honorar: Ansicht für Geschäftsführer (alles mit Beträgen) und Mitarbeiter (nur eigene Projekte, Stunden verbraucht/verfügbar, ohne Euro) – nur in Honorar, erst Mock. **ca. 1 h**
 - Textprüfung. **ca. 2 h**
@@ -70,6 +70,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Honorar: Abschlags- und Schlussrechnungen nach § 15 HOAI – erbrachte Leistung kumuliert (LPh × erbracht %, Umbau, Nebenkosten; Pauschal nach Anteil, Aufwand nach Zeiten) minus bisherige Rechnungen; Entwurf → stellen (eingefroren) → bezahlt/storniert; PDF mit Blatt 1 Rechnung auf dem Briefbogen und Blatt 2 Erläuterung~~
 - ~~Bauantrag: NRW-Vordrucke jetzt von der Seite der Architektenkammer (AKNW, Fassung 09/2026 nach dem 3. Änderungsgesetz), ersatzweise recht.nrw.de; Quelle für NRW in der Verwaltung änderbar~~
 - ~~Bautagebuch am Handy: Kopfzeile kompakt (Bericht breit, Suche als Lupe, Standort), „PDF“ in der Akzentfarbe hervorgehoben~~
 - ~~Startseite am Handy, Post: Zeit, Erinnerung und App unter den Text – Art und Betreff werden nicht mehr abgeschnitten~~

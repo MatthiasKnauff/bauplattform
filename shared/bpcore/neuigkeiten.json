@@ -301,5 +301,13 @@
   "titel": "Formulare von der Architektenkammer",
   "text": "Die NRW-Vordrucke kommen jetzt von der Seite der Architektenkammer NRW (Fassung September 2026). Ist die Seite nicht lesbar, wird ersatzweise recht.nrw.de genommen.",
   "ziel": "[data-formpruefen]"
+ },
+ {
+  "id": "2026-11-11-honorar-rechnungen",
+  "datum": "2026-11-11",
+  "app": "honorar",
+  "titel": "Abschlags- und Schlussrechnungen",
+  "text": "Im Ablauf unter „Abrechnung“: „＋ Abschlag“ rechnet die erbrachte Leistung (erbracht % je Leistungsphase) abzüglich der bisherigen Rechnungen. Stellen friert die Rechnung ein, danach bezahlt oder storniert. Das PDF hat ein zweites Blatt mit der ausführlichen Erläuterung. Am Ende „Schlussrechnung“.",
+  "ziel": "[data-reneu]"
  }
 ]

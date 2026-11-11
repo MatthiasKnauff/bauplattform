@@ -42,3 +42,30 @@ def test_aufwand_und_eingaben():
     r = H.rechne({"art": "stunden", "nk": {"art": "aufwand"}}, {"lph5": {"min": 100, "kosten": 125, "abrechnung": 131.25}}, 50)
     gleich((r["summe_lph"], r["nk"], r["netto"]), (131.25, 50.0, 181.25), "Aufwand + Nebenkosten nach Aufwand")
     gleich((H._f("850.000,50"), H._f("1.250.000"), H._f("2,5"), H._f("x", 3)), (850000.5, 1250000.0, 2.5, 3), "Eingaben")
+
+
+def test_abschlag_und_schluss():
+    """§ 15 HOAI: Abschlag = erbrachte Leistung kumuliert (LPh × erbracht %, Umbau, Nebenkosten) − bisherige Rechnungen; Schluss zieht alle Abschläge ab."""
+    a = {"art": "hoai", "kosten": 1000000, "zone": 3, "satz": 0, "umbau": 10, "nk": {"art": "pauschal", "p": 5},
+         "lph": {"lph1": {"an": True, "p": 2, "erbracht": 100}, "lph2": {"an": True, "p": 7, "erbracht": 50}}}
+    for k in ("lph3", "lph4", "lph5", "lph6", "lph7", "lph8", "lph9"):
+        a["lph"][k] = {"an": False, "p": 0, "erbracht": 0}
+    k = H.rechne(a)
+    s1 = H.abrechnung(a, k)
+    lph = round(115675 * 0.02, 2) + round(round(115675 * 0.07, 2) * 0.5, 2)
+    gleich(s1["lph"], round(lph, 2), "LPh 1 voll + LPh 2 zur Hälfte")
+    gleich(s1["umbau"], round(s1["lph"] * 0.10, 2), "Umbauzuschlag auf die erbrachte Leistung")
+    gleich(s1["kum"], round(s1["lph"] + s1["umbau"] + round((s1["lph"] + s1["umbau"]) * 0.05, 2), 2), "Nebenkosten 5 %")
+    gleich((s1["bisher"], s1["betrag"]), (0, s1["kum"]), "erste Rechnung: alles")
+    gleich(s1["mwst"], round(s1["betrag"] * 0.19, 2), "Umsatzsteuer")
+    a["lph"]["lph2"]["erbracht"] = 100
+    k = H.rechne(a)
+    s2 = H.abrechnung(a, k, [{"nr": "2026-001", "art": "abschlag", "datum": "2026-10-01", "betrag": s1["betrag"], "status": "bezahlt", "bezahlt": s1["brutto"]}])
+    gleich(s2["bisher"], s1["betrag"], "erster Abschlag abgezogen")
+    gleich(s2["betrag"], round(s2["kum"] - s1["betrag"], 2), "zweiter Abschlag = Zuwachs")
+    gleich(round(s2["kum"], 2), k["netto"], "alles erbracht = vereinbartes Honorar")
+    p = H.abrechnung({"art": "pauschal", "pauschal": 20000, "nk": {"art": "pauschal", "p": 0}}, H.rechne({"art": "pauschal", "pauschal": 20000, "nk": {"art": "pauschal", "p": 0}}), (), "40")
+    gleich((p["anteil"], p["kum"]), (40.0, 8000.0), "Pauschal: 40 % erbracht")
+    gleich(H.re_nummer("{jahr}-{lfd:03}", 2026, 7), "2026-007", "Rechnungsnummer")
+    gleich(H.re_nummer("HR{jahr2}/{lfd}", 2026, 7), "HR26/7", "eigenes Muster")
+    gleich(H.re_nummer("{falsch}", 2026, 7), "2026-007", "kaputtes Muster → Vorgabe")

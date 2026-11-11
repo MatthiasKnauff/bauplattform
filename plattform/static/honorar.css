@@ -91,3 +91,13 @@ body.ho-handy #view{padding:0 0 3rem}
 .hab-ck{flex-direction:row!important;align-items:center;gap:.4rem!important;color:var(--ink)!important}.hab-ck input{width:auto!important;accent-color:var(--y)}
 .hab-h{font-size:.78rem;color:var(--mute);align-self:center}.hab-h.warn{color:var(--warn,#b7791f);font-weight:600}
 .hab-k .seg{flex-wrap:wrap;max-width:100%;border-radius:calc(14px*var(--rkp,1))}.hab-k .seg button{padding:.28rem .6rem}   /* Ablauf-Karten: Auswahl bricht um statt überzulaufen */
+/* Rechnungen (honorar-rechnung.js): ganze Breite unter den Ablauf-Karten, Tabelle mit eigenem waagerechtem Rollen */
+.hre{margin-top:.8rem}.hre h3{display:flex;gap:.4rem;align-items:baseline;flex-wrap:wrap}.hre h3 .mute{margin-left:auto;font-weight:400;font-size:.75rem}
+.hre-w{overflow-x:auto}.hre-t{border-collapse:collapse;width:100%;font-size:.84rem}
+.hre-t th{text-align:left;font-weight:600;font-size:.72rem;color:var(--mute);padding:.25rem .45rem;border-bottom:1px solid var(--line);white-space:nowrap}
+.hre-t td{padding:.35rem .45rem;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}.hre-t .r{text-align:right;font-variant-numeric:tabular-nums}
+.hre-t tr.hre-x td{color:var(--mute);text-decoration:line-through}.hre-t tr.hre-x td:last-child{text-decoration:none}
+.hre-a{display:flex;gap:.3rem;justify-content:flex-end}
+.hre-st{display:inline-block;border:1px solid var(--f);color:var(--f);border-radius:999px;padding:0 .5rem;font-size:.74rem}
+.hre-ent{background:var(--hov);border-radius:calc(10px*var(--rkp,1));padding:.6rem .7rem;margin-top:.6rem;display:grid;gap:.4rem}.hre-ent .ho-f{display:flex;flex-wrap:wrap;gap:.5rem .8rem}.hre-ent label{flex:1 1 10rem;display:flex;flex-direction:column;font-size:.75rem;color:var(--mute)}
+.hre-ent label.w{flex-basis:100%}.hre-ent textarea,.hre-ent input{width:100%;box-sizing:border-box;min-width:0}

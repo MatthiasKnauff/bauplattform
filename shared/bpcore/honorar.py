@@ -192,3 +192,46 @@ def kosten_aus_kostenermittlung(c, pid):
     if not (a or b):
         return None, f"Die Kostenermittlung „{bk['name']}“ enthält noch keine Kosten in KG 300/400."
     return anrechenbar(a, b), f"„{bk['name']}“: KG 300 {a:,.0f} € + KG 400 {b:,.0f} € (§ 33 Abs. 2)".replace(",", ".")
+
+
+# ---------------------------------------------------------------- Abschlags- und Schlussrechnung (§ 15 HOAI)
+RE_ART = {"abschlag": "Abschlagsrechnung", "schluss": "Schlussrechnung"}
+
+
+def abrechnung(a, k, frueher=(), anteil=None):
+    """Rechnungsbetrag aus der bis heute erbrachten Leistung (kumuliert) abzüglich der bisherigen Rechnungen.
+    a: Auftrag, k: rechne(a, …), frueher: [{nr, art, datum, betrag, status, bezahlt, bezahlt_am}] (gestellte, nicht stornierte),
+    anteil: bei Pauschalhonorar der erbrachte Anteil in %. → Stand (JSON-fähig) für Rechnung und Erläuterung."""
+    a = sauber(a)
+    zeilen, umbau = [], 0.0
+    if a["art"] == "hoai":
+        for p in k["phasen"]:
+            if p["an"] and p["honorar"]:
+                zeilen.append({"key": p["key"], "name": p["name"], "p": p["p"], "honorar": p["honorar"], "erbracht": p["erbracht"],
+                               "betrag": round(p["honorar"] * p["erbracht"] / 100, 2)})
+        lph = round(sum(z["betrag"] for z in zeilen), 2)
+        umbau = round(lph * a["umbau"] / 100, 2)
+        anteil = round(lph / k["summe_lph"] * 100, 1) if k["summe_lph"] else 0.0
+    elif a["art"] == "pauschal":
+        anteil = round(max(0.0, min(100.0, _f(anteil, 0))), 1)
+        lph = round(k["summe_lph"] * anteil / 100, 2)
+    else:   # nach Aufwand: abgerechnete Zeiten bis heute
+        anteil, lph = None, k["summe_lph"]
+    nk = round((lph + umbau) * a["nk"]["p"] / 100, 2) if a["nk"]["art"] == "pauschal" else k["nk"]
+    kum = round(lph + umbau + nk, 2)
+    fr = [{f: x.get(f) for f in ("nr", "art", "datum", "betrag", "status", "bezahlt", "bezahlt_am")} for x in frueher]
+    bisher = round(sum(_f(x["betrag"]) for x in fr), 2)
+    betrag = round(kum - bisher, 2)
+    mwst = round(betrag * MWST / 100, 2)
+    return {"art": a["art"], "kosten": a["kosten"], "zone": a["zone"], "satz": a["satz"], "grund": k["grund"], "summe_lph": k["summe_lph"],
+            "netto_gesamt": k["netto"], "zeilen": zeilen, "anteil": anteil, "lph": lph, "umbau_p": a["umbau"], "umbau": umbau,
+            "nk_art": a["nk"]["art"], "nk_p": a["nk"]["p"], "nk": nk, "kum": kum, "frueher": fr, "bisher": bisher,
+            "betrag": betrag, "mwst_p": MWST, "mwst": mwst, "brutto": round(betrag + mwst, 2), "ist_min": k.get("ist_min", 0)}
+
+
+def re_nummer(muster, jahr, lfd):
+    """Rechnungsnummer aus dem Muster des Büros, z. B. „{jahr}-{lfd:03}“ → 2026-007, „HR{jahr2}/{lfd}“ → HR26/7."""
+    try:
+        return (muster or "{jahr}-{lfd:03}").format(jahr=jahr, jahr2=str(jahr)[-2:], lfd=lfd)[:40]
+    except (KeyError, ValueError, IndexError):
+        return f"{jahr}-{lfd:03}"

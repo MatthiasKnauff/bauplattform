@@ -231,8 +231,8 @@ function renderProjects(q = data.pq || '', f = data.pf || '') {
       <div class="pmain"><b>${esc(p.name)}</b>${p.archived ? ' <span class="pill">archiviert</span>' : ''}
         ${p.client || p.address ? `<small>${esc([p.client, p.address].filter(Boolean).join(' · '))}</small>` : ''}
         ${p.bt ? `<small class="who">${p.leaders && p.leaders.length ? 'Sichtbar für: ' + esc(p.leader_names.join(', ')) : 'Sichtbar für alle mit Bautagebuch'}</small>` : ''}</div>
-      <div class="papps">${p.bt ? `<span class="chip bt" title="Tagesberichte im Bautagebuch">Bautagebuch · ${p.bt.reports}</span>` : '<button class="chip no" data-a="mkbt" title="Für dieses Projekt gibt es noch kein Bautagebuch">kein Bautagebuch – anlegen?</button>'}
-        ${p.plans.map((x) => `<span class="chip" title="Bauzeitenplan">Plan · ${esc(x.name)}</span>`).join('')}${p.bks.map((x) => `<span class="chip" title="Baukosten">Kosten · ${esc(x.name)}</span>`).join('')}</div>
+      <div class="papps">${p.bt ? `<span class="chip bt" title="Tagesberichte im Bautagebuch">Bautagebuch · ${p.bt.reports}</span>` : ''}
+        ${p.plans.length ? `<span class="chip" title="Bauzeitenplan: ${esc(p.plans.map((x) => x.name).join(', '))}">Bauzeitenplan</span>` : ''}${p.bks.length ? `<span class="chip" title="Baukosten: ${esc(p.bks.map((x) => x.name).join(', '))}">Baukosten</span>` : ''}</div>
       <div class="pact"><button class="btn sm" data-a="popen">Öffnen</button>${p.bt ? '<button class="btn sm" data-a="pedit">Bearbeiten</button>' : ''}<button class="btn sm ic" data-a="pmore" aria-label="Weitere Aktionen" title="Weitere Aktionen">⋯</button></div>
     </div>`).join('') || '<div class="card mute" style="text-align:center;padding:2rem">Keine Projekte.</div>'}</div>
     <div class="note">Ein Projekt fasst zusammen, was in den Apps dazugehört: Bautagebuch, verknüpfte Bauzeitenpläne und Kostenermittlungen. Projekte werden im Bautagebuch angelegt und gelten für alle Apps.</div>`;
@@ -340,7 +340,19 @@ function mkBt(p, then) {
   inp.addEventListener('input', () => { clearTimeout(fT); fT = setTimeout(() => look(inp.value.trim()), 250); });
   look((p.name.match(/^[A-Za-z]?\d[\w.]*/) || [p.name.split(/\s+/)[0] || ''])[0]);   // zuerst nach Projektnummer, sonst erstem Wort suchen
 }
-function openDlg(p) {
+/* „Öffnen“: ohne Rückfrage in der App, in der man zuletzt war (Bautagebuch, Bauzeitenplan, Baukosten, AVA …), mit diesem Projekt oben gewählt.
+   Nur wenn es dort noch nichts gibt (z. B. kein Bautagebuch), bleibt die Auswahl. */
+async function openDlg(p) {
+  let app = 'bautagebuch'; try { app = localStorage.getItem('bp.letzteApp') || app; } catch { /* egal */ }
+  if (!appOf(app)) app = 'bautagebuch';
+  const frag = app === 'bautagebuch' ? (p.bt ? '#projekt=' + p.bt.id : null) : app === 'gantt' ? (p.plans[0] ? '#plan=' + encodeURIComponent(p.plans[0].id) : '') : app === 'baukosten' ? (p.bks[0] ? '#bk=' + p.bks[0].id : '') : '';
+  if (frag !== null && (p.bt || app === 'gantt' || app === 'baukosten')) {
+    if (p.bt && window.BPHead && BPHead.projektSetzen) { try { await BPHead.projektSetzen(p.bt.id); } catch { /* egal */ } }
+    location.href = linkTo(app, frag); return;
+  }
+  openWahl(p);
+}
+function openWahl(p) {
   const L = [];
   if (p.bt) L.push(`<a class="btn" href="${esc(linkTo('bautagebuch', '#projekt=' + p.bt.id))}" target="_blank" rel="noopener">Bautagebuch · ${p.bt.reports} Berichte</a>`);
   else L.push('<button class="btn" data-m="mkbt">Bautagebuch – noch keins, anlegen …</button>');

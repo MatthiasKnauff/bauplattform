@@ -620,6 +620,7 @@
     if (band) return H.ready;
     H.app = opt.app || '';
     if (H.app && !document.documentElement.dataset.af) document.documentElement.dataset.af = H.app;   // App-Farbe (--af) für Verläufe und Akzentstrich
+    if (H.app && !['admin', 'portal'].includes(H.app)) { try { localStorage.setItem('bp.letzteApp', H.app); } catch { /* egal */ } }   // „Öffnen“ in der Verwaltung führt hierhin zurück
     band = document.createElement('header');
     band.className = 'bph' + (opt.sticky ? ' bph-sticky' : '');
     band.innerHTML = `<a class="bph-brand" href="/" title="Zur Startseite">${IC.home}<span class="bph-plat">Bauportal</span><span class="bph-sl">/</span><span class="bph-app">${esc(opt.name || '')}</span></a>

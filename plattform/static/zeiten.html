@@ -283,6 +283,7 @@ function laufHtml() {
 }
 function vTag() {
   const d = D; if (!d) return '';
+  if (handy()) return hTag();   // am Handy: kompakte Stechuhr und Liste der Blöcke (zeiten-handy.js)
   const V = d.vorschlaege.map((v, i) => ({ ...v, vi: i }));
   const L = [...d.eintraege.map((e) => ['e', e]), ...V.map((v) => ['v', v])].sort((p, q) => (p[1].von || '').localeCompare(q[1].von || ''));
   const neu = NEU ? zeile(NEU, 'n') : '';

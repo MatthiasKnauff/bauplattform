@@ -8,7 +8,7 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
-- Büro-Zuschnitt entkoppeln (Mock gezeigt, größerer Umbau): Server-Vorgaben \\192.168.233.88\… aus Eingang/Allplan raus; Bundesland des Büros mit EINER Feiertagsliste je Land (Zeiten fest NRW, Bauzeitenplan eigene Kopie); Bauantrag je Land (BauO-Hinweis, Formular-Quelle); neutrale Beispiele. **ca. 1 h**
+- Büro-Zuschnitt entkoppeln (Mock gezeigt, größerer Umbau; Rückfragen gestellt: eigene Installation je Büro oder Mandanten, Bundesland Büro/Projekt, Register je Rolle, Name im Kopf, Einstellungen in den Apps): Server-Vorgaben \\192.168.233.88\… aus Eingang/Allplan raus; Bundesland des Büros mit EINER Feiertagsliste je Land (Zeiten fest NRW, Bauzeitenplan eigene Kopie); Bauantrag je Land (BauO-Hinweis, Formular-Quelle); neutrale Beispiele. **ca. 1 h**
 - Einstellungen aller Apps (9 Stellen) in die Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System); in den Apps nur Links. **ca. 2–3 h**
 - Einrichtungsassistent beim ersten Start mit Ablaufleiste (Büro → Standort → Ablage → Mail → Mitarbeiter → Apps). **ca. 1–1,5 h**
 
@@ -69,6 +69,8 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Verhaltenstests je App. **ca. 1 h je App, ca. 1 Tag gesamt**
 - Typprüfung über JSDoc. **ca. 2 h**
 
+- Messung im Browser: Lade- und Aufbauzeit je App in die Langsam-Liste der Verwaltung (angeboten 12.11.) **ca. 20 min**
+
 ## Später
 - Bauantrag: Anlagenstempel auf jedem Blatt („Anlage 2.1 zum Bauantrag vom …“, freies Feld für den Prüfvermerk) **ca. 20 min** · Nachreichung als eigenes kleines Paket **ca. 30 min**
 - Bauantrag digital an die Behörde (FIT-Connect, vorgemerkt 11.11.2026): Vorbereitung – Antragsdaten und Anlagenliste als strukturierte Datei (XBau-nah), Zustell-ID der Bauaufsicht in den Adressen **ca. 45 min**; Senden erst nach Zulassung durch die FITKO
@@ -94,6 +96,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - ~~Bautagebuch am Handy: Fußleiste flach mit ＋ in der Mitte (Variante C) statt schwebendem ＋~~
 - ~~Schneller laden: alle Apps packen Skripte, Stile und Daten (gzip), Bausteine mit Stand („?v=“) bleiben im Browser; langsame Anfragen (> 1 s) als Hinweis in den Fehlermeldungen (Art „langsam“)~~
 - ~~Baukosten: Stufenleiste nach DIN 276 (Variante C, Punkte auf einer Linie, Petrol) statt der Karte „Wofür reichen die Daten?“~~
+- ~~Zeiten am Handy, „Mein Tag“ (Mittelweg): Stechuhr oben (Kommen, Pause, Fahrt, Gehen, Ring gegen Soll), darunter die Zeiten als Liste, Antippen ändert Projekt/Tätigkeit/Zeit oder übernimmt Vorschläge~~
 - ~~Zeiten am Handy: Woche und Monat & Urlaub als reine Ansicht (Tageskarten, Kalender, Urlaubsring, Wischen); Auswertung/Einstellungen nur am PC~~
 - ~~Migration 0054 robust gemacht (Produktion: dienste startete bei v204 nicht)~~
 - ~~Bauantrag: PDF-Vorschau springt beim Schrittwechsel an die passende Stelle (Sprungmarken im Antragspaket); nach Änderungen bleibt sie stehen~~

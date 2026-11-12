@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-heute-handy",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Mein Tag am Handy als Stechuhr",
+  "text": "Am Handy steht oben eine Stechuhr: Kommen, Pause, Fahrt und Gehen mit einem Tipp, der Ring zeigt die Arbeitszeit gegen das Soll. Darunter die Zeiten des Tages als Liste – antippen ändert Projekt, Tätigkeit oder Zeit, Vorschläge übernimmt man ebenso. Verschieben im Zeitstrahl bleibt am PC.",
+  "ziel": ".zh-uhr"
+ },
+ {
   "id": "2026-11-12-bt-kacheln",
   "datum": "2026-11-12",
   "app": "bautagebuch",

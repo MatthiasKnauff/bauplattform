@@ -112,3 +112,95 @@ document.addEventListener('click', (e) => {
     const b = document.querySelector(`#view .zh-nav .ib:${dx < 0 ? 'last-child' : 'first-child'}`); if (b && !b.disabled) b.click();
   }, { passive: true });
 })();
+
+/* ---------------- „Heute“ am Handy: kompakte Stechuhr oben, darunter die Blöcke als Liste (Mittelweg) ----------------
+   Kommen/Gehen setzen die Zeiten des Tages (api/tag), Pause legt eine Pause ab jetzt an, Fahrt und Projekt-Stoppuhr wie bisher (data-lauf).
+   Ein Tipp auf einen Block öffnet ein Fenster mit Projekt, Tätigkeit und Zeit. Ziehen und Verschieben gibt es nur am PC. */
+const zhJetzt = () => { const d = new Date(); return m2h(d.getHours() * 60 + d.getMinutes()); };
+function zhRing(min, soll) {
+  const U = 2 * Math.PI * 16, a = soll ? Math.min(1, min / soll) : 0;
+  return `<span class="zh-ring2"><svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="color-mix(in srgb,var(--mute) 22%,transparent)" stroke-width="3"/>${a ? `<circle cx="18" cy="18" r="16" fill="none" stroke="var(--ok,#1f8a50)" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(a * U).toFixed(1)} ${U.toFixed(1)}"/>` : ''}</svg><b>${std(min)}</b></span>`;
+}
+function hTag() {
+  const d = D; if (!d) return '';
+  const heute = d.tag === G.heute, fest = !!d.bestaetigt, l = G.lauf, pj = PJN(), k = d.konto || {};
+  const jm = h2m(zhJetzt()), pauseMin = (d.pausen || []).reduce((s, [v, b]) => s + Math.max(0, Math.min(h2m(b), jm) - h2m(v)), 0);   // nur der schon vergangene Teil der Pausen
+  const da = heute && d.kommen_fest && !d.gehen_fest && !fest;
+  const lebt = da ? Math.max(0, jm - h2m(d.kommen) - pauseMin) : d.arbeit || 0;
+  const saldo = `<b class="${(k.saldo || 0) >= 0 ? 'zh-plus' : 'zh-minus'}">${(k.saldo || 0) >= 0 ? '+' : '−'}${std(Math.abs(k.saldo || 0))}</b>`;
+  let karte;
+  if (fest) karte = `${zhRing(d.arbeit || 0, d.soll)}<div class="zh-ut"><b>✓ Tag bestätigt</b><small>${esc(d.kommen || '')}–${esc(d.gehen || '')} · Saldo ${saldo}</small></div>`;
+  else if (!heute) karte = `${zhRing(d.arbeit || 0, d.soll)}<div class="zh-ut"><b>${esc(dlang(d.tag))}</b><small>${d.kommen ? esc(d.kommen) + '–' + esc(d.gehen || '') : 'nichts erfasst'} · Soll ${std(d.soll)}</small></div>
+      <div class="zh-kn"><button type="button" class="zh-b gross" data-ta="ok">✓ Tag bestätigen</button></div>`;
+  else if (!d.kommen_fest) karte = `${zhRing(0, d.soll)}<div class="zh-ut"><small>Soll heute ${std(d.soll)} · Saldo ${saldo}</small>${d.kommen ? `<small>Vorschlag: gekommen ${esc(d.kommen)}</small>` : ''}</div>
+      <div class="zh-kn"><button type="button" class="zh-b gross gruen" data-zh="kommen">Kommen</button></div>`;
+  else if (da) karte = `${zhRing(lebt, d.soll)}<div class="zh-ut"><small>seit ${esc(d.kommen)}${d.soll > lebt ? ` · noch ${std(d.soll - lebt)} bis Soll` : ' · Soll erreicht'}</small>
+      ${l ? `<button type="button" class="zh-pj" data-lauf="stop" title="Stoppuhr anhalten und eintragen"><i style="background:${zsFarbe(l.project_id)}"></i>${esc((pj[l.project_id] || 'ohne Projekt').slice(0, 30))} ■</button>` : `<button type="button" class="zh-pj" data-lauf="wahl"><i></i>Projekt wählen ▾</button>`}</div>
+      <div class="zh-kn"><button type="button" class="zh-b" data-zh="pause">☕ Pause</button><button type="button" class="zh-b" data-lauf="fwahl">🚗 Fahrt</button><button type="button" class="zh-b rot" data-zh="gehen">Gehen</button></div>`;
+  else karte = `${zhRing(d.arbeit || 0, d.soll)}<div class="zh-ut"><b>Feierabend ${esc(d.gehen)}</b><small>${esc(d.kommen)}–${esc(d.gehen)} · Saldo ${saldo}</small></div>
+      <div class="zh-kn"><button type="button" class="zh-b gross" data-ta="ok">✓ Tag bestätigen</button></div>`;
+  const lauf = (PSEL || FSEL || ANGEK || (l && fj(l.fahrt))) ? laufHtml() : '';   // Fahrt- und Stoppuhr-Auswahl wie bisher
+  const V = d.vorschlaege.map((v, i) => ({ ...v, k: 'v', vi: i })), E = d.eintraege.map((e) => ({ ...e, k: 'e' })), P = (d.pausen || []).map(([von, bis]) => ({ von, bis, k: 'p' }));
+  const L = [...E, ...V, ...P].sort((a, b) => (a.von || '').localeCompare(b.von || ''));
+  const zeile = (x) => { if (x.k === 'p') return `<div class="zh-bl p"><span class="f"></span><span class="z">${esc(x.von)}–${esc(x.bis)}</span><span class="n">Pause</span><span class="d"></span></div>`;
+    const name = x.notiz && !x.project_id ? x.notiz : pj[x.project_id] || (x.project_id ? 'Projekt ' + x.project_id : 'Büro / ohne Projekt'), q = (ZS_Q[x.quelle] || ZS_Q.hand)[2];
+    return `<button type="button" class="zh-bl${x.k === 'v' ? ' v' : ''}" data-zhb="${x.k}${x.k === 'v' ? x.vi : x.id}"${fest ? ' disabled' : ''}><span class="f" style="background:${zsFarbe(x.project_id)}"></span><span class="z">${esc(x.von)}–${esc(x.bis)}</span>
+      <span class="n">${esc(name)}<small>${esc(artKurz(x.art))} · ${esc(x.k === 'v' ? 'Vorschlag' : q)}</small></span><span class="d">${std(dauer(x.von, x.bis))}</span></button>`; };
+  const summe = E.reduce((s, x) => s + dauer(x.von, x.bis), 0);
+  return `<div class="zh">${lauf}<div class="zh-uhr">${karte}</div>
+    ${V.length && !fest ? `<div class="zh-vor">${V.length} Vorschl${V.length === 1 ? 'ag' : 'äge'} aus der Plattform (gestrichelt) – antippen zum Übernehmen</div>` : ''}
+    <div class="zh-k zh-liste"><h4>${heute ? 'Heute' : esc(dkurz(d.tag))}<small>${std(summe)} zugeordnet${fest ? '' : ' · tippen zum Ändern'}</small></h4>${L.length ? L.map(zeile).join('') : '<p class="zh-leer">Noch nichts erfasst.</p>'}
+      ${fest ? '' : '<button type="button" class="zh-neu2" data-zhb="n">＋ Zeit von Hand</button>'}</div>
+    ${heute && !fest ? '<button type="button" class="zh-abw" data-zh="abw">Heute nicht da? <b>Krank · Urlaub · Frei melden</b></button>' : ''}</div>`;
+}
+function zhBlock(code) {   // Fenster zum Ändern eines Blocks (e = gespeichert, v = Vorschlag, n = neu)
+  const k = code[0], x = k === 'e' ? D.eintraege.find((y) => y.id === +code.slice(1)) : k === 'v' ? D.vorschlaege[+code.slice(1)] : { von: zhJetzt(), bis: '', project_id: (window.BPHead && BPHead.projekt && BPHead.projekt.id) || '', art: 'buero' };
+  if (!x) return;
+  modalBox(`<h3>${k === 'n' ? 'Zeit von Hand' : k === 'v' ? 'Vorschlag übernehmen' : 'Zeit ändern'}</h3><div class="zh-form">
+      <div class="zh-zz"><label>von<input id="zhV" type="text" inputmode="numeric" maxlength="5" class="hm" value="${esc(x.von || '')}"></label><label>bis<input id="zhB" type="text" inputmode="numeric" maxlength="5" class="hm" value="${esc(x.bis || '')}"></label></div><label>Projekt${projSel(x.project_id, 'id="zhP"')}</label><label>Tätigkeit${artSel(x.art || 'buero', 'id="zhA"')}</label></div>
+    <div class="acts">${k === 'e' ? '<button type="button" class="btn" data-m="del">🗑 Löschen</button>' : k === 'v' ? '<button type="button" class="btn" data-m="weg">Nicht übernehmen</button>' : ''}<span class="fill"></span><button type="button" class="btn" data-m="x">Abbrechen</button><button type="button" class="btn pri" data-m="ok">${k === 'v' ? 'Übernehmen' : 'Speichern'}</button></div>`,
+  async (m, bg, close) => {
+    if (m === 'x') { close(); return; }
+    const W0 = { project_id: bg.querySelector('#zhP').value, art: bg.querySelector('#zhA').value, von: hmNorm(bg.querySelector('#zhV').value), bis: hmNorm(bg.querySelector('#zhB').value) };
+    try {
+      if (m === 'del') { close(); await zsAntwort(tag, await api('api/eintrag/' + x.id, 'DELETE'), 'Zeit gelöscht'); return; }
+      if (m === 'weg') { close(); D = await api('api/verwerfen', 'POST', { d: tag, von: x.von, bis: x.bis }); zeichne(); rueckgaengig('Vorschlag nicht übernommen', async () => { D = await api('api/verwerfen', 'POST', { d: tag, von: x.von, bis: x.bis, zurueck: 1 }); zeichne(); }); return; }
+      if (m !== 'ok') return;
+      if (!W0.von || !W0.bis) { toast('Bitte von und bis als Uhrzeit eingeben, z. B. 7:45.', true); return; }
+      close();
+      if (k === 'e') await zsAntwort(tag, await api('api/eintrag/' + x.id, 'PUT', W0), 'Zeit geändert');
+      else await zsAntwort(tag, await api('api/eintrag', 'POST', { d: tag, ...x, ...W0, quelle: k === 'v' ? x.quelle : 'hand' }), k === 'v' ? 'Vorschlag übernommen' : 'Zeit eingetragen');
+    } catch (er) { toast(er.message, true); }
+  });
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest && e.target.closest('[data-zh],[data-zhb]'); if (!t || !D) return;
+  if (t.dataset.zhb) { zhBlock(t.dataset.zhb); return; }
+  const a = t.dataset.zh, jetzt = zhJetzt();
+  if (a === 'kommen') zsAufruf(tag, 'api/tag', 'PUT', { d: tag, kommen: jetzt }, 'Gekommen ' + jetzt);
+  else if (a === 'gehen') zsAufruf(tag, 'api/tag', 'PUT', { d: tag, gehen: jetzt }, 'Gegangen ' + jetzt);
+  else if (a === 'pause') { const P = (D.pausen || []).map((x) => [...x]), m = h2m(jetzt); P.push([jetzt, m2h(Math.min(24 * 60 - 1, m + (G.pause_dauer || 30)))]); zsAufruf(tag, 'api/tag', 'PUT', { d: tag, pausen: P }, 'Pause ab ' + jetzt); }
+  else if (a === 'abw') { tab = 'monat'; LS.set('tab', tab); ZH_ABW = true; laden(); }
+});
+(function () {
+  const st = document.createElement('style');
+  st.textContent = `.zh-uhr{background:var(--card);border:1px solid var(--line);border-radius:calc(18px*var(--rk,1));padding:.7rem .8rem;display:grid;grid-template-columns:auto minmax(0,1fr);gap:.3rem .8rem;align-items:center}
+  .zh-ring2{position:relative;width:76px;height:76px;display:grid;place-items:center}.zh-ring2 svg{position:absolute;inset:0;transform:rotate(-90deg)}.zh-ring2 b{font-size:1.15rem;font-variant-numeric:tabular-nums}
+  .zh-ut{display:grid;gap:.25rem;min-width:0}.zh-ut small{color:var(--mute);font-size:.8rem}.zh-ut b{font-size:1rem}
+  .zh-pj{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));padding:.18rem .6rem;font-size:.8rem;font-weight:600;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;justify-self:start}
+  .zh-pj i{width:.55rem;height:.55rem;border-radius:50%;background:var(--mute);flex:none}
+  .zh-kn{grid-column:1/-1;display:flex;gap:.4rem;margin-top:.25rem}
+  .zh-b{flex:1;font:inherit;font-weight:700;font-size:.86rem;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:calc(12px*var(--rk,1));padding:.55rem .3rem;cursor:pointer}
+  .zh-b.gross{padding:.8rem;font-size:1rem}.zh-b.gruen{background:var(--ok,#1f8a50);border-color:var(--ok,#1f8a50);color:#fff}.zh-b.rot{background:var(--y);border-color:var(--y);color:var(--on,#fff);flex:1.3}
+  .zh-vor{background:color-mix(in srgb,#d08a10 15%,var(--card));color:#a86c06;border-radius:calc(12px*var(--rk,1));padding:.45rem .65rem;font-size:.8rem}
+  .zh-liste{padding:0;overflow:hidden}.zh-liste h4{margin:0;padding:.5rem .7rem;display:flex;justify-content:space-between;gap:.5rem;font-size:.85rem;border-bottom:1px solid var(--line)}.zh-liste h4 small{color:var(--mute);font-weight:500}
+  .zh-bl{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:grid;grid-template-columns:4px 3.4rem minmax(0,1fr) auto;gap:.55rem;align-items:center;padding:.45rem .7rem .45rem 0;border-bottom:1px solid var(--line);font-size:.84rem}
+  .zh-bl:last-child{border-bottom:0}.zh-bl .f{align-self:stretch;border-radius:0 3px 3px 0}.zh-bl .z{color:var(--mute);font-size:.74rem;font-variant-numeric:tabular-nums;line-height:1.2}
+  .zh-bl .n{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.zh-bl .n small{display:block;color:var(--mute);font-size:.72rem}.zh-bl .d{font-weight:700;font-variant-numeric:tabular-nums}
+  .zh-bl.v{background:repeating-linear-gradient(135deg,var(--card) 0 6px,color-mix(in srgb,var(--mute) 8%,var(--card)) 6px 10px)}.zh-bl.v .n{color:var(--mute)}.zh-bl.p{cursor:default}.zh-bl.p .f{background:color-mix(in srgb,var(--mute) 35%,transparent)}.zh-bl.p .n{color:var(--mute);font-style:italic}
+  .zh-bl:disabled{cursor:default}.zh-leer{color:var(--mute);margin:.6rem .7rem}
+  .zh-neu2{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;text-align:center;padding:.55rem;color:var(--y);font-weight:600;font-size:.85rem}
+  .zh-abw{all:unset;cursor:pointer;text-align:center;color:var(--mute);font-size:.84rem;padding:.3rem}.zh-abw b{color:var(--ink)}
+  .zh-form{display:grid;gap:.55rem}.zh-form label{display:grid;gap:.2rem;font-size:.8rem;color:var(--mute)}.zh-form select,.zh-form input{font-size:16px}.zh-zz{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}`;
+  document.head.appendChild(st);
+})();

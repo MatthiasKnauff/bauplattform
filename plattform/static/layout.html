@@ -233,7 +233,8 @@ function speichern() { clearTimeout(speichT); if (window.BPHead) BPHead.versionS
 async function sofort() {
   if (!speichT) return; clearTimeout(speichT); speichT = 0;
   try { D = { ...D, ...(await api('api/layouts/' + B, 'PUT', { version: V.id, data: V.data })) }; const nv = D.versionen.find((x) => x.id === V.id); if (nv) V.datum = nv.datum;
-    if (window.BPHead) BPHead.versionStatus('✓ gespeichert ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })); }
+    if (window.BPHead) BPHead.versionStatus('✓ gespeichert ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+    if (window.parent !== window) window.parent.postMessage({ bph: 'layoutGespeichert', bereich: B }, '*'); }   // die Vorschau dahinter zeichnet sofort neu (layoutEditor)
   catch (e) { toast(e.message, true); }
 }
 /* Inhalt des Ausdrucks (z. B. Langtexte, Preise): je Layout gespeichert, beim Drucken für den einzelnen Ausdruck änderbar */

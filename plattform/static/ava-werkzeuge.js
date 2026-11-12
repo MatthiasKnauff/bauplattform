@@ -94,7 +94,7 @@ async function druckEditor() {
   ov.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-d]'); if (!b || !lay) return; const a = b.dataset.d;
     if (a === 'x') return zu();
-    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), 'lv'); return; }
+    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), 'lv', laden, laden); return; }   // Änderungen sofort in der Vorschau
     if (a === 'save') {
       try {
         const r = await api(`api/lv/${L.id}/druck`, 'POST', { schritt: 'entwurf', speichern: 1, layout: { ...lay, felder: F } });
@@ -192,7 +192,7 @@ async function paketDruck(o) {
   ov.addEventListener('click', (e) => {
     const b = e.target.closest('[data-d]'); if (!b) return; const a = b.dataset.d;
     if (a === 'x') return zu();
-    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), o.bereich); return; }
+    if (a === 'layedit') { const ad = ((BPHead.conf || {}).apps || []).find((x) => x.key === 'admin'); if (ad) BPHead.layoutEditor(BPHead.appUrl(ad), o.bereich, laden, laden); return; }   // Änderungen sofort in der Vorschau
     if (!blob) return toast(teile().length || !o.teile.length ? 'Die Vorschau lädt noch …' : 'Bitte mindestens einen Teil ankreuzen.', true);
     const href = URL.createObjectURL(blob);
     if (window.BPHead && BPHead.ansehen) { BPHead.ansehen([{ url: href, typ: 'pdf', name: o.name }]); return; }
@@ -449,6 +449,5 @@ document.addEventListener('keydown', (e) => {
     if (!(unveraendert && tab !== 'lv' && tab !== 'tueren' && (k === 'z' || k === 'y'))) return;
   }
   if (tab === 'tueren') { if (TL && (k === 'z' || k === 'y')) { e.preventDefault(); tlZurueck(k === 'y' || e.shiftKey); } return; }
-  const go = tab === 'lv' ? histGo : aktGo;
-  if (k === 'z' && !e.shiftKey) { e.preventDefault(); go(-1); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); go(1); }
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); _undoBis(0); } else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); _redo(); }   // ein Verlauf: wie ↶/↷ unten (LV-Bearbeitung, Felder, Löschen …)
 });

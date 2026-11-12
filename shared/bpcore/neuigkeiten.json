@@ -1,5 +1,37 @@
 [
  {
+  "id": "2026-11-12-ava-archiv",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Archiv im Baum",
+  "text": "Archivierte LVs und Aufträge stehen jetzt unten im Baum unter „Archiv“ (zugeklappt). Aufklappen zeigt sie, „↩“ holt eins zurück – mit Rückgängig.",
+  "ziel": ""
+ },
+ {
+  "id": "2026-11-12-ava-lvweg",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Gelöschtes LV verschwindet sofort",
+  "text": "Nach dem Löschen eines LVs öffnet sich gleich das nächste LV. Strg+Z macht jetzt immer den neuesten Schritt rückgängig – auch das Löschen, nicht nur Änderungen im LV.",
+  "ziel": ""
+ },
+ {
+  "id": "2026-11-12-ava-langtext",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Langtextfeld vergrößern",
+  "text": "Bei gesperrtem LV lässt sich das Langtextfeld wieder unten rechts aufziehen und Text markieren; gefragt wird erst, wenn du wirklich etwas änderst.",
+  "ziel": ""
+ },
+ {
+  "id": "2026-11-12-layout-live",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Druck-Layout sofort sichtbar",
+  "text": "Speicherst du im Druck-Layout, zeigt die Vorschau dahinter die Änderung sofort.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-urlaub-x",
   "datum": "2026-11-12",
   "app": "zeiten",

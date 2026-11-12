@@ -18,13 +18,15 @@ async function freischalten(x) {
   if (ja) { FREI.add(k); if (!x.nt && typeof VWARN !== 'undefined') VWARN.ok.add(L.id); }
   return ja;
 }
-['pointerdown', 'focusin', 'keydown', 'dragstart', 'dblclick'].forEach((art) => document.addEventListener(art, async (e) => {   // Eingriffe in gesperrte Zeilen abfangen – Ansehen, Markieren, Blättern bleiben frei
+['pointerdown', 'beforeinput', 'keydown', 'dragstart', 'dblclick'].forEach((art) => document.addEventListener(art, async (e) => {   // erst beim Ändern fragen – Hineinklicken, Markieren, Kopieren, Feld größer ziehen und Blättern bleiben frei
   if (typeof tab === 'undefined' || tab !== 'lv' || !L) return;
   const tr = e.target.closest && e.target.closest('table.lv tr.zu[data-i]'); if (!tr) return;
-  const feld = e.target.closest('input,select,textarea,[contenteditable],button[data-a]:not([data-a="lang"])');
-  if (art === 'keydown' && (!feld || /^(Tab|Shift|Control|Alt|Meta|Escape|Arrow\w+|Page\w+|Home|End|F6)$/.test(e.key))) return;
-  if ((art === 'pointerdown' || art === 'focusin') && !feld) return;
-  e.preventDefault(); e.stopPropagation(); if (art === 'focusin' && e.target.blur) e.target.blur();
+  const feld = e.target.closest('input,select,textarea,[contenteditable],button[data-a]:not([data-a="lang"])'), text = feld && feld.matches('input:not([type=checkbox]),textarea,[contenteditable]');
+  if (art === 'beforeinput' && !text) return;   // Tippen, Einfügen, Löschen in Textfeldern
+  if (art === 'pointerdown' && (!feld || text)) return;   // Auswahllisten, Häkchen und Knöpfe öffnen erst nach der Frage
+  if (art === 'keydown' && (!feld || text || /^(Tab|Shift|Control|Alt|Meta|Escape|Page\w+|Home|End|F6)$/.test(e.key))) return;
+  if (art === 'dblclick' && text) return;
+  e.preventDefault(); e.stopPropagation();
   if (SPERRFRAGE) return; SPERRFRAGE = true;
   const ok = await freischalten(items()[+tr.dataset.i]).finally(() => { SPERRFRAGE = false; });
   if (ok) render();
@@ -93,7 +95,7 @@ function vLv() {
   return `${lvGaebHinweis()}
     ${L.data.showVorbem ? `<div class="card" style="margin-bottom:.7rem"><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><b>Vorbemerkungen</b><span style="flex:1"></span><select data-vbwahl title="Kompakte Vorbemerkungen aus den Baudaten anhängen (eigene Texte je Leistungsbereich, Muster für Baubeschreibung und Vertragsbedingungen)"><option value="">+ aus den Baudaten einfügen …</option>${(window.VBL || []).map((v) => `<option value="${esc(v.key)}">${esc(/^\d/.test(v.key) ? v.key + ' ' + v.titel : v.titel)}</option>`).join('')}</select></div><textarea data-vorbem style="width:100%;min-height:8rem;margin-top:.4rem;font:inherit">${esc(L.data.vorbem || '')}</textarea></div>` : ''}
     <div class="tblw"><table class="lv baum bp-baum" data-sp="ava.lv"><thead><tr><th style="min-width:14rem" data-ed>Bezeichnung</th><th class="r" data-ed>Menge</th><th data-ed>EH</th><th title="N Normal · E Bedarf · A Wahl · P Pauschal · T Hinweistext · V Vorbemerkung" data-ed>Art</th><th class="hide-m" data-ed>KG</th>
-      <th class="r"${V ? '' : ' data-ed'}>${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^(<tr class="wurzel[^>]*>.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}</tbody>
+      <th class="r"${V ? '' : ' data-ed'}>${V ? 'EP Auftrag' : 'EP (Schätzung)'}</th>${V ? '<th class="r">EP Schätz.</th>' : ''}<th class="r">GP</th><th></th></tr></thead><tbody>${kopf.replace(/^(<tr class="wurzel[^>]*>.*?<\/tr>)\s*/s, '$1' + vorher)}${LVGZ.has(L.id) ? '' : rows || `<tr><td colspan="${NC}" class="empty">Noch keine Positionen. Mit „+ Titel“ und „+ Position“ anfangen, „Aus Baukosten …“ übernehmen oder oben eine GAEB-Datei einlesen.</td></tr>`}${nachher}${archivZeilen(NC)}</tbody>
       <tfoot><tr><td colspan="${V ? 7 : 6}" class="r"><b>Summe netto</b> <span class="hint">(ohne Bedarfs-/Wahlpositionen${V ? ', ohne Nachlass' : ''})</span></td><td class="r" id="lvSum"></td><td></td></tr></tfoot></table></div>`;
 }
 document.addEventListener('click', async (e) => {   // anderes LV im Baum öffnen

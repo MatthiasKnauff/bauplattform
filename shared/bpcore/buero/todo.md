@@ -9,7 +9,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
 - Aufgaben & Mängel und Kommunikation zusammenführen als „Aufgaben & Post“ (Offen / Verschickt links) – GO **ca. 1–1,5 h**
-- Druck-Layout: Änderung sofort in der Vorschau dahinter **ca. 15 min**
 - Lange Namen links auf Initialien kürzen, mit Textfeld nachfragen **ca. 20 min**
 - Oberflächentest „Rollposition bleibt nach Klick/Neuzeichnen“ ins Repo (tools/tests/ui) **ca. 30 min**
 
@@ -129,6 +128,9 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Ausschreibung: Archiv-Gruppe unten im Baum (LVs und Aufträge, zurückholen mit ↩); gelöschtes LV schließt sich, das nächste öffnet; Strg+Z nimmt immer den neuesten Schritt (auch Löschen)~~
+- ~~Ausschreibung: Langtextfeld im gesperrten LV aufziehen und markieren, Rückfrage erst beim Ändern~~
+- ~~Druck-Layout: Änderung sofort in der Vorschau dahinter~~
 - ~~Zeiten: Urlaub/Krank im Monat mit ✕ entfernen (ganzer Zeitraum oder nur der Tag, Rückgängig) – vorher nur über die Datumsfelder~~
 - ~~Wärmeschutz: 225 Musteraufbauten in 20 Gruppen (statt 10), Test rechnet alle; Auswahllisten suchen jetzt jedes Wort (pickMenu nutzt passt)~~
 - ~~AVA: eingebbare Spalten hellblau mit ✎ im Kopf, feste Werte grauer (LV, Preisspiegel, Aufträge, Aufmaß)~~

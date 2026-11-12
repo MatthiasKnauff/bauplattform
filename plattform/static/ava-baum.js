@@ -40,8 +40,28 @@ function pjBaum() {
     });
     if (on) out.push('\u0001');
   });
+  out.push(archivZeilen());
   return out.join('');
 }
+/* Archiv am Ende des Baums: archivierte LVs bzw. Aufträge, zugeklappt; aufgeklappt grau mit „Zurückholen“ (Klick öffnet zum Nachsehen) */
+let ARAUF = LS.get('arauf', false);
+function archivZeilen(sp) {   // sp = Spaltenzahl: als Tabellenzeilen (LV, Aufmaß, Aufträge), sonst als Zeilen des Baums links
+  const A = LIST.filter((x) => x.archived && !((tab === 'lv' || tab === 'angebote') && ohneLv(x)) && !((tab === 'aufmass' || tab === 'rechnungen') && !(x.vergeben || x.frei))); if (!A.length) return '';
+  const name = (x) => esc(x.ohne_auftrag || ohneLv(x) ? x.auftragnehmer || x.name : [x.nr, x.name].filter(Boolean).join(' ')), firma = (x) => (x.auftragnehmer && !ohneLv(x) ? `<small>${esc(x.auftragnehmer)}</small>` : '');
+  const knopf = (x) => `<button type="button" class="btn sm" data-arzurueck="${x.id}" title="Wieder in die Listen holen">Zurückholen</button>`;
+  const kopf = `<span class="car">${ARAUF ? '▾' : '▸'}</span>🗄<span class="t"><b>Archiv</b><small>${A.length}</small></span>`, tt = `title="Archivierte ${tab === 'auftraege' || tab === 'aufmass' || tab === 'rechnungen' ? 'Aufträge' : 'LVs'} – alles bleibt erhalten"`;
+  if (sp) return `<tr class="ar-g" data-arzu ${tt}><td colspan="${sp}"><div class="bz">${kopf}</div></td></tr>`
+    + (ARAUF ? A.map((x) => `<tr class="ar"><td colspan="${sp}"><div class="bz" style="padding-left:1.15rem">${IC.lv}<span class="t">${name(x)}${firma(x)}</span>${knopf(x)}</div></td></tr>`).join('') : '');
+  return `<div class="pj-r ar-g" data-arzu ${tt}>${kopf}</div>`
+    + (ARAUF ? A.map((x) => `<div class="pj-r lv ar${L && L.id === x.id ? ' on akt' : ''}" data-pjlv="${x.id}" title="archiviert – zum Nachsehen öffnen"><span class="car"></span>${IC.lv}<span class="t">${name(x)}${firma(x)}</span>${knopf(x)}</div>`).join('') : '');
+}
+document.addEventListener('click', async (e) => {
+  if (e.target.closest && e.target.closest('[data-arzu]')) { e.stopPropagation(); ARAUF = !ARAUF; LS.set('arauf', ARAUF); render(); return; }
+  const z = e.target.closest && e.target.closest('[data-arzurueck]'); if (!z) return; e.stopPropagation();
+  const id = +z.dataset.arzurueck, x = LIST.find((y) => y.id === id);
+  await lvSetzen(id, { archived: false }); await refreshList(); render(); toast(`„${x ? x.name : 'LV'}“ ist wieder da.`);
+  rueckgaengig(`„${x ? x.name : 'LV'}“ zurückgeholt`, async () => { await lvSetzen(id, { archived: true }); await refreshList(); render(); });
+}, true);
 let PJSEL = null, LVXZU = LS.get('lvxzu', false), LVXHOCH = false, OAZU = LS.get('oazu', false);
 document.addEventListener('click', (e) => { const c = e.target.closest && e.target.closest('[data-oazu]'); if (!c) return; e.stopPropagation(); OAZU = !OAZU; LS.set('oazu', OAZU); pjZeichnen(); });
 /* LVs im Tabellenfeld (Leistungsverzeichnis, Angebote, Aufmaß, Rechnungen): Zeilen vor dem geöffneten LV, dessen Inhalt, Zeilen danach */
@@ -94,7 +114,7 @@ function angSeite() {   // Angebote & Preisspiegel: Bereich rechts (seite.js) �
 function lvNurOrdner() {   // noch kein LV geöffnet: nur die Ordner zeigen
   const pn = (PROJ.find((p) => p.id === pid) || {}).name || '';
   return `<div class="tblw"><table class="lv baum bp-baum"><thead><tr><th style="min-width:18rem">Bezeichnung</th><th class="r">Summe</th></tr></thead><tbody><tr class="wurzel${LVAKT === '__pj' ? ' akt' : ''}" data-pjwurzel>${bpBaum.zelle({ tiefe: 0, auf: true, icon: IC.proj, html: `<b>${esc(pn)}</b>` })}<td></td></tr>
-    ${LIST.filter((x) => !x.archived && !ohneLv(x)).map((x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, (STATUS.find((st) => st[0] === x.status) || [, ''])[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td></tr>`).join('')}</tbody></table></div>`;
+    ${LIST.filter((x) => !x.archived && !ohneLv(x) && !lvWeg(x)).map((x) => `<tr class="wurzel lvz zu" data-lvopen="${x.id}" title="Öffnen">${bpBaum.zelle({ tiefe: 1, auf: false, icon: IC.lv, html: `<b>${esc(x.nr)} ${esc(x.name)}</b><span class="hint" style="margin-left:.5rem">${esc([x.gewerk, (STATUS.find((st) => st[0] === x.status) || [, ''])[1], x.auftragnehmer].filter(Boolean).join(' · '))}</span>` })}<td class="r">${x.auftrag ? eur(x.auftrag) : x.schaetzung ? eur(x.schaetzung) : ''}</td></tr>`).join('')}${archivZeilen(2)}</tbody></table></div>`;
 }
 function lvxHtml(inhalt) {
   const [a, b] = pjTeile();

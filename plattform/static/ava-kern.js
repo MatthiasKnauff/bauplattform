@@ -270,8 +270,10 @@ async function lvWegFragen(id) {
   const t = await bpEingabe(`Wirklich das LV löschen? Die Kette LV → ${[nAng && 'Angebote', auf && 'Auftrag', nRe && 'Rechnungen'].filter(Boolean).join(' → ')} ist danach unterbrochen.\nZum Bestätigen „${soll}“ eintippen:`, '', { ok: 'LV löschen', gefahr: true });
   if (t == null) return;
   if (t.trim() !== soll) { toast('Nicht gelöscht – die Eingabe passt nicht zur LV-Nummer.', true); return; }
-  try { if (L && L.id === id) await flush(); await api(`api/lv/${id}/lvweg`, 'POST', { weg: true }); await refreshList(); if (L && L.id === id) { L = await api('api/lv/' + id); } render();
-    rueckgaengig(`LV „${x.name}“ gelöscht – Angebote, Auftrag und Rechnungen bleiben`, () => lvWiederholen(id)); } catch (er) { toast(er.message, true); }
+  try { if (L && L.id === id) await flush(); await api(`api/lv/${id}/lvweg`, 'POST', { weg: true }); await refreshList();
+    if (L && L.id === id) { if (tab === 'lv' || tab === 'tueren') { const n = LIST.find((y) => !y.archived && !ohneLv(y) && !lvWeg(y)); if (n) await openLv(n.id); else L = null; } else L = await api('api/lv/' + id); }   // in der Ausschreibung ist es weg – das nächste LV zeigen
+    render();
+    rueckgaengig(`LV „${x.name}“ gelöscht – Angebote, Auftrag und Rechnungen bleiben (unter Vergabe und Aufträge)`, () => lvWiederholen(id)); } catch (er) { toast(er.message, true); }
 }
 async function lvWiederholen(id) { try { await api(`api/lv/${id}/lvweg`, 'POST', { weg: false }); await refreshList(); if (L && L.id === id) L = await api('api/lv/' + id); render(); toast('LV wiederhergestellt.'); } catch (er) { toast(er.message, true); } }
 /* Löschen in der Titelzeile – je Bereich das Gewählte: Rechnung, Angebot, sonst das ganze LV (immer in den Papierkorb) */

@@ -283,12 +283,13 @@
   }
 
   /* Layout-Editor der Verwaltung als großes Fenster über der App (kein neues Browserfenster) */
-  H.layoutEditor = function (adminUrl, bereich, zu) {
+  H.layoutEditor = function (adminUrl, bereich, zu, neu) {   // neu(): nach jedem Speichern im Editor (Vorschau dahinter sofort neu)
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg';
     bg.innerHTML = `<div class="bph-dlg" role="dialog" aria-label="Druck-Layout bearbeiten" style="width:min(1500px,97vw);height:94vh;max-height:none;display:flex;flex-direction:column;resize:both;overflow:hidden;min-width:min(720px,97vw);min-height:420px">
       <div class="bph-dh"><b>Druck-Layout bearbeiten</b><span class="bph-mu" style="font-size:.8rem;margin-left:.6rem">wird laufend gespeichert</span><span style="flex:1"></span><button type="button" class="bph-btn" data-lw title="Den Editor in einem eigenen Browserfenster öffnen – z. B. auf dem zweiten Bildschirm">⧉ Eigenes Fenster</button><button type="button" class="bph-btn pri" data-lx style="margin-left:.4rem">Fertig</button></div>
       <iframe title="Druck-Layout" src="${esc(adminUrl)}/layout?einbetten=1#${encodeURIComponent(bereich)}" style="flex:1;border:0;width:100%;background:var(--bph-card,#fff)"></iframe></div>`;
     document.body.appendChild(bg); try { dlgBeweglich(bg.querySelector('.bph-dlg')); } catch { /* egal */ }
+    let nt = 0; const gesp = (e) => { if (!bg.isConnected) { removeEventListener('message', gesp); return; } if (neu && e.data && e.data.bph === 'layoutGespeichert' && e.source === bg.querySelector('iframe').contentWindow) { clearTimeout(nt); nt = setTimeout(neu, 300); } }; addEventListener('message', gesp);
     bg.addEventListener('click', async (e) => {   // daneben klicken schließt nicht
       if (e.target.closest('[data-lw]')) {   // auf Wunsch: eigenes Browserfenster (zweiter Bildschirm)
         try { const w = bg.querySelector('iframe').contentWindow; if (w && w.layoutSichern) await w.layoutSichern(); } catch { /* anderer Ursprung */ }

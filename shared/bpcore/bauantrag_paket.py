@@ -26,7 +26,14 @@ VORSCHLAEGE = [
 ]
 _FELDZAHL = {}
 LESER = None   # (project_id, pfad) → bytes: Datei aus dem Projektordner – setzt die App (liest über das Bautagebuch)
-_DATEIEN = {}   # (project_id, pfad) → (Zeit, bytes): kurz behalten, damit Vorschau und Paket nicht jedes Mal vom Server lesen
+_DATEIEN = {}   # (project_id, pfad) → (Tag, bytes): bis Mitternacht behalten, damit Vorschau und Paket nicht jedes Mal vom Server lesen
+_DATEIEN_MAX = 200 * 1024 * 1024   # höchstens so viel im Speicher (älteste zuerst raus)
+
+
+def dateien_vergessen(project_id=None):
+    """„↻ Projektordner neu einlesen“: Zwischenspeicher leeren – z. B. nach einem neuen Plan-Index am selben Tag."""
+    for k in [k for k in _DATEIEN if project_id is None or k[0] == project_id]:
+        _DATEIEN.pop(k, None)
 
 
 def unterlage_daten(u, project_id):
@@ -37,14 +44,15 @@ def unterlage_daten(u, project_id):
     if not pfad or not LESER or not project_id:
         return None
     k = (project_id, pfad)
+    heute = time.strftime("%Y-%m-%d")
     hit = _DATEIEN.get(k)
-    if hit and time.time() - hit[0] < 600:
+    if hit and hit[0] == heute:
         return hit[1]
     d = LESER(project_id, pfad)
     if d:
-        if len(_DATEIEN) >= 40:
-            _DATEIEN.pop(min(_DATEIEN, key=lambda x: _DATEIEN[x][0]))
-        _DATEIEN[k] = (time.time(), d)
+        _DATEIEN[k] = (heute, d)
+        while sum(len(v[1]) for v in _DATEIEN.values()) > _DATEIEN_MAX and len(_DATEIEN) > 1:
+            _DATEIEN.pop(next(iter(_DATEIEN)))   # zuerst gelesene zuerst
     return d
 
 

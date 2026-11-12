@@ -256,6 +256,8 @@ def holen(aid):
         a = _antrag(c, aid)
         if not a:
             return jsonify(error="Antrag nicht gefunden."), 404
+        if request.args.get("neu") == "1":   # neu einlesen: auch die zwischengespeicherten Unterlagen frisch vom Server
+            BP.dateien_vergessen(a["project_id"])
         return jsonify(_detail(c, a, _dateien(a["project_id"], request.args.get("neu") == "1")))
 
 

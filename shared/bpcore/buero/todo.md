@@ -122,7 +122,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
-- ~~Bauantrag: eigene Unterlagen und beigelegte Pläne nur als Verweis auf den Projektordner (Paket liest sie frisch, 10 min Zwischenspeicher); Testserver zum Ausprobieren weiter in der Datenbank~~
+- ~~Bauantrag: eigene Unterlagen und beigelegte Pläne nur als Verweis auf den Projektordner (Paket liest sie vom Server, Zwischenspeicher bis Mitternacht, „↻ neu einlesen“ leert ihn); Testserver zum Ausprobieren weiter in der Datenbank~~
 - ~~Dokumente auf den Dateiserver: unterschriebene Vergabeunterlagen und Rechnungen der Fachplaner liegen im Projektordner, in der Datenbank nur der Verweis (ältere bleiben lesbar)~~
 - ~~Datei ablegen: „Im Ordnerbaum wählen …“ als letzte Möglichkeit~~
 - ~~Zeiten: Kommen und Gehen als deutliche Linie im Zeitstrahl (gestrichelt = Vorschlag)~~

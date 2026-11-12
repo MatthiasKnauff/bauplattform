@@ -1327,7 +1327,7 @@ def lv_liste():
                         "ohne_lv": bool(V.get("frei") and V.get("ohne_lv", True)), "ohne_auftrag": bool(V.get("ohne_auftrag")), "kg": str((d.get("meta") or {}).get("kg") or ""), "lv_weg": (d.get("meta") or {}).get("lv_weg") or None, "nicht_vergeben": V.get("nicht_vergeben") if r["status"] == "nicht_vergeben" else None,
                         "angebote": [{"id": a["id"], "bieter": a["bieter"], **{f: x[f] for f in ("netto", "rang", "fehlt") if f in x}}
                                      for a in ang for x in k["angebote"] if x["id"] == a["id"]],
-                        "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "status": x["status"], "re_nr": x["re_nr"],
+                        "rechnungen": [{"id": x["id"], "nr": x["nr"], "art": x["art"], "status": x["status"], "re_nr": x["re_nr"], "titel": (_j(x["data"], {}) or {}).get("titel") or "",
                                         "anerkannt": rc["anerkannt"], "zahlung": rc["zahlung"]}
                                        for x in sorted(re_, key=lambda y: y["nr"]) for rc in k["rechnungen"] if rc["id"] == x["id"]]})
     return jsonify(out)
@@ -4873,6 +4873,12 @@ def rechnung(k):
                     d.pop(k_, None)
                 else:
                     d[k_] = round(_f(b[k_], 0, 0, 100), 3) if k_ == "skonto" else int(_f(b[k_], 0, 0, 365))
+        if "titel" in b:   # eigener Name im Baum (Doppelklick) – Nummer, Art und Ausdrucke bleiben, leer = wieder „3. Teilrechnung“ usw.
+            t_ = _s(b["titel"], 80).strip()
+            if t_:
+                d["titel"] = t_
+            else:
+                d.pop("titel", None)
         if "bezahlt" in b:   # Zahlung angewiesen/erfolgt am – danach keine Skonto-Erinnerung mehr
             if b["bezahlt"]:
                 d["bezahlt"] = _s(b["bezahlt"], 10)

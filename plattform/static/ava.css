@@ -770,3 +770,5 @@ tr.ar-g td{color:var(--mute);cursor:pointer;border-top:1px solid var(--line)}tr.
 
 /* Aufmaßprüfung: zugeklappte Titel – Zeilen nur eingeklappt, die Spaltenbreiten bleiben stehen (kein Springen) */
 table.lv.am tr.am-weg{visibility:collapse}
+/* Baum der Aufmaßprüfung: feste Spaltenbreiten (aus den Spaltenköpfen) – Auf-/Zuklappen und Wechsel der Rechnung ändern nichts an den Spalten */
+.am-split.am-baum>.am-l table.am.pjtree{table-layout:fixed;min-width:44rem}.am-split.am-baum table.am.pjtree td:not(.baumz){overflow:hidden;text-overflow:ellipsis}

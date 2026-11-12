@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-aufmass-baum",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Aufmaßprüfung: Baum klappt ruhig",
+  "text": "Ein Klick irgendwo auf eine Zeile (Projekt, LV, Rechnung, Titel) klappt darunter auf oder zu – die Zeile bleibt genau an ihrer Stelle, die Spalten bleiben gleich breit. Öffnest du einen Titel (z. B. einen Nachtrag), klappen die anderen derselben Ebene zu. Doppelklick auf eine Rechnung: umbenennen (Nummer und Art bleiben).",
+  "ziel": "table.am.pjtree"
+ },
+ {
   "id": "2026-11-12-bauantrag-schritte",
   "datum": "2026-11-12",
   "app": "bauantrag",

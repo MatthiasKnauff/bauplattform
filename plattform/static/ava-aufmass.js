@@ -255,21 +255,21 @@ function vAmErfassen() {
   // Baum wie bei den Aufträgen: Projekt → LV → Rechnung → Positionen; die Eingabe steht im Bereich rechts (seite.js)
   const NCa = (B.length ? 6 : 5) + (amZw ? 1 : 0), pn = (PROJ.find((q) => q.id === pid) || {}).name || '';
   const mehr = `<tr><td colspan="${NCa}"><div class="bz" style="padding-left:${R0 * 1.15}rem"><button type="button" class="ib" data-amnt title="Leistung, die nicht im LV steht: kommt als Nachtrag „angemeldet“ in den Auftrag, Aufmaß gleich darunter erfassen">＋ Position (Nachtrag)</button></div></td></tr>`;
-  const zeilen = [`<tr class="wurzel"><td class="baumz"><div class="bz"><span class="car">▾</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NCa - 1}"></td></tr>`];
-  LIST.filter((y) => !y.archived && (y.vergeben || y.frei || y.id === L.id)).forEach((y) => {
-    const on = y.id === L.id, offen = on || PJX.has(y.id);
+  const zeilen = [`<tr class="wurzel" data-amproj style="cursor:pointer"><td class="baumz"><div class="bz"><span class="car">${AMPZU ? '▸' : '▾'}</span>${IC.proj}<b>${esc(pn)}</b></div></td><td colspan="${NCa - 1}"></td></tr>`];
+  if (!AMPZU) LIST.filter((y) => !y.archived && (y.vergeben || y.frei || y.id === L.id)).forEach((y) => {
+    const on = y.id === L.id, offen = on ? !AMLVZU : PJX.has(y.id);
     zeilen.push(`<tr class="wurzel lvz${on ? ' an' : ' zu'}" data-pjlv="${y.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:1.15rem"><span class="car">${offen ? '▾' : '▸'}</span>${IC.lv}<b class="t">${esc([y.nr, y.name].filter(Boolean).join(' '))}</b><span class="hint" style="margin-left:.5rem">${esc(y.auftragnehmer || '')}</span></div></td><td colspan="${NCa - 2}"></td><td class="r">${y.auftrag ? nf2(y.auftrag) : ''}</td></tr>`);
     if (!offen) return;
     const RR = on ? L.rechnungen : (y.rechnungen || []);
-    RR.forEach((k) => { const akt = on && R && R.id === k.id;
-      zeilen.push(`<tr class="am-rz${akt ? ' an' : ''}" data-pjlv="${y.id}" data-pjsub="r${k.id}" style="cursor:pointer"><td class="baumz"><div class="bz" style="padding-left:2.3rem"><span class="car">${akt ? '▾' : '▸'}</span>${IC.ti}<span class="t"${akt ? ' style="font-weight:600"' : ''}>${esc(reTitel(k, y.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span></span></div></td><td colspan="${NCa - 2}"></td><td class="r">${k.zahlung != null ? nf2(k.zahlung) : ''}</td></tr>`);
-      if (akt) zeilen.push(liste + mehr); });
+    RR.forEach((k) => { const akt = on && R && R.id === k.id, auf = akt && !AMRZU.has(k.id);
+      zeilen.push(`<tr class="am-rz${akt ? ' an' : ''}" data-pjlv="${y.id}" data-pjsub="r${k.id}" style="cursor:pointer" title="Klick: auf-/zuklappen · Doppelklick: umbenennen"><td class="baumz"><div class="bz" style="padding-left:2.3rem"><span class="car">${auf ? '▾' : '▸'}</span>${IC.ti}<span class="t"${akt ? ' style="font-weight:600"' : ''}>${esc(reTitel(k, y.id))} <span class="${k.status === 'geprueft' ? 'ok' : 'offen'}">${k.status === 'geprueft' ? '✓' : '●'}</span></span></div></td><td colspan="${NCa - 2}"></td><td class="r">${k.zahlung != null ? nf2(k.zahlung) : ''}</td></tr>`);
+      if (auf) zeilen.push(liste + mehr); });
     if (on && !R) zeilen.push(liste + mehr);
   });
-  zeilen.push(archivZeilen(NCa));
+  if (!AMPZU) zeilen.push(archivZeilen(NCa));
   const nB = B.length, ablage = R && R.status === 'geprueft' ? '' : `<div class="re-bel am-bel" data-amdrop>${B.map((b) => `<span class="re-b" title="${esc(b.ablage ? 'Im Projektordner: ' + b.ablage : 'nur in der Plattform gespeichert')}">📄 ${esc(b.name)}</span>`).join('')}<label class="re-bel-ziel${nB ? ' kl' : ''}" title="Rechnung oder Aufmaßblätter der Firma als PDF, Scan oder Foto – hierher ziehen oder klicken und auswählen"><span class="i">⤓</span><span>${nB ? 'weiteres Dokument hierher ziehen oder <u>auswählen</u>' : '<b>Aufmaß / Rechnung der Firma hierher ziehen</b> oder <u>auswählen</u> <small>· PDF, Scan oder Foto</small>'}</span><input type="file" accept=".pdf,application/pdf,image/*,.docx" multiple hidden data-ambeleg></label></div>`;   // wie in der Rechnung
   AMTEIL = { ein: ablage + detail, rech: R ? amSummenKarte(R) + amFehltKarte(R) + amZeilenKarte(R) : '' };
-  return `<div class="am-split am-baum" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"><div class="am-l"><div class="tblw"><table class="lv am baum bp-baum pjtree" data-sp="ava.am"><thead><tr><th style="min-width:16rem">Bezeichnung</th><th class="r">LV-Menge</th>${B.length ? '<th class="r" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}${amZw ? '<th class="am-rw" title="Rechenweg je Aufmaßzeile – hier direkt änderbar (Enter: nächste Zeile)">Rechenweg</th>' : ''}<th class="r">aufgemessen</th><th class="r" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r">Betrag</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
+  return `<div class="am-split am-baum" data-amdrop title="PDF der Firma hierher ziehen oder unten links „Ablegen“"><div class="am-l"><div class="tblw"><table class="lv am baum bp-baum pjtree" data-sp="ava.am"><thead><tr><th>Bezeichnung</th><th class="r" style="width:7rem">LV-Menge</th>${B.length ? '<th class="r" style="width:5.5rem" title="Menge lt. PDF der Firma">lt. Firma</th>' : ''}${amZw ? '<th class="am-rw" style="width:12rem" title="Rechenweg je Aufmaßzeile – hier direkt änderbar (Enter: nächste Zeile)">Rechenweg</th>' : ''}<th class="r" style="width:7.5rem">aufgemessen</th><th class="r" style="width:6.5rem" title="Einheitspreis des Auftrags (orange: die Firma rechnet mit einem anderen EP)">EP</th><th class="r" style="width:7.5rem">Betrag</th></tr></thead><tbody>${zeilen.join('')}</tbody></table></div></div></div>`;
 }
 /* Aufmaß: Schieber zwischen Positionen und Mengeneingabe (ohne PDF waagerecht verschieben, mit PDF die Höhe) – gemerkt, Doppelklick = Standard */
 document.addEventListener('pointerdown', (e) => {
@@ -654,6 +654,7 @@ function amWeiter() {
   amPos = o.id; LS.set('amPos', amPos); render(); toast('Letzte Position – weiter mit der ersten noch offenen.'); fokus();
 }
 function amSichtbar() {   // aktive Zeile in der Positionsliste sichtbar halten – die Tabelle folgt beim Durchlaufen (Enter / nächste)
+  if (AMHALT) { AMHALT = false; return; }   // nach einem Klick im Baum: nichts rollen – die geklickte Zeile bleibt, wo sie war
   const z = document.querySelector('table.am tr.akt[data-ampos]'), w = z && (z.closest('.am-tab, .am-oben') || z.closest('.tblw')); if (!w) return;
   const kopf = w.querySelector('thead');
   if (w.scrollHeight > w.clientHeight + 2 && getComputedStyle(w).overflowY !== 'visible') {   // eigener Scrollbereich
@@ -764,6 +765,51 @@ async function raumDialog() {
   bg.addEventListener('change', (e) => { if (e.target.id === 'rmAll') bg.querySelectorAll('[data-rm]').forEach((x) => { x.checked = e.target.checked; }); });
 }
 
+/* Baum der Aufmaßprüfung: ein Klick irgendwo auf eine Zeile klappt darunter auf oder zu – die geklickte Zeile bleibt genau an ihrer Stelle.
+   Projekt → LVs, LV → Rechnungen, Rechnung → Positionen (eine andere Rechnung wird dabei gewählt). Doppelklick auf eine Rechnung: umbenennen. */
+let AMPZU = false, AMLVZU = false, AMHALT = false;
+const AMRZU = new Set(LS.get('amrzu', []));
+function amAnker(tr) {   // Lage der Zeile merken → nach dem Neuzeichnen dieselbe Zeile wieder genau dorthin rollen
+  const sel = tr.dataset.amti ? `table.am tr[data-amti="${CSS.escape(tr.dataset.amti)}"]` : tr.hasAttribute('data-amproj') ? 'table.am tr[data-amproj]' : `table.am tr[data-pjlv="${tr.dataset.pjlv}"]${tr.dataset.pjsub ? `[data-pjsub="${tr.dataset.pjsub}"]` : ':not([data-pjsub])'}`;
+  const y0 = tr.getBoundingClientRect().top;
+  return () => {
+    const n = document.querySelector(sel); if (!n) return;
+    const d = n.getBoundingClientRect().top - y0; if (Math.abs(d) < 1) return;
+    let w = n.parentElement; while (w && w !== document.body && !(w.scrollHeight > w.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(w).overflowY))) w = w.parentElement;
+    if (w && w !== document.body) w.scrollTop += d; else scrollBy(0, d);
+  };
+}
+document.addEventListener('click', async (e) => {
+  if (tab !== 'aufmass' || !e.target.closest) return;
+  const tr = e.target.closest('table.am.pjtree tr[data-amproj], table.am.pjtree tr.lvz[data-pjlv], table.am.pjtree tr.am-rz[data-pjsub]'); if (!tr || e.target.closest('input,button,a')) return;
+  e.stopPropagation();
+  if (e.detail > 1) return;   // zweiter Klick eines Doppelklicks: nicht nochmal klappen
+  const zurueck = amAnker(tr); AMHALT = true;
+  if (tr.hasAttribute('data-amproj')) AMPZU = !AMPZU;
+  else if (!tr.dataset.pjsub) {   // LV: auf-/zuklappen – beim Aufklappen klappen die anderen LVs zu
+    const id = +tr.dataset.pjlv;
+    if (id === L.id) { AMLVZU = !AMLVZU; if (!AMLVZU) PJX.clear(); }
+    else if (PJX.has(id)) PJX.delete(id); else { PJX.clear(); PJX.add(id); AMLVZU = true; }
+    LS.set('pjx', [...PJX].slice(-100)); PJXG = true;
+  }
+  else {
+    const id = +tr.dataset.pjlv, sub = tr.dataset.pjsub, rid = +sub.slice(1);
+    if (id === L.id && PJSEL === sub) { if (AMRZU.has(rid)) AMRZU.delete(rid); else AMRZU.add(rid); LS.set('amrzu', [...AMRZU].slice(-200)); }
+    else {   // andere Rechnung: wählen und aufgeklappt zeigen
+      AMRZU.delete(rid); PJSEL = sub; PJX.clear(); PJX.add(id);   // ohne PJF: der Baum rollt nicht zur Zeile, sie bleibt, wo sie ist LS.set('pjx', [...PJX].slice(-100)); amAns = 'erfassen';
+      const x = LIST.find((y) => y.id === id); (x ? x.rechnungen : []).forEach((q) => { AMX['r' + q.id] = 'r' + q.id === sub; }); AMX.rlive = false; LS.set('amx', AMX);
+      if (id !== L.id) { AMLVZU = false; await flush(); await openLv(id); zurueck(); return; }
+    }
+  }
+  render(); zurueck();
+}, true);
+document.addEventListener('dblclick', (e) => {   // Rechnung umbenennen – nur der Name im Baum, Nummer und Art (und die Ausdrucke) bleiben
+  if (tab !== 'aufmass' || !e.target.closest) return;
+  const tr = e.target.closest('table.am.pjtree tr.am-rz[data-pjsub]'); if (!tr || e.target.closest('input')) return;
+  const sel = `table.am tr[data-pjlv="${tr.dataset.pjlv}"][data-pjsub="${tr.dataset.pjsub}"]`;
+  setTimeout(() => { const n = document.querySelector(sel); if (n) pjUmbenennen(n); }, 60);   // nach dem Neuzeichnen des ersten Klicks
+});
+
 /* Aufmaßprüfung: Positionen unter ihren LV-Titeln (wie im LV), Titel auf- und zuklappbar (je Browser gemerkt) */
 const AMZU = new Set(LS.get('amzu', []));
 function amTitelBaum(LI) {
@@ -790,9 +836,15 @@ function amBaumZeilen(LI, Z, TB, R0, nc) {   // alle Zeilen werden gezeichnet; z
 }
 document.addEventListener('click', (e) => {   // nur die betroffenen Zeilen ein-/ausklappen – kein Neuzeichnen, nichts springt
   const t = e.target.closest && e.target.closest('[data-amti]'); if (!t || tab !== 'aufmass') return;
-  const id = t.dataset.amti; if (AMZU.has(id)) AMZU.delete(id); else AMZU.add(id); LS.set('amzu', [...AMZU].slice(-300));
-  t.querySelector('.car').textContent = AMZU.has(id) ? '▸' : '▾';
-  t.closest('tbody').querySelectorAll('[data-amp]').forEach((r) => r.classList.toggle('am-weg', r.dataset.amp.split(' ').some((x) => AMZU.has(x))));
+  const id = t.dataset.amti, zurueck = amAnker(t), tb = t.closest('tbody');
+  if (AMZU.has(id)) {   // aufklappen – die anderen Titel derselben Ebene klappen zu (immer nur einer offen)
+    AMZU.delete(id);
+    tb.querySelectorAll(`tr[data-amti][data-amp="${CSS.escape(t.dataset.amp)}"]`).forEach((r) => { if (r !== t) AMZU.add(r.dataset.amti); });
+  } else AMZU.add(id);
+  LS.set('amzu', [...AMZU].slice(-300));
+  tb.querySelectorAll('tr[data-amti]').forEach((r) => { r.querySelector('.car').textContent = AMZU.has(r.dataset.amti) ? '▸' : '▾'; });
+  tb.querySelectorAll('[data-amp]').forEach((r) => r.classList.toggle('am-weg', r.dataset.amp.split(' ').some((x) => AMZU.has(x))));
+  zurueck();
 });
 
 /* Mengenüberschreitung: kleiner Balken unter der aufgemessenen Menge – ab 100 % gelb, bis 110 % orange, darüber rot

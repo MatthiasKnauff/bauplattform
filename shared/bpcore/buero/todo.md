@@ -133,6 +133,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~AVA Aufmaßprüfung: Baum einheitlich – Klick auf die ganze Zeile klappt, Zeile bleibt stehen, feste Spalten, immer nur ein Titel je Ebene offen, Doppelklick auf Rechnung benennt um~~
 - ~~Bauantrag: ein Weg statt drei – links die sechs Schritte, oben keine Schrittleiste mehr, rechts folgt das Blatt (Schritt 5: Datei der Bauvorlage)~~
 - ~~AVA Aufmaßprüfung: Titel auf-/zuklappen ohne Neuzeichnen – Spalten bleiben stehen, nichts flackert, richtige Zeilen klappen~~
 - ~~Gendern mit Doppelpunkt in Oberfläche, Schreiben, Verträgen und Ausdrucken (gut 400 Stellen); Feldnamen, Protokoll-Einträge und gespeicherte Werte bleiben unverändert~~

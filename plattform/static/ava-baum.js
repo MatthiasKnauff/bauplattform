@@ -129,9 +129,9 @@ function pjUmbenennen(r) {
   let alt, ziel;
   if (!sub) { alt = [x.nr, x.name].filter(Boolean).join(' '); ziel = 'lv'; }
   else if (sub[0] === 'b') { const k = x.angebote.find((y) => 'b' + y.id === sub); if (!k) return; alt = k.bieter; ziel = 'ang'; }
-  else { const k = x.rechnungen.find((y) => 'r' + y.id === sub); if (!k) return; alt = k.re_nr || ''; ziel = 're'; }
+  else { const k = x.rechnungen.find((y) => 'r' + y.id === sub); if (!k) return; alt = reTitel(k, id); ziel = 're'; }   // eigener Name – Nummer, Art und Ausdrucke bleiben
   const html0 = t.innerHTML;
-  t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'Rechnungsnummer der Firma' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
+  t.innerHTML = `<input class="pj-ren" value="${esc(alt)}" placeholder="${ziel === 're' ? 'Name (leer = wie vorher, z. B. 3. Teilrechnung)' : ziel === 'lv' ? 'Nr. und Bezeichnung, z. B. 03 Rohbau' : 'Bieter'}" aria-label="Neuer Name">`;
   const i = t.querySelector('input'); i.focus(); i.select();
   let fertig = false, gw = null;
   if (ziel === 'lv') {   // Gewerke aus den Kontakten vorschlagen – die Nummer davor bleibt
@@ -150,11 +150,12 @@ function pjUmbenennen(r) {
   }
   const ende = async (ok) => {
     if (fertig) return; fertig = true;
-    const v = i.value.trim(); if (!ok || !v || v === alt) { t.innerHTML = html0; return; }
+    const v = i.value.trim(); if (!ok || (!v && ziel !== 're') || v === alt) { t.innerHTML = html0; return; }
     try {
       if (ziel === 'lv') { const m = /^(\d[\w.-]{0,8})\s+(.+)$/.exec(v); const neu = m ? { nr: m[1], name: m[2] } : { name: v }; if (gw && !x.gewerk) neu.gewerk = gw; const vorher = { nr: x.nr, name: x.name, ...(neu.gewerk ? { gewerk: x.gewerk || '' } : {}) }; await lvSetzen(id, neu); rueckgaengig(`LV umbenannt in „${v}“`, () => lvSetzen(id, vorher)); }
       else if (ziel === 'ang') { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: v }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); rueckgaengig(`Angebot umbenannt in „${v}“`, async () => { await api('api/angebote/' + sub.slice(1), 'PUT', { bieter: alt }); if (L && L.id === id) L = await api('api/lv/' + id); await refreshList(); render(); }); }
-      else { await call('api/rechnungen/' + sub.slice(1), 'PUT', { re_nr: v }); }
+      else { const k = x.rechnungen.find((y) => 'r' + y.id === sub), vorher = (k && k.titel) || '';
+        await call('api/rechnungen/' + sub.slice(1), 'PUT', { titel: v }); rueckgaengig(`Rechnung umbenannt in „${v || reTitelStd(k, id)}“`, () => call('api/rechnungen/' + sub.slice(1), 'PUT', { titel: vorher })); }
     } catch (er) { toast(er.message, true); t.innerHTML = html0; }
   };
   i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ende(true); } if (e.key === 'Escape') { e.preventDefault(); ende(false); } e.stopPropagation(); });
@@ -190,7 +191,7 @@ document.addEventListener('bph:kontext', (e) => {   // rechte Maustaste im Baum
       ? { text: 'Prüfung zurücknehmen', fn: () => kmLv(lvId, () => call('api/rechnungen/' + rid, 'PUT', { status: 'offen' })) }
       : { text: 'Prüfung abschließen', fn: () => kmLv(lvId, async () => { await call('api/rechnungen/' + rid, 'PUT', { status: 'geprueft' }); rueckgaengig('Prüfung abgeschlossen – der Aufmaßstand ist festgehalten', () => call('api/rechnungen/' + rid, 'PUT', { status: 'offen' })); }) });
   }
-  e.detail.punkte.push({ text: r.dataset.pjsub && r.dataset.pjsub[0] === 'r' ? 'Rechnungsnummer ändern' : 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`.pjtree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
+  e.detail.punkte.push({ text: 'Umbenennen', k: 'F2', fn: () => { if (!r.classList.contains(r.dataset.pjsub ? 'on' : 'akt')) r.click(); setTimeout(() => { const n = document.querySelector(`.pjtree [data-pjlv="${r.dataset.pjlv}"]${r.dataset.pjsub ? `[data-pjsub="${r.dataset.pjsub}"]` : ':not([data-pjsub])'}`); if (n) pjUmbenennen(n); }, 400); } });
   if (!r.dataset.pjsub) e.detail.punkte.push({ text: 'LV- & Auftragsdaten …', fn: async () => { if (!L || L.id !== +r.dataset.pjlv) { await flush(); await openLv(+r.dataset.pjlv); } lvDaten(); } });
   if (r.dataset.pjsub && r.dataset.pjsub[0] === 'b') e.detail.punkte.push({ text: 'Angaben zum Angebot …', fn: () => angebotDaten(+r.dataset.pjsub.slice(1)) });
   if (r.dataset.pjsub) {   // nur dieses Angebot / diese Rechnung löschen (nicht das LV)

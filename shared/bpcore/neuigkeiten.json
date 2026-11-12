@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-preisspiegel-fest",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Preisspiegel: nach der Vergabe fest, Spalte ↔ Baum",
+  "text": "Ist das LV vergeben, lassen sich Preise, Namen, Nachlass und Skonto der Angebote nicht mehr ändern (erst nach „Vergabe aufheben“). Ein Angebot im Baum markiert seine Spalte im Preisspiegel – ein Klick auf den Spaltenkopf wählt das Angebot im Baum.",
+  "ziel": "table.ps"
+ },
+ {
   "id": "2026-11-12-druckseite-eine",
   "datum": "2026-11-12",
   "app": "",

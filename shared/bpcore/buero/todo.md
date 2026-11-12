@@ -3,6 +3,7 @@
 Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
+- AVA Schritt „Besprechung“: eigene Ansicht mit Protokoll je Bieter:in, Blanko-Druck für die Baustelle, digital unterschreiben (Bieter:in + Bauleitung), Scan einlesen oder im Projektordner finden – Mock gezeigt, wartet auf GO **ca. 45–60 Min.**
 
 
 - Suchfeld mit Filtern in den übrigen Listen: Verschickt (Server-Suche umstellen), Termine, Erinnerungen, Pläne, Ausschreibung, Baudaten **je App ca. 15 min**
@@ -133,6 +134,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~AVA Preisspiegel: nach der Vergabe fest (kein ✎, keine Eingaben), Angebot im Baum ↔ markierte Spalte~~
 - ~~Drucken: eine Druckseite für alle Apps (Layouts, Teile, Zoom, PDF, Drucken), Seiten zeichnet überall derselbe Baustein (BPHead.pdfSeite), Ansehen-Fenster mit derselben Zoomleiste und Strg+Mausrad~~
 - ~~Bautagebuch: Vorschläge laut Bauzeitenplan wieder mit „nicht da“ (Begründung) neben Bestätigen und Löschen; Knopf „Kopfdaten“ entfernt~~
 - ~~AVA: Doppelklick auf eine Rechnung in jedem Baum – Erklärung hinter dem Namen (z. B. „3. Teilrechnung · Rohbau EG“), Nummer und Art bleiben~~

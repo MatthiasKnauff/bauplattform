@@ -736,6 +736,7 @@ html[data-rahmen]:not([data-rahmen=""]) .ava-drop{border-style:dashed!important;
 
 /* Spalten wählen und ordnen (/bp/spalten.js) */
 .bp-sp-aus{display:none!important}
+.bp-sp-grau{opacity:.38}.bp-sp-grau input{pointer-events:auto}.bp-spm-gr{opacity:.55;text-decoration:line-through}.bp-spm-hz{margin-left:auto;font-size:.75em;color:var(--mute,#9a9c9e)}   /* dritter Zustand der Spaltenauswahl: ausgegraut */
 .bp-spm{position:fixed;z-index:1200;background:var(--card,#2d2f33);color:var(--ink,#f3f3f1);border:1px solid var(--line,#3b3e42);border-radius:calc(10px*var(--rk,1));box-shadow:var(--sh0,0 12px 32px rgba(0,0,0,.22));padding:.3rem;min-width:13rem;max-height:80vh;overflow:auto;font:14px/1.3 Ubuntu,"Segoe UI",system-ui,sans-serif}
 .bp-spm-k{display:flex;align-items:center;justify-content:space-between;padding:.15rem .35rem .3rem;border-bottom:1px solid var(--line,#3b3e42);margin-bottom:.2rem}
 .bp-spm-x,.bp-spm-f button{all:unset;cursor:pointer;padding:0 .3rem;color:var(--mute,#9a9c9e)}.bp-spm-f{padding:.3rem .35rem .1rem;border-top:1px solid var(--line,#3b3e42);margin-top:.2rem}.bp-spm-f button{text-decoration:underline}

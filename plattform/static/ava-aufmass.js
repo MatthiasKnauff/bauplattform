@@ -9,7 +9,7 @@ const auftragKonditionen = (V) => `<span class="vk hint" style="display:inline-f
   <input data-ang="v_nachlass_eur" value="${V.nachlass_eur ? nf(V.nachlass_eur, 2) : ''}" placeholder="€" style="width:5.5rem" inputmode="decimal" title="Nachlass als fester Betrag netto – wird anteilig auf jede Rechnung umgelegt">
   · Skonto <input data-ang="v_skonto" value="${V.skonto ? nf(V.skonto, 2) : ''}" placeholder="%" style="width:3.6rem" inputmode="decimal"> % in
   <input data-ang="v_skonto_tage" value="${V.skonto_tage || ''}" placeholder="Anzahl" style="width:3.6rem" inputmode="numeric" title="Frist ab Rechnungseingang">
-  <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (Mo–So)'], ['wt', 'Werktagen (Mo–Sa)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>`;
+  <select data-ang="v_skonto_art" title="Wie die Skontofrist gezählt wird">${[['kt', 'Kalendertagen (Mo–So)'], ['wt', 'Werktagen (Mo–Sa)'], ['at', 'Arbeitstagen (Mo–Fr)'], ['wo', 'Wochen']].map(([k, l]) => `<option value="${k}"${(V.skonto_art || 'kt') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></span>`;
 function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiegel, ohne = beides
   const P = posOf().filter((x) => !x.nt), A = L.angebote, K = L.calc, kA = Object.fromEntries(K.angebote.map((a) => [a.id, a])), V = L.vergabe;
   const NV = L.status === 'nicht_vergeben' && !V.bieter ? (V.nicht_vergeben || {}) : null;
@@ -23,19 +23,21 @@ function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiege
   const head0 = head; { /* Preisspiegel allein: ohne Vergabe-Karte */ }
   if (!A.length) return (teil === 'ps' ? '' : head0) + `<div class="card empty"><p>Noch keine Angebote. Bieter hinzufügen und Preise eintragen – oder die GAEB-Datei (X84) bzw. das ausgefüllte Excel einer Firma einlesen.</p>
     <p class="hint">Das LV gibst du oben rechts unter „Export“ als GAEB X83, Excel oder PDF an die Bieter.</p></div>`;
-  const best = (id) => { const v = A.map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
+  const PSK = `ava.ps.${L.id}`, AUS = psOhne(A);   // Bieter grau/aus (Spaltenauswahl): zählen nicht für „günstigster“ und Mittel
+  const best = (id) => { const v = A.filter((a) => !AUS.has(a.id)).map((a) => a.preise[id]).filter((x) => x != null); return { mn: v.length > 1 ? Math.min(...v) : null, mit: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null }; };
   const rows = items().filter((x) => !x.nt).map((x) => {
     if (x.typ === 'titel') return `<tr class="ti"><td class="oz">${esc(x.oz)}</td><td colspan="${3 + A.length}">${esc(x.kurz)}</td></tr>`;
     if (x.art === 'T') return '';
     const b = best(x.id);
     return `<tr><td class="oz">${esc(x.oz)}</td><td>${esc(x.kurz)}${x.art !== 'N' ? `<span class="badge">${esc(ARTEN[artW(x)])}</span>` : ''}</td><td class="r">${nf(x.menge)}</td><td>${esc(x.einheit)}</td>`
       + A.map((a) => { const e = a.preise[x.id]; const cls = e != null && b.mn != null && e === b.mn ? 'min' : e != null && b.mit && Math.abs(e / b.mit - 1) > 0.3 ? 'aus' : '';
-        return `<td class="bp ${cls}"><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''}"><span class="gp">${e != null && zaehlt(x) ? eur((x.menge || 0) * e) : ''}</span></td>`; }).join('') + '</tr>';
+        const gp = e != null && zaehlt(x) ? 'GP ' + eur((x.menge || 0) * e) : '';
+        return `<td class="bp ${AUS.has(a.id) ? '' : cls}"><input class="n ep" data-ang="ep" data-aid="${a.id}" data-pid="${x.id}" value="${e != null ? nf2(e) : ''}" inputmode="decimal" title="${[gp, !AUS.has(a.id) && cls === 'aus' ? 'weicht mehr als 30 % vom Mittel ab' : ''].filter(Boolean).join(' · ')}"></td>`; }).join('') + '</tr>';
   }).join('');
   const sorted = [...A];
-  return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter). <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
-    <div class="tblw"><table class="lv ps"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th>
-      ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner …">ⓘ</button><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
+  return (teil === 'ps' ? '' : head0) + `<p class="hint" style="margin:${teil === 'ps' ? '0' : '-.2rem'} 0 .5rem">Einheitspreise direkt eintragen (Tab springt weiter), GP im Tooltip. Bieter ausgrauen oder ausblenden: rechte Maustaste auf den Spaltenkopf oder <button type="button" class="btn sm" data-spw="${PSK}">Spalten …</button> (an → grau → aus) – grau zählt nicht, im Druck fehlen beide. <b style="color:var(--ok)">Grün</b> = niedrigster Preis, <span style="text-decoration:underline wavy #e07b3a">unterstrichen</span> = mehr als 30 % vom Mittel entfernt.${K.schaetzung ? ` Schätzung des Planers: <b>${eur(K.schaetzung)}</b>.` : ''}</p>
+    <div class="tblw"><table class="lv ps" data-sp="${PSK}"><thead><tr><th>OZ</th><th style="min-width:11rem">Kurztext</th><th class="r">Menge</th><th>EH</th>
+      ${sorted.map((a) => `<th class="bh${V.angebot_id === a.id ? ' win' : ''}" data-spgrau data-aid="${a.id}" data-spname="${esc(a.bieter)}"><div class="bn"><input data-ang="bieter" data-aid="${a.id}" value="${esc(a.bieter)}" style="font-weight:600"><button class="ib" data-angdaten="${a.id}" title="Angaben zum Angebot: Nummer, Datum, Bindefrist, Ansprechpartner …">ⓘ</button><button class="ib" data-angdel="${a.id}" title="Angebot löschen">✕</button></div>
         <label class="hint" style="font-weight:400">Eingang <input type="date" data-ang="eingang" data-aid="${a.id}" value="${esc(a.eingang || '')}" style="width:auto"></label></th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody><tfoot>
       <tr><td></td><td colspan="3">Summe netto</td>${sorted.map((a) => `<td class="r">${eur(kA[a.id].summe)}${kA[a.id].fehlt ? `<br><span class="hint">${kA[a.id].fehlt} Preise fehlen</span>` : ''}</td>`).join('')}</tr>
@@ -45,6 +47,13 @@ function vAngebote(teil) {   // teil: 'kopf' = Vergabe-Karte, 'ps' = Preisspiege
       <tr><td></td><td colspan="3"></td>${sorted.map((a) => `<td class="r">${V.angebot_id === a.id ? '<span class="pill ok">beauftragt</span>' : `<button class="btn sm" data-vergabe="${a.id}">Vergeben …</button>`}<br><button class="ib" data-angx84="${a.id}" title="Angebot als GAEB X84 speichern">X84</button></td>`).join('')}</tr>
       </tfoot></table></div>`;
 }
+/* Bieter, die im Preisspiegel grau oder aus sind (Spaltenauswahl, Schlüssel ava.ps.<LV>): Spalte 4 + Reihenfolge der Angebote */
+function psOhne(A) {
+  if (!window.bpSpalten || !L) return new Set();
+  const z = bpSpalten.stand(`ava.ps.${L.id}`, 4 + A.length, []);
+  return new Set(A.filter((a, i) => z.aus.has(4 + i) || (z.grau && z.grau.has(4 + i))).map((a) => a.id));
+}
+document.addEventListener('bp-spalten', (e) => { if (L && e.detail && e.detail.key === `ava.ps.${L.id}`) render(); });   // grau/aus geändert: „günstigster“ neu
 async function angSave(el) {
   const a = el.dataset.ang;
   try {

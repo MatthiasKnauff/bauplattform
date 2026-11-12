@@ -51,6 +51,7 @@ function vgEditor(id) {
   const D = x.data, fest = x.status !== 'entwurf', hl = (v) => (String(v ?? '').trim() ? '' : ' leer');
   const f = (bereich, k, lab, opt = {}) => { const v = bereich ? (D[bereich] || {})[k] : D[k], g = opt.gespraech;
     const ein = opt.zeilen ? `<textarea rows="${opt.zeilen}" data-vgf="${bereich}.${k}"${fest ? ' disabled' : ''}>${vgEsc(v)}</textarea>`
+      : opt.wahl ? `<select data-vgf="${bereich}.${k}"${fest ? ' disabled' : ''}>${opt.wahl.map(([w, t]) => `<option value="${w}"${w === (v || opt.wahl[0][0]) ? ' selected' : ''}>${t}</option>`).join('')}</select>`
       : `<input data-vgf="${bereich}.${k}" value="${vgEsc(v)}"${opt.typ ? ` type="${opt.typ}"` : ''}${fest ? ' disabled' : ''}${opt.ph ? ` placeholder="${vgEsc(opt.ph)}"` : ''}>`;
     return `<label class="vg-f${g ? ' gs' + hl(v) : ''}${opt.breit ? ' w' : ''}"><span>${lab}${opt.quelle ? `<i>${opt.quelle}</i>` : ''}</span>${ein}</label>`; };
   const titel = VG.D.arten[x.art];
@@ -64,10 +65,12 @@ function vgEditor(id) {
       <h4>Angaben zum Angebot</h4><div class="vg-g">${f('angebot', 'gueltig', 'Gültigkeit des Angebots', { gespraech: 1 })}${f('angebot', 'gewerke', 'Angebotene Gewerke', { quelle: 'LV' })}
         ${f('angebot', 'angebot_vom', 'Angebot vom', { typ: 'date', quelle: 'Angebot' })}${f('angebot', 'nachtrag_vom', 'Nachtragsangebot vom', { typ: 'date' })}
         ${f('angebot', 'summe', 'Angebotssumme nach Prüfung', { breit: 1, quelle: 'Preisspiegel' })}
-        ${f('angebot', 'nachlass', 'Nachlass auf die EP (%)', { gespraech: 1 })}${f('angebot', 'skonto', 'Skonto (%)', { gespraech: 1 })}${f('angebot', 'skonto_tage', 'Skonto bei Zahlung innerhalb … Arbeitstagen', { gespraech: 1 })}
+        ${f('angebot', 'nachlass', 'Nachlass auf die EP (%)', { gespraech: 1 })}${f('angebot', 'skonto', 'Skonto (%)', { gespraech: 1 })}${f('angebot', 'skonto_tage', 'Skonto bei Zahlung innerhalb von …', { gespraech: 1 })}${f('angebot', 'skonto_art', 'gezählt in', { wahl: [['at', 'Arbeitstagen (Mo–Fr)'], ['wt', 'Werktagen (Mo–Sa)'], ['kt', 'Kalendertagen'], ['wo', 'Wochen']] })}
         ${f('angebot', 'preis', 'Preis', { breit: 1 })}${f('angebot', 'klaerung', 'Klärung einzelner Positionen', { zeilen: 4, breit: 1, gespraech: 1, quelle: 'Preisspiegel' })}</div>
       <h4>Termine</h4><div class="vg-g">${f('termine', 'beginn', 'Beginn der Ausführung', { quelle: 'Bauzeitenplan' })}${f('termine', 'fertig', 'Fertigstellung der Arbeiten', { quelle: 'Bauzeitenplan' })}
-        ${f('termine', 'unterbrechung', 'Arbeitsunterbrechung', { gespraech: 1 })}${f('termine', 'bauzeitenplan', 'Bauzeitenplan', { breit: 1, quelle: 'Bauzeitenplan' })}</div>
+        ${f('termine', 'unterbrechung', 'Arbeitsunterbrechung', { gespraech: 1 })}
+        ${(VG.D.plaene || []).length ? f('termine', 'plan_id', 'Bauzeitenplan (welcher Stand)', { wahl: VG.D.plaene.map((p) => [p.id, `${p.gueltig ? '★ ' : ''}${p.name}${p.stand ? ' · Stand ' + vgDe(p.stand) : ''}`]), quelle: 'Bauzeitenplan' }) + f('termine', 'plan_stand', 'Stand vom', { typ: 'date' }) : ''}
+        ${f('termine', 'bauzeitenplan', 'Vertragsbestandteil', { breit: 1, quelle: 'Bauzeitenplan' })}</div>
       <h4>Grundlagen <small>Vorgabe des Büros${fest ? '' : ' – <button type="button" class="btn sm" data-vgvorgabe>als Vorgabe des Büros merken</button>'}</small></h4>
       <div class="vg-g">${VG.D.grundlagen.map(([k, t]) => f('grundlagen', k, t, { breit: k === 'bescheinigungen' || k === 'einbehalt' })).join('')}</div>
       <h4>Sonstiges</h4><div class="vg-g">${f('', 'sonstiges', 'Sonstiges', { zeilen: 3, breit: 1, gespraech: 1 })}</div>`;
@@ -101,7 +104,9 @@ document.addEventListener('input', (e) => {
   if (!VGP || VGP.id !== id) { vgFlush(); VGP = { id, body: {} }; }
   if (b) (VGP.body[b] = VGP.body[b] || {})[k] = t.value; else VGP.body[k] = t.value;
   clearTimeout(VGT); VGT = setTimeout(vgFlush, 500);
+  if (t.dataset.vgf === 'termine.plan_id') { clearTimeout(VGT); vgFlush().then(() => vgEditor(id)); }   // anderer Bauzeitenplan: Termine und Stand neu
 });
+const vgDe = (t) => (/^\d{4}-\d{2}-\d{2}/.test(t || '') ? `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}` : t || '');
 async function vgFlush() {
   clearTimeout(VGT); const p = VGP; VGP = null;
   if (p) await vgSpeichern(p.id, p.body);

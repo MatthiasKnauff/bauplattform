@@ -1,5 +1,21 @@
 [
  {
+  "id": "2026-11-12-ps-kompakt",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Preisspiegel kompakt, Bieter ausgrauen",
+  "text": "Der Preisspiegel hat jetzt eine Zeile je Position, den Gesamtpreis siehst du im Tooltip. Über „Spalten …“ oder die rechte Maustaste auf den Kopf schaltest du einen Bieter an, grau oder aus. Grau zählt nicht für den günstigsten Preis, im Druck fehlen graue und ausgeblendete Bieter.",
+  "ziel": "[data-spw^=\"ava.ps\"]"
+ },
+ {
+  "id": "2026-11-12-vg-plan-skonto",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Protokoll: Bauzeitenplan und Skontofrist wählbar",
+  "text": "In der Angebotsbesprechung wählst du den Bauzeitenplan mit seinem Stand. Beginn und Fertigstellung kommen dann aus diesem Plan. Die Skontofrist kann in Arbeitstagen, Werktagen, Kalendertagen oder Wochen gelten, auch im Auftrag und in der Rechnung.",
+  "ziel": ".vg-ed"
+ },
+ {
   "id": "2026-11-12-am-skala",
   "datum": "2026-11-12",
   "app": "ava",

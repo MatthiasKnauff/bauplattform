@@ -935,11 +935,11 @@ def _skonto(V, rd, r, brutto):
             d0, art = date.fromisoformat(r["eingang"]), V.get("skonto_art") or "kt"
             if art == "wo":   # Wochen
                 d0 += timedelta(weeks=tage)
-            elif art == "wt":   # Werktage Mo–Sa (Sonntage zählen nicht)
-                n = tage
+            elif art in ("wt", "at"):   # Werktage Mo–Sa (Sonntage zählen nicht) bzw. Arbeitstage Mo–Fr
+                n, letzt = tage, 6 if art == "wt" else 5
                 while n > 0:
                     d0 += timedelta(days=1)
-                    if d0.weekday() < 6:
+                    if d0.weekday() < letzt:
                         n -= 1
             else:   # Kalendertage
                 d0 += timedelta(days=tage)
@@ -1434,7 +1434,7 @@ def lv_eins(i):
                 V["nachlass_eur"] = round(_f(b["vergabe"]["nachlass_eur"], 0, 0), 2)
             if "skonto_tage" in b["vergabe"]:
                 V["skonto_tage"] = int(_f(b["vergabe"]["skonto_tage"], 0, 0, 365))
-            if b["vergabe"].get("skonto_art") in ("kt", "wt", "wo"):
+            if b["vergabe"].get("skonto_art") in ("kt", "wt", "at", "wo"):
                 V["skonto_art"] = b["vergabe"]["skonto_art"]
             if V.get("frei"):
                 if "summe" in b["vergabe"]:
@@ -5496,6 +5496,8 @@ def lv_pdf(i):
 
     if art == "preisspiegel":
         A = sorted(P["angebote"], key=lambda a: next((x.get("rang") or 99 for x in K["angebote"] if x["id"] == a["id"]), 99))
+        ohne = {int(x) for x in (request.args.get("ohne") or "").split(",") if x.strip().isdigit()}   # im Preisspiegel grau/aus gestellte Bieter
+        A = [a for a in A if a["id"] not in ohne] or A
         O = _opt("preisspiegel")
         a3 = len(A) > 6 and bool(O.get("a3", True))   # mehr als 6 Bieter: A3 quer, damit Kurztext und Preise lesbar bleiben
         mit_ep, mit_gp, mark, mittel = O.get("werte") != "gp", O.get("werte") != "ep", bool(O.get("markierung", True)), bool(O.get("mittel"))

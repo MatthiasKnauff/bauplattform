@@ -231,11 +231,14 @@ table.lv tr.zieh-hier td{box-shadow:inset 0 -3px 0 var(--y)}table.lv tr.zieh-dav
 .badge{display:inline-block;font-size:var(--fs-s);border-radius:calc(999px*var(--rkp,1));padding:.02rem .4rem;border:1px solid var(--line);color:var(--mute);margin-left:.25rem;vertical-align:1px;font-style:normal;font-weight:500}
 .badge.nt{border-color:#e07b3a;color:#e07b3a}table.lv .ib[data-a="ntti"]{font-size:calc(var(--fs)*.8);font-weight:700;letter-spacing:.02em;color:#e07b3a;opacity:.4}table.lv .ib[data-a="ntti"]:hover,table.lv .ib.an[data-a="ntti"]{opacity:1}table.lv .ib.an[data-a="ntti"]{background:#fdf0e6;border-color:#e07b3a}
 .tblw{overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:calc(4px*var(--rk,1));max-height:calc(100vh - 210px)}
-.ps td.bp{min-width:8.5rem}
+.ps td.bp{min-width:6.5rem}
 .ps input.ep{width:6.5rem}
 .ps .min input{color:var(--ok);font-weight:700}
 .ps .aus input{text-decoration:underline wavy #e07b3a}
-.ps .gp{display:block;font-size:var(--fs-s);color:var(--mute);text-align:right;padding-right:.4rem;min-height:1.35em}   /* Platz für den GP immer frei: die Zeile wächst nicht, sobald ein Preis drinsteht */
+/* Preisspiegel kompakt: eine Zeile je Position, GP im Tooltip; Bieter-Spalten an/grau/aus über die Spaltenauswahl */
+.ps tbody td{padding-top:1px;padding-bottom:1px;line-height:1.3}.ps tbody td.bp{padding:0 .2rem}.ps input.ep{padding:.12rem .35rem;height:auto;border-color:transparent;background:transparent;text-align:right}
+.ps input.ep:hover,.ps input.ep:focus{border-color:var(--line);background:var(--inp)}.ps td:nth-child(2){max-width:22rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps tr.ti td{padding-top:.3rem;padding-bottom:.15rem}.ps th.bh .hint input[type=date]{padding:0 .2rem;font-size:var(--fs-s)}
 .ps tfoot td{font-weight:600;background:var(--hov)}
 .ps th.bh{min-width:9rem;white-space:normal}
 .ps th.bh .bn{display:flex;gap:.3rem;align-items:center;justify-content:space-between}

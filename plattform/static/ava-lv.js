@@ -8,6 +8,7 @@ const vergeben = () => !!(L && L.vergabe && L.vergabe.preise) && !aufgehoben();
 const FREI = new Set(); let SPERRFRAGE = false;
 function sperrKey(x) { if (!L || !x) return null; if (x.nt) return x.nt_status === 'beauftragt' ? `${L.id}:nt:${x.nt}` : null; return vergeben() ? String(L.id) : null; }
 const gesperrt = (x) => { const k = sperrKey(x); return !!k && !FREI.has(k); };
+const psDruckOhne = () => { const o = typeof psOhne === 'function' ? [...psOhne(L.angebote || [])] : []; return o.length ? '&ohne=' + o.join(',') : ''; };   // Preisspiegel: graue und ausgeblendete Bieter nicht drucken
 async function freischalten(x) {
   const k = sperrKey(x); if (!k || FREI.has(k)) return true;
   const firma = (L.vergabe && L.vergabe.bieter) || L.auftragnehmer || 'die Firma';
@@ -458,7 +459,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'alleLang') { if (OPEN.size) OPEN.clear(); else items().forEach((x) => { if (x.typ === 'pos') OPEN.add(x.id); }); render(); return; }
     if (a === 'bieter') return bieterDialog();
     if (a === 'x84') return importDialog('angebot');
-    if (a === 'ps') return pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel`, pdfName('Preisspiegel'));
+    if (a === 'ps') return pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel${psDruckOhne()}`, pdfName('Preisspiegel'));
     if (a === 'freiVergeben') { try { if (await freiVergeben(L.id, $('#view'))) toast('Auftrag eingetragen – Rechnungen jetzt über „+ Neu ▾“ erfassen.'); } catch (er) { toast(er.message, true); } return; }
     if (a === 'amPdf') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, pdfName('Massenermittlung'));
     if (a === 'reNeu') return reNeuMenu(e.target.closest('[data-act]'));
@@ -659,7 +660,7 @@ $('#druBtn').onclick = () => {   // Drucken / PDF
   if (!L) return;
   const m = menu($('#druBtn'), [['druck', 'LV drucken / PDF …', 'Layout wählen, Deckblatt und Texte bearbeiten'],
     ['ps', 'Preisspiegel', L.angebote.length ? '' : 'erst mit Angeboten', !L.angebote.length], ['am', 'Massenermittlung', L.aufmass.length ? '' : 'erst mit Aufmaß', !L.aufmass.length]]);
-  m.onpick = (k) => { if (k === 'druck') return druckEditor(); if (k === 'am') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, pdfName('Massenermittlung')); pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel`, pdfName('Preisspiegel')); };
+  m.onpick = (k) => { if (k === 'druck') return druckEditor(); if (k === 'am') return pdfZeigen('aufmass', `api/lv/${L.id}/pdf?art=aufmass`, pdfName('Massenermittlung')); pdfZeigen('preisspiegel', `api/lv/${L.id}/pdf?art=preisspiegel${psDruckOhne()}`, pdfName('Preisspiegel')); };
 };
 function menu(anchor, list) {
   document.querySelectorAll('.menu').forEach((x) => x.remove());
@@ -686,7 +687,7 @@ async function lvDaten() {
   if (!KONT) KONT = await api('api/kontakte').catch(() => []);
   const A = (g) => g.map((x) => ({ ...x, felder: x.felder.map((f) => ({ ...f, k: 'a_' + f.k })) }));
   // Auftragsbedingungen und Sicherheiten – dieselben Werte wie in der Auftragskarte (vergabe), hier zusätzlich zum Eintragen
-  const SKA = { kt: 'Kalendertagen (Mo–So)', wt: 'Werktagen (Mo–Sa)', wo: 'Wochen' }, FORM = { einbehalt: 'Einbehalt', buergschaft: 'Bürgschaft' };
+  const SKA = { kt: 'Kalendertagen (Mo–So)', wt: 'Werktagen (Mo–Sa)', at: 'Arbeitstagen (Mo–Fr)', wo: 'Wochen' }, FORM = { einbehalt: 'Einbehalt', buergschaft: 'Bürgschaft' };
   const zk = (v, n = 2) => (v || v === 0 ? nf(v, n) : '');
   const kond = () => { const V = L && L.id === id ? L.vergabe || {} : {}, S = V.sicherheit || {}, ve = S.ve || {}, ma = S.ma || {};
     return { k_nachlass: zk(V.nachlass || ''), k_nachlass_eur: zk(V.nachlass_eur || ''), k_skonto: zk(V.skonto || ''), k_skonto_tage: V.skonto_tage ? String(V.skonto_tage) : '',

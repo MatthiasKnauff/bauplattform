@@ -23,6 +23,7 @@ from ava import _f, _j, _lv, _now, _s, app
 
 ARTEN = {"besprechung": "Angebotsbesprechung", "vertrag": "Bauvertrag", "schreiben": "Auftragsschreiben"}
 STATUS = {"entwurf": "Entwurf", "abgeschlossen": "abgeschlossen", "unterschrieben": "unterschrieben"}
+SKONTO_ART = {"kt": "Kalendertagen", "wt": "Werktagen (Mo–Sa)", "at": "Arbeitstagen (Mo–Fr)", "wo": "Wochen"}
 AG_ARTEN = {"unternehmen": "Unternehmen / Verein", "privat": "Privatperson", "oeffentlich": "öffentlicher Auftraggeber"}
 VORGABEN_KEY = "ava_besprechung_vorgaben"
 GRUNDLAGEN = [   # (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des Büros
@@ -38,8 +39,8 @@ GRUNDLAGEN = [   # (Schlüssel, Beschriftung, Vorgabe) – wie im Vordruck des B
 FELDER = {   # erlaubte Felder je Bereich (alles Text) – was der Browser schickt, wird darauf beschränkt
     "kopf": ("datum", "uhrzeit", "ort", "bauvorhaben", "bauherr", "architekt", "bieter", "teilnehmer"),
     "bieterangaben": ("rechtsform", "mitarbeiter", "mitarbeiter_projekt", "bauleiter", "subunternehmer"),
-    "angebot": ("gueltig", "gewerke", "angebot_vom", "nachtrag_vom", "summe", "nachlass", "skonto", "skonto_tage", "preis", "klaerung"),
-    "termine": ("beginn", "fertig", "unterbrechung", "bauzeitenplan"),
+    "angebot": ("gueltig", "gewerke", "angebot_vom", "nachtrag_vom", "summe", "nachlass", "skonto", "skonto_tage", "skonto_art", "preis", "klaerung"),
+    "termine": ("beginn", "fertig", "unterbrechung", "bauzeitenplan", "plan_id", "plan_stand"),
     "grundlagen": tuple(k for k, _, _ in GRUNDLAGEN),
     "vertrag": ("ag_art", "ag", "ag_vertreter", "an", "gegenstand", "bestandteile", "verguetung", "termine", "zahlung", "sicherheiten", "abnahme", "weiteres", "ort_datum"),
 }
@@ -78,16 +79,33 @@ def vorgaben(c):
     return {k: str(eigen.get(k, v)) for k, _, v in GRUNDLAGEN}
 
 
-def _termine(c, pid, gewerk, name):
-    """Beginn und Ende der Vorgänge dieses Gewerks im gültigen Bauzeitenplan (als KW) – Vorschlag fürs Protokoll."""
+def plaene(c, pid):
+    """Bauzeitenpläne des Projekts zur Auswahl im Protokoll: [{id, name, stand, gueltig}] – der gültige zuerst."""
     try:
         from bpcore import plan
-        pl = plan.plans_mit_id(c, pid)
+        alle, gid = plan.plans_mit_id(c, pid, alle=True), plan.gueltiger_plan(c, pid)
+    except Exception:   # noqa: BLE001
+        return []
+    st = {r["id"]: (r["updated"] or r["created"] or "")[:10] for r in c.execute("SELECT id, updated, created FROM gantt_projects WHERE id = ANY(?)", ([x[0] for x in alle],)).fetchall()} if alle else {}
+    L = [{"id": i, "name": n, "stand": st.get(i, ""), "gueltig": i == gid} for i, n, _ in alle]
+    return sorted(L, key=lambda x: (not x["gueltig"], x["name"]))
+
+
+def _termine(c, pid, gewerk, name, plan_id=None):
+    """Beginn und Ende der Vorgänge dieses Gewerks im gültigen (oder gewählten) Bauzeitenplan (als KW) – Vorschlag fürs Protokoll."""
+    try:
+        from bpcore import plan
+        pl = plan.plans_mit_id(c, pid, alle=bool(plan_id))
     except Exception:   # noqa: BLE001 – ohne Bauzeitenplan kein Vorschlag
         return {}
+    if plan_id:
+        pl = [x for x in pl if x[0] == plan_id]
     if not pl:
         return {}
-    _, pname, d = pl[0]
+    gid, pname, d = pl[0]
+    stand = next((x["stand"] for x in plaene(c, pid) if x["id"] == gid), "")
+    mehr = {"plan_id": gid, "plan_stand": stand}
+    pname = f"{pname}, Stand {_de(stand)}" if stand else pname
     if not isinstance(d, dict):
         return {}
     gw = (gewerk or "").strip().lower()
@@ -102,11 +120,11 @@ def _termine(c, pid, gewerk, name):
         if (gw and (tg == gw or gw in tn)) or (nm and any(w in tn for w in nm)):
             ss.append(s["s"]); ff.append(s.get("f") or s["s"])
     if not ss:
-        return {"bauzeitenplan": f"{pname}"}
+        return {"bauzeitenplan": f"„{pname}“ – wird verbindlicher Vertragsbestandteil", **mehr}
     kw = lambda t: "KW {:02d}/{}".format(date.fromisoformat(t).isocalendar()[1], t[:4])   # noqa: E731
     a, b = min(ss), max(ff)
     wo = max(1, round((date.fromisoformat(b) - date.fromisoformat(a)).days / 7))
-    return {"beginn": kw(a), "fertig": f"{kw(b)} (ca. {wo} Woche{'n' if wo != 1 else ''})", "bauzeitenplan": f"„{pname}“ – wird verbindlicher Vertragsbestandteil"}
+    return {"beginn": kw(a), "fertig": f"{kw(b)} (ca. {wo} Woche{'n' if wo != 1 else ''})", "bauzeitenplan": f"„{pname}“ – wird verbindlicher Vertragsbestandteil", **mehr}
 
 
 def _sauber(alt, neu):
@@ -163,7 +181,8 @@ def _kommunikation(c, vid, was=""):
 
 
 def _antwort(c, lid, **mehr):
-    return jsonify(dokumente=liste(c, lid), arten=ARTEN, status=STATUS, ag_arten=AG_ARTEN, grundlagen=[[k, t] for k, t, _ in GRUNDLAGEN], **mehr)
+    lv = _lv(c, lid)
+    return jsonify(dokumente=liste(c, lid), plaene=plaene(c, lv["project_id"]) if lv and lv["project_id"] else [], arten=ARTEN, status=STATUS, ag_arten=AG_ARTEN, grundlagen=[[k, t] for k, t, _ in GRUNDLAGEN], **mehr)
 
 
 @app.get("/api/lv/<int:lid>/vergabedok")
@@ -202,7 +221,7 @@ def besprechung_neu(lid):
             "bieterangaben": {"rechtsform": "", "mitarbeiter": "", "mitarbeiter_projekt": "", "bauleiter": "", "subunternehmer": ""},
             "angebot": {"gueltig": "ja", "gewerke": r["gewerk"] or r["name"], "angebot_vom": a["eingang"] or "", "nachtrag_vom": "",
                         "summe": f"{_eur(netto)} netto zuzüglich MwSt. (brutto {_eur(netto * 1.19)})" if netto else "",
-                        "nachlass": _pz(a["nachlass"] or 0), "skonto": _pz(a["skonto"] or 0), "skonto_tage": str(a["skonto_tage"] or ""),
+                        "nachlass": _pz(a["nachlass"] or 0), "skonto": _pz(a["skonto"] or 0), "skonto_tage": str(a["skonto_tage"] or ""), "skonto_art": (_j(r["vergabe"], {}) or {}).get("skonto_art") or "at",
                         "preis": "Die Leistungen werden nach Einheitspreisen abgerechnet.", "klaerung": _s(b.get("klaerung"), 2000)},
             "termine": {"beginn": "", "fertig": "", "unterbrechung": "", "bauzeitenplan": "", **_termine(c, r["project_id"], r["gewerk"], r["name"])},
             "grundlagen": vorgaben(c),
@@ -256,7 +275,7 @@ def _vertrag_daten(c, r, ag_art="unternehmen"):
                                          f"Der Bauzeitenplan {re.sub(r'^.*?„', '„', T['bauzeitenplan']) if '„' in (T.get('bauzeitenplan') or '') else ''} ist Vertragsbestandteil." if T.get("bauzeitenplan") else "",
                                          f"Vertragsstrafe: {G.get('vertragsstrafe')}" if G.get("vertragsstrafe") else "") if x),
         "zahlung": ("Abschlagszahlungen auf Grundlage prüfbarer Aufmaße und Rechnungen" + ("" if verbraucher else " nach § 16 VOB/B") + "."
-                    + (f" Bei Zahlung innerhalb von {A.get('skonto_tage') or '…'} Arbeitstagen nach Eingang der prüfbaren Rechnung darf der Auftraggeber {sk} % Skonto abziehen." if sk else "")
+                    + (f" Bei Zahlung innerhalb von {A.get('skonto_tage') or '…'} {SKONTO_ART.get(A.get('skonto_art'), 'Arbeitstagen')} nach Eingang der prüfbaren Rechnung darf der Auftraggeber {sk} % Skonto abziehen." if sk else "")
                     + (f"\n{G['rechnungsstellung']}" if G.get("rechnungsstellung") else "")),
         "sicherheiten": "\n".join(x for x in (f"Vertragserfüllung: {G.get('erfuellung')}" if G.get("erfuellung") else "", f"Mängelansprüche: {G.get('einbehalt')}" if G.get("einbehalt") else "") if x),
         "abnahme": f"Die Abnahme erfolgt förmlich{' (§ 12 Abs. 4 VOB/B)' if not verbraucher else ''}. Verjährungsfrist für Mängelansprüche: {G.get('gewaehrleistung') or ('4 Jahre (§ 13 Abs. 4 VOB/B)' if not verbraucher else '5 Jahre (§ 634a BGB)')} ab Abnahme.",
@@ -304,7 +323,12 @@ def vd_aendern(vid):
         r = _dok(c, vid)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
+        alt_plan = ((_j(r["data"], {}) or {}).get("termine") or {}).get("plan_id")
         D = _sauber(_j(r["data"], {}), b)
+        neu_plan = ((b.get("termine") or {}).get("plan_id")) if isinstance(b.get("termine"), dict) else None
+        if neu_plan and neu_plan != alt_plan and r["art"] == "besprechung":   # anderer Bauzeitenplan gewählt: Termine und Stand daraus
+            lv = _lv(c, r["lv_id"])
+            D["termine"] = {**(D.get("termine") or {}), **_termine(c, lv["project_id"], lv["gewerk"], lv["name"], neu_plan)}
         if "sonstiges" in b:
             D["sonstiges"] = _s(b.get("sonstiges"), 4000)
         if b.get("neu_aufbauen") and r["art"] in ("vertrag", "schreiben"):   # z. B. andere Art des Auftraggebers: Texte neu aus Auftrag + Protokoll
@@ -353,6 +377,8 @@ def vd_abschliessen(vid):
             V = _j(lv["vergabe"], {}) or {}
             if V.get("angebot_id") == a["id"]:
                 V.update(nachlass=werte["nachlass"] or 0, skonto=werte["skonto"] or 0, skonto_tage=werte["skonto_tage"] or 0)
+                if A.get("skonto_art") in SKONTO_ART:   # wie die Frist gezählt wird (Kalender-, Werk-, Arbeitstage, Wochen)
+                    V["skonto_art"] = A["skonto_art"]
                 S = dict(V.get("sicherheit") or {})
                 ma = dict(S.get("ma") or {})
                 eb = _zahl(G.get("einbehalt"))
@@ -460,7 +486,7 @@ def _pdf(c, r):
         feld("Gültigkeit des Angebots", A.get("gueltig")); feld("Angebotene Gewerke", A.get("gewerke"))
         feld("Angebot vom", _de(A.get("angebot_vom")) + (f"      Nachtragsangebot vom {_de(A.get('nachtrag_vom'))}" if A.get("nachtrag_vom") else ""))
         feld("Angebotssumme nach Prüfung", A.get("summe"))
-        feld("Skonto/Nachlässe", f"{A.get('nachlass') or '0'} % Nachlass auf die Einheitspreise und {A.get('skonto') or '0'} % Skonto bei Zahlungen innerhalb {A.get('skonto_tage') or '…'} Arbeitstagen (Mo–Fr)")
+        feld("Skonto/Nachlässe", f"{A.get('nachlass') or '0'} % Nachlass auf die Einheitspreise und {A.get('skonto') or '0'} % Skonto bei Zahlungen innerhalb {A.get('skonto_tage') or '…'} {SKONTO_ART.get(A.get('skonto_art'), 'Arbeitstagen (Mo–Fr)')}")
         feld("Preis", A.get("preis"))
         if A.get("klaerung"):
             feld("Klärung einzelner Positionen", A.get("klaerung"))

@@ -117,7 +117,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 
 ## Erledigt
 - ~~Honorar: Fachplaner über unser Büro – Fachplaner je Auftrag, ihre Rechnungen (PDF, prüfen/freigeben/bezahlt), Weiterberechnung durchgereicht oder mit Zuschlag in Abschlag/Schluss, Blatt 2 „Fremdleistungen“~~
-- ~~Bauantrag: Statistikbogen als Vordruck (einmal hochladen, Platzieren, ins Paket) – Online-Meldung bleibt; beschädigte PDF werden beim Hochladen abgewiesen~~
+- ~~Bauantrag: Statistikbogen als Vordruck wie die anderen Formulare (Quelle: Statistische Ämter, einmal hochladen, Platzieren, ins Paket) – Online-Weg entfernt; beschädigte PDF werden beim Hochladen abgewiesen~~
 - ~~Bauantrag: Befehlsleiste nur „Drucken“, „Alle Vordrucke …“ und „Neu einlesen“ links~~
 - ~~Bautagebuch: „Art der Tätigkeit“ eigene, größere Zeile~~
 - ~~Bautagebuch: Gewerk ohne Firma – Firma eintragen (Rückfluss in den Bauzeitenplan) oder heute ausblenden, mit Rückgängig~~

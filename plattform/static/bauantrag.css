@@ -115,8 +115,6 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-chip{display:inline-block;margin-left:.5rem;border-radius:calc(999px*var(--rkp,1));padding:.05rem .55rem;font-size:.75rem;font-weight:700;background:var(--hov);color:var(--mute);vertical-align:middle}
 .ba-chip.ok{background:color-mix(in srgb,var(--ok,#2f8a4c) 15%,var(--card));color:var(--ok,#2f8a4c)}.ba-chip.of{background:color-mix(in srgb,#c0392b 13%,var(--card));color:#c0392b}
 .ba-stat-s{margin:.2rem 0 .7rem;padding-left:1.2rem;color:var(--mute)}.ba-stat-s b{color:var(--ink)}
-.ba-stat td:first-child{color:var(--mute);width:40%}
-.ba-kopie{all:unset;cursor:pointer;border-radius:6px;padding:.1rem .35rem}.ba-kopie:hover{background:var(--hov)}.ba-kopie span{opacity:.45;font-size:.85em}
 /* Bauvorlagen „wird nachgereicht“ (bauantrag-nach.js) */
 .ba-nachz>td{background:color-mix(in srgb,#d08a10 9%,var(--card));border-radius:calc(8px*var(--rk,1))}
 .ba-nach{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.5rem .9rem;align-items:end;padding:.3rem 0}
@@ -125,15 +123,9 @@ main.ba .ba-work{flex:1;min-height:0;display:flex}main.ba .ba-work.sr-split{disp
 .ba-treffer>td{outline:2px solid var(--y);outline-offset:-2px}
 .ba-nach .seg{display:inline-flex;flex-direction:row;width:auto}.ba-nck input{width:auto;min-width:0;margin:0;flex:none}.ba-nck{white-space:nowrap}.ba-nach .ba-f>span:first-child{display:block}
 
-/* Statistikbogen: Online-Formular rechts, Lesezeichen */
-.ba-stfr{display:flex;flex-direction:column;height:100%;min-height:0;gap:.4rem}.ba-stbar{display:flex;align-items:center;gap:.5rem;justify-content:space-between;flex-wrap:wrap}
-.ba-stfr iframe{flex:1;min-height:420px;width:100%;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));background:#fff}
-.ba-stleer{justify-content:center;padding:1.2rem;max-width:44rem}.ba-stleer h3{margin:0 0 .5rem}.ba-stleer p{margin:.4rem 0 .7rem}
-.ba-lzk{cursor:grab}.ba-lz p{margin:.3rem 0 .5rem}
 
 /* Neue Version: Art wählen; oben am Antrag der Bezug zum Ursprung */
 .ba-vw{display:grid;gap:.45rem;margin:.2rem 0 .9rem}.ba-vo{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:.15rem;border:1.5px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:.55rem .75rem}
 .ba-vo small{color:var(--mute);line-height:1.35}.ba-vo.on{border-color:var(--y,var(--b,#2f5d8a));box-shadow:inset 3px 0 0 var(--y,var(--b,#2f5d8a))}.ba-vo:focus-visible{outline:2px solid var(--y)}
 .ba-vers{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .7rem;margin:0 0 .6rem;padding:.45rem .7rem;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--card)}
 .ba-vers input{flex:1 1 16rem;min-width:0}.ba-vers a{color:inherit;font-weight:600}
-.ba-online>summary{cursor:pointer;list-style:none}.ba-online>summary h3{display:inline;margin:0}.ba-online>summary::before{content:'▸ ';color:var(--mute)}.ba-online[open]>summary::before{content:'▾ '}

@@ -12,7 +12,7 @@
   "datum": "2026-11-12",
   "app": "bauantrag",
   "titel": "Erhebungsbogen als Vordruck",
-  "text": "Den leeren statistischen Erhebungsbogen lädst du einmal beim Landesamt herunter (Bundesland wählen, „Leeren Erhebungsbogen für Baugenehmigung ausdrucken“) und hier hoch. Danach steht er in jedem Antrag unter „Amtliche Vordrucke“. Er wird mit „Platzieren …“ wie die anderen Formulare ausgefüllt und kommt mit ins Paket. Online melden geht weiterhin.",
+  "text": "Der statistische Erhebungsbogen ist jetzt ein amtlicher Vordruck wie die anderen, nur die Quelle ist eine andere. Lade den leeren Bogen einmal bei den Statistischen Ämtern herunter: Bundesland wählen, dann „Leeren Erhebungsbogen für Baugenehmigung ausdrucken“. Danach lädst du ihn hier hoch. Ab dann steht er in jedem Antrag unter „Amtliche Vordrucke“, wird mit „Platzieren …“ ausgefüllt und kommt mit ins Paket.",
   "ziel": "[data-statvordruck]"
  },
  {
@@ -86,14 +86,6 @@
   "titel": "„?“ – Hilfe und alle Änderungen",
   "text": "Oben neben dem Käfer gibt es jetzt ein eigenes „?“. Es öffnet rechts zwei Register: „Hilfe“ erklärt die App, auch die Handy-Ansicht, und „Änderungen“ zeigt alles, was seit Beginn dazukam, mit Suche und „Zeigen ›“. Ein gelber Rand am „?“ heißt: Es gibt Änderungen, die du noch nicht gesehen hast. „Neuigkeiten“ im Benutzermenü ist dafür weggefallen.",
   "ziel": ".bph-hlp"
- },
- {
-  "id": "2026-11-12-statistik-geteilt",
-  "datum": "2026-11-12",
-  "app": "bauantrag",
-  "titel": "Statistikbogen im geteilten Fenster",
-  "text": "Beim statistischen Erhebungsbogen stehen links die Werte aus dem Antrag. Das Online-Formular des Landesamts öffnet sich als eigenes Fenster rechts daneben, weil das Landesamt kein Einbetten zulässt. Mit „Werte kopieren“ und dem Lesezeichen „Bauportal ausfüllen“ setzt du alle passenden Felder auf einmal. Danach legst du den Ausdruck als Beleg ab.",
-  "ziel": "[data-statalle]"
  },
  {
   "id": "2026-11-12-bt-verwerfen",

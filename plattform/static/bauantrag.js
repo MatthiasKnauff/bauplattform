@@ -56,9 +56,8 @@ function nav() {
   const zl = (x) => (LEER[x.key] != null ? (LEER[x.key] ? LEER[x.key] + ' offen' : '✓') : '');
   const st = D.bauvorlagen.find((b) => b.key === 'statistik');
   const amtl = pk.filter((x) => x.art === 'vordruck' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: (/^[IV]+\//.test(x.nr || '') ? x.nr + ' ' : '') + x.titel, icon: IC.antrag, zahl: zl(x), zahlTip: 'offene Felder des Antrags in diesem Vordruck' }));
-  const stVd = amtl.find((x) => /statist|erhebungsbogen/i.test(x.text));   // Erhebungsbogen als Vordruck gewählt: ein Eintrag, führt zur Statistik-Seite
-  if (stVd) stVd.id = 'statistik';
-  if (st && !stVd) amtl.push({ id: 'statistik', text: 'Statistischer Erhebungsbogen', icon: IC.pdf, zahl: st.status === 'offen' ? 'fehlt' : '✓', zahlTip: 'als Vordruck ausfüllen oder online melden' });
+  const stVd = pk.some((x) => x.art === 'vordruck' && /statist|erhebungsbogen/i.test(x.titel));   // als Vordruck vorhanden: steht wie die anderen oben (oder in Schritt 1 anhaken)
+  if (st && !stVd && st.status !== 'entfaellt') amtl.push({ id: 'statistik', text: 'Statistischer Erhebungsbogen', icon: IC.pdf, zahl: st.status === 'offen' ? 'fehlt' : '✓', zahlTip: 'leeren Bogen bei den Statistischen Ämtern holen und hochladen' });
   const eig = pk.filter((x) => x.art === 'unterlage' && sel(x.key)).map((x) => ({ id: 'st:' + x.key, text: x.titel, icon: IC.pdf, zahl: x.nutzung === 'beilegen' ? 'PDF' : zl(x) }));
   const bv = D.bauvorlagen.filter((b) => b.key !== 'antrag' && b.key !== 'statistik' && (b.pflicht || b.status !== 'offen')).map((b) => ({ id: 'bv:' + b.key, text: b.name, icon: IC.ord,
     zahl: b.status === 'offen' ? 'fehlt' : b.status === 'entfaellt' ? '–' : '✓' }));
@@ -183,12 +182,6 @@ function formInfo(I, fehler) {
 let BEREICH = null;   // Bereich rechts nur beim Wechsel des Antrags neu aufbauen – sonst springt „Im PDF ausfüllen“ nach jedem Klick an den Anfang
 function bereich() {
   if (!window.seite || HANDY.matches) return;
-  if (VIEW === 'statistik') {   // Statistikbogen: geteilt wie bei den PDFs – rechts das Online-Formular des Landesamts (bauantrag-statistik.js)
-    if (BEREICH === 'stat' && WORK.dataset.sr === 'bast') return;
-    BEREICH = 'stat';
-    seite(WORK, 'bast', [{ id: 'stat', titel: 'Online-Formular', mount: statFormularIn }, { id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } }], { start: 'stat', w: 0.42, minL: 420 });
-    return;
-  }
   if (BEREICH === AID && WORK.dataset.sr === 'ba' && WORK.querySelector(':scope > .sr-r .sr-b, :scope > .sr-r .sr-aufs')) return;   // Werte trägt ausAktualisieren nach, die Vorschau vorschau()
   BEREICH = AID;
   seite(WORK, 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } },
@@ -342,13 +335,15 @@ function formHtml() {
       : st.fehler ? `<p class="ba-hilfe" style="color:var(--red)">⚠ ${esc(st.fehler)}</p>` : ''}
     ${!F.quelle ? `<p class="ba-hilfe">Für ${esc(F.laender[F.land])} ist noch keine Seite mit den Vordrucken eingetragen${F.admin ? ' – „Quelle eintragen …“, z. B. die Seite des Bauministeriums mit den Bauvorlagen.' : ' – das macht die Verwaltung.'}</p>` : ''}</div>`;
   const L = F.formulare || [], n = L.filter((x) => x.status === 'neu' || x.status === 'geaendert').length;
+  const stat = L.some((x) => /statist|erhebungsbogen/i.test(x.titel) && x.status !== 'entfallen') ? ''   // Erhebungsbogen: andere Quelle (Statistische Ämter)
+    : `<div class="ba-k"><h3>Statistischer Erhebungsbogen<span class="mute">Quelle: Statistische Ämter des Bundes und der Länder – nicht selbst abrufbar</span></h3>${statQuelleHtml(F.land)}</div>`;
   const liste = L.length ? `<div class="ba-k"><h3>${L.filter((x) => x.status !== 'entfallen').length} Formulare${n ? `<span class="mute" style="color:var(--warn)">${n} neu oder geändert</span>` : ''}</h3>
     <div class="tw"><table class="ba-t"><thead><tr><th>Anlage</th><th>Titel</th><th>Stand</th><th></th></tr></thead><tbody>
     ${L.map((x) => { const [t, c] = ST_FORM[x.status] || ['', '']; return `<tr class="${x.status === 'entfallen' ? 'aus' : ''}"><td style="white-space:nowrap">${esc(x.nr || '–')}</td><td>${esc(x.titel)}</td>
       <td style="white-space:nowrap">${t ? `<span class="ba-q" style="${c === 'warn' ? 'color:var(--warn);border-color:var(--warn)' : ''}">${t}</span> ` : ''}<small class="mute">${esc(x.fassung || de(x.geaendert).slice(0, 10))}</small></td>
       <td style="white-space:nowrap;text-align:right">${x.status === 'neu' || x.status === 'geaendert' ? `<button type="button" class="btn sm" data-formgesehen="${x.id}">✓ gesehen</button> ` : ''}<button type="button" class="btn sm" data-formansehen="${x.id}">Ansehen</button> <button type="button" class="btn sm" data-formersetzen="${x.id}" title="Eigene Datei für diese Anlage hochladen">Ersetzen</button>${x.url ? '' : ` <button type="button" class="btn sm" data-formweg="${x.id}" title="Selbst hochgeladenes Formular löschen (Papierkorb, rückgängig möglich)" aria-label="Löschen">🗑</button>`}</td></tr>`; }).join('')}
     </tbody></table></div></div>` : (F.quelle ? '<div class="ba-k"><p class="mute" style="margin:0">Noch nicht geprüft – „↻ Jetzt prüfen“.</p></div>' : '');
-  return `<div class="ba-w">${kopf}${liste}</div>`;
+  return `<div class="ba-w">${kopf}${liste}${stat}</div>`;
 }
 V.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-formpruefen],[data-formquelle],[data-formgesehen],[data-formansehen],[data-formhoch],[data-formersetzen],[data-formweg]'); if (!b || !FORM) return;

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bt-stift",
+  "datum": "2026-11-12",
+  "app": "bautagebuch",
+  "titel": "Kopfdaten und Wetter: großer Stift",
+  "text": "Rechts neben den Kopfdaten und neben dem Wetter steht ein großer Stift an derselben Stelle. Beim Bearbeiten wird er zum grünen Häkchen – antippen oder Enter übernimmt, Esc schließt.",
+  "ziel": ".kopf .kp-st"
+ },
+ {
   "id": "2026-11-12-ws-kompakt",
   "datum": "2026-11-12",
   "app": "waermeschutz",

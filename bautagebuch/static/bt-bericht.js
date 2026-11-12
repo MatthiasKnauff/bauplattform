@@ -132,7 +132,7 @@ function wxZeile(s, r) {
   const rest = [r.precip, r.wind ? esc(r.wind) + ' km/h' : '', r.humidity ? esc(r.humidity) + ' %' : ''].filter(Boolean);
   return `<div class="kp-wx" id="sec-${esc(s.key)}" title="Wetter${r.extra && r.extra.place ? ' – ' + esc(r.extra.place) : ''}${r.plz ? ' · PLZ ' + esc(r.plz) : ''}">${ic(/regen|schnee|gewitter/i.test((r.weather || '') + (r.precip || '')) ? 'drop' : 'cloudo', 18, 2)}
     ${leer ? '<span class="wl">Wetter noch nicht eingetragen</span>' : `<b>${t || '–'}</b>${r.weather ? `<span>${esc(r.weather)}</span>` : ''}${rest.length ? `<span class="wl">· ${rest.map((x, n) => n ? x : esc(x)).join(' · ')}</span>` : ''}`}
-    <button data-act="gps" title="Wetter für die Projektadresse laden" aria-label="Wetter laden">${ic('pin', 16)}</button><button data-act="wxEdit" title="${wxEdit ? 'Fertig' : 'Wetter bearbeiten'}" aria-label="Wetter bearbeiten">${wxEdit ? '✓' : ic('pencil', 15)}</button></div>`;
+    <button data-act="gps" title="Wetter für die Projektadresse laden" aria-label="Wetter laden">${ic('pin', 16)}</button></div>`;
 }
 const wxFelder = (r) => `<div class="wgrid kp-ed">
       <label>Wetter<select data-f="weather"><option value=""></option>${WX.map(w => `<option ${w === r.weather ? 'selected' : ''}>${w}</option>`).join('')}</select></label>
@@ -141,6 +141,8 @@ const wxFelder = (r) => `<div class="wgrid kp-ed">
       <label>Luftfeuchtigkeit (%)<input data-f="humidity" inputmode="decimal" value="${esc(r.humidity)}"></label>
       <label>Wind (km/h)<input data-f="wind" inputmode="decimal" value="${esc(r.wind)}"></label>
       <label>PLZ<input data-f="plz" inputmode="numeric" value="${esc(r.plz)}"></label></div>`;
+/* Großer Stift rechts – bei Kopfdaten und Wetter an derselben Stelle; beim Bearbeiten an genau dieser Stelle das grüne Häkchen */
+const kpStift = (act, an, t) => `<button type="button" class="kp-st${an ? ' ok' : ''}" data-act="${act}" title="${an ? 'Übernehmen (Enter)' : esc(t)}" aria-label="${an ? 'Übernehmen' : esc(t)}">${an ? '✓' : ic('pencil', 18, 2.2)}</button>`;
 function headSec(s, r) {
   const p = curProject();
   const felder = headEdit ? `<div class="wgrid kp-ed">
@@ -154,8 +156,8 @@ function headSec(s, r) {
   const kurz = { chk_tidy: 'aufgeräumt', chk_photos: 'Fotos', chk_firms: 'Firmen angesprochen' };   // kurze Namen der Häkchen (voller Name im Tooltip)
   return `<div class="sec kopf" id="sec-${esc(s.key)}">
     <div class="kp-1"><h3>${secIc(s)}<span class="st">${esc(s.title)}${r.number ? ` <span class="nr">Nr. ${esc(r.number)}</span>` : ''}</span></h3>${info}
-      <div class="kp-kn"><button data-act="addReport" title="Neuer Bericht">${ic('plus', 20, 3)}</button><button data-act="editHead" title="${headEdit ? 'Fertig' : 'Bericht bearbeiten (Datum, Uhrzeit, Bauleitung)'}">${headEdit ? '✓' : ic('pencil', 17)}</button><button data-act="delReport" title="Bericht löschen">${ic('trash', 17)}</button></div></div>${felder}
-    <div class="kp-2">${W ? wxZeile(W, r) : ''}<div class="checks">${CHECKS.map(([k, l]) => `<label title="${esc(l)}"><input type="checkbox" data-f="${k}" ${r[k] ? 'checked' : ''}>${esc(kurz[k] || l)}</label>`).join('')}</div></div>${W && wxEdit ? wxFelder(r) : ''}
+      <div class="kp-kn"><button data-act="addReport" title="Neuer Bericht">${ic('plus', 20, 3)}</button><button data-act="delReport" title="Bericht löschen">${ic('trash', 17)}</button></div>${kpStift('editHead', headEdit, 'Kopfdaten bearbeiten (Nummer, Datum, Uhrzeit, Bauleitung)')}</div>${felder}
+    <div class="kp-2">${W ? wxZeile(W, r) : ''}<div class="checks">${CHECKS.map(([k, l]) => `<label title="${esc(l)}"><input type="checkbox" data-f="${k}" ${r[k] ? 'checked' : ''}>${esc(kurz[k] || l)}</label>`).join('')}</div>${W ? kpStift('wxEdit', wxEdit, 'Wetter bearbeiten') : ''}</div>${W && wxEdit ? wxFelder(r) : ''}
   </div><div id="vbox" class="vbox"></div>`;
 }
 // Register: neuer Abschnitts-Typ = ein Eintrag hier + eine Zeile in der Tabelle "sections". Unbekannte Typen werden übersprungen.
@@ -250,3 +252,9 @@ function druckDialog() {
   zahl();
 }
 const los0 = (act) => { const b = document.createElement('button'); b.hidden = true; b.dataset.act = act; document.body.appendChild(b); b.click(); b.remove(); };
+/* Kopfdaten/Wetter bearbeiten: Enter übernimmt (wie das grüne Häkchen), Esc schließt */
+document.addEventListener('keydown', (e) => {
+  if ((e.key !== 'Enter' && e.key !== 'Escape') || !e.target.closest || !e.target.closest('.kopf .kp-ed') || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  const ok = document.querySelector('.kopf .kp-st.ok'); if (!ok) return;
+  e.preventDefault(); e.target.blur(); setTimeout(() => ok.click(), 0);   // blur speichert das Feld (change), dann zu
+});

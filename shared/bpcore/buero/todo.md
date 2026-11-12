@@ -22,7 +22,6 @@ Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 - Honorar: Fremdleistungen Stufe 2 – Eingangsrechnungen aus dem Posteingang zuordnen, To-do „Rechnung 7 Tage ungeprüft“ / „freigegeben, nicht weiterberechnet“, pauschale Weiterberechnung, Rechnungen der Fachplaner als Anlage an unsere **ca. 45 min** · Teilleistungstabelle zum Abhaken, LPh 8 nach Bauzeit – zurückgestellt
 - Leistungskatalog (Bauzeitenplan): Zurücksetzen einheitlich – drei Ebenen Standard → Büro-Vorgabe → Projekt, Abweichungen gelb mit ↺, ein „↺ Zurücksetzen …“ je Reiter mit Vorschau – Mock gezeigt **ca. 1 h**
 - Wärmeschutz: Abgleich mit dem Allplan-Bauteilkatalog (Schichtaufbauten aus Allplan übernehmen, Materialnamen zuordnen) – Mock folgt **ca. 1–1,5 h**
-- Bautagebuch: Kopfdaten und Wetter direkt in der Zeile bearbeiten – großer Stift rechts, wird zum grünen ✓ (GO 12.11.) **ca. 20–30 min**
 - Wärmeschutz Etappe ② Nachweis als PDF (Briefbogen, Unterschrift, Projektordner) und Übergabe an den Bauantrag **ca. 1 h** · ④ Hitzeschutz-Reiter, Wärmebrücken-Hinweise **ca. 1 h**
 
 - Verwaltung mit Registern (Büro, Mitarbeiter & Rechte, Ablage & Server, Mail & Kalender, Apps, Druck & Vorlagen, KI, System), Register je Rolle freigegeben; Einstellungen der Apps als Bürovorgabe in die Verwaltung, kleine Dinge bleiben zusätzlich in der App (persönlich); Bundesland je Bauantrag änderbar; Logo auch als App-Symbol – Mock folgt **ca. 2–3 h**
@@ -125,6 +124,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Bautagebuch: großer Stift rechts bei Kopfdaten und Wetter (gleiche Stelle), beim Bearbeiten grünes Häkchen; Enter übernimmt, Esc schließt~~
 - ~~Bauantrag: Reihenfolge der Vordrucke – ganze Zeile ziehbar, Linie zeigt davor/danach (vorher zeigte sie immer „davor“, abgelegt wurde je nach Hälfte danach)~~
 - ~~Wärmeschutz: Nachweise als Versionen wie überall~~
 - ~~Wärmeschutz übersichtlicher: zugeklappte Stufen, Ampelzeile mit fehlender Dämmdicke, Grafiken rechts (Querschnitt mit Materialmustern, Glaser-Diagramm, Temperaturwelle Hitzeschutz, Prüfung)~~

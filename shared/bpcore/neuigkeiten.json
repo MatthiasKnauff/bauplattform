@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bk-keil",
+  "datum": "2026-11-12",
+  "app": "baukosten",
+  "titel": "Stufenleiste als Keil",
+  "text": "Die Stufen nach DIN 276 liegen jetzt auf einem Keil von spitz nach breit – bis zur gewählten Stufe kräftig, danach hell.",
+  "ziel": "#bkStufen"
+ },
+ {
   "id": "2026-11-12-bk-raumbuch-schmal",
   "datum": "2026-11-12",
   "app": "baukosten",

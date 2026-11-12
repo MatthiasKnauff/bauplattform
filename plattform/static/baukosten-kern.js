@@ -268,8 +268,8 @@ function stufenHtml() {
   const punkte = STUFEN.map(([k, n], i) => { const I = STUFE_INFO[k], c = k === akt ? 'cur' : ok(k) ? 'ok' : '';
     return `<button type="button" class="bks-s ${c}" data-bks="${k}" title="${esc(I.txt)}"><span class="pt">${k === akt ? i + 1 : ok(k) ? '✓' : i + 1}</span><b>${esc(n)}</b><span>${esc(I.lph.split(' · ')[0])} · ${k === 'feststellung' ? 'exakt' : '± ' + I.genau + ' %'}</span>${k === akt ? `<span class="eur">${eur(B.calc.total)}</span>` : ''}</button>`; }).join('');
   const st = R0 && R0.stufen.find((x) => x.key === akt), fehlt = st && !st.ok ? st.fehlt : [];
-  const w = Math.max(0, ia) / (STUFEN.length - 1) * 88;
-  return `<div class="bks"><span class="lauf" style="width:${w.toFixed(1)}%"></span>${punkte}</div>
+  const w = Math.max(0, ia) / (STUFEN.length - 1) * 100;   // bis zur gewählten Stufe kräftig
+  return `<div class="bks"><span class="lauf" style="--w:${w.toFixed(1)}%"></span>${punkte}</div>
     ${fehlt.length ? `<p class="bks-f"><b>Für die ${esc(STUFE_N(akt))} fehlt noch:</b> ${fehlt.slice(0, 4).map((f, k) => f.go && f.go.tab ? `<a href="#" data-rgo="${R0.stufen.indexOf(st)}:${k}">${esc(f.text)}</a>` : esc(f.text)).join(' · ')}${fehlt.length > 4 ? ` <span class="hint">und ${fehlt.length - 4} weitere (Prüfung)</span>` : ''}</p>`
       : R0 && st ? `<p class="bks-f ok">✓ Die Daten reichen für die ${esc(STUFE_N(akt))}.</p>` : ''}`;
 }

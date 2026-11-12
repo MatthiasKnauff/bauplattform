@@ -297,6 +297,13 @@ document.addEventListener('click', async e => {
   else if (a === 'editHead') { headEdit = !headEdit; renderDetail(); }
   else if (a === 'gps') fillGeo(false);
   else if (a === 'wxEdit') { wxEdit = !wxEdit; renderDetail(); }
+  else if (a === 'addWeg') {   // Eingabe verwerfen – mit Rückgängig (Text, Firma, Termin und Fotos kommen zurück)
+    const k = b.dataset.kind, row = b.closest('.addrow'), W = {}, F = addFiles;
+    row.querySelectorAll('input:not([type=file]),textarea,select').forEach((x, i) => { W[i] = x.value; });
+    adding = null; addFiles = []; renderDetail(); renderApv();
+    if (Object.values(W).some((v) => String(v).trim() && v !== '09:00') || F.length) rueckgaengig('Eingabe verworfen', () => { adding = k; addFiles = F; setSecOpen(k, true); renderDetail(); renderApv();
+      const r2 = document.querySelector(`[data-add="${k}"]`)?.closest('.addrow'); if (r2) r2.querySelectorAll('input:not([type=file]),textarea,select').forEach((x, i) => { if (W[i] != null) x.value = W[i]; }); });
+  }
   else if (a === 'adding') { adding = adding === b.dataset.kind ? null : b.dataset.kind; addFiles = []; if (adding) setSecOpen(adding, true); renderDetail(); renderApv(); }
   else if (a === 'secFokus') { btFokus = b.dataset.key || null; adding = null; renderDetail(); $('#detail').scrollTop = 0; }
   else if (a === 'secToggle') {   // auch leere Bereiche öffnen: Einträge gleich mit Eingabezeile, Bilder mit Hinweis

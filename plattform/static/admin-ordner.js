@@ -20,7 +20,7 @@ async function renderOrdner() {
     try { ORD.info = await api('api/bt/ordner/muster'); } catch (e) { ORD.info = { error: e.message }; }
   }
   const I = ORD.info || {}, ids = Object.keys(ORD.res).map(Number);
-  const musterWahl = `<label class="ord-l">Muster<select data-ordm>${[['', I.muster ? `Projektvorlage: ${I.muster.name}` : 'Projektvorlage auf dem Dateiserver'], ...ORD.projekte.map((p) => [String(p.id), 'Projekt: ' + p.name])]
+  const musterWahl = `<label class="ord-l">Muster<select data-ordm data-bp-projekte aria-label="Muster" data-ph="Projekt oder Vorlage suchen …">${[['', I.muster ? `Projektvorlage: ${I.muster.name}` : 'Projektvorlage auf dem Dateiserver'], ...ORD.projekte.map((p) => [String(p.id), p.name])]
     .map(([v, t]) => `<option value="${v}"${v === ORD.muster ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
   const liste = ORD.projekte.map((p) => `<label class="ord-p"><input type="checkbox" data-ordp="${p.id}"${ORD.wahl.has(p.id) ? ' checked' : ''}> ${esc(p.name)}</label>`).join('');
   const n = ids.reduce((s, id) => s + (ORD.sel[id] ? ORD.sel[id].size : 0), 0);

@@ -533,6 +533,7 @@ tr.bph-achtung{animation:bphAchtungTr 1s ease-in-out infinite}@keyframes bphAcht
 @media print{.bph-trenn{display:none}}
 /* Hilfe & Fehler (🐞?) */
 .bph-bugb{position:relative}
+.bph-hlp{font:700 17px/1 Ubuntu,system-ui,sans-serif}.bph-hlp.neu{box-shadow:inset 0 0 0 2px #ffd27a;color:#ffd27a!important}
 .bph-q{position:absolute;right:3px;bottom:3px;width:14px;height:14px;border-radius:50%;background:#e5322d;color:#fff;font:700 10px/14px Ubuntu,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--bph-bg,#1c1c1a);pointer-events:none}
 .bph-hn{position:absolute;right:-2px;top:-2px;min-width:17px;height:17px;padding:0 4px;border-radius:calc(9px*var(--rk,1));background:var(--bph-acc,#ff5fb3);color:var(--bph-on,#111);font:700 10px/17px Ubuntu,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--bph-bg,#1c1c1a);pointer-events:none}
 .bph-hk{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin:.2rem 0 .6rem}

@@ -226,3 +226,16 @@ def test_projektdaten_fuer_alle_mit_bauleiter_regel(ctx):
         gleich(finde(ctx.admin.gj("/bautagebuch/api/projects"), id=pid)["name"], name, "das Bautagebuch zeigt dasselbe Projekt")
     finally:
         ctx.admin.delete(f"/bautagebuch/api/projects/{pid}")
+
+
+def test_hilfe_und_aenderungen(ctx):
+    """„?“ in der Kopfleiste: Hilfetext je App (nur angemeldet, Pfad gesäubert), alle Änderungen mit „gesehen“, Zähler am Hilfe-Abruf."""
+    a = ctx.admin
+    h = a.gj("/bauantrag/api/bp/hilfeseite?app=bauantrag")
+    pruefe("## Bauvorlagen" in h["text"] and "## Kopfleiste" in h["allgemein"], "Hilfetext Bauantrag und allgemein")
+    gleich(a.gj("/bauantrag/api/bp/hilfeseite?app=../../etc/passwd")["text"], "", "kein Ausbruch aus dem Ordner")
+    ctx.gast().get("/bauantrag/api/bp/hilfeseite?app=bauantrag", expect=401)
+    E = a.gj("/api/bp/neu?verlauf=1")["eintraege"]
+    pruefe(len(E) > 10 and all("gesehen" in x for x in E), "Änderungen seit Beginn mit gesehen")
+    pruefe([x["datum"] for x in E] == sorted((x["datum"] for x in E), reverse=True), "neueste zuerst")
+    pruefe(isinstance(a.gj("/api/bp/hilfe?kurz=1").get("aenderungen"), int), "Zähler für den gelben Rand am „?“")

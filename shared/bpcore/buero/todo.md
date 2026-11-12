@@ -1,6 +1,6 @@
 # Bauplattform – ToDo-Liste
 
-Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
+Stand: 12.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste als PDF in „Pläne & Dateien“ → Projekt „Büro“ → Ordner „Bauplattform“ abgelegt (Produktion; der Testserver schreibt nicht in die Ablage). Erledigtes ist durchgestrichen. Zeitangaben = wie lange Claude bis zum Push braucht (Bauen und eigener Test), ohne Abstimmungsrunden, euer Testen auf dem Testserver und die Pipeline (ca. 10 Minuten). Seit 11.11.2026 so gerechnet – vorher standen hier Arbeitszeiten eines Entwicklers, etwa zehn- bis zwanzigmal so lang.
 
 ## Jetzt in Arbeit
 
@@ -17,7 +17,9 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 - Baukosten, Stufenleiste Schritt 2: Stände je Stufe festschreiben (Betrag, Datum), Abweichung zur Vorstufe, Vergleich, Kostenverfolgung als PDF. **ca. 1–1,5 h**
 
-- Rollen & Rechte im Kern (Geschäftsführung, Mitarbeiter, Assistenz, IT/Admin, Extern; Rechte als Häkchen, Ausnahmen je Person, Vorgesetzter) – Mock gezeigt, wartet auf GO. **ca. 1,5–2 h**
+- Rollen & Rechte im Kern (Geschäftsführung, Mitarbeiter, Assistenz, IT/Admin, Extern; Rechte als Häkchen, Ausnahmen je Person, Vorgesetzter; dazu „andere Projekte sehen“ als Recht) – als Nächstes. **ca. 1,5–2 h**
+- Hilfetexte für die übrigen Apps (Aufbau, häufige Aufgaben, Handy-Ansicht) – Bauantrag und „In allen Apps“ sind da. **je ca. 10–15 min, zusammen ca. 3 h**
+- Bauantrag: „n offen“ anklickbar (springt ins erste leere Pflichtfeld), Zähler je Karte, deutlicher Hinweis „fehlt“ mit Weg zur Quelle; Pflichtfelder mit dem NRW-Formular abgleichen (z. B. Kammer). **ca. 35 min**
 - Neue App „Mitarbeiter“: Stammdaten, Rolle, Vorgesetzter, Soll/Urlaub, Abwesenheitskalender, Fristen – Mock gezeigt, wartet auf GO. **ca. 1–1,5 h**
 - Urlaubsantrag in „Zeiten“ mit Popup und Inline-Freigabe/Ablehnung (mit Begründung) bei der Geschäftsführung – Mock gezeigt, wartet auf GO. **ca. 1 h**
 - Honorar nach HOAI-Prüfung (Mock folgt): Schalter „Verbraucher“ mit Hinweis § 7 Abs. 2 HOAI im Angebot, Belehrung § 650r BGB und Widerrufsbelehrung im Vertrag; mitzuverarbeitende Bausubstanz (§ 4 Abs. 3); § 33 Abs. 2 nur für nicht selbst geplante TA; Leistungszeitraum auf der Rechnung; Objektart Innenräume. **ca. 1,5–2 h**
@@ -105,6 +107,11 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~„?“ in der Kopfleiste: Hilfe zur App (mit Handy-Ansicht) und alle Änderungen seit Beginn, gelber Rand bei Ungesehenem; „Neuigkeiten“ aus dem Benutzermenü~~
+- ~~Bauantrag: Statistikbogen geteilt – rechts das Online-Formular, links die Werte; Lesezeichen „Bauportal ausfüllen“ setzt alles auf einmal~~
+- ~~Bautagebuch: „Verwerfen“ neben „Hinzufügen“ (mit Rückgängig)~~
+- ~~Dialoge: mehr Luft zwischen Beschriftung und Feld; Projektordner-Muster als Suchfeld mit Meine/Andere Projekte~~
+- ~~Build wieder grün: Tests an die Regel „Bauvorlagen nachreichen“ angepasst~~
 - ~~Aufmaß: Empfindlichkeit der Mengenüberschreitung einstellbar (Hinweis ab %, rot ab %) und Rückfrage bei Bedarfspositionen abschaltbar – ⚙ Einstellungen → Abrechnung~~
 - ~~Aufmaß: Mengenüberschreitung als Balken gelb → rot (ab +10 % rot), Rückfrage bei Bedarfs-/Wahlpositionen vor der ersten Aufmaßzeile~~
 - ~~PDF schneller: Antragspaket wird zwischengespeichert und nur neu gebaut, wenn sich etwas geändert hat (ETag, Browser fragt nur nach – lokal 2,3 s → 0,6 s); Rechnungs-PDFs der Firmen bleiben im Browser~~

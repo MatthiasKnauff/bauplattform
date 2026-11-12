@@ -49,6 +49,28 @@ def neueste(apps, tage=60):
     return [x for x in laden() if (not x.get("app") or x["app"] in apps) and (x.get("datum") or "") >= grenze]
 
 
+def verlauf(c, uid, apps):
+    """Alle Einträge der erlaubten Apps, neueste zuerst, mit gesehen (für das Register „Änderungen“)."""
+    g = _gesehen(c, uid) or set()
+    L = [dict(x, gesehen=x["id"] in g) for x in laden() if not x.get("app") or x["app"] in apps]
+    return sorted(L, key=lambda x: x.get("datum") or "", reverse=True)
+
+
+SEITEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hilfe_seiten")
+
+
+def hilfeseite(app):
+    """Hilfetext einer App (Markdown, von Claude aus dem Programm geschrieben und mitgepflegt); allgemein.md gilt überall."""
+    app = "".join(ch for ch in str(app) if ch.isalnum() or ch in "-_")[:40]
+    def lies(n):
+        try:
+            with open(os.path.join(SEITEN, n + ".md"), encoding="utf-8") as fh:
+                return fh.read()
+        except OSError:
+            return ""
+    return {"app": app, "text": lies(app) if app else "", "allgemein": lies("allgemein")}
+
+
 def merken(c, uid, ids):
     g = _gesehen(c, uid) or set()
     bekannt = {x["id"] for x in laden()}

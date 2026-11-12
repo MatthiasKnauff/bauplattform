@@ -248,6 +248,7 @@ label.chk input{flex:none;margin:.15rem 0 0}
 .sug button:hover{background:var(--hov)}
 .addrow [data-add]{flex:1 1 180px}.addrow [data-add-act]{flex:1 1 150px}.addrow [data-add-cnt]{flex:0 0 74px}
 .addrow .ok{background:var(--y);color:var(--on);font-weight:700;padding:.4rem .9rem}
+.add-k{display:flex;gap:.4rem;flex:1 1 100%}.addrow .add-weg{background:none;border:1px solid var(--line);color:var(--mute);padding:.4rem .9rem}
 .wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.5rem;max-width:560px;margin:.7rem 0 0;text-align:left}
 .wgrid label{font-size:.8rem;color:var(--mute);display:grid;gap:.2rem}
 .vbox{margin:.2rem .2rem .9rem;text-align:left}.vline{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;justify-content:space-between;font-size:.85rem}

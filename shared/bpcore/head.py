@@ -178,6 +178,7 @@ def blueprint(get_user=None):
             out = {"helfer": helfer, "meine": [] if request.args.get("kurz") else hilfe.meine(c, u)}
             if request.args.get("kurz"):
                 out["neu"] = sum(x["neu"] for x in hilfe.meine(c, u))
+                out["aenderungen"] = len(neuigkeiten.offen(c, u["id"], set(sso.apps_of(u)) | {"portal"}))   # gelber Rand am „?“ – ohne eigene Abfrage
             if helfer:
                 out["offen"] = hilfe.fuer_helfer(c, u, alle=bool(request.args.get("alle")) and bool(u["is_admin"]))
             if request.args.get("alle") and u["is_admin"]:
@@ -378,7 +379,7 @@ def blueprint(get_user=None):
             return r.make_conditional(request)
         if name in APP_DATEIEN:   # App-Beschreibung und Symbol: Bauportal als App installieren
             return _app_datei(name)
-        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "unterschrift.js", "versand.js", "ablegen.js", "neuleiste.js", "live.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
+        if name not in ("head.js", "head.css", "undo.js", "seite.js", "befehle.js", "vorschlag.js", "spalten.js", "zoom.js", "blase.js", "nav.js", "baum.js", "druck.js", "wahl.js", "datum.js", "neu.js", "hilfeseite.js", "unterschrift.js", "versand.js", "ablegen.js", "neuleiste.js", "live.js", "bp.js", "bp.css"):   # Kopfleiste und gemeinsame Bausteine aller Apps
             return "Nicht gefunden", 404
         r = send_from_directory(ASSETS, name, max_age=0)
         r.headers["Cache-Control"] = "no-cache"
@@ -480,11 +481,20 @@ def blueprint(get_user=None):
                 return jsonify(ok=True, n=neuigkeiten.merken(c, u["id"], ids if isinstance(ids, list) else []))
             if request.args.get("alle") == "1":
                 return jsonify(eintraege=neuigkeiten.neueste(apps))
+            if request.args.get("verlauf") == "1":   # Änderungen im „?“: alles seit Beginn, mit gesehen
+                return jsonify(eintraege=neuigkeiten.verlauf(c, u["id"], apps))
             z = c.execute("SELECT value FROM settings WHERE key='neuigkeiten_zeigen'").fetchone()
             z = (z["value"] if z else "") or "admin"   # Vorgabe: nur Administratoren – Kollegen sehen Neuigkeiten erst, wenn die Verwaltung „alle“ wählt
             if z == "aus" or (z == "admin" and not u["is_admin"]):
                 return jsonify(eintraege=[])
             return jsonify(eintraege=neuigkeiten.offen(c, u["id"], apps))
+
+    @bp.get("/api/bp/hilfeseite")
+    def hilfeseite_api():
+        """Hilfe zur App (Register „Hilfe“ im „?“): Text aus hilfe_seiten/<app>.md – erst beim Klick geladen."""
+        if not user():
+            return jsonify(error="Nicht angemeldet"), 401
+        return jsonify(**neuigkeiten.hilfeseite(request.args.get("app", "")))
 
     @bp.route("/api/bp/projekt", methods=["GET", "PUT"])
     def projekt_api():

@@ -1,6 +1,6 @@
 /* Neuigkeiten – gemeinsamer Baustein (/bp/neu.js, lädt head.js von selbst): was in einem neuen Stand dazukam, einmal je Benutzer.
    Startseite: Überblick über alles Ungesehene (je App, mit „Zeigen ›“). In einer App: Rundgang Schritt für Schritt mit Scheinwerfer
-   auf der Stelle (ziel). Gesehen merkt der Server (/api/bp/neu), also auf allen Geräten. Benutzermenü „Neuigkeiten“: alles der letzten Wochen.
+   auf der Stelle (ziel). Gesehen merkt der Server (/api/bp/neu), also auf allen Geräten. Alles seit Beginn: „?“ in der Kopfleiste → Änderungen (hilfeseite.js).
    Einträge: shared/bpcore/neuigkeiten.json – {id, datum, app, titel, text, ziel, hash, klick}. */
 (() => {
   if (window.bpNeu) return;
@@ -119,5 +119,7 @@
     const hier = E.filter((x) => x.app === H.app || !x.app);
     if (hier.length) setTimeout(() => { if (!document.querySelector('.modal-bg,.bph-dlg-bg')) rundgang(ordnen(hier)); }, 1500);   // erst wenn die Seite steht; nie über einem offenen Fenster
   }
-  window.bpNeu = { start, alle: async () => { try { const E = (await api('alle')).eintraege || []; zu(); ueberblick(E, { alle: true }); } catch { /* egal */ } } };
+  window.bpNeu = { start, merken,
+    zeige: (E, i) => { zu(); if (fremd(E[i])) { if (!hin(E, i)) rundgang(E, i); } else rundgang(E, i); },   // aus dem „?“ → Änderungen: an die Stelle
+    alle: async () => { try { const E = (await api('alle')).eintraege || []; zu(); ueberblick(E, { alle: true }); } catch { /* egal */ } } };
 })();

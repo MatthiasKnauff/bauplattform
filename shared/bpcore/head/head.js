@@ -14,6 +14,7 @@
   if (window.BPHead) return;
   { const quelle = (document.currentScript && document.currentScript.src) || 'bp/head.js', basis = quelle.replace(/[?#].*$/, '').replace(/[^/]*$/, ''),
       vq = window.BP_V || ((quelle.match(/[?&]v=\w+/) || [''])[0].replace('&', '?'));   // Stand (bpcore/tempo.py) – nachgeladene Bausteine dürfen im Browser bleiben
+    window.BP_HEAD_BASIS = [basis, vq];   // für Bausteine, die erst bei Bedarf geladen werden (hilfeseite.js)
     const w = document.createElement('script'); w.src = basis + 'wahl.js' + vq; document.head.appendChild(w);
     const dt = document.createElement('script'); dt.src = basis + 'datum.js' + vq; document.head.appendChild(dt);   // eigene Datumsauswahl statt des Systemkalenders – in jeder App
     const nu = document.createElement('script'); nu.src = basis + 'neu.js' + vq; document.head.appendChild(nu);
@@ -369,7 +370,6 @@
       + `<button type="button" role="menuitem" data-konto>${IC.user}Mein Konto <small class="bph-ms">Unterschrift, Signatur, Versand, Kalender</small></button>`
       + `<button type="button" role="menuitem" data-look>${IC.look}Darstellung</button>`
       + `<div class="bph-mode bph-mode-m" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach">Einfach</button><button type="button" data-modus="profi">Profi</button></div>`
-      + `<button type="button" role="menuitem" data-neu>${IC.look}Neuigkeiten <small class="bph-ms">was zuletzt dazukam</small></button>`
       + `<button type="button" role="menuitem" data-bug>${IC.bug}Fehler melden <small class="bph-ms">kurz beschreiben, gern mit Bildschirmfoto</small></button>`
       + '<div class="bph-sep"></div>'
       + `<button type="button" role="menuitem" data-out>${IC.out}Abmelden</button>`;
@@ -658,7 +658,8 @@
       <div class="bph-mode" role="group" aria-label="Ansicht"><button type="button" data-modus="einfach" title="Einfache Ansicht: große Karten, eine Hauptaufgabe je Seite">Einfach</button><button type="button" data-modus="profi" title="Alle Funktionen">Profi</button></div>
       <div class="bph-ki" role="group" aria-label="KI-Auswahl"></div>
       <button type="button" class="bph-kim" aria-haspopup="menu" aria-label="KI wählen"></button>
-      <button type="button" class="bph-ic bph-bugb" aria-haspopup="dialog" aria-label="Hilfe und Fehler" title="Hilfe & Fehler – Frage stellen, Live-Hilfe, Fehler melden">${IC.bug}<span class="bph-q" aria-hidden="true">?</span><span class="bph-hn" hidden></span></button>
+      <button type="button" class="bph-ic bph-hlp" aria-haspopup="dialog" aria-label="Hilfe und Änderungen" title="Hilfe zu dieser App und alle Änderungen">?</button>
+      <button type="button" class="bph-ic bph-bugb" aria-haspopup="dialog" aria-label="Hilfe und Fehler" title="Hilfe & Fehler – Frage stellen, Live-Hilfe, Fehler melden">${IC.bug}<span class="bph-hn" hidden></span></button>
       <button type="button" class="bph-ic bph-appsb" aria-haspopup="menu" aria-label="Apps" title="Apps">${IC.grid}</button>
       <button type="button" class="bph-ic bph-gear" aria-haspopup="dialog" aria-label="Einstellungen" title="Einstellungen">${IC.gear}</button>
       <button type="button" class="bph-who" aria-haspopup="menu" aria-label="Mein Konto"><span class="bph-av">?</span><span class="bph-nm"></span></button>`;
@@ -674,7 +675,7 @@
       if (e.target.closest('[data-out]')) { logout(); return; }
       if (e.target.closest('[data-look]')) { e.stopPropagation(); lookMenu(); return; }
       if (e.target.closest('[data-konto]')) { e.stopPropagation(); closeMenus(); H.einstellungen({ bereich: 'ich', teil: 'konto' }); return; }
-      if (e.target.closest('[data-neu]')) { e.stopPropagation(); closeMenus(); if (window.bpNeu) bpNeu.alle(); return; }
+      if (e.target.closest('.bph-hlp')) { e.stopPropagation(); closeMenus(); H.hilfeSeite(); return; }
       if (e.target.closest('[data-bug]')) { e.stopPropagation(); closeMenus(); H.bugMelden(); return; }
       if (e.target.closest('.bph-bugb')) { e.stopPropagation(); closeMenus(); H.hilfe(); return; }
       if (e.target.closest('.bph-appsb')) { e.stopPropagation(); if (band.querySelector('.bph-apps')) closeMenus(); else appsMenu(); return; }
@@ -1973,6 +1974,12 @@
   const hVerlauf = (L) => L.map((m) => `<div class="bph-hm${m.ich ? ' ich' : ''}"><small>${esc(m.von)} · ${esc(hZeit(m.ts))}</small><p>${esc(m.text)}</p></div>`).join('') || '<p class="bph-mu">Noch keine Nachrichten.</p>';
   let HSTAND = { helfer: false }, HLIVE = null, HFENSTER = null;
   const hAppName = () => ((band && band.querySelector('.bph-app') ? band.querySelector('.bph-app').textContent : '') || H.app || document.title).trim().slice(0, 60);
+  /* „?“: Hilfe zur App und alle Änderungen – Baustein hilfeseite.js, erst beim ersten Klick geladen */
+  H.hilfeSeite = function (o) {
+    if (window.bpHilfeSeite) { bpHilfeSeite(o); return; }
+    const [b, v] = window.BP_HEAD_BASIS || ['/bp/', ''], sc = document.createElement('script'); sc.src = b + 'hilfeseite.js' + v;
+    sc.onload = () => window.bpHilfeSeite && bpHilfeSeite(o); document.head.appendChild(sc);
+  };
   H.hilfe = async function (o = {}) {
     if (document.querySelector('.bph-hdlg')) return;
     const bg = document.createElement('div'); bg.className = 'bph-dlg-bg bph-hdlg';
@@ -2160,6 +2167,7 @@
     HSTAND.helfer = d.helfer;
     const offen = (d.offen || []).filter((x) => x.user_id !== H.me.id && x.status === 'offen'), n = (d.neu || 0) + offen.length + (d.offen || []).filter((x) => x.helfer_id === H.me.id && x.neu).length;
     const el = band.querySelector('.bph-hn'); if (el) { el.hidden = !n; el.textContent = n > 9 ? '9+' : String(n || ''); }
+    const hq = band.querySelector('.bph-hlp'); if (hq) { hq.classList.toggle('neu', !!d.aenderungen); hq.title = d.aenderungen ? `Hilfe und Änderungen – ${d.aenderungen} neu für dich` : 'Hilfe zu dieser App und alle Änderungen'; }
     offen.filter((x) => !HGESEHEN.has(x.id)).forEach((x) => {   // neue Anfrage → Hinweis oben rechts (einmal je Sitzung)
       HGESEHEN.add(x.id); try { sessionStorage.setItem('bph.hilfe.gesehen', JSON.stringify([...HGESEHEN].slice(-200))); } catch { /* egal */ }
       if (Date.now() - new Date(x.ts).getTime() > 30 * 60 * 1000) return;   // ältere nicht mehr aufpoppen lassen

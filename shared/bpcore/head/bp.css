@@ -66,8 +66,9 @@ th{color:var(--mute);font-weight:600;font-size:.85rem}
 @media (min-width:701px){.modal{resize:both;min-width:280px;min-height:120px}.modal.fest{resize:none}.modal.breit{width:min(760px,100%)}.modal>h3:first-child,.modal>h2:first-child{cursor:move;user-select:none}}
 .modal.pane{width:auto;max-height:none;overflow:visible;border:0;box-shadow:none;padding:.2rem 0;background:transparent}
 .modal.pane > h3:first-child{display:none}
-.modal .row{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.8rem}
+.modal .row{display:flex;flex-direction:column;gap:.45rem;margin-bottom:1rem}
 .modal .row label{color:var(--mute);font-size:.88rem}
+.modal .row label:has(>input:not([type=checkbox]):not([type=radio]),>select,>textarea){display:flex;flex-direction:column;gap:.45rem;min-width:0}   /* Beschriftung über dem Feld, mit Luft */
 .modal .acts{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;flex-wrap:wrap}
 .chk{display:flex;align-items:center;gap:.5rem;padding:.2rem 0}
 .secret{font:600 1.25rem/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;background:#1d1f21;border:1px dashed var(--y);border-radius:calc(8px*var(--rk,1));padding:.6rem .8rem;letter-spacing:.06em;user-select:all;text-align:center;background:var(--inp)}

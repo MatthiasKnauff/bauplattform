@@ -134,6 +134,12 @@ function formInfo(I, fehler) {
 let BEREICH = null;   // Bereich rechts nur beim Wechsel des Antrags neu aufbauen – sonst springt „Im PDF ausfüllen“ nach jedem Klick an den Anfang
 function bereich() {
   if (!window.seite || HANDY.matches) return;
+  if (VIEW === 'statistik') {   // Statistikbogen: geteilt wie bei den PDFs – rechts das Online-Formular des Landesamts (bauantrag-statistik.js)
+    if (BEREICH === 'stat' && WORK.dataset.sr === 'bast') return;
+    BEREICH = 'stat';
+    seite(WORK, 'bast', [{ id: 'stat', titel: 'Online-Formular', mount: statFormularIn }, { id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } }], { start: 'stat', w: 0.42, minL: 420 });
+    return;
+  }
   if (BEREICH === AID && WORK.dataset.sr === 'ba' && WORK.querySelector(':scope > .sr-r .sr-b, :scope > .sr-r .sr-aufs')) return;   // Werte trägt ausAktualisieren nach, die Vorschau vorschau()
   BEREICH = AID;
   seite(WORK, 'ba', [{ id: 'pdf', titel: 'PDF', mount: (el) => { PDFEL = el; vorschau(true); } },

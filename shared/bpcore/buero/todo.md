@@ -121,6 +121,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Zeiten: Kommen und Gehen als deutliche Linie im Zeitstrahl (gestrichelt = Vorschlag)~~
 - ~~Bautagebuch: PDF (Tagesbericht, Zeitraum, Kontakte) im gemeinsamen Viewer statt neuem Fenster bzw. eigener Ansicht; Ablage-Meldung wie bisher~~
 - ~~Bautagebuch: Tätigkeit der Anwesenden immer eigene volle Zeile; „← Bericht“ als auffälliger Pfeil-Knopf; Hinweis Terminrüge entfernt~~
 - ~~Waagerechter Scrollbalken zu früh: Baumspalte gibt zuerst nach (alle Baumtabellen), Stufen-Pfeile schmaler, Pläne-Titel, Honorar-Tabellen, Bauantrag-Auswahl, Arbeitsfortschritt im Bautagebuch; Adressen-Tabelle und Bauzeitenplan rollen weiter bewusst~~

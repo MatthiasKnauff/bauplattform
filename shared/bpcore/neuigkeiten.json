@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-zeiten-grenzen",
+  "datum": "2026-11-12",
+  "app": "zeiten",
+  "titel": "Kommen und Gehen als Linie",
+  "text": "Im Zeitstrahl stehen Kommen und Gehen jetzt als deutliche senkrechte Linie mit Uhrzeit. Durchgezogen heißt festgelegt, gestrichelt heißt Vorschlag.",
+  "ziel": ".zs-tl"
+ },
+ {
   "id": "2026-11-12-bt-viewer",
   "datum": "2026-11-12",
   "app": "bautagebuch",

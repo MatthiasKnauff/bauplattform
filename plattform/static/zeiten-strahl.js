@@ -46,7 +46,7 @@ let ZS_ZUG = 0;   // Zeitpunkt des letzten Ziehens – der folgende Klick zählt
 
 /* ---------------- Daten eines Tages (aus „Mein Tag“ oder der Woche) ---------------- */
 function zsDaten(t0) {
-  if (D && D.tag === t0) return { tag: t0, e: D.eintraege || [], v: D.vorschlaege || [], p: D.pausen || [], pf: D.pausen_fest, fest: !!D.bestaetigt, va: D.vorschlaege_aussen || [], k: D.kommen_fest ? D.kommen : '', g: D.gehen_fest ? D.gehen : '' };
+  if (D && D.tag === t0) return { tag: t0, e: D.eintraege || [], v: D.vorschlaege || [], p: D.pausen || [], pf: D.pausen_fest, fest: !!D.bestaetigt, va: D.vorschlaege_aussen || [], kv: D.kommen || '', gv: D.gehen || '', kf: !!D.kommen_fest, gf: !!D.gehen_fest, k: D.kommen_fest ? D.kommen : '', g: D.gehen_fest ? D.gehen : '' };
   const x = W && W.tage.find((y) => y.tag === t0);
   return x ? { tag: t0, e: x.bl.e, v: x.bl.v, p: x.pausen || [], pf: x.pausen_fest, fest: !!x.bestaetigt } : null;
 }
@@ -78,6 +78,10 @@ function zsStrahl(dd, a, b, klein) {
     h += (dd.va || []).map((x) => { const v = h2m(x.von), z = h2m(x.bis); return `<div class="b zs v zs-va" style="left:${p(v)};width:calc(${((z - v) / (b - a) * 100).toFixed(3)}% - 2px);--pf:${zsFarbe(x.project_id)}" title="${esc(`${x.von}–${x.bis} · außerhalb von Kommen–Gehen – beim Bestätigen gefragt`)}"><span class="zn">${esc((PJN()[x.project_id] || 'Büro').slice(0, 20))}</span></div>`; }).join('');
   }
   h += zsAlle(dd).map((x) => zsBlock(x, a, b, klein)).join('');
+  for (const [z, f, t] of [[dd.kv, dd.kf, 'Kommen'], [dd.gv, dd.gf, 'Gehen']]) {   // Arbeitszeitgrenzen als deutliche Linie (gestrichelt = Vorschlag)
+    const m = z ? h2m(z) : null;
+    if (m != null && m >= a && m <= b) h += `<span class="zs-gr${f ? '' : ' v'}${t === 'Gehen' ? ' g' : ''}" style="left:${p(m)}" title="${t} ${z}${f ? '' : ' (Vorschlag)'}">${klein ? '' : `<b>${t} ${z}</b>`}</span>`;
+  }
   if (dd.tag === G.heute) { const n = new Date(), m = n.getHours() * 60 + n.getMinutes(); if (m >= a && m <= b) h += `<span class="now" style="left:${p(m)}" title="jetzt"></span>`; }
   return `<div class="tl zs-tl${dd.fest ? ' fest' : ''}" data-tag="${dd.tag}" data-a="${a}" data-b="${b}">${h}</div>`;
 }

@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ava-eingabespalten",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Eingebbare Spalten erkennbar",
+  "text": "In den Tabellen der Ausschreibung sind Spalten, in die du tippen kannst, hellblau hinterlegt und im Kopf mit ✎ markiert; die Felder stehen weiß mit Rahmen darin. Feste und berechnete Werte sind etwas grauer.",
+  "ziel": "#view th.bp-ed"
+ },
+ {
   "id": "2026-11-12-lv-loeschen-kette",
   "datum": "2026-11-12",
   "app": "ava",

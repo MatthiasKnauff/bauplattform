@@ -759,3 +759,9 @@ table.lv tr.zu .ozt::after{content:"🔒";font-size:.7em;margin-left:.25rem;opac
 @media (max-width:640px){.kt-sp{grid-template-columns:1fr}}
 
 .modal:has(.kt){width:min(860px,96vw)}
+/* Eingebbare Spalten (12.11.2026, Variante C): edSpalten (ava-baum.js) setzt td.ed / td.ro und ✎ im Kopf; Farben über die Stil-Variablen */
+#view table:is(.lv,.ps,.au-t,.am) td.ed{background:color-mix(in srgb,var(--c-b) 7%,transparent)}
+#view table:is(.lv,.ps,.au-t,.am) td.ed :is(input:not([type=checkbox]):not([type=hidden]),select,textarea){border-color:color-mix(in srgb,var(--c-b) 28%,var(--line))!important;background:var(--inp)!important}
+#view table:is(.lv,.ps,.au-t,.am) td.ed :is(input,select,textarea):hover{border-color:var(--c-b)!important}
+#view table:is(.lv,.ps,.au-t,.am) td.ro{color:color-mix(in srgb,var(--ink) 70%,var(--mute))}
+#view table th.bp-ed{color:var(--c-b)}#view table th.bp-ed::after{content:" ✎";font-weight:400}

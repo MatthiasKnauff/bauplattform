@@ -322,6 +322,16 @@ function fokusZurueck(F) {
   n.focus({ preventScroll: true }); if (n.value !== F.v && F.v != null && n.tagName !== 'SELECT') n.value = F.v;   // schon Getipptes nicht verlieren
   try { if (F.s != null) n.setSelectionRange(F.s, F.e); } catch { /* egal */ }
 }
+/* ✎ im Kopf der Spalten, in die man tippen kann (Variante C) – aus den Zellen abgelesen, gilt für jede Tabelle der Ansicht */
+function edSpalten() {
+  document.querySelectorAll('#view table:is(.lv,.ps,.au-t,.am)').forEach((t) => { const h = t.tHead && t.tHead.rows[0]; if (!h) return;
+    const n = h.cells.length, fld = 'input:not([type=checkbox]):not([type=hidden]),select,textarea', ed = new Set([...h.cells].flatMap((c, i) => (c.hasAttribute('data-ed') ? [i] : [])));   // data-ed: Spalte ist eingebbar, auch wenn das Feld erst beim Anklicken erscheint
+    const R = [...t.tBodies].flatMap((b) => [...b.rows]).filter((r) => r.cells.length === n && !r.classList.contains('wurzel'));
+    for (const r of R) for (let i = 0; i < n; i++) if (!ed.has(i) && r.cells[i].querySelector(fld)) ed.add(i);
+    if (!ed.size) return;
+    [...h.cells].forEach((c, i) => c.classList.toggle('bp-ed', ed.has(i)));
+    for (const r of R) for (let i = 0; i < n; i++) { r.cells[i].classList.toggle('ed', ed.has(i)); r.cells[i].classList.toggle('ro', !ed.has(i) && !!r.cells[i].textContent.trim()); } });
+}
 function render() {
   { const F = fokusMerken(); if (F) setTimeout(() => fokusZurueck(F), 0); }
   { const k = tab + '|' + (L ? L.id : ''), zurueck = k === RKEY ? bpBaum.rolle($('#view')) : null; RKEY = k; RZURUECK = zurueck; if (zurueck) requestAnimationFrame(zurueck); }   // gleiche Ansicht neu gezeichnet (z. B. aufgeklappt): Rollposition bleibt
@@ -383,7 +393,8 @@ function render() {
   if (tab === 'aufmass' || tab === 'rechnungen') { amPdfMount(); if (seiteDa()) uLeisteNeu(); }
   if (PJF && L && PJF.lv === L.id) setTimeout(pjFokus, 30);
   if (tab === 'lv') { lvAktZeigen(); lvSplitMount(); uLeisteNeu(); requestAnimationFrame(lvKopfKleben); }
-  if (FELDER[tab]) randUnten();   // Höhe des Hauptfelds gleich setzen – nicht erst im nächsten Bild (sonst springt die Tabelle bei jeder Eingabe)
+  if (FELDER[tab]) randUnten();
+  edSpalten();   // Höhe des Hauptfelds gleich setzen – nicht erst im nächsten Bild (sonst springt die Tabelle bei jeder Eingabe)
   document.body.classList.toggle('ph-frei', PJTABS.has(tab));
   if (PJTABS.has(tab)) {   // Knopfleiste des geöffneten LV bleibt beim Scrollen unter der Kopfzeile stehen; die übrigen LVs scrollen weg
     const ph = null, kopf = document.querySelector('.bph');   // Titelzeile scrollt hier mit weg – oben (unter der Kopfleiste der Plattform) bleiben nur Knopfleiste und Spaltenköpfe

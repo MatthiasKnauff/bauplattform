@@ -48,4 +48,5 @@ main.ws .ws-work{flex:1;min-height:0;display:flex}
 .ws-ch.ok{background:color-mix(in srgb,var(--ok,#1e8a4c) 16%,var(--card));color:var(--ok,#1e8a4c)}.ws-ch.no{background:color-mix(in srgb,var(--red,#c62f2a) 14%,var(--card));color:var(--red,#c62f2a)}
 .ws-ch.of{background:var(--hov);color:var(--mute)}
 .leer{color:var(--mute);padding:2rem 0}
+.modal:has(.ws-bsdlg){width:min(1150px,96vw)}.modal:has(.ws-bsform){width:min(840px,96vw)}   /* Baustoffe: breites Fenster */
 @media (max-width:820px){main.ws{flex-direction:column}main.ws>.bp-nav{width:auto;max-height:30vh}#view{padding:.5rem}}

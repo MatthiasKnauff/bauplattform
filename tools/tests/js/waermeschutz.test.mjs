@@ -15,6 +15,8 @@ const ctx = { console };
 ctx.window = ctx;
 vm.createContext(ctx);
 for (const f of ['ws-physik.js', 'ws-baustoffe.js', 'ws-regeln.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, 'plattform/static', f), 'utf8'), ctx);
+const DB = JSON.parse(fs.readFileSync(path.join(ROOT, 'shared/bpcore/ws_baustoffe.json'), 'utf8')).baustoffe;
+ctx.WS_BAUSTOFFE = DB.map((r) => ctx.wsBaustoff(r));   // wie im Browser aus der Datenbank
 const W = ctx.WSP, M = ctx.WS_BAUSTOFFE;
 const m = (id) => { const x = M.find((a) => a.id === id); if (!x) throw new Error(id); return x; };
 const nahe = (ist, soll, tol, name) => assert.ok(Math.abs(ist - soll) <= tol, `${name}: ${ist} (soll ${soll} ± ${tol})`);
@@ -49,6 +51,19 @@ test('Glaser, Taupunkt, Phasenverschiebung, fRsi', () => {
   const pv = W.instationaer({ typ: 'wand', schichten: [{ mat: m('beton_normal'), d: 0.24 }] }).phasenverschiebung;
   assert.ok(pv > 6 && pv < 8, `Beton 24 cm: ${pv} h`);
   assert.ok(W.berechne(wdvs).frsi >= 0.7, 'fRsi WDVS');
+});
+
+test('Baustoffdatenbank vollständig und plausibel', () => {
+  const K = new Set();
+  for (const r of DB) {
+    assert.ok(!K.has(r.k), 'Schlüssel doppelt: ' + r.k); K.add(r.k);
+    assert.ok(r.name && r.kat && r.quelle, 'Name, Kategorie, Quelle: ' + r.k);
+    if (!r.luft) assert.ok(r.lambda > 0.005 && r.lambda < 500, 'λ: ' + r.k);
+    assert.ok(r.rho > 0 && r.c > 0, 'Rohdichte und c: ' + r.k);
+    if (r.hersteller) assert.ok(r.url && r.url.startsWith('https://'), 'Herstellerprodukt mit Quelle: ' + r.k);
+  }
+  for (const v of ctx.WS_VORLAGEN) for (const s of v.schichten) { assert.ok(K.has(s.m), 'Vorlage ' + v.name + ': ' + s.m); if (s.m2) assert.ok(K.has(s.m2), s.m2); }
+  assert.ok(DB.length >= 150 && DB.filter((r) => r.hersteller).length >= 20, 'genug Baustoffe');
 });
 
 test('gespeicherte Schichten → Rechenmodell, Anlage 7', () => {

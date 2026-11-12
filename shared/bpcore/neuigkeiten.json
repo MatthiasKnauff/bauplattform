@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-ws-baustoffe",
+  "datum": "2026-11-12",
+  "app": "waermeschutz",
+  "titel": "Baustoffdatenbank mit Herstellerprodukten",
+  "text": "Links „Baustoffe …“: 175 Baustoffe mit Bemessungswerten (DIN 4108-4, DIN EN ISO 10456) und Herstellerprodukten mit Datenblatt-Stand und Link. Eigene Baustoffe anlegen oder kopieren. Bauteile und Bauteilkatalog sind verknüpft – eine Änderung gilt sofort überall.",
+  "ziel": "[data-ws=\"bs\"]"
+ },
+ {
   "id": "2026-11-12-waermeschutz",
   "datum": "2026-11-12",
   "app": "waermeschutz",

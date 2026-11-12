@@ -2,7 +2,9 @@
 Gerechnet wird im Browser (static/ws-physik.js: U-Wert DIN EN ISO 6946, Glaser DIN 4108-3, ISO 13786); hier liegen nur die Daten:
 der Nachweis mit seinen Bauteilen (JSON) und der Bauteilkatalog des Büros. Die Grundlagen kommen aus dem Bauantrag des Projekts
 (Art des Vorhabens, Gebäudeklasse, Nutzung, Datum der Einreichung – das entscheidet über die geltende Fassung, § 111 Abs. 2 GModG)."""
+import hashlib
 import json
+import os
 import time
 import uuid
 
@@ -244,6 +246,113 @@ def loeschen(nid):
         pk = papierkorb.ablegen(c, "ws_nachweis", nid, "Wärmeschutznachweis", n["name"], g.user["name"], p["name"] if p else "", KEY)
     C.audit(g.user["name"], KEY, "Nachweis gelöscht", n["name"])
     return jsonify(ok=True, papierkorb=pk)
+
+
+# ---------- Baustoffdatenbank ----------
+BS_DATEI = os.path.join(os.path.dirname(BA.__file__), "ws_baustoffe.json")
+BS_FELDER = ("kat", "name", "hersteller", "lambda", "rho", "mu", "mu2", "sd", "c", "farbe", "art", "holz", "quelle", "stand", "url", "hinweis")
+_BS_OK = [None]
+
+
+def _bs_abgleich(c):
+    """Eingebaute Baustoffe aus ws_baustoffe.json anlegen bzw. nachführen – einmal je Prozess und nur, wenn sich die Datei geändert hat."""
+    roh = open(BS_DATEI, "rb").read()
+    h = hashlib.sha256(roh).hexdigest()[:16]
+    if _BS_OK[0] == h:
+        return
+    r = c.execute("SELECT data FROM bp_store WHERE key='ws:baustoffe'").fetchone()
+    if not r or (_j(r["data"], {}) or {}).get("h") != h:
+        for e in json.loads(roh)["baustoffe"]:
+            v = {k: e.get(k) for k in BS_FELDER}
+            v["art"] = "belueftet" if e.get("belueftet") else "luft" if e.get("luft") else ""
+            v["holz"] = e.get("holz") if isinstance(e.get("holz"), str) else ("vollholz" if e.get("holz") else "")
+            for k in ("kat", "name", "hersteller", "farbe", "quelle", "stand", "url", "hinweis"):
+                v[k] = v[k] or ""
+            c.execute("INSERT INTO ws_baustoff(schluessel, " + ", ".join(BS_FELDER) + ", herkunft) VALUES (?" + ",?" * len(BS_FELDER) + ", 'eingebaut') "
+                      "ON CONFLICT (schluessel) DO UPDATE SET " + ", ".join(f"{k}=EXCLUDED.{k}" for k in BS_FELDER) + " WHERE ws_baustoff.herkunft='eingebaut'",
+                      (e["k"], *[v[k] for k in BS_FELDER]))
+        c.execute("INSERT INTO bp_store(key, data, updated, updated_by) VALUES('ws:baustoffe', ?, ?, 'waermeschutz') ON CONFLICT (key) DO UPDATE SET data=EXCLUDED.data, updated=EXCLUDED.updated",
+                  (json.dumps({"h": h}), time.strftime("%Y-%m-%d %H:%M:%S")))
+    _BS_OK[0] = h
+
+
+def _verwendet(c):
+    """Schlüssel → wie oft in Bauteilen (Nachweise) und im Bauteilkatalog verwendet"""
+    z = {}
+    for r in c.execute("SELECT data FROM ws_nachweis").fetchall():
+        for b in (_j(r["data"], {}) or {}).get("bauteile") or []:
+            for s in b.get("schichten") or []:
+                for k in (s.get("m"), s.get("m2")):
+                    if k:
+                        z.setdefault(k, [0, 0])[0] += 1
+    for r in c.execute("SELECT schichten FROM ws_katalog").fetchall():
+        for s in _j(r["schichten"], []):
+            for k in (s.get("m"), s.get("m2")):
+                if k:
+                    z.setdefault(k, [0, 0])[1] += 1
+    return z
+
+
+@app.get("/api/baustoffe")
+def baustoffe():
+    with db.tx() as c:
+        _bs_abgleich(c)
+        R = c.execute("SELECT * FROM ws_baustoff ORDER BY kat, hersteller, name").fetchall()
+        z = _verwendet(c) if request.args.get("verwendet") else {}
+    return jsonify(baustoffe=[{**{k: r[k] for k in ("schluessel", "herkunft", "aktiv", "geaendert", "von") + BS_FELDER}, **({"verwendet": z.get(r["schluessel"], [0, 0])} if z else {})} for r in R])
+
+
+def _bs_daten(b):
+    v = {}
+    for k in ("kat", "name", "hersteller", "quelle", "stand", "url", "hinweis"):
+        if k in b:
+            v[k] = _txt(b[k], 300)
+    if "farbe" in b and str(b["farbe"]).startswith("#"):
+        v["farbe"] = _txt(b["farbe"], 9)
+    for k, lo, hi in (("lambda", 0.001, 500), ("rho", 0.1, 25000), ("mu", 0, 1e7), ("mu2", 0, 1e7), ("sd", 0, 1e5), ("c", 1, 10000)):
+        if k in b:
+            v[k] = _zahl(b[k], lo, hi)
+    if "holz" in b:
+        v["holz"] = b["holz"] if b["holz"] in ("vollholz", "werkstoff") else ""
+    if "aktiv" in b:
+        v["aktiv"] = bool(b["aktiv"])
+    return v
+
+
+@app.post("/api/baustoffe")
+def baustoff_neu():
+    """Eigener Baustoff des Büros (z. B. ein Produkt mit Bemessungswert aus dem Datenblatt)."""
+    b = request.get_json(silent=True) or {}
+    v = _bs_daten(b)
+    if not v.get("name") or not v.get("lambda"):
+        return jsonify(error="Name und λ (Bemessungswert) sind nötig."), 400
+    v.setdefault("kat", "Eigene Baustoffe")
+    k = "eigen_" + uuid.uuid4().hex[:10]
+    with db.tx() as c:
+        c.execute("INSERT INTO ws_baustoff(schluessel, " + ", ".join(v) + ", herkunft, von) VALUES (?" + ",?" * len(v) + ", 'eigen', ?)", (k, *v.values(), g.user["name"]))
+    C.audit(g.user["name"], KEY, "Baustoff angelegt", v["name"])
+    return jsonify(ok=True, schluessel=k)
+
+
+@app.put("/api/baustoffe/<k>")
+def baustoff_aendern(k):
+    """Eigene Baustoffe ändern; eingebaute nur ein- oder ausblenden (aktiv). Antwort mit „vorher“ für Rückgängig."""
+    b = request.get_json(silent=True) or {}
+    with db.tx() as c:
+        r = c.execute("SELECT * FROM ws_baustoff WHERE schluessel=?", (k,)).fetchone()
+        if not r:
+            return jsonify(error="Baustoff nicht gefunden."), 404
+        v = _bs_daten(b)
+        if r["herkunft"] != "eigen":
+            v = {x: y for x, y in v.items() if x == "aktiv"}
+            if not v:
+                return jsonify(error="Eingebaute Baustoffe lassen sich nicht ändern – als eigenen Baustoff kopieren."), 409
+        if not v:
+            return jsonify(ok=True)
+        vorher = {x: r[x] for x in v}
+        c.execute("UPDATE ws_baustoff SET " + ", ".join(f"{x}=?" for x in v) + ", geaendert=?, von=? WHERE schluessel=?",
+                  (*v.values(), time.strftime("%Y-%m-%d %H:%M:%S"), g.user["name"], k))
+    return jsonify(ok=True, vorher=vorher)
 
 
 # ---------- Bauteilkatalog des Büros ----------

@@ -3,10 +3,14 @@
    Tippen rechnet sofort (U-Wert, Temperaturen, Tauwasser, fRsi, Phasenverschiebung, Querschnitt); gespeichert wird beim Verlassen des Feldes.
    Gefach (Sparren/Ständer): zweiter Baustoff mit Breite und Achsabstand → U-Wert nach DIN EN ISO 6946 (obere/untere Grenze).
    Neues Bauteil leer, als Musteraufbau oder aus dem Bauteilkatalog des Büros. Nutzt aus ws-kern.js: D, BID, R7, speichern, zeichne, zahl, typName. */
-const BS = window.WS_BAUSTOFFE || [], BSI = Object.fromEntries(BS.map((m) => [m.id, m]));
-const KATEG = [...new Set(BS.map((m) => m.kat))];
-const baustoffWahl = (wert, attr) => `<select ${attr}>${KATEG.map((k) => `<optgroup label="${esc(k)}">${BS.filter((m) => m.kat === k).map((m) => `<option value="${m.id}"${m.id === wert ? ' selected' : ''}>${esc(m.name)}</option>`).join('')}</optgroup>`).join('')}
-  <optgroup label="Eigener Baustoff"><option value="eigen"${wert === 'eigen' || (wert && !BSI[wert]) ? ' selected' : ''}>Eigener Baustoff (λ von Hand)</option></optgroup></select>`;
+/* Baustoffe aus der Datenbank (ws-kern.js lädt sie beim Start: baustoffeLaden). Herstellerprodukte stehen je Kategorie mit dem Herstellernamen. */
+let BS = [], BSI = {};
+function baustoffeSetzen(L) { BS = L; BSI = Object.fromEntries(L.map((m) => [m.id, m])); window.WS_BAUSTOFFE = L; }
+async function baustoffeLaden() { baustoffeSetzen((await api('api/baustoffe')).baustoffe.map(wsBaustoff)); }
+const bsName = (m) => (m.hersteller ? `${m.hersteller} ${m.name}` : m.name);
+const baustoffWahl = (wert, attr) => { const A = BS.filter((m) => m.aktiv || m.id === wert), K = [...new Set(A.map((m) => m.kat + (m.hersteller ? ' – Hersteller' : '')))];
+  return `<select ${attr}>${K.map((k) => `<optgroup label="${esc(k)}">${A.filter((m) => m.kat + (m.hersteller ? ' – Hersteller' : '') === k).map((m) => `<option value="${m.id}"${m.id === wert ? ' selected' : ''} title="${esc([m.quelle, m.stand && 'Stand ' + m.stand, m.hinweis].filter(Boolean).join(' · '))}">${esc(bsName(m))} · λ ${m.lambda ? String(m.lambda).replace('.', ',') : '–'}</option>`).join('')}</optgroup>`).join('')}
+  <optgroup label="Nur hier"><option value="eigen"${wert === 'eigen' || (wert && !BSI[wert]) ? ' selected' : ''}>Freier Baustoff (λ von Hand, nur in diesem Bauteil)</option></optgroup></select>`; };
 const ntz = (v) => (v == null || v === '' ? '' : String(v).replace('.', ','));
 const pz = (v) => { const x = parseFloat(String(v).replace(',', '.')); return isFinite(x) ? x : null; };
 
@@ -173,7 +177,9 @@ async function katalogSpeichern() {
 }
 async function katalogZeigen() {
   try { KAT = (await api('api/katalog')).katalog; } catch (er) { toast(er.message, true); return; }
-  const zeile = (k) => `<tr><td><b>${esc(k.name)}</b><br><small class="mute">${esc(typName(k.typ))} · ${k.schichten.length} Schichten · ${esc(k.von || '')}</small></td>
+  const aufbau = (k) => k.schichten.map((x) => { const m = BSI[x.m]; return `${esc(m ? bsName(m) : x.name || 'frei')} ${String(x.d).replace('.', ',')} cm`; }).join(' · ');
+  const uk = (k) => { const e = R7.pruefe({ typ: k.typ, schichten: k.schichten }, '19'); return e.u == null ? '' : ' · U ' + zahl(e.u, 3); };
+  const zeile = (k) => `<tr><td><b>${esc(k.name)}</b><br><small class="mute">${esc(typName(k.typ))}${uk(k)} · ${esc(k.von || '')}</small><br><small>${aufbau(k)}</small></td>
     <td class="r"><button type="button" class="btn sm" data-m="rein" data-k="${k.id}"${D ? '' : ' disabled'}>Ins Projekt</button> <button type="button" class="btn sm" data-m="weg" data-k="${k.id}" title="in den Papierkorb">🗑</button></td></tr>`;
   modalBox(`<h3>Bauteilkatalog des Büros</h3><p class="mute" style="font-size:.85rem">Aufbauten zum Wiederverwenden – aus einem Bauteil mit „Bauteil → In Katalog“.</p>
     <div style="max-height:55vh;overflow:auto"><table class="ws-pt" data-volle><tbody>${KAT.length ? KAT.map(zeile).join('') : '<tr><td class="mute">Noch leer.</td></tr>'}</tbody></table></div>

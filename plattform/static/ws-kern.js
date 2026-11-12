@@ -62,7 +62,7 @@ function nav() {
     return { id: 'b:' + b.id, text: `${b.kurz || ''} ${b.name || typName(b.typ)}`.trim(), icon: IC.wand, farbe: e.ok === false ? 'var(--red,#c62f2a)' : e.ok ? 'var(--ok,#1e8a4c)' : '',
       zahl: e.u == null ? '–' : zahl(e.u) + (e.ok === false ? ' ✗' : e.ok ? ' ✓' : ''), zahlTip: e.umax != null ? 'U max ' + zahl(e.umax) : 'keine Anforderung' }; }),
     { id: 'b+', text: '＋ Bauteil …', icon: IC.neu }] });
-  G.push({ titel: 'Bauteilkatalog des Büros', punkte: [{ id: 'k', text: 'Katalog …', icon: IC.kat }] });
+  G.push({ titel: 'Datenbank des Büros', punkte: [{ id: 'k', text: 'Bauteilkatalog …', icon: IC.kat }, { id: 'bs', text: 'Baustoffe …', icon: IC.schicht, zahl: String(BS.filter((m) => m.aktiv).length) }] });
   bpNav(NAV, { kopf: { titel: P, klein: `${D.nachweis.name} · ${VORHABEN[D.grundlagen.vorhaben] ? VORHABEN[D.grundlagen.vorhaben].split(' (')[0] : ''}` },
     gruppen: G, aktiv: BID ? 'b:' + BID : '', attr: 'ws', lage: true, fuss: '<button type="button" class="nneu" data-wsneu>＋ Neuer Nachweis</button>',
     wahl: (id, e) => navWahl(id, e) });
@@ -72,6 +72,7 @@ function navWahl(id, e) {
   if (id.startsWith('s:')) { const k = V.querySelector(`[data-karte="${id.slice(2)}"]`); if (k) k.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   if (id === 'b+') { bauteilNeu(e && e.target.closest('button')); return; }
   if (id === 'k') { katalogZeigen(); return; }
+  if (id === 'bs') { baustoffeZeigen(); return; }
   if (id.startsWith('b:')) { BID = id.slice(2); zeichne(); const k = V.querySelector('[data-karte="bauteile"]'); if (k) k.scrollIntoView({ block: 'start' }); }
 }
 
@@ -175,6 +176,7 @@ async function nachweisLoeschen() {
   const PC = await api('api/platform');
   await header('Wärmeschutz', ME, PC);
   bpNav.breite(NAV, { key: 'waermeschutz' });
+  await baustoffeLaden();
   if (BPHead.beiProjektWahl) BPHead.beiProjektWahl(async (id) => { PID = +id; NID = null; BID = null; await laden(); });
   await laden();
   BPHead.live(['ws_nachweis', 'projects'], async () => { await laden(); BPHead.liveNotiz(); }, { projekt: false });   // Änderungen anderer

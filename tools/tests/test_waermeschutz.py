@@ -56,3 +56,21 @@ def test_rechte_waermeschutz(ctx):
     """Gast 401; fremdes Projekt 404."""
     ctx.gast().get(f"{WS}/nachweise", expect=401)
     ctx.admin.post(f"{WS}/nachweise", {"project_id": 999999}, expect=404)
+
+
+def test_baustoffdatenbank(ctx):
+    """Eingebaute Baustoffe (DIN, Hersteller) aus der Datei, eigener Baustoff, eingebaute nur ausblenden, „verwendet in“."""
+    a = ctx.admin
+    L = a.gj(f"{WS}/baustoffe?verwendet=1")["baustoffe"]
+    K = {x["schluessel"]: x for x in L}
+    pruefe(len(L) >= 150 and sum(1 for x in L if x["hersteller"]) >= 20, f"Baustoffe in der Datenbank: {len(L)}")
+    gleich((K["ks_1800"]["lambda"], K["gutex_thermoflex"]["hersteller"], K["luft_belueftet"]["art"]), (0.99, "GUTEX", "belueftet"), "Werte aus der Datei")
+    a.put(f"{WS}/baustoffe/ks_1800", {"lambda": 0.5}, expect=409)
+    r = a.uj(f"{WS}/baustoffe/ks_1800", {"aktiv": False})
+    gleich(r["vorher"], {"aktiv": True}, "eingebauter Baustoff ausgeblendet, „vorher“ für Rückgängig")
+    a.uj(f"{WS}/baustoffe/ks_1800", {"aktiv": True})
+    a.post(f"{WS}/baustoffe", {"name": "ohne λ"}, expect=400)
+    k = a.pj(f"{WS}/baustoffe", {"name": "RT Dämmplatte", "hersteller": "RT", "lambda": "0,031", "rho": 40, "mu": 1})["schluessel"]
+    x = next(y for y in a.gj(f"{WS}/baustoffe")["baustoffe"] if y["schluessel"] == k)
+    gleich((x["lambda"], x["herkunft"], x["kat"]), (0.031, "eigen", "Eigene Baustoffe"), "eigener Baustoff")
+    a.uj(f"{WS}/baustoffe/{k}", {"lambda": 0.033, "aktiv": False})

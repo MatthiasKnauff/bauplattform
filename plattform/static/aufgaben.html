@@ -54,7 +54,7 @@
 .er .tx small{display:block;color:var(--mute);font-size:.8rem;margin-top:.3rem}
 .er .ac{display:flex;flex-direction:column;align-items:flex-end;gap:.35rem}
 .er .ac .dt{font-weight:600;white-space:nowrap}
-.er .ac .bt{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.er>.bt{grid-column:2/-1;display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}   /* aufgeklappt: Knöpfe in eigener Zeile – der Text behält die volle Breite */
 .er{cursor:pointer}.er:not(.auf):hover{border-color:var(--y)}.er:not(.auf) .tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.er:not(.auf){padding:.5rem .9rem}
 .er.auf{cursor:default;box-shadow:var(--sh0,0 4px 16px rgba(0,0,0,.08))}.er .tx{min-width:0}
 .e-ed{display:grid;gap:.35rem;margin:.4rem 0 .2rem}.e-ed label{display:grid;gap:.1rem;font-size:.8rem;color:var(--mute)}.e-ed input,.e-ed textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.92rem}
@@ -81,7 +81,7 @@ details.done-l>summary{cursor:pointer;color:var(--mute);margin:1rem 0 .5rem}
 .fm textarea{min-height:70px}
 .uchk{display:flex;flex-wrap:wrap;gap:.3rem .9rem;max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:calc(8px*var(--rk,1));padding:.5rem .7rem}
 .uchk label{display:flex;gap:.35rem;align-items:center;color:var(--ink)}
-@media (max-width:760px){.mr{grid-template-columns:auto 1fr}.mr .th{display:none}.mr .ed{grid-column:1/-1;min-width:0}.er{grid-template-columns:30px 1fr}.er .ac{grid-column:1/-1;align-items:flex-start}.er .ac .bt{justify-content:flex-start}.fm{grid-template-columns:1fr}}
+@media (max-width:760px){.mr{grid-template-columns:auto 1fr}.mr .th{display:none}.mr .ed{grid-column:1/-1;min-width:0}.er{grid-template-columns:30px 1fr}.er .ac{grid-column:1/-1;align-items:flex-start}.er>.bt{justify-content:flex-start}.fm{grid-template-columns:1fr}}
 .sm-steps{margin:.2rem 0 .8rem;padding-left:1.3rem;display:flex;flex-direction:column;gap:.8rem;line-height:1.45}
 .sm-steps .btn{margin-top:.35rem}
 .sm-drop{display:flex;align-items:center;justify-content:center;margin-top:.4rem;padding:1rem;border:2px dashed var(--line);border-radius:calc(10px*var(--rk,1));cursor:pointer;color:var(--mute);text-align:center}
@@ -397,7 +397,7 @@ function renderE() {
           + `<small>${esc([sn, x.projekt, x.firma, sent, x.manuell ? 'von Hand verschoben' : ''].filter(Boolean).join(' · '))}${erWer(x)}${ziel ? ` · <a href="${esc(ziel)}"${x.mail && !link ? ' target="bp-outlook"' : ''}>${link ? (x.quelle === 'plan' ? 'Bauzeitenplan öffnen →' : 'Bericht öffnen →') : 'Mail öffnen →'}</a>` : ''}</small>`
         : `<small>${esc([x.projekt, x.firma].filter(Boolean).join(' · '))}${erWer(x)}</small>`}</div>
       <div class="ac"><span class="dt">${deW(x.termin)}${x.uhrzeit ? ' · ' + esc(x.uhrzeit) : ''}</span><span class="st ${x.lage}">${{ ueberfaellig: 'überfällig', abgelaufen: 'abgelaufen', heute: 'heute', bald: 'bald', spaeter: 'geplant', erledigt: 'erledigt' }[x.lage]}</span>
-        ${auf ? `<div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : `${eigen ? '<button class="btn sm pri" data-ea="esave">Speichern</button>' : ''}<button class="btn sm" data-ea="kal" title="Als Termin in meinen Kalender (Einladung per E-Mail)">📅</button><button class="btn sm" data-ea="resch">Neu terminieren</button><button class="btn sm" data-ea="done">✓ Erledigt</button>`}${eigen ? '<button class="btn sm danger" data-ea="del" title="Löschen">✕</button>' : ''}</div>` : ''}</div>
+      </div>${auf ? `<div class="bt">${x.status === 'erledigt' ? '<button class="btn sm" data-ea="reopen">wieder öffnen</button>' : `${eigen ? '<button class="btn sm pri" data-ea="esave">Speichern</button>' : ''}<button class="btn sm" data-ea="kal" title="Als Termin in meinen Kalender (Einladung per E-Mail)">📅</button><button class="btn sm" data-ea="resch">Neu terminieren</button><button class="btn sm" data-ea="done">✓ Erledigt</button>`}${eigen ? '<button class="btn sm danger" data-ea="del" title="Löschen">✕</button>' : ''}</div>` : ''}
       ${OPEN === x.id ? `<div class="resch">Neuer Termin: ${[[1, 'morgen'], [3, '+3 Tage'], [7, '+1 Woche'], [0, 'nächster Montag']].map(([d, l]) => `<button class="btn sm" data-rq="${d}">${l}</button>`).join('')}
         <input type="date" id="rDate" value="${esc(x.termin < iso(new Date()) ? plus(1) : x.termin)}"><input type="time" id="rTime" value="${esc(x.uhrzeit || '08:00')}"><button class="btn sm pri" data-ea="save">Speichern</button><button class="btn sm" data-ea="cancel">Abbrechen</button></div>` : ''}</div>`;
   };

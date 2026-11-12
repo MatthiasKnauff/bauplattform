@@ -137,6 +137,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Aufgaben & Post: aufgeklappte Erinnerung nicht mehr zusammengequetscht (Knöpfe in eigener Zeile) – 13.11.2026~~
 - ~~Wärmeschutz: Hüllbauteile aus den Baukosten (IFC) mit Fläche, Schichten, Uw – 13.11.2026~~
 - ~~Bauantrag: Farbbalken oben und Vordrucke/Unterlagen/Pläne mit Stand links wieder da (alt + neu kombiniert) – 12.11.2026~~
 - ~~Pfeile in allen Bäumen gleich groß (schwarz = Inhalt, grau = leer), Eingaben im LV/Aufträge ohne Kasten – 12.11.2026~~

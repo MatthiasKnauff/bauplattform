@@ -5233,95 +5233,83 @@ def _lv_druck(c, r, P, lay, entwurf=False):
         story.append(PageBreak())
     if lay["vorbem"] and F["Vorbemerkungen"].strip():
         story += [Paragraph("Vorbemerkungen", S["h2"]), Paragraph(X(F["Vorbemerkungen"]), S["p"]), Spacer(1, 5 * mm)]
-    wl = W - 90 * mm
-    head = ["OZ", "Leistung", "Menge", "EH", "EP", "GP"]
-    rows, band, tsum, titel = [head], [], {}, []
-    cur = []   # Titel-Stapel
     hdr_style = [("FONT", (0, 0), (-1, -1), FN["n"], fs), ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
                  ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-                 ("FONT", (0, 0), (-1, 0), FN["b"], fs - 0.5), ("TEXTCOLOR", (0, 0), (-1, 0), MUTE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK)] + \
-                [("ALIGN", (ci, 0), (ci, -1), "RIGHT") for ci in (2, 4, 5)]
+                 ("FONT", (0, 0), (-1, 0), FN["b"], fs - 0.5), ("TEXTCOLOR", (0, 0), (-1, 0), MUTE), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK)]   # Zusammenstellung
+    # Positionen, Titel und Summe nach den Blockvorlagen des Druck-Layouts (Layout-Editor, Reiter „Position“, „Titel“, „Summe“):
+    # einmal festgelegt, je Eintrag wiederholt – Felder wachsen, Langtexte brechen über Seiten um, Fotos werden nie geteilt (bpcore/vorlage.py)
+    from bpcore import vorlage as VL
+    VPOS, VTIT, VSUM = (layout.vorlage(LAY, "lv", n) for n in ("position", "titel", "summe"))
+    VS = {"schrift": FN, "ink": INK, "mute": MUTE, "linie": LINE, "band": BAND, "kopf": True}
+    fw = lambda V, feld: next((e for e in V.get("elemente") or [] if e.get("feld") == feld), None)   # noqa: E731
+    def stil(V, feld, std):   # Schrift des Elements für Absätze, die die Plattform selbst setzt (bearbeitbar im Entwurf)
+        e = fw(V, feld) or {}
+        gr = float(e.get("groesse") or std)
+        return ParagraphStyle("v" + feld, fontName=FN["b" if e.get("fett") else "n"], fontSize=gr, leading=gr * 1.28, textColor=MUTE if e.get("farbe") == "mute" else INK,
+                              alignment={"mitte": 1, "rechts": 2}.get(e.get("ausrichtung"), 0))
+    tsum, titel, cur = {}, [], []
+    gesamt, erster = 0.0, [True]
 
-    weiter = set()   # Zeilen, an die eine Fortsetzung des Langtexts anschließt (dort keine Trennlinie)
-
-    def tabelle_schliessen():
-        nonlocal rows, band, weiter
-        if len(rows) > 1:
-            # lange Langtexte stehen in Fortsetzungszeilen – die Tabelle bricht dann zwischen den Zeilen um
-            t = Table(rows, colWidths=[17 * mm, wl, 17 * mm, 11 * mm, 20 * mm, 25 * mm], repeatRows=1)
-            t.setStyle(TableStyle(hdr_style + [("BACKGROUND", (0, ri), (-1, ri), BAND) for ri in band]
-                                  + [("LINEBELOW", (0, ri), (-1, ri), 0.3, LINE) for ri in range(1, len(rows)) if ri not in weiter]
-                                  + [("BOTTOMPADDING", (0, ri), (-1, ri), 0) for ri in weiter] + [("TOPPADDING", (0, ri + 1), (-1, ri + 1), 0) for ri in weiter]))
-            story.append(t)
-        rows, band, weiter = [head], [], set()
-    gesamt = 0.0
+    def dazu(V, inh):
+        story.append(VL.block(V, inh, VS, erster=erster[0], kopf_von=VPOS)); erster[0] = False
+    lang_breite = lambda: (float((fw(VPOS, "fotos") or fw(VPOS, "lang") or {"w": 79}).get("w")) * mm) * (W / ((float(VPOS.get("breite") or 170) * mm) or W))   # noqa: E731
     for x in items:
         if x.get("nt"):
             continue
         if x["typ"] == "titel":
             lv_ = x.get("lvl") or 1
-            if lay["seite_je_titel"] and lv_ == 1 and (len(rows) > 1 or len(story) > (1 if lay["deckblatt"] else 0)):
-                tabelle_schliessen(); story.append(PageBreak())
+            if lay["seite_je_titel"] and lv_ == 1 and not erster[0]:
+                story.append(PageBreak())
             while cur and cur[-1][0] >= lv_:
                 cur.pop()
             cur.append((lv_, x["id"]))
             tsum[x["id"]] = 0.0
             if lv_ == 1:
                 titel.append(x)
-            rows.append([x.get("oz") or "", PE(f"<b>{X(x['kurz'])}</b>", S["pb"], x.get("id"), "kurz"), "", "", "", ""]); band.append(len(rows) - 1)
+            dazu(VTIT, {"oz": x.get("oz") or "", "kurz": [PE(f"{X(x['kurz'])}", stil(VTIT, "kurz", 9.5), x.get("id"), "kurz")]})
             continue
-        if x.get("art") == "T" and x.get("vb"):   # Vorbemerkung: über die ganze Breite (nicht in der Textspalte), im Layout abschaltbar
+        if x.get("art") == "T" and x.get("vb"):   # Vorbemerkung: über die ganze Breite, im Layout abschaltbar
             if not lay.get("vbpos", True):
                 continue
-            tabelle_schliessen()
             story.append(Paragraph(f"<b>{X(x['kurz'])}</b>", S["h2"]))
             for ab in re.split(r"\n\s*\n", str(x.get("lang") or "")):
                 if ab.strip():
                     story.append(Paragraph(X(ab.strip()), S["p"]))
-            story.append(Spacer(1, 4 * mm))
+            story.append(Spacer(1, 4 * mm)); erster[0] = True
             continue
-        if x.get("art") == "T":   # Hinweistext (z. B. lange Vorbemerkung aus GAEB) – ebenfalls in Abschnitten
-            for k_, st_ in enumerate(stuecke_von(x.get("lang") or x["kurz"])):
-                if k_:
-                    weiter.add(len(rows) - 1)
-                rows.append(["", PE(f"<font name='{FN['i']}'>{X(st_)}</font>", S["lang"], x.get("id"), "lang" if x.get("lang") else "kurz"), "", "", "", ""])
+        if x.get("art") == "T":   # Hinweistext: in der Spalte des Langtexts
+            dazu(VPOS, {"lang": [PE(f"<font name='{FN['i']}'>{X(st_)}</font>", stil(VPOS, "lang", 8.5), x.get("id"), "lang" if x.get("lang") else "kurz")
+                                 for st_ in stuecke_von(x.get("lang") or x["kurz"])]})
             continue
-        if x.get("np_vor") and len(rows) > 1:   # Druckoption „Neue Seite vorher“
-            tabelle_schliessen(); story.append(PageBreak())
-        kz = f"<b>{X(x['kurz'])}</b>" + (" <font size='7'>[S]</font>" if x.get("sp") else "")
-        zelle = [PE(f"<strike>{kz}</strike> – entfällt" if x.get("entf") else kz, S["p"], x.get("id"), "kurz")]
-        stuecke = []
+        if x.get("np_vor") and not erster[0]:   # Druckoption „Neue Seite vorher“
+            story.append(PageBreak()); erster[0] = True
+        kz = f"{X(x['kurz'])}" + (" <font size='7'>[S]</font>" if x.get("sp") else "")
+        inh = {"oz": x.get("oz") or "", "kurz": [PE(f"<strike>{kz}</strike> – entfällt" if x.get("entf") else kz, stil(VPOS, "kurz", 9.5), x.get("id"), "kurz")],
+               "menge": num(x.get("menge")), "eh": x.get("einheit") or ""}
         if lay["langtext"] and x.get("lang") and x["lang"] != x["kurz"]:
-            stuecke = stuecke_von(x["lang"])
-            zelle.append(PE(X(stuecke.pop(0)), S["lang"], x.get("id"), "lang"))
+            inh["lang"] = [PE(X(st_), stil(VPOS, "lang", 8.5), x.get("id"), "lang") for st_ in stuecke_von(x["lang"])]
         if x.get("art") in ("E", "A", "P"):
-            zelle.append(Paragraph("Bedarfsposition (mit GB)" if x["art"] == "E" and x.get("gb") else ARTEN[x["art"]], S["mu"]))
+            inh["art"] = "Bedarfsposition (mit GB)" if x["art"] == "E" and x.get("gb") else ARTEN[x["art"]]
         if x.get("bezug"):
             bz = next((y for y in items if y.get("id") == x["bezug"]), None)
             if bz:
-                zelle.append(Paragraph(f"Bezug: Pos. {X(bz.get('oz') or '')} {X(bz.get('kurz') or '')}", S["mu"]))
-        bilder = fotos(x["id"], wl - 5 * mm)
+                inh["bezug"] = f"Bezug: Pos. {bz.get('oz') or ''} {bz.get('kurz') or ''}"
+        bilder = fotos(x["id"], lang_breite())
+        if bilder:
+            inh["fotos"] = bilder
         ep = ep_of(x)
         gp = _gp(x, ep) if ep is not None and zaehlt({**x, "nt": None}) else None
         if gp is not None:
             gesamt += gp
             for _, tid in cur:
                 tsum[tid] += gp
-        rows.append([x.get("oz") or "", zelle, num(x.get("menge")), x.get("einheit") or "",
-                     ep2(ep) if ep is not None else ("" if preis != "leer" else "............"),
-                     "entfällt" if x.get("entf") else eur(gp) if gp is not None else ("(ohne GB)" if ep is not None else ("" if preis != "leer" else "................"))])
-        for st_ in stuecke:   # Fortsetzung des Langtexts
-            weiter.add(len(rows) - 1)
-            rows.append(["", PE(X(st_), S["lang"], x.get("id"), "lang"), "", "", "", ""])
-        for bt_ in bilder:   # Fotos, je zwei in einer Zeile
-            weiter.add(len(rows) - 1)
-            rows.append(["", bt_, "", "", "", ""])
+        inh["ep"] = ep2(ep) if ep is not None else ("" if preis != "leer" else "............")
+        inh["gp"] = "entfällt" if x.get("entf") else eur(gp) if gp is not None else ("(ohne GB)" if ep is not None else ("" if preis != "leer" else "................"))
+        dazu(VPOS, inh)
         if x.get("np_nach"):   # Druckoption „Neue Seite nachher“
-            tabelle_schliessen(); story.append(PageBreak())
+            story.append(PageBreak()); erster[0] = True
     if preis != "leer":
-        rows.append(["", Paragraph("<b>Summe netto</b>", S["p"]), "", "", "", eur(gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1))])   # Nachlass in % und € (wie in der Abrechnung)
-        band.append(len(rows) - 1)
-    tabelle_schliessen()
+        dazu(VSUM, {"betrag": eur(gesamt * ((1 - nachlass_satz(V, items)) if preis == "auftrag" else 1))})   # Nachlass in % und € (wie in der Abrechnung)
     if lay["zusammenstellung"] and titel:
         z = [["OZ", "Titel", "Betrag netto"]]
         for t_ in titel:

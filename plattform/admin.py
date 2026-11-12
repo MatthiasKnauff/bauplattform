@@ -733,7 +733,7 @@ def layout_eins(b):
                 if isinstance(body.get("neu"), dict):
                     von = next((x for x in V if x["id"] == body["neu"].get("von")), None) or next((x for x in V if x["id"] == d["aktiv"]), V[0])
                     nv = {"id": "v" + str(int(time.time() * 1000))[-9:], "name": str(body["neu"].get("name") or "Neue Version")[:80],
-                          "data": layout.pruefen(body["neu"]["data"]) if isinstance(body["neu"].get("data"), dict) else layout.kopie(von["data"]), "archiviert": False, "datum": datetime.now().strftime("%d.%m.%Y %H:%M"), "wer": g.user["name"]}
+                          "data": layout.pruefen(body["neu"]["data"], b) if isinstance(body["neu"].get("data"), dict) else layout.kopie(von["data"]), "archiviert": False, "datum": datetime.now().strftime("%d.%m.%Y %H:%M"), "wer": g.user["name"]}
                     V.append(nv); d["aktiv"] = nv["id"]
                 if body.get("weg"):
                     if len([x for x in V if x["id"] != body["weg"]]) < 1:
@@ -746,7 +746,7 @@ def layout_eins(b):
                     if not v:
                         return jsonify(error="Version nicht gefunden"), 404
                     if isinstance(body.get("data"), dict):
-                        v["data"] = layout.pruefen(body["data"])
+                        v["data"] = layout.pruefen(body["data"], b)
                     if body.get("name"):
                         v["name"] = str(body["name"])[:80]
                     if "archiviert" in body:
@@ -756,7 +756,8 @@ def layout_eins(b):
         B = layout.BEREICHE[b]
         EG = layout.eigene(c)
         return jsonify({**d, "bereich": {"key": b, "name": B["name"], "art": B.get("art", "brief"), "variablen": B["variablen"], "optionen": B.get("optionen", []),
-                                                "bloecke": layout.BLOECKE.get(b, []), "block_vorgabe": layout.BLOCK_VORGABE.get(b, {})},
+                                                "bloecke": layout.BLOECKE.get(b, []), "block_vorgabe": layout.BLOCK_VORGABE.get(b, {}),
+                                                "vorlagen": {k: {"name": x["name"], "felder": x["felder"], "std": x["std"]} for k, x in (layout.VORLAGEN.get(b) or {}).items()}},
                         "felder": {} if B.get("art") == "ava" else layout.FELDER, "typen": layout.TYPEN, "eigene": EG,
                         "standard": layout.standard(b), "beispiel": {**layout.beispiel(b, c), **{x["key"]: f"‹{x['name']}›" for x in EG}}})
 

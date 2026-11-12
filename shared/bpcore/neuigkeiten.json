@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-positionsvorlage",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "LV-Druck: Position einmal festlegen",
+  "text": "Im Druck-Layout des LV gibt es jetzt die Reiter „Position“, „Titel“ und „Summe“: Felder (OZ, Kurztext, Langtext, Fotos, Menge, EH, EP, GP, Art, Bezug, Text, Linie) auf das Raster ziehen, Schrift und Spaltenkopf einstellen, auf Wunsch mit Außenkasten. Die Plattform wiederholt den Block für jede Position – Langtexte brechen über Seiten um, Fotos werden nie geteilt oder beschnitten.",
+  "ziel": ""
+ },
+ {
   "id": "2026-11-12-besprechung",
   "datum": "2026-11-12",
   "app": "ava",

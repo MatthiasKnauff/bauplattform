@@ -38,6 +38,9 @@ body{margin:0}
 .el.linie.h::after{left:0;right:0;top:50%;height:1px}.el.linie.v::after{top:0;bottom:0;left:50%;width:1px}
 .el.falz{border:0;overflow:visible;pointer-events:auto}
 .el.ohne{opacity:.45}
+.el.vf{background:rgba(122,91,214,.08);border-color:rgba(122,91,214,.6);color:#3b2a86}.el.vf small{display:block;color:#8c88a0;font-size:.85em;white-space:nowrap}
+.modi{display:inline-flex;border:1px solid var(--line);border-radius:calc(999px*var(--rkp,1));overflow:hidden;margin-right:.4rem}.modi[hidden]{display:none}
+.modi button{border:0!important;border-radius:0!important;background:none!important;height:2rem;padding:0 .7rem!important;color:var(--mute)}.modi button.on{background:var(--y)!important;color:var(--on-y,#fff)}
 .el.sel{outline:2px solid #ff8c1a;outline-offset:1px;border-color:transparent;z-index:5}
 .el .gr{position:absolute;width:9px;height:9px;background:#ff8c1a;border:1px solid #fff;display:none}.el.sel .gr{display:block}
 .gr.se{right:-5px;bottom:-5px;cursor:nwse-resize}.gr.e{right:-5px;top:calc(50% - 5px);cursor:ew-resize}.gr.s{bottom:-5px;left:calc(50% - 5px);cursor:ns-resize}
@@ -65,7 +68,8 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
       <button data-neu="logo">◩ Logo</button><button data-neu="linie">— Linie</button>
       <button data-neu="falzmarken">⌐ Falzmarken</button><button data-neu="inhalt">▤ Inhalt</button>
     </div>
-    <h4>Variablen</h4>
+    <div class="pal" id="vpal" hidden></div>
+    <h4 id="varH">Variablen</h4>
     <p class="hint" style="margin:0 0 .3rem">Klick fügt sie in den gewählten Text ein. Beim Drucken stehen dort die echten Werte.</p>
     <div id="vars"></div>
     <h4>Eigene Felder</h4>
@@ -76,6 +80,7 @@ body.emb .lw{height:calc(100vh - 44px)}body.emb>.bph,body.emb>header.bph{display
   </aside>
   <div class="mitte">
     <div class="wz" id="wz">
+      <span class="modi" id="modi" hidden></span>
       <button data-al="links" title="links bündig">⇤</button><button data-al="hmitte" title="waagerecht mittig">↔</button><button data-al="rechts" title="rechts bündig">⇥</button>
       <span class="sep"></span><button data-al="oben" title="oben bündig">⤒</button><button data-al="vmitte" title="senkrecht mittig">↕</button><button data-al="unten" title="unten bündig">⤓</button>
       <span class="sep"></span><button data-al="vh" title="gleiche Abstände waagerecht (ab 3)">⋯</button><button data-al="vv" title="gleiche Abstände senkrecht (ab 3)">⋮</button>
@@ -102,9 +107,17 @@ const ELN = { text: 'Text', feld: 'Feld', logo: 'Logo', linie: 'Linie', falzmark
 const r1 = (v) => Math.round(v * 100) / 100;
 const ras = () => +(V && V.data.raster) || 2.5;
 const FMT = { A4: ['A4 hoch', 210, 297], A4q: ['A4 quer', 297, 210], A3: ['A3 hoch', 297, 420], A3q: ['A3 quer', 420, 297] };
-const PW = () => (FMT[(V && V.data.format) || 'A4'] || FMT.A4)[1], PH = () => (FMT[(V && V.data.format) || 'A4'] || FMT.A4)[2];
+const PW = () => (MODE !== 'seite' ? +vorl().breite || 170 : (FMT[(V && V.data.format) || 'A4'] || FMT.A4)[1]);
+const PH = () => (MODE !== 'seite' ? Math.max(+vorl().h || 6, ...vorl().elemente.map((e) => e.y + e.h), 0) + 12 : (FMT[(V && V.data.format) || 'A4'] || FMT.A4)[2]);
 const snap = (v) => r1(Math.round(v / ras()) * ras());
-const E = () => V.data.elemente;
+let MODE = 'seite';   // 'seite' = erste Seite / Rahmen · sonst der Name einer Blockvorlage (z. B. 'position'): ein Block, den die Plattform je Eintrag wiederholt
+const VDEF = () => (D && D.bereich.vorlagen) || {};
+function vorl() {   // die Blockvorlage dieses Reiters – fehlt sie in der Version, die Vorgabe des Ausdrucks
+  V.data.vorlagen = V.data.vorlagen || {};
+  if (!V.data.vorlagen[MODE] || !(V.data.vorlagen[MODE].elemente || []).length) V.data.vorlagen[MODE] = JSON.parse(JSON.stringify(VDEF()[MODE].std));
+  return V.data.vorlagen[MODE];
+}
+const E = () => (MODE === 'seite' ? V.data.elemente : vorl().elemente);
 const folgeOben = () => { const ib = E().find((x) => x.typ === 'inhalt'); return V.data.folge_oben ?? Math.min(ib ? ib.y : 25, 25); };
 const wert = (t) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => (D.beispiel[k] ?? m));
 
@@ -113,8 +126,25 @@ async function laden() {
   $('#ber').innerHTML = L.map((x) => `<option value="${x.key}"${x.key === B ? ' selected' : ''}>${esc(x.gruppe)} · ${esc(x.name)}</option>`).join('');
   if (!L.some((x) => x.key === B)) B = L[0].key;
   D = await api('api/layouts/' + B); V = D.versionen.find((x) => x.id === D.aktiv) || D.versionen[0];
-  HIST = []; REDO = []; LG = []; bpUndo.wegArt('lay'); SEL = new Set(); vl(); vars(); zeichne(); props();
+  HIST = []; REDO = []; LG = []; bpUndo.wegArt('lay'); SEL = new Set(); if (MODE !== 'seite' && !VDEF()[MODE]) MODE = 'seite'; modi(); vl(); vars(); zeichne(); props();
 }
+function modi() {   // Reiter über dem Blatt: Seite und die Blockvorlagen des Ausdrucks (z. B. Position, Titel, Summe)
+  const M = Object.entries(VDEF()), m = $('#modi'); m.hidden = !M.length;
+  m.innerHTML = M.length ? `<button type="button" data-modus="seite" class="${MODE === 'seite' ? 'on' : ''}" title="Seiten: Kopf, Fuß, Bereich für den Inhalt">Seite</button>${M.map(([k, x]) => `<button type="button" data-modus="${k}" class="${MODE === k ? 'on' : ''}" title="${esc(x.name)}: einmal festlegen – die Plattform wiederholt den Block je Eintrag">${esc(x.name)}</button>`).join('')}` : '';
+  const v = MODE !== 'seite';
+  const zeig = (el, an) => { if (el) el.style.display = an ? '' : 'none'; };   // .pal setzt display:grid – hidden allein reicht nicht
+  zeig(document.querySelector('.pal:not(#vpal)'), !v); zeig($('#vpal'), v); ['#vars', '#varH', '#eig', '#eigNeu'].forEach((q) => zeig($(q), !v));
+  document.querySelectorAll('aside h4, aside > p.hint').forEach((x) => { if (x.id !== 'varH' && x.closest('aside') === $('#vpal').closest('aside')) zeig(x, !v || x.textContent === 'Hinzufügen'); });
+  zeig($('#fmt').closest('label'), !v); zeig($('#std'), !v); zeig($('#vs'), !v);
+  if (v) $('#vpal').innerHTML = Object.entries(VDEF()[MODE].felder).map(([k, t]) => `<button data-vneu="${k}" title="${esc(t)}">${esc(t.split(' (')[0])}</button>`).join('') + '<button data-vstd style="grid-column:1/-1">↺ Vorgabe für diesen Block</button>';
+}
+$('#modi').addEventListener('click', (e) => { const b = e.target.closest('[data-modus]'); if (!b || b.dataset.modus === MODE) return; MODE = b.dataset.modus; SEL.clear(); modi(); zeichne(); props(); });
+$('#vpal').addEventListener('click', (e) => {
+  if (e.target.closest('[data-vstd]')) { merken('Vorgabe für den Block'); V.data.vorlagen[MODE] = JSON.parse(JSON.stringify(VDEF()[MODE].std)); SEL.clear(); return geaendert(); }
+  const b = e.target.closest('[data-vneu]'); if (!b) return; const f = b.dataset.vneu, unten = Math.max(0, ...E().map((x) => x.y + x.h));
+  merken(); const n = { id: Math.random().toString(36).slice(2, 10), feld: f, x: 0, y: snap(unten + 1), w: f === 'linie' ? PW() : 40, h: f === 'linie' ? 0.5 : 4, groesse: 9, farbe: 'ink', ausrichtung: 'links', ...(f === 'text' ? { text: 'Text' } : {}) };
+  E().push(n); SEL = new Set([n.id]); geaendert();
+});
 function vl() {
   if (!window.BPHead || !BPHead.versionsleiste) return;
   BPHead.versionsleiste({ vor: $('#vlPlatz'), liste: D.versionen.map((x) => ({ id: x.id, name: x.name, datum: x.datum, wer: x.wer, archiviert: x.archiviert })), aktuell: V.id,
@@ -199,13 +229,24 @@ function zeichne() {
   $('#raster').value = String(r);
   let g = ''; for (let x = 0; x <= PW(); x += r) g += `<line x1="${x * K}" y1="0" x2="${x * K}" y2="${PH() * K}" stroke="${x % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
   for (let y = 0; y <= PH(); y += r) g += `<line x1="0" y1="${y * K}" x2="${PW() * K}" y2="${y * K}" stroke="${y % 10 === 0 ? '#d6e0f0' : '#eef2f8'}" stroke-width="1"/>`;
-  if (D.bereich.art !== 'ava') g += `<rect x="${20 * K}" y="${45 * K}" width="${85 * K}" height="${45 * K}" fill="none" stroke="#9fc0e8" stroke-dasharray="4 3"/><text x="${21 * K}" y="${44 * K}" font-size="${2.6 * K}" fill="#7aa0cc">Fensterbereich DIN 5008</text>`;
-  const ib = E().find((x) => x.typ === 'inhalt'), fo = folgeOben();
+  if (D.bereich.art !== 'ava' && MODE === 'seite') g += `<rect x="${20 * K}" y="${45 * K}" width="${85 * K}" height="${45 * K}" fill="none" stroke="#9fc0e8" stroke-dasharray="4 3"/><text x="${21 * K}" y="${44 * K}" font-size="${2.6 * K}" fill="#7aa0cc">Fensterbereich DIN 5008</text>`;
+  const ib = MODE === 'seite' && E().find((x) => x.typ === 'inhalt'), fo = MODE === 'seite' ? folgeOben() : 0;
+  if (MODE !== 'seite') { const v = vorl(); g += `<line x1="0" y1="${v.h * K}" x2="${PW() * K}" y2="${v.h * K}" stroke="#b9a7ef" stroke-dasharray="5 4"/><text x="${1 * K}" y="${(PH() - 2) * K}" font-size="${2.3 * K}" fill="#8c88a0">↕ Die Höhe ergibt sich aus dem Inhalt – Felder wachsen, was darunter liegt, rückt nach</text>`; }
   if (ib) g += `<line x1="${ib.x * K}" y1="${fo * K}" x2="${(ib.x + ib.w) * K}" y2="${fo * K}" stroke="#e07b3a" stroke-dasharray="6 4" stroke-width="1.5"/><text x="${(ib.x + 1) * K}" y="${(fo - 0.8) * K}" font-size="${2.4 * K}" fill="#e07b3a">Folgeseiten: Inhalt beginnt hier (${String(fo).replace('.', ',')} mm)</text>`;
   $('#git').setAttribute('width', PW() * K); $('#git').setAttribute('height', PH() * K); $('#git').innerHTML = g;
   bl.querySelectorAll('.el').forEach((x) => x.remove());
   E().forEach((e) => {
     const d = document.createElement('div'); d.dataset.id = e.id;
+    if (MODE !== 'seite') {   // Feld einer Blockvorlage
+      const lin = e.feld === 'linie', T = VDEF()[MODE].felder;
+      d.className = `el ${lin ? 'linie ' + (e.w >= e.h ? 'h' : 'v') : 'vf'}${e.farbe === 'mute' ? ' mute' : ''}${e.fett ? ' fett' : ''}${e.ausrichtung === 'mitte' ? ' mitte' : e.ausrichtung === 'rechts' ? ' rechts' : ''}${SEL.has(e.id) ? ' sel' : ''}`;
+      Object.assign(d.style, { left: e.x * K + 'px', top: e.y * K + 'px', width: e.w * K + 'px', height: e.h * K + 'px', fontSize: (e.groesse || 9) * K * 0.3528 + 'px' });
+      d.title = T[e.feld] || e.feld;
+      const BSP = { oz: '01.0010', kurz: 'Kurztext der Position', lang: 'Langtext – wächst mit dem Text …', fotos: '▣ ▣ Fotos', menge: '12,5', eh: 'm²', ep: '45,00', gp: '562,50 €', art: 'Bedarfsposition', bezug: 'Bezug: Pos. 01.0010', summe: '12.345,00 €', betrag: '77.836,00 €' };   // Beispiel statt Feldname
+      if (!lin) d.innerHTML = `${esc(e.feld === 'text' ? e.text || '' : BSP[e.feld] || (T[e.feld] || e.feld).split(' (')[0])}${e.kopf ? `<small>Spaltenkopf: ${esc(e.kopf)}</small>` : ''}`;
+      d.insertAdjacentHTML('beforeend', '<i class="gr se" data-gr="se"></i><i class="gr e" data-gr="e"></i><i class="gr s" data-gr="s"></i>');
+      bl.appendChild(d); return;
+    }
     const h = e.typ === 'linie' ? (e.w >= e.h ? 'h' : 'v') : '';
     d.className = `el ${e.typ === 'feld' ? 'feld' : e.typ === 'inhalt' ? 'inhalt' : e.typ === 'logo' ? 'logo' : e.typ === 'linie' ? 'linie ' + h : e.typ === 'falzmarken' ? 'falz' : ''}${e.farbe === 'mute' ? ' mute' : ''}${e.fett ? ' fett' : ''}${e.ausrichtung === 'mitte' ? ' mitte' : e.ausrichtung === 'rechts' ? ' rechts' : ''}${e.unterstrichen ? ' ul' : ''}${e.nur_ohne_bogen ? ' ohne' : ''}${SEL.has(e.id) ? ' sel' : ''}`;
     Object.assign(d.style, { left: e.x * K + 'px', top: e.y * K + 'px', width: e.w * K + 'px', height: e.h * K + 'px', fontSize: (e.groesse || 10) * K * 0.3528 + 'px' });
@@ -266,8 +307,29 @@ function optHtml() {
     ? `<label class="ck ganz"><input type="checkbox" data-lopt="${o.key}"${W[o.key] ? ' checked' : ''}> ${esc(o.name)}</label>`
     : `<label class="ganz">${esc(o.name)}<select data-lopt="${o.key}">${o.wahl.map(([k, l]) => `<option value="${esc(k)}"${String(W[o.key]) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`).join('')}</div>`;
 }
+function vprops(P, S) {   // Eigenschaften im Reiter einer Blockvorlage
+  const v = vorl(), T = VDEF()[MODE].felder;
+  if (!S.length) { P.innerHTML = `<h3>${esc(VDEF()[MODE].name)}</h3><p class="hint">Einmal festlegen – die Plattform wiederholt diesen Block für jeden Eintrag. Felder wachsen mit ihrem Inhalt nach unten, was darunter liegt, rückt nach. Lange Texte brechen über Seiten um, Fotos werden nie geteilt oder beschnitten. Leere Felder fallen weg.</p>
+    <div class="fm"><label>Mindesthöhe (mm)<input type="number" step="0.5" data-vb="h" value="${v.h ?? 6}"></label><label>Abstand darüber (mm)<input type="number" step="0.5" data-vb="abstand" value="${v.abstand || 0}"></label>
+      <label class="ck ganz"><input type="checkbox" data-vb="kasten"${v.kasten ? ' checked' : ''}> Außenkasten um den Block</label>
+      <label class="ck ganz"><input type="checkbox" data-vb="linie"${v.linie ? ' checked' : ''}> Trennlinie unten</label>
+      <label class="ck ganz"><input type="checkbox" data-vb="band"${v.band ? ' checked' : ''}> Hintergrund (Band)</label></div>
+    <p class="hint">Spaltenköpfe über jeder Seite: beim Feld „Spaltenkopf“ eintragen (z. B. EP).</p>${optHtml()}`; return; }
+  if (S.length > 1) { P.innerHTML = `<h3>${S.length} Felder gewählt</h3><p class="hint">Oben ausrichten, gleiche Abstände oder gleiche Größe.</p>`; return; }
+  const e = S[0], nz = (k, l, st = 0.5) => `<label>${l}<input type="number" step="${st}" data-p="${k}" value="${e[k] ?? ''}"></label>`;
+  P.innerHTML = `<h3>${esc((T[e.feld] || e.feld).split(' (')[0])}</h3><p class="hint">${esc(T[e.feld] || '')}</p><div class="fm">
+    ${nz('x', 'links (mm)')}${nz('y', 'oben (mm)')}${nz('w', 'Breite (mm)')}${nz('h', 'Höhe (mm)')}
+    ${e.feld === 'text' ? `<label class="ganz">Text<input data-p="text" value="${esc(e.text || '')}"></label>` : ''}
+    ${e.feld === 'linie' ? nz('staerke', 'Strichstärke (pt)', 0.1) : `${nz('groesse', 'Schriftgröße (pt)')}
+      <label>Farbe<select data-p="farbe"><option value="ink"${e.farbe !== 'mute' ? ' selected' : ''}>Schwarz</option><option value="mute"${e.farbe === 'mute' ? ' selected' : ''}>Grau</option></select></label>
+      <label>Ausrichtung<select data-p="ausrichtung">${[['links', 'links'], ['mitte', 'mittig'], ['rechts', 'rechts']].map(([k, l]) => `<option value="${k}"${(e.ausrichtung || 'links') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="ck"><input type="checkbox" data-p="fett"${e.fett ? ' checked' : ''}> fett</label>
+      <label class="ganz">Spaltenkopf <span class="hint">(leer = keiner)</span><input data-p="kopf" value="${esc(e.kopf || '')}" maxlength="30"></label>`}
+    </div><div style="display:flex;gap:.4rem;margin-top:.8rem"><button class="btn sm" data-al="dup">⧉ Duplizieren</button><button class="btn sm danger" data-al="del">🗑 Löschen</button></div>`;
+}
 function props() {
   const P = $('#props'), S = E().filter((e) => SEL.has(e.id));
+  if (MODE !== 'seite') return vprops(P, S);
   if (!S.length) { P.innerHTML = `<h3>Eigenschaften</h3><p class="hint">Element anklicken (mit Umschalt mehrere) oder einen Rahmen aufziehen – nach rechts unten nur ganz eingeschlossene, nach links oben auch angeschnittene; ziehen zum Verschieben, an den orangen Griffen die Größe ändern. Pfeiltasten verschieben um ein Rasterfeld, mit Umschalt um 0,5 mm.</p>
     <p class="hint">Blau = Feld (im Brief vor dem Versenden änderbar), gestreift = Inhalt (fließt, bei Bedarf auf Folgeseiten), blass = nur ohne Briefbogen.</p>${blHtml()}${optHtml()}`; return; }
   if (S.length > 1) { P.innerHTML = `<h3>${S.length} Elemente gewählt</h3><p class="hint">Oben ausrichten, gleiche Abstände oder gleiche Größe.</p>`; return; }
@@ -301,6 +363,7 @@ $('#props').addEventListener('change', (e) => {
   const bf = e.target.dataset.bf; if (bf) { const z = e.target.closest('[data-bi]'), L = BL(), b = L[+z.dataset.bi]; merken();
     b[bf] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'number' ? Math.max(+e.target.min || 0, Math.min(+e.target.max || 99, +e.target.value || 0)) : e.target.value; blSetzen(L); return geaendert(); }
   const lo = e.target.dataset.lopt; if (lo) { merken(); V.data.optionen = { ...(V.data.optionen || {}), [lo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }; return geaendert(); }
+  const vb = e.target.dataset.vb; if (vb) { merken(); vorl()[vb] = e.target.type === 'checkbox' ? e.target.checked : Math.max(0, +e.target.value || 0); return geaendert(); }
   if (e.target.id === 'pfolge') { merken(); V.data.folge_oben = Math.max(5, Math.min(150, +e.target.value || 20)); return geaendert(); }
   const f = e.target.dataset.p; if (!f) return; const el = E().find((x) => SEL.has(x.id)); if (!el) return;
   merken();
@@ -380,9 +443,9 @@ function ausrichten(a) {
   if (a === 'redo') { if (!REDO.length) return; HIST.push(JSON.stringify(V.data)); LG.push(bpUndo.push('Layout geändert', () => ausrichten('undo'), 'lay')); V.data = JSON.parse(REDO.pop()); return geaendert(); }
   if (!S.length) return;
   merken();
-  if (a === 'del') { V.data.elemente = E().filter((x) => !SEL.has(x.id) || x.typ === 'inhalt'); SEL.clear(); return geaendert(); }
+  if (a === 'del') { const rest = E().filter((x) => !SEL.has(x.id) || x.typ === 'inhalt'); if (MODE === 'seite') V.data.elemente = rest; else vorl().elemente = rest.length ? rest : vorl().elemente; SEL.clear(); return geaendert(); }
   if (a === 'dup') { const neu = S.filter((x) => x.typ !== 'inhalt').map((x) => ({ ...x, id: Math.random().toString(36).slice(2, 10), x: snap(x.x + 5), y: snap(x.y + 5), name: (x.name || ELN[x.typ]) + ' (Kopie)' })); E().push(...neu); SEL = new Set(neu.map((x) => x.id)); return geaendert(); }
-  const ein = S.length === 1, l = ein ? 25 : Math.min(...S.map((x) => x.x)), r = ein ? 190 : Math.max(...S.map((x) => x.x + x.w)), o = Math.min(...S.map((x) => x.y)), u = Math.max(...S.map((x) => x.y + x.h));
+  const ein = S.length === 1, l = ein ? (MODE === 'seite' ? 25 : 0) : Math.min(...S.map((x) => x.x)), r = ein ? (MODE === 'seite' ? 190 : PW()) : Math.max(...S.map((x) => x.x + x.w)), o = Math.min(...S.map((x) => x.y)), u = Math.max(...S.map((x) => x.y + x.h));
   S.forEach((x) => {
     if (a === 'links') x.x = l; if (a === 'rechts') x.x = r1(r - x.w); if (a === 'hmitte') x.x = r1((l + r) / 2 - x.w / 2);
     if (a === 'oben') x.y = o; if (a === 'unten') x.y = r1(u - x.h); if (a === 'vmitte') x.y = r1((o + u) / 2 - x.h / 2);

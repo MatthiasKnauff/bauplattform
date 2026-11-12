@@ -115,6 +115,68 @@ BEREICHE.update({
     "rechnungspruefung": {"name": "Rechnungsprüfung (Prüfblatt)", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
     "rechnungsfreigabe": {"name": "Rechnungsfreigabe für die Bauherr:in", "gruppe": "Ausschreibung & Abrechnung", "art": "ava", "variablen": {**AVA, **RE}},
 })
+# Blockvorlagen (bpcore/vorlage.py): je Ausdruck mit Listen die Vorlagen (Reiter im Layout-Editor), ihre Felder und die Vorgabe
+def _v(feld, x, y, w, h, **k):
+    return {"id": uuid.uuid4().hex[:8], "feld": feld, "x": x, "y": y, "w": w, "h": h, **k}
+
+
+VORLAGEN = {
+    "lv": {
+        "position": {"name": "Position", "felder": {"oz": "OZ (Pos.-Nr.)", "kurz": "Kurztext", "lang": "Langtext (wächst, bricht über Seiten um)",
+                                                    "fotos": "Fotos (nie geteilt)", "menge": "Menge", "eh": "Einheit", "ep": "Einheitspreis",
+                                                    "gp": "Gesamtpreis", "art": "Art (Bedarf, Wahl, Pauschal)", "bezug": "Bezug (Grundposition)",
+                                                    "text": "fester Text", "linie": "Linie"},
+                     "std": {"breite": 170, "h": 6, "linie": True, "elemente": [
+                         _v("oz", 0, 0.8, 17, 4, groesse=9, kopf="OZ"), _v("kurz", 18, 0.8, 79, 4, groesse=9.5, fett=True, kopf="Leistung"),
+                         _v("lang", 18, 5.2, 79, 3.5, groesse=8.5), _v("art", 18, 9, 79, 3, groesse=8, farbe="mute"),
+                         _v("bezug", 18, 12.2, 79, 3, groesse=8, farbe="mute"), _v("fotos", 18, 15.5, 79, 1),
+                         _v("menge", 98, 0.8, 17, 4, groesse=9, ausrichtung="rechts", kopf="Menge"), _v("eh", 117, 0.8, 9, 4, groesse=9, kopf="EH"),
+                         _v("ep", 127, 0.8, 19, 4, groesse=9, ausrichtung="rechts", kopf="EP"), _v("gp", 147, 0.8, 23, 4, groesse=9, ausrichtung="rechts", kopf="GP")]}},
+        "titel": {"name": "Titel", "felder": {"oz": "OZ", "kurz": "Bezeichnung des Titels", "summe": "Summe des Titels", "text": "fester Text", "linie": "Linie"},
+                  "std": {"breite": 170, "h": 6, "band": True, "abstand": 2, "elemente": [
+                      _v("oz", 0, 1, 17, 4, groesse=9.5, fett=True), _v("kurz", 18, 1, 150, 4, groesse=9.5, fett=True)]}},
+        "summe": {"name": "Summe", "felder": {"text": "fester Text", "betrag": "Summe netto", "linie": "Linie"},
+                  "std": {"breite": 170, "h": 6, "band": True, "abstand": 1, "elemente": [
+                      _v("text", 18, 1, 100, 4, groesse=9.5, fett=True, text="Summe netto"), _v("betrag", 130, 1, 40, 4, groesse=9.5, fett=True, ausrichtung="rechts")]}},
+    },
+}
+
+
+def _vorlagen_pruefen(bereich, roh):
+    """Blockvorlagen: nur bekannte Felder, Maße im Block."""
+    D = VORLAGEN.get(bereich) or {}
+    out = {}
+    for name, V in (roh or {}).items() if isinstance(roh, dict) else ():
+        if name not in D or not isinstance(V, dict):
+            continue
+        f = lambda d, k, dv, lo, hi: max(lo, min(hi, float(d.get(k) if isinstance(d.get(k), (int, float)) else dv)))   # noqa: E731
+        br = f(V, "breite", 170, 50, 420)
+        el = []
+        for e in V.get("elemente") or []:
+            if not isinstance(e, dict) or e.get("feld") not in D[name]["felder"]:
+                continue
+            x = {"id": str(e.get("id") or uuid.uuid4().hex[:8])[:16], "feld": e["feld"], "x": f(e, "x", 0, 0, br - 1), "y": f(e, "y", 0, 0, 200),
+                 "w": f(e, "w", 20, 1, br), "h": f(e, "h", 4, 0.2, 200), "groesse": f(e, "groesse", 9, 5, 30), "fett": bool(e.get("fett")),
+                 "farbe": "mute" if e.get("farbe") == "mute" else "ink", "ausrichtung": e.get("ausrichtung") if e.get("ausrichtung") in ("links", "mitte", "rechts") else "links"}
+            if str(e.get("kopf") or "").strip():
+                x["kopf"] = str(e["kopf"]).strip()[:30]
+            if e["feld"] == "text":
+                x["text"] = str(e.get("text") or "")[:300]
+            if e["feld"] == "linie":
+                x["staerke"] = f(e, "staerke", 0.4, 0.1, 3)
+            el.append(x)
+        if el:
+            out[name] = {"breite": br, "h": f(V, "h", 6, 1, 200), "abstand": f(V, "abstand", 0, 0, 30), "kasten": bool(V.get("kasten")),
+                         "linie": bool(V.get("linie")), "band": bool(V.get("band")), "elemente": el}
+    return out
+
+
+def vorlage(lay, bereich, name):
+    """Vorlage aus dem Layout – sonst die Vorgabe des Ausdrucks."""
+    v = ((lay or {}).get("vorlagen") or {}).get(name)
+    return v if v and v.get("elemente") else copy.deepcopy(((VORLAGEN.get(bereich) or {}).get(name) or {}).get("std") or {})
+
+
 FELDER = {"Empfaenger": "Empfänger:in (Anschrift, mehrzeilig)", "Datum": "Datum", "Bearbeiter": "Bearbeitet von", "Betreff": "Betreff / Bauvorhaben"}
 FORMATE = {"A4": ("A4 hoch", 210, 297), "A4q": ("A4 quer", 297, 210), "A3": ("A3 hoch", 297, 420), "A3q": ("A3 quer", 420, 297)}
 
@@ -216,7 +278,7 @@ def aktiv(c, bereich, vid=None):
     d = lesen(c, bereich)
     v = (next((x for x in d["versionen"] if x["id"] == vid), None) if vid else None) \
         or next((x for x in d["versionen"] if x["id"] == d.get("aktiv")), None) or d["versionen"][0]
-    return pruefen(v.get("data") or standard(bereich))
+    return pruefen(v.get("data") or standard(bereich), bereich)
 
 
 def skaliert(lay, fmt):
@@ -253,8 +315,8 @@ def wahl(c, bereich):
             "optionen": B.get("optionen", [])}
 
 
-def pruefen(data):
-    """Nur bekannte Typen und Felder, Maße innerhalb der Seite, höchstens ein Inhalt."""
+def pruefen(data, bereich=None):
+    """Nur bekannte Typen und Felder, Maße innerhalb der Seite, höchstens ein Inhalt (dazu die Blockvorlagen des Ausdrucks)."""
     out, inhalt = [], False
     fmt = (data or {}).get("format") if (data or {}).get("format") in FORMATE else "A4"
     PW, PH = FORMATE[fmt][1], FORMATE[fmt][2]
@@ -293,7 +355,8 @@ def pruefen(data):
             opt[k] = v[:200] if isinstance(v, str) else v
     bl = _bloecke_pruefen((data or {}).get("bloecke"))
     return {"raster": r if r in (1, 2, 2.5, 5, 10) else 2.5, "format": fmt, "elemente": out, **({"folge_oben": fo} if fo is not None else {}),
-            **({"optionen": opt} if opt else {}), **({"bloecke": bl} if bl else {})}
+            **({"optionen": opt} if opt else {}), **({"bloecke": bl} if bl else {}),
+            **({"vorlagen": vl} if (vl := _vorlagen_pruefen(bereich, (data or {}).get("vorlagen")) if bereich else {}) else {})}
 
 
 def fuellen(t, werte):

@@ -177,3 +177,17 @@ body.as-open .wrap{padding-bottom:45vh}
 .beta-wz{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:20;overflow:hidden}
 .beta-wz span{font:800 clamp(64px,14vw,220px)/1 Ubuntu,"Segoe UI",system-ui,sans-serif;letter-spacing:.04em;color:var(--ink);opacity:.07;transform:rotate(-24deg);white-space:nowrap;user-select:none}
 @media print{.beta-wz{display:none}}
+
+/* Stufenleiste nach DIN 276 (Kostenverfolgung) – Petrol, Punkte auf einer Linie; bewusst anders als der Honorar-Ablauf */
+.bks-w{--bk:#0f766e;margin:0 0 1rem;background:var(--card);border:1px solid var(--line);border-radius:calc(14px*var(--rk,1));padding:.8rem .6rem .55rem;overflow-x:auto}
+.bks{display:grid;grid-template-columns:repeat(6,minmax(6.5rem,1fr));position:relative;min-width:40rem}
+.bks::before,.bks .lauf{content:"";position:absolute;left:6%;top:20px;height:3px;border-radius:2px;background:var(--line)}
+.bks::before{right:6%}.bks .lauf{background:var(--bk);z-index:0}
+.bks-s{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;text-align:center;gap:.1rem;font-size:.74rem;color:var(--mute);padding:0 .2rem;position:relative;z-index:1}
+.bks-s .pt{width:40px;height:40px;border-radius:50%;background:var(--card);border:3px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:.92rem;color:var(--mute);margin-bottom:.15rem}
+.bks-s b{color:var(--ink);font-size:.82rem;font-weight:600}.bks-s .eur{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.bks-s.ok .pt{border-color:var(--bk);color:var(--bk)}
+.bks-s.cur .pt{background:var(--bk);border-color:var(--bk);color:#fff;box-shadow:0 0 0 5px color-mix(in srgb,var(--bk) 18%,transparent)}
+.bks-s:hover .pt,.bks-s:focus-visible .pt{border-color:var(--bk)}.bks-s:focus-visible{outline:2px solid var(--bk);outline-offset:2px;border-radius:8px}
+.bks-f{margin:.55rem .4rem 0;font-size:.82rem;color:var(--mute)}.bks-f b{color:var(--ink)}.bks-f.ok{color:var(--bk)}
+.bks-f a{color:var(--bk)}

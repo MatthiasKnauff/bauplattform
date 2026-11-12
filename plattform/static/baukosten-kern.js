@@ -202,7 +202,7 @@ async function saveNow(extra = {}) {
   if (!B || saving) return; saving = true;
   try {
     const r = await api('api/bk/' + B.id, 'PUT', { rev: B.rev, data: B.data, ...extra });
-    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; B.reife = r.reife; const rb = $('#reifeBox'); if (rb) rb.innerHTML = reifeHtml(); if (r.quellen) B.quellen = r.quellen; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
+    B.rev = r.rev; B.updated_by = r.updated_by; B.acc = r.acc; B.reife = r.reife; stufenZeigen(); if (r.quellen) B.quellen = r.quellen; const ab = $('#accBox'); if (ab) ab.innerHTML = accHtml(); assist(); if (extra.stufe || extra.gantt_id !== undefined || extra.project_id !== undefined || extra.archived !== undefined || extra.name) { Object.assign(B, r); head(); }
     const d = new Date(); saveEl().textContent = `✓ gespeichert ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch (e) {
     saveEl().textContent = 'Nicht gespeichert';
@@ -215,8 +215,9 @@ async function saveNow(extra = {}) {
 function render() {
   $('#tabs').innerHTML = TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-tab="${k}"${k === tab ? ' aria-current="page"' : ''}>${l}${k === 'pruefung' && CHECK ? ` <span class="pill y">${CHECK.hinweise.length}</span>` : ''}</button>`).join('');
   const v = $('#view'), sig = sigOf(document.activeElement);
-  if (!B) { const gp = window.BPHead && BPHead.projekt;
+  if (!B) { stufenZeigen(); const gp = window.BPHead && BPHead.projekt;
     v.innerHTML = `<div class="card empty"><p><b>${gp && gp.id ? `Für ${esc(gp.name)} gibt es noch keine Kostenermittlung.` : 'Noch keine Kostenermittlung.'}</b></p><p class="hint">Mit einem Grundriss (PDF), von Hand oder mit dem Assistenten – sie wird gleich mit dem Projekt verknüpft.</p><button class="btn pri" data-act="new">Kostenermittlung anlegen</button></div>`; return; }
+  stufenZeigen();
   v.innerHTML = { uebersicht: vUebersicht, plaene: vPlaene, bauteile: vBauteile, kosten: vKosten, mittel: vMittel, pruefung: vPruefung }[tab]();
   if (sig) { const n = document.querySelector(sig); if (n) n.focus(); }
   histTrack();
@@ -238,7 +239,6 @@ function vUebersicht() {
     <div class="card kpi"><span class="lbl">Gesamt netto</span><b class="num">${eur(c.total)}</b><span>${B.acc ? `wahrscheinlich ${eur(B.acc.low)} – ${eur(B.acc.high)}` : 'inkl. Positionen und ' + pct(B.data.nk) + ' Nebenkosten'}</span></div>
     <div class="card kpi"><span class="lbl">Raumfläche</span><b class="num">${m2(c.area)} m²</b><span>${B.files.length} Pläne</span></div>
     <div class="card kpi"><span class="lbl">Kennwert</span><b class="num">${eur(c.kw)}</b><span>je m² Raumfläche, KG 300 + 400</span></div></div>
-  <section class="card" style="margin-bottom:1.2rem" id="reifeBox">${reifeHtml()}</section>
   <div class="two">
     <section class="card"><h2>Kosten nach Raumtyp</h2><p class="sub">Fläche × Kennwert</p><div class="bars">${c.types.filter((t) => t.n).map((t) => `
       <div class="bar"><div class="t"><span>${esc(t.label)} <span class="mute">· ${m2(t.area)} m²</span></span><span class="num">${eur(t.sum)}</span></div><div class="tr"><div class="f" style="width:${(t.sum / max * 100).toFixed(1)}%"></div></div></div>`).join('') || '<p class="hint">Noch keine Räume – unter „Pläne & Raumbuch“ einen Grundriss hochladen.</p>'}</div></section>
@@ -247,14 +247,26 @@ function vUebersicht() {
   <section class="card" style="margin-top:1.2rem" id="accBox">${accHtml()}</section>
   <section class="card alert"><b>Plausibilitätsprüfung</b><span class="fill">${CHECK ? CHECK.hinweise.length + ' Hinweise' : 'Regeln und – je nach KI-Auswahl oben – Hinweise der KI'}</span><button class="btn" data-act="goCheck">Prüfen</button></section>`;
 }
-/* Wofür reichen die Daten? – ergibt sich aus den Eingaben (dieselben Regeln wie die Prüfung); die Stufe wählt man erst beim Prüfen und Drucken */
-function reifeHtml() {
-  const R0 = B.reife; if (!R0) return '<h2>Wofür reichen die Daten?</h2><p class="hint">Wird beim nächsten Speichern ermittelt.</p>';
-  const I = STUFE_INFO, nx = R0.stufen.find((x) => !x.ok), sp = (x) => STUFE_INFO[x.key].lph.split(' · ')[0];
-  return `<h2>Wofür reichen die Daten?</h2><p class="sub">Ergibt sich von selbst aus dem, was eingegeben ist. Die Stufe nach DIN 276 wählst du erst beim Prüfen und beim Drucken.</p>
-    <div class="reife">${R0.stufen.map((x) => `<div class="rf ${x.ok ? 'ok' : ''}${x.key === R0.reicht ? ' cur' : ''}">${x.key === R0.reicht ? '<span class="pin">reicht für</span>' : ''}<b>${x.ok ? '✓' : '○'} ${esc(x.name)}</b><span>${esc(sp(x))} · ± ${I[x.key].genau} %</span></div>`).join('')}</div>
-    ${nx ? `<p style="margin:.7rem 0 .2rem"><b>Für ${esc(nx.name === 'Kostenrahmen' ? 'den Kostenrahmen' : 'die ' + nx.name)} fehlt noch:</b></p><ul class="rfl">${nx.fehlt.slice(0, 6).map((f, k) => `<li>${esc(f.text)}${f.go && f.go.tab ? ` – <a href="#" data-rgo="${R0.stufen.indexOf(nx)}:${k}">zu „${esc((TABS.find((t) => t[0] === f.go.tab) || [, ''])[1])}“</a>` : ''}</li>`).join('')}${nx.fehlt.length > 6 ? `<li class="hint">und ${nx.fehlt.length - 6} weitere – siehe Prüfung</li>` : ''}</ul>` : '<p class="hint" style="margin:.6rem 0 0">Die Daten reichen für alle Stufen. Ob es ein Kostenvoranschlag, -anschlag oder eine -feststellung ist, hängt davon ab, woher die Beträge stammen (LV, Angebote, Rechnungen).</p>'}`;
+/* Stufenleiste nach DIN 276 (Kostenverfolgung): Punkte auf einer Linie – ✓ = die Daten reichen dafür, gefüllt = die gewählte Stufe (Prüfen, Drucken).
+   Bewusst anders als der Ablauf im Honorar (Pfeil-Kästen): Petrol, Punkte, Genauigkeit und Betrag. Klick wählt die Stufe; was fehlt, steht darunter. */
+function stufenHtml() {
+  const R0 = B.reife, akt = B.stufe || 'rahmen', ia = STUFEN.findIndex((x) => x[0] === akt);
+  const ok = (k) => !!(R0 && (R0.stufen.find((x) => x.key === k) || {}).ok);
+  const punkte = STUFEN.map(([k, n], i) => { const I = STUFE_INFO[k], c = k === akt ? 'cur' : ok(k) ? 'ok' : '';
+    return `<button type="button" class="bks-s ${c}" data-bks="${k}" title="${esc(I.txt)}"><span class="pt">${k === akt ? i + 1 : ok(k) ? '✓' : i + 1}</span><b>${esc(n)}</b><span>${esc(I.lph.split(' · ')[0])} · ${k === 'feststellung' ? 'exakt' : '± ' + I.genau + ' %'}</span>${k === akt ? `<span class="eur">${eur(B.calc.total)}</span>` : ''}</button>`; }).join('');
+  const st = R0 && R0.stufen.find((x) => x.key === akt), fehlt = st && !st.ok ? st.fehlt : [];
+  const w = Math.max(0, ia) / (STUFEN.length - 1) * 88;
+  return `<div class="bks"><span class="lauf" style="width:${w.toFixed(1)}%"></span>${punkte}</div>
+    ${fehlt.length ? `<p class="bks-f"><b>Für die ${esc(STUFE_N(akt))} fehlt noch:</b> ${fehlt.slice(0, 4).map((f, k) => f.go && f.go.tab ? `<a href="#" data-rgo="${R0.stufen.indexOf(st)}:${k}">${esc(f.text)}</a>` : esc(f.text)).join(' · ')}${fehlt.length > 4 ? ` <span class="hint">und ${fehlt.length - 4} weitere (Prüfung)</span>` : ''}</p>`
+      : R0 && st ? `<p class="bks-f ok">✓ Die Daten reichen für die ${esc(STUFE_N(akt))}.</p>` : ''}`;
 }
+function stufenZeigen() { const el = $('#bkStufen'); if (!el) return; el.hidden = !B || !B.data.rooms.length; if (!el.hidden) el.innerHTML = stufenHtml(); }
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-bks]'); if (!b || !B || b.dataset.bks === B.stufe) return;
+  B.stufe = b.dataset.bks; CHECK = null; clearTimeout(saveT);
+  saveNow({ stufe: B.stufe }).then(() => { const x = LIST.find((y) => y.id === B.id); if (x) x.stufe = B.stufe; vleiste(); render(); });
+});
+
 function accHtml() {
   const a = B.acc; if (!a) return '';
   const t = B.calc.total, lo = a.low, hi = a.high, span = hi - lo || 1, x = (v) => Math.max(0, Math.min(100, (v - lo) / span * 100));

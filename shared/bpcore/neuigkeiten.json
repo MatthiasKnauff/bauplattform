@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-bk-stufen",
+  "datum": "2026-11-12",
+  "app": "baukosten",
+  "titel": "Stufenleiste nach DIN 276",
+  "text": "Oben in den Baukosten zeigt eine Leiste die Kostenstufen von Kostenrahmen bis Kostenfeststellung: ✓ = die Daten reichen dafür, gefüllt = gewählte Stufe mit Betrag. Klick wählt die Stufe zum Prüfen und Drucken; was noch fehlt, steht direkt darunter.",
+  "ziel": "#bkStufen"
+ },
+ {
   "id": "2026-11-12-zeiten-handy",
   "datum": "2026-11-12",
   "app": "zeiten",

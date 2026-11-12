@@ -8,6 +8,8 @@ Stand: 11.11.2026. Wird bei jedem Push aktualisiert und beim Start der Dienste a
 
 ## Kurzfristige Sammlung (nach dem Bautagebuch)
 
+- Baukosten, Stufenleiste Schritt 2: Stände je Stufe festschreiben (Betrag, Datum), Abweichung zur Vorstufe, Vergleich, Kostenverfolgung als PDF. **ca. 1–1,5 h**
+
 - Rollen & Rechte im Kern (Geschäftsführung, Mitarbeiter, Assistenz, IT/Admin, Extern; Rechte als Häkchen, Ausnahmen je Person, Vorgesetzter) – Mock gezeigt, wartet auf GO. **ca. 1,5–2 h**
 - Neue App „Mitarbeiter“: Stammdaten, Rolle, Vorgesetzter, Soll/Urlaub, Abwesenheitskalender, Fristen – Mock gezeigt, wartet auf GO. **ca. 1–1,5 h**
 - Urlaubsantrag in „Zeiten“ mit Popup und Inline-Freigabe/Ablehnung (mit Begründung) bei der Geschäftsführung – Mock gezeigt, wartet auf GO. **ca. 1 h**
@@ -81,6 +83,7 @@ Summe Sammlung (offen): ca. 12–16 h.
 - Spätere Umstellung (Ziel, noch nicht begonnen): TypeScript + React, FastAPI + Pydantic, App für App mit Verhaltenstests vorweg. **ca. 2–4 Wochen**
 
 ## Erledigt
+- ~~Baukosten: Stufenleiste nach DIN 276 (Variante C, Punkte auf einer Linie, Petrol) statt der Karte „Wofür reichen die Daten?“~~
 - ~~Zeiten am Handy: Woche und Monat & Urlaub als reine Ansicht (Tageskarten, Kalender, Urlaubsring, Wischen); Auswertung/Einstellungen nur am PC~~
 - ~~Migration 0054 robust gemacht (Produktion: dienste startete bei v204 nicht)~~
 - ~~Bauantrag: PDF-Vorschau springt beim Schrittwechsel an die passende Stelle (Sprungmarken im Antragspaket); nach Änderungen bleibt sie stehen~~

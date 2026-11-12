@@ -413,8 +413,10 @@ def vd_loeschen(vid):
 
 
 # ---------------------------------------------------------------- PDF
-def _pdf(c, r):
-    """Protokoll bzw. Vertrag als PDF auf dem Briefbogen des Büros. → (Bytes, Dateiname)"""
+def _pdf(c, r, blanko=False):
+    """Protokoll bzw. Vertrag als PDF auf dem Briefbogen des Büros. → (Bytes, Dateiname)
+    blanko (nur Besprechung): zum Ausfüllen auf der Baustelle – Vorausgefülltes (Projekt, Büro, Bieter:in, Angebot, Klärungspunkte) bleibt,
+    die Gesprächsfelder sind leere Linien."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib.utils import simpleSplit
@@ -459,8 +461,23 @@ def _pdf(c, r):
         cv.setFont(F["n"], 13); cv.setFillGray(0); cv.drawString(L, y, t); y -= 3 * mm
         cv.setStrokeGray(0.75); cv.setLineWidth(0.5); cv.line(L, y, R, y); y -= 5 * mm
 
-    def feld(label, wert):
+    def linien(n, x=None):   # Blanko: Schreiblinien zum Ausfüllen von Hand
         nonlocal y
+        for _ in range(n):
+            platz(8 * mm); y -= 4.5 * mm
+            cv.setStrokeGray(0.6); cv.setLineWidth(0.4); cv.line(x or X2, y, R, y); y -= 2.5 * mm
+
+    def feld(label, wert, gespraech=0):
+        nonlocal y
+        if blanko and gespraech:   # Gesprächsfeld: Beschriftung, Vorausgefülltes (z. B. Klärungspunkte), dann Linien
+            platz(10 * mm); y0 = y
+            cv.setFont(F["b"], 7.8); cv.setFillGray(0.2); cv.drawString(L, y0, label.upper()[:40])
+            if wert:
+                text(wert, X2, gr=9.5)
+            else:
+                y += 4.5 * mm
+            linien(gespraech); y -= 1.4 * mm
+            return
         platz(6 * mm)
         y0 = y
         cv.setFont(F["b"], 7.8); cv.setFillGray(0.2)
@@ -473,40 +490,51 @@ def _pdf(c, r):
         K, B, A, T, G = (D.get(k) or {} for k in ("kopf", "bieterangaben", "angebot", "termine", "grundlagen"))
         cv.setFont(F["n"], 20); cv.drawString(L, y, "Angebotsbesprechung"); y -= 11 * mm
         cv.setFont(F["n"], 10); cv.setFillGray(0.5); cv.drawString(L, y, "PROTOKOLL"); cv.setFillGray(0)
-        cv.drawString(L + 50 * mm, y, _de(K.get("datum"))); cv.drawString(L + 85 * mm, y, (K.get("uhrzeit") or "") + (" Uhr" if K.get("uhrzeit") else ""))
-        cv.drawRightString(R, y, f"Ort: {K.get('ort') or ''}"); y -= 4 * mm
+        if blanko:
+            cv.drawString(L + 50 * mm, y, "Datum ____________"); cv.drawString(L + 95 * mm, y, "Uhrzeit ________"); cv.drawRightString(R, y, "Ort ___________________")
+        else:
+            cv.drawString(L + 50 * mm, y, _de(K.get("datum"))); cv.drawString(L + 85 * mm, y, (K.get("uhrzeit") or "") + (" Uhr" if K.get("uhrzeit") else ""))
+            cv.drawRightString(R, y, f"Ort: {K.get('ort') or ''}")
+        y -= 4 * mm
         cv.setStrokeGray(0.75); cv.line(L, y, R, y); y -= 6 * mm
-        for lab, k in (("Bauvorhaben", "bauvorhaben"), ("Bauherr:in/AG", "bauherr"), ("Architekt", "architekt"), ("Bieter:in/AN", "bieter"), ("Teilnehmer", "teilnehmer")):
+        for lab, k in (("Bauvorhaben", "bauvorhaben"), ("Bauherr:in/AG", "bauherr"), ("Architekt", "architekt"), ("Bieter:in/AN", "bieter")):
             feld(lab, K.get(k))
+        feld("Teilnehmer", "" if blanko else K.get("teilnehmer"), 2)
         kapitel("Angaben zur Bieter:in/AN:")
         for lab, k in (("Rechtsform/Sitz", "rechtsform"), ("Anzahl die Mitarbeiter:in", "mitarbeiter"), ("Mitarbeiter:in für das Projekt", "mitarbeiter_projekt"),
                        ("Bauleiter:in für das Projekt", "bauleiter"), ("Subunternehmer", "subunternehmer")):
-            feld(lab, B.get(k))
+            feld(lab, "" if blanko else B.get(k), 1)
         kapitel("Angaben zum Angebot:")
-        feld("Gültigkeit des Angebots", A.get("gueltig")); feld("Angebotene Gewerke", A.get("gewerke"))
+        feld("Gültigkeit des Angebots", "" if blanko else A.get("gueltig"), 1); feld("Angebotene Gewerke", A.get("gewerke"))
         feld("Angebot vom", _de(A.get("angebot_vom")) + (f"      Nachtragsangebot vom {_de(A.get('nachtrag_vom'))}" if A.get("nachtrag_vom") else ""))
         feld("Angebotssumme nach Prüfung", A.get("summe"))
-        feld("Skonto/Nachlässe", f"{A.get('nachlass') or '0'} % Nachlass auf die Einheitspreise und {A.get('skonto') or '0'} % Skonto bei Zahlungen innerhalb {A.get('skonto_tage') or '…'} {SKONTO_ART.get(A.get('skonto_art'), 'Arbeitstagen (Mo–Fr)')}")
+        if blanko:
+            feld("Skonto/Nachlässe", "____ % Nachlass auf die Einheitspreise und ____ % Skonto bei Zahlungen innerhalb ____ Tagen")
+        else:
+            feld("Skonto/Nachlässe", f"{A.get('nachlass') or '0'} % Nachlass auf die Einheitspreise und {A.get('skonto') or '0'} % Skonto bei Zahlungen innerhalb {A.get('skonto_tage') or '…'} {SKONTO_ART.get(A.get('skonto_art'), 'Arbeitstagen (Mo–Fr)')}")
         feld("Preis", A.get("preis"))
-        if A.get("klaerung"):
-            feld("Klärung einzelner Positionen", A.get("klaerung"))
+        if A.get("klaerung") or blanko:
+            feld("Klärung einzelner Positionen", A.get("klaerung"), 4 if blanko else 0)
         kapitel("Termine:")
         for lab, k in (("Beginn der Ausführung", "beginn"), ("Fertigstellung der Arbeiten", "fertig"), ("Arbeitsunterbrechung", "unterbrechung"), ("Bauzeitenplan", "bauzeitenplan")):
-            feld(lab, T.get(k))
+            feld(lab, "" if blanko and k == "unterbrechung" else T.get(k), 1 if k == "unterbrechung" else 0)
         kapitel("Grundlagen")
         for k, lab, _ in GRUNDLAGEN:
             feld(lab, G.get(k))
         kapitel("Sonstiges")
-        text(D.get("sonstiges") or "", L, gr=9.5)
+        if blanko:
+            linien(5, L)
+        else:
+            text(D.get("sonstiges") or "", L, gr=9.5)
         platz(60 * mm); y -= 6 * mm
         cv.setFont(F["b"], 13); cv.drawString(L, y, "Dieses Protokoll wird bei einer Auftragserteilung Bestandteil des Vertrages!"); y -= 14 * mm
-        ort = (S.get("co_city") or "") + (", " + _de(K.get("datum")) if K.get("datum") else "")
+        ort = "" if blanko else (S.get("co_city") or "") + (", " + _de(K.get("datum")) if K.get("datum") else "")
         for wer in ("Unterschrift Bauherr:in", "Unterschrift Architekt:in", "Unterschrift Bieter:in"):
             cv.setFont(F["n"], 9.5); cv.drawString(L, y + 1.5 * mm, ort)
             cv.setStrokeGray(0.4); cv.line(L, y, L + 60 * mm, y); cv.line(L + 75 * mm, y, R, y)
             cv.setFont(F["n"], 8); cv.drawString(L, y - 3.5 * mm, "Ort/Datum"); cv.drawString(L + 75 * mm, y - 3.5 * mm, wer)
             y -= 17 * mm
-        name = f"Angebotsbesprechung {lv['name']} {(K.get('bieter') or '').splitlines()[0] if K.get('bieter') else ''}".strip()
+        name = f"Angebotsbesprechung {'(blanko) ' if blanko else ''}{lv['name']} {(K.get('bieter') or '').splitlines()[0] if K.get('bieter') else ''}".strip()
     else:
         Vt = D.get("vertrag") or {}
         schreiben = r["art"] == "schreiben"
@@ -557,7 +585,7 @@ def vd_pdf(vid):
         r = _dok(c, vid)
         if not r:
             return jsonify(error="Nicht gefunden"), 404
-        if r["status"] == "unterschrieben" and request.args.get("neu") != "1" and (r["ablage"] or r["pdf"]):
+        if r["status"] == "unterschrieben" and request.args.get("neu") != "1" and request.args.get("blanko") != "1" and (r["ablage"] or r["pdf"]):
             if r["pdf"]:   # ältere Fassung: noch in der Datenbank (vor dem 12.11.2026)
                 data, name = bytes(r["pdf"]), r["pdf_name"] or "Unterlage.pdf"
             else:   # liegt im Projektordner – nur der Verweis steht hier
@@ -567,9 +595,96 @@ def vd_pdf(vid):
                 except RuntimeError as e:
                     return jsonify(error=f"Unterschriebene Fassung im Projektordner nicht lesbar: {e}"), 502
         else:
-            data, name = _pdf(c, r)
+            data, name = _pdf(c, r, blanko=request.args.get("blanko") == "1" and r["art"] == "besprechung")
     from urllib.parse import quote
     return Response(data, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(name)}", "Cache-Control": "no-store"})
+
+
+def _bild_pdf(daten):
+    """Foto/Scan (JPG, PNG, HEIC …) → PDF mit einer Seite in Bildgröße; None, wenn kein Bild."""
+    try:
+        from PIL import Image, ImageOps
+        try:
+            import pillow_heif
+            pillow_heif.register_heif_opener()
+        except ImportError:
+            pass
+        im = ImageOps.exif_transpose(Image.open(io.BytesIO(daten))).convert("RGB")
+        im.thumbnail((3000, 3000))
+        out = io.BytesIO(); im.save(out, "PDF", resolution=200.0)
+        return out.getvalue()
+    except Exception:
+        return None
+
+
+@app.get("/api/vergabedok/<int:vid>/suchen")
+def vd_suchen(vid):
+    """Im Projektordner nach dem (ausgefüllten, gescannten) Protokoll suchen: Dateinamen mit „Besprechung“/„Protokoll“ und dem Namen
+    der Bieter:in bzw. des Gewerks – die besten Treffer zuerst. Gelesen wird nur."""
+    with db.tx() as c:
+        r = _dok(c, vid)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        lv = _lv(c, r["lv_id"])
+        a = c.execute("SELECT bieter FROM ava_angebot WHERE id=?", (r["angebot_id"],)).fetchone() if r["angebot_id"] else None
+    try:
+        d = C.bt_api("GET", "/api/plaene/dateien?" + urllib.parse.urlencode({"project_id": lv["project_id"]})) or {}
+    except RuntimeError as e:
+        return jsonify(error=f"Projektordner nicht erreichbar: {e}"), 502
+    klein = lambda t: re.sub(r"[^a-z0-9äöüß]+", " ", str(t or "").lower())
+    worte = [w for w in klein(a["bieter"] if a else "").split() if len(w) > 3 and w not in ("gmbh", "bau", "und")][:3]
+    gw = [w for w in klein(lv["gewerk"] or lv["name"]).split() if len(w) > 3][:2]
+    out = []
+    for f in d.get("dateien") or []:
+        n, p = klein(f.get("name")), klein(f.get("pfad"))
+        if not re.search(r"\.(pdf|jpe?g|png|heic|tiff?)$", (f.get("name") or "").lower()):
+            continue
+        pkt = (3 if re.search(r"besprech|verhandl", n) else 1 if "protokoll" in n else 0) + 2 * sum(w in n for w in worte) + sum(w in p for w in gw) + (1 if "angebot" in p else 0)
+        if pkt >= 3:
+            out.append({"pfad": f.get("pfad"), "name": f.get("name"), "punkte": pkt, "datum": f.get("mtime")})
+    out.sort(key=lambda x: (-x["punkte"], -(x["datum"] or 0)))
+    return jsonify(treffer=out[:8])
+
+
+@app.get("/api/vergabedok/<int:vid>/datei")
+def vd_datei(vid):
+    """Gefundene Datei aus dem Projektordner ansehen (vor dem Zuordnen) – nur lesen."""
+    pfad = (request.args.get("pfad") or "").strip()
+    if not pfad or ".." in pfad:
+        return jsonify(error="Ungültige Datei."), 400
+    with db.tx() as c:
+        r = _dok(c, vid)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        pid = _lv(c, r["lv_id"])["project_id"]
+    try:
+        data = C.bt_api("GET", "/api/dateien/datei?" + urllib.parse.urlencode({"project_id": pid, "pfad": pfad}), roh=True)
+    except RuntimeError as e:
+        return jsonify(error=f"Nicht lesbar: {e}"), 502
+    import mimetypes
+    return Response(data, mimetype=mimetypes.guess_type(pfad)[0] or "application/octet-stream", headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/vergabedok/<int:vid>/zuordnen")
+def vd_zuordnen(vid):
+    """Gefundene Datei im Projektordner als unterschriebene Fassung übernehmen – nur der Verweis wird gemerkt, nichts kopiert.
+    {zurueck: 'entwurf'|'abgeschlossen'} nimmt die Zuordnung wieder zurück (Rückgängig)."""
+    b = request.get_json(silent=True) or {}
+    pfad = str(b.get("pfad") or "").strip()[:500]
+    with db.tx() as c:
+        r = _dok(c, vid)
+        if not r:
+            return jsonify(error="Nicht gefunden"), 404
+        lv = _lv(c, r["lv_id"])
+        if b.get("zurueck") in ("entwurf", "abgeschlossen"):
+            c.execute("UPDATE ava_vergabedok SET ablage=NULL, pdf_name=NULL, status=?, geaendert=? WHERE id=?", (b["zurueck"], _now(), vid))
+            return _antwort(c, r["lv_id"])
+        if not pfad or ".." in pfad:
+            return jsonify(error="Ungültige Datei."), 400
+        c.execute("UPDATE ava_vergabedok SET pdf=NULL, pdf_name=?, ablage=?, status='unterschrieben', geaendert=? WHERE id=?", (pfad.rsplit("/", 1)[-1][:120], pfad, _now(), vid))
+        C.audit(g.user["name"], "ava", f"{ARTEN.get(r['art'])} aus dem Projektordner zugeordnet", f"LV {lv['nr']} {lv['name']}: {pfad}")
+        _kommunikation(c, vid, "unterschrieben")
+        return _antwort(c, r["lv_id"], ablage=pfad)
 
 
 @app.post("/api/vergabedok/<int:vid>/unterschrieben")
@@ -579,9 +694,14 @@ def vd_unterschrieben(vid):
     if not f:
         return jsonify(error="Keine Datei."), 400
     daten = f.read(30 * 1024 * 1024 + 1)
-    if not daten.startswith(b"%PDF") or len(daten) > 30 * 1024 * 1024:
-        return jsonify(error="Bitte ein PDF (höchstens 30 MB)."), 400
+    if len(daten) > 30 * 1024 * 1024:
+        return jsonify(error="Höchstens 30 MB."), 400
     name = re.sub(r"[^\w .()-]+", "_", f.filename or "Unterlage.pdf")[:120]
+    if not daten.startswith(b"%PDF"):   # Foto oder Scan als Bild (auf der Baustelle ausgefüllt): als PDF ablegen
+        daten = _bild_pdf(daten)
+        if not daten:
+            return jsonify(error="Bitte ein PDF oder ein Foto (JPG, PNG, HEIC)."), 400
+        name = re.sub(r"\.\w+$", "", name) + ".pdf"
     with db.tx() as c:
         r = _dok(c, vid)
         if not r:

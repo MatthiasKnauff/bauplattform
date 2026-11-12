@@ -140,12 +140,82 @@ document.addEventListener('click', async (e) => {
     catch (er) { toast(er.message, true); } return;
   }
   if (t.dataset.vgpdf !== undefined) {
-    BPHead.ansehen([{ url: `api/vergabedok/${id}.pdf?neu=${x.status === 'unterschrieben' ? 0 : 1}&t=${Date.now()}`, typ: 'pdf', name: VG.D.arten[x.art], beiUnterschrift: async (blob, nm) => {
-      const fd = new FormData(); fd.append('datei', blob, nm || 'Unterlage.pdf');
-      try { const r = await fetch(`api/vergabedok/${id}/unterschrieben`, { method: 'POST', body: fd, credentials: 'same-origin' }), d = await r.json();
-        if (!r.ok) throw new Error(d.error || 'Speichern fehlgeschlagen');
-        VG.D = d; if (document.querySelector('.vg-ed')) vgEditor(id);
-        toast(d.ablage ? `Unterschrieben gespeichert und abgelegt: ${d.ablage}` : `Unterschrieben gespeichert${d.ablage_fehler ? ' – nicht im Projektordner: ' + d.ablage_fehler : ''}.`, !!d.ablage_fehler); }
-      catch (er) { toast(er.message, true); } } }]);
+    BPHead.ansehen([{ url: `api/vergabedok/${id}.pdf?neu=${x.status === 'unterschrieben' ? 0 : 1}&t=${Date.now()}`, typ: 'pdf', name: VG.D.arten[x.art], beiUnterschrift: (blob, nm) => vgHinterlegen(id, blob, nm) }]);
   }
+});
+
+/* Unterschriebene Fassung hinterlegen (PDF aus der Vorschau, Scan oder Foto) – liegt danach im Projektordner (Angebote bzw. Verträge / Gewerk) */
+async function vgHinterlegen(id, blob, nm) {
+  const fd = new FormData(); fd.append('datei', blob, nm || 'Unterlage.pdf');
+  try { const r = await fetch(`api/vergabedok/${id}/unterschrieben`, { method: 'POST', body: fd, credentials: 'same-origin' }), d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Speichern fehlgeschlagen');
+    VG.D = d; if (document.querySelector('.vg-ed')) vgEditor(id);
+    toast(d.ablage ? `Unterschrieben gespeichert und abgelegt: ${d.ablage}` : `Unterschrieben gespeichert${d.ablage_fehler ? ' – nicht im Projektordner: ' + d.ablage_fehler : ''}.`, !!d.ablage_fehler);
+    await vgBsNeu(); }
+  catch (er) { toast(er.message, true); }
+}
+
+/* ---------- Schritt „Besprechung“: Bereich rechts in „Angebote“ – je Bieter:in das Protokoll, vier Wege: am Bildschirm, Blanko auf Papier,
+   digital unterschreiben (Bauleitung und Bieter:in nacheinander am Gerät), Scan/Foto einlesen oder im Projektordner finden ---------- */
+const BS = { treffer: null, fuer: null };
+const vgBsAid = () => { const s = PJSEL && PJSEL[0] === 'b' ? +PJSEL.slice(1) : null; return L && L.angebote.some((a) => a.id === s) ? s : (L && L.vergabe.angebot_id) || null; };
+const vgBsDok = (aid) => ((VG.lid === (L && L.id) && VG.D ? VG.D.dokumente : []).filter((x) => x.art === 'besprechung' && x.angebot_id === aid).sort((a, b) => b.id - a.id)[0]);
+const BS_ST = { entwurf: ['Entwurf', 'e'], abgeschlossen: ['abgeschlossen', 'a'], unterschrieben: ['unterschrieben', 'u'] };
+async function vgBsMount(el) {
+  el.innerHTML = '<div class="sr-pad"><p class="hint">Lade …</p></div>';
+  if (!L || !L.angebote.length) { el.innerHTML = '<div class="sr-pad"><div class="card empty"><p class="hint">Noch keine Angebote – die Besprechung kommt nach dem Preisspiegel.</p></div></div>'; return; }
+  try { if (VG.lid !== L.id || !VG.D) await vgLaden(L.id); } catch (e) { el.innerHTML = `<div class="sr-pad"><p class="hint">${esc(e.message)}</p></div>`; return; }
+  el.innerHTML = `<div class="sr-pad">${vgBsHtml()}</div>`;
+}
+async function vgBsNeu() { if (L) { try { await vgLaden(L.id); } catch { /* egal */ } } if (window.seiteFuellen) seiteFuellen('ang', 'bs'); }
+function vgBsHtml() {
+  const K = L.calc.angebote, aid = vgBsAid(), A = [...L.angebote].sort((a, b) => ((K.find((x) => x.id === a.id) || {}).rang || 99) - ((K.find((x) => x.id === b.id) || {}).rang || 99));
+  const liste = A.map((a) => { const d = vgBsDok(a.id), st = d ? BS_ST[d.status] || [d.status, 'e'] : ['keine', 'n'], k = K.find((x) => x.id === a.id) || {};
+    return `<button type="button" class="bs-r${a.id === aid ? ' on' : ''}" data-bswahl="${a.id}"><span><b>${esc(a.bieter)}</b><small>${k.rang ? 'Rang ' + k.rang + ' · ' : ''}${k.netto ? eur0(k.netto) : ''}${L.vergabe.angebot_id === a.id ? ' · beauftragt' : ''}</small></span><i class="bs-st ${st[1]}">${st[0]}</i></button>`; }).join('');
+  if (!aid) return `<p class="hint" style="margin:0 0 .5rem">Bieter:in wählen – hier oder links im Baum:</p><div class="bs-l">${liste}</div>`;
+  const a = L.angebote.find((x) => x.id === aid), d = vgBsDok(aid), fest = d && d.status === 'unterschrieben';
+  const T = BS.fuer === (d && d.id) && BS.treffer ? `<div class="bs-fund">${BS.treffer.length ? `<b>Im Projektordner gefunden:</b>${BS.treffer.map((t) => `<div class="bs-f"><span>📄 ${esc(t.name)}<small>${esc(t.pfad)}</small></span><button type="button" class="btn sm" data-bsdatei="${esc(t.pfad)}">ansehen</button><button type="button" class="btn sm pri" data-bszu="${esc(t.pfad)}">zuordnen</button></div>`).join('')}` : 'Im Projektordner nichts Passendes gefunden (Dateiname mit „Besprechung“ oder „Protokoll“ und der Bieter:in).'}</div>` : '';
+  return `<div class="bs-l">${liste}</div>
+    <h3 class="bs-h">Angebotsbesprechung · ${esc(a.bieter)}</h3>
+    <p class="hint" style="margin:0 0 .6rem">${d ? `Stand: <b>${esc((BS_ST[d.status] || [d.status])[0])}</b>${d.ablage ? ' · liegt im Projektordner: ' + esc(d.ablage) : ''}` : 'Noch kein Protokoll – es wird beim ersten Weg angelegt und aus Projekt, Angebot und Preisspiegel vorausgefüllt.'}</p>
+    <div class="bs-w">
+      <div><b>💻 Am Bildschirm</b><span>Vorausgefüllt, im Gespräch gelb ergänzen, „Abschließen“ übernimmt Nachlass und Skonto.</span><button type="button" class="btn" data-bsoffen="${aid}">${d ? 'Öffnen' : 'Anlegen'}</button></div>
+      <div><b>🖨 Auf Papier</b><span>Blanko für die Baustelle: Kopf, Bieter:in, Angebot und Klärungspunkte stehen drin, die Gesprächsfelder sind Linien.</span><button type="button" class="btn" data-bsblanko="${aid}">Blanko drucken</button></div>
+      <div><b>✍ Digital unterschreiben</b><span>Am Tablet oder Handy vor Ort: erst die Bauleitung, dann die Bieter:in mit dem Finger – das PDF geht in den Projektordner.</span><button type="button" class="btn pri" data-bsdigital="${aid}"${fest ? ' disabled title="schon unterschrieben"' : ''}>Unterschreiben …</button></div>
+      <div><b>⤓ Zurück in die Plattform</b><span>Ausgefülltes Blatt als Scan oder Foto einlesen – oder im Projektordner suchen lassen.</span><span class="bs-k"><label class="btn">Einlesen …<input type="file" accept=".pdf,application/pdf,image/*" hidden data-bsein="${aid}"></label><button type="button" class="btn" data-bssuchen="${aid}">Suchen</button></span></div>
+    </div>${T}
+    ${fest ? `<div class="bar" style="margin-top:.6rem"><button type="button" class="btn" data-bsansehen="${d.id}">Unterschriebenes Protokoll ansehen</button>${L.vergabe.angebot_id === aid ? '<button type="button" class="btn" data-vgvt="vertrag">→ Bauvertrag aus diesem Protokoll</button>' : `<button type="button" class="btn" data-vergabe="${aid}">Vergeben …</button>`}</div>` : ''}`;
+}
+async function vgBsSicher(aid) {   // Protokoll dieser Bieter:in – fehlt es, vorausgefüllt anlegen (ohne den Editor zu öffnen)
+  if (VG.lid !== L.id || !VG.D) await vgLaden(L.id);
+  let d = vgBsDok(aid); if (d) return d;
+  const a = L.angebote.find((x) => x.id === aid), k = L.calc.angebote.find((x) => x.id === aid) || {};
+  VG.D = await api(`api/lv/${L.id}/besprechung`, 'POST', { angebot_id: aid, summe: k.netto || 0, klaerung: vgKlaerung(a) }); VG.lid = L.id;
+  d = vgBsDok(aid); refreshList(); return d;
+}
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest && e.target.closest('[data-bswahl],[data-bsoffen],[data-bsblanko],[data-bsdigital],[data-bssuchen],[data-bszu],[data-bsdatei],[data-bsansehen]'); if (!t || !L) return;
+  try {
+    if (t.dataset.bswahl) { PJSEL = 'b' + t.dataset.bswahl; PJX.add(L.id); BS.treffer = null; render(); return; }
+    if (t.dataset.bsansehen) { BPHead.ansehen([{ url: `api/vergabedok/${t.dataset.bsansehen}.pdf?t=${Date.now()}`, typ: 'pdf', name: 'Angebotsbesprechung (unterschrieben)' }]); return; }
+    if (t.dataset.bsdatei) { BPHead.ansehen([{ url: `api/vergabedok/${BS.fuer}/datei?pfad=${encodeURIComponent(t.dataset.bsdatei)}`, typ: /\.pdf$/i.test(t.dataset.bsdatei) ? 'pdf' : 'bild', name: t.dataset.bsdatei.split('/').pop() }]); return; }
+    if (t.dataset.bszu) { const id = BS.fuer, alt = vgBsDok(vgBsAid()) || {}; VG.D = await api(`api/vergabedok/${id}/zuordnen`, 'POST', { pfad: t.dataset.bszu }); BS.treffer = null; toast('Protokoll zugeordnet – Stand „unterschrieben“.');
+      if (alt.status !== 'unterschrieben') rueckgaengig('Protokoll zugeordnet', async () => { VG.D = await api(`api/vergabedok/${id}/zuordnen`, 'POST', { zurueck: alt.status || 'entwurf' }); await vgBsNeu(); });
+      await vgBsNeu(); return; }
+    const aid = +(t.dataset.bsoffen || t.dataset.bsblanko || t.dataset.bsdigital || t.dataset.bssuchen);
+    if (t.dataset.bsoffen) { await vgBesprechung(aid); return; }
+    const d = await vgBsSicher(aid);
+    if (t.dataset.bsblanko) { BPHead.ansehen([{ url: `api/vergabedok/${d.id}.pdf?blanko=1&t=${Date.now()}`, typ: 'pdf', name: 'Angebotsbesprechung (blanko)' }]); await vgBsNeu(); return; }
+    if (t.dataset.bsdigital) {   // ansehen, dann „✍ Unterschreiben“: erst die eigene Unterschrift, danach die der Bieter:in – erst dann wird hinterlegt
+      BPHead.ansehen([{ url: `api/vergabedok/${d.id}.pdf?neu=1&t=${Date.now()}`, typ: 'pdf', name: 'Angebotsbesprechung', folge: [{ fremd: 'Bieter:in' }], beiUnterschrift: (blob, nm) => vgHinterlegen(d.id, blob, nm) }]);
+      const t0 = Date.now(), los = () => { const u = document.querySelector('.bph-gv [data-gv="us"]'); if (u && !u.hidden && document.querySelector('.bph-gv canvas.bph-gvc')) setTimeout(() => u.click(), 300); else if (document.querySelector('.bph-gv') && Date.now() - t0 < 15000) setTimeout(los, 200); };
+      setTimeout(los, 300);   // sobald das PDF da ist, gleich mit dem Unterschreiben anfangen
+      await vgBsNeu(); return; }
+    if (t.dataset.bssuchen) { t.disabled = true; const r = await api(`api/vergabedok/${d.id}/suchen`); BS.treffer = r.treffer || []; BS.fuer = d.id; await vgBsNeu(); }
+  } catch (er) { toast(er.message, true); }
+});
+document.addEventListener('change', async (e) => {   // Scan oder Foto des ausgefüllten Blatts einlesen
+  const i = e.target; if (!i.dataset || !i.dataset.bsein || !i.files.length || !L) return;
+  const f = i.files[0], aid = +i.dataset.bsein; i.value = '';
+  try { const d = await vgBsSicher(aid); await vgHinterlegen(d.id, f, f.name); } catch (er) { toast(er.message, true); }
 });

@@ -4,7 +4,8 @@
    Danach liegt die Unterschrift auf der Seite (Vorgabe: letzte Seite unten links) – verschieben, an der Ecke größer ziehen,
    auf eine andere Seite tippen setzt sie dorthin. „Übernehmen“ erzeugt das PDF neu (api/bp/pdf/unterschreiben),
    die Vorschau zeigt es, Teilen/Speichern/Drucken nehmen dann das unterschriebene.
-   bpUnterschrift.start({ el, S, roh, name, fertig(blob, name) })   el = Vorschau, S = Seitenbereich, roh = ArrayBuffer des PDFs */
+   bpUnterschrift.start({ el, S, roh, name, fremd?, fertig(blob, name) })   el = Vorschau, S = Seitenbereich, roh = ArrayBuffer des PDFs,
+   fremd: Unterschrift einer anderen Person am Gerät (z. B. 'Bieter:in') – immer selbst zeichnen, rechts daneben gesetzt */
 (() => {
   if (window.bpUnterschrift) return;
   const H = window.BPHead, esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -95,12 +96,12 @@
   }
 
   /* Unterschriftsfeld im Vollbild (Finger oder Stift) → { blob } (PNG, durchsichtig, beschnitten) */
-  function pad() {
+  function pad(wer) {   // wer: Unterschrift einer anderen Person (z. B. „Bieter:in“) – dann ohne „Gespeicherte nehmen“
     return new Promise((fertig) => {
       const d = document.createElement('div'); d.className = 'bpu-pad';
-      d.innerHTML = `<div class="k"><b>Unterschreiben</b><button type="button" class="bpu-b" data-p="x">Abbrechen</button></div>
+      d.innerHTML = `<div class="k"><b>${wer ? 'Unterschrift ' + esc(wer) : 'Unterschreiben'}</b><button type="button" class="bpu-b" data-p="x">Abbrechen</button></div>
         <div class="f"><canvas></canvas><span class="li"></span></div>
-        <div class="a"><button type="button" class="bpu-b" data-p="leer">Löschen</button><button type="button" class="bpu-b" data-p="meine">Gespeicherte nehmen</button><button type="button" class="bpu-b pri" data-p="ok">Einsetzen</button></div>`;
+        <div class="a"><button type="button" class="bpu-b" data-p="leer">Löschen</button>${wer ? '' : '<button type="button" class="bpu-b" data-p="meine">Gespeicherte nehmen</button>'}<button type="button" class="bpu-b pri" data-p="ok">Einsetzen</button></div>`;
       document.body.appendChild(d);
       const F = flaeche(d.querySelector('canvas')), frei = quer(d);
       const zu = (v) => { F.weg(); frei(); d.remove(); fertig(v); };
@@ -140,20 +141,20 @@
   }
 
   /* PC: Auswahl */
-  function auswahl(knopf, el) {
+  function auswahl(knopf, el, wer) {
     return new Promise((fertig) => {
       const m = document.createElement('div'); m.className = 'bpu-m';
-      m.innerHTML = `<div class="g">Unterschrift wählen</div><button type="button" data-u="meine"><img alt="" src="api/bp/signatur?t=${Date.now()}"><span>Meine Unterschrift<small>aus „Mein Konto“</small></span></button>
+      m.innerHTML = `<div class="g">${wer ? 'Unterschrift ' + esc(wer) : 'Unterschrift wählen'}</div>${wer ? '' : `<button type="button" data-u="meine"><img alt="" src="api/bp/signatur?t=${Date.now()}"><span>Meine Unterschrift<small>aus „Mein Konto“</small></span></button>`}
         <button type="button" data-u="zeichnen"><span style="font-size:1.2rem;width:70px;text-align:center">✍</span><span>Selbst zeichnen<small>mit Maus, Stift oder Touchscreen</small></span></button>
         <button type="button" data-u="handy"><span style="font-size:1.2rem;width:70px;text-align:center">📱</span><span>Auf dem Handy unterschreiben<small>QR-Code scannen, dort mit dem Finger</small></span></button>
         <button type="button" data-u="x"><span style="width:70px"></span><span>Abbrechen</span></button>`;
       el.appendChild(m);
-      m.querySelector('img').addEventListener('error', (e) => { e.target.style.visibility = 'hidden'; });
+      const im = m.querySelector('img'); if (im) im.addEventListener('error', (e) => { e.target.style.visibility = 'hidden'; });
       const r = knopf.getBoundingClientRect(), re = el.getBoundingClientRect();
       m.style.top = (r.bottom - re.top + 6) + 'px'; m.style.left = Math.max(8, Math.min(re.width - m.offsetWidth - 8, r.right - re.left - m.offsetWidth)) + 'px';
       m.addEventListener('click', async (e) => { const b = e.target.closest('[data-u]'); if (!b) return; m.remove();
         if (b.dataset.u === 'meine') fertig({ meine: true });
-        else if (b.dataset.u === 'zeichnen') fertig(await pad());
+        else if (b.dataset.u === 'zeichnen') fertig(await pad(wer));
         else if (b.dataset.u === 'handy') fertig(await handy());
         else fertig(null); });
     });
@@ -169,10 +170,10 @@
       if (!r || !r.ok) { if (window.toast) toast('Dieser Stempel ist noch nicht hinterlegt (Verwaltung → Büro-Einstellungen → Firma & Logo).', true); return; }
       wahl = { stempel: o.stempel }; blob = await r.blob(); rot = locker();
     } else {
-    const r0 = await fetch('api/bp/signatur', { credentials: 'same-origin' }).catch(() => null);   // vorbelegt: die eigene Unterschrift aus „Mein Konto“
+    const r0 = o.fremd ? null : await fetch('api/bp/signatur', { credentials: 'same-origin' }).catch(() => null);   // vorbelegt: die eigene Unterschrift aus „Mein Konto“ (nicht bei einer anderen Person)
     if (r0 && r0.ok) { wahl = { meine: true }; blob = await r0.blob(); }
     else {
-      wahl = TOUCH() ? await pad() : await auswahl(knopf, el);
+      wahl = TOUCH() ? await pad(o.fremd) : await auswahl(knopf, el, o.fremd);
       if (!wahl) return;
       if (wahl.meine) { if (window.toast) toast('Noch keine Unterschrift hinterlegt – unter „Mein Konto“ ein Foto hochladen oder selbst zeichnen.', true); return; }
       blob = await wahl.blob;
@@ -182,7 +183,7 @@
     const seiten = [...S.querySelectorAll('.bph-pg')]; if (!seiten.length) return;
     let pg = seiten[seiten.length - 1];
     const sig = document.createElement('div'); sig.className = 'bpu-sig'; sig.innerHTML = `<img alt="Unterschrift" src="${src}"><i title="Größe ändern"></i>`;
-    const P = wahl.stempel ? { x: 0.55, y: 0.62, w: 0.3, h: 0.12 } : { x: 0.08, y: 0.72, w: 0.3, h: 0.07 };
+    const P = wahl.stempel ? { x: 0.55, y: 0.62, w: 0.3, h: 0.12 } : o.fremd ? { x: 0.6, y: 0.72, w: 0.3, h: 0.07 } : { x: 0.08, y: 0.72, w: 0.3, h: 0.07 };   // andere Person: rechts daneben
     const img = sig.querySelector('img'); img.onload = () => { const v = img.naturalWidth / Math.max(1, img.naturalHeight), pr = pg.getBoundingClientRect(); P.h = Math.min(0.15, (P.w * pr.width) / v / pr.height); setz(); };
     const setz = () => { if (sig.parentElement !== pg) { pg.style.position = 'relative'; pg.appendChild(sig); } Object.assign(sig.style, { left: P.x * 100 + '%', top: P.y * 100 + '%', width: P.w * 100 + '%', height: P.h * 100 + '%', transform: rot ? `rotate(${rot}deg)` : '' }); };
     setz(); pg.scrollIntoView({ block: 'end' });
@@ -196,9 +197,9 @@
     const tipp = (e) => { const z = e.target.closest('.bph-pg'); if (!z || e.target.closest('.bpu-sig')) return; e.stopPropagation(); const r = z.getBoundingClientRect(); pg = z;   // auf eine Seite tippen: Unterschrift dorthin
       P.x = Math.max(0, Math.min(1 - P.w, (e.clientX - r.left) / r.width - P.w / 2)); P.y = Math.max(0, Math.min(1 - P.h, (e.clientY - r.top) / r.height - P.h / 2)); setz(); };
     S.addEventListener('click', tipp, true);
-    const name = (H && H.me && (H.me.full || H.me.name)) || '';
+    const name = o.fremd || (H && H.me && (H.me.full || H.me.name)) || '';
     const bar = document.createElement('div'); bar.className = 'bpu-bar';
-    bar.innerHTML = `<span>Unterschrift verschieben, an der Ecke größer ziehen · auf eine Seite tippen setzt sie dorthin</span>
+    bar.innerHTML = `<span>${o.fremd ? '<b>' + esc(o.fremd) + ':</b> ' : ''}Unterschrift verschieben, an der Ecke größer ziehen · auf eine Seite tippen setzt sie dorthin</span>
       <label><input type="checkbox" data-u="txt"${!wahl.stempel || wahl.stempel === 'pruef' ? ' checked' : ''}> Name und Datum eintragen</label><button type="button" class="bpu-b" data-u="anders">✍ Anders unterschreiben</button>${TOUCH() ? '' : '<button type="button" class="bpu-b" data-u="handy" title="QR-Code scannen und auf dem Handy unterschreiben">📱 Am Handy</button>'}<button type="button" class="bpu-b" data-u="stempel">🔖 Stempel</button><button type="button" class="bpu-b" data-u="ab">Abbrechen</button><button type="button" class="bpu-b pri" data-u="ok">Übernehmen</button>`;
     el.appendChild(bar);
     const ende = () => { S.removeEventListener('click', tipp, true); sig.remove(); bar.remove(); URL.revokeObjectURL(src); };
@@ -212,7 +213,7 @@
         blob = await r.blob(); wahl = { stempel: art }; rot = locker(); bar.querySelector('[data-u="txt"]').checked = art === 'pruef';   // Prüfstempel: Datum und Name gleich eintragen
         Object.assign(P, { w: 0.3, h: 0.12 }); URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }
       if (b.dataset.u === 'handy') { const w = await handy(); if (!w) return; rot = 0; blob = w.blob; wahl = w; URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }
-      if (b.dataset.u === 'anders') { const w = await pad(); if (!w) return; rot = 0;
+      if (b.dataset.u === 'anders') { const w = await pad(o.fremd); if (!w) return; rot = 0;
         if (w.meine) { const r = await fetch('api/bp/signatur', { credentials: 'same-origin' }); if (!r.ok) { if (window.toast) toast('Noch keine Unterschrift in „Mein Konto“.', true); return; } blob = await r.blob(); wahl = { meine: true }; }
         else { blob = await w.blob; wahl = w; }
         URL.revokeObjectURL(src); src = URL.createObjectURL(blob); img.src = src; return; }

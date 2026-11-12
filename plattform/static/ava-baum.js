@@ -108,6 +108,7 @@ function angSeite() {   // Angebote & Preisspiegel: Bereich rechts (seite.js) �
   const sp = document.querySelector('#view .ang-sp'); if (!sp) return;
   const leer = '<div class="card empty"><p class="hint">Links ein LV wählen – hier steht dann sein Preisspiegel.</p></div>';
   seite(sp, 'ang', [{ id: 'ps', titel: 'Preisspiegel', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${L ? vAngebote('ps') : leer}</div>`; } },
+    { id: 'bs', titel: 'Besprechung', mount: (el) => { vgBsMount(el); } },   // ava-vergabe.js: Protokoll je Bieter:in, Blanko, digital unterschreiben, einlesen
     { id: 'vg', titel: 'Vergabe', mount: (el) => { el.innerHTML = `<div class="sr-pad re2-ed">${(L && vAngebote('kopf').trim()) || '<div class="card empty"><p class="hint">Noch nicht vergeben. Im Preisspiegel unter der Bieter:in „Vergeben …“ wählen.</p></div>'}</div>`; } }],
     { start: 'ps', w: 0.3, wechsel: () => { uLeisteNeu(); requestAnimationFrame(randUnten); } });
 }

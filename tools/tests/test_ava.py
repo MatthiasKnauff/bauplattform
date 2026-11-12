@@ -933,6 +933,13 @@ def test_angebotsbesprechung_und_bauvertrag(ctx):
         c.uj(f"{A}/vergabedok/{vid}", {"angebot": {"nachlass": "1,5 %", "skonto": "2"}})
         c.uj(f"{A}/vergabedok/{vid}", {"angebot": {"skonto_tage": "10 Tage"}, "grundlagen": {"einbehalt": "3 % der Bruttoabrechnungssumme"}})
         c.get(f"{A}/vergabedok/{vid}.pdf?neu=1").ist_pdf()
+        c.get(f"{A}/vergabedok/{vid}.pdf?blanko=1").ist_pdf()   # Blanko für die Baustelle (Gesprächsfelder als Linien)
+        r = c.get(f"{A}/vergabedok/{vid}/suchen", expect=None)   # im Projektordner suchen – ohne Projektordner 502, sonst Liste
+        pruefe(r.status in (200, 502), f"Suchen: 200/502 erwartet, kam {r.status}")
+        if r.status == 200:
+            pruefe(isinstance(r.json.get("treffer"), list), "Suchen liefert eine Trefferliste")
+        r = c.post(f"{A}/vergabedok/{vid}/unterschrieben", dateien={"datei": ("foto.txt", b"kein Bild", "text/plain")}, expect=None)
+        gleich(r.status, 400, "Einlesen: weder PDF noch Foto → abgelehnt")
         d = c.pj(f"{A}/vergabedok/{vid}/abschliessen")
         gleich(finde(d["dokumente"], id=vid)["status"], "abgeschlossen", "Status nach Abschluss")
         L = c.gj(f"{A}/lv/{lv['id']}")

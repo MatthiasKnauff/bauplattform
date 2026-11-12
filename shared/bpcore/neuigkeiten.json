@@ -1,5 +1,13 @@
 [
  {
+  "id": "2026-11-12-besprechung",
+  "datum": "2026-11-12",
+  "app": "ava",
+  "titel": "Besprechung: eigener Platz, Papier und digital",
+  "text": "Ein Klick auf „Besprechung“ im Ablauf öffnet rechts den Reiter Besprechung: jede Bieter:in mit dem Stand ihres Protokolls. Dazu vier Wege – am Bildschirm, Blanko drucken für die Baustelle, digital unterschreiben am Tablet (erst Bauleitung, dann Bieter:in mit dem Finger) und das ausgefüllte Blatt als Scan oder Foto einlesen bzw. im Projektordner suchen und zuordnen.",
+  "ziel": "#avStufen [data-bs]"
+ },
+ {
   "id": "2026-11-12-preisspiegel-fest",
   "datum": "2026-11-12",
   "app": "ava",

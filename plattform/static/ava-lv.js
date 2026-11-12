@@ -438,7 +438,9 @@ document.addEventListener('click', async (e) => {
     if ((tab === 'lv' || tab === 'angebote') && L && (ohneLv(L) || (tab === 'lv' && lvWeg(L)))) {   // Auftrag ohne LV gehört nicht in Ausschreibung/Vergabe: ein echtes LV öffnen, sonst keins
       const n = LIST.find((x) => !x.archived && !ohneLv(x) && !lvWeg(x)); if (n) await openLv(n.id); else { L = null; }
     }
-    render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); } return; }
+    render(); if (tab === 'uebersicht' || tab === 'auftraege') { await refreshList(); render(); }
+    if (tb.hasAttribute('data-bs')) setTimeout(() => { if (window.seiteOffen && seiteDa() && !seiteOffen()) seiteUmschalten(); const r = document.querySelector('#view .ang-sp [data-srt="bs"]'); if (r && !r.classList.contains('on')) r.click(); }, 0);   // Ablauf „Besprechung“: Angebote mit dem Reiter Besprechung rechts
+    return; }
   const sw = t.closest('[data-stwahl]'); if (sw && L) {
     pickMenu(sw, { items: STATUS.map(([k, l]) => ({ value: k, title: l, on: L.status === k })), onPick: (k) => { const b = document.createElement('button'); b.dataset.status = k; b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); } });
     return;
